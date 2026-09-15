@@ -1005,7 +1005,7 @@ window.akteSchrijven = {
 
   async maakKaartje(naam, type) {
     if (!type) return;
-    try { await api.createEntity(type, { name: naam }); this.namen(); }
+    try { await api.createEntity(type, { name: naam, data: { concept: 'true' } }); this.namen(); }
     catch (e) { alert('Aanmaken mislukt: ' + e.message); }
   },
 
@@ -1094,7 +1094,10 @@ window.akteSchrijven = {
 
   async placeholderMaak(type, naam) {
     try {
-      const ent = await api.createEntity(type, { name: naam });
+      // `concept` markeert een plaatshouder: hij bestaat, maar er staat nog
+      // niets in. De archieftabs tonen daar een teller op, en zodra je het
+      // kaartje bewaart is de vlag weg.
+      const ent = await api.createEntity(type, { name: naam, data: { concept: 'true' } });
       // Meteen in de naamindex, anders blijft hij in de tekst "onbekend" tot je
       // de app herlaadt.
       window._entityNameIndex = window._entityNameIndex || {};

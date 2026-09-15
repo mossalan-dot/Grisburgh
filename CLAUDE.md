@@ -486,6 +486,16 @@ dm-panel.js : combat-canvas.js?v=22   render-statblock.js?v=9
 > welke régel open staat leest de server uit (`_onthuld`), zodat de client geen
 > posities telt.
 >
+> **Plaatshouders dragen `data.concept`.** Een kaartje dat vanuit een akte (of
+> straks een dungeon) als plaatshouder is aangemaakt krijgt die vlag; de
+> kaartjes-editor haalt hem er bij het opslaan af — dat ís invullen. In het
+> archief filtert de chip **Onaf (N)** erop en draagt het kaartje een gestippelde
+> rand; bij een akte staat er in de samenvatting **N na te kijken**, met een
+> lijst van namen zonder kaartje, lege kaartjes en beelden zonder bestand.
+> Bewust bij de akte en niet als belletje: dit hoort bij het voorbereiden van de
+> akte die je gaat spelen. `GET /meta/akte/:key/namen` geeft per naam
+> `concept` mee.
+>
 > **Een naam zonder kaartje krijgt een plus.** Schrijf je `[[Vrouwe Kwartel]]`
 > en bestaat die niet, dan maak je hem ter plekke aan als leeg kaartje
 > (`maakPlaceholder`): kies de soort, en de rest vul je later in. De

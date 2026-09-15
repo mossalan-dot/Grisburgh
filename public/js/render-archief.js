@@ -1363,6 +1363,7 @@ function _verhaalSectieHtml(ch, info) {
   const tekst  = info.tekst || '';
   const namen  = _verhaalNamen[ch];
   const zonder = Array.isArray(namen) ? namen.filter(n => !n.kaartje).length : null;
+  const leeg   = Array.isArray(namen) ? namen.filter(n => n.concept).length : 0;
   const secties = (tekst.match(/^#{1,6}\s+/gm) || []).length;
   const blokken = (tekst.match(/^>\s*\[!/gm) || []).length;
   const woorden = tekst ? tekst.trim().split(/\s+/).length : 0;
@@ -1385,16 +1386,106 @@ function _verhaalSectieHtml(ch, info) {
           <span>${icon('scroll-text')} ${secties} ${secties === 1 ? 'sectie' : 'secties'}</span>
           <span>${icon('quote')} ${blokken} ${blokken === 1 ? 'regieblok' : 'regieblokken'}</span>
           <span>${icon('book-open')} ${woorden.toLocaleString('nl-NL')} woorden</span>
-          ${zonder ? `<span class="verhaal-samenvatting--let-op">${icon('users')} ${zonder} ${zonder === 1 ? 'naam' : 'namen'} zonder kaartje</span>` : ''}
-          ${losseBeelden ? `<span class="verhaal-samenvatting--let-op">${icon('image')} ${losseBeelden} ${losseBeelden === 1 ? 'beeld' : 'beelden'} zonder bestand</span>` : ''}
+          ${(zonder || leeg || losseBeelden) ? `
+            <button class="verhaal-nakijken" onclick="window._akteNakijken('${esc(ch)}')"
+              title="Wat er nog te doen is voordat je deze akte speelt">
+              ${icon('clipboard-list')} ${zonder + leeg + losseBeelden} na te kijken</button>` : ''}
         </div>`
         : `<p class="dm-hint">Nog geen tekst. Schrijf hem met de ganzenveer, of importeer een .md-bestand daarbinnen.</p>`}
     </div>`;
 }
 
+// ── Voor je speelt ──────────────────────────────────────────────────────────
+// Plaatshouders stapelen zich op: je schrijft een naam, maakt er een leeg
+// kaartje bij en gaat door met je zin. Dat is precies goed tijdens het
+// schrijven — maar dan moet er wel een plek zijn die zegt wat er nog ligt, en
+// die plek is de akte zélf, vlak voordat je hem speelt. Niet een belletje in de
+// hoek van het scherm: dit hoort bij het voorbereiden, niet bij het spelen.
+window._akteNakijken = async (ch) => {
+  const info  = meta?.hoofdstukken?.[ch] || {};
+  const tekst = info.tekst || '';
+  let namen = _verhaalNamen[ch];
+  if (namen === undefined) {
+    try { namen = (await api.akteNamen(ch)).namen || []; _verhaalNamen[ch] = namen; } catch { namen = []; }
+  }
+  const zonder  = namen.filter(n => !n.kaartje);
+  const leeg    = namen.filter(n => n.concept);
+  const beelden = [...new Set((tekst.match(/!\[\[([^\]]+)\]\]/g) || [])
+    .map(v => v.slice(3, -2))
+    .filter(v => /\.[a-z0-9]{2,4}$/i.test(v)))];
+
+  const rij = (inhoud) => `<div class="pb-entity-item" style="cursor:default">${inhoud}</div>`;
+  window.app.openModal(`Na te kijken — ${esc(info.short || info.title || ch)}`, '', `
+    ${zonder.length ? `<div class="dm-feature-section" style="margin:0">
+      <div class="dm-section-label">${icon('users')} Genoemd, maar geen kaartje (${zonder.length})</div>
+      <div class="pb-entity-list">
+        ${zonder.map(n => rij(`
+          <span class="pb-entity-name">${esc(n.naam)}</span>
+          <select class="dm-input dm-input-sm" onchange="window._nakijkMaak('${esc(ch)}','${escJS(n.naam)}', this.value)">
+            <option value="">Kaartje maken…</option>
+            <option value="personages">Personage</option>
+            <option value="locaties">Locatie</option>
+            <option value="organisaties">Organisatie</option>
+            <option value="voorwerpen">Voorwerp</option>
+            <option value="documenten">Document</option>
+          </select>`)).join('')}
+      </div></div>` : ''}
+
+    ${leeg.length ? `<div class="dm-feature-section">
+      <div class="dm-section-label">${icon('pencil')} Kaartjes die nog leeg zijn (${leeg.length})</div>
+      <div class="pb-entity-list">
+        ${leeg.map(n => rij(`
+          <span class="pb-entity-name">${esc(n.naam)} <span class="dm-hint">· ${esc(n.entityType || '')}</span></span>
+          <button class="dm-btn dm-btn-sm dm-btn-primary"
+            onclick="window._openEditor('${esc(n.entityType)}','${esc(n.entityId)}')">${icon('pencil')} Invullen</button>
+          <button class="dm-btn dm-btn-sm dm-btn-ghost" title="Dit kaartje is zo goed — haal het uit de lijst"
+            onclick="window._nakijkKlaar('${esc(ch)}','${esc(n.entityType)}','${esc(n.entityId)}', this)">${icon('check')}</button>`)).join('')}
+      </div></div>` : ''}
+
+    ${beelden.length ? `<div class="dm-feature-section">
+      <div class="dm-section-label">${icon('image')} Beelden zonder bestand (${beelden.length})</div>
+      <p class="dm-hint">Koppel ze in het schrijfscherm: elk kader heeft daar een knop <em>Bestand kiezen</em>.</p>
+      <div class="pb-entity-list">
+        ${beelden.slice(0, 12).map(b => rij(`<span class="pb-entity-name" style="white-space:normal">${esc(b)}</span>`)).join('')}
+        ${beelden.length > 12 ? `<p class="dm-hint">…en nog ${beelden.length - 12}.</p>` : ''}
+      </div>
+      <div class="dm-feature-row">
+        <button class="dm-btn dm-btn-primary dm-btn-sm" onclick="window.app.closeModal();window._akteSchrijf('${esc(ch)}')">
+          ${icon('feather')} Naar het schrijfscherm</button>
+      </div></div>` : ''}
+
+    ${(!zonder.length && !leeg.length && !beelden.length)
+      ? '<p class="dm-hint">Niets meer na te kijken — deze akte is klaar om te spelen.</p>' : ''}`);
+};
+
+// Een naam uit de lijst alsnog een kaartje geven (blijft een plaatshouder).
+window._nakijkMaak = async (ch, naam, type) => {
+  if (!type) return;
+  try {
+    await api.createEntity(type, { name: naam, data: { concept: 'true' } });
+    delete _verhaalNamen[ch];
+    await _verhaalLaadNamen(ch);
+    window._akteNakijken(ch);
+  } catch (e) { alert('Aanmaken mislukt: ' + e.message); }
+};
+
+// "Zo is hij goed": de plaatshouder-vlag eraf, zonder de editor te openen. Niet
+// elk kaartje hóéft tekst — een naam kan genoeg zijn.
+window._nakijkKlaar = async (ch, type, id, btn) => {
+  try {
+    const ent = await api.getEntity(type, id);
+    const data = { ...(ent.data || {}) };
+    delete data.concept;
+    await api.updateEntity(type, id, { ...ent, data });
+    delete _verhaalNamen[ch];
+    await _verhaalLaadNamen(ch);
+    window._akteNakijken(ch);
+  } catch (e) { alert('Bijwerken mislukt: ' + e.message); }
+};
+
 window._akteSchrijf = async (ch) => {
   const info = meta?.hoofdstukken?.[ch] || {};
-  const { openAkteSchrijven } = await import('./akte-schrijven.js?v=23');
+  const { openAkteSchrijven } = await import('./akte-schrijven.js?v=24');
   openAkteSchrijven(ch, info.short || info.title || ch);
 };
 window._logboekVerversen = () => renderLogboek();
@@ -1415,7 +1506,7 @@ async function _verhaalLaadNamen(ch) {
 window._verhaalMaakKaartje = async (ch, naam, type) => {
   if (!type) return;
   try {
-    await api.createEntity(type, { name: naam });
+    await api.createEntity(type, { name: naam, data: { concept: 'true' } });
     delete _verhaalNamen[ch];
     _verhaalLaadNamen(ch);
   } catch (e) { alert('Aanmaken mislukt: ' + e.message); }

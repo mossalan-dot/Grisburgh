@@ -7253,9 +7253,13 @@ router.get('/meta/akte/:key/namen', requireDM, (req, res) => {
   if (!dit) return res.status(404).json({ error: 'Akte niet gevonden' });
 
   const entities = storage.readJSON('entities.json');
-  const index    = new Map();   // genormaliseerde naam → {type, id, name}
+  const index    = new Map();   // genormaliseerde naam → {type, id, name, concept}
   for (const type of ENTITY_TYPES) {
-    for (const e of (entities[type] || [])) index.set(_impNorm(e.name), { type, id: e.id, name: e.name });
+    for (const e of (entities[type] || [])) {
+      // `concept` = als plaatshouder aangemaakt en nog niet ingevuld. De
+      // akte-voorbereiding laat zien welke van de genoemde kaartjes dat zijn.
+      index.set(_impNorm(e.name), { type, id: e.id, name: e.name, concept: e.data?.concept === 'true' || e.data?.concept === true });
+    }
   }
 
   // "Eerder" = elke akte met een lager nummer. Aktes zonder nummer tellen niet
@@ -7275,6 +7279,7 @@ router.get('/meta/akte/:key/namen', requireDM, (req, res) => {
       entityType: treffer?.type || null,
       entityId:   treffer?.id   || null,
       kaartje:    !!treffer,
+      concept:    !!treffer?.concept,
       nieuw:      !eerder.has(_impNorm(naam)),
     };
   });

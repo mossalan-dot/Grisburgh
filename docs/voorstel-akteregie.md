@@ -340,6 +340,31 @@ gezet, vier vragen blijven staan.
 
 ---
 
+## Plaatshouders en de weg om ze in te vullen
+
+Schrijven gaat sneller dan invullen: je noemt een naam, maakt er met de plus een
+leeg kaartje bij en schrijft door. Dat is precies goed — maar dan moet er wel
+een plek zijn die zegt wat er nog ligt.
+
+- **De vlag.** Een kaartje dat als plaatshouder is aangemaakt draagt
+  `data.concept`. Die verdwijnt zodra de DM het kaartje bewaart; dat ís
+  invullen. Er is ook een knopje "zo is hij goed" voor een kaartje dat niet
+  meer nodig heeft dan zijn naam.
+- **In het archief**: per tabblad een chip **Onaf (N)** die erop filtert, en een
+  gestippelde rand met het woordje *onaf* op het kaartje zelf. Alleen voor de
+  DM — een speler ziet ze toch niet, ze staan verborgen.
+- **Bij de akte**: de samenvatting draagt één knop **"N na te kijken"** die een
+  lijst opent met drie soorten werk: namen zonder kaartje (met een keuzelijst om
+  er een te maken), kaartjes die nog leeg zijn (met *Invullen* en *zo is hij
+  goed*), en beelden zonder bestand (met een knop naar het schrijfscherm).
+
+Waarom bij de akte en niet als belletje in de hoek: dit hoort bij het
+**voorbereiden**. Je opent de akte die je gaat spelen, en dán wil je weten wat
+er nog open staat — niet drie dagen eerder een melding die je wegklikt. En
+daarom telt de lijst ook alleen wat in díé akte genoemd wordt.
+
+---
+
 ## Risico's, eerlijk
 
 - **Het meta-lek hierboven.** Tekst en script horen niet in `GET /meta`. Ze

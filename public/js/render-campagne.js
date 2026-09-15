@@ -2729,6 +2729,12 @@ async function renderEntitySection(type) {
   // wat hij gemarkeerd heeft.
   const _mijnBm = (window.app?.state?.bookmarks || []).filter(b => b.type === type);
   if (_mijnBm.length) _specialChips.unshift({ val: '__bladwijzer__', label: `★ Bladwijzers` });
+  // Kaartjes die als plaatshouder zijn aangemaakt — vanuit een akte, vanuit een
+  // dungeon — en waar nog niets in staat. Ze zijn er wel, maar ze wachten op
+  // jou; vandaar een eigen chip met de stand erbij. Alleen voor de DM: een
+  // speler ziet ze toch niet (ze staan verborgen).
+  const _concepten = isDM() ? (entities[type] || []).filter(_isConcept).length : 0;
+  if (_concepten) _specialChips.unshift({ val: '__concept__', label: `${icon('pencil')} Onaf ${_concepten}` });
   // Filterbalk tonen als er een speciale chip is, of als er ≥2 gewone subtype-waarden zijn
   const _showSf = _specialChips.length > 0 || sfVals.length >= 2;
 
@@ -3114,6 +3120,15 @@ function _getEntitySubtypeVal(type, e) {
   return e.subtype || '';
 }
 
+// Een plaatshouder: aangemaakt vanuit een akte of een dungeon, nog niet
+// bewaard door de DM. De vlag verdwijnt zodra hij het kaartje opslaat. We
+// kijken ook naar "leeg en onaangeraakt", zodat kaartjes van vóór deze vlag
+// meetellen zolang er echt niets in staat.
+function _isConcept(e) {
+  if (e?.data?.concept === 'true' || e?.data?.concept === true) return true;
+  return false;
+}
+
 function filterEntities(type, list) {
   const q  = searchQueries[type];
   const sf = subtypeFilters[type] || null;
@@ -3131,7 +3146,9 @@ function filterEntities(type, list) {
       return sc >= 0;
     });
   }
-  if (sf === '__bladwijzer__') {
+  if (sf === '__concept__') {
+    filtered = filtered.filter(_isConcept);
+  } else if (sf === '__bladwijzer__') {
     const bmIds = new Set((window.app?.state?.bookmarks || []).map(b => b.id));
     filtered = filtered.filter(e => bmIds.has(e.id));
   } else if (sf === '__winkel__' && type === 'locaties') {
@@ -3266,7 +3283,7 @@ function renderCard(type, e) {
   // portret/filmpje wordt overal hergebruikt, dus de kaart staat visueel boven NPC's.
   const _isProtagonist = type === 'personages' && (e.subtype === 'speler');
   return `
-    <div class="entity-card${e._beeld === false ? ' no-img' : ''}${vis === 'hidden' && isDM() ? ' card-hidden' : ''}${vis === 'vague' && isDM() ? ' card-vague-dm' : ''}${e._deceased ? ' card-deceased' : ''}${_goddelijkType ? ` card-goddelijk card-goddelijk--${_goddelijkType}` : ''}${_isBoon ? ' card-boon' : ''}${_isProtagonist ? ' card-protagonist' : ''}"${_rarKey ? ` data-rarity="${_rarKey}"` : ''}${_isProtagonist ? ' data-protagonist="true"' : ''}
+    <div class="entity-card${e._beeld === false ? ' no-img' : ''}${vis === 'hidden' && isDM() ? ' card-hidden' : ''}${vis === 'vague' && isDM() ? ' card-vague-dm' : ''}${e._deceased ? ' card-deceased' : ''}${_goddelijkType ? ` card-goddelijk card-goddelijk--${_goddelijkType}` : ''}${_isBoon ? ' card-boon' : ''}${_isProtagonist ? ' card-protagonist' : ''}${isDM() && _isConcept(e) ? ' card-concept' : ''}"${_rarKey ? ` data-rarity="${_rarKey}"` : ''}${_isProtagonist ? ' data-protagonist="true"' : ''}
       onclick="window._openDetail('${type}','${e.id}')">
       ${isDM() ? `
         <div class="dm-only absolute top-7 right-2 z-30 flex flex-col gap-1">
@@ -8167,6 +8184,11 @@ window._openEditor = async (tab, editId) => {
     data.extraImages = entityEditorImages.length > 0
       ? JSON.stringify(entityEditorImages.map(i => ({ id: i.id, caption: i.caption || '' })))
       : '';
+    // Een kaartje dat als plaatshouder is aangemaakt (vanuit een akte, vanuit
+    // een dungeon) draagt `concept`. Zodra de DM het hier bewaart is het geen
+    // plaatshouder meer — dat is per slot van rekening precies wat "invullen"
+    // betekent.
+    delete data.concept;
     const payload = {
       name: form.get('name'),
       subtype: form.get('subtype') || '',

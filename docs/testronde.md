@@ -456,6 +456,10 @@ een speler ziet, **TAB** = het tafelscherm (`?display=1`), **ALL** = alle drie.
 - [ ] Een `[[naam]]` zonder kaartje krijgt een groene **+**: kies personage/locatie/organisatie/voorwerp/document en het kaartje bestaat (verborgen, leeg — later in te vullen)
 - [ ] De kaartjes-kiezer tijdens het schrijven heeft *Nieuw kaartje met de getypte naam*: hij zet de naam in de tekst én maakt het kaartje
 - [ ] Akte-rij: de veer is de tékst, het tandwiel zijn de akte-instellingen
+- [ ] Een kaartje dat via de plus is gemaakt draagt in het archief een gestippelde rand met *onaf*, en de tab heeft een chip **Onaf (N)** die erop filtert
+- [ ] Bewaar dat kaartje in de editor → de rand en de chip verdwijnen
+- [ ] Akte-samenvatting: de knop **N na te kijken** opent een lijst met namen zonder kaartje, lege kaartjes en beelden zonder bestand
+- [ ] In die lijst: *Invullen* opent de editor, het vinkje haalt het kaartje uit de lijst zonder te openen, de keuzelijst maakt een kaartje voor een losse naam
 - [ ] **Kaartengalerij** (ALL) — hoofdkaarten en dungeons als kaartjes, plus-knop voor de DM
 - [ ] **Wereldkaart** (ALL) — zoomen met wiel en knoppen, pannen, pins openen de locatie; een speler stelt een pin voor en de DM keurt goed
 - [ ] **Knoppenbalk over de kaart** (ALL) — open een hoofdkaart: de zoombalk zweeft óver het beeld en de kaart past in één keer helemaal in het venster (geen afgebroken onderkant). *Passend maken* doet hetzelfde na in- of uitzoomen
