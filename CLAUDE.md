@@ -535,6 +535,19 @@ dm-panel.js : combat-canvas.js?v=22   render-statblock.js?v=9
 >    vergat de zoekterm, zodat een verslag zichtbaar maken je resultaat wegveegde.
 >    Dat is nu `_logboekHerteken()`.
 >
+> **De dichtgeklapte akte is een balk geworden** (68 px in plaats van 110): met
+> veertien aktes was je bijna twee schermen aan het scrollen voordat je bij het
+> eerste verslag kwam; nu staan er negen op één scherm. De akte die je leest
+> houdt zijn volle hoogte — daar is het beeld de kop van wat eronder staat. Twee
+> dingen die daarbij hoorden: de **verduistering** liep van onder naar boven,
+> prima onder een hoge banner maar in een lage balk staat de titel dan in het
+> lichte deel (Op zee!, Een onverwachte toren waren onleesbaar) — dicht loopt hij
+> van links naar rechts, een sluier achter de tekst met het beeld vrij rechts. En
+> het **uitklapteken** was een goudkleurig driehoekje van 11 px dat wegviel op een
+> lichte foto; nu een chevron in een donkere penning die een kwartslag draait.
+> Alle regels staan onderaan `theme.css`, want `.logboek-chapter-banner--img`
+> staat op regel 11239 en wint anders op volgorde.
+>
 > Daarnaast de emoji eruit: de chips in het sessievenster droegen 👤🏰🏛️⚔️📜 als
 > sectiekopje en ✨/↩ per naam. Nu `icon()`, met een tooltip die zegt wat het
 > merkteken betekent — dat stond nergens.

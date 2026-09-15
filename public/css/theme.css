@@ -25482,3 +25482,45 @@ body.lade-open .dm-regie-balk-inner { height: auto; }
   width: 10px; height: 10px;
   vertical-align: -1px; margin-right: 1px; opacity: 0.7;
 }
+
+/* ── Logboek: de dichtgeklapte akte is een regel, geen affiche ───────────────
+   Veertien banners van 110 px waren bijna twee schermen scrollen vóór je bij
+   het eerste verslag was. Dicht krimpt hij tot een balk met alleen de naam; de
+   akte die je leest houdt zijn volle hoogte, want daar is het beeld de kop van
+   wat eronder staat. Onderaan de stylesheet: .logboek-chapter-banner--img staat
+   op regel 11239 en wint anders op volgorde. */
+.logboek-chapter--dicht { margin-bottom: 12px; }
+.logboek-chapter--dicht .logboek-chapter-banner,
+.logboek-chapter--dicht .logboek-chapter-banner--img { min-height: 68px; }
+.logboek-chapter--dicht .logboek-chapter-banner-content { padding: 9px 20px; }
+.logboek-chapter--dicht .logboek-chapter-title { font-size: 15px; }
+.logboek-chapter--dicht .logboek-chapter-num { margin-bottom: 2px; }
+.logboek-chapter--dicht .logboek-chapter-dag { font-size: 10px; margin-top: 2px; }
+.logboek-chapter--dicht .logboek-chapter-toggle-wrap { padding: 9px 14px; }
+
+/* Het uitklapteken was een goudkleurig driehoekje van 11 px dat wegviel zodra de
+   banner een lichte foto droeg. Nu een echt chevron in een donkere penning —
+   zelfde reden als bij de conditie-iconen op de dungeonkaart. */
+.logboek-chapter-toggle {
+  width: 24px; height: 24px; border-radius: 50%;
+  justify-content: center;
+  background: rgba(20,10,2,0.5);
+  border: 1px solid rgba(196,168,122,0.35);
+  transition: transform 0.2s, background 0.2s;
+}
+.logboek-chapter-toggle .icon { width: 14px; height: 14px; }
+.logboek-chapter-banner:hover .logboek-chapter-toggle { background: rgba(20,10,2,0.78); }
+.logboek-chapter:not(.logboek-chapter--dicht) .logboek-chapter-toggle { transform: rotate(90deg); }
+
+/* De verduistering liep van ónder naar boven — prima onder een hoge banner, maar
+   in een balk van 68 px staat de titel dan in het lichte deel. Op zee! en Een
+   onverwachte toren waren nauwelijks te lezen. Dicht loopt hij daarom van links
+   naar rechts: een sluier achter de tekst, beeld vrij aan de rechterkant. */
+.logboek-chapter--dicht .logboek-chapter-banner-overlay {
+  background: linear-gradient(to right,
+    rgba(20,10,2,0.92) 0%, rgba(20,10,2,0.78) 34%, rgba(20,10,2,0.3) 68%, rgba(20,10,2,0.18) 100%);
+}
+.logboek-chapter--dicht .logboek-chapter-banner:hover .logboek-chapter-banner-overlay {
+  background: linear-gradient(to right,
+    rgba(20,10,2,0.95) 0%, rgba(20,10,2,0.85) 40%, rgba(20,10,2,0.45) 75%, rgba(20,10,2,0.3) 100%);
+}

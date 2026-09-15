@@ -819,7 +819,7 @@ function _buildLogboekBody(entries, hk, isSearchMode = false) {
 
     const bannerFocusVal = info.bannerFocus || '50% 30%';
     html += `
-      <div class="logboek-chapter" id="logboek-ch-${esc(ch)}">
+      <div class="logboek-chapter${isCollapsed ? ' logboek-chapter--dicht' : ''}" id="logboek-ch-${esc(ch)}">
         <div class="logboek-chapter-banner${bannerImgSrc ? ' logboek-chapter-banner--img' : ''}"
           ${bannerImgSrc ? `style="background-image:url('${bannerImgSrc}');background-position:${esc(bannerFocusVal)}"` : ''}
           onclick="window._toggleChapter('${esc(ch)}')">
@@ -830,7 +830,9 @@ function _buildLogboekBody(entries, hk, isSearchMode = false) {
             ${info.dag ? `<div class="logboek-chapter-dag">${esc(info.dag)}</div>` : ''}
           </div>
           <div class="logboek-chapter-toggle-wrap">
-            <div class="logboek-chapter-toggle">${isCollapsed ? '▸' : '▾'}</div>
+            <div class="logboek-chapter-toggle" title="${isCollapsed ? 'Toon de verslagen' : 'Klap deze akte dicht'}">
+              ${icon('chevron-right')}
+            </div>
           </div>
         </div>
 

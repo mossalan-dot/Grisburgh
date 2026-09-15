@@ -486,6 +486,7 @@ een speler ziet, **TAB** = het tafelscherm (`?display=1`), **ALL** = alle drie.
 - [ ] **Geen bergplaats in de tijdlijn** (ALL) — nergens een leeg kaartje "Scène-afbeeldingen" of "Geïmporteerde scène-afbeeldingen"; die beelden staan wél in de strip bovenaan de akte
 - [ ] **Speler** — `/api/archief` levert een lege `logEntries` (netwerktab); alleen de DM krijgt daar iets in
 - [ ] **Beelden blijven licht** (ALL) — open het Logboek met de netwerktab open: elk beeld komt van `/api/thumb/…`, geen enkele van `/api/files/…`; de banner haalt `?w=1200`
+- [ ] **Dichtgeklapte akte** (ALL) — een akte die dicht staat is een lage balk waarop naam en dag leesbaar zijn, óók op een lichte banner; de akte die openstaat houdt zijn hoge banner. Het chevron rechts wijst opzij als hij dicht is en omlaag als hij open staat
 - [ ] **Chips in het sessievenster** (ALL) — Personages/Locaties/Organisaties/Voorwerpen/Documenten hebben een icoon, geen emoji; het tekentje vóór een naam zegt met een tooltip of hij nieuw is of al eerder voorkwam
 - [ ] **Sessieverslag schrijven** (DM) — nieuwe entry, markdown, afbeeldingen uploaden, opslaan en teruglezen
 - [ ] **Missie aanmaken** (DM) — titel, beschrijving, koppeling aan een factie of locatie, en zichtbaar maken
