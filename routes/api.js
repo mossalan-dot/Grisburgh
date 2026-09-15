@@ -11906,7 +11906,16 @@ router.post('/tweespalt/arena/:boutId/aanmeld', attachRole, (req, res) => {
 
 // DM beslecht een arenapartij: overwinning (prijzengeld) of nederlaag.
 router.post('/tweespalt/arena/signup/:id/uitslag', requireDM, (req, res) => {
-  const uitkomst = req.body?.uitkomst === 'overwinning' ? 'overwinning' : 'nederlaag';
+  // Bewust géén stille terugval op 'nederlaag'. Dat stond er wel — alles wat
+  // niet exact 'overwinning' was werd een verlies, en deze route is
+  // onomkeerbaar: de inschrijving verdwijnt, de speler krijgt een brief dat hij
+  // verloren heeft en zijn inzet is weg. Eén typefout of een client die een
+  // ander veld stuurt, en de speler verliest een kamp die hij won. Dat is
+  // precies het soort impliciete destructieve pad dat we niet willen.
+  const uitkomst = req.body?.uitkomst;
+  if (uitkomst !== 'overwinning' && uitkomst !== 'nederlaag') {
+    return res.status(400).json({ error: "uitkomst moet 'overwinning' of 'nederlaag' zijn" });
+  }
   const dmState = readDmState();
   const ts = _tsState(dmState);
   const signup = ts.arenaSignups.find(s => s.id === req.params.id);

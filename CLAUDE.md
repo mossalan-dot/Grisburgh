@@ -625,6 +625,15 @@ dm-panel.js : combat-canvas.js?v=22   render-statblock.js?v=9
 > De **iconen** liggen op een andere as en blijven waar ze zijn: `COND_ICON` in
 > `combat-canvas.js` (sprite + kleur voor op een token).
 
+> **De arena-uitslag valt niet meer stil terug op een nederlaag.** Er stond
+> `req.body?.uitkomst === 'overwinning' ? 'overwinning' : 'nederlaag'`, en die
+> route is onomkeerbaar: de inschrijving verdwijnt, de speler krijgt een brief
+> dat hij verloren heeft en zijn inzet is weg. Eén typefout of een client die
+> een ander veld stuurt en de speler verliest een kamp die hij won — precies het
+> impliciete destructieve pad dat we niet willen. Nu een 400 bij alles wat niet
+> letterlijk `overwinning` of `nederlaag` is. Het DM-paneel stuurt allebei die
+> waarden al expliciet (met een `confirm()` ervoor), dus er breekt niets.
+
 > **De rente van de Tweespalt loopt per lange rust, niet op de kalender.**
 > Taevin rekende 30% per dag, samengesteld, op échte dagen: de ene lening in
 > Grisburgh (2.880 cl, aangegaan 26 april) stond in september op
