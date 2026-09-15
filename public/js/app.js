@@ -1,6 +1,6 @@
 import { api, campagneUitUrl, zetCampagne } from './api.js?v=286';
 import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, renderDocumenten, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=305";
-import { initArchief, renderLogboek, openLogboekEditor } from "./render-archief.js?v=102";
+import { initArchief, renderLogboek, openLogboekEditor } from "./render-archief.js?v=104";
 import { renderKaart, queueFlyTo, verversPins, nieuweKaart } from './render-kaart.js?v=31';
 import { renderDungeon } from './render-dungeon.js?v=54';
 import { renderRelatiemap } from './render-relatiemap.js?v=26';
@@ -10,7 +10,7 @@ import { renderSpreuken } from './render-spreuken.js?v=40';
 import { renderVaardigheden } from './render-vaardigheden.js?v=7';
 import { renderStatblock } from './render-statblock.js?v=9';
 import { initSocket } from "./socket-client.js?v=73";
-import { initDmPanel } from "./dm-panel.js?v=228";
+import { initDmPanel } from "./dm-panel.js?v=231";
 import './media-picker.js?v=8';
 
 // ── Icon helper ──
@@ -1110,10 +1110,6 @@ function applyRole() {
   }
   // Tafelscherm-knop hoort bij de DM en niet op het tafelscherm zelf.
   document.getElementById('dm-tafelscherm-btn')
-    ?.classList.toggle('hidden', state.role !== 'dm' || window._isDisplayMode);
-  // Rust hoort bij de DM en niet bij één akte: hij stond alleen in de
-  // regie-balk, en die is er alleen tijdens het spelen van een akte.
-  document.getElementById('dm-rust-btn')
     ?.classList.toggle('hidden', state.role !== 'dm' || window._isDisplayMode);
 
   // Sandbox badge: only visible when logged in as sandbox DM

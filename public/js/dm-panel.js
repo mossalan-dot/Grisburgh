@@ -517,10 +517,18 @@ export function initDmPanel() {
     regieBalkLoot:           (id) => _regieBalkLoot(id),
     regieBalkMuziek:         (id) => _regieBalkMuziek(id),
     regieBalkMuziekPauze:    () => api.spotifyPauze().catch(e => alert(e.message)),
-    verhaalToggle:           () => _verhaalToggleP(),
-    verhaalStap:             (d) => _verhaalStap(d),
-    verhaalGaNaar:           (i) => _verhaalGaNaar(i),
-    verhaalNaarSectie:       (t) => _verhaalNaarSectie(t),
+    // De lade: de tekst van de akte tijdens het spelen, met de knoppen erin.
+    ladeToggle:              () => _ladeToggle(),
+    ladeStap:                (d) => _ladeGaNaar(_ladeIdx + d),
+    ladeGaNaar:              (i) => _ladeGaNaar(i),
+    ladeNaarSectie:          (t) => _ladeNaarSectie(t),
+    ladeHoogte()             { _ladeHoog = !_ladeHoog; _ladeRender(); },
+    ladeZoek(q)              { _ladeZoek = q || ''; _ladeRender(); document.getElementById('regie-lade-zoek')?.focus(); },
+    async ladeSchrijf() {
+      const ch = _rbChapter;
+      _ladeSluit();
+      await window._akteSchrijf?.(ch);
+    },
     regieBalkStuurBrief:     (id) => _regieBalkStuurBrief(id),
     regieBalkRevealVague:    (id) => _revealRegieBalkItem(id, 'vague'),
     regieBalkRevealSecret:   (id) => _revealRegieBalkSecretItem(id),
@@ -1980,7 +1988,7 @@ function _renderRegieBalkItem(item) {
   // bent. Klikken springt naar dezelfde sectie in het verhaalpaneel.
   if (item.type === 'kop') {
     return `<div class="dm-rb-kop" data-kop="${esc(item.id)}" data-titel="${esc(item.titel || '')}"
-      onclick="window.dmPanel.verhaalNaarSectie('${esc(item.titel || '')}')"
+      onclick="window.dmPanel.ladeNaarSectie('${esc(item.titel || '')}')"
       title="Ga naar deze sectie in het verhaal">
       <span class="dm-rb-kop-lijn"></span>
       <span class="dm-rb-kop-titel">${esc(item.titel || 'Sectie')}</span>
@@ -2175,7 +2183,7 @@ function _renderRegieBalk() {
           <button class="dm-regie-balk-btn" onclick="window.dmPanel.sfeerMenu(event)" title="Sfeer van het tafelscherm kiezen">${icon('sparkles')} <span class="dm-rb-btn-label">Sfeer</span></button>
           <button class="dm-regie-balk-btn" onclick="window.dmPanel.tabletNaarSfeer(this)" title="Tablet → sfeerscherm (leeg het gepresenteerde beeld)">${icon('monitor')}</button>
           <span class="dm-rb-sep"></span>
-          <button class="dm-regie-balk-btn" onclick="window.dmPanel.verhaalToggle()" title="Verhaal ernaast openen (neemt de helft van het scherm)">${icon('book-open')} <span class="dm-rb-btn-label">Verhaal</span></button>
+          <button class="dm-regie-balk-btn" onclick="window.dmPanel.ladeToggle()" title="De tekst van deze akte, met de knoppen erin">${icon('book-open')} <span class="dm-rb-btn-label">Verhaal</span></button>
           <button class="dm-regie-balk-btn" onclick="window.dmPanel.sheetsPrint()" title="Character sheets van de party — printbaar blad per speler">${icon('scroll-text')}</button>
           <button class="dm-regie-balk-btn dm-rb-pauze-btn" onclick="window.dmPanel.regieBalkPauze()" title="Akte pauzeren — legt HP en voortgang vast om later te hervatten">${icon('pause')}</button>
           <div class="dm-rb-venster">
@@ -2189,13 +2197,16 @@ function _renderRegieBalk() {
         <div class="dm-regie-balk-scroll" id="dm-rb-scroll">
           ${items.length === 0
             ? `<div class="dm-regie-balk-empty">${_rbScript.length === 0
-                ? 'Geen script-items voor deze akte. Voeg items toe via het logboek.'
+                ? (window.app?.state?.meta?.hoofdstukken?.[_rbChapter]?.tekst
+                    ? 'Deze akte heeft een tekst — open hem met <b>Verhaal</b>; de knoppen staan daar in de tekst zelf.'
+                    : 'Geen script-items voor deze akte. Schrijf de akte (ganzenveer in de Aktes-tab) of voeg items toe via het logboek.')
                 : 'Geen items in dit filter.'}</div>`
             : items.map(item => _renderRegieBalkItem(item)).join('')}
         </div>
         <button class="dm-rb-scroll-btn dm-rb-scroll-btn--right" onclick="window._rbScroll(1)" title="Naar rechts">&#8250;</button>
       </div>
     </div>`;
+  if (document.getElementById('regie-lade')) _ladeMeetBalk();
   if (prevScroll) {
     const scrollEl = document.getElementById('dm-rb-scroll');
     if (scrollEl) scrollEl.scrollLeft = prevScroll;
@@ -2205,116 +2216,171 @@ function _renderRegieBalk() {
   requestAnimationFrame(_rbInitDrag);
 };
 
-// ── Verhaalpaneel ───────────────────────────────────────────────────────────
-// Tijdens het spelen staat op een laptop meestal Obsidian op de helft van het
-// scherm. Dit paneel neemt die plek in: het duwt de app opzij in plaats van er
-// overheen te vallen, zodat de andere helft blijft werken zoals hij werkte.
-// Tekst en regie delen dezelfde indeling: de ##-koppen in de tekst en de
-// sectiekoppen in het script. Klikken werkt daarom beide kanten op.
-let _verhaalSecties = [];   // [{titel, tekst}]
-let _verhaalIdx     = 0;
+// ── De lade ─────────────────────────────────────────────────────────────────
+// Tijdens het spelen stond op de laptop Obsidian op de helft van het scherm.
+// Die plek neemt de lade in: hij schuift omhoog uit de regie-balk en toont de
+// **tekst van de akte zelf**, met de knoppen erin. Geen tweede lijst naast het
+// script — de tekst ís het script (zie docs/voorstel-akteregie.md).
+//
+// Bewust onderin en niet ernaast: een zijpaneel duwt de app in zijn smalle
+// indeling, en je kijkt tijdens het spelen afwisselend naar de tekst en naar de
+// kaartjes erboven — niet naar allebei tegelijk.
+let _ladeSecties = [];      // [{titel, tekst}]
+let _ladeIdx     = 0;
+let _ladeTekst   = '';
+let _ladeHoog    = false;   // half (standaard) of hoog
+let _ladeZoek    = '';
 
 const _kopNorm = (v) => String(v || '').toLowerCase().normalize('NFD')
-  .replace(/[̀-ͯ]/g, '').replace(/\s+/g, ' ').trim();
+  .replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, ' ').trim();
 
-// Splits op ##-koppen; wat vóór de eerste kop staat is de inleiding.
+// Splits op koppen; wat vóór de eerste kop staat is de inleiding. Tot zes
+// niveaus diep, want juist de diepe koppen dragen in een hoofdstuk de scènes.
 function _splitsSecties(tekst) {
   const regels = String(tekst || '').split('\n');
   const uit = [];
-  let huidig = { titel: '', regels: [] };
+  let huidig = { titel: '', niveau: 0, regels: [] };
   for (const r of regels) {
-    const m = r.match(/^\s*#{2,3}\s+(.+?)\s*$/);
+    const m = r.match(/^\s*(#{1,6})\s+(.+?)\s*$/);
     if (m) {
       if (huidig.titel || huidig.regels.join('').trim()) uit.push(huidig);
-      huidig = { titel: m[1], regels: [] };
+      huidig = { titel: m[2], niveau: m[1].length, regels: [] };
     } else huidig.regels.push(r);
   }
   if (huidig.titel || huidig.regels.join('').trim()) uit.push(huidig);
-  return uit.map(s => ({ titel: s.titel, tekst: s.regels.join('\n').trim() }));
+  return uit.map(s => ({ titel: s.titel, niveau: s.niveau, tekst: s.regels.join('\n').trim() }));
 }
 
-function _verhaalOpen() { return document.body.classList.contains('verhaal-open'); }
+function _ladeOpen() { return !!document.getElementById('regie-lade'); }
 
-window.dmPanel = window.dmPanel || {};
+// Waar je gebleven was, per akte. Een sessie eindigt zelden op een sectiegrens;
+// volgende week open je de akte en sta je waar je stopte.
+const _ladePlekSleutel = () => `akteLade:${_rbChapter || ''}`;
+function _ladePlekLees() {
+  try { return parseInt(localStorage.getItem(_ladePlekSleutel()) || '0', 10) || 0; } catch { return 0; }
+}
+function _ladePlekSchrijf(i) {
+  try { localStorage.setItem(_ladePlekSleutel(), String(i)); } catch { /* privémodus */ }
+}
 
-function _verhaalToggleP() {
-  if (_verhaalOpen()) return _verhaalSluit();
-  const meta = window.app?.state?.meta || {};
-  const tekst = meta.hoofdstukken?.[_rbChapter]?.tekst || '';
-  _verhaalSecties = _splitsSecties(tekst);
-  _verhaalIdx = 0;
-  let paneel = document.getElementById('verhaal-paneel');
-  if (!paneel) {
-    paneel = document.createElement('aside');
-    paneel.id = 'verhaal-paneel';
-    paneel.className = 'verhaal-paneel';
-    document.body.appendChild(paneel);
+async function _ladeToggle() {
+  if (_ladeOpen()) return _ladeSluit();
+  if (!_rbChapter) return;
+  // De tekst komt van de DM-route: `GET /meta` stuurt hem niet meer mee.
+  try {
+    const regie = await api.akteRegie(_rbChapter);
+    _ladeTekst = regie?.tekst || '';
+  } catch {
+    _ladeTekst = window.app?.state?.meta?.hoofdstukken?.[_rbChapter]?.tekst || '';
   }
-  document.body.classList.add('verhaal-open');
-  _verhaalRender();
+  _ladeSecties = _splitsSecties(_ladeTekst);
+  _ladeIdx = Math.min(_ladePlekLees(), Math.max(0, _ladeSecties.length - 1));
+  // De akte-module levert de renderer én de knoppen; die moet weten welke akte
+  // er speelt, anders belandt een getoond beeld in de sessielog van niemand.
+  const mod = await import('./akte-schrijven.js?v=11');
+  mod.zetAkte(_rbChapter, _ladeTekst);
+  window._akteRegieRender = mod.regieNaarHtml;
+  let lade = document.getElementById('regie-lade');
+  if (!lade) {
+    lade = document.createElement('div');
+    lade.id = 'regie-lade';
+    lade.className = 'regie-lade';
+    document.body.appendChild(lade);
+  }
+  document.body.classList.add('lade-open');
+  _ladeRender();
 }
 
-function _verhaalSluit() {
-  document.body.classList.remove('verhaal-open');
-  document.getElementById('verhaal-paneel')?.remove();
+function _ladeSluit() {
+  document.body.classList.remove('lade-open', 'lade-hoog');
+  document.getElementById('regie-lade')?.remove();
 }
 
-function _verhaalRender() {
-  const paneel = document.getElementById('verhaal-paneel');
-  if (!paneel) return;
-  const s = _verhaalSecties[_verhaalIdx];
-  const heeftTekst = _verhaalSecties.length > 0;
-  paneel.innerHTML = `
-    <div class="verhaal-paneel-kop">
-      <span class="verhaal-paneel-titel">${icon('book-open')} ${esc(_rbTitle || 'Verhaal')}</span>
-      <div class="verhaal-paneel-nav">
-        <button class="dm-btn dm-btn-sm dm-btn-ghost" ${_verhaalIdx <= 0 ? 'disabled' : ''}
-          onclick="window.dmPanel.verhaalStap(-1)" title="Vorige sectie">${icon('chevron-left')}</button>
-        <span class="verhaal-paneel-teller">${heeftTekst ? `${_verhaalIdx + 1} / ${_verhaalSecties.length}` : '—'}</span>
-        <button class="dm-btn dm-btn-sm dm-btn-ghost" ${_verhaalIdx >= _verhaalSecties.length - 1 ? 'disabled' : ''}
-          onclick="window.dmPanel.verhaalStap(1)" title="Volgende sectie">${icon('chevron-right')}</button>
-        <button class="dm-btn dm-btn-sm dm-btn-ghost" onclick="window.dmPanel.verhaalToggle()" title="Sluiten">${icon('x')}</button>
+// De lade staat op de regie-balk, en die is nu eens één regel en dan weer twee
+// (geminimaliseerd, filters, een lange strook). Dus meten in plaats van gokken.
+function _ladeMeetBalk() {
+  const h = document.getElementById('dm-regie-balk')?.offsetHeight || 0;
+  document.body.style.setProperty('--rb-hoogte', `${h}px`);
+}
+
+function _ladeRender() {
+  const lade = document.getElementById('regie-lade');
+  if (!lade) return;
+  _ladeMeetBalk();
+  document.body.classList.toggle('lade-hoog', _ladeHoog);
+  const heeftTekst = _ladeSecties.length > 0;
+  const s = _ladeSecties[_ladeIdx];
+  const treffers = _ladeZoek
+    ? _ladeSecties.map((sec, i) => ({ i, sec })).filter(({ sec }) =>
+        `${sec.titel} ${sec.tekst}`.toLowerCase().includes(_ladeZoek.toLowerCase()))
+    : [];
+  lade.innerHTML = `
+    <div class="regie-lade-kop">
+      <button class="regie-lade-greep" onclick="window.dmPanel.ladeHoogte()"
+        title="${_ladeHoog ? 'Half scherm' : 'Groter'}">${icon(_ladeHoog ? 'minus' : 'maximize-2')}</button>
+      <span class="regie-lade-titel">${icon('book-open')} ${esc(_rbTitle || 'Verhaal')}</span>
+      ${heeftTekst ? `
+        <div class="regie-lade-nav">
+          <button class="dm-btn dm-btn-sm dm-btn-ghost" ${_ladeIdx <= 0 ? 'disabled' : ''}
+            onclick="window.dmPanel.ladeStap(-1)" title="Vorige sectie">${icon('chevron-left')}</button>
+          <span class="regie-lade-teller">${_ladeIdx + 1} / ${_ladeSecties.length}</span>
+          <button class="dm-btn dm-btn-sm dm-btn-ghost" ${_ladeIdx >= _ladeSecties.length - 1 ? 'disabled' : ''}
+            onclick="window.dmPanel.ladeStap(1)" title="Volgende sectie">${icon('chevron-right')}</button>
+        </div>` : ''}
+      <div class="regie-lade-zoek">
+        ${icon('search', { cls: 'regie-lade-zoek-icoon' })}
+        <input class="dm-input dm-input-sm" id="regie-lade-zoek" placeholder="Zoek in deze akte…"
+          value="${esc(_ladeZoek)}" oninput="window.dmPanel.ladeZoek(this.value)">
       </div>
+      <button class="dm-btn dm-btn-sm dm-btn-ghost" onclick="window.dmPanel.ladeSchrijf()"
+        title="Deze akte bewerken">${icon('feather')}</button>
+      <button class="dm-btn dm-btn-sm dm-btn-ghost" onclick="window.dmPanel.ladeToggle()" title="Lade sluiten">${icon('x')}</button>
     </div>
     ${heeftTekst ? `
-      <nav class="verhaal-paneel-secties">
-        ${_verhaalSecties.map((sec, i) => `
-          <button class="verhaal-paneel-sectie${i === _verhaalIdx ? ' is-actief' : ''}"
-            onclick="window.dmPanel.verhaalGaNaar(${i})">${esc(sec.titel || 'Inleiding')}</button>`).join('')}
-      </nav>
-      <div class="verhaal-paneel-tekst" id="verhaal-paneel-tekst">
-        ${s.titel ? `<h3>${esc(s.titel)}</h3>` : ''}
-        ${window.app.mdToHtml(s.tekst || '')}
-      </div>`
-    : `<p class="dm-hint" style="padding:14px">Deze akte heeft nog geen verhaaltekst. Voeg er een toe in de Aktes-tab: lees een .md in of plak het hoofdstuk.</p>`}`;
+      <nav class="regie-lade-secties">
+        ${_ladeSecties.map((sec, i) => `
+          <button class="regie-lade-sectie regie-lade-sectie--n${sec.niveau || 2}${i === _ladeIdx ? ' is-actief' : ''}"
+            onclick="window.dmPanel.ladeGaNaar(${i})">${esc(sec.titel || 'Inleiding')}</button>`).join('')}
+      </nav>` : ''}
+    <div class="regie-lade-body" id="regie-lade-body">
+      ${!heeftTekst
+        ? `<p class="dm-hint">Deze akte heeft nog geen tekst. Schrijf hem met de ganzenveer hierboven, of lees een .md in.</p>`
+        : _ladeZoek
+          ? (treffers.length
+              ? treffers.map(({ i, sec }) => `
+                  <button class="regie-lade-treffer" onclick="window.dmPanel.ladeGaNaar(${i})">
+                    ${icon('chevron-right')} ${esc(sec.titel || 'Inleiding')}
+                    <span class="regie-lade-treffer-stuk">${esc(_ladeFragment(sec.tekst, _ladeZoek))}</span>
+                  </button>`).join('')
+              : `<p class="dm-hint">Niets gevonden voor “${esc(_ladeZoek)}”.</p>`)
+          : `${s.titel ? `<h2 class="akte-kop akte-kop--n${s.niveau || 2}">${esc(s.titel)}</h2>` : ''}
+             ${window._akteRegieRender ? window._akteRegieRender(s.tekst, { acties: true }) : ''}`}
+    </div>`;
+  document.getElementById('regie-lade-body')?.scrollTo({ top: 0 });
 }
 
-// Sectie kiezen → tekst tonen én de balk naar de bijbehorende sectiekop
-// schuiven. Andersom werkt via _verhaalNaarSectie.
-function _verhaalGaNaar(i, ookBalk = true) {
-  if (i < 0 || i >= _verhaalSecties.length) return;
-  _verhaalIdx = i;
-  _verhaalRender();
-  document.getElementById('verhaal-paneel-tekst')?.scrollTo({ top: 0 });
-  if (ookBalk) _balkNaarKop(_verhaalSecties[i].titel);
+// Een stukje tekst rond de treffer, zodat je ziet wélke plek je kiest.
+function _ladeFragment(tekst, zoek) {
+  const i = tekst.toLowerCase().indexOf(zoek.toLowerCase());
+  if (i < 0) return '';
+  return (i > 30 ? '… ' : '') + tekst.slice(Math.max(0, i - 30), i + 70).replace(/\s+/g, ' ') + '…';
 }
 
-function _verhaalStap(delta) { _verhaalGaNaar(_verhaalIdx + delta); }
-
-function _balkNaarKop(titel) {
-  if (!titel) return;
-  const doel = [...document.querySelectorAll('.dm-rb-kop')]
-    .find(el => _kopNorm(el.dataset.titel) === _kopNorm(titel));
-  doel?.scrollIntoView({ behavior: 'smooth', inline: 'start', block: 'nearest' });
-  doel?.classList.add('dm-rb-kop--gemarkeerd');
-  setTimeout(() => doel?.classList.remove('dm-rb-kop--gemarkeerd'), 1200);
+function _ladeGaNaar(i) {
+  if (i < 0 || i >= _ladeSecties.length) return;
+  _ladeIdx = i;
+  _ladeZoek = '';
+  _ladePlekSchrijf(i);
+  _ladeRender();
 }
 
-// Vanuit de balk: open het paneel als het dicht is en spring naar die sectie.
-function _verhaalNaarSectie(titel) {
-  if (!_verhaalOpen()) _verhaalToggleP();
-  const i = _verhaalSecties.findIndex(s => _kopNorm(s.titel) === _kopNorm(titel));
-  if (i >= 0) _verhaalGaNaar(i, false);
+// Vanuit de balk: open de lade en spring naar die sectie.
+function _ladeNaarSectie(titel) {
+  const ga = () => {
+    const i = _ladeSecties.findIndex(x => _kopNorm(x.titel) === _kopNorm(titel));
+    if (i >= 0) _ladeGaNaar(i);
+  };
+  if (!_ladeOpen()) _ladeToggle().then(ga); else ga();
 }
 
 // Voortgang wegschrijven. Gebundeld met een korte vertraging: tijdens het

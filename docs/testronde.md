@@ -420,6 +420,17 @@ een speler ziet, **TAB** = het tafelscherm (`?display=1`), **ALL** = alle drie.
 - [ ] `[!brief] <onderwerp>` met tekst eronder → de actieve party krijgt een verzegelde brief
 - [ ] `[!muziek]` zonder Spotify-koppeling → nette melding onder het blok ("Koppel Spotify bij Instellingen → Muziek"), geen alert
 - [ ] `[!voorlezen]` → *Op tafel*: het tafelscherm toont één vel perkament met de sectiekop erboven; de monitor-knop in de regie-balk zet hem terug op sfeer
+
+### De lade (spelen met de tekst)
+- [ ] Start een akte met tekst → knop *Verhaal* in de regie-balk opent een lade onderin (niet meer een paneel opzij)
+- [ ] De sectiestrook loopt van hoofdstuk tot scène; een diepe kop (`######`) is kleiner en zonder rand
+- [ ] De knoppen in de lade werken echt: onthullen, beeld tonen, gevecht starten, tabel rollen
+- [ ] Zoeken in de lade toont de secties met een treffer plus een stukje tekst; klikken springt erheen
+- [ ] De greep linksboven wisselt tussen half en hoog scherm
+- [ ] Sluit de lade, open hem opnieuw → je staat op dezelfde sectie (ook na herladen)
+- [ ] Ganzenveer in de lade → het schrijfscherm van díé akte
+- [ ] Een akte met tekst maar zonder script-items: de balk zegt dat de knoppen in de tekst staan
+- [ ] Zijbalk van het schrijfscherm: *Rust* opent het rustmenu, *Sheets* opent de printbare bladen
 - [ ] **Kaartengalerij** (ALL) — hoofdkaarten en dungeons als kaartjes, plus-knop voor de DM
 - [ ] **Wereldkaart** (ALL) — zoomen met wiel en knoppen, pannen, pins openen de locatie; een speler stelt een pin voor en de DM keurt goed
 - [ ] **Knoppenbalk over de kaart** (ALL) — open een hoofdkaart: de zoombalk zweeft óver het beeld en de kaart past in één keer helemaal in het venster (geen afgebroken onderkant). *Passend maken* doet hetzelfde na in- of uitzoomen

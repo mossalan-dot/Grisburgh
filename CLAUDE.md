@@ -475,6 +475,23 @@ dm-panel.js : combat-canvas.js?v=22   render-statblock.js?v=9
 > één akte op met `GET /meta/akte/:key/regie`. Bewaakt door
 > `tests/akte-regie.test.js`.
 
+> **De lade: de tekst ís de regie tijdens het spelen.** De knop *Verhaal* in de
+> regie-balk opent geen zijpaneel meer maar een **lade** die omhoog schuift uit
+> de balk (`_ladeToggle` in `dm-panel.js`, `.regie-lade`): sectiestrook, zoeken
+> in de akte, twee hoogtes, en de tekst met **dezelfde knoppen als in de
+> speelstand van het schrijfscherm** — want het is dezelfde renderer
+> (`regieNaarHtml(md, { acties: true })` uit `akte-schrijven.js`; `zetAkte()`
+> vertelt die module welke akte er loopt). Bewust onderin en niet ernaast: een
+> zijpaneel duwde de app in zijn smalle indeling, en je kijkt tijdens het spelen
+> afwisselend naar de tekst en naar de kaartjes erboven.
+> **Waar je gebleven was** staat per akte in `localStorage` (`akteLade:<key>`):
+> volgende week open je de akte en sta je op dezelfde sectie.
+> De lade meet de balk (`--rb-hoogte`) in plaats van een hoogte te gokken — die
+> balk is nu eens één regel en dan weer twee.
+> **Rust en Sheets staan in de zijbalk van het schrijfscherm**, onder de
+> secties: ze horen niet bij één plek in de tekst. Een party gaat slapen
+> wanneer het uitkomt, soms tussen twee aktes in.
+
 > **Verhaal naast de regie + secties.** Het regie-script kent een staptype
 > **`kop`** (`{type:'kop', titel}`): een sectiekop die niets onthult maar de
 > strook opdeelt — geen tweede niveau in de data, dus niets aan bestaande aktes

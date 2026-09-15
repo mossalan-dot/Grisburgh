@@ -47,6 +47,7 @@ let _tekst    = '';
 let _bewaard  = true;
 let _timer    = null;
 let _voorbeeld = false;   // kijken/spelen in plaats van schrijven
+let _acties    = false;   // staan de knoppen aan? (speelstand én de lade)
 let _encounters = null;   // lazy: naam → encounter
 let _tabellen  = null;
 let _vondsten  = null;
@@ -193,7 +194,7 @@ function _embedHtml(ruw) {
     // In de speelstand is een beeld iets dat je **toont**: dezelfde weg als de
     // regie-balk (de verborgen sessielog-entry van deze akte), zodat het ook in
     // het logboek en de carrousel van de speler terechtkomt.
-    const knop = _voorbeeld
+    const knop = _acties
       ? `<button class="dm-btn dm-btn-primary dm-btn-sm akte-beeld-knop"
            onclick="window.akteSchrijven.toonBeeld('${esc(naam)}', this)">${icon('eye')} Toon aan spelers</button>`
       : '';
@@ -258,7 +259,7 @@ function _externeLinks(md) {
     // `<em>…</em>`. De tags eruit, anders staan ze als tekst in de chip.
     const naam = label.replace(/<[^>]+>/g, '').replace(/[*_]/g, '').trim();
     const monster = _MONSTERBRON.test(url);
-    const knop = (monster && _voorbeeld)
+    const knop = (monster && _acties)
       ? `<button class="akte-act akte-act--statblok" title="Statblok openen"
            onclick="window.akteSchrijven.statblok('${esc(naam).replace(/'/g, "\\'")}', this)">${icon('skull')}</button>`
       : '';
@@ -272,7 +273,7 @@ function _prozaHtml(md) {
   // span die je er vooraf in zet komt er als zichtbare tekst weer uit. De
   // markdown-link zelf laat hij ongemoeid, dus het patroon staat er dan nog.
   const html = _externeLinks(_dcChips(window.app.mdToHtml(md)));
-  return _voorbeeld ? _linkKnoppen(html) : html;
+  return _acties ? _linkKnoppen(html) : html;
 }
 
 // Alles wat geen callout is: eerst de blokvormen (tabel, lijst, embed), de rest
@@ -345,7 +346,10 @@ function _blokActie(soort, kop, body) {
   return '';
 }
 
-export function regieNaarHtml(md) {
+export function regieNaarHtml(md, { acties } = {}) {
+  // De lade tijdens het spelen gebruikt dezelfde renderer als het
+  // schrijfscherm; alleen zegt hij zélf of de knoppen aan moeten.
+  _acties = acties === undefined ? _voorbeeld : !!acties;
   const regels = String(md || '').split('\n');
   const uit = [];
   let i = 0;
@@ -361,7 +365,7 @@ export function regieNaarHtml(md) {
       uit.push(`<div class="regie-blok regie-blok--${esc(soort)}">
         <div class="regie-blok-kop">
           ${icon(blok?.icon || 'hexagon')} ${esc(kop || blok?.label || soort)}
-          ${_voorbeeld ? _blokActie(soort, kop, body) : ''}
+          ${_acties ? _blokActie(soort, kop, body) : ''}
         </div>
         ${body.length ? `<div class="regie-blok-body">${_gewoonHtml(body)}</div>` : ''}
         <div class="regie-blok-uitslag" hidden></div>
@@ -441,6 +445,16 @@ function _teken() {
       <aside class="akte-schrijf-secties">
         <div class="akte-schrijf-sectie-kop">Secties</div>
         <div id="akte-schrijf-secties"></div>
+        <!-- Rust hoort niet bij één plek in de tekst: een party gaat slapen
+             wanneer het uitkomt, soms tussen twee aktes in. Daarom hier, bij de
+             navigatie, en niet als blok halverwege een sectie. -->
+        <div class="akte-schrijf-altijd">
+          <div class="akte-schrijf-sectie-kop">Altijd bij de hand</div>
+          <button class="akte-zijknop" onclick="window.dmPanel.rustMenu(event)"
+            title="Long of Short Rest voor de hele party">${icon('moon')} Rust</button>
+          <button class="akte-zijknop" onclick="window.dmPanel.sheetsPrint()"
+            title="Character sheets van de party — printbaar blad per speler">${icon('scroll-text')} Sheets</button>
+        </div>
       </aside>
       <div class="akte-schrijf-hoofd">
         ${_voorbeeld ? '' : _invoegBalk()}
@@ -873,6 +887,13 @@ window.akteSchrijven = {
     window._logboekVerversen?.();
   },
 };
+
+// De lade tijdens het spelen werkt met dezelfde module: die moet weten welke
+// akte er loopt, anders belandt een getoond beeld in de sessielog van niemand.
+export function zetAkte(chapterKey, tekst) {
+  _ch = chapterKey;
+  _tekst = String(tekst || '');
+}
 
 // ── Openen ───────────────────────────────────────────────────────────────────
 export async function openAkteSchrijven(chapterKey, titel) {
