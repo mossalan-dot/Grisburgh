@@ -34,6 +34,9 @@ export const REGIE_BLOKKEN = {
   buit:      { label: 'Buit',      icon: 'vault',          hint: 'Een vondst om hier te onthullen' },
   kaart:     { label: 'Kaart',     icon: 'castle',         hint: 'Een dungeonkaart om hier te openen' },
   rust:      { label: 'Rust',      icon: 'moon',           hint: 'Lange of korte rust' },
+  kamer:     { label: 'Kamer',     icon: 'door-open',      hint: 'Een kamer van een dungeonkaart onthullen' },
+  muziek:    { label: 'Muziek',    icon: 'music',          hint: 'Een nummer of afspeellijst via Spotify' },
+  brief:     { label: 'Brief',     icon: 'mail',           hint: 'Een brief die je hier verstuurt' },
   check:     { label: 'Check',     icon: 'target',         hint: 'Een DC als aantekening — geen mechaniek' },
 };
 
@@ -326,6 +329,13 @@ function _blokActie(soort, kop, body) {
   if (soort === 'buit')      return knop('onthulBuit', 'Onthullen', 'vault');
   if (soort === 'kaart')     return knop('openKaart', 'Openen', 'castle');
   if (soort === 'rust')      return knop('startRust', 'Rust starten', 'moon');
+  if (soort === 'kamer')     return knop('onthulKamer', 'Onthullen', 'eye');
+  if (soort === 'muziek')    return knop('startMuziek', 'Afspelen', 'play');
+  if (soort === 'brief') {
+    const tekst = esc(body.join('\n').replace(/'/g, "\\'").replace(/\n/g, '\\n'));
+    return `<button class="dm-btn dm-btn-primary dm-btn-sm regie-blok-knop"
+      onclick="window.akteSchrijven.stuurBrief('${arg}','${tekst}', this)">${icon('mail')} Versturen</button>`;
+  }
   if (soort === 'voorlezen') {
     // De tekst van het blok zelf gaat mee; die staat niet in de kop.
     const tekst = esc(body.join('\n').replace(/'/g, "\\'").replace(/\n/g, '\\n'));
@@ -399,7 +409,8 @@ function _invoegBalk() {
       <span class="akte-invoeg-sep"></span>
       ${knop('voorlezen')}${knop('dm')}
       <span class="akte-invoeg-sep"></span>
-      ${knop('gevecht')}${knop('tabel')}${knop('buit')}${knop('kaart')}${knop('rust')}${knop('check')}
+      ${knop('gevecht')}${knop('tabel')}${knop('buit')}${knop('kaart')}${knop('kamer')}
+      ${knop('rust')}${knop('muziek')}${knop('brief')}${knop('check')}
     </div>`;
 }
 
@@ -466,9 +477,16 @@ function _vindOpNaam(lijst, naam) {
   return null;
 }
 
-function _geenTreffer(btn, tekst) {
+// Iets te melden onder het blok. Twee smaken: een naam die niet klopt (daar
+// hóórt de tip bij) en een gewone fout (daar is die tip misleidend — Spotify is
+// niet gekoppeld, dat los je niet op door de naam te veranderen).
+function _melding(btn, tekst) {
   const vak = btn.closest('.regie-blok')?.querySelector('.regie-blok-uitslag');
-  if (vak) { vak.hidden = false; vak.innerHTML = `${icon('x')} ${esc(tekst)} — controleer de naam in het blok.`; }
+  if (vak) { vak.hidden = false; vak.innerHTML = `${icon('x')} ${esc(tekst)}`; }
+}
+
+function _geenTreffer(btn, tekst) {
+  _melding(btn, `${tekst} — controleer de naam in het blok.`);
 }
 
 // Zelfde drie soorten als de Tafels-tab: samengesteld, gewogen (d100) en gewoon.
@@ -548,6 +566,19 @@ window.akteSchrijven = {
     if (soort === 'dm')        return _voegIn(_blokTekst('dm', '', 'Alleen voor jou…'), { blok: true });
     if (soort === 'check')     return _voegIn(_blokTekst('check', 'DC 14 Perception'), { blok: true });
     if (soort === 'rust')      return _voegIn(_blokTekst('rust', 'lang · herberg'), { blok: true });
+    if (soort === 'muziek')    return _voegIn(_blokTekst('muziek', 'spotify:playlist:… of de naam van een nummer'), { blok: true });
+    if (soort === 'brief')     return _voegIn(_blokTekst('brief', 'Onderwerp van de brief', 'Beste avonturiers,\n\n…'), { blok: true });
+    if (soort === 'kamer') {
+      const kaarten = await api.listDungeons().catch(() => []);
+      const rijen = [];
+      for (const k of (kaarten || [])) {
+        rijen.push({ naam: k.name || 'Kaart', icoon: 'castle', kaart: k.name, kamer: '' });
+        for (const r of (k.rooms || [])) if (r.name) rijen.push({ naam: `${k.name} · ${r.name}`, icoon: 'door-open', kaart: k.name, kamer: r.name });
+      }
+      return _kiezer('Kamer invoegen', rijen,
+        (r) => _voegIn(_blokTekst('kamer', r.kamer ? `${r.kaart} · ${r.kamer}` : r.kaart), { blok: true }),
+        'Nog geen dungeonkaarten.');
+    }
 
     if (soort === 'gevecht') {
       const lijst = await api.listEncounters().catch(() => []);
@@ -737,8 +768,79 @@ window.akteSchrijven = {
     window.spreuken?.linkInDom?.(document.querySelector('#modal-overlay .sb-modal-body'));
   },
 
-  naarTafel(tekst, btn) {
-    alert('Voorleestekst naar het tafelscherm sturen bestaat nog niet — dat is de volgende stap.');
+  // Een kamer van een dungeon onthullen. Schrijfwijze: `[!kamer] Crypte · Grafkelder`
+  // — kaart en kamer gescheiden door een punt, een streepje of een dubbele punt,
+  // want zo schrijf je het ook op. Zonder kamer geeft hij de party alleen
+  // toegang tot de kaart.
+  async onthulKamer(kop, btn) {
+    const [kaartNaam, kamerNaam] = String(kop || '').split(/\s*[·:>|–-]\s*/);
+    let kaarten = [];
+    try { kaarten = await api.listDungeons(); } catch {}
+    const kaart = _vindOpNaam(kaarten, kaartNaam);
+    if (!kaart) return _geenTreffer(btn, `Geen dungeonkaart "${kaartNaam || kop}" gevonden`);
+    const gid = window._activeGroupId;
+    if (!gid) return _melding(btn, 'Geen actieve groep — kies er eerst een.');
+    try {
+      await api.grantDungeonAccess(kaart.id, gid);
+      if (kamerNaam) {
+        const kamer = (kaart.rooms || []).find(r => (r.name || '').toLowerCase().includes(kamerNaam.trim().toLowerCase()));
+        if (!kamer) return _geenTreffer(btn, `"${kamerNaam.trim()}" staat niet op deze kaart`);
+        await api.revealDungeonRoom(kaart.id, { roomId: kamer.id, groupId: gid });
+      }
+      btn.innerHTML = `${icon('check')} Onthuld`;
+      btn.classList.add('is-klaar');
+    } catch (e) { _melding(btn, 'Onthullen mislukt: ' + e.message); }
+  },
+
+  // Muziek. In de kop staat de Spotify-uri (die plak je uit Spotify) of de naam
+  // van een nummer; in dat laatste geval zoeken we hem op.
+  async startMuziek(kop, btn) {
+    const tekst = String(kop || '').trim();
+    let uri = tekst.startsWith('spotify:') ? tekst : '';
+    try {
+      if (!uri) {
+        const treffers = await api.spotifyZoek(tekst);
+        uri = (treffers || [])[0]?.uri || '';
+        if (!uri) return _geenTreffer(btn, `Niets gevonden voor "${tekst}"`);
+      }
+      await api.spotifySpeel({ uri, herhaal: /herhaal|loop/i.test(tekst) });
+      btn.innerHTML = `${icon('check')} Speelt`;
+      btn.classList.add('is-klaar');
+    } catch (e) {
+      _melding(btn, e.message + (/gekoppeld/i.test(e.message) ? ' Koppel Spotify bij Instellingen → Muziek.' : ''));
+    }
+  },
+
+  // Een brief versturen: de kop is het onderwerp, de inhoud van het blok is de
+  // brief. Cinematisch, zoals vanuit de regie-balk — de speler krijgt de
+  // verzegelde envelop.
+  async stuurBrief(onderwerp, tekst, btn) {
+    if (!String(tekst || '').trim()) return _melding(btn, 'Dit blok heeft geen brieftekst — schrijf hem onder de kop.');
+    const gid = window._activeGroupId;
+    try {
+      await api.sendPost({
+        titel: onderwerp || 'Een brief', tekst, afzender: '', datum: '', thema: '',
+        groepId: gid || null, cinematic: true,
+      });
+      btn.innerHTML = `${icon('check')} Verstuurd`;
+      btn.classList.add('is-klaar');
+    } catch (e) { _melding(btn, 'Versturen mislukt: ' + e.message); }
+  },
+
+  // De voorleestekst naar het tafelscherm. Alleen daarheen: de spelers horen
+  // hem, ze hoeven hem niet op hun telefoon mee te lezen.
+  async naarTafel(tekst, btn) {
+    try {
+      // De kop van de sectie waar dit blok in staat gaat mee: op het
+      // tafelscherm weten de spelers dan waar ze zijn, en het vel ziet er niet
+      // uit als een losse alinea in het donker.
+      let kop = '';
+      let el = btn.closest('.regie-blok')?.previousElementSibling;
+      while (el && !kop) { if (/^H[1-6]$/.test(el.tagName)) kop = el.textContent.trim(); el = el.previousElementSibling; }
+      await api.post('/display/tekst', { tekst, kop });
+      btn.innerHTML = `${icon('check')} Op tafel`;
+      btn.classList.add('is-klaar');
+    } catch (e) { _melding(btn, 'Sturen mislukt: ' + e.message); }
   },
 
   async inlezen(file, invoer) {

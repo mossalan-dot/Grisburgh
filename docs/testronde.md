@@ -415,6 +415,11 @@ een speler ziet, **TAB** = het tafelscherm (`?display=1`), **ALL** = alle drie.
 - [ ] Een beeld in de speelstand heeft *Toon aan spelers*; na klikken staat het in het logboek en ziet de speler het
 - [ ] `> [!tabel] <naam>` → *Rollen* zet de uitslag onder het blok; `> [!gevecht] <naam>` → *Start gevecht* start hem echt
 - [ ] Een monsterlink uit 5e.tools of D&D Beyond wordt een chip met een schedelknop die het statblok opent (meervoud telt: "twig blights" vindt "Twig Blight"); een roll20-link krijgt geen knop
+- [ ] Alle elf blokken: `[!voorlezen]`, `[!dm]`, `[!gevecht]`, `[!tabel]`, `[!buit]`, `[!kaart]`, `[!kamer]`, `[!rust]`, `[!muziek]`, `[!brief]`, `[!check]` — elk met de juiste knop (of geen, bij dm en check)
+- [ ] `[!kamer] Pastorie van Velurut · W3: Ontvangsthal` → de party krijgt toegang tot die kaart én die ene kamer staat open (kijk als speler)
+- [ ] `[!brief] <onderwerp>` met tekst eronder → de actieve party krijgt een verzegelde brief
+- [ ] `[!muziek]` zonder Spotify-koppeling → nette melding onder het blok ("Koppel Spotify bij Instellingen → Muziek"), geen alert
+- [ ] `[!voorlezen]` → *Op tafel*: het tafelscherm toont één vel perkament met de sectiekop erboven; de monitor-knop in de regie-balk zet hem terug op sfeer
 - [ ] **Kaartengalerij** (ALL) — hoofdkaarten en dungeons als kaartjes, plus-knop voor de DM
 - [ ] **Wereldkaart** (ALL) — zoomen met wiel en knoppen, pannen, pins openen de locatie; een speler stelt een pin voor en de DM keurt goed
 - [ ] **Knoppenbalk over de kaart** (ALL) — open een hoofdkaart: de zoombalk zweeft óver het beeld en de kaart past in één keer helemaal in het venster (geen afgebroken onderkant). *Passend maken* doet hetzelfde na in- of uitzoomen

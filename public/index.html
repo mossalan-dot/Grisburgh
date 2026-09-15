@@ -60,7 +60,7 @@
       },
     }
   </script>
-  <link rel="stylesheet" href="/css/theme.css?v=614">
+  <link rel="stylesheet" href="/css/theme.css?v=615">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
   <script>pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';</script>
   <script src="/socket.io/socket.io.js"></script>
@@ -477,6 +477,14 @@
     <div id="display-dungeon-screen" class="display-screen" style="display:none">
       <div id="display-dungeon-content" class="display-dungeon-content"></div>
     </div>
+    <!-- Voorleestekst uit een akte: de klassieke boxed text, groot genoeg om
+         vanaf de andere kant van de tafel mee te lezen. -->
+    <div id="display-tekst-screen" class="display-screen display-screen--tekst" style="display:none">
+      <div class="display-tekst-vel">
+        <div id="display-tekst-kop" class="display-tekst-kop"></div>
+        <div id="display-tekst-body" class="display-tekst-body"></div>
+      </div>
+    </div>
   </div>
 
   <!-- Combat overlay — visible to everyone when combat is active -->
@@ -569,6 +577,6 @@
   <!-- DM Instellingen modal -->
 
   <script type="module" src="/js/sound-manager.js?v=8"></script>
-  <script type="module" src="/js/app.js?v=788"></script>
+  <script type="module" src="/js/app.js?v=790"></script>
 </body>
 </html>

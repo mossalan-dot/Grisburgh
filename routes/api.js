@@ -3535,6 +3535,19 @@ router.post('/display/effect', requireDM, (req, res) => {
   res.json({ ok: true, effect });
 });
 
+// Voorleestekst op het tafelscherm. De klassieke *boxed text*: het stuk dat je
+// letterlijk voorleest, en dat de spelers tegelijk mogen zien. Gaat alleen naar
+// het gedeelde scherm (`_isDisplayMode`), niet naar de spelers zelf — zoals
+// `brief:display` en `loot:display`, en om dezelfde reden: de tablet is geen
+// speler en kan niets uit een sessie afleiden.
+router.post('/display/tekst', requireDM, (req, res) => {
+  const tekst = String(req.body?.tekst || '').slice(0, 4000);
+  if (!tekst.trim()) return res.status(400).json({ error: 'Geen tekst' });
+  const kop = String(req.body?.kop || '').slice(0, 120);
+  req.app.get('io')?.to(req.session?.campaignId || 'main').emit('display:tekst', { tekst, kop });
+  res.json({ ok: true });
+});
+
 router.post('/display/idle', requireDM, (req, res) => {
   req.app.get('io')?.to(req.session?.campaignId || 'main').emit('display:idle');
   res.json({ ok: true });

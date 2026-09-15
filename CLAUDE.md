@@ -431,6 +431,23 @@ dm-panel.js : combat-canvas.js?v=22   render-statblock.js?v=9
 > een knop die hem aan een bestand uit de bibliotheek koppelt — en dan meteen
 > overal waar diezelfde naam staat. Een `DC12 Religion check` in de lopende
 > tekst wordt een chip; een aantekening, zoals de loot-DC.
+> **Elf regieblokken, en ze doen wat de regie-balk doet.** `REGIE_BLOKKEN`:
+> `voorlezen` (naar het tafelscherm), `dm` (alleen jij), `gevecht` (start de
+> encounter), `tabel` (rolt, uitslag onder het blok), `buit` (opent de
+> verdeling), `kaart` (opent de dungeon), `kamer` (geeft toegang én onthult één
+> kamer — schrijfwijze `[!kamer] Kaart · Kamer`), `rust` (het rustmenu),
+> `muziek` (Spotify: een `spotify:`-uri of een naam die we opzoeken), `brief`
+> (verstuurt de inhoud van het blok cinematisch aan de actieve party) en
+> `check` (een DC als aantekening). Getest met een proefakte die ze alle elf
+> bevat.
+>
+> **Voorleestekst op het tafelscherm.** `POST /display/tekst` → socket
+> `display:tekst` → `window._displayTekst()` toont één vel perkament groot
+> gezet, met de sectiekop erboven. Alleen het tafelscherm (`_isDisplayMode`),
+> zoals `brief:display` en `loot:display`: de spelers hóren het, ze hoeven het
+> niet op hun telefoon mee te lezen. Terug naar sfeer gaat met de
+> monitor-knop in de regie-balk (`display:idle`).
+
 > **De tweede stand heet Spelen, niet Voorbeeld.** Daar zitten de knoppen: een
 > `[[naam]]` die de party nog niet kent krijgt een oogje (en een half oogje voor
 > vaag) áchter de naam in de zin; kent de party hem al, dan staat er niets —
