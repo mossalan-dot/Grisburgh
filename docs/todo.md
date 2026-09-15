@@ -17,6 +17,15 @@ groot het is. Bijgewerkt 15 sep 2026.
       importer bewaart de `.md` nu wél), de beelden koppelen, en één sectie
       echt spelen om te zien of de knoppen doen wat je aan tafel nodig hebt.
 
+- [ ] **De Markt — één plek voor alle winkels** → `docs/voorstel-markt.md`.
+      Gevraagd 15 sep 2026. Negen winkels, 122 voorraadregels, en geen enkel
+      scherm waar je ziet dát ze bestaan: je moet het kaartje weten te vinden.
+      De machinerie (kopen, verkopen, onderhandelen, humeur, rotatie) staat al —
+      wat ontbreekt is de ingang. Stap 1 (de lijst) en 2 (zoeken en prijzen
+      vergelijken) zijn samen ongeveer een dag. **Valkuil:** `GET
+      /shops/:id/beschikbaar` *maakt* de rotatie van een roterende winkel en
+      schrijft dm-state; de Markt heeft dus een eigen leesroute nodig.
+
 - [ ] **Conditions in het Nederlands** — `_COND_INFO` en `COND_LBL_MAP` in
       `app.js` vertalen de PHB-conditions (Verblind, Betoverd, Bevreesd,
       Vastgehouden, Verdoofd, Bewusteloos, Concentratie…). Tegen de afspraak in
@@ -225,12 +234,16 @@ Gevraagd op 14 sep 2026, gebouwd op 14 sep 2026.
 
 ## Campagneboek en snapshot
 
-- [ ] **Heeft de snapshot nog bestaansrecht?** `lib/snapshot.js` maakt een
-      HTML-export van de hele campagne (`/api/export` + `/api/export/campagneboek`).
-      Dat komt uit de tijd dat de app niet altijd draaide. Nu hij live is, is de
-      vraag wat het nog toevoegt — anders dan de printbare character sheets, die
-      wél een eigen reden hebben (papier aan tafel, en de definitieve stand na
-      een sessie). Eerst beslissen of we hem houden; pas daarna erin sleutelen.
+- [ ] **Snapshot eruit?** `lib/snapshot.js` maakt een HTML-export van de hele
+      campagne (`/api/export` + `/api/export/campagneboek`), uit de tijd dat de
+      app niet altijd draaide. Op 15 sep 2026 zei de DM: *"ik vind die snapshot
+      niet zo boeiend meer met een live app"* — dus de vraag is niet meer óf we
+      hem houden maar wanneer hij weg mag. Wat er dan mee weggaat: 1.700 regels
+      `lib/snapshot.js`, twee routes, de knoppen in Instellingen, en
+      `tests/export-geheimen.test.js`. Het **campagneboek** (de gedrukte vorm,
+      met inhoudsopgave) is een ander ding dan de snapshot en is misschien wél
+      het bewaren waard; beslis die twee apart. De printbare character sheets
+      staan hier los van en blijven.
 - [x] **Lekt het campagneboek geheimen?** — nagekeken 15 sep 2026. Het
       **campagneboek** niet (dat rendert alleen HTML), de **snapshot** wél en
       erger dan gedacht: die plakt zijn datamodel als JSON in het bestand, dus
