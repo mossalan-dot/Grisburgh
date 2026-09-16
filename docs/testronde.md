@@ -566,6 +566,8 @@ een speler ziet, **TAB** = het tafelscherm (`?display=1`), **ALL** = alle drie.
 - [ ] **Markt: wisselend assortiment** (speler) — een roterende winkel die je nog niet bezocht hebt zegt "kom langs om te zien wat er ligt" en stuurt geen voorraad mee (netwerktab)
 - [ ] **Toegang per groep werkt echt** (DM+speler) — zet een dienst voor je party op *verborgen* terwijl een speler hem open heeft staan: zijn scherm doet niets meer, ook niet als hij de knop nog ziet staan
 - [ ] **Arena-uitslag** (DM) — *Overwinning* betaalt het prijzengeld uit en sluit de partij; *Nederlaag* doet dat niet. Er is geen derde uitkomst meer die stilletjes als verlies telt
+- [ ] **Subtabs van de speler** (speler) — alle zeven tabs zijn zichtbaar zonder te schuiven; op een telefoon houdt alleen de actieve tab zijn naam. *Berichten* met ongelezen post valt nooit buiten beeld
+- [ ] **Spreukenboek sluit mee** (speler) — open je spreukenboek en laat de DM een bericht sturen: de app springt naar Berichten én het boek gaat dicht. De sluitknop brengt je terug naar de tab waar je vandaan kwam
 - [ ] **Leesbaarheid van de diensten** (ALL) — loop alle diensten langs (ook de herberg): het vlak met de tekst is overal even stevig, en de tekst is leesbaar zonder dat je de achtergrond kwijt bent
 - [ ] **Zoekveld bij Gock en de magizoöloog** (ALL) — typ een naam: je ziet wat je typt (het veld was wit-op-wit)
 - [ ] **Wachtwoordveld op een telefoon** (ALL) — open op een smal scherm de DM-ingang op de landingspagina: het veld klapt over de volle breedte open en staat *onder* de regel "‹ Andere campagne", niet eroverheen
