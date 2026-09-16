@@ -4128,6 +4128,8 @@ function _ensureSpellbookOverlay() {
   });
 }
 
+let _sbVanTab = null;   // subtab waar het boek vandaan geopend werd
+
 window._openSpellbook = function(startIdx) {
   _ensureSpellbookOverlay();
   // Restore last open spell from localStorage if no explicit index given
@@ -4144,6 +4146,10 @@ window._openSpellbook = function(startIdx) {
   _sbRender();
   const ov = document.getElementById('sb-overlay');
   ov.style.display = '';          // undo any post-close display:none
+  // Waar kwam je vandaan? De sluitknop bracht je altijd terug naar Personage,
+  // ook als je vanuit de Boedel of vanuit het spreukenboek zelf kwam — dan was
+  // je opeens ergens anders zonder dat je dat vroeg.
+  _sbVanTab = _playerSubTab || 'spreukenboek';
   ov.classList.remove('sb-open');
   // Géén requestAnimationFrame om de overlay te tonen: die staat stil in een
   // tabblad dat niet op de voorgrond is, en `.sb-overlay` is zonder `sb-open`
@@ -4382,7 +4388,7 @@ window._sbToggleHelp = function() {
 window._sbCloseAndReturn = function() {
   window._closeSpellbook();
   if (typeof window._setPlayerSubTab === 'function') {
-    window._setPlayerSubTab('personage');
+    window._setPlayerSubTab(_sbVanTab || 'spreukenboek');
   }
 };
 
@@ -7482,18 +7488,18 @@ async function renderMijnKarakter(opts = {}) {
           </div>
         </details>
 
-        <!-- Talen & Zintuigen -->
+        <!-- Languages & Senses — PHB-termen, dus Engels (zie CLAUDE.md) -->
         <details class="player-dash-section player-dash-collapsible" ${localStorage.getItem('_talenOpen') !== '0' ? 'open' : ''} ontoggle="localStorage.setItem('_talenOpen', this.open?'1':'0')">
-          <summary class="player-dash-section-title">${icon('globe')} Talen &amp; Zintuigen</summary>
+          <summary class="player-dash-section-title">${icon('globe')} Languages &amp; Senses</summary>
           <div class="player-profs-grid">
             <div class="player-prof-row">
-              <label class="player-prof-label">Talen</label>
+              <label class="player-prof-label">Languages</label>
               <input class="player-prof-input" type="text" placeholder="bv. Common, Elvish, Dwarvish…"
                 value="${esc(playerProfile.languages || '')}"
                 onblur="window._saveProfileField('languages', this.value)">
             </div>
             <div class="player-prof-row">
-              <label class="player-prof-label">Zintuigen</label>
+              <label class="player-prof-label">Senses</label>
               <input class="player-prof-input" type="text" placeholder="bv. Darkvision 60 ft, Keen Smell…"
                 value="${esc(playerProfile.senses || '')}"
                 onblur="window._saveProfileField('senses', this.value)">
@@ -7522,7 +7528,7 @@ async function renderMijnKarakter(opts = {}) {
         <!-- Kenmerken & Eigenschappen -->
         <div class="player-dash-section">
           <div class="player-dash-section-title">
-            ${icon('scroll-text')} Kenmerken &amp; Eigenschappen
+            ${icon('scroll-text')} Features &amp; Traits
             <button class="player-trait-add-btn" onclick="window._traitCustomOpen()" title="Nieuw kenmerk toevoegen">+</button>
           </div>
 
