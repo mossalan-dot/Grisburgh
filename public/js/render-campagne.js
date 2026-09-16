@@ -3926,7 +3926,7 @@ async function _buildItemGivePicker(itemId, spelers, groupNames) {
           if (isStapelbaar) return `
             <div class="item-give-player-row">
               <div class="item-give-player-info">
-                <img src="${api.fileForEntity(s)}" class="item-give-avatar" onerror="this.style.display='none'">
+                <img src="${api.thumbForEntity(s)}" class="item-give-avatar" onerror="this.style.display='none'">
                 <span>${esc(s.name)}</span>
                 ${qtyBadge}
               </div>
@@ -3944,7 +3944,7 @@ async function _buildItemGivePicker(itemId, spelers, groupNames) {
           if (isGedeeld) return `
             <button class="item-give-player-btn${hasIt ? ' item-give-player-btn--has' : ''}"
               onclick="window._itemAssignToPlayer('${esc(itemId)}','${esc(s.id)}','${escJS(s.name)}','${escJS(s.data?.groep || '')}',1)">
-              <img src="${api.fileForEntity(s)}" class="item-give-avatar" onerror="this.style.display='none'">
+              <img src="${api.thumbForEntity(s)}" class="item-give-avatar" onerror="this.style.display='none'">
               <span>${esc(s.name)}</span>
               ${qtyBadge}
             </button>`;
@@ -3952,7 +3952,7 @@ async function _buildItemGivePicker(itemId, spelers, groupNames) {
           return `
             <button class="item-give-player-btn${hasIt ? ' item-give-player-btn--has' : ''}"
               onclick="window._itemAssignToPlayer('${esc(itemId)}','${esc(s.id)}','${escJS(s.name)}','${escJS(s.data?.groep || '')}')">
-              <img src="${api.fileForEntity(s)}" class="item-give-avatar" onerror="this.style.display='none'">
+              <img src="${api.thumbForEntity(s)}" class="item-give-avatar" onerror="this.style.display='none'">
               <span>${esc(s.name)}</span>
               ${qtyBadge}
             </button>`;
@@ -4520,7 +4520,10 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
   const _isDier   = isPersonage && String(e.subtype || '').toLowerCase() === 'dier';
   const _isSpeler = isPersonage && String(e.subtype || '').toLowerCase() === 'speler';
   const showSheet = isPersonage && isDM() && (_sheetGevuld || _isDier);
-  const fileUrl = api.fileForEntity(e);
+  // Het origineel is voor de lightbox; alles wat kleiner op het scherm staat
+  // (de hero in het venster, het portretje in de kop) krijgt de thumbnail.
+  const fileUrl  = api.fileForEntity(e);
+  const beeldUrl = api.thumbForEntity(e);
 
   // ── Tab: Info ──
   let infoHtml = '';
@@ -4548,8 +4551,8 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
   } else {
     infoHtml += `
       <div class="detail-hero detail-hero--portret mb-6" id="detail-img-wrap-${e.id}" onclick="window.app.openLightbox('${fileUrl}','${escJS(e.name)}')">
-        <div class="detail-hero-bg" style="background-image:url('${fileUrl}')"></div>
-        <img src="${fileUrl}" class="detail-hero-img"
+        <div class="detail-hero-bg" style="background-image:url('${beeldUrl}')"></div>
+        <img src="${beeldUrl}" class="detail-hero-img"
           style="${_d.imgFocus ? `object-position:${_d.imgFocus}` : ''}"
           onerror="this.closest('#detail-img-wrap-${e.id}').style.display='none'">
         <div class="detail-hero-overlay"></div>
@@ -5264,7 +5267,7 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
     _mPortraitImg.src = '';
     _mPortraitImg.onerror = () => _mPortraitWrap.classList.add('hidden');
     _mPortraitImg.onload  = () => _mPortraitWrap.classList.remove('hidden');
-    _mPortraitImg.src = fileUrl;
+    _mPortraitImg.src = beeldUrl;
   }
 
   // Modal header type-color tint

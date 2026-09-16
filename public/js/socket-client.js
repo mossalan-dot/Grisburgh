@@ -59,7 +59,7 @@ function _ververOpenKaartje(id) {
     if (ENTITY_SECTIONS.includes(section)) {
       _refreshEntitySection(section);
     } else if (section === 'dashboard') {
-      import('./render-dashboard.js?v=9').then(m => m.renderDashboard());
+      import('./render-dashboard.js?v=10').then(m => m.renderDashboard());
     } else if (section === 'mijn-karakter') {
       _refreshSectionDebounced('mijn-karakter'); // #5: ontdekkings-teller bijwerken
     }
@@ -75,7 +75,7 @@ function _ververOpenKaartje(id) {
     if (ENTITY_SECTIONS.includes(section)) {
       _refreshEntitySection(section);
     } else if (section === 'dashboard') {
-      import('./render-dashboard.js?v=9').then(m => m.renderDashboard());
+      import('./render-dashboard.js?v=10').then(m => m.renderDashboard());
     } else if (section === 'mijn-karakter') {
       _refreshSectionDebounced('mijn-karakter'); // #5: ontdekkings-teller bijwerken
     }

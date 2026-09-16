@@ -1,5 +1,5 @@
 import { api, campagneUitUrl, zetCampagne } from './api.js?v=290';
-import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, renderDocumenten, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=308";
+import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, renderDocumenten, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=309";
 import { initArchief, renderLogboek, openLogboekEditor } from "./render-archief.js?v=127";
 import { renderKaart, queueFlyTo, verversPins, nieuweKaart } from './render-kaart.js?v=31';
 import { renderDungeon } from './render-dungeon.js?v=55';
@@ -4145,9 +4145,15 @@ window._openSpellbook = function(startIdx) {
   const ov = document.getElementById('sb-overlay');
   ov.style.display = '';          // undo any post-close display:none
   ov.classList.remove('sb-open');
-  // Cancel any previous open-animation rAF, then schedule a fresh one
+  // Géén requestAnimationFrame om de overlay te tonen: die staat stil in een
+  // tabblad dat niet op de voorgrond is, en `.sb-overlay` is zonder `sb-open`
+  // `opacity:0; pointer-events:none` — het boek zou dan onzichtbaar én
+  // onklikbaar "openstaan". Een geforceerde reflow zet de begintoestand vast,
+  // waarna de klasse meteen mag: de transitie loopt, en hij loopt ook als het
+  // tabblad achteraan staat. (Zelfde valkuil als bij de perkament-overlay.)
   if (_sbOpenRafId) { cancelAnimationFrame(_sbOpenRafId); _sbOpenRafId = null; }
-  _sbOpenRafId = requestAnimationFrame(() => { ov.classList.add('sb-open'); _sbOpenRafId = null; });
+  void ov.offsetWidth;
+  ov.classList.add('sb-open');
   // Close TOC if it was open
   const toc = document.getElementById('sb-toc-panel');
   if (toc) toc.classList.remove('sb-toc-open');
@@ -5715,7 +5721,8 @@ window._openInventaris = function(items, simpleItems, charName, currency, partyC
     if (!ov) return;
     ov.style.display = '';
     ov.classList.remove('inv-open');
-    requestAnimationFrame(() => ov.classList.add('inv-open'));
+    void ov.offsetWidth;            // zie _openSpellbook: rAF staat stil in een tabblad op de achtergrond
+    ov.classList.add('inv-open');
   } catch(e) { console.error('Inventaris open fout:', e); }
 };
 
@@ -5922,7 +5929,7 @@ function _invRenderEntityDetail(panel, it) {
   panel.innerHTML = `
     <div class="inv-det-page" style="transform:rotate(${rot}deg);clip-path:${clipPath};background:${bg}"${rarityKey ? ` data-rarity="${rarityKey}"` : ''}>
       <div class="inv-img-zone inv-img-zone--sheet">
-        <img class="inv-det-img" src="${api.fileForEntity(it)}" alt="${esc(it.name)}"
+        <img class="inv-det-img" src="${api.thumbForEntity(it)}" alt="${esc(it.name)}"
           onload="this.closest('.inv-img-zone').classList.add('inv-has-img')"
           onerror="this.closest('.inv-img-zone').classList.add('inv-no-img')">
         <div class="inv-img-fallback">
@@ -7089,19 +7096,19 @@ async function renderMijnKarakter(opts = {}) {
       <!-- Subtab nav -->
       <div class="player-subtabs">
         <button class="player-subtab${_playerSubTab === 'party' ? ' active' : ''}"
-          data-tab="party" onclick="window._setPlayerSubTab('party')">${icon('users')} Party</button>
+          data-tab="party" title="Party" onclick="window._setPlayerSubTab('party')">${icon('users')}<span class="pst-label">Party</span></button>
         <button class="player-subtab${_playerSubTab === 'personage' ? ' active' : ''}"
-          data-tab="personage" onclick="window._setPlayerSubTab('personage')">${icon('swords')} Personage</button>
+          data-tab="personage" title="Personage" onclick="window._setPlayerSubTab('personage')">${icon('swords')}<span class="pst-label">Personage</span></button>
         ${window._spelerTabAan('facties') ? `<button class="player-subtab${_playerSubTab === 'facties' ? ' active' : ''}"
-          data-tab="facties" onclick="window._setPlayerSubTab('facties')">${icon('landmark')} Facties</button>` : ''}
+          data-tab="facties" title="Facties" onclick="window._setPlayerSubTab('facties')">${icon('landmark')}<span class="pst-label">Facties</span></button>` : ''}
         <button class="player-subtab${_playerSubTab === 'knapzak' ? ' active' : ''}"
-          data-tab="knapzak" onclick="window._setPlayerSubTab('knapzak')">${icon('backpack')} Boedel${(lootData?.actief && lootData.deelnemers?.includes(charId)) ? '<span class="player-loot-badge" id="loot-tab-badge"></span>' : ''}</button>
+          data-tab="knapzak" title="Boedel" onclick="window._setPlayerSubTab('knapzak')">${icon('backpack')}<span class="pst-label">Boedel</span>${(lootData?.actief && lootData.deelnemers?.includes(charId)) ? '<span class="player-loot-badge" id="loot-tab-badge"></span>' : ''}</button>
         ${window._spelerTabAan('progressie') ? `<button class="player-subtab${_playerSubTab === 'progressie' ? ' active' : ''}"
-          data-tab="progressie" onclick="window._setPlayerSubTab('progressie')">${icon('clipboard-list')} Progressie</button>` : ''}
+          data-tab="progressie" title="Progressie" onclick="window._setPlayerSubTab('progressie')">${icon('clipboard-list')}<span class="pst-label">Progressie</span></button>` : ''}
         ${window._spelerTabAan('spreukenboek') ? `<button class="player-subtab${_playerSubTab === 'spreukenboek' ? ' active' : ''}"
-          data-tab="spreukenboek" onclick="window._setPlayerSubTab('spreukenboek')">${icon('sparkles')} Spreukenboek</button>` : ''}
+          data-tab="spreukenboek" title="Spreukenboek" onclick="window._setPlayerSubTab('spreukenboek')">${icon('sparkles')}<span class="pst-label">Spreukenboek</span></button>` : ''}
         ${window._spelerTabAan('berichten') ? `<button class="player-subtab${_playerSubTab === 'berichten' ? ' active' : ''}"
-          data-tab="berichten" onclick="window._setPlayerSubTab('berichten')">${icon('message-circle')} Berichten${window._berichtenUnread ? ` <span class="bericht-badge">${window._berichtenUnread}</span>` : ''}</button>` : ''}
+          data-tab="berichten" title="Berichten" onclick="window._setPlayerSubTab('berichten')">${icon('message-circle')}<span class="pst-label">Berichten</span>${window._berichtenUnread ? ` <span class="bericht-badge">${window._berichtenUnread}</span>` : ''}</button>` : ''}
       </div>
 
       <!-- ═══ TAB: Party ═══ -->
@@ -7177,7 +7184,7 @@ async function renderMijnKarakter(opts = {}) {
             })()}
             ${partyMembers.length > 0 ? '<div class="party-bar-divider"></div>' : ''}
             ${partyMembers.map(e => {
-              const pImgUrl   = api.fileForEntity(e);
+              const pImgUrl   = api.thumbForEntity(e);
               const firstName = esc(e.name.split(' ')[0]);
               const psub      = [e.data?.ras, e.data?.klasse].filter(Boolean).join(' · ');
               const pHp       = typeof e.hp === 'number' ? e.hp : null;
@@ -7205,7 +7212,7 @@ async function renderMijnKarakter(opts = {}) {
             }).join('')}
             ${companions.length > 0 ? '<div class="party-bar-divider"></div>' : ''}
             ${companions.map(e => {
-              const pImgUrl   = api.fileForEntity(e);
+              const pImgUrl   = api.thumbForEntity(e);
               const firstName = esc(e.name.split(' ')[0]);
               const psub      = [e.data?.ras, e.data?.klasse].filter(Boolean).join(' · ');
               return `<div class="party-portrait party-portrait--companion" onclick="window._openDetail('personages','${esc(e.id)}')">
@@ -7806,7 +7813,7 @@ async function renderMijnKarakter(opts = {}) {
             const _mdInline = s => mdToHtml(s);
             const _renderCarouselSlide = (item) => {
               if (!item) return '<div class="item-carousel-slide"><p style="color:#8a7050;font-style:italic">Geen voorwerpen</p></div>';
-              const iImgUrl = api.fileForEntity(item);
+              const iImgUrl = api.thumbForEntity(item);
               const typeIcon = _ITEM_CATS.find(c => c.key === (item.data?.itemType || item.subtype || ''))?.icon || icon('package');
               const typeLabel = item.data?.itemType || item.subtype || 'Overig';
               const desc = item.data?.desc || '';
@@ -8903,6 +8910,22 @@ async function renderMijnKarakter(opts = {}) {
   window._setPlayerSubTab = function(tab) {
     // Beurs opslaan vóórdat de DOM vervangen wordt (alleen als dirty)
     if (typeof window._dashCurrencyFlush === 'function') window._dashCurrencyFlush();
+
+    // Het spreukenboek en de boedel openen als schermvullende overlay. Die
+    // horen bij hun eigen subtab — `switchSection` sloot ze al bij het
+    // verlaten van het spelerstabblad, maar hier gebeurde dat niet. Gevolg: de
+    // DM stuurt een bericht terwijl je boek openstaat, de app springt naar
+    // Berichten (`goBerichten`) en jij kijkt nog steeds naar je spreuken,
+    // terwijl de tab eronder iets anders zegt.
+    if (tab !== 'spreukenboek') {
+      const ov = document.getElementById('sb-overlay');
+      if (ov?.classList.contains('sb-open')) window._closeSpellbook?.();
+    }
+    if (tab !== 'knapzak') {
+      const ov = document.getElementById('inv-overlay');
+      if (ov?.classList.contains('inv-open')) window._closeInventaris?.();
+    }
+
     _playerSubTab = tab;
     localStorage.setItem('_playerSubTab', tab);
     ['party', 'personage', 'facties', 'knapzak', 'progressie', 'spreukenboek', 'berichten'].forEach(t => {
@@ -8981,7 +9004,7 @@ async function renderMijnKarakter(opts = {}) {
         return;
       }
 
-      const iImgUrl   = api.fileForEntity(item);
+      const iImgUrl   = api.thumbForEntity(item);
       const typeIcon  = _catIconMap[item.data?.itemType || item.subtype || ''] || icon('package');
       const typeLabel = item.data?.itemType || item.subtype || 'Overig';
       const desc      = item.data?.desc || '';

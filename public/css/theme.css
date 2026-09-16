@@ -17018,9 +17018,9 @@ a.wikilink:not([class*="wikilink--"]) { color: #6a4a10; background: rgba(184,134
 /* ── Change 6: Berichten tab mobile fix ── */
 @media (max-width: 640px) {
   .player-subtabs {
-    overflow-x: auto;
-    overflow-y: hidden;
-    flex-wrap: nowrap;
+    overflow-x: visible;
+    overflow-y: visible;
+    flex-wrap: wrap;
     padding-bottom: 0;
     -webkit-overflow-scrolling: touch;
     scrollbar-width: none;
@@ -25788,4 +25788,32 @@ body.herberg-actief .herberg-scene .herberg-content {
   padding: 24px 20px;
   backdrop-filter: blur(5px);
   -webkit-backdrop-filter: blur(5px);
+}
+
+/* ── De subtabbalk van de speler verstopte zijn eigen navigatie ─────────────
+   Er stond een blok "Change 6: Berichten tab mobile fix" dat de balk liet
+   schuiven mét `scrollbar-width: none` — swipen werkte, maar op een laptop was
+   er geen enkele aanwijzing dát er meer stond, en de actieve tab schoof niet in
+   beeld. De spelerskolom is afgetopt op 680 px, dus zeven tabs met tekst
+   passen daar sowieso niet: op een venster van 1280 viel **Berichten** eraf —
+   inclusief de teller met ongelezen post.
+   Navigatie hoort nooit verstopt te zijn, dus vouwt hij nu om. `flex-wrap:wrap`
+   doet dat alleen als het nodig is: één regel waar het past, twee waar niet.
+   Onderaan de stylesheet, want .player-subtabs staat op regel 9716. */
+.player-subtabs {
+  flex-wrap: wrap;
+  overflow-x: visible;
+  overflow-y: visible;
+  row-gap: 3px;
+}
+.player-subtab { display: inline-flex; align-items: center; gap: 6px; }
+
+/* Op een telefoon zouden zeven tabs met tekst drie regels worden (108 px van je
+   scherm). Daar houdt alleen de actieve tab zijn naam — je weet waar je bent,
+   en de rest is het icoon dat elders in de app hetzelfde betekent. Past op
+   320 px in één regel van 39 px. */
+@media (max-width: 480px) {
+  .player-subtabs { column-gap: 2px; }
+  .player-subtab { font-size: 10px; padding: 7px 9px; gap: 4px; }
+  .player-subtab:not(.active) .pst-label { display: none; }
 }
