@@ -26224,9 +26224,8 @@ body.herberg-actief .herberg-scene .herberg-content {
    zien als je je afvraagt hoe ver je bent — niet elke keer dat je een verslag
    opzoekt. */
 .logboek-ontdek {
-  /* Niet over de volle breedte: een balk van 1200 px voor "5 / 17" leest als
-     een laadscherm. Dit is een terzijde, geen kop. */
-  max-width: 560px;
+  /* Even breed als de aktes eronder: dezelfde marge van 24 px als #logboek-body,
+     zodat de linker- en rechterrand uitlijnen. */
   margin: 0 24px 14px; padding: 12px 16px 14px;
   border: 1px solid rgba(196, 168, 122, .55); border-radius: 10px;
   background: rgba(242, 232, 210, .45);
@@ -26248,6 +26247,10 @@ body.herberg-actief .herberg-scene .herberg-content {
 .logboek-ontdek.is-dicht .logboek-ontdek-kop::after { transform: rotate(-45deg) translate(-2px, 2px); }
 .logboek-ontdek.is-dicht .ontdek-meters { display: none; }
 .logboek-ontdek .ontdek-meters { margin-top: 10px; }
+/* Breed betekent een lange balk; dan mag het label wat meer ruimte en het
+   getal een vaste kolom, zodat de cijfers onder elkaar uitlijnen. */
+.logboek-ontdek .ontdek-meter { grid-template-columns: auto 120px 1fr 72px; }
+.logboek-ontdek .ontdek-meter-count { text-align: right; font-variant-numeric: tabular-nums; }
 /* Een categorie die je helemaal gevonden hebt mag dat laten zien. */
 .ontdek-meter--vol .ontdek-meter-count { color: #4a7c3f; font-weight: 600; }
 @media (prefers-reduced-motion: reduce) {
