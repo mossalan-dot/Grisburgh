@@ -4331,7 +4331,7 @@ window._winkelVoorraadHtml = function _winkelVoorraadHtml({ e, tab, beschikbaarD
         ${kortingBannerHtml}
         ${beursHtml}
         ${roterendHtml}
-        <div class="rounded border border-room-border overflow-hidden">
+        <div class="rounded border border-room-border overflow-hidden winkel-voorraad">
           <table class="w-full text-sm">
             <thead>
               <tr class="bg-room-elevated border-b border-room-border">
@@ -4409,7 +4409,6 @@ window._winkelVoorraadHtml = function _winkelVoorraadHtml({ e, tab, beschikbaarD
           <div id="dm-afreken-paneel" class="dm-winkel-paneel hidden"></div>
           <div class="dm-winkel-paneel">
             <div class="cs-sectiekop" style="border-top:0;margin-top:0;padding-top:0">Inkopen van de party</div>
-            <p class="text-xs text-ink-dim mb-2">Vink aan wat de winkel overneemt, zet er een bedrag bij en reken af. Het voorwerp verdwijnt uit de boedel; het geld gaat naar de partybeurs als die gedeeld is, anders naar die speler.</p>
             <button class="ed-knop" onclick="window._dmInkoopOpen('${esc(_shopId)}')"><span id="dm-inkoop-chevron">▸</span>${icon('package')}<span>Inventory van de party</span></button>
             <div id="dm-inkoop-lijst" class="mt-2"></div>
           </div>` : ''}
@@ -5652,6 +5651,15 @@ window._dmInkoopTotaal = (el) => {
 
 window._dmInkoopFilter = (term) => {
   const t = (term || '').toLowerCase().trim();
+  const bak = document.getElementById('dm-inkoop-rijen');
+  // Filteren maakte de lijst korter, dus de pagina korter, dus klemde de
+  // browser de scrollpositie en sprong je naar boven terwijl je typte. De bak
+  // houdt daarom de hoogte vast die hij had bij de eerste toetsaanslag; leeg je
+  // het veld, dan mag hij weer meebewegen.
+  if (bak) {
+    if (t && !bak.style.minHeight) bak.style.minHeight = bak.getBoundingClientRect().height + 'px';
+    if (!t) bak.style.minHeight = '';
+  }
   document.querySelectorAll('#dm-inkoop-rijen .dm-inkoop-rij').forEach(rij => {
     rij.classList.toggle('hidden', !!t && !rij.dataset.zoek.includes(t));
   });

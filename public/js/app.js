@@ -1,5 +1,5 @@
 import { api, campagneUitUrl, zetCampagne } from './api.js?v=290';
-import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, renderDocumenten, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=309";
+import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, renderDocumenten, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=310";
 import { initArchief, renderLogboek, openLogboekEditor } from "./render-archief.js?v=128";
 import { renderKaart, queueFlyTo, verversPins, nieuweKaart } from './render-kaart.js?v=31';
 import { renderDungeon } from './render-dungeon.js?v=56';
@@ -6809,12 +6809,12 @@ function _renderSignatureCard(klasse, level, progData, pp) {
       <span class="sig-card-icon">${icon(cfg.icon)}</span>
       <span class="sig-card-name">${esc(cfg.feature)}</span>
       <span class="sig-card-tag">${esc(klasse)}${lvl ? ' ' + lvl : ''}</span>
-      ${desc ? `<button class="sig-card-info" onclick="window._sigToggleInfo('${k}')" title="Volledige uitleg">${icon('book-open')}</button>` : ''}
+      ${desc ? `<button class="sig-card-info" onclick="window._sigToggleInfo('${k}')" title="Volledige uitleg">${icon('scroll-text')}</button>` : ''}
       ${cfg.vorm === 'waarde' ? '' : `<button class="sig-card-reset" onclick="window._sigReset('${k}')" title="Alles terug">${icon('refresh-cw')}</button>`}
     </div>
     <div class="sig-card-body sig-card-body--${cfg.vorm || 'uses'}">${body}</div>
     <div class="sig-card-extra">${onder}</div>
-    ${desc ? `<div class="sig-card-desc hidden" id="sig-card-desc-${k}">${mdToHtml(desc)}</div>` : ''}
+    ${desc ? `<div class="sig-card-desc hidden" id="sig-card-desc-${k}">${window.glossary?.annotate?.(mdToHtml(desc)) ?? mdToHtml(desc)}</div>` : ''}
   </div>`;
 }
 
@@ -6952,6 +6952,73 @@ function _roepnaam(naam) {
   if (/^(en|&|van|de)$/i.test(delen[1])) return delen.slice(0, 3).join(' ');
   return delen[0];
 }
+
+// Eén metgezel-portret. Stond inline in de partyrij; nu een eigen functie omdat
+// bondgenoten en huisdieren er elk hun eigen regel mee vullen.
+function _partyMetgezelHtml(lijst) {
+  return (lijst || []).map(e => {
+              const pImgUrl   = api.thumbForEntity(e);
+              const firstName = esc(_roepnaam(e.name));
+              const isDier    = e.soort === 'dier' || e.subtype === 'dier';
+              const psub      = [e.data?.ras, e.data?.klasse].filter(Boolean).join(' · ');
+              // Een metgezel kreeg geen HP-ring terwijl iedereen eromheen er wel
+              // een heeft — terwijl juist een dier in een gevecht doodgaat.
+              const cHp    = typeof e.hp === 'number' ? e.hp : null;
+              const cMaxHp = typeof e.maxHp === 'number' ? e.maxHp : null;
+              const cPct   = (cHp !== null && cMaxHp) ? Math.max(0, Math.min(100, (cHp / cMaxHp) * 100)) : null;
+              const cCls   = cPct === null ? '' : cPct > 75 ? 'hp-healthy' : cPct > 50 ? 'hp-lightly' : cPct > 25 ? 'hp-wounded' : cPct > 0 ? 'hp-critical' : 'hp-down';
+              const cR = 38, cC = +(2 * Math.PI * 38).toFixed(1);
+              const cFill = cPct > 0 ? +(cC * cPct / 100).toFixed(1) : 0;
+              return `<div class="party-portrait party-portrait--companion party-portrait--${isDier ? 'dier' : 'bondgenoot'}"
+                onclick="window._openDetail('personages','${esc(e.id)}')"
+                title="${esc(e.name)}${e.baasje ? ` — van ${e.baasje}` : ''}">
+                <div class="party-portrait-ring-wrap">
+                  ${cPct !== null ? `<svg class="party-hp-ring" viewBox="0 0 100 100" style="position:absolute;inset:0;width:100%;height:100%;pointer-events:none">
+                    <circle cx="50" cy="50" r="${cR}" class="party-hp-ring-bg"/>
+                    <circle cx="50" cy="50" r="${cR}" class="party-hp-ring-fill party-hp-ring-${cCls}"
+                      stroke-dasharray="${cFill} ${cC}" transform="rotate(-90 50 50)"/>
+                  </svg>` : ''}
+                  <div class="party-portrait-avatar-wrap">
+                    <img src="${pImgUrl}" class="party-portrait-img"
+                      onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+                    <div class="party-portrait-fallback" style="display:none">${icon(isDier ? 'paw-print' : 'shield')}</div>
+                  </div>
+                  <span class="party-portrait-soort" title="${isDier ? 'Huisdier' : 'Bondgenoot'}">${icon(isDier ? 'paw-print' : 'shield')}</span>
+                </div>
+                <div class="party-portrait-name">${firstName}</div>
+                ${e.baasje ? `<div class="party-portrait-sub">van ${esc(e.baasje.split(' ')[0])}</div>`
+                           : (psub ? `<div class="party-portrait-sub">${esc(psub)}</div>` : '')}
+              </div>`;
+  }).join('');
+}
+
+// ── Eén vangnet voor beelden die er niet zijn ───────────────────────────────
+// Een bestand dat weg is (of een id dat nergens naar wijst) liet de browser
+// zijn eigen gebroken-plaatje-teken tekenen: een blauw vierkantje met een
+// vraagteken, midden in een perkamenten portretring. Nu komt er een eigen
+// merkteken voor in de plaats, in de kleuren van de app.
+//
+// Bewust in de **capture**-fase op document: een `error` van een <img> bubbelt
+// niet, dus een gewone listener hoger in de boom krijgt hem nooit. En bewust
+// alleen waar nog géén eigen `onerror` staat — een heleboel plekken verbergen
+// het beeld al en tonen hun eigen fallback-element; die moeten hun gang gaan.
+const _GEEN_BEELD_SVG = 'data:image/svg+xml;utf8,' + encodeURIComponent(
+  `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+     <rect width="64" height="64" fill="#efe4cc"/>
+     <g fill="none" stroke="#b09566" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+       <rect x="16" y="19" width="32" height="26" rx="3"/>
+       <circle cx="25" cy="28" r="3"/>
+       <path d="M18 41l9-9 6 6 5-4 8 7"/>
+     </g>
+   </svg>`);
+document.addEventListener('error', (ev) => {
+  const el = ev.target;
+  if (!el || el.tagName !== 'IMG') return;
+  if (el.dataset.geenBeeld) return;          // niet in een lus raken
+  if (el.getAttribute('onerror')) return;    // dit beeld regelt zijn eigen vangnet
+  el.dataset.geenBeeld = '1';
+  el.src = _GEEN_BEELD_SVG;
+}, true);
 
 // ── Level omhoog ───────────────────────────────────────────────────────────
 // De DM gunt (een tegoed per speler), de speler verzilvert hier. Bewust in twee
@@ -7693,7 +7760,7 @@ async function renderMijnKarakter(opts = {}) {
         <button class="player-subtab${_playerSubTab === 'party' ? ' active' : ''}"
           data-tab="party" title="Party" onclick="window._setPlayerSubTab('party')">${icon('users')}<span class="pst-label">Party</span></button>
         <button class="player-subtab${_playerSubTab === 'personage' ? ' active' : ''}"
-          data-tab="personage" title="Personage" onclick="window._setPlayerSubTab('personage')">${icon('swords')}<span class="pst-label">Personage</span></button>
+          data-tab="personage" title="Personage" onclick="window._setPlayerSubTab('personage')">${icon('user')}<span class="pst-label">Personage</span></button>
         ${window._spelerTabAan('facties') ? `<button class="player-subtab${_playerSubTab === 'facties' ? ' active' : ''}"
           data-tab="facties" title="Facties" onclick="window._setPlayerSubTab('facties')">${icon('landmark')}<span class="pst-label">Facties</span></button>` : ''}
         <button class="player-subtab${_playerSubTab === 'knapzak' ? ' active' : ''}"
@@ -7721,7 +7788,12 @@ async function renderMijnKarakter(opts = {}) {
 
         <div class="player-dash-section">
           <div class="player-dash-section-title">${icon('users')} Mijn party</div>
-          <div class="player-dash-party-row">
+          <!-- Jij staat op je eigen regel, gecentreerd en een maat groter: op een
+               tab die "Mijn party" heet zoek je jezelf niet tussen elf anderen.
+               Daaronder de medespelers, en daar weer onder de metgezellen —
+               bondgenoten en huisdieren elk op hun eigen regel, met een kopje,
+               in plaats van achter een streepje aan de rij geplakt. -->
+          <div class="player-dash-party-row player-dash-party-row--zelf">
             <!-- Zichzelf (altijd zichtbaar) -->
             ${(() => {
               const _ringR = 44, _ringC = +(2 * Math.PI * 44).toFixed(1);
@@ -7749,7 +7821,8 @@ async function renderMijnKarakter(opts = {}) {
               ${inspired ? '<div class="party-portrait-badge">✨</div>' : ''}
             </div>`;
             })()}
-            ${partyMembers.length > 0 ? '<div class="party-bar-divider"></div>' : ''}
+          </div>
+          ${partyMembers.length ? '<div class="player-dash-party-row">' : ''}
             ${partyMembers.map(e => {
               const pImgUrl   = api.thumbForEntity(e);
               const firstName = esc(_roepnaam(e.name));
@@ -7786,42 +7859,19 @@ async function renderMijnKarakter(opts = {}) {
                 ${e.afwezig ? `<div class="party-portrait-afwezig">${icon('moon')} niet mee</div>` : ''}
               </div>`;
             }).join('')}
-            ${companions.length > 0 ? '<div class="party-bar-divider"></div>' : ''}
-            ${companions.map(e => {
-              const pImgUrl   = api.thumbForEntity(e);
-              const firstName = esc(_roepnaam(e.name));
-              const isDier    = e.soort === 'dier' || e.subtype === 'dier';
-              const psub      = [e.data?.ras, e.data?.klasse].filter(Boolean).join(' · ');
-              // Een metgezel kreeg geen HP-ring terwijl iedereen eromheen er wel
-              // een heeft — terwijl juist een dier in een gevecht doodgaat.
-              const cHp    = typeof e.hp === 'number' ? e.hp : null;
-              const cMaxHp = typeof e.maxHp === 'number' ? e.maxHp : null;
-              const cPct   = (cHp !== null && cMaxHp) ? Math.max(0, Math.min(100, (cHp / cMaxHp) * 100)) : null;
-              const cCls   = cPct === null ? '' : cPct > 75 ? 'hp-healthy' : cPct > 50 ? 'hp-lightly' : cPct > 25 ? 'hp-wounded' : cPct > 0 ? 'hp-critical' : 'hp-down';
-              const cR = 38, cC = +(2 * Math.PI * 38).toFixed(1);
-              const cFill = cPct > 0 ? +(cC * cPct / 100).toFixed(1) : 0;
-              return `<div class="party-portrait party-portrait--companion party-portrait--${isDier ? 'dier' : 'bondgenoot'}"
-                onclick="window._openDetail('personages','${esc(e.id)}')"
-                title="${esc(e.name)}${e.baasje ? ` — van ${e.baasje}` : ''}">
-                <div class="party-portrait-ring-wrap">
-                  ${cPct !== null ? `<svg class="party-hp-ring" viewBox="0 0 100 100" style="position:absolute;inset:0;width:100%;height:100%;pointer-events:none">
-                    <circle cx="50" cy="50" r="${cR}" class="party-hp-ring-bg"/>
-                    <circle cx="50" cy="50" r="${cR}" class="party-hp-ring-fill party-hp-ring-${cCls}"
-                      stroke-dasharray="${cFill} ${cC}" transform="rotate(-90 50 50)"/>
-                  </svg>` : ''}
-                  <div class="party-portrait-avatar-wrap">
-                    <img src="${pImgUrl}" class="party-portrait-img"
-                      onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
-                    <div class="party-portrait-fallback" style="display:none">${icon(isDier ? 'paw-print' : 'shield')}</div>
-                  </div>
-                  <span class="party-portrait-soort" title="${isDier ? 'Huisdier' : 'Bondgenoot'}">${icon(isDier ? 'paw-print' : 'shield')}</span>
-                </div>
-                <div class="party-portrait-name">${firstName}</div>
-                ${e.baasje ? `<div class="party-portrait-sub">van ${esc(e.baasje.split(' ')[0])}</div>`
-                           : (psub ? `<div class="party-portrait-sub">${esc(psub)}</div>` : '')}
-              </div>`;
-            }).join('')}
-          </div>
+          ${partyMembers.length ? '</div>' : ''}
+          ${(() => {
+            const groepen = [
+              { soort: 'bondgenoot', kop: 'Medestanders', ic: 'shield' },
+              { soort: 'dier',       kop: 'Huisdieren',   ic: 'paw-print' },
+            ];
+            return groepen.map(g => {
+              const lijst = companions.filter(c => (c.soort || (c.subtype === 'dier' ? 'dier' : 'bondgenoot')) === g.soort);
+              if (!lijst.length) return '';
+              return `<div class="party-groep-kop">${icon(g.ic)} ${g.kop}</div>
+                <div class="player-dash-party-row">${_partyMetgezelHtml(lijst)}</div>`;
+            }).join('');
+          })()}
         </div>
 
         <div id="party-gevallenen"></div>
@@ -13473,7 +13523,7 @@ const HELP_CONFIG = {
   hulp_bewerk_locaties_winkel: () => ({ titel: 'De winkel', stappen: [
     { titel: 'Voorraad', tekst: 'Wat hier te koop is. Voeg voorwerpen toe, of laad de voorraad van een andere winkel in als vertrekpunt. Prijzen schrijf je met een komma — `12,34` is 12 goud, 3 zilver en 4 koper — of in munten (`5 gp 2 sp`). De voorraad hoort bij de **locatie**; een verkoper wijst er alleen naar.', afbeelding: null },
     { titel: 'Wisselend assortiment', tekst: 'Niet alles ligt altijd in de schappen: laat de winkel elke zoveel uur een deel van de voorraad tonen. Winkels met hetzelfde woord bij *Zelfde selectie als* verversen tegelijk en tonen dezelfde selectie.', afbeelding: null },
-    { titel: 'Verkopen en inkopen', tekst: 'In het detailvenster van de winkel reken je af namens een speler, en koop je met *Inkopen van de party* spullen van hen over: je vinkt aan wat je overneemt en tikt het bedrag in. Wat de winkel niet inkoopt zet je op het voorwerpkaartje zelf uit.', afbeelding: null },
+    { titel: 'Verkopen en inkopen', tekst: 'In het detailvenster van de winkel reken je af namens een speler, en koop je met *Inkopen van de party* spullen van hen over: je vinkt aan wat de winkel overneemt, zet er een bedrag per stuk bij en rekent af. Het voorwerp verdwijnt uit de boedel; het geld gaat naar de partybeurs als die gedeeld is, anders naar die speler. Wat de winkel niet inkoopt zet je op het voorwerpkaartje zelf uit.', afbeelding: null },
   ] }),
 
   hulp_bewerk_personages_info: () => ({ titel: 'Een personage', stappen: [

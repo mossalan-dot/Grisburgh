@@ -26271,3 +26271,90 @@ body.kaart-fs-active .combat-overlay { z-index: 1350; top: 0; }
    leeg gevecht starten) maar zegt met zijn tint dat er nog niets in zit. */
 .dng-enc-start--leeg { opacity: .45; }
 .dng-enc-start--leeg:hover { opacity: .8; }
+
+/* ── Spreuk- en vaardighedenkaartjes: zelfde vorm en kleur als de rest ──────
+   Twee dingen weken af van een gewoon `.entity-card`. Hun beeldzone was 96 px
+   waar een archiefkaartje er 158–196 gebruikt — daardoor stonden ze duidelijk
+   ondieper. En de lege zone liep naar #faf8fc, een koel blauwwit, terwijl de
+   kaart zelf op #faf4e6 perkament staat; dat las als een andere familie.
+   Deze regels staan onderaan omdat .spreuk-card-img-wrap rond regel 22470
+   staat en een variant met dezelfde specificiteit daarboven op volgorde zou
+   verliezen. */
+.spreuk-card-img-wrap,
+.vaardig-card-img-wrap { height: 158px; }
+.spreuk-card-img-wrap {
+  background: linear-gradient(135deg,
+    color-mix(in srgb, var(--school-c2, #5a3a8c) 14%, #faf4e6),
+    color-mix(in srgb, var(--school-c1, #3a2a55) 5%, #faf4e6));
+}
+.vaardig-card-img-wrap {
+  background: linear-gradient(135deg,
+    color-mix(in srgb, var(--soort-c2, #5a3a8c) 14%, #faf4e6),
+    color-mix(in srgb, var(--soort-c1, #3a2a55) 5%, #faf4e6));
+}
+
+/* ── Invoervelden: de placeholder had geen eigen kleur ─────────────────────
+   Dan pakt de browser zijn eigen grijsblauw, en op een licht veld in een donker
+   dienstpaneel is dat nauwelijks te lezen — het zoekveld bij "Inkopen van de
+   party" en de bedragvelden met hun voorbeeld "12,34". */
+.dm-input::placeholder,
+.dm-textarea::placeholder,
+.dm-input-sm::placeholder { color: rgba(58, 36, 16, .48); opacity: 1; }
+
+/* ── Prijzen in een voorraadtabel op een donkere dienst-achtergrond ────────
+   `text-ink-medium` is #5a4030 — donkerbruin, prima op een kaartje maar
+   onleesbaar op de donkere scene van een winkel. Alleen daar bijsturen; op het
+   kaartje zelf blijft de tabel zoals hij was. */
+.herberg-scene .winkel-voorraad .text-ink-medium,
+.markt-winkel   .winkel-voorraad .text-ink-medium { color: #f2e8d2; }
+.herberg-scene .winkel-voorraad .text-ink-faint,
+.markt-winkel   .winkel-voorraad .text-ink-faint { color: rgba(242, 232, 210, .55); }
+
+/* ── Party-tab: jij bovenaan, dan de rest ──────────────────────────────────
+   De hele party stond als één doorlopende rij naast elkaar, met een streepje
+   tussen de groepen. Bij twaalf spelers zocht je jezelf. Nu: jij op je eigen
+   regel (gecentreerd, een maat groter), daaronder de medespelers, en daar weer
+   onder de metgezellen — bondgenoten en huisdieren elk met een kopje. */
+.player-dash-party-row--zelf {
+  justify-content: center;
+  padding-bottom: 14px;
+  margin-bottom: 12px;
+  border-bottom: 1px solid rgba(196, 168, 122, .4);
+}
+.party-portrait--self { transform: scale(1.14); transform-origin: center bottom; }
+
+.party-groep-kop {
+  display: flex; align-items: center; gap: 7px;
+  margin: 16px 0 8px;
+  font-family: 'Cinzel', serif; font-size: .78rem; letter-spacing: .07em;
+  text-transform: uppercase; color: #7a6040;
+}
+.party-groep-kop .icon { width: 14px; height: 14px; opacity: .7; }
+
+/* De hulpknop zweefde vlak boven de eerste sectie. */
+#pst-party > .player-dash-section:first-of-type,
+#pst-personage > .player-dash-section:first-of-type { margin-top: 6px; }
+#pst-party > div:first-child { padding-bottom: 8px; }
+
+/* De uitleg op een signatuurkaart liep als losse regels door elkaar: `mdToHtml`
+   maakt van elke nieuwe regel een <br>, en zonder ritme leest dat als één brok.
+   Alinea's krijgen lucht, en het blok een streep erboven zodat het losstaat van
+   de samenvattingsregel. */
+.sig-card-desc {
+  border-top: 1px solid rgba(196, 168, 122, .45);
+  padding-top: 10px; margin-top: 6px; line-height: 1.6;
+}
+.sig-card-desc > p { margin: 0 0 .6em; }
+.sig-card-desc > p:last-child { margin-bottom: 0; }
+.sig-card-desc br + br { line-height: 1.9; }
+
+/* ── Subtabbalk van de speler: iconen, met alleen op de actieve tab een naam ─
+   Met zeven tabs brak de balk in twee regels, en dan staat de helft van je
+   navigatie onder een streep. Een icoon is genoeg om te herkennen waar je heen
+   gaat; welke tab je ópen hebt wil je wél kunnen lezen. De `title` blijft
+   staan, dus de naam is altijd op te vragen. */
+.player-subtab .pst-label { display: none; }
+.player-subtab.active .pst-label { display: inline; }
+.player-subtabs { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; }
+.player-subtabs::-webkit-scrollbar { display: none; }
+.player-subtab { flex: 0 0 auto; }
