@@ -6992,6 +6992,19 @@ function _partyMetgezelHtml(lijst) {
   }).join('');
 }
 
+// Een tint per ability, en dezelfde tint bij de skills die eronder hangen.
+// Niet decoratief: de skillrij zegt "DEX" in vier letters, en met dezelfde
+// kleur als de DEX-kaart erboven zie je in één oogopslag welke skills bij welke
+// ability horen. Bewust bleek — dit moet het perkament niet overstemmen.
+const _AB_KLEUR = {
+  str: '#b0553a',   // kracht — baksteen
+  dex: '#4a8a5a',   // behendigheid — mos
+  con: '#c08a3a',   // taaiheid — oker
+  int: '#4a6f9a',   // verstand — inkt
+  wis: '#7a5f9a',   // wijsheid — violet
+  cha: '#b05a7a',   // uitstraling — wijn
+};
+
 // ── Eén vangnet voor beelden die er niet zijn ───────────────────────────────
 // Een bestand dat weg is (of een id dat nergens naar wijst) liet de browser
 // zijn eigen gebroken-plaatje-teken tekenen: een blauw vierkantje met een
@@ -7562,7 +7575,15 @@ async function renderMijnKarakter(opts = {}) {
   let _skillProfs = {};
   try { _skillProfs = JSON.parse(playerProfile.skillProfs || '{}'); } catch { _skillProfs = {}; }
   let _skillAdj = {};
+  // Meerdere snelheden bestonden al in de data (het geprinte blad toont ze),
+  // maar de invoer ervoor was ooit uit de strip verdwenen — handlers en CSS
+  // stonden er nog, alleen de markup niet. Dus: terug aangesloten.
   let _extraSpeeds = [];
+  try {
+    const rauw = playerProfile.extraSpeeds;
+    _extraSpeeds = Array.isArray(rauw) ? rauw : JSON.parse(rauw || '[]');
+    if (!Array.isArray(_extraSpeeds)) _extraSpeeds = [];
+  } catch { _extraSpeeds = []; }
   try { _skillAdj = JSON.parse(playerProfile.skillAdj || '{}'); } catch { _skillAdj = {}; }
   const _saveProfs  = new Set(Array.isArray(playerProfile.saveProfs) ? playerProfile.saveProfs : (playerProfile.saveProfs || '').split(',').filter(Boolean));
   const _profBonusNum = parseInt(playerProfile.profBonus) || 0;
@@ -7913,8 +7934,6 @@ async function renderMijnKarakter(opts = {}) {
 
         <div id="levelup-balk"></div>
 
-        ${_renderSignatureCards(playerProfile, progData)}
-
         ${_dominantKlasse.toLowerCase().includes('sorcerer') ? `
         <div class="player-dash-section wild-magic-section">
           <div class="player-dash-section-title">${icon('sparkles')} Wild Magic Surge</div>
@@ -7940,7 +7959,23 @@ async function renderMijnKarakter(opts = {}) {
             <input class="pcs-input" type="text"
               value="${esc(playerProfile.speed ?? '')}" placeholder="—"
               onblur="window._saveProfileField('speed', this.value)">
+            <button class="pcs-extra-speed-btn${_extraSpeeds.length ? ' pcs-extra-speed-btn--on' : ''}"
+              onclick="window._addExtraSpeed()"
+              title="Een snelheid erbij (vliegen, zwemmen, klimmen…)">+</button>
           </div>
+          ${_extraSpeeds.map((sp, i) => `
+          <div class="pcs-item pcs-extra-speed-item">
+            <select class="pcs-speed-label-select" onchange="window._saveExtraSpeedFull()">
+              ${['Fly', 'Swim', 'Climb', 'Burrow', 'Hover'].map(l =>
+                `<option value="${l}"${(sp.label || '') === l ? ' selected' : ''}>${l}</option>`).join('')}
+              ${['Fly', 'Swim', 'Climb', 'Burrow', 'Hover'].includes(sp.label || '')
+                ? '' : `<option value="${esc(sp.label || '')}" selected>${esc(sp.label || '—')}</option>`}
+            </select>
+            <input class="pcs-input" type="text" value="${esc(sp.value ?? '')}" placeholder="—"
+              onblur="window._saveExtraSpeedFull()">
+            <button class="pcs-extra-speed-del" onclick="window._removeExtraSpeed(${i})"
+              title="Deze snelheid weghalen">${icon('x')}</button>
+          </div>`).join('')}
           <div class="pcs-item">
             <span class="pcs-label">Initiative</span>
             <input class="pcs-input" type="text"
@@ -8050,7 +8085,7 @@ async function renderMijnKarakter(opts = {}) {
               const saveBonus = _mod(ab) + (isProf ? _profBonusNum : 0);
               const saveBonusStr = (saveBonus >= 0 ? '+' : '') + saveBonus;
               return `
-                <div class="player-ability-card">
+                <div class="player-ability-card" style="--ab-c:${_AB_KLEUR[ab]}">
                   <div class="player-ability-label">${_AB_LABELS[ab]}</div>
                   <input class="player-ability-score" type="number" min="1" max="30"
                     value="${_ab(ab)}"
@@ -8059,12 +8094,17 @@ async function renderMijnKarakter(opts = {}) {
                     <span class="player-ability-mod player-roll" title="Rol ${_AB_LABELS[ab]}-check"
                       onclick="window.dice?.rollFormula('1d20${_mod(ab) >= 0 ? '+' + _mod(ab) : _mod(ab)} ${_AB_LABELS[ab]} check')">${_modStr(ab)}</span>
                   </div>
-                  <button class="player-save-dot${isProf ? ' active' : ''}"
-                    onclick="window._toggleSaveProf('${ab}', ${!isProf})"
-                    title="Proficiency wisselen">
-                  </button>
-                  <span class="player-save-val player-roll" title="Rol ${_AB_LABELS[ab]} save"
-                    onclick="window.dice?.rollFormula('1d20${saveBonus >= 0 ? '+' + saveBonus : saveBonus} ${_AB_LABELS[ab]} save')">${saveBonusStr}</span>
+                  <!-- Dat deze twee over de saving throw gaan stond nergens: je zag een
+                       bolletje en een getal en moest maar raden. -->
+                  <div class="player-ability-save">
+                    <span class="player-ability-save-kop">Save</span>
+                    <button class="player-save-dot${isProf ? ' active' : ''}"
+                      onclick="window._toggleSaveProf('${ab}', ${!isProf})"
+                      title="${isProf ? 'Proficient in deze saving throw — klik om uit te zetten' : 'Niet proficient — klik om proficiency aan te zetten'}">
+                    </button>
+                    <span class="player-save-val player-roll" title="Rol een ${_AB_LABELS[ab]} saving throw"
+                      onclick="window.dice?.rollFormula('1d20${saveBonus >= 0 ? '+' + saveBonus : saveBonus} ${_AB_LABELS[ab]} save')">${saveBonusStr}</span>
+                  </div>
                 </div>`;
             }).join('')}
           </div>
@@ -8080,7 +8120,7 @@ async function renderMijnKarakter(opts = {}) {
               const bonusStr = (bonus >= 0 ? '+' : '') + bonus;
               const adjVal = _skillAdj[skill.key] || 0;
               const bonusCls = adjVal > 0 ? ' skill-bonus--buff' : adjVal < 0 ? ' skill-bonus--nerf' : '';
-              return `<div class="player-skill-row">
+              return `<div class="player-skill-row" style="--ab-c:${_AB_KLEUR[skill.ab] || '#8a7050'}">
                 <button class="player-skill-prof-btn${prof ? ' ' + prof : ''}"
                   onclick="window._cycleSkillProf('${skill.key}')"
                   title="${prof === 'expert' ? 'Expertise' : prof === 'prof' ? 'Proficient' : 'Geen proficiency'}"></button>
@@ -8089,14 +8129,18 @@ async function renderMijnKarakter(opts = {}) {
                   onclick="window.dice?.rollFormula('1d20${bonus >= 0 ? '+' + bonus : bonus} ${skill.label}')">${skill.label}</span>
                 <span class="player-skill-ab">${skill.ab.toUpperCase()}</span>
                 <span class="skill-adj-ctrl">
-                  <button class="skill-adj-arrow" onclick="window._adjSkill('${skill.key}', 1)" title="Bonus +1">▲</button>
+                  <button class="skill-adj-arrow" onclick="window._adjSkill('${skill.key}', 1)" title="Eén hoger — voor een tijdelijke bonus die niet uit je proficiency komt">▲</button>
                   ${adjVal !== 0 ? `<span class="skill-adj-val${adjVal > 0 ? ' buff' : ' nerf'}">${adjVal > 0 ? '+' + adjVal : adjVal}</span>` : '<span class="skill-adj-val"></span>'}
-                  <button class="skill-adj-arrow" onclick="window._adjSkill('${skill.key}', -1)" title="Bonus −1">▼</button>
+                  <button class="skill-adj-arrow" onclick="window._adjSkill('${skill.key}', -1)" title="Eén lager — voor een tijdelijk nadeel op deze skill">▼</button>
                 </span>
               </div>`;
             }).join('')}
           </div>
         </div>
+
+        <!-- De klasse-eigen kaart hoort hier: eerst wie je bent (abilities,
+             skills), dan het ene ding waar je klasse aan tafel over gaat. -->
+        ${_renderSignatureCards(playerProfile, progData)}
 
         <!-- Proficiencies -->
         <div class="player-dash-section">

@@ -787,3 +787,12 @@ Per bevinding: waar, wat, en of het opgelost is. Nieuwe regels onderaan.
 - Namen met een titel staan voluit: "Zuster Marelle" en "Jonkvrouw Elsje", niet "Zuster" en "Jonkvrouw".
 - Op de Party-tab staat géén blok *Ontdekt in <campagne>* meer; dat staat nu boven de tijdlijn in Avontuur → Logboek, met een extra rij voor het Bestiarium (die ontbrak). Klap het dicht, ga naar een ander tabblad en terug: het staat nog dicht.
 - Een categorie die helemaal ontdekt is (bijv. Documenten 14/14) krijgt een groen getal.
+
+### Personage-tab: statsrij, abilities en skills (17 sep 2026)
+
+- De statsrij staat als groep bij elkaar in plaats van over de volle breedte uitgesmeerd; alle vakjes lijnen onderaan uit, ook met een extra snelheid erbij.
+- Klik het plusje bij *Speed*: er komt een vakje bij met een keuzelijst (Fly / Swim / Climb / Burrow / Hover) en een eigen waarde. Het kruisje haalt 'm weer weg, en het geprinte blad toont hem ook.
+- Elke ability-kaart heeft zijn eigen tint, en de skills die eraan hangen dragen dezelfde kleur als streepje en labeltje — zo zie je in één oogopslag welke skills onder INT vallen.
+- Onder elke ability staat nu **Save** bij het bolletje en het getal; de tooltip zegt of je proficient bent en wat klikken doet.
+- De pijltjes bij een skill zeggen wat ze doen ("Eén hoger — voor een tijdelijke bonus…") in plaats van "Bonus −1".
+- De klasse-eigen kaart (Rage, Arcane Recovery, Lay on Hands…) staat onder Skills in plaats van bovenaan.

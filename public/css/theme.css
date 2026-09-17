@@ -26360,3 +26360,53 @@ body.kaart-fs-active .combat-overlay { z-index: 1350; top: 0; }
 .player-subtabs { flex-wrap: nowrap; overflow-x: auto; overflow-y: hidden; scrollbar-width: none; }
 .player-subtabs::-webkit-scrollbar { display: none; }
 .player-subtab { flex: 0 0 auto; }
+
+/* ── Statsrij: dichter bij elkaar ──────────────────────────────────────────
+   `space-around` duwt zes vakjes over de volle breedte uit elkaar, en met een
+   extra snelheid erbij verspringt de hele rij. Gecentreerd met een echte gap
+   staan ze als een groep bij elkaar, en groeit de rij netjes mee. */
+.player-combat-strip {
+  justify-content: center;
+  gap: 10px 22px;
+  flex-wrap: wrap;
+}
+
+/* ── Een tint per ability, en dezelfde tint bij zijn skills ────────────────
+   De skillrij zegt "DEX" in vier letters; met dezelfde kleur als de DEX-kaart
+   erboven zie je in één oogopslag welke skills bij welke ability horen. */
+.player-ability-card {
+  border-color: color-mix(in srgb, var(--ab-c, #c4a87a) 38%, rgba(196,168,122,.5));
+  background:
+    linear-gradient(160deg,
+      color-mix(in srgb, var(--ab-c, #c4a87a) 9%, transparent),
+      transparent 70%),
+    var(--ability-card-bg, rgba(255,253,247,.5));
+}
+.player-ability-label { color: color-mix(in srgb, var(--ab-c, #8a6a3a) 78%, #3a2410); }
+.player-skill-ab {
+  color: color-mix(in srgb, var(--ab-c, #8a7050) 80%, #3a2410);
+  font-weight: 600;
+}
+.player-skill-row { border-left: 3px solid color-mix(in srgb, var(--ab-c, #c4a87a) 45%, transparent); padding-left: 7px; }
+
+/* ── Saving throw: zeg dat het een saving throw is ─────────────────────────
+   Je zag een bolletje en een getal onder je ability en moest maar raden. */
+.player-ability-save {
+  display: flex; align-items: center; justify-content: center; gap: 5px;
+  margin-top: 5px; padding-top: 5px;
+  border-top: 1px dashed color-mix(in srgb, var(--ab-c, #c4a87a) 40%, transparent);
+}
+.player-ability-save-kop {
+  font-family: 'Cinzel', serif; font-size: 7.5px; letter-spacing: .09em;
+  text-transform: uppercase; color: #8a7050;
+}
+
+/* De +-knop voor een extra snelheid hing ónder het Speed-vakje en duwde dat
+   omhoog, zodat die ene cel scheef stond in een rij die op `flex-end` uitlijnt.
+   Nu zweeft hij in de hoek: zichtbaar waar hij hoort, zonder de rij te
+   verstoren. */
+.player-combat-strip .pcs-item:has(> .pcs-extra-speed-btn) { position: relative; }
+.pcs-extra-speed-btn {
+  position: absolute; right: -6px; bottom: -4px;
+  background: rgba(255, 253, 247, .85);
+}
