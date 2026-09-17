@@ -417,7 +417,6 @@ async function _openOrganogramDialog() {
   window.app.openModal('Organogram op het bord', '', `
     <div class="dm-feature-section" style="margin:0">
       ${orgs.length ? `
-        <p class="dm-hint">De leden komen erbij zoals deze party ze kent — wat nog verborgen is, blijft weg.</p>
         <div class="pb-entity-list">
           ${orgs.map(o => `
             <button class="pb-entity-item" onclick="window._pbOrganogramKies('${esc(o.id)}')">
@@ -466,7 +465,7 @@ async function _openAddCardDialog() {
       </div>
     </div>
     <div class="dm-feature-section">
-      <div class="dm-section-label">Of een blanco post-it</div>
+      <div class="dm-section-label">Of een blanco notitie</div>
       <div class="dm-feature-row">
         <input class="dm-input" id="pb-blank-text" placeholder="Omschrijving…"
                onkeydown="if(event.key==='Enter')window._pbAddBlank()">

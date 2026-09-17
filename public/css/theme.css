@@ -26226,7 +26226,9 @@ body.herberg-actief .herberg-scene .herberg-content {
 .logboek-ontdek {
   /* Even breed als de aktes eronder: dezelfde marge van 24 px als #logboek-body,
      zodat de linker- en rechterrand uitlijnen. */
-  margin: 0 24px 14px; padding: 12px 16px 14px;
+  /* Ruimte boven: de hulpknop zweeft er vlak boven en plakte anders tegen de
+     bovenrand van dit blok aan. */
+  margin: 10px 24px 14px; padding: 12px 16px 14px;
   border: 1px solid rgba(196, 168, 122, .55); border-radius: 10px;
   background: rgba(242, 232, 210, .45);
 }
@@ -26256,3 +26258,16 @@ body.herberg-actief .herberg-scene .herberg-content {
 @media (prefers-reduced-motion: reduce) {
   .logboek-ontdek-kop::after { transition: none; }
 }
+
+/* Een gevecht dat vanuit de dungeonkaart wordt gestart, opende ónder die kaart:
+   de fullscreen-overlay staat op 1200 en `.combat-overlay` op 55. Je klikte op
+   spelen en er leek niets te gebeuren — het gevecht stond er wel, onzichtbaar
+   eronder. Zelfde valkuil als eerder bij `.dng-overlay` en het detailvenster.
+   `top: 0` erbij omdat de kaart ook de app-kop bedekt; met 52px bleef er een
+   strook kaart boven het gevecht staan. */
+body.kaart-fs-active .combat-overlay { z-index: 1350; top: 0; }
+
+/* Een gevecht zonder tegenstanders: de speelknop blijft bruikbaar (je mag een
+   leeg gevecht starten) maar zegt met zijn tint dat er nog niets in zit. */
+.dng-enc-start--leeg { opacity: .45; }
+.dng-enc-start--leeg:hover { opacity: .8; }

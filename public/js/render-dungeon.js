@@ -1025,8 +1025,10 @@ function _renderSidebar(room) {
       ${gevechten.map(e => `
         <div class="dng-loot-row">
           <span class="dng-loot-naam">${esc(e.name)}${(e.monsters || []).length ? ` <span class="dng-loot-dc">${(e.monsters || []).length} wezens</span>` : ''}</span>
-          <button class="dng-btn dng-btn-sm dng-enc-start" data-encid="${esc(e.id)}"
-            title="Dit gevecht starten">${icon('play')}</button>
+          <button class="dng-btn dng-btn-sm dng-enc-bewerk" data-encid="${esc(e.id)}"
+            title="Tegenstanders kiezen (opent de Meesterkamer)">${icon('pencil')}</button>
+          <button class="dng-btn dng-btn-sm dng-enc-start${(e.monsters || []).length ? '' : ' dng-enc-start--leeg'}" data-encid="${esc(e.id)}"
+            title="${(e.monsters || []).length ? 'Dit gevecht starten' : 'Nog geen tegenstanders — eerst vullen met het potlood'}">${icon('play')}</button>
           <button class="dng-btn dng-btn-sm dng-btn-danger dng-enc-los" data-encid="${esc(e.id)}"
             title="Loskoppelen van deze kamer">${icon('x')}</button>
         </div>`).join('') }
@@ -1191,6 +1193,12 @@ function _renderSidebar(room) {
     await _laadEncounters();
     _renderSidebar(room);
     _renderSvg();
+  }));
+  sb.querySelectorAll('.dng-enc-bewerk').forEach(b => b.addEventListener('click', () => {
+    // Een vers gevecht heeft alleen een naam; vullen kan alleen in de
+    // Meesterkamer. Zonder deze knop moest je de dungeon afsluiten en het
+    // gevecht daar zelf terugzoeken.
+    window.dmPanel?.encEditVanuitKaart?.(b.dataset.encid);
   }));
   sb.querySelectorAll('.dng-enc-start').forEach(b => b.addEventListener('click', async () => {
     // Starten gaat via de Meesterkamer, want daar hoort het gevecht thuis: die

@@ -2,15 +2,15 @@ import { api, campagneUitUrl, zetCampagne } from './api.js?v=290';
 import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, renderDocumenten, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=309";
 import { initArchief, renderLogboek, openLogboekEditor } from "./render-archief.js?v=128";
 import { renderKaart, queueFlyTo, verversPins, nieuweKaart } from './render-kaart.js?v=31';
-import { renderDungeon } from './render-dungeon.js?v=55';
-import { renderRelatiemap } from './render-relatiemap.js?v=26';
+import { renderDungeon } from './render-dungeon.js?v=56';
+import { renderRelatiemap } from './render-relatiemap.js?v=27';
 import { renderProgressie, levelupFeatures } from './render-progressie.js?v=52';
 import { renderBestiarium } from './render-bestiarium.js?v=30';
 import { renderSpreuken } from './render-spreuken.js?v=41';
 import { renderVaardigheden } from './render-vaardigheden.js?v=7';
 import { renderStatblock } from './render-statblock.js?v=9';
 import { initSocket } from "./socket-client.js?v=74";
-import { initDmPanel } from "./dm-panel.js?v=257";
+import { initDmPanel } from "./dm-panel.js?v=259";
 import { COND_INFO, COND_LABEL, COND_MET_PLAATJE, COND_ICON } from './conditions.js?v=2';
 import './media-picker.js?v=8';
 
@@ -3098,7 +3098,7 @@ function _kaartCard(type, m, dm, verdiepingen = null) {
 // eerste bestaande kaart: je drukte op + en keek naar Dreghaven.
 window._kaartNieuw = async function (type) {
   if (type === 'wereld') return nieuweKaart();
-  const { nieuweDungeon } = await import('./render-dungeon.js?v=55');
+  const { nieuweDungeon } = await import('./render-dungeon.js?v=56');
   nieuweDungeon();
 };
 
@@ -11418,7 +11418,6 @@ function _marktTeken() {
             : winkels;
           return q ? _marktTreffers(zicht, q) : _marktWinkels(zicht);
         })()}
-        ${_marktGevel ? `<p class="markt-gevel-bijschrift">${icon('image')} Gevel van ${esc(_marktGevel.naam)}</p>` : ''}
       </div>
     </div>`;
 
@@ -13454,7 +13453,7 @@ const HELP_CONFIG = {
   ] }),
   prikbord: () => ({ titel: 'Het prikbord', stappen: [
     { titel: 'Wat het is', tekst: 'Een bord van de **party**: wie horen bij wie, wie hebben jullie waar gezien, welk vermoeden hangt aan welke naam. Elke party heeft haar eigen bord en iedereen in die party ziet hetzelfde.', afbeelding: null },
-    { titel: 'Prikken en verbinden', tekst: '**Kaartje** zet een personage, locatie of organisatie op het bord — of een blanco post-it met je eigen tekst. **Draad** spant een lijn tussen twee kaartjes; klik op een draad om er een woord bij te zetten of hem weg te halen. Kaartjes sleep je waar je ze hebben wilt.', afbeelding: null },
+    { titel: 'Prikken en verbinden', tekst: '**Kaartje** zet een personage, locatie of organisatie op het bord — of een blanco notitie met je eigen tekst. **Draad** spant een lijn tussen twee kaartjes; klik op een draad om er een woord bij te zetten of hem weg te halen. Kaartjes sleep je waar je ze hebben wilt.', afbeelding: null },
     { titel: 'Organogram', tekst: 'Zet een hele organisatie in één keer neer: de leden komen eronder te hangen, met een draad naar hun baas. Wat de party nog niet kent, komt niet mee — ook geen verbinding die achter een geheim zit.', afbeelding: null },
   ] }),
   hulp_kaart_wereld: () => ({ titel: 'Een kaart bewerken', stappen: [

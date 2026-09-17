@@ -251,6 +251,17 @@ export function initDmPanel() {
     encFilterChapter:   _encFilterChapter,
     encPage:            _encPage_set,
     encEdit:            _encEdit,
+    // Vanuit de kamerzijbalk van een dungeon: de kaart dicht, de Meesterkamer
+    // open op de encounter-editor met dít gevecht erin. Zonder deze weg kon je
+    // een gevecht wél aanmaken in een kamer maar nergens vullen zonder de
+    // dungeon af te sluiten en het zelf terug te zoeken.
+    encEditVanuitKaart: (id) => {
+      window._closeKaartFullscreen?.();
+      _gevechtSubTab = 'encounters';
+      window.app?.switchSection?.('meesterkamer');
+      _switchTab('gevecht');
+      _encEdit(id);
+    },
     encCancel:          _encCancel,
     encSave:            _encSave,
     encDelete:          _encDelete,
@@ -4207,6 +4218,22 @@ async function _encDelete(id) {
 async function _encStart(id) {
   if (_combat?.active) {
     if (!confirm('Er is al een actief gevecht. Dit gevecht beëindigen en de encounter starten?')) return;
+  }
+  // Een vers aangemaakt gevecht heeft alleen een naam. Vanuit de kamerzijbalk
+  // van een dungeon is dat het normale geval — je typt "Wie wacht hier?" en
+  // drukt op de plus — en dan startte hier een gevecht zonder tegenstanders,
+  // zonder dat iets dat zei. Waarschuwen en niet blokkeren: een leeg gevecht
+  // starten om alleen initiative te rollen is zeldzaam, maar het mag.
+  // `_encounters` is de cache van de Meesterkamer, en die kent een gevecht niet
+  // dat zojuist vanuit een dungeonkamer is aangemaakt — precies het geval
+  // waarvoor deze controle bestaat. Dus eerst ophalen als hij er niet in staat.
+  let _enc = _encounters.find(e => e.id === id);
+  if (!_enc) {
+    try { _encounters = await api.listEncounters(); _enc = _encounters.find(e => e.id === id); }
+    catch { /* dan maar zonder controle: niet kunnen starten is erger */ }
+  }
+  if (_enc && !(_enc.monsters || []).length) {
+    if (!confirm(`"${_enc.name}" heeft nog geen tegenstanders.\n\nToch starten? Je krijgt dan een gevecht met alleen de spelers erin.`)) return;
   }
   try {
     // Stap 1: laad de encounter als combat-deelnemers (active: false)
