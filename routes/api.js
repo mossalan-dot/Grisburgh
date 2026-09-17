@@ -4947,10 +4947,23 @@ router.get('/companions', attachRole, (req, res) => {
   }
   const companionIds = g.companions || [];
   const npcs = (entities.personages || []).filter(e => companionIds.includes(e.id));
-  res.json(npcs.map(e => ({
-    id: e.id, name: (g.companionNames || {})[e.id] || e.name, subtype: e.subtype,
-    data: { ras: e.data?.ras, klasse: e.data?.klasse },
-  })));
+  const hpMap = dmState.playerHp || {};
+  const naamVan = id => (entities.personages || []).find(x => x.id === id)?.name || '';
+  res.json(npcs.map(e => {
+    const hp = hpMap[e.id] || {};
+    const baasId = (g.companionOwners || {})[e.id] || '';
+    return {
+      id: e.id, name: (g.companionNames || {})[e.id] || e.name, subtype: e.subtype,
+      data: { ras: e.data?.ras, klasse: e.data?.klasse },
+      // Een huisdier en een NPC-bondgenoot zagen er precies hetzelfde uit — zelfde
+      // vorm, zelfde zwaardje. Het zijn twee verschillende dingen: het een hoort
+      // bij iemand, het ander loopt met de party mee.
+      soort:  e.subtype === 'dier' ? 'dier' : 'bondgenoot',
+      baasje: baasId ? naamVan(baasId) : '',
+      baasjeId: baasId || '',
+      hp: hp.current ?? null, maxHp: hp.max ?? null,
+    };
+  }));
 });
 
 // Geeft terug aan welke groepen een NPC gekoppeld is (DM only)
@@ -5415,8 +5428,23 @@ router.get('/party', attachRole, (req, res) => {
   // Geef alleen veilige velden terug (geen geheimen), inclusief HP
   const dmState = readDmState();
   const hpMap   = dmState.playerHp || {};
+  const profs   = dmState.playerProfiles || {};
+  const weg     = _afwezigen(dmState, myGroup);
+  // Condities komen uit het lopende gevecht: dát is de enige plek waar ze per
+  // personage worden bijgehouden. Buiten een gevecht is er niets te tonen.
+  let condMap = {};
+  try {
+    const c = storage.readJSON('combat.json');
+    if (c?.active) {
+      for (const cb of (c.combatants || [])) {
+        if (cb.entityId && (cb.conditions || []).length) condMap[cb.entityId] = cb.conditions;
+      }
+    }
+  } catch { /* geen gevecht */ }
+
   res.json(party.map(e => {
     const hp = hpMap[e.id] || { current: null, max: null };
+    const p  = profs[e.id] || {};
     return {
       id:      e.id,
       name:    e.name,
@@ -5424,8 +5452,50 @@ router.get('/party', attachRole, (req, res) => {
       data:    { ras: e.data?.ras, klasse: e.data?.klasse },
       hp:      hp.current,
       maxHp:   hp.max,
+      temp:    hp.temp || 0,
+      // Wat er op het kaartje van je medespeler mag staan: zijn level en klasse
+      // zijn geen geheim — dat zie je aan tafel ook.
+      level:   parseInt(p.level) || null,
+      klasse:  p.klasse || e.data?.klasse || '',
+      // Doet hij vanavond mee? De rust, de loot en het automatisch vullen van
+      // een gevecht slaan een afwezige over; dan hoort zijn portret dat ook te
+      // zeggen in plaats van er hetzelfde uit te zien als de rest.
+      afwezig: weg.has(e.id),
+      conditions: condMap[e.id] || [],
     };
   }));
+});
+
+// Wie deze party onderweg verloren heeft. Staat als `groups[gid].deceased`
+// (een object `{entityId: true}`) al lang in de data — in Grisburgh acht namen
+// bij de eerste party — maar werd nergens getoond. Bewust een eigen route en
+// niet aan `/party` geplakt: dat is de vraag "wie loopt er nu mee", dit is een
+// andere vraag. Alleen namen die de party kent: een gesneuvelde NPC van wie ze
+// nooit gehoord hebben verklap je hiermee niet.
+router.get('/party/gevallenen', attachRole, (req, res) => {
+  const myId = req.session?.characterId;
+  if (!myId && req.role !== 'dm') return res.status(403).json({ error: 'Geen karakter geselecteerd' });
+  const entities = storage.readJSON('entities.json');
+  const dmState  = readDmState();
+  const gid = myId ? _playerGroupId(dmState, myId) : dmState.activeGroup;
+  const g   = (dmState.groups || {})[gid] || {};
+  const dood = g.deceased || {};
+  const ids = Array.isArray(dood) ? dood.map(x => x?.id || x) : Object.keys(dood).filter(k => dood[k]);
+
+  const uit = [];
+  for (const id of ids) {
+    const e = (entities.personages || []).find(x => x.id === id);
+    if (!e) continue;
+    // De DM ziet alles; een speler alleen wie zijn party kent.
+    if (req.role !== 'dm' && (g.visibility || {})[id] !== 'visible') continue;
+    uit.push({
+      id: e.id, name: e.name, subtype: e.subtype,
+      imageId: e.data?.imageId || e.id,
+      imgFocus: e.data?.imgFocus || '',
+      rol: [e.data?.ras, e.data?.klasse].filter(Boolean).join(' · '),
+    });
+  }
+  res.json(uit);
 });
 
 // ── Speler profiel (level, klasse, subclass, background, origin) ──

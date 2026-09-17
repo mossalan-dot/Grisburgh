@@ -638,8 +638,12 @@ dm-panel.js : combat-canvas.js?v=22   render-statblock.js?v=9
 > leesbaar blijft) en `COND_MET_PLAATJE` — bewust een **eigen** set, want die
 > 18 PNG's in `public/img/conditions/` dekken niet alle 36 condities en
 > afleiden gaf een `<img>` naar een bestand dat er niet is.
-> De **iconen** liggen op een andere as en blijven waar ze zijn: `COND_ICON` in
-> `combat-canvas.js` (sprite + kleur voor op een token).
+> De **iconen** stonden op een andere as in `combat-canvas.js`, maar zijn op
+> 17 sep 2026 alsnog naar `conditions.js` verhuisd (`COND_ICON`, sprite +
+> kleur). Reden: alleen het canvas kon erbij, dus het spelerstabblad hield een
+> vierde lijstje van zestien met ronduit verkeerde keuzes — `lock` voor
+> restrained én paralyzed, `minus` voor prone. Precies de versnippering die dit
+> bestand moest opruimen. `combat-canvas.js` importeert hem nu.
 
 > **De toegangsschakelaar per party geldt nu ook op de server.** De DM zet per
 > groep in welke diensten open zijn (Diensten → Toegang per groep):

@@ -10,8 +10,8 @@ import { renderSpreuken } from './render-spreuken.js?v=41';
 import { renderVaardigheden } from './render-vaardigheden.js?v=7';
 import { renderStatblock } from './render-statblock.js?v=9';
 import { initSocket } from "./socket-client.js?v=74";
-import { initDmPanel } from "./dm-panel.js?v=256";
-import { COND_INFO, COND_LABEL, COND_MET_PLAATJE } from './conditions.js?v=1';
+import { initDmPanel } from "./dm-panel.js?v=257";
+import { COND_INFO, COND_LABEL, COND_MET_PLAATJE, COND_ICON } from './conditions.js?v=2';
 import './media-picker.js?v=8';
 
 // ── Icon helper ──
@@ -6905,6 +6905,54 @@ window._sigEditMax = (k) => {
   _sigMutate(k, st => { if (t === '') delete st.maxOverride; else st.maxOverride = Math.max(0, parseInt(t) || 0); });
 };
 
+// De gevallenen. `groups[gid].deceased` staat al lang in de data — bij de
+// eerste party van Grisburgh acht namen — maar werd nergens getoond. Lui
+// geladen en apart getekend, want het is een aparte vraag dan "wie loopt er nu
+// mee", en het hoort niet elke render opnieuw over de lijn te gaan.
+async function _partyGevallenen() {
+  const el = document.getElementById('party-gevallenen');
+  if (!el) return;
+  let lijst;
+  try { lijst = await api.getGevallenen(); } catch { return; }
+  if (!lijst?.length) { el.innerHTML = ''; return; }
+  const dicht = localStorage.getItem('pds:gevallenen') === '0';
+  el.innerHTML = `
+    <div class="player-dash-section${dicht ? ' pds-dicht' : ''}">
+      <div class="player-dash-section-title">${icon('skull')} Gevallenen</div>
+      <div class="party-gevallen-rij">
+        ${lijst.map(g => `
+          <div class="party-gevallen" onclick="window._openDetail('personages','${esc(g.id)}')" title="${esc(g.name)}">
+            <div class="party-gevallen-portret">
+              <img src="${api.thumbUrl(g.imageId)}" alt=""
+                onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+              <div class="party-gevallen-fallback" style="display:none">${icon('user')}</div>
+            </div>
+            <div class="party-gevallen-naam">${esc(g.name)}</div>
+            ${g.rol ? `<div class="party-gevallen-rol">${esc(g.rol)}</div>` : ''}
+          </div>`).join('')}
+      </div>
+    </div>`;
+  _pdsInklapToepassen();
+}
+
+// De naam onder een portret was `name.split(' ')[0]`, en dat leest prima bij
+// "Wilmer Vlasbaard" maar niet bij "Zuster Marelle", "Jonkvrouw Elsje" of
+// "Xerxes en Sarabi" — daar staat dan alleen de aanspreektitel. Een lijst met
+// titels bijhouden is een kat-en-muisspel (en "Stille Mira" is geen titel maar
+// een bijnaam), dus: alleen inkorten als het eerste woord op zichzelf een naam
+// kán zijn. Twee woorden passen op één portret; langer knipt de CSS af.
+const _TITELS = new Set(['heer', 'vrouwe', 'zuster', 'broeder', 'jonkvrouw', 'jonkheer',
+  'meester', 'kapitein', 'prinses', 'prins', 'koning', 'koningin', 'graaf', 'gravin',
+  'baron', 'barones', 'vader', 'moeder', 'sint', 'sir', 'lady', 'dr', 'de', 'den', 'het']);
+function _roepnaam(naam) {
+  const delen = String(naam || '').trim().split(/\s+/);
+  if (delen.length < 2) return delen[0] || '';
+  // Een titel of een voegwoord zegt niets; neem er dan een woord bij.
+  if (_TITELS.has(delen[0].toLowerCase().replace(/[^a-zà-ÿ]/gi, ''))) return delen.slice(0, 2).join(' ');
+  if (/^(en|&|van|de)$/i.test(delen[1])) return delen.slice(0, 3).join(' ');
+  return delen[0];
+}
+
 // ── Level omhoog ───────────────────────────────────────────────────────────
 // De DM gunt (een tegoed per speler), de speler verzilvert hier. Bewust in twee
 // stappen: aan tafel zegt de DM "jullie gaan omhoog", maar wélke klasse, welke
@@ -7215,9 +7263,11 @@ const _PDS_ALTIJD_OPEN = new Set(['pds:hp']);
   }
 })();
 function _pdsInklapToepassen() {
-  const wrap = document.getElementById('pst-personage');
-  if (!wrap) return;
-  for (const sec of wrap.querySelectorAll('.player-dash-section')) {
+  // Ook de Party-tab: daar staat sinds vandaag de lijst met gevallenen, en die
+  // is met acht namen lang genoeg om te willen dichtklappen.
+  const wraps = ['pst-personage', 'pst-party'].map(id => document.getElementById(id)).filter(Boolean);
+  if (!wraps.length) return;
+  for (const sec of wraps.flatMap(w => [...w.querySelectorAll('.player-dash-section')])) {
     // Proficiencies en Languages zijn al een <details> met hun eigen stand;
     // die er nog een tweede toggle overheen geven klapt ze twee keer om.
     if (sec.tagName === 'DETAILS') continue;
@@ -7724,7 +7774,7 @@ async function renderMijnKarakter(opts = {}) {
                   <div class="party-portrait-fallback" style="display:none">${icon('user')}</div>
                 </div>
               </div>
-              <div class="party-portrait-name">${esc(playerName.split(' ')[0])}</div>
+              <div class="party-portrait-name">${esc(_roepnaam(playerName))}</div>
               <div class="party-portrait-sub">${hp !== '—' ? `${hp} / ${maxHp} HP${tempNum > 0 ? ` <span class="party-portrait-temp">+${tempNum}</span>` : ''}` : '—'}</div>
               ${inspired ? '<div class="party-portrait-badge">✨</div>' : ''}
             </div>`;
@@ -7732,15 +7782,22 @@ async function renderMijnKarakter(opts = {}) {
             ${partyMembers.length > 0 ? '<div class="party-bar-divider"></div>' : ''}
             ${partyMembers.map(e => {
               const pImgUrl   = api.thumbForEntity(e);
-              const firstName = esc(e.name.split(' ')[0]);
-              const psub      = [e.data?.ras, e.data?.klasse].filter(Boolean).join(' · ');
+              const firstName = esc(_roepnaam(e.name));
+              // Level erbij: dat is aan tafel ook geen geheim, en het is precies
+              // wat je van een medespeler wil weten.
+              const psub      = [e.data?.ras, e.klasse || e.data?.klasse, e.level ? `${e.level}` : '']
+                                  .filter(Boolean).join(' · ');
               const pHp       = typeof e.hp === 'number' ? e.hp : null;
               const pMaxHp    = typeof e.maxHp === 'number' ? e.maxHp : null;
               const pHpPct    = (pHp !== null && pMaxHp) ? Math.max(0, Math.min(100, (pHp / pMaxHp) * 100)) : 0;
               const pHpCls    = pHpPct > 75 ? 'hp-healthy' : pHpPct > 50 ? 'hp-lightly' : pHpPct > 25 ? 'hp-wounded' : pHpPct > 0 ? 'hp-critical' : 'hp-down';
               const pRingR = 38, pRingC = +(2 * Math.PI * 38).toFixed(1);
               const pRingFill = pHpPct > 0 ? +(pRingC * pHpPct / 100).toFixed(1) : 0;
-              return `<div class="party-portrait" onclick="window._openDetail('personages','${esc(e.id)}')">
+              const pConds = (e.conditions || []).slice(0, 3).map(cid => {
+                const [icn, kleur] = COND_ICON[cid] || ['zap', '#8a8a8a'];
+                return `<span class="party-portrait-cond" style="color:${kleur}" title="${esc(COND_LABEL[cid])}">${icon(icn)}</span>`;
+              }).join('');
+              return `<div class="party-portrait${e.afwezig ? ' party-portrait--afwezig' : ''}" onclick="window._openDetail('personages','${esc(e.id)}')"${e.afwezig ? ' title="Doet vanavond niet mee"' : ''}>
                 <div class="party-portrait-ring-wrap">
                   <svg class="party-hp-ring" viewBox="0 0 100 100" style="position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:2">
                     <circle cx="50" cy="50" r="${pRingR}" class="party-hp-ring-bg"/>
@@ -7753,27 +7810,51 @@ async function renderMijnKarakter(opts = {}) {
                     <div class="party-portrait-fallback" style="display:none">${icon('user')}</div>
                   </div>
                 </div>
+                ${pConds ? `<div class="party-portrait-conds">${pConds}</div>` : ''}
                 <div class="party-portrait-name">${firstName}</div>
                 ${psub ? `<div class="party-portrait-sub">${esc(psub)}</div>` : ''}
+                ${e.afwezig ? `<div class="party-portrait-afwezig">${icon('moon')} niet mee</div>` : ''}
               </div>`;
             }).join('')}
             ${companions.length > 0 ? '<div class="party-bar-divider"></div>' : ''}
             ${companions.map(e => {
               const pImgUrl   = api.thumbForEntity(e);
-              const firstName = esc(e.name.split(' ')[0]);
+              const firstName = esc(_roepnaam(e.name));
+              const isDier    = e.soort === 'dier' || e.subtype === 'dier';
               const psub      = [e.data?.ras, e.data?.klasse].filter(Boolean).join(' · ');
-              return `<div class="party-portrait party-portrait--companion" onclick="window._openDetail('personages','${esc(e.id)}')">
-                <div class="party-portrait-avatar-wrap">
-                  <img src="${pImgUrl}" class="party-portrait-img"
-                    onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
-                  <div class="party-portrait-fallback" style="display:none">${icon('sword')}</div>
+              // Een metgezel kreeg geen HP-ring terwijl iedereen eromheen er wel
+              // een heeft — terwijl juist een dier in een gevecht doodgaat.
+              const cHp    = typeof e.hp === 'number' ? e.hp : null;
+              const cMaxHp = typeof e.maxHp === 'number' ? e.maxHp : null;
+              const cPct   = (cHp !== null && cMaxHp) ? Math.max(0, Math.min(100, (cHp / cMaxHp) * 100)) : null;
+              const cCls   = cPct === null ? '' : cPct > 75 ? 'hp-healthy' : cPct > 50 ? 'hp-lightly' : cPct > 25 ? 'hp-wounded' : cPct > 0 ? 'hp-critical' : 'hp-down';
+              const cR = 38, cC = +(2 * Math.PI * 38).toFixed(1);
+              const cFill = cPct > 0 ? +(cC * cPct / 100).toFixed(1) : 0;
+              return `<div class="party-portrait party-portrait--companion party-portrait--${isDier ? 'dier' : 'bondgenoot'}"
+                onclick="window._openDetail('personages','${esc(e.id)}')"
+                title="${esc(e.name)}${e.baasje ? ` — van ${e.baasje}` : ''}">
+                <div class="party-portrait-ring-wrap">
+                  ${cPct !== null ? `<svg class="party-hp-ring" viewBox="0 0 100 100" style="position:absolute;inset:0;width:100%;height:100%;pointer-events:none">
+                    <circle cx="50" cy="50" r="${cR}" class="party-hp-ring-bg"/>
+                    <circle cx="50" cy="50" r="${cR}" class="party-hp-ring-fill party-hp-ring-${cCls}"
+                      stroke-dasharray="${cFill} ${cC}" transform="rotate(-90 50 50)"/>
+                  </svg>` : ''}
+                  <div class="party-portrait-avatar-wrap">
+                    <img src="${pImgUrl}" class="party-portrait-img"
+                      onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+                    <div class="party-portrait-fallback" style="display:none">${icon(isDier ? 'paw-print' : 'shield')}</div>
+                  </div>
+                  <span class="party-portrait-soort" title="${isDier ? 'Huisdier' : 'Bondgenoot'}">${icon(isDier ? 'paw-print' : 'shield')}</span>
                 </div>
                 <div class="party-portrait-name">${firstName}</div>
-                ${psub ? `<div class="party-portrait-sub">${esc(psub)}</div>` : ''}
+                ${e.baasje ? `<div class="party-portrait-sub">van ${esc(e.baasje.split(' ')[0])}</div>`
+                           : (psub ? `<div class="party-portrait-sub">${esc(psub)}</div>` : '')}
               </div>`;
             }).join('')}
           </div>
         </div>
+
+        <div id="party-gevallenen"></div>
 
         <!-- Initiativevolgorde (alleen tijdens gevecht) -->
         ${combat?.active && (combat.combatants?.length || 0) > 0 ? `
@@ -7784,19 +7865,13 @@ async function renderMijnKarakter(opts = {}) {
               const isActive = i === combat.currentTurn;
               const isMe = c.entityId === charId || c.name === playerName;
               const displayName = c.type === 'player' ? c.name.split(' ')[0] : c.name;
-              const COND_ICONS_MAP = {
-                poisoned:'flask-conical', grappled:'lock', restrained:'lock', paralyzed:'lock',
-                stunned:'zap', blinded:'eye-off', frightened:'skull', prone:'minus',
-                incapacitated:'skull', unconscious:'skull', exhaustion:'minus',
-                charmed:'sparkles', deafened:'volume-2', invisible:'eye-off',
-                petrified:'mountain', concentration:'target'
-              };
-              // Derde kopie van dezelfde lijst; nu COND_LABEL uit conditions.js.
+              // Was een eigen lijstje van zestien met een paar verkeerde keuzes
+              // (`lock` voor restrained én paralyzed, `minus` voor prone). Nu
+              // dezelfde sprite en kleur als op een token in het gevecht.
               const conds = (c.conditions || []).slice(0, 3);
               const condHtml = conds.map(cid => {
-                const icn = COND_ICONS_MAP[cid] || 'zap';
-                const lbl = COND_LABEL[cid];
-                return `<span class="player-dash-init-cond" title="${esc(lbl)}">${icon(icn)}</span>`;
+                const [icn, kleur] = COND_ICON[cid] || ['zap', '#8a8a8a'];
+                return `<span class="player-dash-init-cond" style="color:${kleur}" title="${esc(COND_LABEL[cid])}">${icon(icn)}</span>`;
               }).join('');
               const isStudied = c.type === 'monster' && c._niveau && c._niveau !== 'naam';
               if (isStudied) _combatMonsterCache.set(c.id, c);
@@ -8653,6 +8728,7 @@ async function renderMijnKarakter(opts = {}) {
   // helemaal opnieuw wordt getekend; in een variabele zou hij telkens weg zijn.
   _pdsInklapToepassen();
   _levelUpBalk();
+  _partyGevallenen();
 
   // ── Progressie: sla context op; render via requestAnimationFrame zodat
   //    de DOM zeker stable is en geen re-render de content overschrijft ──

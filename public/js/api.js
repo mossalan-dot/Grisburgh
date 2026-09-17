@@ -315,6 +315,7 @@ export const api = {
 
   // Medestanders
   getCompanions:       ()                   => request('/companions'),
+  getGevallenen:       ()                   => request('/party/gevallenen'),
   getCompanionStatus:  (npcId)              => request(`/companions/status/${npcId}`),
   linkCompanion:       (npcId, groupId)     => request(`/companions/${npcId}/${groupId}`, { method: 'POST' }),
   setPetBaasje:        (petId, perGroep)    => request(`/companions/${petId}/baasje`, { method: 'PUT', body: JSON.stringify({ perGroep }) }),

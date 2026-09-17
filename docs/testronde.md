@@ -776,3 +776,12 @@ Per bevinding: waar, wat, en of het opgelost is. Nieuwe regels onderaan.
 - Ga omhoog met een klasse die een cantrip of een nieuw spreukniveau krijgt en sluit de omslag zónder te kiezen: op de Personage-tab staat een gestippelde regel ("Je mag nog een cantrip kiezen — sinds je level 4 werd") met een *Kiezen*-knop en een kruisje. Navigeer weg en terug: hij staat er nog.
 - Vraag daarna een spreuk van dat niveau aan: de regel verdwijnt vanzelf, ook al staat de spreuk nog niet in je boek (hij wacht op de DM). Vraag je een spreuk aan die je al had aangevraagd, dan blijft de regel terecht staan — er is niets bij gekomen.
 - Het kruisje haalt de regel weg en hij komt niet terug na een her-render.
+
+### Party-tabblad: metgezellen, afwezigen en gevallenen (17 sep 2026)
+
+- Koppel een dier aan een speler (kaartje → Baasjes): het verschijnt op de Party-tab met een pootafdruk-penning en "van <voornaam>" eronder, en met een HP-ring zoals iedereen.
+- Koppel een NPC als metgezel: die krijgt een schild-penning in plaats van een pootafdruk, en zijn ras · klasse eronder.
+- Zet een speler op afwezig (Instellingen → Party's → Actieve spelers): zijn portret is gedimd met "NIET MEE" eronder. Hij doet dan ook niet mee met rust, loot en het vullen van een gevecht — dat hoort één verhaal te zijn.
+- Start een gevecht en geef iemand een conditie: dezelfde sprite en kleur als op zijn token verschijnen onder zijn portret in de partyrij én in de initiatieflijst (niet meer een eigen lijstje met `lock` voor restrained).
+- Markeer iemand als overleden: hij komt in de sectie *Gevallenen*, grijs, met naam en rol. Alleen kaartjes die de party kent; de sectie is inklapbaar en onthoudt dat.
+- Namen met een titel staan voluit: "Zuster Marelle" en "Jonkvrouw Elsje", niet "Zuster" en "Jonkvrouw".

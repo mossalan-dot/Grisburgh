@@ -11,10 +11,13 @@
 // De teksten zijn de PHB-formulering. De omringende app blijft Nederlands; dit
 // is de inhoud van het spel, en die vertalen we niet.
 //
-// Let op: de **iconen** leven elders en op een eigen as — `COND_ICON` in
-// `combat-canvas.js` (sprite + kleur voor op een token) en de PNG-set in
-// `public/img/conditions/` (zie COND_MET_PLAATJE hieronder). Die hoeven niet
-// alle condities te dekken.
+// Ook de **iconen** staan hier (`COND_ICON`, sprite + kleur). Die woonden in
+// `combat-canvas.js` omdat ze "op een eigen as" lagen, maar daarmee kon alleen
+// het canvas erbij: het spelerstabblad hield een eigen lijstje van zestien met
+// een paar ronduit verkeerde keuzes (`lock` voor restrained én paralyzed,
+// `minus` voor prone). Precies de versnippering die dit bestand moest
+// opruimen. De PNG-set in `public/img/conditions/` blijft een eigen, kleinere
+// set — zie COND_MET_PLAATJE hieronder.
 
 export const CONDITIONS = [
   { id: 'blinded',       label: 'Blinded',        desc: 'Cannot see. Attack rolls against it have advantage; its attack rolls have disadvantage.' },
@@ -77,3 +80,55 @@ export const COND_MET_PLAATJE = new Set([
   'paralyzed', 'petrified', 'poisoned', 'prone', 'restrained', 'stunned',
   'unconscious',
 ]);
+
+// conditie-id → [sprite-icoon, kleur]. Klassespecifieke toestanden krijgen
+// allemaal goud, zodat ze als groep te onderscheiden zijn van echte conditions.
+export const _CLASS_GOLD = '#d4aa3c';
+const _SIT_STEEL  = '#7fa8c8';   // situationeel/positioneel
+// Zeven iconen zijn op 15 sep 2026 vervangen. Drie daarvan botsten met een
+// betekenis die de app elders al aan datzelfde icoon geeft — en dat is erger
+// dan een matig icoon: `star` is hier *favoriet* (12 plekken), `link` is een
+// koppeling (9) en `refresh-cw` is "opnieuw" (13). De andere vier gaven een
+// verkeerd signaal: een drankje is een vóórwerp en geen vergiftiging, een
+// konijn is geen rijdier, een pijl omlaag is niet hetzelfde als tegen de grond
+// liggen, en `sparkles` (concentration) stond naast `sparkle` (blessed) —
+// twee bijna gelijke tekeningen voor twee verschillende dingen.
+export const COND_ICON = {
+  blinded:       ['eye-off',       '#8a8a8a'],
+  charmed:       ['heart',         '#d06ac0'],
+  deafened:      ['ear-off',       '#8a8a8a'],
+  exhaustion:    ['battery-low',  '#b08040'],
+  frightened:    ['ghost',         '#9a86d0'],
+  grappled:      ['grab',         '#b0763a'],
+  incapacitated: ['ban',          '#7a90b0'],
+  invisible:     ['circle-dashed', '#9ec8e0'],
+  paralyzed:     ['zap',           '#e0c040'],
+  petrified:     ['brick-wall',   '#9a9a90'],
+  poisoned:      ['biohazard',     '#5aa84a'],
+  prone:         ['arrow-down-to-line', '#a08050'],
+  restrained:    ['weight',       '#9a6a3a'],
+  stunned:       ['shell',         '#e0b030'],
+  unconscious:   ['bed',          '#c0c0b8'],
+  concentration: ['brain',         '#7ab0e0'],
+  bleeding:      ['droplet',       '#c02828'],
+  burning:       ['flame',         '#e07020'],
+  'bardic-inspiration': ['music',      _CLASS_GOLD],
+  'tides-of-chaos':     ['dices',      _CLASS_GOLD],
+  'twilight-sanctuary': ['moon',       _CLASS_GOLD],
+  'patient-defense':    ['shield',     _CLASS_GOLD],
+  'steady-aim':         ['target',     _CLASS_GOLD],
+  'vigilant-blessing':  ['eye',        _CLASS_GOLD],
+  blessed:              ['sparkle',    _CLASS_GOLD],
+  raging:               ['angry',      _CLASS_GOLD],
+  haste:                ['fast-forward', _CLASS_GOLD],
+  // Situationeel/positioneel: geen PHB-condition en geen klassefeature, maar wel
+  // iets dat de worp verandert. Eigen tint zodat je de drie groepen uit elkaar houdt.
+  dodging:                ['wind',          _SIT_STEEL],
+  hidden:                 ['venetian-mask', _SIT_STEEL],
+  readied:                ['hourglass',     _SIT_STEEL],
+  'cover-half':           ['shield-half',   _SIT_STEEL],
+  'cover-three-quarters': ['shield-plus',   _SIT_STEEL],
+  grappling:              ['hand',          _SIT_STEEL],
+  mounted:                ['chess-knight',  _SIT_STEEL],
+  underwater:             ['waves',         _SIT_STEEL],
+};
