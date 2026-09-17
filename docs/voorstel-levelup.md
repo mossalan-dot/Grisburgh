@@ -160,6 +160,21 @@ allebei op hetzelfde neerkwamen: het venster toonde alleen *klasse*features.
    half-casters klopt — in 2024 krijgen Paladin én Ranger hun Spellcasting al
    op level 1.
 
+**De spreukkeuze was eenmalig.** De knop in de omslag werkte, maar klikte je
+hem weg om eerst iets anders te doen, dan herinnerde niets je er ooit nog aan
+dat je een cantrip te goed had. De level-up zélf stond niet half: die is
+volledig weggeschreven vóórdat de knop in beeld komt (nagemeten: level,
+klasselevel, HP en de administratie stonden allemaal goed terwijl de speler in
+de bibliotheek rondliep). Alleen de keuze had geen geheugen.
+
+Nu blijft er een regel staan op de Personage-tab tot je gekozen hebt.
+`regel.kiezen` wordt bewaard op de level-up, met daarin de **nullijn**: hoeveel
+spreuken van dat niveau je op dat moment had — in je boek én als openstaand
+verzoek. Komt er daarna één bij, dan ruimt de herinnering zichzelf op. Verzoeken
+tellen mee omdat een spreuk pas ná goedkeuring in je boek belandt, en de app in
+de tussentijd niet hoort te blijven zeuren. Het kruisje is er voor wie zijn
+cantrip buiten de app om al opschreef.
+
 ## Nog open
 
 - De keuze bij een ASI of feat wordt nog niet hier genoteerd; het venster zegt

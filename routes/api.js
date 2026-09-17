@@ -4241,6 +4241,40 @@ function _levelupKlassen(profile) {
   return uit;
 }
 
+// Hoeveel spreuken van dít niveau heeft hij al — in zijn boek én als nog
+// openstaand verzoek. De stand van vlak vóór de level-up is de nullijn; komt er
+// daarna één bij, dan is de keuze gemaakt en verdwijnt de herinnering vanzelf.
+// Verzoeken tellen mee omdat een spreuk pas ná goedkeuring in het boek belandt,
+// en de speler in de tussentijd niet nog eens herinnerd hoeft te worden.
+function _spreukenOpNiveau(dmState, characterId, niveau) {
+  const boek = ((dmState.playerSpells || {})[characterId] || [])
+    .filter(sp => (parseInt(sp.level) || 0) === niveau).length;
+  let open = 0;
+  for (const g of Object.values(dmState.groups || {})) {
+    for (const r of (g.spellRequests || [])) {
+      if (r.requesterId === characterId && r.status === 'pending'
+          && (parseInt(r.spreuk?.level) || 0) === niveau) open++;
+    }
+  }
+  return boek + open;
+}
+
+// Wat er na een level-up nog te kiezen ligt. Zonder dit was de knop in de
+// omslag eenmalig: klik je 'm weg om eerst iets anders te doen, dan herinnert
+// niets je er ooit nog aan dat je een cantrip te goed hebt.
+function _openSpreukKeuzes(dmState, characterId) {
+  const uit = [];
+  for (const regel of ((dmState.levelUps || {})[characterId] || [])) {
+    for (const k of (regel.kiezen || [])) {
+      if (k.klaar) continue;
+      const niveau = k.soort === 'cantrip' ? 0 : k.niveau;
+      if (_spreukenOpNiveau(dmState, characterId, niveau) > (k.basis || 0)) continue;
+      uit.push({ ...k, niveau, levelUpId: regel.id, naar: regel.naar });
+    }
+  }
+  return uit;
+}
+
 function _levelupTegoed(dmState, characterId) {
   const g = getGroup(dmState);
   return parseInt((g.levelUpTegoed || {})[characterId]) || 0;
@@ -4317,6 +4351,7 @@ router.get('/characters/:characterId/level-up', attachRole, (req, res) => {
     conMod,
     klassen,
     geschiedenis: ((dmState.levelUps || {})[characterId] || []).slice(-10).reverse(),
+    openKeuzes: _openSpreukKeuzes(dmState, characterId),
   });
 });
 
@@ -4415,12 +4450,17 @@ router.post('/characters/:characterId/level-up', attachRole, (req, res) => {
   const tel = _spreukTellersVoor(gekozen.klasse);
   if (tel) {
     const c = (tel[String(gekozen.level + 1)]?.cantrips || 0) - (tel[String(gekozen.level)]?.cantrips || 0);
-    if (c > 0) kiezen.push({ soort: 'cantrip', aantal: c, klasse: gekozen.klasse });
+    if (c > 0) kiezen.push({ soort: 'cantrip', aantal: c, klasse: gekozen.klasse,
+                             basis: _spreukenOpNiveau(dmState, characterId, 0) });
   }
   const slotsNa = _slotsAfgeleid(profile);       // profile is hierboven al bijgewerkt
   for (const n of Object.keys(slotsNa).map(Number).sort((a, b) => a - b)) {
-    if (!nuSlotsVoor[n] && slotsNa[n]?.max > 0) kiezen.push({ soort: 'niveau', niveau: n, klasse: gekozen.klasse });
+    if (!nuSlotsVoor[n] && slotsNa[n]?.max > 0) {
+      kiezen.push({ soort: 'niveau', niveau: n, klasse: gekozen.klasse,
+                    basis: _spreukenOpNiveau(dmState, characterId, n) });
+    }
   }
+  regel.kiezen = kiezen;      // bewaren, anders is de knop in de omslag eenmalig
 
   storage.writeJSON('dm-state.json', dmState);
   const io = req.app.get('io');
@@ -4475,6 +4515,28 @@ router.post('/characters/:characterId/level-up/undo', requireDM, (req, res) => {
     io.to(room).emit('player:profile-updated', { characterId });
   }
   res.json({ ok: true, teruggedraaid: regel, level: regel.van });
+});
+
+// Een herinnering wegklikken. Nodig naast het automatische opruimen: een speler
+// kan besluiten zijn cantrip pas volgende week te kiezen, of hem al buiten de
+// app om te hebben opgeschreven — dan hoort de app niet te blijven zeuren.
+router.post('/characters/:characterId/level-up/keuze-klaar', attachRole, (req, res) => {
+  const { characterId } = req.params;
+  if (req.role !== 'dm' && req.session?.characterId !== characterId)
+    return res.status(403).json({ error: 'Geen toegang' });
+  const dmState = readDmState();
+  const rij = (dmState.levelUps || {})[characterId] || [];
+  const regel = rij.find(r => r.id === req.body?.levelUpId);
+  if (!regel) return res.status(404).json({ error: 'Onbekende level-up' });
+  const niveau = parseInt(req.body?.niveau);
+  let geraakt = 0;
+  for (const k of (regel.kiezen || [])) {
+    const n = k.soort === 'cantrip' ? 0 : k.niveau;
+    if (n === niveau) { k.klaar = true; geraakt++; }
+  }
+  if (!geraakt) return res.status(404).json({ error: 'Die keuze staat niet open' });
+  storage.writeJSON('dm-state.json', dmState);
+  res.json({ ok: true, openKeuzes: _openSpreukKeuzes(dmState, characterId) });
 });
 
 // De DM gunt: één knop voor de hele party. Wie er meedoet volgt uit de

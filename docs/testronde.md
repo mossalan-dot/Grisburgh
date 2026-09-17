@@ -773,3 +773,6 @@ Per bevinding: waar, wat, en of het opgelost is. Nieuwe regels onderaan.
 - Ga met een Wizard van 3 naar 4: onder *Dit groeit vanzelf mee* staat "1 cantrip erbij (4 in totaal)" en hoeveel spreuken je meer mag voorbereiden. Een Barbarian ziet die regels niet.
 - Ga met een Wizard van 3 naar 4: in de omslag staat een knop *Kies je cantrip*. Klikken opent de spreukenbibliotheek met het niveaufilter op **C** en de klassekiezer op Wizard; het aantal kaartjes is precies het aantal cantrips van die klasse.
 - Ga van 4 naar 5: de knop heet dan *Spreuken van niveau 3* en de bibliotheek opent op niveau 3. Een Barbarian krijgt geen knop.
+- Ga omhoog met een klasse die een cantrip of een nieuw spreukniveau krijgt en sluit de omslag zónder te kiezen: op de Personage-tab staat een gestippelde regel ("Je mag nog een cantrip kiezen — sinds je level 4 werd") met een *Kiezen*-knop en een kruisje. Navigeer weg en terug: hij staat er nog.
+- Vraag daarna een spreuk van dat niveau aan: de regel verdwijnt vanzelf, ook al staat de spreuk nog niet in je boek (hij wacht op de DM). Vraag je een spreuk aan die je al had aangevraagd, dan blijft de regel terecht staan — er is niets bij gekomen.
+- Het kruisje haalt de regel weg en hij komt niet terug na een her-render.

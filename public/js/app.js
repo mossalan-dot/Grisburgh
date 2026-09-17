@@ -6921,8 +6921,8 @@ async function _levelUpBalk() {
   if (!el || !window._lastCharId) return;
   let st;
   try { st = await api.get(`/characters/${window._lastCharId}/level-up`); } catch { return; }
-  if (!st?.tegoed) { el.innerHTML = ''; return; }
-  el.innerHTML = `
+
+  const tegoed = st?.tegoed ? `
     <button class="levelup-balk" onclick="window._levelUpOpen()">
       <span class="levelup-balk-icoon">${icon('sparkles')}</span>
       <span class="levelup-balk-tekst">
@@ -6930,8 +6930,34 @@ async function _levelUpBalk() {
         <span>Level ${st.level} → ${st.level + 1}${st.tegoed > 1 ? ` · nog ${st.tegoed} te gaan` : ''}</span>
       </span>
       <span class="levelup-balk-pijl">${icon('chevron-right')}</span>
-    </button>`;
+    </button>` : '';
+
+  // De knop in de omslag was eenmalig: klik je 'm weg om eerst iets anders te
+  // doen, dan herinnerde niets je er ooit nog aan. Deze regel blijft staan tot
+  // je de spreuk hebt aangevraagd (dan ruimt de server hem zelf op) of hem
+  // wegklikt.
+  const keuzes = (st?.openKeuzes || []).map(k => `
+    <div class="levelup-herinnering">
+      <span class="levelup-herinnering-icoon">${icon('open-book')}</span>
+      <span class="levelup-herinnering-tekst">
+        ${k.soort === 'cantrip'
+          ? `Je mag nog ${k.aantal === 1 ? 'een cantrip' : `${k.aantal} cantrips`} kiezen`
+          : `Niveau ${k.niveau} staat voor je open`}
+        <span>sinds je level ${k.naar} werd</span>
+      </span>
+      <button class="dm-btn dm-btn-sm dm-btn-ghost" onclick="window._luNaarBibliotheek(${k.niveau}, '${esc(k.klasse)}')">Kiezen</button>
+      <button class="levelup-herinnering-weg" title="Deze herinnering wegklikken"
+        onclick="window._luKeuzeKlaar('${esc(k.levelUpId)}', ${k.niveau})">${icon('x')}</button>
+    </div>`).join('');
+
+  el.innerHTML = tegoed + keuzes;
 }
+
+window._luKeuzeKlaar = async function (levelUpId, niveau) {
+  try { await api.post(`/characters/${window._lastCharId}/level-up/keuze-klaar`, { levelUpId, niveau }); }
+  catch { /* stil: het is maar een herinnering */ }
+  _levelUpBalk();
+};
 
 window._levelUpOpen = async function () {
   const charId = window._lastCharId;

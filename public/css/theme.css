@@ -26142,3 +26142,20 @@ body.herberg-actief .herberg-scene .herberg-content {
 .levelup-cine-keuze-hint {
   margin: 2px 0 0; font-size: .78rem; opacity: .65; color: #5a4020;
 }
+
+/* Herinnering aan een spreukkeuze die nog openstaat na een level-up. Rustiger
+   dan de level-upbalk zelf: dat is een uitnodiging, dit is een aantekening. */
+.levelup-herinnering {
+  display: flex; align-items: center; gap: 10px;
+  margin: 0 0 10px; padding: 9px 12px;
+  border: 1px dashed rgba(196, 168, 122, .8); border-radius: 9px;
+  background: rgba(242, 232, 210, .5); color: #3a2410;
+}
+.levelup-herinnering-icoon { flex: 0 0 auto; opacity: .6; display: inline-flex; }
+.levelup-herinnering-tekst { display: flex; flex-direction: column; flex: 1 1 auto; line-height: 1.35; }
+.levelup-herinnering-tekst > span { font-size: .8rem; opacity: .6; }
+.levelup-herinnering-weg {
+  flex: 0 0 auto; border: 0; background: none; cursor: pointer;
+  opacity: .45; color: #3a2410; display: inline-flex; padding: 4px;
+}
+.levelup-herinnering-weg:hover { opacity: .9; }

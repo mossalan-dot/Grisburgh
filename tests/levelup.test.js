@@ -216,6 +216,54 @@ describe('Level omhoog', () => {
       { klasse: 'Fighter', level: '4', klasseLevel: '4' }, dm);
   });
 
+  it('onthoudt een openstaande spreukkeuze, en ruimt hem op als je kiest', async () => {
+    // Zonder dit was de knop in de omslag eenmalig: klik je 'm weg, dan
+    // herinnert niets je er ooit nog aan dat je een cantrip te goed hebt.
+    await req(server, 'PATCH', `/api/player-profile/${charId}`,
+      { klasse: 'Wizard', level: '3', klasseLevel: '3', multiclass: 'false', multiKlasse: '' }, dm);
+    const r = await req(server, 'POST', `/api/characters/${charId}/level-up`, { hpMethode: 'gemiddelde' }, dm);
+    assert.strictEqual(r.status, 200, JSON.stringify(r.body));
+
+    let st = await stand();
+    const keuze = (st.openKeuzes || []).find(k => k.soort === 'cantrip');
+    assert.ok(keuze, 'de cantripkeuze hoort te blijven staan: ' + JSON.stringify(st.openKeuzes));
+    assert.strictEqual(keuze.niveau, 0);
+
+    // Hij blijft ook staan als je de pagina opnieuw opvraagt.
+    st = await stand();
+    assert.strictEqual((st.openKeuzes || []).length, 1, 'en verdwijnt niet bij het opnieuw ophalen');
+
+    // Zodra de speler een cantrip aanvraagt, ruimt de herinnering zichzelf op —
+    // ook al staat de spreuk nog niet in zijn boek (die wacht op de DM).
+    const v = await req(server, 'POST', `/api/player-spells/${charId}`,
+      { index: 'fire-bolt', name: 'Fire Bolt', level: 0, school: 'Evocation' }, speler);
+    assert.strictEqual(v.status, 201, JSON.stringify(v.body));
+    st = await stand();
+    assert.strictEqual((st.openKeuzes || []).length, 0,
+      'een openstaand verzoek telt mee — anders blijft de app zeuren terwijl de speler al gekozen heeft');
+
+    await req(server, 'POST', `/api/characters/${charId}/level-up/undo`, {}, dm);
+  });
+
+  it('laat een herinnering ook wegklikken', async () => {
+    await req(server, 'PATCH', `/api/player-profile/${charId}`,
+      { klasse: 'Wizard', level: '3', klasseLevel: '3' }, dm);
+    const r = await req(server, 'POST', `/api/characters/${charId}/level-up`, { hpMethode: 'gemiddelde' }, dm);
+    const luId = r.body.levelUp.id;
+    assert.ok(((await stand()).openKeuzes || []).length >= 1);
+
+    const weg = await req(server, 'POST', `/api/characters/${charId}/level-up/keuze-klaar`,
+      { levelUpId: luId, niveau: 0 }, speler);
+    assert.strictEqual(weg.status, 200, JSON.stringify(weg.body));
+    assert.strictEqual(((await stand()).openKeuzes || []).length, 0);
+
+    // en een tweede keer wegklikken botst niet, maar meldt wel dat er niets staat
+    const nog = await req(server, 'POST', `/api/characters/${charId}/level-up/keuze-klaar`,
+      { levelUpId: luId, niveau: 7 }, speler);
+    assert.strictEqual(nog.status, 404);
+    await req(server, 'POST', `/api/characters/${charId}/level-up/undo`, {}, dm);
+  });
+
   it('stopt bij het hoogste level', async () => {
     await req(server, 'PATCH', `/api/player-profile/${charId}`, { level: '20' }, dm);
     const r = await req(server, 'POST', `/api/characters/${charId}/level-up`,
