@@ -740,3 +740,16 @@ Per bevinding: waar, wat, en of het opgelost is. Nieuwe regels onderaan.
 | 25 | 7 | Een nieuwe campagne "activeren" veranderde niets: je bleef in Grisburgh | opgelost — knop *Openen* (naar `/naam`), en "Als standaard" heet nu wat het is: waar het kale domein landt. Aanmaken vraagt meteen een DM-wachtwoord, anders kun je er niet in |
 | 26 | 10 | Ook via *Openen* bleef je in Grisburgh: je sessie won van het pad | opgelost — het pad (`?campagne=`) bepaalt de campagne, de sessie alleen je rol. In een vreemde campagne ben je bezoeker en log je opnieuw in (`sessieHoortHier()`, zestiende isolatietest) |
 | 27 | 1 | Een andere campagne standaard maken sloot je buiten Grisburgh: het serverwachtwoord hing aan de *actieve* campagne | opgelost — het hangt nu aan `config.beheerCampagne`, die vastligt. Zelfde fout zat in de regel die leegmaken toestond |
+
+### Spell slots, multiclass en de signatuurkaart (17 sep 2026)
+
+- Zet een speler op Wizard 5 zonder ooit slots in te vullen; zijn Spreukenboek toont 4/3/2 — afgeleid uit klasse en level, niet uit opgeslagen data.
+- Pas het maximum van één slotniveau met de hand aan; dat niveau houdt jouw getal, de andere blijven meelopen met het level. Zet een niveau handmatig op 0 en het verdwijnt.
+- Verbruik een slot, verander daarna het level: het aantal verbruikte slots blijft staan, het maximum groeit mee.
+- Zet een personage op multiclass (Cleric 5 / Wizard 3): het geprinte blad zegt "Cleric 5 (Light Domain) / Wizard 3 (Evoker)" en de Hit Dice eronder staan als 5d8 · 3d6.
+- Vul bij een multiclass de tweede subklasse in; de Progressie-tab toont de features van díé subklasse bij de tweede klasse — niet "Choose your subclass".
+- Verhoog het level van de tweede klasse van een multiclass; de nieuwe features van díé klasse verschijnen in Kenmerken & Eigenschappen (vroeger alleen die van de eerste).
+- Open de Personage-tab als Paladin: boven aan staat een Lay on Hands-kaart met een balk; de `−` verbruikt en het getal loopt terug, de `+` geeft terug en staat uit zolang je niets verbruikt hebt.
+- Als Rogue staat er in plaats daarvan één getal (3d6 op level 5) zonder knoppen — er valt niets bij te houden.
+- Als multiclass staan er twee kaarten, elk met het level van zijn eigen klasse in het labeltje.
+- Klap een sectie op de Personage-tab dicht (alles behalve HP kan); ververs de pagina en hij staat nog steeds dicht. HP heeft geen chevron en kan niet dicht.

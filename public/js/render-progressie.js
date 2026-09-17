@@ -289,36 +289,43 @@ async function _syncNewFeaturesToTraits(prog, ctx, charId) {
   try { synced = JSON.parse(localStorage.getItem(storageKey) || '{}'); }
   catch { synced = {}; }
 
-  const currentLevel = parseInt(ctx.klasseLevel) || parseInt(ctx.level) || 1;
-  const lastSynced   = parseInt(synced[ctx.klasse]) || 0;
-  if (currentLevel <= lastSynced) return; // niets nieuws
-
-  const cls = _findClass(prog, ctx.klasse);
-  if (!cls) return;
-  const subclass = _findSubclass(cls.data, ctx.subclass);
-
-  // Verzamel features voor de nieuwe levels (lastSynced+1 t/m currentLevel)
-  const newFeatures = [];
-  for (let lvl = lastSynced + 1; lvl <= currentLevel; lvl++) {
-    for (const f of _featuresForLevel(prog, cls.data, subclass, lvl)) {
-      // Sla ASI/EpicBoon en subklasse-marker over (speler kiest zelf)
-      if (f._kind === 'shared' || f._kind === 'subclass') continue;
-      const featName = (f._kind === 'sub' && subclass)
-        ? `${f.name} (${subclass.key})`
-        : f.name;
-      const featDesc = f.desc || _srdDesc(f.name, cls.key) || '';
-      newFeatures.push({
-        name:   featName,
-        meta:   `${cls.key} · Lv. ${lvl}`,   // geen esc — plain text opgeslagen
-        desc:   featDesc,
-        source: 'progression',
-        index:  `progression-${cls.key}-${lvl}-${f.name}`.replace(/[^a-z0-9-]/gi, '_'),
-      });
-    }
+  // Een multiclass heeft twee klassen die allebei features ontsluiten; deze
+  // functie keek alleen naar de eerste, dus de Wizard-helft van een
+  // Cleric 5 / Wizard 3 kwam nooit in Kenmerken terecht. De administratie stond
+  // al per klassenaam in `synced`, dus dit is dezelfde ronde, twee keer.
+  const klassen = [{ naam: ctx.klasse, sub: ctx.subclass, lvl: parseInt(ctx.klasseLevel) || parseInt(ctx.level) || 1 }];
+  if (ctx.multiclass && ctx.multiKlasse) {
+    klassen.push({ naam: ctx.multiKlasse, sub: ctx.multiSubclass, lvl: parseInt(ctx.multiKlasseLevel) || 1 });
   }
 
-  // Altijd de synced-level bijwerken, ook als er geen features zijn (bv. alleen ASI-levels)
-  synced[ctx.klasse] = currentLevel;
+  const newFeatures = [];
+  for (const k of klassen) {
+    const lastSynced = parseInt(synced[k.naam]) || 0;
+    if (k.lvl <= lastSynced) continue;           // niets nieuws voor deze klasse
+    const cls = _findClass(prog, k.naam);
+    if (!cls) continue;
+    const subclass = _findSubclass(cls.data, k.sub);
+
+    for (let lvl = lastSynced + 1; lvl <= k.lvl; lvl++) {
+      for (const f of _featuresForLevel(prog, cls.data, subclass, lvl)) {
+        // Sla ASI/EpicBoon en subklasse-marker over (speler kiest zelf)
+        if (f._kind === 'shared' || f._kind === 'subclass') continue;
+        const featName = (f._kind === 'sub' && subclass)
+          ? `${f.name} (${subclass.key})`
+          : f.name;
+        const featDesc = f.desc || _srdDesc(f.name, cls.key) || '';
+        newFeatures.push({
+          name:   featName,
+          meta:   `${cls.key} · Lv. ${lvl}`,   // geen esc — plain text opgeslagen
+          desc:   featDesc,
+          source: 'progression',
+          index:  `progression-${cls.key}-${lvl}-${f.name}`.replace(/[^a-z0-9-]/gi, '_'),
+        });
+      }
+    }
+    // Altijd bijwerken, ook als er geen features waren (bv. alleen ASI-levels)
+    synced[k.naam] = k.lvl;
+  }
   localStorage.setItem(storageKey, JSON.stringify(synced));
 
   if (!newFeatures.length) return;
@@ -394,9 +401,13 @@ function _buildPanel(prog, ctx, charId, favs, choices) {
   if (ctx.multiclass && ctx.multiKlasse) {
     const cls2 = _findClass(prog, ctx.multiKlasse);
     if (cls2) {
+      // `ctx.subclass` hoort bij de éérste klasse; die hier meegeven gaf de
+      // tweede klasse een subklasse die in haar lijst niet bestaat, en dus
+      // eeuwig "Choose your subclass". Vandaar een eigen veld.
+      const _sub2 = ctx.multiSubclass || '';
       body += kaarten
-        ? _classCards(prog, cls2, ctx.subclass, ctx.multiKlasseLevel || 1, true, charId, favs, choices)
-        : _classTimeline(prog, cls2, ctx.subclass, ctx.multiKlasseLevel || 1, true, charId, favs, choices);
+        ? _classCards(prog, cls2, _sub2, ctx.multiKlasseLevel || 1, true, charId, favs, choices)
+        : _classTimeline(prog, cls2, _sub2, ctx.multiKlasseLevel || 1, true, charId, favs, choices);
     } else {
       body += `<div class="prog-missing">Geen data voor multiclass <strong>${esc(ctx.multiKlasse)}</strong>.</div>`;
     }

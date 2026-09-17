@@ -118,6 +118,19 @@ const PCS = [
     spreuken: { cantrips: ['Eldritch Blast','Minor Illusion'], 1: ['Hex','Armor of Agathys'] } },
 
   // De Artificer heeft in onze seed géén subklassen — ook dat wil je een keer zien.
+  // Multiclass: twee casters van verschillende soort, zodat je kunt zien of de
+  // afgeleide slots optellen (Cleric 5 + Wizard 3 = caster level 8) en of de
+  // progressie twee tijdlijnen naast elkaar aankan.
+  { klasse: 'Cleric', sub: 'Light Domain', ras: 'Human', lvl: 8, bg: 'Acolyte',
+    id: 't_pc_multiclass',
+    multi: { klasse: 'Wizard', sub: 'Evoker', lvl: 3, eigenLvl: 5 },
+    naam: 'Wendel Tweepad', rol: 'Kon niet kiezen, deed allebei',
+    scores: { str: 10, dex: 12, con: 14, int: 15, wis: 16, cha: 10 }, saves: 'wis,cha',
+    skills: ['religion','arcana','insight','history'], ac: 16, speed: '30 ft',
+    wapens: [{ name: 'Mace', atk: '+4', dmg: '1d6+1 Bludgeoning' }],
+    dc: 15, atkBonus: 7,
+    spreuken: { cantrips: ['Sacred Flame','Light','Fire Bolt'], 1: ['Cure Wounds','Shield','Magic Missile'], 2: ['Misty Step','Spiritual Weapon'], 3: ['Fireball'], 4: ['Death Ward'] } },
+
   { klasse: 'Artificer', sub: '', ras: 'Half-Orc', lvl: 1, bg: 'Artisan',
     naam: 'Nout Raderkamp', rol: 'Repareert dingen die niet stuk waren',
     scores: { str: 12, dex: 14, con: 14, int: 17, wis: 10, cha: 8 }, saves: 'con,int',
@@ -165,7 +178,7 @@ if (!groepen.length) { console.error('Geen groepen in deze campagne.'); process.
 
 let nieuw = 0, over = 0, aangevuld = 0;
 PCS.forEach((pc, i) => {
-  const id = 't_pc_' + pc.klasse.toLowerCase();
+  const id = pc.id || ('t_pc_' + pc.klasse.toLowerCase());
   if (entities.personages.some(e => e.id === id)) {
     // Bestaat al: het kaartje en het profiel laten we met rust (daar kan de DM
     // in gezeten hebben). Alleen slots vullen als er nog geen staan, want
@@ -200,6 +213,12 @@ PCS.forEach((pc, i) => {
 
   dmState.playerProfiles[id] = {
     klasse: pc.klasse, subclass: pc.sub, level: String(pc.lvl),
+    ...(pc.multi ? {
+      multiclass: 'true',
+      klasseLevel: String(pc.multi.eigenLvl),
+      multiKlasse: pc.multi.klasse,
+      multiKlasseLevel: String(pc.multi.lvl),
+    } : {}),
     origin: pc.ras, background: pc.bg,
     ac: String(pc.ac), speed: pc.speed,
     initiative: teken(mod(pc.scores.dex)),
@@ -217,7 +236,9 @@ PCS.forEach((pc, i) => {
   };
   dmState.playerHp[id] = { current: maxHp, max: maxHp };
 
-  const slots = slotsVoor(pc.klasse, pc.lvl);
+  // Bij een multiclass laten we de slots weg: de server leidt ze nu zelf af, en
+  // dat is precies wat we met dit personage willen kunnen zien.
+  const slots = pc.multi ? null : slotsVoor(pc.klasse, pc.lvl);
   if (slots) {
     if (!dmState.playerSpellSlots) dmState.playerSpellSlots = {};
     dmState.playerSpellSlots[id] = slots;

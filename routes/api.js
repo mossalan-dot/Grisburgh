@@ -3558,6 +3558,87 @@ const CLASS_HIT_DIE = {
 function _hitDieForClass(naam) {
   return CLASS_HIT_DIE[String(naam || '').trim().toLowerCase()] || null;
 }
+// ── Spreukenslots afleiden uit klasse + level ───────────────────────────────
+// Net als de Hit Dice hierboven: de tabel staat in het boek, dus die hoeft
+// niemand over te tikken. Elke caster begon anders met "Nog geen spreukenslots
+// ingesteld" tot de DM ze met de hand invoerde — negen niveaus, per speler.
+//
+// **De handmatige stand wint.** Een slot met `handmatig: true` laten we staan
+// zoals hij is; dat is de knop waarmee de DM of de speler het maximum bijstelt
+// (een Wizard met een Ring of Spell Storing, een huisregel, wat dan ook). Alleen
+// wat níét met de hand gezet is volgt de tabel.
+const SLOT_VOL = {                      // caster-level → slots per spreukniveau
+  1:[2], 2:[3], 3:[4,2], 4:[4,3], 5:[4,3,2], 6:[4,3,3], 7:[4,3,3,1], 8:[4,3,3,2],
+  9:[4,3,3,3,1], 10:[4,3,3,3,2], 11:[4,3,3,3,2,1], 12:[4,3,3,3,2,1],
+  13:[4,3,3,3,2,1,1], 14:[4,3,3,3,2,1,1], 15:[4,3,3,3,2,1,1,1], 16:[4,3,3,3,2,1,1,1],
+  17:[4,3,3,3,2,1,1,1,1], 18:[4,3,3,3,3,1,1,1,1], 19:[4,3,3,3,3,2,1,1,1], 20:[4,3,3,3,3,2,2,1,1],
+};
+// Warlock rekent apart: een paar slots die na een kórte rust terugkomen.
+const SLOT_PACT = { 1:[1,1], 2:[2,1], 3:[2,2], 4:[2,2], 5:[2,3], 6:[2,3], 7:[2,4],
+  8:[2,4], 9:[2,5], 10:[2,5], 11:[3,5], 12:[3,5], 13:[3,5], 14:[3,5], 15:[3,5],
+  16:[3,5], 17:[4,5], 18:[4,5], 19:[4,5], 20:[4,5] };
+
+const _CASTER_VOL   = new Set(['bard', 'cleric', 'druid', 'sorcerer', 'wizard']);
+const _CASTER_HALF  = new Set(['paladin', 'ranger']);   // multiclass: naar beneden
+const _CASTER_ART   = 'artificer';                      // altijd naar boven
+
+// Welke klassen en levels heeft dit personage? Eén plek, want zowel de Hit Dice
+// als de slots als het spreukverzoek willen dit weten.
+function _klasseLevels(p) {
+  const uit = [[String(p.klasse || '').trim(), parseInt(p.klasseLevel ?? p.level) || 0]];
+  if ((p.multiclass === true || p.multiclass === 'true') && p.multiKlasse) {
+    uit.push([String(p.multiKlasse).trim(), parseInt(p.multiKlasseLevel) || 0]);
+  }
+  return uit.filter(([k, n]) => k && n > 0);
+}
+
+function _slotsAfgeleid(profile) {
+  const paren = _klasseLevels(profile);
+  if (!paren.length) return {};
+
+  let casterLvl = 0, warlockLvl = 0, alleenEen = paren.length === 1;
+  for (const [klasse, lvl] of paren) {
+    const k = klasse.toLowerCase();
+    if (k === 'warlock')            warlockLvl += lvl;
+    else if (_CASTER_VOL.has(k))    casterLvl  += lvl;
+    else if (k === _CASTER_ART)     casterLvl  += Math.ceil(lvl / 2);
+    else if (_CASTER_HALF.has(k))   casterLvl  += alleenEen ? Math.ceil(lvl / 2) : Math.floor(lvl / 2);
+    // Barbarian, Fighter, Monk, Rogue: geen slots. Een Eldritch Knight of Arcane
+    // Trickster telt in de regels voor een derde mee, maar dat hangt aan de
+    // subklasse en niet aan de klasse — die zet de DM met de hand.
+  }
+
+  const uit = {};
+  if (casterLvl > 0) {
+    (SLOT_VOL[Math.min(casterLvl, 20)] || []).forEach((max, i) => { uit[i + 1] = { max, used: 0 }; });
+  }
+  if (warlockLvl > 0) {
+    // Pact magic staat in de regels naast je gewone slots. Deze app kent één
+    // tabel, dus bij een Warlock-multiclass tellen we ze bij het hoogste niveau
+    // op — en dat is precies een geval waar de DM met de hand wil kunnen bijsturen.
+    const [aantal, niveau] = SLOT_PACT[Math.min(warlockLvl, 20)] || [0, 0];
+    if (aantal > 0) uit[niveau] = { max: (uit[niveau]?.max || 0) + aantal, used: 0 };
+  }
+  return uit;
+}
+
+// Wat de speler te zien krijgt: de afgeleide tabel, met daar overheen wat er
+// bewaard is — `used` altijd (dat is de stand van vandaag), `max` alleen waar
+// iemand hem met de hand heeft gezet.
+function _slotsVoorSpeler(dmState, characterId) {
+  const bewaard = (dmState.playerSpellSlots || {})[characterId] || {};
+  const profiel = (dmState.playerProfiles  || {})[characterId] || {};
+  const uit = _slotsAfgeleid(profiel);
+  for (const [lvl, val] of Object.entries(bewaard)) {
+    if (!val || typeof val !== 'object') continue;
+    if (val.handmatig) uit[lvl] = { max: val.max || 0, used: val.used || 0, handmatig: true };
+    else if (uit[lvl]) uit[lvl] = { ...uit[lvl], used: Math.min(val.used || 0, uit[lvl].max) };
+  }
+  // Een handmatig op 0 gezet niveau hoort weg te blijven.
+  for (const [lvl, val] of Object.entries(uit)) if (!val.max) delete uit[lvl];
+  return uit;
+}
+
 // Leidt de Hit Dice-pool af uit klasse + level (incl. multiklasse). Keyed op
 // aantal zijden: { 10: 3, 6: 2 }. Fallback bij onbekende klasse: hitDie-veld of d8×level.
 function _hitDicePool(profile) {
@@ -4413,7 +4494,7 @@ router.get('/player-spellslots/:characterId', attachRole, (req, res) => {
   if (req.role !== 'dm' && req.session.characterId !== characterId)
     return res.status(403).json({ error: 'Geen toegang' });
   const dmState = readDmState();
-  res.json((dmState.playerSpellSlots || {})[characterId] || {});
+  res.json(_slotsVoorSpeler(dmState, characterId));
 });
 
 router.put('/player-spellslots/:characterId', attachRole, (req, res) => {
@@ -4430,6 +4511,9 @@ router.put('/player-spellslots/:characterId', attachRole, (req, res) => {
       updated[lvl] = {
         max:  Math.min(MAX_SLOTS, Math.max(0, parseInt(val.max)  || 0)),
         used: Math.max(0, parseInt(val.used) || 0),
+        // `handmatig` zegt: iemand heeft dit maximum zélf gezet, dus laat de
+        // afgeleide tabel er vanaf blijven. Zie _slotsVoorSpeler().
+        ...(val.handmatig ? { handmatig: true } : {}),
       };
     }
   }

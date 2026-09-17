@@ -4,7 +4,7 @@ import { initArchief, renderLogboek, openLogboekEditor } from "./render-archief.
 import { renderKaart, queueFlyTo, verversPins, nieuweKaart } from './render-kaart.js?v=31';
 import { renderDungeon } from './render-dungeon.js?v=55';
 import { renderRelatiemap } from './render-relatiemap.js?v=26';
-import { renderProgressie } from './render-progressie.js?v=48';
+import { renderProgressie } from './render-progressie.js?v=49';
 import { renderBestiarium } from './render-bestiarium.js?v=30';
 import { renderSpreuken } from './render-spreuken.js?v=40';
 import { renderVaardigheden } from './render-vaardigheden.js?v=7';
@@ -6629,15 +6629,102 @@ window._condInfo = function(cid) {
 // Uitbreidbaar per klasse; start met Barbarian/Rage. Beschrijving
 // komt uit de progressie-data (single source of truth).
 // ════════════════════════════════════════════════════════════
+// ── Signatuurkaart: het ding waar je klasse aan tafel over gaat ───────────
+// Drie vormen, want een klassefeature telt op drie manieren:
+//   'uses'   — bolletjes die je afstreept (Rage, Channel Divinity)
+//   'pool'   — een voorraad waaruit je per punt put (Sorcery Points, Lay on Hands)
+//   'waarde' — een getal dat met je level meegroeit en niets bijhoudt (Sneak Attack)
+// `uses` en `pool` mogen een tabel (level → aantal) of een functie (lvl, pp) zijn;
+// dat laatste voor features die aan een ability-mod hangen in plaats van aan level.
 const _SIGNATURE = {
   barbarian: {
-    feature: 'Rage', icon: 'crossed-swords', iconGi: true, key: 'rage', kleur: '#b3402a',
+    feature: 'Rage', icon: 'hand-fist', key: 'rage', kleur: '#b3402a', vorm: 'uses',
     activeOff: 'Activeer Rage', activeOn: 'Raging',
     naslag: 'Resistance tegen Bludgeoning, Piercing & Slashing damage; Advantage op Strength checks & saves.',
     uses: { 1: 2, 3: 3, 6: 4, 10: 5, 17: 6 },
     extra: lvl => `Rage Damage +${_sigThresh({ 1: 2, 9: 3, 16: 4 }, lvl)}`,
   },
+  bard: {
+    feature: 'Bardic Inspiration', icon: 'music', key: 'bardic', kleur: '#8c5aa8', vorm: 'uses',
+    naslag: 'Bonus Action: geef een ander wezen een die dat het bij een d20 Test, attack roll of save mag optellen.',
+    uses: (lvl, pp) => Math.max(1, _sigMod(pp, 'cha')),
+    herstel: 'Long Rest (vanaf level 5 ook op een Short Rest)',
+    extra: lvl => `Inspiration die ${_sigThresh({ 1: 'd6', 5: 'd8', 10: 'd10', 15: 'd12' }, lvl)}`,
+  },
+  cleric: {
+    feature: 'Channel Divinity', icon: 'church', key: 'channel', kleur: '#c9a227', vorm: 'uses',
+    naslag: 'Divine Spark of Turn Undead — en vanaf level 3 wat je Divine Order je geeft.',
+    uses: { 2: 2, 6: 3, 18: 4 }, herstel: 'Short of Long Rest',
+  },
+  druid: {
+    feature: 'Wild Shape', icon: 'tree-pine', key: 'wildshape', kleur: '#4a7c3f', vorm: 'uses',
+    activeOff: 'Neem een gedaante aan', activeOn: 'In Wild Shape',
+    naslag: 'Bonus Action: neem de gedaante van een Beast aan die je gezien hebt.',
+    uses: { 2: 2, 6: 3, 17: 4 }, herstel: 'Short of Long Rest',
+    extra: lvl => `Max CR ${_sigThresh({ 2: '1/4', 4: '1/2', 8: '1' }, lvl)}`,
+  },
+  fighter: {
+    feature: 'Second Wind', icon: 'swords', key: 'secondwind', kleur: '#8a6a3a', vorm: 'uses',
+    naslag: 'Bonus Action: heal jezelf.',
+    uses: { 1: 2, 4: 3, 10: 4 }, herstel: 'Short of Long Rest',
+    extra: lvl => `Heal 1d10 + ${lvl || 1}`,
+  },
+  monk: {
+    feature: 'Focus Points', icon: 'hand', key: 'focus', kleur: '#3f7c78', vorm: 'pool',
+    naslag: 'Flurry of Blows, Patient Defense en Step of the Wind kosten elk 1 punt.',
+    pool: lvl => (lvl >= 2 ? lvl : 0), herstel: 'Short of Long Rest',
+    extra: lvl => `Martial Arts die ${_sigThresh({ 1: 'd6', 5: 'd8', 11: 'd10', 17: 'd12' }, lvl)}`,
+  },
+  paladin: {
+    feature: 'Lay on Hands', icon: 'shield-plus', key: 'layonhands', kleur: '#c9a227', vorm: 'pool',
+    eenheid: 'HP', naslag: 'Bonus Action: raak een wezen aan en put uit deze voorraad. 5 HP geneest ook Poisoned.',
+    pool: lvl => (lvl || 1) * 5, herstel: 'Long Rest',
+  },
+  ranger: {
+    feature: "Hunter's Mark", icon: 'bow-arrow', key: 'huntersmark', kleur: '#5c7a3f', vorm: 'uses',
+    activeOff: 'Zet de mark', activeOn: 'Mark staat',
+    naslag: 'Altijd prepared, en zo vaak zonder spell slot te casten. Concentration, Bonus Action.',
+    uses: (lvl, pp) => Math.max(1, _sigMod(pp, 'wis')), herstel: 'Long Rest',
+    extra: lvl => `Extra damage ${lvl >= 20 ? '1d10' : '1d6'}`,
+  },
+  rogue: {
+    feature: 'Sneak Attack', icon: 'stiletto', key: 'sneak', kleur: '#4a4a5c', vorm: 'waarde',
+    naslag: 'Eén keer per beurt, bij Advantage of een bondgenoot naast je doelwit. Finesse- of ranged wapen.',
+    waarde: lvl => `${Math.max(1, Math.ceil((lvl || 1) / 2))}d6`,
+  },
+  sorcerer: {
+    feature: 'Sorcery Points', icon: 'flame', key: 'sorcery', kleur: '#b5452f', vorm: 'pool',
+    naslag: 'Metamagic betalen, of omwisselen tegen spell slots (Font of Magic).',
+    pool: lvl => (lvl >= 2 ? lvl : 0), herstel: 'Long Rest',
+  },
+  warlock: {
+    feature: 'Magical Cunning', icon: 'eye', key: 'cunning', kleur: '#6b3f7a', vorm: 'uses',
+    naslag: 'Eén minuut ritueel: krijg de helft van je Pact Magic-slots terug (naar boven afgerond).',
+    uses: { 2: 1 }, herstel: 'Long Rest',
+  },
+  wizard: {
+    feature: 'Arcane Recovery', icon: 'book-open', key: 'arcane', kleur: '#3f5f8a', vorm: 'uses',
+    naslag: 'Na een Short Rest: krijg spell slots terug (niveau 6 of lager).',
+    uses: { 1: 1 }, herstel: 'Long Rest',
+    extra: lvl => `Tot ${Math.max(1, Math.ceil((lvl || 1) / 2))} slotniveaus terug`,
+  },
+  artificer: {
+    feature: 'Infused Items', icon: 'hammer', key: 'infusions', kleur: '#7a6040', vorm: 'waarde',
+    naslag: 'Zo veel voorwerpen mogen tegelijk een infusion dragen. Na een Long Rest herzie je de keuze.',
+    waarde: lvl => String(_sigThresh({ 2: 2, 6: 3, 10: 4, 14: 5, 18: 6 }, lvl) || 0),
+    extra: lvl => `${_sigThresh({ 2: 4, 6: 6, 10: 8, 14: 10 }, lvl) || 0} infusions bekend`,
+  },
 };
+// Ability-mod uit het profiel; de kaarten van Bard en Ranger hangen eraan.
+function _sigMod(pp, sleutel) {
+  const v = parseInt(pp?.[sleutel]);
+  return Number.isFinite(v) ? Math.floor((v - 10) / 2) : 0;
+}
+// Een tabel (level → waarde) of een functie; beide mogen in `uses`/`pool`.
+function _sigGetal(bron, lvl, pp) {
+  if (typeof bron === 'function') return parseInt(bron(lvl, pp)) || 0;
+  return _sigThresh(bron || {}, lvl) || 0;
+}
 function _sigThresh(table, level) {
   let v = 0;
   for (const t of Object.keys(table).map(Number).sort((a, b) => a - b)) if ((level || 0) >= t) v = table[t];
@@ -6653,99 +6740,230 @@ function _findClassFeatureDesc(progData, classKey, featureName) {
 }
 function _sigReadState(pp) { try { return JSON.parse(pp?.signatureState || '{}'); } catch { return {}; } }
 function _sigCfgFor(klasse) { return _SIGNATURE[String(klasse || '').toLowerCase()]; }
-function _sigCurMax(cfg, pp, level) {
+function _sigCurMaxVoor(cfg, pp, level) {
   const st = _sigReadState(pp)[cfg.key] || {};
-  const auto = _sigThresh(cfg.uses, level) || 0;
+  const auto = _sigGetal(cfg.vorm === 'pool' ? cfg.pool : cfg.uses, level, pp);
   return (st.maxOverride != null && String(st.maxOverride) !== '') ? (parseInt(st.maxOverride) || 0) : auto;
+}
+
+// Eén kaart per klasse. Een multiclass krijgt er dus twee — die van zijn Cleric
+// én die van zijn Wizard — elk met hun eigen level, want Channel Divinity telt
+// op Clericlevel en Arcane Recovery op Wizardlevel.
+function _renderSignatureCards(pp, progData) {
+  const multi = pp?.multiclass === true || pp?.multiclass === 'true';
+  const kLvl  = parseInt(pp?.klasseLevel) || parseInt(pp?.level) || 0;
+  const rijen = [{ klasse: pp?.klasse, lvl: multi ? kLvl : (parseInt(pp?.level) || kLvl) }];
+  if (multi && pp?.multiKlasse) rijen.push({ klasse: pp.multiKlasse, lvl: parseInt(pp.multiKlasseLevel) || 0 });
+  return rijen.map(r => _renderSignatureCard(r.klasse, r.lvl, progData, pp)).filter(Boolean).join('');
 }
 
 function _renderSignatureCard(klasse, level, progData, pp) {
   const cfg = _sigCfgFor(klasse);
   if (!cfg) return '';
   const lvl = parseInt(level) || 0;
-  const st = _sigReadState(pp)[cfg.key] || {};
-  const max = _sigCurMax(cfg, pp, lvl);
-  const used = Math.min(st.used || 0, max);
-  const remaining = max - used;
-  const active = !!st.active;
+  const k   = cfg.key;
+  const st  = _sigReadState(pp)[k] || {};
   const desc = _findClassFeatureDesc(progData, _progClassKey(progData, klasse), cfg.feature);
-  const dots = max > 0
-    ? Array.from({ length: max }, (_, i) => `<button class="sig-dot${i < used ? ' used' : ''}" onclick="window._sigToggleUse(${i})" title="${i < used ? 'Verbruikt — klik om vrij te geven' : 'Vrij — klik om te verbruiken'}"></button>`).join('')
-    : '<span class="sig-none">—</span>';
-  return `
-  <div class="sig-card${active ? ' sig-card--active' : ''}" style="--sig-kleur:${cfg.kleur}">
-    <div class="sig-card-head">
-      <span class="sig-card-icon">${icon(cfg.icon, cfg.iconGi ? { cls: 'icon-gi' } : {})}</span>
-      <span class="sig-card-name">${esc(cfg.feature)}</span>
-      <span class="sig-card-tag">Signatuur · ${esc(klasse)}</span>
-      ${desc ? `<button class="sig-card-info" onclick="window._sigToggleInfo()" title="Volledige uitleg">${icon('book-open')}</button>` : ''}
-      <button class="sig-card-reset" onclick="window._sigReset()" title="Herstel na Long Rest">${icon('refresh-cw')}</button>
-    </div>
-    <div class="sig-card-body">
-      <button class="sig-toggle${active ? ' on' : ''}" onclick="window._sigToggleActive()">
+  const max  = _sigCurMaxVoor(cfg, pp, lvl);
+  const used = Math.min(st.used || 0, max);
+  const active = !!st.active;
+
+  let body = '';
+  if (cfg.vorm === 'waarde') {
+    // Niets bij te houden: het getal groeit met je level en dat is de hele kaart.
+    body = `<div class="sig-waarde">${esc(cfg.waarde(lvl))}</div>`;
+  } else if (cfg.vorm === 'pool') {
+    // Een voorraad waar je met ongelijke happen uit put — bolletjes zouden er
+    // bij Lay on Hands veertig zijn. Dus een balk met een teller.
+    const over = max - used;
+    const pct  = max > 0 ? Math.round((over / max) * 100) : 0;
+    body = `
+      <div class="sig-pool">
+        <div class="sig-pool-balk"><span style="width:${pct}%"></span></div>
+        <div class="sig-pool-rij">
+          <button class="sig-pool-knop" onclick="window._sigPool('${k}',1)" title="Eén verbruiken"${over <= 0 ? ' disabled' : ''}>−</button>
+          <button class="sig-pool-cijfer" onclick="window._sigPoolVraag('${k}')" title="Een aantal ineens verbruiken">${over}<span class="sig-pool-max"> / ${max}${cfg.eenheid ? ' ' + esc(cfg.eenheid) : ''}</span></button>
+          <button class="sig-pool-knop" onclick="window._sigPool('${k}',-1)" title="Eén terug"${used <= 0 ? ' disabled' : ''}>+</button>
+        </div>
+      </div>`;
+  } else {
+    const dots = max > 0
+      ? Array.from({ length: max }, (_, i) => `<button class="sig-dot${i < used ? ' used' : ''}" onclick="window._sigToggleUse('${k}',${i})" title="${i < used ? 'Verbruikt — klik om vrij te geven' : 'Vrij — klik om te verbruiken'}"></button>`).join('')
+      : '<span class="sig-none">—</span>';
+    body = `
+      ${cfg.activeOff ? `<button class="sig-toggle${active ? ' on' : ''}" onclick="window._sigToggleActive('${k}')">
         ${active ? icon('check') + ' ' + esc(cfg.activeOn) : esc(cfg.activeOff)}
-      </button>
+      </button>` : ''}
       <div class="sig-uses">
         <div class="sig-dots">${dots}</div>
-        <button class="sig-uses-count" onclick="window._sigEditMax()" title="Maximum aanpassen (leeg = automatisch)">${remaining} / ${max}</button>
-      </div>
+        <button class="sig-uses-count" onclick="window._sigEditMax('${k}')" title="Maximum aanpassen (leeg = automatisch)">${max - used} / ${max}</button>
+      </div>`;
+  }
+
+  const onder = [cfg.extra && cfg.extra(lvl), cfg.herstel && `Terug na ${cfg.herstel}`, cfg.naslag]
+    .filter(Boolean).map(esc).join(' · ');
+
+  return `
+  <div class="sig-card${active ? ' sig-card--active' : ''}" data-sig="${k}" style="--sig-kleur:${cfg.kleur}">
+    <div class="sig-card-head">
+      <span class="sig-card-icon">${icon(cfg.icon)}</span>
+      <span class="sig-card-name">${esc(cfg.feature)}</span>
+      <span class="sig-card-tag">${esc(klasse)}${lvl ? ' ' + lvl : ''}</span>
+      ${desc ? `<button class="sig-card-info" onclick="window._sigToggleInfo('${k}')" title="Volledige uitleg">${icon('book-open')}</button>` : ''}
+      ${cfg.vorm === 'waarde' ? '' : `<button class="sig-card-reset" onclick="window._sigReset('${k}')" title="Alles terug">${icon('refresh-cw')}</button>`}
     </div>
-    <div class="sig-card-extra">${cfg.extra ? esc(cfg.extra(lvl)) + ' · ' : ''}${esc(cfg.naslag)}</div>
-    ${desc ? `<div class="sig-card-desc hidden" id="sig-card-desc">${mdToHtml(desc)}</div>` : ''}
+    <div class="sig-card-body sig-card-body--${cfg.vorm || 'uses'}">${body}</div>
+    <div class="sig-card-extra">${onder}</div>
+    ${desc ? `<div class="sig-card-desc hidden" id="sig-card-desc-${k}">${mdToHtml(desc)}</div>` : ''}
   </div>`;
+}
+
+// Zoek de kaartconfiguratie bij een key (de kaart weet zijn eigen klasse niet meer).
+function _sigCfgByKey(k) { return Object.values(_SIGNATURE).find(c => c.key === k); }
+// Het level dat bij díé kaart hoort: de klassehelft waar de feature van is.
+function _sigLevelVoor(pp, cfg) {
+  const multi = pp?.multiclass === true || pp?.multiclass === 'true';
+  const eigen = _sigCfgFor(pp?.klasse);
+  if (multi && eigen?.key !== cfg.key && _sigCfgFor(pp?.multiKlasse)?.key === cfg.key) {
+    return parseInt(pp.multiKlasseLevel) || 0;
+  }
+  return multi ? (parseInt(pp?.klasseLevel) || 0) : (parseInt(pp?.level) || parseInt(pp?.klasseLevel) || 0);
 }
 
 function _sigRefreshDynamic() {
   const pp = window._lastPlayerProfile || {};
-  const cfg = _sigCfgFor(pp.klasse) || _sigCfgFor(pp.multiKlasse);
-  const card = document.querySelector('.sig-card');
-  if (!cfg || !card) return;
-  const lvl = parseInt(pp.klasseLevel) || parseInt(pp.level) || 0;
-  const st = _sigReadState(pp)[cfg.key] || {};
-  const max = _sigCurMax(cfg, pp, lvl);
-  const used = Math.min(st.used || 0, max);
-  card.classList.toggle('sig-card--active', !!st.active);
-  const dotsEl = card.querySelector('.sig-dots');
-  if (dotsEl) dotsEl.innerHTML = max > 0
-    ? Array.from({ length: max }, (_, i) => `<button class="sig-dot${i < used ? ' used' : ''}" onclick="window._sigToggleUse(${i})"></button>`).join('')
-    : '<span class="sig-none">—</span>';
-  const cnt = card.querySelector('.sig-uses-count');
-  if (cnt) cnt.textContent = `${max - used} / ${max}`;
-  const tog = card.querySelector('.sig-toggle');
-  if (tog) { tog.classList.toggle('on', !!st.active); tog.innerHTML = st.active ? icon('check') + ' ' + esc(cfg.activeOn) : esc(cfg.activeOff); }
+  for (const card of document.querySelectorAll('.sig-card')) {
+    const cfg = _sigCfgByKey(card.dataset.sig);
+    if (!cfg) continue;
+    const lvl  = _sigLevelVoor(pp, cfg);
+    const st   = _sigReadState(pp)[cfg.key] || {};
+    const max  = _sigCurMaxVoor(cfg, pp, lvl);
+    const used = Math.min(st.used || 0, max);
+    card.classList.toggle('sig-card--active', !!st.active);
+
+    const dotsEl = card.querySelector('.sig-dots');
+    if (dotsEl) dotsEl.innerHTML = max > 0
+      ? Array.from({ length: max }, (_, i) => `<button class="sig-dot${i < used ? ' used' : ''}" onclick="window._sigToggleUse('${cfg.key}',${i})"></button>`).join('')
+      : '<span class="sig-none">—</span>';
+    const cnt = card.querySelector('.sig-uses-count');
+    if (cnt) cnt.textContent = `${max - used} / ${max}`;
+
+    const balk = card.querySelector('.sig-pool-balk span');
+    if (balk) balk.style.width = `${max > 0 ? Math.round(((max - used) / max) * 100) : 0}%`;
+    const cij = card.querySelector('.sig-pool-cijfer');
+    if (cij) cij.innerHTML = `${max - used}<span class="sig-pool-max"> / ${max}${cfg.eenheid ? ' ' + esc(cfg.eenheid) : ''}</span>`;
+    const min  = card.querySelector('.sig-pool-knop[onclick*="\',1)"]');   // verbruiken
+    const plus = card.querySelector('.sig-pool-knop[onclick*="\',-1)"]');  // teruggeven
+    if (min)  min.disabled  = (max - used) <= 0;
+    if (plus) plus.disabled = used <= 0;
+
+    const tog = card.querySelector('.sig-toggle');
+    if (tog && cfg.activeOff) { tog.classList.toggle('on', !!st.active); tog.innerHTML = st.active ? icon('check') + ' ' + esc(cfg.activeOn) : esc(cfg.activeOff); }
+  }
 }
-async function _sigMutate(fn) {
-  const pp = window._lastPlayerProfile;
-  const cfg = _sigCfgFor(pp?.klasse) || _sigCfgFor(pp?.multiKlasse);
+
+async function _sigMutate(k, fn) {
+  const pp  = window._lastPlayerProfile;
+  const cfg = _sigCfgByKey(k);
   if (!pp || !cfg) return;
-  const lvl = parseInt(pp.klasseLevel) || parseInt(pp.level) || 0;
+  const lvl = _sigLevelVoor(pp, cfg);
   const all = _sigReadState(pp);
-  const st = all[cfg.key] || {};
-  fn(st, _sigCurMax(cfg, pp, lvl));
+  const st  = all[cfg.key] || {};
+  fn(st, _sigCurMaxVoor(cfg, pp, lvl));
   all[cfg.key] = st;
   pp.signatureState = JSON.stringify(all);
   _sigRefreshDynamic();
   if (window._lastCharId) { try { await api.patchPlayerProfile(window._lastCharId, { signatureState: pp.signatureState }); } catch {} }
 }
-window._sigToggleActive = () => _sigMutate((st, max) => {
+window._sigToggleActive = (k) => _sigMutate(k, (st, max) => {
   if (!st.active) { st.active = true; if (max > 0) st.used = Math.min((st.used || 0) + 1, max); }
   else st.active = false;
 });
-window._sigToggleUse = (i) => _sigMutate((st, max) => { const used = Math.min(st.used || 0, max); st.used = i < used ? i : i + 1; });
-window._sigReset = () => _sigMutate(st => { st.used = 0; st.active = false; });
-window._sigToggleInfo = () => document.getElementById('sig-card-desc')?.classList.toggle('hidden');
-window._sigEditMax = () => {
+window._sigToggleUse = (k, i) => _sigMutate(k, (st, max) => { const used = Math.min(st.used || 0, max); st.used = i < used ? i : i + 1; });
+window._sigReset = (k) => _sigMutate(k, st => { st.used = 0; st.active = false; });
+window._sigToggleInfo = (k) => document.getElementById(`sig-card-desc-${k}`)?.classList.toggle('hidden');
+window._sigPool = (k, n) => _sigMutate(k, (st, max) => {
+  st.used = Math.max(0, Math.min((st.used || 0) + n, max));
+});
+window._sigPoolVraag = (k) => {
+  const cfg = _sigCfgByKey(k); if (!cfg) return;
+  const v = prompt(`Hoeveel ${cfg.feature} verbruik je?\n(een negatief getal geeft terug)`, '1');
+  if (v === null) return;
+  const n = parseInt(v.trim()); if (!Number.isFinite(n) || n === 0) return;
+  window._sigPool(k, n);
+};
+window._sigEditMax = (k) => {
   const pp = window._lastPlayerProfile;
-  const cfg = _sigCfgFor(pp?.klasse) || _sigCfgFor(pp?.multiKlasse);
+  const cfg = _sigCfgByKey(k);
   if (!pp || !cfg) return;
-  const lvl = parseInt(pp.klasseLevel) || parseInt(pp.level) || 0;
-  const auto = _sigThresh(cfg.uses, lvl) || 0;
+  const lvl = _sigLevelVoor(pp, cfg);
+  const auto = _sigGetal(cfg.vorm === 'pool' ? cfg.pool : cfg.uses, lvl, pp);
   const cur = (_sigReadState(pp)[cfg.key] || {}).maxOverride ?? '';
-  const v = prompt(`Maximaal aantal ${cfg.feature}-uses?\n(laat leeg voor automatisch op basis van level: ${auto})`, String(cur));
+  const v = prompt(`Maximaal aantal ${cfg.feature}?\n(laat leeg voor automatisch op basis van level: ${auto})`, String(cur));
   if (v === null) return;
   const t = v.trim();
-  _sigMutate(st => { if (t === '') delete st.maxOverride; else st.maxOverride = Math.max(0, parseInt(t) || 0); });
+  _sigMutate(k, st => { if (t === '') delete st.maxOverride; else st.maxOverride = Math.max(0, parseInt(t) || 0); });
 };
+
+// Sleutel per sectie: de kop, genormaliseerd. Stabiel genoeg (ook voor
+// "Aanzien bij <factie>", dat per factie zijn eigen stand houdt) en leesbaar
+// als je in localStorage kijkt.
+function _pdsSleutel(titel) {
+  return 'pds:' + String(titel || '').toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')   // leestekens eruit én spaties samenvouwen in één beurt,
+    .replace(/^-|-$/g, '')         // anders geeft "Languages & Senses" twee streepjes
+    .slice(0, 40);
+}
+const _PDS_ALTIJD_OPEN = new Set(['pds:hp']);
+// Proficiencies en Languages hadden hun eigen <details>-stand onder een eigen
+// sleutel. Die zijn nu gewone secties; neem hun stand eenmalig over, anders
+// staat een blok dat je maanden geleden dichtklapte ineens weer open.
+(function _pdsOudeStandenOvernemen() {
+  for (const [oud, nieuw] of [['_profOpen', 'pds:proficiencies'], ['_talenOpen', 'pds:languages-senses']]) {
+    try {
+      const v = localStorage.getItem(oud);
+      if (v !== null && localStorage.getItem(nieuw) === null) localStorage.setItem(nieuw, v);
+      if (v !== null) localStorage.removeItem(oud);
+    } catch {}
+  }
+})();
+function _pdsInklapToepassen() {
+  const wrap = document.getElementById('pst-personage');
+  if (!wrap) return;
+  for (const sec of wrap.querySelectorAll('.player-dash-section')) {
+    // Proficiencies en Languages zijn al een <details> met hun eigen stand;
+    // die er nog een tweede toggle overheen geven klapt ze twee keer om.
+    if (sec.tagName === 'DETAILS') continue;
+    const kop = sec.querySelector(':scope > .player-dash-section-title');
+    if (!kop || kop.dataset.pdsKlaar) continue;
+    const sleutel = _pdsSleutel(kop.textContent);
+    if (_PDS_ALTIJD_OPEN.has(sleutel)) { sec.classList.add('pds-vast'); continue; }
+    kop.dataset.pdsKlaar = '1';
+    kop.dataset.pdsKey   = sleutel;
+    kop.classList.add('pds-kop');
+    kop.setAttribute('role', 'button');
+    kop.setAttribute('tabindex', '0');
+    if (localStorage.getItem(sleutel) === '0') sec.classList.add('pds-dicht');
+    kop.setAttribute('aria-expanded', sec.classList.contains('pds-dicht') ? 'false' : 'true');
+  }
+}
+// Eén gedelegeerde handler op document i.p.v. één per kop — het paneel wordt
+// bij elk socket-event opnieuw getekend, en losse handlers zouden stapelen.
+window._pdsKlik = function (ev) {
+  const kop = ev.target.closest?.('.pds-kop');
+  if (!kop || ev.target.closest('button, input, select, a')) return;
+  const sec = kop.closest('.player-dash-section');
+  if (!sec) return;
+  const dicht = sec.classList.toggle('pds-dicht');
+  kop.setAttribute('aria-expanded', dicht ? 'false' : 'true');
+  try { localStorage.setItem(kop.dataset.pdsKey, dicht ? '0' : '1'); } catch {}
+};
+document.addEventListener('click', window._pdsKlik);
+document.addEventListener('keydown', ev => {
+  if ((ev.key === 'Enter' || ev.key === ' ') && ev.target.classList?.contains('pds-kop')) {
+    ev.preventDefault(); window._pdsKlik(ev);
+  }
+});
 
 async function renderMijnKarakter(opts = {}) {
   // Flush pending currency save only if user has typed a change (dirty)
@@ -6978,6 +7196,12 @@ async function renderMijnKarakter(opts = {}) {
   const _progClsKey   = _progClassKey(progData, playerProfile.klasse);
   const _subclassOpts = (!isHp && _progClsKey && progData.classes[_progClsKey]?.subclasses)
     ? Object.keys(progData.classes[_progClsKey].subclasses) : null;
+  // Een multiclass heeft twee subklassen, en er was maar één veld: de Wizard-helft
+  // van een Cleric 5 / Wizard 3 kreeg "Light Domain" aangereikt en zag dus voor
+  // eeuwig "Choose your subclass". De tweede klasse haalt haar eigen lijst op.
+  const _progClsKey2   = _progClassKey(progData, playerProfile.multiKlasse);
+  const _subclassOpts2 = (!isHp && _progClsKey2 && progData.classes[_progClsKey2]?.subclasses)
+    ? Object.keys(progData.classes[_progClsKey2].subclasses) : null;
 
   // Wapens & damage cantrips
   let weapons = [];
@@ -7090,7 +7314,12 @@ async function renderMijnKarakter(opts = {}) {
               <input class="ppf-input ppf-level" id="ppf-multi-level" type="number" min="1" max="20"
                 value="${esc(playerProfile.multiKlasseLevel ?? '')}" placeholder="Niv"
                 onchange="window._saveProfileField('multiKlasseLevel', this.value); window._updateMulticlassTheme()">
-            </div>` : ''}
+            </div>
+            <div class="ppf-row"><label class="ppf-label">Subclass ${esc(playerProfile.multiKlasse || '2')}</label>
+              ${_subclassOpts2
+                ? _ppfSelectField('multiSubclass', playerProfile.multiSubclass, _subclassOpts2, '\u2014')
+                : `<input class="ppf-input" type="text" value="${esc(playerProfile.multiSubclass ?? '')}" placeholder="\u2014"
+                onblur="window._saveProfileField('multiSubclass', this.value)">`}</div>` : ''}
             <div class="ppf-row"><label class="ppf-label">${isHp ? 'School of Magic' : 'Subclass'}</label>
               ${_subclassOpts
                 ? _ppfSelectField('subclass', playerProfile.subclass, _subclassOpts, '—')
@@ -7300,10 +7529,7 @@ async function renderMijnKarakter(opts = {}) {
       <div id="pst-personage" class="player-subtab-panel${_playerSubTab !== 'personage' ? ' hidden' : ''}">
         <div style="display:flex;justify-content:flex-end;padding:4px 0 0">${_helpBtn('personage')}</div>
 
-        ${_renderSignatureCard(
-          _dominantKlasse,
-          (_isMulticlass && playerProfile.multiKlasse && _mkLvl > _kLvl) ? _mkLvl : (_kLvl || parseInt(playerProfile.level) || 0),
-          progData, playerProfile)}
+        ${_renderSignatureCards(playerProfile, progData)}
 
         ${_dominantKlasse.toLowerCase().includes('sorcerer') ? `
         <div class="player-dash-section wild-magic-section">
@@ -7489,8 +7715,8 @@ async function renderMijnKarakter(opts = {}) {
         </div>
 
         <!-- Proficiencies -->
-        <details class="player-dash-section player-dash-collapsible" ${localStorage.getItem('_profOpen') !== '0' ? 'open' : ''} ontoggle="localStorage.setItem('_profOpen', this.open?'1':'0')">
-          <summary class="player-dash-section-title">${icon('shield')} Proficiencies</summary>
+        <div class="player-dash-section">
+          <div class="player-dash-section-title">${icon('shield')} Proficiencies</div>
           <div class="player-profs-grid">
             <div class="player-prof-row">
               <label class="player-prof-label">Armor</label>
@@ -7511,11 +7737,11 @@ async function renderMijnKarakter(opts = {}) {
                 onblur="window._saveProfileField('toolProfs', this.value)">
             </div>
           </div>
-        </details>
+        </div>
 
         <!-- Languages & Senses — PHB-termen, dus Engels (zie CLAUDE.md) -->
-        <details class="player-dash-section player-dash-collapsible" ${localStorage.getItem('_talenOpen') !== '0' ? 'open' : ''} ontoggle="localStorage.setItem('_talenOpen', this.open?'1':'0')">
-          <summary class="player-dash-section-title">${icon('globe')} Languages &amp; Senses</summary>
+        <div class="player-dash-section">
+          <div class="player-dash-section-title">${icon('globe')} Languages &amp; Senses</div>
           <div class="player-profs-grid">
             <div class="player-prof-row">
               <label class="player-prof-label">Languages</label>
@@ -7530,7 +7756,7 @@ async function renderMijnKarakter(opts = {}) {
                 onblur="window._saveProfileField('senses', this.value)">
             </div>
           </div>
-        </details>
+        </div>
 
         <!-- Actieve conditions -->
         ${conditions.length > 0 ? `
@@ -7606,7 +7832,7 @@ async function renderMijnKarakter(opts = {}) {
                   data-loaded="false">
                   <p class="player-spell-loading-text">Laden…</p>
                 </div>
-              </details>`;
+              </div>`;
             }).join('')}
           </div>`;
           })() : '<p class="player-dash-empty" style="margin-top:8px">Nog geen kenmerken vastgezet.</p>'}
@@ -8129,6 +8355,15 @@ async function renderMijnKarakter(opts = {}) {
 
     </div>`;
 
+  // ── Secties inklapbaar maken ──────────────────────────────────────────
+  // Eén pass over de DOM in plaats van vijftien secties met de hand omzetten:
+  // zo doet een sectie die er later bij komt vanzelf mee, en er verandert niets
+  // aan de opbouw van het paneel. HP blijft altijd open — dat is het ene getal
+  // waar je tijdens een gevecht meteen bij moet.
+  // De stand staat in localStorage omdat dit paneel bij elk socket-event
+  // helemaal opnieuw wordt getekend; in een variabele zou hij telkens weg zijn.
+  _pdsInklapToepassen();
+
   // ── Progressie: sla context op; render via requestAnimationFrame zodat
   //    de DOM zeker stable is en geen re-render de content overschrijft ──
   const _isMulti = playerProfile.multiclass === 'true' || playerProfile.multiclass === true;
@@ -8140,6 +8375,7 @@ async function renderMijnKarakter(opts = {}) {
     multiclass:       _isMulti,
     multiKlasse:      playerProfile.multiKlasse || '',
     multiKlasseLevel: parseInt(playerProfile.multiKlasseLevel) || 0,
+    multiSubclass:    playerProfile.multiSubclass || '',
     species:          playerProfile.origin || entity?.data?.ras || playerProfile.ras || '',
     background:        playerProfile.background || '',
     charId:           charId || null,
@@ -8612,7 +8848,7 @@ async function renderMijnKarakter(opts = {}) {
       playerProfile[field] = value;
     } catch (e) { console.warn('Profiel opslaan mislukt', e); return; }
     // Na level- of klassewijziging: sync nieuwe features naar Kenmerken & Eigenschappen
-    const syncFields = new Set(['level', 'klasseLevel', 'klasse', 'subclass', 'multiKlasseLevel', 'multiKlasse']);
+    const syncFields = new Set(['level', 'klasseLevel', 'klasse', 'subclass', 'multiKlasseLevel', 'multiKlasse', 'multiSubclass']);
     if (syncFields.has(field) && window.progressie?.triggerSync) {
       const _ctxMulti = playerProfile.multiclass === 'true' || playerProfile.multiclass === true;
       const ctx = {
@@ -8622,6 +8858,7 @@ async function renderMijnKarakter(opts = {}) {
         level:            parseInt(playerProfile.level)  || 1,
         multiKlasse:      playerProfile.multiKlasse      || '',
         multiKlasseLevel: parseInt(playerProfile.multiKlasseLevel) || 0,
+        multiSubclass:    playerProfile.multiSubclass    || '',
       };
       // Sync features naar Kenmerken; de re-render volgt via de (gerguarde)
       // player:profile-updated socket-echo — niet hier forceren, anders wordt
@@ -8862,7 +9099,9 @@ async function renderMijnKarakter(opts = {}) {
   window._dashSlotAdj = async function(lvl, delta) {
     const slot = spellSlots[lvl] || { max: 0, used: 0 };
     const newMax = Math.max(0, slot.max + delta);
-    spellSlots[lvl] = { max: newMax, used: Math.min(slot.used, newMax) };
+    // Met de hand bijgesteld: vanaf nu laat de afgeleide tabel dit niveau met
+    // rust (zie _slotsVoorSpeler in routes/api.js).
+    spellSlots[lvl] = { max: newMax, used: Math.min(slot.used, newMax), handmatig: true };
     await api.setPlayerSpellSlots(charId, spellSlots).catch(() => {});
     renderMijnKarakter(opts);
   };
@@ -8878,7 +9117,7 @@ async function renderMijnKarakter(opts = {}) {
   window._dashSlotAddLevel = async function() {
     for (let lvl = 1; lvl <= 9; lvl++) {
       if (!spellSlots[lvl] || spellSlots[lvl].max === 0) {
-        spellSlots[lvl] = { max: 1, used: 0 };
+        spellSlots[lvl] = { max: 1, used: 0, handmatig: true };
         await api.setPlayerSpellSlots(charId, spellSlots).catch(() => {});
         renderMijnKarakter(opts);
         return;
@@ -8887,7 +9126,9 @@ async function renderMijnKarakter(opts = {}) {
   };
 
   window._dashSlotRemove = async function(lvl) {
-    delete spellSlots[lvl];
+    // Niet wissen maar op nul zetten: wissen zou de afgeleide tabel hem meteen
+    // laten terugzetten.
+    spellSlots[lvl] = { max: 0, used: 0, handmatig: true };
     await api.setPlayerSpellSlots(charId, spellSlots).catch(() => {});
     renderMijnKarakter(opts);
   };
@@ -12644,7 +12885,7 @@ function _renderFactieInterieur(el, f, missies) {
             <div class="factie-leden-grid">${g.leden.map(l => _lid(l, isHoofdGroep)).join('')}</div>
           </div>`;
         }).join('')}
-      </details>`;
+      </div>`;
   })();
 
   el.innerHTML = `
