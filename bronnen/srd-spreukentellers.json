@@ -1,0 +1,658 @@
+{
+  "Bard": {
+    "1": {
+      "cantrips": 2,
+      "voorbereid": 4
+    },
+    "2": {
+      "cantrips": 2,
+      "voorbereid": 5
+    },
+    "3": {
+      "cantrips": 2,
+      "voorbereid": 6
+    },
+    "4": {
+      "cantrips": 3,
+      "voorbereid": 7
+    },
+    "5": {
+      "cantrips": 3,
+      "voorbereid": 9
+    },
+    "6": {
+      "cantrips": 3,
+      "voorbereid": 10
+    },
+    "7": {
+      "cantrips": 3,
+      "voorbereid": 11
+    },
+    "8": {
+      "cantrips": 3,
+      "voorbereid": 12
+    },
+    "9": {
+      "cantrips": 3,
+      "voorbereid": 14
+    },
+    "10": {
+      "cantrips": 4,
+      "voorbereid": 15
+    },
+    "11": {
+      "cantrips": 4,
+      "voorbereid": 16
+    },
+    "12": {
+      "cantrips": 4,
+      "voorbereid": 16
+    },
+    "13": {
+      "cantrips": 4,
+      "voorbereid": 17
+    },
+    "14": {
+      "cantrips": 4,
+      "voorbereid": 17
+    },
+    "15": {
+      "cantrips": 4,
+      "voorbereid": 18
+    },
+    "16": {
+      "cantrips": 4,
+      "voorbereid": 18
+    },
+    "17": {
+      "cantrips": 4,
+      "voorbereid": 19
+    },
+    "18": {
+      "cantrips": 4,
+      "voorbereid": 20
+    },
+    "19": {
+      "cantrips": 4,
+      "voorbereid": 21
+    },
+    "20": {
+      "cantrips": 4,
+      "voorbereid": 22
+    }
+  },
+  "Cleric": {
+    "1": {
+      "cantrips": 3,
+      "voorbereid": 4
+    },
+    "2": {
+      "cantrips": 3,
+      "voorbereid": 5
+    },
+    "3": {
+      "cantrips": 3,
+      "voorbereid": 6
+    },
+    "4": {
+      "cantrips": 4,
+      "voorbereid": 7
+    },
+    "5": {
+      "cantrips": 4,
+      "voorbereid": 9
+    },
+    "6": {
+      "cantrips": 4,
+      "voorbereid": 10
+    },
+    "7": {
+      "cantrips": 4,
+      "voorbereid": 11
+    },
+    "8": {
+      "cantrips": 4,
+      "voorbereid": 12
+    },
+    "9": {
+      "cantrips": 4,
+      "voorbereid": 14
+    },
+    "10": {
+      "cantrips": 5,
+      "voorbereid": 15
+    },
+    "11": {
+      "cantrips": 5,
+      "voorbereid": 16
+    },
+    "12": {
+      "cantrips": 5,
+      "voorbereid": 16
+    },
+    "13": {
+      "cantrips": 5,
+      "voorbereid": 17
+    },
+    "14": {
+      "cantrips": 5,
+      "voorbereid": 17
+    },
+    "15": {
+      "cantrips": 5,
+      "voorbereid": 18
+    },
+    "16": {
+      "cantrips": 5,
+      "voorbereid": 18
+    },
+    "17": {
+      "cantrips": 5,
+      "voorbereid": 19
+    },
+    "18": {
+      "cantrips": 5,
+      "voorbereid": 20
+    },
+    "19": {
+      "cantrips": 5,
+      "voorbereid": 21
+    },
+    "20": {
+      "cantrips": 5,
+      "voorbereid": 22
+    }
+  },
+  "Druid": {
+    "1": {
+      "cantrips": 2,
+      "voorbereid": 4
+    },
+    "2": {
+      "cantrips": 2,
+      "voorbereid": 5
+    },
+    "3": {
+      "cantrips": 2,
+      "voorbereid": 6
+    },
+    "4": {
+      "cantrips": 3,
+      "voorbereid": 7
+    },
+    "5": {
+      "cantrips": 3,
+      "voorbereid": 9
+    },
+    "6": {
+      "cantrips": 3,
+      "voorbereid": 10
+    },
+    "7": {
+      "cantrips": 4,
+      "voorbereid": 11
+    },
+    "8": {
+      "cantrips": 3,
+      "voorbereid": 12
+    },
+    "9": {
+      "cantrips": 3,
+      "voorbereid": 14
+    },
+    "10": {
+      "cantrips": 4,
+      "voorbereid": 15
+    },
+    "11": {
+      "cantrips": 4,
+      "voorbereid": 16
+    },
+    "12": {
+      "cantrips": 4,
+      "voorbereid": 16
+    },
+    "13": {
+      "cantrips": 4,
+      "voorbereid": 17
+    },
+    "14": {
+      "cantrips": 4,
+      "voorbereid": 17
+    },
+    "15": {
+      "cantrips": 4,
+      "voorbereid": 18
+    },
+    "16": {
+      "cantrips": 5,
+      "voorbereid": 18
+    },
+    "17": {
+      "cantrips": 4,
+      "voorbereid": 19
+    },
+    "18": {
+      "cantrips": 4,
+      "voorbereid": 20
+    },
+    "19": {
+      "cantrips": 4,
+      "voorbereid": 21
+    },
+    "20": {
+      "cantrips": 4,
+      "voorbereid": 22
+    }
+  },
+  "Paladin": {
+    "1": {
+      "cantrips": 0,
+      "voorbereid": 2
+    },
+    "2": {
+      "cantrips": 0,
+      "voorbereid": 3
+    },
+    "3": {
+      "cantrips": 0,
+      "voorbereid": 4
+    },
+    "4": {
+      "cantrips": 0,
+      "voorbereid": 5
+    },
+    "5": {
+      "cantrips": 0,
+      "voorbereid": 6
+    },
+    "6": {
+      "cantrips": 0,
+      "voorbereid": 6
+    },
+    "7": {
+      "cantrips": 0,
+      "voorbereid": 7
+    },
+    "8": {
+      "cantrips": 0,
+      "voorbereid": 7
+    },
+    "9": {
+      "cantrips": 0,
+      "voorbereid": 9
+    },
+    "10": {
+      "cantrips": 0,
+      "voorbereid": 9
+    },
+    "11": {
+      "cantrips": 0,
+      "voorbereid": 10
+    },
+    "12": {
+      "cantrips": 0,
+      "voorbereid": 10
+    },
+    "13": {
+      "cantrips": 0,
+      "voorbereid": 11
+    },
+    "14": {
+      "cantrips": 0,
+      "voorbereid": 11
+    },
+    "15": {
+      "cantrips": 0,
+      "voorbereid": 12
+    },
+    "16": {
+      "cantrips": 0,
+      "voorbereid": 12
+    },
+    "17": {
+      "cantrips": 0,
+      "voorbereid": 14
+    },
+    "18": {
+      "cantrips": 0,
+      "voorbereid": 14
+    },
+    "19": {
+      "cantrips": 0,
+      "voorbereid": 15
+    },
+    "20": {
+      "cantrips": 0,
+      "voorbereid": 15
+    }
+  },
+  "Ranger": {
+    "1": {
+      "cantrips": 0,
+      "voorbereid": 2
+    },
+    "2": {
+      "cantrips": 0,
+      "voorbereid": 3
+    },
+    "3": {
+      "cantrips": 0,
+      "voorbereid": 4
+    },
+    "4": {
+      "cantrips": 0,
+      "voorbereid": 5
+    },
+    "5": {
+      "cantrips": 0,
+      "voorbereid": 6
+    },
+    "6": {
+      "cantrips": 0,
+      "voorbereid": 6
+    },
+    "7": {
+      "cantrips": 0,
+      "voorbereid": 7
+    },
+    "8": {
+      "cantrips": 0,
+      "voorbereid": 7
+    },
+    "9": {
+      "cantrips": 0,
+      "voorbereid": 9
+    },
+    "10": {
+      "cantrips": 0,
+      "voorbereid": 9
+    },
+    "11": {
+      "cantrips": 0,
+      "voorbereid": 10
+    },
+    "12": {
+      "cantrips": 0,
+      "voorbereid": 10
+    },
+    "13": {
+      "cantrips": 0,
+      "voorbereid": 11
+    },
+    "14": {
+      "cantrips": 0,
+      "voorbereid": 11
+    },
+    "15": {
+      "cantrips": 0,
+      "voorbereid": 12
+    },
+    "16": {
+      "cantrips": 0,
+      "voorbereid": 12
+    },
+    "17": {
+      "cantrips": 0,
+      "voorbereid": 14
+    },
+    "18": {
+      "cantrips": 0,
+      "voorbereid": 14
+    },
+    "19": {
+      "cantrips": 0,
+      "voorbereid": 15
+    },
+    "20": {
+      "cantrips": 0,
+      "voorbereid": 15
+    }
+  },
+  "Sorcerer": {
+    "1": {
+      "cantrips": 4,
+      "voorbereid": 2
+    },
+    "2": {
+      "cantrips": 4,
+      "voorbereid": 4
+    },
+    "3": {
+      "cantrips": 4,
+      "voorbereid": 6
+    },
+    "4": {
+      "cantrips": 5,
+      "voorbereid": 7
+    },
+    "5": {
+      "cantrips": 5,
+      "voorbereid": 9
+    },
+    "6": {
+      "cantrips": 5,
+      "voorbereid": 10
+    },
+    "7": {
+      "cantrips": 5,
+      "voorbereid": 11
+    },
+    "8": {
+      "cantrips": 5,
+      "voorbereid": 12
+    },
+    "9": {
+      "cantrips": 5,
+      "voorbereid": 14
+    },
+    "10": {
+      "cantrips": 6,
+      "voorbereid": 15
+    },
+    "11": {
+      "cantrips": 6,
+      "voorbereid": 16
+    },
+    "12": {
+      "cantrips": 6,
+      "voorbereid": 16
+    },
+    "13": {
+      "cantrips": 6,
+      "voorbereid": 17
+    },
+    "14": {
+      "cantrips": 6,
+      "voorbereid": 17
+    },
+    "15": {
+      "cantrips": 6,
+      "voorbereid": 18
+    },
+    "16": {
+      "cantrips": 6,
+      "voorbereid": 18
+    },
+    "17": {
+      "cantrips": 6,
+      "voorbereid": 19
+    },
+    "18": {
+      "cantrips": 6,
+      "voorbereid": 20
+    },
+    "19": {
+      "cantrips": 6,
+      "voorbereid": 21
+    },
+    "20": {
+      "cantrips": 6,
+      "voorbereid": 22
+    }
+  },
+  "Warlock": {
+    "1": {
+      "cantrips": 2,
+      "voorbereid": 2
+    },
+    "2": {
+      "cantrips": 2,
+      "voorbereid": 3
+    },
+    "3": {
+      "cantrips": 2,
+      "voorbereid": 4
+    },
+    "4": {
+      "cantrips": 3,
+      "voorbereid": 5
+    },
+    "5": {
+      "cantrips": 3,
+      "voorbereid": 6
+    },
+    "6": {
+      "cantrips": 3,
+      "voorbereid": 7
+    },
+    "7": {
+      "cantrips": 3,
+      "voorbereid": 8
+    },
+    "8": {
+      "cantrips": 3,
+      "voorbereid": 9
+    },
+    "9": {
+      "cantrips": 3,
+      "voorbereid": 10
+    },
+    "10": {
+      "cantrips": 4,
+      "voorbereid": 10
+    },
+    "11": {
+      "cantrips": 4,
+      "voorbereid": 11
+    },
+    "12": {
+      "cantrips": 4,
+      "voorbereid": 11
+    },
+    "13": {
+      "cantrips": 4,
+      "voorbereid": 12
+    },
+    "14": {
+      "cantrips": 4,
+      "voorbereid": 12
+    },
+    "15": {
+      "cantrips": 4,
+      "voorbereid": 13
+    },
+    "16": {
+      "cantrips": 4,
+      "voorbereid": 13
+    },
+    "17": {
+      "cantrips": 4,
+      "voorbereid": 14
+    },
+    "18": {
+      "cantrips": 4,
+      "voorbereid": 14
+    },
+    "19": {
+      "cantrips": 4,
+      "voorbereid": 15
+    },
+    "20": {
+      "cantrips": 4,
+      "voorbereid": 15
+    }
+  },
+  "Wizard": {
+    "1": {
+      "cantrips": 3,
+      "voorbereid": 4
+    },
+    "2": {
+      "cantrips": 3,
+      "voorbereid": 5
+    },
+    "3": {
+      "cantrips": 3,
+      "voorbereid": 6
+    },
+    "4": {
+      "cantrips": 4,
+      "voorbereid": 7
+    },
+    "5": {
+      "cantrips": 4,
+      "voorbereid": 9
+    },
+    "6": {
+      "cantrips": 4,
+      "voorbereid": 10
+    },
+    "7": {
+      "cantrips": 4,
+      "voorbereid": 11
+    },
+    "8": {
+      "cantrips": 4,
+      "voorbereid": 12
+    },
+    "9": {
+      "cantrips": 4,
+      "voorbereid": 14
+    },
+    "10": {
+      "cantrips": 5,
+      "voorbereid": 15
+    },
+    "11": {
+      "cantrips": 5,
+      "voorbereid": 16
+    },
+    "12": {
+      "cantrips": 5,
+      "voorbereid": 16
+    },
+    "13": {
+      "cantrips": 5,
+      "voorbereid": 17
+    },
+    "14": {
+      "cantrips": 5,
+      "voorbereid": 17
+    },
+    "15": {
+      "cantrips": 5,
+      "voorbereid": 18
+    },
+    "16": {
+      "cantrips": 5,
+      "voorbereid": 18
+    },
+    "17": {
+      "cantrips": 5,
+      "voorbereid": 19
+    },
+    "18": {
+      "cantrips": 5,
+      "voorbereid": 20
+    },
+    "19": {
+      "cantrips": 5,
+      "voorbereid": 21
+    },
+    "20": {
+      "cantrips": 5,
+      "voorbereid": 22
+    }
+  }
+}

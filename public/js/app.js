@@ -4,7 +4,7 @@ import { initArchief, renderLogboek, openLogboekEditor } from "./render-archief.
 import { renderKaart, queueFlyTo, verversPins, nieuweKaart } from './render-kaart.js?v=31';
 import { renderDungeon } from './render-dungeon.js?v=55';
 import { renderRelatiemap } from './render-relatiemap.js?v=26';
-import { renderProgressie, levelupFeatures } from './render-progressie.js?v=51';
+import { renderProgressie, levelupFeatures } from './render-progressie.js?v=52';
 import { renderBestiarium } from './render-bestiarium.js?v=30';
 import { renderSpreuken } from './render-spreuken.js?v=40';
 import { renderVaardigheden } from './render-vaardigheden.js?v=7';
@@ -7004,20 +7004,21 @@ function _levelUpTeken() {
     </div>
     <div id="lu-melding" class="lu-melding"></div>`;
 
-  _luFeaturesTonen(klasse, st.level + 1);
+  _luFeaturesTonen(klasse, st.level + 1, st.species);
 }
 
 // De features van het nieuwe level, opgehaald terwijl het venster al staat —
 // de progressiedata is een paar honderd kB en die wil je niet afwachten voordat
 // de speler zijn HP kan kiezen.
-async function _luFeaturesTonen(klasse, nieuwLevel) {
+async function _luFeaturesTonen(klasse, nieuwLevel, species) {
   const el = document.getElementById('lu-features');
   if (!el) return;
   // Het level ván die klasse, niet het totaal: een Wizard 3 in een multiclass
   // krijgt de features van Wizard 4, niet die van level 9.
   const klasseLevel = (klasse.level || 0) + 1;
   let f;
-  try { f = await levelupFeatures(klasse.klasse, klasse.subclass, klasseLevel); }
+  try { f = await levelupFeatures(klasse.klasse, klasse.subclass, klasseLevel,
+                                  { species, totaalLevel: nieuwLevel }); }
   catch { f = null; }
   if (!document.getElementById('lu-features')) return;   // venster is dicht
 

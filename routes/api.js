@@ -4201,6 +4201,22 @@ router.post('/characters/:characterId/spend-hit-die', attachRole, (req, res) => 
 // berekening door de speler — de server toetst 1..die en telt CON erbij.
 const LEVELUP_METHODES = ['gemiddelde', 'app', 'tafel'];
 
+// Cantrips en voorbereide spreuken per klasse per level. Stond nergens: de
+// progressiedata heeft alleen features, en hun tekst verwijst naar een kolom
+// van een tabel die wij niet hadden — dus kon het venster niet zeggen of je er
+// spreuken bij kreeg. Bron: SRD 5.2 (CC BY 4.0), zie
+// scripts/srd-2024/srd-spreukentellers.js.
+let _spreukTellers = null;
+function _spreukTellersVoor(klasse) {
+  if (_spreukTellers === null) {
+    try { _spreukTellers = require('../bronnen/srd-spreukentellers.json'); }
+    catch { _spreukTellers = {}; }
+  }
+  const n = String(klasse || '').trim().toLowerCase();
+  const sleutel = Object.keys(_spreukTellers).find(k => k.toLowerCase() === n);
+  return sleutel ? _spreukTellers[sleutel] : null;
+}
+
 function _levelupCfg(meta) {
   const c = (meta || {}).levelup || {};
   let methodes = Array.isArray(c.methodes)
@@ -4264,6 +4280,17 @@ router.get('/characters/:characterId/level-up', attachRole, (req, res) => {
           : `Je eerste spell slot van niveau ${niveau}`);
       }
     }
+    // Cantrips en voorbereide spreuken tellen op het level ván die klasse, niet
+    // op het totaal: een Wizard 3 in een multiclass gaat naar de rij van
+    // Wizard 4, niet naar die van level 9.
+    const tel = _spreukTellersVoor(k.klasse);
+    if (tel) {
+      const nu = tel[String(k.level)] || {}, na = tel[String(k.level + 1)] || {};
+      const cErbij = (na.cantrips || 0) - (nu.cantrips || 0);
+      if (cErbij > 0) groeit.push(`${cErbij} cantrip${cErbij === 1 ? '' : 's'} erbij (${na.cantrips} in totaal)`);
+      const vErbij = (na.voorbereid || 0) - (nu.voorbereid || 0);
+      if (vErbij > 0) groeit.push(`${vErbij} spreuk${vErbij === 1 ? '' : 'en'} meer voorbereid (${na.voorbereid} in totaal)`);
+    }
     if (profBonus(nuLevel + 1) > profBonus(nuLevel)) {
       groeit.push(`Proficiency bonus naar +${profBonus(nuLevel + 1)}`);
     }
@@ -4281,6 +4308,9 @@ router.get('/characters/:characterId/level-up', attachRole, (req, res) => {
   res.json({
     tegoed:  _levelupTegoed(dmState, characterId),
     level:   parseInt(profile.level) || 0,
+    // Species-traits hangen aan het personagelevel, niet aan een klasse: een
+    // Elf krijgt op 3 en 5 een Lineage-spreuk, ongeacht wat hij is.
+    species: profile.origin || '',
     maxLevel: cfg.maxLevel,
     methodes: cfg.methodes,
     standaard: cfg.standaard,

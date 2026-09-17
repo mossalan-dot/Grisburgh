@@ -792,12 +792,30 @@ function _geenTekstBlok(naam) {
 // Drie soorten, want ze vragen iets anders van de speler: iets dat je krijgt,
 // iets dat je moet kiezen, en iets dat vanzelf meegroeit (dat laatste rekent de
 // server uit, want daar staan de slot- en proficiency-tabellen).
-export async function levelupFeatures(klasse, subclassNaam, level) {
+export async function levelupFeatures(klasse, subclassNaam, level, opties = {}) {
   const bron = await naslagBron();
-  const cls = _findClass(bron.prog, klasse);
-  if (!cls) return { krijgt: [], kiest: [] };
-  const subclass = _findSubclass(cls.data, subclassNaam);
   const krijgt = [], kiest = [];
+
+  // Species-traits hangen aan het **personagelevel**, niet aan een klasse: een
+  // Elf krijgt op 3 en 5 zijn Lineage-spreuk, ook als hij dat level in een
+  // tweede klasse haalt. Ze stonden hier niet, en juist daar zitten de spreuken
+  // die je van je volk krijgt.
+  const species = _findSpecies(bron.prog, opties.species);
+  const totaal = parseInt(opties.totaalLevel) || 0;
+  if (species && totaal) {
+    for (const f of (species.data.levels?.[totaal] || [])) {
+      const desc = f.desc || _srdDesc(f.name, species.key) || '';
+      krijgt.push({
+        naam: `${f.name} (${species.key})`,
+        html: desc ? _md(desc) : _geenTekstBlok(f.name),
+        soort: 'species',
+      });
+    }
+  }
+
+  const cls = _findClass(bron.prog, klasse);
+  if (!cls) return { krijgt, kiest };
+  const subclass = _findSubclass(cls.data, subclassNaam);
 
   for (const f of _featuresForLevel(bron.prog, cls.data, subclass, parseInt(level) || 1)) {
     const desc = f.desc || _srdDesc(f.name, f._kind === 'sub' && subclass ? subclass.key : cls.key) || '';

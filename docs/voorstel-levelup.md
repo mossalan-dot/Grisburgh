@@ -140,10 +140,32 @@ proficiency-tabellen staan al in `routes/api.js`, en `_slotsAfgeleid()` wordt
 gewoon een tweede keer aangeroepen met dit level er alvast bij. Zo kan er geen
 tweede tabel ontstaan die van de eerste gaat afwijken.
 
+**Spreuken stonden er niet bij, en je volk al helemaal niet.** Twee gaten die
+allebei op hetzelfde neerkwamen: het venster toonde alleen *klasse*features.
+
+1. **Species-traits hangen aan het personagelevel**, niet aan een klasse. Een
+   Elf krijgt op 3 en 5 een Lineage-spreuk, en die stond nergens — ook niet als
+   hij dat level in zijn tweede klasse haalde. Vijf volken in de seed geven
+   spreuken (Elf, Gnome, Tiefling, Aasimar, Aarakocra). `levelupFeatures()`
+   krijgt nu het volk en het tótale level mee, naast het klasselevel.
+2. **Cantrips en voorbereide spreuken stonden in geen enkel bestand.** De
+   featuretekst verwijst naar "the Cantrips column of the Wizard Features
+   table" — een kolom die wij niet hadden. Die tabel komt nu uit de SRD 5.2
+   (CC BY 4.0) via `scripts/srd-2024/srd-spreukentellers.js` →
+   `bronnen/srd-spreukentellers.json` (8 klassen × 20 levels). Bewust ophalen
+   en niet overtikken: één verkeerde cel vertelt een speler dat hij 17 spreuken
+   mag voorbereiden waar het er 18 zijn.
+   Bijvangst: diezelfde bron bevestigde `SLOT_VOL` op **alle 900 cellen** (5
+   volle casters × 20 levels × 9 niveaus), en dat `ceil(level/2)` voor de
+   half-casters klopt — in 2024 krijgen Paladin én Ranger hun Spellcasting al
+   op level 1.
+
 ## Nog open
 
 - De keuze bij een ASI of feat wordt nog niet hier genoteerd; het venster zegt
   dat je dat op het Progressie-tabblad doet (`featChoices`). Het zou mooier zijn
   als je 'm meteen in dit venster invult.
 - Een level-up onthult geen nieuwe spreukniveaus in de bibliotheek; de speler
-  ziet alleen dat hij een slot erbij kreeg.
+  ziet dát hij een slot erbij kreeg, maar moet zelf naar de bibliotheek om te
+  kiezen. Dat loopt langs de DM (`spellRequests`) en dat moet zo blijven.
+- De Artificer staat niet in de SRD, dus voor hem zijn er geen spreukentellers.
