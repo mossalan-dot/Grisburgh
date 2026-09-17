@@ -6,7 +6,7 @@ import { renderDungeon } from './render-dungeon.js?v=55';
 import { renderRelatiemap } from './render-relatiemap.js?v=26';
 import { renderProgressie, levelupFeatures } from './render-progressie.js?v=52';
 import { renderBestiarium } from './render-bestiarium.js?v=30';
-import { renderSpreuken } from './render-spreuken.js?v=40';
+import { renderSpreuken } from './render-spreuken.js?v=41';
 import { renderVaardigheden } from './render-vaardigheden.js?v=7';
 import { renderStatblock } from './render-statblock.js?v=9';
 import { initSocket } from "./socket-client.js?v=74";
@@ -7066,7 +7066,7 @@ window._luDoen = async function () {
       klasse: k.klasse, hpMethode: k.methode, worp: k.worp,
     });
     window.app.closeModal();
-    _levelUpCinematic(r.levelUp);
+    _levelUpCinematic(r.levelUp, r.kiezen);
   } catch (e) {
     if (melding) melding.textContent = e.message || 'Er ging iets mis.';
   }
@@ -7074,8 +7074,17 @@ window._luDoen = async function () {
 
 // Het moment zelf: één omslag en dan de inhoud. Geen filmpje van drie seconden
 // — je wilt lezen wat je erbij kreeg.
-function _levelUpCinematic(lu) {
+function _levelUpCinematic(lu, kiezen = []) {
   if (!lu) return;
+  // Het moment waarop je een spreuk gaat kiezen is nú — je hebt net gelevaled.
+  // De knop springt naar de bibliotheek met de zeef alvast goed, zodat je niet
+  // tussen 500 spreuken hoeft te zoeken welke van jouw klasse en niveau zijn.
+  const keuzeKnoppen = (kiezen || []).map(k => k.soort === 'cantrip'
+    ? `<button class="dm-btn dm-btn-primary dm-btn-sm" onclick="window._luNaarBibliotheek(0, '${esc(k.klasse)}')">
+        ${icon('sparkles')} Kies ${k.aantal === 1 ? 'je cantrip' : `${k.aantal} cantrips`}</button>`
+    : `<button class="dm-btn dm-btn-primary dm-btn-sm" onclick="window._luNaarBibliotheek(${k.niveau}, '${esc(k.klasse)}')">
+        ${icon('open-book')} Spreuken van niveau ${k.niveau}</button>`).join('');
+
   const ov = document.createElement('div');
   ov.className = 'levelup-cine';
   ov.innerHTML = `
@@ -7086,7 +7095,9 @@ function _levelUpCinematic(lu) {
       <div class="levelup-cine-hp">+${lu.hp} HP
         <span>${lu.methode === 'gemiddelde' ? `gemiddelde van d${lu.die}` : `d${lu.die} gaf ${lu.worp}`}${lu.conMod ? `, ${lu.conMod > 0 ? '+' : ''}${lu.conMod} CON` : ''}</span>
       </div>
-      <button class="dm-btn dm-btn-ghost dm-btn-sm">${icon('check')} Verder</button>
+      ${keuzeKnoppen ? `<div class="levelup-cine-keuzes">${keuzeKnoppen}
+        <p class="levelup-cine-keuze-hint">Wat je kiest gaat langs de DM voordat het in je boek staat.</p></div>` : ''}
+      <button class="dm-btn dm-btn-ghost dm-btn-sm levelup-cine-sluit">${icon('check')} Verder</button>
     </div>`;
   document.body.appendChild(ov);
   // Geen requestAnimationFrame: die staat stil in een tabblad dat niet op de
@@ -7094,9 +7105,22 @@ function _levelUpCinematic(lu) {
   void ov.offsetWidth;
   ov.classList.add('is-open');
   const sluit = () => { ov.classList.remove('is-open'); setTimeout(() => ov.remove(), 320); };
-  ov.querySelector('button').onclick = sluit;
+  // Expliciet op de sluitknop mikken: er staan nu ook keuzeknoppen in de kaart,
+  // en `querySelector('button')` zou de eerste daarvan pakken.
+  ov.querySelector('.levelup-cine-sluit').onclick = sluit;
   ov.onclick = ev => { if (ev.target === ov) sluit(); };
+  window._luCineSluit = sluit;
 }
+
+// Naar de bibliotheek, met de zeef alvast op jouw klasse en het juiste niveau.
+window._luNaarBibliotheek = function (niveau, klasse) {
+  window._luCineSluit?.();
+  window.spreuken?.zetFilter({ level: niveau, klasse });
+  window.app.switchSection('spreuken');
+  // Nog een keer ná het wisselen: `zetFilter` bewaart de stand als de sectie er
+  // nog niet staat, maar stond hij er al getekend dan moet hij nú hertekenen.
+  setTimeout(() => window.spreuken?.zetFilter({ level: niveau, klasse }), 400);
+};
 
 // Op het tafelscherm. Spelers verzilveren hun level-up niet tegelijk — de een
 // kiest een worp, de ander leest eerst wat hij krijgt — dus dit stapelt: het

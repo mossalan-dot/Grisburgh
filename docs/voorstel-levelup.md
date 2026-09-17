@@ -165,7 +165,11 @@ allebei op hetzelfde neerkwamen: het venster toonde alleen *klasse*features.
 - De keuze bij een ASI of feat wordt nog niet hier genoteerd; het venster zegt
   dat je dat op het Progressie-tabblad doet (`featChoices`). Het zou mooier zijn
   als je 'm meteen in dit venster invult.
-- Een level-up onthult geen nieuwe spreukniveaus in de bibliotheek; de speler
-  ziet dát hij een slot erbij kreeg, maar moet zelf naar de bibliotheek om te
-  kiezen. Dat loopt langs de DM (`spellRequests`) en dat moet zo blijven.
+- ~~Een level-up onthult geen nieuwe spreukniveaus in de bibliotheek.~~
+  **Gebouwd:** de omslag toont knoppen (*Kies je cantrip*, *Spreuken van niveau
+  N*) die naar de bibliotheek springen met de zeef al op jouw klasse en dat
+  niveau. Welke knoppen dat zijn zegt de server (`kiezen` in het antwoord van
+  `POST .../level-up`): een cantrip erbij volgens de SRD-teller, of een
+  spreukniveau dat vandaag voor het eerst openging. Aanvragen blijft langs de DM
+  lopen (`spellRequests`) — dat staat er ook bij.
 - De Artificer staat niet in de SRD, dus voor hem zijn er geen spreukentellers.

@@ -771,3 +771,5 @@ Per bevinding: waar, wat, en of het opgelost is. Nieuwe regels onderaan.
 - Zet een scherm op tafelmodus en laat een speler omhoog gaan: er verschijnt een paneel met zijn portret (of initiaal), oud → nieuw level, klasse en +N HP. Gaat er een tweede speler omhoog, dan schuift die ernaast in plaats van het paneel te vervangen; na een halve minuut zonder nieuwe gaat het dicht.
 - Zet een Elf op level 2 en ga naar 3: onder *Dit krijg je* staat "Lineage-spreuk (1e) (Elf)" — een species-trait hangt aan het personagelevel, dus hij hoort er ook te staan als je dat level in je tweede klasse haalt.
 - Ga met een Wizard van 3 naar 4: onder *Dit groeit vanzelf mee* staat "1 cantrip erbij (4 in totaal)" en hoeveel spreuken je meer mag voorbereiden. Een Barbarian ziet die regels niet.
+- Ga met een Wizard van 3 naar 4: in de omslag staat een knop *Kies je cantrip*. Klikken opent de spreukenbibliotheek met het niveaufilter op **C** en de klassekiezer op Wizard; het aantal kaartjes is precies het aantal cantrips van die klasse.
+- Ga van 4 naar 5: de knop heet dan *Spreuken van niveau 3* en de bibliotheek opent op niveau 3. Een Barbarian krijgt geen knop.

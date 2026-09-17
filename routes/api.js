@@ -4371,6 +4371,9 @@ router.post('/characters/:characterId/level-up', attachRole, (req, res) => {
   const hpErbij = Math.max(1, worp + conMod);
 
   // ── Schrijven ──
+  // De slots van vóór de bump, zodat we straks kunnen zien welk spreukniveau
+  // vandaag voor het eerst openging.
+  const nuSlotsVoor = _slotsAfgeleid(profile);
   const nieuwLevel = huidig + 1;
   profile.level = String(nieuwLevel);
   profile[gekozen.veld] = String((parseInt(profile[gekozen.veld]) || gekozen.level) + 1);
@@ -4405,6 +4408,20 @@ router.post('/characters/:characterId/level-up', attachRole, (req, res) => {
     if (g.levelUpTegoed[characterId] <= 0) delete g.levelUpTegoed[characterId];
   }
 
+  // Wat er nú te kiezen valt in de bibliotheek. Niet als tekst zoals in
+  // `groeit`, maar als iets waar de client een knop van kan maken: een nieuw
+  // cantrip-slot, of een spreukniveau dat vandaag voor het eerst openging.
+  const kiezen = [];
+  const tel = _spreukTellersVoor(gekozen.klasse);
+  if (tel) {
+    const c = (tel[String(gekozen.level + 1)]?.cantrips || 0) - (tel[String(gekozen.level)]?.cantrips || 0);
+    if (c > 0) kiezen.push({ soort: 'cantrip', aantal: c, klasse: gekozen.klasse });
+  }
+  const slotsNa = _slotsAfgeleid(profile);       // profile is hierboven al bijgewerkt
+  for (const n of Object.keys(slotsNa).map(Number).sort((a, b) => a - b)) {
+    if (!nuSlotsVoor[n] && slotsNa[n]?.max > 0) kiezen.push({ soort: 'niveau', niveau: n, klasse: gekozen.klasse });
+  }
+
   storage.writeJSON('dm-state.json', dmState);
   const io = req.app.get('io');
   if (io) {
@@ -4421,7 +4438,7 @@ router.post('/characters/:characterId/level-up', attachRole, (req, res) => {
       van: regel.van, naar: regel.naar, klasse: regel.klasse, hp: regel.hp,
     });
   }
-  res.json({ ok: true, levelUp: regel, level: nieuwLevel, hp: { current: nieuwCurrent, max: nieuweMax } });
+  res.json({ ok: true, levelUp: regel, level: nieuwLevel, kiezen, hp: { current: nieuwCurrent, max: nieuweMax } });
 });
 
 // Terugdraaien: het level terug, de HP eraf, de regel weg. Alleen de DM, en

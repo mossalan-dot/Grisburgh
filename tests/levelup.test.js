@@ -186,6 +186,36 @@ describe('Level omhoog', () => {
     assert.strictEqual(String(na.multiKlasseLevel), '2', 'en het terugdraaien pakt dezelfde helft');
   });
 
+  it('zegt welke spreuken er te kiezen zijn — cantrip en een nieuw niveau', async () => {
+    // Wizard 3 → 4 geeft in de SRD een cantrip erbij; Wizard 4 → 5 opent
+    // spreukniveau 3. Twee verschillende soorten keuze, dus allebei gecheckt.
+    await req(server, 'PATCH', `/api/player-profile/${charId}`,
+      { klasse: 'Wizard', level: '3', klasseLevel: '3', multiclass: 'false', multiKlasse: '' }, dm);
+    const a = await req(server, 'POST', `/api/characters/${charId}/level-up`, { hpMethode: 'gemiddelde' }, dm);
+    assert.strictEqual(a.status, 200, JSON.stringify(a.body));
+    const cantrip = (a.body.kiezen || []).find(k => k.soort === 'cantrip');
+    assert.ok(cantrip, 'op Wizard 4 hoort er een cantrip bij te komen: ' + JSON.stringify(a.body.kiezen));
+    assert.strictEqual(cantrip.klasse, 'Wizard');
+
+    const b = await req(server, 'POST', `/api/characters/${charId}/level-up`, { hpMethode: 'gemiddelde' }, dm);
+    const niveau = (b.body.kiezen || []).find(k => k.soort === 'niveau');
+    assert.ok(niveau, 'op Wizard 5 gaat spreukniveau 3 open: ' + JSON.stringify(b.body.kiezen));
+    assert.strictEqual(niveau.niveau, 3);
+
+    await req(server, 'POST', `/api/characters/${charId}/level-up/undo`, {}, dm);
+    await req(server, 'POST', `/api/characters/${charId}/level-up/undo`, {}, dm);
+  });
+
+  it('geeft een Barbarian niets te kiezen', async () => {
+    await req(server, 'PATCH', `/api/player-profile/${charId}`,
+      { klasse: 'Barbarian', level: '3', klasseLevel: '3' }, dm);
+    const r = await req(server, 'POST', `/api/characters/${charId}/level-up`, { hpMethode: 'gemiddelde' }, dm);
+    assert.deepStrictEqual(r.body.kiezen, [], 'een Barbarian casteert niet');
+    await req(server, 'POST', `/api/characters/${charId}/level-up/undo`, {}, dm);
+    await req(server, 'PATCH', `/api/player-profile/${charId}`,
+      { klasse: 'Fighter', level: '4', klasseLevel: '4' }, dm);
+  });
+
   it('stopt bij het hoogste level', async () => {
     await req(server, 'PATCH', `/api/player-profile/${charId}`, { level: '20' }, dm);
     const r = await req(server, 'POST', `/api/characters/${charId}/level-up`,

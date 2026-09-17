@@ -323,12 +323,18 @@ function _paintGrid() {
     : `<p class="spreuk-empty">Geen spreuken gevonden.</p>`;
 }
 
+// Een filterstand die van buiten gezet is (vanuit de level-up) maar nog niet
+// toegepast kon worden omdat de sectie nog getekend moest worden.
+let _wachtendFilter = null;
+
 export async function renderSpreuken(container) {
   _container = container || document.getElementById('section-spreuken');
   if (!_container) return;
   _container.innerHTML = `<div class="spreuk-wrap"><p class="spreuk-loading">Spreuken laden…</p></div>`;
   await _load();
   if (window.app?.state?.activeSection !== 'spreuken') return; // tijdens laden gewisseld
+
+  if (_wachtendFilter) { Object.assign(_filters, _wachtendFilter); _wachtendFilter = null; }
 
   // Openstaande verzoeken: de speler ziet zijn eigen, de DM die van alle party's.
   try { _verzoeken = (await api.getSpellRequests())?.requests || []; } catch { _verzoeken = []; }
@@ -940,6 +946,22 @@ window.spreuken = {
     _refreshFilterBar();
   },
   // Toggle "Alleen mijn klasse" (speler) — herrendert filterrij + grid, geen herfetch.
+  // Met een vooringestelde zeef binnenkomen — de level-up stuurt een speler
+  // hierheen om zijn nieuwe cantrip of een spreuk van een pas geopend niveau te
+  // kiezen. Werkt vóór én na het tekenen van de sectie: staat de lijst er nog
+  // niet, dan blijft de stand klaar tot `renderSpreuken` eraan toekomt.
+  zetFilter(o = {}) {
+    const stand = {
+      q: '', school: null, ritual: false, concentratie: false,
+      level: (o.level === 0 || o.level) ? o.level : null,
+      klasse: o.klasse || null,
+      mijnKlasse: !o.klasse,
+    };
+    if (!_container || !_container.querySelector('#spreuk-grid')) { _wachtendFilter = stand; return; }
+    Object.assign(_filters, stand);
+    _refreshFilterBar();
+    _paintGrid();
+  },
   toggleMijnKlasse() {
     _filters.mijnKlasse = !_filters.mijnKlasse;
     if (_filters.mijnKlasse) _filters.klasse = null; // handmatige klasse-keuze resetten
