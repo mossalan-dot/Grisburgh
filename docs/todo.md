@@ -137,6 +137,43 @@ groot het is. Bijgewerkt 15 sep 2026.
       `files/` staat nu op 340 MB (de rest is geluid, video en pdf). De
       originelen daarvan (2,1 GB) staan in dezelfde map naast de campagne.
 
+## Metgezellen op de character sheet
+
+Nagekeken 17 sep 2026, naar aanleiding van "bevat de sheet alles?". Het blad is
+completer dan gedacht — zegeningen en eden staan er gewoon op, want die zitten in
+`playerItems` en komen als boedelregel mee. Wat er **niet** op staat is een
+**metgezel**: een geadopteerd dier of een meelopende NPC. Dat is blijvend (anders
+dan een buff of een conditie, die bij de eerstvolgende lange rust vervallen — die
+horen er dus juist níét op).
+
+**Waarom het nu niet gebouwd is: er is geen data.** Over alle vier de campagnes
+samen: **1** metgezel (Pieter Pannenkoek), **0** met een baasje
+(`companionOwners` is overal leeg), en de 6 dier-kaartjes in Grisburgh hebben
+wel een `stats`-skelet maar **elk veld is leeg**. Een blok bouwen zou vandaag bij
+niemand iets afdrukken, uit velden die niemand heeft ingevuld.
+
+**De ontwerpkeuze is al gemaakt, zodat het straks een half uurtje is:**
+
+- Een metgezel hoort op het blad van **zijn baasje** —
+  `groups[gid].companionOwners[petId] === charId`. Niet op ieders blad: de lijst
+  `groups[gid].companions` is party-breed, en `GET /api/party/sheets` drukt de
+  hele groep af; zonder die regel staat hetzelfde dier vier keer in de stapel.
+- Een metgezel **zonder baasje** is van de party. Die hoort op geen enkel
+  persoonlijk blad; hooguit ooit op een partyblad.
+- Toon de **actieve tier**, niet de basis: een dier schaalt mee met het level van
+  zijn baasje (`_activeTier()`), dus de cijfers op het blad moeten die van
+  vandaag zijn.
+- **Klein beginnen:** naam, soort, AC, HP, Speed en één regel aantekening. Genoeg
+  om te weten wat er naast je staat.
+- **Een volledig statblok is een ander verhaal.** `lib/character-sheet.js` kan
+  helemaal geen statblokken; de renderer staat client-side in
+  `render-statblock.js`. Dat is dezelfde "één renderer, twee ingangen"-oefening
+  als bij de winkelvoorraad (15 sep). Pas doen als iemand écht een dierstatblok
+  invult — nu is er niets om te tonen.
+
+**Trigger:** zodra de eerste speler een dier adopteert bij de magizoöloog (dan
+wordt `companionOwners` gevuld), is dit het moment.
+
 ## Scherven (klein, los op te pakken)
 
 - [ ] **`meta.heeren` bestaat niet** — enige dienst zonder configuratieblok, dus
