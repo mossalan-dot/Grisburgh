@@ -4,7 +4,7 @@ import { initArchief, renderLogboek, openLogboekEditor } from "./render-archief.
 import { renderKaart, queueFlyTo, verversPins, nieuweKaart } from './render-kaart.js?v=31';
 import { renderDungeon } from './render-dungeon.js?v=56';
 import { renderRelatiemap } from './render-relatiemap.js?v=27';
-import { renderProgressie, levelupFeatures } from './render-progressie.js?v=52';
+import { renderProgressie, levelupFeatures } from './render-progressie.js?v=53';
 import { renderBestiarium } from './render-bestiarium.js?v=30';
 import { renderSpreuken } from './render-spreuken.js?v=41';
 import { renderVaardigheden, zoekVaardigheden } from './render-vaardigheden.js?v=8';
@@ -13673,6 +13673,11 @@ const HELP_CONFIG = {
       {
         titel: 'Jouw progressie',
         tekst: 'Dit tabblad toont alle class features en abilities van je karakter, geordend per level. Vergrendelde levels (hoger dan je huidige level) zijn grijs weergegeven. Je kunt wisselen tussen tijdlijn- en kaartweergave.',
+        afbeelding: null,
+      },
+      {
+        titel: 'Waar de tekst vandaan komt',
+        tekst: 'De features komen uit de progressie van deze campagne. Staat daar een **samengevat** startpunt, dan is dat de meegeleverde set — de DM kan die in de editor nakijken en aanvullen. Beschrijvingen die niet in de vrij te gebruiken SRD staan blijven leeg, met een verwijzing naar een plek waar ze wél staan.',
         afbeelding: null,
       },
       {

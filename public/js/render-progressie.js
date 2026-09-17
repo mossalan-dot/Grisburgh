@@ -51,7 +51,12 @@ function _md(text) {
       if (inList) out += '</ul>';
       return out;
     }
-    return `<p>${lines.join(' ')}</p>`;
+    // Enkele regeleindes werden met een **spatie** samengevoegd, en de
+    // SRD-teksten gebruiken alléén enkele newlines (Wizard Spellcasting:
+    // 17 regels, nul lege regels). Alles liep dus aan elkaar tot één muur
+    // tekst waarin "Cantrips.", "Spellbook." en "Spell Slots." middenin een
+    // alinea stonden. Een harde return is een harde return.
+    return `<p>${lines.join('<br>')}</p>`;
   }).join('');
 }
 
@@ -374,8 +379,6 @@ function _buildPanel(prog, ctx, charId, favs, choices) {
         ${charId ? `<button class="prog-fav-toggle${_favFilter ? ' active' : ''}"
           onclick="window.progressie.toggleFavFilter()" title="Toon alleen favorieten"
           >${_favFilter ? '★' : '☆'}</button>` : ''}
-        ${prog.samenvatting ? `<span class="prog-bron"
-          title="Samengevat startpunt — controleer/pas aan in de editor">samengevat</span>` : ''}
         ${isDM() ? `<button class="prog-edit-btn" onclick="window.progressie.openEditor()"
           title="Klassen, subklassen en soorten bewerken — inclusief afbeeldingen per ability"
           >${icon('pencil')} Bewerk</button>` : ''}
@@ -1035,7 +1038,17 @@ window.progressie = {
     ctx.favorites = [...favs];
     if (_lastRenderArgs) _lastRenderArgs.ctx = ctx;
     try { await api.patchPlayerProfile(ctx.charId, { featFavorites: JSON.stringify(ctx.favorites) }); } catch {}
-    if (document.querySelector('#modal-overlay.active .prog-detail')) window.app.closeModal();
+    // Het venster ging dicht en de hele tijdlijn werd opnieuw getekend — dat
+    // las als een pagina die herlaadt, terwijl je alleen een sterretje
+    // aantikte. Nu draait de ster ter plekke om en blijft het venster staan;
+    // de lijst eronder wordt wel bijgewerkt.
+    const knop = document.querySelector('#modal-overlay.active .prog-detail-fav');
+    if (knop) {
+      const aan = favs.has(f.key);
+      knop.classList.toggle('on', aan);
+      knop.textContent = aan ? '★ Favoriet' : '☆ Favoriet';
+    }
+    f._fav = favs.has(f.key);
     _refresh();
   },
 
