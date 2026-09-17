@@ -753,3 +753,15 @@ Per bevinding: waar, wat, en of het opgelost is. Nieuwe regels onderaan.
 - Als Rogue staat er in plaats daarvan één getal (3d6 op level 5) zonder knoppen — er valt niets bij te houden.
 - Als multiclass staan er twee kaarten, elk met het level van zijn eigen klasse in het labeltje.
 - Klap een sectie op de Personage-tab dicht (alles behalve HP kan); ververs de pagina en hij staat nog steeds dicht. HP heeft geen chevron en kan niet dicht.
+
+### Level omhoog (17 sep 2026)
+
+- Meesterkamer → Instellingen → *Level omhoog*: vink een manier uit (bijv. Gemiddelde) en sla op; die knop is daarna weg in het level-upvenster van de speler, en een verzoek erom krijgt een 400.
+- Vink alles uit en sla op: dat wordt geweigerd — met nul manieren kan niemand meer levelen.
+- Rust-tab → *Party een level omhoog*: elke speler die vanavond meedoet krijgt een balk boven aan zijn Personage-tab; een afwezige speler niet.
+- *Intrekken* haalt die balken weer weg.
+- Speler klikt de balk: bij één klasse staat er alleen de HP-vraag, bij een multiclass eerst de klassekeuze met per klasse zijn eigen hit die.
+- Kies *Zelf gegooid* en vul een getal buiten 1..die in; er komt een melding en er gebeurt niets.
+- Kies *Gemiddelde* en ga omhoog: de omslag toont het oude level doorgestreept, het nieuwe groot, de klasse en "+N HP" met waar dat getal vandaan komt. Level, klasselevel, HP-maximum én huidige HP gaan omhoog (je bent niet ineens gewond).
+- Zonder tegoed komt de speler er niet doorheen (409); de DM mag altijd.
+- DM draait terug (`POST /api/characters/:id/level-up/undo`): level, klasselevel en HP staan weer op de oude stand en de regel is uit de geschiedenis. Bij een multiclass pakt het terugdraaien dezelfde klassehelft.

@@ -10,7 +10,7 @@ import { renderSpreuken } from './render-spreuken.js?v=40';
 import { renderVaardigheden } from './render-vaardigheden.js?v=7';
 import { renderStatblock } from './render-statblock.js?v=9';
 import { initSocket } from "./socket-client.js?v=73";
-import { initDmPanel } from "./dm-panel.js?v=255";
+import { initDmPanel } from "./dm-panel.js?v=256";
 import { COND_INFO, COND_LABEL, COND_MET_PLAATJE } from './conditions.js?v=1';
 import './media-picker.js?v=8';
 
@@ -6905,6 +6905,154 @@ window._sigEditMax = (k) => {
   _sigMutate(k, st => { if (t === '') delete st.maxOverride; else st.maxOverride = Math.max(0, parseInt(t) || 0); });
 };
 
+// ── Level omhoog ───────────────────────────────────────────────────────────
+// De DM gunt (een tegoed per speler), de speler verzilvert hier. Bewust in twee
+// stappen: aan tafel zegt de DM "jullie gaan omhoog", maar wélke klasse, welke
+// worp en wat je met een ASI doet is aan de speler — en de DM hoeft dat niet
+// voor vijf mensen te doen.
+const _LU_METHODE_LABEL = {
+  gemiddelde: 'Gemiddelde',
+  app:        'Rollen in de app',
+  tafel:      'Zelf gegooid',
+};
+
+async function _levelUpBalk() {
+  const el = document.getElementById('levelup-balk');
+  if (!el || !window._lastCharId) return;
+  let st;
+  try { st = await api.get(`/characters/${window._lastCharId}/level-up`); } catch { return; }
+  if (!st?.tegoed) { el.innerHTML = ''; return; }
+  el.innerHTML = `
+    <button class="levelup-balk" onclick="window._levelUpOpen()">
+      <span class="levelup-balk-icoon">${icon('sparkles')}</span>
+      <span class="levelup-balk-tekst">
+        <strong>Je mag een level omhoog.</strong>
+        <span>Level ${st.level} → ${st.level + 1}${st.tegoed > 1 ? ` · nog ${st.tegoed} te gaan` : ''}</span>
+      </span>
+      <span class="levelup-balk-pijl">${icon('chevron-right')}</span>
+    </button>`;
+}
+
+window._levelUpOpen = async function () {
+  const charId = window._lastCharId;
+  if (!charId) return;
+  let st;
+  try { st = await api.get(`/characters/${charId}/level-up`); }
+  catch (e) { window._showToast?.('Kon de level-up niet ophalen'); return; }
+  window._luStand = st;
+  window._luKeuze = { klasse: st.klassen[0]?.klasse || '', methode: st.standaard, worp: '' };
+  window.app.openModal(`Level ${st.level} → ${st.level + 1}`, '', '<div id="lu-body"></div>');
+  _levelUpTeken();
+};
+
+function _levelUpTeken() {
+  const st = window._luStand, k = window._luKeuze;
+  const body = document.getElementById('lu-body');
+  if (!st || !body) return;
+  const klasse = st.klassen.find(x => x.klasse === k.klasse) || st.klassen[0];
+  const meer   = st.klassen.length > 1;
+
+  // Wat de gekozen manier oplevert, vóórdat je op de knop drukt. Bij 'app'
+  // staat er geen getal: dat is nou juist wat er gerold gaat worden.
+  const voorbeeld = k.methode === 'gemiddelde'
+    ? `<strong>+${klasse.gemiddelde} HP</strong> — d${klasse.die} telt als ${Math.floor(klasse.die / 2) + 1}, plus ${st.conMod >= 0 ? '+' : ''}${st.conMod} CON`
+    : k.methode === 'app'
+      ? `De server rolt <strong>1d${klasse.die}</strong> en telt ${st.conMod >= 0 ? '+' : ''}${st.conMod} CON erbij.`
+      : `Vul in wat je d${klasse.die} gaf; ${st.conMod >= 0 ? '+' : ''}${st.conMod} CON komt erbij. Minimaal 1 HP.`;
+
+  body.innerHTML = `
+    ${meer ? `
+    <div class="lu-stap">
+      <div class="lu-stap-kop">Welke klasse krijgt dit level?</div>
+      <div class="lu-keuzes">
+        ${st.klassen.map(x => `
+          <button class="lu-keuze${x.klasse === klasse.klasse ? ' is-aan' : ''}"
+            onclick="window._luKies('klasse', '${esc(x.klasse)}')">
+            <strong>${esc(x.klasse)}</strong>
+            <span>${x.level} → ${x.level + 1} · d${x.die}</span>
+          </button>`).join('')}
+      </div>
+    </div>` : ''}
+
+    <div class="lu-stap">
+      <div class="lu-stap-kop">Hoe kom je aan je HP?</div>
+      ${st.methodes.length > 1 ? `
+      <div class="lu-keuzes">
+        ${st.methodes.map(m => `
+          <button class="lu-keuze${m === k.methode ? ' is-aan' : ''}" onclick="window._luKies('methode', '${m}')">
+            <strong>${_LU_METHODE_LABEL[m]}</strong>
+            ${m === 'gemiddelde' ? `<span>+${klasse.gemiddelde} HP</span>` : ''}
+          </button>`).join('')}
+      </div>` : `<p class="lu-uitleg">${_LU_METHODE_LABEL[st.methodes[0]]} — zo doet deze tafel het.</p>`}
+      <p class="lu-uitleg">${voorbeeld}</p>
+      ${k.methode === 'tafel' ? `
+        <div class="lu-worp">
+          <label for="lu-worp">Wat gaf je d${klasse.die}?</label>
+          <input id="lu-worp" class="lu-worp-input" type="number" min="1" max="${klasse.die}"
+            value="${esc(k.worp)}" oninput="window._luKeuze.worp = this.value">
+        </div>` : ''}
+    </div>
+
+    <div class="lu-acties">
+      <button class="dm-btn dm-btn-primary" onclick="window._luDoen()">${icon('sparkles')} Level omhoog</button>
+      <button class="dm-btn dm-btn-ghost" onclick="window.app.closeModal()">Later</button>
+    </div>
+    <div id="lu-melding" class="lu-melding"></div>`;
+}
+
+window._luKies = function (veld, waarde) {
+  window._luKeuze[veld] = waarde;
+  _levelUpTeken();
+};
+
+window._luDoen = async function () {
+  const st = window._luStand, k = window._luKeuze;
+  const melding = document.getElementById('lu-melding');
+  if (k.methode === 'tafel') {
+    const klasse = st.klassen.find(x => x.klasse === k.klasse) || st.klassen[0];
+    const n = parseInt(k.worp);
+    if (!(n >= 1 && n <= klasse.die)) {
+      if (melding) melding.textContent = `Vul je worp in: 1 t/m ${klasse.die}.`;
+      return;
+    }
+  }
+  try {
+    const r = await api.post(`/characters/${window._lastCharId}/level-up`, {
+      klasse: k.klasse, hpMethode: k.methode, worp: k.worp,
+    });
+    window.app.closeModal();
+    _levelUpCinematic(r.levelUp);
+  } catch (e) {
+    if (melding) melding.textContent = e.message || 'Er ging iets mis.';
+  }
+};
+
+// Het moment zelf: één omslag en dan de inhoud. Geen filmpje van drie seconden
+// — je wilt lezen wat je erbij kreeg.
+function _levelUpCinematic(lu) {
+  if (!lu) return;
+  const ov = document.createElement('div');
+  ov.className = 'levelup-cine';
+  ov.innerHTML = `
+    <div class="levelup-cine-kaart">
+      <div class="levelup-cine-van">${lu.van}</div>
+      <div class="levelup-cine-naar">${lu.naar}</div>
+      <div class="levelup-cine-klasse">${esc(lu.klasse)}</div>
+      <div class="levelup-cine-hp">+${lu.hp} HP
+        <span>${lu.methode === 'gemiddelde' ? `gemiddelde van d${lu.die}` : `d${lu.die} gaf ${lu.worp}`}${lu.conMod ? `, ${lu.conMod > 0 ? '+' : ''}${lu.conMod} CON` : ''}</span>
+      </div>
+      <button class="dm-btn dm-btn-ghost dm-btn-sm">${icon('check')} Verder</button>
+    </div>`;
+  document.body.appendChild(ov);
+  // Geen requestAnimationFrame: die staat stil in een tabblad dat niet op de
+  // voorgrond is, en dan blijft de overlay onzichtbaar hangen.
+  void ov.offsetWidth;
+  ov.classList.add('is-open');
+  const sluit = () => { ov.classList.remove('is-open'); setTimeout(() => ov.remove(), 320); };
+  ov.querySelector('button').onclick = sluit;
+  ov.onclick = ev => { if (ev.target === ov) sluit(); };
+}
+
 // Sleutel per sectie: de kop, genormaliseerd. Stabiel genoeg (ook voor
 // "Aanzien bij <factie>", dat per factie zijn eigen stand houdt) en leesbaar
 // als je in localStorage kijkt.
@@ -7528,6 +7676,8 @@ async function renderMijnKarakter(opts = {}) {
       <!-- ═══ TAB: Mijn personage ═══ -->
       <div id="pst-personage" class="player-subtab-panel${_playerSubTab !== 'personage' ? ' hidden' : ''}">
         <div style="display:flex;justify-content:flex-end;padding:4px 0 0">${_helpBtn('personage')}</div>
+
+        <div id="levelup-balk"></div>
 
         ${_renderSignatureCards(playerProfile, progData)}
 
@@ -8363,6 +8513,7 @@ async function renderMijnKarakter(opts = {}) {
   // De stand staat in localStorage omdat dit paneel bij elk socket-event
   // helemaal opnieuw wordt getekend; in een variabele zou hij telkens weg zijn.
   _pdsInklapToepassen();
+  _levelUpBalk();
 
   // ── Progressie: sla context op; render via requestAnimationFrame zodat
   //    de DOM zeker stable is en geen re-render de content overschrijft ──

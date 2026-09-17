@@ -4186,6 +4186,268 @@ router.post('/characters/:characterId/spend-hit-die', attachRole, (req, res) => 
   res.json({ rolled, conMod, heal, hp: { current, max: hp.max }, hitDice: { pool, spent: hd.spent } });
 });
 
+// ── Level omhoog ────────────────────────────────────────────────────────────
+// Een level-up was tot nu toe "een getal overtypen": de speler rekende zijn
+// eigen HP uit en typte het erbij. Dat is de enige plek waar dat mocht — bij
+// Hit Dice en genezende voorwerpen rekent de server. Hier dus ook.
+//
+// Drie manieren om aan die HP te komen, en de DM zet in de instellingen welke
+// er aan zijn tafel gelden:
+//   'gemiddelde' — het vaste getal uit het boek, (die/2)+1
+//   'app'        — de server rolt
+//   'tafel'      — de speler rolde met zijn eigen dobbelsteen en tikt het in
+// Die laatste is geen omweg: aan tafel rolt iemand echt, en dán hoort dát getal
+// in de app en niet een tweede worp die er niet was. Het blijft een invoer, geen
+// berekening door de speler — de server toetst 1..die en telt CON erbij.
+const LEVELUP_METHODES = ['gemiddelde', 'app', 'tafel'];
+
+function _levelupCfg(meta) {
+  const c = (meta || {}).levelup || {};
+  let methodes = Array.isArray(c.methodes)
+    ? c.methodes.filter(m => LEVELUP_METHODES.includes(m))
+    : null;
+  // Geen keuze gemaakt? Dan mag alles — een campagne die hier nooit naar keek
+  // hoort niet ineens opgesloten te zitten in één manier.
+  if (!methodes || !methodes.length) methodes = [...LEVELUP_METHODES];
+  const standaard = methodes.includes(c.standaard) ? c.standaard : methodes[0];
+  return { methodes, standaard, maxLevel: parseInt(c.maxLevel) || 20 };
+}
+
+// Welke klasse krijgt dit level erbij? Bij één klasse is dat die ene; bij een
+// multiclass kiest de speler, want dat bepaalt de hit die én de features.
+function _levelupKlassen(profile) {
+  const p = profile || {};
+  const uit = [{ klasse: p.klasse || '', veld: 'klasseLevel',
+                 level: parseInt(p.klasseLevel) || parseInt(p.level) || 0 }];
+  if ((p.multiclass === true || p.multiclass === 'true') && p.multiKlasse) {
+    uit.push({ klasse: p.multiKlasse, veld: 'multiKlasseLevel', level: parseInt(p.multiKlasseLevel) || 0 });
+  }
+  return uit;
+}
+
+function _levelupTegoed(dmState, characterId) {
+  const g = getGroup(dmState);
+  return parseInt((g.levelUpTegoed || {})[characterId]) || 0;
+}
+
+// Wat er te kiezen valt, en met welke getallen. De client hoeft niets zelf uit
+// te rekenen — zelfde reden als bij de afgeleide spell slots.
+router.get('/characters/:characterId/level-up', attachRole, (req, res) => {
+  const { characterId } = req.params;
+  if (req.role !== 'dm' && req.session?.characterId !== characterId)
+    return res.status(403).json({ error: 'Geen toegang' });
+
+  const dmState = readDmState();
+  const profile = (dmState.playerProfiles || {})[characterId] || {};
+  const cfg = _levelupCfg(storage.readJSON('meta.json'));
+  const conMod = _conMod(profile);
+
+  const klassen = _levelupKlassen(profile).map(k => {
+    const die = _hitDieForClass(k.klasse);
+    return {
+      ...k,
+      die,
+      gemiddelde: die ? Math.max(1, Math.floor(die / 2) + 1 + conMod) : null,
+    };
+  });
+
+  res.json({
+    tegoed:  _levelupTegoed(dmState, characterId),
+    level:   parseInt(profile.level) || 0,
+    maxLevel: cfg.maxLevel,
+    methodes: cfg.methodes,
+    standaard: cfg.standaard,
+    conMod,
+    klassen,
+    geschiedenis: ((dmState.levelUps || {})[characterId] || []).slice(-10).reverse(),
+  });
+});
+
+router.post('/characters/:characterId/level-up', attachRole, (req, res) => {
+  const { characterId } = req.params;
+  const isDm = req.role === 'dm';
+  if (!isDm && req.session?.characterId !== characterId)
+    return res.status(403).json({ error: 'Geen toegang' });
+
+  const dmState = readDmState();
+  if (!dmState.playerProfiles) dmState.playerProfiles = {};
+  const profile = dmState.playerProfiles[characterId];
+  if (!profile) return res.status(404).json({ error: 'Onbekend personage' });
+
+  const cfg = _levelupCfg(storage.readJSON('meta.json'));
+  const huidig = parseInt(profile.level) || 0;
+  if (huidig >= cfg.maxLevel)
+    return res.status(409).json({ error: `Level ${cfg.maxLevel} is het hoogste` });
+
+  // Een speler heeft een tegoed nodig; de DM mag altijd (hij handelt namens de
+  // tafel, en hij moet het kunnen rechtzetten als er iets misging).
+  if (!isDm && _levelupTegoed(dmState, characterId) < 1)
+    return res.status(409).json({ error: 'Je hebt geen level-up openstaan' });
+
+  // Welke klasse krijgt het level?
+  const klassen = _levelupKlassen(profile);
+  const gekozen = req.body?.klasse
+    ? klassen.find(k => String(k.klasse).toLowerCase() === String(req.body.klasse).toLowerCase())
+    : klassen[0];
+  if (!gekozen) return res.status(400).json({ error: 'Onbekende klasse voor dit personage' });
+
+  const die = _hitDieForClass(gekozen.klasse);
+  if (!die) return res.status(400).json({ error: `Geen hit die bekend voor ${gekozen.klasse}` });
+
+  const methode = String(req.body?.hpMethode || cfg.standaard);
+  if (!cfg.methodes.includes(methode))
+    return res.status(400).json({ error: 'Deze manier van HP bepalen staat uit' });
+
+  const conMod = _conMod(profile);
+  let worp = null;
+  if (methode === 'gemiddelde') {
+    worp = Math.floor(die / 2) + 1;
+  } else if (methode === 'app') {
+    worp = Math.floor(Math.random() * die) + 1;
+  } else {
+    worp = parseInt(req.body?.worp);
+    if (!Number.isFinite(worp) || worp < 1 || worp > die)
+      return res.status(400).json({ error: `Vul de worp in: 1 t/m ${die}` });
+  }
+  // Minimaal 1 HP per level; met een CON van 8 en een d6 kan de som anders
+  // negatief uitvallen en zou je level-up je zwakker maken.
+  const hpErbij = Math.max(1, worp + conMod);
+
+  // ── Schrijven ──
+  const nieuwLevel = huidig + 1;
+  profile.level = String(nieuwLevel);
+  profile[gekozen.veld] = String((parseInt(profile[gekozen.veld]) || gekozen.level) + 1);
+
+  if (!dmState.playerHp) dmState.playerHp = {};
+  const hp = dmState.playerHp[characterId] || { current: null, max: null };
+  const oudeMax = parseInt(hp.max) || 0;
+  const nieuweMax = oudeMax + hpErbij;
+  // De genezing loopt mee: je bent niet ineens gewond omdat je maximum steeg.
+  const nieuwCurrent = (hp.current == null) ? nieuweMax : (parseInt(hp.current) || 0) + hpErbij;
+  dmState.playerHp[characterId] = { ...hp, current: nieuwCurrent, max: nieuweMax };
+
+  // Een level-up is een regel in de administratie en niet alleen een gewijzigd
+  // getal — anders valt hij niet terug te draaien, en dan is een verkeerde klik
+  // van de DM onherstelbaar. Bijvangst: het personage krijgt een geschiedenis.
+  if (!dmState.levelUps) dmState.levelUps = {};
+  const regel = {
+    id: 'lu_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
+    van: huidig, naar: nieuwLevel,
+    klasse: gekozen.klasse, klasseVeld: gekozen.veld,
+    die, worp, conMod, hp: hpErbij, methode,
+    hpVan: oudeMax, hpNaar: nieuweMax,
+    datum: new Date().toISOString(),
+    door: isDm ? 'dm' : 'speler',
+  };
+  (dmState.levelUps[characterId] = dmState.levelUps[characterId] || []).push(regel);
+
+  // Tegoed opmaken (ook als de DM het deed — anders blijft het openstaan)
+  const g = getGroup(dmState);
+  if (g.levelUpTegoed && g.levelUpTegoed[characterId] > 0) {
+    g.levelUpTegoed[characterId] -= 1;
+    if (g.levelUpTegoed[characterId] <= 0) delete g.levelUpTegoed[characterId];
+  }
+
+  storage.writeJSON('dm-state.json', dmState);
+  const io = req.app.get('io');
+  if (io) {
+    const room = req.session?.campaignId || 'main';
+    io.to(room).emit('player:hp-updated', { characterId, current: nieuwCurrent, max: nieuweMax, temp: hp.temp ?? 0 });
+    io.to(room).emit('player:profile-updated', { characterId });
+    io.to(room).emit('player:level-up', { characterId, ...regel });
+  }
+  res.json({ ok: true, levelUp: regel, level: nieuwLevel, hp: { current: nieuwCurrent, max: nieuweMax } });
+});
+
+// Terugdraaien: het level terug, de HP eraf, de regel weg. Alleen de DM, en
+// alleen de laatste — een level-up van drie weken geleden terugdraaien zou de
+// levels ertussen ongeldig maken.
+router.post('/characters/:characterId/level-up/undo', requireDM, (req, res) => {
+  const { characterId } = req.params;
+  const dmState = readDmState();
+  const rij = (dmState.levelUps || {})[characterId] || [];
+  const regel = rij[rij.length - 1];
+  if (!regel) return res.status(404).json({ error: 'Er is niets om terug te draaien' });
+
+  const profile = (dmState.playerProfiles || {})[characterId] || {};
+  profile.level = String(regel.van);
+  if (regel.klasseVeld) {
+    const nu = parseInt(profile[regel.klasseVeld]) || 0;
+    profile[regel.klasseVeld] = String(Math.max(0, nu - 1));
+  }
+
+  if (!dmState.playerHp) dmState.playerHp = {};
+  const hp = dmState.playerHp[characterId] || { current: null, max: null };
+  const nieuweMax = Math.max(1, (parseInt(hp.max) || 0) - regel.hp);
+  const nieuwCurrent = hp.current == null ? null : Math.min(nieuweMax, Math.max(0, (parseInt(hp.current) || 0) - regel.hp));
+  dmState.playerHp[characterId] = { ...hp, current: nieuwCurrent, max: nieuweMax };
+
+  rij.pop();
+  if (!rij.length) delete dmState.levelUps[characterId];
+
+  storage.writeJSON('dm-state.json', dmState);
+  const io = req.app.get('io');
+  if (io) {
+    const room = req.session?.campaignId || 'main';
+    io.to(room).emit('player:hp-updated', { characterId, current: nieuwCurrent, max: nieuweMax, temp: hp.temp ?? 0 });
+    io.to(room).emit('player:profile-updated', { characterId });
+  }
+  res.json({ ok: true, teruggedraaid: regel, level: regel.van });
+});
+
+// De DM gunt: één knop voor de hele party. Wie er meedoet volgt uit de
+// aanwezigheid — een afwezige speler hoort niet in zijn slaap een level te
+// krijgen. Met `charIds` kan de DM het voor een enkeling doen.
+router.post('/party/level-up-tegoed', requireDM, (req, res) => {
+  const dmState = readDmState();
+  const g = getGroup(dmState);
+  if (!g.levelUpTegoed) g.levelUpTegoed = {};
+
+  let ids = Array.isArray(req.body?.charIds) ? req.body.charIds.map(String) : null;
+  if (!ids) {
+    let entities = {};
+    try { entities = storage.readJSON('entities.json'); } catch { /* ok */ }
+    const gid = dmState.activeGroup || Object.keys(dmState.groups || {})[0];
+    ids = _aanwezigeSpelers(dmState, gid, entities.personages).map(e => e.id);
+  }
+
+  const aantal = req.body?.aantal === 0 ? 0 : (parseInt(req.body?.aantal) || 1);
+  for (const id of ids) {
+    if (aantal === 0) delete g.levelUpTegoed[id];
+    else g.levelUpTegoed[id] = Math.max(0, (parseInt(g.levelUpTegoed[id]) || 0) + aantal) || undefined;
+    if (!g.levelUpTegoed[id]) delete g.levelUpTegoed[id];
+  }
+
+  storage.writeJSON('dm-state.json', dmState);
+  const io = req.app.get('io');
+  if (io) io.to(req.session?.campaignId || 'main').emit('party:level-up-tegoed', { tegoed: g.levelUpTegoed });
+  res.json({ ok: true, tegoed: g.levelUpTegoed, spelers: ids });
+});
+
+// De DM kiest welke manieren van HP bepalen er aan zijn tafel gelden.
+router.put('/meta/levelup', requireDM, (req, res) => {
+  const meta = storage.readJSON('meta.json');
+  if (!meta.levelup) meta.levelup = {};
+  if (Array.isArray(req.body?.methodes)) {
+    const m = req.body.methodes.filter(x => LEVELUP_METHODES.includes(x));
+    if (!m.length) return res.status(400).json({ error: 'Kies minstens één manier' });
+    meta.levelup.methodes = m;
+    if (!m.includes(meta.levelup.standaard)) meta.levelup.standaard = m[0];
+  }
+  if (req.body?.standaard !== undefined) {
+    const cfg = _levelupCfg(meta);
+    if (!cfg.methodes.includes(req.body.standaard))
+      return res.status(400).json({ error: 'Die manier staat uit' });
+    meta.levelup.standaard = req.body.standaard;
+  }
+  if (req.body?.maxLevel !== undefined) {
+    meta.levelup.maxLevel = Math.max(1, Math.min(30, parseInt(req.body.maxLevel) || 20));
+  }
+  storage.writeJSON('meta.json', meta);
+  req.app.get('io').to(req.session?.campaignId || 'main').emit('meta:updated');
+  res.json({ ok: true, levelup: _levelupCfg(meta) });
+});
+
 // ── Hit Dice-stand opvragen (voor de character sheet) ──
 router.get('/characters/:characterId/hit-dice', attachRole, (req, res) => {
   const { characterId } = req.params;
@@ -7399,6 +7661,10 @@ router.get('/meta', attachRole, (req, res) => {
   // Afgeleid, niet opgeslagen: de client hoeft zo niet zelf uit te rekenen welke
   // akte er loopt en wat daarin dichtzit.
   const uit = { ...meta, modules: modulesVoor(meta), verborgen: verborgenUI(meta), bereikbaarheid: _bereikbaarheidVoor(meta, dmState, groepId) };
+  // Genormaliseerd meesturen: een campagne die nooit naar de level-upinstelling
+  // keek heeft geen `meta.levelup`, en de client hoort de standaardwaarden niet
+  // een tweede keer te kennen.
+  uit.levelup = _levelupCfg(meta);
   if (req.role !== 'dm') uit.hoofdstukken = _hoofdstukkenVoorSpeler(meta.hoofdstukken);
   res.json(uit);
 });

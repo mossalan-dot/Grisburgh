@@ -25931,3 +25931,96 @@ body.herberg-actief .herberg-scene .herberg-content {
 /* IM Fell zet oudestijl-cijfers; de "7" achter "Paladin" kreeg daardoor een
    staart die als een vreemd teken las. Lining figures voor het klasselabel. */
 .sig-card-tag { font-variant-numeric: lining-nums tabular-nums; }
+
+/* ── Level omhoog ──────────────────────────────────────────────────────────
+   De balk op de Personage-tab, het venster met de stappen, en de omslag. */
+.levelup-balk {
+  display: flex; align-items: center; gap: 12px; width: 100%;
+  margin: 0 0 12px; padding: 12px 14px;
+  border: 1px solid rgba(196, 168, 122, .75); border-radius: 10px;
+  background: linear-gradient(135deg, rgba(242, 232, 210, .95), rgba(224, 205, 166, .9));
+  box-shadow: 0 2px 10px rgba(42, 26, 8, .14);
+  cursor: pointer; text-align: left; color: #2a1a08;
+}
+.levelup-balk:hover { border-color: #c4a87a; box-shadow: 0 3px 14px rgba(42, 26, 8, .22); }
+.levelup-balk-icoon {
+  display: inline-flex; width: 34px; height: 34px; flex: 0 0 auto;
+  align-items: center; justify-content: center; border-radius: 50%;
+  background: rgba(196, 168, 122, .45); color: #7a5a1a;
+}
+.levelup-balk-icoon .icon { width: 19px; height: 19px; }
+.levelup-balk-tekst { display: flex; flex-direction: column; gap: 1px; flex: 1 1 auto; }
+.levelup-balk-tekst strong { font-family: 'Cinzel', serif; font-size: 1.02rem; }
+.levelup-balk-tekst span { font-size: .86rem; opacity: .75; }
+.levelup-balk-pijl { flex: 0 0 auto; opacity: .55; }
+
+.lu-stap { margin-bottom: 18px; }
+.lu-stap-kop {
+  font-family: 'Cinzel', serif; font-size: .95rem; font-weight: 600;
+  color: #3a2410; margin-bottom: 8px;
+}
+.lu-keuzes { display: flex; gap: 8px; flex-wrap: wrap; }
+.lu-keuze {
+  flex: 1 1 140px; min-width: 130px; padding: 10px 12px; text-align: left;
+  border: 1px solid rgba(196, 168, 122, .6); border-radius: 8px;
+  background: rgba(255, 253, 247, .6); color: #3a2410; cursor: pointer;
+  display: flex; flex-direction: column; gap: 2px;
+}
+.lu-keuze:hover { border-color: #c4a87a; background: rgba(242, 232, 210, .8); }
+.lu-keuze.is-aan {
+  border-color: #a8833c; background: rgba(224, 205, 166, .95);
+  box-shadow: inset 0 0 0 1px rgba(168, 131, 60, .5);
+}
+.lu-keuze strong { font-family: 'Cinzel', serif; font-size: .95rem; }
+.lu-keuze span { font-size: .82rem; opacity: .72; }
+.lu-uitleg { margin: 10px 0 0; font-size: .9rem; color: #5a4020; }
+.lu-worp { display: flex; align-items: center; gap: 10px; margin-top: 12px; }
+.lu-worp label { font-size: .9rem; color: #3a2410; }
+.lu-worp-input {
+  width: 84px; padding: 7px 10px; font-size: 1.2rem; text-align: center;
+  font-variant-numeric: tabular-nums;
+  border: 1px solid rgba(196, 168, 122, .7); border-radius: 6px;
+  background: rgba(255, 253, 247, .85); color: #2a1a08;
+}
+.lu-acties { display: flex; gap: 8px; margin-top: 20px; }
+.lu-melding { margin-top: 10px; font-size: .88rem; color: #a33; min-height: 1.1em; }
+
+.levelup-cine {
+  position: fixed; inset: 0; z-index: 2000;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(20, 12, 4, .72);
+  opacity: 0; transition: opacity .3s ease;
+}
+.levelup-cine.is-open { opacity: 1; }
+.levelup-cine-kaart {
+  padding: 32px 44px; text-align: center; border-radius: 14px;
+  border: 1px solid rgba(196, 168, 122, .6);
+  background: linear-gradient(160deg, #f6eeda, #e3cfa6);
+  box-shadow: 0 18px 60px rgba(0, 0, 0, .55);
+  transform: translateY(14px) scale(.96);
+  transition: transform .34s cubic-bezier(.2, .9, .3, 1.1);
+  color: #2a1a08;
+}
+.levelup-cine.is-open .levelup-cine-kaart { transform: none; }
+.levelup-cine-van {
+  font-family: 'Cinzel', serif; font-size: 1.5rem; opacity: .4;
+  text-decoration: line-through; line-height: 1;
+}
+.levelup-cine-naar {
+  font-family: 'Cinzel', serif; font-size: 4.2rem; font-weight: 700; line-height: 1.05;
+  color: #7a5a1a; text-shadow: 0 2px 0 rgba(255, 255, 255, .5);
+}
+.levelup-cine-klasse {
+  font-family: 'Cinzel', serif; font-size: 1.1rem; letter-spacing: .06em;
+  margin-top: 2px; opacity: .8;
+}
+.levelup-cine-hp {
+  margin: 18px 0 20px; font-family: 'Crimson Text', Georgia, serif;
+  font-size: 1.5rem; font-weight: 700; color: #4a7c3f;
+}
+.levelup-cine-hp span {
+  display: block; font-size: .82rem; font-weight: 400; opacity: .7; color: #5a4020;
+}
+@media (prefers-reduced-motion: reduce) {
+  .levelup-cine, .levelup-cine-kaart { transition: none; }
+}

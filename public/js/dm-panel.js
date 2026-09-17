@@ -8093,6 +8093,23 @@ async function _renderRust() {
       <span class="dm-hint" style="font-size:11px">Party-breed en cinematisch. Een Long Rest in ${esc(herbergNaam)} schrijft de overnachtingsprijs p.p. af en onthult 2 roddels p.p.</span>
     </div>
 
+    <!-- Level omhoog hoort hier omdat het aan tafel op hetzelfde moment gebeurt:
+         einde sessie, of bij de lange rust erna. De DM gunt alleen; de speler
+         kiest zelf hoe hij aan zijn HP komt en wat hij met een ASI doet. Dat
+         scheelt de DM vijf keuzes voor vijf spelers. -->
+    <div class="dm-feature-section">
+      <div class="dm-section-label">${icon('sparkles')} Level omhoog</div>
+      <div class="dm-hint" style="margin:-2px 0 6px">Zet een level-up klaar voor iedereen die vanavond meedoet. Zij kiezen daarna zelf hun HP.</div>
+      <div class="dm-feature-row" style="gap:8px;align-items:center;flex-wrap:wrap">
+        <button class="dm-btn dm-btn-primary" onclick="window._dmLevelUpGun(1)"
+          title="Iedere aanwezige speler krijgt een level-up klaargezet">${icon('sparkles')} Party een level omhoog</button>
+        <button class="dm-btn dm-btn-ghost dm-btn-sm" onclick="window._dmLevelUpGun(0)"
+          title="Alle klaargezette level-ups weer intrekken">${icon('x')} Intrekken</button>
+        <span id="dm-levelup-status" style="font-size:11px;color:#6a9050"></span>
+      </div>
+      <div id="dm-levelup-lijst" class="dm-hint" style="font-size:11px;margin-top:6px"></div>
+    </div>
+
     <div class="dm-feature-section">
       <div class="dm-section-label">${icon('moon')} Sfeer & gebeurtenissen</div>
 
@@ -8164,6 +8181,24 @@ window._dmRust = async function(type, locatie) {
     }
     if (statusEl) setTimeout(() => { if (statusEl) statusEl.textContent = ''; }, 8000);
   } catch(err) {
+    if (statusEl) statusEl.textContent = 'Fout: ' + (err.message || '?');
+  }
+};
+
+// Gunnen, niet uitvoeren: de speler verzilvert zelf. `aantal: 0` trekt alles in.
+window._dmLevelUpGun = async function(aantal) {
+  const statusEl = document.getElementById('dm-levelup-status');
+  if (statusEl) statusEl.textContent = '…';
+  try {
+    const r = await api.post('/party/level-up-tegoed', { aantal });
+    const n = Object.keys(r.tegoed || {}).length;
+    if (statusEl) statusEl.textContent = aantal === 0
+      ? '✓ Ingetrokken'
+      : `✓ Klaargezet voor ${r.spelers?.length || 0} speler(s)`;
+    const lijst = document.getElementById('dm-levelup-lijst');
+    if (lijst) lijst.textContent = n ? `${n} speler(s) hebben nog een level-up openstaan.` : '';
+    if (statusEl) setTimeout(() => { if (statusEl) statusEl.textContent = ''; }, 6000);
+  } catch (err) {
     if (statusEl) statusEl.textContent = 'Fout: ' + (err.message || '?');
   }
 };
@@ -10037,6 +10072,9 @@ function _instScrollBak() {
 
 async function _renderInstellingen() {
   const body = document.getElementById('dm-instellingen-body');
+  // GET /meta levert dit genormaliseerd; een campagne die er nooit naar keek
+  // heeft geen meta.levelup en krijgt hier toch de drie manieren te zien.
+  const lu = (window.app?.state?.meta?.levelup) || { methodes: ['gemiddelde', 'app', 'tafel'], standaard: 'gemiddelde', maxLevel: 20 };
   if (!body) return;
 
   // Half het paneel hertekent zichzelf na elke wijziging (party erbij,
@@ -10296,6 +10334,36 @@ async function _renderInstellingen() {
 
     <!-- Muziek uit Spotify: Grisburgh speelt zelf niets af, het drukt op play.
          Waar dat geluid uitkomt kiest de DM hier. -->
+    <!-- Hoe komt een speler bij zijn HP als hij een level omhoog gaat? De PHB
+         geeft twee keuzes en aan tafel bestaat er een derde: iemand rolt met
+         zijn eigen dobbelsteen. Welke er aan deze tafel gelden bepaalt de DM;
+         de server weigert een manier die hier uitstaat. -->
+    ${_instSectie('levelup', 'Level omhoog', `
+      <p class="dm-hint">Hoe bepaalt een speler zijn HP bij een level-up? Wat je hier uitvinkt kan hij niet kiezen.</p>
+      ${[['gemiddelde', 'Gemiddelde', 'Het vaste getal uit het boek — (die ÷ 2) + 1, plus CON.'],
+         ['app',        'Rollen in de app', 'De server rolt de hit die.'],
+         ['tafel',      'Zelf gegooid', 'De speler rolt aan tafel en tikt zijn worp in; de server toetst en telt CON erbij.']]
+        .map(([k, label, uitleg]) => `
+        <div class="dm-form-row">
+          <label class="dm-module-item" title="${esc(uitleg)}">
+            <input type="checkbox" class="inst-lu-methode" value="${k}"
+              ${(lu.methodes || []).includes(k) ? 'checked' : ''}>
+            <span>${label} <span class="dm-hint" style="display:block;margin:0">${esc(uitleg)}</span></span>
+          </label>
+        </div>`).join('')}
+      <div class="dm-form-row">
+        <label class="dm-form-label" for="inst-lu-standaard">Standaard</label>
+        <select id="inst-lu-standaard" class="dm-input">
+          ${[['gemiddelde', 'Gemiddelde'], ['app', 'Rollen in de app'], ['tafel', 'Zelf gegooid']]
+            .map(([k, label]) => `<option value="${k}"${lu.standaard === k ? ' selected' : ''}>${label}</option>`).join('')}
+        </select>
+      </div>
+      <div class="dm-form-row">
+        <label class="dm-form-label" for="inst-lu-max">Hoogste level</label>
+        <input id="inst-lu-max" class="dm-input" type="number" min="1" max="30" value="${lu.maxLevel || 20}">
+      </div>
+    `)}
+
     ${_instSectie('spotify', 'Muziek (Spotify)', `
       <div id="inst-spotify">
         <p class="dm-hint">Laden…</p>
@@ -10474,6 +10542,7 @@ window._instOpslaan = async () => {
       embleem:     document.getElementById('inst-embleem')?.value || '',
       inOverzicht: document.getElementById('inst-in-overzicht')?.checked !== false,
       bronLink:    document.getElementById('inst-bron-link')?.value.trim() ?? '',
+      // levelup gaat via zijn eigen route (validatie op de server), zie hieronder
       currency: {
         fl: document.getElementById('inst-munt-fl')?.value.trim(),
         kn: document.getElementById('inst-munt-kn')?.value.trim(),
@@ -10482,6 +10551,20 @@ window._instOpslaan = async () => {
         pp: document.getElementById('inst-munt-pp')?.value.trim(),
       },
     });
+    // Level-upinstellingen: eigen route, want de server bewaakt de combinatie
+    // (minstens één manier aan, en de standaard moet daartussen zitten).
+    const luMethodes = [...document.querySelectorAll('.inst-lu-methode')].filter(c => c.checked).map(c => c.value);
+    if (luMethodes.length) {
+      let luStd = document.getElementById('inst-lu-standaard')?.value;
+      if (!luMethodes.includes(luStd)) luStd = luMethodes[0];
+      try {
+        await api.put('/meta/levelup', {
+          methodes: luMethodes, standaard: luStd,
+          maxLevel: parseInt(document.getElementById('inst-lu-max')?.value) || 20,
+        });
+      } catch (e) { console.warn('Level-upinstelling opslaan mislukt', e); }
+    }
+
     const nieuweMeta = await api.meta();
     if (window.app?.state) window.app.state.meta = nieuweMeta;
     window._currency = nieuweMeta.currency;
