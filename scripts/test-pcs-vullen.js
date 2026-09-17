@@ -127,6 +127,33 @@ const PCS = [
     spreuken: { cantrips: ['Mending','Fire Bolt'], 1: ['Cure Wounds','Faerie Fire'] } },
 ];
 
+// Spreukenslots worden in deze app **niet** afgeleid uit klasse en level (Hit
+// Dice wel) — ze staan per personage in `playerSpellSlots` en worden met de hand
+// gezet. Voor testdata vullen we ze dus zelf, anders staat er bij elke caster
+// "Nog geen spreukenslots ingesteld" en valt er niets te testen.
+const VOL_CASTER = {  // niveau → [slots per spreukniveau 1..9]
+  1:[2], 2:[3], 3:[4,2], 4:[4,3], 5:[4,3,2], 6:[4,3,3], 7:[4,3,3,1],
+  8:[4,3,3,2], 9:[4,3,3,3,1], 10:[4,3,3,3,2], 11:[4,3,3,3,2,1], 12:[4,3,3,3,2,1],
+};
+const VOLLE   = new Set(['Bard', 'Cleric', 'Druid', 'Sorcerer', 'Wizard']);
+const HALVE   = new Set(['Paladin', 'Ranger', 'Artificer']);   // halve vorderingen
+const PACT    = { 1:[1,1], 2:[2,1], 3:[2,2], 4:[2,2], 5:[2,3], 6:[2,3], 7:[2,4], 8:[2,4], 9:[2,5] };
+
+function slotsVoor(klasse, lvl) {
+  if (klasse === 'Warlock') {           // pact magic: een paar slots van één niveau
+    const [aantal, niveau] = PACT[Math.min(lvl, 9)] || [2, 1];
+    return { [niveau]: { max: aantal, used: 0 } };
+  }
+  let casterLvl = null;
+  if (VOLLE.has(klasse)) casterLvl = lvl;
+  else if (HALVE.has(klasse)) casterLvl = Math.max(1, Math.ceil(lvl / 2));
+  if (!casterLvl) return null;          // Barbarian, Fighter, Monk, Rogue
+  const rij = VOL_CASTER[Math.min(casterLvl, 12)] || [];
+  const uit = {};
+  rij.forEach((max, i) => { uit[i + 1] = { max, used: 0 }; });
+  return uit;
+}
+
 const entities = lees('entities.json');
 const dmState  = lees('dm-state.json');
 if (!entities.personages) entities.personages = [];
@@ -136,10 +163,22 @@ if (!dmState.playerHp) dmState.playerHp = {};
 const groepen = Object.keys(dmState.groups || {});
 if (!groepen.length) { console.error('Geen groepen in deze campagne.'); process.exit(1); }
 
-let nieuw = 0, over = 0;
+let nieuw = 0, over = 0, aangevuld = 0;
 PCS.forEach((pc, i) => {
   const id = 't_pc_' + pc.klasse.toLowerCase();
-  if (entities.personages.some(e => e.id === id)) { over++; return; }
+  if (entities.personages.some(e => e.id === id)) {
+    // Bestaat al: het kaartje en het profiel laten we met rust (daar kan de DM
+    // in gezeten hebben). Alleen slots vullen als er nog geen staan, want
+    // zonder slots valt er aan het spreukenboek niets te testen.
+    const slotsB = slotsVoor(pc.klasse, pc.lvl);
+    if (slotsB && !dmState.playerSpellSlots?.[id]) {
+      if (!dmState.playerSpellSlots) dmState.playerSpellSlots = {};
+      dmState.playerSpellSlots[id] = slotsB;
+      console.log(`  ~ ${pc.naam.padEnd(20)} bestond al — spreukenslots aangevuld`);
+      aangevuld++;
+    }
+    over++; return;
+  }
 
   // Om en om over de party's, zodat allebei speelbaar blijven.
   const groep = groepen[i % groepen.length];
@@ -178,6 +217,12 @@ PCS.forEach((pc, i) => {
   };
   dmState.playerHp[id] = { current: maxHp, max: maxHp };
 
+  const slots = slotsVoor(pc.klasse, pc.lvl);
+  if (slots) {
+    if (!dmState.playerSpellSlots) dmState.playerSpellSlots = {};
+    dmState.playerSpellSlots[id] = slots;
+  }
+
   // Spreuken in het boek van de speler, in de vorm die playerSpells verwacht.
   if (pc.spreuken) {
     if (!dmState.playerSpells) dmState.playerSpells = {};
@@ -196,7 +241,7 @@ PCS.forEach((pc, i) => {
   console.log(`  + ${pc.naam.padEnd(20)} ${pc.ras.padEnd(11)} ${pc.klasse.padEnd(10)} lvl ${String(pc.lvl).padStart(2)}  ${pc.sub || '(geen subklasse)'}  → ${dmState.groups[groep].name}`);
 });
 
-console.log(`\n${campagne}: ${nieuw} aangemaakt, ${over} bestonden al.`);
+console.log(`\n${campagne}: ${nieuw} aangemaakt, ${over} bestonden al${aangevuld ? `, ${aangevuld} aangevuld` : ''}.`);
 if (!schrijf) { console.log('Proefronde — er is niets geschreven. Draai opnieuw met --schrijf.'); process.exit(0); }
 
 for (const [f, data] of [['entities.json', entities], ['dm-state.json', dmState]]) {
