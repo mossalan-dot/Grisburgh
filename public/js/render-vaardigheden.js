@@ -81,6 +81,38 @@ let _levelsOpen = false;  // staat de levelrij uitgeklapt?
 // Eén platte lijst: elk item weet zijn soort, waar het bij hoort en op welk
 // level het komt. Dat is alles wat het kaartje, het filter en het zoeken nodig
 // hebben; de detailweergave haalt de tekst pas op als je erop klikt.
+// Zoeken in de vaardighedenbibliotheek, voor wie er alleen iets uit wil halen.
+// Gebouwd voor de kenmerk-zoeker op het spelerstabblad: die haalde zijn lijst
+// **live op bij dnd5eapi.co** — een externe host in het pad van een speler
+// midden in een sessie, en de editie van 2014. Precies wat we bij de monsters al
+// hadden weggehaald. Nu komt hij uit dezelfde bron als de tijdlijn en deze
+// bibliotheek, dus: offline, 2024, en met dezelfde namen en teksten.
+//
+// `eigen` (klasse, subklasse, volk, background) zet wat bij jóu hoort bovenaan —
+// een Wizard die "ac" typt hoort niet eerst Action Surge te zien.
+export async function zoekVaardigheden(query, eigen = {}, limiet = 12) {
+  const alles = await _load();
+  const q = String(query || '').trim().toLowerCase();
+  if (!q) return [];
+  const norm = t => String(t || '').trim().toLowerCase();
+  const mijn = new Set([eigen.klasse, eigen.multiKlasse, eigen.species, eigen.background].filter(Boolean).map(norm));
+  const mijnSub = new Set([eigen.subclass, eigen.multiSubclass].filter(Boolean).map(norm));
+
+  return alles
+    .filter(it => norm(it.naam).includes(q))
+    .map(it => {
+      // Van jou als de klasse/het volk klopt; een subklasse alleen als jij die
+      // subklasse hebt — anders is "Channel Divinity: Sacred Weapon" van jou
+      // zodra je Cleric bent, terwijl dat een Paladin-feature is.
+      const vanMij = it.soort === 'subclass'
+        ? mijnSub.has(norm(it.sub))
+        : (it.soort === 'feat' || it.soort === 'boon') ? false : mijn.has(norm(it.bron));
+      return { ...it, vanMij };
+    })
+    .sort((a, b) => (b.vanMij - a.vanMij) || a.naam.localeCompare(b.naam))
+    .slice(0, limiet);
+}
+
 async function _load() {
   if (_all) return _all;
   _bron = await naslagBron();

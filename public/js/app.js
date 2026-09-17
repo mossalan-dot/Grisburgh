@@ -7,7 +7,7 @@ import { renderRelatiemap } from './render-relatiemap.js?v=27';
 import { renderProgressie, levelupFeatures } from './render-progressie.js?v=52';
 import { renderBestiarium } from './render-bestiarium.js?v=30';
 import { renderSpreuken } from './render-spreuken.js?v=41';
-import { renderVaardigheden } from './render-vaardigheden.js?v=7';
+import { renderVaardigheden, zoekVaardigheden } from './render-vaardigheden.js?v=8';
 import { renderStatblock } from './render-statblock.js?v=9';
 import { initSocket } from "./socket-client.js?v=74";
 import { initDmPanel } from "./dm-panel.js?v=259";
@@ -8926,7 +8926,7 @@ async function renderMijnKarakter(opts = {}) {
 
       // Opgeslagen beschrijving heeft voorrang (custom én progressie-gesyncte
       // features dragen hun eigen tekst; alleen 'kale' PHB-traits hebben er geen).
-      if (stored || source === 'custom' || source === 'progression') {
+      if (stored || source === 'custom' || source === 'progression' || source === 'progressie') {
         body.innerHTML = stored
           ? `<div class="player-spell-desc">${mdToHtml(stored)}</div>`
           : '<p class="player-spell-err" style="opacity:.5">Geen beschrijving.</p>';
@@ -8935,38 +8935,27 @@ async function renderMijnKarakter(opts = {}) {
         _appendTraitNoteSection(body);
         return;
       }
-      // PHB zonder opgeslagen tekst: ophalen via dnd5eapi — source bepaalt endpoint
+      // Een ouder kenmerk zonder opgeslagen tekst werd live bij dnd5eapi.co
+      // opgehaald — externe host, editie 2014. Nu zoeken we de naam op in de
+      // eigen vaardighedenbibliotheek; staat hij daar niet (of heeft hij geen
+      // SRD-tekst), dan zeggen we dat en wijzen we naar buiten, net als in de
+      // bibliotheek zelf.
       try {
-        if (!index) throw new Error('geen index');
-        // Backward compat: 'phb' → features, 'phb-features' → features, 'phb-traits' → traits, 'phb-feats' → feats
-        const apiType = source === 'phb-traits' ? 'traits'
-                      : source === 'phb-feats'  ? 'feats'
-                      : 'features';
-        const r = await fetch(`https://www.dnd5eapi.co/api/${apiType}/${index}`);
-        const f = await r.json();
-        if (!body.isConnected) return;   // #22: accordion gesloten/her-rendered tijdens fetch
-        const _md = t => String(t)
-          .replace(/\*\*\*(.+?)\*\*\*/g, '<strong><em>$1</em></strong>')
-          .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-          .replace(/\*(.+?)\*/g, '<em>$1</em>');
-        const desc = (f.desc || []).map(_md).join('<br><br>');
-        let metaParts = [];
-        if (apiType === 'features') {
-          metaParts = [
-            f.class?.name ? `Class: ${f.class.name}` : '',
-            f.subclass?.name ? `Subclass: ${f.subclass.name}` : '',
-            f.level ? `Level ${f.level}` : '',
-          ].filter(Boolean);
-        } else if (apiType === 'traits') {
-          const races = (f.races || []).map(x => x.name).join(', ');
-          if (races) metaParts = [`Race: ${races}`];
-        } else if (apiType === 'feats') {
-          const prereq = (f.prerequisites || []).map(p => p.ability_score?.name || '').filter(Boolean);
-          if (prereq.length) metaParts = [`Prerequisite: ${prereq.join(', ')}`];
-        }
+        const naam = body.closest('.player-trait-accordion')
+          ?.querySelector('.player-pinned-spell-name')?.textContent?.trim() || '';
+        const treffers = naam ? await zoekVaardigheden(naam, {}, 3) : [];
+        if (!body.isConnected) return;
+        const raak = treffers.find(t => t.naam.toLowerCase() === naam.toLowerCase()) || treffers[0];
+        const herkomst = raak
+          ? [raak.soort === 'subclass' ? raak.sub : raak.bron, raak.level ? `Lv. ${raak.level}` : ''].filter(Boolean).join(' · ')
+          : '';
+        const link = window.app?.bronLink?.(naam, 'features') || '';
         body.innerHTML = `
-          ${metaParts.length ? `<div class="player-spell-meta2">${metaParts.join(' · ')}</div>` : ''}
-          <div class="player-spell-desc">${desc || '<em>Geen beschrijving beschikbaar.</em>'}</div>`;
+          ${herkomst ? `<div class="player-spell-meta2">${esc(herkomst)}</div>` : ''}
+          ${raak?.desc
+            ? `<div class="player-spell-desc">${mdToHtml(raak.desc)}</div>`
+            : `<p class="player-spell-err" style="opacity:.7">Deze beschrijving staat niet in de vrij te gebruiken SRD.</p>
+               ${link ? `<a class="prog-geen-tekst-knop" href="${esc(link)}" target="_blank" rel="noopener">${icon('book-open')} Lees hem elders</a>` : ''}`}`;
         body.dataset.loaded = 'true';
         _appendTraitUsesRow(body);
         _appendTraitNoteSection(body);
@@ -8979,66 +8968,72 @@ async function renderMijnKarakter(opts = {}) {
     });
   });
 
-  // ── Kenmerk-zoeker (PHB via dnd5eapi.co — features + traits + feats) ──
+  // ── Kenmerk-zoeker ────────────────────────────────────────────────────────
+  // Haalde zijn lijst live op bij dnd5eapi.co: een externe host in het pad van
+  // een speler midden in een sessie, én de editie van 2014. Precies wat we bij
+  // de monsters al hadden weggehaald. Nu uit de eigen progressiedata, dezelfde
+  // bron als de tijdlijn en de vaardighedenbibliotheek — dus offline, 2024, en
+  // met dezelfde namen en teksten als de rest van de app.
   window._playerTraitSearch = async function(q) {
     const resultsEl = document.getElementById('player-trait-results');
     if (!resultsEl) return;
-    const query = q.toLowerCase().trim();
-    if (!query) { resultsEl.innerHTML = ''; return; }
-    if (!_playerTraitList) {
-      resultsEl.innerHTML = '<div class="player-spell-loading">Laden…</div>';
-      try {
-        const [rf, rt, rft] = await Promise.all([
-          fetch('https://www.dnd5eapi.co/api/features').then(r => r.json()),
-          fetch('https://www.dnd5eapi.co/api/traits').then(r => r.json()),
-          fetch('https://www.dnd5eapi.co/api/feats').then(r => r.json()),
-        ]);
-        _playerTraitList = [
-          ...(rf.results  || []).map(x => ({ ...x, _apiType: 'features' })),
-          ...(rt.results  || []).map(x => ({ ...x, _apiType: 'traits'   })),
-          ...(rft.results || []).map(x => ({ ...x, _apiType: 'feats'    })),
-        ];
-      } catch { _playerTraitList = []; }
-    }
-    const filtered = _playerTraitList.filter(f => f.name.toLowerCase().includes(query)).slice(0, 10);
-    const pinned = pinnedTraits.map(t => t.index);
-    const typeLabel = { features: 'Klasse', traits: 'Ras', feats: 'Feat' };
-    resultsEl.innerHTML = filtered.length
-      ? filtered.map(f => `
-          <div class="player-spell-result${pinned.includes(f.index) ? ' pinned' : ''}"
-            data-trait-idx="${esc(f.index)}" data-trait-nm="${esc(f.name)}" data-trait-type="${f._apiType || 'features'}"
+    if (!q.trim()) { resultsEl.innerHTML = ''; return; }
+    resultsEl.innerHTML = '<div class="player-spell-loading">Zoeken…</div>';
+
+    let treffers = [];
+    try {
+      treffers = await zoekVaardigheden(q, {
+        klasse:        playerProfile.klasse,
+        subclass:      playerProfile.subclass,
+        multiKlasse:   playerProfile.multiKlasse,
+        multiSubclass: playerProfile.multiSubclass,
+        species:       playerProfile.origin,
+        background:    playerProfile.background,
+      });
+    } catch { treffers = []; }
+    if (!document.getElementById('player-trait-results')) return;   // ondertussen weggeklikt
+
+    const alGepind = new Set(pinnedTraits.map(t => t.name));
+    const SOORT = { class: 'Class', subclass: 'Subclass', species: 'Origin',
+                    feat: 'Feat', boon: 'Epic Boon', background: 'Background' };
+    resultsEl.innerHTML = treffers.length
+      ? treffers.map(f => {
+          const gepind = alGepind.has(f.naam);
+          // Wáár het vandaan komt: "Fighter · Lv. 2" zegt iets, "KLASSE" niet.
+          const herkomst = [f.soort === 'subclass' ? f.sub : (f.soort === 'feat' || f.soort === 'boon' ? SOORT[f.soort] : f.bron),
+                            f.level ? `Lv. ${f.level}` : ''].filter(Boolean).join(' · ');
+          return `
+          <div class="player-spell-result${gepind ? ' pinned' : ''}${f.vanMij ? ' trait-van-mij' : ''}"
+            data-trait-nm="${esc(f.naam)}" data-trait-meta="${esc(herkomst)}"
+            data-trait-desc="${esc(f.desc || '')}" data-trait-soort="${esc(f.soort)}"
             onclick="window._playerTraitPinByEl(this)">
-            ${esc(f.name)}
-            <span class="player-trait-type-badge">${typeLabel[f._apiType] || ''}</span>
-            <span class="player-spell-pin-icon">${pinned.includes(f.index) ? '✓' : '📌'}</span>
-          </div>`).join('')
+            ${esc(f.naam)}
+            <span class="player-trait-type-badge">${esc(herkomst)}</span>
+            <span class="player-spell-pin-icon">${gepind ? icon('check') : icon('pin')}</span>
+          </div>`;
+        }).join('')
       : '<div class="player-spell-noresult">Geen kenmerken gevonden</div>';
   };
 
   window._playerTraitPinByEl = function(el) {
-    window._playerTraitPin(el.dataset.traitIdx, el.dataset.traitNm, el.dataset.traitType);
+    window._playerTraitPin({
+      naam: el.dataset.traitNm,
+      meta: el.dataset.traitMeta,
+      desc: el.dataset.traitDesc,
+    });
   };
 
-  window._playerTraitPin = async function(index, name, apiType) {
-    if (!charId) return;
-    if (pinnedTraits.find(t => t.index === index)) return;
-    const type = apiType || 'features';
-    const source = 'phb-' + type;
-    let meta = '';
-    try {
-      const r = await fetch(`https://www.dnd5eapi.co/api/${type}/${index}`);
-      const f = await r.json();
-      if (type === 'features') {
-        const parts = [f.class?.name, f.level ? `Niv. ${f.level}` : ''].filter(Boolean);
-        meta = parts.join(' · ');
-      } else if (type === 'traits') {
-        meta = (f.races || []).map(x => x.name).join(', ');
-      } else if (type === 'feats') {
-        const prereq = (f.prerequisites || []).map(p => p.ability_score?.name || '').filter(Boolean);
-        meta = prereq.length ? `Vereiste: ${prereq.join(', ')}` : 'Feat';
-      }
-    } catch { /* ok, zonder meta */ }
-    await api.addPlayerTrait(charId, { index, name, source, meta });
+  // De beschrijving komt uit de zoeklijst mee, dus er is geen tweede verzoek
+  // nodig — en er staat geen externe host meer tussen. Een feature zonder eigen
+  // tekst (niet-SRD) wordt leeg opgeslagen; het uitklapvenster toont dan de
+  // verwijzing naar buiten, net als in de bibliotheek.
+  window._playerTraitPin = async function({ naam, meta, desc }) {
+    if (!charId || !naam) return;
+    if (pinnedTraits.find(t => t.name === naam)) return;
+    await api.addPlayerTrait(charId, {
+      index: 'vaardigheid-' + String(naam).toLowerCase().replace(/[^a-z0-9]+/g, '-'),
+      name: naam, source: 'progressie', meta: meta || '', desc: desc || '',
+    });
     const inp = document.getElementById('player-trait-input');
     if (inp) inp.value = '';
     const res = document.getElementById('player-trait-results');
@@ -9259,7 +9254,12 @@ async function renderMijnKarakter(opts = {}) {
   window._toggleMulticlass = async function() {
     const cur = playerProfile.multiclass === 'true' || playerProfile.multiclass === true;
     await window._saveProfileField('multiclass', cur ? '' : 'true');
-    window.app.refreshSection('mijn-karakter');
+    // Was `refreshSection('mijn-karakter')`, en dat is precies de sectie waar de
+    // DM níét op staat: hij bekijkt hetzelfde blad via **Spelers**. Dan werd een
+    // verborgen sectie hertekend en bleef de knop ogenschijnlijk dood — terwijl
+    // het vinkje wél opgeslagen was. Opnieuw tekenen met dezelfde opts raakt het
+    // blad dat je vóór je hebt, of je nu speler of DM bent.
+    await renderMijnKarakter(opts);
   };
 
   // Reactief icon + theme updaten na level-/klassewijziging

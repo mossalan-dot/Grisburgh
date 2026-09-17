@@ -26355,6 +26355,8 @@ body.kaart-fs-active .combat-overlay { z-index: 1350; top: 0; }
    staan, dus de naam is altijd op te vragen. */
 .player-subtab .pst-label { display: none; }
 .player-subtab.active .pst-label { display: inline; }
-.player-subtabs { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; }
+/* overflow-x:auto laat verticaal meescrollen; de balk is één regel hoog en
+   hoort dus alleen opzij te kunnen. */
+.player-subtabs { flex-wrap: nowrap; overflow-x: auto; overflow-y: hidden; scrollbar-width: none; }
 .player-subtabs::-webkit-scrollbar { display: none; }
 .player-subtab { flex: 0 0 auto; }
