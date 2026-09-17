@@ -116,6 +116,56 @@ function fmtToolbar(id) {
   </div>`;
 }
 
+// ── Ontdekt in <campagne> ────────────────────────────────────────────────────
+// Stond op het Party-tabblad, boven de portretten van je medespelers. Dat is de
+// verkeerde vraag op de verkeerde plek: deze meters gaan over het **archief**
+// (hoeveel kaartjes ken je al), niet over wie er met je meeloopt. Hier staat
+// het naast de tijdlijn van wat er gebeurd is — en dát is hetzelfde verhaal.
+const _ONTDEK_RIJEN = [
+  { key: 'personages',   label: 'Personages',   ic: 'user' },
+  { key: 'locaties',     label: 'Locaties',     ic: 'castle' },
+  { key: 'organisaties', label: 'Organisaties', ic: 'landmark' },
+  { key: 'voorwerpen',   label: 'Voorwerpen',   ic: 'package' },
+  { key: 'documenten',   label: 'Documenten',   ic: 'scroll-text' },
+  // Het bestiarium telde de route al mee, maar het stond niet in de lijst —
+  // terwijl het een eigen archief-tabblad is en precies zo werkt.
+  { key: 'bestiarium',   label: 'Bestiarium',   ic: 'paw-print' },
+];
+
+async function _ontdekBlokHtml() {
+  let data;
+  try { data = await api.ontdekkingen(); } catch { return ''; }
+  if (!data) return '';
+  const rows = _ONTDEK_RIJEN.map(c => {
+    const d = data[c.key];
+    if (!d || !d.totaal) return '';        // categorie zonder kaartjes verbergen
+    const pct = Math.round((d.ontdekt / d.totaal) * 100);
+    const af  = d.ontdekt >= d.totaal;
+    return `<div class="ontdek-meter${af ? ' ontdek-meter--vol' : ''}">
+      <span class="ontdek-meter-icon">${icon(c.ic)}</span>
+      <span class="ontdek-meter-label">${c.label}</span>
+      <div class="ontdek-bar"><div class="ontdek-bar-fill" style="width:${pct}%"></div></div>
+      <span class="ontdek-meter-count">${d.ontdekt} / ${d.totaal}</span>
+    </div>`;
+  }).join('');
+  if (!rows.trim()) return '';
+  const dicht = localStorage.getItem('ontdekOpen') === '0';
+  return `<div class="logboek-ontdek${dicht ? ' is-dicht' : ''}" id="logboek-ontdek">
+    <button class="logboek-ontdek-kop" onclick="window._ontdekToggle()" aria-expanded="${dicht ? 'false' : 'true'}">
+      ${icon('eye')}<span>Ontdekt in ${window.app.esc(window._campagneNaam())}</span>
+    </button>
+    <div class="ontdek-meters">${rows}</div>
+  </div>`;
+}
+
+window._ontdekToggle = function () {
+  const el = document.getElementById('logboek-ontdek');
+  if (!el) return;
+  const dicht = el.classList.toggle('is-dicht');
+  el.querySelector('.logboek-ontdek-kop')?.setAttribute('aria-expanded', dicht ? 'false' : 'true');
+  try { localStorage.setItem('ontdekOpen', dicht ? '0' : '1'); } catch {}
+};
+
 export function initArchief() {}
 
 export async function renderLogboek() {
@@ -177,6 +227,7 @@ export async function renderLogboek() {
   // Verslagen tab
   tabContent.style.cssText = '';
   tabContent.innerHTML = `
+    <div id="logboek-ontdek-slot"></div>
     <div class="logboek-search-wrap" style="padding: 0 24px 8px">
       ${icon('search', { cls: 'logboek-search-icon' })}
       <input type="text" class="logboek-search-input" id="logboek-search-input"
@@ -188,6 +239,13 @@ export async function renderLogboek() {
       ${_buildLogboekBody(visibleEntries, hk)}
     </div>
   `;
+
+  // Apart opgehaald en ná de rest ingevuld: de tijdlijn hoeft niet te wachten
+  // op een teller.
+  _ontdekBlokHtml().then(html => {
+    const slot = document.getElementById('logboek-ontdek-slot');
+    if (slot) slot.innerHTML = html;
+  });
 
   window._logboekSearch = (q) => {
     logboekSearch = q;

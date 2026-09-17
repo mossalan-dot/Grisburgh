@@ -785,3 +785,5 @@ Per bevinding: waar, wat, en of het opgelost is. Nieuwe regels onderaan.
 - Start een gevecht en geef iemand een conditie: dezelfde sprite en kleur als op zijn token verschijnen onder zijn portret in de partyrij én in de initiatieflijst (niet meer een eigen lijstje met `lock` voor restrained).
 - Markeer iemand als overleden: hij komt in de sectie *Gevallenen*, grijs, met naam en rol. Alleen kaartjes die de party kent; de sectie is inklapbaar en onthoudt dat.
 - Namen met een titel staan voluit: "Zuster Marelle" en "Jonkvrouw Elsje", niet "Zuster" en "Jonkvrouw".
+- Op de Party-tab staat géén blok *Ontdekt in <campagne>* meer; dat staat nu boven de tijdlijn in Avontuur → Logboek, met een extra rij voor het Bestiarium (die ontbrak). Klap het dicht, ga naar een ander tabblad en terug: het staat nog dicht.
+- Een categorie die helemaal ontdekt is (bijv. Documenten 14/14) krijgt een groen getal.
