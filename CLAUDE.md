@@ -104,6 +104,22 @@ opnieuw om te zetten.
 > attunement. De media zijn **kopieën uit Grisburgh** met een eigen id; daar
 > raakt dus niets zoek als je hier opruimt.
 
+> **De campagne `Test` heeft nu één speler per klasse** (17 sep 2026). Dertien
+> spelers, dertien klassen, dertien volken, verdeeld over de twee party's —
+> aangemaakt met `node scripts/test-pcs-vullen.js Test --schrijf`. De ids zijn
+> `t_pc_<klasse>`, dus in één greep terug te vinden of weg te gooien; het script
+> slaat over wat er al is, dus opnieuw draaien kan geen kwaad.
+> Bewust gevarieerd, want dat is juist wat je wil kunnen zien: **levels 1 t/m
+> 11** (vergrendelde niveaus in de tijdlijn), **twee zonder subklasse** — de
+> Warlock is level 2 en kiest pas op 3, de Artificer heeft er in de seed geen —
+> en één volk uit `volkenOverig` (Tabaxi). Nagekeken: alle dertien sheets
+> renderen (martials 4 bladen zonder spellcasting, casters 5 mét slots), een lege
+> subklasse valt weg in plaats van "Warlock ()" te worden, en de progressie van
+> een klasse zonder seed loopt niet stuk.
+> Let op: het DM-wachtwoord van `Test` is gehasht en `DEV_AUTO_DM` geldt alleen
+> de standaardcampagne — om daar lokaal als DM in te komen zet je in een
+> **wegwerpkopie** even een leesbaar `dmPassword` in `dm-state.json`.
+
 **Testgroep:** Groep 3 (ID: `groep_1777039899017_94g1`)
 
 | Karakter | ID | Klasse |
