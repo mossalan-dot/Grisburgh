@@ -118,8 +118,32 @@ kan het niet uit een sessie afleiden.
 
 ## Volgorde van bouwen
 
-1. `POST /characters/:id/level-up` (server rekent HP, schrijft de
-   administratie) + terugdraaien. Zonder scherm al bruikbaar vanuit de DM-kant.
-2. Het tegoed: DM-knop in het rustpaneel, balk op de Personage-tab.
-3. Het venster met de drie stappen.
-4. De cinematic + de tabletvariant.
+1. ~~`POST /characters/:id/level-up` + terugdraaien.~~ **Gebouwd 17 sep 2026.**
+2. ~~Het tegoed: DM-knop in het rustpaneel, balk op de Personage-tab.~~ **Gebouwd.**
+3. ~~Het venster met de drie stappen.~~ **Gebouwd.**
+4. ~~De cinematic + de tabletvariant.~~ **Gebouwd.**
+
+## Wat er tijdens het bouwen boven kwam
+
+**`_findSubclass` koos de verkeerde subklasse.** Hij deed één kale `includes` in
+beide richtingen, en "light domain" staat letterlijk in "twilight domain" — dus
+een Cleric met **Light Domain** kreeg de features van de **Twilight** Domain
+voorgeschoteld. Dat raakte niet alleen dit venster maar de hele Progressie-tab.
+Nu drie stappen, van streng naar los: precies dezelfde naam, dan de een die de
+ander als héle woorden bevat ("Wild Magic" in "Wild Magic Sorcery"), en pas dan
+los — en alleen als er precies één kandidaat is. Bij twijfel liever niets dan
+de verkeerde subklasse. Nagemeten op alle tien Grisburgh-profielen: geen enkele
+verandert van subklasse.
+
+**Wat er vanzelf meegroeit rekent de server uit**, niet de client: de slot- en
+proficiency-tabellen staan al in `routes/api.js`, en `_slotsAfgeleid()` wordt
+gewoon een tweede keer aangeroepen met dit level er alvast bij. Zo kan er geen
+tweede tabel ontstaan die van de eerste gaat afwijken.
+
+## Nog open
+
+- De keuze bij een ASI of feat wordt nog niet hier genoteerd; het venster zegt
+  dat je dat op het Progressie-tabblad doet (`featChoices`). Het zou mooier zijn
+  als je 'm meteen in dit venster invult.
+- Een level-up onthult geen nieuwe spreukniveaus in de bibliotheek; de speler
+  ziet alleen dat hij een slot erbij kreeg.

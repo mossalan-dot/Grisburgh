@@ -4242,12 +4242,39 @@ router.get('/characters/:characterId/level-up', attachRole, (req, res) => {
   const cfg = _levelupCfg(storage.readJSON('meta.json'));
   const conMod = _conMod(profile);
 
+  // Wat er vanzelf meegroeit, per klasse die het level zou kunnen krijgen.
+  // Server-side omdat de slot- en proficiency-tabellen hier al staan: de client
+  // hoeft ze niet een tweede keer te kennen.
+  const profBonus = lvl => 2 + Math.floor(Math.max(1, lvl - 1) / 4);
+  const nuLevel = parseInt(profile.level) || 0;
+  const nuSlots = _slotsAfgeleid(profile);
+
   const klassen = _levelupKlassen(profile).map(k => {
     const die = _hitDieForClass(k.klasse);
+
+    // Dezelfde afleiding, maar met dit level er alvast bij — zo hoeft er geen
+    // tweede tabel te bestaan die kan gaan afwijken.
+    const straks = _slotsAfgeleid({ ...profile, level: String(nuLevel + 1), [k.veld]: String(k.level + 1) });
+    const groeit = [];
+    for (const niveau of Object.keys(straks).map(Number).sort((a, b) => a - b)) {
+      const erbij = (straks[niveau]?.max || 0) - (nuSlots[niveau]?.max || 0);
+      if (erbij > 0) {
+        groeit.push(nuSlots[niveau]
+          ? `${erbij} spell slot${erbij === 1 ? '' : 's'} van niveau ${niveau} erbij`
+          : `Je eerste spell slot van niveau ${niveau}`);
+      }
+    }
+    if (profBonus(nuLevel + 1) > profBonus(nuLevel)) {
+      groeit.push(`Proficiency bonus naar +${profBonus(nuLevel + 1)}`);
+    }
+    if (die) groeit.push(`Een Hit Die erbij (d${die})`);
+
     return {
       ...k,
       die,
       gemiddelde: die ? Math.max(1, Math.floor(die / 2) + 1 + conMod) : null,
+      subclass: k.veld === 'multiKlasseLevel' ? (profile.multiSubclass || '') : (profile.subclass || ''),
+      groeit,
     };
   });
 
@@ -4355,6 +4382,14 @@ router.post('/characters/:characterId/level-up', attachRole, (req, res) => {
     io.to(room).emit('player:hp-updated', { characterId, current: nieuwCurrent, max: nieuweMax, temp: hp.temp ?? 0 });
     io.to(room).emit('player:profile-updated', { characterId });
     io.to(room).emit('player:level-up', { characterId, ...regel });
+    // Het tafelscherm is geen speler en kan de naam en het portret dus nergens
+    // vandaan halen — zelfde patroon als `brief:display` en `loot:display`.
+    let _p = null;
+    try { _p = (storage.readJSON('entities.json').personages || []).find(x => x.id === characterId); } catch { /* ok */ }
+    io.to(room).emit('levelup:display', {
+      characterId, naam: _p?.name || 'Iemand', thumb: _p?.data?.imageId || characterId,
+      van: regel.van, naar: regel.naar, klasse: regel.klasse, hp: regel.hp,
+    });
   }
   res.json({ ok: true, levelUp: regel, level: nieuwLevel, hp: { current: nieuwCurrent, max: nieuweMax } });
 });

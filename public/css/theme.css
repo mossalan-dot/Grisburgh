@@ -26024,3 +26024,111 @@ body.herberg-actief .herberg-scene .herberg-content {
 @media (prefers-reduced-motion: reduce) {
   .levelup-cine, .levelup-cine-kaart { transition: none; }
 }
+
+/* Wat je erbij krijgt, in het level-upvenster. */
+.lu-features { display: flex; flex-direction: column; gap: 6px; }
+.lu-features-kop {
+  font-family: 'Cinzel', serif; font-size: .8rem; letter-spacing: .06em;
+  text-transform: uppercase; color: #7a6040; margin: 8px 0 2px;
+}
+.lu-features-kop:first-child { margin-top: 0; }
+.lu-feature {
+  border: 1px solid rgba(196, 168, 122, .5); border-radius: 7px;
+  background: rgba(255, 253, 247, .55);
+}
+.lu-feature > summary {
+  display: flex; align-items: center; gap: 8px;
+  padding: 8px 11px; cursor: pointer; list-style: none;
+}
+.lu-feature > summary::-webkit-details-marker { display: none; }
+.lu-feature > summary::after {
+  content: ''; margin-left: auto; flex: 0 0 auto;
+  width: 7px; height: 7px;
+  border-right: 2px solid currentColor; border-bottom: 2px solid currentColor;
+  transform: rotate(-45deg); opacity: .45;
+  transition: transform .18s ease;
+}
+.lu-feature[open] > summary::after { transform: rotate(45deg); }
+.lu-feature-naam { font-family: 'Cinzel', serif; font-size: .95rem; color: #3a2410; }
+.lu-feature-tag {
+  font-size: .72rem; letter-spacing: .04em; text-transform: uppercase;
+  padding: 2px 7px; border-radius: 10px;
+  background: rgba(168, 131, 60, .22); color: #7a5a1a;
+}
+.lu-feature--kiest { border-color: rgba(168, 131, 60, .75); }
+.lu-feature-tekst {
+  padding: 0 11px 10px; font-size: .9rem; line-height: 1.55; color: #3a2410;
+}
+.lu-feature-tekst > :first-child { margin-top: 0; }
+.lu-groeit {
+  margin: 0; padding: 4px 0 0 20px;
+  font-size: .9rem; color: #4a7c3f; line-height: 1.7;
+}
+@media (prefers-reduced-motion: reduce) {
+  .lu-feature > summary::after { transition: none; }
+}
+
+/* ── Level omhoog op het tafelscherm ───────────────────────────────────────
+   Stapelt: wie later verzilvert schuift ernaast. Geen knop — niemand bedient
+   het tafelscherm tijdens het spelen. */
+.levelup-display {
+  position: fixed; inset: 0; z-index: 2000;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 26px;
+  background: rgba(18, 11, 4, .82);
+  opacity: 0; transition: opacity .4s ease;
+}
+.levelup-display.is-open { opacity: 1; }
+.levelup-display-kop {
+  font-family: 'Cinzel', serif; font-size: 2.2rem; letter-spacing: .1em;
+  color: #e3cfa6; text-transform: uppercase;
+  text-shadow: 0 2px 18px rgba(0, 0, 0, .7);
+}
+.levelup-display-rij {
+  display: flex; gap: 26px; flex-wrap: wrap; justify-content: center;
+  max-width: 92vw;
+}
+.levelup-display-kaart {
+  width: 208px; padding: 20px 16px 18px; text-align: center; border-radius: 14px;
+  border: 1px solid rgba(196, 168, 122, .55);
+  background: linear-gradient(160deg, #f6eeda, #e3cfa6);
+  box-shadow: 0 14px 44px rgba(0, 0, 0, .5);
+  color: #2a1a08;
+  opacity: 0; transform: translateY(18px) scale(.94);
+  transition: opacity .4s ease, transform .45s cubic-bezier(.2, .9, .3, 1.1);
+}
+.levelup-display-kaart.is-in { opacity: 1; transform: none; }
+.levelup-display-portret {
+  width: 92px; height: 92px; margin: 0 auto 10px;
+  border-radius: 50%; overflow: hidden;
+  border: 2px solid rgba(122, 90, 26, .5);
+  background: rgba(122, 90, 26, .12);
+}
+/* De initiaal ligt eronder; een portret dat laadt dekt hem af, en een portret
+   dat er niet is haalt zichzelf weg (onerror) zodat de letter blijft staan. */
+.levelup-display-portret { position: relative; }
+.levelup-display-initiaal {
+  position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+  font-family: 'Cinzel', serif; font-size: 2.4rem; color: rgba(122, 90, 26, .55);
+}
+.levelup-display-portret img {
+  position: relative; width: 100%; height: 100%; object-fit: cover;
+}
+.levelup-display-naam { font-family: 'Cinzel', serif; font-size: 1.05rem; line-height: 1.25; }
+.levelup-display-level {
+  font-family: 'Cinzel', serif; font-size: 3.2rem; font-weight: 700; line-height: 1.1;
+  color: #7a5a1a; margin-top: 4px;
+}
+.levelup-display-level span {
+  font-size: 1.2rem; font-weight: 400; opacity: .4;
+  text-decoration: line-through; margin-right: 10px; vertical-align: middle;
+}
+.levelup-display-klasse {
+  font-family: 'Cinzel', serif; font-size: .85rem; letter-spacing: .06em; opacity: .75;
+}
+.levelup-display-hp {
+  margin-top: 8px; font-family: 'Crimson Text', Georgia, serif;
+  font-size: 1.2rem; font-weight: 700; color: #4a7c3f;
+}
+@media (prefers-reduced-motion: reduce) {
+  .levelup-display, .levelup-display-kaart { transition: none; }
+}

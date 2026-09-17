@@ -186,13 +186,29 @@ function _findSpecies(prog, name) {
   }
   return null;
 }
+// Zoeken op naam in drie stappen, van streng naar los. Het was één stap — een
+// kale `includes` in beide richtingen — en die koos voor een Cleric met
+// **Light Domain** de **Twilight** Domain: "light domain" staat letterlijk in
+// "twilight domain". Zelfde val ligt klaar bij Life/Wildlife en Land/Wildland.
 function _findSubclass(classData, name) {
   if (!classData?.subclasses || !name) return null;
+  const paren = Object.entries(classData.subclasses);
   const n = _norm(name);
-  for (const [key, data] of Object.entries(classData.subclasses)) {
-    if (_norm(key) === n || n.includes(_norm(key)) || _norm(key).includes(n)) return { key, data };
+  // 1. precies dezelfde naam.
+  for (const [key, data] of paren) if (_norm(key) === n) return { key, data };
+  // 2. de een bevat de ander als héle woorden ("Wild Magic" in "Wild Magic
+  //    Sorcery"), met leestekens als spatie — zo hangt "light" niet meer in
+  //    "twilight".
+  const woorden = t => ' ' + String(t || '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim() + ' ';
+  const nw = woorden(name);
+  for (const [key, data] of paren) {
+    const kw = woorden(key);
+    if (kw.includes(nw) || nw.includes(kw)) return { key, data };
   }
-  return null;
+  // 3. pas dan los, en alleen als er precies één kandidaat is: bij twijfel
+  //    liever niets dan de verkeerde subklasse.
+  const los = paren.filter(([key]) => n.includes(_norm(key)) || _norm(key).includes(n));
+  return los.length === 1 ? { key: los[0][0], data: los[0][1] } : null;
 }
 function _featuresForLevel(prog, classData, subclass, level) {
   const out = [];
@@ -770,6 +786,39 @@ function _geenTekstBlok(naam) {
 // Hij haalt ze hier op en niet zelf bij de API, zodat er maar één plek is die
 // weet waar een beschrijving vandaan komt: eerst wat de DM zelf schreef, dan
 // de SRD, en anders niets (`geenTekst`, waarop de app naar buiten verwijst).
+// Wat één level van één klasse ontsluit — met de tekst er al bij gezocht.
+// Hier en niet in app.js, omdat dit bestand de enige plek is die weet waar een
+// beschrijving vandaan komt (eigen tekst, SRD, of nergens en dan de verwijzing).
+// Drie soorten, want ze vragen iets anders van de speler: iets dat je krijgt,
+// iets dat je moet kiezen, en iets dat vanzelf meegroeit (dat laatste rekent de
+// server uit, want daar staan de slot- en proficiency-tabellen).
+export async function levelupFeatures(klasse, subclassNaam, level) {
+  const bron = await naslagBron();
+  const cls = _findClass(bron.prog, klasse);
+  if (!cls) return { krijgt: [], kiest: [] };
+  const subclass = _findSubclass(cls.data, subclassNaam);
+  const krijgt = [], kiest = [];
+
+  for (const f of _featuresForLevel(bron.prog, cls.data, subclass, parseInt(level) || 1)) {
+    const desc = f.desc || _srdDesc(f.name, f._kind === 'sub' && subclass ? subclass.key : cls.key) || '';
+    const regel = {
+      naam: f._kind === 'sub' && subclass ? `${f.name} (${subclass.key})` : f.name,
+      html: desc ? _md(desc) : _geenTekstBlok(f.name),
+      soort: f._kind === 'sub' ? 'subclass' : (f._kind || 'class'),
+    };
+    // Een ASI, een Epic Boon of de subklassekeuze zelf zijn geen cadeautjes
+    // maar vragen: die horen apart te staan, anders scrolt de speler eroverheen.
+    if (f._kind === 'shared' || f._kind === 'subclass') {
+      kiest.push({ ...regel, html: f._kind === 'subclass' && !subclass
+        ? '<p>Kies je subklasse — dat doe je op het Progressie-tabblad.</p>'
+        : regel.html });
+    } else {
+      krijgt.push(regel);
+    }
+  }
+  return { krijgt, kiest };
+}
+
 export async function naslagBron() {
   const [prog] = await Promise.all([api.progression(), _loadSrd(), _loadBackgrounds(), _loadFeatLib()]);
   // Een **lege** lijst is geen keuze maar een restant: schrijft de DM één eigen

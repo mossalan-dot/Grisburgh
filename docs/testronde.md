@@ -765,3 +765,7 @@ Per bevinding: waar, wat, en of het opgelost is. Nieuwe regels onderaan.
 - Kies *Gemiddelde* en ga omhoog: de omslag toont het oude level doorgestreept, het nieuwe groot, de klasse en "+N HP" met waar dat getal vandaan komt. Level, klasselevel, HP-maximum én huidige HP gaan omhoog (je bent niet ineens gewond).
 - Zonder tegoed komt de speler er niet doorheen (409); de DM mag altijd.
 - DM draait terug (`POST /api/characters/:id/level-up/undo`): level, klasselevel en HP staan weer op de oude stand en de regel is uit de geschiedenis. Bij een multiclass pakt het terugdraaien dezelfde klassehelft.
+- Het level-upvenster toont onder *Wat krijg je erbij?* drie groepjes: wat je zelf kiest (ASI, subklasse), wat je krijgt (class features, met tekst of een verwijzing naar buiten) en wat vanzelf meegroeit (spell slots, proficiency bonus, een Hit Die). Klik een feature open en de beschrijving staat eronder.
+- Bij een multiclass: wissel van klasse in stap 1; de features en de hit die veranderen mee (Wizard toont d6, Cleric d8) en het level dat geteld wordt is dat van díé klasse.
+- Zet een Cleric op subklasse *Light Domain*: de Progressie-tab en het level-upvenster tonen Light Domain, niet Twilight Domain.
+- Zet een scherm op tafelmodus en laat een speler omhoog gaan: er verschijnt een paneel met zijn portret (of initiaal), oud → nieuw level, klasse en +N HP. Gaat er een tweede speler omhoog, dan schuift die ernaast in plaats van het paneel te vervangen; na een halve minuut zonder nieuwe gaat het dicht.

@@ -655,6 +655,10 @@ function _ververOpenKaartje(id) {
   socket.on('loot:display', (data = {}) => {
     if (window._isDisplayMode) window._lootCinematic?.(data);
   });
+  // Alleen het tafelscherm: de speler ziet zijn eigen omslag al in zijn browser.
+  socket.on('levelup:display', (data = {}) => {
+    if (window._isDisplayMode) window._levelUpDisplay?.(data);
+  });
   socket.on('loot:claim-update', ({ itemId, claimCount } = {}) => {
     if (window.app?.isDM?.()) { window.dmPanel?.refreshLoot?.(); return; }
     window._renderPlayerLoot?.();

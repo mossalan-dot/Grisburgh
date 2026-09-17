@@ -4,12 +4,12 @@ import { initArchief, renderLogboek, openLogboekEditor } from "./render-archief.
 import { renderKaart, queueFlyTo, verversPins, nieuweKaart } from './render-kaart.js?v=31';
 import { renderDungeon } from './render-dungeon.js?v=55';
 import { renderRelatiemap } from './render-relatiemap.js?v=26';
-import { renderProgressie } from './render-progressie.js?v=49';
+import { renderProgressie, levelupFeatures } from './render-progressie.js?v=51';
 import { renderBestiarium } from './render-bestiarium.js?v=30';
 import { renderSpreuken } from './render-spreuken.js?v=40';
 import { renderVaardigheden } from './render-vaardigheden.js?v=7';
 import { renderStatblock } from './render-statblock.js?v=9';
-import { initSocket } from "./socket-client.js?v=73";
+import { initSocket } from "./socket-client.js?v=74";
 import { initDmPanel } from "./dm-panel.js?v=256";
 import { COND_INFO, COND_LABEL, COND_MET_PLAATJE } from './conditions.js?v=1';
 import './media-picker.js?v=8';
@@ -6993,11 +6993,55 @@ function _levelUpTeken() {
         </div>` : ''}
     </div>
 
+    <div class="lu-stap">
+      <div class="lu-stap-kop">Wat krijg je erbij?</div>
+      <div id="lu-features" class="lu-features"><p class="lu-uitleg">Even opzoeken…</p></div>
+    </div>
+
     <div class="lu-acties">
       <button class="dm-btn dm-btn-primary" onclick="window._luDoen()">${icon('sparkles')} Level omhoog</button>
       <button class="dm-btn dm-btn-ghost" onclick="window.app.closeModal()">Later</button>
     </div>
     <div id="lu-melding" class="lu-melding"></div>`;
+
+  _luFeaturesTonen(klasse, st.level + 1);
+}
+
+// De features van het nieuwe level, opgehaald terwijl het venster al staat —
+// de progressiedata is een paar honderd kB en die wil je niet afwachten voordat
+// de speler zijn HP kan kiezen.
+async function _luFeaturesTonen(klasse, nieuwLevel) {
+  const el = document.getElementById('lu-features');
+  if (!el) return;
+  // Het level ván die klasse, niet het totaal: een Wizard 3 in een multiclass
+  // krijgt de features van Wizard 4, niet die van level 9.
+  const klasseLevel = (klasse.level || 0) + 1;
+  let f;
+  try { f = await levelupFeatures(klasse.klasse, klasse.subclass, klasseLevel); }
+  catch { f = null; }
+  if (!document.getElementById('lu-features')) return;   // venster is dicht
+
+  const kaart = (r, soort) => `
+    <details class="lu-feature lu-feature--${soort}">
+      <summary>
+        <span class="lu-feature-naam">${esc(r.naam)}</span>
+        ${soort === 'kiest' ? '<span class="lu-feature-tag">te kiezen</span>' : ''}
+      </summary>
+      <div class="lu-feature-tekst">${r.html}</div>
+    </details>`;
+
+  const groeit = (klasse.groeit || []).map(g => `<li>${esc(g)}</li>`).join('');
+  const niets = !f || (!f.krijgt.length && !f.kiest.length);
+
+  el.innerHTML = `
+    ${f?.kiest?.length ? `<div class="lu-features-kop">Dit kies je zelf</div>
+      ${f.kiest.map(r => kaart(r, 'kiest')).join('')}` : ''}
+    ${f?.krijgt?.length ? `<div class="lu-features-kop">Dit krijg je</div>
+      ${f.krijgt.map(r => kaart(r, 'krijgt')).join('')}` : ''}
+    ${groeit ? `<div class="lu-features-kop">Dit groeit vanzelf mee</div>
+      <ul class="lu-groeit">${groeit}</ul>` : ''}
+    ${niets && !groeit ? '<p class="lu-uitleg">Op dit level staat er in de progressie niets nieuws voor deze klasse.</p>' : ''}
+    ${f?.kiest?.length ? '<p class="lu-uitleg">Wat je kiest noteer je op het Progressie-tabblad, bij dit level.</p>' : ''}`;
 }
 
 window._luKies = function (veld, waarde) {
@@ -7052,6 +7096,50 @@ function _levelUpCinematic(lu) {
   ov.querySelector('button').onclick = sluit;
   ov.onclick = ev => { if (ev.target === ov) sluit(); };
 }
+
+// Op het tafelscherm. Spelers verzilveren hun level-up niet tegelijk — de een
+// kiest een worp, de ander leest eerst wat hij krijgt — dus dit stapelt: het
+// eerste portret opent het paneel, wie erna komt schuift ernaast, en pas als er
+// een halve minuut niemand meer bijkomt gaat het dicht.
+let _luDisplayTimer = null;
+window._levelUpDisplay = function (d) {
+  if (!d?.characterId) return;
+  let ov = document.getElementById('levelup-display');
+  if (!ov) {
+    ov = document.createElement('div');
+    ov.id = 'levelup-display';
+    ov.className = 'levelup-display';
+    ov.innerHTML = '<div class="levelup-display-kop">Een level omhoog</div><div class="levelup-display-rij"></div>';
+    document.body.appendChild(ov);
+    void ov.offsetWidth;          // geen rAF: die staat stil in een achtergrondtab
+    ov.classList.add('is-open');
+  }
+  const rij = ov.querySelector('.levelup-display-rij');
+  // Twee keer klikken mag geen twee portretten geven.
+  rij.querySelector(`[data-char="${d.characterId}"]`)?.remove();
+
+  const kaart = document.createElement('div');
+  kaart.className = 'levelup-display-kaart';
+  kaart.dataset.char = d.characterId;
+  kaart.innerHTML = `
+    <div class="levelup-display-portret">
+      <span class="levelup-display-initiaal">${esc((d.naam || '?').trim().charAt(0).toUpperCase())}</span>
+      <img src="${api.thumbUrl(d.thumb)}" alt="" onerror="this.remove()">
+    </div>
+    <div class="levelup-display-naam">${esc(d.naam)}</div>
+    <div class="levelup-display-level"><span>${d.van}</span>${d.naar}</div>
+    <div class="levelup-display-klasse">${esc(d.klasse || '')}</div>
+    <div class="levelup-display-hp">+${d.hp} HP</div>`;
+  rij.appendChild(kaart);
+  void kaart.offsetWidth;
+  kaart.classList.add('is-in');
+
+  clearTimeout(_luDisplayTimer);
+  _luDisplayTimer = setTimeout(() => {
+    ov.classList.remove('is-open');
+    setTimeout(() => ov.remove(), 400);
+  }, 30000);
+};
 
 // Sleutel per sectie: de kop, genormaliseerd. Stabiel genoeg (ook voor
 // "Aanzien bij <factie>", dat per factie zijn eigen stand houdt) en leesbaar
