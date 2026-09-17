@@ -25817,3 +25817,64 @@ body.herberg-actief .herberg-scene .herberg-content {
   .player-subtab { font-size: 10px; padding: 7px 9px; gap: 4px; }
   .player-subtab:not(.active) .pst-label { display: none; }
 }
+
+/* ── Het spreukenboek: de plaat ligt ín het blad ───────────────────────────
+   De illustratie stond op `inset: 0` met `object-fit: cover` en vulde de volle
+   450 px van de linkerpagina — dat leest als een poster, niet als een blad uit
+   een handschrift. Nu ligt hij als ingelijste plaat op de pagina, met perkament
+   eromheen: bovenaan ruimte voor het incantatievers (top 16), onderaan voor de
+   school, het niveau, het lakzegel en de Save DC (bottom 14–40).
+   Onderaan de stylesheet, want .sb-left-img staat op regel 18174. */
+.sb-left-img {
+  /* Let op: een `<img>` is een *vervangen* element. Alleen vier inset-waarden
+     rekken hem niet op — met `width:auto` valt hij terug op zijn eigen
+     afmeting en wordt `right` genegeerd. Vandaar expliciet rekenen. */
+  top: 42px;
+  left: 26px;
+  right: auto;
+  bottom: auto;
+  width:  calc(100% - 52px);
+  height: calc(100% - 100px);
+  opacity: 0.62;
+  border-radius: 2px;
+  /* Een dunne gouden lijst met een donkere binnenrand: de plaat zit in het
+     papier in plaats van erop te zweven. */
+  box-shadow:
+    0 0 0 1px rgba(214,182,110,0.55),
+    0 0 0 4px rgba(20,12,4,0.45),
+    inset 0 0 26px rgba(10,6,2,0.55),
+    0 6px 20px rgba(0,0,0,0.5);
+}
+
+/* ── Papiervezel op beide bladzijden ──────────────────────────────────────
+   Allebei de pagina's waren opgebouwd uit gradiënten; die zijn volmaakt glad en
+   dat verraadt zich. Dezelfde kruisarcering als de perkamenttextuur van de app
+   (body::before), dus geen nieuw bestand en hetzelfde weefsel als de rest. */
+.sb-page-left::after,
+.sb-page-right::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 4;
+  background-image:
+    repeating-linear-gradient(-38deg,
+      transparent 0px, transparent 6px,
+      rgba(130, 90, 30, 0.05) 6px, rgba(130, 90, 30, 0.05) 7px),
+    repeating-linear-gradient(52deg,
+      transparent 0px, transparent 5px,
+      rgba(110, 75, 25, 0.035) 5px, rgba(110, 75, 25, 0.035) 6px);
+}
+/* De linkerpagina had hier al een lichtval staan; die houden we erbij. */
+.sb-page-left::after {
+  background-color: transparent;
+  background-image:
+    linear-gradient(160deg, rgba(255,255,255,0.06) 0%, transparent 60%),
+    repeating-linear-gradient(-38deg,
+      transparent 0px, transparent 6px,
+      rgba(255, 245, 220, 0.03) 6px, rgba(255, 245, 220, 0.03) 7px),
+    repeating-linear-gradient(52deg,
+      transparent 0px, transparent 5px,
+      rgba(255, 245, 220, 0.022) 5px, rgba(255, 245, 220, 0.022) 6px);
+  z-index: 0;
+}

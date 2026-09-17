@@ -1159,6 +1159,20 @@ dm-panel.js : combat-canvas.js?v=22   render-statblock.js?v=9
 > gelijke specificiteit wint de laatste regel, en `.balk { display:flex }` overrulde anders
 > `.geenprint { display:none }`.
 
+> **Het spreukenboek: de plaat ligt ín het blad.** De illustratie stond op
+> `inset: 0` met `object-fit: cover` en vulde de volle halve pagina — dat leest
+> als een poster, niet als een blad uit een handschrift. Nu ligt hij ingelijst
+> met perkament eromheen (marge 26 opzij, 42 boven, 58 onder: ruimte voor het
+> incantatievers bovenaan en voor school, niveau, lakzegel en Save DC onderaan).
+> **Valkuil:** een `<img>` is een *vervangen* element — vier inset-waarden rekken
+> hem niet op, want met `width:auto` valt hij terug op zijn eigen afmeting en
+> wordt `right` genegeerd. Vandaar `calc(100% - 52px)` in plaats van `inset`.
+> Beide bladzijden kregen daarnaast de **kruisarcering** van `body::before`:
+> ze bestonden alleen uit gradiënten, en die zijn volmaakt glad.
+> Wat er al wél was en dus níét hoefde: de vouwschaduw bij de rug staat als
+> `.sb-page-left::before` (30 px, tot `rgba(0,0,0,0.95)`) — niet als box-shadow,
+> dus een zoektocht op `box-shadow` mist hem.
+
 > **Glossary/hover-uitleg:** geen los `glossary.js`-bestand (die revert staat hieronder). De
 > hover-uitleg van D&D-termen leeft **inline in app.js**: `_SB_GLOSSARY` (termen + tips),
 > `_sbApplyGlossary_DOM()` (wrapt termen in `.sb-gloss`-spans) en een globale tooltip-handler

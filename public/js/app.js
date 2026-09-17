@@ -5413,7 +5413,9 @@ function _sbRender() {
   // ── Left: uploaded image ──
   const imgEl = document.getElementById('sb-left-img');
   if (imgEl) {
-    const imgSrc = `/api/files/spell-img-${spell.index}`;
+    // Thumbnail: deze plaat is 398 px breed in beeld, geen reden om het
+    // origineel te halen (zie de beeldronde van 15 sep).
+    const imgSrc = `/api/thumb/spell-img-${spell.index}`;
     imgEl.src = imgSrc;
     // Focuspunt (object-position) overnemen uit meta — gedeeld met het Spreuken-tabblad.
     const _spFocus = state.meta?.spellImageFocus?.[spell.index];
