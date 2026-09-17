@@ -6819,6 +6819,29 @@ async function renderMijnKarakter(opts = {}) {
   // Wacht op wikilink-naamindex zodat beschrijvingen in knapzak correct renderen
   await (window._entityIndexReady || Promise.resolve()).catch(() => {});
 
+  // ── Heeft dit personage iets met spreuken? ───────────────────────────────
+  // Een Fighter zag een Spreukenboek-tab die alleen "Nog geen spreukenslots
+  // ingesteld" zei. Verbergen op **klasse** alleen zou te grof zijn: een Elf met
+  // Magic Initiate, een Eldritch Knight of iemand die via een feat of een scroll
+  // aan een spreuk komt, hoort zijn boek gewoon te zien — en dat zijn in 5e geen
+  // uitzonderingen maar de regel (zelfde redenering als bij het níét automatisch
+  // afwijzen van een spreukverzoek).
+  // Dus: de klasse kán spreuken krijgen, óf er ís al iets magisch. Dat tweede
+  // vangt alle randgevallen zonder dat we ze hoeven op te sommen.
+  const _CASTER_KLASSEN = new Set(['Artificer', 'Bard', 'Cleric', 'Druid', 'Paladin',
+                                   'Ranger', 'Sorcerer', 'Warlock', 'Wizard']);
+  const _heeftMagie =
+       (pinnedSpells || []).length > 0
+    || Object.values(spellSlots || {}).some(sl => (sl?.max || 0) > 0)
+    || String(playerProfile.spellSaveDC || '').trim() !== ''
+    || _CASTER_KLASSEN.has(String(playerProfile.klasse || '').trim())
+    || _CASTER_KLASSEN.has(String(playerProfile.multiKlasse || '').trim());
+
+  // Stond de speler op het spreukenboek en heeft hij dat nu niet meer (ander
+  // personage, of de DM haalde zijn laatste spreuk weg), dan valt hij terug —
+  // anders kijkt hij naar een lege sectie zonder tab om op te klikken.
+  if (_playerSubTab === 'spreukenboek' && !_heeftMagie) _playerSubTab = 'personage';
+
   // Preload spellbook state (used by _openSpellbook and auto-open)
   _sbState.spells           = [...pinnedSpells].sort((a, b) => a.level - b.level || a.name.localeCompare(b.name));
   _sbState.favs             = new Set((() => { try { return JSON.parse(playerProfile.spellFavorites || '[]'); } catch { return []; } })());
@@ -7113,7 +7136,7 @@ async function renderMijnKarakter(opts = {}) {
           data-tab="knapzak" title="Boedel" onclick="window._setPlayerSubTab('knapzak')">${icon('backpack')}<span class="pst-label">Boedel</span>${(lootData?.actief && lootData.deelnemers?.includes(charId)) ? '<span class="player-loot-badge" id="loot-tab-badge"></span>' : ''}</button>
         ${window._spelerTabAan('progressie') ? `<button class="player-subtab${_playerSubTab === 'progressie' ? ' active' : ''}"
           data-tab="progressie" title="Progressie" onclick="window._setPlayerSubTab('progressie')">${icon('clipboard-list')}<span class="pst-label">Progressie</span></button>` : ''}
-        ${window._spelerTabAan('spreukenboek') ? `<button class="player-subtab${_playerSubTab === 'spreukenboek' ? ' active' : ''}"
+        ${window._spelerTabAan('spreukenboek') && _heeftMagie ? `<button class="player-subtab${_playerSubTab === 'spreukenboek' ? ' active' : ''}"
           data-tab="spreukenboek" title="Spreukenboek" onclick="window._setPlayerSubTab('spreukenboek')">${icon('sparkles')}<span class="pst-label">Spreukenboek</span></button>` : ''}
         ${window._spelerTabAan('berichten') ? `<button class="player-subtab${_playerSubTab === 'berichten' ? ' active' : ''}"
           data-tab="berichten" title="Berichten" onclick="window._setPlayerSubTab('berichten')">${icon('message-circle')}<span class="pst-label">Berichten</span>${window._berichtenUnread ? ` <span class="bericht-badge">${window._berichtenUnread}</span>` : ''}</button>` : ''}

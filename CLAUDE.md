@@ -2411,6 +2411,21 @@ Berichten) als referentie.
 
 ## Spelerstabblad — subtabs
 
+> **Het Spreukenboek verschijnt op data, niet op klasse.** Een Fighter zag een
+> tab die alleen "Nog geen spreukenslots ingesteld" zei. Verbergen op **klasse**
+> alleen zou te grof zijn: een Elf met Magic Initiate, een Eldritch Knight of
+> iemand die via een feat of een scroll aan een spreuk komt hoort zijn boek
+> gewoon te zien — en dat zijn in 5e geen uitzonderingen maar de regel (zelfde
+> redenering als bij het níét automatisch afwijzen van een spreukverzoek).
+> De tab staat er dus als **de klasse spreuken kán krijgen óf er ís al iets
+> magisch**: een spreuk in het boek, een slot met `max > 0`, of een ingevulde
+> Spell Save DC. Dat tweede vangt elk randgeval zonder dat we ze hoeven op te
+> sommen. Stond de speler op het spreukenboek en heeft hij het niet meer, dan
+> valt `_playerSubTab` terug op `personage` — anders kijkt hij naar een lege
+> sectie zonder tab om op te klikken.
+
+
+
 Volgorde: **Party → Personage → Boedel → Progressie → Spreukenboek → Berichten**
 
 Lazy rendering: subtab-panels worden pas gevuld als de tab actief wordt (via `_setPlayerSubTab`).
