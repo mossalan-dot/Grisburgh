@@ -10,7 +10,7 @@ import { renderSpreuken } from './render-spreuken.js?v=41';
 import { renderVaardigheden, zoekVaardigheden } from './render-vaardigheden.js?v=8';
 import { renderStatblock } from './render-statblock.js?v=9';
 import { initSocket } from "./socket-client.js?v=75";
-import { initDmPanel } from "./dm-panel.js?v=264";
+import { initDmPanel } from "./dm-panel.js?v=266";
 import { COND_INFO, COND_LABEL, COND_MET_PLAATJE, COND_ICON } from './conditions.js?v=2';
 import './media-picker.js?v=8';
 
@@ -7115,7 +7115,7 @@ function _levelUpTeken() {
       : `Vul in wat je d${klasse.die} gaf; ${st.conMod >= 0 ? '+' : ''}${st.conMod} CON komt erbij. Minimaal 1 HP.`;
 
   body.innerHTML = `
-    ${meer ? `
+    ${(meer || st.kanMulticlassen) ? `
     <div class="lu-stap">
       <div class="lu-stap-kop">Welke klasse krijgt dit level?</div>
       <div class="lu-keuzes">
@@ -7125,6 +7125,15 @@ function _levelUpTeken() {
             <strong>${esc(x.klasse)}</strong>
             <span>${x.level} → ${x.level + 1} · d${x.die}</span>
           </button>`).join('')}
+        ${st.kanMulticlassen ? (st.multiclassVerzoek
+          ? `<div class="lu-keuze lu-keuze--wacht">
+               <strong>${icon('hourglass')} ${esc(st.multiclassVerzoek.klasse)}</strong>
+               <span>gevraagd — wacht op de DM</span>
+             </div>`
+          : `<button class="lu-keuze lu-keuze--nieuw" onclick="window._luMulticlassOpen()">
+               <strong>${icon('plus')} Een klasse erbij</strong>
+               <span>multiclassen — gaat langs de DM</span>
+             </button>`) : ''}
       </div>
     </div>` : ''}
 
@@ -7198,6 +7207,44 @@ async function _luFeaturesTonen(klasse, nieuwLevel, species) {
     ${niets && !groeit ? '<p class="lu-uitleg">Op dit level staat er in de progressie niets nieuws voor deze klasse.</p>' : ''}
     ${f?.kiest?.length ? '<p class="lu-uitleg">Wat je kiest noteer je op het Progressie-tabblad, bij dit level.</p>' : ''}`;
 }
+
+// Een klasse erbij beginnen. Bewust een verzoek en geen invoerveld:
+// multiclassen is een tafelbesluit — het verandert wat je personage ís, en de
+// DM hoort daar ja tegen te zeggen. Zelfde weg als een spreukverzoek, inclusief
+// de voorrekening: de eisen staan erbij, maar ze blokkeren niets. De
+// uitzonderingen zijn in 5e eerder regel dan uitzondering (een feat die een
+// score optrekt, een campagne die de eis laat vallen), en een weigering die
+// soms fout zit ga je wantrouwen.
+window._luMulticlassOpen = function () {
+  const st = window._luStand;
+  if (!st) return;
+  const opties = st.multiclassOpties || [];
+  const kan = opties.filter(o => o.voldoet);
+  const rest = opties.filter(o => !o.voldoet);
+  const rij = (o) => `
+    <button class="lu-mc-rij${o.voldoet ? '' : ' lu-mc-rij--krap'}"
+      onclick="window._luMulticlassVraag('${esc(o.klasse)}')">
+      <span class="lu-mc-naam">${esc(o.klasse)}</span>
+      <span class="lu-mc-eis">${esc(o.tekst)}</span>
+    </button>`;
+  window.app.openModal('Een klasse erbij', '', `
+    <div class="dm-feature-section" style="margin:0">
+      <p class="lu-uitleg">Je vraagt het aan; de DM beslist. De eisen staan erbij als aantekening — ze houden je niet tegen.</p>
+      ${kan.length ? `<div class="dm-section-label">Je voldoet aan de eis</div>${kan.map(rij).join('')}` : ''}
+      ${rest.length ? `<div class="dm-section-label">Nog niet aan de eis</div>${rest.map(rij).join('')}` : ''}
+      ${!opties.length ? '<p class="dm-hint">Er is geen klasse om bij te beginnen.</p>' : ''}
+    </div>`);
+};
+
+window._luMulticlassVraag = async function (klasse) {
+  try {
+    await api.post(`/characters/${window._lastCharId}/multiclass-verzoek`, { klasse });
+  } catch (e) { alert(e.message || 'Aanvragen mislukt'); return; }
+  window.app.closeModal();
+  window._showToast?.(`${klasse} aangevraagd bij de DM.`);
+  // Het venster opnieuw ophalen: daar staat nu "wacht op de DM".
+  window._levelUpOpen();
+};
 
 window._luKies = function (veld, waarde) {
   window._luKeuze[veld] = waarde;

@@ -38,6 +38,10 @@ export const REGIE_BLOKKEN = {
   muziek:    { label: 'Muziek',    icon: 'music',          hint: 'Een nummer of afspeellijst via Spotify' },
   brief:     { label: 'Brief',     icon: 'mail',           hint: 'Een brief die je hier verstuurt' },
   check:     { label: 'Check',     icon: 'target',         hint: 'Een DC als aantekening — geen mechaniek' },
+  // Een level-up hoort meestal bij een plek in het verhaal — het einde van een
+  // beproeving, de terugkeer in de stad. Dan wil je 'm daar kunnen geven en
+  // niet eerst naar het rustpaneel.
+  levelup:   { label: 'Level omhoog', icon: 'sparkles',    hint: 'Zet voor de hele party een level-up klaar' },
 };
 
 // ── Staat ────────────────────────────────────────────────────────────────────
@@ -418,6 +422,7 @@ function _blokActie(soort, kop, body) {
   if (soort === 'buit')      return knop('onthulBuit', 'Onthullen', 'vault');
   if (soort === 'kaart')     return knop('openKaart', 'Openen', 'castle');
   if (soort === 'rust')      return knop('startRust', 'Rust starten', 'moon');
+  if (soort === 'levelup')   return knop('geefLevelUp', 'Klaarzetten', 'sparkles');
   if (soort === 'kamer')     return knop('onthulKamer', 'Onthullen', 'eye');
   if (soort === 'muziek')    return knop('startMuziek', 'Afspelen', 'play');
   if (soort === 'brief') {
@@ -590,6 +595,7 @@ const INVOEG_MENU = [
     { id: 'brief',     label: 'Brief',         icon: 'mail',        toets: 'R', hint: 'Een brief die je hier verstuurt' },
     { id: 'muziek',    label: 'Muziek',        icon: 'music',       toets: 'M', hint: 'Een nummer of afspeellijst' },
     { id: 'rust',      label: 'Rust',          icon: 'moon',        toets: 'E', hint: 'Lange of korte rust' },
+    { id: 'levelup',   label: 'Level omhoog',  icon: 'sparkles',    toets: 'O', hint: 'Zet voor de hele party een level-up klaar' },
   ]},
 ];
 const _INVOEG_OP_TOETS = {};
@@ -935,6 +941,7 @@ window.akteSchrijven = {
     if (soort === 'dm')        return _voegIn(_blokTekst('dm', '', 'Alleen voor jou…'), { blok: true });
     if (soort === 'check')     return _voegIn(_blokTekst('check', 'DC 14 Perception'), { blok: true });
     if (soort === 'rust')      return _voegIn(_blokTekst('rust', 'lang · herberg'), { blok: true });
+    if (soort === 'levelup')   return _voegIn(_blokTekst('levelup'), { blok: true });
     if (soort === 'muziek')    return _voegIn(_blokTekst('muziek', 'spotify:playlist:… of de naam van een nummer'), { blok: true });
     if (soort === 'brief')     return _voegIn(_blokTekst('brief', 'Onderwerp van de brief', 'Beste avonturiers,\n\n…'), { blok: true });
     if (soort === 'kamer') {
@@ -1265,6 +1272,22 @@ window.akteSchrijven = {
     const k = _vindOpNaam(kaarten, naam);
     if (!k) return _geenTreffer(btn, `Geen kaart "${naam}" gevonden`);
     window._openKaartFullscreen?.('dungeon', k.id);
+  },
+
+  // Gunnen, niet uitvoeren: elke aanwezige speler krijgt een level-up
+  // klaargezet en kiest zelf zijn HP. Dezelfde route als de knop in het
+  // rustpaneel — één plek waar dit echt gebeurt.
+  async geefLevelUp(kop, btn) {
+    if (!confirm('Voor iedereen die vanavond meedoet een level-up klaarzetten?')) return;
+    if (btn) btn.disabled = true;
+    try {
+      const r = await api.post('/party/level-up-tegoed', { aantal: 1 });
+      if (btn) { btn.innerHTML = `${icon('check')} Klaargezet`; btn.classList.add('is-klaar'); }
+      window._showToast?.(`Level-up klaargezet voor ${r.spelers?.length || 0} speler(s).`);
+    } catch (e) {
+      if (btn) btn.disabled = false;
+      alert('Klaarzetten mislukt: ' + (e.message || '?'));
+    }
   },
 
   startRust(kop, btn) {

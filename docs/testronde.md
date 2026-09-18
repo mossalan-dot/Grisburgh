@@ -823,3 +823,14 @@ Per bevinding: waar, wat, en of het opgelost is. Nieuwe regels onderaan.
 - Zet in je systeem "verminder beweging" aan: je krijgt hetzelfde tafereel zonder animatie.
 - Voeg in het schrijfscherm een beeld in: hij vraagt meteen om een bijschrift. Dat komt als `![[id|Bijschrift]]` in de tekst, staat cursief onder het beeld, en gaat mee naar het logboek en naar de speler zodra je op *Toon aan spelers* drukt. Leeg laten mag; dan is er geen onderschrift.
 - Pas een bijschrift in de aktetekst aan en toon het beeld opnieuw: het logboek volgt. De akte is de bron.
+
+### Multiclassen bij een level-up (18 sep 2026)
+
+- Open het level-upvenster met één klasse: naast je eigen klasse staat **Een klasse erbij**. Klikken toont alle klassen in twee groepen — waar je aan de eis voldoet en waar niet — met per klasse voorgerekend wat er gevraagd wordt en wat je hebt.
+- Een Wizard met INT 17 en DEX 14 voldoet aan Fighter (STR 13 **of** DEX 13) en Rogue (DEX 13), niet aan Cleric (WIS 13). De "of" van de Fighter moet echt als "of" tellen.
+- Vraag een klasse aan waar je *niet* aan voldoet: dat mag. De eis is een aantekening, geen poort — de DM beslist.
+- Tweede verzoek naast een openstaand verzoek wordt geweigerd, en je eigen klasse aanvragen ook.
+- Meesterkamer → **Vragen**: het verzoek staat er met de voorrekening eronder. Goedkeuren zet de klasse op het profiel met level 0; pas bij de volgende level-up kies je 'm en krijgt hij zijn eerste level.
+- Level daarna die tweede klasse: de HP komt uit *zijn* hit die (een Rogue een d8, ook als je hoofdklasse een d6 heeft) en alleen dat klasselevel loopt op.
+- Met twee klassen verdwijnt *Een klasse erbij*: een derde kan het datamodel niet bijhouden.
+- De DM kan een level-up ook geven vanuit de akte: regieblok **Level omhoog** (Alt+O) in de tekst, en een *Level*-knop in de regie-balk. Beide zetten het klaar voor iedereen die vanavond meedoet; de spelers kiezen zelf hun HP.

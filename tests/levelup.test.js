@@ -264,6 +264,60 @@ describe('Level omhoog', () => {
     await req(server, 'POST', `/api/characters/${charId}/level-up/undo`, {}, dm);
   });
 
+  it('rekent de multiclass-eisen voor zonder ze af te dwingen', async () => {
+    // Wizard met INT 17 en DEX 14: Rogue mag (DEX 13), Cleric niet (WIS 13).
+    await req(server, 'PATCH', `/api/player-profile/${charId}`,
+      { klasse: 'Wizard', level: '5', klasseLevel: '5', multiclass: '', multiKlasse: '',
+        int: '17', dex: '14', wis: '10', str: '8', cha: '10', con: '14' }, dm);
+    const st = (await req(server, 'GET', `/api/characters/${charId}/level-up`, null, dm)).body;
+    assert.strictEqual(st.kanMulticlassen, true);
+    const rogue  = st.multiclassOpties.find(o => o.klasse === 'Rogue');
+    const cleric = st.multiclassOpties.find(o => o.klasse === 'Cleric');
+    assert.ok(rogue,  'Rogue hoort in de lijst te staan');
+    assert.strictEqual(rogue.voldoet, true,  'DEX 14 haalt de Rogue-eis: ' + rogue.tekst);
+    assert.strictEqual(cleric.voldoet, false, 'WIS 10 haalt de Cleric-eis niet: ' + cleric.tekst);
+    // Fighter is de lastige: STR 13 **of** DEX 13.
+    const fighter = st.multiclassOpties.find(o => o.klasse === 'Fighter');
+    assert.strictEqual(fighter.voldoet, true, 'STR 8 maar DEX 14 — de "of" moet tellen: ' + fighter.tekst);
+    // Je eigen klasse staat er niet bij.
+    assert.ok(!st.multiclassOpties.some(o => o.klasse === 'Wizard'));
+  });
+
+  it('laat multiclassen langs de DM lopen, ook als de eis niet gehaald wordt', async () => {
+    // Bewust een klasse waar hij níét aan voldoet: voorrekenen is geen poort.
+    const v = await req(server, 'POST', `/api/characters/${charId}/multiclass-verzoek`,
+      { klasse: 'Cleric' }, speler);
+    assert.strictEqual(v.status, 201, JSON.stringify(v.body));
+    assert.strictEqual(v.body.verzoek.context.voldoet, false);
+
+    // Twee keer vragen kan niet.
+    const nog = await req(server, 'POST', `/api/characters/${charId}/multiclass-verzoek`,
+      { klasse: 'Rogue' }, speler);
+    assert.strictEqual(nog.status, 409);
+
+    // De DM ziet het en keurt goed; pas dán staat de klasse op het profiel.
+    const lijst = (await req(server, 'GET', '/api/multiclass-verzoeken', null, dm)).body;
+    assert.strictEqual(lijst.verzoeken.length, 1);
+    const ok = await req(server, 'POST', `/api/multiclass-verzoek/${v.body.verzoek.id}/approve`, {}, dm);
+    assert.strictEqual(ok.status, 200, JSON.stringify(ok.body));
+
+    const p = (await req(server, 'GET', `/api/player-profile/${charId}`, null, dm)).body;
+    assert.strictEqual(p.multiKlasse, 'Cleric');
+    assert.strictEqual(String(p.multiclass), 'true');
+    assert.strictEqual(String(p.multiKlasseLevel), '0', 'nog geen level — dat komt bij de volgende level-up');
+
+    // En de level-up biedt hem nu als keuze aan.
+    const st = (await req(server, 'GET', `/api/characters/${charId}/level-up`, null, dm)).body;
+    assert.deepStrictEqual(st.klassen.map(k => k.klasse), ['Wizard', 'Cleric']);
+    assert.strictEqual(st.kanMulticlassen, false, 'twee klassen is wat het datamodel draagt');
+  });
+
+  it('weigert een klasse die je al hebt', async () => {
+    const r = await req(server, 'POST', `/api/characters/${charId}/multiclass-verzoek`,
+      { klasse: 'Wizard' }, speler);
+    assert.strictEqual(r.status, 409);
+  });
+
   it('stopt bij het hoogste level', async () => {
     await req(server, 'PATCH', `/api/player-profile/${charId}`, { level: '20' }, dm);
     const r = await req(server, 'POST', `/api/characters/${charId}/level-up`,

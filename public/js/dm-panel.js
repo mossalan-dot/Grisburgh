@@ -486,6 +486,15 @@ export function initDmPanel() {
     },
     async spotifyVolume(v) { await api.spotifyMeta({ volume: v === '' ? undefined : v }); },
     regieBalkRust:           (id) => _regieBalkRust(id),
+    async regieBalkLevelUp(btn) {
+      if (!confirm('Voor iedereen die vanavond meedoet een level-up klaarzetten?')) return;
+      if (btn) btn.disabled = true;
+      try {
+        const r = await api.post('/party/level-up-tegoed', { aantal: 1 });
+        _showToast(`${icon('sparkles')} Level-up klaargezet voor ${r.spelers?.length || 0} speler(s).`);
+      } catch (e) { _showToast('Klaarzetten mislukt: ' + e.message); }
+      if (btn) btn.disabled = false;
+    },
     regieBalkLoot:           (id) => _regieBalkLoot(id),
     regieBalkMuziek:         (id) => _regieBalkMuziek(id),
     regieBalkMuziekPauze:    () => api.spotifyPauze().catch(e => alert(e.message)),
@@ -549,6 +558,11 @@ export function initDmPanel() {
     verzoekenRefresh:   _renderVerzoeken,
     async verzoekSpreuk(reqId, akkoord) {
       try { await (akkoord ? api.approveSpellRequest(reqId) : api.rejectSpellRequest(reqId)); }
+      catch (e) { alert('Mislukt: ' + e.message); }
+      _renderVerzoeken();
+    },
+    async verzoekMulticlass(reqId, akkoord) {
+      try { await api.post(`/multiclass-verzoek/${reqId}/${akkoord ? 'approve' : 'reject'}`, {}); }
       catch (e) { alert('Mislukt: ' + e.message); }
       _renderVerzoeken();
     },
@@ -2208,6 +2222,11 @@ function _renderRegieBalk() {
           <div class="dm-rb-rust">
             <button class="dm-regie-balk-btn" onclick="window.dmPanel.rustMenu(event)" title="Rust starten">${icon('moon')} <span class="dm-rb-btn-label">Rust</span></button>
           </div>
+          <!-- Een level-up hoort bij een moment aan tafel, en dat moment zit
+               hier — niet in een instellingenpaneel. Gunnen, niet uitvoeren:
+               de spelers kiezen zelf hun HP. -->
+          <button class="dm-regie-balk-btn" onclick="window.dmPanel.regieBalkLevelUp(this)"
+            title="Zet voor iedereen die meedoet een level-up klaar">${icon('sparkles')} <span class="dm-rb-btn-label">Level</span></button>
           <span class="dm-rb-sep"></span>
           <button class="dm-regie-balk-btn" onclick="window.dmPanel.regieBalkBrief()" title="Stuur een verzegelde uitnodiging (factie of dienst)">${icon('mail')} <span class="dm-rb-btn-label">Uitnodiging</span></button>
           <button class="dm-regie-balk-btn" onclick="window.dmPanel.sfeerMenu(event)" title="Sfeer van het tafelscherm kiezen">${icon('sparkles')} <span class="dm-rb-btn-label">Sfeer</span></button>
@@ -2348,7 +2367,7 @@ async function _ladeToggle() {
   _ladeIdx = _bwIdx >= 0 ? _bwIdx : Math.min(_ladePlekLees(), Math.max(0, _ladeSecties.length - 1));
   // De akte-module levert de renderer én de knoppen; die moet weten welke akte
   // er speelt, anders belandt een getoond beeld in de sessielog van niemand.
-  const mod = await import('./akte-schrijven.js?v=27');
+  const mod = await import('./akte-schrijven.js?v=28');
   mod.zetAkte(_rbChapter, _ladeTekst);
   window._akteRegieRender = mod.regieNaarHtml;
   let lade = document.getElementById('regie-lade');
@@ -2374,7 +2393,7 @@ window._ladeHerlaad = async () => {
     _ladeTekst = regie?.tekst || '';
     _ladeSecties = _splitsSecties(_ladeTekst);
     _ladeIdx = Math.min(_ladeIdx, Math.max(0, _ladeSecties.length - 1));
-    const mod = await import('./akte-schrijven.js?v=27');
+    const mod = await import('./akte-schrijven.js?v=28');
     mod.zetAkte(_rbChapter, _ladeTekst);
     _ladeRender();
   } catch { /* de lade blijft staan zoals hij stond */ }
@@ -9685,11 +9704,12 @@ async function _renderVerzoeken() {
   if (!el) return;
   el.innerHTML = _dmLoading();
 
-  let spreuken = [], bezit = null;
+  let spreuken = [], bezit = null, multiclass = [];
   try {
-    [spreuken, bezit] = await Promise.all([
+    [spreuken, bezit, multiclass] = await Promise.all([
       api.getSpellRequests().then(r => r.requests || []).catch(() => []),
       api.getItemOwnership().catch(() => null),
+      api.get('/multiclass-verzoeken').then(r => r.verzoeken || []).catch(() => []),
     ]);
   } catch { /* hieronder vangen we het lege geval af */ }
   const voorwerpen = (bezit?.requests || []).filter(r => r.status === 'pending');
@@ -9716,7 +9736,17 @@ async function _renderVerzoeken() {
      <button class="dm-btn dm-btn-sm dm-btn-ghost" onclick="window.dmPanel.verzoekItem('${esc(r.id)}', false)">${icon('x')} Weigeren</button>`
   )).join('');
 
-  const totaal = spreuken.length + voorwerpen.length;
+  const mcHtml = multiclass.map(v => rij(
+    `<strong>${esc(v.spelerNaam)}</strong> wil <em>${esc(v.klasse)}</em> erbij`
+    + (v.huidig ? ` <span class="dm-verzoek-nu">(nu ${esc(v.huidig)})</span>` : '')
+    // De eisen zijn een aantekening, geen oordeel: ze staan erbij zodat je
+    // weet wat je goedkeurt, maar ze blokkeren niets.
+    + (v.context?.tekst ? `<span class="dm-verzoek-context">${esc(v.context.tekst)}</span>` : ''),
+    `<button class="dm-btn dm-btn-sm dm-btn-primary" onclick="window.dmPanel.verzoekMulticlass('${esc(v.id)}', true)">${icon('check')} Goedkeuren</button>
+     <button class="dm-btn dm-btn-sm dm-btn-ghost" onclick="window.dmPanel.verzoekMulticlass('${esc(v.id)}', false)">${icon('x')} Weigeren</button>`
+  )).join('');
+
+  const totaal = spreuken.length + voorwerpen.length + multiclass.length;
   el.innerHTML = `
     ${_dmTabHead({ icon: 'mail', title: 'Verzoeken',
       sub: totaal ? `${totaal} wachten op jou` : 'Alles is afgehandeld',
@@ -9730,6 +9760,11 @@ async function _renderVerzoeken() {
     <div class="dm-feature-section">
       <div class="dm-section-label">${icon('package')} Voorwerpen ${voorwerpen.length ? `(${voorwerpen.length})` : ''}</div>
       ${itemHtml || '<p class="dm-hint">Geen openstaande claims op voorwerpen.</p>'}
+    </div>
+
+    <div class="dm-feature-section">
+      <div class="dm-section-label">${icon('user')} Multiclassen ${multiclass.length ? `(${multiclass.length})` : ''}</div>
+      ${mcHtml || '<p class="dm-hint">Niemand wil er op dit moment een klasse bij.</p>'}
     </div>`;
 }
 

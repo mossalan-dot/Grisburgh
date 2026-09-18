@@ -26602,3 +26602,21 @@ body.akte-schrijf-open .mp-overlay { z-index: 1320; }
   font-family: 'IM Fell English', serif; font-style: italic;
   font-size: .88rem; color: #7a6040; text-align: center;
 }
+
+/* Een klasse erbij, in het level-upvenster. */
+.lu-keuze--nieuw { border-style: dashed; }
+.lu-keuze--wacht { opacity: .72; cursor: default; }
+.lu-keuze strong .icon { width: 13px; height: 13px; vertical-align: -1px; }
+.lu-mc-rij {
+  display: flex; flex-direction: column; gap: 2px; width: 100%; text-align: left;
+  padding: 9px 12px; margin-bottom: 6px; cursor: pointer;
+  border: 1px solid rgba(196, 168, 122, .6); border-radius: 8px;
+  background: rgba(255, 253, 247, .6); color: #3a2410;
+}
+.lu-mc-rij:hover { border-color: #a8833c; background: rgba(242, 232, 210, .85); }
+.lu-mc-naam { font-family: 'Cinzel', serif; font-size: .98rem; }
+/* De eis is een aantekening, geen oordeel — dus rustiger gezet dan de naam. */
+.lu-mc-eis { font-family: 'IM Fell English', serif; font-size: .82rem; color: #7a6040; line-height: 1.4; }
+.lu-mc-rij--krap { opacity: .72; }
+.lu-mc-rij--krap .lu-mc-naam { color: #7a5a3a; }
+.dm-verzoek-nu { opacity: .6; font-size: .88rem; }

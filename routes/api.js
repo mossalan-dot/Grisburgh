@@ -4306,6 +4306,164 @@ function _openSpreukKeuzes(dmState, characterId) {
   return uit;
 }
 
+// ── Multiclassen ────────────────────────────────────────────────────────────
+// Bij een level-up kon je alleen kiezen tussen de klassen die je al hád. Een
+// nieuwe klasse beginnen kon nergens — en dat is nou juist het moment waarop
+// je dat doet. Het gaat langs de DM: multiclassen is een tafelbesluit, geen
+// invoerveld. Zelfde weg als een spreukverzoek.
+let _mcEisen = null;
+function _multiclassEisen(klasse) {
+  if (_mcEisen === null) {
+    try { _mcEisen = require('../bronnen/srd-multiclass-eisen.json'); } catch { _mcEisen = {}; }
+  }
+  const n = String(klasse || '').trim().toLowerCase();
+  const sleutel = Object.keys(_mcEisen).find(k => k.toLowerCase() === n);
+  return sleutel ? _mcEisen[sleutel] : null;
+}
+
+// Voorrekenen, niet blokkeren — zelfde afweging als bij een spreukverzoek: de
+// uitzonderingen zijn in 5e eerder regel dan uitzondering (een campagne kan de
+// eis laten vallen, een feat kan een score verhogen), en een weigering die
+// soms fout zit ga je wantrouwen. De DM ziet het en beslist.
+function _multiclassVoorrekenen(profile, nieuweKlasse) {
+  const p = profile || {};
+  const AB = { str: 'STR', dex: 'DEX', con: 'CON', int: 'INT', wis: 'WIS', cha: 'CHA' };
+  const score = (a) => parseInt(p[a]) || 0;
+  const regels = [];
+  let voldoet = true;
+
+  // Je moet aan de eis van je huidige klasse(n) én van de nieuwe voldoen.
+  const teToetsen = [[p.klasse, 'huidige klasse'], [nieuweKlasse, 'nieuwe klasse']];
+  if (p.multiclass === true || p.multiclass === 'true') {
+    if (p.multiKlasse) teToetsen.splice(1, 0, [p.multiKlasse, 'tweede klasse']);
+  }
+
+  for (const [klasse, wat] of teToetsen) {
+    const eis = _multiclassEisen(klasse);
+    if (!klasse || !eis) continue;
+    const deel = [];
+    let ok = true;
+    for (const e of eis.eisen) {
+      const heeft = score(e.ability);
+      if (heeft < e.minimum) ok = false;
+      deel.push(`${AB[e.ability] || e.ability.toUpperCase()} ${e.minimum} (heb je ${heeft})`);
+    }
+    if (eis.keuze.length) {
+      const gehaald = eis.keuze.some(e => score(e.ability) >= e.minimum);
+      if (!gehaald) ok = false;
+      deel.push(eis.keuze.map(e => `${AB[e.ability] || e.ability.toUpperCase()} ${e.minimum}`).join(' of ')
+        + ` (heb je ${eis.keuze.map(e => `${AB[e.ability]} ${score(e.ability)}`).join(', ')})`);
+    }
+    if (!deel.length) continue;
+    if (!ok) voldoet = false;
+    regels.push(`${klasse} (${wat}) vraagt ${deel.join(' en ')} — ${ok ? 'die heb je' : 'die haal je niet'}`);
+  }
+
+  return {
+    voldoet,
+    tekst: regels.length
+      ? regels.join('; ')
+      : 'Voor deze klasse staat er geen eis in de SRD.',
+  };
+}
+
+// Een speler vraagt het aan; de DM keurt goed of af.
+router.post('/characters/:characterId/multiclass-verzoek', attachRole, (req, res) => {
+  const { characterId } = req.params;
+  if (req.role !== 'dm' && req.session?.characterId !== characterId)
+    return res.status(403).json({ error: 'Geen toegang' });
+  const klasse = String(req.body?.klasse || '').trim();
+  if (!klasse) return res.status(400).json({ error: 'Kies een klasse' });
+
+  const dmState = readDmState();
+  const profile = (dmState.playerProfiles || {})[characterId];
+  if (!profile) return res.status(404).json({ error: 'Onbekend personage' });
+  if (String(profile.klasse || '').toLowerCase() === klasse.toLowerCase()
+    || String(profile.multiKlasse || '').toLowerCase() === klasse.toLowerCase()) {
+    return res.status(409).json({ error: 'Die klasse heb je al' });
+  }
+  // Twee klassen is wat het datamodel draagt (`klasse` + `multiKlasse`); een
+  // derde zou overal een derde veld vragen en komt aan deze tafel niet voor.
+  if ((profile.multiclass === true || profile.multiclass === 'true') && profile.multiKlasse) {
+    return res.status(409).json({ error: 'Je hebt al twee klassen — een derde kan de app niet bijhouden' });
+  }
+
+  const g = getGroup(dmState);
+  if (!g.multiclassVerzoeken) g.multiclassVerzoeken = [];
+  if (g.multiclassVerzoeken.some(v => v.characterId === characterId && v.status === 'pending')) {
+    return res.status(409).json({ error: 'Er staat al een verzoek open' });
+  }
+  const entities = storage.readJSON('entities.json');
+  const verzoek = {
+    id: 'mcreq_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6),
+    characterId,
+    spelerNaam: (entities.personages || []).find(e => e.id === characterId)?.name || 'Een speler',
+    huidig: [profile.klasse, profile.multiKlasse].filter(Boolean).join(' / '),
+    klasse,
+    // Voorgerekend op het moment van vragen — dat is de stand waar de speler
+    // het over had, net als bij een spreukverzoek.
+    context: _multiclassVoorrekenen(profile, klasse),
+    status: 'pending',
+    createdAt: new Date().toISOString(),
+  };
+  g.multiclassVerzoeken.push(verzoek);
+  storage.writeJSON('dm-state.json', dmState);
+  req.app.get('io').to(req.session?.campaignId || 'main').emit('multiclass:verzoek', { verzoek });
+  res.status(201).json({ ok: true, verzoek });
+});
+
+router.get('/multiclass-verzoeken', attachRole, (req, res) => {
+  const dmState = readDmState();
+  if (req.role === 'dm') {
+    const alles = [];
+    for (const g of Object.values(dmState.groups || {})) {
+      for (const v of (g.multiclassVerzoeken || [])) if (v.status === 'pending') alles.push(v);
+    }
+    return res.json({ verzoeken: alles });
+  }
+  const charId = req.session?.characterId;
+  if (!charId) return res.json({ verzoeken: [] });
+  const g = getGroup(dmState, _playerGroupId(dmState, charId));
+  res.json({ verzoeken: (g.multiclassVerzoeken || []).filter(v => v.characterId === charId && v.status === 'pending') });
+});
+
+router.post('/multiclass-verzoek/:id/:besluit', requireDM, (req, res) => {
+  const { id, besluit } = req.params;
+  if (besluit !== 'approve' && besluit !== 'reject') return res.status(400).json({ error: 'Onbekend besluit' });
+  const dmState = readDmState();
+  let verzoek = null, groep = null;
+  for (const g of Object.values(dmState.groups || {})) {
+    const v = (g.multiclassVerzoeken || []).find(x => x.id === id);
+    if (v) { verzoek = v; groep = g; break; }
+  }
+  if (!verzoek) return res.status(404).json({ error: 'Verzoek niet gevonden' });
+  verzoek.status = besluit === 'approve' ? 'approved' : 'rejected';
+  verzoek.besloten = new Date().toISOString();
+
+  if (besluit === 'approve') {
+    const profile = (dmState.playerProfiles || {})[verzoek.characterId];
+    if (profile) {
+      // Nog geen level in de nieuwe klasse: dat gebeurt bij de eerstvolgende
+      // level-up, die de klasse nu in de keuzelijst ziet staan.
+      profile.multiclass = 'true';
+      profile.multiKlasse = verzoek.klasse;
+      // Altijd op 0, ook als er ooit een ándere tweede klasse stond: dat level
+      // hoorde bij die klasse. `if (!…)` liet een oude 2 gewoon staan, en dan
+      // begon je nieuwe klasse op niveau 2 zonder dat iemand dat gespeeld had.
+      profile.multiKlasseLevel = '0';
+      // Een subklasse van de vorige tweede klasse slaat nergens meer op.
+      profile.multiSubclass = '';
+    }
+  }
+  // Afgehandelde verzoeken blijven niet slingeren.
+  groep.multiclassVerzoeken = (groep.multiclassVerzoeken || []).filter(v => v.status === 'pending');
+  storage.writeJSON('dm-state.json', dmState);
+  const io = req.app.get('io'); const room = req.session?.campaignId || 'main';
+  io.to(room).emit('player:profile-updated', { characterId: verzoek.characterId });
+  io.to(room).emit('multiclass:besluit', { characterId: verzoek.characterId, klasse: verzoek.klasse, besluit });
+  res.json({ ok: true, verzoek });
+});
+
 function _levelupTegoed(dmState, characterId) {
   const g = getGroup(dmState);
   return parseInt((g.levelUpTegoed || {})[characterId]) || 0;
@@ -4376,6 +4534,23 @@ router.get('/characters/:characterId/level-up', attachRole, (req, res) => {
     // Species-traits hangen aan het personagelevel, niet aan een klasse: een
     // Elf krijgt op 3 en 5 een Lineage-spreuk, ongeacht wat hij is.
     species: profile.origin || '',
+    // Kun je er een klasse bij beginnen, en zo ja welke? Twee klassen is wat
+    // het datamodel draagt; daarna is de lijst leeg.
+    kanMulticlassen: !((profile.multiclass === true || profile.multiclass === 'true') && profile.multiKlasse),
+    multiclassOpties: (() => {
+      const heeft = new Set([profile.klasse, profile.multiKlasse].filter(Boolean).map(x => x.toLowerCase()));
+      const prog = (() => { try { return storage.readJSON('progression.json'); } catch { return null; } })();
+      const namen = prog?.classes ? Object.keys(prog.classes) : Object.keys(require('../bronnen/class-progression.json').classes || {});
+      return namen.filter(k => !heeft.has(k.toLowerCase())).map(k => ({
+        klasse: k,
+        // Voorrekenen, niet blokkeren: de DM beslist.
+        ...(_multiclassVoorrekenen(profile, k)),
+      }));
+    })(),
+    multiclassVerzoek: (() => {
+      const g2 = getGroup(dmState);
+      return (g2.multiclassVerzoeken || []).find(v => v.characterId === characterId && v.status === 'pending') || null;
+    })(),
     maxLevel: cfg.maxLevel,
     methodes: cfg.methodes,
     standaard: cfg.standaard,

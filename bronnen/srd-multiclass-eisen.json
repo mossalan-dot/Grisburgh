@@ -1,0 +1,126 @@
+{
+  "Barbarian": {
+    "eisen": [
+      {
+        "ability": "str",
+        "minimum": 13
+      }
+    ],
+    "keuze": []
+  },
+  "Bard": {
+    "eisen": [
+      {
+        "ability": "cha",
+        "minimum": 13
+      }
+    ],
+    "keuze": []
+  },
+  "Cleric": {
+    "eisen": [
+      {
+        "ability": "wis",
+        "minimum": 13
+      }
+    ],
+    "keuze": []
+  },
+  "Druid": {
+    "eisen": [
+      {
+        "ability": "wis",
+        "minimum": 13
+      }
+    ],
+    "keuze": []
+  },
+  "Fighter": {
+    "eisen": [],
+    "keuze": [
+      {
+        "ability": "str",
+        "minimum": 13
+      },
+      {
+        "ability": "dex",
+        "minimum": 13
+      }
+    ]
+  },
+  "Monk": {
+    "eisen": [
+      {
+        "ability": "dex",
+        "minimum": 13
+      },
+      {
+        "ability": "wis",
+        "minimum": 13
+      }
+    ],
+    "keuze": []
+  },
+  "Paladin": {
+    "eisen": [
+      {
+        "ability": "str",
+        "minimum": 13
+      },
+      {
+        "ability": "cha",
+        "minimum": 13
+      }
+    ],
+    "keuze": []
+  },
+  "Ranger": {
+    "eisen": [
+      {
+        "ability": "dex",
+        "minimum": 13
+      },
+      {
+        "ability": "wis",
+        "minimum": 13
+      }
+    ],
+    "keuze": []
+  },
+  "Rogue": {
+    "eisen": [
+      {
+        "ability": "dex",
+        "minimum": 13
+      }
+    ],
+    "keuze": []
+  },
+  "Sorcerer": {
+    "eisen": [
+      {
+        "ability": "cha",
+        "minimum": 13
+      }
+    ],
+    "keuze": []
+  },
+  "Warlock": {
+    "eisen": [
+      {
+        "ability": "cha",
+        "minimum": 13
+      }
+    ],
+    "keuze": []
+  },
+  "Wizard": {
+    "eisen": [
+      {
+        "ability": "int",
+        "minimum": 13
+      }
+    ],
+    "keuze": []
+  }
+}
