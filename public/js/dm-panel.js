@@ -7314,6 +7314,7 @@ async function _renderGeluiden() {
       <p class="dm-hint">Korte klanken die één keer spelen op een vast moment in het spel — geen loop.</p>
       <div class="dm-sound-list">
         ${momentRow('lootReveal', 'Loot onthullen', 'klinkt zodra de spelers de buit te zien krijgen')}
+        ${momentRow('levelUp', 'Level omhoog', 'klinkt bij de speler die een level omhoog gaat, en op het tafelscherm')}
       </div>
     </div>`;
 

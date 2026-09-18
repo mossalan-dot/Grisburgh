@@ -25985,44 +25985,129 @@ body.herberg-actief .herberg-scene .herberg-content {
 .lu-acties { display: flex; gap: 8px; margin-top: 20px; }
 .lu-melding { margin-top: 10px; font-size: .88rem; color: #a33; min-height: 1.1em; }
 
+/* ── Level omhoog: het moment ───────────────────────────────────────────────
+   Dit was een kaartje met een getal erop — correcte administratie, maar een
+   level-up is aan tafel een feestje. Nu: het scherm loopt donker, er komt een
+   gloed in de kleur van je klasse op, stralen draaien traag achter de kaart,
+   vonken spatten één keer weg en het nieuwe getal komt naar voren. De kleur
+   komt uit `--lu-kleur`, gezet door de klasse — één variabele draagt het hele
+   tafereel. */
 .levelup-cine {
   position: fixed; inset: 0; z-index: 2000;
   display: flex; align-items: center; justify-content: center;
-  background: rgba(20, 12, 4, .72);
-  opacity: 0; transition: opacity .3s ease;
+  background: radial-gradient(ellipse at 50% 45%,
+    color-mix(in srgb, var(--lu-kleur, #a8833c) 22%, rgba(20, 12, 4, .86)) 0%,
+    rgba(12, 7, 2, .93) 70%);
+  opacity: 0; transition: opacity .35s ease;
+  overflow: hidden;
 }
 .levelup-cine.is-open { opacity: 1; }
+
+/* Een zachte gloed die ademt: de kaart staat niet in het donker maar in licht. */
+.levelup-cine-gloed {
+  position: absolute; width: 620px; height: 620px; border-radius: 50%;
+  background: radial-gradient(circle,
+    color-mix(in srgb, var(--lu-kleur, #a8833c) 42%, transparent) 0%,
+    transparent 62%);
+  filter: blur(14px);
+  opacity: 0; transform: scale(.6);
+  transition: opacity .6s ease, transform .8s cubic-bezier(.2, .9, .3, 1.05);
+}
+.levelup-cine.is-open .levelup-cine-gloed { opacity: 1; transform: scale(1); }
+
+/* Stralen: een langzaam draaiend wiel achter de kaart. Conic-gradient in plaats
+   van twintig losse elementen — dat is één laag om te tekenen. */
+.levelup-cine-stralen {
+  position: absolute; width: 900px; height: 900px;
+  background: repeating-conic-gradient(from 0deg,
+    color-mix(in srgb, var(--lu-kleur, #a8833c) 26%, transparent) 0deg 3deg,
+    transparent 3deg 14deg);
+  -webkit-mask-image: radial-gradient(circle, #000 12%, transparent 62%);
+  mask-image: radial-gradient(circle, #000 12%, transparent 62%);
+  opacity: 0; transition: opacity .8s ease .15s;
+  animation: levelup-draai 38s linear infinite;
+}
+.levelup-cine.is-open .levelup-cine-stralen { opacity: .5; }
+@keyframes levelup-draai { to { transform: rotate(360deg); } }
+
+/* Vonken: één keer wegspatten vanuit het midden, elk met eigen hoek en tempo. */
+.levelup-cine-vonken { position: absolute; width: 0; height: 0; }
+.levelup-vonk {
+  position: absolute; width: 7px; height: 7px; border-radius: 50%;
+  background: color-mix(in srgb, var(--lu-kleur, #a8833c) 75%, #fff);
+  box-shadow: 0 0 10px color-mix(in srgb, var(--lu-kleur, #a8833c) 70%, transparent);
+  opacity: 0;
+}
+.levelup-cine.is-open .levelup-vonk {
+  animation: levelup-vonk .95s cubic-bezier(.15, .75, .3, 1) var(--d, 0ms) forwards;
+}
+@keyframes levelup-vonk {
+  0%   { opacity: 0; transform: rotate(var(--h)) translateX(0) scale(.4); }
+  22%  { opacity: 1; }
+  100% { opacity: 0; transform: rotate(var(--h)) translateX(var(--v)) scale(.9); }
+}
+
 .levelup-cine-kaart {
-  padding: 32px 44px; text-align: center; border-radius: 14px;
-  border: 1px solid rgba(196, 168, 122, .6);
-  background: linear-gradient(160deg, #f6eeda, #e3cfa6);
-  box-shadow: 0 18px 60px rgba(0, 0, 0, .55);
-  transform: translateY(14px) scale(.96);
-  transition: transform .34s cubic-bezier(.2, .9, .3, 1.1);
+  position: relative;
+  padding: 30px 48px 26px; text-align: center; border-radius: 16px;
+  border: 1px solid color-mix(in srgb, var(--lu-kleur, #a8833c) 55%, rgba(196, 168, 122, .5));
+  background: linear-gradient(160deg, #f8f1de, #e6d3ac);
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--lu-kleur, #a8833c) 28%, transparent),
+    0 22px 70px rgba(0, 0, 0, .6),
+    0 0 90px color-mix(in srgb, var(--lu-kleur, #a8833c) 30%, transparent);
+  transform: translateY(20px) scale(.9);
+  transition: transform .5s cubic-bezier(.16, .9, .3, 1.15);
   color: #2a1a08;
 }
 .levelup-cine.is-open .levelup-cine-kaart { transform: none; }
+
+.levelup-cine-band {
+  display: inline-flex; align-items: center; gap: 6px;
+  margin-bottom: 12px; padding: 3px 12px; border-radius: 12px;
+  background: color-mix(in srgb, var(--lu-kleur, #a8833c) 18%, transparent);
+  border: 1px solid color-mix(in srgb, var(--lu-kleur, #a8833c) 40%, transparent);
+  font-family: 'Cinzel', serif; font-size: .74rem; letter-spacing: .12em;
+  text-transform: uppercase; color: color-mix(in srgb, var(--lu-kleur, #a8833c) 70%, #2a1a08);
+}
+.levelup-cine-band .icon { width: 13px; height: 13px; }
+
+/* Het oude level vervaagt, het nieuwe komt naar voren. */
+.levelup-cine-cijfers { display: flex; align-items: baseline; justify-content: center; gap: 12px; }
 .levelup-cine-van {
-  font-family: 'Cinzel', serif; font-size: 1.5rem; opacity: .4;
-  text-decoration: line-through; line-height: 1;
+  font-family: 'Cinzel', serif; font-size: 2rem; opacity: .32; line-height: 1;
 }
+.levelup-cine-pijl { display: inline-flex; opacity: .35; }
+.levelup-cine-pijl .icon { width: 20px; height: 20px; }
 .levelup-cine-naar {
-  font-family: 'Cinzel', serif; font-size: 4.2rem; font-weight: 700; line-height: 1.05;
-  color: #7a5a1a; text-shadow: 0 2px 0 rgba(255, 255, 255, .5);
+  font-family: 'Cinzel', serif; font-size: 5rem; font-weight: 700; line-height: 1;
+  color: color-mix(in srgb, var(--lu-kleur, #a8833c) 62%, #4a2e08);
+  text-shadow: 0 2px 0 rgba(255, 255, 255, .5),
+               0 0 34px color-mix(in srgb, var(--lu-kleur, #a8833c) 50%, transparent);
+  transform: scale(.7); opacity: 0;
+  transition: transform .55s cubic-bezier(.16, .9, .3, 1.4) .18s, opacity .35s ease .18s;
 }
+.levelup-cine.is-open .levelup-cine-naar { transform: none; opacity: 1; }
+
 .levelup-cine-klasse {
-  font-family: 'Cinzel', serif; font-size: 1.1rem; letter-spacing: .06em;
-  margin-top: 2px; opacity: .8;
+  font-family: 'Cinzel', serif; font-size: 1.05rem; letter-spacing: .08em;
+  margin-top: 4px; opacity: .8;
 }
 .levelup-cine-hp {
-  margin: 18px 0 20px; font-family: 'Crimson Text', Georgia, serif;
-  font-size: 1.5rem; font-weight: 700; color: #4a7c3f;
+  margin: 20px 0 20px; font-family: 'Crimson Text', Georgia, serif;
+  font-size: 1.55rem; font-weight: 700; color: #4a7c3f;
 }
 .levelup-cine-hp span {
   display: block; font-size: .82rem; font-weight: 400; opacity: .7; color: #5a4020;
 }
+
+/* Wie dit uitzet krijgt hetzelfde tafereel, alleen stil. */
 @media (prefers-reduced-motion: reduce) {
-  .levelup-cine, .levelup-cine-kaart { transition: none; }
+  .levelup-cine, .levelup-cine-kaart, .levelup-cine-gloed,
+  .levelup-cine-naar, .levelup-cine-stralen { transition: none; animation: none; }
+  .levelup-cine-kaart, .levelup-cine-naar { transform: none; opacity: 1; }
+  .levelup-cine-gloed { opacity: 1; transform: scale(1); }
+  .levelup-vonk { display: none; }
 }
 
 /* Wat je erbij krijgt, in het level-upvenster. */

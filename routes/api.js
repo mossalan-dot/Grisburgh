@@ -4504,6 +4504,10 @@ router.post('/characters/:characterId/level-up', attachRole, (req, res) => {
     // vandaan halen — zelfde patroon als `brief:display` en `loot:display`.
     let _p = null;
     try { _p = (storage.readJSON('entities.json').personages || []).find(x => x.id === characterId); } catch { /* ok */ }
+    // Een level-up is een feestje, geen boekhouding: de campagne kiest er één
+    // klank bij (Geluiden-tab → Momenten), net als bij het onthullen van buit.
+    const _luGeluid = (storage.readJSON('sounds.json') || {}).momenten?.levelUp;
+    if (_luGeluid) io.to(room).emit('sound:reveal', { fileId: String(_luGeluid), label: 'Level omhoog', loop: false });
     io.to(room).emit('levelup:display', {
       characterId, naam: _p?.name || 'Iemand', thumb: _p?.data?.imageId || characterId,
       van: regel.van, naar: regel.naar, klasse: regel.klasse, hp: regel.hp,
@@ -7162,7 +7166,9 @@ function _ensureAmbiance(data) {
 const _DIENST_SVC_KEYS = ['herberg', 'tweespalt', 'gock', 'ursula', 'tempel', 'magizoo'];
 // Eenmalige geluiden bij een moment in het spel — geen sfeerloop, dus een eigen
 // plek in sounds.json (`momenten`) i.p.v. serviceAmbiance.
-const _MOMENT_SOUND_KEYS = new Set(['lootReveal']);
+// Korte klanken bij één moment. Bewust géén sfeerloop (zie serviceAmbiance):
+// dit zijn klanken die één keer spelen, op het moment zelf.
+const _MOMENT_SOUND_KEYS = new Set(['lootReveal', 'levelUp']);
 const _REST_SVC_KEYS = ['rust-veld', 'rust-herberg', 'rust-kort'];
 function _validSvcKey(key) {
   if (_DIENST_SVC_KEYS.includes(key) || _REST_SVC_KEYS.includes(key)) return true;

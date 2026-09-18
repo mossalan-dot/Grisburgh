@@ -818,3 +818,6 @@ Per bevinding: waar, wat, en of het opgelost is. Nieuwe regels onderaan.
 - Druk op **Pauzeren** in de regie-balk: de sectie waar je op dat moment staat wordt vanzelf de bladwijzer.
 - Klik in de aktetekst op het belletje achter een kaartje dat de party al kent: elke speler krijgt een toast "Weet je nog? — <naam>" met een klik naar het kaartje. Er komt géén regel in het logboek en de zichtbaarheid verandert niet.
 - Een belletje bij een kaartje dat de party níét kent bestaat niet; roep je de route toch aan, dan geeft hij een 409 ("onthul het eerst").
+- Ga een level omhoog: het scherm loopt donker, er waaieren stralen achter de kaart, vonken spatten één keer weg en het nieuwe level komt naar voren — alles in de kleur van je klasse (een Wizard blauw, een Barbarian rood).
+- Stel in Meesterkamer → Geluiden → *Momenten* een klank in bij **Level omhoog**: die klinkt bij de speler en op het tafelscherm op het moment van de omslag. Staat er niets, dan is het stil.
+- Zet in je systeem "verminder beweging" aan: je krijgt hetzelfde tafereel zonder animatie.

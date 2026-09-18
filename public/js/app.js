@@ -10,7 +10,7 @@ import { renderSpreuken } from './render-spreuken.js?v=41';
 import { renderVaardigheden, zoekVaardigheden } from './render-vaardigheden.js?v=8';
 import { renderStatblock } from './render-statblock.js?v=9';
 import { initSocket } from "./socket-client.js?v=75";
-import { initDmPanel } from "./dm-panel.js?v=263";
+import { initDmPanel } from "./dm-panel.js?v=264";
 import { COND_INFO, COND_LABEL, COND_MET_PLAATJE, COND_ICON } from './conditions.js?v=2';
 import './media-picker.js?v=8';
 
@@ -7239,12 +7239,32 @@ function _levelUpCinematic(lu, kiezen = []) {
     : `<button class="dm-btn dm-btn-primary dm-btn-sm" onclick="window._luNaarBibliotheek(${k.niveau}, '${esc(k.klasse)}')">
         ${icon('open-book')} Spreuken van niveau ${k.niveau}</button>`).join('');
 
+  // De kleur van je klasse draagt het hele moment: de gloed, de vonken en de
+  // rand komen allemaal uit deze ene variabele.
+  const kleur = (_sigCfgFor(lu.klasse) || {}).kleur || '#a8833c';
+
   const ov = document.createElement('div');
   ov.className = 'levelup-cine';
+  ov.style.setProperty('--lu-kleur', kleur);
+  // Vonken: een handvol deeltjes die vanuit het midden wegspatten. Elk krijgt
+  // zijn eigen hoek en vertraging, anders bewegen ze als één blok.
+  const vonken = Array.from({ length: 18 }, (_, i) => {
+    const hoek = (360 / 18) * i + (i % 3) * 7;
+    const ver  = 90 + (i % 5) * 26;
+    return `<span class="levelup-vonk" style="--h:${hoek}deg;--v:${ver}px;--d:${(i % 6) * 55}ms"></span>`;
+  }).join('');
+
   ov.innerHTML = `
+    <div class="levelup-cine-gloed" aria-hidden="true"></div>
+    <div class="levelup-cine-stralen" aria-hidden="true"></div>
+    <div class="levelup-cine-vonken" aria-hidden="true">${vonken}</div>
     <div class="levelup-cine-kaart">
-      <div class="levelup-cine-van">${lu.van}</div>
-      <div class="levelup-cine-naar">${lu.naar}</div>
+      <div class="levelup-cine-band">${icon('sparkles')} Level omhoog</div>
+      <div class="levelup-cine-cijfers">
+        <span class="levelup-cine-van">${lu.van}</span>
+        <span class="levelup-cine-pijl">${icon('chevron-right')}</span>
+        <span class="levelup-cine-naar">${lu.naar}</span>
+      </div>
       <div class="levelup-cine-klasse">${esc(lu.klasse)}</div>
       <div class="levelup-cine-hp">+${lu.hp} HP
         <span>${lu.methode === 'gemiddelde' ? `gemiddelde van d${lu.die}` : `d${lu.die} gaf ${lu.worp}`}${lu.conMod ? `, ${lu.conMod > 0 ? '+' : ''}${lu.conMod} CON` : ''}</span>
