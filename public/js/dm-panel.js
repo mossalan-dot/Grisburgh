@@ -539,6 +539,17 @@ export function initDmPanel() {
 
     // Berichten & Brieven
     berichtenRefresh:   _renderBerichten,
+    verzoekenRefresh:   _renderVerzoeken,
+    async verzoekSpreuk(reqId, akkoord) {
+      try { await (akkoord ? api.approveSpellRequest(reqId) : api.rejectSpellRequest(reqId)); }
+      catch (e) { alert('Mislukt: ' + e.message); }
+      _renderVerzoeken();
+    },
+    async verzoekItem(reqId, akkoord) {
+      try { await (akkoord ? api.approveItemRequest(reqId) : api.rejectItemRequest(reqId)); }
+      catch (e) { alert('Mislukt: ' + e.message); }
+      _renderVerzoeken();
+    },
     berichtSend:        _berichtSend,
     postSend:           _postSend,
     sjabloonDelete:     _sjabloonDelete,
@@ -624,6 +635,10 @@ const _DM_TABS = [
   // 'Berichten' past niet op één regel in een kolom van 56px; liever een korter
    // woord dan een afbreking. De tooltip houdt de volledige naam.
   { id: 'berichten', groep: 'beheer',    label: 'Post',      icoon: 'message-circle',                  title: 'Berichten' },
+  // Spreuk- en voorwerpverzoeken stonden elk op hun eigen tabblad in het
+  // archief; een DM die wil weten wat er op hem wacht moest dus twee plekken
+  // langs. Eén tab met allebei.
+  { id: 'verzoeken', groep: 'beheer',    label: 'Vragen',    icoon: 'mail',                            title: 'Verzoeken — spreuken &amp; voorwerpen' },
 ];
 
 function _buildTabs() {
@@ -673,6 +688,7 @@ function _switchTab(tab) {
   if (tab === 'tafels')    _loadAndRenderTafels();
   if (tab === 'geluiden')  _renderGeluiden();
   if (tab === 'berichten') _renderBerichten();
+  if (tab === 'verzoeken') _renderVerzoeken();
   if (tab === 'media')     _renderMedia();
   if (tab === 'instellingen') _renderInstellingen();
   if (tab === 'gevecht' || tab === 'monsters' || tab === 'encounters') _renderGevechtEnMonsters(tab);
@@ -9605,6 +9621,63 @@ let _sjabloonMode     = false;
 const _BERICHTEN_PAGINA = 10;            // berichten per "pagina" in de geschiedenis
 let _berichtenOpenPid   = new Set();     // welke speler-groepen zijn uitgeklapt
 let _berichtenLimiet    = {};            // characterId → aantal getoonde berichten
+
+// ── Verzoeken: wat er op de DM wacht ────────────────────────────────────────
+// Een spreukverzoek zag je alleen in de spreukenbibliotheek, een claim op een
+// voorwerp alleen als balk boven het Voorwerpen-tabblad. Twee plekken die je
+// moet langslopen om te weten of er iets ligt. Hier staan ze samen.
+async function _renderVerzoeken() {
+  const el = document.querySelector('.dm-tab-content[data-tab="verzoeken"]');
+  if (!el) return;
+  el.innerHTML = _dmLoading();
+
+  let spreuken = [], bezit = null;
+  try {
+    [spreuken, bezit] = await Promise.all([
+      api.getSpellRequests().then(r => r.requests || []).catch(() => []),
+      api.getItemOwnership().catch(() => null),
+    ]);
+  } catch { /* hieronder vangen we het lege geval af */ }
+  const voorwerpen = (bezit?.requests || []).filter(r => r.status === 'pending');
+
+  const rij = (inhoud, acties) => `
+    <div class="dm-verzoek-rij">
+      <span class="dm-verzoek-tekst">${inhoud}</span>
+      <span class="dm-verzoek-acties">${acties}</span>
+    </div>`;
+
+  const spreukHtml = spreuken.map(r => rij(
+    `<strong>${esc(r.requesterName || 'Een speler')}</strong> wil <em>${esc(r.spellName)}</em> in zijn boek`
+    // De voorrekening stond al op het verzoek: dezelfde regel als in de
+    // bibliotheek, berekend op het moment van vragen.
+    + (r.context ? `<span class="dm-verzoek-context">${esc(r.context)}</span>` : ''),
+    `<button class="dm-btn dm-btn-sm dm-btn-primary" onclick="window.dmPanel.verzoekSpreuk('${esc(r.id)}', true)">${icon('check')} Goedkeuren</button>
+     <button class="dm-btn dm-btn-sm dm-btn-ghost" onclick="window.dmPanel.verzoekSpreuk('${esc(r.id)}', false)">${icon('x')} Weigeren</button>`
+  )).join('');
+
+  const itemHtml = voorwerpen.map(r => rij(
+    `<strong>${esc(r.requesterName)}</strong> wil <em>${esc(r.itemName)}</em> `
+    + (r.type === 'trade' ? `ruilen met ${esc(r.targetName || '?')}` : 'claimen'),
+    `<button class="dm-btn dm-btn-sm dm-btn-primary" onclick="window.dmPanel.verzoekItem('${esc(r.id)}', true)">${icon('check')} Goedkeuren</button>
+     <button class="dm-btn dm-btn-sm dm-btn-ghost" onclick="window.dmPanel.verzoekItem('${esc(r.id)}', false)">${icon('x')} Weigeren</button>`
+  )).join('');
+
+  const totaal = spreuken.length + voorwerpen.length;
+  el.innerHTML = `
+    ${_dmTabHead({ icon: 'mail', title: 'Verzoeken',
+      sub: totaal ? `${totaal} wachten op jou` : 'Alles is afgehandeld',
+      actions: `<button class="dm-btn dm-btn-sm dm-btn-ghost" onclick="window.dmPanel.verzoekenRefresh()" title="Opnieuw ophalen">${icon('refresh-cw')}</button>` })}
+
+    <div class="dm-feature-section">
+      <div class="dm-section-label">${icon('sparkles')} Spreuken ${spreuken.length ? `(${spreuken.length})` : ''}</div>
+      ${spreukHtml || '<p class="dm-hint">Geen openstaande spreukverzoeken.</p>'}
+    </div>
+
+    <div class="dm-feature-section">
+      <div class="dm-section-label">${icon('package')} Voorwerpen ${voorwerpen.length ? `(${voorwerpen.length})` : ''}</div>
+      ${itemHtml || '<p class="dm-hint">Geen openstaande claims op voorwerpen.</p>'}
+    </div>`;
+}
 
 async function _renderBerichten() {
   const el = document.querySelector('.dm-tab-content[data-tab="berichten"]');

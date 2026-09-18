@@ -796,3 +796,10 @@ Per bevinding: waar, wat, en of het opgelost is. Nieuwe regels onderaan.
 - Onder elke ability staat nu **Save** bij het bolletje en het getal; de tooltip zegt of je proficient bent en wat klikken doet.
 - De pijltjes bij een skill zeggen wat ze doen ("Eén hoger — voor een tijdelijke bonus…") in plaats van "Bonus −1".
 - De klasse-eigen kaart (Rage, Arcane Recovery, Lay on Hands…) staat onder Skills in plaats van bovenaan.
+
+### Verzoeken-tab in de Meesterkamer (18 sep 2026)
+
+- Meesterkamer → **Vragen**: hier staan openstaande spreukverzoeken én claims op voorwerpen bij elkaar, met per verzoek wie wat wil.
+- Bij een spreuk staat de voorrekening eronder ("Fighter 11 · Cantrip · staat niet op die lijst — wel te verklaren via Magic Initiate, een feat of een scroll"): een aantekening, geen oordeel.
+- Goedkeuren zet de spreuk in het boek van die speler en haalt de regel uit de lijst; de teller in de kop loopt mee.
+- Staat er niets open, dan zegt de kop "Alles is afgehandeld" en beide secties melden dat ze leeg zijn.

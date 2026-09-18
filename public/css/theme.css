@@ -26448,3 +26448,21 @@ body.kaart-fs-active .combat-overlay { z-index: 1350; top: 0; }
 .item-carousel-slide { animation: item-slide-in .18s ease-out; }
 @keyframes item-slide-in { from { opacity: .35; } to { opacity: 1; } }
 @media (prefers-reduced-motion: reduce) { .item-carousel-slide { animation: none; } }
+
+/* ── Meesterkamer → Verzoeken ──────────────────────────────────────────────
+   Eén regel per verzoek: wie wat wil, met de knoppen rechts. */
+.dm-verzoek-rij {
+  display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+  padding: 9px 11px; margin-bottom: 7px;
+  border: 1px solid rgba(196, 168, 122, .5); border-radius: 7px;
+  background: rgba(255, 253, 247, .5);
+}
+.dm-verzoek-tekst { flex: 1 1 260px; color: #3a2410; line-height: 1.4; }
+.dm-verzoek-tekst em { font-style: italic; color: #5a3a10; }
+/* De voorrekening ("Wizard 8 · staat niet op die lijst — wel te verklaren
+   via…") is een aantekening, geen oordeel; dus kleiner en rustiger. */
+.dm-verzoek-context {
+  display: block; margin-top: 2px;
+  font-family: 'IM Fell English', serif; font-size: .82rem; color: #7a6040;
+}
+.dm-verzoek-acties { display: flex; gap: 6px; flex: 0 0 auto; }
