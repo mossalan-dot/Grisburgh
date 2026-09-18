@@ -602,8 +602,13 @@ function _invoegBalk() {
       <button class="akte-invoeg-btn" title="Verwijs naar een kaartje (Alt+K)" onclick="window.akteSchrijven.invoegen('kaartje')">${icon('user')} Kaartje</button>
       <button class="akte-invoeg-btn" title="Een afbeelding of geluid (Alt+B)" onclick="window.akteSchrijven.invoegen('beeld')">${icon('image')} Beeld</button>
       <span class="akte-invoeg-sep"></span>
-      <button class="akte-invoeg-btn" title="Vet (Ctrl+B)" onclick="window._fmt('akte-schrijf-ta','**')"><b>B</b></button>
-      <button class="akte-invoeg-btn" title="Cursief (Ctrl+I)" onclick="window._fmt('akte-schrijf-ta','*')"><i>I</i></button>
+      <!-- Hier stonden alleen B en I, terwijl de kaartjes-editor al een volledige
+           balk heeft: onderstrepen, doorhalen, markeren, kleuren en het oogje
+           met het voorbeeld. Eén balk voor de hele app; een tweede kopie loopt
+           vroeg of laat uit de pas. -->
+      ${window._fmtToolbarHtml ? window._fmtToolbarHtml('akte-schrijf-ta') : `
+        <button class="akte-invoeg-btn" title="Vet (Ctrl+B)" onclick="window._fmt('akte-schrijf-ta','**')"><b>B</b></button>
+        <button class="akte-invoeg-btn" title="Cursief (Ctrl+I)" onclick="window._fmt('akte-schrijf-ta','*')"><i>I</i></button>`}
     </div>`;
 }
 
@@ -648,13 +653,15 @@ function _teken() {
       <aside class="akte-schrijf-secties">
         <div class="akte-schrijf-sectie-kop">Secties</div>
         <div id="akte-schrijf-secties"></div>
-        <!-- Rust hoort niet bij één plek in de tekst: een party gaat slapen
-             wanneer het uitkomt, soms tussen twee aktes in. Daarom hier, bij de
-             navigatie, en niet als blok halverwege een sectie. -->
+        <!-- Hier stond ook een **Rust**-knop, en die startte de échte party-rust:
+             HP terug, slots terug, in een herberg geld afschrijven. Midden in
+             een schrijfscherm, weken voor de sessie, naast een invoegknop die
+             óók Rust heet — je denkt iets in je akte te zetten en je laat de
+             party slapen. Voorbereiden en spelen zijn twee dingen: rust starten
+             hoort in de regie-balk en het rustpaneel, waar je speelt.
+             Sheets blijft: een blad afdrukken is voorbereiden, niet spelen. -->
         <div class="akte-schrijf-altijd">
           <div class="akte-schrijf-sectie-kop">Altijd bij de hand</div>
-          <button class="akte-zijknop" onclick="window.dmPanel.rustMenu(event)"
-            title="Long of Short Rest voor de hele party">${icon('moon')} Rust</button>
           <button class="akte-zijknop" onclick="window.dmPanel.sheetsPrint()"
             title="Character sheets van de party — printbaar blad per speler">${icon('scroll-text')} Sheets</button>
         </div>

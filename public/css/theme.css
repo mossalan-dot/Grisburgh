@@ -26466,3 +26466,13 @@ body.kaart-fs-active .combat-overlay { z-index: 1350; top: 0; }
   font-family: 'IM Fell English', serif; font-size: .82rem; color: #7a6040;
 }
 .dm-verzoek-acties { display: flex; gap: 6px; flex: 0 0 auto; }
+
+/* ── Het schrijfscherm en de vensters die eruit opengaan ───────────────────
+   `.akte-schrijf-overlay` staat op z-index 1200 en `.modal-overlay` op 70: de
+   kaartjeskiezer, de beeldkiezer en elk ander keuzevenster gingen dus ónder het
+   schrijfscherm open. Je klikte op *Kaartje* en er leek niets te gebeuren —
+   precies dezelfde valkuil als eerder bij de dungeonkaart en het gevecht.
+   De mediapicker heeft zijn eigen overlay en moet mee. */
+body.akte-schrijf-open .modal-overlay { z-index: 1300; }
+body.akte-schrijf-open .media-picker-overlay,
+body.akte-schrijf-open .mp-overlay { z-index: 1320; }

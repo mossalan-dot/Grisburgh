@@ -803,3 +803,9 @@ Per bevinding: waar, wat, en of het opgelost is. Nieuwe regels onderaan.
 - Bij een spreuk staat de voorrekening eronder ("Fighter 11 · Cantrip · staat niet op die lijst — wel te verklaren via Magic Initiate, een feat of een scroll"): een aantekening, geen oordeel.
 - Goedkeuren zet de spreuk in het boek van die speler en haalt de regel uit de lijst; de teller in de kop loopt mee.
 - Staat er niets open, dan zegt de kop "Alles is afgehandeld" en beide secties melden dat ze leeg zijn.
+
+### Schrijfscherm: invoegknoppen, opmaakbalk en de rustknop (18 sep 2026)
+
+- Klik in het schrijfscherm op *Kaartje* (of Alt+K): de kiezer opent **over** het schrijfscherm, niet eronder. Kies een kaartje en `[[Naam]]` staat in je tekst. Hetzelfde geldt voor Beeld, Plattegrond, Kamer, Gevecht, Worptabel, Buit en Muziek.
+- De opmaakbalk heeft dezelfde knoppen als op een kaartje: vet, cursief, onderstreept, doorhalen, markeren, scheidingslijn, acht kleuren en het oogje met het voorbeeld.
+- In de zijbalk staat géén *Rust*-knop meer. Die startte de echte party-rust (HP terug, slots terug, in een herberg geld afschrijven) vanuit een schrijfscherm — terwijl er in de invoegbalk óók een *Rust* zit die alleen een regieblok in je tekst zet. Rust starten doe je in de regie-balk of het rustpaneel. *Sheets* blijft wel staan.
