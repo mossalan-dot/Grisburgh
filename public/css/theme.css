@@ -26410,3 +26410,41 @@ body.kaart-fs-active .combat-overlay { z-index: 1350; top: 0; }
   position: absolute; right: -6px; bottom: -4px;
   background: rgba(255, 253, 247, .85);
 }
+
+/* ── Jouw voorwerpen: naast elkaar op een breed scherm ─────────────────────
+   Het kaartje is op een laptop 1200 px breed, maar alles stond als één
+   gecentreerde kolom onder elkaar: portret, naam, één regel tekst, knoppen —
+   met dode ruimte links en rechts. Nu staat het beeld links en de rest ernaast,
+   zoals een voorwerpkaartje hoort te lezen. Onder 720 px blijft het stapelen. */
+@media (min-width: 720px) {
+  .item-carousel-slide {
+    display: grid;
+    grid-template-columns: 150px minmax(0, 1fr);
+    align-items: start;
+    column-gap: 22px;
+    row-gap: 8px;
+    text-align: left;
+    padding: 52px 18px 16px;
+  }
+  /* Géén `span 99`: dat maakt 99 impliciete rijen die elk hun row-gap
+     meekrijgen — het kaartje werd er 990 px hoog van. Het beeld staat
+     gewoon in rij 1 van de linkerkolom; de rest stapelt ernaast. */
+  .item-carousel-img-wrap { grid-column: 1; grid-row: 1; }
+  .item-carousel-slide > *:not(.item-carousel-img-wrap) { grid-column: 2; }
+  /* Deze stonden gecentreerd omdat de kolom dat deed; in een linkerkolom
+     horen ze links te beginnen. */
+  .item-carousel-slide .item-carousel-namerow,
+  .item-carousel-slide .item-carousel-qty-controls,
+  .item-carousel-slide .item-carousel-geef { justify-content: flex-start; }
+  .item-carousel-slide .item-carousel-charges { align-items: flex-start; }
+  /* Een voorwerp zonder beeld laat de linkerkolom leeg staan; dan mag de tekst
+     die ruimte hebben. */
+  .item-carousel-slide:not(:has(.item-carousel-img-wrap)) { grid-template-columns: minmax(0, 1fr); }
+  .item-carousel-slide:not(:has(.item-carousel-img-wrap)) > * { grid-column: 1; }
+}
+
+/* De wissel was een kale innerHTML-swap; een korte overvloeiing maakt er een
+   beweging van in plaats van een sprong. */
+.item-carousel-slide { animation: item-slide-in .18s ease-out; }
+@keyframes item-slide-in { from { opacity: .35; } to { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .item-carousel-slide { animation: none; } }

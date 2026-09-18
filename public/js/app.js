@@ -8260,7 +8260,7 @@ async function renderMijnKarakter(opts = {}) {
                   data-loaded="false">
                   <p class="player-spell-loading-text">Laden…</p>
                 </div>
-              </div>`;
+              </details>`;
             }).join('')}
           </div>`;
           })() : '<p class="player-dash-empty" style="margin-top:8px">Nog geen kenmerken vastgezet.</p>'}
@@ -8533,7 +8533,7 @@ async function renderMijnKarakter(opts = {}) {
               return `<div class="item-carousel-slide">
                 <div class="item-carousel-img-wrap" onclick="window._openDetail('voorwerpen','${esc(item.id)}')" title="Bekijk kaartje" style="cursor:pointer">
                   <img src="${iImgUrl}" class="item-carousel-img"
-                    onerror="this.closest('.item-carousel-img-wrap').style.display='none'">
+                    onerror="this.closest('.item-carousel-img-wrap').remove()">
                   ${_acPill ? `<span class="item-carousel-ac-pill" title="${esc(_acPill.tooltip)}">${esc(_acPill.pill)}</span>` : ''}
                 </div>
                 <div class="item-carousel-namerow">
@@ -8631,7 +8631,7 @@ async function renderMijnKarakter(opts = {}) {
             return `<div class="item-carousel-slide" ${slideClick}>
               ${imgId ? `<div class="item-carousel-img-wrap">
                 <img src="${api.thumbUrl(imgId)}" class="item-carousel-img"
-                  onerror="this.closest('.item-carousel-img-wrap').style.display='none'">
+                  onerror="this.closest('.item-carousel-img-wrap').remove()">
               </div>` : ''}
               <div class="item-carousel-namerow">
                 <span class="item-carousel-type-icon" style="color:${typeColor}">${typeIcon}</span>
@@ -9700,6 +9700,11 @@ async function renderMijnKarakter(opts = {}) {
       const item  = items[idx];
       const track = document.getElementById('knapzak-carousel-track');
       if (!track) return;
+      // Elke klik vervangt de hele innerHTML van de bak, en een langer of korter
+      // voorwerp maakte het kaartje dan hoger of lager — de pagina sprong onder
+      // je duim weg. De bak mag daarom groeien maar niet krimpen tijdens het
+      // bladeren; zo blijven de pijltjes en de bolletjes onder je cursor staan.
+      const _hVoor = track.offsetHeight;
 
       if (!item) {
         track.innerHTML = '<div class="item-carousel-slide"><p style="color:#8a7050;font-style:italic">Geen voorwerpen</p></div>';
@@ -9754,7 +9759,7 @@ async function renderMijnKarakter(opts = {}) {
       track.innerHTML = `<div class="item-carousel-slide">
         <div class="item-carousel-img-wrap" onclick="window._openDetail('voorwerpen','${esc(item.id)}')" title="Bekijk kaartje" style="cursor:pointer">
           <img src="${iImgUrl}" class="item-carousel-img"
-            onerror="this.closest('.item-carousel-img-wrap').style.display='none'">
+            onerror="this.closest('.item-carousel-img-wrap').remove()">
           ${_acPill ? `<span class="item-carousel-ac-pill" title="${esc(_acPill.tooltip)}">${esc(_acPill.pill)}</span>` : ''}
         </div>
         <div class="item-carousel-namerow">
@@ -9775,6 +9780,8 @@ async function renderMijnKarakter(opts = {}) {
             title="Dit voorwerp aan een medespeler geven">${icon('users')} Geven aan…</button>
         </div>
       </div>`;
+
+      if (_hVoor) track.style.minHeight = Math.max(_hVoor, track.offsetHeight) + 'px';
 
       // Update dots
       document.querySelectorAll('.item-carousel-dot').forEach((dot, i) => {
