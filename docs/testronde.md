@@ -809,3 +809,12 @@ Per bevinding: waar, wat, en of het opgelost is. Nieuwe regels onderaan.
 - Klik in het schrijfscherm op *Kaartje* (of Alt+K): de kiezer opent **over** het schrijfscherm, niet eronder. Kies een kaartje en `[[Naam]]` staat in je tekst. Hetzelfde geldt voor Beeld, Plattegrond, Kamer, Gevecht, Worptabel, Buit en Muziek.
 - De opmaakbalk heeft dezelfde knoppen als op een kaartje: vet, cursief, onderstreept, doorhalen, markeren, scheidingslijn, acht kleuren en het oogje met het voorbeeld.
 - In de zijbalk staat géén *Rust*-knop meer. Die startte de echte party-rust (HP terug, slots terug, in een herberg geld afschrijven) vanuit een schrijfscherm — terwijl er in de invoegbalk óók een *Rust* zit die alleen een regieblok in je tekst zet. Rust starten doe je in de regie-balk of het rustpaneel. *Sheets* blijft wel staan.
+
+### Bladwijzer en "Weet je nog?" (18 sep 2026)
+
+- Open de lade van een akte: elke sectie heeft bij hover een speldje. Klik erop en die sectie is je bladwijzer (goudkleurig streepje eronder); nog een klik haalt hem weg, een klik op een ándere sectie verplaatst hem.
+- Sluit de lade, ververs de pagina, open de akte opnieuw: je begint op de bladwijzer — ook in een andere browser, want hij staat bij de akte en niet in localStorage.
+- Ook de naamloze eerste sectie ("Inleiding") is te bladwijzeren; die wordt op positie onthouden in plaats van op titel.
+- Druk op **Pauzeren** in de regie-balk: de sectie waar je op dat moment staat wordt vanzelf de bladwijzer.
+- Klik in de aktetekst op het belletje achter een kaartje dat de party al kent: elke speler krijgt een toast "Weet je nog? — <naam>" met een klik naar het kaartje. Er komt géén regel in het logboek en de zichtbaarheid verandert niet.
+- Een belletje bij een kaartje dat de party níét kent bestaat niet; roep je de route toch aan, dan geeft hij een 409 ("onthul het eerst").

@@ -281,7 +281,13 @@ function _linkKnoppen(html) {
            onclick="window.akteSchrijven.geheimen('${type}','${id}')">${icon('lock')}</button>`
       : '';
     if (!/wikilink--dicht/.test(klassen)) {
-      return slot ? `<span class="akte-link" data-id="${id}">${heel}${slot}</span>` : heel;
+      // Kent de party hem al, dan viel er niets meer te doen — en juist dáár
+      // zat de DM op onthullen te klikken om hun aandacht ergens op te
+      // richten. Een belletje doet dat zonder bijwerkingen: geen logboekregel,
+      // geen zichtbaarheid die verandert, alleen een tik op de schouder.
+      const bel = `<button class="akte-act akte-act--herinner" title="Even herinneren — de spelers krijgen een verwijzing naar dit kaartje"
+          onclick="window.akteSchrijven.herinner('${type}','${id}',this)">${icon('bell-ring')}</button>`;
+      return `<span class="akte-link" data-id="${id}">${heel}${bel}${slot}</span>`;
     }
     return `<span class="akte-link" data-id="${id}">${heel}<button class="akte-act akte-act--onthul" title="Onthullen voor de party"
         onclick="window.akteSchrijven.onthul('${type}','${id}','visible',this)">${icon('eye')}</button>
@@ -1035,6 +1041,22 @@ window.akteSchrijven = {
 
   // ── Spelen: wat de knoppen doen ──────────────────────────────────────────
   // Allemaal dezelfde aanroepen als de regie-balk; alleen de plek verschilt.
+  // Een tik op de schouder. Bewust géén onthulling: de zichtbaarheid verandert
+  // niet, er komt geen regel in het logboek en geen cinematic. Na een klik
+  // blijft de knop even als vinkje staan — anders weet je niet of het aankwam.
+  async herinner(type, id, btn) {
+    if (btn) { btn.disabled = true; btn.innerHTML = icon('check'); }
+    try {
+      await api.post(`/entities/${type}/${id}/herinner`, {});
+      window._showToast?.('Herinnering verstuurd.');
+    } catch (e) {
+      if (btn) { btn.disabled = false; btn.innerHTML = icon('bell-ring'); }
+      alert('Kon de herinnering niet versturen: ' + (e.message || '?'));
+      return;
+    }
+    setTimeout(() => { if (btn?.isConnected) { btn.disabled = false; btn.innerHTML = icon('bell-ring'); } }, 4000);
+  },
+
   async onthul(type, id, mode, btn) {
     try {
       await api.toggleVisibility(type, id, mode);

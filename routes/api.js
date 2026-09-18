@@ -1051,6 +1051,37 @@ router.get('/entities/:type/:id', attachRole, (req, res) => {
 // ── Ontdekkings-teller (feature #5) ──
 // Per entiteitstype: hoeveel de groep van de speler heeft ontdekt (visibility
 // vague|visible) t.o.v. het totaal aantal (niet-getrashte) entiteiten.
+// ── Even herinneren ─────────────────────────────────────────────────────────
+// Een kaartje dat de party lang geleden ontmoette staat al op `visible`, dus
+// onthullen kan niet meer — en dat was precies wat de DM tóch deed om hun
+// aandacht ergens op te richten: op onthullen klikken, terwijl er niets te
+// onthullen viel. Dit is dezelfde beweging zonder de bijwerkingen: geen
+// logboekregel, geen zichtbaarheid die verandert, geen cinematic. Alleen een
+// tik op de schouder met een knop naar het kaartje.
+router.post('/entities/:type/:id/herinner', requireDM, (req, res) => {
+  const { type, id } = req.params;
+  if (!ENTITY_TYPES.includes(type)) return res.status(400).json({ error: 'Ongeldig type' });
+  const entities = storage.readJSON('entities.json');
+  const entity = (entities[type] || []).find(e => e.id === id);
+  if (!entity) return res.status(404).json({ error: 'Kaartje niet gevonden' });
+
+  const dmState = readDmState();
+  const g = getGroup(dmState);
+  // Alleen wat ze al kennen. Een herinnering aan iets wat ze nooit gezien
+  // hebben is geen herinnering maar een lek.
+  const stand = (g.visibility || {})[id];
+  if (stand !== 'visible' && stand !== 'vague') {
+    return res.status(409).json({ error: 'Dit kaartje kent de party nog niet — onthul het eerst' });
+  }
+
+  req.app.get('io').to(req.session?.campaignId || 'main').emit('entity:herinnering', {
+    id: entity.id, type, name: entity.name,
+    thumb: storage.bestandIsBeeld(entity.data?.imageId || entity.id) ? (entity.data?.imageId || entity.id) : '',
+    groupId: dmState.activeGroup,
+  });
+  res.json({ ok: true });
+});
+
 router.get('/ontdekkingen', attachRole, (req, res) => {
   const dmState  = readDmState();
   const entities = storage.readJSON('entities.json');
@@ -7855,7 +7886,8 @@ function _bereikbaarheidVoor(meta, dmState, groepId) {
 // spelers staan. Zelfde soort lek als destijds de kamernamen in een dungeon.
 // Wat de speler wél nodig heeft is de kop: nummer, titel en korte naam, want
 // daarop groepeert het logboek en dat labelt een missie.
-const _AKTE_DM_VELDEN = ['tekst', 'script', 'monsters'];
+// Ook de bladwijzer is voor de DM: hij verklapt hoe ver de party gekomen is.
+const _AKTE_DM_VELDEN = ['tekst', 'script', 'monsters', 'bladwijzer'];
 function _hoofdstukkenVoorSpeler(hoofdstukken) {
   const uit = {};
   for (const [key, akte] of Object.entries(hoofdstukken || {})) {
@@ -7891,7 +7923,31 @@ router.get('/meta/akte/:key/regie', requireDM, (req, res) => {
   const meta = storage.readJSON('meta.json');
   const akte = meta.hoofdstukken?.[req.params.key];
   if (!akte) return res.status(404).json({ error: 'Akte niet gevonden' });
-  res.json({ tekst: akte.tekst || '', script: akte.script || [], monsters: akte.monsters || [] });
+  res.json({ tekst: akte.tekst || '', script: akte.script || [], monsters: akte.monsters || [],
+             bladwijzer: akte.bladwijzer || null });
+});
+
+// ── Bladwijzer: waar was je gebleven ───────────────────────────────────────
+// De lade onthield de sectie al, maar in localStorage: stil, per browser, en
+// weg zodra je op een ander apparaat zit. Een bladwijzer hoort bij de akte, is
+// zichtbaar in de strook, en wordt bij het pauzeren vanzelf gezet — want dát is
+// het moment waarop je wil weten waar je volgende week verder gaat.
+router.put('/meta/akte/:key/bladwijzer', requireDM, (req, res) => {
+  const meta = storage.readJSON('meta.json');
+  if (!meta.hoofdstukken?.[req.params.key]) return res.status(404).json({ error: 'Akte niet gevonden' });
+  const titel = String(req.body?.titel || '').trim().slice(0, 200);
+  const index = Number.isInteger(req.body?.index) ? req.body.index : null;
+  // `wis: true` haalt hem weg. Alleen op een lege titel afgaan kan niet: de
+  // eerste sectie van een akte heeft er vaak geen ("Inleiding" is een label,
+  // geen kop), en juist daar kun je ook blijven steken.
+  if (req.body?.wis || (!titel && index === null)) {
+    delete meta.hoofdstukken[req.params.key].bladwijzer;
+  } else {
+    meta.hoofdstukken[req.params.key].bladwijzer = { titel, index, op: new Date().toISOString() };
+  }
+  storage.writeJSON('meta.json', meta);
+  req.app.get('io').to(req.session?.campaignId || 'main').emit('meta:updated');
+  res.json({ ok: true, bladwijzer: meta.hoofdstukken[req.params.key].bladwijzer || null });
 });
 
 // Per akte instellen wat er niet bereikbaar is (diensten + winkel-entiteiten).

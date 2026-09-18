@@ -1579,7 +1579,7 @@ window._nakijkKlaar = async (ch, type, id, btn) => {
 
 window._akteSchrijf = async (ch) => {
   const info = meta?.hoofdstukken?.[ch] || {};
-  const { openAkteSchrijven } = await import('./akte-schrijven.js?v=25');
+  const { openAkteSchrijven } = await import('./akte-schrijven.js?v=26');
   openAkteSchrijven(ch, info.short || info.title || ch);
 };
 window._logboekVerversen = () => renderLogboek();

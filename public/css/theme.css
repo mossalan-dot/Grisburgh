@@ -26476,3 +26476,36 @@ body.kaart-fs-active .combat-overlay { z-index: 1350; top: 0; }
 body.akte-schrijf-open .modal-overlay { z-index: 1300; }
 body.akte-schrijf-open .media-picker-overlay,
 body.akte-schrijf-open .mp-overlay { z-index: 1320; }
+
+/* ── Bladwijzer in de sectiestrook van de lade ─────────────────────────────
+   Waar je gebleven was stond in localStorage: stil, per browser, en weg zodra
+   je op een ander apparaat zit. Nu een zichtbaar lintje dat bij de akte hoort
+   en bij het pauzeren vanzelf wordt gezet. */
+.regie-lade-sectie-wrap { display: inline-flex; align-items: center; gap: 2px; }
+.regie-lade-bw {
+  border: 0; background: none; cursor: pointer; padding: 3px;
+  display: inline-flex; color: #8a7050; opacity: 0; transition: opacity .15s ease;
+}
+.regie-lade-bw .icon { width: 12px; height: 12px; }
+.regie-lade-sectie-wrap:hover .regie-lade-bw { opacity: .6; }
+.regie-lade-bw:hover { opacity: 1 !important; }
+.regie-lade-bw.is-aan { opacity: 1; color: #a8833c; }
+.regie-lade-sectie.is-bladwijzer { box-shadow: inset 0 -2px 0 #a8833c; }
+
+/* ── "Weet je nog?" — de herinnering bij de speler ─────────────────────────
+   Geen onthulling: geen cinematic, geen logboekregel. Een tik op de schouder
+   met een knop naar het kaartje. */
+.herinner-toast { display: flex; align-items: center; gap: 10px; text-align: left; }
+.herinner-toast-beeld {
+  width: 40px; height: 40px; flex: 0 0 auto; border-radius: 6px; object-fit: cover;
+  border: 1px solid rgba(196, 168, 122, .6);
+}
+.herinner-toast-tekst { display: flex; flex-direction: column; gap: 1px; }
+.herinner-toast-kop {
+  font-size: .72rem; letter-spacing: .06em; text-transform: uppercase; opacity: .7;
+}
+.herinner-toast-naam { font-family: 'Cinzel', serif; font-size: .98rem; }
+
+/* Het belletje bij een kaartje dat de party al kent. */
+.akte-act--herinner { color: #8a7050; }
+.akte-act--herinner:hover { color: #a8833c; }

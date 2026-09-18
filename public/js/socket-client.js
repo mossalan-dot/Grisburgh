@@ -210,6 +210,24 @@ function _ververOpenKaartje(id) {
     }
   });
 
+  // Een tik op de schouder: geen onthulling, alleen een verwijzing naar iets
+  // wat de party al kent. Dus een toast en geen cinematic.
+  socket.on('entity:herinnering', ({ id, type, name, thumb, groupId } = {}) => {
+    if (window.app?.isDM?.()) return;
+    const mijn = window._myGroupId;
+    if (groupId && mijn && mijn !== groupId) return;
+    const naam = window.app.esc(name || 'dit kaartje');
+    window._showToast?.(
+      `<span class="herinner-toast">`
+      + (thumb ? `<img src="/api/thumb/${thumb}" alt="" class="herinner-toast-beeld">` : '')
+      + `<span class="herinner-toast-tekst">`
+      +   `<span class="herinner-toast-kop">Weet je nog?</span>`
+      +   `<span class="herinner-toast-naam">${naam}</span>`
+      + `</span></span>`,
+      () => window._openDetail?.(type, id),
+      12000);
+  });
+
   socket.on('logboek:imageRevealed', ({ imageId, caption, samenvatting, groupId } = {}) => {
     // Onthullingen zijn per groep. Het tafelscherm toont altijd (dat staat bij
     // de groep die op dat moment speelt); een speler alleen als het zijn groep
@@ -925,7 +943,13 @@ function _showToast(html, onClick, duration = 4500) {
     toast.addEventListener('click', () => { dismiss(); onClick(); });
   }
 
-  requestAnimationFrame(() => toast.classList.add('map-toast--show'));
+  // Géén requestAnimationFrame: die staat stil in een tabblad dat niet op de
+  // voorgrond staat, en dat is precies waar een speler zijn app heeft. De
+  // toast verscheen dan pas als hij terugklikte — of helemaal niet, want de
+  // timer eronder tikt wél gewoon door. Een geforceerde reflow doet hetzelfde
+  // werk en gebeurt altijd.
+  void toast.offsetWidth;
+  toast.classList.add('map-toast--show');
   const timer = setTimeout(dismiss, duration);
   if (onClick) toast.addEventListener('click', () => clearTimeout(timer), { once: true });
 }

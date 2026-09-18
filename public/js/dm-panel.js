@@ -518,6 +518,13 @@ export function initDmPanel() {
     regieBalkToggleMinimize() { _rbMinimized = !_rbMinimized; _renderRegieBalk(); },
     regieBalkBrief() { _openRegieBriefPicker(); },
     regieBalkPauze:          () => _regieBalkPauze(),
+    ladeBladwijzer:          (i) => {
+      const sec = _ladeSecties[i];
+      if (!sec) return;
+      return _ladeBwGelijk(sec.titel, i)
+        ? _ladeBladwijzerZet('', null, true)
+        : _ladeBladwijzerZet(sec.titel, i);
+    },
     sheetsPrint:             (groep) => _sheetsPrint(groep),
     rustMenu:                (ev) => _rustMenu(ev),
     sfeerMenu:               (ev) => _sfeerMenu(ev),
@@ -2289,6 +2296,40 @@ function _ladePlekSchrijf(i) {
   try { localStorage.setItem(_ladePlekSleutel(), String(i)); } catch { /* privémodus */ }
 }
 
+// De bladwijzer staat bij de akte (niet in localStorage): zichtbaar in de
+// strook, en hij reist mee naar een ander apparaat.
+let _ladeBladwijzer = null;   // { titel, op } van de lopende akte
+// Vergelijken op titel als die er is, anders op positie: de eerste sectie van
+// een akte heeft vaak geen kop ("Inleiding" is ons label, niet de tekst), en
+// juist daar kun je net zo goed blijven steken.
+function _ladeBwGelijk(titel, i) {
+  const bw = _ladeBladwijzer;
+  if (!bw) return false;
+  if (bw.titel) return _kopNorm(titel) === _kopNorm(bw.titel);
+  return Number.isInteger(bw.index) && bw.index === i;
+}
+function _ladeBladwijzerIdx() {
+  if (!_ladeBladwijzer) return -1;
+  const i = _ladeSecties.findIndex((x, n) => _ladeBwGelijk(x.titel, n));
+  return i;
+}
+async function _ladeBladwijzerZet(titel, index, wis) {
+  if (!_rbChapter) return;
+  try {
+    const r = await api.put(`/meta/akte/${encodeURIComponent(_rbChapter)}/bladwijzer`,
+      wis ? { wis: true } : { titel: titel || '', index });
+    _ladeBladwijzer = r?.bladwijzer || null;
+  } catch (e) { _showToast('Bladwijzer opslaan mislukt: ' + e.message); return; }
+  if (_ladeOpen()) _ladeRender();
+}
+// Vanuit de pauzeknop: leg vast waar je stopte, zonder dat de DM eraan denkt.
+async function _ladeBladwijzerBijPauze() {
+  const sec = _ladeSecties[_ladeIdx];
+  if (!_rbChapter || !sec) return;
+  try { await api.put(`/meta/akte/${encodeURIComponent(_rbChapter)}/bladwijzer`, { titel: sec.titel || '', index: _ladeIdx }); }
+  catch { /* een mislukte bladwijzer mag het pauzeren niet ophouden */ }
+}
+
 async function _ladeToggle() {
   if (_ladeOpen()) return _ladeSluit();
   if (!_rbChapter) return;
@@ -2296,14 +2337,18 @@ async function _ladeToggle() {
   try {
     const regie = await api.akteRegie(_rbChapter);
     _ladeTekst = regie?.tekst || '';
+    _ladeBladwijzer = regie?.bladwijzer || null;
   } catch {
     _ladeTekst = window.app?.state?.meta?.hoofdstukken?.[_rbChapter]?.tekst || '';
   }
   _ladeSecties = _splitsSecties(_ladeTekst);
-  _ladeIdx = Math.min(_ladePlekLees(), Math.max(0, _ladeSecties.length - 1));
+  // Een bladwijzer wint van de stille localStorage-plek: die heb je zelf gezet
+  // (of hij is bij het pauzeren gezet), dus dáár wil je beginnen.
+  const _bwIdx = _ladeBladwijzerIdx();
+  _ladeIdx = _bwIdx >= 0 ? _bwIdx : Math.min(_ladePlekLees(), Math.max(0, _ladeSecties.length - 1));
   // De akte-module levert de renderer én de knoppen; die moet weten welke akte
   // er speelt, anders belandt een getoond beeld in de sessielog van niemand.
-  const mod = await import('./akte-schrijven.js?v=25');
+  const mod = await import('./akte-schrijven.js?v=26');
   mod.zetAkte(_rbChapter, _ladeTekst);
   window._akteRegieRender = mod.regieNaarHtml;
   let lade = document.getElementById('regie-lade');
@@ -2329,7 +2374,7 @@ window._ladeHerlaad = async () => {
     _ladeTekst = regie?.tekst || '';
     _ladeSecties = _splitsSecties(_ladeTekst);
     _ladeIdx = Math.min(_ladeIdx, Math.max(0, _ladeSecties.length - 1));
-    const mod = await import('./akte-schrijven.js?v=25');
+    const mod = await import('./akte-schrijven.js?v=26');
     mod.zetAkte(_rbChapter, _ladeTekst);
     _ladeRender();
   } catch { /* de lade blijft staan zoals hij stond */ }
@@ -2386,8 +2431,13 @@ function _ladeRender() {
     ${heeftTekst ? `
       <nav class="regie-lade-secties">
         ${_ladeSecties.map((sec, i) => `
-          <button class="regie-lade-sectie regie-lade-sectie--n${sec.niveau || 2}${i === _ladeIdx ? ' is-actief' : ''}"
-            onclick="window.dmPanel.ladeGaNaar(${i})">${esc(sec.titel || 'Inleiding')}</button>`).join('')}
+          <span class="regie-lade-sectie-wrap">
+            <button class="regie-lade-sectie regie-lade-sectie--n${sec.niveau || 2}${i === _ladeIdx ? ' is-actief' : ''}${_ladeBwGelijk(sec.titel, i) ? ' is-bladwijzer' : ''}"
+              onclick="window.dmPanel.ladeGaNaar(${i})">${esc(sec.titel || 'Inleiding')}</button>
+            <button class="regie-lade-bw${_ladeBwGelijk(sec.titel, i) ? ' is-aan' : ''}"
+              title="${_ladeBwGelijk(sec.titel, i) ? 'Bladwijzer weghalen' : 'Hier ben ik gebleven'}"
+              onclick="window.dmPanel.ladeBladwijzer(${i})">${icon('pin')}</button>
+          </span>`).join('')}
       </nav>` : ''}
     <div class="regie-lade-body" id="regie-lade-body">
       ${!heeftTekst
@@ -2613,6 +2663,9 @@ async function _regieBalkPauze() {
   if (!confirm(`Akte "${_rbTitle}" pauzeren?\n\nDe voortgang en de HP van de party worden vastgelegd, zodat je later kunt hervatten.`)) return;
   try {
     const groep = _rbGroep;
+    // Waar je stopte hoort bij het pauzeren: volgende week open je de akte en
+    // hoef je niet te zoeken.
+    await _ladeBladwijzerBijPauze();
     const r = await api.pauzeerAkte(_rbChapter, groep);
     _showToast(`${icon('pause')} Akte gepauzeerd — ${r.personages} personage(s) vastgelegd.`);
     window.dmPanel.regieBalkClose();
