@@ -26594,3 +26594,11 @@ body.akte-schrijf-open .mp-overlay { z-index: 1320; }
 /* Het belletje bij een kaartje dat de party al kent. */
 .akte-act--herinner { color: #8a7050; }
 .akte-act--herinner:hover { color: #a8833c; }
+
+/* Bijschrift bij een beeld in een akte (`![[id|Bijschrift]]`). */
+.akte-embed { margin: 0 0 14px; }
+.akte-embed-bijschrift {
+  margin-top: 6px;
+  font-family: 'IM Fell English', serif; font-style: italic;
+  font-size: .88rem; color: #7a6040; text-align: center;
+}

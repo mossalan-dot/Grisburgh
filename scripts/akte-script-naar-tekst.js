@@ -76,8 +76,11 @@ function stapNaarTekst(st) {
       if (!st.fileId) return null;
       // Het bijschrift is het enige stukje tekst dat de import bewaard heeft;
       // dat is vaak precies de scène-aanduiding, dus die zetten we erboven.
-      const bij = String(st.caption || '').trim();
-      return (bij ? `*${bij}*\n\n` : '') + `![[${st.fileId}]]`;
+      // Het bijschrift hoort **in** de embed, niet als cursieve regel erboven:
+      // `![[id|Bijschrift]]` is dezelfde pipe als in Obsidian, en dat schrift
+      // reist mee naar het logboek en naar de speler bij het onthullen.
+      const bij = String(st.caption || '').trim().replace(/[\]|]/g, '');
+      return `![[${st.fileId}${bij ? '|' + bij : ''}]]`;
     }
     case 'encounter': {
       const naam = st.name || naamVanEncounter(st.encounterId);
@@ -114,8 +117,12 @@ for (const [key, h] of Object.entries(hoofdstukken)) {
   if (!script.length) continue;
 
   // Een akte die al tekst heeft laten we met rust: daar heeft iemand aan
-  // geschreven, en dat overschrijven we niet met een skelet.
-  if (String(h.tekst || '').trim()) {
+  // geschreven, en dat overschrijven we niet met een skelet. Uitzondering: een
+  // tekst die nog letterlijk ons eigen skelet is (herkenbaar aan de regel die
+  // het script erin zet) mag opnieuw gemaakt worden — anders kun je een
+  // verbetering aan dit script nooit meer toepassen.
+  const _isOnsSkelet = String(h.tekst || '').includes('Dit skelet komt uit het oude regie-script');
+  if (String(h.tekst || '').trim() && !_isOnsSkelet) {
     console.log(`  ${String(h.num || '?').padStart(2)} ${(h.title || key).slice(0, 34).padEnd(36)} overgeslagen — heeft al tekst`);
     overgeslagen++;
     continue;

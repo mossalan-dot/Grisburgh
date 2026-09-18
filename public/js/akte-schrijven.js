@@ -214,23 +214,31 @@ function _tabelHtml(regels) {
 // een hoofdstuk uit Obsidian plakken en de beelden er daarna bij zoeken,
 // zonder eerst een import te draaien.
 const _AUDIO = /\.(mp3|wav|m4a|ogg)$/i;
+// `![[bestand|Bijschrift]]` — dezelfde pipe als in Obsidian. Er was geen enkele
+// manier om vanuit een akte een bijschrift bij een beeld te zetten: `toonBeeld`
+// stuurde overal een lege caption mee, en het logboek en de speler kregen dus
+// een plaatje zonder onderschrift.
 function _embedHtml(ruw) {
-  const naam = ruw.trim();
+  const pijp = String(ruw).indexOf('|');
+  const bijschrift = pijp >= 0 ? String(ruw).slice(pijp + 1).trim() : '';
+  const naam = (pijp >= 0 ? String(ruw).slice(0, pijp) : String(ruw)).trim();
   const isAudio = _AUDIO.test(naam);
   const isId = /^[A-Za-z0-9_-]{8,}$/.test(naam) && !/\.[a-z0-9]{2,4}$/i.test(naam);
   if (isId) {
     if (isAudio) {
-      return `<div class="akte-embed akte-embed--audio"><audio controls src="/api/files/${esc(naam)}"></audio></div>`;
+      return `<figure class="akte-embed akte-embed--audio"><audio controls src="/api/files/${esc(naam)}"></audio>
+        ${bijschrift ? `<figcaption class="akte-embed-bijschrift">${esc(bijschrift)}</figcaption>` : ''}</figure>`;
     }
     // In de speelstand is een beeld iets dat je **toont**: dezelfde weg als de
     // regie-balk (de verborgen sessielog-entry van deze akte), zodat het ook in
     // het logboek en de carrousel van de speler terechtkomt.
     const knop = _acties
       ? `<button class="dm-btn dm-btn-primary dm-btn-sm akte-beeld-knop"
-           onclick="window.akteSchrijven.toonBeeld('${esc(naam)}', this)">${icon('eye')} Toon aan spelers</button>`
+           onclick="window.akteSchrijven.toonBeeld('${esc(naam)}', this, '${esc(bijschrift).replace(/'/g, "\\'")}')">${icon('eye')} Toon aan spelers</button>`
       : '';
-    return `<div class="akte-embed"><img src="/api/files/${esc(naam)}" alt="" loading="lazy"
-         onerror="this.closest('.akte-embed').classList.add('akte-embed--stuk')">${knop}</div>`;
+    return `<figure class="akte-embed"><img src="/api/files/${esc(naam)}" alt="${esc(bijschrift)}" loading="lazy"
+         onerror="this.closest('.akte-embed').classList.add('akte-embed--stuk')">${knop}
+      ${bijschrift ? `<figcaption class="akte-embed-bijschrift">${esc(bijschrift)}</figcaption>` : ''}</figure>`;
   }
   return `<div class="akte-embed akte-embed--slot">
     <span class="akte-embed-naam">${icon(isAudio ? 'volume-2' : 'image')} ${esc(naam)}</span>
@@ -912,7 +920,13 @@ window.akteSchrijven = {
     if (!window.mediaPicker?.open) { alert('Mediabibliotheek niet beschikbaar'); return; }
     window.mediaPicker.open({
       type: 'afbeelding',
-      onSelect: (fileId) => _voegIn(`![[${fileId}]]`, { blok: true }),
+      onSelect: (fileId) => {
+        // Meteen vragen: een bijschrift dat je later moet toevoegen voeg je
+        // nooit toe, en juist dát onderschrift krijgt de speler te zien in het
+        // logboek en bij het onthullen.
+        const bij = (prompt('Bijschrift bij dit beeld? (leeg laten mag)') || '').trim();
+        _voegIn(`![[${fileId}${bij ? '|' + bij.replace(/[\]|]/g, '') : ''}]]`, { blok: true });
+      },
     });
   },
 
@@ -1184,7 +1198,7 @@ window.akteSchrijven = {
   // Een beeld tonen loopt via de verborgen sessielog-entry van deze akte —
   // hetzelfde datamodel als de regie-balk en de akte-importer, zodat het beeld
   // ook in het logboek en de carrousel van de speler verschijnt.
-  async toonBeeld(fileId, btn) {
+  async toonBeeld(fileId, btn, bijschrift = '') {
     btn.disabled = true;
     try {
       const archief = await api.listArchief();
@@ -1192,10 +1206,16 @@ window.akteSchrijven = {
         e.hoofdstuk === _ch && /sc[eè]ne-afbeeldingen/i.test(e.korteSamenvatting || ''));
       if (!entry) entry = await api.createSessieLog({ hoofdstuk: _ch, korteSamenvatting: 'Scène-afbeeldingen', datum: '' });
       const bestaand = (entry.images || []).map(img => typeof img === 'string' ? { id: img, caption: '', visible: false } : img);
-      if (!bestaand.some(i => i.id === fileId)) {
-        await api.updateSessieLog(entry.id, { images: [...bestaand, { id: fileId, caption: '', visible: false }] });
+      const bekend = bestaand.find(i => i.id === fileId);
+      if (!bekend) {
+        await api.updateSessieLog(entry.id, { images: [...bestaand, { id: fileId, caption: bijschrift, visible: false }] });
+      } else if (bijschrift && bekend.caption !== bijschrift) {
+        // Het bijschrift in de akte is de bron: pas je het daar aan, dan volgt
+        // het logboek. Andersom zou je het op twee plekken moeten bijhouden.
+        await api.updateSessieLog(entry.id,
+          { images: bestaand.map(i => i.id === fileId ? { ...i, caption: bijschrift } : i) });
       }
-      await api.onthulAfbeelding(entry.id, fileId, '', window._activeGroupId || null);
+      await api.onthulAfbeelding(entry.id, fileId, bijschrift, window._activeGroupId || null);
       btn.innerHTML = `${icon('check')} Getoond`;
       btn.classList.add('is-klaar');
       btn.disabled = false;

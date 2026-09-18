@@ -821,3 +821,5 @@ Per bevinding: waar, wat, en of het opgelost is. Nieuwe regels onderaan.
 - Ga een level omhoog: het scherm loopt donker, er waaieren stralen achter de kaart, vonken spatten één keer weg en het nieuwe level komt naar voren — alles in de kleur van je klasse (een Wizard blauw, een Barbarian rood).
 - Stel in Meesterkamer → Geluiden → *Momenten* een klank in bij **Level omhoog**: die klinkt bij de speler en op het tafelscherm op het moment van de omslag. Staat er niets, dan is het stil.
 - Zet in je systeem "verminder beweging" aan: je krijgt hetzelfde tafereel zonder animatie.
+- Voeg in het schrijfscherm een beeld in: hij vraagt meteen om een bijschrift. Dat komt als `![[id|Bijschrift]]` in de tekst, staat cursief onder het beeld, en gaat mee naar het logboek en naar de speler zodra je op *Toon aan spelers* drukt. Leeg laten mag; dan is er geen onderschrift.
+- Pas een bijschrift in de aktetekst aan en toon het beeld opnieuw: het logboek volgt. De akte is de bron.
