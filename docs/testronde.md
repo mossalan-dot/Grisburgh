@@ -920,3 +920,29 @@ Per bevinding: waar, wat, en of het opgelost is. Nieuwe regels onderaan.
 - [ ] **De Gock leest de geheimenlijst** (speler) — laat een kaartje met meerdere geheimen onderzoeken: het rapport bevat een échte geheimregel, niet een willekeurig tidbit. (Hij las nog het oude enkelvoudige veld, dus een kaartje dat ooit in de nieuwe editor was opgeslagen leverde stilzwijgend een tidbit op.)
 - [ ] **Het geheim gaat ook open op het kaartje** (speler) — na het ophalen van het dossier staat diezelfde regel als onthuld op het kaartje. Je hebt ervoor betaald; dan hoort de app niet te zeggen dat je het nog niet weet.
 - [ ] **Tweede keer, ander geheim** (speler) — onderzoek dezelfde persoon nog eens: je krijgt de volgende regel. Zijn ze op, dan krijg je weer een tidbit.
+
+### Diensten met tests afgedekt (21 sep 2026)
+
+Alle **34 schrijfroutes** van de acht diensten komen nu in een test voor; dat
+waren er 21. Drie nieuwe bestanden: `tests/tempel.test.js` (9),
+`tests/tweespalt.test.js` (12) en `tests/ursula-magizoo.test.js` (12). Wat je
+met de hand niet meer hoeft na te rekenen:
+
+- **Tempel** — de prijs per god, één zegen tegelijk, afvinken tot hij op is, een
+  eed die de andere goden afsluit, verzaken → vloek, boete → vrij, en heffen
+  door de DM.
+- **Tweespalt** — inzet meteen afgeschreven, uitbetaling = inzet + inzet × payout,
+  niets bij verlies, inzet terug bij een geschrapt event, geen inzet van nul of
+  boven je saldo, arena-inschrijving met inzet, prijzengeld bij overwinning, een
+  partij die sluit zodra de tegenstander verslagen is, en geen derde uitkomst.
+- **Ursula** — niets zonder geschreven inhoud, voorspelling over de vólgende
+  akte, één per party per akte (en dus ook maar één keer betalen), reset door de
+  DM, en niets te voorzien zonder volgende akte.
+- **Magizoöloog** — alleen ontdekte wezens, naam → deels met de roddel erbij,
+  volledig tegen de hogere prijs, niets meer aan een volledig bekend wezen, en
+  één huisdier per party.
+
+> **Gevonden bij het schrijven:** de hulptekst zegt dat Ursula *"op een 1–5 één
+> zintuig"* onthult, maar de route onthult er **`roll`** — bij een 4 dus vier.
+> De test legt vast wat de code doet; welke van de twee de bedoeling is, is een
+> keuze van de DM. Zie `hulp_ursula` in `app.js`.
