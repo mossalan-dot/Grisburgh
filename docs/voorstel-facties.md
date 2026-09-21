@@ -233,6 +233,33 @@ voorstel.
 
 ---
 
+## Gedaan op 21 september 2026
+
+Stap 1 t/m 3 en de regelkant staan erin:
+
+- `rangen[].unlocks[]` met de vijf types, met `boons` en het losse `titel`-veld
+  als oude vorm (`_rangUnlocks()`). Er is niets gemigreerd.
+- Een **voorwerp**-unlock geeft het kaartje echt in bezit (`_eigendomErbij`,
+  dus uniek/gedeeld/stapelbaar werkt) en zet het zichtbaar. Een **verkoper**
+  zet de winkel open voor die party. Een **titel** en een **metgezel** worden
+  niet uitgedeeld: de eerste stond al op de ladder, de tweede wordt ingeroepen.
+- **Hulp inroepen**: `POST /facties/:id/hulp` zet de metgezel in `g.companions`
+  (waar de bondgenoten al stonden, dus hij staat meteen op het partytabblad en
+  laadt mee in een gevecht) en `g.factieHulp[factieId]` onthoudt tot wanneer.
+  De lange rust stuurt hem naar huis; daarna mag je opnieuw vragen.
+  `DELETE` stuurt hem eerder weg.
+- `rangen[].vereist = { level, missies }` wordt **voorgerekend** op de ladder,
+  niet afgedwongen. Het partijlevel is dat van de hoogste speler; de
+  missieteller telt de voltooide missies van díé factie.
+
+Wat er nog ligt: **verkopers afleiden** uit `leden[]` + `data.voorraad` (nu
+alleen als expliciete unlock), de **Heeren als factie** in Grisburgh zelf
+(de factie bestáát al in `meta.facties`, alleen de oude dienst moet nog weg),
+en de **klusgenerator** als knop in de missie-editor.
+
+Het **klussenbord en de boetes zijn vervallen** (besluit 21 sep 2026). Het
+gerechtshof-idee staat in `docs/todo.md`.
+
 ## 7. Volgorde
 
 1. **`unlocks` met de vijf types**, met `boons` als oude vorm. Dit is het hart:

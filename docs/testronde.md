@@ -895,3 +895,13 @@ Per bevinding: waar, wat, en of het opgelost is. Nieuwe regels onderaan.
 - **Subklasse onder zijn eigen klasse** (SP) — een personage met één klasse heeft *Class* met daaronder *Subclass*. Zet multiclass aan: dan staat er *Class · Subclass Wizard · Multiclass · Subclass Rogue* — elke subklasse direct onder de klasse waar hij bij hoort, en allebei met de naam van die klasse erbij. In een Wands & Wizards-campagne heet de eerste nog steeds *School of Magic*.
 
 - [ ] **Een boon blijft bij de party die hem verdiende** (DM) — laat party A in rang stijgen bij een factie met een boon: alleen de spelers van party A krijgen hem in hun boedel. Party B, die de factie misschien niet eens kent, krijgt niets. (Hij ging naar élke speler van de campagne.)
+
+### Facties: een rang ontgrendelt iets (21 sep 2026)
+
+- [ ] **Vier soorten ontgrendeling** (DM) — geef een rang een tekst, een voorwerp-kaartje, een winkel en een titel. Bij de rangstijging: de tekst komt als regel in de boedel, het **kaartje** komt echt in bezit (met zijn rariteit, charges en plek in de Markt — het was een los regeltje), de **winkel** staat vanaf dan op de Markt, en de titel staat in de keuzelijst op het blad.
+- [ ] **Alleen de party die hem haalde** (DM) — laat party A stijgen: party B krijgt niets. (Elke speler van de campagne kreeg hem.)
+- [ ] **Hulp inroepen** (speler) — op een rang met een metgezel staat op de factiekaart *Hulp inroepen*. Klik: hij loopt mee op het partytabblad en laadt mee in een gevecht. Nog eens klikken kan niet zolang hij er is.
+- [ ] **Hulp gaat naar huis** (DM) — na een lange rust loopt hij niet meer mee en mag je hem opnieuw vragen. *Bedanken* stuurt hem eerder weg. Zijn kaartje blijft zichtbaar — je hébt hem ontmoet.
+- [ ] **Een factie die je niet kent stuurt niemand** (speler) — zet de factie op verborgen: hulp inroepen geeft een 403.
+- [ ] **Wat een rang nog meer vraagt** (ALL) — vul bij een rang *level* en *voltooide missies* in: op de ladder staat wat gevraagd wordt en wat de party heeft, met een vinkje of een slotje. Het **blokkeert niets** — de rang komt gewoon op renown, zoals bij multiclassen en spreukverzoeken.
+- [ ] **Oude facties blijven werken** (ALL) — een factie met `boons` en een los `titel`-veld (alles in Grisburgh) toont dezelfde chips als eerst; een boon mét kaartje-id geldt nu als voorwerp.

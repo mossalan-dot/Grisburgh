@@ -3974,6 +3974,19 @@ router.post('/party/long-rest', requireDM, (req, res) => {
   const perPlayer = {};
   const _sum = id => (perPlayer[id] = perPlayer[id] || { hpVan: null, hpNaar: null, slotsHersteld: 0, hitDiceTerug: 0, chargesHersteld: 0 });
 
+  // ── 0a. Ingeroepen factiehulp gaat naar huis ──
+  // Een gunst is geen aanwinst: wie je erbij riep helpt je tot je gaat slapen.
+  // Daarna mag je hem opnieuw vragen — dat is de hele bedoeling van de drempel.
+  const _hulpWeg = [];
+  for (const fid of Object.keys(g.factieHulp || {})) {
+    const h = g.factieHulp[fid];
+    if (h && h.duur !== 'blijvend') {
+      const weg = _factieHulpWeg(g, fid);
+      if (weg) _hulpWeg.push(weg.naam || weg.entityId);
+    }
+  }
+  if (_hulpWeg.length && io) io.to(req.session?.campaignId||'main').emit('companions:updated', {});
+
   // ── 0. Exhaustion: één niveau eraf ──
   // "Finishing a Long Rest reduces a creature's Exhaustion level by 1" — dus
   // niet alles ineens, en niet pas bij nul.
@@ -11838,8 +11851,66 @@ function _factiesConfig(meta) {
   return (Array.isArray(c) && c.length) ? c : FACTIES_DEFAULT;
 }
 
+// De ladder. De Adventurers League zet zijn vijf rangen op 0 / 3 / 10 / 25 / 50
+// renown; wij hebben er een trede vóór: index 0 is *nog geen lid* ("Buiten-
+// staander"), en daarna loopt hij mee met het boek. Vandaar zes drempels voor
+// vijf echte rangen. Een campagne die er zelf een invult houdt die.
+const FACTIE_DREMPELS_STANDAARD = [0, 1, 3, 10, 25, 50];
+
+// Wat een rang ontgrendelt. Dat stond in twee lijsten die hetzelfde idee
+// uitdrukken — `boons` (tekst óf een voorwerp-kaartje) en een los `titel`-veld
+// — en het deed alleen iets in de boedel. Nu één lijst met een type erop:
+//   tekst     — staat op de ladder en komt als regel in de boedel
+//   voorwerp  — het kaartje komt écht in bezit van de party (itemOwners)
+//   metgezel  — mág worden ingeroepen; zie POST /facties/:id/hulp
+//   verkoper  — een winkel van de factie gaat open voor deze party
+//   titel     — wat het losse `titel`-veld deed
+// De oude vorm wordt gelezen, dus er hoeft niets gemigreerd te worden.
+const FACTIE_UNLOCK_TYPES = ['tekst', 'voorwerp', 'metgezel', 'verkoper', 'titel'];
+function _rangUnlocks(rang) {
+  if (!rang) return [];
+  const uit = [];
+  if (Array.isArray(rang.unlocks)) {
+    for (const u of rang.unlocks) {
+      if (!u) continue;
+      uit.push({ ...u, type: FACTIE_UNLOCK_TYPES.includes(u.type) ? u.type : 'tekst' });
+    }
+  } else {
+    // Oude vorm: een boon met een entityId wees altijd naar een voorwerp.
+    for (const b of (rang.boons || [])) {
+      if (!b) continue;
+      uit.push(b.entityId ? { type: 'voorwerp', entityId: b.entityId, naam: b.naam || '' }
+                          : { type: 'tekst', naam: b.naam || '', tekst: b.tekst || '' });
+    }
+  }
+  if (rang.titel && !uit.some(u => u.type === 'titel')) uit.push({ type: 'titel', titel: rang.titel });
+  return uit;
+}
+
+// Wat een rang nog meer vraagt dan renown. Het boek doet dat ook: vanaf rang 3
+// komt er karakterlevel en een aantal missies bij. **Voorrekenen, niet
+// blokkeren** — zelfde regel als bij multiclassen en spreukverzoeken: de app
+// zegt wat er gevraagd wordt en wat je hebt, de DM beslist.
+function _rangVereist(rang, stand) {
+  const v = rang?.vereist || null;
+  if (!v || (!v.level && !v.missies)) return null;
+  const uit = { level: parseInt(v.level) || 0, missies: parseInt(v.missies) || 0, voldaan: true, regels: [] };
+  if (uit.level) {
+    const ok = (stand.level || 0) >= uit.level;
+    uit.regels.push({ wat: `Level ${uit.level}`, hebben: `level ${stand.level || 0}`, ok });
+    if (!ok) uit.voldaan = false;
+  }
+  if (uit.missies) {
+    const ok = (stand.missies || 0) >= uit.missies;
+    uit.regels.push({ wat: `${uit.missies} voltooide missie${uit.missies === 1 ? '' : 's'}`,
+                      hebben: `${stand.missies || 0} voltooid`, ok });
+    if (!ok) uit.voldaan = false;
+  }
+  return uit;
+}
+
 function _rangIdxVanRenown(renown, drempels, maxRangen) {
-  const d = (drempels && drempels.length) ? drempels : [0, 1, 3, 10, 25, 50];
+  const d = (drempels && drempels.length) ? drempels : FACTIE_DREMPELS_STANDAARD;
   let idx = 0;
   for (let i = 0; i < d.length && i < maxRangen; i++) {
     if (renown >= d[i]) idx = i;
@@ -11892,6 +11963,36 @@ router.get('/facties', attachRole, (req, res) => {
     }).filter(Boolean);
   }
 
+  // Een unlock leesbaar maken: naam en beeld komen van het kaartje waar hij
+  // naar wijst. Een kaartje dat de party niet kent geeft geen naam prijs —
+  // anders verklapt de ladder wie er straks komt helpen.
+  function _resolveUnlock(u) {
+    const uit = { type: u.type, naam: u.naam || '', tekst: u.tekst || '' };
+    if (u.type === 'titel') { uit.titel = u.titel || ''; return uit; }
+    if (u.type === 'metgezel') { uit.duur = u.duur || 'langeRust'; uit.cooldown = u.cooldown || 'akte'; }
+    if (u.type === 'voorwerp' && u.aantal) uit.aantal = u.aantal;
+    if (!u.entityId) return uit;
+
+    const soort = u.type === 'voorwerp' ? 'voorwerpen'
+                : u.type === 'metgezel' ? 'personages'
+                : null;
+    const bron = soort ? (entities[soort] || []) : [...(entities.locaties || []), ...(entities.personages || [])];
+    const e = bron.find(x => x.id === u.entityId);
+    if (!e) return uit;
+    const bekend = isDM || (visibility[e.id] || 'hidden') === 'visible';
+    uit.entityId   = bekend ? e.id : null;
+    // `||` bindt sterker dan `?:` — dit moet echt met haakjes, anders kiest
+    // hij altijd 'locaties' zodra `soort` gevuld is.
+    uit.entityType = !bekend ? null
+      : (soort || ((entities.locaties || []).some(l => l.id === e.id) ? 'locaties' : 'personages'));
+    uit.naam       = u.naam || (bekend ? e.name : '');
+    if (u.type === 'voorwerp' && bekend) {
+      uit.tekst = u.tekst || e.data?.beschrijving || e.data?.description || e.data?.note || '';
+      uit.rariteit = e.data?.rariteit || '';
+    }
+    return uit;
+  }
+
   // Helper: los boon op via voorwerp-entityId
   function _resolveBoon(b) {
     if (b.entityId) {
@@ -11906,20 +12007,38 @@ router.get('/facties', attachRole, (req, res) => {
     return { naam: b.naam || '', tekst: b.tekst || '', entityId: null, entityType: null };
   }
 
+  // Waar de party staat, voor de voorrekening bij een rang. Het level is dat van
+  // de hoogste speler — een rang geldt de partij, niet één personage.
+  const _partijLevel = (() => {
+    const leden = (personages || []).filter(p => p.subtype === 'speler' && _playerGroupId(dmState, p.id) === (g && Object.keys(dmState.groups || {}).find(k => dmState.groups[k] === g)));
+    return leden.reduce((m, p) => Math.max(m, parseInt((dmState.playerProfiles || {})[p.id]?.level) || 0), 0);
+  })();
+  const _missiesVoltooid = (() => {
+    const telling = {};
+    for (const m of _readMissies()) {
+      if (m.status === 'voltooid' && m.factieId) telling[m.factieId] = (telling[m.factieId] || 0) + 1;
+    }
+    return telling;
+  })();
+
   const facties = config.map(f => {
     const zichtbaar = factieZichtbaar[f.id] === true;
     if (!isDM && !zichtbaar) return null;
+    const partijStand = { level: _partijLevel, missies: _missiesVoltooid[f.id] || 0 };
 
     const rangen = (f.rangen && f.rangen.length) ? f.rangen : [{ naam: '—', voordelen: '' }];
     const renown = factieRenown[f.id] || 0;
-    const drempels = f.renownDrempels || [0, 1, 3, 10, 25, 50];
+    const drempels = f.renownDrempels || FACTIE_DREMPELS_STANDAARD;
     const idx = _rangIdxVanRenown(renown, drempels, rangen.length);
     const isMax = idx >= rangen.length - 1;
     const drempelVolgende = isMax ? null : drempels[idx + 1] ?? null;
 
     const ladder = rangen.map((r, i) => ({
       index: i, naam: r.naam, voordelen: r.voordelen || '', titel: r.titel || null,
-      boons: (r.boons || []).map(b => _resolveBoon(b)),
+      boons: (r.boons || []).map(b => _resolveBoon(b)),          // oude vorm, voor oudere clients
+      unlocks: _rangUnlocks(r).map(u => _resolveUnlock(u)),
+      vereist: _rangVereist(r, partijStand),
+      drempel: drempels[i] ?? null,
       bereikt: i <= idx, huidig: i === idx,
     }));
     rangen.forEach((r, i) => { if (i > 0 && i <= idx && r.titel) titels.push({ titel: r.titel, factie: f.id, factieNaam: f.naam, embleem: f.embleem || 'landmark' }); });
@@ -11928,6 +12047,17 @@ router.get('/facties', attachRole, (req, res) => {
       id: f.id, naam: f.naam, embleem: f.embleem || 'landmark', beschrijving: f.beschrijving || '',
       stijl: f.stijl || '', rang: _factieRangView(f, idx), ladder,
       renown, zichtbaar, drempelVolgende, entityId: f.entityId || null,
+      // Hulp inroepen: het boek zet dit bewust neer als iets wat je vráágt, niet
+      // als iemand die voortaan meeloopt. Dus: welke metgezel staat open op de
+      // rang die je hebt, en is er er nu al een op pad?
+      hulp: (() => {
+        const beschikbaar = ladder
+          .filter(r => r.bereikt)
+          .flatMap(r => (r.unlocks || []).filter(u => u.type === 'metgezel').map(u => ({ ...u, rang: r.index })))
+          .pop() || null;
+        const lopend = (g.factieHulp || {})[f.id] || null;
+        return { beschikbaar, lopend };
+      })(),
       // Visuele koppeling (interieur-view)
       locatieEntityId:  f.locatieEntityId  || null,
       npcEntityId:      f.npcEntityId      || null,
@@ -12053,41 +12183,60 @@ router.post('/facties/:id/renown', requireDM, (req, res) => {
   const nieuwRenown = Math.max(0, oudRenown + delta);
   g.factieRenown[factie.id] = nieuwRenown;
   const rangen = (factie.rangen && factie.rangen.length) ? factie.rangen : [{ naam: '—', voordelen: '' }];
-  const drempels = factie.renownDrempels || [0, 1, 3, 10, 25, 50];
+  const drempels = factie.renownDrempels || FACTIE_DREMPELS_STANDAARD;
   const oudeRangIdx = _rangIdxVanRenown(oudRenown, drempels, rangen.length);
   const nieuweRangIdx = _rangIdxVanRenown(nieuwRenown, drempels, rangen.length);
   const boonGegeven = g.factieBoonsGegeven[factie.id] || [];
   const nieuweItems = [];
 
+  // Elk type doet nu wat het belooft. Voorheen werd álles een regel in de
+  // boedel — ook een voorwerp dat een echt kaartje heeft, met een beschrijving,
+  // een rariteit, charges en een plek in de Markt. Dat gooiden we weg.
+  const _ents = storage.readJSON('entities.json');
+  const nieuweKaartjes = [];   // voorwerp-kaartjes die in bezit komen
+  const opengezet      = [];   // winkels die opengaan
   if (nieuweRangIdx > oudeRangIdx) {
     for (let ri = oudeRangIdx + 1; ri <= nieuweRangIdx; ri++) {
       const rang = rangen[ri];
       if (!rang) continue;
-      (rang.boons || []).forEach((boon, bi) => {
+      _rangUnlocks(rang).forEach((u, bi) => {
         const boonKey = `${ri}_${bi}`;
         if (boonGegeven.includes(boonKey)) return;
         boonGegeven.push(boonKey);
-        // Los naam/tekst op via voorwerp-entity als entityId aanwezig
-        let boonNaam = boon.naam || '';
-        let boonNote = boon.tekst || '';
-        if (boon.entityId) {
-          const ent = (storage.readJSON('entities.json').voorwerpen || []).find(v => v.id === boon.entityId);
-          if (ent) {
-            boonNaam = boon.naam || ent.name;
-            boonNote = ent.data?.beschrijving || ent.data?.description || ent.data?.note || '';
+
+        // Een titel staat al op de ladder en komt via `titels` bij de speler;
+        // een metgezel wordt niet uitgedeeld maar ingeroepen (zie /hulp).
+        if (u.type === 'titel' || u.type === 'metgezel') return;
+
+        if (u.type === 'verkoper' && u.entityId) {
+          if (!g.visibility) g.visibility = {};
+          if ((g.visibility[u.entityId] || 'hidden') !== 'visible') {
+            g.visibility[u.entityId] = 'visible';
+            const naam = [...(_ents.locaties || []), ...(_ents.personages || [])].find(e => e.id === u.entityId)?.name;
+            opengezet.push(naam || u.entityId);
           }
+          return;
         }
-        const item = {
+
+        if (u.type === 'voorwerp' && u.entityId) {
+          const kaartje = (_ents.voorwerpen || []).find(v => v.id === u.entityId);
+          if (kaartje) { nieuweKaartjes.push({ kaartje, aantal: Math.max(1, parseInt(u.aantal) || 1) }); return; }
+          // Kaartje weg? Dan liever een leesbare regel dan stilte.
+        }
+
+        const naamUit = u.naam || (u.entityId
+          ? (_ents.voorwerpen || []).find(v => v.id === u.entityId)?.name || '?'
+          : '?');
+        nieuweItems.push({
           id: `factie_boon_${factie.id}_${ri}_${bi}_${Date.now()}`,
-          name: `${boonNaam || '?'} — ${factie.naam}`,
-          note: boonNote,
-          entityId: boon.entityId || null,
-          entityType: boon.entityId ? 'voorwerpen' : null,
+          name: `${naamUit} — ${factie.naam}`,
+          note: u.tekst || '',
+          entityId: u.entityId || null,
+          entityType: u.entityId ? 'voorwerpen' : null,
           factieId: factie.id,
           factieRang: ri,
           factieBoonIdx: bi,
-        };
-        nieuweItems.push(item);
+        });
       });
     }
   }
@@ -12114,12 +12263,36 @@ router.post('/facties/:id/renown', requireDM, (req, res) => {
     });
   }
 
+  // Een voorwerp-unlock geeft het **kaartje** aan de party: één exemplaar bij de
+  // eerste speler bij een uniek voorwerp, of bij iedereen als het kaartje
+  // gedeeld of stapelbaar is. Zelfde weg als de winkel en het uitdelen van
+  // loot, dus charges, attunement en de Markt weten er meteen van. En het
+  // kaartje wordt zichtbaar — je kunt niets bezitten wat je niet mag zien.
+  if (nieuweKaartjes.length) {
+    const spelers = (_ents.personages || []).filter(p => p.subtype === 'speler');
+    const gidVanRang2 = Object.keys(dmState.groups || {}).find(k => dmState.groups[k] === g) || null;
+    const leden = spelers.filter(p => !gidVanRang2 || _playerGroupId(dmState, p.id) === gidVanRang2);
+    for (const { kaartje, aantal } of nieuweKaartjes) {
+      const gebruik = _gebruikVan(kaartje.data || {});
+      const krijgers = gebruik === 'uniek' ? leden.slice(0, 1) : leden;
+      for (const p of krijgers) _eigendomErbij(g, kaartje.id, p.id, p.name, gebruik, aantal);
+      if (!g.visibility) g.visibility = {};
+      g.visibility[kaartje.id] = 'visible';
+    }
+  }
+
   storage.writeJSON('dm-state.json', dmState);
   const io = req.app.get('io');
   const room = req.session?.campaignId || 'main';
   io.to(room).emit('facties:updated');
-  if (nieuweItems.length) io.to(room).emit('player:items-updated', {});
-  res.json({ ok: true, id: factie.id, renown: nieuwRenown, rangIdx: nieuweRangIdx, boons: nieuweItems.length });
+  if (nieuweItems.length || nieuweKaartjes.length) io.to(room).emit('player:items-updated', {});
+  if (opengezet.length) io.to(room).emit('entities:updated', {});
+  res.json({
+    ok: true, id: factie.id, renown: nieuwRenown, rangIdx: nieuweRangIdx,
+    boons: nieuweItems.length,
+    voorwerpen: nieuweKaartjes.map(k => k.kaartje.name),
+    winkelsOpen: opengezet,
+  });
 });
 
 router.put('/meta/facties', requireDM, (req, res) => {
@@ -12143,7 +12316,7 @@ router.put('/meta/facties', requireDM, (req, res) => {
     uitnodigingTitel: f.uitnodigingTitel ? String(f.uitnodigingTitel).trim() : '',
     renownDrempels: (Array.isArray(f.renownDrempels) && f.renownDrempels.length)
       ? f.renownDrempels.map(n => parseInt(n) || 0)
-      : [0, 1, 3, 10, 25, 50],
+      : FACTIE_DREMPELS_STANDAARD,
     rangen: (Array.isArray(f.rangen) && f.rangen.length)
       ? f.rangen.map(r => {
           const rang = { naam: String(r.naam || '—').trim(), voordelen: String(r.voordelen || '').trim() };
@@ -12159,6 +12332,26 @@ router.put('/meta/facties', requireDM, (req, res) => {
             })
             .filter(b => b.entityId || b.naam || b.tekst);
           if (boons.length) rang.boons = boons;
+          // Nieuwe vorm: één lijst met een type. Staat hij er, dan wint hij van
+          // `boons` (zie _rangUnlocks) — allebei bewaren zou twee waarheden geven.
+          if (Array.isArray(r.unlocks)) {
+            const unlocks = r.unlocks.map(u => {
+              const type = FACTIE_UNLOCK_TYPES.includes(u?.type) ? u.type : 'tekst';
+              const out = { type };
+              for (const veld of ['entityId', 'naam', 'tekst', 'titel', 'duur', 'cooldown']) {
+                if (u?.[veld] && String(u[veld]).trim()) out[veld] = String(u[veld]).trim();
+              }
+              if (u?.aantal) out.aantal = Math.max(1, parseInt(u.aantal) || 1);
+              return out;
+            }).filter(u => u.entityId || u.naam || u.tekst || u.titel);
+            if (unlocks.length) { rang.unlocks = unlocks; delete rang.boons; }
+          }
+          if (r.vereist && (r.vereist.level || r.vereist.missies)) {
+            rang.vereist = {
+              level:   Math.max(0, parseInt(r.vereist.level)   || 0),
+              missies: Math.max(0, parseInt(r.vereist.missies) || 0),
+            };
+          }
           return rang;
         })
       : [{ naam: '—', voordelen: '' }],
@@ -12169,6 +12362,108 @@ router.put('/meta/facties', requireDM, (req, res) => {
   io.to(req.session?.campaignId||'main').emit('facties:updated');
   res.json({ facties: meta.facties });
 });
+
+// ── Facties: hulp inroepen ───────────────────────────────────────────────────
+// Dragon Heist zet dit neer als iets wat je **vraagt**: op een renown-drempel
+// stuurt de factie iemand die je een dag helpt, hoger op de ladder een naam die
+// ertoe doet. Dat is iets anders dan een metgezel die er voortaan gewoon is —
+// het is een gunst, en je kunt hem opmaken. Vandaar een knop met een duur en
+// een rustpauze, en niet een regel die stilletjes je party groter maakt.
+//
+// De ingeroepen hulp komt in `g.companions`, waar de bondgenoten al staan: hij
+// verschijnt dus meteen op het partytabblad en laadt mee in een gevecht. Wat
+// erbij komt is `g.factieHulp[factieId]`, zodat we weten dat hij van een factie
+// is, tot wanneer hij blijft, en wanneer je hem weer mag roepen.
+function _factieHulpStand(g, factie, rangIdx) {
+  const rangen = (factie.rangen && factie.rangen.length) ? factie.rangen : [];
+  let unlock = null;
+  for (let i = 0; i <= rangIdx && i < rangen.length; i++) {
+    const m = _rangUnlocks(rangen[i]).find(u => u.type === 'metgezel' && u.entityId);
+    if (m) unlock = { ...m, rang: i };
+  }
+  return { unlock, lopend: (g.factieHulp || {})[factie.id] || null };
+}
+
+router.post('/facties/:id/hulp', attachRole, (req, res) => {
+  const meta = storage.readJSON('meta.json');
+  const factie = _factiesConfig(meta).find(f => f.id === req.params.id);
+  if (!factie) return res.status(404).json({ error: 'Factie niet gevonden' });
+
+  const dmState = readDmState();
+  const isDM = req.role === 'dm';
+  const gid = isDM ? dmState.activeGroup : _playerGroupId(dmState, req.session?.characterId);
+  const g = getGroup(dmState, gid);
+  if (!g) return res.status(404).json({ error: 'Geen groep gevonden' });
+
+  // Een factie die je niet kent kan je ook niet om hulp vragen.
+  if (!isDM && (g.factieZichtbaar || {})[factie.id] !== true) {
+    return res.status(403).json({ error: 'Die factie kennen jullie niet' });
+  }
+
+  const renown = (g.factieRenown || {})[factie.id] || 0;
+  const rangen = (factie.rangen && factie.rangen.length) ? factie.rangen : [];
+  const rangIdx = _rangIdxVanRenown(renown, factie.renownDrempels || FACTIE_DREMPELS_STANDAARD, rangen.length || 1);
+  const { unlock, lopend } = _factieHulpStand(g, factie, rangIdx);
+
+  if (!unlock) return res.status(403).json({ error: 'Zover reikt jullie aanzien nog niet' });
+  if (lopend) return res.status(409).json({ error: `${lopend.naam || 'Er'} is al voor jullie op pad` });
+
+  const entities = storage.readJSON('entities.json');
+  const npc = (entities.personages || []).find(p => p.id === unlock.entityId);
+  if (!npc) return res.status(404).json({ error: 'Dat personage bestaat niet meer' });
+
+  if (!Array.isArray(g.companions)) g.companions = [];
+  if (!g.companions.includes(npc.id)) g.companions.push(npc.id);
+  // Meelopen zonder dat je zijn kaartje mag zien slaat nergens op.
+  if (!g.visibility) g.visibility = {};
+  if ((g.visibility[npc.id] || 'hidden') !== 'visible') g.visibility[npc.id] = 'visible';
+
+  if (!g.factieHulp) g.factieHulp = {};
+  g.factieHulp[factie.id] = {
+    entityId: npc.id,
+    naam:     npc.name,
+    duur:     unlock.duur || 'langeRust',
+    rang:     unlock.rang,
+    sinds:    new Date().toISOString(),
+  };
+
+  storage.writeJSON('dm-state.json', dmState);
+  const io = req.app.get('io');
+  const room = req.session?.campaignId || 'main';
+  io.to(room).emit('facties:updated');
+  io.to(room).emit('companions:updated', {});
+  res.json({ ok: true, hulp: g.factieHulp[factie.id] });
+});
+
+// Weer naar huis sturen. Mag ook door de speler: het is zijn gunst, en een
+// bondgenoot die blijft plakken terwijl je hem niet meer nodig hebt is een
+// bondgenoot die je niet nog eens kunt vragen.
+router.delete('/facties/:id/hulp', attachRole, (req, res) => {
+  const dmState = readDmState();
+  const isDM = req.role === 'dm';
+  const gid = isDM ? dmState.activeGroup : _playerGroupId(dmState, req.session?.characterId);
+  const g = getGroup(dmState, gid);
+  const lopend = (g?.factieHulp || {})[req.params.id];
+  if (!lopend) return res.status(404).json({ error: 'Er is niemand op pad' });
+
+  _factieHulpWeg(g, req.params.id);
+  storage.writeJSON('dm-state.json', dmState);
+  const io = req.app.get('io');
+  const room = req.session?.campaignId || 'main';
+  io.to(room).emit('facties:updated');
+  io.to(room).emit('companions:updated', {});
+  res.json({ ok: true });
+});
+
+// Haalt de hulp uit de party. Het kaartje blijft zichtbaar — ze hébben hem
+// ontmoet; alleen het meelopen stopt.
+function _factieHulpWeg(g, factieId) {
+  const lopend = (g.factieHulp || {})[factieId];
+  if (!lopend) return null;
+  if (Array.isArray(g.companions)) g.companions = g.companions.filter(id => id !== lopend.entityId);
+  delete g.factieHulp[factieId];
+  return lopend;
+}
 
 // ── Facties: Missies ─────────────────────────────────────────────────────────
 // Missies leven in archief.json als logEntries met type='missie'.

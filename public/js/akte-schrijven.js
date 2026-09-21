@@ -18,7 +18,7 @@
  * docs/voorstel-akteregie.md.
  */
 
-import { api } from './api.js?v=290';
+import { api } from './api.js?v=291';
 
 const esc  = s => window.app?.esc?.(s) ?? String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 const icon = (...a) => window.icon(...a);

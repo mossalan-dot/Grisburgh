@@ -174,10 +174,23 @@ niemand iets afdrukken, uit velden die niemand heeft ingevuld.
 **Trigger:** zodra de eerste speler een dier adopteert bij de magizoöloog (dan
 wordt `companionOwners` gevuld), is dit het moment.
 
+## Nog te verzinnen
+
+- [ ] **Een gerechtshof als dienst.** Uit de Heeren komt één idee dat het waard
+      is om te bewaren: een boete die je kunt aanvechten, met een advocaat die
+      met je Persuasion-bonus afdingt. Dat hoort niet bij een factie maar bij
+      een stadsgezag — vandaar een eigen dienst, aan een organisatie-kaartje
+      gehangen. **Incidenteel**: het komt een paar keer per campagne voor, dus
+      het mag klein blijven. De oude Heeren-machinerie (klussenbord én boetes)
+      is bewust laten vallen, zie `docs/voorstel-facties.md` §5.
+
 ## Scherven (klein, los op te pakken)
 
-- [ ] **`meta.heeren` bestaat niet** — enige dienst zonder configuratieblok, dus
-      niet te hernoemen; valt terug op "Dievengilde".
+- [ ] **De Heeren-dienst opruimen** — de mechaniek is vervallen (klussenbord en
+      boetes laten we vallen, 21 sep 2026) en de factie *Heeren van de Nacht*
+      staat al in `meta.facties`. Weg kunnen: de negen `/heeren/*`-routes, de
+      DM-tab, `#section-heeren`, `HEEREN_*` en `renderHeeren()`. Er is geen
+      ingang naartoe, dus niemand raakt iets kwijt.
 - [ ] **Facties & Aanzien heeft geen sectienaam** — losse facties wel, de sectie
       niet. Kleinste oplossing: `meta.factiesLabel`.
 - [ ] **App-iconen en logo zijn van Grisburgh** — de PWA installeert bij elke

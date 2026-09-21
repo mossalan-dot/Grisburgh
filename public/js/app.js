@@ -1,4 +1,4 @@
-import { api, campagneUitUrl, zetCampagne } from './api.js?v=290';
+import { api, campagneUitUrl, zetCampagne } from './api.js?v=291';
 import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, renderDocumenten, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=310";
 import { initArchief, renderLogboek, openLogboekEditor } from "./render-archief.js?v=129";
 import { renderKaart, queueFlyTo, verversPins, nieuweKaart } from './render-kaart.js?v=31';
@@ -8452,8 +8452,8 @@ async function renderMijnKarakter(opts = {}) {
         ${(factiesData || []).filter(f => (f.rang?.index ?? 0) > 0).map(f => {
           const stijl = (f.stijl || '').replace(/[^a-z]/gi, '').toLowerCase();
           const ladder = f.ladder || [];
-          const verworven = ladder.filter(r => r.bereikt).flatMap(r => r.boons || []);
-          const next = ladder.find(r => !r.bereikt && (r.boons || []).length);
+          const verworven = ladder.filter(r => r.bereikt).flatMap(r => r.unlocks || r.boons || []);
+          const next = ladder.find(r => !r.bereikt && ((r.unlocks || r.boons || []).length));
           return `
         <div class="player-dash-section">
           <div class="player-dash-section-title">${_FACTIE_ICON_SET_APP.has(f.embleem) ? icon(f.embleem) : icon('landmark')} Aanzien bij ${esc(f.naam)}</div>
@@ -13416,7 +13416,7 @@ function _renderFactieInterieur(el, f, missies) {
     : `<div class="herberg-portrait-round herberg-portrait-fallback">${icon('users')}</div>`;
 
   const ladder = f.ladder || [];
-  const verworven = ladder.filter(r => r.bereikt && r.index > 0).flatMap(r => r.boons || []);
+  const verworven = ladder.filter(r => r.bereikt && r.index > 0).flatMap(r => r.unlocks || r.boons || []);
   const isMax = !f.drempelVolgende;
   const pct = isMax ? 100 : Math.min(100, Math.round(((f.renown || 0) / f.drempelVolgende) * 100));
   const nextRang = ladder.find(r => !r.bereikt);
@@ -13516,11 +13516,12 @@ function _renderFactieInterieur(el, f, missies) {
 
         ${verworven.length ? `
         <div class="factie-boons factie-boons--interieur">
-          ${verworven.map(b => b.entityId
-            ? `<button class="factie-boon-chip factie-boon-chip--link" onclick="window._openDetail('${esc(b.entityType||'voorwerpen')}','${esc(b.entityId)}')">${esc(b.naam)} ${icon('open-book')}</button>`
-            : `<span class="factie-boon-chip">${esc(b.naam)}</span>`
-          ).join('')}
+          ${window._factieUnlockChips(verworven)}
         </div>` : ''}
+
+        ${nextRang ? window._factieVereistHtml(nextRang.vereist) : ''}
+
+        ${_factieHulpHtml(f)}
 
         ${beschikbaar.length || actief.length || aangevraagd.length ? `
         <div class="factie-missies-sectie">
@@ -13572,13 +13573,84 @@ window._factieAccepteer = async (id, titel) => {
   }
 };
 
+// Eén plek waar een ontgrendeling een chip wordt. Dit stond in drievoud (het
+// dashboard, de factiekaart en het interieur) en kende alleen `boons`; een
+// voorwerp en een winkel zagen er daardoor hetzelfde uit als een zin tekst.
+const _FACTIE_UNLOCK_ICOON = {
+  tekst:    'sparkles',
+  voorwerp: 'package',
+  metgezel: 'user',
+  verkoper: 'store',
+  titel:    'crown',
+};
+window._factieUnlockChips = function (unlocks, extraCls = '') {
+  return (unlocks || []).map(u => {
+    const ic = icon(_FACTIE_UNLOCK_ICOON[u.type] || 'sparkles');
+    const label = esc(u.type === 'titel' ? (u.titel || 'Titel') : (u.naam || ''));
+    if (!label) return '';
+    const tip = esc(u.tekst || (u.type === 'metgezel' ? 'Kan te hulp geroepen worden' : ''));
+    return u.entityId
+      ? `<button class="factie-boon-chip factie-boon-chip--link${extraCls}"
+           onclick="event.stopPropagation();window._openDetail('${esc(u.entityType || 'voorwerpen')}','${esc(u.entityId)}')"
+           title="${tip || 'Bekijk kaartje'}">${ic} ${label}</button>`
+      : `<span class="factie-boon-chip${extraCls}" title="${tip}">${ic} ${label}</span>`;
+  }).join('');
+};
+
+// De ladder vraagt soms meer dan renown — level, of een aantal voltooide
+// missies. Voorrekenen, niet blokkeren: dit zegt wat er gevraagd wordt en wat
+// de party heeft, en verder niets.
+window._factieVereistHtml = function (vereist) {
+  if (!vereist || !vereist.regels?.length) return '';
+  return `<div class="factie-vereist${vereist.voldaan ? ' factie-vereist--ok' : ''}">
+    ${vereist.regels.map(r => `<span class="factie-vereist-regel">
+      ${icon(r.ok ? 'check' : 'lock')} ${esc(r.wat)} <em>(${esc(r.hebben)})</em>
+    </span>`).join('')}
+  </div>`;
+};
+
+// Hulp inroepen. Bewust een knop met een bevestiging die zegt wat het kost —
+// je krijgt iemand tot de volgende lange rust, en daarna mag je pas weer.
+function _factieHulpHtml(f) {
+  const h = f.hulp || {};
+  if (h.lopend) {
+    return `<div class="factie-hulp factie-hulp--actief">
+      <span class="factie-hulp-tekst">${icon('user')} <strong>${esc(h.lopend.naam || 'Iemand')}</strong> loopt met jullie mee${h.lopend.duur === 'blijvend' ? '' : ' tot de volgende lange rust'}.</span>
+      <button class="dm-btn dm-btn-sm dm-btn-ghost" onclick="window._factieHulpWeg('${esc(f.id)}')">Bedanken</button>
+    </div>`;
+  }
+  if (!h.beschikbaar) return '';
+  const naam = h.beschikbaar.naam || 'iemand van de factie';
+  return `<div class="factie-hulp">
+    <span class="factie-hulp-tekst">${icon('user')} Jullie aanzien is genoeg om <strong>${esc(naam)}</strong> om hulp te vragen.</span>
+    <button class="dm-btn dm-btn-sm dm-btn-primary" onclick="window._factieHulpRoep('${esc(f.id)}')">Hulp inroepen</button>
+  </div>`;
+}
+
+window._factieHulpRoep = async function (factieId) {
+  if (!confirm('Om hulp vragen? Hij loopt met jullie mee tot de volgende lange rust; daarna moet je het opnieuw vragen.')) return;
+  try {
+    const r = await api.factieHulp(factieId);
+    window._showToast(`${icon('user')} ${r?.hulp?.naam || 'Er'} komt jullie helpen.`);
+    await renderFacties();
+  } catch (e) { window._showToast(e.message || 'Dat lukte niet.'); }
+};
+
+window._factieHulpWeg = async function (factieId) {
+  try {
+    await api.factieHulpWeg(factieId);
+    window._showToast(`${icon('check')} Bedankt en weggestuurd.`);
+    await renderFacties();
+  } catch (e) { window._showToast(e.message || 'Dat lukte niet.'); }
+};
+
 function _renderFactieKaart(f) {
   const embIcon = _FACTIE_ICON_SET_APP.has(f.embleem) ? icon(f.embleem) : icon('landmark');
   const stijl = (f.stijl || '').replace(/[^a-z]/gi, '').toLowerCase();
   const isMax = !f.drempelVolgende;
   const pct = isMax ? 100 : Math.min(100, Math.round(((f.renown || 0) / f.drempelVolgende) * 100));
   const ladder = f.ladder || [];
-  const verworven = ladder.filter(r => r.bereikt && r.index > 0).flatMap(r => r.boons || []);
+  const verworven = ladder.filter(r => r.bereikt && r.index > 0).flatMap(r => r.unlocks || r.boons || []);
   const nextRang = ladder.find(r => !r.bereikt);
   const rangIdx = f.rang?.index ?? 0;
 
@@ -13602,12 +13674,7 @@ function _renderFactieKaart(f) {
         ${isMax ? 'Max aanzien bereikt' : `${f.renown || 0} / ${f.drempelVolgende} renown`}${nextRang ? ` — volgende: <strong>${esc(nextRang.naam)}</strong>` : ''}
       </div>
       ${verworven.length ? `
-      <div class="factie-boons">
-        ${verworven.map(b => b.entityId
-          ? `<button class="factie-boon-chip factie-boon-chip--link" onclick="window._openDetail('${esc(b.entityType||'voorwerpen')}','${esc(b.entityId)}')" title="${esc(b.tekst || 'Bekijk kaartje')}">${esc(b.naam)} ${icon('open-book')}</button>`
-          : `<span class="factie-boon-chip" title="${esc(b.tekst || '')}">${esc(b.naam)}</span>`
-        ).join('')}
-      </div>` : ''}
+      <div class="factie-boons">${window._factieUnlockChips(verworven)}</div>` : ''}
     </div>` : `
     <div class="factie-kaart-body">
       <p class="factie-kaart-onbekend">Je kent deze factie, maar hebt nog geen aanzien opgebouwd.</p>

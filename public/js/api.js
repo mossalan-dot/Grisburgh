@@ -495,6 +495,9 @@ export const api = {
   factieReveal:       (id)            => request(`/facties/${id}/reveal`,  { method: 'POST' }),
   factieUitnodiging:  (id)            => request(`/facties/${id}/uitnodiging`, { method: 'POST' }),
   factieRenown:       (id, delta)     => request(`/facties/${id}/renown`,  { method: 'POST', body: JSON.stringify({ delta }) }),
+  // Hulp inroepen bij een factie — een gunst tot de volgende lange rust.
+  factieHulp:         (id)            => request(`/facties/${id}/hulp`, { method: 'POST' }),
+  factieHulpWeg:      (id)            => request(`/facties/${id}/hulp`, { method: 'DELETE' }),
   saveFactiesConfig:  (facties)       => request('/meta/facties',          { method: 'PUT',  body: JSON.stringify({ facties }) }),
   // Missies
   getMissies:           ()            => request('/missies'),
