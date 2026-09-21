@@ -1051,6 +1051,33 @@ router.get('/entities/:type/:id', attachRole, (req, res) => {
 // ── Ontdekkings-teller (feature #5) ──
 // Per entiteitstype: hoeveel de groep van de speler heeft ontdekt (visibility
 // vague|visible) t.o.v. het totaal aantal (niet-getrashte) entiteiten.
+// ── Exhaustion ──────────────────────────────────────────────────────────────
+// Stond alleen als conditie op een **combatant**, en dus alleen tijdens een
+// gevecht. Exhaustion is juist iets dat blijft: je loopt het op door honger,
+// kou of een mislukte save, je sleept het mee, en een lange rust haalt er één
+// niveau af. Dus hoort het bij de speler, niet bij zijn tokentje.
+//
+// 2024 maakt het simpel: **−1 op elke d20 test per niveau**, en bij 6 ga je
+// dood. Die −1 rekenen we niet door in de app — zelfde regel als bij de loot-DC
+// en de spreukvoorrekening: het is een aantekening, de speler telt hem zelf bij
+// zijn worp op. Automatisch verrekenen zou betekenen dat elke bonus in de app
+// van een verborgen aftrek afhangt, en dan vertrouwt niemand de getallen meer.
+const EXHAUSTION_MAX = 6;
+
+router.put('/characters/:characterId/exhaustion', requireDM, (req, res) => {
+  const { characterId } = req.params;
+  const dmState = readDmState();
+  if (!dmState.playerProfiles?.[characterId]) return res.status(404).json({ error: 'Onbekend personage' });
+  const n = Math.max(0, Math.min(EXHAUSTION_MAX, parseInt(req.body?.niveau) || 0));
+  if (!dmState.playerExhaustion) dmState.playerExhaustion = {};
+  if (n === 0) delete dmState.playerExhaustion[characterId];
+  else dmState.playerExhaustion[characterId] = n;
+  storage.writeJSON('dm-state.json', dmState);
+  const io = req.app.get('io');
+  if (io) io.to(req.session?.campaignId || 'main').emit('player:exhaustion', { characterId, niveau: n });
+  res.json({ ok: true, niveau: n });
+});
+
 // ── Even herinneren ─────────────────────────────────────────────────────────
 // Een kaartje dat de party lang geleden ontmoette staat al op `visible`, dus
 // onthullen kan niet meer — en dat was precies wat de DM tóch deed om hun
@@ -3915,6 +3942,22 @@ router.post('/party/long-rest', requireDM, (req, res) => {
   const perPlayer = {};
   const _sum = id => (perPlayer[id] = perPlayer[id] || { hpVan: null, hpNaar: null, slotsHersteld: 0, hitDiceTerug: 0, chargesHersteld: 0 });
 
+  // ── 0. Exhaustion: één niveau eraf ──
+  // "Finishing a Long Rest reduces a creature's Exhaustion level by 1" — dus
+  // niet alles ineens, en niet pas bij nul.
+  if (dmState.playerExhaustion) {
+    spelers.forEach(char => {
+      const n = parseInt(dmState.playerExhaustion[char.id]) || 0;
+      if (n <= 0) return;
+      const na = n - 1;
+      if (na === 0) delete dmState.playerExhaustion[char.id];
+      else dmState.playerExhaustion[char.id] = na;
+      _sum(char.id).exhaustionVan = n;
+      _sum(char.id).exhaustionNaar = na;
+      if (io) io.to(req.session?.campaignId||'main').emit('player:exhaustion', { characterId: char.id, niveau: na });
+    });
+  }
+
   // ── 1. HP → max ──
   if (!dmState.playerHp) dmState.playerHp = {};
   spelers.forEach(char => {
@@ -4230,6 +4273,33 @@ router.post('/characters/:characterId/spend-hit-die', attachRole, (req, res) => 
 // Die laatste is geen omweg: aan tafel rolt iemand echt, en dán hoort dát getal
 // in de app en niet een tweede worp die er niet was. Het blijft een invoer, geen
 // berekening door de speler — de server toetst 1..die en telt CON erbij.
+// ── XP of milestone ─────────────────────────────────────────────────────────
+// Grisburgh speelt op milestone, maar een andere DM wil XP — en de helft lag er
+// al: elk statblok draagt zijn `xp`, en er is een plek waar een level-up wordt
+// klaargezet. In XP-stand wordt dat tegoed niet meer gegund maar **verdiend**:
+// zodra je over de drempel komt, staat de level-up klaar.
+//
+// De drempels zijn de Character Advancement-tabel uit de SRD. Die staat als
+// enige niet in de JSON-datasets die we voor de rest gebruiken, dus deze is
+// wél met de hand ingevoerd — twintig getallen, en ze zijn tussen 2014 en 2024
+// ongewijzigd. Controleer ze desnoods tegen je eigen boek.
+const XP_DREMPELS = [
+  0, 0, 300, 900, 2700, 6500, 14000, 23000, 34000, 48000, 64000,
+  85000, 100000, 120000, 140000, 165000, 195000, 225000, 265000, 305000, 355000,
+];
+// index = level, dus XP_DREMPELS[3] is wat je nodig hebt om level 3 te zijn.
+
+function _levelupSysteem(meta) {
+  return (meta || {}).levelup?.systeem === 'xp' ? 'xp' : 'milestone';
+}
+// Welk level hoort bij dit aantal XP?
+function _levelBijXp(xp) {
+  const n = Math.max(0, parseInt(xp) || 0);
+  let lvl = 1;
+  for (let i = 2; i < XP_DREMPELS.length; i++) if (n >= XP_DREMPELS[i]) lvl = i;
+  return lvl;
+}
+
 const LEVELUP_METHODES = ['gemiddelde', 'app', 'tafel'];
 
 // Cantrips en voorbereide spreuken per klasse per level. Stond nergens: de
@@ -4257,7 +4327,8 @@ function _levelupCfg(meta) {
   // hoort niet ineens opgesloten te zitten in één manier.
   if (!methodes || !methodes.length) methodes = [...LEVELUP_METHODES];
   const standaard = methodes.includes(c.standaard) ? c.standaard : methodes[0];
-  return { methodes, standaard, maxLevel: parseInt(c.maxLevel) || 20 };
+  return { methodes, standaard, maxLevel: parseInt(c.maxLevel) || 20,
+           systeem: c.systeem === 'xp' ? 'xp' : 'milestone' };
 }
 
 // Welke klasse krijgt dit level erbij? Bij één klasse is dat die ene; bij een
@@ -4464,7 +4535,15 @@ router.post('/multiclass-verzoek/:id/:besluit', requireDM, (req, res) => {
   res.json({ ok: true, verzoek });
 });
 
-function _levelupTegoed(dmState, characterId) {
+function _levelupTegoed(dmState, characterId, meta) {
+  // In XP-stand gunt de DM niets: je XP zegt of je omhoog mag. Zo hoeft hij
+  // niet óók nog op een knop te drukken zodra hij de punten heeft uitgedeeld.
+  if (_levelupSysteem(meta || storage.readJSON('meta.json')) === 'xp') {
+    const profiel = (dmState.playerProfiles || {})[characterId] || {};
+    const nu   = parseInt(profiel.level) || 1;
+    const mag  = _levelBijXp((dmState.playerXp || {})[characterId]);
+    return Math.max(0, mag - nu);
+  }
   const g = getGroup(dmState);
   return parseInt((g.levelUpTegoed || {})[characterId]) || 0;
 }
@@ -4529,7 +4608,13 @@ router.get('/characters/:characterId/level-up', attachRole, (req, res) => {
   });
 
   res.json({
-    tegoed:  _levelupTegoed(dmState, characterId),
+    tegoed:  _levelupTegoed(dmState, characterId, storage.readJSON('meta.json')),
+    systeem: cfg.systeem,
+    xp: cfg.systeem === 'xp' ? (() => {
+      const nu = parseInt((dmState.playerXp || {})[characterId]) || 0;
+      const lvl = parseInt(profile.level) || 1;
+      return { nu, dezeLevel: XP_DREMPELS[lvl] ?? 0, volgende: XP_DREMPELS[lvl + 1] ?? null };
+    })() : null,
     level:   parseInt(profile.level) || 0,
     // Species-traits hangen aan het personagelevel, niet aan een klasse: een
     // Elf krijgt op 3 en 5 een Lineage-spreuk, ongeacht wat hij is.
@@ -4749,6 +4834,65 @@ router.post('/characters/:characterId/level-up/keuze-klaar', attachRole, (req, r
   res.json({ ok: true, openKeuzes: _openSpreukKeuzes(dmState, characterId) });
 });
 
+// ── XP uitdelen ─────────────────────────────────────────────────────────────
+// Per personage, want zo staat het in het boek — maar de knop deelt aan de hele
+// aanwezige party tegelijk uit, want zo gaat het aan tafel. Een afwezige speler
+// krijgt niets: hij was er niet bij.
+router.post('/party/xp', requireDM, (req, res) => {
+  const aantal = parseInt(req.body?.aantal);
+  if (!Number.isFinite(aantal) || aantal === 0) return res.status(400).json({ error: 'Hoeveel XP?' });
+
+  const dmState = readDmState();
+  let entities = {};
+  try { entities = storage.readJSON('entities.json'); } catch { /* ok */ }
+  const gid = dmState.activeGroup || Object.keys(dmState.groups || {})[0];
+  const ids = Array.isArray(req.body?.charIds) && req.body.charIds.length
+    ? req.body.charIds.map(String)
+    : _aanwezigeSpelers(dmState, gid, entities.personages).map(e => e.id);
+
+  if (!dmState.playerXp) dmState.playerXp = {};
+  const uit = [];
+  for (const id of ids) {
+    const voor = parseInt(dmState.playerXp[id]) || 0;
+    const na = Math.max(0, voor + aantal);
+    dmState.playerXp[id] = na;
+    const profiel = (dmState.playerProfiles || {})[id] || {};
+    uit.push({
+      characterId: id, voor, na,
+      // Zegt de app meteen wie er nu omhoog mag; anders moet de DM zelf de
+      // tabel erbij pakken.
+      magLevel: _levelBijXp(na) > (parseInt(profiel.level) || 1),
+    });
+  }
+  storage.writeJSON('dm-state.json', dmState);
+  const io = req.app.get('io');
+  if (io) {
+    const room = req.session?.campaignId || 'main';
+    io.to(room).emit('party:xp', { aantal, spelers: uit });
+    for (const r of uit) io.to(room).emit('player:profile-updated', { characterId: r.characterId });
+  }
+  res.json({ ok: true, aantal, spelers: uit, magLevel: uit.filter(r => r.magLevel).length });
+});
+
+// Wat een gevecht waard is. De XP staat al op elk statblok; dit telt hem op,
+// inclusief het aantal exemplaren van een regel.
+router.get('/encounters/:id/xp', requireDM, (req, res) => {
+  const enc = (storage.readJSON('encounters.json').encounters || [])
+    .find(e => e.id === req.params.id);
+  if (!enc) return res.status(404).json({ error: 'Encounter niet gevonden' });
+  const monsters = storage.readJSON('monsters.json').monsters || [];
+  let totaal = 0;
+  const regels = [];
+  for (const r of (enc.monsters || [])) {
+    const m = monsters.find(x => x.id === r.monsterId);
+    const xp = parseInt(m?.xp) || 0;
+    const n = Math.max(1, parseInt(r.count) || 1);
+    totaal += xp * n;
+    regels.push({ naam: r.name || m?.name || '?', aantal: n, xp, samen: xp * n });
+  }
+  res.json({ totaal, regels, zonderXp: regels.filter(r => !r.xp).map(r => r.naam) });
+});
+
 // De DM gunt: één knop voor de hele party. Wie er meedoet volgt uit de
 // aanwezigheid — een afwezige speler hoort niet in zijn slaap een level te
 // krijgen. Met `charIds` kan de DM het voor een enkeling doen.
@@ -4797,6 +4941,9 @@ router.put('/meta/levelup', requireDM, (req, res) => {
   if (req.body?.maxLevel !== undefined) {
     meta.levelup.maxLevel = Math.max(1, Math.min(30, parseInt(req.body.maxLevel) || 20));
   }
+  if (req.body?.systeem !== undefined) {
+    meta.levelup.systeem = req.body.systeem === 'xp' ? 'xp' : 'milestone';
+  }
   storage.writeJSON('meta.json', meta);
   req.app.get('io').to(req.session?.campaignId || 'main').emit('meta:updated');
   res.json({ ok: true, levelup: _levelupCfg(meta) });
@@ -4824,7 +4971,10 @@ router.get('/player-hp/:characterId', attachRole, (req, res) => {
   const dmState = readDmState();
   const hp = (dmState.playerHp || {})[characterId] || { current: null, max: null };
   const buffs = (dmState.playerBuffs || {})[characterId] || [];
-  res.json({ ...hp, buffs });
+  // Exhaustion hoort bij je lijf, net als je HP — dus het reist mee met dit
+  // verzoek in plaats van in een eigen route.
+  const exhaustion = parseInt((dmState.playerExhaustion || {})[characterId]) || 0;
+  res.json({ ...hp, buffs, exhaustion });
 });
 
 // ── Een voorwerp gebruiken om te genezen ────────────────────────────────────

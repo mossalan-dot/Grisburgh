@@ -2482,6 +2482,57 @@ Origin-feat, Skill Proficiencies, Tool Proficiency, Equipment.
 
 ---
 
+## Level omhoog
+
+Een level-up is **administratie plus een moment**. De administratie loopt via
+`POST /characters/:id/level-up` (en `/undo`), de rest is de omslag die de speler
+te zien krijgt (`_levelUpCinematic()` in `app.js`) en op het tafelscherm
+(`_levelUpDisplay()`).
+
+- **Hoe de HP erbij komt kiest de DM**: `meta.levelup.methodes` is een deel van
+  `LEVELUP_METHODES = ['gemiddelde','app','tafel']` — gemiddelde (vast getal),
+  in de app rollen, of aan tafel rollen en het getal intikken. Alles uitvinken
+  wordt geweigerd: dan kan niemand meer levelen.
+- **Wat je erbij krijgt** komt uit `levelupFeatures()` in `render-progressie.js`:
+  wat je zelf kiest (ASI, subklasse), wat je krijgt (class features) en wat
+  vanzelf meegroeit (spell slots, proficiency bonus, een Hit Die). Species-traits
+  hangen aan het **personage**level, niet aan het klasselevel — een Elf die zijn
+  level in zijn tweede klasse haalt hoort zijn lineage-spreuk toch te zien.
+- **Spreukkeuzes blijven openstaan.** Ga je omhoog en kies je nog geen cantrip,
+  dan staat er een gestippelde regel op de Personage-tab tot je het doet
+  (`_openSpreukKeuzes()`; tellers uit `bronnen/srd-spreukentellers.json`). Je moet
+  immers naar de bibliotheek om te kiezen, en dat is wegnavigeren.
+- **Multiclassen gaat langs de DM.** `_multiclassVoorrekenen()` zegt wat er
+  gevraagd wordt en wat je hebt, maar blokkeert niets — zelfde regel als bij een
+  spreukverzoek. `POST /characters/:id/multiclass-verzoek` → Meesterkamer →
+  *Vragen*. Goedgekeurd zet de klasse op het profiel met level **0**; pas bij de
+  volgende level-up krijgt hij zijn eerste level. Twee klassen is het maximum —
+  een derde kan het datamodel (`class`/`multiKlasse`) niet bijhouden.
+
+> **XP of milestone — `meta.levelup.systeem`.** Bij **milestone** (de standaard)
+> gunt de DM een level-up: `groups[gid].levelUpTegoed[charId]`. Bij **xp** wordt
+> datzelfde tegoed **verdiend**: `_levelupTegoed()` rekent het uit als het
+> verschil tussen `_levelBijXp(dmState.playerXp[charId])` en het huidige level,
+> dus er valt niets te gunnen en niets uit de pas te lopen. XP geven gaat met
+> `POST /party/xp` (per personage, standaard party-breed, afwezigen overgeslagen)
+> — in beeld de **XP**-knop in de regie-balk, die het totaal van het lopende
+> gevecht al invult (`GET /encounters/:id/xp`, som van de statblokken × aantal).
+> `XP_DREMPELS` in `routes/api.js` is met de hand overgetikt: de Character
+> Advancement-tabel is de enige die in géén van de SRD-datasets staat.
+> De vraag staat in Instellingen → *Level omhoog* en in het formulier voor een
+> nieuwe campagne; niets kiezen is milestone, dus een bestaande campagne merkt er
+> niets van.
+
+> **Exhaustion staat op het personage, niet op de combatant.** Het zat alleen in
+> een gevecht (als conditie op een token), terwijl de zes niveaus juist dágen
+> meegaan: `dmState.playerExhaustion[charId]` (0–6), te zetten met
+> `PUT /characters/:id/exhaustion` (DM-only) en zichtbaar als zes bolletjes onder
+> Temporary HP. Een lange rust haalt er één af (`POST /party/long-rest`).
+> **Het getal wordt nergens van een worp afgetrokken** — zelfde regel als bij de
+> loot-DC: de app zegt wat er geldt, de tafel rolt.
+
+---
+
 ## Zeldzaamheid (rarity) voor voorwerpen
 
 Veld: `entity.data.rariteit` (NL of EN, genormaliseerd via `_rarityKey()` in render-campagne.js)

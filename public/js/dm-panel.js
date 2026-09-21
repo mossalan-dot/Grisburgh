@@ -486,6 +486,33 @@ export function initDmPanel() {
     },
     async spotifyVolume(v) { await api.spotifyMeta({ volume: v === '' ? undefined : v }); },
     regieBalkRust:           (id) => _regieBalkRust(id),
+    // XP uitdelen. Loopt er een gevecht, dan staat het bedrag van dát gevecht
+    // als voorstel klaar — de XP staat al op elk statblok, dus dat hoeft de DM
+    // niet zelf op te tellen.
+    async regieBalkXp(btn) {
+      let voorstel = '';
+      try {
+        const encId = _combat?.encounterId;
+        if (encId) {
+          const r = await api.get(`/encounters/${encId}/xp`);
+          if (r?.totaal) voorstel = String(r.totaal);
+        }
+      } catch { /* dan zonder voorstel */ }
+      const inp = prompt('Hoeveel XP voor iedereen die meedoet?'
+        + (voorstel ? `\n\n(Het lopende gevecht is ${voorstel} XP waard.)` : ''), voorstel);
+      if (inp === null) return;
+      const aantal = parseInt(String(inp).replace(/[^0-9-]/g, ''));
+      if (!Number.isFinite(aantal) || aantal === 0) return;
+      if (btn) btn.disabled = true;
+      try {
+        const r = await api.post('/party/xp', { aantal });
+        const omhoog = r.magLevel
+          ? ` — ${r.magLevel} speler(s) mogen een level omhoog`
+          : '';
+        _showToast(`${icon('star')} ${aantal > 0 ? '+' : ''}${aantal} XP voor ${r.spelers?.length || 0} speler(s)${omhoog}.`);
+      } catch (e) { _showToast('XP uitdelen mislukt: ' + e.message); }
+      if (btn) btn.disabled = false;
+    },
     async regieBalkLevelUp(btn) {
       if (!confirm('Voor iedereen die vanavond meedoet een level-up klaarzetten?')) return;
       if (btn) btn.disabled = true;
@@ -2227,6 +2254,9 @@ function _renderRegieBalk() {
                de spelers kiezen zelf hun HP. -->
           <button class="dm-regie-balk-btn" onclick="window.dmPanel.regieBalkLevelUp(this)"
             title="Zet voor iedereen die meedoet een level-up klaar">${icon('sparkles')} <span class="dm-rb-btn-label">Level</span></button>
+          ${window.app?.state?.meta?.levelup?.systeem === 'xp' ? `
+          <button class="dm-regie-balk-btn" onclick="window.dmPanel.regieBalkXp(this)"
+            title="XP uitdelen aan wie vanavond meedoet">${icon('star')} <span class="dm-rb-btn-label">XP</span></button>` : ''}
           <span class="dm-rb-sep"></span>
           <button class="dm-regie-balk-btn" onclick="window.dmPanel.regieBalkBrief()" title="Stuur een verzegelde uitnodiging (factie of dienst)">${icon('mail')} <span class="dm-rb-btn-label">Uitnodiging</span></button>
           <button class="dm-regie-balk-btn" onclick="window.dmPanel.sfeerMenu(event)" title="Sfeer van het tafelscherm kiezen">${icon('sparkles')} <span class="dm-rb-btn-label">Sfeer</span></button>
@@ -5090,7 +5120,9 @@ async function _campagneSubmit() {
   const pw = document.getElementById('campagne-new-pw')?.value || '';
   if (pw && pw.length < 8) { if (errEl) errEl.textContent = 'Kies een DM-wachtwoord van minstens 8 tekens.'; return; }
   try {
-    await api.createCampaign(id, { appTitle: title || id, appSubtitle: subtitle, theme }, pw);
+    const systeem = document.getElementById('campagne-new-systeem')?.value === 'xp' ? 'xp' : 'milestone';
+    await api.createCampaign(id, { appTitle: title || id, appSubtitle: subtitle, theme,
+      levelup: { systeem } }, pw);
     // Aangemaakt worden en er niet heen kunnen is een rare uitkomst; dus meteen
     // de weg wijzen. Openen betekent inloggen met het zojuist gezette wachtwoord.
     if (confirm(`Campagne "${title || id}" is aangemaakt.\n\nNu openen? Je logt daar in met het wachtwoord dat je net hebt gezet.`)) {
@@ -10513,6 +10545,16 @@ async function _renderInstellingen() {
           placeholder="DM-wachtwoord (min. 8 tekens)" style="flex:2;min-width:160px"
           title="Zonder eigen wachtwoord komt niemand in die campagne: alleen de standaardcampagne valt terug op het serverwachtwoord.">
           </div>
+          <!-- Meteen vragen: hierna ligt het vast in hoe je speelt, en het is
+               één keuze die de hele level-up-kant bepaalt. Later omzetten kan
+               gewoon, bij Instellingen → Level omhoog. -->
+          <div class="dm-form-row" style="margin-top:6px">
+            <label class="dm-form-label" for="campagne-new-systeem">Level omhoog</label>
+            <select id="campagne-new-systeem" class="dm-input">
+              <option value="milestone" selected>Op een mijlpaal — jij bepaalt wanneer</option>
+              <option value="xp">Op ervaringspunten</option>
+            </select>
+          </div>
           <div class="dm-feature-row" style="gap:8px;margin-top:6px;flex-wrap:wrap">
             <button class="dm-btn dm-btn-sm dm-btn-primary" onclick="window.dmPanel.campagneSubmit()">${icon('check')} Aanmaken</button>
             <button class="dm-btn dm-btn-sm dm-btn-ghost" onclick="document.getElementById('campagne-create-form').style.display='none'">${icon('x')} Annuleren</button>
@@ -10528,6 +10570,14 @@ async function _renderInstellingen() {
          zijn eigen dobbelsteen. Welke er aan deze tafel gelden bepaalt de DM;
          de server weigert een manier die hier uitstaat. -->
     ${_instSectie('levelup', 'Level omhoog', `
+      <div class="dm-form-row">
+        <label class="dm-form-label" for="inst-lu-systeem">Wanneer ga je omhoog?</label>
+        <select id="inst-lu-systeem" class="dm-input">
+          <option value="milestone"${lu.systeem !== 'xp' ? ' selected' : ''}>Op een mijlpaal — jij bepaalt wanneer</option>
+          <option value="xp"${lu.systeem === 'xp' ? ' selected' : ''}>Op ervaringspunten — de tabel bepaalt wanneer</option>
+        </select>
+      </div>
+      <p class="dm-hint">Op XP deel je punten uit (de knop in de regie-balk, met het bedrag van een gevecht als voorstel) en staat een level-up vanzelf klaar zodra iemand over de drempel komt. Op mijlpaal zet jij hem klaar.</p>
       <p class="dm-hint">Hoe bepaalt een speler zijn HP bij een level-up? Wat je hier uitvinkt kan hij niet kiezen.</p>
       ${[['gemiddelde', 'Gemiddelde', 'Het vaste getal uit het boek — (die ÷ 2) + 1, plus CON.'],
          ['app',        'Rollen in de app', 'De server rolt de hit die.'],
@@ -10750,6 +10800,7 @@ window._instOpslaan = async () => {
         await api.put('/meta/levelup', {
           methodes: luMethodes, standaard: luStd,
           maxLevel: parseInt(document.getElementById('inst-lu-max')?.value) || 20,
+          systeem: document.getElementById('inst-lu-systeem')?.value || 'milestone',
         });
       } catch (e) { console.warn('Level-upinstelling opslaan mislukt', e); }
     }

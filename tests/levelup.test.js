@@ -55,7 +55,11 @@ describe('Level omhoog', () => {
     const groepen = (await req(server, 'GET', '/api/groups', null, dm)).body;
     gid = groepen?.activeGroup || (groepen?.groups || [])[0]?.id;
     await req(server, 'PUT', `/api/groups/${gid}/password`, { password: 'proef1234' }, dm);
-    await req(server, 'PATCH', `/api/entities/personages/${charId}`, { data: { groep: gid } }, dm);
+    // PUT, niet PATCH: voor entities bestaat er geen PATCH-route, dus dat deed
+    // stilletjes niets — en dan zit het personage in geen enkele groep, waardoor
+    // een party-brede actie hem overslaat.
+    await req(server, 'PUT', `/api/entities/personages/${charId}`,
+      { name: 'Proefheld', subtype: 'speler', data: { groep: gid } }, dm);
     speler = (await req(server, 'POST', '/api/auth/player-login',
       { campagne: 'grisburgh', characterId: charId, password: 'proef1234' })).cookie;
 
@@ -316,6 +320,74 @@ describe('Level omhoog', () => {
     const r = await req(server, 'POST', `/api/characters/${charId}/multiclass-verzoek`,
       { klasse: 'Wizard' }, speler);
     assert.strictEqual(r.status, 409);
+  });
+
+  it('telt exhaustion per niveau en haalt er één af na een lange rust', async () => {
+    // Stond alleen als conditie op een combatant, dus alleen tijdens een
+    // gevecht — terwijl exhaustion juist blijft en per lange rust zakt.
+    const zet = (n) => req(server, 'PUT', `/api/characters/${charId}/exhaustion`, { niveau: n }, dm);
+    const lees = async () => (await req(server, 'GET', `/api/player-hp/${charId}`, null, dm)).body.exhaustion;
+
+    assert.strictEqual(await lees(), 0, 'begint op nul');
+    await zet(3);
+    assert.strictEqual(await lees(), 3);
+
+    // "Finishing a Long Rest reduces a creature's Exhaustion level by 1" —
+    // dus niet alles ineens.
+    const r = await req(server, 'POST', '/api/party/long-rest', { locatie: 'veld' }, dm);
+    assert.strictEqual(r.status, 200, JSON.stringify(r.body));
+    assert.strictEqual(await lees(), 2, 'één niveau eraf, niet alles');
+
+    await zet(0);
+    const nogEens = await req(server, 'POST', '/api/party/long-rest', { locatie: 'veld' }, dm);
+    assert.strictEqual(nogEens.status, 200);
+    assert.strictEqual(await lees(), 0, 'op nul blijft het nul');
+
+    // Boven 6 en onder 0 kan niet.
+    await zet(99); assert.strictEqual(await lees(), 6);
+    await zet(-5); assert.strictEqual(await lees(), 0);
+  });
+
+  it('XP: de drempel geeft de level-up, niet de DM', async () => {
+    await req(server, 'PUT', '/api/meta/levelup', { systeem: 'xp' }, dm);
+    await req(server, 'PATCH', `/api/player-profile/${charId}`, { level: '1', klasseLevel: '1', klasse: 'Fighter' }, dm);
+
+    let st = (await req(server, 'GET', `/api/characters/${charId}/level-up`, null, dm)).body;
+    assert.strictEqual(st.systeem, 'xp');
+    assert.strictEqual(st.tegoed, 0, 'zonder XP geen level-up');
+    assert.strictEqual(st.xp.volgende, 300, 'level 2 ligt op 300 XP');
+
+    // Net te weinig.
+    await req(server, 'POST', '/api/party/xp', { aantal: 299, charIds: [charId] }, dm);
+    st = (await req(server, 'GET', `/api/characters/${charId}/level-up`, null, dm)).body;
+    assert.strictEqual(st.tegoed, 0, '299 is nog geen 300');
+
+    // En over de drempel: de level-up staat klaar zonder dat de DM iets gunt.
+    const r = await req(server, 'POST', '/api/party/xp', { aantal: 1, charIds: [charId] }, dm);
+    assert.strictEqual(r.body.magLevel, 1, 'de route zegt meteen wie er omhoog mag');
+    st = (await req(server, 'GET', `/api/characters/${charId}/level-up`, null, dm)).body;
+    assert.strictEqual(st.tegoed, 1);
+
+    // Twee drempels ineens = twee levels te gaan.
+    await req(server, 'POST', '/api/party/xp', { aantal: 2400, charIds: [charId] }, dm);
+    st = (await req(server, 'GET', `/api/characters/${charId}/level-up`, null, dm)).body;
+    assert.strictEqual(st.tegoed, 3, '2700 XP is level 4, en hij staat op 1');
+
+    // Terug naar mijlpaal: dan telt XP niet mee en beslist de DM weer.
+    await req(server, 'PUT', '/api/meta/levelup', { systeem: 'milestone' }, dm);
+    st = (await req(server, 'GET', `/api/characters/${charId}/level-up`, null, dm)).body;
+    assert.strictEqual(st.systeem, 'milestone');
+    assert.strictEqual(st.tegoed, 0, 'op mijlpaal geeft XP geen level-up');
+  });
+
+  it('rekent uit wat een gevecht aan XP waard is', async () => {
+    const m = (await req(server, 'POST', '/api/monsters',
+      { name: 'Proefwolf', maxHp: 11, xp: 50 }, dm)).body;
+    const enc = (await req(server, 'POST', '/api/encounters',
+      { name: 'Wolven', monsters: [{ monsterId: m.id, name: 'Proefwolf', count: 3 }] }, dm)).body;
+    const r = await req(server, 'GET', `/api/encounters/${enc.id}/xp`, null, dm);
+    assert.strictEqual(r.status, 200, JSON.stringify(r.body));
+    assert.strictEqual(r.body.totaal, 150, 'drie wolven van 50 XP');
   });
 
   it('stopt bij het hoogste level', async () => {

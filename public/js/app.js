@@ -10,7 +10,7 @@ import { renderSpreuken } from './render-spreuken.js?v=41';
 import { renderVaardigheden, zoekVaardigheden } from './render-vaardigheden.js?v=8';
 import { renderStatblock } from './render-statblock.js?v=9';
 import { initSocket } from "./socket-client.js?v=75";
-import { initDmPanel } from "./dm-panel.js?v=266";
+import { initDmPanel } from "./dm-panel.js?v=267";
 import { COND_INFO, COND_LABEL, COND_MET_PLAATJE, COND_ICON } from './conditions.js?v=2';
 import './media-picker.js?v=8';
 
@@ -7005,6 +7005,23 @@ const _AB_KLEUR = {
   cha: '#b05a7a',   // uitstraling — wijn
 };
 
+// De DM deelt exhaustion uit; de speler ziet alleen de stand. Bewust géén
+// automatische aftrek op worpen: zelfde regel als bij de loot-DC en de
+// spreukvoorrekening — het is een aantekening, en een verborgen −2 in elke
+// bonus maakt de getallen in de app onbetrouwbaar.
+window._dashExhaustion = async function (delta) {
+  const charId = window._lastCharId;
+  if (!charId) return;
+  const nu = parseInt(window._lastHpData?.exhaustion) || 0;
+  const na = Math.max(0, Math.min(6, nu + delta));
+  if (na === nu) return;
+  if (na === 6 && !confirm('Niveau 6 betekent dat dit personage sterft. Zeker weten?')) return;
+  try { await api.put(`/characters/${charId}/exhaustion`, { niveau: na }); }
+  catch (e) { window._showToast?.('Mislukt: ' + (e.message || '?')); return; }
+  if (window._lastHpData) window._lastHpData.exhaustion = na;
+  renderMijnKarakter({});
+};
+
 // ── Eén vangnet voor beelden die er niet zijn ───────────────────────────────
 // Een bestand dat weg is (of een id dat nergens naar wijst) liet de browser
 // zijn eigen gebroken-plaatje-teken tekenen: een blauw vierkantje met een
@@ -7060,6 +7077,22 @@ async function _levelUpBalk() {
       <span class="levelup-balk-pijl">${icon('chevron-right')}</span>
     </button>` : '';
 
+  // In XP-stand wil je zien hoe ver je bent, niet alleen óf je er bent. Op
+  // mijlpaal staat er niets: dan zegt een balk met punten niets.
+  const xp = (!st?.tegoed && st?.systeem === 'xp' && st.xp) ? (() => {
+    const { nu, dezeLevel, volgende } = st.xp;
+    if (volgende == null) return `<div class="levelup-xp"><span class="levelup-xp-kop">${icon('star')} ${nu.toLocaleString('nl-NL')} XP</span>
+      <span class="levelup-xp-rest">het hoogste level</span></div>`;
+    const deel = Math.max(0, nu - dezeLevel);
+    const heel = Math.max(1, volgende - dezeLevel);
+    const pct = Math.max(0, Math.min(100, Math.round((deel / heel) * 100)));
+    return `<div class="levelup-xp">
+      <span class="levelup-xp-kop">${icon('star')} ${nu.toLocaleString('nl-NL')} XP</span>
+      <span class="levelup-xp-balk"><span style="width:${pct}%"></span></span>
+      <span class="levelup-xp-rest">nog ${(volgende - nu).toLocaleString('nl-NL')} tot level ${st.level + 1}</span>
+    </div>`;
+  })() : '';
+
   // De knop in de omslag was eenmalig: klik je 'm weg om eerst iets anders te
   // doen, dan herinnerde niets je er ooit nog aan. Deze regel blijft staan tot
   // je de spreuk hebt aangevraagd (dan ruimt de server hem zelf op) of hem
@@ -7078,7 +7111,7 @@ async function _levelUpBalk() {
         onclick="window._luKeuzeKlaar('${esc(k.levelUpId)}', ${k.niveau})">${icon('x')}</button>
     </div>`).join('');
 
-  el.innerHTML = tegoed + keuzes;
+  el.innerHTML = tegoed + xp + keuzes;
 }
 
 window._luKeuzeKlaar = async function (levelUpId, niveau) {
@@ -7607,6 +7640,7 @@ async function renderMijnKarakter(opts = {}) {
     ) || null;
   }
 
+  window._lastHpData = hpData;
   const hp    = hpData.current ?? myCombatant?.hp ?? '—';
   const maxHp = hpData.max     ?? myCombatant?.maxHp ?? '—';
   const hpNum = typeof hp === 'number' ? hp : null;
@@ -8093,6 +8127,25 @@ async function renderMijnKarakter(opts = {}) {
               </div>
             </div>
             ${myCombatant ? `<p class="player-dash-hp-note">${icon('swords')} Actief in gevecht</p>` : ''}
+            ${(() => {
+              // Exhaustion hoort bij je lijf, dus bij je HP. De speler ziet 'm
+              // altijd (ook op nul — dan weet je dát het bestaat); alleen de DM
+              // kan hem verzetten, want die deelt hem uit.
+              const n = parseInt(hpData.exhaustion) || 0;
+              const dm = window.app?.isDM?.();
+              if (!n && !dm) return '';
+              const bolletjes = Array.from({ length: 6 }, (_, i) =>
+                `<span class="exh-bol${i < n ? ' is-aan' : ''}"></span>`).join('');
+              return `<div class="player-exhaustion${n ? ' is-aan' : ''}">
+                <span class="player-exhaustion-kop">${icon('battery-low')} Exhaustion</span>
+                ${dm ? `<button class="player-hp-temp-btn" onclick="window._dashExhaustion(-1)" title="Eén niveau eraf">−</button>` : ''}
+                <span class="exh-bollen" title="${n ? `Niveau ${n} van 6` : 'Geen exhaustion'}">${bolletjes}</span>
+                ${dm ? `<button class="player-hp-temp-btn" onclick="window._dashExhaustion(1)" title="Eén niveau erbij">+</button>` : ''}
+                ${n ? `<span class="player-exhaustion-effect">${n >= 6
+                  ? 'Niveau 6 — je personage sterft.'
+                  : `−${n} op elke d20 test · gaat met één omlaag na een lange rust`}</span>` : ''}
+              </div>`;
+            })()}
           </div>
           <div class="player-hd-row">
             <span class="player-hd-label">${icon('dice')} Hit Dice</span>

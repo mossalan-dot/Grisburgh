@@ -26620,3 +26620,59 @@ body.akte-schrijf-open .mp-overlay { z-index: 1320; }
 .lu-mc-rij--krap { opacity: .72; }
 .lu-mc-rij--krap .lu-mc-naam { color: #7a5a3a; }
 .dm-verzoek-nu { opacity: .6; font-size: .88rem; }
+
+/* ── Exhaustion: zes bolletjes bij je HP ───────────────────────────────────
+   Stond alleen als conditie op een combatant, dus alleen tijdens een gevecht —
+   terwijl exhaustion juist blijft en per lange rust één niveau zakt. Hier hoort
+   het: bij je lijf. De −1 per niveau staat erbij als aantekening; de app rekent
+   hem niet door, want een verborgen aftrek in elke bonus maakt de getallen
+   onbetrouwbaar. */
+.player-exhaustion {
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+  margin-top: 10px; padding-top: 9px;
+  border-top: 1px dashed rgba(196, 168, 122, .5);
+}
+.player-exhaustion-kop {
+  display: inline-flex; align-items: center; gap: 5px;
+  font-family: 'Cinzel', serif; font-size: .74rem; letter-spacing: .07em;
+  text-transform: uppercase; color: #8a7050;
+}
+.player-exhaustion-kop .icon { width: 13px; height: 13px; }
+.exh-bollen { display: inline-flex; gap: 4px; }
+.exh-bol {
+  width: 11px; height: 11px; border-radius: 50%;
+  border: 1px solid rgba(176, 128, 64, .55); background: rgba(255, 253, 247, .5);
+}
+.exh-bol.is-aan { background: #b08040; border-color: #8a5f28; }
+.player-exhaustion.is-aan .player-exhaustion-kop { color: #a8642a; }
+.player-exhaustion-effect {
+  flex: 1 1 100%;
+  font-family: 'IM Fell English', serif; font-size: .82rem; color: #8a5f28;
+}
+
+/* ── XP-balkje op de Personage-tab ─────────────────────────────────────────
+   Alleen in XP-stand: op mijlpaal zegt een puntenteller niets. Je wilt zien
+   hoe ver je bent, niet alleen óf je er bent. */
+.levelup-xp {
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  margin: 0 0 12px; padding: 9px 13px;
+  border: 1px solid rgba(196, 168, 122, .5); border-radius: 9px;
+  background: rgba(242, 232, 210, .42);
+}
+.levelup-xp-kop {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-family: 'Cinzel', serif; font-size: .92rem; color: #3a2410;
+  font-variant-numeric: tabular-nums;
+}
+.levelup-xp-kop .icon { width: 14px; height: 14px; color: #a8833c; }
+.levelup-xp-balk {
+  flex: 1 1 120px; height: 7px; border-radius: 4px; overflow: hidden;
+  background: rgba(42, 26, 8, .16);
+  box-shadow: inset 0 1px 2px rgba(42, 26, 8, .22);
+}
+.levelup-xp-balk > span {
+  display: block; height: 100%;
+  background: linear-gradient(90deg, #c4a87a, #a8833c);
+  transition: width .4s ease;
+}
+.levelup-xp-rest { font-size: .82rem; color: #7a6040; }

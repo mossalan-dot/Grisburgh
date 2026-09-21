@@ -834,3 +834,13 @@ Per bevinding: waar, wat, en of het opgelost is. Nieuwe regels onderaan.
 - Level daarna die tweede klasse: de HP komt uit *zijn* hit die (een Rogue een d8, ook als je hoofdklasse een d6 heeft) en alleen dat klasselevel loopt op.
 - Met twee klassen verdwijnt *Een klasse erbij*: een derde kan het datamodel niet bijhouden.
 - De DM kan een level-up ook geven vanuit de akte: regieblok **Level omhoog** (Alt+O) in de tekst, en een *Level*-knop in de regie-balk. Beide zetten het klaar voor iedereen die vanavond meedoet; de spelers kiezen zelf hun HP.
+
+### Exhaustion en XP (21 sep 2026)
+
+- Open als DM het Personage-tabblad van een speler: onder Temporary HP staat **Exhaustion** met zes bolletjes en −/+. Zet hem op 2; de regel eronder zegt "−2 op elke d20 test · gaat met één omlaag na een lange rust". De speler ziet dezelfde bolletjes, zonder knoppen.
+- Het getal wordt nergens automatisch van een worp afgetrokken — net als de loot-DC is het een aantekening die aan tafel geldt.
+- Doe een lange rust met een speler op exhaustion 3: hij staat daarna op 2. Op 0 blijft hij 0 en verdwijnt het blokje.
+- Meesterkamer → Instellingen → *Level omhoog* → **Systeem**: kies **XP** in plaats van milestone. Op de Personage-tab van elke speler verschijnt een XP-balk met zijn huidige XP en hoeveel er nog tot het volgende level te gaan is.
+- Geef XP met de **XP**-knop in de regie-balk: loopt er een gevecht, dan staat het totaal van de statblokken al ingevuld. Iedereen die vanavond meedoet krijgt het; een afwezige speler niet.
+- Gaat een speler daarmee over een drempel heen, dan krijgt hij de level-upbalk vanzelf — in XP-modus wordt het tegoed *verdiend*, de DM hoeft niets te gunnen. In milestone-modus verandert er niets: de DM gunt zoals hiervoor.
+- Bij het aanmaken van een nieuwe campagne staat de vraag in het formulier; niets invullen geeft milestone.
