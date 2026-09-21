@@ -194,11 +194,11 @@ op volgorde van mijn voorkeur:
 3. Meenemen als vierde unlock-type. Niet doen: dan zit het gevolgsysteem van
    één stad voor altijd in de factiemachinerie van elke campagne.
 
-**Het klussenbord als apart systeem.** Wel overnemen: de generator als knop
-*Verzin een klus* in de missie-editor, die een willekeurig doel pakt en een
-beloning voorstelt uit het bereik van de rang (`rangen[].beloning: {min,max}`).
-De DM krijgt een ingevuld formulier dat hij bijschaaft — geen tweede soort werk
-dat langs het prikbord heen leeft.
+**Het klussenbord, helemaal.** Eerst stond hier het voorstel om de generator te
+bewaren als knop *Verzin een klus* in de missie-editor. Dat is 21 sep 2026
+geschrapt: niet nodig. Een missie schrijf je zelf — dat is juist het leuke werk,
+en een willekeurig doel uit de kaartenbak levert eerder een zin op die je toch
+herschrijft. `rangen[].beloning` hoeft daarmee ook niet.
 
 ---
 
@@ -213,7 +213,6 @@ dat langs het prikbord heen leeft.
   renownDrempels: [0, 3, 10, 25, 50],
   rangen: [{
     naam, titel, voordelen,
-    beloning: { min, max },              // nieuw — voorstel voor de klusgenerator
     vereist:  { level, missies },        // nieuw — voorrekenen, niet blokkeren
     unlocks: [                           // was `boons`
       { type: 'tekst',     naam, tekst },
@@ -254,11 +253,11 @@ Stap 1 t/m 3 en de regelkant staan erin:
 
 Wat er nog ligt: **verkopers afleiden** uit `leden[]` + `data.voorraad` (nu
 alleen als expliciete unlock), de **Heeren als factie** in Grisburgh zelf
-(de factie bestáát al in `meta.facties`, alleen de oude dienst moet nog weg),
-en de **klusgenerator** als knop in de missie-editor.
+(de factie bestáát al in `meta.facties`, alleen de oude dienst moet nog weg).
 
-Het **klussenbord en de boetes zijn vervallen** (besluit 21 sep 2026). Het
-gerechtshof-idee staat in `docs/todo.md`.
+Het **klussenbord en de boetes zijn vervallen** (besluit 21 sep 2026), en de
+klusgenerator hoeft er ook niet uit gered te worden. Het gerechtshof-idee staat
+in `docs/todo.md`.
 
 ## 7. Volgorde
 

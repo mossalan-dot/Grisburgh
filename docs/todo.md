@@ -182,7 +182,8 @@ wordt `companionOwners` gevuld), is dit het moment.
       een stadsgezag — vandaar een eigen dienst, aan een organisatie-kaartje
       gehangen. **Incidenteel**: het komt een paar keer per campagne voor, dus
       het mag klein blijven. De oude Heeren-machinerie (klussenbord én boetes)
-      is bewust laten vallen, zie `docs/voorstel-facties.md` §5.
+      is bewust laten vallen, zie `docs/voorstel-facties.md` §5 — de
+      klusgenerator hoeft er ook niet uit gered te worden (21 sep 2026).
 
 ## Scherven (klein, los op te pakken)
 
