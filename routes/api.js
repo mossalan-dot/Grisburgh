@@ -7376,21 +7376,41 @@ router.put('/sessieLog/:id', requireDM, (req, res) => {
 
 // Zet alle afbeeldingen in een akte terug op verborgen (visible: false)
 // zodat de DM ze tijdens spel één voor één kan onthullen via de reveal-strip.
+// Alle beelden van een akte weer dicht. Let op de twee assen: de vlag op de
+// entry zelf (`images[].visible`) is de **terugval**, maar zodra een beeld ooit
+// per party onthuld is staat dat in `groups[gid].imageVis` — en dát wint in
+// `_imgZichtbaar()`. Deze route zette alleen de vlag om, dus voor precies de
+// beelden die je tijdens het spelen had onthuld deed hij niets: de knop
+// beloofde een schone akte en leverde er geen.
 router.put('/sessieLog/chapter/:key/reset-images', requireDM, (req, res) => {
   const { key } = req.params;
   const archief = storage.readJSON('archief.json');
-  let count = 0;
+  const dmState = readDmState();
+  const gid = req.body?.groupId || dmState.activeGroup;   // zoals bij onthul/verberg
+  const g   = gid ? dmState.groups?.[gid] : null;
+
+  let count = 0, perParty = 0;
+  const ids = [];
   for (const entry of (archief.sessieLog || [])) {
     if (entry.hoofdstuk !== key) continue;
     if (!entry.images?.length) continue;
     entry.images = entry.images.map(img => {
       const obj = typeof img === 'string' ? { id: img } : { ...img };
+      if (obj.id) ids.push(obj.id);
       if (obj.visible !== false) count++;
       return { ...obj, visible: false };
     });
   }
   if (count > 0) storage.writeJSON('archief.json', archief);
-  res.json({ ok: true, reset: count });
+
+  if (g?.imageVis) {
+    for (const id of ids) {
+      if (id in g.imageVis) { delete g.imageVis[id]; perParty++; }
+    }
+    if (perParty > 0) storage.writeJSON('dm-state.json', dmState);
+  }
+  req.app.get('io')?.to(req.session?.campaignId || 'main').emit('archief:updated');
+  res.json({ ok: true, reset: count, perParty });
 });
 
 router.delete('/sessieLog/:id', requireDM, (req, res) => {

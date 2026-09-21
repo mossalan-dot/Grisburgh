@@ -957,3 +957,13 @@ met de hand niet meer hoeft na te rekenen:
 - [ ] **Dungeon: een kamer geeft zijn naam pas prijs als hij onthuld is** (speler) — de vórm komt wel mee (daar tekent de mist op), de naam en de merktekens niet. Een aantekening van de DM komt er nooit in.
 - [ ] **Dungeon: onthullen is per kamer én per party** (DM) — onthul een kamer voor party A: party B ziet niets. Terugdraaien sluit hem weer.
 - [ ] **Dungeon: een verborgen merkteken blijft verborgen** (DM) — ook in een kamer die de party wél kent.
+
+### Boedel en akte-onthullingen met tests afgedekt (21 sep 2026)
+
+- [ ] **Alle beelden van een akte terugzetten werkt echt** (DM) — onthul tijdens het spelen twee beelden en druk daarna op *alle beelden terugzetten*: de speler ziet ze niet meer. *Dit werkte niet:* de route zette alleen de vlag op het verslag om, terwijl de onthulstand per party in `imageVis` staat — en die wint. Voor precies de beelden die je zojuist had getoond deed de knop dus niets.
+- [ ] **Een beeld onthullen is per party** (DM) — onthul er een voor party A: party B ziet hem niet. Terugdraaien haalt hem weer weg, en het bijschrift van de regie-stap blijft bij het beeld staan.
+- [ ] **Een verborgen verslag blijft weg** (speler) — een sessielog op onzichtbaar (zoals de beelddrager) staat niet in het archief van een speler; de DM ziet hem wel.
+- [ ] **Een hele akte verbergen** (DM) — zet de akte voor één party op onzichtbaar: al zijn verslagen en beelden verdwijnen daar. Weer aanzetten geeft precies terug wat er open stond.
+- [ ] **Drankje en staf** (speler) — een Potion geneest met een worp, telt nooit boven je maximum, en er gaat er één van de stapel af. Een Staff of Healing raakt een **charge** kwijt en blijft in je tas; bij nul charges weigert hij.
+- [ ] **Je gebruikt alleen je eigen spullen** (speler) — een voorwerp van een medespeler geeft 403; de DM mag het wel namens iemand doen.
+- [ ] **Doorgeven binnen de party** (speler) — geven verhuist het voorwerp echt; aan jezelf geven kan niet, iets wat je niet hebt ook niet, en met *ruilen uit* lukt het helemaal niet.
