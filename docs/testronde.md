@@ -975,3 +975,14 @@ met de hand niet meer hoeft na te rekenen:
 - [ ] **Het prikbord toont wat je toekomt** (speler) — een missie met een renown-drempel boven je stand zie je niet; een voltooide of mislukte verdwijnt; goedkeuren, voltooien en laten mislukken kan alleen de DM.
 - [ ] **Een brief komt bij de juiste mensen** (DM) — aan één personage, of aan een hele party. De andere party krijgt niets, en de cinematische vlag staat op het bericht.
 - [ ] **Post is van de ontvanger** (speler) — als gelezen markeren en weggooien kan alleen bij je eigen post; een speler kan zelf geen post versturen.
+
+### Spreukenboek en progressie met tests afgedekt (21 sep 2026)
+
+- [ ] **Slots volgen klasse en level, behalve waar jij ingreep** (DM) — een Wizard 5 heeft 4/3/2; ga naar 6 en het maximum groeit mee terwijl wat verbruikt is verbruikt blijft. Een handmatig gezet niveau blijft staan, ook als de tabel iets anders zegt.
+- [ ] **Een spreuk in je boek gaat langs de DM** (speler) — een speler die er een toevoegt krijgt een openstaand verzoek; pas na goedkeuren staat hij in zijn boek. Afwijzen laat het boek ongemoeid. De DM schrijft rechtstreeks.
+- [ ] **Voorbereiden en concentratie** (speler) — voorbereiden gaat aan en uit; op een tweede spreuk concentreren laat de eerste vanzelf los.
+- [ ] **Andermans boek en andermans slots** (speler) — allebei 403.
+- [ ] **Eigen vaardigheid erbij** (DM) — voeg een class feature toe op een level; hij staat er met zijn herkomst, en verwijderen haalt hem er weer uit.
+- [ ] **De featbibliotheek blijft heel** (DM) — schrijf je eerste eigen feat: de meegestuurde bibliotheek wordt éénmalig vastgelegd. Een tweede eigen feat voegt er één toe en gooit er niets weg. (De bibliotheek zit niet in de seed op de server, dus dit is de plek waar hij kon verdwijnen.)
+- [ ] **Multiclassen wordt voorgerekend, niet geblokkeerd** (speler) — een Wizard met DEX 16 en WIS 10 voldoet aan Rogue en niet aan Cleric, maar mag allebei aanvragen. Eén verzoek tegelijk; je eigen klasse en een derde klasse worden geweigerd.
+- [ ] **Goedgekeurd betekent level 0** (DM) — de klasse staat op het blad met level 0, en een eventuele subklasse van een eerdere poging is weg. Pas bij de volgende level-up krijgt hij zijn eerste level. Afwijzen zet niets.
