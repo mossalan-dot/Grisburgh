@@ -2571,7 +2571,15 @@ router.post('/shops/:shopId/koop', attachRole, (req, res) => {
 
   // Alleen een écht uniek voorwerp is na één verkoop op; van een gedeeld
   // voorwerp kan de volgende speler er ook nog een kopen.
-  if (koopGebruik === 'uniek') {
+  //
+  // En alleen als er een **kaartje** is. `_gebruikVan()` valt terug op 'uniek'
+  // als het niets weet, wat klopt voor een leeg kaartje maar niet voor een
+  // voorraadregel die naar een kaartje wijst dat niet meer bestaat: dan weten
+  // we niets, en "de smid verkoopt één knots, ooit" is zeker niet bedoeld. In
+  // Grisburgh wijzen 12 van de 79 gekoppelde regels nergens heen — precies de
+  // gewone wapens bij De Kromme Spijker. De DM kan een regel nog altijd met de
+  // hand op uitverkocht zetten.
+  if (koopGebruik === 'uniek' && effectiveEntityId) {
     if (!g.shopUitverkocht) g.shopUitverkocht = {};
     if (!g.shopUitverkocht[shopId]) g.shopUitverkocht[shopId] = [];
     if (!g.shopUitverkocht[shopId].map(k => (k || '').toLowerCase()).includes(itemKey)) {
@@ -2616,8 +2624,11 @@ router.post('/shops/:shopId/koop', attachRole, (req, res) => {
     io.to(req.session?.campaignId||'main').emit('player:items-updated', { characterId, items: (dmState.playerItems || {})[characterId] || [] });
   }
 
-  if (koopGebruik === 'uniek') {
-    io.to(req.session?.campaignId||'main').emit('shop:uitverkocht-updated', { shopId, uitverkocht: g.shopUitverkocht[shopId] });
+  // Zelfde voorwaarde als hierboven, en met een vangnet: zonder kaartje wordt
+  // de lijst niet aangemaakt, en dan viel deze melding om met een 500.
+  if (koopGebruik === 'uniek' && effectiveEntityId) {
+    io.to(req.session?.campaignId||'main').emit('shop:uitverkocht-updated',
+      { shopId, uitverkocht: (g.shopUitverkocht || {})[shopId] || [] });
   }
 
   res.json({ ok: true, itemNaam: item.naam, prijs });

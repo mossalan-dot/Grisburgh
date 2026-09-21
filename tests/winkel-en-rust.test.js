@@ -86,6 +86,32 @@ describe('Winkel en rust', () => {
   // dat niet: met een winkel-id kon je handelen bij een zaak die je nooit
   // ontdekt hebt. In Grisburgh staat per party precies één van de negen
   // winkels op verborgen — dat hoort dus ook echt dicht te zitten.
+  // Een voorraadregel kan naar een kaartje wijzen dat niet meer bestaat (in
+  // Grisburgh 12 van de 79). `_gebruikVan()` valt dan terug op 'uniek', en de
+  // regel ging na één verkoop op uitverkocht — een smid die één knots per party
+  // verkoopt. Zonder kaartje weten we niets, dus dan raakt hij niet op.
+  it('zet een regel zonder bestaand kaartje niet op uitverkocht', async () => {
+    const kaal = (await req(server, 'POST', '/api/entities/locaties', {
+      name: 'De Losse Toonbank', data: { locType: 'Winkel', voorraad: JSON.stringify([
+        { naam: 'Knots', prijs: '1 kn', entityId: 'e_bestaat_niet_meer' },
+      ]) },
+    }, dm)).body;
+    await req(server, 'PUT', `/api/entities/locaties/${kaal.id}/visibility`, { target: 'visible' }, dm);
+    await req(server, 'PATCH', `/api/player-currency/${aria}`, { fl: 5, kn: 0, cl: 0 }, dm);
+
+    const eerste = await req(server, 'POST', `/api/shops/${kaal.id}/koop`,
+      { itemNaam: 'Knots', aantal: 1 }, ariaC);
+    assert.strictEqual(eerste.status, 200, JSON.stringify(eerste.body));
+
+    const tweede = await req(server, 'POST', `/api/shops/${kaal.id}/koop`,
+      { itemNaam: 'Knots', aantal: 1 }, ariaC);
+    assert.strictEqual(tweede.status, 200,
+      'een gewone knots hoort niet na één verkoop op te zijn: ' + JSON.stringify(tweede.body));
+
+    const uit = (await req(server, 'GET', `/api/shops/${kaal.id}/uitverkocht`, null, dm)).body;
+    assert.deepStrictEqual(uit.uitverkocht, [], 'en hij staat niet als uitverkocht genoteerd');
+  });
+
   it('laat een speler niet kopen bij een winkel die zijn party niet kent', async () => {
     await req(server, 'PUT', `/api/entities/locaties/${winkel.id}/visibility`, { target: 'hidden' }, dm);
     const r = await req(server, 'POST', `/api/shops/${winkel.id}/koop`,
