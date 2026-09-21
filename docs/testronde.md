@@ -946,3 +946,14 @@ met de hand niet meer hoeft na te rekenen:
 > zintuig"* onthult, maar de route onthult er **`roll`** — bij een 4 dus vier.
 > De test legt vast wat de code doet; welke van de twee de bedoeling is, is een
 > keuze van de DM. Zie `hulp_ursula` in `app.js`.
+
+### Gevecht en dungeonkaarten met tests afgedekt (21 sep 2026)
+
+- [ ] **Een gevecht vult zich met wie er is** (DM) — zet een speler op afwezig (Instellingen → Party's) en start een encounter: hij staat níét op het veld. *Dit werkte niet:* de opstelling keek alleen naar de groep, terwijl de lange rust, de korte rust en de lootverdeling alle drie al naar de aanwezigheid keken. De DM kan hem altijd met de hand toevoegen; andersom is vervelender.
+- [ ] **Meerdere van hetzelfde worden genummerd** (DM) — drie Veenwolven geven *Veenwolf 1/2/3*; met *Uitrollen* aan krijgt elk zijn eigen HP-totaal binnen het bereik van de worp.
+- [ ] **Het bestiarium vult zich bij de start** (DM) — zodra het gevecht begint staan de monsters op niveau *naam* in het bestiarium van de party die meevecht.
+- [ ] **Een speler komt alleen aan zijn eigen HP** (speler) — zijn eigen balkje werkt, dat van een monster of een medespeler geeft 403, en de waarde klemt tussen 0 en zijn maximum.
+- [ ] **Na afloop klopt zijn kaartje** (DM) — sluit het gevecht: de HP waarmee hij eruit kwam staat op zijn personage, niet die van voor het gevecht.
+- [ ] **Dungeon: een kamer geeft zijn naam pas prijs als hij onthuld is** (speler) — de vórm komt wel mee (daar tekent de mist op), de naam en de merktekens niet. Een aantekening van de DM komt er nooit in.
+- [ ] **Dungeon: onthullen is per kamer én per party** (DM) — onthul een kamer voor party A: party B ziet niets. Terugdraaien sluit hem weer.
+- [ ] **Dungeon: een verborgen merkteken blijft verborgen** (DM) — ook in een kamer die de party wél kent.

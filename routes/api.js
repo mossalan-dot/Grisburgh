@@ -13994,11 +13994,12 @@ router.post('/encounters/:id/start', requireDM, (req, res) => {
   const ts = () => Date.now() + Math.random();
 
   // Spelers van de actieve party
-  const players = (entities.personages || []).filter(p => {
-    if ((p.subtype || '').toLowerCase() !== 'speler') return false;
-    if (activeGroupId && p.data?.groep !== activeGroupId) return false;
-    return true;
-  });
+  // Alleen wie vanavond meedoet komt in het gevecht. Deze filter keek alleen
+  // naar de groep, waardoor een afwezige speler alsnog op het veld verscheen —
+  // terwijl de lange rust, de korte rust en de lootverdeling alle drie al via
+  // `_aanwezigeSpelers()` lopen. De DM kan hem altijd met de hand toevoegen;
+  // andersom is vervelender, want dan staat er iemand die er niet is.
+  const players = _aanwezigeSpelers(dmState, activeGroupId, entities.personages);
   for (const p of players) {
     const pHpData = (dmState.playerHp || {})[p.id] || {};
     const pBaseHp = parseInt(p.stats?.hp) || 10;
