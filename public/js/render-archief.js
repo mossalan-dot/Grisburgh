@@ -2540,6 +2540,7 @@ const _AKTE_DIENSTEN = [
   { key: 'tempel',    val: (m) => m.tempel?.naam    || 'De Tempel' },
   { key: 'magizoo',   val: (m) => m.magizoo?.naam   || 'De Magizoöloog' },
   { key: 'heeren',    val: (m) => m.heeren?.naam    || 'De Heeren van de Nacht' },
+  { key: 'markt',     val: ()  => 'De Markt' },
 ];
 
 window._editAkte = async (ch) => {

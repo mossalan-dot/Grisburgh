@@ -97,6 +97,34 @@ describe('Diensten: de toegangsschakelaar geldt ook op de server', () => {
     });
   }
 
+  // Tweede laag: de groep bepaalt wát een party kent, de akte bepaalt waar ze
+  // zijn. Die tweede werd alleen in de client afgedwongen — het scherm zei
+  // "niet bereikbaar", de route liet alles toe.
+  it('weigert ook als de lopende akte de dienst onbereikbaar maakt', async () => {
+    await zet('beschikbaar');
+    assert.strictEqual((await bestel(speler)).status, 200, 'voorwaarde: open');
+
+    // Een akte die loopt voor deze groep, met de herberg dichtgezet.
+    await req(server, 'PUT', '/api/meta/hoofdstuk/proef', { num: 1, title: 'Proef' }, dm);
+    const bb = await req(server, 'PUT', '/api/meta/akte/proef/bereikbaarheid',
+      { diensten: ['herberg'], entiteiten: [] }, dm);
+    assert.strictEqual(bb.status, 200, 'de akte moet bestaan: ' + JSON.stringify(bb.body));
+    await req(server, 'POST', '/api/akte/actief', { key: 'proef', num: 1, title: 'Proef', groupId: gid }, dm);
+
+    const r = await bestel(speler);
+    assert.strictEqual(r.status, 403, `onbereikbaar hoort 403 te geven, kreeg ${r.status}`);
+    assert.match(String(r.body?.error || ''), /niet heen/i);
+
+    // En de DM komt nog steeds langs de poort. Hij struikelt daarna over iets
+    // anders — hij heeft zelf geen personage om voor te bestellen — dus toetsen
+    // we de reden, niet de code.
+    const d = await req(server, 'POST', '/api/herberg/bestel', { itemId: 'menu_proef' }, dm);
+    assert.doesNotMatch(String(d.body?.error || ''), /niet heen/i,
+      'de DM hoort niet op de bereikbaarheidspoort te stuiten');
+
+    await req(server, 'PUT', '/api/meta/akte/proef/bereikbaarheid', { diensten: [], entiteiten: [] }, dm);
+  });
+
   it('laat de DM altijd door — hij test, en handelt namens de tafel', async () => {
     await zet('verborgen');
     const r = await req(server, 'POST', '/api/herberg/vraag', { entityId: 'bestaat-niet' }, dm);

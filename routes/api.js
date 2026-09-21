@@ -2321,6 +2321,26 @@ router.get('/shops/:shopId/beschikbaar', attachRole, (req, res) => {
 });
 
 // ── Winkel: voorwerp kopen ──
+// Mag deze speler hier handelen? `GET /markt` legde dit al zorgvuldig aan --
+// de party moet het kaartje kénnen én het moet tijdens deze akte bereikbaar
+// zijn -- maar de routes eronder toetsten alleen uitverkocht en de rotatie. Het
+// scherm klopte dus en de route niet: met een winkel-id kon je kopen bij een
+// zaak die je party nooit ontdekt heeft, of terwijl jullie drie dagen varen
+// van de stad zijn. De DM komt er altijd langs; hij handelt namens de tafel.
+function _winkelDicht(req, dmState, shopId) {
+  if (req.role === 'dm') return null;
+  const gid = _playerGroupId(dmState, req.session?.characterId);
+  const g   = getGroup(dmState, gid);
+  if (((g.visibility || {})[shopId] || 'hidden') === 'hidden') {
+    return 'Die winkel kennen jullie niet';
+  }
+  const bereik = _bereikbaarheidVoor(storage.readJSON('meta.json'), dmState, gid || undefined);
+  const dicht  = bereik.allesDicht
+    ? !(bereik.vrijgesteld || []).includes(shopId)
+    : (bereik.entiteitenDicht || []).includes(shopId);
+  return dicht ? 'Daar kan je gezelschap nu niet heen' : null;
+}
+
 router.post('/shops/:shopId/koop', attachRole, (req, res) => {
   const characterId = req.session?.characterId;
   if (!characterId) return res.status(401).json({ error: 'Log in als speler om te kopen' });
@@ -2334,6 +2354,10 @@ router.post('/shops/:shopId/koop', attachRole, (req, res) => {
   const shop = _winkelVan(entities, shopId);
   if (!shop) return res.status(404).json({ error: 'Winkel niet gevonden' });
   shopId = shop.id;   // de stand hangt aan de locatie, niet aan de verkoper
+  {
+    const _dicht = _winkelDicht(req, readDmState(), shopId);
+    if (_dicht) return res.status(403).json({ error: _dicht });
+  }
 
   let voorraadItems = [];
   try { voorraadItems = shop.data?.voorraad ? JSON.parse(shop.data.voorraad) : []; } catch {}
@@ -2722,6 +2746,10 @@ router.post('/shops/:shopId/verkoop', attachRole, (req, res) => {
   const shop = _winkelVan(entities, shopId);
   if (!shop) return res.status(404).json({ error: 'Winkel niet gevonden' });
   shopId = shop.id;   // de stand hangt aan de locatie, niet aan de verkoper
+  {
+    const _dicht = _winkelDicht(req, readDmState(), shopId);
+    if (_dicht) return res.status(403).json({ error: _dicht });
+  }
 
   let winkelConfig = {};
   try { winkelConfig = shop.data?.winkelConfig ? JSON.parse(shop.data.winkelConfig) : {}; } catch {}
@@ -3067,6 +3095,10 @@ router.post('/shops/:shopId/onderhandel', attachRole, (req, res) => {
   const shop = _winkelVan(entities, shopId);
   if (!shop) return res.status(404).json({ error: 'Winkel niet gevonden' });
   shopId = shop.id;   // de stand hangt aan de locatie, niet aan de verkoper
+  {
+    const _dicht = _winkelDicht(req, readDmState(), shopId);
+    if (_dicht) return res.status(403).json({ error: _dicht });
+  }
 
   let winkelConfig = {};
   try { winkelConfig = shop.data?.winkelConfig ? JSON.parse(shop.data.winkelConfig) : {}; } catch {}
@@ -8244,7 +8276,10 @@ router.delete('/help-content/:key', requireDM, (req, res) => {
 // (dienstenToegang), de akte bepaalt waar ze zijn. Daarnaast blijft de
 // handmatige knop "Grisburgh verlaten" bestaan als overschrijving — een akte kan
 // halverwege verhuizen, en dan wil je niet je akte gaan bewerken.
-const _BEREIKBAAR_KEYS = ['herberg', 'tweespalt', 'gock', 'ursula', 'tempel', 'magizoo', 'heeren'];
+// 'markt' hoort hier ook in: de Markt is een plek, en een party die drie dagen
+// varen van de stad is kan er niet heen. Zonder deze sleutel kon de DM hem in
+// de akte-editor niet eens aanvinken.
+const _BEREIKBAAR_KEYS = ['herberg', 'tweespalt', 'gock', 'ursula', 'tempel', 'magizoo', 'heeren', 'markt'];
 
 function _bereikbaarheidVoor(meta, dmState, groepId) {
   // activeAkte is een object {key, num, title} — niet de sleutel zelf.
@@ -10259,12 +10294,15 @@ router.get('/campaigns/meta', attachRole, (req, res) => {
 // ── Madame Ursula / Waarzegger ──
 // Voorspelling over de eerstvolgende akte, gekoppeld aan de vijf zintuigen.
 
+// Géén icon-veld: de client kiest zijn eigen sprite op het label
+// (`_URSULA_ICONS` in app.js). Hier stonden emoji die nergens getekend werden —
+// dode data die de eerstvolgende renderer alsnog in beeld zou brengen.
 const URSULA_ZINTUIGEN = [
-  { key: 'zien',    label: 'Zien',    icon: '👁' },
-  { key: 'horen',   label: 'Horen',   icon: '👂' },
-  { key: 'ruiken',  label: 'Ruiken',  icon: '👃' },
-  { key: 'proeven', label: 'Proeven', icon: '👅' },
-  { key: 'voelen',  label: 'Voelen',  icon: '✋' },
+  { key: 'zien',    label: 'Zien'    },
+  { key: 'horen',   label: 'Horen'   },
+  { key: 'ruiken',  label: 'Ruiken'  },
+  { key: 'proeven', label: 'Proeven' },
+  { key: 'voelen',  label: 'Voelen'  },
 ];
 
 function _ursulaHeeftInhoud(def) {
@@ -10412,6 +10450,13 @@ const _DIENSTEN_NAMEN = ['herberg', 'tweespalt', 'gock', 'ursula', 'tempel', 'he
 // 'beschikbaar' = mag; 'zichtbaar' = je ziet hem maar kunt er niets; 'verborgen'
 // = bestaat niet voor deze party. De DM mag altijd — hij test, en hij handelt
 // namens de tafel.
+// Twee lagen die allebei waar moeten zijn — precies zoals `GET /markt` het al
+// deed en zoals de hulptekst het belooft: de **groep** bepaalt wat een party
+// kent (`dienstenToegang`), de **akte** bepaalt waar ze zijn (`onbereikbaar`).
+// De tweede laag werd alleen in de client afgedwongen: het scherm zei netjes
+// "niet bereikbaar", maar de route eronder liet alles toe. Een tabblad dat al
+// openstond toen de party wegvoer kon dus gewoon eten bestellen en een eed
+// zweren — hetzelfde gat dat we eerder voor de groepsschakelaar dichtten.
 function vereistDienst(dienstNaam) {
   return (req, res, next) => {
     if (req.role === 'dm') return next();
@@ -10420,6 +10465,12 @@ function vereistDienst(dienstNaam) {
     const staat = _getDienstToegang(dmState, dienstNaam, gid || undefined);
     if (staat !== 'beschikbaar') {
       return res.status(403).json({ error: 'Deze dienst is nu niet beschikbaar voor je groep', dienst: dienstNaam, staat });
+    }
+    const bereik = _bereikbaarheidVoor(storage.readJSON('meta.json'), dmState, gid || undefined);
+    if (bereik.allesDicht || (bereik.dienstenDicht || []).includes(dienstNaam)) {
+      return res.status(403).json({
+        error: 'Daar kan je gezelschap nu niet heen', dienst: dienstNaam, staat: 'onbereikbaar',
+      });
     }
     next();
   };
@@ -10852,7 +10903,7 @@ router.put('/gock/opgehaald', attachRole, vereistDienst('gock'), (req, res) => {
   if (!dmState.playerItems[characterId]) dmState.playerItems[characterId] = [];
   const rapport = {
     id: 'gock_' + Date.now(),
-    name: '📁 Rapport — ' + geval.entityName,
+    name: 'Rapport — ' + geval.entityName,
     note: geval.tekst,
     entityId: geval.entityId,
     entityType: geval.entityType,
@@ -10883,7 +10934,7 @@ router.put('/gock/opgehaald', attachRole, vereistDienst('gock'), (req, res) => {
 router.put('/meta/tweespalt', requireDM, (req, res) => {
   const meta = storage.readJSON('meta.json');
   if (!meta.tweespalt) meta.tweespalt = {};
-  ['naam', 'imageId', 'backdropId', 'arena'].forEach(f => { if (req.body[f] !== undefined) meta.tweespalt[f] = req.body[f]; });
+  ['naam', 'imageId', 'backdropId', 'arena', 'geldschieter'].forEach(f => { if (req.body[f] !== undefined) meta.tweespalt[f] = req.body[f]; });
   storage.writeJSON('meta.json', meta);
   req.app.get('io').to(req.session?.campaignId||'main').emit('meta:updated');
   res.json(meta.tweespalt);
@@ -11626,7 +11677,7 @@ router.post('/heeren/job/:id/uitslag', requireDM, (req, res) => {
     if (!dmState.playerItems[job.doorId]) dmState.playerItems[job.doorId] = [];
     dmState.playerItems[job.doorId].push({
       id: 'heeren_boete_' + boete.id,
-      name: '⚖️ Boete — de Luimpoort',
+      name: `Boete — ${_heerenConfig(storage.readJSON('meta.json')).naam}`,
       note: `Openstaande boete van ${_fmtFl(bedragCl)} wegens "${boete.reden}". Te voldoen bij de Luimpoort.`,
       heerenBoeteId: boete.id,
     });
@@ -11811,6 +11862,14 @@ router.get('/facties', attachRole, (req, res) => {
   const meta = storage.readJSON('meta.json');
   const config = _factiesConfig(meta);
   const dmState = readDmState();
+  // De schakelaar *Facties* stond wel in Toegang per groep, maar niets keek
+  // ernaar — niet hier en niet in de client. Een DM die hem op verborgen zette
+  // zag er niets van gebeuren. Alleen 'verborgen' houdt de data tegen;
+  // 'zichtbaar' laat de client het slot tonen, zoals bij de andere diensten.
+  if (req.role !== 'dm'
+      && _getDienstToegang(dmState, 'facties', _playerGroupId(dmState, req.session?.characterId) || undefined) === 'verborgen') {
+    return res.json({ facties: [], titels: [] });
+  }
   const entities = storage.readJSON('entities.json');
   const voorwerpen = entities.voorwerpen || [];
   const g = getGroup(dmState);
@@ -12039,12 +12098,16 @@ router.post('/facties/:id/renown', requireDM, (req, res) => {
     if (!dmState.playerItems) dmState.playerItems = {};
     const entityData = storage.readJSON('entities.json');
     const spelers = (entityData.personages || []).filter(p => p.subtype === 'speler');
-    const groepSpelers = spelers.filter(p => {
-      return Object.values(dmState.groups || {}).some(grp => {
-        return grp === g && (grp.characters || []).includes(p.id);
-      }) || true; // fallback: alle spelers krijgen de boon
-    });
-    const targetIds = groepSpelers.length ? groepSpelers.map(p => p.id) : spelers.map(p => p.id);
+    // Deze filter keek naar `grp.characters`, een veld dat in geen enkele
+    // campagne bestaat en dat verder nergens in de code voorkomt — de toets was
+    // dus altijd onwaar, en het `|| true` erachter maakte de filter vervolgens
+    // altijd waar. Gevolg: steeg party A in rang, dan kreeg élke speler van de
+    // campagne de boon in zijn boedel, ook party B die de factie niet eens
+    // kent. Groepslidmaatschap loopt overal elders via `entity.data.groep`.
+    const gidVanRang = Object.keys(dmState.groups || {}).find(k => dmState.groups[k] === g) || null;
+    const targetIds = spelers
+      .filter(p => !gidVanRang || _playerGroupId(dmState, p.id) === gidVanRang)
+      .map(p => p.id);
     targetIds.forEach(charId => {
       if (!dmState.playerItems[charId]) dmState.playerItems[charId] = [];
       nieuweItems.forEach(item => dmState.playerItems[charId].push({ ...item, id: item.id + '_' + charId }));
@@ -12137,6 +12200,11 @@ router.get('/missies', attachRole, (req, res) => {
   }
   const charId = req.session.characterId;
   const gid    = charId ? _playerGroupId(dmState, charId) : null;
+  // Een missie komt altijd van een factie, dus staat de factiedienst dicht,
+  // dan is er ook niets te halen op het prikbord.
+  if (_getDienstToegang(dmState, 'facties', gid || undefined) === 'verborgen') {
+    return res.json({ missies: [] });
+  }
   const renowns = gid ? (getGroup(dmState, gid).factieRenown || {}) : {};
   const zichtbaar = new Set(Object.keys(getGroup(dmState, gid)?.factieZichtbaar || {})
     .filter(id => getGroup(dmState, gid)?.factieZichtbaar[id]));
@@ -12571,6 +12639,22 @@ router.post('/herberg/bestel', attachRole, vereistDienst('herberg'), (req, res) 
 // geen som. Aan te passen per lening (`maxFactor`).
 const TS_RENTE_PER_RUST = 30;
 const TS_MAX_FACTOR     = 5;
+// De geldschieter had geen plek in de configuratie: zijn naam, zijn portret en
+// zijn leengrens stonden hardgecodeerd in de server én in de client. Een tweede
+// campagne die de Tweespalt aanzette kreeg de woekeraar van Grisburgh erbij.
+// De standaardwaarden zijn precies wat er stond, dus er verandert niets aan
+// een campagne die dit veld nooit invult.
+const TS_LEEN_MAX_CL_STANDAARD = 10000;   // 100 fl — stond alleen in de client
+function _tsGeldschieter(meta) {
+  const c = (meta.tweespalt || {}).geldschieter || {};
+  return {
+    naam:     c.naam || 'de geldschieter',
+    entityId: c.entityId || null,
+    maxLeenCl: Number.isFinite(parseInt(c.maxLeenCl)) ? parseInt(c.maxLeenCl) : TS_LEEN_MAX_CL_STANDAARD,
+    rentePerRust: TS_RENTE_PER_RUST,
+    maxFactor: TS_MAX_FACTOR,
+  };
+}
 
 // Wat er nú openstaat. Geeft ook terug hoeveel rustbeurten er geteld zijn, want
 // dat is wat je aan tafel wil kunnen navertellen ("drie nachten verder").
@@ -12727,7 +12811,10 @@ router.get('/tweespalt', attachRole, (req, res) => {
   });
 
   const tsMeta = storage.readJSON('meta.json').tweespalt || {};
-  const config = { naam: tsMeta.naam || 'De Tweespalt', imageId: tsMeta.imageId || null, backdropId: tsMeta.backdropId || null };
+  const config = { naam: tsMeta.naam || 'De Tweespalt', imageId: tsMeta.imageId || null, backdropId: tsMeta.backdropId || null,
+                   // Naam, portret en leengrens van de geldschieter komen hiervandaan
+                   // in plaats van uit een constante in de client.
+                   geldschieter: _tsGeldschieter({ tweespalt: tsMeta }) };
 
   // Arena — partijen (DM-config) + inschrijvingen (eigen voor speler, alle voor DM)
   const arenaAll = Array.isArray(tsMeta.arena) ? tsMeta.arena : [];
@@ -12991,9 +13078,17 @@ router.post('/tweespalt/leen', attachRole, vereistDienst('tweespalt'), (req, res
   const bedragCl = _tsCl(bedrag);
   if (bedragCl <= 0) return res.status(400).json({ error: 'Bedrag moet groter zijn dan 0' });
 
+  // Het plafond stond alleen in de client ("leent maximaal 100 fl"), dus een
+  // verzoek dat daarbuiten omging kreeg elk bedrag mee.
+  const _meta = storage.readJSON('meta.json');
+  const gs = _tsGeldschieter(_meta);
+  if (bedragCl > gs.maxLeenCl) {
+    return res.status(400).json({ error: `Zoveel leent ${gs.naam} niet — hoogstens ${_tsFormatCl(gs.maxLeenCl)}.` });
+  }
+
   const dmState = readDmState();
   const ts = _tsState(dmState);
-  if (ts.leningen[characterId]) return res.status(400).json({ error: 'Je hebt al een openstaande lening bij Taevin' });
+  if (ts.leningen[characterId]) return res.status(400).json({ error: `Je hebt al een openstaande lening bij ${gs.naam}` });
 
   const _g = getGroup(dmState, _playerGroupId(dmState, characterId));
   const lening = {
@@ -13008,8 +13103,8 @@ router.post('/tweespalt/leen', attachRole, vereistDienst('tweespalt'), (req, res
   _deductCurrency(dmState, characterId, -bedragCl);
 
   const bedragFormatted = _tsFormatCl(bedragCl);
-  const iouNaam = '📜 Schuldbewijs — Taevin Woekeling';
-  const iouNote = `Bedrag: ${bedragFormatted}. Woekerrente: ${TS_RENTE_PER_RUST}% per nacht, tot ${TS_MAX_FACTOR}× de hoofdsom. "Ik weet je te vinden, vriend."`;
+  const iouNaam = `Schuldbewijs — ${gs.naam}`;
+  const iouNote = `Bedrag: ${bedragFormatted}. Woekerrente: ${TS_RENTE_PER_RUST}% per nacht, tot ${TS_MAX_FACTOR}× de hoofdsom.`;
 
   if (!dmState.playerItems) dmState.playerItems = {};
   if (!dmState.playerItems[characterId]) dmState.playerItems[characterId] = [];

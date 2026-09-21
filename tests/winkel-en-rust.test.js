@@ -65,6 +65,10 @@ describe('Winkel en rust', () => {
         { naam: 'Fles Vuurwater', prijs: '4 fl', entityId: fles },
       ]) },
     }, dm)).body;
+    // Een speler kan alleen handelen bij een winkel die zijn party kent — de
+    // Markt toont hem anders niet eens. Sinds 21 sep toetst de koop-route dat
+    // ook echt, dus de proefwinkel moet zichtbaar staan.
+    await req(server, 'PUT', `/api/entities/locaties/${winkel.id}/visibility`, { target: 'visible' }, dm);
   });
 
   after(async () => {
@@ -77,6 +81,25 @@ describe('Winkel en rust', () => {
     const b = (await req(server, 'GET', `/api/items/${fles}/bezit`, null, dm)).body;
     return b.groepen?.[0]?.rijen?.find(r => r.characterId === aria) || null;
   };
+
+  // De Markt toont alleen winkels die de party kent, maar de koop-route toetste
+  // dat niet: met een winkel-id kon je handelen bij een zaak die je nooit
+  // ontdekt hebt. In Grisburgh staat per party precies één van de negen
+  // winkels op verborgen — dat hoort dus ook echt dicht te zitten.
+  it('laat een speler niet kopen bij een winkel die zijn party niet kent', async () => {
+    await req(server, 'PUT', `/api/entities/locaties/${winkel.id}/visibility`, { target: 'hidden' }, dm);
+    const r = await req(server, 'POST', `/api/shops/${winkel.id}/koop`,
+      { itemNaam: 'Fles Vuurwater', aantal: 1 }, ariaC);
+    assert.strictEqual(r.status, 403, JSON.stringify(r.body));
+    assert.match(String(r.body?.error || ''), /kennen jullie niet/i);
+
+    // De DM handelt namens de tafel en komt er wel langs.
+    const d = await req(server, 'POST', `/api/shops/${winkel.id}/koop`,
+      { itemNaam: 'Fles Vuurwater', aantal: 1 }, dm);
+    assert.notStrictEqual(d.status, 403, 'de DM hoort hier niet op te stuiten');
+
+    await req(server, 'PUT', `/api/entities/locaties/${winkel.id}/visibility`, { target: 'visible' }, dm);
+  });
 
   it('koopt het aantal dat je betaalt bij een stapelbaar voorwerp', async () => {
     await req(server, 'PATCH', `/api/player-currency/${aria}`, { fl: 20, kn: 0, cl: 0 }, dm);

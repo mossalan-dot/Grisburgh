@@ -1,6 +1,6 @@
 import { api, campagneUitUrl, zetCampagne } from './api.js?v=290';
 import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, renderDocumenten, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=310";
-import { initArchief, renderLogboek, openLogboekEditor } from "./render-archief.js?v=128";
+import { initArchief, renderLogboek, openLogboekEditor } from "./render-archief.js?v=129";
 import { renderKaart, queueFlyTo, verversPins, nieuweKaart } from './render-kaart.js?v=31';
 import { renderDungeon } from './render-dungeon.js?v=56';
 import { renderRelatiemap } from './render-relatiemap.js?v=27';
@@ -1168,7 +1168,7 @@ function applyRole() {
   document.getElementById('diensten-herberg-item')?.classList.toggle('hidden', !state.meta?.herberg);
 
   // Diensten-knop active-state als een diensten-sectie actief is
-  const DIENSTEN_SECTIONS = ['herberg', 'tweespalt', 'gock', 'ursula', 'tempel', 'heeren', 'facties', 'magizoo'];
+  const DIENSTEN_SECTIONS = ['markt', 'herberg', 'tweespalt', 'gock', 'ursula', 'tempel', 'heeren', 'facties', 'magizoo'];
   const dienstenBtn = document.getElementById('diensten-nav-btn');
   if (dienstenBtn) dienstenBtn.classList.toggle('active', DIENSTEN_SECTIONS.includes(state.activeSection));
 
@@ -2925,7 +2925,13 @@ async function refreshSection(section) {
       const _el = document.getElementById('section-heeren'); if (_el) _el.innerHTML = '';
     } else await renderHeeren();
   } else if (section === 'facties') {
-    await renderFacties();
+    // Facties stond wel in Toegang per groep maar keek er als enige dienst niet
+    // naar — de schakelaar deed dus niets.
+    if (!window.app.isDM() && _getDienstToegang('facties') === 'zichtbaar') {
+      const _el = document.getElementById('section-facties'); if (_el) _dienstNietBeschikbaar(_el, 'Facties & Aanzien');
+    } else if (!window.app.isDM() && _getDienstToegang('facties') === 'verborgen') {
+      const _el = document.getElementById('section-facties'); if (_el) _el.innerHTML = '';
+    } else await renderFacties();
   } else if (section === 'mijn-karakter') {
     await renderMijnKarakter();
     window._pendingKarakterRefresh = false; // verwerk eventuele pending refresh
@@ -11529,12 +11535,16 @@ function _updateDienstenMenu() {
     else if (staat === 'verborgen') btn.classList.add('hidden');
     btn.classList.toggle('dienst-vergrendeld', staat === 'zichtbaar');
   }
-  // Facties: zichtbaar zodra er minstens één revealed factie is
-  api.getFacties().then(d => {
-    const heeftRevealed = (d?.facties || []).some(f => f.zichtbaar);
-    const factiesBtn = document.getElementById('diensten-facties-item');
-    if (factiesBtn) factiesBtn.classList.toggle('hidden', !heeftRevealed);
-  }).catch(() => {});
+  // Facties: zichtbaar zodra er minstens één onthulde factie is — maar de
+  // schakelaar van de DM wint. Deze callback landt ná de lus hierboven en
+  // zette de knop dus weer aan bij een dienst die op verborgen stond.
+  if (_getDienstToegang('facties') !== 'verborgen') {
+    api.getFacties().then(d => {
+      const heeftRevealed = (d?.facties || []).some(f => f.zichtbaar);
+      const factiesBtn = document.getElementById('diensten-facties-item');
+      if (factiesBtn) factiesBtn.classList.toggle('hidden', !heeftRevealed);
+    }).catch(() => {});
+  }
 }
 
 // DM-inspectie: toon alle diensten-items ongeacht groep-toegang, zodat de DM
@@ -11605,6 +11615,13 @@ let _marktWinkel = null; // welke winkel je binnen bent ({ w, e, html, sfeerTeks
 async function renderMarkt() {
   const el = document.getElementById('section-markt');
   if (!el) return;
+  // De andere zeven diensten zeggen het als de party er niet heen kan; de Markt
+  // toonde als enige een leeg overzicht zonder uitleg. De server filtert al op
+  // bereikbaarheid, dus je kreeg wél het juiste (niets) met de verkeerde reden.
+  if (window._dienstDicht('markt') || (window.app?.state?.meta?.bereikbaarheid?.allesDicht && !window.app?.isDM?.())) {
+    _dienstNietBereikbaar(el, 'De Markt');
+    return;
+  }
   _dienstLaden(el);
   try { _marktData = await api.markt(); }
   catch (e) { _dienstFout(el, e); return; }
@@ -13004,6 +13021,16 @@ window._heerenAdvocaat = async (boeteId) => {
 
 let _tsActiveTab = 'wedden';   // 'wedden' | 'arena' — onthouden over re-renders
 
+// De geldschieter komt uit `meta.tweespalt.geldschieter` en wordt bij elke
+// render van de Tweespalt bijgewerkt; naam, portret en leengrens stonden
+// hiervoor als constante in dit bestand. De terugval is precies wat er stond,
+// dus een campagne die het veld niet invult merkt er niets van.
+let _tsGeldschieterCache = null;
+function _tsGeldschieter() {
+  return _tsGeldschieterCache || { naam: 'de geldschieter', entityId: null, maxLeenCl: 10000, rentePerRust: 30, maxFactor: 5 };
+}
+function _tsGeldschieterNaam() { return _tsGeldschieter().naam; }
+
 async function renderTweespalt() {
   const el = document.getElementById('section-tweespalt');
   if (!el) return;
@@ -13017,7 +13044,7 @@ async function renderTweespalt() {
   _dienstLaden(el);
 
   let data;
-  try { data = await api.getTweespalt(); }
+  try { data = await api.getTweespalt(); if (data?.config?.geldschieter) _tsGeldschieterCache = data.config.geldschieter; }
   catch (e) {
     _dienstFout(el, e);
     return;
@@ -13111,10 +13138,10 @@ async function renderTweespalt() {
 
   const leningBanner = lening
     ? `<div class="ts-lening-banner">
-        ${icon('scroll-text')} Openstaande lening bij Taevin Woekeling — oorspronkelijk ${formatCl(lening.bedragCl)},
+        ${icon('scroll-text')} Openstaande lening bij ${esc(_tsGeldschieterNaam())} — oorspronkelijk ${formatCl(lening.bedragCl)},
         huidig verschuldigd: <strong>${formatCl(lening.huidigVerschuldigdCl)}</strong>
         <span class="ts-lening-sub">${lening.afgetopt
-          ? 'Taevin is gestopt met tellen — hij komt het halen.'
+          ? `${esc(_tsGeldschieterNaam())} is gestopt met tellen — hij komt het halen.`
           : `${lening.rentePerRust ?? 30}% rente per nacht · ${lening.rusten ?? 0} ${(lening.rusten === 1) ? 'nacht' : 'nachten'} verstreken`}</span>
        </div>` : '';
 
@@ -13242,11 +13269,15 @@ window._tsWedden = async (eventId, optieId) => {
 
   if (bedragCl > heeftCl) {
     const tekortCl = bedragCl - heeftCl;
-    if (tekortCl > 10000) { // meer dan 100 fl tekort — Taevin leent niet zoveel
-      _tsToast('Onvoldoende saldo. Taevin leent maximaal 100 fl.');
+    // Het plafond komt van de server (meta.tweespalt.geldschieter.maxLeenCl);
+    // hier stond een kale 10000 die nergens anders bekend was — en de route
+    // eronder kende hem helemaal niet.
+    const _max = _tsGeldschieter().maxLeenCl;
+    if (tekortCl > _max) {
+      _tsToast(`Onvoldoende saldo. ${_tsGeldschieterNaam()} leent hoogstens ${formatCl(_max)}.`);
       return;
     }
-    _tsTaevinPrompt(eventId, optieId, tekortCl);
+    _tsLeenPrompt(eventId, optieId, tekortCl);
     return;
   }
 
@@ -13259,24 +13290,26 @@ window._tsWedden = async (eventId, optieId) => {
   }
 };
 
-function _tsTaevinPrompt(eventId, optieId, tekortCl) {
+function _tsLeenPrompt(eventId, optieId, tekortCl) {
   const fl = Math.floor(tekortCl / 100), kn = Math.ceil((tekortCl % 100) / 10);
   const leenBedrag = { fl, kn: kn + 1, cl: 0 };
   const leenCl = leenBedrag.fl * 100 + leenBedrag.kn * 10;
   const leenTekst = [leenBedrag.fl && `${leenBedrag.fl} fl`, leenBedrag.kn && `${leenBedrag.kn} kn`].filter(Boolean).join(' en ');
 
-  const taevinPortret = api.thumbUrl('e_1773523435098_p3vxjp');
+  const gs = _tsGeldschieter();
+  const gsNaam = _tsGeldschieterNaam();
+  const taevinPortret = gs.entityId ? api.thumbUrl(gs.entityId) : '';
 
   const bubble = document.createElement('div');
   bubble.className = 'ts-taevin-bubble';
   bubble.innerHTML = `
     <div class="ts-taevin-hoofd">
-      <img src="${taevinPortret}" class="ts-taevin-portret" alt="Taevin Woekeling">
+      ${taevinPortret ? `<img src="${taevinPortret}" class="ts-taevin-portret" alt="${esc(gsNaam)}">` : ''}
       <div class="ts-taevin-bericht">
         <p class="ts-taevin-tekst">
           <em>Psst… beetje krap bij kas, vriend? Lenen kan altijd, uiteraard tegen een heel vriendschappelijk prijsje.</em>
         </p>
-        <p class="ts-taevin-sub">Taevin kan je <strong>${leenTekst}</strong> lenen — 30% rente per dag.</p>
+        <p class="ts-taevin-sub">${esc(gsNaam)} kan je <strong>${leenTekst}</strong> lenen — ${gs.rentePerRust}% rente per nacht dat de party rust.</p>
       </div>
     </div>
     <div class="ts-taevin-knoppen">
@@ -13296,7 +13329,7 @@ function _tsTaevinPrompt(eventId, optieId, tekortCl) {
       const parsed2 = _tsParseInzet(inputEl2?.value) || { fl: 0, kn: 0, cl: 0 };
       await api.weddenTweespalt(eventId, { optieId, bedrag: { fl: parsed2.fl, kn: parsed2.kn, cl: parsed2.cl } });
       await renderTweespalt();
-      _tsToast(`${icon('scroll-text')} Geleend van Taevin. Schuldbewijs in je knapzak.`);
+      _tsToast(`${icon('scroll-text')} Geleend van ${gsNaam}. Schuldbewijs in je knapzak.`);
     } catch (err) {
       _tsToast(err.message || 'Fout.');
     }
@@ -14096,7 +14129,7 @@ const HELP_CONFIG = {
         },
         {
           titel: 'Leningen',
-          tekst: 'Als je goud tekortkomt kun je een lening afsluiten bij Taevin. De rente loopt per nacht dat de party rust, niet per dag op de kalender — en hij telt tot vijf keer de hoofdsom. Daarna stopt hij met tellen en komt hij het halen.',
+          tekst: `Als je goud tekortkomt kun je een lening afsluiten bij ${_tsGeldschieterNaam()}. De rente loopt per nacht dat de party rust, niet per dag op de kalender — en hij telt tot vijf keer de hoofdsom. Daarna stopt hij met tellen en komt hij het halen.`,
           afbeelding: null,
         },
       ],

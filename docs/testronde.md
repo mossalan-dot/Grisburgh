@@ -597,28 +597,28 @@ fout-uitvoert.
 **De schakelaar en de akte**
 
 - [ ] **Verborgen betekent dicht, ook zonder scherm** (DM+speler) — zet een dienst op *verborgen* en laat de speler zijn openstaande tabblad gebruiken: elke schrijfactie komt terug met "Deze dienst is nu niet beschikbaar voor je groep" (403). Gecontroleerd voor herberg, Tweespalt, Gock, Ursula, tempel en magizoöloog — veertien routes.
-- [ ] **De Heeren doen dat niet** (DM+speler) — *nu nog stuk:* `heeren` staat wél in de lijst van de server, maar de drie spelersroutes (klus aannemen, boete betalen, advocaat inschakelen) hebben geen slot; met de dienst op *verborgen* komt het verzoek gewoon bij de afhandeling aan.
-- [ ] **Facties: de schakelaar doet niets** (DM) — *nu nog stuk:* Facties staat in *Toegang per groep*, maar niets kijkt ernaar — niet in de client en niet op de server. De knop in het Diensten-menu wordt bovendien meteen daarna weer zichtbaar gemaakt zodra er één onthulde factie is.
-- [ ] **De akte sluit alleen het scherm, niet de route** (DM+speler) — *nu nog stuk:* zet een dienst in de akte-editor op onbereikbaar. Het scherm zegt netjes dat de party er niet is, maar de route eronder laat alles toe: de bereikbaarheid wordt alleen in `GET /meta` (voor de client) en in `GET /markt` gebruikt. Dezelfde soort gat als bij de groepsschakelaar vóór die op de server kwam.
-- [ ] **Kopen bij een winkel die je niet kent** (speler) — *nu nog stuk:* `POST /shops/:id/koop` toetst uitverkocht en de rotatie, maar niet of de party de winkel kent of hem deze akte kan bereiken. Het Markt-overzicht erboven doet dat wél, dus het scherm klopt en de route eronder niet.
+- [ ] **De Heeren doen dat niet** (DM+speler) — blijft open: hun drie spelersroutes hebben geen slot. Wordt opgelost doordat de Heeren een gewone factie worden, zie `docs/voorstel-facties.md`.
+- [ ] **Facties: de schakelaar werkt** (DM) — zet Facties op *verborgen*: de knop in het Diensten-menu blijft weg (hij kwam terug zodra er één onthulde factie was), `GET /facties` geeft niets meer terug en het prikbord is leeg, want een missie komt altijd van een factie. Op *zichtbaar* zie je het slot, zoals bij de andere diensten.
+- [ ] **De akte sluit nu ook de route** (DM+speler) — zet een dienst in de akte-editor op onbereikbaar terwijl een speler zijn tabblad open heeft: zijn verzoek komt terug met "Daar kan je gezelschap nu niet heen" (403). Geldt voor alle veertien routes, en *De Markt* staat nu ook in dat lijstje — die kon je er eerst niet eens aanvinken.
+- [ ] **Kopen bij een winkel die je niet kent** (speler) — kan niet meer: kopen, verkopen en onderhandelen toetsen nu of de party het winkelkaartje kent én of het deze akte bereikbaar is. (In Grisburgh staat per party één van de negen winkels op verborgen; die hoort dicht te zitten.) De DM komt er langs.
 
 **Geld**
 
 - [ ] **Alles gaat via de beurs die op het scherm staat** (speler) — zet de gedeelde beurs aan en doe in elke dienst één betaling (bestellen, inzetten, zegen, voorspelling, onderzoek, adoptie, lening): het bedrag gaat telkens van de partybeurs af, nooit uit een eigen zak die niemand ziet.
 - [ ] **Inzet terug bij een geschrapt event** (DM) — verwijder een openstaand Tweespalt-event waar op ingezet is: iedereen krijgt zijn inzet terug. Een afgerond event is al uitbetaald en verandert niet meer.
 - [ ] **Inzetten kan niet negatief** (speler) — een inzet van 0 of minder wordt geweigerd, en je kunt niet twee keer op hetzelfde event inzetten.
-- [ ] **De lening heeft geen plafond op de server** (speler) — *nu nog stuk:* het scherm weigert boven 100 fl ("Taevin leent maximaal 100 fl"), maar die grens staat alleen in de client; de route neemt elk bedrag aan. De rente is wél begrensd (vijf keer de hoofdsom).
-- [ ] **De rente in de tekst klopt** (speler) — *nu nog stuk:* het leenvenster zegt "30% rente per dag", terwijl de rente sinds de herziening per lange rust loopt. De hulptekst zegt het wél goed, dus twee schermen spreken elkaar tegen.
+- [ ] **De lening heeft een plafond** (speler) — vraag meer dan het maximum: de route weigert het nu ook zelf. De grens staat in `meta.tweespalt.geldschieter.maxLeenCl` (standaard 100 fl) en niet langer als getal in de client.
+- [ ] **De rente in de tekst klopt** (speler) — het leenvenster zegt nu "per nacht dat de party rust", net als de hulptekst; er stond "30% rente per dag".
 
 **Wat er in je knapzak belandt**
 
-- [ ] **Geen emoji in namen** (speler) — vraag een rapport bij de Gock, sluit een lening bij de Tweespalt en laat de DM een boete opleggen: de drie regels heten *Rapport — …*, *Schuldbewijs — …* en *Boete — …* zonder plaatje ervoor. *Nu nog stuk:* de server zet er 📁, 📜 en ⚖️ voor. Op het printbare blad vallen ze weg (dat blad haalt emoji eruit), in de Boedel niet.
-- [ ] **Geen eigennaam uit één campagne** (ALL) — *nu nog stuk:* "Taevin Woekeling" en "de Luimpoort" staan in de gedeelde code (server én client), niet in `meta`. Een tweede campagne die de Tweespalt aanzet krijgt de geldschieter van Grisburgh cadeau.
+- [ ] **Geen emoji in namen** (speler) — vraag een rapport bij de Gock, sluit een lening bij de Tweespalt en laat de DM een boete opleggen: de drie regels heten *Rapport — …*, *Schuldbewijs — …* en *Boete — …*, zonder plaatje ervoor. (De vijf zintuigen van Ursula droegen ook emoji; die werden nergens getekend en zijn eruit.)
+- [ ] **Geen eigennaam uit één campagne** (ALL) — de geldschieter komt uit `meta.tweespalt.geldschieter` (naam, portret, leengrens); Grisburgh heeft Taevin Woekeling daar staan. Zet in een tweede campagne een eigen naam: banner, leenvenster, schuldbewijs en hulptekst volgen. Zonder invulling staat er "de geldschieter" en geen portret.
 
 **Kleine dingen in beeld**
 
-- [ ] **Diensten-knop licht op bij de Markt** (ALL) — *nu nog stuk:* de Markt staat niet in `DIENSTEN_SECTIONS`, dus de knop *Diensten* in de balk blijft dof terwijl je in de Markt staat.
-- [ ] **De Markt zegt het als de party er niet bij kan** (speler) — *nu nog stuk:* de andere zeven diensten tonen "niet bereikbaar"; de Markt toont een leeg overzicht zonder uitleg.
+- [ ] **Diensten-knop licht op bij de Markt** (ALL) — sta je in de Markt, dan staat *Diensten* in de balk aan.
+- [ ] **De Markt zegt het als de party er niet bij kan** (speler) — zet de Markt in de akte onbereikbaar, of verlaat de stad: je krijgt dezelfde "niet bereikbaar"-melding als bij de andere diensten in plaats van een leeg overzicht.
 - [ ] **De Heeren zijn te bereiken** (ALL) — *nu nog stuk:* de sectie bestaat (`#section-heeren`), heeft een eigen DM-tab, routes, rangen, klussen en boetes, maar staat in geen enkel menu en er is nergens een knop die ernaartoe schakelt. Ook niet voor de DM.
 - [ ] **Elke dienst kan uit als module** (BEHEER) — *nu nog stuk voor de Heeren:* die staat niet in `lib/modules.js` en is dus per campagne niet uit te zetten, terwijl de andere acht dat wel zijn.
 
@@ -893,3 +893,5 @@ Per bevinding: waar, wat, en of het opgelost is. Nieuwe regels onderaan.
 - Druk de knop twee keer in, of gebruik hem bij iemand die al XP verdiend had: er gaat niets af — hij verlaagt nooit. De knop staat alleen in beeld als het systeem op XP staat.
 - **Blad afdrukken** met exhaustion 3: de zes vakjes staan met drie gevuld op het blad, met *−3 op elke d20 test* erachter. Speelt de campagne op XP, dan staat achter klasse en background ook `23.000 / 34.000 XP`; op mijlpaal staat daar niets.
 - **Subklasse onder zijn eigen klasse** (SP) — een personage met één klasse heeft *Class* met daaronder *Subclass*. Zet multiclass aan: dan staat er *Class · Subclass Wizard · Multiclass · Subclass Rogue* — elke subklasse direct onder de klasse waar hij bij hoort, en allebei met de naam van die klasse erbij. In een Wands & Wizards-campagne heet de eerste nog steeds *School of Magic*.
+
+- [ ] **Een boon blijft bij de party die hem verdiende** (DM) — laat party A in rang stijgen bij een factie met een boon: alleen de spelers van party A krijgen hem in hun boedel. Party B, die de factie misschien niet eens kent, krijgt niets. (Hij ging naar élke speler van de campagne.)
