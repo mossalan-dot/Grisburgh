@@ -1041,13 +1041,24 @@ let _presets = null;
 // Zelfde idee als `_statblokPresets`: één keer ophalen, dan invullen. De bron
 // staat al in **onze** veldnamen (zie scripts/srd-2024/srd-items.js), dus hier
 // hoeft niets vertaald te worden — alleen in het formulier gezet.
+// Twee bronnen, één kiezer: de gewone uitrusting (333) en de magische
+// voorwerpen (757). Ze staan er als bron om uit te putten en níét als kaartjes
+// — een magisch voorwerp hoort pas in het archief als de DM het ergens heeft
+// neergelegd. Zevenhonderd voorgekookte kaartjes maken het archief onbruikbaar;
+// dit werkt zoals het statblok-preset bij een personage.
 let _srdItems = null;
 window._srdItemLijst = async () => {
   if (!_srdItems) {
-    try {
-      const d = await fetch('/api/bron/srd-items').then(r => r.json());
-      _srdItems = Array.isArray(d?.items) ? d.items : [];
-    } catch { _srdItems = []; }
+    const haal = async (naam) => {
+      try {
+        const d = await fetch('/api/bron/' + naam).then(r => r.json());
+        return Array.isArray(d?.items) ? d.items : [];
+      } catch { return []; }
+    };
+    const [gewoon, magisch] = await Promise.all([haal('srd-items'), haal('srd-magic-items')]);
+    // Gewone uitrusting eerst: dat is waar je een winkel mee vult. De magische
+    // vind je door te typen, en dan zegt de rariteit meteen wat je krijgt.
+    _srdItems = [...gewoon, ...magisch];
   }
   return _srdItems;
 };
@@ -1056,17 +1067,20 @@ window._srdItemDatalist = async () => {
   const dl = document.getElementById('srd-item-dl');
   if (!dl || dl.dataset.gevuld) return;
   const lijst = await window._srdItemLijst();
-  dl.innerHTML = lijst.map(i =>
-    `<option value="${esc(i.name)}">${esc(i.itemType)}${i.prijs ? ' \u00b7 ' + esc(i.prijs) : ''}</option>`
-  ).join('');
+  dl.innerHTML = lijst.map(i => {
+    const bij = i.magisch
+      ? [i.rariteit, i.attunement ? 'attunement' : ''].filter(Boolean).join(' \u00b7 ')
+      : (i.prijs || '');
+    return `<option value="${esc(i.name)}">${esc(i.itemType)}${bij ? ' \u00b7 ' + esc(bij) : ''}</option>`;
+  }).join('');
   dl.dataset.gevuld = '1';
 };
 
 // Welk bronveld in welk formulierveld. De namen zijn met opzet gelijk; dit is
 // de enige plek waar ze elkaar raken.
-const _SRD_ITEM_VELD = ['itemType', 'prijs', 'desc', 'damage', 'weaponProperties',
+const _SRD_ITEM_VELD = ['itemType', 'rariteit', 'prijs', 'desc', 'damage', 'weaponProperties',
   'armorType', 'armorBaseAC', 'armorDexCap', 'stealthDisadvantage',
-  'strengthRequirement', 'gebruik'];
+  'strengthRequirement', 'attunement', 'attunementEis', 'gebruik'];
 
 window._srdItemVullen = async (invoer) => {
   const naam = String(invoer?.value || '').trim();
@@ -6877,8 +6891,8 @@ window._openEditor = async (tab, editId) => {
     body += `
       <datalist id="srd-item-dl"></datalist>
       <div class="preset-rij">
-        <label class="preset-label">${icon('package')} Standaard voorwerp</label>
-        <input class="preset-zoek" list="srd-item-dl" placeholder="Battleaxe, Plate Armor, Rope…"
+        <label class="preset-label">${icon('package')} Uit de SRD halen</label>
+        <input class="preset-zoek" list="srd-item-dl" placeholder="Battleaxe, Bag of Holding, Plate Armor…"
           onfocus="window._srdItemDatalist()"
           onkeydown="if(event.key==='Enter'){event.preventDefault();window._srdItemVullen(this);}">
         <button type="button" class="dm-btn dm-btn-ghost dm-btn-sm"

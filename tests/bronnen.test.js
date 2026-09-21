@@ -60,6 +60,33 @@ describe('Bronteksten blijven binnen de campagne die ze mag zien', () => {
     await new Promise(r => server.close(r));
     fs.rmSync(DATA_DIR, { recursive: true, force: true });
   });
+  it('levert de magische voorwerpen als bron, niet als kaartjes', async () => {
+    const r = await req(server, 'GET', '/api/bron/srd-magic-items', null, beheerder);
+    assert.strictEqual(r.status, 200, JSON.stringify(r.body).slice(0, 200));
+    const items = r.body?.items || [];
+    assert.ok(items.length > 700, 'ruim zevenhonderd, kreeg ' + items.length);
+
+    const tas = items.find(i => i.name === 'Bag of Holding');
+    assert.ok(tas, 'de Bag of Holding hoort erin te staan');
+    assert.strictEqual(tas.itemType, 'Wondrous item');
+    assert.strictEqual(tas.rariteit, 'Uncommon');
+    assert.strictEqual(tas.magisch, true, 'zo houdt de kiezer ze uit elkaar');
+
+    // Attunement komt als vinkje mee, en de eis zonder de aanhef.
+    const mantel = items.find(i => i.name === 'Cloak of Elvenkind');
+    assert.strictEqual(mantel.attunement, true);
+    const metEis = items.find(i => i.attunementEis);
+    assert.ok(metEis, 'er hoort er minstens één met een eis te zijn');
+    assert.ok(!/^requires attunement/i.test(metEis.attunementEis),
+      'de aanhef hoort eraf: ' + metEis.attunementEis);
+
+    // Alleen SRD 5.2 — het filter van Open5e doet op dit endpoint niets, dus
+    // dat zeven we zelf. Glipt er een ander document mee, dan staat er tekst
+    // in die we niet mogen meeleveren.
+    assert.ok(items.every(i => String(i.key || '').startsWith('srd-2024')),
+      'alles hoort uit srd-2024 te komen');
+  });
+
   it('levert de standaard-uitrusting compleet aan elke campagne', async () => {
     // Zelfde afweging als bij de statblokken: SRD 5.2 staat onder CC BY 4.0,
     // dus die gaat volledig mee — ook naar een campagne zonder bronteksten.
