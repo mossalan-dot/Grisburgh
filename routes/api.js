@@ -9605,6 +9605,10 @@ router.get('/combat', attachRole, (req, res) => {
   res.json(enriched);
 });
 
+// De gevechtslog is geen wegwerptekst: bij het afsluiten belandt hij als
+// sessieverslag in het Logboek, en dat wordt gerenderd. Dus geen emoji in deze
+// regels — dezelfde afspraak als overal in de app. De client mag er iconen bij
+// tekenen; de opgeslagen tekst blijft leesbaar zonder.
 function _combatLog(combat, text) {
   if (!Array.isArray(combat.log)) combat.log = [];
   combat.log.push({ round: combat.round || 1, text });
@@ -9648,8 +9652,8 @@ router.post('/combat/start', requireDM, (req, res) => {
   const existing = storage.readJSON('combat.json');
   const combatants = [...(existing.combatants || [])].sort((a, b) => b.initiative - a.initiative);
   const combat = { active: true, round: 1, currentTurn: 0, combatants, encounterId: existing.encounterId || null, backdropId: existing.backdropId || null, canvasPreset: existing.canvasPreset || null, canvasColors: existing.canvasColors || null, log: [] };
-  _combatLog(combat, '⚔️ Gevecht begonnen');
-  if (combatants[0]) _combatLog(combat, `▶ Beurt van ${combatants[0].name}`);
+  _combatLog(combat, 'Gevecht begonnen');
+  if (combatants[0]) _combatLog(combat, `Beurt van ${combatants[0].name}`);
   storage.writeJSON('combat.json', combat);
 
   // #3: Bestiarium-auto-onthulling op 'naam' voor de groepen van de speler-
@@ -9731,12 +9735,12 @@ router.put('/combat', requireDM, (req, res) => {
   if (!Array.isArray(updated.log)) updated.log = combat.log || [];
   // Log nieuwe ronde
   if (req.body.round !== undefined && req.body.round > (combat.round || 1)) {
-    _combatLog(updated, `🔔 Ronde ${req.body.round} begint`);
+    _combatLog(updated, `Ronde ${req.body.round} begint`);
   }
   // Log beurtwissel
   if (req.body.currentTurn !== undefined && req.body.currentTurn !== combat.currentTurn) {
     const next = updated.combatants[req.body.currentTurn];
-    if (next) _combatLog(updated, `▶ Beurt van ${next.name}`);
+    if (next) _combatLog(updated, `Beurt van ${next.name}`);
   }
   storage.writeJSON('combat.json', updated);
   req.app.get('io').to(req.session?.campaignId||'main').emit('combat:updated', updated);
@@ -9823,8 +9827,8 @@ router.put('/combat/combatant/:id', requireDM, (req, res) => {
   // Log HP-wijzigingen
   if (req.body.hp !== undefined && req.body.hp !== prev.hp) {
     const diff = req.body.hp - prev.hp;
-    if (diff < 0) _combatLog(combat, `💥 ${prev.name} ontvangt ${-diff} schade (${req.body.hp}/${prev.maxHp || '?'} HP)`);
-    else          _combatLog(combat, `💚 ${prev.name} geneest ${diff} HP (${req.body.hp}/${prev.maxHp || '?'} HP)`);
+    if (diff < 0) _combatLog(combat, `${prev.name} ontvangt ${-diff} schade (${req.body.hp}/${prev.maxHp || '?'} HP)`);
+    else          _combatLog(combat, `${prev.name} geneest ${diff} HP (${req.body.hp}/${prev.maxHp || '?'} HP)`);
     if (diff < 0) _maybeConcentrationPrompt(combat, combat.combatants[idx], -diff, readDmState()); // #1
   }
   // Auto-detect: all monsters at 0 HP → players win
@@ -9832,7 +9836,7 @@ router.put('/combat/combatant/:id', requireDM, (req, res) => {
     const monsters = combat.combatants.filter(c => c.type === 'monster');
     if (monsters.length > 0 && monsters.every(c => (c.hp || 0) <= 0)) {
       combat.winner = 'players';
-      _combatLog(combat, '🏆 Spelers winnen het gevecht!');
+      _combatLog(combat, 'Spelers winnen het gevecht!');
     }
   }
   storage.writeJSON('combat.json', combat);
@@ -9875,8 +9879,8 @@ router.patch('/combat/player-hp/:combatantId', attachRole, (req, res) => {
   const hpDiff = newHp - (c.hp || 0);
   combat.combatants[idx] = { ...c, hp: newHp };
   if (hpDiff !== 0) {
-    if (hpDiff < 0) _combatLog(combat, `💥 ${c.name} ontvangt ${-hpDiff} schade (${newHp}/${c.maxHp || '?'} HP)`);
-    else            _combatLog(combat, `💚 ${c.name} geneest ${hpDiff} HP (${newHp}/${c.maxHp || '?'} HP)`);
+    if (hpDiff < 0) _combatLog(combat, `${c.name} ontvangt ${-hpDiff} schade (${newHp}/${c.maxHp || '?'} HP)`);
+    else            _combatLog(combat, `${c.name} geneest ${hpDiff} HP (${newHp}/${c.maxHp || '?'} HP)`);
   }
   const dmState = readDmState();
   if (hpDiff < 0) _maybeConcentrationPrompt(combat, combat.combatants[idx], -hpDiff, dmState); // #1
@@ -10922,6 +10926,11 @@ router.post('/ursula/voorspel', attachRole, vereistDienst('ursula'), (req, res) 
   const pc = _effectiveCurrency(dmState, characterId) || { fl: 0, kn: 0, cl: 0 };
   if (toCl(pc) < prijsCl) return res.status(400).json({ error: 'Onvoldoende saldo' });
 
+  // De hulptekst in de app zegt: "op een 1–5 onthult ze één zintuig, op een 6
+  // alle vijf". De code onthulde er `roll` — bij een 4 dus vier, waarmee een 5
+  // bijna net zo goed was als een 6 en de zes zijn betekenis verloor. De tekst
+  // is wat de speler leest, dus die is hier leidend.
+  // Wil je het andersom: vervang `1` hieronder door `roll`.
   const pool = [0, 1, 2, 3, 4].filter(i => (def[URSULA_ZINTUIGEN[i].key] || '').trim());
   const roll = Math.floor(Math.random() * 6) + 1;
   let gekozen, concreet = false;
@@ -10930,7 +10939,7 @@ router.post('/ursula/voorspel', attachRole, vereistDienst('ursula'), (req, res) 
     concreet = !!(def.concreet || '').trim();
   } else {
     const shuffled = pool.slice().sort(() => Math.random() - 0.5);
-    gekozen = shuffled.slice(0, Math.min(roll, shuffled.length));
+    gekozen = shuffled.slice(0, Math.min(1, shuffled.length));
   }
   g.voorspellingen[doel.key] = {
     roll, zintuigen: gekozen, concreet,
@@ -14092,7 +14101,7 @@ router.post('/encounters/:id/start', requireDM, (req, res) => {
     backdropId:   enc.backdropId   || null,
     canvasPreset: enc.canvasPreset || null,
     canvasColors: enc.canvasColors || null,
-    log:          [`⚔️ Encounter geladen: ${enc.name}`,
+    log:          [`Encounter geladen: ${enc.name}`,
                    ...(uitgerold.length ? [`HP uitgerold — ${uitgerold.join(', ')}`] : [])],
   };
   storage.writeJSON('combat.json', combat);

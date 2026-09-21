@@ -151,6 +151,18 @@ describe('Het gevecht: opstellen, beurten en HP', () => {
     assert.ok(logTekst.some(t => /begonnen/i.test(t)), 'de log opent met de start: ' + JSON.stringify(logTekst));
   });
 
+  it('schrijft de log zonder emoji', async () => {
+    // De log belandt bij het afsluiten als sessieverslag in het Logboek, en dat
+    // wordt gerenderd — daar horen geen emoji in, net als overal in de app.
+    const regels = ((await combat()).log || [])
+      .map(l => (typeof l === 'string' ? l : l.text || ''));
+    assert.ok(regels.length, 'er staat iets in de log');
+    for (const t of regels) {
+      assert.ok(!/\p{Extended_Pictographic}/u.test(t), 'emoji in de log: ' + t);
+    }
+    assert.ok(regels.some(t => /Beurt van/.test(t)), 'en hij blijft leesbaar: ' + JSON.stringify(regels));
+  });
+
   it('laat de DM een combatant toevoegen, bijstellen en weghalen', async () => {
     const toe = await req(server, 'POST', '/api/combat/combatant',
       { name: 'Late gast', initiative: 99, hp: 8, maxHp: 8, type: 'enemy' }, dm);

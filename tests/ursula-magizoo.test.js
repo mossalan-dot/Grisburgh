@@ -97,13 +97,12 @@ describe('Madame Ursula: één voorspelling per akte', () => {
     assert.strictEqual(r.status, 200, JSON.stringify(r.body));
     assert.ok(r.body.roll >= 1 && r.body.roll <= 6, 'een d6: ' + r.body.roll);
 
-    // Let op: de code onthult er **`roll`**, niet één. De hulptekst in de app
-    // zegt "op een 1–5 onthult ze één zintuig, op een 6 alle vijf" en dat klopt
-    // dus niet met wat er gebeurt. Deze test legt vast wat de code doet; welke
-    // van de twee de bedoeling is, is een keuze van de DM.
+    // Zoals de hulptekst het belooft: op 1–5 één zintuig, op een 6 alle vijf.
+    // De code onthulde er eerst `roll`, waarmee een 5 bijna net zo goed was als
+    // een 6 — dat is 21 sep 2026 rechtgezet.
     const aantal = (r.body.onthuld?.zintuigen || []).length;
-    assert.strictEqual(aantal, Math.min(r.body.roll, 5),
-      `bij worp ${r.body.roll} horen er ${Math.min(r.body.roll, 5)} open te gaan`);
+    assert.strictEqual(aantal, r.body.roll === 6 ? 5 : 1,
+      `bij worp ${r.body.roll} hoort/horen er ${r.body.roll === 6 ? 5 : 1} open te gaan`);
     assert.ok(r.body.onthuld.zintuigen.every(z => z.label && z.tekst),
       'elk onthuld zintuig heeft een label en de tekst van de DM');
     if (r.body.roll === 6) {

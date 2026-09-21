@@ -942,10 +942,12 @@ met de hand niet meer hoeft na te rekenen:
   volledig tegen de hogere prijs, niets meer aan een volledig bekend wezen, en
   één huisdier per party.
 
-> **Gevonden bij het schrijven:** de hulptekst zegt dat Ursula *"op een 1–5 één
-> zintuig"* onthult, maar de route onthult er **`roll`** — bij een 4 dus vier.
-> De test legt vast wat de code doet; welke van de twee de bedoeling is, is een
-> keuze van de DM. Zie `hulp_ursula` in `app.js`.
+> **Gevonden bij het schrijven, en rechtgezet op 21 sep 2026:** de hulptekst
+> zegt dat Ursula *"op een 1–5 één zintuig"* onthult, maar de route onthulde er
+> **`roll`** — bij een 4 dus vier, waarmee een 5 bijna net zo goed was als een 6
+> en de zes zijn betekenis verloor. De tekst is wat de speler leest, dus die is
+> leidend geworden. Wil je het andersom, dan is het één woord in
+> `POST /ursula/voorspel`.
 
 ### Gevecht en dungeonkaarten met tests afgedekt (21 sep 2026)
 
@@ -986,3 +988,5 @@ met de hand niet meer hoeft na te rekenen:
 - [ ] **De featbibliotheek blijft heel** (DM) — schrijf je eerste eigen feat: de meegestuurde bibliotheek wordt éénmalig vastgelegd. Een tweede eigen feat voegt er één toe en gooit er niets weg. (De bibliotheek zit niet in de seed op de server, dus dit is de plek waar hij kon verdwijnen.)
 - [ ] **Multiclassen wordt voorgerekend, niet geblokkeerd** (speler) — een Wizard met DEX 16 en WIS 10 voldoet aan Rogue en niet aan Cleric, maar mag allebei aanvragen. Eén verzoek tegelijk; je eigen klasse en een derde klasse worden geweigerd.
 - [ ] **Goedgekeurd betekent level 0** (DM) — de klasse staat op het blad met level 0, en een eventuele subklasse van een eerdere poging is weg. Pas bij de volgende level-up krijgt hij zijn eerste level. Afwijzen zet niets.
+
+- [ ] **Geen emoji in de gevechtslog** (DM) — speel een gevecht en sluit het af: het gevechtslog komt als sessieverslag in het Logboek te staan met regels als *Ronde 2 begint* en *Hilde ontvangt 5 schade (12/20 HP)*, zonder ⚔️ 🔔 💥 💚 🏆 ervoor. Die tekst wordt gerenderd, dus daar geldt dezelfde afspraak als overal.
