@@ -967,3 +967,11 @@ met de hand niet meer hoeft na te rekenen:
 - [ ] **Drankje en staf** (speler) — een Potion geneest met een worp, telt nooit boven je maximum, en er gaat er één van de stapel af. Een Staff of Healing raakt een **charge** kwijt en blijft in je tas; bij nul charges weigert hij.
 - [ ] **Je gebruikt alleen je eigen spullen** (speler) — een voorwerp van een medespeler geeft 403; de DM mag het wel namens iemand doen.
 - [ ] **Doorgeven binnen de party** (speler) — geven verhuist het voorwerp echt; aan jezelf geven kan niet, iets wat je niet hebt ook niet, en met *ruilen uit* lukt het helemaal niet.
+
+### Missies en brieven met tests afgedekt (21 sep 2026)
+
+- [ ] **Een missie voltooien geeft álles wat de rang ontgrendelt** (DM) — zet een missie met renown-beloning op voltooid en laat de party daarmee een rang stijgen: de tekst komt als regel in de boedel, het voorwerp-kaartje komt écht in bezit, en een winkel-unlock gaat open. *Dit werkte half:* het voltooien had een eigen kopie van de rangstijging die alleen voorwerp-boons kende, ze als los regeltje uitdeelde en niet bijhield wat al gegeven was — dus dezelfde boon kon twee keer komen.
+- [ ] **De beloning gaat naar de hele party** (DM) — ook naar een speler die zijn character sheet nog nooit heeft ingevuld. *Dit werkte niet:* de uitbetaling telde de party uit `playerProfiles`, en wie daar niet in stond kreeg stilzwijgend niets. Staat de gedeelde beurs aan, dan gaat het bedrag daarheen.
+- [ ] **Het prikbord toont wat je toekomt** (speler) — een missie met een renown-drempel boven je stand zie je niet; een voltooide of mislukte verdwijnt; goedkeuren, voltooien en laten mislukken kan alleen de DM.
+- [ ] **Een brief komt bij de juiste mensen** (DM) — aan één personage, of aan een hele party. De andere party krijgt niets, en de cinematische vlag staat op het bericht.
+- [ ] **Post is van de ontvanger** (speler) — als gelezen markeren en weggooien kan alleen bij je eigen post; een speler kan zelf geen post versturen.

@@ -12124,32 +12124,37 @@ router.post('/facties/:id/uitnodiging', requireDM, (req, res) => {
   res.json({ ok: true, bezorgd, zichtbaar: true });
 });
 
-router.post('/facties/:id/renown', requireDM, (req, res) => {
-  const meta = storage.readJSON('meta.json');
-  const config = _factiesConfig(meta);
-  const factie = config.find(f => f.id === req.params.id);
-  if (!factie) return res.status(404).json({ error: 'Factie niet gevonden' });
-  const delta = parseInt(req.body.delta) || 0;
-  const dmState = readDmState();
-  const g = getGroup(dmState);
+// ── Renown erbij, en wat een rangstijging ontgrendelt ───────────────────────
+// Dit stond in tweevoud: hier en in `POST /missies/:id/voltooien`. Die tweede
+// kopie was op elk punt achtergebleven — hij kende alleen `boons` met een
+// entityId (dus tekst-boons en de hele nieuwe `unlocks`-vorm gingen langs),
+// deelde ze uit als losse boedelregel in plaats van het kaartje in bezit te
+// geven, hield `factieBoonsGegeven` niet bij (zodat dezelfde boon twee keer
+// kon komen) en zocht de partyleden op in `playerProfiles`, waardoor een
+// speler zonder profiel werd overgeslagen. Eén plek dus, en beide routes
+// roepen hem aan.
+//
+// Schrijft in `dmState` maar bewaart niet: de aanroeper doet de writeJSON,
+// want die heeft meestal nog meer te bewaren.
+function _renownErbij(dmState, g, factie, delta) {
   if (!g.factieRenown) g.factieRenown = {};
   if (!g.factieBoonsGegeven) g.factieBoonsGegeven = {};
-  const oudRenown = g.factieRenown[factie.id] || 0;
-  const nieuwRenown = Math.max(0, oudRenown + delta);
-  g.factieRenown[factie.id] = nieuwRenown;
-  const rangen = (factie.rangen && factie.rangen.length) ? factie.rangen : [{ naam: '—', voordelen: '' }];
-  const drempels = factie.renownDrempels || FACTIE_DREMPELS_STANDAARD;
-  const oudeRangIdx = _rangIdxVanRenown(oudRenown, drempels, rangen.length);
-  const nieuweRangIdx = _rangIdxVanRenown(nieuwRenown, drempels, rangen.length);
-  const boonGegeven = g.factieBoonsGegeven[factie.id] || [];
-  const nieuweItems = [];
 
-  // Elk type doet nu wat het belooft. Voorheen werd álles een regel in de
-  // boedel — ook een voorwerp dat een echt kaartje heeft, met een beschrijving,
-  // een rariteit, charges en een plek in de Markt. Dat gooiden we weg.
-  const _ents = storage.readJSON('entities.json');
-  const nieuweKaartjes = [];   // voorwerp-kaartjes die in bezit komen
+  const oudRenown   = g.factieRenown[factie.id] || 0;
+  const nieuwRenown = Math.max(0, oudRenown + (parseInt(delta) || 0));
+  g.factieRenown[factie.id] = nieuwRenown;
+
+  const rangen   = (factie.rangen && factie.rangen.length) ? factie.rangen : [{ naam: '—', voordelen: '' }];
+  const drempels = factie.renownDrempels || FACTIE_DREMPELS_STANDAARD;
+  const oudeRangIdx   = _rangIdxVanRenown(oudRenown,   drempels, rangen.length);
+  const nieuweRangIdx = _rangIdxVanRenown(nieuwRenown, drempels, rangen.length);
+
+  const boonGegeven    = g.factieBoonsGegeven[factie.id] || [];
+  const nieuweItems    = [];   // tekst → regel in de boedel
+  const nieuweKaartjes = [];   // voorwerp → echt bezit
   const opengezet      = [];   // winkels die opengaan
+  const _ents = storage.readJSON('entities.json');
+
   if (nieuweRangIdx > oudeRangIdx) {
     for (let ri = oudeRangIdx + 1; ri <= nieuweRangIdx; ri++) {
       const rang = rangen[ri];
@@ -12197,56 +12202,61 @@ router.post('/facties/:id/renown', requireDM, (req, res) => {
   }
   g.factieBoonsGegeven[factie.id] = boonGegeven;
 
-  // Deel boons uit aan alle spelers van de actieve groep
+  // Wie krijgt het? De spelers van déze party — uit de kaartjes, niet uit de
+  // profielen, want een speler zonder profiel hoort er net zo goed bij.
+  const gidVanRang = Object.keys(dmState.groups || {}).find(k => dmState.groups[k] === g) || null;
+  const leden = (_ents.personages || [])
+    .filter(p => p.subtype === 'speler')
+    .filter(p => !gidVanRang || _playerGroupId(dmState, p.id) === gidVanRang);
+
   if (nieuweItems.length) {
     if (!dmState.playerItems) dmState.playerItems = {};
-    const entityData = storage.readJSON('entities.json');
-    const spelers = (entityData.personages || []).filter(p => p.subtype === 'speler');
-    // Deze filter keek naar `grp.characters`, een veld dat in geen enkele
-    // campagne bestaat en dat verder nergens in de code voorkomt — de toets was
-    // dus altijd onwaar, en het `|| true` erachter maakte de filter vervolgens
-    // altijd waar. Gevolg: steeg party A in rang, dan kreeg élke speler van de
-    // campagne de boon in zijn boedel, ook party B die de factie niet eens
-    // kent. Groepslidmaatschap loopt overal elders via `entity.data.groep`.
-    const gidVanRang = Object.keys(dmState.groups || {}).find(k => dmState.groups[k] === g) || null;
-    const targetIds = spelers
-      .filter(p => !gidVanRang || _playerGroupId(dmState, p.id) === gidVanRang)
-      .map(p => p.id);
-    targetIds.forEach(charId => {
-      if (!dmState.playerItems[charId]) dmState.playerItems[charId] = [];
-      nieuweItems.forEach(item => dmState.playerItems[charId].push({ ...item, id: item.id + '_' + charId }));
-    });
+    for (const p of leden) {
+      if (!dmState.playerItems[p.id]) dmState.playerItems[p.id] = [];
+      nieuweItems.forEach(item => dmState.playerItems[p.id].push({ ...item, id: item.id + '_' + p.id }));
+    }
   }
 
   // Een voorwerp-unlock geeft het **kaartje** aan de party: één exemplaar bij de
-  // eerste speler bij een uniek voorwerp, of bij iedereen als het kaartje
-  // gedeeld of stapelbaar is. Zelfde weg als de winkel en het uitdelen van
-  // loot, dus charges, attunement en de Markt weten er meteen van. En het
-  // kaartje wordt zichtbaar — je kunt niets bezitten wat je niet mag zien.
-  if (nieuweKaartjes.length) {
-    const spelers = (_ents.personages || []).filter(p => p.subtype === 'speler');
-    const gidVanRang2 = Object.keys(dmState.groups || {}).find(k => dmState.groups[k] === g) || null;
-    const leden = spelers.filter(p => !gidVanRang2 || _playerGroupId(dmState, p.id) === gidVanRang2);
-    for (const { kaartje, aantal } of nieuweKaartjes) {
-      const gebruik = _gebruikVan(kaartje.data || {});
-      const krijgers = gebruik === 'uniek' ? leden.slice(0, 1) : leden;
-      for (const p of krijgers) _eigendomErbij(g, kaartje.id, p.id, p.name, gebruik, aantal);
-      if (!g.visibility) g.visibility = {};
-      g.visibility[kaartje.id] = 'visible';
-    }
+  // eerste speler bij een uniek voorwerp, of bij iedereen als het gedeeld of
+  // stapelbaar is. Zelfde weg als de winkel en het uitdelen van loot, dus
+  // charges, attunement en de Markt weten er meteen van.
+  for (const { kaartje, aantal } of nieuweKaartjes) {
+    const gebruik = _gebruikVan(kaartje.data || {});
+    const krijgers = gebruik === 'uniek' ? leden.slice(0, 1) : leden;
+    for (const p of krijgers) _eigendomErbij(g, kaartje.id, p.id, p.name, gebruik, aantal);
+    if (!g.visibility) g.visibility = {};
+    g.visibility[kaartje.id] = 'visible';
   }
+
+  return {
+    oudRenown, nieuwRenown, oudeRangIdx, nieuweRangIdx,
+    rangOmhoog: nieuweRangIdx > oudeRangIdx,
+    rangNaam: rangen[nieuweRangIdx]?.naam || null,
+    boons: nieuweItems.length,
+    voorwerpen: nieuweKaartjes.map(k => k.kaartje.name),
+    winkelsOpen: opengezet,
+  };
+}
+
+router.post('/facties/:id/renown', requireDM, (req, res) => {
+  const meta = storage.readJSON('meta.json');
+  const factie = _factiesConfig(meta).find(f => f.id === req.params.id);
+  if (!factie) return res.status(404).json({ error: 'Factie niet gevonden' });
+
+  const dmState = readDmState();
+  const g = getGroup(dmState);
+  const uit = _renownErbij(dmState, g, factie, req.body.delta);
 
   storage.writeJSON('dm-state.json', dmState);
   const io = req.app.get('io');
   const room = req.session?.campaignId || 'main';
   io.to(room).emit('facties:updated');
-  if (nieuweItems.length || nieuweKaartjes.length) io.to(room).emit('player:items-updated', {});
-  if (opengezet.length) io.to(room).emit('entities:updated', {});
+  if (uit.boons || uit.voorwerpen.length) io.to(room).emit('player:items-updated', {});
+  if (uit.winkelsOpen.length) io.to(room).emit('entities:updated', {});
   res.json({
-    ok: true, id: factie.id, renown: nieuwRenown, rangIdx: nieuweRangIdx,
-    boons: nieuweItems.length,
-    voorwerpen: nieuweKaartjes.map(k => k.kaartje.name),
-    winkelsOpen: opengezet,
+    ok: true, id: factie.id, renown: uit.nieuwRenown, rangIdx: uit.nieuweRangIdx,
+    boons: uit.boons, voorwerpen: uit.voorwerpen, winkelsOpen: uit.winkelsOpen,
   });
 });
 
@@ -12560,49 +12570,23 @@ router.post('/missies/:id/voltooien', requireDM, (req, res) => {
   const g = gid ? getGroup(dmState, gid) : null;
   const io = req.app.get('io');
   const room = req.session?.campaignId || 'main';
+  // Renown en alles wat een rangstijging ontgrendelt gaat via dezelfde helper
+  // als het handmatig bijstellen door de DM. Hier stond een tweede kopie die
+  // alleen voorwerp-boons kende, ze als losse boedelregel uitdeelde en niet
+  // bijhield wat al gegeven was.
   let nieuweRang = null;
-
   if (g && missie.renownBeloning > 0 && missie.factieId) {
-    if (!g.factieRenown) g.factieRenown = {};
-    const meta = storage.readJSON('meta.json');
+    const meta   = storage.readJSON('meta.json');
     const factie = _factiesConfig(meta).find(f => f.id === missie.factieId);
-    const oud = g.factieRenown[missie.factieId] || 0;
-    const nieuw = oud + missie.renownBeloning;
-    g.factieRenown[missie.factieId] = nieuw;
-
-    // Controleer rang-up + automatische boons
     if (factie) {
-      const drempels = factie.renownDrempels || [0,1,3,10,25,50];
-      const rangen   = factie.rangen || [];
-      const oudIdx   = _rangIdxVanRenown(oud,   drempels, rangen.length);
-      const nieuwIdx = _rangIdxVanRenown(nieuw,  drempels, rangen.length);
-      if (nieuwIdx > oudIdx) {
-        nieuweRang = rangen[nieuwIdx]?.naam || null;
-        // Uitdelen boons voor alle nieuwe rangen
-        const voorwerpen = storage.readJSON('entities.json').voorwerpen || [];
-        const groepPersonages = Object.entries(dmState.playerProfiles || {})
-          .filter(([_, p]) => _playerGroupId(dmState, _) === gid)
-          .map(([charId]) => charId);
-        for (let ri = oudIdx + 1; ri <= nieuwIdx; ri++) {
-          for (const boon of (rangen[ri]?.boons || [])) {
-            if (!boon.entityId) continue;
-            const voorwerp = voorwerpen.find(v => v.id === boon.entityId);
-            if (!voorwerp) continue;
-            for (const charId of groepPersonages) {
-              if (!dmState.playerItems) dmState.playerItems = {};
-              if (!dmState.playerItems[charId]) dmState.playerItems[charId] = [];
-              dmState.playerItems[charId].push({
-                id:         voorwerp.id,
-                name:       boon.naam || voorwerp.name,
-                entityId:   voorwerp.id,
-                entityType: 'voorwerpen',
-                kind:       'boon',
-                factieId:   missie.factieId,
-              });
-            }
-          }
-        }
-      }
+      const uit = _renownErbij(dmState, g, factie, missie.renownBeloning);
+      if (uit.rangOmhoog) nieuweRang = uit.rangNaam;
+      if (uit.boons || uit.voorwerpen.length) io.to(room).emit('player:items-updated', {});
+      if (uit.winkelsOpen.length) io.to(room).emit('entities:updated', {});
+    } else {
+      // Factie weg, renown telt gewoon door.
+      if (!g.factieRenown) g.factieRenown = {};
+      g.factieRenown[missie.factieId] = (g.factieRenown[missie.factieId] || 0) + missie.renownBeloning;
     }
     storage.writeJSON('dm-state.json', dmState);
     io.to(room).emit('facties:updated');
@@ -12610,9 +12594,15 @@ router.post('/missies/:id/voltooien', requireDM, (req, res) => {
 
   // Valuta-uitkering
   if (g && missie.valuta && toCl(missie.valuta) > 0) {
-    const spelers = Object.entries(dmState.playerProfiles || {})
-      .filter(([_, p]) => _playerGroupId(dmState, _) === gid)
-      .map(([charId]) => charId);
+    // Wie in de party zit staat op de **kaartjes**, niet in `playerProfiles`.
+    // Die lijst bestond alleen uit spelers die ooit hun blad hadden ingevuld,
+    // dus een nieuw personage kreeg stilzwijgend niets uitbetaald — en bij een
+    // party waarin niemand een profiel had, verdween de hele beloning.
+    // Bewust álle partyleden en niet alleen wie vanavond meedoet: een
+    // missiebeloning hoort bij de party, zoals ook de factieboons.
+    const spelers = (storage.readJSON('entities.json').personages || [])
+      .filter(p => p.subtype === 'speler' && _playerGroupId(dmState, p.id) === gid)
+      .map(p => p.id);
     if (g.sharedPurse?.enabled) {
       g.sharedPurse = fromCl(toCl(g.sharedPurse) + toCl(missie.valuta));
       g.sharedPurse.enabled = true;
