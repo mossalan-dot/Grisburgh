@@ -574,6 +574,8 @@ function filterEntityForPlayer(entity, dmState, groupId) {
   e._hoortBij     = _betrokkenBij(entity.id)
     .filter(x => (g.visibility[x.id] || 'hidden') === 'visible')
     .filter(x => _geheimOpen(x, dmState, groupId));
+  const _fb = _factieBetrekking(entity.id, g, false);
+  if (_fb) e._hoortBij = [_fb, ...e._hoortBij];
   return e;
 }
 
@@ -954,6 +956,27 @@ function _betrokkenBij(id) {
   return _betrokkenIndex().get(id) || [];
 }
 
+// Lidmaatschap van een factie als betrekking. Een factie is geen kaartje maar
+// een dienst, dus hij komt niet uit `_betrokkenIndex()` — maar op het kaartje
+// van de persoon hoort hij wel in datzelfde rijtje. De rol beschrijft de
+// persoon, net als bij de betrokkenen: op de factie staat "Waard — Bram", hier
+// "Waard — De Gouden Gans". Eén plek waar het staat (`meta.facties[].leden`),
+// twee kanten om het te lezen.
+//
+// Een factie die deze party niet kent levert niets op: anders verklapt het
+// kaartje van de waard dat er een gilde achter zit.
+function _factieBetrekking(entityId, g, isDM) {
+  let meta = {};
+  try { meta = storage.readJSON('meta.json'); } catch { return null; }
+  for (const f of (_factiesConfig(meta) || [])) {
+    const lid = (f.leden || []).find(l => l.entityId === entityId);
+    if (!lid) continue;
+    if (!isDM && (g?.factieZichtbaar || {})[f.id] !== true) return null;
+    return { factieId: f.id, name: f.naam || '', rol: lid.rang || 'Lid' };
+  }
+  return null;
+}
+
 function _linksMetTekst(entity) {
   const tekst = _LINK_TEKSTVELDEN.map(v => entity.data?.[v] || '').join('\n');
   if (!tekst.includes('[[')) return entity.links;
@@ -1034,7 +1057,11 @@ router.get('/entities/:type/:id', attachRole, (req, res) => {
   res.json({
     ...entity,
     links:         _linksMetTekst(entity),
-    _hoortBij:     _betrokkenBij(entity.id),
+    _hoortBij:     (() => {
+      const rijen = _betrokkenBij(entity.id);
+      const fb = _factieBetrekking(entity.id, g, true);
+      return fb ? [fb, ...rijen] : rijen;
+    })(),
     _visibility:   g.visibility[entity.id]    || 'hidden',
     _secretReveal: _onthuldeIds(g.secretReveals[entity.id], _geheimRegels(entity.data)).size > 0,
     _geheimTotaal: _geheimRegels(entity.data).length,
@@ -2060,6 +2087,84 @@ function _marktRegels(shop) {
   return Array.isArray(v) ? v : [];
 }
 
+// Welke facties horen bij deze winkel? Afgeleid uit `meta.facties[].leden` en
+// de locatie van de factie zelf — niets opgeslagen, zelfde regel als bij
+// *Waar hoort dit bij?*: twee lijsten die hetzelfde moeten zeggen lopen vroeg
+// of laat uit elkaar. Een lid dat zijn voorraad op een ándere kaart heeft
+// staan (`winkelLocatieId`) telt mee via díé kaart, want daar hangt de winkel.
+function _factiesPerWinkel(meta, entities) {
+  const uit = new Map();   // winkel-id → [{ id, naam, verkoperId, verkoperNaam }]
+  const zet = (winkelId, f, verkoper) => {
+    if (!winkelId) return;
+    const lijst = uit.get(winkelId) || [];
+    if (!lijst.some(x => x.id === f.id)) {
+      lijst.push({ id: f.id, naam: f.naam,
+                   verkoperId: verkoper?.id || null, verkoperNaam: verkoper?.name || '' });
+    }
+    uit.set(winkelId, lijst);
+  };
+  for (const f of (_factiesConfig(meta) || [])) {
+    for (const lid of (f.leden || [])) {
+      const persoon = (entities.personages || []).find(p => p.id === lid.entityId);
+      if (!persoon) continue;
+      const winkel = _winkelVan(entities, persoon.id);
+      if (winkel && _marktRegels(winkel).length) zet(winkel.id, f, persoon);
+    }
+    // Het pand van de factie zelf kan ook een toonbank hebben.
+    if (f.locatieEntityId) {
+      const pand = (entities.locaties || []).find(l => l.id === f.locatieEntityId);
+      if (pand && _marktRegels(pand).length) zet(pand.id, f, null);
+    }
+  }
+  return uit;
+}
+
+// De verkopers van één factie, met de twee assen **apart**. Je kunt iemand
+// kennen zonder dat zijn winkel voor jou opengaat — de persoon is een kaartje,
+// de winkel is er een ander (of hetzelfde, maar met een eigen stand). Daarom:
+//   `persoonBekend`  — mag je zijn naam zien
+//   `winkelOpen`     — mag je zijn schappen in
+// Staat de winkel dicht, dan noemen we hem niet: dát er een winkel is, is zelf
+// ook iets om te ontdekken. De DM krijgt alles, met de reden erbij.
+function _factieVerkopers(f, entities, g, bereik, isDM) {
+  const vis = g.visibility || {};
+  const bereikbaar = (id) => bereik.allesDicht
+    ? (bereik.vrijgesteld || []).includes(id)
+    : !(bereik.entiteitenDicht || []).includes(id);
+
+  const uit = [];
+  const gezien = new Set();
+  const kandidaten = [
+    ...(f.leden || []).map(l => (entities.personages || []).find(p => p.id === l.entityId)).filter(Boolean),
+    ...(f.locatieEntityId ? [(entities.locaties || []).find(l => l.id === f.locatieEntityId)].filter(Boolean) : []),
+  ];
+
+  for (const kandidaat of kandidaten) {
+    const winkel = _winkelVan(entities, kandidaat.id);
+    if (!winkel || !_marktRegels(winkel).length) continue;
+    if (gezien.has(winkel.id)) continue;
+    gezien.add(winkel.id);
+
+    const winkelOpen    = (vis[winkel.id] || 'hidden') === 'visible' && bereikbaar(winkel.id);
+    const persoonBekend = (vis[kandidaat.id] || 'hidden') === 'visible';
+    if (!isDM && !winkelOpen) continue;
+
+    uit.push({
+      winkelId:   winkel.id,
+      winkelNaam: winkel.name,
+      // Een winkel is net zo goed een personage met voorraad als een pand.
+      winkelSoort: (entities.locaties || []).some(l => l.id === winkel.id) ? 'locaties' : 'personages',
+      // De naam van de verkoper alleen als je hém ook kent: je kunt in een
+      // winkel staan zonder te weten wie er achter de toonbank hoort.
+      verkoperId:   (isDM || persoonBekend) && kandidaat.id !== winkel.id ? kandidaat.id : null,
+      verkoperNaam: (isDM || persoonBekend) && kandidaat.id !== winkel.id ? kandidaat.name : '',
+      aantal: _marktRegels(winkel).length,
+      ...(isDM ? { _dicht: !winkelOpen } : {}),
+    });
+  }
+  return uit;
+}
+
 router.get('/markt', attachRole, (req, res) => {
   if (!req.role) return res.status(401).json({ error: 'Niet ingelogd' });
   const entities = storage.readJSON('entities.json');
@@ -2079,6 +2184,7 @@ router.get('/markt', attachRole, (req, res) => {
 
   const voorwerpen = entities.voorwerpen || [];
   const personages = entities.personages || [];
+  const factiesPerWinkel = _factiesPerWinkel(meta, entities);
   const locOpNaam  = new Map((entities.locaties || []).map(l => [(l.name || '').toLowerCase().trim(), l]));
   const winkels = [];
   for (const type of ['locaties', 'personages']) {
@@ -2129,6 +2235,9 @@ router.get('/markt', attachRole, (req, res) => {
       winkels.push({
         id:   e.id,
         naam: e.name,
+        // Afgeleid uit de ledenlijst van elke factie; hiermee kan de Markt per
+        // factie filteren zonder dat er ergens een tweede lijst bijkomt.
+        facties: (factiesPerWinkel.get(e.id) || []).map(x => ({ id: x.id, naam: x.naam })),
         type: e.data?.locType || e.subtype || '',
         soort: type,
         imageId:  e.data?.imageId || e.id,
@@ -2154,8 +2263,22 @@ router.get('/markt', attachRole, (req, res) => {
   const alle = new Set();
   for (const w of winkels) for (const g of (w.gebieden || [])) alle.add(g);
 
+  // Alleen de facties die deze party kent mogen als filter verschijnen — een
+  // chip met een naam die je nog nooit hoorde is zelf een onthulling.
+  const factieFilters = [];
+  for (const w of winkels) {
+    for (const f of (w.facties || [])) {
+      if (!isDM && (g.factieZichtbaar || {})[f.id] !== true) continue;
+      if (!factieFilters.some(x => x.id === f.id)) factieFilters.push(f);
+    }
+  }
+  for (const w of winkels) {
+    if (!isDM) w.facties = (w.facties || []).filter(f => factieFilters.some(x => x.id === f.id));
+  }
+
   res.json({
     winkels,
+    factieFilters,
     beurs: _effectiveCurrency(dmState, req.session?.characterId),
     akte:  bereik.akte || null,
     gebiedKeuze: gekozen,
@@ -5569,6 +5692,11 @@ function _koppelingenVan(type, id) {
     goden:     goden.map(g => ({ naam: g.naam, locatieEntityId: g.locatieEntityId || null })),
     factieId:  (facties.find(f => f.entityId === id) || {}).id || '',
     facties:   facties.map(f => ({ id: f.id, naam: f.naam, entityId: f.entityId || null })),
+    // Lidmaatschap is iets anders dan "dit kaartje ís de factie": een persoon
+    // staat in `leden[]`, met de rang die hij daar heeft.
+    lidVan:     (facties.find(f => (f.leden || []).some(l => l.entityId === id)) || {}).id || '',
+    lidVanRang: ((facties.find(f => (f.leden || []).some(l => l.entityId === id)) || {}).leden || [])
+                  .find(l => l.entityId === id)?.rang || '',
     // Kamers erbij, zodat de DM een kaartje aan één kamer kan hangen.
     dungeons:  _readDungeons().map(m => ({
       id: m.id, name: m.name,
@@ -5674,6 +5802,33 @@ router.put('/entities/:type/:id/koppelingen', requireDM, (req, res) => {
     for (const f of facties) {
       if (f.entityId === id) f.entityId = null;
       if (wil && f.id === wil) f.entityId = id;
+    }
+    meta.facties = facties;
+    veranderd = true;
+  }
+
+  // Een **persoon** hoort bij een factie als lid, niet als het kaartje ván de
+  // factie. Dat kon tot nu toe alleen in het factiepaneel van de Meesterkamer,
+  // terwijl je het meestal bedenkt terwijl je het personage zit te schrijven.
+  // Zelfde regel als bij *Waar hoort dit bij?*: één plek waar het staat
+  // (`meta.facties[].leden`), twee kanten om het te leggen. Eén factie per
+  // persoon — wie voor twee gilden tegelijk werkt is een verhaallijn, geen
+  // keuzelijst, en die hoort in de ledenlijst van het paneel.
+  if (req.body.factieId !== undefined && type === 'personages') {
+    const facties = Array.isArray(meta.facties) ? meta.facties : [];
+    const wil  = String(req.body.factieId || '').trim();
+    const rang = req.body.factieRang !== undefined ? String(req.body.factieRang || '').trim() : null;
+    for (const f of facties) {
+      const leden = Array.isArray(f.leden) ? f.leden : [];
+      const bestaand = leden.find(l => l.entityId === id);
+      if (f.id === wil) {
+        if (bestaand) { if (rang !== null) bestaand.rang = rang; }
+        else leden.push({ entityId: id, rang: rang || '' });
+      } else if (bestaand) {
+        f.leden = leden.filter(l => l.entityId !== id);
+        continue;
+      }
+      f.leden = leden;
     }
     meta.facties = facties;
     veranderd = true;
@@ -11950,6 +12105,8 @@ router.get('/facties', attachRole, (req, res) => {
   const titels = [];
   const personages = entities.personages || [];
   const visibility = g.visibility || {};
+  const _marktBereik = _bereikbaarheidVoor(meta, dmState,
+    req.session?.characterId ? _playerGroupId(dmState, req.session.characterId) : dmState.activeGroup);
 
   // Leden van een factie resolven (portret = entityId, naam + rol uit het personage).
   // Spelers zien alleen leden waarvan het personage zichtbaar is (volgt entity-visibility).
@@ -12064,6 +12221,10 @@ router.get('/facties', attachRole, (req, res) => {
       npcEntityIdDag:   f.npcEntityIdDag   || null,
       npcGreet:         f.npcGreet         || '',
       leden:            _resolveLeden(f),
+      // Afgeleid, niet opgeslagen: een lid met voorraad ís een verkoper van de
+      // factie. Staat zijn winkel voor deze party nog dicht, dan noemen we hem
+      // niet — dát er een winkel is, is zelf ook iets om te ontdekken.
+      verkopers:        _factieVerkopers(f, entities, g, _marktBereik, isDM),
     };
     if (isDM) view.rangen = f.rangen || [];
     return view;
@@ -12102,7 +12263,10 @@ router.post('/facties/:id/reveal', requireDM, (req, res) => {
   // Koppel entity-zichtbaarheid
   if (factie.entityId) {
     if (!g.visibility) g.visibility = {};
-    g.visibility[factie.entityId] = wasZichtbaar ? 'hidden' : 'zichtbaar';
+    // 'zichtbaar' bestaat niet als zichtbaarheidswaarde — overal elders is het
+    // 'visible' / 'vague' / 'hidden'. Het kaartje belandde daardoor in een stand
+    // die geen enkele filter herkent: niet verborgen, maar ook niet bekend.
+    g.visibility[factie.entityId] = wasZichtbaar ? 'hidden' : 'visible';
   }
   storage.writeJSON('dm-state.json', dmState);
   const io = req.app.get('io');

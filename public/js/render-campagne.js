@@ -2180,6 +2180,17 @@ window._koppelZet = async (body) => {
   }
 };
 
+// Factie en rang gaan samen de deur uit: de rang hoort bij het lidmaatschap,
+// dus hem los bewaren zou een rang kunnen achterlaten bij een factie waar hij
+// niet meer in zit.
+window._koppelLidZet = async () => {
+  const factieId = document.getElementById('koppel-lid')?.value || '';
+  const rang     = document.getElementById('koppel-lid-rang')?.value || '';
+  const rij      = document.getElementById('koppel-lid-rang-rij');
+  if (rij) rij.style.display = factieId ? '' : 'none';
+  await window._koppelZet({ factieId, factieRang: factieId ? rang : '' });
+};
+
 window._linkKaartjeMaken = async (type, inputId) => {
   const inp = document.getElementById(inputId);
   const naam = (inp?.value || '').trim();
@@ -7234,7 +7245,7 @@ window._openEditor = async (tab, editId) => {
   // Een nieuw kaartje mag alvast een plek op de kaart krijgen — dat hoort bij
   // het aanmaken. De koppelingen die in meta.json schrijven (herberg, god,
   // factie) hebben een id nodig en verschijnen pas na het bewaren.
-  if (['locaties', 'organisaties'].includes(tab) && isDM() && (e?.id || tab === 'locaties')) {
+  if (['locaties', 'organisaties', 'personages'].includes(tab) && isDM() && (e?.id || tab === 'locaties')) {
     const _isLoc  = tab === 'locaties';
     const _bestaat = !!e?.id;
     body += !_bestaat ? '' : `
@@ -7253,11 +7264,26 @@ window._openEditor = async (tab, editId) => {
           <div class="koppel-rij" id="koppel-tempel" style="display:none">
             <label class="text-xs font-cinzel text-ink-dim font-bold tracking-wide" for="koppel-god">God van deze tempel</label>
             <select id="koppel-god" class="koppel-select" onchange="window._koppelZet({ godNaam: this.value })"></select>
-          </div>` : (!_bestaat ? '' : `
+          </div>` : (!_bestaat ? '' : (tab === 'personages' ? `
+          <!-- Bij een persoon gaat het om **lidmaatschap**: hij staat in de
+               ledenlijst van de factie, met de rang die hij daar heeft. Dat kon
+               alleen in het factiepaneel, terwijl je het meestal bedenkt
+               terwijl je het personage zit te schrijven. Eén plek waar het
+               staat (meta.facties[].leden), twee kanten om het te leggen. -->
+          <div class="koppel-rij">
+            <label class="text-xs font-cinzel text-ink-dim font-bold tracking-wide" for="koppel-lid">Lid van factie</label>
+            <select id="koppel-lid" class="koppel-select" onchange="window._koppelLidZet()"></select>
+          </div>
+          <div class="koppel-rij" id="koppel-lid-rang-rij" style="display:none">
+            <label class="text-xs font-cinzel text-ink-dim font-bold tracking-wide" for="koppel-lid-rang">Rang binnen de factie</label>
+            <input id="koppel-lid-rang" class="koppel-select" type="text" placeholder="Waard, luitenant, spion…"
+              onchange="window._koppelLidZet()">
+            <div class="veld-uitleg">Vrije tekst — dit is zijn plek in de factie, niet de rang die de party heeft.</div>
+          </div>` : `
           <div class="koppel-rij">
             <label class="text-xs font-cinzel text-ink-dim font-bold tracking-wide" for="koppel-factie">Factie</label>
             <select id="koppel-factie" class="koppel-select" onchange="window._koppelZet({ factieId: this.value })"></select>
-          </div>`)}
+          </div>`))}
         </div>
       </div>
     `;
@@ -8088,6 +8114,15 @@ window._openEditor = async (tab, editId) => {
           const elders = g.locatieEntityId && g.locatieEntityId !== e.id;
           return `<option value="${esc(g.naam)}"${k.godNaam === g.naam ? ' selected' : ''}>${esc(g.naam)}${elders ? ' \u00b7 staat nu elders' : ''}</option>`;
         }).join('');
+      }
+      const lid = document.getElementById('koppel-lid');
+      if (lid) {
+        lid.innerHTML = `<option value="">\u2014 geen factie \u2014</option>` + (k.facties || []).map(f =>
+          `<option value="${esc(f.id)}"${k.lidVan === f.id ? ' selected' : ''}>${esc(f.naam)}</option>`).join('');
+        const rangInp = document.getElementById('koppel-lid-rang');
+        const rangRij = document.getElementById('koppel-lid-rang-rij');
+        if (rangInp) rangInp.value = k.lidVanRang || '';
+        if (rangRij) rangRij.style.display = k.lidVan ? '' : 'none';
       }
       const factie = document.getElementById('koppel-factie');
       if (factie) {

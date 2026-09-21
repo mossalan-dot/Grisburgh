@@ -214,6 +214,112 @@ describe('Facties: een rang ontgrendelt iets', () => {
     assert.strictEqual(weg.status, 200);
   });
 
+  // Twee assen die niet samenvallen: je kunt de verkoper als persoon kennen
+  // terwijl zijn winkel nog niet voor je opengaat.
+  it('leidt verkopers af uit de ledenlijst, met de winkel als eigen stand', async () => {
+    const bram = (await req(server, 'POST', '/api/entities/personages',
+      { name: 'Bram Kruik' }, dm)).body.id;
+    const kroeg = (await req(server, 'POST', '/api/entities/locaties', {
+      name: 'De Gouden Gans',
+      data: { locType: 'Winkel', voorraad: JSON.stringify([{ naam: 'Kroes bier', prijs: '1 kn' }]) },
+    }, dm)).body.id;
+    // Bram verkoopt vanuit de kroeg: zijn voorraad hangt aan díé kaart.
+    // (PUT, niet PATCH — die route bestaat niet voor entiteiten en doet stil niets.)
+    await req(server, 'PUT', `/api/entities/personages/${bram}`,
+      { name: 'Bram Kruik', data: { winkelLocatieId: kroeg } }, dm);
+
+    await req(server, 'PUT', '/api/meta/facties', {
+      facties: [{ id: 'proefgilde', naam: 'Het Proefgilde', renownDrempels: [0, 1],
+        leden: [{ entityId: bram, rang: 'Waard' }],
+        rangen: [{ naam: 'Buitenstaander' }, { naam: 'Gezel' }] }],
+    }, dm);
+    // Let op: /reveal is een toggle en negeert de body — hij staat hier al aan.
+
+    // De persoon kennen is niet genoeg: de winkel staat nog dicht.
+    await req(server, 'PUT', `/api/entities/personages/${bram}/visibility`, { target: 'visible' }, dm);
+    let f = await factieVanSpeler();
+    assert.deepStrictEqual(f.verkopers, [], 'een dichte winkel wordt niet genoemd — ook niet dát hij bestaat');
+
+    // De DM ziet hem wel, met de reden erbij.
+    const dmF = ((await req(server, 'GET', '/api/facties', null, dm)).body.facties || [])
+      .find(x => x.id === 'proefgilde');
+    assert.strictEqual(dmF.verkopers.length, 1, JSON.stringify({ verkopers: dmF.verkopers, leden: dmF.leden }));
+    assert.strictEqual(dmF.verkopers[0]._dicht, true);
+
+    // Winkel open: nu staat hij er, met Bram erbij omdat de party hem kent.
+    await req(server, 'PUT', `/api/entities/locaties/${kroeg}/visibility`, { target: 'visible' }, dm);
+    f = await factieVanSpeler();
+    assert.strictEqual(f.verkopers.length, 1, JSON.stringify(f.verkopers));
+    assert.strictEqual(f.verkopers[0].winkelNaam, 'De Gouden Gans');
+    assert.strictEqual(f.verkopers[0].verkoperNaam, 'Bram Kruik');
+    assert.strictEqual(f.verkopers[0].winkelSoort, 'locaties');
+
+    // En andersom: winkel open, verkoper onbekend → geen naam achter de toonbank.
+    await req(server, 'PUT', `/api/entities/personages/${bram}/visibility`, { target: 'hidden' }, dm);
+    f = await factieVanSpeler();
+    assert.strictEqual(f.verkopers[0].verkoperNaam, '', 'wie er staat is een eigen ontdekking');
+
+    // De Markt kent dezelfde koppeling, en filtert op facties die je kent.
+    const markt = (await req(server, 'GET', '/api/markt', null, spelerC)).body;
+    const w = (markt.winkels || []).find(x => x.id === kroeg);
+    assert.ok(w, 'de winkel hoort op de Markt te staan');
+    assert.deepStrictEqual((w.facties || []).map(x => x.id), ['proefgilde']);
+    assert.ok((markt.factieFilters || []).some(x => x.id === 'proefgilde'));
+
+    // Een factie die de party niet kent levert geen chip en geen koppeling op.
+    await req(server, 'POST', '/api/facties/proefgilde/reveal', { zichtbaar: false }, dm);
+    const markt2 = (await req(server, 'GET', '/api/markt', null, spelerC)).body;
+    assert.deepStrictEqual(markt2.factieFilters, []);
+    const w2 = (markt2.winkels || []).find(x => x.id === kroeg);
+    assert.deepStrictEqual(w2.facties, [], 'de factienaam is zelf een onthulling');
+    await req(server, 'POST', '/api/facties/proefgilde/reveal', null, dm);   // weer aan
+  });
+
+  // De koppeling van twee kanten: in het factiepaneel stond hij al, maar je
+  // bedenkt het meestal terwijl je het personage zit te schrijven.
+  it('koppelt een persoon aan een factie vanaf zijn eigen kaartje', async () => {
+    const zus = (await req(server, 'POST', '/api/entities/personages', { name: 'Zuster Vonk' }, dm)).body.id;
+    await req(server, 'PUT', `/api/entities/personages/${zus}/visibility`, { target: 'visible' }, dm);
+
+    const zet = (factieId, factieRang) => req(server, 'PUT',
+      `/api/entities/personages/${zus}/koppelingen`, { factieId, factieRang }, dm);
+
+    const r = await zet('proefgilde', 'Luitenant');
+    assert.strictEqual(r.status, 200, JSON.stringify(r.body));
+
+    // Eén plek waar het staat: de ledenlijst van de factie.
+    const f = ((await req(server, 'GET', '/api/facties', null, dm)).body.facties || [])
+      .find(x => x.id === 'proefgilde');
+    assert.ok((f.leden || []).some(l => l.entityId === zus && l.rang === 'Luitenant'),
+      JSON.stringify(f.leden));
+
+    // En terug te lezen op het kaartje zelf.
+    const k = (await req(server, 'GET', `/api/entities/personages/${zus}/koppelingen`, null, dm)).body;
+    assert.strictEqual(k.lidVan, 'proefgilde');
+    assert.strictEqual(k.lidVanRang, 'Luitenant');
+
+    // Het staat als betrekking op het kaartje, met de rang als rol.
+    const kaartje = (await req(server, 'GET', `/api/entities/personages/${zus}`, null, dm)).body;
+    const rij = (kaartje._hoortBij || []).find(x => x.factieId === 'proefgilde');
+    assert.ok(rij, JSON.stringify(kaartje._hoortBij));
+    assert.strictEqual(rij.rol, 'Luitenant');
+
+    // Een speler ziet hem alleen als zijn party de factie kent.
+    await req(server, 'POST', '/api/facties/proefgilde/reveal', null, dm);   // uit
+    const alsSpeler = (await req(server, 'GET', `/api/entities/personages/${zus}`, null, spelerC)).body;
+    assert.ok(!(alsSpeler._hoortBij || []).some(x => x.factieId),
+      'een onbekende factie verklapt zich niet via het kaartje van een lid');
+    await req(server, 'POST', '/api/facties/proefgilde/reveal', null, dm);   // weer aan
+
+    // Losmaken haalt hem uit de ledenlijst, en de rang gaat mee.
+    await zet('', '');
+    const k2 = (await req(server, 'GET', `/api/entities/personages/${zus}/koppelingen`, null, dm)).body;
+    assert.strictEqual(k2.lidVan, '');
+    const f2 = ((await req(server, 'GET', '/api/facties', null, dm)).body.facties || [])
+      .find(x => x.id === 'proefgilde');
+    assert.ok(!(f2.leden || []).some(l => l.entityId === zus));
+  });
+
   it('laat een factie die je niet kent geen hulp sturen', async () => {
     await req(server, 'POST', '/api/facties/proefgilde/reveal', { zichtbaar: false }, dm);
     const r = await req(server, 'POST', '/api/facties/proefgilde/hulp', {}, spelerC);

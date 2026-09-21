@@ -1,5 +1,5 @@
 import { api, campagneUitUrl, zetCampagne } from './api.js?v=291';
-import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, renderDocumenten, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=310";
+import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, renderDocumenten, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=311";
 import { initArchief, renderLogboek, openLogboekEditor } from "./render-archief.js?v=129";
 import { renderKaart, queueFlyTo, verversPins, nieuweKaart } from './render-kaart.js?v=31';
 import { renderDungeon } from './render-dungeon.js?v=56';
@@ -11609,6 +11609,7 @@ window._entiteitDicht = (id) => {
 let _marktData   = null;
 let _marktZoek   = '';
 let _marktGebied = '';   // '' = alles
+let _marktFactie = '';   // '' = alles — filteren op de facties die je kent
 let _marktGevel  = null; // welke winkelgevel er deze keer achter staat
 let _marktWinkel = null; // welke winkel je binnen bent ({ w, e, html, sfeerTekst })
 
@@ -11665,10 +11666,12 @@ function _marktTeken() {
           </div>` : ''}
         </div>
         ${_marktGebiedBalk(winkels)}
+        ${_marktFactieBalk()}
         ${(() => {
-          const zicht = _marktGebied
+          let zicht = _marktGebied
             ? winkels.filter(w => (w.gebieden || []).includes(_marktGebied))
             : winkels;
+          if (_marktFactie) zicht = zicht.filter(w => (w.facties || []).some(f => f.id === _marktFactie));
           return q ? _marktTreffers(zicht, q) : _marktWinkels(zicht);
         })()}
       </div>
@@ -11679,6 +11682,22 @@ function _marktTeken() {
 }
 
 window._marktZoek = (v) => { _marktZoek = v; _marktTeken(); };
+
+// Filteren op factie. Wélke winkels bij een factie horen wordt **afgeleid** uit
+// haar ledenlijst (zie `_factiesPerWinkel` op de server), dus er komt nergens
+// een tweede lijst bij. Alleen facties die deze party kent staan hier: een chip
+// met een naam die je nog nooit hoorde is zelf een onthulling.
+function _marktFactieBalk() {
+  const lijst = _marktData?.factieFilters || [];
+  if (lijst.length < 1) return '';
+  const chip = (id, label) => `<button class="markt-chip${_marktFactie === id ? ' markt-chip--aan' : ''}"
+    onclick="window._marktFactieKies('${escJS(id)}')">${icon('landmark')} ${esc(label)}</button>`;
+  return `<div class="markt-chips markt-chips--facties">
+    ${chip('', 'Alle facties')}
+    ${lijst.map(f => chip(f.id, f.naam)).join('')}
+  </div>`;
+}
+window._marktFactieKies = (id) => { _marktFactie = (_marktFactie === id) ? '' : id; _marktTeken(); };
 
 // Waar een winkel ligt komt uit het veld **Gebied** op zijn locatiekaartje, dat
 // naar een ándere locatie wijst — Boekenwyrm › Luimpoort › Grisburgh. Een
@@ -13522,6 +13541,19 @@ function _renderFactieInterieur(el, f, missies) {
         ${nextRang ? window._factieVereistHtml(nextRang.vereist) : ''}
 
         ${_factieHulpHtml(f)}
+
+        ${(f.verkopers || []).length ? `
+        <div class="factie-verkopers">
+          <div class="factie-missies-label">${icon('store')} Hier kun je terecht</div>
+          ${(f.verkopers || []).map(v => `
+            <button class="factie-verkoper${v._dicht ? ' factie-verkoper--dicht' : ''}"
+              onclick="window._openDetail('${esc(v.winkelSoort || 'locaties')}','${esc(v.winkelId)}',false,'voorraad')"
+              title="${v._dicht ? 'Voor deze party nog dicht' : 'Naar de voorraad'}">
+              <span class="factie-verkoper-naam">${esc(v.winkelNaam)}</span>
+              ${v.verkoperNaam ? `<span class="factie-verkoper-wie">${esc(v.verkoperNaam)}</span>` : ''}
+              <span class="factie-verkoper-aantal">${v.aantal}</span>
+            </button>`).join('')}
+        </div>` : ''}
 
         ${beschikbaar.length || actief.length || aangevraagd.length ? `
         <div class="factie-missies-sectie">

@@ -26708,3 +26708,25 @@ body.akte-schrijf-open .mp-overlay { z-index: 1320; }
 .factie-hulp-tekst { flex: 1 1 220px; font-size: .9rem; color: #3a2410; }
 .factie-hulp-tekst .icon { width: 15px; height: 15px; vertical-align: -3px; margin-right: 5px; color: #a8833c; }
 .factie-hulp--actief { background: rgba(122, 150, 90, .16); border-color: rgba(122, 150, 90, .45); }
+
+/* ── Facties: waar je terecht kunt ───────────────────────────────────────── */
+.factie-verkopers { margin-top: 12px; }
+.factie-verkoper {
+  display: flex; align-items: baseline; gap: 8px; width: 100%;
+  margin-bottom: 4px; padding: 7px 11px; text-align: left;
+  border: 1px solid rgba(196, 168, 122, .45); border-radius: 8px;
+  background: rgba(242, 232, 210, .4); cursor: pointer;
+  font-family: 'Crimson Text', serif; color: #3a2410;
+}
+.factie-verkoper:hover { background: rgba(242, 232, 210, .7); }
+.factie-verkoper-naam { font-family: 'Cinzel', serif; font-size: .92rem; }
+.factie-verkoper-wie  { font-family: 'IM Fell English', serif; color: #7a6040; font-size: .86rem; }
+.factie-verkoper-aantal {
+  margin-left: auto; font-size: .78rem; color: #7a6040;
+  font-variant-numeric: tabular-nums;
+}
+/* Alleen de DM ziet een winkel die voor de party nog dicht zit. */
+.factie-verkoper--dicht { border-style: dashed; opacity: .72; }
+
+.markt-chips--facties { margin-top: -4px; }
+.markt-chips--facties .icon { width: 13px; height: 13px; vertical-align: -2px; margin-right: 4px; opacity: .7; }
