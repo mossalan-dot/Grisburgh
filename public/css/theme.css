@@ -26730,3 +26730,38 @@ body.akte-schrijf-open .mp-overlay { z-index: 1320; }
 
 .markt-chips--facties { margin-top: -4px; }
 .markt-chips--facties .icon { width: 13px; height: 13px; vertical-align: -2px; margin-right: 4px; opacity: .7; }
+
+/* ── Handelen namens een speler (alleen de DM, alleen op een dienstscherm) ── */
+/* Zweeft linksonder: hij hoort bij het scherm maar niet bij de scène, en de
+   diensten zetten hun eigen achtergrond over de volle breedte. */
+.als-speler-balk {
+  position: fixed; left: 14px; bottom: 14px; z-index: 60;
+  display: flex; align-items: center; gap: 9px; flex-wrap: wrap;
+  max-width: calc(100vw - 28px);
+  padding: 8px 12px; border-radius: 9px;
+  border: 1px solid var(--rand, #c4a87a);
+  background: rgba(242, 232, 210, .94);
+  box-shadow: 0 2px 10px rgba(42, 26, 8, .28);
+  backdrop-filter: blur(4px);
+  font-family: 'Crimson Text', serif; color: #3a2410;
+}
+.als-speler-kop {
+  display: inline-flex; align-items: center; gap: 5px;
+  font-family: 'Cinzel', serif; font-size: .74rem;
+  letter-spacing: .06em; text-transform: uppercase; color: #7a6040;
+}
+.als-speler-kop .icon { width: 14px; height: 14px; color: #a8833c; }
+.als-speler-select {
+  font-family: 'Crimson Text', serif; font-size: .92rem; color: #3a2410;
+  background: #f6eeda; border: 1px solid rgba(196, 168, 122, .8);
+  border-radius: 6px; padding: 3px 7px; max-width: 200px;
+}
+.als-speler-noot {
+  font-family: 'IM Fell English', serif; font-size: .82rem; color: #7a6040;
+}
+/* Staat hij aan, dan mag dat opvallen: je handelt niet als jezelf. */
+.als-speler-balk--aan {
+  border-color: #a8833c;
+  box-shadow: 0 2px 10px rgba(42, 26, 8, .28), inset 0 0 0 1px rgba(168, 131, 60, .35);
+}
+@media (max-width: 640px) { .als-speler-balk { left: 8px; right: 8px; bottom: 8px; } }

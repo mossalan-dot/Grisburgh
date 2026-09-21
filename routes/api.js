@@ -2454,8 +2454,10 @@ router.get('/shops/:shopId/beschikbaar', attachRole, (req, res) => {
 // zaak die je party nooit ontdekt heeft, of terwijl jullie drie dagen varen
 // van de stad zijn. De DM komt er altijd langs; hij handelt namens de tafel.
 function _winkelDicht(req, dmState, shopId) {
-  if (req.role === 'dm') return null;
-  const gid = _playerGroupId(dmState, req.session?.characterId);
+  // Handelt de DM namens een speler, dan gelden de poorten van díé speler.
+  const namens = req.role === 'dm' ? _handelendKarakter(req, dmState) : null;
+  if (req.role === 'dm' && !namens) return null;
+  const gid = _playerGroupId(dmState, namens || req.session?.characterId);
   const g   = getGroup(dmState, gid);
   if (((g.visibility || {})[shopId] || 'hidden') === 'hidden') {
     return 'Die winkel kennen jullie niet';
@@ -2468,7 +2470,7 @@ function _winkelDicht(req, dmState, shopId) {
 }
 
 router.post('/shops/:shopId/koop', attachRole, (req, res) => {
-  const characterId = req.session?.characterId;
+  const characterId = _handelendKarakter(req);
   if (!characterId) return res.status(401).json({ error: 'Log in als speler om te kopen' });
 
   let { shopId } = req.params;
@@ -2861,7 +2863,7 @@ router.get('/shops/:shopId/verkoopbaar', attachRole, (req, res) => {
 
 // ── Winkel: voorwerp verkopen (inkoop door winkel) ─────────────────────────
 router.post('/shops/:shopId/verkoop', attachRole, (req, res) => {
-  const characterId = req.session?.characterId;
+  const characterId = _handelendKarakter(req);
   if (!characterId) return res.status(401).json({ error: 'Log in als speler om te verkopen' });
 
   let { shopId } = req.params;
@@ -3211,7 +3213,7 @@ router.post('/shops/:shopId/dm-inkoop', requireDM, (req, res) => {
 
 // ── Winkel: onderhandelen ──
 router.post('/shops/:shopId/onderhandel', attachRole, (req, res) => {
-  const characterId = req.session?.characterId;
+  const characterId = _handelendKarakter(req);
   if (!characterId) return res.status(401).json({ error: 'Log in als speler' });
 
   let { shopId } = req.params;
@@ -10626,11 +10628,52 @@ const _DIENSTEN_NAMEN = ['herberg', 'tweespalt', 'gock', 'ursula', 'tempel', 'fa
 // "niet bereikbaar", maar de route eronder liet alles toe. Een tabblad dat al
 // openstond toen de party wegvoer kon dus gewoon eten bestellen en een eed
 // zweren — hetzelfde gat dat we eerder voor de groepsschakelaar dichtten.
+// ── Handelen namens een speler ───────────────────────────────────────────────
+// De DM kwam overal langs de poort — hij ziet elke dienst — maar élke
+// schrijfactie begint met `req.session.characterId`, en die heeft hij niet.
+// Bestellen, inzetten, een zegen kopen, lenen, adopteren: dertien van de
+// veertien spelersacties antwoordden met "alleen spelers kunnen…". Een dienst
+// end-to-end nakijken vroeg daardoor een tweede browser, want één browser deelt
+// één sessiecookie.
+//
+// Dit is één helper in plaats van dertien uitzonderingen: je eigen sessie, of —
+// als je DM bent — het personage dat je meestuurt, mits dat een speler in de
+// **actieve party** is. Dezelfde beweging die de DM aan tafel toch al maakt.
+//
+// Twee grenzen, en die zijn het punt van de hele mode:
+//   * het omzeilt de poort niet. Handel je namens een speler, dan gelden de
+//     groepsschakelaar en de akte-bereikbaarheid van díé speler — anders test
+//     je iets wat een speler nooit te zien krijgt.
+//   * het geldt alleen voor spelers in de actieve party. De DM mag namens
+//     iemand handelen, niet namens een party die er niet is.
+function _alsSpelerVan(req) {
+  if (req.role !== 'dm') return null;
+  const v = req.body?.alsSpeler || req.query?.alsSpeler;
+  return v ? String(v).trim() : null;
+}
+
+function _handelendKarakter(req, dmState) {
+  if (req.session?.characterId) return req.session.characterId;
+  const gevraagd = _alsSpelerVan(req);
+  if (!gevraagd) return null;
+  const st = dmState || readDmState();
+  const gid = st.activeGroup || Object.keys(st.groups || {})[0];
+  let personages = [];
+  try { personages = storage.readJSON('entities.json').personages || []; } catch { return null; }
+  const p = personages.find(e => e.id === gevraagd && e.subtype === 'speler');
+  if (!p) return null;
+  return _playerGroupId(st, p.id) === gid ? p.id : null;
+}
+
 function vereistDienst(dienstNaam) {
   return (req, res, next) => {
-    if (req.role === 'dm') return next();
     const dmState = readDmState();
-    const gid = _playerGroupId(dmState, req.session?.characterId);
+    // Handelt de DM namens een speler, dan gelden de poorten van díé speler —
+    // anders is de proef niets waard. Handelt hij als zichzelf, dan komt hij er
+    // langs zoals altijd: hij test, en hij handelt namens de tafel.
+    const namens = req.role === 'dm' ? _handelendKarakter(req, dmState) : null;
+    if (req.role === 'dm' && !namens) return next();
+    const gid = _playerGroupId(dmState, namens || req.session?.characterId);
     const staat = _getDienstToegang(dmState, dienstNaam, gid || undefined);
     if (staat !== 'beschikbaar') {
       return res.status(403).json({ error: 'Deze dienst is nu niet beschikbaar voor je groep', dienst: dienstNaam, staat });
@@ -10838,7 +10881,7 @@ router.get('/ursula', attachRole, (req, res) => {
 });
 
 router.post('/ursula/voorspel', attachRole, vereistDienst('ursula'), (req, res) => {
-  const characterId = req.session.characterId;
+  const characterId = _handelendKarakter(req);
   if (!characterId) return res.status(403).json({ error: 'Geen speler ingelogd' });
 
   const meta = storage.readJSON('meta.json');
@@ -11009,7 +11052,7 @@ router.get('/gock', attachRole, (req, res) => {
 });
 
 router.post('/gock/opdracht', attachRole, vereistDienst('gock'), (req, res) => {
-  const characterId = req.session.characterId;
+  const characterId = _handelendKarakter(req);
   if (!characterId) return res.status(403).json({ error: 'Geen speler ingelogd' });
 
   const { entityId, entityType } = req.body;
@@ -11036,10 +11079,26 @@ router.post('/gock/opdracht', attachRole, vereistDienst('gock'), (req, res) => {
   const entity = (entities[entityType] || []).find(e => e.id === entityId);
   if (!entity) return res.status(404).json({ error: 'Entiteit niet gevonden' });
 
-  let tekst, isGeheim = false;
-  if (entity.data?.geheim) {
-    tekst = entity.data.geheim;
+  // Geheimen zijn een **lijst** met eigen ids; dit las nog het oude enkelvoudige
+  // `data.geheim`, dus zodra een kaartje in de nieuwe editor was opgeslagen gaf
+  // de detective er stilzwijgend een willekeurig tidbit voor terug. `_geheimRegels()`
+  // is de enige juiste lezer — die vouwt de oude vormen er zelf in.
+  //
+  // Hij levert een regel op die deze party **nog niet kent**: twee keer
+  // onderzoek doen naar dezelfde man hoort iets nieuws op te leveren, of anders
+  // eerlijk niets. Welke regel het wordt onthouden we, want pas bij het ophalen
+  // van het dossier weet de party het — en dan gaat hij ook echt open.
+  const _gid    = _playerGroupId(dmState, characterId);
+  const _grp    = getGroup(dmState, _gid);
+  const _regels = _geheimRegels(entity.data);
+  const _bekend = _onthuldeIds((_grp.secretReveals || {})[entityId], _regels);
+  const _nieuw  = _regels.find(r => !_bekend.has(r.id));
+
+  let tekst, isGeheim = false, geheimId = null;
+  if (_nieuw) {
+    tekst = _nieuw.tekst;
     isGeheim = true;
+    geheimId = _nieuw.id;
   } else {
     tekst = tidbits[Math.floor(Math.random() * tidbits.length)].replace(/\{naam\}/g, entity.name);
   }
@@ -11049,7 +11108,7 @@ router.post('/gock/opdracht', attachRole, vereistDienst('gock'), (req, res) => {
   dmState.gockState[characterId] = {
     entityId, entityType, entityName: entity.name,
     betaaldOp: new Date().toISOString(),
-    klaarOp, tekst, isGeheim,
+    klaarOp, tekst, isGeheim, geheimId,
     gereed: false, opgehaald: false,
   };
 
@@ -11060,7 +11119,7 @@ router.post('/gock/opdracht', attachRole, vereistDienst('gock'), (req, res) => {
 });
 
 router.put('/gock/opgehaald', attachRole, vereistDienst('gock'), (req, res) => {
-  const characterId = req.session.characterId;
+  const characterId = _handelendKarakter(req);
   if (!characterId) return res.status(403).json({ error: 'Geen speler ingelogd' });
   const dmState = readDmState();
   const geval = (dmState.gockState || {})[characterId];
@@ -11083,6 +11142,26 @@ router.put('/gock/opgehaald', attachRole, vereistDienst('gock'), (req, res) => {
     const grp = getGroup(dmState, gid);
     if (!grp.gockOnderzocht) grp.gockOnderzocht = {};
     grp.gockOnderzocht[geval.entityId] = true;
+
+    // Het geheim stond in het rapport, maar het kaartje toonde de regel nog als
+    // dicht — de party wist iets wat de app zei dat ze niet wisten. Je hebt
+    // ervoor betaald, dus de regel gaat hier open, langs dezelfde weg als het
+    // oogje van de DM.
+    if (geval.geheimId) {
+      if (!grp.secretReveals) grp.secretReveals = {};
+      const ent = (storage.readJSON('entities.json')[geval.entityType] || [])
+        .find(e => e.id === geval.entityId);
+      const regels = _geheimRegels(ent?.data);
+      // Een kaartje dat nog geen echte ids heeft houdt zijn array-vorm, anders
+      // raakt de bestaande stand de weg kwijt (zie _echteIds in PUT .../secret).
+      const stand = grp.secretReveals[geval.entityId];
+      if (Array.isArray(stand)) {
+        const idx = regels.findIndex(r => r.id === geval.geheimId);
+        if (idx >= 0) { stand[idx] = true; }
+      } else {
+        grp.secretReveals[geval.entityId] = { ...(stand || {}), [geval.geheimId]: true };
+      }
+    }
   }
   storage.writeJSON('dm-state.json', dmState);
   // Bezorg het dossier ook als gethematiseerde brief (logo + typemachine) in de berichtenbox
@@ -11180,7 +11259,7 @@ router.get('/magizoo', attachRole, (req, res) => {
 
 // Adopteer een metgezel bij De Magizoöloog (speler betaalt → companion + baasje + naam vastgelegd).
 router.post('/magizoo/adopteer', attachRole, vereistDienst('magizoo'), (req, res) => {
-  const characterId = req.session.characterId;
+  const characterId = _handelendKarakter(req);
   if (!characterId) return res.status(403).json({ error: 'Geen speler ingelogd' });
   const { petId } = req.body;
   if (!petId) return res.status(400).json({ error: 'petId vereist' });
@@ -11236,7 +11315,7 @@ router.post('/magizoo/adopteer', attachRole, vereistDienst('magizoo'), (req, res
 });
 
 router.post('/magizoo/onderzoek', attachRole, vereistDienst('magizoo'), (req, res) => {
-  const characterId = req.session.characterId;
+  const characterId = _handelendKarakter(req);
   if (!characterId) return res.status(403).json({ error: 'Geen speler ingelogd' });
   const { monsterId, modus } = req.body;          // modus: 'stap' | 'volledig'
   if (!monsterId) return res.status(400).json({ error: 'monsterId vereist' });
@@ -11405,7 +11484,7 @@ router.get('/tempel', attachRole, (req, res) => {
 
 // Eenmalige zegen: d{n} kiest welke, d4 bepaalt het aantal keer. Vervalt bij lange rust.
 router.post('/tempel/zegen', attachRole, vereistDienst('tempel'), (req, res) => {
-  const characterId = req.session.characterId;
+  const characterId = _handelendKarakter(req);
   if (!characterId) return res.status(403).json({ error: 'Geen speler ingelogd' });
 
   const { godId } = req.body;
@@ -11465,7 +11544,7 @@ router.post('/tempel/zegen', attachRole, vereistDienst('tempel'), (req, res) => 
 });
 
 router.post('/tempel/verbruik', attachRole, vereistDienst('tempel'), (req, res) => {
-  const characterId = req.session.characterId;
+  const characterId = _handelendKarakter(req);
   if (!characterId) return res.status(403).json({ error: 'Geen speler ingelogd' });
 
   const dmState = readDmState();
@@ -11490,7 +11569,7 @@ router.post('/tempel/verbruik', attachRole, vereistDienst('tempel'), (req, res) 
 
 // Eed: blijvende +1 (overleeft lange rust). Eén eed per speler. Verzaking → vloek.
 router.post('/tempel/eed', attachRole, vereistDienst('tempel'), (req, res) => {
-  const characterId = req.session.characterId;
+  const characterId = _handelendKarakter(req);
   if (!characterId) return res.status(403).json({ error: 'Geen speler ingelogd' });
 
   const { godId } = req.body;
@@ -11543,7 +11622,7 @@ router.post('/tempel/eed', attachRole, vereistDienst('tempel'), (req, res) => {
 
 // Boete: speler koopt zich vrij van een vloek.
 router.post('/tempel/boete', attachRole, vereistDienst('tempel'), (req, res) => {
-  const characterId = req.session.characterId;
+  const characterId = _handelendKarakter(req);
   if (!characterId) return res.status(403).json({ error: 'Geen speler ingelogd' });
 
   const meta = storage.readJSON('meta.json');
@@ -12636,7 +12715,7 @@ router.post('/herberg/vraag', attachRole, vereistDienst('herberg'), (req, res) =
   const config = meta.herberg;
   if (!config) return res.status(404).json({ error: 'Herberg niet geconfigureerd' });
 
-  const characterId = req.session.characterId || req.playerName || 'dm';
+  const characterId = _handelendKarakter(req) || req.playerName || 'dm';
   const herbergState = storage.readJSON('herberg-state.json');
   let playerState = herbergState[characterId] || { vragen: 0, cooldownTot: null };
 
@@ -12706,7 +12785,7 @@ router.post('/herberg/bestel', attachRole, vereistDienst('herberg'), (req, res) 
   const config = meta.herberg;
   if (!config) return res.status(404).json({ error: 'Herberg niet geconfigureerd' });
 
-  const characterId = req.session.characterId;
+  const characterId = _handelendKarakter(req);
   if (!characterId) return res.status(403).json({ error: 'Alleen spelers kunnen bestellen' });
 
   const item = (Array.isArray(config.menu) ? config.menu : []).find(m => m.id === req.body.itemId);
@@ -13066,7 +13145,7 @@ router.delete('/tweespalt/events/:id', requireDM, (req, res) => {
 });
 
 router.post('/tweespalt/events/:id/wedden', attachRole, vereistDienst('tweespalt'), (req, res) => {
-  const characterId = req.session.characterId;
+  const characterId = _handelendKarakter(req);
   if (!characterId) return res.status(403).json({ error: 'Geen speler ingelogd' });
 
   const { optieId, bedrag } = req.body;
@@ -13128,7 +13207,7 @@ router.post('/tweespalt/events/:id/uitslag', requireDM, (req, res) => {
 
 // ── Arena: speler meldt zich aan voor een partij; de DM beslecht het als echt gevecht ──
 router.post('/tweespalt/arena/:boutId/aanmeld', attachRole, vereistDienst('tweespalt'), (req, res) => {
-  const characterId = req.session.characterId;
+  const characterId = _handelendKarakter(req);
   if (!characterId) return res.status(403).json({ error: 'Alleen spelers kunnen het strijdperk betreden' });
 
   const tsMeta = storage.readJSON('meta.json').tweespalt || {};
@@ -13220,7 +13299,7 @@ router.post('/tweespalt/arena/signup/:id/uitslag', requireDM, (req, res) => {
 });
 
 router.post('/tweespalt/leen', attachRole, vereistDienst('tweespalt'), (req, res) => {
-  const characterId = req.session.characterId;
+  const characterId = _handelendKarakter(req);
   if (!characterId) return res.status(403).json({ error: 'Geen speler ingelogd' });
 
   const { bedrag } = req.body;

@@ -20,8 +20,18 @@ export function metCampagne(pad) {
   return pad + (pad.includes('?') ? '&' : '?') + 'campagne=' + encodeURIComponent(_campagne);
 }
 
+// Handelt de DM namens een speler (zie `window._alsSpeler`), dan gaat dat als
+// querystring mee. Alleen de schrijfroutes van de diensten doen er iets mee;
+// de rest van de app merkt er niets van. Bewust in de URL en niet in de body:
+// dan hoeft geen enkele bestaande aanroep zijn payload aan te passen.
+function metAlsSpeler(pad) {
+  const wie = (typeof window !== 'undefined') ? window._alsSpeler : null;
+  if (!wie || pad.includes('alsSpeler=')) return pad;
+  return pad + (pad.includes('?') ? '&' : '?') + 'alsSpeler=' + encodeURIComponent(wie);
+}
+
 async function request(path, opts = {}) {
-  const res = await fetch(BASE + metCampagne(path), {
+  const res = await fetch(BASE + metAlsSpeler(metCampagne(path)), {
     headers: { 'Content-Type': 'application/json', ...opts.headers },
     ...opts,
   });

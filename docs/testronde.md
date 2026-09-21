@@ -910,3 +910,13 @@ Per bevinding: waar, wat, en of het opgelost is. Nieuwe regels onderaan.
 - [ ] **Factiefilter op de Markt** (speler) — onder de gebiedschips staat een rij facties; kies er een en je ziet alleen de winkels van die factie. Alleen facties die je party kent staan er — een chip met een onbekende naam zou zelf een onthulling zijn.
 - [ ] **Persoon aan een factie koppelen** (DM) — open een personage-kaartje in de editor: onder *Koppelingen* staat **Lid van factie** met een rangveld. Kies een factie: hij staat meteen in de ledenlijst van het factiepaneel (één plek, twee kanten). Op zijn kaartje staat de factie in het *hoort bij*-rijtje, met zijn rang als rol; een factie die de party niet kent staat er voor de speler niet bij.
 - [ ] **Een factie onthullen zet zijn kaartje goed** (DM) — onthul een factie met een gekoppeld organisatiekaartje: dat kaartje staat daarna op *zichtbaar*. (Het kwam in een eigen stand `zichtbaar` terecht die geen enkele filter herkende; één kaartje in Grisburgh stond zo.)
+
+### Handelen namens een speler, en de Gock (21 sep 2026)
+
+- [ ] **Handel namens** (DM) — open een dienst: linksonder staat een balk *Handel namens* met de spelers van de actieve party. Kies er een; de balk licht op en zegt "zijn beurs, zijn poorten". Bestel iets: het geld gaat van díé speler af en de temp HP landt bij hem. De keuze blijft staan als je van dienst wisselt en na herladen.
+- [ ] **De poorten gelden gewoon** (DM) — zet de dienst voor die party op *verborgen*: als jezelf kom je er nog langs (je test, en je handelt namens de tafel), namens die speler krijg je dezelfde 403 als hij. Anders test je iets wat een speler nooit ziet.
+- [ ] **Alleen de actieve party** (DM) — iemand uit een andere party staat niet in de lijst, en zijn id meesturen geeft een 403.
+- [ ] **Een speler kan het niet** (speler) — de balk staat er niet, en `alsSpeler` meesturen doet niets: je handelt altijd voor jezelf.
+- [ ] **De Gock leest de geheimenlijst** (speler) — laat een kaartje met meerdere geheimen onderzoeken: het rapport bevat een échte geheimregel, niet een willekeurig tidbit. (Hij las nog het oude enkelvoudige veld, dus een kaartje dat ooit in de nieuwe editor was opgeslagen leverde stilzwijgend een tidbit op.)
+- [ ] **Het geheim gaat ook open op het kaartje** (speler) — na het ophalen van het dossier staat diezelfde regel als onthuld op het kaartje. Je hebt ervoor betaald; dan hoort de app niet te zeggen dat je het nog niet weet.
+- [ ] **Tweede keer, ander geheim** (speler) — onderzoek dezelfde persoon nog eens: je krijgt de volgende regel. Zijn ze op, dan krijg je weer een tidbit.

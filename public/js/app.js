@@ -1,4 +1,4 @@
-import { api, campagneUitUrl, zetCampagne } from './api.js?v=292';
+import { api, campagneUitUrl, zetCampagne } from './api.js?v=293';
 import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, renderDocumenten, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=312";
 import { initArchief, renderLogboek, openLogboekEditor } from "./render-archief.js?v=130";
 import { renderKaart, queueFlyTo, verversPins, nieuweKaart } from './render-kaart.js?v=31';
@@ -496,7 +496,63 @@ function switchSection(section) {
   } else {
     window.soundManager?.setServiceAmbiance?.(null);
   }
+
+  // #3: de balk waarmee de DM namens een speler handelt — alleen op een dienst.
+  _alsSpelerBalk(section);
 }
+// ── Handelen namens een speler (DM) ──────────────────────────────────────────
+// De DM kon elke dienst bekíjken maar er niets in dóén: dertien van de veertien
+// spelersacties vragen een `characterId` dat hij niet heeft. Met deze balk kiest
+// hij namens wie hij handelt; `api.js` stuurt dat mee en de server past de
+// poorten van díé speler toe. Eén balk voor alle diensten, en hij onthoudt zijn
+// keuze — je zet hem aan het begin van een testronde één keer.
+const _DIENST_SECTIES = ['markt', 'herberg', 'tweespalt', 'gock', 'ursula', 'tempel', 'facties', 'magizoo'];
+window._alsSpeler = null;
+try { window._alsSpeler = localStorage.getItem('alsSpeler') || null; } catch { /* privémodus */ }
+
+let _alsSpelerLijst = null;   // spelers van de actieve party, één keer opgehaald
+
+async function _alsSpelerBalk(section) {
+  let el = document.getElementById('als-speler-balk');
+  const tonen = window.app?.isDM?.() && _DIENST_SECTIES.includes(section);
+  if (!tonen) { if (el) el.remove(); return; }
+
+  if (!_alsSpelerLijst) {
+    try {
+      const alle = await api.listPlayerChars();
+      // Alleen de actieve party: de DM handelt namens iemand die er nú is.
+      _alsSpelerLijst = (alle || []).filter(p => !window._activeGroupId || p.groep === window._activeGroupId);
+    } catch { _alsSpelerLijst = []; }
+  }
+  const leden = _alsSpelerLijst;
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'als-speler-balk';
+    el.className = 'als-speler-balk';
+    document.body.appendChild(el);
+  }
+  const huidig = window._alsSpeler || '';
+  el.innerHTML = `
+    <span class="als-speler-kop">${icon('user')} Handel namens</span>
+    <select class="als-speler-select" onchange="window._alsSpelerKies(this.value)">
+      <option value="">— jezelf (DM) —</option>
+      ${leden.map(p => `<option value="${esc(p.id)}"${huidig === p.id ? ' selected' : ''}>${esc(p.name)}</option>`).join('')}
+    </select>
+    ${huidig ? `<span class="als-speler-noot">zijn beurs, zijn poorten</span>` : ''}`;
+  el.classList.toggle('als-speler-balk--aan', !!huidig);
+}
+
+window._alsSpelerKies = (id) => {
+  window._alsSpeler = id || null;
+  try { id ? localStorage.setItem('alsSpeler', id) : localStorage.removeItem('alsSpeler'); } catch { /* ok */ }
+  _alsSpelerBalk(window.app?.state?.activeSection);
+  // Opnieuw tekenen: de dienst leest nu de beurs en de stand van iemand anders.
+  window.app?.refreshSection?.(window.app?.state?.activeSection);
+  window._showToast?.(id
+    ? `${icon('user')} Je handelt nu namens ${esc((_alsSpelerLijst || []).find(p => p.id === id)?.name || 'een speler')}.`
+    : `${icon('check')} Je handelt weer als jezelf.`);
+};
+
 const _DIENST_AMB_LABELS = {
   herberg: 'De Herberg', tweespalt: 'De Tweespalt', gock: 'De Gock',
   ursula: 'Madame Ursula', tempel: 'De Tempel', magizoo: 'De Magizoöloog',

@@ -1,4 +1,4 @@
-import { api } from './api.js?v=292';
+import { api } from './api.js?v=293';
 
 const isDM  = () => window.app.isDM();
 const icon  = (...a) => window.icon(...a);
