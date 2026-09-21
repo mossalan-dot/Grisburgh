@@ -7749,6 +7749,16 @@ async function renderMijnKarakter(opts = {}) {
   const _mkLvl = parseInt(playerProfile.multiKlasseLevel) || 0;
   const _dominantKlasse = (_isMulticlass && playerProfile.multiKlasse && _mkLvl > _kLvl)
     ? playerProfile.multiKlasse : (playerProfile.klasse || '');
+  // Eén rij voor een subklasse. Staat vlak onder de klasse waar hij bij hoort:
+  // los van elkaar kwam de subklasse van de twééde klasse bóven die van de
+  // eerste te staan, en heette de eerste alleen "Subclass" — wat niets zegt
+  // zodra er twee zijn. Bij één klasse blijft dat gewoon "Subclass".
+  const _subRij = (label, veld, waarde, opts) => `
+            <div class="ppf-row"><label class="ppf-label">${label}</label>
+              ${opts
+                ? _ppfSelectField(veld, waarde, opts, '\u2014')
+                : `<input class="ppf-input" type="text" value="${esc(waarde ?? '')}" placeholder="\u2014"
+                onblur="window._saveProfileField('${veld}', this.value)">`}</div>`;
   const _klasseStr = _isMulticlass && playerProfile.multiKlasse
     ? `${playerProfile.klasse || '?'} (${playerProfile.klasseLevel || '?'}) / ${playerProfile.multiKlasse} (${playerProfile.multiKlasseLevel || '?'})`
     : entity?.data?.klasse || playerProfile.klasse || '';
@@ -7836,6 +7846,10 @@ async function renderMijnKarakter(opts = {}) {
                 onclick="window._toggleMulticlass()"
                 title="${_isMulticlass ? 'Multiclass uitschakelen' : 'Multiclass inschakelen'}">⊕</button>
             </div>
+            ${_subRij(
+              isHp ? 'School of Magic'
+                   : (_isMulticlass ? `Subclass ${esc(playerProfile.klasse || '1')}` : 'Subclass'),
+              'subclass', playerProfile.subclass, _subclassOpts)}
             ${_isMulticlass ? `<div class="ppf-row"><label class="ppf-label">Multiclass</label>
               <select class="ppf-input ppf-select" id="ppf-multi-select"
                 onchange="window._saveProfileField('multiKlasse', this.value); window._updateMulticlassTheme()">
@@ -7848,16 +7862,8 @@ async function renderMijnKarakter(opts = {}) {
                 value="${esc(playerProfile.multiKlasseLevel ?? '')}" placeholder="Niv"
                 onchange="window._saveProfileField('multiKlasseLevel', this.value); window._updateMulticlassTheme()">
             </div>
-            <div class="ppf-row"><label class="ppf-label">Subclass ${esc(playerProfile.multiKlasse || '2')}</label>
-              ${_subclassOpts2
-                ? _ppfSelectField('multiSubclass', playerProfile.multiSubclass, _subclassOpts2, '\u2014')
-                : `<input class="ppf-input" type="text" value="${esc(playerProfile.multiSubclass ?? '')}" placeholder="\u2014"
-                onblur="window._saveProfileField('multiSubclass', this.value)">`}</div>` : ''}
-            <div class="ppf-row"><label class="ppf-label">${isHp ? 'School of Magic' : 'Subclass'}</label>
-              ${_subclassOpts
-                ? _ppfSelectField('subclass', playerProfile.subclass, _subclassOpts, '—')
-                : `<input class="ppf-input" type="text" value="${esc(playerProfile.subclass ?? '')}" placeholder="—"
-                onblur="window._saveProfileField('subclass', this.value)">`}</div>
+            ${_subRij(`Subclass ${esc(playerProfile.multiKlasse || '2')}`,
+              'multiSubclass', playerProfile.multiSubclass, _subclassOpts2)}` : ''}
             <div class="ppf-row"><label class="ppf-label">Background</label>
               ${_backgroundOpts
                 ? _ppfSelectField('background', playerProfile.background, _backgroundOpts, '—')
