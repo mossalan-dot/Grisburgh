@@ -380,6 +380,35 @@ describe('Level omhoog', () => {
     assert.strictEqual(st.tegoed, 0, 'op mijlpaal geeft XP geen level-up');
   });
 
+  it('XP: de nullijn zet een met de hand gezet level recht', async () => {
+    await req(server, 'PUT', '/api/meta/levelup', { systeem: 'xp' }, dm);
+    // De stand waarin elke campagne belandt die halverwege overstapt: een level
+    // dat er is, en XP die er niet is.
+    await req(server, 'PATCH', `/api/player-profile/${charId}`,
+      { level: '7', klasseLevel: '7', klasse: 'Fighter' }, dm);
+
+    let st = (await req(server, 'GET', `/api/characters/${charId}/level-up`, null, dm)).body;
+    assert.strictEqual(st.xp.scheef, true, 'XP onder de drempel van je eigen level');
+
+    const r = await req(server, 'POST', '/api/party/xp/nullijn', {}, dm);
+    assert.strictEqual(r.status, 200, JSON.stringify(r.body));
+    st = (await req(server, 'GET', `/api/characters/${charId}/level-up`, null, dm)).body;
+    assert.strictEqual(st.xp.nu, 23000, 'level 7 begint bij 23.000');
+    assert.strictEqual(st.xp.scheef, false);
+    assert.strictEqual(st.tegoed, 0, 'de nullijn geeft géén level-up cadeau');
+
+    // Twee keer drukken mag: het verlaagt nooit.
+    await req(server, 'POST', '/api/party/xp', { aantal: 5000, charIds: [charId] }, dm);
+    const tweede = await req(server, 'POST', '/api/party/xp/nullijn', {}, dm);
+    assert.strictEqual(tweede.body.aangepast, 0, 'wie al verder is wordt niet teruggezet');
+    st = (await req(server, 'GET', `/api/characters/${charId}/level-up`, null, dm)).body;
+    assert.strictEqual(st.xp.nu, 28000, 'zijn verdiende XP blijft staan');
+
+    // Alleen de DM.
+    const speler = await req(server, 'POST', '/api/party/xp/nullijn', {}, null);
+    assert.ok(speler.status === 401 || speler.status === 403, 'niet zonder DM-sessie');
+  });
+
   it('rekent uit wat een gevecht aan XP waard is', async () => {
     const m = (await req(server, 'POST', '/api/monsters',
       { name: 'Proefwolf', maxHp: 11, xp: 50 }, dm)).body;

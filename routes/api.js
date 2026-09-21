@@ -4613,7 +4613,13 @@ router.get('/characters/:characterId/level-up', attachRole, (req, res) => {
     xp: cfg.systeem === 'xp' ? (() => {
       const nu = parseInt((dmState.playerXp || {})[characterId]) || 0;
       const lvl = parseInt(profile.level) || 1;
-      return { nu, dezeLevel: XP_DREMPELS[lvl] ?? 0, volgende: XP_DREMPELS[lvl + 1] ?? null };
+      const dezeLevel = XP_DREMPELS[lvl] ?? 0;
+      // Staat je XP onder de drempel van je eigen level, dan is dat level met de
+      // hand gezet en is de balk betekenisloos: hij zou op nul staan en een
+      // afstand beloven die nergens op slaat. Dat overkomt élke campagne die
+      // halverwege op XP overgaat — iedereen heeft een level, niemand heeft XP.
+      // De client zegt dat dan liever hardop. Zie POST /party/xp/nullijn.
+      return { nu, dezeLevel, volgende: XP_DREMPELS[lvl + 1] ?? null, scheef: nu < dezeLevel };
     })() : null,
     level:   parseInt(profile.level) || 0,
     // Species-traits hangen aan het personagelevel, niet aan een klasse: een
@@ -4873,6 +4879,47 @@ router.post('/party/xp', requireDM, (req, res) => {
   }
   res.json({ ok: true, aantal, spelers: uit, magLevel: uit.filter(r => r.magLevel).length });
 });
+
+// Overstappen op XP terwijl er al gespeeld is: iedereen heeft een level en
+// niemand heeft XP, dus staat elke balk op nul en belooft hij een afstand die
+// nergens op slaat. Dit zet de nullijn recht — ieders XP naar het minimum dat
+// bij zijn huidige level hoort.
+//
+// Twee regels die het veilig maken. Het **verlaagt nooit** (`Math.max`): wie al
+// verder was houdt wat hij had, dus je kunt de knop twee keer indrukken zonder
+// iemand terug te zetten. En het raakt alleen personages met een profiel én een
+// level — een kaartje zonder speler krijgt geen XP.
+//
+// Bewust een knop en geen automatische migratie bij het omzetten van de
+// instelling: wat de stand van vanavond is, is een keuze van de DM en geen
+// gevolg van een vinkje.
+router.post('/party/xp/nullijn', requireDM, (req, res) => {
+  const dmState = readDmState();
+  if (!dmState.playerXp) dmState.playerXp = {};
+
+  const uit = [];
+  for (const [id, profiel] of Object.entries(dmState.playerProfiles || {})) {
+    const lvl = parseInt(profiel?.level) || 0;
+    if (!lvl) continue;
+    const drempel = XP_DREMPELS[Math.min(lvl, XP_DREMPELS.length - 1)] ?? 0;
+    const voor = parseInt(dmState.playerXp[id]) || 0;
+    const na = Math.max(voor, drempel);
+    if (na === voor) continue;
+    dmState.playerXp[id] = na;
+    uit.push({ characterId: id, level: lvl, voor, na });
+  }
+
+  if (uit.length) {
+    storage.writeJSON('dm-state.json', dmState);
+    const io = req.app.get('io');
+    if (io) {
+      const room = req.session?.campaignId || 'main';
+      for (const r of uit) io.to(room).emit('player:profile-updated', { characterId: r.characterId });
+    }
+  }
+  res.json({ ok: true, aangepast: uit.length, spelers: uit });
+});
+
 
 // Wat een gevecht waard is. De XP staat al op elk statblok; dit telt hem op,
 // inclusief het aantal exemplaren van een regel.
@@ -8071,6 +8118,16 @@ function _sheetPersonage(entity, dmState, prog, meta, personages) {
     party:     _sheetParty(dmState, entity, personages),
     profiel,
     hp:        (dmState.playerHp || {})[id] || {},
+    // De zes vakjes stonden altijd leeg om met pen in te vullen, terwijl de app
+    // het getal nu bijhoudt. Het blad is de stand aan het eind van een sessie;
+    // dan hoort die stand erop.
+    exhaustion: Math.max(0, Math.min(EXHAUSTION_MAX, parseInt((dmState.playerExhaustion || {})[id]) || 0)),
+    // Alleen bij een campagne op XP: op mijlpaal is er geen getal om te tonen.
+    xp: _levelupSysteem(meta) === 'xp' ? (() => {
+      const nu = parseInt((dmState.playerXp || {})[id]) || 0;
+      const lvl = parseInt(profiel.level) || 1;
+      return { nu, volgende: XP_DREMPELS[lvl + 1] ?? null };
+    })() : null,
     hitDice:   { pool: _hitDicePool(profiel), spent: (dmState.playerHitDice || {})[id]?.spent || {} },
     slots:     (dmState.playerSpellSlots || {})[id] || {},
     // Zelfde regel als _effectiveCurrency(): staat de gedeelde beurs aan, dán is

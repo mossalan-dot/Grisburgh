@@ -10,7 +10,7 @@ import { renderSpreuken } from './render-spreuken.js?v=41';
 import { renderVaardigheden, zoekVaardigheden } from './render-vaardigheden.js?v=8';
 import { renderStatblock } from './render-statblock.js?v=9';
 import { initSocket } from "./socket-client.js?v=75";
-import { initDmPanel } from "./dm-panel.js?v=267";
+import { initDmPanel } from "./dm-panel.js?v=268";
 import { COND_INFO, COND_LABEL, COND_MET_PLAATJE, COND_ICON } from './conditions.js?v=2';
 import './media-picker.js?v=8';
 
@@ -7080,9 +7080,18 @@ async function _levelUpBalk() {
   // In XP-stand wil je zien hoe ver je bent, niet alleen óf je er bent. Op
   // mijlpaal staat er niets: dan zegt een balk met punten niets.
   const xp = (!st?.tegoed && st?.systeem === 'xp' && st.xp) ? (() => {
-    const { nu, dezeLevel, volgende } = st.xp;
+    const { nu, dezeLevel, volgende, scheef } = st.xp;
     if (volgende == null) return `<div class="levelup-xp"><span class="levelup-xp-kop">${icon('star')} ${nu.toLocaleString('nl-NL')} XP</span>
       <span class="levelup-xp-rest">het hoogste level</span></div>`;
+    // Ligt je XP onder de drempel van je eigen level, dan is dat level met de
+    // hand gezet. Een balk op nul met "nog 29.800 te gaan" leest als kapot,
+    // terwijl er niets kapot is — dus zeggen we wat er aan de hand is. De DM
+    // zet het recht met de nullijn-knop in de instellingen.
+    if (scheef) return `<div class="levelup-xp levelup-xp--scheef">
+      <span class="levelup-xp-kop">${icon('star')} ${nu.toLocaleString('nl-NL')} XP</span>
+      <span class="levelup-xp-rest">je level is met de hand gezet, dus je XP loopt nog niet mee
+        <em>(level ${st.level} begint bij ${dezeLevel.toLocaleString('nl-NL')})</em></span>
+    </div>`;
     const deel = Math.max(0, nu - dezeLevel);
     const heel = Math.max(1, volgende - dezeLevel);
     const pct = Math.max(0, Math.min(100, Math.round((deel / heel) * 100)));

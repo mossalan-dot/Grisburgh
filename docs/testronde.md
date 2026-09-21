@@ -844,3 +844,7 @@ Per bevinding: waar, wat, en of het opgelost is. Nieuwe regels onderaan.
 - Geef XP met de **XP**-knop in de regie-balk: loopt er een gevecht, dan staat het totaal van de statblokken al ingevuld. Iedereen die vanavond meedoet krijgt het; een afwezige speler niet.
 - Gaat een speler daarmee over een drempel heen, dan krijgt hij de level-upbalk vanzelf — in XP-modus wordt het tegoed *verdiend*, de DM hoeft niets te gunnen. In milestone-modus verandert er niets: de DM gunt zoals hiervoor.
 - Bij het aanmaken van een nieuwe campagne staat de vraag in het formulier; niets invullen geeft milestone.
+- Zet een campagne die op mijlpaal speelde om naar XP: iedereen heeft dan een level en geen XP. In plaats van een dode balk op nul zegt de regel *"je level is met de hand gezet, dus je XP loopt nog niet mee (level 7 begint bij 23.000)"*.
+- Instellingen → *Level omhoog* → **Ieders XP op de nullijn zetten**: elke speler gaat naar het minimum van zijn huidige level, de balk vult zich daarna weer normaal. Het geeft géén level-up cadeau.
+- Druk de knop twee keer in, of gebruik hem bij iemand die al XP verdiend had: er gaat niets af — hij verlaagt nooit. De knop staat alleen in beeld als het systeem op XP staat.
+- **Blad afdrukken** met exhaustion 3: de zes vakjes staan met drie gevuld op het blad, met *−3 op elke d20 test* erachter. Speelt de campagne op XP, dan staat achter klasse en background ook `23.000 / 34.000 XP`; op mijlpaal staat daar niets.

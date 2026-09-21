@@ -26676,3 +26676,11 @@ body.akte-schrijf-open .mp-overlay { z-index: 1320; }
   transition: width .4s ease;
 }
 .levelup-xp-rest { font-size: .82rem; color: #7a6040; }
+
+/* Een XP-balk zonder nullijn: geen dode balk maar een regel die zegt waarom.
+   Zelfde kader, rustiger kleur — het is een mededeling, geen waarschuwing. */
+.levelup-xp--scheef { background: rgba(242, 232, 210, .28); }
+.levelup-xp--scheef .levelup-xp-rest { flex: 1 1 200px; line-height: 1.35; }
+.levelup-xp--scheef .levelup-xp-rest em {
+  display: block; font-family: 'IM Fell English', serif; opacity: .8;
+}

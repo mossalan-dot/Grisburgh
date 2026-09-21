@@ -2522,6 +2522,17 @@ te zien krijgt (`_levelUpCinematic()` in `app.js`) en op het tafelscherm
 > De vraag staat in Instellingen → *Level omhoog* en in het formulier voor een
 > nieuwe campagne; niets kiezen is milestone, dus een bestaande campagne merkt er
 > niets van.
+>
+> **De nullijn.** Wie halverwege overstapt heeft spelers mét een level en zónder
+> XP — dan staat elke balk op nul en belooft hij een afstand die nergens op
+> slaat. Twee dingen daartegen. `GET .../level-up` geeft `xp.scheef` mee (je XP
+> ligt onder de drempel van je eigen level) en de balk zegt dat dan hardop in
+> plaats van een dode balk te tonen. En `POST /party/xp/nullijn` (DM-only, knop
+> in Instellingen → *Level omhoog*, alleen zichtbaar op XP) zet ieders XP op het
+> minimum van zijn huidige level. Die **verlaagt nooit** (`Math.max`), dus twee
+> keer drukken kan geen kwaad, en hij geeft géén level-up cadeau. Bewust een knop
+> en geen automatische migratie bij het omzetten van de instelling: wat de stand
+> van vanavond is, is een keuze van de DM en geen gevolg van een vinkje.
 
 > **Exhaustion staat op het personage, niet op de combatant.** Het zat alleen in
 > een gevecht (als conditie op een token), terwijl de zes niveaus juist dágen
@@ -2529,7 +2540,10 @@ te zien krijgt (`_levelUpCinematic()` in `app.js`) en op het tafelscherm
 > `PUT /characters/:id/exhaustion` (DM-only) en zichtbaar als zes bolletjes onder
 > Temporary HP. Een lange rust haalt er één af (`POST /party/long-rest`).
 > **Het getal wordt nergens van een worp afgetrokken** — zelfde regel als bij de
-> loot-DC: de app zegt wat er geldt, de tafel rolt.
+> loot-DC: de app zegt wat er geldt, de tafel rolt. Op het **printbare blad**
+> staan de zes vakjes niet meer leeg: `vakjes(n, cls, aan)` vult de eerste `aan`
+> ervan, want dat blad is de stand aan het eind van een sessie. Speelt de
+> campagne op XP, dan staat het aantal punten daar ook in de klasseregel.
 
 ---
 

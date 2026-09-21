@@ -513,6 +513,21 @@ export function initDmPanel() {
       } catch (e) { _showToast('XP uitdelen mislukt: ' + e.message); }
       if (btn) btn.disabled = false;
     },
+    // Overstappen op XP terwijl er al gespeeld is laat iedereen op nul staan.
+    // Dit legt de nullijn: ieders XP naar het minimum van zijn huidige level.
+    // Verlaagt nooit, dus twee keer drukken kan geen kwaad.
+    async xpNullijn(btn) {
+      if (!confirm('Ieders XP op het minimum voor zijn huidige level zetten?\n\n'
+        + 'Wie al meer XP heeft houdt wat hij heeft — er gaat niets af.')) return;
+      if (btn) btn.disabled = true;
+      try {
+        const r = await api.post('/party/xp/nullijn', {});
+        _showToast(r.aangepast
+          ? `${icon('star')} ${r.aangepast} speler(s) op de nullijn gezet.`
+          : `${icon('check')} Iedereen stond al goed.`);
+      } catch (e) { _showToast('Nullijn zetten mislukt: ' + e.message); }
+      if (btn) btn.disabled = false;
+    },
     async regieBalkLevelUp(btn) {
       if (!confirm('Voor iedereen die vanavond meedoet een level-up klaarzetten?')) return;
       if (btn) btn.disabled = true;
@@ -10572,12 +10587,23 @@ async function _renderInstellingen() {
     ${_instSectie('levelup', 'Level omhoog', `
       <div class="dm-form-row">
         <label class="dm-form-label" for="inst-lu-systeem">Wanneer ga je omhoog?</label>
-        <select id="inst-lu-systeem" class="dm-input">
+        <select id="inst-lu-systeem" class="dm-input"
+          onchange="document.getElementById('inst-lu-nullijn').style.display = this.value === 'xp' ? '' : 'none'">
           <option value="milestone"${lu.systeem !== 'xp' ? ' selected' : ''}>Op een mijlpaal — jij bepaalt wanneer</option>
           <option value="xp"${lu.systeem === 'xp' ? ' selected' : ''}>Op ervaringspunten — de tabel bepaalt wanneer</option>
         </select>
       </div>
       <p class="dm-hint">Op XP deel je punten uit (de knop in de regie-balk, met het bedrag van een gevecht als voorstel) en staat een level-up vanzelf klaar zodra iemand over de drempel komt. Op mijlpaal zet jij hem klaar.</p>
+      <!-- Wie halverwege overstapt heeft spelers met een level maar zonder XP:
+           dan staat elke balk op nul. Eén knop legt de nullijn recht. Bewust
+           geen automatische migratie bij het omzetten hierboven — dat is een
+           keuze van de DM, geen gevolg van een vinkje. -->
+      <div id="inst-lu-nullijn"${lu.systeem === 'xp' ? '' : ' style="display:none"'}>
+        <p class="dm-hint">Speelde je eerst op mijlpaal? Dan heeft iedereen wel een level maar nog geen XP, en staat elke balk op nul. Deze knop zet ieders XP op het minimum dat bij zijn huidige level hoort; wie al meer had houdt dat.</p>
+        <div class="dm-form-row">
+          <button class="dm-btn dm-btn-ghost dm-btn-sm" onclick="window.dmPanel.xpNullijn(this)">Ieders XP op de nullijn zetten</button>
+        </div>
+      </div>
       <p class="dm-hint">Hoe bepaalt een speler zijn HP bij een level-up? Wat je hier uitvinkt kan hij niet kiezen.</p>
       ${[['gemiddelde', 'Gemiddelde', 'Het vaste getal uit het boek — (die ÷ 2) + 1, plus CON.'],
          ['app',        'Rollen in de app', 'De server rolt de hit die.'],
