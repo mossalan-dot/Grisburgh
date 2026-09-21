@@ -585,6 +585,50 @@ een speler ziet, **TAB** = het tafelscherm (`?display=1`), **ALL** = alle drie.
 - [ ] **Backdrop per dienst** (DM) — afbeelding kiezen; de speler ziet hem achter de sectie
 - [ ] **Dienst uitzetten als module** (BEHEER) — de dienst verdwijnt uit de zijbalk én uit de Diensten-tab
 
+### Diensten doorgelicht (21 sep 2026)
+
+Negen diensten naast elkaar gelegd — herberg, Tweespalt, Gock, Ursula, tempel,
+magizoöloog, facties, Heeren, markt — op vier vragen: komt de schakelaar van de
+DM ook op de server aan, gaat het geld via de twee helpers, klopt wat het scherm
+belooft, en kan een speler iets doen wat hij niet zou mogen. Wat hieronder
+**nu nog stuk** heet, is een bevinding uit die ronde en geen instructie-die-je-
+fout-uitvoert.
+
+**De schakelaar en de akte**
+
+- [ ] **Verborgen betekent dicht, ook zonder scherm** (DM+speler) — zet een dienst op *verborgen* en laat de speler zijn openstaande tabblad gebruiken: elke schrijfactie komt terug met "Deze dienst is nu niet beschikbaar voor je groep" (403). Gecontroleerd voor herberg, Tweespalt, Gock, Ursula, tempel en magizoöloog — veertien routes.
+- [ ] **De Heeren doen dat niet** (DM+speler) — *nu nog stuk:* `heeren` staat wél in de lijst van de server, maar de drie spelersroutes (klus aannemen, boete betalen, advocaat inschakelen) hebben geen slot; met de dienst op *verborgen* komt het verzoek gewoon bij de afhandeling aan.
+- [ ] **Facties: de schakelaar doet niets** (DM) — *nu nog stuk:* Facties staat in *Toegang per groep*, maar niets kijkt ernaar — niet in de client en niet op de server. De knop in het Diensten-menu wordt bovendien meteen daarna weer zichtbaar gemaakt zodra er één onthulde factie is.
+- [ ] **De akte sluit alleen het scherm, niet de route** (DM+speler) — *nu nog stuk:* zet een dienst in de akte-editor op onbereikbaar. Het scherm zegt netjes dat de party er niet is, maar de route eronder laat alles toe: de bereikbaarheid wordt alleen in `GET /meta` (voor de client) en in `GET /markt` gebruikt. Dezelfde soort gat als bij de groepsschakelaar vóór die op de server kwam.
+- [ ] **Kopen bij een winkel die je niet kent** (speler) — *nu nog stuk:* `POST /shops/:id/koop` toetst uitverkocht en de rotatie, maar niet of de party de winkel kent of hem deze akte kan bereiken. Het Markt-overzicht erboven doet dat wél, dus het scherm klopt en de route eronder niet.
+
+**Geld**
+
+- [ ] **Alles gaat via de beurs die op het scherm staat** (speler) — zet de gedeelde beurs aan en doe in elke dienst één betaling (bestellen, inzetten, zegen, voorspelling, onderzoek, adoptie, lening): het bedrag gaat telkens van de partybeurs af, nooit uit een eigen zak die niemand ziet.
+- [ ] **Inzet terug bij een geschrapt event** (DM) — verwijder een openstaand Tweespalt-event waar op ingezet is: iedereen krijgt zijn inzet terug. Een afgerond event is al uitbetaald en verandert niet meer.
+- [ ] **Inzetten kan niet negatief** (speler) — een inzet van 0 of minder wordt geweigerd, en je kunt niet twee keer op hetzelfde event inzetten.
+- [ ] **De lening heeft geen plafond op de server** (speler) — *nu nog stuk:* het scherm weigert boven 100 fl ("Taevin leent maximaal 100 fl"), maar die grens staat alleen in de client; de route neemt elk bedrag aan. De rente is wél begrensd (vijf keer de hoofdsom).
+- [ ] **De rente in de tekst klopt** (speler) — *nu nog stuk:* het leenvenster zegt "30% rente per dag", terwijl de rente sinds de herziening per lange rust loopt. De hulptekst zegt het wél goed, dus twee schermen spreken elkaar tegen.
+
+**Wat er in je knapzak belandt**
+
+- [ ] **Geen emoji in namen** (speler) — vraag een rapport bij de Gock, sluit een lening bij de Tweespalt en laat de DM een boete opleggen: de drie regels heten *Rapport — …*, *Schuldbewijs — …* en *Boete — …* zonder plaatje ervoor. *Nu nog stuk:* de server zet er 📁, 📜 en ⚖️ voor. Op het printbare blad vallen ze weg (dat blad haalt emoji eruit), in de Boedel niet.
+- [ ] **Geen eigennaam uit één campagne** (ALL) — *nu nog stuk:* "Taevin Woekeling" en "de Luimpoort" staan in de gedeelde code (server én client), niet in `meta`. Een tweede campagne die de Tweespalt aanzet krijgt de geldschieter van Grisburgh cadeau.
+
+**Kleine dingen in beeld**
+
+- [ ] **Diensten-knop licht op bij de Markt** (ALL) — *nu nog stuk:* de Markt staat niet in `DIENSTEN_SECTIONS`, dus de knop *Diensten* in de balk blijft dof terwijl je in de Markt staat.
+- [ ] **De Markt zegt het als de party er niet bij kan** (speler) — *nu nog stuk:* de andere zeven diensten tonen "niet bereikbaar"; de Markt toont een leeg overzicht zonder uitleg.
+- [ ] **De Heeren zijn te bereiken** (ALL) — *nu nog stuk:* de sectie bestaat (`#section-heeren`), heeft een eigen DM-tab, routes, rangen, klussen en boetes, maar staat in geen enkel menu en er is nergens een knop die ernaartoe schakelt. Ook niet voor de DM.
+- [ ] **Elke dienst kan uit als module** (BEHEER) — *nu nog stuk voor de Heeren:* die staat niet in `lib/modules.js` en is dus per campagne niet uit te zetten, terwijl de andere acht dat wel zijn.
+
+**Wat goed stond**
+
+- [ ] De veertien spelersroutes van herberg, Tweespalt, Gock, Ursula, tempel en magizoöloog weigeren keurig met 403 zodra de dienst dichtstaat (nagemeten: met de herberg open geeft een onzin-bestelling 404, met de herberg dicht 403 — het slot zit ervóór).
+- [ ] Prijzen komen overal uit de configuratie van de dienst, met een terugval in muntsleutels (`fl`/`kn`/`cl`) en niet in muntnámen.
+- [ ] Temp HP van een bestelling telt niet op maar houdt de hoogste waarde, zoals de regels zeggen.
+- [ ] De Gock weigert onderzoek naar zichzelf; de magizoöloog weigert een wezen dat de party nog niet ontdekt heeft en een wezen dat al volledig bekend is.
+
 ## Blok 6 — Meesterkamer: spelen
 
 `public/js/dm-panel.js` · `render-archief.js` (aktes) · `combat-canvas.js`
