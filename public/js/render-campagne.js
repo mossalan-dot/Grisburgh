@@ -1037,6 +1037,76 @@ const _PRESET_VELD = {
 };
 
 let _presets = null;
+// ── Standaard-uitrusting (SRD 5.2) ─────────────────────────────────────────
+// Zelfde idee als `_statblokPresets`: één keer ophalen, dan invullen. De bron
+// staat al in **onze** veldnamen (zie scripts/srd-2024/srd-items.js), dus hier
+// hoeft niets vertaald te worden — alleen in het formulier gezet.
+let _srdItems = null;
+window._srdItemLijst = async () => {
+  if (!_srdItems) {
+    try {
+      const d = await fetch('/api/bron/srd-items').then(r => r.json());
+      _srdItems = Array.isArray(d?.items) ? d.items : [];
+    } catch { _srdItems = []; }
+  }
+  return _srdItems;
+};
+
+window._srdItemDatalist = async () => {
+  const dl = document.getElementById('srd-item-dl');
+  if (!dl || dl.dataset.gevuld) return;
+  const lijst = await window._srdItemLijst();
+  dl.innerHTML = lijst.map(i =>
+    `<option value="${esc(i.name)}">${esc(i.itemType)}${i.prijs ? ' \u00b7 ' + esc(i.prijs) : ''}</option>`
+  ).join('');
+  dl.dataset.gevuld = '1';
+};
+
+// Welk bronveld in welk formulierveld. De namen zijn met opzet gelijk; dit is
+// de enige plek waar ze elkaar raken.
+const _SRD_ITEM_VELD = ['itemType', 'prijs', 'desc', 'damage', 'weaponProperties',
+  'armorType', 'armorBaseAC', 'armorDexCap', 'stealthDisadvantage',
+  'strengthRequirement', 'gebruik'];
+
+window._srdItemVullen = async (invoer) => {
+  const naam = String(invoer?.value || '').trim();
+  if (!naam) return;
+  const lijst = await window._srdItemLijst();
+  const p = lijst.find(x => x.name.toLowerCase() === naam.toLowerCase());
+  if (!p) {
+    invoer.classList.add('dm-input--err');
+    setTimeout(() => invoer.classList.remove('dm-input--err'), 900);
+    window._showToast?.(`${icon('x')} Geen standaard voorwerp met de naam \u201c${esc(naam)}\u201d`);
+    return;
+  }
+  const veld = (k) => document.querySelector(`[name="${k}"]`);
+
+  // Alleen invullen wat leeg is — behalve de naam, die is de hele aanleiding.
+  // Zo kun je een half ingevuld kaartje aanvullen zonder je eigen tekst kwijt
+  // te raken. Wil je alles vervangen, maak de velden dan eerst leeg.
+  const naamEl = veld('name');
+  if (naamEl && !naamEl.value.trim()) naamEl.value = p.name;
+
+  for (const k of _SRD_ITEM_VELD) {
+    if (p[k] === undefined) continue;
+    const el = veld(k);
+    if (!el) continue;
+    if (el.type === 'checkbox') { if (!el.checked) el.checked = !!p[k]; continue; }
+    if (String(el.value || '').trim()) continue;
+    el.value = String(p[k]);
+    el.dispatchEvent(new Event('change', { bubbles: true }));
+  }
+
+  // De werking bepaalt welke velden zichtbaar zijn; die vinkjes staan los.
+  for (const w of (p.werking || [])) {
+    const vink = document.querySelector(`[name="werking"][value="${w}"]`);
+    if (vink && !vink.checked) { vink.checked = true; vink.dispatchEvent(new Event('change', { bubbles: true })); }
+  }
+  window._showWhenBijwerken?.();
+  window._werkingBij?.();
+  window._showToast?.(`${icon('check')} ${esc(p.name)} ingevuld \u2014 SRD 5.2`);
+};
+
 window._statblokPresets = async () => {
   if (!_presets) {
     try { _presets = await fetch('/api/bron/srd-monsters').then(r => r.json()); }
@@ -6798,6 +6868,25 @@ window._openEditor = async (tab, editId) => {
   // net vóór dat vak, en valt het alleen terug op "achteraan" als dat veld er
   // niet is.
   let _hoortbijGeplaatst = false;
+
+  // Standaard-uitrusting invullen, naar het model van het statblok-preset bij
+  // een personage. 333 voorwerpen uit de SRD 5.2 (CC BY 4.0) worden meegeleverd
+  // — daarvoor begon elke campagne op nul en tikte je Club, Greatclub en
+  // Quarterstaff met de hand over.
+  if (tab === 'voorwerpen' && isDM()) {
+    body += `
+      <datalist id="srd-item-dl"></datalist>
+      <div class="preset-rij">
+        <label class="preset-label">${icon('package')} Standaard voorwerp</label>
+        <input class="preset-zoek" list="srd-item-dl" placeholder="Battleaxe, Plate Armor, Rope…"
+          onfocus="window._srdItemDatalist()"
+          onkeydown="if(event.key==='Enter'){event.preventDefault();window._srdItemVullen(this);}">
+        <button type="button" class="dm-btn dm-btn-ghost dm-btn-sm"
+          onclick="window._srdItemVullen(this.previousElementSibling)">Invullen</button>
+        <span class="preset-bron" title="System Reference Document 5.2, Wizards of the Coast, CC BY 4.0">SRD 5.2</span>
+      </div>`;
+  }
+
   // Eén doorloop, in schemavolgorde. Tekstvakken hadden een eigen ronde ná deze
   // lus, waardoor Beschrijving onder Flavour en Geheimen belandde — de volgorde
   // in SCHEMA klopte al, de rendering niet.

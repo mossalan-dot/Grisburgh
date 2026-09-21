@@ -1,0 +1,2935 @@
+{
+ "bron": "System Reference Document 5.2 (CC BY 4.0), via Open5e",
+ "opgehaald": "2026-09-21",
+ "items": [
+  {
+   "key": "srd_abacus",
+   "name": "Abacus",
+   "itemType": "Adventuring Gear",
+   "prijs": "2 fl",
+   "gewicht": "2 lb",
+   "desc": "An abacus."
+  },
+  {
+   "key": "srd-2024_acid",
+   "name": "Acid",
+   "itemType": "Weapon",
+   "prijs": "25 fl",
+   "gewicht": "1 lb",
+   "desc": "When you take the Attack action, you can replace one of your attacks with throwing a vial of Acid. Target one creature or object you can see within 20 feet of yourself. The target must succeed on a Dexterity saving throw (DC 8 plus your Dexterity modifier and Proficiency Bonus) or take 2d6 Acid damage."
+  },
+  {
+   "key": "srd_acid-vial",
+   "name": "Acid (vial)",
+   "itemType": "Adventuring Gear",
+   "prijs": "25 fl",
+   "gewicht": "1 lb",
+   "desc": "As an action, you can splash the contents of this vial onto a creature within 5 feet of you or throw the vial up to 20 feet, shattering it on impact. In either case, make a ranged attack against a creature or object, treating the acid as an improvised weapon. On a hit, the target takes 2d6 acid damage."
+  },
+  {
+   "key": "srd-2024_airship",
+   "name": "Airship",
+   "itemType": "Wondrous item",
+   "prijs": "40000 fl",
+   "desc": "A magical flying vessel capable of air travel."
+  },
+  {
+   "key": "srd-2024_alchemists-fire",
+   "name": "Alchemist's Fire",
+   "itemType": "Weapon",
+   "prijs": "50 fl",
+   "gewicht": "1 lb",
+   "desc": "When you take the Attack action, you can replace one of your attacks with throwing a flask of Alchemist's Fire. Target one creature or object you can see within 20 feet of yourself. The target must succeed on a Dexterity saving throw (DC 8 plus your Dexterity modifier and Proficiency Bonus) or take 1d4 Fire damage and start burning (see \"Rules Glossary\")."
+  },
+  {
+   "key": "srd_alchemists-fire-flask",
+   "name": "Alchemist's Fire (Flask)",
+   "itemType": "Adventuring Gear",
+   "prijs": "50 fl",
+   "gewicht": "1 lb",
+   "desc": "This sticky, adhesive fluid ignites when exposed to air. As an action, you can throw this flask up to 20 feet, shattering it on impact. Make a ranged attack against a creature or object, treating the alchemist's fire as an improvised weapon. On a hit, the target takes 1d4 fire damage at the start of each of its turns. A creature can end this damage by using its action to make a DC 10 Dexterity check to extinguish the flames."
+  },
+  {
+   "key": "srd_alchemists-supplies",
+   "name": "Alchemist's Supplies",
+   "itemType": "Tools",
+   "prijs": "50 fl",
+   "gewicht": "8 lb",
+   "desc": "These special tools include the items needed to pursue a craft or trade.\\n\\n\r\nProficiency with a set of artisan’s tools lets you add your proficiency bonus to any ability checks you make using the tools in your craft. Each type of artisan’s tools requires a separate proficiency."
+  },
+  {
+   "key": "srd-2024_alchemists-supplies",
+   "name": "Alchemist's Supplies (50 GP)",
+   "itemType": "Tools",
+   "prijs": "50 fl",
+   "gewicht": "8 lb",
+   "desc": "Ability: Intelligence. Utilize: Identify a substance (DC 15), or start a fire (DC 15). Craft: Acid, Alchemist's Fire, Component Pouch, Oil, Paper, Perfume"
+  },
+  {
+   "key": "srd_amulet",
+   "name": "Amulet",
+   "itemType": "Adventuring Gear",
+   "prijs": "5 fl",
+   "gewicht": "1 lb",
+   "desc": "Can be used as a holy symbol."
+  },
+  {
+   "key": "srd-2024_antitoxin",
+   "name": "Antitoxin",
+   "itemType": "Potion",
+   "prijs": "50 fl",
+   "desc": "As a Bonus Action, you can drink a vial of Antitoxin to gain Advantage on saving throws to avoid or end the Poisoned condition for 1 hour. abo",
+   "gebruik": "stapelbaar"
+  },
+  {
+   "key": "srd_antitoxin-vial",
+   "name": "Antitoxin (Vial)",
+   "itemType": "Adventuring Gear",
+   "prijs": "50 fl",
+   "desc": "A creature that drinks this vial of liquid gains advantage on saving throws against poison for 1 hour. It confers no benefit to undead or constructs."
+  },
+  {
+   "key": "srd_arrow-bow",
+   "name": "Arrow (bow)",
+   "itemType": "Ammunition",
+   "prijs": "5 cl",
+   "gewicht": "0.05 lb",
+   "desc": "An arrow for a bow.",
+   "gebruik": "stapelbaar"
+  },
+  {
+   "key": "srd-2024_arrows-20",
+   "name": "Arrows (20)",
+   "itemType": "Ammunition",
+   "prijs": "1 fl",
+   "gewicht": "1 lb",
+   "desc": "Ammunition for weapons that use arrows. Comes in a pack of 20. Typically stored in a quiver.",
+   "gebruik": "stapelbaar"
+  },
+  {
+   "key": "srd_assassins-blood",
+   "name": "Assassin's Blood",
+   "itemType": "Poison",
+   "prijs": "150 fl",
+   "desc": "A creature subjected to this poison must make a DC 10 Constitution saving throw. On a failed save, it takes 6 (1d12) poison damage and is poisoned for 24 hours. On a successful save, the creature takes half damage and isn't poisoned.\\n\\n\r\n\r\n**_Ingested._** A creature must swallow an entire dose of ingested poison to suffer its effects. The dose can be delivered in food or a liquid. You may decide that a partial dose has a reduced effect, such as allowing advantage on the saving throw or dealing only half damage on a failed save.",
+   "gebruik": "stapelbaar"
+  },
+  {
+   "key": "srd-2024_backpack",
+   "name": "Backpack",
+   "itemType": "Adventuring Gear",
+   "prijs": "2 fl",
+   "gewicht": "5 lb",
+   "desc": "A Backpack holds up to 30 pounds within 1 cubic foot. It can also serve as a saddlebag."
+  },
+  {
+   "key": "srd_bagpipes",
+   "name": "Bagpipes",
+   "itemType": "Tools",
+   "prijs": "30 fl",
+   "gewicht": "6 lb",
+   "desc": "Several of the most common types of musical instruments are shown on the table as examples. If you have proficiency with a given musical instrument, you can add your proficiency bonus to any ability checks you make to play music with the instrument. A bard can use a musical instrument as a spellcasting focus. Each type of musical instrument requires a separate proficiency."
+  },
+  {
+   "key": "srd-2024_ball-bearings",
+   "name": "Ball Bearings",
+   "itemType": "Adventuring Gear",
+   "prijs": "1 fl",
+   "gewicht": "2 lb",
+   "desc": "As a Utilize action, you can spill Ball Bearings from their pouch. They spread to cover a level, 10-footsquare area within 10 feet of yourself. A creature that enters this area for the first time on a turn must succeed on a DC 10 Dexterity saving throw or have the Prone condition. It takes 10 minutes to recover the Ball Bearings."
+  },
+  {
+   "key": "srd_ball-bearings-bag-of-1000",
+   "name": "Ball Bearings (bag of 1000)",
+   "itemType": "Adventuring Gear",
+   "prijs": "1 fl",
+   "gewicht": "2 lb",
+   "desc": "As an action, you can spill these tiny metal balls from their pouch to cover a level, square area that is 10 feet on a side. A creature moving across the covered area must succeed on a DC 10 Dexterity saving throw or fall prone. A creature moving through the area at half speed doesn't need to make the save."
+  },
+  {
+   "key": "srd-2024_barrel",
+   "name": "Barrel",
+   "itemType": "Adventuring Gear",
+   "prijs": "2 fl",
+   "gewicht": "70 lb",
+   "desc": "A Barrel holds up to 40 gallons of liquid or up to 4 cubic feet of dry goods."
+  },
+  {
+   "key": "srd-2024_basket",
+   "name": "Basket",
+   "itemType": "Adventuring Gear",
+   "prijs": "4 kn",
+   "gewicht": "2 lb",
+   "desc": "A Basket holds up to 40 pounds within 2 cubic feet."
+  },
+  {
+   "key": "srd-2024_battleaxe",
+   "name": "Battleaxe",
+   "itemType": "Weapon",
+   "prijs": "10 fl",
+   "gewicht": "4 lb",
+   "desc": "A battleaxe.",
+   "damage": "1d8 slashing",
+   "weaponProperties": "Topple, Versatile (1d10)",
+   "werking": [
+    "attack"
+   ]
+  },
+  {
+   "key": "srd-2024_bedroll",
+   "name": "Bedroll",
+   "itemType": "Adventuring Gear",
+   "prijs": "1 fl",
+   "gewicht": "7 lb",
+   "desc": "A Bedroll sleeps one Small or Medium creature. While in a Bedroll, you automatically succeed on saving throws against extreme cold (see \"Gameplay Toolbox\")."
+  },
+  {
+   "key": "srd-2024_bell",
+   "name": "Bell",
+   "itemType": "Adventuring Gear",
+   "prijs": "1 fl",
+   "desc": "When rung as a Utilize action, a Bell produces a sound that can be heard up to 60 feet away."
+  },
+  {
+   "key": "srd-2024_blanket",
+   "name": "Blanket",
+   "itemType": "Adventuring Gear",
+   "prijs": "5 kn",
+   "gewicht": "3 lb",
+   "desc": "While wrapped in a blanket, you have Advantage on saving throws against extreme cold (see \"Gameplay Toolbox\")."
+  },
+  {
+   "key": "srd-2024_block-and-tackle",
+   "name": "Block and Tackle",
+   "itemType": "Adventuring Gear",
+   "prijs": "1 fl",
+   "gewicht": "5 lb",
+   "desc": "A Block and Tackle allows you to hoist up to four times the weight you can normally lift."
+  },
+  {
+   "key": "srd-2024_blowgun",
+   "name": "Blowgun",
+   "itemType": "Weapon",
+   "prijs": "10 fl",
+   "gewicht": "1 lb",
+   "desc": "A blowgun.",
+   "damage": "1 piercing",
+   "weaponProperties": "Ammunition (Range 25/100; Needle), Loading, Vex",
+   "werking": [
+    "attack"
+   ]
+  },
+  {
+   "key": "srd_blowgun-needles",
+   "name": "Blowgun needles",
+   "itemType": "Ammunition",
+   "prijs": "2 cl",
+   "gewicht": "0.02 lb",
+   "desc": "Needles to be fired with a blowgun.",
+   "gebruik": "stapelbaar"
+  },
+  {
+   "key": "srd-2024_bolts-20",
+   "name": "Bolts (20)",
+   "itemType": "Ammunition",
+   "prijs": "1 fl",
+   "gewicht": "1.5 lb",
+   "desc": "Ammunition for weapons that use bolts. Comes in a pack of 20. Typically stored in a case.",
+   "gebruik": "stapelbaar"
+  },
+  {
+   "key": "srd-2024_book",
+   "name": "Book",
+   "itemType": "Adventuring Gear",
+   "prijs": "25 fl",
+   "gewicht": "5 lb",
+   "desc": "A Book contains fiction or nonfiction. If you consult an accurate nonfiction Book about its topic, you gain a +5 bonus to Intelligence (Arcana, History, Nature, or Religion) checks you make about that topic."
+  },
+  {
+   "key": "srd-2024_bottle-glass",
+   "name": "Bottle, Glass",
+   "itemType": "Adventuring Gear",
+   "prijs": "2 fl",
+   "gewicht": "2 lb",
+   "desc": "A Glass Bottle holds up to 1 0.5 pints."
+  },
+  {
+   "key": "srd-2024_breastplate",
+   "name": "Breastplate",
+   "itemType": "Armor",
+   "prijs": "400 fl",
+   "gewicht": "20 lb",
+   "desc": "A breastplate.",
+   "armorType": "medium",
+   "armorBaseAC": 14,
+   "armorDexCap": 2,
+   "werking": [
+    "defense"
+   ]
+  },
+  {
+   "key": "srd_brewers-supplies",
+   "name": "Brewer's Supplies",
+   "itemType": "Tools",
+   "prijs": "20 fl",
+   "gewicht": "9 lb",
+   "desc": "These special tools include the items needed to pursue a craft or trade.\\n\\n\r\nProficiency with a set of artisan’s tools lets you add your proficiency bonus to any ability checks you make using the tools in your craft. Each type of artisan’s tools requires a separate proficiency."
+  },
+  {
+   "key": "srd-2024_brewers-supplies",
+   "name": "Brewer's Supplies (20 GP)",
+   "itemType": "Tools",
+   "prijs": "20 fl",
+   "gewicht": "9 lb",
+   "desc": "Ability: Intelligence. Utilize: Detect poisoned drink (DC 15), or identify alcohol (DC 10). Craft: Antitoxin"
+  },
+  {
+   "key": "srd-2024_bucket",
+   "name": "Bucket",
+   "itemType": "Adventuring Gear",
+   "prijs": "5 cl",
+   "gewicht": "2 lb",
+   "desc": "A Bucket holds up to half a cubic foot of contents."
+  },
+  {
+   "key": "srd-2024_bullets-firearm-10",
+   "name": "Bullets, Firearm (10)",
+   "itemType": "Ammunition",
+   "prijs": "3 fl",
+   "gewicht": "2 lb",
+   "desc": "Ammunition for weapons that use bullets, firearm. Comes in a pack of 10. Typically stored in a pouch.",
+   "gebruik": "stapelbaar"
+  },
+  {
+   "key": "srd-2024_bullets-sling-20",
+   "name": "Bullets, Sling (20)",
+   "itemType": "Ammunition",
+   "prijs": "4 cl",
+   "gewicht": "1.5 lb",
+   "desc": "Ammunition for weapons that use bullets, sling. Comes in a pack of 20. Typically stored in a pouch.",
+   "gebruik": "stapelbaar"
+  },
+  {
+   "key": "srd-2024_burglars-pack",
+   "name": "Burglar's Pack",
+   "itemType": "Adventuring Gear",
+   "prijs": "16 fl",
+   "gewicht": "42 lb",
+   "desc": "A Burglar's Pack contains the following items: Backpack, Ball Bearings, Bell, 10 Candles, Crowbar, Hooded Lantern, 7 flasks of Oil, 5 days of Rations, Rope, Tinderbox, and Waterskin."
+  },
+  {
+   "key": "srd_burnt-othur-fumes",
+   "name": "Burnt othur fumes",
+   "itemType": "Poison",
+   "prijs": "500 fl",
+   "desc": "A creature subjected to this poison must succeed on a DC 13 Constitution saving throw or take 10 (3d6) poison damage, and must repeat the saving throw at the start of each of its turns. On each successive failed save, the character takes 3 (1d6) poison damage. After three successful saves, the poison ends.\\n\\n**_Inhaled._** These poisons are powders or gases that take effect when inhaled. Blowing the powder or releasing the gas subjects creatures in a 5-foot cube to its effect. The resulting cloud dissipates immediately afterward. Holding one's breath is ineffective against inhaled poisons, as they affect nasal membranes, tear ducts, and other parts of the body.",
+   "gebruik": "stapelbaar"
+  },
+  {
+   "key": "srd_calligraphers-supplies",
+   "name": "Calligrapher's supplies",
+   "itemType": "Tools",
+   "prijs": "10 fl",
+   "gewicht": "5 lb",
+   "desc": "These special tools include the items needed to pursue a craft or trade.\\n\\n\r\nProficiency with a set of artisan’s tools lets you add your proficiency bonus to any ability checks you make using the tools in your craft. Each type of artisan’s tools requires a separate proficiency."
+  },
+  {
+   "key": "srd-2024_calligraphers-supplies",
+   "name": "Calligrapher's Supplies (10 GP)",
+   "itemType": "Tools",
+   "prijs": "10 fl",
+   "gewicht": "5 lb",
+   "desc": "Ability: Dexterity. Utilize: Write text with impressive flourishes that guard against forgery (DC 15). Craft: Ink, *Spell Scroll*"
+  },
+  {
+   "key": "srd-2024_caltrops",
+   "name": "Caltrops",
+   "itemType": "Adventuring Gear",
+   "prijs": "1 fl",
+   "gewicht": "2 lb",
+   "desc": "As a Utilize action, you can spread Caltrops from their bag to cover a 5-foot-square area within 5 feet of yourself. A creature that enters this area for the first time on a turn must succeed on a DC 15 Dexterity saving throw or take 1 Piercing damage and have its Speed reduced to 0 until the start of its next turn. It takes 10 minutes to recover the Caltrops."
+  },
+  {
+   "key": "srd_caltrops-bag-of-20",
+   "name": "Caltrops (bag of 20)",
+   "itemType": "Adventuring Gear",
+   "prijs": "1 fl",
+   "gewicht": "2 lb",
+   "desc": "As an action, you can spread a bag of caltrops to cover a square area that is 5 feet on a side. Any creature that enters the area must succeed on a DC 15 Dexterity saving throw or stop moving this turn and take 1 piercing damage. Taking this damage reduces the creature's walking speed by 10 feet until the creature regains at least 1 hit point. A creature moving through the area at half speed doesn't need to make the save."
+  },
+  {
+   "key": "srd-2024_camel",
+   "name": "Camel",
+   "itemType": "Vehicle",
+   "prijs": "50 fl",
+   "desc": "A desert-dwelling mount capable of carrying heavy loads."
+  },
+  {
+   "key": "srd-2024_candle",
+   "name": "Candle",
+   "itemType": "Adventuring Gear",
+   "prijs": "1 cl",
+   "desc": "For 1 hour, a lit Candle sheds Bright Light in a 5-foot radius and Dim Light for an additional 5 feet."
+  },
+  {
+   "key": "srd_canvas",
+   "name": "Canvas",
+   "itemType": "Trade Good",
+   "prijs": "1 kn",
+   "gewicht": "1 lb",
+   "desc": "1 sq. yd. of canvas"
+  },
+  {
+   "key": "srd_carpenters-tools",
+   "name": "Carpenter's Tools",
+   "itemType": "Tools",
+   "prijs": "8 fl",
+   "gewicht": "6 lb",
+   "desc": "These special tools include the items needed to pursue a craft or trade.\\n\\n\r\nProficiency with a set of artisan’s tools lets you add your proficiency bonus to any ability checks you make using the tools in your craft. Each type of artisan’s tools requires a separate proficiency."
+  },
+  {
+   "key": "srd-2024_carpenters-tools",
+   "name": "Carpenter's Tools (8 GP)",
+   "itemType": "Tools",
+   "prijs": "8 fl",
+   "gewicht": "6 lb",
+   "desc": "Ability: Strength. Utilize: Seal or pry open a door or container (DC 20). Craft: Club, Greatclub, Quarterstaff, Barrel, Chest, Ladder, Pole, Portable Ram, Torch"
+  },
+  {
+   "key": "srd-2024_carriage",
+   "name": "Carriage",
+   "itemType": "Vehicle",
+   "prijs": "100 fl",
+   "gewicht": "600 lb",
+   "desc": "A four-wheeled vehicle pulled by horses, designed for passenger transport."
+  },
+  {
+   "key": "srd-2024_cart",
+   "name": "Cart",
+   "itemType": "Vehicle",
+   "prijs": "15 fl",
+   "gewicht": "200 lb",
+   "desc": "A two-wheeled vehicle pulled by a single horse, designed for cargo transport."
+  },
+  {
+   "key": "srd_cartographers-tools",
+   "name": "Cartographer's Tools",
+   "itemType": "Tools",
+   "prijs": "15 fl",
+   "gewicht": "6 lb",
+   "desc": "These special tools include the items needed to pursue a craft or trade.\\n\\n\r\nProficiency with a set of artisan’s tools lets you add your proficiency bonus to any ability checks you make using the tools in your craft. Each type of artisan’s tools requires a separate proficiency."
+  },
+  {
+   "key": "srd-2024_cartographers-tools",
+   "name": "Cartographer's Tools (15 GP)",
+   "itemType": "Tools",
+   "prijs": "15 fl",
+   "gewicht": "6 lb",
+   "desc": "Ability: Wisdom. Utilize: Draft a map of a small area (DC 15). Craft: Map"
+  },
+  {
+   "key": "srd-2024_case-crossbow-bolt",
+   "name": "Case, Crossbow Bolt",
+   "itemType": "Adventuring Gear",
+   "prijs": "1 fl",
+   "gewicht": "1 lb",
+   "desc": "A Crossbow Bolt Case holds up to 20 Bolts."
+  },
+  {
+   "key": "srd-2024_case-map-or-scroll",
+   "name": "Case, Map or Scroll",
+   "itemType": "Scroll",
+   "prijs": "1 fl",
+   "gewicht": "1 lb",
+   "desc": "A Map or Scroll Case holds up to 10 sheets of paper or 5 sheets of parchment."
+  },
+  {
+   "key": "srd-2024_chain",
+   "name": "Chain",
+   "itemType": "Adventuring Gear",
+   "prijs": "5 fl",
+   "gewicht": "10 lb",
+   "desc": "As a Utilize action, you can wrap a Chain around an unwilling creature within 5 feet of yourself that has the Grappled, Incapacitated, or Restrained condition if you succeed on a DC 13 Strength (Athletics) check. If the creature's legs are bound, the creature has the Restrained condition until it escapes. Escaping the Chain requires the creature to make a successful DC 18 Dexterity (Acrobatics) check as an action. Bursting the Chain requires a successful DC 20 Strength (Athletics) check as an action."
+  },
+  {
+   "key": "srd_chain-10-feet",
+   "name": "Chain (10 feet)",
+   "itemType": "Adventuring Gear",
+   "prijs": "5 fl",
+   "gewicht": "10 lb",
+   "desc": "A chain has 10 hit points. It can be burst with a successful DC 20 Strength check."
+  },
+  {
+   "key": "srd-2024_chain-mail",
+   "name": "Chain Mail",
+   "itemType": "Armor",
+   "prijs": "75 fl",
+   "gewicht": "55 lb",
+   "desc": "A chain mail.",
+   "armorType": "heavy",
+   "armorBaseAC": 16,
+   "stealthDisadvantage": true,
+   "strengthRequirement": 13,
+   "werking": [
+    "defense"
+   ]
+  },
+  {
+   "key": "srd-2024_chain-shirt",
+   "name": "Chain Shirt",
+   "itemType": "Armor",
+   "prijs": "50 fl",
+   "gewicht": "20 lb",
+   "desc": "A chain shirt.",
+   "armorType": "medium",
+   "armorBaseAC": 13,
+   "armorDexCap": 2,
+   "werking": [
+    "defense"
+   ]
+  },
+  {
+   "key": "srd_chalk-1-piece",
+   "name": "Chalk (1 piece)",
+   "itemType": "Adventuring Gear",
+   "prijs": "1 cl",
+   "desc": "A piece of chalk."
+  },
+  {
+   "key": "srd-2024_chariot",
+   "name": "Chariot",
+   "itemType": "Vehicle",
+   "prijs": "250 fl",
+   "gewicht": "100 lb",
+   "desc": "A two-wheeled vehicle pulled by horses, designed for speed and combat."
+  },
+  {
+   "key": "srd-2024_chest",
+   "name": "Chest",
+   "itemType": "Adventuring Gear",
+   "prijs": "5 fl",
+   "gewicht": "25 lb",
+   "desc": "A Chest holds up to 12 cubic feet of contents."
+  },
+  {
+   "key": "srd_chicken",
+   "name": "Chicken",
+   "itemType": "Trade Good",
+   "prijs": "2 cl",
+   "gewicht": "3 lb",
+   "desc": "One chicken"
+  },
+  {
+   "key": "srd_cinnamon",
+   "name": "Cinnamon",
+   "itemType": "Trade Good",
+   "prijs": "2 fl",
+   "gewicht": "1 lb",
+   "desc": "1lb of cinnamon"
+  },
+  {
+   "key": "srd-2024_climbers-kit",
+   "name": "Climber's Kit",
+   "itemType": "Tools",
+   "prijs": "25 fl",
+   "gewicht": "12 lb",
+   "desc": "A Climber's Kit includes boot tips, gloves, pitons, and a harness. As a Utilize action, you can use the Climber's Kit to anchor yourself; when you do, you can't fall more than 25 feet from the anchor point, and you can't move more than 25 feet from there without undoing the anchor as a Bonus Action."
+  },
+  {
+   "key": "srd_clothes-common",
+   "name": "Clothes, Common",
+   "itemType": "Adventuring Gear",
+   "prijs": "5 kn",
+   "gewicht": "3 lb",
+   "desc": "Common clothes."
+  },
+  {
+   "key": "srd_clothes-costume",
+   "name": "Clothes, costume",
+   "itemType": "Adventuring Gear",
+   "prijs": "5 fl",
+   "gewicht": "4 lb",
+   "desc": "A costume."
+  },
+  {
+   "key": "srd-2024_clothes-fine",
+   "name": "Clothes, Fine",
+   "itemType": "Adventuring Gear",
+   "prijs": "15 fl",
+   "gewicht": "6 lb",
+   "desc": "Fine Clothes are made of expensive fabrics and adorned with expertly crafted details. Some events and locations admit only people wearing these clothes."
+  },
+  {
+   "key": "srd-2024_clothes-travelers",
+   "name": "Clothes, Traveler's",
+   "itemType": "Adventuring Gear",
+   "prijs": "2 fl",
+   "gewicht": "4 lb",
+   "desc": "Traveler's Clothes are resilient garments designed for travel in various environments."
+  },
+  {
+   "key": "srd_cloves",
+   "name": "Cloves",
+   "itemType": "Trade Good",
+   "prijs": "3 fl",
+   "gewicht": "1 lb",
+   "desc": "1lb of cloves."
+  },
+  {
+   "key": "srd-2024_club",
+   "name": "Club",
+   "itemType": "Weapon",
+   "prijs": "1 kn",
+   "gewicht": "2 lb",
+   "desc": "A club.",
+   "damage": "1d4 bludgeoning",
+   "weaponProperties": "Light, Slow",
+   "werking": [
+    "attack"
+   ]
+  },
+  {
+   "key": "srd_cobblers-tools",
+   "name": "Cobbler's Tools",
+   "itemType": "Tools",
+   "prijs": "5 fl",
+   "gewicht": "5 lb",
+   "desc": "These special tools include the items needed to pursue a craft or trade.\\n\\n\r\nProficiency with a set of artisan’s tools lets you add your proficiency bonus to any ability checks you make using the tools in your craft. Each type of artisan’s tools requires a separate proficiency."
+  },
+  {
+   "key": "srd-2024_cobblers-tools",
+   "name": "Cobbler's Tools (5 GP)",
+   "itemType": "Tools",
+   "prijs": "5 fl",
+   "gewicht": "5 lb",
+   "desc": "Ability: Dexterity. Utilize: Modify footwear to give Advantage on the wearer's next Dexterity (Acrobatics) check (DC 10). Craft: Climber's Kit"
+  },
+  {
+   "key": "srd-2024_component-pouch",
+   "name": "Component Pouch",
+   "itemType": "Adventuring Gear",
+   "prijs": "25 fl",
+   "gewicht": "2 lb",
+   "desc": "A Component Pouch is watertight and filled with compartments that hold all the free Material components of your spells."
+  },
+  {
+   "key": "srd_cooks-utensils",
+   "name": "Cook's utensils",
+   "itemType": "Tools",
+   "prijs": "1 fl",
+   "gewicht": "8 lb",
+   "desc": "These special tools include the items needed to pursue a craft or trade.\\n\\n\r\nProficiency with a set of artisan’s tools lets you add your proficiency bonus to any ability checks you make using the tools in your craft. Each type of artisan’s tools requires a separate proficiency."
+  },
+  {
+   "key": "srd-2024_cooks-utensils",
+   "name": "Cook's Utensils (1 GP)",
+   "itemType": "Tools",
+   "prijs": "1 fl",
+   "gewicht": "8 lb",
+   "desc": "Ability: Wisdom. Utilize: Improve food's flavor (DC 10), or detect spoiled or poisoned food (DC 15). Craft: Rations"
+  },
+  {
+   "key": "srd_copper",
+   "name": "Copper",
+   "itemType": "Trade Good",
+   "prijs": "5 kn",
+   "gewicht": "1 lb",
+   "desc": "1lb of copper."
+  },
+  {
+   "key": "srd_copper-piece",
+   "name": "Copper Piece",
+   "itemType": "Trade Good",
+   "prijs": "1 cl",
+   "gewicht": "0.02 lb",
+   "desc": "One silver piece is worth ten copper pieces, which are common among laborers and beggars. A single copper piece buys a candle, a torch, or a piece of chalk."
+  },
+  {
+   "key": "srd-2024_costume",
+   "name": "Costume",
+   "itemType": "Adventuring Gear",
+   "prijs": "5 fl",
+   "gewicht": "4 lb",
+   "desc": "While wearing a Costume, you have Advantage on any ability check you make to impersonate the person or type of person it represents."
+  },
+  {
+   "key": "srd_cotton-cloth",
+   "name": "Cotton Cloth",
+   "itemType": "Trade Good",
+   "prijs": "5 kn",
+   "gewicht": "1 lb",
+   "desc": "1 sq. yd. of cotton cloth."
+  },
+  {
+   "key": "srd_cow",
+   "name": "Cow",
+   "itemType": "Trade Good",
+   "prijs": "10 fl",
+   "gewicht": "1000 lb",
+   "desc": "One cow."
+  },
+  {
+   "key": "srd_crawler-mucus",
+   "name": "Crawler mucus",
+   "itemType": "Poison",
+   "prijs": "200 fl",
+   "desc": "This poison must be harvested from a dead or incapacitated crawler. A creature subjected to this poison must succeed on a DC 13 Constitution saving throw or be poisoned for 1 minute. The poisoned creature is paralyzed. The creature can repeat the saving throw at the end of each of its turns, ending the effect on itself on a success.\\n\\n\r\n**_Contact._** Contact poison can be smeared on an object and remains potent until it is touched or washed off. A creature that touches contact poison with exposed skin suffers its effects.",
+   "gebruik": "stapelbaar"
+  },
+  {
+   "key": "srd_crossbow-bolt",
+   "name": "Crossbow bolt",
+   "itemType": "Ammunition",
+   "prijs": "5 cl",
+   "gewicht": "0.08 lb",
+   "desc": "Bolts to be used in a crossbow.",
+   "gebruik": "stapelbaar"
+  },
+  {
+   "key": "srd_crossbow-hand",
+   "name": "Crossbow, hand",
+   "itemType": "Weapon",
+   "prijs": "75 fl",
+   "gewicht": "3 lb",
+   "desc": "A hand crossbow.",
+   "damage": "1d6 piercing",
+   "weaponProperties": "Ammunition (range 30/120), Light, Loading",
+   "werking": [
+    "attack"
+   ]
+  },
+  {
+   "key": "srd_crossbow-heavy",
+   "name": "Crossbow, heavy",
+   "itemType": "Weapon",
+   "prijs": "50 fl",
+   "gewicht": "18 lb",
+   "desc": "A heavy crossbow",
+   "damage": "1d10 piercing",
+   "weaponProperties": "Loading, Two-Handed",
+   "werking": [
+    "attack"
+   ]
+  },
+  {
+   "key": "srd_crossbow-light",
+   "name": "Crossbow, light",
+   "itemType": "Weapon",
+   "prijs": "25 fl",
+   "gewicht": "5 lb",
+   "desc": "A light crossbow.",
+   "damage": "1d8 piercing",
+   "weaponProperties": "Ammunition (range 80/320), Loading",
+   "werking": [
+    "attack"
+   ]
+  },
+  {
+   "key": "srd-2024_crowbar",
+   "name": "Crowbar",
+   "itemType": "Adventuring Gear",
+   "prijs": "2 fl",
+   "gewicht": "5 lb",
+   "desc": "Using a Crowbar gives you Advantage on Strength checks where the Crowbar's leverage can be applied."
+  },
+  {
+   "key": "srd_crystal",
+   "name": "Crystal",
+   "itemType": "Adventuring Gear",
+   "prijs": "10 fl",
+   "gewicht": "1 lb",
+   "desc": "Can be used as an arcane focus."
+  },
+  {
+   "key": "srd-2024_dagger",
+   "name": "Dagger",
+   "itemType": "Weapon",
+   "prijs": "2 fl",
+   "gewicht": "1 lb",
+   "desc": "A dagger.",
+   "damage": "1d4 piercing",
+   "weaponProperties": "Finesse, Light, Nick, Thrown (Range 20/60)",
+   "werking": [
+    "attack"
+   ]
+  },
+  {
+   "key": "srd-2024_dart",
+   "name": "Dart",
+   "itemType": "Weapon",
+   "prijs": "5 cl",
+   "gewicht": "1 lb",
+   "desc": "A dart.",
+   "damage": "1d4 piercing",
+   "weaponProperties": "Finesse, Thrown (Range 20/60), Vex",
+   "werking": [
+    "attack"
+   ]
+  },
+  {
+   "key": "srd_dice-set",
+   "name": "Dice set",
+   "itemType": "Tools",
+   "prijs": "1 kn",
+   "desc": "This item encompasses a wide range of game pieces, including dice and decks of cards (for games such as Three-­‐‑Dragon Ante). A few common examples appear on the Tools table, but other kinds of gaming sets exist. If you are proficient with a gaming set, you can add your proficiency bonus to ability checks you make to play a game with that set. Each type of gaming set requires a separate proficiency."
+  },
+  {
+   "key": "srd-2024_diplomats-pack",
+   "name": "Diplomat's Pack",
+   "itemType": "Adventuring Gear",
+   "prijs": "39 fl",
+   "gewicht": "39 lb",
+   "desc": "A Diplomat's Pack contains the following items: Chest, Fine Clothes, Ink, 5 Ink Pens, Lamp, 2 Map or Scroll Cases, 4 flasks of Oil, 5 sheets of Paper, 5 sheets of Parchment, Perfume, and Tinderbox."
+  },
+  {
+   "key": "srd-2024_disguise-kit",
+   "name": "Disguise Kit",
+   "itemType": "Tools",
+   "prijs": "25 fl",
+   "gewicht": "3 lb",
+   "desc": "Ability: Charisma. Utilize: Apply makeup (DC 10). Craft: Costume"
+  },
+  {
+   "key": "srd_drow-poison",
+   "name": "Drow poison",
+   "itemType": "Poison",
+   "prijs": "200 fl",
+   "desc": "This poison is typically made only by the drow, and only in a place far removed from sunlight. A creature subjected to this poison must succeed on a DC 13 Constitution saving throw or be poisoned for 1 hour. If the saving throw fails by 5 or more, the creature is also unconscious while poisoned in this way. The creature wakes up if it takes damage or if another creature takes an action to shake it awake.\r\n\\n\\n**_Injury._** Injury poison can be applied to weapons, ammunition, trap components, and other objects that deal piercing or slashing damage and remains potent until delivered through a wound or washed off. A creature that takes piercing or slashing damage from an object coated with the poison is exposed to its effects.",
+   "gebruik": "stapelbaar"
+  },
+  {
+   "key": "srd-2024_druidic-focus-sprig-of-mistletoe",
+   "name": "Druidic Focus, Sprig of Mistletoe",
+   "itemType": "Adventuring Gear",
+   "prijs": "1 fl",
+   "desc": "A Druidic Focus is carved, tied with ribbon, or painted to channel primal magic. A Druid or Ranger can use such an object as a Spellcasting Focus."
+  },
+  {
+   "key": "srd-2024_druidic-focus-wooden-staff",
+   "name": "Druidic Focus, Wooden Staff",
+   "itemType": "Adventuring Gear",
+   "prijs": "5 fl",
+   "gewicht": "4 lb",
+   "desc": "A Druidic Focus is carved, tied with ribbon, or painted to channel primal magic. A Druid or Ranger can use such an object as a Spellcasting Focus. This staff can also be used as a Quarterstaff."
+  },
+  {
+   "key": "srd-2024_druidic-focus-yew-wand",
+   "name": "Druidic Focus, Yew Wand",
+   "itemType": "Adventuring Gear",
+   "prijs": "10 fl",
+   "gewicht": "1 lb",
+   "desc": "A Druidic Focus is carved, tied with ribbon, or painted to channel primal magic. A Druid or Ranger can use such an object as a Spellcasting Focus."
+  },
+  {
+   "key": "srd_drum",
+   "name": "Drum",
+   "itemType": "Tools",
+   "prijs": "6 fl",
+   "gewicht": "3 lb",
+   "desc": "Several of the most common types of musical instruments are shown on the table as examples. If you have proficiency with a given musical instrument, you can add your proficiency bonus to any ability checks you make to play music with the instrument. A bard can use a musical instrument as a spellcasting focus. Each type of musical instrument requires a separate proficiency."
+  },
+  {
+   "key": "srd_dulcimer",
+   "name": "Dulcimer",
+   "itemType": "Tools",
+   "prijs": "25 fl",
+   "gewicht": "10 lb",
+   "desc": "Several of the most common types of musical instruments are shown on the table as examples. If you have proficiency with a given musical instrument, you can add your proficiency bonus to any ability checks you make to play music with the instrument. A bard can use a musical instrument as a spellcasting focus. Each type of musical instrument requires a separate proficiency."
+  },
+  {
+   "key": "srd-2024_dungeoneers-pack",
+   "name": "Dungeoneer's Pack",
+   "itemType": "Adventuring Gear",
+   "prijs": "12 fl",
+   "gewicht": "55 lb",
+   "desc": "A Dungeoneer's Pack contains the following items: Backpack, Caltrops, Crowbar, 2 flasks of Oil, 10 days of Rations, Rope, Tinderbox, 10 Torches, and Waterskin."
+  },
+  {
+   "key": "srd_electrum-piece",
+   "name": "Electrum Piece",
+   "itemType": "Trade Good",
+   "prijs": "5 kn",
+   "gewicht": "0.02 lb",
+   "desc": "In addition, unusual coins made of other precious metals sometimes appear in treasure hoards. The electrum piece (ep) and the platinum piece (pp) originate from fallen empires and lost kingdoms, and they sometimes arouse suspicion and skepticism when used in transactions. An electrum piece is worth five silver pieces, and a platinum piece is worth ten gold pieces."
+  },
+  {
+   "key": "srd-2024_elephant",
+   "name": "Elephant",
+   "itemType": "Vehicle",
+   "prijs": "200 fl",
+   "desc": "A massive mount capable of carrying extremely heavy loads."
+  },
+  {
+   "key": "srd_emblem",
+   "name": "Emblem",
+   "itemType": "Adventuring Gear",
+   "prijs": "5 fl",
+   "desc": "Can be used as a holy symbol."
+  },
+  {
+   "key": "srd-2024_entertainers-pack",
+   "name": "Entertainer's Pack",
+   "itemType": "Adventuring Gear",
+   "prijs": "40 fl",
+   "gewicht": "58 lb",
+   "desc": "An Entertainer's Pack contains the following items: Backpack, Bedroll, Bell, Bullseye Lantern, 3 Costumes, Mirror, 8 flasks of Oil, 9 days of Rations, Tinderbox, and Waterskin."
+  },
+  {
+   "key": "srd_essense-of-either",
+   "name": "Essense of either",
+   "itemType": "Poison",
+   "prijs": "300 fl",
+   "desc": "A creature subjected to this poison must succeed on a DC 15 Constitution saving throw or become poisoned for 8 hours. The poisoned creature is unconscious. The creature wakes up if it takes damage or if another creature takes an action to shake it awake.\\n\\n**_Inhaled._** These poisons are powders or gases that take effect when inhaled. Blowing the powder or releasing the gas subjects creatures in a 5-foot cube to its effect. The resulting cloud dissipates immediately afterward. Holding one's breath is ineffective against inhaled poisons, as they affect nasal membranes, tear ducts, and other parts of the body.",
+   "gebruik": "stapelbaar"
+  },
+  {
+   "key": "srd-2024_explorers-pack",
+   "name": "Explorer's Pack",
+   "itemType": "Adventuring Gear",
+   "prijs": "10 fl",
+   "gewicht": "55 lb",
+   "desc": "An Explorer's Pack contains the following items: Backpack, Bedroll, 2 flasks of Oil, 10 days of Rations, Rope, Tinderbox, 10 Torches, and Waterskin."
+  },
+  {
+   "key": "srd-2024_feed-per-day",
+   "name": "Feed (per day)",
+   "itemType": "Adventuring Gear",
+   "prijs": "5 cl",
+   "gewicht": "10 lb",
+   "desc": "Daily feed for a mount."
+  },
+  {
+   "key": "srd_fishing-tackle",
+   "name": "Fishing Tackle",
+   "itemType": "Adventuring Gear",
+   "prijs": "1 fl",
+   "gewicht": "4 lb",
+   "desc": "This kit includes a wooden rod, silken line, corkwood bobbers, steel hooks, lead sinkers, velvet lures, and narrow netting."
+  },
+  {
+   "key": "srd-2024_flail",
+   "name": "Flail",
+   "itemType": "Weapon",
+   "prijs": "10 fl",
+   "gewicht": "2 lb",
+   "desc": "A flail.",
+   "damage": "1d8 bludgeoning",
+   "weaponProperties": "Sap",
+   "werking": [
+    "attack"
+   ]
+  },
+  {
+   "key": "srd-2024_flask",
+   "name": "Flask",
+   "itemType": "Adventuring Gear",
+   "prijs": "2 cl",
+   "gewicht": "1 lb",
+   "desc": "A Flask holds up to 1 pint."
+  },
+  {
+   "key": "srd_flask-or-tankard",
+   "name": "Flask or tankard",
+   "itemType": "Adventuring Gear",
+   "prijs": "2 cl",
+   "gewicht": "1 lb",
+   "desc": "For drinking. Capacity: 1 pint liquid."
+  },
+  {
+   "key": "srd_flour",
+   "name": "Flour",
+   "itemType": "Trade Good",
+   "prijs": "2 cl",
+   "gewicht": "1 lb",
+   "desc": "1lb of flour"
+  },
+  {
+   "key": "srd_flute",
+   "name": "Flute",
+   "itemType": "Tools",
+   "prijs": "2 fl",
+   "gewicht": "1 lb",
+   "desc": "Several of the most common types of musical instruments are shown on the table as examples. If you have proficiency with a given musical instrument, you can add your proficiency bonus to any ability checks you make to play music with the instrument. A bard can use a musical instrument as a spellcasting focus. Each type of musical instrument requires a separate proficiency."
+  },
+  {
+   "key": "srd-2024_forgery-kit",
+   "name": "Forgery Kit",
+   "itemType": "Tools",
+   "prijs": "15 fl",
+   "gewicht": "5 lb",
+   "desc": "Ability: Dexterity. Utilize: Mimic 10 or fewer words of someone else's handwriting (DC 15), or duplicate a wax seal (DC 20)"
+  },
+  {
+   "key": "srd-2024_galley",
+   "name": "Galley",
+   "itemType": "Vehicle",
+   "prijs": "30000 fl",
+   "desc": "A large warship propelled by oars and sails."
+  },
+  {
+   "key": "srd-2024_gaming-set-dice",
+   "name": "Gaming Set, Dice",
+   "itemType": "Tools",
+   "prijs": "1 kn",
+   "desc": "Ability: Wisdom. Utilize: Discern whether someone is cheating (DC 10), or win the game (DC 20)"
+  },
+  {
+   "key": "srd-2024_gaming-set-dragonchess",
+   "name": "Gaming Set, Dragonchess",
+   "itemType": "Tools",
+   "prijs": "1 fl",
+   "gewicht": "1 lb",
+   "desc": "Ability: Intelligence. Utilize: Discern an opponent's mood and intentions (DC 15), or win the game (DC 20)"
+  },
+  {
+   "key": "srd-2024_gaming-set-playing-cards",
+   "name": "Gaming Set, Playing Cards",
+   "itemType": "Tools",
+   "prijs": "5 kn",
+   "desc": "Ability: Charisma. Utilize: Discern an opponent's mood and intentions (DC 15), or win the game (DC 20)"
+  },
+  {
+   "key": "srd-2024_gaming-set-three-dragon-ante",
+   "name": "Gaming Set, Three-Dragon Ante",
+   "itemType": "Tools",
+   "prijs": "1 fl",
+   "desc": "Ability: Charisma. Utilize: Discern an opponent's mood and intentions (DC 15), or win the game (DC 20)"
+  },
+  {
+   "key": "srd_ginger",
+   "name": "Ginger",
+   "itemType": "Trade Good",
+   "prijs": "1 fl",
+   "gewicht": "1 lb",
+   "desc": "1lb of Ginger."
+  },
+  {
+   "key": "srd-2024_glaive",
+   "name": "Glaive",
+   "itemType": "Weapon",
+   "prijs": "20 fl",
+   "gewicht": "6 lb",
+   "desc": "A glaive.",
+   "damage": "1d10 slashing",
+   "weaponProperties": "Graze, Heavy, Reach, Two-Handed",
+   "werking": [
+    "attack"
+   ]
+  },
+  {
+   "key": "srd_glassblowers-tools",
+   "name": "Glassblower's Tools",
+   "itemType": "Tools",
+   "prijs": "30 fl",
+   "gewicht": "5 lb",
+   "desc": "These special tools include the items needed to pursue a craft or trade.\\n\\n\r\nProficiency with a set of artisan’s tools lets you add your proficiency bonus to any ability checks you make using the tools in your craft. Each type of artisan’s tools requires a separate proficiency."
+  },
+  {
+   "key": "srd-2024_glassblowers-tools",
+   "name": "Glassblower's Tools (30 GP)",
+   "itemType": "Tools",
+   "prijs": "30 fl",
+   "gewicht": "5 lb",
+   "desc": "Ability: Intelligence. Utilize: Discern what a glass object held in the past 24 hours (DC 15). Craft: Glass Bottle, Magnifying Glass, Spyglass, Vial"
+  },
+  {
+   "key": "srd_goat",
+   "name": "Goat",
+   "itemType": "Trade Good",
+   "prijs": "1 fl",
+   "gewicht": "75 lb",
+   "desc": "One goat."
+  },
+  {
+   "key": "srd_gold",
+   "name": "Gold",
+   "itemType": "Trade Good",
+   "prijs": "50 fl",
+   "gewicht": "1 lb",
+   "desc": "1lb of gold."
+  },
+  {
+   "key": "srd_gold-piece",
+   "name": "Gold Piece",
+   "itemType": "Trade Good",
+   "prijs": "1 fl",
+   "gewicht": "0.02 lb",
+   "desc": "With one gold piece, a character can buy a bedroll, 50 feet of good rope, or a goat. A skilled (but not exceptional) artisan can earn one gold piece a day. The gold piece is the standard unit of measure for wealth, even if the coin itself is not commonly used. When merchants discuss deals that involve goods or services worth hundreds or thousands of gold pieces, the transactions don't usually involve the exchange of individual coins. Rather, the gold piece is a standard measure of value, and the actual exchange is in gold bars, letters of credit, or valuable goods."
+  },
+  {
+   "key": "srd-2024_grappling-hook",
+   "name": "Grappling Hook",
+   "itemType": "Adventuring Gear",
+   "prijs": "2 fl",
+   "gewicht": "4 lb",
+   "desc": "As a Utilize action, you can throw the Grappling Hook at a railing, a ledge, or another catch within 50 feet of yourself, and the hook catches on if you succeed on a DC 13 Dexterity (Acrobatics) check. If you tied a Rope to the hook, you can then climb it."
+  },
+  {
+   "key": "srd-2024_greataxe",
+   "name": "Greataxe",
+   "itemType": "Weapon",
+   "prijs": "30 fl",
+   "gewicht": "7 lb",
+   "desc": "A greataxe.",
+   "damage": "1d12 slashing",
+   "weaponProperties": "Cleave, Heavy, Two-Handed",
+   "werking": [
+    "attack"
+   ]
+  },
+  {
+   "key": "srd-2024_greatclub",
+   "name": "Greatclub",
+   "itemType": "Weapon",
+   "prijs": "2 kn",
+   "gewicht": "10 lb",
+   "desc": "A greatclub.",
+   "damage": "1d8 bludgeoning",
+   "weaponProperties": "Push, Two-Handed",
+   "werking": [
+    "attack"
+   ]
+  },
+  {
+   "key": "srd-2024_greatsword",
+   "name": "Greatsword",
+   "itemType": "Weapon",
+   "prijs": "50 fl",
+   "gewicht": "6 lb",
+   "desc": "A greatsword.",
+   "damage": "2d6 slashing",
+   "weaponProperties": "Graze, Heavy, Two-Handed",
+   "werking": [
+    "attack"
+   ]
+  },
+  {
+   "key": "srd-2024_halberd",
+   "name": "Halberd",
+   "itemType": "Weapon",
+   "prijs": "20 fl",
+   "gewicht": "6 lb",
+   "desc": "A halberd.",
+   "damage": "1d10 slashing",
+   "weaponProperties": "Cleave, Heavy, Reach, Two-Handed",
+   "werking": [
+    "attack"
+   ]
+  },
+  {
+   "key": "srd_half-plate",
+   "name": "Half plate",
+   "itemType": "Armor",
+   "prijs": "750 fl",
+   "gewicht": "40 lb",
+   "desc": "Half plate consists of shaped metal plates that cover most of the wearer's body. It does not include leg protection beyond simple greaves that are attached with leather straps.",
+   "armorType": "medium",
+   "armorBaseAC": 15,
+   "armorDexCap": 2,
+   "stealthDisadvantage": true,
+   "werking": [
+    "defense"
+   ]
+  },
+  {
+   "key": "srd-2024_half-plate-armor",
+   "name": "Half Plate Armor",
+   "itemType": "Armor",
+   "prijs": "750 fl",
+   "gewicht": "40 lb",
+   "desc": "A half plate armor.",
+   "armorType": "medium",
+   "armorBaseAC": 15,
+   "armorDexCap": 2,
+   "stealthDisadvantage": true,
+   "werking": [
+    "defense"
+   ]
+  },
+  {
+   "key": "srd_hammer",
+   "name": "Hammer",
+   "itemType": "Adventuring Gear",
+   "prijs": "1 fl",
+   "gewicht": "3 lb",
+   "desc": "A hammer."
+  },
+  {
+   "key": "srd_hammer-sledge",
+   "name": "Hammer, sledge",
+   "itemType": "Adventuring Gear",
+   "prijs": "2 fl",
+   "gewicht": "10 lb",
+   "desc": "A sledgehammer"
+  },
+  {
+   "key": "srd-2024_hand-crossbow",
+   "name": "Hand Crossbow",
+   "itemType": "Weapon",
+   "prijs": "75 fl",
+   "gewicht": "3 lb",
+   "desc": "A hand crossbow.",
+   "damage": "1d6 piercing",
+   "weaponProperties": "Ammunition (Range 30/120; Bolt), Light, Loading, Vex",
+   "werking": [
+    "attack"
+   ]
+  },
+  {
+   "key": "srd-2024_handaxe",
+   "name": "Handaxe",
+   "itemType": "Weapon",
+   "prijs": "5 fl",
+   "gewicht": "2 lb",
+   "desc": "A handaxe.",
+   "damage": "1d6 slashing",
+   "weaponProperties": "Light, Thrown (Range 20/60), Vex",
+   "werking": [
+    "attack"
+   ]
+  },
+  {
+   "key": "srd-2024_healers-kit",
+   "name": "Healer's Kit",
+   "itemType": "Tools",
+   "prijs": "5 fl",
+   "gewicht": "3 lb",
+   "desc": "A Healer's Kit has ten uses. As a Utilize action, you can expend one of its uses to stabilize an Unconscious creature that has 0 Hit Points without needing to make a Wisdom (Medicine) check."
+  },
+  {
+   "key": "srd-2024_heavy-crossbow",
+   "name": "Heavy Crossbow",
+   "itemType": "Weapon",
+   "prijs": "50 fl",
+   "gewicht": "18 lb",
+   "desc": "A heavy crossbow.",
+   "damage": "1d10 piercing",
+   "weaponProperties": "Ammunition (Range 100/400; Bolt), Heavy, Loading, Push, Two-Handed",
+   "werking": [
+    "attack"
+   ]
+  },
+  {
+   "key": "srd-2024_herbalism-kit",
+   "name": "Herbalism Kit",
+   "itemType": "Tools",
+   "prijs": "5 fl",
+   "gewicht": "3 lb",
+   "desc": "Ability: Intelligence. Utilize: Identify a plant (DC 15). Craft: Antitoxin, Potion of Healing"
+  },
+  {
+   "key": "srd-2024_hide-armor",
+   "name": "Hide Armor",
+   "itemType": "Armor",
+   "prijs": "10 fl",
+   "gewicht": "12 lb",
+   "desc": "A hide armor.",
+   "armorType": "medium",
+   "armorBaseAC": 12,
+   "armorDexCap": 2,
+   "werking": [
+    "defense"
+   ]
+  },
+  {
+   "key": "srd-2024_holy-symbol-amulet",
+   "name": "Holy Symbol, Amulet)",
+   "itemType": "Adventuring Gear",
+   "prijs": "5 fl",
+   "gewicht": "1 lb",
+   "desc": "A Holy Symbol Amulet is bejeweled or painted to channel divine magic. A Cleric or Paladin can use it as a Spellcasting Focus. It can be worn around the neck or held in hand."
+  },
+  {
+   "key": "srd-2024_holy-symbol-emblem",
+   "name": "Holy Symbol, Emblem)",
+   "itemType": "Adventuring Gear",
+   "prijs": "5 fl",
+   "desc": "A Holy Symbol Emblem is bejeweled or painted to channel divine magic. A Cleric or Paladin can use it as a Spellcasting Focus. It must be borne on fabric (such as a tabard or banner) or a Shield."
+  },
+  {
+   "key": "srd-2024_holy-symbol-reliquary",
+   "name": "Holy Symbol, Reliquary",
+   "itemType": "Adventuring Gear",
+   "prijs": "5 fl",
+   "gewicht": "2 lb",
+   "desc": "A Holy Symbol Reliquary is bejeweled or painted to channel divine magic. A Cleric or Paladin can use it as a Spellcasting Focus. It must be held in hand."
+  },
+  {
+   "key": "srd-2024_holy-water",
+   "name": "Holy Water",
+   "itemType": "Weapon",
+   "prijs": "25 fl",
+   "gewicht": "1 lb",
+   "desc": "When you take the Attack action, you can replace one of your attacks with throwing a flask of Holy Water. Target one creature you can see within 20 feet of yourself. The target must succeed on a Dexterity saving throw (DC 8 plus your Dexterity modifier and Proficiency Bonus) or take 2d8 Radiant damage if it is a Fiend or an Undead."
+  },
+  {
+   "key": "srd_holy-water-flask",
+   "name": "Holy Water (flask)",
+   "itemType": "Adventuring Gear",
+   "prijs": "25 fl",
+   "gewicht": "1 lb",
+   "desc": "As an action, you can splash the contents of this flask onto a creature within 5 feet of you or throw it up to 20 feet, shattering it on impact.In either case, make a ranged attack against a target creature, treating the holy water as an improvised weapon. If the target is a fiend or undead, it takes 2d6 radiant damage.\\n\\nA cleric or paladin may create holy water by performing a special ritual. The ritual takes 1 hour to perform, uses 25 gp worth of powdered silver, and requires the caster to expend a 1st-­‐‑level spell slot."
+  },
+  {
+   "key": "srd_horn",
+   "name": "Horn",
+   "itemType": "Tools",
+   "prijs": "3 fl",
+   "gewicht": "2 lb",
+   "desc": "Several of the most common types of musical instruments are shown on the table as examples. If you have proficiency with a given musical instrument, you can add your proficiency bonus to any ability checks you make to play music with the instrument. A bard can use a musical instrument as a spellcasting focus. Each type of musical instrument requires a separate proficiency."
+  },
+  {
+   "key": "srd-2024_horse-draft",
+   "name": "Horse (Draft)",
+   "itemType": "Vehicle",
+   "prijs": "50 fl",
+   "desc": "A strong horse bred for pulling heavy loads."
+  },
+  {
+   "key": "srd-2024_horse-riding",
+   "name": "Horse (Riding)",
+   "itemType": "Vehicle",
+   "prijs": "75 fl",
+   "desc": "A horse trained for riding and carrying moderate loads."
+  },
+  {
+   "key": "srd_hourglass",
+   "name": "Hourglass",
+   "itemType": "Adventuring Gear",
+   "prijs": "25 fl",
+   "gewicht": "1 lb",
+   "desc": "An hourglass."
+  },
+  {
+   "key": "srd-2024_hunting-trap",
+   "name": "Hunting Trap",
+   "itemType": "Adventuring Gear",
+   "prijs": "5 fl",
+   "gewicht": "25 lb",
+   "desc": "As a Utilize action, you can set a Hunting Trap, which is a sawtooth steel ring that snaps shut when a creature steps on a pressure plate in the center. The trap is affixed by a heavy chain to an immobile object, such as a tree or a spike driven into the ground. A creature that steps on the plate must succeed on a DC 13 Dexterity saving throw or take 1d4 Piercing damage and have its Speed reduced to 0 until the start of its next turn. Thereafter, until the creature breaks free of the trap, its movement is limited by the length of the chain (typically 3 feet). A creature can use its action to make a DC 13 Strength (Athletics) check, freeing itself or another creature within its reach on a success. Each failed check deals 1 Piercing damage to the trapped creature."
+  },
+  {
+   "key": "srd-2024_ink",
+   "name": "Ink",
+   "itemType": "Adventuring Gear",
+   "prijs": "10 fl",
+   "desc": "Ink comes in a 1-ounce bottle, which provides enough ink to write about 500 pages."
+  },
+  {
+   "key": "srd_ink-1-ounce-bottle",
+   "name": "Ink (1 ounce bottle)",
+   "itemType": "Adventuring Gear",
+   "prijs": "10 fl",
+   "desc": "A bottle of ink."
+  },
+  {
+   "key": "srd-2024_ink-pen",
+   "name": "Ink Pen",
+   "itemType": "Adventuring Gear",
+   "prijs": "2 cl",
+   "desc": "Using Ink, an Ink Pen is used to write or draw."
+  },
+  {
+   "key": "srd-2024_ioun-stone",
+   "name": "Ioun Stone",
+   "itemType": "Wondrous item",
+   "desc": "Roughly marble sized, Ioun Stones are named after Ioun, a god of knowledge and prophecy revered on some worlds. Many types of Ioun Stones exist, each type a distinct combination of shape and color. When you take a Magic action to toss an Ioun Stone into the air, the stone orbits your head at a distance of 1d3 feet, conferring its benefit to you while doing so. You can have up to three Ioun Stones orbiting your head at the same time. Each Ioun Stone orbiting your head is considered to be an object you are wearing. The orbiting stone avoids contact with other creatures and objects, adjusting its orbit to avoid collisions and thwarting all attempts by other creatures to attack or snatch it. As a Utilize action, you can seize and stow any number of Ioun Stones orbiting your head. If your Attunement to an Ioun Stone ends while it's orbiting your head, the stone falls as though you had dropped it. The type of stone determines its rarity and effects. Absorption (Very Rare). While this pale lavender ellipsoid orbits your head, you can take a Reaction to cancel a spell of level 4 or lower cast by a creature you can see. A canceled spell has no effect, and any resources used to cast it are wasted. Once the stone has canceled 20 levels of spells, it burns out, turns dull gray, and loses its magic. Agility (Very Rare). Your Dexterity increases by 2, to a maximum of 20, while this deep-red sphere orbits your head. Awareness (Rare). While this dark-blue rhomboid orbits your head, you have Advantage on Initiative rolls and Wisdom (Perception) checks. Fortitude (Very Rare). Your Constitution increases by 2, to a maximum of 20, while this pink rhomboid orbits your head. Greater Absorption (Legendary). While this marbled lavender and green ellipsoid orbits your head, you can take a Reaction to cancel a spell of level 8 or lower cast by a creature you can see. A canceled spell has no effect, and any resources used to cast it are wasted. Once the stone has canceled 20 levels of spells, it burns out, turns dull gray, and loses its magic. Insight (Very Rare). Your Wisdom increases by 2, to a maximum of 20, while this incandescent blue sphere orbits your head. Intellect (Very Rare). Your Intelligence increases by 2, to a maximum of 20, while this marbled scarlet and blue sphere orbits your head. Leadership (Very Rare). Your Charisma increases by 2, to a maximum of 20, while this marbled pink and green sphere orbits your head. Mastery (Legendary). Your Proficiency Bonus increases by 1 while this pale green prism orbits your head. Protection (Rare). You gain a +1 bonus to Armor Class while this dusty-rose prism orbits your head. Regeneration (Legendary). You regain 15 Hit Points at the end of each hour this pearly white spindle orbits your head if you have at least 1 Hit Point. Reserve (Rare). This vibrant purple prism stores spells cast into it, holding them until you use them. The stone can store up to 4 levels of spells at a time. When found, it contains 1d4 levels of stored spells chosen by the GM. Any creature can cast a spell of level 1 through 4 into the stone by touching it as the spell is cast. The spell has no effect, other than to be stored in the stone. If the stone can't hold the spell, the spell is expended without effect. The level of the slot used to cast the spell determines how much space it uses. While this stone orbits your head, you can cast any spell stored in it. The spell uses the slot level, spell save DC, spell attack bonus, and spellcasting ability of the original caster but is otherwise treated as if you cast the spell. The spell cast from the stone is no longer stored in it, freeing up space. Strength (Very Rare). Your Strength increases by 2, to a maximum of 20, while this pale blue rhomboid orbits your head. Sustenance (Rare). You don't need to eat or drink while this clear spindle orbits your head."
+  },
+  {
+   "key": "srd_iron",
+   "name": "Iron",
+   "itemType": "Trade Good",
+   "prijs": "1 kn",
+   "gewicht": "1 lb",
+   "desc": "1lb of iron."
+  },
+  {
+   "key": "srd-2024_javelin",
+   "name": "Javelin",
+   "itemType": "Weapon",
+   "prijs": "5 kn",
+   "gewicht": "2 lb",
+   "desc": "A javelin.",
+   "damage": "1d6 piercing",
+   "weaponProperties": "Slow, Thrown (Range 30/120)",
+   "werking": [
+    "attack"
+   ]
+  },
+  {
+   "key": "srd_jewelers-tools",
+   "name": "Jeweler's Tools",
+   "itemType": "Tools",
+   "prijs": "25 fl",
+   "gewicht": "2 lb",
+   "desc": "These special tools include the items needed to pursue a craft or trade.\\n\\n\r\nProficiency with a set of artisan’s tools lets you add your proficiency bonus to any ability checks you make using the tools in your craft. Each type of artisan’s tools requires a separate proficiency."
+  },
+  {
+   "key": "srd-2024_jewelers-tools",
+   "name": "Jeweler's Tools (25 GP)",
+   "itemType": "Tools",
+   "prijs": "25 fl",
+   "gewicht": "2 lb",
+   "desc": "Ability: Intelligence. Utilize: Discern a gem's value (DC 15). Craft: Arcane Focus, Holy Symbol"
+  },
+  {
+   "key": "srd-2024_jug",
+   "name": "Jug",
+   "itemType": "Adventuring Gear",
+   "prijs": "2 cl",
+   "gewicht": "4 lb",
+   "desc": "A Jug holds up to 1 gallon."
+  },
+  {
+   "key": "srd_jug-or-pitcher",
+   "name": "Jug or pitcher",
+   "itemType": "Adventuring Gear",
+   "prijs": "2 cl",
+   "gewicht": "4 lb",
+   "desc": "For drinking a lot. Capacity: 1 gallon liquid."
+  },
+  {
+   "key": "srd-2024_keelboat",
+   "name": "Keelboat",
+   "itemType": "Vehicle",
+   "prijs": "3000 fl",
+   "desc": "A small riverboat with a keel."
+  },
+  {
+   "key": "srd-2024_ladder",
+   "name": "Ladder",
+   "itemType": "Adventuring Gear",
+   "prijs": "1 kn",
+   "gewicht": "25 lb",
+   "desc": "A Ladder is 10 feet tall. You must climb to move up or down it."
+  },
+  {
+   "key": "srd_ladder-10-foot",
+   "name": "Ladder (10-foot)",
+   "itemType": "Adventuring Gear",
+   "prijs": "1 kn",
+   "gewicht": "25 lb",
+   "desc": "A 10 foot ladder."
+  },
+  {
+   "key": "srd-2024_lamp",
+   "name": "Lamp",
+   "itemType": "Adventuring Gear",
+   "prijs": "5 kn",
+   "gewicht": "1 lb",
+   "desc": "A Lamp burns Oil as fuel to cast Bright Light in a 15 foot radius and Dim Light for an additional 30 feet."
+  },
+  {
+   "key": "srd_lamp-oil-flask",
+   "name": "Lamp oil (flask)",
+   "itemType": "Adventuring Gear",
+   "prijs": "1 kn",
+   "gewicht": "1 lb",
+   "desc": "Oil usually comes in a clay flask that holds 1 pint. As an action, you can splash the oil in this flask onto a creature within 5 feet of you or throw it up to 20 feet, shattering it on impact. Make a ranged attack against a target creature or object, treating the oil as an improvised weapon. On a hit, the target is covered in oil. If the target takes any fire damage before the oil dries (after 1 minute), the target takes an additional 5 fire damage from the burning oil. You can also pour a flask of oil on the ground to cover a 5-­foot‑square area, provided that the surface is level. If lit, the oil burns for 2 rounds and deals 5 fire damage to any creature that enters the area or ends its turn in the area. A creature can take this damage only once per turn."
+  },
+  {
+   "key": "srd-2024_lance",
+   "name": "Lance",
+   "itemType": "Weapon",
+   "prijs": "10 fl",
+   "gewicht": "6 lb",
+   "desc": "A lance.",
+   "damage": "1d10 piercing",
+   "weaponProperties": "Heavy, Reach, Topple, Two-Handed (unless mounted)",
+   "werking": [
+    "attack"
+   ]
+  },
+  {
+   "key": "srd-2024_lantern-bullseye",
+   "name": "Lantern, Bullseye",
+   "itemType": "Adventuring Gear",
+   "prijs": "10 fl",
+   "gewicht": "2 lb",
+   "desc": "A Bullseye Lantern burns Oil as fuel to cast Bright Light in a 60-foot Cone and Dim Light for an additional 60 feet."
+  },
+  {
+   "key": "srd-2024_lantern-hooded",
+   "name": "Lantern, Hooded",
+   "itemType": "Adventuring Gear",
+   "prijs": "5 fl",
+   "gewicht": "2 lb",
+   "desc": "A Hooded Lantern burns Oil as fuel to cast Bright Light in a 30-foot radius and Dim Light for an additional 30 feet. As a Bonus Action, you can lower the hood, reducing the light to Dim Light in a 5-foot radius, or raise it again."
+  },
+  {
+   "key": "srd-2024_leather-armor",
+   "name": "Leather Armor",
+   "itemType": "Armor",
+   "prijs": "10 fl",
+   "gewicht": "10 lb",
+   "desc": "A leather armor.",
+   "armorType": "light",
+   "armorBaseAC": 11,
+   "werking": [
+    "defense"
+   ]
+  },
+  {
+   "key": "srd_leatherworkers-tools",
+   "name": "Leatherworker's Tools",
+   "itemType": "Tools",
+   "prijs": "5 fl",
+   "gewicht": "5 lb",
+   "desc": "These special tools include the items needed to pursue a craft or trade.\\n\\n\r\nProficiency with a set of artisan’s tools lets you add your proficiency bonus to any ability checks you make using the tools in your craft. Each type of artisan’s tools requires a separate proficiency."
+  },
+  {
+   "key": "srd-2024_leatherworkers-tools",
+   "name": "Leatherworker's Tools (5 GP)",
+   "itemType": "Tools",
+   "prijs": "5 fl",
+   "gewicht": "5 lb",
+   "desc": "Ability: Dexterity. Utilize: Add a design to a leather item (DC 10). Craft: Sling, Whip, Hide Armor, Leather Armor, Studded Leather Armor, Backpack, Crossbow Bolt Case, Map or Scroll Case, Parchment, Pouch, Quiver, Waterskin"
+  },
+  {
+   "key": "srd-2024_light-crossbow",
+   "name": "Light Crossbow",
+   "itemType": "Weapon",
+   "prijs": "25 fl",
+   "gewicht": "5 lb",
+   "desc": "A light crossbow.",
+   "damage": "1d8 piercing",
+   "weaponProperties": "Ammunition (Range 80/320; Bolt), Loading, Slow, Two-Handed",
+   "werking": [
+    "attack"
+   ]
+  },
+  {
+   "key": "srd-2024_light-hammer",
+   "name": "Light Hammer",
+   "itemType": "Weapon",
+   "prijs": "2 fl",
+   "gewicht": "2 lb",
+   "desc": "A light hammer.",
+   "damage": "1d4 bludgeoning",
+   "weaponProperties": "Light, Nick, Thrown (Range 20/60)",
+   "werking": [
+    "attack"
+   ]
+  },
+  {
+   "key": "srd_linen",
+   "name": "Linen",
+   "itemType": "Trade Good",
+   "prijs": "5 fl",
+   "gewicht": "1 lb",
+   "desc": "1 sq. yd. of linen."
+  },
+  {
+   "key": "srd-2024_lock",
+   "name": "Lock",
+   "itemType": "Adventuring Gear",
+   "prijs": "10 fl",
+   "gewicht": "1 lb",
+   "desc": "A Lock comes with a key. Without the key, a creature can use Thieves' Tools to pick this Lock with a successful DC 15 Dexterity (Sleight of Hand) check."
+  },
+  {
+   "key": "srd-2024_longbow",
+   "name": "Longbow",
+   "itemType": "Weapon",
+   "prijs": "50 fl",
+   "gewicht": "2 lb",
+   "desc": "A longbow.",
+   "damage": "1d8 piercing",
+   "weaponProperties": "Ammunition (Range 150/600; Arrow), Heavy, Slow, Two-Handed",
+   "werking": [
+    "attack"
+   ]
+  },
+  {
+   "key": "srd-2024_longship",
+   "name": "Longship",
+   "itemType": "Vehicle",
+   "prijs": "10000 fl",
+   "desc": "A swift ship designed for raiding and exploration."
+  },
+  {
+   "key": "srd-2024_longsword",
+   "name": "Longsword",
+   "itemType": "Weapon",
+   "prijs": "15 fl",
+   "gewicht": "3 lb",
+   "desc": "A longsword.",
+   "damage": "1d8 slashing",
+   "weaponProperties": "Sap, Versatile (1d10)",
+   "werking": [
+    "attack"
+   ]
+  },
+  {
+   "key": "srd_lute",
+   "name": "Lute",
+   "itemType": "Tools",
+   "prijs": "35 fl",
+   "gewicht": "2 lb",
+   "desc": "Several of the most common types of musical instruments are shown on the table as examples. If you have proficiency with a given musical instrument, you can add your proficiency bonus to any ability checks you make to play music with the instrument. A bard can use a musical instrument as a spellcasting focus. Each type of musical instrument requires a separate proficiency."
+  },
+  {
+   "key": "srd_lyre",
+   "name": "Lyre",
+   "itemType": "Tools",
+   "prijs": "30 fl",
+   "gewicht": "2 lb",
+   "desc": "Several of the most common types of musical instruments are shown on the table as examples. If you have proficiency with a given musical instrument, you can add your proficiency bonus to any ability checks you make to play music with the instrument. A bard can use a musical instrument as a spellcasting focus. Each type of musical instrument requires a separate proficiency."
+  },
+  {
+   "key": "srd-2024_mace",
+   "name": "Mace",
+   "itemType": "Weapon",
+   "prijs": "5 fl",
+   "gewicht": "4 lb",
+   "desc": "A mace.",
+   "damage": "1d6 bludgeoning",
+   "weaponProperties": "Sap",
+   "werking": [
+    "attack"
+   ]
+  },
+  {
+   "key": "srd-2024_magnifying-glass",
+   "name": "Magnifying Glass",
+   "itemType": "Adventuring Gear",
+   "prijs": "100 fl",
+   "desc": "A Magnifying Glass grants Advantage on any ability check made to appraise or inspect a highly detailed item. Lighting a fire with a Magnifying Glass requires light as bright as sunlight to focus, tinder to ignite, and about 5 minutes for the fire to ignite."
+  },
+  {
+   "key": "srd_malice",
+   "name": "Malice",
+   "itemType": "Poison",
+   "prijs": "250 fl",
+   "desc": "A creature subjected to this poison must succeed on a DC 15 Constitution saving throw or become poisoned for 1 hour. The poisoned creature is blinded.\\n\\n**_Inhaled._** These poisons are powders or gases that take effect when inhaled. Blowing the powder or releasing the gas subjects creatures in a 5-foot cube to its effect. The resulting cloud dissipates immediately afterward. Holding one's breath is ineffective against inhaled poisons, as they affect nasal membranes, tear ducts, and other parts of the body.",
+   "gebruik": "stapelbaar"
+  },
+  {
+   "key": "srd-2024_manacles",
+   "name": "Manacles",
+   "itemType": "Adventuring Gear",
+   "prijs": "2 fl",
+   "gewicht": "6 lb",
+   "desc": "As a Utilize action, you can use Manacles to bind an unwilling Small or Medium creature within 5 feet of yourself that has the Grappled, Incapacitated, or Restrained condition if you succeed on a DC 13 Dexterity (Sleight of Hand) check. While bound, a creature has Disadvantage on attack rolls, and the creature is Restrained if the Manacles are attached to a chain or hook that is fixed in place. Escaping the Manacles requires a successful DC 20 Dexterity (Sleight of Hand) check as an action. Bursting them requires a successful DC 25 Strength (Athletics) check as an action. Each set of Manacles comes with a key. Without the key, a creature can use Thieves' Tools to pick the Manacles' lock with a successful DC 15 Dexterity (Sleight of Hand) check."
+  },
+  {
+   "key": "srd-2024_map",
+   "name": "Map",
+   "itemType": "Adventuring Gear",
+   "prijs": "1 fl",
+   "desc": "If you consult an accurate Map, you gain a +5 bonus to Wisdom (Survival) checks you make to find your way in the place represented on it."
+  },
+  {
+   "key": "srd_masons-tools",
+   "name": "Mason's Tools",
+   "itemType": "Tools",
+   "prijs": "10 fl",
+   "gewicht": "8 lb",
+   "desc": "These special tools include the items needed to pursue a craft or trade.\\n\\n\r\nProficiency with a set of artisan’s tools lets you add your proficiency bonus to any ability checks you make using the tools in your craft. Each type of artisan’s tools requires a separate proficiency."
+  },
+  {
+   "key": "srd-2024_masons-tools",
+   "name": "Mason's Tools (10 GP)",
+   "itemType": "Tools",
+   "prijs": "10 fl",
+   "gewicht": "8 lb",
+   "desc": "Ability: Strength. Utilize: Chisel a symbol or hole in stone (DC 10). Craft: Block and Tackle"
+  },
+  {
+   "key": "srd-2024_mastiff",
+   "name": "Mastiff",
+   "itemType": "Vehicle",
+   "prijs": "25 fl",
+   "desc": "A large dog trained for combat and carrying small loads."
+  },
+  {
+   "key": "srd-2024_maul",
+   "name": "Maul",
+   "itemType": "Weapon",
+   "prijs": "10 fl",
+   "gewicht": "10 lb",
+   "desc": "A maul.",
+   "damage": "2d6 bludgeoning",
+   "weaponProperties": "Heavy, Topple, Two-Handed",
+   "werking": [
+    "attack"
+   ]
+  },
+  {
+   "key": "srd_mess-kit",
+   "name": "Mess Kit",
+   "itemType": "Adventuring Gear",
+   "prijs": "2 kn",
+   "gewicht": "1 lb",
+   "desc": "This tin box contains a cup and simple cutlery. The box clamps together, and one side can be used as a cooking pan and the other as a plate or shallow bowl."
+  },
+  {
+   "key": "srd_midnight-tears",
+   "name": "Midnight tears",
+   "itemType": "Poison",
+   "prijs": "1500 fl",
+   "desc": "A creature that ingests this poison suffers no effect until the stroke of midnight. If the poison has not been neutralized before then, the creature must succeed on a DC 17 Constitution saving throw, taking 31 (9d6) poison damage on a failed save, or half as much damage on a successful one.\\n\\n **_Ingested._** A creature must swallow an entire dose of ingested poison to suffer its effects. The dose can be delivered in food or a liquid. You may decide that a partial dose has a reduced effect, such as allowing advantage on the saving throw or dealing only half damage on a failed save.",
+   "gebruik": "stapelbaar"
+  },
+  {
+   "key": "srd-2024_mirror",
+   "name": "Mirror",
+   "itemType": "Adventuring Gear",
+   "prijs": "5 fl",
+   "gewicht": "0.5 lb",
+   "desc": "A handheld steel Mirror is useful for personal cosmetics but also for peeking around corners and reflecting light as a signal."
+  },
+  {
+   "key": "srd_mirror-steel",
+   "name": "Mirror, steel",
+   "itemType": "Adventuring Gear",
+   "prijs": "5 fl",
+   "gewicht": "0.5 lb",
+   "desc": "A mirror."
+  },
+  {
+   "key": "srd-2024_morningstar",
+   "name": "Morningstar",
+   "itemType": "Weapon",
+   "prijs": "15 fl",
+   "gewicht": "4 lb",
+   "desc": "A morningstar.",
+   "damage": "1d8 piercing",
+   "weaponProperties": "Sap",
+   "werking": [
+    "attack"
+   ]
+  },
+  {
+   "key": "srd-2024_mule",
+   "name": "Mule",
+   "itemType": "Vehicle",
+   "prijs": "8 fl",
+   "desc": "A sturdy mount known for its reliability and carrying capacity."
+  },
+  {
+   "key": "srd-2024_musical-instrument-bagpipes",
+   "name": "Musical Instrument, Bagpipes",
+   "itemType": "Tools",
+   "prijs": "30 fl",
+   "gewicht": "6 lb",
+   "desc": "Ability: Charisma. Utilize: Identify a musical piece (DC 15)"
+  },
+  {
+   "key": "srd-2024_musical-instrument-drum",
+   "name": "Musical Instrument, Drum",
+   "itemType": "Tools",
+   "prijs": "6 fl",
+   "gewicht": "3 lb",
+   "desc": "Ability: Charisma. Utilize: Identify a musical piece (DC 15)"
+  },
+  {
+   "key": "srd-2024_musical-instrument-dulcimer",
+   "name": "Musical Instrument, Dulcimer",
+   "itemType": "Tools",
+   "prijs": "25 fl",
+   "gewicht": "10 lb",
+   "desc": "Ability: Charisma. Utilize: Identify a musical piece (DC 15)"
+  },
+  {
+   "key": "srd-2024_musical-instrument-flute",
+   "name": "Musical Instrument, Flute",
+   "itemType": "Tools",
+   "prijs": "2 fl",
+   "gewicht": "1 lb",
+   "desc": "Ability: Charisma. Utilize: Identify a musical piece (DC 15)"
+  },
+  {
+   "key": "srd-2024_musical-instrument-horn",
+   "name": "Musical Instrument, Horn",
+   "itemType": "Tools",
+   "prijs": "3 fl",
+   "gewicht": "2 lb",
+   "desc": "Ability: Charisma. Utilize: Identify a musical piece (DC 15)"
+  },
+  {
+   "key": "srd-2024_musical-instrument-lute",
+   "name": "Musical Instrument, Lute",
+   "itemType": "Tools",
+   "prijs": "35 fl",
+   "gewicht": "2 lb",
+   "desc": "Ability: Charisma. Utilize: Identify a musical piece (DC 15)"
+  },
+  {
+   "key": "srd-2024_musical-instrument-lyre",
+   "name": "Musical Instrument, Lyre",
+   "itemType": "Tools",
+   "prijs": "30 fl",
+   "gewicht": "2 lb",
+   "desc": "Ability: Charisma. Utilize: Identify a musical piece (DC 15)"
+  },
+  {
+   "key": "srd-2024_musical-instrument-pan-flute",
+   "name": "Musical Instrument, Pan Flute",
+   "itemType": "Tools",
+   "prijs": "12 fl",
+   "gewicht": "2 lb",
+   "desc": "Ability: Charisma. Utilize: Identify a musical piece (DC 15)"
+  },
+  {
+   "key": "srd-2024_musical-instrument-shawm",
+   "name": "Musical Instrument, Shawm",
+   "itemType": "Tools",
+   "prijs": "2 fl",
+   "gewicht": "1 lb",
+   "desc": "Ability: Charisma. Utilize: Identify a musical piece (DC 15)"
+  },
+  {
+   "key": "srd-2024_musical-instrument-viol",
+   "name": "Musical Instrument, Viol",
+   "itemType": "Tools",
+   "prijs": "30 fl",
+   "gewicht": "1 lb",
+   "desc": "Ability: Charisma. Utilize: Identify a musical piece (DC 15)"
+  },
+  {
+   "key": "srd-2024_musket",
+   "name": "Musket",
+   "itemType": "Weapon",
+   "prijs": "500 fl",
+   "gewicht": "10 lb",
+   "desc": "A musket.",
+   "damage": "1d12 piercing",
+   "weaponProperties": "Ammunition (Range 40/120; Bullet), Loading, Slow, Two-Handed",
+   "werking": [
+    "attack"
+   ]
+  },
+  {
+   "key": "srd-2024_navigators-tools",
+   "name": "Navigator's Tools",
+   "itemType": "Tools",
+   "prijs": "25 fl",
+   "gewicht": "2 lb",
+   "desc": "Ability: Wisdom. Utilize: Plot a course (DC 15), or determine position (DC 15)"
+  },
+  {
+   "key": "srd-2024_needles-50",
+   "name": "Needles (50)",
+   "itemType": "Ammunition",
+   "prijs": "1 fl",
+   "gewicht": "1 lb",
+   "desc": "Ammunition for weapons that use needles. Comes in a pack of 50. Typically stored in a pouch.",
+   "gebruik": "stapelbaar"
+  },
+  {
+   "key": "srd_net",
+   "name": "Net",
+   "itemType": "Weapon",
+   "prijs": "1 fl",
+   "gewicht": "3 lb",
+   "desc": "A net.\r\n\r\nA Large or smaller creature hit by a net is restrained until it is freed. A net has no effect on creatures that are formless, or creatures that are Huge or larger. A creature can use its action to make a DC 10 Strength check, freeing itself or another creature within its reach on a success. Dealing 5 slashing damage to the net (AC 10) also frees the creature without harming it, ending the effect and destroying the net.\r\n\r\nWhen you use an action, bonus action, or reaction to attack with a net, you can make only one attack regardless of the number of attacks you can normally make.",
+   "damage": "0 bludgeoning",
+   "weaponProperties": "Special (Net), Thrown (range 5/15)",
+   "werking": [
+    "attack"
+   ]
+  },
+  {
+   "key": "srd-2024_oil",
+   "name": "Oil",
+   "itemType": "Weapon",
+   "prijs": "1 kn",
+   "gewicht": "1 lb",
+   "desc": "You can douse a creature, object, or space with Oil or use it as fuel, as detailed below. Dousing a Creature or an Object. When you take the Attack action, you can replace one of your attacks with throwing an Oil flask. Target one creature or object within 20 feet of yourself. The target must succeed on a Dexterity saving throw (DC 8 plus your Dexterity modifier and Proficiency Bonus) or be covered in oil. If the target takes Fire damage before the oil dries (after 1 minute), the target takes an extra 5 Fire damage from burning oil. Dousing a Space. You can take the Utilize action to pour an Oil flask on level ground to cover a 5-foot-square area within 5 feet of yourself. If lit, the oil burns until the end of the turn 2 rounds from when the oil was lit (or 12 seconds) and deals 5 Fire damage to any creature that enters the area or ends its turn there. A creature can take this damage only once per turn. Fuel. Oil serves as fuel for Lamps and Lanterns. Once lit, a flask of Oil burns for 6 hours in a Lamp or Lantern. That duration doesn't need to be consecutive; you can extinguish the burning Oil (as a Utilize action) and rekindle it again until it has burned for a total of 6 hours."
+  },
+  {
+   "key": "srd_oil-of-taggit",
+   "name": "Oil of taggit",
+   "itemType": "Poison",
+   "prijs": "400 fl",
+   "desc": "A creature subjected to this poison must succeed on a DC 13 Constitution saving throw or become poisoned for 24 hours. The poisoned creature is unconscious. The creature wakes up if it takes damage.\\n\\n **_Contact._** Contact poison can be smeared on an object and remains potent until it is touched or washed off. A creature that touches contact poison with exposed skin suffers its effects.",
+   "gebruik": "stapelbaar"
+  },
+  {
+   "key": "srd_orb",
+   "name": "Orb",
+   "itemType": "Adventuring Gear",
+   "prijs": "20 fl",
+   "gewicht": "3 lb",
+   "desc": "Can be used as an Arcane Focus."
+  },
+  {
+   "key": "srd_ox",
+   "name": "Ox",
+   "itemType": "Trade Good",
+   "prijs": "15 fl",
+   "gewicht": "1500 lb",
+   "desc": "One ox."
+  },
+  {
+   "key": "srd-2024_padded-armor",
+   "name": "Padded Armor",
+   "itemType": "Armor",
+   "prijs": "5 fl",
+   "gewicht": "8 lb",
+   "desc": "A padded armor.",
+   "armorType": "light",
+   "armorBaseAC": 11,
+   "stealthDisadvantage": true,
+   "werking": [
+    "defense"
+   ]
+  },
+  {
+   "key": "srd_painters-supplies",
+   "name": "Painter's Supplies",
+   "itemType": "Tools",
+   "prijs": "10 fl",
+   "gewicht": "5 lb",
+   "desc": "These special tools include the items needed to pursue a craft or trade.\\n\\n\r\nProficiency with a set of artisan’s tools lets you add your proficiency bonus to any ability checks you make using the tools in your craft. Each type of artisan’s tools requires a separate proficiency."
+  },
+  {
+   "key": "srd-2024_painters-supplies",
+   "name": "Painter's Supplies (10 GP)",
+   "itemType": "Tools",
+   "prijs": "10 fl",
+   "gewicht": "5 lb",
+   "desc": "Ability: Wisdom. Utilize: Paint a recognizable image of something you've seen (DC 10). Craft: Druidic Focus, Holy Symbol"
+  },
+  {
+   "key": "srd_pale-tincture",
+   "name": "Pale tincture",
+   "itemType": "Poison",
+   "prijs": "250 fl",
+   "desc": "A creature subjected to this poison must succeed on a DC 16 Constitution saving throw or take 3 (1d6) poison damage and become poisoned. The poisoned creature must repeat the saving throw every 24 hours, taking 3 (1d6) poison damage on a failed save. Until this poison ends, the damage the poison deals can't be healed by any means. After seven successful saving throws, the effect ends and the creature can heal normally. \\n\\n **_Ingested._** A creature must swallow an entire dose of ingested poison to suffer its effects. The dose can be delivered in food or a liquid. You may decide that a partial dose has a reduced effect, such as allowing advantage on the saving throw or dealing only half damage on a failed save.",
+   "gebruik": "stapelbaar"
+  },
+  {
+   "key": "srd_pan-flute",
+   "name": "Pan flute",
+   "itemType": "Tools",
+   "prijs": "12 fl",
+   "gewicht": "2 lb",
+   "desc": "Several of the most common types of musical instruments are shown on the table as examples. If you have proficiency with a given musical instrument, you can add your proficiency bonus to any ability checks you make to play music with the instrument. A bard can use a musical instrument as a spellcasting focus. Each type of musical instrument requires a separate proficiency."
+  },
+  {
+   "key": "srd-2024_paper",
+   "name": "Paper",
+   "itemType": "Adventuring Gear",
+   "prijs": "2 kn",
+   "desc": "One sheet of Paper can hold about 250 handwritten words."
+  },
+  {
+   "key": "srd_paper-one-sheet",
+   "name": "Paper (one sheet)",
+   "itemType": "Adventuring Gear",
+   "prijs": "2 kn",
+   "desc": "A sheet of paper"
+  },
+  {
+   "key": "srd-2024_parchment",
+   "name": "Parchment",
+   "itemType": "Adventuring Gear",
+   "prijs": "1 kn",
+   "desc": "One sheet of Parchment can hold about 250 handwritten words."
+  },
+  {
+   "key": "srd_parchment-one-sheet",
+   "name": "Parchment (one sheet)",
+   "itemType": "Adventuring Gear",
+   "prijs": "1 kn",
+   "desc": "A sheet of parchment"
+  },
+  {
+   "key": "srd_pepper",
+   "name": "Pepper",
+   "itemType": "Trade Good",
+   "prijs": "2 fl",
+   "gewicht": "1 lb",
+   "desc": "1lb of pepper."
+  },
+  {
+   "key": "srd-2024_perfume",
+   "name": "Perfume",
+   "itemType": "Adventuring Gear",
+   "prijs": "5 fl",
+   "desc": "Perfume comes in a 4-ounce vial. For 1 hour after applying Perfume to yourself, you have Advantage on Charisma (Persuasion) checks made to influence an Indifferent Humanoid within 5 feet of yourself."
+  },
+  {
+   "key": "srd_perfume-vial",
+   "name": "Perfume (vial)",
+   "itemType": "Adventuring Gear",
+   "prijs": "5 fl",
+   "desc": "A vial of perfume."
+  },
+  {
+   "key": "srd_pick-miners",
+   "name": "Pick, miner's",
+   "itemType": "Adventuring Gear",
+   "prijs": "2 fl",
+   "gewicht": "10 lb",
+   "desc": "A pick for mining."
+  },
+  {
+   "key": "srd_pig",
+   "name": "Pig",
+   "itemType": "Trade Good",
+   "prijs": "3 fl",
+   "gewicht": "400 lb",
+   "desc": "One pig."
+  },
+  {
+   "key": "srd-2024_pike",
+   "name": "Pike",
+   "itemType": "Weapon",
+   "prijs": "5 fl",
+   "gewicht": "18 lb",
+   "desc": "A pike.",
+   "damage": "1d10 piercing",
+   "weaponProperties": "Heavy, Push, Reach, Two-Handed",
+   "werking": [
+    "attack"
+   ]
+  },
+  {
+   "key": "srd-2024_pistol",
+   "name": "Pistol",
+   "itemType": "Weapon",
+   "prijs": "250 fl",
+   "gewicht": "3 lb",
+   "desc": "A pistol.",
+   "damage": "1d10 piercing",
+   "weaponProperties": "Ammunition (Range 30/90; Bullet), Loading, Vex",
+   "werking": [
+    "attack"
+   ]
+  },
+  {
+   "key": "srd_piton",
+   "name": "Piton",
+   "itemType": "Adventuring Gear",
+   "prijs": "5 cl",
+   "gewicht": "0.25 lb",
+   "desc": "A piton for climbing."
+  },
+  {
+   "key": "srd-2024_plate-armor",
+   "name": "Plate Armor",
+   "itemType": "Armor",
+   "prijs": "1500 fl",
+   "gewicht": "65 lb",
+   "desc": "A plate armor.",
+   "armorType": "heavy",
+   "armorBaseAC": 18,
+   "stealthDisadvantage": true,
+   "strengthRequirement": 15,
+   "werking": [
+    "defense"
+   ]
+  },
+  {
+   "key": "srd_platinum",
+   "name": "Platinum",
+   "itemType": "Trade Good",
+   "prijs": "500 fl",
+   "gewicht": "1 lb",
+   "desc": "1 lb. of platinum."
+  },
+  {
+   "key": "srd_platinum-piece",
+   "name": "Platinum Piece",
+   "itemType": "Trade Good",
+   "prijs": "10 fl",
+   "gewicht": "0.02 lb",
+   "desc": "In addition, unusual coins made of other precious metals sometimes appear in treasure hoards. The electrum piece (ep) and the platinum piece (pp) originate from fallen empires and lost kingdoms, and they sometimes arouse suspicion and skepticism when used in transactions. An electrum piece is worth five silver pieces, and a platinum piece is worth ten gold pieces."
+  },
+  {
+   "key": "srd_playing-card-set",
+   "name": "Playing card set",
+   "itemType": "Tools",
+   "prijs": "5 kn",
+   "desc": "This item encompasses a wide range of game pieces, including dice and decks of cards (for games such as Three-­‐‑Dragon Ante). A few common examples appear on the Tools table, but other kinds of gaming sets exist. If you are proficient with a gaming set, you can add your proficiency bonus to ability checks you make to play a game with that set. Each type of gaming set requires a separate proficiency."
+  },
+  {
+   "key": "srd_poison-basic",
+   "name": "Poison, Basic",
+   "itemType": "Poison",
+   "prijs": "100 fl",
+   "desc": "You can use the poison in this vial to coat one slashing or piercing weapon or up to three pieces of ammunition. Applying the poison takes an action. A creature hit by the poisoned weapon or ammunition must make a DC 10 Constitution saving throw or take 1d4 poison damage. Once applied, the poison retains potency for 1 minute before drying.",
+   "gebruik": "stapelbaar"
+  },
+  {
+   "key": "srd-2024_poisoners-kit",
+   "name": "Poisoner's Kit",
+   "itemType": "Tools",
+   "prijs": "50 fl",
+   "gewicht": "2 lb",
+   "desc": "Ability: Intelligence. Utilize: Detect a poisoned object (DC 10). Craft: Basic Poison"
+  },
+  {
+   "key": "srd-2024_pole",
+   "name": "Pole",
+   "itemType": "Adventuring Gear",
+   "prijs": "5 cl",
+   "gewicht": "7 lb",
+   "desc": "A Pole is 10 feet long. You can use it to touch something up to 10 feet away. If you must make a Strength (Athletics) check as part of a High or Long Jump, you can use the Pole to vault, giving yourself Advantage on the check."
+  },
+  {
+   "key": "srd_pole-10-foot",
+   "name": "Pole (10-foot)",
+   "itemType": "Adventuring Gear",
+   "prijs": "5 cl",
+   "gewicht": "7 lb",
+   "desc": "A 10 foot pole."
+  },
+  {
+   "key": "srd-2024_pony",
+   "name": "Pony",
+   "itemType": "Vehicle",
+   "prijs": "30 fl",
+   "desc": "A small horse suitable for smaller riders and lighter loads."
+  },
+  {
+   "key": "srd-2024_pot-iron",
+   "name": "Pot, Iron",
+   "itemType": "Adventuring Gear",
+   "prijs": "2 fl",
+   "gewicht": "10 lb",
+   "desc": "An Iron Pot holds up to 1 gallon."
+  },
+  {
+   "key": "srd-2024_potion-of-giant-strength",
+   "name": "Potion of Giant Strength",
+   "itemType": "Potion",
+   "desc": "When you drink this potion, your Strength score changes for 1 hour. The type of giant determines the score (see the table below). The potion has no effect on you if your Strength is equal to or greater than that score.\n\nThis potion's transparent liquid has floating in it a sliver of light resembling a giant's fingernail.\n\n| Potion                                    | Str. | Rarity    |\n|-------------------------------------------|------|-----------|\n| Potion of Giant Strength (hill)           | 21   | Uncommon  |\n| Potion of Giant Strength (frost or stone) | 23   | Rare      |\n| Potion of Giant Strength (fire)           | 25   | Rare      |\n| Potion of Giant Strength (cloud)          | 27   | Very Rare |\n| Potion of Giant Strength (storm)          | 29   | Legendary |",
+   "gebruik": "stapelbaar"
+  },
+  {
+   "key": "srd-2024_potion-of-healing",
+   "name": "Potion of Healing",
+   "itemType": "Potion",
+   "prijs": "50 fl",
+   "gewicht": "0.5 lb",
+   "desc": "This potion is a magic item. As a Bonus Action, you can drink it or administer it to another creature within 5 feet of yourself. The creature that drinks the magical red fluid in this vial regains 2d4 + 2 Hit Points.",
+   "gebruik": "stapelbaar"
+  },
+  {
+   "key": "srd-2024_potions-of-healing",
+   "name": "Potions of Healing",
+   "itemType": "Potion",
+   "desc": "You regain Hit Points when you drink this potion. The number of Hit Points depends on the potion's rarity, as shown in the table below.\n\nWhatever its potency, the potion's red liquid glimmers when agitated.\n\n| Potion                       | HP Regained | Rarity    |\n|------------------------------|-------------|-----------|\n| Potion of Healing            | 2d4 + 2     | Common    |\n| Potion of Healing (greater)  | 4d4 + 4     | Uncommon  |\n| Potion of Healing (superior) | 8d4 + 8     | Rare      |\n| Potion of Healing (supreme)  | 10d4 + 20   | Very Rare |",
+   "gebruik": "stapelbaar"
+  },
+  {
+   "key": "srd_potters-tools",
+   "name": "Potter's tools",
+   "itemType": "Tools",
+   "prijs": "10 fl",
+   "gewicht": "3 lb",
+   "desc": "These special tools include the items needed to pursue a craft or trade.\\n\\n\r\nProficiency with a set of artisan’s tools lets you add your proficiency bonus to any ability checks you make using the tools in your craft. Each type of artisan’s tools requires a separate proficiency."
+  },
+  {
+   "key": "srd-2024_potters-tools",
+   "name": "Potter's Tools (10 GP)",
+   "itemType": "Tools",
+   "prijs": "10 fl",
+   "gewicht": "3 lb",
+   "desc": "Ability: Intelligence. Utilize: Discern what a ceramic object held in the past 24 hours (DC 15). Craft: Jug, Lamp"
+  },
+  {
+   "key": "srd-2024_pouch",
+   "name": "Pouch",
+   "itemType": "Adventuring Gear",
+   "prijs": "5 kn",
+   "gewicht": "1 lb",
+   "desc": "A Pouch holds up to 6 pounds within one-fifth of a cubic foot."
+  },
+  {
+   "key": "srd-2024_priests-pack",
+   "name": "Priest's Pack",
+   "itemType": "Adventuring Gear",
+   "prijs": "33 fl",
+   "gewicht": "29 lb",
+   "desc": "A Priest's Pack contains the following items: Backpack, Blanket, Holy Water, Lamp, 7 days of Rations, Robe, and Tinderbox."
+  },
+  {
+   "key": "srd_purple-worm-poison",
+   "name": "Purple worm poison",
+   "itemType": "Poison",
+   "prijs": "2000 fl",
+   "desc": "This poison must be harvested from a dead or incapacitated purple worm. A creature subjected to this poison must make a DC 19 Constitution saving throw, taking 42 (12d6) poison damage on a failed save, or half as much damage on a successful one.\r\n\\n\\n\r\n**_Injury._** Injury poison can be applied to weapons, ammunition, trap components, and other objects that deal piercing or slashing damage and remains potent until delivered through a wound or washed off. A creature that takes piercing or slashing damage from an object coated with the poison is exposed to its effects.",
+   "gebruik": "stapelbaar"
+  },
+  {
+   "key": "srd-2024_quarterstaff",
+   "name": "Quarterstaff",
+   "itemType": "Weapon",
+   "prijs": "2 kn",
+   "gewicht": "4 lb",
+   "desc": "A quarterstaff.",
+   "damage": "1d6 bludgeoning",
+   "weaponProperties": "Topple, Versatile (1d8)",
+   "werking": [
+    "attack"
+   ]
+  },
+  {
+   "key": "srd-2024_quiver",
+   "name": "Quiver",
+   "itemType": "Adventuring Gear",
+   "prijs": "1 fl",
+   "gewicht": "1 lb",
+   "desc": "A Quiver holds up to 20 Arrows."
+  },
+  {
+   "key": "srd-2024_ram-portable",
+   "name": "Ram, Portable",
+   "itemType": "Adventuring Gear",
+   "prijs": "4 fl",
+   "gewicht": "35 lb",
+   "desc": "You can use a Portable Ram to break down doors. When doing so, you gain a +4 bonus to the Strength check. One other character can help you use the ram, giving you Advantage on this check."
+  },
+  {
+   "key": "srd-2024_rapier",
+   "name": "Rapier",
+   "itemType": "Weapon",
+   "prijs": "25 fl",
+   "gewicht": "2 lb",
+   "desc": "A rapier.",
+   "damage": "1d8 piercing",
+   "weaponProperties": "Finesse, Vex",
+   "werking": [
+    "attack"
+   ]
+  },
+  {
+   "key": "srd-2024_rations",
+   "name": "Rations",
+   "itemType": "Adventuring Gear",
+   "prijs": "5 kn",
+   "gewicht": "2 lb",
+   "desc": "Rations consist of travel-ready food, including jerky, dried fruit, hardtack, and nuts. See \"Malnutrition\" in \"Rules Glossary\" for the risks of not eating."
+  },
+  {
+   "key": "srd_rations-1-day",
+   "name": "Rations (1 day)",
+   "itemType": "Adventuring Gear",
+   "prijs": "5 kn",
+   "gewicht": "2 lb",
+   "desc": "Rations consist of dry foods suitable for extended travel, including jerky, dried fruit, hardtack, and nuts."
+  },
+  {
+   "key": "srd_reliquary",
+   "name": "Reliquary",
+   "itemType": "Adventuring Gear",
+   "prijs": "5 fl",
+   "gewicht": "2 lb",
+   "desc": "Can be used as a holy symbol."
+  },
+  {
+   "key": "srd-2024_ring-mail",
+   "name": "Ring Mail",
+   "itemType": "Armor",
+   "prijs": "30 fl",
+   "gewicht": "40 lb",
+   "desc": "A ring mail.",
+   "armorType": "heavy",
+   "armorBaseAC": 14,
+   "stealthDisadvantage": true,
+   "werking": [
+    "defense"
+   ]
+  },
+  {
+   "key": "srd-2024_robe",
+   "name": "Robe",
+   "itemType": "Adventuring Gear",
+   "prijs": "1 fl",
+   "gewicht": "4 lb",
+   "desc": "A Robe has vocational or ceremonial significance. Some events and locations admit only people wearing a Robe bearing certain colors or symbols."
+  },
+  {
+   "key": "srd_robes",
+   "name": "Robes",
+   "itemType": "Adventuring Gear",
+   "prijs": "1 fl",
+   "gewicht": "4 lb",
+   "desc": "Robes, for wearing."
+  },
+  {
+   "key": "srd_rod",
+   "name": "Rod",
+   "itemType": "Rod",
+   "prijs": "10 fl",
+   "desc": "Can be used as an arcane focus."
+  },
+  {
+   "key": "srd-2024_rope",
+   "name": "Rope",
+   "itemType": "Adventuring Gear",
+   "prijs": "1 fl",
+   "gewicht": "5 lb",
+   "desc": "As a Utilize action, you can tie a knot with Rope if you succeed on a DC 10 Dexterity (Sleight of Hand) check. The Rope can be burst with a successful DC 20 Strength (Athletics) check. You can bind an unwilling creature with the Rope only if the creature has the Grappled, Incapacitated, or Restrained condition. If the creature's legs are bound, the creature has the Restrained condition until it escapes. Escaping the Rope requires the creature to make a successful DC 15 Dexterity (Acrobatics) check as an action."
+  },
+  {
+   "key": "srd_rope-hempen-50-feet",
+   "name": "Rope, hempen (50 feet)",
+   "itemType": "Adventuring Gear",
+   "prijs": "1 fl",
+   "gewicht": "10 lb",
+   "desc": "Rope, whether made of hemp or silk, has 2 hit points and can be burst with a DC 17 Strength check."
+  },
+  {
+   "key": "srd_rope-silk-50-feet",
+   "name": "Rope, silk (50 feet)",
+   "itemType": "Adventuring Gear",
+   "prijs": "10 fl",
+   "gewicht": "5 lb",
+   "desc": "Rope, whether made of hemp or silk, has 2 hit points and can be burst with a DC 17 Strength check."
+  },
+  {
+   "key": "srd-2024_rowboat",
+   "name": "Rowboat",
+   "itemType": "Vehicle",
+   "prijs": "50 fl",
+   "gewicht": "100 lb",
+   "desc": "A small boat propelled by oars."
+  },
+  {
+   "key": "srd-2024_sack",
+   "name": "Sack",
+   "itemType": "Adventuring Gear",
+   "prijs": "1 cl",
+   "gewicht": "0.5 lb",
+   "desc": "A Sack holds up to 30 pounds within 1 cubic foot."
+  },
+  {
+   "key": "srd-2024_saddle-exotic",
+   "name": "Saddle (Exotic)",
+   "itemType": "Adventuring Gear",
+   "prijs": "60 fl",
+   "gewicht": "40 lb",
+   "desc": "A saddle designed for unusual mounts, such as aquatic or flying creatures."
+  },
+  {
+   "key": "srd-2024_saddle-military",
+   "name": "Saddle (Military)",
+   "itemType": "Adventuring Gear",
+   "prijs": "20 fl",
+   "gewicht": "30 lb",
+   "desc": "A saddle designed for combat, providing advantage on checks to remain mounted."
+  },
+  {
+   "key": "srd-2024_saddle-riding",
+   "name": "Saddle (Riding)",
+   "itemType": "Adventuring Gear",
+   "prijs": "10 fl",
+   "gewicht": "25 lb",
+   "desc": "A standard saddle for riding mounts."
+  },
+  {
+   "key": "srd_saffron",
+   "name": "Saffron",
+   "itemType": "Trade Good",
+   "prijs": "15 fl",
+   "gewicht": "1 lb",
+   "desc": "1lb of saffron."
+  },
+  {
+   "key": "srd-2024_sailing-ship",
+   "name": "Sailing Ship",
+   "itemType": "Vehicle",
+   "prijs": "10000 fl",
+   "desc": "A large ship propelled by sails."
+  },
+  {
+   "key": "srd_salt",
+   "name": "Salt",
+   "itemType": "Trade Good",
+   "prijs": "5 cl",
+   "gewicht": "1 lb",
+   "desc": "1lb of salt."
+  },
+  {
+   "key": "srd-2024_scale-mail",
+   "name": "Scale Mail",
+   "itemType": "Armor",
+   "prijs": "50 fl",
+   "gewicht": "45 lb",
+   "desc": "A scale mail.",
+   "armorType": "medium",
+   "armorBaseAC": 14,
+   "armorDexCap": 2,
+   "stealthDisadvantage": true,
+   "werking": [
+    "defense"
+   ]
+  },
+  {
+   "key": "srd_scale-merchants",
+   "name": "Scale, Merchant's",
+   "itemType": "Adventuring Gear",
+   "prijs": "5 fl",
+   "gewicht": "3 lb",
+   "desc": "A scale includes a small balance, pans, and a suitable assortment of weights up to 2 pounds. With it, you can measure the exact weight of small objects, such as raw precious metals or trade goods, to help determine their worth."
+  },
+  {
+   "key": "srd-2024_scholars-pack",
+   "name": "Scholar's Pack",
+   "itemType": "Adventuring Gear",
+   "prijs": "40 fl",
+   "gewicht": "22 lb",
+   "desc": "A Scholar's Pack contains the following items: Backpack, Book, Ink, Ink Pen, Lamp, 10 flasks of Oil, 10 sheets of Parchment, and Tinderbox."
+  },
+  {
+   "key": "srd-2024_scimitar",
+   "name": "Scimitar",
+   "itemType": "Weapon",
+   "prijs": "25 fl",
+   "gewicht": "3 lb",
+   "desc": "A scimitar.",
+   "damage": "1d6 slashing",
+   "weaponProperties": "Finesse, Light, Nick",
+   "werking": [
+    "attack"
+   ]
+  },
+  {
+   "key": "srd_sealing-wax",
+   "name": "Sealing wax",
+   "itemType": "Adventuring Gear",
+   "prijs": "5 kn",
+   "desc": "For sealing written letters."
+  },
+  {
+   "key": "srd_serpent-venom",
+   "name": "Serpent venom",
+   "itemType": "Poison",
+   "prijs": "200 fl",
+   "desc": "This poison must be harvested from a dead or incapacitated giant poisonous snake. A creature subjected to this poison must succeed on a DC 11 Constitution saving throw, taking 10 (3d6) poison damage on a failed save, or half as much damage on a successful one.\r\n\\n\\n\r\n**_Injury._** Injury poison can be applied to weapons, ammunition, trap components, and other objects that deal piercing or slashing damage and remains potent until delivered through a wound or washed off. A creature that takes piercing or slashing damage from an object coated with the poison is exposed to its effects.",
+   "gebruik": "stapelbaar"
+  },
+  {
+   "key": "srd_shawm",
+   "name": "Shawm",
+   "itemType": "Tools",
+   "prijs": "2 fl",
+   "gewicht": "1 lb",
+   "desc": "Several of the most common types of musical instruments are shown on the table as examples. If you have proficiency with a given musical instrument, you can add your proficiency bonus to any ability checks you make to play music with the instrument. A bard can use a musical instrument as a spellcasting focus. Each type of musical instrument requires a separate proficiency."
+  },
+  {
+   "key": "srd_sheep",
+   "name": "Sheep",
+   "itemType": "Trade Good",
+   "prijs": "2 fl",
+   "gewicht": "75 lb",
+   "desc": "One sheep."
+  },
+  {
+   "key": "srd-2024_shield",
+   "name": "Shield",
+   "itemType": "Shield",
+   "prijs": "10 fl",
+   "gewicht": "6 lb",
+   "desc": "A shield.",
+   "armorType": "shield",
+   "armorBaseAC": 2,
+   "werking": [
+    "defense"
+   ]
+  },
+  {
+   "key": "srd-2024_shortbow",
+   "name": "Shortbow",
+   "itemType": "Weapon",
+   "prijs": "25 fl",
+   "gewicht": "2 lb",
+   "desc": "A shortbow.",
+   "damage": "1d6 piercing",
+   "weaponProperties": "Ammunition (Range 80/320; Arrow), Two-Handed, Vex",
+   "werking": [
+    "attack"
+   ]
+  },
+  {
+   "key": "srd-2024_shortsword",
+   "name": "Shortsword",
+   "itemType": "Weapon",
+   "prijs": "10 fl",
+   "gewicht": "2 lb",
+   "desc": "A shortsword.",
+   "damage": "1d6 piercing",
+   "weaponProperties": "Finesse, Light, Vex",
+   "werking": [
+    "attack"
+   ]
+  },
+  {
+   "key": "srd-2024_shovel",
+   "name": "Shovel",
+   "itemType": "Adventuring Gear",
+   "prijs": "2 fl",
+   "gewicht": "5 lb",
+   "desc": "Working for 1 hour, you can use a Shovel to dig a hole that is 5 feet on each side in soil or similar material."
+  },
+  {
+   "key": "srd-2024_sickle",
+   "name": "Sickle",
+   "itemType": "Weapon",
+   "prijs": "1 fl",
+   "gewicht": "2 lb",
+   "desc": "A sickle.",
+   "damage": "1d4 slashing",
+   "weaponProperties": "Light, Nick",
+   "werking": [
+    "attack"
+   ]
+  },
+  {
+   "key": "srd-2024_signal-whistle",
+   "name": "Signal Whistle",
+   "itemType": "Adventuring Gear",
+   "prijs": "5 cl",
+   "desc": "When blown as a Utilize action, a Signal Whistle produces a sound that can be heard up to 600 feet away."
+  },
+  {
+   "key": "srd_signet-ring",
+   "name": "Signet Ring",
+   "itemType": "Ring",
+   "prijs": "5 fl",
+   "desc": "A ring with a signet on it."
+  },
+  {
+   "key": "srd_silk",
+   "name": "Silk",
+   "itemType": "Trade Good",
+   "prijs": "10 fl",
+   "gewicht": "1 lb",
+   "desc": "1 sq. yd. of silk."
+  },
+  {
+   "key": "srd_silver",
+   "name": "Silver",
+   "itemType": "Trade Good",
+   "prijs": "5 fl",
+   "gewicht": "1 lb",
+   "desc": "1lb of silver"
+  },
+  {
+   "key": "srd_silver-piece",
+   "name": "Silver Piece",
+   "itemType": "Trade Good",
+   "prijs": "1 kn",
+   "gewicht": "0.02 lb",
+   "desc": "One gold piece is worth ten silver pieces, the most prevalent coin among commoners. A silver piece buys a laborer's work for half a day, a flask of lamp oil, or a night's rest in a poor inn."
+  },
+  {
+   "key": "srd-2024_sled",
+   "name": "Sled",
+   "itemType": "Vehicle",
+   "prijs": "20 fl",
+   "gewicht": "300 lb",
+   "desc": "A vehicle designed for travel over snow and ice."
+  },
+  {
+   "key": "srd-2024_sling",
+   "name": "Sling",
+   "itemType": "Weapon",
+   "prijs": "1 kn",
+   "desc": "A sling.",
+   "damage": "1d4 bludgeoning",
+   "weaponProperties": "Ammunition (Range 30/120; Bullet), Slow",
+   "werking": [
+    "attack"
+   ]
+  },
+  {
+   "key": "srd_sling-bullets",
+   "name": "Sling bullets",
+   "itemType": "Ammunition",
+   "prijs": "1 cl",
+   "gewicht": "0.075 lb",
+   "desc": "Technically their cost is 20 for 4cp.",
+   "gebruik": "stapelbaar"
+  },
+  {
+   "key": "srd_smiths-tools",
+   "name": "Smith's tools",
+   "itemType": "Tools",
+   "prijs": "20 fl",
+   "gewicht": "8 lb",
+   "desc": "These special tools include the items needed to pursue a craft or trade.\\n\\n\r\nProficiency with a set of artisan’s tools lets you add your proficiency bonus to any ability checks you make using the tools in your craft. Each type of artisan’s tools requires a separate proficiency."
+  },
+  {
+   "key": "srd-2024_smiths-tools",
+   "name": "Smith's Tools (20 GP)",
+   "itemType": "Tools",
+   "prijs": "20 fl",
+   "gewicht": "8 lb",
+   "desc": "Ability: Strength. Utilize: Pry open a door or container (DC 20). Craft: Any Melee weapon (except Club, Greatclub, Quarterstaff, and Whip), Medium armor (except Hide), Heavy armor, Ball Bearings, Bucket, Caltrops, Chain, Crowbar, Firearm Bullets, Grappling Hook, Iron Pot, Iron Spikes, Sling Bullets"
+  },
+  {
+   "key": "srd_soap",
+   "name": "Soap",
+   "itemType": "Adventuring Gear",
+   "prijs": "2 cl",
+   "desc": "For cleaning."
+  },
+  {
+   "key": "srd-2024_spear",
+   "name": "Spear",
+   "itemType": "Weapon",
+   "prijs": "1 fl",
+   "gewicht": "3 lb",
+   "desc": "A spear.",
+   "damage": "1d6 piercing",
+   "weaponProperties": "Sap, Thrown (Range 20/60), Versatile (1d8)",
+   "werking": [
+    "attack"
+   ]
+  },
+  {
+   "key": "srd-2024_spell-scroll",
+   "name": "Spell Scroll",
+   "itemType": "Scroll",
+   "prijs": "30 fl",
+   "desc": "A Spell Scroll (Cantrip) or Spell Scroll (Level 1) is a magic item that bears the words of a cantrip or level 1 spell, respectively, determined by the scroll's creator. If the spell is on your class's spell list, you can read the scroll and cast the spell using its normal casting time and without providing any Material components. If the spell requires a saving throw or an attack roll, the spell save DC is 13, and the attack bonus is +5. The scroll disintegrates when the casting is completed."
+  },
+  {
+   "key": "srd_spellbook",
+   "name": "Spellbook",
+   "itemType": "Adventuring Gear",
+   "prijs": "50 fl",
+   "gewicht": "3 lb",
+   "desc": "Essential for wizards, a spellbook is a leather-­‐‑bound tome with 100 blank vellum pages suitable for recording spells."
+  },
+  {
+   "key": "srd_spike-iron",
+   "name": "Spike, iron",
+   "itemType": "Adventuring Gear",
+   "prijs": "1 kn",
+   "gewicht": "0.5 lb",
+   "desc": "An iron spike."
+  },
+  {
+   "key": "srd-2024_spikes-iron",
+   "name": "Spikes, Iron",
+   "itemType": "Adventuring Gear",
+   "prijs": "1 fl",
+   "gewicht": "5 lb",
+   "desc": "Iron Spikes come in bundles of ten. As a Utilize action, you can use a blunt object, such as a Light Hammer, to hammer a spike into wood, earth, or a similar material. You can do so to jam a door shut or to then tie a Rope or Chain to the Spike."
+  },
+  {
+   "key": "srd-2024_splint-armor",
+   "name": "Splint Armor",
+   "itemType": "Armor",
+   "prijs": "200 fl",
+   "gewicht": "60 lb",
+   "desc": "A splint armor.",
+   "armorType": "heavy",
+   "armorBaseAC": 17,
+   "stealthDisadvantage": true,
+   "strengthRequirement": 15,
+   "werking": [
+    "defense"
+   ]
+  },
+  {
+   "key": "srd_sprig-of-mistletoe",
+   "name": "Sprig of mistletoe",
+   "itemType": "Adventuring Gear",
+   "prijs": "1 fl",
+   "desc": "A sprig of mistletoe that can be used as a druidic focus."
+  },
+  {
+   "key": "srd-2024_spyglass",
+   "name": "Spyglass",
+   "itemType": "Adventuring Gear",
+   "prijs": "1000 fl",
+   "gewicht": "1 lb",
+   "desc": "Objects viewed through a Spyglass are magnified to twice their size."
+  },
+  {
+   "key": "srd_staff",
+   "name": "Staff",
+   "itemType": "Staff",
+   "prijs": "5 fl",
+   "gewicht": "4 lb",
+   "desc": "Can be used as an arcane focus.",
+   "damage": "1d6 bludgeoning",
+   "weaponProperties": "Versatile (1d8)",
+   "werking": [
+    "attack"
+   ]
+  },
+  {
+   "key": "srd-2024_string",
+   "name": "String",
+   "itemType": "Adventuring Gear",
+   "prijs": "1 kn",
+   "desc": "String is 10 feet long. You can tie a knot in it as a Utilize action."
+  },
+  {
+   "key": "srd-2024_studded-leather-armor",
+   "name": "Studded Leather Armor",
+   "itemType": "Armor",
+   "prijs": "45 fl",
+   "gewicht": "13 lb",
+   "desc": "A studded leather armor.",
+   "armorType": "light",
+   "armorBaseAC": 12,
+   "werking": [
+    "defense"
+   ]
+  },
+  {
+   "key": "srd-2024_tent",
+   "name": "Tent",
+   "itemType": "Adventuring Gear",
+   "prijs": "2 fl",
+   "gewicht": "20 lb",
+   "desc": "A Tent sleeps up to two Small or Medium creatures."
+  },
+  {
+   "key": "srd-2024_thieves-tools",
+   "name": "Thieves' Tools",
+   "itemType": "Tools",
+   "prijs": "25 fl",
+   "gewicht": "1 lb",
+   "desc": "Ability: Dexterity. Utilize: Pick a lock (DC 15), or disarm a trap (DC 15)"
+  },
+  {
+   "key": "srd-2024_tinderbox",
+   "name": "Tinderbox",
+   "itemType": "Adventuring Gear",
+   "prijs": "5 kn",
+   "gewicht": "1 lb",
+   "desc": "A Tinderbox is a small container holding flint, fire steel, and tinder (usually dry cloth soaked in light oil) used to kindle a fire. Using it to light a Candle, Lamp, Lantern, or Torch—or anything else with exposed fuel—takes a Bonus Action. Lighting any other fire takes 1 minute."
+  },
+  {
+   "key": "srd_tinkers-tools",
+   "name": "Tinker's tools",
+   "itemType": "Tools",
+   "prijs": "50 fl",
+   "gewicht": "10 lb",
+   "desc": "These special tools include the items needed to pursue a craft or trade.\\n\\n\r\nProficiency with a set of artisan’s tools lets you add your proficiency bonus to any ability checks you make using the tools in your craft. Each type of artisan’s tools requires a separate proficiency."
+  },
+  {
+   "key": "srd-2024_tinkers-tools",
+   "name": "Tinker's Tools (50 GP)",
+   "itemType": "Tools",
+   "prijs": "50 fl",
+   "gewicht": "10 lb",
+   "desc": "Ability: Dexterity. Utilize: Assemble a Tiny item composed of scrap, which falls apart in 1 minute (DC 20). Craft: Musket, Pistol, Bell, Bullseye Lantern, Flask, Hooded Lantern, Hunting Trap, Lock, Manacles, Mirror, Shovel, Signal Whistle, Tinderbox"
+  },
+  {
+   "key": "srd-2024_torch",
+   "name": "Torch",
+   "itemType": "Weapon",
+   "prijs": "1 cl",
+   "gewicht": "1 lb",
+   "desc": "A Torch burns for 1 hour, casting Bright Light in a 20-foot radius and Dim Light for an additional 20 feet. When you take the Attack action, you can attack with the Torch, using it as a Simple Melee weapon. On a hit, the target takes 1 Fire damage."
+  },
+  {
+   "key": "srd_torpor",
+   "name": "Torpor",
+   "itemType": "Poison",
+   "prijs": "600 fl",
+   "desc": "A creature subjected to this poison must succeed on a DC 15 Constitution saving throw or become poisoned for 4d6 hours. The poisoned creature is incapacitated.\r\n\\n\\n\r\n**_Ingested._** A creature must swallow an entire dose of ingested poison to suffer its effects. The dose can be delivered in food or a liquid. You may decide that a partial dose has a reduced effect, such as allowing advantage on the saving throw or dealing only half damage on a failed save.",
+   "gebruik": "stapelbaar"
+  },
+  {
+   "key": "srd_totem",
+   "name": "Totem",
+   "itemType": "Adventuring Gear",
+   "prijs": "1 fl",
+   "desc": "Can be used as a druidic focus."
+  },
+  {
+   "key": "srd-2024_trident",
+   "name": "Trident",
+   "itemType": "Weapon",
+   "prijs": "5 fl",
+   "gewicht": "4 lb",
+   "desc": "A trident.",
+   "damage": "1d8 piercing",
+   "weaponProperties": "Thrown (Range 20/60), Topple, Versatile (1d10)",
+   "werking": [
+    "attack"
+   ]
+  },
+  {
+   "key": "srd_truth-serum",
+   "name": "Truth serum",
+   "itemType": "Poison",
+   "prijs": "150 fl",
+   "desc": "A creature subjected to this poison must succeed on a DC 11 Constitution saving throw or become poisoned for 1 hour. The poisoned creature can't knowingly speak a lie, as if under the effect of a zone of truth spell.\r\n\\n\\n\r\n**_Ingested._** A creature must swallow an entire dose of ingested poison to suffer its effects. The dose can be delivered in food or a liquid. You may decide that a partial dose has a reduced effect, such as allowing advantage on the saving throw or dealing only half damage on a failed save.",
+   "gebruik": "stapelbaar"
+  },
+  {
+   "key": "srd-2024_vial",
+   "name": "Vial",
+   "itemType": "Adventuring Gear",
+   "prijs": "1 fl",
+   "desc": "A Vial holds up to 4 ounces."
+  },
+  {
+   "key": "srd_viol",
+   "name": "Viol",
+   "itemType": "Tools",
+   "prijs": "30 fl",
+   "gewicht": "1 lb",
+   "desc": "Several of the most common types of musical instruments are shown on the table as examples. If you have proficiency with a given musical instrument, you can add your proficiency bonus to any ability checks you make to play music with the instrument. A bard can use a musical instrument as a spellcasting focus. Each type of musical instrument requires a separate proficiency."
+  },
+  {
+   "key": "srd-2024_wagon",
+   "name": "Wagon",
+   "itemType": "Vehicle",
+   "prijs": "35 fl",
+   "gewicht": "400 lb",
+   "desc": "A four-wheeled vehicle pulled by horses, designed for heavy cargo transport."
+  },
+  {
+   "key": "srd_wand",
+   "name": "Wand",
+   "itemType": "Wand",
+   "prijs": "10 fl",
+   "gewicht": "1 lb",
+   "desc": "Can be used as an arcane focus."
+  },
+  {
+   "key": "srd-2024_war-pick",
+   "name": "War Pick",
+   "itemType": "Weapon",
+   "prijs": "5 fl",
+   "gewicht": "2 lb",
+   "desc": "A war pick.",
+   "damage": "1d8 piercing",
+   "weaponProperties": "Sap, Versatile (1d10)",
+   "werking": [
+    "attack"
+   ]
+  },
+  {
+   "key": "srd-2024_warhammer",
+   "name": "Warhammer",
+   "itemType": "Weapon",
+   "prijs": "15 fl",
+   "gewicht": "5 lb",
+   "desc": "A warhammer.",
+   "damage": "1d8 bludgeoning",
+   "weaponProperties": "Push, Versatile (1d10)",
+   "werking": [
+    "attack"
+   ]
+  },
+  {
+   "key": "srd-2024_warhorse",
+   "name": "Warhorse",
+   "itemType": "Vehicle",
+   "prijs": "400 fl",
+   "desc": "A horse trained for combat and carrying heavy loads."
+  },
+  {
+   "key": "srd-2024_warship",
+   "name": "Warship",
+   "itemType": "Vehicle",
+   "prijs": "25000 fl",
+   "desc": "A heavily armed ship designed for naval combat."
+  },
+  {
+   "key": "srd-2024_waterskin",
+   "name": "Waterskin",
+   "itemType": "Adventuring Gear",
+   "prijs": "2 kn",
+   "gewicht": "5 lb",
+   "desc": "A Waterskin holds up to 4 pints. If you don't drink sufficient water, you risk dehydration (see \"Rules Glossary\")."
+  },
+  {
+   "key": "srd_weavers-tools",
+   "name": "Weaver's tools",
+   "itemType": "Tools",
+   "prijs": "1 fl",
+   "gewicht": "5 lb",
+   "desc": "These special tools include the items needed to pursue a craft or trade.\\n\\n\r\nProficiency with a set of artisan’s tools lets you add your proficiency bonus to any ability checks you make using the tools in your craft. Each type of artisan’s tools requires a separate proficiency."
+  },
+  {
+   "key": "srd-2024_weavers-tools",
+   "name": "Weaver's Tools (1 GP)",
+   "itemType": "Tools",
+   "prijs": "1 fl",
+   "gewicht": "5 lb",
+   "desc": "Ability: Dexterity. Utilize: Mend a tear in clothing (DC 10), or sew a Tiny design (DC 10). Craft: Padded Armor, Basket, Bedroll, Blanket, Fine Clothes, Net, Robe, Rope, Sack, String, Tent, Traveler's Clothes"
+  },
+  {
+   "key": "srd_wheat",
+   "name": "Wheat",
+   "itemType": "Trade Good",
+   "prijs": "1 cl",
+   "gewicht": "1 lb",
+   "desc": "1 pound of wheat."
+  },
+  {
+   "key": "srd_whetstone",
+   "name": "Whetstone",
+   "itemType": "Adventuring Gear",
+   "prijs": "1 cl",
+   "gewicht": "1 lb",
+   "desc": "For sharpening."
+  },
+  {
+   "key": "srd-2024_whip",
+   "name": "Whip",
+   "itemType": "Weapon",
+   "prijs": "2 fl",
+   "gewicht": "3 lb",
+   "desc": "A whip.",
+   "damage": "1d4 slashing",
+   "weaponProperties": "Finesse, Reach, Slow",
+   "werking": [
+    "attack"
+   ]
+  },
+  {
+   "key": "srd_woodcarvers-tools",
+   "name": "Woodcarver's tools",
+   "itemType": "Tools",
+   "prijs": "1 fl",
+   "gewicht": "5 lb",
+   "desc": "These special tools include the items needed to pursue a craft or trade.\\n\\n\r\nProficiency with a set of artisan’s tools lets you add your proficiency bonus to any ability checks you make using the tools in your craft. Each type of artisan’s tools requires a separate proficiency."
+  },
+  {
+   "key": "srd-2024_woodcarvers-tools",
+   "name": "Woodcarver's Tools (1 GP)",
+   "itemType": "Tools",
+   "prijs": "1 fl",
+   "gewicht": "5 lb",
+   "desc": "Ability: Dexterity. Utilize: Carve a pattern in wood (DC 10). Craft: Club, Greatclub, Quarterstaff, Ranged weapons (except Pistol, Musket, and Sling), Arcane Focus, Arrows, Bolts, Druidic Focus, Ink Pen, Needles"
+  },
+  {
+   "key": "srd_wooden-staff",
+   "name": "Wooden staff",
+   "itemType": "Adventuring Gear",
+   "prijs": "5 fl",
+   "gewicht": "4 lb",
+   "desc": "Can be used as a druidic focus.",
+   "damage": "1d6 bludgeoning",
+   "weaponProperties": "Versatile (1d8)",
+   "werking": [
+    "attack"
+   ]
+  },
+  {
+   "key": "srd_wyvern-poison",
+   "name": "Wyvern poison",
+   "itemType": "Poison",
+   "prijs": "1200 fl",
+   "desc": "This poison must be harvested from a dead or incapacitated wyvern. A creature subjected to this poison must make a DC 15 Constitution saving throw, taking 24 (7d6) poison damage on a failed save, or half as much damage on a successful one.\r\n\\n\\n\r\n**_Injury._** Injury poison can be applied to weapons, ammunition, trap components, and other objects that deal piercing or slashing damage and remains potent until delivered through a wound or washed off. A creature that takes piercing or slashing damage from an object coated with the poison is exposed to its effects.",
+   "gebruik": "stapelbaar"
+  },
+  {
+   "key": "srd_yew-wand",
+   "name": "Yew wand",
+   "itemType": "Wand",
+   "prijs": "10 fl",
+   "gewicht": "1 lb",
+   "desc": "Can be used as a druidic focus."
+  }
+ ]
+}

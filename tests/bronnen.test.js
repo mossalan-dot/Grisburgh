@@ -60,6 +60,37 @@ describe('Bronteksten blijven binnen de campagne die ze mag zien', () => {
     await new Promise(r => server.close(r));
     fs.rmSync(DATA_DIR, { recursive: true, force: true });
   });
+  it('levert de standaard-uitrusting compleet aan elke campagne', async () => {
+    // Zelfde afweging als bij de statblokken: SRD 5.2 staat onder CC BY 4.0,
+    // dus die gaat volledig mee — ook naar een campagne zonder bronteksten.
+    const r = await req(server, 'GET', '/api/bron/srd-items', null, beheerder);
+    assert.strictEqual(r.status, 200, JSON.stringify(r.body).slice(0, 200));
+    const items = r.body?.items || [];
+    assert.ok(items.length > 300, 'ruim driehonderd voorwerpen, kreeg ' + items.length);
+    assert.match(String(r.body.bron || ''), /CC BY 4\.0/, 'de bronvermelding hoort mee');
+
+    const bijl = items.find(i => i.name === 'Battleaxe');
+    assert.ok(bijl, 'de Battleaxe hoort erin te staan');
+    assert.strictEqual(bijl.itemType, 'Weapon');
+    assert.strictEqual(bijl.damage, '1d8 slashing');
+    assert.ok(/fl/.test(bijl.prijs), 'de prijs staat in onze muntsleutels: ' + bijl.prijs);
+
+    // Een schild is geen zwaar harnas — dat zet het script recht.
+    const schild = items.find(i => i.name === 'Shield');
+    assert.strictEqual(schild.itemType, 'Shield');
+    assert.strictEqual(schild.armorType, 'shield');
+    assert.strictEqual(schild.armorBaseAC, 2);
+
+    const plate = items.find(i => i.name === 'Plate Armor');
+    assert.strictEqual(plate.armorBaseAC, 18);
+    assert.strictEqual(plate.stealthDisadvantage, true);
+    assert.strictEqual(plate.strengthRequirement, 15);
+
+    // Geen dubbele namen: Open5e levert er 107 dubbel.
+    const namen = items.map(i => i.name.toLowerCase());
+    assert.strictEqual(new Set(namen).size, namen.length, 'namen horen uniek te zijn');
+  });
+
 
   it('serveert de bronbestanden niet meer als statisch bestand', async () => {
     // Het pad valt nu in de SPA-fallback, dus je krijgt de shell — geen spreuken.

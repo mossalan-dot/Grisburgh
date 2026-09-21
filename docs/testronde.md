@@ -990,3 +990,9 @@ met de hand niet meer hoeft na te rekenen:
 - [ ] **Goedgekeurd betekent level 0** (DM) — de klasse staat op het blad met level 0, en een eventuele subklasse van een eerdere poging is weg. Pas bij de volgende level-up krijgt hij zijn eerste level. Afwijzen zet niets.
 
 - [ ] **Geen emoji in de gevechtslog** (DM) — speel een gevecht en sluit het af: het gevechtslog komt als sessieverslag in het Logboek te staan met regels als *Ronde 2 begint* en *Hilde ontvangt 5 schade (12/20 HP)*, zonder ⚔️ 🔔 💥 💚 🏆 ervoor. Die tekst wordt gerenderd, dus daar geldt dezelfde afspraak als overal.
+
+### Standaard-uitrusting meegeleverd (21 sep 2026)
+
+- [ ] **Standaard voorwerp invullen** (DM) — maak een nieuw voorwerp-kaartje: bovenaan staat *Standaard voorwerp* met een zoekveld. Typ `Battleaxe` en druk op Invullen: naam, type Weapon, prijs, gewicht, schadeformule `1d8 slashing` en de wapeneigenschappen staan er. `Plate Armor` vult Base AC 18, Stealth Disadvantage en Strength 15 in; `Shield` komt binnen als type **Shield** met `armorType: shield` en +2 (Open5e zet hem als zwaar harnas met AC 2 weg — dat zet het script recht).
+- [ ] **Het vult alleen lege velden** (DM) — vul zelf een beschrijving in en haal daarna een standaardvoorwerp op: jouw tekst blijft staan. Alleen de naam wordt gezet als die nog leeg is.
+- [ ] **Voorraadregels wijzen naar bestaande kaartjes** (DM) — `node scripts/voorraad-herkoppelen.js <campagne>` meldt nul dode koppelingen. In Grisburgh waren dat er 12 (de gewone wapens bij De Kromme Spijker); die zijn 21 sep hersteld.
