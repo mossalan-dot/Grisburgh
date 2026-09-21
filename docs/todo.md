@@ -187,11 +187,10 @@ wordt `companionOwners` gevuld), is dit het moment.
 
 ## Scherven (klein, los op te pakken)
 
-- [ ] **De Heeren-dienst opruimen** — de mechaniek is vervallen (klussenbord en
-      boetes laten we vallen, 21 sep 2026) en de factie *Heeren van de Nacht*
-      staat al in `meta.facties`. Weg kunnen: de negen `/heeren/*`-routes, de
-      DM-tab, `#section-heeren`, `HEEREN_*` en `renderHeeren()`. Er is geen
-      ingang naartoe, dus niemand raakt iets kwijt.
+- [x] **De Heeren-dienst opruimen** — gedaan 21 sep 2026. Negen routes, de
+      DM-tab, `#section-heeren`, `HEEREN_*`, `renderHeeren()` en de tien
+      api-wrappers weg; ruim 550 regels. De briefstijl `heeren` (schaduwbrief)
+      is blijven staan — dat is opmaak voor brieven die er al liggen.
 - [ ] **Facties & Aanzien heeft geen sectienaam** — losse facties wel, de sectie
       niet. Kleinste oplossing: `meta.factiesLabel`.
 - [ ] **App-iconen en logo zijn van Grisburgh** — de PWA installeert bij elke

@@ -478,16 +478,6 @@ export const api = {
   tempelEedVerbreek:(characterId)   => request('/tempel/eed/verbreek', { method: 'POST', body: JSON.stringify({ characterId }) }),
   tempelEedHef:     (characterId)   => request('/tempel/eed/hef',      { method: 'POST', body: JSON.stringify({ characterId }) }),
   saveTempelConfig: (data)          => request('/meta/tempel',   { method: 'PUT',  body: JSON.stringify(data) }),
-  // De Heeren van de Nacht (dievengilde)
-  getHeeren:          ()           => request('/heeren'),
-  heerenGenereer:     ()           => request('/heeren/genereer',            { method: 'POST' }),
-  heerenAanneem:      (id)         => request(`/heeren/job/${id}/aanneem`,   { method: 'POST' }),
-  heerenUitslag:      (id, uitkomst) => request(`/heeren/job/${id}/uitslag`, { method: 'POST', body: JSON.stringify({ uitkomst }) }),
-  heerenSetRang:      (rang)       => request('/heeren/rang',                { method: 'POST', body: JSON.stringify({ rang }) }),
-  heerenBetaalBoete:  (boeteId)    => request(`/heeren/boete/${boeteId}/betaal`,   { method: 'POST' }),
-  heerenAdvocaat:     (boeteId)    => request(`/heeren/boete/${boeteId}/advocaat`, { method: 'POST' }),
-  heerenKwijt:        (characterId, boeteId) => request('/heeren/kwijt',      { method: 'POST', body: JSON.stringify({ characterId, boeteId }) }),
-  saveHeerenConfig:   (data)       => request('/meta/heeren',                { method: 'PUT',  body: JSON.stringify(data) }),
 
   // Facties & Aanzien (organisaties met rangspoor)
   getFacties:         ()              => request('/facties'),

@@ -1,4 +1,4 @@
-import { api } from './api.js?v=291';
+import { api } from './api.js?v=292';
 
 // icon() helper is defined globally in app.js; grab a local alias for template use.
 const icon = (...a) => window.icon(...a);
@@ -2539,7 +2539,6 @@ const _AKTE_DIENSTEN = [
   { key: 'ursula',    val: (m) => m.ursula?.naam    || 'Madame Ursula' },
   { key: 'tempel',    val: (m) => m.tempel?.naam    || 'De Tempel' },
   { key: 'magizoo',   val: (m) => m.magizoo?.naam   || 'De Magizoöloog' },
-  { key: 'heeren',    val: (m) => m.heeren?.naam    || 'De Heeren van de Nacht' },
   { key: 'markt',     val: ()  => 'De Markt' },
 ];
 

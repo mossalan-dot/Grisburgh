@@ -2067,6 +2067,21 @@ regel**, zodat alles wat al geschreven was blijft staan. Server-helpers:
 
 ---
 
+> **De Heeren van de Nacht zijn opgeheven** (21 sep 2026). Het was een halve
+> dienst: negen routes, een DM-tab, een `#section-heeren` — en nergens een menu
+> of een `switchSection` die erheen ging, dus onbereikbaar voor speler én DM.
+> Wat hij deed doet een **factie** al, alleen generiek: rangen, titels,
+> zichtbaarheid, uitnodigingen, quest givers. Zijn twee eigen mechanieken zijn
+> bewust laten vallen — het klussenbord (een missie schrijf je zelf) en de
+> boetes met de advocaat (dat hoort bij een stadsgezag, niet bij een gilde; het
+> idee staat als *gerechtshof* in `docs/todo.md`). De factie *Heeren van de
+> Nacht* stond al in `meta.facties`, en Grisburgh had nul boetes en geen
+> `meta.heeren`, dus er ging geen data verloren.
+> **Wat bleef:** de **briefstijl** `heeren` (de schaduwbrief) in de
+> themalijst en in `theme.css` — brieven die er al liggen dragen dat thema en
+> horen hun opmaak te houden. Die sleutel is dus opmaak, geen dienst.
+> Achtergrond en afweging: `docs/voorstel-facties.md`.
+
 ## Modules per campagne
 
 Niet elke campagne heeft alles nodig, en niet alles is klaar om buiten Grisburgh
@@ -2311,7 +2326,7 @@ De DM kan directe berichten sturen via `playerSockets.get(characterId)`.
 
 ## Dienstschermen — de gedeelde romp
 
-Elk dienstscherm (herberg, tempel, Gock, Ursula, magizoo, Tweespalt, Heeren,
+Elk dienstscherm (herberg, tempel, Gock, Ursula, magizoo, Tweespalt,
 facties, markt) heeft dezelfde opbouw: `.herberg-scene` (schermvullend, met de
 achtergrond) → `.herberg-content` (het paneel) → een rond portret
 (`.herberg-portrait-round`) met een groet eronder. Die klassen heten `herberg-*`
@@ -2908,7 +2923,6 @@ Cherry-picken via `git cherry-pick <sha> …` — versienummer-conflicten altijd
 | 2 | `status-uitleg` | Statuspictogrammen + tikbare uitleg in personagetabblad | Maakt spelerstab zelfuitleggend |
 | 3 | `lightbox-zoom-pan` | Pinch/knop-zoom en pannen in afbeeldingsmodals | Afbeeldingen staan overal; kwaliteitssprong |
 | 4 | `speler-data-veiligheid` | Invoerbescherming, per-akte back-ups van spelersdata | Veiligheid voor productie |
-| 5 | `heeren-van-de-nacht-YC1Rx` | Facties: boons, titels, rang-progressie | Vraagt DM-configuratie; inplannen als campagne er klaar voor is |
 | 6 | `glossary-hover-uitleg` | Hover-uitleg bij D&D-termen | Nice-to-have; eerder gerevert, mogelijk instabiel |
 | 7 | `dm-npc-generator-LtaPQ` | NPC-generator in DM-paneel | DM-tool, lage spelersprio |
 | 8 | `app-feature-exploration-eBRFB` | Almanak, downtime, orakel, weersysteem | Grote features; apart plannen per onderdeel |

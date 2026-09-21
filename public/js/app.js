@@ -1,6 +1,6 @@
-import { api, campagneUitUrl, zetCampagne } from './api.js?v=291';
-import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, renderDocumenten, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=311";
-import { initArchief, renderLogboek, openLogboekEditor } from "./render-archief.js?v=129";
+import { api, campagneUitUrl, zetCampagne } from './api.js?v=292';
+import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, renderDocumenten, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=312";
+import { initArchief, renderLogboek, openLogboekEditor } from "./render-archief.js?v=130";
 import { renderKaart, queueFlyTo, verversPins, nieuweKaart } from './render-kaart.js?v=31';
 import { renderDungeon } from './render-dungeon.js?v=56';
 import { renderRelatiemap } from './render-relatiemap.js?v=27';
@@ -9,8 +9,8 @@ import { renderBestiarium } from './render-bestiarium.js?v=30';
 import { renderSpreuken } from './render-spreuken.js?v=41';
 import { renderVaardigheden, zoekVaardigheden } from './render-vaardigheden.js?v=8';
 import { renderStatblock } from './render-statblock.js?v=9';
-import { initSocket } from "./socket-client.js?v=75";
-import { initDmPanel } from "./dm-panel.js?v=268";
+import { initSocket } from "./socket-client.js?v=76";
+import { initDmPanel } from "./dm-panel.js?v=269";
 import { COND_INFO, COND_LABEL, COND_MET_PLAATJE, COND_ICON } from './conditions.js?v=2';
 import './media-picker.js?v=8';
 
@@ -41,7 +41,7 @@ window._campagneNaam = () => window.app?.state?.meta?.appTitle || 'de campagne';
 // eigen naam valt hij terug op wát het is, niet op hoe het hier heet.
 const _DIENST_STANDAARD = {
   herberg: 'Herberg', tweespalt: 'Arena', gock: 'Detective', ursula: 'Waarzegger',
-  tempel: 'Tempel', magizoo: 'Magizoöloog', facties: 'Facties', heeren: 'Dievengilde',
+  tempel: 'Tempel', magizoo: 'Magizoöloog', facties: 'Facties',
 };
 window._dienstNaam = (key) => {
   const eigen = window.app?.state?.meta?.[key]?.naam;
@@ -474,7 +474,6 @@ function switchSection(section) {
     gock:          'rgba(20,50,80,0.65)',
  ursula:        'rgba(80,40,110,0.65)',
     tempel:        'rgba(120,90,150,0.6)',
-    heeren:        'rgba(30,30,45,0.7)',
     magizoo:       'rgba(42,106,58,0.55)',
     'mijn-karakter': 'rgba(42,90,138,0.55)',
     meesterkamer:  'rgba(139,42,42,0.55)',
@@ -1168,7 +1167,7 @@ function applyRole() {
   document.getElementById('diensten-herberg-item')?.classList.toggle('hidden', !state.meta?.herberg);
 
   // Diensten-knop active-state als een diensten-sectie actief is
-  const DIENSTEN_SECTIONS = ['markt', 'herberg', 'tweespalt', 'gock', 'ursula', 'tempel', 'heeren', 'facties', 'magizoo'];
+  const DIENSTEN_SECTIONS = ['markt', 'herberg', 'tweespalt', 'gock', 'ursula', 'tempel', 'facties', 'magizoo'];
   const dienstenBtn = document.getElementById('diensten-nav-btn');
   if (dienstenBtn) dienstenBtn.classList.toggle('active', DIENSTEN_SECTIONS.includes(state.activeSection));
 
@@ -2918,13 +2917,7 @@ async function refreshSection(section) {
       const _el = document.getElementById('section-tempel'); if (_el) _el.innerHTML = '';
     } else await renderTempel();
   }
-  else if (section === 'heeren') {
-    if (!window.app.isDM() && _getDienstToegang('heeren') === 'zichtbaar') {
-      const _el = document.getElementById('section-heeren'); if (_el) _dienstNietBeschikbaar(_el, state.meta?.heeren?.naam || 'Heeren van de Nacht');
-    } else if (!window.app.isDM() && _getDienstToegang('heeren') === 'verborgen') {
-      const _el = document.getElementById('section-heeren'); if (_el) _el.innerHTML = '';
-    } else await renderHeeren();
-  } else if (section === 'facties') {
+  else if (section === 'facties') {
     // Facties stond wel in Toegang per groep maar keek er als enige dienst niet
     // naar — de schakelaar deed dus niets.
     if (!window.app.isDM() && _getDienstToegang('facties') === 'zichtbaar') {
@@ -6019,7 +6012,6 @@ function _briefLetterhead(m) {
     case 'ursula':    return `<span class="lh-zegel">✦</span> ${esc(window._dienstNaam('ursula'))}`;
     case 'gock':      return `<span class="lh-zegel">⌖</span> ${esc(window._dienstNaam('gock'))}`;
     case 'tweespalt': return `<span class="lh-zegel">${icon('dice')}</span> ${esc(window._dienstNaam('tweespalt'))}`;
-    case 'heeren':    return `<span class="lh-zegel">${icon('moon')}</span> ${esc(window._dienstNaam('heeren'))}`;
     case 'factie': {
       const emb  = (typeof m === 'object' && m.embleem) ? m.embleem : 'landmark';
       const naam = (typeof m === 'object' && (m.kop || m.afzender)) || 'Een factie';
@@ -7533,12 +7525,11 @@ async function renderMijnKarakter(opts = {}) {
   let pinnedTraits  = [];
   let inspired      = false;
   let berichtenLijst = [];
-  let heerenData = null;
   let factiesData = [];
   let progData = null;
   let lootData = null;
   try {
-    [hpData, entity, combat, ownershipData, allVoorwerpen, soundsData, simpleItems, currency, partyCurrency, spellSlots, playerProfile, partyMembers, companions, trackers, pinnedSpells, pinnedTraits, { inspired }, berichtenLijst, heerenData, factiesData, progData, lootData] = await Promise.all([
+    [hpData, entity, combat, ownershipData, allVoorwerpen, soundsData, simpleItems, currency, partyCurrency, spellSlots, playerProfile, partyMembers, companions, trackers, pinnedSpells, pinnedTraits, { inspired }, berichtenLijst, factiesData, progData, lootData] = await Promise.all([
       api.getPlayerHp(charId).catch(() => ({ current: null, max: null })),
       api.getEntity('personages', charId).catch(() => null),
       api.getCombat().catch(() => null),
@@ -7557,7 +7548,6 @@ async function renderMijnKarakter(opts = {}) {
       api.getPlayerTraits(charId).catch(() => []),
       api.getInspiration(charId).catch(() => ({ inspired: false })),
       api.getBerichten().then(d => d.berichten || []).catch(() => []),
-      (window.app?.state?.meta?.heeren ? api.getHeeren().catch(() => null) : Promise.resolve(null)),
       api.getFacties().then(d => d.facties || []).catch(() => []),
       api.progression().catch(() => null),
       api.getLoot().catch(() => null),
@@ -8435,19 +8425,9 @@ async function renderMijnKarakter(opts = {}) {
       <!-- ═══ TAB: Facties & Aanzien ═══ -->
       <div id="pst-facties" class="player-subtab-panel${_playerSubTab !== 'facties' ? ' hidden' : ''}">
         <div style="display:flex;justify-content:flex-end;padding:4px 0 0">${_helpBtn('facties')}</div>
-        ${(!heerenData && !(factiesData || []).some(f => (f.rang?.index ?? 0) > 0))
+        ${!(factiesData || []).some(f => (f.rang?.index ?? 0) > 0)
           ? `<div class="player-dash-section"><p class="dm-hint" style="opacity:.7;text-align:center;padding:24px 0">Je hebt nog geen aanzien bij facties.</p></div>`
           : ''}
-        ${heerenData ? `
-        <div class="player-dash-section">
-          <div class="player-dash-section-title">${icon('moon')} Aanzien bij de Heeren</div>
-          <div class="renown-card">
-            <div class="renown-rang">${esc(heerenData.rang?.naam || '')}<span class="renown-trap">${(heerenData.rang?.index ?? 0) + 1}/${heerenData.rang?.aantal || 1}</span></div>
-            ${heerenData.rang?.voordelen ? `<div class="renown-voordelen">${esc(heerenData.rang.voordelen)}</div>` : ''}
-            ${heerenData.rang?.volgende ? `<div class="renown-volgende">Volgende — <strong>${esc(heerenData.rang.volgende.naam)}</strong>${heerenData.rang.volgende.voordelen ? `: ${esc(heerenData.rang.volgende.voordelen)}` : ''}</div>` : ''}
-            ${(heerenData.boetes && heerenData.boetes.length) ? `<div class="renown-boete">${icon('landmark')} ${heerenData.boetes.length} openstaande boete${heerenData.boetes.length > 1 ? 's' : ''} bij de Luimpoort</div>` : ''}
-          </div>
-        </div>` : ''}
 
         ${(factiesData || []).filter(f => (f.rang?.index ?? 0) > 0).map(f => {
           const stijl = (f.stijl || '').replace(/[^a-z]/gi, '').toLowerCase();
@@ -11914,7 +11894,7 @@ function _muntTekst(b) {
 window._marktOpen = (soort, id) => window._marktWinkelOpen(soort, id);
 
 // ── De vorm van een dienstscherm ────────────────────────────────────────────
-// Elk dienstscherm (herberg, tempel, Gock, Ursula, magizoo, Tweespalt, Heeren,
+// Elk dienstscherm (herberg, tempel, Gock, Ursula, magizoo, Tweespalt,
 // facties) heeft dezelfde romp: een schermvullende achtergrond, daarin een
 // paneel, en daarin een rond portret met een groet eronder. Die romp heet in de
 // CSS `herberg-*` omdat de herberg er het eerst was — één element draagt zelfs
@@ -12946,94 +12926,6 @@ window._tempelVerbruik = async () => {
   } catch (err) {
     _tsToast(err.message || 'Afvinken mislukt.');
   }
-};
-
-// ── Madame Ursula / Waarzegger ───────────────────────────────────────────────
-
-async function renderHeeren() {
-  const el = document.getElementById('section-heeren');
-  if (!el) return;
-  const meta = window.app?.state?.meta || {};
-  if (window._dienstDicht('heeren')) { _dienstNietBereikbaar(el, meta.heeren?.naam || 'De Heeren van de Nacht'); return; }
-
-  _dienstLaden(el);
-  let data;
-  try { data = await api.getHeeren(); }
-  catch (e) { _dienstFout(el, e); return; }
-
-  const { config, rang, luimpoort, advocaat, jobs = [], boetes = [], currency } = data;
-  const beursTekst = (cur) => [cur?.fl && `${cur.fl} fl`, cur?.kn && `${cur.kn} kn`, cur?.cl && `${cur.cl} cl`].filter(Boolean).join(' · ') || '0 cl';
-  const clTekst = (cl) => { const f = Math.floor(cl / 100), k = Math.floor((cl % 100) / 10), c = cl % 10; return [f && `${f} fl`, k && `${k} kn`, c && `${c} cl`].filter(Boolean).join(' ') || '0 cl'; };
-  const honorariumTekst = beursTekst(config.honorarium);
-  const typeIcon = { zakkenrollen: icon('stiletto'), inbraak: icon('lock-open'), oplichting: icon('eye') };
-
-  const backdrop = config.backdropId ? `style="background-image:url('${api.thumbUrlBreed(config.backdropId)}')"` : '';
-  const portret = config.imageId
-    ? `<img src="${api.thumbUrl(config.imageId)}" class="herberg-portrait-round" alt="${esc(config.naam)}">`
-    : `<div class="gock-portret-fallback">${icon('moon')}</div>`;
-  const kaartLink = (e) => (e && e.zichtbaar) ? `<button class="herberg-bubble-card-btn" style="margin-left:4px;font-size:.65rem;padding:1px 4px" onclick="window._openDetail('${esc(e.type)}','${esc(e.id)}')" title="Bekijk kaartje">${icon('arrow-up-right')}</button>` : '';
-
-  const boetesHtml = boetes.length ? `
-    <div class="gock-dossier" style="border-color:rgba(150,40,40,0.6)">
-      <div class="gock-dossier-head">${icon('landmark')} Openstaande boetes${luimpoort ? ' — ' + esc(luimpoort.naam) + kaartLink(luimpoort) : ''}</div>
-      ${boetes.map(b => `
-        <div style="border-top:1px solid rgba(196,168,122,0.2);padding:6px 0">
-          <p class="gock-dossier-tekst">${esc(b.reden)} — <strong>${clTekst(b.bedragCl)}</strong></p>
-          <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:4px">
-            <button class="ts-wedden-btn" onclick="window._heerenBetaal('${esc(b.id)}','${esc(clTekst(b.bedragCl))}')">Betaal ${esc(clTekst(b.bedragCl))}</button>
-            <button class="ts-wedden-btn" onclick="window._heerenAdvocaat('${esc(b.id)}')">${icon('landmark')} Huur ${advocaat ? esc(advocaat.naam) : 'Zilvertong en Zemelaar'} (${esc(honorariumTekst)})</button>
-            ${advocaat ? kaartLink(advocaat) : ''}
-          </div>
-        </div>`).join('')}
-    </div>` : '';
-
-  const jobsHtml = jobs.length ? jobs.map(j => `
-    <div class="tempel-god-kaart" style="border:1px solid rgba(196,168,122,0.3);border-radius:10px;padding:10px;margin-bottom:8px;text-align:left">
-      <div style="margin-bottom:4px">
-        <span class="herberg-item-naam">${typeIcon[j.type] || icon('moon')} ${esc(j.typeNaam)}</span>
-        <span class="herberg-item-type" style="display:block;opacity:.8">${esc(j.omschrijving)} ${j.doelZichtbaar ? kaartLink({ type: j.doelType, id: j.doelId, zichtbaar: true }) : ''}</span>
-      </div>
-      <p class="ts-beurs" style="margin:2px 0">Buit: <strong>${j.payout} fl</strong></p>
-      ${j.status === 'open'
-        ? `<button class="ts-wedden-btn" onclick="window._heerenAanneem('${esc(j.id)}')">Neem aan</button>`
-        : `<p class="ts-beurs" style="opacity:.8">Aangenomen door ${esc(j.doorNaam || 'iemand')} — de DM beslist de uitkomst.</p>`}
-    </div>`).join('') : `<p class="herberg-cooldown-tekst">Er hangen nu geen klussen op het bord. Kom later terug.</p>`;
-
-  el.innerHTML = `
-    <div class="herberg-scene gock-scene" ${backdrop}>
-      <div class="herberg-content">
-        ${currency ? `<div class="dienst-beurs-topbar"><span class="ts-beurs tempel-beurs-top">Beurs: <strong>${beursTekst(currency)}</strong></span></div>` : ''}
-        <div class="herberg-portrait-wrap">${portret}</div>
-        <p class="herberg-groet">${esc(config.naam)} — "Werk zat, als je vingers los zitten."</p>
-        <p class="ts-beurs">Aanzien: <strong>${esc(rang.naam)}</strong> (${rang.index + 1}/${rang.aantal})</p>
-        ${rang.voordelen ? `<p class="herberg-item-type" style="opacity:.85">Voordelen: ${esc(rang.voordelen)}</p>` : ''}
-        ${rang.volgende ? `<p class="herberg-item-type" style="opacity:.5;font-size:.8em">Volgende — ${esc(rang.volgende.naam)}${rang.volgende.voordelen ? ': ' + esc(rang.volgende.voordelen) : ''}</p>` : ''}
-        ${boetesHtml}
-        <div class="herberg-lijst">${jobsHtml}</div>
-      </div>
-    </div>`;
-}
-
-window._heerenAanneem = async (id) => {
-  if (!confirm("Deze klus aannemen? Speel 'm uit aan tafel; de DM bepaalt de uitkomst.")) return;
-  try { await api.heerenAanneem(id); await renderHeeren(); _tsToast(`${icon('moon')} Klus aangenomen.`); }
-  catch (err) { _tsToast(err.message || 'Kon de klus niet aannemen.'); }
-};
-
-window._heerenBetaal = async (boeteId, label) => {
-  if (!confirm(`Boete betalen (${label})?`)) return;
-  try { await api.heerenBetaalBoete(boeteId); await renderHeeren(); _tsToast(`${icon('landmark')} Boete voldaan.`); }
-  catch (err) { _tsToast(err.message || 'Betalen mislukt.'); }
-};
-
-window._heerenAdvocaat = async (boeteId) => {
-  if (!confirm('Zilvertong en Zemelaar inhuren? Het honorarium wordt direct betaald, ongeacht de uitkomst.')) return;
-  try {
-    const r = await api.heerenAdvocaat(boeteId);
-    await renderHeeren();
-    const uit = r.uitkomst === 'kwijtgescholden' ? 'de boete is kwijtgescholden!' : r.uitkomst === 'gehalveerd' ? 'de boete is gehalveerd.' : 'het mocht niet baten.';
-    _tsToast(`${icon('landmark')} Pleidooi: ${r.totaal} (d20 ${r.worp}${r.bonus >= 0 ? '+' : ''}${r.bonus}) — ${uit}`);
-  } catch (err) { _tsToast(err.message || 'Inhuren mislukt.'); }
 };
 
 // ── Tweespalt / Gokkantoor ──────────────────────────────────────────────────

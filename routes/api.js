@@ -1878,6 +1878,9 @@ function _bezorgBrief(req, cid, { titel = '', tekst = '', afzender = '', thema =
 router.post('/post', requireDM, (req, res) => {
   const { titel, tekst, afzender, entityId, entityType, characterId, groepId, datum, thema } = req.body;
   if (!tekst?.trim()) return res.status(400).json({ error: 'Tekst is verplicht' });
+  // 'heeren' is hier een **briefstijl** (de schaduwbrief), geen dienst: die is
+  // met het Dievengilde vervallen, maar brieven die er al liggen dragen dit
+  // thema nog en horen hun opmaak te houden.
   const THEMAS = ['ursula', 'gock', 'tweespalt', 'heeren'];
   const veiligThema = THEMAS.includes(thema) ? thema : '';
   const THEMA_AFZENDER = { ursula: 'Madame Ursula', gock: 'De Gock', tweespalt: 'De Tweespalt', heeren: 'De Heeren van de Nacht' };
@@ -5370,13 +5373,11 @@ router.delete('/player-items/:characterId/:itemId', attachRole, (req, res) => {
   if (req.role !== 'dm' && req.session.characterId !== characterId)
     return res.status(403).json({ error: 'Geen toegang' });
 
-  // Spelers mogen geen IOU's (schuldbewijs) of boetes zelf verwijderen — alleen de DM
+  // Een schuldbewijs gooi je niet zelf weg — dat is het hele punt van een
+  // schuld. (De boete-variant hiernaast is vervallen met het Dievengilde.)
   const isIOU = itemId.startsWith('ts_leen_');
-  const isBoete = itemId.startsWith('heeren_boete_');
   if (isIOU && req.role !== 'dm')
     return res.status(403).json({ error: 'Schuldbrieven kunnen alleen door de DM worden verwijderd' });
-  if (isBoete && req.role !== 'dm')
-    return res.status(403).json({ error: 'Een boete los je af bij de Luimpoort, niet door het kaartje weg te gooien' });
 
   const dmState = readDmState();
 
@@ -8447,7 +8448,7 @@ router.delete('/help-content/:key', requireDM, (req, res) => {
 // 'markt' hoort hier ook in: de Markt is een plek, en een party die drie dagen
 // varen van de stad is kan er niet heen. Zonder deze sleutel kon de DM hem in
 // de akte-editor niet eens aanvinken.
-const _BEREIKBAAR_KEYS = ['herberg', 'tweespalt', 'gock', 'ursula', 'tempel', 'magizoo', 'heeren', 'markt'];
+const _BEREIKBAAR_KEYS = ['herberg', 'tweespalt', 'gock', 'ursula', 'tempel', 'magizoo', 'markt'];
 
 function _bereikbaarheidVoor(meta, dmState, groepId) {
   // activeAkte is een object {key, num, title} — niet de sleutel zelf.
@@ -10605,7 +10606,7 @@ const TEMPEL_GODEN_DEFAULT = [
 
 
 // ── Diensten toegang per groep ──
-const _DIENSTEN_NAMEN = ['herberg', 'tweespalt', 'gock', 'ursula', 'tempel', 'heeren', 'facties', 'magizoo'];
+const _DIENSTEN_NAMEN = ['herberg', 'tweespalt', 'gock', 'ursula', 'tempel', 'facties', 'magizoo'];
 
 // De toegangsschakelaar van de DM (Diensten → Toegang per groep) werd alleen in
 // de **client** afgedwongen: `switchSection` verbergt de sectie. De routes zelf
@@ -10717,7 +10718,6 @@ const _DIENST_BRIEF = {
   gock:      { icon: 'search',    kleur: 'metaal', naam: 'De Gock' },
   ursula:    { icon: 'sparkles',  kleur: '',       naam: 'Madame Ursula' },
   tempel:    { icon: 'church',    kleur: 'hout',   naam: 'De Tempel' },
-  heeren:    { icon: 'moon',      kleur: 'staal',  naam: 'De Heeren van de Nacht' },
   facties:   { icon: 'landmark',  kleur: 'metaal', naam: 'De Facties' },
   magizoo:   { icon: 'paw-print', kleur: 'hout',   naam: 'De Magizoöloog' },
 };
@@ -11633,314 +11633,6 @@ router.put('/meta/tempel', requireDM, (req, res) => {
   req.app.get('io').to(req.session?.campaignId||'main').emit('meta:updated');
   res.json(meta.tempel);
 });
-
-// ── De Heeren van de Nacht / Dievengilde ──
-
-const HEEREN_KLUSTYPES = {
-  zakkenrollen: { naam: 'Zakkenrollen', doelType: 'personages', sjablonen: [
-    'Licht {doel} de beurs in een drukke straat.',
-    'Ontfutsel {doel} een waardevol kleinood.',
-    'Rol {doel} op de markt zonder dat iemand het merkt.',
-  ] },
-  inbraak: { naam: 'Inbraak', doelType: 'locaties', sjablonen: [
-    "Breek 's nachts in bij {doel} en ontvreemd iets van waarde.",
-    'Kraak het slot van {doel} en doorzoek de boel.',
-    'Glip ongezien {doel} binnen en grijp de buit.',
-  ] },
-  oplichting: { naam: 'Oplichting', doelType: 'personages', sjablonen: [
-    'Licht {doel} op met een vervalste schuldbrief.',
-    'Praat {doel} een waardeloze "schat" aan.',
-    'Bedrieg {doel} met een vals contract.',
-  ] },
-};
-
-const HEEREN_RANGEN_DEFAULT = [
-  { naam: 'Schoffie',       min: 10,  max: 30,  voordelen: 'Toegang tot het klussenbord.' },
-  { naam: 'Beurzensnijder', min: 25,  max: 70,  voordelen: 'Betere klussen; de heler knijpt een oogje toe.' },
-  { naam: 'Inbreker',       min: 60,  max: 150, voordelen: 'Hogere buit en eerste keus uit de klussen.' },
-  { naam: 'Schaduw',        min: 140, max: 300, voordelen: 'Een goed woordje bij Zilvertong en Zemelaar.' },
-  { naam: 'Meesterdief',    min: 280, max: 600, voordelen: 'De Heeren staan voor je in bij de Luimpoort.' },
-];
-
-function _heerenConfig(meta) {
-  const c = meta.heeren || {};
-  return {
-    naam: c.naam || 'De Heeren van de Nacht',
-    imageId: c.imageId || null,
-    backdropId: c.backdropId || null,
-    luimpoortId: c.luimpoortId || null,
-    advocaatId: c.advocaatId || null,
-    honorarium: c.honorarium || { fl: 50 },
-    boeteFactor: c.boeteFactor ?? 2,
-    bordGrootte: c.bordGrootte ?? 4,
-    rangen: (c.rangen && c.rangen.length) ? c.rangen : HEEREN_RANGEN_DEFAULT,
-  };
-}
-
-function _fmtFl(cl) {
-  const c = fromCl(cl);
-  return [c.fl && `${c.fl} fl`, c.kn && `${c.kn} kn`, c.cl && `${c.cl} cl`].filter(Boolean).join(' ') || '0 cl';
-}
-
-// Persuasion-bonus uit een spelerprofiel (CHA-vaardigheid)
-function _persuasionBonus(profile) {
-  if (!profile) return 0;
-  const cha = parseInt(profile.cha) || 10;
-  const mod = Math.floor((cha - 10) / 2);
-  const pb = parseInt(profile.profBonus) || 0;
-  let profs = {}, adj = {};
-  try { profs = JSON.parse(profile.skillProfs || '{}'); } catch {}
-  try { adj   = JSON.parse(profile.skillAdj   || '{}'); } catch {}
-  const p = profs['persuasion'];
-  return mod + (p === 'expert' ? pb * 2 : p === 'prof' ? pb : 0) + (adj['persuasion'] || 0);
-}
-
-function _heerenEntiteitInfo(entities, dmState, type, id) {
-  const e = (entities[type] || []).find(x => x.id === id);
-  if (!e) return null;
-  const vis = (getGroup(dmState).visibility || {})[id] || 'hidden';
-  return { id, naam: e.name, type, zichtbaar: vis !== 'hidden' };
-}
-
-function _heerenGenereerKlus(entities, dmState, rang) {
-  const typeKeys = Object.keys(HEEREN_KLUSTYPES);
-  const typeKey = typeKeys[Math.floor(Math.random() * typeKeys.length)];
-  const t = HEEREN_KLUSTYPES[typeKey];
-  const pool = entities[t.doelType] || [];          // bewust álle entiteiten (ook onontdekte)
-  if (!pool.length) return null;
-  const doel = pool[Math.floor(Math.random() * pool.length)];
-  const sjabloon = t.sjablonen[Math.floor(Math.random() * t.sjablonen.length)];
-  const payout = rang.min + Math.floor(Math.random() * Math.max(1, (rang.max - rang.min + 1)));
-  return {
-    id: 'klus_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6),
-    type: typeKey, typeNaam: t.naam,
-    doelId: doel.id, doelType: t.doelType, doelNaam: doel.name,
-    omschrijving: sjabloon.replace(/\{doel\}/g, doel.name),
-    payout, status: 'open', doorId: null, doorNaam: null,
-  };
-}
-
-function _heerenWisBoete(dmState, characterId, boeteId) {
-  if (dmState.heerenBoetes?.[characterId])
-    dmState.heerenBoetes[characterId] = dmState.heerenBoetes[characterId].filter(b => b.id !== boeteId);
-  if (dmState.playerItems?.[characterId])
-    dmState.playerItems[characterId] = dmState.playerItems[characterId].filter(i => i.heerenBoeteId !== boeteId);
-}
-
-function _heerenSyncBoeteItem(dmState, characterId, boete) {
-  const it = (dmState.playerItems?.[characterId] || []).find(i => i.heerenBoeteId === boete.id);
-  if (it) it.note = `Openstaande boete van ${_fmtFl(boete.bedragCl)} wegens "${boete.reden}". Te voldoen bij de Luimpoort.`;
-}
-
-router.get('/heeren', attachRole, (req, res) => {
-  const meta = storage.readJSON('meta.json');
-  const config = _heerenConfig(meta);
-  const dmState = readDmState();
-  const entities = storage.readJSON('entities.json');
-  const characterId = req.session.characterId;
-  const isDM = req.role === 'dm';
-
-  const g = getGroup(dmState);
-  const state = g.heeren || { rang: 0, jobs: [] };
-  const rangIdx = Math.min(state.rang || 0, config.rangen.length - 1);
-  const rang = config.rangen[rangIdx] || config.rangen[0];
-
-  const jobs = (state.jobs || []).map(j => {
-    const vis = (g.visibility || {})[j.doelId] || 'hidden';
-    return { ...j, doelZichtbaar: vis !== 'hidden' };
-  });
-
-  const luimpoort = config.luimpoortId ? _heerenEntiteitInfo(entities, dmState, 'locaties', config.luimpoortId) : null;
-  const advocaat  = config.advocaatId
-    ? (_heerenEntiteitInfo(entities, dmState, 'personages', config.advocaatId) || _heerenEntiteitInfo(entities, dmState, 'organisaties', config.advocaatId))
-    : null;
-
-  const boetes = dmState.heerenBoetes || {};
-  const eigenBoetes = characterId ? (boetes[characterId] || []) : [];
-  let alleBoetes = null;
-  if (isDM) {
-    alleBoetes = [];
-    for (const [cid, lijst] of Object.entries(boetes)) {
-      const ch = (entities.personages || []).find(e => e.id === cid);
-      for (const b of (lijst || [])) alleBoetes.push({ ...b, characterId: cid, characterNaam: ch?.name || cid });
-    }
-  }
-
-  const volgende = config.rangen[rangIdx + 1] || null;
-  res.json({
-    config: { naam: config.naam, imageId: config.imageId, backdropId: config.backdropId, honorarium: config.honorarium },
-    rang: {
-      naam: rang.naam, index: rangIdx, aantal: config.rangen.length,
-      voordelen: rang.voordelen || '', min: rang.min, max: rang.max,
-      volgende: volgende ? { naam: volgende.naam, voordelen: volgende.voordelen || '' } : null,
-    },
-    luimpoort, advocaat, jobs,
-    boetes: eigenBoetes, alleBoetes,
-    currency: _effectiveCurrency(dmState, characterId),
-  });
-});
-
-router.post('/heeren/genereer', requireDM, (req, res) => {
-  const meta = storage.readJSON('meta.json');
-  const config = _heerenConfig(meta);
-  const dmState = readDmState();
-  const entities = storage.readJSON('entities.json');
-  const g = getGroup(dmState);
-  if (!g.heeren) g.heeren = { rang: 0, jobs: [] };
-  const rangIdx = Math.min(g.heeren.rang || 0, config.rangen.length - 1);
-  const rang = config.rangen[rangIdx] || config.rangen[0];
-
-  const behouden = (g.heeren.jobs || []).filter(j => j.status === 'aangenomen');
-  const nieuw = [];
-  let guard = 0;
-  while (behouden.length + nieuw.length < config.bordGrootte && guard++ < 50) {
-    const k = _heerenGenereerKlus(entities, dmState, rang);
-    if (!k) break;
-    nieuw.push(k);
-  }
-  g.heeren.jobs = [...behouden, ...nieuw];
-  storage.writeJSON('dm-state.json', dmState);
-  req.app.get('io').to(req.session?.campaignId||'main').emit('heeren:updated');
-  res.json({ ok: true, jobs: g.heeren.jobs });
-});
-
-router.post('/heeren/job/:id/aanneem', attachRole, (req, res) => {
-  const characterId = req.session.characterId;
-  if (!characterId) return res.status(403).json({ error: 'Geen speler ingelogd' });
-  const dmState = readDmState();
-  const g = getGroup(dmState);
-  const job = (g.heeren?.jobs || []).find(j => j.id === req.params.id);
-  if (!job) return res.status(404).json({ error: 'Klus niet gevonden' });
-  if (job.status !== 'open') return res.status(400).json({ error: 'Deze klus is al aangenomen' });
-  job.status = 'aangenomen';
-  job.doorId = characterId;
-  job.doorNaam = req.session.playerName || '';
-  storage.writeJSON('dm-state.json', dmState);
-  req.app.get('io').to(req.session?.campaignId||'main').emit('heeren:updated');
-  res.json({ ok: true });
-});
-
-// DM markeert de uitslag: geslaagd | mislukt | ontsnapt | gearresteerd
-router.post('/heeren/job/:id/uitslag', requireDM, (req, res) => {
-  const { uitkomst } = req.body;
-  const meta = storage.readJSON('meta.json');
-  const config = _heerenConfig(meta);
-  const dmState = readDmState();
-  const g = getGroup(dmState);
-  const jobs = g.heeren?.jobs || [];
-  const job = jobs.find(j => j.id === req.params.id);
-  if (!job) return res.status(404).json({ error: 'Klus niet gevonden' });
-
-  const io = req.app.get('io');
-  if (uitkomst === 'geslaagd' && job.doorId) {
-    _deductCurrency(dmState, job.doorId, -(job.payout * 100));
-    io.to(req.session?.campaignId||'main').emit('player:currency-updated', { characterId: job.doorId, currency: _effectiveCurrency(dmState, job.doorId) });
-  } else if (uitkomst === 'gearresteerd' && job.doorId) {
-    if (!dmState.heerenBoetes) dmState.heerenBoetes = {};
-    if (!dmState.heerenBoetes[job.doorId]) dmState.heerenBoetes[job.doorId] = [];
-    const bedragCl = job.payout * 100 * (config.boeteFactor || 2);
-    const boete = { id: 'b_' + Date.now() + '_' + Math.random().toString(36).slice(2, 5), bedragCl, reden: `${job.typeNaam} — ${job.doelNaam}`, op: new Date().toISOString() };
-    dmState.heerenBoetes[job.doorId].push(boete);
-    if (!dmState.playerItems) dmState.playerItems = {};
-    if (!dmState.playerItems[job.doorId]) dmState.playerItems[job.doorId] = [];
-    dmState.playerItems[job.doorId].push({
-      id: 'heeren_boete_' + boete.id,
-      name: `Boete — ${_heerenConfig(storage.readJSON('meta.json')).naam}`,
-      note: `Openstaande boete van ${_fmtFl(bedragCl)} wegens "${boete.reden}". Te voldoen bij de Luimpoort.`,
-      heerenBoeteId: boete.id,
-    });
-    io.to(req.session?.campaignId||'main').emit('player:items-updated', { characterId: job.doorId, items: dmState.playerItems[job.doorId] });
-  }
-  g.heeren.jobs = jobs.filter(j => j.id !== job.id);
-  storage.writeJSON('dm-state.json', dmState);
-  io.to(req.session?.campaignId||'main').emit('heeren:updated');
-  res.json({ ok: true });
-});
-
-router.post('/heeren/rang', requireDM, (req, res) => {
-  const rang = parseInt(req.body.rang);
-  const dmState = readDmState();
-  const g = getGroup(dmState);
-  if (!g.heeren) g.heeren = { rang: 0, jobs: [] };
-  g.heeren.rang = isNaN(rang) ? 0 : Math.max(0, rang);
-  storage.writeJSON('dm-state.json', dmState);
-  req.app.get('io').to(req.session?.campaignId||'main').emit('heeren:updated');
-  res.json({ ok: true, rang: g.heeren.rang });
-});
-
-// Boete betalen (speler)
-router.post('/heeren/boete/:boeteId/betaal', attachRole, (req, res) => {
-  const characterId = req.session.characterId;
-  if (!characterId) return res.status(403).json({ error: 'Geen speler ingelogd' });
-  const dmState = readDmState();
-  const lijst = (dmState.heerenBoetes || {})[characterId] || [];
-  const boete = lijst.find(b => b.id === req.params.boeteId);
-  if (!boete) return res.status(404).json({ error: 'Boete niet gevonden' });
-  const pc = _effectiveCurrency(dmState, characterId) || { fl: 0, kn: 0, cl: 0 };
-  if (toCl(pc) < boete.bedragCl) return res.status(400).json({ error: 'Onvoldoende saldo' });
-  _deductCurrency(dmState, characterId, boete.bedragCl);
-  _heerenWisBoete(dmState, characterId, boete.id);
-  storage.writeJSON('dm-state.json', dmState);
-  const io = req.app.get('io');
-  io.to(req.session?.campaignId||'main').emit('player:currency-updated', { characterId, currency: _effectiveCurrency(dmState, characterId) });
-  io.to(req.session?.campaignId||'main').emit('player:items-updated', { characterId, items: dmState.playerItems[characterId] || [] });
-  io.to(req.session?.campaignId||'main').emit('heeren:updated');
-  res.json({ ok: true, currency: _effectiveCurrency(dmState, characterId) });
-});
-
-// Advocaat (Zilvertong en Zemelaar) inhuren: honorarium + pleidooi-worp (d20 + Persuasion)
-router.post('/heeren/boete/:boeteId/advocaat', attachRole, (req, res) => {
-  const characterId = req.session.characterId;
-  if (!characterId) return res.status(403).json({ error: 'Geen speler ingelogd' });
-  const meta = storage.readJSON('meta.json');
-  const config = _heerenConfig(meta);
-  const dmState = readDmState();
-  const lijst = (dmState.heerenBoetes || {})[characterId] || [];
-  const boete = lijst.find(b => b.id === req.params.boeteId);
-  if (!boete) return res.status(404).json({ error: 'Boete niet gevonden' });
-
-  const honorariumCl = toCl(config.honorarium);
-  const pc = _effectiveCurrency(dmState, characterId) || { fl: 0, kn: 0, cl: 0 };
-  if (toCl(pc) < honorariumCl) return res.status(400).json({ error: 'Onvoldoende saldo voor het honorarium' });
-  _deductCurrency(dmState, characterId, honorariumCl);
-
-  const profile = (dmState.playerProfiles || {})[characterId] || {};
-  const bonus = _persuasionBonus(profile);
-  const worp = Math.floor(Math.random() * 20) + 1;
-  const totaal = worp + bonus;
-  let uitkomst, kwijt = false;
-  if (totaal >= 20)      { uitkomst = 'kwijtgescholden'; _heerenWisBoete(dmState, characterId, boete.id); kwijt = true; }
-  else if (totaal >= 12) { uitkomst = 'gehalveerd'; boete.bedragCl = Math.ceil(boete.bedragCl / 2); _heerenSyncBoeteItem(dmState, characterId, boete); }
-  else                   { uitkomst = 'niets'; }
-
-  storage.writeJSON('dm-state.json', dmState);
-  const io = req.app.get('io');
-  io.to(req.session?.campaignId||'main').emit('player:currency-updated', { characterId, currency: _effectiveCurrency(dmState, characterId) });
-  io.to(req.session?.campaignId||'main').emit('player:items-updated', { characterId, items: dmState.playerItems[characterId] || [] });
-  io.to(req.session?.campaignId||'main').emit('heeren:updated');
-  res.json({ ok: true, worp, bonus, totaal, uitkomst, kwijt, currency: _effectiveCurrency(dmState, characterId) });
-});
-
-// DM scheldt een boete kwijt (correctie / rechtszaak-uitkomst aan tafel)
-router.post('/heeren/kwijt', requireDM, (req, res) => {
-  const { characterId, boeteId } = req.body || {};
-  if (!characterId || !boeteId) return res.status(400).json({ error: 'characterId en boeteId vereist' });
-  const dmState = readDmState();
-  _heerenWisBoete(dmState, characterId, boeteId);
-  storage.writeJSON('dm-state.json', dmState);
-  const io = req.app.get('io');
-  io.to(req.session?.campaignId||'main').emit('player:items-updated', { characterId, items: (dmState.playerItems || {})[characterId] || [] });
-  io.to(req.session?.campaignId||'main').emit('heeren:updated');
-  res.json({ ok: true });
-});
-
-router.put('/meta/heeren', requireDM, (req, res) => {
-  const meta = storage.readJSON('meta.json');
-  if (!meta.heeren) meta.heeren = {};
-  ['naam','imageId','backdropId','luimpoortId','advocaatId','honorarium','boeteFactor','bordGrootte','rangen'].forEach(f => { if (req.body[f] !== undefined) meta.heeren[f] = req.body[f]; });
-  storage.writeJSON('meta.json', meta);
-  req.app.get('io').to(req.session?.campaignId||'main').emit('meta:updated');
-  res.json(meta.heeren);});
 
 // ── Facties & Aanzien (organisaties met een rangspoor) ──
 
