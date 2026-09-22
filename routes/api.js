@@ -10848,18 +10848,32 @@ function _dienstenBeschikbaar(dmState) {
   return lijst;
 }
 
+// De party van wie er kijkt — niet de groep die de DM actief heeft staan.
+// Zonder speler (de DM die zelf rondkijkt) valt hij terug op de actieve groep.
+function _ursulaGroep(dmState, characterId) {
+  return characterId
+    ? getGroup(dmState, _playerGroupId(dmState, characterId))
+    : getGroup(dmState);
+}
+
 router.get('/ursula', attachRole, (req, res) => {
   const meta = storage.readJSON('meta.json');
   const config = meta.ursula || {};
-  const characterId = req.session.characterId;
+  // Las `req.session.characterId` rechtstreeks, waardoor de DM die namens een
+  // speler kijkt niets zag — zelfde gat als eerder bij de vijf andere
+  // dienst-GET's, dat hier was blijven staan.
   const dmState = readDmState();
+  const characterId = _handelendKarakter(req);
   const currency = _effectiveCurrency(dmState, characterId);
 
   const doel = _ursulaVolgendeAkte(meta, dmState);
   const def = doel ? (meta.ursula?.voorspellingen?.[doel.key] || null) : null;
   const beschikbaar = !!(doel && _ursulaHeeftInhoud(def));
 
-  const g = getGroup(dmState);
+  // Een voorspelling hangt aan de **party**, dus aan die van de speler die
+  // kijkt — niet aan de groep die de DM toevallig actief heeft staan. Wie in
+  // party B zat las hier de worp van party A.
+  const g = _ursulaGroep(dmState, characterId);
   const party = (beschikbaar && g.voorspellingen) ? (g.voorspellingen[doel.key] || null) : null;
   const onthuld = party ? _ursulaOnthulling(def, party) : null;
 
@@ -10889,7 +10903,7 @@ router.post('/ursula/voorspel', attachRole, vereistDienst('ursula'), (req, res) 
   const def = meta.ursula?.voorspellingen?.[doel.key];
   if (!_ursulaHeeftInhoud(def)) return res.status(400).json({ error: 'De nevelen tonen niets — er valt nu niets te voorzien' });
 
-  const g = getGroup(dmState);
+  const g = _ursulaGroep(dmState, characterId);
   if (!g.voorspellingen) g.voorspellingen = {};
   if (g.voorspellingen[doel.key]) return res.status(400).json({ error: 'De party heeft deze voorspelling al ontvangen' });
 
@@ -10915,7 +10929,11 @@ router.post('/ursula/voorspel', attachRole, vereistDienst('ursula'), (req, res) 
   }
   g.voorspellingen[doel.key] = {
     roll, zintuigen: gekozen, concreet,
-    doorNaam: req.session.playerName || '', op: new Date().toISOString(),
+    // Wie het gevraagd heeft. Bij een DM die namens iemand handelt is
+    // `playerName` leeg, dus dan de naam van het personage zelf.
+    doorNaam: req.session.playerName
+      || (storage.readJSON('entities.json').personages || []).find(e => e.id === characterId)?.name
+      || '', op: new Date().toISOString(),
   };
 
   _deductCurrency(dmState, characterId, prijsCl);

@@ -848,6 +848,13 @@ Per bevinding: waar, wat, en of het opgelost is. Nieuwe regels onderaan.
 - Goedkeuren zet de spreuk in het boek van die speler en haalt de regel uit de lijst; de teller in de kop loopt mee.
 - Staat er niets open, dan zegt de kop "Alles is afgehandeld" en beide secties melden dat ze leeg zijn.
 
+### Madame Ursula: de voorspelling hoort bij je eigen party (22 sep 2026)
+
+- Vraag als speler een voorspelling. Laat de DM daarna **een andere party actief maken** en herlaad: je ziet nog steeds je eigen worp, en opnieuw vragen wordt geweigerd. Vroeger las en schreef je in de voorspellingen van de party die de DM toevallig open had staan.
+- Als DM: zet de regie-balk op *handel namens* een speler en open Ursula — je ziet zijn beurs en zijn stand. Dat veld was leeg omdat deze dienst als enige nog rechtstreeks uit de sessie las.
+- De aanvrager staat er met naam bij (*doorNaam*); handelt de DM namens iemand, dan staat er de naam van dat personage en niet niets.
+- Op een worp 1–5 gaat één zintuig open, op een 6 alle vijf plus de concrete regel — precies wat de hulptekst belooft.
+
 ### Facties: de ladder wel, de facties niet (22 sep 2026)
 
 - Grisburgh: de vier facties staan er nog, elk met zes rangen — er verandert niets. (Ze staan in `meta.facties`, niet in de code.)

@@ -130,6 +130,34 @@ describe('Madame Ursula: één voorspelling per akte', () => {
     assert.strictEqual(r.status, 200, 'na een reset mag het weer: ' + JSON.stringify(r.body));
   });
 
+  it('houdt de voorspelling bij de party van de speler, niet bij de actieve groep', async () => {
+    // Beide routes losten de party op als `getGroup(dmState)` — de groep die de
+    // DM actief heeft staan. Een speler uit party B las en schreef daardoor in
+    // de voorspellingen van party A: hij zag een worp die niet van hem was, en
+    // mocht opnieuw werpen zodra de DM wisselde.
+    await req('POST', '/api/akte/actief', { key: 'akte1', num: 1, title: 'Nu', groupId: gid }, dm);
+    await req('POST', '/api/ursula/reset', { akteKey: 'akte2' }, dm);
+
+    const eerste = await vraag();
+    assert.strictEqual(eerste.status, 200, JSON.stringify(eerste.body));
+
+    // De DM gaat naar een andere party kijken.
+    const ander = (await req('POST', '/api/groups', { name: 'Tweede party' }, dm)).body;
+    const anderId = ander?.id || ander?.group?.id;
+    assert.ok(anderId, 'tweede party aangemaakt');
+    await req('POST', '/api/akte/actief', { key: 'akte1', num: 1, title: 'Nu', groupId: anderId }, dm);
+    await req('PUT', '/api/groups/active', { groupId: anderId }, dm);
+
+    const scherm = (await req('GET', '/api/ursula', null, spelerC)).body;
+    assert.strictEqual(scherm.alGeworpen, true, 'hij ziet nog steeds zijn eigen worp');
+    assert.strictEqual(scherm.roll, eerste.body.roll, 'en het is dezelfde worp');
+
+    const nogEens = await vraag();
+    assert.strictEqual(nogEens.status, 400, 'en hij mag niet opnieuw werpen');
+
+    await req('PUT', '/api/groups/active', { groupId: gid }, dm);
+  });
+
   it('heeft niets te voorzien als er geen volgende akte is', async () => {
     await req('POST', '/api/akte/actief', { key: 'akte2', num: 2, title: 'Straks', groupId: gid }, dm);
     const r = await vraag();
