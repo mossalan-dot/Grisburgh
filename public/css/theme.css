@@ -12047,6 +12047,19 @@ body.herberg-actief #app { position: relative; z-index: 1; }
   -webkit-backdrop-filter: blur(5px);
 }
 
+/* De maat van een dienstpaneel.
+   460px is de standaard: een portret, een groet en een kolom knoppen. Elke
+   dienst gebruikt die, en wie ervan afwijkt doet dat met een reden — er zijn er
+   drie, en ze staan alle drie hieronder genoemd zodat een vierde opvalt:
+     .ts-content    640px  — de Tweespalt zet per weddenschap naam, kans en
+                             uitkering op één regel; op 460 breekt die in drieën.
+     .markt-content 1040px — een raster van negen winkels met een zoekbalk en
+                             gebiedsknoppen erboven; dat is een overzicht, geen
+                             bezoek.
+     .markt-winkel   860px — de voorraadtabel van één winkel (naam, prijs,
+                             voorraad, knop) — dezelfde tabel als op het
+                             kaartje, en die past niet in 460.
+   Wijk je af, zet dan de reden erbij. Zonder reden hoort het 460 te zijn. */
 .herberg-content {
   width: 100%;
   max-width: 460px;
@@ -14073,7 +14086,7 @@ body.herberg-actief #app { position: relative; z-index: 1; }
 
 /* ══ Tweespalt / Gokkantoor ══════════════════════════════════════════════════ */
 
-.ts-content { max-width: 640px; margin: 0 auto; padding: 20px 16px; }
+.ts-content { max-width: 640px; margin: 0 auto; padding: 20px 16px; }   /* breder: zie .herberg-content */
 
 .ts-header {
   display: flex;
@@ -25553,7 +25566,7 @@ body.lade-open .dm-regie-balk-inner { height: auto; }
    portret met een groet eronder, maar daardoor kromp het raster en het zoekveld
    tot hun eigen inhoud. Hier moeten de kinderen de volle breedte pakken. */
 .markt-content {
-  max-width: 1040px; width: 100%;
+  max-width: 1040px; width: 100%;   /* breder: zie .herberg-content */
   padding: 22px 26px 30px;
   align-items: stretch; text-align: left;
 }
@@ -25730,7 +25743,7 @@ body.lade-open .dm-regie-balk-inner { height: auto; }
    Zelfde vorm als de andere diensten: portret, naam, groet. De voorraadtabel
    eronder is dezelfde die op het kaartje staat, dus die heeft hier geen eigen
    opmaak nodig — alleen ruimte. */
-.markt-winkel { max-width: 860px; width: 100%; padding: 18px 24px 30px; text-align: center; }
+.markt-winkel { max-width: 860px;   /* breder: zie .herberg-content */ width: 100%; padding: 18px 24px 30px; text-align: center; }
 .markt-terug {
   align-self: flex-start; display: inline-flex; align-items: center; gap: 5px;
   background: none; border: none; cursor: pointer; padding: 4px 2px;
@@ -26833,3 +26846,41 @@ body.akte-schrijf-open .mp-overlay { z-index: 1320; }
   align-items: center;
   gap: 10px;
 }
+
+/* ── Naam van het huis in een dienstscherm ────────────────────────────────
+   De waard krijgt .tempel-priester-naam (zelfde plek als de priester); dit is
+   de regel eronder met de naam van de zaak zelf. Klein en cursief: het is een
+   bijschrift, geen kop — de groet eronder blijft het eerste wat je leest. */
+.dienst-huisnaam {
+  margin: -12px 0 0;
+  font-family: 'IM Fell English', Georgia, serif;
+  font-style: italic;
+  font-size: 0.82rem;
+  letter-spacing: .02em;
+  color: rgba(196,168,122,0.62);
+  text-align: center;
+}
+
+/* ── Kop van het factie-overzicht ─────────────────────────────────────────
+   Dit scherm heeft bewust geen paneel, dus de hulpknop hing aan niets. Een
+   kop geeft hem een plek en vertelt waar je bent. */
+.factie-lijst-kop {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+.factie-lijst-titel {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font-family: 'Cinzel', serif;
+  font-size: 1.05rem;
+  font-weight: 600;
+  letter-spacing: .06em;
+  color: #4a3218;
+  text-shadow: 0 1px 0 rgba(255,250,240,0.35);
+}
+.factie-lijst-titel .icon { width: 18px; height: 18px; opacity: .75; }

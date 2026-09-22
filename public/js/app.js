@@ -12083,6 +12083,13 @@ async function renderHerberg() {
             ? `<img src="${api.thumbUrl(config.imageId)}" class="herberg-portrait-round${cooldownActief ? ' herberg-portrait--weg' : ''}" alt="${esc(config.waard)}">`
             : `<div class="herberg-portrait-round herberg-portrait-fallback${cooldownActief ? ' herberg-portrait--weg' : ''}">${icon('beer')}</div>`}
         </div>
+        <!-- De herberg noemde zichzelf nergens: je zag een vrouw, een groet en
+             knoppen, maar niet waar je was of tegen wie je sprak. Elke andere
+             dienst doet dat wel — de Tempel met .tempel-priester-naam, de
+             Tweespalt in zijn groet. Zelfde klasse als de priester, dus zelfde
+             plek en zelfde opmaak. -->
+        ${config.waard ? `<p class="tempel-priester-naam">${esc(config.waard)}</p>` : ''}
+        ${config.naam ? `<p class="dienst-huisnaam">${esc(config.naam)}</p>` : ''}
         <p class="herberg-groet">${_groetTekst}</p>
 
         ${heeftMenu ? `
@@ -13400,7 +13407,15 @@ async function renderFacties() {
   el.innerHTML = `
     <div class="herberg-scene gock-scene facties-lijst-scene" ${_factieBackdrop}>
       <div class="factie-sectie">
-        <div style="display:flex;justify-content:flex-end;margin-bottom:4px">${_helpBtn('facties')}</div>
+        <!-- De knop zweefde los rechtsboven op de kale achtergrond: dit
+             overzicht heeft bewust geen paneel (lichte perkamentkaarten in
+             plaats van het donkere vlak), dus er was niets om aan te hangen.
+             Een kop geeft hem die plek, en zegt meteen waar je bent — zoals
+             elke andere dienst dat doet. -->
+        <div class="factie-lijst-kop">
+          <h2 class="factie-lijst-titel">${icon('landmark')} Facties</h2>
+          ${_helpBtn('facties')}
+        </div>
         <div class="factie-grid">
           ${zichtbaar.map(f => _renderFactieKaart(f)).join('')}
         </div>

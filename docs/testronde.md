@@ -870,6 +870,12 @@ Per bevinding: waar, wat, en of het opgelost is. Nieuwe regels onderaan.
 - Koop een zegen: je rolt en krijgt er één van die god, met de prijs eraf. Zweer een eed: de andere goden gaan op slot ("Je bent al door een eed gebonden"). Laat de DM de eed verbreken → er staat een **vloek** waar de eed stond; doe boete → weg.
 - Meesterkamer → Diensten → Tempel toont de lopende eden per speler met hun status.
 
+### Diensten: naam van het huis, één paneelmaat, kop boven de facties (22 sep 2026)
+
+- **De herberg noemt zich**: onder het portret staat de waard (*Brÿlwaen*) en daaronder de zaak (*De Swarte Cat*) — zelfde plek en opmaak als de priesternaam in de Tempel. Hernoem ze in Meesterkamer → Diensten → Herberg en beide regels lopen mee; laat een veld leeg en die regel verdwijnt.
+- **Eén paneelmaat**: elk dienstscherm is 460 px breed. Drie schermen wijken af en zeggen in de CSS waarom — de Tweespalt (640, drie kolommen per weddenschap), het Marktoverzicht (1040, raster van negen winkels) en een winkelscène (860, de voorraadtabel). `tests/dienst-panelen.test.js` valt om zodra er een vierde breedte bij komt zonder reden.
+- **Het factie-overzicht heeft een kop** (*Facties*) met de hulpknop erin. Die knop zweefde los boven de kaarten op de kale achtergrond, omdat dit scherm bewust geen paneel heeft.
+
 ### UX-ronde langs de acht diensten (22 sep 2026)
 
 Doorgelopen in de browser als DM, op een wegwerpkopie van de productiedata, met vier assen: zichtbaarheid, transparantie, leesbaarheid, uniformiteit.

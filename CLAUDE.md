@@ -2372,6 +2372,15 @@ omdat de herberg er het eerst was; één element draagt zelfs
 CSS-regels en levert niets op wat je ziet — dus dat blijft zo, maar weet dat de
 naam niets over de herberg zegt.
 
+- **Eén paneelmaat: 460 px.** `.herberg-content` zet hem; wie afwijkt schrijft de
+  reden erbij als `/* breder: zie .herberg-content */`. Er zijn er drie
+  (Tweespalt 640, Marktoverzicht 1040, winkelscène 860) en die staan alle drie
+  opgesomd bij `.herberg-content` zelf, zodat een vierde opvalt. Bewaakt door
+  `tests/dienst-panelen.test.js`.
+- **Een dienst noemt zichzelf.** Onder het portret de naam van de persoon
+  (`.tempel-priester-naam` — priester, waard, factie-NPC) en daaronder zo nodig
+  de naam van de zaak (`.dienst-huisnaam`). De herberg deed dat als enige niet:
+  je zag een vrouw, een groet en knoppen, maar niet waar je was.
 - **Begin een nieuwe dienst met `_dienstLaden(el)` en `_dienstFout(el, e)`**
   (in `app.js`, vlak boven `renderHerberg`). Die twee stonden **dertien keer**
   woordelijk in het bestand, inclusief een inline `style="opacity:.5"`.
