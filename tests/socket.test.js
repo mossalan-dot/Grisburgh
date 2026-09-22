@@ -181,6 +181,37 @@ describe('Socket sound:emote authority', () => {
     assert.ok(ogre.hpStaat, 'wel een vage staat, anders kan het scherm niets tekenen');
   });
 
+  it('houdt de dreigingsrangorde zichtbaar zonder de cijfers te sturen', async () => {
+    // De tokengrootte verraadt welk monster het zwaarst is, en dat is een
+    // bewuste keuze: je ziet in één oogopslag waar het gevaar zit. Het canvas
+    // groepeerde daarvoor zélf op `maxHp|ac`, en die velden gaan niet meer naar
+    // een speler. De server stuurt daarom de plaats in de rangorde mee.
+    const zwaar = (await httpReq(server, 'POST', '/api/monsters',
+      { name: 'Bergtrol', maxHp: 84, statblock: { ac: '15' } }, dmCookie)).body.id;
+    const licht = (await httpReq(server, 'POST', '/api/monsters',
+      { name: 'Rifgrif', maxHp: 12, statblock: { ac: '12' } }, dmCookie)).body.id;
+    const enc = (await httpReq(server, 'POST', '/api/encounters', {
+      name: 'Rangorde',
+      monsters: [{ monsterId: licht, aantal: 1, name: 'Rifgrif' }, { monsterId: zwaar, aantal: 1, name: 'Bergtrol' }],
+    }, dmCookie)).body;
+    const encId = enc?.id || enc?.encounter?.id;
+
+    const speler = await connect(port, cookieA);
+    speler.emit('player:register', A);
+    await new Promise(r => setTimeout(r, 120));
+    const bij = waitFor(speler, 'combat:updated', 1500);
+    await httpReq(server, 'POST', `/api/encounters/${encId}/start`, {}, dmCookie);
+    const payload = await bij;
+    speler.close();
+
+    const trol = (payload.combatants || []).find(c => /bergtrol/i.test(c.name || ''));
+    const grif = (payload.combatants || []).find(c => /rifgrif/i.test(c.name || ''));
+    assert.ok(trol && grif, 'beide monsters staan in het gevecht');
+    assert.strictEqual(trol.maxHp, undefined, 'nog steeds geen cijfers');
+    assert.ok(trol._dreigingIdx < grif._dreigingIdx,
+      `de zwaarste hoort vooraan te staan (trol ${trol._dreigingIdx}, grif ${grif._dreigingIdx})`);
+  });
+
   it('negeert sound:emote van een anonieme socket', async () => {
     const anon = await connect(port, null);
     const recv = waitFor(listener, 'sound:emote', 500);

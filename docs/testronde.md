@@ -870,6 +870,13 @@ Per bevinding: waar, wat, en of het opgelost is. Nieuwe regels onderaan.
 - Koop een zegen: je rolt en krijgt er één van die god, met de prijs eraf. Zweer een eed: de andere goden gaan op slot ("Je bent al door een eed gebonden"). Laat de DM de eed verbreken → er staat een **vloek** waar de eed stond; doe boete → weg.
 - Meesterkamer → Diensten → Tempel toont de lopende eden per speler met hun status.
 
+### Gevechtscanvas: dreiging zichtbaar, cijfers niet (22 sep 2026)
+
+- Start een gevecht met **verschillend zware monsters** (bijvoorbeeld *Onder het Nieuwe Vlashuis*: minotaur 76 HP, bandit captain 65, swarm 24, apprentice 22). Als speler staan ze van groot naar klein in die volgorde — de zwaarste het grootst, zoals altijd. Alleen komt de rangorde nu van de server (`_dreigingIdx`) in plaats van uit `maxHp|ac`, die een speler niet meer krijgt.
+- Kijk of **niemand als dood getekend wordt**: zonder `hp` viel elke vreemde token terug op 0 en stond het veld vol lijken. De balk toont een grove drie-segmenten-stand.
+- Laat de DM schade uitdelen: de **treffer-flits** verschijnt nog steeds bij de speler (die wordt nu uit het verschil in verhouding afgeleid).
+- **Bestiarium-kennis telt weer mee, ook zonder herladen.** Zet een monster in de Meesterkamer op *deels*: de speler ziet vanaf de volgende update exacte HP van dát wezen. Vroeger deed `GET /combat` dat wél en de socket niet, dus verdween het bij de eerste wijziging tot je de pagina ververste.
+
 ### Gevecht: een speler kent de cijfers van een ander niet (22 sep 2026)
 
 - Start een gevecht en kijk als speler in de **netwerktab** naar `combat:updated` (of `GET /api/combat`): van jouw eigen personage staan `hp`, `maxHp` en `ac` erin, van alle anderen — monsters én medespelers — alleen `hpStaat` ("geschaafd"), `hpCls` en `hpPct`. Vroeger stond de exacte HP en AC van elk monster in de browser van elke speler.

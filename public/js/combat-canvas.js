@@ -240,7 +240,11 @@ function _updateState(combat) {
     (combat.combatants || []).forEach(c => {
       const prev = (_combat.combatants || []).find(p => p.id === c.id);
       if (prev) {
-        const delta = (c.hp || 0) - (prev.hp || 0);
+        // Bij een vage deelnemer is er geen getal; het verschil in
+        // verhouding vertelt nog steeds óf hij geraakt is, en of het pijn deed.
+        const delta = (c.hp !== undefined && prev.hp !== undefined)
+          ? (c.hp || 0) - (prev.hp || 0)
+          : Math.round((_hpFrac(c) - _hpFrac(prev)) * (c.maxHp || 20));
         if (delta !== 0) _hitEvents.push({ id: c.id, delta, t0: performance.now() });
       }
     });
@@ -367,7 +371,7 @@ function _draw() {
   // ── Split combatants ──
   const cs       = _combat.combatants || [];
   const players  = cs.filter(c => c.type === 'player' || c.type === 'ally' || c.type === 'summon');
-  const monsters = cs.filter(c => c.type === 'monster' && (c.hp || 0) > 0);
+  const monsters = cs.filter(c => c.type === 'monster' && !_isUit(c));
   const group    = _getTurnGroup(cs, _combat.currentTurn ?? 0);
 
   if (cs.length === 0) {
@@ -904,20 +908,25 @@ function _drawSide(ctx, group, allCs, turnGroup, x, y, w, h, t, isWide) {
   // oogopslag ziet waar het gevaar zit. Spelers houden bewust één maat — daar
   // is geen hiërarchie.
   const alleenMonsters = group.length > 0 && group.every(c => c.type === 'monster');
-  const getoond = alleenMonsters
-    ? [...group].sort((a, b) =>
-        (b.maxHp || 0) - (a.maxHp || 0) ||
-        (parseInt(b.ac) || 0) - (parseInt(a.ac) || 0))
-    : group;
+  // De sleutel waarop we rangschikken. Een speler krijgt `maxHp` en `ac` niet
+  // meer binnen — die zeggen te veel — maar wél `_dreigingIdx`: de plaats in
+  // dezelfde rangorde, server-side uitgerekend (`_combatVoorSpeler` in
+  // routes/api.js). Zo blijft het beeld precies hetzelfde. Voor de DM en het
+  // tafelscherm blijft het de oude sleutel.
+  const dreigSleutel = (c) => (c._dreigingIdx !== undefined
+    ? String(c._dreigingIdx)
+    : `${c.maxHp || 0}|${parseInt(c.ac) || 0}`);
+  const dreigSort = (a, b) => (a._dreigingIdx !== undefined && b._dreigingIdx !== undefined)
+    ? a._dreigingIdx - b._dreigingIdx
+    : ((b.maxHp || 0) - (a.maxHp || 0) || (parseInt(b.ac) || 0) - (parseInt(a.ac) || 0));
+  const getoond = alleenMonsters ? [...group].sort(dreigSort) : group;
   // Schaal per dréigingsniveau, niet per positie: twee identieke piraten horen
-  // even groot te zijn. Elk uniek (HP, AC)-paar is één niveau; van 1.0 voor het
+  // even groot te zijn. Elk uniek niveau telt één keer; van 1.0 voor het
   // zwaarste tot 0.82 voor het lichtste.
-  const niveaus = alleenMonsters
-    ? [...new Set(getoond.map(c => `${c.maxHp || 0}|${parseInt(c.ac) || 0}`))]
-    : [];
+  const niveaus = alleenMonsters ? [...new Set(getoond.map(dreigSleutel))] : [];
   const rangVan = (c) => {
     if (!alleenMonsters || niveaus.length < 2) return null;      // geen hiërarchie
-    const i = niveaus.indexOf(`${c.maxHp || 0}|${parseInt(c.ac) || 0}`);
+    const i = niveaus.indexOf(dreigSleutel(c));
     return 1 - i / (niveaus.length - 1);                          // 1 = zwaarste
   };
   const schaalVoor = (c) => {
@@ -964,7 +973,7 @@ function _avatarPath(ctx, c, cx, cy, r) {
 }
 
 function _drawCombatant(ctx, c, x, y, w, h, t, isActive, isWide, turnIndex, schaal = 1, dreiging = null) {
-  const isDead  = (c.hp || 0) <= 0;
+  const isDead  = _isUit(c);
   const conds   = isDead ? [] : (c.conditions || []);
   const hasCond = (name) => conds.includes(name);
   const topCond = _getTopCondition(conds);
@@ -1777,11 +1786,34 @@ function _drawWinScreen(ctx, W, H, winner, t) {
   ctx.restore();
 }
 
+// Hoeveel van zijn HP heeft dit wezen nog? 0..1.
+//
+// Een speler krijgt van een ander geen `hp`/`maxHp` meer binnen maar wél de
+// verhouding (`hpPct`). Elke plek die "hoeveel" of "is hij om?" wil weten moet
+// hierlangs — anders staat elke vreemde token op 0 en tekent het canvas een
+// veld vol lijken.
+function _hpFrac(c) {
+  if (!c) return 0;
+  if (c.hp === undefined && c.hpPct !== undefined) return Math.max(0, Math.min(1, c.hpPct / 100));
+  const maxHp = Math.max(1, c.maxHp || 1);
+  return Math.max(0, c.hp || 0) / maxHp;
+}
+// Ligt hij eruit? Bij een vage deelnemer zegt de staat het, niet het getal.
+function _isUit(c) {
+  if (c && c.hp === undefined && c.hpPct !== undefined) return c.hpPct <= 0;
+  return (c?.hp || 0) <= 0;
+}
+
 function _drawHpBar(ctx, c, x, y, w, h) {
+  // Een speler krijgt van een ander geen hp en maxHp meer binnen, maar wél de
+  // verhouding (`hpPct`, afgerond op tienden — zie `_combatVoorSpeler` in
+  // routes/api.js). Zonder deze regel viel elke vreemde token terug op 0/1 en
+  // stond er een lege balk: iedereen leek dood.
+  const vaag   = c.hp === undefined && c.hpPct !== undefined;
   const hp     = Math.max(0, c.hp    || 0);
   const maxHp  = Math.max(1, c.maxHp || 1);
   const tempHp = c.tempHp || 0;
-  const pct    = hp / maxHp;
+  const pct    = vaag ? Math.max(0, Math.min(1, c.hpPct / 100)) : hp / maxHp;
   const isDM   = window.app?.isDM?.();
   const niveau = c._niveau || null;  // null | 'naam' | 'deels' | 'volledig'
 
@@ -1790,8 +1822,9 @@ function _drawHpBar(ctx, c, x, y, w, h) {
   // Bij deels/volledig: vloeiende 5-kleurige bar + exacte getallen (zoals DM).
   const isMonster    = c.type === 'monster';
   const hasKennis    = niveau === 'deels' || niveau === 'volledig';
-  const useCoarse    = isMonster && !isDM && !hasKennis;
-  const showExact    = isDM || (isMonster && hasKennis);
+  const useCoarse    = (isMonster && !isDM && !hasKennis) || vaag;
+  // Exacte getallen alleen als we ze überhaupt hebben.
+  const showExact    = !vaag && (isDM || (isMonster && hasKennis));
 
   // Render-percentage: bij ruwe modus afkappen op 3 segmenten
   const renderPct = useCoarse

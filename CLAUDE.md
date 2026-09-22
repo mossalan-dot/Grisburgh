@@ -2341,6 +2341,21 @@ Storage gebruikt `AsyncLocalStorage` voor per-request campagne-scoping:
 
 ## Socket.io rooms
 
+> **De tokengrootte verraadt de dreiging, en dat blijft zo.** Het canvas tekent
+> het zwaarste monster het grootst (gesorteerd op maxHp, dan AC) — een bewuste
+> keuze: je ziet in één oogopslag waar het gevaar zit. Het groepeerde daarvoor
+> zélf op `maxHp|ac`, en die velden gaan niet meer naar een speler. De server
+> rekent de rangorde nu uit en stuurt alleen de **plaats in de rij** mee
+> (`_dreigingIdx`); `dreigSleutel()`/`dreigSort()` in `combat-canvas.js` vallen
+> terug op de oude sleutel voor de DM en het tafelscherm. Zelfde beeld, geen
+> getallen.
+> Elke vraag van het soort "hoeveel heeft hij nog" of "ligt hij eruit" loopt in
+> dat bestand via `_hpFrac(c)` / `_isUit(c)`: zonder die twee viel een vage
+> deelnemer terug op 0/1 en tekende het canvas iedereen als dood.
+> **Bestiarium-kennis telt mee aan beide kanten:** een monster dat de party op
+> *deels* of *volledig* kent houdt zijn exacte HP. `GET /combat` deed dat al,
+> de socket niet — dus verdween het bij de eerste update tot je verversde.
+
 > **Een gevecht gaat niet ongefilterd de deur uit.** `combat:updated` stond op
 > twaalf plekken als `io.to(campagne).emit(..., combat)` met het rauwe gevecht:
 > de exacte hp, maxHp en AC van elk monster in de browser van elke speler,

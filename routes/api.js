@@ -4692,20 +4692,51 @@ function _hpStaat(hp, maxHp) {
 // al het andere zonder cijfers. Ook andere **spelers** worden vaag — dat is de
 // regel die het tafelscherm al hanteerde, en twee schermen horen hetzelfde te
 // zeggen.
-function _combatVoorSpeler(combat, characterId) {
+function _combatVoorSpeler(combat, characterId, kennis = {}) {
   if (!combat) return combat;
+
+  // **De tokengrootte blijft de dreiging verraden, en dat is met opzet.** Het
+  // canvas tekent het zwaarste monster het grootst, gesorteerd op maxHp en dan
+  // AC — dat is een bewuste keuze: je ziet in één oogopslag waar het gevaar
+  // zit. Maar het deed dat door zélf op `maxHp|ac` te groeperen, en die velden
+  // gaan niet meer naar een speler. Dus rekent de server de rangorde uit en
+  // stuurt alleen de **plaats in de rij** mee: zelfde beeld, geen getallen.
+  const _sleutel = (c) => `${c.maxHp || 0}|${parseInt(c.ac) || 0}`;
+  const _tiers = [...new Set((combat.combatants || [])
+    .filter(c => c.type === 'monster')
+    .sort((a, b) => (b.maxHp || 0) - (a.maxHp || 0) || (parseInt(b.ac) || 0) - (parseInt(a.ac) || 0))
+    .map(_sleutel))];
+  const _rang = (c) => (c.type === 'monster' ? _tiers.indexOf(_sleutel(c)) : -1);
+
   return {
     ...combat,
     combatants: (combat.combatants || []).map(c => {
       if (characterId && c.entityId && c.entityId === characterId) return c;
+      // **Wat de party bestudeerd heeft, mag ze zien.** Het bestiarium is een
+      // progressie (naam → deels → volledig) en op *deels* horen de cijfers
+      // erbij — `GET /combat` deed dat al, maar de socket stuurde het niet mee,
+      // dus na de eerste update viel dat weer weg tot je verversde. Nu allebei.
+      const niveau = (c.type === 'monster' && c.presetId) ? (kennis[c.presetId] || null) : null;
+      const rang = _rang(c);
+      const extra = rang >= 0 ? { _dreigingIdx: rang } : {};
+      if (niveau === 'deels' || niveau === 'volledig') return { ...c, ...extra, _niveau: niveau };
+
       const { hp, maxHp, ac, statblock, ...rest } = c;
       const staat = _hpStaat(hp, maxHp);
       // De balk mag blijven: die toont een verhouding, geen getal. Afgerond op
       // tienden, anders reken je het getal alsnog terug uit de breedte.
       const pct = maxHp > 0 ? Math.round(Math.max(0, Math.min(1, (hp || 0) / maxHp)) * 10) * 10 : 0;
-      return { ...rest, hpStaat: staat.label, hpCls: staat.cls, hpPct: pct };
+      return { ...rest, ...extra, _niveau: niveau, hpStaat: staat.label, hpCls: staat.cls, hpPct: pct };
     }),
   };
+}
+
+// Wat weet de party van dit personage van de wezens in het bestiarium?
+function _bestiariumKennis(dmState, characterId) {
+  try {
+    const gid = _playerGroupId(dmState, characterId);
+    return getGroup(dmState, gid)?.bestiarium || {};
+  } catch { return {}; }
 }
 
 // Eén verzendpunt voor `combat:updated`.
@@ -4728,10 +4759,14 @@ function _zendCombat(req, combat) {
   const io = req.app.get('io');
   if (!io) return;
   const cid = _campagneRoom(req);
+  // dmState één keer lezen: dit draait per socket, en het bestiarium zit erin.
+  let dmState = null;
   for (const sock of io.sockets.sockets.values()) {
     if (!sock.rooms.has(cid)) continue;
     const charId = sock.request?.session?.characterId;
-    sock.emit('combat:updated', charId ? _combatVoorSpeler(combat, charId) : combat);
+    if (!charId) { sock.emit('combat:updated', combat); continue; }
+    if (!dmState) { try { dmState = readDmState(); } catch { dmState = {}; } }
+    sock.emit('combat:updated', _combatVoorSpeler(combat, charId, _bestiariumKennis(dmState, charId)));
   }
 }
 
@@ -9749,7 +9784,7 @@ router.get('/combat', attachRole, (req, res) => {
   // Ook hier de cijfers eruit: dit is het laadpad, en dat gaf tot nu toe wél de
   // exacte hp/maxHp/ac terug. Het `_statblock` hierboven blijft staan — dát is
   // wat de party van de soort weet (bestiarium), geen kijkje in dit exemplaar.
-  res.json(_combatVoorSpeler(enriched, req.session.characterId));
+  res.json(_combatVoorSpeler(enriched, req.session.characterId, kennis));
 });
 
 // De gevechtslog is geen wegwerptekst: bij het afsluiten belandt hij als
