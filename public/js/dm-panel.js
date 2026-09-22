@@ -5531,7 +5531,7 @@ async function _renderTweespaltDM() {
         <div class="dm-feature-row" style="justify-content:space-between;align-items:flex-start">
           <div>
             <strong>${esc(evt.naam)}</strong>
-            <span style="margin-left:8px;font-size:11px;opacity:.6">${evt.type === 'godenwedden' ? icon('zap')+' Godenwedden' : icon('swords')+' Gevecht'}</span>
+            <span style="margin-left:8px;font-size:11px;opacity:.6">${icon('dice')} ${esc(evt.soort || 'Weddenschap')}</span>
             ${isAfgerond ? '<span style="margin-left:6px;font-size:11px;color:var(--color-gold)">✓ Afgerond</span>' : ''}
           </div>
           <button class="dm-btn dm-btn-sm dm-btn-danger-sm" onclick="window._tsDmVerwijder('${esc(evt.id)}')">${icon('x')}</button>
@@ -5635,12 +5635,20 @@ async function _renderTweespaltDM() {
 
       <div class="dm-section-label" style="margin-top:14px">Nieuw event aanmaken</div>
 
+      <!-- Was een keuzelijst met twee vaste types, maar die verschilden
+           mechanisch in niets: dezelfde opties met kans en payout, dezelfde
+           inzet en uitbetaling. En "Godenwedden" is Grisburghs fictie — een
+           tweede DM wedt op een hanenren. Dus een vrij label, met wat er hier
+           gespeeld wordt als suggestie. -->
       <div class="dm-form-row">
-        <label class="dm-form-label">Type</label>
-        <select id="ts-type" class="dm-select" onchange="window._tsToggleGodenwedden()">
-          <option value="gevecht">Gevecht</option>
-          <option value="godenwedden">⚡ Godenwedden</option>
-        </select>
+        <label class="dm-form-label" for="ts-soort">Soort</label>
+        <input id="ts-soort" class="dm-input" list="ts-soort-dl" placeholder="Gevecht">
+        <datalist id="ts-soort-dl">
+          <option value="Gevecht"></option>
+          <option value="Godenwedden"></option>
+          <option value="Race"></option>
+          <option value="Steekspel"></option>
+        </datalist>
       </div>
 
       <div class="dm-form-row">
@@ -5782,22 +5790,9 @@ window._tsToonModusVelden = () => {
   if (winnaarRow) winnaarRow.classList.toggle('hidden', modus !== 'dm');
 };
 
-window._tsToggleGodenwedden = () => {
-  const type = document.getElementById('ts-type')?.value;
-  const modusSelect = document.getElementById('ts-modus');
-  const modusRow = document.getElementById('ts-modus-row');
-  if (type === 'godenwedden') {
-    if (modusSelect) modusSelect.value = 'dm';
-    if (modusRow) modusRow.classList.add('hidden');
-  } else {
-    if (modusRow) modusRow.classList.remove('hidden');
-  }
-  window._tsToonModusVelden();
-};
-
 window._tsDmOpslaan = async () => {
-  const naam = document.getElementById('ts-naam')?.value.trim();
-  const type = document.getElementById('ts-type')?.value;
+  const naam  = document.getElementById('ts-naam')?.value.trim();
+  const soort = document.getElementById('ts-soort')?.value.trim();
   const modus = document.getElementById('ts-modus')?.value || 'auto';
   const duur = parseInt(document.getElementById('ts-duur')?.value) || 60;
 
@@ -5819,7 +5814,7 @@ window._tsDmOpslaan = async () => {
   }
 
   try {
-    await api.createTweespaltEvent({ naam, type, uitkomstModus: modus, uitkomst, opties, duurMinuten: duur });
+    await api.createTweespaltEvent({ naam, soort, uitkomstModus: modus, uitkomst, opties, duurMinuten: duur });
     _tsOptieCount = 0;
     await _renderTweespaltDM();
   } catch (err) { alert('Fout: ' + err.message); }

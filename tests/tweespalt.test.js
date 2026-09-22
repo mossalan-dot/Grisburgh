@@ -87,6 +87,38 @@ describe('De Tweespalt: wedden, arena en lenen', () => {
     return events.find(e => e.naam === naam);
   };
 
+  // Er waren twee 'types' die mechanisch niets van elkaar verschilden, en de
+  // namen ervan ('Gevecht', 'Godenwedden') waren Grisburghs fictie. Nu één
+  // mechaniek met een vrij label.
+  it('neemt een vrij label voor de soort, en valt terug op wat er al lag', async () => {
+    const r = await req(server, 'POST', '/api/tweespalt/events', {
+      naam: 'De Grote Hanenren', soort: 'Hanenren', uitkomstModus: 'dm',
+      opties: [{ naam: 'De rode', kans: 50, payout: 2 }, { naam: 'De grijze', kans: 50, payout: 2 }],
+    }, dm);
+    assert.strictEqual(r.status, 201, JSON.stringify(r.body));
+
+    const events = (await req(server, 'GET', '/api/tweespalt', null, dm)).body.events || [];
+    const mijn = events.find(e => e.naam === 'De Grote Hanenren');
+    assert.strictEqual(mijn.soort, 'Hanenren');
+
+    // Zonder soort staat er iets neutraals, niet een verzonnen fictie.
+    const zonder = await req(server, 'POST', '/api/tweespalt/events', {
+      naam: 'Naamloze weddenschap', uitkomstModus: 'dm',
+      opties: [{ naam: 'A', kans: 50, payout: 2 }, { naam: 'B', kans: 50, payout: 2 }],
+    }, dm);
+    assert.strictEqual(zonder.status, 201, 'type is niet langer verplicht: ' + JSON.stringify(zonder.body));
+
+    // En een event uit de oude tijd houdt zijn label.
+    const oud = await req(server, 'POST', '/api/tweespalt/events', {
+      naam: 'Lichtmis', type: 'godenwedden', uitkomstModus: 'dm',
+      opties: [{ naam: 'Oronoë', kans: 50, payout: 2 }, { naam: 'Ghon', kans: 50, payout: 2 }],
+    }, dm);
+    assert.strictEqual(oud.status, 201, JSON.stringify(oud.body));
+    const alle = (await req(server, 'GET', '/api/tweespalt', null, dm)).body.events || [];
+    assert.strictEqual(alle.find(e => e.naam === 'Lichtmis').soort, 'Godenwedden',
+      'wat er al ligt valt terug op zijn oude type');
+  });
+
   it('neemt een inzet aan en schrijft die meteen af', async () => {
     await vulBeurs(50);
     const ev = await maakEvent();

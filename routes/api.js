@@ -13063,6 +13063,10 @@ router.get('/tweespalt', attachRole, (req, res) => {
   const events = ts.events.map(e => {
     const evt = {
       id: e.id, type: e.type, naam: e.naam, status: e.status,
+      // Wat er in beeld boven de weddenschap staat. Oude events hebben geen
+      // `soort`; die vallen terug op hun type, zodat er niets verandert aan wat
+      // er al ligt.
+      soort: e.soort || (e.type === 'godenwedden' ? 'Godenwedden' : 'Gevecht'),
       uitkomstModus: e.uitkomstModus, aangemaakt: e.aangemaakt,
       sluitTijd: e.sluitTijd, eenmalig: e.eenmalig || false,
       opties: e.opties,
@@ -13094,9 +13098,18 @@ router.get('/tweespalt', attachRole, (req, res) => {
 });
 
 router.post('/tweespalt/events', requireDM, (req, res) => {
-  const { type, naam, uitkomstModus, uitkomst, opties, duurMinuten } = req.body;
-  if (!naam?.trim() || !type || !Array.isArray(opties) || !opties.length)
-    return res.status(400).json({ error: 'naam, type en opties vereist' });
+  // Een weddenschap kende twee **types** — 'gevecht' en 'godenwedden' — maar
+  // mechanisch verschilden ze in niets: dezelfde opties met kans en payout,
+  // dezelfde inzet, dezelfde uitbetaling. Het enige verschil was een label, een
+  // icoon, en dat het formulier bij godenwedden de uitkomstmodus op 'dm'
+  // vastzette. Dat label is bovendien Grisburghs fictie: een tweede DM wedt op
+  // een hanenren of een steekspel, niet op Lichtmis.
+  //
+  // Dus: één mechaniek, met `soort` als **vrij label** van de DM. `type` blijft
+  // meegeschreven voor wat er al ligt, maar er hangt geen gedrag meer aan.
+  const { type, soort, naam, uitkomstModus, uitkomst, opties, duurMinuten } = req.body;
+  if (!naam?.trim() || !Array.isArray(opties) || !opties.length)
+    return res.status(400).json({ error: 'naam en opties vereist' });
 
   const dmState = readDmState();
   const ts = _tsState(dmState);
@@ -13107,14 +13120,14 @@ router.post('/tweespalt/events', requireDM, (req, res) => {
 
   const event = {
     id:           'ts_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6),
-    type,
+    type:         type || 'gevecht',
+    soort:        String(soort || '').trim().slice(0, 30),
     naam:         naam.trim(),
     uitkomstModus: uitkomstModus || 'auto',
     uitkomst:     uitkomstModus === 'dm' ? (uitkomst || null) : null,
     status:       'open',
     sluitTijd,
     aangemaakt:   new Date().toISOString(),
-    eenmalig:     type === 'godenwedden',
     opties:       opties.map((o, i) => ({
       id:     'opt_' + i + '_' + Math.random().toString(36).slice(2, 5),
       naam:   String(o.naam || '').trim(),
@@ -13136,8 +13149,9 @@ router.put('/tweespalt/events/:id', requireDM, (req, res) => {
   const event = ts.events.find(e => e.id === req.params.id);
   if (!event) return res.status(404).json({ error: 'Event niet gevonden' });
 
-  const { naam, uitkomst, uitkomstModus, opties, duurMinuten } = req.body;
+  const { naam, soort, uitkomst, uitkomstModus, opties, duurMinuten } = req.body;
   if (naam !== undefined) event.naam = naam.trim();
+  if (soort !== undefined) event.soort = String(soort || '').trim().slice(0, 30);
   if (uitkomst !== undefined) event.uitkomst = uitkomst;
   if (uitkomstModus !== undefined) {
     event.uitkomstModus = uitkomstModus;
