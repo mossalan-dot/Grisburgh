@@ -2134,6 +2134,15 @@ De app draait meerdere campagnes; wat van Grisburgh is, hoort in Grisburghs
   regels als "In {naam} — klik om te verlaten" of "Ontdekt in {naam}". De
   datasleutels blijven zoals ze zijn (`meta.buitenGrisburgh`,
   `buitenGrisburgEntiteiten`) — die hernoemen kost een migratie en levert niets.
+- **Goden.** Er is géén ingebouwd pantheon meer. `TEMPEL_GODEN_DEFAULT` bevatte
+  de twaalf goden van Grisburgh, compleet met eedteksten en `locatieEntityId`'s
+  die alleen daar bestaan; elke campagne die de Tempel opende kreeg ze erbij.
+  Een god ontstaat uit **Blessing-kaartjes met een `godNaam`** (zegen/eed/vloek),
+  en `meta.tempel.goden` voegt daar volgorde, domein, symbool, prijs en
+  portretten aan toe. Een campagne zonder goden toont een lege tempel, met voor
+  de DM de uitleg hoe hij er een maakt. Grisburghs domeinen zijn met
+  `scripts/tempel-goden-domein.js` naar zijn eigen `meta.json` verhuisd — ze
+  waren daar al onzichtbaar geworden zodra die config gevuld raakte.
 - **Kaarten.** Er is géén ingebouwd vangnet meer: Grisburgh heeft zijn stadskaart
   en Isfār gewoon in `map.json`. Een campagne zonder kaarten toont een lege staat
   (`_legeStaat()` in `render-kaart.js`) in plaats van andermans stadskaart.

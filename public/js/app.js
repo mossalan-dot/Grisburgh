@@ -11443,7 +11443,8 @@ async function _spotifyTafelspeler() {
     });
     await new Promise(klaar => { window.onSpotifyWebPlaybackSDKReady = klaar; });
     const speler = new window.Spotify.Player({
-      name: 'Grisburgh (tafelscherm)',
+      // Zoals dit scherm in Spotify verschijnt; de campagne zet er haar eigen naam op.
+      name: `${window._campagneNaam?.() || 'Grisburgh'} (tafelscherm)`,
       volume: (meta.spotify?.volume ?? 60) / 100,
       getOAuthToken: async (cb) => {
         try { cb((await api.spotifyToken()).token); } catch { /* dan valt de muziek stil */ }
@@ -12763,7 +12764,15 @@ function _renderTempelLijst(el, goden, config, huidigeEed, huidigeZegen, currenc
           </div>
         </div>
         ${goden.length === 0
-          ? `<p class="herberg-cooldown-tekst">Er zijn nog geen goden bekend in deze tempel.</p>`
+          ? (window.app?.isDM?.()
+              // Er is geen ingebouwd pantheon meer (zie TEMPEL_GODEN_DEFAULT in
+              // routes/api.js), dus in een verse campagne is dit het eerste wat
+              // de DM hier ziet — dan moet er staan waar een god vandaan komt.
+              ? `<p class="herberg-cooldown-tekst">Er staan nog geen goden in deze tempel.<br>
+                   Een god ontstaat uit <strong>Blessing-kaartjes</strong> in het archief: geef ze dezelfde <em>godNaam</em>
+                   en zet per kaartje of het een zegen, een eed of een vloek is. In Meesterkamer&nbsp;→&nbsp;Diensten&nbsp;→&nbsp;Tempel
+                   geef je ze daarna een domein, een symbool en een portret.</p>`
+              : `<p class="herberg-cooldown-tekst">Er zijn nog geen goden bekend in deze tempel.</p>`)
           : `<div class="tempel-goden-grid">
               ${goden.map(g => {
                 const actiefEed = huidigeEed && huidigeEed.godId === g.id;
@@ -13868,7 +13877,7 @@ const HELP_CONFIG = {
       stappen: [
         {
           titel: naam,
-          tekst: `${naam} is de plek waar je de goden van Grisburgh kunt bezoeken. Elke god heeft een eigen priester, een eigen domein en eigen gunsten. Bezoeken kost goud — maar de zegeningen en eden die je ontvangt, kunnen je lot in gevecht bepalen.`,
+          tekst: `${naam} is de plek waar je de goden van ${window._campagneNaam?.() || 'de campagne'} kunt bezoeken. Elke god heeft een eigen priester, een eigen domein en eigen gunsten. Bezoeken kost goud — maar de zegeningen en eden die je ontvangt, kunnen je lot in gevecht bepalen.`,
           afbeelding: null,
         },
         {
@@ -13890,7 +13899,7 @@ const HELP_CONFIG = {
     stappen: [
       {
         titel: 'Facties & Aanzien',
-        tekst: 'Facties zijn organisaties in Grisburgh waarmee de party een band kan opbouwen. Door missies te voltooien bouw je renown op bij een factie. Hoe meer renown, hoe hoger je rang — en hoe meer voordelen je krijgt.',
+        tekst: `Facties zijn organisaties in ${window._campagneNaam?.() || 'de campagne'} waarmee de party een band kan opbouwen. Door missies te voltooien bouw je renown op bij een factie. Hoe meer renown, hoe hoger je rang — en hoe meer voordelen je krijgt.`,
         afbeelding: null,
       },
       {

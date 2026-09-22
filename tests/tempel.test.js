@@ -197,6 +197,20 @@ describe('De Tempel: zegen, eed, vloek en boete', () => {
       { groepId: gid, dienst: 'tempel', staat: 'beschikbaar' }, dm);
   });
 
+  it('erft geen pantheon uit een andere campagne', async () => {
+    // Hier stonden de twaalf goden van Grisburgh als TEMPEL_GODEN_DEFAULT in
+    // routes/api.js — mét eedteksten en locatieEntityId's die alleen dáár
+    // bestaan. Een verse campagne kreeg ze in de schoot geworpen, met
+    // portretkoppelingen naar kaartjes die er niet zijn.
+    const bron = fs.readFileSync(path.join(__dirname, '..', 'routes', 'api.js'), 'utf8');
+    for (const naam of ['Matall', 'Seldari', 'Tirimet', 'Oronoë', 'Corellin']) {
+      assert.ok(!bron.includes(naam), `${naam} hoort niet in gedeelde code te staan`);
+    }
+    const m = bron.match(/const TEMPEL_GODEN_DEFAULT = (\[[^\]]*\])/);
+    assert.ok(m, 'de constante hoort er nog te zijn');
+    assert.strictEqual(m[1].replace(/\s/g, ''), '[]', 'en leeg te zijn');
+  });
+
   it('kent geen onbekende god', async () => {
     const r = await req(server, 'POST', '/api/tempel/zegen', { godId: 'god_bestaat-niet' }, spelerC);
     assert.strictEqual(r.status, 404, JSON.stringify(r.body));

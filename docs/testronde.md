@@ -848,6 +848,14 @@ Per bevinding: waar, wat, en of het opgelost is. Nieuwe regels onderaan.
 - Goedkeuren zet de spreuk in het boek van die speler en haalt de regel uit de lijst; de teller in de kop loopt mee.
 - Staat er niets open, dan zegt de kop "Alles is afgehandeld" en beide secties melden dat ze leeg zijn.
 
+### De Tempel: geen geleend pantheon meer (22 sep 2026)
+
+- Grisburgh: elke god toont weer zijn **domein** onder de naam (Matall — *Oppergod — de zon en de maan*). Dat stond in de seed en was onzichtbaar geworden zodra `meta.tempel.goden` gevuld raakte; `scripts/tempel-goden-domein.js` heeft het teruggezet. Alleen *De Verborgene* heeft er geen — die stond niet in de seed.
+- Maak een **nieuwe campagne** en open de Tempel: er staan **geen** goden. Vroeger kreeg je Matall, Seldari en tien anderen, met portretkoppelingen naar kaartjes die daar niet bestaan.
+- Als DM in die lege tempel staat er hoe je er een maakt: Blessing-kaartjes met dezelfde *godNaam*, per kaartje zegen/eed/vloek, en daarna domein en portret in Meesterkamer → Diensten → Tempel.
+- Koop een zegen: je rolt en krijgt er één van die god, met de prijs eraf. Zweer een eed: de andere goden gaan op slot ("Je bent al door een eed gebonden"). Laat de DM de eed verbreken → er staat een **vloek** waar de eed stond; doe boete → weg.
+- Meesterkamer → Diensten → Tempel toont de lopende eden per speler met hun status.
+
 ### De Magizoöloog: wachttijd per lange rust (22 sep 2026)
 
 - Laat een speler een wezen onderzoeken. Het kennisniveau gaat één stap omhoog, het geld gaat eraf, en er staat: *"… buigt zich nog over je vorige exemplaar. Kom terug na een lange rust."* Geen aftelling in minuten meer.

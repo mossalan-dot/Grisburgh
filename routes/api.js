@@ -10584,80 +10584,19 @@ const GOCK_TIDBITS_DEFAULT = [
 
 // Hoofdgoden met een zegening. Mindere goden en De Verborgene (geen zegen) zijn weggelaten.
 // Elke god heeft een eed-zegen (+1, blijvend), een vloek (bij verzaking) en een d4-tabel van eenmalige zegens.
-const TEMPEL_GODEN_DEFAULT = [
-  { id: 'matall',   naam: 'Matall, de Maker',     domein: 'Oppergod — de zon en de maan',     eedTitel: 'Zolang de hamer heft en het hemelvuur brandt.',     eedTekst: 'Bij de vlam van de dageraad en het zilver van de nacht, zweer ik de orde van de kosmos te bewaren. Ik zal mijn rug krommen onder de last van de schepping en mijn hand niet wenden van het aambeeld des levens. Laat mijn geest zo standvastig zijn als de berekende koers van zon en maan, en moge mijn vlees verharden tot graniet wanneer het onrecht mij tracht te buigen.',           symbool: 'Een witte hamer voor een rode zon',                                  zegen: 'Con +1', vloek: 'Con -1; Matall onthoudt je zijn licht — je herwint geen Hit Dice tijdens een korte rust.',   locatieEntityId: 'e_1773523435069_ymn996', priesterEntityId: 'e_1773523435099_otvhpp', eenmaligeZegens: [
-    'Licht des Makers: roep naar believen helder licht op (als de Light-cantrip).',
-    'Levensadem: herrol een mislukte death save.',
-    'Dageraad: herwin 1d4 HP bij het eerste daglicht dat je ziet.',
-    'Maanblik: voordeel op één redding tegen betovering.',
-  ] },
-  { id: 'seldari',  naam: 'Seldari, Stormoog',    domein: 'Gerechtigheid en bescherming',     eedTitel: 'Ik ben het schild dat niet wijkt, de hand die niet aarzelt.',     eedTekst: 'Onder het wakend oog des hemels hef ik mijn schild tegen de schaduw. Ik beloof de zwakken te beschutten met mijn eigen bloed, en het zwaard der gerechtigheid te trekken zonder vrees of vooringenomenheid. Laat mijn arm niet verslappen en mijn blik niet vertroebelen; waar chaos dreigt, zal mijn standvastigheid een baken zijn.',           symbool: 'Een blauw, driehoekig schild met een oog en gesperde hand',          zegen: 'Str +1', vloek: 'Str -1; Stormoog onttrekt haar schild — nadeel op redding tegen omvergeworpen of vastgegrepen worden.', locatieEntityId: 'e_1773523435072_v8a1kq', priesterEntityId: 'e_1773523435090_v44q5f', eenmaligeZegens: [
-    'Wachters reactie: trek één aanval op een bondgenoot binnen 1,5 m naar jezelf.',
-    'Schildmuur: +2 AC tegen één aanval (reactie).',
-    'Rechtvaardige slag: voordeel op één aanval tegen wie net een bondgenoot raakte.',
-    'Onwankelbaar: voordeel op één redding tegen omvergeworpen of geduwd worden.',
-  ] },
-  { id: 'ghon',     naam: 'Ghon, de Loper',       domein: 'Kennis, uitvinding en wijsheid',   eedTitel: 'Het rad wentelt, de geest ontwaakt.',     eedTekst: 'Ik zweer het pad der onwetenheid te verlaten en de eeuwige stroom van het intellect te volgen. Zoals het waterrad nimmer rust, zo zal mijn geest nimmer ophouden met zoeken, bouwen en doorgronden. Ik beloof de vonk van uitvinding te beschermen tegen de duisternis van de vergetelheid, en mijn wijsheid te delen met hen die dwalen.',         symbool: 'Een purperen waterrad',                                              zegen: 'Int +1', vloek: 'Int -1; de Loper sluit zijn kennis — nadeel op Arcana-, History- en Investigation-checks.',   locatieEntityId: 'e_1773523435074_6u2qaz', priesterEntityId: 'e_1773523435100_h7c4br', eenmaligeZegens: [
-    'Inzicht van Ghon: voordeel op één Arcana-, History- of Investigation-check.',
-    'Vraag aan de Loper: krijg één waar feit van de DM.',
-    'Uitvindersgeest: voordeel op één check om een mechanisme, slot of puzzel te ontcijferen.',
-    'Herinnering: herrol één mislukte kennis-check.',
-  ] },
-  { id: 'tirimet',  naam: 'Tirimet, Elvenluit',   domein: 'Beschaving en de vrije kunsten',   eedTitel: 'Laat de snaren zingen en de muren van de rede herrijzen.',     eedTekst: 'Bij de gouden snaren van de beschaving zweer ik de stem van de rede en de schoonheid van de kunst te verdedigen. Ik beloof de wildernis in de harten der mensen te temmen met harmonie, en de vrije kunsten te koesteren als het hoogste goed. Moge mijn tong nimmer valse noten spreken, en mijn daden een lofzang zijn op de vrede.',         symbool: 'Een gele luit',                                                      zegen: 'Cha +1', vloek: 'Cha -1; de muze verstomt — nadeel op Performance- en Persuasion-checks.',                  locatieEntityId: 'e_1773523435074_33l7q0', eenmaligeZegens: [
-    'Muze: geef een bondgenoot een d6-inspiratie (als Bardic Inspiration).',
-    'Hoffelijkheid: voordeel op één sociale check in beschaafd gezelschap.',
-    'Meesterwerk: voordeel op één check met gereedschap of een kunstvorm.',
-    'Betoverend optreden: voordeel op één Performance-check.',
-  ] },
-  { id: 'oronoe',   naam: 'Oronoë, de Zephir',    domein: 'Zeeën, wind, scheepvaart en verkenning', eedTitel: 'De horizon roept, de storm getemd.',     eedTekst: 'Ik bind mijn ziel aan de rusteloze winden en de peilloze diepten der zee. Ik beloof nimmer te verstarren, maar de horizon na te jagen over onbekende wateren. Laat mijn moed standhouden wanneer de bliksem de hemel splijt, en moge ik de gids zijn voor hen die over de baren dwalen op zoek naar nieuwe kusten.', symbool: 'Drie blauwe kronkellijnen, gekruist door een zwarte bliksemschicht', zegen: 'Dex +1', vloek: 'Dex -1; de wind keert zich tegen je — nadeel op redding tegen vallen en op zwemmen.',       locatieEntityId: 'e_1773523435080_vuriy3', priesterEntityId: 'e_1773523435089_x425rx', eenmaligeZegens: [
-    'Rugwind: +3 m snelheid deze beurt.',
-    'Zeebenen: adem 10 minuten onder water of voordeel tegen verdrinken.',
-    'Stuurmanskunst: voordeel op één check om te navigeren of een vaartuig te besturen.',
-    'Wendbaar: herrol één Acrobatics-check of Dex-redding.',
-  ] },
-  { id: 'velurut',  naam: 'Velurut, de Jager',    domein: 'De natuur en de jacht',            eedTitel: 'Het spoor is getrokken, de wet van het woud is heilig.',     eedTekst: 'Bij het ijzer en het woud zweer ik de balans van de wildernis te eerbiedigen. Ik zal slechts jagen om te voeden, en de natuur beschermen tegen de gulzigheid der steden. Laat mijn voetstappen geruisloos zijn en mijn pijlen zuiver; ik ben het roofdier dat de orde bewaakt, verbonden met het ritme van de aarde.',                  symbool: 'Een hoefijzer',                                                      zegen: 'Wis +1', vloek: 'Wis -1; de jacht verstoot je — dieren zijn wantrouwig en je hebt nadeel op Survival-checks.', locatieEntityId: 'e_1773523435065_ux8z44', priesterEntityId: 'e_1773523435091_do32ym', eenmaligeZegens: [
-    'Jagersoog: voordeel op één aanval tegen een door jou gemerkte prooi.',
-    'Stille jacht: voordeel op Stealth in de wildernis (één scène).',
-    'Spoorzoeker: voordeel op één Survival-check om te sporen of de weg te vinden.',
-    'Roep van het wild: voordeel op één Animal Handling-check.',
-  ] },
-  { id: 'qirell',   naam: 'Qirell, Vuurhand',     domein: 'Landbouw en oogst',                eedTitel: 'Uit de as ontspruit het koren, door het zweet bloeit het land.',     eedTekst: 'Ik zweer trouw aan de cyclus van zaaien en oogsten, aan de zwarte aarde en het groene blad. Met deze handen zal ik het land hoeden, de beesten beschermen en de hongerigen voeden. Moge de hitte van de zon mijn gewassen zegenen en mijn arbeid vruchtbaar zijn, opdat de schuren nimmer leegraken en het leven overwint.',                      symbool: 'Een zwarte en groene boom, achter elkaar',                           zegen: 'Nature/Animal Handling +1', vloek: 'Nature/Animal Handling -1; je voorraden bederven snel — nadeel op redding tegen uitputting.', locatieEntityId: 'e_1773523435081_9t0m87', priesterEntityId: 'e_1773523435090_jv7fl0', eenmaligeZegens: [
-    'Overvloed: jouw rantsoenen bederven niet en je hebt voordeel tegen uitputting.',
-    'Zegen van de oogst: herwin 1d4 extra HP bij een korte rust.',
-    'Vruchtbare hand: laat genoeg voedsel en water voor één maaltijd ontstaan.',
-    'Aardse band: voordeel op één Nature-check.',
-  ] },
-  { id: 'cylline',  naam: 'Cylline, Nymfenblad',  domein: 'Nacht, passie, dronkenschap en extase', eedTitel: 'In de nacht bloeit de waarheid, in de roes de vrijheid.',     eedTekst: 'Bij de purperen vrucht en de diepe schaduwen van de nacht, zweer ik de ketenen van de sleur af te werpen. Ik beloof de passie te vieren, de extase te omarmen en de harten van stervelingen te vullen met de zoete dronkenschap van het bestaan. Laat de angst wijken voor het verlangen, en moge mijn stem de nacht doen beven.',  symbool: 'Drie paarse druiven',                                                zegen: 'Performance/Intimidation +1', vloek: 'Performance/Intimidation -1; de roes wordt een kater — nadeel op redding tegen angst en betovering.', locatieEntityId: 'e_1773523435079_qmyktf', priesterEntityId: 'e_1773523435097_wr01o4', eenmaligeZegens: [
-    'Roes: immuun voor de nadelen van dronkenschap en voordeel tegen angst.',
-    'Nachtwandelaar: schemerzicht of voordeel op Stealth in het donker (één scène).',
-    'Betovering: voordeel op één check om te verleiden of te intimideren.',
-    'Extatische roep: herrol één mislukte redding tegen angst of betovering.',
-  ] },
-  { id: 'sehan',    naam: 'Sehan, de Weegschaal', domein: 'Handel en welvaart',               eedTitel: 'De balans slaat door, de munt spreekt recht.',     eedTekst: 'Ik zweer bij het zuivere metaal van de weegschaal dat mijn handel eerlijk zal zijn en mijn blik onbevooroordeeld. Ik beloof de welvaart te zoeken, niet door bedrog, maar door inzicht en scherpzinnigheid. Laat mijn geest de verborgen intenties der mensen doorzien, opdat rechtvaardige rijkdom de wereld mag voeden.',                     symbool: 'Een metalen weegschaal',                                             zegen: 'Insight/Perception +1', vloek: 'Insight/Perception -1; de weegschaal slaat door — handelaren rekenen je het dubbele.',    locatieEntityId: 'e_1773523435071_17hfyn', eenmaligeZegens: [
-    'Koopmansoog: ken de eerlijke waarde van een voorwerp en voordeel bij afdingen.',
-    'Gewogen oordeel: voordeel op één Insight-check om een leugen te doorzien.',
-    'Scherpe blik: voordeel op één Perception-check.',
-    'Eerlijke deal: herrol één mislukte Persuasion-check over geld.',
-  ] },
-  { id: 'yrdus',    naam: 'Yrdus, de Ringdrager', domein: 'Liefde, huwelijk en familie',      eedTitel: 'Verbonden in bloed, gesmeed in liefde.',     eedTekst: 'Bij de rode ring die geen einde kent, zweer ik mijn naasten lief te hebben en de haard van de familie te beschermen tegen de kou. Ik beloof trouw te blijven in voor- en tegenspoed, en de banden van het bloed en het huwelijk te eren als het fundament van de wereld. Mijn hart is het anker, mijn eed is onbreekbaar.',            symbool: 'Een rode ring',                                                      zegen: 'Persuasion/History +1', vloek: 'Persuasion/History -1; de band breekt — je kunt geen tijdelijke HP van bondgenoten ontvangen.',  locatieEntityId: 'e_1773523435073_817487', priesterEntityId: 'e_1773523435093_4yk7bk', eenmaligeZegens: [
-    'Band van Yrdus: als je een bondgenoot helpt, krijgt die 1d4 tijdelijke HP.',
-    'Verzoening: voordeel op één check om iemand te kalmeren of vrede te sluiten.',
-    'Trouwe eed: voordeel op één redding tegen betovering terwijl je een dierbare beschermt.',
-    'Familieverhaal: voordeel op één History-check.',
-  ] },
-  { id: 'corellin', naam: 'Corellin, Vlasbaard',  domein: 'Dieven, zieken en buitenbeentjes', eedTitel: 'Het gesloten oog ziet de verschoppeling, de vlugge hand deelt uit.',     eedTekst: 'Ik zweer de schaduwen te delen met hen die door het licht zijn uitgespuugd. Ik beloof de zieken te troosten, de buitenbeentjes te herbergen en de spot te drijven met de hoogmoedigen. Moge mijn hand vlug genoeg zijn om de rijken te verlichten en mijn tong listig genoeg om de onrechtvaardigen te misleiden, dwalend in de marge der wereld.',       symbool: 'Een gesloten oog',                                                   zegen: 'Sleight of Hand/Deception +1', vloek: 'Sleight of Hand/Deception -1; het oog opent zich — nadeel op Stealth-checks.',      locatieEntityId: 'e_1773523435078_6wlml1', priesterEntityId: 'e_1773523435099_rwd7x5', eenmaligeZegens: [
-    'Schaduwhand: voordeel op één check om ongezien te stelen of een slot te kraken.',
-    'Geluk van de verschoppeling: herrol één d20 naar keuze.',
-    'Vermomming: voordeel op één Deception-check om je voor een ander uit te geven.',
-    'Glipper: voordeel op één check om door een menigte of nauwe ruimte te ontkomen.',
-  ] },
-  { id: 'denava',   naam: 'Denava',               domein: 'Verandering',                      eedTitel: 'Het zand stroomt, de wereld kantelt.',     eedTekst: 'Bij de vier zandlopers die de eeuwigheid meten, zweer ik het getij van verandering te omarmen. Ik zal mij niet vastklampen aan het verleden, noch vrezen wat komen gaat. Ik beloof te overleven in de storm van de tijd, mij aan te passen aan elke nieuwe dageraad en te transformeren zoals de seizoenen dat doen.',                            symbool: 'Vier zandlopers',                                                    zegen: 'Survival/Nature +1', vloek: 'Survival/Nature -1; het lot keert zich — eenmaal per sessie laat de DM je een geslaagde worp opnieuw gooien.',  locatieEntityId: 'e_1773523435081_yduaof', eenmaligeZegens: [
-    'Wending van het lot: zet één nadeel-worp om naar een normale worp.',
-    'Aanpassing: voordeel op één redding tegen een effect dat je verplaatst of vervormt.',
-    'Reizigerszegen: voordeel op één check om je aan te passen aan vreemd terrein of klimaat.',
-    'Keerpunt: herrol je initiatief één keer.',
-  ] },
-];
+// Geen ingebouwd pantheon meer.
+//
+// Hier stonden de twaalf goden van Grisburgh — mét eedteksten, symbolen en
+// `locatieEntityId`'s die alleen in die campagne bestaan. Elke andere campagne
+// die de Tempel opende kreeg ze in de schoot geworpen, met portretkoppelingen
+// naar kaartjes die daar niet zijn. Zelfde regel als bij de kaarten: een
+// campagne zonder goden toont een lege tempel, niet die van iemand anders.
+//
+// Waar een god vandaan komt: **Blessing-kaartjes met een `godNaam`** zijn de
+// bron (eed, vloek, zegens), `meta.tempel.goden` voegt daar naam-volgorde,
+// domein, symbool, prijs en de portretkoppelingen aan toe. Grisburghs domeinen
+// zijn met `scripts/tempel-goden-domein.js` naar zijn eigen meta.json verhuisd.
+const TEMPEL_GODEN_DEFAULT = [];
 
 
 // ── Diensten toegang per groep ──
@@ -11624,7 +11563,8 @@ function _tempelGoden(config) {
   const entities  = storage.readJSON('entities.json');
   const blessings = (entities.voorwerpen || []).filter(e => (e.data?.itemType) === 'Blessing' && (e.data?.godNaam || '').trim());
   if (!blessings.length) {
-    // Geen kaarten → terugvallen op de (oude) config/seed.
+    // Geen kaarten: dan is de config alles wat er is (en anders niets — zie
+    // TEMPEL_GODEN_DEFAULT).
     return config.goden?.length ? config.goden : TEMPEL_GODEN_DEFAULT;
   }
   const cfgList   = config.goden?.length ? config.goden : TEMPEL_GODEN_DEFAULT;
