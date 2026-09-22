@@ -1,6 +1,6 @@
 import { api, campagneUitUrl, zetCampagne } from './api.js?v=293';
 import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, renderDocumenten, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=314";
-import { initArchief, renderLogboek, openLogboekEditor } from "./render-archief.js?v=130";
+import { initArchief, renderLogboek, openLogboekEditor } from "./render-archief.js?v=131";
 import { renderKaart, queueFlyTo, verversPins, nieuweKaart } from './render-kaart.js?v=31';
 import { renderDungeon } from './render-dungeon.js?v=56';
 import { renderRelatiemap } from './render-relatiemap.js?v=27';
@@ -10,7 +10,7 @@ import { renderSpreuken } from './render-spreuken.js?v=41';
 import { renderVaardigheden, zoekVaardigheden } from './render-vaardigheden.js?v=8';
 import { renderStatblock } from './render-statblock.js?v=9';
 import { initSocket } from "./socket-client.js?v=76";
-import { initDmPanel } from "./dm-panel.js?v=271";
+import { initDmPanel } from "./dm-panel.js?v=272";
 import { COND_INFO, COND_LABEL, COND_MET_PLAATJE, COND_ICON } from './conditions.js?v=2';
 import './media-picker.js?v=8';
 
@@ -554,8 +554,8 @@ window._alsSpelerKies = (id) => {
 };
 
 const _DIENST_AMB_LABELS = {
-  herberg: 'De Herberg', tweespalt: 'De Tweespalt', gock: 'De Gock',
-  ursula: 'Madame Ursula', tempel: 'De Tempel', magizoo: 'De Magizoöloog',
+  herberg: 'De Herberg', tweespalt: 'Het gokhuis', gock: 'De detective',
+  ursula: 'De waarzegger', tempel: 'De Tempel', magizoo: 'De Magizoöloog',
   // 'facties' heeft géén sectie-loop: de loop schakelt per geopende factie (zie _factieOpen).
 };
 
@@ -2940,14 +2940,14 @@ async function refreshSection(section) {
   }
   else if (section === 'tweespalt') {
     if (!window.app.isDM() && _getDienstToegang('tweespalt') === 'zichtbaar') {
-      const _el = document.getElementById('section-tweespalt'); if (_el) _dienstNietBeschikbaar(_el, state.meta?.tweespalt?.naam || 'De Tweespalt');
+      const _el = document.getElementById('section-tweespalt'); if (_el) _dienstNietBeschikbaar(_el, state.meta?.tweespalt?.naam || 'Het gokhuis');
     } else if (!window.app.isDM() && _getDienstToegang('tweespalt') === 'verborgen') {
       const _el = document.getElementById('section-tweespalt'); if (_el) _el.innerHTML = '';
     } else await renderTweespalt();
   }
   else if (section === 'gock') {
     if (!window.app.isDM() && _getDienstToegang('gock') === 'zichtbaar') {
-      const _el = document.getElementById('section-gock'); if (_el) _dienstNietBeschikbaar(_el, state.meta?.gock?.naam || 'De Gock');
+      const _el = document.getElementById('section-gock'); if (_el) _dienstNietBeschikbaar(_el, state.meta?.gock?.naam || 'De detective');
     } else if (!window.app.isDM() && _getDienstToegang('gock') === 'verborgen') {
       const _el = document.getElementById('section-gock'); if (_el) _el.innerHTML = '';
     } else await renderGock();
@@ -2961,7 +2961,7 @@ async function refreshSection(section) {
   }
   else if (section === 'ursula') {
     if (!window.app.isDM() && _getDienstToegang('ursula') === 'zichtbaar') {
-      const _el = document.getElementById('section-ursula'); if (_el) _dienstNietBeschikbaar(_el, state.meta?.ursula?.naam || 'Madame Ursula');
+      const _el = document.getElementById('section-ursula'); if (_el) _dienstNietBeschikbaar(_el, state.meta?.ursula?.naam || 'De waarzegger');
     } else if (!window.app.isDM() && _getDienstToegang('ursula') === 'verborgen') {
       const _el = document.getElementById('section-ursula'); if (_el) _el.innerHTML = '';
     } else await renderUrsula();
@@ -11317,18 +11317,23 @@ function _scheduleDisplayIdle() {
 
 // Genereer drijvende sintels voor het idle-sfeerscherm (puur visueel, één keer).
 // ── Sferen voor het tafelscherm ──────────────────────────────────────────────
-// De eerste negen zijn toegesneden op de aktes van deze campagne, daarna volgen
-// algemene sferen. Kleur en achtergrond zitten in CSS (.sfeer--*); hier staat
-// alleen hoe de deeltjes zich gedragen. richting: 'op' | 'val' | 'zweef'.
+// Kleur en achtergrond zitten in CSS (.sfeer--*); hier staat alleen hoe de
+// deeltjes zich gedragen. richting: 'op' | 'val' | 'zweef'.
+//
+// De **labels** zijn algemeen: een sfeer moet in elke campagne bruikbaar zijn.
+// Twee ervan heetten naar Grisburgh — *Lichtmis* (een feestdag) en *Amberwoud*
+// (een woud hier in de buurt) — en zijn hernoemd naar wat je ziet: opstijgend
+// kaarslicht en vallend herfstblad. De **ids** blijven staan: daar hangen de
+// CSS-klassen aan én de keuze die een DM al had staan.
 const _SFEREN = [
   { id: 'haard',        label: 'Haard',         richting: 'op',    n: 18, sz: [2, 5],   dur: [9, 19], drift: 40 },
   { id: 'havenstad',    label: 'Havenstad',     richting: 'zweef', n: 22, sz: [1, 3],   dur: [12, 22], drift: 70 },
   { id: 'zee',          label: 'Op zee',        richting: 'zweef', n: 26, sz: [1, 3.5], dur: [9, 16],  drift: 120 },
-  { id: 'amberwoud',    label: 'Amberwoud',     richting: 'val',   n: 20, sz: [2, 5],   dur: [11, 20], drift: 90 },
+  { id: 'amberwoud',    label: 'Herfstbos',     richting: 'val',   n: 20, sz: [2, 5],   dur: [11, 20], drift: 90 },
   { id: 'bedorven',     label: 'Bedorven woud', richting: 'zweef', n: 24, sz: [1.5, 4], dur: [10, 18], drift: 60 },
   { id: 'storm',        label: 'Storm',         richting: 'val',   n: 40, sz: [1, 2],   dur: [1.6, 3], drift: 40 },
   { id: 'toren',        label: 'Arcane toren',  richting: 'op',    n: 20, sz: [1.5, 4], dur: [10, 20], drift: 50 },
-  { id: 'lichtmis',     label: 'Lichtmis',      richting: 'op',    n: 26, sz: [2, 4.5], dur: [12, 22], drift: 30 },
+  { id: 'lichtmis',     label: 'Kaarslicht',    richting: 'op',    n: 26, sz: [2, 4.5], dur: [12, 22], drift: 30 },
   { id: 'schaduwrijk',  label: 'Schaduwrijk',   richting: 'val',   n: 26, sz: [1, 3],   dur: [12, 24], drift: 70 },
   { id: 'sneeuw',       label: 'Sneeuw',        richting: 'val',   n: 34, sz: [2, 4.5], dur: [10, 20], drift: 110 },
   { id: 'grot',         label: 'Grot',          richting: 'val',   n: 12, sz: [1, 2.5], dur: [14, 26], drift: 30 },
@@ -12220,7 +12225,7 @@ async function renderGock() {
 
   const meta = window.app?.state?.meta || {};
   if (window._dienstDicht('gock')) {
-    _dienstNietBereikbaar(el, meta.gock?.naam || 'De Gock');
+    _dienstNietBereikbaar(el, meta.gock?.naam || 'De detective');
     return;
   }
 
@@ -12627,7 +12632,7 @@ async function renderUrsula() {
   if (!el) return;
 
   const meta = window.app?.state?.meta || {};
-  if (window._dienstDicht('ursula')) { _dienstNietBereikbaar(el, meta.ursula?.naam || 'Madame Ursula'); return; }
+  if (window._dienstDicht('ursula')) { _dienstNietBereikbaar(el, meta.ursula?.naam || 'De waarzegger'); return; }
 
   _dienstLaden(el);
 
@@ -13004,7 +13009,7 @@ async function renderTweespalt() {
 
   const meta = window.app?.state?.meta || {};
   if (window._dienstDicht('tweespalt')) {
-    _dienstNietBereikbaar(el, 'De Tweespalt');
+    _dienstNietBereikbaar(el, 'Het gokhuis');
     return;
   }
 
@@ -13114,7 +13119,7 @@ async function renderTweespalt() {
 
   const tsBackdrop = config.backdropId ? `style="background-image:url('${api.thumbUrlBreed(config.backdropId)}')"` : '';
   const tsPortret  = config.imageId
-    ? `<img src="${api.thumbUrl(config.imageId)}" class="herberg-portrait-round" alt="${esc(config.naam || 'De Tweespalt')}">`
+    ? `<img src="${api.thumbUrl(config.imageId)}" class="herberg-portrait-round" alt="${esc(config.naam || 'Het gokhuis')}">`
     : `<div class="ts-portrait-fallback">${icon('dice',{cls:'icon-gi'})}</div>`;
 
   el.innerHTML = `
@@ -13131,7 +13136,7 @@ async function renderTweespalt() {
                hem begroet. Hij komt nu uit meta.tweespalt.groet, zoals de
                herberg dat al deed; zonder invulling blijft er een neutrale
                regel over. -->
-          <p class="herberg-groet">${esc(config.groet || `Welkom bij ${config.naam || 'De Tweespalt'}.`)}</p>
+          <p class="herberg-groet">${esc(config.groet || `Welkom bij ${config.naam || 'Het gokhuis'}.`)}</p>
         </div>
 
         ${leningBanner}
@@ -13920,7 +13925,7 @@ const HELP_CONFIG = {
   },
 
   ursula: () => {
-    const naam = window.app?.state?.meta?.ursula?.naam || 'Madame Ursula';
+    const naam = window.app?.state?.meta?.ursula?.naam || 'De waarzegger';
     return {
       titel: naam,
       stappen: [
@@ -14170,7 +14175,7 @@ const HELP_CONFIG = {
   },
 
   tweespalt: () => {
-    const naam = window.app?.state?.meta?.tweespalt?.naam || 'De Tweespalt';
+    const naam = window.app?.state?.meta?.tweespalt?.naam || 'Het gokhuis';
     return {
       titel: naam,
       stappen: [
@@ -14189,7 +14194,7 @@ const HELP_CONFIG = {
   },
 
   gock: () => {
-    const naam = window.app?.state?.meta?.gock?.naam || 'De Gock';
+    const naam = window.app?.state?.meta?.gock?.naam || 'De detective';
     return {
       titel: naam,
       stappen: [

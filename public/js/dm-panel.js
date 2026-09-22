@@ -866,8 +866,8 @@ function _renderDiensten(subTab) {
   const _dienstNav = [
     { key: 'herberg',   titel: 'Herberg',            ic: 'beer' },
     { key: 'tweespalt', titel: 'Tweespalt',          ic: 'dice', cls: 'icon-gi' },
-    { key: 'gock',      titel: 'De Gock',            ic: 'search' },
-    { key: 'ursula',    titel: 'Madame Ursula',      ic: 'sparkles' },
+    { key: 'gock',      titel: 'De detective',            ic: 'search' },
+    { key: 'ursula',    titel: 'De waarzegger',      ic: 'sparkles' },
     { key: 'tempel',    titel: 'De Tempel',          ic: 'church' },
     { key: 'facties',   titel: 'Facties & Aanzien',  ic: 'landmark' },
     { key: 'magizoo',   titel: 'De Magizoöloog',     ic: 'paw-print' },
@@ -1308,9 +1308,9 @@ async function _akteImpApply() {
 // ── Diensten toegang per groep ──
 const _DIENSTEN_TOEGANG_INFO = [
   { key: 'herberg',   label: 'Herberg',            icon: 'beer'      },
-  { key: 'tweespalt', label: 'De Tweespalt',        icon: 'dice'      },
-  { key: 'gock',      label: 'De Gock',             icon: 'search'    },
-  { key: 'ursula',    label: 'Madame Ursula',        icon: 'sparkles'  },
+  { key: 'tweespalt', label: 'Het gokhuis',        icon: 'dice'      },
+  { key: 'gock',      label: 'De detective',             icon: 'search'    },
+  { key: 'ursula',    label: 'De waarzegger',        icon: 'sparkles'  },
   { key: 'tempel',    label: 'De Tempel',            icon: 'church'    },
 
   { key: 'facties',   label: 'Facties & Aanzien',    icon: 'landmark'  },
@@ -5576,13 +5576,13 @@ async function _renderTweespaltDM() {
 
       <div class="dm-form-row">
         <label class="dm-form-label">Naam</label>
-        <input id="ts-naam-config" class="dm-input" value="${esc(tsConfig.naam || 'De Tweespalt')}">
+        <input id="ts-naam-config" class="dm-input" value="${esc(tsConfig.naam || 'Het gokhuis')}">
       </div>
 
       <div class="dm-form-row">
         <label class="dm-form-label" for="ts-groet">Groet</label>
         <input id="ts-groet" class="dm-input" value="${esc(tsConfig.groet || '')}"
-          placeholder="Welkom bij ${esc(tsConfig.naam || 'De Tweespalt')}.">
+          placeholder="Welkom bij ${esc(tsConfig.naam || 'Het gokhuis')}.">
         <div class="dm-hint">Wat de bezoeker als eerste leest. Leeg laten mag; dan staat er alleen de naam.</div>
       </div>
 
@@ -5843,7 +5843,7 @@ window._tsDmVerwijder = async (eventId) => {
 };
 
 window._tsSettingsSave = async () => {
-  const naam      = document.getElementById('ts-naam-config')?.value.trim() || 'De Tweespalt';
+  const naam      = document.getElementById('ts-naam-config')?.value.trim() || 'Het gokhuis';
   const groet     = document.getElementById('ts-groet')?.value.trim() || '';
   const imageId   = document.getElementById('ts-portret-select')?.value || null;
   const backdropFromSelect = document.getElementById('ts-backdrop-select')?.value || null;
@@ -5881,7 +5881,7 @@ async function _renderGockSettings() {
 
       <div class="dm-form-row">
         <label class="dm-form-label">Naam</label>
-        <input id="gock-naam" class="dm-input" value="${esc(config.naam || 'De Gock')}">
+        <input id="gock-naam" class="dm-input" value="${esc(config.naam || 'De detective')}">
       </div>
       <div class="dm-form-row">
         <label class="dm-form-label">Prijs (fl)</label>
@@ -5925,7 +5925,7 @@ async function _renderGockSettings() {
 
 window._gockSettingsSave = async () => {
   const config = window.app?.state?.meta?.gock || {};
-  const naam = document.getElementById('gock-naam')?.value.trim() || 'De Gock';
+  const naam = document.getElementById('gock-naam')?.value.trim() || 'De detective';
   const fl = parseInt(document.getElementById('gock-prijs-fl')?.value) || 50;
   const tidbitsRaw = document.getElementById('gock-tidbits')?.value.trim() || '';
   const tidbits = tidbitsRaw ? tidbitsRaw.split('\n').map(l => l.trim()).filter(Boolean) : [];
@@ -6152,7 +6152,7 @@ async function _renderUrsulaSettings() {
       <div class="dm-section-label">Madame Ursula — Instellingen</div>
 
       <div class="dm-form-row"><label class="dm-form-label">Naam</label>
-        <input id="ursula-naam" class="dm-input" value="${esc(config.naam || 'Madame Ursula')}"></div>
+        <input id="ursula-naam" class="dm-input" value="${esc(config.naam || 'De waarzegger')}"></div>
       <div class="dm-form-row"><label class="dm-form-label">Prijs (fl)</label>
         <input id="ursula-prijs-fl" class="dm-input" type="number" min="0" value="${prijs.fl || 20}" style="width:70px"></div>
 
@@ -6211,7 +6211,7 @@ window._ursulaSelectAkte = (key) => {
 
 window._ursulaSettingsSave = async () => {
   const config = window.app?.state?.meta?.ursula || {};
-  const naam = document.getElementById('ursula-naam')?.value.trim() || 'Madame Ursula';
+  const naam = document.getElementById('ursula-naam')?.value.trim() || 'De waarzegger';
   const fl = parseInt(document.getElementById('ursula-prijs-fl')?.value) || 20;
   const imageId = document.getElementById('ursula-portret-select')?.value || config.imageId || '';
   const backdropFromSelect = document.getElementById('ursula-backdrop-select')?.value || null;
@@ -7180,8 +7180,8 @@ async function _renderGeluiden() {
       </div>`;
   };
   const _DIENSTEN = [
-    { key: 'herberg', label: 'De Herberg' }, { key: 'tweespalt', label: 'De Tweespalt' },
-    { key: 'gock', label: 'De Gock' }, { key: 'ursula', label: 'Madame Ursula' },
+    { key: 'herberg', label: 'De Herberg' }, { key: 'tweespalt', label: 'Het gokhuis' },
+    { key: 'gock', label: 'De detective' }, { key: 'ursula', label: 'De waarzegger' },
     { key: 'tempel', label: 'De Tempel' }, { key: 'magizoo', label: 'De Magizoöloog' },
   ];
   const facties = window.app?.state?.meta?.facties || [];
@@ -9939,7 +9939,7 @@ async function _postSend() {
   const npc = npcId ? _berichtenNPCs.find(n => n.id === npcId) : null;
 
   // Vul een passende afzender in als er geen is gekozen
-  const THEMA_AFZENDER = { ursula: 'Madame Ursula', gock: 'De Gock', tweespalt: 'De Tweespalt', heeren: 'De Heeren van de Nacht' };
+  const THEMA_AFZENDER = { ursula: 'De waarzegger', gock: 'De detective', tweespalt: 'Het gokhuis', heeren: 'De Heeren van de Nacht' };
   const afzenderDef = afzender || (thema ? THEMA_AFZENDER[thema] : '');
 
   const payload = {

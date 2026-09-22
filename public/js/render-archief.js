@@ -2388,7 +2388,7 @@ window._scriptBriefSave = async (ch) => {
   if (ontvangerType === 'groep'  && !groepId)  return fout('Kies een party/groep.');
   if (ontvangerType === 'speler' && !spelerId) return fout('Kies een speler.');
   const npc = npcNaam ? (ctx.npcs || []).find(n => (n.name || '').toLowerCase() === npcNaam.toLowerCase()) : null;
-  const THEMA_AFZENDER = { ursula: 'Madame Ursula', gock: 'De Gock', tweespalt: 'De Tweespalt', heeren: 'De Heeren van de Nacht' };
+  const THEMA_AFZENDER = { ursula: 'De waarzegger', gock: 'De detective', tweespalt: 'Het gokhuis', heeren: 'De Heeren van de Nacht' };
   const afzenderDef = afzender || (thema ? THEMA_AFZENDER[thema] : '') || (npc ? npc.name : '');
   const spelerNaam = ontvangerType === 'speler' ? ((ctx.spelers || []).find(s => s.id === spelerId)?.name || 'Speler') : '';
   const script = [...(meta?.hoofdstukken?.[ch]?.script || [])];
@@ -2534,9 +2534,9 @@ window._scriptDrop = async (ev, ch, overId) => {
 // zijbalk; het label komt uit meta zodat een hernoemde dienst hier meeloopt.
 const _AKTE_DIENSTEN = [
   { key: 'herberg',   val: (m) => m.herberg?.naam   || 'De herberg' },
-  { key: 'tweespalt', val: (m) => m.tweespalt?.naam || 'De Tweespalt' },
-  { key: 'gock',      val: (m) => m.gock?.naam      || 'De Gock' },
-  { key: 'ursula',    val: (m) => m.ursula?.naam    || 'Madame Ursula' },
+  { key: 'tweespalt', val: (m) => m.tweespalt?.naam || 'Het gokhuis' },
+  { key: 'gock',      val: (m) => m.gock?.naam      || 'De detective' },
+  { key: 'ursula',    val: (m) => m.ursula?.naam    || 'De waarzegger' },
   { key: 'tempel',    val: (m) => m.tempel?.naam    || 'De Tempel' },
   { key: 'magizoo',   val: (m) => m.magizoo?.naam   || 'De Magizoöloog' },
   { key: 'markt',     val: ()  => 'De Markt' },

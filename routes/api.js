@@ -1883,7 +1883,7 @@ router.post('/post', requireDM, (req, res) => {
   // thema nog en horen hun opmaak te houden.
   const THEMAS = ['ursula', 'gock', 'tweespalt', 'heeren'];
   const veiligThema = THEMAS.includes(thema) ? thema : '';
-  const THEMA_AFZENDER = { ursula: 'Madame Ursula', gock: 'De Gock', tweespalt: 'De Tweespalt', heeren: 'De Heeren van de Nacht' };
+  const THEMA_AFZENDER = { ursula: 'De waarzegger', gock: 'De detective', tweespalt: 'Het gokhuis', heeren: 'De Heeren van de Nacht' };
   const afzenderDef = (afzender?.trim()) || (veiligThema ? THEMA_AFZENDER[veiligThema] : '');
 
   const berichten = storage.readJSON('berichten.json') || {};
@@ -10796,9 +10796,9 @@ router.put('/diensten/toegang', requireDM, (req, res) => {
 // Brief-styling per dienst (embleem + kleur) voor de verzegelde uitnodiging.
 const _DIENST_BRIEF = {
   herberg:   { icon: 'beer',      kleur: 'hout',   naam: 'De Herberg' },
-  tweespalt: { icon: 'dice',      kleur: 'staal',  naam: 'De Tweespalt' },
-  gock:      { icon: 'search',    kleur: 'metaal', naam: 'De Gock' },
-  ursula:    { icon: 'sparkles',  kleur: '',       naam: 'Madame Ursula' },
+  tweespalt: { icon: 'dice',      kleur: 'staal',  naam: 'Het gokhuis' },
+  gock:      { icon: 'search',    kleur: 'metaal', naam: 'De detective' },
+  ursula:    { icon: 'sparkles',  kleur: '',       naam: 'De waarzegger' },
   tempel:    { icon: 'church',    kleur: 'hout',   naam: 'De Tempel' },
   facties:   { icon: 'landmark',  kleur: 'metaal', naam: 'De Facties' },
   magizoo:   { icon: 'paw-print', kleur: 'hout',   naam: 'De Magizoöloog' },
@@ -10907,7 +10907,7 @@ router.get('/ursula', attachRole, (req, res) => {
   const onthuld = party ? _ursulaOnthulling(def, party) : null;
 
   res.json({
-    config: { naam: config.naam || 'Madame Ursula', prijs: config.prijs || { fl: 20 }, imageId: config.imageId || null, backdropId: config.backdropId || null },
+    config: { naam: config.naam || 'De waarzegger', prijs: config.prijs || { fl: 20 }, imageId: config.imageId || null, backdropId: config.backdropId || null },
     beschikbaar,
     geenSessie: !_activeAkteVoor(dmState) || _activeAkteVoor(dmState).num == null,
     geenAkte: !doel,
@@ -10972,7 +10972,7 @@ router.post('/ursula/voorspel', attachRole, vereistDienst('ursula'), (req, res) 
   }
   if (onthuld.concreet) briefRegels.push('\u2736 ' + onthuld.concreet);
   if (briefRegels.length) {
-    const naam = config.naam || 'Madame Ursula';
+    const naam = config.naam || 'De waarzegger';
     _bezorgBrief(req, characterId, {
       titel: 'Voorspelling — ' + (doel.title || 'komende akte'),
       tekst: briefRegels.join('\n'),
@@ -11088,7 +11088,7 @@ router.get('/gock', attachRole, (req, res) => {
     .filter(e => !config.imageId || e.id !== config.imageId);
 
   res.json({
-    config: { prijs: config.prijs || { fl: 50 }, naam: config.naam || 'De Gock', imageId: config.imageId || null, backdropId: config.backdropId || null },
+    config: { prijs: config.prijs || { fl: 50 }, naam: config.naam || 'De detective', imageId: config.imageId || null, backdropId: config.backdropId || null },
     geval: playerCase,
     beschikbaar,
     currency,
@@ -11212,7 +11212,7 @@ router.put('/gock/opgehaald', attachRole, vereistDienst('gock'), (req, res) => {
   _bezorgBrief(req, characterId, {
     titel: 'Onderzoeksrapport — ' + geval.entityName,
     tekst: geval.tekst,
-    afzender: 'De Gock',
+    afzender: 'De detective',
     thema: 'gock',
     entityId: geval.entityId,
     entityType: geval.entityType,
@@ -13079,7 +13079,7 @@ router.get('/tweespalt', attachRole, (req, res) => {
   });
 
   const tsMeta = storage.readJSON('meta.json').tweespalt || {};
-  const config = { naam: tsMeta.naam || 'De Tweespalt', groet: tsMeta.groet || '',
+  const config = { naam: tsMeta.naam || 'Het gokhuis', groet: tsMeta.groet || '',
                    imageId: tsMeta.imageId || null, backdropId: tsMeta.backdropId || null,
                    // Naam, portret en leengrens van de geldschieter komen hiervandaan
                    // in plaats van uit een constante in de client.
@@ -13248,7 +13248,7 @@ router.post('/tweespalt/events/:id/uitslag', requireDM, (req, res) => {
     const tekst = ut.gewonnen
       ? `Gewonnen! "${event.naam}" — uitkomst: ${winNaam}. Je zette ${_tsFormatCl(ut.inzetCl)} op ${mijnOptie} en haalt ${_tsFormatCl(ut.uitbetaaldCl || 0)} op. Kom je winst halen, vriend.`
       : `Pech gehad. "${event.naam}" — uitkomst: ${winNaam}. Je inzet van ${_tsFormatCl(ut.inzetCl)} op ${mijnOptie} ben je kwijt. Volgende keer beter.`;
-    _bezorgBrief(req, charId, { titel: event.naam, tekst, afzender: 'De Tweespalt', thema: 'tweespalt' });
+    _bezorgBrief(req, charId, { titel: event.naam, tekst, afzender: 'Het gokhuis', thema: 'tweespalt' });
   }
 
   res.json({ ok: true, winnaarId: event.uitkomst, ...result });

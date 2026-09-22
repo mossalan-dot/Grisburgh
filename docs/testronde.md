@@ -1024,3 +1024,11 @@ Grisburghs **data** te staan — niet in de code.
 - [ ] **Herberg** — schoon. Naam, waard, groet, menu, prijzen en het aantal roddels staan in `meta.herberg`.
 - [ ] **Tweespalt** — de groet komt nu uit `meta.tweespalt.groet`; hij stond hardgecodeerd als *"Korporaal Standhall knikt je toe"*, dus elke campagne werd door een Grisburghse NPC begroet. De geldschieter zat er gisteren al in. Zet in een tweede campagne een eigen groet: het scherm volgt. Leeg laten mag — dan staat er alleen de naam.
 - [ ] **Nog te doen bij hun eigen ronde:** de **Tempel** valt zonder configuratie terug op Grisburghs zes goden (`TEMPEL_GODEN_DEFAULT`) en **Facties** op zijn vier facties (`FACTIES_DEFAULT`). Een tweede DM die de Tempel aanzet krijgt dus Matall, Seldari, Ghon, Tirimet, Oronoë en Velurut.
+
+### Testronde dienst 4 — De Gock (22 sep 2026)
+
+- [ ] **Onderzoek levert een echt geheim** (speler) — laat een kaartje met een geheim onderzoeken: het rapport bevat die regel, en bij het ophalen van het dossier staat hij ook als onthuld op het kaartje. Werkt voor de nieuwe geheimenlijst én voor een kaartje dat nog het oude enkelvoudige veld heeft (dat krijgt een noodid `i0`).
+- [ ] **Eén dossier tegelijk** (speler) — een tweede opdracht terwijl er één loopt wordt geweigerd. Onderzoek naar de detective zelf ook.
+- [ ] **De tidbits zijn algemeen** (ALL) — zonder eigen tidbits valt de dienst terug op een set die in elke stad past (het stadsbestuur, de havenbuurt, de stadsbibliotheek) — geen Grisburghse namen.
+- [ ] **Terugvalnamen zijn algemeen** (BEHEER) — zet in een tweede campagne een dienst aan zonder hem te benoemen: er staat *De detective*, *De waarzegger* en *Het gokhuis*, niet de namen uit Grisburgh. Grisburgh houdt zijn eigen namen, die staan in `meta`.
+- [ ] **Sferen op het tafelscherm** (DM) — de lijst bevat *Herfstbos* en *Kaarslicht*, niet *Amberwoud* en *Lichtmis*. Een DM die er al een gekozen had ziet dezelfde sfeer: alleen het label veranderde, de id niet.
