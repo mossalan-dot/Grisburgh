@@ -1014,3 +1014,13 @@ met de hand niet meer hoeft na te rekenen:
 - [ ] **Geen sporen van verdwenen personages** (DM) — `node scripts/wezen-opruimen.js <campagne>` meldt niets. Blijft er wel iets staan (beurs, boedel, een lopende lening van een gewist kaartje), dan is die lening ook niet meer af te lossen: er is geen speler meer die hem draagt.
 - [ ] **Eén weddenschapmechaniek** (DM) — bij het aanmaken van een event typ je de **Soort** zelf (met Gevecht, Godenwedden, Race en Steekspel als suggestie). Er is geen keuzelijst met twee vaste types meer; die verschilden mechanisch in niets en "Godenwedden" was Grisburghs fictie. De uitkomstmodus (DM of gerold) staat er altijd bij — hij werd bij godenwedden stilletjes vastgezet.
 - [ ] **Wat er al lag houdt zijn label** (DM) — een bestaand godenwedden-event toont nog steeds *Godenwedden*, een oud gevecht *Gevecht*.
+
+### Agnostisch: toets per dienst (22 sep 2026)
+
+Een dienst hoort in elke campagne te werken. Wat van Grisburgh is, hoort in
+Grisburghs **data** te staan — niet in de code.
+
+- [ ] **Markt** — schoon. Gebieden komen uit `meta.markt.gebieden`, winkels uit de kaartjes. De enige Grisburghse namen staan in commentaar.
+- [ ] **Herberg** — schoon. Naam, waard, groet, menu, prijzen en het aantal roddels staan in `meta.herberg`.
+- [ ] **Tweespalt** — de groet komt nu uit `meta.tweespalt.groet`; hij stond hardgecodeerd als *"Korporaal Standhall knikt je toe"*, dus elke campagne werd door een Grisburghse NPC begroet. De geldschieter zat er gisteren al in. Zet in een tweede campagne een eigen groet: het scherm volgt. Leeg laten mag — dan staat er alleen de naam.
+- [ ] **Nog te doen bij hun eigen ronde:** de **Tempel** valt zonder configuratie terug op Grisburghs zes goden (`TEMPEL_GODEN_DEFAULT`) en **Facties** op zijn vier facties (`FACTIES_DEFAULT`). Een tweede DM die de Tempel aanzet krijgt dus Matall, Seldari, Ghon, Tirimet, Oronoë en Velurut.

@@ -5580,6 +5580,13 @@ async function _renderTweespaltDM() {
       </div>
 
       <div class="dm-form-row">
+        <label class="dm-form-label" for="ts-groet">Groet</label>
+        <input id="ts-groet" class="dm-input" value="${esc(tsConfig.groet || '')}"
+          placeholder="Welkom bij ${esc(tsConfig.naam || 'De Tweespalt')}.">
+        <div class="dm-hint">Wat de bezoeker als eerste leest. Leeg laten mag; dan staat er alleen de naam.</div>
+      </div>
+
+      <div class="dm-form-row">
         <label class="dm-form-label">Portret (NPC)</label>
         <select id="ts-portret-select" class="dm-select">
           <option value="">— Kies een personage of locatie —</option>
@@ -5653,7 +5660,7 @@ async function _renderTweespaltDM() {
 
       <div class="dm-form-row">
         <label class="dm-form-label">Naam</label>
-        <input id="ts-naam" class="dm-input" placeholder="bv. Standhall vs. De Vuurvuist">
+        <input id="ts-naam" class="dm-input" placeholder="bv. de kampioen vs. de uitdager">
       </div>
 
       <div class="dm-form-row" id="ts-modus-row">
@@ -5837,11 +5844,12 @@ window._tsDmVerwijder = async (eventId) => {
 
 window._tsSettingsSave = async () => {
   const naam      = document.getElementById('ts-naam-config')?.value.trim() || 'De Tweespalt';
+  const groet     = document.getElementById('ts-groet')?.value.trim() || '';
   const imageId   = document.getElementById('ts-portret-select')?.value || null;
   const backdropFromSelect = document.getElementById('ts-backdrop-select')?.value || null;
   const backdropId = window._tsBackdropPending || backdropFromSelect || (window.app?.state?.meta?.tweespalt?.backdropId) || null;
   try {
-    await api.saveTweespaltConfig({ naam, imageId, backdropId, arena: _tsArenaReadDom() });
+    await api.saveTweespaltConfig({ naam, groet, imageId, backdropId, arena: _tsArenaReadDom() });
     const newMeta = await api.meta();
     if (window.app?.state) window.app.state.meta = newMeta;
     window._tsBackdropPending = null;

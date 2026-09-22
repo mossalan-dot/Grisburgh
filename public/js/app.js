@@ -10,7 +10,7 @@ import { renderSpreuken } from './render-spreuken.js?v=41';
 import { renderVaardigheden, zoekVaardigheden } from './render-vaardigheden.js?v=8';
 import { renderStatblock } from './render-statblock.js?v=9';
 import { initSocket } from "./socket-client.js?v=76";
-import { initDmPanel } from "./dm-panel.js?v=270";
+import { initDmPanel } from "./dm-panel.js?v=271";
 import { COND_INFO, COND_LABEL, COND_MET_PLAATJE, COND_ICON } from './conditions.js?v=2';
 import './media-picker.js?v=8';
 
@@ -13126,7 +13126,12 @@ async function renderTweespalt() {
         </div>
         <div class="herberg-portrait-wrap">${tsPortret}</div>
         <div>
-          <p class="herberg-groet">Welkom bij ${esc(config.naam || 'De Tweespalt')}. Korporaal Standhall knikt je toe.</p>
+          <!-- De groet stond hier hardgecodeerd met een Grisburghse NPC erin
+               ("Korporaal Standhall knikt je toe"), dus elke campagne werd door
+               hem begroet. Hij komt nu uit meta.tweespalt.groet, zoals de
+               herberg dat al deed; zonder invulling blijft er een neutrale
+               regel over. -->
+          <p class="herberg-groet">${esc(config.groet || `Welkom bij ${config.naam || 'De Tweespalt'}.`)}</p>
         </div>
 
         ${leningBanner}

@@ -11225,7 +11225,7 @@ router.put('/gock/opgehaald', attachRole, vereistDienst('gock'), (req, res) => {
 router.put('/meta/tweespalt', requireDM, (req, res) => {
   const meta = storage.readJSON('meta.json');
   if (!meta.tweespalt) meta.tweespalt = {};
-  ['naam', 'imageId', 'backdropId', 'arena', 'geldschieter'].forEach(f => { if (req.body[f] !== undefined) meta.tweespalt[f] = req.body[f]; });
+  ['naam', 'groet', 'imageId', 'backdropId', 'arena', 'geldschieter'].forEach(f => { if (req.body[f] !== undefined) meta.tweespalt[f] = req.body[f]; });
   storage.writeJSON('meta.json', meta);
   req.app.get('io').to(req.session?.campaignId||'main').emit('meta:updated');
   res.json(meta.tweespalt);
@@ -13079,7 +13079,8 @@ router.get('/tweespalt', attachRole, (req, res) => {
   });
 
   const tsMeta = storage.readJSON('meta.json').tweespalt || {};
-  const config = { naam: tsMeta.naam || 'De Tweespalt', imageId: tsMeta.imageId || null, backdropId: tsMeta.backdropId || null,
+  const config = { naam: tsMeta.naam || 'De Tweespalt', groet: tsMeta.groet || '',
+                   imageId: tsMeta.imageId || null, backdropId: tsMeta.backdropId || null,
                    // Naam, portret en leengrens van de geldschieter komen hiervandaan
                    // in plaats van uit een constante in de client.
                    geldschieter: _tsGeldschieter({ tweespalt: tsMeta }) };
