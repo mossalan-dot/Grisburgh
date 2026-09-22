@@ -8794,7 +8794,7 @@ async function renderMijnKarakter(opts = {}) {
                 </div>
               </div>` : '';
             const linkHtml = si.entityId
-              ? `<button class="herberg-bubble-card-btn" style="margin-top:8px;font-size:0.72rem;padding:3px 8px" onclick="window._openDetail('${esc(si.entityType||'voorwerpen')}','${esc(si.entityId)}')" title="Open kaartje">${icon('open-book')} Bekijk kaartje</button>`
+              ? `<button class="herberg-bubble-card-btn" style="margin-top:8px;font-size:0.72rem;padding:3px 8px" onclick="window._openDetail('${esc(si.entityType||'voorwerpen')}','${esc(si.entityId)}')" title="Open kaartje">${icon('arrow-up-right')} Bekijk kaartje</button>`
               : '';
             const boeteHtml = isVloek ? `
               <div style="margin-top:8px">
@@ -12066,7 +12066,9 @@ async function renderHerberg() {
   // Paneel 2 — Aan de tap (drankjes/maaltijden: temp HP + status)
   const tapPaneel = `
         <p class="herberg-teller">${icon('beer')} ${esc(config.waard)} schuift wat voor je aan de tap</p>
-        ${currency ? `<p class="herberg-tap-beurs">Op zak: <strong>${_magizooBeurs(currency)}</strong></p>` : ''}
+        <!-- Heette hier "Op zak" en overal elders "Beurs". Eén woord voor één
+             ding; anders lijkt het iets anders te zijn. -->
+        ${currency ? `<p class="herberg-tap-beurs">Beurs: <strong>${_magizooBeurs(currency)}</strong></p>` : ''}
         <div class="herberg-menu-lijst">
           ${menu.map(m => _herbergMenuKaart(m)).join('')}
         </div>
@@ -12282,7 +12284,9 @@ async function renderGock() {
         </div>
         <div class="herberg-portrait-wrap">${portret}</div>
         <p class="herberg-groet">${esc(config.naam)} kijkt op van zijn bureau en trekt een wenkbrauw op.</p>
-        <p class="ts-beurs">Vooruitbetaling: <strong>${prijsTekst(config.prijs)}</strong> · Resultaat binnen 24 uur</p>
+        <!-- Stond hier als "Resultaat binnen 24 uur"; de wachttijd hangt sinds
+             21 sep aan de lange rust, dus dat beloofde iets anders dan de app doet. -->
+        <p class="ts-beurs">Vooruitbetaling: <strong>${prijsTekst(config.prijs)}</strong> · Rapport na de volgende lange rust</p>
 
         ${heeftKlaarZaak ? `
           <div class="gock-dossier">
@@ -12344,7 +12348,7 @@ window._gockKies = async (entityId, entityType, entityName) => {
   try {
     await api.gockOpdracht({ entityId, entityType });
     await renderGock();
-    _tsToast('Opdracht ingediend. Rapport volgt binnen 24 uur.');
+    _tsToast('Opdracht ingediend. Het rapport ligt er na de volgende lange rust.');
   } catch (err) {
     _tsToast(err.message || 'Fout bij indienen opdracht.');
   }
@@ -12447,7 +12451,11 @@ async function renderMagizoo() {
         </div>
 
         <div class="dienst-subtab-panel${_magizooActiveTab === 'onderzoek' ? '' : ' hidden'}" id="magizoo-panel-onderzoek">
-          <p class="ts-beurs">Onderzoek: <strong>${_magizooPrijs(config.prijs)}</strong> per trede · Volledig ineens: <strong>${_magizooPrijs(config.prijsVolledig)}</strong></p>
+          <!-- De wachttijd stond nergens in beeld, terwijl De Gock er wél iets
+               over zegt. Twee diensten met dezelfde regel horen hem allebei te
+               noemen — anders lijkt een weigering op een storing. -->
+          <p class="ts-beurs">Onderzoek: <strong>${_magizooPrijs(config.prijs)}</strong> per trede · Volledig ineens: <strong>${_magizooPrijs(config.prijsVolledig)}</strong>${
+            (config.cooldownMinuten ?? 5) !== 0 ? ' · één onderzoek per lange rust' : ''}</p>
 
           ${cooldownActief ? `<div class="gock-lopend"><p class="herberg-cooldown-tekst">${icon('paw-print')} ${cooldownTekst}</p></div>` : ''}
 
@@ -12538,7 +12546,7 @@ function _playerLootPanelHtml(loot, charId) {
       const rk = _invRarityKey(it.rariteit);
       const others = it.claimCount - (it.ikClaim ? 1 : 0);
       const naamHtml = it.entityId
-        ? `<span class="player-loot-link" onclick="window._openDetail('voorwerpen','${esc(it.entityId)}')" title="Bekijk kaartje">${esc(it.naam)} <span class="player-loot-link-ico">${icon('open-book')}</span></span>`
+        ? `<span class="player-loot-link" onclick="window._openDetail('voorwerpen','${esc(it.entityId)}')" title="Bekijk kaartje">${esc(it.naam)} <span class="player-loot-link-ico">${icon('arrow-up-right')}</span></span>`
         : esc(it.naam);
       return `<div class="player-loot-item${rk ? ' loot-rar-' + rk : ''}">
         ${it.bron ? `<div class="player-loot-bron">${esc(it.bron)}</div>` : ''}
@@ -13678,7 +13686,7 @@ function _renderFactieKaart(f) {
         <span class="factie-kaart-naam">${esc(f.naam)}</span>
         <span class="factie-kaart-rang">${esc(f.rang?.naam || 'Buitenstaander')}</span>
       </div>
-      ${f.entityId ? `<button class="factie-kaart-link" onclick="event.stopPropagation();window._openDetail('organisaties','${esc(f.entityId)}')" title="Bekijk organisatiekaartje">${icon('open-book')}</button>` : ''}
+      ${f.entityId ? `<button class="factie-kaart-link" onclick="event.stopPropagation();window._openDetail('organisaties','${esc(f.entityId)}')" title="Bekijk organisatiekaartje">${icon('arrow-up-right')}</button>` : ''}
     </div>
     ${rangIdx > 0 ? `
     <div class="factie-kaart-body">
@@ -14226,7 +14234,7 @@ const HELP_CONFIG = {
       stappen: [
         {
           titel: naam,
-          tekst: `${naam} is een particulier onderzoeksbureau. Je kunt hem inhuren om een persoon, locatie of organisatie te onderzoeken. Na een sessie (24 uur) levert hij een rapport op dat in het archief verschijnt.`,
+          tekst: `${naam} is een particulier onderzoeksbureau. Je kunt hem inhuren om een persoon, locatie of organisatie te onderzoeken. Na de volgende lange rust levert hij een rapport op dat in het archief verschijnt. Heeft het doelwit meer dan één geheim, dan kies jij als DM eerst welke de detective vindt.`,
           afbeelding: null,
         },
       ],

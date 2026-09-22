@@ -26822,3 +26822,14 @@ body.akte-schrijf-open .mp-overlay { z-index: 1320; }
   color: rgba(215,185,115,0.78);
   opacity: 1;
 }
+
+/* ── Beurs naast de hulpknop in een dienstscherm ──────────────────────────
+   `.dienst-beurs-topbar` is een flexrij zonder gap en zonder align-items, dus
+   het bedrag eindigde exact tegen de rand van de 30px-knop aan ("… 9 cl|📖")
+   en de tekst zat op een andere hoogte dan het icoon. Bij een korte beurs valt
+   dat niet op; bij vijf cijfers leest het als doorlopende tekst. Vijf diensten
+   gebruiken deze balk. Onderaan, want de basisregel staat op regel 14650. */
+.dienst-beurs-topbar {
+  align-items: center;
+  gap: 10px;
+}

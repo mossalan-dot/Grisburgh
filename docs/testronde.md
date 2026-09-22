@@ -870,6 +870,16 @@ Per bevinding: waar, wat, en of het opgelost is. Nieuwe regels onderaan.
 - Koop een zegen: je rolt en krijgt er één van die god, met de prijs eraf. Zweer een eed: de andere goden gaan op slot ("Je bent al door een eed gebonden"). Laat de DM de eed verbreken → er staat een **vloek** waar de eed stond; doe boete → weg.
 - Meesterkamer → Diensten → Tempel toont de lopende eden per speler met hun status.
 
+### UX-ronde langs de acht diensten (22 sep 2026)
+
+Doorgelopen in de browser als DM, op een wegwerpkopie van de productiedata, met vier assen: zichtbaarheid, transparantie, leesbaarheid, uniformiteit.
+
+- **Beurs naast de hulpknop**: het bedrag staat niet meer tegen de knop aan geplakt en zit op dezelfde hoogte. Zet een speler op een groot bedrag (vijf cijfers) en kijk bij Gock, Ursula, Magizoöloog, Tempel en Tweespalt — overal ruimte tussen "… 9 cl" en het boekje.
+- **De Gock belooft geen 24 uur meer.** Er staat *"Vooruitbetaling: 50 fl · Rapport na de volgende lange rust"*, de toast na het bestellen zegt hetzelfde, en de hulptekst ook. Dat klopte sinds de koppeling aan de lange rust niet meer.
+- **De Magizoöloog noemt zijn wachttijd**: *"… · één onderzoek per lange rust"* achter de prijzen. Zet de wachttijd in de Meesterkamer op *Geen wachttijd* en die toevoeging verdwijnt.
+- **De herberg zegt "Beurs:"**, niet meer "Op zak:" — één woord voor één ding, zoals overal elders.
+- **Eén gebaar voor "bekijk het kaartje"**: het `open-book`-icoon (dat spreukenboek betekent) is op drie plekken vervangen door `arrow-up-right` — op een factiekaartje, bij een voorwerp in de buit, en in een herbergbubbel. `open-book` staat nu alleen nog waar het over spreuken gaat.
+
 ### Herberg: roddelteller en alleen bekende namen (22 sep 2026)
 
 - Als **DM** in de herberg staat boven de namenlijst *"31 van de 208 onthuld"* — hoeveel roddelregels deze party kan horen en hoeveel er al verteld zijn. Zelfde bewoording als de teller op een kaartje in het archief. Als **speler** staat die regel er niet.
