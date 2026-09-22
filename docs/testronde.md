@@ -870,6 +870,14 @@ Per bevinding: waar, wat, en of het opgelost is. Nieuwe regels onderaan.
 - Koop een zegen: je rolt en krijgt er één van die god, met de prijs eraf. Zweer een eed: de andere goden gaan op slot ("Je bent al door een eed gebonden"). Laat de DM de eed verbreken → er staat een **vloek** waar de eed stond; doe boete → weg.
 - Meesterkamer → Diensten → Tempel toont de lopende eden per speler met hun status.
 
+### Roddels in het bestiarium (22 sep 2026)
+
+- 37 van de 38 bestiarium-wezens hebben een roddel (alleen *Boom* niet — dat kaartje heeft geen statblok). Dat was er nul, waardoor het verschil tussen *naam* en *deels* alleen statblok was.
+- Als **DM** in het bestiarium: bij een wezen dat de party nog niet op *deels* kent staat de roddel er cursief bij met *(nog niet gehoord)*. Bij een wezen dat ze wél kent staat hij er zonder die toevoeging.
+- Als **speler** bij een wezen op *naam*: er staat geen roddel — en er zit er ook geen in de netwerktab (het kale `roddel`-veld gaat nooit naar een speler).
+- Laat de Magizoöloog het onderzoeken tot *deels*: de roddel komt in beeld, zowel op de bestiariumkaart als in het statblok-venster.
+- Doe hetzelfde met een **tweede party**: die heeft hem nog niet gehoord. De stand staat per party (`bestiariumRoddels`).
+
 ### De Magizoöloog: wachttijd per lange rust (22 sep 2026)
 
 - Laat een speler een wezen onderzoeken. Het kennisniveau gaat één stap omhoog, het geld gaat eraf, en er staat: *"… buigt zich nog over je vorige exemplaar. Kom terug na een lange rust."* Geen aftelling in minuten meer.

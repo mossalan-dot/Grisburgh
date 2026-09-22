@@ -229,6 +229,26 @@ describe('De Magizoöloog: onderzoek en adoptie', () => {
     assert.strictEqual(voor - na, 2500, 'de stapprijs van 25 fl');
   });
 
+  it('houdt de roddel weg bij wie het wezen alleen van naam kent', async () => {
+    // De keerzijde van de test hierboven, en de helft die ertoe doet: de roddel
+    // is de inhoudelijke winst van *deels*, dus op *naam* mag hij nergens in de
+    // uitvoer staan — ook niet als veld dat de client toevallig niet tekent.
+    const stil = (await req('POST', '/api/monsters',
+      { name: 'Schemerkever', maxHp: 9, roddel: 'Hij vlucht voor lantaarnlicht.' }, dm)).body.id;
+    await req('PUT', `/api/bestiarium/${stil}`, { niveau: 'naam' }, dm);
+
+    const speler = await req('GET', '/api/bestiarium', null, spelerC);
+    const rauw = JSON.stringify(speler.body);
+    assert.ok(!rauw.includes('lantaarnlicht'), 'de tekst hoort er niet in te staan');
+    assert.ok(!/"roddel"/.test(rauw), 'en het kale veld ook niet');
+
+    // De DM ziet hem wél, met erbij dat de party hem nog niet gehoord heeft.
+    const meester = (await req('GET', '/api/bestiarium', null, dm)).body;
+    const rij = (meester.monsters || meester).find(m => m.id === stil);
+    assert.strictEqual(rij.roddel, 'Hij vlucht voor lantaarnlicht.');
+    assert.strictEqual(rij._roddelGehoord, false);
+  });
+
   it('kost meer als je meteen alles wilt weten', async () => {
     const voor = alsCl((await req('GET', `/api/player-currency/${speler}`, null, dm)).body);
     const r = await onderzoek('volledig');
