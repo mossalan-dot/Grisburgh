@@ -870,6 +870,13 @@ Per bevinding: waar, wat, en of het opgelost is. Nieuwe regels onderaan.
 - Koop een zegen: je rolt en krijgt er één van die god, met de prijs eraf. Zweer een eed: de andere goden gaan op slot ("Je bent al door een eed gebonden"). Laat de DM de eed verbreken → er staat een **vloek** waar de eed stond; doe boete → weg.
 - Meesterkamer → Diensten → Tempel toont de lopende eden per speler met hun status.
 
+### Gevechtscanvas: namen voluit (22 sep 2026)
+
+- Start een gevecht met een wezen met een **lange naam** (*minotaur of baphomet*, *mage apprentice*) en zet er zeven deelnemers in. De naam staat nu op twee regels voluit onder de figuur, niet meer afgekapt als "MINOTAUR OF…". De leesplaat eronder groeit mee.
+- Een naam die ook op twee regels niet past wordt alsnog afgekapt met een beletselteken — dan is hij echt te lang.
+- Een spelersnaam blijft de **voornaam** (één woord), dus daar verandert niets.
+- Controleer ook de smalle stand (overlay op een telefoon): daar staat de naam onder een kolom en gold de afkapping niet.
+
 ### Gevechtscanvas: dreiging zichtbaar, cijfers niet (22 sep 2026)
 
 - Start een gevecht met **verschillend zware monsters** (bijvoorbeeld *Onder het Nieuwe Vlashuis*: minotaur 76 HP, bandit captain 65, swarm 24, apprentice 22). Als speler staan ze van groot naar klein in die volgorde — de zwaarste het grootst, zoals altijd. Alleen komt de rangorde nu van de server (`_dreigingIdx`) in plaats van uit `maxHp|ac`, die een speler niet meer krijgt.

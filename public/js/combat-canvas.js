@@ -1232,14 +1232,40 @@ function _drawCombatant(ctx, c, x, y, w, h, t, isActive, isWide, turnIndex, scha
   // de leesplaat heen liep. Ruimere marge (w - 18) houdt hem binnen de plaat,
   // die immers pas daarna op nameW + 16 wordt berekend.
   const naamMax = Math.max(30, w - 18);
-  let label = fullName;
-  if (ctx.measureText(label).width > naamMax) {
-    while (label.length > 2 && ctx.measureText(label + '…').width > naamMax) {
-      label = label.slice(0, -1);
+  // **Twee regels als het niet past.** Er werd hard afgekapt op één regel, en
+  // met zeven deelnemers op een breed doek is een slot zo'n 160px: dan staat
+  // er "MINOTAUR OF…" en "MAGE APPRENT…" en weet je niet meer wie er voor je
+  // staat — precies de vraag waarvoor je naar het scherm kijkt. Cinzel is een
+  // kapitalenletter, dus breed; twee regels winnen meer dan een kleiner korps.
+  // Nog steeds afkappen als ook dát niet past: dan is het echt te lang.
+  let regels = [fullName];
+  if (ctx.measureText(fullName).width > naamMax) {
+    const woorden = fullName.split(/\s+/).filter(Boolean);
+    let gesplitst = null;
+    if (woorden.length > 1) {
+      // Splits op het punt waar de twee helften het meest gelijk zijn.
+      let beste = Infinity;
+      for (let i = 1; i < woorden.length; i++) {
+        const a = woorden.slice(0, i).join(' ');
+        const b = woorden.slice(i).join(' ');
+        const wa = ctx.measureText(a).width, wb = ctx.measureText(b).width;
+        if (wa > naamMax || wb > naamMax) continue;
+        const scheef = Math.abs(wa - wb);
+        if (scheef < beste) { beste = scheef; gesplitst = [a, b]; }
+      }
     }
-    label = label.replace(/\s+$/, '') + '…';
+    if (gesplitst) {
+      regels = gesplitst;
+    } else {
+      let label = fullName;
+      while (label.length > 2 && ctx.measureText(label + '…').width > naamMax) {
+        label = label.slice(0, -1);
+      }
+      regels = [label.replace(/\s+$/, '') + '…'];
+    }
   }
-  const nameW = ctx.measureText(label).width;
+  const regelH = Math.round(fontSize * 1.12);
+  const nameW  = Math.max(...regels.map(r => ctx.measureText(r).width));
   ctx.restore();
 
   // ── Leesplaat ─────────────────────────────────────────────────────────────
@@ -1252,7 +1278,7 @@ function _drawCombatant(ctx, c, x, y, w, h, t, isActive, isWide, turnIndex, scha
       : 0;
     const plateW = Math.min(w - 4, Math.max(barW, nameW, iconsW) + 16);
     const plateY = barY - 7;
-    const plateH = (nameY + fontSize + 6) - plateY;
+    const plateH = (nameY + fontSize + 6 + (regels.length - 1) * regelH) - plateY;
     ctx.save();
     ctx.beginPath();
     ctx.roundRect(cx - plateW / 2, plateY, plateW, plateH, 7);
@@ -1328,7 +1354,7 @@ function _drawCombatant(ctx, c, x, y, w, h, t, isActive, isWide, turnIndex, scha
   ctx.shadowColor  = 'rgba(0,0,0,0.55)';
   ctx.shadowBlur   = 3;
   ctx.fillStyle    = isActive ? '#f0c040' : '#f2e8d2';
-  ctx.fillText(label, cx, nameY);
+  regels.forEach((r, i) => ctx.fillText(r, cx, nameY + i * regelH));
   ctx.restore();
 
   // ── AC-badge (alleen DM) ──────────────────────────────────────────────────
