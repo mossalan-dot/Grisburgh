@@ -686,6 +686,12 @@ dm-panel.js : combat-canvas.js?v=22   render-statblock.js?v=9
 > **Nog open:** er is geen route om een lening áf te lossen. De enige uitweg is
 > dat de DM het schuldbewijs uit de boedel haalt (dat wist de lening mee, zie
 > `DELETE /player-items`). Hoort bij `docs/voorstel-op-de-pof.md`.
+> De verweesde lening van 26 april (2.880 cl) is er op 22 sep 2026 uit gehaald
+> met `scripts/wezen-opruimen.js grisburgh --schrijf`: de lener was een
+> testpersonage waarvan het kaartje al weg was, dus hij viel nooit af te lossen
+> en zag niemand hem. Die opruiming raakt **alleen** bakken op een personage-id
+> (beurs, boedel, profiel, HP, lening) van een kaartje dat niet meer bestaat;
+> de groepsvelden blijven met rust. Draai hem altijd eerst zonder `--schrijf`.
 
 > **De snapshot had zijn eigen spelersfilter, en die liep jaren achter.**
 > `/api/export` plakt zijn hele datamodel als JSON in het HTML-bestand
