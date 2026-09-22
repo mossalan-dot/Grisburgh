@@ -9,7 +9,7 @@ import { renderBestiarium } from './render-bestiarium.js?v=30';
 import { renderSpreuken } from './render-spreuken.js?v=41';
 import { renderVaardigheden, zoekVaardigheden } from './render-vaardigheden.js?v=8';
 import { renderStatblock } from './render-statblock.js?v=9';
-import { initSocket } from "./socket-client.js?v=77";
+import { initSocket } from "./socket-client.js?v=78";
 import { initDmPanel } from "./dm-panel.js?v=277";
 import { COND_INFO, COND_LABEL, COND_MET_PLAATJE, COND_ICON } from './conditions.js?v=2';
 import './media-picker.js?v=8';
@@ -101,12 +101,22 @@ async function _spotifyTerugkeer() {
 }
 
 // Zet dit scherm alsnog om, nu de rol bekend is.
-function _displayModeInlossen() {
-  if (window._isDisplayMode || _displayGevraagd !== '1') return;
-  if (state.role !== 'dm' && !state.characterId) return;   // niemand ingelogd: geen kiosk
+// Tafelscherm aanzetten. Eén plek, want er zijn twee ingangen (`?display=1` en
+// de knop in Instellingen) en allebei moeten ze de socket inlichten: wat alleen
+// op tafel hoort gaat naar een eigen room, en daar kom je pas in als je je meldt.
+function _displayModeAan() {
   try { localStorage.setItem('displayMode', '1'); } catch { /* privémodus */ }
   window._isDisplayMode = true;
   document.body.classList.add('display-mode');
+  // De socket staat er al als je dit vanuit de instellingen doet; bij het
+  // opstarten meldt de connect-handler zichzelf (zie socket-client.js).
+  window._socket?.emit('display:register');
+}
+
+function _displayModeInlossen() {
+  if (window._isDisplayMode || _displayGevraagd !== '1') return;
+  if (state.role !== 'dm' && !state.characterId) return;   // niemand ingelogd: geen kiosk
+  _displayModeAan();
 }
 
 // ── App State ──
@@ -233,9 +243,7 @@ window.app = {
   setActiveAkte,
   stopAkte,
   activateDisplayMode() {
-    localStorage.setItem('displayMode', '1');
-    window._isDisplayMode = true;
-    document.body.classList.add('display-mode');
+    _displayModeAan();
     hideLanding();
     _initDisplayMode();
   },
@@ -11454,6 +11462,9 @@ async function _spotifyTafelspeler() {
 window._displayExit = function() {
   localStorage.removeItem('displayMode');
   window._isDisplayMode = false;
+  // Uit de tafel-room, anders blijft dit scherm brieven en buit ontvangen die
+  // het niet meer hoort te zien — en dat is precies het lek dat we dichtten.
+  window._socket?.emit('display:unregister');
   document.body.classList.remove('display-mode');
   document.getElementById('display-canvas')?.classList.add('hidden');
   // Terug naar waar je vandaan kwam. Wie nog een sessie heeft — meestal de DM

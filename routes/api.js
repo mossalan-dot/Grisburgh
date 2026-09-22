@@ -1938,11 +1938,13 @@ router.post('/post', requireDM, (req, res) => {
 
   storage.writeJSON('berichten.json', berichten);
 
-  // Grote reveal op het gedeelde tablet-scherm (dat geen speler-socket is): broadcast
-  // de brief naar de campagne-room; alleen display-mode reageert erop (spelers kregen
-  // 'm al via hun eigen socket hierboven).
+  // Grote reveal op het gedeelde tafelscherm (dat geen speler-socket is). Dit
+  // ging naar de héle campagne-room, met de volledige brieftekst erin, en werd
+  // alleen client-side weggefilterd — een speler met de netwerktab open las hem
+  // dus voordat het lakzegel brak. Nu naar de room van de tafelschermen; de
+  // geadresseerde kreeg zijn eigen exemplaar hierboven al.
   if (req.body.cinematic) {
-    io.to(req.session?.campaignId || 'main').emit('brief:display', {
+    io.to(_displayRoom(req)).emit('brief:display', {
       titel: titel?.trim() || '', tekst: tekst.trim(), afzender: afzenderDef,
       datum: datum?.trim() || '', thema: veiligThema, cinematic: true,
     });
@@ -4091,12 +4093,12 @@ router.post('/display/tekst', requireDM, (req, res) => {
   const tekst = String(req.body?.tekst || '').slice(0, 4000);
   if (!tekst.trim()) return res.status(400).json({ error: 'Geen tekst' });
   const kop = String(req.body?.kop || '').slice(0, 120);
-  req.app.get('io')?.to(req.session?.campaignId || 'main').emit('display:tekst', { tekst, kop });
+  req.app.get('io')?.to(_displayRoom(req)).emit('display:tekst', { tekst, kop });
   res.json({ ok: true });
 });
 
 router.post('/display/idle', requireDM, (req, res) => {
-  req.app.get('io')?.to(req.session?.campaignId || 'main').emit('display:idle');
+  req.app.get('io')?.to(_displayRoom(req)).emit('display:idle');
   res.json({ ok: true });
 });
 
@@ -4646,6 +4648,17 @@ function _multiclassVoorrekenen(profile, nieuweKlasse) {
 // terwijl die sinds de kandidaatkeuze juist op de DM wácht. Eén event voor alle
 // vier, zodat de client één plek heeft om op te reageren: een toast nu, en de
 // penning op de Vragen-tab die blijft staan tot het afgehandeld is.
+// De room van de tafelschermen.
+//
+// Wat alleen op het scherm op tafel hoort (een verzegelde brief, de
+// voorleestekst, de kist die opengaat) ging naar de hele campagne-room; alleen
+// een `if` in de client hield het tegen. Een speler met de netwerktab open las
+// het dus voordat het op tafel verscheen. Schermen melden zich nu met
+// `display:register` (zie server.js) en krijgen hun eigen room.
+function _displayRoom(req) {
+  return 'display:' + (req.session?.campaignId || 'main');
+}
+
 function _meldVerzoek(req, soort, wie, wat) {
   req.app.get('io')?.to(req.session?.campaignId || 'main')
     .emit('verzoek:nieuw', { soort, wie, wat });
@@ -4987,7 +5000,7 @@ router.post('/characters/:characterId/level-up', attachRole, (req, res) => {
     // klank bij (Geluiden-tab → Momenten), net als bij het onthullen van buit.
     const _luGeluid = (storage.readJSON('sounds.json') || {}).momenten?.levelUp;
     if (_luGeluid) io.to(room).emit('sound:reveal', { fileId: String(_luGeluid), label: 'Level omhoog', loop: false });
-    io.to(room).emit('levelup:display', {
+    io.to(_displayRoom(req)).emit('levelup:display', {
       characterId, naam: _p?.name || 'Iemand', thumb: _p?.data?.imageId || characterId,
       van: regel.van, naar: regel.naar, klasse: regel.klasse, hp: regel.hp,
     });
@@ -10165,7 +10178,7 @@ router.post('/loot/verdeling', requireDM, (req, res) => {
     const enc = (storage.readJSON('encounters.json').encounters || []).find(e => e.id === mimic.mimicEncounterId);
     mimic.onthuld = true;
     storage.writeJSON('loot.json', data);
-    req.app.get('io').to(req.session?.campaignId || 'main')
+    req.app.get('io').to(_displayRoom(req))
       .emit('loot:display', { mimic: true, naam: mimic.naam, encounterNaam: enc?.name || '' });
     return res.json({ mimic: { eventId: mimic.id, naam: mimic.naam, encounterId: mimic.mimicEncounterId, encounterNaam: enc?.name || '' } });
   }
@@ -10253,7 +10266,7 @@ router.post('/combat/loot/reveal', requireDM, (req, res) => {
   storage.writeJSON('dm-state.json', dmState);
   const io = req.app.get('io'); const room = req.session?.campaignId || 'main';
   io.to(room).emit('loot:aangeboden', { deelnemers: lp.deelnemers });
-  io.to(room).emit('loot:display', _lootDisplay(lp));
+  io.to(_displayRoom(req)).emit('loot:display', _lootDisplay(lp));
   // Het onthullingsgeluid is generiek: één keuze per campagne (Geluiden-tab),
   // die klinkt op het moment dat de spelers de buit te zien krijgen.
   const lootGeluid = (storage.readJSON('sounds.json') || {}).momenten?.lootReveal;
@@ -10276,7 +10289,7 @@ router.post('/combat/loot/claim', attachRole, (req, res) => {
   storage.writeJSON('dm-state.json', dmState);
   const _io = req.app.get('io'); const _room = req.session?.campaignId || 'main';
   _io.to(_room).emit('loot:claim-update', { itemId: it.id, claimCount: it.claims.length });
-  _io.to(_room).emit('loot:display', _lootDisplay(lp));
+  _io.to(_displayRoom(req)).emit('loot:display', _lootDisplay(lp));
   res.json({ ok: true, ikClaim: it.claims.includes(characterId), claimCount: it.claims.length });
 });
 
@@ -10340,7 +10353,7 @@ router.post('/combat/loot/verdeeld', requireDM, (req, res) => {
   storage.writeJSON('dm-state.json', dmState);
   for (const cid of geraakt) io.to(room).emit('player:items-updated', { characterId: cid, items: dmState.playerItems[cid] });
   io.to(room).emit('loot:verdeeld', { uitslag });
-  io.to(room).emit('loot:display', { ..._lootDisplay(lp), afgerond: true });
+  io.to(_displayRoom(req)).emit('loot:display', { ..._lootDisplay(lp), afgerond: true });
   res.json({ ok: true, uitslag, loot: _lootForClient(lp, 'dm', null) });
 });
 

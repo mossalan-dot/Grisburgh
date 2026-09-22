@@ -870,6 +870,15 @@ Per bevinding: waar, wat, en of het opgelost is. Nieuwe regels onderaan.
 - Koop een zegen: je rolt en krijgt er één van die god, met de prijs eraf. Zweer een eed: de andere goden gaan op slot ("Je bent al door een eed gebonden"). Laat de DM de eed verbreken → er staat een **vloek** waar de eed stond; doe boete → weg.
 - Meesterkamer → Diensten → Tempel toont de lopende eden per speler met hun status.
 
+### Tafelscherm: wat er alleen dáár hoort te komen (22 sep 2026)
+
+> **Na het deployen moet het tafelscherm één keer verversen.** Het meldt zich met de nieuwe JS aan als tafelscherm; met de oude blijft het in de oude room en ontvangt het niets.
+
+- Zet een scherm om via Instellingen → Tafelscherm (of `?display=1`). Stuur daarna vanuit de regie-balk een **brief**: het lakzegel verschijnt op tafel. Kijk op het scherm van een speler in de netwerktab (`brief:display`): daar komt hij **niet** meer binnen. Vroeger stond de volledige brieftekst in elke spelersbrowser voordat het zegel brak.
+- Zelfde toets voor **voorleestekst** (regieblok `[!voorlezen]` → `display:tekst`) en voor **buit** (`loot:display`): alleen het tafelscherm.
+- **Trek de wifi van het tafelscherm er even uit en steek hem terug**: na het herverbinden blijft het brieven en buit ontvangen. Een socket-room overleeft een reconnect niet, dus het scherm meldt zich bij elke verbinding opnieuw.
+- **Zet de tabletmodus weer uit** (kruisje rechtsboven): dat scherm ontvangt daarna niets meer van tafel.
+
 ### Diensten op een telefoon (22 sep 2026)
 
 **Open de app op een echte telefoon** — dit is het stuk dat ik niet kan nabootsen, zie de aantekening onderaan.

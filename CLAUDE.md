@@ -2341,6 +2341,25 @@ Storage gebruikt `AsyncLocalStorage` voor per-request campagne-scoping:
 
 ## Socket.io rooms
 
+> **Het tafelscherm heeft een eigen room.** Wat alleen daar hoort — een
+> verzegelde brief (`brief:display`), de voorleestekst (`display:tekst`), de
+> kist die opengaat (`loot:display`), een level-up (`levelup:display`) en
+> `display:idle` — ging naar de hele campagne-room, en alleen een `if
+> (window._isDisplayMode)` in de client besliste of je het zag. Een speler met
+> de netwerktab open las de brief dus voordat het lakzegel brak, en de
+> voorleestekst voordat de DM hem voorlas — terwijl dat scherm er juist is
+> zodat de spelers lúísteren in plaats van meelezen.
+> Schermen melden zich nu met `display:register` (server.js; alleen wie is
+> ingelogd) en komen in `display:<campagne>`; `_displayRoom(req)` in
+> `routes/api.js` is de enige plek die die naam kent. **Bij elke connect**
+> opnieuw melden, want een socket-room overleeft geen reconnect — een
+> tafelscherm dat na een haperende wifi stil zijn room kwijt is, mist de rest
+> van de avond alles. Aanzetten loopt via `_displayModeAan()` (één plek, twee
+> ingangen: `?display=1` en de knop in Instellingen), uitzetten stuurt
+> `display:unregister`.
+> Let op bij een deploy: een tafelscherm dat al openstaat draait nog de oude JS
+> en meldt zich dus niet — dat scherm moet één keer verversen.
+
 Elke verbinding joint de room `campaignId` (of `'main'` als er geen sessie-campagne is).
 `io.to(campaignId).emit(...)` stuurt naar alle clients in dezelfde campagne.
 

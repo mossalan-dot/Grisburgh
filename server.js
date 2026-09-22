@@ -218,6 +218,25 @@ io.on('connection', (socket) => {
     }
   });
 
+  // Het scherm op tafel meldt zich als tafelscherm.
+  //
+  // De display-events (brief:display, display:tekst, loot:display,
+  // levelup:display) gingen naar de hele campagne-room, en alleen een `if` in
+  // de client besliste of je ze te zien kreeg. Een speler met de netwerktab
+  // open las de verzegelde brief dus voordat het lakzegel brak, en de
+  // voorleestekst voordat de DM hem voorlas — terwijl dat scherm er juist is
+  // zodat de spelers luisteren in plaats van meelezen.
+  //
+  // Alleen wie is ingelogd mag zich melden: een bezoeker zonder sessie zit in
+  // 'main' en zou anders het tafelscherm van de standaardcampagne kunnen
+  // afluisteren.
+  socket.on('display:register', () => {
+    const sess = socket.request.session;
+    if (!sess || (sess.role !== 'dm' && !sess.characterId)) return;
+    socket.join('display:' + campaignId);
+  });
+  socket.on('display:unregister', () => socket.leave('display:' + campaignId));
+
   // Relay player emote trigger — only to sockets in the same campaign room.
   // #14: entityId is session-authoritatief. Een speler kan alleen namens
   // zichzelf emoten; de DM mag namens elke entiteit; anoniem heeft geen recht.

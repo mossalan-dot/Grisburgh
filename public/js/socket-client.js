@@ -870,6 +870,11 @@ function _ververOpenKaartje(id) {
     // Herregistreer characterId na reconnect
     const cid = window.app?.state?.characterId;
     if (cid) socket.emit('player:register', cid);
+    // En meld je als tafelscherm. Dit moet bij **elke** connect gebeuren, niet
+    // één keer bij het opstarten: een socket-room overleeft geen reconnect, en
+    // een tafelscherm dat na een haperende wifi stil zijn room kwijt is, mist
+    // de rest van de avond elke brief en elke kist.
+    if (window._isDisplayMode) socket.emit('display:register');
   });
   socket.on('disconnect', () => console.log('Socket disconnected'));
 }

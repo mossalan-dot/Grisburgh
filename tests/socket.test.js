@@ -92,6 +92,65 @@ describe('Socket sound:emote authority', () => {
     assert.strictEqual(data.emoteId, 'wave', 'overige velden blijven behouden');
   });
 
+  // ── Wat alleen het tafelscherm hoort te zien ──────────────────────────
+  // `brief:display`, `display:tekst` en `loot:display` zijn er voor het scherm
+  // op tafel: de spelers hóren de voorleestekst, ze lezen hem niet mee, en het
+  // lakzegel van een brief hoort pas op het scherm te breken. De bewaking zat
+  // alleen in de **client** (`if (window._isDisplayMode)`), terwijl de server
+  // naar de hele campagne-room uitzond — een speler met de netwerktab open las
+  // de brief dus voordat hij open was.
+  it('stuurt voorleestekst niet naar een gewone speler', async () => {
+    const speler = await connect(port, cookieA);
+    speler.emit('player:register', A);
+    await new Promise(r => setTimeout(r, 120));
+
+    const bijSpeler = waitFor(speler, 'display:tekst', 700);
+    await httpReq(server, 'POST', '/api/display/tekst',
+      { tekst: 'De deur zwaait open en de stank slaat je tegemoet.', kop: 'De kelder' }, dmCookie);
+    const gelekt = await bijSpeler;
+    speler.close();
+    assert.strictEqual(gelekt, null,
+      'de speler hoort de voorleestekst niet in zijn browser te krijgen: ' + JSON.stringify(gelekt));
+  });
+
+  it('stuurt de voorleestekst wél naar een tafelscherm', async () => {
+    const tafel = await connect(port, dmCookie);
+    tafel.emit('display:register');
+    await new Promise(r => setTimeout(r, 120));
+
+    const bijTafel = waitFor(tafel, 'display:tekst', 900);
+    await httpReq(server, 'POST', '/api/display/tekst',
+      { tekst: 'Een gang zonder einde.', kop: 'Verder' }, dmCookie);
+    const data = await bijTafel;
+    tafel.close();
+    assert.ok(data, 'het tafelscherm hoort hem wél te krijgen');
+    assert.strictEqual(data.tekst, 'Een gang zonder einde.');
+  });
+
+  it('stuurt de inhoud van een verzegelde brief alleen naar het tafelscherm', async () => {
+    // Het lakzegel hoort op het scherm te breken. `brief:display` draagt de
+    // volledige tekst; die ging naar iedereen.
+    const speler = await connect(port, cookieA);
+    speler.emit('player:register', A);
+    const tafel = await connect(port, dmCookie);
+    tafel.emit('display:register');
+    await new Promise(r => setTimeout(r, 150));
+
+    const bijSpeler = waitFor(speler, 'brief:display', 900);
+    const bijTafel  = waitFor(tafel,  'brief:display', 900);
+    await httpReq(server, 'POST', '/api/post', {
+      characterId: A, titel: 'Kom alleen', afzender: 'Een onbekende',
+      tekst: 'Middernacht, bij de brug. Vertel het niemand.',
+      cinematic: true,
+    }, dmCookie);
+    const [gelekt, ontvangen] = [await bijSpeler, await bijTafel];
+    speler.close(); tafel.close();
+
+    assert.strictEqual(gelekt, null, 'de brief hoort niet in de browser van de speler te belanden');
+    assert.ok(ontvangen, 'het tafelscherm hoort hem wél te krijgen');
+    assert.match(JSON.stringify(ontvangen), /middernacht/i, 'compleet met tekst');
+  });
+
   it('negeert sound:emote van een anonieme socket', async () => {
     const anon = await connect(port, null);
     const recv = waitFor(listener, 'sound:emote', 500);
