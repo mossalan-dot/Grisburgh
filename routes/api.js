@@ -10687,6 +10687,10 @@ function _alsSpelerVan(req) {
   return v ? String(v).trim() : null;
 }
 
+// Let op: dit geldt óók voor de **lees**routes van de diensten. Deed het dat
+// niet, dan schreef de herberg de vragenteller weg onder het personage namens
+// wie je handelt en las het scherm hem terug onder 'dm' — je zag dan een lege
+// teller en merkte pas bij de vierde klik dat het op was.
 function _handelendKarakter(req, dmState) {
   if (req.session?.characterId) return req.session.characterId;
   const gevraagd = _alsSpelerVan(req);
@@ -11070,7 +11074,7 @@ function _gockCheckReady(dmState, io, campaignId) {
 router.get('/gock', attachRole, (req, res) => {
   const meta = storage.readJSON('meta.json');
   const config = meta.gock || {};
-  const characterId = req.session.characterId;
+  const characterId = _handelendKarakter(req);
   const dmState = readDmState();
   const io = req.app.get('io');
 
@@ -11276,7 +11280,7 @@ router.get('/magizoo', attachRole, (req, res) => {
   const meta = storage.readJSON('meta.json');
   const config = meta.magizoo || {};
   const dmState = readDmState();
-  const characterId = req.session.characterId;
+  const characterId = _handelendKarakter(req);
   const gid = characterId ? _playerGroupId(dmState, characterId) : undefined;
   const cooldown = characterId ? ((dmState.magizooState || {})[characterId]?.cooldownTot || null) : null;
   res.json({
@@ -11497,7 +11501,7 @@ function _tempelGoden(config) {
 router.get('/tempel', attachRole, (req, res) => {
   const meta = storage.readJSON('meta.json');
   const config = meta.tempel || {};
-  const characterId = req.session.characterId;
+  const characterId = _handelendKarakter(req);
   const dmState = readDmState();
 
   const items = characterId ? ((dmState.playerItems || {})[characterId] || []) : [];
@@ -12683,7 +12687,7 @@ router.get('/herberg', attachRole, (req, res) => {
   const config = meta.herberg;
   if (!config) return res.status(404).json({ error: 'Herberg niet geconfigureerd' });
 
-  const characterId = req.session.characterId || req.playerName || 'dm';
+  const characterId = _handelendKarakter(req) || req.playerName || 'dm';
   const herbergState = storage.readJSON('herberg-state.json');
   let playerState = herbergState[characterId] || { vragen: 0, cooldownTot: null };
 
@@ -13044,7 +13048,7 @@ router.get('/tweespalt', attachRole, (req, res) => {
   if (needsSave) storage.writeJSON('dm-state.json', dmState);
 
   const isDM = req.role === 'dm';
-  const characterId = req.session.characterId;
+  const characterId = _handelendKarakter(req);
   const currency = _effectiveCurrency(dmState, characterId);
 
   const lening = _tsSchuld(characterId ? (ts.leningen[characterId] || null) : null, dmState, characterId);

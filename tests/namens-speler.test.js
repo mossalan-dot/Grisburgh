@@ -122,6 +122,33 @@ describe('De DM handelt namens een speler', () => {
       { groepId: gid, dienst: 'herberg', staat: 'beschikbaar' }, dm);
   });
 
+  // De schrijfkant en de leeskant moeten dezelfde persoon aanhouden. Deden ze
+  // dat niet, dan schreef de herberg de vragenteller weg onder de speler en las
+  // het scherm hem terug onder 'dm': een lege teller, en pas bij de vierde klik
+  // merkte je dat het op was.
+  it('toont bij het lezen de stand van diezelfde speler', async () => {
+    await req(server, 'PUT', '/api/meta/herberg', {
+      naam: 'De Proefkroeg', maxVragen: 3,
+      menu: [{ id: 'menu_bier', naam: 'Kroes bier', prijs: '1 kn', tempHp: '3' }],
+    }, dm);
+    await req(server, 'PATCH', `/api/player-currency/${speler}`, { fl: 20, kn: 0, cl: 0 }, dm);
+
+    const doel = (await req(server, 'POST', '/api/entities/personages',
+      { name: 'Roddeldoelwit', data: { flavour: 'Hij hoest raar.' } }, dm)).body.id;
+
+    const vraag = () => req(server, 'POST', `/api/herberg/vraag?alsSpeler=${speler}`, { entityId: doel }, dm);
+    const lees  = () => req(server, 'GET',  `/api/herberg?alsSpeler=${speler}`, null, dm);
+
+    assert.strictEqual((await lees()).body.state.vragen, 0, 'schoon aan het begin');
+    await vraag();
+    assert.strictEqual((await lees()).body.state.vragen, 1,
+      'wat er namens hem geschreven is, hoort er namens hem ook uit te komen');
+
+    // En als jezelf lees je je eigen (lege) stand.
+    const alsDm = await req(server, 'GET', '/api/herberg', null, dm);
+    assert.strictEqual(alsDm.body.state.vragen, 0, 'de DM heeft zijn eigen teller');
+  });
+
   it('laat een speler niet namens iemand anders handelen', async () => {
     await req(server, 'PUT', `/api/groups/${gid}/password`, { password: 'proef1234' }, dm);
     const tweede = (await req(server, 'POST', '/api/entities/personages',

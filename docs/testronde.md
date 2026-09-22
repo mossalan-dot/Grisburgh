@@ -998,3 +998,10 @@ met de hand niet meer hoeft na te rekenen:
 - [ ] **Voorraadregels wijzen naar bestaande kaartjes** (DM) — `node scripts/voorraad-herkoppelen.js <campagne>` meldt nul dode koppelingen. In Grisburgh waren dat er 12 (de gewone wapens bij De Kromme Spijker); die zijn 21 sep hersteld.
 - [ ] **Magische voorwerpen zitten in dezelfde kiezer** (DM) — typ `Bag of Holding`: type Wondrous item, rariteit Uncommon. `Cloak of Elvenkind` zet het attunement-vinkje aan; `Flame Tongue Longsword` vult ook de schadeformule in. In de keuzelijst staat achter een magisch voorwerp zijn rariteit (en *attunement* als dat nodig is), achter gewone uitrusting de prijs.
 - [ ] **Ze staan níét als kaartje in het archief** (DM) — het archieftabblad Voorwerpen toont alleen wat jíj hebt aangemaakt. De 757 magische voorwerpen zijn een bron om uit te putten, geen inventaris.
+
+### Testronde dienst 2 — de Herberg (21 sep 2026)
+
+- [ ] **Bestellen** (speler) — bestel iets met temp HP: het bedrag gaat van de beurs die op het scherm staat (bij een gedeelde beurs dus de partybeurs), de worp wordt uitgevoerd en de temp HP staat op je blad. Staat er een **buff** bij het menu-item, dan komt die er als apart effect bij ("Verwarmd — voordeel op je eerste save tegen kou").
+- [ ] **Roddels: drie en dan pauze** (speler) — vraag drie keer een roddel: je krijgt er drie, telkens over een ander kaartje, en de suggestielijst ververst zich. De vierde zegt *Cooldown actief*.
+- [ ] **Handel namens: lezen en schrijven horen bij elkaar** (DM) — kies in de balk een speler en vraag een roddel: het scherm telt meteen mee. *Dit was stuk:* de vraag werd weggeschreven onder die speler maar teruggelezen onder de DM, dus je zag een lege teller en merkte pas bij de vierde klik dat het op was. Geldt nu voor de vijf dienstschermen (herberg, Gock, magizoöloog, tempel, Tweespalt).
+- [ ] **Een ontbrekend portret breekt niets** (ALL) — staat het portret van de waard niet op schijf, dan verschijnt de perkamenten placeholder in plaats van het Safari-icoon.
