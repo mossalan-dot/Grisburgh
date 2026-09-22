@@ -870,6 +870,13 @@ Per bevinding: waar, wat, en of het opgelost is. Nieuwe regels onderaan.
 - Koop een zegen: je rolt en krijgt er één van die god, met de prijs eraf. Zweer een eed: de andere goden gaan op slot ("Je bent al door een eed gebonden"). Laat de DM de eed verbreken → er staat een **vloek** waar de eed stond; doe boete → weg.
 - Meesterkamer → Diensten → Tempel toont de lopende eden per speler met hun status.
 
+### Meegeleverde roddels bij de SRD-wezens (22 sep 2026)
+
+- Meesterkamer → Monsters → **Nieuw wezen** → uitklapper *Standaard statblok*: zoek "Vampire" en importeer. Naast het statblok is nu ook het veld **Roddel** gevuld ("Wat je van hem moet weten: hij komt een huis niet binnen zonder dat iemand hem vraagt…").
+- Importeer een **Cat** of een **Commoner**: het roddelveld blijft leeg. Dat hoort — die hebben niets te onthullen.
+- Had je zelf al iets in het roddelveld getypt, dan overschrijft een import dat **niet**.
+- 200 van de 331 meegeleverde wezens hebben er een; de overige 131 zijn vrijwel allemaal gewone dieren en humanoids zonder traits.
+
 ### Roddels in het bestiarium (22 sep 2026)
 
 - 37 van de 38 bestiarium-wezens hebben een roddel (alleen *Boom* niet — dat kaartje heeft geen statblok). Dat was er nul, waardoor het verschil tussen *naam* en *deels* alleen statblok was.

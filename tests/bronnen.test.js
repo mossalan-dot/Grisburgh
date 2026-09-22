@@ -238,6 +238,38 @@ describe('Bronteksten blijven binnen de campagne die ze mag zien', () => {
     assert.equal(guard.statblock.speed, '30 ft.', 'geen afgeleide klim-/zwemsnelheden');
   });
 
+  it('levert een bruikbare roddel mee bij de wezens die er een verdienen', async () => {
+    // De Magizoöloog onthult bij *deels* een gerucht. Voor de meegeleverde
+    // wezens reikt de bron er een aan, afgeleid uit het statblok
+    // (scripts/srd-2024/srd-roddels.js). Dit bewaakt twee dingen: dat het
+    // meekomt, en dat de samengestelde zinnen heel zijn — ze worden uit
+    // losse regels aan elkaar geplakt, dus een lege of stukke regel valt
+    // nergens anders op.
+    const lijst = (await req(server, 'GET', '/api/bron/srd-monsters', null, andereDm)).body;
+    const met = lijst.filter(m => (m.roddel || '').trim());
+    assert.ok(met.length > 150, `verwacht ruim 150 roddels, kreeg er ${met.length}`);
+
+    for (const m of met) {
+      assert.ok(!/undefined|null|NaN|\[object/.test(m.roddel), `${m.name}: kapotte samenstelling — ${m.roddel}`);
+      assert.ok(/[.!?]$/.test(m.roddel.trim()), `${m.name}: geen afgesloten zin — ${m.roddel}`);
+      assert.ok(m.roddel.trim().length > 20, `${m.name}: te kort om iets te zeggen`);
+    }
+
+    // Een wolf hoort zijn roedeltactiek te verklappen; een das heeft niets te
+    // verbergen en krijgt er dus geen.
+    const wolf = lijst.find(m => m.name === 'Wolf');
+    assert.ok(/tweede|roedel|alleen/i.test(wolf.roddel || ''), 'de wolf verklapt hoe hij jaagt');
+    // En het omgekeerde: er wordt niets verzonnen voor wie niets te verbergen
+    // heeft. Een kat is een kat. (Een das krijgt er wél een — die graaft, en
+    // dat staat gewoon in zijn snelheid.)
+    const zonder = lijst.filter(m => !(m.roddel || '').trim());
+    assert.ok(zonder.length > 80, `verwacht dat een flink deel er geen krijgt, kreeg ${zonder.length}`);
+    for (const naam of ['Cat', 'Commoner', 'Ape']) {
+      const dier = lijst.find(m => m.name === naam);
+      assert.ok(!(dier?.roddel || '').trim(), `${naam} heeft niets te onthullen`);
+    }
+  });
+
   it('kent geen andere bestanden dan de bronnenlijst', async () => {
     const r = await req(server, 'GET', '/api/bron/..%2F..%2Fconfig', null, beheerder);
     assert.equal(r.status, 404);

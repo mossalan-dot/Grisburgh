@@ -1069,6 +1069,22 @@ dm-panel.js : combat-canvas.js?v=22   render-statblock.js?v=9
 > dus **Medium**; "Small or Medium" hoort bij een sjabloon, niet bij een
 > exemplaar, en staat daarom ook niet in `_SB_SIZES`.
 
+> **Bij een standaard-statblok hoort een roddel.** `bronnen/srd-monsters.json`
+> draagt per wezen een `roddel` — het gerucht dat de Magizoöloog op *deels*
+> onthult — voor 200 van de 331. Gegenereerd met
+> `node scripts/srd-2024/srd-roddels.js --schrijf`, **afgeleid uit het statblok**
+> en nooit verzonnen: elke regel hangt aan een trait met een vaste naam, een
+> immunity of een zintuig, en vuurt er niets, dan komt er geen roddel (131
+> wezens, bijna allemaal gewone dieren en humanoids zonder traits — een kat
+> heeft niets te verbergen). Het kwaliteitsfilter is *alleen wat je niet ziet*:
+> "hij vliegt" is geen gerucht, "breng hem in de zon en hij mist" wel. Vandaar
+> ook dat gif uit de lijst schadesoorten is gelaten — dat zou op 120 undead en
+> constructs komen te staan, en wat overal geldt is geen nieuws. Per wezen gaan
+> de twee best scorende regels mee, in de volgorde van `REGELS` in dat script.
+> `_srdImport` vult het veld alleen als het leeg is, dus wat de DM zelf schreef
+> blijft staan. Bewaakt door `tests/bronnen.test.js` (samengestelde zinnen heel,
+> en er wordt niets verzonnen voor wie niets te verbergen heeft).
+
 > **Meerdere statblokken op één kaartje (tiers).** Dezelfde man is niet elke akte
 > dezelfde tegenstander. `statblockTiers` op een personage-kaartje bewaart de
 > extra versies; `stats` blijft de **basis** en ligt onder elke tier, dus een tier

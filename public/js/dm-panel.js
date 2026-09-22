@@ -3817,6 +3817,12 @@ async function _srdImport(key) {
     v('actions',          sb.actions);
     v('reactions',        sb.reactions);
     v('legendaryActions', sb.legendaryActions);
+    // De roddel hangt aan het monster, niet aan het statblok — en hij staat
+    // niet in elke SRD-regel: 131 wezens (bijna allemaal gewone dieren en
+    // struikrovers) hebben niets wat een magizoöloog kan onthullen. Een leeg
+    // veld overschrijft niet wat de DM er zelf al in had staan.
+    const roddelEl = document.getElementById('dm-mon-roddel');
+    if (roddelEl && m.roddel && !roddelEl.value.trim()) roddelEl.value = m.roddel;
     document.querySelectorAll('.dm-sb-score-col').forEach(col => {
       const input = col.querySelector('input');
       const modEl = col.querySelector('.dm-sb-mod');

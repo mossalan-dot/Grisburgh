@@ -35,7 +35,8 @@
    "actions": "***Multiattack.*** The aboleth makes two Tentacle attacks and uses either Consume Memories or Dominate Mind if available.\n\n***Tentacle.*** Melee Attack Roll: +9, reach 15 ft. 12 (2d6 + 5) Bludgeoning damage. If the target is a Large or smaller creature, it has the Grappled condition (escape DC 14) from one of four tentacles.\n\n***Consume Memories.*** Intelligence Saving Throw: DC 16, one creature within 30 feet that is Charmed or Grappled by the aboleth. Failure: 10 (3d6) Psychic damage. Success: Half damage. Failure or Success: The aboleth gains the target's memories if the target is a Humanoid and is reduced to 0 Hit Points by this action.\n\n***Dominate Mind.*** Wisdom Saving Throw: DC 16, one creature the aboleth can see within 30 feet. Failure: The target has the Charmed condition until the aboleth dies or is on a different plane of existence from the target. While Charmed, the target acts as an ally to the aboleth and is under its control while within 60 feet of it. In addition, the aboleth and the target can communicate telepathically with each other over any distance. The target repeats the save whenever it takes damage as well as after every 24 hours it spends at least 1 mile away from the aboleth, ending the effect on itself on a success.",
    "reactions": "",
    "legendaryActions": "***Lash.*** The aboleth makes one Tentacle attack.\n\n***Psychic Drain.*** If the aboleth has at least one creature Charmed or Grappled, it uses Consume Memories and regains 5 (1d10) Hit Points."
-  }
+  },
+  "roddel": "Boven of onder water maakt hem niets uit; hij ademt allebei. In het water heb jij de haast, hij niet. Hij praat zonder zijn mond te bewegen, rechtstreeks in je hoofd. Wat je terugdenkt, hoort hij ook."
  },
  {
   "key": "srd-2024_adult-black-dragon",
@@ -73,7 +74,8 @@
    "actions": "***Multiattack.*** The dragon makes three Rend attacks. It can replace one attack with a use of Spellcasting to cast Acid Arrow (level 3 version).\n\n***Rend.*** Melee Attack Roll: +11, reach 10 ft. 13 (2d6 + 6) Slashing damage plus 4 (1d8) Acid damage.\n\n***Acid Breath.*** Dexterity Saving Throw: DC 18, each creature in a 60-foot-long, 5-foot-wide Line. Failure: 54 (12d8) Acid damage. Success: Half damage.\n\n***Spellcasting.*** The dragon casts one of the following spells, requiring no Material components and using Charisma as the spellcasting ability (spell save DC 17, +9 to hit with spell attacks):\n\n- **At Will:** Detect Magic, Fear, Acid Arrow\n- **1/Day Each:** Speak with Dead, Vitriolic Sphere",
    "reactions": "",
    "legendaryActions": "***Cloud of Insects.*** Dexterity Saving Throw: DC 17, one creature the dragon can see within 120 feet. Failure: 22 (4d10) Poison damage, and the target has Disadvantage on saving throws to maintain Concentration until the end of its next turn. Failure or Success: The dragon can't take this action again until the start of its next turn.\n\n***Frightful Presence.*** The dragon uses Spellcasting to cast Fear. The dragon can't take this action again until the start of its next turn.\n\n***Pounce.*** The dragon can move up to half its Speed, and it makes one Rend attack."
-  }
+  },
+  "roddel": "Boven of onder water maakt hem niets uit; hij ademt allebei. In het water heb jij de haast, hij niet. Zuur doet hem niets; zoek iets anders."
  },
  {
   "key": "srd-2024_adult-blue-dragon",
@@ -111,7 +113,8 @@
    "actions": "***Multiattack.*** The dragon makes three Rend attacks. It can replace one attack with a use of Spellcasting to cast Shatter.\n\n***Rend.*** Melee Attack Roll: +12, reach 10 ft. 16 (2d8 + 7) Slashing damage plus 5 (1d10) Lightning damage.\n\n***Lightning Breath.*** Dexterity Saving Throw: DC 19, each creature in a 90-foot-long, 5-foot-wide Line. Failure: 60 (11d10) Lightning damage. Success: Half damage.\n\n***Spellcasting.*** The dragon casts one of the following spells, requiring no Material components and using Charisma as the spellcasting ability (spell save DC 18):\n\n- **At Will:** Detect Magic, Invisibility, Mage Hand, Shatter\n- **1/Day Each:** Scrying, Sending",
    "reactions": "",
    "legendaryActions": "***Cloaked Flight.*** The dragon uses Spellcasting to cast Invisibility on itself, and it can fly up to half its Fly Speed. The dragon can't take this action again until the start of its next turn.\n\n***Sonic Boom.*** The dragon uses Spellcasting to cast Shatter. The dragon can't take this action again until the start of its next turn.\n\n***Tail Swipe.*** The dragon makes one Rend attack."
-  }
+  },
+  "roddel": "Hij komt van onderen. Op losse grond hoor je hem pas als het te laat is. Bliksem doet hem niets; zoek iets anders."
  },
  {
   "key": "srd-2024_adult-brass-dragon",
@@ -149,7 +152,8 @@
    "actions": "***Multiattack.*** The dragon makes three Rend attacks. It can replace one attack with a use of (A) Sleep Breath or (B) Spellcasting to cast Scorching Ray.\n\n***Rend.*** Melee Attack Roll: +11, reach 10 ft. 17 (2d10 + 6) Slashing damage plus 4 (1d8) Fire damage.\n\n***Fire Breath.*** Dexterity Saving Throw: DC 18, each creature in a 60-foot-long, 5-foot-wide Line. Failure: 45 (10d8) Fire damage. Success: Half damage.\n\n***Sleep Breath.*** Constitution Saving Throw: DC 18, each creature in a 60-foot Cone. Failure: The target has the Incapacitated condition until the end of its next turn, at which point it repeats the save. Second Failure The target has the Unconscious condition for 10 minutes. This effect ends for the target if it takes damage or a creature within 5 feet of it takes an action to wake it.\n\n***Spellcasting.*** The dragon casts one of the following spells, requiring no Material components and using Charisma as the spellcasting ability (spell save DC 16):\n\n- **At Will:** Detect Magic, Minor Illusion, Scorching Ray, Shapechange, Speak with Animals\n- **1/Day Each:** Detect Thoughts, Control Weather",
    "reactions": "",
    "legendaryActions": "***Blazing Light.*** The dragon uses Spellcasting to cast Scorching Ray.\n\n***Pounce.*** The dragon moves up to half its Speed, and it makes one Rend attack.\n\n***Scorching Sands.*** Dexterity Saving Throw: DC 16, one creature the dragon can see within 120 feet. Failure: 27 (6d8) Fire damage, and the target's Speed is halved until the end of its next turn. Failure or Success: The dragon can't take this action again until the start of its next turn."
-  }
+  },
+  "roddel": "Hij komt van onderen. Op losse grond hoor je hem pas als het te laat is. Vuur doet hem niets; zoek iets anders."
  },
  {
   "key": "srd-2024_adult-bronze-dragon",
@@ -187,7 +191,8 @@
    "actions": "***Multiattack.*** The dragon makes three Rend attacks. It can replace one attack with a use of (A) Repulsion Breath or (B) Spellcasting to cast Guiding Bolt (level 2 version).\n\n***Rend.*** Melee Attack Roll: +12, reach 10 ft. 16 (2d8 + 7) Slashing damage plus 5 (1d10) Lightning damage.\n\n***Lightning Breath.*** Dexterity Saving Throw: DC 19, each creature in a 90-foot-long, 5-foot-wide Line. Failure: 55 (10d10) Lightning damage. Success: Half damage.\n\n***Repulsion Breath.*** Strength Saving Throw: DC 19, each creature in a 30-foot Cone. Failure: The target is pushed up to 60 feet straight away from the dragon and has the Prone condition.\n\n***Spellcasting.*** The dragon casts one of the following spells, requiring no Material components and using Charisma as the spellcasting ability (spell save DC 17, +10 to hit with spell attacks):\n\n- **At Will:** Detect Magic, Guiding Bolt, Shapechange, Speak with Animals, Thaumaturgy\n- **1/Day Each:** Detect Thoughts, Water Breathing",
    "reactions": "",
    "legendaryActions": "***Guiding Light.*** The dragon uses Spellcasting to cast Guiding Bolt (level 2 version).\n\n***Pounce.*** The dragon moves up to half its Speed, and it makes one Rend attack.\n\n***Thunderclap.*** Constitution Saving Throw: DC 17, each creature in a 20-foot-radius Sphere [Area of Effect]|XPHB|Sphere centered on a point the dragon can see within 90 feet. Failure: 10 (3d6) Thunder damage, and the target has the Deafened condition until the end of its next turn."
-  }
+  },
+  "roddel": "Boven of onder water maakt hem niets uit; hij ademt allebei. In het water heb jij de haast, hij niet. Bliksem doet hem niets; zoek iets anders."
  },
  {
   "key": "srd-2024_adult-copper-dragon",
@@ -225,7 +230,8 @@
    "actions": "***Multiattack.*** The dragon makes three Rend attacks. It can replace one attack with a use of (A) Slowing Breath or (B) Spellcasting to cast Mind Spike (level 4 version).\n\n***Rend.*** Melee Attack Roll: +11, reach 10 ft. 17 (2d10 + 6) Slashing damage plus 4 (1d8) Acid damage.\n\n***Acid Breath.*** Dexterity Saving Throw: DC 18, each creature in an 60-foot-long, 5-foot-wide Line. Failure: 54 (12d8) Acid damage. Success: Half damage.\n\n***Slowing Breath.*** Constitution Saving Throw: DC 18, each creature in a 60-foot Cone. Failure: The target can't take Reactions; its Speed is halved; and it can take either an action or a Bonus Action on its turn, not both. This effect lasts until the end of its next turn.\n\n***Spellcasting.*** The dragon casts one of the following spells, requiring no Material components and using Charisma as the spellcasting ability (spell save DC 17):\n\n- **At Will:** Detect Magic, Mind Spike, Minor Illusion, Shapechange\n- **1/Day Each:** Greater Restoration, Major Image",
    "reactions": "",
    "legendaryActions": "***Giggling Magic.*** Charisma Saving Throw: DC 17, one creature the dragon can see within 90 feet. Failure: 24 (7d6) Psychic damage. Until the end of its next turn, the target rolls 1d6 whenever it makes an ability check or attack roll and subtracts the number rolled from the D20 Test. Failure or Success: The dragon can't take this action again until the start of its next turn.\n\n***Mind Jolt.*** The dragon uses Spellcasting to cast Mind Spike (level 4 version). The dragon can't take this action again until the start of its next turn.\n\n***Pounce.*** The dragon moves up to half its Speed, and it makes one Rend attack."
-  }
+  },
+  "roddel": "Zuur doet hem niets; zoek iets anders. Donker maakt voor hem niets uit; een lamp doven verbergt je niet."
  },
  {
   "key": "srd-2024_adult-gold-dragon",
@@ -263,7 +269,8 @@
    "actions": "***Multiattack.*** The dragon makes three Rend attacks. It can replace one attack with a use of (A) Spellcasting to cast Guiding Bolt (level 2 version) or (B) Weakening Breath.\n\n***Rend.*** Melee Attack Roll: +14, reach 10 ft. 17 (2d8 + 8) Slashing damage plus 4 (1d8) Fire damage.\n\n***Fire Breath.*** Dexterity Saving Throw: DC 21, each creature in a 60-foot Cone. Failure: 66 (12d10) Fire damage. Success: Half damage.\n\n***Weakening Breath.*** Strength Saving Throw: DC 21, each creature that isn't currently affected by this breath in a 60-foot Cone. Failure: The target has Disadvantage on Strength-based D20 Test and subtracts 3 (1d6) from its damage rolls. It repeats the save at the end of each of its turns, ending the effect on itself on a success. After 1 minute, it succeeds automatically.\n\n***Spellcasting.*** The dragon casts one of the following spells, requiring no Material components and using Charisma as the spellcasting ability (spell save DC 21, +13 to hit with spell attacks):\n\n- **At Will:** Detect Magic, Guiding Bolt, Shapechange\n- **1/Day Each:** Flame Strike, Zone of Truth",
    "reactions": "",
    "legendaryActions": "***Banish.*** Charisma Saving Throw: DC 21, one creature the dragon can see within 120 feet. Failure: 10 (3d6) Force damage, and the target has the Incapacitated condition and is transported to a harmless demiplane until the start of the dragon's next turn, at which point it reappears in an unoccupied space of the dragon's choice within 120 feet of the dragon. Failure or Success: The dragon can't take this action again until the start of its next turn.\n\n***Guiding Light.*** The dragon uses Spellcasting to cast Guiding Bolt (level 2 version).\n\n***Pounce.*** The dragon moves up to half its Speed, and it makes one Rend attack."
-  }
+  },
+  "roddel": "Boven of onder water maakt hem niets uit; hij ademt allebei. In het water heb jij de haast, hij niet. Vuur doet hem niets; zoek iets anders."
  },
  {
   "key": "srd-2024_adult-green-dragon",
@@ -301,7 +308,8 @@
    "actions": "***Multiattack.*** The dragon makes three Rend attacks. It can replace one attack with a use of Spellcasting to cast Mind Spike (level 3 version).\n\n***Rend.*** Melee Attack Roll: +11, reach 10 ft. 15 (2d8 + 6) Slashing damage plus 7 (2d6) Poison damage.\n\n***Poison Breath.*** Constitution Saving Throw: DC 18, each creature in a 60-foot Cone. Failure: 56 (16d6) Poison damage. Success: Half damage.\n\n***Spellcasting.*** The dragon casts one of the following spells, requiring no Material components and using Charisma as the spellcasting ability (spell save DC 17):\n- **At Will:** Detect Magic, Mind Spike\n- **1/Day Each:** Geas",
    "reactions": "",
    "legendaryActions": "***Mind Invasion.*** The dragon uses Spellcasting to cast Mind Spike (level 3 version).\n\n***Noxious Miasma.*** Constitution Saving Throw: DC 17, each creature in a 20-foot-radius Sphere [Area of Effect]|XPHB|Sphere centered on a point the dragon can see within 90 feet. Failure: 7 (2d6) Poison damage, and the target takes a -2 penalty to AC until the end of its next turn. Failure or Success: The dragon can't take this action again until the start of its next turn.\n\n***Pounce.*** The dragon moves up to half its Speed, and it makes one Rend attack."
-  }
+  },
+  "roddel": "Boven of onder water maakt hem niets uit; hij ademt allebei. In het water heb jij de haast, hij niet. Donker maakt voor hem niets uit; een lamp doven verbergt je niet."
  },
  {
   "key": "srd-2024_adult-red-dragon",
@@ -339,7 +347,8 @@
    "actions": "***Multiattack.*** The dragon makes three Rend attacks. It can replace one attack with a use of Spellcasting to cast Scorching Ray.\n\n***Rend.*** Melee Attack Roll: +14, reach 10 ft. 13 (1d10 + 8) Slashing damage plus 5 (2d4) Fire damage.\n\n***Fire Breath.*** Dexterity Saving Throw: DC 21, each creature in a 60-foot Cone. Failure: 59 (17d6) Fire damage. Success: Half damage.\n\n***Spellcasting.*** The dragon casts one of the following spells, requiring no Material components and using Charisma as the spellcasting ability (spell save DC 20, +12 to hit with spell attacks):\n\n- **At Will:** Command, Detect Magic, Scorching Ray\n- **1/Day Each:** Fireball",
    "reactions": "",
    "legendaryActions": "***Commanding Presence.*** The dragon uses Spellcasting to cast Command (level 2 version). The dragon can't take this action again until the start of its next turn.\n\n***Fiery Rays.*** The dragon uses Spellcasting to cast Scorching Ray. The dragon can't take this action again until the start of its next turn.\n\n***Pounce.*** The dragon moves up to half its Speed, and it makes one Rend attack."
-  }
+  },
+  "roddel": "Vuur doet hem niets; zoek iets anders. Donker maakt voor hem niets uit; een lamp doven verbergt je niet."
  },
  {
   "key": "srd-2024_adult-silver-dragon",
@@ -377,7 +386,8 @@
    "actions": "***Multiattack.*** The dragon makes three Rend attacks. It can replace one attack with a use of (A) Paralyzing Breath or (B) Spellcasting to cast Ice Knife.\n\n***Rend.*** Melee Attack Roll: +13, reach 10 ft. 17 (2d8 + 8) Slashing damage plus 4 (1d8) Cold damage.\n\n***Cold Breath.*** Constitution Saving Throw: DC 20, each creature in a 60-foot Cone. Failure: 54 (12d8) Cold damage. Success: Half damage.\n\n***Paralyzing Breath.*** Constitution Saving Throw: DC 20, each creature in a 60-foot Cone. First Failure The target has the Incapacitated condition until the end of its next turn, when it repeats the save. Second Failure The target has the Paralyzed condition, and it repeats the save at the end of each of its turns, ending the effect on itself on a success. After 1 minute, it succeeds automatically.\n\n***Spellcasting.*** The dragon casts one of the following spells, requiring no Material components and using Charisma as the spellcasting ability (spell save DC 19, +11 to hit with spell attacks):\n\n- **At Will:** Detect Magic, Hold Monster, Ice Knife, Shapechange\n- **1/Day Each:** Ice Storm, Zone of Truth",
    "reactions": "",
    "legendaryActions": "***Chill.*** The dragon uses Spellcasting to cast Hold Monster. The dragon can't take this action again until the start of its next turn.\n\n***Cold Gale.*** Dexterity Saving Throw: DC 19, each creature in a 60-foot-long, 10-foot-wide Line. Failure: 14 (4d6) Cold damage, and the target is pushed up to 30 feet straight away from the dragon. Success: Half damage only. Failure or Success: The dragon can't take this action again until the start of its next turn.\n\n***Pounce.*** The dragon moves up to half its Speed, and it makes one Rend attack."
-  }
+  },
+  "roddel": "Kou doet hem niets; zoek iets anders. Donker maakt voor hem niets uit; een lamp doven verbergt je niet."
  },
  {
   "key": "srd-2024_adult-white-dragon",
@@ -415,7 +425,8 @@
    "actions": "***Multiattack.*** The dragon makes three Rend attacks.\n\n***Rend.*** Melee Attack Roll: +11, reach 10 ft. 13 (2d6 + 6) Slashing damage plus 4 (1d8) Cold damage.\n\n***Cold Breath.*** Constitution Saving Throw: DC 19, each creature in a 60-foot Cone. Failure: 54 (12d8) Cold damage. Success: Half damage.",
    "reactions": "",
    "legendaryActions": "***Freezing Burst.*** Constitution Saving Throw: DC 14, each creature in a 30-foot-radius Sphere [Area of Effect]|XPHB|Sphere centered on a point the dragon can see within 120 feet. Failure: 7 (2d6) Cold damage, and the target's Speed is 0 until the end of the target's next turn. Failure or Success: The dragon can't take this action again until the start of its next turn.\n\n***Pounce.*** The dragon moves up to half its Speed, and it makes one Rend attack.\n\n***Frightful Presence.*** The dragon casts Fear, requiring no Material components and using Charisma as the spellcasting ability (spell save DC 14). The dragon can't take this action again until the start of its next turn."
-  }
+  },
+  "roddel": "Hij komt van onderen. Op losse grond hoor je hem pas als het te laat is. Kou doet hem niets; zoek iets anders."
  },
  {
   "key": "srd-2024_air-elemental",
@@ -453,7 +464,8 @@
    "actions": "***Multiattack.*** The elemental makes two Thunderous Slam attacks.\n\n***Thunderous Slam.*** Melee Attack Roll: +8, reach 10 ft. 14 (2d8 + 5) Thunder damage.\n\n***Whirlwind.*** Strength Saving Throw: DC 13, one Medium or smaller creature in the elemental's space. Failure: 24 (4d10 + 2) Thunder damage, and the target is pushed up to 20 feet straight away from the elemental and has the Prone condition. Success: Half damage only.",
    "reactions": "",
    "legendaryActions": ""
-  }
+  },
+  "roddel": "Donderslag doet hem niets; zoek iets anders."
  },
  {
   "key": "srd-2024_allosaurus",
@@ -529,7 +541,8 @@
    "actions": "***Multiattack.*** The dragon makes three Rend attacks. It can replace one attack with a use of Spellcasting to cast Acid Arrow (level 4 version).\n\n***Rend.*** Melee Attack Roll: +15, reach 15 ft. 17 (2d8 + 8) Slashing damage plus 9 (2d8) Acid damage.\n\n***Acid Breath.*** Dexterity Saving Throw: DC 22, each creature in a 90-foot-long, 10-foot-wide Line. Failure: 67 (15d8) Acid damage. Success: Half damage.\n\n***Spellcasting.*** The dragon casts one of the following spells, requiring no Material components and using Charisma as the spellcasting ability (spell save DC 21, +13 to hit with spell attacks):\n\n- **At Will:** Detect Magic, Fear, Acid Arrow\n- **1/Day Each:** Create Undead, Speak with Dead, Vitriolic Sphere",
    "reactions": "",
    "legendaryActions": "***Cloud of Insects.*** Dexterity Saving Throw: DC 21, one creature the dragon can see within 120 feet. Failure: 33 (6d10) Poison damage, and the target has Disadvantage on saving throws to maintain Concentration until the end of its next turn. Failure or Success: The dragon can't take this action again until the start of its next turn.\n\n***Frightful Presence.*** The dragon uses Spellcasting to cast Fear. The dragon can't take this action again until the start of its next turn.\n\n***Pounce.*** The dragon moves up to half its Speed, and it makes one Rend attack."
-  }
+  },
+  "roddel": "Boven of onder water maakt hem niets uit; hij ademt allebei. In het water heb jij de haast, hij niet. Zuur doet hem niets; zoek iets anders."
  },
  {
   "key": "srd-2024_ancient-blue-dragon",
@@ -567,7 +580,8 @@
    "actions": "***Multiattack.*** The dragon makes three Rend attacks. It can replace one attack with a use of Spellcasting to cast Shatter (level 3 version).\n\n***Rend.*** Melee Attack Roll: +16, reach 15 ft. 18 (2d8 + 9) Slashing damage plus 11 (2d10) Lightning damage.\n\n***Lightning Breath.*** Dexterity Saving Throw: DC 23, each creature in a 120-foot-long, 10-foot-wide Line. Failure: 88 (16d10) Lightning damage. Success: Half damage.\n\n***Spellcasting.*** The dragon casts one of the following spells, requiring no Material components and using Charisma as the spellcasting ability (spell save DC 22):\n\n- **At Will:** Detect Magic, Invisibility, Mage Hand, Shatter\n- **1/Day Each:** Scrying, Sending",
    "reactions": "",
    "legendaryActions": "***Cloaked Flight.*** The dragon uses Spellcasting to cast Invisibility on itself, and it can fly up to half its Fly Speed. The dragon can't take this action again until the start of its next turn.\n\n***Sonic Boom.*** The dragon uses Spellcasting to cast Shatter (level 3 version). The dragon can't take this action again until the start of its next turn.\n\n***Tail Swipe.*** The dragon makes one Rend attack."
-  }
+  },
+  "roddel": "Hij komt van onderen. Op losse grond hoor je hem pas als het te laat is. Bliksem doet hem niets; zoek iets anders."
  },
  {
   "key": "srd-2024_ancient-brass-dragon",
@@ -605,7 +619,8 @@
    "actions": "***Multiattack.*** The dragon makes three Rend attacks. It can replace one attack with a use of (A) Sleep Breath or (B) Spellcasting to cast Scorching Ray (level 3 version).\n\n***Rend.*** Melee Attack Roll: +14, reach 15 ft. 19 (2d10 + 8) Slashing damage plus 7 (2d6) Fire damage.\n\n***Fire Breath.*** Dexterity Saving Throw: DC 21, each creature in a 90-foot-long, 5-foot-wide Line. Failure: 58 (13d8) Fire damage. Success: Half damage.\n\n***Sleep Breath.*** Constitution Saving Throw: DC 21, each creature in a 90-foot Cone. Failure: The target has the Incapacitated condition until the end of its next turn, at which point it repeats the save. Second Failure The target has the Unconscious condition for 10 minutes. This effect ends for the target if it takes damage or a creature within 5 feet of it takes an action to wake it.\n\n***Spellcasting.*** The dragon casts one of the following spells, requiring no Material components and using Charisma as the spellcasting ability (spell save DC 20):\n\n- **At Will:** Detect Magic, Minor Illusion, Scorching Ray, Shapechange, Speak with Animals\n- **1/Day Each:** Control Weather, Detect Thoughts",
    "reactions": "",
    "legendaryActions": "***Blazing Light.*** The dragon uses Spellcasting to cast Scorching Ray (level 3 version).\n\n***Pounce.*** The dragon moves up to half its Speed, and it makes one Rend attack.\n\n***Scorching Sands.*** Dexterity Saving Throw: DC 20, one creature the dragon can see within 120 feet. Failure: 36 (8d8) Fire damage, and the target's Speed is halved until the end of its next turn. Failure or Success: The dragon can't take this action again until the start of its next turn."
-  }
+  },
+  "roddel": "Hij komt van onderen. Op losse grond hoor je hem pas als het te laat is. Vuur doet hem niets; zoek iets anders."
  },
  {
   "key": "srd-2024_ancient-bronze-dragon",
@@ -643,7 +658,8 @@
    "actions": "***Multiattack.*** The dragon makes three Rend attacks. It can replace one attack with a use of (A) Repulsion Breath or (B) Spellcasting to cast Guiding Bolt (level 2 version).\n\n***Rend.*** Melee Attack Roll: +16, reach 15 ft. 18 (2d8 + 9) Slashing damage plus 9 (2d8) Lightning damage.\n\n***Lightning Breath.*** Dexterity Saving Throw: DC 23, each creature in a 120-foot-long, 10-foot-wide Line. Failure: 82 (15d10) Lightning damage. Success: Half damage.\n\n***Repulsion Breath.*** Strength Saving Throw: DC 23, each creature in a 30-foot Cone. Failure: The target is pushed up to 60 feet straight away from the dragon and has the Prone condition.\n\n***Spellcasting.*** The dragon casts one of the following spells, requiring no Material components and using Charisma as the spellcasting ability (spell save DC 22, +14 to hit with spell attacks):\n\n- **At Will:** Detect Magic, Guiding Bolt, Shapechange, Speak with Animals, Thaumaturgy\n- **1/Day Each:** Detect Thoughts, Control Water, Scrying, Water Breathing",
    "reactions": "",
    "legendaryActions": "***Guiding Light.*** The dragon uses Spellcasting to cast Guiding Bolt (level 2 version).\n\n***Pounce.*** The dragon moves up to half its Speed, and it makes one Rend attack.\n\n***Thunderclap.*** Constitution Saving Throw: DC 22, each creature in a 20-foot-radius Sphere [Area of Effect]|XPHB|Sphere centered on a point the dragon can see within 120 feet. Failure: 13 (3d8) Thunder damage, and the target has the Deafened condition until the end of its next turn."
-  }
+  },
+  "roddel": "Boven of onder water maakt hem niets uit; hij ademt allebei. In het water heb jij de haast, hij niet. Bliksem doet hem niets; zoek iets anders."
  },
  {
   "key": "srd-2024_ancient-copper-dragon",
@@ -681,7 +697,8 @@
    "actions": "***Multiattack.*** The dragon makes three Rend attacks. It can replace one attack with a use of (A) Slowing Breath or (B) Spellcasting to cast Mind Spike (level 5 version).\n\n***Rend.*** Melee Attack Roll: +15, reach 15 ft. 19 (2d10 + 8) Slashing damage plus 9 (2d8) Acid damage.\n\n***Acid Breath.*** Dexterity Saving Throw: DC 22, each creature in an 90-foot-long, 10-foot-wide Line. Failure: 63 (14d8) Acid damage. Success: Half damage.\n\n***Slowing Breath.*** Constitution Saving Throw: DC 22, each creature in a 90-foot Cone. Failure: The target can't take Reactions; its Speed is halved; and it can take either an action or a Bonus Action on its turn, not both. This effect lasts until the end of its next turn.\n\n***Spellcasting.*** The dragon casts one of the following spells, requiring no Material components and using Charisma as the spellcasting ability (spell save DC 21):\n\n- **At Will:** Detect Magic, Mind Spike, Minor Illusion, Shapechange\n- **1/Day Each:** Greater Restoration, Major Image, Project Image",
    "reactions": "",
    "legendaryActions": "***Giggling Magic.*** Charisma Saving Throw: DC 21, one creature the dragon can see within 120 feet. Failure: 31 (9d6) Psychic damage. Until the end of its next turn, the target rolls 1d8 whenever it makes an ability check or attack roll and subtracts the number rolled from the D20 Test. Failure or Success: The dragon can't take this action again until the start of its next turn.\n\n***Mind Jolt.*** The dragon uses Spellcasting to cast Mind Spike (level 5 version). The dragon can't take this action again until the start of its next turn.\n\n***Pounce.*** The dragon moves up to half its Speed, and it makes one Rend attack."
-  }
+  },
+  "roddel": "Zuur doet hem niets; zoek iets anders. Donker maakt voor hem niets uit; een lamp doven verbergt je niet."
  },
  {
   "key": "srd-2024_ancient-gold-dragon",
@@ -719,7 +736,8 @@
    "actions": "***Multiattack.*** The dragon makes three Rend attacks. It can replace one attack with a use of (A) Spellcasting to cast Guiding Bolt (level 4 version) or (B) Weakening Breath.\n\n***Rend.*** Melee Attack Roll: +17 to hit, reach 15 ft. 19 (2d8 + 10) Slashing damage plus 9 (2d8) Fire damage.\n\n***Fire Breath.*** Dexterity Saving Throw: DC 24, each creature in a 90-foot Cone. Failure: 71 (13d10) Fire damage. Success: Half damage.\n\n***Weakening Breath.*** Strength Saving Throw: DC 24, each creature that isn't currently affected by this breath in a 90-foot Cone. Failure: The target has Disadvantage on Strength-based D20 Test and subtracts 5 (1d10) from its damage rolls. It repeats the save at the end of each of its turns, ending the effect on itself on a success. After 1 minute, it succeeds automatically.\n\n***Spellcasting.*** The dragon casts one of the following spells, requiring no Material components and using Charisma as the spellcasting ability (spell save DC 24, +16 to hit with spell attacks):\n\n- **At Will:** Detect Magic, Guiding Bolt, Shapechange\n- **1/Day Each:** Flame Strike, Word of Recall, Zone of Truth",
    "reactions": "",
    "legendaryActions": "***Banish.*** Charisma Saving Throw: DC 24, one creature the dragon can see within 120 feet. Failure: 24 (7d6) Force damage, and the target has the Incapacitated condition and is transported to a harmless demiplane until the start of the dragon's next turn, at which point it reappears in an unoccupied space of the dragon's choice within 120 feet of the dragon. Failure or Success: The dragon can't take this action again until the start of its next turn.\n\n***Guiding Light.*** The dragon uses Spellcasting to cast Guiding Bolt (level 4 version).\n\n***Pounce.*** The dragon moves up to half its Speed, and it makes one Rend attack."
-  }
+  },
+  "roddel": "Boven of onder water maakt hem niets uit; hij ademt allebei. In het water heb jij de haast, hij niet. Vuur doet hem niets; zoek iets anders."
  },
  {
   "key": "srd-2024_ancient-green-dragon",
@@ -757,7 +775,8 @@
    "actions": "***Multiattack.*** The dragon makes three Rend attacks. It can replace one attack with a use of Spellcasting to cast Mind Spike (level 5 version).\n\n***Rend.*** Melee Attack Roll: +15, reach 15 ft. 17 (2d8 + 8) Slashing damage plus 10 (3d6) Poison damage.\n\n***Poison Breath.*** Constitution Saving Throw: DC 22, each creature in a 90-foot Cone. Failure: 77 (22d6) Poison damage. Success: Half damage.\n\n***Spellcasting.*** The dragon casts one of the following spells, requiring no Material components and using Charisma as the spellcasting ability (spell save DC 21):\n\n- **At Will:** Detect Magic, Mind Spike\n- **1/Day Each:** Geas, Modify Memory",
    "reactions": "",
    "legendaryActions": "***Mind Invasion.*** The dragon uses Spellcasting to cast Mind Spike (level 5 version).\n\n***Noxious Miasma.*** Constitution Saving Throw: DC 21, each creature in a 30-foot-radius Sphere [Area of Effect]|XPHB|Sphere centered on a point the dragon can see within 90 feet. Failure: 17 (5d6) Poison damage, and the target takes a -2 penalty to AC until the end of its next turn. Failure or Success: The dragon can't take this action again until the start of its next turn.\n\n***Pounce.*** The dragon moves up to half its Speed, and it makes one Rend attack."
-  }
+  },
+  "roddel": "Boven of onder water maakt hem niets uit; hij ademt allebei. In het water heb jij de haast, hij niet. Donker maakt voor hem niets uit; een lamp doven verbergt je niet."
  },
  {
   "key": "srd-2024_ancient-red-dragon",
@@ -795,7 +814,8 @@
    "actions": "***Multiattack.*** The dragon makes three Rend attacks. It can replace one attack with a use of Spellcasting to cast Scorching Ray (level 3 version).\n\n***Rend.*** Melee Attack Roll: +17, reach 15 ft. 19 (2d8 + 10) Slashing damage plus 10 (3d6) Fire damage.\n\n***Fire Breath.*** Dexterity Saving Throw: DC 24, each creature in a 90-foot Cone. Failure: 91 (26d6) Fire damage. Success: Half damage.\n\n***Spellcasting.*** The dragon casts one of the following spells, requiring no Material components and using Charisma as the spellcasting ability (spell save DC 23, +15 to hit with spell attacks):\n\n- **At Will:** Command, Detect Magic, Scorching Ray\n- **1/Day Each:** Fireball, Scrying",
    "reactions": "",
    "legendaryActions": "***Commanding Presence.*** The dragon uses Spellcasting to cast Command (level 2 version). The dragon can't take this action again until the start of its next turn.\n\n***Fiery Rays.*** The dragon uses Spellcasting to cast Scorching Ray (level 3 version). The dragon can't take this action again until the start of its next turn.\n\n***Pounce.*** The dragon moves up to half its Speed, and it makes one Rend attack."
-  }
+  },
+  "roddel": "Vuur doet hem niets; zoek iets anders. Donker maakt voor hem niets uit; een lamp doven verbergt je niet."
  },
  {
   "key": "srd-2024_ancient-silver-dragon",
@@ -833,7 +853,8 @@
    "actions": "***Multiattack.*** The dragon makes three Rend attacks. It can replace one attack with a use of (A) Paralyzing Breath or (B) Spellcasting to cast Ice Knife (level 2 version).\n\n***Rend.*** Melee Attack Roll: +17, reach 15 ft. 19 (2d8 + 10) Slashing damage plus 9 (2d8) Cold damage.\n\n***Cold Breath.*** Constitution Saving Throw: DC 24, each creature in a 90-foot Cone. Failure: 67 (15d8) Cold damage. Success: Half damage.\n\n***Paralyzing Breath.*** Constitution Saving Throw: DC 24, each creature in a 90-foot Cone. First Failure The target has the Incapacitated condition until the end of its next turn, when it repeats the save. Second Failure The target has the Paralyzed condition, and it repeats the save at the end of each of its turns, ending the effect on itself on a success. After 1 minute, it succeeds automatically.\n\n***Spellcasting.*** The dragon casts one of the following spells, requiring no Material components and using Charisma as the spellcasting ability (spell save DC 23, +15 to hit with spell attacks):\n\n- **At Will:** Detect Magic, Hold Monster, Ice Knife, Shapechange\n- **1/Day Each:** Control Weather, Ice Storm, Teleport, Zone of Truth",
    "reactions": "",
    "legendaryActions": "***Chill.*** The dragon uses Spellcasting to cast Hold Monster. The dragon can't take this action again until the start of its next turn.\n\n***Cold Gale.*** Dexterity Saving Throw: DC 23, each creature in a 60-foot-long, 10-foot-wide Line. Failure: 14 (4d6) Cold damage, and the target is pushed up to 30 feet straight away from the dragon. Success: Half damage only. Failure or Success: The dragon can't take this action again until the start of its next turn.\n\n***Pounce.*** The dragon moves up to half its Speed, and it makes one Rend attack."
-  }
+  },
+  "roddel": "Kou doet hem niets; zoek iets anders. Donker maakt voor hem niets uit; een lamp doven verbergt je niet."
  },
  {
   "key": "srd-2024_ancient-white-dragon",
@@ -871,7 +892,8 @@
    "actions": "***Multiattack.*** The dragon makes three Rend attacks.\n\n***Rend.*** Melee Attack Roll: +14, reach 15 ft. 17 (2d8 + 8) Slashing damage plus 7 (2d6) Cold damage.\n\n***Cold Breath.*** Constitution Saving Throw: DC 22, each creature in a 90-foot Cone. Failure: 63 (14d8) Cold damage. Success: Half damage.",
    "reactions": "",
    "legendaryActions": "***Freezing Burst.*** Constitution Saving Throw: DC 20, each creature in a 30-foot-radius Sphere [Area of Effect]|XPHB|Sphere centered on a point the dragon can see within 120 feet. Failure: 14 (4d6) Cold damage, and the target's Speed is 0 until the end of the target's next turn. Failure or Success: The dragon can't take this action again until the start of its next turn.\n\n***Pounce.*** The dragon moves up to half its Speed, and it makes one Rend attack.\n\n***Frightful Presence.*** The dragon casts Fear, requiring no Material components and using Charisma as the spellcasting ability (spell save DC 18). The dragon can't take this action again until the start of its next turn."
-  }
+  },
+  "roddel": "Hij komt van onderen. Op losse grond hoor je hem pas als het te laat is. Kou doet hem niets; zoek iets anders."
  },
  {
   "key": "srd-2024_animated-armor",
@@ -909,7 +931,8 @@
    "actions": "***Multiattack.*** The armor makes two Slam attacks.\n\n***Slam.*** Melee Attack Roll: +4, reach 5 ft. 5 (1d6 + 2) Bludgeoning damage.",
    "reactions": "",
    "legendaryActions": ""
-  }
+  },
+  "roddel": "Praten helpt niet en dreigen ook niet — hij is voor geen van beide gevoelig. Donker maakt voor hem niets uit; een lamp doven verbergt je niet."
  },
  {
   "key": "srd-2024_animated-flying-sword",
@@ -947,7 +970,8 @@
    "actions": "***Slash.*** Melee Attack Roll: +4, reach 5 ft. 6 (1d8 + 2) Slashing damage.",
    "reactions": "",
    "legendaryActions": ""
-  }
+  },
+  "roddel": "Praten helpt niet en dreigen ook niet — hij is voor geen van beide gevoelig. Donker maakt voor hem niets uit; een lamp doven verbergt je niet."
  },
  {
   "key": "srd-2024_animated-rug-of-smothering",
@@ -985,7 +1009,8 @@
    "actions": "***Smother.*** Melee Attack Roll: +5, reach 5 ft. 10 (2d6 + 3) Bludgeoning damage. If the target is a Medium or smaller creature, the rug can give it the Grappled condition (escape DC 13) instead of dealing damage. Until the grapple ends, the target has the Blinded and Restrained conditions, is suffocating, and takes 10 (2d6 + 3) Bludgeoning damage at the start of each of its turns. The rug can smother only one creature at a time. While grappling the target, the rug can't take this action, the rug halves the damage it takes (round down), and the target takes the same amount of damage.",
    "reactions": "",
    "legendaryActions": ""
-  }
+  },
+  "roddel": "Praten helpt niet en dreigen ook niet — hij is voor geen van beide gevoelig. Donker maakt voor hem niets uit; een lamp doven verbergt je niet."
  },
  {
   "key": "srd-2024_ankheg",
@@ -1023,7 +1048,8 @@
    "actions": "***Bite.*** Melee Attack Roll: +5 (with Advantage if the target is Grappled by the ankheg), reach 5 ft. 10 (2d6 + 3) Slashing damage plus 3 (1d6) Acid damage. If the target is a Large or smaller creature, it has the Grappled condition (escape DC 13).\n\n***Acid Spray.*** Dexterity Saving Throw: DC 12, each creature in a 30-foot-long, 5-foot-wide Line. Failure: 14 (4d6) Acid damage. Success: Half damage.",
    "reactions": "",
    "legendaryActions": ""
-  }
+  },
+  "roddel": "Hij komt van onderen. Op losse grond hoor je hem pas als het te laat is. Hij voelt je lopen. Wie stil blijft staan, bestaat voor hem even niet."
  },
  {
   "key": "srd-2024_ankylosaurus",
@@ -1137,7 +1163,8 @@
    "actions": "***Multiattack.*** The archelon makes two Bite attacks.\n\n***Bite.*** Melee Attack Roll: +6, reach 5 ft. 14 (3d6 + 4) Piercing damage.",
    "reactions": "",
    "legendaryActions": ""
-  }
+  },
+  "roddel": "Boven of onder water maakt hem niets uit; hij ademt allebei. In het water heb jij de haast, hij niet."
  },
  {
   "key": "srd-2024_archmage",
@@ -1175,7 +1202,8 @@
    "actions": "***Multiattack.*** The archmage makes four Arcane Burst attacks.\n\n***Arcane Burst.*** Melee or Ranged Attack Roll: +9, reach 5 ft. or range 150 ft. 27 (4d10 + 5) Force damage.\n\n***Spellcasting.*** The archmage casts one of the following spells, using Intelligence as the spellcasting ability (spell save DC 17):\n\n- **At Will:** Detect Magic, Detect Thoughts, Disguise Self, Invisibility, Light, Mage Armor, Mage Hand, Prestidigitation\n- **2/Day Each:** Fly, Lightning Bolt\n- **1/Day Each:** Cone of Cold, Mind Blank, Scrying, Teleport",
    "reactions": "***Protective Magic.*** The archmage casts Counterspell or Shield in response to the spell's trigger, using the same spellcasting ability as Spellcasting.",
    "legendaryActions": ""
-  }
+  },
+  "roddel": "Hij is met geen woord of blik te bespelen; dat is bij hem al geprobeerd. Spreuken glijden van hem af alsof ze voor iemand anders bedoeld waren. Neem staal mee."
  },
  {
   "key": "srd-2024_assassin",
@@ -1365,7 +1393,8 @@
    "actions": "***Burning Hammer.*** Melee Attack Roll: +5, reach 5 ft. 8 (1d10 + 3) Bludgeoning damage plus 3 (1d6) Fire damage.",
    "reactions": "",
    "legendaryActions": ""
-  }
+  },
+  "roddel": "Vuur doet hem niets; zoek iets anders."
  },
  {
   "key": "srd-2024_baboon",
@@ -1403,7 +1432,8 @@
    "actions": "***Bite.*** Melee Attack Roll: +1, reach 5 ft. 1 (1d4 - 1) Piercing damage.",
    "reactions": "",
    "legendaryActions": ""
-  }
+  },
+  "roddel": "Hij valt nooit alleen aan. Het is de tweede die je pakt, terwijl je naar de eerste kijkt."
  },
  {
   "key": "srd-2024_badger",
@@ -1441,7 +1471,8 @@
    "actions": "***Bite.*** Melee Attack Roll: +2, reach 5 ft. 1 Piercing damage.",
    "reactions": "",
    "legendaryActions": ""
-  }
+  },
+  "roddel": "Hij komt van onderen. Op losse grond hoor je hem pas als het te laat is."
  },
  {
   "key": "srd-2024_balor",
@@ -1479,7 +1510,8 @@
    "actions": "***Multiattack.*** The balor makes one Flame Whip attack and one Lightning Blade attack.\n\n***Flame Whip.*** Melee Attack Roll: +14, reach 30 ft. 18 (3d6 + 8) Force damage plus 17 (5d6) Fire damage. If the target is a Huge or smaller creature, the balor pulls the target up to 25 feet straight toward itself, and the target has the Prone condition.\n\n***Lightning Blade.*** Melee Attack Roll: +14, reach 10 ft. 21 (3d8 + 8) Force damage plus 22 (4d10) Lightning damage, and the target can't take Reactions until the start of the balor's next turn.",
    "reactions": "",
    "legendaryActions": ""
-  }
+  },
+  "roddel": "Sta niet naast hem als hij valt. Dat is het moment waarop de meeste mensen gewond raken. Praten helpt niet en dreigen ook niet — hij is voor geen van beide gevoelig."
  },
  {
   "key": "srd-2024_bandit",
@@ -1593,7 +1625,8 @@
    "actions": "***Multiattack.*** The devil makes one Claws attack and one Tail attack, or it makes two Hurl Flame attacks.\n\n***Claws.*** Melee Attack Roll: +6, reach 5 ft. 10 (2d6 + 3) Piercing damage. If the target is a Large or smaller creature, it has the Grappled condition (escape DC 13) from both claws.\n\n***Tail.*** Melee Attack Roll: +6, reach 10 ft. 14 (2d10 + 3) Slashing damage.\n\n***Hurl Flame.*** Ranged Attack Roll: +5, range 150 ft. 17 (5d6) Fire damage. If the target is a flammable object that isn't being worn or carried, it starts burning.",
    "reactions": "",
    "legendaryActions": ""
-  }
+  },
+  "roddel": "Hij praat zonder zijn mond te bewegen, rechtstreeks in je hoofd. Wat je terugdenkt, hoort hij ook. Spreuken glijden van hem af alsof ze voor iemand anders bedoeld waren. Neem staal mee."
  },
  {
   "key": "srd-2024_basilisk",
@@ -1669,7 +1702,8 @@
    "actions": "***Bite.*** Melee Attack Roll: +4 to hit, reach 5 ft. 1 Piercing damage.",
    "reactions": "",
    "legendaryActions": ""
-  }
+  },
+  "roddel": "Donker maakt voor hem niets uit; een lamp doven verbergt je niet."
  },
  {
   "key": "srd-2024_bearded-devil",
@@ -1707,7 +1741,8 @@
    "actions": "***Multiattack.*** The devil makes one Beard attack and one Infernal Glaive attack.\n\n***Beard.*** Melee Attack Roll: +5, reach 5 ft. 7 (1d8 + 3) Piercing damage, and the target has the Poisoned condition until the start of the devil's next turn. Until this poison ends, the target can't regain Hit Points.\n\n***Infernal Glaive.*** Melee Attack Roll: +5, reach 10 ft. 8 (1d10 + 3) Slashing damage. If the target is a creature and doesn't already have an infernal wound, it is subjected to the following effect. Constitution Saving Throw: DC 12. Failure: The target receives an infernal wound. While wounded, the target loses 5 (1d10) Hit Points at the start of each of its turns. The wound closes after 1 minute, after a spell restores Hit Points to the target, or after the target or a creature within 5 feet of it takes an action to stanch the wound, doing so by succeeding on a DC 12 Wisdom (Medicine) check.",
    "reactions": "",
    "legendaryActions": ""
-  }
+  },
+  "roddel": "Bang maken werkt niet. Hij kent het woord niet. Hij praat zonder zijn mond te bewegen, rechtstreeks in je hoofd. Wat je terugdenkt, hoort hij ook."
  },
  {
   "key": "srd-2024_behir",
@@ -1745,7 +1780,8 @@
    "actions": "***Multiattack.*** The behir makes one Bite attack and uses Constrict.\n\n***Bite.*** Melee Attack Roll: +10, reach 10 ft. 19 (2d12 + 6) Piercing damage plus 11 (2d10) Lightning damage.\n\n***Constrict.*** Strength Saving Throw: DC 18, one Large or smaller creature the behir can see within 5 feet. Failure: 28 (5d8 + 6) Bludgeoning damage. The target has the Grappled condition (escape DC 16), and it has the Restrained condition until the grapple ends.\n\n***Lightning Breath.*** Dexterity Saving Throw: DC 16, each creature in a 90-foot-long, 5-foot-wide Line. Failure: 66 (12d10) Lightning damage. Success: Half damage.",
    "reactions": "",
    "legendaryActions": ""
-  }
+  },
+  "roddel": "Bliksem doet hem niets; zoek iets anders."
  },
  {
   "key": "srd-2024_berserker",
@@ -1859,7 +1895,8 @@
    "actions": "***Multiattack.*** The dragon makes two Rend attacks.\n\n***Rend.*** Melee Attack Roll: +4, reach 5 ft. 5 (1d6 + 2) Slashing damage plus 2 (1d4) Acid damage.\n\n***Acid Breath.*** Dexterity Saving Throw: DC 11, each creature in a 15-foot-long, 5-foot-wide Line. Failure: 22 (5d8) Acid damage. Success: Half damage.",
    "reactions": "",
    "legendaryActions": ""
-  }
+  },
+  "roddel": "Boven of onder water maakt hem niets uit; hij ademt allebei. In het water heb jij de haast, hij niet. Zuur doet hem niets; zoek iets anders."
  },
  {
   "key": "srd-2024_black-pudding",
@@ -1897,7 +1934,8 @@
    "actions": "***Dissolving Pseudopod.*** Melee Attack Roll: +5, reach 10 ft. 17 (4d6 + 3) Acid damage. Nonmagical armor worn by the target takes a -1 penalty to the AC it offers. The armor is destroyed if the penalty reduces its AC to 10. The penalty can be removed by casting the Mending spell on the armor.",
    "reactions": "***Parry.*** _Trigger:_ While the pudding is Large or Medium and has 10+ Hit Points, it becomes Bloodied or is subjected to Lightning or Slashing damage. _Response:_ The pudding splits into two new Black Puddings. Each new pudding is one size smaller than the original pudding and acts on its Initiative. The original pudding’s Hit Points are divided evenly between the new puddings (round down).",
    "legendaryActions": ""
-  }
+  },
+  "roddel": "Kijk omhoog. Muren en plafonds zijn voor hem gewoon vloeren. Praten helpt niet en dreigen ook niet — hij is voor geen van beide gevoelig."
  },
  {
   "key": "srd-2024_blink-dog",
@@ -1973,7 +2011,8 @@
    "actions": "***Beak.*** Melee Attack Roll: +4, reach 5 ft. 4 (1d4 + 2) Piercing damage, or 6 (1d8 + 2) Piercing damage if the target is Bloodied.",
    "reactions": "",
    "legendaryActions": ""
-  }
+  },
+  "roddel": "Hij valt nooit alleen aan. Het is de tweede die je pakt, terwijl je naar de eerste kijkt."
  },
  {
   "key": "srd-2024_blue-dragon-wyrmling",
@@ -2011,7 +2050,8 @@
    "actions": "***Multiattack.*** The dragon makes two Rend attacks.\n\n***Rend.*** Melee Attack Roll: +5, reach 5 ft. 8 (1d10 + 3) Slashing damage plus 3 (1d6) Lightning damage.\n\n***Lightning Breath.*** Dexterity Saving Throw: DC 12, each creature in a 30-foot-long, 5-foot-wide Line. Failure: 21 (6d6) Lightning damage. Success: Half damage.",
    "reactions": "",
    "legendaryActions": ""
-  }
+  },
+  "roddel": "Hij komt van onderen. Op losse grond hoor je hem pas als het te laat is. Bliksem doet hem niets; zoek iets anders."
  },
  {
   "key": "srd-2024_boar",
@@ -2087,7 +2127,8 @@
    "actions": "***Multiattack.*** The devil makes two Claw attacks and one Infernal Sting attack.\n\n***Claw.*** Melee Attack Roll: +8, reach 10 ft. 13 (2d8 + 4) Slashing damage.\n\n***Infernal Sting.*** Melee Attack Roll: +8, reach 10 ft. 15 (2d10 + 4) Piercing damage plus 18 (4d8) Poison damage, and the target has the Poisoned condition until the start of the devil's next turn. While Poisoned, the target can't regain Hit Points.",
    "reactions": "",
    "legendaryActions": ""
-  }
+  },
+  "roddel": "Hij praat zonder zijn mond te bewegen, rechtstreeks in je hoofd. Wat je terugdenkt, hoort hij ook. Spreuken glijden van hem af alsof ze voor iemand anders bedoeld waren. Neem staal mee."
  },
  {
   "key": "srd-2024_brass-dragon-wyrmling",
@@ -2125,7 +2166,8 @@
    "actions": "***Rend.*** Melee Attack Roll: +4, reach 5 ft. 7 (1d10 + 2) Slashing damage.\n\n***Fire Breath.*** Dexterity Saving Throw: DC 11, each creature in a 20-foot-long, 5-foot-wide Line. Failure: 14 (4d6) Fire damage. Success: Half damage.\n\n***Sleep Breath.*** Constitution Saving Throw: DC 11, each creature in a 15-foot Cone. Failure: The target has the Incapacitated condition until the end of its next turn, at which point it repeats the save. Second Failure The target has the Unconscious condition for 1 minute. This effect ends for the target if it takes damage or a creature within 5 feet of it takes an action to wake it.",
    "reactions": "",
    "legendaryActions": ""
-  }
+  },
+  "roddel": "Hij komt van onderen. Op losse grond hoor je hem pas als het te laat is. Vuur doet hem niets; zoek iets anders."
  },
  {
   "key": "srd-2024_bronze-dragon-wyrmling",
@@ -2163,7 +2205,8 @@
    "actions": "***Multiattack.*** The dragon makes two Rend attacks.\n\n***Rend.*** Melee Attack Roll: +5, reach 5 ft. 8 (1d10 + 3) Slashing damage.\n\n***Lightning Breath.*** Dexterity Saving Throw: DC 12, each creature in a 40-foot-long, 5-foot-wide Line. Failure: 16 (3d10) Lightning damage. Success: Half damage.\n\n***Repulsion Breath.*** Strength Saving Throw: DC 12, each creature in a 30-foot Cone. Failure: The target is pushed up to 30 feet straight away from the dragon and has the Prone condition.",
    "reactions": "",
    "legendaryActions": ""
-  }
+  },
+  "roddel": "Boven of onder water maakt hem niets uit; hij ademt allebei. In het water heb jij de haast, hij niet. Bliksem doet hem niets; zoek iets anders."
  },
  {
   "key": "srd-2024_brown-bear",
@@ -2315,7 +2358,8 @@
    "actions": "***Multiattack.*** The bulette makes two Bite attacks.\n\n***Bite.*** Melee Attack Roll: +7, reach 5 ft. 17 (2d12 + 4) Piercing damage.\n\n***Deadly Leap.*** The bulette spends 5 feet of movement to jump to a space within 15 feet that contains one or more Large or smaller creatures. Dexterity Saving Throw: DC 15, each creature in the bulette's destination space. Failure: 19 (3d12) Bludgeoning damage, and the target has the Prone condition. Success: Half damage, and the target is pushed 5 feet straight away from the bulette.",
    "reactions": "",
    "legendaryActions": ""
-  }
+  },
+  "roddel": "Hij komt van onderen. Op losse grond hoor je hem pas als het te laat is. Hij voelt je lopen. Wie stil blijft staan, bestaat voor hem even niet."
  },
  {
   "key": "srd-2024_camel",
@@ -2467,7 +2511,8 @@
    "actions": "***Multiattack.*** The devil makes two Chain attacks and uses Conjure Infernal Chain.\n\n***Chain.*** Melee Attack Roll: +7, reach 10 ft. 11 (2d6 + 4) Slashing damage. If the target is a Large or smaller creature, it has the Grappled condition (escape DC 14) from one of two chains, and it has the Restrained condition until the grapple ends.\n\n***Conjure Infernal Chain.*** The devil conjures a fiery chain to bind a creature. Dexterity Saving Throw: DC 15, one creature the devil can see within 60 feet. Failure: 9 (2d4 + 4) Fire damage, and the target has the Restrained condition until the end of the devil's next turn, at which point the chain disappears. If the target is Large or smaller, the devil moves the target up to 30 feet straight toward itself. Success: The chain disappears.",
    "reactions": "***Unnerving Gaze.*** _Trigger:_ A creature the devil can see starts its turn within 30 feet of the devil and can see the devil. _Response––Wisdom Saving Throw:_ DC 15, the triggering creature. _Failure:_ The target has the Frightened condition until the end of its turn. _Success:_ The target is immune to this devil’s Unnerving Gaze for 24 hours.",
    "legendaryActions": ""
-  }
+  },
+  "roddel": "Hij praat zonder zijn mond te bewegen, rechtstreeks in je hoofd. Wat je terugdenkt, hoort hij ook. Spreuken glijden van hem af alsof ze voor iemand anders bedoeld waren. Neem staal mee."
  },
  {
   "key": "srd-2024_chimera",
@@ -2543,7 +2588,8 @@
    "actions": "***Multiattack.*** The chuul makes two Pincer attacks and uses Paralyzing Tentacles.\n\n***Pincer.*** Melee Attack Roll: +6, reach 10 ft. 9 (1d10 + 4) Bludgeoning damage. If the target is a Large or smaller creature, it has the Grappled condition (escape DC 14) from one of two pincers.\n\n***Paralyzing Tentacles.*** Constitution Saving Throw: DC 13, one creature Grappled by the chuul. Failure: The target has the Poisoned condition and repeats the save at the end of each of its turns, ending the effect on itself on a success. After 1 minute, it succeeds automatically. While Poisoned, the target has the Paralyzed condition.",
    "reactions": "",
    "legendaryActions": ""
-  }
+  },
+  "roddel": "Boven of onder water maakt hem niets uit; hij ademt allebei. In het water heb jij de haast, hij niet."
  },
  {
   "key": "srd-2024_clay-golem",
@@ -2581,7 +2627,8 @@
    "actions": "***Multiattack.*** The golem makes two Slam attacks, or it makes three Slam attacks if it used Hasten this turn.\n\n***Slam.*** Melee Attack Roll: +9, reach 5 ft. 10 (1d10 + 5) Bludgeoning damage plus 6 (1d12) Acid damage, and the target's Hit Point maximum decreases by an amount equal to the Acid damage taken.",
    "reactions": "",
    "legendaryActions": ""
-  }
+  },
+  "roddel": "Praten helpt niet en dreigen ook niet — hij is voor geen van beide gevoelig. Spreuken glijden van hem af alsof ze voor iemand anders bedoeld waren. Neem staal mee."
  },
  {
   "key": "srd-2024_cloaker",
@@ -2771,7 +2818,8 @@
    "actions": "***Bite.*** Melee Attack Roll: +4, reach 5 ft. 6 (1d8 + 2) Piercing damage.\n\n***Constrict.*** Strength Saving Throw: DC 12, one Medium or smaller creature the snake can see within 5 feet. Failure: 7 (3d4) Bludgeoning damage, and the target has the Grappled condition (escape DC 12).",
    "reactions": "",
    "legendaryActions": ""
-  }
+  },
+  "roddel": "Donker maakt voor hem niets uit; een lamp doven verbergt je niet."
  },
  {
   "key": "srd-2024_copper-dragon-wyrmling",
@@ -2809,7 +2857,8 @@
    "actions": "***Rend.*** Melee Attack Roll: +4, reach 5 ft. 7 (1d10 + 2) Slashing damage.\n\n***Acid Breath.*** Dexterity Saving Throw: DC 11, each creature in a 20-foot-long, 5-foot-wide Line. Failure: 18 (4d8) Acid damage. Success: Half damage.\n\n***Slowing Breath.*** Constitution Saving Throw: DC 11, each creature in a 15-foot Cone. Failure: The target can't take Reactions; its Speed is halved; and it can take either an action or a Bonus Action on its turn, not both. This effect lasts until the end of its next turn.",
    "reactions": "",
    "legendaryActions": ""
-  }
+  },
+  "roddel": "Zuur doet hem niets; zoek iets anders. Donker maakt voor hem niets uit; een lamp doven verbergt je niet."
  },
  {
   "key": "srd-2024_couatl",
@@ -2847,7 +2896,8 @@
    "actions": "***Bite.*** Melee Attack Roll: +7, reach 5 ft. 11 (1d12 + 5) Piercing damage, and the target has the Poisoned condition until the end of the couatl's next turn.\n\n***Constrict.*** Strength Saving Throw: DC 15, one Medium or smaller creature the couatl can see within 5 feet. Failure: 8 (1d6 + 5) Bludgeoning damage. The target has the Grappled condition (escape DC 13), and it has the Restrained condition until the grapple ends.\n\n***Spellcasting.*** The couatl casts one of the following spells, requiring no spell components and using Wisdom as the spellcasting ability (spell save DC 15):\n\n- **At Will:** Detect Evil and Good, Detect Magic, Detect Thoughts, Shapechange\n- **1/Day Each:** Create Food and Water, Dream, Greater Restoration, Scrying, Sleep",
    "reactions": "",
    "legendaryActions": ""
-  }
+  },
+  "roddel": "Vermommingen en illusies werken niet: hij ziet dwars door alles heen wat je optrekt. Hij praat zonder zijn mond te bewegen, rechtstreeks in je hoofd. Wat je terugdenkt, hoort hij ook."
  },
  {
   "key": "srd-2024_crab",
@@ -2885,7 +2935,8 @@
    "actions": "***Claw.*** Melee Attack Roll: +2, reach 5 ft. 1 Bludgeoning damage.",
    "reactions": "",
    "legendaryActions": ""
-  }
+  },
+  "roddel": "Boven of onder water maakt hem niets uit; hij ademt allebei. In het water heb jij de haast, hij niet. Donker maakt voor hem niets uit; een lamp doven verbergt je niet."
  },
  {
   "key": "srd-2024_crocodile",
@@ -3037,7 +3088,8 @@
    "actions": "***Crush.*** Melee Attack Roll: +5, reach 5 ft. 6 (1d6 + 3) Bludgeoning damage, and the darkmantle attaches to the target. If the target is a Medium or smaller creature and the darkmantle had Advantage on the attack roll, it covers the target, which has the Blinded condition and is suffocating while the darkmantle is attached in this way. While attached to a target, the darkmantle can attack only the target but has Advantage on its attack rolls. Its Speed becomes 0, it can't benefit from any bonus to its Speed, and it moves with the target. A creature can take an action to try to detach the darkmantle from itself, doing so with a successful DC 13 Strength (Athletics) check. On its turn, the darkmantle can detach itself by using 5 feet of movement.\n\n***Darkness Aura.*** Magical darkness fills a 15-foot Emanation originating from the darkmantle. This effect lasts while the darkmantle maintains Concentration on it, up to 10 minutes. Darkvision can't penetrate this area, and no light can illuminate it.",
    "reactions": "",
    "legendaryActions": ""
-  }
+  },
+  "roddel": "Donker maakt voor hem niets uit; een lamp doven verbergt je niet."
  },
  {
   "key": "srd-2024_death-dog",
@@ -3151,7 +3203,8 @@
    "actions": "***Multiattack.*** The deva makes two Holy Mace attacks.\n\n***Holy Mace.*** Melee Attack Roll: +8, reach 5 ft. 7 (1d6 + 4) Bludgeoning damage plus 18 (4d8) Radiant damage.\n\n***Spellcasting.*** The deva casts one of the following spells, requiring no Material components and using Charisma as the spellcasting ability (spell save DC 17):\n\n- **At Will:** Detect Evil and Good, Shapechange\n- **1/Day Each:** Commune, Raise Dead",
    "reactions": "",
    "legendaryActions": ""
-  }
+  },
+  "roddel": "Hij praat zonder zijn mond te bewegen, rechtstreeks in je hoofd. Wat je terugdenkt, hoort hij ook. Spreuken glijden van hem af alsof ze voor iemand anders bedoeld waren. Neem staal mee."
  },
  {
   "key": "srd-2024_dire-wolf",
@@ -3189,7 +3242,8 @@
    "actions": "***Bite.*** Melee Attack Roll: +5, reach 5 ft. 8 (1d10 + 3) Piercing damage. If the target is a Large or smaller creature, it has the Prone condition.",
    "reactions": "",
    "legendaryActions": ""
-  }
+  },
+  "roddel": "Hij valt nooit alleen aan. Het is de tweede die je pakt, terwijl je naar de eerste kijkt."
  },
  {
   "key": "srd-2024_djinni",
@@ -3227,7 +3281,8 @@
    "actions": "***Multiattack.*** The djinni makes three attacks, using Storm Blade or Storm Bolt in any combination.\n\n***Storm Blade.*** Melee Attack Roll: +9, reach 5 feet. 12 (2d6 + 5) Slashing damage plus 7 (2d6) Lightning damage.\n\n***Storm Bolt.*** Ranged Attack Roll: +9, range 120 feet. 13 (3d8) Thunder damage. If the target is a Large or smaller creature, it has the Prone condition.\n\n***Create Whirlwind.*** The djinni conjures a whirlwind at a point it can see within 120 feet. The whirlwind fills a 20-foot-radius, 60-foot-high Cylinder [Area of Effect]|XPHB|Cylinder centered on that point. The whirlwind lasts until the djinni's Concentration on it ends. The djinni can move the whirlwind up to 20 feet at the start of each of its turns. Whenever the whirlwind enters a creature's space or a creature enters the whirlwind, that creature is subjected to the following effect. Strength Saving Throw: DC 17 (a creature makes this save only once per turn, and the djinni is unaffected). Failure: While in the whirlwind, the target has the Restrained condition and moves with the whirlwind. At the start of each of its turns, the Restrained target takes 21 (6d6) Thunder damage. At the end of each of its turns, the target repeats the save, ending the effect on itself on a success.\n\n***Spellcasting.*** The djinni casts one of the following spells, requiring no Material components and using Charisma as the spellcasting ability (spell save DC 17):\n\n- **At Will:** Detect Evil and Good, Detect Magic\n- **2/Day Each:** Create Food and Water, Tongues, Wind Walk\n- **1/Day Each:** Creation, Gaseous Form, Invisibility, Major Image, Plane Shift",
    "reactions": "",
    "legendaryActions": ""
-  }
+  },
+  "roddel": "Spreuken glijden van hem af alsof ze voor iemand anders bedoeld waren. Neem staal mee. Bliksem en donderslag doen hem niets; zoek iets anders."
  },
  {
   "key": "srd-2024_doppelganger",
@@ -3341,7 +3396,8 @@
    "actions": "***Multiattack.*** The dragon makes three Bite attacks. It can replace one attack with a Tail attack.\n\n***Bite.*** Melee Attack Roll: +13, reach 15 ft. 23 (3d10 + 7) Piercing damage plus 7 (2d6) Fire damage. Being underwater doesn't grant Resistance to this Fire damage.\n\n***Tail.*** Melee Attack Roll: +13, reach 15 ft. 18 (2d10 + 7) Bludgeoning damage. If the target is a Huge or smaller creature, it has the Prone condition.\n\n***Steam Breath.*** Constitution Saving Throw: DC 19, each creature in a 60-foot Cone. Failure: 56 (16d6) Fire damage. Success: Half damage. Failure or Success: Being underwater doesn't grant Resistance to this Fire damage.",
    "reactions": "",
    "legendaryActions": ""
-  }
+  },
+  "roddel": "Boven of onder water maakt hem niets uit; hij ademt allebei. In het water heb jij de haast, hij niet."
  },
  {
   "key": "srd-2024_dretch",
@@ -3379,7 +3435,8 @@
    "actions": "***Rend.*** Melee Attack Roll: +3, reach 5 ft. 4 (1d6 + 1) Slashing damage.\n\n***Fetid Cloud.*** Constitution Saving Throw: DC 11, each creature in a 10-foot Emanation originating from the dretch. Failure: The target has the Poisoned condition until the end of its next turn. While Poisoned, the creature can take either an action or a Bonus Action on its turn, not both, and it can't take Reactions.",
    "reactions": "",
    "legendaryActions": ""
-  }
+  },
+  "roddel": "Hij praat zonder zijn mond te bewegen, rechtstreeks in je hoofd. Wat je terugdenkt, hoort hij ook."
  },
  {
   "key": "srd-2024_drider",
@@ -3417,7 +3474,8 @@
    "actions": "***Multiattack.*** The drider makes three attacks, using Foreleg or Poison Burst in any combination.\n\n***Foreleg.*** Melee Attack Roll: +7, reach 10 ft. 13 (2d8 + 4) Piercing damage.\n\n***Poison Burst.*** Ranged Attack Roll: +6, range 120 ft. 13 (3d6 + 3) Poison damage.",
    "reactions": "",
    "legendaryActions": ""
-  }
+  },
+  "roddel": "Breng hem in de volle zon en hij knijpt zijn ogen dicht; wat hij daar doet, doet hij half. Kijk omhoog. Muren en plafonds zijn voor hem gewoon vloeren."
  },
  {
   "key": "srd-2024_druid",
@@ -3493,7 +3551,8 @@
    "actions": "***Multiattack.*** The dryad makes one Vine Lash or Thorn Burst attack, and it can use Spellcasting to cast Charm Monster.\n\n***Vine Lash.*** Melee Attack Roll: +6, reach 10 ft. 8 (1d8 + 4) Slashing damage.\n\n***Thorn Burst.*** Ranged Attack Roll: +6, range 60 ft. 7 (1d6 + 4) Piercing damage.\n\n***Spellcasting.*** The dryad casts one of the following spells, requiring no Material components and using Charisma as the spellcasting ability (spell save DC 14):\n\n- **At Will:** Animal Friendship, Charm Monster, Druidcraft\n- **1/Day Each:** Entangle, Pass without Trace",
    "reactions": "",
    "legendaryActions": ""
-  }
+  },
+  "roddel": "Spreuken glijden van hem af alsof ze voor iemand anders bedoeld waren. Neem staal mee."
  },
  {
   "key": "srd-2024_dust-mephit",
@@ -3531,7 +3590,8 @@
    "actions": "***Claw.*** Melee Attack Roll: +4, reach 5 ft. 4 (1d4 + 2) Slashing damage.\n\n***Blinding Breath.*** Dexterity Saving Throw: DC 10, each creature in a 15-foot Cone. Failure: The target has the Blinded condition until the end of the mephit's next turn.\n\n***Sleep.*** The mephit casts the Sleep spell, requiring no spell components and using Charisma as the spellcasting ability (spell save DC 10).",
    "reactions": "",
    "legendaryActions": ""
-  }
+  },
+  "roddel": "Sta niet naast hem als hij valt. Dat is het moment waarop de meeste mensen gewond raken."
  },
  {
   "key": "srd-2024_eagle",
@@ -3607,7 +3667,8 @@
    "actions": "***Multiattack.*** The elemental makes two attacks, using Slam or Rock Launch in any combination.\n\n***Slam.*** Melee Attack Roll: +8, reach 10 ft. 14 (2d8 + 5) Bludgeoning damage.\n\n***Rock Launch.*** Ranged Attack Roll: +8, range 60 ft. 8 (1d6 + 5) Bludgeoning damage. If the target is a Large or smaller creature, it has the Prone condition.",
    "reactions": "",
    "legendaryActions": ""
-  }
+  },
+  "roddel": "Hij komt van onderen. Op losse grond hoor je hem pas als het te laat is. Hij voelt je lopen. Wie stil blijft staan, bestaat voor hem even niet."
  },
  {
   "key": "srd-2024_efreeti",
@@ -3645,7 +3706,8 @@
    "actions": "***Multiattack.*** The efreeti makes three attacks, using Heated Blade or Hurl Flame in any combination.\n\n***Heated Blade.*** Melee Attack Roll: +10, reach 5 ft. 13 (2d6 + 6) Slashing damage plus 13 (2d12) Fire damage.\n\n***Hurl Flame.*** Ranged Attack Roll: +8, range 120 ft. 24 (7d6) Fire damage.\n\n***Spellcasting.*** The efreeti casts one of the following spells, requiring no Material components and using Charisma as the spellcasting ability (spell save DC 16):\n\n- **At Will:** Detect Magic, Elementalism\n- **1/Day Each:** Gaseous Form, Invisibility, Major Image, Plane Shift, Tongues, Wall of Fire",
    "reactions": "",
    "legendaryActions": ""
-  }
+  },
+  "roddel": "Spreuken glijden van hem af alsof ze voor iemand anders bedoeld waren. Neem staal mee. Vuur doet hem niets; zoek iets anders."
  },
  {
   "key": "srd-2024_elephant",
@@ -3759,7 +3821,8 @@
    "actions": "***Multiattack.*** The erinyes makes three Withering Sword attacks and can use Entangling Rope.\n\n***Withering Sword.*** Melee Attack Roll: +8, reach 5 ft. 13 (2d8 + 4) Slashing damage plus 11 (2d10) Necrotic damage.\n\n***Entangling Rope.*** Strength Saving Throw: DC 16, one creature the erinyes can see within 120 feet. Failure: 14 (4d6) Force damage, and the target has the Restrained condition until the rope is destroyed, the erinyes uses a Bonus Action to release the target, or the erinyes uses Entangling Rope again.",
    "reactions": "***Parry.*** _Trigger:_ The erinyes is hit by a melee attack roll while holding a weapon. _Response:_ The erinyes adds 4 to its AC against that attack, possibly causing it to miss.",
    "legendaryActions": ""
-  }
+  },
+  "roddel": "Vermommingen en illusies werken niet: hij ziet dwars door alles heen wat je optrekt. Hij praat zonder zijn mond te bewegen, rechtstreeks in je hoofd. Wat je terugdenkt, hoort hij ook."
  },
  {
   "key": "srd-2024_ettercap",
@@ -3797,7 +3860,8 @@
    "actions": "***Multiattack.*** The ettercap makes one Bite attack and one Claw attack.\n\n***Bite.*** Melee Attack Roll: +4, reach 5 ft. 5 (1d6 + 2) Piercing damage plus 2 (1d4) Poison damage, and the target has the Poisoned condition until the start of the ettercap's next turn.\n\n***Claw.*** Melee Attack Roll: +4, reach 5 ft. 7 (2d4 + 2) Slashing damage.\n\n***Web Strand.*** Dexterity Saving Throw: DC 12, one Large or smaller creature the ettercap can see within 30 feet. Failure: The target has the Restrained condition until the web is destroyed (AC 10; HP 5; Vulnerability to Fire damage; Immunity to Bludgeoning, Poison, and Psychic damage).",
    "reactions": "",
    "legendaryActions": ""
-  }
+  },
+  "roddel": "Kijk omhoog. Muren en plafonds zijn voor hem gewoon vloeren. Zijn eigen web houdt jou wel tegen en hem niet."
  },
  {
   "key": "srd-2024_ettin",
@@ -3873,7 +3937,8 @@
    "actions": "***Multiattack.*** The elemental makes two Burn attacks.\n\n***Burn.*** Melee Attack Roll: +6, reach 5 ft. 10 (2d6 + 3) Fire damage. If the target is a creature or a flammable object, it starts burning.",
    "reactions": "",
    "legendaryActions": ""
-  }
+  },
+  "roddel": "Vuur doet hem niets; zoek iets anders."
  },
  {
   "key": "srd-2024_fire-giant",
@@ -3911,7 +3976,8 @@
    "actions": "***Multiattack.*** The giant makes two attacks, using Flame Sword or Hammer Throw in any combination.\n\n***Flame Sword.*** Melee Attack Roll: +11, reach 10 ft. 21 (4d6 + 7) Slashing damage plus 10 (3d6) Fire damage.\n\n***Hammer Throw.*** Ranged Attack Roll: +11, range 60/240 ft. 23 (3d10 + 7) Bludgeoning damage plus 4 (1d8) Fire damage, and the target is pushed up to 15 feet straight away from the giant and has Disadvantage on the next attack roll it makes before the end of its next turn.",
    "reactions": "",
    "legendaryActions": ""
-  }
+  },
+  "roddel": "Vuur doet hem niets; zoek iets anders."
  },
  {
   "key": "srd-2024_flesh-golem",
@@ -3949,7 +4015,8 @@
    "actions": "***Multiattack.*** The golem makes two Slam attacks.\n\n***Slam.*** Melee Attack Roll: +7, reach 5 ft. 13 (2d8 + 4) Bludgeoning damage plus 4 (1d8) Lightning damage.",
    "reactions": "",
    "legendaryActions": ""
-  }
+  },
+  "roddel": "Praten helpt niet en dreigen ook niet — hij is voor geen van beide gevoelig. Spreuken glijden van hem af alsof ze voor iemand anders bedoeld waren. Neem staal mee."
  },
  {
   "key": "srd-2024_flying-snake",
@@ -3987,7 +4054,8 @@
    "actions": "***Bite.*** Melee Attack Roll: +4, reach 5 ft. 1 Piercing damage plus 5 (2d4) Poison damage.",
    "reactions": "",
    "legendaryActions": ""
-  }
+  },
+  "roddel": "Donker maakt voor hem niets uit; een lamp doven verbergt je niet."
  },
  {
   "key": "srd-2024_frog",
@@ -4025,7 +4093,8 @@
    "actions": "***Bite.*** Melee Attack Roll: +3, reach 5 ft. 1 Piercing damage.",
    "reactions": "",
    "legendaryActions": ""
-  }
+  },
+  "roddel": "Boven of onder water maakt hem niets uit; hij ademt allebei. In het water heb jij de haast, hij niet."
  },
  {
   "key": "srd-2024_frost-giant",
@@ -4063,7 +4132,8 @@
    "actions": "***Multiattack.*** The giant makes two attacks, using Frost Axe or Great Bow in any combination.\n\n***Frost Axe.*** Melee Attack Roll: +9, reach 10 ft. 19 (2d12 + 6) Slashing damage plus 9 (2d8) Cold damage.\n\n***Great Bow.*** Ranged Attack Roll: +9, range 150/600 ft. 17 (2d10 + 6) Piercing damage plus 7 (2d6) Cold damage, and the target's Speed decreases by 10 feet until the end of its next turn.",
    "reactions": "",
    "legendaryActions": ""
-  }
+  },
+  "roddel": "Kou doet hem niets; zoek iets anders."
  },
  {
   "key": "srd-2024_gargoyle",
@@ -4139,7 +4209,8 @@
    "actions": "***Pseudopod.*** Melee Attack Roll: +4, reach 5 ft. 12 (3d6 + 2) Acid damage.\n\n***Engulf.*** The cube moves up to its Speed without provoking Opportunity Attacks. The cube can move through the spaces of Large or smaller creatures if it has room inside itself to contain them (see the Ooze Cube [Area of Effect]|XPHB|Cube trait). Dexterity Saving Throw: DC 12, each creature whose space the cube enters for the first time during this move. Failure: 10 (3d6) Acid damage, and the target is engulfed. An engulfed target is suffocating, can't cast spells with a Verbal component, has the Restrained condition, and takes 10 (3d6) Acid damage at the start of each of the cube's turns. When the cube moves, the engulfed target moves with it. An engulfed target can try to escape by taking an action to make a DC 12 Strength (Athletics) check. On a successful check, the target escapes and enters the nearest unoccupied space. Success: Half damage, and the target moves to an unoccupied space within 5 feet of the cube. If there is no unoccupied space, the target fails the save instead.",
    "reactions": "",
    "legendaryActions": ""
-  }
+  },
+  "roddel": "Wat hij te pakken krijgt, laat hij niet meer los — en dan helpt alleen iemand anders. Praten helpt niet en dreigen ook niet — hij is voor geen van beide gevoelig."
  },
  {
   "key": "srd-2024_ghast",
@@ -4177,7 +4248,8 @@
    "actions": "***Bite.*** Melee Attack Roll: +5, reach 5 ft. 7 (1d8 + 3) Piercing damage plus 9 (2d8) Necrotic damage.\n\n***Claw.*** Melee Attack Roll: +5, reach 5 ft. 10 (2d6 + 3) Slashing damage. If the target is a non-Undead creature, it is subjected to the following effect. Constitution Saving Throw: DC 10. Failure: The target has the Paralyzed condition until the end of its next turn.",
    "reactions": "",
    "legendaryActions": ""
-  }
+  },
+  "roddel": "Hij is met geen woord of blik te bespelen; dat is bij hem al geprobeerd."
  },
  {
   "key": "srd-2024_ghost",
@@ -4215,7 +4287,8 @@
    "actions": "***Multiattack.*** The ghost makes two Withering Touch attacks.\n\n***Withering Touch.*** Melee Attack Roll: +5, reach 5 ft. 19 (3d10 + 3) Necrotic damage.\n\n***Horrific Visage.*** Wisdom Saving Throw: DC 13, each creature in a 60-foot Cone that can see the ghost and isn't an Undead. Failure: 10 (2d6 + 3) Psychic damage, and the target has the Frightened condition until the start of the ghost's next turn. Success: The target is immune to this ghost's Horrific Visage for 24 hours.\n\n***Possession.*** Charisma Saving Throw: DC 13, one Humanoid the ghost can see within 5 feet. Failure: The target is possessed by the ghost; the ghost disappears, and the target has the Incapacitated condition and loses control of its body. The ghost now controls the body, but the target retains awareness. The ghost can't be targeted by any attack, spell, or other effect, except ones that specifically target Undead. The ghost's game statistics are the same, except it uses the possessed target's Speed, as well as the target's Strength, Dexterity, and Constitution modifiers. The possession lasts until the body drops to 0 Hit Points or the ghost leaves as a Bonus Action. When the possession ends, the ghost appears in an unoccupied space within 5 feet of the target, and the target is immune to this ghost's Possession for 24 hours. Success: The target is immune to this ghost's Possession for 24 hours.\n\n***Etherealness.*** The ghost casts the Etherealness spell, requiring no spell components and using Charisma as the spellcasting ability. The ghost is visible on the Material Plane while on the Border Ethereal and vice versa, but it can't affect or be affected by anything on the other plane.\n\n- **At Will:** Etherealness",
    "reactions": "",
    "legendaryActions": ""
-  }
+  },
+  "roddel": "Een deur sluiten heeft geen zin. Hij komt dwars door de muur, al doet steen hem pijn. Praten helpt niet en dreigen ook niet — hij is voor geen van beide gevoelig."
  },
  {
   "key": "srd-2024_ghoul",
@@ -4253,7 +4326,8 @@
    "actions": "***Multiattack.*** The ghoul makes two Bite attacks.\n\n***Bite.*** Melee Attack Roll: +4, reach 5 ft. 5 (1d6 + 2) Piercing damage plus 3 (1d6) Necrotic damage.\n\n***Claw.*** Melee Attack Roll: +4, reach 5 ft. 4 (1d4 + 2) Slashing damage. If the target is a creature that isn't an Undead or elf, it is subjected to the following effect. Constitution Saving Throw: DC 10. Failure: The target has the Paralyzed condition until the end of its next turn.",
    "reactions": "",
    "legendaryActions": ""
-  }
+  },
+  "roddel": "Hij is met geen woord of blik te bespelen; dat is bij hem al geprobeerd."
  },
  {
   "key": "srd-2024_giant-ape",
@@ -4329,7 +4403,8 @@
    "actions": "***Bite.*** Melee Attack Roll: +3, reach 5 ft. 6 (2d4 + 1) Piercing damage.",
    "reactions": "",
    "legendaryActions": ""
-  }
+  },
+  "roddel": "Hij komt van onderen. Op losse grond hoor je hem pas als het te laat is."
  },
  {
   "key": "srd-2024_giant-bat",
@@ -4367,7 +4442,8 @@
    "actions": "***Bite.*** Melee Attack Roll: +5, reach 5 ft. 6 (1d6 + 3) Piercing damage.",
    "reactions": "",
    "legendaryActions": ""
-  }
+  },
+  "roddel": "Donker maakt voor hem niets uit; een lamp doven verbergt je niet."
  },
  {
   "key": "srd-2024_giant-boar",
@@ -4443,7 +4519,8 @@
    "actions": "***Bite.*** Melee Attack Roll: +4, reach 5 ft. 4 (1d4 + 2) Piercing damage, and the target has the Poisoned condition until the start of the centipede's next turn.",
    "reactions": "",
    "legendaryActions": ""
-  }
+  },
+  "roddel": "Donker maakt voor hem niets uit; een lamp doven verbergt je niet."
  },
  {
   "key": "srd-2024_giant-constrictor-snake",
@@ -4481,7 +4558,8 @@
    "actions": "***Multiattack.*** The snake makes one Bite attack and uses Constrict.\n\n***Bite.*** Melee Attack Roll: +6, reach 10 ft. 11 (2d6 + 4) Piercing damage.\n\n***Constrict.*** Strength Saving Throw: DC 14, one Large or smaller creature the snake can see within 10 feet. Failure: 13 (2d8 + 4) Bludgeoning damage, and the target has the Grappled condition (escape DC 14).",
    "reactions": "",
    "legendaryActions": ""
-  }
+  },
+  "roddel": "Donker maakt voor hem niets uit; een lamp doven verbergt je niet."
  },
  {
   "key": "srd-2024_giant-crab",
@@ -4519,7 +4597,8 @@
    "actions": "***Claw.*** Melee Attack Roll: +3, reach 5 ft. 4 (1d6 + 1) Bludgeoning damage. If the target is a Medium or smaller creature, it has the Grappled condition (escape DC 11) from one of two claws.",
    "reactions": "",
    "legendaryActions": ""
-  }
+  },
+  "roddel": "Boven of onder water maakt hem niets uit; hij ademt allebei. In het water heb jij de haast, hij niet. Donker maakt voor hem niets uit; een lamp doven verbergt je niet."
  },
  {
   "key": "srd-2024_giant-crocodile",
@@ -4671,7 +4750,8 @@
    "actions": "***Bite.*** Melee Attack Roll: +1, reach 5 ft. 1 Fire damage.",
    "reactions": "",
    "legendaryActions": ""
-  }
+  },
+  "roddel": "Donker maakt voor hem niets uit; een lamp doven verbergt je niet."
  },
  {
   "key": "srd-2024_giant-fly",
@@ -4747,7 +4827,8 @@
    "actions": "***Bite.*** Melee Attack Roll: +3, reach 5 ft. 5 (1d6 + 2) Piercing damage. If the target is a Medium or smaller creature, it has the Grappled condition (escape DC 11).\n\n***Swallow.*** The frog swallows a Small or smaller target it is grappling. While swallowed, the target isn't Grappled but has the Blinded and Restrained conditions, and it has Cover|XPHB|Total Cover against attacks and other effects outside the frog. While swallowing the target, the frog can't use Bite, and if the frog dies, the swallowed target is no longer Restrained and can escape from the corpse using 5 feet of movement, exiting with the Prone condition. At the end of the frog's next turn, the swallowed target takes 5 (2d4) Acid damage. If that damage doesn't kill it, the frog disgorges it, causing it to exit Prone.",
    "reactions": "",
    "legendaryActions": ""
-  }
+  },
+  "roddel": "Wat hij te pakken krijgt, laat hij niet meer los — en dan helpt alleen iemand anders. Boven of onder water maakt hem niets uit; hij ademt allebei. In het water heb jij de haast, hij niet."
  },
  {
   "key": "srd-2024_giant-goat",
@@ -4861,7 +4942,8 @@
    "actions": "***Bite.*** Melee Attack Roll: +4, reach 5 ft. 6 (1d8 + 2) Piercing damage.",
    "reactions": "",
    "legendaryActions": ""
-  }
+  },
+  "roddel": "Kijk omhoog. Muren en plafonds zijn voor hem gewoon vloeren."
  },
  {
   "key": "srd-2024_giant-octopus",
@@ -4975,7 +5057,8 @@
    "actions": "***Bite.*** Melee Attack Roll: +5, reach 5 feet. 5 (1d4 + 3) Piercing damage.",
    "reactions": "",
    "legendaryActions": ""
-  }
+  },
+  "roddel": "Hij valt nooit alleen aan. Het is de tweede die je pakt, terwijl je naar de eerste kijkt."
  },
  {
   "key": "srd-2024_giant-scorpion",
@@ -5013,7 +5096,8 @@
    "actions": "***Multiattack.*** The scorpion makes two Claw attacks and one Sting attack.\n\n***Claw.*** Melee Attack Roll: +5, reach 5 ft. 6 (1d6 + 3) Bludgeoning damage. If the target is a Large or smaller creature, it has the Grappled condition (escape DC 13) from one of two claws.\n\n***Sting.*** Melee Attack Roll: +5, reach 5 ft. 7 (1d8 + 3) Piercing damage plus 11 (2d10) Poison damage.",
    "reactions": "",
    "legendaryActions": ""
-  }
+  },
+  "roddel": "Donker maakt voor hem niets uit; een lamp doven verbergt je niet."
  },
  {
   "key": "srd-2024_giant-seahorse",
@@ -5089,7 +5173,8 @@
    "actions": "***Multiattack.*** The shark makes two Bite attacks.\n\n***Bite.*** Melee Attack Roll: +9 (with Advantage if the target doesn't have all its Hit Points), reach 5 ft. 22 (3d10 + 6) Piercing damage.",
    "reactions": "",
    "legendaryActions": ""
-  }
+  },
+  "roddel": "Donker maakt voor hem niets uit; een lamp doven verbergt je niet."
  },
  {
   "key": "srd-2024_giant-spider",
@@ -5127,7 +5212,8 @@
    "actions": "***Bite.*** Melee Attack Roll: +5, reach 5 ft. 7 (1d8 + 3) Piercing damage plus 7 (2d6) Poison damage.\n\n***Web.*** Dexterity Saving Throw: DC 13, one creature the spider can see within 60 feet. Failure: The target has the Restrained condition until the web is destroyed (AC 10; HP 5; Vulnerability to Fire damage; Immunity to Poison and Psychic damage).",
    "reactions": "",
    "legendaryActions": ""
-  }
+  },
+  "roddel": "Kijk omhoog. Muren en plafonds zijn voor hem gewoon vloeren. Zijn eigen web houdt jou wel tegen en hem niet."
  },
  {
   "key": "srd-2024_giant-toad",
@@ -5165,7 +5251,8 @@
    "actions": "***Bite.*** Melee Attack Roll: +4, reach 5 ft. 5 (1d6 + 2) Piercing damage plus 5 (2d4) Poison damage. If the target is a Medium or smaller creature, it has the Grappled condition (escape DC 12).\n\n***Swallow.*** The toad swallows a Medium or smaller target it is grappling. While swallowed, the target isn't Grappled but has the Blinded and Restrained conditions, and it has Cover|XPHB|Total Cover against attacks and other effects outside the toad. In addition, the target takes 10 (3d6) Acid damage at the end of each of the toad's turns. The toad can have only one target swallowed at a time, and it can't use Bite while it has a swallowed target. If the toad dies, a swallowed creature is no longer Restrained and can escape from the corpse using 5 feet of movement, exiting with the Prone condition.",
    "reactions": "",
    "legendaryActions": ""
-  }
+  },
+  "roddel": "Wat hij te pakken krijgt, laat hij niet meer los — en dan helpt alleen iemand anders. Boven of onder water maakt hem niets uit; hij ademt allebei. In het water heb jij de haast, hij niet."
  },
  {
   "key": "srd-2024_giant-venomous-snake",
@@ -5203,7 +5290,8 @@
    "actions": "***Bite.*** Melee Attack Roll: +6, reach 10 ft. 6 (1d4 + 4) Piercing damage plus 4 (1d8) Poison damage.",
    "reactions": "",
    "legendaryActions": ""
-  }
+  },
+  "roddel": "Donker maakt voor hem niets uit; een lamp doven verbergt je niet."
  },
  {
   "key": "srd-2024_giant-vulture",
@@ -5241,7 +5329,8 @@
    "actions": "***Gouge.*** Melee Attack Roll: +4, reach 5 ft. 9 (2d6 + 2) Piercing damage, and the target has the Poisoned condition until the end of its next turn.",
    "reactions": "",
    "legendaryActions": ""
-  }
+  },
+  "roddel": "Hij valt nooit alleen aan. Het is de tweede die je pakt, terwijl je naar de eerste kijkt."
  },
  {
   "key": "srd-2024_giant-wasp",
@@ -5355,7 +5444,8 @@
    "actions": "***Bite.*** Melee Attack Roll: +5, reach 5 ft. 5 (1d4 + 3) Piercing damage plus 5 (2d4) Poison damage.",
    "reactions": "",
    "legendaryActions": ""
-  }
+  },
+  "roddel": "Kijk omhoog. Muren en plafonds zijn voor hem gewoon vloeren. Donker maakt voor hem niets uit; een lamp doven verbergt je niet."
  },
  {
   "key": "srd-2024_gibbering-mouther",
@@ -5431,7 +5521,8 @@
    "actions": "***Multiattack.*** The glabrezu makes two Pincer attacks and uses Pummel or Spellcasting.\n\n***Pincer.*** Melee Attack Roll: +9, reach 10 ft. 16 (2d10 + 5) Slashing damage. If the target is a Medium or smaller creature, it has the Grappled condition (escape DC 15) from one of two pincers.\n\n***Pummel.*** Dexterity Saving Throw: DC 17, one creature Grappled by the glabrezu. Failure: 15 (3d6 + 5) Bludgeoning damage. Success: Half damage.\n\n***Spellcasting.*** The glabrezu casts one of the following spells, requiring no Material components and using Intelligence as the spellcasting ability (spell save DC 16):\n\n- **At Will:** Darkness, Detect Magic, Dispel Magic\n- **1/Day Each:** Confusion, Fly, Power Word Stun",
    "reactions": "",
    "legendaryActions": ""
-  }
+  },
+  "roddel": "Vermommingen en illusies werken niet: hij ziet dwars door alles heen wat je optrekt. Hij praat zonder zijn mond te bewegen, rechtstreeks in je hoofd. Wat je terugdenkt, hoort hij ook."
  },
  {
   "key": "srd-2024_gladiator",
@@ -5697,7 +5788,8 @@
    "actions": "***Multiattack.*** The dragon makes two Rend attacks.\n\n***Rend.*** Melee Attack Roll: +6, reach 5 ft. 9 (1d10 + 4) Slashing damage.\n\n***Fire Breath.*** Dexterity Saving Throw: DC 13, each creature in a 15-foot Cone. Failure: 22 (4d10) Fire damage. Success: Half damage.\n\n***Weakening Breath.*** Strength Saving Throw: DC 13, each creature that isn't currently affected by this breath in a 15-foot Cone. Failure: The target has Disadvantage on Strength-based D20 Test and subtracts 2 (1d4) from its damage rolls. It repeats the save at the end of each of its turns, ending the effect on itself on a success. After 1 minute, it succeeds automatically.",
    "reactions": "",
    "legendaryActions": ""
-  }
+  },
+  "roddel": "Boven of onder water maakt hem niets uit; hij ademt allebei. In het water heb jij de haast, hij niet. Vuur doet hem niets; zoek iets anders."
  },
  {
   "key": "srd-2024_gorgon",
@@ -5773,7 +5865,8 @@
    "actions": "***Pseudopod.*** Melee Attack Roll: +3, reach 5 ft. 10 (2d8 + 1) Acid damage. Nonmagical armor worn by the target takes a -1 penalty to the AC it offers. The armor is destroyed if the penalty reduces its AC to 10. The penalty can be removed by casting the Mending spell on the armor.",
    "reactions": "",
    "legendaryActions": ""
-  }
+  },
+  "roddel": "Donker maakt voor hem niets uit; een lamp doven verbergt je niet."
  },
  {
   "key": "srd-2024_green-dragon-wyrmling",
@@ -5811,7 +5904,8 @@
    "actions": "***Multiattack.*** The dragon makes two Rend attacks.\n\n***Rend.*** Melee Attack Roll: +4, reach 5 ft. 7 (1d10 + 2) Slashing damage plus 3 (1d6) Poison damage.\n\n***Poison Breath.*** Constitution Saving Throw: DC 11, each creature in a 15-foot Cone. Failure: 21 (6d6) Poison damage. Success: Half damage.",
    "reactions": "",
    "legendaryActions": ""
-  }
+  },
+  "roddel": "Boven of onder water maakt hem niets uit; hij ademt allebei. In het water heb jij de haast, hij niet. Donker maakt voor hem niets uit; een lamp doven verbergt je niet."
  },
  {
   "key": "srd-2024_green-hag",
@@ -5849,7 +5943,8 @@
    "actions": "***Multiattack.*** The hag makes two Claw attacks.\n\n***Claw.*** Melee Attack Roll: +6, reach 5 ft. 8 (1d8 + 4) Slashing damage plus 3 (1d6) Poison damage.\n\n***Spellcasting.*** The hag casts one of the following spells, requiring no Material components and using Wisdom as the spellcasting ability (spell save DC 12, +4 to hit with spell attacks):\n\n- **At Will:** Dancing Lights, Disguise Self, Invisibility, Minor Illusion, Ray of Sickness",
    "reactions": "",
    "legendaryActions": ""
-  }
+  },
+  "roddel": "Boven of onder water maakt hem niets uit; hij ademt allebei. In het water heb jij de haast, hij niet."
  },
  {
   "key": "srd-2024_grick",
@@ -5963,7 +6058,8 @@
    "actions": "***Bone Cudgel.*** Melee Attack Roll: +5, reach 5 ft. 6 (1d6 + 3) Bludgeoning damage plus 2 (1d4) Psychic damage.",
    "reactions": "",
    "legendaryActions": ""
-  }
+  },
+  "roddel": "Donker maakt voor hem niets uit; een lamp doven verbergt je niet."
  },
  {
   "key": "srd-2024_guard",
@@ -6077,7 +6173,8 @@
    "actions": "***Multiattack.*** The naga makes two Bite attacks. It can replace any attack with a use of Poisonous Spittle.\n\n***Bite.*** Melee Attack Roll: +8, reach 10 ft. 17 (2d12 + 4) Piercing damage plus 22 (4d10) Poison damage.\n\n***Poisonous Spittle.*** Constitution Saving Throw: DC 16, one creature the naga can see within 60 feet. Failure: 31 (7d8) Poison damage, and the target has the Blinded condition until the start of the naga's next turn. Success: Half damage only.\n\n***Spellcasting.*** The naga casts one of the following spells, requiring no Somatic or Material components and using Wisdom as the spellcasting ability (spell save DC 16):\n\n- **At Will:** Thaumaturgy\n- **1/Day Each:** Clairvoyance, Cure Wounds, Flame Strike, Geas, True Seeing",
    "reactions": "",
    "legendaryActions": ""
-  }
+  },
+  "roddel": "Hij is met geen woord of blik te bespelen; dat is bij hem al geprobeerd."
  },
  {
   "key": "srd-2024_half-dragon",
@@ -6115,7 +6212,8 @@
    "actions": "***Multiattack.*** The half-dragon makes two Claw attacks.\n\n***Claw.*** Melee Attack Roll: +7, reach 10 ft. 6 (1d4 + 4) Slashing damage plus 7 (2d6) damage of the type chosen for the Draconic Origin trait.\n\n***Dragon's Breath.*** Dexterity Saving Throw: DC 14, each creature in a 30-foot Cone. Failure: 28 (8d6) damage of the type chosen for the Draconic Origin trait. Success: Half damage.",
    "reactions": "",
    "legendaryActions": ""
-  }
+  },
+  "roddel": "Donker maakt voor hem niets uit; een lamp doven verbergt je niet."
  },
  {
   "key": "srd-2024_harpy",
@@ -6229,7 +6327,8 @@
    "actions": "***Multiattack.*** The hound makes two Bite attacks.\n\n***Bite.*** Melee Attack Roll: +5, reach 5 ft. 7 (1d8 + 3) Piercing damage plus 3 (1d6) Fire damage.\n\n***Fire Breath.*** Dexterity Saving Throw: DC 12, each creature in a 15-foot Cone. Failure: 17 (5d6) Fire damage. Success: Half damage.",
    "reactions": "",
    "legendaryActions": ""
-  }
+  },
+  "roddel": "Hij valt nooit alleen aan. Het is de tweede die je pakt, terwijl je naar de eerste kijkt. Vuur doet hem niets; zoek iets anders."
  },
  {
   "key": "srd-2024_hezrou",
@@ -6267,7 +6366,8 @@
    "actions": "***Multiattack.*** The hezrou makes three Rend attacks.\n\n***Rend.*** Melee Attack Roll: +7, reach 5 ft. 6 (1d4 + 4) Slashing damage plus 9 (2d8) Poison damage.",
    "reactions": "",
    "legendaryActions": ""
-  }
+  },
+  "roddel": "Hij praat zonder zijn mond te bewegen, rechtstreeks in je hoofd. Wat je terugdenkt, hoort hij ook. Spreuken glijden van hem af alsof ze voor iemand anders bedoeld waren. Neem staal mee."
  },
  {
   "key": "srd-2024_hill-giant",
@@ -6457,7 +6557,8 @@
    "actions": "***Longsword.*** Melee Attack Roll: +3, reach 5 ft. 12 (2d10 + 1) Slashing damage.\n\n***Longbow.*** Ranged Attack Roll: +3, range 150/600 ft. 5 (1d8 + 1) Piercing damage plus 7 (3d4) Poison damage.",
    "reactions": "",
    "legendaryActions": ""
-  }
+  },
+  "roddel": "Hij valt nooit alleen aan. Het is de tweede die je pakt, terwijl je naar de eerste kijkt."
  },
  {
   "key": "srd-2024_homunculus",
@@ -6495,7 +6596,8 @@
    "actions": "***Bite.*** Melee Attack Roll: +4, reach 5 ft. 1 Piercing damage, and the target is subjected to the following effect. Constitution Saving Throw: DC 12. Failure: The target has the Poisoned condition until the end of the homunculus's next turn. Failure by 5 or More: The target has the Poisoned condition for 1 minute. While Poisoned, the target has the Unconscious condition, which ends early if the target takes any damage.",
    "reactions": "",
    "legendaryActions": ""
-  }
+  },
+  "roddel": "Hij is met geen woord of blik te bespelen; dat is bij hem al geprobeerd."
  },
  {
   "key": "srd-2024_horned-devil",
@@ -6533,7 +6635,8 @@
    "actions": "***Multiattack.*** The devil makes three attacks, using Searing Fork or Hurl Flame in any combination. It can replace one attack with a use of Infernal Tail.\n\n***Searing Fork.*** Melee Attack Roll: +10, reach 10 ft. 15 (2d8 + 6) Piercing damage plus 9 (2d8) Fire damage.\n\n***Hurl Flame.*** Ranged Attack Roll: +8, range 150 ft. 26 (5d8 + 4) Fire damage. If the target is a flammable object that isn't being worn or carried, it starts burning.\n\n***Infernal Tail.*** Dexterity Saving Throw: DC 17, one creature the devil can see within 10 feet. Failure: 10 (1d8 + 6) Necrotic damage, and the target receives an infernal wound if it doesn't have one. While wounded, the target loses 10 (3d6) Hit Points at the start of each of its turns. The wound closes after 1 minute, after a spell restores Hit Points to the target, or after the target or a creature within 5 feet of it takes an action to stanch the wound, doing so by succeeding on a DC 17 Wisdom (Medicine) check.",
    "reactions": "",
    "legendaryActions": ""
-  }
+  },
+  "roddel": "Hij praat zonder zijn mond te bewegen, rechtstreeks in je hoofd. Wat je terugdenkt, hoort hij ook. Spreuken glijden van hem af alsof ze voor iemand anders bedoeld waren. Neem staal mee."
  },
  {
   "key": "srd-2024_hunter-shark",
@@ -6571,7 +6674,8 @@
    "actions": "***Bite.*** Melee Attack Roll: +6 (with Advantage if the target doesn't have all its Hit Points), reach 5 ft. 14 (3d6 + 4) Piercing damage.",
    "reactions": "",
    "legendaryActions": ""
-  }
+  },
+  "roddel": "Donker maakt voor hem niets uit; een lamp doven verbergt je niet."
  },
  {
   "key": "srd-2024_hydra",
@@ -6647,7 +6751,8 @@
    "actions": "***Bite.*** Melee Attack Roll: +2, reach 5 ft. 3 (1d6) Piercing damage.",
    "reactions": "",
    "legendaryActions": ""
-  }
+  },
+  "roddel": "Hij valt nooit alleen aan. Het is de tweede die je pakt, terwijl je naar de eerste kijkt."
  },
  {
   "key": "srd-2024_ice-devil",
@@ -6685,7 +6790,8 @@
    "actions": "***Multiattack.*** The devil makes three Ice Spear attacks. It can replace one attack with a Tail attack.\n\n***Ice Spear.*** Melee or Ranged Attack Roll: +10, reach 5 ft. or range 30/120 ft. 14 (2d8 + 5) Piercing damage plus 10 (3d6) Cold damage. Until the end of its next turn, the target can't take a Bonus Action or Reaction, its Speed decreases by 10 feet, and it can move or take one action on its turn, not both. HitomThe spear magically returns to the devil's hand immediately after a ranged attack.\n\n***Tail.*** Melee Attack Roll: +10, reach 10 ft. 15 (3d6 + 5) Bludgeoning damage plus 18 (4d8) Cold damage.\n\n***Ice Wall.*** The devil casts Wall of Ice (level 8 version), requiring no spell components and using Intelligence as the spellcasting ability (spell save DC 17).\n\n- **At Will:**",
    "reactions": "",
    "legendaryActions": ""
-  }
+  },
+  "roddel": "Hij praat zonder zijn mond te bewegen, rechtstreeks in je hoofd. Wat je terugdenkt, hoort hij ook. Spreuken glijden van hem af alsof ze voor iemand anders bedoeld waren. Neem staal mee."
  },
  {
   "key": "srd-2024_ice-mephit",
@@ -6723,7 +6829,8 @@
    "actions": "***Claw.*** Melee Attack Roll: +3, reach 5 ft. 3 (1d4 + 1) Slashing damage plus 2 (1d4) Cold damage.\n\n***Frost Breath.*** Constitution Saving Throw: DC 10, each creature in a 15-foot Cone. Failure: 7 (3d4) Cold damage. Success: Half damage.\n\n***Fog Cloud.*** The mephit casts Fog Cloud, requiring no spell components and using Charisma as the spellcasting ability.\n\n- **At Will:**\n- **1/Day Each:** Fog Cloud",
    "reactions": "",
    "legendaryActions": ""
-  }
+  },
+  "roddel": "Sta niet naast hem als hij valt. Dat is het moment waarop de meeste mensen gewond raken. Kou doet hem niets; zoek iets anders."
  },
  {
   "key": "srd-2024_imp",
@@ -6761,7 +6868,8 @@
    "actions": "***Sting.*** Melee Attack Roll: +5, reach 5 ft. 6 (1d6 + 3) Piercing damage plus 7 (2d6) Poison damage.\n\n***Shape-Shift.*** The imp shape-shifts to resemble a rat (Speed 20 ft.), a raven (20 ft., Fly 60 ft.), or a spider (20 ft., Climb 20 ft.), or it returns to its true form. Its statistics are the same in each form, except for its Speed. Any equipment it is wearing or carrying isn't transformed.\n\n***Invisibility.*** The imp casts Invisibility on itself, requiring no spell components and using Charisma as the spellcasting ability.\n\n- **At Will:** Invisibility",
    "reactions": "",
    "legendaryActions": ""
-  }
+  },
+  "roddel": "Spreuken glijden van hem af alsof ze voor iemand anders bedoeld waren. Neem staal mee. Vuur doet hem niets; zoek iets anders."
  },
  {
   "key": "srd-2024_incubus",
@@ -6799,7 +6907,8 @@
    "actions": "***Multiattack.*** The incubus makes two Restless Touch attacks.\n\n***Restless Touch.*** Melee Attack Roll: +7, reach 5 ft. 15 (3d6 + 5) Psychic damage, and the target is cursed for 24 hours or until the incubus dies. Until the curse ends, the target gains no benefit from finishing Short Rests.\n\n***Spellcasting.*** The incubus casts one of the following spells, requiring no Material components and using Charisma as the spellcasting ability (spell save DC 15):\n\n- **At Will:** Disguise Self, Etherealness\n- **1/Day Each:** Dream, Hypnotic Pattern",
    "reactions": "",
    "legendaryActions": ""
-  }
+  },
+  "roddel": "Hij praat zonder zijn mond te bewegen, rechtstreeks in je hoofd. Wat je terugdenkt, hoort hij ook."
  },
  {
   "key": "srd-2024_invisible-stalker",
@@ -6875,7 +6984,8 @@
    "actions": "***Multiattack.*** The golem makes two attacks, using Bladed Arm or Fiery Bolt in any combination.\n\n***Bladed Arm.*** Melee Attack Roll: +12, reach 10 ft. 20 (3d8 + 7) Slashing damage plus 10 (3d6) Fire damage.\n\n***Fiery Bolt.*** Ranged Attack Roll: +10, range 120 ft. 36 (8d8) Fire damage.\n\n***Poison Breath.*** Constitution Saving Throw: DC 18, each creature in a 60-foot Cone. Failure: 55 (10d10) Poison damage. Success: Half damage.",
    "reactions": "",
    "legendaryActions": ""
-  }
+  },
+  "roddel": "Praten helpt niet en dreigen ook niet — hij is voor geen van beide gevoelig. Spreuken glijden van hem af alsof ze voor iemand anders bedoeld waren. Neem staal mee."
  },
  {
   "key": "srd-2024_jackal",
@@ -6951,7 +7061,8 @@
    "actions": "***Bite.*** Melee Attack Roll: +6, reach 5 ft. 21 (5d6 + 4) Piercing damage.",
    "reactions": "",
    "legendaryActions": ""
-  }
+  },
+  "roddel": "Donker maakt voor hem niets uit; een lamp doven verbergt je niet."
  },
  {
   "key": "srd-2024_knight",
@@ -7027,7 +7138,8 @@
    "actions": "***Dagger.*** Melee or Ranged Attack Roll: +4, reach 5 ft. or range 20/60 ft. 4 (1d4 + 2) Piercing damage.",
    "reactions": "",
    "legendaryActions": ""
-  }
+  },
+  "roddel": "Breng hem in de volle zon en hij knijpt zijn ogen dicht; wat hij daar doet, doet hij half. Hij valt nooit alleen aan. Het is de tweede die je pakt, terwijl je naar de eerste kijkt."
  },
  {
   "key": "srd-2024_kraken",
@@ -7065,7 +7177,8 @@
    "actions": "***Multiattack.*** The kraken makes two Tentacle attacks and uses Fling, Lightning Strike, or Swallow.\n\n***Tentacle.*** Melee Attack Roll: +17, reach 30 ft. 24 (4d6 + 10) Bludgeoning damage. The target has the Grappled condition (escape DC 20) from one of ten tentacles, and it has the Restrained condition until the grapple ends.\n\n***Fling.*** The kraken throws a Large or smaller creature Grappled by it to a space it can see within 60 feet of itself that isn't in the air. Dexterity Saving Throw: DC 25, the creature thrown and each creature in the destination space. Failure: 18 (4d8) Bludgeoning damage, and the target has the Prone condition. Success: Half damage only.\n\n***Lightning Strike.*** Dexterity Saving Throw: DC 23, one creature the kraken can see within 120 feet. Failure: 33 (6d10) Lightning damage. Success: Half damage.\n\n***Swallow.*** Dexterity Saving Throw: DC 25, one creature Grappled by the kraken (it can have up to four creatures swallowed at a time). Failure: 23 (3d8 + 10) Piercing damage. If the target is Large or smaller, it is swallowed and no longer Grappled. A swallowed creature has the Restrained condition, has Cover|XPHB|Total Cover against attacks and other effects outside the kraken, and takes 24 (7d6) Acid damage at the start of each of its turns. If the kraken takes 50 damage or more on a single turn from a creature inside it, the kraken must succeed on a DC 25 Constitution saving throw at the end of that turn or regurgitate all swallowed creatures, each of which falls in a space within 10 feet of the kraken with the Prone condition. If the kraken dies, any swallowed creature no longer has the Restrained condition and can escape from the corpse using 15 feet of movement, exiting Prone.",
    "reactions": "",
    "legendaryActions": "***Storm Bolt.*** The kraken uses Lightning Strike.\n\n***Toxic Ink.*** Constitution Saving Throw: DC 23, each creature in a 15-foot Emanation originating from the kraken while it is underwater. Failure: The target has the Blinded and Poisoned conditions until the end of the kraken's next turn. The kraken then moves up to its Speed. Failure or Success: The kraken can't take this action again until the start of its next turn."
-  }
+  },
+  "roddel": "Wat hij te pakken krijgt, laat hij niet meer los — en dan helpt alleen iemand anders. Bang maken werkt niet. Hij kent het woord niet."
  },
  {
   "key": "srd-2024_lamia",
@@ -7141,7 +7254,8 @@
    "actions": "***Vile Slime.*** Melee Attack Roll: +2, reach 5 ft. 2 (1d4) Poison damage.",
    "reactions": "",
    "legendaryActions": ""
-  }
+  },
+  "roddel": "Praten helpt niet en dreigen ook niet — hij is voor geen van beide gevoelig. Vuur doet hem niets; zoek iets anders."
  },
  {
   "key": "srd-2024_lich",
@@ -7179,7 +7293,8 @@
    "actions": "***Multiattack.*** The lich makes three attacks, using Eldritch Burst or Paralyzing Touch in any combination.\n\n***Eldritch Burst.*** Melee or Ranged Attack Roll: +12, reach 5 ft. or range 120 ft. 31 (4d12 + 5) Force damage.\n\n***Paralyzing Touch.*** Melee Attack Roll: +12, reach 5 ft. 15 (3d6 + 5) Cold damage, and the target has the Paralyzed condition until the start of the lich's next turn.\n\n***Spellcasting.*** The lich casts one of the following spells, using Intelligence as the spellcasting ability (spell save DC 20):\n\n- **At Will:** Detect Magic, Detect Thoughts, Dispel Magic, Fireball, Invisibility, Lightning Bolt, Mage Hand, Prestidigitation\n- **2/Day Each:** Animate Dead, Dimension Door, Plane Shift\n- **1/Day Each:** Chain Lightning, Finger of Death, Power Word Kill, Scrying",
    "reactions": "***Protective Magic.*** The lich casts Counterspell or Shield in response to the spell's trigger, using the same spellcasting ability as Spellcasting.",
    "legendaryActions": "***Deathly Teleport.*** The lich teleports up to 60 feet to an unoccupied space it can see, and each creature within 10 feet of the space it left takes 11 (2d10) Necrotic damage.\n\n***Disrupt Life.*** Constitution Saving Throw: DC 20, each creature that isn't an Undead in a 20-foot Emanation originating from the lich. Failure: 31 (9d6) Necrotic damage. Success: Half damage. Failure or Success: The lich can't take this action again until the start of its next turn.\n\n***Frightening Gaze.*** The lich casts Fear, using the same spellcasting ability as Spellcasting. The lich can't take this action again until the start of its next turn."
-  }
+  },
+  "roddel": "Praten helpt niet en dreigen ook niet — hij is voor geen van beide gevoelig. Vermommingen en illusies werken niet: hij ziet dwars door alles heen wat je optrekt."
  },
  {
   "key": "srd-2024_lion",
@@ -7217,7 +7332,8 @@
    "actions": "***Multiattack.*** The lion makes two Rend attacks. It can replace one attack with a use of Roar.\n\n***Rend.*** Melee Attack Roll: +5, reach 5 ft. 7 (1d8 + 3) Slashing damage.\n\n***Roar.*** Wisdom Saving Throw: DC 11, one creature within 15 feet. Failure: The target has the Frightened condition until the start of the lion's next turn.",
    "reactions": "",
    "legendaryActions": ""
-  }
+  },
+  "roddel": "Hij valt nooit alleen aan. Het is de tweede die je pakt, terwijl je naar de eerste kijkt."
  },
  {
   "key": "srd-2024_lizard",
@@ -7255,7 +7371,8 @@
    "actions": "***Bite.*** Melee Attack Roll: +2, reach 5 ft. 1 Piercing damage.",
    "reactions": "",
    "legendaryActions": ""
-  }
+  },
+  "roddel": "Kijk omhoog. Muren en plafonds zijn voor hem gewoon vloeren."
  },
  {
   "key": "srd-2024_mage",
@@ -7331,7 +7448,8 @@
    "actions": "***Claw.*** Melee Attack Roll: +3, reach 5 ft. 3 (1d4 + 1) Slashing damage plus 3 (1d6) Fire damage.\n\n***Fire Breath.*** Dexterity Saving Throw: DC 11, each creature in a 15-foot Cone. Failure: 7 (2d6) Fire damage. Success: Half damage.",
    "reactions": "",
    "legendaryActions": ""
-  }
+  },
+  "roddel": "Sta niet naast hem als hij valt. Dat is het moment waarop de meeste mensen gewond raken. Vuur doet hem niets; zoek iets anders."
  },
  {
   "key": "srd-2024_magmin",
@@ -7369,7 +7487,8 @@
    "actions": "***Touch.*** Melee Attack Roll: +4, reach 5 ft. 7 (2d4 + 2) Fire damage. If the target is a creature or a flammable object that isn't being worn or carried, it starts burning.",
    "reactions": "",
    "legendaryActions": ""
-  }
+  },
+  "roddel": "Sta niet naast hem als hij valt. Dat is het moment waarop de meeste mensen gewond raken. Vuur doet hem niets; zoek iets anders."
  },
  {
   "key": "srd-2024_mammoth",
@@ -7483,7 +7602,8 @@
    "actions": "***Multiattack.*** The marilith makes six Pact Blade attacks and uses Constrict.\n\n***Pact Blade.*** Melee Attack Roll: +10, reach 5 ft. 10 (1d10 + 5) Slashing damage plus 7 (2d6) Necrotic damage.\n\n***Constrict.*** Strength Saving Throw: DC 17, one Medium or smaller creature the marilith can see within 5 feet. Failure: 15 (2d10 + 4) Bludgeoning damage. The target has the Grappled condition (escape DC 14), and it has the Restrained condition until the grapple ends.",
    "reactions": "***Parry.*** _Trigger:_ The marilith is hit by a melee attack roll while holding a weapon. _Response:_ The marilith adds 5 to its AC against that attack, possibly causing it to miss.",
    "legendaryActions": ""
-  }
+  },
+  "roddel": "Vermommingen en illusies werken niet: hij ziet dwars door alles heen wat je optrekt. Hij praat zonder zijn mond te bewegen, rechtstreeks in je hoofd. Wat je terugdenkt, hoort hij ook."
  },
  {
   "key": "srd-2024_mastiff",
@@ -7597,7 +7717,8 @@
    "actions": "***Ocean Spear.*** Melee or Ranged Attack Roll: +2, reach 5 ft. or range 20/60 ft. 3 (1d6) Piercing damage plus 2 (1d4) Cold damage. If the target is a creature, its Speed decreases by 10 feet until the end of its next turn. HitomThe spear magically returns to the merfolk's hand immediately after a ranged attack.",
    "reactions": "",
    "legendaryActions": ""
-  }
+  },
+  "roddel": "Boven of onder water maakt hem niets uit; hij ademt allebei. In het water heb jij de haast, hij niet."
  },
  {
   "key": "srd-2024_merrow",
@@ -7635,7 +7756,8 @@
    "actions": "***Multiattack.*** The merrow makes two attacks, using Bite, Claw, or Harpoon in any combination.\n\n***Bite.*** Melee Attack Roll: +6, reach 5 ft. 6 (1d4 + 4) Piercing damage, and the target has the Poisoned condition until the end of the merrow's next turn.\n\n***Claw.*** Melee Attack Roll: +6, reach 5 ft. 9 (2d4 + 4) Slashing damage.\n\n***Harpoon.*** Melee or Ranged Attack Roll: +6, reach 5 ft. or range 20/60 ft. 11 (2d6 + 4) Piercing damage. If the target is a Large or smaller creature, the merrow pulls the target up to 15 feet straight toward itself.",
    "reactions": "",
    "legendaryActions": ""
-  }
+  },
+  "roddel": "Boven of onder water maakt hem niets uit; hij ademt allebei. In het water heb jij de haast, hij niet."
  },
  {
   "key": "srd-2024_mimic",
@@ -7673,7 +7795,8 @@
    "actions": "***Bite.*** Melee Attack Roll: +5 (with Advantage if the target is Grappled by the mimic), reach 5 ft. 7 (1d8 + 3) Piercing damage—or 12 (2d8 + 3) Piercing damage if the target is Grappled by the mimic—plus 4 (1d8) Acid damage.\n\n***Pseudopod.*** Melee Attack Roll: +5, reach 5 ft. 7 (1d8 + 3) Bludgeoning damage plus 4 (1d8) Acid damage. If the target is a Large or smaller creature, it has the Grappled condition (escape DC 13). Ability checks made to escape this grapple have Disadvantage.",
    "reactions": "",
    "legendaryActions": ""
-  }
+  },
+  "roddel": "Wat hij te pakken krijgt, laat hij niet meer los — en dan helpt alleen iemand anders. Zuur doet hem niets; zoek iets anders."
  },
  {
   "key": "srd-2024_minotaur-of-baphomet",
@@ -7825,7 +7948,8 @@
    "actions": "***Multiattack.*** The mummy makes two Rotting Fist attacks and uses Dreadful Glare.\n\n***Rotting Fist.*** Melee Attack Roll: +5, reach 5 ft. 8 (1d10 + 3) Bludgeoning damage plus 10 (3d6) Necrotic damage. If the target is a creature, it is cursed. While cursed, the target can't regain Hit Points, its Hit Point maximum doesn't return to normal when finishing a Long Rest, and its Hit Point maximum decreases by 10 (3d6) every 24 hours that elapse. A creature dies and turns to dust if reduced to 0 Hit Points by this attack.\n\n***Dreadful Glare.*** Wisdom Saving Throw: DC 11, one creature the mummy can see within 60 feet. Failure: The target has the Frightened condition until the end of the mummy's next turn. Success: The target is immune to this mummy's Dreadful Glare for 24 hours.",
    "reactions": "",
    "legendaryActions": ""
-  }
+  },
+  "roddel": "Praten helpt niet en dreigen ook niet — hij is voor geen van beide gevoelig. Grafkou doet hem niets; zoek iets anders."
  },
  {
   "key": "srd-2024_mummy-lord",
@@ -7863,7 +7987,8 @@
    "actions": "***Multiattack.*** The mummy makes one Rotting Fist or Channel Negative Energy attack, and it uses Dreadful Glare.\n\n***Rotting Fist.*** Melee Attack Roll: +9, reach 5 ft. 15 (2d10 + 4) Bludgeoning damage plus 10 (3d6) Necrotic damage. If the target is a creature, it is cursed. While cursed, the target can't regain Hit Points, it gains no benefit from finishing a Long Rest, and its Hit Point maximum decreases by 10 (3d6) every 24 hours that elapse. A creature dies and turns to dust if reduced to 0 Hit Points by this attack.\n\n***Channel Negative Energy.*** Ranged Attack Roll: +9, range 60 ft. 25 (6d6 + 4) Necrotic damage.\n\n***Dreadful Glare.*** Wisdom Saving Throw: DC 17, one creature the mummy can see within 60 feet. Failure: 25 (6d6 + 4) Psychic damage, and the target has the Paralyzed condition until the end of the mummy's next turn.\n\n***Spellcasting.*** The mummy casts one of the following spells, requiring no Material components and using Wisdom as the spellcasting ability (spell save DC 17, +9 to hit with spell attacks):\n\n- **At Will:** Dispel Magic, Thaumaturgy\n- **1/Day Each:** Animate Dead, Harm, Insect Plague",
    "reactions": "***Whirlwind of Sand.*** _Trigger:_ The mummy is hit by an attack roll. _Response:_ The mummy adds 2 to its AC against the attack, possibly causing the attack to miss, and the mummy teleports up to 60 feet to an unoccupied space it can see. Each creature of its choice that it can see within 5 feet of its destination space has the Blinded condition until the end of the mummy’s next turn.",
    "legendaryActions": "***Glare.*** The mummy uses Dreadful Glare. The mummy can't take this action again until the start of its next turn.\n\n***Necrotic Strike.*** The mummy makes one Rotting Fist or Channel Negative Energy attack.\n\n***Dread Command.*** The mummy casts Command (level 2 version), using the same spellcasting ability as Spellcasting. The mummy can't take this action again until the start of its next turn."
-  }
+  },
+  "roddel": "Praten helpt niet en dreigen ook niet — hij is voor geen van beide gevoelig. Vermommingen en illusies werken niet: hij ziet dwars door alles heen wat je optrekt."
  },
  {
   "key": "srd-2024_nalfeshnee",
@@ -7901,7 +8026,8 @@
    "actions": "***Multiattack.*** The nalfeshnee makes three Rend attacks.\n\n***Rend.*** Melee Attack Roll: +10, reach 10 ft. 16 (2d10 + 5) Slashing damage plus 11 (2d10) Force damage.\n\n***Teleport.*** The nalfeshnee teleports up to 120 feet to an unoccupied space it can see.",
    "reactions": "***Pursuit.*** _Trigger:_ Another creature the nalfeshnee can see ends its move within 120 feet of the nalfeshnee. _Response:_ The nalfeshnee uses Teleport, but its destination space must be within 10 feet of the triggering creature.",
    "legendaryActions": ""
-  }
+  },
+  "roddel": "Bang maken werkt niet. Hij kent het woord niet. Vermommingen en illusies werken niet: hij ziet dwars door alles heen wat je optrekt."
  },
  {
   "key": "srd-2024_night-hag",
@@ -7939,7 +8065,8 @@
    "actions": "***Multiattack.*** The hag makes two Claw attacks.\n\n***Claw.*** Melee Attack Roll: +7, reach 5 ft. 13 (2d8 + 4) Slashing damage.\n\n***Spellcasting.*** The hag casts one of the following spells, requiring no Material components and using Intelligence as the spellcasting ability (spell save DC 14):\n\n- **At Will:** Detect Magic, Etherealness, Magic Missile\n- **2/Day Each:** Phantasmal Killer, Plane Shift\n\n***Nightmare Haunting.*** While on the Ethereal Plane, the hag casts Dream, using the same spellcasting ability as Spellcasting. Only the hag can serve as the spell's messenger, and the target must be a creature the hag can see on the Material Plane. The spell fails and is wasted if the target is under the effect of the Protection from Evil and Good spell or within a Magic Circle spell. If the target takes damage from the Dream spell, the target's Hit Point maximum decreases by an amount equal to that damage. If the spell kills the target, its soul is trapped in the hag's soul bag, and the target can't be raised from the dead until its soul is released.\n\n- **At Will:**\n- **1/Day Each:** Dream, Protection from Evil and Good, Magic Circle",
    "reactions": "",
    "legendaryActions": ""
-  }
+  },
+  "roddel": "Spreuken glijden van hem af alsof ze voor iemand anders bedoeld waren. Neem staal mee."
  },
  {
   "key": "srd-2024_nightmare",
@@ -7977,7 +8104,8 @@
    "actions": "***Hooves.*** Melee Attack Roll: +6, reach 5 ft. 13 (2d8 + 4) Bludgeoning damage plus 10 (3d6) Fire damage.\n\n***Ethereal Stride.*** The nightmare and up to three willing creatures within 5 feet of it teleport to the Ethereal Plane from the Material Plane or vice versa.",
    "reactions": "",
    "legendaryActions": ""
-  }
+  },
+  "roddel": "Vuur doet hem niets; zoek iets anders."
  },
  {
   "key": "srd-2024_noble",
@@ -8053,7 +8181,8 @@
    "actions": "***Pseudopod.*** Melee Attack Roll: +4, reach 5 ft. 12 (3d6 + 2) Acid damage.",
    "reactions": "***Split.*** _Trigger:_ While the jelly is Large or Medium and has 10+ Hit Points, it becomes Bloodied or is subjected to Lightning or Slashing damage. _Response:_ The jelly splits into two new Ochre Jellies. Each new jelly is one size smaller than the original jelly and acts on its Initiative. The original jelly’s Hit Points are divided evenly between the new jellies (round down).",
    "legendaryActions": ""
-  }
+  },
+  "roddel": "Kijk omhoog. Muren en plafonds zijn voor hem gewoon vloeren. Praten helpt niet en dreigen ook niet — hij is voor geen van beide gevoelig."
  },
  {
   "key": "srd-2024_octopus",
@@ -8205,7 +8334,8 @@
    "actions": "***Multiattack.*** The oni makes two Claw or Nightmare Ray attacks. It can replace one attack with a use of Spellcasting.\n\n***Claw.*** Melee Attack Roll: +7, reach 10 ft. 10 (1d12 + 4) Slashing damage plus 9 (2d8) Necrotic damage.\n\n***Nightmare Ray.*** Ranged Attack Roll: +5, range 60 ft. 9 (2d6 + 2) Psychic damage, and the target has the Frightened condition until the start of the oni's next turn.\n\n***Shape-Shift.*** The oni shape-shifts into a Small or Medium Humanoid or a Large Giant, or it returns to its true form. Other than its size, its game statistics are the same in each form. Any equipment it is wearing or carrying isn't transformed.\n\n***Spellcasting.*** The oni casts one of the following spells, requiring no Material components and using Charisma as the spellcasting ability (spell save DC 13):\n\n- **At Will:**\n- **1/Day Each:** Charm Person, Darkness, Gaseous Form, Sleep",
    "reactions": "",
    "legendaryActions": ""
-  }
+  },
+  "roddel": "Neerslaan is niet genoeg: wat je opent, groeit weer dicht."
  },
  {
   "key": "srd-2024_otyugh",
@@ -8243,7 +8373,8 @@
    "actions": "***Multiattack.*** The otyugh makes one Bite attack and two Tentacle attacks.\n\n***Bite.*** Melee Attack Roll: +6, reach 5 ft. 12 (2d8 + 3) Piercing damage, and the target has the Poisoned condition. Whenever the Poisoned target finishes a Long Rest, it is subjected to the following effect. Constitution Saving Throw: DC 15. Failure: The target's Hit Point maximum decreases by 5 (1d10) and doesn't return to normal until the Poisoned condition ends on the target. Success: The Poisoned condition ends.\n\n***Tentacle.*** Melee Attack Roll: +6, reach 10 ft. 12 (2d8 + 3) Piercing damage. If the target is a Medium or smaller creature, it has the Grappled condition (escape DC 13) from one of two tentacles.\n\n***Tentacle Slam.*** Constitution Saving Throw: DC 14, each creature Grappled by the otyugh. Failure: 16 (3d8 + 3) Bludgeoning damage, and the target has the Stunned condition until the start of the otyugh's next turn. Success: Half damage only.",
    "reactions": "",
    "legendaryActions": ""
-  }
+  },
+  "roddel": "Hij praat zonder zijn mond te bewegen, rechtstreeks in je hoofd. Wat je terugdenkt, hoort hij ook."
  },
  {
   "key": "srd-2024_owl",
@@ -8433,7 +8564,8 @@
    "actions": "***Multiattack.*** The spider makes two Bite attacks.\n\n***Bite.*** Melee Attack Roll: +5, reach 5 ft. 8 (1d10 + 3) Piercing damage plus 9 (2d8) Poison damage. If this damage reduces the target to 0 Hit Points, the target becomes Stable, and it has the Poisoned condition for 1 hour. While Poisoned, the target also has the Paralyzed condition.",
    "reactions": "",
    "legendaryActions": ""
-  }
+  },
+  "roddel": "Kijk omhoog. Muren en plafonds zijn voor hem gewoon vloeren. Zijn eigen web houdt jou wel tegen en hem niet."
  },
  {
   "key": "srd-2024_piranha",
@@ -8585,7 +8717,8 @@
    "actions": "***Multiattack.*** The pit fiend makes one Bite attack, two Devilish Claw attacks, and one Fiery Mace attack.\n\n***Bite.*** Melee Attack Roll: +14, reach 10 ft. 18 (3d6 + 8) Piercing damage. If the target is a creature, it must make the following saving throw. Constitution Saving Throw: DC 21. Failure: The target has the Poisoned condition. While Poisoned, the target can't regain Hit Points and takes 21 (6d6) Poison damage at the start of each of its turns, and it repeats the save at the end of each of its turns, ending the effect on itself on a success. After 1 minute, it succeeds automatically.\n\n***Devilish Claw.*** Melee Attack Roll: +14, reach 10 ft. 26 (4d8 + 8) Necrotic damage.\n\n***Fiery Mace.*** Melee Attack Roll: +14, reach 10 ft. 22 (4d6 + 8) Force damage plus 21 (6d6) Fire damage.\n\n***Hellfire Spellcasting.*** The pit fiend casts Fireball (level 5 version) twice, requiring no Material components and using Charisma as the spellcasting ability (spell save DC 21). It can replace one Fireball with Hold Monster (level 7 version) or Wall of Fire.\n\n- **At Will:**",
    "reactions": "",
    "legendaryActions": ""
-  }
+  },
+  "roddel": "Vermommingen en illusies werken niet: hij ziet dwars door alles heen wat je optrekt. Hij praat zonder zijn mond te bewegen, rechtstreeks in je hoofd. Wat je terugdenkt, hoort hij ook."
  },
  {
   "key": "srd-2024_planetar",
@@ -8623,7 +8756,8 @@
    "actions": "***Multiattack.*** The planetar makes three Radiant Sword attacks or uses Holy Burst twice.\n\n***Radiant Sword.*** Melee Attack Roll: +12, reach 10 ft. 14 (2d6 + 7) Slashing damage plus 18 (4d8) Radiant damage.\n\n***Holy Burst.*** Dexterity Saving Throw: DC 20, each enemy in a 20-foot-radius Sphere [Area of Effect]|XPHB|Sphere centered on a point the planetar can see within 120 feet. Failure: 24 (7d6) Radiant damage. Success: Half damage.\n\n***Spellcasting.*** The planetar casts one of the following spells, requiring no Material components and using Charisma as spellcasting ability (spell save DC 20):\n\n- **At Will:** Detect Evil and Good\n- **1/Day Each:** Commune, Control Weather, Dispel Evil and Good, Raise Dead",
    "reactions": "",
    "legendaryActions": ""
-  }
+  },
+  "roddel": "Vermommingen en illusies werken niet: hij ziet dwars door alles heen wat je optrekt. Hij praat zonder zijn mond te bewegen, rechtstreeks in je hoofd. Wat je terugdenkt, hoort hij ook."
  },
  {
   "key": "srd-2024_plesiosaurus",
@@ -8851,7 +8985,8 @@
    "actions": "***Multiattack.*** The pseudodragon makes two Bite attacks.\n\n***Bite.*** Melee Attack Roll: +4, reach 5 ft. 4 (1d4 + 2) Piercing damage.\n\n***Sting.*** Constitution Saving Throw: DC 12, one creature the pseudodragon can see within 5 feet. Failure: 5 (2d4) Poison damage, and the target has the Poisoned condition for 1 hour. Failure by 5 or More: While Poisoned, the target also has the Unconscious condition, which ends early if the target takes damage or a creature within 5 feet of it takes an action to wake it.",
    "reactions": "",
    "legendaryActions": ""
-  }
+  },
+  "roddel": "Spreuken glijden van hem af alsof ze voor iemand anders bedoeld waren. Neem staal mee. Donker maakt voor hem niets uit; een lamp doven verbergt je niet."
  },
  {
   "key": "srd-2024_pteranodon",
@@ -8927,7 +9062,8 @@
    "actions": "***Multiattack.*** The worm makes one Bite attack and one Tail Stinger attack.\n\n***Bite.*** Melee Attack Roll: +14, reach 10 ft. 22 (3d8 + 9) Piercing damage. If the target is a Large or smaller creature, it has the Grappled condition (escape DC 19), and it has the Restrained condition until the grapple ends.\n\n***Tail Stinger.*** Melee Attack Roll: +14, reach 10 ft. 16 (2d6 + 9) Piercing damage plus 35 (10d6) Poison damage.",
    "reactions": "",
    "legendaryActions": ""
-  }
+  },
+  "roddel": "Hij komt van onderen. Op losse grond hoor je hem pas als het te laat is. Hij voelt je lopen. Wie stil blijft staan, bestaat voor hem even niet."
  },
  {
   "key": "srd-2024_quasit",
@@ -8965,7 +9101,8 @@
    "actions": "***Rend.*** Melee Attack Roll: +5, reach 5 ft. 5 (1d4 + 3) Slashing damage, and the target has the Poisoned condition until the start of the quasit's next turn.\n\n***Scare.*** Wisdom Saving Throw: DC 10, one creature within 20 feet. Failure: The target has the Frightened condition. At the end of each of its turns, the target repeats the save, ending the effect on itself on a success. After 1 minute, it succeeds automatically.\n\n***Shape-Shift.*** The quasit shape-shifts to resemble a bat (Speed 10 ft., Fly 40 ft.), a centipede (40 ft., Climb 40 ft.), or a toad (40 ft., Swim 40 ft.), or it returns to its true form. Its game statistics are the same in each form, except for its Speed. Any equipment it is wearing or carrying isn't transformed.\n\n***Invisibility.*** The quasit casts Invisibility on itself, requiring no spell components and using Charisma as the spellcasting ability.",
    "reactions": "",
    "legendaryActions": ""
-  }
+  },
+  "roddel": "Spreuken glijden van hem af alsof ze voor iemand anders bedoeld waren. Neem staal mee."
  },
  {
   "key": "srd-2024_rakshasa",
@@ -9003,7 +9140,8 @@
    "actions": "***Multiattack.*** The rakshasa makes three Cursed Touch attacks.\n\n***Cursed Touch.*** Melee Attack Roll: +10, reach 5 ft. 12 (2d6 + 5) Slashing damage plus 19 (3d12) Necrotic damage. If the target is a creature, it is cursed. While cursed, the target gains no benefit from finishing a Short Rest|XPHB|Short or Long Rest.\n\n***Baleful Command.*** Wisdom Saving Throw: DC 18, each enemy in a 30-foot Emanation originating from the rakshasa. Failure: 28 (8d6) Psychic damage, and the target has the Frightened and Incapacitated conditions until the start of the rakshasa's next turn.\n\n***Spellcasting.*** The rakshasa casts one of the following spells, requiring no Material components and using Charisma as the spellcasting ability (spell save DC 18):\n\n- **At Will:** Detect Magic, Detect Thoughts, Disguise Self, Mage Hand, Minor Illusion\n- **1/Day Each:** Fly, Invisibility, Major Image, Plane Shift",
    "reactions": "",
    "legendaryActions": ""
-  }
+  },
+  "roddel": "Vermommingen en illusies werken niet: hij ziet dwars door alles heen wat je optrekt."
  },
  {
   "key": "srd-2024_rat",
@@ -9117,7 +9255,8 @@
    "actions": "***Multiattack.*** The dragon makes two Rend attacks.\n\n***Rend.*** Melee Attack Roll: +6, reach 5 ft. 9 (1d10 + 4) Slashing damage plus 3 (1d6) Fire damage.\n\n***Fire Breath.*** Dexterity Saving Throw: DC 13, each creature in a 15-foot Cone. Failure: 24 (7d6) Fire damage. Success: Half damage.",
    "reactions": "",
    "legendaryActions": ""
-  }
+  },
+  "roddel": "Vuur doet hem niets; zoek iets anders. Donker maakt voor hem niets uit; een lamp doven verbergt je niet."
  },
  {
   "key": "srd-2024_reef-shark",
@@ -9155,7 +9294,8 @@
    "actions": "***Bite.*** Melee Attack Roll: +4, reach 5 ft. 7 (2d4 + 2) Piercing damage.",
    "reactions": "",
    "legendaryActions": ""
-  }
+  },
+  "roddel": "Hij valt nooit alleen aan. Het is de tweede die je pakt, terwijl je naar de eerste kijkt. Donker maakt voor hem niets uit; een lamp doven verbergt je niet."
  },
  {
   "key": "srd-2024_remorhaz",
@@ -9193,7 +9333,8 @@
    "actions": "***Bite.*** Melee Attack Roll: +11, reach 10 ft. 18 (2d10 + 7) Piercing damage plus 14 (4d6) Fire damage. If the target is a Large or smaller creature, it has the Grappled condition (escape DC 17), and it has the Restrained condition until the grapple ends.",
    "reactions": "",
    "legendaryActions": ""
-  }
+  },
+  "roddel": "Hij komt van onderen. Op losse grond hoor je hem pas als het te laat is. Hij voelt je lopen. Wie stil blijft staan, bestaat voor hem even niet."
  },
  {
   "key": "srd-2024_rhinoceros",
@@ -9345,7 +9486,8 @@
    "actions": "***Multiattack.*** The roper makes two Tentacle attacks, uses Reel, and makes two Bite attacks.\n\n***Bite.*** Melee Attack Roll: +7, reach 5 ft. 17 (3d8 + 4) Piercing damage.\n\n***Tentacle.*** Melee Attack Roll: +7, reach 60 ft. The target has the Grappled condition (escape DC 14) from one of six tentacles, and the target has the Poisoned condition until the grapple ends. The tentacle can be damaged, freeing a creature it has Grappled when destroyed (AC 20, HP 10, Immunity to Poison and Psychic damage). Damaging the tentacle deals no damage to the roper, and a destroyed tentacle regrows at the start of the roper's next turn.\n\n***Reel.*** The roper pulls each creature Grappled by it up to 30 feet straight toward it.",
    "reactions": "",
    "legendaryActions": ""
-  }
+  },
+  "roddel": "Kijk omhoog. Muren en plafonds zijn voor hem gewoon vloeren."
  },
  {
   "key": "srd-2024_rust-monster",
@@ -9497,7 +9639,8 @@
    "actions": "***Multiattack.*** The salamander makes two Flame Spear attacks. It can replace one attack with a use of Constrict.\n\n***Flame Spear.*** Melee or Ranged Attack Roll: +7, reach 5 ft. or range 20/60 ft. 13 (2d8 + 4) Piercing damage plus 7 (2d6) Fire damage. HitomThe spear magically returns to the salamander's hand immediately after a ranged attack.\n\n***Constrict.*** Strength Saving Throw: DC 15, one Large or smaller creature the salamander can see within 10 feet. Failure: 11 (2d6 + 4) Bludgeoning damage plus 7 (2d6) Fire damage. The target has the Grappled condition (escape DC 14), and it has the Restrained condition until the grapple ends.",
    "reactions": "",
    "legendaryActions": ""
-  }
+  },
+  "roddel": "Vuur doet hem niets; zoek iets anders."
  },
  {
   "key": "srd-2024_satyr",
@@ -9535,7 +9678,8 @@
    "actions": "***Hooves.*** Melee Attack Roll: +5, reach 5 ft. 5 (1d4 + 3) Bludgeoning damage. If the target is a Medium or smaller creature, the satyr pushes the target up to 10 feet straight away from itself.\n\n***Mockery.*** Wisdom Saving Throw: DC 12, one creature the satyr can see within 90 feet. Failure: 5 (1d6 + 2) Psychic damage.",
    "reactions": "",
    "legendaryActions": ""
-  }
+  },
+  "roddel": "Spreuken glijden van hem af alsof ze voor iemand anders bedoeld waren. Neem staal mee."
  },
  {
   "key": "srd-2024_scorpion",
@@ -9573,7 +9717,8 @@
    "actions": "***Sting.*** Melee Attack Roll: +2, reach 5 ft. 1 Piercing damage plus 3 (1d6) Poison damage.",
    "reactions": "",
    "legendaryActions": ""
-  }
+  },
+  "roddel": "Donker maakt voor hem niets uit; een lamp doven verbergt je niet."
  },
  {
   "key": "srd-2024_scout",
@@ -9649,7 +9794,8 @@
    "actions": "***Claw.*** Melee Attack Roll: +5, reach 5 ft. 10 (2d6 + 3) Slashing damage.\n\n***Death Glare.*** Wisdom Saving Throw: DC 11, one Frightened creature the hag can see within 30 feet. Failure: If the target has 20 Hit Points or fewer, it drops to 0 Hit Points. Otherwise, the target takes 13 (3d8) Psychic damage.\n\n***Illusory Appearance.*** The hag casts Disguise Self, using Constitution as the spellcasting ability (spell save DC 13). The spell's duration is 24 hours.",
    "reactions": "",
    "legendaryActions": ""
-  }
+  },
+  "roddel": "Boven of onder water maakt hem niets uit; hij ademt allebei. In het water heb jij de haast, hij niet."
  },
  {
   "key": "srd-2024_seahorse",
@@ -9725,7 +9871,8 @@
    "actions": "***Draining Swipe.*** Melee Attack Roll: +4, reach 5 ft. 5 (1d6 + 2) Necrotic damage, and the target's Strength score decreases by 1d4. The target dies if this reduces that score to 0. If a Humanoid is slain by this attack, a Shadow rises from the corpse 1d4 hours later.",
    "reactions": "",
    "legendaryActions": ""
-  }
+  },
+  "roddel": "Breng hem in de volle zon en hij knijpt zijn ogen dicht; wat hij daar doet, doet hij half. Bang maken werkt niet. Hij kent het woord niet."
  },
  {
   "key": "srd-2024_shambling-mound",
@@ -9763,7 +9910,8 @@
    "actions": "***Multiattack.*** The shambling mound makes three Charged Tendril attacks. It can replace one attack with a use of Engulf.\n\n***Charged Tendril.*** Melee Attack Roll: +7, reach 10 ft. 7 (1d6 + 4) Bludgeoning damage plus 5 (2d4) Lightning damage. If the target is a Medium or smaller creature, the shambling mound pulls the target 5 feet straight toward itself.\n\n***Engulf.*** Strength Saving Throw: DC 15, one Medium or smaller creature within 5 feet. Failure: The target is pulled into the shambling mound's space and has the Grappled condition (escape DC 14). Until the grapple ends, the target has the Blinded and Restrained conditions, and it takes 10 (3d6) Lightning damage at the start of each of its turns. When the shambling mound moves, the Grappled target moves with it, costing it no extra movement. The shambling mound can have only one creature Grappled by this action at a time.",
    "reactions": "",
    "legendaryActions": ""
-  }
+  },
+  "roddel": "Wat hij te pakken krijgt, laat hij niet meer los — en dan helpt alleen iemand anders. Bliksem doet hem niets; zoek iets anders."
  },
  {
   "key": "srd-2024_shield-guardian",
@@ -9801,7 +9949,8 @@
    "actions": "***Multiattack.*** The guardian makes two Fist attacks.\n\n***Fist.*** Melee Attack Roll: +7, reach 10 ft. 11 (2d6 + 4) Bludgeoning damage plus 7 (2d6) Force damage.",
    "reactions": "***Protection.*** _Trigger:_ An attack roll hits the wearer of the guardian’s amulet while the wearer is within 5 feet of the guardian. _Response:_ The wearer gains a +5 bonus to AC, including against the triggering attack and possibly causing it to miss, until the start of the guardian’s next turn.",
    "legendaryActions": ""
-  }
+  },
+  "roddel": "Neerslaan is niet genoeg: wat je opent, groeit weer dicht. Praten helpt niet en dreigen ook niet — hij is voor geen van beide gevoelig."
  },
  {
   "key": "srd-2024_shrieker-fungus",
@@ -9839,7 +9988,8 @@
    "actions": "",
    "reactions": "***Shriek.*** _Trigger:_ A creature or a source of Bright Light moves within 30 feet of the shrieker. _Response:_ The shrieker emits a shriek audible within 300 feet of itself for 1 minute or until the shrieker dies.",
    "legendaryActions": ""
-  }
+  },
+  "roddel": "Donker maakt voor hem niets uit; een lamp doven verbergt je niet."
  },
  {
   "key": "srd-2024_silver-dragon-wyrmling",
@@ -9877,7 +10027,8 @@
    "actions": "***Multiattack.*** The dragon makes two Rend attacks.\n\n***Rend.*** Melee Attack Roll: +6, reach 5 ft. 9 (1d10 + 4) Piercing damage.\n\n***Cold Breath.*** Constitution Saving Throw: DC 13, each creature in a 15-foot Cone. Failure: 18 (4d8) Cold damage. Success: Half damage.\n\n***Paralyzing Breath.*** Constitution Saving Throw: DC 13, each creature in a 15-foot Cone. First Failure The target has the Incapacitated condition until the end of its next turn, when it repeats the save. Second Failure The target has the Paralyzed condition, and it repeats the save at the end of each of its turns, ending the effect on itself on a success. After 1 minute, it succeeds automatically.",
    "reactions": "",
    "legendaryActions": ""
-  }
+  },
+  "roddel": "Kou doet hem niets; zoek iets anders. Donker maakt voor hem niets uit; een lamp doven verbergt je niet."
  },
  {
   "key": "srd-2024_skeleton",
@@ -9953,7 +10104,8 @@
    "actions": "***Multiattack.*** The solar makes two Flying Sword attacks. It can replace one attack with a use of Slaying Bow.\n\n***Flying Sword.*** Melee or Ranged Attack Roll: +15, reach 10 ft. or range 120 ft. 22 (4d6 + 8) Slashing damage plus 36 (8d8) Radiant damage. HitomThe sword magically returns to the solar's hand or hovers within 5 feet of the solar immediately after a ranged attack.\n\n***Slaying Bow.*** Dexterity Saving Throw: DC 21, one creature the solar can see within 600 feet. Failure: If the creature has 100 Hit Points or fewer, it dies. It otherwise takes 24 (4d8 + 6) Piercing damage plus 36 (8d8) Radiant damage.\n\n***Spellcasting.*** The solar casts one of the following spells, requiring no Material components and using Charisma as the spellcasting ability (spell save DC 25):\n\n- **At Will:** Detect Evil and Good\n- **1/Day Each:** Commune, Control Weather, Dispel Evil and Good, Resurrection",
    "reactions": "",
    "legendaryActions": "***Blinding Gaze.*** Constitution Saving Throw: DC 25, one creature the solar can see within 120 feet. Failure: The target has the Blinded condition for 1 minute. Failure or Success: The solar can't take this action again until the start of its next turn.\n\n***Radiant Teleport.*** The solar teleports up to 60 feet to an unoccupied space it can see. Dexterity Saving Throw: DC 25, each creature in a 10-foot Emanation originating from the solar at its destination space. Failure: 11 (2d10) Radiant damage. Success: Half damage."
-  }
+  },
+  "roddel": "Praten helpt niet en dreigen ook niet — hij is voor geen van beide gevoelig. Vermommingen en illusies werken niet: hij ziet dwars door alles heen wat je optrekt."
  },
  {
   "key": "srd-2024_specter",
@@ -9991,7 +10143,8 @@
    "actions": "***Life Drain.*** Melee Attack Roll: +4, reach 5 ft. 7 (2d6) Necrotic damage. If the target is a creature, its Hit Point maximum decreases by an amount equal to the damage taken.",
    "reactions": "",
    "legendaryActions": ""
-  }
+  },
+  "roddel": "Breng hem in de volle zon en hij knijpt zijn ogen dicht; wat hij daar doet, doet hij half. Een deur sluiten heeft geen zin. Hij komt dwars door de muur, al doet steen hem pijn."
  },
  {
   "key": "srd-2024_sphinx-of-lore",
@@ -10029,7 +10182,8 @@
    "actions": "***Multiattack.*** The sphinx makes three Claw attacks.\n\n***Claw.*** Melee Attack Roll: +8, reach 5 ft. 14 (3d6 + 4) Slashing damage.\n\n***Mind-Rending Roar.*** Wisdom Saving Throw: DC 16, each enemy in a 300-foot Emanation originating from the sphinx. Failure: 35 (10d6) Psychic damage, and the target has the Incapacitated condition until the start of the sphinx's next turn.\n\n***Spellcasting.*** The sphinx casts one of the following spells, requiring no Material components and using Intelligence as the spellcasting ability (spell save DC 16):\n\n- **At Will:** Detect Magic, Identify, Mage Hand, Minor Illusion, Prestidigitation\n- **1/Day Each:** Dispel Magic, Legend Lore, Locate Object, Plane Shift, Remove Curse, Tongues",
    "reactions": "",
    "legendaryActions": "***Arcane Prowl.*** The sphinx can teleport up to 30 feet to an unoccupied space it can see, and it makes one Claw attack.\n\n***Weight of Years.*** Constitution Saving Throw: DC 16, one creature the sphinx can see within 120 feet. Failure: The target gains 1 Exhaustion level. While the target has any Exhaustion levels, it appears 3d10 years older. Failure or Success: The sphinx can't take this action again until the start of its next turn."
-  }
+  },
+  "roddel": "Praten helpt niet en dreigen ook niet — hij is voor geen van beide gevoelig. Vermommingen en illusies werken niet: hij ziet dwars door alles heen wat je optrekt."
  },
  {
   "key": "srd-2024_sphinx-of-valor",
@@ -10067,7 +10221,8 @@
    "actions": "***Multiattack.*** The sphinx makes two Claw attacks and uses Roar.\n\n***Claw.*** Melee Attack Roll: +12, reach 5 ft. 20 (4d6 + 6) Slashing damage.\n\n***Roar.*** The sphinx emits a magical roar. Whenever it roars, the roar has a different effect, as detailed below (the sequence resets when it takes a Long Rest): - First Roar: Wisdom Saving Throw: DC 20, each enemy in a 500-foot Emanation originating from the sphinx. Failure: The target has the Frightened condition for 1 minute. - Second Roar: Wisdom Saving Throw: DC 20, each enemy in a 500-foot Emanation originating from the sphinx. Failure: The target has the Paralyzed condition, and it repeats the save at the end of each of its turns, ending the effect on itself on a success. After 1 minute, it succeeds automatically. - Third Roar: Constitution Saving Throw: DC 20, each enemy in a 500-foot Emanation originating from the sphinx. Failure: 44 (8d10) Thunder damage, and the target has the Prone condition. Success: Half damage only.\n\n***Spellcasting.*** The sphinx casts one of the following spells, requiring no Material components and using Wisdom as the spellcasting ability (spell save DC 20):\n\n- **At Will:** Detect Evil and Good, Thaumaturgy\n- **1/Day Each:** Detect Magic, Dispel Magic, Greater Restoration, Heroes' Feast, Zone of Truth",
    "reactions": "",
    "legendaryActions": "***Arcane Prowl.*** The sphinx can teleport up to 30 feet to an unoccupied space it can see, and it makes one Claw attack.\n\n***Weight of Years.*** Constitution Saving Throw: DC 16, one creature the sphinx can see within 120 feet. Failure: The target gains 1 Exhaustion level. While the target has any Exhaustion levels, it appears 3d10 years older. Failure or Success: The sphinx can't take this action again until the start of its next turn."
-  }
+  },
+  "roddel": "Praten helpt niet en dreigen ook niet — hij is voor geen van beide gevoelig. Vermommingen en illusies werken niet: hij ziet dwars door alles heen wat je optrekt."
  },
  {
   "key": "srd-2024_sphinx-of-wonder",
@@ -10105,7 +10260,8 @@
    "actions": "***Rend.*** Melee Attack Roll: +5, reach 5 ft. 5 (1d4 + 3) Slashing damage plus 7 (2d6) Radiant damage.",
    "reactions": "***Burst of Ingenuity.*** _Trigger:_ The sphinx or another creature within 30 feet makes an ability check or a saving throw. _Response:_ The sphinx adds 2 to the roll.",
    "legendaryActions": ""
-  }
+  },
+  "roddel": "Spreuken glijden van hem af alsof ze voor iemand anders bedoeld waren. Neem staal mee."
  },
  {
   "key": "srd-2024_spider",
@@ -10143,7 +10299,8 @@
    "actions": "***Bite.*** Melee Attack Roll: +4, reach 5 ft. 1 Piercing damage plus 2 (1d4) Poison damage.",
    "reactions": "",
    "legendaryActions": ""
-  }
+  },
+  "roddel": "Kijk omhoog. Muren en plafonds zijn voor hem gewoon vloeren. Zijn eigen web houdt jou wel tegen en hem niet."
  },
  {
   "key": "srd-2024_spirit-naga",
@@ -10181,7 +10338,8 @@
    "actions": "***Multiattack.*** The naga makes three attacks, using Bite or Necrotic Ray in any combination.\n\n***Bite.*** Melee Attack Roll: +7, reach 10 ft. 7 (1d6 + 4) Piercing damage plus 14 (4d6) Poison damage.\n\n***Necrotic Ray.*** Ranged Attack Roll: +6, range 60 ft. 21 (6d6) Necrotic damage.\n\n***Spellcasting.*** The naga casts one of the following spells, requiring no Somatic or Material components and using Intelligence as the spellcasting ability (spell save DC 14):\n\n- **At Will:** Detect Magic, Mage Hand, Minor Illusion, Water Breathing\n- **2/Day Each:** Detect Thoughts, Dimension Door, Hold Person, Lightning Bolt",
    "reactions": "",
    "legendaryActions": ""
-  }
+  },
+  "roddel": "Hij is met geen woord of blik te bespelen; dat is bij hem al geprobeerd."
  },
  {
   "key": "srd-2024_sprite",
@@ -10295,7 +10453,8 @@
    "actions": "***Claw.*** Melee Attack Roll: +2, reach 5 ft. 2 (1d4) Slashing damage plus 2 (1d4) Fire damage.\n\n***Steam Breath.*** Constitution Saving Throw: DC 10, each creature in a 15-foot Cone. Failure: 5 (2d4) Fire damage, and the target's Speed decreases by 10 feet until the end of the mephit's next turn. Success: Half damage only. Failure or Success: Being underwater doesn't grant Resistance to this Fire damage.",
    "reactions": "",
    "legendaryActions": ""
-  }
+  },
+  "roddel": "Sta niet naast hem als hij valt. Dat is het moment waarop de meeste mensen gewond raken. Vuur doet hem niets; zoek iets anders."
  },
  {
   "key": "srd-2024_stirge",
@@ -10409,7 +10568,8 @@
    "actions": "***Multiattack.*** The golem makes two attacks, using Slam or Force Bolt in any combination.\n\n***Slam.*** Melee Attack Roll: +10, reach 5 ft. 15 (2d8 + 6) Bludgeoning damage plus 9 (2d8) Force damage.\n\n***Force Bolt.*** Ranged Attack Roll: +9, range 120 ft. 22 (4d10) Force damage.",
    "reactions": "",
    "legendaryActions": ""
-  }
+  },
+  "roddel": "Praten helpt niet en dreigen ook niet — hij is voor geen van beide gevoelig. Spreuken glijden van hem af alsof ze voor iemand anders bedoeld waren. Neem staal mee."
  },
  {
   "key": "srd-2024_storm-giant",
@@ -10447,7 +10607,8 @@
    "actions": "***Multiattack.*** The giant makes two attacks, using Storm Sword or Thunderbolt in any combination.\n\n***Storm Sword.*** Melee Attack Roll: +14, reach 10 ft. 23 (4d6 + 9) Slashing damage plus 13 (3d8) Lightning damage.\n\n***Thunderbolt.*** Ranged Attack Roll: +14, range 500 ft. 22 (2d12 + 9) Lightning damage, and the target has the Blinded and Deafened conditions until the start of the giant's next turn.\n\n***Lightning Storm.*** Dexterity Saving Throw: DC 18, each creature in a 10-foot-radius, 40-foot-high Cylinder [Area of Effect]|XPHB|Cylinder originating from a point the giant can see within 500 feet. Failure: 55 (10d10) Lightning damage. Success: Half damage.\n\n***Spellcasting.*** The giant casts one of the following spells, requiring no Material components and using Wisdom as the spellcasting ability (spell save DC 18):\n\n- **At Will:** Detect Magic, Light\n- **1/Day Each:** Control Weather",
    "reactions": "",
    "legendaryActions": ""
-  }
+  },
+  "roddel": "Vermommingen en illusies werken niet: hij ziet dwars door alles heen wat je optrekt. Boven of onder water maakt hem niets uit; hij ademt allebei. In het water heb jij de haast, hij niet."
  },
  {
   "key": "srd-2024_succubus",
@@ -10485,7 +10646,8 @@
    "actions": "***Multiattack.*** The succubus makes one Fiendish Touch attack and uses Charm or Draining Kiss.\n\n***Fiendish Touch.*** Melee Attack Roll: +7, reach 5 ft. 16 (2d10 + 5) Psychic damage.\n\n***Charm.*** The succubus casts Dominate Person (level 8 version), requiring no spell components and using Charisma as the spellcasting ability (spell save DC 15).\n\n***Draining Kiss.*** Constitution Saving Throw: DC 15, one creature Charmed by the succubus within 5 feet. Failure: 13 (3d8) Psychic damage. Success: Half damage. Failure or Success: The target's Hit Point maximum decreases by an amount equal to the damage taken.",
    "reactions": "",
    "legendaryActions": ""
-  }
+  },
+  "roddel": "Hij praat zonder zijn mond te bewegen, rechtstreeks in je hoofd. Wat je terugdenkt, hoort hij ook."
  },
  {
   "key": "srd-2024_swarm-of-bats",
@@ -10523,7 +10685,8 @@
    "actions": "***Bites.*** Melee Attack Roll: +4, reach 5 ft. 5 (2d4) Piercing damage, or 2 (1d4) Piercing damage if the swarm is Bloodied.",
    "reactions": "",
    "legendaryActions": ""
-  }
+  },
+  "roddel": "Eén klap raakt er tien en dat verandert niets. Hoe minder ervan over is, hoe minder ze kunnen. Donker maakt voor hem niets uit; een lamp doven verbergt je niet."
  },
  {
   "key": "srd-2024_swarm-of-crawling-claws",
@@ -10561,7 +10724,8 @@
    "actions": "***Swarm of Grasping Hands.*** Melee Attack Roll: +4, reach 5 ft. 20 (4d8 + 2) Necrotic damage, or 11 (2d8 + 2) Necrotic damage if the swarm is Bloodied. If the target is a Medium or smaller creature, it has the Prone condition.",
    "reactions": "",
    "legendaryActions": ""
-  }
+  },
+  "roddel": "Praten helpt niet en dreigen ook niet — hij is voor geen van beide gevoelig. Eén klap raakt er tien en dat verandert niets. Hoe minder ervan over is, hoe minder ze kunnen."
  },
  {
   "key": "srd-2024_swarm-of-insects",
@@ -10599,7 +10763,8 @@
    "actions": "***Bites.*** Melee Attack Roll: +3, reach 5 ft. 6 (2d4 + 1) Poison damage, or 3 (1d4 + 1) Poison damage if the swarm is Bloodied.",
    "reactions": "",
    "legendaryActions": ""
-  }
+  },
+  "roddel": "Kijk omhoog. Muren en plafonds zijn voor hem gewoon vloeren. Eén klap raakt er tien en dat verandert niets. Hoe minder ervan over is, hoe minder ze kunnen."
  },
  {
   "key": "srd-2024_swarm-of-piranhas",
@@ -10637,7 +10802,8 @@
    "actions": "***Bites.*** Melee Attack Roll: +5 (with Advantage if the target doesn't have all its Hit Points), reach 5 ft. 8 (2d4 + 3) Piercing damage, or 5 (1d4 + 3) Piercing damage if the swarm is Bloodied.",
    "reactions": "",
    "legendaryActions": ""
-  }
+  },
+  "roddel": "Eén klap raakt er tien en dat verandert niets. Hoe minder ervan over is, hoe minder ze kunnen."
  },
  {
   "key": "srd-2024_swarm-of-rats",
@@ -10675,7 +10841,8 @@
    "actions": "***Bites.*** Melee Attack Roll: +2, reach 5 ft. 5 (2d4) Piercing damage, or 2 (1d4) Piercing damage if the swarm is Bloodied.",
    "reactions": "",
    "legendaryActions": ""
-  }
+  },
+  "roddel": "Eén klap raakt er tien en dat verandert niets. Hoe minder ervan over is, hoe minder ze kunnen."
  },
  {
   "key": "srd-2024_swarm-of-ravens",
@@ -10713,7 +10880,8 @@
    "actions": "***Beaks.*** Melee Attack Roll: +4, reach 5 ft. 5 (1d6 + 2) Piercing damage, or 2 (1d4) Piercing damage if the swarm is Bloodied.\n\n***Cacophony.*** Wisdom Saving Throw: DC 10, one creature in the swarm's space. Failure: The target has the Deafened condition until the start of the swarm's next turn. While Deafened, the target also has Disadvantage on ability checks and attack rolls.",
    "reactions": "",
    "legendaryActions": ""
-  }
+  },
+  "roddel": "Eén klap raakt er tien en dat verandert niets. Hoe minder ervan over is, hoe minder ze kunnen."
  },
  {
   "key": "srd-2024_swarm-of-venomous-snakes",
@@ -10751,7 +10919,8 @@
    "actions": "***Bites.*** Melee Attack Roll: +6, reach 5 ft. 8 (1d8 + 4) Piercing damage—or 6 (1d4 + 4) Piercing damage if the swarm is Bloodied—plus 10 (3d6) Poison damage.",
    "reactions": "",
    "legendaryActions": ""
-  }
+  },
+  "roddel": "Eén klap raakt er tien en dat verandert niets. Hoe minder ervan over is, hoe minder ze kunnen. Donker maakt voor hem niets uit; een lamp doven verbergt je niet."
  },
  {
   "key": "srd-2024_tarrasque",
@@ -10789,7 +10958,8 @@
    "actions": "***Multiattack.*** The tarrasque makes one Bite attack and three other attacks, using Claw or Tail in any combination.\n\n***Bite.*** Melee Attack Roll: +19, reach 15 ft. 36 (4d12 + 10) Piercing damage, and the target has the Grappled condition (escape DC 20). Until the grapple ends, the target has the Restrained condition and can't teleport.\n\n***Claw.*** Melee Attack Roll: +19, reach 15 ft. 28 (4d8 + 10) Slashing damage.\n\n***Tail.*** Melee Attack Roll: +19, reach 30 ft. 23 (3d8 + 10) Bludgeoning damage. If the target is a Huge or smaller creature, it has the Prone condition.\n\n***Thunderous Bellow.*** Constitution Saving Throw: DC 27, each creature and each object that isn't being worn or carried in a 150-foot Cone. Failure: 78 (12d12) Thunder damage, and the target has the Deafened and Frightened conditions until the end of its next turn. Success: Half damage only.",
    "reactions": "",
    "legendaryActions": "***Onslaught.*** The tarrasque moves up to half its Speed, and it makes one Claw or Tail attack.\n\n***World-Shaking Movement.*** The tarrasque moves up to its Speed. At the end of this movement, the tarrasque creates an instantaneous shock wave in a 60-foot Emanation originating from itself. Creatures in that area lose Concentration and, if Medium or smaller, have the Prone condition. The tarrasque can't take this action again until the start of its next turn."
-  }
+  },
+  "roddel": "Hij komt van onderen. Op losse grond hoor je hem pas als het te laat is. Praten helpt niet en dreigen ook niet — hij is voor geen van beide gevoelig."
  },
  {
   "key": "srd-2024_tiger",
@@ -10865,7 +11035,8 @@
    "actions": "***Mace.*** Melee Attack Roll: +4, reach 5 ft. 5 (1d6 + 2) Bludgeoning damage.\n\n***Heavy Crossbow.*** Ranged Attack Roll: +3, range 100/400 ft. 6 (1d10 + 1) Piercing damage.",
    "reactions": "",
    "legendaryActions": ""
-  }
+  },
+  "roddel": "Hij valt nooit alleen aan. Het is de tweede die je pakt, terwijl je naar de eerste kijkt."
  },
  {
   "key": "srd-2024_tough-boss",
@@ -10903,7 +11074,8 @@
    "actions": "***Multiattack.*** The tough makes two attacks, using Warhammer or Heavy Crossbow in any combination.\n\n***Warhammer.*** Melee Attack Roll: +5, reach 5 ft. 12 (2d8 + 3) Bludgeoning damage. If the target is a Large or smaller creature, the tough pushes the target up to 10 feet straight away from itself.\n\n***Heavy Crossbow.*** Ranged Attack Roll: +4, range 100/400 ft. 13 (2d10 + 2) Piercing damage.",
    "reactions": "",
    "legendaryActions": ""
-  }
+  },
+  "roddel": "Hij valt nooit alleen aan. Het is de tweede die je pakt, terwijl je naar de eerste kijkt."
  },
  {
   "key": "srd-2024_treant",
@@ -11017,7 +11189,8 @@
    "actions": "***Multiattack.*** The troll makes three Rend attacks.\n\n***Rend.*** Melee Attack Roll: +7, reach 10 ft. 11 (2d6 + 4) Slashing damage.",
    "reactions": "",
    "legendaryActions": ""
-  }
+  },
+  "roddel": "Neerslaan is niet genoeg — hij trekt zichzelf weer dicht. Alleen vuur of zuur houdt de wond open."
  },
  {
   "key": "srd-2024_troll-limb",
@@ -11055,7 +11228,8 @@
    "actions": "***Rend.*** Melee Attack Roll: +6, reach 5 ft. 9 (2d4 + 4) Slashing damage.",
    "reactions": "",
    "legendaryActions": ""
-  }
+  },
+  "roddel": "Neerslaan is niet genoeg — hij trekt zichzelf weer dicht. Alleen vuur of zuur houdt de wond open."
  },
  {
   "key": "srd-2024_tyrannosaurus-rex",
@@ -11131,7 +11305,8 @@
    "actions": "***Multiattack.*** The unicorn makes one Hooves attack and one Radiant Horn attack.\n\n***Hooves.*** Melee Attack Roll: +7, reach 5 ft. 11 (2d6 + 4) Bludgeoning damage.\n\n***Radiant Horn.*** Melee Attack Roll: +7, reach 5 ft. 9 (1d10 + 4) Radiant damage.\n\n***Spellcasting.*** The unicorn casts one of the following spells, requiring no spell components and using Charisma as the spellcasting ability (spell save DC 14):\n\n- **At Will:** Detect Evil and Good, Druidcraft\n- **1/Day Each:** Calm Emotions, Dispel Evil and Good, Entangle, Pass without Trace, Word of Recall",
    "reactions": "",
    "legendaryActions": "***Charging Horn.*** The unicorn moves up to half its Speed without provoking Opportunity Attacks, and it makes one Radiant Horn attack.\n\n***Shimmering Shield.*** The unicorn targets itself or one creature it can see within 60 feet of itself. The target gains 10 (3d6) Temporary Hit Points, and its AC increases by 2 until the end of the unicorn's next turn. The unicorn can't take this action again until the start of its next turn."
-  }
+  },
+  "roddel": "Hij is met geen woord of blik te bespelen; dat is bij hem al geprobeerd. Hij praat zonder zijn mond te bewegen, rechtstreeks in je hoofd. Wat je terugdenkt, hoort hij ook."
  },
  {
   "key": "srd-2024_vampire",
@@ -11169,7 +11344,8 @@
    "actions": "***Multiattack.*** The vampire makes two Grave Strike attacks and uses Bite.\n\n***Grave Strike.*** Melee Attack Roll: +9, reach 5 ft. 8 (1d8 + 4) Bludgeoning damage plus 7 (2d6) Necrotic damage. If the target is a Large or smaller creature, it has the Grappled condition (escape DC 14) from one of two hands.\n\n***Bite.*** Constitution Saving Throw: DC 17, one creature within 5 feet that is willing or that has the Grappled, Incapacitated, or Restrained condition. Failure: 6 (1d4 + 4) Piercing damage plus 13 (3d8) Necrotic damage. The target's Hit Point maximum decreases by an amount equal to the Necrotic damage taken, and the vampire regains Hit Points equal to that amount. A Humanoid reduced to 0 Hit Points by this damage and then buried rises the following sunset as a Vampire Spawn under the vampire's control.",
    "reactions": "",
    "legendaryActions": "***Deathless Strike.*** The vampire moves up to half its Speed, and it makes one Grave Strike attack.\n\n***Beguile.*** The vampire casts Command, requiring no spell components and using Charisma as the spellcasting ability (spell save DC 17). The vampire can't take this action again until the start of its next turn."
-  }
+  },
+  "roddel": "Wat je van hem moet weten: hij komt een huis niet binnen zonder dat iemand hem vraagt, stromend water verteert hem, een staak door het hart is het einde, en de zon verbrandt hem. Kijk omhoog. Muren en plafonds zijn voor hem gewoon vloeren."
  },
  {
   "key": "srd-2024_vampire-familiar",
@@ -11245,7 +11421,8 @@
    "actions": "***Multiattack.*** The vampire makes two Claw attacks and uses Bite.\n\n***Claw.*** Melee Attack Roll: +6, reach 5 ft. 8 (2d4 + 3) Slashing damage. If the target is a Medium or smaller creature, it has the Grappled condition (escape DC 13) from one of two claws.\n\n***Bite.*** Constitution Saving Throw: DC 14, one creature within 5 feet that is willing or that has the Grappled, Incapacitated, or Restrained condition. Failure: 5 (1d4 + 3) Piercing damage plus 10 (3d6) Necrotic damage. The target's Hit Point maximum decreases by an amount equal to the Necrotic damage taken, and the vampire regains Hit Points equal to that amount.",
    "reactions": "",
    "legendaryActions": ""
-  }
+  },
+  "roddel": "Wat je van hem moet weten: hij komt een huis niet binnen zonder dat iemand hem vraagt, stromend water verteert hem, een staak door het hart is het einde, en de zon verbrandt hem. Kijk omhoog. Muren en plafonds zijn voor hem gewoon vloeren."
  },
  {
   "key": "srd-2024_venomous-snake",
@@ -11283,7 +11460,8 @@
    "actions": "***Bite.*** Melee Attack Roll: +4, reach 5 ft. 4 (1d4 + 2) Piercing damage plus 3 (1d6) Poison damage.",
    "reactions": "",
    "legendaryActions": ""
-  }
+  },
+  "roddel": "Donker maakt voor hem niets uit; een lamp doven verbergt je niet."
  },
  {
   "key": "srd-2024_violet-fungus",
@@ -11321,7 +11499,8 @@
    "actions": "***Multiattack.*** The fungus makes two Rotting Touch attacks.\n\n***Rotting Touch.*** Melee Attack Roll: +2, reach 10 ft. 4 (1d8) Necrotic damage.",
    "reactions": "",
    "legendaryActions": ""
-  }
+  },
+  "roddel": "Donker maakt voor hem niets uit; een lamp doven verbergt je niet."
  },
  {
   "key": "srd-2024_vrock",
@@ -11359,7 +11538,8 @@
    "actions": "***Multiattack.*** The vrock makes two Shred attacks.\n\n***Shred.*** Melee Attack Roll: +6, reach 5 ft. 10 (2d6 + 3) Piercing damage plus 10 (3d6) Poison damage.\n\n***Spores.*** Constitution Saving Throw: DC 15, each creature in a 20-foot Emanation originating from the vrock. Failure: The target has the Poisoned condition and repeats the save at the end of each of its turns, ending the effect on itself on a success. While Poisoned, the target takes 5 (1d10) Poison damage at the start of each of its turns. Emptying a flask of Holy Water on the target ends the effect early.\n\n***Stunning Screech.*** Constitution Saving Throw: DC 15, each creature in a 20-foot Emanation originating from the vrock (demons succeed automatically). Failure: 10 (3d6) Thunder damage, and the target has the Stunned condition until the end of the vrock's next turn.",
    "reactions": "",
    "legendaryActions": ""
-  }
+  },
+  "roddel": "Hij praat zonder zijn mond te bewegen, rechtstreeks in je hoofd. Wat je terugdenkt, hoort hij ook. Spreuken glijden van hem af alsof ze voor iemand anders bedoeld waren. Neem staal mee."
  },
  {
   "key": "srd-2024_vulture",
@@ -11397,7 +11577,8 @@
    "actions": "***Beak.*** Melee Attack Roll: +2, reach 5 ft. 2 (1d4) Piercing damage.",
    "reactions": "",
    "legendaryActions": ""
-  }
+  },
+  "roddel": "Hij valt nooit alleen aan. Het is de tweede die je pakt, terwijl je naar de eerste kijkt."
  },
  {
   "key": "srd-2024_warhorse",
@@ -11511,7 +11692,8 @@
    "actions": "***Spear.*** Melee or Ranged Attack Roll: +3, reach 5 ft. or range 20/60 ft. 4 (1d6 + 1) Piercing damage.",
    "reactions": "",
    "legendaryActions": ""
-  }
+  },
+  "roddel": "Hij valt nooit alleen aan. Het is de tweede die je pakt, terwijl je naar de eerste kijkt."
  },
  {
   "key": "srd-2024_warrior-veteran",
@@ -11815,7 +11997,8 @@
    "actions": "***Multiattack.*** The werewolf makes two attacks, using Scratch or Longbow in any combination. It can replace one attack with a Bite attack.\n\n***Bite.*** Melee Attack Roll: +5, reach 5 ft. 12 (2d8 + 3) Piercing damage. If the target is a Humanoid, it is subjected to the following effect. Constitution Saving Throw: DC 12. Failure: The target is cursed. If the cursed target drops to 0 Hit Points, it instead becomes a Werewolf under the DM's control and has 10 Hit Points. Success: The target is immune to this werewolf's curse for 24 hours.\n\n***Scratch.*** Melee Attack Roll: +5, reach 5 ft. 10 (2d6 + 3) Slashing damage.\n\n***Longbow.*** Ranged Attack Roll: +4, range 150/600 ft. 11 (2d8 + 2) Piercing damage.",
    "reactions": "",
    "legendaryActions": ""
-  }
+  },
+  "roddel": "Hij valt nooit alleen aan. Het is de tweede die je pakt, terwijl je naar de eerste kijkt."
  },
  {
   "key": "srd-2024_white-dragon-wyrmling",
@@ -11853,7 +12036,8 @@
    "actions": "***Multiattack.*** The dragon makes two Rend attacks.\n\n***Rend.*** Melee Attack Roll: +4, reach 5 ft. 6 (1d8 + 2) Slashing damage plus 2 (1d4) Cold damage.\n\n***Cold Breath.*** Constitution Saving Throw: DC 12, each creature in a 15-foot Cone. Failure: 22 (5d8) Cold damage. Success: Half damage.",
    "reactions": "",
    "legendaryActions": ""
-  }
+  },
+  "roddel": "Hij komt van onderen. Op losse grond hoor je hem pas als het te laat is. Kou doet hem niets; zoek iets anders."
  },
  {
   "key": "srd-2024_wight",
@@ -11891,7 +12075,8 @@
    "actions": "***Multiattack.*** The wight makes two attacks, using Necrotic Sword or Necrotic Bow in any combination. It can replace one attack with a use of Life Drain.\n\n***Necrotic Sword.*** Melee Attack Roll: +4, reach 5 ft. 6 (1d8 + 2) Slashing damage plus 4 (1d8) Necrotic damage.\n\n***Necrotic Bow.*** Ranged Attack Roll: +4, range 150/600 ft. 6 (1d8 + 2) Piercing damage plus 4 (1d8) Necrotic damage.\n\n***Life Drain.*** Constitution Saving Throw: DC 13, one creature within 5 feet. Failure: 6 (1d8 + 2) Necrotic damage, and the target's Hit Point maximum decreases by an amount equal to the damage taken. A Humanoid slain by this attack rises 24 hours later as a Zombie under the wight's control, unless the Humanoid is restored to life or its body is destroyed. The wight can have no more than twelve zombies under its control at a time.",
    "reactions": "",
    "legendaryActions": ""
-  }
+  },
+  "roddel": "Breng hem in de volle zon en hij knijpt zijn ogen dicht; wat hij daar doet, doet hij half."
  },
  {
   "key": "srd-2024_will-o-wisp",
@@ -11929,7 +12114,8 @@
    "actions": "***Shock.*** Melee Attack Roll: +4, reach 5 ft. 11 (2d8 + 2) Lightning damage.",
    "reactions": "",
    "legendaryActions": ""
-  }
+  },
+  "roddel": "Een deur sluiten heeft geen zin. Hij komt dwars door de muur, al doet steen hem pijn. Bliksem doet hem niets; zoek iets anders."
  },
  {
   "key": "srd-2024_winter-wolf",
@@ -11967,7 +12153,8 @@
    "actions": "***Bite.*** Melee Attack Roll: +6, reach 5 ft. 11 (2d6 + 4) Piercing damage. If the target is a Large or smaller creature, it has the Prone condition.\n\n***Cold Breath.*** Constitution Saving Throw: DC 12, each creature in a 15-foot Cone. Failure: 18 (4d8) Cold damage. Success: Half damage.",
    "reactions": "",
    "legendaryActions": ""
-  }
+  },
+  "roddel": "Hij valt nooit alleen aan. Het is de tweede die je pakt, terwijl je naar de eerste kijkt. Kou doet hem niets; zoek iets anders."
  },
  {
   "key": "srd-2024_wolf",
@@ -12005,7 +12192,8 @@
    "actions": "***Bite.*** Melee Attack Roll: +4, reach 5 ft. 5 (1d6 + 2) Piercing damage. If the target is a Medium or smaller creature, it has the Prone condition.",
    "reactions": "",
    "legendaryActions": ""
-  }
+  },
+  "roddel": "Hij valt nooit alleen aan. Het is de tweede die je pakt, terwijl je naar de eerste kijkt."
  },
  {
   "key": "srd-2024_worg",
@@ -12081,7 +12269,8 @@
    "actions": "***Life Drain.*** Melee Attack Roll: +6, reach 5 ft. 21 (4d8 + 3) Necrotic damage. If the target is a creature, its Hit Point maximum decreases by an amount equal to the damage taken.\n\n***Create Specter.*** The wraith targets a Humanoid corpse within 10 feet of itself that has been dead for no longer than 1 minute. The target's spirit rises as a Specter in the space of its corpse or in the nearest unoccupied space. The specter is under the wraith's control. The wraith can have no more than seven specters under its control at a time.",
    "reactions": "",
    "legendaryActions": ""
-  }
+  },
+  "roddel": "Breng hem in de volle zon en hij knijpt zijn ogen dicht; wat hij daar doet, doet hij half. Een deur sluiten heeft geen zin. Hij komt dwars door de muur, al doet steen hem pijn."
  },
  {
   "key": "srd-2024_wyvern",
@@ -12157,7 +12346,8 @@
    "actions": "***Multiattack.*** The xorn makes one Bite attack and three Claw attacks.\n\n***Bite.*** Melee Attack Roll: +6, reach 5 ft. 17 (4d6 + 3) Piercing damage.\n\n***Claw.*** Melee Attack Roll: +6, reach 5 ft. 8 (1d10 + 3) Slashing damage.",
    "reactions": "",
    "legendaryActions": ""
-  }
+  },
+  "roddel": "Hij komt van onderen. Op losse grond hoor je hem pas als het te laat is. Hij voelt je lopen. Wie stil blijft staan, bestaat voor hem even niet."
  },
  {
   "key": "srd-2024_young-black-dragon",
@@ -12195,7 +12385,8 @@
    "actions": "***Multiattack.*** The dragon makes three Rend attacks.\n\n***Rend.*** Melee Attack Roll: +7, reach 10 ft. 9 (2d4 + 4) Slashing damage plus 3 (1d6) Acid damage.\n\n***Acid Breath.*** Dexterity Saving Throw: DC 14, each creature in a 30-foot-long, 5-foot-wide Line. Failure: 49 (14d6) Acid damage. Success: Half damage.",
    "reactions": "",
    "legendaryActions": ""
-  }
+  },
+  "roddel": "Boven of onder water maakt hem niets uit; hij ademt allebei. In het water heb jij de haast, hij niet. Zuur doet hem niets; zoek iets anders."
  },
  {
   "key": "srd-2024_young-blue-dragon",
@@ -12233,7 +12424,8 @@
    "actions": "***Multiattack.*** The dragon makes three Rend attacks.\n\n***Rend.*** Melee Attack Roll: +9, reach 10 ft. 12 (2d6 + 5) Slashing damage plus 5 (1d10) Lightning damage.\n\n***Lightning Breath.*** Dexterity Saving Throw: DC 16, each creature in a 60-foot-long, 5-foot-wide Line. Failure: 55 (10d10) Lightning damage. Success: Half damage.",
    "reactions": "",
    "legendaryActions": ""
-  }
+  },
+  "roddel": "Hij komt van onderen. Op losse grond hoor je hem pas als het te laat is. Bliksem doet hem niets; zoek iets anders."
  },
  {
   "key": "srd-2024_young-brass-dragon",
@@ -12271,7 +12463,8 @@
    "actions": "***Multiattack.*** The dragon makes three Rend attacks. It can replace two attacks with a use of Sleep Breath.\n\n***Rend.*** Melee Attack Roll: +7, reach 10 ft. 15 (2d10 + 4) Slashing damage.\n\n***Fire Breath.*** Dexterity Saving Throw: DC 14, each creature in a 40-foot-long, 5-foot-wide Line. Failure: 38 (11d6) Fire damage. Success: Half damage.\n\n***Sleep Breath.*** Constitution Saving Throw: DC 14, each creature in a 30-foot Cone. Failure: The target has the Incapacitated condition until the end of its next turn, at which point it repeats the save. Second Failure The target has the Unconscious condition for 1 minute. This effect ends for the target if it takes damage or a creature within 5 feet of it takes an action to wake it.",
    "reactions": "",
    "legendaryActions": ""
-  }
+  },
+  "roddel": "Hij komt van onderen. Op losse grond hoor je hem pas als het te laat is. Vuur doet hem niets; zoek iets anders."
  },
  {
   "key": "srd-2024_young-bronze-dragon",
@@ -12309,7 +12502,8 @@
    "actions": "***Multiattack.*** The dragon makes three Rend attacks. It can replace one attack with a use of Repulsion Breath.\n\n***Rend.*** Melee Attack Roll: +8, reach 10 ft. 16 (2d10 + 5) Slashing damage.\n\n***Lightning Breath.*** Dexterity Saving Throw: DC 15, each creature in a 60-foot-long, 5-foot-wide Line. Failure: 49 (9d10) Lightning damage. Success: Half damage.\n\n***Repulsion Breath.*** Strength Saving Throw: DC 15, each creature in a 30-foot Cone. Failure: The target is pushed up to 40 feet straight away from the dragon and has the Prone condition.",
    "reactions": "",
    "legendaryActions": ""
-  }
+  },
+  "roddel": "Boven of onder water maakt hem niets uit; hij ademt allebei. In het water heb jij de haast, hij niet. Bliksem doet hem niets; zoek iets anders."
  },
  {
   "key": "srd-2024_young-copper-dragon",
@@ -12347,7 +12541,8 @@
    "actions": "***Multiattack.*** The dragon makes three Rend attacks. It can replace one attack with a use of Slowing Breath.\n\n***Rend.*** Melee Attack Roll: +7, reach 10 ft. 15 (2d10 + 4) Slashing damage.\n\n***Acid Breath.*** Dexterity Saving Throw: DC 14, each creature in a 40-foot-long, 5-foot-wide Line. Failure: 40 (9d8) Acid damage. Success: Half damage.\n\n***Slowing Breath.*** Constitution Saving Throw: DC 14, each creature in a 30-foot Cone. Failure: The target can't take Reactions; its Speed is halved; and it can take either an action or a Bonus Action on its turn, not both. This effect lasts until the end of its next turn.",
    "reactions": "",
    "legendaryActions": ""
-  }
+  },
+  "roddel": "Zuur doet hem niets; zoek iets anders. Donker maakt voor hem niets uit; een lamp doven verbergt je niet."
  },
  {
   "key": "srd-2024_young-gold-dragon",
@@ -12385,7 +12580,8 @@
    "actions": "***Multiattack.*** The dragon makes three Rend attacks. It can replace one attack with a use of Weakening Breath.\n\n***Rend.*** Melee Attack Roll: +10, reach 10 ft. 17 (2d10 + 6) Slashing damage.\n\n***Fire Breath.*** Dexterity Saving Throw: DC 17, each creature in a 30-foot Cone. Failure: 55 (10d10) Fire damage. Success: Half damage.\n\n***Weakening Breath.*** Strength Saving Throw: DC 17, each creature that isn't currently affected by this breath in a 30-foot Cone. Failure: The target has Disadvantage on Strength-based D20 Test and subtracts 3 (1d6) from its damage rolls. It repeats the save at the end of each of its turns, ending the effect on itself on a success. After 1 minute, it succeeds automatically.",
    "reactions": "",
    "legendaryActions": ""
-  }
+  },
+  "roddel": "Boven of onder water maakt hem niets uit; hij ademt allebei. In het water heb jij de haast, hij niet. Vuur doet hem niets; zoek iets anders."
  },
  {
   "key": "srd-2024_young-green-dragon",
@@ -12423,7 +12619,8 @@
    "actions": "***Multiattack.*** The dragon makes three Rend attacks.\n\n***Rend.*** Melee Attack Roll: +7, reach 10 ft. 11 (2d6 + 4) Slashing damage plus 7 (2d6) Poison damage.\n\n***Poison Breath.*** Constitution Saving Throw: DC 14, each creature in a 30-foot Cone. Failure: 42 (12d6) Poison damage. Success: Half damage.",
    "reactions": "",
    "legendaryActions": ""
-  }
+  },
+  "roddel": "Boven of onder water maakt hem niets uit; hij ademt allebei. In het water heb jij de haast, hij niet. Donker maakt voor hem niets uit; een lamp doven verbergt je niet."
  },
  {
   "key": "srd-2024_young-red-dragon",
@@ -12461,7 +12658,8 @@
    "actions": "***Multiattack.*** The dragon makes three Rend attacks.\n\n***Rend.*** Melee Attack Roll: +10, reach 10 ft. 13 (2d6 + 6) Slashing damage plus 3 (1d6) Fire damage.\n\n***Fire Breath.*** Dexterity Saving Throw: DC 17, each creature in a 30-foot Cone. Failure: 56 (16d6) Fire damage. Success: Half damage.",
    "reactions": "",
    "legendaryActions": ""
-  }
+  },
+  "roddel": "Vuur doet hem niets; zoek iets anders. Donker maakt voor hem niets uit; een lamp doven verbergt je niet."
  },
  {
   "key": "srd-2024_young-silver-dragon",
@@ -12499,7 +12697,8 @@
    "actions": "***Multiattack.*** The dragon makes three Rend attacks. It can replace one attack with a use of Paralyzing Breath.\n\n***Rend.*** Melee Attack Roll: +10, reach 10 ft. 15 (2d8 + 6) Slashing damage.\n\n***Cold Breath.*** Constitution Saving Throw: DC 17, each creature in a 30-foot Cone. Failure: 49 (11d8) Cold damage. Success: Half damage.\n\n***Paralyzing Breath.*** Constitution Saving Throw: DC 17, each creature in a 30-foot Cone. First Failure The target has the Incapacitated condition until the end of its next turn, when it repeats the save. Second Failure The target has the Paralyzed condition, and it repeats the save at the end of each of its turns, ending the effect on itself on a success. After 1 minute, it succeeds automatically.",
    "reactions": "",
    "legendaryActions": ""
-  }
+  },
+  "roddel": "Kou doet hem niets; zoek iets anders. Donker maakt voor hem niets uit; een lamp doven verbergt je niet."
  },
  {
   "key": "srd-2024_young-white-dragon",
@@ -12537,7 +12736,8 @@
    "actions": "***Multiattack.*** The dragon makes three Rend attacks.\n\n***Rend.*** Melee Attack Roll: +7, reach 10 ft. 9 (2d4 + 4) Slashing damage plus 2 (1d4) Cold damage.\n\n***Cold Breath.*** Constitution Saving Throw: DC 15, each creature in a 30-foot Cone. Failure: 40 (9d8) Cold damage. Success: Half damage.",
    "reactions": "",
    "legendaryActions": ""
-  }
+  },
+  "roddel": "Hij komt van onderen. Op losse grond hoor je hem pas als het te laat is. Kou doet hem niets; zoek iets anders."
  },
  {
   "key": "srd-2024_zombie",
