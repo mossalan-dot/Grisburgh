@@ -874,7 +874,8 @@ Per bevinding: waar, wat, en of het opgelost is. Nieuwe regels onderaan.
 
 - Zit een speler op zijn eigen tabblad en **begint er een gevecht**: er verschijnt alleen een balkje onderin. Zijn scherm wordt niet overgenomen; hij kan gewoon zijn boedel of spreuken doorbladeren. (Vroeger klapte het volledig open.)
 - Klap het balkje open met de pijl: het blijft open, ook als de DM HP wijzigt of de beurt verzet. Minimaliseer je het, dan blijft het klein voor de rest van het gevecht.
-- **Wordt het zijn beurt**, dan krijgt het balkje een gouden rand die rustig pulseert en staat zijn naam in goud. Het klapt bewust níét open. Met *beweging verminderen* aan in het systeem blijft de rand maar stopt het pulseren.
+- **Wordt het zijn beurt**, dan staat er **"Jij bent aan zet"** in plaats van de namenreeks, met een gouden rand die rustig pulseert. Het klapt bewust níét open. Met *beweging verminderen* aan in het systeem blijft de rand maar stopt het pulseren.
+- Het balkje leest als **⚔ Gevecht · Ronde 1 · ▶ …** — niet de naam van de encounter. Die is een werktitel van de DM ("Onder het Nieuwe Vlashuis") en verklapte soms meer dan de bedoeling was; de DM ziet hem nog wel.
 - In de overlay staan **geen tabbladen** meer (Stats, Spreuken, Items): daarvoor gebruikt de speler zijn eigen tabblad. Er is alleen nog het gevechtsbeeld.
 - **Je eigen AC** staat nu op je eigen token, voor speler én DM.
 - Klik ergens middenin het scherm terwijl het balkje staat: je klikt op de pagina eronder, niet op de overlay.

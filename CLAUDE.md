@@ -2347,9 +2347,12 @@ Storage gebruikt `AsyncLocalStorage` voor per-request campagne-scoping:
 > — ook als het gevecht net begint of de beurt verzet wordt — tenzij hij hem
 > zelf openklapte; `_coSpelerOpen` in `dm-panel.js` onthoudt die keuze over
 > elke hertekening heen (vóórdien klapte hij open bij elke socket-update).
-> Is het zijn beurt, dan licht het balkje op (`co-mijn-beurt`) in plaats van
-> open te klappen: dat onderbreekt waar hij mee bezig is, en aan tafel staat het
-> toch al op het tafelvenster.
+> Is het zijn beurt, dan licht het balkje op (`co-mijn-beurt`) en staat er
+> **"Jij bent aan zet"** in plaats van de beurtgroep — je eigen naam uit een
+> rij vissen is werk. Het klapt níét open: dat onderbreekt waar hij mee bezig
+> is, en aan tafel staat het toch al op het tafelvenster. In de kop leest een
+> speler **"Gevecht"**, niet de naam van de encounter: die is een werktitel van
+> de DM en zegt de spelers soms meer dan de bedoeling is.
 > De tabs **Stats / Spreuken / Items** zijn uit de overlay gehaald — die
 > herhaalden het spelerstabblad, wat zin had toen dit scherm de hele telefoon
 > vulde. De bouwers ervan (`_loadCombatCharTab` en de drie

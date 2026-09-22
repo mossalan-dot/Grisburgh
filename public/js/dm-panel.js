@@ -8537,10 +8537,18 @@ function _renderCombatOverlay(combat) {
 
   inner.innerHTML = isDisplay ? _coDisplayHtml(combat, currentLabel) : `
     <div class="co-header">
-      ${encNaam ? `<span class="co-title">${icon('swords')} ${esc(encNaam)}</span>` : ''}
+      <!-- De DM ziet de naam van zijn encounter; een speler leest daar alleen
+           "Gevecht". Die naam is een werktitel van de DM ("Onder het Nieuwe
+           Vlashuis") en zegt de spelers soms meer dan de bedoeling is — en op
+           een balkje van één regel voegt hij niets toe. -->
+      ${isDM
+        ? (encNaam ? `<span class="co-title">${icon('swords')} ${esc(encNaam)}</span>` : '')
+        : `<span class="co-title">${icon('swords')} Gevecht</span>`}
       ${isDM ? '' : `
         <span class="co-round">Ronde ${combat.round}</span>
-        <span class="co-current-name">▶ ${esc(currentLabel)}</span>`}
+        <!-- Ben je zelf aan zet, dan is dát het bericht — niet de hele
+             beurtgroep, waar je je eigen naam uit moet vissen. -->
+        <span class="co-current-name">▶ ${isMijnBeurt ? 'Jij bent aan zet' : esc(currentLabel)}</span>`}
       <button class="co-minimize-btn" onclick="document.getElementById('combat-overlay').classList.contains('minimized')?window.dmPanel.combatExpand():window.dmPanel.combatMinimize()" title="Minimaliseren/maximaliseren">▼</button>
       ${isDM ? `<button class="co-end-btn" onclick="event.stopPropagation();window.dmPanel.combatEnd()" title="Gevecht beëindigen">${icon('x')}</button>` : ''}
     </div>
