@@ -186,8 +186,11 @@ export const api = {
   createMap:    (data)     => request('/map/maps',      { method: 'POST',   body: JSON.stringify(data) }),
   updateMap:    (id, data) => request(`/map/maps/${id}`,{ method: 'PUT',    body: JSON.stringify(data) }),
   deleteMap:    (id)       => request(`/map/maps/${id}`,{ method: 'DELETE' }),
-  mapPins: (mapId) => request(`/map/pins?mapId=${encodeURIComponent(mapId || 'grisburgh')}`),
-  availableLocations: (mapId) => request(`/map/pins/available-locations?mapId=${encodeURIComponent(mapId || 'grisburgh')}`),
+  // Zonder kaart-id beslist de server welke kaart hij bedoelt (de eerste van de
+  // campagne). Hier stond `|| 'grisburgh'`, en dat is de naam van één kaart in
+  // één campagne — elders wees dat naar iets dat niet bestaat.
+  mapPins: (mapId) => request(`/map/pins${mapId ? `?mapId=${encodeURIComponent(mapId)}` : ''}`),
+  availableLocations: (mapId) => request(`/map/pins/available-locations${mapId ? `?mapId=${encodeURIComponent(mapId)}` : ''}`),
   createMapPin: (data) => request('/map/pins', { method: 'POST', body: JSON.stringify(data) }),
   updateMapPin: (id, data) => request(`/map/pins/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
   deleteMapPin: (id) => request(`/map/pins/${id}`, { method: 'DELETE' }),

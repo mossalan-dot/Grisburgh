@@ -870,6 +870,12 @@ Per bevinding: waar, wat, en of het opgelost is. Nieuwe regels onderaan.
 - Koop een zegen: je rolt en krijgt er één van die god, met de prijs eraf. Zweer een eed: de andere goden gaan op slot ("Je bent al door een eed gebonden"). Laat de DM de eed verbreken → er staat een **vloek** waar de eed stond; doe boete → weg.
 - Meesterkamer → Diensten → Tempel toont de lopende eden per speler met hun status.
 
+### Kaartspelden hangen aan hun eigen kaart (22 sep 2026)
+
+- Open de wereldkaart in Grisburgh: er staan **9 spelden op de stadskaart en 19 op Isfār**, en geen enkele verdwijnt. Zes daarvan droegen geen kaart-id en leunden op een terugval naar een kaart die toevallig `grisburgh` heet.
+- Wissel tussen de twee kaarten: elke speld staat op precies één kaart.
+- In een **andere campagne** (Test heeft `demo_stad` en `demo_wereld`): maak een speld, herlaad, en hij staat er nog. Vroeger zou een speld zonder id daar bij een niet-bestaande kaart horen en dus nergens verschijnen.
+
 ### Gevecht bij de speler: klein tenzij hij het zelf opent (22 sep 2026)
 
 - Zit een speler op zijn eigen tabblad en **begint er een gevecht**: er verschijnt alleen een balkje onderin. Zijn scherm wordt niet overgenomen; hij kan gewoon zijn boedel of spreuken doorbladeren. (Vroeger klapte het volledig open.)

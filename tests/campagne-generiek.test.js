@@ -59,6 +59,23 @@ describe('Een tweede campagne blijft van zichzelf', () => {
     fs.rmSync(DATA_DIR, { recursive: true, force: true });
   });
 
+  it('bindt geen kaartspeld aan een kaart die "grisburgh" heet', () => {
+    // `p.mapId || 'grisburgh'` stond op tien plekken. Dat leest als een
+    // standaardwaarde maar het is een migratie: toen een campagne één kaart had
+    // droeg een speld geen id. In Test heten de kaarten `demo_stad` en
+    // `demo_wereld`, dus zo'n oude speld hoorde daar bij een kaart die niet
+    // bestaat — en verdween.
+    const api    = fs.readFileSync(path.join(__dirname, '..', 'routes', 'api.js'), 'utf8');
+    const client = fs.readFileSync(path.join(__dirname, '..', 'public', 'js', 'api.js'), 'utf8');
+    for (const [naam, bron] of [['routes/api.js', api], ['public/js/api.js', client]]) {
+      const raak = bron.split('\n')
+        .filter(r => /mapId[^\n]*\|\|\s*'grisburgh'|'grisburgh'[^\n]*mapId/.test(r))
+        .filter(r => !/^\s*(\/\/|\*)/.test(r));          // commentaar mag het noemen
+      assert.deepStrictEqual(raak, [], `${naam} bindt een speld nog aan een vaste kaartnaam`);
+    }
+    assert.ok(/function _eersteKaartId\(/.test(api), 'er is één plek die de standaardkaart bepaalt');
+  });
+
   it('krijgt D&D-munten, niet die van Grisburgh', async () => {
     const meta = (await req(server, 'GET', '/api/meta', null, dm)).body;
     assert.deepEqual(meta.currency, { fl: 'Gold', kn: 'Silver', cl: 'Copper' });

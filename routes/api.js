@@ -5862,7 +5862,8 @@ function _koppelingenVan(type, id) {
   const meta = storage.readJSON('meta.json');
   const goden   = Array.isArray(meta.tempel?.goden) ? meta.tempel.goden : [];
   const facties = Array.isArray(meta.facties) ? meta.facties : [];
-  const pins    = (storage.readJSON('map.json').pins || []).filter(p => p.locId === id);
+  const _mapData = storage.readJSON('map.json');
+  const pins    = (_mapData.pins || []).filter(p => p.locId === id);
   return {
     herberg:   meta.herberg?.locatieEntityId === id,
     herbergNaam: meta.herberg?.naam || '',
@@ -5883,7 +5884,7 @@ function _koppelingenVan(type, id) {
     // De kaarten mét hun beeldbron, zodat het kaartje zelf een uitsnede kan
     // tonen zonder de hele kaartmodule te laden.
     kaarten:   getMaps().map(m => ({ id: m.id, label: m.label, src: m.src || null, imageId: m.imageId || null })),
-    pins:      pins.map(p => ({ id: p.id, mapId: p.mapId || 'grisburgh', x: p.x, y: p.y })),
+    pins:      pins.map(p => ({ id: p.id, mapId: _kaartVanPin(p, _mapData), x: p.x, y: p.y })),
     opKaart:   pins.length > 0,
   };
 }
@@ -9301,7 +9302,7 @@ router.delete('/map/maps/:id', requireDM, (req, res) => {
   if (!mapData.maps) mapData.maps = [];
   const map = mapData.maps.find(m => m.id === req.params.id);
   mapData.maps = mapData.maps.filter(m => m.id !== req.params.id);
-  mapData.pins = (mapData.pins || []).filter(p => (p.mapId || 'grisburgh') !== req.params.id);
+  mapData.pins = (mapData.pins || []).filter(p => _kaartVanPin(p, mapData) !== req.params.id);
   storage.writeJSON('map.json', mapData);
   if (map && !map.src) {                              // ingebouwde kaarten (src) overslaan
     _deleteFileIfUnused(map.imageId || map.id);       // bibliotheek-afbeelding of oude upload op map-id
@@ -9318,11 +9319,11 @@ function _playerGroup(entities, characterId) {
 
 router.get('/map/pins/available-locations', attachRole, (req, res) => {
   if (req.role === 'dm') return res.json([]);
-  const mapId    = req.query.mapId || 'grisburgh';
   const charId   = req.characterId;
   if (!charId) return res.status(401).json({ error: 'Niet ingelogd' });
   const entities = storage.readJSON('entities.json');
   const mapData  = storage.readJSON('map.json');
+  const mapId    = req.query.mapId || _eersteKaartId(mapData);
   const dmState  = readDmState();
   const g        = getGroup(dmState);
   const groupId  = _playerGroup(entities, charId);
@@ -9330,7 +9331,7 @@ router.get('/map/pins/available-locations', attachRole, (req, res) => {
   // Locaties die al een pin hebben op deze kaart (goedgekeurd of pending voor dezelfde groep)
   const takenLocIds = new Set(
     (mapData.pins || [])
-      .filter(p => (p.mapId || 'grisburgh') === mapId)
+      .filter(p => _kaartVanPin(p, mapData) === mapId)
       .filter(p => !p.pending || p.placedByGroup === groupId)
       .map(p => p.locId)
   );
@@ -9344,8 +9345,8 @@ router.get('/map/pins/available-locations', attachRole, (req, res) => {
 });
 
 router.get('/map/pins', attachRole, (req, res) => {
-  const mapId   = req.query.mapId || 'grisburgh';
   const mapData = storage.readJSON('map.json');
+  const mapId   = req.query.mapId || _eersteKaartId(mapData);
   const entities= storage.readJSON('entities.json');
   const dmState = readDmState();
   const g       = getGroup(dmState);
@@ -9354,7 +9355,7 @@ router.get('/map/pins', attachRole, (req, res) => {
   const groupId = charId ? _playerGroup(entities, charId) : null;
 
   const pins = (mapData.pins || [])
-    .filter(pin => (pin.mapId || 'grisburgh') === mapId)
+    .filter(pin => _kaartVanPin(pin, mapData) === mapId)
     .map(pin => {
       const loc = locaties.find(l => l.id === pin.locId);
       if (!loc) return null;
@@ -9377,11 +9378,25 @@ router.get('/map/pins', attachRole, (req, res) => {
   res.json(pins);
 });
 
+// Welke kaart bedoelt een speld zonder `mapId`?
+//
+// Overal stond `p.mapId || 'grisburgh'` — tien plekken. Dat leest als een
+// standaardwaarde maar het is een migratie: toen een campagne één kaart had
+// droeg een speld geen id. In een campagne waar de kaarten anders heten (in
+// Test `demo_stad` en `demo_wereld`) hoort zo'n speld dus bij een kaart die niet
+// bestaat, en verdwijnt hij. De eerste kaart van de campagne is wél altijd
+// juist: dat is de kaart die er was toen die spelden gemaakt werden.
+// `scripts/kaartspelden-mapid.js` zet het id er alsnog bij; dit is het vangnet.
+function _eersteKaartId(mapData) {
+  return (mapData?.maps || [])[0]?.id || '';
+}
+const _kaartVanPin = (p, mapData) => p.mapId || _eersteKaartId(mapData);
+
 router.post('/map/pins', attachRole, (req, res) => {
   const { locId, x, y, mapId } = req.body;
   if (!locId || x == null || y == null) return res.status(400).json({ error: 'Ontbrekende velden' });
   const mapData  = storage.readJSON('map.json');
-  const targetMap = mapId || 'grisburgh';
+  const targetMap = mapId || _eersteKaartId(mapData);
 
   if (req.role === 'dm') {
     const pin = {
@@ -9412,7 +9427,7 @@ router.post('/map/pins', attachRole, (req, res) => {
 
   // Controleer uniekheid: max één pin per locatie per groep op deze kaart
   const exists = (mapData.pins || []).some(p =>
-    (p.mapId || 'grisburgh') === targetMap && p.locId === locId &&
+    _kaartVanPin(p, mapData) === targetMap && p.locId === locId &&
     (!p.pending || p.placedByGroup === groupId)
   );
   if (exists) return res.status(409).json({ error: 'Er staat al een pin voor deze locatie' });

@@ -2171,6 +2171,14 @@ De app draait meerdere campagnes; wat van Grisburgh is, hoort in Grisburghs
   de DM de uitleg hoe hij er een maakt. Grisburghs domeinen zijn met
   `scripts/tempel-goden-domein.js` naar zijn eigen `meta.json` verhuisd — ze
   waren daar al onzichtbaar geworden zodra die config gevuld raakte.
+- **Kaartspelden.** `p.mapId || 'grisburgh'` stond op tien plekken (acht in
+  `routes/api.js`, twee in `public/js/api.js`). Dat las als een standaardwaarde
+  maar was een migratie: toen een campagne één kaart had droeg een speld geen
+  id. In een campagne waar de kaarten anders heten (Test: `demo_stad`,
+  `demo_wereld`) hoorde zo'n speld bij een kaart die niet bestaat en verdween
+  hij. `_eersteKaartId(mapData)` is nu het vangnet en
+  `scripts/kaartspelden-mapid.js` heeft de zes spelden in Grisburgh hun id
+  gegeven. Bewaakt door `tests/campagne-generiek.test.js`.
 - **Kaarten.** Er is géén ingebouwd vangnet meer: Grisburgh heeft zijn stadskaart
   en Isfār gewoon in `map.json`. Een campagne zonder kaarten toont een lege staat
   (`_legeStaat()` in `render-kaart.js`) in plaats van andermans stadskaart.

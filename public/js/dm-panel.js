@@ -1,4 +1,4 @@
-import { api, huidigeCampagne } from './api.js?v=293';
+import { api, huidigeCampagne } from './api.js?v=294';
 import { init as canvasInit, update as canvasUpdate, stop as canvasStop, acGetal } from './combat-canvas.js?v=28';
 import { renderStatblock } from './render-statblock.js?v=9';
 
