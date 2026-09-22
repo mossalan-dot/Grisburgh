@@ -1495,6 +1495,12 @@ router.put('/entities/:type/:id/visibility', requireDM, (req, res) => {
     next = 'visible';
   } else if (req.body?.target === 'vague' && threeState) {
     next = 'vague';
+  } else if (req.body?.target === 'hidden') {
+    // Stond er niet, en dat is een valstrik: het veld heet `target`, dus
+    // `{target:'hidden'}` leest als "zet hem op verborgen" — maar hij viel in
+    // de toggle-tak hieronder en zette een verborgen kaartje juist zichtbaar.
+    // Zonder target blijft het een toggle; dat is wat het oogje doet.
+    next = 'hidden';
   } else if (threeState) {
     next = current === 'visible' ? 'hidden' : 'visible';
   } else {
@@ -4274,9 +4280,18 @@ router.post('/party/long-rest', requireDM, (req, res) => {
     const aantal = 2 * spelers.length;
     // Per regel, niet per personage: iemand met drie roddels levert er drie op,
     // over drie avonden verspreid, in plaats van één vlaggetje voor alles.
+    // **Alleen over wie ze kennen.** De pot nam elk kaartje mee, ook wat voor
+    // deze party verborgen of vaag is — en de roddel gaat mét de naam de deur
+    // uit ("— over Vrouwe Kwartel"). In Grisburgh stonden er voor één party 154
+    // regels op kaartjes die ze nooit gezien heeft, tegenover 61 zichtbare: de
+    // kans was dus groot dat een avond in de herberg drie namen verklapte die
+    // nergens vandaan konden komen. Zelfde zeef als `GET /herberg` al gebruikte.
+    const _zicht = (g.visibility || {});
     const pool = [];
     for (const type of ['personages', 'locaties']) {
       (entities[type] || []).forEach(e => {
+        const v = _zicht[e.id] || 'hidden';
+        if (v === 'hidden' || v === 'vague') return;
         const regels = _tekstLijst(e.data, 'flavours', 'flavour');
         const gezegd = _onthuld(e.data?.flavoursUitgesproken
           ?? (e.data?.flavourUitgesproken === true || e.data?.flavourUitgesproken === 'true'), regels.length);
@@ -12791,23 +12806,41 @@ router.get('/herberg', attachRole, (req, res) => {
     storage.writeJSON('herberg-state.json', herbergState);
   }
 
-  // Verzamel entiteiten met flavour die zichtbaar of vaag zijn
+  // Verzamel entiteiten met een roddel die deze party kan zien.
   const entities = storage.readJSON('entities.json');
   const dmState = readDmState();
-  const g = getGroup(dmState);
+  // De party van wie er kijkt, niet de groep die de DM actief heeft staan —
+  // zichtbaarheid loopt per party, dus anders leest een speler uit party B de
+  // lijst van party A.
+  const g = characterId && characterId !== 'dm'
+    ? getGroup(dmState, _playerGroupId(dmState, characterId))
+    : getGroup(dmState);
   const visibility = g.visibility || {};
 
   const result = [];
+  // Een roddel per **regel**, niet per kaartje. Dit las nog het oude
+  // enkelvoudige `data.flavour`, terwijl de lange rust al per regel onthult via
+  // `_tekstLijst` — een kaartje dat in de nieuwe editor is opgeslagen heeft zijn
+  // roddels in `data.flavours` staan en viel hier dus stilzwijgend weg.
+  let regelsTotaal = 0, regelsVerteld = 0;
   for (const type of ['personages', 'locaties']) {
     for (const e of (entities[type] || [])) {
       const vis = visibility[e.id] || 'hidden';
       if (vis === 'hidden' || vis === 'vague') continue;  // verborgen/vaag: overslaan
-      if (!e.data?.flavour) continue;          // geen roddel: overslaan
+      const regels = _tekstLijst(e.data, 'flavours', 'flavour');
+      if (!regels.length) continue;                       // geen roddel: overslaan
+      const gezegd = _onthuld(e.data?.flavoursUitgesproken
+        ?? (e.data?.flavourUitgesproken === true || e.data?.flavourUitgesproken === 'true'), regels.length);
+      const verteld = gezegd.filter(Boolean).length;
+      regelsTotaal  += regels.length;
+      regelsVerteld += verteld;
       result.push({
         id: e.id,
         name: e.name,
         type,
-        uitgesproken: e.data?.flavourUitgesproken === true || e.data?.flavourUitgesproken === 'true',
+        uitgesproken: verteld >= regels.length,
+        regels: regels.length,
+        verteld,
         visibility: vis,
       });
     }
@@ -12832,6 +12865,10 @@ router.get('/herberg', attachRole, (req, res) => {
     },
     state:           playerState,
     entities:        result,
+    // Hoeveel er nog in de pot zit. Alleen voor de DM: een speler die weet dat
+    // er nog 121 roddels liggen, weet ineens hoeveel hij mist. Zelfde
+    // bewoording als de teller op een kaartje in het archief.
+    roddelStand: req.role === 'dm' ? { totaal: regelsTotaal, verteld: regelsVerteld } : null,
     playerFirstName,
     currency,
   });

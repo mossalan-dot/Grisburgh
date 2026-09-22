@@ -26807,3 +26807,18 @@ body.akte-schrijf-open .mp-overlay { z-index: 1320; }
   box-shadow: 0 1px 3px rgba(0,0,0,0.35);
   pointer-events: none;
 }
+
+/* ── Roddelteller in de herberg ───────────────────────────────────────────
+   Hergebruikt .geheim-teller (zelfde bewoording als op een kaartje in het
+   archief), maar die klasse zet géén kleur en erft dus wat er toevallig
+   boven staat — in de herberg is dat een donker paneel. Daarom hier expliciet
+   het warme goud van .herberg-teller, en gecentreerd in plaats van de
+   inline-marge die bij een label-achter-een-titel hoort. Onderaan omdat
+   .geheim-teller op regel 22917 staat en anders op volgorde wint. */
+.herberg-roddelstand {
+  display: block;
+  margin: 0 0 6px;
+  text-align: center;
+  color: rgba(215,185,115,0.78);
+  opacity: 1;
+}

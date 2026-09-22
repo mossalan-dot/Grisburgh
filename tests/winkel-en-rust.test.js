@@ -90,6 +90,63 @@ describe('Winkel en rust', () => {
   // Grisburgh 12 van de 79). `_gebruikVan()` valt dan terug op 'uniek', en de
   // regel ging na één verkoop op uitverkocht — een smid die één knots per party
   // verkoopt. Zonder kaartje weten we niets, dus dan raakt hij niet op.
+  it('vertelt in de herberg alleen roddels over wie de party kent', async () => {
+    // De pot nam elk kaartje mee, ook wat voor deze party verborgen is — en de
+    // roddel gaat mét de naam de deur uit. In Grisburgh stonden er voor één
+    // party 127 regels op onbekende kaartjes tegenover 51 bekende: 71% kans
+    // dat een avond in de herberg een naam verklapte die nergens vandaan kon
+    // komen.
+    await req(server, 'PUT', '/api/meta/herberg',
+      { naam: 'De Proefkroeg', waard: 'Mie', overnachtingPrijs: '0 fl' }, dm);
+
+    const bekend = (await req(server, 'POST', '/api/entities/personages',
+      { name: 'Bekende Bram', data: { flavours: JSON.stringify(['Bram tapt met twee handen.']) } }, dm)).body.id;
+    const geheim = (await req(server, 'POST', '/api/entities/personages',
+      { name: 'Vrouwe Kwartel', data: { flavours: JSON.stringify(['Zij betaalt de wacht.']) } }, dm)).body.id;
+    await req(server, 'PUT', `/api/entities/personages/${bekend}/visibility`, { target: 'visible' }, dm);
+    await req(server, 'PUT', `/api/entities/personages/${geheim}/visibility`, { target: 'hidden' }, dm);
+
+    // Genoeg nachten om de hele pot leeg te trekken als hij niet gezeefd werd.
+    for (let i = 0; i < 6; i++) {
+      await req(server, 'POST', '/api/party/long-rest', { locatie: 'herberg' }, dm);
+    }
+
+    const na = (await req(server, 'GET', '/api/entities/personages', null, dm)).body;
+    const stil = na.find(e => e.id === geheim);
+    // De vlag komt soms als echte array terug en soms als JSON-string; beide
+    // vormen leven naast elkaar in de data (zie `_onthuld` in routes/api.js).
+    const ruw = stil.data.flavoursUitgesproken;
+    const gezegd = Array.isArray(ruw) ? ruw : (() => { try { return JSON.parse(ruw || '[]'); } catch { return []; } })();
+    const uitgesproken = Array.isArray(gezegd) ? gezegd.some(Boolean) : !!gezegd;
+
+    assert.ok(!uitgesproken, 'over een verborgen kaartje wordt niet geroddeld');
+    assert.ok(!(stil.data.flavourUitgesproken === 'true' || stil.data.flavourUitgesproken === true),
+      'ook de oude vlag blijft uit');
+  });
+
+  it('telt de roddels per regel, en alleen voor de DM', async () => {
+    // De teller die de DM zegt hoeveel er nog in de pot zit — zelfde bewoording
+    // als op een kaartje in het archief. `GET /herberg` las hiervoor nog het
+    // oude enkelvoudige `data.flavour` en telde per kaartje, terwijl de lange
+    // rust al per regel onthult.
+    const drie = (await req(server, 'POST', '/api/entities/personages', {
+      name: 'Kletskous Kee',
+      data: { flavours: JSON.stringify(['Eerste.', 'Tweede.', 'Derde.']) },
+    }, dm)).body.id;
+    await req(server, 'PUT', `/api/entities/personages/${drie}/visibility`, { target: 'visible' }, dm);
+
+    const alsDm = (await req(server, 'GET', '/api/herberg', null, dm)).body;
+    assert.ok(alsDm.roddelStand, 'de DM krijgt een stand mee');
+    const rij = alsDm.entities.find(e => e.id === drie);
+    assert.strictEqual(rij.regels, 3, 'drie regels op één kaartje tellen als drie');
+    assert.ok(alsDm.roddelStand.totaal >= 3, 'en ze tellen mee in het totaal');
+    assert.ok(alsDm.roddelStand.verteld <= alsDm.roddelStand.totaal, 'verteld kan het totaal niet voorbij');
+
+    const alsSpeler = (await req(server, 'GET', '/api/herberg', null, ariaC)).body;
+    assert.strictEqual(alsSpeler.roddelStand, null,
+      'een speler die weet dat er nog 121 liggen, weet hoeveel hij mist');
+  });
+
   it('zet een regel zonder bestaand kaartje niet op uitverkocht', async () => {
     const kaal = (await req(server, 'POST', '/api/entities/locaties', {
       name: 'De Losse Toonbank', data: { locType: 'Winkel', voorraad: JSON.stringify([

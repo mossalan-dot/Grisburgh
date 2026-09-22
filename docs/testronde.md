@@ -870,6 +870,13 @@ Per bevinding: waar, wat, en of het opgelost is. Nieuwe regels onderaan.
 - Koop een zegen: je rolt en krijgt er één van die god, met de prijs eraf. Zweer een eed: de andere goden gaan op slot ("Je bent al door een eed gebonden"). Laat de DM de eed verbreken → er staat een **vloek** waar de eed stond; doe boete → weg.
 - Meesterkamer → Diensten → Tempel toont de lopende eden per speler met hun status.
 
+### Herberg: roddelteller en alleen bekende namen (22 sep 2026)
+
+- Als **DM** in de herberg staat boven de namenlijst *"31 van de 208 onthuld"* — hoeveel roddelregels deze party kan horen en hoeveel er al verteld zijn. Zelfde bewoording als de teller op een kaartje in het archief. Als **speler** staat die regel er niet.
+- Een kaartje met drie roddels telt als **drie**, niet als één. Doe een lange rust in de herberg en de teller loopt met precies het aantal onthulde regels op (2 × het aantal aanwezige spelers).
+- Zet een personage met een roddel op **verborgen** en doe een paar nachten in de herberg: er wordt nooit over hem geroddeld. Vroeger kon dat wél, mét zijn naam erbij — voor één party in Grisburgh stonden er 127 regels op onbekende kaartjes tegenover 51 bekende.
+- `PUT /entities/:type/:id/visibility` met `{"target":"hidden"}` zet een kaartje nu echt op verborgen. Zonder `target` blijft het een toggle (dat is wat het oogje doet).
+
 ### Meegeleverde roddels bij de SRD-wezens (22 sep 2026)
 
 - Meesterkamer → Monsters → **Nieuw wezen** → uitklapper *Standaard statblok*: zoek "Vampire" en importeer. Naast het statblok is nu ook het veld **Roddel** gevuld ("Wat je van hem moet weten: hij komt een huis niet binnen zonder dat iemand hem vraagt…").

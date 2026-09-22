@@ -11988,7 +11988,7 @@ async function renderHerberg() {
   try { data = await api.get('/herberg'); }
   catch { el.innerHTML = '<p class="p-8 text-ink-dim">Herberg niet beschikbaar.</p>'; return; }
 
-  const { config, state: hState, entities, playerFirstName, currency } = data;
+  const { config, state: hState, entities, playerFirstName, currency, roddelStand } = data;
   const remaining = config.maxVragen - hState.vragen;
   const cooldownActief = hState.cooldownTot && new Date(hState.cooldownTot) > new Date();
   const menu = Array.isArray(config.menu) ? config.menu : [];
@@ -12029,6 +12029,14 @@ async function renderHerberg() {
             ? `<p class="herberg-cooldown-tekst">${esc(config.waard)} heeft genoeg gesproken voor vandaag.</p>`
             : `<div class="herberg-zoek-wrap">
                 ${tellerTekst ? `<p class="herberg-teller">${tellerTekst}</p>` : ''}
+                ${roddelStand && roddelStand.totaal
+                  // Hoeveel er nog in de pot zit — dezelfde bewoording als de
+                  // teller op een kaartje in het archief. Alleen voor de DM:
+                  // een speler die weet dat er nog 121 liggen, weet ineens
+                  // hoeveel hij mist.
+                  ? `<p class="geheim-teller herberg-roddelstand" title="Roddelregels op kaartjes die deze party kent. Een lange rust in de herberg put uit dezelfde pot.">${
+                      roddelStand.verteld} van ${roddelStand.totaal} onthuld</p>`
+                  : ''}
                 <div id="herberg-lijst" class="herberg-lijst">
                   ${beschikbaar.length === 0
                     ? `<p class="herberg-leeg">${esc(config.waard)} weet niets meer te vertellen.</p>`
