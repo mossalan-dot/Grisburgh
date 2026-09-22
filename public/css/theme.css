@@ -14413,14 +14413,19 @@ body.herberg-actief #app { position: relative; z-index: 1; }
 }
 .tempel-goden-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  /* Stond op repeat(3, 1fr) met een breekpunt naar 4 vanaf 560px. Op een
+     telefoon gaf dat drie kolommen van ~110px: de naam brak in tweeën
+     ("Matall, de / Maker") en het domein eronder werd vier regels. Met
+     auto-fit deelt het raster zichzelf in — twee kolommen op een telefoon,
+     drie op het paneel van 460, vier op de 640 van dit scherm — en is het
+     breekpunt niet meer nodig. */
+  grid-template-columns: repeat(auto-fit, minmax(132px, 1fr));
   gap: 10px;
   padding: 8px 0 4px;
   width: 100%;
 }
-@media (min-width: 560px) {
-  .tempel-goden-grid { grid-template-columns: repeat(4, 1fr); }
-}
+/* (Het breekpunt naar vier kolommen is vervallen: auto-fit hierboven doet dat
+   vanzelf, en dan klopt het ook op maten waar niemand aan gedacht had.) */
 .tempel-god-avatar-wrap {
   width: 56px;
   height: 56px;

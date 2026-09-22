@@ -870,6 +870,14 @@ Per bevinding: waar, wat, en of het opgelost is. Nieuwe regels onderaan.
 - Koop een zegen: je rolt en krijgt er één van die god, met de prijs eraf. Zweer een eed: de andere goden gaan op slot ("Je bent al door een eed gebonden"). Laat de DM de eed verbreken → er staat een **vloek** waar de eed stond; doe boete → weg.
 - Meesterkamer → Diensten → Tempel toont de lopende eden per speler met hun status.
 
+### Diensten op een telefoon (22 sep 2026)
+
+**Open de app op een echte telefoon** — dit is het stuk dat ik niet kan nabootsen, zie de aantekening onderaan.
+
+- **Tempel**: de godenlijst staat op twee kolommen, de naam past op één regel en het domein eronder is leesbaar. Draai naar liggend of pak een tablet: het worden er vanzelf drie of vier. Er is geen breekpunt meer waar dat fout kan gaan.
+- Loop de acht diensten langs en let op: loopt er ergens tekst buiten het scherm, of moet je zijwaarts scrollen? De panelen krimpen mee (alles is `max-width`, geen vaste breedte), maar zes van de acht diensten hebben nooit een eigen mobiele regel gekregen — daar is dit de eerste echte controle.
+- **Markt**: die heeft als enige wél een eigen mobiel blok (onder 640px). Check het zoekveld, de gebiedsknoppen en een winkelscène met zijn voorraadtabel.
+
 ### Diensten als speler: wat er dicht zit en waarom (22 sep 2026)
 
 Zet in Instellingen → Diensten → *Toegang per groep* één dienst op **zichtbaar** en één op **verborgen**, en log in als speler.
