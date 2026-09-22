@@ -4623,6 +4623,19 @@ function _multiclassVoorrekenen(profile, nieuweKlasse) {
 }
 
 // Een speler vraagt het aan; de DM keurt goed of af.
+// Er wacht iets op de DM.
+//
+// Vier soorten verzoeken komen bij de DM binnen (spreuk, voorwerp, multiclass,
+// dossier) en tot nu toe meldden alleen de eerste twee zich. `multiclass:verzoek`
+// werd uitgezonden maar nergens beluisterd, en een dossierbestelling zei niets —
+// terwijl die sinds de kandidaatkeuze juist op de DM wácht. Eén event voor alle
+// vier, zodat de client één plek heeft om op te reageren: een toast nu, en de
+// penning op de Vragen-tab die blijft staan tot het afgehandeld is.
+function _meldVerzoek(req, soort, wie, wat) {
+  req.app.get('io')?.to(req.session?.campaignId || 'main')
+    .emit('verzoek:nieuw', { soort, wie, wat });
+}
+
 router.post('/characters/:characterId/multiclass-verzoek', attachRole, (req, res) => {
   const { characterId } = req.params;
   if (req.role !== 'dm' && req.session?.characterId !== characterId)
@@ -4664,6 +4677,7 @@ router.post('/characters/:characterId/multiclass-verzoek', attachRole, (req, res
   g.multiclassVerzoeken.push(verzoek);
   storage.writeJSON('dm-state.json', dmState);
   req.app.get('io').to(req.session?.campaignId || 'main').emit('multiclass:verzoek', { verzoek });
+  _meldVerzoek(req, 'multiclass', verzoek.spelerNaam, klasse);
   res.status(201).json({ ok: true, verzoek });
 });
 
@@ -11041,7 +11055,16 @@ function _gockCheckReady(dmState, io, campaignId) {
   let changed = false;
   const entities = storage.readJSON('entities.json');
   for (const [charId, geval] of Object.entries(dmState.gockState)) {
-    if (!geval.gereed && geval.klaarOp && new Date(geval.klaarOp) <= now) {
+    // Een dossier wordt klaar na de eerstvolgende lange rust van díé party.
+    // `klaarOp` (24 uur op de klok) blijft gelden voor dossiers van vóór deze
+    // wijziging, zodat wat er al ligt gewoon afloopt.
+    const _g = getGroup(dmState, _playerGroupId(dmState, charId));
+    const naRust = geval.wachtRust !== undefined
+      ? _rustStand(_g, 'long') > geval.wachtRust
+      : !!(geval.klaarOp && new Date(geval.klaarOp) <= now);
+    // Wacht de DM nog op een keuze, dan is het onderzoek simpelweg niet af.
+    const wachtOpDm = Array.isArray(geval.kandidaten) && !geval.gekozen;
+    if (!geval.gereed && naRust && !wachtOpDm) {
       geval.gereed = true;
       changed = true;
       if (geval.isGeheim) {
@@ -11058,14 +11081,16 @@ function _gockCheckReady(dmState, io, campaignId) {
           // (`= { [id]: true }`), waardoor elk ander geheim dat deze party al
           // van dit kaartje kende in één klap weer dichtging.
           const regels = _geheimRegels(entity.data);
-          const doel = regels.find(r => r.id === geval.geheimId) || regels[0];
-          if (doel) {
+          // Eén regel, of de hele set die de DM heeft aangewezen.
+          const ids = geval.gekozen?.length ? geval.gekozen
+                    : [(regels.find(r => r.id === geval.geheimId) || regels[0])?.id].filter(Boolean);
+          for (const id of ids) {
             const stand = g.secretReveals[geval.entityId];
             if (Array.isArray(stand)) {
-              const idx = regels.findIndex(r => r.id === doel.id);
+              const idx = regels.findIndex(r => r.id === id);
               if (idx >= 0) stand[idx] = true;
             } else {
-              g.secretReveals[geval.entityId] = { ...(stand || {}), [doel.id]: true };
+              g.secretReveals[geval.entityId] = { ...(stand || {}), [id]: true };
             }
           }
           if (io) {
@@ -11154,28 +11179,127 @@ router.post('/gock/opdracht', attachRole, vereistDienst('gock'), (req, res) => {
   const _bekend = _onthuldeIds((_grp.secretReveals || {})[entityId], _regels);
   const _nieuw  = _regels.find(r => !_bekend.has(r.id));
 
-  let tekst, isGeheim = false, geheimId = null;
-  if (_nieuw) {
-    tekst = _nieuw.tekst;
+  // Onbekende geheimregels van dit kaartje, in volgorde.
+  const _open = _regels.filter(r => !_bekend.has(r.id));
+
+  // **Bij twee of meer onbekende geheimen beslist de DM.** Anders bestelt een
+  // speler één onderzoek, krijgt één regel, en denkt dat hij alles weet —
+  // terwijl er nog drie onder liggen. De detective vindt wat de DM hem laat
+  // vinden; dat is een scène, geen sortering. Bij nul of één valt er niets te
+  // kiezen, dus daar vragen we niets.
+  let tekst = '', isGeheim = false, geheimId = null, kandidaten = null;
+  if (_open.length > 1) {
+    kandidaten = _open.map(r => r.id);
+  } else if (_open.length === 1) {
+    tekst = _open[0].tekst;
     isGeheim = true;
-    geheimId = _nieuw.id;
+    geheimId = _open[0].id;
   } else {
     tekst = tidbits[Math.floor(Math.random() * tidbits.length)].replace(/\{naam\}/g, entity.name);
   }
 
   _deductCurrency(dmState, characterId, prijsCl);
-  const klaarOp = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+  // **Klaar na de eerstvolgende lange rust**, niet na 24 uur op de klok. De
+  // party bepaalt het tempo — zelfde redenering als bij de rente van de
+  // geldschieter: een sessie beslaat zelden een etmaal, en een dossier dat
+  // "morgen" klaar is terwijl je aan tafel doorspeelt komt nooit.
   dmState.gockState[characterId] = {
     entityId, entityType, entityName: entity.name,
     betaaldOp: new Date().toISOString(),
-    klaarOp, tekst, isGeheim, geheimId,
+    wachtRust: _rustStand(_grp, 'long'),
+    tekst, isGeheim, geheimId,
+    ...(kandidaten ? { kandidaten, gekozen: null } : {}),
     gereed: false, opgehaald: false,
   };
 
   storage.writeJSON('dm-state.json', dmState);
   const io = req.app.get('io');
   io.to(req.session?.campaignId||'main').emit('player:currency-updated', { characterId, currency: _effectiveCurrency(dmState, characterId) });
-  res.json({ ok: true, klaarOp, currency: _effectiveCurrency(dmState, characterId) });
+  // Alleen melden als het écht op de DM wacht. Eén geheim (of de terugval op de
+  // algemene lijst) regelt zichzelf bij de volgende lange rust; daar hoeft
+  // niemand voor gewaarschuwd te worden.
+  if (kandidaten) _meldVerzoek(req, 'dossier',
+    (entities.personages || []).find(e => e.id === characterId)?.name || 'Een speler', entity.name);
+  // Geen klok meer: het antwoord zegt waar de speler op wacht — de volgende
+  // lange rust, en bij meerdere geheimen eerst een beslissing van de DM.
+  res.json({
+    ok: true,
+    wacht: kandidaten ? 'dm' : 'rust',
+    currency: _effectiveCurrency(dmState, characterId),
+  });
+});
+
+// Welke dossiers wachten op een beslissing van de DM? Een onderzoek naar
+// iemand met meer dan één onbekend geheim wordt niet zelf ingevuld: de
+// detective vindt wat de DM hem laat vinden.
+router.get('/gock/verzoeken', requireDM, (req, res) => {
+  const dmState  = readDmState();
+  const entities = storage.readJSON('entities.json');
+  const uit = [];
+  for (const [charId, geval] of Object.entries(dmState.gockState || {})) {
+    if (!Array.isArray(geval.kandidaten) || geval.gekozen) continue;
+    const speler = (entities.personages || []).find(e => e.id === charId);
+    const doel   = (entities[geval.entityType] || []).find(e => e.id === geval.entityId);
+    const regels = _geheimRegels(doel?.data);
+    uit.push({
+      characterId: charId,
+      spelerNaam:  speler?.name || charId,
+      entityId:    geval.entityId,
+      entityType:  geval.entityType,
+      entityNaam:  geval.entityName,
+      betaaldOp:   geval.betaaldOp,
+      // De volledige tekst van elke kandidaat: de DM kiest op inhoud, niet op
+      // een nummer.
+      kandidaten: geval.kandidaten
+        .map(id => regels.find(r => r.id === id))
+        .filter(Boolean)
+        .map(r => ({ id: r.id, tekst: r.tekst })),
+    });
+  }
+  res.json({ verzoeken: uit });
+});
+
+// De DM wijst aan wat de detective vindt: één regel, meerdere, of geen enkele
+// (dan komt er een tidbit en blijft alles dicht — ook een uitkomst).
+router.post('/gock/verzoek/:characterId/kies', requireDM, (req, res) => {
+  const { characterId } = req.params;
+  const dmState = readDmState();
+  const geval = (dmState.gockState || {})[characterId];
+  if (!geval || !Array.isArray(geval.kandidaten)) {
+    return res.status(404).json({ error: 'Geen dossier dat op een keuze wacht' });
+  }
+  const gevraagd = Array.isArray(req.body?.geheimIds) ? req.body.geheimIds.map(String) : [];
+  const gekozen = gevraagd.filter(id => geval.kandidaten.includes(id));
+
+  const entities = storage.readJSON('entities.json');
+  const doel   = (entities[geval.entityType] || []).find(e => e.id === geval.entityId);
+  const regels = _geheimRegels(doel?.data);
+
+  if (gekozen.length) {
+    geval.gekozen  = gekozen;
+    geval.geheimId = gekozen[0];
+    geval.isGeheim = true;
+    geval.tekst = gekozen
+      .map(id => regels.find(r => r.id === id)?.tekst)
+      .filter(Boolean)
+      .join('\n\n');
+  } else {
+    // Niets gevonden: de detective komt terug met een weetje.
+    const meta = storage.readJSON('meta.json');
+    const tidbits = meta.gock?.tidbits?.length ? meta.gock.tidbits : GOCK_TIDBITS_DEFAULT;
+    geval.gekozen  = [];
+    geval.isGeheim = false;
+    geval.geheimId = null;
+    geval.tekst = tidbits[Math.floor(Math.random() * tidbits.length)]
+      .replace(/\{naam\}/g, geval.entityName || '');
+  }
+  if (typeof req.body?.tekst === 'string' && req.body.tekst.trim()) {
+    geval.tekst = req.body.tekst.trim();   // de DM mag het rapport zelf schrijven
+  }
+
+  storage.writeJSON('dm-state.json', dmState);
+  req.app.get('io')?.to(req.session?.campaignId || 'main').emit('gock:updated', {});
+  res.json({ ok: true, gekozen: geval.gekozen, tekst: geval.tekst });
 });
 
 router.put('/gock/opgehaald', attachRole, vereistDienst('gock'), (req, res) => {
@@ -11207,19 +11331,22 @@ router.put('/gock/opgehaald', attachRole, vereistDienst('gock'), (req, res) => {
     // dicht — de party wist iets wat de app zei dat ze niet wisten. Je hebt
     // ervoor betaald, dus de regel gaat hier open, langs dezelfde weg als het
     // oogje van de DM.
-    if (geval.geheimId) {
+    const _open = geval.gekozen?.length ? geval.gekozen : (geval.geheimId ? [geval.geheimId] : []);
+    if (_open.length) {
       if (!grp.secretReveals) grp.secretReveals = {};
       const ent = (storage.readJSON('entities.json')[geval.entityType] || [])
         .find(e => e.id === geval.entityId);
       const regels = _geheimRegels(ent?.data);
       // Een kaartje dat nog geen echte ids heeft houdt zijn array-vorm, anders
       // raakt de bestaande stand de weg kwijt (zie _echteIds in PUT .../secret).
-      const stand = grp.secretReveals[geval.entityId];
-      if (Array.isArray(stand)) {
-        const idx = regels.findIndex(r => r.id === geval.geheimId);
-        if (idx >= 0) { stand[idx] = true; }
-      } else {
-        grp.secretReveals[geval.entityId] = { ...(stand || {}), [geval.geheimId]: true };
+      for (const id of _open) {
+        const stand = grp.secretReveals[geval.entityId];
+        if (Array.isArray(stand)) {
+          const idx = regels.findIndex(r => r.id === id);
+          if (idx >= 0) { stand[idx] = true; }
+        } else {
+          grp.secretReveals[geval.entityId] = { ...(stand || {}), [id]: true };
+        }
       }
     }
   }

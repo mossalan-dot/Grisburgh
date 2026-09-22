@@ -204,15 +204,25 @@ describe('De Gock leest de geheimenlijst', () => {
     fs.rmSync(server._dir, { recursive: true, force: true });
   });
 
-  const onderzoek = async () => {
+  // Eén ronde onderzoek, zoals aan tafel: bestellen, de DM laten kiezen als er
+  // iets te kiezen valt, een nacht slapen, dossier ophalen.
+  const onderzoek = async (kies = null) => {
     const r = await req(server, 'POST', '/api/gock/opdracht',
       { entityId: doelwit, entityType: 'personages' }, spelerC);
     assert.strictEqual(r.status, 200, JSON.stringify(r.body));
-    // Het dossier is pas na een dag klaar; voor de proef zetten we 'm gereed.
-    const st = JSON.parse(fs.readFileSync(path.join(server._dir, 'campaigns/grisburgh/dm-state.json'), 'utf8'));
-    st.gockState[speler].gereed = true;
-    st.gockState[speler].klaarOp = new Date(Date.now() - 1000).toISOString();
-    fs.writeFileSync(path.join(server._dir, 'campaigns/grisburgh/dm-state.json'), JSON.stringify(st, null, 2));
+
+    // Bij meer dan één onbekend geheim wacht het dossier op de DM.
+    const open = (await req(server, 'GET', '/api/gock/verzoeken', null, dm)).body.verzoeken || [];
+    const vraag = open.find(v => v.characterId === speler);
+    if (vraag) {
+      const ids = kies ? [kies] : [vraag.kandidaten[0].id];
+      await req(server, 'POST', `/api/gock/verzoek/${speler}/kies`, { geheimIds: ids }, dm);
+    }
+
+    // Een dossier is klaar na de eerstvolgende lange rust van de party — niet
+    // na 24 uur op de klok.
+    await req(server, 'POST', '/api/party/long-rest', { locatie: 'veld' }, dm);
+    await req(server, 'GET', '/api/gock', null, spelerC);   // zet 'gereed'
     return req(server, 'PUT', '/api/gock/opgehaald', {}, spelerC);
   };
 
@@ -238,6 +248,51 @@ describe('De Gock leest de geheimenlijst', () => {
   // Het dossier gaat op twee momenten door de onthulstand heen: zodra het na de
   // wachttijd gereed is, en bij het ophalen. Die twee moeten dezelfde regel
   // pakken — en geen van beide mag wissen wat de party al wist.
+  // Bij meer dan één onbekend geheim vult het onderzoek zichzelf niet in: dan
+  // bestelt een speler één dossier, krijgt één regel en denkt dat hij alles
+  // weet. De DM wijst aan wat de detective vindt.
+  it('vraagt de DM welke geheimen de detective vindt', async () => {
+    const doelwit3 = (await req(server, 'POST', '/api/entities/personages', {
+      name: 'Drie geheimen',
+      data: { geheimen: JSON.stringify([
+        { id: 'b1', tekst: 'Hij vervalst zegels.' },
+        { id: 'b2', tekst: 'Hij heeft een tweede gezin.' },
+        { id: 'b3', tekst: 'Hij is bang voor water.' },
+      ]) },
+    }, dm)).body.id;
+    await req(server, 'PUT', `/api/entities/personages/${doelwit3}/visibility`, { target: 'visible' }, dm);
+
+    await req(server, 'POST', '/api/gock/opdracht',
+      { entityId: doelwit3, entityType: 'personages' }, spelerC);
+
+    const open = (await req(server, 'GET', '/api/gock/verzoeken', null, dm)).body.verzoeken || [];
+    const v = open.find(x => x.entityId === doelwit3);
+    assert.ok(v, 'het dossier hoort op de DM te wachten: ' + JSON.stringify(open));
+    assert.strictEqual(v.kandidaten.length, 3, 'alle drie de onbekende regels staan erbij');
+    assert.ok(v.kandidaten.every(k => k.tekst), 'mét hun tekst, zodat je op inhoud kiest');
+
+    // Zolang hij niet gekozen heeft, is het onderzoek niet af — ook niet na een rust.
+    await req(server, 'POST', '/api/party/long-rest', { locatie: 'veld' }, dm);
+    let stand = (await req(server, 'GET', '/api/gock', null, spelerC)).body;
+    assert.strictEqual(stand.geval.gereed, false, 'wachten op de DM is geen wachttijd');
+
+    // Twee van de drie.
+    const kies = await req(server, 'POST', `/api/gock/verzoek/${speler}/kies`,
+      { geheimIds: ['b1', 'b3'] }, dm);
+    assert.strictEqual(kies.status, 200, JSON.stringify(kies.body));
+    assert.match(kies.body.tekst, /vervalst zegels/);
+    assert.match(kies.body.tekst, /bang voor water/);
+
+    // Nu loopt hij af op de volgende rust.
+    await req(server, 'POST', '/api/party/long-rest', { locatie: 'veld' }, dm);
+    stand = (await req(server, 'GET', '/api/gock', null, spelerC)).body;
+    assert.strictEqual(stand.geval.gereed, true, 'na de lange rust is het dossier klaar');
+
+    await req(server, 'PUT', '/api/gock/opgehaald', {}, spelerC);
+    const kaartje = (await req(server, 'GET', `/api/entities/personages/${doelwit3}`, null, dm)).body;
+    assert.strictEqual(kaartje._geheimOnthuld, 2, 'precies de twee die de DM aanwees');
+  });
+
   it('laat bestaande onthullingen met rust als het dossier gereed wordt', async () => {
     const doelwit2 = (await req(server, 'POST', '/api/entities/personages', {
       name: 'Twee geheimen',
@@ -256,9 +311,7 @@ describe('De Gock leest de geheimenlijst', () => {
     // En dan laat de party hem onderzoeken.
     await req(server, 'POST', '/api/gock/opdracht',
       { entityId: doelwit2, entityType: 'personages' }, spelerC);
-    const st = JSON.parse(fs.readFileSync(path.join(server._dir, 'campaigns/grisburgh/dm-state.json'), 'utf8'));
-    st.gockState[speler].klaarOp = new Date(Date.now() - 1000).toISOString();
-    fs.writeFileSync(path.join(server._dir, 'campaigns/grisburgh/dm-state.json'), JSON.stringify(st, null, 2));
+    await req(server, 'POST', '/api/party/long-rest', { locatie: 'veld' }, dm);
 
     // Het ophalen van de stand zet het dossier op gereed en onthult.
     await req(server, 'GET', '/api/gock', null, spelerC);

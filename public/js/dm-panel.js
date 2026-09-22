@@ -598,20 +598,30 @@ export function initDmPanel() {
     // Berichten & Brieven
     berichtenRefresh:   _renderBerichten,
     verzoekenRefresh:   _renderVerzoeken,
+    async gockKiezen(characterId, geen = false) {
+      const wrap = document.querySelector(`.dm-gock-keuzes[data-char="${characterId}"]`);
+      const ids  = geen ? [] : [...(wrap?.querySelectorAll('.dm-gock-vink:checked') || [])].map(v => v.value);
+      if (!geen && !ids.length && !confirm('Niets aangevinkt — dan vindt hij geen geheim en komt hij terug met een weetje. Doorgaan?')) return;
+      try {
+        await api.post(`/gock/verzoek/${characterId}/kies`, { geheimIds: ids });
+        _showToast(`${icon('check')} Het dossier is klaargezet.`);
+        _renderVerzoeken(); _verzoekenTeller();
+      } catch (e) { alert('Mislukt: ' + e.message); }
+    },
     async verzoekSpreuk(reqId, akkoord) {
       try { await (akkoord ? api.approveSpellRequest(reqId) : api.rejectSpellRequest(reqId)); }
       catch (e) { alert('Mislukt: ' + e.message); }
-      _renderVerzoeken();
+      _renderVerzoeken(); _verzoekenTeller();
     },
     async verzoekMulticlass(reqId, akkoord) {
       try { await api.post(`/multiclass-verzoek/${reqId}/${akkoord ? 'approve' : 'reject'}`, {}); }
       catch (e) { alert('Mislukt: ' + e.message); }
-      _renderVerzoeken();
+      _renderVerzoeken(); _verzoekenTeller();
     },
     async verzoekItem(reqId, akkoord) {
       try { await (akkoord ? api.approveItemRequest(reqId) : api.rejectItemRequest(reqId)); }
       catch (e) { alert('Mislukt: ' + e.message); }
-      _renderVerzoeken();
+      _renderVerzoeken(); _verzoekenTeller();
     },
     berichtSend:        _berichtSend,
     postSend:           _postSend,
@@ -707,6 +717,7 @@ const _DM_TABS = [
 function _buildTabs() {
   const container = document.getElementById('dm-section-tabs');
   if (!container) return;
+  setTimeout(() => _verzoekenTeller(), 0);   // ná het tekenen van de knoppen
   const activeParent = _tabToParent(_activeTab);
   // Een uitgezette module heeft hier geen tab; zie lib/modules.js.
   const _zichtbareTabs = _DM_TABS.filter(t => window._dmTabAan?.(t.id) !== false);
@@ -9593,17 +9604,51 @@ let _berichtenLimiet    = {};            // characterId → aantal getoonde beri
 // Een spreukverzoek zag je alleen in de spreukenbibliotheek, een claim op een
 // voorwerp alleen als balk boven het Voorwerpen-tabblad. Twee plekken die je
 // moet langslopen om te weten of er iets ligt. Hier staan ze samen.
+// ── Hoeveel wacht er op de DM? ───────────────────────────────────────────────
+// De Vragen-tab bestond al, maar zweeg: je ontdekte een openstaand verzoek pas
+// door hem te openen. Een speler die om een spreuk vraagt of een dossier
+// bestelt wacht dan tot iemand toevallig kijkt. Deze teller zet het aantal als
+// penning op de tabknop, en wordt bijgewerkt bij het openen van de
+// Meesterkamer, na elke afhandeling, en op de socket-events die erbij horen.
+async function _verzoekenTeller() {
+  const knop = document.querySelector('.dm-tab-btn[data-tab="verzoeken"]');
+  if (!knop) return 0;
+  let n = 0;
+  try {
+    const [sp, bezit, mc, gock] = await Promise.all([
+      api.getSpellRequests().then(r => (r.requests || []).length).catch(() => 0),
+      api.getItemOwnership().then(r => (r.requests || []).filter(x => x.status === 'pending').length).catch(() => 0),
+      api.get('/multiclass-verzoeken').then(r => (r.verzoeken || []).length).catch(() => 0),
+      api.get('/gock/verzoeken').then(r => (r.verzoeken || []).length).catch(() => 0),
+    ]);
+    n = sp + bezit + mc + gock;
+  } catch { n = 0; }
+
+  let penning = knop.querySelector('.dm-tab-penning');
+  if (!n) { penning?.remove(); return 0; }
+  if (!penning) {
+    penning = document.createElement('span');
+    penning.className = 'dm-tab-penning';
+    knop.appendChild(penning);
+  }
+  penning.textContent = n > 9 ? '9+' : String(n);
+  penning.title = `${n} ${n === 1 ? 'verzoek wacht' : 'verzoeken wachten'} op jou`;
+  return n;
+}
+window._verzoekenTeller = _verzoekenTeller;
+
 async function _renderVerzoeken() {
   const el = document.querySelector('.dm-tab-content[data-tab="verzoeken"]');
   if (!el) return;
   el.innerHTML = _dmLoading();
 
-  let spreuken = [], bezit = null, multiclass = [];
+  let spreuken = [], bezit = null, multiclass = [], dossiers = [];
   try {
-    [spreuken, bezit, multiclass] = await Promise.all([
+    [spreuken, bezit, multiclass, dossiers] = await Promise.all([
       api.getSpellRequests().then(r => r.requests || []).catch(() => []),
       api.getItemOwnership().catch(() => null),
       api.get('/multiclass-verzoeken').then(r => r.verzoeken || []).catch(() => []),
+      api.get('/gock/verzoeken').then(r => r.verzoeken || []).catch(() => []),
     ]);
   } catch { /* hieronder vangen we het lege geval af */ }
   const voorwerpen = (bezit?.requests || []).filter(r => r.status === 'pending');
@@ -9629,6 +9674,31 @@ async function _renderVerzoeken() {
     `<button class="dm-btn dm-btn-sm dm-btn-primary" onclick="window.dmPanel.verzoekItem('${esc(r.id)}', true)">${icon('check')} Goedkeuren</button>
      <button class="dm-btn dm-btn-sm dm-btn-ghost" onclick="window.dmPanel.verzoekItem('${esc(r.id)}', false)">${icon('x')} Weigeren</button>`
   )).join('');
+
+  // Een onderzoek naar iemand met meer dan één onbekend geheim vult zichzelf
+  // niet in: anders bestelt een speler één dossier, krijgt hij één regel en
+  // denkt hij dat hij alles weet. De DM vinkt aan wat de detective vindt —
+  // niets aanvinken mag ook, dan komt hij terug met een weetje.
+  const dossierHtml = dossiers.map(d => `
+    <div class="dm-verzoek-rij dm-verzoek-rij--kolom">
+      <span class="dm-verzoek-tekst">
+        <strong>${esc(d.spelerNaam)}</strong> laat <em>${esc(d.entityNaam)}</em> uitzoeken
+        <span class="dm-verzoek-context">Wat vindt de detective? ${d.kandidaten.length} geheimen die deze party nog niet kent.</span>
+      </span>
+      <div class="dm-gock-keuzes" data-char="${esc(d.characterId)}">
+        ${d.kandidaten.map(k => `
+          <label class="dm-module-item">
+            <input type="checkbox" class="dm-gock-vink" value="${esc(k.id)}">
+            <span>${esc(k.tekst)}</span>
+          </label>`).join('')}
+      </div>
+      <span class="dm-verzoek-acties">
+        <button class="dm-btn dm-btn-sm dm-btn-primary"
+          onclick="window.dmPanel.gockKiezen('${esc(d.characterId)}')">${icon('check')} Dit vindt hij</button>
+        <button class="dm-btn dm-btn-sm dm-btn-ghost"
+          onclick="window.dmPanel.gockKiezen('${esc(d.characterId)}', true)">${icon('x')} Niets — alleen een weetje</button>
+      </span>
+    </div>`).join('');
 
   const mcHtml = multiclass.map(v => rij(
     `<strong>${esc(v.spelerNaam)}</strong> wil <em>${esc(v.klasse)}</em> erbij`
@@ -9659,6 +9729,11 @@ async function _renderVerzoeken() {
     <div class="dm-feature-section">
       <div class="dm-section-label">${icon('user')} Multiclassen ${multiclass.length ? `(${multiclass.length})` : ''}</div>
       ${mcHtml || '<p class="dm-hint">Niemand wil er op dit moment een klasse bij.</p>'}
+    </div>
+
+    <div class="dm-feature-section">
+      <div class="dm-section-label">${icon('search')} Onderzoek ${dossiers.length ? `(${dossiers.length})` : ''}</div>
+      ${dossierHtml || '<p class="dm-hint">Geen dossier dat op jou wacht.</p>'}
     </div>`;
 }
 

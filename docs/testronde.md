@@ -848,6 +848,14 @@ Per bevinding: waar, wat, en of het opgelost is. Nieuwe regels onderaan.
 - Goedkeuren zet de spreuk in het boek van die speler en haalt de regel uit de lijst; de teller in de kop loopt mee.
 - Staat er niets open, dan zegt de kop "Alles is afgehandeld" en beide secties melden dat ze leeg zijn.
 
+### De Vragen-tab meldt zich (22 sep 2026)
+
+- Laat een speler een spreuk vragen terwijl de DM in de Meesterkamer staat: er verschijnt binnen een tel een **penning met een 1** rechtsboven op de Vragen-tab, zonder herladen. Goedkeuren laat hem verdwijnen.
+- Vier soorten tellen mee (spreuk, voorwerp, multiclass, dossier): staan er drie open, dan staat er een 3; boven de negen staat er **9+**.
+- Laat een speler bij De Gock iemand met twee of meer onbekende geheimen natrekken: de DM krijgt een toast ("… liet X natrekken — kies wat de detective vindt") die bij aanklikken de Vragen-tab opent, en de penning blijft staan tot hij gekozen heeft.
+- Een dossier naar iemand met hoogstens één onbekend geheim geeft géén toast en géén penning: daar valt niets te kiezen, dat regelt de volgende lange rust zelf.
+- Herlaad de Meesterkamer met een openstaand verzoek: de penning staat er meteen weer (hij wordt bij het bouwen van de tabknoppen opgehaald, niet alleen bij een socketbericht).
+
 ### Schrijfscherm: invoegknoppen, opmaakbalk en de rustknop (18 sep 2026)
 
 - Klik in het schrijfscherm op *Kaartje* (of Alt+K): de kiezer opent **over** het schrijfscherm, niet eronder. Kies een kaartje en `[[Naam]]` staat in je tekst. Hetzelfde geldt voor Beeld, Plattegrond, Kamer, Gevecht, Worptabel, Buit en Muziek.

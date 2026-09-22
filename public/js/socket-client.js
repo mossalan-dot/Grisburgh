@@ -535,8 +535,31 @@ function _ververOpenKaartje(id) {
   // ── Spreukverzoeken ──
   // Zelfde patroon als bij een voorwerp: de DM krijgt een toast die naar het
   // spreukentabblad springt, en beide kanten werken hun lijst bij.
+  // ── Er wacht iets op de DM ──
+  // Eén event voor alle vier de verzoeksoorten (zie `_meldVerzoek` in
+  // routes/api.js). De toast is het duwtje op het moment zelf; de penning op de
+  // Vragen-tab is het geheugen — die blijft staan tot het afgehandeld is, want
+  // een toast die je mist is een verzoek dat blijft liggen.
+  const _VERZOEK_TEKST = {
+    multiclass: (wie, wat) => `<strong>${wie}</strong> wil een level in <em>${wat}</em>`,
+    dossier:    (wie, wat) => `<strong>${wie}</strong> liet ${wat} natrekken — kies wat de detective vindt`,
+  };
+  const _esc = (t) => String(t ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  socket.on('verzoek:nieuw', ({ soort, wie, wat } = {}) => {
+    if (!window.app?.isDM?.()) return;
+    window._verzoekenTeller?.();
+    const maak = _VERZOEK_TEKST[soort];
+    if (!maak) return;
+    _showToast(
+      `${window.icon('mail')} ${maak(_esc(wie), _esc(wat))}`,
+      () => { window.app.switchSection('meesterkamer'); window.dmPanel?.switchTab?.('verzoeken'); },
+      7000
+    );
+  });
+
   socket.on('spells:request', (data = {}) => {
     window.spreuken?.setVerzoeken?.(data.requests || []);
+    window._verzoekenTeller?.();
     if (window.app.isDM() && data.requesterName) {
       _showToast(
         `${window.icon('mail')} <strong>${data.requesterName}</strong> wil <em>${data.spellName || 'een spreuk'}</em> in zijn spreukenboek`,
@@ -548,11 +571,13 @@ function _ververOpenKaartje(id) {
 
   socket.on('spells:requests-updated', (data = {}) => {
     window.spreuken?.setVerzoeken?.(data.requests || []);
+    window._verzoekenTeller?.();
     _refreshSectionDebounced('mijn-karakter');
   });
 
   socket.on('items:ownership-updated', (data) => {
     if (data) window._setOwnership?.(data);
+    window._verzoekenTeller?.();
     if (window.app?.state?.activeSection === 'voorwerpen') {
       window.app.refreshSection('voorwerpen');
     }
@@ -595,6 +620,7 @@ function _ververOpenKaartje(id) {
 
   socket.on('items:request', (data) => {
     if (data) window._setOwnership?.(data);
+    window._verzoekenTeller?.();
     // DM: toast met het verzoek
     if (window.app.isDM() && data.requesterName) {
       _showToast(
