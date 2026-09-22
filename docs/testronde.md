@@ -870,6 +870,17 @@ Per bevinding: waar, wat, en of het opgelost is. Nieuwe regels onderaan.
 - Koop een zegen: je rolt en krijgt er één van die god, met de prijs eraf. Zweer een eed: de andere goden gaan op slot ("Je bent al door een eed gebonden"). Laat de DM de eed verbreken → er staat een **vloek** waar de eed stond; doe boete → weg.
 - Meesterkamer → Diensten → Tempel toont de lopende eden per speler met hun status.
 
+### Diensten als speler: wat er dicht zit en waarom (22 sep 2026)
+
+Zet in Instellingen → Diensten → *Toegang per groep* één dienst op **zichtbaar** en één op **verborgen**, en log in als speler.
+
+- **Het menu**: de verborgen dienst staat er niet meer; de zichtbare staat er grijs met een **slotje** rechts en de tooltip *"Hier kun je nog niet terecht."* Zonder dat slotje was grijs niet te onderscheiden van kapot.
+- **Open de vergrendelde dienst** (bijvoorbeeld via een oude link): je krijgt een scherm met een slot en zijn eigen naam — *"Vivarius is momenteel niet beschikbaar."*
+- **Open de verborgen dienst**: je komt op je eigen personageblad terecht, zonder melding. Vroeger keek je naar een leeg scherm, en dat leest als een storing. Bewust géén uitleg: die zou verklappen dat er iets te halen viel.
+- **Elke dienst noemt zijn eigen naam in het menu** — De Swarte Cat, De Tweespalt, Madame Ursula, Vivarius — niet de generieke soortnaam.
+- Omzeil de client en roep de route rechtstreeks aan (console: `fetch('/api/magizoo/onderzoek', …)`): dat geeft **403**, ook bij een dienst die alleen op *zichtbaar* staat.
+- De **roddelteller** in de herberg is er voor de DM en niet voor de speler: als speler staat die regel er niet.
+
 ### Diensten: naam van het huis, één paneelmaat, kop boven de facties (22 sep 2026)
 
 - **De herberg noemt zich**: onder het portret staat de waard (*Brÿlwaen*) en daaronder de zaak (*De Swarte Cat*) — zelfde plek en opmaak als de priesternaam in de Tempel. Hernoem ze in Meesterkamer → Diensten → Herberg en beide regels lopen mee; laat een veld leeg en die regel verdwijnt.

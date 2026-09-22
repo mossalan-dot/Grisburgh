@@ -26884,3 +26884,25 @@ body.akte-schrijf-open .mp-overlay { z-index: 1320; }
   text-shadow: 0 1px 0 rgba(255,250,240,0.35);
 }
 .factie-lijst-titel .icon { width: 18px; height: 18px; opacity: .75; }
+
+/* ── Een dienst waar je nog niet terecht kunt ─────────────────────────────
+   Stond alleen op opacity .55, en dat leest net zo goed als "stuk" — een
+   speler kan niet zien of het nog komt of dat er iets mis is. Het slotje
+   zegt dat het dicht is; de title zegt waarom. `pointer-events: none` stond
+   op de knop, waardoor de browser die tooltip nooit toonde: die verhuist naar
+   de tekst binnenin, zodat hoveren wél werkt maar klikken nog steeds niet. */
+.archief-menu-item.dienst-vergrendeld {
+  pointer-events: auto;
+  cursor: not-allowed;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.archief-menu-item.dienst-vergrendeld > * { pointer-events: none; }
+.dienst-slot {
+  display: inline-flex;
+  align-items: center;
+  margin-left: auto;
+  opacity: .8;
+}
+.dienst-slot .icon { width: 13px; height: 13px; }

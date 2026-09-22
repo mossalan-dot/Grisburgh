@@ -506,6 +506,31 @@ function switchSection(section) {
 // hij namens wie hij handelt; `api.js` stuurt dat mee en de server past de
 // poorten van díé speler toe. Eén balk voor alle diensten, en hij onthoudt zijn
 // keuze — je zet hem aan het begin van een testronde één keer.
+// Eén poort voor alle dienstschermen.
+//
+// Dit stond zes keer bijna woordelijk in `switchSection`, met dezelfde drie
+// takken — en in de verborgen tak stond `innerHTML = ''`. Een leeg scherm leest
+// als kapot: een speler die een oude link opent (of die de DM net heeft
+// dichtgezet) staart naar niets en weet niet of het aan hem ligt. Een verborgen
+// dienst hoort níét te vertellen dat hij bestaat, dus er komt ook geen
+// uitleg — hij brengt je gewoon terug naar je eigen blad.
+async function _dienstPoort(sleutel, naam, render) {
+  const el = document.getElementById('section-' + sleutel);
+  if (window.app.isDM()) return render();
+  const staat = _getDienstToegang(sleutel);
+  if (staat === 'zichtbaar') { if (el) _dienstNietBeschikbaar(el, naam); return; }
+  if (staat === 'verborgen') {
+    if (el) el.innerHTML = '';
+    // Terug naar iets dat wél bestaat. Zonder melding: die zou verklappen dat
+    // er hier iets te halen viel. **Afwachten**, want zonder await loopt deze
+    // sprong achter een navigatie aan die de speler ondertussen zelf deed — en
+    // dan klapt hij een tel later terug naar zijn eigen blad.
+    if (window.app?.state?.activeSection === sleutel) await window.app.switchSection('mijn-karakter');
+    return;
+  }
+  return render();
+}
+
 const _DIENST_SECTIES = ['markt', 'herberg', 'tweespalt', 'gock', 'ursula', 'tempel', 'facties', 'magizoo'];
 window._alsSpeler = null;
 try { window._alsSpeler = localStorage.getItem('alsSpeler') || null; } catch { /* privémodus */ }
@@ -2931,48 +2956,12 @@ async function refreshSection(section) {
   else if (section === 'kaart') await _renderKaartSection();
   else if (section === 'relatiemap') await renderRelatiemap();
   else if (section === 'markt') await renderMarkt();
-  else if (section === 'herberg') {
-    if (!window.app.isDM() && _getDienstToegang('herberg') === 'zichtbaar') {
-      const _el = document.getElementById('section-herberg'); if (_el) _dienstNietBeschikbaar(_el, state.meta?.herberg?.naam || 'De Herberg');
-    } else if (!window.app.isDM() && _getDienstToegang('herberg') === 'verborgen') {
-      const _el = document.getElementById('section-herberg'); if (_el) _el.innerHTML = '';
-    } else await renderHerberg();
-  }
-  else if (section === 'tweespalt') {
-    if (!window.app.isDM() && _getDienstToegang('tweespalt') === 'zichtbaar') {
-      const _el = document.getElementById('section-tweespalt'); if (_el) _dienstNietBeschikbaar(_el, state.meta?.tweespalt?.naam || 'Het gokhuis');
-    } else if (!window.app.isDM() && _getDienstToegang('tweespalt') === 'verborgen') {
-      const _el = document.getElementById('section-tweespalt'); if (_el) _el.innerHTML = '';
-    } else await renderTweespalt();
-  }
-  else if (section === 'gock') {
-    if (!window.app.isDM() && _getDienstToegang('gock') === 'zichtbaar') {
-      const _el = document.getElementById('section-gock'); if (_el) _dienstNietBeschikbaar(_el, state.meta?.gock?.naam || 'De detective');
-    } else if (!window.app.isDM() && _getDienstToegang('gock') === 'verborgen') {
-      const _el = document.getElementById('section-gock'); if (_el) _el.innerHTML = '';
-    } else await renderGock();
-  }
-  else if (section === 'magizoo') {
-    if (!window.app.isDM() && _getDienstToegang('magizoo') === 'zichtbaar') {
-      const _el = document.getElementById('section-magizoo'); if (_el) _dienstNietBeschikbaar(_el, state.meta?.magizoo?.naam || 'De Magizoöloog');
-    } else if (!window.app.isDM() && _getDienstToegang('magizoo') === 'verborgen') {
-      const _el = document.getElementById('section-magizoo'); if (_el) _el.innerHTML = '';
-    } else await renderMagizoo();
-  }
-  else if (section === 'ursula') {
-    if (!window.app.isDM() && _getDienstToegang('ursula') === 'zichtbaar') {
-      const _el = document.getElementById('section-ursula'); if (_el) _dienstNietBeschikbaar(_el, state.meta?.ursula?.naam || 'De waarzegger');
-    } else if (!window.app.isDM() && _getDienstToegang('ursula') === 'verborgen') {
-      const _el = document.getElementById('section-ursula'); if (_el) _el.innerHTML = '';
-    } else await renderUrsula();
-  }
-  else if (section === 'tempel') {
-    if (!window.app.isDM() && _getDienstToegang('tempel') === 'zichtbaar') {
-      const _el = document.getElementById('section-tempel'); if (_el) _dienstNietBeschikbaar(_el, state.meta?.tempel?.naam || 'De Tempel');
-    } else if (!window.app.isDM() && _getDienstToegang('tempel') === 'verborgen') {
-      const _el = document.getElementById('section-tempel'); if (_el) _el.innerHTML = '';
-    } else await renderTempel();
-  }
+  else if (section === 'herberg') await _dienstPoort('herberg', state.meta?.herberg?.naam || 'De Herberg', renderHerberg);
+  else if (section === 'tweespalt') await _dienstPoort('tweespalt', state.meta?.tweespalt?.naam || 'Het gokhuis', renderTweespalt);
+  else if (section === 'gock') await _dienstPoort('gock', state.meta?.gock?.naam || 'De detective', renderGock);
+  else if (section === 'magizoo') await _dienstPoort('magizoo', state.meta?.magizoo?.naam || 'De Magizoöloog', renderMagizoo);
+  else if (section === 'ursula') await _dienstPoort('ursula', state.meta?.ursula?.naam || 'De waarzegger', renderUrsula);
+  else if (section === 'tempel') await _dienstPoort('tempel', state.meta?.tempel?.naam || 'De Tempel', renderTempel);
   else if (section === 'facties') {
     // Facties stond wel in Toegang per groep maar keek er als enige dienst niet
     // naar — de schakelaar deed dus niets.
@@ -11575,7 +11564,24 @@ function _updateDienstenMenu() {
     const staat = _getDienstToegang(dienst);
     if (dienst !== 'herberg') btn.classList.toggle('hidden', staat === 'verborgen');
     else if (staat === 'verborgen') btn.classList.add('hidden');
-    btn.classList.toggle('dienst-vergrendeld', staat === 'zichtbaar');
+    const dicht = staat === 'zichtbaar';
+    btn.classList.toggle('dienst-vergrendeld', dicht);
+    // Een grijs menu-item zonder uitleg is niet te onderscheiden van een kapot
+    // menu-item: de speler weet niet of het nog komt, of dat er iets stuk is.
+    // De schakelaar van de DM betekent "dit bestaat nog niet voor jullie", dus
+    // dat is wat er moet staan. Het slotje zegt hetzelfde zonder tekst.
+    if (dicht) btn.setAttribute('title', 'Hier kun je nog niet terecht.');
+    else btn.removeAttribute('title');
+    let slot = btn.querySelector('.dienst-slot');
+    if (dicht && !slot) {
+      slot = document.createElement('span');
+      slot.className = 'dienst-slot';
+      slot.setAttribute('aria-hidden', 'true');
+      slot.innerHTML = window.icon ? window.icon('lock') : '';
+      btn.appendChild(slot);
+    } else if (!dicht && slot) {
+      slot.remove();
+    }
   }
   // Facties: zichtbaar zodra er minstens één onthulde factie is — maar de
   // schakelaar van de DM wint. Deze callback landt ná de lus hierboven en
@@ -11596,7 +11602,11 @@ function _updateDienstenMenuDM() {
   // DM ziet alle diensten — ook Herberg en Facties — ongeacht config/toegang,
   // zodat hij elke dienst kan openen en inspecteren.
   for (const d of ['herberg', 'tweespalt', 'gock', 'ursula', 'tempel', 'magizoo', 'facties']) {
-    document.getElementById(`diensten-${d}-item`)?.classList.remove('hidden', 'dienst-vergrendeld');
+    const el = document.getElementById(`diensten-${d}-item`);
+    if (!el) continue;
+    el.classList.remove('hidden', 'dienst-vergrendeld');
+    el.removeAttribute('title');
+    el.querySelector('.dienst-slot')?.remove();
   }
 }
 
