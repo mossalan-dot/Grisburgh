@@ -2341,6 +2341,17 @@ Storage gebruikt `AsyncLocalStorage` voor per-request campagne-scoping:
 
 ## Socket.io rooms
 
+> **De AC-badge volgt het bestiarium.** Hij was `isDM`-only, terwijl
+> `_bestiariumForTier` op *deels* de AC al vrijgeeft: een speler kon hem dus in
+> het statblok lezen maar niet op de token zien. Nu zichtbaar zodra de party het
+> wezen op *deels* of *volledig* kent — dezelfde grens als de exacte HP.
+> **De penning op een token is de plaats in de beurtvolgorde**, niet de
+> initiative-waarde, en het is de enige plek waar die volgorde staat: het canvas
+> zet spelers links en monsters rechts (gesorteerd op dreiging), dus uit de
+> plaatsing valt niets af te lezen. De rijenlijst die vroeger *"Init 15"* per
+> deelnemer toonde is bij de overstap naar het canvas vervangen; de 117 regels
+> markup ervoor stonden er nog wel en zijn 22 sep 2026 opgeruimd.
+
 > **De tokengrootte verraadt de dreiging, en dat blijft zo.** Het canvas tekent
 > het zwaarste monster het grootst (gesorteerd op maxHp, dan AC) — een bewuste
 > keuze: je ziet in één oogopslag waar het gevaar zit. Het groepeerde daarvoor

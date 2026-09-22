@@ -1357,10 +1357,19 @@ function _drawCombatant(ctx, c, x, y, w, h, t, isActive, isWide, turnIndex, scha
   regels.forEach((r, i) => ctx.fillText(r, cx, nameY + i * regelH));
   ctx.restore();
 
-  // ── AC-badge (alleen DM) ──────────────────────────────────────────────────
+  // ── AC-badge ──────────────────────────────────────────────────────────────
   // AC stond al op de combatant maar werd nergens in het gevecht getoond, dus
-  // zat de DM steeds te zoeken. Spelers krijgen 'm bewust niet te zien.
-  if (isDMView) {
+  // zat de DM steeds te zoeken.
+  //
+  // Voor een speler is hij leeg — tenzij zijn party het wezen bij de
+  // Magizoöloog heeft laten onderzoeken. Op *deels* geeft het bestiarium de AC
+  // al vrij (zie `_bestiariumForTier` in routes/api.js), dus kon een speler hem
+  // wél in het statblok lezen maar niet op de token zien. Dat is precies het
+  // soort verschil dat de progressie waardeloos maakt: je hebt ervoor betaald,
+  // dus het hoort te staan waar je kijkt.
+  const acZichtbaar = isDMView
+    || (c.type === 'monster' && (c._niveau === 'deels' || c._niveau === 'volledig'));
+  if (acZichtbaar) {
     const acVal = acGetal(c.ac);
     if (acVal) {
       const fs   = Math.max(9, Math.min(13, AVTR_R * 0.36));

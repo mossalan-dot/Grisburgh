@@ -870,6 +870,13 @@ Per bevinding: waar, wat, en of het opgelost is. Nieuwe regels onderaan.
 - Koop een zegen: je rolt en krijgt er één van die god, met de prijs eraf. Zweer een eed: de andere goden gaan op slot ("Je bent al door een eed gebonden"). Laat de DM de eed verbreken → er staat een **vloek** waar de eed stond; doe boete → weg.
 - Meesterkamer → Diensten → Tempel toont de lopende eden per speler met hun status.
 
+### Gevecht: AC volgt het bestiarium (22 sep 2026)
+
+- Zet een monster in de Meesterkamer → Bestiarium op **naam**: een speler ziet in het gevecht géén AC-badge en alleen een grove HP-balk.
+- Zet hetzelfde monster op **deels** (of laat de party het bij de Magizoöloog onderzoeken): vanaf de volgende update staat de **AC-badge** op zijn token, met de exacte HP erbij. Dat is wat het bestiarium op dat niveau toch al vrijgeeft — je kon het alleen in het statblok lezen en niet zien waar je keek.
+- De DM ziet de AC altijd, van iedereen.
+- De **penning op de token** is de plaats in de beurtvolgorde, niet de initiative-waarde. Controleer dat die klopt: spelers staan links en monsters rechts (gesorteerd op dreiging), dus de nummers lopen níét van links naar rechts — dat is de bedoeling.
+
 ### Gevechtscanvas: namen voluit (22 sep 2026)
 
 - Start een gevecht met een wezen met een **lange naam** (*minotaur of baphomet*, *mage apprentice*) en zet er zeven deelnemers in. De naam staat nu op twee regels voluit onder de figuur, niet meer afgekapt als "MINOTAUR OF…". De leesplaat eronder groeit mee.

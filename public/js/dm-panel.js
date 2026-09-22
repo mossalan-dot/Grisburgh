@@ -1,5 +1,5 @@
 import { api, huidigeCampagne } from './api.js?v=293';
-import { init as canvasInit, update as canvasUpdate, stop as canvasStop, acGetal } from './combat-canvas.js?v=26';
+import { init as canvasInit, update as canvasUpdate, stop as canvasStop, acGetal } from './combat-canvas.js?v=27';
 import { renderStatblock } from './render-statblock.js?v=9';
 
 // ── DM Panel ──
@@ -8479,123 +8479,16 @@ function _renderCombatOverlay(combat, startMinimized = false) {
     initGroups.get(key).push(i);
   });
 
-  const rows = cs.map((c, i) => {
-    const isActive = turnGroup.includes(i);
-    const hp    = hpStatus(c.hp, c.maxHp, c);
-    const hpPct = c.hpPct !== undefined ? c.hpPct
-                : (c.maxHp > 0 ? Math.max(0, Math.min(100, (c.hp / c.maxHp) * 100)) : 0);
-    // Concentration and initiative grouping
-    const hasConc = (c.conditions || []).includes('concentration');
-    const groupIndices = initGroups.get(c.initiative) || [i];
-    const isGroupFirst = groupIndices.length > 1 && groupIndices[0] === i;
-    const isGroupLast  = groupIndices.length > 1 && groupIndices[groupIndices.length - 1] === i;
-    const isGroupMid   = groupIndices.length > 1 && !isGroupFirst && !isGroupLast;
-    const groupClass   = isGroupFirst ? ' co-row--group-first' : isGroupLast ? ' co-row--group-last' : isGroupMid ? ' co-row--group-mid' : '';
-    const concClass    = hasConc ? ' co-row--concentrating' : '';
-    const conds = _condChips(c, isDM);
-
-    if (isDM) {
-
-      return `
-        <div class="co-row${isActive ? ' co-row-active' : ''}${concClass}${groupClass}">
-          <div class="co-row-head">
-            <span class="co-turn-num">${i + 1}</span>
-            <span class="co-type-dot ${c.type === 'player' ? 'co-type-player' : c.type === 'ally' ? 'co-type-ally' : c.type === 'summon' ? 'co-type-summon' : 'co-type-monster'}"></span>
-            <span class="co-name">${isActive ? '▶ ' : ''}${esc(c.name)}</span>${hasConc ? `<span class="co-conc-badge" title="Concentratie actief">${icon('zap')}</span>` : ''}
-            <label class="co-init-wrap">Init
-              <input class="co-init-input" type="number" value="${c.initiative}"
-                onchange="window.dmPanel.combatInitChange('${esc(c.id)}',this.value)"
-                onclick="event.stopPropagation()">
-            </label>
-            <button class="co-remove-btn" onclick="window.dmPanel.combatRemove('${esc(c.id)}')">${icon('x')}</button>
-          </div>
-          <div class="co-hp-row">
-            <button class="co-hp-btn" onclick="window.dmPanel.combatHpChange('${esc(c.id)}',-1)">−</button>
-            <div class="co-hp-bar-wrap"><div class="co-hp-bar ${hp.cls}" style="width:${hpPct}%"></div></div>
-            <input class="co-hp-input" type="number" value="${c.hp}"
-              onchange="window.dmPanel.combatHpInput('${esc(c.id)}',this.value)"
-              onclick="event.stopPropagation()">
-            <span class="co-hp-max">/${c.maxHp}</span>
-            <button class="co-hp-btn" onclick="window.dmPanel.combatHpChange('${esc(c.id)}',1)">+</button>
-          </div>
-          <div class="co-thp-row">
-            <span class="co-thp-label" title="Temporary Hit Points">${icon('shield')}</span>
-            <button class="co-hp-btn" onclick="window.dmPanel.combatThpChange('${esc(c.id)}',-1)">−</button>
-            <input class="co-thp-input" type="number" min="0" value="${c.tempHp || 0}"
-              onchange="window.dmPanel.combatThpInput('${esc(c.id)}',this.value)"
-              onclick="event.stopPropagation()">
-            <button class="co-hp-btn" onclick="window.dmPanel.combatThpChange('${esc(c.id)}',1)">+</button>
-          </div>
-          ${c.type === 'player' && (c.hp || 0) <= 0 ? (() => {
-            const ds = c.deathSaves || { successes: 0, failures: 0 };
-            const succDots = [0,1,2].map(i =>
-              `<span class="co-ds-dot${i < ds.successes ? ' co-ds-s' : ''}">●</span>`).join('');
-            const failDots = [0,1,2].map(i =>
-              `<span class="co-ds-dot${i < ds.failures  ? ' co-ds-f' : ''}">●</span>`).join('');
-            return `
-              <div class="co-death-saves">
-                <span class="co-ds-label">Death saves</span>
-                <div class="co-ds-track">${succDots}<span class="co-ds-sep">·</span>${failDots}</div>
-                <button class="co-ds-btn co-ds-yes" onclick="window.dmPanel.combatDeathSave('${esc(c.id)}','success')" title="Success">${icon('check')}</button>
-                <button class="co-ds-btn co-ds-no"  onclick="window.dmPanel.combatDeathSave('${esc(c.id)}','failure')" title="Failure">${icon('x')}</button>
-                <button class="co-ds-btn co-ds-rst" onclick="window.dmPanel.combatDeathSave('${esc(c.id)}','reset')"   title="Reset">↺</button>
-              </div>`;
-          })() : ''}
-          ${_condControl(c, true)}
-        </div>
-      `;
-    } else {
-      // Bepaal of dit de eigen combatant van de ingelogde speler is
-      const myCharId  = window.app?.state?.characterId;
-      const myName    = window.app?.state?.playerName;
-      const isOwnChar = myCharId
-        ? (c.entityId === myCharId)
-        : (myName && c.name === myName);
-
-      if (isOwnChar) {
-        // Eigen combatant: toon bewerkbare HP-controls
-        return `
-          <div class="co-row${isActive ? ' co-row-active' : ''}${concClass}${groupClass} co-row-own">
-            <div class="co-row-head">
-              <span class="co-turn-num">${i + 1}</span>
-              <span class="co-type-dot co-type-player"></span>
-              <span class="co-name">${isActive ? '▶ ' : ''}${esc(c.name)} <span class="co-own-badge">jij</span></span>
-              <span class="co-init-display">Init ${c.initiative}</span>
-            </div>
-            <div class="co-hp-row">
-              <button class="co-hp-btn" onclick="window.dmPanel.playerHpChange('${esc(c.id)}',-1)">−</button>
-              <div class="co-hp-bar-wrap"><div class="co-hp-bar ${hp.cls}" style="width:${hpPct}%"></div></div>
-              <input class="co-hp-input" type="number" value="${c.hp}"
-                onchange="window.dmPanel.playerHpInput('${esc(c.id)}',this.value)"
-                onclick="event.stopPropagation()">
-              <span class="co-hp-max">/${c.maxHp}</span>
-              <button class="co-hp-btn" onclick="window.dmPanel.playerHpChange('${esc(c.id)}',1)">+</button>
-            </div>
-            ${(c.tempHp || 0) > 0 ? `<div class="co-hp-player-row"><span class="co-thp-badge" title="Temporary Hit Points">${icon('shield')} +${c.tempHp}</span></div>` : ''}
-            ${conds ? `<div class="co-active-conds">${conds}</div>` : ''}
-          </div>
-        `;
-      }
-
-      // Andere combatants: alleen balk + status + conditions
-      return `
-        <div class="co-row${isActive ? ' co-row-active' : ''}${concClass}${groupClass}">
-          <div class="co-row-head">
-            <span class="co-turn-num">${i + 1}</span>
-            <span class="co-type-dot ${c.type === 'player' ? 'co-type-player' : c.type === 'ally' ? 'co-type-ally' : c.type === 'summon' ? 'co-type-summon' : 'co-type-monster'}"></span>
-            <span class="co-name">${isActive ? '▶ ' : ''}${esc(c.name)}</span>
-            <span class="co-init-display">Init ${c.initiative}</span>
-          </div>
-          <div class="co-hp-player-row">
-            <span class="co-hp-status-dot co-hp-dot-${hp.cls}"></span>
-            <span class="co-hp-label ${hp.cls}">${hp.label}</span>
-            ${(c.tempHp || 0) > 0 ? `<span class="co-thp-badge" title="Temporary Hit Points">${icon('shield')} +${c.tempHp}</span>` : ''}
-            ${conds ? `<span class="co-conds">${conds}</span>` : ''}
-          </div>
-        </div>
-      `;
-    }
-  }).join('');
+  // Hier stond 117 regels markup voor een **rijenlijst** met per deelnemer
+  // zijn initiative, een HP-invoerveld en conditie-chips. Die lijst is bij de
+  // overstap naar het canvas vervangen en wordt sindsdien nergens meer in de
+  // DOM gezet — hij werd alleen nog opgebouwd en weggegooid, bij elke
+  // hertekening van het gevecht. Weg dus.
+  //
+  // De beurtvolgorde staat nu alleen nog als penning op de token (de plaats
+  // in de rij, niet de initiative-waarde). Dat is geen dubbeling: het canvas
+  // zet spelers links en monsters rechts, en sorteert die laatste op dreiging
+  // — de volgorde is dus nergens anders uit af te lezen.
 
   // Sla gevecht op voor tab-switching na re-renders
   _lastCombat = combat;
