@@ -235,12 +235,49 @@ describe('De Gock leest de geheimenlijst', () => {
       + JSON.stringify({ onthuld: kaartje._geheimOnthuld, geheimen }));
   });
 
+  // Het dossier gaat op twee momenten door de onthulstand heen: zodra het na de
+  // wachttijd gereed is, en bij het ophalen. Die twee moeten dezelfde regel
+  // pakken — en geen van beide mag wissen wat de party al wist.
+  it('laat bestaande onthullingen met rust als het dossier gereed wordt', async () => {
+    const doelwit2 = (await req(server, 'POST', '/api/entities/personages', {
+      name: 'Twee geheimen',
+      data: { geheimen: JSON.stringify([
+        { id: 'a1', tekst: 'Eerste geheim.' },
+        { id: 'a2', tekst: 'Tweede geheim.' },
+      ]) },
+    }, dm)).body.id;
+    await req(server, 'PUT', `/api/entities/personages/${doelwit2}/visibility`, { target: 'visible' }, dm);
+
+    // De DM onthult zelf regel twee.
+    await req(server, 'PUT', `/api/entities/personages/${doelwit2}/secret`, { gid: 'a2' }, dm);
+    let kaartje = (await req(server, 'GET', `/api/entities/personages/${doelwit2}`, null, dm)).body;
+    assert.strictEqual(kaartje._geheimOnthuld, 1);
+
+    // En dan laat de party hem onderzoeken.
+    await req(server, 'POST', '/api/gock/opdracht',
+      { entityId: doelwit2, entityType: 'personages' }, spelerC);
+    const st = JSON.parse(fs.readFileSync(path.join(server._dir, 'campaigns/grisburgh/dm-state.json'), 'utf8'));
+    st.gockState[speler].klaarOp = new Date(Date.now() - 1000).toISOString();
+    fs.writeFileSync(path.join(server._dir, 'campaigns/grisburgh/dm-state.json'), JSON.stringify(st, null, 2));
+
+    // Het ophalen van de stand zet het dossier op gereed en onthult.
+    await req(server, 'GET', '/api/gock', null, spelerC);
+    kaartje = (await req(server, 'GET', `/api/entities/personages/${doelwit2}`, null, dm)).body;
+    assert.strictEqual(kaartje._geheimOnthuld, 2,
+      'wat de DM al had onthuld hoort te blijven staan — dit overschreef de hele stand');
+
+    await req(server, 'PUT', '/api/gock/opgehaald', {}, spelerC);
+  });
+
   it('geeft de tweede keer een ánder geheim', async () => {
     const r = await onderzoek();
     assert.strictEqual(r.status, 200, JSON.stringify(r.body));
     const items = (await req(server, 'GET', `/api/player-items/${speler}`, null, dm)).body;
     const lijst = Array.isArray(items) ? items : (items?.items || []);
-    const rapporten = lijst.filter(i => String(i.id || '').startsWith('gock_'));
+    // Alleen de rapporten over dít doelwit: andere proeven in dit bestand laten
+    // ook dossiers achter bij dezelfde speler.
+    const rapporten = lijst.filter(i => String(i.id || '').startsWith('gock_')
+                                     && /Ursûn de Stille/.test(i.name || ''));
     assert.strictEqual(rapporten.length, 2);
     assert.notStrictEqual(rapporten[0].note, rapporten[1].note,
       'twee keer onderzoek naar dezelfde man hoort iets nieuws op te leveren');

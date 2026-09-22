@@ -11049,9 +11049,25 @@ function _gockCheckReady(dmState, io, campaignId) {
         if (entity) {
           const g = getGroup(dmState);
           if (!g.secretReveals) g.secretReveals = {};
-          // Het rapport onthult het eerste geheim; noteer dat op zijn id.
-          const eerste = _geheimRegels(entity.data)[0];
-          if (eerste) g.secretReveals[geval.entityId] = { [eerste.id]: true };
+          // Onthul de regel die **in dit rapport staat**, niet blind de eerste:
+          // sinds de detective een regel kiest die de party nog niet kent,
+          // zouden die twee anders uit elkaar lopen — je las geheim twee en
+          // geheim één ging open.
+          //
+          // En **bijschrijven, niet overschrijven**. Hier stond een toewijzing
+          // (`= { [id]: true }`), waardoor elk ander geheim dat deze party al
+          // van dit kaartje kende in één klap weer dichtging.
+          const regels = _geheimRegels(entity.data);
+          const doel = regels.find(r => r.id === geval.geheimId) || regels[0];
+          if (doel) {
+            const stand = g.secretReveals[geval.entityId];
+            if (Array.isArray(stand)) {
+              const idx = regels.findIndex(r => r.id === doel.id);
+              if (idx >= 0) stand[idx] = true;
+            } else {
+              g.secretReveals[geval.entityId] = { ...(stand || {}), [doel.id]: true };
+            }
+          }
           if (io) {
             io.to(room).emit('entity:secret', { id: geval.entityId, type: geval.entityType, name: entity.name, secretReveal: true });
             io.to(room).emit('entity:updated', { type: geval.entityType, id: geval.entityId });
