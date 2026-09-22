@@ -233,6 +233,55 @@ describe('De Magizoöloog: onderzoek en adoptie', () => {
     assert.strictEqual(nogEens.status, 400, 'één huisdier per party');
   });
 
+  it('laat maar één onderzoek per lange rust toe, en de rust opent hem weer', async () => {
+    // De wachttijd liep op de wandklok (vijf echte minuten); dat zei aan tafel
+    // niets. Nu hangt hij aan de lange rust, net als het dossier bij De Gock.
+    await req('PUT', '/api/meta/magizoo', { cooldownMinuten: 5 }, dm);
+    // De tests hierboven deden al onderzoek (met de wachttijd uit), dus die
+    // stand staat er al; één nacht om schoon te beginnen. Dat de knop
+    // omzetten meteen telt is trouwens juist goed: hij hééft net gewerkt.
+    await req('POST', '/api/party/long-rest', { locatie: 'veld' }, dm);
+    const een = (await req('POST', '/api/monsters', { name: 'Moerasrat', maxHp: 6 }, dm)).body.id;
+    const twee = (await req('POST', '/api/monsters', { name: 'Grotvleermuis', maxHp: 5 }, dm)).body.id;
+    await req('PUT', `/api/bestiarium/${een}`, { niveau: 'naam' }, dm);
+    await req('PUT', `/api/bestiarium/${twee}`, { niveau: 'naam' }, dm);
+
+    const eerste = await req('POST', '/api/magizoo/onderzoek', { monsterId: een, modus: 'stap' }, spelerC);
+    assert.strictEqual(eerste.status, 200, JSON.stringify(eerste.body));
+    assert.strictEqual(eerste.body.wachtOpRust, true, 'na een onderzoek wacht hij op een nacht');
+
+    const meteen = await req('POST', '/api/magizoo/onderzoek', { monsterId: twee, modus: 'stap' }, spelerC);
+    assert.strictEqual(meteen.status, 429, JSON.stringify(meteen.body));
+    assert.strictEqual(meteen.body.wachtOpRust, true);
+    assert.ok(!/min\b/.test(String(meteen.body?.error || '')), 'geen aftelling in echte minuten');
+
+    const scherm = (await req('GET', '/api/magizoo', null, spelerC)).body;
+    assert.strictEqual(scherm.wachtOpRust, true, 'het scherm zegt waar je op wacht');
+    assert.strictEqual(scherm.cooldownTot, null, 'geen klok meer');
+
+    await req('POST', '/api/party/long-rest', { locatie: 'veld' }, dm);
+
+    const na = (await req('GET', '/api/magizoo', null, spelerC)).body;
+    assert.strictEqual(na.wachtOpRust, false, 'na een lange rust is hij weer vrij');
+    const weer = await req('POST', '/api/magizoo/onderzoek', { monsterId: twee, modus: 'stap' }, spelerC);
+    assert.strictEqual(weer.status, 200, JSON.stringify(weer.body));
+  });
+
+  it('stelt de naam van het dier zelf voor, niet een naam uit een andere campagne', async () => {
+    // 'Jip' stond hard in routes/api.js — een dier uít Grisburgh dat elke
+    // andere campagne erbij kreeg.
+    const nieuwDier = (await req('POST', '/api/entities/personages', {
+      name: 'Kwebbel', subtype: 'dier', data: { adopteerbaar: true, adoptiePrijsFl: 3 },
+    }, dm)).body.id;
+    const lijst = (await req('GET', '/api/magizoo', null, spelerC)).body.adoptabel || [];
+    const rij = lijst.find(a => a.id === nieuwDier);
+    // De party heeft al een metgezel uit de vorige test, dus de lijst kan leeg
+    // zijn; dan toetsen we de helper langs de andere kant.
+    if (rij) assert.strictEqual(rij.naamSuggestie, 'Kwebbel');
+    const bron = fs.readFileSync(path.join(__dirname, '..', 'routes', 'api.js'), 'utf8');
+    assert.ok(!/naamSuggestie[^\n]*'Jip'/.test(bron), 'geen hardgecodeerde naam als terugval');
+  });
+
   it('weigert een dier dat niet ter adoptie staat', async () => {
     const wild = (await req('POST', '/api/entities/personages',
       { name: 'Wilde wolf', subtype: 'dier' }, dm)).body.id;

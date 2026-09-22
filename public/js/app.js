@@ -10,7 +10,7 @@ import { renderSpreuken } from './render-spreuken.js?v=41';
 import { renderVaardigheden, zoekVaardigheden } from './render-vaardigheden.js?v=8';
 import { renderStatblock } from './render-statblock.js?v=9';
 import { initSocket } from "./socket-client.js?v=77";
-import { initDmPanel } from "./dm-panel.js?v=274";
+import { initDmPanel } from "./dm-panel.js?v=275";
 import { COND_INFO, COND_LABEL, COND_MET_PLAATJE, COND_ICON } from './conditions.js?v=2';
 import './media-picker.js?v=8';
 
@@ -12401,13 +12401,19 @@ async function renderMagizoo() {
     return;
   }
   _magizooData = data;
-  const { config, monsters = [], adoptabel = [], metgezel = null, currency, cooldownTot } = data;
+  const { config, monsters = [], adoptabel = [], metgezel = null, currency, cooldownTot, wachtOpRust } = data;
 
-  const cooldownActief = cooldownTot && new Date(cooldownTot) > new Date();
+  // De wachttijd hangt aan de **lange rust**, niet aan de klok (zie
+  // `_magizooWacht` in routes/api.js). Een aftelling in echte minuten zei niets
+  // aan tafel; "kom terug na een nacht" wel. `cooldownTot` kan nog binnenkomen
+  // zolang er ergens een oude klok uitloopt.
+  const cooldownActief = wachtOpRust || (cooldownTot && new Date(cooldownTot) > new Date());
   let cooldownTekst = '';
-  if (cooldownActief) {
+  if (wachtOpRust) {
+    cooldownTekst = `${esc(config.naam || 'De Magizoöloog')} buigt zich nog over je vorige exemplaar. Kom terug na een lange rust.`;
+  } else if (cooldownActief) {
     const min = Math.ceil((new Date(cooldownTot) - Date.now()) / 60000);
-    cooldownTekst = `De Magizoöloog werkt zijn aantekeningen nog bij — nog ± ${min} min.`;
+    cooldownTekst = `${esc(config.naam || 'De Magizoöloog')} werkt zijn aantekeningen nog bij — nog ± ${min} min.`;
   }
 
   const backdrop = config.backdropId ? `style="background-image:url('${api.thumbUrlBreed(config.backdropId)}')"` : '';

@@ -848,6 +848,13 @@ Per bevinding: waar, wat, en of het opgelost is. Nieuwe regels onderaan.
 - Goedkeuren zet de spreuk in het boek van die speler en haalt de regel uit de lijst; de teller in de kop loopt mee.
 - Staat er niets open, dan zegt de kop "Alles is afgehandeld" en beide secties melden dat ze leeg zijn.
 
+### De Magizoöloog: wachttijd per lange rust (22 sep 2026)
+
+- Laat een speler een wezen onderzoeken. Het kennisniveau gaat één stap omhoog, het geld gaat eraf, en er staat: *"… buigt zich nog over je vorige exemplaar. Kom terug na een lange rust."* Geen aftelling in minuten meer.
+- Probeer meteen een tweede wezen: dat wordt geweigerd. Neem een lange rust; daarna kan het weer.
+- Meesterkamer → Diensten → Magizoöloog: de wachttijd is een keuze (*Eén onderzoek per lange rust* / *Geen wachttijd*), geen aantal minuten. Op "geen wachttijd" kun je achter elkaar door onderzoeken.
+- Zet een dier op **adopteerbaar** (personage-kaartje, subtype *dier*) met een prijs: hij verschijnt in de adoptielijst met **zijn eigen naam** als suggestie. Vul een eigen naam in en adopteer; er komt een adoptiebewijs als brief en de party heeft er één — een tweede wordt geweigerd.
+
 ### De Vragen-tab meldt zich (22 sep 2026)
 
 - Laat een speler een spreuk vragen terwijl de DM in de Meesterkamer staat: er verschijnt binnen een tel een **penning met een 1** rechtsboven op de Vragen-tab, zonder herladen. Goedkeuren laat hem verdwijnen.

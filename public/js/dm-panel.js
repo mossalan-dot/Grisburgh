@@ -6068,8 +6068,16 @@ async function _renderMagizooSettings() {
           <input id="magizoo-prijsvol-fl" class="dm-input dm-input-sm" type="number" min="0" value="${prijsVol.fl || 60}">
         </div>
         <div class="dm-form-row" style="flex:1">
-          <label class="dm-form-label">Cooldown (min)</label>
-          <input id="magizoo-cooldown" class="dm-input dm-input-sm" type="number" min="0" value="${config.cooldownMinuten ?? 5}">
+          <label class="dm-form-label">Wachttijd</label>
+          <!-- Stond hier als een aantal minuten op de wandklok. Vijf echte
+               minuten is aan tafel niets, en het hoort nergens bij in de
+               fictie; sinds De Gock hangt een wachttijd aan de lange rust.
+               De waarde blijft cooldownMinuten (5 of 0), zodat er niets te
+               migreren valt. -->
+          <select id="magizoo-cooldown" class="dm-select dm-input-sm">
+            <option value="5"${(config.cooldownMinuten ?? 5) !== 0 ? ' selected' : ''}>Eén onderzoek per lange rust</option>
+            <option value="0"${(config.cooldownMinuten ?? 5) === 0 ? ' selected' : ''}>Geen wachttijd</option>
+          </select>
         </div>
       </div>
 
@@ -6108,7 +6116,7 @@ window._magizooSettingsSave = async () => {
   const groet = document.getElementById('magizoo-groet')?.value.trim() || '';
   const fl = parseInt(document.getElementById('magizoo-prijs-fl')?.value) || 0;
   const flVol = parseInt(document.getElementById('magizoo-prijsvol-fl')?.value) || 0;
-  const cooldownMinuten = parseInt(document.getElementById('magizoo-cooldown')?.value) || 0;
+  const cooldownMinuten = parseInt(document.getElementById('magizoo-cooldown')?.value) || 0;   // 5 = per lange rust, 0 = geen
   const imageId = document.getElementById('magizoo-portret-select')?.value || config.imageId || '';
   const backdropFromSelect = document.getElementById('magizoo-backdrop-select')?.value || null;
   const backdropId = window._magizooBackdropPending || backdropFromSelect || config.backdropId || '';

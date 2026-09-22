@@ -6010,7 +6010,11 @@ function _magizooAdoptabel(dmState, gid) {
         id: e.id, name: e.name, imageId: e.id,
         soortLabel: e.data?.soortLabel || e.data?.ras || '',
         prijs: _adoptiePrijs(e),
-        naamSuggestie: e.data?.naamSuggestie || 'Jip',
+        // Geen verzonnen naam als terugval: 'Jip' stond hier hard in de code
+        // en is een dier uít Grisburgh — elke andere campagne kreeg hem erbij.
+        // De naam van het dier zelf is de eerlijke suggestie; de speler mag
+        // hem toch overtypen.
+        naamSuggestie: e.data?.naamSuggestie || e.name,
         samenvatting,
       };
     });
@@ -11419,13 +11423,35 @@ function _magizooMonsterList(dmState, gid) {
   });
 }
 
+// Wacht de Magizoöloog nog op een nacht werk?
+//
+// Dit liep op de wandklok — `cooldownMinuten`, standaard vijf. Vijf echte
+// minuten is aan tafel niets (je haalt koffie en hij is klaar) en het hoort
+// nergens bij in de fictie: "hij werkt zijn aantekeningen bij" is een nacht,
+// geen pauze. Sinds De Gock hangen wachttijden aan de **lange rust**, en dit is
+// dezelfde vraag. Eén onderzoek per speler per rust dus.
+//
+// `cooldownMinuten: 0` betekende "geen wachttijd" en blijft dat betekenen; een
+// lopende klok-cooldown uit de oude vorm wordt uitgediend, zodat niemand
+// halverwege een sessie ineens weer aan de beurt is.
+function _magizooWacht(dmState, g, characterId, config) {
+  if ((config?.cooldownMinuten ?? 5) === 0) return null;
+  const st = (dmState.magizooState || {})[characterId] || {};
+  if (st.wachtRust !== undefined) {
+    return _rustStand(g, 'long') > st.wachtRust ? null : { rust: true };
+  }
+  // Oude vorm: een klok die nog loopt.
+  if (st.cooldownTot && new Date(st.cooldownTot) > new Date()) return { tot: st.cooldownTot };
+  return null;
+}
+
 router.get('/magizoo', attachRole, (req, res) => {
   const meta = storage.readJSON('meta.json');
   const config = meta.magizoo || {};
   const dmState = readDmState();
   const characterId = _handelendKarakter(req);
   const gid = characterId ? _playerGroupId(dmState, characterId) : undefined;
-  const cooldown = characterId ? ((dmState.magizooState || {})[characterId]?.cooldownTot || null) : null;
+  const wacht = characterId ? _magizooWacht(dmState, getGroup(dmState, gid), characterId, config) : null;
   res.json({
     config: {
       naam:    config.naam || 'De Magizoöloog',
@@ -11440,7 +11466,10 @@ router.get('/magizoo', attachRole, (req, res) => {
     adoptabel: _magizooAdoptabel(dmState, gid),
     metgezel: _groupPet(getGroup(dmState, gid), storage.readJSON('entities.json')),
     currency: _effectiveCurrency(dmState, characterId),
-    cooldownTot: (cooldown && new Date(cooldown) > new Date()) ? cooldown : null,
+    // `wachtOpRust` is de nieuwe vorm; `cooldownTot` blijft erbij zolang er een
+    // klok uit de oude vorm kan lopen.
+    wachtOpRust: !!wacht?.rust,
+    cooldownTot: wacht?.tot || null,
   });
 });
 
@@ -11518,18 +11547,24 @@ router.post('/magizoo/onderzoek', attachRole, vereistDienst('magizoo'), (req, re
   if (!huidig) return res.status(404).json({ error: 'Dit wezen is nog niet ontdekt — de Magizoöloog onderzoekt alleen bekende monsters.' });
   if (huidig === 'volledig') return res.status(400).json({ error: 'Dit wezen is al volledig onderzocht.' });
 
-  // Cooldown
+  const meta = storage.readJSON('meta.json');
+  const config = meta.magizoo || {};
+
+  // Wachttijd: één onderzoek per lange rust (zie `_magizooWacht`).
   if (!dmState.magizooState) dmState.magizooState = {};
-  const st = dmState.magizooState[characterId] || {};
-  if (st.cooldownTot && new Date(st.cooldownTot) > new Date()) {
-    return res.status(429).json({ error: 'De Magizoöloog heeft nog tijd nodig.', cooldownTot: st.cooldownTot });
+  const wacht = _magizooWacht(dmState, g, characterId, config);
+  if (wacht) {
+    return res.status(429).json({
+      error: wacht.rust
+        ? `${config.naam || 'De Magizoöloog'} buigt zich nog over zijn vorige exemplaar. Kom terug na een lange rust.`
+        : 'De Magizoöloog heeft nog tijd nodig.',
+      wachtOpRust: !!wacht.rust,
+      cooldownTot: wacht.tot || null,
+    });
   }
 
   const monster = (storage.readJSON('monsters.json').monsters || []).find(m => m.id === monsterId);
   if (!monster) return res.status(404).json({ error: 'Monster niet gevonden' });
-
-  const meta = storage.readJSON('meta.json');
-  const config = meta.magizoo || {};
   const naarVolledig = modus === 'volledig';
   const prijs = naarVolledig ? (config.prijsVolledig || { fl: 60 }) : (config.prijs || { fl: 25 });
 
@@ -11550,8 +11585,9 @@ router.post('/magizoo/onderzoek', attachRole, vereistDienst('magizoo'), (req, re
 
   // Betaling + cooldown
   const { currency: nieuweSaldo } = _deductCurrency(dmState, characterId, prijsCl);
-  const cooldownMin = config.cooldownMinuten ?? 5;
-  dmState.magizooState[characterId] = { cooldownTot: new Date(Date.now() + cooldownMin * 60 * 1000).toISOString() };
+  // De stand van de rustteller op dit moment; hij is weer aan de beurt zodra
+  // die verder is. Geen klok meer — zie `_magizooWacht`.
+  dmState.magizooState[characterId] = { wachtRust: _rustStand(g, 'long') };
 
   storage.writeJSON('dm-state.json', dmState);
   const io = req.app.get('io');
@@ -11563,7 +11599,7 @@ router.post('/magizoo/onderzoek', attachRole, vereistDienst('magizoo'), (req, re
     ok: true, monsterId, naam: monster.name,
     niveau: nieuw, roddel: roddelOnthuld,
     currency: nieuweSaldo,
-    cooldownTot: dmState.magizooState[characterId].cooldownTot,
+    wachtOpRust: (config.cooldownMinuten ?? 5) !== 0,
   });
 });
 
