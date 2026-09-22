@@ -100,6 +100,21 @@ describe('Facties: een rang ontgrendelt iets', () => {
 
   const factieVanSpeler = async () =>
     ((await req(server, 'GET', '/api/facties', null, spelerC)).body.facties || [])[0];
+  it('levert geen facties uit een andere campagne mee', async () => {
+    // Hier stonden De Coöperatie, De Eendragt en De Roodzwaarden, met
+    // beschrijvingen die letterlijk "rond Grisburgh" zeggen. Elke campagne
+    // zonder eigen facties kreeg die drie.
+    const bron = fs.readFileSync(path.join(__dirname, '..', 'routes', 'api.js'), 'utf8');
+    const m = bron.match(/const FACTIES_DEFAULT = (\[[^\]]*\])/);
+    assert.ok(m, 'de constante hoort er nog te zijn');
+    assert.strictEqual(m[1].replace(/\s/g, ''), '[]', 'en leeg te zijn');
+
+    // De ladder is wél generiek en hoort in de Meesterkamer te staan: een
+    // nieuwe factie begint met zes treden, niet met nul.
+    const paneel = fs.readFileSync(path.join(__dirname, '..', 'public', 'js', 'dm-panel.js'), 'utf8');
+    assert.ok(/_FACTIE_LADDER/.test(paneel), 'een nieuwe factie krijgt de zes treden mee');
+  });
+
 
   it('bewaart de nieuwe unlock-vorm en leest de oude nog', async () => {
     const f = await factieVanSpeler();

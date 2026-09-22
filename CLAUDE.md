@@ -2134,6 +2134,12 @@ De app draait meerdere campagnes; wat van Grisburgh is, hoort in Grisburghs
   regels als "In {naam} — klik om te verlaten" of "Ontdekt in {naam}". De
   datasleutels blijven zoals ze zijn (`meta.buitenGrisburgh`,
   `buitenGrisburgEntiteiten`) — die hernoemen kost een migratie en levert niets.
+- **Facties.** `FACTIES_DEFAULT` bevatte De Coöperatie, De Eendragt en De
+  Roodzwaarden, met beschrijvingen die "rond Grisburgh" zeggen; die is leeg.
+  Wat er generiek aan was — de **ladder** van zes treden op 0/1/3/10/25/50 —
+  staat nu waar hij hoort: `_FACTIE_LADDER()` in `dm-panel.js` geeft een nieuwe
+  factie meteen zes lege treden. Alleen trede 0 heeft een naam
+  (*Buitenstaander*), want die beschrijft de mechaniek en niet de campagne.
 - **Goden.** Er is géén ingebouwd pantheon meer. `TEMPEL_GODEN_DEFAULT` bevatte
   de twaalf goden van Grisburgh, compleet met eedteksten en `locatieEntityId`'s
   die alleen daar bestaan; elke campagne die de Tempel opende kreeg ze erbij.

@@ -6782,8 +6782,22 @@ window._factieIconKies = (fi, naam, btn) => {
   btn.classList.add('factie-icon-btn--actief');
 };
 
+// De zes treden van de ladder horen er meteen te staan.
+//
+// Een nieuwe factie begon met **nul** rangen terwijl de drempels wél op
+// 0,1,3,10,25,50 stonden: je moest zes keer op "rang toevoegen" drukken voordat
+// de ladder klopte. Dat was precies het werk dat de weggehaalde
+// FACTIES_DEFAULT je uit handen nam — alleen dan mét de druïden van Grisburgh
+// erbij. Dit is het generieke deel: de structuur, niet de inhoud.
+// Alleen trede 0 heeft een naam, want die beschrijft de mechaniek (je bent nog
+// geen lid) en niet de campagne.
+const _FACTIE_LADDER = () => ([
+  { naam: 'Buitenstaander', voordelen: '', titel: '', boons: [] },
+  ...Array.from({ length: 5 }, () => ({ naam: '', voordelen: '', titel: '', boons: [] })),
+]);
+
 window._factieNieuw = () => {
-  _factiesDraft.push({ id: 'factie_' + Date.now(), naam: 'Nieuwe factie', embleem: 'landmark', beschrijving: '', stijl: '', rangen: [], renownDrempels: '0,1,3,10,25,50' });
+  _factiesDraft.push({ id: 'factie_' + Date.now(), naam: 'Nieuwe factie', embleem: 'landmark', beschrijving: '', stijl: '', rangen: _FACTIE_LADDER(), renownDrempels: '0,1,3,10,25,50' });
   _renderFactiesDM();
   // Open de details van de nieuwe factie
   const kaarten = document.querySelectorAll('.factie-dm-kaart details');

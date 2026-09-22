@@ -11878,62 +11878,18 @@ router.put('/meta/tempel', requireDM, (req, res) => {
 
 // ── Facties & Aanzien (organisaties met een rangspoor) ──
 
-const FACTIES_DEFAULT = [
-  {
-    id: 'cooperatie', naam: 'De Coöperatie', embleem: 'tree-pine', stijl: 'hout',
-    beschrijving: 'Het verbond van druïden dat over de wouden en wateren rond Grisburgh waakt.',
-    renownDrempels: [0, 1, 3, 10, 25, 50], entityId: null,
-    rangen: [
-      { naam: 'Buitenstaander', voordelen: 'Geen aanzien; de Kring houdt je op afstand.' },
-      { naam: 'Zaailing',       voordelen: 'Je wordt geduld in de buitenste hagen; ruil van kruiden toegestaan.',
-        boons: [{ naam: 'Kruidruil', tekst: 'Koop genezende kruiden en eenvoudige remedies tegen kostprijs.' }] },
-      { naam: 'Wortelganger',   voordelen: 'Toegang tot de gemeenschappelijke kruidtuin en de raad.',
-        boons: [{ naam: 'Kruidtuin', tekst: 'Eens per lange rust een gratis dosis genezende thee.' }] },
-      { naam: 'Hagenhoeder',    voordelen: 'Druïden delen voortekenen en veilige paden met je.', titel: 'Hagenhoeder van de Coöperatie',
-        boons: [{ naam: 'Veilige paden', tekst: 'Voordeel op overlevingsworpen in de wildernis rond Grisburgh.' }] },
-      { naam: 'Boomspreker',    voordelen: 'Je stem telt in de Kring; de Coöperatie staat je bij in nood.', titel: 'Boomspreker der Coöperatie',
-        boons: [{ naam: 'Dierbode', tekst: 'Stuur eens per dag een dierbode met een kort bericht.' }] },
-      { naam: 'Eikhart',        voordelen: 'De wouden zelf lijken je gunstig gezind.', titel: 'Eikhart van de Kring',
-        boons: [{ naam: 'Gunst van het woud', tekst: 'Eens per lange rust een druïdische zegen van de Kring.' }] },
-    ],
-  },
-  {
-    id: 'eendragt', naam: 'De Eendragt', embleem: 'hexagon', stijl: 'metaal',
-    beschrijving: 'Het artifexgilde dat het vakmanschap en de uitvindingen van de stad bewaakt.',
-    renownDrempels: [0, 1, 3, 10, 25, 50], entityId: null,
-    rangen: [
-      { naam: 'Vreemdeling',     voordelen: 'Geen aanzien; het gilde sluit zijn werkplaatsen voor je.' },
-      { naam: 'Leerjongen',      voordelen: 'Toegang tot de gildewerkplaats en eenvoudig gereedschap.',
-        boons: [{ naam: 'Werkplaats', tekst: 'Gebruik van het gildegereedschap; reparaties tegen kostprijs.' }] },
-      { naam: 'Gezel',           voordelen: 'Korting op vakwerk en materialen van het gilde.',
-        boons: [{ naam: 'Gildekorting', tekst: '10% korting op vakwerk, gereedschap en materialen.' }] },
-      { naam: 'Vakmeester',      voordelen: 'Het gilde neemt opdrachten van je aan met voorrang.', titel: 'Vakmeester van De Eendragt',
-        boons: [{ naam: 'Voorrang', tekst: 'Je opdrachten worden met voorrang vervaardigd.' }] },
-      { naam: 'Meester-artifex', voordelen: 'Toegang tot zeldzame ontwerpen en materialen.', titel: 'Meester-artifex',
-        boons: [{ naam: 'Zeldzame ontwerpen', tekst: 'Toegang tot zeldzame blauwdrukken; magische voorwerpen identificeren.' }] },
-      { naam: 'Gildemeester',    voordelen: 'Je woord weegt zwaar in de raad van De Eendragt.', titel: 'Gildemeester van De Eendragt',
-        boons: [{ naam: 'Maatwerk', tekst: 'Laat eens per boog een uniek voorwerp op maat vervaardigen.' }] },
-    ],
-  },
-  {
-    id: 'roodzwaarden', naam: 'De Roodzwaarden', embleem: 'crossed-swords', stijl: 'staal',
-    beschrijving: 'De stadswacht van Grisburgh — gehard, en niet zonder eigenbelang.',
-    renownDrempels: [0, 1, 3, 10, 25, 50], entityId: null,
-    rangen: [
-      { naam: 'Verdachte',     voordelen: 'Geen aanzien; de wacht houdt je in de gaten.' },
-      { naam: 'Gedoogde',      voordelen: 'De wacht laat je met rust en beantwoordt je vragen.',
-        boons: [{ naam: 'Goodwill', tekst: 'De wacht beantwoordt vragen en geeft tips.' }] },
-      { naam: 'Vertrouweling', voordelen: 'Toegang tot het wachthuis; je mag kleine zaken melden.',
-        boons: [{ naam: 'Wachthuis', tekst: 'Toegang tot het wachthuis en het premiebord.' }] },
-      { naam: 'Bondgenoot',    voordelen: 'Je mag premies innen en krijgt eerste keus uit het premiebord.', titel: 'Bondgenoot van de Roodzwaarden',
-        boons: [{ naam: 'Premiejager', tekst: 'Eerste keus uit premies en een hogere uitbetaling.' }] },
-      { naam: 'Schildgenoot',  voordelen: 'De wacht verleent je doortocht en bijstand bij gevaar.', titel: 'Schildgenoot der Roodzwaarden',
-        boons: [{ naam: 'Bijstand', tekst: 'Roep eens per dag een wachtpatrouille op als rugdekking.' }] },
-      { naam: 'Erezwaard',     voordelen: 'Je geniet het volle vertrouwen van de Roodzwaarden.', titel: 'Erezwaard van Grisburgh',
-        boons: [{ naam: 'Vrijgeleide', tekst: 'De wacht knijpt eenmalig een oogje toe bij een klein vergrijp.' }] },
-    ],
-  },
-];
+// Geen ingebouwde facties.
+//
+// Hier stonden De Coöperatie, De Eendragt en De Roodzwaarden — met rangen,
+// boons en beschrijvingen die letterlijk "rond Grisburgh" en "de stadswacht van
+// Grisburgh" zeggen. Elke campagne zonder eigen facties kreeg die drie.
+// Zelfde regel als bij de goden en de kaarten.
+//
+// Wat er wél generiek aan was, is de **ladder**: zes treden op 0/1/3/10/25/50
+// renown (zie FACTIE_DREMPELS_STANDAARD). Die zit nu waar hij hoort — een
+// nieuwe factie in de Meesterkamer begint met zes lege treden, in plaats van
+// met nul.
+const FACTIES_DEFAULT = [];
 
 function _factiesConfig(meta) {
   const c = meta.facties;

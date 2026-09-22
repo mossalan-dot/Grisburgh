@@ -10,7 +10,7 @@ import { renderSpreuken } from './render-spreuken.js?v=41';
 import { renderVaardigheden, zoekVaardigheden } from './render-vaardigheden.js?v=8';
 import { renderStatblock } from './render-statblock.js?v=9';
 import { initSocket } from "./socket-client.js?v=77";
-import { initDmPanel } from "./dm-panel.js?v=275";
+import { initDmPanel } from "./dm-panel.js?v=276";
 import { COND_INFO, COND_LABEL, COND_MET_PLAATJE, COND_ICON } from './conditions.js?v=2';
 import './media-picker.js?v=8';
 
@@ -13335,7 +13335,7 @@ const _FACTIE_ICON_SET_APP = new Set(['landmark','tree-pine','hexagon','crossed-
 let _factieActiveId   = null;
 let _factieData       = null;  // gecachete API-response
 let _factieMissieData = null;
-let _grisburghLocId   = undefined;  // id van het 'Grisburgh'-locatiekaartje (backdrop facties-lijst); undefined = nog niet opgezocht
+let _grisburghLocId   = undefined;  // id van het locatiekaartje dat de campagne deelt (backdrop facties-lijst); undefined = nog niet opgezocht
 
 async function renderFacties() {
   const el = document.getElementById('section-facties');
@@ -13363,12 +13363,15 @@ async function renderFacties() {
   const { facties } = data;
   const zichtbaar = window.app.isDM() ? facties : facties.filter(f => f.zichtbaar);
 
-  // Backdrop: afbeelding van het Grisburgh-locatiekaartje (uniform met de andere
-  // diensten die een sfeer-backdrop hebben). Eénmalig opzoeken op naam + cachen.
+  // Backdrop: het locatiekaartje dat de naam van de campagne draagt (uniform met
+  // de andere diensten die een sfeer-backdrop hebben). Dit zocht letterlijk naar
+  // 'grisburgh', dus elke andere campagne kreeg geen achtergrond — en zou er één
+  // krijgen zodra iemand toevallig zo'n plek aanmaakt. Eénmalig opzoeken + cachen.
   if (_grisburghLocId === undefined) {
     try {
+      const stad = (window._campagneNaam?.() || '').trim().toLowerCase();
       const locs = await api.listEntities('locaties');
-      _grisburghLocId = locs.find(l => (l.name || '').trim().toLowerCase() === 'grisburgh')?.id || null;
+      _grisburghLocId = (stad && locs.find(l => (l.name || '').trim().toLowerCase() === stad)?.id) || null;
     } catch { _grisburghLocId = null; }
   }
   const _factieBackdrop = _grisburghLocId ? `style="background-image:url('${api.thumbUrlBreed(_grisburghLocId)}')"` : '';

@@ -848,6 +848,13 @@ Per bevinding: waar, wat, en of het opgelost is. Nieuwe regels onderaan.
 - Goedkeuren zet de spreuk in het boek van die speler en haalt de regel uit de lijst; de teller in de kop loopt mee.
 - Staat er niets open, dan zegt de kop "Alles is afgehandeld" en beide secties melden dat ze leeg zijn.
 
+### Facties: de ladder wel, de facties niet (22 sep 2026)
+
+- Grisburgh: de vier facties staan er nog, elk met zes rangen — er verandert niets. (Ze staan in `meta.facties`, niet in de code.)
+- Maak een **nieuwe campagne**: het factie-overzicht is leeg. Vroeger stonden De Coöperatie, De Eendragt en De Roodzwaarden er, met beschrijvingen die "rond Grisburgh" zeggen.
+- Meesterkamer → Diensten → Facties → **Nieuwe factie**: er staan meteen **zes treden** klaar op 0 / 1 / 3 / 10 / 25 / 50 renown, de bovenste heet *Buitenstaander*. Vroeger begon je met nul en moest je zes keer op "rang toevoegen" drukken.
+- Het factie-overzicht leent zijn achtergrond van het locatiekaartje dat de **naam van de campagne** draagt (in Grisburgh dus "Grisburgh"). Is er zo'n kaartje niet, dan is er geen achtergrond — niet die van iemand anders.
+
 ### De Tempel: geen geleend pantheon meer (22 sep 2026)
 
 - Grisburgh: elke god toont weer zijn **domein** onder de naam (Matall — *Oppergod — de zon en de maan*). Dat stond in de seed en was onzichtbaar geworden zodra `meta.tempel.goden` gevuld raakte; `scripts/tempel-goden-domein.js` heeft het teruggezet. Alleen *De Verborgene* heeft er geen — die stond niet in de seed.
