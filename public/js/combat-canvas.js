@@ -1367,7 +1367,10 @@ function _drawCombatant(ctx, c, x, y, w, h, t, isActive, isWide, turnIndex, scha
   // wél in het statblok lezen maar niet op de token zien. Dat is precies het
   // soort verschil dat de progressie waardeloos maakt: je hebt ervoor betaald,
   // dus het hoort te staan waar je kijkt.
-  const acZichtbaar = isDMView
+  // Je eigen AC hoort er altijd te staan — dat is je eigen blad, geen geheim,
+  // en juist het getal waar je tijdens een gevecht naar zoekt.
+  const isEigen = c.entityId && c.entityId === window.app?.state?.characterId;
+  const acZichtbaar = isDMView || isEigen
     || (c.type === 'monster' && (c._niveau === 'deels' || c._niveau === 'volledig'));
   if (acZichtbaar) {
     const acVal = acGetal(c.ac);

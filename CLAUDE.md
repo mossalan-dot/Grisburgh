@@ -2341,6 +2341,23 @@ Storage gebruikt `AsyncLocalStorage` voor per-request campagne-scoping:
 
 ## Socket.io rooms
 
+> **Het gevechtsscherm neemt de telefoon van een speler niet meer over.** Nu er
+> een tafelvenster is, kijkt de speler dáár naar het gevecht en houdt hij zijn
+> eigen scherm vrij. Voor een speler staat de overlay standaard geminimaliseerd
+> — ook als het gevecht net begint of de beurt verzet wordt — tenzij hij hem
+> zelf openklapte; `_coSpelerOpen` in `dm-panel.js` onthoudt die keuze over
+> elke hertekening heen (vóórdien klapte hij open bij elke socket-update).
+> Is het zijn beurt, dan licht het balkje op (`co-mijn-beurt`) in plaats van
+> open te klappen: dat onderbreekt waar hij mee bezig is, en aan tafel staat het
+> toch al op het tafelvenster.
+> De tabs **Stats / Spreuken / Items** zijn uit de overlay gehaald — die
+> herhaalden het spelerstabblad, wat zin had toen dit scherm de hele telefoon
+> vulde. De bouwers ervan (`_loadCombatCharTab` en de drie
+> `_buildCombat*Panel`-functies, samen ±443 regels) staan er nog maar zijn
+> onbereikbaar; bewust laten staan voor als de tabs terugkomen.
+> **Je eigen AC** staat wél op je eigen token — dat is je eigen blad, geen
+> geheim, en juist het getal waar je tijdens een gevecht naar zoekt.
+
 > **De AC-badge volgt het bestiarium.** Hij was `isDM`-only, terwijl
 > `_bestiariumForTier` op *deels* de AC al vrijgeeft: een speler kon hem dus in
 > het statblok lezen maar niet op de token zien. Nu zichtbaar zodra de party het

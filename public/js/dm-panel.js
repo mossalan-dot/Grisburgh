@@ -1,5 +1,5 @@
 import { api, huidigeCampagne } from './api.js?v=293';
-import { init as canvasInit, update as canvasUpdate, stop as canvasStop, acGetal } from './combat-canvas.js?v=27';
+import { init as canvasInit, update as canvasUpdate, stop as canvasStop, acGetal } from './combat-canvas.js?v=28';
 import { renderStatblock } from './render-statblock.js?v=9';
 
 // ── DM Panel ──
@@ -96,6 +96,15 @@ let _selectedCombatantId = null;
 let _monsters = [];
 
 // ── Combat overlay tabs (speler) ──
+// Heeft de speler het gevechtsscherm zélf opengeklapt?
+//
+// Een gevecht hoort zijn scherm niet over te nemen: nu er een tafelvenster is,
+// kijkt de speler dáár naar het gevecht en gebruikt hij zijn telefoon voor zijn
+// eigen blad. Het scherm begon geminimaliseerd als je de pagina tijdens een
+// gevecht laadde, maar klapte volledig open zodra er iets veranderde terwijl je
+// al keek. Deze vlag maakt het een keuze van de speler in plaats van van de
+// laatste socket-update; de DM en het tafelscherm raken hem niet.
+let _coSpelerOpen = false;
 let _combatOverlayTab = 'gevecht';
 let _lastCombat = null;
 
@@ -303,6 +312,7 @@ export function initDmPanel() {
     combatNextTurn:   _combatNextTurn,
     combatPrevTurn:   _combatPrevTurn,
     combatMinimize:   () => {
+      _coSpelerOpen = false;
       const el = document.getElementById('combat-overlay');
       if (el) {
         el.classList.add('minimized');
@@ -311,6 +321,7 @@ export function initDmPanel() {
       canvasStop();
     },
     combatExpand:     () => {
+      _coSpelerOpen = true;
       const el = document.getElementById('combat-overlay');
       if (el) {
         el.classList.remove('minimized');
@@ -666,9 +677,7 @@ export function initDmPanel() {
   api.getCombat().then(c => {
     _combat = c;
     _combatLoaded = true;
-    // Display-modus: nooit geminimaliseerd starten
-    const minimize = !window.app?.isDM?.() && !window._isDisplayMode;
-    _renderCombatOverlay(c, minimize);
+    _renderCombatOverlay(c);
   }).catch(() => {});
 };
 
@@ -8420,7 +8429,7 @@ function _coDisplayHtml(combat, currentLabel) {
     </div>`;
 }
 
-function _renderCombatOverlay(combat, startMinimized = false) {
+function _renderCombatOverlay(combat) {
   const overlay = document.getElementById('combat-overlay');
   if (!overlay) return;
 
@@ -8438,11 +8447,14 @@ function _renderCombatOverlay(combat, startMinimized = false) {
   const isDisplay = !!window._isDisplayMode;
   overlay.classList.toggle('co-display', isDisplay);
 
-  // DM en tafelscherm zien altijd het volledige scherm; spelers starten geminimaliseerd
+  // DM en tafelscherm zien altijd het volledige scherm. Een speler houdt het
+  // klein tenzij hij het zelf openklapte — ook als het gevecht net begint of
+  // als er een beurt verder gaat: de vlag onthoudt die keuze over elke
+  // hertekening heen.
   if (isDM || isDisplay) {
     overlay.classList.remove('minimized');
-  } else if (startMinimized && !overlay.classList.contains('minimized')) {
-    overlay.classList.add('minimized');
+  } else {
+    overlay.classList.toggle('minimized', !_coSpelerOpen);
   }
 
   // Stop canvas loop before rebuilding DOM
@@ -8470,6 +8482,13 @@ function _renderCombatOverlay(combat, startMinimized = false) {
   const turnGroup = _getTurnGroup(cs, turn);
   const groupNames = turnGroup.map(i => cs[i]?.name).filter(Boolean);
   const currentLabel = groupNames.length > 1 ? groupNames.join(' + ') : (current?.name || '—');
+  // Ben ík aan zet? Dan licht het geminimaliseerde balkje op. Bewust géén
+  // openklappen: dat onderbreekt waar de speler mee bezig is (een spreuk
+  // opzoeken, zijn boedel nakijken) en aan tafel staat het toch al op het
+  // tafelvenster. Een balkje dat om aandacht vraagt is genoeg.
+  const _mijnId = window.app?.state?.characterId;
+  const isMijnBeurt = !!_mijnId && turnGroup.some(i => cs[i]?.entityId === _mijnId);
+  overlay.classList.toggle('co-mijn-beurt', !isDM && !isDisplay && isMijnBeurt);
 
   // Compute initiative groups for visual grouping
   const initGroups = new Map();
@@ -8578,34 +8597,16 @@ function _renderCombatOverlay(combat, startMinimized = false) {
       <div id="co-detail-panel" class="co-detail-panel hidden"></div>
       <div id="co-dm-emote-bar" class="co-emote-bar"></div>
     ` : `
-      <!-- Speler: tabbladen in de gevechtsoverlay -->
-      <div class="co-tabs" id="co-tabs">
-        <button class="co-tab${_combatOverlayTab==='gevecht'?' active':''}" data-tab="gevecht" onclick="window._setCombatOverlayTab('gevecht')">${icon('swords')} Gevecht</button>
-        <button class="co-tab${_combatOverlayTab==='personage'?' active':''}" data-tab="personage" onclick="window._setCombatOverlayTab('personage')">${icon('book-open')} Stats</button>
-        <button class="co-tab${_combatOverlayTab==='spreuken'?' active':''}" data-tab="spreuken" onclick="window._setCombatOverlayTab('spreuken')">${icon('sparkles')} Spreuken</button>
-        <button class="co-tab${_combatOverlayTab==='knapzak'?' active':''}" data-tab="knapzak" onclick="window._setCombatOverlayTab('knapzak')">🎒 Items</button>
-      </div>
-
-      <!-- Gevecht tab -->
-      <div class="co-tab-panel${_combatOverlayTab!=='gevecht'?' hidden':''}" id="co-tab-gevecht">
+      <!-- Speler: alleen het gevecht.
+           Hier zaten ook Stats, Spreuken en Items. Die herhaalden het
+           spelerstabblad, en dat had zin toen dit scherm de hele telefoon
+           vulde en je er niet uit kon. Nu er een tafelvenster is kijkt de
+           speler dáár naar het gevecht en houdt hij zijn eigen scherm vrij;
+           dit venster staat standaard klein en hoeft dus niets te herhalen. -->
+      <div class="co-tab-panel" id="co-tab-gevecht">
         <canvas id="combat-canvas" class="co-canvas"></canvas>
         <div id="co-detail-panel" class="co-detail-panel hidden"></div>
         <div id="co-emote-bar" class="co-emote-bar"></div>
-        </div>
-
-      <!-- Stats tab -->
-      <div class="co-tab-panel co-char-tab${_combatOverlayTab!=='personage'?' hidden':''}" id="co-tab-personage">
-        <div class="co-char-loading">Laden…</div>
-      </div>
-
-      <!-- Spreuken tab -->
-      <div class="co-tab-panel co-char-tab${_combatOverlayTab!=='spreuken'?' hidden':''}" id="co-tab-spreuken">
-        <div class="co-char-loading">Laden…</div>
-      </div>
-
-      <!-- Items tab -->
-      <div class="co-tab-panel co-char-tab${_combatOverlayTab!=='knapzak'?' hidden':''}" id="co-tab-knapzak">
-        <div class="co-char-loading">Laden…</div>
       </div>
     `}
   `;
@@ -8637,11 +8638,6 @@ function _renderCombatOverlay(combat, startMinimized = false) {
     _populateDmEmoteBar(combat).catch(() => {});
   } else if (_combatOverlayTab === 'gevecht' && !isDisplay) {
     _populateEmoteBar(combat).catch(() => {});
-  }
-
-  // Laad karakter-tab als die actief is
-  if (!isDM && !isDisplay && _combatOverlayTab !== 'gevecht') {
-    _loadCombatCharTab(_combatOverlayTab).catch(() => {});
   }
 
   // Entrance-animatie alleen bij het openen (niet bij elke HP-update)
@@ -8777,7 +8773,7 @@ function _buildCombatPersonagePanel(profile, hpData, combat, charId, traits) {
 
   const condHtml = conditions.length ? `
     <div class="co-char-section">
-      <div class="co-char-section-title">⚡ Actieve condities</div>
+      <div class="co-char-section-title">${icon('zap')} Actieve condities</div>
       <div class="co-active-conds">${conditions.map(cid => {
         const cond = CONDITIONS.find(x => x.id === cid);
         return cond ? `<span class="co-cond-chip" title="${esc(cond.desc)}">${esc(cond.label)}</span>` : '';
@@ -8984,7 +8980,7 @@ function _buildCombatKnapzakPanel(simpleItems, currency, ownership, voorwerpen, 
     </div>` : ''}
     ${simpleItems.length ? `
     <div class="co-char-section">
-      <div class="co-char-section-title">📦 Eenvoudige items</div>
+      <div class="co-char-section-title">${icon('package')} Eenvoudige items</div>
       <div class="co-items-list">${simpleHtml}</div>
     </div>` : ''}
     ${!myItems.length && !simpleItems.length ? '<p class="co-char-empty">Geen items in knapzak.</p>' : ''}

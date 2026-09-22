@@ -26911,3 +26911,27 @@ body.akte-schrijf-open .mp-overlay { z-index: 1320; }
   opacity: .8;
 }
 .dienst-slot .icon { width: 13px; height: 13px; }
+
+/* ── "Jij bent aan zet" op het geminimaliseerde gevechtsbalkje ────────────
+   Het gevechtsscherm neemt de telefoon van een speler niet meer over: het
+   staat klein onderin en hij navigeert gewoon verder. Dan moet één moment er
+   wél uitspringen — dat het zijn beurt is. Bewust geen openklappen: dat
+   onderbreekt waar hij mee bezig is, en aan tafel staat het toch al op het
+   tafelvenster. */
+.combat-overlay.co-mijn-beurt.minimized .combat-modal {
+  border-color: #e0b84a;
+  box-shadow: 0 0 0 1px rgba(224,184,74,0.55), 0 -2px 18px rgba(224,184,74,0.35);
+  animation: co-beurt-pulse 2.1s ease-in-out infinite;
+}
+.combat-overlay.co-mijn-beurt.minimized .co-current-name {
+  color: #f0c040;
+  font-weight: 600;
+}
+@keyframes co-beurt-pulse {
+  0%, 100% { box-shadow: 0 0 0 1px rgba(224,184,74,0.45), 0 -2px 14px rgba(224,184,74,0.25); }
+  50%      { box-shadow: 0 0 0 1px rgba(224,184,74,0.75), 0 -2px 22px rgba(224,184,74,0.50); }
+}
+/* Wie beweging liever niet heeft, krijgt de rand zonder het kloppen. */
+@media (prefers-reduced-motion: reduce) {
+  .combat-overlay.co-mijn-beurt.minimized .combat-modal { animation: none; }
+}

@@ -870,6 +870,15 @@ Per bevinding: waar, wat, en of het opgelost is. Nieuwe regels onderaan.
 - Koop een zegen: je rolt en krijgt er één van die god, met de prijs eraf. Zweer een eed: de andere goden gaan op slot ("Je bent al door een eed gebonden"). Laat de DM de eed verbreken → er staat een **vloek** waar de eed stond; doe boete → weg.
 - Meesterkamer → Diensten → Tempel toont de lopende eden per speler met hun status.
 
+### Gevecht bij de speler: klein tenzij hij het zelf opent (22 sep 2026)
+
+- Zit een speler op zijn eigen tabblad en **begint er een gevecht**: er verschijnt alleen een balkje onderin. Zijn scherm wordt niet overgenomen; hij kan gewoon zijn boedel of spreuken doorbladeren. (Vroeger klapte het volledig open.)
+- Klap het balkje open met de pijl: het blijft open, ook als de DM HP wijzigt of de beurt verzet. Minimaliseer je het, dan blijft het klein voor de rest van het gevecht.
+- **Wordt het zijn beurt**, dan krijgt het balkje een gouden rand die rustig pulseert en staat zijn naam in goud. Het klapt bewust níét open. Met *beweging verminderen* aan in het systeem blijft de rand maar stopt het pulseren.
+- In de overlay staan **geen tabbladen** meer (Stats, Spreuken, Items): daarvoor gebruikt de speler zijn eigen tabblad. Er is alleen nog het gevechtsbeeld.
+- **Je eigen AC** staat nu op je eigen token, voor speler én DM.
+- Klik ergens middenin het scherm terwijl het balkje staat: je klikt op de pagina eronder, niet op de overlay.
+
 ### Gevecht: AC volgt het bestiarium (22 sep 2026)
 
 - Zet een monster in de Meesterkamer → Bestiarium op **naam**: een speler ziet in het gevecht géén AC-badge en alleen een grove HP-balk.
