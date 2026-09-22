@@ -4069,7 +4069,7 @@ router.put('/akte/:key/sfeer', requireDM, (req, res) => {
   meta.hoofdstukken[req.params.key].sfeer = sfeer || null;
   storage.writeJSON('meta.json', meta);
   const io = req.app.get('io');
-  io?.to(req.session?.campaignId || 'main').emit('display:sfeer', { sfeer: sfeer || null });
+  io?.to(_displayRoom(req)).emit('display:sfeer', { sfeer: sfeer || null });
   io?.to(req.session?.campaignId || 'main').emit('meta:updated');
   res.json({ ok: true, sfeer: sfeer || null });
 });
@@ -4080,7 +4080,7 @@ router.post('/display/effect', requireDM, (req, res) => {
   if (!['bliksem', 'windvlaag', 'duister'].includes(effect)) {
     return res.status(400).json({ error: 'Onbekend effect' });
   }
-  req.app.get('io')?.to(req.session?.campaignId || 'main').emit('display:effect', { effect });
+  req.app.get('io')?.to(_displayRoom(req)).emit('display:effect', { effect });
   res.json({ ok: true, effect });
 });
 
@@ -4229,7 +4229,7 @@ router.post('/party/long-rest', requireDM, (req, res) => {
       });
       if (changed) {
         storage.writeJSON('combat.json', combat);
-        if (io) io.to(req.session?.campaignId||'main').emit('combat:updated', combat);
+        if (io) _zendCombat(req, combat);
       }
     }
   } catch { /* ok als er geen actief gevecht is */ }
@@ -4648,6 +4648,93 @@ function _multiclassVoorrekenen(profile, nieuweKlasse) {
 // terwijl die sinds de kandidaatkeuze juist op de DM wácht. Eén event voor alle
 // vier, zodat de client één plek heeft om op te reageren: een toast nu, en de
 // penning op de Vragen-tab die blijft staan tot het afgehandeld is.
+// In welke campagne draait dit verzoek?
+//
+// Overal elders staat `req.session?.campaignId || 'main'`, en dat is niet
+// hetzelfde: **het pad bepaalt de campagne, de sessie bepaalt je rol** (zie
+// CLAUDE.md). Een sessie zonder campaignId — of eentje die naar een andere
+// campagne wijst dan het adres — stuurt zijn socket-events dan naar room
+// 'main' terwijl de sockets in 'grisburgh' zitten, en dan komt er niets aan.
+// Gemeten met een DM-sessie zonder campaignId: het gevecht kwam bij geen
+// enkele speler binnen. `storage.huidigeCampagne()` is wat de
+// scoping-middleware heeft vastgesteld en dus de waarheid.
+function _campagneRoom(req) {
+  try { return storage.huidigeCampagne() || req.session?.campaignId || 'main'; }
+  catch { return req.session?.campaignId || 'main'; }
+}
+
+// ── Wat een speler van een gevecht mag weten ────────────────────────────────
+//
+// Het scherm toonde een speler allang alleen een vaag label ("Gewond"), maar
+// `combat:updated` droeg de exacte hp, maxHp en AC van elk monster naar élke
+// speler — de filter zat in de client. Hoeveel de ogre nog over heeft en wat je
+// moet gooien om hem te raken zijn dingen die je aan tafel uitvindt; dat is de
+// hele spanningsboog van een gevecht.
+//
+// Dezelfde zeven staten als `HP_LABELS` in dm-panel.js. Staan ze uit elkaar,
+// dan beschrijft hetzelfde wezen zich op twee schermen anders — vandaar dat de
+// woorden hier letterlijk gelijk zijn.
+const _HP_STATEN = [
+  { min: 1.00,      label: 'ongedeerd',      cls: 'hp-full' },
+  { min: 0.80,      label: 'geschaafd',      cls: 'hp-scratched' },
+  { min: 0.60,      label: 'licht gewond',   cls: 'hp-light' },
+  { min: 0.40,      label: 'gewond',         cls: 'hp-wounded' },
+  { min: 0.20,      label: 'zwaar gewond',   cls: 'hp-heavy' },
+  { min: 0.0001,    label: 'stervend',       cls: 'hp-critical' },
+  { min: -Infinity, label: 'buiten gevecht', cls: 'hp-dead' },
+];
+function _hpStaat(hp, maxHp) {
+  const pct = maxHp > 0 ? (hp || 0) / maxHp : 0;
+  return _HP_STATEN.find(l => pct >= l.min) || _HP_STATEN[_HP_STATEN.length - 1];
+}
+
+// Het gevecht zoals één speler het mag zien: zijn eigen personage compleet,
+// al het andere zonder cijfers. Ook andere **spelers** worden vaag — dat is de
+// regel die het tafelscherm al hanteerde, en twee schermen horen hetzelfde te
+// zeggen.
+function _combatVoorSpeler(combat, characterId) {
+  if (!combat) return combat;
+  return {
+    ...combat,
+    combatants: (combat.combatants || []).map(c => {
+      if (characterId && c.entityId && c.entityId === characterId) return c;
+      const { hp, maxHp, ac, statblock, ...rest } = c;
+      const staat = _hpStaat(hp, maxHp);
+      // De balk mag blijven: die toont een verhouding, geen getal. Afgerond op
+      // tienden, anders reken je het getal alsnog terug uit de breedte.
+      const pct = maxHp > 0 ? Math.round(Math.max(0, Math.min(1, (hp || 0) / maxHp)) * 10) * 10 : 0;
+      return { ...rest, hpStaat: staat.label, hpCls: staat.cls, hpPct: pct };
+    }),
+  };
+}
+
+// Eén verzendpunt voor `combat:updated`.
+//
+// Stond op twaalf plekken als `io.to(campagne).emit(...)` met het rauwe
+// gevecht. Nu krijgt elke socket zijn eigen versie: wie een `characterId` in
+// zijn sessie heeft is een speler en krijgt de vage variant, de rest (de DM,
+// en het tafelscherm dat als DM is ingelogd) krijgt alles.
+//
+// Bewust over de **sockets** lopen en niet over `playerSockets`: die map houdt
+// één socket per personage bij, dus een speler met twee tabbladen open — of
+// met zijn telefoon én zijn laptop — zou in het oudste scherm nooit meer een
+// update zien. Dit hangt ook niet af van `player:register`; een socket die
+// zich nog niet gemeld heeft telt gewoon mee.
+//
+// Een speler die zijn eigen scherm op tafelmodus zet krijgt óók de vage
+// versie: het tafelscherm vaagt alles tóch, dus er gaat niets verloren, en
+// anders is display-mode een gaatje om de cijfers alsnog binnen te halen.
+function _zendCombat(req, combat) {
+  const io = req.app.get('io');
+  if (!io) return;
+  const cid = _campagneRoom(req);
+  for (const sock of io.sockets.sockets.values()) {
+    if (!sock.rooms.has(cid)) continue;
+    const charId = sock.request?.session?.characterId;
+    sock.emit('combat:updated', charId ? _combatVoorSpeler(combat, charId) : combat);
+  }
+}
+
 // De room van de tafelschermen.
 //
 // Wat alleen op het scherm op tafel hoort (een verzegelde brief, de
@@ -4656,7 +4743,7 @@ function _multiclassVoorrekenen(profile, nieuweKlasse) {
 // het dus voordat het op tafel verscheen. Schermen melden zich nu met
 // `display:register` (zie server.js) en krijgen hun eigen room.
 function _displayRoom(req) {
-  return 'display:' + (req.session?.campaignId || 'main');
+  return 'display:' + _campagneRoom(req);
 }
 
 function _meldVerzoek(req, soort, wie, wat) {
@@ -9632,7 +9719,7 @@ router.put('/bestiarium/:monsterId', requireDM, (req, res) => {
 
 function _emitCombat(req) {
   const combat = storage.readJSON('combat.json');
-  req.app.get('io').to(req.session?.campaignId||'main').emit('combat:updated', combat);
+  _zendCombat(req, combat);
   return combat;
 }
 
@@ -9659,7 +9746,10 @@ router.get('/combat', attachRole, (req, res) => {
       return { ...c, _niveau: niveau, _statblock: _bestiariumForTier(m, niveau) };
     }),
   };
-  res.json(enriched);
+  // Ook hier de cijfers eruit: dit is het laadpad, en dat gaf tot nu toe wél de
+  // exacte hp/maxHp/ac terug. Het `_statblock` hierboven blijft staan — dát is
+  // wat de party van de soort weet (bestiarium), geen kijkje in dit exemplaar.
+  res.json(_combatVoorSpeler(enriched, req.session.characterId));
 });
 
 // De gevechtslog is geen wegwerptekst: bij het afsluiten belandt hij als
@@ -9739,7 +9829,7 @@ router.post('/combat/start', requireDM, (req, res) => {
     }
   }
 
-  req.app.get('io').to(req.session?.campaignId||'main').emit('combat:updated', combat);
+  _zendCombat(req, combat);
   res.json(combat);
 });
 
@@ -9780,7 +9870,7 @@ router.delete('/combat', requireDM, (req, res) => {
   _dumpCombatLog(prevCombat, req);
   const combat = { active: false, round: 1, currentTurn: 0, combatants: [] };
   storage.writeJSON('combat.json', combat);
-  req.app.get('io').to(req.session?.campaignId||'main').emit('combat:updated', combat);
+  _zendCombat(req, combat);
   res.json({ ok: true });
 });
 
@@ -9800,7 +9890,7 @@ router.put('/combat', requireDM, (req, res) => {
     if (next) _combatLog(updated, `Beurt van ${next.name}`);
   }
   storage.writeJSON('combat.json', updated);
-  req.app.get('io').to(req.session?.campaignId||'main').emit('combat:updated', updated);
+  _zendCombat(req, updated);
   res.json(updated);
 });
 
@@ -9826,7 +9916,7 @@ router.post('/combat/combatant', requireDM, (req, res) => {
   combat.combatants.push(c);
   combat.combatants.sort((a, b) => b.initiative - a.initiative);
   storage.writeJSON('combat.json', combat);
-  req.app.get('io').to(req.session?.campaignId||'main').emit('combat:updated', combat);
+  _zendCombat(req, combat);
   res.status(201).json(c);
 });
 
@@ -9867,7 +9957,7 @@ router.post('/combat/voeg-metgezellen', requireDM, (req, res) => {
   }
   combat.combatants.sort((a, b) => b.initiative - a.initiative);
   storage.writeJSON('combat.json', combat);
-  req.app.get('io').to(req.session?.campaignId||'main').emit('combat:updated', combat);
+  _zendCombat(req, combat);
   res.json({ ok: true, added });
 });
 
@@ -9916,7 +10006,7 @@ router.put('/combat/combatant/:id', requireDM, (req, res) => {
       }
     }
   }
-  io.to(room).emit('combat:updated', combat);
+  _zendCombat(req, combat);
   res.json(combat.combatants.find(c => c.id === req.params.id));
 });
 
@@ -9946,7 +10036,7 @@ router.patch('/combat/player-hp/:combatantId', attachRole, (req, res) => {
   if (!dmState.playerHp) dmState.playerHp = {};
   dmState.playerHp[c.entityId || c.name] = { current: newHp, max: c.maxHp || newHp };
   storage.writeJSON('dm-state.json', dmState);
-  req.app.get('io').to(req.session?.campaignId||'main').emit('combat:updated', combat);
+  _zendCombat(req, combat);
   res.json({ hp: newHp });
 });
 
@@ -9956,7 +10046,7 @@ router.put('/combat/winner', requireDM, (req, res) => {
   storage.writeJSON('combat.json', combat);
   // Gevecht eindigt: persisteer finale HP naar dm-state
   _flushPlayerHpToDmState(combat, req.app.get('io'), req.session?.campaignId||'main');
-  req.app.get('io').to(req.session?.campaignId||'main').emit('combat:updated', combat);
+  _zendCombat(req, combat);
   res.json({ ok: true });
 });
 
@@ -10372,7 +10462,7 @@ router.delete('/combat/combatant/:id', requireDM, (req, res) => {
     combat.currentTurn = 0;
   }
   storage.writeJSON('combat.json', combat);
-  req.app.get('io').to(req.session?.campaignId||'main').emit('combat:updated', combat);
+  _zendCombat(req, combat);
   res.json({ ok: true });
 });
 
@@ -14278,7 +14368,7 @@ router.post('/encounters/:id/start', requireDM, (req, res) => {
                    ...(uitgerold.length ? [`HP uitgerold — ${uitgerold.join(', ')}`] : [])],
   };
   storage.writeJSON('combat.json', combat);
-  req.app.get('io').to(req.session?.campaignId || 'main').emit('combat:updated', combat);
+  _zendCombat(req, combat);
   res.json(combat);
 });
 

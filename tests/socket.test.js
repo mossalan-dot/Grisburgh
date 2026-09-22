@@ -151,6 +151,36 @@ describe('Socket sound:emote authority', () => {
     assert.match(JSON.stringify(ontvangen), /middernacht/i, 'compleet met tekst');
   });
 
+  it('stuurt een speler geen exacte monster-HP of AC', async () => {
+    // Het scherm toont een speler alleen een vaag label ("Gewond"), en het
+    // tafelscherm vaagt zelfs spelers-HP. Maar `combat:updated` droeg de
+    // exacte hp/maxHp/ac van elk monster naar élke speler — hoeveel de ogre
+    // nog over heeft en wat je moet gooien om hem te raken zijn dingen die je
+    // aan tafel uitvindt.
+    const mon = (await httpReq(server, 'POST', '/api/monsters',
+      { name: 'Moeras-ogre', maxHp: 59, statblock: { ac: '11 (hide armor)', hp: '59 (7d10+21)' } }, dmCookie)).body.id;
+    const enc = (await httpReq(server, 'POST', '/api/encounters',
+      { name: 'Hinderlaag', monsters: [{ monsterId: mon, aantal: 1, name: 'Moeras-ogre' }] }, dmCookie)).body;
+    const encId = enc?.id || enc?.encounter?.id;
+    assert.ok(encId, 'encounter aangemaakt: ' + JSON.stringify(enc).slice(0, 120));
+
+    const speler = await connect(port, cookieA);
+    speler.emit('player:register', A);
+    await new Promise(r => setTimeout(r, 120));
+
+    const bijSpeler = waitFor(speler, 'combat:updated', 1200);
+    await httpReq(server, 'POST', `/api/encounters/${encId}/start`, {}, dmCookie);
+    const payload = await bijSpeler;
+    speler.close();
+
+    assert.ok(payload, 'de speler hoort het gevecht wél te zien beginnen');
+    const ogre = (payload.combatants || []).find(c => /ogre/i.test(c.name || ''));
+    assert.ok(ogre, 'de ogre staat in de lijst: ' + JSON.stringify(payload.combatants || []).slice(0, 200));
+    assert.strictEqual(ogre.maxHp, undefined, 'geen exacte maxHp van een monster naar een speler');
+    assert.ok(ogre.ac === undefined || ogre.ac === '', 'geen AC van een monster naar een speler');
+    assert.ok(ogre.hpStaat, 'wel een vage staat, anders kan het scherm niets tekenen');
+  });
+
   it('negeert sound:emote van een anonieme socket', async () => {
     const anon = await connect(port, null);
     const recv = waitFor(listener, 'sound:emote', 500);
@@ -158,5 +188,42 @@ describe('Socket sound:emote authority', () => {
     const data = await recv;
     anon.close();
     assert.strictEqual(data, null, 'anonieme emote mag niet gerelayed worden');
+  });
+});
+
+// ── Bewaking: wat voor het tafelscherm is, blijft voor het tafelscherm ──────
+//
+// Dit is geen gedragstest maar een broncontrole, en met opzet: de fout die we
+// dichtten was één `io.to(campaignId)` in plaats van `io.to(_displayRoom(req))`
+// — één woord, geen zichtbaar verschil, en de inhoud van een verzegelde brief
+// in de browser van elke speler. Zo'n regel glijdt terug bij de eerstvolgende
+// nieuwe display-event, en dan merkt niemand het.
+describe('Display-events gaan alleen naar de tafelschermen', () => {
+  const api = fs.readFileSync(path.join(__dirname, '..', 'routes', 'api.js'), 'utf8');
+
+  it('richt elk display-event op _displayRoom(req)', () => {
+    const regels = api.split('\n');
+    const fout = [];
+    regels.forEach((regel, i) => {
+      const m = regel.match(/emit\('((?:brief|loot|levelup):display|display:[a-z]+)'/);
+      if (!m) return;
+      // De room staat soms op de regel ervoor (`io.to(...)\n  .emit(...)`).
+      const context = (regels[i - 1] || '') + regel;
+      if (!/_displayRoom\(/.test(context)) fout.push(`regel ${i + 1}: ${m[1]}`);
+    });
+    assert.deepStrictEqual(fout, [],
+      'deze display-events gaan naar de hele campagne-room in plaats van naar de tafelschermen:\n  ' + fout.join('\n  '));
+  });
+
+  it('bouwt de roomnaam maar op twee afgesproken plekken', () => {
+    const defs = api.match(/function _displayRoom\(/g) || [];
+    assert.strictEqual(defs.length, 1, 'precies één _displayRoom-helper');
+    // 'display:' + campagne mag alleen in _displayRoom zelf en in _zendCombat
+    // (die stuurt naar de DM- én de tafelscherm-room tegelijk). Elke derde
+    // plek is een ad-hoc room, en dat is precies hoe dit de vorige keer misging.
+    const handmatig = api.match(/'display:' \+/g) || [];
+    assert.strictEqual(handmatig.length, 1,
+      "alleen _displayRoom mag 'display:' + campagne samenstellen");
+    assert.ok(/function _zendCombat\(/.test(api), 'combat gaat via één verzendpunt');
   });
 });

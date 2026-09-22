@@ -2341,6 +2341,26 @@ Storage gebruikt `AsyncLocalStorage` voor per-request campagne-scoping:
 
 ## Socket.io rooms
 
+> **Een gevecht gaat niet ongefilterd de deur uit.** `combat:updated` stond op
+> twaalf plekken als `io.to(campagne).emit(..., combat)` met het rauwe gevecht:
+> de exacte hp, maxHp en AC van elk monster in de browser van elke speler,
+> terwijl het scherm hem allang alleen een vaag label toonde. `_zendCombat(req,
+> combat)` is nu het enige verzendpunt en `_combatVoorSpeler()` de enige filter:
+> je eigen personage compleet, al het andere zonder cijfers (`hpStaat`, `hpCls`,
+> `hpPct` — dezelfde zeven staten als `HP_LABELS` in dm-panel.js, dus dezelfde
+> woorden). Ook `GET /combat` filtert; het `_statblock` daar blijft staan, want
+> dát is wat de party in het bestiarium ontdekt heeft.
+> `_zendCombat` loopt over de **sockets** en niet over `playerSockets`: die map
+> houdt één socket per personage bij, dus een speler met twee tabbladen open
+> zou in het oudste scherm niets meer zien.
+>
+> **De room komt uit het pad, niet uit de sessie.** `_campagneRoom(req)` gebruikt
+> `storage.huidigeCampagne()`. Overal elders staat nog
+> `req.session?.campaignId || 'main'` (229 plekken), en dat is niet hetzelfde:
+> een sessie zónder campaignId stuurt naar room `main` terwijl de sockets in
+> `grisburgh` zitten — dan komt er niets aan. Lokaal met `DEV_AUTO_DM` gebeurt
+> dat gegarandeerd. Nog op te ruimen.
+
 > **Het tafelscherm heeft een eigen room.** Wat alleen daar hoort — een
 > verzegelde brief (`brief:display`), de voorleestekst (`display:tekst`), de
 > kist die opengaat (`loot:display`), een level-up (`levelup:display`) en

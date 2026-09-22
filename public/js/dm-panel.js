@@ -76,7 +76,12 @@ const HP_LABELS = [
   { min: -Infinity, label: 'buiten gevecht', cls: 'hp-dead' },
 ];
 
-function hpStatus(hp, maxHp) {
+// Een speler krijgt de cijfers van een ander niet meer binnen — de server
+// stuurt hem `hpStaat`/`hpCls`/`hpPct` in plaats van hp en maxHp (zie
+// `_combatVoorSpeler` in routes/api.js). Krijgen we die mee, dan gebruiken we
+// ze; anders (DM, tafelscherm, eigen personage) rekenen we zoals altijd.
+function hpStatus(hp, maxHp, c) {
+  if (c && c.hpStaat) return { label: c.hpStaat, cls: c.hpCls || '' };
   const pct = maxHp > 0 ? hp / maxHp : 0;
   return HP_LABELS.find(l => pct >= l.min) || HP_LABELS[HP_LABELS.length - 1];
 };
@@ -8342,7 +8347,8 @@ function _combatSelectCombatant(id) {
 
 // Vage gezondheidsstaat: op het gedeelde scherm horen spelers geen exacte
 // monster-HP te zien. Spelers zelf tonen we wél gewoon hun cijfers.
-function _coVaagHp(hp, maxHp) {
+function _coVaagHp(hp, maxHp, c) {
+  if (c && c.hpStaat) return c.hpStaat;
   if (!maxHp || maxHp <= 0) return '';
   return hpStatus(hp, maxHp).label;   // zelfde ladder als het spelersscherm
 }
@@ -8376,8 +8382,9 @@ function _coDisplayHtml(combat, currentLabel) {
     // exacte cijfers van een ander horen daar niet. De balk mag blijven: die
     // toont een verhouding, geen getal. Zijn eigen precieze HP ziet een speler
     // op zijn eigen scherm.
-    const staat = _coVaagHp(c.hp, c.maxHp);
-    const pct = c.maxHp ? Math.max(0, Math.min(100, ((c.hp ?? 0) / c.maxHp) * 100)) : 0;
+    const staat = _coVaagHp(c.hp, c.maxHp, c);
+    const pct = c.hpPct !== undefined ? c.hpPct
+              : (c.maxHp ? Math.max(0, Math.min(100, ((c.hp ?? 0) / c.maxHp) * 100)) : 0);
     // Streep boven de actieve vakjes. Loopt door over de tussenruimte wanneer de
     // buurman óók aan de beurt is, zodat je in één blik ziet hoeveel deelnemers
     // deze beurt delen. Een pijl was daar dubbelzinnig: die leek naar één
@@ -8474,8 +8481,9 @@ function _renderCombatOverlay(combat, startMinimized = false) {
 
   const rows = cs.map((c, i) => {
     const isActive = turnGroup.includes(i);
-    const hp    = hpStatus(c.hp, c.maxHp);
-    const hpPct = c.maxHp > 0 ? Math.max(0, Math.min(100, (c.hp / c.maxHp) * 100)) : 0;
+    const hp    = hpStatus(c.hp, c.maxHp, c);
+    const hpPct = c.hpPct !== undefined ? c.hpPct
+                : (c.maxHp > 0 ? Math.max(0, Math.min(100, (c.hp / c.maxHp) * 100)) : 0);
     // Concentration and initiative grouping
     const hasConc = (c.conditions || []).includes('concentration');
     const groupIndices = initGroups.get(c.initiative) || [i];

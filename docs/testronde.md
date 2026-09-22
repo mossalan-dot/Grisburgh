@@ -870,6 +870,14 @@ Per bevinding: waar, wat, en of het opgelost is. Nieuwe regels onderaan.
 - Koop een zegen: je rolt en krijgt er één van die god, met de prijs eraf. Zweer een eed: de andere goden gaan op slot ("Je bent al door een eed gebonden"). Laat de DM de eed verbreken → er staat een **vloek** waar de eed stond; doe boete → weg.
 - Meesterkamer → Diensten → Tempel toont de lopende eden per speler met hun status.
 
+### Gevecht: een speler kent de cijfers van een ander niet (22 sep 2026)
+
+- Start een gevecht en kijk als speler in de **netwerktab** naar `combat:updated` (of `GET /api/combat`): van jouw eigen personage staan `hp`, `maxHp` en `ac` erin, van alle anderen — monsters én medespelers — alleen `hpStaat` ("geschaafd"), `hpCls` en `hpPct`. Vroeger stond de exacte HP en AC van elk monster in de browser van elke speler.
+- Op het scherm verandert er niets: dezelfde zeven staten, dezelfde balk. Toets of de balk nog meebeweegt als de DM HP afhaalt (de verhouding wordt op tienden afgerond meegestuurd).
+- De **DM** en het **tafelscherm** zien alles zoals altijd — exacte HP-velden, AC, statblokknop.
+- Open dezelfde speler in **twee tabbladen** (of telefoon én laptop): allebei blijven ze meelopen. Het versturen hangt niet meer aan `player:register`, dat maar één socket per personage onthield.
+- Het **statblok** dat een speler van een monster ziet blijft wat het was: wat zijn party in het bestiarium ontdekt heeft, niet meer.
+
 ### Tafelscherm: wat er alleen dáár hoort te komen (22 sep 2026)
 
 > **Na het deployen moet het tafelscherm één keer verversen.** Het meldt zich met de nieuwe JS aan als tafelscherm; met de oude blijft het in de oude room en ontvangt het niets.
