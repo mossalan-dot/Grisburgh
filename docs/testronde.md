@@ -1005,3 +1005,10 @@ met de hand niet meer hoeft na te rekenen:
 - [ ] **Roddels: drie en dan pauze** (speler) — vraag drie keer een roddel: je krijgt er drie, telkens over een ander kaartje, en de suggestielijst ververst zich. De vierde zegt *Cooldown actief*.
 - [ ] **Handel namens: lezen en schrijven horen bij elkaar** (DM) — kies in de balk een speler en vraag een roddel: het scherm telt meteen mee. *Dit was stuk:* de vraag werd weggeschreven onder die speler maar teruggelezen onder de DM, dus je zag een lege teller en merkte pas bij de vierde klik dat het op was. Geldt nu voor de vijf dienstschermen (herberg, Gock, magizoöloog, tempel, Tweespalt).
 - [ ] **Een ontbrekend portret breekt niets** (ALL) — staat het portret van de waard niet op schijf, dan verschijnt de perkamenten placeholder in plaats van het Safari-icoon.
+
+### Testronde dienst 3 — de Tweespalt (22 sep 2026)
+
+- [ ] **Godenwedden** (speler) — zet in met de kommanotatie (`2,50`): het bedrag gaat van de beurs die op het scherm staat, en een tweede inzet op hetzelfde event wordt geweigerd ("Je hebt al ingezet").
+- [ ] **Arena** (speler+DM) — schrijf in op een partij: de inzet gaat er meteen af en je ziet je tegenstander en het prijzengeld. Nog eens inschrijven kan niet. De DM zet de uitslag op *overwinning* en het prijzengeld komt binnen; alles wat niet letterlijk *overwinning* of *nederlaag* is wordt geweigerd.
+- [ ] **De geldschieter komt uit de campagne** (ALL) — naam, portret en leengrens staan in `meta.tweespalt.geldschieter`. In Grisburgh is dat Taevin Woekeling met 100 fl; een campagne die niets invult krijgt "de geldschieter" en geen portret.
+- [ ] **Geen sporen van verdwenen personages** (DM) — `node scripts/wezen-opruimen.js <campagne>` meldt niets. Blijft er wel iets staan (beurs, boedel, een lopende lening van een gewist kaartje), dan is die lening ook niet meer af te lossen: er is geen speler meer die hem draagt.
