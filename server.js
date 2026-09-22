@@ -72,6 +72,12 @@ if (config.devAutoDM) {
   console.warn('⚠️  DEV_AUTO_DM actief — iedereen is automatisch DM. Niet gebruiken in productie!');
   app.use((req, res, next) => {
     if (!req.session.role) req.session.role = 'dm';
+    // Ook de campagne zetten. Zonder dit heeft zo'n sessie wél een rol maar
+    // géén campagne: zijn socket belandt in de quarantaine-room 'main' terwijl
+    // de server zijn events naar de echte campagne stuurt, en dan komt er
+    // lokaal bij niemand iets aan. Dat kost je een halve middag zoeken naar een
+    // bug die alleen in de ontwikkelopstelling bestaat.
+    if (!req.session.campaignId) req.session.campaignId = storage.getActiveCampaignId();
     next();
   });
 }

@@ -2355,11 +2355,16 @@ Storage gebruikt `AsyncLocalStorage` voor per-request campagne-scoping:
 > zou in het oudste scherm niets meer zien.
 >
 > **De room komt uit het pad, niet uit de sessie.** `_campagneRoom(req)` gebruikt
-> `storage.huidigeCampagne()`. Overal elders staat nog
-> `req.session?.campaignId || 'main'` (229 plekken), en dat is niet hetzelfde:
-> een sessie zónder campaignId stuurt naar room `main` terwijl de sockets in
-> `grisburgh` zitten — dan komt er niets aan. Lokaal met `DEV_AUTO_DM` gebeurt
-> dat gegarandeerd. Nog op te ruimen.
+> `storage.huidigeCampagne()` — wat de scoping-middleware heeft vastgesteld — en
+> is de enige manier om een socket-room te bepalen. Er stond 229 keer
+> `req.session?.campaignId || 'main'`, en dat is niet hetzelfde: een sessie
+> zónder campaignId stuurt naar room `main` (de quarantaine voor sockets zónder
+> sessie) terwijl de echte sockets in `grisburgh` zitten — dan komt er bij
+> niemand iets aan. Alle 229 zijn omgezet; wat overblijft zijn vier plekken die
+> vragen *wiens* campagne dit is (beheerrechten, Spotify-tokens, de naam bij
+> `GET /campagne`) en dat is wél een sessievraag. `DEV_AUTO_DM` zet nu ook een
+> campagne op de sessie, want juist daar liep het spaak.
+> Bewaakt door `tests/campagne-isolatie.test.js`.
 
 > **Het tafelscherm heeft een eigen room.** Wat alleen daar hoort — een
 > verzegelde brief (`brief:display`), de voorleestekst (`display:tekst`), de

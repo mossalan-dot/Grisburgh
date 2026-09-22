@@ -1101,7 +1101,7 @@ router.put('/characters/:characterId/exhaustion', requireDM, (req, res) => {
   else dmState.playerExhaustion[characterId] = n;
   storage.writeJSON('dm-state.json', dmState);
   const io = req.app.get('io');
-  if (io) io.to(req.session?.campaignId || 'main').emit('player:exhaustion', { characterId, niveau: n });
+  if (io) io.to(_campagneRoom(req)).emit('player:exhaustion', { characterId, niveau: n });
   res.json({ ok: true, niveau: n });
 });
 
@@ -1128,7 +1128,7 @@ router.post('/entities/:type/:id/herinner', requireDM, (req, res) => {
     return res.status(409).json({ error: 'Dit kaartje kent de party nog niet — onthul het eerst' });
   }
 
-  req.app.get('io').to(req.session?.campaignId || 'main').emit('entity:herinnering', {
+  req.app.get('io').to(_campagneRoom(req)).emit('entity:herinnering', {
     id: entity.id, type, name: entity.name,
     thumb: storage.bestandIsBeeld(entity.data?.imageId || entity.id) ? (entity.data?.imageId || entity.id) : '',
     groupId: dmState.activeGroup,
@@ -1202,7 +1202,7 @@ router.post('/entities/:type', requireDM, (req, res) => {
     storage.writeJSON('entities.json', entities);
     storage.writeJSON('dm-state.json', dmState);
     if (type === 'personages') _syncMonsterVanKaartje(entity);
-    req.app.get('io').to(req.session?.campaignId||'main').emit('entity:updated', { type, id: entity.id });
+    req.app.get('io').to(_campagneRoom(req)).emit('entity:updated', { type, id: entity.id });
     res.status(201).json(entity);
   } catch (err) {
     console.error('POST /entities/:type error:', err);
@@ -1292,7 +1292,7 @@ router.put('/entities/:type/:id', requireDM, (req, res) => {
             changed = true;
           }
         }
-        if (changed) req.app.get('io').to(req.session?.campaignId||'main').emit('entity:updated', { type: et, id: entity.id });
+        if (changed) req.app.get('io').to(_campagneRoom(req)).emit('entity:updated', { type: et, id: entity.id });
       }
     }
 
@@ -1310,7 +1310,7 @@ router.put('/entities/:type/:id', requireDM, (req, res) => {
     }
     if (logChanged) {
       storage.writeJSON('archief.json', archief);
-      req.app.get('io').to(req.session?.campaignId||'main').emit('logboek:updated', {});
+      req.app.get('io').to(_campagneRoom(req)).emit('logboek:updated', {});
     }
   }
 
@@ -1325,7 +1325,7 @@ router.put('/entities/:type/:id', requireDM, (req, res) => {
         const target = (entities[lt] || []).find(e => e.name === targetName);
         if (target?.links?.[type]) {
           target.links[type] = target.links[type].filter(n => n !== oldName && n !== updated.name);
-          req.app.get('io').to(req.session?.campaignId||'main').emit('entity:updated', { type: lt, id: target.id });
+          req.app.get('io').to(_campagneRoom(req)).emit('entity:updated', { type: lt, id: target.id });
         }
       }
     }
@@ -1338,7 +1338,7 @@ router.put('/entities/:type/:id', requireDM, (req, res) => {
           if (!Array.isArray(target.links[type])) target.links[type] = [];
           if (!target.links[type].includes(updated.name)) {
             target.links[type].push(updated.name);
-            req.app.get('io').to(req.session?.campaignId||'main').emit('entity:updated', { type: lt, id: target.id });
+            req.app.get('io').to(_campagneRoom(req)).emit('entity:updated', { type: lt, id: target.id });
           }
         }
       }
@@ -1349,7 +1349,7 @@ router.put('/entities/:type/:id', requireDM, (req, res) => {
   // Personage met een statblok? Dan hoort hij in de monsterbibliotheek, zodat je
   // hem in een encounter kunt zetten.
   if (type === 'personages') _syncMonsterVanKaartje(updated);
-  req.app.get('io').to(req.session?.campaignId||'main').emit('entity:updated', { type, id });
+  req.app.get('io').to(_campagneRoom(req)).emit('entity:updated', { type, id });
   res.json(updated);
 });
 
@@ -1444,8 +1444,8 @@ router.delete('/entities/:type/:id', requireDM, (req, res) => {
     _deleteFileIfUnused(id);                                   // oud portret op /files/{id}
     if (dying.data?.imageId) _deleteFileIfUnused(dying.data.imageId);  // bibliotheek-portret
   }
-  req.app.get('io').to(req.session?.campaignId||'main').emit('entity:updated', { type, id, deleted: true });
-  req.app.get('io').to(req.session?.campaignId||'main').emit('entity:trashed', { type, id, name: dying.name });
+  req.app.get('io').to(_campagneRoom(req)).emit('entity:updated', { type, id, deleted: true });
+  req.app.get('io').to(_campagneRoom(req)).emit('entity:trashed', { type, id, name: dying.name });
   res.json({ ok: true });
 });
 
@@ -1475,7 +1475,7 @@ router.post('/entities/restore/:id', requireDM, (req, res) => {
   dmState.trash = (dmState.trash || []).filter(t => t.entity.id !== id);
   storage.writeJSON('entities.json', entities);
   storage.writeJSON('dm-state.json', dmState);
-  req.app.get('io').to(req.session?.campaignId||'main').emit('entity:updated', { type, id: entity.id, restored: true });
+  req.app.get('io').to(_campagneRoom(req)).emit('entity:updated', { type, id: entity.id, restored: true });
   res.json({ ok: true, type, id: entity.id });
 });
 
@@ -1511,13 +1511,13 @@ router.put('/entities/:type/:id/visibility', requireDM, (req, res) => {
 
   const entities = storage.readJSON('entities.json');
   const entity   = (entities[type] || []).find(e => e.id === id);
-  req.app.get('io').to(req.session?.campaignId||'main').emit('entity:visibility', { id, type, name: entity?.name || '', visibility: next });
+  req.app.get('io').to(_campagneRoom(req)).emit('entity:visibility', { id, type, name: entity?.name || '', visibility: next });
 
   if (type === 'locaties' && next !== 'hidden') {
     const mapData = storage.readJSON('map.json');
     const hasPin  = (mapData.pins || []).some(p => p.locId === id);
     if (hasPin) {
-      req.app.get('io').to(req.session?.campaignId||'main').emit('map:pinRevealed', { id, name: entity?.name || '', visibility: next });
+      req.app.get('io').to(_campagneRoom(req)).emit('map:pinRevealed', { id, name: entity?.name || '', visibility: next });
     }
   }
 
@@ -1536,7 +1536,7 @@ router.put('/entities/:type/:id/visibility', requireDM, (req, res) => {
       archief.logEntries.push({ event: entity.name, docId: entity.id, timestamp: Date.now() });
       storage.writeJSON('archief.json', archief);
     }
-    req.app.get('io').to(req.session?.campaignId||'main').emit('archief:dramaticReveal', {
+    req.app.get('io').to(_campagneRoom(req)).emit('archief:dramaticReveal', {
       id: entity.id, name: entity.name,
       // Alleen meesturen als het écht een afbeelding is: onder het kaartje-id
       // van een document hangt net zo vaak een pdf of een mp3, en die laadde de
@@ -1573,7 +1573,7 @@ router.post('/entities/:type/:id/shop-reveal', attachRole, (req, res) => {
   storage.writeJSON('dm-state.json', dmState);
   const entities = storage.readJSON('entities.json');
   const entity   = (entities[type] || []).find(e => e.id === id);
-  req.app.get('io').to(req.session?.campaignId||'main').emit('entity:visibility', { id, type, name: entity?.name || '', visibility: 'visible' });
+  req.app.get('io').to(_campagneRoom(req)).emit('entity:visibility', { id, type, name: entity?.name || '', visibility: 'visible' });
   res.json({ visibility: 'visible', changed: true });
 });
 
@@ -1636,7 +1636,7 @@ router.put('/entities/:type/:id/secret', requireDM, (req, res) => {
     storage.writeJSON('entities.json', entities);
   }
   storage.writeJSON('dm-state.json', dmState);
-  req.app.get('io').to(req.session?.campaignId||'main').emit('entity:secret', {
+  req.app.get('io').to(_campagneRoom(req)).emit('entity:secret', {
     id, type,
     name:         entity?.name || '',
     secretReveal: ietsOnthuld,
@@ -1667,7 +1667,7 @@ router.put('/entities/:type/:id/flavour', requireDM, (req, res) => {
   // De oude vlag blijft kloppen: pas 'true' als alles verteld is.
   entity.data.flavourUitgesproken = stand.every(Boolean) ? 'true' : '';
   storage.writeJSON('entities.json', entities);
-  req.app.get('io').to(req.session?.campaignId||'main').emit('entity:updated', { type, id });
+  req.app.get('io').to(_campagneRoom(req)).emit('entity:updated', { type, id });
   res.json({ uitgesproken: stand });
 });
 
@@ -1680,9 +1680,9 @@ router.put('/entities/:type/:id/deceased', requireDM, (req, res) => {
   if (!g.deceased) g.deceased = {};
   g.deceased[id] = !g.deceased[id];
   storage.writeJSON('dm-state.json', dmState);
-  req.app.get('io').to(req.session?.campaignId||'main').emit('entity:updated', { id, deceased: g.deceased[id] });
+  req.app.get('io').to(_campagneRoom(req)).emit('entity:updated', { id, deceased: g.deceased[id] });
   if (g.deceased[id] && entity) {
-    req.app.get('io').to(req.session?.campaignId||'main').emit('entity:deceased', { id, type, name: entity.name });
+    req.app.get('io').to(_campagneRoom(req)).emit('entity:deceased', { id, type, name: entity.name });
   }
   res.json({ deceased: g.deceased[id] });
 });
@@ -1715,7 +1715,7 @@ router.put('/entities/:type/:id/tier', requireDM, (req, res) => {
   if (type === 'personages') _syncMonsterVanKaartje(entity, dmState);
 
   const tier = _tierStand(g, entity);
-  req.app.get('io').to(req.session?.campaignId||'main').emit('entity:updated', { id, tier: tier?.id || null });
+  req.app.get('io').to(_campagneRoom(req)).emit('entity:updated', { id, tier: tier?.id || null });
   res.json({ tierId: tier?.id || null, label: tier?.label || null });
 });
 
@@ -1771,7 +1771,7 @@ router.put('/player-notes/:entityId', attachRole, (req, res) => {
         const found = (entities[type] || []).find(e => e.id === entityId);
         if (found) { entityName = found.name; break; }
       }
-      req.app.get('io').to(req.session?.campaignId||'main').emit('notes:created', {
+      req.app.get('io').to(_campagneRoom(req)).emit('notes:created', {
         playerName: req.playerName,
         entityId,
         entityName,
@@ -2307,7 +2307,7 @@ router.put('/meta/markt', requireDM, (req, res) => {
       .map(g => String(g || '').trim()).filter(Boolean).slice(0, 40);
   }
   storage.writeJSON('meta.json', meta);
-  req.app.get('io').to(req.session?.campaignId || 'main').emit('meta:updated');
+  req.app.get('io').to(_campagneRoom(req)).emit('meta:updated');
   res.json({ ok: true, markt: meta.markt });
 });
 
@@ -2339,7 +2339,7 @@ router.put('/shops/:shopId/uitverkocht', requireDM, (req, res) => {
     nu = false;
   }
   storage.writeJSON('dm-state.json', dmState);
-  req.app.get('io').to(req.session?.campaignId||'main').emit('shop:uitverkocht-updated', {
+  req.app.get('io').to(_campagneRoom(req)).emit('shop:uitverkocht-updated', {
     shopId,
     uitverkocht: g.shopUitverkocht[shopId],
   });
@@ -2617,25 +2617,25 @@ router.post('/shops/:shopId/koop', attachRole, (req, res) => {
   const io = req.app.get('io');
 
   if (prijs && (prijs.fl > 0 || prijs.kn > 0 || prijs.cl > 0)) {
-    io.to(req.session?.campaignId||'main').emit('player:currency-updated', { characterId, currency: _effectiveCurrency(dmState, characterId) });
+    io.to(_campagneRoom(req)).emit('player:currency-updated', { characterId, currency: _effectiveCurrency(dmState, characterId) });
   }
 
   if (effectiveEntityId) {
-    io.to(req.session?.campaignId||'main').emit('items:ownership-updated', {
+    io.to(_campagneRoom(req)).emit('items:ownership-updated', {
       owners: g.itemOwners || {},
       requests: g.itemRequests || [],
       tradeAllowed: g.tradeAllowed !== false,
     });
     // Stuur onthullingsgebeurtenis zodat het kaartje zichtbaar wordt
-    io.to(req.session?.campaignId||'main').emit('entity:visibility', { id: effectiveEntityId, type: 'voorwerpen', name: _entityItem?.name || '', visibility: 'visible' });
+    io.to(_campagneRoom(req)).emit('entity:visibility', { id: effectiveEntityId, type: 'voorwerpen', name: _entityItem?.name || '', visibility: 'visible' });
   } else {
-    io.to(req.session?.campaignId||'main').emit('player:items-updated', { characterId, items: (dmState.playerItems || {})[characterId] || [] });
+    io.to(_campagneRoom(req)).emit('player:items-updated', { characterId, items: (dmState.playerItems || {})[characterId] || [] });
   }
 
   // Zelfde voorwaarde als hierboven, en met een vangnet: zonder kaartje wordt
   // de lijst niet aangemaakt, en dan viel deze melding om met een 500.
   if (koopGebruik === 'uniek' && effectiveEntityId) {
-    io.to(req.session?.campaignId||'main').emit('shop:uitverkocht-updated',
+    io.to(_campagneRoom(req)).emit('shop:uitverkocht-updated',
       { shopId, uitverkocht: (g.shopUitverkocht || {})[shopId] || [] });
   }
 
@@ -2967,8 +2967,8 @@ router.post('/shops/:shopId/verkoop', attachRole, (req, res) => {
   } catch { /* stil falen */ }
 
   const io = req.app.get('io');
-  io.to(req.session?.campaignId||'main').emit('player:currency-updated', { characterId, currency: _effectiveCurrency(dmState, characterId) });
-  io.to(req.session?.campaignId||'main').emit('items:ownership-updated', {
+  io.to(_campagneRoom(req)).emit('player:currency-updated', { characterId, currency: _effectiveCurrency(dmState, characterId) });
+  io.to(_campagneRoom(req)).emit('items:ownership-updated', {
     owners: g.itemOwners || {},
     requests: g.itemRequests || [],
     tradeAllowed: g.tradeAllowed !== false,
@@ -3078,7 +3078,7 @@ router.post('/shops/:shopId/dm-verkoop', requireDM, (req, res) => {
   storage.writeJSON('dm-state.json', dmState);
   _shopLogRegel(shopId, { playerName, itemNaam: item.naam, prijs: _muntTekst(fromCl(bedragCl)), aantal });
   const io   = req.app.get('io');
-  const kamer = req.session?.campaignId || 'main';
+  const kamer = _campagneRoom(req);
   io.to(kamer).emit('shop:uitverkocht-updated', { shopId, uitverkocht: g.shopUitverkocht?.[shopId] || [] });
   io.to(kamer).emit('player:currency-updated', { characterId, currency: _effectiveCurrency(dmState, characterId) });
   if (effectiveId) {
@@ -3218,7 +3218,7 @@ router.post('/shops/:shopId/dm-inkoop', requireDM, (req, res) => {
 
   storage.writeJSON('dm-state.json', dmState);
   const io    = req.app.get('io');
-  const kamer = req.session?.campaignId || 'main';
+  const kamer = _campagneRoom(req);
   const groep = getGroup(dmState);
   io.to(kamer).emit('items:ownership-updated', {
     owners: groep.itemOwners || {}, requests: groep.itemRequests || [], tradeAllowed: groep.tradeAllowed !== false,
@@ -3395,7 +3395,7 @@ router.put('/items/trade-allowed', requireDM, (req, res) => {
   const g = getGroup(dmState);
   g.tradeAllowed = !!req.body.allowed;
   storage.writeJSON('dm-state.json', dmState);
-  req.app.get('io').to(req.session?.campaignId||'main').emit('items:ownership-updated', {
+  req.app.get('io').to(_campagneRoom(req)).emit('items:ownership-updated', {
     owners: g.itemOwners || {}, requests: g.itemRequests || [],
     tradeAllowed: g.tradeAllowed,
   });
@@ -3442,7 +3442,7 @@ router.post('/items/:itemId/request', attachRole, (req, res) => {
   g.itemRequests.push(reqObj);
   storage.writeJSON('dm-state.json', dmState);
 
-  req.app.get('io').to(req.session?.campaignId||'main').emit('items:request', {
+  req.app.get('io').to(_campagneRoom(req)).emit('items:request', {
     ...reqObj,
     owners:       g.itemOwners,
     requests:     g.itemRequests,
@@ -3484,7 +3484,7 @@ router.post('/items/request/:reqId/approve', requireDM, (req, res) => {
     g.itemOwners[r.itemId] = { characterId: r.requesterId, playerName: r.requesterName };
   }
   storage.writeJSON('dm-state.json', dmState);
-  req.app.get('io').to(req.session?.campaignId||'main').emit('items:ownership-updated', {
+  req.app.get('io').to(_campagneRoom(req)).emit('items:ownership-updated', {
     owners: g.itemOwners, requests: g.itemRequests,
     tradeAllowed: g.tradeAllowed !== false,
   });
@@ -3503,7 +3503,7 @@ router.post('/items/request/:reqId/reject', requireDM, (req, res) => {
   if (!g || idx === -1) return res.status(404).json({ error: 'Verzoek niet gevonden' });
   g.itemRequests[idx].status = 'rejected';
   storage.writeJSON('dm-state.json', dmState);
-  req.app.get('io').to(req.session?.campaignId||'main').emit('items:ownership-updated', {
+  req.app.get('io').to(_campagneRoom(req)).emit('items:ownership-updated', {
     owners: g.itemOwners || {}, requests: g.itemRequests,
     tradeAllowed: g.tradeAllowed !== false,
   });
@@ -3570,7 +3570,7 @@ router.post('/items/:itemId/geef', attachRole, (req, res) => {
   }
 
   storage.writeJSON('dm-state.json', dmState);
-  const io = req.app.get('io'); const room = req.session?.campaignId || 'main';
+  const io = req.app.get('io'); const room = _campagneRoom(req);
   io.to(room).emit('items:ownership-updated', {
     owners: g.itemOwners || {}, requests: g.itemRequests || [], tradeAllowed: g.tradeAllowed !== false,
   });
@@ -3623,14 +3623,14 @@ router.put('/items/:itemId/owner', requireDM, (req, res) => {
   if (wasHidden) g.visibility[itemId] = 'visible';
 
   storage.writeJSON('dm-state.json', dmState);
-  req.app.get('io').to(req.session?.campaignId||'main').emit('items:ownership-updated', {
+  req.app.get('io').to(_campagneRoom(req)).emit('items:ownership-updated', {
     owners:       g.itemOwners,
     requests:     g.itemRequests || [],
     tradeAllowed: g.tradeAllowed !== false,
     given:        { itemName: item?.name || '', playerName, groupId: targetId },
   });
   if (wasHidden) {
-    req.app.get('io').to(req.session?.campaignId||'main').emit('entity:visibility', {
+    req.app.get('io').to(_campagneRoom(req)).emit('entity:visibility', {
       id:         itemId,
       type:       'voorwerpen',
       name:       item?.name || '',
@@ -3665,7 +3665,7 @@ router.delete('/items/:itemId/owner', requireDM, (req, res) => {
   }
 
   storage.writeJSON('dm-state.json', dmState);
-  req.app.get('io').to(req.session?.campaignId||'main').emit('items:ownership-updated', {
+  req.app.get('io').to(_campagneRoom(req)).emit('items:ownership-updated', {
     owners:       g.itemOwners  || {},
     requests:     g.itemRequests || [],
     tradeAllowed: g.tradeAllowed !== false,
@@ -3750,7 +3750,7 @@ router.patch('/items/:itemId/owner/:characterId', attachRole, (req, res) => {
     if (g.itemOwners[itemId].length === 0) delete g.itemOwners[itemId];
   }
   storage.writeJSON('dm-state.json', dmState);
-  req.app.get('io').to(req.session?.campaignId||'main').emit('items:ownership-updated', {
+  req.app.get('io').to(_campagneRoom(req)).emit('items:ownership-updated', {
     owners: g.itemOwners || {}, requests: g.itemRequests || [],
     tradeAllowed: g.tradeAllowed !== false,
   });
@@ -4047,13 +4047,13 @@ router.post('/characters/:characterId/long-rest', attachRole, (req, res) => {
   if (dmState.playerItems?.[characterId]?.some(i => i.zegen)) {
     dmState.playerItems[characterId] = dmState.playerItems[characterId].filter(i => !i.zegen);
     const io = req.app.get('io');
-    if (io) io.to(req.session?.campaignId||'main').emit('player:items-updated', { characterId, items: dmState.playerItems[characterId] });
+    if (io) io.to(_campagneRoom(req)).emit('player:items-updated', { characterId, items: dmState.playerItems[characterId] });
   }
   // Herberg-buffs ("Aan de tap") vervallen bij een lange rust
   if (dmState.playerBuffs?.[characterId]?.length) {
     dmState.playerBuffs[characterId] = [];
     const io = req.app.get('io');
-    if (io) io.to(req.session?.campaignId||'main').emit('player:buffs-updated', { characterId, buffs: [] });
+    if (io) io.to(_campagneRoom(req)).emit('player:buffs-updated', { characterId, buffs: [] });
   }
   storage.writeJSON('dm-state.json', dmState);
   res.json({ ok: true });
@@ -4070,7 +4070,7 @@ router.put('/akte/:key/sfeer', requireDM, (req, res) => {
   storage.writeJSON('meta.json', meta);
   const io = req.app.get('io');
   io?.to(_displayRoom(req)).emit('display:sfeer', { sfeer: sfeer || null });
-  io?.to(req.session?.campaignId || 'main').emit('meta:updated');
+  io?.to(_campagneRoom(req)).emit('meta:updated');
   res.json({ ok: true, sfeer: sfeer || null });
 });
 
@@ -4132,7 +4132,7 @@ router.post('/party/long-rest', requireDM, (req, res) => {
       if (weg) _hulpWeg.push(weg.naam || weg.entityId);
     }
   }
-  if (_hulpWeg.length && io) io.to(req.session?.campaignId||'main').emit('companions:updated', {});
+  if (_hulpWeg.length && io) io.to(_campagneRoom(req)).emit('companions:updated', {});
 
   // ── 0. Exhaustion: één niveau eraf ──
   // "Finishing a Long Rest reduces a creature's Exhaustion level by 1" — dus
@@ -4146,7 +4146,7 @@ router.post('/party/long-rest', requireDM, (req, res) => {
       else dmState.playerExhaustion[char.id] = na;
       _sum(char.id).exhaustionVan = n;
       _sum(char.id).exhaustionNaar = na;
-      if (io) io.to(req.session?.campaignId||'main').emit('player:exhaustion', { characterId: char.id, niveau: na });
+      if (io) io.to(_campagneRoom(req)).emit('player:exhaustion', { characterId: char.id, niveau: na });
     });
   }
 
@@ -4157,7 +4157,7 @@ router.post('/party/long-rest', requireDM, (req, res) => {
     if (hp && hp.max !== null) {
       const s = _sum(char.id); s.hpVan = hp.current; s.hpNaar = hp.max;
       dmState.playerHp[char.id] = { current: hp.max, max: hp.max };
-      if (io) io.to(req.session?.campaignId||'main').emit('player:hp-updated', { characterId: char.id, current: hp.max, max: hp.max });
+      if (io) io.to(_campagneRoom(req)).emit('player:hp-updated', { characterId: char.id, current: hp.max, max: hp.max });
     }
   });
 
@@ -4166,7 +4166,7 @@ router.post('/party/long-rest', requireDM, (req, res) => {
     spelers.forEach(char => {
       if (dmState.playerBuffs[char.id]?.length) {
         dmState.playerBuffs[char.id] = [];
-        if (io) io.to(req.session?.campaignId||'main').emit('player:buffs-updated', { characterId: char.id, buffs: [] });
+        if (io) io.to(_campagneRoom(req)).emit('player:buffs-updated', { characterId: char.id, buffs: [] });
       }
     });
   }
@@ -4205,7 +4205,7 @@ router.post('/party/long-rest', requireDM, (req, res) => {
       const items = dmState.playerItems[char.id];
       if (items?.some(i => i.zegen)) {
         dmState.playerItems[char.id] = items.filter(i => !i.zegen);
-        if (io) io.to(req.session?.campaignId||'main').emit('player:items-updated', { characterId: char.id, items: dmState.playerItems[char.id] });
+        if (io) io.to(_campagneRoom(req)).emit('player:items-updated', { characterId: char.id, items: dmState.playerItems[char.id] });
       }
     });
   }
@@ -4309,13 +4309,13 @@ router.post('/party/long-rest', requireDM, (req, res) => {
       e.data.flavoursUitgesproken = gezegd;
       if (gezegd.every(Boolean)) e.data.flavourUitgesproken = 'true';   // oude vlag blijft kloppen
       roddels.push({ id: e.id, type, name: e.name, flavour: tekst });
-      if (io) io.to(req.session?.campaignId||'main').emit('entity:updated', { type, id: e.id });
+      if (io) io.to(_campagneRoom(req)).emit('entity:updated', { type, id: e.id });
     });
     if (roddels.length) storage.writeJSON('entities.json', entities);
   }
 
   // ── 6. d100-rustgebeurtenis (binnen én buiten) ──
-  const campaignId = req.session?.campaignId || 'main';
+  const campaignId = _campagneRoom(req);
   const perSpelerEvents = _rolRustGebeurtenis(meta, locatie, dmState, spelers, io, campaignId);
   const gebeurtenissen = []; // platte lijst (voor het tafelscherm + DM-overzicht)
   if (perSpelerEvents) {
@@ -4352,7 +4352,7 @@ router.post('/party/long-rest', requireDM, (req, res) => {
 // Sluit het rust-cinematic op alle schermen. De DM drukt op sluiten; zonder dit
 // bleef de tablet met overlay én geluidsloop achter, want die klikt niemand weg.
 router.post('/party/rest/close', requireDM, (req, res) => {
-  req.app.get('io')?.to(req.session?.campaignId || 'main').emit('party:rest-close');
+  req.app.get('io')?.to(_campagneRoom(req)).emit('party:rest-close');
   res.json({ ok: true });
 });
 
@@ -4415,7 +4415,7 @@ router.post('/party/short-rest', requireDM, (req, res) => {
   storage.writeJSON('dm-state.json', dmState);
 
   const meta = storage.readJSON('meta.json');
-  if (io) io.to(req.session?.campaignId||'main').emit('party:rest', {
+  if (io) io.to(_campagneRoom(req)).emit('party:rest', {
     type: 'short', locatie,
     backdropId: _rustBackdrop('short', locatie, meta),
     loopFileId: _rustLoopFileId('short', locatie),
@@ -4456,7 +4456,7 @@ router.post('/characters/:characterId/spend-hit-die', attachRole, (req, res) => 
 
   storage.writeJSON('dm-state.json', dmState);
   const io = req.app.get('io');
-  if (io) io.to(req.session?.campaignId||'main').emit('player:hp-updated', { characterId, current, max: hp.max });
+  if (io) io.to(_campagneRoom(req)).emit('player:hp-updated', { characterId, current, max: hp.max });
 
   res.json({ rolled, conMod, heal, hp: { current, max: hp.max }, hitDice: { pool, spent: hd.spent } });
 });
@@ -4650,7 +4650,7 @@ function _multiclassVoorrekenen(profile, nieuweKlasse) {
 // penning op de Vragen-tab die blijft staan tot het afgehandeld is.
 // In welke campagne draait dit verzoek?
 //
-// Overal elders staat `req.session?.campaignId || 'main'`, en dat is niet
+// Overal elders staat `_campagneRoom(req)`, en dat is niet
 // hetzelfde: **het pad bepaalt de campagne, de sessie bepaalt je rol** (zie
 // CLAUDE.md). Een sessie zonder campaignId — of eentje die naar een andere
 // campagne wijst dan het adres — stuurt zijn socket-events dan naar room
@@ -4747,7 +4747,7 @@ function _displayRoom(req) {
 }
 
 function _meldVerzoek(req, soort, wie, wat) {
-  req.app.get('io')?.to(req.session?.campaignId || 'main')
+  req.app.get('io')?.to(_campagneRoom(req))
     .emit('verzoek:nieuw', { soort, wie, wat });
 }
 
@@ -4791,7 +4791,7 @@ router.post('/characters/:characterId/multiclass-verzoek', attachRole, (req, res
   };
   g.multiclassVerzoeken.push(verzoek);
   storage.writeJSON('dm-state.json', dmState);
-  req.app.get('io').to(req.session?.campaignId || 'main').emit('multiclass:verzoek', { verzoek });
+  req.app.get('io').to(_campagneRoom(req)).emit('multiclass:verzoek', { verzoek });
   _meldVerzoek(req, 'multiclass', verzoek.spelerNaam, klasse);
   res.status(201).json({ ok: true, verzoek });
 });
@@ -4842,7 +4842,7 @@ router.post('/multiclass-verzoek/:id/:besluit', requireDM, (req, res) => {
   // Afgehandelde verzoeken blijven niet slingeren.
   groep.multiclassVerzoeken = (groep.multiclassVerzoeken || []).filter(v => v.status === 'pending');
   storage.writeJSON('dm-state.json', dmState);
-  const io = req.app.get('io'); const room = req.session?.campaignId || 'main';
+  const io = req.app.get('io'); const room = _campagneRoom(req);
   io.to(room).emit('player:profile-updated', { characterId: verzoek.characterId });
   io.to(room).emit('multiclass:besluit', { characterId: verzoek.characterId, klasse: verzoek.klasse, besluit });
   res.json({ ok: true, verzoek });
@@ -5075,7 +5075,7 @@ router.post('/characters/:characterId/level-up', attachRole, (req, res) => {
   storage.writeJSON('dm-state.json', dmState);
   const io = req.app.get('io');
   if (io) {
-    const room = req.session?.campaignId || 'main';
+    const room = _campagneRoom(req);
     io.to(room).emit('player:hp-updated', { characterId, current: nieuwCurrent, max: nieuweMax, temp: hp.temp ?? 0 });
     io.to(room).emit('player:profile-updated', { characterId });
     io.to(room).emit('player:level-up', { characterId, ...regel });
@@ -5124,7 +5124,7 @@ router.post('/characters/:characterId/level-up/undo', requireDM, (req, res) => {
   storage.writeJSON('dm-state.json', dmState);
   const io = req.app.get('io');
   if (io) {
-    const room = req.session?.campaignId || 'main';
+    const room = _campagneRoom(req);
     io.to(room).emit('player:hp-updated', { characterId, current: nieuwCurrent, max: nieuweMax, temp: hp.temp ?? 0 });
     io.to(room).emit('player:profile-updated', { characterId });
   }
@@ -5186,7 +5186,7 @@ router.post('/party/xp', requireDM, (req, res) => {
   storage.writeJSON('dm-state.json', dmState);
   const io = req.app.get('io');
   if (io) {
-    const room = req.session?.campaignId || 'main';
+    const room = _campagneRoom(req);
     io.to(room).emit('party:xp', { aantal, spelers: uit });
     for (const r of uit) io.to(room).emit('player:profile-updated', { characterId: r.characterId });
   }
@@ -5226,7 +5226,7 @@ router.post('/party/xp/nullijn', requireDM, (req, res) => {
     storage.writeJSON('dm-state.json', dmState);
     const io = req.app.get('io');
     if (io) {
-      const room = req.session?.campaignId || 'main';
+      const room = _campagneRoom(req);
       for (const r of uit) io.to(room).emit('player:profile-updated', { characterId: r.characterId });
     }
   }
@@ -5278,7 +5278,7 @@ router.post('/party/level-up-tegoed', requireDM, (req, res) => {
 
   storage.writeJSON('dm-state.json', dmState);
   const io = req.app.get('io');
-  if (io) io.to(req.session?.campaignId || 'main').emit('party:level-up-tegoed', { tegoed: g.levelUpTegoed });
+  if (io) io.to(_campagneRoom(req)).emit('party:level-up-tegoed', { tegoed: g.levelUpTegoed });
   res.json({ ok: true, tegoed: g.levelUpTegoed, spelers: ids });
 });
 
@@ -5305,7 +5305,7 @@ router.put('/meta/levelup', requireDM, (req, res) => {
     meta.levelup.systeem = req.body.systeem === 'xp' ? 'xp' : 'milestone';
   }
   storage.writeJSON('meta.json', meta);
-  req.app.get('io').to(req.session?.campaignId || 'main').emit('meta:updated');
+  req.app.get('io').to(_campagneRoom(req)).emit('meta:updated');
   res.json({ ok: true, levelup: _levelupCfg(meta) });
 });
 
@@ -5447,9 +5447,9 @@ router.post('/items/:itemId/gebruik', attachRole, (req, res) => {
   storage.writeJSON('dm-state.json', dmState);
   const io = req.app.get('io');
   if (io) {
-    io.to(req.session?.campaignId || 'main').emit('player:hp-updated', { characterId, current, max: hp.max });
+    io.to(_campagneRoom(req)).emit('player:hp-updated', { characterId, current, max: hp.max });
     if (charges !== null || weg) {
-      io.to(req.session?.campaignId || 'main').emit('items:ownership-updated', {
+      io.to(_campagneRoom(req)).emit('items:ownership-updated', {
         owners: g.itemOwners || {}, requests: g.itemRequests || [], tradeAllowed: g.tradeAllowed !== false,
       });
     }
@@ -5477,7 +5477,7 @@ router.patch('/player-hp/:characterId', attachRole, (req, res) => {
   };
   dmState.playerHp[characterId] = updated;
   storage.writeJSON('dm-state.json', dmState);
-  req.app.get('io').to(req.session?.campaignId||'main').emit('player:hp-updated', { characterId, ...updated });
+  req.app.get('io').to(_campagneRoom(req)).emit('player:hp-updated', { characterId, ...updated });
   res.json(updated);
 });
 
@@ -5540,8 +5540,8 @@ router.delete('/player-items/:characterId/:itemId', attachRole, (req, res) => {
   storage.writeJSON('dm-state.json', dmState);
 
   const io = req.app.get('io');
-  io.to(req.session?.campaignId||'main').emit('player:items-updated', { characterId, items: (dmState.playerItems || {})[characterId] || [] });
-  if (isIOU) io.to(req.session?.campaignId||'main').emit('tweespalt:updated');  // banner verdwijnt bij speler
+  io.to(_campagneRoom(req)).emit('player:items-updated', { characterId, items: (dmState.playerItems || {})[characterId] || [] });
+  if (isIOU) io.to(_campagneRoom(req)).emit('tweespalt:updated');  // banner verdwijnt bij speler
 
   res.json({ ok: true });
 });
@@ -5592,7 +5592,7 @@ router.patch('/party-currency', attachRole, (req, res) => {
   g.sharedPurse.cl = req.body.cl !== undefined ? Math.max(0, parseInt(req.body.cl) || 0) : g.sharedPurse.cl;
   storage.writeJSON('dm-state.json', dmState);
   const actor = req.session.playerName || 'DM';
-  req.app.get('io').to(req.session?.campaignId||'main').emit('party-currency:updated', { groupId: groupId || dmState.activeGroup, currency: g.sharedPurse, actor });
+  req.app.get('io').to(_campagneRoom(req)).emit('party-currency:updated', { groupId: groupId || dmState.activeGroup, currency: g.sharedPurse, actor });
   res.json(g.sharedPurse);
 });
 
@@ -5607,7 +5607,7 @@ router.put('/party-currency/toggle', requireDM, (req, res) => {
     ? req.body.enabled
     : !g.sharedPurse.enabled;
   storage.writeJSON('dm-state.json', dmState);
-  req.app.get('io').to(req.session?.campaignId||'main').emit('party-currency:updated', { groupId: dmState.activeGroup, currency: g.sharedPurse, actor: 'DM' });
+  req.app.get('io').to(_campagneRoom(req)).emit('party-currency:updated', { groupId: dmState.activeGroup, currency: g.sharedPurse, actor: 'DM' });
   res.json(g.sharedPurse);
 });
 
@@ -5756,7 +5756,7 @@ router.put('/companions/:petId/baasje', requireDM, (req, res) => {
   }
 
   storage.writeJSON('dm-state.json', dmState);
-  req.app.get('io')?.to(req.session?.campaignId || 'main').emit('entity:updated', { type: 'personages', id: petId });
+  req.app.get('io')?.to(_campagneRoom(req)).emit('entity:updated', { type: 'personages', id: petId });
   const perGroep = {};
   for (const [gid, g] of Object.entries(dmState.groups || {})) perGroep[gid] = g.companionOwners?.[petId] || '';
   res.json({ ok: true, perGroep });
@@ -5782,7 +5782,7 @@ router.post('/companions/:npcId/:groupId', requireDM, (req, res) => {
   if (!g.companions) g.companions = [];
   if (!g.companions.includes(npcId)) g.companions.push(npcId);
   storage.writeJSON('dm-state.json', dmState);
-  req.app.get('io').to(req.session?.campaignId||'main').emit('companion:link', { npcId, name: entity?.name || '', groupId });
+  req.app.get('io').to(_campagneRoom(req)).emit('companion:link', { npcId, name: entity?.name || '', groupId });
   res.json({ ok: true });
 });
 
@@ -5796,7 +5796,7 @@ router.delete('/companions/:npcId/:groupId', requireDM, (req, res) => {
   if (!g) return res.status(404).json({ error: 'Groep niet gevonden' });
   g.companions = (g.companions || []).filter(id => id !== npcId);
   storage.writeJSON('dm-state.json', dmState);
-  req.app.get('io').to(req.session?.campaignId||'main').emit('companion:unlink', { npcId, name: entity?.name || '', groupId });
+  req.app.get('io').to(_campagneRoom(req)).emit('companion:unlink', { npcId, name: entity?.name || '', groupId });
   res.json({ ok: true });
 });
 
@@ -5903,7 +5903,7 @@ router.put('/entities/:type/:id/hoortbij', requireDM, (req, res) => {
   if (geraakt.length) {
     storage.writeJSON('entities.json', entities);
     const io = req.app.get('io');
-    for (const g of geraakt) io.to(req.session?.campaignId || 'main').emit('entity:updated', g);
+    for (const g of geraakt) io.to(_campagneRoom(req)).emit('entity:updated', g);
   }
   res.json({ ok: true, aangepast: geraakt.length, hoortBij: _betrokkenBij(id) });
 });
@@ -5979,7 +5979,7 @@ router.put('/entities/:type/:id/koppelingen', requireDM, (req, res) => {
 
   if (veranderd) {
     storage.writeJSON('meta.json', meta);
-    req.app.get('io').to(req.session?.campaignId || 'main').emit('meta:updated');
+    req.app.get('io').to(_campagneRoom(req)).emit('meta:updated');
   }
   res.json(_koppelingenVan(type, id));
 });
@@ -6289,7 +6289,7 @@ router.patch('/player-profile/:characterId', attachRole, (req, res) => {
   dmState.playerProfiles[characterId] = updated;
   storage.writeJSON('dm-state.json', dmState);
   // Laat alle clients weten dat het profiel gewijzigd is (level, klasse, etc.)
-  req.app.get('io')?.to(req.session?.campaignId || 'main')
+  req.app.get('io')?.to(_campagneRoom(req))
     .emit('player:profile-updated', { characterId, profile: updated });
   res.json(updated);
 });
@@ -6316,7 +6316,7 @@ router.put('/player-inspiration/:characterId', requireDM, (req, res) => {
   dmState.playerInspiration[characterId] = true;
   storage.writeJSON('dm-state.json', dmState);
   const entity = (storage.readJSON('entities.json').personages || []).find(e => e.id === characterId);
-  req.app.get('io').to(req.session?.campaignId||'main').emit('player:inspiration', { characterId, inspired: true, name: entity?.name || '' });
+  req.app.get('io').to(_campagneRoom(req)).emit('player:inspiration', { characterId, inspired: true, name: entity?.name || '' });
   res.json({ inspired: true });
 });
 
@@ -6329,7 +6329,7 @@ router.delete('/player-inspiration/:characterId', attachRole, (req, res) => {
   dmState.playerInspiration[characterId] = false;
   storage.writeJSON('dm-state.json', dmState);
   const entity = (storage.readJSON('entities.json').personages || []).find(e => e.id === characterId);
-  req.app.get('io').to(req.session?.campaignId||'main').emit('player:inspiration', { characterId, inspired: false, name: entity?.name || '' });
+  req.app.get('io').to(_campagneRoom(req)).emit('player:inspiration', { characterId, inspired: false, name: entity?.name || '' });
   res.json({ inspired: false });
 });
 
@@ -6529,7 +6529,7 @@ router.post('/spells/request/:reqId/approve', requireDM, (req, res) => {
   r.status = 'approved';
   _spreukInBoek(dmState, r.requesterId, r.spreuk || { index: r.index, name: r.spellName });
   storage.writeJSON('dm-state.json', dmState);
-  req.app.get('io').to(req.session?.campaignId || 'main').emit('spells:requests-updated', {
+  req.app.get('io').to(_campagneRoom(req)).emit('spells:requests-updated', {
     requests: _spellRequestsAlles(dmState),
   });
   _meldVerzoekAntwoord(req, { ...r, itemName: r.spellName, type: 'spreuk' }, true);
@@ -6543,7 +6543,7 @@ router.post('/spells/request/:reqId/reject', requireDM, (req, res) => {
   const r = vondst.g.spellRequests[vondst.i];
   r.status = 'rejected';
   storage.writeJSON('dm-state.json', dmState);
-  req.app.get('io').to(req.session?.campaignId || 'main').emit('spells:requests-updated', {
+  req.app.get('io').to(_campagneRoom(req)).emit('spells:requests-updated', {
     requests: _spellRequestsAlles(dmState),
   });
   _meldVerzoekAntwoord(req, { ...r, itemName: r.spellName, type: 'spreuk' }, false);
@@ -6613,7 +6613,7 @@ router.post('/player-spells/:characterId', attachRole, (req, res) => {
   };
   g.spellRequests.push(verzoek);
   storage.writeJSON('dm-state.json', dmState);
-  req.app.get('io').to(req.session?.campaignId || 'main').emit('spells:request', {
+  req.app.get('io').to(_campagneRoom(req)).emit('spells:request', {
     ...verzoek, requests: _spellRequestsAlles(dmState),
   });
   res.status(201).json({ ok: true, verzoek: true });
@@ -7118,7 +7118,7 @@ router.post('/import/akte/apply', requireDM, uploadMedia.array('images', 100), a
   meta.hoofdstukken[chapterKey].script = mode === 'append' ? existing.concat(script) : script;
   storage.writeJSON('meta.json', meta);
 
-  const io = req.app.get('io'); const room = req.session?.campaignId || 'main';
+  const io = req.app.get('io'); const room = _campagneRoom(req);
   io.to(room).emit('meta:updated');
   if (sessieId) io.to(room).emit('logboek:updated', { id: sessieId });
 
@@ -7172,7 +7172,7 @@ router.post('/groups', requireDM, (req, res) => {
     tradeAllowed:  true,
   };
   storage.writeJSON('dm-state.json', dmState);
-  req.app.get('io').to(req.session?.campaignId||'main').emit('groups:updated', { groups: groupInfoList(dmState), activeGroup: dmState.activeGroup });
+  req.app.get('io').to(_campagneRoom(req)).emit('groups:updated', { groups: groupInfoList(dmState), activeGroup: dmState.activeGroup });
   res.status(201).json({ id, name: dmState.groups[id].name });
 });
 
@@ -7184,7 +7184,7 @@ router.put('/groups/active', requireDM, (req, res) => {
   storage.writeJSON('dm-state.json', dmState);
 
   // groups:updated triggert client-side herlaad van de sectie (zonder toast-spam)
-  req.app.get('io').to(req.session?.campaignId||'main').emit('groups:updated', { groups: groupInfoList(dmState), activeGroup: groupId });
+  req.app.get('io').to(_campagneRoom(req)).emit('groups:updated', { groups: groupInfoList(dmState), activeGroup: groupId });
   res.json({ activeGroup: groupId });
 });
 
@@ -7194,7 +7194,7 @@ router.put('/groups/:id', requireDM, (req, res) => {
   if (!dmState.groups[id]) return res.status(404).json({ error: 'Groep niet gevonden' });
   if (req.body.name) dmState.groups[id].name = req.body.name;
   storage.writeJSON('dm-state.json', dmState);
-  req.app.get('io').to(req.session?.campaignId||'main').emit('groups:updated', { groups: groupInfoList(dmState), activeGroup: dmState.activeGroup });
+  req.app.get('io').to(_campagneRoom(req)).emit('groups:updated', { groups: groupInfoList(dmState), activeGroup: dmState.activeGroup });
   res.json({ id, name: dmState.groups[id].name });
 });
 
@@ -7209,7 +7209,7 @@ router.put('/groups/:id/aanwezigheid', requireDM, (req, res) => {
   // typefout onzichtbaar maken, dus die filteren we er hier hard uit.
   dmState.groups[id].afwezig = [...new Set((req.body.afwezig || []).filter(cid => leden.has(cid)))];
   storage.writeJSON('dm-state.json', dmState);
-  req.app.get('io').to(req.session?.campaignId||'main').emit('groups:updated', { groups: groupInfoList(dmState), activeGroup: dmState.activeGroup });
+  req.app.get('io').to(_campagneRoom(req)).emit('groups:updated', { groups: groupInfoList(dmState), activeGroup: dmState.activeGroup });
   res.json({ id, afwezig: dmState.groups[id].afwezig });
 });
 
@@ -7251,7 +7251,7 @@ router.put('/groups/:id/password', requireDM, (req, res) => {
   if (!dmState.groups[id]) return res.status(404).json({ error: 'Groep niet gevonden' });
   dmState.groups[id].password = password?.trim() || null;
   storage.writeJSON('dm-state.json', dmState);
-  req.app.get('io').to(req.session?.campaignId||'main').emit('groups:updated', { groups: groupInfoList(dmState), activeGroup: dmState.activeGroup });
+  req.app.get('io').to(_campagneRoom(req)).emit('groups:updated', { groups: groupInfoList(dmState), activeGroup: dmState.activeGroup });
   res.json({ ok: true });
 });
 
@@ -7263,7 +7263,7 @@ router.delete('/groups/:id', requireDM, (req, res) => {
   if (dmState.activeGroup === id) return res.status(400).json({ error: 'Wissel eerst van groep voor je deze verwijdert' });
   delete dmState.groups[id];
   storage.writeJSON('dm-state.json', dmState);
-  req.app.get('io').to(req.session?.campaignId||'main').emit('groups:updated', { groups: groupInfoList(dmState), activeGroup: dmState.activeGroup });
+  req.app.get('io').to(_campagneRoom(req)).emit('groups:updated', { groups: groupInfoList(dmState), activeGroup: dmState.activeGroup });
   res.json({ ok: true });
 });
 
@@ -7354,7 +7354,7 @@ router.post('/relations/edges', requireDM, (req, res) => {
   };
   data.edges.push(edge);
   storage.writeJSON('relations.json', data);
-  req.app.get('io').to(req.session?.campaignId||'main').emit('relations:updated');
+  req.app.get('io').to(_campagneRoom(req)).emit('relations:updated');
   res.json(edge);
 });
 
@@ -7362,7 +7362,7 @@ router.put('/relations/edges', requireDM, (req, res) => {
   const data = storage.readJSON('relations.json');
   data.edges = req.body.edges || [];
   storage.writeJSON('relations.json', data);
-  req.app.get('io').to(req.session?.campaignId||'main').emit('relations:updated');
+  req.app.get('io').to(_campagneRoom(req)).emit('relations:updated');
   res.json({ ok: true });
 });
 
@@ -7375,7 +7375,7 @@ router.put('/relations/edges/:id', requireDM, (req, res) => {
   data.edges[idx] = { ...data.edges[idx], ...req.body, id: req.params.id };
   storage.writeJSON('relations.json', data);
   const ev = (!wasRevealed && data.edges[idx].labelRevealed) ? 'relations:revealed' : 'relations:updated';
-  req.app.get('io').to(req.session?.campaignId||'main').emit(ev, { id: req.params.id });
+  req.app.get('io').to(_campagneRoom(req)).emit(ev, { id: req.params.id });
   res.json(data.edges[idx]);
 });
 
@@ -7384,7 +7384,7 @@ router.delete('/relations/edges/:id', requireDM, (req, res) => {
   if (!data.edges) return res.json({});
   data.edges = data.edges.filter(e => e.id !== req.params.id);
   storage.writeJSON('relations.json', data);
-  req.app.get('io').to(req.session?.campaignId||'main').emit('relations:updated');
+  req.app.get('io').to(_campagneRoom(req)).emit('relations:updated');
   res.json({});
 });
 
@@ -7419,7 +7419,7 @@ router.post('/sessieLog', requireDM, (req, res) => {
   };
   archief.sessieLog.push(entry);
   storage.writeJSON('archief.json', archief);
-  req.app.get('io').to(req.session?.campaignId||'main').emit('logboek:updated', { id: entry.id });
+  req.app.get('io').to(_campagneRoom(req)).emit('logboek:updated', { id: entry.id });
   res.status(201).json(entry);
 });
 
@@ -7458,10 +7458,10 @@ router.post('/sessieLog/:id/onthul', requireDM, (req, res) => {
   storage.writeJSON('dm-state.json', dmState);
 
   const io = req.app.get('io');
-  io?.to(req.session?.campaignId || 'main').emit('logboek:updated', { id: req.params.id });
+  io?.to(_campagneRoom(req)).emit('logboek:updated', { id: req.params.id });
   if (!wasZichtbaar) {
     const img = (entry.images || []).find(i => (typeof i === 'string' ? i : i.id) === fileId);
-    io?.to(req.session?.campaignId || 'main').emit('logboek:imageRevealed', {
+    io?.to(_campagneRoom(req)).emit('logboek:imageRevealed', {
       sessieId:     req.params.id,
       imageId:      fileId,
       caption:      (img && typeof img === 'object' ? img.caption : '') || cap || '',
@@ -7485,7 +7485,7 @@ router.post('/sessieLog/:id/verberg', requireDM, (req, res) => {
   const g = dmState.groups[gid];
   if (g.imageVis) delete g.imageVis[fileId];
   storage.writeJSON('dm-state.json', dmState);
-  req.app.get('io')?.to(req.session?.campaignId || 'main').emit('logboek:updated', { id: req.params.id });
+  req.app.get('io')?.to(_campagneRoom(req)).emit('logboek:updated', { id: req.params.id });
   res.json({ ok: true, groupId: gid });
 });
 
@@ -7497,7 +7497,7 @@ router.put('/sessieLog/:id', requireDM, (req, res) => {
   const oldEntry = archief.sessieLog[idx];
   archief.sessieLog[idx] = { ...oldEntry, ...req.body, id: req.params.id };
   storage.writeJSON('archief.json', archief);
-  req.app.get('io').to(req.session?.campaignId||'main').emit('logboek:updated', { id: req.params.id });
+  req.app.get('io').to(_campagneRoom(req)).emit('logboek:updated', { id: req.params.id });
 
   if (Array.isArray(req.body.images)) {
     const oldImages = oldEntry.images || [];
@@ -7506,7 +7506,7 @@ router.put('/sessieLog/:id', requireDM, (req, res) => {
       const prev      = oldImages.find(o => (typeof o === 'string' ? o : o.id) === img.id);
       const wasHidden = prev && typeof prev !== 'string' && prev.visible === false;
       if (wasHidden) {
-        req.app.get('io').to(req.session?.campaignId||'main').emit('logboek:imageRevealed', {
+        req.app.get('io').to(_campagneRoom(req)).emit('logboek:imageRevealed', {
           sessieId:     req.params.id,
           imageId:      img.id,
           caption:      img.caption || '',
@@ -7553,7 +7553,7 @@ router.put('/sessieLog/chapter/:key/reset-images', requireDM, (req, res) => {
     }
     if (perParty > 0) storage.writeJSON('dm-state.json', dmState);
   }
-  req.app.get('io')?.to(req.session?.campaignId || 'main').emit('archief:updated');
+  req.app.get('io')?.to(_campagneRoom(req)).emit('archief:updated');
   res.json({ ok: true, reset: count, perParty });
 });
 
@@ -7562,7 +7562,7 @@ router.delete('/sessieLog/:id', requireDM, (req, res) => {
   if (!archief.sessieLog) archief.sessieLog = [];
   archief.sessieLog = archief.sessieLog.filter(e => e.id !== req.params.id);
   storage.writeJSON('archief.json', archief);
-  req.app.get('io').to(req.session?.campaignId||'main').emit('logboek:updated', { id: req.params.id, deleted: true });
+  req.app.get('io').to(_campagneRoom(req)).emit('logboek:updated', { id: req.params.id, deleted: true });
   res.json({ ok: true });
 });
 
@@ -7617,7 +7617,7 @@ router.post('/quests', requireDM, (req, res) => {
     _writeQuestStates(groepId, states);
   }
 
-  req.app.get('io').to(req.session?.campaignId||'main').emit('quests:updated');
+  req.app.get('io').to(_campagneRoom(req)).emit('quests:updated');
   res.json(quest);
 });
 
@@ -7646,7 +7646,7 @@ router.put('/quests/:id', requireDM, (req, res) => {
     }
   }
 
-  req.app.get('io').to(req.session?.campaignId||'main').emit('quests:updated');
+  req.app.get('io').to(_campagneRoom(req)).emit('quests:updated');
   res.json({ ...data.quests[idx], status: status ?? undefined });
 });
 
@@ -7686,7 +7686,7 @@ router.post('/quests/:id/accepteer', attachRole, (req, res) => {
 
   const char = (storage.readJSON('entities.json').personages || []).find(e => e.id === charId);
   const io = req.app.get('io');
-  const room = req.session?.campaignId || 'main';
+  const room = _campagneRoom(req);
   io.to(room).emit('quests:updated');
   io.to(room).emit('missie:aanvraag', { missieId: quest.id, titel: quest.title, door: char?.name || 'Onbekende speler', factieId: quest.factieId });
   res.json({ ok: true });
@@ -7697,7 +7697,7 @@ router.delete('/quests/:id', requireDM, (req, res) => {
   if (!data.quests) return res.json({});
   data.quests = data.quests.filter(q => q.id !== req.params.id);
   storage.writeJSON('quests.json', data);
-  req.app.get('io').to(req.session?.campaignId||'main').emit('quests:updated');
+  req.app.get('io').to(_campagneRoom(req)).emit('quests:updated');
   res.json({});
 });
 
@@ -7979,7 +7979,7 @@ router.put('/sounds', requireDM, (req, res) => {
   }
   storage.writeJSON('sounds.json', data);
   // Clients hun sound-config laten herladen (fixt staleness van nieuw ingestelde loops).
-  req.app.get('io').to(req.session?.campaignId || 'main').emit('sounds:updated');
+  req.app.get('io').to(_campagneRoom(req)).emit('sounds:updated');
   res.json(data);
 });
 
@@ -7993,7 +7993,7 @@ router.post('/sounds/ambiance', requireDM, (req, res) => {
   if (actief && !scene) return res.status(404).json({ error: 'Scène niet gevonden' });
   data.ambiance.actief = scene ? scene.id : null;
   storage.writeJSON('sounds.json', data);
-  req.app.get('io').to(req.session?.campaignId || 'main').emit('sound:ambiance', {
+  req.app.get('io').to(_campagneRoom(req)).emit('sound:ambiance', {
     actief: data.ambiance.actief,
     fileId: scene?.fileId || null,
     label:  scene?.label  || null,
@@ -8008,7 +8008,7 @@ router.post('/sounds/ambiance', requireDM, (req, res) => {
 router.post('/sounds/reveal', requireDM, (req, res) => {
   const { fileId, label, loop } = req.body;
   if (!fileId) return res.status(400).json({ error: 'fileId vereist' });
-  req.app.get('io').to(req.session?.campaignId || 'main').emit('sound:reveal', {
+  req.app.get('io').to(_campagneRoom(req)).emit('sound:reveal', {
     fileId: String(fileId),
     label:  label ? String(label).slice(0, 100) : '',
     loop:   !!loop,
@@ -8157,7 +8157,7 @@ router.post('/spreuken/eigen', requireDM, (req, res) => {
   const spreuk = _spreukUitBody(req.body, index);
   d.eigenSpreuken.push(spreuk);
   storage.writeJSON('spells.json', d);
-  req.app.get('io').to(req.session?.campaignId || 'main').emit('spells:updated', { index });
+  req.app.get('io').to(_campagneRoom(req)).emit('spells:updated', { index });
   res.status(201).json(spreuk);
 });
 
@@ -8169,7 +8169,7 @@ router.put('/spreuken/eigen/:index', requireDM, (req, res) => {
   if (!String(req.body?.name || '').trim()) return res.status(400).json({ error: 'Een spreuk heeft een naam nodig' });
   d.eigenSpreuken[i] = _spreukUitBody(req.body, req.params.index);
   storage.writeJSON('spells.json', d);
-  req.app.get('io').to(req.session?.campaignId || 'main').emit('spells:updated', { index: req.params.index });
+  req.app.get('io').to(_campagneRoom(req)).emit('spells:updated', { index: req.params.index });
   res.json(d.eigenSpreuken[i]);
 });
 
@@ -8177,7 +8177,7 @@ router.delete('/spreuken/eigen/:index', requireDM, (req, res) => {
   const d = storage.readJSON('spells.json');
   d.eigenSpreuken = (d.eigenSpreuken || []).filter(s => s.index !== req.params.index);
   storage.writeJSON('spells.json', d);
-  req.app.get('io').to(req.session?.campaignId || 'main').emit('spells:updated', { index: req.params.index });
+  req.app.get('io').to(_campagneRoom(req)).emit('spells:updated', { index: req.params.index });
   res.json({ ok: true });
 });
 
@@ -8194,7 +8194,7 @@ router.put('/bron/spreuk/:index', requireDM, (req, res) => {
   if (!desc.length && !hoger.length) delete d.eigen[index];
   else d.eigen[index] = { desc, higher_level: hoger };
   storage.writeJSON('spells.json', d);
-  req.app.get('io').to(req.session?.campaignId || 'main').emit('spells:updated', { index });
+  req.app.get('io').to(_campagneRoom(req)).emit('spells:updated', { index });
   res.json({ index, desc, higher_level: hoger });
 });
 
@@ -8226,7 +8226,7 @@ router.put('/progression', requireDM, (req, res) => {
     backgrounds: body.backgrounds && typeof body.backgrounds === 'object' ? body.backgrounds : undefined,
   };
   storage.writeJSON('progression.json', clean);
-  req.app.get('io').to(req.session?.campaignId || 'main').emit('progression:updated', {});
+  req.app.get('io').to(_campagneRoom(req)).emit('progression:updated', {});
   res.json({ ok: true });
 });
 
@@ -8315,7 +8315,7 @@ router.post('/progression/feature', requireDM, (req, res) => {
   doelLijst.push(regel);
 
   storage.writeJSON('progression.json', { ...prog, bron: prog.bron || 'Aangepast door de DM' });
-  req.app.get('io').to(req.session?.campaignId || 'main').emit('progression:updated', {});
+  req.app.get('io').to(_campagneRoom(req)).emit('progression:updated', {});
   res.json({ ok: true, regel });
 });
 
@@ -8331,14 +8331,14 @@ router.post('/progression/feature/verwijderen', requireDM, (req, res) => {
   if (i < 0) return res.status(404).json({ error: 'Niet gevonden' });
   lijst.splice(i, 1);
   storage.writeJSON('progression.json', { ...prog, bron: prog.bron || 'Aangepast door de DM' });
-  req.app.get('io').to(req.session?.campaignId || 'main').emit('progression:updated', {});
+  req.app.get('io').to(_campagneRoom(req)).emit('progression:updated', {});
   res.json({ ok: true });
 });
 
 // Reset naar de meegeleverde seed (verwijder de campagne-override).
 router.delete('/progression', requireDM, (req, res) => {
   storage.writeJSON('progression.json', {});
-  req.app.get('io').to(req.session?.campaignId || 'main').emit('progression:updated', {});
+  req.app.get('io').to(_campagneRoom(req)).emit('progression:updated', {});
   res.json({ ok: true });
 });
 
@@ -8704,7 +8704,7 @@ router.put('/meta/akte/:key/bladwijzer', requireDM, (req, res) => {
     meta.hoofdstukken[req.params.key].bladwijzer = { titel, index, op: new Date().toISOString() };
   }
   storage.writeJSON('meta.json', meta);
-  req.app.get('io').to(req.session?.campaignId || 'main').emit('meta:updated');
+  req.app.get('io').to(_campagneRoom(req)).emit('meta:updated');
   res.json({ ok: true, bladwijzer: meta.hoofdstukken[req.params.key].bladwijzer || null });
 });
 
@@ -8717,7 +8717,7 @@ router.put('/meta/akte/:key/bereikbaarheid', requireDM, (req, res) => {
     entiteiten: (req.body.entiteiten || []).map(String).slice(0, 200),
   };
   storage.writeJSON('meta.json', meta);
-  req.app.get('io').to(req.session?.campaignId||'main').emit('meta:updated');
+  req.app.get('io').to(_campagneRoom(req)).emit('meta:updated');
   res.json(meta.hoofdstukken[req.params.key].onbereikbaar);
 });
 
@@ -8731,7 +8731,7 @@ router.put('/meta/akte/:key/documenten', requireDM, (req, res) => {
   meta.hoofdstukken[req.params.key].documenten =
     [...new Set((req.body.documenten || []).map(String))].filter(id => bestaat.has(id)).slice(0, 200);
   storage.writeJSON('meta.json', meta);
-  req.app.get('io').to(req.session?.campaignId||'main').emit('meta:updated');
+  req.app.get('io').to(_campagneRoom(req)).emit('meta:updated');
   res.json({ documenten: meta.hoofdstukken[req.params.key].documenten });
 });
 
@@ -8751,7 +8751,7 @@ router.put('/meta/akte/:key/monsters', requireDM, (req, res) => {
   meta.hoofdstukken[req.params.key].monsters =
     [...new Set((req.body.monsters || []).map(String))].filter(id => bestaat.has(id)).slice(0, 200);
   storage.writeJSON('meta.json', meta);
-  req.app.get('io').to(req.session?.campaignId||'main').emit('meta:updated');
+  req.app.get('io').to(_campagneRoom(req)).emit('meta:updated');
   res.json({ monsters: meta.hoofdstukken[req.params.key].monsters });
 });
 
@@ -8763,7 +8763,7 @@ router.put('/meta/spell-image-focus/:index', requireDM, (req, res) => {
   if (focus) meta.spellImageFocus[req.params.index] = focus;
   else delete meta.spellImageFocus[req.params.index];
   storage.writeJSON('meta.json', meta);
-  req.app.get('io').to(req.session?.campaignId||'main').emit('meta:updated');
+  req.app.get('io').to(_campagneRoom(req)).emit('meta:updated');
   res.json({ ok: true, focus });
 });
 
@@ -8804,7 +8804,7 @@ router.put('/meta/app', requireDM, (req, res) => {
     else if (pad.startsWith('/')) meta.embleem = pad;
   }
   storage.writeJSON('meta.json', meta);
-  req.app.get('io').to(req.session?.campaignId||'main').emit('meta:updated');
+  req.app.get('io').to(_campagneRoom(req)).emit('meta:updated');
   res.json({ appTitle: meta.appTitle, appSubtitle: meta.appSubtitle, currency: meta.currency, inOverzicht: meta.inOverzicht !== false, embleem: meta.embleem || '' });
 });
 
@@ -8823,7 +8823,7 @@ router.put('/meta/hoofdstuk/:key', requireDM, (req, res) => {
     spelersSamenvatting: req.body.spelersSamenvatting || '',
   };
   storage.writeJSON('meta.json', meta);
-  req.app.get('io').to(req.session?.campaignId||'main').emit('meta:updated');
+  req.app.get('io').to(_campagneRoom(req)).emit('meta:updated');
   res.json(meta.hoofdstukken[req.params.key]);
 });
 
@@ -8834,7 +8834,7 @@ router.put('/meta/akte/:key/script', requireDM, (req, res) => {
   if (!meta.hoofdstukken[req.params.key]) meta.hoofdstukken[req.params.key] = {};
   meta.hoofdstukken[req.params.key].script = Array.isArray(req.body.script) ? req.body.script : [];
   storage.writeJSON('meta.json', meta);
-  req.app.get('io').to(req.session?.campaignId||'main').emit('meta:updated');
+  req.app.get('io').to(_campagneRoom(req)).emit('meta:updated');
   res.json({ script: meta.hoofdstukken[req.params.key].script });
 });
 
@@ -8850,7 +8850,7 @@ router.put('/meta/akte/:key/tekst', requireDM, (req, res) => {
   if (!meta.hoofdstukken[req.params.key]) meta.hoofdstukken[req.params.key] = {};
   meta.hoofdstukken[req.params.key].tekst = String(req.body.tekst || '').slice(0, 400000);
   storage.writeJSON('meta.json', meta);
-  req.app.get('io').to(req.session?.campaignId||'main').emit('meta:updated');
+  req.app.get('io').to(_campagneRoom(req)).emit('meta:updated');
   res.json({ ok: true, lengte: meta.hoofdstukken[req.params.key].tekst.length });
 });
 
@@ -8933,7 +8933,7 @@ router.post('/akte/actief', requireDM, (req, res) => {
   if (gid && dmState.groups?.[gid]) dmState.groups[gid].activeAkte = akte;
   dmState.activeAkte = akte;   // spiegel: laatst gespeelde akte, terugval voor oude lezers
   storage.writeJSON('dm-state.json', dmState);
-  req.app.get('io').to(req.session?.campaignId||'main').emit('ursula:updated');
+  req.app.get('io').to(_campagneRoom(req)).emit('ursula:updated');
   res.json(akte);
 });
 
@@ -9041,7 +9041,7 @@ router.post('/akte/:key/hervat', requireDM, (req, res) => {
   delete g.akteVoortgang[req.params.key].pauze;
   storage.writeJSON('dm-state.json', dmState);
   if (toegepast.length) {
-    req.app.get('io').to(req.session?.campaignId || 'main').emit('player:hp-updated');
+    req.app.get('io').to(_campagneRoom(req)).emit('player:hp-updated');
   }
   res.json({ ok: true, toegepast });
 });
@@ -9068,7 +9068,7 @@ router.put('/meta/herberg', requireDM, (req, res) => {
     if (req.body[f] !== undefined) meta.herberg[f] = req.body[f];
   }
   storage.writeJSON('meta.json', meta);
-  req.app.get('io').to(req.session?.campaignId||'main').emit('meta:updated');
+  req.app.get('io').to(_campagneRoom(req)).emit('meta:updated');
   res.json(meta.herberg);
 });
 
@@ -9205,7 +9205,7 @@ router.put('/meta/rust', requireDM, (req, res) => {
     if (req.body[f] !== undefined) meta.rust[f] = req.body[f];
   }
   storage.writeJSON('meta.json', meta);
-  req.app.get('io').to(req.session?.campaignId||'main').emit('meta:updated');
+  req.app.get('io').to(_campagneRoom(req)).emit('meta:updated');
   res.json(meta.rust);
 });
 
@@ -9233,7 +9233,7 @@ router.post('/map/maps', requireDM, (req, res) => {
   if (req.body.imageId) map.imageId = req.body.imageId;  // mediabibliotheek-afbeelding
   mapData.maps.push(map);
   storage.writeJSON('map.json', mapData);
-  req.app.get('io').to(req.session?.campaignId||'main').emit('map:updated');
+  req.app.get('io').to(_campagneRoom(req)).emit('map:updated');
   res.json(map);
 });
 
@@ -9257,7 +9257,7 @@ router.put('/map/maps/:id', requireDM, (req, res) => {
   // Het kaartje in de galerij snijdt de afbeelding bij; dit zegt wat er in beeld blijft.
   if (req.body.thumbFocus !== undefined) map.thumbFocus = String(req.body.thumbFocus || '').slice(0, 20);
   storage.writeJSON('map.json', mapData);
-  req.app.get('io').to(req.session?.campaignId||'main').emit('map:updated');
+  req.app.get('io').to(_campagneRoom(req)).emit('map:updated');
   res.json(map);
 });
 
@@ -9271,7 +9271,7 @@ router.delete('/map/maps/:id', requireDM, (req, res) => {
   if (map && !map.src) {                              // ingebouwde kaarten (src) overslaan
     _deleteFileIfUnused(map.imageId || map.id);       // bibliotheek-afbeelding of oude upload op map-id
   }
-  req.app.get('io').to(req.session?.campaignId||'main').emit('map:updated');
+  req.app.get('io').to(_campagneRoom(req)).emit('map:updated');
   res.json({ ok: true });
 });
 
@@ -9356,7 +9356,7 @@ router.post('/map/pins', attachRole, (req, res) => {
     };
     mapData.pins.push(pin);
     storage.writeJSON('map.json', mapData);
-    req.app.get('io').to(req.session?.campaignId||'main').emit('map:updated');
+    req.app.get('io').to(_campagneRoom(req)).emit('map:updated');
     return res.json(pin);
   }
 
@@ -9396,7 +9396,7 @@ router.post('/map/pins', attachRole, (req, res) => {
 
   // Stuur notificatie naar DM
   const io = req.app.get('io');
-  io.to(req.session?.campaignId||'main').emit('pin:pending', { id: pin.id, locName: loc.name, placedByName: pin.placedByName });
+  io.to(_campagneRoom(req)).emit('pin:pending', { id: pin.id, locName: loc.name, placedByName: pin.placedByName });
 
   res.json(pin);
 });
@@ -9413,7 +9413,7 @@ router.put('/map/pins/:id/approve', requireDM, (req, res) => {
   delete pin.placedByName;
   storage.writeJSON('map.json', mapData);
   const io = req.app.get('io');
-  io.to(req.session?.campaignId||'main').emit('map:updated');
+  io.to(_campagneRoom(req)).emit('map:updated');
   // Stuur bevestiging naar de speler die de pin heeft geplaatst
   const entities = storage.readJSON('entities.json');
   const loc = (entities.locaties || []).find(l => l.id === pin.locId);
@@ -9448,7 +9448,7 @@ router.delete('/map/pins/:id', requireDM, (req, res) => {
   mapData.pins = mapData.pins.filter(p => p.id !== req.params.id);
   storage.writeJSON('map.json', mapData);
   const io = req.app.get('io');
-  io.to(req.session?.campaignId||'main').emit('map:updated');
+  io.to(_campagneRoom(req)).emit('map:updated');
   // Als dit een pending pin was: stuur afwijzing naar de speler
   if (pin.pending && placedBy) {
     const entities = storage.readJSON('entities.json');
@@ -9469,7 +9469,7 @@ let _tunnelUrl = null;
 
 router.post('/tunnel/start', requireDM, (req, res) => {
   _io = req.app.get('io');
-  _tunnelRoom = req.session?.campaignId || 'main';
+  _tunnelRoom = _campagneRoom(req);
   if (_tunnelProcess) return res.json({ status: 'running', url: _tunnelUrl });
   _tunnelUrl = null;
 
@@ -9607,7 +9607,7 @@ router.post('/monsters', requireDM, (req, res) => {
   };
   data.monsters = [...(data.monsters || []), monster];
   storage.writeJSON('monsters.json', data);
-  req.app.get('io')?.to(req.session?.campaignId || 'main').emit('bestiarium:updated');
+  req.app.get('io')?.to(_campagneRoom(req)).emit('bestiarium:updated');
   res.status(201).json(monster);
 });
 
@@ -9617,7 +9617,7 @@ router.put('/monsters/:id', requireDM, (req, res) => {
   if (idx === -1) return res.status(404).json({ error: 'Not found' });
   data.monsters[idx] = { ...data.monsters[idx], ...req.body, id: req.params.id };
   storage.writeJSON('monsters.json', data);
-  req.app.get('io')?.to(req.session?.campaignId || 'main').emit('bestiarium:updated');
+  req.app.get('io')?.to(_campagneRoom(req)).emit('bestiarium:updated');
   res.json(data.monsters[idx]);
 });
 
@@ -9628,7 +9628,7 @@ router.delete('/monsters/:id', requireDM, (req, res) => {
   storage.writeJSON('monsters.json', data);
   // Geüploade afbeeldingen opruimen als ze nergens anders meer gebruikt worden
   for (const fid of [dying?.imageId, dying?.backdropId]) if (fid) _deleteFileIfUnused(fid);
-  req.app.get('io')?.to(req.session?.campaignId || 'main').emit('bestiarium:updated');
+  req.app.get('io')?.to(_campagneRoom(req)).emit('bestiarium:updated');
   res.json({ ok: true });
 });
 
@@ -9705,7 +9705,7 @@ router.put('/bestiarium/:monsterId', requireDM, (req, res) => {
   else if (_BEST_NIVEAUS.includes(niveau)) g.bestiarium[monsterId] = niveau;
   else return res.status(400).json({ error: 'Ongeldig niveau' });
   storage.writeJSON('dm-state.json', dmState);
-  req.app.get('io').to(req.session?.campaignId || 'main').emit('bestiarium:updated');
+  req.app.get('io').to(_campagneRoom(req)).emit('bestiarium:updated');
   res.json({ ok: true });
 });
 
@@ -9825,7 +9825,7 @@ router.post('/combat/start', requireDM, (req, res) => {
     }
     if (changed) {
       storage.writeJSON('dm-state.json', dmState);
-      req.app.get('io').to(req.session?.campaignId||'main').emit('bestiarium:updated');
+      req.app.get('io').to(_campagneRoom(req)).emit('bestiarium:updated');
     }
   }
 
@@ -9860,13 +9860,13 @@ function _dumpCombatLog(combat, req) {
     terugkerendLocaties: [], organisaties: [], voorwerpen: [], docs: [], nieuw: [], terugkerend: [],
   });
   storage.writeJSON('archief.json', archief);
-  req.app.get('io').to(req.session?.campaignId || 'main').emit('logboek:updated', {});
+  req.app.get('io').to(_campagneRoom(req)).emit('logboek:updated', {});
 }
 
 router.delete('/combat', requireDM, (req, res) => {
   // Persisteer speler-HP naar dm-state vóór het wissen van het gevecht
   const prevCombat = storage.readJSON('combat.json');
-  _flushPlayerHpToDmState(prevCombat, req.app.get('io'), req.session?.campaignId||'main');
+  _flushPlayerHpToDmState(prevCombat, req.app.get('io'), _campagneRoom(req));
   _dumpCombatLog(prevCombat, req);
   const combat = { active: false, round: 1, currentTurn: 0, combatants: [] };
   storage.writeJSON('combat.json', combat);
@@ -9989,10 +9989,10 @@ router.put('/combat/combatant/:id', requireDM, (req, res) => {
   storage.writeJSON('combat.json', combat);
   // Sync speler-HP naar dm-state zodat speler-tab altijd actueel is
   if (req.body.hp !== undefined || req.body.maxHp !== undefined) {
-    _flushPlayerHpToDmState(combat, req.app.get('io'), req.session?.campaignId||'main');
+    _flushPlayerHpToDmState(combat, req.app.get('io'), _campagneRoom(req));
   }
   const io   = req.app.get('io');
-  const room = req.session?.campaignId || 'main';
+  const room = _campagneRoom(req);
   // Huisdier overlijdt na 3 gefaalde death saves → ontkoppel als companion + markeer overleden.
   const cur = combat.combatants[idx];
   if (req.body.deathSaves && (req.body.deathSaves.failures || 0) >= 3 && cur.entityId) {
@@ -10045,7 +10045,7 @@ router.put('/combat/winner', requireDM, (req, res) => {
   combat.winner = req.body.winner || null;
   storage.writeJSON('combat.json', combat);
   // Gevecht eindigt: persisteer finale HP naar dm-state
-  _flushPlayerHpToDmState(combat, req.app.get('io'), req.session?.campaignId||'main');
+  _flushPlayerHpToDmState(combat, req.app.get('io'), _campagneRoom(req));
   _zendCombat(req, combat);
   res.json({ ok: true });
 });
@@ -10341,7 +10341,7 @@ router.put('/combat/loot', requireDM, (req, res) => {
       if (!dmState.playerItems) dmState.playerItems = {};
       if (!dmState.playerItems[characterId]) dmState.playerItems[characterId] = [];
       dmState.playerItems[characterId].push(_lootItemToPlayerItem(it));
-      req.app.get('io').to(req.session?.campaignId || 'main').emit('player:items-updated', { characterId, items: dmState.playerItems[characterId] });
+      req.app.get('io').to(_campagneRoom(req)).emit('player:items-updated', { characterId, items: dmState.playerItems[characterId] });
     }
   }
   storage.writeJSON('dm-state.json', dmState);
@@ -10354,7 +10354,7 @@ router.post('/combat/loot/reveal', requireDM, (req, res) => {
   if (!lp) return res.status(404).json({ error: 'Geen lootfase' });
   lp.actief = true;
   storage.writeJSON('dm-state.json', dmState);
-  const io = req.app.get('io'); const room = req.session?.campaignId || 'main';
+  const io = req.app.get('io'); const room = _campagneRoom(req);
   io.to(room).emit('loot:aangeboden', { deelnemers: lp.deelnemers });
   io.to(_displayRoom(req)).emit('loot:display', _lootDisplay(lp));
   // Het onthullingsgeluid is generiek: één keuze per campagne (Geluiden-tab),
@@ -10377,7 +10377,7 @@ router.post('/combat/loot/claim', attachRole, (req, res) => {
   const idx = it.claims.indexOf(characterId);
   if (idx >= 0) it.claims.splice(idx, 1); else it.claims.push(characterId);
   storage.writeJSON('dm-state.json', dmState);
-  const _io = req.app.get('io'); const _room = req.session?.campaignId || 'main';
+  const _io = req.app.get('io'); const _room = _campagneRoom(req);
   _io.to(_room).emit('loot:claim-update', { itemId: it.id, claimCount: it.claims.length });
   _io.to(_displayRoom(req)).emit('loot:display', _lootDisplay(lp));
   res.json({ ok: true, ikClaim: it.claims.includes(characterId), claimCount: it.claims.length });
@@ -10388,7 +10388,7 @@ router.post('/combat/loot/verdeeld', requireDM, (req, res) => {
   const lp = dmState.lootPhase;
   if (!lp) return res.status(404).json({ error: 'Geen lootfase' });
   if (!dmState.playerItems) dmState.playerItems = {};
-  const io = req.app.get('io'); const room = req.session?.campaignId || 'main';
+  const io = req.app.get('io'); const room = _campagneRoom(req);
   const geraakt = new Set();
   const uitslag = { items: [], goud: {} };
 
@@ -10451,7 +10451,7 @@ router.delete('/combat/loot', requireDM, (req, res) => {
   const dmState = readDmState();
   delete dmState.lootPhase;
   storage.writeJSON('dm-state.json', dmState);
-  req.app.get('io').to(req.session?.campaignId || 'main').emit('loot:verdeeld', { uitslag: null, geannuleerd: true });
+  req.app.get('io').to(_campagneRoom(req)).emit('loot:verdeeld', { uitslag: null, geannuleerd: true });
   res.json({ ok: true });
 });
 
@@ -10862,7 +10862,7 @@ router.put('/diensten/toegang', requireDM, (req, res) => {
 
   storage.writeJSON('dm-state.json', dmState);
   const io = req.app.get('io');
-  const room = req.session?.campaignId || 'main';
+  const room = _campagneRoom(req);
   io.to(room).emit('diensten:toegang:updated');
   for (const o of onthuld) io.to(room).emit('entity:visibility', { id: o.id, type: o.type, name: o.name, visibility: 'visible' });
   res.json({ ok: true, onthuld: onthuld.map(o => o.name) });
@@ -10923,7 +10923,7 @@ router.post('/diensten/:dienst/uitnodiging', requireDM, (req, res) => {
   }
 
   const io = req.app.get('io');
-  const room = req.session?.campaignId || 'main';
+  const room = _campagneRoom(req);
   io.to(room).emit('diensten:toegang:updated');
   io.to(room).emit('visibility:updated');
   res.json({ ok: true, bezorgd });
@@ -11075,8 +11075,8 @@ router.post('/ursula/voorspel', attachRole, vereistDienst('ursula'), (req, res) 
   }
 
   const io = req.app.get('io');
-  io.to(req.session?.campaignId||'main').emit('player:currency-updated', { characterId, currency: _effectiveCurrency(dmState, characterId) });
-  io.to(req.session?.campaignId||'main').emit('ursula:updated');
+  io.to(_campagneRoom(req)).emit('player:currency-updated', { characterId, currency: _effectiveCurrency(dmState, characterId) });
+  io.to(_campagneRoom(req)).emit('ursula:updated');
 
   res.json({ ok: true, roll, onthuld, currency: _effectiveCurrency(dmState, characterId) });
 });
@@ -11108,7 +11108,7 @@ router.put('/ursula/voorspelling/:akteKey', requireDM, (req, res) => {
     concreet:(b.concreet|| '').trim(),
   };
   storage.writeJSON('meta.json', meta);
-  req.app.get('io').to(req.session?.campaignId||'main').emit('meta:updated');
+  req.app.get('io').to(_campagneRoom(req)).emit('meta:updated');
   res.json(meta.ursula.voorspellingen[req.params.akteKey]);
 });
 
@@ -11121,7 +11121,7 @@ router.post('/ursula/reset', requireDM, (req, res) => {
     else g.voorspellingen = {};
   }
   storage.writeJSON('dm-state.json', dmState);
-  req.app.get('io').to(req.session?.campaignId||'main').emit('ursula:updated');
+  req.app.get('io').to(_campagneRoom(req)).emit('ursula:updated');
   res.json({ ok: true });
 });
 
@@ -11198,7 +11198,7 @@ router.get('/gock', attachRole, (req, res) => {
   const dmState = readDmState();
   const io = req.app.get('io');
 
-  if (_gockCheckReady(dmState, io, req.session?.campaignId)) storage.writeJSON('dm-state.json', dmState);
+  if (_gockCheckReady(dmState, io, _campagneRoom(req))) storage.writeJSON('dm-state.json', dmState);
 
   const playerCase = characterId ? ((dmState.gockState || {})[characterId] || null) : null;
   const currency = _effectiveCurrency(dmState, characterId);
@@ -11293,7 +11293,7 @@ router.post('/gock/opdracht', attachRole, vereistDienst('gock'), (req, res) => {
 
   storage.writeJSON('dm-state.json', dmState);
   const io = req.app.get('io');
-  io.to(req.session?.campaignId||'main').emit('player:currency-updated', { characterId, currency: _effectiveCurrency(dmState, characterId) });
+  io.to(_campagneRoom(req)).emit('player:currency-updated', { characterId, currency: _effectiveCurrency(dmState, characterId) });
   // Alleen melden als het écht op de DM wacht. Eén geheim (of de terugval op de
   // algemene lijst) regelt zichzelf bij de volgende lange rust; daar hoeft
   // niemand voor gewaarschuwd te worden.
@@ -11377,7 +11377,7 @@ router.post('/gock/verzoek/:characterId/kies', requireDM, (req, res) => {
   }
 
   storage.writeJSON('dm-state.json', dmState);
-  req.app.get('io')?.to(req.session?.campaignId || 'main').emit('gock:updated', {});
+  req.app.get('io')?.to(_campagneRoom(req)).emit('gock:updated', {});
   res.json({ ok: true, gekozen: geval.gekozen, tekst: geval.tekst });
 });
 
@@ -11440,7 +11440,7 @@ router.put('/gock/opgehaald', attachRole, vereistDienst('gock'), (req, res) => {
     entityType: geval.entityType,
   });
   const io = req.app.get('io');
-  io.to(req.session?.campaignId||'main').emit('player:items-updated', { characterId, items: dmState.playerItems[characterId] });
+  io.to(_campagneRoom(req)).emit('player:items-updated', { characterId, items: dmState.playerItems[characterId] });
   res.json({ ok: true });
 });
 
@@ -11449,7 +11449,7 @@ router.put('/meta/tweespalt', requireDM, (req, res) => {
   if (!meta.tweespalt) meta.tweespalt = {};
   ['naam', 'groet', 'imageId', 'backdropId', 'arena', 'geldschieter'].forEach(f => { if (req.body[f] !== undefined) meta.tweespalt[f] = req.body[f]; });
   storage.writeJSON('meta.json', meta);
-  req.app.get('io').to(req.session?.campaignId||'main').emit('meta:updated');
+  req.app.get('io').to(_campagneRoom(req)).emit('meta:updated');
   res.json(meta.tweespalt);
 });
 
@@ -11458,7 +11458,7 @@ router.put('/meta/ursula', requireDM, (req, res) => {
   if (!meta.ursula) meta.ursula = {};
   ['naam', 'prijs', 'imageId', 'backdropId'].forEach(f => { if (req.body[f] !== undefined) meta.ursula[f] = req.body[f]; });
   storage.writeJSON('meta.json', meta);
-  req.app.get('io').to(req.session?.campaignId||'main').emit('meta:updated');
+  req.app.get('io').to(_campagneRoom(req)).emit('meta:updated');
   res.json(meta.ursula);
 });
 
@@ -11467,7 +11467,7 @@ router.put('/meta/gock', requireDM, (req, res) => {
   if (!meta.gock) meta.gock = {};
   ['naam', 'prijs', 'tidbits', 'imageId', 'backdropId'].forEach(f => { if (req.body[f] !== undefined) meta.gock[f] = req.body[f]; });
   storage.writeJSON('meta.json', meta);
-  req.app.get('io').to(req.session?.campaignId||'main').emit('meta:updated');
+  req.app.get('io').to(_campagneRoom(req)).emit('meta:updated');
   res.json(meta.gock);
 });
 
@@ -11598,7 +11598,7 @@ router.post('/magizoo/adopteer', attachRole, vereistDienst('magizoo'), (req, res
   });
 
   const io = req.app.get('io');
-  const room = req.session?.campaignId || 'main';
+  const room = _campagneRoom(req);
   io.to(room).emit('companion:link', { npcId: petId, name: naam, groupId: gid });
   io.to(room).emit('player:currency-updated', { characterId, currency: nieuweSaldo });
 
@@ -11666,7 +11666,7 @@ router.post('/magizoo/onderzoek', attachRole, vereistDienst('magizoo'), (req, re
 
   storage.writeJSON('dm-state.json', dmState);
   const io = req.app.get('io');
-  const room = req.session?.campaignId || 'main';
+  const room = _campagneRoom(req);
   io.to(room).emit('bestiarium:updated');
   io.to(room).emit('player:currency-updated', { characterId, currency: nieuweSaldo });
 
@@ -11684,7 +11684,7 @@ router.put('/meta/magizoo', requireDM, (req, res) => {
   ['naam', 'groet', 'imageId', 'backdropId', 'prijs', 'prijsVolledig', 'cooldownMinuten']
     .forEach(f => { if (req.body[f] !== undefined) meta.magizoo[f] = req.body[f]; });
   storage.writeJSON('meta.json', meta);
-  req.app.get('io').to(req.session?.campaignId||'main').emit('meta:updated');
+  req.app.get('io').to(_campagneRoom(req)).emit('meta:updated');
   res.json(meta.magizoo);
 });
 
@@ -11835,9 +11835,9 @@ router.post('/tempel/zegen', attachRole, vereistDienst('tempel'), (req, res) => 
   storage.writeJSON('dm-state.json', dmState);
 
   const io = req.app.get('io');
-  if (_zs) io.to(req.session?.campaignId||'main').emit('party-currency:updated', { currency: _zc });
-  else io.to(req.session?.campaignId||'main').emit('player:currency-updated', { characterId, currency: _zc });
-  io.to(req.session?.campaignId||'main').emit('player:items-updated', { characterId, items: dmState.playerItems[characterId] });
+  if (_zs) io.to(_campagneRoom(req)).emit('party-currency:updated', { currency: _zc });
+  else io.to(_campagneRoom(req)).emit('player:currency-updated', { characterId, currency: _zc });
+  io.to(_campagneRoom(req)).emit('player:items-updated', { characterId, items: dmState.playerItems[characterId] });
 
   res.json({ ok: true, item, rolls, currency: _zc });
 });
@@ -11861,7 +11861,7 @@ router.post('/tempel/verbruik', attachRole, vereistDienst('tempel'), (req, res) 
   storage.writeJSON('dm-state.json', dmState);
 
   const io = req.app.get('io');
-  io.to(req.session?.campaignId||'main').emit('player:items-updated', { characterId, items: dmState.playerItems[characterId] });
+  io.to(_campagneRoom(req)).emit('player:items-updated', { characterId, items: dmState.playerItems[characterId] });
 
   res.json({ ok: true, removed, uses: removed ? 0 : item.uses });
 });
@@ -11912,9 +11912,9 @@ router.post('/tempel/eed', attachRole, vereistDienst('tempel'), (req, res) => {
   storage.writeJSON('dm-state.json', dmState);
 
   const io = req.app.get('io');
-  if (_es) io.to(req.session?.campaignId||'main').emit('party-currency:updated', { currency: _ec });
-  else io.to(req.session?.campaignId||'main').emit('player:currency-updated', { characterId, currency: _ec });
-  io.to(req.session?.campaignId||'main').emit('player:items-updated', { characterId, items: dmState.playerItems[characterId] });
+  if (_es) io.to(_campagneRoom(req)).emit('party-currency:updated', { currency: _ec });
+  else io.to(_campagneRoom(req)).emit('player:currency-updated', { characterId, currency: _ec });
+  io.to(_campagneRoom(req)).emit('player:items-updated', { characterId, items: dmState.playerItems[characterId] });
 
   res.json({ ok: true, item, currency: _ec });
 });
@@ -11942,9 +11942,9 @@ router.post('/tempel/boete', attachRole, vereistDienst('tempel'), (req, res) => 
   storage.writeJSON('dm-state.json', dmState);
 
   const io = req.app.get('io');
-  if (_bs) io.to(req.session?.campaignId||'main').emit('party-currency:updated', { currency: _bc });
-  else io.to(req.session?.campaignId||'main').emit('player:currency-updated', { characterId, currency: _bc });
-  io.to(req.session?.campaignId||'main').emit('player:items-updated', { characterId, items: dmState.playerItems[characterId] });
+  if (_bs) io.to(_campagneRoom(req)).emit('party-currency:updated', { currency: _bc });
+  else io.to(_campagneRoom(req)).emit('player:currency-updated', { characterId, currency: _bc });
+  io.to(_campagneRoom(req)).emit('player:items-updated', { characterId, items: dmState.playerItems[characterId] });
 
   res.json({ ok: true, currency: _bc });
 });
@@ -11984,8 +11984,8 @@ router.post('/tempel/eed/verbreek', requireDM, (req, res) => {
   storage.writeJSON('dm-state.json', dmState);
 
   const io = req.app.get('io');
-  io.to(req.session?.campaignId||'main').emit('player:items-updated', { characterId, items: dmState.playerItems[characterId] });
-  io.to(req.session?.campaignId||'main').emit('player:vloek', { characterId, godNaam: eed.godNaam || 'een god', vloekEffect: eed.vloekEffect || '' });
+  io.to(_campagneRoom(req)).emit('player:items-updated', { characterId, items: dmState.playerItems[characterId] });
+  io.to(_campagneRoom(req)).emit('player:vloek', { characterId, godNaam: eed.godNaam || 'een god', vloekEffect: eed.vloekEffect || '' });
   res.json({ ok: true });
 });
 
@@ -11999,7 +11999,7 @@ router.post('/tempel/eed/hef', requireDM, (req, res) => {
   dmState.playerItems[characterId] = lijst.filter(i => !i.eed);
   storage.writeJSON('dm-state.json', dmState);
   const io = req.app.get('io');
-  io.to(req.session?.campaignId||'main').emit('player:items-updated', { characterId, items: dmState.playerItems[characterId] });
+  io.to(_campagneRoom(req)).emit('player:items-updated', { characterId, items: dmState.playerItems[characterId] });
   res.json({ ok: true });
 });
 
@@ -12008,7 +12008,7 @@ router.put('/meta/tempel', requireDM, (req, res) => {
   if (!meta.tempel) meta.tempel = {};
   ['naam', 'prijs', 'eedPrijs', 'boetePrijs', 'imageId', 'backdropId', 'voorwerpNaam', 'goden'].forEach(f => { if (req.body[f] !== undefined) meta.tempel[f] = req.body[f]; });
   storage.writeJSON('meta.json', meta);
-  req.app.get('io').to(req.session?.campaignId||'main').emit('meta:updated');
+  req.app.get('io').to(_campagneRoom(req)).emit('meta:updated');
   res.json(meta.tempel);
 });
 
@@ -12272,7 +12272,7 @@ router.post('/facties/:id/rang', requireDM, (req, res) => {
   if (!g.facties[factie.id]) g.facties[factie.id] = { rang: 0 };
   g.facties[factie.id].rang = isNaN(rang) ? 0 : Math.max(0, Math.min(rang, maxIdx));
   storage.writeJSON('dm-state.json', dmState);
-  req.app.get('io').to(req.session?.campaignId||'main').emit('facties:updated');
+  req.app.get('io').to(_campagneRoom(req)).emit('facties:updated');
   res.json({ ok: true, id: factie.id, rang: g.facties[factie.id].rang });
 });
 
@@ -12296,7 +12296,7 @@ router.post('/facties/:id/reveal', requireDM, (req, res) => {
   }
   storage.writeJSON('dm-state.json', dmState);
   const io = req.app.get('io');
-  const room = req.session?.campaignId || 'main';
+  const room = _campagneRoom(req);
   io.to(room).emit('facties:updated');
   if (factie.entityId) io.to(room).emit('visibility:updated');
   res.json({ ok: true, id: factie.id, zichtbaar: g.factieZichtbaar[factie.id] });
@@ -12353,7 +12353,7 @@ router.post('/facties/:id/uitnodiging', requireDM, (req, res) => {
   }
 
   const io = req.app.get('io');
-  const room = req.session?.campaignId || 'main';
+  const room = _campagneRoom(req);
   io.to(room).emit('facties:updated');
   if (factie.entityId) io.to(room).emit('visibility:updated');
   res.json({ ok: true, bezorgd, zichtbaar: true });
@@ -12485,7 +12485,7 @@ router.post('/facties/:id/renown', requireDM, (req, res) => {
 
   storage.writeJSON('dm-state.json', dmState);
   const io = req.app.get('io');
-  const room = req.session?.campaignId || 'main';
+  const room = _campagneRoom(req);
   io.to(room).emit('facties:updated');
   if (uit.boons || uit.voorwerpen.length) io.to(room).emit('player:items-updated', {});
   if (uit.winkelsOpen.length) io.to(room).emit('entities:updated', {});
@@ -12558,8 +12558,8 @@ router.put('/meta/facties', requireDM, (req, res) => {
   }));
   storage.writeJSON('meta.json', meta);
   const io = req.app.get('io');
-  io.to(req.session?.campaignId||'main').emit('meta:updated');
-  io.to(req.session?.campaignId||'main').emit('facties:updated');
+  io.to(_campagneRoom(req)).emit('meta:updated');
+  io.to(_campagneRoom(req)).emit('facties:updated');
   res.json({ facties: meta.facties });
 });
 
@@ -12629,7 +12629,7 @@ router.post('/facties/:id/hulp', attachRole, (req, res) => {
 
   storage.writeJSON('dm-state.json', dmState);
   const io = req.app.get('io');
-  const room = req.session?.campaignId || 'main';
+  const room = _campagneRoom(req);
   io.to(room).emit('facties:updated');
   io.to(room).emit('companions:updated', {});
   res.json({ ok: true, hulp: g.factieHulp[factie.id] });
@@ -12649,7 +12649,7 @@ router.delete('/facties/:id/hulp', attachRole, (req, res) => {
   _factieHulpWeg(g, req.params.id);
   storage.writeJSON('dm-state.json', dmState);
   const io = req.app.get('io');
-  const room = req.session?.campaignId || 'main';
+  const room = _campagneRoom(req);
   io.to(room).emit('facties:updated');
   io.to(room).emit('companions:updated', {});
   res.json({ ok: true });
@@ -12736,7 +12736,7 @@ router.post('/missies', requireDM, (req, res) => {
     ts:             Date.now(),
   };
   _writeMissie(missie);
-  req.app.get('io').to(req.session?.campaignId||'main').emit('missies:updated');
+  req.app.get('io').to(_campagneRoom(req)).emit('missies:updated');
   res.status(201).json(missie);
 });
 
@@ -12748,7 +12748,7 @@ router.put('/missies/:id', requireDM, (req, res) => {
   const allowed = ['titel','tekst','vereistRenown','renownBeloning','valuta','stijl','status','factieId'];
   allowed.forEach(f => { if (req.body[f] !== undefined) archief.logEntries[idx][f] = req.body[f]; });
   storage.writeJSON('archief.json', archief);
-  req.app.get('io').to(req.session?.campaignId||'main').emit('missies:updated');
+  req.app.get('io').to(_campagneRoom(req)).emit('missies:updated');
   res.json(archief.logEntries[idx]);
 });
 
@@ -12770,7 +12770,7 @@ router.post('/missies/:id/accepteer', attachRole, (req, res) => {
   missie.aangevraagdNaam = char?.name || 'Onbekende speler';
   storage.writeJSON('archief.json', archief);
   const io = req.app.get('io');
-  const room = req.session?.campaignId || 'main';
+  const room = _campagneRoom(req);
   io.to(room).emit('missies:updated');
   io.to(room).emit('missie:aanvraag', { missieId: missie.id, titel: missie.titel, door: missie.aangevraagdNaam, factieId: missie.factieId });
   res.json({ ok: true });
@@ -12785,8 +12785,8 @@ router.post('/missies/:id/goedkeuren', requireDM, (req, res) => {
   if (missie.status !== 'aangevraagd') return res.status(400).json({ error: 'Geen openstaande aanvraag' });
   missie.status = 'actief';
   storage.writeJSON('archief.json', archief);
-  req.app.get('io').to(req.session?.campaignId||'main').emit('missies:updated');
-  req.app.get('io').to(req.session?.campaignId||'main').emit('missie:geactiveerd', { missieId: missie.id, titel: missie.titel });
+  req.app.get('io').to(_campagneRoom(req)).emit('missies:updated');
+  req.app.get('io').to(_campagneRoom(req)).emit('missie:geactiveerd', { missieId: missie.id, titel: missie.titel });
   res.json({ ok: true });
 });
 
@@ -12804,7 +12804,7 @@ router.post('/missies/:id/voltooien', requireDM, (req, res) => {
   const gid = missie.groepId;
   const g = gid ? getGroup(dmState, gid) : null;
   const io = req.app.get('io');
-  const room = req.session?.campaignId || 'main';
+  const room = _campagneRoom(req);
   // Renown en alles wat een rangstijging ontgrendelt gaat via dezelfde helper
   // als het handmatig bijstellen door de DM. Hier stond een tweede kopie die
   // alleen voorwerp-boons kende, ze als losse boedelregel uitdeelde en niet
@@ -12863,8 +12863,8 @@ router.post('/missies/:id/falen', requireDM, (req, res) => {
   if (idx < 0) return res.status(404).json({ error: 'Missie niet gevonden' });
   archief.logEntries[idx].status = 'gefaald';
   storage.writeJSON('archief.json', archief);
-  req.app.get('io').to(req.session?.campaignId||'main').emit('missies:updated');
-  req.app.get('io').to(req.session?.campaignId||'main').emit('missie:gefaald', { missieId: archief.logEntries[idx].id, titel: archief.logEntries[idx].titel });
+  req.app.get('io').to(_campagneRoom(req)).emit('missies:updated');
+  req.app.get('io').to(_campagneRoom(req)).emit('missie:gefaald', { missieId: archief.logEntries[idx].id, titel: archief.logEntries[idx].titel });
   res.json({ ok: true });
 });
 
@@ -12874,7 +12874,7 @@ router.put('/locatie', requireDM, (req, res) => {
   const meta = storage.readJSON('meta.json');
   if (req.body.buitenGrisburgh !== undefined) meta.buitenGrisburgh = Boolean(req.body.buitenGrisburgh);
   storage.writeJSON('meta.json', meta);
-  req.app.get('io').to(req.session?.campaignId||'main').emit('meta:updated');
+  req.app.get('io').to(_campagneRoom(req)).emit('meta:updated');
   res.json({ buitenGrisburgh: meta.buitenGrisburgh });
 });
 
@@ -12887,7 +12887,7 @@ router.put('/locatie/entiteit', requireDM, (req, res) => {
   if (idx === -1) meta.buitenGrisburgEntiteiten.push(entityId);
   else            meta.buitenGrisburgEntiteiten.splice(idx, 1);
   storage.writeJSON('meta.json', meta);
-  req.app.get('io').to(req.session?.campaignId||'main').emit('meta:updated');
+  req.app.get('io').to(_campagneRoom(req)).emit('meta:updated');
   res.json({ buitenGrisburgEntiteiten: meta.buitenGrisburgEntiteiten });
 });
 
@@ -13032,7 +13032,7 @@ router.post('/herberg/vraag', attachRole, vereistDienst('herberg'), (req, res) =
   storage.writeJSON('herberg-state.json', herbergState);
 
   // Stuur socket-event zodat kaarten refreshen
-  req.app.get('io').to(req.session?.campaignId||'main').emit('entity:updated', { type: foundType, id: entityId });
+  req.app.get('io').to(_campagneRoom(req)).emit('entity:updated', { type: foundType, id: entityId });
 
   res.json({
     flavour: foundEntity.data.flavour,
@@ -13106,7 +13106,7 @@ router.post('/herberg/bestel', attachRole, vereistDienst('herberg'), (req, res) 
   storage.writeJSON('dm-state.json', dmState);
 
   const io = req.app.get('io');
-  const room = req.session?.campaignId || 'main';
+  const room = _campagneRoom(req);
   const currency = _effectiveCurrency(dmState, characterId);
   io.to(room).emit('player:currency-updated', { characterId, currency });
   if (tempHp !== null) io.to(room).emit('player:hp-updated', { characterId, ...dmState.playerHp[characterId] });
@@ -13273,7 +13273,7 @@ router.get('/tweespalt', attachRole, (req, res) => {
   for (const event of ts.events) {
     if (event.status === 'open' && event.uitkomstModus === 'auto' && event.sluitTijd) {
       if (new Date(event.sluitTijd) <= now) {
-        _tsResolveEvent(dmState, event, io, req.session?.campaignId || 'main');
+        _tsResolveEvent(dmState, event, io, _campagneRoom(req));
         needsSave = true;
       }
     }
@@ -13373,7 +13373,7 @@ router.post('/tweespalt/events', requireDM, (req, res) => {
 
   ts.events.push(event);
   storage.writeJSON('dm-state.json', dmState);
-  req.app.get('io').to(req.session?.campaignId||'main').emit('tweespalt:updated');
+  req.app.get('io').to(_campagneRoom(req)).emit('tweespalt:updated');
   res.status(201).json(event);
 });
 
@@ -13403,7 +13403,7 @@ router.put('/tweespalt/events/:id', requireDM, (req, res) => {
   }
 
   storage.writeJSON('dm-state.json', dmState);
-  req.app.get('io').to(req.session?.campaignId||'main').emit('tweespalt:updated');
+  req.app.get('io').to(_campagneRoom(req)).emit('tweespalt:updated');
   res.json(event);
 });
 
@@ -13422,7 +13422,7 @@ router.delete('/tweespalt/events/:id', requireDM, (req, res) => {
 
   ts.events.splice(idx, 1);
   storage.writeJSON('dm-state.json', dmState);
-  req.app.get('io').to(req.session?.campaignId||'main').emit('tweespalt:updated');
+  req.app.get('io').to(_campagneRoom(req)).emit('tweespalt:updated');
   res.json({ ok: true });
 });
 
@@ -13455,8 +13455,8 @@ router.post('/tweespalt/events/:id/wedden', attachRole, vereistDienst('tweespalt
 
   storage.writeJSON('dm-state.json', dmState);
   const io = req.app.get('io');
-  io.to(req.session?.campaignId||'main').emit('tweespalt:updated');
-  io.to(req.session?.campaignId||'main').emit('player:currency-updated', { characterId, currency: _effectiveCurrency(dmState, characterId) });
+  io.to(_campagneRoom(req)).emit('tweespalt:updated');
+  io.to(_campagneRoom(req)).emit('player:currency-updated', { characterId, currency: _effectiveCurrency(dmState, characterId) });
   res.json({ ok: true, currency: _effectiveCurrency(dmState, characterId) });
 });
 
@@ -13470,7 +13470,7 @@ router.post('/tweespalt/events/:id/uitslag', requireDM, (req, res) => {
   if (event.uitkomstModus === 'dm' && req.body.uitkomst) event.uitkomst = req.body.uitkomst;
 
   const io = req.app.get('io');
-  const result = _tsResolveEvent(dmState, event, io, req.session?.campaignId || 'main');
+  const result = _tsResolveEvent(dmState, event, io, _campagneRoom(req));
   storage.writeJSON('dm-state.json', dmState);
 
   // Haastig gekrabbeld briefje aan elke wedder met de uitslag
@@ -13529,7 +13529,7 @@ router.post('/tweespalt/arena/:boutId/aanmeld', attachRole, vereistDienst('twees
   ts.arenaSignups.push(signup);
   storage.writeJSON('dm-state.json', dmState);
 
-  const io = req.app.get('io'); const room = req.session?.campaignId || 'main';
+  const io = req.app.get('io'); const room = _campagneRoom(req);
   io.to(room).emit('tweespalt:updated');
   if (inzetCl > 0) io.to(room).emit('player:currency-updated', { characterId, currency: _effectiveCurrency(dmState, characterId) });
   res.json({ ok: true, signup });
@@ -13552,7 +13552,7 @@ router.post('/tweespalt/arena/signup/:id/uitslag', requireDM, (req, res) => {
   const signup = ts.arenaSignups.find(s => s.id === req.params.id);
   if (!signup) return res.status(404).json({ error: 'Inschrijving niet gevonden' });
 
-  const io = req.app.get('io'); const room = req.session?.campaignId || 'main';
+  const io = req.app.get('io'); const room = _campagneRoom(req);
   const prijs = parsePrijs(signup.prijs || '0');
   const prijsCl = prijs ? toCl(prijs) : 0;
 
@@ -13628,8 +13628,8 @@ router.post('/tweespalt/leen', attachRole, vereistDienst('tweespalt'), (req, res
 
   storage.writeJSON('dm-state.json', dmState);
   const io = req.app.get('io');
-  io.to(req.session?.campaignId||'main').emit('player:currency-updated', { characterId, currency: _effectiveCurrency(dmState, characterId) });
-  io.to(req.session?.campaignId||'main').emit('player:items-updated', { characterId });
+  io.to(_campagneRoom(req)).emit('player:currency-updated', { characterId, currency: _effectiveCurrency(dmState, characterId) });
+  io.to(_campagneRoom(req)).emit('player:items-updated', { characterId });
   res.json({ ok: true, currency: _effectiveCurrency(dmState, characterId), lening: _tsSchuld(lening, dmState, characterId) });
 });
 
@@ -13708,7 +13708,7 @@ router.put('/chapter-visibility/:groepId/:chapterId', requireDM, (req, res) => {
     cv[groepId][chapterId] = false;
   }
   _writeChapterVisibility(cv);
-  req.app.get('io').to(req.session?.campaignId||'main').emit('chapter-visibility:updated');
+  req.app.get('io').to(_campagneRoom(req)).emit('chapter-visibility:updated');
   res.json({ ok: true, groepId, chapterId, visible });
 });
 
@@ -13814,7 +13814,7 @@ router.post('/party-board/node', attachRole, (req, res) => {
     node.hasImage   = !!(ent?.data?.imgFocus);
   }
 
-  req.app.get('io').to(req.session?.campaignId||'main').emit('party-board:updated', { groepId });
+  req.app.get('io').to(_campagneRoom(req)).emit('party-board:updated', { groepId });
   res.json(node);
 });
 
@@ -13916,7 +13916,7 @@ router.post('/party-board/organogram', attachRole, (req, res) => {
   }
 
   _writePartyBoard(groepId, board);
-  req.app.get('io').to(req.session?.campaignId || 'main').emit('party-board:updated', { groepId });
+  req.app.get('io').to(_campagneRoom(req)).emit('party-board:updated', { groepId });
   res.json({ ok: true, leden: zichtbaar.length });
 });
 
@@ -13931,7 +13931,7 @@ router.delete('/party-board/node/:id', attachRole, (req, res) => {
   board.edges  = (board.edges || []).filter(e => e.from !== nodeId && e.to !== nodeId);
   _writePartyBoard(groepId, board);
 
-  req.app.get('io').to(req.session?.campaignId||'main').emit('party-board:updated', { groepId });
+  req.app.get('io').to(_campagneRoom(req)).emit('party-board:updated', { groepId });
   res.json({ ok: true });
 });
 
@@ -13951,7 +13951,7 @@ router.put('/party-board/node/:id', attachRole, (req, res) => {
   if (req.body.y     !== undefined)   node.y     = req.body.y;
 
   _writePartyBoard(groepId, board);
-  if (changed.length) req.app.get('io').to(req.session?.campaignId||'main').emit('party-board:updated', { groepId });
+  if (changed.length) req.app.get('io').to(_campagneRoom(req)).emit('party-board:updated', { groepId });
   res.json({ ok: true });
 });
 
@@ -13974,7 +13974,7 @@ router.post('/party-board/edge', attachRole, (req, res) => {
   board.edges.push(edge);
   _writePartyBoard(groepId, board);
 
-  req.app.get('io').to(req.session?.campaignId||'main').emit('party-board:updated', { groepId });
+  req.app.get('io').to(_campagneRoom(req)).emit('party-board:updated', { groepId });
   res.json(edge);
 });
 
@@ -13987,7 +13987,7 @@ router.delete('/party-board/edge/:id', attachRole, (req, res) => {
   board.edges = (board.edges || []).filter(e => e.id !== req.params.id);
   _writePartyBoard(groepId, board);
 
-  req.app.get('io').to(req.session?.campaignId||'main').emit('party-board:updated', { groepId });
+  req.app.get('io').to(_campagneRoom(req)).emit('party-board:updated', { groepId });
   res.json({ ok: true });
 });
 
@@ -14004,7 +14004,7 @@ router.put('/party-board/edge/:id', attachRole, (req, res) => {
   if (req.body.color !== undefined) edge.color = req.body.color;
 
   _writePartyBoard(groepId, board);
-  req.app.get('io').to(req.session?.campaignId||'main').emit('party-board:updated', { groepId });
+  req.app.get('io').to(_campagneRoom(req)).emit('party-board:updated', { groepId });
   res.json({ ok: true });
 });
 
@@ -14102,7 +14102,7 @@ router.post('/dungeons', requireDM, (req, res) => {
   if (Number.isFinite(_v)) map.verdieping = _v;
   maps.push(map);
   _writeDungeons(maps);
-  req.app.get('io').to(req.session?.campaignId||'main').emit('dungeon:updated');
+  req.app.get('io').to(_campagneRoom(req)).emit('dungeon:updated');
   res.json(map);
 });
 
@@ -14126,7 +14126,7 @@ router.put('/dungeons/:id', requireDM, (req, res) => {
     if (Number.isFinite(v)) map.verdieping = v; else delete map.verdieping;
   }
   _writeDungeons(maps);
-  req.app.get('io').to(req.session?.campaignId||'main').emit('dungeon:updated');
+  req.app.get('io').to(_campagneRoom(req)).emit('dungeon:updated');
   res.json(map);
 });
 
@@ -14135,7 +14135,7 @@ router.delete('/dungeons/:id', requireDM, (req, res) => {
   let maps = _readDungeons();
   maps = maps.filter(m => m.id !== req.params.id);
   _writeDungeons(maps);
-  req.app.get('io').to(req.session?.campaignId||'main').emit('dungeon:updated');
+  req.app.get('io').to(_campagneRoom(req)).emit('dungeon:updated');
   res.json({ ok: true });
 });
 
@@ -14165,7 +14165,7 @@ router.post('/dungeons/:id/reveal', requireDM, (req, res) => {
     map.reveals[groupId].push(roomId);
   }
   _writeDungeons(maps);
-  req.app.get('io').to(req.session?.campaignId||'main').emit('dungeon:revealed', { dungeonId: map.id, groupId, roomId });
+  req.app.get('io').to(_campagneRoom(req)).emit('dungeon:revealed', { dungeonId: map.id, groupId, roomId });
   res.json({ ok: true });
 });
 
@@ -14180,7 +14180,7 @@ router.delete('/dungeons/:id/reveal', requireDM, (req, res) => {
     map.reveals[groupId] = map.reveals[groupId].filter(id => id !== roomId);
   }
   _writeDungeons(maps);
-  req.app.get('io').to(req.session?.campaignId||'main').emit('dungeon:hidden', { dungeonId: map.id, groupId, roomId });
+  req.app.get('io').to(_campagneRoom(req)).emit('dungeon:hidden', { dungeonId: map.id, groupId, roomId });
   res.json({ ok: true });
 });
 
@@ -14194,7 +14194,7 @@ router.put('/dungeons/:id/party-access', requireDM, (req, res) => {
   map.partyAccess   = partyAccess;
   map.partyCompleted = partyCompleted;
   _writeDungeons(maps);
-  req.app.get('io').to(req.session?.campaignId||'main').emit('dungeon:updated');
+  req.app.get('io').to(_campagneRoom(req)).emit('dungeon:updated');
   res.json({ ok: true });
 });
 
@@ -14208,7 +14208,7 @@ router.post('/dungeons/:id/grant-access', requireDM, (req, res) => {
   if (!Array.isArray(map.partyAccess)) map.partyAccess = [];
   if (!map.partyAccess.includes(groupId)) map.partyAccess.push(groupId);
   _writeDungeons(maps);
-  req.app.get('io').to(req.session?.campaignId||'main').emit('dungeon:updated');
+  req.app.get('io').to(_campagneRoom(req)).emit('dungeon:updated');
   res.json({ ok: true, partyAccess: map.partyAccess });
 });
 
@@ -14353,7 +14353,7 @@ router.post('/encounters/:id/start', requireDM, (req, res) => {
   combatants.sort((a, b) => b.initiative - a.initiative);
 
   const prevCombat = storage.readJSON('combat.json');
-  _flushPlayerHpToDmState(prevCombat, req.app.get('io'), req.session?.campaignId || 'main');
+  _flushPlayerHpToDmState(prevCombat, req.app.get('io'), _campagneRoom(req));
 
   const combat = {
     active:       false,

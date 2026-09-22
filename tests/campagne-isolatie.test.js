@@ -183,6 +183,31 @@ describe('Campagne-isolatie', () => {
   });
 
   // ── De personagekiezer op de landingspagina ──
+  it('richt socket-events op de campagne van het verzoek, niet op die van de sessie', () => {
+    // Het pad bepaalt de campagne, de sessie bepaalt je rol — maar de
+    // room-naam kwam overal uit `req.session?.campaignId || 'main'`. Een sessie
+    // zonder campaignId stuurde daardoor naar room 'main' (de quarantaine voor
+    // sockets zonder sessie) terwijl de echte sockets in 'grisburgh' zitten:
+    // dan komt er bij niemand iets aan. Nagemeten in de browser met een
+    // DEV_AUTO_DM-sessie — geen enkel event.
+    const api = fs.readFileSync(path.join(__dirname, '..', 'routes', 'api.js'), 'utf8');
+    // Op héle regels toetsen: `huidigeCampagne()` staat vóór de terugval, dus
+    // een match vanaf het trefwoord mist die context.
+    const regels = api.split('\n');
+    // Wat mag blijven: de terugval ín _campagneRoom zelf, en de plekken die
+    // vragen *wiens* campagne dit is (beheerrechten, Spotify-tokens, de naam).
+    // De context loopt door over twee regels, want zo'n terugval is soms een
+    // meerregelige expressie.
+    const mag = /huidigeCampagne|getActiveCampaignId|catch\s*\{/;
+    const fout = regels
+      .map((r, i) => ({ r, ctx: r + regels[i + 1] + regels[i + 2] }))
+      .filter(x => x.r.includes('req.session?.campaignId') && !mag.test(x.ctx))
+      .map(x => x.r.trim());
+    assert.deepStrictEqual(fout, [],
+      'deze plekken leiden de room nog uit de sessie af in plaats van uit het verzoek:\n  ' + fout.join('\n  '));
+    assert.ok(/function _campagneRoom\(/.test(api), 'er is één helper die de room bepaalt');
+  });
+
   it('toont per campagne alleen de eigen personages', async () => {
     const lijst = await spelerLijst(server, 'beta');
     assert.equal(lijst.status, 200);
