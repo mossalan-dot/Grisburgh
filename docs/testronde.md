@@ -870,6 +870,12 @@ Per bevinding: waar, wat, en of het opgelost is. Nieuwe regels onderaan.
 - Koop een zegen: je rolt en krijgt er één van die god, met de prijs eraf. Zweer een eed: de andere goden gaan op slot ("Je bent al door een eed gebonden"). Laat de DM de eed verbreken → er staat een **vloek** waar de eed stond; doe boete → weg.
 - Meesterkamer → Diensten → Tempel toont de lopende eden per speler met hun status.
 
+### Gevecht: een mislukte wijziging valt niet meer stil (23 sep 2026)
+
+- Start een gevecht, trek de **netwerkkabel eruit** (of zet je wifi uit) en klik op HP−. Er verschijnt *"Wijziging niet opgeslagen: Failed to fetch"*. Vroeger gebeurde er niets en stond de fout alleen in de console — je klikt, er verandert niets, en je weet niet of het aankwam.
+- Geldt voor alle twaalf knoppen van de gevechtsbediening: HP, temp HP, initiative, condities en death saves.
+- Bij een gelukte wijziging komt er géén melding (anders staat er de hele avond een balkje).
+
 ### Instellingen: een waarde die niet wordt bewaard zegt het nu (23 sep 2026)
 
 - Instellingen → **Naslag elders**: typ `duckduckgo.com/?q={zoek}` (zonder `https://`) en sla op. Er komt een melding *"Een naslag-link moet met http:// of https:// beginnen"*. Vroeger stond er "✓ Opgeslagen" en was het veld bij de volgende keer openen gewoon leeg.

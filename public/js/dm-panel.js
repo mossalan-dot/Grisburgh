@@ -4902,6 +4902,20 @@ async function _combatApplyHeal(id) {
   if (inp) inp.value = '';
 };
 
+// Een mislukte schrijfactie in een gevecht hoort niet in de console te
+// verdwijnen. Deze twaalf knoppen — HP, temp HP, initiative, condities, death
+// saves — gebruik je midden in een sessie; als er dan niets gebeurt moet je
+// wéten of het aankwam, niet raden. De melding noemt de fout, want "er ging
+// iets mis" helpt niemand verder.
+function _combatFout(e) {
+  console.error(e);
+  // De lokale toast, niet `window._showToast`: dit paneel heeft zijn eigen
+  // (die de tekst veilig via textContent zet) en die wordt hier overal
+  // gebruikt. De globale heeft bovendien een andere handtekening — daar is het
+  // tweede argument een klikactie, geen duur.
+  _showToast(`${icon('x')} Wijziging niet opgeslagen: ${e?.message || 'onbekende fout'}`, 5000);
+}
+
 async function _combatHpChange(id, delta) {
   const c = _combat?.combatants?.find(x => x.id === id);
   if (!c) return;
@@ -4933,7 +4947,7 @@ async function _combatHpChange(id, delta) {
       if (newHp > 0 && c.deathSaves) updates.deathSaves = { successes: 0, failures: 0 };
       await api.updateCombatant(id, updates);
     }
-  } catch (e) { console.error(e); }
+  } catch (e) { _combatFout(e); }
 };
 
 async function _combatHpInput(id, val) {
@@ -4955,7 +4969,7 @@ async function _combatHpInput(id, val) {
       updates.deathSaves = { successes: 0, failures: 0 };
   }
   try { await api.updateCombatant(id, updates); }
-  catch (e) { console.error(e); }
+  catch (e) { _combatFout(e); }
 };
 
 // ── Speler past eigen HP aan in gevecht ──
@@ -4965,7 +4979,7 @@ async function _playerHpChange(id, delta) {
   if (!c) return;
   const newHp = Math.max(0, Math.min(c.maxHp || 999, (c.hp || 0) + delta));
   try { await api.combatPlayerHp(id, newHp); }
-  catch (e) { console.error(e); }
+  catch (e) { _combatFout(e); }
 };
 
 async function _playerHpInput(id, val) {
@@ -4973,28 +4987,28 @@ async function _playerHpInput(id, val) {
   if (!c) return;
   const newHp = Math.max(0, Math.min(c.maxHp || 999, parseInt(val) || 0));
   try { await api.combatPlayerHp(id, newHp); }
-  catch (e) { console.error(e); }
+  catch (e) { _combatFout(e); }
 };
 
 async function _combatThpChange(id, delta) {
   const c = _combat?.combatants?.find(x => x.id === id);
   if (!c) return;
   try { await api.updateCombatant(id, { tempHp: Math.max(0, (c.tempHp || 0) + delta) }); }
-  catch (e) { console.error(e); }
+  catch (e) { _combatFout(e); }
 };
 
 async function _combatThpInput(id, val) {
   const newThp = parseInt(val);
   if (isNaN(newThp)) return;
   try { await api.updateCombatant(id, { tempHp: Math.max(0, newThp) }); }
-  catch (e) { console.error(e); }
+  catch (e) { _combatFout(e); }
 };
 
 async function _combatInitChange(id, val) {
   const init = parseInt(val);
   if (isNaN(init)) return;
   try { await api.updateCombatant(id, { initiative: init }); }
-  catch (e) { console.error(e); }
+  catch (e) { _combatFout(e); }
 };
 
 async function _combatCondToggle(id, condId) {
@@ -5005,7 +5019,7 @@ async function _combatCondToggle(id, condId) {
     ? conditions.filter(x => x !== condId)
     : [...conditions, condId];
   try { await api.updateCombatant(id, { conditions }); }
-  catch (e) { console.error(e); }
+  catch (e) { _combatFout(e); }
 };
 
 async function _combatRemove(id) {
@@ -5034,7 +5048,7 @@ async function _combatDeathSave(id, type) {
 
   if (type === 'reset') {
     try { await api.updateCombatant(id, { deathSaves: { successes: 0, failures: 0 } }); }
-    catch (e) { console.error(e); }
+    catch (e) { _combatFout(e); }
     return;
   }
 
@@ -5049,15 +5063,15 @@ async function _combatDeathSave(id, type) {
     updates.deathSaves = { successes: 0, failures: 0 };
     updates.conditions = [...new Set([...(c.conditions || []), 'unconscious'])];
     try { await api.updateCombatant(id, updates); }
-    catch (e) { console.error(e); }
+    catch (e) { _combatFout(e); }
     _showToast(`${c.name} is stabiel — bewusteloos maar levend.`);
   } else if (ds.failures >= 3) {
     try { await api.updateCombatant(id, updates); }
-    catch (e) { console.error(e); }
+    catch (e) { _combatFout(e); }
     _showToast(`${icon('skull')} ${c.name} is gestorven`);
   } else {
     try { await api.updateCombatant(id, updates); }
-    catch (e) { console.error(e); }
+    catch (e) { _combatFout(e); }
   }
 };
 
