@@ -891,6 +891,16 @@ Per bevinding: waar, wat, en of het opgelost is. Nieuwe regels onderaan.
 - Geef je electrum en platinum géén naam in Instellingen, dan staat er niets extra's; alleen het bedrag.
 - Open daarna het venster **Loot verdelen**: daar staat dezelfde bijzin *"— waarvan 3 Lion d'or · 1 Gouden Adelaer"*. Pas je het bedrag daar met de hand aan, dan verandert (of verdwijnt) die bijzin mee — ook na herladen.
 
+### Tafels: een worp op een voorwerp en een tabel uit een akte (23 sep 2026)
+
+- Meesterkamer → Tafels → bewerk een **gewogen** tafel: er staat een keuze **Dobbelsteen** (d100 … d4). Zet hem op d6 en rol: de uitslag leest *"d6: 4 → …"*. Een bestaande tafel zonder die keuze rolt gewoon d100.
+- Een bereik van één getal mag nu ook: zet `7: tekst` in een gewogen tafel en rol tot je een 7 gooit — voorheen gaf dat *(geen treffer)*.
+- Voorwerp bewerken → **Gekoppelde tafel**: typ de naam van een tafel. Eronder staat *"d6 · 12 regels"*. Typ onzin en het veld maakt zichzelf leeg met *"Geen tafel met die naam."* — er blijft nooit een koppeling staan die nergens heen wijst.
+- Dat voorwerp in de **Boedel**: er staat een pil **Rollen**. Klikken geeft een toast én laat de uitslag onder het voorwerp staan (een toast is weg voor je hem hebt voorgelezen).
+- **Alleen wie het voorwerp heeft** mag rollen: een speler zonder dat voorwerp krijgt een fout, en de tafelbibliotheek zelf blijft voor spelers dicht.
+- In een akte: schrijf een tabel met een dobbelkop, bijvoorbeeld `| d6 | Voorval |`. In de **lade** (spelen) staat er een knop **Rollen** onder; in het **schrijfscherm** een knop **Bewaren als tafel**. Een tabel zonder dobbelkop (een prijslijst) krijgt geen van beide.
+- Bewaren vraagt om een naam en zet hem bij de tafels, met de juiste dobbelsteen. Bestaat die naam al, dan wordt er gevraagd of je hem overschrijft. De tabel in je tekst blijft staan — het is een kopie, geen verhuizing.
+
 ### Wie deelt mee in een vondst (23 sep 2026)
 
 - Zet in Instellingen → Party's een speler op **afwezig** en verdeel een vondst met goud: hij staat niet bij *Deelnemers* en er komt niets in zijn beurs. Loopt er een gevecht, dan zijn de deelnemers wie er in dat gevecht staan.

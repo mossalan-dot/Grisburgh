@@ -1,4 +1,4 @@
-import { api } from './api.js?v=294';
+import { api } from './api.js?v=295';
 import { renderStatblock } from './render-statblock.js?v=9';
 
 const icon = (...a) => window.icon(...a);
@@ -613,6 +613,11 @@ const SCHEMA = {
       { key: 'attunementEis', label: 'Attunement alleen door', type: 'text',
         hint: 'Wizard', showWhen: { key: 'attunement', values: ['true'] } },
       { key: 'nietVerkoopbaar', label: 'Niet te verkopen aan winkels', type: 'checkbox' },
+      // Een Wand of Wonder, een Bag of Beans, een zak met bonen van eigen makelij:
+      // een voorwerp waarvan het effect uitgerold wordt. De tafel zelf blijft in
+      // de tafelbibliotheek staan — hier hangt alleen de verwijzing, zodat
+      // dezelfde tafel ook los te rollen is en bij te stellen op één plek.
+      { key: 'tafelId', label: 'Gekoppelde tafel', type: 'tafel-picker' },
       // Naar boven gehaald: de beschrijving is de hoofdtekst, niet iets wat na
       // vier blokken invulvelden komt.
       { key: 'desc', label: 'Beschrijving', type: 'textarea' },
@@ -6478,6 +6483,7 @@ export function openEditor(type) {
 
 let allNames = {};
 let _scrollSpellList = null;  // volledige spell-lijst voor de Scroll-spell-picker (lazy)
+let _tafelLijst = null;       // tafels uit de campagne, voor de tafel-koppeling op een voorwerp (lazy)
 let _naamLijsten = null;      // volken, klassen en alignments voor de keuzevelden
 let _spreukLijst = null;      // spreukenbibliotheek voor de koppeling op een kaartje
 
@@ -6654,6 +6660,31 @@ window._itemSpellChipsTeken = () => {
   }).join('');
 };
 
+// Naam → id. De datalist geeft de naam terug, want dat is wat je typt; het
+// kaartje bewaart het id, want een tafel mag hernoemd worden zonder dat de
+// koppeling breekt. Leeg gemaakt = ontkoppeld.
+window._itemTafelKies = (naam) => {
+  const veld = document.getElementById('item-tafel-veld');
+  const hint = document.getElementById('item-tafel-hint');
+  const pick = document.getElementById('item-tafel-pick');
+  if (!veld) return;
+  const zoek = String(naam || '').trim().toLowerCase();
+  if (!zoek) { veld.value = ''; if (hint) hint.textContent = ''; pick?.classList.remove('dm-input--err'); return; }
+  const t = (_tafelLijst || []).find(x => (x.name || '').toLowerCase() === zoek);
+  if (!t) {
+    // Korte foutflits, zoals bij de entiteit-kiezers: niet stil laten staan met
+    // een naam die nergens heen wijst.
+    veld.value = '';
+    if (hint) hint.textContent = 'Geen tafel met die naam.';
+    pick?.classList.add('dm-input--err');
+    setTimeout(() => pick?.classList.remove('dm-input--err'), 1200);
+    return;
+  }
+  veld.value = t.id;
+  pick?.classList.remove('dm-input--err');
+  if (hint) hint.textContent = `${t.type === 'weighted' ? (t.dobbel || 'd100') : 'trekken'} · ${(t.entries || t.first || []).length} regels`;
+};
+
 window._itemSpellErbij = (naam) => {
   const sp = (_scrollSpellList || []).find(x => (x.name || '').toLowerCase() === String(naam || '').trim().toLowerCase());
   const inp = document.getElementById('scroll-spell-pick');
@@ -6715,6 +6746,11 @@ window._openEditor = async (tab, editId) => {
   if (tab === 'voorwerpen' && !_scrollSpellList) {
     try { _scrollSpellList = (await fetch('/api/bron/spells-2024').then(r => r.json())).results || []; }
     catch { _scrollSpellList = []; }
+  }
+  // De tafels, voor het veld 'Gekoppelde tafel'. Alleen de DM mag ze opvragen;
+  // een speler komt nooit in deze editor, maar de catch houdt het stil.
+  if (tab === 'voorwerpen' && !_tafelLijst) {
+    try { _tafelLijst = await api.listTables(); } catch { _tafelLijst = []; }
   }
   let _editorGroups = [];
   try { const { groups } = await api.listGroups(); _editorGroups = groups; } catch { /* ok */ }
@@ -7289,6 +7325,27 @@ window._openEditor = async (tab, editId) => {
             onchange="window._itemSpellErbij(this.value)"
             class="w-full mt-1 px-3 py-2 bg-room-bg border border-room-border rounded text-ink-bright focus:border-gold-dim focus:outline-none">
           <datalist id="scroll-spell-dl">${_spells.map(s => `<option value="${esc(s.name)}"></option>`).join('')}</datalist>
+        </div>
+      `;
+    } else if (field.type === 'tafel-picker') {
+      // Zoekbaar invoerveld met datalist, zoals de entiteit-kiezers in de
+      // Meesterkamer: bij twintig tafels is een volle <select> te lang, en de
+      // naam is wat je onthoudt — niet het id.
+      const _tafels = _tafelLijst || [];
+      const _huidig = _tafels.find(t => t.id === e?.data?.tafelId);
+      body += `
+        <div>
+          <label class="text-xs font-cinzel text-ink-dim font-bold tracking-wide">${esc(field.label)}</label>
+          <input type="hidden" name="data_tafelId" id="item-tafel-veld" value="${esc(e?.data?.tafelId || '')}">
+          <input list="item-tafel-dl" id="item-tafel-pick" autocomplete="off"
+            value="${esc(_huidig?.name || '')}"
+            placeholder="${_tafels.length ? 'Zoek een tafel\u2026' : 'Nog geen tafels \u2014 maak er een in de Meesterkamer'}"
+            onchange="window._itemTafelKies(this.value)"
+            class="w-full mt-1 px-3 py-2 bg-room-bg border border-room-border rounded text-ink-bright focus:border-gold-dim focus:outline-none">
+          <datalist id="item-tafel-dl">${_tafels.map(t => `<option value="${esc(t.name)}"></option>`).join('')}</datalist>
+          <p class="text-xs text-ink-dim mt-1" id="item-tafel-hint">${_huidig
+            ? esc(`${_huidig.type === 'weighted' ? (_huidig.dobbel || 'd100') : 'trekken'} \u00b7 ${(_huidig.entries || _huidig.first || []).length} regels`)
+            : ''}</p>
         </div>
       `;
     } else if (field.type === 'getal') {

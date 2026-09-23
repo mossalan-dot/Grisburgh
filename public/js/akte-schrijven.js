@@ -18,7 +18,7 @@
  * docs/voorstel-akteregie.md.
  */
 
-import { api } from './api.js?v=294';
+import { api } from './api.js?v=295';
 
 const esc  = s => window.app?.esc?.(s) ?? String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 const icon = (...a) => window.icon(...a);
@@ -205,10 +205,33 @@ function _tabelHtml(regels) {
   // een worptabel. We zetten het erbij zodat de speel-kant er straks een
   // worpknop aan kan hangen; in de editor verandert er niets aan.
   const dobbel = (kop[0] || '').match(/\b(\d*d\d+)\b/i);
-  return `<table class="akte-tabel"${dobbel ? ` data-dobbel="${esc(dobbel[1].toLowerCase())}"` : ''}>
+  const tabel = `<table class="akte-tabel"${dobbel ? ` data-dobbel="${esc(dobbel[1].toLowerCase())}"` : ''}>
     <thead><tr>${kop.map(c => `<th>${window.app.mdToHtml(c).replace(/<\/?p>/g, '')}</th>`).join('')}</tr></thead>
     <tbody>${rijen.map(r => `<tr>${r.map(c => `<td>${window.app.mdToHtml(c).replace(/<\/?p>/g, '')}</td>`).join('')}</tr>`).join('')}</tbody>
   </table>`;
+  if (!dobbel || !(_acties || _potloden)) return tabel;
+
+  // Een worptabel krijgt twee knoppen, en die staan bewust aan verschillende
+  // kanten van de afspraak: **rollen** hoort bij het spelen (`_acties`),
+  // **bewaren** bij het voorbereiden (`_potloden`) — zelfde verdeling als de
+  // plus bij een naam zonder kaartje en het oogje bij een geheim.
+  //
+  // Bewaren maakt er een tafel van in de bibliotheek, zodat je hem in een
+  // volgende akte niet opnieuw hoeft over te tikken. De tabel in de tekst
+  // blijft staan zoals hij staat: dit is een kopie, geen verhuizing — anders
+  // verandert het opslaan stilzwijgend je hoofdstuk.
+  const ruw = esc(JSON.stringify(regels));
+  return `<div class="akte-worptabel" data-regels="${ruw}">
+    ${tabel}
+    <div class="akte-worptabel-balk">
+      ${_acties ? `<button class="dm-btn dm-btn-primary dm-btn-sm"
+        onclick="window.akteSchrijven.rolInlineTabel(this)">${icon('dice')} Rollen</button>` : ''}
+      ${_potloden ? `<button class="dm-btn dm-btn-ghost dm-btn-sm"
+        onclick="window.akteSchrijven.bewaarInlineTabel(this)"
+        title="Zet deze tabel als tafel in de bibliotheek, om later te hergebruiken">${icon('save')} Bewaren als tafel</button>` : ''}
+      <span class="akte-worptabel-uitslag" hidden></span>
+    </div>
+  </div>`;
 }
 
 // `![[iets]]` — in Obsidian een ingesloten bestand. Is het een id dat wij
@@ -769,24 +792,10 @@ function _geenTreffer(btn, tekst) {
   _melding(btn, `${tekst} — controleer de naam in het blok.`);
 }
 
-// Zelfde drie soorten als de Tafels-tab: samengesteld, gewogen (d100) en gewoon.
+// De worp zelf staat in tafels.js — één implementatie voor de Tafels-tab, dit
+// regieblok en de knop op een voorwerp.
 function _rolTabel(tabel) {
-  if (tabel.type === 'combined') {
-    const a = (tabel.first || []); const b = (tabel.last || []);
-    return `${a[Math.floor(Math.random() * a.length)] || '?'} ${b[Math.floor(Math.random() * b.length)] || '?'}`;
-  }
-  const entries = tabel.entries || [];
-  if (!entries.length) return 'Deze tabel is leeg.';
-  if (tabel.type === 'weighted') {
-    const d100 = Math.floor(Math.random() * 100) + 1;
-    for (const e of entries) {
-      const m = String(e).match(/^(\d+)[-–](\d+):\s*(.+)$/);
-      if (m && d100 >= +m[1] && d100 <= +m[2]) return `d100: ${d100} → ${m[3].trim()}`;
-    }
-    return `d100: ${d100} → (geen treffer)`;
-  }
-  const i = Math.floor(Math.random() * entries.length);
-  return `${i + 1}: ${entries[i]}`;
+  return window.tafels.alsTekst(window.tafels.rol(tabel));
 }
 
 // Eén regel in de tekst vervangen (of het hele blok weghalen). Wat er niet
@@ -1256,6 +1265,48 @@ window.akteSchrijven = {
     const uitslag = _rolTabel(tabel);
     const vak = btn.closest('.regie-blok')?.querySelector('.regie-blok-uitslag');
     if (vak) { vak.hidden = false; vak.innerHTML = `${icon('dice')} ${esc(uitslag)}`; }
+  },
+
+  // Een `|`-tabel in de tekst ter plekke rollen. Dezelfde worp als de
+  // Tafels-tab; hij hoeft dus niet eerst als tafel opgeslagen te zijn.
+  rolInlineTabel(btn) {
+    const wrap = btn.closest('.akte-worptabel');
+    const vak  = wrap?.querySelector('.akte-worptabel-uitslag');
+    let regels; try { regels = JSON.parse(wrap?.dataset.regels || '[]'); } catch { regels = []; }
+    const tafel = window.tafels.uitMarkdown(regels);
+    if (!tafel) { if (vak) { vak.hidden = false; vak.textContent = 'Deze tabel is niet als worptabel te lezen.'; } return; }
+    const r = window.tafels.rol(tafel);
+    if (vak) { vak.hidden = false; vak.innerHTML = `${icon('dice')} ${esc(window.tafels.alsTekst(r))}`; }
+  },
+
+  // …en hem bewaren, zodat een volgende akte hem kan gebruiken.
+  async bewaarInlineTabel(btn) {
+    const wrap = btn.closest('.akte-worptabel');
+    let regels; try { regels = JSON.parse(wrap?.dataset.regels || '[]'); } catch { regels = []; }
+    const tafel = window.tafels.uitMarkdown(regels);
+    if (!tafel) { alert('Deze tabel is niet als worptabel te lezen — de eerste kolom moet bereiken bevatten.'); return; }
+
+    const naam = prompt('Onder welke naam bewaren?', tafel.name);
+    if (naam === null) return;
+    tafel.name = naam.trim() || tafel.name;
+
+    // Bestaat er al een tafel met die naam, dan vragen we het: stilzwijgend een
+    // tweede aanmaken geeft een bibliotheek met drie keer "Voorvallen".
+    if (!_tabellen) { try { _tabellen = await api.listTables(); } catch { _tabellen = []; } }
+    const bestaand = _vindOpNaam(_tabellen, tafel.name);
+    if (bestaand && !confirm(`Er is al een tafel "${bestaand.name}". Die overschrijven?`)) return;
+
+    try {
+      const bewaard = bestaand
+        ? await api.updateTable(bestaand.id, tafel)
+        : await api.createTable(tafel);
+      _tabellen = bestaand
+        ? _tabellen.map(t => (t.id === bewaard.id ? bewaard : t))
+        : [..._tabellen, bewaard];
+      btn.innerHTML = `${icon('check')} Bewaard`;
+      btn.classList.add('is-klaar');
+      window._showToast?.(`"${bewaard.name}" staat nu bij de tafels (${tafel.dobbel}, ${tafel.entries.length} regels)`);
+    } catch (e) { alert('Bewaren mislukt: ' + e.message); }
   },
 
   async onthulBuit(naam, btn) {

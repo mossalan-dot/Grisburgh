@@ -9614,6 +9614,38 @@ router.delete('/tunnel/stop', requireDM, (req, res) => {
 
 // ── Tafels (Random Tables) ──
 
+// De tafel die aan een voorwerp hangt — en alleen die ene.
+//
+// `GET /tables` is DM-only en dat blijft zo: de tafelbibliotheek staat vol met
+// wat de spelers nog moeten tegenkomen. Maar een Wand of Wonder is van de
+// speler, en die hoort hem zelf te kunnen zwaaien. Deze route geeft dus precies
+// de tafel waar dít kaartje naar wijst, aan de DM of aan wie het voorwerp
+// bezit — dezelfde grens als bij `POST /items/:itemId/gebruik`.
+router.get('/items/:itemId/tafel', attachRole, (req, res) => {
+  const { itemId } = req.params;
+  const entities = storage.readJSON('entities.json');
+  const item = (entities.voorwerpen || []).find(e => e.id === itemId);
+  if (!item) return res.status(404).json({ error: 'Voorwerp niet gevonden' });
+  const tafelId = item.data?.tafelId;
+  if (!tafelId) return res.status(404).json({ error: 'Aan dit voorwerp hangt geen tafel' });
+
+  if (req.role !== 'dm') {
+    const characterId = req.session?.characterId;
+    if (!characterId) return res.status(403).json({ error: 'Geen toegang' });
+    const dmState = readDmState();
+    const g = getGroup(dmState, _playerGroupId(dmState, characterId));
+    const bezit = g?.itemOwners?.[itemId];
+    const heeft = Array.isArray(bezit)
+      ? bezit.some(o => o.characterId === characterId)
+      : bezit?.characterId === characterId;
+    if (!heeft) return res.status(403).json({ error: 'Dit voorwerp heb je niet.' });
+  }
+
+  const tafel = (storage.readJSON('tables.json').tables || []).find(t => t.id === tafelId);
+  if (!tafel) return res.status(404).json({ error: 'De gekoppelde tafel bestaat niet meer' });
+  res.json(tafel);
+});
+
 router.get('/tables', requireDM, (req, res) => {
   const data = storage.readJSON('tables.json');
   res.json(data.tables || []);
@@ -9629,6 +9661,13 @@ router.post('/tables', requireDM, (req, res) => {
     entries: req.body.entries || [],
     first:   req.body.first   || [],
     last:    req.body.last    || [],
+    // Welke steen een gewogen tafel gebruikt. Leeg blijft d100, dus alle
+    // bestaande tafels rollen onveranderd; een tabel uit een akte is net zo
+    // vaak d6 of d20.
+    ...(req.body.dobbel ? { dobbel: String(req.body.dobbel) } : {}),
+    // `rolls` werd hier stilzwijgend weggegooid: een nieuwe tafel kon nooit
+    // meer dan één regel trekken, ook niet als de aanroeper het vroeg.
+    ...(req.body.rolls ? { rolls: Math.max(1, parseInt(req.body.rolls, 10) || 1) } : {}),
   };
   data.tables.push(table);
   storage.writeJSON('tables.json', data);

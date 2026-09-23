@@ -214,6 +214,7 @@ export const api = {
 
   // Tafels
   listTables:    ()         => request('/tables'),
+  itemTafel:     (itemId)   => request(`/items/${itemId}/tafel`),
   createTable:   (data)     => request('/tables',        { method: 'POST',   body: JSON.stringify(data) }),
   updateTable:   (id, data) => request(`/tables/${id}`,  { method: 'PUT',    body: JSON.stringify(data) }),
   deleteTable:   (id)       => request(`/tables/${id}`,  { method: 'DELETE' }),

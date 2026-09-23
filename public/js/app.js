@@ -1,5 +1,5 @@
-import { api, campagneUitUrl, zetCampagne } from './api.js?v=294';
-import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, renderDocumenten, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=314";
+import { api, campagneUitUrl, zetCampagne } from './api.js?v=295';
+import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, renderDocumenten, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=315";
 import { initArchief, renderLogboek, openLogboekEditor } from "./render-archief.js?v=131";
 import { renderKaart, queueFlyTo, verversPins, nieuweKaart } from './render-kaart.js?v=31';
 import { renderDungeon } from './render-dungeon.js?v=56';
@@ -10,9 +10,10 @@ import { renderSpreuken } from './render-spreuken.js?v=41';
 import { renderVaardigheden, zoekVaardigheden } from './render-vaardigheden.js?v=8';
 import { renderStatblock } from './render-statblock.js?v=9';
 import { initSocket } from "./socket-client.js?v=78";
-import { initDmPanel } from "./dm-panel.js?v=292";
+import { initDmPanel } from "./dm-panel.js?v=293";
 import { COND_INFO, COND_LABEL, COND_MET_PLAATJE, COND_ICON } from './conditions.js?v=2';
 import './media-picker.js?v=8';
+import './tafels.js?v=1';
 
 // ── Icon helper ──
 // Renders an inline SVG <use> reference from /img/icons.svg.
@@ -6414,9 +6415,48 @@ window._itemWorpPillen = (item) => {
     data-charges="${item._maxCharges ? item._charges : ''}" data-max="${item._maxCharges || ''}"
     data-aantal="${item._qty ?? ''}" data-verbruikt="${item.data?.verbruikt === true || item.data?.verbruikt === 'true' ? '1' : ''}"
     title="Gebruiken: gooit ${escJS(heal)} en telt het bij je HP op">${icon('heart')} ${esc(heal)}</button>`);
+  // Hangt er een tafel aan het voorwerp, dan staat de worp hier. Een Wand of
+  // Wonder is van de speler, dus die knop hoort bij zijn spullen te staan en
+  // niet alleen in de Meesterkamer; de server bewaakt dat hij het ding ook
+  // echt heeft (GET /items/:id/tafel).
+  if (item.data?.tafelId) pillen.push(`<button class="item-damage-pill item-damage-pill--sm item-damage-pill--tafel"
+    onclick="window._itemTafelRol(this)" data-id="${esc(item.id)}" data-naam="${esc(item.name || '')}"
+    title="Rol de tafel die aan dit voorwerp hangt">${icon('dice', { cls: 'icon-gi' })} Rollen</button>`);
   return pillen.length
     ? `<div class="item-carousel-damage" onclick="event.stopPropagation()">${pillen.join('')}</div>`
     : '';
+};
+
+// De tafel van een voorwerp rollen. De worp staat in tafels.js — dezelfde als
+// de Tafels-tab en het regieblok — maar de tafel zelf komt van de server, want
+// de bibliotheek is DM-only; deze route geeft alleen de ene gekoppelde tafel,
+// en alleen aan de DM of aan wie het voorwerp bezit.
+window._itemTafelRol = async function (knop) {
+  const d = knop?.dataset || {};
+  if (!d.id || knop.dataset.bezig) return;
+  knop.dataset.bezig = '1';
+  const oudeInhoud = knop.innerHTML;
+  try {
+    const tafel = await api.itemTafel(d.id);
+    const r = window.tafels.rol(tafel);
+    const uitslag = window.tafels.alsTekst(r);
+    window._showToast?.(`${d.naam}: ${uitslag}`);
+    // Ook in beeld laten staan, want een toast is weg voor je hem aan tafel
+    // hebt voorgelezen.
+    const vak = knop.closest('.item-carousel-damage');
+    let regel = vak?.parentElement?.querySelector('.item-tafel-uitslag');
+    if (vak && !regel) {
+      regel = document.createElement('div');
+      regel.className = 'item-tafel-uitslag';
+      vak.parentElement.insertBefore(regel, vak.nextSibling);
+    }
+    if (regel) regel.innerHTML = `${icon('dice')} ${esc(uitslag)}`;
+  } catch (e) {
+    window._showToast?.('Rollen mislukt: ' + (e.message || 'onbekende fout'));
+  } finally {
+    knop.dataset.bezig = '';
+    knop.innerHTML = oudeInhoud;
+  }
 };
 
 window._itemGebruik = async function (knop) {

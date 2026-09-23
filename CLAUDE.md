@@ -256,9 +256,9 @@ De app gebruikt querystring cache-busting (`?v=N`). **Vergeten = browser haalt o
 **Huidige versies (bij te houden):**
 
 ```
-index.html  : theme.css?v=605   app.js?v=774   sound-manager.js?v=8
-app.js      : api.js?v=285  dm-panel.js?v=225  media-picker.js?v=8
-              render-archief.js?v=92  render-bestiarium.js?v=29  render-campagne.js?v=304
+index.html  : theme.css?v=699   app.js?v=923   sound-manager.js?v=8
+app.js      : api.js?v=295  dm-panel.js?v=293  media-picker.js?v=8  tafels.js?v=1
+              render-archief.js?v=92  render-bestiarium.js?v=29  render-campagne.js?v=315
               render-dashboard.js?v=9  render-dungeon.js?v=53  render-kaart.js?v=31
               render-progressie.js?v=46  render-relatiemap.js?v=25  render-spreuken.js?v=39
               render-vaardigheden.js?v=1
@@ -1322,6 +1322,60 @@ dm-panel.js : combat-canvas.js?v=22   render-statblock.js?v=9
 > bladert er niets; na een terugsprong mag het weer. En opzij bladeren **bouwt
 > zelf geen terugweg op** (`_openDetail(..., true)`): het is geen stap dieper,
 > en anders wees de terugknop straks naar een kaartje dat je alleen passeerde.
+
+> **Tafels rollen staat op één plek: `public/js/tafels.js`.** De worp stond twee
+> keer in de codebase — `_tabelRoll` in dm-panel.js (de Tafels-tab) en
+> `_rolTabel` in akte-schrijven.js (het regieblok) — en ze waren al uit elkaar
+> gelopen: de een trok `rolls` regels zonder herhaling, de ander altijd één met
+> een nummer ervoor. Exports: `rol(tabel)` → `{regels, worp, zijden}`,
+> `alsTekst(r)`, `uitMarkdown(regels)` en `dobbelUitKop(kop)`; `window.tafels`
+> voor wie niet importeert. Side-effect import in `app.js`, zoals
+> `media-picker.js`.
+>
+> **Een gewogen tafel rolt niet meer altijd d100.** `dobbel` op de tafel
+> ('d20', 'd6', …) zegt welke steen; leeg blijft d100, dus alle bestaande
+> tafels rollen onveranderd. Een bereik van één getal (`7: tekst`) telt nu mee
+> — de oude regex kende alleen `1-5:` en gaf daarbuiten stilzwijgend "(geen
+> treffer)". `00` betekent 100, maar alleen op een d100.
+> `POST /tables` gooide `rolls` bovendien stil weg: een nieuwe tafel kon nooit
+> meer dan één regel trekken, ook niet als de aanroeper erom vroeg.
+>
+> **Een voorwerp kan een tafel hebben.** `data.tafelId` op een voorwerp-kaartje
+> (veld *Gekoppelde tafel*, een zoekbaar `input list=` zoals de entiteit-kiezers
+> in de Meesterkamer); in de Boedel staat er dan een pil **Rollen**
+> (`window._itemTafelRol`, pil uit `window._itemWorpPillen` — dus meteen op
+> beide schermen die hem gebruiken). Alleen de **verwijzing** staat op het
+> kaartje: de tafel blijft in `tables.json`, zodat hij ook los te rollen is en
+> op één plek bij te stellen.
+> **De bibliotheek blijft DM-only** — daar staat in wat de spelers nog moeten
+> tegenkomen — maar een Wand of Wonder is van de speler. `GET
+> /items/:itemId/tafel` geeft daarom precies de ene gekoppelde tafel, aan de DM
+> of aan wie het voorwerp bezit; dezelfde grens als `POST
+> /items/:itemId/gebruik`. Bewaakt door `tests/tafels.test.js`.
+>
+> **Een `|`-tabel in een akte is een tafel in wording.** `_tabelHtml` zette al
+> `data-dobbel` op een tabel met een dobbelkop, "zodat de speel-kant er straks
+> een worpknop aan kan hangen" — dat haakje hing er ongebruikt. Nu krijgt zo'n
+> tabel een balk: **Rollen** bij `_acties` (spelen) en **Bewaren als tafel** bij
+> `_potloden` (voorbereiden) — dezelfde verdeling als de plus bij een naam
+> zonder kaartje en het oogje bij een geheim. Bewaren is een **kopie**: de tabel
+> in de tekst blijft staan, anders verandert het opslaan stilzwijgend je
+> hoofdstuk.
+> **Alleen een dobbeltabel** kan een tafel worden (`uitMarkdown` geeft anders
+> `null`): zonder die kop weten we niet dát het een worptabel is, en een
+> prijslijst hoort niet als "rol maar" in de bibliotheek te belanden.
+>
+> **Er is geen SRD-tafelbibliotheek om mee te leveren** (nagekeken 23 sep 2026).
+> Open5e heeft geen tafel-endpoint en 5e-bits/5e-database geen tafelbestand. Wat
+> de SRD 5.2 aan dobbeltabellen heeft zit ín de teksten van magische voorwerpen
+> — **50 stuks, nul in de monsters en nul in de uitrusting** — en **31** daarvan
+> zijn *"welke variant is dit voorwerp"* (twaalf keer Armor of Resistance,
+> veertien keer Ammunition of X Slaying). Echte speeltafels zijn er een handvol:
+> Wand of Wonder, Deck of Illusions, Robe of Useful Items, Bag of Beans,
+> Efreeti Bottle, Sphere of Annihilation. Wild Magic Surge en de trinkets
+> ontbreken. Geruchten, nachtelijke voorvallen en encounters — waar een
+> tafellijst juist voor dient — zijn DMG-materiaal en staan niet onder CC BY;
+> vandaar dat Grisburghs twee rusttabellen zelf geschreven zijn.
 
 ---
 

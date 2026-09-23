@@ -26967,3 +26967,26 @@ body.akte-schrijf-open .mp-overlay { z-index: 1320; }
   font-style: italic;
   opacity: .75;
 }
+
+/* ── Worptabel in een akte + tafelknop op een voorwerp ─────────────────────
+   Onderaan de stylesheet, zoals afgesproken: bij gelijke specificiteit wint
+   de laatste regel, en .item-damage-pill staat een heel eind hierboven. */
+.akte-worptabel { margin: 12px 0; }
+.akte-worptabel > .akte-tabel { margin-bottom: 0; }
+.akte-worptabel-balk {
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+  margin-top: 6px; padding-top: 6px;
+  border-top: 1px dashed rgba(196, 168, 122, 0.45);
+}
+.akte-worptabel-uitslag {
+  font-family: 'Crimson Text', Georgia, serif; font-size: 15px;
+  color: #3a2410; font-style: italic;
+}
+.akte-worptabel-uitslag[hidden] { display: none !important; }
+
+.item-damage-pill--tafel { border-color: rgba(196, 168, 122, 0.7); }
+.item-tafel-uitslag {
+  margin-top: 6px; font-family: 'Crimson Text', Georgia, serif;
+  font-size: 14px; font-style: italic; color: #3a2410;
+  display: flex; align-items: center; gap: 6px;
+}

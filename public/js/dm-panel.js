@@ -1,4 +1,4 @@
-import { api, huidigeCampagne } from './api.js?v=294';
+import { api, huidigeCampagne } from './api.js?v=295';
 import { init as canvasInit, update as canvasUpdate, stop as canvasStop, acGetal } from './combat-canvas.js?v=28';
 import { renderStatblock } from './render-statblock.js?v=9';
 
@@ -2437,7 +2437,7 @@ async function _ladeToggle() {
   _ladeIdx = _bwIdx >= 0 ? _bwIdx : Math.min(_ladePlekLees(), Math.max(0, _ladeSecties.length - 1));
   // De akte-module levert de renderer én de knoppen; die moet weten welke akte
   // er speelt, anders belandt een getoond beeld in de sessielog van niemand.
-  const mod = await import('./akte-schrijven.js?v=28');
+  const mod = await import('./akte-schrijven.js?v=29');
   mod.zetAkte(_rbChapter, _ladeTekst);
   window._akteRegieRender = mod.regieNaarHtml;
   let lade = document.getElementById('regie-lade');
@@ -2463,7 +2463,7 @@ window._ladeHerlaad = async () => {
     _ladeTekst = regie?.tekst || '';
     _ladeSecties = _splitsSecties(_ladeTekst);
     _ladeIdx = Math.min(_ladeIdx, Math.max(0, _ladeSecties.length - 1));
-    const mod = await import('./akte-schrijven.js?v=28');
+    const mod = await import('./akte-schrijven.js?v=29');
     mod.zetAkte(_rbChapter, _ladeTekst);
     _ladeRender();
   } catch { /* de lade blijft staan zoals hij stond */ }
@@ -3148,6 +3148,7 @@ function _renderTafelEditor(el) {
   const isNew = _editingTableId === '__new__';
   const table = isNew ? { name: '', type: _editingTableType, entries: [], first: [], last: [] }
                       : _tables.find(t => t.id === _editingTableId) || { name: '', type: 'simple', entries: [] };
+  const dobbel = String(table.dobbel || 'd100');
   // When first opening editor, set _editingTableType from existing table
   if (!isNew && _editingTableType !== table.type) { /* preserve current user selection */ }
   const isCombined = _editingTableType === 'combined';
@@ -3155,39 +3156,47 @@ function _renderTafelEditor(el) {
   el.innerHTML = `
     <div class="dm-feature-section">
       <div class="dm-form-row">
-        <label class="dm-form-label">Name</label>
-        <input id="dm-tbl-name" class="dm-input" value="${esc(table.name)}" placeholder="Table name…">
+        <label class="dm-form-label">Naam</label>
+        <input id="dm-tbl-name" class="dm-input" value="${esc(table.name)}" placeholder="Naam van de tafel…">
       </div>
       <div class="dm-form-row">
         <label class="dm-form-label">Type</label>
         <select id="dm-tbl-type" class="dm-select" onchange="window.dmPanel.tabelTypeChange(this.value)">
-          <option value="simple"   ${_editingTableType === 'simple'   ? 'selected' : ''}>Simple table</option>
-          <option value="weighted" ${_editingTableType === 'weighted' ? 'selected' : ''}>d100 bereiken</option>
-          <option value="combined" ${_editingTableType === 'combined' ? 'selected' : ''}>Name generator (2×d100)</option>
+          <option value="simple"   ${_editingTableType === 'simple'   ? 'selected' : ''}>Gewoon — trek er een uit</option>
+          <option value="weighted" ${_editingTableType === 'weighted' ? 'selected' : ''}>Gewogen — bereiken, met een worp</option>
+          <option value="combined" ${_editingTableType === 'combined' ? 'selected' : ''}>Namengenerator — voor- en achternaam</option>
         </select>
       </div>
+      ${_editingTableType === 'weighted' ? `
+        <div class="dm-form-row">
+          <label class="dm-form-label">Dobbelsteen</label>
+          <select id="dm-tbl-dobbel" class="dm-select">
+            ${['d100', 'd20', 'd12', 'd10', 'd8', 'd6', 'd4']
+              .map(d => `<option value="${d}" ${dobbel === d ? 'selected' : ''}>${d}</option>`).join('')}
+          </select>
+        </div>` : ''}
       ${isCombined ? `
         <div class="dm-form-row">
-          <label class="dm-form-label">First names (one per line)</label>
+          <label class="dm-form-label">Voornamen (één per regel)</label>
           <textarea id="dm-tbl-first" class="dm-textarea" rows="5">${(table.first || []).join('\n')}</textarea>
         </div>
         <div class="dm-form-row">
-          <label class="dm-form-label">Last names (one per line)</label>
+          <label class="dm-form-label">Achternamen (één per regel)</label>
           <textarea id="dm-tbl-last" class="dm-textarea" rows="5">${(table.last || []).join('\n')}</textarea>
         </div>
       ` : _editingTableType === 'weighted' ? `
         <div class="dm-form-row">
-          <label class="dm-form-label">Bereiken (formaat: 1-35: tekst, één per regel)</label>
+          <label class="dm-form-label">Bereiken — <code>1-35: tekst</code>, één per regel. Eén getal mag ook: <code>7: tekst</code></label>
           <textarea id="dm-tbl-entries" class="dm-textarea" rows="10">${(table.entries || []).join('\n')}</textarea>
         </div>
       ` : `
         <div class="dm-form-row">
-          <label class="dm-form-label">Options (one per line)</label>
+          <label class="dm-form-label">Regels (één per regel)</label>
           <textarea id="dm-tbl-entries" class="dm-textarea" rows="8">${(table.entries || []).join('\n')}</textarea>
         </div>
       `}
       <div class="dm-feature-row" style="margin-top:8px">
-        <button class="dm-btn dm-btn-primary" onclick="window.dmPanel.tabelSave('${isNew ? '__new__' : esc(_editingTableId)}')" title="Opslaan">✓</button>
+        <button class="dm-btn dm-btn-primary" onclick="window.dmPanel.tabelSave('${isNew ? '__new__' : esc(_editingTableId)}')">${icon('save')} Opslaan</button>
         <button class="dm-btn dm-btn-ghost" onclick="window.dmPanel.tabelCancel()" title="Annuleren">${icon('x')}</button>
       </div>
     </div>
@@ -3210,39 +3219,11 @@ function _tabelRoll() {
   if (!sel) return;
   const table = _tables.find(t => t.id === sel.value);
   if (!table) return;
-  const rolls = table.rolls || 1;
-
-  if (table.type === 'combined') {
-    const results = [];
-    for (let i = 0; i < rolls; i++) {
-      const first = (table.first || []).length > 0
-        ? table.first[Math.floor(Math.random() * table.first.length)] : '?';
-      const last = (table.last || []).length > 0
-        ? table.last[Math.floor(Math.random() * table.last.length)] : '?';
-      results.push(`${first} ${last}`);
-    }
-    _renderTafelResult(results);
-  } else if (table.type === 'weighted') {
-    // Elke entry heeft formaat "van-tot: tekst", gooi d100 en zoek overeenkomst
-    const entries = table.entries || [];
-    if (entries.length === 0) { _renderTafelResult('Tafel is leeg'); return; }
-    const d100 = Math.floor(Math.random() * 100) + 1;
-    let match = null;
-    for (const entry of entries) {
-      const m = entry.match(/^(\d+)[-–](\d+):\s*(.+)$/);
-      if (m) {
-        const from = parseInt(m[1]), to = parseInt(m[2]);
-        if (d100 >= from && d100 <= to) { match = m[3].trim(); break; }
-      }
-    }
-    _renderTafelResult(match ? `d100: ${d100} → ${match}` : `d100: ${d100} → (geen treffer)`);
-  } else {
-    const entries = table.entries || [];
-    if (entries.length === 0) { _renderTafelResult('Tafel is leeg'); return; }
-    // Pick unique results (shuffle-style)
-    const shuffled = [...entries].sort(() => Math.random() - 0.5);
-    _renderTafelResult(shuffled.slice(0, Math.min(rolls, entries.length)));
-  }
+  // Eén rol-implementatie voor de hele app (tafels.js): de Tafels-tab, het
+  // regieblok in een akte en de knop op een voorwerp rollen precies hetzelfde.
+  const r = window.tafels.rol(table);
+  const kop = r.worp ? `d${r.zijden}: ${r.worp} → ` : '';
+  _renderTafelResult(r.regels.length > 1 ? r.regels : [kop + (r.regels[0] || '')]);
 };
 
 function _tabelEdit(id) {
@@ -3271,7 +3252,8 @@ async function _tabelSave(idOrNew) {
   const first   = isComb ? (document.getElementById('dm-tbl-first')?.value  || '').split('\n').map(s => s.trim()).filter(Boolean) : [];
   const last    = isComb ? (document.getElementById('dm-tbl-last')?.value   || '').split('\n').map(s => s.trim()).filter(Boolean) : [];
   if (!name) { alert('Voer een naam in.'); return; }
-  const data = { name, type, entries, first, last };
+  const dobbel = type === 'weighted' ? (document.getElementById('dm-tbl-dobbel')?.value || 'd100') : '';
+  const data = { name, type, entries, first, last, ...(dobbel ? { dobbel } : {}) };
   try {
     if (idOrNew === '__new__') {
       const t = await api.createTable(data);
