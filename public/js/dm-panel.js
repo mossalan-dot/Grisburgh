@@ -10738,17 +10738,24 @@ window._instOpslaan = async () => {
     // Level-upinstellingen: eigen route, want de server bewaakt de combinatie
     // (minstens één manier aan, en de standaard moet daartussen zitten).
     const luMethodes = [...document.querySelectorAll('.inst-lu-methode')].filter(c => c.checked).map(c => c.value);
-    if (luMethodes.length) {
-      let luStd = document.getElementById('inst-lu-standaard')?.value;
-      if (!luMethodes.includes(luStd)) luStd = luMethodes[0];
-      try {
-        await api.put('/meta/levelup', {
-          methodes: luMethodes, standaard: luStd,
-          maxLevel: parseInt(document.getElementById('inst-lu-max')?.value) || 20,
-          systeem: document.getElementById('inst-lu-systeem')?.value || 'milestone',
-        });
-      } catch (e) { console.warn('Level-upinstelling opslaan mislukt', e); }
+    if (!luMethodes.length) {
+      // Zonder aangevinkte manier kan niemand levelen, en de server weigert het
+      // dus. Dit sloeg de hele oproep stilzwijgend over — inclusief het
+      // XP/milestone-systeem en het maximum, die er niets mee te maken hebben.
+      // Dan zette je de campagne op XP, kreeg "✓ Opgeslagen", en stond hij nog
+      // op milestone.
+      melden('Kies minstens één manier om HP te bepalen — de rest is niet opgeslagen', false);
+      return;
     }
+    let luStd = document.getElementById('inst-lu-standaard')?.value;
+    if (!luMethodes.includes(luStd)) luStd = luMethodes[0];
+    // Geen eigen catch meer: een fout hier hoort in beeld te komen, niet in de
+    // console terwijl het scherm "opgeslagen" meldt.
+    await api.put('/meta/levelup', {
+      methodes: luMethodes, standaard: luStd,
+      maxLevel: parseInt(document.getElementById('inst-lu-max')?.value) || 20,
+      systeem: document.getElementById('inst-lu-systeem')?.value || 'milestone',
+    });
 
     const nieuweMeta = await api.meta();
     if (window.app?.state) window.app.state.meta = nieuweMeta;

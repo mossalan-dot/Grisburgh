@@ -870,6 +870,13 @@ Per bevinding: waar, wat, en of het opgelost is. Nieuwe regels onderaan.
 - Koop een zegen: je rolt en krijgt er één van die god, met de prijs eraf. Zweer een eed: de andere goden gaan op slot ("Je bent al door een eed gebonden"). Laat de DM de eed verbreken → er staat een **vloek** waar de eed stond; doe boete → weg.
 - Meesterkamer → Diensten → Tempel toont de lopende eden per speler met hun status.
 
+### Instellingen: een waarde die niet wordt bewaard zegt het nu (23 sep 2026)
+
+- Instellingen → **Naslag elders**: typ `duckduckgo.com/?q={zoek}` (zonder `https://`) en sla op. Er komt een melding *"Een naslag-link moet met http:// of https:// beginnen"*. Vroeger stond er "✓ Opgeslagen" en was het veld bij de volgende keer openen gewoon leeg.
+- Met `https://` ervoor wordt hij wél bewaard; leegmaken mag ook (dat betekent: geen link, alleen de mededeling).
+- Instellingen → **Level omhoog**: vink alle manieren uit en sla op. Er komt *"Kies minstens één manier om HP te bepalen — de rest is niet opgeslagen"*. Vroeger sloeg dat de hele oproep stil over, inclusief het XP/milestone-systeem en het maximumlevel — dus je zette de campagne op XP, kreeg een bevestiging, en hij stond nog op milestone.
+- Zet het systeem op **XP** mét een manier aangevinkt: dan wordt het wél bewaard (controleer de XP-balk op het spelerstabblad).
+
 ### Relikwiemunten in een vondst (23 sep 2026)
 
 - Meesterkamer → Loot → een vondst → **Munten**: typ `3 ep 1 pp`. De hint eronder leest *"25 Florinde · 5 Knaker — waarvan 3 Lion d'or · 1 Gouden Adelaer"*. Die namen komen uit Instellingen → Munten.

@@ -8855,6 +8855,12 @@ router.put('/meta/app', requireDM, (req, res) => {
     const sjabloon = String(req.body.bronLink || '').trim().slice(0, 300);
     if (!sjabloon) delete meta.bronLink;
     else if (/^https?:\/\//i.test(sjabloon)) meta.bronLink = sjabloon;
+    // Wél zéggen dat hij niet deugt. Dit gooide de waarde stilzwijgend weg
+    // terwijl het scherm "✓ Opgeslagen" meldde: je typte `duckduckgo.com/?q=…`
+    // zonder scheme, kreeg een bevestiging, en bij de volgende keer openen was
+    // het veld weer leeg. Het invoerveld staat op type="url", maar dat valideert
+    // alleen bij een formulierverzending en dit is een JS-aanroep.
+    else return res.status(400).json({ error: 'Een naslag-link moet met http:// of https:// beginnen' });
   }
   // Embleem: een pad binnen deze server (een geüpload bestand of een van de
   // meegeleverde afbeeldingen). Leeg = geen embleem.
@@ -8862,10 +8868,11 @@ router.put('/meta/app', requireDM, (req, res) => {
     const pad = String(req.body.embleem || '').trim().slice(0, 300);
     if (!pad) delete meta.embleem;
     else if (pad.startsWith('/')) meta.embleem = pad;
+    else return res.status(400).json({ error: 'Een embleem moet een pad op deze server zijn (begint met /)' });
   }
   storage.writeJSON('meta.json', meta);
   req.app.get('io').to(_campagneRoom(req)).emit('meta:updated');
-  res.json({ appTitle: meta.appTitle, appSubtitle: meta.appSubtitle, currency: meta.currency, inOverzicht: meta.inOverzicht !== false, embleem: meta.embleem || '' });
+  res.json({ appTitle: meta.appTitle, appSubtitle: meta.appSubtitle, currency: meta.currency, inOverzicht: meta.inOverzicht !== false, embleem: meta.embleem || '', bronLink: meta.bronLink || '' });
 });
 
 router.put('/meta/hoofdstuk/:key', requireDM, (req, res) => {

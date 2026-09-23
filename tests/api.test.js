@@ -60,6 +60,28 @@ describe('API', () => {
   });
 
   // Auth
+  it('meldt een naslag-link zonder http:// in plaats van hem weg te gooien', async () => {
+    // Dit gooide de waarde stilzwijgend weg terwijl het scherm "✓ Opgeslagen"
+    // meldde: je typte `duckduckgo.com/?q={zoek}`, kreeg een bevestiging, en bij
+    // de volgende keer openen was het veld leeg. Het invoerveld staat op
+    // type="url", maar dat valideert alleen bij een formulierverzending.
+    // Deze suite logt pas verderop in; hier dus zelf een DM-sessie halen.
+    const dm = (await req(server, 'POST', '/api/auth/login', { campagne: 'grisburgh', password: 'grisburgh-dm' })).cookie;
+    const fout = await req(server, 'PUT', '/api/meta/app', { bronLink: 'duckduckgo.com/?q={zoek}' }, dm);
+    assert.strictEqual(fout.status, 400, JSON.stringify(fout.body));
+    assert.match(String(fout.body?.error || ''), /http/i);
+
+    const goed = await req(server, 'PUT', '/api/meta/app', { bronLink: 'https://duckduckgo.com/?q={zoek}' }, dm);
+    assert.strictEqual(goed.status, 200, JSON.stringify(goed.body));
+    assert.strictEqual(goed.body.bronLink, 'https://duckduckgo.com/?q={zoek}',
+      'het antwoord zegt wat er nu écht staat');
+
+    // Leegmaken mag wel: dat betekent "geen link, alleen de mededeling".
+    const leeg = await req(server, 'PUT', '/api/meta/app', { bronLink: '' }, dm);
+    assert.strictEqual(leeg.status, 200);
+    assert.strictEqual(leeg.body.bronLink, '');
+  });
+
   it('should reject wrong password', async () => {
     const res = await req(server, 'POST', '/api/auth/login', { campagne: 'grisburgh', password: 'wrong' });
     assert.strictEqual(res.status, 401);
