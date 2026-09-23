@@ -10,7 +10,7 @@ import { renderSpreuken } from './render-spreuken.js?v=41';
 import { renderVaardigheden, zoekVaardigheden } from './render-vaardigheden.js?v=8';
 import { renderStatblock } from './render-statblock.js?v=9';
 import { initSocket } from "./socket-client.js?v=78";
-import { initDmPanel } from "./dm-panel.js?v=286";
+import { initDmPanel } from "./dm-panel.js?v=287";
 import { COND_INFO, COND_LABEL, COND_MET_PLAATJE, COND_ICON } from './conditions.js?v=2';
 import './media-picker.js?v=8';
 
@@ -6179,6 +6179,19 @@ function _lootCinClaimRegel(it) {
     ${c.map(_lootCinPortret).join('')} <strong>${namen.join(', ')} en ${laatste}</strong> maken ruzie om de buit</span>`;
 }
 
+// Relikwiemunten in een buit: electrum en platinum hebben geen eigen plek in de
+// beurs — ze worden bij het claimen stilzwijgend omgerekend — maar het is oud
+// geld dat je víndt, en dan hoort het bij naam op het scherm. Leeg als de DM ze
+// geen naam gaf in Instellingen → Munten.
+window._relictRegel = (relicten) => {
+  if (!relicten) return '';
+  const n = window._muntNamen();
+  const delen = Object.entries(relicten)
+    .map(([k, aantal]) => (n[k] ? `${aantal} ${n[k]}` : ''))
+    .filter(Boolean);
+  return delen.join(' · ');
+};
+
 function _lootCinBuit(data) {
   const el = document.getElementById('loot-cin-buit');
   if (!el) return;
@@ -6190,10 +6203,12 @@ function _lootCinBuit(data) {
       </div>`;
     return;
   }
-  const bedrag = _muntRegel(data.goud);
-  const items  = (data.items || []).filter(it => it.status !== 'overgeslagen');
+  const bedrag  = _muntRegel(data.goud);
+  const relicts = window._relictRegel(data.relicten);
+  const items   = (data.items || []).filter(it => it.status !== 'overgeslagen');
   el.innerHTML = `
-    ${bedrag ? `<div class="loot-cin-goud">${icon('coins')} ${bedrag}</div>` : ''}
+    ${bedrag ? `<div class="loot-cin-goud">${icon('coins')} ${bedrag}${
+      relicts ? `<span class="loot-cin-relict">waaronder ${esc(relicts)}</span>` : ''}</div>` : ''}
     <ul class="loot-cin-items">
       ${items.map(it => `
         <li class="loot-cin-item">
@@ -12589,7 +12604,9 @@ function _playerLootPanelHtml(loot, charId) {
         <button class="player-loot-claim-btn${it.ikClaim ? ' is-claimed' : ''}" onclick="window._lootClaim('${esc(it.id)}')">${it.ikClaim ? icon('check') + ' Geclaimd' : 'Claim'}</button>
       </div>`;
     }).join('') : `<p class="player-loot-empty">Alle items zijn verdeeld.</p>`}
-    ${goudTotaal ? `<div class="player-loot-goud">${icon('coins')} Goud: <strong>${_magizooPrijs(loot.goud)}</strong> <span class="player-loot-goud-note">(wordt bij afsluiting verdeeld)</span></div>` : ''}
+    ${goudTotaal ? `<div class="player-loot-goud">${icon('coins')} Goud: <strong>${_magizooPrijs(loot.goud)}</strong>${
+      window._relictRegel(loot.relicten) ? ` <span class="player-loot-relict">waaronder ${esc(window._relictRegel(loot.relicten))}</span>` : ''
+    } <span class="player-loot-goud-note">(wordt bij afsluiting verdeeld)</span></div>` : ''}
   </div>`;
 }
 

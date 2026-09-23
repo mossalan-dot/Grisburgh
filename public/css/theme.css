@@ -26948,3 +26948,22 @@ body.akte-schrijf-open .mp-overlay { z-index: 1320; }
 }
 .dm-sound-missing .icon { width: 13px; height: 13px; opacity: .8; }
 .dm-sound-row--weg .dm-sound-slot-label { color: #8b2a2a; }
+
+/* ── Relikwiemunten in een buit ───────────────────────────────────────────
+   Electrum en platinum hebben geen eigen plek in de beurs; ze worden bij het
+   claimen stilzwijgend omgerekend. Maar het is oud geld dat je vindt, dus op
+   het scherm staat het bij naam — als bijzin achter het bedrag, want het ís
+   dat bedrag, niet iets extra's. */
+.loot-cin-relict {
+  display: block;
+  margin-top: 2px;
+  font-family: 'IM Fell English', Georgia, serif;
+  font-style: italic;
+  font-size: 0.78em;
+  opacity: .8;
+}
+.player-loot-relict {
+  font-family: 'IM Fell English', Georgia, serif;
+  font-style: italic;
+  opacity: .75;
+}

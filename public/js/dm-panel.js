@@ -7835,13 +7835,40 @@ function _tekstNaarCl(tekst) {
   const rest = parseInt((deel + '00').slice(0, 2), 10) || 0;
   return fl * 100 + rest;
 }
+// ── Relikwiemunten in een vondst ────────────────────────────────────────────
+//
+// Electrum en platinum hebben geen eigen plek in de beurs: ze worden bij het
+// invoeren omgerekend (ep = 5 zilver, pp = 10 goud). Maar het zijn juist de
+// munten die je víndt — oud geld in een grafkelder — en dan wil je ze bij naam
+// noemen. Dus onthoudt een vondst welke relikwiemunten erin zaten; het bedrag
+// blijft gewoon in centelingen staan, zodat claimen en verdelen er niets van
+// hoeven te weten. Bij het claimen verdwijnen ze stilzwijgend in de beurs.
+function _relictenUit(tekst) {
+  const uit = {};
+  for (const m of String(tekst ?? '').matchAll(/(\d+(?:[.,]\d+)?)\s*(ep|pp)\b/gi)) {
+    const k = m[2].toLowerCase();
+    uit[k] = (uit[k] || 0) + parseFloat(m[1].replace(',', '.'));
+  }
+  return Object.keys(uit).length ? uit : null;
+}
+// "3 Lion d'or · 1 Gouden Adelaer" — leeg als de DM ze geen naam gaf.
+function _relictTekst(relicten) {
+  if (!relicten) return '';
+  const n = window._muntNamen();
+  return Object.entries(relicten)
+    .map(([k, aantal]) => (n[k] ? `${aantal} ${n[k]}` : ''))
+    .filter(Boolean).join(' · ');
+}
+
 const _muntGoudCl = (c) => (c.goud?.fl || 0) * 100 + (c.goud?.kn || 0) * 10 + (c.goud?.cl || 0);
 const _clNaarGoud = (cl) => ({ fl: Math.floor(cl / 100), kn: Math.floor((cl % 100) / 10), cl: cl % 10 });
-function _muntUitleg(cl) {
+function _muntUitleg(cl, relicten) {
   const n = window._muntNamen();
   if (!cl) return `bijv. 1,34 — ${n.fl.toLowerCase()}, ${n.kn.toLowerCase()}, ${n.cl.toLowerCase()} · of "2 pp", "3 ep"`;
   const g = _clNaarGoud(cl);
-  return [g.fl && `${g.fl} ${n.fl}`, g.kn && `${g.kn} ${n.kn}`, g.cl && `${g.cl} ${n.cl}`].filter(Boolean).join(' · ');
+  const basis = [g.fl && `${g.fl} ${n.fl}`, g.kn && `${g.kn} ${n.kn}`, g.cl && `${g.cl} ${n.cl}`].filter(Boolean).join(' · ');
+  const rel = _relictTekst(relicten);
+  return rel ? `${basis}  —  waarvan ${rel}` : basis;
 }
 
 async function _renderLoot() {
@@ -8000,7 +8027,7 @@ function _lootEditorHtml() {
         <input class="dm-input dm-input-sm" style="width:90px" placeholder="1,34"
           value="${_muntGoudCl(c) ? _clNaarTekst(_muntGoudCl(c)) : ''}"
           oninput="window.dmPanel.lootEvGoud(this.value)">
-        <span class="dm-hint" id="dm-loot-munt-uitleg">${_muntUitleg(_muntGoudCl(c))}</span>
+        <span class="dm-hint" id="dm-loot-munt-uitleg">${_muntUitleg(_muntGoudCl(c), c.relicten)}</span>
       </div>
       <div class="dm-form-row">
         <label class="dm-form-label">Of gerold</label>
@@ -8054,9 +8081,10 @@ function _lootEvDungeon(id) {
 }
 function _lootEvGoud(tekst) {
   if (!_lootConcept) return;
-  _lootConcept.goud = _clNaarGoud(_tekstNaarCl(tekst));
+  _lootConcept.goud     = _clNaarGoud(_tekstNaarCl(tekst));
+  _lootConcept.relicten = _relictenUit(tekst);
   const hint = document.getElementById('dm-loot-munt-uitleg');
-  if (hint) hint.textContent = _muntUitleg(_muntGoudCl(_lootConcept));
+  if (hint) hint.textContent = _muntUitleg(_muntGoudCl(_lootConcept), _lootConcept.relicten);
 }
 function _lootEvRandom(veld, waarde) {
   if (!_lootConcept) return;

@@ -10151,6 +10151,7 @@ function _lootDisplay(lp) {
   };
   return {
     goud: lp.goud,
+    relicten: lp.relicten || null,
     items: (lp.items || []).map(it => ({
       id: it.id, naam: it.naam, rariteit: it.rariteit || '', bron: it.bron || '', status: it.status,
       claimers: (it.claims || []).map(wie),
@@ -10165,6 +10166,10 @@ function _lootForClient(lp, role, characterId) {
   const isDM = role === 'dm';
   return {
     actief: lp.actief, encounterId: lp.encounterId, goud: lp.goud, goudVerdeeld: lp.goudVerdeeld,
+    // Welke relikwiemunten er in de buit zaten. Alleen om te tonen — het bedrag
+    // staat al omgerekend in `goud`, dus bij het claimen verdwijnen ze
+    // stilzwijgend in de beurs.
+    relicten: lp.relicten || null,
     deelnemers: lp.deelnemers,
     items: (lp.items || []).map(it => ({
       id: it.id, naam: it.naam, beschrijving: it.beschrijving, rariteit: it.rariteit, entityId: it.entityId || null,
@@ -10262,6 +10267,18 @@ router.get('/loot/events', requireDM, (req, res) => {
   res.json(_leesLoot());
 });
 
+// Alleen ep en pp, en alleen als getal: dit komt uit een invoerveld en gaat
+// ongewijzigd terug naar het scherm.
+function _relictenOf(v) {
+  if (!v || typeof v !== 'object') return null;
+  const uit = {};
+  for (const k of ['ep', 'pp']) {
+    const n = Number(v[k]);
+    if (Number.isFinite(n) && n > 0) uit[k] = n;
+  }
+  return Object.keys(uit).length ? uit : null;
+}
+
 router.post('/loot/events', requireDM, (req, res) => {
   const data = _leesLoot();
   const ev = {
@@ -10270,6 +10287,10 @@ router.post('/loot/events', requireDM, (req, res) => {
     dc:          getalOf(req.body.dc),
     vaardigheid: String(req.body.vaardigheid || '').slice(0, 40),
     goud:        { fl: getalOf(req.body.goud?.fl), kn: getalOf(req.body.goud?.kn), cl: getalOf(req.body.goud?.cl) },
+    // Welke relikwiemunten er in deze vondst zaten (electrum, platinum). Puur
+    // om te tónen: het bedrag staat al omgerekend in `goud`, dus claimen en
+    // verdelen hoeven hier niets van te weten. Zie `_relictenUit` in dm-panel.js.
+    relicten:    _relictenOf(req.body.relicten),
     goudRandom:  req.body.goudRandom || null,
     items:       Array.isArray(req.body.items) ? req.body.items : [],
     sjabloon:    !!req.body.sjabloon,
@@ -10292,6 +10313,7 @@ router.put('/loot/events/:id', requireDM, (req, res) => {
   for (const v of velden) if (req.body[v] !== undefined) ev[v] = req.body[v];
   if (req.body.dc       !== undefined) ev.dc       = getalOf(req.body.dc);
   if (req.body.goud     !== undefined) ev.goud     = { fl: getalOf(req.body.goud.fl), kn: getalOf(req.body.goud.kn), cl: getalOf(req.body.goud.cl) };
+  if (req.body.relicten !== undefined) ev.relicten = _relictenOf(req.body.relicten);
   if (req.body.goudRandom !== undefined) ev.goudRandom = req.body.goudRandom;
   if (Array.isArray(req.body.items))   ev.items    = req.body.items;
   if (req.body.sjabloon !== undefined) ev.sjabloon = !!req.body.sjabloon;
@@ -10351,16 +10373,21 @@ router.post('/loot/verdeling', requireDM, (req, res) => {
   const dmState = readDmState();
   let totaalCl = 0;
   let items = [];
+  // Relikwiemunten van alle gekozen vondsten bij elkaar: twee kisten met elk
+  // een handvol electrum horen als één stapel op het scherm te staan.
+  const relicten = {};
   for (const ev of gekozen) {
     totaalCl += _eventGoudCl(ev);
     items = items.concat(_eventNaarItems(ev));
+    for (const [k, n] of Object.entries(ev.relicten || {})) relicten[k] = (relicten[k] || 0) + n;
     ev.onthuld = true;
   }
   const goud = fromCl(totaalCl);
   dmState.lootPhase = {
     actief: false, encounterId: null, lootEventIds: gekozen.map(e => e.id),
     deelnemers: _lootDeelnemers(combat, dmState),
-    goud, goudVerdeeld: false, items,
+    goud, relicten: Object.keys(relicten).length ? relicten : null,
+    goudVerdeeld: false, items,
   };
   storage.writeJSON('dm-state.json', dmState);
   storage.writeJSON('loot.json', data);

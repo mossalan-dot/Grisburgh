@@ -351,6 +351,18 @@ dm-panel.js : combat-canvas.js?v=22   render-statblock.js?v=9
 > (`parsePrijs`) als in de loot-editor (`_tekstNaarCl`) en de valuta-tokens van
 > tabellen (`{+2pp}`). Een vondst mág dus een platinum stuk bevatten; het staat
 > daarna gewoon als 10 goud in de beurs, en de kommanotatie blijft ongemoeid.
+> **Maar in een vondst worden ze wél bij naam genoemd**: het is oud geld dat je
+> víndt, dus `loot.json` onthoudt per vondst welke relikwiemunten erin zaten
+> (`relicten: {ep,pp}`) en het scherm zet er "waaronder 3 Lion d'or" bij. Puur
+> om te tonen — het bedrag staat al omgerekend in `goud`, dus claimen en
+> verdelen weten hier niets van en bij het afsluiten verdwijnen ze stilzwijgend
+> in de beurs. De naam komt uit `meta.currency.ep/pp`; zonder naam staat er
+> niets extra's. Helpers: `_relictenUit`/`_relictTekst` (dm-panel.js),
+> `_relictenOf` (routes/api.js), `window._relictRegel` (app.js).
+> **De beurs op het printbare blad toont alleen fl/kn/cl** (`BEURS_MUNTEN` in
+> `lib/character-sheet.js`). Dat liep over álle sleutels in `meta.currency`, dus
+> zodra een DM electrum een naam gaf stond er "0 Lion d'or" op elk uitgedeeld
+> blad — twee vakjes die per definitie altijd nul zijn.
 > **Munten met een komma:** in de editor vul je één bedrag in — `1,34` is
 > 1 florinde, 3 knakers en 4 centelingen (de knaker is een tiende florinde, de
 > centeling een honderdste, dus het leest als gewoon geld; zelfde idee als bij de

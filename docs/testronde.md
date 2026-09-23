@@ -870,6 +870,14 @@ Per bevinding: waar, wat, en of het opgelost is. Nieuwe regels onderaan.
 - Koop een zegen: je rolt en krijgt er één van die god, met de prijs eraf. Zweer een eed: de andere goden gaan op slot ("Je bent al door een eed gebonden"). Laat de DM de eed verbreken → er staat een **vloek** waar de eed stond; doe boete → weg.
 - Meesterkamer → Diensten → Tempel toont de lopende eden per speler met hun status.
 
+### Relikwiemunten in een vondst (23 sep 2026)
+
+- Meesterkamer → Loot → een vondst → **Munten**: typ `3 ep 1 pp`. De hint eronder leest *"25 Florinde · 5 Knaker — waarvan 3 Lion d'or · 1 Gouden Adelaer"*. Die namen komen uit Instellingen → Munten.
+- Onthul die vondst: op het **spelersscherm** en op het **tafelscherm** staat bij het bedrag *"waaronder 3 Lion d'or · 1 Gouden Adelaer"*.
+- Sluit de verdeling af: in de beurs staat gewoon het omgerekende bedrag (ep = 5 zilver, pp = 10 goud). De relikwieën verdwijnen stilzwijgend — dat is de bedoeling.
+- Geef je electrum en platinum géén naam in Instellingen, dan staat er niets extra's; alleen het bedrag.
+- **Op het printbare character sheet** staan nu drie muntvakjes (Florinde, Knaker, Centeling) en niet meer vijf. Er stond *"0 Lion d'or · 0 Gouden Adelaer"* op elk blad — die twee kunnen per definitie nooit gevuld zijn.
+
 ### Meesterkamer: bevestiging en emoji (23 sep 2026)
 
 - **Haal een deelnemer uit een lopend gevecht** (de ✕ in de kaart of de detailkaart): er komt eerst een vraag die zijn naam, zijn HP en het aantal condities noemt. Die ✕ zit vlak naast het initiative-veld en er is geen ongedaan-maken.
