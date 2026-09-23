@@ -7957,12 +7957,36 @@ function _validSvcKey(key) {
   return false;
 }
 
+// Welke ingestelde geluiden wijzen naar een bestand dat er niet meer is?
+//
+// De Geluiden-tab toonde "✓ Ingesteld" zodra er een id stond — of dat bestand
+// nog bestond deed er niet toe. In Grisburgh gold dat voor de sfeerloop van
+// Ursula én van de Tempel: allebei stil, allebei groen. Een geluid dat niet
+// speelt geeft geen foutmelding; je hoort gewoon niets en denkt dat het aan
+// jouw speakers ligt. De server weet als enige of het bestand er nog is, dus
+// hij zegt het erbij.
+function _ontbrekendeGeluiden(data) {
+  const weg = [];
+  const kijk = (pad, v) => {
+    const id = String(typeof v === 'object' && v ? (v.fileId || v.id || '') : (v || ''));
+    if (!id) return;
+    if (!storage.bestandBestaat(id)) weg.push(pad);
+  };
+  for (const [k, v] of Object.entries(data.standard        || {})) kijk('standard.' + k, v);
+  for (const [k, v] of Object.entries(data.serviceAmbiance || {})) kijk('serviceAmbiance.' + k, v);
+  for (const [k, v] of Object.entries(data.conditions      || {})) kijk('conditions.' + k, v);
+  for (const [k, v] of Object.entries(data.playerTurn      || {})) kijk('playerTurn.' + k, v);
+  for (const [k, v] of Object.entries(data.momenten        || {})) kijk('momenten.' + k, v);
+  (data.ambiance?.scenes || []).forEach((sc, i) => kijk('ambiance.' + (sc?.id || i), sc?.fileId ?? sc));
+  return weg;
+}
+
 router.get('/sounds', (req, res) => {
   let data = storage.readJSON('sounds.json');
   if (!data) data = { standard: {}, emotes: {}, playerTurn: {} };
   if (!data.playerTurn) data.playerTurn = {};
   _ensureAmbiance(data);
-  res.json(data);
+  res.json({ ...data, _ontbreekt: _ontbrekendeGeluiden(data) });
 });
 
 // Conditie-geluiden: whitelist zodat er geen willekeurige sleutels in sounds.json

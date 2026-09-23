@@ -870,6 +870,13 @@ Per bevinding: waar, wat, en of het opgelost is. Nieuwe regels onderaan.
 - Koop een zegen: je rolt en krijgt er één van die god, met de prijs eraf. Zweer een eed: de andere goden gaan op slot ("Je bent al door een eed gebonden"). Laat de DM de eed verbreken → er staat een **vloek** waar de eed stond; doe boete → weg.
 - Meesterkamer → Diensten → Tempel toont de lopende eden per speler met hun status.
 
+### Geluiden: een verdwenen bestand zegt het nu (23 sep 2026)
+
+- Meesterkamer → Geluiden → *Diensten-sfeerloops*: bij **De waarzegger** en **De Tempel** staat **"Bestand weg"** in rood in plaats van "✓ Ingesteld". Die twee loops wezen naar een bestand dat niet meer bestaat — die diensten gingen dus in stilte open terwijl de tab groen meldde.
+- Drie standen zijn nu te onderscheiden: groen *✓ Ingesteld*, rood *Bestand weg* (met een kruisje om hem te wissen en een knop om opnieuw te uploaden), grijs *Geen loop*.
+- Upload er een nieuw bestand bij of druk op het kruisje: de regel gaat naar de juiste stand.
+- Geldt voor álle geluidsvelden, niet alleen de diensten — ook de standaardklanken, condities, beurtgeluiden, momenten en de sfeerscènes.
+
 ### Kaartspelden hangen aan hun eigen kaart (22 sep 2026)
 
 - Open de wereldkaart in Grisburgh: er staan **9 spelden op de stadskaart en 19 op Isfār**, en geen enkele verdwijnt. Zes daarvan droegen geen kaart-id en leunden op een terugval naar een kaart die toevallig `grisburgh` heet.

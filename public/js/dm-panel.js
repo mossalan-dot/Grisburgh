@@ -7214,8 +7214,28 @@ async function _renderGeluiden() {
 
   // ── Diensten-sfeerloops (lokaal per dienst/factie/rust) ──
   const svcAmb = sounds.serviceAmbiance || {};
+  // De server zegt welke ingestelde geluiden naar een verdwenen bestand wijzen.
+  // Zonder dat stond er "✓ Ingesteld" bij een dienst die in stilte opengaat —
+  // en een geluid dat niet speelt meldt zichzelf nergens.
+  const _weg = new Set(sounds._ontbreekt || []);
   const svcRow = (key, label) => {
     const fid = svcAmb[key];
+    if (fid && _weg.has('serviceAmbiance.' + key)) {
+      return `
+      <div class="dm-sound-row dm-sound-row--weg">
+        <span class="dm-sound-slot-label">${esc(label)}</span>
+        <div class="dm-sound-controls">
+          <span class="dm-sound-missing" title="Het bestand bestaat niet meer — deze dienst opent in stilte">
+            ${icon('volume-2')} Bestand weg
+          </span>
+          <button class="dm-btn dm-btn-sm dm-btn-ghost" onclick="window._svcAmbRemove('${esc(key)}')">${icon('x')}</button>
+          <label class="dm-btn dm-btn-sm dm-btn-primary dm-sound-upload-btn" title="Opnieuw uploaden">
+            ${icon('plus')} Upload
+            <input type="file" accept="audio/*" style="display:none" onchange="window._svcAmbUpload('${esc(key)}', this)">
+          </label>
+        </div>
+      </div>`;
+    }
     return `
       <div class="dm-sound-row">
         <span class="dm-sound-slot-label">${esc(label)}</span>

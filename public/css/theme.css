@@ -26935,3 +26935,16 @@ body.akte-schrijf-open .mp-overlay { z-index: 1320; }
 @media (prefers-reduced-motion: reduce) {
   .combat-overlay.co-mijn-beurt.minimized .combat-modal { animation: none; }
 }
+
+/* ── Geluid dat naar een verdwenen bestand wijst ──────────────────────────
+   Stond als "✓ Ingesteld" in beeld terwijl de dienst in stilte opengaat. Een
+   geluid dat niet speelt meldt zichzelf nergens, dus moet de tab het zeggen.
+   Rood-bruin i.p.v. de groene bevestiging, want dit is een gebrek. */
+.dm-sound-missing {
+  display: inline-flex; align-items: center; gap: 5px;
+  font-family: 'Crimson Text', Georgia, serif;
+  font-size: 12px; font-style: italic;
+  color: #8b2a2a;
+}
+.dm-sound-missing .icon { width: 13px; height: 13px; opacity: .8; }
+.dm-sound-row--weg .dm-sound-slot-label { color: #8b2a2a; }
