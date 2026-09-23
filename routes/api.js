@@ -10168,10 +10168,16 @@ function _lootDisplay(lp) {
 }
 
 // Lootfase voor de client; voor spelers worden claim-namen verborgen (alleen aantal + of jij claimde).
-function _lootForClient(lp, role, characterId) {
+function _lootForClient(lp, role, characterId, dmState) {
   if (!lp) return null;
   const isDM = role === 'dm';
+  // Staat de gedeelde beurs aan, dan gaat het goud daarheen in plaats van in
+  // porties over de deelnemers. Dat is geen geheim, maar de client kan het niet
+  // zelf weten — en zonder dat verschil kan het venster niet zeggen wat er
+  // straks gebeurt.
+  const g = dmState ? getGroup(dmState, dmState.activeGroup) : null;
   return {
+    gedeeldeBeurs: !!g?.sharedPurse?.enabled,
     actief: lp.actief, encounterId: lp.encounterId, goud: lp.goud, goudVerdeeld: lp.goudVerdeeld,
     // Welke relikwiemunten er in de buit zaten. Alleen om te tonen — het bedrag
     // staat al omgerekend in `goud`, dus bij het claimen verdwijnen ze
@@ -10398,7 +10404,7 @@ router.post('/loot/verdeling', requireDM, (req, res) => {
   };
   storage.writeJSON('dm-state.json', dmState);
   storage.writeJSON('loot.json', data);
-  res.json(_lootForClient(dmState.lootPhase, 'dm', null));
+  res.json(_lootForClient(dmState.lootPhase, 'dm', null, dmState));
 });
 
 router.post('/combat/loot/start', requireDM, (req, res) => {
@@ -10419,12 +10425,12 @@ router.post('/combat/loot/start', requireDM, (req, res) => {
   }
   dmState.lootPhase = { actief: false, encounterId: encId, deelnemers: _lootDeelnemers(combat, dmState), goud, goudVerdeeld: false, items };
   storage.writeJSON('dm-state.json', dmState);
-  res.json(_lootForClient(dmState.lootPhase, 'dm', null));
+  res.json(_lootForClient(dmState.lootPhase, 'dm', null, dmState));
 });
 
 router.get('/combat/loot', attachRole, (req, res) => {
   const dmState = readDmState();
-  res.json(_lootForClient(dmState.lootPhase, req.role, req.session.characterId));
+  res.json(_lootForClient(dmState.lootPhase, req.role, req.session.characterId, dmState));
 });
 
 router.put('/combat/loot', requireDM, (req, res) => {
@@ -10432,6 +10438,9 @@ router.put('/combat/loot', requireDM, (req, res) => {
   const lp = dmState.lootPhase;
   if (!lp) return res.status(404).json({ error: 'Geen lootfase' });
   if (req.body.goud) lp.goud = { fl: parseInt(req.body.goud.fl) || 0, kn: parseInt(req.body.goud.kn) || 0, cl: parseInt(req.body.goud.cl) || 0 };
+  // Past de DM het bedrag in de verdeling met de hand aan, dan verandert de
+  // bijzin over de relikwiemunten mee (of verdwijnt hij).
+  if (req.body.relicten !== undefined) lp.relicten = _relictenOf(req.body.relicten);
   if (Array.isArray(req.body.items)) {
     const oud = new Map((lp.items || []).map(i => [i.id, i]));
     lp.items = req.body.items.map(it => {
@@ -10453,7 +10462,7 @@ router.put('/combat/loot', requireDM, (req, res) => {
     }
   }
   storage.writeJSON('dm-state.json', dmState);
-  res.json(_lootForClient(lp, 'dm', null));
+  res.json(_lootForClient(lp, 'dm', null, dmState));
 });
 
 router.post('/combat/loot/reveal', requireDM, (req, res) => {
@@ -10469,7 +10478,7 @@ router.post('/combat/loot/reveal', requireDM, (req, res) => {
   // die klinkt op het moment dat de spelers de buit te zien krijgen.
   const lootGeluid = (storage.readJSON('sounds.json') || {}).momenten?.lootReveal;
   if (lootGeluid) io.to(room).emit('sound:reveal', { fileId: String(lootGeluid), label: 'Loot', loop: false });
-  res.json(_lootForClient(lp, 'dm', null));
+  res.json(_lootForClient(lp, 'dm', null, dmState));
 });
 
 router.post('/combat/loot/claim', attachRole, (req, res) => {
@@ -10552,7 +10561,7 @@ router.post('/combat/loot/verdeeld', requireDM, (req, res) => {
   for (const cid of geraakt) io.to(room).emit('player:items-updated', { characterId: cid, items: dmState.playerItems[cid] });
   io.to(room).emit('loot:verdeeld', { uitslag });
   io.to(_displayRoom(req)).emit('loot:display', { ..._lootDisplay(lp), afgerond: true });
-  res.json({ ok: true, uitslag, loot: _lootForClient(lp, 'dm', null) });
+  res.json({ ok: true, uitslag, loot: _lootForClient(lp, 'dm', null, dmState) });
 });
 
 router.delete('/combat/loot', requireDM, (req, res) => {

@@ -98,6 +98,33 @@ describe('Aanwezigheid per sessie', () => {
     assert.ok(!start.body.deelnemers.includes(afwezig), 'je kunt niet claimen uit een kist waar je niet bij stond');
   });
 
+  // De vorige test kijkt naar de deelnemerslijst; deze loopt door tot in de
+  // beurs. Dat is waar het echt om gaat — een naam die wél op de lijst staat
+  // maar geen geld krijgt (of andersom) valt anders niet op.
+  it('laat het goud van een vondst alleen bij de aanwezigen landen', async () => {
+    await req(server, 'PUT', '/api/groups/groep1/aanwezigheid', { afwezig: [afwezig] }, dm);
+    for (const id of [aanwezig, afwezig]) {
+      await req(server, 'PATCH', `/api/player-currency/${id}`, { fl: 0, kn: 0, cl: 0 }, dm);
+    }
+
+    const ev = await req(server, 'POST', '/api/loot/events',
+      { naam: 'Zak onder de vloer', goud: { fl: 10, kn: 0, cl: 0 } }, dm);
+    assert.equal(ev.status, 201, 'de vondst hoort aangemaakt te worden');
+    const verdeling = await req(server, 'POST', '/api/loot/verdeling', { eventIds: [ev.body.id] }, dm);
+    assert.ok(verdeling.body.deelnemers.includes(aanwezig));
+    assert.ok(!verdeling.body.deelnemers.includes(afwezig), 'wie er niet is, deelt niet mee');
+
+    await req(server, 'POST', '/api/combat/loot/reveal', {}, dm);
+    await req(server, 'POST', '/api/combat/loot/verdeeld', {}, dm);
+
+    const beurs = async (id) => (await req(server, 'GET', `/api/player-currency/${id}`, null, dm)).body;
+    const a = await beurs(aanwezig), b = await beurs(afwezig);
+    assert.equal((a.fl || 0) * 100 + (a.kn || 0) * 10 + (a.cl || 0), 1000,
+      'de enige aanwezige krijgt de hele zak');
+    assert.equal((b.fl || 0) * 100 + (b.kn || 0) * 10 + (b.cl || 0), 0,
+      'wie er niet was, vindt geen geld in zijn beurs');
+  });
+
   it('laat iedereen weer meedoen zodra de lijst leeg is', async () => {
     await req(server, 'PUT', '/api/groups/groep1/aanwezigheid', { afwezig: [] }, dm);
     const start = await req(server, 'POST', '/api/combat/loot/start', {}, dm);

@@ -889,6 +889,12 @@ Per bevinding: waar, wat, en of het opgelost is. Nieuwe regels onderaan.
 - Onthul die vondst: op het **spelersscherm** en op het **tafelscherm** staat bij het bedrag *"waaronder 3 Lion d'or · 1 Gouden Adelaer"*.
 - Sluit de verdeling af: in de beurs staat gewoon het omgerekende bedrag (ep = 5 zilver, pp = 10 goud). De relikwieën verdwijnen stilzwijgend — dat is de bedoeling.
 - Geef je electrum en platinum géén naam in Instellingen, dan staat er niets extra's; alleen het bedrag.
+- Open daarna het venster **Loot verdelen**: daar staat dezelfde bijzin *"— waarvan 3 Lion d'or · 1 Gouden Adelaer"*. Pas je het bedrag daar met de hand aan, dan verandert (of verdwijnt) die bijzin mee — ook na herladen.
+
+### Wie deelt mee in een vondst (23 sep 2026)
+
+- Zet in Instellingen → Party's een speler op **afwezig** en verdeel een vondst met goud: hij staat niet bij *Deelnemers* en er komt niets in zijn beurs. Loopt er een gevecht, dan zijn de deelnemers wie er in dat gevecht staan.
+- De regel onder de items zegt wát er gebeurt, niet alleen wie meedoet: met de **gedeelde beurs aan** staat er *"het goud gaat naar de gedeelde beurs"*, met de beurs uit *"ieder 7 Florinde · 8 Knaker · 3 Centeling, het restje van 1 Centeling naar <naam>"*. Tel na: ieder maal het aantal plus het restje is het totaal.
 - **Op het printbare character sheet** staan nu drie muntvakjes (Florinde, Knaker, Centeling) en niet meer vijf. Er stond *"0 Lion d'or · 0 Gouden Adelaer"* op elk blad — die twee kunnen per definitie nooit gevuld zijn.
 
 ### Meesterkamer: bevestiging en emoji (23 sep 2026)

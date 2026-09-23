@@ -7562,6 +7562,31 @@ function _rarPill(r) {
   return `<span class="loot-rar-pill" data-rarity="${esc(String(r).toLowerCase())}">${esc(r)}</span>`;
 }
 
+// Wat er met het goud gebeurt zodra de DM de verdeling afsluit. Wie meedeelt
+// stond er al; wat ieder krijgt niet — en juist dat maakt een onverwachte naam
+// zichtbaar. Het restje van een deling die niet opgaat valt bij één iemand
+// (de server sorteert op id), dus dat zeggen we er ook bij: een centeling die
+// nergens uit te leggen is, is erger dan een centeling die je ziet liggen.
+function _muntKort(cl) {
+  const n = window._muntNamen();
+  const g = _clNaarGoud(cl);
+  return [g.fl && `${g.fl} ${n.fl}`, g.kn && `${g.kn} ${n.kn}`, g.cl && `${g.cl} ${n.cl}`]
+    .filter(Boolean).join(' · ') || `0 ${n.cl}`;
+}
+
+function _lootDeelRegel(lp) {
+  const cl = _muntGoudCl({ goud: lp.goud || {} });
+  if (!cl) return '';
+  if (lp.gedeeldeBeurs) return 'het goud gaat naar de gedeelde beurs';
+  const n = (lp.deelnemers || []).length;
+  if (!n) return 'niemand deelt mee — het goud blijft liggen';
+  const per  = Math.floor(cl / n);
+  const rest = cl - per * n;
+  const eerste = [...lp.deelnemers].sort()[0];
+  return `ieder ${_muntKort(per)}`
+    + (rest ? `, het restje van ${_muntKort(rest)} naar ${_lootNaam(eerste)}` : '');
+}
+
 function _renderLootModalBody() {
   const body = document.getElementById('loot-modal-body');
   if (!body) return;
@@ -7569,6 +7594,7 @@ function _renderLootModalBody() {
   if (!lp) { body.innerHTML = `<p class="dm-hint">Geen lootfase.</p>`; return; }
   const goud = lp.goud || { fl: 0, kn: 0, cl: 0 };
   const deelnemers = (lp.deelnemers || []).map(_lootNaam).join(', ') || '—';
+  const deelRegel = _lootDeelRegel(lp);
 
   if (!lp.actief && !lp.items.some(i => i.status === 'toegewezen' || i.status === 'overgeslagen')) {
     // ── Pre-reveal: bewerkbaar ──
@@ -7579,7 +7605,7 @@ function _renderLootModalBody() {
           <input class="dm-input dm-input-sm" style="width:90px" placeholder="1,34"
             value="${_muntGoudCl({ goud }) ? _clNaarTekst(_muntGoudCl({ goud })) : ''}"
             onchange="window.dmPanel.lootGoudChange(this.value)">
-          <span class="dm-hint">${_muntUitleg(_muntGoudCl({ goud }))}</span>
+          <span class="dm-hint">${_muntUitleg(_muntGoudCl({ goud }), lp.relicten)}</span>
         </div>
         <div class="dm-section-label" style="margin-top:10px">Items <button class="dm-btn dm-btn-ghost dm-btn-sm" style="margin-left:8px" onclick="window.dmPanel.lootItemAdd()">${icon('plus')} Toevoegen</button></div>
         <div class="loot-items">
@@ -7594,7 +7620,7 @@ function _renderLootModalBody() {
               <button class="dm-btn dm-btn-ghost dm-btn-sm" onclick="window.dmPanel.lootItemRemove('${esc(it.id)}')">${icon('x')}</button>
             </div>`).join('') || `<p class="dm-hint">Nog geen items — voeg er toe of laat leeg voor alleen goud.</p>`}
         </div>
-        <p class="dm-hint" style="margin-top:8px">Deelnemers: ${esc(deelnemers)}</p>
+        <p class="dm-hint" style="margin-top:8px">Deelnemers: ${esc(deelnemers)}${deelRegel ? ` · ${esc(deelRegel)}` : ''}</p>
         <div class="dm-feature-row" style="margin-top:10px">
           <button class="dm-btn dm-btn-ghost dm-btn-sm" onclick="window.dmPanel.lootCancel()">Annuleer</button>
           <button class="dm-btn dm-btn-primary" style="margin-left:auto" onclick="window.dmPanel.lootReveal()">Stuur naar spelers →</button>
@@ -7656,14 +7682,17 @@ function _renderLootModalBody() {
 
 async function _lootSave() {
   if (!_lootData) return;
-  try { _lootData = await api.lootUpdate({ goud: _lootData.goud, items: _lootData.items }); }
+  try { _lootData = await api.lootUpdate({ goud: _lootData.goud, relicten: _lootData.relicten, items: _lootData.items }); }
   catch (e) { alert('Fout: ' + e.message); }
 }
 // Eén bedrag met een komma (1,34), net als in de vondst-editor; intern blijft
 // het drie munten.
 function _lootGoudChange(tekst) {
   if (!_lootData) return;
-  _lootData.goud = _clNaarGoud(_tekstNaarCl(tekst));
+  _lootData.goud     = _clNaarGoud(_tekstNaarCl(tekst));
+  // Ook hier de relikwieën bijwerken: past de DM het bedrag in de verdeling
+  // met de hand aan, dan hoort de bijzin mee te veranderen.
+  _lootData.relicten = _relictenUit(tekst);
   _lootSave().then(_renderLootModalBody);
 }
 function _lootItemAdd() { if (_lootData) { _lootData.items.push({ id: '', naam: '', beschrijving: '', rariteit: '', entityId: null, claimCount: 0, ikClaim: false, status: 'open' }); _lootSave().then(_renderLootModalBody); } }
