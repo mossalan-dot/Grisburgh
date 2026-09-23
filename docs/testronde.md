@@ -870,6 +870,12 @@ Per bevinding: waar, wat, en of het opgelost is. Nieuwe regels onderaan.
 - Koop een zegen: je rolt en krijgt er één van die god, met de prijs eraf. Zweer een eed: de andere goden gaan op slot ("Je bent al door een eed gebonden"). Laat de DM de eed verbreken → er staat een **vloek** waar de eed stond; doe boete → weg.
 - Meesterkamer → Diensten → Tempel toont de lopende eden per speler met hun status.
 
+### Meesterkamer: bevestiging en emoji (23 sep 2026)
+
+- **Haal een deelnemer uit een lopend gevecht** (de ✕ in de kaart of de detailkaart): er komt eerst een vraag die zijn naam, zijn HP en het aantal condities noemt. Die ✕ zit vlak naast het initiative-veld en er is geen ongedaan-maken.
+- **Meesterkamer → Tafels → Weer**: de seizoenen heten nu Lente / Zomer / Herfst / Winter in plaats van 🌸☀️🍂❄️, en de uitslag leest als *"Vriezend (-5°C) · Neerslag: Geen · Wind: Stormachtig"*. Genereer een paar keer en kijk of de bijzondere weertypes (Hagelbui, Zandstorm) er zonder tekens in staan.
+- Twee losse emoji vervangen: de bliksem bij *Nu afronden* in de Tweespalt-weddenschappen en het ✦ bij *Concrete kern* in het Ursula-formulier — die stonden naast labels die wél een icoon hadden.
+
 ### Geluiden: een verdwenen bestand zegt het nu (23 sep 2026)
 
 - Meesterkamer → Geluiden → *Diensten-sfeerloops*: bij **De waarzegger** en **De Tempel** staat **"Bestand weg"** in rood in plaats van "✓ Ingesteld". Die twee loops wezen naar een bestand dat niet meer bestaat — die diensten gingen dus in stilte open terwijl de tab groen meldde.

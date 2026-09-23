@@ -3038,7 +3038,7 @@ const _WEER = {
   },
 };
 
-const _WEER_BIJZONDER = ['Dichte mist', 'Regenboog', 'Hevige onweersbui ⚡', 'IJzel', 'Hittegolf 🌡', 'Hagelbui', 'Zandstorm', 'Vlokkensneeuw ❄️'];
+const _WEER_BIJZONDER = ['Dichte mist', 'Regenboog', 'Hevige onweersbui', 'IJzel', 'Hittegolf', 'Hagelbui', 'Zandstorm', 'Vlokkensneeuw'];
 
 function _weerRoll(tabel) {
   const d = Math.floor(Math.random() * 100) + 1;
@@ -3054,9 +3054,11 @@ function _weerGenereer() {
   const neersl = _weerRoll(s.neersl);
   const wind   = _weerRoll(s.wind);
   const bijz   = Math.random() < 0.1
-    ? ' — ✨ ' + _WEER_BIJZONDER[Math.floor(Math.random() * _WEER_BIJZONDER.length)]
+    ? ' — ' + _WEER_BIJZONDER[Math.floor(Math.random() * _WEER_BIJZONDER.length)]
     : '';
-  const result = `🌡 ${temp} &nbsp;·&nbsp; 💧 ${neersl} &nbsp;·&nbsp; 🌬 ${wind}${bijz}`;
+  // Stond als `🌡 … 💧 … 🌬 …`. Een woord zegt hier meer dan een pictogram:
+  // "Neerslag: geen" is meteen duidelijk, een druppel vraagt uitleg.
+  const result = `<strong>${temp}</strong> &nbsp;·&nbsp; Neerslag: ${neersl} &nbsp;·&nbsp; Wind: ${wind}${bijz}`;
   const el = document.getElementById('dm-weer-result');
   if (el) { el.innerHTML = result; el.classList.remove('hidden'); }
 };
@@ -3106,9 +3108,13 @@ function _renderTafels() {
       <div class="dm-section-label">Weer</div>
       <div class="dm-feature-row">
         <div class="dm-weer-seasons" id="dm-weer-seasons">
+          <!-- Stonden hier als 🌸☀️🍂❄️. Emoji horen niet in de uitvoer (en de
+               sprite heeft geen zon of sneeuwvlok), maar belangrijker: vier
+               seizoensnamen lezen sneller dan vier plaatjes waarvan je er twee
+               moet raden. De titel stond er toch al. -->
           ${['Lente','Zomer','Herfst','Winter'].map((s,i) =>
             `<button class="dm-btn dm-btn-sm dm-weer-season-btn${i===0?' active':''}" data-season="${s}"
-               title="${s}" onclick="window.dmPanel.weerSeason(this)">${['🌸','☀️','🍂','❄️'][i]}</button>`).join('')}
+               title="${s}" onclick="window.dmPanel.weerSeason(this)">${s}</button>`).join('')}
         </div>
         <button class="dm-btn dm-btn-primary" onclick="window.dmPanel.weerGenereer()" title="Genereer weer">${icon('dice',{cls:'icon-gi'})}</button>
       </div>
@@ -5003,6 +5009,16 @@ async function _combatCondToggle(id, condId) {
 };
 
 async function _combatRemove(id) {
+  // Midden in een gevecht is dit onomkeerbaar: de uitgerolde HP, de condities
+  // en de plaats in de beurtvolgorde zijn weg, en er is geen ongedaan-maken.
+  // De ✕ staat bovendien vlak naast de initiative-invoer. Huisregel: geen
+  // destructieve DM-actie zonder een bevestiging die zegt wát er weggaat.
+  const c = (_combat?.combatants || []).find(x => x.id === id);
+  const naam = c?.name || 'deze deelnemer';
+  const hp = (c && c.hp !== undefined && c.maxHp)
+    ? ` (${c.hp}/${c.maxHp} HP${(c.conditions || []).length ? `, ${c.conditions.length} condities` : ''})`
+    : '';
+  if (!confirm(`${naam} uit het gevecht halen?${hp}\n\nDit kan niet ongedaan gemaakt worden.`)) return;
   try { await api.removeCombatant(id); }
   catch (e) { alert('Fout: ' + e.message); }
 };
@@ -5584,7 +5600,7 @@ async function _renderTweespaltDM() {
             </div>`).join('')}
         </div>
         ${!isAfgerond && evt.uitkomstModus === 'auto'
-          ? `<button class="dm-btn dm-btn-sm" onclick="window._tsDmUitslag('${esc(evt.id)}')" title="Nu afronden">⚡</button>`
+          ? `<button class="dm-btn dm-btn-sm" onclick="window._tsDmUitslag('${esc(evt.id)}')" title="Nu afronden">${icon('zap')}</button>`
           : ''}
         ${!isAfgerond && evt.inzetten && Object.keys(evt.inzetten).length
           ? `<div style="margin-top:6px;font-size:11px;opacity:.7">
@@ -6228,7 +6244,7 @@ async function _renderUrsulaSettings() {
         <label class="dm-form-label">${icon('zap')} Ruiken</label><textarea id="ursula-ruiken" class="dm-input" rows="2" style="font-size:11px;resize:vertical">${esc(v.ruiken || '')}</textarea>
         <label class="dm-form-label">${icon('flask-conical')} Proeven</label><textarea id="ursula-proeven" class="dm-input" rows="2" style="font-size:11px;resize:vertical">${esc(v.proeven || '')}</textarea>
         <label class="dm-form-label">${icon('mouse-pointer-2')} Voelen</label><textarea id="ursula-voelen" class="dm-input" rows="2" style="font-size:11px;resize:vertical">${esc(v.voelen || '')}</textarea>
-        <label class="dm-form-label">✦ Concrete kern (naam/locatie — onthuld bij een 6)</label><textarea id="ursula-concreet" class="dm-input" rows="2" style="font-size:11px;resize:vertical">${esc(v.concreet || '')}</textarea>
+        <label class="dm-form-label">${icon('sparkles')} Concrete kern (naam/locatie — onthuld bij een 6)</label><textarea id="ursula-concreet" class="dm-input" rows="2" style="font-size:11px;resize:vertical">${esc(v.concreet || '')}</textarea>
       </div>
       <div class="dm-form-row" style="gap:6px">
         <button class="dm-btn dm-btn-primary" onclick="window._ursulaVoorspellingSave(event)" title="Voorspelling opslaan">${icon('save')} Voorspelling</button>
@@ -9003,7 +9019,7 @@ function _buildCombatKnapzakPanel(simpleItems, currency, ownership, voorwerpen, 
     </div>
     ${myItems.length ? `
     <div class="co-char-section">
-      <div class="co-char-section-title">🎒 Geclaimde voorwerpen</div>
+      <div class="co-char-section-title">${icon('backpack')} Geclaimde voorwerpen</div>
       <div class="co-items-list">${claimedHtml}</div>
     </div>` : ''}
     ${simpleItems.length ? `
