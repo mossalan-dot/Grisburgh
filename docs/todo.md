@@ -337,7 +337,8 @@ Gevraagd op 14 sep 2026, gebouwd op 14 sep 2026.
 
 ## Geheimen
 
-- [ ] **Een stabiel id per geheimregel.** `data.geheimen` is een lijst teksten
+- [x] **Een stabiel id per geheimregel.** — gedaan; `scripts/geheim-ids.js` is gedraaid, in Grisburgh dragen alle 46 geheimregels een id en nul niet.
+      Oorspronkelijke notitie: `data.geheimen` is een lijst teksten
       en alles wat ernaar wijst doet dat op positie: de onthulstand per party
       (`secretReveals`), de antagonist-vlaggen en sinds 8 sep de geheime
       verbindingen. Bij het opslaan worden die verwijzingen nu meeverschoven
@@ -449,7 +450,7 @@ daar dan in. (Het eerste punt — diensten die de gedeelde beurs omzeilden — i
 
 - [x] **HP uitrollen bij een encounter** — gedaan 11 sep 2026, per monsterregel
       en per exemplaar. Oorspronkelijke notitie:
-- [ ] ~~**HP uitrollen bij een encounter.**~~ Nu het hp-veld de worp weer bevat
+- [x] ~~**HP uitrollen bij een encounter.**~~ Nu het hp-veld de worp weer bevat
       ("11 (2d8+2)") kan een gevecht per monster rollen in plaats van het
       gemiddelde te nemen. Dat maakt elke ontmoeting net iets anders. Voorstel:
       een vinkje in de encounter-editor (*HP uitrollen*) dat op de encounter
@@ -460,7 +461,7 @@ daar dan in. (Het eerste punt — diensten die de gedeelde beurs omzeilden — i
 - [x] **Monsters zijn agnostisch gemaakt** (11 sep 2026): `chapter` eruit, de
       koppeling naar `meta.hoofdstukken[key].monsters`, filter leest die lijst
       plus de encounters van die akte. Oorspronkelijke notitie:
-- [ ] ~~**Monsters zijn niet agnostisch.**~~ De monster-editor heeft een veld
+- [x] ~~**Monsters zijn niet agnostisch.**~~ De monster-editor heeft een veld
       *Akte*, precies wat we bij documenten hebben weggehaald ("Kaartjes zijn
       agnostisch"). Het veld is nu verborgen in het bestiarium-venster, maar
       staat nog in de Meesterkamer omdat de aktefilter in de monsterlijst erop
