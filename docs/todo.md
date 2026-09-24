@@ -191,16 +191,38 @@ wordt `companionOwners` gevuld), is dit het moment.
       DM-tab, `#section-heeren`, `HEEREN_*`, `renderHeeren()` en de tien
       api-wrappers weg; ruim 550 regels. De briefstijl `heeren` (schaduwbrief)
       is blijven staan — dat is opmaak voor brieven die er al liggen.
-- [ ] **Facties & Aanzien heeft geen sectienaam** — losse facties wel, de sectie
-      niet. Kleinste oplossing: `meta.factiesLabel`.
-- [ ] **App-iconen en logo zijn van Grisburgh** — de PWA installeert bij elke
-      campagne met hetzelfde wapen. Embleem is al per campagne; de iconen niet.
-- [ ] **Oude bestanden op de server** — `/var/www/grisburgh/public/` heeft nog
-      losse `app.js`, `theme.css` en `render-relatiemap.js` uit deploys van juni.
-      Nergens meer naar gelinkt; opruimen zodra we zeker weten dat niets ze pakt.
+- [x] **Facties & Aanzien heeft geen sectienaam** — gedaan 24 sep 2026.
+      `meta.factiesLabel`, in te stellen in de Facties-tab; zijbalk, sectiekop,
+      DM-tab, opslagknop en hulptekst lezen `window._factiesLabel()`. Bijvangst:
+      `_dienstNaam('facties')` zocht in `meta.facties` naar een `.naam`, maar dat
+      is een **lijst facties** — de zijbalk zei daardoor "Facties" terwijl de
+      sectie erboven "Facties & Aanzien" heette.
+- [x] **App-iconen en logo zijn van Grisburgh** — gedaan 24 sep 2026.
+      `meta.appIcon` (Instellingen → App-icoon, dezelfde mediakiezer als het
+      embleem) en een **publieke** route `GET /app-icon-<maat>.png` die hem met
+      sharp op 180/192/512 zet — publiek omdat het besturingssysteem de iconen
+      ophaalt tijdens het installeren, en dat is geen ingelogde browser. Zonder
+      eigen icoon komt het meegeleverde wapen eruit, dus er verandert niets
+      zolang niemand er een kiest. Let op: de querystring moet `campagne` heten,
+      anders valt `_campagneVan` terug op de **actieve** campagne.
+- [x] **Oude bestanden op de server** — gedaan 24 sep 2026. Het waren er meer
+      dan drie: ook `css/app.js`, `css/dm-panel.js`, `css/index.html`,
+      `js/index.html`, `js/theme.css` en `js/glossary.js` (het bestand dat in
+      juni een kapotte checkout maskeerde). Samen 2,8 MB; kopie op de server als
+      `/root/grisburgh-public-opruiming-20260924.tar.gz`.
+      **Belangrijker was wat het blootlegde:** een ontbrekend `.js` gaf een
+      **200 met HTML** terug via de SPA-fallback — precies de stille fout uit
+      CLAUDE.md. `server.js` geeft nu 404 voor elk pad met een extensie;
+      bewaakt door `tests/frontend-imports.test.js`.
 - [ ] **Dode code van de previewtoggle** — de knop is uit de balk, `dmToggleClick`
       en `state.dmPreview` staan er nog. Laten staan tot zeker is dat je hem niet
       terugwilt.
+      **Bevinding 24 sep 2026:** hij kán niet terugkomen zoals hij was. De
+      toggle zet alleen een vlag in de browser, terwijl de **server** op 33
+      plekken op `req.role` beslist welke data hij meestuurt. Een "bekijk als
+      speler" zou dus spelers-chrome om DM-data heen tekenen — inclusief
+      geheimen die de party niet kent. Wil je die stand écht, dan moet het langs
+      de server (een tweede sessie of een expliciete preview-rol).
 
 ## Personage-kaartje → `docs/personage-kaartje.md`
 

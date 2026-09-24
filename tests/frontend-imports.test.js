@@ -1,4 +1,4 @@
-const { describe, it } = require('node:test');
+const { describe, it, before, after } = require('node:test');
 const assert = require('node:assert');
 const fs = require('fs');
 const path = require('path');
@@ -56,5 +56,87 @@ describe('Frontend module-imports', () => {
         `index.html laadt "${m[1]}" maar public/${rel} bestaat niet`
       );
     }
+  });
+});
+
+// De andere helft van diezelfde valkuil: de server. Bovenstaande tests vangen
+// een dangling import in de code, maar een bestand kan ook op de server
+// ontbreken terwijl de code klopt (of andersom blijven staan, zoals
+// glossary.js daar tot 24 sep 2026 deed). Dan hoort er een 404 te komen en
+// geen 200 met HTML — dat laatste laat de module-graaf stil vallen.
+describe('Een ontbrekend bestand geeft 404, geen HTML', () => {
+  const http = require('http');
+  const os   = require('os');
+  const DATA_DIR = path.join(os.tmpdir(), `grisburgh-test-404-${Date.now()}`);
+  let server, io;
+
+  const haal = (p) => new Promise((resolve, reject) => {
+    const r = http.request(
+      { method: 'GET', hostname: 'localhost', port: server.address().port, path: p },
+      (res) => { let d = ''; res.on('data', c => d += c);
+                 res.on('end', () => resolve({ status: res.statusCode, type: res.headers['content-type'] || '', body: d })); });
+    r.on('error', reject); r.end();
+  });
+
+  before(async () => {
+    process.env.GRISBURGH_DATA_DIR = DATA_DIR;
+    for (const m of ['../server', '../lib/storage', '../routes/api', '../routes/auth']) delete require.cache[require.resolve(m)];
+    const mod = require('../server');
+    server = mod.server; io = mod.io;
+    await new Promise(r => server.listen(0, r));
+  });
+  after(async () => {
+    await io.close();
+    await new Promise(r => server.close(r));
+    fs.rmSync(DATA_DIR, { recursive: true, force: true });
+  });
+
+  it('geeft 404 voor een .js dat er niet is', async () => {
+    const r = await haal('/js/bestaat-echt-niet.js');
+    assert.equal(r.status, 404, 'een 200 met HTML breekt de module-graaf stil');
+    assert.ok(!/text\/html/.test(r.type), `kreeg ${r.type}`);
+  });
+
+  it('geeft 404 voor een ontbrekende stylesheet en afbeelding', async () => {
+    for (const p of ['/css/weg.css', '/img/weg.png']) {
+      const r = await haal(p);
+      assert.equal(r.status, 404, `${p} hoort 404 te geven`);
+    }
+  });
+
+  it('serveert een campagnepad nog gewoon als de app', async () => {
+    const r = await haal('/grisburgh');
+    assert.equal(r.status, 200);
+    assert.ok(/text\/html/.test(r.type), 'een campagnepad is juist wél de SPA');
+    assert.ok(r.body.includes('<!DOCTYPE html>') || r.body.includes('<!doctype html>'));
+  });
+
+  // Het app-icoon en het manifest zijn per campagne. De campagne komt daar uit
+  // de querystring, en die moet `campagne` heten: `_campagneVan` kent geen
+  // andere naam en valt anders terug op de **actieve** campagne — dan krijgt
+  // elke campagne hetzelfde icoon. Dat ging bij het bouwen precies zo mis.
+  it('noemt de campagne in de icoon- en manifest-url bij name', async () => {
+    const shell = await haal('/grisburgh');
+    const urls = [...shell.body.matchAll(/href="(\/app-icon-[^"]+|\/manifest\.webmanifest[^"]*)"/g)].map(m => m[1]);
+    assert.ok(urls.length >= 3, `verwachtte icoon- en manifest-links, kreeg ${urls.length}`);
+    for (const u of urls) {
+      assert.ok(/[?&]campagne=/.test(u), `${u} moet ?campagne= dragen, anders wint de actieve campagne`);
+    }
+  });
+
+  it('serveert het app-icoon en valt terug op het meegeleverde wapen', async () => {
+    const r = await haal('/app-icon-192.png?campagne=grisburgh');
+    assert.equal(r.status, 200);
+    assert.ok(/image\/png/.test(r.type), `kreeg ${r.type}`);
+  });
+
+  it('weigert een maat die geen PWA-maat is', async () => {
+    assert.equal((await haal('/app-icon-64.png?campagne=grisburgh')).status, 404);
+  });
+
+  it('serveert een bestand dat er wél is', async () => {
+    const r = await haal('/js/app.js');
+    assert.equal(r.status, 200);
+    assert.ok(/javascript/.test(r.type), `kreeg ${r.type}`);
   });
 });

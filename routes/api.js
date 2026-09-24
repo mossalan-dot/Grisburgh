@@ -8847,6 +8847,13 @@ router.put('/meta/app', requireDM, (req, res) => {
     }
     meta.currency = schoon;
   }
+  // Hoe deze campagne haar facties noemt. De losse facties heten al wat de DM
+  // wil; alleen de sectie zelf stond hardcoded op "Facties & Aanzien" — in een
+  // campagne met gilden of huizen leest dat scheef. Leeg = de standaard.
+  if (req.body.factiesLabel !== undefined) {
+    const label = String(req.body.factiesLabel || '').trim().slice(0, 40);
+    if (label) meta.factiesLabel = label; else delete meta.factiesLabel;
+  }
   if (typeof req.body.inOverzicht === 'boolean') meta.inOverzicht = req.body.inOverzicht;
   // Waar wijst de app naartoe als een tekst er niet mag staan? Een sjabloon met
   // {naam} erin; leeg = helemaal geen link, alleen de mededeling. Alleen http(s),
@@ -8870,9 +8877,18 @@ router.put('/meta/app', requireDM, (req, res) => {
     else if (pad.startsWith('/')) meta.embleem = pad;
     else return res.status(400).json({ error: 'Een embleem moet een pad op deze server zijn (begint met /)' });
   }
+  // Het icoon waarmee de app op een beginscherm belandt. Zelfde vorm en zelfde
+  // controle als het embleem; `GET /app-icon-<maat>.png` maakt er de maten uit
+  // die een PWA vraagt. Leeg = het meegeleverde wapen.
+  if (req.body.appIcon !== undefined) {
+    const pad = String(req.body.appIcon || '').trim().slice(0, 300);
+    if (!pad) delete meta.appIcon;
+    else if (pad.startsWith('/')) meta.appIcon = pad;
+    else return res.status(400).json({ error: 'Een app-icoon moet een pad op deze server zijn (begint met /)' });
+  }
   storage.writeJSON('meta.json', meta);
   req.app.get('io').to(_campagneRoom(req)).emit('meta:updated');
-  res.json({ appTitle: meta.appTitle, appSubtitle: meta.appSubtitle, currency: meta.currency, inOverzicht: meta.inOverzicht !== false, embleem: meta.embleem || '', bronLink: meta.bronLink || '' });
+  res.json({ appTitle: meta.appTitle, appSubtitle: meta.appSubtitle, currency: meta.currency, inOverzicht: meta.inOverzicht !== false, embleem: meta.embleem || '', appIcon: meta.appIcon || '', factiesLabel: meta.factiesLabel || '', bronLink: meta.bronLink || '' });
 });
 
 router.put('/meta/hoofdstuk/:key', requireDM, (req, res) => {

@@ -256,8 +256,8 @@ De app gebruikt querystring cache-busting (`?v=N`). **Vergeten = browser haalt o
 **Huidige versies (bij te houden):**
 
 ```
-index.html  : theme.css?v=699   app.js?v=923   sound-manager.js?v=8
-app.js      : api.js?v=295  dm-panel.js?v=293  media-picker.js?v=8  tafels.js?v=1
+index.html  : theme.css?v=699   app.js?v=926   sound-manager.js?v=8
+app.js      : api.js?v=295  dm-panel.js?v=296  media-picker.js?v=8  tafels.js?v=1
               render-archief.js?v=92  render-bestiarium.js?v=29  render-campagne.js?v=315
               render-dashboard.js?v=9  render-dungeon.js?v=53  render-kaart.js?v=31
               render-progressie.js?v=46  render-relatiemap.js?v=25  render-spreuken.js?v=39
@@ -1322,6 +1322,39 @@ dm-panel.js : combat-canvas.js?v=22   render-statblock.js?v=9
 > bladert er niets; na een terugsprong mag het weer. En opzij bladeren **bouwt
 > zelf geen terugweg op** (`_openDetail(..., true)`): het is geen stap dieper,
 > en anders wees de terugknop straks naar een kaartje dat je alleen passeerde.
+
+> **Een ontbrekend bestand geeft nu 404, geen HTML.** De SPA-fallback
+> (`app.get('*')` in server.js) serveerde index.html voor élk onbekend pad, dus
+> een verdwenen `.js` kwam terug als **200 met `text/html`**. De browser weigert
+> dat als module, er is geen netwerkfout, en de hele module-graaf van `app.js`
+> valt stil om — precies hoe de gerevertte `glossary.js` in juni 2026
+> onopgemerkt bleef. Elk pad dat op een extensie eindigt (`_BESTANDSPAD`) geeft
+> nu een kale 404; een campagnepad heeft geen extensie en gaat er dus langs.
+> Bewaakt door `tests/frontend-imports.test.js`, dat daarmee beide helften van
+> die valkuil dekt: de dangling import in de code én het ontbrekende bestand op
+> de server.
+>
+> **Het app-icoon is per campagne.** `meta.appIcon` (Instellingen → App-icoon,
+> dezelfde mediakiezer als het embleem) plus `GET /app-icon-<maat>.png`, die hem
+> met sharp op 180/192/512 zet — `fit: 'contain'` met een doorzichtige rand,
+> want bijsnijden haalt juist het wapen eraf. Bewust een **publieke** route en
+> geen `/api`-route: het besturingssysteem haalt de iconen op tijdens het
+> installeren, en dat is geen ingelogde browser. Zonder eigen icoon komt het
+> meegeleverde wapen eruit.
+> **De querystring moet `campagne` heten.** `_campagneVan()` kent alleen die
+> naam; met iets anders (ik had eerst `?c=`) valt hij terug op de **actieve**
+> campagne en krijgt elke campagne hetzelfde icoon — stil, want er komt gewoon
+> een plaatje uit. De manifest-iconen en de `<link rel="icon">` in de shell
+> dragen hem allebei, en een test controleert dat.
+>
+> **De naam van de factie-sectie staat in `meta.factiesLabel`.** Losse facties
+> heetten al wat de DM wilde, de sectie eromheen stond hardcoded op "Facties &
+> Aanzien". Lezen met `window._factiesLabel()` — zijbalk, sectiekop, DM-tab,
+> opslagknop en hulptekst gebruiken allemaal die ene bron; instellen in de
+> Facties-tab. Let op: `meta.facties` is een **lijst facties**, geen
+> dienst-object, dus de generieke `_dienstNaam()`-lookup naar `.naam` vond daar
+> nooit iets — de zijbalk zei "Facties" terwijl de kop erboven "Facties &
+> Aanzien" zei.
 
 > **Tafels rollen staat op één plek: `public/js/tafels.js`.** De worp stond twee
 > keer in de codebase — `_tabelRoll` in dm-panel.js (de Tafels-tab) en

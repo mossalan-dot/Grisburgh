@@ -10,7 +10,7 @@ import { renderSpreuken } from './render-spreuken.js?v=41';
 import { renderVaardigheden, zoekVaardigheden } from './render-vaardigheden.js?v=8';
 import { renderStatblock } from './render-statblock.js?v=9';
 import { initSocket } from "./socket-client.js?v=78";
-import { initDmPanel } from "./dm-panel.js?v=293";
+import { initDmPanel } from "./dm-panel.js?v=296";
 import { COND_INFO, COND_LABEL, COND_MET_PLAATJE, COND_ICON } from './conditions.js?v=2';
 import './media-picker.js?v=8';
 import './tafels.js?v=1';
@@ -36,6 +36,12 @@ window._muntNamen = () => window._currency || window.app?.state?.meta?.currency 
 // stond er tot nu toe letterlijk in.
 window._campagneNaam = () => window.app?.state?.meta?.appTitle || 'de campagne';
 
+// Hoe deze campagne haar facties noemt. De losse facties dragen hun eigen naam
+// (meta.facties), maar de sectie eromheen stond op twaalf plekken hardcoded —
+// en "Aanzien" is niet wat elke campagne het noemt. Instelbaar als
+// `meta.factiesLabel`; leeg valt terug op de standaard.
+window._factiesLabel = () => window.app?.state?.meta?.factiesLabel || 'Facties & Aanzien';
+
 // ── Namen van diensten ──
 // Elke dienst heeft zijn naam al in meta staan (meta.herberg.naam en zo); alleen
 // de zijbalk toonde nog de namen van Grisburgh, hardcoded in de HTML. Zonder
@@ -45,10 +51,16 @@ const _DIENST_STANDAARD = {
   tempel: 'Tempel', magizoo: 'Magizoöloog', facties: 'Facties',
 };
 window._dienstNaam = (key) => {
+  // Facties is de uitzondering: `meta.facties` is een **lijst facties**, geen
+  // dienst-object, dus de `.naam`-lookup hieronder vindt daar nooit iets. De
+  // zijbalk zei daardoor "Facties" terwijl de sectie erboven "Facties &
+  // Aanzien" heette. Eén bron: meta.factiesLabel.
+  if (key === 'facties') return window._factiesLabel();
   const eigen = window.app?.state?.meta?.[key]?.naam;
   return (typeof eigen === 'string' && eigen.trim()) || _DIENST_STANDAARD[key] || key;
 };
 
+window._zetDienstLabels = () => _zetDienstLabels();
 function _zetDienstLabels() {
   for (const key of Object.keys(_DIENST_STANDAARD)) {
     const el = document.getElementById(`diensten-${key}-label`);
@@ -2975,7 +2987,7 @@ async function refreshSection(section) {
     // Facties stond wel in Toegang per groep maar keek er als enige dienst niet
     // naar — de schakelaar deed dus niets.
     if (!window.app.isDM() && _getDienstToegang('facties') === 'zichtbaar') {
-      const _el = document.getElementById('section-facties'); if (_el) _dienstNietBeschikbaar(_el, 'Facties & Aanzien');
+      const _el = document.getElementById('section-facties'); if (_el) _dienstNietBeschikbaar(_el, window._factiesLabel());
     } else if (!window.app.isDM() && _getDienstToegang('facties') === 'verborgen') {
       const _el = document.getElementById('section-facties'); if (_el) _el.innerHTML = '';
     } else await renderFacties();
@@ -14007,10 +14019,10 @@ const HELP_CONFIG = {
   },
 
   facties: () => ({
-    titel: 'Facties & Aanzien',
+    titel: window._factiesLabel(),
     stappen: [
       {
-        titel: 'Facties & Aanzien',
+        titel: window._factiesLabel(),
         tekst: `Facties zijn organisaties in ${window._campagneNaam?.() || 'de campagne'} waarmee de party een band kan opbouwen. Door missies te voltooien bouw je renown op bij een factie. Hoe meer renown, hoe hoger je rang — en hoe meer voordelen je krijgt.`,
         afbeelding: null,
       },

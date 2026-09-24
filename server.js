@@ -120,6 +120,64 @@ app.get('/', (req, res, next) => {
 // De PWA-manifest per campagne: naam en startpad volgen de campagne, zodat een
 // tweede DM de app onder zijn eigen naam op het beginscherm zet. De iconen zijn
 // nog van Grisburgh — eigen beeld per campagne is werk voor later.
+// ── App-icoon per campagne ──────────────────────────────────────────────────
+//
+// De PWA installeerde in elke campagne met het wapen van Grisburgh: naam en
+// start_url waren al per campagne, de iconen niet. Die moeten **zonder sessie**
+// op te halen zijn — het besturingssysteem haalt ze op tijdens het installeren,
+// en dat is geen ingelogde browser — dus dit is een publieke route en geen
+// /api-route. Wat eruit komt is hoogstens het plaatje dat de DM zelf als icoon
+// heeft aangewezen; staat er niets, dan het meegeleverde wapen.
+//
+// `meta.appIcon` is een pad op deze server, net als `meta.embleem`: een
+// `/api/files/<id>` uit de mediabibliotheek, of een `/img/…` uit public.
+const _ICOON_MATEN = new Set([180, 192, 512]);
+const _icoonCache = new Map();   // campagne|maat → { mtime, buffer }
+
+function _icoonBron(cid, meta) {
+  const pad = String(meta.appIcon || '').trim();
+  if (pad.startsWith('/api/files/')) {
+    const id = pad.split('/').pop().split('?')[0];
+    const f = storage.runInCampaign(cid, () => storage.getFile(id));
+    if (f && fs.existsSync(f.path)) return f.path;
+  } else if (pad.startsWith('/img/')) {
+    // Alleen uit public/img: een willekeurig pad zou een pad-traversal worden.
+    const veilig = path.join(__dirname, 'public', 'img', path.basename(pad.split('?')[0]));
+    if (fs.existsSync(veilig)) return veilig;
+  }
+  return null;
+}
+
+app.get('/app-icon-:maat.png', async (req, res) => {
+  const maat = parseInt(req.params.maat, 10);
+  if (!_ICOON_MATEN.has(maat)) return res.status(404).end();
+  const standaard = path.join(__dirname, 'public', 'img', `app-icon-${maat}.png`);
+  const cid  = _campagneVan(req);
+  const bron = _icoonBron(cid, _campagneMeta(req));
+  if (!bron) return res.sendFile(standaard);
+
+  try {
+    const mtime = fs.statSync(bron).mtimeMs;
+    const sleutel = `${cid}|${maat}`;
+    const gecachet = _icoonCache.get(sleutel);
+    if (gecachet && gecachet.mtime === mtime && gecachet.bron === bron) {
+      res.type('image/png').setHeader('Cache-Control', 'public, max-age=86400');
+      return res.send(gecachet.buffer);
+    }
+    const sharp = require('sharp');
+    // `contain` met een doorzichtige rand: een icoon dat niet vierkant is mag
+    // niet bijgesneden worden — daar valt juist het wapen van af.
+    const buffer = await sharp(bron)
+      .resize(maat, maat, { fit: 'contain', background: { r: 0, g: 0, b: 0, alpha: 0 } })
+      .png().toBuffer();
+    _icoonCache.set(sleutel, { mtime, bron, buffer });
+    res.type('image/png').setHeader('Cache-Control', 'public, max-age=86400');
+    res.send(buffer);
+  } catch {
+    res.sendFile(standaard);   // liever het oude wapen dan een gebroken icoon
+  }
+});
+
 app.get('/manifest.webmanifest', (req, res) => {
   const cid  = _campagneVan(req);
   const meta = _campagneMeta(req);
@@ -133,6 +191,15 @@ app.get('/manifest.webmanifest', (req, res) => {
     description: meta.appSubtitle ? `${naam} — ${meta.appSubtitle}` : `${naam} — campagnebeheer`,
     start_url:   `/${cid}`,
     scope:       `/${cid}`,
+    // Per campagne. De parameter moet `campagne` heten: `_campagneVan` kent
+    // alleen die naam, en met iets anders viel hij terug op de **actieve**
+    // campagne — dan kreeg elke campagne hetzelfde icoon, en niet eens dat van
+    // zichzelf. Hij dient meteen als cache-sleutel, zodat twee campagnes op
+    // hetzelfde apparaat niet elkaars icoon uit de browsercache trekken.
+    icons: [192, 512].map(n => ({
+      src: `/app-icon-${n}.png?campagne=${encodeURIComponent(cid)}`,
+      sizes: `${n}x${n}`, type: 'image/png', purpose: 'any',
+    })),
   });
 });
 
@@ -187,7 +254,19 @@ function _campagneMeta(req) {
   catch { return {}; }
 }
 
+// Een pad dat op een bestandsextensie eindigt is nooit een SPA-route. Zonder
+// deze uitzondering kreeg een verdwenen `.js` een **200 met HTML** terug — de
+// browser weigert dat als module, en omdat er geen netwerkfout is faalt de hele
+// module-graaf van app.js stil: `window.app` half geïnitialiseerd, geen enkele
+// melding in de console. Precies zo bleef de gerevertte `glossary.js` in juni
+// 2026 onopgemerkt: productie had het bestand nog, een verse checkout niet.
+// Nu is het een gewone 404 en zie je meteen wélk bestand ontbreekt.
+const _BESTANDSPAD = /\.[a-z0-9]{2,5}$/i;
+
 app.get('*', (req, res) => {
+  if (_BESTANDSPAD.test(req.path) && req.path !== '/') {
+    return res.status(404).type('text/plain').send('Niet gevonden: ' + req.path);
+  }
   res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
   res.setHeader('Pragma', 'no-cache');
   res.setHeader('Expires', '0');
@@ -199,7 +278,15 @@ app.get('*', (req, res) => {
     .replace(/(<meta name="apple-mobile-web-app-title" content=")[^"]*(">)/, `$1${titel}$2`)
     // De manifest krijgt de campagne mee, anders installeert elke campagne zich
     // als "Grisburgh" op het beginscherm.
-    .replace('href="/manifest.webmanifest"', `href="/manifest.webmanifest?campagne=${encodeURIComponent(cid)}"`);
+    .replace('href="/manifest.webmanifest"', `href="/manifest.webmanifest?campagne=${encodeURIComponent(cid)}"`)
+    // Dezelfde reden voor de tab- en beginschermiconen: die stonden vast op het
+    // wapen van Grisburgh. De route valt terug op precies dat wapen als de
+    // campagne geen eigen icoon heeft, dus er verandert niets zolang niemand er
+    // een kiest.
+    .replace(/href="\/img\/app-icon-(180|192)\.png\?v=\d+"/g,
+             (_, n) => `href="/app-icon-${n}.png?campagne=${encodeURIComponent(cid)}"`)
+    .replace(/href="\/img\/favicon-32\.png\?v=\d+"/,
+             `href="/app-icon-180.png?campagne=${encodeURIComponent(cid)}"`);
   res.type('html').send(html);
 });
 

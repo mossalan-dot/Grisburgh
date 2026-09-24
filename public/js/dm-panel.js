@@ -225,6 +225,7 @@ export function initDmPanel() {
     importObsidian:  _importObsidian,
 
     // Tafels
+    factiesLabelSave: _factiesLabelSave,
     tabelRoll:     _tabelRoll,
     tabelEdit:     _tabelEdit,
     tabelDelete:   _tabelDelete,
@@ -894,7 +895,7 @@ function _renderDiensten(subTab) {
     { key: 'gock',      titel: 'De detective',            ic: 'search' },
     { key: 'ursula',    titel: 'De waarzegger',      ic: 'sparkles' },
     { key: 'tempel',    titel: 'De Tempel',          ic: 'church' },
-    { key: 'facties',   titel: 'Facties & Aanzien',  ic: 'landmark' },
+    { key: 'facties',   get titel() { return window._factiesLabel(); }, ic: 'landmark' },
     { key: 'magizoo',   titel: 'De Magizoöloog',     ic: 'paw-print' },
     { key: 'markt',     titel: 'Markt',              ic: 'store' },
     { key: 'toegang',   titel: 'Toegang per groep',  ic: 'lock', altijd: true },
@@ -1338,7 +1339,7 @@ const _DIENSTEN_TOEGANG_INFO = [
   { key: 'ursula',    label: 'De waarzegger',        icon: 'sparkles'  },
   { key: 'tempel',    label: 'De Tempel',            icon: 'church'    },
 
-  { key: 'facties',   label: 'Facties & Aanzien',    icon: 'landmark'  },
+  { key: 'facties',   get label() { return window._factiesLabel(); },  icon: 'landmark'  },
   { key: 'magizoo',   label: 'De Magizoöloog',       icon: 'paw-print' },
 ];
 
@@ -6529,6 +6530,29 @@ window._tempelSettingsSave = async () => {
 };
 
 
+// Hoe deze campagne haar facties noemt. Eén veld, één plek: de zijbalk, de
+// sectiekop, de DM-tab en de hulptekst lezen allemaal window._factiesLabel().
+async function _factiesLabelSave(waarde) {
+  const label = String(waarde || '').trim().slice(0, 40);
+  try {
+    await api.saveAppMeta({ factiesLabel: label });
+    // De client houdt meta zelf bij; zonder deze regel blijft het scherm de
+    // oude naam tonen tot je herlaadt.
+    if (window.app?.state?.meta) {
+      if (label) window.app.state.meta.factiesLabel = label;
+      else delete window.app.state.meta.factiesLabel;
+    }
+    window._zetDienstLabels?.();
+    // Alleen hertekenen als de tab ook echt openstaat; _renderFactiesDM stapt
+    // zelf uit als het element er niet is.
+    _renderFactiesDM();
+    window._showToast?.(`Heet nu "${window._factiesLabel()}"`);
+    // Bewust een toast en geen alert(): een modale dialoog blokkeert alles wat
+    // erna komt, en dit is een naamveld — geen reden om het scherm stil te
+    // zetten.
+  } catch (e) { window._showToast?.('Opslaan mislukt: ' + e.message); }
+}
+
 // ── Facties & Aanzien ──
 
 const _FACTIE_ICON_OPTIES = ['landmark','tree-pine','hexagon','crossed-swords','shield','moon','star','castle','heart','users','globe','mountain','scroll-text','coins','sword','swords','zap'];
@@ -6593,8 +6617,15 @@ function _renderFactiesDM() {
 
   el.innerHTML = `
     <div class="dm-feature-section">
-      <div class="dm-section-label">Facties &amp; Aanzien</div>
+      <div class="dm-section-label">${esc(window._factiesLabel())}</div>
       <p class="dm-form-label" style="opacity:.7;margin-bottom:10px">Stel per factie de zichtbaarheid in en pas het renown aan. Spelers zien een factie pas als de DM die onthuld heeft.</p>
+      <div class="dm-form-row">
+        <label class="dm-form-label">Hoe heet dit onderdeel in jouw campagne?</label>
+        <input id="facties-label" class="dm-input" maxlength="40"
+          value="${esc(window.app?.state?.meta?.factiesLabel || '')}"
+          placeholder="Facties &amp; Aanzien"
+          onchange="window.dmPanel.factiesLabelSave(this.value)">
+      </div>
       <datalist id="factie-pers-dl">${[..._factiesPersonages].sort((a,b)=>a.name.localeCompare(b.name)).map(o => `<option value="${esc(o.name)}"></option>`).join('')}</datalist>
       ${_factiesDraft.map((f, fi) => {
         const live = _factiesLiveData.find(x => x.id === f.id) || {};
@@ -6695,7 +6726,7 @@ function _renderFactiesDM() {
         </div>`; }).join('')}
       <div class="dm-form-row" style="margin-top:10px;gap:8px">
         <button class="dm-btn dm-btn-ghost dm-btn-sm" onclick="window._factieNieuw()">${icon('plus')} Nieuwe factie</button>
-        <button class="dm-btn dm-btn-primary" onclick="window._factiesSave()">${icon('save')} Facties opslaan</button>
+        <button class="dm-btn dm-btn-primary" onclick="window._factiesSave()">${icon('save')} ${esc(window._factiesLabel())} opslaan</button>
       </div>
     </div>`;
   _factiesDraft.forEach((_, fi) => _renderFactieRangen(fi));
@@ -10410,7 +10441,18 @@ async function _renderInstellingen() {
           <button class="dm-btn dm-btn-sm dm-btn-ghost" onclick="window._instEmbleemWis()" title="Geen embleem">${icon('x')} Wissen</button>
           <input type="hidden" id="inst-embleem" value="${esc(meta.embleem || '')}">
         </span>
-      </div>`)}
+      </div>
+      <div class="dm-form-row">
+        <label class="dm-form-label">App-icoon</label>
+        <span class="dm-embleem-rij">
+          <img id="inst-appicon-preview" class="dm-embleem-preview${meta.appIcon ? '' : ' hidden'}" src="${esc(meta.appIcon || '')}" alt="">
+          <button class="dm-btn dm-btn-sm dm-btn-ghost" onclick="window._instAppIconKies()"
+            title="Het icoon waarmee de app op een telefoon of beginscherm belandt">${icon('image')} Kiezen</button>
+          <button class="dm-btn dm-btn-sm dm-btn-ghost" onclick="window._instAppIconWis()" title="Het meegeleverde wapen gebruiken">${icon('x')} Wissen</button>
+          <input type="hidden" id="inst-appicon" value="${esc(meta.appIcon || '')}">
+        </span>
+      </div>
+      <p class="dm-hint">Zonder eigen icoon installeert de app met het meegeleverde wapen. Een bestaande installatie ververst zijn icoon pas als hij opnieuw wordt toegevoegd aan het beginscherm.</p>`)}
 
     <!-- Namen voor valuta -->
     ${_instSectie('valuta', 'Namen voor valuta', `
@@ -10749,6 +10791,7 @@ window._instOpslaan = async () => {
       appTitle:    document.getElementById('inst-app-title')?.value.trim(),
       appSubtitle: document.getElementById('inst-app-subtitle')?.value.trim(),
       embleem:     document.getElementById('inst-embleem')?.value || '',
+      appIcon:     document.getElementById('inst-appicon')?.value || '',
       inOverzicht: document.getElementById('inst-in-overzicht')?.checked !== false,
       bronLink:    document.getElementById('inst-bron-link')?.value.trim() ?? '',
       // levelup gaat via zijn eigen route (validatie op de server), zie hieronder
@@ -10833,6 +10876,24 @@ window._instEmbleemKies = () => {
       if (img) { img.src = pad; img.classList.remove('hidden'); }
     },
   });
+};
+
+window._instAppIconKies = () => {
+  window.mediaPicker.open({
+    type: 'afbeelding',
+    suggestedName: 'app-icoon',
+    onSelect: (fileId) => {
+      const pad = api.fileUrl(fileId);
+      document.getElementById('inst-appicon').value = pad;
+      const img = document.getElementById('inst-appicon-preview');
+      if (img) { img.src = pad; img.classList.remove('hidden'); }
+    },
+  });
+};
+
+window._instAppIconWis = () => {
+  document.getElementById('inst-appicon').value = '';
+  document.getElementById('inst-appicon-preview')?.classList.add('hidden');
 };
 
 window._instEmbleemWis = () => {

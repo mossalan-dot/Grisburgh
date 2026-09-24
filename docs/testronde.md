@@ -891,6 +891,14 @@ Per bevinding: waar, wat, en of het opgelost is. Nieuwe regels onderaan.
 - Geef je electrum en platinum géén naam in Instellingen, dan staat er niets extra's; alleen het bedrag.
 - Open daarna het venster **Loot verdelen**: daar staat dezelfde bijzin *"— waarvan 3 Lion d'or · 1 Gouden Adelaer"*. Pas je het bedrag daar met de hand aan, dan verandert (of verdwijnt) die bijzin mee — ook na herladen.
 
+### Scherven: sectienaam, app-icoon en een eerlijke 404 (24 sep 2026)
+
+- Meesterkamer → Diensten → Facties: het veld **"Hoe heet dit onderdeel in jouw campagne?"**. Zet er *Gilden* in: de zijbalk, de sectiekop, de DM-tab, de opslagknop en de hulptekst zeggen allemaal *Gilden*. Leegmaken zet het terug op *Facties & Aanzien*.
+- Instellingen → **App-icoon**: kies een afbeelding uit de mediabibliotheek. `https://grisburgh.nl/app-icon-192.png?campagne=<naam>` geeft dan díé afbeelding op 192×192; zonder eigen icoon het meegeleverde wapen. Controleer met twee campagnes naast elkaar dat ze niet hetzelfde teruggeven.
+- Zet de app op een beginscherm: naam, start_url én icoon horen bij de campagne waar je vandaan kwam. Een bestaande installatie ververst zijn icoon pas als je hem opnieuw toevoegt.
+- Vraag een bestand op dat niet bestaat, bijvoorbeeld `/js/bestaat-niet.js`: dat hoort **404** te geven, geen 200 met HTML. Kreeg je HTML, dan valt een ontbrekende module stil om en zie je niets in de console.
+- `/grisburgh` en `/Test` blijven gewoon de app openen — een campagnepad heeft geen extensie en gaat dus niet door die 404-regel.
+
 ### Tafels: een worp op een voorwerp en een tabel uit een akte (23 sep 2026)
 
 - Meesterkamer → Tafels → bewerk een **gewogen** tafel: er staat een keuze **Dobbelsteen** (d100 … d4). Zet hem op d6 en rol: de uitslag leest *"d6: 4 → …"*. Een bestaande tafel zonder die keuze rolt gewoon d100.
