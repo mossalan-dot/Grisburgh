@@ -754,11 +754,12 @@ const _DM_TABS = [
   { id: 'media',     groep: 'beheer',    label: 'Media',     icoon: 'image',                           title: 'Mediabibliotheek' },
   // 'Berichten' past niet op één regel in een kolom van 56px; liever een korter
    // woord dan een afbreking. De tooltip houdt de volledige naam.
-  { id: 'berichten', groep: 'beheer',    label: 'Post',      icoon: 'message-circle',                  title: 'Berichten' },
+  { id: 'berichten', groep: 'beheer',    label: 'Post',      icoon: 'mail',                            title: 'Berichten' },
   // Spreuk- en voorwerpverzoeken stonden elk op hun eigen tabblad in het
   // archief; een DM die wil weten wat er op hem wacht moest dus twee plekken
   // langs. Eén tab met allebei.
-  { id: 'verzoeken', groep: 'beheer',    label: 'Vragen',    icoon: 'mail',                            title: 'Verzoeken — spreuken &amp; voorwerpen' },
+  // Het briefje hoort bij Post. Wat hier staat is wat er op jóu wacht.
+  { id: 'verzoeken', groep: 'beheer',    label: 'Vragen',    icoon: 'hourglass',                       title: 'Verzoeken — spreuken &amp; voorwerpen' },
 ];
 
 function _buildTabs() {
@@ -7296,6 +7297,30 @@ async function _sndPatch(body) {
   window.soundManager?.reloadSounds();
 };
 
+// Geluid kiezen gaat via de mediabibliotheek, net als een afbeelding.
+//
+// Elke rij had een eigen `<input type=file>`: daarmee kon je alleen uploaden,
+// nooit iets hergebruiken — en wilde je hetzelfde kampvuur onder twee diensten,
+// dan stond het twee keer op de server. De picker kan allebei (kiezen uit wat
+// er is, of ter plekke uploaden) en registreert het bestand meteen onder een
+// leesbare naam, zodat je later ziet wat je hebt.
+function _sndKies(suggestie, klaar) {
+  if (!window.mediaPicker?.open) return;   // picker niet geladen: dan gebeurt er niets
+  window.mediaPicker.open({
+    type: 'audio',
+    suggestedName: suggestie,
+    onSelect: (fileId) => klaar(fileId),
+  });
+}
+
+// Een knop die de picker opent. Overal dezelfde vorm; `gezet` bepaalt of er
+// "Kies geluid" of "Vervang" staat, want dat is het verschil dat je wilt zien.
+function _sndKiesKnop(aanroep, gezet) {
+  return `<button class="dm-btn dm-btn-sm ${gezet ? 'dm-btn-ghost' : 'dm-btn-primary'}"
+    onclick="${aanroep}" title="Kies een geluid uit de mediabibliotheek of upload er een">
+    ${icon(gezet ? 'refresh-cw' : 'plus')} ${gezet ? 'Vervang' : 'Kies geluid'}</button>`;
+}
+
 async function _sndUploadFile(file) {
   const id = `snd_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
   const fd = new FormData();
@@ -7380,11 +7405,7 @@ async function _renderGeluiden() {
                <span class="dm-sound-set">✓ Ingesteld</span>
                <button class="dm-btn dm-btn-sm dm-btn-ghost" onclick="window._sndRemoveStd('${key}')">${icon('x')}</button>`
             : `<span class="dm-sound-empty">Geen geluid</span>`}
-          <label class="dm-btn dm-btn-sm dm-btn-primary dm-sound-upload-btn" title="Een geluid uploaden">
-            ↑ Upload
-            <input type="file" accept="audio/*" style="display:none"
-              onchange="window._sndUploadStd('${key}', this)">
-          </label>
+          ${_sndKiesKnop(`window._sndKiesStd('${key}')`, !!fileId)}
         </div>
       </div>`;
   }).join('');
@@ -7402,11 +7423,7 @@ async function _renderGeluiden() {
                <span class="dm-sound-set">✓ Ingesteld</span>
                <button class="dm-btn dm-btn-sm dm-btn-ghost" onclick="window._sndRemovePlayerTurn('${esc(p.id)}')">${icon('x')}</button>`
             : `<span class="dm-sound-empty">Geen geluid</span>`}
-          <label class="dm-btn dm-btn-sm dm-btn-primary dm-sound-upload-btn" title="Een geluid uploaden">
-            ↑ Upload
-            <input type="file" accept="audio/*" style="display:none"
-              onchange="window._sndUploadPlayerTurn('${esc(p.id)}', this)">
-          </label>
+          ${_sndKiesKnop(`window._sndKiesBeurt('${esc(p.id)}')`, !!turnFileId)}
         </div>
       </div>`;
 
@@ -7422,11 +7439,7 @@ async function _renderGeluiden() {
                  <span class="dm-sound-set">✓</span>
                  <button class="dm-btn dm-btn-sm dm-btn-ghost" onclick="window._sndClearFile('${esc(p.id)}','${esc(item.id)}')">${icon('x')}</button>`
               : `<span class="dm-sound-empty">Geen geluid</span>`}
-            <label class="dm-btn dm-btn-sm dm-btn-primary dm-sound-upload-btn" title="Een geluid uploaden">
-              ${icon('plus')} Upload
-              <input type="file" accept="audio/*" style="display:none"
-                onchange="window._sndUploadEmote('${esc(p.id)}','${esc(item.id)}',this)">
-            </label>
+            ${_sndKiesKnop(`window._sndKiesEmote('${esc(p.id)}','${esc(item.id)}')`, !!item.fileId)}
             <button class="dm-btn dm-btn-sm dm-btn-ghost dm-btn-danger" onclick="window._sndDeleteEmote('${esc(p.id)}','${esc(item.id)}')" title="Deze emote verwijderen">${icon('trash')}</button>
           </div>
         </div>`;
@@ -7481,11 +7494,7 @@ async function _renderGeluiden() {
                <span class="dm-sound-set">✓ Ingesteld</span>
                <button class="dm-btn dm-btn-sm dm-btn-ghost" onclick="window._sndRemoveCond('${key}')">${icon('x')}</button>`
             : `<span class="dm-sound-empty">Geen geluid</span>`}
-          <label class="dm-btn dm-btn-sm dm-btn-primary dm-sound-upload-btn" title="Een geluid uploaden">
-            ↑ Upload
-            <input type="file" accept="audio/*" style="display:none"
-              onchange="window._sndUploadCond('${key}', this)">
-          </label>
+          ${_sndKiesKnop(`window._sndKiesCond('${key}')`, !!fileId)}
         </div>
       </div>`;
   }).join('');
@@ -7512,10 +7521,7 @@ async function _renderGeluiden() {
           onchange="window._ambSetVolume(this.value)">
       </div>
       <div class="dm-amb-scenes">${ambScenes || '<p class="dm-hint" style="opacity:.6">Nog geen scènes — voeg er één toe.</p>'}</div>
-      <label class="dm-btn dm-btn-sm dm-btn-primary dm-sound-upload-btn" title="Audio uploaden">
-        ${icon('plus')} Scène toevoegen
-        <input type="file" accept="audio/*" style="display:none" onchange="window._ambAddScene(this)">
-      </label>
+      ${_sndKiesKnop('window._sndKiesDecor()', false)}
     </div>`;
 
   // ── Diensten-sfeerloops (lokaal per dienst/factie/rust) ──
@@ -7535,10 +7541,7 @@ async function _renderGeluiden() {
             ${icon('volume-2')} Bestand weg
           </span>
           <button class="dm-btn dm-btn-sm dm-btn-ghost" onclick="window._svcAmbRemove('${esc(key)}')">${icon('x')}</button>
-          <label class="dm-btn dm-btn-sm dm-btn-primary dm-sound-upload-btn" title="Opnieuw uploaden">
-            ${icon('plus')} Upload
-            <input type="file" accept="audio/*" style="display:none" onchange="window._svcAmbUpload('${esc(key)}', this)">
-          </label>
+          ${_sndKiesKnop(`window._sndKiesDienst('${esc(key)}','${escJS(label)}')`, true)}
         </div>
       </div>`;
     }
@@ -7551,10 +7554,7 @@ async function _renderGeluiden() {
                <span class="dm-sound-set">✓ Ingesteld</span>
                <button class="dm-btn dm-btn-sm dm-btn-ghost" onclick="window._svcAmbRemove('${esc(key)}')">${icon('x')}</button>`
             : `<span class="dm-sound-empty">Geen loop</span>`}
-          <label class="dm-btn dm-btn-sm dm-btn-primary dm-sound-upload-btn" title="Uploaden">
-            ↑ Upload
-            <input type="file" accept="audio/*" style="display:none" onchange="window._svcAmbUpload('${esc(key)}', this)">
-          </label>
+          ${_sndKiesKnop(`window._sndKiesDienst('${esc(key)}','${escJS(label)}')`, false)}
         </div>
       </div>`;
   };
@@ -7590,10 +7590,7 @@ async function _renderGeluiden() {
                <span class="dm-sound-set">${icon('check')} Ingesteld</span>
                <button class="dm-btn dm-btn-sm dm-btn-ghost" onclick="window._momentRemove('${esc(key)}')" title="Verwijderen">${icon('x')}</button>`
             : `<span class="dm-sound-empty">Geen geluid</span>`}
-          <label class="dm-btn dm-btn-sm dm-btn-primary dm-sound-upload-btn" title="Een geluid uploaden">
-            ${icon('plus')} Upload
-            <input type="file" accept="audio/*" style="display:none" onchange="window._momentUpload('${esc(key)}', this)">
-          </label>
+          ${_sndKiesKnop(`window._sndKiesMoment('${esc(key)}')`, !!fid)}
         </div>
       </div>`;
   };
@@ -7708,6 +7705,62 @@ async function _renderGeluiden() {
   };
 
   // ── Diensten-sfeerloops (feature #2) ──
+  // ── Kiezen uit de mediabibliotheek ────────────────────────────────────────
+  // De picker levert een fileId; wat er daarna mee gebeurt verschilt per plek.
+  // De naamsuggestie maakt de bibliotheek doorzoekbaar: "herberg-sfeerloop"
+  // zegt over een jaar meer dan "snd_1790540871683".
+  window._sndKiesStd = (key) => _sndKies(`geluid-${key}`, async (fileId) => {
+    await _sndPatch({ standard: { [key]: fileId } });
+    _renderGeluiden();
+  });
+
+  window._sndKiesCond = (key) => _sndKies(`conditie-${key}`, async (fileId) => {
+    _sndOpenPid = '__cond__';
+    await _sndPatch({ conditions: { [key]: fileId } });
+    _renderGeluiden();
+  });
+
+  window._sndKiesMoment = (key) => _sndKies(`moment-${key}`, async (fileId) => {
+    await _sndPatch({ momenten: { [key]: fileId } });
+    _renderGeluiden();
+  });
+
+  window._sndKiesDienst = (key, label) => _sndKies(
+    `${String(label || key).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')}-sfeerloop`,
+    async (fileId) => {
+      await _sndPatch({ serviceAmbiance: { [key]: fileId } });
+      _renderGeluiden();
+    });
+
+  window._sndKiesBeurt = (pid) => _sndKies('beurtgeluid', async (fileId) => {
+    _sndOpenPid = pid;
+    await _sndPatch({ playerTurn: { [pid]: fileId } });
+    _renderGeluiden();
+  });
+
+  window._sndKiesEmote = (pid, eid) => _sndKies('emote', async (fileId) => {
+    _sndOpenPid = pid;
+    const sd = await _sndGetData();
+    const { library } = _sndPlayerData(sd, pid);
+    await _sndWriteEmotes(pid, library.map(e => e.id === eid ? { ...e, fileId } : e));
+    _renderGeluiden();
+  });
+
+  // Een decor krijgt zijn naam uit de bibliotheek: daar staat hij al onder een
+  // leesbare naam, en die twee horen niet uit elkaar te lopen.
+  window._sndKiesDecor = () => _sndKies('sfeerloop', async (fileId) => {
+    const sd  = await _sndGetData();
+    const amb = sd.ambiance || { scenes: [], volume: 0.5 };
+    let label = 'Nieuwe scène';
+    try {
+      const media = await api.listMedia();
+      label = (media.files || []).find(f => f.id === fileId)?.naam || label;
+    } catch { /* dan de standaardnaam */ }
+    const scene = { id: `amb_${Date.now()}_${Math.random().toString(36).slice(2,6)}`, label, fileId };
+    await _sndPatch({ ambiance: { scenes: [...(amb.scenes || []), scene], volume: amb.volume ?? 0.5 } });
+    _renderGeluiden();
+  });
+
   window._momentUpload = async (key, input) => {
     const file = input.files[0]; if (!file) return;
     const fileId = await _sndUploadFile(file); if (!fileId) return;
@@ -10180,28 +10233,28 @@ async function _renderVerzoeken() {
 
   const totaal = spreuken.length + voorwerpen.length + multiclass.length;
   el.innerHTML = `
-    ${_dmTabHead({ icon: 'mail', title: 'Verzoeken',
+    ${_dmTabHead({ icon: 'hourglass', title: 'Verzoeken',
       sub: totaal ? `${totaal} wachten op jou` : 'Alles is afgehandeld',
       actions: `<button class="dm-btn dm-btn-sm dm-btn-ghost" onclick="window.dmPanel.verzoekenRefresh()" title="Opnieuw ophalen">${icon('refresh-cw')}</button>` })}
 
     <div class="dm-feature-section">
       <div class="dm-section-label">${icon('sparkles')} Spreuken ${spreuken.length ? `(${spreuken.length})` : ''}<span class="dm-sectie-hulp">${helpBtn('dm_verzoeken_spreuken')}</span></div>
-      ${spreukHtml || '<p class="dm-hint">Geen openstaande spreukverzoeken.</p>'}
+      ${spreukHtml || '<p class="dm-hint">Niets openstaand.</p>'}
     </div>
 
     <div class="dm-feature-section">
       <div class="dm-section-label">${icon('package')} Voorwerpen ${voorwerpen.length ? `(${voorwerpen.length})` : ''}<span class="dm-sectie-hulp">${helpBtn('dm_verzoeken_voorwerpen')}</span></div>
-      ${itemHtml || '<p class="dm-hint">Geen openstaande claims op voorwerpen.</p>'}
+      ${itemHtml || '<p class="dm-hint">Niets openstaand.</p>'}
     </div>
 
     <div class="dm-feature-section">
       <div class="dm-section-label">${icon('user')} Multiclassen ${multiclass.length ? `(${multiclass.length})` : ''}<span class="dm-sectie-hulp">${helpBtn('dm_verzoeken_multiclass')}</span></div>
-      ${mcHtml || '<p class="dm-hint">Niemand wil er op dit moment een klasse bij.</p>'}
+      ${mcHtml || '<p class="dm-hint">Niets openstaand.</p>'}
     </div>
 
     <div class="dm-feature-section">
       <div class="dm-section-label">${icon('search')} Onderzoek ${dossiers.length ? `(${dossiers.length})` : ''}<span class="dm-sectie-hulp">${helpBtn('dm_verzoeken_onderzoek')}</span></div>
-      ${dossierHtml || '<p class="dm-hint">Geen dossier dat op jou wacht.</p>'}
+      ${dossierHtml || '<p class="dm-hint">Niets openstaand.</p>'}
     </div>`;
 }
 
@@ -10236,7 +10289,7 @@ async function _renderBerichten() {
   const totalUnread = Object.values(_berichtenData).flat().filter(m => !m.gelezen && !m.deletedAt).length;
 
   el.innerHTML = `
-    ${_dmTabHead({ icon: 'message-circle', title: 'Berichten', sub: totalUnread ? `${totalUnread} ongelezen` : '', actions: helpBtn('dm_berichten') })}
+    ${_dmTabHead({ icon: 'mail', title: 'Berichten', sub: totalUnread ? `${totalUnread} ongelezen` : '', actions: helpBtn('dm_berichten') })}
     <div class="dm-feature-section">
 
       <!-- ═══ STUUR BRIEF (rijker format) ═══ -->

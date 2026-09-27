@@ -8107,8 +8107,14 @@ const _CONDITION_SOUND_KEYS = new Set([
 
 router.put('/sounds', requireDM, (req, res) => {
   let data = storage.readJSON('sounds.json');
-  if (!data) data = { standard: {}, emotes: {}, playerTurn: {} };
-  if (!data.playerTurn) data.playerTurn = {};
+  if (!data) data = {};
+  // Elk blok apart klaarzetten. Een campagne die nog nooit een standaardgeluid
+  // of emote had, heeft die sleutel domweg niet in `sounds.json` staan — en dan
+  // klapte `Object.assign(undefined, …)` de hele route om met een 500. Dat trof
+  // precies de eerste keer dat je er een instelde.
+  for (const k of ['standard', 'emotes', 'playerTurn', 'conditions', 'momenten', 'serviceAmbiance']) {
+    if (!data[k] || typeof data[k] !== 'object') data[k] = {};
+  }
   _ensureAmbiance(data);
   if (req.body.standard)    Object.assign(data.standard,    req.body.standard);
   if (req.body.emotes)      Object.assign(data.emotes,      req.body.emotes);
