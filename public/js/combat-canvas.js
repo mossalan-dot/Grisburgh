@@ -182,6 +182,13 @@ const _PCFG = {
   fire:    { beh: 'rise',  n: 24, sz: [2,4],   sp: [32,68], wob: 0.30 },
   crypt:   { beh: 'drift', n: 10, sz: [1,2.5], sp: [4,12],  wob: 1.0  },
   city:    { beh: 'drift', n:  6, sz: [1,2],   sp: [3,8],   wob: 1.0  },
+  // Nieuwe thema's: elk met een gedrag dat bij de plek past. Moerasgas stijgt
+  // traag en zwalkt, storm blaast hard opzij, een nacht heeft alleen wat stof
+  // in het maanlicht, en op gewijde grond stijgen lichtvlokken op.
+  moeras:  { beh: 'rise',  n: 12, sz: [1,3],   sp: [6,16],  wob: 0.55 },
+  storm:   { beh: 'blow',  n: 26, sz: [1,3],   sp: [70,120], wob: 0.20 },
+  nacht:   { beh: 'drift', n: 14, sz: [1,2],   sp: [3,9],   wob: 1.0  },
+  heilig:  { beh: 'rise',  n: 14, sz: [1,3],   sp: [10,22], wob: 0.35 },
   default: { beh: 'drift', n:  8, sz: [1,2.5], sp: [4,12],  wob: 1.0  },
 };
 

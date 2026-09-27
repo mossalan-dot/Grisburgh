@@ -27202,3 +27202,10 @@ body.akte-schrijf-open .mp-overlay { z-index: 1320; }
    tegenstander, dus het woord erbij zou op elke regel hetzelfde zeggen. */
 .dm-enc-monster-row { border-left: 3px solid var(--kant, #8b2a2a); padding-left: 8px; }
 .dm-enc-monster-row .dm-kant-balk { display: none; }
+
+/* De rijen van het statblok-formulier (Size/Type/Alignment, AC/HP/Speed,
+   CR/XP): de cellen zijn kolommen met het label erboven, dus uitlijnen op de
+   onderkant. `.dm-feature-row` centreert standaard, en dan zweeft een kort
+   veld naast een hoger veld — precies wat die rijen scheef trok. */
+.dm-sb-rij { align-items: flex-end; }
+.dm-sb-rij > .dm-form-row { margin: 0; }

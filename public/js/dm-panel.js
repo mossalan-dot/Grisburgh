@@ -1,5 +1,5 @@
 import { api, huidigeCampagne } from './api.js?v=296';
-import { init as canvasInit, update as canvasUpdate, stop as canvasStop, acGetal } from './combat-canvas.js?v=28';
+import { init as canvasInit, update as canvasUpdate, stop as canvasStop, acGetal } from './combat-canvas.js?v=29';
 import { renderStatblock } from './render-statblock.js?v=9';
 
 // ── DM Panel ──
@@ -3415,33 +3415,33 @@ function _statblockEditorHtml(sb) {
     <details class="dm-sb-editor" open>
       <summary class="dm-sb-summary">${icon('clipboard-list')} Statblock</summary>
       <div class="dm-sb-fields">
-        <div class="dm-feature-row" style="gap:6px;flex-wrap:wrap">
-          <div style="flex:1;min-width:80px">
+        <div class="dm-feature-row dm-sb-rij" style="gap:6px;flex-wrap:wrap">
+          <div class="dm-form-row" style="flex:1;min-width:80px">
             <label class="dm-form-label">Size</label>
             <select id="dm-mon-sb-size" class="dm-select dm-select-sm" style="width:100%">
               <option value="">—</option>
               ${['Tiny','Small','Medium','Large','Huge','Gargantuan'].map(s => opt(s,s)).join('')}
             </select>
           </div>
-          <div style="flex:2;min-width:100px">
+          <div class="dm-form-row" style="flex:2;min-width:100px">
             <label class="dm-form-label">Type</label>
             ${v('type','beast, undead…')}
           </div>
-          <div style="flex:2;min-width:100px">
+          <div class="dm-form-row" style="flex:2;min-width:100px">
             <label class="dm-form-label">Alignment</label>
             ${v('alignment','unaligned')}
           </div>
         </div>
-        <div class="dm-feature-row" style="gap:6px">
-          <div style="flex:1">
+        <div class="dm-feature-row dm-sb-rij" style="gap:6px">
+          <div class="dm-form-row" style="flex:1">
             <label class="dm-form-label">AC</label>
             ${v('ac','13')}
           </div>
-          <div style="flex:2">
+          <div class="dm-form-row" style="flex:2">
             <label class="dm-form-label">HP formula</label>
             ${v('hp','2d8+2')}
           </div>
-          <div style="flex:2">
+          <div class="dm-form-row" style="flex:2">
             <label class="dm-form-label">Speed</label>
             ${v('speed','40 ft.')}
           </div>
@@ -3486,31 +3486,31 @@ function _statblockEditorHtml(sb) {
           <label class="dm-form-label">Languages</label>
           ${v('languages','Common, Elvish')}
         </div>
-        <div class="dm-feature-row" style="gap:6px">
-          <div style="flex:1">
+        <div class="dm-feature-row dm-sb-rij" style="gap:6px">
+          <div class="dm-form-row" style="flex:1">
             <label class="dm-form-label">CR</label>
             ${v('cr','1/4')}
           </div>
-          <div style="flex:1">
+          <div class="dm-form-row" style="flex:1">
             <label class="dm-form-label">XP</label>
             <input id="dm-mon-sb-xp" class="dm-input dm-input-sm" type="number" value="${sb.xp || ''}" placeholder="50">
           </div>
         </div>
         <div class="dm-form-row">
           <label class="dm-form-label">Traits</label>
-          ${ta('traits','***Pack Tactics.*** …')}
+          ${ta('traits','Pack Tactics. De wolf heeft voordeel op een aanval als een bondgenoot naast het doelwit staat…')}
         </div>
         <div class="dm-form-row">
           <label class="dm-form-label">Actions</label>
-          ${ta('actions','***Bite.*** *Melee Weapon Attack:* …')}
+          ${ta('actions','Bite. Melee Weapon Attack: +4 to hit, reach 5 ft., one target. Hit: 7 (2d4+2) piercing damage…')}
         </div>
         <div class="dm-form-row">
           <label class="dm-form-label">Reactions</label>
-          ${ta('reactions','')}
+          ${ta('reactions','Parry. Als reactie op een aanval verhoogt hij zijn AC met 2…')}
         </div>
         <div class="dm-form-row">
           <label class="dm-form-label">Legendary/Mythic Actions</label>
-          ${ta('legendaryActions','')}
+          ${ta('legendaryActions','Legendary Actions. Hij mag er drie per ronde gebruiken, buiten zijn eigen beurt om…')}
         </div>
       </div>
     </details>`;
@@ -3773,12 +3773,12 @@ function _renderMonsterEditor(el) {
       <div class="dm-form-row">
         <label class="dm-form-label">Beschrijving</label>
         <textarea id="dm-mon-desc" class="dm-input dm-sb-textarea" rows="3"
-          placeholder="Korte beschrijving / lore — zichtbaar op de bestiariumkaart en bovenaan het statblock.">${esc(m.description || '')}</textarea>
+          placeholder="Korte beschrijving">${esc(m.description || '')}</textarea>
       </div>
       <div class="dm-form-row">
         <label class="dm-form-label">Roddel</label>
         <textarea id="dm-mon-roddel" class="dm-input dm-sb-textarea" rows="2"
-          placeholder="Een gerucht/observatie die de Magizoöloog onthult bij onderzoek (op Deels-niveau).">${esc(m.roddel || '')}</textarea>
+          placeholder="Een observatie over dit wezen">${esc(m.roddel || '')}</textarea>
       </div>
       <div class="dm-feature-row">
         <div class="dm-form-row" style="flex:1">
@@ -3796,8 +3796,8 @@ function _renderMonsterEditor(el) {
       </div>
       ${_statblockEditorHtml(m.statblock)}
       <div class="dm-feature-row" style="margin-top:4px">
-        <button class="dm-btn dm-btn-primary" onclick="window.dmPanel.monsterSave()" title="Opslaan">${icon('save')}</button>
-        <button class="dm-btn dm-btn-ghost"   onclick="window.dmPanel.monsterCancel()" title="Annuleren">${icon('x')}</button>
+        <button class="dm-btn dm-btn-primary" onclick="window.dmPanel.monsterSave()" title="Dit wezen bewaren">${icon('save')} Opslaan</button>
+        <button class="dm-btn dm-btn-ghost"   onclick="window.dmPanel.monsterCancel()" title="Sluiten zonder te bewaren">${icon('x')} Annuleren</button>
       </div>
     </div>
   `;
@@ -4108,6 +4108,10 @@ const CANVAS_PRESETS = [
   { id: 'snow',    iconName: 'sparkles',  label: 'Sneeuw',     player: [ 90, 150, 200], monster: [ 60,  70, 110] },
   { id: 'fire',    iconName: 'zap',       label: 'Vuur',       player: [200,  90,  20], monster: [160,  15,  15] },
   { id: 'crypt',   iconName: 'skull',     label: 'Crypte',     player: [ 70,  50,  90], monster: [100,  80,  50] },
+  { id: 'moeras',  iconName: 'sprout',    label: 'Moeras',     player: [ 60, 110,  70], monster: [ 90, 100,  40] },
+  { id: 'storm',   iconName: 'wind',      label: 'Storm',      player: [ 60,  90, 130], monster: [ 70,  60,  90] },
+  { id: 'nacht',   iconName: 'moon',      label: 'Nacht',      player: [ 50,  60, 120], monster: [ 90,  40,  90] },
+  { id: 'heilig',  iconName: 'church',    label: 'Gewijde grond', player: [200, 180, 110], monster: [120,  60, 120] },
 ];
 
 // ── Eén lijst met statblokken, voor alle drie de plekken waar je er een kiest ──
@@ -4172,7 +4176,7 @@ function _encCard(enc) {
   const [pr, pg, pb] = _preset.player;
   const [mr, mg, mb] = _preset.monster;
   const _wash = `linear-gradient(135deg, rgba(${pr},${pg},${pb},0.16) 0%, rgba(${mr},${mg},${mb},0.16) 100%)`;
-  const themaVlag = `<span class="dm-enc-thema" title="Canvas-thema: ${esc(_preset.label)}"
+  const themaVlag = `<span class="dm-enc-thema" title="Thema: ${esc(_preset.label)}"
     style="background:linear-gradient(135deg, rgba(${pr},${pg},${pb},0.75) 0%, rgba(${mr},${mg},${mb},0.75) 100%)">${icon(_preset.iconName)}</span>`;
   return `
     <div class="dm-enc-card" style="background-image:${_wash}">
@@ -4183,8 +4187,12 @@ function _encCard(enc) {
         <span class="dm-enc-meta">${monCount} monster${monCount !== 1 ? 's' : ''}</span>
       </div>
       <div class="dm-enc-card-actions">
-        <button class="dm-btn dm-btn-sm" onclick="window.dmPanel.encEdit('${esc(enc.id)}')" title="Bewerken">${icon('pencil')}</button>
-        <button class="dm-btn dm-btn-sm dm-btn-primary" onclick="window.dmPanel.encStart('${esc(enc.id)}')" title="Gevecht starten">${icon('play')}</button>
+        <button class="dm-btn dm-btn-sm dm-btn-ghost" onclick="window.dmPanel.encEdit('${esc(enc.id)}')" title="Bewerken">${icon('pencil')}</button>
+        <!-- Verwijderen stond alleen ín de editor, dus je moest een gevecht
+             eerst openen om het weg te kunnen gooien. Hier, zoals bij de
+             vondsten; de vraag ernaast is dezelfde. -->
+        <button class="dm-btn dm-btn-sm dm-btn-ghost dm-btn-danger" onclick="window.dmPanel.encDelete('${esc(enc.id)}')" title="Dit gevecht verwijderen">${icon('trash')}</button>
+        <button class="dm-btn dm-btn-sm dm-btn-primary" onclick="window.dmPanel.encStart('${esc(enc.id)}')" title="Gevecht starten">${icon('play')} Starten</button>
       </div>
     </div>`;
 }
@@ -4360,7 +4368,7 @@ function _renderEncounterEditor(el) {
            doet nu het sfeerwerk — dat kleurt alleen de ondergrond en de
            deeltjes, en blijft dus onder de tekst. -->
       <div class="dm-form-row">
-        <label class="dm-form-label">Canvas-thema</label>
+        <label class="dm-form-label">Thema</label>
         <div class="enc-preset-row">
           ${CANVAS_PRESETS.map(p => {
             const [pr,pg,pb] = p.player;
@@ -4523,7 +4531,9 @@ async function _encSave() {
 async function _encDelete(id) {
   const enc = _encounters.find(e => e.id === id);
   if (!enc) return;
-  if (!confirm(`Encounter "${enc.name}" verwijderen?`)) return;
+  const hangt = [enc.akteId ? 'een akte' : '', enc.dungeonId ? 'een dungeonkamer' : '', enc.lootId ? 'een vondst' : '']
+    .filter(Boolean).join(' en ');
+  if (!confirm(`Gevecht "${enc.name}" verwijderen?${hangt ? `\n\nHet hangt aan ${hangt}; die blijft bestaan, maar verliest deze koppeling.` : ''}\n\nDit kan niet ongedaan worden gemaakt.`)) return;
   try {
     // backdropId wordt server-side guarded opgeruimd (alleen als ongebruikt).
     await api.deleteEncounter(id);
