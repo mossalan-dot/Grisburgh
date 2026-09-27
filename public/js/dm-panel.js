@@ -1040,7 +1040,6 @@ async function _renderAktes(preserveScroll = false) {
         ${helpBtn('dm_aktes')}`,
     })}
     <div class="dm-feature-section">
-      ${grpName ? `<p class="dm-akte-grp-hint">Zichtbaarheid geldt voor de actieve groep: <strong>${esc(grpName)}</strong></p>` : ''}
       ${aktes.length === 0
         ? '<p class="dm-hint" style="opacity:.7">Nog geen aktes. Maak er een aan met „Nieuwe akte".</p>'
         : aktes.map(([ch, info]) => {

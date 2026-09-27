@@ -4773,7 +4773,6 @@ html { scrollbar-width: thin; scrollbar-color: #b08e58 rgba(196,168,122,0.12); }
 
 /* ── Meesterkamer → Aktes (voorbereiding & regie) ── */
 .dm-akte-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 6px; }
-.dm-akte-grp-hint { font-family: 'Crimson Text', serif; font-size: 11px; color: #6a5238; opacity: 0.85; margin: 0 0 10px; }
 .dm-akte-card { border: 1px solid rgba(196,168,122,0.4); border-radius: 9px; background: rgba(245,237,216,0.5); margin-bottom: 9px; overflow: hidden; }
 .dm-akte-card--hidden { opacity: 0.7; border-color: rgba(139,42,42,0.4); }
 .dm-akte-card-head { display: flex; align-items: center; gap: 9px; padding: 9px 11px; cursor: pointer; }

@@ -10,7 +10,7 @@ import { renderSpreuken } from './render-spreuken.js?v=41';
 import { renderVaardigheden, zoekVaardigheden } from './render-vaardigheden.js?v=8';
 import { renderStatblock } from './render-statblock.js?v=9';
 import { initSocket } from "./socket-client.js?v=78";
-import { initDmPanel } from "./dm-panel.js?v=309";
+import { initDmPanel } from "./dm-panel.js?v=310";
 import { COND_INFO, COND_LABEL, COND_MET_PLAATJE, COND_ICON } from './conditions.js?v=2';
 import './media-picker.js?v=8';
 import './tafels.js?v=1';
@@ -14740,6 +14740,7 @@ Object.assign(HELP_CONFIG, {
     stappen: [
       { titel: 'Aktes', tekst: 'Aktes zijn de verhaalscènes van je sessie. Maak een nieuwe akte aan via "+ Nieuwe akte" of importeer een Obsidian-hoofdstuk.', afbeelding: null },
       { titel: 'Regie-balk', tekst: 'Speel een akte om de regie-balk te activeren. De regie-balk geeft je per stap inzicht in welke entiteiten, locaties en tekst relevant zijn.', afbeelding: null },
+      { titel: 'Zichtbaarheid is per party', tekst: 'Het oogje bij een akte zet hem aan of uit voor de **actieve party** — niet voor de hele campagne. Twee groepen die dezelfde wereld spelen zijn zelden even ver, en zien dus niet dezelfde aktes in hun logboek. Welke party actief is, staat in de kop van de app.', afbeelding: null },
       { titel: 'Onthullen', tekst: 'Klik op een entiteit of locatie in de regie-balk om deze te onthullen voor de spelers. Onthulde items worden zichtbaar in het archief.', afbeelding: null },
     ],
   }),
