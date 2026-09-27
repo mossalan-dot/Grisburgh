@@ -4882,7 +4882,7 @@ async function _setupInitChange(combatantId, value) {
 };
 
 async function _setupReset() {
-  if (!confirm('Alle deelnemers uit het gevecht verwijderen?')) return;
+  if (!confirm('Opnieuw beginnen?\n\nIedereen gaat uit het gevecht en de spelers van de actieve party komen er weer in, met hun huidige HP. Wie vanavond niet meespeelt blijft weg.')) return;
   try {
     await api.endCombat();
     _combat = { active: false, round: 1, currentTurn: 0, combatants: [] };
@@ -8055,7 +8055,10 @@ function _renderGevecht() {
                   style="width:44px">
                 · ${c.hp}/${c.maxHp} HP
               </span>
-              <button class="dm-combatant-remove" onclick="window.dmPanel.combatRemove('${esc(c.id)}')">${icon('x')}</button>
+              <button class="dm-combatant-remove" onclick="window.dmPanel.combatRemove('${esc(c.id)}')"
+                title="${c.type === 'player'
+                  ? 'Doet niet mee in dit gevecht — met de resetknop staat de party er weer'
+                  : 'Uit dit gevecht halen'}">${icon('x')}</button>
             </div>
           `).join('')}
         </div>
@@ -8070,7 +8073,10 @@ function _renderGevecht() {
             <option value="monster"   ${_setupSelectedType === 'monster'   ? 'selected' : ''}>Tegenstander</option>
             <option value="summon"    ${_setupSelectedType === 'summon'    ? 'selected' : ''}>Summon</option>
             <option value="ally"      ${_setupSelectedType === 'ally'      ? 'selected' : ''}>Medestander</option>
-            <option value="player"    ${_setupSelectedType === 'player'    ? 'selected' : ''}>Speler</option>
+            <!-- Geen "Speler": de spelers van de actieve party staan er al in en
+                 worden bijgehouden zolang het gevecht nog niet gestart is.
+                 Iemand die er even niet bij hoort haal je uit de lijst; met de
+                 resetknop staat de hele party er weer. -->
             <option value="companions">Huisdieren</option>
           </select>
         </div>
@@ -8110,13 +8116,19 @@ function _renderGevecht() {
             <span class="dm-input-lbl">AC</span>
             <input id="dm-setup-ac" class="dm-input dm-input-sm" type="number" value="" placeholder="—" style="width:52px">
           </label>
-          <button class="dm-btn dm-btn-ghost dm-btn-sm" onclick="window.dmPanel.setupAddSubmit()" title="Toevoegen">+</button>
+          <button class="dm-btn dm-btn-ghost dm-btn-sm" onclick="window.dmPanel.setupAddSubmit()" title="Deze deelnemer toevoegen">${icon('plus')} Toevoegen</button>
         </div>
       </div>
-      <div class="dm-feature-row" style="margin-top:8px">
-        ${cs.length > 0 ? `<button class="dm-btn dm-btn-sm dm-btn-ghost" onclick="window.dmPanel.setupReset()" title="Reset">↺</button>` : ''}
-        <button class="dm-btn dm-btn-primary" style="margin-left:auto"
-          onclick="window.dmPanel.combatStart()" ${cs.length === 0 ? 'disabled' : ''} title="Start gevecht">${icon('swords')}</button>
+      <!-- De twee knoppen die over het gevecht als geheel gaan, naast elkaar en
+           met hun naam erbij: een gouden icoon zonder tekst laat je raden wat
+           er gebeurt, en dit zijn nou net de twee die je niet per ongeluk wilt
+           indrukken. -->
+      <div class="dm-feature-row dm-knoprij" style="margin-top:8px;justify-content:flex-end">
+        ${cs.length > 0 ? `<button class="dm-btn dm-btn-sm dm-btn-ghost" onclick="window.dmPanel.setupReset()"
+          title="Haalt iedereen uit het gevecht en zet de party er weer in, met hun huidige HP">${icon('refresh-cw')} Opnieuw beginnen</button>` : ''}
+        <button class="dm-btn dm-btn-primary"
+          onclick="window.dmPanel.combatStart()" ${cs.length === 0 ? 'disabled' : ''}
+          title="Start het gevecht met deze deelnemers">${icon('swords')} Start gevecht</button>
       </div>
     </div>
   `;

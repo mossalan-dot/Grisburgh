@@ -10361,7 +10361,18 @@ body.lade-dicht .regie-lade-body { display: none; }
    knop "Openen" dicht zodat het woord over de badge ernaast liep. */
 .campagne-card-actions .dm-btn { text-decoration: none; }
 
+/* De actieve campagne toont hier geen knop maar een melding. Die moet wél
+   dezelfde ruimte innemen als de knop "Als standaard" bij de andere kaartjes,
+   anders schuift de hele rij op en staan de Openen-knoppen niet onder elkaar.
+   Vandaar dezelfde maat en vorm, maar gedempt en zonder rand: het is een
+   mededeling, geen knop. */
 .campagne-active-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px 10px;
+  border: 1px dashed rgba(168,136,79,0.55);
+  border-radius: 4px;
   color: #8a6320;
   font-size: 0.8em;
   font-weight: 600;
@@ -10369,6 +10380,10 @@ body.lade-dicht .regie-lade-body { display: none; }
   letter-spacing: .04em;
   white-space: nowrap;
 }
+/* Eén maat voor de tweede kolom, zodat "Standaard" en "Als standaard" even
+   breed zijn en de knoppen ernaast uitlijnen over alle kaartjes heen. */
+.campagne-card-actions > :last-child { min-width: 132px; text-align: center; }
+.campagne-card-actions .dm-btn:last-child { justify-content: center; }
 
 /* Modules onder een campagnekaartje: over de volle breedte, niet in de kolom
    van de knop. */
