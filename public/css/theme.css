@@ -27246,3 +27246,28 @@ body.akte-schrijf-open .mp-overlay { z-index: 1320; }
    veld naast een hoger veld — precies wat die rijen scheef trok. */
 .dm-sb-rij { align-items: flex-end; }
 .dm-sb-rij > .dm-form-row { margin: 0; }
+
+/* Waar een bestand gebruikt wordt: de plekken staan er nu als klikbare
+   chips onder, in plaats van als tooltip die je niet ziet staan. */
+.media-card-gebruik { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; }
+.media-gebruik-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  max-width: 100%;
+  padding: 2px 7px;
+  border: 1px solid rgba(196,168,122,0.7);
+  border-radius: 10px;
+  background: rgba(255,255,255,0.5);
+  font-family: 'Crimson Text', Georgia, serif;
+  font-size: 11px;
+  color: #5a4030;
+  cursor: pointer;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.media-gebruik-chip:hover { background: rgba(255,255,255,0.85); border-color: #a8884f; }
+.media-gebruik-chip .icon { width: 11px; height: 11px; flex-shrink: 0; }
+.media-gebruik-chip--stil { cursor: default; opacity: 0.85; }
+.media-gebruik-meer { font-style: italic; }

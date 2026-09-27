@@ -207,6 +207,21 @@ export function initDmPanel() {
     // Mediabibliotheek
     mediaSearch:        _mediaSearch,
     mediaSetType:       _mediaSetType,
+    mediaGebruik(id) {
+      const f = _mediaFiles.find(x => x.id === id);
+      if (!f) return;
+      const lab = (l) => (typeof l === 'string' ? { tekst: l } : (l || { tekst: '?' }));
+      const rijen = (f.gebruik || []).map(l => {
+        const g = lab(l);
+        return g.id
+          ? `<button class="dm-btn dm-btn-sm dm-btn-ghost" style="width:100%;justify-content:flex-start"
+               onclick="window.app.closeModal();window._openDetail('${esc(g.soort)}','${esc(g.id)}')">
+               ${icon('arrow-up-right')} ${esc(g.tekst)}</button>`
+          : `<div class="dm-hint" style="padding:4px 2px">${esc(g.tekst)}</div>`;
+      }).join('');
+      window.app.openModal(f.naam, 'waar dit bestand gebruikt wordt',
+        `<div class="dm-knoprij" style="flex-direction:column;align-items:stretch;gap:4px">${rijen}</div>`);
+    },
     mediaToggleWezen:   _mediaToggleWezen,
     mediaSetSort:       _mediaSetSort,
     mediaToggleSel:     _mediaToggleSel,
@@ -9939,7 +9954,10 @@ function _mediaCard(f) {
   const sel       = _mediaSel.has(f.id);
   const afm       = (f.breedte && f.hoogte) ? `${f.breedte}×${f.hoogte}` : '';
   const meta      = [afm, _mediaFmtGrootte(f.grootte), _mediaFmtDatum(f.geupload)].filter(Boolean).join(' · ');
-  const gebruikTitel = gebruik.join('\n');
+  // Een label is een string of `{ tekst, soort, id }` — dat laatste bij een
+  // kaartje, en daar maken we een knop van.
+  const _lab = (l) => (typeof l === 'string' ? { tekst: l } : (l || { tekst: '?' }));
+  const gebruikTitel = gebruik.map(l => _lab(l).tekst).join('\n');
 
   let preview;
   if (f.type === 'audio') {
@@ -9977,7 +9995,19 @@ function _mediaCard(f) {
         <div class="media-card-meta">${esc(meta)}</div>
         ${isWees
           ? `<div class="media-card-wees-badge">${icon('eye-off')} Ongebruikt</div>`
-          : `<div class="media-card-gebruik" title="${esc(gebruikTitel)}">${icon('link')} ${gebruik.length}× in gebruik</div>`}
+          : `<div class="media-card-gebruik" title="${esc(gebruikTitel)}">
+               ${gebruik.slice(0, 2).map(l => {
+                 const g = _lab(l);
+                 return g.id
+                   ? `<button class="media-gebruik-chip" onclick="window._openDetail('${esc(g.soort)}','${esc(g.id)}')"
+                        title="Dit kaartje openen">${icon('arrow-up-right')} ${esc(g.tekst)}</button>`
+                   : `<span class="media-gebruik-chip media-gebruik-chip--stil">${esc(g.tekst)}</span>`;
+               }).join('')}
+               ${gebruik.length > 2
+                 ? `<button class="media-gebruik-chip media-gebruik-meer" onclick="window.dmPanel.mediaGebruik('${escJS(f.id)}')"
+                      title="Alle plekken tonen">+${gebruik.length - 2} meer</button>`
+                 : ''}
+             </div>`}
       </div>
       <button class="dm-btn dm-btn-icon dm-btn-sm dm-btn-danger media-card-del"
         onclick="window.dmPanel.mediaDelete('${escJS(f.id)}')" title="Verwijderen">${icon('trash')}</button>
