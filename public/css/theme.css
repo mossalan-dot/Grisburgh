@@ -27105,3 +27105,23 @@ body.akte-schrijf-open .mp-overlay { z-index: 1320; }
    stylesheet van 27.000 regels kan het UA-gedrag van [hidden] overschrijven. */
 .dm-inst-paneel[hidden] { display: none !important; }
 .dm-inst-paneel { display: flex; flex-direction: column; }
+
+/* ── Subtab-balk: één vorm voor Gevecht, Diensten en Instellingen ─────────────
+   De knoppen dragen nu een label naast het icoon (dat stond alleen in de
+   tooltip, en een rij van negen tekeningen laat je raden). Vandaar ook
+   flex-wrap: bij Diensten zijn het er negen. */
+.dm-subtab-nav { flex-wrap: wrap; align-items: center; row-gap: 0; }
+.dm-subtab-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.dm-subtab-btn .icon { width: 14px; height: 14px; flex-shrink: 0; }
+.dm-subtab-hulp { margin-left: auto; display: inline-flex; align-items: center; }
+
+/* ── Het party-kaartje: lucht tussen de velden ────────────────────────────────
+   Naam en Groepswachtwoord stonden tegen elkaar aan, waardoor het label van de
+   tweede aan het veld van de eerste leek te plakken. */
+#dm-party-kaart .dm-form-row + .dm-form-row { margin-top: 12px; }
+#dm-party-kaart .dm-subgroep-label { margin-top: 18px; }
+#dm-party-kaart .dm-form-row + .dm-subgroep-label { margin-top: 20px; }

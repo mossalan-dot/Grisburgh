@@ -825,12 +825,16 @@ function _renderGevechtEnMonsters(subTab) {
   }
   const encountersEl = el.querySelector('#dm-encounters-content');
 
-  el.querySelector('.dm-subtab-nav').innerHTML = `
-    <button class="dm-subtab-btn${_gevechtSubTab==='gevecht'  ?' active':''}" onclick="window.dmPanel.switchTab('gevecht')" title="Gevecht">${icon('crossed-swords',{cls:'icon-gi'})}</button>
-    <button class="dm-subtab-btn${_gevechtSubTab==='monsters' ?' active':''}" onclick="window.dmPanel.switchTab('monsters')" title="Monsters">${icon('skull')}</button>
-    <button class="dm-subtab-btn${_gevechtSubTab==='encounters'?' active':''}" onclick="window.dmPanel.switchTab('encounters')" title="Encounters">${icon('clipboard-list')}</button>
-    <span style="margin-left:auto">${helpBtn('dm_gevecht')}</span>
-  `;
+  el.querySelector('.dm-subtab-nav').innerHTML = _subtabNavHtml({
+    items: [
+      { id: 'gevecht',    label: 'Gevecht',    icoon: 'crossed-swords', cls: 'icon-gi' },
+      { id: 'monsters',   label: 'Monsters',   icoon: 'skull' },
+      { id: 'encounters', label: 'Encounters', icoon: 'clipboard-list' },
+    ],
+    actief: _gevechtSubTab,
+    klik: (id) => `window.dmPanel.switchTab('${id}')`,
+    hulp: 'dm_gevecht',
+  });
 
   // Toon/verberg de juiste sub-content
   if (gevechtEl)   gevechtEl.classList.toggle('hidden',   _gevechtSubTab !== 'gevecht');
@@ -864,6 +868,27 @@ function _tabEl(name) {
       || document.querySelector(`.dm-tab-content[data-tab="${name}"]`);
 };
 
+// ── Gouden standaard: één subtab-balk ──
+//
+// Er waren drie smaken: Gevecht en Diensten tekenden icoon-only knoppen met de
+// naam alleen in de tooltip (en Diensten had als enige geen hulpknop),
+// Instellingen zette er labels bij. Wie de Meesterkamer doorloopt ziet dan drie
+// keer iets anders voor hetzelfde ding. Dit is nu de enige plek waar zo'n balk
+// wordt gebouwd.
+//
+// `hulp` is de sleutel van de hulptekst die bij het áctieve subtabje hoort; er
+// komt geen knop als er geen tekst achter zit (`_heeftHelp`), want een boekje
+// dat een leeg venster opent is erger dan geen boekje.
+function _subtabNavHtml({ items, actief, klik, hulp = '' }) {
+  const knop = (t) => `
+    <button class="dm-subtab-btn${t.id === actief ? ' active' : ''}" data-subtab="${esc(t.id)}"
+      onclick="${klik(t.id)}" title="${esc(t.title || t.label)}">
+      ${icon(t.icoon, t.cls ? { cls: t.cls } : undefined)}<span>${esc(t.label)}</span>
+    </button>`;
+  const boekje = hulp && window._heeftHelp?.(hulp) ? (window._helpBtn?.(hulp) ?? '') : '';
+  return `${items.map(knop).join('')}<span class="dm-subtab-hulp">${boekje}</span>`;
+}
+
 // ── Gouden standaard: uniforme tab-kop + laad-state ──
 // Elke meesterkamer-tab begint met _dmTabHead(...). Acties (help-knop) staan
 // altijd rechts; gebruik geen ad-hoc inline-flex wrappers meer.
@@ -896,19 +921,27 @@ function _renderDiensten(subTab) {
   }
   // Dezelfde modules als de zijbalk: een dienst die uit staat heeft ook geen
   // instelvenster nodig. "Toegang per groep" blijft altijd staan.
+  // De namen hier zijn de **soort** dienst, niet hoe één campagne hem noemt:
+  // "Gokhuis", niet "De Tweespalt". Wat de spelers zien staat in de campagne
+  // (meta), en dit paneel staat ook in campagnes waar dat huis anders heet.
+  // Facties is de uitzondering: dát label stelt de DM zelf in.
   const _dienstNav = [
-    { key: 'herberg',   titel: 'Herberg',            ic: 'beer' },
-    { key: 'tweespalt', titel: 'Tweespalt',          ic: 'dice', cls: 'icon-gi' },
-    { key: 'gock',      titel: 'De detective',            ic: 'search' },
-    { key: 'ursula',    titel: 'De waarzegger',      ic: 'sparkles' },
-    { key: 'tempel',    titel: 'De Tempel',          ic: 'church' },
-    { key: 'facties',   get titel() { return window._factiesLabel(); }, ic: 'landmark' },
-    { key: 'magizoo',   titel: 'De Magizoöloog',     ic: 'paw-print' },
-    { key: 'markt',     titel: 'Markt',              ic: 'store' },
-    { key: 'toegang',   titel: 'Toegang per groep',  ic: 'lock', altijd: true },
-  ].filter(d => d.altijd || !(window._verborgen?.secties || []).includes(d.key));
-  el.querySelector('.dm-subtab-nav').innerHTML = _dienstNav.map(d => `
-    <button class="dm-subtab-btn${_dienstenSubTab===d.key ?' active':''}" onclick="window.dmPanel.switchTab('${d.key}')" title="${esc(d.titel)}">${icon(d.ic, d.cls ? { cls: d.cls } : undefined)}</button>`).join('');
+    { id: 'herberg',   label: 'Herberg',     icoon: 'beer' },
+    { id: 'tweespalt', label: 'Gokhuis',     icoon: 'dice', cls: 'icon-gi' },
+    { id: 'gock',      label: 'Detective',   icoon: 'search' },
+    { id: 'ursula',    label: 'Waarzegger',  icoon: 'sparkles' },
+    { id: 'tempel',    label: 'Tempel',      icoon: 'church' },
+    { id: 'facties',   get label() { return window._factiesLabel(); }, icoon: 'landmark' },
+    { id: 'magizoo',   label: 'Magizoöloog', icoon: 'paw-print' },
+    { id: 'markt',     label: 'Markt',       icoon: 'store' },
+    { id: 'toegang',   label: 'Toegang',     icoon: 'lock', altijd: true, title: 'Toegang per groep' },
+  ].filter(d => d.altijd || !(window._verborgen?.secties || []).includes(d.id));
+  el.querySelector('.dm-subtab-nav').innerHTML = _subtabNavHtml({
+    items: _dienstNav,
+    actief: _dienstenSubTab,
+    klik: (id) => `window.dmPanel.switchTab('${id}')`,
+    hulp: `dm_${_dienstenSubTab}`,
+  });
 
   // Gooi de legacy tab-content divs om naar sub-divs binnen #diensten
   ['herberg','tweespalt','gock','ursula','tempel','facties','magizoo','markt','toegang'].forEach(name => {
@@ -5478,16 +5511,6 @@ async function _beurzenLaden() {
   try { return (await api.partyCurrencyAlle()).groepen || []; } catch { return []; }
 }
 
-async function _renderBeursTab() {
-  const el = _tabEl('beurs');
-  if (!el) return;
-  el.innerHTML = _dmLoading('Laden…');
-  const groepen = await _beurzenLaden();
-  el.innerHTML = groepen.length
-    ? groepen.map(g => _beursRegelHtml(g)).join('')
-    : '<p class="dm-hint">Nog geen party\'s.</p>';
-};
-
 window._hbSelectWaard = (entityId) => {
   const p = _hbPersonages.find(p => p.id === entityId);
   const row = document.getElementById('hb-portrait-row');
@@ -7009,8 +7032,7 @@ window._factieStuurUitnodiging = async (id) => {
 window.dmPanel.beursToggle = async (gid) => {
   try {
     await api.togglePartyCurrency(gid);
-    await _renderBeursTab();
-    await _partyKaartVul(gid);           // staat het kaartje open, dan loopt het mee
+    await _partyKaartVul(gid);
   } catch (err) { alert('Fout: ' + err.message); }
 };
 
@@ -10348,9 +10370,8 @@ function _instSubtabKies(id) {
   if (!_INST_SUBTABS.some(t => t.id === id)) return;
   _instSubtab = id;
   document.querySelectorAll('.dm-inst-paneel').forEach(el => { el.hidden = el.dataset.sub !== id; });
-  document.querySelectorAll('[data-inst-sub]').forEach(b => b.classList.toggle('active', b.dataset.instSub === id));
-  const hulp = document.querySelector('.dm-subtab-nav .dm-inst-hulp');
-  if (hulp) hulp.innerHTML = window._helpBtn?.(`inst_${id}`) ?? '';
+  document.querySelectorAll('.dm-inst-paneel').length && document.querySelectorAll('.dm-subtab-nav [data-subtab]')
+    .forEach(b => b.classList.toggle('active', b.dataset.subtab === id));
   _instScrollBak()?.scrollTo({ top: 0 });
 }
 
@@ -10406,7 +10427,7 @@ function _partyAanwezigHtml(g, spelers) {
   const leden = spelers.filter(e => e.data?.groep === g.id);
   if (!leden.length) return '';
   const weg = new Set(g.afwezig || []);
-  return `<div class="dm-subgroep-label" title="Bepaalt wie meedoet bij rust, bij het verdelen van buit en bij het vullen van een gevecht">${icon('users')} Speelt vanavond</div>
+  return `<div class="dm-subgroep-label" title="Bepaalt wie meedoet bij rust, bij het verdelen van buit en bij het vullen van een gevecht">${icon('users')} Waarvan actief</div>
     <div class="dm-inst-aanwezig">
       ${leden.map(e => `
         <button type="button" class="dm-aanwezig-chip${weg.has(e.id) ? ' dm-aanwezig-chip--weg' : ''}"
@@ -10435,7 +10456,7 @@ function _partyKaartHtml(g, spelers, beurs) {
     </div>
     ${_partyLedenHtml(g, spelers)}
     ${_partyAanwezigHtml(g, spelers)}
-    <div class="dm-subgroep-label">${icon('coins')} Gedeelde beurs</div>
+    <div class="dm-subgroep-label">${icon('coins')} Gedeelde beurs ${window._helpBtn?.('inst_beurs') ?? ''}</div>
     ${_beursRegelHtml({ ...beurs, id: g.id, naam: g.name }, { kop: false })}
     <div class="dm-party-kaart-voet">
       ${g.active ? '<span class="dm-hint" style="margin:0">Dit is de actieve party.</span>'
@@ -10570,12 +10591,11 @@ async function _renderInstellingen() {
          _instOpslaan leest de velden van het hele paneel in één keer en valt
          voor embleem, app-icoon en Naslag elders terug op een lege string. Een
          paneel dat er niet staat, wist die dus bij de eerstvolgende opslagbeurt. -->
-    <div class="dm-subtab-nav">
-      ${_INST_SUBTABS.map(t => `
-        <button class="dm-subtab-btn${_instSubtab === t.id ? ' active' : ''}" data-inst-sub="${t.id}"
-          onclick="window.dmPanel.instSubtab('${t.id}')">${icon(t.icoon)} ${t.label}</button>`).join('')}
-      <span class="dm-inst-hulp" style="margin-left:auto">${window._helpBtn?.('inst_' + _instSubtab) ?? ''}</span>
-    </div>
+    <div class="dm-subtab-nav">${_subtabNavHtml({
+      items: _INST_SUBTABS.map(t => ({ id: t.id, label: t.label, icoon: t.icoon })),
+      actief: _instSubtab,
+      klik: (id) => `window.dmPanel.instSubtab('${id}')`,
+    })}</div>
 
     <div class="dm-inst-paneel" data-sub="campagne"${_instSubtab === 'campagne' ? '' : ' hidden'}>
     ${_instSectie('campagne', 'Campagne', `
@@ -10621,7 +10641,7 @@ async function _renderInstellingen() {
         <input id="inst-bron-link" class="dm-input" type="url"
           placeholder="https://duckduckgo.com/?q={zoek}"
           value="${esc(meta.bronLink ?? '')}">
-      </div>`)}
+      </div>`, window._helpBtn?.('inst_campagne') ?? '')}
 
     <!-- Namen voor valuta -->
     ${_instSectie('valuta', 'Namen voor valuta', `
@@ -10644,7 +10664,7 @@ async function _renderInstellingen() {
       <div class="dm-form-row">
         <label class="dm-form-label" for="inst-munt-pp" title="10 gp. Heeft geen eigen plek in de beurs: wordt bij het invoeren omgerekend.">Platinum piece (pp)</label>
         <input id="inst-munt-pp" class="dm-input" value="${esc(_munt.pp || '')}" placeholder="Platinum">
-      </div>`)}
+      </div>`, window._helpBtn?.('inst_valuta') ?? '')}
 
     <!-- Hoe komt een speler bij zijn HP als hij een level omhoog gaat? De PHB
          geeft twee keuzes en aan tafel bestaat er een derde: iemand gooit met
@@ -10729,7 +10749,7 @@ async function _renderInstellingen() {
           </div>
           <div id="campagne-create-error" style="color:#c44;font-size:.85em;margin-top:6px"></div>
         </div>
-      </div>`, window._helpBtn?.('inst_beheer') ?? '')}
+      </div>`, window._helpBtn?.('inst_campagnes') ?? '')}
 
     </div>
 
@@ -10741,10 +10761,8 @@ async function _renderInstellingen() {
         ${groupItems || '<p class="dm-hint">Nog geen party\'s.</p>'}
       </div>`,
       `<button class="dm-btn dm-btn-sm dm-btn-ghost" onclick="event.stopPropagation();window._instGroepCreate()" title="Nieuwe party aanmaken">${icon('plus')} Party toevoegen</button>
-`)}
+       ${window._helpBtn?.('inst_partys') ?? ''}`)}
 
-    <!-- Gedeelde beurs: _renderBeursTab vult alleen de inhoud -->
-    ${_instSectie('beurs', 'Gedeelde beurs', '<div id="dm-inst-beurs"></div>', window._helpBtn?.('inst_beurs') ?? '')}
     </div>
 
     <div class="dm-inst-paneel" data-sub="beheer"${_instSubtab === 'beheer' ? '' : ' hidden'}>
@@ -10762,7 +10780,7 @@ async function _renderInstellingen() {
             title="Twee keer intikken, want met een typefout hierin sluit je jezelf buiten.">
           <span id="dm-pw-melding" class="bericht-status hidden"></span>
         </div>
-      </div>`)}
+      </div>`, window._helpBtn?.('inst_beheer') ?? '')}
 
     <!-- Muziek uit Spotify: Grisburgh speelt zelf niets af, het drukt op play.
          Waar dat geluid uitkomt kiest de DM hier. -->
@@ -10780,7 +10798,7 @@ async function _renderInstellingen() {
           title="Narratief document van de campagne">${icon('book-open')} Campagneboek</a>
         <a href="/api/party/sheets" target="_blank" rel="noopener" class="dm-btn dm-btn-sm dm-btn-ghost"
           title="Character sheets van de actieve party — printen of als pdf bewaren">${icon('scroll-text')} Character sheets</a>
-      </div>`)}
+      </div>`, window._helpBtn?.('inst_export') ?? '')}
     </div>
 
     <!-- Eén opslaanknop voor alles hierboven wat niet vanzelf bewaart -->
@@ -10837,7 +10855,6 @@ async function _renderInstellingen() {
 
   // De beurs heeft zijn eigen render; de wereld-instellingen zijn verhuisd naar
   // Diensten → Toegang, waar ze thuishoren.
-  _renderBeursTab();
   _dmWachtwoordStatus();
 
   // Terug naar waar de DM stond. Na de frame waarin de browser de nieuwe
@@ -10873,8 +10890,10 @@ async function _spotifyInstellingen() {
       <input id="inst-spotify-client" class="dm-input" value="${esc(st.clientId)}"
         placeholder="32 tekens uit developer.spotify.com" style="max-width:340px">
     </div>
-    <p class="dm-hint">Maak op <b>developer.spotify.com/dashboard</b> een app aan en zet dit adres erbij als
-      <i>Redirect URI</i>: <code class="dm-code">${esc(redirect)}</code> — kies daar <i>Web API</i>${st.doel === 'tafel' ? ' én <i>Web Playback SDK</i>' : ''}.</p>
+    <div class="dm-form-row">
+      <label class="dm-form-label">Redirect-URI</label>
+      <code class="dm-code" title="Dit adres hoort in je Spotify-app te staan; zie de uitleg in het boekje">${esc(redirect)}</code>
+    </div>
     <div class="dm-feature-row dm-knoprij">
       ${st.gekoppeld
         ? `<span class="dm-spotify-aan">${icon('check-circle')} Gekoppeld${st.naam ? ` als <b>${esc(st.naam)}</b>` : ''}</span>
@@ -10883,13 +10902,6 @@ async function _spotifyInstellingen() {
     </div>
     ${st.gekoppeld && st.premium === false
       ? `<p class="dm-hint" style="color:#8b2a2a">Dit account heeft geen Premium. Afspelen op afstand werkt daar niet mee — Spotify weigert het.</p>` : ''}
-    <!-- Een privésessie kun je niet vanuit een app aanzetten: Spotify heeft daar
-         geen endpoint voor. Wat wél werkt staat hier, want anders kleurt een
-         avond tavernemuziek je Discover Weekly. -->
-    <p class="dm-hint">Speelavonden kleuren je aanbevelingen. Spotify laat een <b>privésessie</b> niet
-      vanuit een app aanzetten — dat doe je zelf in Spotify (je profiel → <i>Privésessie</i>). Wil je het
-      niet elke keer hoeven onthouden: zet je sfeermuziek in een eigen afspeellijst en vink daar in Spotify
-      <i>Uitsluiten van je smaakprofiel</i> aan; die telt dan niet mee.</p>
     <div class="dm-form-row">
       <label class="dm-form-label">Geluid uit</label>
       <div class="dm-knoprij">
@@ -10921,7 +10933,6 @@ async function _spotifyInstellingen() {
       <label class="dm-form-label" for="inst-spotify-volume">Volume</label>
       <input id="inst-spotify-volume" class="dm-input dm-input-sm" type="number" min="0" max="100" style="width:90px"
         value="${st.volume ?? ''}" placeholder="—" onchange="window.dmPanel.spotifyVolume(this.value)">
-      <span class="dm-hint">Leeg = laten zoals het staat.</span>
     </div>`;
 
   document.getElementById('inst-spotify-client')?.addEventListener('change', async (e) => {

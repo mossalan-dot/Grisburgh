@@ -1,4 +1,4 @@
-_53 sleutels · 16 aangepast in **grisburgh** · rest is de standaard uit de code._
+_56 sleutels · 16 aangepast in **grisburgh** · rest is de standaard uit de code._
 
 # Helpteksten
 
@@ -73,7 +73,7 @@ De Magizoöloog kan het kennisniveau verhogen.
 
 ## `dm_gevecht`
 
-> Helpknop in: dm-panel.js:831
+> Geen aanroep gevonden — mogelijk ongebruikt.
 > Nu: **aangepast in deze campagne**
 
 Titel: Gevechten en monsters
@@ -599,10 +599,14 @@ Heeft het voorwerp ladingen, dan staan die als bolletjes in je boedel. Ze laden 
 
 ## `hulp_muziek`
 
-> Helpknop in: dm-panel.js:10730
+> Helpknop in: dm-panel.js:10790
 > Nu: de standaard uit de code
 
 Titel: Muziek uit Spotify
+
+### Koppelen: de client-id
+
+Maak op **developer.spotify.com/dashboard** een app aan — die hoort bij jóúw Spotify-account, en de client-id eruit is niet geheim. Zet in die app het **Redirect-URI** dat hier in het scherm staat; het moet er letterlijk in staan, inclusief het campagnepad. Kies bij de instellingen van die app **Web API**, en ook **Web Playback SDK** als je het geluid uit het tafelscherm wilt laten komen. Een tweede campagne heeft dus een eigen redirect-URI in datzelfde dashboard.
 
 ### Hoe het werkt
 
@@ -616,6 +620,10 @@ Standaard uit het apparaat waarop jij Spotify hebt draaien — meestal de laptop
 
 **Premium**, anders weigert Spotify het afspelen op afstand. En er speelt maar **één stream per account**: luistert er iemand anders op hetzelfde account, dan nemen jullie het van elkaar over.
 
+### Het volume
+
+Het getal stuurt het volume van de speler waar je naartoe speelt. Laat je het leeg, dan blijft staan wat er stond — handig als je het aan tafel met de knop op je speaker regelt.
+
 ### Je aanbevelingen
 
 Wat je aan tafel draait telt gewoon mee voor Discover Weekly en Wrapped. Een **privésessie** valt niet vanuit een app aan te zetten — Spotify heeft daar geen knop voor in zijn API. Zet hem zelf aan in Spotify (profiel → *Privésessie*), of — handiger omdat je het niet kunt vergeten — zet je sfeermuziek in eigen afspeellijsten en vink daar *Uitsluiten van je smaakprofiel* aan.
@@ -624,7 +632,7 @@ Wat je aan tafel draait telt gewoon mee voor Discover Weekly en Wrapped. Een **p
 
 ## `inst_beheer`
 
-> Helpknop in: dm-panel.js:10673
+> Helpknop in: dm-panel.js:10783
 > Nu: de standaard uit de code
 
 Titel: Beheer
@@ -649,7 +657,7 @@ Alleen de beheerder ziet dit. Per campagne staat hier het DM-wachtwoord, welke c
 
 ## `inst_beurs`
 
-> Helpknop in: dm-panel.js:10607
+> Helpknop in: dm-panel.js:10459
 > Nu: de standaard uit de code
 
 Titel: De gedeelde beurs
@@ -658,9 +666,9 @@ Titel: De gedeelde beurs
 
 Staat de gedeelde beurs **aan**, dan is dát de portemonnee van de party: iedereen ziet hetzelfde bedrag, en alles wat gekocht of gevonden wordt gaat erin en eruit. Staat hij **uit**, dan heeft elke speler zijn eigen beurs.
 
-### Per party, dus hier naast elkaar
+### Per party
 
-De schakelaar geldt per party, dus ze staan alle party's onder elkaar met hun stand erbij. Zo zie je in één blik waar het geld van de tafel staat — en verzet je niet per ongeluk de beurs van de party die je niet bedoelde.
+De schakelaar geldt per party, en hij staat daarom in het kaartje van díé party — zo verzet je nooit per ongeluk de beurs van een tafel die je niet bedoelde. Wil je ze naast elkaar zien, open dan de party's een voor een; er is bewust geen tweede lijst met alle saldo's, want twee weergaven van hetzelfde bedrag lopen vroeg of laat uit elkaar.
 
 ### Omzetten raakt geen geld kwijt
 
@@ -670,7 +678,7 @@ De twee zakken bestaan naast elkaar: zet je de gedeelde beurs uit, dan komt iede
 
 ## `inst_campagne`
 
-> Helpknop in: dm-panel.js:10572
+> Helpknop in: dm-panel.js:10644
 > Nu: de standaard uit de code
 
 Titel: De campagne
@@ -689,9 +697,55 @@ Het **app-icoon** is een ander ding: dat is het plaatje dat je telefoon of table
 
 ---
 
+## `inst_campagnes`
+
+> Helpknop in: dm-panel.js:10752
+> Nu: de standaard uit de code
+
+Titel: Campagnes en modules
+
+### Alleen de beheerder
+
+Dit blok zie jij omdat je de beheerder bent. Elke campagne heeft haar eigen wereld, party's en wachtwoord; hier staan ze naast elkaar. *Openen* brengt je erheen — je logt daar in met **haar** DM-wachtwoord, niet het jouwe.
+
+### De standaard
+
+Eén campagne is de standaard: daar landt het kale webadres, en daar komt een bezoeker terecht die nog nergens is ingelogd. De rest is bereikbaar via zijn eigen adres.
+
+### Modules
+
+Wat uit staat verdwijnt uit beeld — bij jou én bij je spelers. Er komt geen grijze "binnenkort"-knop voor in de plaats: een dienst die deze campagne niet heeft, bestaat er gewoon niet. Aanzetten kan altijd weer, en er gaat niets verloren zolang hij uit staat.
+
+### Een nieuwe campagne
+
+Naam, ondertitel en meteen een **DM-wachtwoord** — zonder dat komt er niemand in, want alleen de standaardcampagne valt terug op het serverwachtwoord. De vraag *XP of Milestone* staat er ook bij; die bepaalt de hele level-up-kant, en je kunt hem later omzetten bij Campagne → Level omhoog.
+
+---
+
+## `inst_export`
+
+> Helpknop in: dm-panel.js:10801
+> Nu: de standaard uit de code
+
+Titel: Export & backup
+
+### Drie uitdraaien
+
+De **snapshot** is een HTML-bestand met de stand van de campagne, het **campagneboek** is de verhalende vorm met inhoudsopgave, en de **character sheets** zijn de printbare bladen van de actieve party — die kun je in je browser als pdf bewaren.
+
+### Wat er níét in staat
+
+Beide exports gebruiken dezelfde filter als de app zelf: wat een party nog niet ontdekt heeft, gaat niet mee. Geef je een bestand aan je spelers, dan staan jouw aantekeningen, de geheimen en het regie-script er dus niet in.
+
+### De echte backup draait vanzelf
+
+Dit is een uitdraai om te lezen, geen reservekopie. Elke nacht maakt de server een kopie van alle campagnes en bewaart die dertig dagen; de character sheets gaan daar als HTML in mee. Je hoeft hier dus niets te doen om veilig te zitten.
+
+---
+
 ## `inst_levelup`
 
-> Helpknop in: dm-panel.js:10725
+> Helpknop in: dm-panel.js:10717
 > Nu: de standaard uit de code
 
 Titel: Level omhoog
@@ -716,7 +770,7 @@ Waar de tijdlijn ophoudt. Twintig is de normale grens van 5e; hoger zet hem alle
 
 ## `inst_partys`
 
-> Helpknop in: dm-panel.js:10604
+> Helpknop in: dm-panel.js:10764
 > Nu: de standaard uit de code
 
 Titel: Party's
@@ -729,13 +783,34 @@ Elke party staat op één regel met het aantal personages en een slotje als er e
 
 Onder **Personages** staat wie bij deze party hóórt — dat is blijvend, het staat op het kaartje van het personage zelf. Losmaken met het kruisje betekent dat hij bij geen enkele party meer hoort en dus niets meer van de campagne ziet. Wat bij de party ligt blijft daar: voorwerpkaartjes, onthulde geheimen en welke kaartjes ontdekt zijn staan per party, niet per personage. De vraag vóór het losmaken zegt precies hoeveel dat er zijn.
 
-### Actief vanavond is iets anders
+### Waarvan actief is iets anders
 
-Onder **Speelt vanavond** zet je iemand tijdelijk buiten de sessie — de speler die er niet is. Dat bepaalt wie meedoet bij rust, bij het verdelen van buit en bij het vullen van een gevecht, en het is met één klik terug te draaien. Bewust de afwezigen die bewaard worden en niet de aanwezigen: een personage dat erbij komt doet dan vanzelf mee.
+Onder **Waarvan actief** zet je iemand tijdelijk buiten de sessie — de speler die er niet is. Dat bepaalt wie meedoet bij rust, bij het verdelen van buit en bij het vullen van een gevecht, en het is met één klik terug te draaien. Bewust de afwezigen die bewaard worden en niet de aanwezigen: een personage dat erbij komt doet dan vanzelf mee.
 
 ### Het wachtwoord van een party
 
 Dat is wat je je spelers stuurt; ze kiezen daarna zelf hun personage. Groepswachtwoorden blijven leesbaar staan — je moet ze kunnen opzoeken als iemand het kwijt is. Jouw eigen DM-wachtwoord staat onder **Beheer** en wordt wél versleuteld.
+
+---
+
+## `inst_valuta`
+
+> Helpknop in: dm-panel.js:10667
+> Nu: de standaard uit de code
+
+Titel: Namen voor valuta
+
+### Drie munten, vaste verhouding
+
+Je campagne mag haar munten noemen zoals je wilt — de verhouding blijft die van het boek: **1 gold = 10 silver = 100 copper**. De afkortingen gp/sp/cp staan erbij zodat een tabel uit een boek altijd klopt, ook als jouw munten Florinde, Knaker en Centeling heten.
+
+### Electrum en platinum
+
+Die twee hebben géén eigen plek in de beurs: wat je erin typt wordt bij het invoeren omgerekend (ep = 5 silver, pp = 10 gold). Een vondst mag dus een platinum stuk bevatten; het staat daarna gewoon als goud in de beurs. Geef je ze een naam, dan wordt die alleen gebruikt om te tónen: *"waaronder 3 Lion d'or"* bij een vondst.
+
+### Hernoemen kan altijd
+
+De namen zijn opmaak, geen administratie — al het bezit staat als getal opgeslagen. Je kunt dus halverwege een campagne je munten omdopen zonder dat er iets kwijtraakt.
 
 ---
 

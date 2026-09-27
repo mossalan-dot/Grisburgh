@@ -10,7 +10,7 @@ import { renderSpreuken } from './render-spreuken.js?v=41';
 import { renderVaardigheden, zoekVaardigheden } from './render-vaardigheden.js?v=8';
 import { renderStatblock } from './render-statblock.js?v=9';
 import { initSocket } from "./socket-client.js?v=78";
-import { initDmPanel } from "./dm-panel.js?v=299";
+import { initDmPanel } from "./dm-panel.js?v=300";
 import { COND_INFO, COND_LABEL, COND_MET_PLAATJE, COND_ICON } from './conditions.js?v=2';
 import './media-picker.js?v=8';
 import './tafels.js?v=1';
@@ -13919,15 +13919,31 @@ const HELP_CONFIG = {
     { titel: 'Embleem: het wapen ín de app', tekst: 'Het **embleem** is het wapen dat je in de app zelf ziet: groot op de landingspagina, klein in de kop. Het is een gewone afbeelding uit de mediabibliotheek, dus een schild, een zegel of een wapenschild werkt allemaal.', afbeelding: null },
     { titel: 'App-icoon: het wapen búiten de app', tekst: 'Het **app-icoon** is een ander ding: dat is het plaatje dat je telefoon of tablet gebruikt zodra je de app aan je beginscherm toevoegt, plus het icoon in het tabblad van de browser. Daarom staat het los van het embleem — een embleem mag een brede tekening zijn, een icoon moet als vierkantje van een halve centimeter nog leesbaar zijn. Laat je het leeg, dan wordt het meegeleverde wapen gebruikt. Een app die al op een beginscherm staat houdt zijn oude icoon tot hij er opnieuw op wordt gezet; dat bewaart het besturingssysteem, daar kunnen wij niets aan doen.', afbeelding: null },
   ] }),
+  inst_valuta: () => ({ titel: 'Namen voor valuta', stappen: [
+    { titel: 'Drie munten, vaste verhouding', tekst: 'Je campagne mag haar munten noemen zoals je wilt — de verhouding blijft die van het boek: **1 gold = 10 silver = 100 copper**. De afkortingen gp/sp/cp staan erbij zodat een tabel uit een boek altijd klopt, ook als jouw munten Florinde, Knaker en Centeling heten.', afbeelding: null },
+    { titel: 'Electrum en platinum', tekst: 'Die twee hebben géén eigen plek in de beurs: wat je erin typt wordt bij het invoeren omgerekend (ep = 5 silver, pp = 10 gold). Een vondst mag dus een platinum stuk bevatten; het staat daarna gewoon als goud in de beurs. Geef je ze een naam, dan wordt die alleen gebruikt om te tónen: *"waaronder 3 Lion d\'or"* bij een vondst.', afbeelding: null },
+    { titel: 'Hernoemen kan altijd', tekst: 'De namen zijn opmaak, geen administratie — al het bezit staat als getal opgeslagen. Je kunt dus halverwege een campagne je munten omdopen zonder dat er iets kwijtraakt.', afbeelding: null },
+  ] }),
+  inst_campagnes: () => ({ titel: 'Campagnes en modules', stappen: [
+    { titel: 'Alleen de beheerder', tekst: 'Dit blok zie jij omdat je de beheerder bent. Elke campagne heeft haar eigen wereld, party\'s en wachtwoord; hier staan ze naast elkaar. *Openen* brengt je erheen — je logt daar in met **haar** DM-wachtwoord, niet het jouwe.', afbeelding: null },
+    { titel: 'De standaard', tekst: 'Eén campagne is de standaard: daar landt het kale webadres, en daar komt een bezoeker terecht die nog nergens is ingelogd. De rest is bereikbaar via zijn eigen adres.', afbeelding: null },
+    { titel: 'Modules', tekst: 'Wat uit staat verdwijnt uit beeld — bij jou én bij je spelers. Er komt geen grijze "binnenkort"-knop voor in de plaats: een dienst die deze campagne niet heeft, bestaat er gewoon niet. Aanzetten kan altijd weer, en er gaat niets verloren zolang hij uit staat.', afbeelding: null },
+    { titel: 'Een nieuwe campagne', tekst: 'Naam, ondertitel en meteen een **DM-wachtwoord** — zonder dat komt er niemand in, want alleen de standaardcampagne valt terug op het serverwachtwoord. De vraag *XP of Milestone* staat er ook bij; die bepaalt de hele level-up-kant, en je kunt hem later omzetten bij Campagne → Level omhoog.', afbeelding: null },
+  ] }),
+  inst_export: () => ({ titel: 'Export & backup', stappen: [
+    { titel: 'Drie uitdraaien', tekst: 'De **snapshot** is een HTML-bestand met de stand van de campagne, het **campagneboek** is de verhalende vorm met inhoudsopgave, en de **character sheets** zijn de printbare bladen van de actieve party — die kun je in je browser als pdf bewaren.', afbeelding: null },
+    { titel: 'Wat er níét in staat', tekst: 'Beide exports gebruiken dezelfde filter als de app zelf: wat een party nog niet ontdekt heeft, gaat niet mee. Geef je een bestand aan je spelers, dan staan jouw aantekeningen, de geheimen en het regie-script er dus niet in.', afbeelding: null },
+    { titel: 'De echte backup draait vanzelf', tekst: 'Dit is een uitdraai om te lezen, geen reservekopie. Elke nacht maakt de server een kopie van alle campagnes en bewaart die dertig dagen; de character sheets gaan daar als HTML in mee. Je hoeft hier dus niets te doen om veilig te zitten.', afbeelding: null },
+  ] }),
   inst_partys: () => ({ titel: "Party's", stappen: [
     { titel: 'Eén regel per party', tekst: 'Elke party staat op één regel met het aantal personages en een slotje als er een wachtwoord is. Klik erop en je krijgt alles van díé party bij elkaar: naam, wachtwoord, wie erbij hoort, wie er vanavond meespeelt en de gedeelde beurs.', afbeelding: null },
     { titel: 'Personages: koppelen en losmaken', tekst: 'Onder **Personages** staat wie bij deze party hóórt — dat is blijvend, het staat op het kaartje van het personage zelf. Losmaken met het kruisje betekent dat hij bij geen enkele party meer hoort en dus niets meer van de campagne ziet. Wat bij de party ligt blijft daar: voorwerpkaartjes, onthulde geheimen en welke kaartjes ontdekt zijn staan per party, niet per personage. De vraag vóór het losmaken zegt precies hoeveel dat er zijn.', afbeelding: null },
-    { titel: 'Actief vanavond is iets anders', tekst: 'Onder **Speelt vanavond** zet je iemand tijdelijk buiten de sessie — de speler die er niet is. Dat bepaalt wie meedoet bij rust, bij het verdelen van buit en bij het vullen van een gevecht, en het is met één klik terug te draaien. Bewust de afwezigen die bewaard worden en niet de aanwezigen: een personage dat erbij komt doet dan vanzelf mee.', afbeelding: null },
+    { titel: 'Waarvan actief is iets anders', tekst: 'Onder **Waarvan actief** zet je iemand tijdelijk buiten de sessie — de speler die er niet is. Dat bepaalt wie meedoet bij rust, bij het verdelen van buit en bij het vullen van een gevecht, en het is met één klik terug te draaien. Bewust de afwezigen die bewaard worden en niet de aanwezigen: een personage dat erbij komt doet dan vanzelf mee.', afbeelding: null },
     { titel: 'Het wachtwoord van een party', tekst: 'Dat is wat je je spelers stuurt; ze kiezen daarna zelf hun personage. Groepswachtwoorden blijven leesbaar staan — je moet ze kunnen opzoeken als iemand het kwijt is. Jouw eigen DM-wachtwoord staat onder **Beheer** en wordt wél versleuteld.', afbeelding: null },
   ] }),
   inst_beurs: () => ({ titel: 'De gedeelde beurs', stappen: [
     { titel: 'Eén zak of ieder zijn eigen', tekst: `Staat de gedeelde beurs **aan**, dan is dát de portemonnee van de party: iedereen ziet hetzelfde bedrag, en alles wat gekocht of gevonden wordt gaat erin en eruit. Staat hij **uit**, dan heeft elke speler zijn eigen beurs.`, afbeelding: null },
-    { titel: 'Per party, dus hier naast elkaar', tekst: 'De schakelaar geldt per party, dus ze staan alle party\'s onder elkaar met hun stand erbij. Zo zie je in één blik waar het geld van de tafel staat — en verzet je niet per ongeluk de beurs van de party die je niet bedoelde.', afbeelding: null },
+    { titel: 'Per party', tekst: 'De schakelaar geldt per party, en hij staat daarom in het kaartje van díé party — zo verzet je nooit per ongeluk de beurs van een tafel die je niet bedoelde. Wil je ze naast elkaar zien, open dan de party\'s een voor een; er is bewust geen tweede lijst met alle saldo\'s, want twee weergaven van hetzelfde bedrag lopen vroeg of laat uit elkaar.', afbeelding: null },
     { titel: 'Omzetten raakt geen geld kwijt', tekst: 'De twee zakken bestaan naast elkaar: zet je de gedeelde beurs uit, dan komt ieders eigen beurs weer tevoorschijn zoals die was, en het gedeelde bedrag blijft staan tot je hem weer aanzet. Er verdwijnt dus niets, maar reken er ook niet op dat geld mee verhuist.', afbeelding: null },
   ] }),
   inst_beheer: () => ({ titel: 'Beheer', stappen: [
@@ -13943,9 +13959,11 @@ const HELP_CONFIG = {
     { titel: 'Hoogste level', tekst: 'Waar de tijdlijn ophoudt. Twintig is de normale grens van 5e; hoger zet hem alleen open, het vult geen nieuwe features in.', afbeelding: null },
   ] }),
   hulp_muziek: () => ({ titel: 'Muziek uit Spotify', stappen: [
+    { titel: 'Koppelen: de client-id', tekst: 'Maak op **developer.spotify.com/dashboard** een app aan — die hoort bij jóúw Spotify-account, en de client-id eruit is niet geheim. Zet in die app het **Redirect-URI** dat hier in het scherm staat; het moet er letterlijk in staan, inclusief het campagnepad. Kies bij de instellingen van die app **Web API**, en ook **Web Playback SDK** als je het geluid uit het tafelscherm wilt laten komen. Een tweede campagne heeft dus een eigen redirect-URI in datzelfde dashboard.', afbeelding: null },
     { titel: 'Hoe het werkt', tekst: 'Grisburgh speelt zelf niets af: het drukt op **play** bij Spotify. In een akte zet je een muziekstap neer (de muzieknoot in het regie-script); tijdens het spelen start je die met de muzieknoot in de regie-balk. Per stap kies je of het nummer één keer speelt of blijft herhalen.', afbeelding: null },
     { titel: 'Waar komt het geluid uit', tekst: 'Standaard uit het apparaat waarop jij Spotify hebt draaien — meestal de laptop waarop je de regie bedient. Kies je *Het tafelscherm*, dan meldt de tablet zich zelf aan als Spotify-speler; die moet dan wel open staan en één keer aangeraakt zijn, want een browser mag pas geluid maken na een aanraking.', afbeelding: null },
     { titel: 'Wat Spotify eist', tekst: '**Premium**, anders weigert Spotify het afspelen op afstand. En er speelt maar **één stream per account**: luistert er iemand anders op hetzelfde account, dan nemen jullie het van elkaar over.', afbeelding: null },
+    { titel: 'Het volume', tekst: 'Het getal stuurt het volume van de speler waar je naartoe speelt. Laat je het leeg, dan blijft staan wat er stond — handig als je het aan tafel met de knop op je speaker regelt.', afbeelding: null },
     { titel: 'Je aanbevelingen', tekst: 'Wat je aan tafel draait telt gewoon mee voor Discover Weekly en Wrapped. Een **privésessie** valt niet vanuit een app aan te zetten — Spotify heeft daar geen knop voor in zijn API. Zet hem zelf aan in Spotify (profiel → *Privésessie*), of — handiger omdat je het niet kunt vergeten — zet je sfeermuziek in eigen afspeellijsten en vink daar *Uitsluiten van je smaakprofiel* aan.', afbeelding: null },
   ] }),
   prikbord: () => ({ titel: 'Het prikbord', stappen: [
