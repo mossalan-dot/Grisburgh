@@ -384,6 +384,7 @@ export function initDmPanel() {
     lootEvAnnuleer:   _lootEvAnnuleer,
     lootEvVeld:       _lootEvVeld,
     lootEvGoud:       _lootEvGoud,
+    lootEvBereik:     (tekst, veld) => _lootEvBereik(tekst, veld),
     lootEvDungeon:    _lootEvDungeon,
     lootEvRandom:     _lootEvRandom,
     lootEvItemAdd:    _lootEvItemAdd,
@@ -732,11 +733,10 @@ const _DM_TABS = [
   // Spelen
   { id: 'aktes',     groep: 'spelen',    label: 'Aktes',     icoon: 'clipboard-list',                  title: 'Aktes — voorbereiding &amp; regie' },
   { id: 'gevecht',   groep: 'spelen',    label: 'Gevecht',   icoon: 'crossed-swords', cls: 'icon-gi', title: 'Gevecht & Monsters' },
-  // Zelfde icoon als de kop van de tab zelf: twee tekeningen voor één tabblad
-  // laat je twijfelen of je wel op dezelfde plek bent. `coins` betekent in de
-  // app al "hier wordt buit verdeeld" (het muntje in een kamer en in de
-  // regie-balk); de kluis is het tabblad.
-  { id: 'loot',      groep: 'spelen',    label: 'Loot',      icoon: 'vault',           title: 'Loot — vondsten &amp; verdeling' },
+  // Eén icoon voor het hele onderwerp: het muntje. Dat staat al op een kamer
+  // met een vondst en in de regie-balk, dus de tab hoort hetzelfde te dragen —
+  // en het leest prettiger dan de kluis.
+  { id: 'loot',      groep: 'spelen',    label: 'Loot',      icoon: 'coins',           title: 'Loot — vondsten &amp; verdeling' },
   { id: 'rust',      groep: 'spelen',    label: 'Rust',      icoon: 'moon',                            title: 'Rust — Long &amp; Short Rest' },
   // Sfeer en improvisatie
   { id: 'geluiden',  groep: 'sfeer',     label: 'Geluiden',  icoon: 'volume-2',                        title: 'Geluiden' },
@@ -4491,7 +4491,7 @@ function _encLootKies(veld) {
 // munten en de koppeling aan een dungeonkamer. Een tweede editor hier zou
 // daarvan een slap aftreksel zijn.
 function _encLootNieuw() {
-  _showToast(`${icon('vault')} Maak de vondst in de Loot-tab; kom daarna hier terug om hem te koppelen`);
+  _showToast(`${icon('coins')} Maak de vondst in de Loot-tab; kom daarna hier terug om hem te koppelen`);
   _switchTab('loot');
 }
 
@@ -8298,7 +8298,7 @@ function _renderLootInner() {
 
   const n = _lootSelectie.size;
   el.innerHTML = `
-    ${_dmTabHead({ icon: 'vault', title: 'Loot', actions: helpBtn('dm_loot') })}
+    ${_dmTabHead({ icon: 'coins', title: 'Loot', actions: helpBtn('dm_loot') })}
     <div class="dm-feature-section">
       <div class="dm-feature-row" style="justify-content:space-between;align-items:center;margin-bottom:8px">
         <span class="dm-section-label" style="margin-bottom:0">Vondsten<span class="dm-sectie-hulp">${helpBtn('dm_loot_vondsten')}</span></span>
@@ -8400,24 +8400,23 @@ function _lootEditorHtml() {
         </select>` : ''}
       </div>
       <div class="dm-section-label" style="margin-top:10px">${icon('coins')} Goud<span class="dm-sectie-hulp">${helpBtn('dm_loot_goud')}</span></div>
-      <div class="dm-form-row dm-loot-goud">
-        <label class="dm-labeled-input">
-          <span class="dm-input-lbl">Vast bedrag</span>
-          <input class="dm-input dm-input-sm" style="width:96px" placeholder="1,34"
+      <!-- Twee velden naast elkaar, links uitgelijnd. Het gerolde bereik is
+           één veld ("2-5" of "2,34-8,1"): van en tot apart vroeg twee
+           handelingen voor één gedachte, en zette de hele rij in een kolom. -->
+      <div class="dm-feature-row dm-sb-rij">
+        <div class="dm-form-row">
+          <label class="dm-form-label">Vast bedrag</label>
+          <input class="dm-input dm-input-sm" style="width:110px" placeholder="1,34"
             value="${_muntGoudCl(c) ? _clNaarTekst(_muntGoudCl(c)) : ''}"
             oninput="window.dmPanel.lootEvGoud(this.value)">
-        </label>
-        <label class="dm-labeled-input">
-          <span class="dm-input-lbl">Of gerold van</span>
-          <input class="dm-input dm-input-sm" style="width:84px" placeholder="0,50"
-            value="${r.vanCl ? _clNaarTekst(r.vanCl) : ''}" oninput="window.dmPanel.lootEvRandom('vanCl', this.value)">
-        </label>
-        <label class="dm-labeled-input">
-          <span class="dm-input-lbl">tot</span>
-          <input class="dm-input dm-input-sm" style="width:84px" placeholder="2,00"
-            value="${r.totCl ? _clNaarTekst(r.totCl) : ''}" oninput="window.dmPanel.lootEvRandom('totCl', this.value)">
-        </label>
-        <span class="dm-hint" id="dm-loot-munt-uitleg">${_muntUitleg(_muntGoudCl(c), c.relicten)}</span>
+        </div>
+        <div class="dm-form-row">
+          <label class="dm-form-label">Of gerold</label>
+          <input class="dm-input dm-input-sm" style="width:150px" placeholder="2-5 of 2,34-8,10"
+            value="${_lootBereikTekst(r)}"
+            title="Een bereik; het bedrag wordt pas bij het onthullen gegooid"
+            onchange="window.dmPanel.lootEvBereik(this.value, this)">
+        </div>
       </div>
       <div class="dm-section-label" style="margin-top:10px">Voorwerpen
         <button class="dm-btn dm-btn-ghost dm-btn-sm" style="margin-left:8px" onclick="window.dmPanel.lootEvItemAdd()">${icon('plus')} Regel</button>
@@ -8477,6 +8476,33 @@ function _lootEvGoud(tekst) {
   const hint = document.getElementById('dm-loot-munt-uitleg');
   if (hint) hint.textContent = _muntUitleg(_muntGoudCl(_lootConcept), _lootConcept.relicten);
 }
+// Het bereik als tekst: "2-5", of met komma's "2,34-8,10". Leeg als er niets
+// staat — dan is er geen worp en telt alleen het vaste bedrag.
+function _lootBereikTekst(r) {
+  if (!r || (!r.vanCl && !r.totCl)) return '';
+  return `${_clNaarTekst(r.vanCl || 0)}-${_clNaarTekst(r.totCl || 0)}`;
+}
+
+// Eén veld voor het hele bereik. Het scheidingsteken is het streepje; de komma
+// hoort bij het bedrag zelf (1,34 = 1 florinde, 3 knakers, 4 centelingen), dus
+// die twee bijten elkaar niet. Onleesbare invoer flitst rood en verandert niets
+// — stil negeren zou betekenen dat je denkt dat je iets hebt ingesteld.
+function _lootEvBereik(tekst, veld) {
+  if (!_lootConcept) return;
+  const rauw = String(tekst || '').trim();
+  if (!rauw) { _lootConcept.goudRandom = { vanCl: 0, totCl: 0 }; return; }
+  const delen = rauw.split(/\s*[-–—]\s*/);
+  const vanCl = _tekstNaarCl(delen[0]);
+  const totCl = delen.length > 1 ? _tekstNaarCl(delen[1]) : 0;
+  if (delen.length < 2 || (!vanCl && !totCl)) {
+    veld?.classList.add('dm-input--err');
+    setTimeout(() => veld?.classList.remove('dm-input--err'), 1200);
+    return;
+  }
+  // Andersom ingetikt is geen fout, gewoon andersom bedoeld.
+  _lootConcept.goudRandom = { vanCl: Math.min(vanCl, totCl), totCl: Math.max(vanCl, totCl) };
+}
+
 function _lootEvRandom(veld, waarde) {
   if (!_lootConcept) return;
   if (!_lootConcept.goudRandom) _lootConcept.goudRandom = { vanCl: 0, totCl: 0 };

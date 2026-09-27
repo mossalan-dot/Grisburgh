@@ -10,7 +10,7 @@ import { renderSpreuken } from './render-spreuken.js?v=41';
 import { renderVaardigheden, zoekVaardigheden } from './render-vaardigheden.js?v=8';
 import { renderStatblock } from './render-statblock.js?v=9';
 import { initSocket } from "./socket-client.js?v=78";
-import { initDmPanel } from "./dm-panel.js?v=312";
+import { initDmPanel } from "./dm-panel.js?v=313";
 import { COND_INFO, COND_LABEL, COND_MET_PLAATJE, COND_ICON } from './conditions.js?v=2';
 import './media-picker.js?v=8';
 import './tafels.js?v=1';
@@ -14092,7 +14092,7 @@ const HELP_CONFIG = {
   ] }),
   dm_loot_goud: () => ({ titel: 'Goud in een vondst', stappen: [
     { titel: 'Eén bedrag met een komma', tekst: `Vul in wat erin zit: **1,34** is 1 ${window._muntNamen().fl}, 3 ${window._muntNamen().kn} en 4 ${window._muntNamen().cl} — het leest als gewoon geld, want de tweede munt is een tiende van de eerste en de derde een honderdste.`, afbeelding: null },
-    { titel: 'Of laat het rollen', tekst: 'Vul in plaats daarvan een bereik in (van … tot). Het bedrag wordt dan pas **bij het onthullen** gegooid, zodat je ziet wat het geworden is voordat het scherm opengaat — en zodat dezelfde kist twee keer iets anders kan opleveren.', afbeelding: null },
+    { titel: 'Of laat het rollen', tekst: 'Vul in plaats daarvan een bereik in, in één veld: **2-5**, of met komma\'s **2,34-8,10**. Het bedrag wordt dan pas **bij het onthullen** gegooid, zodat je ziet wat het geworden is voordat het scherm opengaat — en zodat dezelfde kist twee keer iets anders kan opleveren.', afbeelding: null },
     { titel: 'Electrum en platinum', tekst: 'Die worden bij het invoeren omgerekend (ep = 5 zilver, pp = 10 goud): in de beurs bestaan ze niet. In de vondst worden ze wél bij naam genoemd — het is oud geld dat je víndt — en dan staat er bij de buit "waaronder 3 Lion d\'or".', afbeelding: null },
   ] }),
   dm_loot_editor: () => ({ titel: 'Een vondst maken', stappen: [
