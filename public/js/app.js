@@ -14163,10 +14163,6 @@ const HELP_CONFIG = {
     { titel: 'Vier emotes', tekst: 'Elk een label en een geluid. Ze verschijnen als knoppen op zijn eigen kaartje en in de gevechtsoverlay, zodat een speler zelf iets kan laten klinken — een strijdkreet, een zucht, een lach.', afbeelding: null },
     { titel: 'Van de speler, niet van jou', tekst: 'Laat ze er zelf een kiezen. Het is het enige geluid in de app dat van hén is, en dat is precies waarom het werkt.', afbeelding: null },
   ] }),
-  dm_geluiden_momenten: () => ({ titel: 'Momenten', stappen: [
-    { titel: 'Eén keer, op een vast punt', tekst: 'Een korte klank die de app zelf speelt: als de spelers de buit te zien krijgen, of als iemand een level omhoog gaat. Geen loop — hij klinkt en is weg.', afbeelding: null },
-    { titel: 'De rust hoort er ook bij', tekst: 'Die staat eronder, met een eigen kop, want technisch is het wél een loop: hij speelt zolang het rustscherm in beeld is. Drie plekken: buiten, in de herberg, en de korte rust.', afbeelding: null },
-  ] }),
   dm_geluiden_diensten: () => ({ titel: 'Geluid per dienst', stappen: [
     { titel: 'Begint vanzelf', tekst: 'Loopt iemand een dienst binnen — de herberg, de tempel, het gokhuis — dan begint deze loop op zijn eigen toestel. Daar is geen sessie of tafelscherm voor nodig.', afbeelding: null },
     { titel: 'Een decor gaat voor', tekst: 'Speelt er een decor voor de hele tafel, dan heeft dat voorrang: dat is het geluid van de scène waar jullie samen in zitten.', afbeelding: null },

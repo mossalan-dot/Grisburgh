@@ -1,4 +1,4 @@
-_104 sleutels · 16 aangepast in **grisburgh** · rest is de standaard uit de code._
+_103 sleutels · 16 aangepast in **grisburgh** · rest is de standaard uit de code._
 
 # Helpteksten
 
@@ -220,23 +220,6 @@ Opent een speler het scherm van deze factie, dan begint deze loop zachtjes te sp
 ### Kies iets dat mag herhalen
 
 Het speelt in een lus zolang dat scherm openstaat, dus kies iets zonder duidelijk begin en eind. Een fanfare van acht seconden wordt na drie keer een grap.
-
----
-
-## `dm_geluiden_momenten`
-
-> Geen aanroep gevonden — mogelijk ongebruikt.
-> Nu: de standaard uit de code
-
-Titel: Momenten
-
-### Eén keer, op een vast punt
-
-Een korte klank die de app zelf speelt: als de spelers de buit te zien krijgen, of als iemand een level omhoog gaat. Geen loop — hij klinkt en is weg.
-
-### De rust hoort er ook bij
-
-Die staat eronder, met een eigen kop, want technisch is het wél een loop: hij speelt zolang het rustscherm in beeld is. Drie plekken: buiten, in de herberg, en de korte rust.
 
 ---
 
