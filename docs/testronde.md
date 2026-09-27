@@ -667,6 +667,10 @@ fout-uitvoert.
 - [ ] **Instellingen — munten** (DM) — namen hernoemen (gp/sp/cp, plus electrum en platinum); de verhouding blijft 1 : 10 : 100
 - [ ] **Instellingen — party's** (DM) — aanmaken, hernoemen, verwijderen (met de waarschuwing), en wie er vanavond meespeelt
 - [ ] **Party-kaartje** (DM) — klik een party in de lijst; het venster toont naam, groepswachtwoord, personages, wie er vanavond speelt en de gedeelde beurs van díé party
+- [ ] **Gevecht: deelnemer toevoegen** (DM) — het zoekveld is ook het naamveld: kies een monster uit de lijst, óf typ een eigen naam en voeg toe. Het kaartjes-lijstje is een zoekveld geworden, en de kolom heet *Initiative*
+- [ ] **Monsterlijst** (DM) — twintig per pagina in plaats van vijf, en het filter zegt *Alle akten*
+- [ ] **Encounter bewerken** (DM) — geen backdrop meer (ook niet achter een lopend gevecht), negen canvas-thema's waarvan er altijd één geldt, en **Buit** wijst naar een vondst uit de Loot-tab
+- [ ] **Buit uit een gevecht** (DM) — koppel een vondst aan een encounter, start het gevecht, klik op buit verdelen: de vondst komt als verdeling te voorschijn, inclusief relikwiemunten, en staat daarna als onthuld te boek
 - [ ] **Subtab-balken zijn gelijk** (DM) — Gevecht, Diensten en Instellingen dragen dezelfde balk: icoon mét label, en het boekje van het blok waar het over gaat. De dienstnamen zijn generiek (Gokhuis, Detective, Waarzegger), niet de namen die Grisburgh eraan gaf
 - [ ] **Party-kaartje: koppelen** (DM) — typ een naam bij *Personage koppelen*; hij verschijnt als lid en staat daarna ook onder *Speelt vanavond*
 - [ ] **Party-kaartje: losmaken** (DM) — kruisje bij een lid; de vraag noemt het aantal voorwerpkaartjes op zijn naam én wat er bij de party blijft staan. Na losmaken hoort hij bij geen party en ziet hij niets meer van de campagne

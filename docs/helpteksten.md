@@ -1,4 +1,4 @@
-_56 sleutels · 16 aangepast in **grisburgh** · rest is de standaard uit de code._
+_95 sleutels · 16 aangepast in **grisburgh** · rest is de standaard uit de code._
 
 # Helpteksten
 
@@ -71,6 +71,112 @@ De Magizoöloog kan het kennisniveau verhogen.
 
 ---
 
+## `dm_detective`
+
+> Helpknop in: dm-panel.js:5990
+> Nu: de standaard uit de code
+
+Titel: De detective
+
+### Wat hij doet
+
+Spelers leggen een vraag bij hem neer over een persoon, plek of voorwerp. Dat kost geld en tijd; het antwoord schrijf jij. Zo kunnen ze iets uitzoeken zonder dat de hele tafel stilvalt.
+
+### Het antwoord is een scène
+
+Schrijf wat hij *gevonden* heeft, niet wat waar is — een detective kan zich vergissen, of net te laat komen. Dat maakt van een opzoekactie een verhaallijn.
+
+---
+
+## `dm_facties`
+
+> Helpknop in: dm-panel.js:6686
+> Nu: de standaard uit de code
+
+Titel: Facties
+
+### Wat een factie is
+
+Een groep met een naam, een embleem en een **ladder** van zes treden. Hoe meer aanzien een party heeft, hoe hoger ze staan — en hoe meer er voor hen opengaat.
+
+### Hoe de sectie heet
+
+De naam boven dit onderdeel stel je zelf in (bij ons *Facties & Aanzien*). Zo kan het in jouw wereld net zo goed *Huizen* of *Orden* heten.
+
+### Zich voorstellen per brief
+
+Een factie kan zich met één klik voorstellen aan de actieve party: dat onthult haar en bezorgt elke speler een verzegelde brief. Een mooiere binnenkomst dan een vinkje omzetten.
+
+---
+
+## `dm_facties_leden`
+
+> Helpknop in: dm-panel.js:6765
+> Nu: de standaard uit de code
+
+Titel: Leden van een factie
+
+### Wie erbij hoort
+
+Koppel personagekaartjes aan de factie. Dat werkt twee kanten op: op hun eigen kaartje staat daarna dat ze hierbij horen.
+
+### Wat de spelers zien
+
+Een lid dat de party nog niet kent, verschijnt niet bij naam. Een organisatie ontmantelen is het spel; de ledenlijst is niet gratis.
+
+---
+
+## `dm_facties_rangen`
+
+> Helpknop in: dm-panel.js:6787
+> Nu: de standaard uit de code
+
+Titel: Rangen
+
+### Zes treden
+
+Elke trede heeft een naam en een drempel aan aanzien (0, 1, 3, 10, 25, 50). Alleen trede 0 krijgt standaard een naam — *Buitenstaander* — want die beschrijft de mechaniek en niet jouw wereld.
+
+### Wat een trede oplevert
+
+Een titel, en wat jij eraan hangt: toegang, een gunst, een korting. De app rekent de trede uit; wat hij betekent is een afspraak aan tafel.
+
+---
+
+## `dm_geluiden_facties`
+
+> Helpknop in: dm-panel.js:7379
+> Nu: de standaard uit de code
+
+Titel: Sfeerloop per factie
+
+### Wat het doet
+
+Opent een speler het scherm van deze factie, dan begint deze loop zachtjes te spelen. Zo klinkt het gilde anders dan de tempel, zonder dat jij iets hoeft te starten.
+
+### Kies iets dat mag herhalen
+
+Het speelt in een lus zolang dat scherm openstaat, dus kies iets zonder duidelijk begin en eind. Een fanfare van acht seconden wordt na drie keer een grap.
+
+---
+
+## `dm_geluiden_rust`
+
+> Helpknop in: dm-panel.js:7381
+> Nu: de standaard uit de code
+
+Titel: Geluid bij de rust
+
+### Drie momenten
+
+Een loop voor de rust in het veld, een voor de herberg en een voor de korte rust. Die klinkt zolang het rustscherm in beeld is — bij de spelers en op het tafelscherm.
+
+### Zachter is beter
+
+Onder een rustscherm wordt er gepraat: dit is achtergrond, geen muziek om naar te luisteren. Krekels, een haardvuur, regen op een dak.
+
+---
+
 ## `dm_gevecht`
 
 > Geen aanroep gevonden — mogelijk ongebruikt.
@@ -92,6 +198,640 @@ Ga naar het subtabblad "Monsters" om monsters uit het bestiarium toe te voegen. 
 
 ---
 
+## `dm_gokhuis`
+
+> Helpknop in: dm-panel.js:5685
+> Nu: de standaard uit de code
+
+Titel: Het gokhuis
+
+### Wat het is
+
+Een huis waar spelers geld kunnen inzetten: op een spel, op een gevecht in het strijdperk, of bij de geldschieter. De naam, de baas en de sfeer stel je hier in.
+
+### Lenen kost
+
+De geldschieter rekent rente **per lange rust**, niet per kalenderdag — de party bepaalt zo zelf het tempo. Er zit een plafond op; daarna stopt het tellen en komt hij het halen. Dat is een scène, geen som.
+
+### Aflossen gaat via jou
+
+Er is nog geen knop om een lening af te betalen: dat doe je door het schuldbewijs uit de boedel van de speler te halen. Dan is de schuld weg.
+
+---
+
+## `dm_gokhuis_beheer`
+
+> Helpknop in: dm-panel.js:5748
+> Nu: de standaard uit de code
+
+Titel: Gokhuis — beheer
+
+### Wat hier staat
+
+De lopende leningen, de open kampen en de events. Dit is de administratie achter de schermen; de spelers zien er niets van.
+
+### Opruimen
+
+Een lening van een personage dat niet meer bestaat kun je hier weghalen. Laat hem niet slepen: hij telt door en niemand kan hem afbetalen.
+
+---
+
+## `dm_gokhuis_event`
+
+> Helpknop in: dm-panel.js:5753
+> Nu: de standaard uit de code
+
+Titel: Een event aanmaken
+
+### Waar wordt op gewed
+
+Geef het event een naam en minstens twee opties — paardenrace, hanengevecht, welke raadsheer het haalt. De spelers kiezen er een en zetten in.
+
+### De uitbetaling
+
+Per optie stel je de verhouding in. Een uitslag die iedereen zag aankomen levert weinig op; de verrassing betaalt.
+
+---
+
+## `dm_gokhuis_inschrijvingen`
+
+> Helpknop in: dm-panel.js:5735
+> Nu: de standaard uit de code
+
+Titel: Strijdperk — inschrijvingen
+
+### Wie heeft ingezet
+
+Per speler de inzet en op wie. Zolang het kamp loopt kun je zien waar de tafel op gokt; handig om te weten wie er belang bij heeft.
+
+### Zelf meevechten
+
+Een speler kan ook zelf het perk in. Zijn inzet is dan zijn eigen kamp — en verliezen doet meer pijn dan geld.
+
+---
+
+## `dm_gokhuis_partijen`
+
+> Helpknop in: dm-panel.js:5721
+> Nu: de standaard uit de code
+
+Titel: Strijdperk — partijen
+
+### Wie vecht er
+
+De twee kanten van een kamp, met hun naam en hun kans. Waar de spelers op inzetten en wat het uitbetaalt, volgt hieruit.
+
+### De uitslag bepaal jij
+
+Het gevecht wordt aan tafel gespeeld of verteld; jij zet daarna wie er gewonnen heeft. Die keuze is onomkeerbaar — de inzetten worden er meteen mee verrekend — dus hij vraagt een bevestiging.
+
+---
+
+## `dm_herberg_tap`
+
+> Helpknop in: dm-panel.js:5440
+> Nu: de standaard uit de code
+
+Titel: Aan de tap
+
+### Het menu
+
+Wat er te drinken en te eten is, met een prijs. Een speler bestelt het zelf; het bedrag gaat van zijn beurs af, of van de gedeelde beurs als die aanstaat.
+
+### Sfeer boven mechaniek
+
+Een bestelling is vooral een reden om iets te laten gebeuren — de waard vertelt een roddel, iemand aan de bar kijkt op. Wat een drankje regeltechnisch doet, beslis jij aan tafel.
+
+---
+
+## `dm_loot_deelnemers`
+
+> Helpknop in: dm-panel.js:7829
+> Nu: de standaard uit de code
+
+Titel: Wie deelt mee
+
+### Waar de lijst vandaan komt
+
+Loopt er een gevecht, dan zijn het de spelers daaruit; anders iedereen die bij de party *actief* staat. Zo deelt een speler die er vanavond niet is ook niet mee in de buit.
+
+### Zelf bijstellen
+
+Vink iemand aan of uit voordat je onthult. Handig als een personage bewust ergens anders was, of juist meeliep zonder in het gevecht te staan.
+
+---
+
+## `dm_loot_editor`
+
+> Helpknop in: dm-panel.js:8122
+> Nu: de standaard uit de code
+
+Titel: Een vondst maken
+
+### Wat een vondst is
+
+Eén ding dat de party kan vinden: de geldzak in de haard, het zwaard onder de plavuizen. Eén kamer kan er meerdere hebben, en elk krijgt zijn eigen naam — die naam staat later bij de buit, zodat "uit de haard" en "onder de plavuizen" gescheiden blijven.
+
+### De DC is een aantekening
+
+Het getal is voor jou, niet voor de app. De spelers gooien aan tafel en jij beslist; onthullen is altijd een klik. Er wordt dus nergens een worp ingevoerd of bijgehouden wie wat gooide.
+
+### Geld
+
+Vul één bedrag in met een komma: **1,34** is 1 Gold, 3 Silver en 4 Copper. Wil je het aan het toeval overlaten, zet dan een bereik bij *Of gerold* — dat wordt pas bij het onthullen gegooid, zodat je ziet wat het geworden is voordat het scherm opengaat.
+
+### Waar hij ligt
+
+Koppel de vondst aan een kamer van een dungeon, dan verschijnt daar vanzelf het muntje — alleen op jouw scherm, met een stippellijn. Klikken op dat muntje bouwt meteen de verdeling.
+
+---
+
+## `dm_loot_uitslag`
+
+> Helpknop in: dm-panel.js:7737
+> Nu: de standaard uit de code
+
+Titel: De uitslag
+
+### Wie krijgt wat
+
+Per voorwerp staat hier wie het geclaimd heeft en wat de worp was. Bij meerdere claims wint de hoogste worp; bij gelijkspel gooien alleen die spelers opnieuw.
+
+### Bijstellen mag
+
+De uitslag is een voorstel, geen vonnis — je kunt een voorwerp alsnog aan iemand anders geven voordat je afsluit. Aan tafel wordt er nu eenmaal geruild.
+
+### Afsluiten
+
+Bij het afsluiten gaat alles daadwerkelijk naar de boedel van de spelers en wordt het goud verdeeld. Daarna is de fase voorbij en staat de vondst als onthuld te boek.
+
+---
+
+## `dm_magizoo`
+
+> Helpknop in: dm-panel.js:6149
+> Nu: de standaard uit de code
+
+Titel: De magizoöloog
+
+### Twee dingen
+
+Hij verkoopt **metgezellen** en hij weet iets van **wezens**: tegen betaling brengt hij het bestiarium van de party een niveau verder. Wat er te koop is en wat het kost, stel je hier in.
+
+### Een dier groeit mee
+
+Een metgezel heeft statblokken per niveau; welke geldt, hangt af van het level van zijn baasje. Eén dier per party, en als hij sneuvelt is dat echt — dat hoort bij het aangaan van de band.
+
+---
+
+## `dm_markt`
+
+> Helpknop in: dm-panel.js:6080
+> Nu: de standaard uit de code
+
+Titel: De Markt
+
+### Eén plek voor alle winkels
+
+De Markt is een **weergave**, geen tweede voorraad: hij toont de winkels die deze party kan zien, met hun schappen. Klikken opent de winkel zelf. De voorraad blijft dus op het kaartje van die winkel staan, en daar beheer je hem ook.
+
+### Zoeken over alles heen
+
+Zoeken gaat over alle winkels tegelijk en zet de prijzen naast elkaar — handig, want hetzelfde voorwerp ligt soms bij drie winkels voor drie prijzen.
+
+### Een roterende winkel rolt hier niet
+
+De Markt leest de schappen alleen. Had een winkel zijn assortiment nog niet gerold, dan staat hij hier leeg in plaats van dat de app het stiekem voor hem doet — anders zou een blik op de Markt ieders schappen in één klap vastzetten.
+
+---
+
+## `dm_markt_gebieden`
+
+> Helpknop in: dm-panel.js:6083
+> Nu: de standaard uit de code
+
+Titel: Gebieden om op te filteren
+
+### Waar een winkel ligt is afgeleid
+
+Uit het veld *Gebied* op het locatiekaartje van de winkel, dat naar een andere locatie wijst — Boekenwyrm › Luimpoort › Grisburgh › Continent. Een winkel valt onder élk lid van die keten.
+
+### Jij kiest welke laag telt
+
+Alle wijken als losse knop is zelden wat je wilt. Vink daarom aan welke gebieden als filter op de Markt verschijnen; jouw volgorde is de volgorde op het scherm. Staat er niets, dan leidt de app ze zelf af.
+
+---
+
+## `dm_markt_winkels`
+
+> Helpknop in: dm-panel.js:6103
+> Nu: de standaard uit de code
+
+Titel: Winkels die de Markt vindt
+
+### Een controlelijst
+
+Alle winkels met de gebiedsketen die eruit volgt. Hiermee zie je je eigen data: een winkel die zichzelf als gebied heeft, komt nooit onder de stad uit — dat valt hier meteen op.
+
+### Wat een speler ziet
+
+De Markt toont alleen winkels die deze party kan zien, en een doorklik naar het voorwerpkaartje alleen als ze dat kaartje kennen. Naam, prijs en beeld gaan wel mee: dat ligt in de etalage.
+
+---
+
+## `dm_post_brief`
+
+> Helpknop in: dm-panel.js:9896
+> Nu: de standaard uit de code
+
+Titel: Een brief sturen
+
+### Aan wie
+
+Aan één speler of aan de hele party. De brief komt in hun Berichten-tab te staan en blijft daar bewaard — het is post, geen melding die voorbijschiet.
+
+### Afzender en stijl
+
+Koppel een afzender aan een kaartje, dan leest de speler een naam die hij kent. De **briefstijl** bepaalt hoe het eruitziet: handschrift, drukwerk, knipsel, gotisch. Twee schrijvers horen er verschillend uit te zien.
+
+### Cinematisch bezorgen
+
+Zet je *cinematisch* aan, dan krijgt de speler eerst een verzegelde envelop die hij zelf moet openbreken — en gaat dezelfde brief naar het tafelscherm. Bewaar dat voor de brieven die ertoe doen; als alles een gebeurtenis is, is niets het.
+
+---
+
+## `dm_post_geschiedenis`
+
+> Helpknop in: dm-panel.js:9968
+> Nu: de standaard uit de code
+
+Titel: Verstuurde post
+
+### Wat hier staat
+
+Alles wat je eerder verstuurde, met datum en ontvanger. Handig om terug te lezen wat een NPC ooit beloofd heeft — spelers onthouden dat namelijk wél.
+
+### Opnieuw gebruiken
+
+Een eerdere brief is de snelste opzet voor de volgende: open hem, pas de tekst aan en stuur hem naar iemand anders.
+
+---
+
+## `dm_rust_levelup`
+
+> Helpknop in: dm-panel.js:8405
+> Nu: de standaard uit de code
+
+Titel: Level omhoog (hier)
+
+### Waarom hier
+
+Omdat het aan tafel op hetzelfde moment gebeurt: einde sessie, of bij de lange rust erna. Je zet een level-up **klaar** voor iedereen die vanavond meespeelt; de spelers kiezen daarna zelf hoe ze aan hun HP komen en wat ze met een ASI doen.
+
+### Milestone of XP
+
+Speelt de campagne op **Milestone**, dan is dit de knop waarmee je het gunt. Op **XP** staat een level-up vanzelf klaar zodra iemand over de drempel komt en hoef je hier niets te doen — punten uitdelen gaat met de XP-knop in de regie-balk. Welk van de twee geldt, stel je in bij Instellingen → Campagne → Level omhoog.
+
+### Terugdraaien kan
+
+Een per ongeluk gegund level haal je met dezelfde knop weer weg zolang de speler hem nog niet verzilverd heeft. Daarna is het zijn blad, en draai je het terug op zijn personage.
+
+---
+
+## `dm_rust_sfeer`
+
+> Helpknop in: dm-panel.js:8356
+> Nu: de standaard uit de code
+
+Titel: Sfeer & gebeurtenissen
+
+### Een beeld per soort rust
+
+Kies een achtergrond voor het veld en voor de korte rust; de herberg gebruikt zijn eigen gevel. Die verschijnt achter het rustscherm, dus het is meteen duidelijk wáár ze slapen.
+
+### Een voorval per speler
+
+Koppel een tabel en elke speler rolt bij een lange rust zijn **eigen** voorval — hij ziet alleen het zijne, het tafelscherm toont ze allemaal. Bevat een regel een bedrag (`{+3kn}`), dan wordt dat meteen verrekend bij die speler.
+
+### Binnen en buiten apart
+
+Je kunt een aparte tabel zetten voor het veld en voor de herberg: wat je wakker maakt in het bos is iets anders dan wat er in een taveerne gebeurt. De algemene tabel is het vangnet als er voor die plek niets staat.
+
+---
+
+## `dm_rust_starten`
+
+> Helpknop in: dm-panel.js:8338
+> Nu: de standaard uit de code
+
+Titel: Rust starten
+
+### Waar en wat
+
+Kies eerst de plek — **in het veld** of **in de herberg** — en dan lang of kort. De rust geldt voor de hele party en iedereen krijgt hetzelfde cinematische scherm te zien; het tafelscherm toont de partybrede variant.
+
+### Wat er gebeurt
+
+Een lange rust zet HP op maximum, herlaadt spell slots en item-charges, geeft de helft van de Hit Dice terug en haalt één niveau exhaustion weg. Een korte rust doet de shortRest-items en de pact-slots van een Warlock; Hit Dice besteden doet de speler daar zelf.
+
+### In de herberg kost het geld
+
+Daar wordt de overnachtingsprijs per speler afgeschreven en worden er twee roddels per speler onthuld — die prijs stel je in bij Diensten → Herberg. Wie vanavond niet meespeelt (zie *Waarvan actief* bij de party) doet ook hier niet mee.
+
+---
+
+## `dm_tafels_namen`
+
+> Helpknop in: dm-panel.js:3147
+> Nu: de standaard uit de code
+
+Titel: Namen trekken
+
+### Waarvoor
+
+Voor het moment dat een speler vraagt hoe de herbergier heet en jij dat nooit bedacht hebt. Eén klik geeft een naam die bij deze wereld past; neem hem over of gooi opnieuw.
+
+### Waar ze vandaan komen
+
+Uit je eigen naamtabellen, gesplitst naar mannelijk en vrouwelijk. Zijn er geen, dan valt hij terug op de meegeleverde lijst. Wil je andere namen, maak dan een tabel met het type *namen* bij **Tabellen** hieronder.
+
+### Meteen een kaartje
+
+Een naam die blijft hangen verdient een kaartje: tik hem over in een nieuw personage, of schrijf hem in je akte als `[[Naam]]` — dan krijg je daar de plus om hem ter plekke aan te maken.
+
+---
+
+## `dm_tafels_tabellen`
+
+> Helpknop in: dm-panel.js:3171
+> Nu: de standaard uit de code
+
+Titel: Tabellen
+
+### Wat een tafel is
+
+Een lijst met uitkomsten waar je op gooit: geruchten in de haven, wat er in de zak van een dief zit, welk voorval de nacht verstoort. Kies er een en gooi; de uitslag komt eronder te staan.
+
+### Bereiken en gewicht
+
+Een regel mag een bereik dragen (`1-5: tekst`) zodat de ene uitkomst vaker valt dan de andere. Met **Dobbel** kies je de steen — leeg is d100. Eén getal mag ook (`7: tekst`).
+
+### Geld in een regel
+
+Een regel kan een bedrag verrekenen: `{+3kn}` of `{-1fl}` treft één willekeurige speler, met `@party` erachter iedereen. Zo betaalt een nachtelijke dief zich vanzelf uit.
+
+### Waar ze nog meer opduiken
+
+Een tafel is ook te koppelen aan een **voorwerp** (een Wand of Wonder), aan de **rust** als gebeurtenissen-tabel, en aan een `|`-tabel in een akte — die krijgt daar zijn eigen worpknop.
+
+---
+
+## `dm_tafels_weer`
+
+> Helpknop in: dm-panel.js:3155
+> Nu: de standaard uit de code
+
+Titel: Het weer
+
+### Eén worp, één dag
+
+Kies het seizoen en gooi: je krijgt temperatuur, neerslag en wind. Bedoeld om aan tafel voor te lezen als de party naar buiten stapt — er wordt niets van opgeslagen en het heeft geen effect op regels.
+
+### Het seizoen bepaalt de kansen
+
+Elke tabel heeft zijn eigen verdeling: een winterworp geeft vaker vorst, een zomerworp vaker warmte en onweer. Het seizoen blijft staan tot je het zelf verzet.
+
+---
+
+## `dm_tempel`
+
+> Helpknop in: dm-panel.js:6404
+> Nu: de standaard uit de code
+
+Titel: De tempel
+
+### Waar de goden vandaan komen
+
+Er is geen ingebouwd pantheon: een god ontstaat uit **Blessing-kaartjes met een godnaam** (zegen, eed of vloek). Hier voeg je daar volgorde, domein, symbool, prijs en portretten aan toe.
+
+### Zegen, eed, vloek
+
+Een **zegen** koop je en komt in je boedel. Een **eed** is een belofte met een gevolg — wie er een zweert, kan geen tweede zweren. Een **vloek** hangt iemand aan tot hij hem kwijtraakt.
+
+---
+
+## `dm_tempel_eden`
+
+> Helpknop in: dm-panel.js:6438
+> Nu: de standaard uit de code
+
+Titel: Actieve eden & vloeken
+
+### Wie draagt wat
+
+Per speler wat er op hem rust. Zo zie je in één blik waarom iemand iets niet mag of juist moet — en hoef je het niet op zijn blad te zoeken.
+
+### Losmaken doe jij
+
+Een eed of vloek verdwijnt niet vanzelf: die haal je hier weg als de scène daarom vraagt. Dat is bewust een handeling van de DM, geen aftellende klok.
+
+---
+
+## `dm_tempel_goden`
+
+> Helpknop in: dm-panel.js:6441
+> Nu: de standaard uit de code
+
+Titel: Goden — metadata
+
+### Het uiterlijk van een god
+
+Domein, symbool, portret, het beeld van de priester en zijn begroeting. Dit bepaalt hoe het altaar eruitziet als een speler binnenloopt.
+
+### Volgorde is redactie
+
+De volgorde die je hier zet is de volgorde in de tempel. Zet de goden die er in jouw verhaal toe doen bovenaan; de rest mag daaronder wachten.
+
+---
+
+## `dm_toegang_diensten`
+
+> Helpknop in: dm-panel.js:1518
+> Nu: de standaard uit de code
+
+Titel: Diensten per party
+
+### Drie standen
+
+**Beschikbaar** — ze kunnen er alles. **Zichtbaar** — ze zien dat het bestaat maar kunnen er niets (handig voor iets dat nog gesloten is). **Verborgen** — het bestaat niet voor hen.
+
+### De server bewaakt het mee
+
+Dit is geen kwestie van een tabblad verbergen: de schrijfroutes van een dienst weigeren een speler wiens party hem niet open heeft. Een scherm dat nog openstond blijft dus niet stiekem werken.
+
+### Jij komt er altijd langs
+
+Als DM kun je elke dienst openen en er namens de tafel handelen, ook als hij voor die party dicht staat. Anders kon je niet testen wat je net hebt ingesteld.
+
+---
+
+## `dm_toegang_facties`
+
+> Helpknop in: dm-panel.js:1516
+> Nu: de standaard uit de code
+
+Titel: Facties per party
+
+### Kennen ze deze factie?
+
+Een factie die uitstaat bestaat voor die party niet: hij staat niet in de lijst, en hun aanzien erbij is onzichtbaar. Zet hem aan op het moment dat ze ervan horen — dat is vaak een scène waard.
+
+### Per party, niet per campagne
+
+Twee party's in dezelfde wereld hoeven niet dezelfde namen te kennen. Wat de ene groep ontdekt heeft, blijft voor de andere dicht.
+
+---
+
+## `dm_verzoeken_multiclass`
+
+> Helpknop in: dm-panel.js:9851
+> Nu: de standaard uit de code
+
+Titel: Multiclass-verzoeken
+
+### Waarom het langs jou gaat
+
+Een tweede klasse verandert het personage ingrijpend en is in de meeste campagnes een gesprek, geen knop. De speler vraagt het aan; jij keurt goed of af.
+
+### Wat er gebeurt bij goedkeuren
+
+De klasse komt op het profiel te staan met level **0**. Pas bij zijn volgende level-up krijgt hij daar zijn eerste level in — inclusief de Hit Die en de features die daarbij horen. Twee klassen is het maximum.
+
+### De eisen staan erbij
+
+Je ziet wat 5e vraagt en wat dit personage heeft, maar ook hier blokkeert de app niets: een campagne mag zijn eigen afspraken hebben.
+
+---
+
+## `dm_verzoeken_onderzoek`
+
+> Helpknop in: dm-panel.js:9856
+> Nu: de standaard uit de code
+
+Titel: Onderzoeksdossiers
+
+### Wat hier staat
+
+De vragen die spelers bij de detective hebben neergelegd. Elk dossier is één vraag over een persoon, plek of voorwerp; jij schrijft het antwoord en bepaalt wanneer het klaar is.
+
+### Tijd en prijs
+
+Een dossier kost geld en tijd — dat is de hele charme: de party moet wachten en ondertussen doorspelen. Zet hem op klaar wanneer het verhaal daaraan toe is, niet wanneer de klok het zegt.
+
+---
+
+## `dm_verzoeken_spreuken`
+
+> Helpknop in: dm-panel.js:9841
+> Nu: de standaard uit de code
+
+Titel: Spreukverzoeken
+
+### Wat hier staat
+
+Een speler die een spreuk uit de bibliotheek in zijn eigen boek wil, vraagt het eerst aan jou — net als bij een voorwerp. Keur je goed, dan schrijft de app hem in zijn boek; wijs je af, dan krijgt hij dat te horen.
+
+### De regel wordt voorgerekend, niet afgedwongen
+
+Bij het verzoek staat of de spreuk op de lijst van zijn klasse staat — maar de app weigert niets uit zichzelf. De uitzonderingen zijn in 5e eerder regel dan uitzondering: Magic Initiate, een feat, een scroll, multiclass, een uitgebreide subklasselijst. Jij beslist.
+
+---
+
+## `dm_verzoeken_voorwerpen`
+
+> Helpknop in: dm-panel.js:9846
+> Nu: de standaard uit de code
+
+Titel: Voorwerpverzoeken
+
+### Wat hier staat
+
+Een speler vraagt een voorwerp uit de bibliotheek aan, of wil er een van een ander overnemen. Keur je goed, dan komt het in zijn boedel te staan met het aantal dat je meegeeft.
+
+### Onderling geven gaat buiten jou om
+
+Spullen die spelers aan elkaar geven komen hier niet langs — dat is een ding over de tafel schuiven. Wil je dat niet, dan zet je het ruilen uit bij de party.
+
+---
+
+## `dm_waarzegger`
+
+> Helpknop in: dm-panel.js:6270
+> Nu: de standaard uit de code
+
+Titel: De waarzegger
+
+### Wat ze doet
+
+Een speler komt langs voor een voorspelling: hij kiest vier zintuiglijke indrukken en krijgt daarna een brief met wat zij daarin ziet. Prijs en sfeer stel je hier in.
+
+### De tekst is van jou
+
+Een voorspelling hoort vaag genoeg te zijn om later te kloppen, en scherp genoeg om aan tafel iets los te maken. Wat zij zegt schrijf jij dus zelf, per akte.
+
+---
+
+## `dm_waarzegger_akte`
+
+> Helpknop in: dm-panel.js:6296
+> Nu: de standaard uit de code
+
+Titel: Voorspellingen per akte
+
+### Waarom per akte
+
+Wat zij ziet hangt af van waar het verhaal staat. Per akte leg je vast wat er te voorspellen valt; komt een speler langs, dan krijgt hij wat bij dít hoofdstuk hoort.
+
+### Eén per speler
+
+De app onthoudt wie welke voorspelling al gehad heeft, zodat twee spelers niet hetzelfde briefje krijgen.
+
+---
+
+## `dm_wereld_buiten`
+
+> Helpknop in: dm-panel.js:5309
+> Nu: de standaard uit de code
+
+Titel: Bereikbaar van onderweg
+
+### Wat blijft er open
+
+De kaartjes die je hier aanvinkt blijven bereikbaar terwijl de party buiten de stad is — een reisgenoot die meeloopt, een dienst die per brief werkt, een god die overal luistert.
+
+### Waarom uitvinken en niet invullen
+
+Alles staat standaard dicht zodra ze weg zijn; je wijst dus alleen de uitzonderingen aan. Een dienst die je later toevoegt is dan vanzelf óók dicht op reis, en dat is de veilige kant.
+
+---
+
+## `dm_wereld_locatie`
+
+> Helpknop in: dm-panel.js:5292
+> Nu: de standaard uit de code
+
+Titel: Waar is de party?
+
+### Waar ze zijn bepaalt wat open is
+
+Staat de party **in de campagne**, dan zijn de diensten bereikbaar zoals je ze hebt opengezet. Zet je ze erbuiten, dan gaat alles dicht — behalve wat je hieronder als uitzondering aanwijst.
+
+### Een grove schakelaar, met opzet
+
+Dit is de knop voor "we zijn op reis". Wat er per **akte** bereikbaar is, stel je fijner in bij de akte zelf; die instelling geldt zolang je binnen de stad speelt. Deze schakelaar wint van allebei.
+
+---
+
 ## `documenten`
 
 > Helpknop in: render-campagne.js:2861 (de kaartjes-tab geeft het entiteitstype als sleutel door)
@@ -108,7 +848,7 @@ Het **archief**: brieven, aktes, kaarten en aantekeningen die je onderweg verzam
 
 ## `dungeon`
 
-> Helpknop in: app.js:3253, render-dungeon.js:194
+> Helpknop in: app.js:3258, render-dungeon.js:194
 > Nu: de standaard uit de code
 
 Titel: Dungeonkaarten
@@ -137,7 +877,7 @@ Per party stel je in of een dungeon nog niet, nu of al uitgespeeld is. Zo kun je
 
 ## `facties`
 
-> Helpknop in: app.js:8547, app.js:13507, app.js:13618
+> Helpknop in: app.js:8552, app.js:13512, app.js:13623
 > Nu: **aangepast in deze campagne**
 > De standaard telt 4 stap(pen).
 
@@ -180,7 +920,7 @@ Vijanden zonder bestiarium-kennis tonen een ruwe balk in drie segmenten: gezond,
 
 ## `gock`
 
-> Helpknop in: app.js:12378
+> Helpknop in: app.js:12383
 > Nu: **aangepast in deze campagne**
 > De standaard telt 1 stap(pen).
 
@@ -194,7 +934,7 @@ Juliaan de Gock is een privédetective. Je kunt hem inhuren om een persoon, loca
 
 ## `herberg`
 
-> Helpknop in: app.js:12168
+> Helpknop in: app.js:12173
 > Nu: **aangepast in deze campagne**
 > De standaard telt 2 stap(pen).
 
@@ -421,7 +1161,7 @@ Dat leg je niet hier vast maar in de **voorraad van de winkel**. Het voorwerp to
 
 ## `hulp_kaart_dungeon`
 
-> Helpknop in: app.js:3253
+> Helpknop in: app.js:3258
 > Nu: de standaard uit de code
 
 Titel: Een dungeon bewerken
@@ -442,7 +1182,7 @@ Die zet je niet hier maar op het kaartje zelf, met het oogje — en hij geldt vo
 
 ## `hulp_kaart_wereld`
 
-> Helpknop in: app.js:3253
+> Helpknop in: app.js:3258
 > Nu: de standaard uit de code
 
 Titel: Een kaart bewerken
@@ -599,7 +1339,7 @@ Heeft het voorwerp ladingen, dan staan die als bolletjes in je boedel. Ze laden 
 
 ## `hulp_muziek`
 
-> Helpknop in: dm-panel.js:10790
+> Helpknop in: dm-panel.js:10819
 > Nu: de standaard uit de code
 
 Titel: Muziek uit Spotify
@@ -632,7 +1372,7 @@ Wat je aan tafel draait telt gewoon mee voor Discover Weekly en Wrapped. Een **p
 
 ## `inst_beheer`
 
-> Helpknop in: dm-panel.js:10783
+> Helpknop in: dm-panel.js:10812
 > Nu: de standaard uit de code
 
 Titel: Beheer
@@ -655,30 +1395,9 @@ Alleen de beheerder ziet dit. Per campagne staat hier het DM-wachtwoord, welke c
 
 ---
 
-## `inst_beurs`
-
-> Helpknop in: dm-panel.js:10459
-> Nu: de standaard uit de code
-
-Titel: De gedeelde beurs
-
-### Eén zak of ieder zijn eigen
-
-Staat de gedeelde beurs **aan**, dan is dát de portemonnee van de party: iedereen ziet hetzelfde bedrag, en alles wat gekocht of gevonden wordt gaat erin en eruit. Staat hij **uit**, dan heeft elke speler zijn eigen beurs.
-
-### Per party
-
-De schakelaar geldt per party, en hij staat daarom in het kaartje van díé party — zo verzet je nooit per ongeluk de beurs van een tafel die je niet bedoelde. Wil je ze naast elkaar zien, open dan de party's een voor een; er is bewust geen tweede lijst met alle saldo's, want twee weergaven van hetzelfde bedrag lopen vroeg of laat uit elkaar.
-
-### Omzetten raakt geen geld kwijt
-
-De twee zakken bestaan naast elkaar: zet je de gedeelde beurs uit, dan komt ieders eigen beurs weer tevoorschijn zoals die was, en het gedeelde bedrag blijft staan tot je hem weer aanzet. Er verdwijnt dus niets, maar reken er ook niet op dat geld mee verhuist.
-
----
-
 ## `inst_campagne`
 
-> Helpknop in: dm-panel.js:10644
+> Helpknop in: dm-panel.js:10671
 > Nu: de standaard uit de code
 
 Titel: De campagne
@@ -699,7 +1418,7 @@ Het **app-icoon** is een ander ding: dat is het plaatje dat je telefoon of table
 
 ## `inst_campagnes`
 
-> Helpknop in: dm-panel.js:10752
+> Helpknop in: dm-panel.js:10781
 > Nu: de standaard uit de code
 
 Titel: Campagnes en modules
@@ -724,7 +1443,7 @@ Naam, ondertitel en meteen een **DM-wachtwoord** — zonder dat komt er niemand 
 
 ## `inst_export`
 
-> Helpknop in: dm-panel.js:10801
+> Helpknop in: dm-panel.js:10830
 > Nu: de standaard uit de code
 
 Titel: Export & backup
@@ -745,7 +1464,7 @@ Dit is een uitdraai om te lezen, geen reservekopie. Elke nacht maakt de server e
 
 ## `inst_levelup`
 
-> Helpknop in: dm-panel.js:10717
+> Helpknop in: dm-panel.js:10746
 > Nu: de standaard uit de code
 
 Titel: Level omhoog
@@ -770,7 +1489,7 @@ Waar de tijdlijn ophoudt. Twintig is de normale grens van 5e; hoger zet hem alle
 
 ## `inst_partys`
 
-> Helpknop in: dm-panel.js:10764
+> Helpknop in: dm-panel.js:10793
 > Nu: de standaard uit de code
 
 Titel: Party's
@@ -787,6 +1506,18 @@ Onder **Personages** staat wie bij deze party hóórt — dat is blijvend, het s
 
 Onder **Waarvan actief** zet je iemand tijdelijk buiten de sessie — de speler die er niet is. Dat bepaalt wie meedoet bij rust, bij het verdelen van buit en bij het vullen van een gevecht, en het is met één klik terug te draaien. Bewust de afwezigen die bewaard worden en niet de aanwezigen: een personage dat erbij komt doet dan vanzelf mee.
 
+### Eén zak of ieder zijn eigen
+
+Staat de gedeelde beurs **aan**, dan is dát de portemonnee van de party: iedereen ziet hetzelfde bedrag, en alles wat gekocht of gevonden wordt gaat erin en eruit. Staat hij **uit**, dan heeft elke speler zijn eigen beurs.
+
+### Per party
+
+De schakelaar geldt per party, en hij staat daarom in het kaartje van díé party — zo verzet je nooit per ongeluk de beurs van een tafel die je niet bedoelde. Wil je ze naast elkaar zien, open dan de party's een voor een; er is bewust geen tweede lijst met alle saldo's, want twee weergaven van hetzelfde bedrag lopen vroeg of laat uit elkaar.
+
+### Omzetten raakt geen geld kwijt
+
+De twee zakken bestaan naast elkaar: zet je de gedeelde beurs uit, dan komt ieders eigen beurs weer tevoorschijn zoals die was, en het gedeelde bedrag blijft staan tot je hem weer aanzet. Er verdwijnt dus niets, maar reken er ook niet op dat geld mee verhuist.
+
 ### Het wachtwoord van een party
 
 Dat is wat je je spelers stuurt; ze kiezen daarna zelf hun personage. Groepswachtwoorden blijven leesbaar staan — je moet ze kunnen opzoeken als iemand het kwijt is. Jouw eigen DM-wachtwoord staat onder **Beheer** en wordt wél versleuteld.
@@ -795,7 +1526,7 @@ Dat is wat je je spelers stuurt; ze kiezen daarna zelf hun personage. Groepswach
 
 ## `inst_valuta`
 
-> Helpknop in: dm-panel.js:10667
+> Helpknop in: dm-panel.js:10694
 > Nu: de standaard uit de code
 
 Titel: Namen voor valuta
@@ -816,7 +1547,7 @@ De namen zijn opmaak, geen administratie — al het bezit staat als getal opgesl
 
 ## `kaart`
 
-> Helpknop in: app.js:3018, render-kaart.js:134
+> Helpknop in: app.js:3023, render-kaart.js:134
 > Nu: de standaard uit de code
 
 Titel: De kaart
@@ -829,7 +1560,7 @@ Wissel tussen de **wereldkaart** en de **stadskaart**. Pins markeren ontdekte lo
 
 ## `knapzak`
 
-> Helpknop in: app.js:8572
+> Helpknop in: app.js:8577
 > Nu: **aangepast in deze campagne**
 > De standaard telt 3 stap(pen).
 
@@ -886,7 +1617,7 @@ Op het prikbord staan alle missies van de campagne, ingedeeld op status: Beschik
 
 ## `magizoo`
 
-> Helpknop in: app.js:12539
+> Helpknop in: app.js:12544
 > Nu: **aangepast in deze campagne**
 > De standaard telt 2 stap(pen).
 
@@ -904,7 +1635,7 @@ Er zijn drie kennisniveaus: naam (alleen de identiteit van het wezen), deels (AC
 
 ## `markt`
 
-> Helpknop in: app.js:11786
+> Helpknop in: app.js:11791
 > Nu: de standaard uit de code
 
 Titel: De Markt
@@ -943,7 +1674,7 @@ Gilden, ordes en groeperingen in de wereld. Klik op een kaart voor hun doel, led
 
 ## `party`
 
-> Helpknop in: app.js:8031
+> Helpknop in: app.js:8036
 > Nu: **aangepast in deze campagne**
 > De standaard telt 2 stap(pen).
 
@@ -957,7 +1688,7 @@ Dit tabblad toont de andere leden van jouw groep. Je kunt zien wie aanwezig is v
 
 ## `personage`
 
-> Helpknop in: app.js:8165
+> Helpknop in: app.js:8170
 > Nu: **aangepast in deze campagne**
 > De standaard telt 3 stap(pen).
 
@@ -1063,7 +1794,7 @@ Spreuken komen in je eigen boek terecht via je klasse (bij een levelup), via een
 
 ## `spreukenboek`
 
-> Helpknop in: app.js:8918
+> Helpknop in: app.js:8923
 > Nu: de standaard uit de code
 
 Titel: Spreukenboek
@@ -1084,7 +1815,7 @@ Veelgebruikte spreuken kun je vastpinnen via de ster (★) op het kaartje. Ze ve
 
 ## `tempel`
 
-> Helpknop in: app.js:12876, app.js:12943
+> Helpknop in: app.js:12881, app.js:12948
 > Nu: **aangepast in deze campagne**
 > De standaard telt 3 stap(pen).
 
@@ -1106,7 +1837,7 @@ Een eed is een permanente verbintenis met een god. Je ontvangt een blijvende bon
 
 ## `tweespalt`
 
-> Helpknop in: app.js:13258
+> Helpknop in: app.js:13263
 > Nu: **aangepast in deze campagne**
 > De standaard telt 0 stap(pen).
 
@@ -1124,7 +1855,7 @@ Als je goud tekort komt kun je een lening afsluiten bij ~~woekeraar~~ lommerd Ta
 
 ## `ursula`
 
-> Helpknop in: app.js:12798
+> Helpknop in: app.js:12803
 > Nu: **aangepast in deze campagne**
 > De standaard telt 2 stap(pen).
 

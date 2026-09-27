@@ -288,6 +288,8 @@ export function initDmPanel() {
     encLootItemRemove:  _encLootItemRemove,
     encLootItemField:   _encLootItemField,
     encLootPick:        _encLootPick,
+    encLootKies:        (veld) => _encLootKies(veld),
+    encLootNieuw:       () => _encLootNieuw(),
     encRowMonsterChange: _encRowMonsterChange,
     encRowChange:       _encRowChange,
     encPickBackdrop:    _encPickBackdrop,
@@ -302,6 +304,7 @@ export function initDmPanel() {
     setupPresetChange: _setupPresetChange,
     setupMonsterPick:  _setupMonsterPick,
     setupEntityChange: _setupEntityChange,
+    setupEntityZoek:   (veld) => _setupEntityZoek(veld),
     setupAddSubmit:    _setupAddSubmit,
     setupReset:        _setupReset,
     setupInitChange:   _setupInitChange,
@@ -1186,7 +1189,7 @@ function _akteImportWizard() {
       </div>
       <div class="dm-feature-row" style="gap:10px">
         <div class="dm-form-row" style="flex:1">
-          <label class="dm-form-label">Hoofdstuk (.md)</label>
+          <label class="dm-form-label">Akte (.md)</label>
           <input id="akte-imp-md" class="dm-input dm-input-sm" type="file" accept=".md,text/markdown,text/plain">
         </div>
         <div class="dm-form-row" style="flex:1">
@@ -1199,7 +1202,7 @@ function _akteImportWizard() {
       </div>
       <div id="akte-imp-results" style="margin-top:10px"></div>
     </div>`;
-  window.app.openModal('Importeer uit Obsidian', 'Hoofdstuk → regie-script', body);
+  window.app.openModal('Importeer uit Obsidian', 'Akte → regie-script', body);
 }
 
 async function _akteImpAnalyse() {
@@ -1510,9 +1513,9 @@ async function _openRegieBriefPicker() {
     `<button class="dm-btn dm-btn-ghost dm-rb-brief-item" onclick="window._regieBriefVerstuur('dienst','${esc(d.key)}','${escJS(d.label)}')">${icon(d.icon)} ${esc(d.label)}</button>`).join('');
   window.app.openModal('Verzegelde uitnodiging sturen', 'Onthult het doel voor de actieve groep én bezorgt elke speler een cinematische brief', `
     <div class="dm-rb-brief-picker">
-      <div class="dm-section-label">${icon('landmark')} Facties</div>
+      <div class="dm-section-label">${icon('landmark')} Facties<span class="dm-sectie-hulp">${helpBtn('dm_toegang_facties')}</span></div>
       <div class="dm-rb-brief-grid">${factieBtns}</div>
-      <div class="dm-section-label" style="margin-top:14px">${icon('church')} Diensten</div>
+      <div class="dm-section-label" style="margin-top:14px">${icon('church')} Diensten<span class="dm-sectie-hulp">${helpBtn('dm_toegang_diensten')}</span></div>
       <div class="dm-rb-brief-grid">${dienstBtns}</div>
     </div>`);
 }
@@ -3141,7 +3144,7 @@ function _renderTafels() {
   el.innerHTML = `
     ${_dmTabHead({ icon: 'dice', title: 'Willekeur', sub: 'tafels & namen', actions: helpBtn('dm_tafels') })}
     <div class="dm-feature-section dm-namen-section">
-      <div class="dm-section-label">Namen</div>
+      <div class="dm-section-label">Namen<span class="dm-sectie-hulp">${helpBtn('dm_tafels_namen')}</span></div>
       <div class="dm-feature-row">
         <button class="dm-btn dm-btn-ghost dm-naam-btn" onclick="window.dmPanel.naamGenereer('m')" title="Mannennaam">♂</button>
         <button class="dm-btn dm-btn-ghost dm-naam-btn" onclick="window.dmPanel.naamGenereer('v')" title="Vrouwennaam">♀</button>
@@ -3149,7 +3152,7 @@ function _renderTafels() {
       <div id="dm-naam-result" class="dm-naam-result"></div>
     </div>
     <div class="dm-feature-section">
-      <div class="dm-section-label">Weer</div>
+      <div class="dm-section-label">Weer<span class="dm-sectie-hulp">${helpBtn('dm_tafels_weer')}</span></div>
       <div class="dm-feature-row">
         <div class="dm-weer-seasons" id="dm-weer-seasons">
           <!-- Stonden hier als 🌸☀️🍂❄️. Emoji horen niet in de uitvoer (en de
@@ -3165,7 +3168,7 @@ function _renderTafels() {
       <div id="dm-weer-result" class="dm-tabel-result hidden"></div>
     </div>
     <div class="dm-feature-section">
-      <div class="dm-section-label">Tabellen</div>
+      <div class="dm-section-label">Tabellen<span class="dm-sectie-hulp">${helpBtn('dm_tafels_tabellen')}</span></div>
       ${hasTables ? `
         <div class="dm-feature-row">
           <select id="dm-tabel-select" class="dm-select" onchange="window.dmPanel.tabelSelect(this.value)">
@@ -3567,7 +3570,7 @@ function _hkOptions(selectedKey) {
     .join('');
 };
 
-const MONSTER_PAGE_SIZE = 5;
+const MONSTER_PAGE_SIZE = 20;
 
 // Waar de monster-editor nu staat. Normaal de Meesterkamer-tab, maar het
 // bestiarium leent hem als venster — zie `monsterModal`. Eén editor dus, twee
@@ -3645,7 +3648,7 @@ function _renderMonsters() {
     <div class="dm-feature-section">
       <div class="dm-feature-row">
         <select class="dm-select dm-select-sm" style="flex:1" onchange="window.dmPanel.monsterFilterChapter(this.value)">
-          <option value="">Alle hoofdstukken</option>
+          <option value="">Alle akten</option>
           ${usedKeys.map(k => `<option value="${esc(k)}"${_monsterChapterFilter === k ? ' selected' : ''}>${esc(_hkLabel(k))}</option>`).join('')}
         </select>
         <button class="dm-btn dm-btn-sm dm-btn-ghost" onclick="window.dmPanel.monsterNew()" title="Nieuw monster">+</button>
@@ -4009,7 +4012,10 @@ let _encLoaded          = false;
 let _editingEncId       = null;   // null = list, 'new' = new, string = edit existing
 let _encIsNew           = false;
 let _encMonsterRows     = [];     // [{monsterId,name,count,initiative,hp}]
-let _encLoot            = { goud: { fl: 0, kn: 0, cl: 0 }, items: [] };  // loot-veld (goud + items)
+let _encLoot            = { goud: { fl: 0, kn: 0, cl: 0 }, items: [] };  // oude vorm, blijft gelezen
+let _encLootId          = null;   // id van de gekoppelde vondst (loot.json)
+let _encLootOud         = false;  // heeft dit gevecht nog buit van de oude soort?
+let _encLootLijst       = [];     // vondsten, voor de kiezer in de editor
 let _encBackdropId      = null;
 let _encCanvasPreset    = null;   // id van het gekozen canvas-kleurpreset
 let _encName            = '';     // formulier-state: bewaart naam tussen re-renders
@@ -4126,7 +4132,7 @@ function _renderEncounterList(el) {
     <div class="dm-feature-section">
       <div class="dm-feature-row">
         <select class="dm-select dm-select-sm" style="flex:1" onchange="window.dmPanel.encFilterChapter(this.value)">
-          <option value="">Alle hoofdstukken</option>
+          <option value="">Alle akten</option>
           ${usedKeys.map(k => `<option value="${esc(k)}"${_encChapterFilter === k ? ' selected' : ''}>${esc(_hkLabel(k))}</option>`).join('')}
         </select>
         <button class="dm-btn dm-btn-sm dm-btn-ghost" onclick="window.dmPanel.encNew()" title="Nieuw encounter">+</button>
@@ -4186,16 +4192,6 @@ function _renderEncounterEditor(el) {
   const name   = _encName;
   const akteId = _encAkteId;
 
-  // Backdrop row — kies/upload via de mediabibliotheek
-  const bdHtml = `
-    <div class="dm-upload-row dm-enc-bd-row">
-      ${_encBackdropId
-        ? `<img class="dm-mon-preview dm-mon-preview-wide" src="${api.fileUrl(_encBackdropId)}" alt="">`
-        : `<div class="dm-mon-preview dm-mon-preview-wide dm-mon-preview-empty">${icon('image')}</div>`}
-      <button type="button" class="script-add-btn" onclick="window.dmPanel.encPickBackdrop()" title="Kies of upload backdrop">${icon('image')}</button>
-      ${_encBackdropId ? `<button class="script-icon-btn script-icon-btn--del" onclick="window.dmPanel.encBackdropClear()" title="Verwijderen">${icon('x')}</button>` : ''}
-    </div>`;
-
   // Monster rows — shared datalist for searchable input
   const datalistHtml = `<datalist id="dm-enc-monsters-dl">${_monsters.map(m => `<option value="${esc(m.name)}"></option>`).join('')}</datalist>`;
 
@@ -4215,7 +4211,7 @@ function _renderEncounterEditor(el) {
               onchange="window.dmPanel.encRowChange(${i}, 'count', this.value)">
           </label>
           <label class="dm-labeled-input">
-            <span class="dm-input-lbl">Init</span>
+            <span class="dm-input-lbl">Initiative</span>
             <input class="dm-input dm-input-sm" type="number" value="${r.initiative ?? 10}" style="width:46px"
               onchange="window.dmPanel.encRowChange(${i}, 'initiative', this.value)">
           </label>
@@ -4254,11 +4250,10 @@ function _renderEncounterEditor(el) {
         </select>
       </div>
 
-      <div class="dm-form-row">
-        <label class="dm-form-label">Backdrop</label>
-        ${bdHtml}
-      </div>
-
+      <!-- Geen backdrop meer: een foto achter het gevechtsscherm maakte de
+           namen, de HP-balken en de tokens slecht leesbaar. Het canvas-thema
+           doet nu het sfeerwerk — dat kleurt alleen de ondergrond en de
+           deeltjes, en blijft dus onder de tekst. -->
       <div class="dm-form-row">
         <label class="dm-form-label">Canvas-thema</label>
         <div class="enc-preset-row">
@@ -4280,28 +4275,20 @@ function _renderEncounterEditor(el) {
       <div id="dm-enc-rows">${rowsHtml}</div>
       <button class="script-icon-btn" onclick="window.dmPanel.encAddRow()" title="Monster toevoegen" style="margin-bottom:10px">+</button>
 
-      <div class="dm-form-label" style="margin:6px 0 4px">${icon('coins')} Loot</div>
-      <div class="dm-enc-loot-goud" style="display:flex;align-items:center;gap:6px;margin-bottom:6px">
-        <span class="dm-input-lbl">Goud</span>
-        <input class="dm-input dm-input-sm" type="number" min="0" value="${_encLoot.goud?.fl || 0}" style="width:56px" onchange="window.dmPanel.encLootGoud('fl',this.value)"> fl
-        <input class="dm-input dm-input-sm" type="number" min="0" value="${_encLoot.goud?.kn || 0}" style="width:56px" onchange="window.dmPanel.encLootGoud('kn',this.value)"> kn
-        <input class="dm-input dm-input-sm" type="number" min="0" value="${_encLoot.goud?.cl || 0}" style="width:56px" onchange="window.dmPanel.encLootGoud('cl',this.value)"> cl
+      <!-- Loot is een **vondst** uit de Loot-tab, geen tweede lijstje hier. Zo
+           is er één plek waar buit wordt bijgehouden (met sjablonen, relikwie-
+           munten, een mimic en de koppeling aan een dungeonkamer), en kun je
+           dezelfde vondst ook los onthullen. -->
+      <div class="dm-form-row">
+        <label class="dm-form-label">${icon('coins')} Buit</label>
+        <input id="dm-enc-loot-zoek" class="dm-input" list="dm-enc-loot-dl" autocomplete="off"
+          placeholder="Zoek een vondst… (leeg laten = geen buit)"
+          value="${esc((_encLootLijst.find(e => e.id === _encLootId) || {}).naam || '')}"
+          onchange="window.dmPanel.encLootKies(this)">
+        <datalist id="dm-enc-loot-dl">${_encLootLijst.filter(e => !e.sjabloon).map(e => `<option value="${esc(e.naam || '')}"></option>`).join('')}</datalist>
+        <button class="script-add-btn" onclick="window.dmPanel.encLootNieuw()" title="Een nieuwe vondst maken in de Loot-tab">${icon('plus')}</button>
       </div>
-      <datalist id="dm-enc-voorwerpen-dl">${_encVoorwerpen.map(v => `<option value="${esc(v.name)}"></option>`).join('')}</datalist>
-      <p class="dm-hint" style="margin:0 0 4px">Koppel een item aan een voorwerpkaartje (spelers kunnen het dan openen), of typ een los item.</p>
-      <div id="dm-enc-loot-items">
-        ${(_encLoot.items || []).map((it, i) => `
-          <div class="dm-enc-monster-row" data-li="${i}">
-            <input class="dm-input dm-input-sm" type="text" list="dm-enc-voorwerpen-dl" value="${esc(it.naam || '')}" placeholder="Voorwerp of vrije naam…" style="flex:2;min-width:0" onchange="window.dmPanel.encLootPick(${i}, this.value)">
-            ${it.entityId ? `<span class="loot-linked" title="Gekoppeld aan kaartje">${icon('link')}</span>` : ''}
-            <input class="dm-input dm-input-sm" type="text" value="${esc(it.beschrijving || '')}" placeholder="Beschrijving" style="flex:2;min-width:0" onchange="window.dmPanel.encLootItemField(${i},'beschrijving',this.value)">
-            <select class="dm-select dm-select-sm" onchange="window.dmPanel.encLootItemField(${i},'rariteit',this.value)">
-              ${['', 'common', 'uncommon', 'rare', 'very-rare', 'legendary'].map(r => `<option value="${r}" ${(String(it.rariteit || '').toLowerCase() === r) ? 'selected' : ''}>${r || '—'}</option>`).join('')}
-            </select>
-            <button class="script-icon-btn script-icon-btn--del" onclick="window.dmPanel.encLootItemRemove(${i})" title="Verwijderen">${icon('x')}</button>
-          </div>`).join('')}
-      </div>
-      <button class="script-icon-btn" onclick="window.dmPanel.encLootItemAdd()" title="Loot-item toevoegen" style="margin-bottom:10px">+</button>
+      ${_encLootOud ? `<p class="dm-hint" style="margin:0 0 10px">Dit gevecht heeft nog buit van de oude soort (los ingevuld goud en items). Die werkt gewoon, maar koppel je hier een vondst, dan telt alleen die.</p>` : ''}
 
       <div class="dm-form-actions">
         <button class="script-add-btn" onclick="window.dmPanel.encCancel()" title="Annuleren">${icon('x')}</button>
@@ -4330,6 +4317,11 @@ function _encEdit(id) {
   _encMonsterRows  = (enc.monsters || []).map(r => ({ ...r }));
   _encLoot         = enc.loot ? { goud: { fl: 0, kn: 0, cl: 0, ...enc.loot.goud }, items: (enc.loot.items || []).map(i => ({ ...i })) } : { goud: { fl: 0, kn: 0, cl: 0 }, items: [] };
   _encBackdropId   = enc.backdropId || null;
+  _encLootId       = enc.lootId || null;
+  _encLootOud      = !enc.lootId && !!(enc.loot && ((enc.loot.items || []).length
+                      || Object.values(enc.loot.goud || {}).some(v => parseInt(v) > 0)));
+  _encLootLijst    = [];
+  api.lootEvents().then(d => { _encLootLijst = d.events || d || []; _renderEncounterEditor(document.getElementById('dm-encounters-content')); }).catch(() => {});
   _encCanvasPreset = enc.canvasPreset || null;
   _encName         = enc.name    || '';
   _encAkteId       = enc.akteId  || '';
@@ -4367,20 +4359,46 @@ function _encLootPick(i, naam) {
   _renderEncounterEditor(document.getElementById('dm-encounters-content'));
 }
 
+// Naam → id, zoals elke kiezer in de Meesterkamer. Leeg betekent: geen buit
+// aan dit gevecht.
+function _encLootKies(veld) {
+  const naam = (veld?.value || '').trim();
+  if (!naam) { _encLootId = null; return; }
+  const ev = _encLootLijst.find(e => (e.naam || '').toLowerCase() === naam.toLowerCase());
+  if (!ev) {
+    veld.classList.add('dm-input--err');
+    setTimeout(() => veld.classList.remove('dm-input--err'), 900);
+    return;
+  }
+  _encLootId = ev.id;
+  _encLootOud = false;
+}
+
+// Een vondst maak je in de Loot-tab; die is er al, met sjablonen, relikwie-
+// munten en de koppeling aan een dungeonkamer. Een tweede editor hier zou
+// daarvan een slap aftreksel zijn.
+function _encLootNieuw() {
+  _showToast(`${icon('vault')} Maak de vondst in de Loot-tab; kom daarna hier terug om hem te koppelen`);
+  _switchTab('loot');
+}
+
 async function _encSave() {
   const name   = document.getElementById('dm-enc-name')?.value.trim();
   const akteId = document.getElementById('dm-enc-akte')?.value || '';
   if (!name) { alert('Geef het encounter een naam.'); return; }
-  const preset       = CANVAS_PRESETS.find(p => p.id === _encCanvasPreset);
-  const canvasColors = preset ? { player: preset.player, monster: preset.monster } : null;
+  const preset       = CANVAS_PRESETS.find(p => p.id === (_encCanvasPreset || 'default')) || CANVAS_PRESETS[0];
+  const canvasColors = { player: preset.player, monster: preset.monster };
   const payload = {
     name,
     akteId:       akteId || null,
-    backdropId:   _encBackdropId   || null,
-    canvasPreset: _encCanvasPreset || null,
+    backdropId:   null,                    // vervallen: zie de opmerking in de editor
+    canvasPreset: preset.id,
     canvasColors,
     monsters:     _encMonsterRows,
-    loot:         _encLoot,
+    lootId:       _encLootId || null,
+    // De oude, losse buit blijft bewaard zolang er geen vondst gekoppeld is;
+    // zo raakt een bestaand gevecht niets kwijt door één keer op te slaan.
+    loot:         _encLootId ? null : _encLoot,
   };
   try {
     if (_encIsNew) {
@@ -4561,7 +4579,8 @@ function _setupMonsterPick(name) {
 function _setupPresetChange(presetId) {
   _setupSelectedPresetId = presetId || null;
   const m = _monsters.find(x => x.id === presetId);
-  const nameEl  = document.getElementById('dm-setup-name');
+  const nameEl  = document.getElementById('dm-setup-name')
+               || document.getElementById('dm-setup-monster-search');
   const initEl  = document.getElementById('dm-setup-init');
   const maxhpEl = document.getElementById('dm-setup-maxhp');
   const acEl    = document.getElementById('dm-setup-ac');
@@ -4580,7 +4599,8 @@ function _setupPresetChange(presetId) {
 async function _setupEntityChange(entityId) {
   _setupSelectedEntityId = entityId || null;
   const e = _setupPersonages.find(x => x.id === entityId);
-  const nameEl  = document.getElementById('dm-setup-name');
+  const nameEl  = document.getElementById('dm-setup-name')
+               || document.getElementById('dm-setup-monster-search');
   const maxhpEl = document.getElementById('dm-setup-maxhp');
   if (!e) {
     if (nameEl) nameEl.value = '';
@@ -4675,7 +4695,10 @@ async function _syncParty() {
 }
 
 async function _setupAddSubmit() {
-  const name       = document.getElementById('dm-setup-name')?.value.trim();
+  // Geen naamveld? Dan draagt het zoekveld de naam — of je nu een monster uit
+  // de lijst koos of zelf iets tikte.
+  const name       = (document.getElementById('dm-setup-name')
+                   || document.getElementById('dm-setup-monster-search'))?.value.trim();
   const init       = parseInt(document.getElementById('dm-setup-init')?.value) || 0;
   const maxhpEl    = document.getElementById('dm-setup-maxhp');
   // Voor spelers: het veld bevat het actuele HP; maxHp staat in data-maxHp
@@ -5266,7 +5289,7 @@ async function _renderWereldTab() {
 
   el.innerHTML = `
     <div class="dm-feature-section">
-      <div class="dm-section-label">Locatie van de groep</div>
+      <div class="dm-section-label">Locatie van de groep<span class="dm-sectie-hulp">${helpBtn('dm_wereld_locatie')}</span></div>
 
       <div class="dm-form-row" style="flex-direction:column;gap:10px">
         <button id="wereld-toggle-btn" class="dm-btn${buitenGrisburgh ? ' dm-btn-danger' : ' dm-btn-primary'}"
@@ -5283,7 +5306,7 @@ async function _renderWereldTab() {
 
     ${verkopers.length > 0 ? `
     <div class="dm-feature-section" style="margin-top:14px">
-      <div class="dm-section-label">Bereikbaar buiten ${esc(_plaats)}</div>
+      <div class="dm-section-label">Bereikbaar buiten ${esc(_plaats)}<span class="dm-sectie-hulp">${helpBtn('dm_wereld_buiten')}</span></div>
       <p style="font-size:11px;opacity:.6;margin-bottom:10px">
         Gemarkeerde winkels/verkopers blijven toegankelijk wanneer de groep buiten ${esc(_plaats)} is.
       </p>
@@ -5414,7 +5437,7 @@ async function _renderHerbergSettings() {
         <span class="dm-hint" style="font-size:10px;color:var(--color-ink-dim,#888)">Gebruik <code>{naam}</code> voor de voornaam van de speler.</span>
       </div>
 
-      <div class="dm-section-label" style="margin-top:14px;display:flex;align-items:center;gap:6px">${icon('beer')} Aan de tap — menu</div>
+      <div class="dm-section-label" style="margin-top:14px;display:flex;align-items:center;gap:6px">${icon('beer')} Aan de tap — menu<span class="dm-sectie-hulp">${helpBtn('dm_herberg_tap')}</span></div>
       <span class="dm-hint" style="font-size:11px;display:block;margin:-4px 0 8px">Drankjes/maaltijden die spelers kunnen bestellen. Prijs schrijft van de beurs af; temp HP en status gelden tot de volgende Long Rest.</span>
       <div id="hb-menu-lijst"></div>
       <div class="dm-form-row">
@@ -5659,7 +5682,7 @@ async function _renderTweespaltDM() {
 
   el.innerHTML = `
     <div class="dm-feature-section">
-      <div class="dm-section-label">De Tweespalt — Instellingen</div>
+      <div class="dm-section-label">De Tweespalt — Instellingen<span class="dm-sectie-hulp">${helpBtn('dm_gokhuis')}</span></div>
 
       <div class="dm-form-row">
         <label class="dm-form-label">Naam</label>
@@ -5695,7 +5718,7 @@ async function _renderTweespaltDM() {
         </div>
       </div>
 
-      <div class="dm-section-label" style="margin-top:14px;display:flex;align-items:center;gap:6px">${icon('crossed-swords')} Strijdperk — partijen</div>
+      <div class="dm-section-label" style="margin-top:14px;display:flex;align-items:center;gap:6px">${icon('crossed-swords')} Strijdperk — partijen<span class="dm-sectie-hulp">${helpBtn('dm_gokhuis_partijen')}</span></div>
       <span class="dm-hint" style="font-size:11px;display:block;margin:-4px 0 8px">Arenapartijen waar spelers zich voor kunnen aanmelden. Jij draait het gevecht zelf; bij winst krijgt de speler het prijzengeld.</span>
       <div id="ts-arena-lijst"></div>
       <div class="dm-form-row">
@@ -5709,7 +5732,7 @@ async function _renderTweespaltDM() {
 
     ${arenaSignups.length ? `
     <div class="dm-feature-section" style="margin-top:14px">
-      <div class="dm-section-label" style="display:flex;align-items:center;gap:6px">${icon('swords')} Strijdperk — inschrijvingen</div>
+      <div class="dm-section-label" style="display:flex;align-items:center;gap:6px">${icon('swords')} Strijdperk — inschrijvingen<span class="dm-sectie-hulp">${helpBtn('dm_gokhuis_inschrijvingen')}</span></div>
       ${arenaSignups.map(s => `
         <div class="dm-feature-section" style="border:1px solid rgba(196,168,122,0.3);margin-bottom:8px;padding:10px">
           <div><strong>${esc(s.doorNaam || s.doorId?.slice(0,8) || 'Speler')}</strong> → ${esc(s.boutNaam)}${s.tegenstander ? ` <span style="opacity:.65">tegen ${esc(s.tegenstander)}</span>` : ''}</div>
@@ -5722,12 +5745,12 @@ async function _renderTweespaltDM() {
     </div>` : ''}
 
     <div class="dm-feature-section" style="margin-top:14px">
-      <div class="dm-section-label">De Tweespalt — Beheer</div>
+      <div class="dm-section-label">De Tweespalt — Beheer<span class="dm-sectie-hulp">${helpBtn('dm_gokhuis_beheer')}</span></div>
       ${events.length
         ? events.map(renderDMEvent).join('')
         : `<p style="opacity:.5;font-size:13px">Geen actieve events.</p>`}
 
-      <div class="dm-section-label" style="margin-top:14px">Nieuw event aanmaken</div>
+      <div class="dm-section-label" style="margin-top:14px">Nieuw event aanmaken<span class="dm-sectie-hulp">${helpBtn('dm_gokhuis_event')}</span></div>
 
       <!-- Was een keuzelijst met twee vaste types, maar die verschilden
            mechanisch in niets: dezelfde opties met kans en payout, dezelfde
@@ -5964,7 +5987,7 @@ async function _renderGockSettings() {
 
   el.innerHTML = `
     <div class="dm-feature-section">
-      <div class="dm-section-label">De Gock — Instellingen</div>
+      <div class="dm-section-label">De Gock — Instellingen<span class="dm-sectie-hulp">${helpBtn('dm_detective')}</span></div>
 
       <div class="dm-form-row">
         <label class="dm-form-label">Naam</label>
@@ -6057,7 +6080,7 @@ async function _renderMarktSettings() {
       actions: helpBtn('dm_markt') })}
 
     <div class="dm-feature-section">
-      <div class="dm-section-label">Gebieden om op te filteren</div>
+      <div class="dm-section-label">Gebieden om op te filteren<span class="dm-sectie-hulp">${helpBtn('dm_markt_gebieden')}</span></div>
       <p class="dm-hint">Vink aan welke gebieden je spelers als knop te zien krijgen.
         Een winkel valt onder élk gebied boven zich, dus <em>Grisburgh</em> vangt ook
         alles in Luimpoort. Vink je niets aan, dan bepaalt de app het zelf.</p>
@@ -6077,7 +6100,7 @@ async function _renderMarktSettings() {
     </div>
 
     <div class="dm-feature-section">
-      <div class="dm-section-label">Winkels die de Markt vindt</div>
+      <div class="dm-section-label">Winkels die de Markt vindt<span class="dm-sectie-hulp">${helpBtn('dm_markt_winkels')}</span></div>
       <p class="dm-hint">Afgeleid: elke locatie of verkoper met een voorraad. De keten erachter
         komt uit het veld <em>Gebied</em>; wijst dat naar zichzelf, dan stopt hij daar.</p>
       <div class="dm-markt-winkels">
@@ -6123,7 +6146,7 @@ async function _renderMagizooSettings() {
 
   el.innerHTML = `
     <div class="dm-feature-section">
-      <div class="dm-section-label">De Magizoöloog — Instellingen</div>
+      <div class="dm-section-label">De Magizoöloog — Instellingen<span class="dm-sectie-hulp">${helpBtn('dm_magizoo')}</span></div>
 
       <div class="dm-form-row">
         <label class="dm-form-label">Naam</label>
@@ -6244,7 +6267,7 @@ async function _renderUrsulaSettings() {
 
   el.innerHTML = `
     <div class="dm-feature-section">
-      <div class="dm-section-label">Madame Ursula — Instellingen</div>
+      <div class="dm-section-label">Madame Ursula — Instellingen<span class="dm-sectie-hulp">${helpBtn('dm_waarzegger')}</span></div>
 
       <div class="dm-form-row"><label class="dm-form-label">Naam</label>
         <input id="ursula-naam" class="dm-input" value="${esc(config.naam || 'De waarzegger')}"></div>
@@ -6270,7 +6293,7 @@ async function _renderUrsulaSettings() {
       </div>
       <div class="dm-form-row"><button class="dm-btn dm-btn-primary" onclick="window._ursulaSettingsSave()" title="Opslaan">${icon('save')}</button></div>
 
-      <div class="dm-section-label" style="margin-top:14px">Voorspellingen per akte</div>
+      <div class="dm-section-label" style="margin-top:14px">Voorspellingen per akte<span class="dm-sectie-hulp">${helpBtn('dm_waarzegger_akte')}</span></div>
       ${actiefInfo}
 
       ${_ursulaAktes.length === 0 ? '<p class="dm-form-label" style="opacity:.6">Nog geen aktes/hoofdstukken gedefinieerd.</p>' : `
@@ -6378,7 +6401,7 @@ async function _renderTempelSettings() {
 
   el.innerHTML = `
     <div class="dm-feature-section">
-      <div class="dm-section-label">De Tempel — Instellingen</div>
+      <div class="dm-section-label">De Tempel — Instellingen<span class="dm-sectie-hulp">${helpBtn('dm_tempel')}</span></div>
 
       <div class="dm-form-row">
         <label class="dm-form-label">Naam</label>
@@ -6412,10 +6435,10 @@ async function _renderTempelSettings() {
         </div>
       </div>
 
-      <div class="dm-section-label" style="margin-top:14px">Actieve eden &amp; vloeken</div>
+      <div class="dm-section-label" style="margin-top:14px">Actieve eden &amp; vloeken<span class="dm-sectie-hulp">${helpBtn('dm_tempel_eden')}</span></div>
       <div id="tempel-eden"></div>
 
-      <div class="dm-section-label" style="margin-top:14px">Goden — metadata</div>
+      <div class="dm-section-label" style="margin-top:14px">Goden — metadata<span class="dm-sectie-hulp">${helpBtn('dm_tempel_goden')}</span></div>
       <p class="dm-form-label" style="opacity:.7;margin:0 0 6px">Naam, domein, symbool, afbeeldingen en (optioneel) een eigen prijs. De zegen/vloek/eed-inhoud staat op de Blessing-kaartjes.</p>
       <div id="tempel-goden"></div>
       <div class="dm-form-row">
@@ -6660,7 +6683,7 @@ function _renderFactiesDM() {
 
   el.innerHTML = `
     <div class="dm-feature-section">
-      <div class="dm-section-label">${esc(window._factiesLabel())}</div>
+      <div class="dm-section-label">${esc(window._factiesLabel())}<span class="dm-sectie-hulp">${helpBtn('dm_facties')}</span></div>
       <p class="dm-form-label" style="opacity:.7;margin-bottom:10px">Stel per factie de zichtbaarheid in en pas het renown aan. Spelers zien een factie pas als de DM die onthuld heeft.</p>
       <div class="dm-form-row">
         <label class="dm-form-label">Hoe heet dit onderdeel in jouw campagne?</label>
@@ -6739,7 +6762,7 @@ function _renderFactiesDM() {
               </div>
               <input class="dm-input" style="width:100%;margin-top:4px" placeholder="Openingszin NPC (optioneel)" value="${esc(f.npcGreet || '')}" oninput="window._factieEdit(${fi},'npcGreet',this.value)">
 
-              <div class="dm-section-label" style="margin-top:10px">${icon('users')} Leden</div>
+              <div class="dm-section-label" style="margin-top:10px">${icon('users')} Leden<span class="dm-sectie-hulp">${helpBtn('dm_facties_leden')}</span></div>
               <p class="dm-hint" style="margin:0 0 6px">Kies personages als lid. De rol komt automatisch uit het personage; de rang bepaalt de groepering (leeg = onder "Leden"). Volgorde = hiërarchie. Spelers zien alleen leden waarvan het personage zichtbaar is.</p>
               <div id="factie-leden-${fi}">${_ledenEditor(fi, f.leden || [])}</div>
               <div class="dm-form-row" style="flex-direction:row;gap:6px;margin-top:4px;align-items:center">
@@ -6761,7 +6784,7 @@ function _renderFactiesDM() {
                 <label class="dm-form-label">Renown-drempels</label>
                 <input class="dm-input" style="flex:1" placeholder="0,1,3,10,25,50" value="${esc(f.renownDrempels || '0,1,3,10,25,50')}" oninput="window._factieEdit(${fi},'renownDrempels',this.value)">
               </div>
-              <div class="dm-section-label" style="margin-top:8px">Rangen</div>
+              <div class="dm-section-label" style="margin-top:8px">Rangen<span class="dm-sectie-hulp">${helpBtn('dm_facties_rangen')}</span></div>
               <div id="factie-rangen-${fi}"></div>
               <div class="dm-form-row"><button class="dm-btn dm-btn-ghost dm-btn-sm" onclick="window._factieRangToevoegen(${fi})">${icon('plus')} Rang</button></div>
             </div>
@@ -7353,9 +7376,9 @@ async function _renderGeluiden() {
       <div class="dm-sound-section-title">${icon('volume-2')} Diensten-sfeerloops</div>
       <p class="dm-hint">Een sfeerloop die <strong>lokaal</strong> speelt zodra iemand die dienst opent — los van een sessie, geen tablet nodig. Een lopende broadcast-scène heeft voorrang.</p>
       <div class="dm-sound-list">${_DIENSTEN.map(d => svcRow(d.key, d.label)).join('')}</div>
-      <div class="dm-section-label" style="margin-top:10px">Facties</div>
+      <div class="dm-section-label" style="margin-top:10px">Facties<span class="dm-sectie-hulp">${helpBtn('dm_geluiden_facties')}</span></div>
       <div class="dm-sound-list">${facties.length ? facties.map(f => svcRow('factie:' + f.id, f.naam || f.id)).join('') : '<p class="dm-hint" style="opacity:.6">Geen facties geconfigureerd.</p>'}</div>
-      <div class="dm-section-label" style="margin-top:10px">Rust</div>
+      <div class="dm-section-label" style="margin-top:10px">Rust<span class="dm-sectie-hulp">${helpBtn('dm_geluiden_rust')}</span></div>
       <div class="dm-sound-list">${_REST.map(r => svcRow(r.key, r.label)).join('')}</div>
     </div>`;
 
@@ -7711,7 +7734,7 @@ function _renderLootModalBody() {
   const overgeslagen = lp.items.filter(i => i.status === 'overgeslagen');
   body.innerHTML = `
     <div class="loot-modal">
-      <div class="dm-section-label">Uitslag</div>
+      <div class="dm-section-label">Uitslag<span class="dm-sectie-hulp">${helpBtn('dm_loot_uitslag')}</span></div>
       ${(u?.items || lp.items.filter(i => i.status === 'toegewezen').map(i => ({ naam: i.naam, winnaar: i.winnaar, dobbelrol: i.dobbelrol }))).map(r => {
         const roll = r.dobbelrol && Object.keys(r.dobbelrol).length
           ? ' — ' + Object.entries(r.dobbelrol).map(([c, v]) => `${_lootNaam(c)}: ${v}`).join(', ')
@@ -7774,6 +7797,10 @@ async function _lootToewijzen(itemId) {
 }
 
 function _renderGevecht() {
+  // Bij type *monster* met een gevulde bibliotheek doet één veld twee dingen:
+  // een monster kiezen, of — als je niets uit de lijst pakt — gewoon een naam
+  // typen. Dan hoeft er geen tweede naamveld te staan dat meestal leeg blijft.
+  const _zoekVeld = _setupSelectedType === 'monster' && _monsters.length > 0;
   const el = document.getElementById('dm-gevecht-content');
   if (!el) return;
 
@@ -7799,7 +7826,7 @@ function _renderGevecht() {
   const cs = _combat?.combatants || [];
   el.innerHTML = `
     <div class="dm-feature-section">
-      <div class="dm-section-label">Deelnemers</div>
+      <div class="dm-section-label">Deelnemers<span class="dm-sectie-hulp">${helpBtn('dm_loot_deelnemers')}</span></div>
       ${cs.length === 0 ? `<p class="dm-hint">Nog geen deelnemers toegevoegd.</p>` : `
         <div class="dm-setup-list">
           ${cs.map(c => `
@@ -7807,7 +7834,7 @@ function _renderGevecht() {
               <span class="dm-combatant-type-dot ${c.type === 'player' ? 'dm-type-player' : c.type === 'ally' ? 'dm-type-ally' : c.type === 'summon' ? 'dm-type-summon' : 'dm-type-monster'}"></span>
               <span class="dm-setup-name">${esc(c.name)}</span>
               <span class="dm-setup-meta">
-                Init <input class="dm-setup-init-input" type="number" value="${c.initiative}"
+                Initiative <input class="dm-setup-init-input" type="number" value="${c.initiative}"
                   onchange="window.dmPanel.setupInitChange('${esc(c.id)}', this.value)"
                   style="width:44px">
                 · ${c.hp}/${c.maxHp} HP
@@ -7817,6 +7844,9 @@ function _renderGevecht() {
           `).join('')}
         </div>
       `}
+      <!-- Bij een monster is het zoekveld óók het naamveld: kies je niets uit de
+           lijst, dan is wat je typte de naam. Twee velden waarvan er één altijd
+           leeg blijft is een vraag die je niet hoeft te stellen. -->
       <div class="dm-setup-form">
         <div class="dm-feature-row">
           <select id="dm-setup-type" class="dm-select dm-select-sm"
@@ -7825,14 +7855,15 @@ function _renderGevecht() {
             <option value="summon"    ${_setupSelectedType === 'summon'    ? 'selected' : ''}>Summon</option>
             <option value="ally"      ${_setupSelectedType === 'ally'      ? 'selected' : ''}>Medestander</option>
             <option value="player"    ${_setupSelectedType === 'player'    ? 'selected' : ''}>Speler</option>
-            <option value="companions">Metgezellen (huisdieren)</option>
+            <option value="companions">Huisdieren</option>
           </select>
         </div>
-        ${_setupSelectedType === 'monster' && _monsters.length > 0 ? `
+        ${_zoekVeld ? `
           <input id="dm-setup-monster-search" class="dm-input" list="dm-setup-monster-dl" autocomplete="off"
-            placeholder="Zoek een monster… (leeg laten = handmatig)"
+            placeholder="Zoek een monster, of typ een eigen naam…"
             value="${_setupSelectedPresetId ? esc(_monsters.find(m => m.id === _setupSelectedPresetId)?.name || '') : ''}"
-            onchange="window.dmPanel.setupMonsterPick(this.value)">
+            onchange="window.dmPanel.setupMonsterPick(this.value)"
+            onkeydown="if(event.key==='Enter')window.dmPanel.setupAddSubmit()">
           <datalist id="dm-setup-monster-dl">${_monsters.map(m => `<option value="${esc(m.name)}"></option>`).join('')}</datalist>
         ` : ''}
         ${_setupSelectedType === 'player' && _setupPersonages.some(e => e.subtype === 'speler' && (!window._activeGroupId || e.data?.groep === window._activeGroupId)) ? `
@@ -7853,19 +7884,22 @@ function _renderGevecht() {
             .sort((a, b) => (_kant(b) === _gewenst) - (_kant(a) === _gewenst) || String(a.name).localeCompare(String(b.name), 'nl'));
           const _merk = { bondgenoot: ' · bondgenoot', vijand: ' · vijand', neutraal: ' · neutraal' };
           return `
-          <select id="dm-setup-entity" class="dm-select"
-              onchange="window.dmPanel.setupEntityChange(this.value)">
-            <option value="">— Handmatig invoeren —</option>
-            ${_kandidaten.map(e => `<option value="${esc(e.id)}" ${_setupSelectedEntityId === e.id ? 'selected' : ''}>${esc(e.name)}${_merk[_kant(e)] || ''}${parseInt(e.stats?.hp) ? ' (HP ' + parseInt(e.stats.hp) + ')' : ''}</option>`).join('')}
-          </select>`;
+          <input id="dm-setup-entity-zoek" class="dm-input" list="dm-setup-entity-dl" autocomplete="off"
+            placeholder="Zoek een kaartje met een statblok… (leeg laten = handmatig)"
+            value="${esc(_kandidaten.find(e => e.id === _setupSelectedEntityId)?.name || '')}"
+            onchange="window.dmPanel.setupEntityZoek(this)">
+          <datalist id="dm-setup-entity-dl">
+            ${_kandidaten.map(e => `<option value="${esc(e.name)}">${_merk[_kant(e)]?.replace(' · ', '') || ''}${parseInt(e.stats?.hp) ? ' · HP ' + parseInt(e.stats.hp) : ''}</option>`).join('')}
+          </datalist>`;
         })() : ''}
+        ${_zoekVeld ? '' : `
         <div class="dm-feature-row">
           <input id="dm-setup-name" class="dm-input" placeholder="Naam…"
             onkeydown="if(event.key==='Enter')window.dmPanel.setupAddSubmit()">
-        </div>
+        </div>`}
         <div class="dm-feature-row">
           <label class="dm-labeled-input">
-            <span class="dm-input-lbl">Init</span>
+            <span class="dm-input-lbl">Initiative</span>
             <input id="dm-setup-init" class="dm-input dm-input-sm" type="number" value="10" style="width:52px">
           </label>
           <label class="dm-labeled-input">
@@ -8085,7 +8119,7 @@ function _lootEditorHtml() {
   const r = c.goudRandom || { van: 0, tot: 0, munt: 'fl' };
   return `${dl}
     <div class="dm-feature-section">
-      <div class="dm-section-label">${c.id ? 'Vondst bewerken' : 'Nieuwe vondst'}</div>
+      <div class="dm-section-label">${c.id ? 'Vondst bewerken' : 'Nieuwe vondst'}<span class="dm-sectie-hulp">${helpBtn('dm_loot_editor')}</span></div>
       <div class="dm-form-row">
         <label class="dm-form-label">Naam</label>
         <input class="dm-input" value="${esc(c.naam || '')}" placeholder="Geldzak in de haard"
@@ -8301,7 +8335,7 @@ async function _renderRust() {
     ${_dmTabHead({ icon: 'moon', title: 'Rust', actions: helpBtn('dm_rust') })}
 
     <div class="dm-feature-section">
-      <div class="dm-section-label">${icon('moon')} Rust starten</div>
+      <div class="dm-section-label">${icon('moon')} Rust starten<span class="dm-sectie-hulp">${helpBtn('dm_rust_starten')}</span></div>
       <div class="dm-hint" style="margin:-2px 0 5px">Waar rust de party?</div>
       <div class="dm-rust-locatie" role="group" aria-label="Rustlocatie" style="display:flex;gap:6px;margin-bottom:8px">
         <button class="dm-btn dm-btn-ghost dm-btn-sm dm-rust-loc-btn${loc==='veld'?' is-actief':''}" data-loc="veld"
@@ -8319,7 +8353,7 @@ async function _renderRust() {
     </div>
 
     <div class="dm-feature-section">
-      <div class="dm-section-label">${icon('moon')} Sfeer & gebeurtenissen</div>
+      <div class="dm-section-label">${icon('moon')} Sfeer & gebeurtenissen<span class="dm-sectie-hulp">${helpBtn('dm_rust_sfeer')}</span></div>
 
       <div class="dm-form-row" style="flex-direction:column;gap:6px">
         <label class="dm-form-label">Achtergrond — Long Rest buiten (veld)</label>
@@ -8368,7 +8402,7 @@ async function _renderRust() {
          het minder vaak aan dan de rust zelf. De DM gunt alleen; de speler kiest
          zelf hoe hij aan zijn HP komt en wat hij met een ASI doet. -->
     <div class="dm-feature-section">
-      <div class="dm-section-label">${icon('sparkles')} Level omhoog</div>
+      <div class="dm-section-label">${icon('sparkles')} Level omhoog<span class="dm-sectie-hulp">${helpBtn('dm_rust_levelup')}</span></div>
       <div class="dm-feature-row" style="gap:8px;align-items:center;flex-wrap:wrap">
         <button class="dm-btn dm-btn-primary" onclick="window._dmLevelUpGun(1)"
           title="Iedere aanwezige speler krijgt een level-up klaargezet">${icon('sparkles')} Party een level omhoog</button>
@@ -8470,7 +8504,7 @@ function _combatSelectCombatant(id) {
             title="Armor Class — aanpasbaar, want Haste, Shield en Mage Armor veranderen 'm"
             onchange="window.dmPanel.combatAcChange('${esc(c.id)}',this.value)" style="width:44px">
         </label>
-        <label class="co-init-wrap" style="font-size:11px">Init
+        <label class="co-init-wrap" style="font-size:11px">Initiative
           <input class="co-init-input" type="number" value="${c.initiative}"
             onchange="window.dmPanel.combatInitChange('${esc(c.id)}',this.value)" style="width:44px">
         </label>
@@ -8678,23 +8712,16 @@ function _renderCombatOverlay(combat) {
   // het beëindigen stilzwijgend als (DM-only) sessielog-regel aan de actieve
   // akte gehangen — zie _dumpCombatLog in routes/api.js.
 
-  // Backdrop voor de gevechtsoverlay (encounter backdrop)
-  // Zet de afbeelding als achtergrond van de overlay zelf (meerdere CSS-lagen),
-  // zodat hij achter de modal zichtbaar is en niet erdoorheen zweeft.
-  // Backdrop via een apart DOM-element (z-index: -1) zodat het CSS-stacking correct is
-  // en Ken Burns via CSS transform kan draaien zonder de modal te raken.
+  // **Geen backdrop meer achter het gevecht.** Een foto onder de overlay zag er
+  // goed uit op een stilstaand scherm, maar tijdens het spelen staan daar de
+  // namen, de HP-balken en de tokens overheen — en die werden er slecht
+  // leesbaar van. Het canvas-thema doet het sfeerwerk: dat kleurt alleen de
+  // ondergrond en de deeltjes en blijft dus ónder de tekst.
+  // Hier blijft één regel staan om een backdrop van vóór deze wijziging weg te
+  // halen; `backdropId` op een gevecht wordt niet meer gezet.
   overlay.querySelector('.co-backdrop-el')?.remove();
-  overlay.style.background = ''; // verwijder eventuele inline stijl uit oude aanpak
-  const coBackdropId = combat.backdropId || null;
-  if (coBackdropId) {
-    const bd = document.createElement('div');
-    bd.className = 'co-backdrop-el';
-    bd.style.backgroundImage = `url('${api.thumbUrlBreed(coBackdropId)}')`;
-    overlay.insertBefore(bd, overlay.firstChild);
-    overlay.classList.add('co-has-backdrop');
-  } else {
-    overlay.classList.remove('co-has-backdrop');
-  }
+  overlay.style.background = '';
+  overlay.classList.remove('co-has-backdrop');
 
   inner.innerHTML = isDisplay ? _coDisplayHtml(combat, currentLabel) : `
     <div class="co-header">
@@ -8753,7 +8780,7 @@ function _renderCombatOverlay(combat) {
           <input id="co-add-name" class="co-input" placeholder="Naam…"
             onkeydown="if(event.key==='Enter')window.dmPanel.combatAddSubmit()">
           <label class="dm-labeled-input">
-            <span class="dm-input-lbl">Init</span>
+            <span class="dm-input-lbl">Initiative</span>
             <input id="co-add-init" class="co-input co-input-sm" type="number" value="10">
           </label>
           <label class="dm-labeled-input">
@@ -9811,22 +9838,22 @@ async function _renderVerzoeken() {
       actions: `<button class="dm-btn dm-btn-sm dm-btn-ghost" onclick="window.dmPanel.verzoekenRefresh()" title="Opnieuw ophalen">${icon('refresh-cw')}</button>` })}
 
     <div class="dm-feature-section">
-      <div class="dm-section-label">${icon('sparkles')} Spreuken ${spreuken.length ? `(${spreuken.length})` : ''}</div>
+      <div class="dm-section-label">${icon('sparkles')} Spreuken ${spreuken.length ? `(${spreuken.length})` : ''}<span class="dm-sectie-hulp">${helpBtn('dm_verzoeken_spreuken')}</span></div>
       ${spreukHtml || '<p class="dm-hint">Geen openstaande spreukverzoeken.</p>'}
     </div>
 
     <div class="dm-feature-section">
-      <div class="dm-section-label">${icon('package')} Voorwerpen ${voorwerpen.length ? `(${voorwerpen.length})` : ''}</div>
+      <div class="dm-section-label">${icon('package')} Voorwerpen ${voorwerpen.length ? `(${voorwerpen.length})` : ''}<span class="dm-sectie-hulp">${helpBtn('dm_verzoeken_voorwerpen')}</span></div>
       ${itemHtml || '<p class="dm-hint">Geen openstaande claims op voorwerpen.</p>'}
     </div>
 
     <div class="dm-feature-section">
-      <div class="dm-section-label">${icon('user')} Multiclassen ${multiclass.length ? `(${multiclass.length})` : ''}</div>
+      <div class="dm-section-label">${icon('user')} Multiclassen ${multiclass.length ? `(${multiclass.length})` : ''}<span class="dm-sectie-hulp">${helpBtn('dm_verzoeken_multiclass')}</span></div>
       ${mcHtml || '<p class="dm-hint">Niemand wil er op dit moment een klasse bij.</p>'}
     </div>
 
     <div class="dm-feature-section">
-      <div class="dm-section-label">${icon('search')} Onderzoek ${dossiers.length ? `(${dossiers.length})` : ''}</div>
+      <div class="dm-section-label">${icon('search')} Onderzoek ${dossiers.length ? `(${dossiers.length})` : ''}<span class="dm-sectie-hulp">${helpBtn('dm_verzoeken_onderzoek')}</span></div>
       ${dossierHtml || '<p class="dm-hint">Geen dossier dat op jou wacht.</p>'}
     </div>`;
 }
@@ -9866,7 +9893,7 @@ async function _renderBerichten() {
     <div class="dm-feature-section">
 
       <!-- ═══ STUUR BRIEF (rijker format) ═══ -->
-      <div class="dm-section-label">${icon('mail')} Stuur brief</div>
+      <div class="dm-section-label">${icon('mail')} Stuur brief<span class="dm-sectie-hulp">${helpBtn('dm_post_brief')}</span></div>
       <div class="bericht-compose post-compose">
 
         <!-- Ontvanger -->
@@ -9938,7 +9965,7 @@ async function _renderBerichten() {
       </div>
 
       <!-- ═══ GESCHIEDENIS ═══ -->
-      <div class="dm-section-label" style="margin-top:16px">Geschiedenis</div>
+      <div class="dm-section-label" style="margin-top:16px">Geschiedenis<span class="dm-sectie-hulp">${helpBtn('dm_post_geschiedenis')}</span></div>
       ${_berichtenSpelers.length === 0 ? '<p class="dm-empty">Geen spelers zichtbaar.</p>' : ''}
       ${_berichtenSpelers.map(p => {
         const msgs = (_berichtenData[p.id] || []).slice().reverse();
@@ -10297,7 +10324,7 @@ async function _partyLidWeg(entityId, naam, party, gid = '') {
 async function _partyOpen(gid) {
   let naam = 'Party';
   try { naam = ((await api.listGroups()).groups || []).find(g => g.id === gid)?.name || naam; } catch { /* ok */ }
-  window.app.openModal(naam, 'party', `<div id="dm-party-kaart" data-gid="${gid}">${_dmLoading('Laden…')}</div>`);
+  window.app.openModal(naam, 'party', `<div id="dm-party-kaart" data-gid="${gid}">${_dmLoading('Laden…')}</div>`, 'inst_partys');
   await _partyKaartVul(gid);
 }
 
@@ -10456,7 +10483,7 @@ function _partyKaartHtml(g, spelers, beurs) {
     </div>
     ${_partyLedenHtml(g, spelers)}
     ${_partyAanwezigHtml(g, spelers)}
-    <div class="dm-subgroep-label">${icon('coins')} Gedeelde beurs ${window._helpBtn?.('inst_beurs') ?? ''}</div>
+    <div class="dm-subgroep-label">${icon('coins')} Gedeelde beurs</div>
     ${_beursRegelHtml({ ...beurs, id: g.id, naam: g.name }, { kop: false })}
     <div class="dm-party-kaart-voet">
       ${g.active ? '<span class="dm-hint" style="margin:0">Dit is de actieve party.</span>'
@@ -10691,7 +10718,9 @@ async function _renderInstellingen() {
             title="Zet ieders XP op het minimum dat bij zijn huidige level hoort; wie al meer had houdt dat">Ieders XP op de nullijn zetten</button>
         </div>
       </div>
-      <div class="dm-subgroep-label">Hoe komt de HP erbij</div>
+      <div class="dm-form-row">
+        <label class="dm-form-label">Hoe komt de HP erbij?</label>
+      </div>
       ${[['gemiddelde', 'Gemiddelde', 'Het vaste getal uit het boek — (die ÷ 2) + 1, plus CON.'],
          ['app',        'Gooien in de app', 'De server gooit de hit die.'],
          ['tafel',      'Zelf gooien', 'De speler gooit aan tafel en tikt zijn worp in; de server toetst en telt CON erbij.']]
@@ -10700,7 +10729,7 @@ async function _renderInstellingen() {
           <label class="dm-module-item" title="${esc(uitleg)}">
             <input type="checkbox" class="inst-lu-methode" value="${k}"
               ${(lu.methodes || []).includes(k) ? 'checked' : ''}>
-            <span>${label} <span class="dm-hint" style="display:block;margin:0">${esc(uitleg)}</span></span>
+            <span>${label}</span>
           </label>
         </div>`).join('')}
       <div class="dm-form-row">

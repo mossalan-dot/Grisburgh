@@ -10,7 +10,7 @@ import { renderSpreuken } from './render-spreuken.js?v=41';
 import { renderVaardigheden, zoekVaardigheden } from './render-vaardigheden.js?v=8';
 import { renderStatblock } from './render-statblock.js?v=9';
 import { initSocket } from "./socket-client.js?v=78";
-import { initDmPanel } from "./dm-panel.js?v=300";
+import { initDmPanel } from "./dm-panel.js?v=302";
 import { COND_INFO, COND_LABEL, COND_MET_PLAATJE, COND_ICON } from './conditions.js?v=2';
 import './media-picker.js?v=8';
 import './tafels.js?v=1';
@@ -1850,7 +1850,7 @@ async function playerLogout() {
 }
 
 // ── Modal ──
-function openModal(title, subtitle, bodyHtml) {
+function openModal(title, subtitle, bodyHtml, hulp = '') {
   // Bladeren met vegen en ← / → hangt aan het venster zelf, niet aan wie het
   // vult: élk venster komt hier langs (kaartje, statblok, formulier). Wat "de
   // volgende" is, bepaalt `window._modalBlader`.
@@ -1880,6 +1880,11 @@ function openModal(title, subtitle, bodyHtml) {
   _sub.textContent = subtitle || '';
   _sub.classList.toggle('hidden', !subtitle);
   $('#m-body').innerHTML = bodyHtml;
+  // Het boekje van dit venster hoort naast het kruisje — dezelfde plek bij elk
+  // venster, in plaats van ergens tussen de velden. Geen sleutel of geen tekst:
+  // dan staat er niets.
+  const _hulp = $('#m-hulp');
+  if (_hulp) _hulp.innerHTML = (hulp && window._heeftHelp?.(hulp)) ? (window._helpBtn?.(hulp) ?? '') : '';
   $('#modal-overlay').classList.add('active');
   // Vergrendel de minimale hoogte zodat tabwisseling de modal niet laat krimpen.
   // 300ms: genoeg voor layout + afbeelding eerste frame.
@@ -13919,6 +13924,193 @@ const HELP_CONFIG = {
     { titel: 'Embleem: het wapen ín de app', tekst: 'Het **embleem** is het wapen dat je in de app zelf ziet: groot op de landingspagina, klein in de kop. Het is een gewone afbeelding uit de mediabibliotheek, dus een schild, een zegel of een wapenschild werkt allemaal.', afbeelding: null },
     { titel: 'App-icoon: het wapen búiten de app', tekst: 'Het **app-icoon** is een ander ding: dat is het plaatje dat je telefoon of tablet gebruikt zodra je de app aan je beginscherm toevoegt, plus het icoon in het tabblad van de browser. Daarom staat het los van het embleem — een embleem mag een brede tekening zijn, een icoon moet als vierkantje van een halve centimeter nog leesbaar zijn. Laat je het leeg, dan wordt het meegeleverde wapen gebruikt. Een app die al op een beginscherm staat houdt zijn oude icoon tot hij er opnieuw op wordt gezet; dat bewaart het besturingssysteem, daar kunnen wij niets aan doen.', afbeelding: null },
   ] }),
+  // ── Meesterkamer: per sectie ──
+  // Elke sectie in de Meesterkamer draagt zijn eigen boekje. Dat is niet netjes
+  // maar noodzaak: de DM leert de app gaandeweg, en uitleg die onder een veld
+  // staat maakt het formulier rommelig zonder dat je hem terugvindt als je hem
+  // een maand later nodig hebt.
+  dm_markt: () => ({ titel: 'De Markt', stappen: [
+    { titel: 'Eén plek voor alle winkels', tekst: 'De Markt is een **weergave**, geen tweede voorraad: hij toont de winkels die deze party kan zien, met hun schappen. Klikken opent de winkel zelf. De voorraad blijft dus op het kaartje van die winkel staan, en daar beheer je hem ook.', afbeelding: null },
+    { titel: 'Zoeken over alles heen', tekst: 'Zoeken gaat over alle winkels tegelijk en zet de prijzen naast elkaar — handig, want hetzelfde voorwerp ligt soms bij drie winkels voor drie prijzen.', afbeelding: null },
+    { titel: 'Een roterende winkel rolt hier niet', tekst: 'De Markt leest de schappen alleen. Had een winkel zijn assortiment nog niet gerold, dan staat hij hier leeg in plaats van dat de app het stiekem voor hem doet — anders zou een blik op de Markt ieders schappen in één klap vastzetten.', afbeelding: null },
+  ] }),
+  dm_wereld_locatie: () => ({ titel: 'Waar is de party?', stappen: [
+    { titel: 'Waar ze zijn bepaalt wat open is', tekst: `Staat de party **in ${window._campagneNaam()}**, dan zijn de diensten bereikbaar zoals je ze hebt opengezet. Zet je ze erbuiten, dan gaat alles dicht — behalve wat je hieronder als uitzondering aanwijst.`, afbeelding: null },
+    { titel: 'Een grove schakelaar, met opzet', tekst: 'Dit is de knop voor "we zijn op reis". Wat er per **akte** bereikbaar is, stel je fijner in bij de akte zelf; die instelling geldt zolang je binnen de stad speelt. Deze schakelaar wint van allebei.', afbeelding: null },
+  ] }),
+  dm_wereld_buiten: () => ({ titel: 'Bereikbaar van onderweg', stappen: [
+    { titel: 'Wat blijft er open', tekst: 'De kaartjes die je hier aanvinkt blijven bereikbaar terwijl de party buiten de stad is — een reisgenoot die meeloopt, een dienst die per brief werkt, een god die overal luistert.', afbeelding: null },
+    { titel: 'Waarom uitvinken en niet invullen', tekst: 'Alles staat standaard dicht zodra ze weg zijn; je wijst dus alleen de uitzonderingen aan. Een dienst die je later toevoegt is dan vanzelf óók dicht op reis, en dat is de veilige kant.', afbeelding: null },
+  ] }),
+  dm_toegang_facties: () => ({ titel: 'Facties per party', stappen: [
+    { titel: 'Kennen ze deze factie?', tekst: 'Een factie die uitstaat bestaat voor die party niet: hij staat niet in de lijst, en hun aanzien erbij is onzichtbaar. Zet hem aan op het moment dat ze ervan horen — dat is vaak een scène waard.', afbeelding: null },
+    { titel: 'Per party, niet per campagne', tekst: 'Twee party\'s in dezelfde wereld hoeven niet dezelfde namen te kennen. Wat de ene groep ontdekt heeft, blijft voor de andere dicht.', afbeelding: null },
+  ] }),
+  dm_toegang_diensten: () => ({ titel: 'Diensten per party', stappen: [
+    { titel: 'Drie standen', tekst: '**Beschikbaar** — ze kunnen er alles. **Zichtbaar** — ze zien dat het bestaat maar kunnen er niets (handig voor iets dat nog gesloten is). **Verborgen** — het bestaat niet voor hen.', afbeelding: null },
+    { titel: 'De server bewaakt het mee', tekst: 'Dit is geen kwestie van een tabblad verbergen: de schrijfroutes van een dienst weigeren een speler wiens party hem niet open heeft. Een scherm dat nog openstond blijft dus niet stiekem werken.', afbeelding: null },
+    { titel: 'Jij komt er altijd langs', tekst: 'Als DM kun je elke dienst openen en er namens de tafel handelen, ook als hij voor die party dicht staat. Anders kon je niet testen wat je net hebt ingesteld.', afbeelding: null },
+  ] }),
+  dm_herberg_tap: () => ({ titel: 'Aan de tap', stappen: [
+    { titel: 'Het menu', tekst: 'Wat er te drinken en te eten is, met een prijs. Een speler bestelt het zelf; het bedrag gaat van zijn beurs af, of van de gedeelde beurs als die aanstaat.', afbeelding: null },
+    { titel: 'Sfeer boven mechaniek', tekst: 'Een bestelling is vooral een reden om iets te laten gebeuren — de waard vertelt een roddel, iemand aan de bar kijkt op. Wat een drankje regeltechnisch doet, beslis jij aan tafel.', afbeelding: null },
+  ] }),
+  dm_gokhuis: () => ({ titel: 'Het gokhuis', stappen: [
+    { titel: 'Wat het is', tekst: 'Een huis waar spelers geld kunnen inzetten: op een spel, op een gevecht in het strijdperk, of bij de geldschieter. De naam, de baas en de sfeer stel je hier in.', afbeelding: null },
+    { titel: 'Lenen kost', tekst: 'De geldschieter rekent rente **per lange rust**, niet per kalenderdag — de party bepaalt zo zelf het tempo. Er zit een plafond op; daarna stopt het tellen en komt hij het halen. Dat is een scène, geen som.', afbeelding: null },
+    { titel: 'Aflossen gaat via jou', tekst: 'Er is nog geen knop om een lening af te betalen: dat doe je door het schuldbewijs uit de boedel van de speler te halen. Dan is de schuld weg.', afbeelding: null },
+  ] }),
+  dm_gokhuis_partijen: () => ({ titel: 'Strijdperk — partijen', stappen: [
+    { titel: 'Wie vecht er', tekst: 'De twee kanten van een kamp, met hun naam en hun kans. Waar de spelers op inzetten en wat het uitbetaalt, volgt hieruit.', afbeelding: null },
+    { titel: 'De uitslag bepaal jij', tekst: 'Het gevecht wordt aan tafel gespeeld of verteld; jij zet daarna wie er gewonnen heeft. Die keuze is onomkeerbaar — de inzetten worden er meteen mee verrekend — dus hij vraagt een bevestiging.', afbeelding: null },
+  ] }),
+  dm_gokhuis_inschrijvingen: () => ({ titel: 'Strijdperk — inschrijvingen', stappen: [
+    { titel: 'Wie heeft ingezet', tekst: 'Per speler de inzet en op wie. Zolang het kamp loopt kun je zien waar de tafel op gokt; handig om te weten wie er belang bij heeft.', afbeelding: null },
+    { titel: 'Zelf meevechten', tekst: 'Een speler kan ook zelf het perk in. Zijn inzet is dan zijn eigen kamp — en verliezen doet meer pijn dan geld.', afbeelding: null },
+  ] }),
+  dm_gokhuis_beheer: () => ({ titel: 'Gokhuis — beheer', stappen: [
+    { titel: 'Wat hier staat', tekst: 'De lopende leningen, de open kampen en de events. Dit is de administratie achter de schermen; de spelers zien er niets van.', afbeelding: null },
+    { titel: 'Opruimen', tekst: 'Een lening van een personage dat niet meer bestaat kun je hier weghalen. Laat hem niet slepen: hij telt door en niemand kan hem afbetalen.', afbeelding: null },
+  ] }),
+  dm_gokhuis_event: () => ({ titel: 'Een event aanmaken', stappen: [
+    { titel: 'Waar wordt op gewed', tekst: 'Geef het event een naam en minstens twee opties — paardenrace, hanengevecht, welke raadsheer het haalt. De spelers kiezen er een en zetten in.', afbeelding: null },
+    { titel: 'De uitbetaling', tekst: 'Per optie stel je de verhouding in. Een uitslag die iedereen zag aankomen levert weinig op; de verrassing betaalt.', afbeelding: null },
+  ] }),
+  dm_detective: () => ({ titel: 'De detective', stappen: [
+    { titel: 'Wat hij doet', tekst: 'Spelers leggen een vraag bij hem neer over een persoon, plek of voorwerp. Dat kost geld en tijd; het antwoord schrijf jij. Zo kunnen ze iets uitzoeken zonder dat de hele tafel stilvalt.', afbeelding: null },
+    { titel: 'Het antwoord is een scène', tekst: 'Schrijf wat hij *gevonden* heeft, niet wat waar is — een detective kan zich vergissen, of net te laat komen. Dat maakt van een opzoekactie een verhaallijn.', afbeelding: null },
+  ] }),
+  dm_markt_gebieden: () => ({ titel: 'Gebieden om op te filteren', stappen: [
+    { titel: 'Waar een winkel ligt is afgeleid', tekst: 'Uit het veld *Gebied* op het locatiekaartje van de winkel, dat naar een andere locatie wijst — Boekenwyrm › Luimpoort › Grisburgh › Continent. Een winkel valt onder élk lid van die keten.', afbeelding: null },
+    { titel: 'Jij kiest welke laag telt', tekst: 'Alle wijken als losse knop is zelden wat je wilt. Vink daarom aan welke gebieden als filter op de Markt verschijnen; jouw volgorde is de volgorde op het scherm. Staat er niets, dan leidt de app ze zelf af.', afbeelding: null },
+  ] }),
+  dm_markt_winkels: () => ({ titel: 'Winkels die de Markt vindt', stappen: [
+    { titel: 'Een controlelijst', tekst: 'Alle winkels met de gebiedsketen die eruit volgt. Hiermee zie je je eigen data: een winkel die zichzelf als gebied heeft, komt nooit onder de stad uit — dat valt hier meteen op.', afbeelding: null },
+    { titel: 'Wat een speler ziet', tekst: 'De Markt toont alleen winkels die deze party kan zien, en een doorklik naar het voorwerpkaartje alleen als ze dat kaartje kennen. Naam, prijs en beeld gaan wel mee: dat ligt in de etalage.', afbeelding: null },
+  ] }),
+  dm_magizoo: () => ({ titel: 'De magizoöloog', stappen: [
+    { titel: 'Twee dingen', tekst: 'Hij verkoopt **metgezellen** en hij weet iets van **wezens**: tegen betaling brengt hij het bestiarium van de party een niveau verder. Wat er te koop is en wat het kost, stel je hier in.', afbeelding: null },
+    { titel: 'Een dier groeit mee', tekst: 'Een metgezel heeft statblokken per niveau; welke geldt, hangt af van het level van zijn baasje. Eén dier per party, en als hij sneuvelt is dat echt — dat hoort bij het aangaan van de band.', afbeelding: null },
+  ] }),
+  dm_waarzegger: () => ({ titel: 'De waarzegger', stappen: [
+    { titel: 'Wat ze doet', tekst: 'Een speler komt langs voor een voorspelling: hij kiest vier zintuiglijke indrukken en krijgt daarna een brief met wat zij daarin ziet. Prijs en sfeer stel je hier in.', afbeelding: null },
+    { titel: 'De tekst is van jou', tekst: 'Een voorspelling hoort vaag genoeg te zijn om later te kloppen, en scherp genoeg om aan tafel iets los te maken. Wat zij zegt schrijf jij dus zelf, per akte.', afbeelding: null },
+  ] }),
+  dm_waarzegger_akte: () => ({ titel: 'Voorspellingen per akte', stappen: [
+    { titel: 'Waarom per akte', tekst: 'Wat zij ziet hangt af van waar het verhaal staat. Per akte leg je vast wat er te voorspellen valt; komt een speler langs, dan krijgt hij wat bij dít hoofdstuk hoort.', afbeelding: null },
+    { titel: 'Eén per speler', tekst: 'De app onthoudt wie welke voorspelling al gehad heeft, zodat twee spelers niet hetzelfde briefje krijgen.', afbeelding: null },
+  ] }),
+  dm_tempel: () => ({ titel: 'De tempel', stappen: [
+    { titel: 'Waar de goden vandaan komen', tekst: 'Er is geen ingebouwd pantheon: een god ontstaat uit **Blessing-kaartjes met een godnaam** (zegen, eed of vloek). Hier voeg je daar volgorde, domein, symbool, prijs en portretten aan toe.', afbeelding: null },
+    { titel: 'Zegen, eed, vloek', tekst: 'Een **zegen** koop je en komt in je boedel. Een **eed** is een belofte met een gevolg — wie er een zweert, kan geen tweede zweren. Een **vloek** hangt iemand aan tot hij hem kwijtraakt.', afbeelding: null },
+  ] }),
+  dm_tempel_eden: () => ({ titel: 'Actieve eden & vloeken', stappen: [
+    { titel: 'Wie draagt wat', tekst: 'Per speler wat er op hem rust. Zo zie je in één blik waarom iemand iets niet mag of juist moet — en hoef je het niet op zijn blad te zoeken.', afbeelding: null },
+    { titel: 'Losmaken doe jij', tekst: 'Een eed of vloek verdwijnt niet vanzelf: die haal je hier weg als de scène daarom vraagt. Dat is bewust een handeling van de DM, geen aftellende klok.', afbeelding: null },
+  ] }),
+  dm_tempel_goden: () => ({ titel: 'Goden — metadata', stappen: [
+    { titel: 'Het uiterlijk van een god', tekst: 'Domein, symbool, portret, het beeld van de priester en zijn begroeting. Dit bepaalt hoe het altaar eruitziet als een speler binnenloopt.', afbeelding: null },
+    { titel: 'Volgorde is redactie', tekst: 'De volgorde die je hier zet is de volgorde in de tempel. Zet de goden die er in jouw verhaal toe doen bovenaan; de rest mag daaronder wachten.', afbeelding: null },
+  ] }),
+  dm_facties: () => ({ titel: 'Facties', stappen: [
+    { titel: 'Wat een factie is', tekst: 'Een groep met een naam, een embleem en een **ladder** van zes treden. Hoe meer aanzien een party heeft, hoe hoger ze staan — en hoe meer er voor hen opengaat.', afbeelding: null },
+    { titel: 'Hoe de sectie heet', tekst: 'De naam boven dit onderdeel stel je zelf in (bij ons *Facties & Aanzien*). Zo kan het in jouw wereld net zo goed *Huizen* of *Orden* heten.', afbeelding: null },
+    { titel: 'Zich voorstellen per brief', tekst: 'Een factie kan zich met één klik voorstellen aan de actieve party: dat onthult haar en bezorgt elke speler een verzegelde brief. Een mooiere binnenkomst dan een vinkje omzetten.', afbeelding: null },
+  ] }),
+  dm_facties_leden: () => ({ titel: 'Leden van een factie', stappen: [
+    { titel: 'Wie erbij hoort', tekst: 'Koppel personagekaartjes aan de factie. Dat werkt twee kanten op: op hun eigen kaartje staat daarna dat ze hierbij horen.', afbeelding: null },
+    { titel: 'Wat de spelers zien', tekst: 'Een lid dat de party nog niet kent, verschijnt niet bij naam. Een organisatie ontmantelen is het spel; de ledenlijst is niet gratis.', afbeelding: null },
+  ] }),
+  dm_facties_rangen: () => ({ titel: 'Rangen', stappen: [
+    { titel: 'Zes treden', tekst: 'Elke trede heeft een naam en een drempel aan aanzien (0, 1, 3, 10, 25, 50). Alleen trede 0 krijgt standaard een naam — *Buitenstaander* — want die beschrijft de mechaniek en niet jouw wereld.', afbeelding: null },
+    { titel: 'Wat een trede oplevert', tekst: 'Een titel, en wat jij eraan hangt: toegang, een gunst, een korting. De app rekent de trede uit; wat hij betekent is een afspraak aan tafel.', afbeelding: null },
+  ] }),
+
+  dm_tafels_namen: () => ({ titel: 'Namen trekken', stappen: [
+    { titel: 'Waarvoor', tekst: 'Voor het moment dat een speler vraagt hoe de herbergier heet en jij dat nooit bedacht hebt. Eén klik geeft een naam die bij deze wereld past; neem hem over of gooi opnieuw.', afbeelding: null },
+    { titel: 'Waar ze vandaan komen', tekst: 'Uit je eigen naamtabellen, gesplitst naar mannelijk en vrouwelijk. Zijn er geen, dan valt hij terug op de meegeleverde lijst. Wil je andere namen, maak dan een tabel met het type *namen* bij **Tabellen** hieronder.', afbeelding: null },
+    { titel: 'Meteen een kaartje', tekst: 'Een naam die blijft hangen verdient een kaartje: tik hem over in een nieuw personage, of schrijf hem in je akte als `[[Naam]]` — dan krijg je daar de plus om hem ter plekke aan te maken.', afbeelding: null },
+  ] }),
+  dm_tafels_weer: () => ({ titel: 'Het weer', stappen: [
+    { titel: 'Eén worp, één dag', tekst: 'Kies het seizoen en gooi: je krijgt temperatuur, neerslag en wind. Bedoeld om aan tafel voor te lezen als de party naar buiten stapt — er wordt niets van opgeslagen en het heeft geen effect op regels.', afbeelding: null },
+    { titel: 'Het seizoen bepaalt de kansen', tekst: 'Elke tabel heeft zijn eigen verdeling: een winterworp geeft vaker vorst, een zomerworp vaker warmte en onweer. Het seizoen blijft staan tot je het zelf verzet.', afbeelding: null },
+  ] }),
+  dm_tafels_tabellen: () => ({ titel: 'Tabellen', stappen: [
+    { titel: 'Wat een tafel is', tekst: 'Een lijst met uitkomsten waar je op gooit: geruchten in de haven, wat er in de zak van een dief zit, welk voorval de nacht verstoort. Kies er een en gooi; de uitslag komt eronder te staan.', afbeelding: null },
+    { titel: 'Bereiken en gewicht', tekst: 'Een regel mag een bereik dragen (`1-5: tekst`) zodat de ene uitkomst vaker valt dan de andere. Met **Dobbel** kies je de steen — leeg is d100. Eén getal mag ook (`7: tekst`).', afbeelding: null },
+    { titel: 'Geld in een regel', tekst: 'Een regel kan een bedrag verrekenen: `{+3kn}` of `{-1fl}` treft één willekeurige speler, met `@party` erachter iedereen. Zo betaalt een nachtelijke dief zich vanzelf uit.', afbeelding: null },
+    { titel: 'Waar ze nog meer opduiken', tekst: 'Een tafel is ook te koppelen aan een **voorwerp** (een Wand of Wonder), aan de **rust** als gebeurtenissen-tabel, en aan een `|`-tabel in een akte — die krijgt daar zijn eigen worpknop.', afbeelding: null },
+  ] }),
+
+  dm_rust_starten: () => ({ titel: 'Rust starten', stappen: [
+    { titel: 'Waar en wat', tekst: 'Kies eerst de plek — **in het veld** of **in de herberg** — en dan lang of kort. De rust geldt voor de hele party en iedereen krijgt hetzelfde cinematische scherm te zien; het tafelscherm toont de partybrede variant.', afbeelding: null },
+    { titel: 'Wat er gebeurt', tekst: 'Een lange rust zet HP op maximum, herlaadt spell slots en item-charges, geeft de helft van de Hit Dice terug en haalt één niveau exhaustion weg. Een korte rust doet de shortRest-items en de pact-slots van een Warlock; Hit Dice besteden doet de speler daar zelf.', afbeelding: null },
+    { titel: 'In de herberg kost het geld', tekst: 'Daar wordt de overnachtingsprijs per speler afgeschreven en worden er twee roddels per speler onthuld — die prijs stel je in bij Diensten → Herberg. Wie vanavond niet meespeelt (zie *Waarvan actief* bij de party) doet ook hier niet mee.', afbeelding: null },
+  ] }),
+  dm_rust_sfeer: () => ({ titel: 'Sfeer & gebeurtenissen', stappen: [
+    { titel: 'Een beeld per soort rust', tekst: 'Kies een achtergrond voor het veld en voor de korte rust; de herberg gebruikt zijn eigen gevel. Die verschijnt achter het rustscherm, dus het is meteen duidelijk wáár ze slapen.', afbeelding: null },
+    { titel: 'Een voorval per speler', tekst: 'Koppel een tabel en elke speler rolt bij een lange rust zijn **eigen** voorval — hij ziet alleen het zijne, het tafelscherm toont ze allemaal. Bevat een regel een bedrag (`{+3kn}`), dan wordt dat meteen verrekend bij die speler.', afbeelding: null },
+    { titel: 'Binnen en buiten apart', tekst: 'Je kunt een aparte tabel zetten voor het veld en voor de herberg: wat je wakker maakt in het bos is iets anders dan wat er in een taveerne gebeurt. De algemene tabel is het vangnet als er voor die plek niets staat.', afbeelding: null },
+  ] }),
+  dm_rust_levelup: () => ({ titel: 'Level omhoog (hier)', stappen: [
+    { titel: 'Waarom hier', tekst: 'Omdat het aan tafel op hetzelfde moment gebeurt: einde sessie, of bij de lange rust erna. Je zet een level-up **klaar** voor iedereen die vanavond meespeelt; de spelers kiezen daarna zelf hoe ze aan hun HP komen en wat ze met een ASI doen.', afbeelding: null },
+    { titel: 'Milestone of XP', tekst: 'Speelt de campagne op **Milestone**, dan is dit de knop waarmee je het gunt. Op **XP** staat een level-up vanzelf klaar zodra iemand over de drempel komt en hoef je hier niets te doen — punten uitdelen gaat met de XP-knop in de regie-balk. Welk van de twee geldt, stel je in bij Instellingen → Campagne → Level omhoog.', afbeelding: null },
+    { titel: 'Terugdraaien kan', tekst: 'Een per ongeluk gegund level haal je met dezelfde knop weer weg zolang de speler hem nog niet verzilverd heeft. Daarna is het zijn blad, en draai je het terug op zijn personage.', afbeelding: null },
+  ] }),
+
+  dm_loot_editor: () => ({ titel: 'Een vondst maken', stappen: [
+    { titel: 'Wat een vondst is', tekst: 'Eén ding dat de party kan vinden: de geldzak in de haard, het zwaard onder de plavuizen. Eén kamer kan er meerdere hebben, en elk krijgt zijn eigen naam — die naam staat later bij de buit, zodat "uit de haard" en "onder de plavuizen" gescheiden blijven.', afbeelding: null },
+    { titel: 'De DC is een aantekening', tekst: 'Het getal is voor jou, niet voor de app. De spelers gooien aan tafel en jij beslist; onthullen is altijd een klik. Er wordt dus nergens een worp ingevoerd of bijgehouden wie wat gooide.', afbeelding: null },
+    { titel: 'Geld', tekst: `Vul één bedrag in met een komma: **1,34** is 1 ${window._muntNamen().fl}, 3 ${window._muntNamen().kn} en 4 ${window._muntNamen().cl}. Wil je het aan het toeval overlaten, zet dan een bereik bij *Of gerold* — dat wordt pas bij het onthullen gegooid, zodat je ziet wat het geworden is voordat het scherm opengaat.`, afbeelding: null },
+    { titel: 'Waar hij ligt', tekst: 'Koppel de vondst aan een kamer van een dungeon, dan verschijnt daar vanzelf het muntje — alleen op jouw scherm, met een stippellijn. Klikken op dat muntje bouwt meteen de verdeling.', afbeelding: null },
+  ] }),
+  dm_loot_uitslag: () => ({ titel: 'De uitslag', stappen: [
+    { titel: 'Wie krijgt wat', tekst: 'Per voorwerp staat hier wie het geclaimd heeft en wat de worp was. Bij meerdere claims wint de hoogste worp; bij gelijkspel gooien alleen die spelers opnieuw.', afbeelding: null },
+    { titel: 'Bijstellen mag', tekst: 'De uitslag is een voorstel, geen vonnis — je kunt een voorwerp alsnog aan iemand anders geven voordat je afsluit. Aan tafel wordt er nu eenmaal geruild.', afbeelding: null },
+    { titel: 'Afsluiten', tekst: 'Bij het afsluiten gaat alles daadwerkelijk naar de boedel van de spelers en wordt het goud verdeeld. Daarna is de fase voorbij en staat de vondst als onthuld te boek.', afbeelding: null },
+  ] }),
+  dm_loot_deelnemers: () => ({ titel: 'Wie deelt mee', stappen: [
+    { titel: 'Waar de lijst vandaan komt', tekst: 'Loopt er een gevecht, dan zijn het de spelers daaruit; anders iedereen die bij de party *actief* staat. Zo deelt een speler die er vanavond niet is ook niet mee in de buit.', afbeelding: null },
+    { titel: 'Zelf bijstellen', tekst: 'Vink iemand aan of uit voordat je onthult. Handig als een personage bewust ergens anders was, of juist meeliep zonder in het gevecht te staan.', afbeelding: null },
+  ] }),
+
+  dm_verzoeken_spreuken: () => ({ titel: 'Spreukverzoeken', stappen: [
+    { titel: 'Wat hier staat', tekst: 'Een speler die een spreuk uit de bibliotheek in zijn eigen boek wil, vraagt het eerst aan jou — net als bij een voorwerp. Keur je goed, dan schrijft de app hem in zijn boek; wijs je af, dan krijgt hij dat te horen.', afbeelding: null },
+    { titel: 'De regel wordt voorgerekend, niet afgedwongen', tekst: 'Bij het verzoek staat of de spreuk op de lijst van zijn klasse staat — maar de app weigert niets uit zichzelf. De uitzonderingen zijn in 5e eerder regel dan uitzondering: Magic Initiate, een feat, een scroll, multiclass, een uitgebreide subklasselijst. Jij beslist.', afbeelding: null },
+  ] }),
+  dm_verzoeken_voorwerpen: () => ({ titel: 'Voorwerpverzoeken', stappen: [
+    { titel: 'Wat hier staat', tekst: 'Een speler vraagt een voorwerp uit de bibliotheek aan, of wil er een van een ander overnemen. Keur je goed, dan komt het in zijn boedel te staan met het aantal dat je meegeeft.', afbeelding: null },
+    { titel: 'Onderling geven gaat buiten jou om', tekst: 'Spullen die spelers aan elkaar geven komen hier niet langs — dat is een ding over de tafel schuiven. Wil je dat niet, dan zet je het ruilen uit bij de party.', afbeelding: null },
+  ] }),
+  dm_verzoeken_multiclass: () => ({ titel: 'Multiclass-verzoeken', stappen: [
+    { titel: 'Waarom het langs jou gaat', tekst: 'Een tweede klasse verandert het personage ingrijpend en is in de meeste campagnes een gesprek, geen knop. De speler vraagt het aan; jij keurt goed of af.', afbeelding: null },
+    { titel: 'Wat er gebeurt bij goedkeuren', tekst: 'De klasse komt op het profiel te staan met level **0**. Pas bij zijn volgende level-up krijgt hij daar zijn eerste level in — inclusief de Hit Die en de features die daarbij horen. Twee klassen is het maximum.', afbeelding: null },
+    { titel: 'De eisen staan erbij', tekst: 'Je ziet wat 5e vraagt en wat dit personage heeft, maar ook hier blokkeert de app niets: een campagne mag zijn eigen afspraken hebben.', afbeelding: null },
+  ] }),
+  dm_verzoeken_onderzoek: () => ({ titel: 'Onderzoeksdossiers', stappen: [
+    { titel: 'Wat hier staat', tekst: 'De vragen die spelers bij de detective hebben neergelegd. Elk dossier is één vraag over een persoon, plek of voorwerp; jij schrijft het antwoord en bepaalt wanneer het klaar is.', afbeelding: null },
+    { titel: 'Tijd en prijs', tekst: 'Een dossier kost geld en tijd — dat is de hele charme: de party moet wachten en ondertussen doorspelen. Zet hem op klaar wanneer het verhaal daaraan toe is, niet wanneer de klok het zegt.', afbeelding: null },
+  ] }),
+
+  dm_post_brief: () => ({ titel: 'Een brief sturen', stappen: [
+    { titel: 'Aan wie', tekst: 'Aan één speler of aan de hele party. De brief komt in hun Berichten-tab te staan en blijft daar bewaard — het is post, geen melding die voorbijschiet.', afbeelding: null },
+    { titel: 'Afzender en stijl', tekst: 'Koppel een afzender aan een kaartje, dan leest de speler een naam die hij kent. De **briefstijl** bepaalt hoe het eruitziet: handschrift, drukwerk, knipsel, gotisch. Twee schrijvers horen er verschillend uit te zien.', afbeelding: null },
+    { titel: 'Cinematisch bezorgen', tekst: 'Zet je *cinematisch* aan, dan krijgt de speler eerst een verzegelde envelop die hij zelf moet openbreken — en gaat dezelfde brief naar het tafelscherm. Bewaar dat voor de brieven die ertoe doen; als alles een gebeurtenis is, is niets het.', afbeelding: null },
+  ] }),
+  dm_post_geschiedenis: () => ({ titel: 'Verstuurde post', stappen: [
+    { titel: 'Wat hier staat', tekst: 'Alles wat je eerder verstuurde, met datum en ontvanger. Handig om terug te lezen wat een NPC ooit beloofd heeft — spelers onthouden dat namelijk wél.', afbeelding: null },
+    { titel: 'Opnieuw gebruiken', tekst: 'Een eerdere brief is de snelste opzet voor de volgende: open hem, pas de tekst aan en stuur hem naar iemand anders.', afbeelding: null },
+  ] }),
+
+  dm_geluiden_facties: () => ({ titel: 'Sfeerloop per factie', stappen: [
+    { titel: 'Wat het doet', tekst: 'Opent een speler het scherm van deze factie, dan begint deze loop zachtjes te spelen. Zo klinkt het gilde anders dan de tempel, zonder dat jij iets hoeft te starten.', afbeelding: null },
+    { titel: 'Kies iets dat mag herhalen', tekst: 'Het speelt in een lus zolang dat scherm openstaat, dus kies iets zonder duidelijk begin en eind. Een fanfare van acht seconden wordt na drie keer een grap.', afbeelding: null },
+  ] }),
+  dm_geluiden_rust: () => ({ titel: 'Geluid bij de rust', stappen: [
+    { titel: 'Drie momenten', tekst: 'Een loop voor de rust in het veld, een voor de herberg en een voor de korte rust. Die klinkt zolang het rustscherm in beeld is — bij de spelers en op het tafelscherm.', afbeelding: null },
+    { titel: 'Zachter is beter', tekst: 'Onder een rustscherm wordt er gepraat: dit is achtergrond, geen muziek om naar te luisteren. Krekels, een haardvuur, regen op een dak.', afbeelding: null },
+  ] }),
+
   inst_valuta: () => ({ titel: 'Namen voor valuta', stappen: [
     { titel: 'Drie munten, vaste verhouding', tekst: 'Je campagne mag haar munten noemen zoals je wilt — de verhouding blijft die van het boek: **1 gold = 10 silver = 100 copper**. De afkortingen gp/sp/cp staan erbij zodat een tabel uit een boek altijd klopt, ook als jouw munten Florinde, Knaker en Centeling heten.', afbeelding: null },
     { titel: 'Electrum en platinum', tekst: 'Die twee hebben géén eigen plek in de beurs: wat je erin typt wordt bij het invoeren omgerekend (ep = 5 silver, pp = 10 gold). Een vondst mag dus een platinum stuk bevatten; het staat daarna gewoon als goud in de beurs. Geef je ze een naam, dan wordt die alleen gebruikt om te tónen: *"waaronder 3 Lion d\'or"* bij een vondst.', afbeelding: null },
@@ -13939,12 +14131,10 @@ const HELP_CONFIG = {
     { titel: 'Eén regel per party', tekst: 'Elke party staat op één regel met het aantal personages en een slotje als er een wachtwoord is. Klik erop en je krijgt alles van díé party bij elkaar: naam, wachtwoord, wie erbij hoort, wie er vanavond meespeelt en de gedeelde beurs.', afbeelding: null },
     { titel: 'Personages: koppelen en losmaken', tekst: 'Onder **Personages** staat wie bij deze party hóórt — dat is blijvend, het staat op het kaartje van het personage zelf. Losmaken met het kruisje betekent dat hij bij geen enkele party meer hoort en dus niets meer van de campagne ziet. Wat bij de party ligt blijft daar: voorwerpkaartjes, onthulde geheimen en welke kaartjes ontdekt zijn staan per party, niet per personage. De vraag vóór het losmaken zegt precies hoeveel dat er zijn.', afbeelding: null },
     { titel: 'Waarvan actief is iets anders', tekst: 'Onder **Waarvan actief** zet je iemand tijdelijk buiten de sessie — de speler die er niet is. Dat bepaalt wie meedoet bij rust, bij het verdelen van buit en bij het vullen van een gevecht, en het is met één klik terug te draaien. Bewust de afwezigen die bewaard worden en niet de aanwezigen: een personage dat erbij komt doet dan vanzelf mee.', afbeelding: null },
-    { titel: 'Het wachtwoord van een party', tekst: 'Dat is wat je je spelers stuurt; ze kiezen daarna zelf hun personage. Groepswachtwoorden blijven leesbaar staan — je moet ze kunnen opzoeken als iemand het kwijt is. Jouw eigen DM-wachtwoord staat onder **Beheer** en wordt wél versleuteld.', afbeelding: null },
-  ] }),
-  inst_beurs: () => ({ titel: 'De gedeelde beurs', stappen: [
-    { titel: 'Eén zak of ieder zijn eigen', tekst: `Staat de gedeelde beurs **aan**, dan is dát de portemonnee van de party: iedereen ziet hetzelfde bedrag, en alles wat gekocht of gevonden wordt gaat erin en eruit. Staat hij **uit**, dan heeft elke speler zijn eigen beurs.`, afbeelding: null },
+{ titel: 'Eén zak of ieder zijn eigen', tekst: `Staat de gedeelde beurs **aan**, dan is dát de portemonnee van de party: iedereen ziet hetzelfde bedrag, en alles wat gekocht of gevonden wordt gaat erin en eruit. Staat hij **uit**, dan heeft elke speler zijn eigen beurs.`, afbeelding: null },
     { titel: 'Per party', tekst: 'De schakelaar geldt per party, en hij staat daarom in het kaartje van díé party — zo verzet je nooit per ongeluk de beurs van een tafel die je niet bedoelde. Wil je ze naast elkaar zien, open dan de party\'s een voor een; er is bewust geen tweede lijst met alle saldo\'s, want twee weergaven van hetzelfde bedrag lopen vroeg of laat uit elkaar.', afbeelding: null },
     { titel: 'Omzetten raakt geen geld kwijt', tekst: 'De twee zakken bestaan naast elkaar: zet je de gedeelde beurs uit, dan komt ieders eigen beurs weer tevoorschijn zoals die was, en het gedeelde bedrag blijft staan tot je hem weer aanzet. Er verdwijnt dus niets, maar reken er ook niet op dat geld mee verhuist.', afbeelding: null },
+    { titel: 'Het wachtwoord van een party', tekst: 'Dat is wat je je spelers stuurt; ze kiezen daarna zelf hun personage. Groepswachtwoorden blijven leesbaar staan — je moet ze kunnen opzoeken als iemand het kwijt is. Jouw eigen DM-wachtwoord staat onder **Beheer** en wordt wél versleuteld.', afbeelding: null },
   ] }),
   inst_beheer: () => ({ titel: 'Beheer', stappen: [
     { titel: 'Jouw DM-wachtwoord', tekst: 'Geldt alleen voor deze campagne en wordt **versleuteld** opgeslagen, zodat het niet leesbaar in een backup staat. Twee keer intikken, want met een typefout hierin sluit je jezelf buiten.', afbeelding: null },

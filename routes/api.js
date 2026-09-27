@@ -10522,11 +10522,24 @@ router.post('/loot/verdeling', requireDM, (req, res) => {
 router.post('/combat/loot/start', requireDM, (req, res) => {
   const combat  = storage.readJSON('combat.json');
   const dmState = readDmState();
-  let goud = { fl: 0, kn: 0, cl: 0 }, items = [];
+  let goud = { fl: 0, kn: 0, cl: 0 }, items = [], relicten = null, lootEventIds = null;
   const encId = req.body.encounterId || combat.encounterId || null;
   if (encId) {
     const enc = (storage.readJSON('encounters.json').encounters || []).find(e => e.id === encId);
-    if (enc?.loot) {
+    // Een gevecht wijst bij voorkeur naar een **vondst** in loot.json: dan is er
+    // één plek waar buit leeft, met sjablonen, relikwiemunten en toeval dat pas
+    // bij het onthullen gerold wordt. De oude, losse `enc.loot` blijft gelezen
+    // worden voor gevechten die nog niet omgezet zijn.
+    const data = _leesLoot();
+    const ev = enc?.lootId ? data.events.find(e => e.id === enc.lootId) : null;
+    if (ev) {
+      goud  = fromCl(_eventGoudCl(ev));
+      items = _eventNaarItems(ev);
+      if (Object.keys(ev.relicten || {}).length) relicten = { ...ev.relicten };
+      lootEventIds = [ev.id];
+      ev.onthuld = true;
+      storage.writeJSON('loot.json', data);
+    } else if (enc?.loot) {
       goud = { fl: enc.loot.goud?.fl || 0, kn: enc.loot.goud?.kn || 0, cl: enc.loot.goud?.cl || 0 };
       items = (enc.loot.items || []).map(it => ({
         id: 'li_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
@@ -10535,7 +10548,8 @@ router.post('/combat/loot/start', requireDM, (req, res) => {
       }));
     }
   }
-  dmState.lootPhase = { actief: false, encounterId: encId, deelnemers: _lootDeelnemers(combat, dmState), goud, goudVerdeeld: false, items };
+  dmState.lootPhase = { actief: false, encounterId: encId, lootEventIds,
+    deelnemers: _lootDeelnemers(combat, dmState), goud, relicten, goudVerdeeld: false, items };
   storage.writeJSON('dm-state.json', dmState);
   res.json(_lootForClient(dmState.lootPhase, 'dm', null, dmState));
 });
@@ -14459,6 +14473,10 @@ router.post('/encounters', requireDM, (req, res) => {
     canvasPreset: req.body.canvasPreset || null,
     canvasColors: req.body.canvasColors || null,
     monsters:     req.body.monsters     || [],
+    // Buit wijst naar een vondst in loot.json. `loot` is de oude vorm (los
+    // goud en losse items) en blijft bestaan voor gevechten van voor die
+    // omslag; is er een lootId, dan telt alleen die.
+    lootId:       req.body.lootId       || null,
     loot:         req.body.loot         || { goud: { fl: 0, kn: 0, cl: 0 }, items: [] },
     // Een gevecht kan aan een dungeonkamer hangen, net als een vondst. De
     // koppeling staat hier (in encounters.json) en niet in de dungeonkaart: zo

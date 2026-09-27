@@ -27125,3 +27125,11 @@ body.akte-schrijf-open .mp-overlay { z-index: 1320; }
 #dm-party-kaart .dm-form-row + .dm-form-row { margin-top: 12px; }
 #dm-party-kaart .dm-subgroep-label { margin-top: 18px; }
 #dm-party-kaart .dm-form-row + .dm-subgroep-label { margin-top: 20px; }
+
+/* Het boekje in een sectiekop staat rechts; `.dm-section-label` is al flex. */
+.dm-sectie-hulp { margin-left: auto; display: inline-flex; align-items: center; }
+
+/* Het boekje van een venster staat naast het kruisje: dezelfde plek bij elk
+   venster, in plaats van ergens tussen de velden. */
+.modal-hulp { display: inline-flex; align-items: center; margin-right: 4px; }
+.modal-hulp .help-btn-wrap { display: inline-flex; }
