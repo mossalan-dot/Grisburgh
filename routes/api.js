@@ -9203,7 +9203,9 @@ router.put('/akte/:key/voortgang', requireDM, (req, res) => {
 router.put('/meta/herberg', requireDM, (req, res) => {
   const meta = storage.readJSON('meta.json');
   if (!meta.herberg) meta.herberg = {};
-  const allowed = ['naam','waard','imageId','backdropId','maxVragen','cooldownMinutenMin','cooldownMinutenMax','groet','overnachtingPrijs','menu'];
+  // `locatieId`: de herberg is ook een pand op de kaart. `menu[].entityId` komt
+  // mee in `menu` zelf — dat is één veld met de hele lijst.
+  const allowed = ['naam','waard','imageId','locatieId','backdropId','maxVragen','cooldownMinutenMin','cooldownMinutenMax','groet','overnachtingPrijs','menu'];
   for (const f of allowed) {
     if (req.body[f] !== undefined) meta.herberg[f] = req.body[f];
   }

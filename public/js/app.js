@@ -10,7 +10,7 @@ import { renderSpreuken } from './render-spreuken.js?v=41';
 import { renderVaardigheden, zoekVaardigheden } from './render-vaardigheden.js?v=8';
 import { renderStatblock } from './render-statblock.js?v=9';
 import { initSocket } from "./socket-client.js?v=78";
-import { initDmPanel } from "./dm-panel.js?v=307";
+import { initDmPanel } from "./dm-panel.js?v=308";
 import { COND_INFO, COND_LABEL, COND_MET_PLAATJE, COND_ICON } from './conditions.js?v=2';
 import './media-picker.js?v=8';
 import './tafels.js?v=1';
@@ -13953,7 +13953,9 @@ const HELP_CONFIG = {
   ] }),
   dm_herberg_tap: () => ({ titel: 'Aan de tap', stappen: [
     { titel: 'Het menu', tekst: 'Wat er te drinken en te eten is, met een prijs. Een speler bestelt het zelf; het bedrag gaat van zijn beurs af, of van de gedeelde beurs als die aanstaat.', afbeelding: null },
-    { titel: 'Sfeer boven mechaniek', tekst: 'Een bestelling is vooral een reden om iets te laten gebeuren — de waard vertelt een roddel, iemand aan de bar kijkt op. Wat een drankje regeltechnisch doet, beslis jij aan tafel.', afbeelding: null },
+    { titel: 'Temp HP en een status', tekst: 'Per regel kun je **temp HP** meegeven (een getal of een worp als `1d6`) en een status met een korte beschrijving. Allebei gelden tot de volgende lange rust. Het is een aantekening die de speler bij zich draagt, geen regel die de app afdwingt.', afbeelding: null },
+    { titel: 'Koppel het aan een voorwerpkaartje', tekst: 'Bestaat het drankje ook als kaartje, koppel het dan: de speler kan het openen en leest daar wat het doet. Zo staat de werking op één plek in plaats van twee — en groeit het menu mee als je het kaartje bijschaaft.', afbeelding: null },
+    { titel: 'Sfeer boven mechaniek', tekst: 'Een bestelling is vooral een reden om iets te laten gebeuren — de waard vertelt een roddel, iemand aan de bar kijkt op. Wat een drankje verder doet, beslis jij aan tafel.', afbeelding: null },
   ] }),
   dm_gokhuis: () => ({ titel: 'Het gokhuis', stappen: [
     { titel: 'Wat het is', tekst: 'Een huis waar spelers geld kunnen inzetten: op een spel, op een gevecht in het strijdperk, of bij de geldschieter. De naam, de baas en de sfeer stel je hier in.', afbeelding: null },
@@ -14752,6 +14754,7 @@ Object.assign(HELP_CONFIG, {
   dm_herberg: () => ({
     titel: 'Herberg (DM)',
     stappen: [
+      { titel: 'De herberg is ook een plek', tekst: 'Koppel hem aan zijn **locatiekaartje**, dan hoort deze dienst bij een pand op de kaart: de spelers vinden hem waar ze hem verwachten, en het kaartje vertelt hetzelfde verhaal als het scherm. De waard koppel je los daarvan aan zijn eigen personagekaartje.', afbeelding: null },
       { titel: 'Herberg beheren', tekst: 'Stel hier de beschikbare kamers en maaltijden in. Spelers kunnen vanuit hun scherm een kamer of maaltijd bestellen.', afbeelding: null },
       { titel: 'Prijs en beschikbaarheid', tekst: 'Pas de prijs en beschikbaarheid per kamer aan. Uitgeschakelde items zijn niet zichtbaar voor spelers.', afbeelding: null },
     ],

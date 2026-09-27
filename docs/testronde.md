@@ -668,6 +668,9 @@ fout-uitvoert.
 - [ ] **Instellingen — party's** (DM) — aanmaken, hernoemen, verwijderen (met de waarschuwing), en wie er vanavond meespeelt
 - [ ] **Party-kaartje** (DM) — klik een party in de lijst; het venster toont naam, groepswachtwoord, personages, wie er vanavond speelt en de gedeelde beurs van díé party
 - [ ] **Gevecht: deelnemer toevoegen** (DM) — het zoekveld is ook het naamveld: kies een monster uit de lijst, óf typ een eigen naam en voeg toe. Het kaartjes-lijstje is een zoekveld geworden, en de kolom heet *Initiative*
+- [ ] **Begroeting per dienst** (DM) — herberg, gokhuis en magizoöloog hebben hetzelfde veld: kop *Begroeting*, een tekstvak van twee regels met een voorbeeld erin, en geen uitleg meer eronder of in de kop
+- [ ] **Herberg aan een locatiekaartje** (DM) — koppel de herberg aan een locatie; opslaan bewaart het, en het veld toont de naam weer bij het heropenen
+- [ ] **Menu-item aan een voorwerpkaartje** (DM) — koppel een regel van *Aan de tap* aan een voorwerpkaartje; de koppeling blijft na opslaan staan, en een getypte naam die geen kaartje is laat het item gewoon tekst
 - [ ] **Geluiden: drie tabjes** (DM) — Decors (decors, momenten, diensten en facties), Standaardgeluiden (vaste geluiden + alle 36 condities) en Spelers (beurtgeluid + emotes). Wisselen laat een openstaand spelerspaneel staan
 - [ ] **Geluiden: rust bij de momenten** (DM) — de drie rustloops staan onder *Momenten*, met een eigen kopje omdat ze lopen in plaats van één keer klinken
 - [ ] **Vondst: mimic** (DM) — vink *Dit is een mimic* aan bij een vondst; de app zet zelf een Mimic-gevecht klaar (SRD-statblok, niet in het Bestiarium) en gebruikt daarna steeds dat ene. Onthullen geeft geen buit maar de kist-ontknoping op het tafelscherm en de vraag of het gevecht start

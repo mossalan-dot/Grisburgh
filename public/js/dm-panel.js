@@ -885,6 +885,23 @@ function _tabEl(name) {
       || document.querySelector(`.dm-tab-content[data-tab="${name}"]`);
 };
 
+// De begroeting van een dienst: overal hetzelfde veld.
+//
+// Het stond er drie keer verschillend: bij de herberg een tekstvak van drie
+// regels met de uitleg in het label **en** eronder, bij het gokhuis een regel
+// invoer met weer een andere hint, bij de magizoöloog een tekstvak van twee
+// zonder hint. Dezelfde handeling hoort er hetzelfde uit te zien. De uitleg
+// staat één keer — in het voorbeeld ín het veld; het waarom staat in het
+// boekje van die dienst.
+function _groetVeldHtml({ id, waarde = '', voorbeeld = '' }) {
+  return `
+    <div class="dm-form-row" style="flex-direction:column;gap:4px;align-items:stretch">
+      <label class="dm-form-label" for="${id}">Begroeting</label>
+      <textarea id="${id}" class="dm-input" rows="2" style="resize:vertical;min-height:52px"
+        placeholder="${esc(voorbeeld)}">${esc(waarde)}</textarea>
+    </div>`;
+}
+
 // ── Gouden standaard: één subtab-balk ──
 //
 // Er waren drie smaken: Gevecht en Diensten tekenden icoon-only knoppen met de
@@ -5442,6 +5459,8 @@ window._wereldToggleEntiteit = async (entityId) => {
 };
 
 let _hbPersonages = [];
+let _hbLocaties   = [];      // voor de koppeling aan het locatiekaartje
+let _hbVoorwerpen = [];      // voor de koppeling van menu-items aan kaartjes
 let _hbPendingBackdropId = null;
 let _hbMenu = [];   // werkkopie van het "Aan de tap"-menu tijdens bewerken
 let _hbTables = [];
@@ -5491,6 +5510,8 @@ async function _renderHerbergSettings() {
 
   const config = window.app?.state?.meta?.herberg || {};
   try { _hbPersonages = await api.listEntities('personages'); } catch { _hbPersonages = []; }
+  try { _hbLocaties   = await api.listEntities('locaties');   } catch { _hbLocaties   = []; }
+  try { _hbVoorwerpen = await api.listEntities('voorwerpen'); } catch { _hbVoorwerpen = []; }
   _hbPendingBackdropId = null;
   _hbMenu = Array.isArray(config.menu) ? config.menu.map(m => ({ ...m })) : [];
 
@@ -5524,6 +5545,17 @@ async function _renderHerbergSettings() {
           style="width:64px;height:80px;object-fit:cover;border-radius:6px;border:1px solid rgba(196,168,122,0.4)">
       </div>
 
+      <!-- Een herberg is niet alleen een waard maar ook een pand: koppel hem aan
+           zijn locatiekaartje, dan hoort de dienst bij een plek op de kaart en
+           kan het kaartje ernaartoe wijzen. -->
+      <div class="dm-form-row">
+        <label class="dm-form-label" for="hb-locatie">Locatiekaartje</label>
+        <input id="hb-locatie" class="dm-input" list="hb-locatie-dl" autocomplete="off"
+          placeholder="Zoek de locatie van deze herberg…"
+          value="${esc(_hbLocaties.find(l => l.id === config.locatieId)?.name || '')}">
+        <datalist id="hb-locatie-dl">${_hbLocaties.map(l => `<option value="${esc(l.name)}">${esc(l.data?.locType || '')}</option>`).join('')}</datalist>
+      </div>
+
       <div class="dm-form-row" style="flex-direction:column;gap:6px">
         <label class="dm-form-label">Achtergrondafbeelding</label>
         ${config.backdropId ? `<img id="hb-backdrop-preview" src="${api.fileUrl(config.backdropId)}"
@@ -5531,13 +5563,8 @@ async function _renderHerbergSettings() {
         <button type="button" class="dm-btn dm-btn-ghost" style="align-self:flex-start" onclick="window._pickServiceBackdrop('hb')" title="Achtergrondafbeelding kiezen of uploaden">${icon('image')}</button>
       </div>
 
-      <div class="dm-form-row" style="flex-direction:column;gap:4px">
-        <label class="dm-form-label">Begroeting (spelersnaam = <code>{naam}</code>)</label>
-        <textarea id="hb-groet" class="dm-input" rows="3"
-          placeholder="Welkom, {naam}! Wat kan ik voor je betekenen?"
-          style="resize:vertical;min-height:60px">${esc(config.groet || '')}</textarea>
-        <span class="dm-hint" style="font-size:10px;color:var(--color-ink-dim,#888)">Gebruik <code>{naam}</code> voor de voornaam van de speler.</span>
-      </div>
+      ${_groetVeldHtml({ id: 'hb-groet', waarde: config.groet || '',
+        voorbeeld: 'Welkom, {naam}! Wat kan ik voor je betekenen?' })}
 
       <div class="dm-section-label" style="margin-top:14px;display:flex;align-items:center;gap:6px">${icon('beer')} Aan de tap — menu<span class="dm-sectie-hulp">${helpBtn('dm_herberg_tap')}</span></div>
       <span class="dm-hint" style="font-size:11px;display:block;margin:-4px 0 8px">Drankjes/maaltijden die spelers kunnen bestellen. Prijs schrijft van de beurs af; temp HP en status gelden tot de volgende Long Rest.</span>
@@ -5558,7 +5585,8 @@ async function _renderHerbergSettings() {
 function _hbRenderMenuLijst() {
   const el = document.getElementById('hb-menu-lijst');
   if (!el) return;
-  el.innerHTML = _hbMenu.length === 0
+  const vwDl = `<datalist id="hb-menu-vw-dl">${_hbVoorwerpen.map(v => `<option value="${esc(v.name)}">${esc(v.data?.itemType || '')}</option>`).join('')}</datalist>`;
+  el.innerHTML = vwDl + (_hbMenu.length === 0
     ? `<p class="dm-hint" style="padding:4px 0">Nog geen menu-items.</p>`
     : _hbMenu.map((m, i) => `
       <div class="hb-menu-item" data-id="${esc(m.id || '')}">
@@ -5568,13 +5596,17 @@ function _hbRenderMenuLijst() {
           <button class="dm-btn dm-btn-icon dm-btn-danger dm-btn-sm" onclick="window._hbMenuRemove(${i})" title="Verwijderen">${icon('trash')}</button>
         </div>
         <input class="dm-input dm-input-sm hb-menu-desc" value="${esc(m.beschrijving || '')}" placeholder="Sfeerbeschrijving (wordt bij bestellen getoond)">
+        <input class="dm-input dm-input-sm hb-menu-kaart" list="hb-menu-vw-dl" autocomplete="off"
+          value="${esc(_hbVoorwerpen.find(v => v.id === m.entityId)?.name || '')}"
+          placeholder="Koppel aan een voorwerpkaartje (optioneel)"
+          title="Dan kan de speler het kaartje openen en staat de werking op één plek">
         <div class="hb-menu-item-effect">
           <label class="dm-form-label" style="min-width:auto">Temp HP</label>
           <input class="dm-input dm-input-sm hb-menu-temphp" value="${esc(String(m.tempHp ?? '').trim())}" placeholder="0 of worp bv. 1d6" style="max-width:130px">
           <input class="dm-input dm-input-sm hb-menu-bufflabel" value="${esc(m.buffLabel || '')}" placeholder="Status (bv. Kroegmoed)">
         </div>
         <input class="dm-input dm-input-sm hb-menu-buffdesc" value="${esc(m.buffDesc || '')}" placeholder="Wat de status doet (bv. voordeel op je eerste save)">
-      </div>`).join('');
+      </div>`).join(''));
 }
 
 // Leest de huidige menurijen terug uit de DOM (behoudt niet-opgeslagen bewerkingen).
@@ -5587,6 +5619,12 @@ function _hbMenuReadDom() {
     tempHp: row.querySelector('.hb-menu-temphp')?.value.trim() || '',
     buffLabel: row.querySelector('.hb-menu-bufflabel')?.value.trim() || '',
     buffDesc: row.querySelector('.hb-menu-buffdesc')?.value.trim() || '',
+    // Naam → id. Een getypte naam die geen kaartje is laat de koppeling leeg;
+    // het item blijft dan gewoon tekst, zoals het altijd was.
+    entityId: (() => {
+      const n = (row.querySelector('.hb-menu-kaart')?.value || '').trim().toLowerCase();
+      return n ? (_hbVoorwerpen.find(v => (v.name || '').toLowerCase() === n)?.id || null) : null;
+    })(),
   })).filter(m => m.naam);
 }
 
@@ -5689,10 +5727,16 @@ window._hbSave = async () => {
   const p = _hbPersonages.find(p => p.id === entityId);
   const groet = document.getElementById('hb-groet')?.value.trim() || '';
   const overnachtingPrijs = document.getElementById('hb-overnachting')?.value.trim() || '1 fl.';
+  // Locatie: de getypte naam terug naar een id. Leeg = geen koppeling; een naam
+  // die niet bestaat laat de oude koppeling staan — een typefout hoort geen
+  // gegevens weg te gooien.
+  const locNaam = (document.getElementById('hb-locatie')?.value || '').trim().toLowerCase();
+  const loc = locNaam ? _hbLocaties.find(l => (l.name || '').toLowerCase() === locNaam) : null;
   const payload = {
     naam,
     waard:      p?.name || config.waard || '',
     imageId:    entityId || config.imageId || '',
+    locatieId:  locNaam ? (loc?.id || config.locatieId || null) : null,
     backdropId: _hbPendingBackdropId || config.backdropId || '',
     groet,
     overnachtingPrijs,
@@ -5791,12 +5835,8 @@ async function _renderTweespaltDM() {
         <input id="ts-naam-config" class="dm-input" value="${esc(tsConfig.naam || 'Het gokhuis')}">
       </div>
 
-      <div class="dm-form-row">
-        <label class="dm-form-label" for="ts-groet">Groet</label>
-        <input id="ts-groet" class="dm-input" value="${esc(tsConfig.groet || '')}"
-          placeholder="Welkom bij ${esc(tsConfig.naam || 'Het gokhuis')}.">
-        <div class="dm-hint">Wat de bezoeker als eerste leest. Leeg laten mag; dan staat er alleen de naam.</div>
-      </div>
+      ${_groetVeldHtml({ id: 'ts-groet', waarde: tsConfig.groet || '',
+        voorbeeld: `Welkom bij ${tsConfig.naam || 'het gokhuis'}, {naam}. Speel je mee?` })}
 
       <div class="dm-form-row">
         <label class="dm-form-label">Portret (NPC)</label>
@@ -6254,11 +6294,8 @@ async function _renderMagizooSettings() {
         <label class="dm-form-label">Naam</label>
         <input id="magizoo-naam" class="dm-input" value="${esc(config.naam || 'De Magizoöloog')}">
       </div>
-      <div class="dm-form-row" style="flex-direction:column;gap:4px">
-        <label class="dm-form-label">Groet (in-character, cursief)</label>
-        <textarea id="magizoo-groet" class="dm-input" rows="2" style="resize:vertical"
-          placeholder="Bijv: De Beestenkenner kijkt op van een kooi en veegt een inktvlek weg.">${esc(config.groet || '')}</textarea>
-      </div>
+      ${_groetVeldHtml({ id: 'magizoo-groet', waarde: config.groet || '',
+        voorbeeld: 'De Beestenkenner kijkt op van een kooi en veegt een inktvlek weg.' })}
       <div class="dm-feature-row" style="gap:6px">
         <div class="dm-form-row" style="flex:1">
           <label class="dm-form-label">Prijs per trede (fl)</label>
