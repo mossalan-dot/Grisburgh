@@ -10360,13 +10360,107 @@ const getalOf = (v) => { const n = parseInt(v, 10); return Number.isFinite(n) ? 
 // Zet een event om in losse lootPhase-items. Toeval wordt hier gerold — dus op
 // het moment van onthullen, zodat de DM ziet wat het geworden is en nog kan
 // ingrijpen voordat het scherm opengaat.
+// De mimic is geen keuze uit een lijst maar een vinkje: in elke campagne is
+// het hetzelfde grapje — de kist blijkt een wezen. Het gevecht erachter maakt
+// de app zelf aan bij het eerste gebruik (met het Mimic-statblok uit de SRD
+// 5.2), zodat een nieuwe DM niet eerst een monster hoeft op te zoeken. Bestaat
+// het al, dan wordt dat hergebruikt — ook als de DM het intussen heeft
+// bijgeschaafd.
+// Eén regel uit een tafel trekken. Een gewogen tafel draagt bereiken
+// (`1-5: tekst`), een simpele tafel losse regels; allebei worden hier gelezen,
+// zodat een DM niet eerst hoeft te weten welk soort tafel hij maakte. De
+// valuta-tokens van de rusttabellen (`{+3kn}`) horen niet in een voorwerpnaam
+// en worden er daarom afgeknipt.
+function _rolTafelRegel(tafel) {
+  const regels = (tafel?.entries || []).filter(x => String(x || '').trim());
+  if (!regels.length) return '';
+  const schoon = (t) => String(t).replace(/\{[^}]*\}/g, '').replace(/\s{2,}/g, ' ').trim();
+  if (tafel.type === 'weighted') {
+    const zijden = parseInt(String(tafel.dobbel || 'd100').replace(/\D/g, '')) || 100;
+    const worp = Math.floor(Math.random() * zijden) + 1;
+    for (const regel of regels) {
+      const m = String(regel).match(/^(\d+)(?:\s*[-–]\s*(\d+))?\s*:\s*(.+)$/);
+      if (!m) continue;
+      const van = parseInt(m[1]);
+      const tot = m[2] ? parseInt(m[2]) : van;
+      if (worp >= van && worp <= tot) return schoon(m[3]);
+    }
+    // Geen treffer (een tafel met gaten): dan liever niets dan een verzonnen regel.
+    return '';
+  }
+  return schoon(regels[Math.floor(Math.random() * regels.length)]);
+}
+
+function _mimicEncounterId() {
+  const encData = storage.readJSON('encounters.json');
+  if (!Array.isArray(encData.encounters)) encData.encounters = [];
+  const bestaand = encData.encounters.find(e => e.mimic || /^mimic$/i.test(String(e.name || '').trim()));
+  if (bestaand) return bestaand.id;
+
+  // Het monster erbij: ook dat hergebruiken we als het er al staat.
+  const raw = storage.readJSON('monsters.json');
+  const monData = Array.isArray(raw) ? { monsters: [] } : (raw || { monsters: [] });
+  if (!Array.isArray(monData.monsters)) monData.monsters = [];
+  let mon = monData.monsters.find(m => /^mimic$/i.test(String(m.name || '').trim()));
+  if (!mon) {
+    let srd = null;
+    try {
+      const bron = require('../bronnen/srd-monsters.json');
+      const lijst = Array.isArray(bron) ? bron : Object.values(bron);
+      srd = lijst.find(x => /^mimic$/i.test(String(x.name || '').trim())) || null;
+    } catch { /* zonder bron maken we een kale regel */ }
+    mon = {
+      id: 'm_mimic_' + Date.now().toString(36),
+      name: 'Mimic',
+      maxHp: srd?.maxHp || 58,
+      initiative: srd?.initiative || 10,
+      statblock: srd?.statblock || { hp: '58', ac: '12', speed: '15 ft.' },
+      inBestiarium: false,          // het is een verrassing, geen encyclopedie-item
+      description: srd?.statblock?.desc || '',
+      roddel: srd?.roddel || '',
+    };
+    monData.monsters.push(mon);
+    storage.writeJSON('monsters.json', monData);
+  }
+
+  const enc = {
+    id: 'enc_mimic_' + Date.now().toString(36),
+    name: 'Mimic',
+    mimic: true,                    // hieraan herkennen we hem de volgende keer
+    akteId: null, backdropId: null,
+    canvasPreset: 'cave', canvasColors: null,
+    monsters: [{ monsterId: mon.id, name: mon.name, count: 1, hp: mon.maxHp, initiative: mon.initiative }],
+    lootId: null, loot: null, dungeonId: null, roomId: null,
+  };
+  encData.encounters.push(enc);
+  storage.writeJSON('encounters.json', encData);
+  return enc.id;
+}
+
 function _eventNaarItems(ev) {
   const uit = [];
   for (const it of (ev.items || [])) {
     let naam = it.naam, beschrijving = it.beschrijving || '', rariteit = it.rariteit || '', entityId = it.entityId || null;
-    if (it.willekeurig) {
+    // Een regel kan op een **tafel** gooien. Dat is beter dan loten op rarity:
+    // in de bibliotheek staan kaartjes die nooit als vondst horen op te duiken
+    // (het zwaard van de antagonist, een questvoorwerp), en een loterij over
+    // alles van die zeldzaamheid trekt die vroeg of laat. Een tafel is een
+    // lijst die de DM zelf heeft samengesteld — daar staat alleen in wat mág.
+    if (it.tafelId) {
+      const tafel = (storage.readJSON('tables.json').tables || []).find(t => t.id === it.tafelId);
+      const regel = tafel ? _rolTafelRegel(tafel) : '';
+      if (!regel) continue;                   // lege tafel: sla de regel over
+      naam = regel;
+      // Bestaat er een voorwerpkaartje met die naam, dan koppelen we hem: dan
+      // kan de speler het kaartje straks gewoon openen.
+      const kaart = (storage.readJSON('entities.json').voorwerpen || [])
+        .find(v => String(v.name || '').toLowerCase() === regel.toLowerCase());
+      if (kaart) { entityId = kaart.id; beschrijving = kaart.data?.desc || ''; rariteit = kaart.data?.rariteit || ''; }
+    } else if (it.willekeurig) {
+      // Oude vorm: loten op zeldzaamheid. Blijft werken voor vondsten die er al
+      // liggen; nieuwe regels krijgen die keuze niet meer.
       const v = _kiesWillekeurigVoorwerp(it.rariteit);
-      if (!v) continue;                       // niets van die zeldzaamheid: sla over
+      if (!v) continue;
       naam = v.name; beschrijving = v.data?.desc || ''; rariteit = v.data?.rariteit || ''; entityId = v.id;
     }
     if (!naam) continue;
@@ -10422,7 +10516,10 @@ router.post('/loot/events', requireDM, (req, res) => {
     dungeonId:   req.body.dungeonId || null,
     roomId:      req.body.roomId    || null,
     encounterId: req.body.encounterId || null,
-    mimicEncounterId: req.body.mimicEncounterId || null,
+    // De client stuurt een vinkje (`mimic`); welk gevecht daarbij hoort weet de
+    // server, die maakt het zo nodig aan. Een expliciet id blijft werken voor
+    // wie een eigen mimic-gevecht wil.
+    mimicEncounterId: req.body.mimicEncounterId || (req.body.mimic ? _mimicEncounterId() : null),
     onthuld:     false,
   };
   data.events.push(ev);
@@ -10436,6 +10533,10 @@ router.put('/loot/events/:id', requireDM, (req, res) => {
   if (!ev) return res.status(404).json({ error: 'Vondst niet gevonden' });
   const velden = ['naam', 'vaardigheid', 'dungeonId', 'roomId', 'encounterId', 'mimicEncounterId'];
   for (const v of velden) if (req.body[v] !== undefined) ev[v] = req.body[v];
+  // Het vinkje: aan = het vaste mimic-gevecht (aanmaken als het er nog niet is),
+  // uit = geen mimic. Een eigen `mimicEncounterId` hierboven wint.
+  if (req.body.mimic !== undefined && req.body.mimicEncounterId === undefined)
+    ev.mimicEncounterId = req.body.mimic ? _mimicEncounterId() : null;
   if (req.body.dc       !== undefined) ev.dc       = getalOf(req.body.dc);
   if (req.body.goud     !== undefined) ev.goud     = { fl: getalOf(req.body.goud.fl), kn: getalOf(req.body.goud.kn), cl: getalOf(req.body.goud.cl) };
   if (req.body.relicten !== undefined) ev.relicten = _relictenOf(req.body.relicten);

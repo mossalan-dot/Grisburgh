@@ -367,7 +367,18 @@ export function initDmPanel() {
 
     // Lootverdeler
     lootOpen:        _lootOpen,
-    lootEvNieuw:      _lootEvNieuw,
+    lootEvNieuw:      (bronId) => _lootEvNieuw(bronId),
+    lootEvKopieVan:   (veld) => {
+      const naam = String(veld?.value || '').trim().toLowerCase();
+      const bron = _lootEvents.find(e => String(e.naam || '').toLowerCase() === naam);
+      if (!bron) {
+        veld.classList.add('dm-input--err');
+        setTimeout(() => veld.classList.remove('dm-input--err'), 1200);
+        return;
+      }
+      veld.value = '';
+      _lootEvNieuw(bron.id);
+    },
     lootEvBewerk:     _lootEvBewerk,
     lootEvAnnuleer:   _lootEvAnnuleer,
     lootEvVeld:       _lootEvVeld,
@@ -378,6 +389,8 @@ export function initDmPanel() {
     lootEvItemDel:    _lootEvItemDel,
     lootEvItemVeld:   _lootEvItemVeld,
     lootEvItemKoppel: _lootEvItemKoppel,
+    lootEvItemTafel:  _lootEvItemTafel,
+    lootEvMimic:      _lootEvMimic,
     lootEvOpslaan:    _lootEvOpslaan,
     lootEvVerwijder:  _lootEvVerwijder,
     lootEvKopie:      _lootEvKopie,
@@ -8026,6 +8039,7 @@ let _lootConcept  = null;      // vondst in bewerking (werkkopie)
 let _lootVoorwerpen = [];      // voor de koppeling aan een kaartje
 let _lootDungeons   = [];      // voor de koppeling aan een kamer
 let _lootEncounters = [];      // voor de mimic: welk gevecht springt eruit
+let _lootTafels     = [];      // tafels waar een regel op kan gooien
 
 const _LOOT_RARITEITEN = ['', 'Common', 'Uncommon', 'Rare', 'Very Rare', 'Legendary'];
 
@@ -8100,16 +8114,18 @@ async function _renderLoot() {
   if (!el) return;
   el.innerHTML = _dmLoading('Vondsten laden…');
   try {
-    const [d, vw, dungeons, encs] = await Promise.all([
+    const [d, vw, dungeons, encs, tafels] = await Promise.all([
       api.lootEvents(),
       api.listEntities('voorwerpen').catch(() => []),
       api.listDungeons().catch(() => []),
       api.listEncounters().catch(() => []),
+      api.listTables().catch(() => []),
     ]);
     _lootEvents     = d.events || [];
     _lootVoorwerpen = vw || [];
     _lootDungeons   = dungeons || [];
     _lootEncounters = encs?.encounters || encs || [];
+    _lootTafels     = tafels?.tables || tafels || [];
   } catch (e) {
     el.innerHTML = `<div class="dm-feature-section"><p class="dm-hint">Kon de vondsten niet laden: ${esc(e.message)}</p></div>`;
     return;
@@ -8167,8 +8183,16 @@ function _renderLootInner() {
     ${_dmTabHead({ icon: 'vault', title: 'Loot', actions: helpBtn('dm_loot') })}
     <div class="dm-feature-section">
       <div class="dm-feature-row" style="justify-content:space-between;align-items:center;margin-bottom:8px">
-        <span class="dm-section-label" style="margin-bottom:0">Vondsten</span>
-        <button class="dm-btn dm-btn-sm" onclick="window.dmPanel.lootEvNieuw()" title="Nieuwe vondst">${icon('plus')}</button>
+        <span class="dm-section-label" style="margin-bottom:0">Vondsten<span class="dm-sectie-hulp">${helpBtn('dm_loot_vondsten')}</span></span>
+        <span class="dm-knoprij">
+          <button class="dm-btn dm-btn-sm dm-btn-ghost" onclick="window.dmPanel.lootEvNieuw()" title="Een lege vondst beginnen">${icon('plus')} Nieuwe vondst</button>
+          ${_lootEvents.length ? `
+          <input class="dm-input dm-input-sm" list="dm-loot-kopie-dl" style="width:190px"
+            placeholder="…of kopieer een bestaande"
+            title="Neemt naam, DC, goud en voorwerpen over; waar hij ligt niet"
+            onchange="window.dmPanel.lootEvKopieVan(this)">
+          <datalist id="dm-loot-kopie-dl">${_lootEvents.map(e => `<option value="${esc(e.naam || '')}">${esc(_lootSamenvatting(e))}</option>`).join('')}</datalist>` : ''}
+        </span>
       </div>
       ${rijen || '<p class="dm-hint">Nog geen vondsten. Maak er een aan en koppel hem later aan een kamer.</p>'}
       <div class="dm-feature-row" style="margin-top:10px">
@@ -8177,8 +8201,8 @@ function _renderLootInner() {
           ${icon('coins')} <span id="dm-loot-onthul-lbl">${_lootOnthulLabel()}</span></button>
         <span class="dm-hint" id="dm-loot-onthul-hint" style="margin-left:8px${n ? '' : ';display:none'}">Je stelt de verdeling daarna nog bij vóór de spelers hem zien.</span>
       </div>
-      ${sjablonen ? `<div class="dm-section-label" style="margin-top:14px">Sjablonen</div>
-        <p class="dm-hint" style="margin:-2px 0 4px">Mallen om vondsten mee te maken. "Gebruiken" zet er een kopie van in de lijst hierboven; die kopie pas je aan zonder dat het sjabloon verandert.</p>
+      ${sjablonen ? `<div class="dm-section-label" style="margin-top:14px">Oude sjablonen<span class="dm-sectie-hulp">${helpBtn('dm_loot_sjablonen')}</span></div>
+        <p class="dm-hint" style="margin:-2px 0 4px">Sjablonen zijn vervallen: een nieuwe vondst kopieer je voortaan van een bestaande. Deze staan er nog; "Gebruiken" maakt er een gewone vondst van, en daarna mogen ze weg.</p>
         ${sjablonen}` : ''}
     </div>
     ${_lootConcept ? _lootEditorHtml() : ''}`;
@@ -8187,28 +8211,41 @@ function _renderLootInner() {
 function _lootEditorHtml() {
   const c = _lootConcept;
   const dl = `<datalist id="dm-loot-vw-dl">${_lootVoorwerpen.map(v => `<option value="${esc(v.name)}">`).join('')}</datalist>`;
-  const items = (c.items || []).map((it, i) => `
+  // Een regel is óf een vast voorwerp (eventueel gekoppeld aan een kaartje), óf
+  // een worp op een tafel. Die twee sluiten elkaar uit: staat er een tafel, dan
+  // bepaalt de worp bij het onthullen wat het wordt.
+  //
+  // De oude "willekeurig"-knop — een loterij over alle kaartjes van een
+  // zeldzaamheid — is eruit: in de bibliotheek staan kaartjes die nooit als
+  // vondst horen op te duiken (het zwaard van de antagonist, een questvoorwerp),
+  // en die trok hij vroeg of laat. Een tafel is een lijst die de DM zelf heeft
+  // samengesteld. Bestaande regels met de oude vorm blijven werken; ze tonen
+  // hier een regel die zegt wat er staat.
+  const items = (c.items || []).map((it, i) => {
+    const heeftTafel = !!it.tafelId;
+    const gekoppeld  = !!it.entityId;
+    return `
     <div class="dm-loot-item">
       <input class="dm-input dm-input-sm" style="flex:2;min-width:120px" placeholder="Naam voorwerp"
-        value="${esc(it.naam || '')}" ${it.willekeurig ? 'disabled' : ''}
+        value="${esc(it.naam || '')}" ${heeftTafel || it.willekeurig ? 'disabled' : ''}
         oninput="window.dmPanel.lootEvItemVeld(${i},'naam',this.value)">
-      <select class="dm-input dm-input-sm" style="flex:1;min-width:96px"
-        onchange="window.dmPanel.lootEvItemVeld(${i},'rariteit',this.value)">
-        ${_LOOT_RARITEITEN.map(r => `<option value="${esc(r)}" ${(it.rariteit || '') === r ? 'selected' : ''}>${r || '— rarity —'}</option>`).join('')}
-      </select>
       <input class="dm-input dm-input-sm" list="dm-loot-vw-dl" style="flex:1.5;min-width:110px"
         placeholder="Koppel aan kaartje…" value="${esc(_lootVoorwerpen.find(v => v.id === it.entityId)?.name || '')}"
-        ${it.willekeurig ? 'disabled' : ''}
+        ${heeftTafel || it.willekeurig ? 'disabled' : ''}
         onchange="window.dmPanel.lootEvItemKoppel(${i}, this.value, this)">
-      <label class="dm-loot-check" title="Kies bij het onthullen een willekeurig voorwerp van deze rarity">
-        <input type="checkbox" ${it.willekeurig ? 'checked' : ''}
-          onchange="window.dmPanel.lootEvItemVeld(${i},'willekeurig',this.checked)"> willekeurig
-      </label>
+      <input class="dm-input dm-input-sm" list="dm-loot-tafel-dl" style="flex:1.5;min-width:110px"
+        placeholder="…of gooi op een tafel" value="${esc((_lootTafels.find(t => t.id === it.tafelId) || {}).name || '')}"
+        ${gekoppeld ? 'disabled' : ''}
+        title="${gekoppeld ? 'Er hangt al een kaartje aan deze regel' : 'De worp bepaalt bij het onthullen welk voorwerp het wordt'}"
+        onchange="window.dmPanel.lootEvItemTafel(${i}, this.value, this)">
+      ${it.willekeurig ? `<span class="dm-hint" title="Oude vorm: loten op zeldzaamheid">loterij (${esc(it.rariteit || 'elke rarity')})</span>` : ''}
       <button class="dm-btn dm-btn-sm dm-btn-ghost dm-btn-danger" onclick="window.dmPanel.lootEvItemDel(${i})" title="Regel verwijderen">${icon('x')}</button>
-    </div>`).join('');
+    </div>`;
+  }).join('');
+  const tafelDl = `<datalist id="dm-loot-tafel-dl">${_lootTafels.map(t => `<option value="${esc(t.name)}">${esc(t.type === 'weighted' ? 'gewogen tafel' : 'tafel')}</option>`).join('')}</datalist>`;
 
   const r = c.goudRandom || { van: 0, tot: 0, munt: 'fl' };
-  return `${dl}
+  return `${dl}${tafelDl}
     <div class="dm-feature-section">
       <div class="dm-section-label">${c.id ? 'Vondst bewerken' : 'Nieuwe vondst'}<span class="dm-sectie-hulp">${helpBtn('dm_loot_editor')}</span></div>
       <div class="dm-form-row">
@@ -8224,16 +8261,14 @@ function _lootEditorHtml() {
           value="${esc(c.vaardigheid || '')}" oninput="window.dmPanel.lootEvVeld('vaardigheid', this.value)">
       </div>
       <div class="dm-form-row">
-        <label class="dm-form-label">Mimic</label>
-        <select class="dm-input dm-input-sm" style="flex:1;min-width:150px"
-          onchange="window.dmPanel.lootEvVeld('mimicEncounterId', this.value || null)">
-          <option value="">— gewone vondst —</option>
-          ${(_lootEncounters || []).map(e => `<option value="${esc(e.id)}" ${c.mimicEncounterId === e.id ? 'selected' : ''}>${esc(e.name || 'Gevecht')}</option>`).join('')}
-        </select>
-        <span class="dm-hint">geen buit maar dit gevecht</span>
+        <label class="dm-loot-check" title="Geen buit maar een gevecht: de kist blijkt een wezen">
+          <input type="checkbox" ${c.mimicEncounterId || c.mimic ? 'checked' : ''}
+            onchange="window.dmPanel.lootEvMimic(this.checked)"> Dit is een mimic
+        </label>
+        <span class="dm-hint">${c.mimicEncounterId ? 'Het mimic-gevecht staat klaar.' : 'De app zet het gevecht klaar zodra je dit aanvinkt.'}</span>
       </div>
       <div class="dm-form-row">
-        <label class="dm-form-label">Plek</label>
+        <label class="dm-form-label">Dungeon</label>
         <select class="dm-input dm-input-sm" style="flex:1;min-width:130px"
           onchange="window.dmPanel.lootEvDungeon(this.value)">
           <option value="">— los, niet in een dungeon —</option>
@@ -8246,31 +8281,30 @@ function _lootEditorHtml() {
           ${((_lootDungeons || []).find(d => d.id === c.dungeonId)?.rooms || []).map(r => `<option value="${esc(r.id)}" ${c.roomId === r.id ? 'selected' : ''}>${esc(r.name || 'Kamer')}</option>`).join('')}
         </select>` : ''}
       </div>
-      <div class="dm-form-row">
-        <label class="dm-form-label">Munten</label>
-        <input class="dm-input dm-input-sm" style="width:90px" placeholder="1,34"
-          value="${_muntGoudCl(c) ? _clNaarTekst(_muntGoudCl(c)) : ''}"
-          oninput="window.dmPanel.lootEvGoud(this.value)">
+      <div class="dm-section-label" style="margin-top:10px">${icon('coins')} Goud<span class="dm-sectie-hulp">${helpBtn('dm_loot_goud')}</span></div>
+      <div class="dm-form-row dm-loot-goud">
+        <label class="dm-labeled-input">
+          <span class="dm-input-lbl">Vast bedrag</span>
+          <input class="dm-input dm-input-sm" style="width:96px" placeholder="1,34"
+            value="${_muntGoudCl(c) ? _clNaarTekst(_muntGoudCl(c)) : ''}"
+            oninput="window.dmPanel.lootEvGoud(this.value)">
+        </label>
+        <label class="dm-labeled-input">
+          <span class="dm-input-lbl">Of gerold van</span>
+          <input class="dm-input dm-input-sm" style="width:84px" placeholder="0,50"
+            value="${r.vanCl ? _clNaarTekst(r.vanCl) : ''}" oninput="window.dmPanel.lootEvRandom('vanCl', this.value)">
+        </label>
+        <label class="dm-labeled-input">
+          <span class="dm-input-lbl">tot</span>
+          <input class="dm-input dm-input-sm" style="width:84px" placeholder="2,00"
+            value="${r.totCl ? _clNaarTekst(r.totCl) : ''}" oninput="window.dmPanel.lootEvRandom('totCl', this.value)">
+        </label>
         <span class="dm-hint" id="dm-loot-munt-uitleg">${_muntUitleg(_muntGoudCl(c), c.relicten)}</span>
-      </div>
-      <div class="dm-form-row">
-        <label class="dm-form-label">Of gerold</label>
-        <input class="dm-input dm-input-sm" style="width:80px" placeholder="0,50"
-          value="${r.vanCl ? _clNaarTekst(r.vanCl) : ''}" oninput="window.dmPanel.lootEvRandom('vanCl', this.value)">
-        <span class="dm-hint">tot</span>
-        <input class="dm-input dm-input-sm" style="width:80px" placeholder="2,00"
-          value="${r.totCl ? _clNaarTekst(r.totCl) : ''}" oninput="window.dmPanel.lootEvRandom('totCl', this.value)">
-        <span class="dm-hint">gerold bij het onthullen</span>
       </div>
       <div class="dm-section-label" style="margin-top:10px">Voorwerpen
         <button class="dm-btn dm-btn-ghost dm-btn-sm" style="margin-left:8px" onclick="window.dmPanel.lootEvItemAdd()">${icon('plus')} Regel</button>
       </div>
       ${items || '<p class="dm-hint">Nog geen voorwerpen in deze vondst.</p>'}
-      <div class="dm-form-row" style="margin-top:10px">
-        <label class="dm-loot-check"><input type="checkbox" ${c.sjabloon ? 'checked' : ''}
-          onchange="window.dmPanel.lootEvVeld('sjabloon', this.checked)"> Bewaar als sjabloon</label>
-        <span class="dm-hint">Een sjabloon ligt nergens en wordt niet onthuld; hij staat apart onderaan met een knop "Gebruiken", die er een kopie van maakt.</span>
-      </div>
       <div class="dm-form-row">
         <button class="dm-btn dm-btn-primary" onclick="window.dmPanel.lootEvOpslaan()" title="Opslaan">${icon('save')} Opslaan</button>
         <button class="dm-btn dm-btn-ghost" onclick="window.dmPanel.lootEvAnnuleer()" title="Annuleren">${icon('x')}</button>
@@ -8278,9 +8312,24 @@ function _lootEditorHtml() {
     </div>`;
 }
 
-function _lootEvNieuw() {
-  _lootConcept = { naam: '', dc: 0, vaardigheid: '', goud: { fl: 0, kn: 0, cl: 0 },
-                   goudRandom: { vanCl: 0, totCl: 0 }, items: [], sjabloon: false };
+// Een nieuwe vondst, eventueel als kopie van een bestaande. Dat vervangt de
+// sjablonen: die waren een tweede sóórt vondst die nergens lag en niet onthuld
+// kon worden, terwijl je in de praktijk gewoon "zoiets als die vorige kist"
+// wilde. Kopiëren doet dat, zonder extra begrip.
+function _lootEvNieuw(bronId) {
+  const bron = bronId ? _lootEvents.find(e => e.id === bronId) : null;
+  if (bron) {
+    _lootConcept = JSON.parse(JSON.stringify(bron));
+    _lootConcept.id = null;                       // het is een nieuwe vondst
+    _lootConcept.naam = `${bron.naam || 'Vondst'} (kopie)`;
+    _lootConcept.onthuld = false;
+    _lootConcept.dungeonId = null;                // hij ligt nog nergens
+    _lootConcept.roomId = null;
+  } else {
+    _lootConcept = { naam: '', dc: 0, vaardigheid: '', goud: { fl: 0, kn: 0, cl: 0 },
+                     goudRandom: { vanCl: 0, totCl: 0 }, items: [] };
+  }
+  if (!_lootConcept.goudRandom) _lootConcept.goudRandom = { vanCl: 0, totCl: 0 };
   _renderLootInner();
 }
 function _lootEvBewerk(id) {
@@ -8324,6 +8373,36 @@ function _lootEvItemVeld(i, veld, waarde) {
   if (veld === 'willekeurig') _renderLootInner();   // velden aan/uit zetten
 }
 // Naam → id, met een korte foutflits als er geen kaartje met die naam bestaat.
+// Een regel op een tafel laten gooien. Kiezen sluit het kaartje uit: twee
+// bronnen voor één voorwerp zou betekenen dat de worp het kaartje overschrijft,
+// en dan is niet meer te zien wat er in de kist lag.
+function _lootEvItemTafel(i, naam, invoer) {
+  const it = _lootConcept?.items?.[i];
+  if (!it) return;
+  const gezocht = String(naam || '').trim().toLowerCase();
+  if (!gezocht) { it.tafelId = null; _renderLootInner(); return; }
+  const t = _lootTafels.find(x => String(x.name || '').toLowerCase() === gezocht);
+  if (!t) {
+    invoer?.classList.add('dm-input--err');
+    setTimeout(() => invoer?.classList.remove('dm-input--err'), 1200);
+    return;
+  }
+  it.tafelId = t.id;
+  it.entityId = null;
+  it.willekeurig = false;
+  if (!it.naam) it.naam = `Worp op ${t.name}`;
+  _renderLootInner();
+}
+
+// Het mimic-vinkje. Welk gevecht erbij hoort weet de server; die maakt het
+// zo nodig aan met het Mimic-statblok uit de SRD.
+function _lootEvMimic(aan) {
+  if (!_lootConcept) return;
+  _lootConcept.mimic = !!aan;
+  if (!aan) _lootConcept.mimicEncounterId = null;
+  _renderLootInner();
+}
+
 function _lootEvItemKoppel(i, naam, invoer) {
   const it = _lootConcept?.items?.[i];
   if (!it) return;
@@ -8336,6 +8415,7 @@ function _lootEvItemKoppel(i, naam, invoer) {
     return;
   }
   it.entityId  = v.id;
+  it.tafelId   = null;                 // een kaartje en een worp sluiten elkaar uit
   if (!it.naam) it.naam = v.name;
   if (!it.rariteit && v.data?.rariteit) it.rariteit = v.data.rariteit;
   _renderLootInner();

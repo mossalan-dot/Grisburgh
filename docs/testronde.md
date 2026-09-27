@@ -668,6 +668,10 @@ fout-uitvoert.
 - [ ] **Instellingen — party's** (DM) — aanmaken, hernoemen, verwijderen (met de waarschuwing), en wie er vanavond meespeelt
 - [ ] **Party-kaartje** (DM) — klik een party in de lijst; het venster toont naam, groepswachtwoord, personages, wie er vanavond speelt en de gedeelde beurs van díé party
 - [ ] **Gevecht: deelnemer toevoegen** (DM) — het zoekveld is ook het naamveld: kies een monster uit de lijst, óf typ een eigen naam en voeg toe. Het kaartjes-lijstje is een zoekveld geworden, en de kolom heet *Initiative*
+- [ ] **Vondst: mimic** (DM) — vink *Dit is een mimic* aan bij een vondst; de app zet zelf een Mimic-gevecht klaar (SRD-statblok, niet in het Bestiarium) en gebruikt daarna steeds dat ene. Onthullen geeft geen buit maar de kist-ontknoping op het tafelscherm en de vraag of het gevecht start
+- [ ] **Vondst: worp op een tafel** (DM) — zet bij een voorwerpregel een tafel in plaats van een kaartje; bij het onthullen wordt er gegooid, een valuta-token `{+2kn}` valt weg uit de naam, en komt de uitkomst overeen met een voorwerpkaartje dan wordt dat gekoppeld. Een regel mét kaartje kan geen tafel krijgen en omgekeerd
+- [ ] **Vondst kopiëren** (DM) — *of kopieer een bestaande* bij Vondsten neemt DC, goud en voorwerpen over, maar niet waar hij ligt. Sjablonen zijn vervallen; wat er nog staat is met *Gebruiken* om te zetten
+- [ ] **Vondst: goud** (DM) — vast bedrag én het gerolde bereik staan naast elkaar onder de kop *Goud*; een bereik wordt pas bij het onthullen gegooid
 - [ ] **Statblok van een kaartje** (DM) — open in Monsters een wezen met de pil *van kaartje*: er staat een melding met een knop naar dat kaartje, de velden zijn leesbaar maar vast, *Toon in Bestiarium* ontbreekt (hij staat al onder Personages) en alleen de roddel is te bewerken en te bewaren
 - [ ] **Deelnemer-soorten** (DM) — de lijst zegt *Tegenstander* (niet Monster), en Summon heeft nu hetzelfde zoekveld voor een statblok als Tegenstander en Medestander
 - [ ] **Monsterlijst** (DM) — twintig per pagina in plaats van vijf, en het filter zegt *Alle akten*

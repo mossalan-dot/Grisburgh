@@ -412,6 +412,28 @@ dm-panel.js : combat-canvas.js?v=22   render-statblock.js?v=9
 > of het gevecht meteen moet starten (`_encStart`). De kist blijft dus tot het
 > laatste moment een kist — dat is de hele grap.
 
+> **Buit: een tafel in plaats van een loterij, en de mimic is een vinkje.**
+> De knop *willekeurig, van deze zeldzaamheid* op een loot-regel trok uit álle
+> voorwerpkaartjes van dat niveau — ook het zwaard van de antagonist of een
+> questvoorwerp dat nooit in een kist hoort te liggen. Een regel wijst nu naar
+> een **tafel** (`item.tafelId`, uit `tables.json`): die rolt pas bij het
+> onthullen, valuta-tokens (`{+2kn}`) worden uit de naam geknipt, en komt de
+> uitkomst overeen met een voorwerpkaartje dan koppelt hij zichzelf. Server:
+> `_rolTafelRegel()` + de tak in `_eventNaarItems()`; `willekeurig` blijft
+> gelezen worden voor regels die er al liggen. Een kaartje en een tafel sluiten
+> elkaar uit — twee bronnen voor één voorwerp betekent dat de worp het kaartje
+> overschrijft.
+> De **mimic** is een vinkje geworden. De client stuurt `mimic: true`, de server
+> zoekt of maakt het vaste mimic-gevecht (`_mimicEncounterId()`, met het
+> Mimic-statblok uit `bronnen/srd-monsters.json`, `inBestiarium: false` want het
+> is een verrassing) en hergebruikt dat daarna. Zo hoeft een nieuwe DM niet
+> eerst een monster op te zoeken. Een eigen `mimicEncounterId` meesturen mag nog.
+> **Sjablonen zijn vervallen**: dat was een tweede sóórt vondst die nergens lag
+> en niet onthuld kon worden, terwijl je in de praktijk "zoiets als die vorige
+> kist" wilde. Bij *Nieuwe vondst* kopieer je er nu een (zonder zijn plek — twee
+> kisten liggen zelden in dezelfde kamer). Bestaande sjablonen staan er nog,
+> onder een kop die zegt dat ze weg mogen.
+
 > **Aanwezigheid per sessie.** `groups[gid].afwezig` is de lijst met spelers die
 > **niet** meedoen (afwezigen bewaren, niet aanwezigen: dan doet een nieuw
 > personage automatisch mee). In te stellen bij Instellingen → Party's

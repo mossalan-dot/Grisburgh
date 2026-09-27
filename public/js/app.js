@@ -10,7 +10,7 @@ import { renderSpreuken } from './render-spreuken.js?v=41';
 import { renderVaardigheden, zoekVaardigheden } from './render-vaardigheden.js?v=8';
 import { renderStatblock } from './render-statblock.js?v=9';
 import { initSocket } from "./socket-client.js?v=78";
-import { initDmPanel } from "./dm-panel.js?v=305";
+import { initDmPanel } from "./dm-panel.js?v=306";
 import { COND_INFO, COND_LABEL, COND_MET_PLAATJE, COND_ICON } from './conditions.js?v=2';
 import './media-picker.js?v=8';
 import './tafels.js?v=1';
@@ -14058,11 +14058,28 @@ const HELP_CONFIG = {
     { titel: 'Terugdraaien kan', tekst: 'Een per ongeluk gegund level haal je met dezelfde knop weer weg zolang de speler hem nog niet verzilverd heeft. Daarna is het zijn blad, en draai je het terug op zijn personage.', afbeelding: null },
   ] }),
 
+  dm_loot_vondsten: () => ({ titel: 'De vondsten', stappen: [
+    { titel: 'De bibliotheek van wat er ligt', tekst: 'Elke vondst is één ding dat de party kan vinden. Ze blijven staan nadat je ze onthuld hebt (met de melding *onthuld*), zodat je terug kunt zien wat waar lag.', afbeelding: null },
+    { titel: 'Onthullen', tekst: 'Vink één of meer vondsten aan en klik op de knop eronder. Dat bouwt één verdeling waarin elk voorwerp onthoudt uit wélke vondst het komt — "uit de haard" en "onder de plavuizen" blijven dus gescheiden. In het venster dat opent stel je nog bij; pas als je op onthullen drukt, zien de spelers iets.', afbeelding: null },
+    { titel: 'Kopiëren in plaats van sjablonen', tekst: 'Wil je zoiets als een vondst die je al hebt, kies hem dan bij *of kopieer een bestaande*. Je krijgt een nieuwe vondst met dezelfde DC, hetzelfde goud en dezelfde voorwerpen — alleen niet op dezelfde plek, want twee kisten liggen zelden in dezelfde kamer.', afbeelding: null },
+  ] }),
+  dm_loot_sjablonen: () => ({ titel: 'Oude sjablonen', stappen: [
+    { titel: 'Waarom ze weg zijn', tekst: 'Een sjabloon was een vondst die nergens lag en niet onthuld kon worden — een tweede soort ding om te onthouden, voor iets wat je in de praktijk oploste met "geef me zoiets als die vorige kist". Dat doet **kopiëren** nu, bij het aanmaken.', afbeelding: null },
+    { titel: 'Wat je ermee doet', tekst: 'Wat je al had staat er nog. *Gebruiken* maakt er een gewone vondst van; daarna kun je het sjabloon weggooien. Er gaat niets verloren.', afbeelding: null },
+  ] }),
+  dm_loot_goud: () => ({ titel: 'Goud in een vondst', stappen: [
+    { titel: 'Eén bedrag met een komma', tekst: `Vul in wat erin zit: **1,34** is 1 ${window._muntNamen().fl}, 3 ${window._muntNamen().kn} en 4 ${window._muntNamen().cl} — het leest als gewoon geld, want de tweede munt is een tiende van de eerste en de derde een honderdste.`, afbeelding: null },
+    { titel: 'Of laat het rollen', tekst: 'Vul in plaats daarvan een bereik in (van … tot). Het bedrag wordt dan pas **bij het onthullen** gegooid, zodat je ziet wat het geworden is voordat het scherm opengaat — en zodat dezelfde kist twee keer iets anders kan opleveren.', afbeelding: null },
+    { titel: 'Electrum en platinum', tekst: 'Die worden bij het invoeren omgerekend (ep = 5 zilver, pp = 10 goud): in de beurs bestaan ze niet. In de vondst worden ze wél bij naam genoemd — het is oud geld dat je víndt — en dan staat er bij de buit "waaronder 3 Lion d\'or".', afbeelding: null },
+  ] }),
   dm_loot_editor: () => ({ titel: 'Een vondst maken', stappen: [
     { titel: 'Wat een vondst is', tekst: 'Eén ding dat de party kan vinden: de geldzak in de haard, het zwaard onder de plavuizen. Eén kamer kan er meerdere hebben, en elk krijgt zijn eigen naam — die naam staat later bij de buit, zodat "uit de haard" en "onder de plavuizen" gescheiden blijven.', afbeelding: null },
     { titel: 'De DC is een aantekening', tekst: 'Het getal is voor jou, niet voor de app. De spelers gooien aan tafel en jij beslist; onthullen is altijd een klik. Er wordt dus nergens een worp ingevoerd of bijgehouden wie wat gooide.', afbeelding: null },
     { titel: 'Geld', tekst: `Vul één bedrag in met een komma: **1,34** is 1 ${window._muntNamen().fl}, 3 ${window._muntNamen().kn} en 4 ${window._muntNamen().cl}. Wil je het aan het toeval overlaten, zet dan een bereik bij *Of gerold* — dat wordt pas bij het onthullen gegooid, zodat je ziet wat het geworden is voordat het scherm opengaat.`, afbeelding: null },
-    { titel: 'Waar hij ligt', tekst: 'Koppel de vondst aan een kamer van een dungeon, dan verschijnt daar vanzelf het muntje — alleen op jouw scherm, met een stippellijn. Klikken op dat muntje bouwt meteen de verdeling.', afbeelding: null },
+    { titel: 'Waar hij ligt', tekst: 'Koppel de vondst aan een kamer van een **dungeon**, dan verschijnt daar vanzelf het muntje — alleen op jouw scherm, met een stippellijn. Klikken op dat muntje bouwt meteen de verdeling.', afbeelding: null },
+    { titel: 'Een voorwerp, of een worp', tekst: 'Een regel is óf een vast voorwerp (eventueel gekoppeld aan een kaartje, dan kan de speler het openen), óf een **worp op een tafel**. Die twee sluiten elkaar uit. Kies je een tafel, dan bepaalt de worp bij het onthullen wat erin lag — en komt de naam overeen met een voorwerpkaartje, dan wordt dat vanzelf gekoppeld.', afbeelding: null },
+    { titel: 'Waarom een tafel en geen loterij', tekst: 'Er wás een knop "willekeurig, van deze zeldzaamheid". Die trok uit álle voorwerpkaartjes van dat niveau — ook het zwaard van de antagonist of een questvoorwerp dat nooit in een kist hoort te liggen. Een tafel is een lijst die jij hebt samengesteld: daar staat alleen in wat mág vallen. Oude regels met die knop blijven werken; nieuwe krijgen hem niet meer.', afbeelding: null },
+    { titel: 'Mimic', tekst: 'Vink *Dit is een mimic* aan en de kist blijkt een wezen: er valt niets te verdelen, het tafelscherm krijgt dezelfde kist met een andere ontknoping, en jij krijgt de vraag of het gevecht meteen moet beginnen. Het mimic-gevecht hoef je niet zelf te maken — de app zet het klaar met het Mimic-statblok uit de SRD, en gebruikt daarna steeds dat ene.', afbeelding: null },
   ] }),
   dm_loot_uitslag: () => ({ titel: 'De uitslag', stappen: [
     { titel: 'Wie krijgt wat', tekst: 'Per voorwerp staat hier wie het geclaimd heeft en wat de worp was. Bij meerdere claims wint de hoogste worp; bij gelijkspel gooien alleen die spelers opnieuw.', afbeelding: null },
