@@ -8,7 +8,7 @@ const icon    = (...a) => window.icon(...a);
 const helpBtn = (key)  => window._helpBtn?.(key) ?? '';
 
 // De condities staan op één plek; het spelerstabblad leest dezelfde lijst.
-import { CONDITIONS } from './conditions.js?v=2';
+import { CONDITIONS, COND_ICON } from './conditions.js?v=2';
 
 
 // Groepen voor de conditie-weergave. Op modulescope zodat de rij in het
@@ -253,6 +253,7 @@ export function initDmPanel() {
     monsterDelete:       _monsterDelete,
     srdSearch:           _srdSearch,
     srdImport:           _srdImport,
+    geluidenSubtab:      (id) => _geluidenSubtabKies(id),
     monsterFilterChapter: _monsterFilterChapter,
     monsterPage:          _monsterPage_set,
     monsterPickImage:   _monsterPickImage,
@@ -7185,6 +7186,19 @@ window.dmPanel.beursOpslaan = async (gid) => {
 // ── Geluiden ──────────────────────────────────────────────────────────────────
 
 let _sndOpenPid = null;   // welk speler-panel is momenteel open
+let _geluidenSubtab = 'decors';   // Decors | Standaardgeluiden | Spelers
+
+// Wisselen zonder hertekenen: de uploadvelden en open speler-panelen blijven
+// dan staan zoals je ze had.
+function _geluidenSubtabKies(id) {
+  if (!['decors', 'standaard', 'spelers'].includes(id)) return;
+  _geluidenSubtab = id;
+  document.querySelectorAll('.dm-geluiden-paneel').forEach(el => { el.hidden = el.dataset.sub !== id; });
+  document.querySelectorAll('.dm-tab-content[data-tab="geluiden"] .dm-subtab-nav [data-subtab], #dm-geluiden-content .dm-subtab-nav [data-subtab]')
+    .forEach(b => b.classList.toggle('active', b.dataset.subtab === id));
+  const hulp = document.querySelector('#dm-geluiden-content .dm-subtab-hulp');
+  if (hulp) hulp.innerHTML = window._heeftHelp?.(`dm_geluiden_${id}`) ? (window._helpBtn?.(`dm_geluiden_${id}`) ?? '') : '';
+}
 
 // Helpers shared across all Geluiden actions
 async function _sndPatch(body) {
@@ -7361,18 +7375,15 @@ async function _renderGeluiden() {
   // alle achttien zou een onwerkbaar lange lijst geven. De server accepteert de
   // volledige set (_CONDITION_SOUND_KEYS in routes/api.js), dus uitbreiden kan.
   // D&D-termen blijven Engels; alleen de toelichting is Nederlands.
-  const CONDITION_SLOTS = [
-    { key: 'unconscious', label: `${icon('skull')} Unconscious` },
-    { key: 'paralyzed',   label: `${icon('zap')} Paralyzed`     },
-    { key: 'stunned',     label: `${icon('star')} Stunned`      },
-    { key: 'frightened',  label: `${icon('eye-off')} Frightened`},
-    { key: 'poisoned',    label: `${icon('flask-conical')} Poisoned` },
-    { key: 'burning',     label: `${icon('flask-conical')} Burning`  },
-    { key: 'bleeding',    label: `${icon('heart')} Bleeding`    },
-    { key: 'flying',      label: `${icon('chevron-right')} Flying`   },
-    { key: 'concentration', label: `${icon('sparkles')} Concentration <span class="dm-hint" style="font-style:italic">— elke ronde</span>` },
-  ];
-
+  // Condities komen uit `conditions.js` — de enige lijst in de app. Hier stond
+  // een eigen rijtje van tien, met iconen die elders allang vervangen waren
+  // (`star` voor Stunned bijvoorbeeld, terwijl die in de app "favoriet"
+  // betekent). Nu alle 36, in dezelfde volgorde en met dezelfde tekening als op
+  // een token.
+  const CONDITION_SLOTS = CONDITIONS.map(c => ({
+    key: c.id,
+    label: `${icon(COND_ICON[c.id]?.[0] || 'circle-dashed')} ${esc(c.label)}`,
+  }));
   const conditionRows = CONDITION_SLOTS.map(({ key, label }) => {
     const fileId = sounds.conditions?.[key];
     return `
@@ -7474,13 +7485,11 @@ async function _renderGeluiden() {
   ];
   const svcSection = `
     <div class="dm-sound-section">
-      <div class="dm-sound-section-title">${icon('volume-2')} Diensten-sfeerloops</div>
-      <p class="dm-hint">Een sfeerloop die <strong>lokaal</strong> speelt zodra iemand die dienst opent — los van een sessie, geen tablet nodig. Een lopende broadcast-scène heeft voorrang.</p>
+      <div class="dm-sound-section-title">${icon('volume-2')} Diensten<span class="dm-sectie-hulp">${helpBtn('dm_geluiden_diensten')}</span></div>
+      <p class="dm-hint">Klinkt <strong>lokaal</strong> zodra iemand die dienst opent — los van een sessie, geen tablet nodig. Een lopende scène heeft voorrang.</p>
       <div class="dm-sound-list">${_DIENSTEN.map(d => svcRow(d.key, d.label)).join('')}</div>
       <div class="dm-section-label" style="margin-top:10px">Facties<span class="dm-sectie-hulp">${helpBtn('dm_geluiden_facties')}</span></div>
       <div class="dm-sound-list">${facties.length ? facties.map(f => svcRow('factie:' + f.id, f.naam || f.id)).join('') : '<p class="dm-hint" style="opacity:.6">Geen facties geconfigureerd.</p>'}</div>
-      <div class="dm-section-label" style="margin-top:10px">Rust<span class="dm-sectie-hulp">${helpBtn('dm_geluiden_rust')}</span></div>
-      <div class="dm-sound-list">${_REST.map(r => svcRow(r.key, r.label)).join('')}</div>
     </div>`;
 
   // Eenmalige geluiden bij een moment: geen sfeerloop maar een korte klank die
@@ -7506,48 +7515,61 @@ async function _renderGeluiden() {
   };
   const momentSection = `
     <div class="dm-sound-section">
-      <div class="dm-sound-section-title">${icon('sparkles')} Momenten</div>
-      <p class="dm-hint">Korte klanken die één keer spelen op een vast moment in het spel — geen loop.</p>
+      <div class="dm-sound-section-title">${icon('sparkles')} Momenten<span class="dm-sectie-hulp">${helpBtn('dm_geluiden_momenten')}</span></div>
+      <div class="dm-section-label">Klinkt één keer</div>
       <div class="dm-sound-list">
         ${momentRow('lootReveal', 'Loot onthullen', 'klinkt zodra de spelers de buit te zien krijgen')}
         ${momentRow('levelUp', 'Level omhoog', 'klinkt bij de speler die een level omhoog gaat, en op het tafelscherm')}
       </div>
+      <!-- De rust hoort bij de momenten: het is een scène in het spel, geen
+           plek die je opzoekt. Technisch blijft het een sfeerloop (hij speelt
+           zolang het rustscherm staat), vandaar de eigen kop. -->
+      <div class="dm-section-label" style="margin-top:10px">Loopt tijdens de rust<span class="dm-sectie-hulp">${helpBtn('dm_geluiden_rust')}</span></div>
+      <div class="dm-sound-list">${_REST.map(r => svcRow(r.key, r.label)).join('')}</div>
     </div>`;
 
+  // Drie tabjes in plaats van zes secties onder elkaar: wat je aan tafel
+  // aanzet (decors, momenten, diensten), wat de app zelf afspeelt
+  // (standaardgeluiden en condities) en wat per speler is ingesteld. Dezelfde
+  // balk als Gevecht, Diensten en Instellingen.
   el.innerHTML = `
-    ${_dmTabHead({ icon: 'volume-2', title: 'Geluiden', actions: helpBtn('dm_geluiden') })}
-    ${ambSection}
-    ${momentSection}
-    ${svcSection}
-    <div class="dm-sound-section">
-      <div class="dm-sound-section-title">Spelersemotes</div>
-      <p class="dm-hint">Stel per speler een beurtgeluid in en tot 4 emotes (label + geluid). De emotes verschijnen als knoppen op het spelerskaartje en in de gevechtsoverlay.</p>
-      ${spelers.length === 0
-        ? `<p class="dm-hint" style="opacity:.6">Geen spelers-personages gevonden (subtype = speler).</p>`
-        : playerBlocks}
+    <div class="dm-subtab-nav">${_subtabNavHtml({
+      items: [
+        { id: 'decors',   label: 'Decors',          icoon: 'volume-2' },
+        { id: 'standaard', label: 'Standaardgeluiden', icoon: 'sparkles' },
+        { id: 'spelers',  label: 'Spelers',         icoon: 'users' },
+      ],
+      actief: _geluidenSubtab,
+      klik: (id) => `window.dmPanel.geluidenSubtab('${id}')`,
+      hulp: `dm_geluiden_${_geluidenSubtab}`,
+    })}</div>
+
+    <div class="dm-geluiden-paneel" data-sub="decors"${_geluidenSubtab === 'decors' ? '' : ' hidden'}>
+      ${ambSection}
+      ${momentSection}
+      ${svcSection}
     </div>
-    <div class="dm-sound-section">
-      <div class="dm-sound-player-dropdown" data-pid="__std__">
-        <button class="dm-sound-player-summary" onclick="window._sndTogglePlayer('__std__')">
-          <span class="dm-sound-arrow">${stdOpen ? '▼' : '▶'}</span>
-          <span class="dm-sound-player-name">${icon('volume-2')} Standaardgeluiden</span>
-        </button>
-        <div class="dm-sound-player-body" ${stdOpen ? '' : 'hidden'}>
-          <p class="dm-hint" style="margin:0 0 8px">Automatisch afgespeeld bij HP-wijzigingen, beurtwisseling en gevecht-einde.</p>
-          <div class="dm-sound-list">${standardRows}</div>
-        </div>
+
+    <div class="dm-geluiden-paneel" data-sub="standaard"${_geluidenSubtab === 'standaard' ? '' : ' hidden'}>
+      <div class="dm-sound-section">
+        <div class="dm-sound-section-title">${icon('volume-2')} Vaste geluiden<span class="dm-sectie-hulp">${helpBtn('dm_geluiden_standaard')}</span></div>
+        <p class="dm-hint">Spelen vanzelf af bij HP-wijzigingen, een beurtwisseling en het einde van een gevecht.</p>
+        <div class="dm-sound-list">${standardRows}</div>
+      </div>
+      <div class="dm-sound-section">
+        <div class="dm-sound-section-title">${icon('sparkles')} Condities<span class="dm-sectie-hulp">${helpBtn('dm_geluiden_condities')}</span></div>
+        <p class="dm-hint">Klinkt op het tafelscherm zodra je een condition op een deelnemer zet. Bij meerdere tegelijk speelt alleen de zwaarste. <strong>Concentration</strong> werkt anders: die klinkt bij het begin van elke ronde zolang er iemand concentreert.</p>
+        <div class="dm-sound-list">${conditionRows}</div>
       </div>
     </div>
-    <div class="dm-sound-section">
-      <div class="dm-sound-player-dropdown" data-pid="__cond__">
-        <button class="dm-sound-player-summary" onclick="window._sndTogglePlayer('__cond__')">
-          <span class="dm-sound-arrow">${condOpen ? '▼' : '▶'}</span>
-          <span class="dm-sound-player-name">${icon('sparkles')} Conditie-geluiden</span>
-        </button>
-        <div class="dm-sound-player-body" ${condOpen ? '' : 'hidden'}>
-          <p class="dm-hint" style="margin:0 0 8px">Klinkt op het tafelscherm zodra je een condition toepast op een combatant. Bij meerdere tegelijk speelt alleen de zwaarste. <strong>Concentration</strong> werkt anders: die klinkt bij het begin van elke nieuwe ronde zolang er iemand concentreert.</p>
-          <div class="dm-sound-list">${conditionRows}</div>
-        </div>
+
+    <div class="dm-geluiden-paneel" data-sub="spelers"${_geluidenSubtab === 'spelers' ? '' : ' hidden'}>
+      <div class="dm-sound-section">
+        <div class="dm-sound-section-title">${icon('users')} Spelersemotes<span class="dm-sectie-hulp">${helpBtn('dm_geluiden_spelers')}</span></div>
+        <p class="dm-hint">Per speler een beurtgeluid en tot vier emotes (label + geluid). De emotes staan als knoppen op zijn kaartje en in de gevechtsoverlay.</p>
+        ${spelers.length === 0
+          ? `<p class="dm-hint" style="opacity:.6">Geen spelers-personages gevonden (subtype = speler).</p>`
+          : playerBlocks}
       </div>
     </div>`;
 

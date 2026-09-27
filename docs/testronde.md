@@ -668,6 +668,8 @@ fout-uitvoert.
 - [ ] **Instellingen — party's** (DM) — aanmaken, hernoemen, verwijderen (met de waarschuwing), en wie er vanavond meespeelt
 - [ ] **Party-kaartje** (DM) — klik een party in de lijst; het venster toont naam, groepswachtwoord, personages, wie er vanavond speelt en de gedeelde beurs van díé party
 - [ ] **Gevecht: deelnemer toevoegen** (DM) — het zoekveld is ook het naamveld: kies een monster uit de lijst, óf typ een eigen naam en voeg toe. Het kaartjes-lijstje is een zoekveld geworden, en de kolom heet *Initiative*
+- [ ] **Geluiden: drie tabjes** (DM) — Decors (decors, momenten, diensten en facties), Standaardgeluiden (vaste geluiden + alle 36 condities) en Spelers (beurtgeluid + emotes). Wisselen laat een openstaand spelerspaneel staan
+- [ ] **Geluiden: rust bij de momenten** (DM) — de drie rustloops staan onder *Momenten*, met een eigen kopje omdat ze lopen in plaats van één keer klinken
 - [ ] **Vondst: mimic** (DM) — vink *Dit is een mimic* aan bij een vondst; de app zet zelf een Mimic-gevecht klaar (SRD-statblok, niet in het Bestiarium) en gebruikt daarna steeds dat ene. Onthullen geeft geen buit maar de kist-ontknoping op het tafelscherm en de vraag of het gevecht start
 - [ ] **Vondst: worp op een tafel** (DM) — zet bij een voorwerpregel een tafel in plaats van een kaartje; bij het onthullen wordt er gegooid, een valuta-token `{+2kn}` valt weg uit de naam, en komt de uitkomst overeen met een voorwerpkaartje dan wordt dat gekoppeld. Een regel mét kaartje kan geen tafel krijgen en omgekeerd
 - [ ] **Vondst kopiëren** (DM) — *of kopieer een bestaande* bij Vondsten neemt DC, goud en voorwerpen over, maar niet waar hij ligt. Sjablonen zijn vervallen; wat er nog staat is met *Gebruiken* om te zetten

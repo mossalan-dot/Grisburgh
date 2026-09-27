@@ -137,6 +137,13 @@ const DYNAMISCH = {
     sleutels: ['personages', 'locaties', 'organisaties', 'voorwerpen', 'documenten'],
     hoe: 'de kaartjes-tab geeft het entiteitstype als sleutel door',
   },
+  'dm-panel.js': {
+    // De subtab-balken stellen hun sleutel samen uit het actieve tabje.
+    regel: /hulp: `(inst|dm_geluiden)_\$\{/,
+    sleutels: ['inst_campagne', 'inst_partys', 'inst_beheer',
+               'dm_geluiden_decors', 'dm_geluiden_standaard', 'dm_geluiden_spelers'],
+    hoe: 'de subtab-balk stelt de sleutel samen uit het actieve tabje',
+  },
 };
 function vindplaatsen() {
   const per = {};

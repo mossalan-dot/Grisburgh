@@ -10,7 +10,7 @@ import { renderSpreuken } from './render-spreuken.js?v=41';
 import { renderVaardigheden, zoekVaardigheden } from './render-vaardigheden.js?v=8';
 import { renderStatblock } from './render-statblock.js?v=9';
 import { initSocket } from "./socket-client.js?v=78";
-import { initDmPanel } from "./dm-panel.js?v=306";
+import { initDmPanel } from "./dm-panel.js?v=307";
 import { COND_INFO, COND_LABEL, COND_MET_PLAATJE, COND_ICON } from './conditions.js?v=2';
 import './media-picker.js?v=8';
 import './tafels.js?v=1';
@@ -14119,6 +14119,35 @@ const HELP_CONFIG = {
     { titel: 'Opnieuw gebruiken', tekst: 'Een eerdere brief is de snelste opzet voor de volgende: open hem, pas de tekst aan en stuur hem naar iemand anders.', afbeelding: null },
   ] }),
 
+  dm_geluiden_decors: () => ({ titel: 'Decors', stappen: [
+    { titel: 'Wat een decor is', tekst: 'Een sfeerloop die je aanzet voor de hele tafel: regen op een dak, een drukke markt, wind over een vlakte. Hij klinkt vooral op het **tafelscherm** (dat is de speaker die iedereen hoort); een speler kan hem op zijn eigen toestel aanzetten met de dempknop in de kop.', afbeelding: null },
+    { titel: 'Eén tegelijk', tekst: 'Er speelt één decor. Zet je een ander aan, dan vervangt die de vorige — je hoeft dus niets uit te zetten voor je iets anders kiest.', afbeelding: null },
+    { titel: 'Momenten en diensten', tekst: 'Daaronder staan de klanken die de app **zelf** op het juiste moment speelt: een korte klank bij het onthullen van buit of een level-up, de loop tijdens een rust, en een sfeerloop per dienst die begint zodra iemand daar binnenloopt.', afbeelding: null },
+  ] }),
+  dm_geluiden_standaard: () => ({ titel: 'Vaste geluiden', stappen: [
+    { titel: 'Wanneer ze klinken', tekst: 'Deze spelen vanzelf: bij schade en genezing, bij een beurtwisseling, en aan het eind van een gevecht. Je hoeft er tijdens het spelen niets voor te doen.', afbeelding: null },
+    { titel: 'Laat ze kort zijn', tekst: 'Ze klinken bovenop wat er al speelt en soms een paar keer per ronde. Een klank van een halve seconde werkt; een fanfare gaat irriteren.', afbeelding: null },
+    { titel: 'Leeg mag ook', tekst: 'Wat je niet invult, klinkt niet. Er komt geen vervanging uit de app — stilte is een keuze.', afbeelding: null },
+  ] }),
+  dm_geluiden_condities: () => ({ titel: 'Conditiegeluiden', stappen: [
+    { titel: 'Alle condities die de app kent', tekst: 'De lijst komt uit dezelfde bron als de conditiekaartjes en de tokens, dus elke condition die je op een deelnemer kunt zetten staat hier — je hoeft niet meer te kiezen uit een handvol.', afbeelding: null },
+    { titel: 'De zwaarste wint', tekst: 'Staan er meerdere tegelijk op iemand, dan klinkt alleen de zwaarste. Anders zou het bij een goede ronde een kakofonie worden.', afbeelding: null },
+    { titel: 'Concentration is de uitzondering', tekst: 'Die klinkt niet bij het toepassen maar bij het begin van elke nieuwe ronde, zolang er iemand concentreert — het is een herinnering, geen gebeurtenis.', afbeelding: null },
+  ] }),
+  dm_geluiden_spelers: () => ({ titel: 'Spelersgeluiden', stappen: [
+    { titel: 'Een beurtgeluid', tekst: 'Per speler kun je een klank instellen die speelt als hij aan de beurt is. Handig aan een volle tafel: je hoort dat het jouw beurt is voordat je het ziet.', afbeelding: null },
+    { titel: 'Vier emotes', tekst: 'Elk een label en een geluid. Ze verschijnen als knoppen op zijn eigen kaartje en in de gevechtsoverlay, zodat een speler zelf iets kan laten klinken — een strijdkreet, een zucht, een lach.', afbeelding: null },
+    { titel: 'Van de speler, niet van jou', tekst: 'Laat ze er zelf een kiezen. Het is het enige geluid in de app dat van hén is, en dat is precies waarom het werkt.', afbeelding: null },
+  ] }),
+  dm_geluiden_momenten: () => ({ titel: 'Momenten', stappen: [
+    { titel: 'Eén keer, op een vast punt', tekst: 'Een korte klank die de app zelf speelt: als de spelers de buit te zien krijgen, of als iemand een level omhoog gaat. Geen loop — hij klinkt en is weg.', afbeelding: null },
+    { titel: 'De rust hoort er ook bij', tekst: 'Die staat eronder, met een eigen kop, want technisch is het wél een loop: hij speelt zolang het rustscherm in beeld is. Drie plekken: buiten, in de herberg, en de korte rust.', afbeelding: null },
+  ] }),
+  dm_geluiden_diensten: () => ({ titel: 'Geluid per dienst', stappen: [
+    { titel: 'Begint vanzelf', tekst: 'Loopt iemand een dienst binnen — de herberg, de tempel, het gokhuis — dan begint deze loop op zijn eigen toestel. Daar is geen sessie of tafelscherm voor nodig.', afbeelding: null },
+    { titel: 'Een decor gaat voor', tekst: 'Speelt er een decor voor de hele tafel, dan heeft dat voorrang: dat is het geluid van de scène waar jullie samen in zitten.', afbeelding: null },
+    { titel: 'Ook per factie', tekst: 'Elke factie kan een eigen loop hebben, zodat het gildehuis anders klinkt dan de tempel.', afbeelding: null },
+  ] }),
   dm_geluiden_facties: () => ({ titel: 'Sfeerloop per factie', stappen: [
     { titel: 'Wat het doet', tekst: 'Opent een speler het scherm van deze factie, dan begint deze loop zachtjes te spelen. Zo klinkt het gilde anders dan de tempel, zonder dat jij iets hoeft te starten.', afbeelding: null },
     { titel: 'Kies iets dat mag herhalen', tekst: 'Het speelt in een lus zolang dat scherm openstaat, dus kies iets zonder duidelijk begin en eind. Een fanfare van acht seconden wordt na drie keer een grap.', afbeelding: null },
