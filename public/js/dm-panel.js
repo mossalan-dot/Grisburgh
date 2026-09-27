@@ -4293,13 +4293,18 @@ function _renderEncounterEditor(el) {
   const name   = _encName;
   const akteId = _encAkteId;
 
+  // De kleur van de overkant in dit thema: de rijen krijgen hem als streep, zodat
+  // de editor zichtbaar bij het gevecht hoort dat eruit komt.
+  const _encPreset = CANVAS_PRESETS.find(p => p.id === (_encCanvasPreset || 'default')) || CANVAS_PRESETS[0];
+  const _encKantKleur = `rgb(${_encPreset.monster.join(',')})`;
+
   // Monster rows — shared datalist for searchable input
   const datalistHtml = `<datalist id="dm-enc-monsters-dl">${_statblokOptiesHtml()}</datalist>`;
 
   const rowsHtml = _encMonsterRows.length === 0
     ? `<p class="dm-hint" style="margin:4px 0 8px">Nog geen monsters. Klik + om er een toe te voegen.</p>`
     : _encHpBalkHtml() + _encMonsterRows.map((r, i) => `
-        <div class="dm-enc-monster-row" data-idx="${i}">
+        <div class="dm-enc-monster-row" data-idx="${i}" style="--kant:${_encKantKleur}">
           <input class="dm-input dm-input-sm" type="text"
             list="dm-enc-monsters-dl"
             value="${esc(r.name || '')}"
@@ -7956,6 +7961,39 @@ async function _lootToewijzen(itemId) {
   catch (e) { alert('Fout: ' + e.message); }
 }
 
+// Wie staat aan welke kant? Het canvas kleurt spelers en tegenstanders al —
+// per encounter in de tint van zijn thema — maar in de deelnemerslijst was dat
+// alleen een stipje van acht pixels zonder tekst. Hier komen dezelfde twee
+// kleuren terug, met een icoon en het woord erbij: een kleur alleen is geen
+// informatie voor wie kleurenblind is, en "medestander" versus "summon" valt
+// niet uit een tekening af te lezen.
+const _KANT = {
+  player: { label: 'speler',       icoon: 'user',      wij: true  },
+  ally:   { label: 'medestander',  icoon: 'shield',    wij: true  },
+  summon: { label: 'summon',       icoon: 'sparkles',  wij: true  },
+  monster:{ label: 'tegenstander', icoon: 'skull',     wij: false },
+};
+
+// De kleuren van dít gevecht: die zijn bij het opstellen uit het canvas-thema
+// van de encounter meegekomen. Staat er niets (een gevecht dat je met de hand
+// opbouwde), dan het standaardthema.
+function _kantKleuren(bron) {
+  const kleur = bron?.canvasColors;
+  const std = CANVAS_PRESETS[0];
+  const rgb = (v, terugval) => `rgb(${(Array.isArray(v) ? v : terugval).join(',')})`;
+  return { wij: rgb(kleur?.player, std.player), zij: rgb(kleur?.monster, std.monster) };
+}
+
+function _kantMerkHtml(type, kleuren) {
+  const k = _KANT[type] || _KANT.monster;
+  const kleur = k.wij ? kleuren.wij : kleuren.zij;
+  return `<span class="dm-kant" style="--kant:${kleur}">
+    <span class="dm-kant-balk"></span>
+    <span class="dm-kant-icoon" title="${esc(k.label)}">${icon(k.icoon)}</span>
+  </span>
+  <span class="dm-kant-woord">${esc(k.label)}</span>`;
+}
+
 function _renderGevecht() {
   // Bij type *monster* met een gevulde bibliotheek doet één veld twee dingen:
   // een monster kiezen, of — als je niets uit de lijst pakt — gewoon een naam
@@ -8010,7 +8048,7 @@ function _renderGevecht() {
         <div class="dm-setup-list">
           ${cs.map(c => `
             <div class="dm-setup-row">
-              <span class="dm-combatant-type-dot ${c.type === 'player' ? 'dm-type-player' : c.type === 'ally' ? 'dm-type-ally' : c.type === 'summon' ? 'dm-type-summon' : 'dm-type-monster'}"></span>
+              ${_kantMerkHtml(c.type, _kantKleuren(_combat))}
               <span class="dm-setup-name">${esc(c.name)}</span>
               <span class="dm-setup-meta">
                 Initiative <input class="dm-setup-init-input" type="number" value="${c.initiative}"

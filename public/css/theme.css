@@ -27162,3 +27162,29 @@ body.akte-schrijf-open .mp-overlay { z-index: 1320; }
   color: #f2e8d2;
 }
 .dm-enc-thema .icon { width: 17px; height: 17px; filter: drop-shadow(0 1px 1px rgba(0,0,0,0.45)); }
+
+/* ── De twee kanten van een gevecht ───────────────────────────────────────────
+   Dezelfde kleuren als het canvas eronder: jouw kant tegenover de overkant, in
+   de tint van het canvas-thema van dit gevecht. De kleur komt als `--kant` uit
+   de JS, want hij hangt aan het thema en niet aan een vaste klasse. */
+.dm-kant { display: inline-flex; align-items: center; gap: 6px; flex-shrink: 0; }
+.dm-kant-balk {
+  width: 3px;
+  align-self: stretch;
+  min-height: 18px;
+  border-radius: 2px;
+  background: var(--kant, #8b2a2a);
+}
+.dm-kant-icoon { display: inline-flex; color: var(--kant, #8b2a2a); }
+.dm-kant-icoon .icon { width: 14px; height: 14px; }
+.dm-kant-woord {
+  font-family: 'Crimson Text', Georgia, serif;
+  font-size: 11px;
+  font-style: italic;
+  color: #7a6040;
+  min-width: 82px;
+}
+/* In de encounter-editor staat alleen de balk: daar is elke regel een
+   tegenstander, dus het woord erbij zou op elke regel hetzelfde zeggen. */
+.dm-enc-monster-row { border-left: 3px solid var(--kant, #8b2a2a); padding-left: 8px; }
+.dm-enc-monster-row .dm-kant-balk { display: none; }

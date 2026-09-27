@@ -678,6 +678,7 @@ fout-uitvoert.
 - [ ] **Vondst kopiëren** (DM) — *of kopieer een bestaande* bij Vondsten neemt DC, goud en voorwerpen over, maar niet waar hij ligt. Sjablonen zijn vervallen; wat er nog staat is met *Gebruiken* om te zetten
 - [ ] **Vondst: goud** (DM) — vast bedrag én het gerolde bereik staan naast elkaar onder de kop *Goud*; een bereik wordt pas bij het onthullen gegooid
 - [ ] **Statblok van een kaartje** (DM) — open in Monsters een wezen met de pil *van kaartje*: er staat een melding met een knop naar dat kaartje, de velden zijn leesbaar maar vast, *Toon in Bestiarium* ontbreekt (hij staat al onder Personages) en alleen de roddel is te bewerken en te bewaren
+- [ ] **Kanten in het gevecht** (DM) — elke deelnemer draagt een gekleurde balk, een icoon en het woord: speler/medestander/summon aan jouw kant (blauw), tegenstander aan de overkant (rood). De kleuren zijn die van het canvas-thema van dít gevecht, dus de lijst en het tafelscherm zeggen hetzelfde. In de encounter-editor krijgt elke monsterregel dezelfde streep in de kleur van de overkant
 - [ ] **Deelnemer-soorten** (DM) — de lijst zegt *Tegenstander* (niet Monster), en Summon heeft nu hetzelfde zoekveld voor een statblok als Tegenstander en Medestander
 - [ ] **Monsterlijst** (DM) — twintig per pagina in plaats van vijf, en het filter zegt *Alle akten*
 - [ ] **Encounter bewerken** (DM) — geen backdrop meer (ook niet achter een lopend gevecht), negen canvas-thema's waarvan er altijd één geldt, en **Buit** wijst naar een vondst uit de Loot-tab
