@@ -304,7 +304,7 @@ export function initDmPanel() {
     setupPresetChange: _setupPresetChange,
     setupMonsterPick:  _setupMonsterPick,
     setupEntityChange: _setupEntityChange,
-    setupEntityZoek:   (veld) => _setupEntityZoek(veld),
+    setupZoek:         (veld) => _setupZoek(veld),
     setupAddSubmit:    _setupAddSubmit,
     setupReset:        _setupReset,
     setupInitChange:   _setupInitChange,
@@ -4570,6 +4570,19 @@ function _setupTypeChange(type) {
 };
 
 // Zoekbaar monster kiezen (datalist): resolvet getypte naam → id, hergebruikt _setupPresetChange.
+// Eén zoekveld, drie uitkomsten: een monster, een kaartje, of — als er niets
+// matcht — de naam die je zelf tikte. Die laatste blijft gewoon staan.
+function _setupZoek(veld) {
+  const naam = (veld?.value || '').trim();
+  const l = naam.toLowerCase();
+  const m = naam && _monsters.find(x => (x.name || '').toLowerCase() === l);
+  if (m) { _setupSelectedEntityId = null; _setupPresetChange(m.id); return; }
+  const e = naam && _setupPersonages.find(x => (x.name || '').toLowerCase() === l && x.stats);
+  if (e) { _setupSelectedPresetId = null; _setupEntityChange(e.id); return; }
+  _setupSelectedPresetId = null;
+  _setupSelectedEntityId = null;
+}
+
 function _setupMonsterPick(name) {
   const n = (name || '').trim().toLowerCase();
   const m = _monsters.find(x => (x.name || '').toLowerCase() === n);
@@ -4590,9 +4603,14 @@ function _setupPresetChange(presetId) {
     if (maxhpEl) maxhpEl.value = m.maxHp;
     // Het statblock schrijft AC soms als "15 (natural armor)"; we pakken het getal.
     if (acEl) acEl.value = parseInt(m.statblock?.ac) || '';
-  } else {
-    if (nameEl) nameEl.value = '';
-    if (acEl)   acEl.value   = '';
+  } else if (document.getElementById('dm-setup-name')) {
+    // Alleen een écht naamveld mag leeggemaakt worden. Is het zoekveld tegelijk
+    // het naamveld, dan staat daar de naam die de DM zelf tikte — die wissen is
+    // precies wat je niet wilt (en dat deed hij).
+    nameEl.value = '';
+    if (acEl) acEl.value = '';
+  } else if (acEl) {
+    acEl.value = '';
   }
 };
 
@@ -4603,7 +4621,7 @@ async function _setupEntityChange(entityId) {
                || document.getElementById('dm-setup-monster-search');
   const maxhpEl = document.getElementById('dm-setup-maxhp');
   if (!e) {
-    if (nameEl) nameEl.value = '';
+    if (document.getElementById('dm-setup-name')) nameEl.value = '';
     return;
   }
   if (nameEl) nameEl.value = e.name;
@@ -7800,7 +7818,23 @@ function _renderGevecht() {
   // Bij type *monster* met een gevulde bibliotheek doet één veld twee dingen:
   // een monster kiezen, of — als je niets uit de lijst pakt — gewoon een naam
   // typen. Dan hoeft er geen tweede naamveld te staan dat meestal leeg blijft.
-  const _zoekVeld = _setupSelectedType === 'monster' && _monsters.length > 0;
+  // Eén zoekveld voor drie dingen: een monster uit de bibliotheek, een kaartje
+  // met een statblok, of gewoon een naam die je zelf tikt. Twee zoekvelden
+  // onder elkaar (monsters én kaartjes) lazen als hetzelfde veld, twee keer.
+  const _zoekKaartjes = (_setupSelectedType === 'monster' || _setupSelectedType === 'ally')
+    ? _setupPersonages
+        .filter(e => e.stats && Object.values(e.stats).some(v => v !== null && v !== undefined && String(v).trim() !== ''))
+        .sort((a, b) => {
+          const gewenst = _setupSelectedType === 'ally' ? 'bondgenoot' : 'vijand';
+          return ((b.data?.kant === gewenst) - (a.data?.kant === gewenst))
+              || String(a.name).localeCompare(String(b.name), 'nl');
+        })
+    : [];
+  const _zoekVeld = (_setupSelectedType === 'monster' || _setupSelectedType === 'ally')
+                 && (_monsters.length > 0 || _zoekKaartjes.length > 0);
+  const _zoekWaarde = _setupSelectedPresetId
+    ? (_monsters.find(m => m.id === _setupSelectedPresetId)?.name || '')
+    : (_setupSelectedEntityId ? (_setupPersonages.find(e => e.id === _setupSelectedEntityId)?.name || '') : '');
   const el = document.getElementById('dm-gevecht-content');
   if (!el) return;
 
@@ -7860,11 +7894,14 @@ function _renderGevecht() {
         </div>
         ${_zoekVeld ? `
           <input id="dm-setup-monster-search" class="dm-input" list="dm-setup-monster-dl" autocomplete="off"
-            placeholder="Zoek een monster, of typ een eigen naam…"
-            value="${_setupSelectedPresetId ? esc(_monsters.find(m => m.id === _setupSelectedPresetId)?.name || '') : ''}"
-            onchange="window.dmPanel.setupMonsterPick(this.value)"
+            placeholder="Zoek een monster of kaartje, of typ een eigen naam…"
+            value="${esc(_zoekWaarde)}"
+            onchange="window.dmPanel.setupZoek(this)"
             onkeydown="if(event.key==='Enter')window.dmPanel.setupAddSubmit()">
-          <datalist id="dm-setup-monster-dl">${_monsters.map(m => `<option value="${esc(m.name)}"></option>`).join('')}</datalist>
+          <datalist id="dm-setup-monster-dl">
+            ${_monsters.map(m => `<option value="${esc(m.name)}">statblok uit de bibliotheek</option>`).join('')}
+            ${_zoekKaartjes.map(e => `<option value="${esc(e.name)}">kaartje${e.data?.kant ? ' · ' + esc(e.data.kant) : ''}${parseInt(e.stats?.hp) ? ' · HP ' + parseInt(e.stats.hp) : ''}</option>`).join('')}
+          </datalist>
         ` : ''}
         ${_setupSelectedType === 'player' && _setupPersonages.some(e => e.subtype === 'speler' && (!window._activeGroupId || e.data?.groep === window._activeGroupId)) ? `
           <select id="dm-setup-entity" class="dm-select"
@@ -7873,25 +7910,6 @@ function _renderGevecht() {
             ${_setupPersonages.filter(e => e.subtype === 'speler' && (!window._activeGroupId || e.data?.groep === window._activeGroupId)).map(e => `<option value="${esc(e.id)}" ${_setupSelectedEntityId === e.id ? 'selected' : ''}>${esc(e.name)}</option>`).join('')}
           </select>
         ` : ''}
-        ${(_setupSelectedType === 'ally' || _setupSelectedType === 'monster') && _setupPersonages.some(e => e.stats && Object.values(e.stats).some(v => v !== null && v !== undefined && String(v).trim() !== '')) ? (() => {
-          // Kaartjes met stats, gesorteerd op hun kant: wie op de kaart als
-          // bondgenoot staat, staat bovenaan bij Medestander; vijanden bovenaan
-          // bij Monster. Zo hoef je niet te zoeken tussen honderd namen.
-          const _kant = (e) => e.data?.kant || '';
-          const _gewenst = _setupSelectedType === 'ally' ? 'bondgenoot' : 'vijand';
-          const _kandidaten = _setupPersonages
-            .filter(e => e.stats && Object.values(e.stats).some(v => v !== null && v !== undefined && String(v).trim() !== ''))
-            .sort((a, b) => (_kant(b) === _gewenst) - (_kant(a) === _gewenst) || String(a.name).localeCompare(String(b.name), 'nl'));
-          const _merk = { bondgenoot: ' · bondgenoot', vijand: ' · vijand', neutraal: ' · neutraal' };
-          return `
-          <input id="dm-setup-entity-zoek" class="dm-input" list="dm-setup-entity-dl" autocomplete="off"
-            placeholder="Zoek een kaartje met een statblok… (leeg laten = handmatig)"
-            value="${esc(_kandidaten.find(e => e.id === _setupSelectedEntityId)?.name || '')}"
-            onchange="window.dmPanel.setupEntityZoek(this)">
-          <datalist id="dm-setup-entity-dl">
-            ${_kandidaten.map(e => `<option value="${esc(e.name)}">${_merk[_kant(e)]?.replace(' · ', '') || ''}${parseInt(e.stats?.hp) ? ' · HP ' + parseInt(e.stats.hp) : ''}</option>`).join('')}
-          </datalist>`;
-        })() : ''}
         ${_zoekVeld ? '' : `
         <div class="dm-feature-row">
           <input id="dm-setup-name" class="dm-input" placeholder="Naam…"
