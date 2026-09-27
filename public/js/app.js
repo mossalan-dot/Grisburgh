@@ -10,10 +10,10 @@ import { renderSpreuken } from './render-spreuken.js?v=41';
 import { renderVaardigheden, zoekVaardigheden } from './render-vaardigheden.js?v=8';
 import { renderStatblock } from './render-statblock.js?v=9';
 import { initSocket } from "./socket-client.js?v=78";
-import { initDmPanel } from "./dm-panel.js?v=314";
+import { initDmPanel } from "./dm-panel.js?v=315";
 import { COND_INFO, COND_LABEL, COND_MET_PLAATJE, COND_ICON } from './conditions.js?v=2';
 import './media-picker.js?v=8';
-import './tafels.js?v=1';
+import './tafels.js?v=2';
 
 // ── Icon helper ──
 // Renders an inline SVG <use> reference from /img/icons.svg.
@@ -14150,6 +14150,7 @@ const HELP_CONFIG = {
   dm_geluiden_standaard: () => ({ titel: 'Vaste geluiden', stappen: [
     { titel: 'Wanneer ze klinken', tekst: 'Deze spelen vanzelf: bij schade en genezing, bij een beurtwisseling, en aan het eind van een gevecht. Je hoeft er tijdens het spelen niets voor te doen.', afbeelding: null },
     { titel: 'Laat ze kort zijn', tekst: 'Ze klinken bovenop wat er al speelt en soms een paar keer per ronde. Een klank van een halve seconde werkt; een fanfare gaat irriteren.', afbeelding: null },
+    { titel: 'Ook op een vast moment', tekst: 'Onderaan staan de klanken die bij één gebeurtenis horen: als de spelers de buit te zien krijgen, en als iemand een level omhoog gaat. Die klinken één keer — geen loop.', afbeelding: null },
     { titel: 'Leeg mag ook', tekst: 'Wat je niet invult, klinkt niet. Er komt geen vervanging uit de app — stilte is een keuze.', afbeelding: null },
   ] }),
   dm_geluiden_condities: () => ({ titel: 'Conditiegeluiden', stappen: [

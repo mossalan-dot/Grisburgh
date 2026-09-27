@@ -43,11 +43,26 @@ function trekEen(lijst) {
 
 // Geeft altijd dezelfde vorm terug: de regels die eruit kwamen, plus de worp
 // als er een steen aan te pas kwam. Wie het toont beslist zelf hoe.
-export function rol(tabel) {
+// `alle` is de lijst met tafels van deze campagne — nodig omdat een combinatie
+// naar andere tafels verwijst. Wie hem niet meegeeft krijgt een combinatie van
+// de oude vorm gewoon terug; een nieuwe combinatie kan dan niets trekken.
+export function rol(tabel, alle = []) {
   if (!tabel) return { regels: ['Geen tafel.'], worp: null };
   const keer = Math.max(1, parseInt(tabel.rolls, 10) || 1);
 
   if (tabel.type === 'combined') {
+    // Nieuwe vorm: een combinatie verwijst naar **bestaande** tafels en plakt
+    // hun uitkomsten achter elkaar. Zo blijft elk onderdeel los bruikbaar en
+    // kun je er meer dan twee combineren. De oude vorm (twee lijstjes namen in
+    // de tafel zelf) blijft werken zolang er geen delen gekozen zijn.
+    const delen = (tabel.delen || []).map(id => alle.find(t => t.id === id)).filter(Boolean);
+    if (delen.length) {
+      const uit = [];
+      for (let i = 0; i < keer; i++) {
+        uit.push(delen.map(d => (rol(d, alle).regels[0] || '?')).join(' '));
+      }
+      return { regels: uit, worp: null };
+    }
     const a = tabel.first || [], b = tabel.last || [];
     if (!a.length && !b.length) return { regels: ['Deze tafel is leeg.'], worp: null };
     const uit = [];

@@ -676,6 +676,9 @@ fout-uitvoert.
 - [ ] **Geluiden: uitlijning** (DM) — in alle drie de tabjes beginnen de knoppen van elke regel op dezelfde plek, ook bij de spelers (kop, beurtgeluid en emotes)
 - [ ] **Rust: gebeurtenissen-tabel** (DM) — de kiezer toont nu ook gewone lijsten, niet alleen gewogen tabellen; een lange rust trekt daar een regel uit en een valuta-token erin wordt gewoon verrekend
 - [ ] **Rust: indeling** (DM) — *Level omhoog* springt niet meer in (stond binnen de vorige sectie), de opslaanknop draagt zijn naam en de uitleg onder de tabellen is weg
+- [ ] **Combinatietafel** (DM) — maak een tafel van het soort *Combinatie*, kies twee of meer bestaande tafels als delen; gooien plakt hun uitkomsten achter elkaar. Een oude namengenerator (voor-/achternaam) blijft werken zolang er geen delen gekozen zijn
+- [ ] **Tabellen: knoppen** (DM) — Gooien, Bewerken, Verwijderen en Nieuwe tafel staan op één rij met hun naam erbij, en de Namen-sectie is niet hoger dan de rest zolang er geen naam getrokken is
+- [ ] **Geluiden: momenten** (DM) — *Loot onthullen* en *Level omhoog* staan onder Vaste geluiden (tabje Standaardgeluiden); bij Decors blijft de rust staan als loop
 - [ ] **Willekeur** (DM) — een seizoen aanklikken gooit meteen het weer (geen aparte dobbelknop meer); nog eens klikken geeft een nieuwe worp. De naamknoppen dragen hun woord
 - [ ] **Geluiden: drie tabjes** (DM) — Decors (decors, momenten, diensten en facties), Standaardgeluiden (vaste geluiden + alle 36 condities) en Spelers (beurtgeluid + emotes). Wisselen laat een openstaand spelerspaneel staan
 - [ ] **Geluiden: rust bij de momenten** (DM) — de drie rustloops staan onder *Momenten*, met een eigen kopje omdat ze lopen in plaats van één keer klinken

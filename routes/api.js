@@ -9784,6 +9784,9 @@ router.post('/tables', requireDM, (req, res) => {
     entries: req.body.entries || [],
     first:   req.body.first   || [],
     last:    req.body.last    || [],
+    // Een combinatie wijst naar andere tafels (2 of meer). `first`/`last`
+    // blijven staan voor de oude namengenerators.
+    delen:   Array.isArray(req.body.delen) ? req.body.delen.filter(Boolean).map(String) : [],
     // Welke steen een gewogen tafel gebruikt. Leeg blijft d100, dus alle
     // bestaande tafels rollen onveranderd; een tabel uit een akte is net zo
     // vaak d6 of d20.
@@ -10421,7 +10424,21 @@ const getalOf = (v) => { const n = parseInt(v, 10); return Number.isFinite(n) ? 
 // zodat een DM niet eerst hoeft te weten welk soort tafel hij maakte. De
 // valuta-tokens van de rusttabellen (`{+3kn}`) horen niet in een voorwerpnaam
 // en worden er daarom afgeknipt.
-function _rolTafelRuw(tafel) {
+function _rolTafelRuw(tafel, alle = null) {
+  // Een **combinatie** verwijst naar andere tafels en plakt hun uitkomsten
+  // achter elkaar. De oude vorm (twee lijstjes namen in de tafel zelf) blijft
+  // werken zolang er geen delen gekozen zijn.
+  if (tafel?.type === 'combined') {
+    const lijst = alle || (storage.readJSON('tables.json').tables || []);
+    const delen = (tafel.delen || []).map(id => lijst.find(t => t.id === id)).filter(Boolean);
+    if (delen.length) {
+      const stukken = delen.map(d => _rolTafelRuw(d, lijst).regel).filter(Boolean);
+      return { regel: stukken.join(' '), worp: 0, zijden: 0 };
+    }
+    const kies = (l) => (l && l.length) ? String(l[Math.floor(Math.random() * l.length)]).trim() : '';
+    const naam = `${kies(tafel.first)} ${kies(tafel.last)}`.trim();
+    return { regel: naam, worp: 0, zijden: 0 };
+  }
   const regels = (tafel?.entries || []).filter(x => String(x || '').trim());
   if (!regels.length) return { regel: '', worp: 0, zijden: 0 };
   if (tafel.type === 'weighted') {

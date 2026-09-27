@@ -90,6 +90,7 @@ let _activeTab = 'gevecht';
 let _tables = [];
 let _editingTableId = null;
 let _editingTableType = 'simple';
+let _editingTableDelen = [];   // de tafels waaruit een combinatie is opgebouwd
 let _combat = null;
 let _combatLoaded = false;
 let _selectedCombatantId = null;
@@ -235,7 +236,14 @@ export function initDmPanel() {
     weerSeason:    _weerSeason,
     weerGenereer:  _weerGenereer,
     tabelCancel:   () => { _editingTableId = null; _renderTafels(); },
-    tabelTypeChange(val) { _editingTableType = val; _renderTafels(); },
+    tabelTypeChange(val) {
+      _editingTableType = val;
+      if (val === 'combined' && _editingTableDelen.filter(Boolean).length < 2) _editingTableDelen = ['', ''];
+      _renderTafels();
+    },
+    tabelDeel(i, id)     { _editingTableDelen[i] = id; },
+    tabelDeelErbij()     { _editingTableDelen.push(''); _renderTafels(); },
+    tabelDeelWeg(i)      { _editingTableDelen.splice(i, 1); _renderTafels(); },
     tabelSelect:   (id) => {
       document.getElementById('dm-tabel-select').value = id;
       _renderTafelResult(null);
@@ -3208,17 +3216,17 @@ function _renderTafels() {
           <select id="dm-tabel-select" class="dm-select" onchange="window.dmPanel.tabelSelect(this.value)">
             ${sortedTables.map(t => `<option value="${esc(t.id)}">${esc(t.name)}</option>`).join('')}
           </select>
-          <button class="dm-btn dm-btn-primary" onclick="window.dmPanel.tabelRoll()" title="Gooien">${icon('dice',{cls:'icon-gi'})}</button>
         </div>
         <div id="dm-tabel-result" class="dm-tabel-result hidden"></div>
-        <div class="dm-feature-row dm-feature-row-sm">
-          <button class="dm-btn dm-btn-sm" onclick="window.dmPanel.tabelEdit(document.getElementById('dm-tabel-select').value)" title="Bewerken">${icon('pencil')}</button>
-          <button class="dm-btn dm-btn-sm dm-btn-danger-sm" onclick="window.dmPanel.tabelDelete(document.getElementById('dm-tabel-select').value)" title="Verwijderen">${icon('x')}</button>
-          <button class="dm-btn dm-btn-sm dm-btn-ghost" onclick="window.dmPanel.tabelNew()" style="margin-left:auto" title="Nieuwe tafel">+</button>
+        <div class="dm-feature-row">
+          <button class="dm-btn dm-btn-primary" onclick="window.dmPanel.tabelRoll()" title="Gooi op deze tafel">${icon('dice',{cls:'icon-gi'})} Gooien</button>
+          <button class="dm-btn dm-btn-sm dm-btn-ghost" onclick="window.dmPanel.tabelEdit(document.getElementById('dm-tabel-select').value)" title="Deze tafel bewerken">${icon('pencil')} Bewerken</button>
+          <button class="dm-btn dm-btn-sm dm-btn-ghost dm-btn-danger" onclick="window.dmPanel.tabelDelete(document.getElementById('dm-tabel-select').value)" title="Deze tafel verwijderen">${icon('trash')} Verwijderen</button>
+          <button class="dm-btn dm-btn-sm dm-btn-ghost" onclick="window.dmPanel.tabelNew()" style="margin-left:auto" title="Een nieuwe tafel maken">${icon('plus')} Nieuwe tafel</button>
         </div>
       ` : `
         <p class="dm-hint">Nog geen tabellen aangemaakt.</p>
-        <button class="dm-btn dm-btn-primary" onclick="window.dmPanel.tabelNew()" title="Nieuwe tafel">+</button>
+        <button class="dm-btn dm-btn-sm dm-btn-ghost" onclick="window.dmPanel.tabelNew()" title="Een nieuwe tafel maken">${icon('plus')} Nieuwe tafel</button>
       `}
     </div>
   `;
@@ -3243,9 +3251,9 @@ function _renderTafelEditor(el) {
       <div class="dm-form-row">
         <label class="dm-form-label">Type</label>
         <select id="dm-tbl-type" class="dm-select" onchange="window.dmPanel.tabelTypeChange(this.value)">
-          <option value="simple"   ${_editingTableType === 'simple'   ? 'selected' : ''}>Gewoon — trek er een uit</option>
-          <option value="weighted" ${_editingTableType === 'weighted' ? 'selected' : ''}>Gewogen — bereiken, met een worp</option>
-          <option value="combined" ${_editingTableType === 'combined' ? 'selected' : ''}>Namengenerator — voor- en achternaam</option>
+          <option value="simple"   ${_editingTableType === 'simple'   ? 'selected' : ''}>Gewoon</option>
+          <option value="weighted" ${_editingTableType === 'weighted' ? 'selected' : ''}>Gewogen</option>
+          <option value="combined" ${_editingTableType === 'combined' ? 'selected' : ''}>Combinatie</option>
         </select>
       </div>
       ${_editingTableType === 'weighted' ? `
@@ -3257,14 +3265,31 @@ function _renderTafelEditor(el) {
           </select>
         </div>` : ''}
       ${isCombined ? `
+        <!-- Een combinatie trekt uit meerdere **bestaande** tafels en plakt de
+             uitkomsten achter elkaar. Dat was eerder vastgeklonken aan twee
+             lijstjes namen in deze tafel zelf; nu kun je er zoveel delen aan
+             hangen als je wilt, en de onderdelen blijven los bruikbaar —
+             dezelfde regel als overal: één plek, meerdere kanten. -->
         <div class="dm-form-row">
-          <label class="dm-form-label">Voornamen (één per regel)</label>
-          <textarea id="dm-tbl-first" class="dm-textarea" rows="5">${(table.first || []).join('\n')}</textarea>
+          <label class="dm-form-label">Delen — in deze volgorde achter elkaar geplakt</label>
+          <div id="dm-tbl-delen">
+            ${(_editingTableDelen.length ? _editingTableDelen : [''])
+              .map((deelId, i) => `
+              <div class="dm-feature-row" style="margin-bottom:4px">
+                <select class="dm-select dm-tbl-deel" onchange="window.dmPanel.tabelDeel(${i}, this.value)">
+                  <option value="">— kies een tafel —</option>
+                  ${_tables.filter(t => t.type !== 'combined' && t.id !== _editingTableId)
+                    .map(t => `<option value="${esc(t.id)}" ${deelId === t.id ? 'selected' : ''}>${esc(t.name)}</option>`).join('')}
+                </select>
+                ${_editingTableDelen.length > 1 ? `<button class="dm-btn dm-btn-sm dm-btn-ghost dm-btn-danger"
+                  onclick="window.dmPanel.tabelDeelWeg(${i})" title="Dit deel weghalen">${icon('x')}</button>` : ''}
+              </div>`).join('')}
+          </div>
+          <button class="dm-btn dm-btn-sm dm-btn-ghost" onclick="window.dmPanel.tabelDeelErbij()"
+            title="Nog een tafel aan de combinatie hangen">${icon('plus')} Deel erbij</button>
         </div>
-        <div class="dm-form-row">
-          <label class="dm-form-label">Achternamen (één per regel)</label>
-          <textarea id="dm-tbl-last" class="dm-textarea" rows="5">${(table.last || []).join('\n')}</textarea>
-        </div>
+        ${(table.first || []).length || (table.last || []).length ? `
+        <p class="dm-hint">Deze tafel heeft nog voor- en achternamen van de oude vorm; die blijven werken zolang je hier geen delen kiest.</p>` : ''}
       ` : _editingTableType === 'weighted' ? `
         <div class="dm-form-row">
           <label class="dm-form-label">Bereiken — <code>1-35: tekst</code>, één per regel. Eén getal mag ook: <code>7: tekst</code></label>
@@ -3302,7 +3327,7 @@ function _tabelRoll() {
   if (!table) return;
   // Eén rol-implementatie voor de hele app (tafels.js): de Tafels-tab, het
   // regieblok in een akte en de knop op een voorwerp rollen precies hetzelfde.
-  const r = window.tafels.rol(table);
+  const r = window.tafels.rol(table, _tables);
   const kop = r.worp ? `d${r.zijden}: ${r.worp} → ` : '';
   _renderTafelResult(r.regels.length > 1 ? r.regels : [kop + (r.regels[0] || '')]);
 };
@@ -3311,6 +3336,11 @@ function _tabelEdit(id) {
   _editingTableId = id;
   const table = _tables.find(t => t.id === id);
   _editingTableType = table?.type || 'simple';
+  // De delen van een combinatie als werkkopie; een tafel van de oude vorm
+  // (voor- en achternamen) heeft er geen en begint met twee lege keuzes.
+  _editingTableDelen = Array.isArray(table?.delen) && table.delen.length
+    ? [...table.delen]
+    : (table?.type === 'combined' ? ['', ''] : []);
   _renderTafels();
 };
 
@@ -3330,11 +3360,11 @@ async function _tabelSave(idOrNew) {
   const type    = document.getElementById('dm-tbl-type')?.value || 'simple';
   const isComb  = type === 'combined';
   const entries = isComb ? [] : (document.getElementById('dm-tbl-entries')?.value || '').split('\n').map(s => s.trim()).filter(Boolean);
-  const first   = isComb ? (document.getElementById('dm-tbl-first')?.value  || '').split('\n').map(s => s.trim()).filter(Boolean) : [];
-  const last    = isComb ? (document.getElementById('dm-tbl-last')?.value   || '').split('\n').map(s => s.trim()).filter(Boolean) : [];
+  const delen   = isComb ? _editingTableDelen.filter(Boolean) : [];
   if (!name) { alert('Voer een naam in.'); return; }
+  if (isComb && delen.length < 2) { alert('Een combinatie heeft minstens twee delen nodig.'); return; }
   const dobbel = type === 'weighted' ? (document.getElementById('dm-tbl-dobbel')?.value || 'd100') : '';
-  const data = { name, type, entries, first, last, ...(dobbel ? { dobbel } : {}) };
+  const data = { name, type, entries, delen, ...(dobbel ? { dobbel } : {}) };
   try {
     if (idOrNew === '__new__') {
       const t = await api.createTable(data);
@@ -3352,6 +3382,7 @@ async function _tabelSave(idOrNew) {
 function _tabelNew() {
   _editingTableId = '__new__';
   _editingTableType = 'simple';
+  _editingTableDelen = ['', ''];
   _renderTafels();
 };
 
@@ -7349,7 +7380,7 @@ async function _renderGeluiden() {
                <span class="dm-sound-set">✓ Ingesteld</span>
                <button class="dm-btn dm-btn-sm dm-btn-ghost" onclick="window._sndRemoveStd('${key}')">${icon('x')}</button>`
             : `<span class="dm-sound-empty">Geen geluid</span>`}
-          <label class="dm-btn dm-btn-sm dm-btn-primary dm-sound-upload-btn" title="Uploaden">
+          <label class="dm-btn dm-btn-sm dm-btn-primary dm-sound-upload-btn" title="Een geluid uploaden">
             ↑ Upload
             <input type="file" accept="audio/*" style="display:none"
               onchange="window._sndUploadStd('${key}', this)">
@@ -7371,7 +7402,7 @@ async function _renderGeluiden() {
                <span class="dm-sound-set">✓ Ingesteld</span>
                <button class="dm-btn dm-btn-sm dm-btn-ghost" onclick="window._sndRemovePlayerTurn('${esc(p.id)}')">${icon('x')}</button>`
             : `<span class="dm-sound-empty">Geen geluid</span>`}
-          <label class="dm-btn dm-btn-sm dm-btn-primary dm-sound-upload-btn" title="Uploaden">
+          <label class="dm-btn dm-btn-sm dm-btn-primary dm-sound-upload-btn" title="Een geluid uploaden">
             ↑ Upload
             <input type="file" accept="audio/*" style="display:none"
               onchange="window._sndUploadPlayerTurn('${esc(p.id)}', this)">
@@ -7383,20 +7414,20 @@ async function _renderGeluiden() {
       return `
         <div class="dm-sound-emote-item">
           <input class="dm-input dm-sound-emote-label" type="text"
-            placeholder="Label…" value="${esc(item.label || '')}"
+            placeholder="Naam…" value="${esc(item.label || '')}"
             onchange="window._sndUpdateLabel('${esc(p.id)}','${esc(item.id)}',this.value)">
           <div class="dm-sound-controls">
             ${item.fileId
               ? `<button class="dm-btn dm-btn-sm dm-btn-ghost" title="Testplay" onclick="window._sndPlay('${esc(item.fileId)}', this)">▶</button>
                  <span class="dm-sound-set">✓</span>
                  <button class="dm-btn dm-btn-sm dm-btn-ghost" onclick="window._sndClearFile('${esc(p.id)}','${esc(item.id)}')">${icon('x')}</button>`
-              : `<span class="dm-sound-empty">Geen audio</span>`}
-            <label class="dm-btn dm-btn-sm dm-btn-primary dm-sound-upload-btn" title="Uploaden">
-              ↑
+              : `<span class="dm-sound-empty">Geen geluid</span>`}
+            <label class="dm-btn dm-btn-sm dm-btn-primary dm-sound-upload-btn" title="Een geluid uploaden">
+              ${icon('plus')} Upload
               <input type="file" accept="audio/*" style="display:none"
                 onchange="window._sndUploadEmote('${esc(p.id)}','${esc(item.id)}',this)">
             </label>
-            <button class="dm-btn dm-btn-sm dm-btn-danger" onclick="window._sndDeleteEmote('${esc(p.id)}','${esc(item.id)}')" title="Emote verwijderen">${icon('trash')}</button>
+            <button class="dm-btn dm-btn-sm dm-btn-ghost dm-btn-danger" onclick="window._sndDeleteEmote('${esc(p.id)}','${esc(item.id)}')" title="Deze emote verwijderen">${icon('trash')}</button>
           </div>
         </div>`;
     }).join('');
@@ -7417,7 +7448,7 @@ async function _renderGeluiden() {
             : libraryRows}
           ${library.length < 4
             ? `<button class="dm-btn dm-btn-sm dm-btn-ghost" style="margin-top:6px"
-                 onclick="window._sndAddEmote('${esc(p.id)}')" title="Emote toevoegen">+ Emote</button>`
+                 onclick="window._sndAddEmote('${esc(p.id)}')" title="Een emote toevoegen">${icon('plus')} Emote</button>`
             : `<p class="dm-hint" style="margin:6px 0 0;opacity:.6">Maximaal 4 emotes.</p>`}
         </div>
       </div>`;
@@ -7450,7 +7481,7 @@ async function _renderGeluiden() {
                <span class="dm-sound-set">✓ Ingesteld</span>
                <button class="dm-btn dm-btn-sm dm-btn-ghost" onclick="window._sndRemoveCond('${key}')">${icon('x')}</button>`
             : `<span class="dm-sound-empty">Geen geluid</span>`}
-          <label class="dm-btn dm-btn-sm dm-btn-primary dm-sound-upload-btn" title="Uploaden">
+          <label class="dm-btn dm-btn-sm dm-btn-primary dm-sound-upload-btn" title="Een geluid uploaden">
             ↑ Upload
             <input type="file" accept="audio/*" style="display:none"
               onchange="window._sndUploadCond('${key}', this)">
@@ -7552,32 +7583,31 @@ async function _renderGeluiden() {
     const fid = momenten[key];
     return `
       <div class="dm-sound-row">
-        <span class="dm-sound-slot-label">${esc(label)}<br><span class="dm-hint">${esc(uitleg)}</span></span>
+        <span class="dm-sound-slot-label" title="${esc(uitleg)}">${esc(label)}</span>
         <div class="dm-sound-controls">
           ${fid
             ? `<button class="dm-btn dm-btn-sm dm-btn-ghost" title="Testplay" onclick="window._sndPlay('${esc(fid)}', this)">▶</button>
                <span class="dm-sound-set">${icon('check')} Ingesteld</span>
                <button class="dm-btn dm-btn-sm dm-btn-ghost" onclick="window._momentRemove('${esc(key)}')" title="Verwijderen">${icon('x')}</button>`
             : `<span class="dm-sound-empty">Geen geluid</span>`}
-          <label class="dm-btn dm-btn-sm dm-btn-primary dm-sound-upload-btn" title="Uploaden">
+          <label class="dm-btn dm-btn-sm dm-btn-primary dm-sound-upload-btn" title="Een geluid uploaden">
             ${icon('plus')} Upload
             <input type="file" accept="audio/*" style="display:none" onchange="window._momentUpload('${esc(key)}', this)">
           </label>
         </div>
       </div>`;
   };
+  // Eenmalige klanken op een vast moment (buit, level-up) horen bij de
+  // standaardgeluiden: ook die speelt de app zelf, zonder dat jij iets doet.
+  const momentRijen = `
+    ${momentRow('lootReveal', 'Loot onthullen', 'klinkt zodra de spelers de buit te zien krijgen')}
+    ${momentRow('levelUp', 'Level omhoog', 'klinkt bij de speler die een level omhoog gaat, en op het tafelscherm')}`;
+
+  // Wat blijft is de rust: dat is een loop die speelt zolang het rustscherm
+  // staat, en dus sfeer.
   const momentSection = `
     <div class="dm-sound-section">
-      <div class="dm-sound-section-title">${icon('sparkles')} Momenten<span class="dm-sectie-hulp">${helpBtn('dm_geluiden_momenten')}</span></div>
-      <div class="dm-section-label">Klinkt één keer</div>
-      <div class="dm-sound-list">
-        ${momentRow('lootReveal', 'Loot onthullen', 'klinkt zodra de spelers de buit te zien krijgen')}
-        ${momentRow('levelUp', 'Level omhoog', 'klinkt bij de speler die een level omhoog gaat, en op het tafelscherm')}
-      </div>
-      <!-- De rust hoort bij de momenten: het is een scène in het spel, geen
-           plek die je opzoekt. Technisch blijft het een sfeerloop (hij speelt
-           zolang het rustscherm staat), vandaar de eigen kop. -->
-      <div class="dm-section-label" style="margin-top:10px">Loopt tijdens de rust<span class="dm-sectie-hulp">${helpBtn('dm_geluiden_rust')}</span></div>
+      <div class="dm-sound-section-title">${icon('moon')} Rust<span class="dm-sectie-hulp">${helpBtn('dm_geluiden_rust')}</span></div>
       <div class="dm-sound-list">${_REST.map(r => svcRow(r.key, r.label)).join('')}</div>
     </div>`;
 
@@ -7606,7 +7636,7 @@ async function _renderGeluiden() {
     <div class="dm-geluiden-paneel" data-sub="standaard"${_geluidenSubtab === 'standaard' ? '' : ' hidden'}>
       <div class="dm-sound-section">
         <div class="dm-sound-section-title">${icon('volume-2')} Vaste geluiden<span class="dm-sectie-hulp">${helpBtn('dm_geluiden_standaard')}</span></div>
-        <div class="dm-sound-list">${standardRows}</div>
+        <div class="dm-sound-list">${standardRows}${momentRijen}</div>
       </div>
       <div class="dm-sound-section">
         <div class="dm-sound-section-title">${icon('sparkles')} Condities<span class="dm-sectie-hulp">${helpBtn('dm_geluiden_condities')}</span></div>

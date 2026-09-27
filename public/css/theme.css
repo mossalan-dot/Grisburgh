@@ -5762,6 +5762,10 @@ body.lade-dicht .regie-lade-body { display: none; }
 .dm-tab-head-actions { margin-left: auto; display: inline-flex; align-items: center; gap: 6px; }
 
 .dm-naam-btn { flex: 1; justify-content: center; }
+/* Leeg = geen ruimte. Die vaste hoogte van 36px stond er voor de
+   onthul-animatie, maar zolang er geen naam getrokken is gaapt er een gat
+   onder de knoppen dat de sectie twee keer zo hoog maakt als de andere. */
+.dm-naam-result:empty { display: none; }
 .dm-naam-result {
   min-height: 36px;
   display: block;
