@@ -27038,17 +27038,50 @@ body.akte-schrijf-open .mp-overlay { z-index: 1320; }
 }
 
 /* ── De gedeelde beurs, één regel per party ─────────────────────────────────── */
+/* Een raster en geen flex-rij: de partynaam bepaalt anders waar de rest begint,
+   en "Cleopas, Mercule, Sharari en Lindar" duwt zijn velden dan een halve
+   kolom verder dan die van "Testgroep". Alle rijen delen hetzelfde sjabloon,
+   dus de kolommen staan onder elkaar.
+   `display: contents` op de muntenrij laat haar kinderen zélf cellen worden —
+   anders is de hele rij één cel en lijnt er binnenin nog niets uit.
+   `align-items: end` omdat de muntvelden een label boven zich hebben: de
+   onderranden horen op één lijn, niet de middens. */
 .dm-beurs-rij {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
+  display: grid;
+  /* De naamkolom heeft een váste maat en de laatste kolom rekt. Met `1fr` op
+     de naam liep een rij waarin de beurs uitstaat scheef: daar zijn de laatste
+     kolommen leeg, die klappen in, en de vrijgekomen ruimte ging naar de naam —
+     waardoor de schakelknop van díé rij een stuk opschoof. */
+  grid-template-columns: minmax(180px, 280px) 92px repeat(3, 104px) auto 1fr;
+  align-items: end;
   gap: 8px;
   padding: 7px 0;
   border-bottom: 1px solid rgba(196,168,122,0.35);
 }
+.dm-beurs-rij .dm-munt-rij { display: contents; }
+.dm-beurs-rij .dm-munt-veld { width: 100%; }
+.dm-beurs-rij .dm-munt-veld .dm-input { width: 100%; }
+.dm-beurs-rij .dm-beurs-schakel { justify-content: center; }
+/* Staat de beurs uit, dan is er niets in te vullen: die regel vult de
+   resterende kolommen in plaats van in de eerste muntkolom te gaan staan. */
+.dm-beurs-rij .dm-beurs-uit { grid-column: 3 / -1; align-self: center; }
+
+/* In het party-kaartje staat er geen naam voor: één party, één beurs. */
+.dm-beurs-rij--kaart {
+  grid-template-columns: 92px repeat(3, 104px) auto 1fr;
+  border-bottom: 0;
+}
+.dm-beurs-rij--kaart .dm-beurs-uit { grid-column: 2 / -1; }
+
+/* Smal scherm: het raster past niet meer, dan weer gewoon achter elkaar. */
+@media (max-width: 760px) {
+  .dm-beurs-rij { display: flex; flex-wrap: wrap; align-items: center; }
+  .dm-beurs-rij .dm-munt-rij { display: flex; align-items: end; gap: 8px; flex-wrap: wrap; }
+  .dm-beurs-rij .dm-munt-veld { width: auto; }
+}
 .dm-beurs-rij:last-child { border-bottom: 0; }
 .dm-beurs-naam {
-  min-width: 150px;
+  min-width: 0;
   font-family: 'Cinzel', Georgia, serif;
   font-size: 13.5px;
   color: #3a2410;

@@ -5457,7 +5457,9 @@ function _beursRegelHtml(g, { kop = true } = {}) {
   const aan = !!g.beurs?.enabled;
   const veld = (k, afk) => `<label class="dm-munt-veld" title="${esc(n[k])}"><span>${afk}</span>
     <input id="beurs-${k}-${esc(g.id)}" class="dm-input" type="number" min="0" value="${parseInt(g.beurs?.[k]) || 0}"></label>`;
-  return `<div class="dm-beurs-rij${aan ? ' dm-beurs-rij--aan' : ''}">
+  // Zonder naamkolom (in het party-kaartje) schuift het raster een kolom op;
+  // die stand krijgt dus zijn eigen sjabloon.
+  return `<div class="dm-beurs-rij${aan ? ' dm-beurs-rij--aan' : ''}${kop ? '' : ' dm-beurs-rij--kaart'}">
     ${kop ? `<span class="dm-beurs-naam">${esc(g.naam)}${g.actief ? ` <span class="dm-beurs-actief" title="De party die nu actief is">actief</span>` : ''}</span>` : ''}
     <button class="dm-btn dm-btn-sm dm-btn-ghost dm-beurs-schakel" onclick="window.dmPanel.beursToggle('${esc(g.id)}')"
       title="${aan ? 'Iedereen in deze party gebruikt daarna weer zijn eigen beurs' : 'Alle spelers van deze party delen daarna één saldo'}">
