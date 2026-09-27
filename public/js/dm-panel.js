@@ -8383,7 +8383,7 @@ function _renderLootInner() {
     ${_dmTabHead({ icon: 'coins', title: 'Loot', actions: helpBtn('dm_loot') })}
     <div class="dm-feature-section">
       <div class="dm-feature-row" style="justify-content:space-between;align-items:center;margin-bottom:8px">
-        <span class="dm-section-label" style="margin-bottom:0">Vondsten<span class="dm-sectie-hulp">${helpBtn('dm_loot_vondsten')}</span></span>
+        <span class="dm-section-label" style="margin-bottom:0">Vondsten</span>
         <span class="dm-knoprij">
           <button class="dm-btn dm-btn-sm dm-btn-ghost" onclick="window.dmPanel.lootEvNieuw()" title="Een lege vondst beginnen">${icon('plus')} Nieuwe vondst</button>
           ${_lootEvents.length ? `
@@ -8392,6 +8392,7 @@ function _renderLootInner() {
             title="Neemt naam, DC, goud en voorwerpen over; waar hij ligt niet"
             onchange="window.dmPanel.lootEvKopieVan(this)">
           <datalist id="dm-loot-kopie-dl">${_lootEvents.map(e => `<option value="${esc(e.naam || '')}">${esc(_lootSamenvatting(e))}</option>`).join('')}</datalist>` : ''}
+          ${helpBtn('dm_loot_vondsten')}
         </span>
       </div>
       ${rijen || '<p class="dm-hint">Nog geen vondsten. Maak er een aan en koppel hem later aan een kamer.</p>'}
@@ -8405,7 +8406,21 @@ function _renderLootInner() {
         <p class="dm-hint" style="margin:-2px 0 4px">Sjablonen zijn vervallen: een nieuwe vondst kopieer je voortaan van een bestaande. Deze staan er nog; "Gebruiken" maakt er een gewone vondst van, en daarna mogen ze weg.</p>
         ${sjablonen}` : ''}
     </div>
-    ${_lootConcept ? _lootEditorHtml() : ''}`;
+`;
+}
+
+// Het venster (her)tekenen. Staat het niet open, dan doet dit niets — zo mag
+// elke handler hem blind aanroepen.
+function _lootEditorVul() {
+  const host = document.getElementById('dm-loot-editor');
+  if (!host || !_lootConcept) return;
+  host.innerHTML = _lootEditorHtml();
+}
+
+function _lootEditorOpen() {
+  window.app.openModal(_lootConcept?.id ? 'Vondst bewerken' : 'Nieuwe vondst', 'buit',
+    `<div id="dm-loot-editor"></div>`, 'dm_loot_editor');
+  _lootEditorVul();
 }
 
 function _lootEditorHtml() {
@@ -8486,22 +8501,27 @@ function _lootEditorHtml() {
            één veld ("2-5" of "2,34-8,1"): van en tot apart vroeg twee
            handelingen voor één gedachte, en zette de hele rij in een kolom. -->
       <div class="dm-feature-row dm-sb-rij">
+        <!-- Een vast bedrag en een worp sluiten elkaar uit: staat er allebei
+             iets, dan is niet te zeggen wat er in de kist ligt. Het invullen
+             van de een maakt de ander dus leeg, en je ziet dat gebeuren. -->
         <div class="dm-form-row">
           <label class="dm-form-label">Vast bedrag</label>
           <input class="dm-input dm-input-sm" style="width:110px" placeholder="1,34"
+            ${_lootBereikTekst(r) ? 'disabled title="Er staat een worp; maak die leeg om een vast bedrag te zetten"' : ''}
             value="${_muntGoudCl(c) ? _clNaarTekst(_muntGoudCl(c)) : ''}"
-            oninput="window.dmPanel.lootEvGoud(this.value)">
+            onchange="window.dmPanel.lootEvGoud(this.value, true)">
         </div>
         <div class="dm-form-row">
           <label class="dm-form-label">Of gerold</label>
           <input class="dm-input dm-input-sm" style="width:150px" placeholder="2-5 of 2,34-8,10"
+            ${_muntGoudCl(c) ? 'disabled title="Er staat een vast bedrag; maak dat leeg om te laten rollen"' : ''}
             value="${_lootBereikTekst(r)}"
             title="Een bereik; het bedrag wordt pas bij het onthullen gegooid"
             onchange="window.dmPanel.lootEvBereik(this.value, this)">
         </div>
       </div>
       <div class="dm-section-label" style="margin-top:10px">Voorwerpen
-        <button class="dm-btn dm-btn-ghost dm-btn-sm" style="margin-left:8px" onclick="window.dmPanel.lootEvItemAdd()">${icon('plus')} Regel</button>
+        <button class="dm-btn dm-btn-ghost dm-btn-sm" style="margin-left:8px" onclick="window.dmPanel.lootEvItemAdd()">${icon('plus')} Voeg voorwerp toe</button>
       </div>
       ${items || '<p class="dm-hint">Nog geen voorwerpen in deze vondst.</p>'}
       <div class="dm-form-row">
@@ -8529,7 +8549,7 @@ function _lootEvNieuw(bronId) {
                      goudRandom: { vanCl: 0, totCl: 0 }, items: [] };
   }
   if (!_lootConcept.goudRandom) _lootConcept.goudRandom = { vanCl: 0, totCl: 0 };
-  _renderLootInner();
+  _lootEditorOpen();
 }
 function _lootEvBewerk(id) {
   const ev = _lootEvents.find(e => e.id === id);
@@ -8537,9 +8557,9 @@ function _lootEvBewerk(id) {
   // Werkkopie: pas bij Opslaan gaat het naar de server.
   _lootConcept = JSON.parse(JSON.stringify(ev));
   if (!_lootConcept.goudRandom) _lootConcept.goudRandom = { vanCl: 0, totCl: 0 };
-  _renderLootInner();
+  _lootEditorOpen();
 }
-function _lootEvAnnuleer() { _lootConcept = null; _renderLootInner(); }
+function _lootEvAnnuleer() { _lootConcept = null; window.app.closeModal?.(); _renderLootInner(); }
 function _lootEvVeld(veld, waarde) {
   if (!_lootConcept) return;
   _lootConcept[veld] = veld === 'dc' ? (parseInt(waarde) || 0) : waarde;
@@ -8549,14 +8569,17 @@ function _lootEvDungeon(id) {
   if (!_lootConcept) return;
   _lootConcept.dungeonId = id || null;
   _lootConcept.roomId = null;
-  _renderLootInner();
+  _lootEditorVul();
 }
-function _lootEvGoud(tekst) {
+function _lootEvGoud(tekst, hertekenen) {
   if (!_lootConcept) return;
   _lootConcept.goud     = _clNaarGoud(_tekstNaarCl(tekst));
   _lootConcept.relicten = _relictenUit(tekst);
+  // Een vast bedrag en een worp sluiten elkaar uit.
+  if (_muntGoudCl(_lootConcept)) _lootConcept.goudRandom = { vanCl: 0, totCl: 0 };
   const hint = document.getElementById('dm-loot-munt-uitleg');
   if (hint) hint.textContent = _muntUitleg(_muntGoudCl(_lootConcept), _lootConcept.relicten);
+  if (hertekenen) _lootEditorVul();
 }
 // Het bereik als tekst: "2-5", of met komma's "2,34-8,10". Leeg als er niets
 // staat — dan is er geen worp en telt alleen het vaste bedrag.
@@ -8583,6 +8606,9 @@ function _lootEvBereik(tekst, veld) {
   }
   // Andersom ingetikt is geen fout, gewoon andersom bedoeld.
   _lootConcept.goudRandom = { vanCl: Math.min(vanCl, totCl), totCl: Math.max(vanCl, totCl) };
+  _lootConcept.goud = { fl: 0, kn: 0, cl: 0 };   // de worp vervangt het vaste bedrag
+  _lootConcept.relicten = null;
+  _lootEditorVul();
 }
 
 function _lootEvRandom(veld, waarde) {
@@ -8590,13 +8616,13 @@ function _lootEvRandom(veld, waarde) {
   if (!_lootConcept.goudRandom) _lootConcept.goudRandom = { vanCl: 0, totCl: 0 };
   _lootConcept.goudRandom[veld] = _tekstNaarCl(waarde);
 }
-function _lootEvItemAdd() { if (!_lootConcept) return; (_lootConcept.items ||= []).push(_leegItem()); _renderLootInner(); }
-function _lootEvItemDel(i) { if (!_lootConcept) return; _lootConcept.items.splice(i, 1); _renderLootInner(); }
+function _lootEvItemAdd() { if (!_lootConcept) return; (_lootConcept.items ||= []).push(_leegItem()); _lootEditorVul(); }
+function _lootEvItemDel(i) { if (!_lootConcept) return; _lootConcept.items.splice(i, 1); _lootEditorVul(); }
 function _lootEvItemVeld(i, veld, waarde) {
   const it = _lootConcept?.items?.[i];
   if (!it) return;
   it[veld] = waarde;
-  if (veld === 'willekeurig') _renderLootInner();   // velden aan/uit zetten
+  if (veld === 'willekeurig') _lootEditorVul();   // velden aan/uit zetten
 }
 // Naam → id, met een korte foutflits als er geen kaartje met die naam bestaat.
 // Een regel op een tafel laten gooien. Kiezen sluit het kaartje uit: twee
@@ -8606,7 +8632,7 @@ function _lootEvItemTafel(i, naam, invoer) {
   const it = _lootConcept?.items?.[i];
   if (!it) return;
   const gezocht = String(naam || '').trim().toLowerCase();
-  if (!gezocht) { it.tafelId = null; _renderLootInner(); return; }
+  if (!gezocht) { it.tafelId = null; _lootEditorVul(); return; }
   const t = _lootTafels.find(x => String(x.name || '').toLowerCase() === gezocht);
   if (!t) {
     invoer?.classList.add('dm-input--err');
@@ -8617,7 +8643,7 @@ function _lootEvItemTafel(i, naam, invoer) {
   it.entityId = null;
   it.willekeurig = false;
   if (!it.naam) it.naam = `Worp op ${t.name}`;
-  _renderLootInner();
+  _lootEditorVul();
 }
 
 // Het mimic-vinkje. Welk gevecht erbij hoort weet de server; die maakt het
@@ -8626,7 +8652,7 @@ function _lootEvMimic(aan) {
   if (!_lootConcept) return;
   _lootConcept.mimic = !!aan;
   if (!aan) _lootConcept.mimicEncounterId = null;
-  _renderLootInner();
+  _lootEditorVul();
 }
 
 function _lootEvItemKoppel(i, naam, invoer) {
@@ -8644,7 +8670,7 @@ function _lootEvItemKoppel(i, naam, invoer) {
   it.tafelId   = null;                 // een kaartje en een worp sluiten elkaar uit
   if (!it.naam) it.naam = v.name;
   if (!it.rariteit && v.data?.rariteit) it.rariteit = v.data.rariteit;
-  _renderLootInner();
+  _lootEditorVul();
 }
 async function _lootEvOpslaan() {
   if (!_lootConcept) return;
@@ -8654,6 +8680,7 @@ async function _lootEvOpslaan() {
     if (c.id) await api.lootEventUpdate(c.id, c);
     else      await api.lootEventCreate(c);
     _lootConcept = null;
+    window.app.closeModal?.();
     await _renderLoot();
   } catch (e) { alert('Opslaan mislukt: ' + e.message); }
 }

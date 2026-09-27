@@ -5769,6 +5769,12 @@ body.lade-dicht .regie-lade-body { display: none; }
 .dm-naam-result {
   min-height: 36px;
   display: block;
+  /* Zelfde vak als de uitkomst van het weer en van een tafel: het is
+     hetzelfde soort antwoord, dus het hoort er hetzelfde uit te zien. */
+  background: rgba(255,255,255,0.5);
+  border: 1px solid rgba(196,168,122,0.45);
+  border-radius: 4px;
+  padding: 4px 10px;
   text-align: center;
   line-height: 36px;
   font-family: 'IM Fell English', serif;
