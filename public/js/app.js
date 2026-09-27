@@ -1,5 +1,5 @@
 import { api, campagneUitUrl, zetCampagne } from './api.js?v=296';
-import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, renderDocumenten, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=316";
+import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, renderDocumenten, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=317";
 import { initArchief, renderLogboek, openLogboekEditor } from "./render-archief.js?v=131";
 import { renderKaart, queueFlyTo, verversPins, nieuweKaart } from './render-kaart.js?v=31';
 import { renderDungeon } from './render-dungeon.js?v=56';
@@ -10,7 +10,7 @@ import { renderSpreuken } from './render-spreuken.js?v=41';
 import { renderVaardigheden, zoekVaardigheden } from './render-vaardigheden.js?v=8';
 import { renderStatblock } from './render-statblock.js?v=9';
 import { initSocket } from "./socket-client.js?v=78";
-import { initDmPanel } from "./dm-panel.js?v=318";
+import { initDmPanel } from "./dm-panel.js?v=319";
 import { COND_INFO, COND_LABEL, COND_MET_PLAATJE, COND_ICON } from './conditions.js?v=2';
 import './media-picker.js?v=8';
 import './tafels.js?v=2';
@@ -6316,7 +6316,7 @@ window._briefCinematic = (msg) => {
         <div class="brief-cinematic-letter">
           ${msg.titel ? `<div class="brief-cinematic-letter-titel">${esc(msg.titel)}</div>` : ''}
           ${msg.afzender ? `<div class="brief-cinematic-letter-van">van <em>${esc(msg.afzender)}</em>${msg.datum ? ` · ${esc(msg.datum)}` : ''}</div>` : ''}
-          <div class="brief-cinematic-letter-tekst">${esc(msg.tekst || '')}</div>
+          <div class="brief-cinematic-letter-tekst parchment-block" data-stijl="${esc(msg.briefstijl || 'oud')}">${esc(msg.tekst || '')}</div>
         </div>
         ${!isDisplay ? `<button class="brief-cinematic-knop">${icon('mail')} Bewaar in Berichten</button>` : ''}
         <div class="brief-cinematic-hint">klik buiten de brief om te sluiten</div>
@@ -9015,7 +9015,7 @@ async function renderMijnKarakter(opts = {}) {
                     ${m.afzender ? `<div class="speler-brief-afzender">
                       Van: <em>${esc(m.afzender)}</em>${m.entityId ? ` <button class="herberg-bubble-card-btn" style="font-size:0.65rem;padding:1px 4px;line-height:1.3;margin-left:3px" onclick="event.stopPropagation();window._openDetail('${esc(m.entityType)}','${esc(m.entityId)}')" title="Open kaartje">${icon('arrow-up-right')}</button>` : ''}
                     </div>` : ''}
-                    <div class="speler-brief-tekst">${mdToHtml(m.tekst).replace(/👁/g,icon('eye')).replace(/👂/g,icon('zap')).replace(/👃/g,icon('flask-conical')).replace(/👅/g,icon('potion')).replace(/✋/g,icon('heart'))}</div>
+                    <div class="speler-brief-tekst parchment-block" data-stijl="${esc(m.briefstijl || 'oud')}">${mdToHtml(m.tekst).replace(/👁/g,icon('eye')).replace(/👂/g,icon('zap')).replace(/👃/g,icon('flask-conical')).replace(/👅/g,icon('potion')).replace(/✋/g,icon('heart'))}</div>
                   </div>
                 </div>`).join('')}
             </div>`;
@@ -14133,8 +14133,10 @@ const HELP_CONFIG = {
   ] }),
 
   dm_post_brief: () => ({ titel: 'Een brief sturen', stappen: [
+    { titel: 'Dit is de snelle post', tekst: 'Hier schrijf je een brief die je **nu** verstuurt: een briefje van de waard, een dreigement, een bericht dat een speler onderweg krijgt. Een brief die je vóór de sessie voorbereidt en die bij een akte hoort, maak je als **document** — dan is hij een kaartje dat je kunt onthullen, dat in het archief blijft staan en dat je opnieuw kunt gebruiken.', afbeelding: null },
     { titel: 'Aan wie', tekst: 'Aan één speler of aan de hele party. De brief komt in hun Berichten-tab te staan en blijft daar bewaard — het is post, geen melding die voorbijschiet.', afbeelding: null },
-    { titel: 'Afzender en stijl', tekst: 'Koppel een afzender aan een kaartje, dan leest de speler een naam die hij kent. De **briefstijl** bepaalt hoe het eruitziet: handschrift, drukwerk, knipsel, gotisch. Twee schrijvers horen er verschillend uit te zien.', afbeelding: null },
+    { titel: 'Van wie komt hij', tekst: 'Eén veld: kies een kaartje uit de lijst, of typ gewoon een naam. Kies je een kaartje, dan kan de speler het openen en ziet hij wie het is; een naam zonder kaartje blijft precies dat — handig voor een boodschapper die er verder niet toe doet.', afbeelding: null },
+    { titel: 'Handschrift en briefhoofd', tekst: 'Twee dingen die allebei "stijl" heten. Het **handschrift** bepaalt hoe de tekst eruitziet (dezelfde lijst als bij documenten, zodat dezelfde schrijver er overal hetzelfde uitziet); het **briefhoofd** zegt van welke dienst hij komt — de lila brief van de waarzegger, het logo van de detective.', afbeelding: null },
     { titel: 'Cinematisch bezorgen', tekst: 'Zet je *cinematisch* aan, dan krijgt de speler eerst een verzegelde envelop die hij zelf moet openbreken — en gaat dezelfde brief naar het tafelscherm. Bewaar dat voor de brieven die ertoe doen; als alles een gebeurtenis is, is niets het.', afbeelding: null },
   ] }),
   dm_post_geschiedenis: () => ({ titel: 'Verstuurde post', stappen: [

@@ -10176,6 +10176,7 @@ async function _mediaRenameApply() {
 let _sjabloonMode     = false;
 const _BERICHTEN_PAGINA = 10;            // berichten per "pagina" in de geschiedenis
 let _berichtenOpenPid   = new Set();     // welke speler-groepen zijn uitgeklapt
+const _berichtenOpenGroep = new Set();   // welke party's staan open in de geschiedenis
 let _berichtenLimiet    = {};            // characterId → aantal getoonde berichten
 
 // ── Verzoeken: wat er op de DM wacht ────────────────────────────────────────
@@ -10315,116 +10316,15 @@ async function _renderVerzoeken() {
     </div>`;
 }
 
-async function _renderBerichten() {
-  const el = document.querySelector('.dm-tab-content[data-tab="berichten"]');
-  if (!el) return;
-  el.innerHTML = _dmLoading();
+// De brieven van één speler, als uitklapper. Stond als losse lus in de
+// geschiedenis; nu staat hij binnen zijn party, zodat je ziet wie bij wie
+// hoort voordat je een brief zoekt.
+window._berichtenGroepToggle = (gid, open) => {
+  if (open) _berichtenOpenGroep.add(gid); else _berichtenOpenGroep.delete(gid);
+};
 
-  try {
-    const [berichtenRes, sjablonenRes, allPersonages, groepen] = await Promise.all([
-      api.getBerichten(),
-      api.getSjablonen().catch(() => ({ sjablonen: [] })),
-      api.listEntities('personages').catch(() => []),
-      api.listGroups().catch(() => []),
-    ]);
-    // DM response: { spelers: [{ characterId, name, berichten }] }
-    _sjablonen = sjablonenRes.sjablonen || [];
-    _berichtenData = {};
-    for (const s of (berichtenRes.spelers || [])) {
-      _berichtenData[s.characterId] = s.berichten || [];
-    }
-    // Alle speler-personages als keuzemogelijkheid (ongeacht campagnezichtbaarheid)
-    _berichtenSpelers = allPersonages.filter(p => p.subtype === 'speler');
-    _berichtenNPCs    = allPersonages.filter(p => p.subtype !== 'speler');
-    // listGroups geeft { groups: [...] } terug
-    window._berichtenGroepen = groepen.groups || groepen || [];
-  } catch (err) {
-    el.innerHTML = _dmLoading(`Fout: ${esc(err.message)}`);
-    return;
-  }
-
-  const totalUnread = Object.values(_berichtenData).flat().filter(m => !m.gelezen && !m.deletedAt).length;
-
-  el.innerHTML = `
-    ${_dmTabHead({ icon: 'mail', title: 'Berichten', sub: totalUnread ? `${totalUnread} ongelezen` : '', actions: helpBtn('dm_berichten') })}
-    <div class="dm-feature-section">
-
-      <!-- ═══ STUUR BRIEF (rijker format) ═══ -->
-      <div class="dm-section-label">${icon('mail')} Stuur brief<span class="dm-sectie-hulp">${helpBtn('dm_post_brief')}</span></div>
-      <div class="bericht-compose post-compose">
-
-        <!-- Ontvanger -->
-        <div class="dm-form-row" style="gap:6px;flex-wrap:wrap;align-items:center">
-          <label class="dm-form-label" style="min-width:60px">Aan</label>
-          <select id="post-ontvanger-type" class="dm-select" style="width:110px;flex-shrink:0" onchange="window._postOntvangerTypeChange()">
-            <option value="speler">Speler</option>
-            <option value="groep">Hele party</option>
-          </select>
-          <select id="post-ontvanger-speler" class="dm-select" style="flex:1;min-width:110px">
-            <option value="">— Kies speler —</option>
-            ${_berichtenSpelers.map(p => `<option value="${esc(p.id)}">${esc(p.name)}</option>`).join('')}
-          </select>
-          <select id="post-ontvanger-groep" class="dm-select hidden" style="flex:1;min-width:110px">
-            <option value="">— Kies groep —</option>
-            ${(window._berichtenGroepen || []).map(g => `<option value="${esc(g.id)}">${esc(g.name)}</option>`).join('')}
-          </select>
-        </div>
-
-        <!-- Afzender -->
-        <div class="dm-form-row" style="gap:6px;flex-wrap:wrap;align-items:center">
-          <label class="dm-form-label" style="min-width:60px">Van</label>
-          <input id="post-afzender" type="text" class="dm-input" placeholder="Naam afzender (of anoniem)" style="flex:1;min-width:120px">
-          <div class="post-npc-wrap" style="flex:1;min-width:120px">
-            <input id="post-npc-search" type="text" class="dm-input" autocomplete="off"
-              placeholder="Zoek NPC…"
-              oninput="window._postNpcSearch(this.value)"
-              onfocus="window._postNpcSearch(this.value)"
-              onblur="setTimeout(window._postNpcClose,150)">
-            <input type="hidden" id="post-npc">
-            <div id="post-npc-dropdown" class="post-npc-dropdown"></div>
-          </div>
-        </div>
-
-        <!-- Titel -->
-        <div class="dm-form-row" style="flex-direction:column;gap:4px">
-          <label class="dm-form-label">Onderwerp</label>
-          <input id="post-titel" type="text" class="dm-input" placeholder="Onderwerp / titel van de brief" style="width:100%">
-        </div>
-
-        <!-- In-world datum -->
-        <div class="dm-form-row" style="flex-direction:column;gap:4px">
-          <label class="dm-form-label">Datum (in de spelwereld)</label>
-          <input id="post-datum" type="text" class="dm-input" placeholder="bijv. 4 Grasmaand MDCCLXXII" style="width:100%">
-        </div>
-
-        <!-- Briefstijl / thema -->
-        <div class="dm-form-row" style="flex-direction:column;gap:4px">
-          <label class="dm-form-label">Briefstijl</label>
-          <select id="post-thema" class="dm-select" style="width:100%">
-            <option value="">Standaard perkament</option>
-            <option value="ursula">Madame Ursula — lila brief</option>
-            <option value="gock">De Gock — logo &amp; typemachine</option>
-            <option value="tweespalt">De Tweespalt — haastig briefje</option>
-            <option value="heeren">De Heeren van de Nacht — schaduwbrief</option>
-          </select>
-        </div>
-
-        <!-- Tekst -->
-        <div class="dm-form-row" style="flex-direction:column;gap:4px">
-          <label class="dm-form-label">Inhoud</label>
-          <textarea id="post-tekst" class="dm-textarea" rows="5" placeholder="Schrijf de brief hier…" style="resize:vertical;font-family:'IM Fell English',serif;font-size:0.95rem"></textarea>
-        </div>
-
-        <div class="dm-form-row" style="justify-content:flex-end;gap:6px">
-          <button class="dm-btn dm-btn-primary" onclick="window.dmPanel.postSend()" title="Brief sturen">${icon('scroll-text')}</button>
-        </div>
-        <div id="post-send-status" class="bericht-status hidden"></div>
-      </div>
-
-      <!-- ═══ GESCHIEDENIS ═══ -->
-      <div class="dm-section-label" style="margin-top:16px">Geschiedenis<span class="dm-sectie-hulp">${helpBtn('dm_post_geschiedenis')}</span></div>
-      ${_berichtenSpelers.length === 0 ? '<p class="dm-empty">Geen spelers zichtbaar.</p>' : ''}
-      ${_berichtenSpelers.map(p => {
+function _berichtenSpelerHtml(spelers) {
+  return spelers.map(p => {
         const msgs = (_berichtenData[p.id] || []).slice().reverse();
         if (!msgs.length) return '';
         const unread = msgs.filter(m => !m.gelezen && !m.deletedAt).length;
@@ -10480,7 +10380,164 @@ async function _renderBerichten() {
                 </button>` : ''}
             </div>
           </details>`;
-      }).join('')}
+  }).join('');
+}
+
+async function _renderBerichten() {
+  const el = document.querySelector('.dm-tab-content[data-tab="berichten"]');
+  if (!el) return;
+  el.innerHTML = _dmLoading();
+
+  try {
+    const [berichtenRes, sjablonenRes, allPersonages, groepen] = await Promise.all([
+      api.getBerichten(),
+      api.getSjablonen().catch(() => ({ sjablonen: [] })),
+      api.listEntities('personages').catch(() => []),
+      api.listGroups().catch(() => []),
+    ]);
+    // DM response: { spelers: [{ characterId, name, berichten }] }
+    _sjablonen = sjablonenRes.sjablonen || [];
+    _berichtenData = {};
+    for (const s of (berichtenRes.spelers || [])) {
+      _berichtenData[s.characterId] = s.berichten || [];
+    }
+    // Alle speler-personages als keuzemogelijkheid (ongeacht campagnezichtbaarheid)
+    _berichtenSpelers = allPersonages.filter(p => p.subtype === 'speler');
+    _berichtenNPCs    = allPersonages.filter(p => p.subtype !== 'speler');
+    // listGroups geeft { groups: [...] } terug
+    window._berichtenGroepen = groepen.groups || groepen || [];
+  } catch (err) {
+    el.innerHTML = _dmLoading(`Fout: ${esc(err.message)}`);
+    return;
+  }
+
+  const totalUnread = Object.values(_berichtenData).flat().filter(m => !m.gelezen && !m.deletedAt).length;
+
+  el.innerHTML = `
+    ${_dmTabHead({ icon: 'mail', title: 'Post', sub: totalUnread ? `${totalUnread} ongelezen` : '', actions: helpBtn('dm_berichten') })}
+    <div class="dm-feature-section">
+
+      <!-- ═══ STUUR BRIEF (rijker format) ═══ -->
+      <div class="dm-section-label">${icon('mail')} Stuur brief<span class="dm-sectie-hulp">${helpBtn('dm_post_brief')}</span></div>
+      <div class="bericht-compose post-compose">
+
+        <!-- Ontvanger -->
+        <div class="dm-form-row" style="gap:6px;flex-wrap:wrap;align-items:center">
+          <label class="dm-form-label" style="min-width:60px">Aan</label>
+          <select id="post-ontvanger-type" class="dm-select" style="width:110px;flex-shrink:0" onchange="window._postOntvangerTypeChange()">
+            <option value="speler">Speler</option>
+            <option value="groep">Hele party</option>
+          </select>
+          <select id="post-ontvanger-speler" class="dm-select" style="flex:1;min-width:110px">
+            <option value="">— Kies speler —</option>
+            ${_berichtenSpelers.map(p => `<option value="${esc(p.id)}">${esc(p.name)}</option>`).join('')}
+          </select>
+          <select id="post-ontvanger-groep" class="dm-select hidden" style="flex:1;min-width:110px">
+            <option value="">— Kies groep —</option>
+            ${(window._berichtenGroepen || []).map(g => `<option value="${esc(g.id)}">${esc(g.name)}</option>`).join('')}
+          </select>
+        </div>
+
+        <!-- Afzender -->
+        <!-- Eén veld voor de afzender, net als bij een deelnemer in een gevecht:
+             kies een kaartje uit de lijst, of typ gewoon een naam. Het waren er
+             twee — een vrij naamveld én een NPC-zoeker — en dan is niet te zien
+             welk van de twee telt. -->
+        <div class="dm-form-row" style="gap:6px;flex-wrap:wrap;align-items:center">
+          <label class="dm-form-label" style="min-width:60px" for="post-afzender">Van</label>
+          <input id="post-afzender" type="text" class="dm-input" list="post-afzender-dl" autocomplete="off"
+            placeholder="Zoek een kaartje, of typ een naam…" style="flex:1;min-width:180px"
+            onchange="window._postAfzenderKies(this)">
+          <datalist id="post-afzender-dl">
+            ${(_berichtenNPCs || []).map(e => `<option value="${esc(e.name)}">${esc(e.data?.rol || 'personage')}</option>`).join('')}
+          </datalist>
+          <input type="hidden" id="post-npc">
+        </div>
+
+        <!-- Titel -->
+        <div class="dm-form-row" style="flex-direction:column;gap:4px">
+          <label class="dm-form-label">Onderwerp</label>
+          <input id="post-titel" type="text" class="dm-input" placeholder="Onderwerp / titel van de brief" style="width:100%">
+        </div>
+
+        <!-- In-world datum -->
+        <div class="dm-form-row" style="flex-direction:column;gap:4px">
+          <label class="dm-form-label">Datum (in de spelwereld)</label>
+          <input id="post-datum" type="text" class="dm-input" placeholder="bijv. 4 Grasmaand MDCCLXXII" style="width:100%">
+        </div>
+
+        <!-- Briefstijl / thema -->
+        <!-- Twee dingen die allebei "stijl" heten maar iets anders doen: het
+             **briefhoofd** (van wie komt hij: Ursula, De Gock) en het
+             **handschrift** (hoe de tekst eruitziet). Dat tweede is dezelfde
+             lijst als bij documenten, zodat dezelfde schrijver er overal
+             hetzelfde uitziet. -->
+        <div class="dm-form-row" style="flex-direction:column;gap:4px">
+          <label class="dm-form-label" for="post-stijl">Handschrift</label>
+          <select id="post-stijl" class="dm-select" style="width:100%">
+            ${(window.BRIEF_STIJLEN || [{ value: '', label: 'Standaard' }])
+              // "Automatisch (volgt het type)" slaat op het documenttype; een
+              // snelle brief heeft er geen, dus daar heet het gewoon standaard.
+              .map(st => `<option value="${esc(st.value)}">${esc(st.value ? st.label : 'Standaard — oud handschrift')}</option>`).join('')}
+          </select>
+        </div>
+
+        <div class="dm-form-row" style="flex-direction:column;gap:4px">
+          <label class="dm-form-label" for="post-thema">Briefhoofd</label>
+          <select id="post-thema" class="dm-select" style="width:100%">
+            <option value="">Geen — gewoon perkament</option>
+            <option value="ursula">Madame Ursula — lila brief</option>
+            <option value="gock">De Gock — logo &amp; typemachine</option>
+            <option value="tweespalt">De Tweespalt — haastig briefje</option>
+            <option value="heeren">De Heeren van de Nacht — schaduwbrief</option>
+          </select>
+        </div>
+
+        <!-- Tekst -->
+        <div class="dm-form-row" style="flex-direction:column;gap:4px">
+          <label class="dm-form-label">Inhoud</label>
+          <textarea id="post-tekst" class="dm-textarea" rows="5" placeholder="Schrijf de brief hier…" style="resize:vertical;font-family:'IM Fell English',serif;font-size:0.95rem"></textarea>
+        </div>
+
+        <div class="dm-form-row" style="justify-content:flex-end;gap:6px">
+          <button class="dm-btn dm-btn-primary" onclick="window.dmPanel.postSend()" title="De brief versturen">${icon('mail')} Versturen</button>
+        </div>
+        <div id="post-send-status" class="bericht-status hidden"></div>
+      </div>
+
+      <!-- ═══ GESCHIEDENIS ═══ -->
+      <div class="dm-section-label" style="margin-top:16px">Geschiedenis<span class="dm-sectie-hulp">${helpBtn('dm_post_geschiedenis')}</span></div>
+      ${_berichtenSpelers.length === 0 ? '<p class="dm-empty">Geen spelers zichtbaar.</p>' : ''}
+      ${(() => {
+        // Per party, met de spelers eronder. Bij drie party's van vier stond
+        // hier anders één rij van twaalf namen, en dan moet je weten wie bij
+        // wie hoort om de brief terug te vinden.
+        const groepen = (window._groups || []).map(g => ({
+          id: g.id, naam: g.name,
+          spelers: _berichtenSpelers.filter(p => p.data?.groep === g.id),
+        })).filter(g => g.spelers.length);
+        const los = _berichtenSpelers.filter(p => !groepen.some(g => g.spelers.includes(p)));
+        if (los.length) groepen.push({ id: '__los__', naam: 'Zonder party', spelers: los });
+        return groepen.map(g => {
+          const aantal = g.spelers.reduce((n, p) => n + (_berichtenData[p.id] || []).length, 0);
+          const ongelezen = g.spelers.reduce((n, p) =>
+            n + (_berichtenData[p.id] || []).filter(m => !m.gelezen && !m.deletedAt).length, 0);
+          return `
+          <details class="bericht-history-groep" ${_berichtenOpenGroep.has(g.id) ? 'open' : ''}
+            ontoggle="window._berichtenGroepToggle('${esc(g.id)}', this.open)">
+            <summary class="bericht-history-head">
+              <span class="bericht-history-name">${esc(g.naam)}</span>
+              <span class="bericht-history-counts">
+                <span class="bericht-history-count" title="Aantal brieven in deze party">${aantal}</span>
+                ${ongelezen ? `<span class="bericht-history-unread-count">${ongelezen} ongelezen</span>` : ''}
+              </span>
+            </summary>
+            <div class="bericht-history-groep-body">
+              ${_berichtenSpelerHtml(g.spelers)}
+            </div>
+          </details>`;
+        }).join('');
+      })()}
     </div>`;
 };
 
@@ -10533,8 +10590,18 @@ window._postOntvangerTypeChange = () => {
   document.getElementById('post-ontvanger-groep')?.classList.toggle('hidden', type !== 'groep');
 };
 
-// Vul afzender-naam in vanuit NPC-selectie
-// ── NPC zoek-combobox ──
+// De afzender: één veld voor twee gevallen. Staat de getypte naam in de lijst,
+// dan hangt de brief aan dat kaartje (en kan de speler het openen); staat hij
+// er niet in, dan is het gewoon een naam — een anonieme boodschapper hoeft geen
+// kaartje te hebben.
+window._postAfzenderKies = (veld) => {
+  const naam = (veld?.value || '').trim();
+  const hidden = document.getElementById('post-npc');
+  const npc = naam ? _berichtenNPCs.find(n => (n.name || '').toLowerCase() === naam.toLowerCase()) : null;
+  if (hidden) hidden.value = npc ? npc.id : '';
+};
+
+// ── NPC zoek-combobox (oude vorm; blijft staan voor wie hem nog aanroept) ──
 window._postNpcSearch = (q) => {
   const dd = document.getElementById('post-npc-dropdown');
   if (!dd) return;
@@ -10574,6 +10641,7 @@ async function _postSend() {
   const datum          = document.getElementById('post-datum')?.value.trim();
   const npcId          = document.getElementById('post-npc')?.value;
   const thema          = document.getElementById('post-thema')?.value || '';
+  const briefstijl     = document.getElementById('post-stijl')?.value || '';
   const statusEl       = document.getElementById('post-send-status');
 
   if (!tekst) {
@@ -10601,6 +10669,7 @@ async function _postSend() {
     afzender: afzenderDef,
     datum,
     thema,
+    briefstijl,
     entityId:   npc ? npc.id   : null,
     entityType: npc ? 'personages' : null,
     characterId: ontvangerType === 'speler' ? spelerId : null,
@@ -10620,7 +10689,7 @@ async function _postSend() {
     document.getElementById('post-afzender').value   = '';
     document.getElementById('post-datum').value      = '';
     document.getElementById('post-npc').value        = '';
-    document.getElementById('post-npc-search').value = '';
+    const zoek = document.getElementById('post-npc-search'); if (zoek) zoek.value = '';
     const themaSel = document.getElementById('post-thema'); if (themaSel) themaSel.value = '';
     setTimeout(() => _renderBerichten(), 400);
   } catch (err) {

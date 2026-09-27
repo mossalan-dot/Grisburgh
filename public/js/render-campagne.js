@@ -437,6 +437,10 @@ const BRIEF_STIJLEN = [
   { value: 'oud',       label: 'Oud handschrift (standaard)', stijl: "'IM Fell English', serif" },
 ];
 
+// Ook de Meesterkamer schrijft brieven (de snelle post), en die hoort dezelfde
+// handschriften aan te bieden als een document. Eén lijst dus.
+window.BRIEF_STIJLEN = BRIEF_STIJLEN;
+
 const DOC_STIJL_BIJ_TYPE = {
   'Brief': 'hand', 'Notities': 'hand', 'Visitekaartje': 'drukwerk',
   // Een gebed is geen brief maar een gewijde tekst; die staat in de gotische

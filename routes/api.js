@@ -1883,6 +1883,11 @@ function _bezorgBrief(req, cid, { titel = '', tekst = '', afzender = '', thema =
 
 router.post('/post', requireDM, (req, res) => {
   const { titel, tekst, afzender, entityId, entityType, characterId, groepId, datum, thema } = req.body;
+  // Het handschrift: dezelfde lijst als bij documenten (`data.briefstijl`), dus
+  // een brief van dezelfde hand ziet er overal hetzelfde uit. Een onbekende
+  // waarde laten we vallen — dan valt hij terug op het standaardperkament.
+  const STIJLEN = ['hand', 'hand2', 'machine', 'drukwerk', 'knipsel', 'gotisch', 'aanplak', 'oud'];
+  const briefstijl = STIJLEN.includes(String(req.body.briefstijl || '')) ? req.body.briefstijl : '';
   if (!tekst?.trim()) return res.status(400).json({ error: 'Tekst is verplicht' });
   // 'heeren' is hier een **briefstijl** (de schaduwbrief), geen dienst: die is
   // met het Dievengilde vervallen, maar brieven die er al liggen dragen dit
@@ -1925,6 +1930,7 @@ router.post('/post', requireDM, (req, res) => {
       entityType: entityType || null,
       datum: datum?.trim() || '',
       thema: veiligThema,
+      briefstijl,
       cinematic: !!req.body.cinematic,   // grote verzegelde-brief-reveal bij de speler
       timestamp: now,
       deletedAt: null,
@@ -1946,7 +1952,7 @@ router.post('/post', requireDM, (req, res) => {
   if (req.body.cinematic) {
     io.to(_displayRoom(req)).emit('brief:display', {
       titel: titel?.trim() || '', tekst: tekst.trim(), afzender: afzenderDef,
-      datum: datum?.trim() || '', thema: veiligThema, cinematic: true,
+      datum: datum?.trim() || '', thema: veiligThema, briefstijl, cinematic: true,
     });
   }
 
