@@ -3947,16 +3947,16 @@ function _rolRustGebeurtenis(meta, locatie, dmState, spelers, io, campaignId) {
   let tablesData = {};
   try { tablesData = storage.readJSON('tables.json'); } catch { return null; }
   const table = (tablesData.tables || []).find(t => t.id === tableId);
-  if (!table || table.type !== 'weighted' || !(table.entries || []).length) return null;
+  // Elke tafel waar een regel uit te trekken valt mag hier dienen: een gewogen
+  // tabel met bereiken, of een gewone lijst waarin elke regel even waarschijnlijk
+  // is. Eerder moest het een gewogen tabel zijn, en verdween de rest stilzwijgend
+  // uit de keuzelijst.
+  if (!table || !(table.entries || []).length) return null;
 
   const perSpeler = {};
   spelers.forEach(char => {
-    const d100 = Math.floor(Math.random() * 100) + 1;
-    let tekst = null;
-    for (const entry of table.entries) {
-      const m = String(entry).match(/^(\d+)[-–](\d+):\s*(.+)$/);
-      if (m && d100 >= parseInt(m[1]) && d100 <= parseInt(m[2])) { tekst = m[3].trim(); break; }
-    }
+    const { regel, worp: d100 } = _rolTafelRuw(table);
+    let tekst = regel;
     if (!tekst) { perSpeler[char.id] = { roll: d100, tekst: '', currency: null }; return; }
 
     // Valuta-token parsen + uit de weergavetekst halen; effect treft de speler zelf.
@@ -10421,10 +10421,9 @@ const getalOf = (v) => { const n = parseInt(v, 10); return Number.isFinite(n) ? 
 // zodat een DM niet eerst hoeft te weten welk soort tafel hij maakte. De
 // valuta-tokens van de rusttabellen (`{+3kn}`) horen niet in een voorwerpnaam
 // en worden er daarom afgeknipt.
-function _rolTafelRegel(tafel) {
+function _rolTafelRuw(tafel) {
   const regels = (tafel?.entries || []).filter(x => String(x || '').trim());
-  if (!regels.length) return '';
-  const schoon = (t) => String(t).replace(/\{[^}]*\}/g, '').replace(/\s{2,}/g, ' ').trim();
+  if (!regels.length) return { regel: '', worp: 0, zijden: 0 };
   if (tafel.type === 'weighted') {
     const zijden = parseInt(String(tafel.dobbel || 'd100').replace(/\D/g, '')) || 100;
     const worp = Math.floor(Math.random() * zijden) + 1;
@@ -10433,12 +10432,22 @@ function _rolTafelRegel(tafel) {
       if (!m) continue;
       const van = parseInt(m[1]);
       const tot = m[2] ? parseInt(m[2]) : van;
-      if (worp >= van && worp <= tot) return schoon(m[3]);
+      if (worp >= van && worp <= tot) return { regel: String(m[3]).trim(), worp, zijden };
     }
     // Geen treffer (een tafel met gaten): dan liever niets dan een verzonnen regel.
-    return '';
+    return { regel: '', worp, zijden };
   }
-  return schoon(regels[Math.floor(Math.random() * regels.length)]);
+  // Een gewone lijst: elke regel even waarschijnlijk. De worp die we melden is
+  // het regelnummer, zodat er aan tafel iets te noemen valt.
+  const i = Math.floor(Math.random() * regels.length);
+  return { regel: String(regels[i]).trim(), worp: i + 1, zijden: regels.length };
+}
+
+// Dezelfde worp, maar zonder de valuta-tokens: een voorwerpnaam is geen plek
+// voor `{+2kn}`.
+function _rolTafelRegel(tafel) {
+  const { regel } = _rolTafelRuw(tafel);
+  return String(regel).replace(/\{[^}]*\}/g, '').replace(/\s{2,}/g, ' ').trim();
 }
 
 function _mimicEncounterId() {

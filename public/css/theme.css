@@ -9170,8 +9170,13 @@ body.lade-dicht .regie-lade-body { display: none; }
   gap: 4px;
   margin-top: 8px;
 }
+/* Een raster en geen flex-rij: de naam links bepaalde anders waar de knoppen
+   beginnen, en dan staat "Upload" bij elke regel op een andere plek. Nu twee
+   kolommen die in elke rij even breed zijn — in alle drie de tabjes van de
+   geluidentab, want ze gebruiken dezelfde rij. */
 .dm-sound-row {
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(150px, 260px) 1fr;
   align-items: center;
   gap: 8px;
   padding: 6px 8px;
@@ -9184,7 +9189,18 @@ body.lade-dicht .regie-lade-body { display: none; }
   font-size: 11px;
   font-weight: 600;
   color: #3a2410;          /* donkere inkt: de rij heeft een lichte achtergrond */
-  min-width: 90px;
+  min-width: 0;            /* het raster bepaalt de breedte */
+}
+/* De uitleg onder een momentnaam hoort niet mee te tellen als tweede kolom. */
+.dm-sound-slot-label .dm-hint { display: block; font-weight: 400; }
+/* De knoppen van een rij staan links in hun kolom en op één lijn; de
+   uploadknop hangt rechts, zodat die kolom overal even ver doorloopt. */
+.dm-sound-controls > .dm-sound-upload-btn { margin-left: auto; }
+
+/* Smal scherm: het raster past niet meer, dan weer onder elkaar. */
+@media (max-width: 760px) {
+  .dm-sound-row { grid-template-columns: 1fr; }
+  .dm-sound-controls > .dm-sound-upload-btn { margin-left: 0; }
 }
 .dm-sound-controls {
   display: flex;
@@ -9215,19 +9231,28 @@ body.lade-dicht .regie-lade-body { display: none; }
   margin-bottom: 6px;
   overflow: hidden;
 }
+/* Dezelfde kaart als een geluidsrij: dit tabje hoorde er anders uit te zien
+   dan de twee ernaast, terwijl het hetzelfde soort lijst is. */
 .dm-sound-player-summary {
-  display: flex;
+  display: grid;
+  grid-template-columns: 14px minmax(150px, 260px) 1fr;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
   width: 100%;
-  padding: 8px 10px;
+  padding: 6px 8px;
   cursor: pointer;
-  background: rgba(255,255,255,0.04);
-  border: none;
+  background: rgba(255,255,255,0.5);
+  border: 1px solid rgba(196,168,122,0.45);
+  border-radius: 4px;
   text-align: left;
   transition: background 0.12s;
 }
-.dm-sound-player-summary:hover { background: rgba(255,255,255,0.08); }
+.dm-sound-player-summary:hover { background: rgba(255,255,255,0.75); }
+/* De teller staat in de derde kolom, aan het begin ervan — dan staat hij bij
+   elke speler op dezelfde plek, net als de knoppen in de andere tabjes. */
+.dm-sound-player-summary .dm-sound-sel-badge { justify-self: start; }
+/* Het opengeklapte deel valt binnen dezelfde kolommen als de kop erboven. */
+.dm-sound-player-body { padding-left: 0; padding-right: 0; }
 .dm-sound-arrow {
   font-size: 9px;
   color: #6a4a20;
@@ -9256,12 +9281,18 @@ body.lade-dicht .regie-lade-body { display: none; }
 
 /* Emote-items in bibliotheek */
 .dm-sound-emote-item {
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(150px, 260px) 1fr;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
   padding: 5px 0;
   border-bottom: 1px solid rgba(106,72,32,0.18);
 }
+/* Het vinkje en het labelveld vormen samen de eerste kolom, zodat het
+   labelveld even breed staat als de naam van een geluid in de andere tabjes. */
+.dm-sound-emote-item .dm-sound-emote-check { grid-column: 1; justify-self: start; }
+.dm-sound-emote-item .dm-sound-emote-label { grid-column: 1; }
+.dm-sound-emote-item .dm-sound-controls { grid-column: 2; }
 .dm-sound-emote-item:last-of-type { border-bottom: none; }
 .dm-sound-emote-check {
   cursor: pointer;
@@ -9273,11 +9304,7 @@ body.lade-dicht .regie-lade-body { display: none; }
   height: 15px;
   cursor: pointer;
 }
-.dm-sound-emote-label {
-  min-width: 120px;
-  max-width: 180px;
-  flex: 1;
-}
+.dm-sound-emote-label { width: 100%; }
 
 /* ── Emote-knop icon + text layout ─────────────────────────────────────── */
 .co-emote-btn, .player-dash-emote-btn {

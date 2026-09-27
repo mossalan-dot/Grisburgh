@@ -3085,6 +3085,10 @@ let _weerSeizoen = 'Lente';
 
 function _weerSeason(btn) {
   _weerSeizoen = btn.dataset.season;
+  // Kiezen ís gooien: met vier seizoensknoppen was een aparte dobbelknop een
+  // extra handeling zonder een keuze erin. Nog eens klikken geeft een nieuwe
+  // worp voor hetzelfde seizoen.
+  setTimeout(() => _weerGenereer(), 0);
   document.querySelectorAll('.dm-weer-season-btn').forEach(b => {
     const aan = b === btn;
     b.classList.toggle('dm-btn-primary', aan);
@@ -3176,8 +3180,8 @@ function _renderTafels() {
     <div class="dm-feature-section dm-namen-section">
       <div class="dm-section-label">Namen<span class="dm-sectie-hulp">${helpBtn('dm_tafels_namen')}</span></div>
       <div class="dm-feature-row">
-        <button class="dm-btn dm-btn-ghost dm-naam-btn" onclick="window.dmPanel.naamGenereer('m')" title="Mannennaam">♂</button>
-        <button class="dm-btn dm-btn-ghost dm-naam-btn" onclick="window.dmPanel.naamGenereer('v')" title="Vrouwennaam">♀</button>
+        <button class="dm-btn dm-btn-sm dm-btn-ghost" onclick="window.dmPanel.naamGenereer('m')" title="Trek een mannennaam">♂ Mannennaam</button>
+        <button class="dm-btn dm-btn-sm dm-btn-ghost" onclick="window.dmPanel.naamGenereer('v')" title="Trek een vrouwennaam">♀ Vrouwennaam</button>
       </div>
       <div id="dm-naam-result" class="dm-naam-result"></div>
     </div>
@@ -3191,9 +3195,9 @@ function _renderTafels() {
                moet raden. De titel stond er toch al. -->
           ${['Lente','Zomer','Herfst','Winter'].map(s =>
             `<button class="dm-btn dm-btn-sm dm-weer-season-btn ${s === _weerSeizoen ? 'dm-btn-primary' : 'dm-btn-ghost'}" data-season="${s}"
-               title="${s}" onclick="window.dmPanel.weerSeason(this)">${s}</button>`).join('')}
+               title="Gooi het weer voor ${s.toLowerCase()} — nog eens klikken geeft een nieuwe worp"
+               onclick="window.dmPanel.weerSeason(this)">${s}</button>`).join('')}
         </div>
-        <button class="dm-btn dm-btn-primary" onclick="window.dmPanel.weerGenereer()" title="Genereer weer">${icon('dice',{cls:'icon-gi'})}</button>
       </div>
       <div id="dm-weer-result" class="dm-tabel-result hidden"></div>
     </div>
@@ -7471,7 +7475,6 @@ async function _renderGeluiden() {
   const ambSection = `
     <div class="dm-sound-section">
       <div class="dm-sound-section-title">${icon('volume-2')} Geluidsdecors</div>
-      <p class="dm-hint">Speel een sfeerloop bij iedereen. Klinkt vooral op de <strong>tabletmodus</strong> (tafelspeaker); spelers kunnen 'm op hun eigen toestel aanzetten via de dempknop in de header.</p>
       <div class="dm-amb-volume">
         <span class="dm-form-label">Volume</span>
         <input type="range" min="0" max="1" step="0.05" value="${amb.volume ?? 0.5}"
@@ -7537,7 +7540,6 @@ async function _renderGeluiden() {
   const svcSection = `
     <div class="dm-sound-section">
       <div class="dm-sound-section-title">${icon('volume-2')} Diensten<span class="dm-sectie-hulp">${helpBtn('dm_geluiden_diensten')}</span></div>
-      <p class="dm-hint">Klinkt <strong>lokaal</strong> zodra iemand die dienst opent — los van een sessie, geen tablet nodig. Een lopende scène heeft voorrang.</p>
       <div class="dm-sound-list">${_DIENSTEN.map(d => svcRow(d.key, d.label)).join('')}</div>
       <div class="dm-section-label" style="margin-top:10px">Facties<span class="dm-sectie-hulp">${helpBtn('dm_geluiden_facties')}</span></div>
       <div class="dm-sound-list">${facties.length ? facties.map(f => svcRow('factie:' + f.id, f.naam || f.id)).join('') : '<p class="dm-hint" style="opacity:.6">Geen facties geconfigureerd.</p>'}</div>
@@ -7604,12 +7606,10 @@ async function _renderGeluiden() {
     <div class="dm-geluiden-paneel" data-sub="standaard"${_geluidenSubtab === 'standaard' ? '' : ' hidden'}>
       <div class="dm-sound-section">
         <div class="dm-sound-section-title">${icon('volume-2')} Vaste geluiden<span class="dm-sectie-hulp">${helpBtn('dm_geluiden_standaard')}</span></div>
-        <p class="dm-hint">Spelen vanzelf af bij HP-wijzigingen, een beurtwisseling en het einde van een gevecht.</p>
         <div class="dm-sound-list">${standardRows}</div>
       </div>
       <div class="dm-sound-section">
         <div class="dm-sound-section-title">${icon('sparkles')} Condities<span class="dm-sectie-hulp">${helpBtn('dm_geluiden_condities')}</span></div>
-        <p class="dm-hint">Klinkt op het tafelscherm zodra je een condition op een deelnemer zet. Bij meerdere tegelijk speelt alleen de zwaarste. <strong>Concentration</strong> werkt anders: die klinkt bij het begin van elke ronde zolang er iemand concentreert.</p>
         <div class="dm-sound-list">${conditionRows}</div>
       </div>
     </div>
@@ -7617,7 +7617,6 @@ async function _renderGeluiden() {
     <div class="dm-geluiden-paneel" data-sub="spelers"${_geluidenSubtab === 'spelers' ? '' : ' hidden'}>
       <div class="dm-sound-section">
         <div class="dm-sound-section-title">${icon('users')} Spelersemotes<span class="dm-sectie-hulp">${helpBtn('dm_geluiden_spelers')}</span></div>
-        <p class="dm-hint">Per speler een beurtgeluid en tot vier emotes (label + geluid). De emotes staan als knoppen op zijn kaartje en in de gevechtsoverlay.</p>
         ${spelers.length === 0
           ? `<p class="dm-hint" style="opacity:.6">Geen spelers-personages gevonden (subtype = speler).</p>`
           : playerBlocks}
@@ -8640,7 +8639,11 @@ async function _renderRust() {
   let tables = [];
   // api.listTables() geeft een kále array terug (net als in de Tafels-tab), niet { tables: [...] };
   // de oude `?.tables` liet de dropdown daarom altijd leeg → koppeling leek weg (en Opslaan wiste 'm).
-  try { tables = ((await api.listTables()) || []).filter(t => t.type === 'weighted'); } catch { tables = []; }
+  // Alle tafels waar je een regel uit kunt trekken. Alleen de namengenerator
+  // valt af — een voor- en achternaam is geen nachtelijk voorval. Eerder stond
+  // hier `type === 'weighted'`, waardoor de helft van je tafels onzichtbaar was
+  // zonder dat ergens stond waarom; de server rolt nu ook een gewone lijst.
+  try { tables = ((await api.listTables()) || []).filter(t => t.type !== 'combined'); } catch { tables = []; }
   _rustPendingVeldBg = null;
   _rustPendingKorteBg = null;
   const herbergNaam = window.app?.state?.meta?.herberg?.naam || 'De herberg';
@@ -8704,13 +8707,13 @@ async function _renderRust() {
           <option value="">— Geen —</option>
           ${tables.map(t => `<option value="${esc(t.id)}" ${rustCfg.herbergEventTableId === t.id ? 'selected' : ''}>${esc(t.name || t.id)}</option>`).join('')}
         </select>
-        <span class="dm-hint" style="font-size:11px">Weighted d100-tabel. Valuta-effect per regel: <code>{+3kn}</code> / <code>{-1fl}</code>, optioneel <code>@party</code>.</span>
       </div>
 
-      <div class="dm-form-row">
-        <button class="dm-btn dm-btn-primary" onclick="window._rustSave()" title="Rust-instellingen opslaan">${icon('save')}</button>
+      <div class="dm-feature-row">
+        <button class="dm-btn dm-btn-primary" onclick="window._rustSave()" title="De sfeer en de tabellen bewaren">${icon('save')} Opslaan</button>
         <span id="rust-save-status" style="font-size:11px;color:#6a9050"></span>
       </div>
+    </div>
 
     <!-- Level omhoog staat onder Sfeer & gebeurtenissen: het hoort bij hetzelfde
          moment aan tafel (einde sessie, of de lange rust erna), maar je raakt
@@ -8726,7 +8729,6 @@ async function _renderRust() {
         <span id="dm-levelup-status" style="font-size:11px;color:#6a9050"></span>
       </div>
       <div id="dm-levelup-lijst" class="dm-hint" style="font-size:11px;margin-top:6px"></div>
-    </div>
     </div>`;
 };
 
