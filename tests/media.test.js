@@ -148,7 +148,14 @@ describe('Mediabibliotheek', () => {
     const vid = list.body.files.find(f => f.id === `${charId}_video`);
     assert.ok(vid, 'video staat in de bibliotheek');
     assert.strictEqual(vid.type, 'video');
-    assert.ok(vid.gebruik.some(l => /Held/.test(l) && /startscherm-video/.test(l)), 'gelabeld als startscherm-video');
+    // Een label is een string óf `{ tekst, soort, id }` — dat laatste sinds het
+    // scherm er een knop van maakt die het kaartje opent.
+    const tekst = (l) => (typeof l === 'string' ? l : (l?.tekst || ''));
+    assert.ok(vid.gebruik.some(l => /Held/.test(tekst(l)) && /startscherm-video/.test(tekst(l))),
+      'gelabeld als startscherm-video');
+    const video = vid.gebruik.find(l => typeof l === 'object');
+    assert.strictEqual(video?.soort, 'personages', 'draagt het soort mee, zodat het kaartje te openen is');
+    assert.strictEqual(video?.id, charId);
     // Verwijderen zonder force moet 409 geven (in gebruik).
     const del = await jsonReq(server, 'DELETE', `/api/media/${charId}_video`, null, dmCookie);
     assert.strictEqual(del.status, 409);
