@@ -668,6 +668,8 @@ fout-uitvoert.
 - [ ] **Instellingen — party's** (DM) — aanmaken, hernoemen, verwijderen (met de waarschuwing), en wie er vanavond meespeelt
 - [ ] **Party-kaartje** (DM) — klik een party in de lijst; het venster toont naam, groepswachtwoord, personages, wie er vanavond speelt en de gedeelde beurs van díé party
 - [ ] **Gevecht: deelnemer toevoegen** (DM) — het zoekveld is ook het naamveld: kies een monster uit de lijst, óf typ een eigen naam en voeg toe. Het kaartjes-lijstje is een zoekveld geworden, en de kolom heet *Initiative*
+- [ ] **Statblok van een kaartje** (DM) — open in Monsters een wezen met de pil *van kaartje*: er staat een melding met een knop naar dat kaartje, de velden zijn leesbaar maar vast, *Toon in Bestiarium* ontbreekt (hij staat al onder Personages) en alleen de roddel is te bewerken en te bewaren
+- [ ] **Deelnemer-soorten** (DM) — de lijst zegt *Tegenstander* (niet Monster), en Summon heeft nu hetzelfde zoekveld voor een statblok als Tegenstander en Medestander
 - [ ] **Monsterlijst** (DM) — twintig per pagina in plaats van vijf, en het filter zegt *Alle akten*
 - [ ] **Encounter bewerken** (DM) — geen backdrop meer (ook niet achter een lopend gevecht), negen canvas-thema's waarvan er altijd één geldt, en **Buit** wijst naar een vondst uit de Loot-tab
 - [ ] **Buit uit een gevecht** (DM) — koppel een vondst aan een encounter, start het gevecht, klik op buit verdelen: de vondst komt als verdeling te voorschijn, inclusief relikwiemunten, en staat daarna als onthuld te boek

@@ -3659,6 +3659,20 @@ function _renderMonsters() {
   `;
 };
 
+// Zet de velden van een afgeleide regel op alleen-lezen. Bewust ná het
+// tekenen en over het hele blok heen: het statblok-formulier wordt elders
+// opgebouwd, en een tweede lijst met veld-id's zou meteen gaan afwijken.
+function _monsterEditorVergrendel(el) {
+  el.querySelectorAll('input, textarea, select').forEach(f => {
+    if (f.id === 'dm-mon-roddel') return;                 // de roddel hoort hier wél
+    if (f.type === 'checkbox' || f.tagName === 'SELECT') f.disabled = true;
+    else f.readOnly = true;
+    f.title = 'Komt van het kaartje — pas het daar aan';
+    f.classList.add('dm-veld-vast');
+  });
+  el.querySelectorAll('.dm-mon-upload-row button, .dm-sb-add, .script-icon-btn--del').forEach(b => b.remove());
+}
+
 function _renderMonsterEditor(el) {
   // Open je de editor vanuit het Bestiarium-tabblad, dan zijn twee velden daar
   // een raadsel. "Toon in Bestiarium" beantwoordt zichzelf — je staat erin — en
@@ -3669,6 +3683,14 @@ function _renderMonsterEditor(el) {
   const _inBestiariumTab = !!_monsterEditorHost;
   const isNew  = _editingMonsterIsNew;
   const stored = _monsters.find(m => m.id === _editingMonsterId) || {};
+  // Een regel met een `entityId` is **afgeleid** van een personagekaartje:
+  // `_syncMonsterVanKaartje` op de server schrijft naam, HP, initiative,
+  // statblok, beeld en beschrijving bij elke opslagbeurt van dat kaartje
+  // opnieuw — en zet `inBestiarium` hard op false. Hier bewerken kon dus wel,
+  // maar hield niets: bij de eerstvolgende wijziging aan het kaartje (of een
+  // tier-wissel) was het weg. Daarom laat de editor die velden nu zien zoals ze
+  // zijn, met de weg naar de plek waar je ze wél verandert.
+  const vanKaartje = !!stored.entityId;
   const m = {
     id:         _editingMonsterId,
     name:       stored.name        || '',
@@ -3684,7 +3706,19 @@ function _renderMonsterEditor(el) {
 
   el.innerHTML = `
     <div class="dm-feature-section">
-      <details class="dm-srd-import-panel" id="dm-srd-panel">
+      ${vanKaartje ? `
+      <div class="dm-mon-afgeleid">
+        <div class="dm-section-label">${icon('link')} Dit statblok hoort bij een kaartje</div>
+        <p class="dm-hint" style="margin:0 0 8px">
+          Naam, HP, initiative, het statblok, het beeld en de beschrijving komen van het
+          personagekaartje en worden daar bijgehouden — wat je hier wijzigt, wordt
+          overschreven zodra dat kaartje wordt opgeslagen. De <strong>roddel</strong> hoort wél hier.
+        </p>
+        <button class="dm-btn dm-btn-sm dm-btn-ghost"
+          onclick="window._openDetail('personages','${esc(stored.entityId || '')}')"
+          title="Het kaartje openen om het statblok aan te passen">${icon('arrow-up-right')} Open het kaartje</button>
+      </div>` : ''}
+      <details class="dm-srd-import-panel" id="dm-srd-panel"${vanKaartje ? ' hidden' : ''}>
         <summary class="dm-srd-summary" onclick="setTimeout(()=>window.dmPanel.srdSearch(),0)">${icon('search')} Standaard statblok (SRD 5.2)</summary>
         <div class="dm-srd-search-row">
           <input id="dm-srd-q" class="dm-input dm-input-sm" placeholder="Guard, Pirate, Commoner…"
@@ -3698,13 +3732,14 @@ function _renderMonsterEditor(el) {
         <label class="dm-form-label">Naam</label>
         <input id="dm-mon-name" class="dm-input" value="${esc(m.name)}" placeholder="Monsternaam…">
       </div>
-      ${_inBestiariumTab ? '' : `
+      ${_inBestiariumTab || vanKaartje ? '' : `
       <div class="dm-form-row">
         <label class="dm-form-checkbox" title="Verschijnt dit wezen als kaart in het Bestiarium? Zet uit voor personages/NPC's die je alleen voor de strijd toevoegt.">
           <input type="checkbox" id="dm-mon-inbest"${m.inBestiarium ? ' checked' : ''}>
           <span>Toon in Bestiarium</span>
         </label>
       </div>`}
+      ${vanKaartje ? `<p class="dm-hint" style="margin:-4px 0 8px">Hij staat niet in het Bestiarium: dat gaat over wezens, en deze hoort bij zijn eigen kaartje onder Personages. Twee archieftabbladen voor dezelfde persoon leest als twee personen.</p>` : ''}
       <div class="dm-form-row">
         <label class="dm-form-label">Beschrijving</label>
         <textarea id="dm-mon-desc" class="dm-input dm-sb-textarea" rows="3"
@@ -3736,6 +3771,7 @@ function _renderMonsterEditor(el) {
       </div>
     </div>
   `;
+  if (vanKaartje) _monsterEditorVergrendel(el);
 };
 
 function _monsterNew() {
@@ -3904,7 +3940,14 @@ async function _monsterSave() {
     : (_editingMonsterIsNew ? true : stored.inBestiarium !== false);
   const description = document.getElementById('dm-mon-desc')?.value?.trim() || '';
   const roddel = document.getElementById('dm-mon-roddel')?.value?.trim() || '';
-  const payload = { name, maxHp, initiative: init, imageId: _editingMonsterImageId, statblock, inBestiarium, description, roddel };
+  // Een afgeleide regel (van een kaartje) bewaart alleen wat de sync met rust
+  // laat. De rest meesturen zou een wijziging opleveren die bij de volgende
+  // opslagbeurt van dat kaartje stilzwijgend verdwijnt — en dat is erger dan
+  // hem meteen niet aannemen. PUT /monsters/:id voegt samen, dus wat we niet
+  // meesturen blijft staan.
+  const payload = stored.entityId
+    ? { roddel }
+    : { name, maxHp, initiative: init, imageId: _editingMonsterImageId, statblock, inBestiarium, description, roddel };
   try {
     if (_editingMonsterIsNew) {
       const created = await api.createMonster({ id: _editingMonsterId, ...payload });
@@ -4037,6 +4080,24 @@ const CANVAS_PRESETS = [
   { id: 'crypt',   iconName: 'skull',     label: 'Crypte',     player: [ 70,  50,  90], monster: [100,  80,  50] },
 ];
 
+// ── Eén lijst met statblokken, voor alle drie de plekken waar je er een kiest ──
+//
+// Gevecht (deelnemer toevoegen), Encounters (monsterrijen) en het Bestiarium
+// putten uit dezelfde bak: `monsters.json`. Daar staan zowel de eigen wezens
+// als de regels die van een personagekaartje zijn afgeleid (`entityId`), want
+// `_syncMonsterVanKaartje` zet die er server-side bij. Eén helper dus, met per
+// regel dezelfde toelichting — anders zegt dezelfde naam op twee schermen iets
+// anders.
+function _statblokOptiesHtml() {
+  return _monsters.map(m => {
+    const kaart = m.entityId ? _setupPersonages.find(e => e.id === m.entityId) : null;
+    const merk = m.entityId
+      ? `van kaartje${kaart?.data?.kant ? ' · ' + esc(kaart.data.kant) : ''}${m.maxHp ? ' · HP ' + m.maxHp : ''}`
+      : `bibliotheek${m.maxHp ? ' · HP ' + m.maxHp : ''}`;
+    return `<option value="${esc(m.name)}">${merk}</option>`;
+  }).join('');
+}
+
 async function _loadEncounters() {
   try {
     _encounters = await api.listEncounters();
@@ -4073,10 +4134,19 @@ const ENC_PAGE_SIZE = 5;
 function _encCard(enc) {
   const akte = enc.akteId ? `<span class="dm-enc-akte">${esc(_hkLabel(enc.akteId))}</span>` : '';
   const monCount = (enc.monsters || []).reduce((s, r) => s + (r.count || 1), 0);
-  const bdThumb = `<div class="dm-enc-backdrop-thumb dm-enc-backdrop-empty">${icon('image')}${enc.backdropId ? `<img src="${api.fileUrl(enc.backdropId)}" alt="" onerror="this.remove()">` : ''}</div>`;
+  // Geen backdrop-miniatuur meer (die is vervallen); het kaartje draagt in
+  // plaats daarvan de kleuren van zijn canvas-thema — dezelfde twee kleuren die
+  // straks onder het gevecht liggen, zodat je in de lijst al ziet welke sfeer
+  // eraan hangt. Laag genoeg om de tekst erop leesbaar te houden.
+  const _preset = CANVAS_PRESETS.find(p => p.id === (enc.canvasPreset || 'default')) || CANVAS_PRESETS[0];
+  const [pr, pg, pb] = _preset.player;
+  const [mr, mg, mb] = _preset.monster;
+  const _wash = `linear-gradient(135deg, rgba(${pr},${pg},${pb},0.16) 0%, rgba(${mr},${mg},${mb},0.16) 100%)`;
+  const themaVlag = `<span class="dm-enc-thema" title="Canvas-thema: ${esc(_preset.label)}"
+    style="background:linear-gradient(135deg, rgba(${pr},${pg},${pb},0.75) 0%, rgba(${mr},${mg},${mb},0.75) 100%)">${icon(_preset.iconName)}</span>`;
   return `
-    <div class="dm-enc-card">
-      ${bdThumb}
+    <div class="dm-enc-card" style="background-image:${_wash}">
+      ${themaVlag}
       <div class="dm-enc-card-info">
         <span class="dm-enc-card-name">${esc(enc.name)}</span>
         ${akte}
@@ -4193,7 +4263,7 @@ function _renderEncounterEditor(el) {
   const akteId = _encAkteId;
 
   // Monster rows — shared datalist for searchable input
-  const datalistHtml = `<datalist id="dm-enc-monsters-dl">${_monsters.map(m => `<option value="${esc(m.name)}"></option>`).join('')}</datalist>`;
+  const datalistHtml = `<datalist id="dm-enc-monsters-dl">${_statblokOptiesHtml()}</datalist>`;
 
   const rowsHtml = _encMonsterRows.length === 0
     ? `<p class="dm-hint" style="margin:4px 0 8px">Nog geen monsters. Klik + om er een toe te voegen.</p>`
@@ -4202,7 +4272,7 @@ function _renderEncounterEditor(el) {
           <input class="dm-input dm-input-sm" type="text"
             list="dm-enc-monsters-dl"
             value="${esc(r.name || '')}"
-            placeholder="Zoek monster…"
+            placeholder="Zoek een statblok…"
             style="flex:2;min-width:0"
             onchange="window._encRowNameChange(${i}, this.value)">
           <label class="dm-labeled-input">
@@ -4221,10 +4291,10 @@ function _renderEncounterEditor(el) {
               onchange="window.dmPanel.encRowChange(${i}, 'hp', this.value)">
           </label>
           ${_encHeeftWorp(r.monsterId) ? `<button type="button"
-            class="script-icon-btn dm-enc-worp${r.hpRoll ? ' dm-enc-worp--aan' : ''}"
+            class="dm-btn dm-btn-sm dm-enc-worp ${r.hpRoll ? 'dm-btn-primary dm-enc-worp--aan' : 'dm-btn-ghost'}"
             onclick="window.dmPanel.encRowRoll(${i})"
             title="${r.hpRoll ? 'Rolt bij het opstellen — klik voor het gemiddelde' : 'Uitrollen bij het opstellen, per exemplaar'}">${icon('dice')}</button>` : ''}
-          <button class="script-icon-btn script-icon-btn--del" onclick="window.dmPanel.encRemoveRow(${i})" title="Verwijderen">${icon('x')}</button>
+          <button class="dm-btn dm-btn-sm dm-btn-ghost dm-btn-danger" onclick="window.dmPanel.encRemoveRow(${i})" title="Deze regel weghalen">${icon('x')}</button>
         </div>
         ${_encTierRegel(r, i)}`).join('');
 
@@ -4232,7 +4302,7 @@ function _renderEncounterEditor(el) {
     <div class="dm-feature-section">
       <div class="dm-feature-row">
         <span class="dm-feature-title">${isNew ? 'Nieuwe encounter' : 'Encounter bewerken'}</span>
-        ${!isNew ? `<button class="script-add-btn" onclick="window.dmPanel.encDelete('${esc(_editingEncId)}')" title="Verwijderen">${icon('trash')}</button>` : ''}
+        ${!isNew ? `<button class="dm-btn dm-btn-sm dm-btn-ghost dm-btn-danger" onclick="window.dmPanel.encDelete('${esc(_editingEncId)}')" title="Dit gevecht verwijderen">${icon('trash')}</button>` : ''}
       </div>
 
       <div class="dm-form-row">
@@ -4273,7 +4343,7 @@ function _renderEncounterEditor(el) {
       ${datalistHtml}
       <div class="dm-form-label" style="margin-bottom:4px">Monsters</div>
       <div id="dm-enc-rows">${rowsHtml}</div>
-      <button class="script-icon-btn" onclick="window.dmPanel.encAddRow()" title="Monster toevoegen" style="margin-bottom:10px">+</button>
+      <button class="dm-btn dm-btn-sm dm-btn-ghost" onclick="window.dmPanel.encAddRow()" title="Regel toevoegen" style="margin-bottom:10px">${icon('plus')} Regel</button>
 
       <!-- Loot is een **vondst** uit de Loot-tab, geen tweede lijstje hier. Zo
            is er één plek waar buit wordt bijgehouden (met sjablonen, relikwie-
@@ -4286,13 +4356,13 @@ function _renderEncounterEditor(el) {
           value="${esc((_encLootLijst.find(e => e.id === _encLootId) || {}).naam || '')}"
           onchange="window.dmPanel.encLootKies(this)">
         <datalist id="dm-enc-loot-dl">${_encLootLijst.filter(e => !e.sjabloon).map(e => `<option value="${esc(e.naam || '')}"></option>`).join('')}</datalist>
-        <button class="script-add-btn" onclick="window.dmPanel.encLootNieuw()" title="Een nieuwe vondst maken in de Loot-tab">${icon('plus')}</button>
+        <button class="dm-btn dm-btn-sm dm-btn-ghost" onclick="window.dmPanel.encLootNieuw()" title="Een nieuwe vondst maken in de Loot-tab">${icon('plus')} Nieuwe vondst</button>
       </div>
       ${_encLootOud ? `<p class="dm-hint" style="margin:0 0 10px">Dit gevecht heeft nog buit van de oude soort (los ingevuld goud en items). Die werkt gewoon, maar koppel je hier een vondst, dan telt alleen die.</p>` : ''}
 
       <div class="dm-form-actions">
-        <button class="script-add-btn" onclick="window.dmPanel.encCancel()" title="Annuleren">${icon('x')}</button>
-        <button class="script-add-btn" onclick="window.dmPanel.encSave()" title="Opslaan" style="background:rgba(80,140,80,0.35);border-color:rgba(100,180,100,0.6)">${icon('check')}</button>
+        <button class="dm-btn dm-btn-primary" onclick="window.dmPanel.encSave()" title="Opslaan">${icon('save')} Opslaan</button>
+        <button class="dm-btn dm-btn-ghost" onclick="window.dmPanel.encCancel()" title="Annuleren">${icon('x')} Annuleren</button>
       </div>
     </div>`;
 };
@@ -7821,17 +7891,20 @@ function _renderGevecht() {
   // Eén zoekveld voor drie dingen: een monster uit de bibliotheek, een kaartje
   // met een statblok, of gewoon een naam die je zelf tikt. Twee zoekvelden
   // onder elkaar (monsters én kaartjes) lazen als hetzelfde veld, twee keer.
-  const _zoekKaartjes = (_setupSelectedType === 'monster' || _setupSelectedType === 'ally')
+  const _metStatblok = ['monster', 'ally', 'summon'].includes(_setupSelectedType);
+  // Een kaartje dat al een afgeleide regel in de bibliotheek heeft, staat daar
+  // al in — dan hoeft hij er niet een tweede keer onder een eigen kopje bij.
+  const _zoekKaartjes = _metStatblok
     ? _setupPersonages
         .filter(e => e.stats && Object.values(e.stats).some(v => v !== null && v !== undefined && String(v).trim() !== ''))
+        .filter(e => !_monsters.some(m => m.entityId === e.id))
         .sort((a, b) => {
-          const gewenst = _setupSelectedType === 'ally' ? 'bondgenoot' : 'vijand';
+          const gewenst = (_setupSelectedType === 'ally' || _setupSelectedType === 'summon') ? 'bondgenoot' : 'vijand';
           return ((b.data?.kant === gewenst) - (a.data?.kant === gewenst))
               || String(a.name).localeCompare(String(b.name), 'nl');
         })
     : [];
-  const _zoekVeld = (_setupSelectedType === 'monster' || _setupSelectedType === 'ally')
-                 && (_monsters.length > 0 || _zoekKaartjes.length > 0);
+  const _zoekVeld = _metStatblok && (_monsters.length > 0 || _zoekKaartjes.length > 0);
   const _zoekWaarde = _setupSelectedPresetId
     ? (_monsters.find(m => m.id === _setupSelectedPresetId)?.name || '')
     : (_setupSelectedEntityId ? (_setupPersonages.find(e => e.id === _setupSelectedEntityId)?.name || '') : '');
@@ -7885,7 +7958,7 @@ function _renderGevecht() {
         <div class="dm-feature-row">
           <select id="dm-setup-type" class="dm-select dm-select-sm"
               onchange="window.dmPanel.setupTypeChange(this.value)">
-            <option value="monster"   ${_setupSelectedType === 'monster'   ? 'selected' : ''}>Monster</option>
+            <option value="monster"   ${_setupSelectedType === 'monster'   ? 'selected' : ''}>Tegenstander</option>
             <option value="summon"    ${_setupSelectedType === 'summon'    ? 'selected' : ''}>Summon</option>
             <option value="ally"      ${_setupSelectedType === 'ally'      ? 'selected' : ''}>Medestander</option>
             <option value="player"    ${_setupSelectedType === 'player'    ? 'selected' : ''}>Speler</option>
@@ -7899,7 +7972,7 @@ function _renderGevecht() {
             onchange="window.dmPanel.setupZoek(this)"
             onkeydown="if(event.key==='Enter')window.dmPanel.setupAddSubmit()">
           <datalist id="dm-setup-monster-dl">
-            ${_monsters.map(m => `<option value="${esc(m.name)}">statblok uit de bibliotheek</option>`).join('')}
+            ${_statblokOptiesHtml()}
             ${_zoekKaartjes.map(e => `<option value="${esc(e.name)}">kaartje${e.data?.kant ? ' · ' + esc(e.data.kant) : ''}${parseInt(e.stats?.hp) ? ' · HP ' + parseInt(e.stats.hp) : ''}</option>`).join('')}
           </datalist>
         ` : ''}
