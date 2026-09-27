@@ -5392,6 +5392,39 @@ function _healingVan(data) {
 
 // `2d4+2`, `1d8`, `5` — met de losse worpen erbij, zodat de speler ziet wat hij
 // gooide en niet alleen het totaal.
+// Tijdelijke HP toekennen — de enige plek waar dat gebeurt.
+//
+// De regel is die van het boek: temp HP **telt niet op**, de hoogste wint. Die
+// stond ingebakken in de bestelroute van de herberg; nu er twee ingangen zijn
+// (een drankje aan de bar én hetzelfde drankje uit je knapzak) hoort hij op één
+// plek te staan, net als `_deductCurrency` voor geld.
+//
+// `spec` is een getal ("5") of een worp ("1d6"). Iets anders levert niets op —
+// dan heeft de DM daar geen temp HP bedoeld.
+function _tempHpGeven(dmState, characterId, spec) {
+  const tekst = String(spec ?? '').trim();
+  let waarde = 0, worp = null;
+  if (/^\d+$/.test(tekst)) {
+    waarde = parseInt(tekst, 10) || 0;
+  } else if (/^\d+d\d+$/i.test(tekst)) {
+    waarde = rollDice(tekst);
+    worp = { formule: tekst, resultaat: waarde };
+  }
+  if (waarde <= 0) return null;
+
+  if (!dmState.playerHp) dmState.playerHp = {};
+  const hp = dmState.playerHp[characterId] || { current: null, max: null, temp: 0 };
+  hp.temp = Math.max(hp.temp || 0, waarde);
+  dmState.playerHp[characterId] = hp;
+  return { temp: hp.temp, gerold: worp };
+}
+
+// Wat een voorwerp aan tijdelijke HP geeft. Een eigen veld, want `healing` gaat
+// over echte HP (afgetopt op je maximum) en temp HP juist niet.
+function _tempHpVan(data) {
+  return String(data?.tempHp ?? '').trim();
+}
+
 function _rolGenezing(formule) {
   const m = String(formule || '').match(/(\d*)\s*d\s*(\d+)\s*([+-]\s*\d+)?/i);
   if (!m) {
@@ -5415,8 +5448,12 @@ router.post('/items/:itemId/gebruik', attachRole, (req, res) => {
   const entities = storage.readJSON('entities.json');
   const item = (entities.voorwerpen || []).find(e => e.id === itemId);
   if (!item) return res.status(404).json({ error: 'Voorwerp niet gevonden' });
+  // Een voorwerp mag genezen, tijdelijke HP geven, of allebei. Vroeger kon het
+  // alleen het eerste; een drankje aan de tap kon alleen het tweede. Nu leeft
+  // de werking op het kaartje en doen beide ingangen hetzelfde.
   const formule = _healingVan(item.data);
-  if (!formule) return res.status(400).json({ error: 'Dit voorwerp geneest niets' });
+  const tempSpec = _tempHpVan(item.data);
+  if (!formule && !tempSpec) return res.status(400).json({ error: 'Dit voorwerp doet niets bij gebruik' });
 
   const dmState = readDmState();
   const g = getGroup(dmState, _playerGroupId(dmState, characterId));
@@ -5440,15 +5477,21 @@ router.post('/items/:itemId/gebruik', attachRole, (req, res) => {
     if (!heeft) return res.status(403).json({ error: 'Dit voorwerp heb je niet.' });
   }
 
-  const worp = _rolGenezing(formule);
-  if (!worp) return res.status(400).json({ error: 'Onleesbare genezingsformule' });
+  const worp = formule ? _rolGenezing(formule) : null;
+  if (formule && !worp) return res.status(400).json({ error: 'Onleesbare genezingsformule' });
 
   if (!dmState.playerHp) dmState.playerHp = {};
   const hp = dmState.playerHp[characterId] || { current: 0, max: null };
-  const current = hp.max != null
-    ? Math.min(hp.max, (hp.current || 0) + worp.totaal)
-    : (hp.current || 0) + worp.totaal;
+  const current = worp
+    ? (hp.max != null
+        ? Math.min(hp.max, (hp.current || 0) + worp.totaal)
+        : (hp.current || 0) + worp.totaal)
+    : (hp.current || 0);
   dmState.playerHp[characterId] = { ...hp, current };
+
+  // Tijdelijke HP: dezelfde helper als de tap, dus dezelfde regel (de hoogste
+  // wint, er wordt niet opgeteld).
+  const temp = _tempHpGeven(dmState, characterId, tempSpec);
 
   if (charges !== null) {
     if (!g.itemCharges) g.itemCharges = {};
@@ -5491,8 +5534,13 @@ router.post('/items/:itemId/gebruik', attachRole, (req, res) => {
   }
   res.json({
     naam: item.name, formule,
-    worpen: worp.worpen, mod: worp.mod, heal: worp.totaal,
-    hp: { current, max: hp.max }, charges, maxCharges, weg,
+    worpen: worp?.worpen || [], mod: worp?.mod || 0, heal: worp?.totaal || 0,
+    // Tijdelijke HP staat apart: het is geen genezing en telt niet op bij je
+    // huidige HP — de speler hoort het als eigen mededeling te zien.
+    tempHp: temp ? temp.temp : null,
+    tempWorp: temp?.gerold || null,
+    hp: { current, max: hp.max, temp: dmState.playerHp[characterId]?.temp ?? 0 },
+    charges, maxCharges, weg,
   });
 });
 
@@ -13415,34 +13463,33 @@ router.post('/herberg/bestel', attachRole, vereistDienst('herberg'), (req, res) 
     _deductCurrency(dmState, characterId, prijsCl);
   }
 
-  // Temp HP — vast getal óf een worp (bv. "1d6"); telt niet op (D&D: hoogste waarde wint)
-  let tempHp = null;
-  let tempRoll = null;
-  const tempSpec = String(item.tempHp ?? '').trim();
-  let itemTemp = 0;
-  if (/^\d+$/.test(tempSpec)) {
-    itemTemp = parseInt(tempSpec, 10) || 0;
-  } else if (/^\d+d\d+$/i.test(tempSpec)) {
-    itemTemp = rollDice(tempSpec);
-    tempRoll = { formule: tempSpec, resultaat: itemTemp };
-  }
-  if (itemTemp > 0) {
-    if (!dmState.playerHp) dmState.playerHp = {};
-    const hp = dmState.playerHp[characterId] || { current: null, max: null, temp: 0 };
-    hp.temp = Math.max(hp.temp || 0, itemTemp);
-    dmState.playerHp[characterId] = hp;
-    tempHp = hp.temp;
-  }
+  // Hangt de menuregel aan een **voorwerpkaartje**, dan bepaalt dat kaartje wat
+  // het drankje doet en bepaalt deze regel alleen de prijs en de sfeer. Zo doet
+  // hetzelfde drankje precies hetzelfde of je het aan de bar drinkt of straks
+  // uit je knapzak pakt — één definitie, twee ingangen. Een regel zonder
+  // koppeling houdt zijn eigen velden, zoals hij ze altijd had.
+  const kaart = item.entityId
+    ? (storage.readJSON('entities.json').voorwerpen || []).find(v => v.id === item.entityId)
+    : null;
+  const werking = {
+    tempHp:    kaart ? _tempHpVan(kaart.data) : item.tempHp,
+    buffLabel: kaart ? (kaart.data?.buffLabel || item.buffLabel) : item.buffLabel,
+    buffDesc:  kaart ? (kaart.data?.buffDesc  || item.buffDesc)  : item.buffDesc,
+  };
+
+  const temp = _tempHpGeven(dmState, characterId, werking.tempHp);
+  const tempHp   = temp ? temp.temp : null;
+  const tempRoll = temp ? temp.gerold : null;
 
   // Status-buff (zichtbaar op de sheet tot de volgende lange rust)
   let buff = null;
-  if (item.buffLabel) {
+  if (werking.buffLabel) {
     if (!dmState.playerBuffs) dmState.playerBuffs = {};
-    const list = (dmState.playerBuffs[characterId] || []).filter(b => b.label !== item.buffLabel);
+    const list = (dmState.playerBuffs[characterId] || []).filter(b => b.label !== werking.buffLabel);
     buff = {
       id: 'buff_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
-      label: item.buffLabel,
-      desc: item.buffDesc || '',
+      label: werking.buffLabel,
+      desc: werking.buffDesc || '',
       bron: config.naam || 'De herberg',
     };
     list.push(buff);

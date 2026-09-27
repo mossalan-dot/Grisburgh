@@ -1,5 +1,5 @@
 import { api, campagneUitUrl, zetCampagne } from './api.js?v=296';
-import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, renderDocumenten, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=315";
+import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, renderDocumenten, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=316";
 import { initArchief, renderLogboek, openLogboekEditor } from "./render-archief.js?v=131";
 import { renderKaart, queueFlyTo, verversPins, nieuweKaart } from './render-kaart.js?v=31';
 import { renderDungeon } from './render-dungeon.js?v=56';
@@ -6426,12 +6426,13 @@ window._itemWorpPillen = (item) => {
   // De knop draagt zelf wat er straks in de vraag moet staan: hoeveel charges er
   // nog zijn, hoeveel er van de stapel over is, en of het exemplaar verdwijnt.
   // Zo hoeft de handler niets op te zoeken en klopt de vraag met wat je ziet.
-  if (heal) pillen.push(`<button class="item-damage-pill item-damage-pill--sm item-damage-pill--heal"
+  const temp = String(item.data?.tempHp || '').trim();
+  if (heal || temp) pillen.push(`<button class="item-damage-pill item-damage-pill--sm item-damage-pill--heal"
     onclick="window._itemGebruik(this)"
-    data-id="${esc(item.id)}" data-naam="${esc(item.name || '')}" data-formule="${esc(heal)}"
+    data-id="${esc(item.id)}" data-naam="${esc(item.name || '')}" data-formule="${esc(heal)}" data-temp="${esc(temp)}"
     data-charges="${item._maxCharges ? item._charges : ''}" data-max="${item._maxCharges || ''}"
     data-aantal="${item._qty ?? ''}" data-verbruikt="${item.data?.verbruikt === true || item.data?.verbruikt === 'true' ? '1' : ''}"
-    title="Gebruiken: gooit ${escJS(heal)} en telt het bij je HP op">${icon('heart')} ${esc(heal)}</button>`);
+    title="${heal ? `Gebruiken: gooit ${escJS(heal)} en telt het bij je HP op` : `Gebruiken: geeft ${escJS(temp)} tijdelijke HP`}">${icon('heart')} ${esc(heal || temp + ' tijdelijk')}</button>`);
   // Hangt er een tafel aan het voorwerp, dan staat de worp hier. Een Wand of
   // Wonder is van de speler, dus die knop hoort bij zijn spullen te staan en
   // niet alleen in de Meesterkamer; de server bewaakt dat hij het ding ook
@@ -6499,16 +6500,36 @@ window._itemGebruik = async function (knop) {
           ? `Je hebt er ${aantal}; daarna nog ${aantal - 1}.`
           : 'Dit was je laatste.')
       : (Number.isFinite(aantal) && aantal > 1 ? `Je hebt er ${aantal}; er gaat er geen af.` : '');
-  if (!confirm(`${d.naam || 'Dit voorwerp'} gebruiken?\n\nJe gooit ${d.formule} en telt dat bij je HP op.${kosten ? '\n' + kosten : ''}`)) return;
+  // Heb je al tijdelijke HP, dan is dit een waarschuwing waard: het stapelt
+  // niet, dus een lagere worp gooi je weg. We halen de stand vers op in plaats
+  // van hem uit het scherm te vissen — dit is precies het moment waarop hij
+  // moet kloppen. Lukt dat niet, dan gaat de vraag gewoon door zonder.
+  let alTemp = 0;
+  if (d.temp) {
+    try { alTemp = (await api.getPlayerHp(charId))?.temp || 0; } catch { /* dan zonder */ }
+  }
+
+  // Wat het doet staat in de vraag: genezen, tijdelijke HP, of allebei. Temp HP
+  // is geen genezing — het komt er bovenop en telt niet mee in je maximum —
+  // dus dat zeggen we met zoveel woorden.
+  const doet = [
+    d.formule ? `Je gooit ${d.formule} en telt dat bij je HP op.` : '',
+    d.temp ? `Je krijgt ${d.temp} tijdelijke HP (de hoogste telt, ze stapelen niet).` : '',
+    alTemp ? `\nLet op: je hebt al ${alTemp} tijdelijke HP. Valt deze lager uit, dan blijft die ${alTemp} staan en is dit drankje eraan verspild.` : '',
+  ].filter(Boolean).join('\n');
+  if (!confirm(`${d.naam || 'Dit voorwerp'} gebruiken?\n\n${doet}${kosten ? '\n' + kosten : ''}`)) return;
 
   try {
     const r = await api.gebruikItem(itemId, charId);
     // De worp laten zien met dezelfde flits als het dobbelpaneel, zodat het
     // voelt als gooien en niet als een getal dat zomaar verschijnt.
-    window.dice?.rollFlash?.(r.formule, r.naam, 'heal');
+    if (r.formule) window.dice?.rollFlash?.(r.formule, r.naam, 'heal');
     const rest = r.charges !== null && r.charges !== undefined
       ? ` · nog ${r.charges} van ${r.maxCharges}` : (r.weg ? ' · op' : '');
-    window._showToast?.(`${icon('heart')} <strong>+${r.heal} HP</strong> — ${esc(r.naam)} → ${r.hp.current}${r.hp.max != null ? '/' + r.hp.max : ''}${rest}`, null, 5000);
+    const stukken = [];
+    if (r.heal) stukken.push(`<strong>+${r.heal} HP</strong> → ${r.hp.current}${r.hp.max != null ? '/' + r.hp.max : ''}`);
+    if (r.tempHp) stukken.push(`<strong>${r.tempHp} tijdelijke HP</strong>${r.tempWorp ? ` (${r.tempWorp.formule} → ${r.tempWorp.resultaat})` : ''}`);
+    window._showToast?.(`${icon('heart')} ${stukken.join(' · ')} — ${esc(r.naam)}${rest}`, null, 5000);
     refreshSection('mijn-karakter');
   } catch (e) {
     window._showToast?.(`${icon('x')} ${esc(e.message)}`, null, 5000);
@@ -13954,7 +13975,7 @@ const HELP_CONFIG = {
   dm_herberg_tap: () => ({ titel: 'Aan de tap', stappen: [
     { titel: 'Het menu', tekst: 'Wat er te drinken en te eten is, met een prijs. Een speler bestelt het zelf; het bedrag gaat van zijn beurs af, of van de gedeelde beurs als die aanstaat.', afbeelding: null },
     { titel: 'Temp HP en een status', tekst: 'Per regel kun je **temp HP** meegeven (een getal of een worp als `1d6`) en een status met een korte beschrijving. Allebei gelden tot de volgende lange rust. Het is een aantekening die de speler bij zich draagt, geen regel die de app afdwingt.', afbeelding: null },
-    { titel: 'Koppel het aan een voorwerpkaartje', tekst: 'Bestaat het drankje ook als kaartje, koppel het dan: de speler kan het openen en leest daar wat het doet. Zo staat de werking op één plek in plaats van twee — en groeit het menu mee als je het kaartje bijschaaft.', afbeelding: null },
+    { titel: 'Koppel het aan een voorwerpkaartje', tekst: 'Bestaat het drankje ook als kaartje, koppel het dan. Vanaf dat moment bepaalt het **kaartje** wat het doet — tijdelijke HP, de status, genezing — en bepaalt deze regel alleen de prijs en de sfeertekst. Hetzelfde drankje doet dan precies hetzelfde of je het aan de bar drinkt of straks uit je knapzak pakt. Een regel zonder koppeling houdt zijn eigen velden, zoals hij ze had.', afbeelding: null },
     { titel: 'Sfeer boven mechaniek', tekst: 'Een bestelling is vooral een reden om iets te laten gebeuren — de waard vertelt een roddel, iemand aan de bar kijkt op. Wat een drankje verder doet, beslis jij aan tafel.', afbeelding: null },
   ] }),
   dm_gokhuis: () => ({ titel: 'Het gokhuis', stappen: [
@@ -14258,6 +14279,7 @@ const HELP_CONFIG = {
   ] }),
 
   hulp_bewerk_voorwerpen_info: () => ({ titel: 'Een voorwerp', stappen: [
+    { titel: 'Wat het doet bij gebruik', tekst: 'Onder de werking **healing** staan drie velden: een *genezingsformule* (echte HP, afgetopt op je maximum), *tijdelijke HP* (komt er bovenop, telt niet mee in je maximum, en de hoogste wint — ze stapelen niet) en een *status* met een korte beschrijving, die geldt tot de volgende lange rust. Een kroegdrankje vult meestal alleen die laatste twee.', afbeelding: null },
     { titel: 'Type en rarity', tekst: 'Het **type** staat in groepen (wapens & harnas, magische voorwerpen, verbruik, uitrusting) en bepaalt welke velden erbij komen — onder de keuzelijst staat wat je krijgt. De **rarity** kleurt de rand van het kaartje; Very Rare en Legendary krijgen bovendien een gloed.', afbeelding: null },
     { titel: 'Prijs en exemplaren', tekst: 'De **prijs** mag met een komma (`12,34`) of in munten (`5 gp 2 sp`). Bij **exemplaren** kies je of er maar één van is, of meerdere spelers er elk één van kunnen hebben, of ieder er een aantal van bijhoudt (met teller). Wat winkels niet mogen overnemen vink je aan bij *Niet te verkopen aan winkels*.', afbeelding: null },
     { titel: 'Charges', tekst: 'Heeft het voorwerp ladingen, zet dan *Charges* aan. Het **maximum** is een getal. **Herlaadt bij** kent drie standen: helemaal vol na een lange rust, helemaal vol na een korte rust, of een deel terug met een worp — dan verschijnt het veld waarin je die worp zet (`1d3`). *Speler mag zijn eigen maximum bijstellen* geeft de speler ±-knopjes bij de bolletjes in zijn boedel; handig als het maximum per exemplaar verschilt.', afbeelding: null },

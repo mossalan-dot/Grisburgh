@@ -412,6 +412,24 @@ dm-panel.js : combat-canvas.js?v=22   render-statblock.js?v=9
 > of het gevecht meteen moet starten (`_encStart`). De kist blijft dus tot het
 > laatste moment een kist — dat is de hele grap.
 
+> **Tijdelijke HP hoort op het voorwerpkaartje.** Een kaartje kon alleen
+> `healing` (echte HP, afgetopt op het maximum); temp HP bestond alleen als
+> veld op een menuregel van de herberg. Nu draagt het kaartje onder de werking
+> *healing* ook `tempHp` (getal of worp) en een `buffLabel`/`buffDesc`. Hangt
+> een menuregel aan een kaartje, dan bepaalt **het kaartje** de werking en de
+> regel alleen de prijs en de sfeertekst; een regel zonder koppeling houdt zijn
+> eigen velden. Zo doet hetzelfde drankje hetzelfde aan de bar en uit de
+> knapzak — één definitie, twee ingangen.
+> **De regel staat op één plek:** `_tempHpGeven(dmState, characterId, spec)` in
+> `routes/api.js` — temp HP telt niet op, de hoogste wint. Die stond ingebakken
+> in `POST /herberg/bestel`; nu gebruiken zowel die route als
+> `POST /items/:id/gebruik` hem, net zoals geld altijd via `_deductCurrency`
+> loopt. `POST /items/:id/gebruik` accepteert daardoor ook een voorwerp zónder
+> genezingsformule, zolang er tijdelijke HP op staat; het antwoord draagt
+> `tempHp` en `tempWorp` apart, want het is geen genezing.
+> `_werkingUit()` (client) telt `tempHp` mee als *healing*-werking — anders
+> bleef het veld verborgen zodra er geen genezingsformule stond.
+
 > **Buit: een tafel in plaats van een loterij, en de mimic is een vinkje.**
 > De knop *willekeurig, van deze zeldzaamheid* op een loot-regel trok uit álle
 > voorwerpkaartjes van dat niveau — ook het zwaard van de antagonist of een

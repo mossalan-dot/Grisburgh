@@ -147,13 +147,37 @@ describe('De boedel: genezen, charges en wat er verdwijnt', () => {
     assert.match(String(r.body?.error || ''), /heb je niet/i);
   });
 
-  it('geneest niets met een voorwerp dat niet geneest', async () => {
+  it('doet niets met een voorwerp dat niets doet', async () => {
     const steen = (await req(server, 'POST', '/api/entities/voorwerpen',
       { name: 'Gladde steen', data: { itemType: 'Wondrous Item' } }, dm)).body.id;
     await geef(steen);
     const r = await req(server, 'POST', `/api/items/${steen}/gebruik`, {}, spelerC);
     assert.strictEqual(r.status, 400, JSON.stringify(r.body));
-    assert.match(String(r.body?.error || ''), /geneest niets/i);
+    assert.match(String(r.body?.error || ''), /doet niets/i);
+  });
+
+  // Tijdelijke HP is geen genezing: het komt er bovenop, telt niet mee in je
+  // maximum, en de hoogste wint. Een voorwerp mag dus alléén dat doen.
+  it('geeft tijdelijke HP zonder genezingsformule', async () => {
+    const bier = (await req(server, 'POST', '/api/entities/voorwerpen',
+      { name: 'Kroegmoed', data: { itemType: 'Potion', tempHp: '5' } }, dm)).body.id;
+    await geef(bier);
+    await req(server, 'PATCH', `/api/player-hp/${speler}`, { current: 4, max: 20, temp: 0 }, dm);
+    const r = await req(server, 'POST', `/api/items/${bier}/gebruik`, {}, spelerC);
+    assert.strictEqual(r.status, 200, JSON.stringify(r.body));
+    assert.strictEqual(r.body.tempHp, 5);
+    assert.strictEqual(r.body.heal, 0);
+    assert.strictEqual(r.body.hp.current, 4, 'tijdelijke HP hoort niet bij je gewone HP op te tellen');
+  });
+
+  it('laat een hogere tijdelijke HP staan — ze stapelen niet', async () => {
+    const bier = (await req(server, 'POST', '/api/entities/voorwerpen',
+      { name: 'Klein bier', data: { itemType: 'Potion', tempHp: '3' } }, dm)).body.id;
+    await geef(bier);
+    await req(server, 'PATCH', `/api/player-hp/${speler}`, { current: 4, max: 20, temp: 9 }, dm);
+    const r = await req(server, 'POST', `/api/items/${bier}/gebruik`, {}, spelerC);
+    assert.strictEqual(r.status, 200, JSON.stringify(r.body));
+    assert.strictEqual(r.body.tempHp, 9, 'de hoogste blijft staan');
   });
 
   it('laat de DM het namens een speler doen', async () => {

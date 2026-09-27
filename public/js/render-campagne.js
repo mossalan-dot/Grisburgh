@@ -387,7 +387,13 @@ function _werkingUit(data) {
   const dmg = String(d.damage || '').trim();
   if (dmg && !/heal|genez/i.test(dmg)) uit.push('attack');
   if (dmg && /heal|genez/i.test(dmg)) uit.push('healing');
-  if (String(d.healing || '').trim()) { if (!uit.includes('healing')) uit.push('healing'); }
+  // Tijdelijke HP hoort bij dezelfde werking: het is iets dat het voorwerp
+  // bij gebruik met je doet. Zonder deze regel bleef het veld verborgen zodra
+  // er geen genezingsformule stond — en dan kon je een kroegdrankje niet
+  // instellen.
+  if (String(d.healing || '').trim() || String(d.tempHp || '').trim()) {
+    if (!uit.includes('healing')) uit.push('healing');
+  }
   if (String(d.armorType || '').trim() || String(d.armorBaseAC || '').trim()) uit.push('defense');
   let _gek = [];
   try { _gek = JSON.parse(d.spellIndexes || '[]'); } catch { /* ok */ }
@@ -569,6 +575,15 @@ const SCHEMA = {
       { key: 'stealthDisadvantage', label: 'Stealth Disadvantage', type: 'checkbox', showWerking: 'defense' },
       { key: 'strengthRequirement', label: 'Strength Requirement', type: 'text', showWerking: 'defense' },
       { key: 'healing', label: 'Genezingsformule', type: 'text', showWerking: 'healing', hint: '2d4+2' },
+      // Tijdelijke HP is iets anders dan genezing: het telt niet op bij je
+      // huidige HP, wordt niet afgetopt op je maximum, en de hoogste wint — je
+      // stapelt geen twee flessen kroegmoed. Vandaar een eigen veld naast de
+      // genezingsformule. Een drankje aan de tap dat aan dit kaartje hangt,
+      // gebruikt deze waarde ook: één definitie, twee ingangen.
+      { key: 'tempHp', label: 'Tijdelijke HP', type: 'text', showWerking: 'healing', hint: '5 of 1d6' },
+      { key: 'buffLabel', label: 'Status', type: 'text', showWerking: 'healing', hint: 'Kroegmoed' },
+      { key: 'buffDesc', label: 'Wat de status doet', type: 'text', showWerking: 'healing',
+        hint: 'voordeel op je eerste save — geldt tot de volgende lange rust' },
       // Een Potion of Healing is na één slok leeg; een Staff of Healing raakt
       // alleen een charge kwijt. Alleen dit vinkje laat het exemplaar zelf
       // verdwijnen — en het doet niets zodra het voorwerp charges heeft.
