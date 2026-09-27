@@ -256,8 +256,8 @@ De app gebruikt querystring cache-busting (`?v=N`). **Vergeten = browser haalt o
 **Huidige versies (bij te houden):**
 
 ```
-index.html  : theme.css?v=700   app.js?v=927   sound-manager.js?v=8
-app.js      : api.js?v=296  dm-panel.js?v=297  media-picker.js?v=8  tafels.js?v=1
+index.html  : theme.css?v=702   app.js?v=929   sound-manager.js?v=8
+app.js      : api.js?v=296  dm-panel.js?v=299  media-picker.js?v=8  tafels.js?v=1
               render-archief.js?v=92  render-bestiarium.js?v=29  render-campagne.js?v=315
               render-dashboard.js?v=9  render-dungeon.js?v=53  render-kaart.js?v=31
               render-progressie.js?v=46  render-relatiemap.js?v=25  render-spreuken.js?v=39
@@ -1872,6 +1872,26 @@ opgeslagen als JSON-string. Alles eromheen is afgeleid:
 > **Formulieren blijven schoon.** Uitleg hoort in de hulptekst (het boekje
 > rechts in de tabbalk, sleutels `hulp_kijk_*` en `hulp_bewerk_*`), niet als
 > grijze regel onder een veld.
+
+> **Instellingen heeft drie tabjes: Campagne, Party's, Beheer.** Het was één
+> kolom van acht secties waarin die drie dingen door elkaar liepen.
+> `_INST_SUBTABS` is de enige lijst; `_instSubtabKies()` wisselt. Indeling:
+> *Campagne* (titel/embleem/app-icoon, openingspagina, naslag, munten, level
+> omhoog, campagnes en modules), *Party's* (party's + gedeelde beurs),
+> *Beheer* (jouw DM-wachtwoord, Spotify, export).
+> **Alle drie de panelen worden getekend; de inactieve staan op `hidden`.**
+> Dat is geen luiheid maar noodzaak: `_instOpslaan()` leest de velden van het
+> hele paneel in één keer en valt voor `embleem`, `appIcon` en `bronLink`
+> terug op een lege string. Een paneel dat niet in de DOM staat, wist die drie
+> dus bij de eerstvolgende opslagbeurt. Wisselen hertekent ook níét — half het
+> paneel bewaart zichzelf pas als je een veld verlaat.
+> **Valkuil bij het verplaatsen van blokken in een template:** een meerregelig
+> `<!-- … -->` mag je niet halverwege doorknippen. Gebeurt dat toch, dan slikt
+> de browser alles tot het volgende `-->` op en verdwijnt er een heel paneel
+> uit beeld zonder dat de JS klaagt. Controle:
+> `grep -c '<!--'` en `grep -c -- '-->'` horen gelijk te zijn.
+> En: **geen backticks in commentaar binnen een template literal** — die sluit
+> de literal.
 
 > **Een party is één kaartje, geen uitgeklapte lijst.** Alles van een party
 > stond verspreid over drie secties van Instellingen: naam en leden bij

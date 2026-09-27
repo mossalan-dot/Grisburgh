@@ -451,6 +451,7 @@ export function initDmPanel() {
     partyLidErbij:           (gid, veld) => _partyLidErbij(gid, veld),
     partyLidWeg:             (id, naam, party, gid) => _partyLidWeg(id, naam, party, gid),
     partyOpen:               (gid) => _partyOpen(gid),
+    instSubtab:              (id) => _instSubtabKies(id),
     partyActiefMaken:        (gid) => _partyActiefMaken(gid),
     regieBalkLoad:           (key, title) => _loadRegieBalk(key, title),
     regieBalkReveal:         (id) => _revealRegieBalkItem(id),
@@ -10329,6 +10330,30 @@ const _INST_DICHT_KEY = 'grisburgh:inst-dicht';
 let _instDicht = new Set();
 try { _instDicht = new Set(JSON.parse(localStorage.getItem(_INST_DICHT_KEY) || '[]')); } catch { /* geen stand, alles open */ }
 
+// ── Instellingen: drie tabjes ──
+// Het paneel was één kolom van acht secties waarin campagne, party's en beheer
+// door elkaar liepen. De indeling volgt nu waar je naar zoekt: wat de wereld
+// is, wie er spelen, en wat alleen jou aangaat.
+const _INST_SUBTABS = [
+  { id: 'campagne', label: 'Campagne', icoon: 'castle' },
+  { id: 'partys',   label: "Party's",  icoon: 'users' },
+  { id: 'beheer',   label: 'Beheer',   icoon: 'settings' },
+];
+let _instSubtab = 'campagne';
+
+// Wisselen hertekent níét: half het paneel bewaart zichzelf pas als je een veld
+// verlaat, en een hertekening midden in het typen gooit dat weg. Alleen de
+// panelen gaan aan en uit — en de hulpknop in de nav volgt het tabje.
+function _instSubtabKies(id) {
+  if (!_INST_SUBTABS.some(t => t.id === id)) return;
+  _instSubtab = id;
+  document.querySelectorAll('.dm-inst-paneel').forEach(el => { el.hidden = el.dataset.sub !== id; });
+  document.querySelectorAll('[data-inst-sub]').forEach(b => b.classList.toggle('active', b.dataset.instSub === id));
+  const hulp = document.querySelector('.dm-subtab-nav .dm-inst-hulp');
+  if (hulp) hulp.innerHTML = window._helpBtn?.(`inst_${id}`) ?? '';
+  _instScrollBak()?.scrollTo({ top: 0 });
+}
+
 // ── Party's: één regel in de lijst, alles in een kaartje ──
 //
 // Alles van een party stond uitgeklapt in de lijst — naam, leden, wie er
@@ -10540,9 +10565,19 @@ async function _renderInstellingen() {
   const _munt = meta.currency || window._muntNamen();
 
   body.innerHTML = `
-    ${_dmTabHead({ icon: 'settings', title: 'Instellingen', sub: 'campagne, party\'s en beheer' })}
+    <!-- Drie tabjes in plaats van één lange kolom. Alle drie de panelen worden
+         getekend en de inactieve staan verborgen — niet weggelaten, want
+         _instOpslaan leest de velden van het hele paneel in één keer en valt
+         voor embleem, app-icoon en Naslag elders terug op een lege string. Een
+         paneel dat er niet staat, wist die dus bij de eerstvolgende opslagbeurt. -->
+    <div class="dm-subtab-nav">
+      ${_INST_SUBTABS.map(t => `
+        <button class="dm-subtab-btn${_instSubtab === t.id ? ' active' : ''}" data-inst-sub="${t.id}"
+          onclick="window.dmPanel.instSubtab('${t.id}')">${icon(t.icoon)} ${t.label}</button>`).join('')}
+      <span class="dm-inst-hulp" style="margin-left:auto">${window._helpBtn?.('inst_' + _instSubtab) ?? ''}</span>
+    </div>
 
-    <!-- Campagne -->
+    <div class="dm-inst-paneel" data-sub="campagne"${_instSubtab === 'campagne' ? '' : ' hidden'}>
     ${_instSectie('campagne', 'Campagne', `
       <div class="dm-form-row">
         <label class="dm-form-label">Titel</label>
@@ -10571,7 +10606,22 @@ async function _renderInstellingen() {
           <button class="dm-btn dm-btn-sm dm-btn-ghost" onclick="window._instAppIconWis()" title="Het meegeleverde wapen gebruiken">${icon('x')} Wissen</button>
           <input type="hidden" id="inst-appicon" value="${esc(meta.appIcon || '')}">
         </span>
-      </div>`, window._helpBtn?.('inst_campagne') ?? '')}
+      </div>
+      <div class="dm-form-row">
+        <label class="dm-module-item" title="grisburgh.nl toont een keuzepagina met alle campagnes die zich laten zien">
+          <input type="checkbox" id="inst-in-overzicht" ${meta.inOverzicht === false ? '' : 'checked'}>
+          <span>Toon deze campagne op de openingspagina</span>
+        </label>
+      </div>
+      <!-- Waar wijst de app naartoe als een beschrijving er niet mag staan? Een
+           spreuk of feature die niet in de vrije SRD zit heeft hier geen tekst;
+           linken naar een plek waar hij wél staat mag wel. -->
+      <div class="dm-form-row">
+        <label class="dm-form-label" for="inst-bron-link">Naslag elders</label>
+        <input id="inst-bron-link" class="dm-input" type="url"
+          placeholder="https://duckduckgo.com/?q={zoek}"
+          value="${esc(meta.bronLink ?? '')}">
+      </div>`)}
 
     <!-- Namen voor valuta -->
     ${_instSectie('valuta', 'Namen voor valuta', `
@@ -10596,88 +10646,8 @@ async function _renderInstellingen() {
         <input id="inst-munt-pp" class="dm-input" value="${esc(_munt.pp || '')}" placeholder="Platinum">
       </div>`)}
 
-    <!-- Party's. De knop zit in de summary; stopPropagation houdt de sectie
-         open, want een klik ergens in een summary klapt hem anders dicht. -->
-    ${_instSectie('partys', 'Party\'s', `
-      <div id="inst-groepen-list" class="dm-inst-groepen">
-        ${groupItems || '<p class="dm-hint">Nog geen party\'s.</p>'}
-      </div>`,
-      `<button class="dm-btn dm-btn-sm dm-btn-ghost" onclick="event.stopPropagation();window._instGroepCreate()" title="Nieuwe party aanmaken">${icon('plus')} Party toevoegen</button>
-       ${window._helpBtn?.('inst_partys') ?? ''}`)}
-
-    <!-- Gedeelde beurs: _renderBeursTab vult alleen de inhoud -->
-    ${_instSectie('beurs', 'Gedeelde beurs', '<div id="dm-inst-beurs"></div>', window._helpBtn?.('inst_beurs') ?? '')}
-
-    <!-- Beheer: alles wat over toegang en dit scherm gaat -->
-    ${_instSectie('beheer', 'Beheer', `
-      <div class="dm-subgroep-label">Jouw eigen wachtwoord</div>
-      <div class="dm-form-row">
-        <label class="dm-form-label" for="dm-pw-nieuw"
-          title="Geldt alleen voor deze campagne. Wordt versleuteld opgeslagen, zodat het niet leesbaar in een backup terechtkomt.">DM-wachtwoord</label>
-        <div class="dm-munt-rij">
-          <input id="dm-pw-nieuw" class="dm-input dm-pw-veld" type="password"
-            placeholder="Nieuw wachtwoord (min. 8 tekens)…" autocomplete="new-password">
-          <input id="dm-pw-herhaal" class="dm-input dm-pw-veld" type="password"
-            placeholder="Herhaal…" autocomplete="new-password"
-            title="Twee keer intikken, want met een typefout hierin sluit je jezelf buiten.">
-          <span id="dm-pw-melding" class="bericht-status hidden"></span>
-        </div>
-      </div>
-      <div class="dm-form-row">
-        <label class="dm-module-item" title="grisburgh.nl toont een keuzepagina met alle campagnes die zich laten zien">
-          <input type="checkbox" id="inst-in-overzicht" ${meta.inOverzicht === false ? '' : 'checked'}>
-          <span>Toon deze campagne op de openingspagina</span>
-        </label>
-      </div>
-      <!-- Waar wijst de app naartoe als een beschrijving er niet mag staan? Een
-           spreuk of feature die niet in de vrije SRD zit heeft hier geen tekst;
-           linken naar een plek waar hij wél staat mag wel. -->
-      <div class="dm-form-row">
-        <label class="dm-form-label" for="inst-bron-link">Naslag elders</label>
-        <input id="inst-bron-link" class="dm-input" type="url"
-          placeholder="https://duckduckgo.com/?q={zoek}"
-          value="${esc(meta.bronLink ?? '')}">
-      </div>
-      ${!magBeheren ? '' : `
-      <details class="dm-modules dm-beheer-campagnes">
-        <summary>Campagnes en modules</summary>
-        <div id="dm-campagnes-inst-list">
-          ${campaignItems || '<p class="dm-hint">Geen campagnes gevonden.</p>'}
-        </div>
-        <div class="dm-form-row">
-          <button class="dm-btn dm-btn-sm dm-btn-ghost" onclick="window.dmPanel.campagneCreate()" title="Nieuwe campagne aanmaken">${icon('plus')} Nieuwe campagne</button>
-        </div>
-        <div id="campagne-create-form" style="display:none;margin-top:10px">
-          <div class="dm-feature-row dm-knoprij">
-            <input id="campagne-new-id"       class="dm-input" placeholder="ID (bijv. prewett)" style="flex:1;min-width:120px">
-            <input id="campagne-new-title"    class="dm-input" placeholder="Naam" style="flex:2;min-width:140px">
-            <input id="campagne-new-subtitle" class="dm-input" placeholder="Ondertitel (optioneel)" style="flex:2;min-width:140px">
-        <input id="campagne-new-pw" class="dm-input" type="password" autocomplete="new-password"
-          placeholder="DM-wachtwoord (min. 8 tekens)" style="flex:2;min-width:160px"
-          title="Zonder eigen wachtwoord komt niemand in die campagne: alleen de standaardcampagne valt terug op het serverwachtwoord.">
-          </div>
-          <!-- Meteen vragen: hierna ligt het vast in hoe je speelt, en het is
-               één keuze die de hele level-up-kant bepaalt. Later omzetten kan
-               gewoon, bij Instellingen → Level omhoog. -->
-          <div class="dm-form-row" style="margin-top:6px">
-            <label class="dm-form-label" for="campagne-new-systeem">Level omhoog</label>
-            <select id="campagne-new-systeem" class="dm-input">
-              <option value="milestone" selected>Milestone — jij bepaalt wanneer</option>
-              <option value="xp">XP — de tabel bepaalt wanneer</option>
-            </select>
-          </div>
-          <div class="dm-feature-row" style="gap:8px;margin-top:6px;flex-wrap:wrap">
-            <button class="dm-btn dm-btn-sm dm-btn-primary" onclick="window.dmPanel.campagneSubmit()">${icon('check')} Aanmaken</button>
-            <button class="dm-btn dm-btn-sm dm-btn-ghost" onclick="document.getElementById('campagne-create-form').style.display='none'">${icon('x')} Annuleren</button>
-          </div>
-          <div id="campagne-create-error" style="color:#c44;font-size:.85em;margin-top:6px"></div>
-        </div>
-      </details>`}`, window._helpBtn?.('inst_beheer') ?? '')}
-
-    <!-- Muziek uit Spotify: Grisburgh speelt zelf niets af, het drukt op play.
-         Waar dat geluid uitkomt kiest de DM hier. -->
     <!-- Hoe komt een speler bij zijn HP als hij een level omhoog gaat? De PHB
-         geeft twee keuzes en aan tafel bestaat er een derde: iemand rolt met
+         geeft twee keuzes en aan tafel bestaat er een derde: iemand gooit met
          zijn eigen dobbelsteen. Welke er aan deze tafel gelden bepaalt de DM;
          de server weigert een manier die hier uitstaat. -->
     ${_instSectie('levelup', 'Level omhoog', `
@@ -10726,6 +10696,76 @@ async function _renderInstellingen() {
       </div>
     `, window._helpBtn?.('inst_levelup') ?? '')}
 
+    ${!magBeheren ? '' : _instSectie('campagnes', 'Campagnes en modules', `
+      <div class="dm-beheer-campagnes">
+        <div id="dm-campagnes-inst-list">
+          ${campaignItems || '<p class="dm-hint">Geen campagnes gevonden.</p>'}
+        </div>
+        <div class="dm-form-row">
+          <button class="dm-btn dm-btn-sm dm-btn-ghost" onclick="window.dmPanel.campagneCreate()" title="Nieuwe campagne aanmaken">${icon('plus')} Nieuwe campagne</button>
+        </div>
+        <div id="campagne-create-form" style="display:none;margin-top:10px">
+          <div class="dm-feature-row dm-knoprij">
+            <input id="campagne-new-id"       class="dm-input" placeholder="ID (bijv. prewett)" style="flex:1;min-width:120px">
+            <input id="campagne-new-title"    class="dm-input" placeholder="Naam" style="flex:2;min-width:140px">
+            <input id="campagne-new-subtitle" class="dm-input" placeholder="Ondertitel (optioneel)" style="flex:2;min-width:140px">
+        <input id="campagne-new-pw" class="dm-input" type="password" autocomplete="new-password"
+          placeholder="DM-wachtwoord (min. 8 tekens)" style="flex:2;min-width:160px"
+          title="Zonder eigen wachtwoord komt niemand in die campagne: alleen de standaardcampagne valt terug op het serverwachtwoord.">
+          </div>
+          <!-- Meteen vragen: hierna ligt het vast in hoe je speelt, en het is
+               één keuze die de hele level-up-kant bepaalt. Later omzetten kan
+               gewoon, bij Instellingen → Level omhoog. -->
+          <div class="dm-form-row" style="margin-top:6px">
+            <label class="dm-form-label" for="campagne-new-systeem">Level omhoog</label>
+            <select id="campagne-new-systeem" class="dm-input">
+              <option value="milestone" selected>Milestone — jij bepaalt wanneer</option>
+              <option value="xp">XP — de tabel bepaalt wanneer</option>
+            </select>
+          </div>
+          <div class="dm-feature-row" style="gap:8px;margin-top:6px;flex-wrap:wrap">
+            <button class="dm-btn dm-btn-sm dm-btn-primary" onclick="window.dmPanel.campagneSubmit()">${icon('check')} Aanmaken</button>
+            <button class="dm-btn dm-btn-sm dm-btn-ghost" onclick="document.getElementById('campagne-create-form').style.display='none'">${icon('x')} Annuleren</button>
+          </div>
+          <div id="campagne-create-error" style="color:#c44;font-size:.85em;margin-top:6px"></div>
+        </div>
+      </div>`, window._helpBtn?.('inst_beheer') ?? '')}
+
+    </div>
+
+    <div class="dm-inst-paneel" data-sub="partys"${_instSubtab === 'partys' ? '' : ' hidden'}>
+    <!-- Party's. De knop zit in de summary; stopPropagation houdt de sectie
+         open, want een klik ergens in een summary klapt hem anders dicht. -->
+    ${_instSectie('partys', 'Party\'s', `
+      <div id="inst-groepen-list" class="dm-inst-groepen">
+        ${groupItems || '<p class="dm-hint">Nog geen party\'s.</p>'}
+      </div>`,
+      `<button class="dm-btn dm-btn-sm dm-btn-ghost" onclick="event.stopPropagation();window._instGroepCreate()" title="Nieuwe party aanmaken">${icon('plus')} Party toevoegen</button>
+`)}
+
+    <!-- Gedeelde beurs: _renderBeursTab vult alleen de inhoud -->
+    ${_instSectie('beurs', 'Gedeelde beurs', '<div id="dm-inst-beurs"></div>', window._helpBtn?.('inst_beurs') ?? '')}
+    </div>
+
+    <div class="dm-inst-paneel" data-sub="beheer"${_instSubtab === 'beheer' ? '' : ' hidden'}>
+    <!-- Beheer: alles wat over toegang en dit scherm gaat -->
+    ${_instSectie('beheer', 'Jouw wachtwoord', `
+      <div class="dm-subgroep-label">Jouw eigen wachtwoord</div>
+      <div class="dm-form-row">
+        <label class="dm-form-label" for="dm-pw-nieuw"
+          title="Geldt alleen voor deze campagne. Wordt versleuteld opgeslagen, zodat het niet leesbaar in een backup terechtkomt.">DM-wachtwoord</label>
+        <div class="dm-munt-rij">
+          <input id="dm-pw-nieuw" class="dm-input dm-pw-veld" type="password"
+            placeholder="Nieuw wachtwoord (min. 8 tekens)…" autocomplete="new-password">
+          <input id="dm-pw-herhaal" class="dm-input dm-pw-veld" type="password"
+            placeholder="Herhaal…" autocomplete="new-password"
+            title="Twee keer intikken, want met een typefout hierin sluit je jezelf buiten.">
+          <span id="dm-pw-melding" class="bericht-status hidden"></span>
+        </div>
+      </div>`)}
+
+    <!-- Muziek uit Spotify: Grisburgh speelt zelf niets af, het drukt op play.
+         Waar dat geluid uitkomt kiest de DM hier. -->
     ${_instSectie('spotify', 'Spotify', `
       <div id="inst-spotify">
         <p class="dm-hint">Laden…</p>
@@ -10741,6 +10781,7 @@ async function _renderInstellingen() {
         <a href="/api/party/sheets" target="_blank" rel="noopener" class="dm-btn dm-btn-sm dm-btn-ghost"
           title="Character sheets van de actieve party — printen of als pdf bewaren">${icon('scroll-text')} Character sheets</a>
       </div>`)}
+    </div>
 
     <!-- Eén opslaanknop voor alles hierboven wat niet vanzelf bewaart -->
     <div class="dm-inst-opslaan">

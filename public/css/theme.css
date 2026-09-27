@@ -27097,3 +27097,11 @@ body.akte-schrijf-open .mp-overlay { z-index: 1320; }
   text-transform: uppercase;
 }
 .dm-beurs-uit { margin: 0; font-size: 12.5px; }
+
+
+/* ── Instellingen: drie tabjes ─────────────────────────────────────────────────
+   De inactieve panelen blijven in de DOM staan (de opslaanknop leest alle
+   velden in één keer), dus ze worden alleen verborgen. Expliciet, want een
+   stylesheet van 27.000 regels kan het UA-gedrag van [hidden] overschrijven. */
+.dm-inst-paneel[hidden] { display: none !important; }
+.dm-inst-paneel { display: flex; flex-direction: column; }

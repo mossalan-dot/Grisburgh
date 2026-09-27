@@ -671,6 +671,7 @@ fout-uitvoert.
 - [ ] **Party-kaartje: losmaken** (DM) — kruisje bij een lid; de vraag noemt het aantal voorwerpkaartjes op zijn naam én wat er bij de party blijft staan. Na losmaken hoort hij bij geen party en ziet hij niets meer van de campagne
 - [ ] **Party-kaartje: wachtwoord** (DM) — een wachtwoord zetten sluit het slotje op de regel in de lijst; leeg opslaan haalt het weg
 - [ ] **Gedeelde beurs per party** (DM) — Instellingen → Gedeelde beurs toont álle party's onder elkaar; een beurs aanzetten of bijwerken raakt alleen díé party, en de spelers van de andere party's merken niets
+- [ ] **Instellingen: drie tabjes** (DM) — Campagne, Party's en Beheer; wisselen laat wat je net typte staan, en opslaan bewaart ook de velden van de tabjes die je niet open hebt (embleem, app-icoon en Naslag elders blijven staan)
 - [ ] **Hulpknoppen in Instellingen** (DM) — elke sectie (campagne, party's, beurs, beheer, level omhoog, Spotify) heeft een boekje, en er staat geen grijze uitlegregel meer onder een veld
 - [ ] **App-icoon versus embleem** (DM) — de hulptekst bij *Campagne* legt het verschil uit; het embleem verschijnt in de kop, het app-icoon op het beginscherm na opnieuw toevoegen
 - [ ] **Level omhoog: de woorden** (DM/SPELER) — Instellingen zegt *XP* en *Milestone*, en de drie HP-manieren heten Gemiddelde, Gooien in de app en Zelf gooien — bij de DM én in het level-up-venster van de speler
