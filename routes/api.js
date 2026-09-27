@@ -5609,6 +5609,20 @@ router.patch('/player-currency/:characterId', attachRole, (req, res) => {
 
 // ── Gedeelde beurs ──
 
+// Alle party's met hun gedeelde beurs — het beheeroverzicht. Bewust een eigen
+// DM-route en géén veld in `groupInfoList()`: die lijst wordt via
+// `groups:updated` naar de hele campagne-room gestuurd, en dan leest elke
+// speler het saldo van elke andere party mee.
+router.get('/party-currency/alle', requireDM, (req, res) => {
+  const dmState = readDmState();
+  res.json({
+    groepen: Object.entries(dmState.groups || {}).map(([id, g]) => ({
+      id, naam: g.name, actief: id === dmState.activeGroup,
+      beurs: g.sharedPurse || { enabled: false, fl: 0, kn: 0, cl: 0 },
+    })),
+  });
+});
+
 router.get('/party-currency', attachRole, (req, res) => {
   const dmState = readDmState();
   const groupId = req.role === 'dm' ? dmState.activeGroup : _playerGroupId(dmState, req.session.characterId);
@@ -5618,7 +5632,14 @@ router.get('/party-currency', attachRole, (req, res) => {
 
 router.patch('/party-currency', attachRole, (req, res) => {
   const dmState = readDmState();
-  const groupId = req.role === 'dm' ? dmState.activeGroup : _playerGroupId(dmState, req.session.characterId);
+  // De DM beheert alle party's, dus mag hij er een meegeven; een speler krijgt
+  // altijd zijn eigen groep, wat hij ook meestuurt.
+  const gevraagd = String(req.body?.groep || '');
+  if (req.role === 'dm' && gevraagd && !dmState.groups?.[gevraagd])
+    return res.status(404).json({ error: 'Party niet gevonden' });
+  const groupId = req.role === 'dm'
+    ? (gevraagd || dmState.activeGroup)
+    : _playerGroupId(dmState, req.session.characterId);
   const g = getGroup(dmState, groupId);
   if (!g.sharedPurse) g.sharedPurse = { enabled: false, fl: 0, kn: 0, cl: 0 };
   if (!g.sharedPurse.enabled && req.role !== 'dm') return res.status(403).json({ error: 'Gedeelde beurs niet actief' });
@@ -5633,7 +5654,11 @@ router.patch('/party-currency', attachRole, (req, res) => {
 
 router.put('/party-currency/toggle', requireDM, (req, res) => {
   const dmState = readDmState();
-  const g = getGroup(dmState);
+  const gevraagd = String(req.body?.groep || '');
+  if (gevraagd && !dmState.groups?.[gevraagd])
+    return res.status(404).json({ error: 'Party niet gevonden' });
+  const groupId = gevraagd || dmState.activeGroup;
+  const g = getGroup(dmState, groupId);
   if (!g.sharedPurse) g.sharedPurse = { enabled: false, fl: 0, kn: 0, cl: 0 };
   // De knop van de DM stuurt niets mee en verwacht een schakelaar. Wie wél een
   // stand meestuurt krijgt die stand — anders zet een aanroep met
@@ -5642,7 +5667,7 @@ router.put('/party-currency/toggle', requireDM, (req, res) => {
     ? req.body.enabled
     : !g.sharedPurse.enabled;
   storage.writeJSON('dm-state.json', dmState);
-  req.app.get('io').to(_campagneRoom(req)).emit('party-currency:updated', { groupId: dmState.activeGroup, currency: g.sharedPurse, actor: 'DM' });
+  req.app.get('io').to(_campagneRoom(req)).emit('party-currency:updated', { groupId, currency: g.sharedPurse, actor: 'DM' });
   res.json(g.sharedPurse);
 });
 
@@ -7172,6 +7197,38 @@ router.get('/groups', requireDM, (req, res) => {
 // Wat er op dit moment speelt bij een party. De DM wisselt tijdens een sessie
 // makkelijk per ongeluk van party — en onthult dan dingen aan de verkeerde
 // tafel. Hiermee kan de app vóór het wisselen waarschuwen.
+// Wat laat een personage achter als je hem uit een party haalt? Losmaken zet
+// alleen `data.groep` leeg; alles wat de party over hem bijhoudt blijft in
+// `dmState.groups[gid]` staan. Die vraag hoort vóór de bevestiging gesteld te
+// worden, met getallen — "onthullingen blijven achter" zegt niets, "3
+// voorwerpen en 250 onthulde kaartjes" wel.
+// Let op het verschil: voorwerpbezit hangt aan hém, de onthulde geheimen en de
+// ontdekte kaartjes hangen aan de **party** en gaan nooit mee, ook niet bij een
+// verhuizing. Daarom staan ze apart in het antwoord.
+router.get('/groups/:gid/lid/:charId/stand', requireDM, (req, res) => {
+  const dmState = readDmState();
+  const g = dmState.groups?.[req.params.gid];
+  if (!g) return res.status(404).json({ error: 'Party niet gevonden' });
+  const cid = req.params.charId;
+
+  let voorwerpen = 0, aantal = 0;
+  for (const rijen of Object.values(g.itemOwners || {})) {
+    for (const r of (Array.isArray(rijen) ? rijen : [])) {
+      if (r?.characterId !== cid) continue;
+      voorwerpen++; aantal += Math.max(1, parseInt(r.qty) || 1);
+    }
+  }
+
+  res.json({
+    // Van hem, bij deze party:
+    voorwerpen, aantal,
+    charges: Object.keys(g.itemCharges?.[cid] || {}).length,
+    // Van de party, dus blijft hoe dan ook staan:
+    partyGeheimen:  Object.keys(g.secretReveals || {}).length,
+    partyKaartjes:  Object.keys(g.visibility || {}).length,
+  });
+});
+
 router.get('/groups/:id/status', requireDM, (req, res) => {
   const dmState = readDmState();
   const g = dmState.groups?.[req.params.id];

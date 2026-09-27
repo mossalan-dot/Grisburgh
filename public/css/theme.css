@@ -5709,7 +5709,9 @@ body.lade-dicht .regie-lade-body { display: none; }
 }
 
 /* Namen */
-.dm-namen-section { border-bottom: 1px solid rgba(196,168,122,0.45); padding-bottom: 12px; margin-bottom: 4px; }
+/* Géén eigen border-bottom: `.dm-feature-section + .dm-feature-section` tekent
+   de scheiding al, en samen gaven ze een dubbele streep onder Namen. */
+.dm-namen-section { padding-bottom: 12px; }
 /* Gouden standaard — één uniforme sectie-titel voor alle DM-tabs.
    dm-sound-section-title en dm-feature-title delen dezelfde stijl. */
 .dm-section-label,
@@ -9635,15 +9637,11 @@ body.lade-dicht .regie-lade-body { display: none; }
   gap: 4px;
   flex-wrap: wrap;
 }
-.dm-weer-season-btn {
-  opacity: 0.55;
-  transition: opacity 0.15s;
-}
-.dm-weer-season-btn.active {
-  opacity: 1;
-  border-color: #c4930a !important;
-  color: #e8c84a !important;
-}
+/* De seizoensknoppen volgen de knoppen-canon: ghost als ze uitstaan, primary
+   als ze aanstaan (zie CLAUDE.md → Meesterkamer, punt 6). De oude opzet
+   (opacity 0.55 + gouden tekst) kwam uit de donkere zijbalk en was op het
+   lichte perkament van de tab-inhoud nauwelijks te lezen. */
+.dm-weer-season-btn { transition: background-color .15s, color .15s; }
 
 /* ── Gevechtslog ───────────────────────────────────────────────────────────── */
 .co-log {
@@ -26990,3 +26988,79 @@ body.akte-schrijf-open .mp-overlay { z-index: 1320; }
   font-size: 14px; font-style: italic; color: #3a2410;
   display: flex; align-items: center; gap: 6px;
 }
+
+/* ── Party's: één regel per party, alles in een kaartje ───────────────────────
+   Onderaan de stylesheet, want een variantregel bovenin verliest op volgorde
+   van de basisklasse (zie CLAUDE.md → Veelgemaakte fouten). De regel is een
+   <button> en geen <div>: hij opent iets, dus hij hoort met Tab bereikbaar te
+   zijn en met Enter te werken. */
+.dm-party-regel {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 9px 10px;
+  border: 1px solid #c4a87a;
+  border-radius: 4px;
+  background: rgba(255,255,255,0.45);
+  font-family: 'Crimson Text', Georgia, serif;
+  color: #3a2410;
+  text-align: left;
+  cursor: pointer;
+}
+.dm-party-regel:hover { background: rgba(255,255,255,0.75); border-color: #a8884f; }
+.dm-party-regel--actief { border-left: 3px solid #a8884f; }
+.dm-party-regel-naam { font-family: 'Cinzel', Georgia, serif; font-size: 14px; }
+.dm-party-regel-meta { color: #7a6040; font-size: 12.5px; font-style: italic; }
+.dm-party-regel-slot { display: inline-flex; color: #7a6040; }
+.dm-party-regel-slot .icon { width: 13px; height: 13px; }
+.dm-party-regel-badge {
+  padding: 1px 6px;
+  border: 1px solid #a8884f;
+  border-radius: 8px;
+  color: #6a5030;
+  font-size: 10.5px;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+}
+/* De pijl staat rechts; `margin-left:auto` duwt hem daar zonder een lege cel. */
+.dm-party-regel-pijl { margin-left: auto; display: inline-flex; color: #a8884f; }
+.dm-party-regel-pijl .icon { width: 15px; height: 15px; }
+
+.dm-party-kaart-voet {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  margin-top: 14px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(196,168,122,0.5);
+}
+
+/* ── De gedeelde beurs, één regel per party ─────────────────────────────────── */
+.dm-beurs-rij {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 0;
+  border-bottom: 1px solid rgba(196,168,122,0.35);
+}
+.dm-beurs-rij:last-child { border-bottom: 0; }
+.dm-beurs-naam {
+  min-width: 150px;
+  font-family: 'Cinzel', Georgia, serif;
+  font-size: 13.5px;
+  color: #3a2410;
+}
+.dm-beurs-actief {
+  padding: 1px 5px;
+  border: 1px solid #a8884f;
+  border-radius: 8px;
+  color: #6a5030;
+  font-family: 'Crimson Text', Georgia, serif;
+  font-size: 10px;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+}
+.dm-beurs-uit { margin: 0; font-size: 12.5px; }

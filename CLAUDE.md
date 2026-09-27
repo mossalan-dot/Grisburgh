@@ -256,8 +256,8 @@ De app gebruikt querystring cache-busting (`?v=N`). **Vergeten = browser haalt o
 **Huidige versies (bij te houden):**
 
 ```
-index.html  : theme.css?v=699   app.js?v=926   sound-manager.js?v=8
-app.js      : api.js?v=295  dm-panel.js?v=296  media-picker.js?v=8  tafels.js?v=1
+index.html  : theme.css?v=700   app.js?v=927   sound-manager.js?v=8
+app.js      : api.js?v=296  dm-panel.js?v=297  media-picker.js?v=8  tafels.js?v=1
               render-archief.js?v=92  render-bestiarium.js?v=29  render-campagne.js?v=315
               render-dashboard.js?v=9  render-dungeon.js?v=53  render-kaart.js?v=31
               render-progressie.js?v=46  render-relatiemap.js?v=25  render-spreuken.js?v=39
@@ -1872,6 +1872,68 @@ opgeslagen als JSON-string. Alles eromheen is afgeleid:
 > **Formulieren blijven schoon.** Uitleg hoort in de hulptekst (het boekje
 > rechts in de tabbalk, sleutels `hulp_kijk_*` en `hulp_bewerk_*`), niet als
 > grijze regel onder een veld.
+
+> **Een party is één kaartje, geen uitgeklapte lijst.** Alles van een party
+> stond verspreid over drie secties van Instellingen: naam en leden bij
+> *Party's*, het wachtwoord bij *Beheer*, de beurs weer een sectie verder — en
+> bij drie party's was dat een halve pagina waarin je moest zoeken welke regel
+> bij welke tafel hoorde. Nu staat er **één regel per party**
+> (`_partyRegelHtml`) en opent een klik het kaartje met alles erin
+> (`_partyOpen` → `_partyKaartVul` → `_partyKaartHtml`).
+> **Koppelen en losmaken is niet hetzelfde als aanwezigheid.** `data.groep` op
+> het personagekaartje is blijvend; `groups[gid].afwezig` is wie er vanavond
+> niet is. Die twee stonden onder elkaar zonder kop en lazen als één ding —
+> vandaar nu *Personages* en *Speelt vanavond* als aparte kopjes.
+> De bevestiging bij losmaken haalt eerst
+> `GET /groups/:gid/lid/:charId/stand` op: hoeveel voorwerpkaartjes er op zijn
+> naam staan (en hoeveel stuks), plus wat er **bij de party** blijft staan
+> (onthulde geheimen, zichtbare kaartjes). Dat laatste hangt aan de party en
+> gaat dus nooit mee, ook niet bij een verhuizing.
+> **De gedeelde beurs toont alle party's.** `GET /party-currency/alle`
+> (DM-only) levert ze naast elkaar; `PATCH /party-currency` en
+> `PUT /party-currency/toggle` nemen nu een `groep` mee — ze werkten altijd op
+> de *actieve* groep, dus je verzette ongezien de beurs van een andere tafel.
+> Bewust een eigen route en **geen** veld in `groupInfoList()`: die lijst gaat
+> via `groups:updated` naar de hele campagne-room, en dan leest elke speler het
+> saldo van elke party mee. Eén renderer voor beide plekken
+> (`_beursRegelHtml`), want twee weergaven van hetzelfde saldo lopen uit elkaar.
+
+> **Uitleg in Instellingen hoort in het boekje.** Elke sectie heeft een eigen
+> hulptekst (`inst_campagne`, `inst_partys`, `inst_beurs`, `inst_beheer`,
+> `inst_levelup`, plus het bestaande `hulp_muziek`); `_instSectie(key, kop,
+> inhoud, acties)` zet de knop rechts in de sectiekop. Wat eerder als grijze
+> `dm-hint` onder een veld stond is daarheen verhuisd — zelfde afspraak als bij
+> de kaartjes-editor. Het verschil tussen **embleem** (het wapen ín de app:
+> landingspagina en kop) en **app-icoon** (`meta.appIcon` → `GET
+> /app-icon-<maat>.png`, wat het besturingssysteem op het beginscherm zet) stond
+> nergens uitgelegd en staat nu in `inst_campagne`.
+> **De woorden bij Level omhoog:** *XP* en *Milestone* (niet "ervaringspunten"
+> of "mijlpaal"), en de drie HP-manieren heten **Gemiddelde**, **Gooien in de
+> app** en **Zelf gooien** — in Instellingen, in het formulier voor een nieuwe
+> campagne én in `_LU_METHODE_LABEL` (app.js), dat de speler te zien krijgt.
+
+> **De helpteksten zijn als markdown te lezen en te schrijven.**
+> `node scripts/helpteksten.js <campagne>` zet ze naast elkaar in
+> `docs/helpteksten.md`; `--lees <pad.md>` toont wat er zou veranderen en
+> `--lees … --schrijf` voert het door (kopie ernaast als
+> `dm-state.voor-help.<datum>.json`). Uitleg leeft op twee plekken —
+> `HELP_CONFIG` in `app.js` is de standaard die elke campagne meekrijgt,
+> `dmState.helpContent[sleutel]` is wat déze campagne er zelf van maakte — en om
+> één toon te kunnen schrijven moet je ze naast elkaar kunnen lezen. Bij
+> `--schrijf` wordt alleen het **afwijkende** vastgelegd; een tekst die weer
+> gelijk is aan de code verdwijnt juist uit `dm-state.json`, zodat de campagne
+> latere verbeteringen vanzelf meekrijgt.
+> Het blok wordt **uitgevoerd, niet met een regex gelezen**: het zijn
+> template literals met `${window._campagneNaam()}` erin, dus het script knipt
+> `HELP_CONFIG` eruit (`blokEinde()` telt accolades en slaat commentaar, strings
+> en `${…}` over) en draait het in een `vm`-sandbox met die helpers gestubd.
+> Twee valkuilen zitten in het heen-en-terug: de `---` die twee sleutels
+> scheidt staat ná de laatste `###`-stap en hoort dus niet bij die tekst, en
+> niet elke sleutel staat letterlijk in zijn aanroep (de kaartjes-tabs doen
+> `window._helpBtn?.(type)`) — die staan in `DYNAMISCH`, anders meldt het script
+> een tekst die wél in beeld komt als ongebruikt. Controle dat de twee vormen
+> gelijk zijn: exporteren en meteen weer inlezen hoort *niets* te willen
+> veranderen.
 
 ---
 

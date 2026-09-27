@@ -666,6 +666,17 @@ fout-uitvoert.
 - [ ] **Instellingen — titel** (DM) — campagnetitel, ondertitel en embleem; ze werken meteen door in kop en landingspagina
 - [ ] **Instellingen — munten** (DM) — namen hernoemen (gp/sp/cp, plus electrum en platinum); de verhouding blijft 1 : 10 : 100
 - [ ] **Instellingen — party's** (DM) — aanmaken, hernoemen, verwijderen (met de waarschuwing), en wie er vanavond meespeelt
+- [ ] **Party-kaartje** (DM) — klik een party in de lijst; het venster toont naam, groepswachtwoord, personages, wie er vanavond speelt en de gedeelde beurs van díé party
+- [ ] **Party-kaartje: koppelen** (DM) — typ een naam bij *Personage koppelen*; hij verschijnt als lid en staat daarna ook onder *Speelt vanavond*
+- [ ] **Party-kaartje: losmaken** (DM) — kruisje bij een lid; de vraag noemt het aantal voorwerpkaartjes op zijn naam én wat er bij de party blijft staan. Na losmaken hoort hij bij geen party en ziet hij niets meer van de campagne
+- [ ] **Party-kaartje: wachtwoord** (DM) — een wachtwoord zetten sluit het slotje op de regel in de lijst; leeg opslaan haalt het weg
+- [ ] **Gedeelde beurs per party** (DM) — Instellingen → Gedeelde beurs toont álle party's onder elkaar; een beurs aanzetten of bijwerken raakt alleen díé party, en de spelers van de andere party's merken niets
+- [ ] **Hulpknoppen in Instellingen** (DM) — elke sectie (campagne, party's, beurs, beheer, level omhoog, Spotify) heeft een boekje, en er staat geen grijze uitlegregel meer onder een veld
+- [ ] **App-icoon versus embleem** (DM) — de hulptekst bij *Campagne* legt het verschil uit; het embleem verschijnt in de kop, het app-icoon op het beginscherm na opnieuw toevoegen
+- [ ] **Level omhoog: de woorden** (DM/SPELER) — Instellingen zegt *XP* en *Milestone*, en de drie HP-manieren heten Gemiddelde, Gooien in de app en Zelf gooien — bij de DM én in het level-up-venster van de speler
+- [ ] **Level omhoog staat onderaan de Rust-tab** (DM) — onder *Sfeer & gebeurtenissen*, en de uitleg staat in het boekje in plaats van onder de knoppen
+- [ ] **Loot-icoon** (DM) — de knop in de zijbalk en de kop van het tabblad dragen hetzelfde icoon (de kluis)
+- [ ] **Willekeur: seizoensknoppen** (DM) — het gekozen seizoen is een gewone gouden knop en leesbaar op het perkament; onder *Namen* staat één scheidingslijn, geen dubbele
 - [ ] **Instellingen — modules** (BEHEER) — per campagne aan en uit; uit betekent weg uit de zijbalk, de Meesterkamer én bij de spelers
 - [ ] **Instellingen — wereld** (DM) — verhuisd naar Diensten → Toegang
 - [ ] **Instellingen — gedeelde beurs** (DM) — aanzetten, saldo bijwerken, uitzetten; de spelers zien het verschil in hun beurs

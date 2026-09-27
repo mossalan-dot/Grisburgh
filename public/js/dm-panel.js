@@ -1,4 +1,4 @@
-import { api, huidigeCampagne } from './api.js?v=295';
+import { api, huidigeCampagne } from './api.js?v=296';
 import { init as canvasInit, update as canvasUpdate, stop as canvasStop, acGetal } from './combat-canvas.js?v=28';
 import { renderStatblock } from './render-statblock.js?v=9';
 
@@ -449,7 +449,9 @@ export function initDmPanel() {
     naarTabletmodus:         () => _naarTabletmodus(),
     dmWachtwoordOpslaan:     () => _dmWachtwoordOpslaan(),
     partyLidErbij:           (gid, veld) => _partyLidErbij(gid, veld),
-    partyLidWeg:             (id, naam, party) => _partyLidWeg(id, naam, party),
+    partyLidWeg:             (id, naam, party, gid) => _partyLidWeg(id, naam, party, gid),
+    partyOpen:               (gid) => _partyOpen(gid),
+    partyActiefMaken:        (gid) => _partyActiefMaken(gid),
     regieBalkLoad:           (key, title) => _loadRegieBalk(key, title),
     regieBalkReveal:         (id) => _revealRegieBalkItem(id),
 
@@ -712,7 +714,11 @@ const _DM_TABS = [
   // Spelen
   { id: 'aktes',     groep: 'spelen',    label: 'Aktes',     icoon: 'clipboard-list',                  title: 'Aktes — voorbereiding &amp; regie' },
   { id: 'gevecht',   groep: 'spelen',    label: 'Gevecht',   icoon: 'crossed-swords', cls: 'icon-gi', title: 'Gevecht & Monsters' },
-  { id: 'loot',      groep: 'spelen',    label: 'Loot',      icoon: 'coins',           title: 'Loot — vondsten &amp; verdeling' },
+  // Zelfde icoon als de kop van de tab zelf: twee tekeningen voor één tabblad
+  // laat je twijfelen of je wel op dezelfde plek bent. `coins` betekent in de
+  // app al "hier wordt buit verdeeld" (het muntje in een kamer en in de
+  // regie-balk); de kluis is het tabblad.
+  { id: 'loot',      groep: 'spelen',    label: 'Loot',      icoon: 'vault',           title: 'Loot — vondsten &amp; verdeling' },
   { id: 'rust',      groep: 'spelen',    label: 'Rust',      icoon: 'moon',                            title: 'Rust — Long &amp; Short Rest' },
   // Sfeer en improvisatie
   { id: 'geluiden',  groep: 'sfeer',     label: 'Geluiden',  icoon: 'volume-2',                        title: 'Geluiden' },
@@ -3012,8 +3018,11 @@ let _weerSeizoen = 'Lente';
 
 function _weerSeason(btn) {
   _weerSeizoen = btn.dataset.season;
-  document.querySelectorAll('.dm-weer-season-btn').forEach(b => b.classList.remove('active'));
-  btn.classList.add('active');
+  document.querySelectorAll('.dm-weer-season-btn').forEach(b => {
+    const aan = b === btn;
+    b.classList.toggle('dm-btn-primary', aan);
+    b.classList.toggle('dm-btn-ghost', !aan);
+  });
 };
 
 const _WEER = {
@@ -3113,8 +3122,8 @@ function _renderTafels() {
                sprite heeft geen zon of sneeuwvlok), maar belangrijker: vier
                seizoensnamen lezen sneller dan vier plaatjes waarvan je er twee
                moet raden. De titel stond er toch al. -->
-          ${['Lente','Zomer','Herfst','Winter'].map((s,i) =>
-            `<button class="dm-btn dm-btn-sm dm-weer-season-btn${i===0?' active':''}" data-season="${s}"
+          ${['Lente','Zomer','Herfst','Winter'].map(s =>
+            `<button class="dm-btn dm-btn-sm dm-weer-season-btn ${s === _weerSeizoen ? 'dm-btn-primary' : 'dm-btn-ghost'}" data-season="${s}"
                title="${s}" onclick="window.dmPanel.weerSeason(this)">${s}</button>`).join('')}
         </div>
         <button class="dm-btn dm-btn-primary" onclick="window.dmPanel.weerGenereer()" title="Genereer weer">${icon('dice',{cls:'icon-gi'})}</button>
@@ -5434,38 +5443,46 @@ window._hbMenuRemove = (idx) => {
   _hbRenderMenuLijst();
 };
 
+// ── De gedeelde beurs, per party ──
+// Eén regel per party, want dit is een beheerscherm: de sectie toonde stil
+// alleen de áctieve party, en dan verzet je zonder het te zien de beurs van een
+// tafel die je niet bedoelde. Dezelfde regel wordt gebruikt in het
+// party-kaartje — twee weergaven van hetzelfde saldo lopen vroeg of laat uit
+// elkaar, zoals de voorraadtabel van een winkel.
+//
+// De velden dragen de D&D-afkorting (gp/sp/cp) met de eigen muntnaam als
+// tooltip; dat blijft kloppen als een campagne zijn munten hernoemt.
+function _beursRegelHtml(g, { kop = true } = {}) {
+  const n = window._muntNamen();
+  const aan = !!g.beurs?.enabled;
+  const veld = (k, afk) => `<label class="dm-munt-veld" title="${esc(n[k])}"><span>${afk}</span>
+    <input id="beurs-${k}-${esc(g.id)}" class="dm-input" type="number" min="0" value="${parseInt(g.beurs?.[k]) || 0}"></label>`;
+  return `<div class="dm-beurs-rij${aan ? ' dm-beurs-rij--aan' : ''}">
+    ${kop ? `<span class="dm-beurs-naam">${esc(g.naam)}${g.actief ? ` <span class="dm-beurs-actief" title="De party die nu actief is">actief</span>` : ''}</span>` : ''}
+    <button class="dm-btn dm-btn-sm dm-btn-ghost dm-beurs-schakel" onclick="window.dmPanel.beursToggle('${esc(g.id)}')"
+      title="${aan ? 'Iedereen in deze party gebruikt daarna weer zijn eigen beurs' : 'Alle spelers van deze party delen daarna één saldo'}">
+      ${aan ? `${icon('coins')} Aan` : `${icon('users')} Uit`}
+    </button>
+    ${aan ? `<span class="dm-munt-rij">
+      ${veld('fl', 'gp')}${veld('kn', 'sp')}${veld('cl', 'cp')}
+      <button class="dm-btn dm-btn-sm dm-btn-ghost" onclick="window.dmPanel.beursOpslaan('${esc(g.id)}')" title="Nieuw saldo bewaren">${icon('save')} Bijwerken</button>
+      <span id="beurs-status-${esc(g.id)}" class="bericht-status hidden"></span>
+    </span>` : `<span class="dm-hint dm-beurs-uit">ieder zijn eigen beurs</span>`}
+  </div>`;
+}
+
+async function _beurzenLaden() {
+  try { return (await api.partyCurrencyAlle()).groepen || []; } catch { return []; }
+}
+
 async function _renderBeursTab() {
   const el = _tabEl('beurs');
   if (!el) return;
-  el.innerHTML = '<div class="dm-feature-section"><div class="dm-section-label">Laden…</div></div>';
-
-  let _partyCurrency = { enabled: false, fl: 0, kn: 0, cl: 0 };
-  try { _partyCurrency = await api.getPartyCurrency(); } catch { /* ok */ }
-
-  // De knop was een los icoontje zonder tekst: niet te zien of je hem aan- of
-  // uitzette. De velden dragen de D&D-afkorting (gp/sp/cp) met de eigen
-  // muntnaam als tooltip — dat blijft kloppen als een campagne hernoemt.
-  const n = window._muntNamen();
-  el.innerHTML = `
-      <div class="dm-form-row">
-        <button class="dm-btn dm-btn-sm dm-btn-ghost"
-          id="hb-purse-toggle-btn" onclick="window._hbTogglePurse()"
-          title="${_partyCurrency.enabled ? 'Iedereen gebruikt daarna weer zijn eigen beurs' : 'Alle spelers delen daarna één saldo'}">
-          ${_partyCurrency.enabled ? `${icon('coins')} Gedeelde beurs uitzetten` : `${icon('users')} Gedeelde beurs aanzetten`}
-        </button>
-      </div>
-
-      ${_partyCurrency.enabled ? `
-      <div class="dm-form-row dm-munt-rij">
-        <label class="dm-munt-veld" title="${esc(n.fl)}"><span>gp</span>
-          <input id="hb-purse-fl" class="dm-input" type="number" min="0" value="${_partyCurrency.fl}"></label>
-        <label class="dm-munt-veld" title="${esc(n.kn)}"><span>sp</span>
-          <input id="hb-purse-kn" class="dm-input" type="number" min="0" value="${_partyCurrency.kn}"></label>
-        <label class="dm-munt-veld" title="${esc(n.cl)}"><span>cp</span>
-          <input id="hb-purse-cl" class="dm-input" type="number" min="0" value="${_partyCurrency.cl}"></label>
-        <button class="dm-btn dm-btn-sm dm-btn-ghost" onclick="window._hbSavePurse()" title="Nieuw saldo bewaren">${icon('save')} Bijwerken</button>
-        <span id="hb-purse-status" class="bericht-status hidden"></span>
-      </div>` : ''}`;
+  el.innerHTML = _dmLoading('Laden…');
+  const groepen = await _beurzenLaden();
+  el.innerHTML = groepen.length
+    ? groepen.map(g => _beursRegelHtml(g)).join('')
+    : '<p class="dm-hint">Nog geen party\'s.</p>';
 };
 
 window._hbSelectWaard = (entityId) => {
@@ -6984,20 +7001,21 @@ window._factieStuurUitnodiging = async (id) => {
   } catch (e) { alert('Versturen mislukt: ' + e.message); }
 };
 
-window._hbTogglePurse = async () => {
+// De beursknoppen dragen hun party mee. Ze stonden op de actieve groep met
+// vaste veld-id's, en dan kan er maar één beurs op het scherm staan.
+window.dmPanel.beursToggle = async (gid) => {
   try {
-    await api.togglePartyCurrency();
+    await api.togglePartyCurrency(gid);
     await _renderBeursTab();
+    await _partyKaartVul(gid);           // staat het kaartje open, dan loopt het mee
   } catch (err) { alert('Fout: ' + err.message); }
 };
 
-window._hbSavePurse = async () => {
-  const fl = Math.max(0, parseInt(document.getElementById('hb-purse-fl')?.value) || 0);
-  const kn = Math.max(0, parseInt(document.getElementById('hb-purse-kn')?.value) || 0);
-  const cl = Math.max(0, parseInt(document.getElementById('hb-purse-cl')?.value) || 0);
-  const status = document.getElementById('hb-purse-status');
+window.dmPanel.beursOpslaan = async (gid) => {
+  const num = (k) => Math.max(0, parseInt(document.getElementById(`beurs-${k}-${gid}`)?.value) || 0);
+  const status = document.getElementById(`beurs-status-${gid}`);
   try {
-    await api.patchPartyCurrency({ fl, kn, cl });
+    await api.patchPartyCurrency({ groep: gid, fl: num('fl'), kn: num('kn'), cl: num('cl') });
     // Niet hertekenen: dan verdween de melding meteen weer, en dat was precies
     // waarom het leek alsof er niets gebeurde. De velden staan al goed.
     if (status) {
@@ -7996,7 +8014,7 @@ function _renderLootInner() {
 
   const n = _lootSelectie.size;
   el.innerHTML = `
-    ${_dmTabHead({ icon: 'vault', title: 'Loot', sub: 'vondsten — de DC is een aantekening, jij beslist', actions: helpBtn('dm_loot') })}
+    ${_dmTabHead({ icon: 'vault', title: 'Loot', actions: helpBtn('dm_loot') })}
     <div class="dm-feature-section">
       <div class="dm-feature-row" style="justify-content:space-between;align-items:center;margin-bottom:8px">
         <span class="dm-section-label" style="margin-bottom:0">Vondsten</span>
@@ -8255,7 +8273,7 @@ async function _renderRust() {
   const loc = window._dmRustLocatie || 'veld';
 
   el.innerHTML = `
-    ${_dmTabHead({ icon: 'moon', title: 'Rust', sub: 'party-breed — Long &amp; Short Rest', actions: helpBtn('dm_rust') })}
+    ${_dmTabHead({ icon: 'moon', title: 'Rust', actions: helpBtn('dm_rust') })}
 
     <div class="dm-feature-section">
       <div class="dm-section-label">${icon('moon')} Rust starten</div>
@@ -8273,24 +8291,6 @@ async function _renderRust() {
         <button class="dm-btn dm-btn-ghost" onclick="window._dmRust('short')" title="Short Rest — party-breed">${icon('zap')} Short Rest</button>
         <span id="dm-rust-status" style="font-size:11px;color:#6a9050"></span>
       </div>
-      <span class="dm-hint" style="font-size:11px">Party-breed en cinematisch. Een Long Rest in ${esc(herbergNaam)} schrijft de overnachtingsprijs p.p. af en onthult 2 roddels p.p.</span>
-    </div>
-
-    <!-- Level omhoog hoort hier omdat het aan tafel op hetzelfde moment gebeurt:
-         einde sessie, of bij de lange rust erna. De DM gunt alleen; de speler
-         kiest zelf hoe hij aan zijn HP komt en wat hij met een ASI doet. Dat
-         scheelt de DM vijf keuzes voor vijf spelers. -->
-    <div class="dm-feature-section">
-      <div class="dm-section-label">${icon('sparkles')} Level omhoog</div>
-      <div class="dm-hint" style="margin:-2px 0 6px">Zet een level-up klaar voor iedereen die vanavond meedoet. Zij kiezen daarna zelf hun HP.</div>
-      <div class="dm-feature-row" style="gap:8px;align-items:center;flex-wrap:wrap">
-        <button class="dm-btn dm-btn-primary" onclick="window._dmLevelUpGun(1)"
-          title="Iedere aanwezige speler krijgt een level-up klaargezet">${icon('sparkles')} Party een level omhoog</button>
-        <button class="dm-btn dm-btn-ghost dm-btn-sm" onclick="window._dmLevelUpGun(0)"
-          title="Alle klaargezette level-ups weer intrekken">${icon('x')} Intrekken</button>
-        <span id="dm-levelup-status" style="font-size:11px;color:#6a9050"></span>
-      </div>
-      <div id="dm-levelup-lijst" class="dm-hint" style="font-size:11px;margin-top:6px"></div>
     </div>
 
     <div class="dm-feature-section">
@@ -8337,6 +8337,22 @@ async function _renderRust() {
         <button class="dm-btn dm-btn-primary" onclick="window._rustSave()" title="Rust-instellingen opslaan">${icon('save')}</button>
         <span id="rust-save-status" style="font-size:11px;color:#6a9050"></span>
       </div>
+
+    <!-- Level omhoog staat onder Sfeer & gebeurtenissen: het hoort bij hetzelfde
+         moment aan tafel (einde sessie, of de lange rust erna), maar je raakt
+         het minder vaak aan dan de rust zelf. De DM gunt alleen; de speler kiest
+         zelf hoe hij aan zijn HP komt en wat hij met een ASI doet. -->
+    <div class="dm-feature-section">
+      <div class="dm-section-label">${icon('sparkles')} Level omhoog</div>
+      <div class="dm-feature-row" style="gap:8px;align-items:center;flex-wrap:wrap">
+        <button class="dm-btn dm-btn-primary" onclick="window._dmLevelUpGun(1)"
+          title="Iedere aanwezige speler krijgt een level-up klaargezet">${icon('sparkles')} Party een level omhoog</button>
+        <button class="dm-btn dm-btn-ghost dm-btn-sm" onclick="window._dmLevelUpGun(0)"
+          title="Alle klaargezette level-ups weer intrekken">${icon('x')} Intrekken</button>
+        <span id="dm-levelup-status" style="font-size:11px;color:#6a9050"></span>
+      </div>
+      <div id="dm-levelup-lijst" class="dm-hint" style="font-size:11px;margin-top:6px"></div>
+    </div>
     </div>`;
 };
 
@@ -10173,6 +10189,7 @@ async function _aanwezigheidToggle(groepId, charId) {
     const res = await api.setAanwezigheid(groepId, [...weg]);
     if (groepId === window._activeGroupId) window._groepAfwezig = res.afwezig || [];
     _renderInstellingen();
+    await _partyKaartVul(groepId);
   } catch (e) {
     _showToast(`${icon('x')} Aanwezigheid opslaan mislukt`);
   }
@@ -10209,18 +10226,63 @@ async function _partyLidErbij(groepId, veld) {
     ? `${doel.name} zit al in een andere party.\n\nVerhuizen? Voorwerpkaartjes en wat die party al ontdekt had blijven daar achter; losse boedelregels en geld gaan mee.`
     : '';
   if (await _partyNaarGroep(doel.id, doel.name, groepId, vraag)) {
-    _showToast(`${icon('check')} ${doel.name} toegevoegd aan de party`);
+    _showToast(`${icon('check')} ${doel.name} gekoppeld aan de party`);
     _renderInstellingen();
+    await _partyKaartVul(groepId);
   }
   veld.value = '';
 }
 
-async function _partyLidWeg(entityId, naam, party) {
-  if (!confirm(`${naam} uit ${party} halen?\n\nHij hoort daarna bij geen enkele party en ziet niets meer van deze campagne. Voorwerpkaartjes en onthullingen blijven bij ${party}.`)) return;
-  if (await _partyNaarGroep(entityId, naam, '', '')) {
-    _showToast(`${icon('check')} ${naam} uit de party gehaald`);
-    _renderInstellingen();
+// Losmaken zet alleen `data.groep` leeg — maar wat de party over hem bijhoudt
+// blijft in `dmState.groups[gid]` staan. Daarom haalt de vraag eerst de stand
+// op: "onthullingen blijven achter" zegt niets, "3 voorwerpen (5 stuks)" wel.
+// Mislukt dat ophalen, dan gaat de vraag gewoon door zonder getallen — het is
+// een waarschuwing, geen voorwaarde.
+async function _partyLidWeg(entityId, naam, party, gid = '') {
+  let stand = null;
+  if (gid) { try { stand = await api.partyLidStand(gid, entityId); } catch { /* ok */ } }
+  const regels = [
+    `${naam} losmaken van ${party}?`,
+    '',
+    'Hij houdt zijn eigen blad, boedelregels en beurs, maar hoort daarna bij géén party — en ziet dus niets meer van deze campagne.',
+    '',
+  ];
+  if (stand) {
+    regels.push(`Wat bij ${party} blijft staan:`);
+    regels.push(stand.voorwerpen
+      ? `· ${stand.voorwerpen} voorwerpkaartje${stand.voorwerpen === 1 ? '' : 's'} op zijn naam${stand.aantal > stand.voorwerpen ? ` (${stand.aantal} stuks)` : ''}`
+      : '· geen voorwerpkaartjes op zijn naam');
+    if (stand.charges) regels.push(`· de charges die hij van ${stand.charges} voorwerp${stand.charges === 1 ? '' : 'en'} verbruikt had`);
+    regels.push(`· wat de party ontdekt heeft: ${stand.partyGeheimen} kaartjes met onthulde geheimen, ${stand.partyKaartjes} zichtbare kaartjes`);
+    regels.push('');
+    regels.push('Dat laatste hoort bij de party en niet bij hem, dus het gaat nooit mee — ook niet naar een andere party.');
+  } else {
+    regels.push(`Voorwerpkaartjes en onthullingen blijven bij ${party}.`);
   }
+  if (!confirm(regels.join('\n'))) return;
+  if (await _partyNaarGroep(entityId, naam, '', '')) {
+    _showToast(`${icon('check')} ${naam} losgemaakt van de party`);
+    _renderInstellingen();
+    await _partyKaartVul(gid);
+  }
+}
+
+// Het party-kaartje: alles van één party bij elkaar. Het haalt zijn naam vooraf
+// op, zodat de venstertitel de party noemt en niet "Party".
+async function _partyOpen(gid) {
+  let naam = 'Party';
+  try { naam = ((await api.listGroups()).groups || []).find(g => g.id === gid)?.name || naam; } catch { /* ok */ }
+  window.app.openModal(naam, 'party', `<div id="dm-party-kaart" data-gid="${gid}">${_dmLoading('Laden…')}</div>`);
+  await _partyKaartVul(gid);
+}
+
+async function _partyActiefMaken(gid) {
+  try {
+    await api.switchGroup(gid);
+    _showToast(`${icon('check')} Party actief gemaakt`);
+    _renderInstellingen();
+    await _partyKaartVul(gid);
+  } catch (err) { alert('Wisselen mislukt: ' + err.message); }
 }
 
 async function _dmWachtwoordStatus() {
@@ -10264,6 +10326,115 @@ function _naarTabletmodus() {
 const _INST_DICHT_KEY = 'grisburgh:inst-dicht';
 let _instDicht = new Set();
 try { _instDicht = new Set(JSON.parse(localStorage.getItem(_INST_DICHT_KEY) || '[]')); } catch { /* geen stand, alles open */ }
+
+// ── Party's: één regel in de lijst, alles in een kaartje ──
+//
+// Alles van een party stond uitgeklapt in de lijst — naam, leden, wie er
+// vanavond is — en het wachtwoord lag een sectie verderop bij Beheer, de beurs
+// nog een sectie verder. Bij drie party's was dat een halve pagina waarin je
+// moest zoeken welke regel bij welke tafel hoorde. Nu: één regel per party, en
+// wat je van één party wilt weten staat bij elkaar in één venster.
+function _partyRegelHtml(g, spelers) {
+  const leden = spelers.filter(e => e.data?.groep === g.id);
+  const weg   = (g.afwezig || []).filter(id => leden.some(e => e.id === id)).length;
+  return `<button type="button" class="dm-party-regel${g.active ? ' dm-party-regel--actief' : ''}"
+    onclick="window.dmPanel.partyOpen('${esc(g.id)}')" title="Deze party openen">
+    <span class="dm-party-regel-naam">${esc(g.name)}</span>
+    <span class="dm-party-regel-meta">${leden.length} ${leden.length === 1 ? 'personage' : 'personages'}${weg ? ` · ${weg} afwezig` : ''}</span>
+    <span class="dm-party-regel-slot" title="${g.hasPassword ? 'Er is een groepswachtwoord' : 'Nog geen groepswachtwoord'}">${icon(g.hasPassword ? 'lock' : 'lock-open')}</span>
+    ${g.active ? '<span class="dm-party-regel-badge" title="De party waar jouw scherm nu naar kijkt">actief</span>' : ''}
+    <span class="dm-party-regel-pijl">${icon('chevron-right')}</span>
+  </button>`;
+}
+
+// Welke personages horen bij deze party? Blijvend, want het staat op hun eigen
+// kaartje (`data.groep`) — niet te verwarren met wie er vanavond meespeelt.
+function _partyLedenHtml(g, spelers) {
+  const leden = spelers.filter(e => e.data?.groep === g.id);
+  const vrij  = spelers.filter(e => (e.data?.groep || '') !== g.id);
+  return `<div class="dm-subgroep-label">${icon('user')} Personages</div>
+    <div class="dm-inst-leden">
+      ${leden.length
+        ? leden.map(e => `
+          <span class="dm-lid-chip">${esc(e.name)}
+            <button type="button" title="Losmaken van deze party"
+              onclick="window.dmPanel.partyLidWeg('${esc(e.id)}','${escJS(e.name)}','${escJS(g.name)}','${esc(g.id)}')">${icon('x')}</button>
+          </span>`).join('')
+        : '<span class="dm-hint" style="margin:0">Nog niemand.</span>'}
+      ${vrij.length ? `
+        <span class="dm-lid-toevoegen">
+          <input list="dm-party-pc-dl-${esc(g.id)}" class="dm-input dm-input-sm" placeholder="Personage koppelen…"
+            onchange="window.dmPanel.partyLidErbij('${esc(g.id)}', this)">
+          <datalist id="dm-party-pc-dl-${esc(g.id)}">
+            ${vrij.map(e => `<option value="${esc(e.name)}">${e.data?.groep ? 'nu in een andere party' : 'geen party'}</option>`).join('')}
+          </datalist>
+        </span>` : ''}
+    </div>`;
+}
+
+// Wie doet er vanavond mee? Tijdelijk, met één klik terug — en daarom bewust
+// onder een eigen kop, los van het koppelen hierboven. Bewaard worden de
+// áfwezigen, zodat een personage dat erbij komt automatisch meedoet.
+function _partyAanwezigHtml(g, spelers) {
+  const leden = spelers.filter(e => e.data?.groep === g.id);
+  if (!leden.length) return '';
+  const weg = new Set(g.afwezig || []);
+  return `<div class="dm-subgroep-label" title="Bepaalt wie meedoet bij rust, bij het verdelen van buit en bij het vullen van een gevecht">${icon('users')} Speelt vanavond</div>
+    <div class="dm-inst-aanwezig">
+      ${leden.map(e => `
+        <button type="button" class="dm-aanwezig-chip${weg.has(e.id) ? ' dm-aanwezig-chip--weg' : ''}"
+          onclick="window.dmPanel.aanwezigheidToggle('${esc(g.id)}','${esc(e.id)}')"
+          title="${weg.has(e.id) ? 'Doet niet mee — klik om weer mee te laten doen' : 'Doet mee — klik om als afwezig te markeren'}">
+          ${icon(weg.has(e.id) ? 'x' : 'check')} ${esc(e.name)}
+        </button>`).join('')}
+    </div>`;
+}
+
+function _partyKaartHtml(g, spelers, beurs) {
+  const leden = spelers.filter(e => e.data?.groep === g.id);
+  return `
+    <div class="dm-form-row">
+      <label class="dm-form-label" for="dm-party-naam-${esc(g.id)}">Naam</label>
+      <input id="dm-party-naam-${esc(g.id)}" class="dm-input" value="${esc(g.name)}" placeholder="Naam party"
+        onchange="window._instGroepRename('${esc(g.id)}', this.value)">
+    </div>
+    <div class="dm-form-row">
+      <label class="dm-form-label" for="dm-party-pw-${esc(g.id)}"
+        title="${g.hasPassword ? 'Er staat een wachtwoord. Typ een nieuw om het te wijzigen, of laat leeg om het te verwijderen.' : 'Nog geen wachtwoord voor deze party'}">
+        ${icon(g.hasPassword ? 'lock' : 'lock-open')} Groepswachtwoord</label>
+      <input id="dm-party-pw-${esc(g.id)}" class="dm-input" type="password" autocomplete="new-password"
+        placeholder="${g.hasPassword ? 'Wachtwoord wijzigen…' : 'Wachtwoord instellen…'}"
+        onchange="window._instGroepSetPw('${esc(g.id)}', this.value)">
+    </div>
+    ${_partyLedenHtml(g, spelers)}
+    ${_partyAanwezigHtml(g, spelers)}
+    <div class="dm-subgroep-label">${icon('coins')} Gedeelde beurs</div>
+    ${_beursRegelHtml({ ...beurs, id: g.id, naam: g.name }, { kop: false })}
+    <div class="dm-party-kaart-voet">
+      ${g.active ? '<span class="dm-hint" style="margin:0">Dit is de actieve party.</span>'
+                 : `<button class="dm-btn dm-btn-sm dm-btn-ghost" onclick="window.dmPanel.partyActiefMaken('${esc(g.id)}')"
+                      title="Jouw scherm kijkt daarna naar deze party">${icon('users')} Deze party actief maken</button>`}
+      <button class="dm-btn dm-btn-sm dm-btn-ghost dm-btn-danger"
+        onclick="window._instGroepDelete('${esc(g.id)}', '${escJS(g.name)}', ${leden.length})"
+        title="Party verwijderen">${icon('trash')} Party verwijderen</button>
+    </div>`;
+}
+
+// Het kaartje haalt zijn eigen gegevens op: het staat los van de lijst eronder,
+// en na een wijziging (koppelen, beurs) hoort het te tonen wat er nú staat.
+// Staat het venster niet open, dan doet dit niets — zo mag elke handler hem
+// blind aanroepen.
+async function _partyKaartVul(gid) {
+  const host = document.getElementById('dm-party-kaart');
+  if (!host || host.dataset.gid !== gid) return;
+  let groups = [], spelers = [], beurzen = [];
+  try { groups = (await api.listGroups()).groups || []; } catch { /* ok */ }
+  try { spelers = (await api.listEntities('personages') || []).filter(e => e.subtype === 'speler'); } catch { /* ok */ }
+  beurzen = await _beurzenLaden();
+  const g = groups.find(x => x.id === gid);
+  if (!g) { host.innerHTML = '<p class="dm-hint">Deze party bestaat niet meer.</p>'; return; }
+  host.innerHTML = _partyKaartHtml(g, spelers, beurzen.find(b => b.id === gid) || { beurs: {} });
+}
 
 function _instSectie(key, kop, inhoud, acties = '') {
   return `<details class="dm-feature-section dm-inst-sectie" data-sectie="${key}"${_instDicht.has(key) ? '' : ' open'}>
@@ -10318,59 +10489,7 @@ async function _renderInstellingen() {
   let alleSpelers = [];
   try { alleSpelers = (await api.listEntities('personages') || []).filter(e => e.subtype === 'speler'); } catch { /* ok */ }
 
-  // Leden van een party: wie erin zit, en een lijstje om er iemand bij te zetten.
-  // Koppelen kon alleen op het kaartje zelf; hier zie je de party als geheel.
-  const ledenHtml = (g) => {
-    const leden = alleSpelers.filter(e => e.data?.groep === g.id);
-    const vrij  = alleSpelers.filter(e => (e.data?.groep || '') !== g.id);
-    return `<div class="dm-inst-leden">
-      <span class="dm-inst-aanwezig-label" title="Welke spelerspersonages bij deze party horen">${icon('user')} Personages</span>
-      ${leden.length
-        ? leden.map(e => `
-          <span class="dm-lid-chip">${esc(e.name)}
-            <button type="button" title="Uit deze party halen"
-              onclick="window.dmPanel.partyLidWeg('${esc(e.id)}','${escJS(e.name)}','${escJS(g.name)}')">${icon('x')}</button>
-          </span>`).join('')
-        : '<span class="dm-hint" style="margin:0">Nog niemand.</span>'}
-      ${vrij.length ? `
-        <span class="dm-lid-toevoegen">
-          <input list="dm-party-pc-dl-${esc(g.id)}" class="dm-input dm-input-sm" placeholder="Personage toevoegen…"
-            onchange="window.dmPanel.partyLidErbij('${esc(g.id)}', this)">
-          <datalist id="dm-party-pc-dl-${esc(g.id)}">
-            ${vrij.map(e => `<option value="${esc(e.name)}">${e.data?.groep ? 'nu in een andere groep' : 'geen groep'}</option>`).join('')}
-          </datalist>
-        </span>` : ''}
-    </div>`;
-  };
-
-  const aanwezigheidHtml = (g) => {
-    const leden = alleSpelers.filter(e => e.data?.groep === g.id);
-    if (!leden.length) return '';
-    const weg = new Set(g.afwezig || []);
-    return `<div class="dm-inst-aanwezig">
-      <span class="dm-inst-aanwezig-label" title="Wie er vanavond meespeelt. Bepaalt wie meedoet bij rust, loot en het vullen van een gevecht — niet welke party actief is.">${icon('users')} Actief</span>
-      ${leden.map(e => `
-        <button type="button" class="dm-aanwezig-chip${weg.has(e.id) ? ' dm-aanwezig-chip--weg' : ''}"
-          onclick="window.dmPanel.aanwezigheidToggle('${esc(g.id)}','${esc(e.id)}')"
-          title="${weg.has(e.id) ? 'Doet niet mee — klik om weer mee te laten doen' : 'Doet mee — klik om als afwezig te markeren'}">
-          ${icon(weg.has(e.id) ? 'x' : 'check')} ${esc(e.name)}
-        </button>`).join('')}
-    </div>`;
-  };
-
-  const groupItems = groups.map(g => `
-    <div class="dm-inst-group-row" id="dm-inst-group-${esc(g.id)}">
-      <input class="dm-input dm-inst-group-name" value="${esc(g.name)}"
-        onchange="window._instGroepRename('${esc(g.id)}', this.value)"
-        placeholder="Naam party">
-      <span class="dm-inst-group-slot" title="${g.hasPassword ? 'Er is een wachtwoord ingesteld — wijzigen doe je bij Beheer' : 'Nog geen wachtwoord — instellen doe je bij Beheer'}">
-        ${icon(g.hasPassword ? 'lock' : 'lock-open')}</span>
-      <button class="dm-btn dm-btn-sm dm-btn-ghost dm-btn-danger"
-        onclick="window._instGroepDelete('${esc(g.id)}', '${escJS(g.name)}', ${alleSpelers.filter(e => e.data?.groep === g.id).length})"
-        title="Party verwijderen">${icon('trash')}</button>
-    </div>
-    ${ledenHtml(g)}
-    ${aanwezigheidHtml(g)}`).join('');
+  const groupItems = groups.map(g => _partyRegelHtml(g, alleSpelers)).join('');
 
   const campaignItems = campaigns.map(c => {
     const isActive = c.id === activeCampaign;
@@ -10400,7 +10519,6 @@ async function _renderInstellingen() {
         </div>
         <details class="dm-modules">
           <summary>Modules</summary>
-          <p class="dm-hint">Wat uit staat verdwijnt uit beeld — bij de DM én bij zijn spelers.</p>
           <div class="dm-modules-grid">
             ${catalogus.map(m => `
               <label class="dm-module-item">
@@ -10451,8 +10569,7 @@ async function _renderInstellingen() {
           <button class="dm-btn dm-btn-sm dm-btn-ghost" onclick="window._instAppIconWis()" title="Het meegeleverde wapen gebruiken">${icon('x')} Wissen</button>
           <input type="hidden" id="inst-appicon" value="${esc(meta.appIcon || '')}">
         </span>
-      </div>
-      <p class="dm-hint">Zonder eigen icoon installeert de app met het meegeleverde wapen. Een bestaande installatie ververst zijn icoon pas als hij opnieuw wordt toegevoegd aan het beginscherm.</p>`)}
+      </div>`, window._helpBtn?.('inst_campagne') ?? '')}
 
     <!-- Namen voor valuta -->
     ${_instSectie('valuta', 'Namen voor valuta', `
@@ -10483,10 +10600,11 @@ async function _renderInstellingen() {
       <div id="inst-groepen-list" class="dm-inst-groepen">
         ${groupItems || '<p class="dm-hint">Nog geen party\'s.</p>'}
       </div>`,
-      `<button class="dm-btn dm-btn-sm dm-btn-ghost" onclick="event.stopPropagation();window._instGroepCreate()" title="Nieuwe party aanmaken">${icon('plus')} Party toevoegen</button>`)}
+      `<button class="dm-btn dm-btn-sm dm-btn-ghost" onclick="event.stopPropagation();window._instGroepCreate()" title="Nieuwe party aanmaken">${icon('plus')} Party toevoegen</button>
+       ${window._helpBtn?.('inst_partys') ?? ''}`)}
 
     <!-- Gedeelde beurs: _renderBeursTab vult alleen de inhoud -->
-    ${_instSectie('beurs', 'Gedeelde beurs', '<div id="dm-inst-beurs"></div>')}
+    ${_instSectie('beurs', 'Gedeelde beurs', '<div id="dm-inst-beurs"></div>', window._helpBtn?.('inst_beurs') ?? '')}
 
     <!-- Beheer: alles wat over toegang en dit scherm gaat -->
     ${_instSectie('beheer', 'Beheer', `
@@ -10503,15 +10621,6 @@ async function _renderInstellingen() {
           <span id="dm-pw-melding" class="bericht-status hidden"></span>
         </div>
       </div>
-      <div class="dm-subgroep-label">Wachtwoorden per groep</div>
-      ${groups.map(g => `
-      <div class="dm-form-row">
-        <label class="dm-form-label" for="pw-${esc(g.id)}"
-          title="${g.hasPassword ? 'Er staat een wachtwoord. Typ een nieuw om het te wijzigen, of laat leeg om het te verwijderen.' : 'Nog geen wachtwoord voor deze groep'}">${esc(g.name)}</label>
-        <input id="pw-${esc(g.id)}" class="dm-input" type="password" autocomplete="new-password"
-          placeholder="${g.hasPassword ? 'Wachtwoord wijzigen…' : 'Wachtwoord instellen…'}"
-          onchange="window._instGroepSetPw('${esc(g.id)}', this.value)">
-      </div>`).join('')}
       <div class="dm-form-row">
         <label class="dm-module-item" title="grisburgh.nl toont een keuzepagina met alle campagnes die zich laten zien">
           <input type="checkbox" id="inst-in-overzicht" ${meta.inOverzicht === false ? '' : 'checked'}>
@@ -10530,7 +10639,6 @@ async function _renderInstellingen() {
       ${!magBeheren ? '' : `
       <details class="dm-modules dm-beheer-campagnes">
         <summary>Campagnes en modules</summary>
-        <p class="dm-hint">Bezoekers kiezen hun campagne op de openingspagina; dit is het beheer erachter.</p>
         <div id="dm-campagnes-inst-list">
           ${campaignItems || '<p class="dm-hint">Geen campagnes gevonden.</p>'}
         </div>
@@ -10552,8 +10660,8 @@ async function _renderInstellingen() {
           <div class="dm-form-row" style="margin-top:6px">
             <label class="dm-form-label" for="campagne-new-systeem">Level omhoog</label>
             <select id="campagne-new-systeem" class="dm-input">
-              <option value="milestone" selected>Op een mijlpaal — jij bepaalt wanneer</option>
-              <option value="xp">Op ervaringspunten</option>
+              <option value="milestone" selected>Milestone — jij bepaalt wanneer</option>
+              <option value="xp">XP — de tabel bepaalt wanneer</option>
             </select>
           </div>
           <div class="dm-feature-row" style="gap:8px;margin-top:6px;flex-wrap:wrap">
@@ -10562,7 +10670,7 @@ async function _renderInstellingen() {
           </div>
           <div id="campagne-create-error" style="color:#c44;font-size:.85em;margin-top:6px"></div>
         </div>
-      </details>`}`)}
+      </details>`}`, window._helpBtn?.('inst_beheer') ?? '')}
 
     <!-- Muziek uit Spotify: Grisburgh speelt zelf niets af, het drukt op play.
          Waar dat geluid uitkomt kiest de DM hier. -->
@@ -10575,25 +10683,26 @@ async function _renderInstellingen() {
         <label class="dm-form-label" for="inst-lu-systeem">Wanneer ga je omhoog?</label>
         <select id="inst-lu-systeem" class="dm-input"
           onchange="document.getElementById('inst-lu-nullijn').style.display = this.value === 'xp' ? '' : 'none'">
-          <option value="milestone"${lu.systeem !== 'xp' ? ' selected' : ''}>Op een mijlpaal — jij bepaalt wanneer</option>
-          <option value="xp"${lu.systeem === 'xp' ? ' selected' : ''}>Op ervaringspunten — de tabel bepaalt wanneer</option>
+          <option value="milestone"${lu.systeem !== 'xp' ? ' selected' : ''}>Milestone — jij bepaalt wanneer</option>
+          <option value="xp"${lu.systeem === 'xp' ? ' selected' : ''}>XP — de tabel bepaalt wanneer</option>
         </select>
       </div>
-      <p class="dm-hint">Op XP deel je punten uit (de knop in de regie-balk, met het bedrag van een gevecht als voorstel) en staat een level-up vanzelf klaar zodra iemand over de drempel komt. Op mijlpaal zet jij hem klaar.</p>
       <!-- Wie halverwege overstapt heeft spelers met een level maar zonder XP:
            dan staat elke balk op nul. Eén knop legt de nullijn recht. Bewust
            geen automatische migratie bij het omzetten hierboven — dat is een
-           keuze van de DM, geen gevolg van een vinkje. -->
+           keuze van de DM, geen gevolg van een vinkje. De uitleg staat in de
+           hulptekst inst_levelup, niet onder de knop. Let op: geen backticks in
+           een commentaar binnen een template literal — die sluit hem. -->
       <div id="inst-lu-nullijn"${lu.systeem === 'xp' ? '' : ' style="display:none"'}>
-        <p class="dm-hint">Speelde je eerst op mijlpaal? Dan heeft iedereen wel een level maar nog geen XP, en staat elke balk op nul. Deze knop zet ieders XP op het minimum dat bij zijn huidige level hoort; wie al meer had houdt dat.</p>
         <div class="dm-form-row">
-          <button class="dm-btn dm-btn-ghost dm-btn-sm" onclick="window.dmPanel.xpNullijn(this)">Ieders XP op de nullijn zetten</button>
+          <button class="dm-btn dm-btn-ghost dm-btn-sm" onclick="window.dmPanel.xpNullijn(this)"
+            title="Zet ieders XP op het minimum dat bij zijn huidige level hoort; wie al meer had houdt dat">Ieders XP op de nullijn zetten</button>
         </div>
       </div>
-      <p class="dm-hint">Hoe bepaalt een speler zijn HP bij een level-up? Wat je hier uitvinkt kan hij niet kiezen.</p>
+      <div class="dm-subgroep-label">Hoe komt de HP erbij</div>
       ${[['gemiddelde', 'Gemiddelde', 'Het vaste getal uit het boek — (die ÷ 2) + 1, plus CON.'],
-         ['app',        'Rollen in de app', 'De server rolt de hit die.'],
-         ['tafel',      'Zelf gegooid', 'De speler rolt aan tafel en tikt zijn worp in; de server toetst en telt CON erbij.']]
+         ['app',        'Gooien in de app', 'De server gooit de hit die.'],
+         ['tafel',      'Zelf gooien', 'De speler gooit aan tafel en tikt zijn worp in; de server toetst en telt CON erbij.']]
         .map(([k, label, uitleg]) => `
         <div class="dm-form-row">
           <label class="dm-module-item" title="${esc(uitleg)}">
@@ -10613,9 +10722,9 @@ async function _renderInstellingen() {
         <label class="dm-form-label" for="inst-lu-max">Hoogste level</label>
         <input id="inst-lu-max" class="dm-input" type="number" min="1" max="30" value="${lu.maxLevel || 20}">
       </div>
-    `)}
+    `, window._helpBtn?.('inst_levelup') ?? '')}
 
-    ${_instSectie('spotify', 'Muziek (Spotify)', `
+    ${_instSectie('spotify', 'Spotify', `
       <div id="inst-spotify">
         <p class="dm-hint">Laden…</p>
       </div>`, window._helpBtn?.('hulp_muziek') ?? '')}
@@ -10958,26 +11067,25 @@ window._instGroepRename = async (id, naam) => {
   if (!nieuw) return;
   try {
     await api.updateGroup(id, nieuw);
-    // De naam staat op twee plekken in dit paneel: bij de party zelf en als
-    // label boven haar wachtwoord in Beheer. Die tweede liep achter tot een
-    // herlaadbeurt; hertekenen zou de rest van het formulier wegvagen, dus we
-    // werken alleen dat label bij.
-    const label = document.querySelector(`label[for="pw-${id}"]`);
-    if (label) label.textContent = nieuw;
+    // De naam staat ook op de regel in de lijst eronder en in de venstertitel.
+    // Hertekenen van het kaartje zou het veld onder je handen vervangen terwijl
+    // je er net in typte, dus alleen de lijst en de titel lopen mee.
+    _renderInstellingen();
+    const titel = document.querySelector('.modal-title, .modal-titel');
+    if (titel && document.getElementById('dm-party-kaart')) titel.textContent = nieuw;
   } catch (err) { alert('Hernoemen mislukt: ' + err.message); }
 };
 
 window._instGroepSetPw = async (id, pw) => {
   try {
     const r = await api.setGroupPassword(id, pw.trim());
-    const veld = document.getElementById(`pw-${id}`);
+    const veld = document.getElementById(`dm-party-pw-${id}`);
     if (veld) { veld.value = ''; veld.placeholder = pw.trim() ? 'Wachtwoord wijzigen…' : 'Wachtwoord instellen…'; }
     // Zelfde bevestiging als bij het DM-wachtwoord: zonder melding weet je niet
     // of er iets gebeurd is — het veld leegt zichzelf immers ook bij een fout.
     _showToast(`${icon('check')} ${pw.trim() ? 'Partywachtwoord opgeslagen' : 'Partywachtwoord verwijderd'}`);
-    // Het slotje bij de party hoort mee te bewegen.
-    const slot = document.querySelector(`#dm-inst-group-${id} .dm-inst-group-slot`);
-    if (slot) slot.innerHTML = pw.trim() ? icon('lock') : icon('lock-open');
+    // Het slotje op de regel in de lijst hoort mee te bewegen.
+    _renderInstellingen();
     return r;
   } catch (err) { alert('Wachtwoord instellen mislukt: ' + err.message); }
 };

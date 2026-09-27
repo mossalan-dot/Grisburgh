@@ -313,8 +313,11 @@ export const api = {
 
   // Gedeelde beurs
   getPartyCurrency:    ()       => request('/party-currency'),
+  partyCurrencyAlle:   ()       => request('/party-currency/alle'),
   patchPartyCurrency:  (data)   => request('/party-currency', { method: 'PATCH', body: JSON.stringify(data) }),
-  togglePartyCurrency: ()       => request('/party-currency/toggle', { method: 'PUT' }),
+  // Zonder groep gaat het over de actieve party — zoals voorheen.
+  togglePartyCurrency: (groep)  => request('/party-currency/toggle', { method: 'PUT', body: JSON.stringify({ groep: groep || '' }) }),
+  partyLidStand:       (gid, charId) => request(`/groups/${gid}/lid/${charId}/stand`),
 
   // Speler spreukenslots
   getPlayerSpellSlots: (characterId)       => request(`/player-spellslots/${characterId}`),

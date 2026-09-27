@@ -1,4 +1,4 @@
-import { api, campagneUitUrl, zetCampagne } from './api.js?v=295';
+import { api, campagneUitUrl, zetCampagne } from './api.js?v=296';
 import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, renderDocumenten, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=315";
 import { initArchief, renderLogboek, openLogboekEditor } from "./render-archief.js?v=131";
 import { renderKaart, queueFlyTo, verversPins, nieuweKaart } from './render-kaart.js?v=31';
@@ -10,7 +10,7 @@ import { renderSpreuken } from './render-spreuken.js?v=41';
 import { renderVaardigheden, zoekVaardigheden } from './render-vaardigheden.js?v=8';
 import { renderStatblock } from './render-statblock.js?v=9';
 import { initSocket } from "./socket-client.js?v=78";
-import { initDmPanel } from "./dm-panel.js?v=296";
+import { initDmPanel } from "./dm-panel.js?v=297";
 import { COND_INFO, COND_LABEL, COND_MET_PLAATJE, COND_ICON } from './conditions.js?v=2';
 import './media-picker.js?v=8';
 import './tafels.js?v=1';
@@ -7175,8 +7175,8 @@ document.addEventListener('error', (ev) => {
 // voor vijf mensen te doen.
 const _LU_METHODE_LABEL = {
   gemiddelde: 'Gemiddelde',
-  app:        'Rollen in de app',
-  tafel:      'Zelf gegooid',
+  app:        'Gooien in de app',
+  tafel:      'Zelf gooien',
 };
 
 async function _levelUpBalk() {
@@ -13909,6 +13909,38 @@ const HELP_CONFIG = {
     { titel: 'Wie hoort hier bij?', tekst: 'Eigenaar, waard, personeel, stamgasten — personages én organisaties, met per regel een rol. Een naam die een kaartje heeft wordt een knop waar je doorheen klikt; wat geen kaartje heeft blijft gewoon tekst. Dezelfde regel verschijnt bij *Waar hoort dit \u2026 bij?* op dát kaartje \u2014 de kop noemt daar het soort kaartje: een verbinding staat maar op één plek, dus je legt en verwijdert hem van beide kanten.', afbeelding: null },
     { titel: 'Flavour & geheimen', tekst: '**Flavour** zijn losse zinnetjes om voor te lezen; de app houdt per regel bij of hij al verteld is, dus iemand met drie roddels levert drie avonden op. **Geheimen** onthul je per regel en per party, in het detailvenster.', afbeelding: null },
     { titel: 'Koppelingen', tekst: 'Onderaan staat wat dit kaartje **elders** is: de herberg van de campagne, of de tempel van een god uit de Tempel-dienst. Die koppeling staat maar op één plek — je kunt hem hier leggen of in het paneel van die dienst, en je ziet aan beide kanten hetzelfde.', afbeelding: null },
+  ] }),
+  // ── Instellingen ──
+  // Elke sectie van het instellingenpaneel heeft een eigen boekje. Wat hier
+  // staat stond eerder als grijze regel ónder het veld; die uitleg hoort in de
+  // hulptekst, net als bij de kaartjes-editor.
+  inst_campagne: () => ({ titel: 'De campagne', stappen: [
+    { titel: 'Titel en ondertitel', tekst: `De **titel** is de naam van je wereld: hij staat op de landingspagina, in de kop en als naam van de app op een beginscherm. De **ondertitel** staat eronder — een regel sfeer, of de naam van de groep.`, afbeelding: null },
+    { titel: 'Embleem: het wapen ín de app', tekst: 'Het **embleem** is het wapen dat je in de app zelf ziet: groot op de landingspagina, klein in de kop. Het is een gewone afbeelding uit de mediabibliotheek, dus een schild, een zegel of een wapenschild werkt allemaal.', afbeelding: null },
+    { titel: 'App-icoon: het wapen búiten de app', tekst: 'Het **app-icoon** is een ander ding: dat is het plaatje dat je telefoon of tablet gebruikt zodra je de app aan je beginscherm toevoegt, plus het icoon in het tabblad van de browser. Daarom staat het los van het embleem — een embleem mag een brede tekening zijn, een icoon moet als vierkantje van een halve centimeter nog leesbaar zijn. Laat je het leeg, dan wordt het meegeleverde wapen gebruikt. Een app die al op een beginscherm staat houdt zijn oude icoon tot hij er opnieuw op wordt gezet; dat bewaart het besturingssysteem, daar kunnen wij niets aan doen.', afbeelding: null },
+  ] }),
+  inst_partys: () => ({ titel: "Party's", stappen: [
+    { titel: 'Eén regel per party', tekst: 'Elke party staat op één regel met het aantal personages en een slotje als er een wachtwoord is. Klik erop en je krijgt alles van díé party bij elkaar: naam, wachtwoord, wie erbij hoort, wie er vanavond meespeelt en de gedeelde beurs.', afbeelding: null },
+    { titel: 'Personages: koppelen en losmaken', tekst: 'Onder **Personages** staat wie bij deze party hóórt — dat is blijvend, het staat op het kaartje van het personage zelf. Losmaken met het kruisje betekent dat hij bij geen enkele party meer hoort en dus niets meer van de campagne ziet. Wat bij de party ligt blijft daar: voorwerpkaartjes, onthulde geheimen en welke kaartjes ontdekt zijn staan per party, niet per personage. De vraag vóór het losmaken zegt precies hoeveel dat er zijn.', afbeelding: null },
+    { titel: 'Actief vanavond is iets anders', tekst: 'Onder **Speelt vanavond** zet je iemand tijdelijk buiten de sessie — de speler die er niet is. Dat bepaalt wie meedoet bij rust, bij het verdelen van buit en bij het vullen van een gevecht, en het is met één klik terug te draaien. Bewust de afwezigen die bewaard worden en niet de aanwezigen: een personage dat erbij komt doet dan vanzelf mee.', afbeelding: null },
+    { titel: 'Het wachtwoord van een party', tekst: 'Dat is wat je je spelers stuurt; ze kiezen daarna zelf hun personage. Groepswachtwoorden blijven leesbaar staan — je moet ze kunnen opzoeken als iemand het kwijt is. Jouw eigen DM-wachtwoord staat onder **Beheer** en wordt wél versleuteld.', afbeelding: null },
+  ] }),
+  inst_beurs: () => ({ titel: 'De gedeelde beurs', stappen: [
+    { titel: 'Eén zak of ieder zijn eigen', tekst: `Staat de gedeelde beurs **aan**, dan is dát de portemonnee van de party: iedereen ziet hetzelfde bedrag, en alles wat gekocht of gevonden wordt gaat erin en eruit. Staat hij **uit**, dan heeft elke speler zijn eigen beurs.`, afbeelding: null },
+    { titel: 'Per party, dus hier naast elkaar', tekst: 'De schakelaar geldt per party, dus ze staan alle party\'s onder elkaar met hun stand erbij. Zo zie je in één blik waar het geld van de tafel staat — en verzet je niet per ongeluk de beurs van de party die je niet bedoelde.', afbeelding: null },
+    { titel: 'Omzetten raakt geen geld kwijt', tekst: 'De twee zakken bestaan naast elkaar: zet je de gedeelde beurs uit, dan komt ieders eigen beurs weer tevoorschijn zoals die was, en het gedeelde bedrag blijft staan tot je hem weer aanzet. Er verdwijnt dus niets, maar reken er ook niet op dat geld mee verhuist.', afbeelding: null },
+  ] }),
+  inst_beheer: () => ({ titel: 'Beheer', stappen: [
+    { titel: 'Jouw DM-wachtwoord', tekst: 'Geldt alleen voor deze campagne en wordt **versleuteld** opgeslagen, zodat het niet leesbaar in een backup staat. Twee keer intikken, want met een typefout hierin sluit je jezelf buiten.', afbeelding: null },
+    { titel: 'Op de openingspagina', tekst: 'Het kale adres toont een keuzepagina met alle campagnes die zich laten zien. Vink dit uit en deze campagne staat er niet tussen; wie het pad kent komt er nog gewoon in.', afbeelding: null },
+    { titel: 'Naslag elders', tekst: 'Niet elke regeltekst mag in de app staan: wat niet in de vrije SRD zit heeft bij ons geen beschrijving. **Linken mag wel.** Hier zet je waarnaar die verwijzing gaat — een zoekopdracht met `{zoek}` erin, of `{naam}` en `{soort}` als je het zelf wil samenstellen. Leeg is een zoekmachine, en dat werkt beter dan een diepe link: die verlept zodra de andere site zijn adressen verandert.', afbeelding: null },
+    { titel: 'Campagnes en modules', tekst: 'Alleen de beheerder ziet dit. Per campagne staat hier het DM-wachtwoord, welke campagne de **standaard** is (waar het kale adres naartoe stuurt) en welke **modules** aanstaan. Wat uit staat verdwijnt uit beeld — bij de DM én bij zijn spelers; er komt geen grijze "binnenkort"-knop voor in de plaats.', afbeelding: null },
+  ] }),
+  inst_levelup: () => ({ titel: 'Level omhoog', stappen: [
+    { titel: 'XP of Milestone', tekst: 'Bij **Milestone** gun jij het level: je zet een level-up klaar wanneer het verhaal daar is. Bij **XP** wordt hij verdiend — je deelt punten uit met de XP-knop in de regie-balk (die het bedrag van het lopende gevecht al voorstelt) en de level-up staat vanzelf klaar zodra iemand over de drempel komt. Omzetten kan altijd.', afbeelding: null },
+    { titel: 'De nullijn bij XP', tekst: 'Speelde je eerst op Milestone, dan heeft iedereen wel een level maar nog geen XP en staat elke balk op nul. De knop **Ieders XP op de nullijn zetten** geeft ieder het minimum dat bij zijn huidige level hoort; wie al meer had houdt dat, en niemand krijgt er een level-up van. Twee keer drukken kan dus geen kwaad.', afbeelding: null },
+    { titel: 'Hoe komt de HP erbij', tekst: 'Drie manieren: het **gemiddelde** (het vaste getal uit het boek), **in de app gooien** (de server gooit de hit die) of **zelf gooien** aan tafel, waarna de speler zijn worp intikt en de server hem toetst. Wat je hier uitvinkt kan een speler niet kiezen; de server weigert een manier die uitstaat. Vink je alles uit, dan kan niemand meer omhoog — dat wordt daarom geweigerd.', afbeelding: null },
+    { titel: 'Hoogste level', tekst: 'Waar de tijdlijn ophoudt. Twintig is de normale grens van 5e; hoger zet hem alleen open, het vult geen nieuwe features in.', afbeelding: null },
   ] }),
   hulp_muziek: () => ({ titel: 'Muziek uit Spotify', stappen: [
     { titel: 'Hoe het werkt', tekst: 'Grisburgh speelt zelf niets af: het drukt op **play** bij Spotify. In een akte zet je een muziekstap neer (de muzieknoot in het regie-script); tijdens het spelen start je die met de muzieknoot in de regie-balk. Per stap kies je of het nummer één keer speelt of blijft herhalen.', afbeelding: null },
