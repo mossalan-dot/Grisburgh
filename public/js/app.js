@@ -1,13 +1,13 @@
 import { api, campagneUitUrl, zetCampagne } from './api.js?v=296';
-import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, renderDocumenten, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=317";
+import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, renderDocumenten, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=318";
 import { initArchief, renderLogboek, openLogboekEditor } from "./render-archief.js?v=131";
 import { renderKaart, queueFlyTo, verversPins, nieuweKaart } from './render-kaart.js?v=31';
 import { renderDungeon } from './render-dungeon.js?v=56';
 import { renderRelatiemap } from './render-relatiemap.js?v=27';
 import { renderProgressie, levelupFeatures } from './render-progressie.js?v=53';
-import { renderBestiarium } from './render-bestiarium.js?v=30';
+import { renderBestiarium } from './render-bestiarium.js?v=31';
 import { renderSpreuken } from './render-spreuken.js?v=41';
-import { renderVaardigheden, zoekVaardigheden } from './render-vaardigheden.js?v=8';
+import { renderVaardigheden, zoekVaardigheden } from './render-vaardigheden.js?v=9';
 import { renderStatblock } from './render-statblock.js?v=9';
 import { initSocket } from "./socket-client.js?v=78";
 import { initDmPanel } from "./dm-panel.js?v=319";

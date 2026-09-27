@@ -160,4 +160,23 @@ describe('Mediabibliotheek', () => {
     const del = await jsonReq(server, 'DELETE', `/api/media/${charId}_video`, null, dmCookie);
     assert.strictEqual(del.status, 409);
   });
+
+  it('ziet een spreukafbeelding als gebruik van het bronbestand', async () => {
+    // De DM kiest een bibliotheekbestand voor een spreuk; dat wordt gekopieerd
+    // naar spell-img-<index>. De kopie hoort niet in de bibliotheek, maar het
+    // bronbestand moet wél als "in gebruik" gelden — anders staat het als wees
+    // in de lijst en verwijdert de DM het beeld van een spreuk die het gebruikt.
+    await uploadReq(server, '/api/files/m_spreuk', dmCookie, { filename: 'vuur.png', contentType: 'image/png', content: PNG_1PX });
+    const kopie = await jsonReq(server, 'POST', '/api/files/spell-img-fire-bolt/copy-from/m_spreuk', null, dmCookie);
+    assert.strictEqual(kopie.status, 200);
+
+    const list = await jsonReq(server, 'GET', '/api/media', null, dmCookie);
+    const tekst = (l) => (typeof l === 'string' ? l : (l?.tekst || ''));
+    const bron = list.body.files.find(f => f.id === 'm_spreuk');
+    assert.ok(bron.gebruik.some(l => /Spreuk: Fire Bolt/.test(tekst(l))), 'gelabeld met de spreuk');
+    assert.ok(!list.body.files.some(f => f.id === 'spell-img-fire-bolt'), 'de kopie zelf staat niet in de bibliotheek');
+
+    const del = await jsonReq(server, 'DELETE', '/api/media/m_spreuk', null, dmCookie);
+    assert.strictEqual(del.status, 409, 'niet te verwijderen zolang een spreuk hem gebruikt');
+  });
 });

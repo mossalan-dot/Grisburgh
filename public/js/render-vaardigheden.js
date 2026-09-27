@@ -374,6 +374,29 @@ function _open(key) {
   const body = tekst
     ? `<div class="prog-detail-desc">${_verwijzingen(_bron?.md?.(tekst) ?? esc(tekst))}</div>`
     : (_bron?.geenTekstBlok?.(it.naam) ?? '');
+  // De DM stelt de afbeelding hier in, niet in de bewerkmodal: bij de spreuken
+  // gaat het ook zo, en dan hoef je voor een plaatje niet eerst het potlood.
+  const dmBeeld = isDM() ? `
+      ${it.img ? `<div class="vaardig-detail-imgwrap">
+        <img class="vaardig-detail-img" id="vaardig-detail-img" src="/api/files/${esc(it.img)}" alt=""
+          style="${it.imgFocus ? `object-position:${esc(it.imgFocus)}` : ''}">
+      </div>
+      <details class="spreuk-focus-blok">
+        <summary>${icon('image')} Focuspunt bijstellen</summary>
+        <div class="spreuk-focus-body">${window._fpBlokHtml?.({
+          src: `/api/files/${esc(it.img)}`, value: it.imgFocus || '50% 50%',
+          previews: [{ cls: 'fp-prev--breed', label: 'Kaartje' }],
+        }) || ''}</div>
+      </details>` : ''}
+      <div class="spreuk-dm-knoppen">
+        <button class="spreuk-detail-imgbtn" onclick="window.vaardigheden.kiesDetailAfbeelding('${esc(it.key)}')">
+          ${icon('image')} Afbeelding kiezen of uploaden</button>
+        ${it.img ? `<button class="spreuk-detail-imgbtn" onclick="window.vaardigheden.wisDetailAfbeelding('${esc(it.key)}')">
+          ${icon('x')} Afbeelding weghalen</button>` : ''}
+        <button class="spreuk-detail-imgbtn" onclick="window.vaardigheden.bewerk('${esc(it.key)}')">
+          ${icon('pencil')} Bewerken</button>
+      </div>` : '';
+
   window.app.openModal(it.naam, '', `
     <div class="prog-detail">
       <div class="prog-detail-body">
@@ -382,12 +405,41 @@ function _open(key) {
           ${_bronRegel(it) ? `<span class="prog-detail-chip">${esc(_bronRegel(it))}</span>` : ''}
           ${it.level ? `<span class="prog-detail-chip">Level ${it.level}</span>` : ''}
         </div>
+        ${dmBeeld}
         ${body}
       </div>
     </div>`);
+  // De gedeelde focuskiezer schrijft naar déze vaardigheid tot een ander blok
+  // hem claimt (zelfde afspraak als in het spreukdetail).
+  window._fpOnChange = isDM() && it.img ? (v => _zetBeeldFocus(it, v)) : null;
   // Het lexicon leest mee, net als in het spreukdetail en het statblok.
   const el = document.querySelector('#modal-overlay .prog-detail');
   if (el) window.glossary?.applyDom?.(el);
+}
+
+// ── Afbeelding vanuit het detailvenster ───────────────────────────
+// Eén regel opnieuw wegschrijven. De route vervangt de hele regel, dus gaat
+// alles mee wat we al weten — anders verdwijnt de beschrijving bij het zetten
+// van een plaatje.
+async function _bewaarBeeld(it, velden) {
+  await api.post('/progression/feature', {
+    oud: { soort: it.soort, bron: it.bron, sub: it.sub, level: it.level, naam: it.naam },
+    soort: it.soort, bron: it.bron, sub: it.sub || '', level: it.level || 1,
+    naam: it.naam, desc: it.desc || '', herkomst: it.herkomst || '',
+    img: it.img || null, imgFocus: it.imgFocus || '',
+    ...velden,
+  });
+  Object.assign(it, { img: velden.img || '', imgFocus: velden.imgFocus ?? (velden.img ? it.imgFocus : '') });
+  _paint();
+}
+
+let _focusTimer = null;
+function _zetBeeldFocus(it, focus) {
+  const img = document.getElementById('vaardig-detail-img');
+  if (img) img.style.objectPosition = focus;
+  clearTimeout(_focusTimer);
+  // Niet bij elke sleepstap schrijven.
+  _focusTimer = setTimeout(() => { _bewaarBeeld(it, { img: it.img, imgFocus: focus }).catch(() => {}); }, 350);
 }
 
 // ── Bewerken en toevoegen (DM) ────────────────────────────────────
@@ -540,6 +592,31 @@ window.vaardigheden = {
   open: _open,
   nieuw() { _editorOpen(null); },
   bewerk(key) { _editorOpen((_all || []).find(x => x.key === key)); },
+  // Kiezen gaat via dezelfde mediabibliotheek als in de bewerkmodal; het
+  // detailvenster tekent zichzelf daarna opnieuw, zodat het beeld er staat.
+  kiesDetailAfbeelding(key) {
+    const it = (_all || []).find(x => x.key === key);
+    if (!it) return;
+    if (!window.mediaPicker?.open) { alert('Mediabibliotheek niet beschikbaar'); return; }
+    window.mediaPicker.open({
+      type: 'afbeelding',
+      suggestedName: (it.naam || 'vaardigheid').toLowerCase().replace(/\s+/g, '-'),
+      onSelect: async (srcId) => {
+        const id = it.img || `feat-img-${Math.random().toString(36).slice(2, 10)}`;
+        try {
+          await fetch(`/api/files/${id}/copy-from/${srcId}`, { method: 'POST', credentials: 'include' });
+          await _bewaarBeeld(it, { img: id });
+          _open(key);
+        } catch (e) { alert('Afbeelding instellen mislukt: ' + e.message); }
+      },
+    });
+  },
+  async wisDetailAfbeelding(key) {
+    const it = (_all || []).find(x => x.key === key);
+    if (!it) return;
+    try { await _bewaarBeeld(it, { img: null, imgFocus: '' }); _open(key); }
+    catch (e) { alert('Afbeelding weghalen mislukt: ' + e.message); }
+  },
   veld(naam, waarde) {
     _editorLees();
     _edit[naam] = waarde;

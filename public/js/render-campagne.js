@@ -472,7 +472,7 @@ const SCHEMA = {
       // hoort in de editor bij elkaar te staan met zijn opmaakregels.
       { key: 'tekst', label: 'De tekst zelf', type: 'perkament' },
       { key: 'briefstijl', label: 'Hoe ziet de tekst eruit?', type: 'select', options: BRIEF_STIJLEN },
-      { key: 'flavours', label: 'Flavour teksten', type: 'lijst-tekst', enkelvoud: 'flavour' },
+      { key: 'flavours', label: 'Roddels', type: 'lijst-tekst', enkelvoud: 'flavour' },
       { key: 'geheimen', label: 'Geheimen', type: 'lijst-tekst', enkelvoud: 'geheim' },
       { key: 'persoonlijkheid', label: 'Aantekeningen voor de DM', type: 'textarea', dmOnly: true },
     ],
@@ -499,7 +499,7 @@ const SCHEMA = {
       { key: 'alignment', label: 'Alignment', type: 'lijst', lijst: 'alignments' },
       { key: 'tags', label: 'Rollen', type: 'rollen' },
       { key: 'desc', label: 'Beschrijving', type: 'textarea' },
-      { key: 'flavours', label: 'Flavour teksten', type: 'lijst-tekst', enkelvoud: 'flavour' },
+      { key: 'flavours', label: 'Roddels', type: 'lijst-tekst', enkelvoud: 'flavour' },
       { key: 'geheimen', label: 'Geheimen', type: 'lijst-tekst', enkelvoud: 'geheim' },
       { key: 'persoonlijkheid', label: 'Aantekeningen voor de DM', type: 'textarea', dmOnly: true },
     ],
@@ -520,7 +520,7 @@ const SCHEMA = {
       { key: 'wijk', label: 'Gebied', type: 'entiteit', doel: ['locaties'],
         hint: 'De stad, streek of het gebouw waar dit in ligt' },
       { key: 'desc', label: 'Beschrijving', type: 'textarea' },
-      { key: 'flavours', label: 'Flavour teksten', type: 'lijst-tekst', enkelvoud: 'flavour' },
+      { key: 'flavours', label: 'Roddels', type: 'lijst-tekst', enkelvoud: 'flavour' },
       { key: 'geheimen', label: 'Geheimen', type: 'lijst-tekst', enkelvoud: 'geheim' },
       // Wie erbij hoort stond bóven de beschrijving, dus je vulde een ledenlijst
       // in voordat je had opgeschreven wát dit is. Zelfde volgorde als bij een
@@ -542,7 +542,7 @@ const SCHEMA = {
       { key: 'desc', label: 'Beschrijving', type: 'textarea' },
       // Waren één tekstvak; nu lijsten, zoals bij personages en locaties — de
       // oude tekst blijft de eerste regel (_tekstLijstUit leest allebei).
-      { key: 'flavours', label: 'Flavour teksten', type: 'lijst-tekst', enkelvoud: 'flavour' },
+      { key: 'flavours', label: 'Roddels', type: 'lijst-tekst', enkelvoud: 'flavour' },
       { key: 'geheimen', label: 'Geheimen', type: 'lijst-tekst', enkelvoud: 'geheim' },
       // Staat in dezelfde volgorde als bij een locatie, al valt hij bij een
       // organisatie toch op het Organogram-tabblad (zie de P:organogram-markers).
@@ -642,7 +642,7 @@ const SCHEMA = {
       { key: 'desc', label: 'Beschrijving', type: 'textarea' },
       // Net als bij personages, locaties en organisaties: allebei lijsten, per
       // regel te onthullen. De oude losse tekst blijft de eerste regel.
-      { key: 'flavours', label: 'Flavour teksten', type: 'lijst-tekst', enkelvoud: 'flavour' },
+      { key: 'flavours', label: 'Roddels', type: 'lijst-tekst', enkelvoud: 'flavour' },
       { key: 'geheimen', label: 'Geheimen', type: 'lijst-tekst', enkelvoud: 'geheim' },
       { key: 'persoonlijkheid', label: 'Aantekeningen voor de DM', type: 'textarea', dmOnly: true },
     ],

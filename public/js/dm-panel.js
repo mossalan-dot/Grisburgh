@@ -3829,7 +3829,7 @@ function _renderMonsterEditor(el) {
       <div class="dm-form-row">
         <label class="dm-form-label">Roddel</label>
         <textarea id="dm-mon-roddel" class="dm-input dm-sb-textarea" rows="2"
-          placeholder="Een observatie over dit wezen">${esc(m.roddel || '')}</textarea>
+          placeholder="Wat erover verteld wordt">${esc(m.roddel || '')}</textarea>
       </div>
       <div class="dm-feature-row">
         <div class="dm-form-row" style="flex:1">

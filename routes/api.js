@@ -7893,6 +7893,13 @@ router.get('/files/:id', attachRole, async (req, res) => {
 router.delete('/files/:id', requireDM, (req, res) => {
   storage.deleteFile(req.params.id);
   _unregisterMedia(req.params.id);
+  // Was het een afgeleide kopie, dan vervalt ook het spoor naar het bronbestand
+  // (anders blijft dat als "in gebruik" staan voor een beeld dat er niet is).
+  const meta = storage.readJSON('meta.json');
+  if (meta.mediaBron?.[req.params.id]) {
+    delete meta.mediaBron[req.params.id];
+    storage.writeJSON('meta.json', meta);
+  }
   res.json({ ok: true });
 });
 
@@ -7908,8 +7915,18 @@ router.post('/files/:id/copy-from/:src', requireDM, async (req, res) => {
   // spell-img-<index> en <entityId>_video zijn afgeleide kopieën, geen
   // bibliotheek-assets: niet registreren (anders staan ze dubbel naast het
   // bronbestand dat de DM koos).
-  if (/^spell-img-/.test(req.params.id) || /_video$/.test(req.params.id)) _unregisterMedia(req.params.id);
-  else await _registerMedia(req.params.id, { mime: src.mimetype, grootte: buffer.length, buffer });
+  if (/^spell-img-/.test(req.params.id) || /_video$/.test(req.params.id)) {
+    _unregisterMedia(req.params.id);
+    // ...maar leg wél vast wáár de kopie vandaan komt. Zonder dat spoor ziet de
+    // mediabibliotheek het bronbestand als ongebruikt — "Identify" stond als
+    // wees in de lijst terwijl de spreuk er wel degelijk mee getekend werd.
+    const meta = storage.readJSON('meta.json');
+    if (!meta.mediaBron) meta.mediaBron = {};
+    meta.mediaBron[req.params.id] = req.params.src;
+    storage.writeJSON('meta.json', meta);
+  } else {
+    await _registerMedia(req.params.id, { mime: src.mimetype, grootte: buffer.length, buffer });
+  }
   res.json({ ok: true });
 });
 

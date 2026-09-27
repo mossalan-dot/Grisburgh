@@ -199,12 +199,20 @@ function _card(m, i, dm) {
           <div class="card-meta"><span class="card-meta-sub">${metaBits}</span></div>` : ''}
         </div>
         ${m.description ? `<p class="best-card-desc">${esc(m.description)}</p>` : ''}
-        ${roddelGehoord && roddelTekst
-          ? `<div class="best-roddel">${icon('message-circle')} <em>${esc(roddelTekst)}</em></div>`
-          : (dm && m.roddel && !roddelGehoord
-              ? `<div class="best-roddel best-roddel--ongehoord">${icon('message-circle')} <em>${esc(m.roddel)}</em> <span class="best-roddel-hint">(nog niet gehoord)</span></div>`
-              : '')}
       </div>
+      ${(() => {
+        // De roddel staat als strook onder het kaartje, net als op een personage
+        // of locatie (`.flavour-preview`). Hij stond hier eerder als groene regel
+        // middenin de tekst — daarmee las het bestiarium als een ander archief.
+        // Nog niet gehoord: gedimd, zelfde afspraak als een nog niet uitgesproken
+        // roddel op een kaartje.
+        const tekst = roddelGehoord ? roddelTekst : (dm ? (m.roddel || '') : '');
+        if (!tekst) return '';
+        return `<div class="flavour-preview${roddelGehoord ? '' : ' flavour-preview--ongespoken'}"${
+          roddelGehoord ? '' : ' title="Nog niet gehoord door de party"'}>
+          <span class="flavour-preview-text">\u201e${esc(tekst)}\u201c</span>
+        </div>`;
+      })()}
     </div>`;
 }
 
