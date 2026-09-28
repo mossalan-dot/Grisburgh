@@ -338,3 +338,48 @@ describe('De Magizoöloog: onderzoek en adoptie', () => {
     assert.match(String(r.body?.error || ''), /niet ter adoptie/i);
   });
 });
+
+// De kopvelden van een dienst (naam, begroeting, eigenaarskaartje,
+// locatiekaartje, achtergrond) zijn overal dezelfde — dan moet de server ze
+// ook overal aannemen. Ursula, De Gock en de Tempel namen `groet` niet aan, en
+// `locatieId` kende alleen de herberg: wat je in het paneel typte verdween bij
+// het opslaan zonder dat er iets misging.
+describe('Elke dienst bewaart dezelfde kopvelden', () => {
+  let s, dm;
+  const DIENSTEN = ['herberg', 'tweespalt', 'gock', 'ursula', 'tempel', 'magizoo'];
+
+  before(async () => {
+    s = await startServer('dienstkop');
+    dm = (await s.req('POST', '/api/auth/login', { campagne: 'grisburgh', password: 'grisburgh-dm' })).cookie;
+  });
+
+  after(async () => {
+    await s.io.close();
+    await new Promise(r => s.server.close(r));
+    fs.rmSync(s.dir, { recursive: true, force: true });
+  });
+
+  for (const dienst of DIENSTEN) {
+    it(`${dienst} bewaart naam, begroeting, eigenaar en locatie`, async () => {
+      const r = await s.req('PUT', `/api/meta/${dienst}`, {
+        naam: `Proef ${dienst}`, groet: `Dag, {naam} — ${dienst}.`,
+        imageId: 'ent_eigenaar', locatieId: 'ent_plek',
+      }, dm);
+      assert.strictEqual(r.status, 200, JSON.stringify(r.body));
+
+      const meta = (await s.req('GET', '/api/meta', null, dm)).body;
+      const c = meta[dienst] || {};
+      assert.strictEqual(c.naam, `Proef ${dienst}`);
+      assert.strictEqual(c.groet, `Dag, {naam} — ${dienst}.`, 'de begroeting hoort bewaard te blijven');
+      assert.strictEqual(c.imageId, 'ent_eigenaar');
+      assert.strictEqual(c.locatieId, 'ent_plek', 'het locatiekaartje hoort bewaard te blijven');
+    });
+
+    it(`${dienst} laat een koppeling ook weer loslaten`, async () => {
+      await s.req('PUT', `/api/meta/${dienst}`, { imageId: '', groet: '' }, dm);
+      const c = (await s.req('GET', '/api/meta', null, dm)).body[dienst] || {};
+      assert.strictEqual(c.imageId, '', 'een leeg veld hoort de koppeling te wissen');
+      assert.strictEqual(c.groet, '');
+    });
+  }
+});

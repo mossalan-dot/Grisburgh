@@ -10,7 +10,7 @@ import { renderSpreuken } from './render-spreuken.js?v=41';
 import { renderVaardigheden, zoekVaardigheden } from './render-vaardigheden.js?v=10';
 import { renderStatblock } from './render-statblock.js?v=9';
 import { initSocket } from "./socket-client.js?v=78";
-import { initDmPanel } from "./dm-panel.js?v=319";
+import { initDmPanel } from "./dm-panel.js?v=320";
 import { COND_INFO, COND_LABEL, COND_MET_PLAATJE, COND_ICON } from './conditions.js?v=2';
 import './media-picker.js?v=8';
 import './tafels.js?v=2';
@@ -12404,7 +12404,7 @@ async function renderGock() {
           ${_helpBtn('gock')}
         </div>
         <div class="herberg-portrait-wrap">${portret}</div>
-        <p class="herberg-groet">${esc(config.naam)} kijkt op van zijn bureau en trekt een wenkbrauw op.</p>
+        <p class="herberg-groet">${esc(config.groet || `${config.naam} kijkt op van zijn bureau en trekt een wenkbrauw op.`)}</p>
         <!-- Stond hier als "Resultaat binnen 24 uur"; de wachttijd hangt sinds
              21 sep aan de lange rust, dus dat beloofde iets anders dan de app doet. -->
         <p class="ts-beurs">Vooruitbetaling: <strong>${prijsTekst(config.prijs)}</strong> · Rapport na de volgende lange rust</p>
@@ -12798,7 +12798,7 @@ async function renderUrsula() {
 
   const groet = geenSessie
     ? `Op de deur hangt een briefje: <em>“${esc(config.naam)} is even een fles jenever halen.”</em>`
-    : `${esc(config.naam)} legt haar handen op de kristallen bol.`;
+    : esc(config.groet || `${config.naam} legt haar handen op de kristallen bol.`);
 
   let body;
   if (geenSessie) {
@@ -12971,7 +12971,7 @@ function _renderTempelInterior(el, g, config, huidigeEed, huidigeZegen, currency
         </div>
         <div class="herberg-portrait-wrap">${portret}</div>
         ${priesterNaam ? `<p class="tempel-priester-naam">${esc(priesterNaam)}</p>` : ''}
-        <p class="herberg-groet">${esc(g.priesterGreet || 'Welkom, pelgrim. Waarvoor bent u hier?')}</p>
+        <p class="herberg-groet">${esc(g.priesterGreet || config.groet || 'Welkom, pelgrim. Waarvoor bent u hier?')}</p>
 
         ${huidigeEed && isVloek ? `
           <div class="tempel-zegen-actief tempel-vloek-actief">

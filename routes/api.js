@@ -11896,7 +11896,7 @@ router.put('/gock/opgehaald', attachRole, vereistDienst('gock'), (req, res) => {
 router.put('/meta/tweespalt', requireDM, (req, res) => {
   const meta = storage.readJSON('meta.json');
   if (!meta.tweespalt) meta.tweespalt = {};
-  ['naam', 'groet', 'imageId', 'backdropId', 'arena', 'geldschieter'].forEach(f => { if (req.body[f] !== undefined) meta.tweespalt[f] = req.body[f]; });
+  ['naam', 'groet', 'imageId', 'locatieId', 'backdropId', 'arena', 'geldschieter'].forEach(f => { if (req.body[f] !== undefined) meta.tweespalt[f] = req.body[f]; });
   storage.writeJSON('meta.json', meta);
   req.app.get('io').to(_campagneRoom(req)).emit('meta:updated');
   res.json(meta.tweespalt);
@@ -11905,7 +11905,7 @@ router.put('/meta/tweespalt', requireDM, (req, res) => {
 router.put('/meta/ursula', requireDM, (req, res) => {
   const meta = storage.readJSON('meta.json');
   if (!meta.ursula) meta.ursula = {};
-  ['naam', 'prijs', 'imageId', 'backdropId'].forEach(f => { if (req.body[f] !== undefined) meta.ursula[f] = req.body[f]; });
+  ['naam', 'groet', 'prijs', 'imageId', 'locatieId', 'backdropId'].forEach(f => { if (req.body[f] !== undefined) meta.ursula[f] = req.body[f]; });
   storage.writeJSON('meta.json', meta);
   req.app.get('io').to(_campagneRoom(req)).emit('meta:updated');
   res.json(meta.ursula);
@@ -11914,7 +11914,7 @@ router.put('/meta/ursula', requireDM, (req, res) => {
 router.put('/meta/gock', requireDM, (req, res) => {
   const meta = storage.readJSON('meta.json');
   if (!meta.gock) meta.gock = {};
-  ['naam', 'prijs', 'tidbits', 'imageId', 'backdropId'].forEach(f => { if (req.body[f] !== undefined) meta.gock[f] = req.body[f]; });
+  ['naam', 'groet', 'prijs', 'tidbits', 'imageId', 'locatieId', 'backdropId'].forEach(f => { if (req.body[f] !== undefined) meta.gock[f] = req.body[f]; });
   storage.writeJSON('meta.json', meta);
   req.app.get('io').to(_campagneRoom(req)).emit('meta:updated');
   res.json(meta.gock);
@@ -12130,7 +12130,7 @@ router.post('/magizoo/onderzoek', attachRole, vereistDienst('magizoo'), (req, re
 router.put('/meta/magizoo', requireDM, (req, res) => {
   const meta = storage.readJSON('meta.json');
   if (!meta.magizoo) meta.magizoo = {};
-  ['naam', 'groet', 'imageId', 'backdropId', 'prijs', 'prijsVolledig', 'cooldownMinuten']
+  ['naam', 'groet', 'imageId', 'locatieId', 'backdropId', 'prijs', 'prijsVolledig', 'cooldownMinuten']
     .forEach(f => { if (req.body[f] !== undefined) meta.magizoo[f] = req.body[f]; });
   storage.writeJSON('meta.json', meta);
   req.app.get('io').to(_campagneRoom(req)).emit('meta:updated');
@@ -12455,7 +12455,7 @@ router.post('/tempel/eed/hef', requireDM, (req, res) => {
 router.put('/meta/tempel', requireDM, (req, res) => {
   const meta = storage.readJSON('meta.json');
   if (!meta.tempel) meta.tempel = {};
-  ['naam', 'prijs', 'eedPrijs', 'boetePrijs', 'imageId', 'backdropId', 'voorwerpNaam', 'goden'].forEach(f => { if (req.body[f] !== undefined) meta.tempel[f] = req.body[f]; });
+  ['naam', 'groet', 'prijs', 'eedPrijs', 'boetePrijs', 'imageId', 'locatieId', 'backdropId', 'voorwerpNaam', 'goden'].forEach(f => { if (req.body[f] !== undefined) meta.tempel[f] = req.body[f]; });
   storage.writeJSON('meta.json', meta);
   req.app.get('io').to(_campagneRoom(req)).emit('meta:updated');
   res.json(meta.tempel);

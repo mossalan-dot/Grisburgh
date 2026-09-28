@@ -33,3 +33,52 @@ describe('Dienstpanelen houden één maat', () => {
     }
   });
 });
+
+// Elke dienst opent met dezelfde vijf regels: naam, eigenaarskaartje,
+// locatiekaartje, achtergrond, begroeting. Ze stonden ooit alle zes anders —
+// eigen labels, eigen volgorde, de een met een locatie en de ander niet. Die
+// kop komt nu uit één helper; deze toets bewaakt dat er geen dienst buiten om
+// zijn eigen kop gaat bouwen.
+describe('Dienstpanelen openen allemaal hetzelfde', () => {
+  const dm = fs.readFileSync(path.join(__dirname, '..', 'public', 'js', 'dm-panel.js'), 'utf8');
+  const DIENSTEN = [
+    ['_renderHerbergSettings', 'hb'],
+    ['_renderTweespaltDM',     'ts'],
+    ['_renderGockSettings',    'gock'],
+    ['_renderUrsulaSettings',  'ursula'],
+    ['_renderTempelSettings',  'tempel'],
+    ['_renderMagizooSettings', 'magizoo'],
+  ];
+
+  // De body van een functie, van zijn naam tot de volgende `async function`.
+  const romp = (naam) => {
+    const start = dm.indexOf(`async function ${naam}(`);
+    assert.ok(start >= 0, `${naam} bestaat niet meer`);
+    const eind = dm.indexOf('\nasync function ', start + 10);
+    return dm.slice(start, eind < 0 ? dm.length : eind);
+  };
+
+  for (const [fn, sleutel] of DIENSTEN) {
+    it(`${sleutel} bouwt zijn kop met _dienstKopHtml`, () => {
+      const body = romp(fn);
+      assert.match(body, new RegExp(`_dienstKopHtml\\(\\{\\s*\\n?\\s*sleutel: '${sleutel}'`),
+        `${fn} hoort zijn kop uit de gedeelde helper te halen`);
+    });
+
+    it(`${sleutel} heeft geen eigen keuzelijst voor portret of achtergrond meer`, () => {
+      const body = romp(fn);
+      assert.ok(!/-portret-select/.test(body), `${fn} heeft nog een portret-keuzelijst`);
+      assert.ok(!/-backdrop-select/.test(body), `${fn} heeft nog een backdrop-keuzelijst`);
+    });
+  }
+
+  it('leest de kopvelden overal met _dienstKopLees', () => {
+    for (const fn of ['_hbSave', '_tsSettingsSave', '_gockSettingsSave',
+                      '_ursulaSettingsSave', '_tempelSettingsSave', '_magizooSettingsSave']) {
+      const start = dm.indexOf(`window.${fn} = async`);
+      assert.ok(start >= 0, `${fn} bestaat niet meer`);
+      const body = dm.slice(start, dm.indexOf('\n};', start));
+      assert.match(body, /_dienstKopLees\(/, `${fn} leest de kopvelden niet uit de helper`);
+    }
+  });
+});

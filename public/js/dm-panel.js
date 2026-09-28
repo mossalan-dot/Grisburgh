@@ -917,6 +917,106 @@ function _tabEl(name) {
 // zonder hint. Dezelfde handeling hoort er hetzelfde uit te zien. De uitleg
 // staat één keer — in het voorbeeld ín het veld; het waarom staat in het
 // boekje van die dienst.
+// ── De vaste kop van elk dienstpaneel ───────────────────────────────────────
+// Elke dienst begint met dezelfde vijf dingen: hoe hij heet, wie hem drijft,
+// waar hij staat, hoe hij eruitziet en waarmee hij je begroet. Ze stonden
+// alleen overal anders: de herberg noemde zijn NPC "Waard" en de rest
+// "Portret"; alleen de herberg had een locatiekaartje; de begroeting zat bij
+// drie van de zes; en de kop droeg de Grisburghse naam ("De Gock —
+// Instellingen") terwijl de tabbalk allang generiek was.
+//
+// `sleutel` is het id-voorvoegsel ('hb', 'ts', 'gock', 'ursula', 'tempel',
+// 'magizoo'); de opslaanfunctie leest de velden terug met `_dienstKopLees`.
+//
+// Een kaartje kies je door te typen, net als bij een monster of een afzender —
+// niet uit een keuzelijst van honderden namen. Leeg laten betekent hier ook
+// écht leeg: met de oude keuzelijst viel een koppeling niet meer weg te halen,
+// want een lege keuze viel terug op de opgeslagen waarde.
+let _dienstKaartjes = { personages: [], locaties: [] };
+
+function _dienstKopHtml({ sleutel, titel, hulp, config = {}, personages = [], locaties = [],
+                          naamVoorbeeld = '', groetVoorbeeld = '', eigenaarLabel = 'Kaartje van de eigenaar' }) {
+  _dienstKaartjes = { personages, locaties };
+  const alle = [...personages, ...locaties];
+  const eig = alle.find(e => e.id === config.imageId) || null;
+  const loc = locaties.find(l => l.id === config.locatieId) || null;
+
+  const kaartVeld = (veld, label, lijst, waarde, plaats) => `
+    <div class="dm-form-row">
+      <label class="dm-form-label" for="${sleutel}-${veld}">${esc(label)}</label>
+      <input id="${sleutel}-${veld}" class="dm-input" list="${sleutel}-${veld}-dl" autocomplete="off"
+        placeholder="${esc(plaats)}" value="${esc(waarde)}">
+      <datalist id="${sleutel}-${veld}-dl">${lijst.map(e =>
+        `<option value="${esc(e.name || '')}">${esc(e.data?.role || e.data?.locType || '')}</option>`).join('')}</datalist>
+    </div>`;
+
+  return `
+    <div class="dm-section-label">${esc(titel)}<span class="dm-sectie-hulp">${helpBtn(hulp)}</span></div>
+
+    <div class="dm-form-row">
+      <label class="dm-form-label" for="${sleutel}-naam">Naam</label>
+      <input id="${sleutel}-naam" class="dm-input" value="${esc(config.naam || '')}" placeholder="${esc(naamVoorbeeld)}">
+    </div>
+
+    ${kaartVeld('eigenaar', eigenaarLabel, alle, eig?.name || '', 'Zoek een kaartje, of laat leeg…')}
+    ${eig ? `<div class="dm-form-row"><img src="${api.thumbUrl(eig.id)}" alt=""
+      onerror="this.closest('.dm-form-row').remove()"
+      style="width:56px;height:70px;object-fit:cover;border-radius:6px;border:1px solid rgba(196,168,122,0.4)"></div>` : ''}
+
+    ${kaartVeld('locatie', 'Locatiekaartje', locaties, loc?.name || '', 'Zoek de plek waar hij staat…')}
+
+    <div class="dm-form-row" style="flex-direction:column;gap:6px;align-items:stretch">
+      <label class="dm-form-label">Achtergrond</label>
+      ${config.backdropId
+        ? `<img id="${sleutel}-backdrop-preview" src="${api.fileUrl(config.backdropId)}" alt=""
+             style="width:100%;max-height:100px;object-fit:cover;border-radius:6px;border:1px solid rgba(196,168,122,0.3)">`
+        : `<span id="${sleutel}-backdrop-preview" style="display:none"></span>`}
+      <div class="dm-feature-row" style="gap:6px">
+        <button type="button" class="dm-btn dm-btn-ghost" onclick="window._pickServiceBackdrop('${sleutel}')"
+          title="Kies of upload een achtergrond uit de mediabibliotheek">${icon('image')} Achtergrond kiezen</button>
+        ${config.backdropId ? `<button type="button" class="dm-btn dm-btn-ghost"
+          onclick="window._dienstBackdropWis('${sleutel}')" title="Achtergrond weghalen">${icon('x')} Weghalen</button>` : ''}
+      </div>
+    </div>
+
+    ${_groetVeldHtml({ id: `${sleutel}-groet`, waarde: config.groet || '', voorbeeld: groetVoorbeeld })}`;
+}
+
+// Leest de vaste kopvelden terug. Een getypte naam die geen kaartje is laat de
+// koppeling leeg — hetzelfde als bij het menu van de herberg.
+function _dienstKopLees(sleutel) {
+  const idVan = (veld, lijst) => {
+    const n = (document.getElementById(`${sleutel}-${veld}`)?.value || '').trim().toLowerCase();
+    return n ? (lijst.find(e => (e.name || '').toLowerCase() === n)?.id || '') : '';
+  };
+  return {
+    naam:      document.getElementById(`${sleutel}-naam`)?.value.trim() || '',
+    groet:     document.getElementById(`${sleutel}-groet`)?.value.trim() || '',
+    imageId:   idVan('eigenaar', [..._dienstKaartjes.personages, ..._dienstKaartjes.locaties]),
+    locatieId: idVan('locatie', _dienstKaartjes.locaties),
+  };
+}
+
+// De opslaanknop van een dienst: overal dezelfde knop, met zijn naam erop.
+function _dienstOpslaanRij(fn) {
+  return `<div class="dm-form-row" style="margin-top:12px">
+    <button class="dm-btn dm-btn-primary" onclick="${fn}" title="Opslaan">${icon('save')} Opslaan</button>
+  </div>`;
+}
+
+// De achtergrond bij het opslaan: `null` betekent dat de DM hem niet heeft
+// aangeraakt (de opgeslagen waarde blijft), `''` dat hij hem heeft weggehaald.
+function _dienstBackdropUit(sleutel, config = {}) {
+  const pend = _SVC_BACKDROP[sleutel]?.get?.();
+  return pend === null || pend === undefined ? (config.backdropId || '') : pend;
+}
+
+window._dienstBackdropWis = (sleutel) => {
+  _SVC_BACKDROP[sleutel]?.set('');
+  const el = document.getElementById(`${sleutel}-backdrop-preview`);
+  if (el && el.tagName === 'IMG') { el.style.display = 'none'; el.removeAttribute('src'); }
+};
+
 function _groetVeldHtml({ id, waarde = '', voorbeeld = '' }) {
   return `
     <div class="dm-form-row" style="flex-direction:column;gap:4px;align-items:stretch">
@@ -5537,13 +5637,17 @@ let _rustPendingKorteBg = null;
 // preview-element + de manier waarop de "pending backdrop"-state wordt gezet
 // (sommige zijn module-vars, andere window-globals — bestaande save-logica
 // leest die door).
+// Per dienst: waar de voorbeeldafbeelding staat, hoe een nieuw bestand mag
+// heten, en waar de nog niet opgeslagen keuze geparkeerd wordt. `get` hoort bij
+// `set`: `_dienstBackdropUit` moet "niet aangeraakt" (null) kunnen
+// onderscheiden van "weggehaald" ('').
 const _SVC_BACKDROP = {
-  hb:      { preview: 'hb-backdrop-preview',      suggested: 'herberg-backdrop',   set: v => { _hbPendingBackdropId = v; } },
-  ts:      { preview: 'ts-backdrop-preview',      suggested: 'tweespalt-backdrop', set: v => { window._tsBackdropPending = v; } },
-  gock:    { preview: 'gock-backdrop-preview',    suggested: 'gock-backdrop',      set: v => { window._gockBackdropPending = v; } },
-  magizoo: { preview: 'magizoo-backdrop-preview', suggested: 'magizoo-backdrop',   set: v => { window._magizooBackdropPending = v; } },
-  ursula:  { preview: 'ursula-backdrop-preview',  suggested: 'ursula-backdrop',    set: v => { _ursulaBackdropPending = v; } },
-  tempel:  { preview: 'tempel-backdrop-preview',  suggested: 'tempel-backdrop',    set: v => { _tempelBackdropPending = v; } },
+  hb:      { preview: 'hb-backdrop-preview',      suggested: 'herberg-backdrop',   set: v => { _hbPendingBackdropId = v; },        get: () => _hbPendingBackdropId },
+  ts:      { preview: 'ts-backdrop-preview',      suggested: 'gokhuis-backdrop',   set: v => { window._tsBackdropPending = v; },    get: () => window._tsBackdropPending },
+  gock:    { preview: 'gock-backdrop-preview',    suggested: 'detective-backdrop', set: v => { window._gockBackdropPending = v; },  get: () => window._gockBackdropPending },
+  magizoo: { preview: 'magizoo-backdrop-preview', suggested: 'magizoo-backdrop',   set: v => { window._magizooBackdropPending = v; }, get: () => window._magizooBackdropPending },
+  ursula:  { preview: 'ursula-backdrop-preview',  suggested: 'waarzegger-backdrop', set: v => { _ursulaBackdropPending = v; },      get: () => _ursulaBackdropPending },
+  tempel:  { preview: 'tempel-backdrop-preview',  suggested: 'tempel-backdrop',    set: v => { _tempelBackdropPending = v; },       get: () => _tempelBackdropPending },
 };
 
 function _updateBackdropPreview(previewId, fileId) {
@@ -5580,56 +5684,19 @@ async function _renderHerbergSettings() {
   _hbPendingBackdropId = null;
   _hbMenu = Array.isArray(config.menu) ? config.menu.map(m => ({ ...m })) : [];
 
-  const selectedP = _hbPersonages.find(p => p.id === config.imageId);
-
   el.innerHTML = `
     <div class="dm-feature-section">
-      <div style="display:flex;align-items:center;gap:6px"><div class="dm-section-label">Herberginstellingen</div>${helpBtn('dm_herberg')}</div>
+      ${_dienstKopHtml({
+        sleutel: 'hb', titel: 'Herberg', hulp: 'dm_herberg', config,
+        personages: _hbPersonages, locaties: _hbLocaties,
+        naamVoorbeeld: 'De Gouden Leeuw', eigenaarLabel: 'Kaartje van de waard',
+        groetVoorbeeld: 'Welkom, {naam}! Wat kan ik voor je betekenen?',
+      })}
 
       <div class="dm-form-row">
-        <label class="dm-form-label">Naam van de herberg</label>
-        <input id="hb-naam" class="dm-input" value="${esc(config.naam || '')}" placeholder="Naam van de herberg…">
-      </div>
-
-      <div class="dm-form-row">
-        <label class="dm-form-label">Overnachting (prijs p.p.)</label>
+        <label class="dm-form-label" for="hb-overnachting">Overnachting (prijs p.p.)</label>
         <input id="hb-overnachting" class="dm-input" value="${esc(config.overnachtingPrijs || '1 fl.')}" placeholder="1 fl.">
-        <span class="dm-hint" style="font-size:11px">Afgeschreven per speler bij een Long Rest hier; levert 2 roddels p.p. op.</span>
       </div>
-
-      <div class="dm-form-row">
-        <label class="dm-form-label">Waard (NPC)</label>
-        <select id="hb-waard-select" class="dm-select" onchange="window._hbSelectWaard(this.value)">
-          <option value="">— Kies een personage —</option>
-          ${_hbPersonages.map(p => `<option value="${esc(p.id)}" ${config.imageId === p.id ? 'selected' : ''}>${esc(p.name)}</option>`).join('')}
-        </select>
-      </div>
-
-      <div id="hb-portrait-row" class="dm-form-row" style="${selectedP ? '' : 'display:none'}">
-        <img id="hb-portrait-preview" src="${selectedP ? api.thumbUrl(selectedP.id) : ''}"
-          style="width:64px;height:80px;object-fit:cover;border-radius:6px;border:1px solid rgba(196,168,122,0.4)">
-      </div>
-
-      <!-- Een herberg is niet alleen een waard maar ook een pand: koppel hem aan
-           zijn locatiekaartje, dan hoort de dienst bij een plek op de kaart en
-           kan het kaartje ernaartoe wijzen. -->
-      <div class="dm-form-row">
-        <label class="dm-form-label" for="hb-locatie">Locatiekaartje</label>
-        <input id="hb-locatie" class="dm-input" list="hb-locatie-dl" autocomplete="off"
-          placeholder="Zoek de locatie van deze herberg…"
-          value="${esc(_hbLocaties.find(l => l.id === config.locatieId)?.name || '')}">
-        <datalist id="hb-locatie-dl">${_hbLocaties.map(l => `<option value="${esc(l.name)}">${esc(l.data?.locType || '')}</option>`).join('')}</datalist>
-      </div>
-
-      <div class="dm-form-row" style="flex-direction:column;gap:6px">
-        <label class="dm-form-label">Achtergrondafbeelding</label>
-        ${config.backdropId ? `<img id="hb-backdrop-preview" src="${api.fileUrl(config.backdropId)}"
-          style="width:100%;max-height:100px;object-fit:cover;border-radius:6px;border:1px solid rgba(196,168,122,0.3)">` : ''}
-        <button type="button" class="dm-btn dm-btn-ghost" style="align-self:flex-start" onclick="window._pickServiceBackdrop('hb')" title="Achtergrondafbeelding kiezen of uploaden">${icon('image')}</button>
-      </div>
-
-      ${_groetVeldHtml({ id: 'hb-groet', waarde: config.groet || '',
-        voorbeeld: 'Welkom, {naam}! Wat kan ik voor je betekenen?' })}
 
       <div class="dm-section-label" style="margin-top:14px;display:flex;align-items:center;gap:6px">${icon('beer')} Aan de tap — menu<span class="dm-sectie-hulp">${helpBtn('dm_herberg_tap')}</span></div>
       <span class="dm-hint" style="font-size:11px;display:block;margin:-4px 0 8px">Drankjes/maaltijden die spelers kunnen bestellen. Prijs schrijft van de beurs af; temp HP en status gelden tot de volgende Long Rest.</span>
@@ -5739,17 +5806,6 @@ async function _beurzenLaden() {
   try { return (await api.partyCurrencyAlle()).groepen || []; } catch { return []; }
 }
 
-window._hbSelectWaard = (entityId) => {
-  const p = _hbPersonages.find(p => p.id === entityId);
-  const row = document.getElementById('hb-portrait-row');
-  const img = document.getElementById('hb-portrait-preview');
-  if (p && img) {
-    img.src = api.fileUrl(p.id);
-    if (row) row.style.display = '';
-  } else if (row) {
-    row.style.display = 'none';
-  }
-};
 
 
 window._rustUploadBg = async (welk, file) => {
@@ -5786,24 +5842,13 @@ window._rustSave = async () => {
 
 window._hbSave = async () => {
   const config = window.app?.state?.meta?.herberg || {};
-  const naam = document.getElementById('hb-naam')?.value.trim() || '';
-  const select = document.getElementById('hb-waard-select');
-  const entityId = select?.value || '';
-  const p = _hbPersonages.find(p => p.id === entityId);
-  const groet = document.getElementById('hb-groet')?.value.trim() || '';
+  const kop = _dienstKopLees('hb');
+  const p = _hbPersonages.find(e => e.id === kop.imageId);
   const overnachtingPrijs = document.getElementById('hb-overnachting')?.value.trim() || '1 fl.';
-  // Locatie: de getypte naam terug naar een id. Leeg = geen koppeling; een naam
-  // die niet bestaat laat de oude koppeling staan — een typefout hoort geen
-  // gegevens weg te gooien.
-  const locNaam = (document.getElementById('hb-locatie')?.value || '').trim().toLowerCase();
-  const loc = locNaam ? _hbLocaties.find(l => (l.name || '').toLowerCase() === locNaam) : null;
   const payload = {
-    naam,
-    waard:      p?.name || config.waard || '',
-    imageId:    entityId || config.imageId || '',
-    locatieId:  locNaam ? (loc?.id || config.locatieId || null) : null,
-    backdropId: _hbPendingBackdropId || config.backdropId || '',
-    groet,
+    ...kop,
+    waard:      p?.name || '',
+    backdropId: _dienstBackdropUit('hb', config),
     overnachtingPrijs,
     menu: _hbMenuReadDom(),
   };
@@ -5893,37 +5938,12 @@ async function _renderTweespaltDM() {
 
   el.innerHTML = `
     <div class="dm-feature-section">
-      <div class="dm-section-label">De Tweespalt — Instellingen<span class="dm-sectie-hulp">${helpBtn('dm_gokhuis')}</span></div>
-
-      <div class="dm-form-row">
-        <label class="dm-form-label">Naam</label>
-        <input id="ts-naam-config" class="dm-input" value="${esc(tsConfig.naam || 'Het gokhuis')}">
-      </div>
-
-      ${_groetVeldHtml({ id: 'ts-groet', waarde: tsConfig.groet || '',
-        voorbeeld: `Welkom bij ${tsConfig.naam || 'het gokhuis'}, {naam}. Speel je mee?` })}
-
-      <div class="dm-form-row">
-        <label class="dm-form-label">Portret (NPC)</label>
-        <select id="ts-portret-select" class="dm-select">
-          <option value="">— Kies een personage of locatie —</option>
-          ${tsAlleEntiteiten.map(e => `<option value="${esc(e.id)}" ${tsConfig.imageId === e.id ? 'selected' : ''}>${esc(e.name)}</option>`).join('')}
-        </select>
-      </div>
-      ${tsConfig.imageId ? `<div class="dm-form-row"><img src="${api.fileUrl(tsConfig.imageId)}" style="width:56px;height:70px;object-fit:cover;border-radius:6px;border:1px solid rgba(196,168,122,0.4)"></div>` : ''}
-
-      <div class="dm-form-row" style="flex-direction:column;gap:6px">
-        <label class="dm-form-label">Achtergrondafbeelding</label>
-        ${tsConfig.backdropId ? `<img id="ts-backdrop-preview" src="${api.fileUrl(tsConfig.backdropId)}" style="width:100%;max-height:100px;object-fit:cover;border-radius:6px;border:1px solid rgba(196,168,122,0.3)">` : '<span id="ts-backdrop-preview" style="display:none"></span>'}
-        <button type="button" class="dm-btn dm-btn-ghost" style="align-self:flex-start" onclick="window._pickServiceBackdrop('ts')" title="Achtergrondafbeelding kiezen of uploaden">${icon('image')}</button>
-        <div class="dm-form-row">
-          <label class="dm-form-label">Of kies uit entiteiten</label>
-          <select id="ts-backdrop-select" class="dm-select">
-            <option value="">— Entiteit als backdrop —</option>
-            ${tsAlleEntiteiten.map(e => `<option value="${esc(e.id)}" ${tsConfig.backdropId === e.id ? 'selected' : ''}>${esc(e.name)}</option>`).join('')}
-          </select>
-        </div>
-      </div>
+      ${_dienstKopHtml({
+        sleutel: 'ts', titel: 'Gokhuis', hulp: 'dm_gokhuis', config: tsConfig,
+        personages: tsPersonages, locaties: tsLocaties,
+        naamVoorbeeld: 'Het gokhuis', eigenaarLabel: 'Kaartje van de baas',
+        groetVoorbeeld: `Welkom bij ${tsConfig.naam || 'het gokhuis'}, {naam}. Speel je mee?`,
+      })}
 
       <div class="dm-section-label" style="margin-top:14px;display:flex;align-items:center;gap:6px">${icon('crossed-swords')} Strijdperk — partijen<span class="dm-sectie-hulp">${helpBtn('dm_gokhuis_partijen')}</span></div>
       <span class="dm-hint" style="font-size:11px;display:block;margin:-4px 0 8px">Arenapartijen waar spelers zich voor kunnen aanmelden. Jij draait het gevecht zelf; bij winst krijgt de speler het prijzengeld.</span>
@@ -5932,9 +5952,7 @@ async function _renderTweespaltDM() {
         <button class="dm-btn dm-btn-ghost" onclick="window._tsArenaAdd()" title="Partij toevoegen">${icon('plus')} Partij</button>
       </div>
 
-      <div class="dm-form-row">
-        <button class="dm-btn dm-btn-primary" onclick="window._tsSettingsSave()" title="Instellingen opslaan">${icon('save')}</button>
-      </div>
+      ${_dienstOpslaanRij('window._tsSettingsSave()')}
     </div>
 
     ${arenaSignups.length ? `
@@ -6160,13 +6178,13 @@ window._tsDmVerwijder = async (eventId) => {
 };
 
 window._tsSettingsSave = async () => {
-  const naam      = document.getElementById('ts-naam-config')?.value.trim() || 'Het gokhuis';
-  const groet     = document.getElementById('ts-groet')?.value.trim() || '';
-  const imageId   = document.getElementById('ts-portret-select')?.value || null;
-  const backdropFromSelect = document.getElementById('ts-backdrop-select')?.value || null;
-  const backdropId = window._tsBackdropPending || backdropFromSelect || (window.app?.state?.meta?.tweespalt?.backdropId) || null;
+  const config = window.app?.state?.meta?.tweespalt || {};
+  const kop = _dienstKopLees('ts');
   try {
-    await api.saveTweespaltConfig({ naam, groet, imageId, backdropId, arena: _tsArenaReadDom() });
+    await api.saveTweespaltConfig({
+      ...kop, naam: kop.naam || 'Het gokhuis',
+      backdropId: _dienstBackdropUit('ts', config), arena: _tsArenaReadDom(),
+    });
     const newMeta = await api.meta();
     if (window.app?.state) window.app.state.meta = newMeta;
     window._tsBackdropPending = null;
@@ -6194,63 +6212,39 @@ async function _renderGockSettings() {
 
   el.innerHTML = `
     <div class="dm-feature-section">
-      <div class="dm-section-label">De Gock — Instellingen<span class="dm-sectie-hulp">${helpBtn('dm_detective')}</span></div>
+      ${_dienstKopHtml({
+        sleutel: 'gock', titel: 'Detective', hulp: 'dm_detective', config,
+        personages, locaties: gockLocaties,
+        naamVoorbeeld: 'De detective', eigenaarLabel: 'Kaartje van de detective',
+        groetVoorbeeld: `${config.naam || 'De detective'} kijkt op van zijn bureau en trekt een wenkbrauw op.`,
+      })}
 
       <div class="dm-form-row">
-        <label class="dm-form-label">Naam</label>
-        <input id="gock-naam" class="dm-input" value="${esc(config.naam || 'De detective')}">
-      </div>
-      <div class="dm-form-row">
-        <label class="dm-form-label">Prijs (fl)</label>
+        <label class="dm-form-label" for="gock-prijs-fl">Prijs (fl)</label>
         <input id="gock-prijs-fl" class="dm-input" type="number" min="0" value="${prijs.fl || 50}" style="width:70px">
       </div>
 
-      <div class="dm-form-row">
-        <label class="dm-form-label">Portret (NPC of locatie)</label>
-        <select id="gock-portret-select" class="dm-select">
-          <option value="">— Kies een entiteit —</option>
-          ${gockAlleEntiteiten.map(e => `<option value="${esc(e.id)}" ${config.imageId === e.id ? 'selected' : ''}>${esc(e.name)}</option>`).join('')}
-        </select>
-      </div>
-      ${config.imageId ? `<div class="dm-form-row"><img src="${api.fileUrl(config.imageId)}" style="width:56px;height:70px;object-fit:cover;border-radius:6px;border:1px solid rgba(196,168,122,0.4)"></div>` : ''}
-
-      <div class="dm-form-row" style="flex-direction:column;gap:6px">
-        <label class="dm-form-label">Achtergrondafbeelding</label>
-        ${config.backdropId ? `<img id="gock-backdrop-preview" src="${api.fileUrl(config.backdropId)}" style="width:100%;max-height:100px;object-fit:cover;border-radius:6px;border:1px solid rgba(196,168,122,0.3)">` : '<span id="gock-backdrop-preview" style="display:none"></span>'}
-        <button type="button" class="dm-btn dm-btn-ghost" style="align-self:flex-start" onclick="window._pickServiceBackdrop('gock')" title="Achtergrondafbeelding kiezen of uploaden">${icon('image')}</button>
-        <div class="dm-form-row">
-          <label class="dm-form-label">Of kies uit entiteiten</label>
-          <select id="gock-backdrop-select" class="dm-select">
-            <option value="">— Entiteit als backdrop —</option>
-            ${gockAlleEntiteiten.map(e => `<option value="${esc(e.id)}" ${config.backdropId === e.id ? 'selected' : ''}>${esc(e.name)}</option>`).join('')}
-          </select>
-        </div>
-      </div>
-
-      <div class="dm-form-row" style="flex-direction:column;gap:4px">
-        <label class="dm-form-label">Aangepaste tidbits (één per regel, gebruik {naam})</label>
+      <div class="dm-form-row" style="flex-direction:column;gap:4px;align-items:stretch">
+        <label class="dm-form-label" for="gock-tidbits">Eigen tidbits (één per regel, {naam} wordt de speler)</label>
         <textarea id="gock-tidbits" class="dm-input" rows="8" style="resize:vertical;font-size:11px"
-          placeholder="Laat leeg voor standaard tidbits…">${esc(tidbitsWaarde)}</textarea>
+          placeholder="Laat leeg voor de standaard tidbits…">${esc(tidbitsWaarde)}</textarea>
       </div>
-      <div class="dm-form-row">
-        <button class="dm-btn dm-btn-primary" onclick="window._gockSettingsSave()" title="Opslaan">${icon('save')}</button>
-      </div>
-    </div>
-
-    `;
+      ${_dienstOpslaanRij('window._gockSettingsSave()')}
+    </div>`;
 };
 
 window._gockSettingsSave = async () => {
   const config = window.app?.state?.meta?.gock || {};
-  const naam = document.getElementById('gock-naam')?.value.trim() || 'De detective';
+  const kop = _dienstKopLees('gock');
   const fl = parseInt(document.getElementById('gock-prijs-fl')?.value) || 50;
   const tidbitsRaw = document.getElementById('gock-tidbits')?.value.trim() || '';
   const tidbits = tidbitsRaw ? tidbitsRaw.split('\n').map(l => l.trim()).filter(Boolean) : [];
-  const imageId = document.getElementById('gock-portret-select')?.value || config.imageId || '';
-  const backdropFromSelect = document.getElementById('gock-backdrop-select')?.value || null;
-  const backdropId = window._gockBackdropPending || backdropFromSelect || config.backdropId || '';
   try {
-    await api.saveGockConfig({ naam, prijs: { fl }, tidbits: tidbits.length ? tidbits : undefined, imageId, backdropId });
+    await api.saveGockConfig({
+      ...kop, naam: kop.naam || 'De detective', prijs: { fl },
+      tidbits: tidbits.length ? tidbits : undefined,
+      backdropId: _dienstBackdropUit('gock', config),
+    });
     const newMeta = await api.meta();
     if (window.app?.state) window.app.state.meta = newMeta;
     window._gockBackdropPending = null;
@@ -6353,14 +6347,13 @@ async function _renderMagizooSettings() {
 
   el.innerHTML = `
     <div class="dm-feature-section">
-      <div class="dm-section-label">De Magizoöloog — Instellingen<span class="dm-sectie-hulp">${helpBtn('dm_magizoo')}</span></div>
+      ${_dienstKopHtml({
+        sleutel: 'magizoo', titel: 'Magizoöloog', hulp: 'dm_magizoo', config,
+        personages, locaties,
+        naamVoorbeeld: 'De Magizoöloog', eigenaarLabel: 'Kaartje van de beestenkenner',
+        groetVoorbeeld: 'Hij kijkt op van een kooi en veegt een inktvlek weg.',
+      })}
 
-      <div class="dm-form-row">
-        <label class="dm-form-label">Naam</label>
-        <input id="magizoo-naam" class="dm-input" value="${esc(config.naam || 'De Magizoöloog')}">
-      </div>
-      ${_groetVeldHtml({ id: 'magizoo-groet', waarde: config.groet || '',
-        voorbeeld: 'De Beestenkenner kijkt op van een kooi en veegt een inktvlek weg.' })}
       <div class="dm-feature-row" style="gap:6px">
         <div class="dm-form-row" style="flex:1">
           <label class="dm-form-label">Prijs per trede (fl)</label>
@@ -6384,47 +6377,22 @@ async function _renderMagizooSettings() {
         </div>
       </div>
 
-      <div class="dm-form-row">
-        <label class="dm-form-label">Portret (NPC of locatie)</label>
-        <select id="magizoo-portret-select" class="dm-select">
-          <option value="">— Kies een entiteit —</option>
-          ${alle.map(e => `<option value="${esc(e.id)}" ${config.imageId === e.id ? 'selected' : ''}>${esc(e.name)}</option>`).join('')}
-        </select>
-      </div>
-      ${config.imageId ? `<div class="dm-form-row"><img src="${api.fileUrl(config.imageId)}" style="width:56px;height:70px;object-fit:cover;border-radius:6px;border:1px solid rgba(196,168,122,0.4)"></div>` : ''}
-
-      <div class="dm-form-row" style="flex-direction:column;gap:6px">
-        <label class="dm-form-label">Achtergrondafbeelding</label>
-        ${config.backdropId ? `<img id="magizoo-backdrop-preview" src="${api.fileUrl(config.backdropId)}" style="width:100%;max-height:100px;object-fit:cover;border-radius:6px;border:1px solid rgba(196,168,122,0.3)">` : '<span id="magizoo-backdrop-preview" style="display:none"></span>'}
-        <button type="button" class="dm-btn dm-btn-ghost" style="align-self:flex-start" onclick="window._pickServiceBackdrop('magizoo')" title="Achtergrondafbeelding kiezen of uploaden">${icon('image')}</button>
-        <div class="dm-form-row">
-          <label class="dm-form-label">Of kies uit entiteiten</label>
-          <select id="magizoo-backdrop-select" class="dm-select">
-            <option value="">— Entiteit als backdrop —</option>
-            ${alle.map(e => `<option value="${esc(e.id)}" ${config.backdropId === e.id ? 'selected' : ''}>${esc(e.name)}</option>`).join('')}
-          </select>
-        </div>
-      </div>
-
-      <p class="dm-hint" style="font-size:11px;opacity:0.75;margin:4px 0">De roddel per monster stel je in bij de Monsterbibliotheek (veld "Roddel").</p>
-      <div class="dm-form-row">
-        <button class="dm-btn dm-btn-primary" onclick="window._magizooSettingsSave()" title="Opslaan">${icon('save')}</button>
-      </div>
+      ${_dienstOpslaanRij('window._magizooSettingsSave()')}
     </div>`;
 };
 
 window._magizooSettingsSave = async () => {
   const config = window.app?.state?.meta?.magizoo || {};
-  const naam = document.getElementById('magizoo-naam')?.value.trim() || 'De Magizoöloog';
-  const groet = document.getElementById('magizoo-groet')?.value.trim() || '';
+  const kop = _dienstKopLees('magizoo');
   const fl = parseInt(document.getElementById('magizoo-prijs-fl')?.value) || 0;
   const flVol = parseInt(document.getElementById('magizoo-prijsvol-fl')?.value) || 0;
   const cooldownMinuten = parseInt(document.getElementById('magizoo-cooldown')?.value) || 0;   // 5 = per lange rust, 0 = geen
-  const imageId = document.getElementById('magizoo-portret-select')?.value || config.imageId || '';
-  const backdropFromSelect = document.getElementById('magizoo-backdrop-select')?.value || null;
-  const backdropId = window._magizooBackdropPending || backdropFromSelect || config.backdropId || '';
   try {
-    await api.saveMagizooConfig({ naam, groet, prijs: { fl }, prijsVolledig: { fl: flVol }, cooldownMinuten, imageId, backdropId });
+    await api.saveMagizooConfig({
+      ...kop, naam: kop.naam || 'De Magizoöloog',
+      prijs: { fl }, prijsVolledig: { fl: flVol }, cooldownMinuten,
+      backdropId: _dienstBackdropUit('magizoo', config),
+    });
     const newMeta = await api.meta();
     if (window.app?.state) window.app.state.meta = newMeta;
     window._magizooBackdropPending = null;
@@ -6471,31 +6439,18 @@ async function _renderUrsulaSettings() {
 
   el.innerHTML = `
     <div class="dm-feature-section">
-      <div class="dm-section-label">Madame Ursula — Instellingen<span class="dm-sectie-hulp">${helpBtn('dm_waarzegger')}</span></div>
+      ${_dienstKopHtml({
+        sleutel: 'ursula', titel: 'Waarzegger', hulp: 'dm_waarzegger', config,
+        personages, locaties,
+        naamVoorbeeld: 'De waarzegger', eigenaarLabel: 'Kaartje van de waarzegger',
+        groetVoorbeeld: 'Zij legt haar handen op de kristallen bol.',
+      })}
 
-      <div class="dm-form-row"><label class="dm-form-label">Naam</label>
-        <input id="ursula-naam" class="dm-input" value="${esc(config.naam || 'De waarzegger')}"></div>
-      <div class="dm-form-row"><label class="dm-form-label">Prijs (fl)</label>
-        <input id="ursula-prijs-fl" class="dm-input" type="number" min="0" value="${prijs.fl || 20}" style="width:70px"></div>
-
-      <div class="dm-form-row"><label class="dm-form-label">Portret (NPC of locatie)</label>
-        <select id="ursula-portret-select" class="dm-select">
-          <option value="">— Kies een entiteit —</option>
-          ${alle.map(e => `<option value="${esc(e.id)}" ${config.imageId === e.id ? 'selected' : ''}>${esc(e.name)}</option>`).join('')}
-        </select></div>
-      ${config.imageId ? `<div class="dm-form-row"><img src="${api.fileUrl(config.imageId)}" style="width:56px;height:70px;object-fit:cover;border-radius:6px;border:1px solid rgba(196,168,122,0.4)"></div>` : ''}
-
-      <div class="dm-form-row" style="flex-direction:column;gap:6px">
-        <label class="dm-form-label">Achtergrondafbeelding</label>
-        ${config.backdropId ? `<img id="ursula-backdrop-preview" src="${api.fileUrl(config.backdropId)}" style="width:100%;max-height:100px;object-fit:cover;border-radius:6px;border:1px solid rgba(196,168,122,0.3)">` : '<span id="ursula-backdrop-preview" style="display:none"></span>'}
-        <button type="button" class="dm-btn dm-btn-ghost" style="align-self:flex-start" onclick="window._pickServiceBackdrop('ursula')" title="Achtergrondafbeelding kiezen of uploaden">${icon('image')}</button>
-        <div class="dm-form-row"><label class="dm-form-label">Of kies uit entiteiten</label>
-          <select id="ursula-backdrop-select" class="dm-select">
-            <option value="">— Entiteit als backdrop —</option>
-            ${alle.map(e => `<option value="${esc(e.id)}" ${config.backdropId === e.id ? 'selected' : ''}>${esc(e.name)}</option>`).join('')}
-          </select></div>
+      <div class="dm-form-row">
+        <label class="dm-form-label" for="ursula-prijs-fl">Prijs (fl)</label>
+        <input id="ursula-prijs-fl" class="dm-input" type="number" min="0" value="${prijs.fl || 20}" style="width:70px">
       </div>
-      <div class="dm-form-row"><button class="dm-btn dm-btn-primary" onclick="window._ursulaSettingsSave()" title="Opslaan">${icon('save')}</button></div>
+      ${_dienstOpslaanRij('window._ursulaSettingsSave()')}
 
       <div class="dm-section-label" style="margin-top:14px">Voorspellingen per akte<span class="dm-sectie-hulp">${helpBtn('dm_waarzegger_akte')}</span></div>
       ${actiefInfo}
@@ -6533,13 +6488,13 @@ window._ursulaSelectAkte = (key) => {
 
 window._ursulaSettingsSave = async () => {
   const config = window.app?.state?.meta?.ursula || {};
-  const naam = document.getElementById('ursula-naam')?.value.trim() || 'De waarzegger';
+  const kop = _dienstKopLees('ursula');
   const fl = parseInt(document.getElementById('ursula-prijs-fl')?.value) || 20;
-  const imageId = document.getElementById('ursula-portret-select')?.value || config.imageId || '';
-  const backdropFromSelect = document.getElementById('ursula-backdrop-select')?.value || null;
-  const backdropId = _ursulaBackdropPending || backdropFromSelect || config.backdropId || '';
   try {
-    await api.saveUrsulaConfig({ naam, prijs: { fl }, imageId, backdropId });
+    await api.saveUrsulaConfig({
+      ...kop, naam: kop.naam || 'De waarzegger', prijs: { fl },
+      backdropId: _dienstBackdropUit('ursula', config),
+    });
     const newMeta = await api.meta(); if (window.app?.state) window.app.state.meta = newMeta;
     _ursulaBackdropPending = null;
     await _renderUrsulaSettings();
@@ -6605,37 +6560,29 @@ async function _renderTempelSettings() {
 
   el.innerHTML = `
     <div class="dm-feature-section">
-      <div class="dm-section-label">De Tempel — Instellingen<span class="dm-sectie-hulp">${helpBtn('dm_tempel')}</span></div>
+      ${_dienstKopHtml({
+        sleutel: 'tempel', titel: 'Tempel', hulp: 'dm_tempel', config,
+        personages, locaties,
+        naamVoorbeeld: 'De Tempel', eigenaarLabel: 'Kaartje van de opperpriester',
+        groetVoorbeeld: 'Welkom, pelgrim. Waarvoor bent u hier?',
+      })}
+      <!-- De begroeting hierboven geldt voor de tempel als geheel; een god met
+           een eigen priester heeft zijn eigen groet, verderop bij de goden. -->
 
-      <div class="dm-form-row">
-        <label class="dm-form-label">Naam</label>
-        <input id="tempel-naam" class="dm-input" value="${esc(config.naam || 'De Tempel')}">
-      </div>
-      <div class="dm-form-row">
-        <label class="dm-form-label">Prijs eenmalige zegen (fl)</label>
-        <input id="tempel-prijs-fl" class="dm-input" type="number" min="0" value="${(config.prijs && config.prijs.fl) || 25}" style="width:70px">
-      </div>
-      <div class="dm-form-row">
-        <label class="dm-form-label">Prijs eed (fl)</label>
-        <input id="tempel-eedprijs-fl" class="dm-input" type="number" min="0" value="${(config.eedPrijs && config.eedPrijs.fl) || 50}" style="width:70px">
-      </div>
-      <div class="dm-form-row">
-        <label class="dm-form-label">Boeteprijs vloek (fl)</label>
-        <input id="tempel-boeteprijs-fl" class="dm-input" type="number" min="0" value="${(config.boetePrijs && config.boetePrijs.fl) || 100}" style="width:70px">
-      </div>
       <input id="tempel-voorwerp" type="hidden" value="${esc(config.voorwerpNaam || 'Votiefmunt van {god}')}">
-      <input id="tempel-portret-select" type="hidden" value="${esc(config.imageId || '')}">
 
-      <div class="dm-form-row" style="flex-direction:column;gap:6px">
-        <label class="dm-form-label">Achtergrondafbeelding</label>
-        ${config.backdropId ? `<img id="tempel-backdrop-preview" src="${api.fileUrl(config.backdropId)}" style="width:100%;max-height:100px;object-fit:cover;border-radius:6px;border:1px solid rgba(196,168,122,0.3)">` : '<span id="tempel-backdrop-preview" style="display:none"></span>'}
-        <button type="button" class="dm-btn dm-btn-ghost" style="align-self:flex-start" onclick="window._pickServiceBackdrop('tempel')" title="Achtergrondafbeelding kiezen of uploaden">${icon('image')}</button>
-        <div class="dm-form-row">
-          <label class="dm-form-label">Of kies uit entiteiten</label>
-          <select id="tempel-backdrop-select" class="dm-select">
-            <option value="">— Entiteit als backdrop —</option>
-            ${alle.map(e => `<option value="${esc(e.id)}" ${config.backdropId === e.id ? 'selected' : ''}>${esc(e.name)}</option>`).join('')}
-          </select>
+      <div class="dm-feature-row" style="gap:6px">
+        <div class="dm-form-row" style="flex:1">
+          <label class="dm-form-label" for="tempel-prijs-fl">Zegen (fl)</label>
+          <input id="tempel-prijs-fl" class="dm-input dm-input-sm" type="number" min="0" value="${(config.prijs && config.prijs.fl) || 25}">
+        </div>
+        <div class="dm-form-row" style="flex:1">
+          <label class="dm-form-label" for="tempel-eedprijs-fl">Eed (fl)</label>
+          <input id="tempel-eedprijs-fl" class="dm-input dm-input-sm" type="number" min="0" value="${(config.eedPrijs && config.eedPrijs.fl) || 50}">
+        </div>
+        <div class="dm-form-row" style="flex:1">
+          <label class="dm-form-label" for="tempel-boeteprijs-fl">Boete vloek (fl)</label>
+          <input id="tempel-boeteprijs-fl" class="dm-input dm-input-sm" type="number" min="0" value="${(config.boetePrijs && config.boetePrijs.fl) || 100}">
         </div>
       </div>
 
@@ -6649,9 +6596,7 @@ async function _renderTempelSettings() {
         <button class="dm-btn dm-btn-ghost" onclick="window._tempelGodToevoegen()" title="God toevoegen">＋ God</button>
       </div>
 
-      <div class="dm-form-row">
-        <button class="dm-btn dm-btn-primary" onclick="window._tempelSettingsSave()" title="Opslaan">${icon('save')}</button>
-      </div>
+      ${_dienstOpslaanRij('window._tempelSettingsSave()')}
     </div>
   `;
   _renderTempelGodenRows();
@@ -6766,14 +6711,11 @@ window._tempelGodVerwijderen = (i) => {
 
 window._tempelSettingsSave = async () => {
   const config = window.app?.state?.meta?.tempel || {};
-  const naam = document.getElementById('tempel-naam')?.value.trim() || 'De Tempel';
+  const kop = _dienstKopLees('tempel');
   const fl = parseInt(document.getElementById('tempel-prijs-fl')?.value) || 25;
   const eedFl = parseInt(document.getElementById('tempel-eedprijs-fl')?.value) || 50;
   const boeteFl = parseInt(document.getElementById('tempel-boeteprijs-fl')?.value) || 100;
   const voorwerpNaam = document.getElementById('tempel-voorwerp')?.value.trim() || 'Votiefmunt van {god}';
-  const imageId = document.getElementById('tempel-portret-select')?.value || config.imageId || '';
-  const backdropFromSelect = document.getElementById('tempel-backdrop-select')?.value || null;
-  const backdropId = _tempelBackdropPending || backdropFromSelect || config.backdropId || '';
   const goden = _tempelGodenDraft
     .filter(g => (g.naam || '').trim())
     .map(g => ({
@@ -6791,7 +6733,11 @@ window._tempelSettingsSave = async () => {
       ...(g.priesterGreet? { priesterGreet:g.priesterGreet } : {}),
     }));
   try {
-    await api.saveTempelConfig({ naam, prijs: { fl }, eedPrijs: { fl: eedFl }, boetePrijs: { fl: boeteFl }, voorwerpNaam, imageId, backdropId, goden });
+    await api.saveTempelConfig({
+      ...kop, naam: kop.naam || 'De Tempel',
+      prijs: { fl }, eedPrijs: { fl: eedFl }, boetePrijs: { fl: boeteFl },
+      voorwerpNaam, backdropId: _dienstBackdropUit('tempel', config), goden,
+    });
     const newMeta = await api.meta();
     if (window.app?.state) window.app.state.meta = newMeta;
     _tempelBackdropPending = null;
