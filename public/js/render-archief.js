@@ -797,15 +797,19 @@ const _KAART_SOORT = {
   locaties:     { label: 'Locaties',     ic: 'castle' },
   organisaties: { label: 'Organisaties', ic: 'landmark' },
   voorwerpen:   { label: 'Voorwerpen',   ic: 'package' },
+  // Documenten stonden hieronder als eigen band met miniaturen. Het zijn
+  // gewoon kaartjes, dus ze horen in deze lijst — en dan is het één blok in
+  // plaats van twee die hetzelfde doen.
+  documenten:   { label: 'Documenten',   ic: 'scroll-text' },
 };
 
-function _akteKaartjesHtml(info) {
+function _akteKaartjesHtml(info, docs = []) {
   const gezien = [];
   const al = new Set();
   for (const st of (info?.script || [])) {
     if (st?.type !== 'entity' || !st.entityId) continue;
     const soort = st.entityType;
-    if (!_KAART_SOORT[soort]) continue;                 // documenten staan al onderaan
+    if (!_KAART_SOORT[soort]) continue;
     const sleutel = `${soort}:${st.entityId}`;
     if (al.has(sleutel)) continue;
     const kaart = (_akteKaartjes[soort] || []).find(e => e.id === st.entityId);
@@ -813,17 +817,28 @@ function _akteKaartjesHtml(info) {
     al.add(sleutel);
     gezien.push({ soort, kaart });
   }
+  // De documenten die de DM aan de akte hing komen hier ook binnen; die staan
+  // niet altijd in het script.
+  for (const d of docs) {
+    const sleutel = `documenten:${d.id}`;
+    if (al.has(sleutel)) continue;
+    al.add(sleutel);
+    gezien.push({ soort: 'documenten', kaart: d });
+  }
   if (!gezien.length) return '';
 
   // Per soort gegroepeerd, in de volgorde van _KAART_SOORT: anders staat een
   // los voorwerp tussen twee personages en leest de rij als een opsomming
   // zonder kop of staart.
+  // Per soort een uitklap. Elf personages en negen locaties naast elkaar is een
+  // muur van namen; dichtgeklapt zie je in één regel wát er is en hoeveel.
   let html = '';
   for (const [soort, meta] of Object.entries(_KAART_SOORT)) {
     const rij = gezien.filter(g => g.soort === soort);
     if (!rij.length) continue;
-    html += `<div class="akte-kaartjes-rij">
-      <span class="akte-kaartjes-lbl">${icon(meta.ic)} ${meta.label}</span>
+    html += `<details class="akte-kaartjes-rij">
+      <summary class="akte-kaartjes-lbl">${icon(meta.ic)} <span>${meta.label}</span>
+        <span class="akte-kaartjes-n">${rij.length}</span></summary>
       <div class="akte-kaartjes-chips">
         ${rij.map(({ kaart }) => {
           const dim = isDM() && kaart._visibility && kaart._visibility !== 'visible';
@@ -832,16 +847,16 @@ function _akteKaartjesHtml(info) {
             title="${esc(kaart.name || '')}">${esc(kaart.name || '')}</button>`;
         }).join('')}
       </div>
-    </div>`;
+    </details>`;
   }
   return `<div class="akte-kaartjes">
-    <div class="logboek-docs-label">${icon('eye')} Wie en wat je tegenkwam</div>
+    <div class="logboek-docs-label">${icon('folder-open')} Archief</div>
     ${html}
   </div>`;
 }
 
 // ── Dungeons van deze akte ─────────────────────────────────────────────────
-// Bewust géén "2 van de 7 kamers": dat verklapt hoe groot de kerker is, en dat
+// Bewust géén "2 van de 7 kamers": dat verklapt hoe groot de dungeon is, en dat
 // is precies wat de mist verbergt. Alleen de stand: nog in het donker
 // (`partyAccess`) of uitgespeeld (`partyCompleted`).
 function _akteDungeonsHtml(ch) {
@@ -853,12 +868,12 @@ function _akteDungeonsHtml(ch) {
     return `<button class="akte-dungeon${uit ? ' akte-dungeon--uit' : ''}"
       onclick="window._openKaartFullscreen('dungeon','${esc(d.id)}')">
       ${icon(uit ? 'check' : 'compass')}
-      <span class="akte-dungeon-naam">${esc(d.name || 'Kerker')}</span>
+      <span class="akte-dungeon-naam">${esc(d.name || 'Dungeon')}</span>
       <span class="akte-dungeon-stand">${uit ? 'Uitgespeeld' : 'Verkend'}</span>
     </button>`;
   }).join('');
   return `<div class="akte-dungeons">
-    <div class="logboek-docs-label">${icon('door-open')} Kerkers</div>
+    <div class="logboek-docs-label">${icon('door-open')} Dungeons</div>
     <div class="akte-dungeon-rij">${kaartjes}</div>
   </div>`;
 }
@@ -994,37 +1009,13 @@ function _buildLogboekBody(entries, hk, isSearchMode = false) {
             ${chEntries.filter(e => !_isBeelddrager(e)).map((e, idx) => renderSessieEntry(e, idx + 1)).join('')}
             ${(info.spelersSamenvatting || isDM()) ? _renderAkteSamenvattingCard(ch, info) : ''}
           </div>
-          ${_akteKaartjesHtml(info)}
+          ${_akteKaartjesHtml(info, docsByChapter[ch] || [])}
           ${_akteDungeonsHtml(ch)}
-          ${(docsByChapter[ch] || []).length ? `
-          <div class="logboek-chapter-docs">
-            <div class="logboek-docs-label">${icon('scroll-text')} Documenten</div>
-            <div class="flex flex-wrap gap-2">
-              ${(docsByChapter[ch] || []).map(d => _docChipHtml(d)).join('')}
-            </div>
-          </div>` : ''}
         </div>
       </div>
     `;
   }
   return html;
-}
-
-// Een document in het logboek: klein kaartje met beeld en naam, dat het gewone
-// detailvenster opent. Wat de party niet mag zien komt niet mee uit de server,
-// dus hier is geen zichtbaarheidscontrole meer nodig; wél de DM-dimming.
-function _docChipHtml(d) {
-  const vaag = d._visibility === 'vague';
-  const dim  = isDM() && d._visibility !== 'visible';
-  return `
-    <div class="doc-chip${dim ? ' doc-chip--dim' : ''}" onclick="window._openDetail('documenten','${esc(d.id)}')">
-      <img class="doc-chip-img" src="${api.thumbForEntity(d)}" onerror="this.style.display='none'">
-      <div class="doc-chip-body">
-        <div class="doc-chip-naam">${esc(d.name)}</div>
-        ${d.data?.docType ? `<div class="doc-chip-type">${esc(d.data.docType)}</div>` : ''}
-      </div>
-      ${dim ? `<span class="doc-chip-slot" title="${vaag ? 'Vaag zichtbaar voor spelers' : 'Verborgen voor spelers'}">${icon(vaag ? 'eye-off' : 'lock')}</span>` : ''}
-    </div>`;
 }
 
 // ── Chip rows (used in detail modal) ──
@@ -1365,11 +1356,6 @@ function renderSessieEntry(e, sessieNum = null, chLabel = null) {
   const firstImgId = firstRaw ? (typeof firstRaw === 'string' ? firstRaw : firstRaw.id) : null;
   const firstImg = firstImgId ? api.thumbUrl(firstImgId) : null;
 
-  const previewNames = [
-    ...(e.nieuwPersonages || []).slice(0, 3),
-    ...(e.nieuwLocaties || []).slice(0, 2),
-  ].slice(0, 5);
-
   const summary = e.samenvatting
     ? _truncateWords(e.samenvatting.replace(/^#+\s*/gm, '').replace(/\n+/g, ' ').trim(), 380)
     : '';
@@ -1396,9 +1382,6 @@ function renderSessieEntry(e, sessieNum = null, chLabel = null) {
           <h3 class="logboek-card-htitle">${esc(e.korteSamenvatting || 'Naamloos')}</h3>
           ${e.citaat ? `<p class="logboek-card-hcitaat">"${mdToHtml(e.citaat)}"</p>` : ''}
           ${summary ? `<p class="logboek-card-hpreview">${summary}</p>` : ''}
-          ${previewNames.length ? `<div class="logboek-card-chips logboek-card-chips--h">
-            ${previewNames.map(n => `<span class="logboek-card-chip">${esc(n)}</span>`).join('')}
-          </div>` : ''}
         </div>
       </div>
     </div>`;

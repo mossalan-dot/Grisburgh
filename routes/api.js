@@ -4284,8 +4284,11 @@ router.post('/party/long-rest', requireDM, (req, res) => {
       spelers.forEach(char => { _deductCurrency(dmState, char.id, prijsCl); });
       kosten = { perSpeler: prijs, totaal: fromCl(prijsCl * spelers.length) };
     }
-    // 2 roddels per speler onthullen uit de gedeelde pool (personages + locaties)
-    const aantal = 2 * spelers.length;
+    // Roddels per speler uit de gedeelde pool (personages + locaties). Stond
+    // vast op twee; dat hoort de DM te kunnen kiezen — een stille herberg geeft
+    // er één, een roddelnest vier.
+    const perSpeler = Number.isFinite(+herberg.roddelsPerSpeler) ? Math.max(0, Math.min(10, +herberg.roddelsPerSpeler)) : 2;
+    const aantal = perSpeler * spelers.length;
     // Per regel, niet per personage: iemand met drie roddels levert er drie op,
     // over drie avonden verspreid, in plaats van één vlaggetje voor alles.
     // **Alleen over wie ze kennen.** De pot nam elk kaartje mee, ook wat voor
@@ -9288,7 +9291,7 @@ router.put('/meta/herberg', requireDM, (req, res) => {
   if (!meta.herberg) meta.herberg = {};
   // `locatieId`: de herberg is ook een pand op de kaart. `menu[].entityId` komt
   // mee in `menu` zelf — dat is één veld met de hele lijst.
-  const allowed = ['naam','waard','imageId','locatieId','backdropId','maxVragen','cooldownMinutenMin','cooldownMinutenMax','groet','overnachtingPrijs','menu'];
+  const allowed = ['naam','waard','imageId','locatieId','backdropId','maxVragen','cooldownMinutenMin','cooldownMinutenMax','groet', 'groeten','overnachtingPrijs','roddelsPerSpeler','menu'];
   for (const f of allowed) {
     if (req.body[f] !== undefined) meta.herberg[f] = req.body[f];
   }
@@ -11949,7 +11952,7 @@ router.put('/gock/opgehaald', attachRole, vereistDienst('gock'), (req, res) => {
 router.put('/meta/tweespalt', requireDM, (req, res) => {
   const meta = storage.readJSON('meta.json');
   if (!meta.tweespalt) meta.tweespalt = {};
-  ['naam', 'groet', 'imageId', 'locatieId', 'backdropId', 'arena', 'geldschieter'].forEach(f => { if (req.body[f] !== undefined) meta.tweespalt[f] = req.body[f]; });
+  ['naam', 'groet', 'groeten', 'imageId', 'locatieId', 'backdropId', 'arena', 'geldschieter'].forEach(f => { if (req.body[f] !== undefined) meta.tweespalt[f] = req.body[f]; });
   storage.writeJSON('meta.json', meta);
   req.app.get('io').to(_campagneRoom(req)).emit('meta:updated');
   res.json(meta.tweespalt);
@@ -11958,7 +11961,7 @@ router.put('/meta/tweespalt', requireDM, (req, res) => {
 router.put('/meta/ursula', requireDM, (req, res) => {
   const meta = storage.readJSON('meta.json');
   if (!meta.ursula) meta.ursula = {};
-  ['naam', 'groet', 'prijs', 'imageId', 'locatieId', 'backdropId'].forEach(f => { if (req.body[f] !== undefined) meta.ursula[f] = req.body[f]; });
+  ['naam', 'groet', 'groeten', 'prijs', 'imageId', 'locatieId', 'backdropId'].forEach(f => { if (req.body[f] !== undefined) meta.ursula[f] = req.body[f]; });
   storage.writeJSON('meta.json', meta);
   req.app.get('io').to(_campagneRoom(req)).emit('meta:updated');
   res.json(meta.ursula);
@@ -11967,7 +11970,7 @@ router.put('/meta/ursula', requireDM, (req, res) => {
 router.put('/meta/gock', requireDM, (req, res) => {
   const meta = storage.readJSON('meta.json');
   if (!meta.gock) meta.gock = {};
-  ['naam', 'groet', 'prijs', 'tidbits', 'imageId', 'locatieId', 'backdropId'].forEach(f => { if (req.body[f] !== undefined) meta.gock[f] = req.body[f]; });
+  ['naam', 'groet', 'groeten', 'prijs', 'tidbits', 'imageId', 'locatieId', 'backdropId'].forEach(f => { if (req.body[f] !== undefined) meta.gock[f] = req.body[f]; });
   storage.writeJSON('meta.json', meta);
   req.app.get('io').to(_campagneRoom(req)).emit('meta:updated');
   res.json(meta.gock);
@@ -12183,7 +12186,7 @@ router.post('/magizoo/onderzoek', attachRole, vereistDienst('magizoo'), (req, re
 router.put('/meta/magizoo', requireDM, (req, res) => {
   const meta = storage.readJSON('meta.json');
   if (!meta.magizoo) meta.magizoo = {};
-  ['naam', 'groet', 'imageId', 'locatieId', 'backdropId', 'prijs', 'prijsVolledig', 'cooldownMinuten']
+  ['naam', 'groet', 'groeten', 'imageId', 'locatieId', 'backdropId', 'prijs', 'prijsVolledig', 'cooldownMinuten']
     .forEach(f => { if (req.body[f] !== undefined) meta.magizoo[f] = req.body[f]; });
   storage.writeJSON('meta.json', meta);
   req.app.get('io').to(_campagneRoom(req)).emit('meta:updated');
@@ -12508,7 +12511,7 @@ router.post('/tempel/eed/hef', requireDM, (req, res) => {
 router.put('/meta/tempel', requireDM, (req, res) => {
   const meta = storage.readJSON('meta.json');
   if (!meta.tempel) meta.tempel = {};
-  ['naam', 'groet', 'prijs', 'eedPrijs', 'boetePrijs', 'imageId', 'locatieId', 'backdropId', 'voorwerpNaam', 'goden'].forEach(f => { if (req.body[f] !== undefined) meta.tempel[f] = req.body[f]; });
+  ['naam', 'groet', 'groeten', 'prijs', 'eedPrijs', 'boetePrijs', 'imageId', 'locatieId', 'backdropId', 'voorwerpNaam', 'goden'].forEach(f => { if (req.body[f] !== undefined) meta.tempel[f] = req.body[f]; });
   storage.writeJSON('meta.json', meta);
   req.app.get('io').to(_campagneRoom(req)).emit('meta:updated');
   res.json(meta.tempel);
@@ -13580,10 +13583,27 @@ router.post('/herberg/bestel', attachRole, vereistDienst('herberg'), (req, res) 
     ? (storage.readJSON('entities.json').voorwerpen || []).find(v => v.id === item.entityId)
     : null;
   const werking = {
+    // Genezing hoorde hier niet thuis: een maaltijd lapte je niet op, terwijl
+    // hetzelfde voorwerp uit je knapzak dat wél deed. Nu kan een menuregel
+    // allebei, precies zoals een voorwerpkaartje.
+    heal:      kaart ? _healingVan(kaart.data) : item.heal,
     tempHp:    kaart ? _tempHpVan(kaart.data) : item.tempHp,
     buffLabel: kaart ? (kaart.data?.buffLabel || item.buffLabel) : item.buffLabel,
     buffDesc:  kaart ? (kaart.data?.buffDesc  || item.buffDesc)  : item.buffDesc,
   };
+
+  // Echte HP eerst: afgetopt op je maximum, net als bij een voorwerp.
+  let heal = null;
+  const healWorp = werking.heal ? _rolGenezing(String(werking.heal)) : null;
+  if (healWorp) {
+    if (!dmState.playerHp) dmState.playerHp = {};
+    const hp = dmState.playerHp[characterId] || { current: 0, max: null };
+    const current = hp.max != null
+      ? Math.min(hp.max, (hp.current || 0) + healWorp.totaal)
+      : (hp.current || 0) + healWorp.totaal;
+    dmState.playerHp[characterId] = { ...hp, current };
+    heal = { hersteld: healWorp.totaal, formule: String(werking.heal), current };
+  }
 
   const temp = _tempHpGeven(dmState, characterId, werking.tempHp);
   const tempHp   = temp ? temp.temp : null;
@@ -13610,12 +13630,12 @@ router.post('/herberg/bestel', attachRole, vereistDienst('herberg'), (req, res) 
   const room = _campagneRoom(req);
   const currency = _effectiveCurrency(dmState, characterId);
   io.to(room).emit('player:currency-updated', { characterId, currency });
-  if (tempHp !== null) io.to(room).emit('player:hp-updated', { characterId, ...dmState.playerHp[characterId] });
+  if (tempHp !== null || heal) io.to(room).emit('player:hp-updated', { characterId, ...dmState.playerHp[characterId] });
   io.to(room).emit('player:buffs-updated', { characterId, buffs: dmState.playerBuffs?.[characterId] || [] });
 
   res.json({
     item: { naam: item.naam, beschrijving: item.beschrijving || '' },
-    currency, tempHp, tempRoll, buff,
+    currency, tempHp, tempRoll, buff, heal,
   });
 });
 

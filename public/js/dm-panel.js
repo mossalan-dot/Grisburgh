@@ -909,14 +909,6 @@ function _tabEl(name) {
       || document.querySelector(`.dm-tab-content[data-tab="${name}"]`);
 };
 
-// De begroeting van een dienst: overal hetzelfde veld.
-//
-// Het stond er drie keer verschillend: bij de herberg een tekstvak van drie
-// regels met de uitleg in het label **en** eronder, bij het gokhuis een regel
-// invoer met weer een andere hint, bij de magizoöloog een tekstvak van twee
-// zonder hint. Dezelfde handeling hoort er hetzelfde uit te zien. De uitleg
-// staat één keer — in het voorbeeld ín het veld; het waarom staat in het
-// boekje van die dienst.
 // ── De vaste kop van elk dienstpaneel ───────────────────────────────────────
 // Elke dienst begint met dezelfde vijf dingen: hoe hij heet, wie hem drijft,
 // waar hij staat, hoe hij eruitziet en waarmee hij je begroet. Ze stonden
@@ -934,7 +926,7 @@ function _tabEl(name) {
 // want een lege keuze viel terug op de opgeslagen waarde.
 let _dienstKaartjes = { personages: [], locaties: [] };
 
-function _dienstKopHtml({ sleutel, titel, hulp, config = {}, personages = [], locaties = [],
+function _dienstKopHtml({ sleutel, config = {}, personages = [], locaties = [],
                           naamVoorbeeld = '', groetVoorbeeld = '', eigenaarLabel = 'Kaartje van de eigenaar' }) {
   _dienstKaartjes = { personages, locaties };
   const alle = [...personages, ...locaties];
@@ -951,7 +943,10 @@ function _dienstKopHtml({ sleutel, titel, hulp, config = {}, personages = [], lo
     </div>`;
 
   return `
-    <div class="dm-section-label">${esc(titel)}<span class="dm-sectie-hulp">${helpBtn(hulp)}</span></div>
+    <!-- Geen kop met de naam van de dienst: die staat al in de tabbalk erboven,
+         en het boekje hangt daar ook al. Wat hier wél hoort is waar dit blok
+         over gaat — het algemene deel, tegenover de diensten eronder. -->
+    <div class="dm-subgroep-label dm-dienst-kop">${icon('info')} Algemeen</div>
 
     <div class="dm-form-row">
       <label class="dm-form-label" for="${sleutel}-naam">Naam</label>
@@ -990,7 +985,7 @@ function _dienstKopHtml({ sleutel, titel, hulp, config = {}, personages = [], lo
       </div>
     </div>
 
-    ${_groetVeldHtml({ id: `${sleutel}-groet`, waarde: config.groet || '', voorbeeld: groetVoorbeeld })}`;
+    ${_groetenKaartHtml({ sleutel, config, voorbeeld: groetVoorbeeld })}`;
 }
 
 // Leest de vaste kopvelden terug. Een getypte naam die geen kaartje is laat de
@@ -1000,9 +995,13 @@ function _dienstKopLees(sleutel) {
     const n = (document.getElementById(`${sleutel}-${veld}`)?.value || '').trim().toLowerCase();
     return n ? (lijst.find(e => (e.name || '').toLowerCase() === n)?.id || '') : '';
   };
+  const groeten = _groetenLees(sleutel);
   return {
     naam:      document.getElementById(`${sleutel}-naam`)?.value.trim() || '',
-    groet:     document.getElementById(`${sleutel}-groet`)?.value.trim() || '',
+    groeten,
+    // `groet` blijft als eerste regel meegaan: het tafelscherm en de oudere
+    // schermen lezen dat veld nog.
+    groet:     groeten[0] || '',
     imageId:   idVan('eigenaar', [..._dienstKaartjes.personages, ..._dienstKaartjes.locaties]),
     locatieId: idVan('locatie', _dienstKaartjes.locaties),
   };
@@ -1028,14 +1027,118 @@ window._dienstBackdropWis = (sleutel) => {
   if (el && el.tagName === 'IMG') { el.style.display = 'none'; el.removeAttribute('src'); }
 };
 
-function _groetVeldHtml({ id, waarde = '', voorbeeld = '' }) {
-  return `
-    <div class="dm-form-row" style="flex-direction:column;gap:4px;align-items:stretch">
-      <label class="dm-form-label" for="${id}">Begroeting</label>
-      <textarea id="${id}" class="dm-input" rows="2" style="resize:vertical;min-height:52px"
-        placeholder="${esc(voorbeeld)}">${esc(waarde)}</textarea>
-    </div>`;
+// ── Een bedrag invoeren ─────────────────────────────────────────────────────
+// Drie vakjes met de muntafkortingen erboven, zoals de gedeelde beurs. De
+// prijzen van diensten stonden door elkaar: de herberg had een vrij tekstveld
+// ("1 fl."), de andere diensten één getal in florinden, en een drankje aan de
+// tap weer tekst. Wie geen florinden rekent kon in die tweede vorm niets kwijt.
+//
+// Wat eruit komt is de notatie die de server toch al leest: "2 fl 3 kn 4 cl".
+function _bedragVeldHtml(id, waarde = '', { label = 'Prijs' } = {}) {
+  const n = window._muntNamen();
+  const d = _bedragOntleed(waarde);
+  const veld = (k, afk) => `<label class="dm-munt-veld" title="${esc(n[k])}"><span>${afk}</span>
+    <input id="${id}-${k}" class="dm-input" type="number" min="0" value="${d[k] || 0}"></label>`;
+  return `<div class="dm-form-row" style="flex-direction:column;gap:4px;align-items:stretch">
+    <label class="dm-form-label">${esc(label)}</label>
+    <div class="dm-munt-rij">${veld('fl', 'gp')}${veld('kn', 'sp')}${veld('cl', 'cp')}</div>
+  </div>`;
 }
+
+// Leest "2 fl 3 kn", "12,34" of "5 gp" terug naar drie getallen. Dezelfde
+// notaties die `parsePrijs` op de server aankan, zodat een bestaande prijs niet
+// op nul springt zodra je het paneel opent.
+function _bedragOntleed(str) {
+  const uit = { fl: 0, kn: 0, cl: 0 };
+  if (!str) return uit;
+  const kaal = String(str).trim().replace(/\s+/g, '');
+  const komma = kaal.match(/^(\d+)[.,](\d{1,2})$/);
+  if (komma) {
+    const totaal = parseInt(komma[1]) * 100 + parseInt(komma[2].padEnd(2, '0'));
+    return { fl: Math.floor(totaal / 100), kn: Math.floor((totaal % 100) / 10), cl: totaal % 10 };
+  }
+  const re = /(\d+(?:[.,]\d+)?)\s*(fl|kn|cl|gp|sp|cp)\.?/gi;
+  let m;
+  while ((m = re.exec(String(str))) !== null) {
+    const v = Math.round(parseFloat(m[1].replace(',', '.')));
+    const u = m[2].toLowerCase();
+    if (u === 'fl' || u === 'gp') uit.fl += v;
+    else if (u === 'kn' || u === 'sp') uit.kn += v;
+    else uit.cl += v;
+  }
+  return uit;
+}
+
+// Terug naar de notatie die de server leest. Leeg bij nul, zodat "gratis" ook
+// echt leeg blijft staan en niet als "0 fl" wordt bewaard.
+function _bedragLees(id) {
+  const g = (k) => parseInt(document.getElementById(`${id}-${k}`)?.value) || 0;
+  const d = { fl: g('fl'), kn: g('kn'), cl: g('cl') };
+  const delen = [d.fl && `${d.fl} fl`, d.kn && `${d.kn} kn`, d.cl && `${d.cl} cl`].filter(Boolean);
+  return delen.join(' ');
+}
+
+// Een kopje binnen een dienstpaneel: het algemene deel bovenaan, en daaronder
+// wat die dienst zélf aanbiedt (overnachten, aan de tap, het strijdperk…). Zo
+// is te zien waar het ene ophoudt en het andere begint.
+function _dienstSectieKop(ic, titel, hulp = '') {
+  return `<div class="dm-subgroep-label dm-dienst-kop">${icon(ic)} ${esc(titel)}${
+    hulp ? `<span class="dm-sectie-hulp">${helpBtn(hulp)}</span>` : ''}</div>`;
+}
+
+// ── De begroetingen van een dienst ─────────────────────────────────────────
+// Eén vaste zin hoor je de derde keer al aankomen. Een dienst draagt nu een
+// lijstje begroetingen en kiest er bij elk bezoek een; met één regel gedraagt
+// het zich precies als vroeger.
+//
+// De vorm is die van een tafel — regels onder elkaar, eentje erbij, eentje
+// eruit — in een uitklapkaartje, zodat een lijstje van acht het paneel niet
+// uit elkaar duwt. (Het zijn geen échte tafels uit het Tafels-tabblad: die zijn
+// DM-only, en een begroeting moet de speler juist te zien krijgen.)
+function _groetenKaartHtml({ sleutel, config = {}, voorbeeld = '' }) {
+  const regels = _groetenUit(config);
+  return `
+    <details class="dm-groeten" id="${sleutel}-groeten"${regels.length > 1 ? '' : ' open'}>
+      <summary class="dm-groeten-kop">
+        <span>Begroeting</span>
+        <span class="dm-groeten-n">${regels.length || 'geen'}${regels.length > 1 ? ' regels — er wordt er één gekozen' : ''}</span>
+      </summary>
+      <div class="dm-groeten-body" id="${sleutel}-groeten-lijst">
+        ${(regels.length ? regels : ['']).map(r => _groetRegelHtml(sleutel, r, voorbeeld)).join('')}
+      </div>
+      <div class="dm-form-row" style="padding:0 12px 12px">
+        <button type="button" class="dm-btn dm-btn-ghost dm-btn-sm"
+          onclick="window._groetRegelErbij('${sleutel}', ${JSON.stringify(voorbeeld)})">${icon('plus')} Voeg begroeting toe</button>
+      </div>
+    </details>`;
+}
+
+function _groetRegelHtml(sleutel, waarde = '', voorbeeld = '') {
+  return `<div class="dm-groet-regel">
+    <textarea class="dm-input dm-groet-tekst" rows="2" placeholder="${esc(voorbeeld)}">${esc(waarde)}</textarea>
+    <button type="button" class="dm-btn dm-btn-ghost dm-btn-sm dm-btn-danger"
+      title="Deze regel weghalen" onclick="this.closest('.dm-groet-regel').remove()">${icon('trash')}</button>
+  </div>`;
+}
+
+window._groetRegelErbij = (sleutel, voorbeeld = '') => {
+  const host = document.getElementById(`${sleutel}-groeten-lijst`);
+  if (!host) return;
+  host.insertAdjacentHTML('beforeend', _groetRegelHtml(sleutel, '', voorbeeld));
+  host.querySelector('.dm-groet-regel:last-child textarea')?.focus();
+};
+
+// Bestaande campagnes hebben één `groet`; die telt als eerste regel.
+function _groetenUit(config = {}) {
+  if (Array.isArray(config.groeten) && config.groeten.length) return config.groeten.filter(Boolean);
+  return config.groet ? [config.groet] : [];
+}
+
+function _groetenLees(sleutel) {
+  return [...document.querySelectorAll(`#${sleutel}-groeten-lijst .dm-groet-tekst`)]
+    .map(t => t.value.trim()).filter(Boolean);
+}
+
 
 // ── Gouden standaard: één subtab-balk ──
 //
@@ -1094,17 +1197,19 @@ function _renderDiensten(subTab) {
   // "Gokhuis", niet "De Tweespalt". Wat de spelers zien staat in de campagne
   // (meta), en dit paneel staat ook in campagnes waar dat huis anders heet.
   // Facties is de uitzondering: dát label stelt de DM zelf in.
-  const _dienstNav = [
-    { id: 'herberg',   label: 'Herberg',     icoon: 'beer' },
-    { id: 'tweespalt', label: 'Gokhuis',     icoon: 'dice', cls: 'icon-gi' },
-    { id: 'gock',      label: 'Detective',   icoon: 'search' },
-    { id: 'ursula',    label: 'Waarzegger',  icoon: 'sparkles' },
-    { id: 'tempel',    label: 'Tempel',      icoon: 'church' },
-    { id: 'facties',   get label() { return window._factiesLabel(); }, icoon: 'landmark' },
-    { id: 'magizoo',   label: 'Magizoöloog', icoon: 'paw-print' },
-    { id: 'markt',     label: 'Markt',       icoon: 'store' },
-    { id: 'toegang',   label: 'Toegang',     icoon: 'lock', altijd: true, title: 'Toegang per groep' },
-  ].filter(d => d.altijd || !(window._verborgen?.secties || []).includes(d.id));
+  const _dienstNav = window._dienstSorteer([
+    { id: 'markt',     label: 'Markt',       icoon: 'store',      key: 'markt' },
+    { id: 'herberg',   label: 'Herberg',     icoon: 'beer',       key: 'herberg' },
+    // Meervoud: een campagne heeft er zelden één, en het paneel gaat over alle
+    // goden en hun altaren samen.
+    { id: 'tempel',    label: 'Tempels',     icoon: 'church',     key: 'tempel' },
+    { id: 'facties',   get label() { return window._factiesLabel(); }, icoon: 'landmark', key: 'facties' },
+    { id: 'tweespalt', label: 'Gokhuis',     icoon: 'dice', cls: 'icon-gi', key: 'tweespalt' },
+    { id: 'gock',      label: 'Detective',   icoon: 'search',     key: 'gock' },
+    { id: 'ursula',    label: 'Waarzegger',  icoon: 'sparkles',   key: 'ursula' },
+    { id: 'magizoo',   label: 'Magizoöloog', icoon: 'paw-print',  key: 'magizoo' },
+    { id: 'toegang',   label: 'Toegang',     icoon: 'lock', altijd: true, title: 'Toegang per groep', key: 'toegang' },
+  ]).filter(d => d.altijd || !(window._verborgen?.secties || []).includes(d.id));
   el.querySelector('.dm-subtab-nav').innerHTML = _subtabNavHtml({
     items: _dienstNav,
     actief: _dienstenSubTab,
@@ -1540,15 +1645,16 @@ async function _akteImpApply() {
 
 
 // ── Diensten toegang per groep ──
+// Dezelfde volgorde en dezelfde soortnamen als de tabbalk: dit is dezelfde
+// reeks diensten, alleen van de andere kant bekeken.
 const _DIENSTEN_TOEGANG_INFO = [
-  { key: 'herberg',   label: 'Herberg',            icon: 'beer'      },
-  { key: 'tweespalt', label: 'Het gokhuis',        icon: 'dice'      },
-  { key: 'gock',      label: 'De detective',             icon: 'search'    },
-  { key: 'ursula',    label: 'De waarzegger',        icon: 'sparkles'  },
-  { key: 'tempel',    label: 'De Tempel',            icon: 'church'    },
-
+  { key: 'herberg',   label: 'Herberg',      icon: 'beer'      },
+  { key: 'tempel',    label: 'Tempels',      icon: 'church'    },
   { key: 'facties',   get label() { return window._factiesLabel(); },  icon: 'landmark'  },
-  { key: 'magizoo',   label: 'De Magizoöloog',       icon: 'paw-print' },
+  { key: 'tweespalt', label: 'Gokhuis',      icon: 'dice'      },
+  { key: 'gock',      label: 'Detective',    icon: 'search'    },
+  { key: 'ursula',    label: 'Waarzegger',   icon: 'sparkles'  },
+  { key: 'magizoo',   label: 'Magizoöloog',  icon: 'paw-print' },
 ];
 
 const _STAAT_LABELS = {
@@ -5698,27 +5804,29 @@ async function _renderHerbergSettings() {
   el.innerHTML = `
     <div class="dm-feature-section">
       ${_dienstKopHtml({
-        sleutel: 'hb', titel: 'Herberg', hulp: 'dm_herberg', config,
+        sleutel: 'hb', config,
         personages: _hbPersonages, locaties: _hbLocaties,
         naamVoorbeeld: 'De Gouden Leeuw', eigenaarLabel: 'Kaartje van de waard',
         groetVoorbeeld: 'Welkom, {naam}! Wat kan ik voor je betekenen?',
       })}
 
-      <div class="dm-form-row">
-        <label class="dm-form-label" for="hb-overnachting">Overnachting (prijs p.p.)</label>
-        <input id="hb-overnachting" class="dm-input" value="${esc(config.overnachtingPrijs || '1 fl.')}" placeholder="1 fl.">
+      ${_dienstSectieKop('moon', 'Overnachten', 'dm_herberg_rust')}
+      <div class="dm-feature-row" style="gap:14px;align-items:flex-end">
+        ${_bedragVeldHtml('hb-overnachting', config.overnachtingPrijs || '1 fl.', { label: 'Prijs per persoon' })}
+        <div class="dm-form-row" style="flex-direction:column;gap:4px;align-items:stretch">
+          <label class="dm-form-label" for="hb-roddels">Roddels per persoon</label>
+          <input id="hb-roddels" class="dm-input dm-input-sm" type="number" min="0" max="10"
+            style="width:76px" value="${Number.isFinite(+config.roddelsPerSpeler) ? +config.roddelsPerSpeler : 2}">
+        </div>
       </div>
 
-      <div class="dm-section-label" style="margin-top:14px;display:flex;align-items:center;gap:6px">${icon('beer')} Aan de tap — menu<span class="dm-sectie-hulp">${helpBtn('dm_herberg_tap')}</span></div>
-      <span class="dm-hint" style="font-size:11px;display:block;margin:-4px 0 8px">Drankjes/maaltijden die spelers kunnen bestellen. Prijs schrijft van de beurs af; temp HP en status gelden tot de volgende Long Rest.</span>
+      ${_dienstSectieKop('beer', 'Aan de tap', 'dm_herberg_tap')}
       <div id="hb-menu-lijst"></div>
       <div class="dm-form-row">
-        <button class="dm-btn dm-btn-ghost" onclick="window._hbMenuAdd()" title="Menu-item toevoegen">${icon('plus')} Item</button>
+        <button class="dm-btn dm-btn-ghost" onclick="window._hbMenuAdd()" title="Menu-item toevoegen">${icon('plus')} Voeg item toe</button>
       </div>
 
-      <div class="dm-form-row">
-        <button class="dm-btn dm-btn-primary" onclick="window._hbSave()" title="Opslaan">${icon('save')}</button>
-      </div>
+      ${_dienstOpslaanRij('window._hbSave()')}
     </div>`;
 
   _hbRenderMenuLijst();
@@ -5731,37 +5839,66 @@ function _hbRenderMenuLijst() {
   const vwDl = `<datalist id="hb-menu-vw-dl">${_hbVoorwerpen.map(v => `<option value="${esc(v.name)}">${esc(v.data?.itemType || '')}</option>`).join('')}</datalist>`;
   el.innerHTML = vwDl + (_hbMenu.length === 0
     ? `<p class="dm-hint" style="padding:4px 0">Nog geen menu-items.</p>`
-    : _hbMenu.map((m, i) => `
-      <div class="hb-menu-item" data-id="${esc(m.id || '')}">
-        <div class="hb-menu-item-top">
-          <input class="dm-input dm-input-sm hb-menu-naam" value="${esc(m.naam || '')}" placeholder="Naam (bv. Huisbier)">
-          <input class="dm-input dm-input-sm hb-menu-prijs" value="${esc(m.prijs || '')}" placeholder="Prijs (bv. 2 kn)" style="max-width:110px">
-          <button class="dm-btn dm-btn-icon dm-btn-danger dm-btn-sm" onclick="window._hbMenuRemove(${i})" title="Verwijderen">${icon('trash')}</button>
+    : _hbMenu.map((m, i) => {
+      // Eén uitklap per regel: het menu was acht velden per drankje op een rij,
+      // en bij vier drankjes las dat als een formulier zonder eind. Dicht zie je
+      // wat het is en wat het kost; open staat de rest.
+      const kaart = _hbVoorwerpen.find(v => v.id === m.entityId);
+      return `
+      <details class="hb-menu-item" data-id="${esc(m.id || '')}"${m.naam ? '' : ' open'}>
+        <summary class="hb-menu-kop">
+          <span class="hb-menu-kop-naam">${esc(m.naam || 'Nieuw item')}</span>
+          ${m.prijs ? `<span class="hb-menu-kop-prijs">${esc(m.prijs)}</span>` : ''}
+          ${kaart ? `<span class="hb-menu-kop-kaart" title="Gekoppeld aan ${esc(kaart.name)}">${icon('package')}</span>` : ''}
+        </summary>
+        <div class="hb-menu-body">
+          <div class="dm-form-row">
+            <label class="dm-form-label">Naam</label>
+            <input class="dm-input dm-input-sm hb-menu-naam" value="${esc(m.naam || '')}" placeholder="Huisbier">
+          </div>
+          ${_bedragVeldHtml(`hb-menu-prijs-${i}`, m.prijs || '', { label: 'Prijs' })}
+          <div class="dm-form-row">
+            <label class="dm-form-label">Beschrijving</label>
+            <input class="dm-input dm-input-sm hb-menu-desc" value="${esc(m.beschrijving || '')}"
+              placeholder="Wat de speler bij het bestellen leest">
+          </div>
+          <div class="dm-form-row">
+            <label class="dm-form-label">Voorwerpkaartje</label>
+            <input class="dm-input dm-input-sm hb-menu-kaart" list="hb-menu-vw-dl" autocomplete="off"
+              value="${esc(kaart?.name || '')}"
+              placeholder="Zoek een kaartje, of laat leeg…"
+              title="Met een kaartje staat de werking op één plek: hetzelfde drankje doet hetzelfde aan de bar en uit je knapzak">
+          </div>
+          <!-- Genezing en tijdelijke HP staan naast elkaar: een maaltijd lapt je
+               op, een borrel geeft je een buffer. Allebei mag een worp zijn. -->
+          <div class="dm-feature-row" style="gap:10px">
+            <div class="dm-form-row" style="flex:1">
+              <label class="dm-form-label">Geneest</label>
+              <input class="dm-input dm-input-sm hb-menu-heal" value="${esc(String(m.heal ?? '').trim())}" placeholder="0 of 1d4+1">
+            </div>
+            <div class="dm-form-row" style="flex:1">
+              <label class="dm-form-label">Tijdelijke HP</label>
+              <input class="dm-input dm-input-sm hb-menu-temphp" value="${esc(String(m.tempHp ?? '').trim())}" placeholder="0 of 1d6">
+            </div>
+          </div>
+          <div class="dm-form-row">
+            <button class="dm-btn dm-btn-ghost dm-btn-sm dm-btn-danger" onclick="window._hbMenuRemove(${i})"
+              title="Dit item van de kaart halen">${icon('trash')} Verwijderen</button>
+          </div>
         </div>
-        <input class="dm-input dm-input-sm hb-menu-desc" value="${esc(m.beschrijving || '')}" placeholder="Sfeerbeschrijving (wordt bij bestellen getoond)">
-        <input class="dm-input dm-input-sm hb-menu-kaart" list="hb-menu-vw-dl" autocomplete="off"
-          value="${esc(_hbVoorwerpen.find(v => v.id === m.entityId)?.name || '')}"
-          placeholder="Koppel aan een voorwerpkaartje (optioneel)"
-          title="Dan kan de speler het kaartje openen en staat de werking op één plek">
-        <div class="hb-menu-item-effect">
-          <label class="dm-form-label" style="min-width:auto">Temp HP</label>
-          <input class="dm-input dm-input-sm hb-menu-temphp" value="${esc(String(m.tempHp ?? '').trim())}" placeholder="0 of worp bv. 1d6" style="max-width:130px">
-          <input class="dm-input dm-input-sm hb-menu-bufflabel" value="${esc(m.buffLabel || '')}" placeholder="Status (bv. Kroegmoed)">
-        </div>
-        <input class="dm-input dm-input-sm hb-menu-buffdesc" value="${esc(m.buffDesc || '')}" placeholder="Wat de status doet (bv. voordeel op je eerste save)">
-      </div>`).join(''));
+      </details>`;
+    }).join(''));
 }
 
 // Leest de huidige menurijen terug uit de DOM (behoudt niet-opgeslagen bewerkingen).
 function _hbMenuReadDom() {
-  return [...document.querySelectorAll('#hb-menu-lijst .hb-menu-item')].map(row => ({
+  return [...document.querySelectorAll('#hb-menu-lijst .hb-menu-item')].map((row, i) => ({
     id: row.dataset.id || ('menu_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5)),
     naam: row.querySelector('.hb-menu-naam')?.value.trim() || '',
-    prijs: row.querySelector('.hb-menu-prijs')?.value.trim() || '',
+    prijs: _bedragLees(`hb-menu-prijs-${i}`),
     beschrijving: row.querySelector('.hb-menu-desc')?.value.trim() || '',
+    heal: row.querySelector('.hb-menu-heal')?.value.trim() || '',
     tempHp: row.querySelector('.hb-menu-temphp')?.value.trim() || '',
-    buffLabel: row.querySelector('.hb-menu-bufflabel')?.value.trim() || '',
-    buffDesc: row.querySelector('.hb-menu-buffdesc')?.value.trim() || '',
     // Naam → id. Een getypte naam die geen kaartje is laat de koppeling leeg;
     // het item blijft dan gewoon tekst, zoals het altijd was.
     entityId: (() => {
@@ -5773,7 +5910,7 @@ function _hbMenuReadDom() {
 
 window._hbMenuAdd = () => {
   _hbMenu = _hbMenuReadDom();
-  _hbMenu.push({ id: 'menu_' + Date.now().toString(36), naam: '', prijs: '', beschrijving: '', tempHp: '', buffLabel: '', buffDesc: '' });
+  _hbMenu.push({ id: 'menu_' + Date.now().toString(36), naam: '', prijs: '', beschrijving: '', heal: '', tempHp: '' });
   _hbRenderMenuLijst();
 };
 
@@ -5855,12 +5992,12 @@ window._hbSave = async () => {
   const config = window.app?.state?.meta?.herberg || {};
   const kop = _dienstKopLees('hb');
   const p = _hbPersonages.find(e => e.id === kop.imageId);
-  const overnachtingPrijs = document.getElementById('hb-overnachting')?.value.trim() || '1 fl.';
   const payload = {
     ...kop,
     waard:      p?.name || '',
     backdropId: _dienstBackdropUit('hb', config),
-    overnachtingPrijs,
+    overnachtingPrijs: _bedragLees('hb-overnachting'),
+    roddelsPerSpeler:  Math.max(0, Math.min(10, parseInt(document.getElementById('hb-roddels')?.value) || 0)),
     menu: _hbMenuReadDom(),
   };
   try {
@@ -5950,7 +6087,7 @@ async function _renderTweespaltDM() {
   el.innerHTML = `
     <div class="dm-feature-section">
       ${_dienstKopHtml({
-        sleutel: 'ts', titel: 'Gokhuis', hulp: 'dm_gokhuis', config: tsConfig,
+        sleutel: 'ts', config: tsConfig,
         personages: tsPersonages, locaties: tsLocaties,
         naamVoorbeeld: 'Het gokhuis', eigenaarLabel: 'Kaartje van de baas',
         groetVoorbeeld: `Welkom bij ${tsConfig.naam || 'het gokhuis'}, {naam}. Speel je mee?`,
@@ -6224,7 +6361,7 @@ async function _renderGockSettings() {
   el.innerHTML = `
     <div class="dm-feature-section">
       ${_dienstKopHtml({
-        sleutel: 'gock', titel: 'Detective', hulp: 'dm_detective', config,
+        sleutel: 'gock', config,
         personages, locaties: gockLocaties,
         naamVoorbeeld: 'De detective', eigenaarLabel: 'Kaartje van de detective',
         groetVoorbeeld: `${config.naam || 'De detective'} kijkt op van zijn bureau en trekt een wenkbrauw op.`,
@@ -6359,7 +6496,7 @@ async function _renderMagizooSettings() {
   el.innerHTML = `
     <div class="dm-feature-section">
       ${_dienstKopHtml({
-        sleutel: 'magizoo', titel: 'Magizoöloog', hulp: 'dm_magizoo', config,
+        sleutel: 'magizoo', config,
         personages, locaties,
         naamVoorbeeld: 'De Magizoöloog', eigenaarLabel: 'Kaartje van de beestenkenner',
         groetVoorbeeld: 'Hij kijkt op van een kooi en veegt een inktvlek weg.',
@@ -6451,7 +6588,7 @@ async function _renderUrsulaSettings() {
   el.innerHTML = `
     <div class="dm-feature-section">
       ${_dienstKopHtml({
-        sleutel: 'ursula', titel: 'Waarzegger', hulp: 'dm_waarzegger', config,
+        sleutel: 'ursula', config,
         personages, locaties,
         naamVoorbeeld: 'De waarzegger', eigenaarLabel: 'Kaartje van de waarzegger',
         groetVoorbeeld: 'Zij legt haar handen op de kristallen bol.',
@@ -6572,7 +6709,7 @@ async function _renderTempelSettings() {
   el.innerHTML = `
     <div class="dm-feature-section">
       ${_dienstKopHtml({
-        sleutel: 'tempel', titel: 'Tempel', hulp: 'dm_tempel', config,
+        sleutel: 'tempel', config,
         personages, locaties,
         naamVoorbeeld: 'De Tempel', eigenaarLabel: 'Kaartje van de opperpriester',
         groetVoorbeeld: 'Welkom, pelgrim. Waarvoor bent u hier?',
@@ -7531,9 +7668,9 @@ async function _renderGeluiden() {
       </div>`;
   };
   const _DIENSTEN = [
-    { key: 'herberg', label: 'De Herberg' }, { key: 'tweespalt', label: 'Het gokhuis' },
-    { key: 'gock', label: 'De detective' }, { key: 'ursula', label: 'De waarzegger' },
-    { key: 'tempel', label: 'De Tempel' }, { key: 'magizoo', label: 'De Magizoöloog' },
+    { key: 'herberg', label: 'Herberg' }, { key: 'tempel', label: 'Tempels' },
+    { key: 'tweespalt', label: 'Gokhuis' }, { key: 'gock', label: 'Detective' },
+    { key: 'ursula', label: 'Waarzegger' }, { key: 'magizoo', label: 'Magizoöloog' },
   ];
   const facties = window.app?.state?.meta?.facties || [];
   const _REST = [

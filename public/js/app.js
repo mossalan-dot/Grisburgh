@@ -1,6 +1,6 @@
 import { api, campagneUitUrl, zetCampagne } from './api.js?v=296';
 import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, renderDocumenten, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=319";
-import { initArchief, renderLogboek, openLogboekEditor } from "./render-archief.js?v=134";
+import { initArchief, renderLogboek, openLogboekEditor } from "./render-archief.js?v=135";
 import { renderKaart, queueFlyTo, verversPins, nieuweKaart } from './render-kaart.js?v=31';
 import { renderDungeon } from './render-dungeon.js?v=56';
 import { renderRelatiemap } from './render-relatiemap.js?v=27';
@@ -10,7 +10,7 @@ import { renderSpreuken } from './render-spreuken.js?v=41';
 import { renderVaardigheden, zoekVaardigheden } from './render-vaardigheden.js?v=10';
 import { renderStatblock } from './render-statblock.js?v=9';
 import { initSocket } from "./socket-client.js?v=78";
-import { initDmPanel } from "./dm-panel.js?v=321";
+import { initDmPanel } from "./dm-panel.js?v=323";
 import { COND_INFO, COND_LABEL, COND_MET_PLAATJE, COND_ICON } from './conditions.js?v=2';
 import './media-picker.js?v=8';
 import './tafels.js?v=2';
@@ -42,6 +42,18 @@ window._campagneNaam = () => window.app?.state?.meta?.appTitle || 'de campagne';
 // goden in de tempel al volgden (`g.backdropId || g.locatieEntityId`).
 window._dienstBackdropId = (config) => (config?.backdropId || config?.locatieId || null);
 
+// De begroeting van een dienst. Een dienst draagt een lijstje; hij kiest er bij
+// elk bezoek een, zodat dezelfde waard je niet elke avond met dezelfde zin
+// aankijkt. Eén regel gedraagt zich als vroeger, en een campagne die alleen het
+// oude `groet`-veld heeft blijft gewoon werken.
+window._dienstGroet = (config, terugval = '') => {
+  const lijst = Array.isArray(config?.groeten) && config.groeten.length
+    ? config.groeten.filter(Boolean)
+    : (config?.groet ? [config.groet] : []);
+  if (!lijst.length) return terugval;
+  return lijst[Math.floor(Math.random() * lijst.length)];
+};
+
 // Welke dienst is aan dít locatiekaartje gekoppeld? Voor de deur die op het
 // kaartje verschijnt. Een dienst die uitstaat telt niet mee — dan zou het
 // kaartje naar een tabblad wijzen dat er niet is.
@@ -72,15 +84,30 @@ window._dienstOpLocatie = (locatieId) => {
 // (meta.facties), maar de sectie eromheen stond op twaalf plekken hardcoded —
 // en "Aanzien" is niet wat elke campagne het noemt. Instelbaar als
 // `meta.factiesLabel`; leeg valt terug op de standaard.
-window._factiesLabel = () => window.app?.state?.meta?.factiesLabel || 'Facties & Aanzien';
+window._factiesLabel = () => window.app?.state?.meta?.factiesLabel || 'Facties';
+
+// ── De volgorde van de diensten ─────────────────────────────────────────────
+// Eén lijst, overal gevolgd: de tabbalk van de Meesterkamer, het menu in de
+// kop, de toegangstabel en de modules bij Instellingen. Ze stonden op vier
+// plekken in vier volgordes, en dan lijkt het alsof er verschillende dingen
+// bedoeld worden. De volgorde loopt van "waar je het vaakst komt" naar "waar je
+// zelden komt": eerst de plekken die elke sessie meedoen, dan de bijzondere.
+window.DIENST_VOLGORDE = ['markt', 'herberg', 'tempel', 'facties', 'tweespalt', 'gock', 'ursula', 'magizoo'];
+
+// Sorteert een lijst met een `key`-veld op die volgorde; wat er niet in staat
+// (zoals 'toegang') blijft achteraan in de volgorde waarin het binnenkwam.
+window._dienstSorteer = (lijst, sleutel = 'key') => {
+  const i = (k) => { const n = window.DIENST_VOLGORDE.indexOf(k); return n < 0 ? 99 : n; };
+  return [...lijst].sort((a, b) => i(a[sleutel]) - i(b[sleutel]));
+};
 
 // ── Namen van diensten ──
 // Elke dienst heeft zijn naam al in meta staan (meta.herberg.naam en zo); alleen
 // de zijbalk toonde nog de namen van Grisburgh, hardcoded in de HTML. Zonder
 // eigen naam valt hij terug op wát het is, niet op hoe het hier heet.
 const _DIENST_STANDAARD = {
-  herberg: 'Herberg', tweespalt: 'Arena', gock: 'Detective', ursula: 'Waarzegger',
-  tempel: 'Tempel', magizoo: 'Magizoöloog', facties: 'Facties',
+  herberg: 'Herberg', tweespalt: 'Gokhuis', gock: 'Detective', ursula: 'Waarzegger',
+  tempel: 'Tempels', magizoo: 'Magizoöloog', facties: 'Facties',
 };
 window._dienstNaam = (key) => {
   // Facties is de uitzondering: `meta.facties` is een **lijst facties**, geen
@@ -488,7 +515,7 @@ function switchSection(section) {
 
   // Diensten-knop: actief als een diensten-sectie actief is
   const dienstenNavBtn = $('#diensten-nav-btn');
-  if (dienstenNavBtn) dienstenNavBtn.classList.toggle('active', ['herberg','tweespalt','gock','ursula','tempel','facties','magizoo'].includes(section));
+  if (dienstenNavBtn) dienstenNavBtn.classList.toggle('active', window.DIENST_VOLGORDE.includes(section));
 
   $$('.section').forEach(s => s.classList.toggle('active', s.id === `section-${section}`));
   // Een tabblad opent bovenaan: een sectie houdt zijn eigen scrollpositie vast,
@@ -584,7 +611,7 @@ async function _dienstPoort(sleutel, naam, render) {
   return render();
 }
 
-const _DIENST_SECTIES = ['markt', 'herberg', 'tweespalt', 'gock', 'ursula', 'tempel', 'facties', 'magizoo'];
+const _DIENST_SECTIES = window.DIENST_VOLGORDE;
 window._alsSpeler = null;
 try { window._alsSpeler = localStorage.getItem('alsSpeler') || null; } catch { /* privémodus */ }
 
@@ -1301,7 +1328,7 @@ function applyRole() {
   document.getElementById('diensten-herberg-item')?.classList.toggle('hidden', !state.meta?.herberg);
 
   // Diensten-knop active-state als een diensten-sectie actief is
-  const DIENSTEN_SECTIONS = ['markt', 'herberg', 'tweespalt', 'gock', 'ursula', 'tempel', 'facties', 'magizoo'];
+  const DIENSTEN_SECTIONS = window.DIENST_VOLGORDE;
   const dienstenBtn = document.getElementById('diensten-nav-btn');
   if (dienstenBtn) dienstenBtn.classList.toggle('active', DIENSTEN_SECTIONS.includes(state.activeSection));
 
@@ -11665,7 +11692,7 @@ async function _loadDienstenToegang() {
   try { state.dienstenToegang = await api.getDienstenToegang(); }
   catch { state.dienstenToegang = {}; }
   _updateDienstenMenu();
-  const DIENST_SECTIES = ['herberg','tweespalt','gock','ursula','tempel','facties','magizoo'];
+  const DIENST_SECTIES = window.DIENST_VOLGORDE.filter(k => k !== 'markt');
   if (DIENST_SECTIES.includes(state.activeSection)) refreshSection(state.activeSection);
 }
 window.app._loadDienstenToegang = _loadDienstenToegang;
@@ -11737,7 +11764,7 @@ function _updateDienstenMenu() {
 function _updateDienstenMenuDM() {
   // DM ziet alle diensten — ook Herberg en Facties — ongeacht config/toegang,
   // zodat hij elke dienst kan openen en inspecteren.
-  for (const d of ['herberg', 'tweespalt', 'gock', 'ursula', 'tempel', 'magizoo', 'facties']) {
+  for (const d of window.DIENST_VOLGORDE.filter(k => k !== 'markt')) {
     const el = document.getElementById(`diensten-${d}-item`);
     if (!el) continue;
     el.classList.remove('hidden', 'dienst-vergrendeld');
@@ -12141,8 +12168,9 @@ async function renderHerberg() {
   const heeftMenu = menu.length > 0;
 
   // Begroetingstekst — {naam} vervangen door voornaam speler
-  const _groetTekst = config.groet
-    ? config.groet.replace(/\{naam\}/gi, esc(playerFirstName || 'avonturier'))
+  const _gekozenGroet = window._dienstGroet(config);
+  const _groetTekst = _gekozenGroet
+    ? _gekozenGroet.replace(/\{naam\}/gi, esc(playerFirstName || 'avonturier'))
     : `${playerFirstName ? esc(playerFirstName) + '!' : 'Avonturiers!'} Wat kan ik voor je betekenen?`;
 
   // Alleen entiteiten tonen waarvan de roddel nog niet uitgesproken is
@@ -12254,9 +12282,16 @@ async function renderHerberg() {
 // Eén menukaartje in "Aan de tap"
 function _herbergMenuKaart(m) {
   const effecten = [];
-  const tempSpec = String(m.tempHp ?? '').trim();
-  if (/^\d+d\d+$/i.test(tempSpec)) effecten.push(`${tempSpec} temp HP`);
-  else { const tHp = parseInt(tempSpec, 10) || 0; if (tHp > 0) effecten.push(`+${tHp} temp HP`); }
+  const spec = (waarde, achter) => {
+    const t = String(waarde ?? '').trim();
+    if (/^\d+d\d+/i.test(t)) return `${t} ${achter}`;
+    const n = parseInt(t, 10) || 0;
+    return n > 0 ? `+${n} ${achter}` : '';
+  };
+  const _heal = spec(m.heal, 'HP');
+  const _temp = spec(m.tempHp, 'temp HP');
+  if (_heal) effecten.push(_heal);
+  if (_temp) effecten.push(_temp);
   if (m.buffLabel) effecten.push(esc(m.buffLabel));
   return `
     <div class="herberg-menu-kaart">
@@ -12286,6 +12321,7 @@ window._herbergBestel = async (itemId) => {
   try {
     const res = await api.post('/herberg/bestel', { itemId });
     const effecten = [];
+    if (res.heal) effecten.push(`${icon('heart')} ${esc(res.heal.formule)} → ${res.heal.hersteld} HP hersteld`);
     if (res.tempRoll) effecten.push(`${icon('dice')} ${esc(res.tempRoll.formule)} → ${res.tempRoll.resultaat} temp HP`);
     else if (res.tempHp) effecten.push(`+${res.tempHp} temp HP`);
     if (res.buff) effecten.push(esc(res.buff.label));
@@ -12437,7 +12473,7 @@ async function renderGock() {
           ${_helpBtn('gock')}
         </div>
         <div class="herberg-portrait-wrap">${portret}</div>
-        <p class="herberg-groet">${esc(config.groet || `${config.naam} kijkt op van zijn bureau en trekt een wenkbrauw op.`)}</p>
+        <p class="herberg-groet">${esc(window._dienstGroet(config, `${config.naam} kijkt op van zijn bureau en trekt een wenkbrauw op.`))}</p>
         <!-- Stond hier als "Resultaat binnen 24 uur"; de wachttijd hangt sinds
              21 sep aan de lange rust, dus dat beloofde iets anders dan de app doet. -->
         <p class="ts-beurs">Vooruitbetaling: <strong>${prijsTekst(config.prijs)}</strong> · Rapport na de volgende lange rust</p>
@@ -12599,7 +12635,7 @@ async function renderMagizoo() {
           ${_helpBtn('magizoo')}
         </div>
         <div class="herberg-portrait-wrap">${portret}</div>
-        <p class="herberg-groet">${config.groet ? esc(config.groet) : `${esc(config.naam)} kijkt op van een kooi en veegt een inktvlek van zijn notitieboek.`}</p>
+        <p class="herberg-groet">${esc(window._dienstGroet(config, `${config.naam} kijkt op van een kooi en veegt een inktvlek van zijn notitieboek.`))}</p>
         <div class="dienst-subtab-nav">
           <button class="dienst-subtab-btn${_magizooActiveTab === 'onderzoek' ? ' active' : ''}" data-tab="onderzoek" onclick="window._magizooTab('onderzoek')">${icon('search')} Onderzoek</button>
           <button class="dienst-subtab-btn${_magizooActiveTab === 'adoptie' ? ' active' : ''}" data-tab="adoptie" onclick="window._magizooTab('adoptie')">${icon('paw-print')} Adoptie</button>
@@ -12833,7 +12869,7 @@ async function renderUrsula() {
 
   const groet = geenSessie
     ? `Op de deur hangt een briefje: <em>“${esc(config.naam)} is even een fles jenever halen.”</em>`
-    : esc(config.groet || `${config.naam} legt haar handen op de kristallen bol.`);
+    : esc(window._dienstGroet(config, `${config.naam} legt haar handen op de kristallen bol.`));
 
   let body;
   if (geenSessie) {
@@ -13007,7 +13043,7 @@ function _renderTempelInterior(el, g, config, huidigeEed, huidigeZegen, currency
         </div>
         <div class="herberg-portrait-wrap">${portret}</div>
         ${priesterNaam ? `<p class="tempel-priester-naam">${esc(priesterNaam)}</p>` : ''}
-        <p class="herberg-groet">${esc(g.priesterGreet || config.groet || 'Welkom, pelgrim. Waarvoor bent u hier?')}</p>
+        <p class="herberg-groet">${esc(g.priesterGreet || window._dienstGroet(config, 'Welkom, pelgrim. Waarvoor bent u hier?'))}</p>
 
         ${huidigeEed && isVloek ? `
           <div class="tempel-zegen-actief tempel-vloek-actief">
@@ -13327,7 +13363,7 @@ async function renderTweespalt() {
                hem begroet. Hij komt nu uit meta.tweespalt.groet, zoals de
                herberg dat al deed; zonder invulling blijft er een neutrale
                regel over. -->
-          <p class="herberg-groet">${esc(config.groet || `Welkom bij ${config.naam || 'Het gokhuis'}.`)}</p>
+          <p class="herberg-groet">${esc(window._dienstGroet(config, `Welkom bij ${config.naam || 'Het gokhuis'}.`))}</p>
         </div>
 
         ${leningBanner}

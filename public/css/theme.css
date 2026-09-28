@@ -12314,11 +12314,38 @@ body.herberg-actief #app { position: relative; z-index: 1; }
 .player-buff-desc { font-family: 'IM Fell English', serif; font-style: italic; font-size: 0.76rem; color: #8a6f3a; }
 
 /* ── DM: herberg-menu-editor ── */
-.hb-menu-item { display: flex; flex-direction: column; gap: 6px; padding: 10px; margin-bottom: 8px; border: 1px solid rgba(196,168,122,0.3); border-radius: 8px; background: rgba(196,168,122,0.05); }
-.hb-menu-item-top { display: flex; gap: 6px; align-items: center; }
-.hb-menu-item-top .hb-menu-naam { flex: 1; }
-.hb-menu-item-effect { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
-.hb-menu-item-effect .hb-menu-bufflabel { flex: 1; min-width: 120px; }
+/* Een menuregel is een uitklap: dicht zie je naam en prijs, open de rest.
+   Acht velden per drankje op één rij las als een formulier zonder eind. */
+.hb-menu-item {
+  margin-bottom: 6px; border: 1px solid rgba(196,168,122,0.3); border-radius: 8px;
+  background: rgba(196,168,122,0.05);
+}
+.hb-menu-kop {
+  display: flex; align-items: center; gap: 9px; cursor: pointer;
+  padding: 9px 12px; list-style: none;
+  font-family: 'Cinzel', serif; font-size: 12.5px; color: var(--color-ink-bright, #2a1a08);
+}
+.hb-menu-kop::-webkit-details-marker { display: none; }
+.hb-menu-kop::before {
+  content: '›'; font-size: 14px; line-height: 1; opacity: .55;
+  transition: transform .15s; display: inline-block; flex-shrink: 0;
+}
+.hb-menu-item[open] > .hb-menu-kop::before { transform: rotate(90deg); }
+.hb-menu-kop:hover { background: rgba(196,168,122,0.08); }
+.hb-menu-kop-naam { flex: 1; min-width: 0; }
+.hb-menu-kop-prijs { font-family: 'Crimson Text', serif; font-size: 12px; color: #8a6a3a; }
+.hb-menu-kop-kaart .icon { width: 13px; height: 13px; opacity: .6; }
+.hb-menu-body {
+  display: flex; flex-direction: column; gap: 8px;
+  padding: 4px 12px 12px; border-top: 1px solid rgba(196,168,122,0.25);
+}
+
+/* Een kopje binnen een dienstpaneel (Algemeen, Overnachten, Aan de tap…). */
+.dm-dienst-kop { display: flex; align-items: center; gap: 7px; margin-top: 20px; }
+.dm-dienst-kop .icon { width: 14px; height: 14px; opacity: .75; }
+/* Het boekje van een kopje lijnt uit met dat van de tabbalk erboven: beide op
+   12px van de rechterrand van hun eigen blok. */
+.dm-dienst-kop .dm-sectie-hulp { margin-right: 0; }
 
 /* ── Tweespalt: het strijdperk (arena) ── */
 .ts-arena-status { margin-bottom: 12px; }
@@ -27160,7 +27187,10 @@ body.akte-schrijf-open .mp-overlay { z-index: 1320; }
   gap: 6px;
 }
 .dm-subtab-btn .icon { width: 14px; height: 14px; flex-shrink: 0; }
-.dm-subtab-hulp { margin-left: auto; display: inline-flex; align-items: center; }
+/* Het boekje van de tabbalk staat op dezelfde lijn als dat van de kopjes
+   eronder. De balk heeft 12px eigen padding en het blok eronder 14px; die twee
+   pixels verschil zag je als twee boekjes die net niet onder elkaar staan. */
+.dm-subtab-hulp { margin-left: auto; margin-right: 2px; display: inline-flex; align-items: center; }
 
 /* ── Het party-kaartje: lucht tussen de velden ────────────────────────────────
    Naam en Groepswachtwoord stonden tegen elkaar aan, waardoor het label van de
@@ -27295,16 +27325,29 @@ body.akte-schrijf-open .mp-overlay { z-index: 1320; }
 .akte-kaartjes,
 .akte-dungeons { margin: 14px 0 0; padding: 12px 0 0; border-top: 1px dashed rgba(196,168,122,0.45); }
 
-.akte-kaartjes-rij {
-  display: flex; align-items: baseline; gap: 10px; margin-top: 8px; flex-wrap: wrap;
-}
+/* Per soort een uitklap: dicht zie je wát er is en hoeveel, open de namen. */
+.akte-kaartjes-rij { margin-top: 6px; }
 .akte-kaartjes-lbl {
-  display: inline-flex; align-items: center; gap: 5px; flex: 0 0 116px;
+  display: inline-flex; align-items: center; gap: 6px; cursor: pointer;
   font-family: 'Cinzel', serif; font-size: 10.5px; letter-spacing: .06em;
-  text-transform: uppercase; color: #8a6a3a;
+  text-transform: uppercase; color: #8a6a3a; list-style: none; padding: 3px 0;
 }
+.akte-kaartjes-lbl::-webkit-details-marker { display: none; }
+.akte-kaartjes-lbl:hover { color: #5a4020; }
 .akte-kaartjes-lbl .icon { width: 13px; height: 13px; }
-.akte-kaartjes-chips { display: flex; flex-wrap: wrap; gap: 5px; flex: 1; min-width: 0; }
+/* Het chevron-teken draait mee met de uitklap. */
+.akte-kaartjes-lbl::after {
+  content: '›'; font-size: 13px; line-height: 1; opacity: .6;
+  transition: transform .15s; display: inline-block;
+}
+.akte-kaartjes-rij[open] > .akte-kaartjes-lbl::after { transform: rotate(90deg); }
+.akte-kaartjes-n {
+  font-family: 'Crimson Text', serif; font-size: 11px; letter-spacing: 0;
+  text-transform: none; color: #a08a60;
+}
+.akte-kaartjes-chips {
+  display: flex; flex-wrap: wrap; gap: 5px; padding: 4px 0 6px 19px;
+}
 .akte-kaartje {
   padding: 3px 11px; border-radius: 999px; cursor: pointer;
   background: rgba(255,255,255,0.55); border: 1px solid rgba(122,96,64,0.28);
@@ -27408,3 +27451,33 @@ body.akte-schrijf-open .mp-overlay { z-index: 1320; }
   flex: 0 0 26px; font-family: 'Cinzel', serif; font-size: 10px;
   color: #a08a60; text-align: right;
 }
+
+/* ── De begroetingen van een dienst ─────────────────────────────────────────
+   Een lijstje regels in een uitklapkaartje, met dezelfde vorm als een tafel:
+   regel, prullenbak, en eentje erbij onderaan. Dicht zie je hoeveel er zijn. */
+.dm-groeten {
+  margin-top: 14px; border: 1px solid rgba(196,168,122,0.35);
+  border-radius: 8px; background: rgba(196,168,122,0.05);
+}
+.dm-groeten-kop {
+  display: flex; align-items: center; gap: 9px; cursor: pointer;
+  padding: 9px 12px; list-style: none;
+  font-family: 'Cinzel', serif; font-size: 11px; letter-spacing: .05em;
+  text-transform: uppercase; color: #8a6a3a;
+}
+.dm-groeten-kop::-webkit-details-marker { display: none; }
+.dm-groeten-kop::before {
+  content: '›'; font-size: 14px; line-height: 1; opacity: .55;
+  transition: transform .15s; display: inline-block; flex-shrink: 0;
+}
+.dm-groeten[open] > .dm-groeten-kop::before { transform: rotate(90deg); }
+.dm-groeten-n {
+  margin-left: auto; font-family: 'Crimson Text', serif; font-size: 11.5px;
+  letter-spacing: 0; text-transform: none; color: #a08a60;
+}
+.dm-groeten-body {
+  display: flex; flex-direction: column; gap: 6px;
+  padding: 4px 12px 8px; border-top: 1px solid rgba(196,168,122,0.25);
+}
+.dm-groet-regel { display: flex; gap: 6px; align-items: flex-start; }
+.dm-groet-tekst { flex: 1; min-width: 0; resize: vertical; min-height: 48px; }
