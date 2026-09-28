@@ -10,7 +10,7 @@ import { renderSpreuken } from './render-spreuken.js?v=41';
 import { renderVaardigheden, zoekVaardigheden } from './render-vaardigheden.js?v=10';
 import { renderStatblock } from './render-statblock.js?v=9';
 import { initSocket } from "./socket-client.js?v=78";
-import { initDmPanel } from "./dm-panel.js?v=323";
+import { initDmPanel } from "./dm-panel.js?v=324";
 import { COND_INFO, COND_LABEL, COND_MET_PLAATJE, COND_ICON } from './conditions.js?v=2';
 import './media-picker.js?v=8';
 import './tafels.js?v=2';
@@ -12292,7 +12292,7 @@ function _herbergMenuKaart(m) {
   const _temp = spec(m.tempHp, 'temp HP');
   if (_heal) effecten.push(_heal);
   if (_temp) effecten.push(_temp);
-  if (m.buffLabel) effecten.push(esc(m.buffLabel));
+  if (m.buffDesc) effecten.push(esc(m.buffDesc));
   return `
     <div class="herberg-menu-kaart">
       <div class="herberg-menu-kaart-body">
@@ -12324,7 +12324,7 @@ window._herbergBestel = async (itemId) => {
     if (res.heal) effecten.push(`${icon('heart')} ${esc(res.heal.formule)} → ${res.heal.hersteld} HP hersteld`);
     if (res.tempRoll) effecten.push(`${icon('dice')} ${esc(res.tempRoll.formule)} → ${res.tempRoll.resultaat} temp HP`);
     else if (res.tempHp) effecten.push(`+${res.tempHp} temp HP`);
-    if (res.buff) effecten.push(esc(res.buff.label));
+    if (res.buff) effecten.push(`${icon('sparkles')} ${esc(res.buff.desc || res.buff.label)} — staat op je blad`);
     if (resEl) {
       resEl.classList.remove('hidden');
       resEl.innerHTML = `

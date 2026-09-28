@@ -13588,7 +13588,10 @@ router.post('/herberg/bestel', attachRole, vereistDienst('herberg'), (req, res) 
     // allebei, precies zoals een voorwerpkaartje.
     heal:      kaart ? _healingVan(kaart.data) : item.heal,
     tempHp:    kaart ? _tempHpVan(kaart.data) : item.tempHp,
-    buffLabel: kaart ? (kaart.data?.buffLabel || item.buffLabel) : item.buffLabel,
+    // Het etiket op het spelersblad: wat het kaartje zegt, en anders gewoon de
+    // naam van het item. Een losse menuregel had daar eerst een eigen veld
+    // voor; dat was een tweede naam voor hetzelfde ding.
+    buffLabel: kaart ? (kaart.data?.buffLabel || kaart.name || item.naam) : (item.buffLabel || item.naam),
     buffDesc:  kaart ? (kaart.data?.buffDesc  || item.buffDesc)  : item.buffDesc,
   };
 
@@ -13611,7 +13614,7 @@ router.post('/herberg/bestel', attachRole, vereistDienst('herberg'), (req, res) 
 
   // Status-buff (zichtbaar op de sheet tot de volgende lange rust)
   let buff = null;
-  if (werking.buffLabel) {
+  if (werking.buffLabel && werking.buffDesc) {
     if (!dmState.playerBuffs) dmState.playerBuffs = {};
     const list = (dmState.playerBuffs[characterId] || []).filter(b => b.label !== werking.buffLabel);
     buff = {

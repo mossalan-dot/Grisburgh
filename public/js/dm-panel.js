@@ -5881,6 +5881,17 @@ function _hbRenderMenuLijst() {
               <input class="dm-input dm-input-sm hb-menu-temphp" value="${esc(String(m.tempHp ?? '').trim())}" placeholder="0 of 1d6">
             </div>
           </div>
+          <!-- Getallen schrijven zichzelf op: HP en tijdelijke HP staan meteen
+               op het spelersblad. Een werking in woorden heeft daar ook een plek
+               nodig — anders moet de speler hem onthouden. Hij verschijnt als
+               badge onder "Aan de tap", met de naam van het drankje erboven, tot
+               de volgende lange rust. Eén veld, want de naam is het etiket al.
+               (Hangt het item aan een voorwerpkaartje, dan wint dat kaartje.) -->
+          <div class="dm-form-row">
+            <label class="dm-form-label">Werking in woorden</label>
+            <input class="dm-input dm-input-sm hb-menu-werking" value="${esc(m.buffDesc || '')}"
+              placeholder="Voordeel op je eerste save — blijft tot je lange rust">
+          </div>
           <div class="dm-form-row">
             <button class="dm-btn dm-btn-ghost dm-btn-sm dm-btn-danger" onclick="window._hbMenuRemove(${i})"
               title="Dit item van de kaart halen">${icon('trash')} Verwijderen</button>
@@ -5899,6 +5910,8 @@ function _hbMenuReadDom() {
     beschrijving: row.querySelector('.hb-menu-desc')?.value.trim() || '',
     heal: row.querySelector('.hb-menu-heal')?.value.trim() || '',
     tempHp: row.querySelector('.hb-menu-temphp')?.value.trim() || '',
+    // De naam van het item is het etiket; dit is wat het doet.
+    buffDesc: row.querySelector('.hb-menu-werking')?.value.trim() || '',
     // Naam → id. Een getypte naam die geen kaartje is laat de koppeling leeg;
     // het item blijft dan gewoon tekst, zoals het altijd was.
     entityId: (() => {
@@ -5910,7 +5923,7 @@ function _hbMenuReadDom() {
 
 window._hbMenuAdd = () => {
   _hbMenu = _hbMenuReadDom();
-  _hbMenu.push({ id: 'menu_' + Date.now().toString(36), naam: '', prijs: '', beschrijving: '', heal: '', tempHp: '' });
+  _hbMenu.push({ id: 'menu_' + Date.now().toString(36), naam: '', prijs: '', beschrijving: '', heal: '', tempHp: '', buffDesc: '' });
   _hbRenderMenuLijst();
 };
 

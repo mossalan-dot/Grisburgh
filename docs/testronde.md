@@ -1313,6 +1313,7 @@ Grisburghs **data** te staan — niet in de code.
 - [ ] **Prijzen zijn muntvelden** (DM) — overnachten en elk menu-item hebben drie vakjes (gp/sp/cp) in plaats van een vrij tekstveld. Een bestaande prijs ("1 fl.", "12,34") komt goed ingevuld terug.
 - [ ] **Roddels per persoon** (DM/SP) — stel bij Overnachten in hoeveel roddels een lange rust in de herberg per speler oplevert; het was vast twee. Nul betekent geen roddels.
 - [ ] **Aan de tap kan genezen** (DM/SP) — een menu-item heeft nu *Geneest* naast *Tijdelijke HP*; allebei mag een worp zijn. Gekoppeld aan een voorwerpkaartje wint dat kaartje, zoals eerder.
+- [ ] **De werking staat op je blad** (DM/SP) — vul *Werking in woorden* in bij een menu-item en bestel het: op het spelersblad verschijnt onder *Aan de tap* een badge met de naam van het drankje en die werking, tot de volgende lange rust. Een drankje zonder werking in woorden geeft géén badge.
 - [ ] **Eén item per uitklap** (DM) — de menukaart toont per regel alleen naam en prijs; klik open voor de rest. Een nieuw item staat meteen open.
 - [ ] **Begroetingen variëren** (DM/SP) — vul meerdere begroetingen in (uitklapkaartje, regel erbij/eruit): bij elk bezoek kiest de dienst er een. Eén regel gedraagt zich als vroeger; een campagne met alleen het oude veld blijft werken.
 - [ ] **Het logboek is opgeschoond** (ALL) — het blok heet *Archief*, met per soort een uitklap (met aantal) en documenten als gewone regel. Dungeons heten dungeons. Op een sessiekaart staan geen losse namenchips meer: die staan al in het regie-script.

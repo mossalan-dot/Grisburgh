@@ -240,6 +240,59 @@ describe('Winkel en rust', () => {
     assert.equal(hd.spent['6'], 2, 'twee terug, dus twee blijven verbruikt');
   });
 
+  // Aan de tap krijg je iets dat werkt: HP, tijdelijke HP, of een werking in
+  // woorden. De eerste twee schrijven zichzelf op — de derde had geen plek meer
+  // nadat het losse statusveld eruit ging, en dan moet de speler hem onthouden.
+  describe('Aan de tap', () => {
+    const menuId = 'menu_proef';
+
+    before(async () => {
+      await req(server, 'PUT', '/api/meta/herberg', {
+        naam: 'De Swarte Cat',
+        overnachtingPrijs: '1 fl',
+        menu: [{
+          id: menuId, naam: 'Kattenspin', prijs: '2 kn',
+          beschrijving: 'Stroperig en veel te zoet.',
+          heal: '2', tempHp: '3', buffDesc: 'Voordeel op je eerste save',
+        }],
+      }, dm);
+      await req(server, 'PATCH', `/api/player-currency/${aria}`, { fl: 10, kn: 0, cl: 0 }, dm);
+      await req(server, 'PATCH', `/api/player-hp/${aria}`, { current: 5, max: 30 }, dm);
+    });
+
+    it('geneest, geeft tijdelijke HP, en zet de werking op het blad', async () => {
+      const r = await req(server, 'POST', '/api/herberg/bestel', { itemId: menuId }, ariaC);
+      assert.strictEqual(r.status, 200, JSON.stringify(r.body));
+      assert.strictEqual(r.body.heal?.hersteld, 2, 'echte HP erbij');
+      assert.strictEqual(r.body.tempHp, 3, 'tijdelijke HP erbij');
+      assert.ok(r.body.buff, 'een werking in woorden hoort een badge te geven');
+      assert.strictEqual(r.body.buff.label, 'Kattenspin', 'de naam van het drankje is het etiket');
+      assert.strictEqual(r.body.buff.desc, 'Voordeel op je eerste save');
+
+      // En het staat op zijn blad, niet alleen in de bevestiging die wegvalt.
+      const blad = (await req(server, 'GET', `/api/player-hp/${aria}`, null, ariaC)).body;
+      assert.strictEqual(blad.current, 7, '5 + 2 genezen');
+      assert.strictEqual(blad.temp, 3);
+      assert.ok((blad.buffs || []).some(b => b.label === 'Kattenspin' && b.desc === 'Voordeel op je eerste save'),
+        'de werking staat op het spelersblad');
+    });
+
+    it('geeft geen badge aan een drankje dat niets in woorden doet', async () => {
+      await req(server, 'PUT', '/api/meta/herberg', {
+        menu: [{ id: 'menu_kaal', naam: 'Klein bier', prijs: '1 cl', tempHp: '1' }],
+      }, dm);
+      const r = await req(server, 'POST', '/api/herberg/bestel', { itemId: 'menu_kaal' }, ariaC);
+      assert.strictEqual(r.status, 200, JSON.stringify(r.body));
+      assert.strictEqual(r.body.buff, null, 'anders staat elk drankje dat je ooit dronk op je blad');
+    });
+
+    it('wist de werking bij een lange rust', async () => {
+      await req(server, 'POST', '/api/party/long-rest', { locatie: 'veld' }, dm);
+      const blad = (await req(server, 'GET', `/api/player-hp/${aria}`, null, ariaC)).body;
+      assert.deepStrictEqual(blad.buffs || [], [], 'aan de tap geldt tot je volgende lange rust');
+    });
+  });
+
   it('geeft altijd minstens één Hit Die terug', async () => {
     const solo = (await req(server, 'POST', '/api/entities/personages',
       { name: 'Solo', subtype: 'speler', data: { groep: 'groep1' } }, dm)).body.id;
