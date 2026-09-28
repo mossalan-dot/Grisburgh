@@ -5107,6 +5107,24 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
 
   }
 
+  // ── Huisvest deze locatie een dienst? ──────────────────────────────────────
+  // De koppeling liep één kant op: bij de dienst stond welk kaartje erbij
+  // hoorde, maar op het kaartje was daar niets van te zien. Nu staat hier de
+  // deur naar binnen — en omdat de dienst zijn achtergrond van dit kaartje
+  // haalt, klopt het beeld aan beide kanten.
+  if (tab === 'locaties' && e?.id) {
+    const dienst = window._dienstOpLocatie?.(e.id);
+    if (dienst) {
+      infoHtml += `
+        <div class="mt-4 pt-4 border-t border-room-border">
+          <div class="detail-label detail-label--gold mb-1">${icon(dienst.icoon)} Hier gevestigd</div>
+          <button class="dienst-deur" onclick="window.app.switchSection('${esc(dienst.sectie)}')">
+            ${icon(dienst.icoon)} ${esc(dienst.naam)}
+          </button>
+        </div>`;
+    }
+  }
+
   // Eigen spelersaantekening (zichtbaar voor ingelogde speler)
   const playerName = window.app?.state?.playerName;
   if (playerName && !isDM()) {

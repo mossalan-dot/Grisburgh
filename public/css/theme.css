@@ -27274,3 +27274,15 @@ body.akte-schrijf-open .mp-overlay { z-index: 1320; }
   display: block; width: 100%; max-height: 220px; object-fit: cover;
   border-radius: 8px; margin: 14px 0 4px;
 }
+
+/* De deur naar een dienst op zijn locatiekaartje. Zelfde vorm als de andere
+   doorklikknoppen in een detailvenster; goud omdat het een plek is waar je
+   naar binnen kunt, niet zomaar een verwijzing. */
+.dienst-deur {
+  display: inline-flex; align-items: center; gap: 7px;
+  padding: 7px 14px; border-radius: 8px; cursor: pointer;
+  background: rgba(196,168,122,0.16); border: 1px solid rgba(196,168,122,0.55);
+  font-family: 'Cinzel', serif; font-size: 12px; font-weight: 600; color: #6a4010;
+}
+.dienst-deur:hover { background: rgba(196,168,122,0.3); color: #3a2410; }
+.dienst-deur .icon { width: 15px; height: 15px; }

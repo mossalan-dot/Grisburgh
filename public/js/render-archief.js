@@ -116,7 +116,11 @@ function fmtToolbar(id) {
   </div>`;
 }
 
-// ── Ontdekt in <campagne> ────────────────────────────────────────────────────
+// ── Ontdekt ─────────────────────────────────────────────────────────────────
+// Heette "Ontdekt in <campagnetitel>". Die titel is wel campagne-eigen
+// (`meta.appTitle`), maar hij noemt de campagne — niet de wereld — en de
+// meters tellen het hele archief, ook wat buiten die plek ligt. "Ontdekt"
+// alleen klopt dus beter én leest korter.
 // Stond op het Party-tabblad, boven de portretten van je medespelers. Dat is de
 // verkeerde vraag op de verkeerde plek: deze meters gaan over het **archief**
 // (hoeveel kaartjes ken je al), niet over wie er met je meeloopt. Hier staat
@@ -152,7 +156,7 @@ async function _ontdekBlokHtml() {
   const dicht = localStorage.getItem('ontdekOpen') === '0';
   return `<div class="logboek-ontdek${dicht ? ' is-dicht' : ''}" id="logboek-ontdek">
     <button class="logboek-ontdek-kop" onclick="window._ontdekToggle()" aria-expanded="${dicht ? 'false' : 'true'}">
-      ${icon('eye')}<span>Ontdekt in ${window.app.esc(window._campagneNaam())}</span>
+      ${icon('eye')}<span>Ontdekt</span>
     </button>
     <div class="ontdek-meters">${rows}</div>
   </div>`;
@@ -227,14 +231,13 @@ export async function renderLogboek() {
   // Verslagen tab
   tabContent.style.cssText = '';
   tabContent.innerHTML = `
-    <div id="logboek-ontdek-slot"></div>
-    <div class="logboek-search-wrap" style="padding: 0 24px 8px">
+    <div class="logboek-search-wrap">
       ${icon('search', { cls: 'logboek-search-icon' })}
       <input type="text" class="logboek-search-input" id="logboek-search-input"
         placeholder="Zoek in het logboek…" value="${esc(logboekSearch)}"
         oninput="window._logboekSearch(this.value)"${isDM() ? ' style="padding-right:46px"' : ''}>
-
     </div>
+    <div id="logboek-ontdek-slot"></div>
     <div class="flex-1 overflow-y-auto px-6 pb-6" id="logboek-body">
       ${_buildLogboekBody(visibleEntries, hk)}
     </div>

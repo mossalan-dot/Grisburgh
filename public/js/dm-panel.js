@@ -965,17 +965,28 @@ function _dienstKopHtml({ sleutel, titel, hulp, config = {}, personages = [], lo
 
     ${kaartVeld('locatie', 'Locatiekaartje', locaties, loc?.name || '', 'Zoek de plek waar hij staat…')}
 
+    <!-- De achtergrond komt van het locatiekaartje hierboven; een eigen beeld
+         is de uitzondering. Zo is de koppeling ook te zien in plaats van alleen
+         opgeslagen — je staat letterlijk in die herberg. -->
     <div class="dm-form-row" style="flex-direction:column;gap:6px;align-items:stretch">
       <label class="dm-form-label">Achtergrond</label>
       ${config.backdropId
         ? `<img id="${sleutel}-backdrop-preview" src="${api.fileUrl(config.backdropId)}" alt=""
+             onerror="this.style.display='none'"
              style="width:100%;max-height:100px;object-fit:cover;border-radius:6px;border:1px solid rgba(196,168,122,0.3)">`
         : `<span id="${sleutel}-backdrop-preview" style="display:none"></span>`}
+      ${!config.backdropId && loc ? `<img src="${api.thumbUrlBreed(loc.id)}" alt=""
+        onerror="this.style.display='none'"
+        style="width:100%;max-height:100px;object-fit:cover;border-radius:6px;border:1px dashed rgba(196,168,122,0.5);opacity:.8">` : ''}
+      <span class="dm-hint" style="font-size:11px">${config.backdropId
+        ? 'Een eigen achtergrond. Haal hem weg om het beeld van het locatiekaartje te gebruiken.'
+        : (loc ? `Het beeld van ${esc(loc.name)}. Kies hier een eigen achtergrond als je iets anders wilt.`
+               : 'Koppel een locatiekaartje, of kies hier een eigen achtergrond.')}</span>
       <div class="dm-feature-row" style="gap:6px">
         <button type="button" class="dm-btn dm-btn-ghost" onclick="window._pickServiceBackdrop('${sleutel}')"
-          title="Kies of upload een achtergrond uit de mediabibliotheek">${icon('image')} Achtergrond kiezen</button>
+          title="Kies of upload een eigen achtergrond uit de mediabibliotheek">${icon('image')} Eigen achtergrond</button>
         ${config.backdropId ? `<button type="button" class="dm-btn dm-btn-ghost"
-          onclick="window._dienstBackdropWis('${sleutel}')" title="Achtergrond weghalen">${icon('x')} Weghalen</button>` : ''}
+          onclick="window._dienstBackdropWis('${sleutel}')" title="Terug naar het beeld van het locatiekaartje">${icon('x')} Weghalen</button>` : ''}
       </div>
     </div>
 

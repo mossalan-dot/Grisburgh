@@ -1,6 +1,6 @@
 import { api, campagneUitUrl, zetCampagne } from './api.js?v=296';
-import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, renderDocumenten, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=318";
-import { initArchief, renderLogboek, openLogboekEditor } from "./render-archief.js?v=131";
+import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, renderDocumenten, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=319";
+import { initArchief, renderLogboek, openLogboekEditor } from "./render-archief.js?v=132";
 import { renderKaart, queueFlyTo, verversPins, nieuweKaart } from './render-kaart.js?v=31';
 import { renderDungeon } from './render-dungeon.js?v=56';
 import { renderRelatiemap } from './render-relatiemap.js?v=27';
@@ -10,7 +10,7 @@ import { renderSpreuken } from './render-spreuken.js?v=41';
 import { renderVaardigheden, zoekVaardigheden } from './render-vaardigheden.js?v=10';
 import { renderStatblock } from './render-statblock.js?v=9';
 import { initSocket } from "./socket-client.js?v=78";
-import { initDmPanel } from "./dm-panel.js?v=320";
+import { initDmPanel } from "./dm-panel.js?v=321";
 import { COND_INFO, COND_LABEL, COND_MET_PLAATJE, COND_ICON } from './conditions.js?v=2';
 import './media-picker.js?v=8';
 import './tafels.js?v=2';
@@ -35,6 +35,38 @@ window._muntNamen = () => window._currency || window.app?.state?.meta?.currency 
 // Waar de tekst een plaatsnaam noemt, is dat de naam van de campagne — Grisburgh
 // stond er tot nu toe letterlijk in.
 window._campagneNaam = () => window.app?.state?.meta?.appTitle || 'de campagne';
+
+// De achtergrond van een dienst: zijn eigen keuze, en anders het beeld van het
+// locatiekaartje waaraan hij hangt. Zo is de koppeling niet alleen opgeslagen
+// maar ook te zien — je staat letterlijk in die herberg. Dezelfde regel die de
+// goden in de tempel al volgden (`g.backdropId || g.locatieEntityId`).
+window._dienstBackdropId = (config) => (config?.backdropId || config?.locatieId || null);
+
+// Welke dienst is aan dít locatiekaartje gekoppeld? Voor de deur die op het
+// kaartje verschijnt. Een dienst die uitstaat telt niet mee — dan zou het
+// kaartje naar een tabblad wijzen dat er niet is.
+const _DIENST_OP_KAART = [
+  { sleutel: 'herberg',   sectie: 'herberg',   icoon: 'beer',       val: 'De herberg' },
+  { sleutel: 'tweespalt', sectie: 'tweespalt', icoon: 'dice',       val: 'Het gokhuis' },
+  { sleutel: 'gock',      sectie: 'gock',      icoon: 'search',     val: 'De detective' },
+  { sleutel: 'ursula',    sectie: 'ursula',    icoon: 'sparkles',   val: 'De waarzegger' },
+  { sleutel: 'tempel',    sectie: 'tempel',    icoon: 'church',     val: 'De tempel' },
+  { sleutel: 'magizoo',   sectie: 'magizoo',   icoon: 'paw-print',  val: 'De magizoöloog' },
+];
+
+window._dienstOpLocatie = (locatieId) => {
+  if (!locatieId) return null;
+  const meta = window.app?.state?.meta || {};
+  const uit = window._verborgen?.secties || [];
+  for (const d of _DIENST_OP_KAART) {
+    if (uit.includes(d.sleutel)) continue;
+    const c = meta[d.sleutel];
+    if (c?.locatieId === locatieId) {
+      return { sectie: d.sectie, icoon: d.icoon, naam: c.naam || d.val };
+    }
+  }
+  return null;
+};
 
 // Hoe deze campagne haar facties noemt. De losse facties dragen hun eigen naam
 // (meta.facties), maar de sectie eromheen stond op twaalf plekken hardcoded —
@@ -1248,7 +1280,7 @@ function applyRole() {
   const isNamedPlayer = state.role === 'player' && !!state.playerName;
 
   // Backdrop CSS-variabele voor herbergachtergrond
-  const backdropId = state.meta?.herberg?.backdropId;
+  const backdropId = window._dienstBackdropId(state.meta?.herberg);
   if (backdropId) {
     document.documentElement.style.setProperty('--herberg-backdrop-url', `url('${api.thumbUrlBreed(backdropId)}')`);
   } else {
@@ -12391,7 +12423,8 @@ async function renderGock() {
     }
   }
 
-  const backdrop = config.backdropId ? `style="background-image:url('${api.thumbUrlBreed(config.backdropId)}')"` : '';
+  const _bd = window._dienstBackdropId(config);
+  const backdrop = _bd ? `style="background-image:url('${api.thumbUrlBreed(_bd)}')"` : '';
   const portret  = config.imageId
     ? `<img src="${api.thumbUrl(config.imageId)}" class="herberg-portrait-round" alt="${esc(config.naam)}">`
     : `<div class="gock-portret-fallback">${icon('search')}</div>`;
@@ -12550,7 +12583,8 @@ async function renderMagizoo() {
     cooldownTekst = `${esc(config.naam || 'De Magizoöloog')} werkt zijn aantekeningen nog bij — nog ± ${min} min.`;
   }
 
-  const backdrop = config.backdropId ? `style="background-image:url('${api.thumbUrlBreed(config.backdropId)}')"` : '';
+  const _bd = window._dienstBackdropId(config);
+  const backdrop = _bd ? `style="background-image:url('${api.thumbUrlBreed(_bd)}')"` : '';
   const portret  = config.imageId
     ? `<img src="${api.thumbUrl(config.imageId)}" class="herberg-portrait-round" alt="${esc(config.naam)}">`
     : `<div class="gock-portret-fallback">${icon('paw-print')}</div>`;
@@ -12791,7 +12825,8 @@ async function renderUrsula() {
   const prijsTekst = (p) => [p?.fl && `${p.fl} fl`, p?.kn && `${p.kn} kn`, p?.cl && `${p.cl} cl`].filter(Boolean).join(' ') || 'gratis';
 
   const weg = geenSessie; // Ursula is er niet wanneer er geen sessie/akte loopt
-  const backdrop = config.backdropId ? `style="background-image:url('${api.thumbUrlBreed(config.backdropId)}')"` : '';
+  const _bd = window._dienstBackdropId(config);
+  const backdrop = _bd ? `style="background-image:url('${api.thumbUrlBreed(_bd)}')"` : '';
   const portret = config.imageId
     ? `<img src="${api.thumbUrl(config.imageId)}" class="herberg-portrait-round${weg ? ' herberg-portrait--weg' : ''}" alt="${esc(config.naam)}">`
     : `<div class="herberg-portrait-round herberg-portrait-fallback${weg ? ' herberg-portrait--weg' : ''}">${icon('sparkles')}</div>`;
@@ -12888,8 +12923,9 @@ function _renderTempelLijst(el, goden, config, huidigeEed, huidigeZegen, currenc
     </div>`);
   }
 
-  const backdrop = config.backdropId
-    ? `style="background-image:url('${api.thumbUrlBreed(config.backdropId)}')"`
+  const _tempelBd = window._dienstBackdropId(config);
+  const backdrop = _tempelBd
+    ? `style="background-image:url('${api.thumbUrlBreed(_tempelBd)}')"`
     : '';
 
   el.innerHTML = `
@@ -13271,7 +13307,8 @@ async function renderTweespalt() {
           : `${lening.rentePerRust ?? 30}% rente per nacht · ${lening.rusten ?? 0} ${(lening.rusten === 1) ? 'nacht' : 'nachten'} verstreken`}</span>
        </div>` : '';
 
-  const tsBackdrop = config.backdropId ? `style="background-image:url('${api.thumbUrlBreed(config.backdropId)}')"` : '';
+  const _tsBd = window._dienstBackdropId(config);
+  const tsBackdrop = _tsBd ? `style="background-image:url('${api.thumbUrlBreed(_tsBd)}')"` : '';
   const tsPortret  = config.imageId
     ? `<img src="${api.thumbUrl(config.imageId)}" class="herberg-portrait-round" alt="${esc(config.naam || 'Het gokhuis')}">`
     : `<div class="ts-portrait-fallback">${icon('dice',{cls:'icon-gi'})}</div>`;
