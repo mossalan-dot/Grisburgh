@@ -1,6 +1,6 @@
 import { api, campagneUitUrl, zetCampagne } from './api.js?v=296';
 import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, renderDocumenten, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=319";
-import { initArchief, renderLogboek, openLogboekEditor } from "./render-archief.js?v=132";
+import { initArchief, renderLogboek, openLogboekEditor } from "./render-archief.js?v=134";
 import { renderKaart, queueFlyTo, verversPins, nieuweKaart } from './render-kaart.js?v=31';
 import { renderDungeon } from './render-dungeon.js?v=56';
 import { renderRelatiemap } from './render-relatiemap.js?v=27';

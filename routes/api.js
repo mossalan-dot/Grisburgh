@@ -7456,9 +7456,15 @@ router.get('/archief', attachRole, (req, res) => {
         ? []  // niet ingelogd als speler → geen verslagen
         : (archief.sessieLog || []).filter(e =>
             e.visible &&
+            // Een gevechtsverslag hangt aan de party die vocht; een gewoon
+            // verslag draagt geen groep en geldt voor iedereen.
+            (!e.groep || e.groep === playerGroepId) &&
             _chapterVisible(cv, playerGroepId, e.hoofdstuk || '_')
           ).map(e => ({
             ...e,
+            // Het ronde-voor-ronde-log is voorbereiding en boekhouding: dat
+            // blijft bij de DM. Het verslag zelf gaat wél mee.
+            logDm: undefined,
             images: (e.images || []).filter(img => _imgZichtbaar(dmState, playerGroepId, img)),
           })),
     chapterVisibility: req.role === 'dm' ? cv : undefined,
@@ -10108,29 +10114,76 @@ router.post('/combat/start', requireDM, (req, res) => {
   res.json(combat);
 });
 
-// Schrijf het gevechtslog stilzwijgend weg naar de actieve akte. Tijdens het
-// spelen stond het alleen maar in de weg, maar achteraf wil je het wél kunnen
-// nalezen. Geen knop en geen melding: het gebeurt gewoon bij het afsluiten.
-// De entry krijgt bewust géén `visible`, dus hij is DM-only — spelers zien in
-// GET /archief alleen sessieLog-regels mét die vlag.
-function _dumpCombatLog(combat, req) {
+// Het verslag van een gevecht, weggeschreven bij het afsluiten. Geen knop en
+// geen melding: het gebeurt gewoon.
+//
+// Hier stond een rauwe dump van het ronde-voor-ronde-log als DM-only regel
+// ("Gevechtslog — Goblin, Bandit"). Dat is wat er gebeurde, maar niet wat het
+// wérd: wie je tegenover je had, of je won, hoe lang het duurde en wie er
+// neerging. Dat verhaal hoort de party ook te mogen lezen — het is van hen.
+// Dus: een verslag met kop en uitkomst dat de party ziet, en het ronde-log
+// eronder dat alleen de DM ziet (`logDm`, buiten de speler-payload gehouden).
+function _gevechtVerslag(combat, req) {
   const regels = (combat?.log || []).filter(r => r && r.text);
-  if (!regels.length) return;
+  const vijanden = (combat?.combatants || []).filter(c => c.type === 'monster');
+  if (!regels.length && !vijanden.length) return;
   const dmState = readDmState();
   const akte = _activeAkteVoor(dmState)?.key;
   if (!akte) return;                       // geen actieve akte → nergens aan te hangen
+
+  // Welke party vocht? De groep van de spelers die meededen. Vochten er
+  // spelers uit meer dan één groep (of helemaal geen), dan hangen we het
+  // verslag aan geen enkele groep: dan blijft het DM-only.
+  const groepen = new Set();
+  for (const c of (combat.combatants || [])) {
+    if (c.type !== 'player' || !c.entityId) continue;
+    const gid = _playerGroupId(dmState, c.entityId);
+    if (gid) groepen.add(gid);
+  }
+  const groep = groepen.size === 1 ? [...groepen][0] : null;
+
+  // Tegenstanders geteld op hun naam zonder volgnummer ("Goblin 3" → Goblin).
+  const perNaam = new Map();
+  for (const c of vijanden) {
+    const naam = String(c.name || '').replace(/\s+\d+$/, '').trim();
+    if (naam) perNaam.set(naam, (perNaam.get(naam) || 0) + 1);
+  }
+  const tegenstanders = [...perNaam].map(([naam, aantal]) => ({ naam, aantal }));
+
+  // Wie ging neer: alles wat aan de eigen kant staat en op 0 eindigde.
+  const gevallen = (combat.combatants || [])
+    .filter(c => c.type !== 'monster' && (c.hp ?? 1) <= 0)
+    .map(c => String(c.name || '').trim()).filter(Boolean);
+
+  const encounter = combat.encounterId
+    ? (storage.readJSON('encounters.json').encounters || []).find(e => e.id === combat.encounterId)
+    : null;
+  const naam = encounter?.name
+    || (tegenstanders.length ? tegenstanders.map(t => t.aantal > 1 ? `${t.aantal}× ${t.naam}` : t.naam).join(', ')
+                             : 'Een schermutseling');
+
+  const uitkomst = combat.winner === 'players'  ? 'overwinning'
+                 : combat.winner === 'monsters' ? 'nederlaag'
+                 :                                'onbeslist';
+
   const archief = storage.readJSON('archief.json');
   if (!Array.isArray(archief.sessieLog)) archief.sessieLog = [];
-  // Monsternamen ontdubbeld (het genummerde achtervoegsel eraf) voor de titel.
-  const namen = [...new Set((combat.combatants || [])
-    .filter(c => c.type === 'monster')
-    .map(c => String(c.name || '').replace(/\s+\d+$/, '')))].filter(Boolean);
   archief.sessieLog.push({
-    id:                    'sl_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
-    hoofdstuk:             akte,
-    datum:                 new Date().toISOString().slice(0, 10),
-    korteSamenvatting:     'Gevechtslog' + (namen.length ? ` — ${namen.slice(0, 3).join(', ')}` : ''),
-    samenvatting:          regels.map(r => `R${r.round}  ${r.text}`).join('\n'),
+    id:        'sl_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
+    hoofdstuk: akte,
+    datum:     new Date().toISOString().slice(0, 10),
+    soort:     'gevecht',
+    // Alleen de party die vocht leest het terug; zonder eenduidige groep blijft
+    // het bij de DM (geen `visible`).
+    ...(groep ? { visible: true, groep } : {}),
+    korteSamenvatting: naam,
+    samenvatting: '',
+    gevecht: {
+      naam, uitkomst, ronden: combat.round || 1,
+      encounterId: combat.encounterId || null,
+      tegenstanders, gevallen,
+    },
+    logDm: regels.map(r => ({ ronde: r.round, tekst: r.text })),
     images: [], nieuwPersonages: [], terugkerendPersonages: [], nieuwLocaties: [],
     terugkerendLocaties: [], organisaties: [], voorwerpen: [], docs: [], nieuw: [], terugkerend: [],
   });
@@ -10142,7 +10195,7 @@ router.delete('/combat', requireDM, (req, res) => {
   // Persisteer speler-HP naar dm-state vóór het wissen van het gevecht
   const prevCombat = storage.readJSON('combat.json');
   _flushPlayerHpToDmState(prevCombat, req.app.get('io'), _campagneRoom(req));
-  _dumpCombatLog(prevCombat, req);
+  _gevechtVerslag(prevCombat, req);
   const combat = { active: false, round: 1, currentTurn: 0, combatants: [] };
   storage.writeJSON('combat.json', combat);
   _zendCombat(req, combat);

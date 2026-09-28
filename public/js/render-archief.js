@@ -17,6 +17,12 @@ let archiefData = { logEntries: [], sessieLog: [] };
 // Documenten zijn kaartjes; het Logboek heeft ze alleen nog nodig om ze per
 // akte te tonen en om namen in chips aanklikbaar te maken.
 let _documenten = [];
+// Wat er in een akte langskwam, komt uit het regie-script van die akte. De
+// server filtert elke lijst al op wat deze party mag zien, dus wat hier
+// binnenkomt is per definitie onthuld — er is geen tweede zichtbaarheidstoets
+// nodig, en een kaartje dat de party niet kent valt er vanzelf uit.
+let _akteKaartjes = {};    // { personages: [...], locaties: [...], ... }
+let _akteDungeons = [];
 let meta = null;
 
 // ── Regie-script state per akte ──
@@ -181,6 +187,15 @@ export async function renderLogboek() {
   try {
     archiefData = await api.listArchief();
     _documenten = await api.listEntities('documenten').catch(() => []);
+    const [_p, _l, _o, _v, _d] = await Promise.all([
+      api.listEntities('personages').catch(() => []),
+      api.listEntities('locaties').catch(() => []),
+      api.listEntities('organisaties').catch(() => []),
+      api.listEntities('voorwerpen').catch(() => []),
+      api.listDungeons().catch(() => []),
+    ]);
+    _akteKaartjes = { personages: _p, locaties: _l, organisaties: _o, voorwerpen: _v, documenten: _documenten };
+    _akteDungeons = _d || [];
     meta = window.app.state.meta;
   } catch { /* empty */ }
 
@@ -772,6 +787,82 @@ const _isBeelddrager = (e) =>
   && !(e.samenvatting || '').trim()
   && !(e.citaat || '').trim();
 
+// ── Wie en wat je tegenkwam ────────────────────────────────────────────────
+// Het regie-script van een akte draagt al precies wat er langskwam: kaartjes,
+// beelden, encounters, dungeons. Het logboek liet daarvan alleen de beelden en
+// de documenten zien. Hier staan de kaartjes — ontdubbeld, in de volgorde
+// waarin je ze tegenkwam, en alleen wat deze kijker kent.
+const _KAART_SOORT = {
+  personages:   { label: 'Personages',   ic: 'user' },
+  locaties:     { label: 'Locaties',     ic: 'castle' },
+  organisaties: { label: 'Organisaties', ic: 'landmark' },
+  voorwerpen:   { label: 'Voorwerpen',   ic: 'package' },
+};
+
+function _akteKaartjesHtml(info) {
+  const gezien = [];
+  const al = new Set();
+  for (const st of (info?.script || [])) {
+    if (st?.type !== 'entity' || !st.entityId) continue;
+    const soort = st.entityType;
+    if (!_KAART_SOORT[soort]) continue;                 // documenten staan al onderaan
+    const sleutel = `${soort}:${st.entityId}`;
+    if (al.has(sleutel)) continue;
+    const kaart = (_akteKaartjes[soort] || []).find(e => e.id === st.entityId);
+    if (!kaart) continue;                               // niet onthuld voor deze kijker
+    al.add(sleutel);
+    gezien.push({ soort, kaart });
+  }
+  if (!gezien.length) return '';
+
+  // Per soort gegroepeerd, in de volgorde van _KAART_SOORT: anders staat een
+  // los voorwerp tussen twee personages en leest de rij als een opsomming
+  // zonder kop of staart.
+  let html = '';
+  for (const [soort, meta] of Object.entries(_KAART_SOORT)) {
+    const rij = gezien.filter(g => g.soort === soort);
+    if (!rij.length) continue;
+    html += `<div class="akte-kaartjes-rij">
+      <span class="akte-kaartjes-lbl">${icon(meta.ic)} ${meta.label}</span>
+      <div class="akte-kaartjes-chips">
+        ${rij.map(({ kaart }) => {
+          const dim = isDM() && kaart._visibility && kaart._visibility !== 'visible';
+          return `<button class="akte-kaartje${dim ? ' akte-kaartje--dim' : ''}"
+            onclick="window._openDetail('${esc(soort)}','${esc(kaart.id)}')"
+            title="${esc(kaart.name || '')}">${esc(kaart.name || '')}</button>`;
+        }).join('')}
+      </div>
+    </div>`;
+  }
+  return `<div class="akte-kaartjes">
+    <div class="logboek-docs-label">${icon('eye')} Wie en wat je tegenkwam</div>
+    ${html}
+  </div>`;
+}
+
+// ── Dungeons van deze akte ─────────────────────────────────────────────────
+// Bewust géén "2 van de 7 kamers": dat verklapt hoe groot de kerker is, en dat
+// is precies wat de mist verbergt. Alleen de stand: nog in het donker
+// (`partyAccess`) of uitgespeeld (`partyCompleted`).
+function _akteDungeonsHtml(ch) {
+  const gid = window._activeGroupId || null;
+  const mijne = (_akteDungeons || []).filter(d => d.hoofdstukId === ch);
+  if (!mijne.length) return '';
+  const kaartjes = mijne.map(d => {
+    const uit = gid ? (d.partyCompleted || []).includes(gid) : (d.partyCompleted || []).length > 0;
+    return `<button class="akte-dungeon${uit ? ' akte-dungeon--uit' : ''}"
+      onclick="window._openKaartFullscreen('dungeon','${esc(d.id)}')">
+      ${icon(uit ? 'check' : 'compass')}
+      <span class="akte-dungeon-naam">${esc(d.name || 'Kerker')}</span>
+      <span class="akte-dungeon-stand">${uit ? 'Uitgespeeld' : 'Verkend'}</span>
+    </button>`;
+  }).join('');
+  return `<div class="akte-dungeons">
+    <div class="logboek-docs-label">${icon('door-open')} Kerkers</div>
+    <div class="akte-dungeon-rij">${kaartjes}</div>
+  </div>`;
+}
+
 function _buildChapterImgStrip(chEntries, ch) {
   const imgs = [];
   for (const e of chEntries) {
@@ -903,6 +994,8 @@ function _buildLogboekBody(entries, hk, isSearchMode = false) {
             ${chEntries.filter(e => !_isBeelddrager(e)).map((e, idx) => renderSessieEntry(e, idx + 1)).join('')}
             ${(info.spelersSamenvatting || isDM()) ? _renderAkteSamenvattingCard(ch, info) : ''}
           </div>
+          ${_akteKaartjesHtml(info)}
+          ${_akteDungeonsHtml(ch)}
           ${(docsByChapter[ch] || []).length ? `
           <div class="logboek-chapter-docs">
             <div class="logboek-docs-label">${icon('scroll-text')} Documenten</div>
@@ -1217,7 +1310,56 @@ function _truncateWords(text, maxLen) {
   return esc(lastSpace > maxLen * 0.6 ? cut.slice(0, lastSpace) : cut) + '…';
 }
 
+// ── Het verslag van een gevecht ─────────────────────────────────────────────
+// Een gevecht is geen sessieverslag: er valt niets te lezen, er valt iets af
+// te lezen. Wie stond er tegenover je, hoe liep het af, hoeveel ronden duurde
+// het, en wie ging er neer. Daarom een eigen kaart met die vier dingen, in de
+// kleur van de afloop — en voor de DM het ronde-voor-ronde-log eronder,
+// dichtgeklapt, want dat is boekhouding.
+const _UITKOMST = {
+  overwinning: { label: 'Overwinning', ic: 'star',  cls: 'gv-kaart--winst' },
+  nederlaag:   { label: 'Nederlaag',   ic: 'skull', cls: 'gv-kaart--verlies' },
+  onbeslist:   { label: 'Onbeslist',   ic: 'swords', cls: '' },
+};
+
+function _renderGevechtEntry(e) {
+  const g = e.gevecht || {};
+  const u = _UITKOMST[g.uitkomst] || _UITKOMST.onbeslist;
+  const tegen = (g.tegenstanders || [])
+    .map(t => `<span class="gv-tegen">${esc(t.naam)}${t.aantal > 1 ? `<span class="gv-tegen-n">×${t.aantal}</span>` : ''}</span>`)
+    .join('');
+  const log = isDM() ? (e.logDm || []) : [];
+  return `
+    <div class="logboek-tl-entry gv-kaart ${u.cls}${isDM() && !e.visible ? ' logboek-entry--hidden' : ''}">
+      <div class="gv-kop">
+        <span class="gv-zegel" title="${u.label}">${icon(u.ic)}</span>
+        <div class="gv-kop-tekst">
+          <div class="gv-uitkomst">${u.label}</div>
+          <h3 class="gv-naam">${esc(g.naam || e.korteSamenvatting || 'Gevecht')}</h3>
+        </div>
+        <!-- Datum en slotje staan in de kopregel zelf; het slotje hing er
+             absoluut overheen en dekte de datum af. -->
+        ${e.datum ? `<span class="gv-datum">${esc(e.datum)}</span>` : ''}
+        ${isDM() && !e.visible
+          ? `<span class="logboek-verborgen-badge dm-only" title="Geen eenduidige party — alleen jij ziet dit verslag">${icon('lock')}</span>`
+          : ''}
+      </div>
+      ${tegen ? `<div class="gv-rij"><span class="gv-rij-lbl">Tegenover je</span><div class="gv-tegens">${tegen}</div></div>` : ''}
+      <div class="gv-rij gv-rij--feiten">
+        <span class="gv-feit">${icon('hourglass')} ${g.ronden || 1} ronde${(g.ronden || 1) === 1 ? '' : 'n'}</span>
+        ${(g.gevallen || []).length
+          ? `<span class="gv-feit gv-feit--val">${icon('skull')} ${(g.gevallen || []).map(esc).join(', ')} ging${(g.gevallen || []).length > 1 ? 'en' : ''} neer</span>`
+          : `<span class="gv-feit">${icon('check')} Niemand ging neer</span>`}
+      </div>
+      ${log.length ? `<details class="gv-log dm-only">
+        <summary>${icon('scroll-text')} Ronde voor ronde (${log.length})</summary>
+        <div class="gv-log-body">${log.map(r => `<div class="gv-log-regel"><span class="gv-log-ronde">R${r.ronde ?? '?'}</span>${esc(r.tekst)}</div>`).join('')}</div>
+      </details>` : ''}
+    </div>`;
+}
+
 function renderSessieEntry(e, sessieNum = null, chLabel = null) {
+  if (e?.soort === 'gevecht') return _renderGevechtEntry(e);
   const images = e.images || [];
   const firstRaw = images.find(img => typeof img === 'string' || img.visible !== false);
   const firstImgId = firstRaw ? (typeof firstRaw === 'string' ? firstRaw : firstRaw.id) : null;

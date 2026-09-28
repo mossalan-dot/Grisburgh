@@ -242,4 +242,47 @@ describe('Het gevecht: opstellen, beurten en HP', () => {
     const r = await req(server, 'PATCH', '/api/combat/player-hp/wat-dan-ook', { hp: 1 }, heldC);
     assert.strictEqual(r.status, 400, JSON.stringify(r.body));
   });
+
+  // Een gevecht liet niets na dan een rauwe logdump die alleen de DM zag. Wat
+  // er wérd — wie je tegenover je had, of je won, hoe lang het duurde, wie er
+  // neerging — is het verhaal van de party, en dat hoort in hun logboek.
+  it('laat een gevechtsverslag na in de akte van dat moment', async () => {
+    await req(server, 'PUT', '/api/meta/hoofdstuk/akteG', { num: 4, title: 'Bij de brug' }, dm);
+    await req(server, 'POST', '/api/akte/actief', { key: 'akteG', num: 4, title: 'Bij de brug', groupId: gid }, dm);
+
+    await req(server, 'POST', `/api/encounters/${encId}/start`, {}, dm);
+    await req(server, 'POST', '/api/combat/combatant',
+      { name: 'Hilde', type: 'player', hp: 20, maxHp: 20, initiative: 15, entityId: held }, dm);
+    await req(server, 'POST', '/api/combat/start', {}, dm);
+    await req(server, 'PUT', '/api/combat', { round: 4 }, dm);
+
+    // Alle wolven neer → de server ziet zelf dat de spelers winnen.
+    const c = await combat();
+    for (const m of c.combatants.filter(x => x.type === 'monster')) {
+      await req(server, 'PUT', `/api/combat/combatant/${m.id}`, { hp: 0 }, dm);
+    }
+    await req(server, 'DELETE', '/api/combat', null, dm);
+
+    const log = (await req(server, 'GET', '/api/archief', null, dm)).body.sessieLog || [];
+    const v = log.filter(e => e.soort === 'gevecht').pop();
+    assert.ok(v, 'er hoort een verslag te staan');
+    assert.strictEqual(v.hoofdstuk, 'akteG', 'hangt aan de akte die liep');
+    assert.strictEqual(v.gevecht.naam, 'Bij de brug', 'draagt de naam van de encounter');
+    assert.strictEqual(v.gevecht.uitkomst, 'overwinning');
+    assert.strictEqual(v.gevecht.ronden, 4);
+    assert.deepStrictEqual(v.gevecht.tegenstanders, [{ naam: 'Veenwolf', aantal: 3 }],
+      'drie wolven geteld op één naam, zonder volgnummer');
+    assert.deepStrictEqual(v.gevecht.gevallen, [], 'niemand ging neer');
+    assert.ok((v.logDm || []).length > 0, 'het ronde-log gaat mee voor de DM');
+    assert.strictEqual(v.groep, gid, 'hangt aan de party die vocht');
+    assert.strictEqual(v.visible, true);
+  });
+
+  it('houdt het ronde-log bij de DM en het verslag bij de party', async () => {
+    const speler = (await req(server, 'GET', '/api/archief', null, heldC)).body.sessieLog || [];
+    const v = speler.filter(e => e.soort === 'gevecht').pop();
+    assert.ok(v, 'de speler die vocht leest zijn eigen verslag terug');
+    assert.strictEqual(v.gevecht.uitkomst, 'overwinning');
+    assert.ok(!v.logDm, 'het ronde-voor-ronde-log blijft bij de DM');
+  });
 });
