@@ -10,7 +10,7 @@ import { renderSpreuken } from './render-spreuken.js?v=41';
 import { renderVaardigheden, zoekVaardigheden } from './render-vaardigheden.js?v=10';
 import { renderStatblock } from './render-statblock.js?v=9';
 import { initSocket } from "./socket-client.js?v=78";
-import { initDmPanel } from "./dm-panel.js?v=327";
+import { initDmPanel } from "./dm-panel.js?v=328";
 import { COND_INFO, COND_LABEL, COND_MET_PLAATJE, COND_ICON } from './conditions.js?v=2';
 import './media-picker.js?v=8';
 import './tafels.js?v=2';
@@ -14105,6 +14105,10 @@ const HELP_CONFIG = {
   dm_tempel: () => ({ titel: 'De tempel', stappen: [
     { titel: 'Waar de goden vandaan komen', tekst: 'Er is geen ingebouwd pantheon: een god ontstaat uit **Blessing-kaartjes met een godnaam** (zegen, eed of vloek). Hier voeg je daar volgorde, domein, symbool, prijs en portretten aan toe.', afbeelding: null },
     { titel: 'Zegen, eed, vloek', tekst: 'Een **zegen** koop je en komt in je boedel. Een **eed** is een belofte met een gevolg — wie er een zweert, kan geen tweede zweren. Een **vloek** hangt iemand aan tot hij hem kwijtraakt.', afbeelding: null },
+  ] }),
+  dm_tempel_prijzen: () => ({ titel: 'Standaardprijzen', stappen: [
+    { titel: 'Voor alle altaren tegelijk', tekst: 'Wat een **eenmalige zegen**, een **eed** en de **boete na een vloek** kosten. Een god met een eigen prijs wint hiervan; laat je die leeg, dan geldt wat hier staat.', afbeelding: null },
+    { titel: 'Eén bedrag', tekst: 'Schrijf het zoals je het uitspreekt: *2,50* is 2 florinden en 5 knaken, en *5 gp 2 sp* mag ook. Een kaal getal telt als hoofdmunt. Zo blijft het kloppen in een campagne die haar munten anders noemt.', afbeelding: null },
   ] }),
   dm_tempel_eden: () => ({ titel: 'Actieve eden & vloeken', stappen: [
     { titel: 'Wie draagt wat', tekst: 'Per speler wat er op hem rust. Zo zie je in één blik waarom iemand iets niet mag of juist moet — en hoef je het niet op zijn blad te zoeken.', afbeelding: null },

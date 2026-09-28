@@ -41,20 +41,28 @@ describe('Dienstpanelen houden één maat', () => {
 // zijn eigen kop gaat bouwen.
 describe('Dienstpanelen openen allemaal hetzelfde', () => {
   const dm = fs.readFileSync(path.join(__dirname, '..', 'public', 'js', 'dm-panel.js'), 'utf8');
+  // Eén plek, één NPC, één deur: deze vijf hebben een eigenaar, een adres en
+  // een begroeting, en delen daarom dezelfde kop.
   const DIENSTEN = [
     ['_renderHerbergSettings', 'hb'],
     ['_renderTweespaltDM',     'ts'],
     ['_renderGockSettings',    'gock'],
     ['_renderUrsulaSettings',  'ursula'],
-    ['_renderTempelSettings',  'tempel'],
     ['_renderMagizooSettings', 'magizoo'],
   ];
+  // Tempels en Markt zijn **overzichten**: er vallen meerdere plekken onder.
+  // Een opperpriester of één achtergrond zou daar een leugen zijn — dat hoort
+  // bij de god, respectievelijk bij de winkel.
+  const OVERZICHTEN = [['_renderTempelSettings', 'tempel'], ['_renderMarktSettings', 'markt']];
 
   // De body van een functie, van zijn naam tot de volgende `async function`.
   const romp = (naam) => {
     const start = dm.indexOf(`async function ${naam}(`);
     assert.ok(start >= 0, `${naam} bestaat niet meer`);
-    const eind = dm.indexOf('\nasync function ', start + 10);
+    // Tot de volgende functie op het hoogste niveau, welke vorm die ook heeft.
+    const kandidaten = ['\nasync function ', '\nfunction ', '\nwindow.']
+      .map(k => dm.indexOf(k, start + 10)).filter(i => i > 0);
+    const eind = kandidaten.length ? Math.min(...kandidaten) : -1;
     return dm.slice(start, eind < 0 ? dm.length : eind);
   };
 
@@ -72,9 +80,19 @@ describe('Dienstpanelen openen allemaal hetzelfde', () => {
     });
   }
 
+  for (const [fn, sleutel] of OVERZICHTEN) {
+    it(`${sleutel} is een overzicht en heeft geen eigenaar of adres`, () => {
+      const body = romp(fn);
+      assert.ok(!/_dienstKopHtml/.test(body), `${fn} hoort géén dienstkop te hebben: het is een overzicht`);
+      assert.ok(!/-eigenaar/.test(body),  'een overzicht heeft geen eigenaarskaartje');
+      assert.ok(!/-locatie'/.test(body),  'een overzicht heeft geen locatiekaartje');
+      assert.ok(!/-groettafel/.test(body), 'een overzicht heeft geen begroeting');
+    });
+  }
+
   it('leest de kopvelden overal met _dienstKopLees', () => {
     for (const fn of ['_hbSave', '_tsSettingsSave', '_gockSettingsSave',
-                      '_ursulaSettingsSave', '_tempelSettingsSave', '_magizooSettingsSave']) {
+                      '_ursulaSettingsSave', '_magizooSettingsSave']) {
       const start = dm.indexOf(`window.${fn} = async`);
       assert.ok(start >= 0, `${fn} bestaat niet meer`);
       const body = dm.slice(start, dm.indexOf('\n};', start));

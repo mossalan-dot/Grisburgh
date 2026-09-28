@@ -1037,9 +1037,49 @@ function _bedragVeldHtml(id, waarde = '', { label = 'Prijs', klasse = 'dm-input'
   const n = window._muntNamen();
   return `<div class="dm-form-row">
     <label class="dm-form-label" for="${id}">${esc(label)}</label>
-    <input id="${id}" class="${klasse}" value="${esc(waarde || '')}" placeholder="2,50"
+    <input id="${id}" class="${klasse}" value="${esc(_bedragTekst(waarde))}" placeholder="2,50"
       title="Eén bedrag met een komma (2,50 = 2 ${esc(n.fl)} en 5 ${esc(n.kn)}), of in munten: 5 gp 2 sp">
   </div>`;
+}
+
+// Een prijs staat soms als tekst ("2 kn") en soms als muntobject ({fl,kn,cl}) —
+// de diensten bewaren het tweede omdat de server ermee rekent. Het veld toont
+// altijd hetzelfde: één leesbaar bedrag.
+function _bedragTekst(waarde) {
+  if (!waarde) return '';
+  if (typeof waarde === 'string') return waarde;
+  const d = [waarde.fl && `${waarde.fl} fl`, waarde.kn && `${waarde.kn} kn`, waarde.cl && `${waarde.cl} cl`];
+  return d.filter(Boolean).join(' ');
+}
+
+// En terug naar munten, voor de diensten die met een object rekenen. Dezelfde
+// notaties die `parsePrijs` op de server aankan: "2,50", "5 gp 2 sp", "3 fl".
+function _bedragLeesMunten(id) {
+  return _bedragUitTekst(document.getElementById(id)?.value || '');
+}
+
+function _bedragUitTekst(tekst) {
+  const uit = { fl: 0, kn: 0, cl: 0 };
+  const rauw = String(tekst || '').trim();
+  if (!rauw) return uit;
+  const komma = rauw.replace(/\s+/g, '').match(/^(\d+)[.,](\d{1,2})$/);
+  if (komma) {
+    const totaal = parseInt(komma[1]) * 100 + parseInt(komma[2].padEnd(2, '0'));
+    return { fl: Math.floor(totaal / 100), kn: Math.floor((totaal % 100) / 10), cl: totaal % 10 };
+  }
+  const re = /(\d+)\s*(fl|kn|cl|gp|sp|cp)\.?/gi;
+  let m, raak = false;
+  while ((m = re.exec(rauw)) !== null) {
+    raak = true;
+    const v = parseInt(m[1], 10) || 0, u = m[2].toLowerCase();
+    if (u === 'fl' || u === 'gp') uit.fl += v;
+    else if (u === 'kn' || u === 'sp') uit.kn += v;
+    else uit.cl += v;
+  }
+  // Een kaal getal is de hoofdmunt: "25" betekent 25 florinden, zoals het veld
+  // er vroeger uitzag toen er (fl) achter het label stond.
+  if (!raak && /^\d+$/.test(rauw)) uit.fl = parseInt(rauw, 10) || 0;
+  return uit;
 }
 
 
@@ -6381,10 +6421,7 @@ async function _renderGockSettings() {
         groetVoorbeeld: `${config.naam || 'De detective'} kijkt op van zijn bureau en trekt een wenkbrauw op.`,
       })}
 
-      <div class="dm-form-row">
-        <label class="dm-form-label" for="gock-prijs-fl">Prijs (fl)</label>
-        <input id="gock-prijs-fl" class="dm-input" type="number" min="0" value="${prijs.fl || 50}" style="width:70px">
-      </div>
+      ${_bedragVeldHtml('gock-prijs', prijs, { label: 'Prijs van een onderzoek' })}
 
       <div class="dm-form-row" style="flex-direction:column;gap:4px;align-items:stretch">
         <label class="dm-form-label" for="gock-tidbits">Eigen tidbits (één per regel, {naam} wordt de speler)</label>
@@ -6398,12 +6435,12 @@ async function _renderGockSettings() {
 window._gockSettingsSave = async () => {
   const config = window.app?.state?.meta?.gock || {};
   const kop = _dienstKopLees('gock');
-  const fl = parseInt(document.getElementById('gock-prijs-fl')?.value) || 50;
+  const prijs = _bedragLeesMunten('gock-prijs');
   const tidbitsRaw = document.getElementById('gock-tidbits')?.value.trim() || '';
   const tidbits = tidbitsRaw ? tidbitsRaw.split('\n').map(l => l.trim()).filter(Boolean) : [];
   try {
     await api.saveGockConfig({
-      ...kop, naam: kop.naam || 'De detective', prijs: { fl },
+      ...kop, naam: kop.naam || 'De detective', prijs,
       tidbits: tidbits.length ? tidbits : undefined,
       backdropId: _dienstBackdropUit('gock', config),
     });
@@ -6524,14 +6561,8 @@ async function _renderMagizooSettings() {
       })}
 
       <div class="dm-feature-row" style="gap:6px">
-        <div class="dm-form-row" style="flex:1">
-          <label class="dm-form-label">Prijs per trede (fl)</label>
-          <input id="magizoo-prijs-fl" class="dm-input dm-input-sm" type="number" min="0" value="${prijs.fl || 25}">
-        </div>
-        <div class="dm-form-row" style="flex:1">
-          <label class="dm-form-label">Volledig ineens (fl)</label>
-          <input id="magizoo-prijsvol-fl" class="dm-input dm-input-sm" type="number" min="0" value="${prijsVol.fl || 60}">
-        </div>
+        <div style="flex:1">${_bedragVeldHtml('magizoo-prijs', prijs, { label: 'Prijs per trede', klasse: 'dm-input dm-input-sm' })}</div>
+        <div style="flex:1">${_bedragVeldHtml('magizoo-prijsvol', prijsVol, { label: 'Volledig ineens', klasse: 'dm-input dm-input-sm' })}</div>
         <div class="dm-form-row" style="flex:1">
           <label class="dm-form-label">Wachttijd</label>
           <!-- Stond hier als een aantal minuten op de wandklok. Vijf echte
@@ -6553,13 +6584,13 @@ async function _renderMagizooSettings() {
 window._magizooSettingsSave = async () => {
   const config = window.app?.state?.meta?.magizoo || {};
   const kop = _dienstKopLees('magizoo');
-  const fl = parseInt(document.getElementById('magizoo-prijs-fl')?.value) || 0;
-  const flVol = parseInt(document.getElementById('magizoo-prijsvol-fl')?.value) || 0;
+  const prijs = _bedragLeesMunten('magizoo-prijs');
+  const prijsVolledig = _bedragLeesMunten('magizoo-prijsvol');
   const cooldownMinuten = parseInt(document.getElementById('magizoo-cooldown')?.value) || 0;   // 5 = per lange rust, 0 = geen
   try {
     await api.saveMagizooConfig({
       ...kop, naam: kop.naam || 'De Magizoöloog',
-      prijs: { fl }, prijsVolledig: { fl: flVol }, cooldownMinuten,
+      prijs, prijsVolledig, cooldownMinuten,
       backdropId: _dienstBackdropUit('magizoo', config),
     });
     const newMeta = await api.meta();
@@ -6615,10 +6646,7 @@ async function _renderUrsulaSettings() {
         groetVoorbeeld: 'Zij legt haar handen op de kristallen bol.',
       })}
 
-      <div class="dm-form-row">
-        <label class="dm-form-label" for="ursula-prijs-fl">Prijs (fl)</label>
-        <input id="ursula-prijs-fl" class="dm-input" type="number" min="0" value="${prijs.fl || 20}" style="width:70px">
-      </div>
+      ${_bedragVeldHtml('ursula-prijs', prijs, { label: 'Prijs van een voorspelling' })}
       ${_dienstOpslaanRij('window._ursulaSettingsSave()')}
 
       <div class="dm-section-label" style="margin-top:14px">Voorspellingen per akte<span class="dm-sectie-hulp">${helpBtn('dm_waarzegger_akte')}</span></div>
@@ -6658,10 +6686,10 @@ window._ursulaSelectAkte = (key) => {
 window._ursulaSettingsSave = async () => {
   const config = window.app?.state?.meta?.ursula || {};
   const kop = _dienstKopLees('ursula');
-  const fl = parseInt(document.getElementById('ursula-prijs-fl')?.value) || 20;
+  const prijs = _bedragLeesMunten('ursula-prijs');
   try {
     await api.saveUrsulaConfig({
-      ...kop, naam: kop.naam || 'De waarzegger', prijs: { fl },
+      ...kop, naam: kop.naam || 'De waarzegger', prijs,
       backdropId: _dienstBackdropUit('ursula', config),
     });
     const newMeta = await api.meta(); if (window.app?.state) window.app.state.meta = newMeta;
@@ -6729,37 +6757,30 @@ async function _renderTempelSettings() {
 
   el.innerHTML = `
     <div class="dm-feature-section">
-      ${_dienstKopHtml({
-        sleutel: 'tempel', config,
-        personages, locaties,
-        naamVoorbeeld: 'De Tempel', eigenaarLabel: 'Kaartje van de opperpriester',
-        groetVoorbeeld: 'Welkom, pelgrim. Waarvoor bent u hier?',
-      })}
-      <!-- De begroeting hierboven geldt voor de tempel als geheel; een god met
-           een eigen priester heeft zijn eigen groet, verderop bij de goden. -->
+      <!-- Dit tabblad is een **overzicht**, net als de Markt: er vallen
+           meerdere tempels onder. Een opperpriester, een locatiekaartje, een
+           achtergrond of een begroeting horen dus niet hier maar bij de god
+           waar ze bij horen — daar staan ze ook al, per god, verderop.
+           Wat hier wél thuishoort is wat voor álle altaren geldt: hoe het
+           onderdeel heet en wat de standaardprijzen zijn. -->
+      <div class="dm-subgroep-label dm-dienst-kop">Algemeen</div>
+      <div class="dm-form-row">
+        <label class="dm-form-label" for="tempel-naam">Naam</label>
+        <input id="tempel-naam" class="dm-input" value="${esc(config.naam || '')}" placeholder="Tempels">
+      </div>
 
       <input id="tempel-voorwerp" type="hidden" value="${esc(config.voorwerpNaam || 'Votiefmunt van {god}')}">
 
-      <div class="dm-feature-row" style="gap:6px">
-        <div class="dm-form-row" style="flex:1">
-          <label class="dm-form-label" for="tempel-prijs-fl">Zegen (fl)</label>
-          <input id="tempel-prijs-fl" class="dm-input dm-input-sm" type="number" min="0" value="${(config.prijs && config.prijs.fl) || 25}">
-        </div>
-        <div class="dm-form-row" style="flex:1">
-          <label class="dm-form-label" for="tempel-eedprijs-fl">Eed (fl)</label>
-          <input id="tempel-eedprijs-fl" class="dm-input dm-input-sm" type="number" min="0" value="${(config.eedPrijs && config.eedPrijs.fl) || 50}">
-        </div>
-        <div class="dm-form-row" style="flex:1">
-          <label class="dm-form-label" for="tempel-boeteprijs-fl">Boete vloek (fl)</label>
-          <input id="tempel-boeteprijs-fl" class="dm-input dm-input-sm" type="number" min="0" value="${(config.boetePrijs && config.boetePrijs.fl) || 100}">
-        </div>
-      </div>
+      ${_dienstSectieKop('coins', 'Standaardprijzen', 'dm_tempel_prijzen')}
+      <span class="dm-hint" style="font-size:11px;display:block;margin:-2px 0 8px">Geldt voor elke god die geen eigen prijs heeft.</span>
+      ${_bedragVeldHtml('tempel-prijs', config.prijs || { fl: 25 }, { label: 'Eenmalige zegen' })}
+      ${_bedragVeldHtml('tempel-eedprijs', config.eedPrijs || { fl: 50 }, { label: 'Eed' })}
+      ${_bedragVeldHtml('tempel-boeteprijs', config.boetePrijs || { fl: 100 }, { label: 'Boete na een vloek' })}
 
-      <div class="dm-section-label" style="margin-top:14px">Actieve eden &amp; vloeken<span class="dm-sectie-hulp">${helpBtn('dm_tempel_eden')}</span></div>
+      ${_dienstSectieKop('scroll-text', 'Actieve eden en vloeken', 'dm_tempel_eden')}
       <div id="tempel-eden"></div>
 
-      <div class="dm-section-label" style="margin-top:14px">Goden — metadata<span class="dm-sectie-hulp">${helpBtn('dm_tempel_goden')}</span></div>
-      <p class="dm-form-label" style="opacity:.7;margin:0 0 6px">Naam, domein, symbool, afbeeldingen en (optioneel) een eigen prijs. De zegen/vloek/eed-inhoud staat op de Blessing-kaartjes.</p>
+      ${_dienstSectieKop('church', 'Goden', 'dm_tempel_goden')}
       <div id="tempel-goden"></div>
       <div class="dm-form-row">
         <button class="dm-btn dm-btn-ghost" onclick="window._tempelGodToevoegen()" title="God toevoegen">＋ God</button>
@@ -6813,7 +6834,7 @@ function _renderTempelGodenRows() {
     <div class="dm-tempel-god" style="border:1px solid rgba(196,168,122,0.25);border-radius:8px;padding:8px;margin-bottom:8px">
       <div class="dm-form-row" style="gap:6px;align-items:center">
         <input class="dm-input" style="flex:1" placeholder="Naam (bijv. Matall, de Maker)" value="${esc(g.naam || '')}" oninput="window._tempelGodEdit(${i},'naam',this.value)">
-        <input class="dm-input" type="number" min="0" style="width:64px" placeholder="fl" value="${(g.prijs && g.prijs.fl) || ''}" oninput="window._tempelGodEdit(${i},'prijsFl',this.value)" title="Eigen prijs (leeg = standaard)">
+        <input class="dm-input" style="width:104px" placeholder="eigen prijs" value="${esc(_bedragTekst(g.prijs))}" oninput="window._tempelGodEdit(${i},'prijs',this.value)" title="Eigen prijs voor deze god — leeg is de standaardprijs hierboven. Bijvoorbeeld 2,50 of 5 gp.">
         <button class="dm-btn dm-btn-ghost dm-btn-sm" onclick="window._tempelGodVerwijderen(${i})" title="Verwijderen">${icon('trash')}</button>
       </div>
       <div class="dm-form-row" style="gap:6px">
@@ -6854,9 +6875,9 @@ function _renderTempelGodenRows() {
 window._tempelGodEdit = (i, field, value) => {
   const g = _tempelGodenDraft[i];
   if (!g) return;
-  if (field === 'prijsFl') {
-    const fl = parseInt(value);
-    if (fl > 0) g.prijs = { fl }; else delete g.prijs;
+  if (field === 'prijs') {
+    const munten = _bedragUitTekst(value);
+    if (munten.fl || munten.kn || munten.cl) g.prijs = munten; else delete g.prijs;
   } else {
     g[field] = value;
   }
@@ -6880,10 +6901,7 @@ window._tempelGodVerwijderen = (i) => {
 
 window._tempelSettingsSave = async () => {
   const config = window.app?.state?.meta?.tempel || {};
-  const kop = _dienstKopLees('tempel');
-  const fl = parseInt(document.getElementById('tempel-prijs-fl')?.value) || 25;
-  const eedFl = parseInt(document.getElementById('tempel-eedprijs-fl')?.value) || 50;
-  const boeteFl = parseInt(document.getElementById('tempel-boeteprijs-fl')?.value) || 100;
+  const naam = document.getElementById('tempel-naam')?.value.trim() || '';
   const voorwerpNaam = document.getElementById('tempel-voorwerp')?.value.trim() || 'Votiefmunt van {god}';
   const goden = _tempelGodenDraft
     .filter(g => (g.naam || '').trim())
@@ -6903,9 +6921,11 @@ window._tempelSettingsSave = async () => {
     }));
   try {
     await api.saveTempelConfig({
-      ...kop, naam: kop.naam || 'De Tempel',
-      prijs: { fl }, eedPrijs: { fl: eedFl }, boetePrijs: { fl: boeteFl },
-      voorwerpNaam, backdropId: _dienstBackdropUit('tempel', config), goden,
+      naam: naam || 'Tempels',
+      prijs:      _bedragLeesMunten('tempel-prijs'),
+      eedPrijs:   _bedragLeesMunten('tempel-eedprijs'),
+      boetePrijs: _bedragLeesMunten('tempel-boeteprijs'),
+      voorwerpNaam, goden,
     });
     const newMeta = await api.meta();
     if (window.app?.state) window.app.state.meta = newMeta;

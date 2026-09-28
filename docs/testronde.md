@@ -1320,3 +1320,5 @@ Grisburghs **data** te staan — niet in de code.
 - [ ] **Markt zonder dubbele kop** (DM) — het paneel begint bij *Gebieden*; de naam en het boekje staan al in de tabbalk. De uitleg staat in de boekjes, niet boven de velden.
 - [ ] **Alles uit** (DM) — de knop heette *Laat de app kiezen* en zei niet wat hij deed: hij vinkt alle gebieden uit, waarna de Markt zelf een laag kiest.
 - [ ] **Winkels staan dicht** (DM) — *Winkels* toont een uitklap met het aantal; open staat links de naam (klik opent het kaartje) en rechts de gebiedsketen.
+- [ ] **Tempels is een overzicht** (DM) — geen opperpriester, locatiekaartje, achtergrond of begroeting op dit niveau: die horen bij de gód, en staan daar ook (portret, priesterbeeld, tempel-backdrop, priester-begroeting). Boven staan alleen de naam en de standaardprijzen.
+- [ ] **Prijzen zijn niet in florinden** (DM) — zegen, eed, boete, een eigen prijs per god, en de prijzen van detective/waarzegger/magizoöloog zijn één vrij bedrag: "2,50", "5 gp 2 sp" of een kaal getal (= hoofdmunt). Het label zegt geen "(fl)" meer; dat was Grisburghs munt.
