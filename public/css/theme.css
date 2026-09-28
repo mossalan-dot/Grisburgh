@@ -25098,7 +25098,11 @@ body.kaart-fs-active .dng-topbar { padding-right: 14px; }
 .vaardig-card-desc--leeg { font-style: italic; color: #8a7458; }
 .vaardig-tag--soort { background: rgba(196,168,122,0.18); }
 .vaardig-telling { opacity: 0.6; font-size: 11px; margin-left: 2px; }
-.vaardig-filters .spreuk-scholen { display: flex; flex-wrap: wrap; gap: 5px; }
+/* De soortenrij staat altijd in beeld en deelt de eerste regel met de bron en
+   de trechter — net als de niveauknoppen bij de spreuken. De uitklaprij met de
+   twintig levels neemt wél een hele regel, zoals de scholenrij daar. */
+.vaardig-soorten { display: flex; flex-wrap: wrap; gap: 5px; }
+.vaardig-levels { flex-basis: 100%; margin-top: 8px; }
 .vaardig-levels--dicht { display: none; }
 
 /* ── Missies slepen tussen de kolommen ────────────────────────────────────
@@ -25120,15 +25124,6 @@ body.kaart-fs-active .dng-topbar { padding-right: 14px; }
   opacity: 0; transition: opacity 0.25s ease;
 }
 .vaardig-card-img.is-on { opacity: 1; }
-.vaardig-card-edit {
-  position: absolute; top: 12px; left: 8px; z-index: 6;
-  width: 24px; height: 24px; border-radius: 50%;
-  display: flex; align-items: center; justify-content: center;
-  background: rgba(20,12,4,0.55); border: 1px solid rgba(255,255,255,0.45);
-  color: #f2e8d2; cursor: pointer;
-}
-.vaardig-card-edit:hover { background: rgba(20,12,4,0.78); }
-.vaardig-card-edit .icon { width: 13px; height: 13px; }
 .vaardig-img-rij { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 .vaardig-img-voor {
   width: 120px; height: 68px; border-radius: 4px; overflow: hidden;

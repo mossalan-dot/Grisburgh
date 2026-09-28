@@ -259,8 +259,6 @@ function _card(it) {
           style="${it.imgFocus ? `object-position:${esc(it.imgFocus)}` : ''}"
           onload="this.classList.add('is-on')" onerror="this.remove()">` : ''}
       </div>
-      ${isDM() ? `<button class="vaardig-card-edit" title="Bewerken"
-        onclick="event.stopPropagation();window.vaardigheden.bewerk('${esc(it.key)}')">${icon('pencil')}</button>` : ''}
       <div class="entity-card-body vaardig-card-body">
         <div class="vaardig-card-name">${esc(it.naam)}</div>
         ${(() => {
@@ -325,9 +323,14 @@ function _filterBar() {
     <button class="sf-toggle-btn${_filters.level !== null ? ' sf-toggle-btn--active' : ''}"
       onclick="window.vaardigheden.toggleLevels()" title="Filter op het level waarop iets komt"><svg width="13" height="11" viewBox="0 0 13 11" fill="currentColor"><polygon points="0,0 13,0 8,5.5 8,11 5,11 5,5.5"/></svg></button>` : '';
 
+  // Zelfde volgorde als bij de spreuken: wat altijd in beeld staat op de eerste
+  // regel (daar niveau en klasse, hier soort en bron), de trechter erachter, en
+  // de brede uitklaprij eronder. De soortenrij droeg `.spreuk-scholen`, en die
+  // claimt een hele regel — daardoor zakte de trechter naar de tweede regel en
+  // stond hij bij de twee tabbladen op een andere plek.
   return `
     <div class="spreuk-filters vaardig-filters">
-      <div class="spreuk-scholen">${soortRij}</div>
+      <div class="vaardig-soorten">${soortRij}</div>
       ${bronSelect}
       ${trechter}
       ${heeftLevels ? `<div class="spreuk-levels vaardig-levels${dicht ? ' vaardig-levels--dicht' : ''}">${levels.join('')}</div>` : ''}
