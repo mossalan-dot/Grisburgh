@@ -946,7 +946,7 @@ function _dienstKopHtml({ sleutel, config = {}, personages = [], locaties = [],
     <!-- Geen kop met de naam van de dienst: die staat al in de tabbalk erboven,
          en het boekje hangt daar ook al. Wat hier wél hoort is waar dit blok
          over gaat — het algemene deel, tegenover de diensten eronder. -->
-    <div class="dm-subgroep-label dm-dienst-kop">${icon('info')} Algemeen</div>
+    <div class="dm-subgroep-label dm-dienst-kop">Algemeen</div>
 
     <div class="dm-form-row">
       <label class="dm-form-label" for="${sleutel}-naam">Naam</label>
@@ -985,7 +985,7 @@ function _dienstKopHtml({ sleutel, config = {}, personages = [], locaties = [],
       </div>
     </div>
 
-    ${_groetenKaartHtml({ sleutel, config, voorbeeld: groetVoorbeeld })}`;
+    ${_groetTafelHtml({ sleutel, config, voorbeeld: groetVoorbeeld })}`;
 }
 
 // Leest de vaste kopvelden terug. Een getypte naam die geen kaartje is laat de
@@ -995,15 +995,11 @@ function _dienstKopLees(sleutel) {
     const n = (document.getElementById(`${sleutel}-${veld}`)?.value || '').trim().toLowerCase();
     return n ? (lijst.find(e => (e.name || '').toLowerCase() === n)?.id || '') : '';
   };
-  const groeten = _groetenLees(sleutel);
   return {
-    naam:      document.getElementById(`${sleutel}-naam`)?.value.trim() || '',
-    groeten,
-    // `groet` blijft als eerste regel meegaan: het tafelscherm en de oudere
-    // schermen lezen dat veld nog.
-    groet:     groeten[0] || '',
-    imageId:   idVan('eigenaar', [..._dienstKaartjes.personages, ..._dienstKaartjes.locaties]),
-    locatieId: idVan('locatie', _dienstKaartjes.locaties),
+    naam:         document.getElementById(`${sleutel}-naam`)?.value.trim() || '',
+    groetTafelId: document.getElementById(`${sleutel}-groettafel`)?.value || '',
+    imageId:      idVan('eigenaar', [..._dienstKaartjes.personages, ..._dienstKaartjes.locaties]),
+    locatieId:    idVan('locatie', _dienstKaartjes.locaties),
   };
 }
 
@@ -1034,110 +1030,99 @@ window._dienstBackdropWis = (sleutel) => {
 // tap weer tekst. Wie geen florinden rekent kon in die tweede vorm niets kwijt.
 //
 // Wat eruit komt is de notatie die de server toch al leest: "2 fl 3 kn 4 cl".
-function _bedragVeldHtml(id, waarde = '', { label = 'Prijs' } = {}) {
+// Eén veld, zoals elk ander bedrag in de app: "2,50" of "5 gp 2 sp". Drie
+// vakjes naast elkaar waren drie keer klikken voor één prijs, en ze weken af
+// van de winkel en de loot.
+function _bedragVeldHtml(id, waarde = '', { label = 'Prijs', klasse = 'dm-input' } = {}) {
   const n = window._muntNamen();
-  const d = _bedragOntleed(waarde);
-  const veld = (k, afk) => `<label class="dm-munt-veld" title="${esc(n[k])}"><span>${afk}</span>
-    <input id="${id}-${k}" class="dm-input" type="number" min="0" value="${d[k] || 0}"></label>`;
-  return `<div class="dm-form-row" style="flex-direction:column;gap:4px;align-items:stretch">
-    <label class="dm-form-label">${esc(label)}</label>
-    <div class="dm-munt-rij">${veld('fl', 'gp')}${veld('kn', 'sp')}${veld('cl', 'cp')}</div>
+  return `<div class="dm-form-row">
+    <label class="dm-form-label" for="${id}">${esc(label)}</label>
+    <input id="${id}" class="${klasse}" value="${esc(waarde || '')}" placeholder="2,50"
+      title="Eén bedrag met een komma (2,50 = 2 ${esc(n.fl)} en 5 ${esc(n.kn)}), of in munten: 5 gp 2 sp">
   </div>`;
 }
 
-// Leest "2 fl 3 kn", "12,34" of "5 gp" terug naar drie getallen. Dezelfde
-// notaties die `parsePrijs` op de server aankan, zodat een bestaande prijs niet
-// op nul springt zodra je het paneel opent.
-function _bedragOntleed(str) {
-  const uit = { fl: 0, kn: 0, cl: 0 };
-  if (!str) return uit;
-  const kaal = String(str).trim().replace(/\s+/g, '');
-  const komma = kaal.match(/^(\d+)[.,](\d{1,2})$/);
-  if (komma) {
-    const totaal = parseInt(komma[1]) * 100 + parseInt(komma[2].padEnd(2, '0'));
-    return { fl: Math.floor(totaal / 100), kn: Math.floor((totaal % 100) / 10), cl: totaal % 10 };
-  }
-  const re = /(\d+(?:[.,]\d+)?)\s*(fl|kn|cl|gp|sp|cp)\.?/gi;
-  let m;
-  while ((m = re.exec(String(str))) !== null) {
-    const v = Math.round(parseFloat(m[1].replace(',', '.')));
-    const u = m[2].toLowerCase();
-    if (u === 'fl' || u === 'gp') uit.fl += v;
-    else if (u === 'kn' || u === 'sp') uit.kn += v;
-    else uit.cl += v;
-  }
-  return uit;
-}
+
 
 // Terug naar de notatie die de server leest. Leeg bij nul, zodat "gratis" ook
 // echt leeg blijft staan en niet als "0 fl" wordt bewaard.
 function _bedragLees(id) {
-  const g = (k) => parseInt(document.getElementById(`${id}-${k}`)?.value) || 0;
-  const d = { fl: g('fl'), kn: g('kn'), cl: g('cl') };
-  const delen = [d.fl && `${d.fl} fl`, d.kn && `${d.kn} kn`, d.cl && `${d.cl} cl`].filter(Boolean);
-  return delen.join(' ');
+  return (document.getElementById(id)?.value || '').trim();
 }
 
 // Een kopje binnen een dienstpaneel: het algemene deel bovenaan, en daaronder
 // wat die dienst zélf aanbiedt (overnachten, aan de tap, het strijdperk…). Zo
 // is te zien waar het ene ophoudt en het andere begint.
+// Zonder icoon: de kop moet links uitlijnen met de labels eronder, en een
+// icoon ervoor duwt het woord ruim twintig pixels op. `ic` blijft in de
+// aanroepen staan — het zegt waar de sectie over gaat, en een latere weergave
+// (een strook, een tabblad) kan hem alsnog gebruiken.
 function _dienstSectieKop(ic, titel, hulp = '') {
-  return `<div class="dm-subgroep-label dm-dienst-kop">${icon(ic)} ${esc(titel)}${
+  return `<div class="dm-subgroep-label dm-dienst-kop">${esc(titel)}${
     hulp ? `<span class="dm-sectie-hulp">${helpBtn(hulp)}</span>` : ''}</div>`;
 }
 
-// ── De begroetingen van een dienst ─────────────────────────────────────────
-// Eén vaste zin hoor je de derde keer al aankomen. Een dienst draagt nu een
-// lijstje begroetingen en kiest er bij elk bezoek een; met één regel gedraagt
-// het zich precies als vroeger.
+// ── De begroeting van een dienst ────────────────────────────────────────────
+// Een dienst wijst een **tafel** aan; die tafel leeft in het Tafels-tabblad,
+// met dezelfde bewerkmodus en in dezelfde database als alle andere tafels.
+// Eerder stond hier een eigen lijstje met eigen knoppen — een tweede soort
+// tafel naast de echte, die je nergens anders kon hergebruiken of wegen.
 //
-// De vorm is die van een tafel — regels onder elkaar, eentje erbij, eentje
-// eruit — in een uitklapkaartje, zodat een lijstje van acht het paneel niet
-// uit elkaar duwt. (Het zijn geen échte tafels uit het Tafels-tabblad: die zijn
-// DM-only, en een begroeting moet de speler juist te zien krijgen.)
-function _groetenKaartHtml({ sleutel, config = {}, voorbeeld = '' }) {
-  const regels = _groetenUit(config);
+// De speler krijgt niet de tafel maar de regels ervan (de server lost hem op
+// bij het ophalen van meta); daar kiest zijn scherm er per bezoek een uit.
+function _groetTafelHtml({ sleutel, config = {}, voorbeeld = '' }) {
+  const gekozen = config.groetTafelId || '';
+  const tafels = (_tables || []).filter(t => t.type !== 'combined' || (t.delen || []).length);
+  const opties = ['<option value="">— Geen begroeting —</option>']
+    .concat(tafels.map(t => `<option value="${esc(t.id)}"${gekozen === t.id ? ' selected' : ''}>${esc(t.name || t.id)}</option>`));
+  const oud = !gekozen && config.groet ? config.groet : '';
   return `
-    <details class="dm-groeten" id="${sleutel}-groeten"${regels.length > 1 ? '' : ' open'}>
-      <summary class="dm-groeten-kop">
-        <span>Begroeting</span>
-        <span class="dm-groeten-n">${regels.length || 'geen'}${regels.length > 1 ? ' regels — er wordt er één gekozen' : ''}</span>
-      </summary>
-      <div class="dm-groeten-body" id="${sleutel}-groeten-lijst">
-        ${(regels.length ? regels : ['']).map(r => _groetRegelHtml(sleutel, r, voorbeeld)).join('')}
-      </div>
-      <div class="dm-form-row" style="padding:0 12px 12px">
+    <div class="dm-form-row">
+      <label class="dm-form-label" for="${sleutel}-groettafel">Begroeting (tafel)</label>
+      <div class="dm-feature-row" style="gap:6px;flex:1;min-width:0">
+        <select id="${sleutel}-groettafel" class="dm-select" style="flex:1;min-width:0">${opties.join('')}</select>
         <button type="button" class="dm-btn dm-btn-ghost dm-btn-sm"
-          onclick="window._groetRegelErbij('${sleutel}', ${JSON.stringify(voorbeeld)})">${icon('plus')} Voeg begroeting toe</button>
+          onclick="window._groetTafelNieuw('${sleutel}')" title="Maak een tafel voor deze begroeting">${icon('plus')} Nieuw</button>
+        <button type="button" class="dm-btn dm-btn-ghost dm-btn-sm"
+          onclick="window._groetTafelBewerk('${sleutel}')" title="Deze tafel openen in het Tafels-tabblad">${icon('pencil')} Bewerken</button>
       </div>
-    </details>`;
+    </div>
+    <span class="dm-hint" style="font-size:11px;display:block;margin:-4px 0 4px">
+      Elke regel is een begroeting; er wordt er bij elk bezoek één gekozen. Gebruik {naam} voor de speler.${
+        oud ? ` <strong>Nu nog vast:</strong> „${esc(oud)}“ — kies of maak een tafel om te variëren.` : ''}
+    </span>`;
 }
 
-function _groetRegelHtml(sleutel, waarde = '', voorbeeld = '') {
-  return `<div class="dm-groet-regel">
-    <textarea class="dm-input dm-groet-tekst" rows="2" placeholder="${esc(voorbeeld)}">${esc(waarde)}</textarea>
-    <button type="button" class="dm-btn dm-btn-ghost dm-btn-sm dm-btn-danger"
-      title="Deze regel weghalen" onclick="this.closest('.dm-groet-regel').remove()">${icon('trash')}</button>
-  </div>`;
-}
-
-window._groetRegelErbij = (sleutel, voorbeeld = '') => {
-  const host = document.getElementById(`${sleutel}-groeten-lijst`);
-  if (!host) return;
-  host.insertAdjacentHTML('beforeend', _groetRegelHtml(sleutel, '', voorbeeld));
-  host.querySelector('.dm-groet-regel:last-child textarea')?.focus();
+// Een nieuwe tafel voor deze dienst: meteen aangemaakt, gekoppeld en geopend in
+// het Tafels-tabblad. Zo hoef je niet eerst ergens anders iets te maken om hier
+// iets te kunnen kiezen.
+window._groetTafelNieuw = async (sleutel) => {
+  const naam = (document.getElementById(`${sleutel}-naam`)?.value || '').trim();
+  try {
+    const tafel = await api.post('/tables', {
+      name: `Begroeting — ${naam || sleutel}`, type: 'simple',
+      entries: ['Welkom, {naam}.'],
+    });
+    _tables = await api.listTables().catch(() => _tables);
+    const sel = document.getElementById(`${sleutel}-groettafel`);
+    if (sel) {
+      sel.insertAdjacentHTML('beforeend', `<option value="${esc(tafel.id)}">${esc(tafel.name)}</option>`);
+      sel.value = tafel.id;
+    }
+    window._groetTafelBewerk(sleutel);
+  } catch (e) { alert('Tafel maken mislukt: ' + e.message); }
 };
 
-// Bestaande campagnes hebben één `groet`; die telt als eerste regel.
-function _groetenUit(config = {}) {
-  if (Array.isArray(config.groeten) && config.groeten.length) return config.groeten.filter(Boolean);
-  return config.groet ? [config.groet] : [];
-}
+// Bewerken gebeurt waar tafels bewerkt worden. Twee editors voor hetzelfde ding
+// lopen uiteen; één plek betekent dat een gewogen tafel of een combinatie hier
+// vanzelf ook werkt.
+window._groetTafelBewerk = (sleutel) => {
+  const id = document.getElementById(`${sleutel}-groettafel`)?.value;
+  if (!id) { alert('Kies eerst een tafel, of maak er een.'); return; }
+  window.dmPanel.switchTab('tafels');
+  setTimeout(() => { try { window.dmPanel.tabelEdit(id); } catch {} }, 160);
+};
 
-function _groetenLees(sleutel) {
-  return [...document.querySelectorAll(`#${sleutel}-groeten-lijst .dm-groet-tekst`)]
-    .map(t => t.value.trim()).filter(Boolean);
-}
 
 
 // ── Gouden standaard: één subtab-balk ──
@@ -1180,10 +1165,14 @@ function _dmLoading(text = 'Laden…') {
 
 let _dienstenSubTab = 'herberg'; // 'herberg' | 'tweespalt' | 'gock'
 
-function _renderDiensten(subTab) {
+async function _renderDiensten(subTab) {
   if (subTab && _DIENSTEN_TABS.has(subTab)) _dienstenSubTab = subTab;
   const el = document.querySelector('.dm-tab-content[data-tab="diensten"]');
   if (!el) return;
+  // De begroetingen hangen aan tafels, dus die lijst moet er zijn voordat een
+  // dienstpaneel zijn keuzelijst tekent. Hij werd alleen geladen als je het
+  // Tafels-tabblad had bezocht.
+  if (!_tables.length) { try { _tables = await api.listTables(); } catch {} }
 
   // Sub-tab-nav
   if (!el.querySelector('.dm-subtab-nav')) {
@@ -5811,13 +5800,11 @@ async function _renderHerbergSettings() {
       })}
 
       ${_dienstSectieKop('moon', 'Overnachten', 'dm_herberg_rust')}
-      <div class="dm-feature-row" style="gap:14px;align-items:flex-end">
-        ${_bedragVeldHtml('hb-overnachting', config.overnachtingPrijs || '1 fl.', { label: 'Prijs per persoon' })}
-        <div class="dm-form-row" style="flex-direction:column;gap:4px;align-items:stretch">
-          <label class="dm-form-label" for="hb-roddels">Roddels per persoon</label>
-          <input id="hb-roddels" class="dm-input dm-input-sm" type="number" min="0" max="10"
-            style="width:76px" value="${Number.isFinite(+config.roddelsPerSpeler) ? +config.roddelsPerSpeler : 2}">
-        </div>
+      ${_bedragVeldHtml('hb-overnachting', config.overnachtingPrijs || '1 fl.', { label: 'Prijs per persoon' })}
+      <div class="dm-form-row">
+        <label class="dm-form-label" for="hb-roddels">Roddels per persoon</label>
+        <input id="hb-roddels" class="dm-input" type="number" min="0" max="10"
+          value="${Number.isFinite(+config.roddelsPerSpeler) ? +config.roddelsPerSpeler : 2}">
       </div>
 
       ${_dienstSectieKop('beer', 'Aan de tap', 'dm_herberg_tap')}
@@ -5856,7 +5843,7 @@ function _hbRenderMenuLijst() {
             <label class="dm-form-label">Naam</label>
             <input class="dm-input dm-input-sm hb-menu-naam" value="${esc(m.naam || '')}" placeholder="Huisbier">
           </div>
-          ${_bedragVeldHtml(`hb-menu-prijs-${i}`, m.prijs || '', { label: 'Prijs' })}
+          ${_bedragVeldHtml(`hb-menu-prijs-${i}`, m.prijs || '', { label: 'Prijs', klasse: 'dm-input dm-input-sm' })}
           <div class="dm-form-row">
             <label class="dm-form-label">Beschrijving</label>
             <input class="dm-input dm-input-sm hb-menu-desc" value="${esc(m.beschrijving || '')}"
@@ -5873,12 +5860,12 @@ function _hbRenderMenuLijst() {
                op, een borrel geeft je een buffer. Allebei mag een worp zijn. -->
           <div class="dm-feature-row" style="gap:10px">
             <div class="dm-form-row" style="flex:1">
-              <label class="dm-form-label">Geneest</label>
-              <input class="dm-input dm-input-sm hb-menu-heal" value="${esc(String(m.heal ?? '').trim())}" placeholder="0 of 1d4+1">
+              <label class="dm-form-label">Healing</label>
+              <input class="dm-input dm-input-sm hb-menu-heal" value="${esc(String(m.heal ?? '').trim())}" placeholder="1d4+1">
             </div>
             <div class="dm-form-row" style="flex:1">
-              <label class="dm-form-label">Tijdelijke HP</label>
-              <input class="dm-input dm-input-sm hb-menu-temphp" value="${esc(String(m.tempHp ?? '').trim())}" placeholder="0 of 1d6">
+              <label class="dm-form-label">Temporary Hit Points</label>
+              <input class="dm-input dm-input-sm hb-menu-temphp" value="${esc(String(m.tempHp ?? '').trim())}" placeholder="1d6">
             </div>
           </div>
           <!-- Getallen schrijven zichzelf op: HP en tijdelijke HP staan meteen
@@ -6436,16 +6423,11 @@ async function _renderMarktSettings() {
     perGebied.set(g, (perGebied.get(g) || 0) + 1);
   }
 
+  // Geen eigen kop: de tabbalk zegt al Markt, en het boekje hangt daar ook.
+  // De uitleg die hier in twee alinea's stond, staat nu in die boekjes.
   el.innerHTML = `
-    ${_dmTabHead({ icon: 'store', title: 'Markt',
-      sub: 'Alle winkels op één plek voor je spelers',
-      actions: helpBtn('dm_markt') })}
-
     <div class="dm-feature-section">
-      <div class="dm-section-label">Gebieden om op te filteren<span class="dm-sectie-hulp">${helpBtn('dm_markt_gebieden')}</span></div>
-      <p class="dm-hint">Vink aan welke gebieden je spelers als knop te zien krijgen.
-        Een winkel valt onder élk gebied boven zich, dus <em>Grisburgh</em> vangt ook
-        alles in Luimpoort. Vink je niets aan, dan bepaalt de app het zelf.</p>
+      ${_dienstSectieKop('store', 'Gebieden', 'dm_markt_gebieden')}
       <div class="dm-markt-gebieden">
         ${beschikbaar.length ? beschikbaar.map(g => `
           <label class="dm-markt-gebied">
@@ -6455,23 +6437,35 @@ async function _renderMarktSettings() {
           </label>`).join('')
         : '<p class="dm-hint">Nog geen gebieden — vul het veld <em>Gebied</em> in op de locatiekaartjes van je winkels.</p>'}
       </div>
-      <div class="dm-feature-row">
+      <!-- "Laat de app kiezen" zei niet wat het deed: het vinkt alles uit en
+           bewaart dat, waarna de Markt zelf een zinnige laag kiest. Nu staat
+           dat er, en het is een gewone nevenknop naast Opslaan. -->
+      <div class="dm-feature-row" style="margin-top:12px">
         <button class="dm-btn dm-btn-primary" onclick="window.dmPanel.marktGebiedenOpslaan()">${icon('save')} Opslaan</button>
-        <button class="dm-btn dm-btn-ghost" onclick="window.dmPanel.marktGebiedenLeeg()">Laat de app kiezen</button>
+        <button class="dm-btn dm-btn-ghost" onclick="window.dmPanel.marktGebiedenLeeg()"
+          title="Vinkt alles uit: de Markt kiest dan zelf welke gebieden als knop verschijnen">${icon('x')} Alles uit</button>
       </div>
     </div>
 
     <div class="dm-feature-section">
-      <div class="dm-section-label">Winkels die de Markt vindt<span class="dm-sectie-hulp">${helpBtn('dm_markt_winkels')}</span></div>
-      <p class="dm-hint">Afgeleid: elke locatie of verkoper met een voorraad. De keten erachter
-        komt uit het veld <em>Gebied</em>; wijst dat naar zichzelf, dan stopt hij daar.</p>
-      <div class="dm-markt-winkels">
-        ${(data.winkels || []).map(w => `
-          <div class="dm-feature-row-sm">
-            <span class="dm-markt-winkel-naam">${esc(w.naam)}</span>
-            <span class="dm-hint">${(w.gebieden || []).join(' \u203a ') || 'geen gebied ingevuld'}</span>
-          </div>`).join('')}
-      </div>
+      ${_dienstSectieKop('store', 'Winkels', 'dm_markt_winkels')}
+      <!-- Dicht: het is een afgeleide lijst die je zelden hoeft te lezen —
+           je kijkt erin als een winkel níét op de Markt staat. -->
+      <details class="dm-markt-winkels-uitklap">
+        <summary class="dm-markt-winkels-kop">
+          <span>De Markt vindt ze zelf</span>
+          <span class="dm-markt-winkels-n">${(data.winkels || []).length}</span>
+        </summary>
+        <div class="dm-markt-winkels">
+          ${(data.winkels || []).length ? (data.winkels || []).map(w => `
+            <div class="dm-markt-winkel">
+              <button class="dm-markt-winkel-naam" title="Open het kaartje van ${esc(w.naam)}"
+                onclick="window._openDetail('${esc(w.soort || 'locaties')}','${esc(w.id)}')">${esc(w.naam)}</button>
+              <span class="dm-markt-winkel-gebied">${(w.gebieden || []).join(' \u203a ') || 'geen gebied ingevuld'}</span>
+            </div>`).join('')
+            : '<p class="dm-hint">Nog geen winkels — een locatie of verkoper met een voorraad komt hier vanzelf te staan.</p>'}
+        </div>
+      </details>
     </div>`;
 }
 

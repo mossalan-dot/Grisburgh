@@ -12341,7 +12341,12 @@ body.herberg-actief #app { position: relative; z-index: 1; }
 }
 
 /* Een kopje binnen een dienstpaneel (Algemeen, Overnachten, Aan de tap…). */
-.dm-dienst-kop { display: flex; align-items: center; gap: 7px; margin-top: 20px; }
+/* De kopjes van een dienst lijnen links uit met de labels eronder; ze stonden
+   ingesprongen omdat het icoon als eerste kind zijn eigen ruimte pakte. */
+.dm-dienst-kop {
+  display: flex; align-items: center; gap: 7px;
+  margin-top: 20px; margin-left: 0; padding-left: 0; text-indent: 0;
+}
 .dm-dienst-kop .icon { width: 14px; height: 14px; opacity: .75; }
 /* Het boekje van een kopje lijnt uit met dat van de tabbalk erboven: beide op
    12px van de rechterrand van hun eigen blok. */
@@ -27481,3 +27486,38 @@ body.akte-schrijf-open .mp-overlay { z-index: 1320; }
 }
 .dm-groet-regel { display: flex; gap: 6px; align-items: flex-start; }
 .dm-groet-tekst { flex: 1; min-width: 0; resize: vertical; min-height: 48px; }
+
+/* ── Markt: de afgeleide winkellijst ────────────────────────────────────────
+   Links wat het heet (met een deur naar het kaartje), rechts waar de app het
+   heeft gevonden. Dicht, want je kijkt hier alleen als een winkel er níét
+   tussen staat. */
+.dm-markt-winkels-uitklap { border-top: 1px dashed rgba(196,168,122,0.4); margin-top: 8px; }
+.dm-markt-winkels-kop {
+  display: flex; align-items: center; gap: 9px; cursor: pointer;
+  padding: 9px 0; list-style: none;
+  font-family: 'Crimson Text', serif; font-size: 13px; color: #8a6a3a;
+}
+.dm-markt-winkels-kop::-webkit-details-marker { display: none; }
+.dm-markt-winkels-kop::before {
+  content: '›'; font-size: 14px; line-height: 1; opacity: .55;
+  transition: transform .15s; display: inline-block; flex-shrink: 0;
+}
+.dm-markt-winkels-uitklap[open] > .dm-markt-winkels-kop::before { transform: rotate(90deg); }
+.dm-markt-winkels-n {
+  margin-left: auto; font-family: 'Cinzel', serif; font-size: 11px; color: #a08a60;
+}
+.dm-markt-winkel {
+  display: flex; align-items: baseline; gap: 12px;
+  padding: 4px 0; border-bottom: 1px solid rgba(196,168,122,0.18);
+}
+.dm-markt-winkel:last-child { border-bottom: 0; }
+.dm-markt-winkel-naam {
+  flex: 1; min-width: 0; text-align: left; cursor: pointer;
+  background: none; border: 0; padding: 0;
+  font-family: 'Crimson Text', serif; font-size: 14px; color: #4a3418;
+}
+.dm-markt-winkel-naam:hover { color: #8a5a10; text-decoration: underline; }
+.dm-markt-winkel-gebied {
+  flex-shrink: 0; font-family: 'Crimson Text', serif; font-size: 12px;
+  font-style: italic; color: #8a6a3a;
+}

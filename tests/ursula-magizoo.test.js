@@ -359,6 +359,33 @@ describe('Elke dienst bewaart dezelfde kopvelden', () => {
     fs.rmSync(s.dir, { recursive: true, force: true });
   });
 
+  it('lost de begroetingstafel op naar losse regels voor de speler', async () => {
+    // De tafels-database is DM-only (daar staan ook vondsten en gebeurtenissen
+    // in). De regels van één begroetingstafel mag de speler wél zien — hij
+    // krijgt er zo meteen een van te horen.
+    const tafel = (await s.req('POST', '/api/tables', {
+      name: 'Begroeting — herberg', type: 'simple',
+      entries: ['Welkom, {naam}.', 'Zo, jij weer.'],
+    }, dm)).body;
+    await s.req('PUT', '/api/meta/herberg', { groetTafelId: tafel.id }, dm);
+
+    const meta = (await s.req('GET', '/api/meta', null, dm)).body;
+    assert.deepStrictEqual(meta.herberg.groeten, ['Welkom, {naam}.', 'Zo, jij weer.'],
+      'de regels reizen mee met de dienst');
+    assert.strictEqual(meta.herberg.groetTafelId, tafel.id);
+  });
+
+  it('haalt de bereiken van een gewogen tafel eraf', async () => {
+    const tafel = (await s.req('POST', '/api/tables', {
+      name: 'Begroeting — gewogen', type: 'weighted', dobbel: 'd6',
+      entries: ['1-3: De waard knikt.', '4-6: "Ha, daar ben je weer."'],
+    }, dm)).body;
+    await s.req('PUT', '/api/meta/tweespalt', { groetTafelId: tafel.id }, dm);
+    const meta = (await s.req('GET', '/api/meta', null, dm)).body;
+    assert.deepStrictEqual(meta.tweespalt.groeten, ['De waard knikt.', '"Ha, daar ben je weer."'],
+      'een bereik hoort niet op het scherm van de speler');
+  });
+
   for (const dienst of DIENSTEN) {
     it(`${dienst} bewaart naam, begroeting, eigenaar en locatie`, async () => {
       const r = await s.req('PUT', `/api/meta/${dienst}`, {

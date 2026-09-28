@@ -8872,9 +8872,34 @@ router.get('/meta', attachRole, (req, res) => {
   // keek heeft geen `meta.levelup`, en de client hoort de standaardwaarden niet
   // een tweede keer te kennen.
   uit.levelup = _levelupCfg(meta);
+  // De begroetingen van een dienst staan in een tafel (tables.json). Die hele
+  // database is DM-only — terecht: daar staan ook de vondsten en de
+  // gebeurtenissen in. Maar de regels van díé ene tafel mag de speler zien,
+  // want hij krijgt er zo meteen een van te horen. Dus lossen we hem hier op.
+  _groetTafelsOplossen(uit);
   if (req.role !== 'dm') uit.hoofdstukken = _hoofdstukkenVoorSpeler(meta.hoofdstukken);
   res.json(uit);
 });
+
+// Per dienst: `groetTafelId` → `groeten: [regels]`. De client kiest er per
+// bezoek een. Een gewogen tafel ("1-5: tekst") levert zijn teksten zonder de
+// bereiken; wegen doet er voor een begroeting niet toe, en het bereik hoort
+// niet op het scherm van de speler.
+const _DIENSTEN_MET_GROET = ['herberg', 'tweespalt', 'gock', 'ursula', 'tempel', 'magizoo'];
+function _groetTafelsOplossen(uit) {
+  let tafels = null;
+  for (const sleutel of _DIENSTEN_MET_GROET) {
+    const c = uit[sleutel];
+    if (!c || !c.groetTafelId) continue;
+    if (!tafels) { try { tafels = storage.readJSON('tables.json').tables || []; } catch { tafels = []; } }
+    const t = tafels.find(x => x.id === c.groetTafelId);
+    if (!t) continue;
+    const regels = (t.entries || [])
+      .map(r => String(r || '').replace(/^\s*\d+\s*(?:[-–—]\s*\d+)?\s*[:.]\s*/, '').trim())
+      .filter(Boolean);
+    if (regels.length) uit[sleutel] = { ...c, groeten: regels };
+  }
+}
 
 // De regie van één akte: de tekst en het script, alleen voor de DM. Bestaat
 // omdat `GET /meta` ze niet meer meestuurt, en omdat vijftien hoofdstukken
@@ -9291,7 +9316,7 @@ router.put('/meta/herberg', requireDM, (req, res) => {
   if (!meta.herberg) meta.herberg = {};
   // `locatieId`: de herberg is ook een pand op de kaart. `menu[].entityId` komt
   // mee in `menu` zelf — dat is één veld met de hele lijst.
-  const allowed = ['naam','waard','imageId','locatieId','backdropId','maxVragen','cooldownMinutenMin','cooldownMinutenMax','groet', 'groeten','overnachtingPrijs','roddelsPerSpeler','menu'];
+  const allowed = ['naam','waard','imageId','locatieId','backdropId','maxVragen','cooldownMinutenMin','cooldownMinutenMax','groet', 'groeten', 'groetTafelId','overnachtingPrijs','roddelsPerSpeler','menu'];
   for (const f of allowed) {
     if (req.body[f] !== undefined) meta.herberg[f] = req.body[f];
   }
@@ -11952,7 +11977,7 @@ router.put('/gock/opgehaald', attachRole, vereistDienst('gock'), (req, res) => {
 router.put('/meta/tweespalt', requireDM, (req, res) => {
   const meta = storage.readJSON('meta.json');
   if (!meta.tweespalt) meta.tweespalt = {};
-  ['naam', 'groet', 'groeten', 'imageId', 'locatieId', 'backdropId', 'arena', 'geldschieter'].forEach(f => { if (req.body[f] !== undefined) meta.tweespalt[f] = req.body[f]; });
+  ['naam', 'groet', 'groeten', 'groetTafelId', 'imageId', 'locatieId', 'backdropId', 'arena', 'geldschieter'].forEach(f => { if (req.body[f] !== undefined) meta.tweespalt[f] = req.body[f]; });
   storage.writeJSON('meta.json', meta);
   req.app.get('io').to(_campagneRoom(req)).emit('meta:updated');
   res.json(meta.tweespalt);
@@ -11961,7 +11986,7 @@ router.put('/meta/tweespalt', requireDM, (req, res) => {
 router.put('/meta/ursula', requireDM, (req, res) => {
   const meta = storage.readJSON('meta.json');
   if (!meta.ursula) meta.ursula = {};
-  ['naam', 'groet', 'groeten', 'prijs', 'imageId', 'locatieId', 'backdropId'].forEach(f => { if (req.body[f] !== undefined) meta.ursula[f] = req.body[f]; });
+  ['naam', 'groet', 'groeten', 'groetTafelId', 'prijs', 'imageId', 'locatieId', 'backdropId'].forEach(f => { if (req.body[f] !== undefined) meta.ursula[f] = req.body[f]; });
   storage.writeJSON('meta.json', meta);
   req.app.get('io').to(_campagneRoom(req)).emit('meta:updated');
   res.json(meta.ursula);
@@ -11970,7 +11995,7 @@ router.put('/meta/ursula', requireDM, (req, res) => {
 router.put('/meta/gock', requireDM, (req, res) => {
   const meta = storage.readJSON('meta.json');
   if (!meta.gock) meta.gock = {};
-  ['naam', 'groet', 'groeten', 'prijs', 'tidbits', 'imageId', 'locatieId', 'backdropId'].forEach(f => { if (req.body[f] !== undefined) meta.gock[f] = req.body[f]; });
+  ['naam', 'groet', 'groeten', 'groetTafelId', 'prijs', 'tidbits', 'imageId', 'locatieId', 'backdropId'].forEach(f => { if (req.body[f] !== undefined) meta.gock[f] = req.body[f]; });
   storage.writeJSON('meta.json', meta);
   req.app.get('io').to(_campagneRoom(req)).emit('meta:updated');
   res.json(meta.gock);
@@ -12186,7 +12211,7 @@ router.post('/magizoo/onderzoek', attachRole, vereistDienst('magizoo'), (req, re
 router.put('/meta/magizoo', requireDM, (req, res) => {
   const meta = storage.readJSON('meta.json');
   if (!meta.magizoo) meta.magizoo = {};
-  ['naam', 'groet', 'groeten', 'imageId', 'locatieId', 'backdropId', 'prijs', 'prijsVolledig', 'cooldownMinuten']
+  ['naam', 'groet', 'groeten', 'groetTafelId', 'imageId', 'locatieId', 'backdropId', 'prijs', 'prijsVolledig', 'cooldownMinuten']
     .forEach(f => { if (req.body[f] !== undefined) meta.magizoo[f] = req.body[f]; });
   storage.writeJSON('meta.json', meta);
   req.app.get('io').to(_campagneRoom(req)).emit('meta:updated');
@@ -12511,7 +12536,7 @@ router.post('/tempel/eed/hef', requireDM, (req, res) => {
 router.put('/meta/tempel', requireDM, (req, res) => {
   const meta = storage.readJSON('meta.json');
   if (!meta.tempel) meta.tempel = {};
-  ['naam', 'groet', 'groeten', 'prijs', 'eedPrijs', 'boetePrijs', 'imageId', 'locatieId', 'backdropId', 'voorwerpNaam', 'goden'].forEach(f => { if (req.body[f] !== undefined) meta.tempel[f] = req.body[f]; });
+  ['naam', 'groet', 'groeten', 'groetTafelId', 'prijs', 'eedPrijs', 'boetePrijs', 'imageId', 'locatieId', 'backdropId', 'voorwerpNaam', 'goden'].forEach(f => { if (req.body[f] !== undefined) meta.tempel[f] = req.body[f]; });
   storage.writeJSON('meta.json', meta);
   req.app.get('io').to(_campagneRoom(req)).emit('meta:updated');
   res.json(meta.tempel);

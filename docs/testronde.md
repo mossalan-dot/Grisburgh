@@ -1310,10 +1310,13 @@ Grisburghs **data** te staan — niet in de code.
 - [ ] **Eén volgorde voor de diensten** (ALL) — Markt, Herberg, Tempels, Facties, Gokhuis, Detective, Waarzegger, Magizoöloog, Toegang. Dezelfde volgorde in de tabbalk van de Meesterkamer, het Diensten-menu in de kop, de toegangstabel en de modules bij Instellingen.
 - [ ] **Geen dubbele kop** (DM) — een dienstpaneel begint met *Algemeen*, niet nog eens met de naam die al in de tab staat. De boekjes van de tabbalk en van de kopjes staan op één lijn.
 - [ ] **Kopjes per dienst** (DM) — de herberg toont *Algemeen*, *Overnachten* en *Aan de tap*; elk deel heeft zijn eigen boekje.
-- [ ] **Prijzen zijn muntvelden** (DM) — overnachten en elk menu-item hebben drie vakjes (gp/sp/cp) in plaats van een vrij tekstveld. Een bestaande prijs ("1 fl.", "12,34") komt goed ingevuld terug.
+- [ ] **Prijzen zijn één veld** (DM) — overnachten en elk menu-item hebben één bedragveld met de kommanotatie ("2,50"), zoals de winkel en de loot. Prijs en roddels staan onder elkaar, niet naast.
 - [ ] **Roddels per persoon** (DM/SP) — stel bij Overnachten in hoeveel roddels een lange rust in de herberg per speler oplevert; het was vast twee. Nul betekent geen roddels.
 - [ ] **Aan de tap kan genezen** (DM/SP) — een menu-item heeft nu *Geneest* naast *Tijdelijke HP*; allebei mag een worp zijn. Gekoppeld aan een voorwerpkaartje wint dat kaartje, zoals eerder.
 - [ ] **De werking staat op je blad** (DM/SP) — vul *Werking in woorden* in bij een menu-item en bestel het: op het spelersblad verschijnt onder *Aan de tap* een badge met de naam van het drankje en die werking, tot de volgende lange rust. Een drankje zonder werking in woorden geeft géén badge.
 - [ ] **Eén item per uitklap** (DM) — de menukaart toont per regel alleen naam en prijs; klik open voor de rest. Een nieuw item staat meteen open.
-- [ ] **Begroetingen variëren** (DM/SP) — vul meerdere begroetingen in (uitklapkaartje, regel erbij/eruit): bij elk bezoek kiest de dienst er een. Eén regel gedraagt zich als vroeger; een campagne met alleen het oude veld blijft werken.
+- [ ] **Begroetingen komen uit een tafel** (DM/SP) — koppel een dienst aan een tafel (of maak er een met *Nieuw*, die meteen opent in Tafels): bij elk bezoek kiest de dienst een regel. Een gewogen tafel werkt ook; de bereiken ("1-3: …") komen niet op het scherm van de speler. Geen tafel gekozen = de oude vaste zin.
 - [ ] **Het logboek is opgeschoond** (ALL) — het blok heet *Archief*, met per soort een uitklap (met aantal) en documenten als gewone regel. Dungeons heten dungeons. Op een sessiekaart staan geen losse namenchips meer: die staan al in het regie-script.
+- [ ] **Markt zonder dubbele kop** (DM) — het paneel begint bij *Gebieden*; de naam en het boekje staan al in de tabbalk. De uitleg staat in de boekjes, niet boven de velden.
+- [ ] **Alles uit** (DM) — de knop heette *Laat de app kiezen* en zei niet wat hij deed: hij vinkt alle gebieden uit, waarna de Markt zelf een laag kiest.
+- [ ] **Winkels staan dicht** (DM) — *Winkels* toont een uitklap met het aantal; open staat links de naam (klik opent het kaartje) en rechts de gebiedsketen.

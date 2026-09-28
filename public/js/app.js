@@ -10,7 +10,7 @@ import { renderSpreuken } from './render-spreuken.js?v=41';
 import { renderVaardigheden, zoekVaardigheden } from './render-vaardigheden.js?v=10';
 import { renderStatblock } from './render-statblock.js?v=9';
 import { initSocket } from "./socket-client.js?v=78";
-import { initDmPanel } from "./dm-panel.js?v=324";
+import { initDmPanel } from "./dm-panel.js?v=326";
 import { COND_INFO, COND_LABEL, COND_MET_PLAATJE, COND_ICON } from './conditions.js?v=2';
 import './media-picker.js?v=8';
 import './tafels.js?v=2';
@@ -14076,13 +14076,19 @@ const HELP_CONFIG = {
     { titel: 'Wat hij doet', tekst: 'Spelers leggen een vraag bij hem neer over een persoon, plek of voorwerp. Dat kost geld en tijd; het antwoord schrijf jij. Zo kunnen ze iets uitzoeken zonder dat de hele tafel stilvalt.', afbeelding: null },
     { titel: 'Het antwoord is een scène', tekst: 'Schrijf wat hij *gevonden* heeft, niet wat waar is — een detective kan zich vergissen, of net te laat komen. Dat maakt van een opzoekactie een verhaallijn.', afbeelding: null },
   ] }),
-  dm_markt_gebieden: () => ({ titel: 'Gebieden om op te filteren', stappen: [
+  dm_markt_gebieden: () => ({ titel: 'Gebieden', stappen: [
+    { titel: 'Waarvoor dit is', tekst: 'Vink aan welke gebieden je spelers als **knop** op de Markt te zien krijgen. Vink je niets aan, dan kiest de app zelf een zinnige laag — daar is de knop *Alles uit* voor.', afbeelding: null },
     { titel: 'Waar een winkel ligt is afgeleid', tekst: 'Uit het veld *Gebied* op het locatiekaartje van de winkel, dat naar een andere locatie wijst — Boekenwyrm › Luimpoort › Grisburgh › Continent. Een winkel valt onder élk lid van die keten.', afbeelding: null },
     { titel: 'Jij kiest welke laag telt', tekst: 'Alle wijken als losse knop is zelden wat je wilt. Vink daarom aan welke gebieden als filter op de Markt verschijnen; jouw volgorde is de volgorde op het scherm. Staat er niets, dan leidt de app ze zelf af.', afbeelding: null },
   ] }),
-  dm_markt_winkels: () => ({ titel: 'Winkels die de Markt vindt', stappen: [
+  dm_markt_winkels: () => ({ titel: 'Winkels', stappen: [
+    { titel: 'Deze lijst maak je niet zelf', tekst: 'Elke **locatie of verkoper met een voorraad** staat er vanzelf in. De keten erachter komt uit het veld *Gebied* op het kaartje; wijst dat naar zichzelf, dan stopt de keten daar. Klik een naam om het kaartje te openen.', afbeelding: null },
     { titel: 'Een controlelijst', tekst: 'Alle winkels met de gebiedsketen die eruit volgt. Hiermee zie je je eigen data: een winkel die zichzelf als gebied heeft, komt nooit onder de stad uit — dat valt hier meteen op.', afbeelding: null },
     { titel: 'Wat een speler ziet', tekst: 'De Markt toont alleen winkels die deze party kan zien, en een doorklik naar het voorwerpkaartje alleen als ze dat kaartje kennen. Naam, prijs en beeld gaan wel mee: dat ligt in de etalage.', afbeelding: null },
+  ] }),
+  dm_herberg_rust: () => ({ titel: 'Overnachten', stappen: [
+    { titel: 'Wat een nacht kost', tekst: 'De prijs geldt **per persoon** en gaat er bij een lange rust hier automatisch af — van de eigen beurs, of van de gedeelde beurs als die aanstaat. Eén bedrag, met een komma: *2,50* is 2 florinden en 5 knaken.', afbeelding: null },
+    { titel: 'Wat je opvangt', tekst: 'Een nacht in de herberg onthult **roddels** van kaartjes die deze party al kent — je stelt hier in hoeveel per speler. Nul betekent: hier wordt niet gepraat. Op = op: de pot is eindig, dus een stille herberg spreidt hem uit over meer avonden.', afbeelding: null },
   ] }),
   dm_magizoo: () => ({ titel: 'De magizoöloog', stappen: [
     { titel: 'Twee dingen', tekst: 'Hij verkoopt **metgezellen** en hij weet iets van **wezens**: tegen betaling brengt hij het bestiarium van de party een niveau verder. Wat er te koop is en wat het kost, stel je hier in.', afbeelding: null },
