@@ -10,7 +10,7 @@ import { renderSpreuken } from './render-spreuken.js?v=41';
 import { renderVaardigheden, zoekVaardigheden } from './render-vaardigheden.js?v=10';
 import { renderStatblock } from './render-statblock.js?v=9';
 import { initSocket } from "./socket-client.js?v=78";
-import { initDmPanel } from "./dm-panel.js?v=326";
+import { initDmPanel } from "./dm-panel.js?v=327";
 import { COND_INFO, COND_LABEL, COND_MET_PLAATJE, COND_ICON } from './conditions.js?v=2';
 import './media-picker.js?v=8';
 import './tafels.js?v=2';
@@ -14839,9 +14839,9 @@ Object.assign(HELP_CONFIG, {
     ],
   }),
   dm_tafels: () => ({
-    titel: 'Willekeurstafels & Namen',
+    titel: 'Tafels',
     stappen: [
-      { titel: 'Willekeurstafels', tekst: 'Rol op een willekeurstafel om een resultaat te genereren. Gebruik dit voor random encounters, weersinvloeden, beloningen of namen.', afbeelding: null },
+      { titel: 'Een tafel is een lijst', tekst: 'Rol erop en je krijgt er een regel uit. Gebruik ze voor ontmoetingen, weer, vondsten, namen — en voor de begroeting van een dienst, die je bij die dienst aan een tafel koppelt.', afbeelding: null },
       { titel: 'Namenlijsten', tekst: 'Genereer NPC-namen op basis van cultuur of origine. Klik op een naam om hem te kopiëren.', afbeelding: null },
     ],
   }),

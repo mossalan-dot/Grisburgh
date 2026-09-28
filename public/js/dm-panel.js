@@ -250,7 +250,7 @@ export function initDmPanel() {
     naamGenereer:  _naamGenereer,
     weerSeason:    _weerSeason,
     weerGenereer:  _weerGenereer,
-    tabelCancel:   () => { _editingTableId = null; _renderTafels(); },
+    tabelCancel:   () => { _editingTableId = null; if (!_tafelTerug()) _renderTafels(); },
     tabelTypeChange(val) {
       _editingTableType = val;
       if (val === 'combined' && _editingTableDelen.filter(Boolean).length < 2) _editingTableDelen = ['', ''];
@@ -763,7 +763,7 @@ const _DM_TABS = [
   { id: 'rust',      groep: 'spelen',    label: 'Rust',      icoon: 'moon',                            title: 'Rust — Long &amp; Short Rest' },
   // Sfeer en improvisatie
   { id: 'geluiden',  groep: 'sfeer',     label: 'Geluiden',  icoon: 'volume-2',                        title: 'Geluiden' },
-  { id: 'tafels',    groep: 'sfeer',     label: 'Tafels',    icoon: 'dice', cls: 'icon-gi',            title: 'Willekeur — tafels &amp; namen' },
+  { id: 'tafels',    groep: 'sfeer',     label: 'Tafels',    icoon: 'dice', cls: 'icon-gi',            title: 'Tafels — rollen op een lijst' },
   // Voorbereiden en beheren
   { id: 'diensten',  groep: 'beheer',    label: 'Diensten',  icoon: 'building',                        title: 'Diensten' },
   { id: 'media',     groep: 'beheer',    label: 'Media',     icoon: 'image',                           title: 'Mediabibliotheek' },
@@ -1119,9 +1119,22 @@ window._groetTafelNieuw = async (sleutel) => {
 window._groetTafelBewerk = (sleutel) => {
   const id = document.getElementById(`${sleutel}-groettafel`)?.value;
   if (!id) { alert('Kies eerst een tafel, of maak er een.'); return; }
+  // Onthouden waar we vandaan komen: na opslaan of annuleren hoor je terug te
+  // zijn bij de dienst, niet achter te blijven in het Tafels-tabblad.
+  _tafelTerugNaar = _dienstenSubTab;
   window.dmPanel.switchTab('tafels');
   setTimeout(() => { try { window.dmPanel.tabelEdit(id); } catch {} }, 160);
 };
+
+// Welke dienst de tafel-editor opende (leeg = gewoon het Tafels-tabblad).
+let _tafelTerugNaar = '';
+function _tafelTerug() {
+  if (!_tafelTerugNaar) return false;
+  const terug = _tafelTerugNaar;
+  _tafelTerugNaar = '';
+  window.dmPanel.switchTab(terug);
+  return true;
+}
 
 
 
@@ -3406,7 +3419,7 @@ function _renderTafels() {
   const sortedTables = [..._tables].sort((a, b) => a.name.localeCompare(b.name, 'nl', { sensitivity: 'base' }));
   const hasTables = sortedTables.length > 0;
   el.innerHTML = `
-    ${_dmTabHead({ icon: 'dice', title: 'Willekeur', sub: 'tafels & namen', actions: helpBtn('dm_tafels') })}
+    ${_dmTabHead({ icon: 'dice', title: 'Tafels', sub: 'rollen op een lijst', actions: helpBtn('dm_tafels') })}
     <div class="dm-feature-section dm-namen-section">
       <div class="dm-section-label">Namen<span class="dm-sectie-hulp">${helpBtn('dm_tafels_namen')}</span></div>
       <div class="dm-feature-row">
@@ -3597,6 +3610,7 @@ async function _tabelSave(idOrNew) {
       if (idx !== -1) _tables[idx] = t;
     }
     _editingTableId = null;
+    if (_tafelTerug()) return;      // kwam je van een dienst? dan ga je terug
     _renderTafels();
   } catch (e) { alert('Fout: ' + e.message); }
 };
