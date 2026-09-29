@@ -27869,3 +27869,20 @@ body.akte-schrijf-open .mp-overlay { z-index: 1320; }
 }
 .dm-factie-betrokken-knop:hover { background: rgba(196,168,122,.3); border-style: solid; }
 .dm-factie-betrokken-knop .icon { width: 11px; height: 11px; }
+
+/* Een lid van een factie: naam, zijn rol van het kaartje, en de rang die de
+   factie eraan geeft. */
+.factie-lid-rij { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
+.factie-lid-naam {
+  flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  font-family: 'Crimson Text', serif; font-size: 13.5px; color: #3a2410;
+}
+.factie-lid-rol {
+  flex-shrink: 0; font-family: 'Crimson Text', serif; font-size: 11.5px;
+  font-style: italic; color: #8a6a3a;
+}
+.dm-factie-kaartlink {
+  background: none; border: 0; padding: 0; cursor: pointer;
+  font: inherit; color: #8a5a10; text-decoration: underline;
+}
+.dm-factie-kaartlink:hover { color: #5a3a08; }

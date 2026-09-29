@@ -12898,13 +12898,39 @@ router.get('/facties', attachRole, (req, res) => {
 
   // Leden van een factie resolven (portret = entityId, naam + rol uit het personage).
   // Spelers zien alleen leden waarvan het personage zichtbaar is (volgt entity-visibility).
+  // Wie hoort bij deze factie? Het **organisatiekaartje** is de bron: zijn
+  // betrokkenenlijst tekent al het organogram, en dat is dezelfde vraag. De
+  // factie bewaart alleen nog de **rang** per persoon — een rol zegt wat je
+  // doet, een rang hoe hoog je staat.
+  //
+  // `f.leden` blijft werken voor een factie zonder organisatiekaartje, en voor
+  // campagnes die de migratie nog niet gedraaid hebben.
   function _resolveLeden(f) {
-    return (f.leden || []).map(l => {
+    const org = f.entityId ? (entities.organisaties || []).find(o => o.id === f.entityId) : null;
+    const rangen = f.ledenRang || {};
+
+    let rijen;
+    if (org) {
+      let betr = org.data?.betrokkenen;
+      if (typeof betr === 'string') { try { betr = JSON.parse(betr); } catch { betr = []; } }
+      rijen = (Array.isArray(betr) ? betr : [])
+        .filter(r => r && (r.naam || r.id))
+        .map(r => {
+          const e = personages.find(p => p.id === r.id)
+            || personages.find(p => (p.name || '').toLowerCase() === (r.naam || '').toLowerCase());
+          return e ? { entityId: e.id, rang: rangen[e.id] || '' } : null;
+        })
+        .filter(Boolean);
+    } else {
+      rijen = (f.leden || []).map(l => ({ entityId: l.entityId, rang: l.rang || rangen[l.entityId] || '' }));
+    }
+
+    return rijen.map(l => {
       const e = personages.find(p => p.id === l.entityId);
       if (!e) return null;
       const vis = visibility[e.id] || 'hidden';
       if (!isDM && (vis === 'hidden' || vis === 'vague')) return null;
-      return { entityId: e.id, naam: e.name, rol: e.data?.rol || '', rang: l.rang || '' };
+      return { entityId: e.id, naam: e.name, rol: e.data?.rol || '', rang: l.rang };
     }).filter(Boolean);
   }
 
@@ -13274,6 +13300,12 @@ router.put('/meta/facties', requireDM, (req, res) => {
     npcEntityIdDag:  f.npcEntityIdDag  ? String(f.npcEntityIdDag).trim()  : null,
     npcGreet:        f.npcGreet        ? String(f.npcGreet).trim()        : '',
     groetTafelId:    f.groetTafelId    ? String(f.groetTafelId).trim()    : '',
+    // De rang per lid, op id. Wie er lid ís staat op het organisatiekaartje.
+    ledenRang: (f.ledenRang && typeof f.ledenRang === 'object')
+      ? Object.fromEntries(Object.entries(f.ledenRang)
+          .filter(([k, v]) => k && typeof v === 'string' && v.trim())
+          .map(([k, v]) => [String(k), String(v).trim().slice(0, 60)]))
+      : {},
     briefstijl:      f.briefstijl      ? String(f.briefstijl).trim()      : '',
     leden: (Array.isArray(f.leden) ? f.leden : [])
       .filter(l => l && l.entityId)

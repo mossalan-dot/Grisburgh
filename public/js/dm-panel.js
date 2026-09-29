@@ -7315,6 +7315,7 @@ async function _renderFactiesSettings() {
     npcGreet:        f.npcGreet        || '',
     groetTafelId:    f.groetTafelId    || '',
     briefstijl:      f.briefstijl      || '',
+    ledenRang:       { ...(f.ledenRang || {}) },
     leden: (f.leden || []).map(l => ({ entityId: l.entityId, rang: l.rang || '' })),
     uitnodiging:      f.uitnodiging      || '',
     uitnodigingTitel: f.uitnodigingTitel || '',
@@ -7503,13 +7504,13 @@ function _renderFactiesDM() {
               <div class="dm-section-label" style="margin-top:10px">${icon('users')} Leden<span class="dm-sectie-hulp">${helpBtn('dm_facties_leden')}</span></div>
               <p class="dm-hint" style="margin:0 0 6px">Kies personages als lid. De rol komt automatisch uit het personage; de rang bepaalt de groepering (leeg = onder "Leden"). Volgorde = hiërarchie. Spelers zien alleen leden waarvan het personage zichtbaar is.</p>
               <div id="factie-leden-${fi}">${_ledenEditor(fi, f.leden || [])}</div>
-              ${_factieBetrokkenenHtml(fi, f)}
-              <div class="dm-form-row" style="flex-direction:row;gap:6px;margin-top:4px;align-items:center">
-                <input class="dm-input dm-input-sm" id="factie-lid-add-${fi}" style="flex:1" list="factie-pers-dl"
-                  placeholder="Zoek personage…" autocomplete="off"
-                  onkeydown="if(event.key==='Enter'){event.preventDefault();window._factieLidAdd(${fi});}">
-                <button class="dm-btn dm-btn-ghost dm-btn-sm" onclick="window._factieLidAdd(${fi})">${icon('plus')} Toevoegen</button>
-              </div>
+              ${f.entityId ? '' : `
+                <div class="dm-form-row" style="flex-direction:row;gap:6px;margin-top:4px;align-items:center">
+                  <input class="dm-input dm-input-sm" id="factie-lid-add-${fi}" style="flex:1" list="factie-pers-dl"
+                    placeholder="Zoek personage…" autocomplete="off"
+                    onkeydown="if(event.key==='Enter'){event.preventDefault();window._factieLidAdd(${fi});}">
+                  <button class="dm-btn dm-btn-ghost dm-btn-sm" onclick="window._factieLidAdd(${fi})">${icon('plus')} Toevoegen</button>
+                </div>`}
 
               <div class="dm-section-label" style="margin-top:10px;display:flex;align-items:center;gap:6px">
                 ${icon('mail')} Uitnodigingsbrief
@@ -7613,50 +7614,19 @@ window._factieBoonKies = (fi, i, bi, zoekId, selectId, value) => {
 window._factieEdit = (fi, field, v) => { const f = _factiesDraft[fi]; if (f) f[field] = v; };
 
 // ── Factie-leden bewerken ──
-// Wie er op het organisatiekaartje staat — de betrokkenenlijst die daar het
-// organogram tekent. Dat is dezelfde vraag als "wie is lid van deze factie",
-// maar het antwoord stond op twee plekken. Ze samenvoegen vraagt een migratie
-// (de ene lijst is gevuld, de andere leeg), dus voorlopig: laten zien wie er
-// aan de andere kant staat, met één klik om hem over te nemen.
-function _factieBetrokkenenHtml(fi, f) {
-  if (!f.entityId) return '';
-  const org = _factiesOrganisaties.find(o => o.id === f.entityId);
-  if (!org) return '';
-  let rijen = org.data?.betrokkenen;
-  if (typeof rijen === 'string') { try { rijen = JSON.parse(rijen); } catch { rijen = []; } }
-  rijen = (Array.isArray(rijen) ? rijen : []).filter(r => r && (r.naam || r.id));
-  if (!rijen.length) return '';
 
-  const alLid = new Set((f.leden || []).map(l => l.entityId));
-  const nieuw = rijen.filter(r => {
-    const p = _factiesPersonages.find(x => x.id === r.id || (x.name || '').toLowerCase() === (r.naam || '').toLowerCase());
-    return p && !alLid.has(p.id);
-  });
-  if (!nieuw.length) return '';
 
-  return `<div class="dm-factie-betrokken">
-    <span class="dm-hint">Op het kaartje van <strong>${esc(org.name)}</strong> staan nog:</span>
-    <div class="dm-factie-betrokken-rij">
-      ${nieuw.map(r => {
-        const p = _factiesPersonages.find(x => x.id === r.id || (x.name || '').toLowerCase() === (r.naam || '').toLowerCase());
-        return `<button type="button" class="dm-factie-betrokken-knop"
-          onclick="window._factieLidUitKaart(${fi},'${esc(p.id)}','${escJS(r.rol || '')}')"
-          title="Als lid toevoegen${r.rol ? ` — ${esc(r.rol)}` : ''}">${icon('plus')} ${esc(p.name)}</button>`;
-      }).join('')}
-    </div>
-  </div>`;
-}
-
-window._factieLidUitKaart = (fi, entityId, rang) => {
-  const f = _factiesDraft[fi];
-  if (!f) return;
-  f.leden = f.leden || [];
-  if (f.leden.some(l => l.entityId === entityId)) return;
-  f.leden.push({ entityId, rang: rang || '' });
-  _renderFactiesDM();
-};
-
+// Wie er lid is, staat op het organisatiekaartje: de betrokkenenlijst die daar
+// het organogram tekent. Hier staat alleen wat de factie eraan toevoegt — de
+// **rang**. Een rol zegt wat je doet, een rang hoe hoog je staat.
+//
+// Een factie zonder organisatiekaartje houdt haar eigen lijstje; dan is er
+// niets om uit te lezen.
 function _ledenEditor(fi, leden) {
+  const f = _factiesDraft[fi] || {};
+  const org = f.entityId ? _factiesOrganisaties.find(o => o.id === f.entityId) : null;
+  if (org) return _ledenUitKaartHtml(fi, f, org);
+
   if (!leden.length) return '<p class="dm-hint" style="opacity:.6;margin:0 0 4px">Nog geen leden.</p>';
   const naamVan = id => (_factiesPersonages.find(p => p.id === id)?.name) || '(onbekend personage)';
   return leden.map((l, li) => `
@@ -7668,6 +7638,43 @@ function _ledenEditor(fi, leden) {
       <button class="dm-btn dm-btn-ghost dm-btn-sm dm-btn-icon dm-btn-danger" onclick="window._factieLidRemove(${fi},${li})" title="Verwijderen">${icon('x')}</button>
     </div>`).join('');
 }
+
+function _ledenUitKaartHtml(fi, f, org) {
+  let betr = org.data?.betrokkenen;
+  if (typeof betr === 'string') { try { betr = JSON.parse(betr); } catch { betr = []; } }
+  const rijen = (Array.isArray(betr) ? betr : []).filter(r => r && (r.naam || r.id));
+  const rangen = f.ledenRang || {};
+
+  const kop = `<p class="dm-hint" style="margin:0 0 6px">De leden komen van het kaartje van
+    <button type="button" class="dm-factie-kaartlink" onclick="window._openDetail('organisaties','${esc(org.id)}')">${esc(org.name)}</button>
+    — daar voeg je ze toe of haal je ze weg. Hier zet je alleen hun rang.</p>`;
+
+  if (!rijen.length) {
+    return kop + `<p class="dm-hint" style="opacity:.6">Nog niemand op dat kaartje.</p>`;
+  }
+
+  return kop + rijen.map(r => {
+    const p = _factiesPersonages.find(x => x.id === r.id)
+      || _factiesPersonages.find(x => (x.name || '').toLowerCase() === (r.naam || '').toLowerCase());
+    const naam = p?.name || r.naam || '(onbekend)';
+    if (!p) return `<div class="factie-lid-rij"><span class="factie-lid-naam" style="opacity:.55">${esc(naam)} — geen personagekaartje</span></div>`;
+    return `
+      <div class="factie-lid-rij">
+        <span class="factie-lid-naam">${esc(naam)}</span>
+        ${r.rol ? `<span class="factie-lid-rol">${esc(r.rol)}</span>` : ''}
+        <input class="dm-input dm-input-sm" style="width:130px;flex:none" placeholder="Rang (optioneel)"
+          value="${esc(rangen[p.id] || '')}" oninput="window._factieLidRangOpId(${fi},'${esc(p.id)}',this.value)">
+      </div>`;
+  }).join('');
+}
+
+window._factieLidRangOpId = (fi, entityId, waarde) => {
+  const f = _factiesDraft[fi];
+  if (!f) return;
+  f.ledenRang = f.ledenRang || {};
+  if ((waarde || '').trim()) f.ledenRang[entityId] = waarde.trim();
+  else delete f.ledenRang[entityId];
+};
 function _ledenHerteken(fi) {
   const c = document.getElementById(`factie-leden-${fi}`);
   if (c) c.innerHTML = _ledenEditor(fi, _factiesDraft[fi]?.leden || []);
@@ -7791,6 +7798,7 @@ function _factiesPayload() {
     npcEntityId: (f.npcEntityId || '').trim() || null,
     npcGreet: (f.npcGreet || '').trim(),
     groetTafelId: (f.groetTafelId || '').trim(),
+    ledenRang: f.ledenRang || {},
     briefstijl: (f.briefstijl || '').trim(),
     leden: (f.leden || []).filter(l => l && l.entityId)
       .map(l => ({ entityId: String(l.entityId).trim(), rang: (l.rang || '').trim() })),
