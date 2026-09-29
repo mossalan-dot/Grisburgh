@@ -157,6 +157,14 @@ describe('Deelfuncties van een dienst', () => {
       'een tap zonder herberg is niets om een deel van te zijn');
   });
 
+  it('noemt een deel niet apart als de hele dienst al weg is', () => {
+    // Anders zou een route die op deze lijst afgaat weigeren om de verkeerde
+    // reden: niet "hier wordt niet geschonken", maar "er is hier geen herberg".
+    const verborgen = verborgenUI({ modules: { herberg: false } });
+    assert.ok(!verborgen.delen.includes('herberg-tap'), 'de dienst zelf zit al in `secties`');
+    assert.ok(verborgen.secties.includes('herberg'));
+  });
+
   it('verbergt alleen het deel als de dienst aanblijft', () => {
     const verborgen = verborgenUI({ modules: { herberg: true, 'herberg-tap': false } });
     assert.ok(verborgen.delen.includes('herberg-tap'), 'de tap verdwijnt');
@@ -166,5 +174,12 @@ describe('Deelfuncties van een dienst', () => {
   it('laat een deel dat aanstaat met rust', () => {
     const verborgen = verborgenUI({ modules: { herberg: true, 'herberg-tap': true } });
     assert.ok(!verborgen.delen.includes('herberg-tap'));
+  });
+
+  it('kent voor elke deelfunctie een eigen naam', () => {
+    const delen = MODULES.filter(m => m.ouder);
+    const labels = delen.map(d => d.label);
+    assert.strictEqual(new Set(labels).size, labels.length,
+      'twee delen met dezelfde naam zijn in de lijst niet uit elkaar te houden');
   });
 });

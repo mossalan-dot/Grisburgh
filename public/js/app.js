@@ -10,7 +10,7 @@ import { renderSpreuken } from './render-spreuken.js?v=41';
 import { renderVaardigheden, zoekVaardigheden } from './render-vaardigheden.js?v=10';
 import { renderStatblock } from './render-statblock.js?v=9';
 import { initSocket } from "./socket-client.js?v=79";
-import { initDmPanel } from "./dm-panel.js?v=342";
+import { initDmPanel } from "./dm-panel.js?v=343";
 import { COND_INFO, COND_LABEL, COND_MET_PLAATJE, COND_ICON } from './conditions.js?v=2';
 import './media-picker.js?v=8';
 import './tafels.js?v=2';
@@ -12413,14 +12413,23 @@ async function renderHerberg() {
         ${config.naam ? `<p class="dienst-huisnaam">${esc(config.naam)}</p>` : ''}
         <p class="herberg-groet">${_groetTekst}</p>
 
-        ${heeftMenu && window._deelAan('herberg-tap') ? `
-          <div class="dienst-subtab-nav">
-            <button class="dienst-subtab-btn${_herbergActiveTab === 'roddels' ? ' active' : ''}" data-tab="roddels" onclick="window._herbergTab('roddels')">${icon('message-circle')} Roddels</button>
-            <button class="dienst-subtab-btn${_herbergActiveTab === 'tap' ? ' active' : ''}" data-tab="tap" onclick="window._herbergTab('tap')">${icon('beer')} Aan de tap</button>
-          </div>
-          <div class="dienst-subtab-panel${_herbergActiveTab === 'roddels' ? '' : ' hidden'}" id="herberg-panel-roddels">${roddelPaneel}</div>
-          <div class="dienst-subtab-panel${_herbergActiveTab === 'tap' ? '' : ' hidden'}" id="herberg-panel-tap">${tapPaneel}</div>
-        ` : roddelPaneel}
+        ${(() => {
+          // Twee deelfuncties die los van elkaar uit kunnen: de roddels en de
+          // tap. Blijft er één over, dan is een tabbalk van één knop onzin.
+          const _roddels = window._deelAan('herberg-roddels');
+          const _tap     = heeftMenu && window._deelAan('herberg-tap');
+          if (_roddels && _tap) return `
+            <div class="dienst-subtab-nav">
+              <button class="dienst-subtab-btn${_herbergActiveTab === 'roddels' ? ' active' : ''}" data-tab="roddels" onclick="window._herbergTab('roddels')">${icon('message-circle')} Roddels</button>
+              <button class="dienst-subtab-btn${_herbergActiveTab === 'tap' ? ' active' : ''}" data-tab="tap" onclick="window._herbergTab('tap')">${icon('beer')} Aan de tap</button>
+            </div>
+            <div class="dienst-subtab-panel${_herbergActiveTab === 'roddels' ? '' : ' hidden'}" id="herberg-panel-roddels">${roddelPaneel}</div>
+            <div class="dienst-subtab-panel${_herbergActiveTab === 'tap' ? '' : ' hidden'}" id="herberg-panel-tap">${tapPaneel}</div>`;
+          if (_tap) return tapPaneel;
+          if (_roddels) return roddelPaneel;
+          // Alleen een bed: dan is er hier niets te doen, en dat mag je weten.
+          return `<p class="herberg-zoek-hint">${esc(config.naam || 'De herberg')} verhuurt bedden, verder niets.</p>`;
+        })()}
       </div>
     </div>
   `;
@@ -13223,7 +13232,7 @@ function _renderTempelInterior(el, g, config, huidigeEed, huidigeZegen, currency
           </div>` : ''}
 
         <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:8px">
-          ${!eedGebonden ? `
+          ${!eedGebonden && window._deelAan('tempel-eden') ? `
           <button class="ts-wedden-btn" onclick="window._tempelEedCinema()">
             ${icon('scroll-text')} Eed afleggen · ${esc(prijsTekst(g.eedPrijs || config.eedPrijs))}
           </button>` : ''}

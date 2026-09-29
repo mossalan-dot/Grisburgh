@@ -1865,6 +1865,16 @@ router.put('/berichten/sjablonen', requireDM, (req, res) => {
 // Opgeslagen in berichten.json als { type:'brief', titel, tekst, afzender, entityId, entityType, deletedAt }
 
 // Bezorg programmatisch een (gethematiseerde) brief in de berichtenbox van een speler
+// Staat deze deelfunctie aan? De client verbergt de knop al, maar een route
+// die alleen op de client vertrouwt is geen route — dezelfde regel als bij
+// `vereistDienst`.
+function _deelAan(deel) {
+  try {
+    const meta = storage.readJSON('meta.json');
+    return !(verborgenUI(meta).delen || []).includes(deel);
+  } catch { return true; }
+}
+
 function _bezorgBrief(req, cid, { titel = '', tekst = '', afzender = '', thema = '', entityId = null, entityType = null, datum = '', embleem = '', kleur = '', kop = '', cinematic = false, briefstijl = '' }) {
   if (!cid || !tekst) return null;
   const berichten = storage.readJSON('berichten.json') || {};
@@ -4302,7 +4312,8 @@ router.post('/party/long-rest', requireDM, (req, res) => {
     // Roddels per speler uit de gedeelde pool (personages + locaties). Stond
     // vast op twee; dat hoort de DM te kunnen kiezen — een stille herberg geeft
     // er één, een roddelnest vier.
-    const perSpeler = Number.isFinite(+herberg.roddelsPerSpeler) ? Math.max(0, Math.min(10, +herberg.roddelsPerSpeler)) : 2;
+    const perSpeler = !_deelAan('herberg-roddels') ? 0
+      : (Number.isFinite(+herberg.roddelsPerSpeler) ? Math.max(0, Math.min(10, +herberg.roddelsPerSpeler)) : 2);
     const aantal = perSpeler * spelers.length;
     // Per regel, niet per personage: iemand met drie roddels levert er drie op,
     // over drie avonden verspreid, in plaats van één vlaggetje voor alles.
@@ -12611,6 +12622,7 @@ router.post('/tempel/verbruik', attachRole, vereistDienst('tempel'), (req, res) 
 
 // Eed: blijvende +1 (overleeft lange rust). Eén eed per speler. Verzaking → vloek.
 router.post('/tempel/eed', attachRole, vereistDienst('tempel'), (req, res) => {
+  if (!_deelAan('tempel-eden')) return res.status(403).json({ error: 'Hier worden geen eden afgelegd.' });
   const characterId = _handelendKarakter(req);
   if (!characterId) return res.status(403).json({ error: 'Geen speler ingelogd' });
 
@@ -13732,6 +13744,7 @@ router.get('/herberg', attachRole, (req, res) => {
 });
 
 router.post('/herberg/vraag', attachRole, vereistDienst('herberg'), (req, res) => {
+  if (!_deelAan('herberg-roddels')) return res.status(403).json({ error: 'Hier wordt niet geroddeld.' });
   const meta = storage.readJSON('meta.json');
   const config = meta.herberg;
   if (!config) return res.status(404).json({ error: 'Herberg niet geconfigureerd' });

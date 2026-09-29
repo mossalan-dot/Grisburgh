@@ -5920,11 +5920,14 @@ async function _renderHerbergSettings() {
 
       ${_dienstSectieKop('moon', 'Overnachten', 'dm_herberg_rust')}
       ${_bedragVeldHtml('hb-overnachting', config.overnachtingPrijs || '1 fl.', { label: 'Prijs per persoon' })}
-      <div class="dm-form-row">
-        <label class="dm-form-label" for="hb-roddels">Roddels per persoon</label>
-        <input id="hb-roddels" class="dm-input" type="number" min="0" max="10"
-          value="${Number.isFinite(+config.roddelsPerSpeler) ? +config.roddelsPerSpeler : 2}">
-      </div>
+      <!-- Hoeveel een nacht oplevert hoort bij de roddels; staat die functie
+           uit, dan valt er niets op te vangen. -->
+      ${window._deelAan?.('herberg-roddels') === false ? '' : `
+        <div class="dm-form-row">
+          <label class="dm-form-label" for="hb-roddels">Roddels per persoon</label>
+          <input id="hb-roddels" class="dm-input" type="number" min="0" max="10"
+            value="${Number.isFinite(+config.roddelsPerSpeler) ? +config.roddelsPerSpeler : 2}">
+        </div>`}
 
       ${window._deelAan?.('herberg-tap') === false ? _deelUitHtml('Aan de tap') : `
         ${_dienstSectieKop('beer', 'Aan de tap', 'dm_herberg_tap')}
@@ -6117,7 +6120,11 @@ window._hbSave = async () => {
     waard:      p?.name || '',
     backdropId: _dienstBackdropUit('hb', config),
     overnachtingPrijs: _bedragLees('hb-overnachting'),
-    roddelsPerSpeler:  Math.max(0, Math.min(10, parseInt(document.getElementById('hb-roddels')?.value) || 0)),
+    // Staat de roddelfunctie uit, dan is het veld er niet; dan laten we de
+    // opgeslagen waarde met rust in plaats van hem op nul te zetten.
+    ...(document.getElementById('hb-roddels')
+      ? { roddelsPerSpeler: Math.max(0, Math.min(10, parseInt(document.getElementById('hb-roddels').value) || 0)) }
+      : {}),
     menu: _hbMenuReadDom(),
   };
   try {
@@ -6869,11 +6876,14 @@ async function _renderTempelSettings() {
 
       ${_dienstSectieKop('coins', 'Standaardprijzen', 'dm_tempel_prijzen')}
       ${_bedragVeldHtml('tempel-prijs', config.prijs || { fl: 25 }, { label: 'Eenmalige zegen' })}
-      ${_bedragVeldHtml('tempel-eedprijs', config.eedPrijs || { fl: 50 }, { label: 'Eed' })}
-      ${_bedragVeldHtml('tempel-boeteprijs', config.boetePrijs || { fl: 100 }, { label: 'Boete na een vloek' })}
+      <!-- Een eedprijs en een boete zijn zinloos in een tempel zonder eden. -->
+      ${window._deelAan?.('tempel-eden') === false ? '' : `
+        ${_bedragVeldHtml('tempel-eedprijs', config.eedPrijs || { fl: 50 }, { label: 'Eed' })}
+        ${_bedragVeldHtml('tempel-boeteprijs', config.boetePrijs || { fl: 100 }, { label: 'Boete na een vloek' })}`}
 
-      ${_dienstSectieKop('scroll-text', 'Actieve eden en vloeken', 'dm_tempel_eden')}
-      <div id="tempel-eden"></div>
+      ${window._deelAan?.('tempel-eden') === false ? _deelUitHtml('Eden en vloeken') : `
+        ${_dienstSectieKop('scroll-text', 'Actieve eden en vloeken', 'dm_tempel_eden')}
+        <div id="tempel-eden"></div>`}
 
       ${_dienstSectieKop('church', 'Goden', 'dm_tempel_goden')}
       <div id="tempel-goden"></div>
@@ -7220,11 +7230,16 @@ window._tempelSettingsSave = async () => {
       ...(g.groetTafelId ? { groetTafelId: g.groetTafelId } : {}),
     }));
   try {
+    // Staan de eden uit, dan zijn die velden er niet — dan laten we hun
+    // opgeslagen waarde met rust in plaats van hem op nul te zetten.
+    const _eden = window._deelAan?.('tempel-eden') !== false;
     await api.saveTempelConfig({
       naam: naam || 'Tempels',
-      prijs:      _bedragLeesMunten('tempel-prijs'),
-      eedPrijs:   _bedragLeesMunten('tempel-eedprijs'),
-      boetePrijs: _bedragLeesMunten('tempel-boeteprijs'),
+      prijs: _bedragLeesMunten('tempel-prijs'),
+      ...(_eden ? {
+        eedPrijs:   _bedragLeesMunten('tempel-eedprijs'),
+        boetePrijs: _bedragLeesMunten('tempel-boeteprijs'),
+      } : {}),
       voorwerpNaam, goden,
     });
     const newMeta = await api.meta();
