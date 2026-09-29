@@ -6804,6 +6804,9 @@ window._ursulaResetParty = async () => {
 // ── De Tempel — DM-instellingen ──
 
 let _tempelGodenDraft = [];
+let _tempelLocaties = [];
+let _tempelAlle = [];
+let _tempelGodKaartjes = [];
 let _tempelBackdropPending = null;
 let _tempelEntityPortretOpties = [];
 let _tempelBackdropOpties = [];
@@ -6829,6 +6832,13 @@ async function _renderTempelSettings() {
     .map(e => ({ value: e.id, label: e.name || e.id }))];
   _tempelBackdropOpties = [{ value: '', label: '— geen —' }, ...locaties
     .map(e => ({ value: e.id, label: e.name || e.id }))];
+  _tempelLocaties = locaties;
+  _tempelAlle = [...personages, ...locaties];
+  // De zegeningen, vloeken en eden van elke god staan als voorwerpkaartje in
+  // het archief (`data.godNaam`). Ze waren hier niet te zien, terwijl ze de
+  // inhoud van een altaar zíjn — dus stond er "beheer die in het archief"
+  // zonder dat je kon zien wát daar stond.
+  try { _tempelGodKaartjes = await api.listEntities('voorwerpen'); } catch { _tempelGodKaartjes = []; }
 
   el.innerHTML = `
     <div class="dm-feature-section">
@@ -6931,29 +6941,33 @@ function _renderTempelGodenRows() {
       <div class="dm-tempel-god-body">
         <div class="dm-form-row">
           <label class="dm-form-label" for="god-${i}-naam">Naam</label>
-          <input id="god-${i}-naam" class="dm-input dm-input-sm" placeholder="Matall, de Maker"
-            value="${esc(g.naam || '')}" oninput="window._tempelGodEdit(${i},'naam',this.value)">
+          <input id="god-${i}-naam" class="dm-input dm-input-sm" placeholder="Naam van de god"
+            value="${esc(g.naam || '')}" oninput="window._tempelGodEdit(${i},'naam',this.value)"
+            onchange="window._tempelGodNaamKoppel(${i})">
         </div>
         <div class="dm-feature-row" style="gap:8px">
           <div style="flex:1"><div class="dm-form-row">
             <label class="dm-form-label" for="god-${i}-domein">Domein</label>
-            <input id="god-${i}-domein" class="dm-input dm-input-sm" placeholder="Smeden, makers"
+            <input id="god-${i}-domein" class="dm-input dm-input-sm" placeholder="Waar hij over gaat"
               value="${esc(g.domein || '')}" oninput="window._tempelGodEdit(${i},'domein',this.value)">
           </div></div>
           <div style="flex:1"><div class="dm-form-row">
             <label class="dm-form-label" for="god-${i}-symbool">Symbool</label>
-            <input id="god-${i}-symbool" class="dm-input dm-input-sm" placeholder="Een hamer op een aambeeld"
+            <input id="god-${i}-symbool" class="dm-input dm-input-sm" placeholder="Waaraan je hem herkent"
               value="${esc(g.symbool || '')}" oninput="window._tempelGodEdit(${i},'symbool',this.value)">
           </div></div>
         </div>
 
-        <!-- Zelfde volgorde als bij een dienst: eerst waar het is. -->
+        <!-- Zelfde volgorde als bij een dienst: eerst waar het is. Aan een
+             locatiekaartje hangt vaak al een priester, en de god heet meestal
+             zoals zijn kaartje — allebei worden ze daarom aangeboden zodra je
+             de locatie kiest. -->
         ${zoekveld(i, 'backdropId', 'Locatie', _tempelBackdropOpties,
                    naamVan(g.backdropId, _tempelBackdropOpties), 'Zoek het altaar of de tempel…')}
         ${zoekveld(i, 'priestImageId', 'Priester', _tempelEntityPortretOpties,
-                   naamVan(g.priestImageId, _tempelEntityPortretOpties), 'Wie staat er bij het altaar?')}
-        ${zoekveld(i, 'imageId', 'De god', _tempelEntityPortretOpties,
-                   naamVan(g.imageId, _tempelEntityPortretOpties), 'Zoek een kaartje, of laat leeg…')}
+                   naamVan(g.priestImageId, _tempelEntityPortretOpties), 'Volgt uit de locatie, of kies zelf…')}
+        ${zoekveld(i, 'imageId', 'God', _tempelEntityPortretOpties,
+                   naamVan(g.imageId, _tempelEntityPortretOpties), 'Volgt uit de naam, of kies zelf…')}
 
         <!-- Zelfde logica als bij een dienst: een tafel met begroetingen, en
              er wordt er bij elk bezoek één gekozen. -->
@@ -6972,7 +6986,16 @@ function _renderTempelGodenRows() {
           </div>
         </div>
 
-        ${_bedragVeldHtml(`god-${i}-prijs`, g.prijs, { label: 'Eigen prijs voor een zegen', klasse: 'dm-input dm-input-sm' })}
+        <!-- Alle drie de prijzen kunnen per god afwijken; er was er maar één.
+             Leeg betekent: de standaardprijs bovenaan. -->
+        <div class="dm-form-row"><label class="dm-form-label">Eigen prijzen</label></div>
+        <div class="dm-feature-row" style="gap:8px;flex-wrap:wrap">
+          <div style="flex:1;min-width:110px">${_bedragVeldHtml(`god-${i}-prijs`, g.prijs, { label: 'Zegen', klasse: 'dm-input dm-input-sm' })}</div>
+          <div style="flex:1;min-width:110px">${_bedragVeldHtml(`god-${i}-eedprijs`, g.eedPrijs, { label: 'Eed', klasse: 'dm-input dm-input-sm' })}</div>
+          <div style="flex:1;min-width:110px">${_bedragVeldHtml(`god-${i}-boeteprijs`, g.boetePrijs, { label: 'Boete', klasse: 'dm-input dm-input-sm' })}</div>
+        </div>
+
+        ${_godKaartjesHtml(g)}
 
         <div class="dm-form-row">
           <button class="dm-btn dm-btn-ghost dm-btn-sm dm-btn-danger" onclick="window._tempelGodVerwijderen(${i})"
@@ -6982,6 +7005,50 @@ function _renderTempelGodenRows() {
     </details>
   `).join('') || '<p class="dm-hint">Nog geen goden toegevoegd.</p>');
 };
+
+// De zegeningen, vloeken en eden van een god: voorwerpkaartjes met
+// `data.godNaam`. Ze stonden hier niet, terwijl ze de inhoud van het altaar
+// zijn — er stond alleen "beheer die in het archief", zonder te laten zien wát
+// daar stond. Read-only: het kaartje is en blijft de bron.
+const _GOD_KAART_SOORT = {
+  zegen: { label: 'Zegeningen', ic: 'sparkles' },
+  eed:   { label: 'Eden',       ic: 'scroll-text' },
+  vloek: { label: 'Vloeken',    ic: 'skull' },
+};
+
+function _godKaartjesHtml(g) {
+  const naam = (g?.naam || '').trim().toLowerCase();
+  if (!naam) return '';
+  const mijn = (_tempelGodKaartjes || []).filter(v => (v.data?.godNaam || '').trim().toLowerCase() === naam);
+  if (!mijn.length) {
+    return `<p class="dm-hint" style="font-size:11px">Nog geen zegeningen, eden of vloeken. Maak ze als voorwerpkaartje in het archief en vul daar <em>${esc(g.naam)}</em> in als god.</p>`;
+  }
+  let html = '';
+  for (const [soort, meta] of Object.entries(_GOD_KAART_SOORT)) {
+    const rij = mijn.filter(v => (v.data?.goddelijkType || '') === soort);
+    if (!rij.length) continue;
+    html += `<div class="dm-god-kaartrij">
+      <span class="dm-god-kaartlbl">${icon(meta.ic)} ${meta.label}</span>
+      <div class="dm-god-kaartchips">
+        ${rij.map(v => `<button type="button" class="dm-god-kaart"
+          onclick="window._openDetail('voorwerpen','${esc(v.id)}')"
+          title="Open ${esc(v.name || '')}">${esc(v.name || '')}</button>`).join('')}
+      </div>
+    </div>`;
+  }
+  const rest = mijn.filter(v => !_GOD_KAART_SOORT[v.data?.goddelijkType || '']);
+  if (rest.length) {
+    html += `<div class="dm-god-kaartrij">
+      <span class="dm-god-kaartlbl">${icon('package')} Overig</span>
+      <div class="dm-god-kaartchips">${rest.map(v => `<button type="button" class="dm-god-kaart"
+        onclick="window._openDetail('voorwerpen','${esc(v.id)}')">${esc(v.name || '')}</button>`).join('')}</div>
+    </div>`;
+  }
+  return `<div class="dm-god-kaarten">
+    <div class="dm-form-row"><label class="dm-form-label">Van deze god (in het archief)</label></div>
+    ${html}
+  </div>`;
+}
 
 // Een getypte naam terug naar het id van het kaartje. Leeg = geen koppeling;
 // een naam die niet bestaat laat het veld staan maar koppelt niets — zoals
@@ -6993,12 +7060,52 @@ window._tempelGodKaartje = (i, veld, waarde) => {
   const n = (waarde || '').trim().toLowerCase();
   const raak = n ? lijst.find(e => (e.label || '').toLowerCase() === n && e.value) : null;
   if (raak) g[veld] = raak.value; else delete g[veld];
+
   // Heeft de god nog geen naam maar wel een kaartje, dan is dat zijn naam.
   if (veld === 'imageId' && raak && !(g.naam || '').trim()) {
     g.naam = raak.label;
     const veldEl = document.getElementById(`god-${i}-naam`);
     if (veldEl) veldEl.value = raak.label;
+    const kop = document.querySelectorAll('#tempel-goden .dm-tempel-god-naam')[i];
+    if (kop) kop.textContent = raak.label;
   }
+
+  // Kies je de locatie, dan bieden we aan wie daar staat.
+  if (veld === 'backdropId' && raak) _tempelGodUitLocatie(i, raak.value);
+};
+
+// De priester van een altaar staat meestal al op het locatiekaartje, in de
+// betrokkenenlijst. Vullen we hem daaruit aan — alleen als het veld nog leeg
+// is, zodat een eigen keuze altijd wint.
+function _tempelGodUitLocatie(i, locId) {
+  const g = _tempelGodenDraft[i];
+  const el = document.getElementById(`god-${i}-priestImageId`);
+  if (!g || !el || el.value.trim()) return;
+  const loc = (_tempelLocaties || []).find(l => l.id === locId);
+  const baas = loc && _eigenaarVanLocatie(loc);
+  if (!baas) return;
+  const kaart = (_tempelAlle || []).find(e =>
+    e.id === baas.id || (e.name || '').toLowerCase() === (baas.naam || '').toLowerCase());
+  if (!kaart) return;
+  el.value = kaart.name;
+  el.classList.add('is-afgeleid');
+  el.title = `Overgenomen van ${loc.name}. Typ een andere naam om het te overschrijven.`;
+  g.priestImageId = kaart.id;
+}
+
+// En de god zelf: heet hij zoals een bestaand kaartje, dan is dat hem. Dat
+// scheelt dertien keer hetzelfde opzoeken.
+window._tempelGodNaamKoppel = (i) => {
+  const g = _tempelGodenDraft[i];
+  const el = document.getElementById(`god-${i}-imageId`);
+  if (!g || !el || el.value.trim() || !(g.naam || '').trim()) return;
+  const n = g.naam.trim().toLowerCase();
+  const kaart = (_tempelAlle || []).find(e => (e.name || '').toLowerCase() === n);
+  if (!kaart) return;
+  el.value = kaart.name;
+  el.classList.add('is-afgeleid');
+  el.title = 'Gevonden op naam. Typ een andere naam om het te overschrijven.';
+  g.imageId = kaart.id;
 };
 
 window._tempelGodTafelNieuw = async (i) => {
@@ -7064,8 +7171,15 @@ window._tempelSettingsSave = async () => {
       zegen: (g.zegen || '').trim(),
       vloek: (g.vloek || '').trim(),
       eenmaligeZegens: (g.eenmaligeZegens || []).filter(Boolean),
-      ...(() => { const p = _bedragLeesMunten(`god-${_tempelGodenDraft.indexOf(g)}-prijs`);
-                  return (p.fl || p.kn || p.cl) ? { prijs: p } : {}; })(),
+      ...(() => {
+        const i = _tempelGodenDraft.indexOf(g);
+        const uit = {};
+        for (const [veld, id] of [['prijs', 'prijs'], ['eedPrijs', 'eedprijs'], ['boetePrijs', 'boeteprijs']]) {
+          const p = _bedragLeesMunten(`god-${i}-${id}`);
+          if (p.fl || p.kn || p.cl) uit[veld] = p;
+        }
+        return uit;
+      })(),
       ...(g.imageId      ? { imageId:      g.imageId }      : {}),
       ...(g.priestImageId? { priestImageId:g.priestImageId } : {}),
       ...(g.backdropId   ? { backdropId:   g.backdropId }   : {}),

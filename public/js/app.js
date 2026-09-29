@@ -10,7 +10,7 @@ import { renderSpreuken } from './render-spreuken.js?v=41';
 import { renderVaardigheden, zoekVaardigheden } from './render-vaardigheden.js?v=10';
 import { renderStatblock } from './render-statblock.js?v=9';
 import { initSocket } from "./socket-client.js?v=79";
-import { initDmPanel } from "./dm-panel.js?v=338";
+import { initDmPanel } from "./dm-panel.js?v=339";
 import { COND_INFO, COND_LABEL, COND_MET_PLAATJE, COND_ICON } from './conditions.js?v=2';
 import './media-picker.js?v=8';
 import './tafels.js?v=2';
@@ -13198,7 +13198,8 @@ function _renderTempelInterior(el, g, config, huidigeEed, huidigeZegen, currency
               ? ` · <button class="tempel-zegen-link" onclick="window._openDetail('${esc(huidigeEed.entityType||'voorwerpen')}','${esc(huidigeEed.entityId)}')">${icon('scroll-text')} bekijk vloek</button>`
               : ''}
           </div>
-          <button class="ts-wedden-btn" style="margin-bottom:8px" onclick="window._tempelBoete()">${icon('sparkles')} Doe boete (${esc(prijsTekst(config.boetePrijs))}) — hef de vloek op</button>
+          <button class="ts-wedden-btn" style="margin-bottom:8px" onclick="window._tempelBoete()">${icon('sparkles')} Doe boete (${esc(prijsTekst(
+            (config.goden || []).find(x => x.naam === huidigeEed.godNaam)?.boetePrijs || config.boetePrijs))}) — hef de vloek op</button>
         ` : huidigeEed ? `
           <div class="tempel-zegen-actief">
             ${icon('scroll-text')} Eed aan <em>${esc(huidigeEed.godNaam || '')}</em> actief
@@ -13217,7 +13218,7 @@ function _renderTempelInterior(el, g, config, huidigeEed, huidigeZegen, currency
         <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:8px">
           ${!eedGebonden ? `
           <button class="ts-wedden-btn" onclick="window._tempelEedCinema()">
-            ${icon('scroll-text')} Eed afleggen · ${esc(prijsTekst(config.eedPrijs))}
+            ${icon('scroll-text')} Eed afleggen · ${esc(prijsTekst(g.eedPrijs || config.eedPrijs))}
           </button>` : ''}
           ${eenmalig.length ? `
           <button class="ts-wedden-btn" onclick="window._tempelKies('${esc(g.id)}','${esc(g.naam)}')">
@@ -13261,7 +13262,7 @@ window._tempelEedCinema = () => {
 
   const titel    = g.eedTitel || '';
   const eedTekst = g.eedTekst || `Ik, ${playerName}, zweer een eed aan ${g.naam}.\n\nZolang ik deze eed nakome, verleen ${g.naam} mij:\n${g.zegen || '—'}.\n\nVerzaak ik mijn eed, dan treft mij de toorn van ${g.naam}:\n${g.vloek || '—'}.\n\nDit is mijn belofte, nu en altijd.`;
-  const fullText = (titel ? titel + '\n\n' : '') + eedTekst + `\n\nPrijs: ${prijsTekst(config.eedPrijs)}.`;
+  const fullText = (titel ? titel + '\n\n' : '') + eedTekst + `\n\nPrijs: ${prijsTekst(g?.eedPrijs || config.eedPrijs)}.`;
 
   const overlay = document.createElement('div');
   overlay.id = 'tempel-eed-cinema';
@@ -14266,7 +14267,8 @@ const HELP_CONFIG = {
   dm_tempel_goden: () => ({ titel: 'Goden', stappen: [
     { titel: 'Koppelen, niet overtikken', tekst: 'Een god werkt als een dienst: je wijst het **kaartje van de god**, van zijn **priester** en van de **locatie** aan. Wat op zo\'n kaartje staat — beeld, beschrijving, geheimen — hoeft hier niet nog eens. De locatie levert ook de achtergrond van het altaar.', afbeelding: null },
     { titel: 'De inhoud staat op de Blessing-kaartjes', tekst: 'Zegen, vloek, de tekst van de eed, de permanente zegen en de eenmalige zegens beheer je in het archief. Die kaartjes zijn leidend; hier staat alleen hoe de god **heet** en hoe zijn altaar **oogt**.', afbeelding: null },
-    { titel: 'Eigen prijs', tekst: 'Wat een **eenmalige zegen bij déze god** kost. Laat je het leeg, dan geldt de standaardprijs hierboven. Handig voor een god die zich duur laat betalen — of juist niets vraagt.', afbeelding: null },
+    { titel: 'Eigen prijzen', tekst: 'Wat een **zegen**, een **eed** en de **boete** bij déze god kosten. Leeg laten betekent: de standaardprijs hierboven. Een strenge god mag duurder vergeven dan een milde.', afbeelding: null },
+    { titel: 'Wat er van hem is', tekst: 'Onderaan staan de **zegeningen, eden en vloeken** die in het archief aan deze god hangen (het veld *god* op het voorwerpkaartje). Klik erop om het kaartje te openen — dáár schrijf je de inhoud; hier zie je alleen dat het er is.', afbeelding: null },
     { titel: 'De priester begroet je', tekst: 'Koppel een **tafel** met begroetingen, net als bij een dienst: er wordt er bij elk bezoek één gekozen. *Nieuw* maakt er meteen een en opent hem in Tafels.', afbeelding: null },
     { titel: 'Volgorde is redactie', tekst: 'De volgorde die je hier zet is de volgorde in de tempel. Zet de goden die er in jouw verhaal toe doen bovenaan; de rest mag daaronder wachten.', afbeelding: null },
   ] }),

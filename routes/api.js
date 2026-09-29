@@ -12563,7 +12563,10 @@ router.post('/tempel/eed', attachRole, vereistDienst('tempel'), (req, res) => {
     return res.status(400).json({ error: 'Je bent al door een eed gebonden — bevrijd je eerst.' });
   }
 
-  const prijs = config.eedPrijs || config.prijs || { fl: 50 };
+  // De eigen prijs van déze god wint, zoals bij een zegen.
+  const prijs = (god.eedPrijs && toCl(god.eedPrijs) > 0)
+    ? god.eedPrijs
+    : (config.eedPrijs || config.prijs || { fl: 50 });
   const prijsCl = toCl(prijs);
   const pc = _effectiveCurrency(dmState, characterId);
   if (toCl(pc) < prijsCl) return res.status(400).json({ error: 'Onvoldoende saldo' });
@@ -12608,7 +12611,11 @@ router.post('/tempel/boete', attachRole, vereistDienst('tempel'), (req, res) => 
   const vloek = lijst.find(i => i.eed && i.status === 'vloek');
   if (!vloek) return res.status(400).json({ error: 'Je draagt geen vloek om af te kopen' });
 
-  const prijs = config.boetePrijs || { fl: 100 };
+  // Ook de boete mag per god verschillen: een strenge god vergeeft duurder.
+  const _vloekGod = _tempelGoden(config).find(g => g.naam === vloek.godNaam);
+  const prijs = (_vloekGod?.boetePrijs && toCl(_vloekGod.boetePrijs) > 0)
+    ? _vloekGod.boetePrijs
+    : (config.boetePrijs || { fl: 100 });
   const prijsCl = toCl(prijs);
   const pc = _effectiveCurrency(dmState, characterId);
   if (toCl(pc) < prijsCl) return res.status(400).json({ error: 'Onvoldoende saldo voor de boete' });
