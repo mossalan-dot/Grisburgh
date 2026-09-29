@@ -7456,8 +7456,12 @@ function _renderFactiesDM() {
               title="Onthul de factie voor de actieve groep én bezorg elke speler een verzegelde uitnodigingsbrief">
               ${icon('mail')} Stuur uitnodiging</button>
           </div>
-          <details style="margin-top:6px">
-            <summary class="dm-form-label" style="cursor:pointer;user-select:none">Configuratie bewerken</summary>
+          <!-- Het oogje en het renown blijven in beeld: dat is wat je aan tafel
+               aanraakt. De rest zit in de uitklap — en die heette
+               "Configuratie bewerken", wat verzwijgt dat er kaartjes, leden,
+               een brief én de rangladder in zitten. -->
+          <details class="factie-dm-config" style="margin-top:6px">
+            <summary class="dm-form-label factie-dm-config-kop">Kaartjes, leden, brief en rangen</summary>
             <div style="margin-top:6px">
               <div class="dm-form-row" style="gap:6px;align-items:center;margin-bottom:4px">
                 <input class="dm-input" style="flex:1" placeholder="Naam" value="${esc(f.naam || '')}" oninput="window._factieEdit(${fi},'naam',this.value)">
@@ -7499,6 +7503,7 @@ function _renderFactiesDM() {
               <div class="dm-section-label" style="margin-top:10px">${icon('users')} Leden<span class="dm-sectie-hulp">${helpBtn('dm_facties_leden')}</span></div>
               <p class="dm-hint" style="margin:0 0 6px">Kies personages als lid. De rol komt automatisch uit het personage; de rang bepaalt de groepering (leeg = onder "Leden"). Volgorde = hiërarchie. Spelers zien alleen leden waarvan het personage zichtbaar is.</p>
               <div id="factie-leden-${fi}">${_ledenEditor(fi, f.leden || [])}</div>
+              ${_factieBetrokkenenHtml(fi, f)}
               <div class="dm-form-row" style="flex-direction:row;gap:6px;margin-top:4px;align-items:center">
                 <input class="dm-input dm-input-sm" id="factie-lid-add-${fi}" style="flex:1" list="factie-pers-dl"
                   placeholder="Zoek personage…" autocomplete="off"
@@ -7608,6 +7613,49 @@ window._factieBoonKies = (fi, i, bi, zoekId, selectId, value) => {
 window._factieEdit = (fi, field, v) => { const f = _factiesDraft[fi]; if (f) f[field] = v; };
 
 // ── Factie-leden bewerken ──
+// Wie er op het organisatiekaartje staat — de betrokkenenlijst die daar het
+// organogram tekent. Dat is dezelfde vraag als "wie is lid van deze factie",
+// maar het antwoord stond op twee plekken. Ze samenvoegen vraagt een migratie
+// (de ene lijst is gevuld, de andere leeg), dus voorlopig: laten zien wie er
+// aan de andere kant staat, met één klik om hem over te nemen.
+function _factieBetrokkenenHtml(fi, f) {
+  if (!f.entityId) return '';
+  const org = _factiesOrganisaties.find(o => o.id === f.entityId);
+  if (!org) return '';
+  let rijen = org.data?.betrokkenen;
+  if (typeof rijen === 'string') { try { rijen = JSON.parse(rijen); } catch { rijen = []; } }
+  rijen = (Array.isArray(rijen) ? rijen : []).filter(r => r && (r.naam || r.id));
+  if (!rijen.length) return '';
+
+  const alLid = new Set((f.leden || []).map(l => l.entityId));
+  const nieuw = rijen.filter(r => {
+    const p = _factiesPersonages.find(x => x.id === r.id || (x.name || '').toLowerCase() === (r.naam || '').toLowerCase());
+    return p && !alLid.has(p.id);
+  });
+  if (!nieuw.length) return '';
+
+  return `<div class="dm-factie-betrokken">
+    <span class="dm-hint">Op het kaartje van <strong>${esc(org.name)}</strong> staan nog:</span>
+    <div class="dm-factie-betrokken-rij">
+      ${nieuw.map(r => {
+        const p = _factiesPersonages.find(x => x.id === r.id || (x.name || '').toLowerCase() === (r.naam || '').toLowerCase());
+        return `<button type="button" class="dm-factie-betrokken-knop"
+          onclick="window._factieLidUitKaart(${fi},'${esc(p.id)}','${escJS(r.rol || '')}')"
+          title="Als lid toevoegen${r.rol ? ` — ${esc(r.rol)}` : ''}">${icon('plus')} ${esc(p.name)}</button>`;
+      }).join('')}
+    </div>
+  </div>`;
+}
+
+window._factieLidUitKaart = (fi, entityId, rang) => {
+  const f = _factiesDraft[fi];
+  if (!f) return;
+  f.leden = f.leden || [];
+  if (f.leden.some(l => l.entityId === entityId)) return;
+  f.leden.push({ entityId, rang: rang || '' });
+  _renderFactiesDM();
+};
+
 function _ledenEditor(fi, leden) {
   if (!leden.length) return '<p class="dm-hint" style="opacity:.6;margin:0 0 4px">Nog geen leden.</p>';
   const naamVan = id => (_factiesPersonages.find(p => p.id === id)?.name) || '(onbekend personage)';

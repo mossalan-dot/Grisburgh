@@ -1,5 +1,5 @@
 import { api, campagneUitUrl, zetCampagne } from './api.js?v=297';
-import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, renderDocumenten, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=319";
+import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, renderDocumenten, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=320";
 import { initArchief, renderLogboek, openLogboekEditor } from "./render-archief.js?v=137";
 import { renderKaart, queueFlyTo, verversPins, nieuweKaart } from './render-kaart.js?v=31';
 import { renderDungeon } from './render-dungeon.js?v=56';
@@ -10,7 +10,7 @@ import { renderSpreuken } from './render-spreuken.js?v=41';
 import { renderVaardigheden, zoekVaardigheden } from './render-vaardigheden.js?v=10';
 import { renderStatblock } from './render-statblock.js?v=9';
 import { initSocket } from "./socket-client.js?v=79";
-import { initDmPanel } from "./dm-panel.js?v=344";
+import { initDmPanel } from "./dm-panel.js?v=345";
 import { COND_INFO, COND_LABEL, COND_MET_PLAATJE, COND_ICON } from './conditions.js?v=2';
 import './media-picker.js?v=8';
 import './tafels.js?v=2';
@@ -65,6 +65,17 @@ const _DIENST_OP_KAART = [
   { sleutel: 'tempel',    sectie: 'tempel',    icoon: 'church',     val: 'De tempel' },
   { sleutel: 'magizoo',   sectie: 'magizoo',   icoon: 'paw-print',  val: 'De magizoöloog' },
 ];
+
+// Welke factie hangt aan dít organisatiekaartje? Voor de deur die op het
+// kaartje verschijnt — de koppeling was alleen van de factiekant te zien.
+window._factieVanOrganisatie = (orgId) => {
+  if (!orgId) return null;
+  const lijst = window.app?.state?.meta?.facties || [];
+  const f = lijst.find(x => x.entityId === orgId);
+  if (!f) return null;
+  if ((window._verborgen?.secties || []).includes('facties')) return null;
+  return { naam: f.naam || '', embleem: /^[a-z0-9-]+$/.test(f.embleem || '') ? f.embleem : 'landmark' };
+};
 
 window._dienstOpLocatie = (locatieId) => {
   if (!locatieId) return null;

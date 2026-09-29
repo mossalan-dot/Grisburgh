@@ -1354,3 +1354,6 @@ Grisburghs **data** te staan — niet in de code.
 - [ ] **Uit betekent ook op de server uit** (SP) — met *Roddels* uit levert een lange rust in de herberg geen roddels op en weigert `POST /herberg/vraag`; met *Eden en vloeken* uit weigert `POST /tempel/eed`. Een verborgen knop is geen slot.
 - [ ] **Alleen een bed** (SP) — zet bij de herberg zowel *Roddels* als *Aan de tap* uit: de speler leest dat er bedden zijn en verder niets, in plaats van een lege tabbalk.
 - [ ] **Een deel kan niet zonder zijn dienst** (DM) — zet de hele herberg uit: *Aan de tap* staat grijs en is niet aan te vinken, want er is niets om een deel van te zijn.
+- [ ] **Het organisatiekaartje wijst terug** (ALL) — open het kaartje van een organisatie die aan een factie hangt: onder Informatie staat een deur naar die factie, met haar embleem. De koppeling was alleen van de factiekant te zien.
+- [ ] **Betrokkenen als lid** (DM) — staan er op het organisatiekaartje mensen die nog geen lid van de factie zijn, dan verschijnen ze onder de ledenlijst als knop; één klik maakt hen lid, met hun rol als rang.
+- [ ] **De uitklap zegt wat erin zit** (DM) — *Kaartjes, leden, brief en rangen* in plaats van "Configuratie bewerken". Het oogje en het renown blijven erbuiten: dat is wat je aan tafel aanraakt.

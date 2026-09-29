@@ -5112,6 +5112,21 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
   // hoorde, maar op het kaartje was daar niets van te zien. Nu staat hier de
   // deur naar binnen — en omdat de dienst zijn achtergrond van dit kaartje
   // haalt, klopt het beeld aan beide kanten.
+  // Een organisatiekaartje dat een factie is, hoort dat te zeggen — anders is
+  // de koppeling alleen van de andere kant te zien.
+  if (tab === 'organisaties' && e?.id) {
+    const factie = window._factieVanOrganisatie?.(e.id);
+    if (factie) {
+      infoHtml += `
+        <div class="mt-4 pt-4 border-t border-room-border">
+          <div class="detail-label detail-label--gold mb-1">${icon('landmark')} ${esc(window._factiesLabel?.() || 'Facties')}</div>
+          <button class="dienst-deur" onclick="window.app.switchSection('facties')">
+            ${icon(factie.embleem || 'landmark')} ${esc(factie.naam)}
+          </button>
+        </div>`;
+    }
+  }
+
   if (tab === 'locaties' && e?.id) {
     const dienst = window._dienstOpLocatie?.(e.id);
     if (dienst) {

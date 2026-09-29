@@ -27845,3 +27845,27 @@ body.akte-schrijf-open .mp-overlay { z-index: 1320; }
   font-family: 'Cinzel', serif; font-size: 10px; font-weight: 700;
   letter-spacing: .1em; text-transform: uppercase; color: #9a815c;
 }
+
+/* De uitklap van een factie: het oogje en het renown blijven in beeld, de rest
+   zit hierin. */
+.factie-dm-config-kop {
+  cursor: pointer; user-select: none; display: flex; align-items: center; gap: 6px;
+}
+.factie-dm-config-kop::-webkit-details-marker { display: none; }
+.factie-dm-config-kop::before {
+  content: '›'; font-size: 13px; line-height: 1; opacity: .55;
+  transition: transform .15s; display: inline-block;
+}
+.factie-dm-config[open] > .factie-dm-config-kop::before { transform: rotate(90deg); }
+
+/* Wie er op het organisatiekaartje staat maar nog geen lid is. */
+.dm-factie-betrokken { margin-top: 6px; }
+.dm-factie-betrokken-rij { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 4px; }
+.dm-factie-betrokken-knop {
+  display: inline-flex; align-items: center; gap: 4px; cursor: pointer;
+  padding: 3px 10px; border-radius: 999px;
+  background: rgba(196,168,122,.12); border: 1px dashed rgba(196,168,122,.6);
+  font-family: 'Crimson Text', serif; font-size: 12.5px; color: #6a4a20;
+}
+.dm-factie-betrokken-knop:hover { background: rgba(196,168,122,.3); border-style: solid; }
+.dm-factie-betrokken-knop .icon { width: 11px; height: 11px; }
