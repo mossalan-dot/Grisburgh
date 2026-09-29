@@ -7284,6 +7284,8 @@ async function _renderFactiesSettings() {
     locatieEntityId: f.locatieEntityId || '',
     npcEntityId:     f.npcEntityId     || '',
     npcGreet:        f.npcGreet        || '',
+    groetTafelId:    f.groetTafelId    || '',
+    briefstijl:      f.briefstijl      || '',
     leden: (f.leden || []).map(l => ({ entityId: l.entityId, rang: l.rang || '' })),
     uitnodiging:      f.uitnodiging      || '',
     uitnodigingTitel: f.uitnodigingTitel || '',
@@ -7294,6 +7296,85 @@ async function _renderFactiesSettings() {
     })),
   }));
   _renderFactiesDM();
+};
+
+// Een koppelveld bij een factie: typen en kiezen, zoals overal. De drie
+// keuzelijsten hier hadden honderden namen; met zeven facties is dat zeven keer
+// scrollen naar dezelfde organisatie.
+function _factieKaartVeld(fi, veld, label, lijst, waarde, plaats) {
+  const dl = `factie-${veld}-dl`;
+  const naam = (lijst.find(e => e.id === waarde)?.name) || '';
+  return `
+    <div class="dm-form-row" style="margin-top:4px">
+      <label class="dm-form-label" for="factie-${fi}-${veld}">${esc(label)}</label>
+      <input id="factie-${fi}-${veld}" class="dm-input dm-input-sm" list="${dl}" autocomplete="off"
+        placeholder="${esc(plaats)}" value="${esc(naam)}"
+        onchange="window._factieKaartje(${fi},'${veld}',this.value)">
+      <datalist id="${dl}">${[...lijst].sort((a, b) => (a.name || '').localeCompare(b.name || '', 'nl'))
+        .map(e => `<option value="${esc(e.name || '')}"></option>`).join('')}</datalist>
+    </div>`;
+}
+
+const _FACTIE_LIJST = {
+  entityId:        () => _factiesOrganisaties,
+  locatieEntityId: () => _factiesLocaties,
+  npcEntityId:     () => _factiesPersonages,
+};
+
+window._factieKaartje = (fi, veld, waarde) => {
+  const f = _factiesDraft[fi];
+  if (!f) return;
+  const lijst = (_FACTIE_LIJST[veld] || (() => []))();
+  const n = (waarde || '').trim().toLowerCase();
+  const raak = n ? lijst.find(e => (e.name || '').toLowerCase() === n) : null;
+  f[veld] = raak ? raak.id : '';
+
+  // Nog geen naam? Dan is de organisatie de naam.
+  if (veld === 'entityId' && raak && !(f.naam || '').trim()) {
+    f.naam = raak.name;
+    const kop = document.querySelector(`#factie-dm-kaart-${f.id} .factie-dm-naam`);
+    if (kop) kop.textContent = raak.name;
+  }
+  // Het hoofd staat meestal al op het organisatiekaartje (de betrokkenenlijst
+  // die ook het organogram tekent). Aanvullen zolang het veld leeg is.
+  if ((veld === 'entityId' || veld === 'locatieEntityId') && raak) _factieHoofdUitKaart(fi, raak);
+};
+
+function _factieHoofdUitKaart(fi, kaart) {
+  const el = document.getElementById(`factie-${fi}-npcEntityId`);
+  if (!el || el.value.trim()) return;
+  const baas = _eigenaarVanLocatie(kaart);
+  if (!baas) return;
+  const p = _factiesPersonages.find(e =>
+    e.id === baas.id || (e.name || '').toLowerCase() === (baas.naam || '').toLowerCase());
+  if (!p) return;
+  el.value = p.name;
+  el.classList.add('is-afgeleid');
+  el.title = `Overgenomen van ${kaart.name}. Typ een andere naam om het te overschrijven.`;
+  const f = _factiesDraft[fi];
+  if (f) f.npcEntityId = p.id;
+}
+
+window._factieTafelNieuw = async (fi) => {
+  const f = _factiesDraft[fi];
+  try {
+    const tafel = await api.post('/tables', {
+      name: `Begroeting — ${(f?.naam || 'factie').trim()}`, type: 'simple',
+      entries: [`Welkom bij ${(f?.naam || 'ons').trim()}.`],
+    });
+    _tables = await api.listTables().catch(() => _tables);
+    if (f) f.groetTafelId = tafel.id;
+    _renderFactiesDM();
+    window._factieTafelBewerk(fi);
+  } catch (e) { alert('Tafel maken mislukt: ' + e.message); }
+};
+
+window._factieTafelBewerk = (fi) => {
+  const id = _factiesDraft[fi]?.groetTafelId;
+  if (!id) { alert('Kies eerst een tafel, of maak er een.'); return; }
+  _tafelTerugNaar = 'facties';
+  window.dmPanel.switchTab('tafels');
+  setTimeout(() => { try { window.dmPanel.tabelEdit(id); } catch {} }, 160);
 };
 
 function _renderFactiesDM() {
@@ -7312,7 +7393,6 @@ function _renderFactiesDM() {
   el.innerHTML = `
     <div class="dm-feature-section">
       <div class="dm-section-label">${esc(window._factiesLabel())}<span class="dm-sectie-hulp">${helpBtn('dm_facties')}</span></div>
-      <p class="dm-form-label" style="opacity:.7;margin-bottom:10px">Stel per factie de zichtbaarheid in en pas het renown aan. Spelers zien een factie pas als de DM die onthuld heeft.</p>
       <div class="dm-form-row">
         <label class="dm-form-label">Hoe heet dit onderdeel in jouw campagne?</label>
         <input id="facties-label" class="dm-input" maxlength="40"
@@ -7361,34 +7441,31 @@ function _renderFactiesDM() {
                   ${['', 'hout', 'metaal', 'staal'].map(s => `<option value="${s}" ${(f.stijl || '') === s ? 'selected' : ''}>${s ? s : '— standaard —'}</option>`).join('')}
                 </select>
               </div>
-              <div class="dm-form-row" style="margin-top:4px;flex-direction:column;gap:3px">
-                <label class="dm-form-label">Organisatiekaartje</label>
-                <select class="dm-select" style="width:100%" onchange="window._factieEdit(${fi},'entityId',this.value)">
-                  <option value="">— geen koppeling —</option>
-                  ${_factiesOrganisaties.sort((a,b)=>a.name.localeCompare(b.name)).map(o =>
-                    `<option value="${esc(o.id)}" ${o.id === (f.entityId||'') ? 'selected' : ''}>${esc(o.name)}</option>`
-                  ).join('')}
-                </select>
+              <!-- Zelfde drie koppelingen als een dienst, en in dezelfde
+                   volgorde: de organisatie is wie ze zijn, de locatie is waar
+                   ze zitten, en het hoofd volgt daar meestal al uit. -->
+              ${_factieKaartVeld(fi, 'entityId', 'Organisatie', _factiesOrganisaties, f.entityId,
+                                 'Zoek het organisatiekaartje…')}
+              ${_factieKaartVeld(fi, 'locatieEntityId', 'Locatie', _factiesLocaties, f.locatieEntityId,
+                                 'Waar zitten ze?')}
+              ${_factieKaartVeld(fi, 'npcEntityId', 'Hoofd', _factiesPersonages, f.npcEntityId,
+                                 'Volgt uit de organisatie, of kies zelf…')}
+
+              <!-- Zoals bij een dienst: een tafel met openingszinnen. -->
+              <div class="dm-form-row" style="margin-top:4px">
+                <label class="dm-form-label">Begroeting (tafel)</label>
+                <div class="dm-feature-row" style="gap:6px;flex:1;min-width:0">
+                  <select class="dm-select dm-input-sm" style="flex:1;min-width:0"
+                    onchange="window._factieEdit(${fi},'groetTafelId',this.value)">
+                    <option value="">— Geen begroeting —</option>
+                    ${(_tables || []).map(t => `<option value="${esc(t.id)}"${f.groetTafelId === t.id ? ' selected' : ''}>${esc(t.name || t.id)}</option>`).join('')}
+                  </select>
+                  <button type="button" class="dm-btn dm-btn-ghost dm-btn-sm"
+                    onclick="window._factieTafelNieuw(${fi})" title="Maak een tafel voor deze factie">${icon('plus')} Nieuw</button>
+                  <button type="button" class="dm-btn dm-btn-ghost dm-btn-sm"
+                    onclick="window._factieTafelBewerk(${fi})" title="Openen in het Tafels-tabblad">${icon('pencil')} Bewerken</button>
+                </div>
               </div>
-              <div class="dm-form-row" style="margin-top:4px;flex-direction:column;gap:3px">
-                <label class="dm-form-label">Locatie (backdrop interieur)</label>
-                <select class="dm-select" style="width:100%" onchange="window._factieEdit(${fi},'locatieEntityId',this.value)">
-                  <option value="">— geen —</option>
-                  ${[..._factiesLocaties].sort((a,b)=>a.name.localeCompare(b.name)).map(o =>
-                    `<option value="${esc(o.id)}" ${o.id === (f.locatieEntityId||'') ? 'selected' : ''}>${esc(o.name)}</option>`
-                  ).join('')}
-                </select>
-              </div>
-              <div class="dm-form-row" style="margin-top:4px;flex-direction:column;gap:3px">
-                <label class="dm-form-label">NPC-hoofd (portretje interieur)</label>
-                <select class="dm-select" style="width:100%" onchange="window._factieEdit(${fi},'npcEntityId',this.value)">
-                  <option value="">— geen —</option>
-                  ${[..._factiesPersonages].sort((a,b)=>a.name.localeCompare(b.name)).map(o =>
-                    `<option value="${esc(o.id)}" ${o.id === (f.npcEntityId||'') ? 'selected' : ''}>${esc(o.name)}</option>`
-                  ).join('')}
-                </select>
-              </div>
-              <input class="dm-input" style="width:100%;margin-top:4px" placeholder="Openingszin NPC (optioneel)" value="${esc(f.npcGreet || '')}" oninput="window._factieEdit(${fi},'npcGreet',this.value)">
 
               <div class="dm-section-label" style="margin-top:10px">${icon('users')} Leden<span class="dm-sectie-hulp">${helpBtn('dm_facties_leden')}</span></div>
               <p class="dm-hint" style="margin:0 0 6px">Kies personages als lid. De rol komt automatisch uit het personage; de rang bepaalt de groepering (leeg = onder "Leden"). Volgorde = hiërarchie. Spelers zien alleen leden waarvan het personage zichtbaar is.</p>
@@ -7404,9 +7481,18 @@ function _renderFactiesDM() {
                 ${icon('mail')} Uitnodigingsbrief
                 <button class="dm-btn dm-btn-ghost dm-btn-sm" style="margin-left:auto" onclick="window._factieUitnodigingSjabloon(${fi})" title="Standaard-sjabloon invullen">${icon('refresh-cw')} Sjabloon</button>
               </div>
-              <p class="dm-hint" style="margin:0 0 4px">Deze brief wordt verzegeld bezorgd bij elke speler wanneer je op "Stuur uitnodiging" klikt. Opmaak met **vet**, *cursief*, {goud:kleur} kan.</p>
               <input class="dm-input" style="width:100%;margin-bottom:4px" placeholder="Titel van de brief (bv. Een uitnodiging)" value="${esc(f.uitnodigingTitel || '')}" oninput="window._factieEdit(${fi},'uitnodigingTitel',this.value)">
               <textarea id="factie-uitnodiging-${fi}" class="dm-input" style="width:100%;min-height:120px;resize:vertical" placeholder="Schrijf hier de uitnodiging, of klik op Sjabloon…" oninput="window._factieEdit(${fi},'uitnodiging',this.value)">${esc(f.uitnodiging || '')}</textarea>
+              <!-- Dezelfde handschriften als een document en de snelle post: een
+                   uitnodiging van een gilde hoort er anders uit te zien dan een
+                   dreigbrief van een dievenbende. -->
+              <div class="dm-form-row" style="margin-top:4px">
+                <label class="dm-form-label">Handschrift</label>
+                <select class="dm-select dm-input-sm" onchange="window._factieEdit(${fi},'briefstijl',this.value)">
+                  ${(window.BRIEF_STIJLEN || [{ value: '', label: 'Automatisch' }]).map(b =>
+                    `<option value="${esc(b.value)}"${(f.briefstijl || '') === b.value ? ' selected' : ''}>${esc(b.label)}</option>`).join('')}
+                </select>
+              </div>
 
               <div class="dm-form-row" style="margin-top:6px">
                 <label class="dm-form-label">Renown-drempels</label>
@@ -7627,6 +7713,8 @@ function _factiesPayload() {
     locatieEntityId: (f.locatieEntityId || '').trim() || null,
     npcEntityId: (f.npcEntityId || '').trim() || null,
     npcGreet: (f.npcGreet || '').trim(),
+    groetTafelId: (f.groetTafelId || '').trim(),
+    briefstijl: (f.briefstijl || '').trim(),
     leden: (f.leden || []).filter(l => l && l.entityId)
       .map(l => ({ entityId: String(l.entityId).trim(), rang: (l.rang || '').trim() })),
     uitnodiging: (f.uitnodiging || '').trim(),

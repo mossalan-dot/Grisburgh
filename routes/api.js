@@ -1865,14 +1865,14 @@ router.put('/berichten/sjablonen', requireDM, (req, res) => {
 // Opgeslagen in berichten.json als { type:'brief', titel, tekst, afzender, entityId, entityType, deletedAt }
 
 // Bezorg programmatisch een (gethematiseerde) brief in de berichtenbox van een speler
-function _bezorgBrief(req, cid, { titel = '', tekst = '', afzender = '', thema = '', entityId = null, entityType = null, datum = '', embleem = '', kleur = '', kop = '', cinematic = false }) {
+function _bezorgBrief(req, cid, { titel = '', tekst = '', afzender = '', thema = '', entityId = null, entityType = null, datum = '', embleem = '', kleur = '', kop = '', cinematic = false, briefstijl = '' }) {
   if (!cid || !tekst) return null;
   const berichten = storage.readJSON('berichten.json') || {};
   if (!berichten[cid]) berichten[cid] = [];
   const now = Date.now();
   const post = {
     id: `post_${now}_${Math.random().toString(36).substr(2, 4)}`,
-    type: 'brief', titel, tekst, afzender, entityId, entityType, datum, thema,
+    type: 'brief', titel, tekst, afzender, entityId, entityType, datum, thema, briefstijl,
     embleem: embleem || undefined, kleur: kleur || undefined, kop: kop || undefined, cinematic: cinematic || undefined,
     timestamp: now, deletedAt: null,
   };
@@ -9014,6 +9014,20 @@ router.get('/meta', attachRole, (req, res) => {
 // bereiken; wegen doet er voor een begroeting niet toe, en het bereik hoort
 // niet op het scherm van de speler.
 const _DIENSTEN_MET_GROET = ['herberg', 'tweespalt', 'gock', 'ursula', 'tempel', 'magizoo'];
+// De regels van één tafel, zonder de bereiken van een gewogen tafel. Gedeeld,
+// want diensten, goden en facties vragen er alle drie om.
+function _tafelRegels(id) {
+  if (!id) return null;
+  let tafels = [];
+  try { tafels = storage.readJSON('tables.json').tables || []; } catch { return null; }
+  const t = tafels.find(x => x.id === id);
+  if (!t) return null;
+  const r = (t.entries || [])
+    .map(x => String(x || '').replace(/^\s*\d+\s*(?:[-–—]\s*\d+)?\s*[:.]\s*/, '').trim())
+    .filter(Boolean);
+  return r.length ? r : null;
+}
+
 function _groetTafelsOplossen(uit) {
   let tafels = null;
   const laad = () => {
@@ -9034,6 +9048,15 @@ function _groetTafelsOplossen(uit) {
     if (!c || !c.groetTafelId) continue;
     const regels = regelsVan(c.groetTafelId);
     if (regels) uit[sleutel] = { ...c, groeten: regels };
+  }
+
+  // Een factie heeft een hoofd dat je begroet; ook die krijgt zijn regels mee.
+  if (Array.isArray(uit.facties) && uit.facties.some(f => f?.groetTafelId)) {
+    uit.facties = uit.facties.map(f => {
+      if (!f?.groetTafelId) return f;
+      const regels = regelsVan(f.groetTafelId);
+      return regels ? { ...f, groeten: regels } : f;
+    });
   }
 
   // Elke god heeft zijn eigen priester, dus ook zijn eigen begroetingen.
@@ -11594,6 +11617,10 @@ router.post('/diensten/:dienst/uitnodiging', requireDM, (req, res) => {
     const post = _bezorgBrief(req, lid.id, {
       titel, tekst, afzender: naam, thema: 'factie',
       embleem: bief.icon, kleur: bief.kleur, kop: naam, cinematic: true,
+      // Dezelfde handschriften als een document en de snelle post: een
+      // uitnodiging van een gilde hoort er anders uit te zien dan een
+      // dreigbrief van een dievenbende.
+      ...(cfg.briefstijl ? { briefstijl: String(cfg.briefstijl) } : {}),
     });
     if (post) bezorgd++;
   }
@@ -12968,6 +12995,8 @@ router.get('/facties', attachRole, (req, res) => {
       npcEntityId:      f.npcEntityId      || null,
       npcEntityIdDag:   f.npcEntityIdDag   || null,
       npcGreet:         f.npcGreet         || '',
+      // De begroetingstafel zelf blijft DM-only; alleen haar regels gaan mee.
+      groeten:          _tafelRegels(f.groetTafelId),
       leden:            _resolveLeden(f),
       // Afgeleid, niet opgeslagen: een lid met voorraad ís een verkoper van de
       // factie. Staat zijn winkel voor deze party nog dicht, dan noemen we hem
@@ -13028,7 +13057,7 @@ router.post('/facties/:id/reveal', requireDM, (req, res) => {
 function _standaardUitnodiging(factie, afzender, locatie) {
   const waar = locatie ? ` Kom langs in **${locatie}**.` : '';
   const greet = factie.npcGreet ? `\n\n_"${factie.npcGreet}"_` : '';
-  return `Geachte avonturier,\n\nUw daden in Grisburgh zijn ons niet ontgaan. **${factie.naam}** nodigt u uit om kennis te maken.${waar} Wij menen dat een verbond ons beiden tot voordeel kan strekken.${greet}\n\nMet achting,\n${afzender}`;
+  return `Geachte avonturier,\n\nUw daden zijn ons niet ontgaan. **${factie.naam}** nodigt u uit om kennis te maken.${waar} Wij menen dat een verbond ons beiden tot voordeel kan strekken.${greet}\n\nMet achting,\n${afzender}`;
 }
 
 // Onthul de factie voor de actieve groep én bezorg elke speler een verzegelde uitnodigingsbrief.
@@ -13231,6 +13260,8 @@ router.put('/meta/facties', requireDM, (req, res) => {
     npcEntityId:     f.npcEntityId     ? String(f.npcEntityId).trim()     : null,
     npcEntityIdDag:  f.npcEntityIdDag  ? String(f.npcEntityIdDag).trim()  : null,
     npcGreet:        f.npcGreet        ? String(f.npcGreet).trim()        : '',
+    groetTafelId:    f.groetTafelId    ? String(f.groetTafelId).trim()    : '',
+    briefstijl:      f.briefstijl      ? String(f.briefstijl).trim()      : '',
     leden: (Array.isArray(f.leden) ? f.leden : [])
       .filter(l => l && l.entityId)
       .map(l => ({ entityId: String(l.entityId).trim(), rang: String(l.rang || '').trim() })),
