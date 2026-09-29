@@ -69,6 +69,20 @@ opnieuw om te zetten.
   - `render-bestiarium.js` + `render-statblock.js` — **bestiarium** (eigen kaart + statblock-modal, eigen editor in `dm-panel.js`)
   Het bestiarium deelt wél de `.entity-card`-kaartstijl, maar heeft een **eigen** detail-/editorvenster.
   Doe je iets aan labels/kaarten/vensters van de archief-tabs, check dan al deze bestanden.
+- **Uitleg hoort in het boekje, niet in het formulier.** Een nieuw veld krijgt een **label** en
+  hooguit een `title`. Wat het veld dóét, wanneer je het aanzet en wat de gevolgen zijn, schrijf je
+  in de helptekst van dat paneel (`HELP_CONFIG` in `app.js`, knop via `_helpBtn`/`helpBtn`/
+  `_dienstSectieKop`). Dus géén grijze cursieve alinea's onder een vinkje, géén uitleg in een
+  placeholder, géén tweede zin in een `title`. Voeg je een veld toe en is er nog geen boekje bij dat
+  paneel, dan maak je de sleutel aan — dat hoort bij het werk, niet bij een opruimronde erna.
+- **Een schakelaar die uitstaat, laat niets achter.** Zet een DM een functie uit, dan verdwijnt bij
+  de speler het hele blok: geen lijst, geen knop, geen grijze regel die vertelt wat hij mist.
+  Zichtbaarheid is een antwoord op "bestaat dit hier?", en dat antwoord is dan nee. Toets het aan
+  beide kanten: de UI toont niets, én de route weigert (409) als iemand er langs de UI om heen gaat.
+- **Een percentage of formule is een uitgangspunt, geen eindoordeel.** Alles wat de app uitrekent en
+  wat aan tafel anders kan lopen (een bod van een winkel, een prijs, een beloning) geef je aan de DM
+  als een **voorgevuld veld dat hij mag overtypen**, niet als vaststaand bedrag. De DM tekent af; de
+  app rekent alleen voor.
 - **Backup vóór elke wijziging aan spelersdata.** Voordat code of data op de server aangepast
   wordt die het spelerstabblad raakt (playerProfiles, playerItems, playerSpells, berichten, boedel),
   eerst een backup maken:

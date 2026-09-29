@@ -1,4 +1,4 @@
-import { api, huidigeCampagne } from './api.js?v=297';
+import { api, huidigeCampagne } from './api.js?v=298';
 import { init as canvasInit, update as canvasUpdate, stop as canvasStop, acGetal } from './combat-canvas.js?v=29';
 import { renderStatblock } from './render-statblock.js?v=9';
 
@@ -679,6 +679,16 @@ export function initDmPanel() {
       catch (e) { alert('Mislukt: ' + e.message); }
       _renderVerzoeken(); _verzoekenTeller();
     },
+    async verzoekVerkoop(reqId, akkoord) {
+      const munten = _bedragLeesMunten(`dm-verk-${reqId}`);
+      const bedragCl = munten.fl * 100 + munten.kn * 10 + munten.cl;
+      try {
+        await (akkoord
+          ? api.post(`/items/request/${reqId}/approve`, { bedragCl })
+          : api.rejectItemRequest(reqId));
+      } catch (e) { alert('Mislukt: ' + e.message); }
+      _renderVerzoeken(); _verzoekenTeller();
+    },
     async verzoekItem(reqId, akkoord) {
       try { await (akkoord ? api.approveItemRequest(reqId) : api.rejectItemRequest(reqId)); }
       catch (e) { alert('Mislukt: ' + e.message); }
@@ -1096,6 +1106,13 @@ function _bedragVeldHtml(id, waarde = '', { label = 'Prijs', klasse = 'dm-input'
 // Een prijs staat soms als tekst ("2 kn") en soms als muntobject ({fl,kn,cl}) —
 // de diensten bewaren het tweede omdat de server ermee rekent. Het veld toont
 // altijd hetzelfde: één leesbaar bedrag.
+// Centelingen terug naar munten, zodat een bedrag uit de server in hetzelfde
+// veld past als elk ander bedrag in de app.
+function _clNaarMunten(cl) {
+  const t = Math.max(0, Math.round(Number(cl) || 0));
+  return { fl: Math.floor(t / 100), kn: Math.floor((t % 100) / 10), cl: t % 10 };
+}
+
 function _bedragTekst(waarde) {
   if (!waarde) return '';
   if (typeof waarde === 'string') return waarde;
@@ -6569,17 +6586,6 @@ async function _renderMarktSettings() {
           </label>`).join('')
         : '<p class="dm-hint">Nog geen gebieden — vul het veld <em>Gebied</em> in op de locatiekaartjes van je winkels.</p>'}
       </div>
-      <!-- "Laat de app kiezen" zei niet wat het deed: het vinkt alles uit en
-           bewaart dat, waarna de Markt zelf een zinnige laag kiest. Nu staat
-           dat er, en het is een gewone nevenknop naast Opslaan. -->
-      <div class="dm-feature-row" style="margin-top:12px">
-        <button class="dm-btn dm-btn-primary" onclick="window.dmPanel.marktGebiedenOpslaan()">${icon('save')} Opslaan</button>
-        <button class="dm-btn dm-btn-ghost" onclick="window.dmPanel.marktGebiedenLeeg()"
-          title="Vinkt alles uit: de Markt kiest dan zelf welke gebieden als knop verschijnen">${icon('x')} Alles uit</button>
-      </div>
-    </div>
-
-    <div class="dm-feature-section">
       <!-- Dicht: het is een afgeleide lijst die je zelden hoeft te lezen —
            je kijkt erin als een winkel níét op de Markt staat. De uitklap ís
            het kopje; er stond er ook nog een boven, en dan lees je twee keer
@@ -6601,6 +6607,16 @@ async function _renderMarktSettings() {
           </div>
         </details>
         <span class="dm-sectie-hulp">${helpBtn('dm_markt_winkels')}</span>
+      </div>
+
+      <!-- Eén sectie, dus één opslaanknop, en die hoort onderaan het blad —
+           niet halverwege met een streep eronder. "Laat de app kiezen" zei
+           niet wat het deed: het vinkt alles uit en bewaart dat, waarna de
+           Markt zelf een zinnige laag kiest. -->
+      <div class="dm-feature-row" style="margin-top:12px">
+        <button class="dm-btn dm-btn-primary" onclick="window.dmPanel.marktGebiedenOpslaan()">${icon('save')} Opslaan</button>
+        <button class="dm-btn dm-btn-ghost" onclick="window.dmPanel.marktGebiedenLeeg()"
+          title="Vinkt alles uit: de Markt kiest dan zelf welke gebieden als knop verschijnen">${icon('x')} Alles uit</button>
       </div>
     </div>`;
 }
@@ -10922,7 +10938,9 @@ async function _renderVerzoeken() {
       api.getBadges().catch(() => ({})),
     ]);
   } catch { /* hieronder vangen we het lege geval af */ }
-  const voorwerpen = (bezit?.requests || []).filter(r => r.status === 'pending');
+  const _open = (bezit?.requests || []).filter(r => r.status === 'pending');
+  const voorwerpen = _open.filter(r => r.type !== 'verkoop');
+  const verkopen   = _open.filter(r => r.type === 'verkoop');
 
   const rij = (inhoud, acties) => `
     <div class="dm-verzoek-rij">
@@ -10944,6 +10962,21 @@ async function _renderVerzoeken() {
     + (r.type === 'trade' ? `ruilen met ${esc(r.targetName || '?')}` : 'claimen'),
     `<button class="dm-btn dm-btn-sm dm-btn-primary" onclick="window.dmPanel.verzoekItem('${esc(r.id)}', true)">${icon('check')} Goedkeuren</button>
      <button class="dm-btn dm-btn-sm dm-btn-ghost" onclick="window.dmPanel.verzoekItem('${esc(r.id)}', false)">${icon('x')} Weigeren</button>`
+  )).join('');
+
+  // Een speler biedt iets aan een winkel aan. Het bedrag is het percentage uit
+  // de winkelinstelling — een uitgangsbod. Is er aan tafel om gepingeld, dan
+  // typt de DM hier het afgesproken bedrag; dát wordt uitbetaald.
+  const verkoopHtml = verkopen.map(r => rij(
+    `<strong>${esc(r.requesterName)}</strong> biedt <em>${esc(r.itemName)}</em>`
+    + (r.aantal > 1 ? ` (${r.aantal}\u00d7)` : '')
+    + ` aan${r.targetName ? ` bij ${esc(r.targetName)}` : ''}`
+    + `<span class="dm-verzoek-context">Bod van de winkel: ${esc(_bedragTekst(_clNaarMunten(r.bedragCl || 0)))}</span>`,
+    `<input id="dm-verk-${esc(r.id)}" class="dm-input dm-input-sm dm-verzoek-bedrag"
+       value="${esc(_bedragTekst(_clNaarMunten(r.bedragCl || 0)))}" inputmode="decimal"
+       title="Het bedrag dat hij krijgt \u2014 pas het aan als jullie iets anders afspraken">
+     <button class="dm-btn dm-btn-sm dm-btn-primary" onclick="window.dmPanel.verzoekVerkoop('${esc(r.id)}', true)">${icon('check')} Uitbetalen</button>
+     <button class="dm-btn dm-btn-sm dm-btn-ghost" onclick="window.dmPanel.verzoekVerkoop('${esc(r.id)}', false)">${icon('x')} Weigeren</button>`
   )).join('');
 
   // Een onderzoek naar iemand met meer dan één onbekend geheim vult zichzelf
@@ -11019,6 +11052,11 @@ async function _renderVerzoeken() {
     <div class="dm-feature-section">
       <div class="dm-section-label">${icon('package')} Voorwerpen ${voorwerpen.length ? `(${voorwerpen.length})` : ''}<span class="dm-sectie-hulp">${helpBtn('dm_verzoeken_voorwerpen')}</span></div>
       ${itemHtml || '<p class="dm-hint">Niets openstaand.</p>'}
+    </div>
+
+    <div class="dm-feature-section">
+      <div class="dm-section-label">${icon('coins')} Aangeboden aan een winkel ${verkopen.length ? `(${verkopen.length})` : ''}<span class="dm-sectie-hulp">${helpBtn('dm_verzoeken_verkoop')}</span></div>
+      ${verkoopHtml || '<p class="dm-hint">Niets openstaand.</p>'}
     </div>
 
     <div class="dm-feature-section">

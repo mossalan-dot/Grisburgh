@@ -2035,7 +2035,7 @@ function fromCl(total) {
 // De voorraad staat op één plek: de locatie. Een verkoper wijst daarheen met
 // `data.winkelLocatieId` — daarvoor stond dezelfde lijst twee keer, op het
 // personage én op de winkel, en die liepen na verloop van tijd uiteen. Alles wat
-// aan een winkel hangt (uitverkocht, humeur, rotatie, log) hoort dus bij de
+// aan een winkel hangt (uitverkocht, rotatie, log) hoort dus bij de
 // locatie, en daarom geeft deze helper ook het id terug waar je die stand op
 // bewaart.
 function _winkelVan(entities, shopId) {
@@ -2049,7 +2049,7 @@ function _winkelVan(entities, shopId) {
 // ── De Markt ────────────────────────────────────────────────────────────────
 // Een winkel was tot nu toe een tabblad óp een kaartje: je moest weten dat Stoom
 // en Staal bestaat, het kaartje opzoeken in Locaties en dan de tab vinden. De
-// machinerie was compleet (rotatie, onderhandelen, humeur, uitverkocht), alleen
+// machinerie was compleet (rotatie, uitverkocht, inkopen), alleen
 // de ingang ontbrak. Dit is die ingang — een wéérgave, geen tweede opslag: de
 // voorraad blijft op het kaartje staan, en kopen loopt nog steeds via
 // POST /shops/:id/koop.
@@ -2402,12 +2402,6 @@ router.get('/shops/:shopId/beschikbaar', attachRole, (req, res) => {
   };
 
   if (!winkelConfig.roterend) {
-    const _characterId = req.session?.characterId;
-    // Korting/humeur leven in de groep van de speler zelf, niet de actieve DM-groep
-    const _pg = _characterId ? getGroup(dmState, _playerGroupId(dmState, _characterId)) : g;
-    const _tempDiscount = _characterId ? _pg.shopTempDiscount?.[shopId]?.[_characterId] : null;
-    const _discountActief = _tempDiscount && new Date(_tempDiscount.geldigTot) > new Date() && (_tempDiscount.percent || 0) !== 0;
-    const discountPct = _discountActief ? _tempDiscount.percent : 0;
     const sfeerTekst = winkelConfig.sfeerTekst || '';
     return res.json({
       items: voorraadItems.map(item => ({
@@ -2417,8 +2411,7 @@ router.get('/shops/:shopId/beschikbaar', attachRole, (req, res) => {
       })),
       roterend: false,
       sfeerTekst,
-      discountPct,
-      onderhandel: _onderhandelStatus(_pg, shopId, _characterId, winkelConfig),
+      verkoop: _verkoopbaarVoor(entities, dmState, shopId, req.session?.characterId, winkelConfig),
     });
   }
 
@@ -2466,16 +2459,10 @@ router.get('/shops/:shopId/beschikbaar', attachRole, (req, res) => {
           actief: true,
         }));
 
-  const _characterId = req.session?.characterId;
-  // Korting/humeur leven in de groep van de speler zelf, niet de actieve DM-groep
-  const _pg = _characterId ? getGroup(dmState, _playerGroupId(dmState, _characterId)) : g;
-  const _tempDiscount = _characterId ? _pg.shopTempDiscount?.[shopId]?.[_characterId] : null;
-  const _discountActief = _tempDiscount && new Date(_tempDiscount.geldigTot) > new Date() && (_tempDiscount.percent || 0) !== 0;
-  const discountPct = _discountActief ? _tempDiscount.percent : 0;
   const sfeerTekst = winkelConfig.sfeerTekst || '';
   res.json({
-    items: filtered, roterend: true, geldigTot: rotatie.geldigTot, verversBij, sfeerTekst, discountPct,
-    onderhandel: _onderhandelStatus(_pg, shopId, _characterId, winkelConfig),
+    items: filtered, roterend: true, geldigTot: rotatie.geldigTot, verversBij, sfeerTekst,
+    verkoop: _verkoopbaarVoor(entities, dmState, shopId, req.session?.characterId, winkelConfig),
   });
 });
 
@@ -2545,13 +2532,7 @@ router.post('/shops/:shopId/koop', attachRole, (req, res) => {
   const prijs = parsePrijs(item.prijs);
 
   if (prijs && (prijs.fl > 0 || prijs.kn > 0 || prijs.cl > 0)) {
-    let prijsCl = toCl(prijs) * aantal;
-    // Pas eventuele onderhandel-korting toe
-    const tempDisc = g.shopTempDiscount?.[shopId]?.[characterId];
-    const discActief = tempDisc && new Date(tempDisc.geldigTot) > new Date();
-    if (discActief && tempDisc.percent !== 0) {
-      prijsCl = Math.max(1, Math.round(prijsCl * (1 - tempDisc.percent / 100)));
-    }
+    const prijsCl = toCl(prijs) * aantal;
     // Staat de gedeelde beurs aan, dan is dát de portemonnee van de party —
     // dezelfde regel als bij afrekenen en bij de rust. Deze route keek nog
     // rechtstreeks in playerCurrency, dus kocht een speler met een gedeelde
@@ -2563,13 +2544,6 @@ router.post('/shops/:shopId/koop', attachRole, (req, res) => {
     }
     _deductCurrency(dmState, characterId, prijsCl);
 
-    // Klant-loop: een betaalde aankoop stemt de winkelier milder (max 1x per rotatie)
-    const moodEntry = g.shopMood?.[shopId]?.[characterId];
-    const windowStart = _shopWindowStart(g, shopId, winkelConfig);
-    if (!_inHuidigWindow(moodEntry?.laatsteKlantBonus, windowStart)) {
-      _bumpShopMood(g, shopId, characterId, 1, req.playerName || 'Speler');
-      g.shopMood[shopId][characterId].laatsteKlantBonus = new Date().toISOString();
-    }
   }
 
   // Controleer of het entityId ook echt bestaat — zo niet, behandel als tekst-item
@@ -2694,65 +2668,6 @@ function _voorwerpVerkoopbaar(vw, koopCfg) {
   return { ok: true, aanbodCl };
 }
 
-// ── Winkelier-humeur ────────────────────────────────────────────────────────
-// Persistent humeur per winkel per character (-3 t/m +3), opgeslagen in
-// g.shopMood[shopId][characterId]. Verval: 1 stap richting neutraal per dag,
-// lui berekend bij het lezen (geen cron). Beïnvloedt de onderhandel-DC en
-// blokkeert onderhandelen bij 'vijandig'.
-const MOOD_MIN = -3, MOOD_MAX = 3;
-const MOOD_VERVAL_MS = 24 * 3600000;
-
-function _moodTier(score) {
-  if (score <= -2) return 'vijandig';
-  if (score === -1) return 'stug';
-  if (score === 0) return 'neutraal';
-  if (score === 1) return 'vriendelijk';
-  return 'hartelijk';
-}
-
-const MOOD_DC_MOD = { vijandig: 0, stug: 2, neutraal: 0, vriendelijk: -2, hartelijk: -4 };
-const MOOD_TEKST = {
-  vijandig:    'De winkelier doet alsof je lucht bent.',
-  stug:        'De winkelier kijkt je stug aan.',
-  neutraal:    '',
-  vriendelijk: 'De winkelier knikt je vriendelijk toe.',
-  hartelijk:   'De winkelier begroet je hartelijk.',
-};
-
-// Leest het humeur met verval toegepast; muteert niets.
-function _getShopMood(g, shopId, characterId) {
-  const entry = g.shopMood?.[shopId]?.[characterId];
-  if (!entry) return { score: 0, entry: null };
-  let score = entry.score || 0;
-  const sinds = new Date(entry.laatsteUpdate || 0).getTime();
-  const stappen = Math.floor((Date.now() - sinds) / MOOD_VERVAL_MS);
-  if (stappen > 0 && score !== 0) {
-    score = score > 0 ? Math.max(0, score - stappen) : Math.min(0, score + stappen);
-  }
-  return { score, entry };
-}
-
-// Past delta toe op het (vervallen) humeur en slaat het resultaat op.
-function _bumpShopMood(g, shopId, characterId, delta, playerName) {
-  if (!g.shopMood) g.shopMood = {};
-  if (!g.shopMood[shopId]) g.shopMood[shopId] = {};
-  const { score, entry } = _getShopMood(g, shopId, characterId);
-  const nieuw = Math.min(MOOD_MAX, Math.max(MOOD_MIN, score + delta));
-  g.shopMood[shopId][characterId] = {
-    ...(entry || {}),
-    score: nieuw,
-    laatsteUpdate: new Date().toISOString(),
-    ...(playerName ? { playerName } : {}),
-  };
-  return nieuw;
-}
-
-// Begin van het huidige onderhandel-window: de lopende rotatie, of anders
-// een glijdend window van 24 uur. Eén onderhandelpoging en één klantbonus
-// per window.
-// Een winkel ververst zijn schappen na een rust, niet op de klok: de party
-// speelt geen realtime uren. 'uren' blijft bestaan voor winkels die al zo
-// stonden. Bij een lange rust telt ook de korte mee — er is een nacht voorbij.
 function _verversBij(winkelConfig) {
   const v = winkelConfig?.verversBij;
   return (v === 'short' || v === 'uren') ? v : 'long';
@@ -2806,74 +2721,22 @@ function _ligtInDeSchappen(g, shopId, winkelConfig, itemNaam) {
   return rotatie.items.some(n => (n || '').toLowerCase().trim() === sleutel);
 }
 
-function _shopWindowStart(g, shopId, winkelConfig) {
-  if (winkelConfig.roterend) {
-    const deelGroep = winkelConfig.deelGroep?.trim() || shopId;
-    const rotatie = g.shopRotatie?.[deelGroep];
-    // Rust-gestuurd: het venster begint wanneer de selectie gemaakt is.
-    if (rotatie?.gemaakt && _verversBij(winkelConfig) !== 'uren') {
-      return new Date(rotatie.gemaakt).getTime();
-    }
-    if (rotatie?.geldigTot) {
-      const refreshMs = Math.max(1, parseFloat(winkelConfig.refreshUren) || 24) * 3600000;
-      const eind = new Date(rotatie.geldigTot).getTime();
-      if (eind > Date.now()) return eind - refreshMs;
-    }
-  }
-  return Date.now() - 24 * 3600000;
-}
-
-function _inHuidigWindow(tijdstip, windowStart) {
-  return !!tijdstip && new Date(tijdstip).getTime() >= windowStart;
-}
-
-// Onderhandel-status voor de winkel-UI: humeur-tier, sfeerregel en of de
-// knop beschikbaar is (niet vijandig, niet op cooldown).
-function _onderhandelStatus(g, shopId, characterId, winkelConfig) {
-  if (!characterId) return null;
-  const { score, entry } = _getShopMood(g, shopId, characterId);
-  const tier = _moodTier(score);
-  const opCooldown = _inHuidigWindow(entry?.laatstePoging, _shopWindowStart(g, shopId, winkelConfig));
-  return {
-    tier,
-    tekst: MOOD_TEKST[tier],
-    kan: tier !== 'vijandig' && !opCooldown,
-    reden: tier === 'vijandig' ? 'De winkelier wil niet met je praten'
-         : opCooldown ? 'Al onderhandeld — wacht op het volgende assortiment'
-         : '',
-  };
-}
-
-// Actieve positieve onderhandel-korting (negatieve/oude boetes tellen niet mee)
-function _actieveKortingPct(g, shopId, characterId) {
-  const d = g.shopTempDiscount?.[shopId]?.[characterId];
-  if (d && new Date(d.geldigTot) > new Date() && (d.percent || 0) > 0) return d.percent;
-  return 0;
-}
-
 // ── Winkel: verkoopbare voorwerpen van de ingelogde speler ─────────────────
-router.get('/shops/:shopId/verkoopbaar', attachRole, (req, res) => {
-  const characterId = req.session?.characterId;
-  if (!characterId) return res.json({ koopt: false, items: [] });
-
-  let { shopId } = req.params;
-  const entities = storage.readJSON('entities.json');
-  const shop = _winkelVan(entities, shopId);
-  if (!shop) return res.status(404).json({ error: 'Winkel niet gevonden' });
-  shopId = shop.id;   // de stand hangt aan de locatie, niet aan de verkoper
-
-  let winkelConfig = {};
-  try { winkelConfig = shop.data?.winkelConfig ? JSON.parse(shop.data.winkelConfig) : {}; } catch {}
+// Eén berekening, twee ingangen: de eigen route hieronder en het voorraad-
+// antwoord waar het winkelvenster op draait. Zo kan het venster de verkoopkant
+// meteen tonen — of weglaten als de winkel niet inkoopt — zonder tweede ronde.
+function _verkoopbaarVoor(entities, dmState, shopId, characterId, winkelConfig) {
   const koopCfg = _winkelKoopConfig(winkelConfig);
-  if (!koopCfg.koopt) return res.json({ koopt: false, items: [], ratio: koopCfg.ratio, categorieen: koopCfg.categorieen });
-
-  const dmState = readDmState();
+  if (!characterId || !koopCfg.koopt) {
+    return { koopt: false, ratio: koopCfg.ratio, categorieen: koopCfg.categorieen, items: [] };
+  }
   const g = getGroup(dmState, _playerGroupId(dmState, characterId));
   const owners = g.itemOwners || {};
   const voorwerpen = entities.voorwerpen || [];
-
-  // Onderhandel-korting werkt twee kanten op: ook een beter bod bij verkopen
-  const bonusPct = _actieveKortingPct(g, shopId, characterId);
+  // Wat al bij de DM ligt, bied je niet nog een keer aan.
+  const open = new Set((g.itemRequests || [])
+    .filter(r => r.status === 'pending' && r.type === 'verkoop' && r.requesterId === characterId)
+    .map(r => r.itemId));
 
   const items = [];
   for (const [entityId, owner] of Object.entries(owners)) {
@@ -2897,12 +2760,26 @@ router.get('/shops/:shopId/verkoopbaar', attachRole, (req, res) => {
       qty,
       verkoopbaar: check.ok,
       reden: check.reden || '',
-      aanbod: check.ok ? fromCl(Math.round(check.aanbodCl * (1 + bonusPct / 100))) : null,
+      aanbod: check.ok ? fromCl(check.aanbodCl) : null,
+      aangeboden: open.has(entityId),
     });
   }
   // Verkoopbare items eerst, daarna op naam
   items.sort((a, b) => (b.verkoopbaar - a.verkoopbaar) || a.naam.localeCompare(b.naam, 'nl'));
-  res.json({ koopt: true, ratio: koopCfg.ratio, categorieen: koopCfg.categorieen, items, bonusPct });
+  return { koopt: true, ratio: koopCfg.ratio, categorieen: koopCfg.categorieen, items };
+}
+
+router.get('/shops/:shopId/verkoopbaar', attachRole, (req, res) => {
+  const characterId = req.session?.characterId;
+  let { shopId } = req.params;
+  const entities = storage.readJSON('entities.json');
+  const shop = _winkelVan(entities, shopId);
+  if (!shop) return res.status(404).json({ error: 'Winkel niet gevonden' });
+  shopId = shop.id;   // de stand hangt aan de locatie, niet aan de verkoper
+
+  let winkelConfig = {};
+  try { winkelConfig = shop.data?.winkelConfig ? JSON.parse(shop.data.winkelConfig) : {}; } catch {}
+  res.json(_verkoopbaarVoor(entities, readDmState(), shopId, characterId, winkelConfig));
 });
 
 // ── Winkel: voorwerp verkopen (inkoop door winkel) ─────────────────────────
@@ -2952,54 +2829,44 @@ router.post('/shops/:shopId/verkoop', attachRole, (req, res) => {
   if (bezit <= 0) return res.status(403).json({ error: 'Je bezit dit voorwerp niet' });
 
   const aantal = isStapelbaar ? Math.min(bezit, Math.max(1, parseInt(aantalRaw) || 1)) : 1;
-  // Onderhandel-korting verhoogt ook het bod bij verkopen
-  const verkoopBonusPct = _actieveKortingPct(g, shopId, characterId);
-  const opbrengstCl = Math.round(check.aanbodCl * (1 + verkoopBonusPct / 100)) * aantal;
+  const opbrengstCl = check.aanbodCl * aantal;
 
-  // Eigendom bijwerken
-  if (isStapelbaar && Array.isArray(owner)) {
-    ownerEntry.qty = bezit - aantal;
-    if (ownerEntry.qty <= 0) {
-      g.itemOwners[entityId] = owner.filter(o => o.characterId !== characterId);
-      if (g.itemOwners[entityId].length === 0) delete g.itemOwners[entityId];
-    }
-  } else {
-    delete g.itemOwners[entityId];
+  // Geen directe afrekening: het percentage is een uitgangsbod, niet het
+  // laatste woord. Aan tafel wordt gepingeld, dus gaat het aanbod als verzoek
+  // naar de DM — die ziet het bedrag, mag het wijzigen en tekent af. Zo is er
+  // één plek waar geld en eigendom samen veranderen, net als bij de inkoop
+  // die de DM zelf doet.
+  if (!g.itemRequests) g.itemRequests = [];
+  if (g.itemRequests.some(r => r.status === 'pending' && r.type === 'verkoop'
+      && r.itemId === entityId && r.requesterId === characterId)) {
+    return res.status(409).json({ error: 'Je hebt dit al aangeboden — je DM kijkt ernaar' });
   }
 
-  // Munten bijschrijven — naar de gedeelde beurs als die aanstaat, net als bij
-  // het kopen. Anders verdween de opbrengst in een eigen zak die niemand toont.
-  _deductCurrency(dmState, characterId, -opbrengstCl);
-
+  const verzoek = {
+    id:            'req_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6),
+    itemId:        entityId,
+    itemName:      vw.name,
+    type:          'verkoop',
+    requesterId:   characterId,
+    requesterName: req.playerName || 'Speler',
+    targetId:      null,
+    targetName:    shop.name || '',
+    shopId,
+    aantal,
+    bedragCl:      opbrengstCl,
+    status:        'pending',
+    createdAt:     new Date().toISOString(),
+  };
+  g.itemRequests.push(verzoek);
   storage.writeJSON('dm-state.json', dmState);
 
-  // Shop-log (verkoop)
-  try {
-    const shopLog = storage.readJSON('shop-log.json');
-    if (!shopLog[shopId]) shopLog[shopId] = [];
-    const aanbod = fromCl(opbrengstCl);
-    shopLog[shopId].push({
-      ts: new Date().toISOString(),
-      characterId,
-      playerName: req.playerName || 'Speler',
-      itemNaam: vw.name,
-      prijs: `${aanbod.fl} fl. ${aanbod.kn} kn. ${aanbod.cl} cl.`,
-      aantal,
-      type: 'verkoop',
-    });
-    if (shopLog[shopId].length > 200) shopLog[shopId] = shopLog[shopId].slice(-200);
-    storage.writeJSON('shop-log.json', shopLog);
-  } catch { /* stil falen */ }
-
-  const io = req.app.get('io');
-  io.to(_campagneRoom(req)).emit('player:currency-updated', { characterId, currency: _effectiveCurrency(dmState, characterId) });
-  io.to(_campagneRoom(req)).emit('items:ownership-updated', {
-    owners: g.itemOwners || {},
-    requests: g.itemRequests || [],
+  req.app.get('io').to(_campagneRoom(req)).emit('items:request', {
+    ...verzoek,
+    owners:       g.itemOwners || {},
+    requests:     g.itemRequests,
     tradeAllowed: g.tradeAllowed !== false,
   });
-
-  res.json({ ok: true, itemNaam: vw.name, aantal, opbrengst: fromCl(opbrengstCl), currency: _effectiveCurrency(dmState, characterId) });
+  res.status(201).json({ ok: true, verzoek, aanbod: fromCl(opbrengstCl) });
 });
 
 // Kleine helpers voor de DM-afrekening aan tafel.
@@ -3255,126 +3122,6 @@ router.post('/shops/:shopId/dm-inkoop', requireDM, (req, res) => {
   res.json({ ok: true, gedaan });
 });
 
-// ── Winkel: onderhandelen ──
-router.post('/shops/:shopId/onderhandel', attachRole, (req, res) => {
-  const characterId = _handelendKarakter(req);
-  if (!characterId) return res.status(401).json({ error: 'Log in als speler' });
-
-  let { shopId } = req.params;
-  const { modifier = 0 } = req.body;
-
-  const entities = storage.readJSON('entities.json');
-  const shop = _winkelVan(entities, shopId);
-  if (!shop) return res.status(404).json({ error: 'Winkel niet gevonden' });
-  shopId = shop.id;   // de stand hangt aan de locatie, niet aan de verkoper
-  {
-    const _dicht = _winkelDicht(req, readDmState(), shopId);
-    if (_dicht) return res.status(403).json({ error: _dicht });
-  }
-
-  let winkelConfig = {};
-  try { winkelConfig = shop.data?.winkelConfig ? JSON.parse(shop.data.winkelConfig) : {}; } catch {}
-
-  const dmState = readDmState();
-  // Gebruik de groep van de speler zelf, niet de actieve DM-groep
-  const g = getGroup(dmState, _playerGroupId(dmState, characterId));
-
-  // Humeur bepaalt of en hoe moeilijk onderhandelen is
-  const { score, entry } = _getShopMood(g, shopId, characterId);
-  const tierVoor = _moodTier(score);
-  if (tierVoor === 'vijandig') {
-    return res.status(409).json({ error: 'De winkelier wil niet met je onderhandelen', tier: tierVoor });
-  }
-
-  // Eén poging per rotatie (of per 24 uur voor winkels zonder rotatie)
-  const windowStart = _shopWindowStart(g, shopId, winkelConfig);
-  if (_inHuidigWindow(entry?.laatstePoging, windowStart)) {
-    return res.status(429).json({ error: 'Je hebt al onderhandeld — probeer het bij het volgende assortiment weer', tier: tierVoor });
-  }
-
-  const dcBasis = parseInt(winkelConfig.onderhandelDC) || 15;
-  const dc = Math.max(1, dcBasis + MOOD_DC_MOD[tierVoor]);
-  const kortingBasis = parseInt(winkelConfig.onderhandelKorting) || 10;
-
-  const diceRoll = Math.floor(Math.random() * 20) + 1;
-  const mod = parseInt(modifier) || 0;
-  const totaal = diceRoll + mod;
-  const nat20 = diceRoll === 20;
-  const nat1 = diceRoll === 1;
-  const geslaagd = nat20 || (!nat1 && totaal >= dc);
-
-  // Uitkomst → korting en humeurverandering
-  let kortingPct = 0, moodDelta = 0;
-  if (geslaagd) {
-    kortingPct = nat20 ? kortingBasis * 2 : kortingBasis;
-    if (tierVoor === 'hartelijk') kortingPct += 5;
-    if (nat20) moodDelta = 1;
-  } else {
-    moodDelta = nat1 ? -2 : -1;
-  }
-
-  const playerName = req.playerName || 'Speler';
-  const scoreNa = moodDelta !== 0
-    ? _bumpShopMood(g, shopId, characterId, moodDelta, playerName)
-    : score;
-  // Poging vastleggen voor de cooldown (entry bestaat na _bumpShopMood zeker)
-  if (!g.shopMood) g.shopMood = {};
-  if (!g.shopMood[shopId]) g.shopMood[shopId] = {};
-  g.shopMood[shopId][characterId] = {
-    ...(g.shopMood[shopId][characterId] || { score: scoreNa, laatsteUpdate: new Date().toISOString() }),
-    laatstePoging: new Date().toISOString(),
-    playerName,
-  };
-
-  if (!g.shopTempDiscount) g.shopTempDiscount = {};
-  if (!g.shopTempDiscount[shopId]) g.shopTempDiscount[shopId] = {};
-  const geldigTot = new Date(Date.now() + 3600000).toISOString(); // 1 uur
-  if (kortingPct > 0) {
-    g.shopTempDiscount[shopId][characterId] = { percent: kortingPct, geldigTot };
-  } else {
-    delete g.shopTempDiscount[shopId]?.[characterId];
-  }
-  storage.writeJSON('dm-state.json', dmState);
-
-  const tierNa = _moodTier(scoreNa);
-  res.json({
-    diceRoll, modifier: mod, totaal, dc, geslaagd, nat20, nat1,
-    kortingPct,
-    tier: tierNa,
-    tierTekst: MOOD_TEKST[tierNa],
-    humeurGedaald: moodDelta < 0,
-    humeurGestegen: moodDelta > 0,
-  });
-});
-
-// ── Winkel: humeur inzien/bijstellen (DM) ──
-router.get('/shops/:shopId/humeur', requireDM, (req, res) => {
-  const { shopId } = req.params;
-  const dmState = readDmState();
-  const entries = [];
-  for (const [groupId, grp] of Object.entries(dmState.groups || {})) {
-    for (const [characterId, e] of Object.entries(grp.shopMood?.[shopId] || {})) {
-      const { score } = _getShopMood(grp, shopId, characterId);
-      entries.push({ characterId, playerName: e.playerName || '', score, tier: _moodTier(score), groupId });
-    }
-  }
-  res.json({ entries });
-});
-
-router.post('/shops/:shopId/humeur', requireDM, (req, res) => {
-  const { shopId } = req.params;
-  const { characterId, delta } = req.body;
-  if (!characterId) return res.status(400).json({ error: 'characterId vereist' });
-  const d = parseInt(delta);
-  if (!d || Math.abs(d) > 6) return res.status(400).json({ error: 'delta moet tussen -6 en 6 liggen' });
-
-  const dmState = readDmState();
-  const g = getGroup(dmState, _playerGroupId(dmState, characterId));
-  const score = _bumpShopMood(g, shopId, characterId, d);
-  storage.writeJSON('dm-state.json', dmState);
-  res.json({ characterId, score, tier: _moodTier(score) });
-});
-
 // ── Winkel: aankooplog ──
 router.get('/shops/:shopId/log', requireDM, (req, res) => {
   const shopLog = storage.readJSON('shop-log.json');
@@ -3507,6 +3254,44 @@ router.post('/items/request/:reqId/approve', requireDM, (req, res) => {
     g.itemOwners[r.itemId] = { characterId: r.requesterId, playerName: r.requesterName };
   } else if (r.type === 'trade' && r.targetId) {
     g.itemOwners[r.itemId] = { characterId: r.requesterId, playerName: r.requesterName };
+  } else if (r.type === 'verkoop') {
+    // De DM mag het bedrag hebben bijgesteld — daar was aan tafel om gepingeld.
+    // Zonder opgave blijft het bod staan dat de winkel zelf berekende.
+    const opgegeven = req.body?.bedragCl;
+    const bedragCl = (opgegeven === undefined || opgegeven === null || opgegeven === '')
+      ? (r.bedragCl || 0)
+      : Math.max(0, Math.round(Number(opgegeven) || 0));
+    r.bedragCl = bedragCl;
+
+    const owner = g.itemOwners[r.itemId];
+    const aantal = Math.max(1, parseInt(r.aantal) || 1);
+    if (Array.isArray(owner)) {
+      const mij = owner.find(o => o.characterId === r.requesterId);
+      if (mij) {
+        mij.qty = (mij.qty || 1) - aantal;
+        if (mij.qty <= 0) {
+          g.itemOwners[r.itemId] = owner.filter(o => o.characterId !== r.requesterId);
+          if (!g.itemOwners[r.itemId].length) delete g.itemOwners[r.itemId];
+        }
+      }
+    } else if (owner && owner.characterId === r.requesterId) {
+      delete g.itemOwners[r.itemId];
+    }
+
+    // Naar de gedeelde beurs als die aanstaat — dezelfde regel als bij kopen.
+    if (bedragCl > 0) _deductCurrency(dmState, r.requesterId, -bedragCl);
+    _shopLogRegel(r.shopId, {
+      characterId: r.requesterId,
+      playerName:  r.requesterName || 'Speler',
+      itemNaam:    r.itemName,
+      prijs:       _muntTekst(fromCl(bedragCl)),
+      aantal,
+      type:        'verkoop',
+    });
+    req.app.get('io').to(_campagneRoom(req)).emit('player:currency-updated', {
+      characterId: r.requesterId,
+      currency: _effectiveCurrency(dmState, r.requesterId),
+    });
   }
   storage.writeJSON('dm-state.json', dmState);
   req.app.get('io').to(_campagneRoom(req)).emit('items:ownership-updated', {

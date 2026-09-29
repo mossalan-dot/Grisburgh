@@ -214,19 +214,46 @@ describe('Winkel en rust', () => {
     assert.equal(pc.fl, 22, 'het geld gaat van de partybeurs af');
   });
 
-  it('schrijft de opbrengst van een verkoop bij op de gedeelde beurs', async () => {
+  // Verkopen rekent niet meteen af: het bod gaat als verzoek naar de DM, die
+  // het bedrag mag bijstellen. Pas bij zijn akkoord wisselen geld en eigendom.
+  it('legt een verkoop als verzoek bij de DM en betaalt pas na akkoord uit', async () => {
     await req(server, 'PUT', `/api/entities/locaties/${winkel.id}`, { data: {
       locType: 'Winkel',
       voorraad: JSON.stringify([{ naam: 'Fles Vuurwater', prijs: '4 fl', entityId: fles }]),
-      winkelConfig: JSON.stringify({ koopt: true, ratio: 50, categorieen: [] }),
+      winkelConfig: JSON.stringify({ koopt: true, koopRatio: 50, categorieen: [] }),
     } }, dm);
-    const voor = (await req(server, 'GET', '/api/party-currency', null, ariaC)).body;
-    const r = await req(server, 'POST', `/api/shops/${winkel.id}/verkoop`, { entityId: fles, aantal: 1 }, ariaC);
-    assert.equal(r.status, 200);
-    const na = (await req(server, 'GET', '/api/party-currency', null, ariaC)).body;
     const cl = x => x.fl * 100 + x.kn * 10 + x.cl;
-    assert.ok(cl(na) > cl(voor), 'de partybeurs groeit, niet de eigen zak');
+    const voor = (await req(server, 'GET', '/api/party-currency', null, ariaC)).body;
+
+    const r = await req(server, 'POST', `/api/shops/${winkel.id}/verkoop`, { entityId: fles, aantal: 1 }, ariaC);
+    assert.equal(r.status, 201, 'een aanbod, geen afrekening');
+    const tussen = (await req(server, 'GET', '/api/party-currency', null, ariaC)).body;
+    assert.equal(cl(tussen), cl(voor), 'zolang de DM niet tekent verandert er niets aan de beurs');
+
+    const nogmaals = await req(server, 'POST', `/api/shops/${winkel.id}/verkoop`, { entityId: fles, aantal: 1 }, ariaC);
+    assert.equal(nogmaals.status, 409, 'twee keer hetzelfde aanbieden mag niet');
+
+    const verzoekId = r.body.verzoek.id;
+    const ok = await req(server, 'POST', `/api/items/request/${verzoekId}/approve`, { bedragCl: 700 }, dm);
+    assert.equal(ok.status, 200);
+    const na = (await req(server, 'GET', '/api/party-currency', null, ariaC)).body;
+    assert.equal(cl(na) - cl(voor), 700, 'de DM mocht het bod ophogen; dát bedrag wordt uitbetaald');
+
     await req(server, 'PUT', '/api/party-currency/toggle', { enabled: false, groupId: 'groep1' }, dm);
+  });
+
+  it('toont de verkoopkant alleen als de winkel inkoopt', async () => {
+    await req(server, 'PUT', `/api/entities/locaties/${winkel.id}`, { data: {
+      locType: 'Winkel',
+      voorraad: JSON.stringify([{ naam: 'Fles Vuurwater', prijs: '4 fl', entityId: fles }]),
+      winkelConfig: JSON.stringify({ koopt: false }),
+    } }, dm);
+    const uit = (await req(server, 'GET', `/api/shops/${winkel.id}/beschikbaar`, null, ariaC)).body;
+    assert.equal(uit.verkoop.koopt, false, 'geen verkoopkant, dus ook niets om naar te raden');
+    assert.equal(uit.verkoop.items.length, 0);
+
+    const geweigerd = await req(server, 'POST', `/api/shops/${winkel.id}/verkoop`, { entityId: fles, aantal: 1 }, ariaC);
+    assert.equal(geweigerd.status, 409, 'en de route weigert het ook als je er langs de UI om heen gaat');
   });
 
   it('geeft na een lange rust de helft van de Hit Dice terug, naar beneden', async () => {

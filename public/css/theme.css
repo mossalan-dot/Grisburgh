@@ -13953,36 +13953,6 @@ body.herberg-actief #app { position: relative; z-index: 1; }
 }
 .shop-qty-input:focus { outline: none; border-color: rgba(196,168,122,0.7); }
 
-/* Korting badge bij prijs */
-.shop-korting-badge {
-  display: inline-block;
-  margin-left: 4px;
-  padding: 1px 5px;
-  background: rgba(34,100,54,0.15);
-  border: 1px solid rgba(34,100,54,0.4);
-  border-radius: 3px;
-  font-size: 0.7rem;
-  color: #1a7a40;
-  font-style: normal;
-  font-family: 'Cinzel', serif;
-}
-.shop-korting-badge--malus {
-  background: rgba(139,42,42,0.12);
-  border-color: rgba(139,42,42,0.3);
-  color: #8b2a2a;
-}
-
-/* Korting banner bovenaan voorraad */
-.shop-korting-banner {
-  padding: 6px 12px;
-  border-radius: 6px;
-  font-size: 0.82rem;
-  font-style: italic;
-  margin-bottom: 10px;
-}
-.shop-korting-banner--ok { background: rgba(34,100,54,0.10); border: 1px solid rgba(34,100,54,0.28); color: #1a5c30; }
-.shop-korting-banner--malus { background: rgba(139,42,42,0.08); border: 1px solid rgba(139,42,42,0.25); color: #8b2a2a; }
-
 /* Sfeer-sectie */
 .shop-sfeer {
   display: flex;
@@ -14009,159 +13979,6 @@ body.herberg-actief #app { position: relative; z-index: 1; }
   margin: 0;
 }
 
-/* Onderhandelen */
-.shop-onderhandel-wrap {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 8px;
-  margin-top: 14px;
-  padding-top: 12px;
-  border-top: 1px solid rgba(196,168,122,0.2);
-}
-.shop-onderhandel-wrap > .shop-onderhandel-panel,
-.shop-onderhandel-wrap > .shop-onderhandel-result,
-.shop-onderhandel-wrap > .shop-onderhandel-geblokkeerd { flex-basis: 100%; }
-.shop-onderhandel-btn {
-  padding: 5px 14px;
-  background: rgba(196,168,122,0.08);
-  border: 1px solid rgba(196,168,122,0.35);
-  border-radius: 5px;
-  color: var(--color-ink-medium);
-  font-size: 0.82rem;
-  cursor: pointer;
-  transition: background 0.15s, border-color 0.15s;
-}
-.shop-onderhandel-btn:hover { background: rgba(196,168,122,0.16); border-color: rgba(196,168,122,0.6); }
-.shop-onderhandel-panel {
-  margin-top: 8px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-.shop-cha-input {
-  padding: 3px 6px;
-  background: var(--color-room-bg);
-  border: 1px solid rgba(196,168,122,0.35);
-  border-radius: 4px;
-  color: var(--color-ink-bright);
-  font-size: 0.85rem;
-  text-align: center;
-}
-.shop-cha-input:focus { outline: none; border-color: rgba(196,168,122,0.7); }
-.shop-onderhandel-roll-btn {
-  padding: 4px 12px;
-  background: rgba(196,147,10,0.12);
-  border: 1px solid rgba(196,147,10,0.4);
-  border-radius: 4px;
-  color: var(--color-ink-bright);
-  font-size: 0.82rem;
-  cursor: pointer;
-  transition: background 0.15s;
-}
-.shop-onderhandel-roll-btn:hover { background: rgba(196,147,10,0.22); }
-.shop-onderhandel-annuleer {
-  background: none;
-  border: none;
-  color: var(--color-ink-dim);
-  cursor: pointer;
-  font-size: 0.85rem;
-  padding: 2px 6px;
-}
-.shop-onderhandel-annuleer:hover { color: var(--color-ink-bright); }
-.shop-onderhandel-result {
-  margin-top: 8px;
-  padding: 7px 12px;
-  border-radius: 5px;
-  font-size: 0.82rem;
-  font-style: italic;
-}
-.shop-onderhandel-loading { color: var(--color-ink-dim); }
-.shop-onderhandel-result--ok { background: rgba(34,100,54,0.10); border: 1px solid rgba(34,100,54,0.28); color: #1a5c30; }
-.shop-onderhandel-result--fout { background: rgba(139,42,42,0.08); border: 1px solid rgba(139,42,42,0.25); color: #8b2a2a; }
-.shop-onderhandel-btn:disabled {
-  opacity: 0.45;
-  cursor: not-allowed;
-}
-.shop-onderhandel-geblokkeerd {
-  font-size: 0.78rem;
-  font-style: italic;
-  color: var(--color-ink-dim);
-}
-
-/* Winkelier-humeur (sfeerregel + tier-kleuren) */
-.shop-humeur {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 4px 10px;
-  border-radius: 5px;
-  font-size: 0.8rem;
-  font-style: italic;
-  font-family: 'IM Fell English', serif;
-  border: 1px solid rgba(196,168,122,0.25);
-  color: var(--color-ink-dim);
-}
-.shop-humeur svg { width: 14px; height: 14px; flex-shrink: 0; }
-.shop-humeur--vijandig    { background: rgba(139,42,42,0.10); border-color: rgba(139,42,42,0.3); color: #8b2a2a; }
-.shop-humeur--stug        { background: rgba(139,90,42,0.08); border-color: rgba(139,90,42,0.25); color: #8b5a2a; }
-.shop-humeur--vriendelijk { background: rgba(34,100,54,0.08); border-color: rgba(34,100,54,0.22); color: #2a6436; }
-.shop-humeur--hartelijk   { background: rgba(196,147,10,0.10); border-color: rgba(196,147,10,0.32); color: #8a6a10; }
-
-/* Humeur-overzicht in het DM-logtabblad */
-.shop-humeur-dm {
-  margin-bottom: 14px;
-  padding: 10px 12px;
-  border: 1px solid rgba(196,168,122,0.25);
-  border-radius: 6px;
-  background: rgba(196,168,122,0.04);
-}
-.shop-humeur-dm-head {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  margin-bottom: 8px;
-  font-family: 'Cinzel', serif;
-  font-size: 0.72rem;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--color-ink-dim);
-}
-.shop-humeur-dm-head svg { width: 14px; height: 14px; }
-.shop-humeur-dm-rij {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 3px 0;
-}
-.shop-humeur-dm-naam {
-  min-width: 140px;
-  font-family: 'Crimson Text', serif;
-  color: var(--color-ink-bright);
-  font-size: 0.88rem;
-}
-
-/* Humeurmeter: zeven ruitjes van -3 (links, rood) tot +3 (rechts, goud) */
-.shop-humeur-meter {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-}
-.shop-humeur-pip {
-  width: 7px;
-  height: 7px;
-  transform: rotate(45deg);
-  border: 1px solid rgba(196,168,122,0.55);
-  background: transparent;
-}
-.shop-humeur-pip--nul {
-  width: 9px;
-  height: 9px;
-  border-color: rgba(90,64,48,0.5);
-}
-.shop-humeur-pip--actief.shop-humeur-pip--min  { background: #8b2a2a; border-color: #8b2a2a; }
-.shop-humeur-pip--actief.shop-humeur-pip--plus { background: #b8860b; border-color: #b8860b; }
-.shop-humeur-pip--actief.shop-humeur-pip--nul  { background: rgba(90,64,48,0.45); }
 
 /* ══ Tweespalt / Gokkantoor ══════════════════════════════════════════════════ */
 
@@ -27898,3 +27715,76 @@ body.akte-schrijf-open .mp-overlay { z-index: 1320; }
   width: 100%;
 }
 .markt-winkel-balk .help-btn-wrap { align-self: auto; margin-bottom: 0; }
+
+
+/* ── Verkopen aan de winkel ──────────────────────────────────────────────── */
+/* Alleen zichtbaar als de winkel inkoopt; zie `winkelConfig.koopt`. */
+.shop-verkoop {
+  margin-top: 18px;
+  border: 1px solid var(--color-room-border);
+  border-radius: 6px;
+  overflow: hidden;
+}
+.shop-verkoop-kop {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding: 8px 12px;
+  background: var(--color-room-elevated);
+  border-bottom: 1px solid var(--color-room-border);
+  font-family: 'Cinzel', serif;
+  font-size: 0.78rem;
+  letter-spacing: 0.04em;
+  color: var(--color-ink-dim);
+}
+.shop-verkoop-kop svg { width: 15px; height: 15px; }
+.shop-verkoop-ratio {
+  margin-left: auto;
+  font-family: 'EB Garamond', serif;
+  font-style: italic;
+  letter-spacing: 0;
+  color: var(--color-ink-faint);
+}
+.shop-verkoop-rij {
+  display: grid;
+  grid-template-columns: 1fr auto minmax(90px, auto) auto;
+  gap: 10px;
+  align-items: center;
+  padding: 7px 12px;
+  border-bottom: 1px solid rgba(90,64,48,0.12);
+  font-size: 0.88rem;
+}
+.shop-verkoop-rij:last-child { border-bottom: 0; }
+.shop-verkoop-rij--nee { opacity: 0.55; }
+.shop-verkoop-naam { cursor: pointer; color: var(--color-ink-bright); }
+.shop-verkoop-naam:hover { text-decoration: underline; }
+.shop-verkoop-aantal { color: var(--color-ink-faint); font-size: 0.8rem; }
+.shop-verkoop-bod { text-align: right; color: var(--color-ink-dim); }
+.shop-verkoop-bod em { font-size: 0.78rem; color: var(--color-ink-faint); }
+.shop-verkoop-actie { display: flex; align-items: center; gap: 6px; justify-content: flex-end; }
+.shop-verkoop-wacht {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.78rem;
+  font-style: italic;
+  color: var(--color-ink-faint);
+}
+.shop-verkoop-wacht svg { width: 13px; height: 13px; }
+.shop-verkoop-leeg {
+  padding: 14px 12px;
+  text-align: center;
+  font-family: 'EB Garamond', serif;
+  font-style: italic;
+  color: var(--color-ink-faint);
+}
+/* De telefoon: vier kolommen passen niet, dus naam boven, bod en knop eronder. */
+@media (max-width: 640px) {
+  .shop-verkoop-rij { grid-template-columns: 1fr auto; row-gap: 4px; }
+  .shop-verkoop-bod { grid-column: 1; text-align: left; }
+  .shop-verkoop-actie { grid-column: 2; }
+}
+
+/* Het bedrag dat de DM bij een aanbod mag bijstellen */
+.dm-verzoek-bedrag { width: 96px; flex-shrink: 0; }

@@ -26,7 +26,12 @@ const path = require('path');
 const vm   = require('vm');
 
 const args     = process.argv.slice(2);
-const campagne = args.find(a => !a.startsWith('--'));
+// Een vlagwaarde is geen campagnenaam. `--uit docs/helpteksten.md` liet het
+// pad als eerste "vrije" woord achter, en dan zocht het script de dm-state van
+// een campagne die docs/helpteksten.md heette.
+const VLAG_MET_WAARDE = new Set(['--uit', '--lees']);
+const _vrij = args.filter((a, i) => !a.startsWith('--') && !VLAG_MET_WAARDE.has(args[i - 1]));
+const campagne = _vrij[0];
 const schrijf  = args.includes('--schrijf');
 // `indexOf` geeft -1 als de vlag er niet staat, en `args[0]` is dan de
 // campagnenaam: zonder deze controle schreef het script naar een bestand dat

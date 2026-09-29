@@ -1,5 +1,5 @@
-import { api, campagneUitUrl, zetCampagne } from './api.js?v=297';
-import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, renderDocumenten, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=323";
+import { api, campagneUitUrl, zetCampagne } from './api.js?v=298';
+import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, renderDocumenten, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=324";
 import { initArchief, renderLogboek, openLogboekEditor } from "./render-archief.js?v=137";
 import { renderKaart, queueFlyTo, verversPins, nieuweKaart } from './render-kaart.js?v=31';
 import { renderDungeon } from './render-dungeon.js?v=56';
@@ -10,7 +10,7 @@ import { renderSpreuken } from './render-spreuken.js?v=41';
 import { renderVaardigheden, zoekVaardigheden } from './render-vaardigheden.js?v=10';
 import { renderStatblock } from './render-statblock.js?v=9';
 import { initSocket } from "./socket-client.js?v=79";
-import { initDmPanel } from "./dm-panel.js?v=346";
+import { initDmPanel } from "./dm-panel.js?v=347";
 import { COND_INFO, COND_LABEL, COND_MET_PLAATJE, COND_ICON } from './conditions.js?v=2';
 import './media-picker.js?v=8';
 import './tafels.js?v=2';
@@ -14413,6 +14413,11 @@ const HELP_CONFIG = {
     { titel: 'Wat hier staat', tekst: 'Een speler vraagt een voorwerp uit de bibliotheek aan, of wil er een van een ander overnemen. Keur je goed, dan komt het in zijn boedel te staan met het aantal dat je meegeeft.', afbeelding: null },
     { titel: 'Onderling geven gaat buiten jou om', tekst: 'Spullen die spelers aan elkaar geven komen hier niet langs — dat is een ding over de tafel schuiven. Wil je dat niet, dan zet je het ruilen uit bij de party.', afbeelding: null },
   ] }),
+  dm_verzoeken_verkoop: () => ({ titel: 'Aangeboden aan een winkel', stappen: [
+    { titel: 'Wat hier staat', tekst: 'Een speler biedt iets uit zijn boedel aan bij een winkel die inkoopt. Er is nog niets gebeurd: het voorwerp is van hem en het geld van de winkel, tot jij aftekent.', afbeelding: null },
+    { titel: 'Het bedrag mag je overtypen', tekst: 'Het veld staat voorgevuld met het bod van de winkel — het percentage dat op het locatiekaartje is ingesteld. Heb je aan tafel laten pingelen, gerold of gewoon een ander getal genoemd, dan zet je dát in het veld. Uitbetalen doet wat er staat.', afbeelding: null },
+    { titel: 'Waar het geld heen gaat', tekst: 'Naar de gedeelde partybeurs als die aanstaat, anders naar de speler zelf — dezelfde regel als bij kopen. Het voorwerp verdwijnt uit zijn boedel; bij een stapel alleen het aantal dat hij aanbood. Weiger je, dan verandert er niets.', afbeelding: null },
+  ] }),
   dm_verzoeken_multiclass: () => ({ titel: 'Multiclass-verzoeken', stappen: [
     { titel: 'Waarom het langs jou gaat', tekst: 'Een tweede klasse verandert het personage ingrijpend en is in de meeste campagnes een gesprek, geen knop. De speler vraagt het aan; jij keurt goed of af.', afbeelding: null },
     { titel: 'Wat er gebeurt bij goedkeuren', tekst: 'De klasse komt op het profiel te staan met level **0**. Pas bij zijn volgende level-up krijgt hij daar zijn eerste level in — inclusief de Hit Die en de features die daarbij horen. Twee klassen is het maximum.', afbeelding: null },
@@ -14537,7 +14542,9 @@ const HELP_CONFIG = {
   hulp_bewerk_locaties_winkel: () => ({ titel: 'De winkel', stappen: [
     { titel: 'Voorraad', tekst: 'Wat hier te koop is. Voeg voorwerpen toe, of laad de voorraad van een andere winkel in als vertrekpunt. Prijzen schrijf je met een komma — `12,34` is 12 goud, 3 zilver en 4 koper — of in munten (`5 gp 2 sp`). De voorraad hoort bij de **locatie**; een verkoper wijst er alleen naar.', afbeelding: null },
     { titel: 'Wisselend assortiment', tekst: 'Niet alles ligt altijd in de schappen: laat de winkel elke zoveel uur een deel van de voorraad tonen. Winkels met hetzelfde woord bij *Zelfde selectie als* verversen tegelijk en tonen dezelfde selectie.', afbeelding: null },
-    { titel: 'Verkopen en inkopen', tekst: 'In het detailvenster van de winkel reken je af namens een speler, en koop je met *Inkopen van de party* spullen van hen over: je vinkt aan wat de winkel overneemt, zet er een bedrag per stuk bij en rekent af. Het voorwerp verdwijnt uit de boedel; het geld gaat naar de partybeurs als die gedeeld is, anders naar die speler. Wat de winkel niet inkoopt zet je op het voorwerpkaartje zelf uit.', afbeelding: null },
+    { titel: 'Zelf afrekenen aan tafel', tekst: 'In het detailvenster van de winkel reken je af namens een speler, en koop je met *Inkopen van de party* spullen van hen over: je vinkt aan wat de winkel overneemt, zet er een bedrag per stuk bij en rekent af. Het voorwerp verdwijnt uit de boedel; het geld gaat naar de partybeurs als die gedeeld is, anders naar die speler.', afbeelding: null },
+    { titel: 'Koopt in van spelers', tekst: 'Staat dit uit, dan is er voor de speler geen verkoopkant: geen lijst, geen knop, geen uitleg — hij ziet niet eens dat het bestaat. Zet je het aan, dan krijgt hij in het winkelvenster zijn eigen boedel te zien met wat deze winkel ervoor biedt: het **percentage van de winkelprijs** dat je hier instelt. Zegeningen, gunsten en class-features blijven altijd buiten de handel, net als alles wat op het voorwerpkaartje zelf *niet verkoopbaar* heet.', afbeelding: null },
+    { titel: 'Het percentage is een bod, geen prijs', tekst: 'Biedt een speler iets aan, dan gaat er niets meteen over de toonbank. Het aanbod komt bij **Verzoeken** te staan met het berekende bedrag ernaast — dat veld mag je overtypen. Is er aan tafel om gepingeld, dan betaal je uit wat jullie afspraken; weiger je, dan houdt hij zijn spullen.', afbeelding: null },
   ] }),
 
   hulp_bewerk_personages_info: () => ({ titel: 'Een personage', stappen: [
@@ -14601,8 +14608,8 @@ const HELP_CONFIG = {
     titel: 'In de winkel',
     stappen: [
       { titel: 'Kopen', tekst: 'Kies het aantal en klik **Kopen**. Het bedrag gaat van je eigen beurs af, of van de gedeelde beurs als die aanstaat. Kun je het niet betalen, dan kleurt de prijs rood en gebeurt er niets.', afbeelding: null },
-      { titel: 'Afdingen doe je aan tafel', tekst: 'Er is geen knop om te onderhandelen: dat speel je uit, en je DM tikt het afgesproken bedrag in. Hij kan je ook spullen **verkopen** tegen een prijs die jullie afspreken.', afbeelding: null },
-      { titel: 'Verkopen', tekst: 'Koopt deze winkel in, dan staat er een knop om iets van de hand te doen — voor een deel van de winkelprijs. Zegeningen, gunsten en class-features blijven buiten de handel.', afbeelding: null },
+      { titel: 'Verkopen', tekst: 'Koopt deze winkel in, dan staat onder de voorraad je eigen boedel met wat hij ervoor biedt. **Aanbieden** stuurt het naar je DM; je krijgt het geld zodra hij aftekent. Zie je dit blok niet, dan koopt deze winkel niets in. Zegeningen, gunsten en class-features blijven buiten de handel.', afbeelding: null },
+      { titel: 'Afdingen doe je aan tafel', tekst: 'Er is geen knop om te onderhandelen: dat speel je uit. Het bod van de winkel is een uitgangspunt — je DM mag het bedrag bijstellen voor hij uitbetaalt, omhoog zowel als omlaag.', afbeelding: null },
       { titel: 'Uitverkocht', tekst: 'Een doorgestreepte regel is er even niet. Bij een winkel met een **wisselend assortiment** ligt er elke keer iets anders in de schappen; wat je vandaag ziet is wat er vandaag is.', afbeelding: null },
       { titel: 'Wat iets ís', tekst: 'Klik de naam van een voorwerp: dan opent zijn **kaartje**, met de beschrijving, het beeld en wat het doet. Daarna kun je gewoon terug.', afbeelding: null },
     ] }),

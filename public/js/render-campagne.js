@@ -1,4 +1,4 @@
-import { api } from './api.js?v=297';
+import { api } from './api.js?v=298';
 import { renderStatblock } from './render-statblock.js?v=9';
 
 const icon = (...a) => window.icon(...a);
@@ -4395,7 +4395,6 @@ window._winkelVoorraadHtml = function _winkelVoorraadHtml({ e, tab, beschikbaarD
     }
 
     const _shopId = e.id;
-    const discountPct = beschikbaarData?.discountPct || 0;
 
     // Sfeer bovenaan
     const _sfeerTekst = beschikbaarData?.sfeerTekst || '';
@@ -4406,15 +4405,41 @@ window._winkelVoorraadHtml = function _winkelVoorraadHtml({ e, tab, beschikbaarD
         ${_sfeerTekst ? `<p class="shop-sfeer-tekst">${esc(_sfeerTekst)}</p>` : ''}
       </div>` : '';
 
-    const kortingBannerHtml = discountPct > 0
-      ? `<div class="shop-korting-banner shop-korting-banner--ok">${icon('dice',{cls:'icon-gi'})} ${discountPct}% korting actief!</div>`
-      : discountPct < 0
-        ? `<div class="shop-korting-banner shop-korting-banner--malus">${icon('dice',{cls:'icon-gi'})} Prijs ${Math.abs(discountPct)}% hoger</div>`
-        : '';
-
-    // De speler verkocht hier zelf spullen aan de winkel; dat gaat nu via de
-    // DM ("Inkopen van de party" onderaan dit venster), zodat er één plek is
-    // waar prijs en eigendom tegelijk veranderen.
+    // Verkopen: alleen zichtbaar als deze winkel ook echt inkoopt. Staat het
+    // vinkje uit, dan is er geen blok, geen knop en geen uitleg — een winkel
+    // die niets koopt hoort er ook niet naar te laten raden. Het bod is het
+    // percentage uit de winkelinstelling; het laatste woord heeft de DM.
+    const _verkoop = beschikbaarData?.verkoop || null;
+    const verkoopHtml = (!isDM() && _verkoop?.koopt) ? (() => {
+      const rijen = (_verkoop.items || []);
+      const lijst = rijen.length ? rijen.map((v, i) => {
+        const _aanbod = v.aanbod ? _muntTekst(v.aanbod) : '';
+        return `
+          <div class="shop-verkoop-rij${v.verkoopbaar ? '' : ' shop-verkoop-rij--nee'}">
+            <span class="shop-verkoop-naam" title="Open het kaartje"
+              onclick="window._openDetailFromShop('${esc(v.entityId)}')">${esc(v.naam)}</span>
+            <span class="shop-verkoop-aantal">${v.qty > 1 ? `${v.qty}×` : ''}</span>
+            <span class="shop-verkoop-bod">${v.verkoopbaar ? esc(_aanbod) : `<em>${esc(v.reden || 'Niet verkoopbaar')}</em>`}</span>
+            <span class="shop-verkoop-actie">
+              ${v.aangeboden
+                ? `<span class="shop-verkoop-wacht">${icon('hourglass')} Aangeboden</span>`
+                : v.verkoopbaar
+                  ? `${v.stapelbaar && v.qty > 1 ? `<input type="number" id="shop-vk-qty-${i}" class="shop-qty-input" value="1" min="1" max="${v.qty}" onclick="event.stopPropagation()" oninput="this.value=Math.min(${v.qty},Math.max(1,parseInt(this.value)||1))">` : ''}
+                     <button class="shop-koop-btn" onclick="window._verkoopItem('${esc(_shopId)}','${esc(v.entityId)}',this,${v.stapelbaar && v.qty > 1 ? `parseInt(document.getElementById('shop-vk-qty-${i}')?.value)||1` : '1'})">Aanbieden</button>`
+                  : ''}
+            </span>
+          </div>`;
+      }).join('') : `<p class="shop-verkoop-leeg">Je hebt niets in je boedel om aan te bieden.</p>`;
+      return `
+        <div class="shop-verkoop">
+          <div class="shop-verkoop-kop">
+            ${icon('coins')} Verkopen aan deze winkel
+            <span class="shop-verkoop-ratio">biedt ${_verkoop.ratio}% van de winkelprijs</span>
+          </div>
+          <div class="shop-verkoop-lijst">${lijst}</div>
+          <div id="shop-verkoop-feedback" class="shop-koop-feedback hidden"></div>
+        </div>`;
+    })() : '';
 
     if (voorraadItems.length > 0) {
       // De onderhandelknop met DC-worp is vervallen: afdingen gebeurt aan
@@ -4422,7 +4447,6 @@ window._winkelVoorraadHtml = function _winkelVoorraadHtml({ e, tab, beschikbaarD
 
       voorraadHtml = `
         ${sfeerHtml}
-        ${kortingBannerHtml}
         ${beursHtml}
         ${roterendHtml}
         <div class="rounded border border-room-border overflow-hidden winkel-voorraad">
@@ -4459,8 +4483,6 @@ window._winkelVoorraadHtml = function _winkelVoorraadHtml({ e, tab, beschikbaarD
                   </td>
                   <td class="px-4 py-2.5 text-right font-crimson ${uitverkocht ? 'text-ink-faint' : 'text-ink-medium'}">
                     ${esc(item.prijs || '\u2014')}
-                    ${!uitverkocht && discountPct > 0 ? `<span class="shop-korting-badge">-${discountPct}%</span>` : ''}
-                    ${!uitverkocht && discountPct < 0 ? `<span class="shop-korting-badge shop-korting-badge--malus">+${Math.abs(discountPct)}%</span>` : ''}
                   </td>
                   ${isDM() && roterend ? `<td class="px-3 py-2.5 text-center">${actief ? '<span class="shop-actief-badge" title="Actief voor spelers">✦</span>' : ''}</td>` : ''}
                   ${isDM() ? `
@@ -4499,6 +4521,7 @@ window._winkelVoorraadHtml = function _winkelVoorraadHtml({ e, tab, beschikbaarD
         <!-- Afdingen gaat aan tafel: de DM tikt het afgesproken bedrag in
              (muntknop per regel). Vandaar hier geen onderhandelknop meer. -->
         <div id="shop-koop-feedback" class="shop-koop-feedback hidden"></div>
+        ${verkoopHtml}
         ${isDM() ? `
           <div id="dm-afreken-paneel" class="dm-winkel-paneel hidden"></div>
           <div class="dm-winkel-paneel">
@@ -4508,7 +4531,7 @@ window._winkelVoorraadHtml = function _winkelVoorraadHtml({ e, tab, beschikbaarD
           </div>` : ''}
         `;
     } else {
-      voorraadHtml = `${sfeerHtml}${kortingBannerHtml}${beursHtml}${roterendHtml}<div class="text-center py-10 text-ink-faint font-fell italic">Geen voorraad beschikbaar</div>`;
+      voorraadHtml = `${sfeerHtml}${beursHtml}${roterendHtml}<div class="text-center py-10 text-ink-faint font-fell italic">Geen voorraad beschikbaar</div>${verkoopHtml}`;
     }
     } // end else (niet buitenGrisburgh)
   }
@@ -4536,7 +4559,6 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
   let e, playerNotesData, uitverkochtData, beschikbaarData, shopCurrencyData;
   let _bladProfiel = null, _bladHp = null;
   let shopLogData = null;
-  let shopHumeurData = null;
   // Is dit organisatiekaartje een factie? De lijst is voor een speler al
   // gefilterd op wat zijn party kent, dus een nog verborgen factie komt er
   // vanzelf niet in.
@@ -4583,9 +4605,8 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
     return;
   }
   if (_isShopTab && isDM()) {
-    [shopLogData, shopHumeurData] = await Promise.all([
+    [shopLogData] = await Promise.all([
       api.getShopLog(id).catch(() => null),
-      api.getShopHumeur(id).catch(() => null),
     ]);
   }
   if (tab === 'organisaties') {
@@ -5243,33 +5264,6 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
       logHtml = `<div class="text-center py-10 text-ink-faint font-fell italic">Nog geen aankopen geregistreerd</div>`;
     }
 
-    // Winkelier-humeur per character (DM kan bijstellen)
-    if (shopHumeurData?.entries?.length) {
-      const TIER_LABEL = { vijandig: 'Vijandig', stug: 'Stug', neutraal: 'Neutraal', vriendelijk: 'Vriendelijk', hartelijk: 'Hartelijk' };
-      const humeurDmHtml = `
-        <div class="shop-humeur-dm">
-          <div class="shop-humeur-dm-head">${icon('message-circle')} Winkelier-humeur</div>
-          ${shopHumeurData.entries.map(h => `
-            <div class="shop-humeur-dm-rij">
-              <span class="shop-humeur-dm-naam">${esc(h.playerName || h.characterId)}</span>
-              <span class="shop-humeur-meter" title="${h.score > 0 ? '+' : ''}${h.score}">
-                ${Array.from({ length: 7 }, (_, i) => {
-                  const v = i - 3;
-                  const kant = v < 0 ? 'min' : v > 0 ? 'plus' : 'nul';
-                  const actief = v === 0 ? h.score === 0
-                    : (h.score < 0 ? (v >= h.score && v < 0) : (v > 0 && v <= h.score));
-                  return `<span class="shop-humeur-pip shop-humeur-pip--${kant}${actief ? ' shop-humeur-pip--actief' : ''}"></span>`;
-                }).join('')}
-              </span>
-              <span class="shop-humeur shop-humeur--${esc(h.tier)}">${esc(TIER_LABEL[h.tier] || h.tier)}</span>
-              <button class="dm-btn dm-btn-ghost dm-btn-sm" title="Humeur omlaag"
-                onclick="window._dmHumeurBump('${esc(e.id)}','${esc(h.characterId)}',-1)">${icon('minus')}</button>
-              <button class="dm-btn dm-btn-ghost dm-btn-sm" title="Humeur omhoog"
-                onclick="window._dmHumeurBump('${esc(e.id)}','${esc(h.characterId)}',1)">${icon('plus')}</button>
-            </div>`).join('')}
-        </div>`;
-      logHtml = humeurDmHtml + logHtml;
-    }
   }
 
 
@@ -5535,85 +5529,31 @@ window._koopItem = async (shopId, itemNaam, entityId, btn, aantal = 1) => {
   }
 };
 
-// ── Winkel: voorwerp verkopen aan de winkel ──
+// ── Winkel: voorwerp aanbieden aan de winkel ──
+// Geen directe afrekening: het bod gaat als verzoek naar de DM, die het bedrag
+// mag bijstellen. Aan tafel wordt immers gepingeld.
 window._verkoopItem = async (shopId, entityId, btn, aantal = 1) => {
-  if (btn) { btn.disabled = true; btn.textContent = '…'; }
+  if (btn) { btn.disabled = true; btn.textContent = '\u2026'; }
   const feedback = document.getElementById('shop-verkoop-feedback');
   try {
     const res = await api.verkoopShopItem(shopId, { entityId, aantal });
-    const _cN = window._currency || { fl: 'fl', kn: 'kn', cl: 'cl' };
-    const b = res?.opbrengst || { fl: 0, kn: 0, cl: 0 };
-    // Herlaad de modal maar blijf op de voorraadtab
+    const bod = res?.aanbod ? _muntTekst(res.aanbod) : '';
+    if (feedback) {
+      feedback.textContent = `\u2713 Aangeboden voor ${bod}. Je DM kijkt ernaar en mag het bedrag bijstellen.`;
+      feedback.className = 'shop-koop-feedback shop-koop-feedback--ok';
+      feedback.classList.remove('hidden');
+    }
     if (window._currentDetailTab && window._currentDetailId) {
       await window._openDetail(window._currentDetailTab, window._currentDetailId, false, 'voorraad');
     }
-    const fb = document.getElementById('shop-verkoop-feedback');
-    if (fb) {
-      fb.innerHTML = `✓ Verkocht voor <strong>${b.fl} ${esc(_cN.fl)} · ${b.kn} ${esc(_cN.kn)} · ${b.cl} ${esc(_cN.cl)}</strong>`;
-      fb.className = 'shop-koop-feedback shop-koop-feedback--ok';
-      fb.classList.remove('hidden');
-      setTimeout(() => fb.classList.add('hidden'), 4000);
-    }
-    // Refresh knapzak/kaarten zodat het verkochte item meteen verdwijnt
-    window.app?.refreshSection?.('mijn-karakter');
   } catch (err) {
-    const msg = err.message || 'Kon niet verkopen';
     if (feedback) {
-      feedback.textContent = '⚠ ' + msg;
+      feedback.textContent = '\u26a0 ' + (err.message || 'Kon niet aanbieden');
       feedback.className = 'shop-koop-feedback shop-koop-feedback--fout';
       feedback.classList.remove('hidden');
       setTimeout(() => feedback.classList.add('hidden'), 5000);
     }
-    if (btn) { btn.disabled = false; btn.textContent = 'Verkopen'; }
-  }
-};
-
-// ── Winkel: onderhandelen ──
-window._onderhandelOpen = (shopId) => {
-  const panel = document.getElementById(`shop-onderhandel-panel-${shopId}`);
-  if (panel) panel.classList.toggle('hidden');
-};
-
-window._onderhandelRoll = async (shopId) => {
-  const modEl = document.getElementById(`shop-cha-mod-${shopId}`);
-  const resultEl = document.getElementById(`shop-onderhandel-result-${shopId}`);
-  const modifier = parseInt(modEl?.value) || 0;
-  if (resultEl) { resultEl.classList.remove('hidden'); resultEl.innerHTML = `<span class="shop-onderhandel-loading">${icon('dice',{cls:'icon-gi'})} …</span>`; }
-  try {
-    const r = await api.onderhandelShop(shopId, { modifier });
-    const modStr = r.modifier >= 0 ? `+${r.modifier}` : `${r.modifier}`;
-    const kleur = r.geslaagd ? 'shop-onderhandel-result--ok' : 'shop-onderhandel-result--fout';
-    const rolStr = `(${r.diceRoll}${modStr !== '+0' ? ` ${modStr}` : ''} = ${r.totaal} vs DC ${r.dc})`;
-    let tekst;
-    if (r.geslaagd) {
-      tekst = `${r.nat20 ? '✦ Natuurlijke 20! ' : '✓ Geslaagd! '}${rolStr} — ${r.kortingPct}% voordeel bij kopen én verkopen, 1 uur geldig.`;
-      if (r.humeurGestegen) tekst += ' De winkelier waardeert je lef.';
-    } else {
-      tekst = `${r.nat1 ? '✗ Natuurlijke 1! ' : '✗ Mislukt. '}${rolStr}`;
-      tekst += r.nat1 ? ' De winkelier is beledigd…' : (r.humeurGedaald ? ' De winkelier kijkt je nors aan.' : '');
-    }
-    if (resultEl) {
-      resultEl.className = `shop-onderhandel-result ${kleur}`;
-      resultEl.textContent = tekst;
-    }
-    // Panel sluiten
-    document.getElementById(`shop-onderhandel-panel-${shopId}`)?.classList.add('hidden');
-    // Herlaad modal voor updated prijzen
-    if (window._currentDetailTab && window._currentDetailId) {
-      await window._openDetail(window._currentDetailTab, window._currentDetailId, false, 'voorraad');
-    }
-  } catch (err) {
-    if (resultEl) { resultEl.className = 'shop-onderhandel-result shop-onderhandel-result--fout'; resultEl.textContent = err.message || 'Fout'; }
-  }
-};
-
-// ── Winkel: humeur bijstellen (DM) ──
-window._dmHumeurBump = async (shopId, characterId, delta) => {
-  try {
-    await api.bumpShopHumeur(shopId, { characterId, delta });
-    await window._openDetail(window._currentDetailTab, shopId, false, 'log');
-  } catch (err) {
-    alert('Fout: ' + err.message);
+    if (btn) { btn.disabled = false; btn.textContent = 'Aanbieden'; }
   }
 };
 
@@ -7575,7 +7515,8 @@ window._openEditor = async (tab, editId) => {
 
         <!-- Inkopen: de server kon dit allang (winkelConfig.koopt), maar er
              was geen veld om het aan te zetten — dus kon een speler nergens
-             iets verkopen. -->
+             iets verkopen. Wat het dóét staat in het boekje bij dit tabblad,
+             niet als grijze regel onder het vinkje. -->
         <div>
           <div class="cs-sectiekop">Koopt in van spelers</div>
           <div class="space-y-2">
@@ -7585,13 +7526,12 @@ window._openEditor = async (tab, editId) => {
             </label>
             <div id="wc-koop-extra" class="${winkelConfigEditor.koopt ? '' : 'hidden'} space-y-2 pl-4">
               <div class="flex gap-2 items-center">
-                <label class="text-xs text-ink-dim w-32" title="Wat hij betaalt, als percentage van de winkelprijs">Betaalt</label>
+                <label class="text-xs text-ink-dim w-32">Betaalt</label>
                 <input type="number" id="wc-koopratio" min="1" max="100"
                   value="${parseInt(winkelConfigEditor.koopRatio) || 50}" oninput="window._wcUpdate()"
                   class="w-16 px-2 py-1 bg-room-bg border border-room-border rounded text-ink-bright text-sm focus:border-gold-dim focus:outline-none">
                 <label class="text-xs text-ink-dim">% van de prijs</label>
               </div>
-              <p class="text-xs text-ink-dim italic">Zegeningen, gunsten en class-features blijven altijd buiten de handel, net als alles wat op het kaartje <em>niet verkoopbaar</em> heet.</p>
             </div>
           </div>
         </div>
@@ -7645,7 +7585,7 @@ window._openEditor = async (tab, editId) => {
             </div>
           </div>
         </div>
-        <!-- Sfeer & Onderhandelen instellingen -->
+        <!-- Sfeer -->
         <div>
           <div class="cs-sectiekop">Sfeer</div>
           <div>

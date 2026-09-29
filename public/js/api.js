@@ -270,9 +270,6 @@ export const api = {
   dmVerkoop:          (shopId, data)   => request(`/shops/${shopId}/dm-verkoop`, { method: 'POST', body: JSON.stringify(data) }),
   getPartyBoedel:     (shopId)         => request(`/shops/${shopId}/party-boedel`),
   dmInkoop:           (shopId, data)   => request(`/shops/${shopId}/dm-inkoop`, { method: 'POST', body: JSON.stringify(data) }),
-  onderhandelShop:    (shopId, data)   => request(`/shops/${shopId}/onderhandel`, { method: 'POST', body: JSON.stringify(data) }),
-  getShopHumeur:      (shopId)         => request(`/shops/${shopId}/humeur`),
-  bumpShopHumeur:     (shopId, data)   => request(`/shops/${shopId}/humeur`, { method: 'POST', body: JSON.stringify(data) }),
 
   // Voorwerpen claimen & ruilen
   getItemOwnership:    ()              => request('/items/ownership'),
