@@ -943,7 +943,7 @@ function _tabEl(name) {
 let _dienstKaartjes = { personages: [], locaties: [] };
 
 function _dienstKopHtml({ sleutel, config = {}, personages = [], locaties = [],
-                          naamVoorbeeld = '', groetVoorbeeld = '', eigenaarLabel = 'Kaartje van de eigenaar' }) {
+                          naamVoorbeeld = '', groetVoorbeeld = '' }) {
   _dienstKaartjes = { personages, locaties };
   const alle = [...personages, ...locaties];
   const eig = alle.find(e => e.id === config.imageId) || null;
@@ -953,7 +953,8 @@ function _dienstKopHtml({ sleutel, config = {}, personages = [], locaties = [],
     <div class="dm-form-row">
       <label class="dm-form-label" for="${sleutel}-${veld}">${esc(label)}</label>
       <input id="${sleutel}-${veld}" class="dm-input" list="${sleutel}-${veld}-dl" autocomplete="off"
-        placeholder="${esc(plaats)}" value="${esc(waarde)}">
+        placeholder="${esc(plaats)}" value="${esc(waarde)}"${
+        veld === 'locatie' ? ` onchange="window._dienstEigenaarUitLocatie('${sleutel}')"` : ''}>
       <datalist id="${sleutel}-${veld}-dl">${lijst.map(e =>
         `<option value="${esc(e.name || '')}">${esc(e.data?.role || e.data?.locType || '')}</option>`).join('')}</datalist>
     </div>`;
@@ -969,12 +970,14 @@ function _dienstKopHtml({ sleutel, config = {}, personages = [], locaties = [],
       <input id="${sleutel}-naam" class="dm-input" value="${esc(config.naam || '')}" placeholder="${esc(naamVoorbeeld)}">
     </div>
 
-    ${kaartVeld('eigenaar', eigenaarLabel, alle, eig?.name || '', 'Zoek een kaartje, of laat leeg…')}
+    <!-- Eerst wáár het is, dan wie er staat: aan een locatiekaartje hangt vaak
+         al een eigenaar (de betrokkenenlijst), dus die hoef je meestal niet
+         zelf te kiezen. Wat er automatisch uit komt, kun je overschrijven. -->
+    ${kaartVeld('locatie', 'Locatie', locaties, loc?.name || '', 'Zoek de plek…')}
+    ${kaartVeld('eigenaar', 'Eigenaar', alle, eig?.name || '', 'Volgt uit de locatie, of kies zelf…')}
     ${eig ? `<div class="dm-form-row"><img src="${api.thumbUrl(eig.id)}" alt=""
       onerror="this.closest('.dm-form-row').remove()"
       style="width:56px;height:70px;object-fit:cover;border-radius:6px;border:1px solid rgba(196,168,122,0.4)"></div>` : ''}
-
-    ${kaartVeld('locatie', 'Locatiekaartje', locaties, loc?.name || '', 'Zoek de plek waar hij staat…')}
 
     <!-- De achtergrond komt van het locatiekaartje hierboven; een eigen beeld
          is de uitzondering. Zo is de koppeling ook te zien in plaats van alleen
@@ -1003,6 +1006,42 @@ function _dienstKopHtml({ sleutel, config = {}, personages = [], locaties = [],
 
     ${_groetTafelHtml({ sleutel, config, voorbeeld: groetVoorbeeld })}`;
 }
+
+// Wie hoort er bij deze plek? Een locatiekaartje draagt een lijst betrokkenen
+// met hun rol; degene met een rol als waard, eigenaar of uitbater is de baas.
+// Staat er niemand met zo'n rol, dan de eerste die er staat.
+const _BAAS_ROL = /verkoper|eigenaar|waard|uitbater|baas|beheerder|handelaar|smid|priester/i;
+
+function _eigenaarVanLocatie(loc) {
+  let rijen = loc?.data?.betrokkenen;
+  if (typeof rijen === 'string') { try { rijen = JSON.parse(rijen); } catch { rijen = []; } }
+  if (!Array.isArray(rijen)) rijen = [];
+  rijen = rijen.filter(r => r && (r.naam || r.id));
+  if (!rijen.length && (loc?.data?.eigenaar || '').trim()) {
+    return { naam: loc.data.eigenaar.trim(), id: loc.data.eigenaarId || '' };
+  }
+  const metRol = rijen.find(r => _BAAS_ROL.test(r.rol || ''));
+  return metRol || rijen[0] || null;
+}
+
+// Vul de eigenaar aan zodra er een locatie gekozen is en het veld nog leeg is.
+// Staat er al iemand, dan blijft die staan: dat is de handmatige keuze.
+window._dienstEigenaarUitLocatie = (sleutel) => {
+  const eigEl = document.getElementById(`${sleutel}-eigenaar`);
+  if (!eigEl || eigEl.value.trim()) return;
+  const naam = (document.getElementById(`${sleutel}-locatie`)?.value || '').trim().toLowerCase();
+  if (!naam) return;
+  const loc = _dienstKaartjes.locaties.find(l => (l.name || '').toLowerCase() === naam);
+  const baas = loc && _eigenaarVanLocatie(loc);
+  if (!baas) return;
+  // Alleen invullen als het ook echt een kaartje is dat we kennen.
+  const kaart = [..._dienstKaartjes.personages, ..._dienstKaartjes.locaties]
+    .find(e => e.id === baas.id || (e.name || '').toLowerCase() === (baas.naam || '').toLowerCase());
+  if (!kaart) return;
+  eigEl.value = kaart.name;
+  eigEl.classList.add('is-afgeleid');
+  eigEl.title = `Overgenomen van ${loc.name}. Typ een andere naam om het te overschrijven.`;
+};
 
 // Leest de vaste kopvelden terug. Een getypte naam die geen kaartje is laat de
 // koppeling leeg — hetzelfde als bij het menu van de herberg.
@@ -5869,7 +5908,7 @@ async function _renderHerbergSettings() {
       ${_dienstKopHtml({
         sleutel: 'hb', config,
         personages: _hbPersonages, locaties: _hbLocaties,
-        naamVoorbeeld: 'De Gouden Leeuw', eigenaarLabel: 'Kaartje van de waard',
+        naamVoorbeeld: 'De Gouden Leeuw',
         groetVoorbeeld: 'Welkom, {naam}! Wat kan ik voor je betekenen?',
       })}
 
@@ -6163,7 +6202,7 @@ async function _renderTweespaltDM() {
       ${_dienstKopHtml({
         sleutel: 'ts', config: tsConfig,
         personages: tsPersonages, locaties: tsLocaties,
-        naamVoorbeeld: 'Het gokhuis', eigenaarLabel: 'Kaartje van de baas',
+        naamVoorbeeld: 'Het gokhuis',
         groetVoorbeeld: `Welkom bij ${tsConfig.naam || 'het gokhuis'}, {naam}. Speel je mee?`,
       })}
 
@@ -6437,7 +6476,7 @@ async function _renderGockSettings() {
       ${_dienstKopHtml({
         sleutel: 'gock', config,
         personages, locaties: gockLocaties,
-        naamVoorbeeld: 'De detective', eigenaarLabel: 'Kaartje van de detective',
+        naamVoorbeeld: 'De detective',
         groetVoorbeeld: `${config.naam || 'De detective'} kijkt op van zijn bureau en trekt een wenkbrauw op.`,
       })}
 
@@ -6576,7 +6615,7 @@ async function _renderMagizooSettings() {
       ${_dienstKopHtml({
         sleutel: 'magizoo', config,
         personages, locaties,
-        naamVoorbeeld: 'De Magizoöloog', eigenaarLabel: 'Kaartje van de beestenkenner',
+        naamVoorbeeld: 'De Magizoöloog',
         groetVoorbeeld: 'Hij kijkt op van een kooi en veegt een inktvlek weg.',
       })}
 
@@ -6662,7 +6701,7 @@ async function _renderUrsulaSettings() {
       ${_dienstKopHtml({
         sleutel: 'ursula', config,
         personages, locaties,
-        naamVoorbeeld: 'De waarzegger', eigenaarLabel: 'Kaartje van de waarzegger',
+        naamVoorbeeld: 'De waarzegger',
         groetVoorbeeld: 'Zij legt haar handen op de kristallen bol.',
       })}
 
@@ -6892,12 +6931,13 @@ function _renderTempelGodenRows() {
           </div></div>
         </div>
 
-        ${zoekveld(i, 'imageId', 'Kaartje van de god', _tempelEntityPortretOpties,
-                   naamVan(g.imageId, _tempelEntityPortretOpties), 'Zoek een kaartje, of laat leeg…')}
-        ${zoekveld(i, 'priestImageId', 'Kaartje van de priester', _tempelEntityPortretOpties,
-                   naamVan(g.priestImageId, _tempelEntityPortretOpties), 'Zoek een kaartje, of laat leeg…')}
-        ${zoekveld(i, 'backdropId', 'Locatiekaartje', _tempelBackdropOpties,
+        <!-- Zelfde volgorde als bij een dienst: eerst waar het is. -->
+        ${zoekveld(i, 'backdropId', 'Locatie', _tempelBackdropOpties,
                    naamVan(g.backdropId, _tempelBackdropOpties), 'Zoek het altaar of de tempel…')}
+        ${zoekveld(i, 'priestImageId', 'Priester', _tempelEntityPortretOpties,
+                   naamVan(g.priestImageId, _tempelEntityPortretOpties), 'Wie staat er bij het altaar?')}
+        ${zoekveld(i, 'imageId', 'De god', _tempelEntityPortretOpties,
+                   naamVan(g.imageId, _tempelEntityPortretOpties), 'Zoek een kaartje, of laat leeg…')}
 
         <!-- Zelfde logica als bij een dienst: een tafel met begroetingen, en
              er wordt er bij elk bezoek één gekozen. -->

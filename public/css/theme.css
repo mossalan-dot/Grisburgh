@@ -27793,3 +27793,10 @@ body.akte-schrijf-open .mp-overlay { z-index: 1320; }
   display: flex; flex-direction: column; gap: 8px;
   padding: 4px 12px 12px; border-top: 1px solid rgba(196,168,122,0.25);
 }
+
+/* Een veld dat is overgenomen van een gekoppeld kaartje. Je kunt eroverheen
+   typen; de tint zegt alleen dat je het niet zelf hoefde te doen. */
+.dm-input.is-afgeleid {
+  background: rgba(196,168,122,0.14);
+  border-style: dashed;
+}
