@@ -12390,18 +12390,29 @@ function _tempelGoden(config) {
     byGod.get(naam).push(e);
   }
 
+  // Een god heeft vaak een eigen personagekaartje (`subtype: 'god'`), en dát
+  // kaartje draagt zijn domein en zijn heilig symbool — dezelfde twee velden
+  // die hier in de config stonden. Twee plekken voor hetzelfde gegeven lopen
+  // uiteen, dus het kaartje is leidend en de config is de uitzondering.
+  const godKaarten = (entities.personages || []).filter(e => e.subtype === 'god');
+  const godKaartVan = (cfg, naam) => godKaarten.find(e => e.id === cfg.imageId)
+    || godKaarten.find(e => (e.name || '').trim().toLowerCase() === naam.toLowerCase());
+
   const goden = [];
   for (const [naam, cards] of byGod) {
     const cfg = cfgByNaam[naam.toLowerCase()] || {};
+    const kaart = godKaartVan(cfg, naam);
     const eedCard   = cards.find(c => c.data.goddelijkType === 'eed');
     const vloekCard = cards.find(c => c.data.goddelijkType === 'vloek');
     const zegenCards = cards.filter(c => c.data.goddelijkType === 'zegen');
     goden.push({
       id:       cfg.id || ('god_' + naam.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '')),
       naam,
-      domein:   cfg.domein  || '',
-      symbool:  cfg.symbool || '',
-      prijs:    cfg.prijs   || null,
+      domein:   cfg.domein  || kaart?.data?.domein  || '',
+      symbool:  cfg.symbool || kaart?.data?.symbool || '',
+      prijs:      cfg.prijs      || null,
+      eedPrijs:   cfg.eedPrijs   || null,
+      boetePrijs: cfg.boetePrijs || null,
       // Permanente zegen: leidend van de eed-kaart, anders de oude config-waarde.
       zegen:    (eedCard?.data?.permanenteZegen) || cfg.zegen || '',
       eedTitel: eedCard?.data?.effect   || cfg.eedTitel || '',
@@ -12418,6 +12429,9 @@ function _tempelGoden(config) {
       locatieEntityId:  cfg.locatieEntityId  || null,
       priesterEntityId: cfg.priesterEntityId || null,
       priesterGreet:    cfg.priesterGreet    || '',
+      groetTafelId:     cfg.groetTafelId     || null,
+      // Het kaartje van de god, zodat de speler het kan openen als hij het kent.
+      godEntityId:      kaart?.id || cfg.imageId || null,
     });
   }
   // Sorteer in de config-/seed-volgorde waar mogelijk; onbekende achteraan.
@@ -12427,6 +12441,31 @@ function _tempelGoden(config) {
     return (ia < 0 ? 999 : ia) - (ib < 0 ? 999 : ib);
   });
   return goden;
+}
+
+// Je kent een altaar als je de plek kent.
+//
+// De tempel had één toegangsstand voor het hele onderdeel: mocht een party
+// binnen, dan zag ze álle goden — naam, domein, symbool, priester, zegeningen —
+// ook die van een altaar waar ze nooit geweest is. Dat wijkt af van de rest van
+// de app: een dungeon verzwijgt de naam van een kamer die je niet ontdekt hebt,
+// de Markt toont geen winkel die je niet kent.
+//
+// Een god verschijnt nu pas als het locatiekaartje van zijn altaar zichtbaar is
+// voor deze party. Een god zónder locatie blijft altijd staan — anders zou een
+// bestaande campagne ineens een lege tempel hebben, en "geen plek" is geen
+// geheim.
+function _godenVoor(req, dmState, goden) {
+  if (req.role === 'dm') return goden;
+  const gid = _playerGroupId(dmState, req.session?.characterId);
+  if (!gid) return goden;
+  const g = getGroup(dmState, gid);
+  const zicht = g.visibility || {};
+  return goden.filter(god => {
+    const plek = god.backdropId || god.locatieEntityId;
+    if (!plek) return true;
+    return (zicht[plek] || 'hidden') === 'visible';
+  });
 }
 
 router.get('/tempel', attachRole, (req, res) => {
@@ -12449,7 +12488,7 @@ router.get('/tempel', attachRole, (req, res) => {
       imageId: config.imageId || null,
       backdropId: config.backdropId || null,
       voorwerpNaam: config.voorwerpNaam || 'Votiefmunt van {god}',
-      goden: _tempelGoden(config),
+      goden: _godenVoor(req, dmState, _tempelGoden(config)),
     },
     huidigeZegen,
     huidigeEed,

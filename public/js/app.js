@@ -10,7 +10,7 @@ import { renderSpreuken } from './render-spreuken.js?v=41';
 import { renderVaardigheden, zoekVaardigheden } from './render-vaardigheden.js?v=10';
 import { renderStatblock } from './render-statblock.js?v=9';
 import { initSocket } from "./socket-client.js?v=79";
-import { initDmPanel } from "./dm-panel.js?v=339";
+import { initDmPanel } from "./dm-panel.js?v=340";
 import { COND_INFO, COND_LABEL, COND_MET_PLAATJE, COND_ICON } from './conditions.js?v=2';
 import './media-picker.js?v=8';
 import './tafels.js?v=2';
@@ -14269,6 +14269,7 @@ const HELP_CONFIG = {
     { titel: 'De inhoud staat op de Blessing-kaartjes', tekst: 'Zegen, vloek, de tekst van de eed, de permanente zegen en de eenmalige zegens beheer je in het archief. Die kaartjes zijn leidend; hier staat alleen hoe de god **heet** en hoe zijn altaar **oogt**.', afbeelding: null },
     { titel: 'Eigen prijzen', tekst: 'Wat een **zegen**, een **eed** en de **boete** bij déze god kosten. Leeg laten betekent: de standaardprijs hierboven. Een strenge god mag duurder vergeven dan een milde.', afbeelding: null },
     { titel: 'Wat er van hem is', tekst: 'Onderaan staan de **zegeningen, eden en vloeken** die in het archief aan deze god hangen (het veld *god* op het voorwerpkaartje). Klik erop om het kaartje te openen — dáár schrijf je de inhoud; hier zie je alleen dat het er is.', afbeelding: null },
+    { titel: 'Wie het altaar ziet', tekst: 'Een god verschijnt pas in de tempel als het **locatiekaartje** van zijn altaar voor die party zichtbaar is: je kent een altaar als je de plek kent. Een god zonder locatie staat er altijd — "geen plek" is geen geheim.', afbeelding: null },
     { titel: 'De priester begroet je', tekst: 'Koppel een **tafel** met begroetingen, net als bij een dienst: er wordt er bij elk bezoek één gekozen. *Nieuw* maakt er meteen een en opent hem in Tafels.', afbeelding: null },
     { titel: 'Volgorde is redactie', tekst: 'De volgorde die je hier zet is de volgorde in de tempel. Zet de goden die er in jouw verhaal toe doen bovenaan; de rest mag daaronder wachten.', afbeelding: null },
   ] }),

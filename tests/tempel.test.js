@@ -90,6 +90,49 @@ describe('De Tempel: zegen, eed, vloek en boete', () => {
     return Array.isArray(b) ? b : (b?.items || []);
   };
 
+  // Je kent een altaar als je de plek kent. Zonder dit zag een party die de
+  // tempel binnen mocht álle goden — ook die van een altaar waar ze nooit
+  // geweest is, inclusief naam, domein en zegeningen.
+  describe('Een altaar dat je niet kent, zie je niet', () => {
+    let plek;
+
+    before(async () => {
+      plek = (await req(server, 'POST', '/api/entities/locaties',
+        { name: 'De Zoutkapel' }, dm)).body.id;
+      await req(server, 'PUT', '/api/meta/tempel', {
+        goden: [
+          { id: 'god_morra', naam: 'Morra', domein: 'Tij', backdropId: plek,
+            zegen: 'Je ademt onder water.', vloek: 'Zout water brandt.',
+            eenmaligeZegens: ['Herrol één gemiste aanvalsworp.'] },
+          { id: 'god_vask', naam: 'Vask', domein: 'Smidse',
+            zegen: 'Je wapens roesten niet.', vloek: 'IJzer weigert je dienst.',
+            eenmaligeZegens: ['Tel +2 bij één schadeworp.'] },
+        ],
+      }, dm);
+    });
+
+    const godenVoorSpeler = async () =>
+      ((await req(server, 'GET', '/api/tempel', null, spelerC)).body.config.goden || []).map(g => g.naam);
+
+    it('verbergt een god wiens locatie de party nog niet kent', async () => {
+      const namen = await godenVoorSpeler();
+      assert.ok(!namen.includes('Morra'), 'de Zoutkapel is nog niet onthuld');
+      assert.ok(namen.includes('Vask'), 'een god zonder locatie blijft staan');
+    });
+
+    it('toont hem zodra het locatiekaartje onthuld is', async () => {
+      await req(server, 'PUT', `/api/entities/locaties/${plek}/visibility`,
+        { groupId: gid, visibility: 'visible' }, dm);
+      const namen = await godenVoorSpeler();
+      assert.ok(namen.includes('Morra'), 'nu de plek bekend is, staat het altaar er');
+    });
+
+    it('laat de DM altijd alles zien', async () => {
+      const namen = ((await req(server, 'GET', '/api/tempel', null, dm)).body.config.goden || []).map(g => g.naam);
+      assert.deepStrictEqual(namen.sort(), ['Morra', 'Vask']);
+    });
+  });
+
   it('verkoopt een zegen, en schrijft de prijs van de god af', async () => {
     await vulBeurs(100);
     const voor = alsCl(await beurs());

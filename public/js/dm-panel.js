@@ -7070,9 +7070,31 @@ window._tempelGodKaartje = (i, veld, waarde) => {
     if (kop) kop.textContent = raak.label;
   }
 
+  // Domein en heilig symbool staan al op dat kaartje (een personage met
+  // `subtype: 'god'` heeft die twee velden). Ze hier nog eens intikken is
+  // dubbelop; we vullen ze aan zolang ze leeg zijn.
+  if (veld === 'imageId' && raak) _tempelGodVeldenUitKaart(i, raak.value);
+
   // Kies je de locatie, dan bieden we aan wie daar staat.
   if (veld === 'backdropId' && raak) _tempelGodUitLocatie(i, raak.value);
 };
+
+// Domein en symbool overnemen van het godkaartje — alleen als ze hier nog leeg
+// zijn, zodat een eigen invulling blijft staan.
+function _tempelGodVeldenUitKaart(i, kaartId) {
+  const g = _tempelGodenDraft[i];
+  const kaart = (_tempelAlle || []).find(e => e.id === kaartId);
+  if (!g || !kaart) return;
+  for (const veld of ['domein', 'symbool']) {
+    const el = document.getElementById(`god-${i}-${veld}`);
+    const uitKaart = (kaart.data?.[veld] || '').trim();
+    if (!el || el.value.trim() || !uitKaart) continue;
+    el.value = uitKaart;
+    el.classList.add('is-afgeleid');
+    el.title = `Overgenomen van het kaartje van ${kaart.name}. Typ er iets anders overheen om af te wijken.`;
+    g[veld] = uitKaart;
+  }
+}
 
 // De priester van een altaar staat meestal al op het locatiekaartje, in de
 // betrokkenenlijst. Vullen we hem daaruit aan — alleen als het veld nog leeg
