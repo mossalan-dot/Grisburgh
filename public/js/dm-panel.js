@@ -753,41 +753,44 @@ function _tabToParent(tab) {
 // sessies doet. Komt Loot erbij, dan hoort die tussen Gevecht en Rust — dat is
 // precies het moment waarop je hem nodig hebt.
 // De balk loopt van "nu" naar "ooit". De oude indeling groepeerde op
-// onderwerp — spelen, sfeer, beheer — en dat zette de mediabibliotheek naast
-// wat er op je ligt te wachten, terwijl je het ene tussen twee zinnen door
-// aanraakt en het andere een keer per maand. Nu staat er per moment:
+// onderwerp — spelen, sfeer, beheer — en zette daarmee de mediabibliotheek
+// naast wat er op je ligt te wachten, terwijl je het ene tussen twee zinnen
+// door aanraakt en het andere een keer per maand. Nu staat er per moment:
 //
-//   1. Aan tafel  — waar je naar grijpt terwijl er gespeeld wordt.
-//   2. Bij de hand — improviseren: een geluid, een worp, een brief.
-//   3. Klaarzetten — wat je vóór of tussen sessies doet.
+//   1. Aan tafel    — waar je naar grijpt terwijl er gespeeld wordt.
+//   2. Voorbereiden — wat je klaarzet vóór of tussen sessies.
+//   3. Standaard    — wat je één keer inricht en daarna laat staan.
+//
+// Gevecht en Loot staan bij voorbereiden, niet aan tafel: hier bouw je de
+// monsterbibliotheek, de encounters en de loot-events. Het dráaien gebeurt op
+// het gevechtsscherm en via de regiebalk. Zo ook Geluiden: je koppelt ze hier
+// één keer, en tijdens het spelen komen ze uit de regiebalk en de diensten.
 //
 // Instellingen staat los bovenaan: dat richt je één keer in.
 const _DM_TABS = [
   // ── Aan tafel ──
-  { id: 'gevecht',   groep: 'tafel',     label: 'Gevecht',   icoon: 'crossed-swords', cls: 'icon-gi', title: 'Gevecht & Monsters' },
-  // Eén icoon voor het hele onderwerp: het muntje. Dat staat al op een kamer
-  // met een vondst en in de regie-balk, dus de tab hoort hetzelfde te dragen —
-  // en het leest prettiger dan de kluis.
-  { id: 'loot',      groep: 'tafel',     label: 'Loot',      icoon: 'coins',           title: 'Loot — vondsten &amp; verdeling' },
   { id: 'rust',      groep: 'tafel',     label: 'Rust',      icoon: 'moon',                            title: 'Rust — Long &amp; Short Rest' },
+  // 'Berichten' past niet op één regel in een kolom van 56px; liever een korter
+  // woord dan een afbreking. De tooltip houdt de volledige naam.
+  { id: 'berichten', groep: 'tafel',     label: 'Post',      icoon: 'mail',                            title: 'Post — snelle brieven' },
+  { id: 'tafels',    groep: 'tafel',     label: 'Tafels',    icoon: 'dice', cls: 'icon-gi',            title: 'Tafels — rollen op een lijst' },
   // Spreuk- en voorwerpverzoeken stonden elk op hun eigen tabblad in het
   // archief; een DM die wil weten wat er op hem wacht moest dus twee plekken
   // langs. Eén tab met allebei — plus Gunnen, de andere richting.
   { id: 'verzoeken', groep: 'tafel',     label: 'Vragen',    icoon: 'hourglass',                       title: 'Gunnen &amp; verzoeken' },
 
-  // ── Bij de hand ──
-  { id: 'geluiden',  groep: 'sfeer',     label: 'Geluiden',  icoon: 'volume-2',                        title: 'Geluiden' },
-  { id: 'tafels',    groep: 'sfeer',     label: 'Tafels',    icoon: 'dice', cls: 'icon-gi',            title: 'Tafels — rollen op een lijst' },
-  // 'Berichten' past niet op één regel in een kolom van 56px; liever een korter
-  // woord dan een afbreking. De tooltip houdt de volledige naam.
-  { id: 'berichten', groep: 'sfeer',     label: 'Post',      icoon: 'mail',                            title: 'Post — snelle brieven' },
-
-  // ── Klaarzetten ──
-  // Aktes stond bij "spelen" omdat de regie ermee gebeurt, maar die loopt via
-  // de balk onderin; dit tabblad is waar je de akte schríjft.
+  // ── Voorbereiden ──
   { id: 'aktes',     groep: 'klaar',     label: 'Aktes',     icoon: 'clipboard-list',                  title: 'Aktes — voorbereiding &amp; regie' },
-  { id: 'diensten',  groep: 'klaar',     label: 'Diensten',  icoon: 'building',                        title: 'Diensten' },
-  { id: 'media',     groep: 'klaar',     label: 'Media',     icoon: 'image',                           title: 'Mediabibliotheek' },
+  { id: 'gevecht',   groep: 'klaar',     label: 'Gevecht',   icoon: 'crossed-swords', cls: 'icon-gi', title: 'Gevecht, monsters &amp; encounters' },
+  // Eén icoon voor het hele onderwerp: het muntje. Dat staat al op een kamer
+  // met een vondst en in de regie-balk, dus de tab hoort hetzelfde te dragen —
+  // en het leest prettiger dan de kluis.
+  { id: 'loot',      groep: 'klaar',     label: 'Loot',      icoon: 'coins',           title: 'Loot — vondsten &amp; verdeling' },
+
+  // ── Standaard ──
+  { id: 'diensten',  groep: 'standaard', label: 'Diensten',  icoon: 'building',                        title: 'Diensten' },
+  { id: 'media',     groep: 'standaard', label: 'Media',     icoon: 'image',                           title: 'Mediabibliotheek' },
+  { id: 'geluiden',  groep: 'standaard', label: 'Geluiden',  icoon: 'volume-2',                        title: 'Geluiden' },
 ];
 
 function _buildTabs() {
