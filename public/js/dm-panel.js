@@ -6581,14 +6581,15 @@ async function _renderMarktSettings() {
 
     <div class="dm-feature-section">
       <!-- Dicht: het is een afgeleide lijst die je zelden hoeft te lezen —
-           je kijkt erin als een winkel níét op de Markt staat. Vandaar dat het
-           kopje hier de uitklap zelf is. -->
-      <div class="dm-dienst-kop dm-subgroep-label" style="margin-bottom:0">Winkels<span class="dm-sectie-hulp">${helpBtn('dm_markt_winkels')}</span></div>
-      <details class="dm-markt-winkels-uitklap">
-        <summary class="dm-markt-winkels-kop">
-          <span>Winkels</span>
-          <span class="dm-markt-winkels-n">${(data.winkels || []).length}</span>
-        </summary>
+           je kijkt erin als een winkel níét op de Markt staat. De uitklap ís
+           het kopje; er stond er ook nog een boven, en dan lees je twee keer
+           hetzelfde woord onder elkaar. -->
+      <div class="dm-markt-winkels-band">
+        <details class="dm-markt-winkels-uitklap">
+          <summary class="dm-markt-winkels-kop">
+            <span class="dm-markt-winkels-titel">Winkels</span>
+            <span class="dm-markt-winkels-n">${(data.winkels || []).length}</span>
+          </summary>
         <div class="dm-markt-winkels">
           ${(data.winkels || []).length ? (data.winkels || []).map(w => `
             <div class="dm-markt-winkel">
@@ -6597,8 +6598,10 @@ async function _renderMarktSettings() {
               <span class="dm-markt-winkel-gebied">${(w.gebieden || []).join(' \u203a ') || 'geen gebied ingevuld'}</span>
             </div>`).join('')
             : '<p class="dm-hint">Nog geen winkels — een locatie of verkoper met een voorraad komt hier vanzelf te staan.</p>'}
-        </div>
-      </details>
+          </div>
+        </details>
+        <span class="dm-sectie-hulp">${helpBtn('dm_markt_winkels')}</span>
+      </div>
     </div>`;
 }
 

@@ -27836,3 +27836,12 @@ body.akte-schrijf-open .mp-overlay { z-index: 1320; }
 }
 .dm-deel-uit .icon { width: 14px; height: 14px; opacity: .7; }
 .dm-deel-uit strong { font-family: 'Cinzel', serif; font-size: 11.5px; color: #6a4a20; }
+
+/* De winkellijst is zijn eigen kopje: de uitklap draagt de naam, het boekje
+   staat ernaast op dezelfde lijn als bij de andere secties. */
+.dm-markt-winkels-band { display: flex; align-items: flex-start; gap: 8px; margin-top: 18px; }
+.dm-markt-winkels-band .dm-markt-winkels-uitklap { flex: 1; min-width: 0; border-top: 0; margin-top: 0; }
+.dm-markt-winkels-titel {
+  font-family: 'Cinzel', serif; font-size: 10px; font-weight: 700;
+  letter-spacing: .1em; text-transform: uppercase; color: #9a815c;
+}
