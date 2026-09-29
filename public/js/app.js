@@ -1,4 +1,4 @@
-import { api, campagneUitUrl, zetCampagne } from './api.js?v=296';
+import { api, campagneUitUrl, zetCampagne } from './api.js?v=297';
 import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, renderDocumenten, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=319";
 import { initArchief, renderLogboek, openLogboekEditor } from "./render-archief.js?v=135";
 import { renderKaart, queueFlyTo, verversPins, nieuweKaart } from './render-kaart.js?v=31';
@@ -9,8 +9,8 @@ import { renderBestiarium } from './render-bestiarium.js?v=31';
 import { renderSpreuken } from './render-spreuken.js?v=41';
 import { renderVaardigheden, zoekVaardigheden } from './render-vaardigheden.js?v=10';
 import { renderStatblock } from './render-statblock.js?v=9';
-import { initSocket } from "./socket-client.js?v=78";
-import { initDmPanel } from "./dm-panel.js?v=328";
+import { initSocket } from "./socket-client.js?v=79";
+import { initDmPanel } from "./dm-panel.js?v=330";
 import { COND_INFO, COND_LABEL, COND_MET_PLAATJE, COND_ICON } from './conditions.js?v=2';
 import './media-picker.js?v=8';
 import './tafels.js?v=2';
@@ -2796,6 +2796,145 @@ function _getPartyPresence() {
 function _setPartyPresence(s) {
   localStorage.setItem(_presenceKey(), JSON.stringify(s));
 }
+
+// ── Wat er op een personage zit: de badge op het portret ────────────────────
+// Vijf dingen kunnen waar zijn van je personage tussen de scènes door:
+// inspiratie, een klaargezette level-up, iets wat je aan de tap dronk,
+// uitputting, en een vloek. Ze stonden verspreid over het blad als losse
+// balkjes en regels, en een deel stond nergens.
+//
+// Nu draait je portret om. Dezelfde cirkel, even groot, met het icoon van wat
+// er op je zit — en klikken vertelt wat het is en of je het weg mag halen.
+// Zijn er meer dingen tegelijk, dan wisselt hij er rustig doorheen.
+//
+// De beweging is van de **belangrijkste** badge en blijft staan, ook als de
+// cirkel op dat moment je portret laat zien: level omhoog wint van inspiratie,
+// inspiratie van een vloek. Zo zie je aan één blik over de tafel wie er iets
+// te doen heeft, zonder te wachten tot de juiste kant boven ligt.
+const _BADGE_STIJL = {
+  levelup:    { icoon: 'star',         beweeg: 'badge--stijgt' },
+  inspiratie: { icoon: 'sparkles',     beweeg: 'badge--pulst' },
+  vloek:      { icoon: 'skull',        beweeg: 'badge--doemt' },
+  buff:       { icoon: 'beer',         beweeg: '' },
+  exhaustion: { icoon: 'hourglass',    beweeg: '' },
+};
+// Dezelfde volgorde als op de server; hier bepaalt hij welke beweging wint.
+const _BADGE_RANG = ['levelup', 'inspiratie', 'vloek', 'buff', 'exhaustion'];
+
+let _badgeData = {};        // { characterId: [badge] }
+let _badgeBeurt = {};       // { characterId: index } — waar de cyclus staat
+let _badgeTimer = null;
+
+window._badgesLaden = async function () {
+  try { _badgeData = await api.getBadges(); } catch { _badgeData = {}; }
+  _badgesTeken();
+};
+
+// De achterkant van één portret. Wordt in de bestaande avatar-wrap gehangen,
+// zodat de HP-ring eromheen blijft kloppen.
+function _badgeFaceHtml(b) {
+  const st = _BADGE_STIJL[b.soort] || {};
+  return `<div class="badge-face badge--${esc(b.soort)}">
+    ${icon(st.icoon || 'sparkles')}
+    ${b.getal ? `<span class="badge-getal">${esc(String(b.getal))}</span>` : ''}
+  </div>`;
+}
+
+// Tekent de badges op alle portretten die nu in beeld staan. Idempotent: een
+// tweede aanroep bouwt niets dubbel.
+function _badgesTeken() {
+  document.querySelectorAll('.party-portrait-avatar-wrap[data-char]').forEach(wrap => {
+    const id = wrap.dataset.char;
+    const lijst = _badgeData[id] || [];
+    wrap.classList.toggle('heeft-badge', lijst.length > 0);
+    // De beweging van de zwaarste badge hangt aan de hele cirkel en blijft dus
+    // staan terwijl de andere kant in beeld is.
+    for (const s of Object.values(_BADGE_STIJL)) if (s.beweeg) wrap.classList.remove(s.beweeg);
+    if (!lijst.length) { wrap.querySelector('.badge-face')?.remove(); return; }
+    const zwaarste = [...lijst].sort((a, b) => _BADGE_RANG.indexOf(a.soort) - _BADGE_RANG.indexOf(b.soort))[0];
+    const beweeg = _BADGE_STIJL[zwaarste.soort]?.beweeg;
+    if (beweeg) wrap.classList.add(beweeg);
+
+    const i = (_badgeBeurt[id] || 0) % lijst.length;
+    const oud = wrap.querySelector('.badge-face');
+    const nieuw = _badgeFaceHtml(lijst[i]);
+    if (oud) oud.outerHTML = nieuw; else wrap.insertAdjacentHTML('beforeend', nieuw);
+    wrap.title = lijst.map(b => b.label).join(' · ');
+  });
+  _badgeCyclusStart();
+}
+
+// Om de vier seconden een halve slag. Staat stil zolang je er met de muis op
+// bent — je moet kunnen klikken op wat je ziet.
+function _badgeCyclusStart() {
+  if (_badgeTimer) return;
+  _badgeTimer = setInterval(() => {
+    const wraps = [...document.querySelectorAll('.party-portrait-avatar-wrap.heeft-badge')];
+    if (!wraps.length) { clearInterval(_badgeTimer); _badgeTimer = null; return; }
+    for (const wrap of wraps) {
+      if (wrap.matches(':hover')) continue;
+      const id = wrap.dataset.char;
+      const lijst = _badgeData[id] || [];
+      const om = wrap.classList.toggle('is-om');
+      // Terug naar het portret? Dan alvast de vólgende badge klaarzetten, zodat
+      // de volgende omslag iets nieuws laat zien.
+      if (!om && lijst.length > 1) {
+        _badgeBeurt[id] = ((_badgeBeurt[id] || 0) + 1) % lijst.length;
+        const face = wrap.querySelector('.badge-face');
+        if (face) face.outerHTML = _badgeFaceHtml(lijst[_badgeBeurt[id]]);
+      }
+    }
+  }, 4000);
+}
+
+// Klikken op een portret met een badge: het kaartje ernaast, niet het
+// kaartje van het personage. Wat je zelf mag opmaken krijgt een knop; wat de
+// DM oplegt zegt dat het van hem is.
+window._badgeKaartje = function (ev, charId) {
+  const lijst = _badgeData[charId] || [];
+  if (!lijst.length) return false;
+  ev.preventDefault(); ev.stopPropagation();
+  document.querySelector('.badge-kaart')?.remove();
+
+  const magSturen = window.app?.isDM?.() || window.app?.state?.characterId === charId;
+  const html = `
+    <div class="badge-kaart" onclick="event.stopPropagation()">
+      ${lijst.map(b => {
+        const st = _BADGE_STIJL[b.soort] || {};
+        const knop = b.eigen
+          ? `<button class="badge-kaart-knop" onclick="window._badgeWeg('${esc(charId)}','${esc(b.soort)}','${esc(b.id || '')}')">${
+              b.soort === 'inspiratie' ? 'Gebruiken' : 'Weghalen'}</button>`
+          : `<span class="badge-kaart-dm">${icon('lock')} vraag je DM</span>`;
+        return `<div class="badge-kaart-rij badge--${esc(b.soort)}">
+          <span class="badge-kaart-zegel">${icon(st.icoon || 'sparkles')}</span>
+          <span class="badge-kaart-tekst">
+            <strong>${esc(b.label)}</strong>
+            <span>${esc(b.uitleg || '')}</span>
+          </span>
+          ${magSturen ? knop : ''}
+        </div>`;
+      }).join('')}
+    </div>`;
+  const host = ev.currentTarget.closest('.party-portrait') || ev.currentTarget;
+  host.insertAdjacentHTML('beforeend', html);
+  setTimeout(() => {
+    document.addEventListener('click', function sluit() {
+      document.querySelector('.badge-kaart')?.remove();
+      document.removeEventListener('click', sluit);
+    }, { once: true });
+  }, 0);
+  return true;
+};
+
+window._badgeWeg = async function (charId, soort, id) {
+  try {
+    const r = await api.badgeWeg(charId, soort, id);
+    _badgeData[charId] = r.badges || [];
+    if (!_badgeData[charId].length) delete _badgeData[charId];
+    document.querySelector('.badge-kaart')?.remove();
+    _badgesTeken();
+  } catch (e) { _tsToast?.(e.message || 'Lukt niet'); }
+};
 
 // ── Party portraits ──
 async function renderParty() {
@@ -8138,7 +8277,8 @@ async function renderMijnKarakter(opts = {}) {
               const _ringFill = hpPct > 0 ? +(_ringC * hpPct / 100).toFixed(1) : 0;
               const _tmpR = 47, _tmpC = +(2 * Math.PI * 47).toFixed(1);
               const _tmpFill = (maxNum && tempNum > 0) ? +(_tmpC * Math.min(tempNum, maxNum) / maxNum).toFixed(1) : 0;
-              return `<div class="party-portrait party-portrait--self">
+              return `<div class="party-portrait party-portrait--self"
+                onclick="window._badgeKaartje(event,'${esc(window.app?.state?.characterId || '')}')">
               <div class="party-portrait-ring-wrap">
                 <svg class="party-hp-ring" viewBox="0 0 100 100" style="position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:2">
                   <circle cx="50" cy="50" r="${_ringR}" class="party-hp-ring-bg"/>
@@ -8148,7 +8288,7 @@ async function renderMijnKarakter(opts = {}) {
                   ${_tmpFill > 0 ? `<circle cx="50" cy="50" r="${_tmpR}" class="party-hp-ring-temp"
                     stroke-dasharray="${_tmpFill} ${_tmpC}" transform="rotate(-90 50 50)"/>` : ''}
                 </svg>
-                <div class="party-portrait-avatar-wrap avatar-${hpCls}">
+                <div class="party-portrait-avatar-wrap avatar-${hpCls}" data-char="${esc(window.app?.state?.characterId || '')}">
                   <img src="${imgUrl}" class="party-portrait-img"
                     onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
                   <div class="party-portrait-fallback" style="display:none">${icon('user')}</div>
@@ -8156,7 +8296,6 @@ async function renderMijnKarakter(opts = {}) {
               </div>
               <div class="party-portrait-name">${esc(_roepnaam(playerName))}</div>
               <div class="party-portrait-sub">${hp !== '—' ? `${hp} / ${maxHp} HP${tempNum > 0 ? ` <span class="party-portrait-temp">+${tempNum}</span>` : ''}` : '—'}</div>
-              ${inspired ? '<div class="party-portrait-badge">✨</div>' : ''}
             </div>`;
             })()}
           </div>
@@ -8178,14 +8317,15 @@ async function renderMijnKarakter(opts = {}) {
                 const [icn, kleur] = COND_ICON[cid] || ['zap', '#8a8a8a'];
                 return `<span class="party-portrait-cond" style="color:${kleur}" title="${esc(COND_LABEL[cid])}">${icon(icn)}</span>`;
               }).join('');
-              return `<div class="party-portrait${e.afwezig ? ' party-portrait--afwezig' : ''}" onclick="window._openDetail('personages','${esc(e.id)}')"${e.afwezig ? ' title="Doet vanavond niet mee"' : ''}>
+              return `<div class="party-portrait${e.afwezig ? ' party-portrait--afwezig' : ''}"
+                onclick="if(!window._badgeKaartje(event,'${esc(e.id)}'))window._openDetail('personages','${esc(e.id)}')"${e.afwezig ? ' title="Doet vanavond niet mee"' : ''}>
                 <div class="party-portrait-ring-wrap">
                   <svg class="party-hp-ring" viewBox="0 0 100 100" style="position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:2">
                     <circle cx="50" cy="50" r="${pRingR}" class="party-hp-ring-bg"/>
                     <circle cx="50" cy="50" r="${pRingR}" class="party-hp-ring-fill party-hp-ring-${pHpCls}"
                       stroke-dasharray="${pRingFill} ${pRingC}" transform="rotate(-90 50 50)"/>
                   </svg>
-                  <div class="party-portrait-avatar-wrap">
+                  <div class="party-portrait-avatar-wrap" data-char="${esc(e.id)}">
                     <img src="${pImgUrl}" class="party-portrait-img"
                       onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
                     <div class="party-portrait-fallback" style="display:none">${icon('user')}</div>
@@ -9119,6 +9259,8 @@ async function renderMijnKarakter(opts = {}) {
   _pdsInklapToepassen();
   _levelUpBalk();
   _partyGevallenen();
+  // De portretten staan er nu; hang de badges eraan.
+  window._badgesLaden?.();
 
   // ── Progressie: sla context op; render via requestAnimationFrame zodat
   //    de DOM zeker stable is en geen re-render de content overschrijft ──
@@ -14075,6 +14217,11 @@ const HELP_CONFIG = {
   dm_detective: () => ({ titel: 'De detective', stappen: [
     { titel: 'Wat hij doet', tekst: 'Spelers leggen een vraag bij hem neer over een persoon, plek of voorwerp. Dat kost geld en tijd; het antwoord schrijf jij. Zo kunnen ze iets uitzoeken zonder dat de hele tafel stilvalt.', afbeelding: null },
     { titel: 'Het antwoord is een scène', tekst: 'Schrijf wat hij *gevonden* heeft, niet wat waar is — een detective kan zich vergissen, of net te laat komen. Dat maakt van een opzoekactie een verhaallijn.', afbeelding: null },
+  ] }),
+  dm_gunnen: () => ({ titel: 'Gunnen', stappen: [
+    { titel: 'Wat van jou naar een speler gaat', tekst: 'Een **level omhoog**, **inspiration** en **exhaustion**, per speler. Dit stond op drie plekken die je moest kennen om te vinden: inspiratie achter een rechtermuisklik, level omhoog onderaan de Rust-tab, en uitputting nergens.', afbeelding: null },
+    { titel: 'Gunnen, niet uitvoeren', tekst: 'Een level zet je klaar; de speler kiest zelf zijn HP en wat hij met een ASI doet. Inspiration verzilvert hij zelf. Een klik op een knop die al aanstaat trekt het weer in.', afbeelding: null },
+    { titel: 'Op het portret', tekst: 'Alles wat je hier geeft verschijnt als **badge** op het portret van die speler: zijn portret draait om en toont wat er op hem zit. Uitputting en een vloek kan hij niet zelf wegklikken — die staan er tot jij ze weghaalt.', afbeelding: null },
   ] }),
   dm_markt_gebieden: () => ({ titel: 'Gebieden', stappen: [
     { titel: 'Waarvoor dit is', tekst: 'Vink aan welke gebieden je spelers als **knop** op de Markt te zien krijgen. Vink je niets aan, dan kiest de app zelf een zinnige laag — daar is de knop *Alles uit* voor.', afbeelding: null },

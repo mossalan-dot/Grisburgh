@@ -1101,7 +1101,10 @@ router.put('/characters/:characterId/exhaustion', requireDM, (req, res) => {
   else dmState.playerExhaustion[characterId] = n;
   storage.writeJSON('dm-state.json', dmState);
   const io = req.app.get('io');
-  if (io) io.to(_campagneRoom(req)).emit('player:exhaustion', { characterId, niveau: n });
+  if (io) {
+    io.to(_campagneRoom(req)).emit('player:exhaustion', { characterId, niveau: n });
+    io.to(_campagneRoom(req)).emit('badges:updated', { characterId });
+  }
   res.json({ ok: true, niveau: n });
 });
 
@@ -5322,7 +5325,10 @@ router.post('/party/level-up-tegoed', requireDM, (req, res) => {
 
   storage.writeJSON('dm-state.json', dmState);
   const io = req.app.get('io');
-  if (io) io.to(_campagneRoom(req)).emit('party:level-up-tegoed', { tegoed: g.levelUpTegoed });
+  if (io) {
+    io.to(_campagneRoom(req)).emit('party:level-up-tegoed', { tegoed: g.levelUpTegoed });
+    for (const id of ids) io.to(_campagneRoom(req)).emit('badges:updated', { characterId: id });
+  }
   res.json({ ok: true, tegoed: g.levelUpTegoed, spelers: ids });
 });
 
@@ -6412,6 +6418,111 @@ router.patch('/player-profile/:characterId', attachRole, (req, res) => {
   res.json(updated);
 });
 
+// ── Wat er op een personage zit ─────────────────────────────────────────────
+// Vijf dingen kunnen waar zijn van een personage tussen de scènes door, en ze
+// lagen alle vijf ergens anders: inspiratie in `playerInspiration`, een
+// klaargezette level-up in `levelUpTegoed`, wat je aan de tap dronk in
+// `playerBuffs`, uitputting in `playerExhaustion`, en een vloek in de
+// voorwerpen van de tempel. Elk had zijn eigen route, zijn eigen vorm en zijn
+// eigen plek op het scherm — of helemaal geen.
+//
+// Eén lijst, één vorm: `{ soort, label, uitleg, getal, eigen }`. `eigen` zegt
+// of de speler hem zelf mag weghalen; een vloek en uitputting legt de DM op.
+//
+// Bewust níét hierin: condities en concentratie (die leven in een gevecht en
+// veranderen per beurt), tijdelijke HP en een eed (die staan al op het
+// spelersblad), en afwezigheid (dat is het stipje).
+const _BADGE_VOLGORDE = ['levelup', 'inspiratie', 'vloek', 'buff', 'exhaustion'];
+
+function _badgesVoor(dmState, characterId) {
+  const uit = [];
+  const g = getGroup(dmState, _playerGroupId(dmState, characterId));
+
+  const tegoed = parseInt((g.levelUpTegoed || {})[characterId]) || 0;
+  if (tegoed > 0) uit.push({
+    soort: 'levelup', label: 'Level omhoog',
+    uitleg: 'Je mag een level omhoog. Open je blad en kies wat je erbij krijgt.',
+    getal: tegoed > 1 ? tegoed : null, eigen: true,
+  });
+
+  if ((dmState.playerInspiration || {})[characterId]) uit.push({
+    soort: 'inspiratie', label: 'Inspiration',
+    uitleg: 'Gooi een worp opnieuw, of geef jezelf voordeel. Op is op.',
+    getal: null, eigen: true,
+  });
+
+  const eed = ((dmState.playerItems || {})[characterId] || []).find(i => i.eed && i.status === 'vloek');
+  if (eed) uit.push({
+    soort: 'vloek', label: 'Vervloekt',
+    uitleg: [eed.godNaam && `Door ${eed.godNaam}.`, eed.vloekEffect, 'Alleen de tempel heft hem op, tegen boete.']
+      .filter(Boolean).join(' '),
+    getal: null, eigen: false,
+  });
+
+  for (const b of ((dmState.playerBuffs || {})[characterId] || [])) uit.push({
+    soort: 'buff', label: b.label || 'Aan de tap',
+    uitleg: [b.desc, b.bron && `— van ${b.bron}.`, 'Geldt tot je volgende lange rust.'].filter(Boolean).join(' '),
+    getal: null, eigen: true, id: b.id || null,
+  });
+
+  const moe = parseInt((dmState.playerExhaustion || {})[characterId]) || 0;
+  if (moe > 0) uit.push({
+    soort: 'exhaustion', label: `Exhaustion ${moe}`,
+    uitleg: `Elke d20-worp en je snelheid gaan met ${moe * 2} omlaag. Een lange rust haalt er één af.`,
+    getal: moe, eigen: false,
+  });
+
+  // De volgorde bepaalt welke badge het eerst in beeld komt — en dus welke
+  // beweging domineert als er meer dan één is.
+  return uit.sort((a, b) => _BADGE_VOLGORDE.indexOf(a.soort) - _BADGE_VOLGORDE.indexOf(b.soort));
+}
+
+// Alles in één keer, voor de partybalk: { characterId: [badges] }.
+router.get('/badges', attachRole, (req, res) => {
+  const dmState = readDmState();
+  const entities = storage.readJSON('entities.json');
+  const spelers = (entities.personages || []).filter(e => e.subtype === 'speler');
+  const gid = req.role === 'dm'
+    ? dmState.activeGroup
+    : _playerGroupId(dmState, req.session?.characterId);
+  const uit = {};
+  for (const e of spelers) {
+    // Een speler ziet zijn eigen party; de DM ziet de actieve party.
+    if (gid && e.data?.groep && e.data.groep !== gid) continue;
+    const b = _badgesVoor(dmState, e.id);
+    if (b.length) uit[e.id] = b;
+  }
+  res.json(uit);
+});
+
+// Een badge weghalen. Alleen wat van de speler zelf is (`eigen`); een vloek of
+// uitputting blijft staan tot de DM hem weghaalt — vandaar dat de knop in het
+// kaartje daar grijs is en dit hier ook echt weigert.
+router.delete('/badges/:characterId/:soort', attachRole, (req, res) => {
+  const { characterId, soort } = req.params;
+  if (req.role !== 'dm' && req.session?.characterId !== characterId)
+    return res.status(403).json({ error: 'Geen toegang' });
+
+  const dmState = readDmState();
+  if (soort === 'inspiratie') {
+    if (!dmState.playerInspiration?.[characterId]) return res.status(404).json({ error: 'Geen inspiratie' });
+    delete dmState.playerInspiration[characterId];
+  } else if (soort === 'buff') {
+    const lijst = (dmState.playerBuffs || {})[characterId] || [];
+    const over = req.query.id ? lijst.filter(b => b.id !== req.query.id) : [];
+    if (over.length === lijst.length) return res.status(404).json({ error: 'Niet gevonden' });
+    dmState.playerBuffs[characterId] = over;
+  } else if (req.role === 'dm' && soort === 'exhaustion') {
+    delete (dmState.playerExhaustion || {})[characterId];
+  } else {
+    return res.status(403).json({ error: 'Dit haalt alleen je DM weg' });
+  }
+  storage.writeJSON('dm-state.json', dmState);
+  const io = req.app.get('io'), room = _campagneRoom(req);
+  io.to(room).emit('badges:updated', { characterId });
+  res.json({ badges: _badgesVoor(dmState, characterId) });
+});
+
 // ── Speler inspiratie ──
 
 router.get('/player-inspiration', requireDM, (req, res) => {
@@ -6435,6 +6546,7 @@ router.put('/player-inspiration/:characterId', requireDM, (req, res) => {
   storage.writeJSON('dm-state.json', dmState);
   const entity = (storage.readJSON('entities.json').personages || []).find(e => e.id === characterId);
   req.app.get('io').to(_campagneRoom(req)).emit('player:inspiration', { characterId, inspired: true, name: entity?.name || '' });
+  req.app.get('io').to(_campagneRoom(req)).emit('badges:updated', { characterId });
   res.json({ inspired: true });
 });
 
@@ -6448,6 +6560,7 @@ router.delete('/player-inspiration/:characterId', attachRole, (req, res) => {
   storage.writeJSON('dm-state.json', dmState);
   const entity = (storage.readJSON('entities.json').personages || []).find(e => e.id === characterId);
   req.app.get('io').to(_campagneRoom(req)).emit('player:inspiration', { characterId, inspired: false, name: entity?.name || '' });
+  req.app.get('io').to(_campagneRoom(req)).emit('badges:updated', { characterId });
   res.json({ inspired: false });
 });
 
@@ -13660,6 +13773,7 @@ router.post('/herberg/bestel', attachRole, vereistDienst('herberg'), (req, res) 
   io.to(room).emit('player:currency-updated', { characterId, currency });
   if (tempHp !== null || heal) io.to(room).emit('player:hp-updated', { characterId, ...dmState.playerHp[characterId] });
   io.to(room).emit('player:buffs-updated', { characterId, buffs: dmState.playerBuffs?.[characterId] || [] });
+  io.to(room).emit('badges:updated', { characterId });
 
   res.json({
     item: { naam: item.naam, beschrijving: item.beschrijving || '' },

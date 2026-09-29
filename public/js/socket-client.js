@@ -337,7 +337,7 @@ function _ververOpenKaartje(id) {
   });
 
   socket.on('meta:updated', () => {
-    import('./api.js?v=296').then(({ api }) => api.meta().then(m => {
+    import('./api.js?v=297').then(({ api }) => api.meta().then(m => {
       const prev = window.app?.state?.meta;
       const buitenChanged = prev?.buitenGrisburgh !== m.buitenGrisburgh;
       if (window.app?.state) window.app.state.meta = m;
@@ -467,6 +467,11 @@ function _ververOpenKaartje(id) {
       _refreshSectionDebounced('mijn-karakter');
     }
   });
+
+  // ── Wat er op een personage zit is veranderd ──
+  // Eén signaal voor alle vijf de badges; de balk laadt ze opnieuw en tekent
+  // ze op de portretten die in beeld staan.
+  socket.on('badges:updated', () => { window._badgesLaden?.(); });
 
   // ── Herberg-buffs ("Aan de tap") gewijzigd of vervallen ──
   socket.on('player:buffs-updated', ({ characterId } = {}) => {

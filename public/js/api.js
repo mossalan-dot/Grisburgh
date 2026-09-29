@@ -340,6 +340,9 @@ export const api = {
   unlinkCompanion:     (npcId, groupId)     => request(`/companions/${npcId}/${groupId}`, { method: 'DELETE' }),
 
   // Inspiratie
+  // Alles wat er op de personages van deze party zit, in één vorm.
+  getBadges:              ()             => request('/badges'),
+  badgeWeg:     (charId, soort, id = '') => request(`/badges/${charId}/${soort}${id ? `?id=${encodeURIComponent(id)}` : ''}`, { method: 'DELETE' }),
   getAllInspiration:      ()             => request('/player-inspiration'),
   getInspiration:        (charId)       => request(`/player-inspiration/${charId}`),
   giveInspiration:       (charId)       => request(`/player-inspiration/${charId}`, { method: 'PUT' }),

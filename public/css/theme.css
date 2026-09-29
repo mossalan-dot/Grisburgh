@@ -27521,3 +27521,193 @@ body.akte-schrijf-open .mp-overlay { z-index: 1320; }
   flex-shrink: 0; font-family: 'Crimson Text', serif; font-size: 12px;
   font-style: italic; color: #8a6a3a;
 }
+
+/* ── De badge op een portret ────────────────────────────────────────────────
+   Wat er tussen de scènes door waar is van je personage — inspiratie, een
+   klaargezette level-up, iets van de tap, uitputting, een vloek — stond
+   verspreid over het blad als losse balkjes, en een deel stond nergens. Nu
+   draait je portret om: dezelfde cirkel, even groot.
+
+   De beweging hangt aan de cirkel, niet aan de achterkant. Zo blijft hij staan
+   terwijl je portret in beeld is — je ziet over de tafel wie er iets te doen
+   heeft zonder te wachten tot de juiste kant boven ligt. Maar één beweging
+   tegelijk: de zwaarste badge wint (level omhoog › inspiratie › vloek). */
+.party-portrait-avatar-wrap { position: relative; transition: transform .5s cubic-bezier(.4,0,.2,1); }
+/* `overflow: hidden` (van de gewone portretstijl) dwingt een vlakke laag af en
+   maakt de halve slag onzichtbaar: je zag het portret gewoon blijven staan.
+   De cirkelvorm komt daarom van de border-radius op de onderdelen zelf. */
+.party-portrait-avatar-wrap.heeft-badge {
+  cursor: pointer; transform-style: preserve-3d; overflow: visible;
+}
+.party-portrait-avatar-wrap.heeft-badge.is-om { transform: rotateY(180deg); }
+/* De voorkant verdwijnt op de helft van de slag; de achterkant komt terug. */
+.party-portrait-avatar-wrap.heeft-badge .party-portrait-img,
+.party-portrait-avatar-wrap.heeft-badge .party-portrait-fallback { backface-visibility: hidden; }
+
+.badge-face {
+  position: absolute; inset: 0; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  backface-visibility: hidden; transform: rotateY(180deg);
+  color: #f6eeda; background: #6a5030;
+  box-shadow: inset 0 0 0 2px rgba(255,255,255,.25);
+}
+.badge-face .icon { width: 30px; height: 30px; }
+.badge-getal {
+  position: absolute; right: 8px; bottom: 6px;
+  font-family: 'Cinzel', serif; font-size: 12px; font-weight: 700;
+  text-shadow: 0 1px 2px rgba(0,0,0,.5);
+}
+
+/* Kleur per soort: goud voor wat je krijgt, amber voor wat je dronk, as voor
+   wat je meesleept, bloedrood voor wat je is aangedaan. */
+.badge-face.badge--levelup,
+.badge-kaart-rij.badge--levelup .badge-kaart-zegel {
+  /* Perkament met een gouden rand: het is een uitnodiging, geen toestand. */
+  background: radial-gradient(circle at 35% 30%, #fdf6e2, #e8d6a8); color: #6a4a08;
+  box-shadow: inset 0 0 0 2px #c8a840;
+}
+.badge-face.badge--inspiratie,
+.badge-kaart-rij.badge--inspiratie .badge-kaart-zegel {
+  background: radial-gradient(circle at 35% 30%, #f6d98a, #c8940e); color: #4a3408;
+}
+.badge-face.badge--buff,
+.badge-kaart-rij.badge--buff .badge-kaart-zegel {
+  background: radial-gradient(circle at 35% 30%, #d6a463, #a9752f);
+}
+.badge-face.badge--exhaustion,
+.badge-kaart-rij.badge--exhaustion .badge-kaart-zegel {
+  background: radial-gradient(circle at 35% 30%, #8a8078, #5a5048);
+}
+.badge-face.badge--vloek,
+.badge-kaart-rij.badge--vloek .badge-kaart-zegel {
+  background: radial-gradient(circle at 35% 30%, #b04a3a, #6a1a1a);
+}
+/* De rij zelf blijft perkament; alleen een streepje links verraadt het soort. */
+.badge-kaart-rij { border-left: 3px solid rgba(122,96,64,.3); }
+.badge-kaart-rij.badge--levelup    { border-left-color: #c8a840; }
+.badge-kaart-rij.badge--inspiratie { border-left-color: #c8940e; }
+.badge-kaart-rij.badge--buff       { border-left-color: #a9752f; }
+.badge-kaart-rij.badge--exhaustion { border-left-color: #5a5048; }
+.badge-kaart-rij.badge--vloek      { border-left-color: #8b2a2a; }
+
+/* Bewegingen. Eén per portret; welke, bepaalt de rangorde in _BADGE_RANG. */
+@keyframes badge-pulst {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(200,168,64,.55); }
+  50%      { box-shadow: 0 0 0 7px rgba(200,168,64,0); }
+}
+@keyframes badge-stijgt {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-3px); }
+}
+@keyframes badge-doemt {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(120,20,20,.5); }
+  50%      { box-shadow: 0 0 10px 3px rgba(120,20,20,.35); }
+}
+.party-portrait-avatar-wrap.badge--pulst { animation: badge-pulst 2.4s ease-in-out infinite; }
+.party-portrait-avatar-wrap.badge--doemt { animation: badge-doemt 3.6s ease-in-out infinite; }
+/* Stijgen verplaatst de cirkel, dus dat gaat op de ring eromheen — anders
+   vecht het met de omslag, die diezelfde transform gebruikt. */
+.party-portrait-ring-wrap:has(.badge--stijgt) { animation: badge-stijgt 3s ease-in-out infinite; }
+
+/* Wie niet van bewegende dingen houdt (of er ziek van wordt) krijgt een
+   rustige overgang en geen puls. */
+@media (prefers-reduced-motion: reduce) {
+  .party-portrait-avatar-wrap { transition: opacity .3s; }
+  .party-portrait-avatar-wrap.heeft-badge.is-om { transform: none; }
+  .party-portrait-avatar-wrap.heeft-badge.is-om .party-portrait-img,
+  .party-portrait-avatar-wrap.heeft-badge.is-om .party-portrait-fallback { opacity: 0; }
+  .badge-face { transform: none; opacity: 0; transition: opacity .3s; }
+  .party-portrait-avatar-wrap.is-om .badge-face { opacity: 1; }
+  .party-portrait-avatar-wrap.badge--pulst,
+  .party-portrait-avatar-wrap.badge--doemt,
+  .party-portrait-ring-wrap:has(.badge--stijgt) { animation: none; }
+}
+
+/* ── Het kaartje bij een badge ──────────────────────────────────────────── */
+.badge-kaart {
+  position: absolute; top: 100%; left: 50%; transform: translateX(-50%);
+  /* Bij een portret aan de rand van het scherm liep het kaartje eraf. */
+  z-index: 40; min-width: 300px; max-width: min(360px, calc(100vw - 32px)); margin-top: 6px;
+  padding: 8px; border-radius: 10px; text-align: left;
+  background: #f6efdd; border: 1px solid rgba(122,96,64,.5);
+  box-shadow: 0 8px 24px rgba(40,26,8,.28);
+  cursor: default;
+}
+.badge-kaart-rij {
+  display: flex; align-items: flex-start; gap: 9px;
+  padding: 8px; border-radius: 8px;
+}
+.badge-kaart-rij + .badge-kaart-rij { margin-top: 4px; }
+.badge-kaart-zegel {
+  flex-shrink: 0; width: 28px; height: 28px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center; color: #f6eeda;
+}
+.badge-kaart-rij.badge--levelup    .badge-kaart-zegel,
+.badge-kaart-rij.badge--inspiratie .badge-kaart-zegel { color: #4a3408; }
+.badge-kaart-zegel .icon { width: 15px; height: 15px; }
+.badge-kaart-tekst { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.badge-kaart-tekst strong {
+  font-family: 'Cinzel', serif; font-size: 12px; color: #2a1a08;
+  /* De naam op één regel: "Level omhoog" brak in tweeën zodra de knop ernaast
+     ruimte pakte, en dan leest een kaartje als een kolom. */
+  white-space: nowrap;
+}
+.badge-kaart-tekst span {
+  font-family: 'Crimson Text', serif; font-size: 12.5px; line-height: 1.35; color: #5a4530;
+}
+.badge-kaart-knop {
+  flex-shrink: 0; align-self: center; cursor: pointer;
+  padding: 4px 11px; border-radius: 999px;
+  background: rgba(196,168,122,.3); border: 1px solid rgba(122,96,64,.4);
+  font-family: 'Cinzel', serif; font-size: 10.5px; color: #4a3418;
+}
+.badge-kaart-knop:hover { background: rgba(196,147,10,.35); color: #2a1a08; }
+.badge-kaart-dm {
+  flex-shrink: 0; align-self: center; display: inline-flex; align-items: center; gap: 4px;
+  font-family: 'Crimson Text', serif; font-size: 11.5px; font-style: italic; color: #8a6a3a;
+}
+.badge-kaart-dm .icon { width: 12px; height: 12px; opacity: .7; }
+/* Het kaartje hangt onder het portret, dus dat moet de anker zijn. */
+.party-portrait { position: relative; }
+
+/* ── Gunnen ────────────────────────────────────────────────────────────────
+   Eén regel per speler: wat je hem geeft (inspiratie, een level) en wat je hem
+   oplegt (uitputting). Het stond op drie onvindbare plekken — een
+   rechtermuisklik, de onderkant van de Rust-tab, en nergens. */
+.dm-gunnen { display: flex; flex-direction: column; gap: 4px; }
+.dm-gunnen-rij {
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+  padding: 6px 8px; border-radius: 6px;
+  border: 1px solid rgba(196,168,122,.25);
+}
+.dm-gunnen-rij:hover { background: rgba(196,168,122,.07); }
+.dm-gunnen-naam {
+  flex: 1; min-width: 120px;
+  font-family: 'Crimson Text', serif; font-size: 14px; color: var(--color-ink-bright, #2a1a08);
+}
+.dm-gunnen-knop {
+  display: inline-flex; align-items: center; gap: 5px; cursor: pointer;
+  padding: 4px 11px; border-radius: 999px;
+  background: rgba(196,168,122,.12); border: 1px solid rgba(196,168,122,.4);
+  font-family: 'Cinzel', serif; font-size: 10.5px; color: #8a6a3a;
+}
+.dm-gunnen-knop:hover { background: rgba(196,168,122,.28); color: #4a3418; }
+.dm-gunnen-knop .icon { width: 13px; height: 13px; }
+/* Aan = deze speler hééft het; klikken haalt het weg. */
+.dm-gunnen-knop.is-aan {
+  background: rgba(200,168,64,.3); border-color: rgba(154,112,8,.7); color: #4a3408;
+}
+.dm-gunnen-moe { display: inline-flex; align-items: center; gap: 2px; }
+.dm-gunnen-stap {
+  width: 22px; height: 22px; cursor: pointer; border-radius: 6px;
+  background: rgba(196,168,122,.12); border: 1px solid rgba(196,168,122,.4);
+  font-family: 'Cinzel', serif; font-size: 13px; color: #8a6a3a; line-height: 1;
+}
+.dm-gunnen-stap:hover:not(:disabled) { background: rgba(196,168,122,.28); }
+.dm-gunnen-stap:disabled { opacity: .35; cursor: default; }
+.dm-gunnen-moe-n {
+  display: inline-flex; align-items: center; gap: 4px; min-width: 42px; justify-content: center;
+  font-family: 'Cinzel', serif; font-size: 11px; color: #8a6a3a;
+}
+.dm-gunnen-moe-n .icon { width: 12px; height: 12px; }
+.dm-gunnen-moe-n.is-aan { color: #8b2a2a; font-weight: 700; }

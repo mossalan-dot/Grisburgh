@@ -1,4 +1,4 @@
-import { api, huidigeCampagne } from './api.js?v=296';
+import { api, huidigeCampagne } from './api.js?v=297';
 import { init as canvasInit, update as canvasUpdate, stop as canvasStop, acGetal } from './combat-canvas.js?v=29';
 import { renderStatblock } from './render-statblock.js?v=9';
 
@@ -8975,17 +8975,19 @@ async function _renderRust() {
       </div>
     </div>
 
-    <!-- Level omhoog staat onder Sfeer & gebeurtenissen: het hoort bij hetzelfde
-         moment aan tafel (einde sessie, of de lange rust erna), maar je raakt
-         het minder vaak aan dan de rust zelf. De DM gunt alleen; de speler kiest
-         zelf hoe hij aan zijn HP komt en wat hij met een ASI doet. -->
+    <!-- Level omhoog stond hier, met als enige argument dat het aan het eind
+         van een sessie gebeurt. Maar rust is iets wat de party dóét en een
+         level is iets wat jij gúnt; dat zijn twee handelingen. Het staat nu bij
+         Verzoeken → Gunnen, naast inspiratie en uitputting: alles wat van jou
+         naar een speler gaat, op één plek. -->
     <div class="dm-feature-section">
-      <div class="dm-section-label">${icon('sparkles')} Level omhoog<span class="dm-sectie-hulp">${helpBtn('dm_rust_levelup')}</span></div>
+      <div class="dm-section-label">${icon('hand')} Gunnen</div>
+      <p class="dm-hint" style="margin:0 0 8px">Een level omhoog, inspiratie en uitputting staan bij <strong>Verzoeken</strong> — daar geef je ze per speler.</p>
       <div class="dm-feature-row" style="gap:8px;align-items:center;flex-wrap:wrap">
-        <button class="dm-btn dm-btn-primary" onclick="window._dmLevelUpGun(1)"
-          title="Iedere aanwezige speler krijgt een level-up klaargezet">${icon('sparkles')} Party een level omhoog</button>
-        <button class="dm-btn dm-btn-ghost dm-btn-sm" onclick="window._dmLevelUpGun(0)"
-          title="Alle klaargezette level-ups weer intrekken">${icon('x')} Intrekken</button>
+        <button class="dm-btn dm-btn-ghost" onclick="window.dmPanel.switchTab('verzoeken')"
+          title="Naar Verzoeken → Gunnen">${icon('hand')} Naar Gunnen</button>
+        <button class="dm-btn dm-btn-primary dm-btn-sm" onclick="window._dmLevelUpGun(1)"
+          title="Iedere aanwezige speler krijgt een level-up klaargezet">${icon('star')} Hele party een level</button>
         <span id="dm-levelup-status" style="font-size:11px;color:#6a9050"></span>
       </div>
       <div id="dm-levelup-lijst" class="dm-hint" style="font-size:11px;margin-top:6px"></div>
@@ -10351,18 +10353,89 @@ async function _verzoekenTeller() {
 }
 window._verzoekenTeller = _verzoekenTeller;
 
+// ── Gunnen ─────────────────────────────────────────────────────────────────
+// Wat de DM aan een speler geeft of oplegt, stond op drie onvindbare plekken:
+// inspiratie achter een rechtermuisklik op een portretje in de partybalk,
+// level omhoog onderaan de Rust-tab (rust is iets wat de party dóét; gunnen is
+// iets wat jij doet), en uitputting had helemaal geen knop.
+//
+// Het staat hier omdat het de andere kant van dezelfde tafel is: hiernaast
+// vraagt een speler iets, hier geef je iets uit jezelf.
+function _gunnenHtml(spelers, badges) {
+  const gid = window._activeGroupId;
+  const party = (spelers || [])
+    .filter(e => e.subtype === 'speler' && (!gid || !e.data?.groep || e.data.groep === gid))
+    .sort((a, b) => (a.name || '').localeCompare(b.name || '', 'nl'));
+  if (!party.length) return '';
+
+  const rij = (e) => {
+    const mijn = badges[e.id] || [];
+    const heeft = (soort) => mijn.find(b => b.soort === soort);
+    const insp  = heeft('inspiratie');
+    const lvl   = heeft('levelup');
+    const moe   = heeft('exhaustion');
+    const niveau = moe ? (moe.getal || 1) : 0;
+    return `
+      <div class="dm-gunnen-rij">
+        <span class="dm-gunnen-naam">${esc(e.name)}</span>
+        <button class="dm-gunnen-knop${insp ? ' is-aan' : ''}"
+          onclick="window._gunInspiratie('${esc(e.id)}', ${insp ? 'false' : 'true'})"
+          title="${insp ? 'Heeft inspiratie — klik om weg te halen' : 'Geef inspiratie'}">${icon('sparkles')} Inspiration</button>
+        <button class="dm-gunnen-knop${lvl ? ' is-aan' : ''}"
+          onclick="window._gunLevel('${esc(e.id)}', ${lvl ? 0 : 1})"
+          title="${lvl ? 'Staat klaar — klik om in te trekken' : 'Zet een level omhoog klaar'}">${icon('star')} Level${lvl?.getal ? ` ×${lvl.getal}` : ''}</button>
+        <span class="dm-gunnen-moe">
+          <button class="dm-gunnen-stap" onclick="window._gunMoe('${esc(e.id)}', ${Math.max(0, niveau - 1)})"
+            title="Minder uitputting"${niveau ? '' : ' disabled'}>−</button>
+          <span class="dm-gunnen-moe-n${niveau ? ' is-aan' : ''}" title="Exhaustion">${icon('hourglass')} ${niveau}</span>
+          <button class="dm-gunnen-stap" onclick="window._gunMoe('${esc(e.id)}', ${Math.min(6, niveau + 1)})"
+            title="Meer uitputting"${niveau >= 6 ? ' disabled' : ''}>+</button>
+        </span>
+      </div>`;
+  };
+
+  return `
+    <div class="dm-feature-section">
+      <div class="dm-section-label">${icon('hand')} Gunnen<span class="dm-sectie-hulp">${helpBtn('dm_gunnen')}</span></div>
+      <div class="dm-gunnen">${party.map(rij).join('')}</div>
+    </div>`;
+}
+
+window._gunInspiratie = async (charId, aan) => {
+  try {
+    if (aan) await api.giveInspiration(charId); else await api.removeInspiration(charId);
+    _renderVerzoeken();
+  } catch (e) { alert('Lukt niet: ' + e.message); }
+};
+
+window._gunLevel = async (charId, aantal) => {
+  try {
+    await api.post('/party/level-up-tegoed', { charIds: [charId], aantal });
+    _renderVerzoeken();
+  } catch (e) { alert('Lukt niet: ' + e.message); }
+};
+
+window._gunMoe = async (charId, niveau) => {
+  try {
+    await api.put(`/characters/${charId}/exhaustion`, { niveau });
+    _renderVerzoeken();
+  } catch (e) { alert('Lukt niet: ' + e.message); }
+};
+
 async function _renderVerzoeken() {
   const el = document.querySelector('.dm-tab-content[data-tab="verzoeken"]');
   if (!el) return;
   el.innerHTML = _dmLoading();
 
-  let spreuken = [], bezit = null, multiclass = [], dossiers = [];
+  let spreuken = [], bezit = null, multiclass = [], dossiers = [], spelers = [], badges = {};
   try {
-    [spreuken, bezit, multiclass, dossiers] = await Promise.all([
+    [spreuken, bezit, multiclass, dossiers, spelers, badges] = await Promise.all([
       api.getSpellRequests().then(r => r.requests || []).catch(() => []),
       api.getItemOwnership().catch(() => null),
       api.get('/multiclass-verzoeken').then(r => r.verzoeken || []).catch(() => []),
       api.get('/gock/verzoeken').then(r => r.verzoeken || []).catch(() => []),
+      api.listEntities('personages').catch(() => []),
+      api.getBadges().catch(() => ({})),
     ]);
   } catch { /* hieronder vangen we het lege geval af */ }
   const voorwerpen = (bezit?.requests || []).filter(r => r.status === 'pending');
@@ -10429,6 +10502,8 @@ async function _renderVerzoeken() {
     ${_dmTabHead({ icon: 'hourglass', title: 'Verzoeken',
       sub: totaal ? `${totaal} wachten op jou` : 'Alles is afgehandeld',
       actions: `<button class="dm-btn dm-btn-sm dm-btn-ghost" onclick="window.dmPanel.verzoekenRefresh()" title="Opnieuw ophalen">${icon('refresh-cw')}</button>` })}
+
+    ${_gunnenHtml(spelers, badges)}
 
     <div class="dm-feature-section">
       <div class="dm-section-label">${icon('sparkles')} Spreuken ${spreuken.length ? `(${spreuken.length})` : ''}<span class="dm-sectie-hulp">${helpBtn('dm_verzoeken_spreuken')}</span></div>

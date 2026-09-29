@@ -243,6 +243,46 @@ describe('Het gevecht: opstellen, beurten en HP', () => {
     assert.strictEqual(r.status, 400, JSON.stringify(r.body));
   });
 
+  // Vijf dingen kunnen waar zijn van een personage tussen de scènes door, en ze
+  // lagen alle vijf ergens anders. Nu komen ze in één vorm uit één route — en
+  // die vorm moet blijven kloppen, want het portret leest hem blind.
+  describe('Wat er op een personage zit', () => {
+    it('geeft de vijf soorten in dezelfde vorm, in volgorde van gewicht', async () => {
+      // Uitputting hangt aan het spelersblad, dus er moet een profiel zijn —
+      // dat is de reden dat de route hem anders niet aanneemt.
+      await req(server, 'PATCH', `/api/player-profile/${held}`, { klasse: 'Fighter', level: 3 }, dm);
+      await req(server, 'PUT', `/api/player-inspiration/${held}`, {}, dm);
+      await req(server, 'POST', '/api/party/level-up-tegoed', { charIds: [held], aantal: 1 }, dm);
+      await req(server, 'PUT', `/api/characters/${held}/exhaustion`, { niveau: 2 }, dm);
+
+      const alle = (await req(server, 'GET', '/api/badges', null, dm)).body;
+      const mijn = alle[held] || [];
+      assert.deepStrictEqual(mijn.map(b => b.soort), ['levelup', 'inspiratie', 'exhaustion'],
+        'level omhoog wint van inspiratie, inspiratie van de rest');
+      for (const b of mijn) {
+        assert.ok(b.label && b.uitleg, `${b.soort} hoort een naam en een uitleg te hebben`);
+        assert.strictEqual(typeof b.eigen, 'boolean');
+      }
+      assert.strictEqual(mijn.find(b => b.soort === 'exhaustion').getal, 2);
+      assert.strictEqual(mijn.find(b => b.soort === 'exhaustion').eigen, false,
+        'uitputting legt de DM op; die klik je niet zelf weg');
+    });
+
+    it('laat de speler weghalen wat van hemzelf is, en de rest niet', async () => {
+      const op = await req(server, 'DELETE', `/api/badges/${held}/inspiratie`, null, heldC);
+      assert.strictEqual(op.status, 200, JSON.stringify(op.body));
+      assert.ok(!op.body.badges.some(b => b.soort === 'inspiratie'), 'inspiratie is verzilverd');
+
+      const nee = await req(server, 'DELETE', `/api/badges/${held}/exhaustion`, null, heldC);
+      assert.strictEqual(nee.status, 403, 'uitputting haalt alleen de DM weg');
+    });
+
+    it('laat een speler niet aan het portret van een ander komen', async () => {
+      const r = await req(server, 'DELETE', `/api/badges/${maat}/inspiratie`, null, heldC);
+      assert.strictEqual(r.status, 403);
+    });
+  });
+
   // Een gevecht liet niets na dan een rauwe logdump die alleen de DM zag. Wat
   // er wérd — wie je tegenover je had, of je won, hoe lang het duurde, wie er
   // neerging — is het verhaal van de party, en dat hoort in hun logboek.
