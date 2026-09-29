@@ -27697,7 +27697,6 @@ body.akte-schrijf-open .mp-overlay { z-index: 1320; }
 .dm-gunnen-knop.is-aan {
   background: rgba(200,168,64,.3); border-color: rgba(154,112,8,.7); color: #4a3408;
 }
-.dm-gunnen-moe { display: inline-flex; align-items: center; gap: 2px; }
 .dm-gunnen-stap {
   width: 22px; height: 22px; cursor: pointer; border-radius: 6px;
   background: rgba(196,168,122,.12); border: 1px solid rgba(196,168,122,.4);
@@ -27705,9 +27704,29 @@ body.akte-schrijf-open .mp-overlay { z-index: 1320; }
 }
 .dm-gunnen-stap:hover:not(:disabled) { background: rgba(196,168,122,.28); }
 .dm-gunnen-stap:disabled { opacity: .35; cursor: default; }
-.dm-gunnen-moe-n {
-  display: inline-flex; align-items: center; gap: 4px; min-width: 42px; justify-content: center;
-  font-family: 'Cinzel', serif; font-size: 11px; color: #8a6a3a;
+
+
+/* Gunnen en Verzoeken zijn twee richtingen, dus twee panelen onder één balk. */
+.dm-verz-paneel[hidden] { display: none; }
+
+/* Uitputting is een teller, geen knop: met alleen een zandlopertje en een
+   cijfer was niet te zien wát het was of wat − en + deden. */
+.dm-gunnen-knoppen { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.dm-gunnen-moe {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 2px 4px 2px 10px; border-radius: 999px;
+  border: 1px solid rgba(196,168,122,.4); background: rgba(196,168,122,.08);
 }
-.dm-gunnen-moe-n .icon { width: 12px; height: 12px; }
-.dm-gunnen-moe-n.is-aan { color: #8b2a2a; font-weight: 700; }
+.dm-gunnen-moe-lbl {
+  display: inline-flex; align-items: center; gap: 5px; margin-right: 3px;
+  font-family: 'Cinzel', serif; font-size: 10.5px; color: #8a6a3a;
+}
+.dm-gunnen-moe-lbl .icon { width: 12px; height: 12px; }
+.dm-gunnen-moe-n {
+  min-width: 16px; text-align: center;
+  font-family: 'Cinzel', serif; font-size: 12px; font-weight: 700; color: #8a6a3a;
+}
+/* Pas kleur zodra er werkelijk iets op staat. */
+.dm-gunnen-moe.is-aan { border-color: rgba(139,42,42,.5); background: rgba(139,42,42,.1); }
+.dm-gunnen-moe.is-aan .dm-gunnen-moe-lbl,
+.dm-gunnen-moe.is-aan .dm-gunnen-moe-n { color: #8b2a2a; }

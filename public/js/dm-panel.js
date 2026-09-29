@@ -10368,58 +10368,80 @@ function _gunnenHtml(spelers, badges) {
     .sort((a, b) => (a.name || '').localeCompare(b.name || '', 'nl'));
   if (!party.length) return '';
 
-  const rij = (e) => {
-    const mijn = badges[e.id] || [];
-    const heeft = (soort) => mijn.find(b => b.soort === soort);
-    const insp  = heeft('inspiratie');
-    const lvl   = heeft('levelup');
-    const moe   = heeft('exhaustion');
-    const niveau = moe ? (moe.getal || 1) : 0;
-    return `
-      <div class="dm-gunnen-rij">
-        <span class="dm-gunnen-naam">${esc(e.name)}</span>
+  return `
+    <div class="dm-gunnen">${party.map(e => _gunnenRijHtml(e, badges[e.id] || [])).join('')}</div>`;
+}
+
+// Eén rij. Apart, zodat een klik alleen zijn eigen regel opnieuw tekent: het
+// hele tabblad hertekenen liet de pagina zichtbaar knipperen bij elke knop.
+function _gunnenRijHtml(e, mijn) {
+  const heeft = (soort) => (mijn || []).find(b => b.soort === soort);
+  const insp = heeft('inspiratie');
+  const lvl  = heeft('levelup');
+  const moe  = heeft('exhaustion');
+  const niveau = moe ? (moe.getal || 1) : 0;
+  return `
+    <div class="dm-gunnen-rij" data-char="${esc(e.id)}">
+      <span class="dm-gunnen-naam">${esc(e.name)}</span>
+      <div class="dm-gunnen-knoppen">
         <button class="dm-gunnen-knop${insp ? ' is-aan' : ''}"
           onclick="window._gunInspiratie('${esc(e.id)}', ${insp ? 'false' : 'true'})"
           title="${insp ? 'Heeft inspiratie — klik om weg te halen' : 'Geef inspiratie'}">${icon('sparkles')} Inspiration</button>
         <button class="dm-gunnen-knop${lvl ? ' is-aan' : ''}"
           onclick="window._gunLevel('${esc(e.id)}', ${lvl ? 0 : 1})"
-          title="${lvl ? 'Staat klaar — klik om in te trekken' : 'Zet een level omhoog klaar'}">${icon('star')} Level${lvl?.getal ? ` ×${lvl.getal}` : ''}</button>
-        <span class="dm-gunnen-moe">
+          title="${lvl ? 'Staat klaar — klik om in te trekken' : 'Zet een level omhoog klaar'}">${icon('star')} Level${lvl?.getal > 1 ? ` ×${lvl.getal}` : ''}</button>
+        <!-- Uitputting is geen knop maar een teller: hij had alleen een
+             zandlopertje met een cijfer, en dan is niet te zien wat het is of
+             wat − en + doen. Nu staat het woord erbij, en het getal wordt pas
+             rood zodra er werkelijk iets op staat. -->
+        <span class="dm-gunnen-moe${niveau ? ' is-aan' : ''}">
+          <span class="dm-gunnen-moe-lbl">${icon('hourglass')} Exhaustion</span>
           <button class="dm-gunnen-stap" onclick="window._gunMoe('${esc(e.id)}', ${Math.max(0, niveau - 1)})"
-            title="Minder uitputting"${niveau ? '' : ' disabled'}>−</button>
-          <span class="dm-gunnen-moe-n${niveau ? ' is-aan' : ''}" title="Exhaustion">${icon('hourglass')} ${niveau}</span>
+            title="Een trede minder"${niveau ? '' : ' disabled'}>−</button>
+          <span class="dm-gunnen-moe-n">${niveau}</span>
           <button class="dm-gunnen-stap" onclick="window._gunMoe('${esc(e.id)}', ${Math.min(6, niveau + 1)})"
-            title="Meer uitputting"${niveau >= 6 ? ' disabled' : ''}>+</button>
+            title="Een trede meer"${niveau >= 6 ? ' disabled' : ''}>+</button>
         </span>
-      </div>`;
-  };
-
-  return `
-    <div class="dm-feature-section">
-      <div class="dm-section-label">${icon('hand')} Gunnen<span class="dm-sectie-hulp">${helpBtn('dm_gunnen')}</span></div>
-      <div class="dm-gunnen">${party.map(rij).join('')}</div>
+      </div>
     </div>`;
+}
+
+// Na een klik alleen deze regel opnieuw. De badges van dit personage haalt hij
+// zelf op — dat is één klein verzoek in plaats van het hele tabblad.
+async function _gunnenRijVerversen(charId) {
+  const rij = document.querySelector(`.dm-gunnen-rij[data-char="${CSS.escape(charId)}"]`);
+  if (!rij) return;
+  let badges = {};
+  try { badges = await api.getBadges(); } catch { return; }
+  const naam = rij.querySelector('.dm-gunnen-naam')?.textContent || '';
+  rij.outerHTML = _gunnenRijHtml({ id: charId, name: naam }, badges[charId] || []);
 }
 
 window._gunInspiratie = async (charId, aan) => {
   try {
     if (aan) await api.giveInspiration(charId); else await api.removeInspiration(charId);
-    _renderVerzoeken();
+    await _gunnenRijVerversen(charId);
   } catch (e) { alert('Lukt niet: ' + e.message); }
 };
 
 window._gunLevel = async (charId, aantal) => {
   try {
     await api.post('/party/level-up-tegoed', { charIds: [charId], aantal });
-    _renderVerzoeken();
+    await _gunnenRijVerversen(charId);
   } catch (e) { alert('Lukt niet: ' + e.message); }
 };
 
 window._gunMoe = async (charId, niveau) => {
   try {
     await api.put(`/characters/${charId}/exhaustion`, { niveau });
-    _renderVerzoeken();
-  } catch (e) { alert('Lukt niet: ' + e.message); }
+    await _gunnenRijVerversen(charId);
+  } catch (e) {
+    // Uitputting hangt aan het spelersblad; zonder profiel neemt de server hem
+    // niet aan. Dat is geen fout van de DM, dus zeg wat eraan schort.
+    alert(/onbekend/i.test(e.message || '')
+      ? 'Dit personage heeft nog geen spelersblad — vul eerst zijn klasse en level in.'
+      : 'Lukt niet: ' + e.message);
+  }
 };
 
 async function _renderVerzoeken() {
@@ -10497,13 +10519,31 @@ async function _renderVerzoeken() {
      <button class="dm-btn dm-btn-sm dm-btn-ghost" onclick="window.dmPanel.verzoekMulticlass('${esc(v.id)}', false)">${icon('x')} Weigeren</button>`
   )).join('');
 
-  const totaal = spreuken.length + voorwerpen.length + multiclass.length;
+  const totaal = spreuken.length + voorwerpen.length + multiclass.length + dossiers.length;
+  // Twee secties, want het zijn twee richtingen: bij Gunnen geef jij iets, bij
+  // Verzoeken vraagt een speler iets. Ze stonden onder één kop "Verzoeken", en
+  // dan lijkt gunnen een soort verzoek.
   el.innerHTML = `
-    ${_dmTabHead({ icon: 'hourglass', title: 'Verzoeken',
-      sub: totaal ? `${totaal} wachten op jou` : 'Alles is afgehandeld',
-      actions: `<button class="dm-btn dm-btn-sm dm-btn-ghost" onclick="window.dmPanel.verzoekenRefresh()" title="Opnieuw ophalen">${icon('refresh-cw')}</button>` })}
+    <div class="dm-subtab-nav">${_subtabNavHtml({
+      items: [
+        { id: 'gunnen',    label: 'Gunnen',    icoon: 'hand' },
+        { id: 'verzoeken', label: totaal ? `Verzoeken (${totaal})` : 'Verzoeken', icoon: 'hourglass' },
+      ],
+      actief: _verzoekenSubTab,
+      klik: (id) => `window._verzoekenSubtabKies('${id}')`,
+      hulp: _verzoekenSubTab === 'gunnen' ? 'dm_gunnen' : 'dm_verzoeken',
+    })}</div>
 
-    ${_gunnenHtml(spelers, badges)}
+    <div class="dm-verz-paneel" data-sub="gunnen"${_verzoekenSubTab === 'gunnen' ? '' : ' hidden'}>
+      <div class="dm-feature-section">
+        ${_gunnenHtml(spelers, badges)}
+      </div>
+    </div>
+
+    <div class="dm-verz-paneel" data-sub="verzoeken"${_verzoekenSubTab === 'verzoeken' ? '' : ' hidden'}>
+    <div class="dm-feature-section" style="text-align:right;padding-bottom:0">
+      <button class="dm-btn dm-btn-sm dm-btn-ghost" onclick="window.dmPanel.verzoekenRefresh()" title="Opnieuw ophalen">${icon('refresh-cw')} Opnieuw ophalen</button>
+    </div>
 
     <div class="dm-feature-section">
       <div class="dm-section-label">${icon('sparkles')} Spreuken ${spreuken.length ? `(${spreuken.length})` : ''}<span class="dm-sectie-hulp">${helpBtn('dm_verzoeken_spreuken')}</span></div>
@@ -10523,8 +10563,20 @@ async function _renderVerzoeken() {
     <div class="dm-feature-section">
       <div class="dm-section-label">${icon('search')} Onderzoek ${dossiers.length ? `(${dossiers.length})` : ''}<span class="dm-sectie-hulp">${helpBtn('dm_verzoeken_onderzoek')}</span></div>
       ${dossierHtml || '<p class="dm-hint">Niets openstaand.</p>'}
+    </div>
     </div>`;
 }
+
+// Welke van de twee in beeld staat. Wisselen hoeft niets op te halen: allebei
+// de panelen staan er al.
+let _verzoekenSubTab = 'gunnen';
+window._verzoekenSubtabKies = (id) => {
+  _verzoekenSubTab = id;
+  const el = document.querySelector('.dm-tab-content[data-tab="verzoeken"]');
+  if (!el) return;
+  el.querySelectorAll('.dm-verz-paneel').forEach(p => { p.hidden = p.dataset.sub !== id; });
+  el.querySelectorAll('.dm-subtab-btn').forEach(b => b.classList.toggle('active', b.dataset.subtab === id));
+};
 
 // De brieven van één speler, als uitklapper. Stond als losse lus in de
 // geschiedenis; nu staat hij binnen zijn party, zodat je ziet wie bij wie

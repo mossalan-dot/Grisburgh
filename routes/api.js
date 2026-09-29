@@ -4155,7 +4155,10 @@ router.post('/party/long-rest', requireDM, (req, res) => {
       else dmState.playerExhaustion[char.id] = na;
       _sum(char.id).exhaustionVan = n;
       _sum(char.id).exhaustionNaar = na;
-      if (io) io.to(_campagneRoom(req)).emit('player:exhaustion', { characterId: char.id, niveau: na });
+      if (io) {
+        io.to(_campagneRoom(req)).emit('player:exhaustion', { characterId: char.id, niveau: na });
+        io.to(_campagneRoom(req)).emit('badges:updated', { characterId: char.id });
+      }
     });
   }
 
@@ -4175,7 +4178,10 @@ router.post('/party/long-rest', requireDM, (req, res) => {
     spelers.forEach(char => {
       if (dmState.playerBuffs[char.id]?.length) {
         dmState.playerBuffs[char.id] = [];
-        if (io) io.to(_campagneRoom(req)).emit('player:buffs-updated', { characterId: char.id, buffs: [] });
+        if (io) {
+          io.to(_campagneRoom(req)).emit('player:buffs-updated', { characterId: char.id, buffs: [] });
+          io.to(_campagneRoom(req)).emit('badges:updated', { characterId: char.id });
+        }
       }
     });
   }
@@ -5126,6 +5132,9 @@ router.post('/characters/:characterId/level-up', attachRole, (req, res) => {
     io.to(room).emit('player:hp-updated', { characterId, current: nieuwCurrent, max: nieuweMax, temp: hp.temp ?? 0 });
     io.to(room).emit('player:profile-updated', { characterId });
     io.to(room).emit('player:level-up', { characterId, ...regel });
+    // Het tegoed is opgemaakt, dus de ster op zijn portret hoort weg. Zonder
+    // dit bleef hij staan tot iemand het scherm verversste.
+    io.to(room).emit('badges:updated', { characterId });
     // Het tafelscherm is geen speler en kan de naam en het portret dus nergens
     // vandaan halen — zelfde patroon als `brief:display` en `loot:display`.
     let _p = null;
