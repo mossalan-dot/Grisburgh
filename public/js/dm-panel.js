@@ -3482,8 +3482,9 @@ function _renderTafels() {
     <div class="dm-feature-section dm-namen-section">
       <div class="dm-section-label">Namen<span class="dm-sectie-hulp">${helpBtn('dm_tafels_namen')}</span></div>
       <div class="dm-feature-row">
-        <button class="dm-btn dm-btn-sm dm-btn-ghost" onclick="window.dmPanel.naamGenereer('m')" title="Trek een mannennaam">♂ Mannennaam</button>
-        <button class="dm-btn dm-btn-sm dm-btn-ghost" onclick="window.dmPanel.naamGenereer('v')" title="Trek een vrouwennaam">♀ Vrouwennaam</button>
+        <!-- Het woord zegt het al; het teken ervoor zei het nog eens. -->
+        <button class="dm-btn dm-btn-sm dm-btn-ghost" onclick="window.dmPanel.naamGenereer('m')" title="Trek een mannennaam">Mannennaam</button>
+        <button class="dm-btn dm-btn-sm dm-btn-ghost" onclick="window.dmPanel.naamGenereer('v')" title="Trek een vrouwennaam">Vrouwennaam</button>
       </div>
       <div id="dm-naam-result" class="dm-naam-result"></div>
     </div>

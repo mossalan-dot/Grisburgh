@@ -5443,6 +5443,8 @@ body.lade-dicht .regie-lade-body { display: none; }
 .dm-loot-rij {
   display: flex; align-items: center; gap: 8px; padding: 6px 4px;
   border-bottom: 1px solid rgba(196,168,122,0.22);
+  /* Op een telefoon zakken de knopjes onder de regel in plaats van eruit. */
+  flex-wrap: wrap;
 }
 .dm-loot-rij--gekozen { background: rgba(196,168,122,0.12); border-radius: 4px; }
 .dm-loot-kies { flex: 0 0 auto; display: inline-flex; align-items: center; }
@@ -5744,7 +5746,11 @@ body.lade-dicht .regie-lade-body { display: none; }
   border-bottom: 1px solid rgba(196,168,122,0.45);
   margin-bottom: 4px;
   flex-shrink: 0;
+  /* Op een telefoon zakken de knoppen naar een tweede regel; zonder dit duwden
+     ze het hele tabblad voorbij de rand (Aktes had er 312px aan staan). */
+  flex-wrap: wrap;
 }
+.dm-tab-head-title { min-width: 0; overflow-wrap: anywhere; }
 .dm-tab-head-icon {
   display: inline-flex; align-items: center; justify-content: center;
   width: 26px; height: 26px; border-radius: 6px;
@@ -5759,7 +5765,7 @@ body.lade-dicht .regie-lade-body { display: none; }
   font-family: 'Crimson Text', Georgia, serif; font-style: italic;
   font-size: 12px; color: #9a8060;
 }
-.dm-tab-head-actions { margin-left: auto; display: inline-flex; align-items: center; gap: 6px; }
+.dm-tab-head-actions { margin-left: auto; display: inline-flex; align-items: center; gap: 6px; flex-wrap: wrap; }
 
 .dm-naam-btn { flex: 1; justify-content: center; }
 /* Leeg = geen ruimte. Die vaste hoogte van 36px stond er voor de
@@ -6002,14 +6008,23 @@ body.lade-dicht .regie-lade-body { display: none; }
   background: rgba(255,255,255,0.5);
   border: 1px solid #c4a87a;
   border-radius: 5px;
+  /* Op een telefoon zakt het initiative-blok naar de tweede regel in plaats van
+     de rij breder te maken dan het scherm. */
+  flex-wrap: wrap;
 }
 .dm-setup-name {
   font-family: 'Cinzel', serif;
   font-size: 11px;
   font-weight: 700;
   color: #3a2410;
-  flex: 1;
+  /* `flex: 1` zonder `min-width: 0` krimpt niet onder de breedte van zijn
+     tekst: een naam als "Dummy Drakenbaard" duwde de hele rij — en daarmee het
+     tabblad — voorbij de rand van een telefoon. */
+  flex: 1 1 90px;
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
+.dm-setup-meta { white-space: nowrap; }
 /* ── Gelabelde invoervelden (Init / HP) ── */
 .dm-labeled-input {
   display: inline-flex;
