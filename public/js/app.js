@@ -1,5 +1,5 @@
 import { api, campagneUitUrl, zetCampagne } from './api.js?v=297';
-import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, renderDocumenten, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=322";
+import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, renderDocumenten, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=323";
 import { initArchief, renderLogboek, openLogboekEditor } from "./render-archief.js?v=137";
 import { renderKaart, queueFlyTo, verversPins, nieuweKaart } from './render-kaart.js?v=31';
 import { renderDungeon } from './render-dungeon.js?v=56';
@@ -12301,8 +12301,6 @@ function _muntTekst(b) {
     .filter(([v]) => v > 0).map(([v, naam]) => `${v} ${naam}`).join(' · ') || `0 ${n.cl}`;
 }
 
-// Klikken opent het kaartje op zijn winkeltabblad — daar wordt gekocht, met de
-// winkelier, zijn humeur en het onderhandelen dat daarbij hoort.
 // Klikken opent de winkelscène hierboven. Wil je het kaartje zelf (de toonbank
 // van de DM), dan is dat de knop in de scène.
 window._marktOpen = (soort, id) => window._marktWinkelOpen(soort, id);
@@ -14275,6 +14273,8 @@ const HELP_CONFIG = {
     { titel: 'Wat van jou naar een speler gaat', tekst: 'Een **level omhoog**, **inspiration** en **exhaustion**, per speler. Dit stond op drie plekken die je moest kennen om te vinden: inspiratie achter een rechtermuisklik, level omhoog onderaan de Rust-tab, en uitputting nergens.', afbeelding: null },
     { titel: 'Gunnen, niet uitvoeren', tekst: 'Een level zet je klaar; de speler kiest zelf zijn HP en wat hij met een ASI doet. Inspiration verzilvert hij zelf. Een klik op een knop die al aanstaat trekt het weer in.', afbeelding: null },
     { titel: 'Op het portret', tekst: 'Alles wat je hier geeft verschijnt als **badge** op het portret van die speler: zijn portret draait om en toont wat er op hem zit. Uitputting en een vloek kan hij niet zelf wegklikken — die staan er tot jij ze weghaalt.', afbeelding: null },
+    { titel: 'Milestone of XP', tekst: 'Speelt de campagne op **Milestone**, dan is dit de knop waarmee je een level gunt. Op **XP** staat een level-up vanzelf klaar zodra iemand over de drempel komt en hoef je hier niets te doen — punten uitdelen gaat met de XP-knop in de regie-balk. Welk van de twee geldt, stel je in bij Instellingen → Campagne → Level omhoog.', afbeelding: null },
+    { titel: 'Terugdraaien kan', tekst: 'Een per ongeluk gegund level haal je met dezelfde knop weer weg zolang de speler hem nog niet verzilverd heeft. Daarna is het zijn blad, en draai je het terug op zijn personage.', afbeelding: null },
   ] }),
   dm_markt_gebieden: () => ({ titel: 'Gebieden', stappen: [
     { titel: 'Waarvoor dit is', tekst: 'Vink aan welke gebieden je spelers als **knop** op de Markt te zien krijgen. Vink je niets aan, dan kiest de app zelf een zinnige laag — daar is de knop *Alles uit* voor.', afbeelding: null },
@@ -14370,11 +14370,6 @@ const HELP_CONFIG = {
     { titel: 'Een beeld per soort rust', tekst: 'Kies een achtergrond voor het veld en voor de korte rust; de herberg gebruikt zijn eigen gevel. Die verschijnt achter het rustscherm, dus het is meteen duidelijk wáár ze slapen.', afbeelding: null },
     { titel: 'Een voorval per speler', tekst: 'Koppel een tabel en elke speler rolt bij een lange rust zijn **eigen** voorval — hij ziet alleen het zijne, het tafelscherm toont ze allemaal. Bevat een regel een bedrag (`{+3kn}`), dan wordt dat meteen verrekend bij die speler.', afbeelding: null },
     { titel: 'Binnen en buiten apart', tekst: 'Je kunt een aparte tabel zetten voor het veld en voor de herberg: wat je wakker maakt in het bos is iets anders dan wat er in een taveerne gebeurt. De algemene tabel is het vangnet als er voor die plek niets staat.', afbeelding: null },
-  ] }),
-  dm_rust_levelup: () => ({ titel: 'Level omhoog (hier)', stappen: [
-    { titel: 'Waarom hier', tekst: 'Omdat het aan tafel op hetzelfde moment gebeurt: einde sessie, of bij de lange rust erna. Je zet een level-up **klaar** voor iedereen die vanavond meespeelt; de spelers kiezen daarna zelf hoe ze aan hun HP komen en wat ze met een ASI doen.', afbeelding: null },
-    { titel: 'Milestone of XP', tekst: 'Speelt de campagne op **Milestone**, dan is dit de knop waarmee je het gunt. Op **XP** staat een level-up vanzelf klaar zodra iemand over de drempel komt en hoef je hier niets te doen — punten uitdelen gaat met de XP-knop in de regie-balk. Welk van de twee geldt, stel je in bij Instellingen → Campagne → Level omhoog.', afbeelding: null },
-    { titel: 'Terugdraaien kan', tekst: 'Een per ongeluk gegund level haal je met dezelfde knop weer weg zolang de speler hem nog niet verzilverd heeft. Daarna is het zijn blad, en draai je het terug op zijn personage.', afbeelding: null },
   ] }),
 
   dm_loot_vondsten: () => ({ titel: 'De vondsten', stappen: [
@@ -14592,7 +14587,7 @@ const HELP_CONFIG = {
         tekst: 'Typ een voorwerp en je ziet **waar het ligt en wat het kost**, goedkoopste bovenaan. Scheelt prijs per winkel, dan staat er *goedkoopst* bij; zijn ze allemaal gelijk, dan staat er niets — dat is dan geen keuze. Een prijs die je met de beurs van de party niet kunt betalen kleurt rood.',
         afbeelding: null },
       { titel: 'Kopen doe je in de winkel',
-        tekst: 'Klikken opent het kaartje van die winkel op zijn **winkeltabblad**. Daar reken je af, met de winkelier, zijn humeur en het onderhandelen dat daarbij hoort. De Markt zegt alleen waar je heen kunt.',
+        tekst: 'Klikken opent het kaartje van die winkel op zijn **winkeltabblad**. Daar reken je af. De Markt zegt alleen waar je heen kunt.',
         afbeelding: null },
       { titel: 'Wat je niet ziet',
         tekst: 'Alleen winkels die je party **ontdekt heeft** en die tijdens deze akte bereikbaar zijn. Een winkel met een **wisselend assortiment** die je nog niet bezocht hebt, geeft zijn voorraad niet prijs — daar moet je langs. De DM ziet alles, met erbij waarom iets voor de party dicht zit.',
@@ -14606,7 +14601,8 @@ const HELP_CONFIG = {
     titel: 'In de winkel',
     stappen: [
       { titel: 'Kopen', tekst: 'Kies het aantal en klik **Kopen**. Het bedrag gaat van je eigen beurs af, of van de gedeelde beurs als die aanstaat. Kun je het niet betalen, dan kleurt de prijs rood en gebeurt er niets.', afbeelding: null },
-      { titel: 'De winkelier heeft een humeur', tekst: 'Hoe je met hem omgaat verandert wat je betaalt. Je DM stelt dat bij — en soms valt er te **onderhandelen**; dan verschijnt die mogelijkheid vanzelf.', afbeelding: null },
+      { titel: 'Afdingen doe je aan tafel', tekst: 'Er is geen knop om te onderhandelen: dat speel je uit, en je DM tikt het afgesproken bedrag in. Hij kan je ook spullen **verkopen** tegen een prijs die jullie afspreken.', afbeelding: null },
+      { titel: 'Verkopen', tekst: 'Koopt deze winkel in, dan staat er een knop om iets van de hand te doen — voor een deel van de winkelprijs. Zegeningen, gunsten en class-features blijven buiten de handel.', afbeelding: null },
       { titel: 'Uitverkocht', tekst: 'Een doorgestreepte regel is er even niet. Bij een winkel met een **wisselend assortiment** ligt er elke keer iets anders in de schappen; wat je vandaag ziet is wat er vandaag is.', afbeelding: null },
       { titel: 'Wat iets ís', tekst: 'Klik de naam van een voorwerp: dan opent zijn **kaartje**, met de beschrijving, het beeld en wat het doet. Daarna kun je gewoon terug.', afbeelding: null },
     ] }),

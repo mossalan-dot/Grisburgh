@@ -28,7 +28,10 @@ const vm   = require('vm');
 const args     = process.argv.slice(2);
 const campagne = args.find(a => !a.startsWith('--'));
 const schrijf  = args.includes('--schrijf');
-const uitPad   = args[args.indexOf('--uit') + 1];
+// `indexOf` geeft -1 als de vlag er niet staat, en `args[0]` is dan de
+// campagnenaam: zonder deze controle schreef het script naar een bestand dat
+// letterlijk "grisburgh" heette in plaats van naar docs/helpteksten.md.
+const uitPad   = args.includes('--uit') ? args[args.indexOf('--uit') + 1] : null;
 const leesPad  = args.includes('--lees') ? args[args.indexOf('--lees') + 1] : null;
 
 if (!campagne) {
@@ -137,13 +140,23 @@ const DYNAMISCH = {
     sleutels: ['personages', 'locaties', 'organisaties', 'voorwerpen', 'documenten'],
     hoe: 'de kaartjes-tab geeft het entiteitstype als sleutel door',
   },
-  'dm-panel.js': {
-    // De subtab-balken stellen hun sleutel samen uit het actieve tabje.
-    regel: /hulp: `(inst|dm_geluiden)_\$\{/,
-    sleutels: ['inst_campagne', 'inst_partys', 'inst_beheer',
-               'dm_geluiden_decors', 'dm_geluiden_standaard', 'dm_geluiden_spelers'],
-    hoe: 'de subtab-balk stelt de sleutel samen uit het actieve tabje',
-  },
+  // Eén bestand kan meer dan één dynamisch patroon hebben, dus een lijst.
+  'dm-panel.js': [
+    {
+      // De subtab-balken stellen hun sleutel samen uit het actieve tabje.
+      regel: /hulp: `(inst|dm_geluiden)_\$\{/,
+      sleutels: ['inst_campagne', 'inst_partys', 'inst_beheer',
+                 'dm_geluiden_decors', 'dm_geluiden_standaard', 'dm_geluiden_spelers'],
+      hoe: 'de subtab-balk stelt de sleutel samen uit het actieve tabje',
+    },
+    {
+      // De dienstenbalk doet hetzelfde met de naam van de dienst.
+      regel: /hulp: `dm_\$\{_dienstenSubTab\}`/,
+      sleutels: ['dm_herberg', 'dm_gokhuis', 'dm_detective', 'dm_waarzegger',
+                 'dm_tempel', 'dm_facties', 'dm_magizoo', 'dm_markt', 'dm_toegang'],
+      hoe: 'de dienstenbalk stelt de sleutel samen uit de actieve dienst',
+    },
+  ],
 };
 function vindplaatsen() {
   const per = {};
@@ -154,8 +167,23 @@ function vindplaatsen() {
       for (const m of r.matchAll(/_?helpBtn\??\.?\(([^)]*)\)/gi)) {
         for (const q of m[1].matchAll(/'([a-z_0-9]+)'/gi)) (per[q[1]] ||= []).push(`${bestand}:${n + 1}`);
       }
-      if (dyn && dyn.regel.test(r)) {
-        for (const s of dyn.sleutels) (per[s] ||= []).push(`${bestand}:${n + 1} (${dyn.hoe})`);
+      // Niet elke knop komt uit een letterlijke `helpBtn('x')`. Een sectiekop
+      // en een subtabbalk krijgen hun sleutel als argument mee; zonder deze
+      // twee patronen meldde het script zeventien knoppen als ontbrekend die er
+      // wel degelijk zijn — en dan verdrinkt de enige die het écht is.
+      for (const m of r.matchAll(/_dienstSectieKop\([^,]*,[^,]*,\s*'([a-z_0-9]+)'/gi)) {
+        (per[m[1]] ||= []).push(`${bestand}:${n + 1} (sectiekop)`);
+      }
+      // Een `hulp:`-regel kan meer dan één sleutel dragen (een ternair: de ene
+      // subtab dit boekje, de andere dat).
+      if (/\bhulp:/.test(r)) {
+        for (const q of r.matchAll(/'([a-z_][a-z_0-9]*)'/gi)) {
+          if (/^(dm_|hulp_)/.test(q[1])) (per[q[1]] ||= []).push(`${bestand}:${n + 1} (subtabbalk)`);
+        }
+      }
+      for (const d of (Array.isArray(dyn) ? dyn : (dyn ? [dyn] : []))) {
+        if (!d.regel.test(r)) continue;
+        for (const s of d.sleutels) (per[s] ||= []).push(`${bestand}:${n + 1} (${d.hoe})`);
       }
     });
   }

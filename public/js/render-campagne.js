@@ -7571,10 +7571,34 @@ window._openEditor = async (tab, editId) => {
           class="px-3 py-1 bg-room-bg border border-room-border rounded text-ink-dim text-sm hover:text-ink-bright transition">
           ${icon('plus')} Voorwerp toevoegen
         </button>
+        <input type="hidden" name="data_winkelConfig" id="winkelconfig-hidden" value="${esc(e?.data?.winkelConfig || '')}">
+
+        <!-- Inkopen: de server kon dit allang (winkelConfig.koopt), maar er
+             was geen veld om het aan te zetten — dus kon een speler nergens
+             iets verkopen. -->
+        <div>
+          <div class="cs-sectiekop">Koopt in van spelers</div>
+          <div class="space-y-2">
+            <label class="flex items-center gap-2 text-sm text-ink-medium cursor-pointer">
+              <input type="checkbox" id="wc-koopt" ${winkelConfigEditor.koopt ? 'checked' : ''} onchange="window._wcUpdate()">
+              Deze winkel koopt voorwerpen van de party
+            </label>
+            <div id="wc-koop-extra" class="${winkelConfigEditor.koopt ? '' : 'hidden'} space-y-2 pl-4">
+              <div class="flex gap-2 items-center">
+                <label class="text-xs text-ink-dim w-32" title="Wat hij betaalt, als percentage van de winkelprijs">Betaalt</label>
+                <input type="number" id="wc-koopratio" min="1" max="100"
+                  value="${parseInt(winkelConfigEditor.koopRatio) || 50}" oninput="window._wcUpdate()"
+                  class="w-16 px-2 py-1 bg-room-bg border border-room-border rounded text-ink-bright text-sm focus:border-gold-dim focus:outline-none">
+                <label class="text-xs text-ink-dim">% van de prijs</label>
+              </div>
+              <p class="text-xs text-ink-dim italic">Zegeningen, gunsten en class-features blijven altijd buiten de handel, net als alles wat op het kaartje <em>niet verkoopbaar</em> heet.</p>
+            </div>
+          </div>
+        </div>
+
         <!-- Wisselend assortiment: niet alles ligt altijd in de schappen -->
         <div>
           <div class="cs-sectiekop">Wisselend assortiment</div>
-          <input type="hidden" name="data_winkelConfig" id="winkelconfig-hidden" value="${esc(e?.data?.winkelConfig || '')}">
           <div class="space-y-2">
             <label class="flex items-center gap-2 text-sm text-ink-medium cursor-pointer">
               <input type="checkbox" id="wc-roterend" ${winkelConfigEditor.roterend ? 'checked' : ''} onchange="window._wcUpdate()">
@@ -8202,8 +8226,12 @@ window._openEditor = async (tab, editId) => {
       document.getElementById('wc-uren-rij')?.classList.toggle('hidden', _ververs !== 'uren');
       const _min = Math.max(1, parseInt(document.getElementById('wc-min')?.value) || 1);
       const _max = Math.max(_min, parseInt(document.getElementById('wc-max')?.value) || _min);
+      const _koopt = document.getElementById('wc-koopt')?.checked || false;
+      document.getElementById('wc-koop-extra')?.classList.toggle('hidden', !_koopt);
       const config = {
         ...oud,
+        koopt: _koopt,
+        koopRatio: Math.min(100, Math.max(1, parseInt(document.getElementById('wc-koopratio')?.value) || 50)),
         roterend,
         minItems: _min,
         maxItems: _max,

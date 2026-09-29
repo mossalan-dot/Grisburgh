@@ -1,7 +1,9 @@
 const { describe, it, before, after } = require('node:test');
 const assert = require('node:assert');
 const fs = require('fs');
+const os = require('os');
 const path = require('path');
+const { execFileSync } = require('child_process');
 
 // Vangt de klasse "dangling import" die de hele app stil kan breken: een
 // statische import naar een .js-bestand dat niet (meer) bestaat. De node-server
@@ -37,6 +39,30 @@ describe('Frontend module-imports', () => {
           fs.existsSync(resolved),
           `${file} importeert "${spec}" maar ${path.relative(PUB_DIR, resolved)} bestaat niet`
         );
+      }
+    });
+  }
+
+  // Of een module überhaupt nog parseert. Klinkt overbodig, maar de fout die
+  // hier het vaakst doorheen glipte is subtiel: een **backtick in een
+  // HTML-commentaar binnen een template literal**. JS kent geen HTML-commentaar,
+  // dus die backtick sluit de literal en alles erna wordt code. De browser stopt
+  // dan stil met laden en je staart naar een leeg scherm. In dit project drie
+  // keer gebeurd, telkens in een commentaar dat een veldnaam aanhaalde.
+  //
+  // Pariteit tellen helpt niet: `(x)` met twee backticks breekt evengoed.
+  // Alleen echt parseren wijst het aan — als **module**, want dat is wat de
+  // browser doet. Vandaar een kopie met .mjs en `node --check`.
+  for (const file of jsFiles) {
+    it(`${file} parseert als module`, () => {
+      const tmp = path.join(os.tmpdir(), `gris-parse-${process.pid}-${file}.mjs`);
+      fs.copyFileSync(path.join(JS_DIR, file), tmp);
+      try {
+        execFileSync(process.execPath, ['--check', tmp], { stdio: 'pipe' });
+      } catch (e) {
+        assert.fail(`${file} parseert niet:\n${(e.stderr || '').toString().split('\n').slice(0, 4).join('\n')}`);
+      } finally {
+        try { fs.unlinkSync(tmp); } catch { /* weg is weg */ }
       }
     });
   }
