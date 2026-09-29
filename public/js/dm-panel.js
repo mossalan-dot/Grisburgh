@@ -6792,7 +6792,6 @@ async function _renderTempelSettings() {
       <input id="tempel-voorwerp" type="hidden" value="${esc(config.voorwerpNaam || 'Votiefmunt van {god}')}">
 
       ${_dienstSectieKop('coins', 'Standaardprijzen', 'dm_tempel_prijzen')}
-      <span class="dm-hint" style="font-size:11px;display:block;margin:-2px 0 8px">Geldt voor elke god die geen eigen prijs heeft.</span>
       ${_bedragVeldHtml('tempel-prijs', config.prijs || { fl: 25 }, { label: 'Eenmalige zegen' })}
       ${_bedragVeldHtml('tempel-eedprijs', config.eedPrijs || { fl: 50 }, { label: 'Eed' })}
       ${_bedragVeldHtml('tempel-boeteprijs', config.boetePrijs || { fl: 100 }, { label: 'Boete na een vloek' })}
@@ -6850,56 +6849,132 @@ window._tempelEedHef = async (characterId) => {
 function _renderTempelGodenRows() {
   const wrap = document.getElementById('tempel-goden');
   if (!wrap) return;
-  wrap.innerHTML = _tempelGodenDraft.map((g, i) => `
-    <div class="dm-tempel-god" style="border:1px solid rgba(196,168,122,0.25);border-radius:8px;padding:8px;margin-bottom:8px">
-      <div class="dm-form-row" style="gap:6px;align-items:center">
-        <input class="dm-input" style="flex:1" placeholder="Naam (bijv. Matall, de Maker)" value="${esc(g.naam || '')}" oninput="window._tempelGodEdit(${i},'naam',this.value)">
-        <input class="dm-input" style="width:104px" placeholder="eigen prijs" value="${esc(_bedragTekst(g.prijs))}" oninput="window._tempelGodEdit(${i},'prijs',this.value)" title="Eigen prijs voor deze god — leeg is de standaardprijs hierboven. Bijvoorbeeld 2,50 of 5 gp.">
-        <button class="dm-btn dm-btn-ghost dm-btn-sm" onclick="window._tempelGodVerwijderen(${i})" title="Verwijderen">${icon('trash')}</button>
-      </div>
-      <div class="dm-form-row" style="gap:6px">
-        <input class="dm-input" style="flex:1" placeholder="Domein" value="${esc(g.domein || '')}" oninput="window._tempelGodEdit(${i},'domein',this.value)">
-        <input class="dm-input" style="flex:1" placeholder="Symbool" value="${esc(g.symbool || '')}" oninput="window._tempelGodEdit(${i},'symbool',this.value)">
-      </div>
-      <p class="dm-form-label" style="opacity:.6;margin:2px 0 0;font-size:10px">Zegen, vloek, eed-tekst, permanente zegen en de eenmalige zegens beheer je op de Blessing-kaartjes in het archief (die zijn leidend).</p>
-      <div class="dm-form-row" style="gap:6px;flex-wrap:wrap;margin-top:4px">
-        <div style="flex:1;min-width:140px">
-          <label class="dm-form-label" style="opacity:.65;display:block;margin-bottom:2px;font-size:10px">God-portret</label>
-          <select class="dm-select" style="font-size:11px" onchange="window._tempelGodEdit(${i},'imageId',this.value)">
-            <option value="">— geen —</option>
-            ${_tempelEntityPortretOpties.map(e => `<option value="${esc(e.value)}"${g.imageId===e.value?' selected':''}>${esc(e.label)}</option>`).join('')}
-          </select>
+  // Een god werkt nu als een dienst: je koppelt kaartjes in plaats van velden
+  // over te tikken. Drie keuzelijsten met honderden namen zijn drie zoekvelden
+  // geworden, en de achtergrond komt — net als bij de herberg — van het
+  // locatiekaartje. Wat op een kaartje staat hoeft hier niet nog eens.
+  const zoekveld = (i, veld, label, lijst, waarde, plaats) => `
+    <div class="dm-form-row">
+      <label class="dm-form-label" for="god-${i}-${veld}">${esc(label)}</label>
+      <input id="god-${i}-${veld}" class="dm-input dm-input-sm" list="tempel-${veld}-dl" autocomplete="off"
+        placeholder="${esc(plaats)}" value="${esc(waarde)}"
+        onchange="window._tempelGodKaartje(${i},'${veld}',this.value)">
+    </div>`;
+
+  const naamVan = (id, lijst) => (lijst.find(e => e.value === id)?.label) || '';
+
+  wrap.innerHTML = `
+    <datalist id="tempel-imageId-dl">${_tempelEntityPortretOpties.filter(e => e.value).map(e => `<option value="${esc(e.label)}"></option>`).join('')}</datalist>
+    <datalist id="tempel-priestImageId-dl">${_tempelEntityPortretOpties.filter(e => e.value).map(e => `<option value="${esc(e.label)}"></option>`).join('')}</datalist>
+    <datalist id="tempel-backdropId-dl">${_tempelBackdropOpties.filter(e => e.value).map(e => `<option value="${esc(e.label)}"></option>`).join('')}</datalist>
+    ` + (_tempelGodenDraft.map((g, i) => `
+    <details class="dm-tempel-god"${g.naam ? '' : ' open'}>
+      <summary class="dm-tempel-god-kop">
+        <span class="dm-tempel-god-naam">${esc(g.naam || 'Nieuwe god')}</span>
+        ${g.domein ? `<span class="dm-tempel-god-domein">${esc(g.domein)}</span>` : ''}
+      </summary>
+      <div class="dm-tempel-god-body">
+        <div class="dm-form-row">
+          <label class="dm-form-label" for="god-${i}-naam">Naam</label>
+          <input id="god-${i}-naam" class="dm-input dm-input-sm" placeholder="Matall, de Maker"
+            value="${esc(g.naam || '')}" oninput="window._tempelGodEdit(${i},'naam',this.value)">
         </div>
-        <div style="flex:1;min-width:140px">
-          <label class="dm-form-label" style="opacity:.65;display:block;margin-bottom:2px;font-size:10px">Priester/NPC</label>
-          <select class="dm-select" style="font-size:11px" onchange="window._tempelGodEdit(${i},'priestImageId',this.value)">
-            <option value="">— geen —</option>
-            ${_tempelEntityPortretOpties.map(e => `<option value="${esc(e.value)}"${g.priestImageId===e.value?' selected':''}>${esc(e.label)}</option>`).join('')}
-          </select>
+        <div class="dm-feature-row" style="gap:8px">
+          <div style="flex:1"><div class="dm-form-row">
+            <label class="dm-form-label" for="god-${i}-domein">Domein</label>
+            <input id="god-${i}-domein" class="dm-input dm-input-sm" placeholder="Smeden, makers"
+              value="${esc(g.domein || '')}" oninput="window._tempelGodEdit(${i},'domein',this.value)">
+          </div></div>
+          <div style="flex:1"><div class="dm-form-row">
+            <label class="dm-form-label" for="god-${i}-symbool">Symbool</label>
+            <input id="god-${i}-symbool" class="dm-input dm-input-sm" placeholder="Een hamer op een aambeeld"
+              value="${esc(g.symbool || '')}" oninput="window._tempelGodEdit(${i},'symbool',this.value)">
+          </div></div>
         </div>
-        <div style="flex:1;min-width:140px">
-          <label class="dm-form-label" style="opacity:.65;display:block;margin-bottom:2px;font-size:10px">Tempel-backdrop</label>
-          <select class="dm-select" style="font-size:11px" onchange="window._tempelGodEdit(${i},'backdropId',this.value)">
-            <option value="">— geen —</option>
-            ${_tempelBackdropOpties.map(e => `<option value="${esc(e.value)}"${g.backdropId===e.value?' selected':''}>${esc(e.label)}</option>`).join('')}
-          </select>
+
+        ${zoekveld(i, 'imageId', 'Kaartje van de god', _tempelEntityPortretOpties,
+                   naamVan(g.imageId, _tempelEntityPortretOpties), 'Zoek een kaartje, of laat leeg…')}
+        ${zoekveld(i, 'priestImageId', 'Kaartje van de priester', _tempelEntityPortretOpties,
+                   naamVan(g.priestImageId, _tempelEntityPortretOpties), 'Zoek een kaartje, of laat leeg…')}
+        ${zoekveld(i, 'backdropId', 'Locatiekaartje', _tempelBackdropOpties,
+                   naamVan(g.backdropId, _tempelBackdropOpties), 'Zoek het altaar of de tempel…')}
+
+        <!-- Zelfde logica als bij een dienst: een tafel met begroetingen, en
+             er wordt er bij elk bezoek één gekozen. -->
+        <div class="dm-form-row">
+          <label class="dm-form-label" for="god-${i}-groettafel">Begroeting (tafel)</label>
+          <div class="dm-feature-row" style="gap:6px;flex:1;min-width:0">
+            <select id="god-${i}-groettafel" class="dm-select dm-input-sm" style="flex:1;min-width:0"
+              onchange="window._tempelGodEdit(${i},'groetTafelId',this.value)">
+              <option value="">— Geen begroeting —</option>
+              ${(_tables || []).map(t => `<option value="${esc(t.id)}"${g.groetTafelId === t.id ? ' selected' : ''}>${esc(t.name || t.id)}</option>`).join('')}
+            </select>
+            <button type="button" class="dm-btn dm-btn-ghost dm-btn-sm"
+              onclick="window._tempelGodTafelNieuw(${i})" title="Maak een tafel voor deze priester">${icon('plus')} Nieuw</button>
+            <button type="button" class="dm-btn dm-btn-ghost dm-btn-sm"
+              onclick="window._tempelGodTafelBewerk(${i})" title="Deze tafel openen in het Tafels-tabblad">${icon('pencil')} Bewerken</button>
+          </div>
+        </div>
+
+        ${_bedragVeldHtml(`god-${i}-prijs`, g.prijs, { label: 'Eigen prijs voor een zegen', klasse: 'dm-input dm-input-sm' })}
+
+        <div class="dm-form-row">
+          <button class="dm-btn dm-btn-ghost dm-btn-sm dm-btn-danger" onclick="window._tempelGodVerwijderen(${i})"
+            title="Deze god weghalen">${icon('trash')} Verwijderen</button>
         </div>
       </div>
-      <div class="dm-form-row" style="margin-top:4px">
-        <input class="dm-input" style="flex:1;font-size:11px" placeholder="Priester-begroeting (optioneel)" value="${esc(g.priesterGreet || '')}" oninput="window._tempelGodEdit(${i},'priesterGreet',this.value)">
-      </div>
-    </div>
-  `).join('') || '<p class="dm-form-label" style="opacity:.6">Nog geen goden toegevoegd.</p>';
+    </details>
+  `).join('') || '<p class="dm-hint">Nog geen goden toegevoegd.</p>');
+};
+
+// Een getypte naam terug naar het id van het kaartje. Leeg = geen koppeling;
+// een naam die niet bestaat laat het veld staan maar koppelt niets — zoals
+// overal in de app.
+window._tempelGodKaartje = (i, veld, waarde) => {
+  const g = _tempelGodenDraft[i];
+  if (!g) return;
+  const lijst = veld === 'backdropId' ? _tempelBackdropOpties : _tempelEntityPortretOpties;
+  const n = (waarde || '').trim().toLowerCase();
+  const raak = n ? lijst.find(e => (e.label || '').toLowerCase() === n && e.value) : null;
+  if (raak) g[veld] = raak.value; else delete g[veld];
+  // Heeft de god nog geen naam maar wel een kaartje, dan is dat zijn naam.
+  if (veld === 'imageId' && raak && !(g.naam || '').trim()) {
+    g.naam = raak.label;
+    const veldEl = document.getElementById(`god-${i}-naam`);
+    if (veldEl) veldEl.value = raak.label;
+  }
+};
+
+window._tempelGodTafelNieuw = async (i) => {
+  const g = _tempelGodenDraft[i];
+  try {
+    const tafel = await api.post('/tables', {
+      name: `Begroeting — ${(g?.naam || 'priester').trim()}`, type: 'simple',
+      entries: ['Welkom, pelgrim. Waarvoor bent u hier?'],
+    });
+    _tables = await api.listTables().catch(() => _tables);
+    if (g) g.groetTafelId = tafel.id;
+    _renderTempelGodenRows();
+    window._tempelGodTafelBewerk(i);
+  } catch (e) { alert('Tafel maken mislukt: ' + e.message); }
+};
+
+window._tempelGodTafelBewerk = (i) => {
+  const id = _tempelGodenDraft[i]?.groetTafelId;
+  if (!id) { alert('Kies eerst een tafel, of maak er een.'); return; }
+  _tafelTerugNaar = 'tempel';
+  window.dmPanel.switchTab('tafels');
+  setTimeout(() => { try { window.dmPanel.tabelEdit(id); } catch {} }, 160);
 };
 
 window._tempelGodEdit = (i, field, value) => {
   const g = _tempelGodenDraft[i];
   if (!g) return;
-  if (field === 'prijs') {
-    const munten = _bedragUitTekst(value);
-    if (munten.fl || munten.kn || munten.cl) g.prijs = munten; else delete g.prijs;
-  } else {
-    g[field] = value;
+  if (value === '' || value == null) delete g[field]; else g[field] = value;
+  // De naam in de kop meelaten lopen terwijl je hem tikt.
+  if (field === 'naam') {
+    const kop = document.querySelectorAll('#tempel-goden .dm-tempel-god-naam')[i];
+    if (kop) kop.textContent = value || 'Nieuwe god';
   }
 };
 
@@ -6933,11 +7008,13 @@ window._tempelSettingsSave = async () => {
       zegen: (g.zegen || '').trim(),
       vloek: (g.vloek || '').trim(),
       eenmaligeZegens: (g.eenmaligeZegens || []).filter(Boolean),
-      ...(g.prijs        ? { prijs:        g.prijs }        : {}),
+      ...(() => { const p = _bedragLeesMunten(`god-${_tempelGodenDraft.indexOf(g)}-prijs`);
+                  return (p.fl || p.kn || p.cl) ? { prijs: p } : {}; })(),
       ...(g.imageId      ? { imageId:      g.imageId }      : {}),
       ...(g.priestImageId? { priestImageId:g.priestImageId } : {}),
       ...(g.backdropId   ? { backdropId:   g.backdropId }   : {}),
       ...(g.priesterGreet? { priesterGreet:g.priesterGreet } : {}),
+      ...(g.groetTafelId ? { groetTafelId: g.groetTafelId } : {}),
     }));
   try {
     await api.saveTempelConfig({

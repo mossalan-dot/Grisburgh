@@ -27764,3 +27764,32 @@ body.akte-schrijf-open .mp-overlay { z-index: 1320; }
   font-family: 'Cinzel', serif; font-size: 10px; font-weight: 700; line-height: 1;
   vertical-align: 1px;
 }
+
+/* ── Een god in het tempelpaneel ───────────────────────────────────────────
+   Uitklap per god: dicht zie je wie het is en waar hij over gaat. Er stonden
+   negen velden en drie keuzelijsten open naast elkaar, en met vijf goden was
+   dat een muur. */
+.dm-tempel-god {
+  margin-bottom: 6px; border: 1px solid rgba(196,168,122,0.3);
+  border-radius: 8px; background: rgba(196,168,122,0.05);
+}
+.dm-tempel-god-kop {
+  display: flex; align-items: baseline; gap: 10px; cursor: pointer;
+  padding: 9px 12px; list-style: none;
+  font-family: 'Cinzel', serif; font-size: 12.5px; color: var(--color-ink-bright, #2a1a08);
+}
+.dm-tempel-god-kop::-webkit-details-marker { display: none; }
+.dm-tempel-god-kop::before {
+  content: '›'; font-size: 14px; line-height: 1; opacity: .55;
+  transition: transform .15s; display: inline-block; flex-shrink: 0;
+}
+.dm-tempel-god[open] > .dm-tempel-god-kop::before { transform: rotate(90deg); }
+.dm-tempel-god-kop:hover { background: rgba(196,168,122,0.08); }
+.dm-tempel-god-naam { flex-shrink: 0; }
+.dm-tempel-god-domein {
+  font-family: 'Crimson Text', serif; font-size: 12px; font-style: italic; color: #8a6a3a;
+}
+.dm-tempel-god-body {
+  display: flex; flex-direction: column; gap: 8px;
+  padding: 4px 12px 12px; border-top: 1px solid rgba(196,168,122,0.25);
+}

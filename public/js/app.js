@@ -10,7 +10,7 @@ import { renderSpreuken } from './render-spreuken.js?v=41';
 import { renderVaardigheden, zoekVaardigheden } from './render-vaardigheden.js?v=10';
 import { renderStatblock } from './render-statblock.js?v=9';
 import { initSocket } from "./socket-client.js?v=79";
-import { initDmPanel } from "./dm-panel.js?v=335";
+import { initDmPanel } from "./dm-panel.js?v=336";
 import { COND_INFO, COND_LABEL, COND_MET_PLAATJE, COND_ICON } from './conditions.js?v=2';
 import './media-picker.js?v=8';
 import './tafels.js?v=2';
@@ -13185,7 +13185,10 @@ function _renderTempelInterior(el, g, config, huidigeEed, huidigeZegen, currency
         </div>
         <div class="herberg-portrait-wrap">${portret}</div>
         ${priesterNaam ? `<p class="tempel-priester-naam">${esc(priesterNaam)}</p>` : ''}
-        <p class="herberg-groet">${esc(g.priesterGreet || window._dienstGroet(config, 'Welkom, pelgrim. Waarvoor bent u hier?'))}</p>
+        <p class="herberg-groet">${esc(
+          window._dienstGroet(g, '') ||
+          g.priesterGreet ||
+          window._dienstGroet(config, 'Welkom, pelgrim. Waarvoor bent u hier?'))}</p>
 
         ${huidigeEed && isVloek ? `
           <div class="tempel-zegen-actief tempel-vloek-actief">
@@ -14252,6 +14255,12 @@ const HELP_CONFIG = {
   dm_tempel: () => ({ titel: 'De tempel', stappen: [
     { titel: 'Waar de goden vandaan komen', tekst: 'Er is geen ingebouwd pantheon: een god ontstaat uit **Blessing-kaartjes met een godnaam** (zegen, eed of vloek). Hier voeg je daar volgorde, domein, symbool, prijs en portretten aan toe.', afbeelding: null },
     { titel: 'Zegen, eed, vloek', tekst: 'Een **zegen** koop je en komt in je boedel. Een **eed** is een belofte met een gevolg — wie er een zweert, kan geen tweede zweren. Een **vloek** hangt iemand aan tot hij hem kwijtraakt.', afbeelding: null },
+  ] }),
+  dm_tempel_goden: () => ({ titel: 'Goden', stappen: [
+    { titel: 'Koppelen, niet overtikken', tekst: 'Een god werkt als een dienst: je wijst het **kaartje van de god**, van zijn **priester** en van de **locatie** aan. Wat op zo\'n kaartje staat — beeld, beschrijving, geheimen — hoeft hier niet nog eens. De locatie levert ook de achtergrond van het altaar.', afbeelding: null },
+    { titel: 'De inhoud staat op de Blessing-kaartjes', tekst: 'Zegen, vloek, de tekst van de eed, de permanente zegen en de eenmalige zegens beheer je in het archief. Die kaartjes zijn leidend; hier staat alleen hoe de god **heet** en hoe zijn altaar **oogt**.', afbeelding: null },
+    { titel: 'Eigen prijs', tekst: 'Wat een **eenmalige zegen bij déze god** kost. Laat je het leeg, dan geldt de standaardprijs hierboven. Handig voor een god die zich duur laat betalen — of juist niets vraagt.', afbeelding: null },
+    { titel: 'De priester begroet je', tekst: 'Koppel een **tafel** met begroetingen, net als bij een dienst: er wordt er bij elk bezoek één gekozen. *Nieuw* maakt er meteen een en opent hem in Tafels.', afbeelding: null },
   ] }),
   dm_tempel_prijzen: () => ({ titel: 'Standaardprijzen', stappen: [
     { titel: 'Voor alle altaren tegelijk', tekst: 'Wat een **eenmalige zegen**, een **eed** en de **boete na een vloek** kosten. Een god met een eigen prijs wint hiervan; laat je die leeg, dan geldt wat hier staat.', afbeelding: null },

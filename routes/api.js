@@ -9010,16 +9010,34 @@ router.get('/meta', attachRole, (req, res) => {
 const _DIENSTEN_MET_GROET = ['herberg', 'tweespalt', 'gock', 'ursula', 'tempel', 'magizoo'];
 function _groetTafelsOplossen(uit) {
   let tafels = null;
+  const laad = () => {
+    if (!tafels) { try { tafels = storage.readJSON('tables.json').tables || []; } catch { tafels = []; } }
+    return tafels;
+  };
+  const regelsVan = (id) => {
+    const t = laad().find(x => x.id === id);
+    if (!t) return null;
+    const r = (t.entries || [])
+      .map(x => String(x || '').replace(/^\s*\d+\s*(?:[-–—]\s*\d+)?\s*[:.]\s*/, '').trim())
+      .filter(Boolean);
+    return r.length ? r : null;
+  };
+
   for (const sleutel of _DIENSTEN_MET_GROET) {
     const c = uit[sleutel];
     if (!c || !c.groetTafelId) continue;
-    if (!tafels) { try { tafels = storage.readJSON('tables.json').tables || []; } catch { tafels = []; } }
-    const t = tafels.find(x => x.id === c.groetTafelId);
-    if (!t) continue;
-    const regels = (t.entries || [])
-      .map(r => String(r || '').replace(/^\s*\d+\s*(?:[-–—]\s*\d+)?\s*[:.]\s*/, '').trim())
-      .filter(Boolean);
-    if (regels.length) uit[sleutel] = { ...c, groeten: regels };
+    const regels = regelsVan(c.groetTafelId);
+    if (regels) uit[sleutel] = { ...c, groeten: regels };
+  }
+
+  // Elke god heeft zijn eigen priester, dus ook zijn eigen begroetingen.
+  const goden = uit.tempel?.goden;
+  if (Array.isArray(goden) && goden.some(g => g?.groetTafelId)) {
+    uit.tempel = { ...uit.tempel, goden: goden.map(g => {
+      if (!g?.groetTafelId) return g;
+      const regels = regelsVan(g.groetTafelId);
+      return regels ? { ...g, groeten: regels } : g;
+    }) };
   }
 }
 
