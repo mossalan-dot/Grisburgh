@@ -134,3 +134,37 @@ describe('Modules per campagne', () => {
     assert.equal(r.body.modules.vestingveen.tempel, true, 'met de stand per campagne');
   });
 });
+
+// Een dienst doet soms twee dingen die los van elkaar staan: je kunt in een
+// herberg slapen én drinken, maar niet elke herberg schenkt. Zo'n deel had geen
+// eigen schakelaar — je kon alleen de hele herberg uitzetten.
+describe('Deelfuncties van een dienst', () => {
+  const { MODULES, modulesVoor, verborgenUI } = require('../lib/modules');
+
+  it('hangt elk deel aan een bestaande dienst', () => {
+    const ids = new Set(MODULES.map(m => m.id));
+    const delen = MODULES.filter(m => m.ouder);
+    assert.ok(delen.length >= 3, 'er zijn deelfuncties');
+    for (const d of delen) {
+      assert.ok(ids.has(d.ouder), `${d.id} hangt aan onbekende dienst ${d.ouder}`);
+      assert.ok((d.delen || []).length, `${d.id} zegt niet wat er verdwijnt`);
+    }
+  });
+
+  it('zet een deel uit zodra zijn dienst uitgaat', () => {
+    const aan = modulesVoor({ modules: { herberg: false, 'herberg-tap': true } });
+    assert.strictEqual(aan['herberg-tap'], false,
+      'een tap zonder herberg is niets om een deel van te zijn');
+  });
+
+  it('verbergt alleen het deel als de dienst aanblijft', () => {
+    const verborgen = verborgenUI({ modules: { herberg: true, 'herberg-tap': false } });
+    assert.ok(verborgen.delen.includes('herberg-tap'), 'de tap verdwijnt');
+    assert.ok(!verborgen.secties.includes('herberg'), 'de herberg blijft staan');
+  });
+
+  it('laat een deel dat aanstaat met rust', () => {
+    const verborgen = verborgenUI({ modules: { herberg: true, 'herberg-tap': true } });
+    assert.ok(!verborgen.delen.includes('herberg-tap'));
+  });
+});

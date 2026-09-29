@@ -11248,7 +11248,8 @@ router.get('/campaigns', requireBeheerder, (req, res) => {
   res.json({
     campaigns:      storage.listCampaigns(),
     activeCampaign: storage.getActiveCampaignId(),
-    catalogus:      MODULES.map(({ id, label, groep, startset }) => ({ id, label, groep, startset })),
+    // `ouder` mee: de lijst zet een deelfunctie ingesprongen onder zijn dienst.
+    catalogus:      MODULES.map(({ id, label, groep, startset, ouder }) => ({ id, label, groep, startset, ouder })),
     modules,
     wachtwoorden,
   });

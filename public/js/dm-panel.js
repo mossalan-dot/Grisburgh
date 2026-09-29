@@ -1148,6 +1148,16 @@ function _bedragLees(id) {
 // icoon ervoor duwt het woord ruim twintig pixels op. `ic` blijft in de
 // aanroepen staan — het zegt waar de sectie over gaat, en een latere weergave
 // (een strook, een tabblad) kan hem alsnog gebruiken.
+// Een deelfunctie die uitstaat verdwijnt niet spoorloos: dan zoek je je rot
+// naar waar de tap gebleven is. Er blijft één regel staan die zegt waar je hem
+// weer aanzet.
+function _deelUitHtml(titel) {
+  return `<div class="dm-deel-uit">
+    ${icon('eye-off')} <strong>${esc(titel)}</strong> staat uit voor deze campagne —
+    aan te zetten bij Instellingen → Campagnes en modules.
+  </div>`;
+}
+
 function _dienstSectieKop(ic, titel, hulp = '') {
   return `<div class="dm-subgroep-label dm-dienst-kop">${esc(titel)}${
     hulp ? `<span class="dm-sectie-hulp">${helpBtn(hulp)}</span>` : ''}</div>`;
@@ -5916,11 +5926,12 @@ async function _renderHerbergSettings() {
           value="${Number.isFinite(+config.roddelsPerSpeler) ? +config.roddelsPerSpeler : 2}">
       </div>
 
-      ${_dienstSectieKop('beer', 'Aan de tap', 'dm_herberg_tap')}
-      <div id="hb-menu-lijst"></div>
-      <div class="dm-form-row">
-        <button class="dm-btn dm-btn-ghost" onclick="window._hbMenuAdd()" title="Menu-item toevoegen">${icon('plus')} Voeg item toe</button>
-      </div>
+      ${window._deelAan?.('herberg-tap') === false ? _deelUitHtml('Aan de tap') : `
+        ${_dienstSectieKop('beer', 'Aan de tap', 'dm_herberg_tap')}
+        <div id="hb-menu-lijst"></div>
+        <div class="dm-form-row">
+          <button class="dm-btn dm-btn-ghost" onclick="window._hbMenuAdd()" title="Menu-item toevoegen">${icon('plus')} Voeg item toe</button>
+        </div>`}
 
       ${_dienstOpslaanRij('window._hbSave()')}
     </div>`;
@@ -6202,17 +6213,17 @@ async function _renderTweespaltDM() {
         groetVoorbeeld: `Welkom bij ${tsConfig.naam || 'het gokhuis'}, {naam}. Speel je mee?`,
       })}
 
-      <div class="dm-section-label" style="margin-top:14px;display:flex;align-items:center;gap:6px">${icon('crossed-swords')} Strijdperk — partijen<span class="dm-sectie-hulp">${helpBtn('dm_gokhuis_partijen')}</span></div>
-      <span class="dm-hint" style="font-size:11px;display:block;margin:-4px 0 8px">Arenapartijen waar spelers zich voor kunnen aanmelden. Jij draait het gevecht zelf; bij winst krijgt de speler het prijzengeld.</span>
-      <div id="ts-arena-lijst"></div>
-      <div class="dm-form-row">
-        <button class="dm-btn dm-btn-ghost" onclick="window._tsArenaAdd()" title="Partij toevoegen">${icon('plus')} Partij</button>
-      </div>
+      ${window._deelAan?.('gokhuis-arena') === false ? _deelUitHtml('Strijdperk') : `
+        ${_dienstSectieKop('crossed-swords', 'Strijdperk', 'dm_gokhuis_partijen')}
+        <div id="ts-arena-lijst"></div>
+        <div class="dm-form-row">
+          <button class="dm-btn dm-btn-ghost" onclick="window._tsArenaAdd()" title="Partij toevoegen">${icon('plus')} Partij</button>
+        </div>`}
 
       ${_dienstOpslaanRij('window._tsSettingsSave()')}
     </div>
 
-    ${arenaSignups.length ? `
+    ${arenaSignups.length && window._deelAan?.('gokhuis-arena') !== false ? `
     <div class="dm-feature-section" style="margin-top:14px">
       <div class="dm-section-label" style="display:flex;align-items:center;gap:6px">${icon('swords')} Strijdperk — inschrijvingen<span class="dm-sectie-hulp">${helpBtn('dm_gokhuis_inschrijvingen')}</span></div>
       ${arenaSignups.map(s => `
@@ -11763,13 +11774,19 @@ async function _renderInstellingen() {
         </div>
         <details class="dm-modules">
           <summary>Modules</summary>
+          <!-- Een deelfunctie (de tap, het strijdperk, de adoptie) staat
+               ingesprongen onder zijn dienst. Staat die dienst uit, dan valt er
+               niets te kiezen: dan is er niets om een deel van te zijn. -->
           <div class="dm-modules-grid">
-            ${catalogus.map(m => `
-              <label class="dm-module-item">
+            ${catalogus.map(m => {
+              const ouderUit = m.ouder && !modulesPer[c.id]?.[m.ouder];
+              return `
+              <label class="dm-module-item${m.ouder ? ' dm-module-item--deel' : ''}${ouderUit ? ' is-uit' : ''}"
+                ${ouderUit ? `title="Zet eerst ${esc(catalogus.find(x => x.id === m.ouder)?.label || m.ouder)} aan"` : ''}>
                 <input type="checkbox" data-campagne="${esc(c.id)}" data-module="${esc(m.id)}"
-                  ${modulesPer[c.id]?.[m.id] ? 'checked' : ''}>
+                  ${modulesPer[c.id]?.[m.id] ? 'checked' : ''}${ouderUit ? ' disabled' : ''}>
                 <span>${esc(m.label)}</span>
-              </label>`).join('')}
+              </label>`; }).join('')}
           </div>
           <div class="dm-form-row">
             <button class="dm-btn dm-btn-sm dm-btn-primary" onclick="window._instModulesSave('${esc(c.id)}')" title="Modules opslaan">${icon('save')} Modules opslaan</button>

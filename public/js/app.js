@@ -10,7 +10,7 @@ import { renderSpreuken } from './render-spreuken.js?v=41';
 import { renderVaardigheden, zoekVaardigheden } from './render-vaardigheden.js?v=10';
 import { renderStatblock } from './render-statblock.js?v=9';
 import { initSocket } from "./socket-client.js?v=79";
-import { initDmPanel } from "./dm-panel.js?v=341";
+import { initDmPanel } from "./dm-panel.js?v=342";
 import { COND_INFO, COND_LABEL, COND_MET_PLAATJE, COND_ICON } from './conditions.js?v=2';
 import './media-picker.js?v=8';
 import './tafels.js?v=2';
@@ -11458,6 +11458,10 @@ function _zetEmbleem(el, bron) {
 window._moduleAan = (id) => window._modules?.[id] !== false;
 const _verborgenLijst = (soort) => window._verborgen?.[soort] || [];
 window._spelerTabAan = (tab) => !_verborgenLijst('spelerTabs').includes(tab);
+
+// Een deelfunctie binnen een dienst: de tap in de herberg, het strijdperk in
+// het gokhuis, de adoptie bij de magizoöloog. Niet elke herberg schenkt.
+window._deelAan = (deel) => !_verborgenLijst('delen').includes(deel);
 window._dmTabAan     = (tab) => !_verborgenLijst('dmTabs').includes(tab);
 
 function _pasModulesToe() {
@@ -12409,7 +12413,7 @@ async function renderHerberg() {
         ${config.naam ? `<p class="dienst-huisnaam">${esc(config.naam)}</p>` : ''}
         <p class="herberg-groet">${_groetTekst}</p>
 
-        ${heeftMenu ? `
+        ${heeftMenu && window._deelAan('herberg-tap') ? `
           <div class="dienst-subtab-nav">
             <button class="dienst-subtab-btn${_herbergActiveTab === 'roddels' ? ' active' : ''}" data-tab="roddels" onclick="window._herbergTab('roddels')">${icon('message-circle')} Roddels</button>
             <button class="dienst-subtab-btn${_herbergActiveTab === 'tap' ? ' active' : ''}" data-tab="tap" onclick="window._herbergTab('tap')">${icon('beer')} Aan de tap</button>
@@ -12779,12 +12783,15 @@ async function renderMagizoo() {
         </div>
         <div class="herberg-portrait-wrap">${portret}</div>
         <p class="herberg-groet">${esc(window._dienstGroet(config, `${config.naam} kijkt op van een kooi en veegt een inktvlek van zijn notitieboek.`))}</p>
+        <!-- Adoptie is een deelfunctie: een magizoöloog die alleen onderzoekt
+             en geen dieren verkoopt, hoort dat tweede tabje niet te hebben. -->
+        ${window._deelAan('magizoo-adoptie') ? `
         <div class="dienst-subtab-nav">
           <button class="dienst-subtab-btn${_magizooActiveTab === 'onderzoek' ? ' active' : ''}" data-tab="onderzoek" onclick="window._magizooTab('onderzoek')">${icon('search')} Onderzoek</button>
           <button class="dienst-subtab-btn${_magizooActiveTab === 'adoptie' ? ' active' : ''}" data-tab="adoptie" onclick="window._magizooTab('adoptie')">${icon('paw-print')} Adoptie</button>
-        </div>
+        </div>` : ''}
 
-        <div class="dienst-subtab-panel${_magizooActiveTab === 'onderzoek' ? '' : ' hidden'}" id="magizoo-panel-onderzoek">
+        <div class="dienst-subtab-panel${_magizooActiveTab === 'onderzoek' || !window._deelAan('magizoo-adoptie') ? '' : ' hidden'}" id="magizoo-panel-onderzoek">
           <!-- De wachttijd stond nergens in beeld, terwijl De Gock er wél iets
                over zegt. Twee diensten met dezelfde regel horen hem allebei te
                noemen — anders lijkt een weigering op een storing. -->
@@ -12809,7 +12816,7 @@ async function renderMagizoo() {
               </div>`}
         </div>
 
-        <div class="dienst-subtab-panel${_magizooActiveTab === 'adoptie' ? '' : ' hidden'}" id="magizoo-panel-adoptie">
+        <div class="dienst-subtab-panel${_magizooActiveTab === 'adoptie' && window._deelAan('magizoo-adoptie') ? '' : ' hidden'}" id="magizoo-panel-adoptie">
           <div class="magizoo-adopt-wrap">
             <p class="herberg-teller">${icon('paw-print')} Adopteer een metgezel</p>
             ${metgezel
@@ -13533,7 +13540,7 @@ async function renderTweespalt() {
               ? `<p class="herberg-leeg">Er staan nu geen partijen op het programma.</p>`
               : arena.map(b => _arenaBoutKaart(b, arenaSignups, arenaVerslagen)).join('')}`;
 
-          const heeftArena = arena.length > 0 || arenaSignups.length > 0;
+          const heeftArena = window._deelAan('gokhuis-arena') && (arena.length > 0 || arenaSignups.length > 0);
           if (!heeftArena) return weddenPaneel;
           return `
             <div class="dienst-subtab-nav">
