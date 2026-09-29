@@ -12160,8 +12160,11 @@ function _marktWinkelTeken(el) {
   el.innerHTML = `
     <div class="herberg-scene markt-scene"${gevel ? ` style="background-image:url('${gevel}')"` : ''}>
       <div class="herberg-content markt-winkel">
-        <button class="markt-terug" onclick="window._marktTerug()">
-          ${icon('chevron-left')} Terug naar de markt</button>
+        <div class="markt-winkel-balk">
+          <button class="markt-terug" onclick="window._marktTerug()">
+            ${icon('chevron-left')} Terug naar de markt</button>
+          ${window._helpBtn?.('winkel') ?? ''}
+        </div>
         ${eig
           ? `<div class="herberg-portrait-wrap">
                <img src="${api.thumbUrl(eig.imageId)}" class="herberg-portrait-round"
@@ -14594,6 +14597,18 @@ const HELP_CONFIG = {
       { titel: 'Wat je niet ziet',
         tekst: 'Alleen winkels die je party **ontdekt heeft** en die tijdens deze akte bereikbaar zijn. Een winkel met een **wisselend assortiment** die je nog niet bezocht hebt, geeft zijn voorraad niet prijs — daar moet je langs. De DM ziet alles, met erbij waarom iets voor de party dicht zit.',
         afbeelding: null },
+    ] }),
+
+  // In de winkel zelf koop je, dus daar horen de vragen: wat kost het, waarom
+  // is iets rood, wat betekent uitverkocht, en waar komt die korting vandaan.
+  // Het boekje van de Markt gaat over vínden, niet over kopen.
+  winkel: () => ({
+    titel: 'In de winkel',
+    stappen: [
+      { titel: 'Kopen', tekst: 'Kies het aantal en klik **Kopen**. Het bedrag gaat van je eigen beurs af, of van de gedeelde beurs als die aanstaat. Kun je het niet betalen, dan kleurt de prijs rood en gebeurt er niets.', afbeelding: null },
+      { titel: 'De winkelier heeft een humeur', tekst: 'Hoe je met hem omgaat verandert wat je betaalt. Je DM stelt dat bij — en soms valt er te **onderhandelen**; dan verschijnt die mogelijkheid vanzelf.', afbeelding: null },
+      { titel: 'Uitverkocht', tekst: 'Een doorgestreepte regel is er even niet. Bij een winkel met een **wisselend assortiment** ligt er elke keer iets anders in de schappen; wat je vandaag ziet is wat er vandaag is.', afbeelding: null },
+      { titel: 'Wat iets ís', tekst: 'Klik de naam van een voorwerp: dan opent zijn **kaartje**, met de beschrijving, het beeld en wat het doet. Daarna kun je gewoon terug.', afbeelding: null },
     ] }),
 
   tempel: () => {

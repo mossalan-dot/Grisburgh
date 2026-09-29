@@ -27887,3 +27887,14 @@ body.akte-schrijf-open .mp-overlay { z-index: 1320; }
 .markt-acties .sf-toggle-btn--active {
   background: rgba(212,168,67,0.25); border-color: rgba(212,168,67,0.7); color: #f2e3c2;
 }
+
+/* In de winkel: de terugknop links, het boekje rechts — zoals op de markt
+   erbuiten. Zonder deze balk stond het boekje onder de knop. */
+.markt-winkel-balk {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 10px; margin-bottom: 6px;
+  /* .markt-winkel centreert zijn kinderen, dus zonder breedte krimpt de balk
+     mee met zijn inhoud en staan terugknop en boekje samen in het midden. */
+  width: 100%;
+}
+.markt-winkel-balk .help-btn-wrap { align-self: auto; margin-bottom: 0; }
