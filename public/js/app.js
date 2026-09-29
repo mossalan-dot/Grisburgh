@@ -1,5 +1,5 @@
 import { api, campagneUitUrl, zetCampagne } from './api.js?v=297';
-import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, renderDocumenten, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=320";
+import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, renderDocumenten, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=322";
 import { initArchief, renderLogboek, openLogboekEditor } from "./render-archief.js?v=137";
 import { renderKaart, queueFlyTo, verversPins, nieuweKaart } from './render-kaart.js?v=31';
 import { renderDungeon } from './render-dungeon.js?v=56';
@@ -12026,7 +12026,17 @@ function _marktTeken() {
     <div class="herberg-scene markt-scene"${_marktGevel
       ? ` style="background-image:url('${api.thumbUrlBreed(_marktGevel.id)}')"` : ''}>
       <div class="herberg-content markt-content">
-        ${window._helpBtn?.('markt') ?? ''}
+        <!-- Trechter naast het boekje, zoals op een archieftabblad. De twee
+             chiprijen zijn samen een muur van knoppen zodra er een paar
+             gebieden en facties zijn; ze horen pas in beeld als je ze zoekt —
+             of vanzelf, zodra er iets gefilterd staat. -->
+        <div class="markt-acties">
+          <button class="sf-toggle-btn${_marktFilterOpen || _marktGebied || _marktFactie ? ' sf-toggle-btn--active' : ''}"
+            onclick="window._marktFilterToggle()" title="Filter op gebied en factie">
+            <svg width="13" height="11" viewBox="0 0 13 11" fill="currentColor"><polygon points="0,0 13,0 8,5.5 8,11 5,11 5,5.5"/></svg>
+          </button>
+          ${window._helpBtn?.('markt') ?? ''}
+        </div>
         <div class="markt-kop">
           <div class="markt-zoekwrap">
             ${icon('search', { cls: 'markt-zoek-icoon' })}
@@ -12038,8 +12048,9 @@ function _marktTeken() {
             ${icon('coins')} ${esc(_muntTekst(_marktData.beurs))}
           </div>` : ''}
         </div>
-        ${_marktGebiedBalk(winkels)}
-        ${_marktFactieBalk()}
+        ${(_marktFilterOpen || _marktGebied || _marktFactie) ? `
+          ${_marktGebiedBalk(winkels)}
+          ${_marktFactieBalk()}` : ''}
         ${(() => {
           let zicht = _marktGebied
             ? winkels.filter(w => (w.gebieden || []).includes(_marktGebied))
@@ -12055,6 +12066,11 @@ function _marktTeken() {
 }
 
 window._marktZoek = (v) => { _marktZoek = v; _marktTeken(); };
+
+// Staat er een filter aan, dan blijven de rijen staan: een actief filter dat je
+// niet ziet is de ergste soort.
+let _marktFilterOpen = false;
+window._marktFilterToggle = () => { _marktFilterOpen = !_marktFilterOpen; _marktTeken(); };
 
 // Filteren op factie. Wélke winkels bij een factie horen wordt **afgeleid** uit
 // haar ledenlijst (zie `_factiesPerWinkel` op de server), dus er komt nergens
@@ -12138,7 +12154,7 @@ window._marktWinkelOpen = async (soort, id) => {
 window._marktTerug = () => { _marktWinkel = null; _marktTeken(); };
 
 function _marktWinkelTeken(el) {
-  const { w, sfeerTekst, html } = _marktWinkel;
+  const { w, html } = _marktWinkel;
   const gevel = w.imageId ? api.thumbUrlBreed(w.imageId) : null;
   const eig = w.eigenaar;
   el.innerHTML = `
@@ -12155,7 +12171,9 @@ function _marktWinkelTeken(el) {
           : ''}
         <h2 class="markt-winkel-naam">${esc(w.naam)}</h2>
         ${eig ? `<p class="markt-winkel-wie">${esc(eig.naam)}</p>` : ''}
-        ${sfeerTekst ? `<p class="herberg-groet">${esc(sfeerTekst)}</p>` : ''}
+        <!-- De sfeertekst stond hier én in de voorraadweergave eronder, dus
+             las je hem twee keer. Die tweede is de rijkere: daar hoort ook het
+             sfeerbeeld bij. -->
         <div class="markt-winkel-waren">${html}</div>
       </div>
     </div>`;

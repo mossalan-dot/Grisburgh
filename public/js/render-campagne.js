@@ -74,38 +74,13 @@ let _ownership = { owners: {}, requests: [], tradeAllowed: true, stapelbaar: new
 // ── Subtype-filter per sectie ──
 const subtypeFilters = {};
 
-// ── Shop item tooltip ──
-let _tooltipEl = null;
-function _ensureTooltip() {
-  if (_tooltipEl) return _tooltipEl;
-  _tooltipEl = document.createElement('div');
-  _tooltipEl.id = 'shop-item-tooltip';
-  _tooltipEl.className = 'shop-item-tooltip hidden';
-  document.body.appendChild(_tooltipEl);
-  return _tooltipEl;
-}
-document.addEventListener('mouseover', (e) => {
-  const span = e.target.closest('.shop-item-with-desc');
-  if (!span) return;
-  const desc = span.dataset.desc;
-  if (!desc) return;
-  const tip = _ensureTooltip();
-  tip.innerHTML = mdToHtml(desc);
-  tip.classList.remove('hidden');
-});
-document.addEventListener('mousemove', (e) => {
-  if (!_tooltipEl) return;
-  // Verberg tooltip zodra cursor niet meer boven een shop-item hangt
-  if (!e.target.closest('.shop-item-with-desc')) {
-    _tooltipEl.classList.add('hidden');
-    return;
-  }
-  if (_tooltipEl.classList.contains('hidden')) return;
-  const x = Math.min(e.clientX + 12, window.innerWidth - _tooltipEl.offsetWidth - 16);
-  const y = e.clientY + 20;
-  _tooltipEl.style.left = x + 'px';
-  _tooltipEl.style.top = y + 'px';
-});
+// Hier stond een hover-tooltip met de beschrijving van een voorwerp. Weg: je
+// kunt op de naam klikken en dan staat diezelfde tekst op het kaartje, met het
+// beeld en de rest erbij. Een zwevend blokje dat hetzelfde half vertelt is een
+// tweede weergave van dezelfde gegevens — en hij had ook nog een bijwerking:
+// `position: absolute` met viewport-coördinaten rekte het document op, zodat er
+// een scrollbalk verscheen en het hele blad een streep naar links schoof.
+
 
 export async function refreshOwnership() {
   try {
@@ -4471,9 +4446,9 @@ window._winkelVoorraadHtml = function _winkelVoorraadHtml({ e, tab, beschikbaarD
                   ? `<img src="${api.thumbUrl(item.imageId)}" class="shop-item-thumb" alt="">`
                   : '';
                 const naamHtml = item.entityId
-                  ? `<span class="cursor-pointer hover:text-gold transition underline decoration-dotted${uitverkocht ? ' winkel-uitverkocht-naam' : ''} shop-item-with-desc"
+                  ? `<span class="cursor-pointer hover:text-gold transition underline decoration-dotted${uitverkocht ? ' winkel-uitverkocht-naam' : ''}"
                        onclick="window._openDetailFromShop('${esc(item.entityId)}')"
-                       data-desc="${esc(item.desc || '')}">${esc(item.naam || '\u2014')}</span>`
+                       title="Open het kaartje">${esc(item.naam || '\u2014')}</span>`
                   : `<span class="${uitverkocht ? 'winkel-uitverkocht-naam' : ''}">${esc(item.naam || '\u2014')}</span>`;
                 return `
                 <tr class="${i % 2 === 1 ? 'bg-room-elevated/40' : ''} border-b border-room-border/40 last:border-0${uitverkocht ? ' winkel-uitverkocht-rij' : ''}">
