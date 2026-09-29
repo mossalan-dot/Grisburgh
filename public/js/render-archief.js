@@ -384,8 +384,6 @@ async function _renderPrikbord(container) {
   let quests = [];
   try { quests = await api.listQuests(); } catch { quests = []; }
 
-  let facties = [];
-  try { const fd = await api.getFacties(); facties = (fd.facties || []).filter(f => (f.rang?.index ?? 0) > 0); } catch {}
 
   // Namen van de missiegevers: alleen ophalen als er ook echt missies met een
   // gever zijn, anders is het twee verzoeken voor niets.
@@ -410,14 +408,14 @@ async function _renderPrikbord(container) {
   // een factie — POST /quests/:id/aanvragen — en hij blijft hier tot je hem
   // gunt.) Alleen de DM ziet die kolom.
   const cols = [
-    ...(isDm ? [{ key: 'verborgen',   label: `${icon('lock')} Verborgen` }] : []),
-    ...(isDm ? [{ key: 'aangevraagd', label: `${icon('clock')} Aangevraagd`,
+    ...(isDm ? [{ key: 'verborgen',   naam: 'Verborgen',    ic: 'lock' }] : []),
+    ...(isDm ? [{ key: 'aangevraagd', naam: 'Aangevraagd',  ic: 'hourglass',
                   tip: 'Een party heeft deze missie bij de factie aangevraagd. Schuif hem door naar In uitvoering om hem te gunnen, of zet hem terug naar Beschikbaar.' }] : []),
-    { key: 'actief',        label: `${icon('pin')} Beschikbaar` },
-    { key: 'in-uitvoering', label: `${icon('swords')} In uitvoering` },
-    { key: 'voltooid',      label: `${icon('check')} Voltooid` },
-    { key: 'mislukt',       label: `${icon('x')} Mislukt` },
-  ];
+    { key: 'actief',        naam: 'Beschikbaar',   ic: 'pin' },
+    { key: 'in-uitvoering', naam: 'In uitvoering', ic: 'swords' },
+    { key: 'voltooid',      naam: 'Voltooid',      ic: 'check' },
+    { key: 'mislukt',       naam: 'Mislukt',       ic: 'x' },
+  ].map(c => ({ ...c, label: `${icon(c.ic)} ${c.naam}` }));
 
   // De →-knop schuift een missie naar de volgende stap. *Aangevraagd* zit daar
   // niet in: dat doet een speler, niet de DM — je zou een verborgen missie
@@ -461,42 +459,12 @@ async function _renderPrikbord(container) {
   const bodyEl = container.querySelector('#logboek-tab-content');
   if (!bodyEl) return;
 
-  // Een boon droeg zijn eigen teken uit de data (`b.icoon`), en dat was de
-  // laatste plek in de app waar een emoji in gerenderde HTML kon belanden.
-  // Nu: is het een sprite-naam, dan dat icoon; anders het lintje.
-  const _boonIcoon = (b) => icon(/^[a-z0-9-]+$/.test(b?.icoon || '') ? b.icoon : 'award');
-
-  const _factieBandOpen = (() => { try { return localStorage.getItem('factieBandOpen') === '1'; } catch { return false; } })();
-  const factieBand = facties.length ? `
-    <details class="factie-band-details" ${_factieBandOpen ? 'open' : ''} ontoggle="window._factieBandToggle && window._factieBandToggle(this.open)">
-      <summary class="factie-band-summary">
-        <span class="factie-band-summary-titel">${icon('landmark')} Facties &amp; aanzien</span>
-        <span class="factie-band-chips">
-          ${facties.map(f => `<span class="factie-band-chip factie-band-chip--${(f.stijl || '').replace(/[^a-z]/gi, '').toLowerCase()}">${esc(f.naam || '')}: <strong>${esc(f.rang?.naam || '—')}</strong></span>`).join('')}
-        </span>
-      </summary>
-    <div class="factie-band">
-      ${facties.map(f => {
-        const stijl = (f.stijl || '').replace(/[^a-z]/gi, '').toLowerCase();
-        const rungs = (f.ladder || []).slice().reverse();
-        return `
-        <div class="factie-ladder factie-ladder--${stijl}">
-          <div class="factie-ladder-head">
-            <span class="factie-ladder-embleem">${icon(/^[a-z0-9-]+$/.test(f.embleem || '') ? f.embleem : 'landmark')}</span>
-            <span class="factie-ladder-naam">${esc(f.naam || '')}</span>
-            <span class="factie-ladder-rang">${esc(f.rang?.naam || '')}</span>
-          </div>
-          <div class="factie-ladder-rungs">
-            ${rungs.map(r => `
-              <div class="factie-rung ${r.bereikt ? 'factie-rung--bereikt' : 'factie-rung--locked'} ${r.huidig ? 'factie-rung--huidig' : ''}">
-                <span class="factie-rung-naam">${r.bereikt ? '' : icon('lock') + ' '}${esc(r.naam || '')}${r.titel ? ` <span class="factie-rung-titel">${icon('crown')} ${esc(r.titel)}</span>` : ''}</span>
-                ${(r.boons || []).map(b => `<span class="factie-rung-boon" title="${esc(b.tekst || '')}">${_boonIcoon(b)} ${esc(b.naam || '')}</span>`).join('')}
-              </div>`).join('')}
-          </div>
-        </div>`;
-      }).join('')}
-    </div>
-    </details>` : '';
+  // Hier stond een band met je factierangen. Die hoort niet op het missiebord:
+  // een prikbord gaat over wat er te doen is, niet over wie je bent. De
+  // spelerskant heeft er al een eigen tabblad voor (Mijn karakter → Facties),
+  // dus dit was een tweede weergave van dezelfde gegevens — en op een telefoon
+  // duwde hij het bord van het scherm.
+  const factieBand = '';
 
   // Op een telefoon passen zes kolommen niet naast elkaar: daar toont het bord er
   // één tegelijk, met de statusnamen als strip erboven en vegen ertussen. Op een
@@ -507,11 +475,14 @@ async function _renderPrikbord(container) {
 
   bodyEl.innerHTML = `
     <div class="prikbord-strip">
-      ${cols.map(col => `
+      ${cols.map(col => {
+        const n = visibleQuests.filter(q => q.status === col.key).length;
+        return `
         <button class="prikbord-strip-knop${col.key === _prikbordKolom ? ' is-actief' : ''}"
-          onclick="window._prikbordNaar('${col.key}')">${col.label}
-          <span class="prikbord-col-count">${visibleQuests.filter(q => q.status === col.key).length}</span>
-        </button>`).join('')}
+          onclick="window._prikbordNaar('${col.key}')" title="${esc(col.naam)}${n ? ` — ${n}` : ''}"
+          aria-label="${esc(col.naam)}">${icon(col.ic)}<span class="prikbord-strip-naam">${esc(col.naam)}</span>
+          ${n ? `<span class="prikbord-col-count">${n}</span>` : ''}
+        </button>`; }).join('')}
     </div>
     <div class="prikbord" data-kolom="${esc(_prikbordKolom)}">
       ${cols.map(col => `
@@ -550,7 +521,6 @@ async function _renderPrikbord(container) {
   // de knop blijft.
   if (isDm) _prikbordSlepen(bodyEl.querySelector('.prikbord'));
 
-  window._factieBandToggle = (open) => { try { localStorage.setItem('factieBandOpen', open ? '1' : '0'); } catch { /* ok */ } };
   window._questNew    = (status) => _openQuestModal(null, status);
   window._questEdit   = (id) => { const q = quests.find(x => x.id === id); if (q) _openQuestModal(q); };
   window._questDelete = async (id) => {

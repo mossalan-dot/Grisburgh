@@ -752,29 +752,42 @@ function _tabToParent(tab) {
 // komt daarvandaan), dan sfeer en improvisatie, en onderaan wat je tússen
 // sessies doet. Komt Loot erbij, dan hoort die tussen Gevecht en Rust — dat is
 // precies het moment waarop je hem nodig hebt.
+// De balk loopt van "nu" naar "ooit". De oude indeling groepeerde op
+// onderwerp — spelen, sfeer, beheer — en dat zette de mediabibliotheek naast
+// wat er op je ligt te wachten, terwijl je het ene tussen twee zinnen door
+// aanraakt en het andere een keer per maand. Nu staat er per moment:
+//
+//   1. Aan tafel  — waar je naar grijpt terwijl er gespeeld wordt.
+//   2. Bij de hand — improviseren: een geluid, een worp, een brief.
+//   3. Klaarzetten — wat je vóór of tussen sessies doet.
+//
+// Instellingen staat los bovenaan: dat richt je één keer in.
 const _DM_TABS = [
-  // Spelen
-  { id: 'aktes',     groep: 'spelen',    label: 'Aktes',     icoon: 'clipboard-list',                  title: 'Aktes — voorbereiding &amp; regie' },
-  { id: 'gevecht',   groep: 'spelen',    label: 'Gevecht',   icoon: 'crossed-swords', cls: 'icon-gi', title: 'Gevecht & Monsters' },
+  // ── Aan tafel ──
+  { id: 'gevecht',   groep: 'tafel',     label: 'Gevecht',   icoon: 'crossed-swords', cls: 'icon-gi', title: 'Gevecht & Monsters' },
   // Eén icoon voor het hele onderwerp: het muntje. Dat staat al op een kamer
   // met een vondst en in de regie-balk, dus de tab hoort hetzelfde te dragen —
   // en het leest prettiger dan de kluis.
-  { id: 'loot',      groep: 'spelen',    label: 'Loot',      icoon: 'coins',           title: 'Loot — vondsten &amp; verdeling' },
-  { id: 'rust',      groep: 'spelen',    label: 'Rust',      icoon: 'moon',                            title: 'Rust — Long &amp; Short Rest' },
-  // Sfeer en improvisatie
-  { id: 'geluiden',  groep: 'sfeer',     label: 'Geluiden',  icoon: 'volume-2',                        title: 'Geluiden' },
-  { id: 'tafels',    groep: 'sfeer',     label: 'Tafels',    icoon: 'dice', cls: 'icon-gi',            title: 'Tafels — rollen op een lijst' },
-  // Voorbereiden en beheren
-  { id: 'diensten',  groep: 'beheer',    label: 'Diensten',  icoon: 'building',                        title: 'Diensten' },
-  { id: 'media',     groep: 'beheer',    label: 'Media',     icoon: 'image',                           title: 'Mediabibliotheek' },
-  // 'Berichten' past niet op één regel in een kolom van 56px; liever een korter
-   // woord dan een afbreking. De tooltip houdt de volledige naam.
-  { id: 'berichten', groep: 'beheer',    label: 'Post',      icoon: 'mail',                            title: 'Berichten' },
+  { id: 'loot',      groep: 'tafel',     label: 'Loot',      icoon: 'coins',           title: 'Loot — vondsten &amp; verdeling' },
+  { id: 'rust',      groep: 'tafel',     label: 'Rust',      icoon: 'moon',                            title: 'Rust — Long &amp; Short Rest' },
   // Spreuk- en voorwerpverzoeken stonden elk op hun eigen tabblad in het
   // archief; een DM die wil weten wat er op hem wacht moest dus twee plekken
-  // langs. Eén tab met allebei.
-  // Het briefje hoort bij Post. Wat hier staat is wat er op jóu wacht.
-  { id: 'verzoeken', groep: 'beheer',    label: 'Vragen',    icoon: 'hourglass',                       title: 'Verzoeken — spreuken &amp; voorwerpen' },
+  // langs. Eén tab met allebei — plus Gunnen, de andere richting.
+  { id: 'verzoeken', groep: 'tafel',     label: 'Vragen',    icoon: 'hourglass',                       title: 'Gunnen &amp; verzoeken' },
+
+  // ── Bij de hand ──
+  { id: 'geluiden',  groep: 'sfeer',     label: 'Geluiden',  icoon: 'volume-2',                        title: 'Geluiden' },
+  { id: 'tafels',    groep: 'sfeer',     label: 'Tafels',    icoon: 'dice', cls: 'icon-gi',            title: 'Tafels — rollen op een lijst' },
+  // 'Berichten' past niet op één regel in een kolom van 56px; liever een korter
+  // woord dan een afbreking. De tooltip houdt de volledige naam.
+  { id: 'berichten', groep: 'sfeer',     label: 'Post',      icoon: 'mail',                            title: 'Post — snelle brieven' },
+
+  // ── Klaarzetten ──
+  // Aktes stond bij "spelen" omdat de regie ermee gebeurt, maar die loopt via
+  // de balk onderin; dit tabblad is waar je de akte schríjft.
+  { id: 'aktes',     groep: 'klaar',     label: 'Aktes',     icoon: 'clipboard-list',                  title: 'Aktes — voorbereiding &amp; regie' },
+  { id: 'diensten',  groep: 'klaar',     label: 'Diensten',  icoon: 'building',                        title: 'Diensten' },
+  { id: 'media',     groep: 'klaar',     label: 'Media',     icoon: 'image',                           title: 'Mediabibliotheek' },
 ];
 
 function _buildTabs() {
@@ -1190,10 +1203,13 @@ function _tafelTerug() {
 // komt geen knop als er geen tekst achter zit (`_heeftHelp`), want een boekje
 // dat een leeg venster opent is erger dan geen boekje.
 function _subtabNavHtml({ items, actief, klik, hulp = '' }) {
+  // `ruwLabel` laat een tabje zijn eigen opmaak meegeven — nodig voor de
+  // penning met het aantal verzoeken. Zonder die vlag wordt er ge-escaped,
+  // zoals het hoort.
   const knop = (t) => `
     <button class="dm-subtab-btn${t.id === actief ? ' active' : ''}" data-subtab="${esc(t.id)}"
-      onclick="${klik(t.id)}" title="${esc(t.title || t.label)}">
-      ${icon(t.icoon, t.cls ? { cls: t.cls } : undefined)}<span>${esc(t.label)}</span>
+      onclick="${klik(t.id)}" title="${esc(t.title || (t.ruwLabel ? t.id : t.label))}">
+      ${icon(t.icoon, t.cls ? { cls: t.cls } : undefined)}<span>${t.ruwLabel ? t.label : esc(t.label)}</span>
     </button>`;
   const boekje = hulp && window._heeftHelp?.(hulp) ? (window._helpBtn?.(hulp) ?? '') : '';
   return `${items.map(knop).join('')}<span class="dm-subtab-hulp">${boekje}</span>`;
@@ -10527,7 +10543,11 @@ async function _renderVerzoeken() {
     <div class="dm-subtab-nav">${_subtabNavHtml({
       items: [
         { id: 'gunnen',    label: 'Gunnen',    icoon: 'hand' },
-        { id: 'verzoeken', label: totaal ? `Verzoeken (${totaal})` : 'Verzoeken', icoon: 'hourglass' },
+        // Een penning, geen getal tussen haakjes: dit moet je zien zonder te
+        // lezen. Dezelfde vorm als op de knop in de zijbalk.
+        { id: 'verzoeken', icoon: 'hourglass',
+          label: `Verzoeken${totaal ? `<span class="dm-subtab-penning">${totaal > 9 ? '9+' : totaal}</span>` : ''}`,
+          ruwLabel: true, title: totaal ? `${totaal} ${totaal === 1 ? 'verzoek wacht' : 'verzoeken wachten'} op jou` : 'Alles is afgehandeld' },
       ],
       actief: _verzoekenSubTab,
       klik: (id) => `window._verzoekenSubtabKies('${id}')`,

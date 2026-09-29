@@ -24950,19 +24950,28 @@ body.kaart-fs-active .dng-topbar { padding-right: 14px; }
    breed scherm staat de strip uit en verandert er niets. */
 .prikbord-strip { display: none; }
 @media (max-width: 760px) {
+  /* Zes kolomnamen achter elkaar passen niet op een telefoon: de balk schoof
+     horizontaal, en de scrollbalk liep dwars door de woorden. Nu alleen de
+     iconen — ze passen naast elkaar, dus er valt niets meer te schuiven. De
+     naam blijft in de tooltip en voor een schermlezer. */
   .prikbord-strip {
-    display: flex; gap: 6px; overflow-x: auto; padding: 10px 14px 0;
-    -webkit-overflow-scrolling: touch;
+    display: flex; gap: 6px; padding: 10px 14px 4px;
+    justify-content: space-between;
   }
+  .prikbord-strip-naam { display: none; }
   .prikbord-strip-knop {
-    display: inline-flex; align-items: center; gap: 6px; white-space: nowrap;
-    padding: 5px 10px; border-radius: 999px; cursor: pointer;
+    display: inline-flex; align-items: center; justify-content: center; gap: 4px;
+    flex: 1; min-width: 0; position: relative;
+    padding: 7px 4px; border-radius: 10px; cursor: pointer;
     font-family: 'Cinzel', serif; font-size: 11px; letter-spacing: 0.04em;
     color: #5a4030; background: rgba(196,168,122,0.14);
     border: 1px solid rgba(196,168,122,0.45);
   }
+  .prikbord-strip-knop .prikbord-col-count {
+    font-size: 10px; font-weight: 700; opacity: .85;
+  }
   .prikbord-strip-knop.is-actief { background: rgba(196,168,122,0.38); color: #2a1a08; border-color: #9a7008; }
-  .prikbord-strip-knop .icon { width: 12px; height: 12px; }
+  .prikbord-strip-knop .icon { width: 15px; height: 15px; }
   .prikbord { overflow-x: hidden; }
   .prikbord .prikbord-col { display: none; max-width: none; }
   .prikbord[data-kolom="verborgen"]    .prikbord-col--verborgen,
@@ -27730,3 +27739,13 @@ body.akte-schrijf-open .mp-overlay { z-index: 1320; }
 .dm-gunnen-moe.is-aan { border-color: rgba(139,42,42,.5); background: rgba(139,42,42,.1); }
 .dm-gunnen-moe.is-aan .dm-gunnen-moe-lbl,
 .dm-gunnen-moe.is-aan .dm-gunnen-moe-n { color: #8b2a2a; }
+
+/* De penning met het aantal verzoeken, in de subtabbalk naast de naam. Zelfde
+   vorm als die op de knop in de zijbalk: je moet hem zien zonder te lezen. */
+.dm-subtab-penning {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-width: 16px; height: 16px; padding: 0 4px; margin-left: 6px;
+  border-radius: 999px; background: #a33a2a; color: #fdf4e2;
+  font-family: 'Cinzel', serif; font-size: 10px; font-weight: 700; line-height: 1;
+  vertical-align: 1px;
+}

@@ -1,6 +1,6 @@
 import { api, campagneUitUrl, zetCampagne } from './api.js?v=297';
 import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, renderDocumenten, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=319";
-import { initArchief, renderLogboek, openLogboekEditor } from "./render-archief.js?v=135";
+import { initArchief, renderLogboek, openLogboekEditor } from "./render-archief.js?v=137";
 import { renderKaart, queueFlyTo, verversPins, nieuweKaart } from './render-kaart.js?v=31';
 import { renderDungeon } from './render-dungeon.js?v=56';
 import { renderRelatiemap } from './render-relatiemap.js?v=27';
@@ -10,7 +10,7 @@ import { renderSpreuken } from './render-spreuken.js?v=41';
 import { renderVaardigheden, zoekVaardigheden } from './render-vaardigheden.js?v=10';
 import { renderStatblock } from './render-statblock.js?v=9';
 import { initSocket } from "./socket-client.js?v=79";
-import { initDmPanel } from "./dm-panel.js?v=331";
+import { initDmPanel } from "./dm-panel.js?v=333";
 import { COND_INFO, COND_LABEL, COND_MET_PLAATJE, COND_ICON } from './conditions.js?v=2';
 import './media-picker.js?v=8';
 import './tafels.js?v=2';
@@ -13797,7 +13797,7 @@ function _renderFactieInterieur(el, f, missies) {
         ? `<span class="factie-missie-status-chip" title="Rond eerst de actieve missie af">${icon('lock')} Al een missie actief</span>`
         : `<button class="ts-wedden-btn factie-missie-btn" onclick="window._factieAccepteer('${esc(m.id)}','${esc(m.title||m.titel||'')}')">${icon('check')} Accepteer</button>`
       : type === 'aangevraagd'
-        ? `<span class="factie-missie-status-chip">${icon('clock')} Wacht op DM-goedkeuring</span>`
+        ? `<span class="factie-missie-status-chip">${icon('hourglass')} Wacht op DM-goedkeuring</span>`
         : `<span class="factie-missie-status-chip factie-missie-status-chip--actief">${icon('swords')} Actief</span>`;
     return `<div class="factie-missie${stijl ? ' factie-missie--' + stijl : ''}">
       <div class="factie-missie-header">
