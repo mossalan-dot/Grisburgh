@@ -2315,6 +2315,12 @@ router.put('/meta/markt', requireDM, (req, res) => {
     meta.markt.gebieden = req.body.gebieden
       .map(g => String(g || '').trim()).filter(Boolean).slice(0, 40);
   }
+  // Hoe de markt in deze campagne heet. De andere diensten konden dit allang;
+  // de markt had er geen veld voor.
+  if (req.body?.naam !== undefined) {
+    const n = String(req.body.naam || '').trim().slice(0, 60);
+    if (n) meta.markt.naam = n; else delete meta.markt.naam;
+  }
   storage.writeJSON('meta.json', meta);
   req.app.get('io').to(_campagneRoom(req)).emit('meta:updated');
   res.json({ ok: true, markt: meta.markt });

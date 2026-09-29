@@ -10,7 +10,7 @@ import { renderSpreuken } from './render-spreuken.js?v=41';
 import { renderVaardigheden, zoekVaardigheden } from './render-vaardigheden.js?v=10';
 import { renderStatblock } from './render-statblock.js?v=9';
 import { initSocket } from "./socket-client.js?v=79";
-import { initDmPanel } from "./dm-panel.js?v=337";
+import { initDmPanel } from "./dm-panel.js?v=338";
 import { COND_INFO, COND_LABEL, COND_MET_PLAATJE, COND_ICON } from './conditions.js?v=2';
 import './media-picker.js?v=8';
 import './tafels.js?v=2';
@@ -106,6 +106,7 @@ window._dienstSorteer = (lijst, sleutel = 'key') => {
 // de zijbalk toonde nog de namen van Grisburgh, hardcoded in de HTML. Zonder
 // eigen naam valt hij terug op wát het is, niet op hoe het hier heet.
 const _DIENST_STANDAARD = {
+  markt: 'Markt',
   herberg: 'Herberg', tweespalt: 'Gokhuis', gock: 'Detective', ursula: 'Waarzegger',
   tempel: 'Tempels', magizoo: 'Magizoöloog', facties: 'Facties',
 };
@@ -14256,11 +14257,18 @@ const HELP_CONFIG = {
     { titel: 'Waar de goden vandaan komen', tekst: 'Er is geen ingebouwd pantheon: een god ontstaat uit **Blessing-kaartjes met een godnaam** (zegen, eed of vloek). Hier voeg je daar volgorde, domein, symbool, prijs en portretten aan toe.', afbeelding: null },
     { titel: 'Zegen, eed, vloek', tekst: 'Een **zegen** koop je en komt in je boedel. Een **eed** is een belofte met een gevolg — wie er een zweert, kan geen tweede zweren. Een **vloek** hangt iemand aan tot hij hem kwijtraakt.', afbeelding: null },
   ] }),
+  dm_dienst_algemeen: () => ({ titel: 'Algemeen', stappen: [
+    { titel: 'Naam', tekst: 'Hoe deze plek in jouw campagne heet — *De Swarte Cat*, niet *de herberg*. De tab hierboven houdt de soortnaam, zodat het paneel ook klopt in een campagne waar het huis anders heet.', afbeelding: null },
+    { titel: 'Eerst waar, dan wie', tekst: 'Koppel een **locatie**; aan zo\'n kaartje hangt meestal al een eigenaar, en die vult zich dan vanzelf in. Typ er gerust iemand anders overheen — jouw keuze wint. Leeg laten mag ook: dan is er geen kaartje om te openen.', afbeelding: null },
+    { titel: 'De achtergrond komt van de locatie', tekst: 'Je staat letterlijk in die herberg: het beeld van het locatiekaartje wordt de achtergrond van de scène. Wil je iets anders, kies dan een **eigen achtergrond**; *Weghalen* geeft het kaartje weer terug.', afbeelding: null },
+    { titel: 'Begroeting', tekst: 'Koppel een **tafel** met begroetingen: er wordt er bij elk bezoek één gekozen, zodat dezelfde waard je niet elke avond met dezelfde zin aankijkt. Eén regel gedraagt zich als vroeger.', afbeelding: null },
+  ] }),
   dm_tempel_goden: () => ({ titel: 'Goden', stappen: [
     { titel: 'Koppelen, niet overtikken', tekst: 'Een god werkt als een dienst: je wijst het **kaartje van de god**, van zijn **priester** en van de **locatie** aan. Wat op zo\'n kaartje staat — beeld, beschrijving, geheimen — hoeft hier niet nog eens. De locatie levert ook de achtergrond van het altaar.', afbeelding: null },
     { titel: 'De inhoud staat op de Blessing-kaartjes', tekst: 'Zegen, vloek, de tekst van de eed, de permanente zegen en de eenmalige zegens beheer je in het archief. Die kaartjes zijn leidend; hier staat alleen hoe de god **heet** en hoe zijn altaar **oogt**.', afbeelding: null },
     { titel: 'Eigen prijs', tekst: 'Wat een **eenmalige zegen bij déze god** kost. Laat je het leeg, dan geldt de standaardprijs hierboven. Handig voor een god die zich duur laat betalen — of juist niets vraagt.', afbeelding: null },
     { titel: 'De priester begroet je', tekst: 'Koppel een **tafel** met begroetingen, net als bij een dienst: er wordt er bij elk bezoek één gekozen. *Nieuw* maakt er meteen een en opent hem in Tafels.', afbeelding: null },
+    { titel: 'Volgorde is redactie', tekst: 'De volgorde die je hier zet is de volgorde in de tempel. Zet de goden die er in jouw verhaal toe doen bovenaan; de rest mag daaronder wachten.', afbeelding: null },
   ] }),
   dm_tempel_prijzen: () => ({ titel: 'Standaardprijzen', stappen: [
     { titel: 'Voor alle altaren tegelijk', tekst: 'Wat een **eenmalige zegen**, een **eed** en de **boete na een vloek** kosten. Een god met een eigen prijs wint hiervan; laat je die leeg, dan geldt wat hier staat.', afbeelding: null },
@@ -14269,10 +14277,6 @@ const HELP_CONFIG = {
   dm_tempel_eden: () => ({ titel: 'Actieve eden & vloeken', stappen: [
     { titel: 'Wie draagt wat', tekst: 'Per speler wat er op hem rust. Zo zie je in één blik waarom iemand iets niet mag of juist moet — en hoef je het niet op zijn blad te zoeken.', afbeelding: null },
     { titel: 'Losmaken doe jij', tekst: 'Een eed of vloek verdwijnt niet vanzelf: die haal je hier weg als de scène daarom vraagt. Dat is bewust een handeling van de DM, geen aftellende klok.', afbeelding: null },
-  ] }),
-  dm_tempel_goden: () => ({ titel: 'Goden — metadata', stappen: [
-    { titel: 'Het uiterlijk van een god', tekst: 'Domein, symbool, portret, het beeld van de priester en zijn begroeting. Dit bepaalt hoe het altaar eruitziet als een speler binnenloopt.', afbeelding: null },
-    { titel: 'Volgorde is redactie', tekst: 'De volgorde die je hier zet is de volgorde in de tempel. Zet de goden die er in jouw verhaal toe doen bovenaan; de rest mag daaronder wachten.', afbeelding: null },
   ] }),
   dm_facties: () => ({ titel: 'Facties', stappen: [
     { titel: 'Wat een factie is', tekst: 'Een groep met een naam, een embleem en een **ladder** van zes treden. Hoe meer aanzien een party heeft, hoe hoger ze staan — en hoe meer er voor hen opengaat.', afbeelding: null },

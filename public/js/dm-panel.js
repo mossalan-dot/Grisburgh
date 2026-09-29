@@ -963,7 +963,7 @@ function _dienstKopHtml({ sleutel, config = {}, personages = [], locaties = [],
     <!-- Geen kop met de naam van de dienst: die staat al in de tabbalk erboven,
          en het boekje hangt daar ook al. Wat hier wél hoort is waar dit blok
          over gaat — het algemene deel, tegenover de diensten eronder. -->
-    <div class="dm-subgroep-label dm-dienst-kop">Algemeen</div>
+    ${_dienstSectieKop('', 'Algemeen', 'dm_dienst_algemeen')}
 
     <div class="dm-form-row">
       <label class="dm-form-label" for="${sleutel}-naam">Naam</label>
@@ -992,10 +992,6 @@ function _dienstKopHtml({ sleutel, config = {}, personages = [], locaties = [],
       ${!config.backdropId && loc ? `<img src="${api.thumbUrlBreed(loc.id)}" alt=""
         onerror="this.style.display='none'"
         style="width:100%;max-height:100px;object-fit:cover;border-radius:6px;border:1px dashed rgba(196,168,122,0.5);opacity:.8">` : ''}
-      <span class="dm-hint" style="font-size:11px">${config.backdropId
-        ? 'Een eigen achtergrond. Haal hem weg om het beeld van het locatiekaartje te gebruiken.'
-        : (loc ? `Het beeld van ${esc(loc.name)}. Kies hier een eigen achtergrond als je iets anders wilt.`
-               : 'Koppel een locatiekaartje, of kies hier een eigen achtergrond.')}</span>
       <div class="dm-feature-row" style="gap:6px">
         <button type="button" class="dm-btn dm-btn-ghost" onclick="window._pickServiceBackdrop('${sleutel}')"
           title="Kies of upload een eigen achtergrond uit de mediabibliotheek">${icon('image')} Eigen achtergrond</button>
@@ -6535,8 +6531,16 @@ async function _renderMarktSettings() {
 
   // Geen eigen kop: de tabbalk zegt al Markt, en het boekje hangt daar ook.
   // De uitleg die hier in twee alinea's stond, staat nu in die boekjes.
+  const cfg = window.app?.state?.meta?.markt || {};
   el.innerHTML = `
     <div class="dm-feature-section">
+      ${_dienstSectieKop('', 'Algemeen', 'dm_markt')}
+      <div class="dm-form-row">
+        <label class="dm-form-label" for="markt-naam">Naam</label>
+        <input id="markt-naam" class="dm-input" value="${esc(cfg.naam || '')}" placeholder="Markt"
+          onchange="window._marktNaamOpslaan(this.value)">
+      </div>
+
       ${_dienstSectieKop('store', 'Gebieden', 'dm_markt_gebieden')}
       <div class="dm-markt-gebieden">
         ${beschikbaar.length ? beschikbaar.map(g => `
@@ -6558,12 +6562,13 @@ async function _renderMarktSettings() {
     </div>
 
     <div class="dm-feature-section">
-      ${_dienstSectieKop('store', 'Winkels', 'dm_markt_winkels')}
       <!-- Dicht: het is een afgeleide lijst die je zelden hoeft te lezen —
-           je kijkt erin als een winkel níét op de Markt staat. -->
+           je kijkt erin als een winkel níét op de Markt staat. Vandaar dat het
+           kopje hier de uitklap zelf is. -->
+      <div class="dm-dienst-kop dm-subgroep-label" style="margin-bottom:0">Winkels<span class="dm-sectie-hulp">${helpBtn('dm_markt_winkels')}</span></div>
       <details class="dm-markt-winkels-uitklap">
         <summary class="dm-markt-winkels-kop">
-          <span>De Markt vindt ze zelf</span>
+          <span>Winkels</span>
           <span class="dm-markt-winkels-n">${(data.winkels || []).length}</span>
         </summary>
         <div class="dm-markt-winkels">
@@ -6578,6 +6583,17 @@ async function _renderMarktSettings() {
       </details>
     </div>`;
 }
+
+// De Markt heet in de ene campagne Markt en in de andere De Handelsring. Er was
+// geen veld om dat te zeggen; de andere diensten hadden dat allang.
+window._marktNaamOpslaan = async (naam) => {
+  try {
+    await api.put('/meta/markt', { naam: (naam || '').trim() });
+    const m = await api.meta();
+    if (window.app?.state) window.app.state.meta = m;
+    window.app?.applyAppMeta?.();
+  } catch (e) { alert('Opslaan mislukt: ' + e.message); }
+};
 
 window.dmPanel = window.dmPanel || {};
 window.dmPanel.marktGebiedenOpslaan = async () => {
