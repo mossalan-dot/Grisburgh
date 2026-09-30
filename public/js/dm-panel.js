@@ -7336,22 +7336,22 @@ const _FACTIE_SUBTAB_HULP = { leden: 'dm_facties_leden', rangen: 'dm_facties_ran
 // Zonder dat springt elke rangwijziging je terug naar Algemeen en klapt de
 // kaart dicht — _renderFactiesDM tekent de hele lijst opnieuw.
 const _factieSubtabs = new Map();
-const _factieOpen = new Set();
 function _factieSubtab(id) { return _factieSubtabs.get(id) || 'algemeen'; }
 
-window._factieUitklap = (id, open) => { if (open) _factieOpen.add(id); else _factieOpen.delete(id); };
 
 window._factieSubtabKies = (id, sub) => {
   _factieSubtabs.set(id, sub);
   document.querySelectorAll(`.factie-dm-paneel[data-factie="${id}"]`).forEach(p => {
     p.hidden = p.dataset.sub !== sub;
   });
-  const kaart = document.getElementById(`factie-dm-kaart-${id}`);
+  const kaart = document.getElementById(`factie-dm-kaart-${id}`) || document.getElementById('m-body');
   kaart?.querySelectorAll('.dm-subtab-btn').forEach(b => {
     b.classList.toggle('active', b.dataset.subtab === sub);
   });
   // Het boekje in de balk hoort bij het tabje, niet bij de kaart.
-  const slot = kaart?.querySelector('.dm-subtab-hulp');
+  // In het venster zit geen .factie-dm-kaart; dan is het venster zelf de bak.
+  const bak = kaart || document.getElementById('m-body');
+  const slot = bak?.querySelector('.dm-subtab-hulp');
   if (slot) {
     const sleutel = _FACTIE_SUBTAB_HULP[sub];
     slot.innerHTML = sleutel && window._heeftHelp?.(sleutel) ? (window._helpBtn?.(sleutel) ?? '') : '';
@@ -7424,6 +7424,9 @@ async function _renderFactiesSettings() {
     leden: (f.leden || []).map(l => ({ entityId: l.entityId, rang: l.rang || '' })),
     uitnodiging:      f.uitnodiging      || '',
     uitnodigingTitel: f.uitnodigingTitel || '',
+    briefAfzender:    f.briefAfzender    || '',
+    briefDatum:       f.briefDatum       || '',
+    briefthema:       f.briefthema       || '',
     rangen: (f.rangen || []).map(r => ({
       naam: r.naam, renown: r.renown, voordelen: r.voordelen || '',
       // `vereist` stond niet in dit model en werd ook niet meegestuurd bij het
@@ -7525,29 +7528,184 @@ window._factieTafelBewerk = (fi) => {
   setTimeout(() => { try { window.dmPanel.tabelEdit(id); } catch {} }, 160);
 };
 
+// Het embleem stond hier als eigen keuzerij, terwijl het organisatiekaartje
+// al een teken heeft. Twee pickers voor één symbool; nu volgt de factie het
+// kaartje en zet je het teken dáár — waar het ook de kaartenlijst, wikilinks
+// en het organogram bedient.
+const _iconPicker = (fi, f) => {
+  const org = f.entityId ? _factiesOrganisaties.find(o => o.id === f.entityId) : null;
+  const embleem = _factieEmbleemLokaal(f, org);
+  return `
+    <div class="dm-form-row" style="align-items:center">
+      <label class="dm-form-label">Embleem</label>
+      <span class="factie-embleem-uit">
+        <span class="factie-embleem-teken">${icon(embleem)}</span>
+        ${org
+          ? `<button type="button" class="dm-factie-kaartlink"
+               onclick="window._openDetail('organisaties','${esc(org.id)}')">volgt ${esc(org.name)}</button>`
+          : `<span class="dm-hint">koppel een organisatiekaartje bij <em>Algemeen</em>; daar staat het teken</span>`}
+      </span>
+    </div>`;
+};
+
+// ── Een factie bewerken: eigen venster ───────────────────────────────────────
+// In de lijst staat de stand — wie het kent, hoeveel aanzien, welke rang. Alles
+// wat je instelt zit hier, in dezelfde vier tabjes, maar met de ruimte van een
+// kaartje in plaats van een uitklap onder een regel.
+window._factieBewerk = (fi) => {
+  const f = _factiesDraft[fi];
+  if (!f) return;
+  _factieVensterIdx = fi;
+  window.app.openModal(
+    `${icon('pencil')} ${esc(f.naam || 'Factie')}`,
+    'Kaartjes, leden, brief en rangen',
+    _factieVensterHtml(fi),
+    'dm_facties',
+  );
+  _renderFactieRangen(fi);
+};
+
+let _factieVensterIdx = null;
+
+function _factieVensterHtml(fi) {
+  const f = _factiesDraft[fi];
+  const org = f.entityId ? _factiesOrganisaties.find(o => o.id === f.entityId) : null;
+  const sub = _factieSubtab(f.id);
+  const paneel = (id, inhoud) => `
+    <div class="factie-dm-paneel" data-factie="${esc(f.id)}" data-sub="${id}"${sub === id ? '' : ' hidden'}>${inhoud}</div>`;
+
+  return `
+    <div class="factie-venster">
+      <div class="dm-subtab-nav">${_subtabNavHtml({
+        items: _FACTIE_SUBTABS,
+        actief: sub,
+        klik: (id) => `window._factieSubtabKies('${esc(f.id)}','${id}')`,
+        hulp: _FACTIE_SUBTAB_HULP[sub] || '',
+      })}</div>
+
+      ${paneel('algemeen', `
+        <div class="dm-form-row">
+          <label class="dm-form-label">Naam</label>
+          <input class="dm-input" style="flex:1" placeholder="Naam" value="${esc(f.naam || '')}"
+            oninput="window._factieEdit(${fi},'naam',this.value)">
+        </div>
+        ${_iconPicker(fi, f)}
+        <textarea class="dm-input" style="width:100%;margin-top:6px;min-height:80px;resize:vertical" placeholder="Beschrijving"
+          oninput="window._factieEdit(${fi},'beschrijving',this.value)">${esc(f.beschrijving || '')}</textarea>
+        ${_factieKaartVeld(fi, 'entityId', 'Organisatie', _factiesOrganisaties, f.entityId, 'Zoek het organisatiekaartje…')}
+        ${_factieKaartVeld(fi, 'locatieEntityId', 'Locatie', _factiesLocaties, f.locatieEntityId, 'Waar zitten ze?')}
+        ${_factieKaartVeld(fi, 'npcEntityId', 'Hoofd', _factiesPersonages, f.npcEntityId, 'Volgt uit de organisatie, of kies zelf…')}
+        <div class="dm-form-row" style="margin-top:4px">
+          <label class="dm-form-label">Begroeting (tafel)</label>
+          <div class="dm-feature-row" style="gap:6px;flex:1;min-width:0">
+            <select class="dm-select dm-input-sm" style="flex:1;min-width:0"
+              onchange="window._factieEdit(${fi},'groetTafelId',this.value)">
+              <option value="">— Geen begroeting —</option>
+              ${(_tables || []).map(t => `<option value="${esc(t.id)}"${f.groetTafelId === t.id ? ' selected' : ''}>${esc(t.name || t.id)}</option>`).join('')}
+            </select>
+            <button type="button" class="dm-btn dm-btn-ghost dm-btn-sm" onclick="window._factieTafelNieuw(${fi})" title="Maak een tafel voor deze factie">${icon('plus')} Nieuw</button>
+            <button type="button" class="dm-btn dm-btn-ghost dm-btn-sm" onclick="window._factieTafelBewerk(${fi})" title="Openen in het Tafels-tabblad">${icon('pencil')} Bewerken</button>
+          </div>
+        </div>`)}
+
+      ${paneel('leden', `<div id="factie-leden-${fi}">${_ledenEditor(fi)}</div>`)}
+
+      ${paneel('brief', _factieBriefHtml(fi, f, org))}
+
+      ${paneel('rangen', `
+        <p class="dm-hint" style="margin:0 0 8px">Elke rang zegt zelf vanaf hoeveel renown hij geldt. De volgorde volgt daaruit; je hoeft ze niet op volgorde in te tikken.</p>
+        <div id="factie-rangen-${fi}"></div>
+        <div class="dm-form-row"><button class="dm-btn dm-btn-ghost dm-btn-sm" onclick="window._factieRangToevoegen(${fi})">${icon('plus')} Rang</button></div>`)}
+
+      <div class="factie-venster-voet">
+        <button class="dm-btn dm-btn-ghost" onclick="window._factieVerwijder(${fi})" title="Deze factie weghalen">${icon('trash')} Verwijderen</button>
+        <span style="margin-left:auto;display:inline-flex;gap:6px">
+          <button class="dm-btn dm-btn-ghost" onclick="window.app.closeModal()">${icon('x')} Sluiten</button>
+          <button class="dm-btn dm-btn-primary" onclick="window._factieVensterOpslaan()">${icon('save')} Opslaan</button>
+        </span>
+      </div>
+    </div>`;
+}
+
+// De uitnodigingsbrief kreeg hier zijn eigen kleine formulier, terwijl de post
+// al een volwaardige heeft. Dezelfde velden in dezelfde volgorde dus: afzender,
+// onderwerp, in-wereld datum, handschrift, briefhoofd, inhoud. Wat hier anders
+// blijft is de afzender: die volgt het hoofd van de factie, want een uitnodiging
+// van een gilde komt van iemand.
+function _factieBriefHtml(fi, f, org) {
+  const hoofd = f.npcEntityId ? _factiesPersonages.find(p => p.id === f.npcEntityId) : null;
+  return `
+    <div class="dm-form-row">
+      <label class="dm-form-label">Afzender</label>
+      <input class="dm-input" style="flex:1" placeholder="${esc(hoofd?.name || org?.name || f.naam || 'De factie')}"
+        value="${esc(f.briefAfzender || '')}"
+        title="Leeg = het hoofd van de factie, of anders de factie zelf"
+        oninput="window._factieEdit(${fi},'briefAfzender',this.value)">
+    </div>
+    <div class="dm-form-row">
+      <label class="dm-form-label">Onderwerp</label>
+      <input class="dm-input" style="flex:1" placeholder="Een uitnodiging"
+        value="${esc(f.uitnodigingTitel || '')}" oninput="window._factieEdit(${fi},'uitnodigingTitel',this.value)">
+      <button class="dm-btn dm-btn-ghost dm-btn-sm" onclick="window._factieUitnodigingSjabloon(${fi})" title="Standaard-sjabloon invullen">${icon('refresh-cw')} Sjabloon</button>
+    </div>
+    <div class="dm-form-row">
+      <label class="dm-form-label">Datum (in de spelwereld)</label>
+      <input class="dm-input" style="flex:1" placeholder="bijv. 4 Grasmaand MDCCLXXII"
+        value="${esc(f.briefDatum || '')}" oninput="window._factieEdit(${fi},'briefDatum',this.value)">
+    </div>
+    <div class="dm-form-row">
+      <label class="dm-form-label">Handschrift</label>
+      <select class="dm-select" style="flex:1" onchange="window._factieEdit(${fi},'briefstijl',this.value)">
+        ${(window.BRIEF_STIJLEN || [{ value: '', label: 'Standaard' }])
+          .map(b => `<option value="${esc(b.value)}"${(f.briefstijl || '') === b.value ? ' selected' : ''}>${esc(b.value ? b.label : 'Standaard — oud handschrift')}</option>`).join('')}
+      </select>
+    </div>
+    <div class="dm-form-row">
+      <label class="dm-form-label">Briefhoofd</label>
+      <select class="dm-select" style="flex:1" onchange="window._factieEdit(${fi},'briefthema',this.value)">
+        <option value=""${!f.briefthema ? ' selected' : ''}>Het zegel van de factie</option>
+        ${[['ursula', 'Madame Ursula — lila brief'], ['gock', 'De Gock — logo &amp; typemachine'],
+           ['tweespalt', 'De Tweespalt — haastig briefje'], ['heeren', 'De Heeren van de Nacht — schaduwbrief']]
+          .map(([k, l]) => `<option value="${k}"${f.briefthema === k ? ' selected' : ''}>${l}</option>`).join('')}
+      </select>
+    </div>
+    <div class="dm-form-row" style="flex-direction:column;gap:4px;align-items:stretch">
+      <label class="dm-form-label">Inhoud</label>
+      <textarea id="factie-uitnodiging-${fi}" class="dm-input" style="width:100%;min-height:150px;resize:vertical;font-family:'IM Fell English',serif"
+        placeholder="Schrijf hier de uitnodiging, of klik op Sjabloon…"
+        oninput="window._factieEdit(${fi},'uitnodiging',this.value)">${esc(f.uitnodiging || '')}</textarea>
+    </div>
+    <div class="dm-form-row">
+      <label class="dm-form-label">Kleur van de lak</label>
+      <div class="factie-stijl-picker">
+        ${_FACTIE_STIJLEN.map(st => `
+          <button type="button" class="factie-stijl-btn${(f.stijl || '') === st.id ? ' factie-stijl-btn--actief' : ''}"
+            style="--zegel:${st.hex}" title="Het lakzegel en de randen van de brief in ${esc(st.label.toLowerCase())}"
+            onclick="window._factieStijlKies(${fi},'${st.id}',this)">
+            <span class="factie-stijl-zegel">${icon(_factieEmbleemLokaal(f, org))}</span>
+            <span class="factie-stijl-naam">${esc(st.label)}</span>
+          </button>`).join('')}
+      </div>
+    </div>`;
+}
+
+window._factieVensterOpslaan = async () => {
+  await window._factiesSave();
+  window.app.closeModal();
+};
+
+window._factieVerwijder = (fi) => {
+  const f = _factiesDraft[fi];
+  if (!f) return;
+  if (!confirm(`"${f.naam}" weghalen? Renown en rangen van je party's gaan mee.`)) return;
+  _factiesDraft.splice(fi, 1);
+  window.app.closeModal();
+  window._factiesSave();
+};
+
 function _renderFactiesDM() {
   const el = _tabEl('facties');
   if (!el) return;
-
-  // Het embleem stond hier als eigen keuzerij, terwijl het organisatiekaartje
-  // al een teken heeft. Twee pickers voor één symbool; nu volgt de factie het
-  // kaartje en zet je het teken dáár — waar het ook de kaartenlijst, wikilinks
-  // en het organogram bedient.
-  const _iconPicker = (fi, f) => {
-    const org = f.entityId ? _factiesOrganisaties.find(o => o.id === f.entityId) : null;
-    const embleem = _factieEmbleemLokaal(f, org);
-    return `
-      <div class="dm-form-row" style="align-items:center">
-        <label class="dm-form-label">Embleem</label>
-        <span class="factie-embleem-uit">
-          <span class="factie-embleem-teken">${icon(embleem)}</span>
-          ${org
-            ? `<button type="button" class="dm-factie-kaartlink"
-                 onclick="window._openDetail('organisaties','${esc(org.id)}')">volgt ${esc(org.name)}</button>`
-            : `<span class="dm-hint">koppel een organisatiekaartje bij <em>Algemeen</em>; daar staat het teken</span>`}
-        </span>
-      </div>`;
-  };
 
   el.innerHTML = `
     <div class="dm-feature-section">
@@ -7569,19 +7727,23 @@ function _renderFactiesDM() {
         // staan zodra een rang iets anders geeft dan een voorwerp.
         const boonGegeven = (live.ladder || []).filter(r => r.bereikt && r.index > 0)
           .flatMap(r => (r.unlocks?.length ? r.unlocks : (r.boons || [])));
+        const _org = f.entityId ? _factiesOrganisaties.find(o => o.id === f.entityId) : null;
         return `
         <div class="factie-dm-kaart" id="factie-dm-kaart-${f.id}">
           <div class="factie-dm-kaart-header">
             <button id="factie-dm-oog-${esc(f.id)}" class="factie-dm-oog${zichtbaar ? ' factie-dm-oog--aan' : ''}" onclick="window._factieReveal('${esc(f.id)}')" title="${zichtbaar ? 'Verberg factie' : 'Onthul factie voor spelers'}">
               ${zichtbaar ? icon('eye') : icon('eye-off')}
             </button>
+            <span class="factie-embleem-teken factie-dm-embleem">${icon(_factieEmbleemLokaal(f, _org))}</span>
             <span class="factie-dm-naam">${esc(f.naam)}</span>
             <span id="factie-dm-badge-${esc(f.id)}" class="factie-dm-renown-badge">renown: ${renown} | ${esc(rangNaam)}</span>
           </div>
+          <!-- In de lijst staat wat je aan tafel aanraakt: onthullen, renown
+               toekennen, een uitnodiging sturen. Alle instellingen — kaartjes,
+               leden, brief, rangen — zitten achter Bewerken, in een eigen
+               venster. Ze stonden hier in een uitklap en dat werd een blad vol
+               velden waar je de stand niet meer in terugvond. -->
           <div class="factie-dm-renown-knoppen">
-            <!-- Er stonden vier vaste knoppen (+1 +3 +5 -1) — getallen die
-                 nergens vandaan kwamen. Wat je toekent hangt van de daad af, dus
-                 één veld: tik in wat het waard was, min mag ook. -->
             <label class="dm-hint factie-renown-invoer">
               <input class="dm-input dm-input-sm" type="number" id="factie-renown-${esc(f.id)}"
                 placeholder="0" title="Hoeveel renown erbij? Een min-getal haalt eraf."
@@ -7591,102 +7753,15 @@ function _renderFactiesDM() {
             <button class="dm-btn dm-btn-ghost dm-btn-sm" onclick="window._factieRenownVeld('${esc(f.id)}')"
               title="Toekennen">${icon('check')} Toekennen</button>
             ${boonGegeven.length ? `<span class="factie-dm-boon-label">${icon('check-circle')} ${boonGegeven.length} gunst${boonGegeven.length > 1 ? 'en' : ''} uitgedeeld</span>` : ''}
-            <button class="dm-btn dm-btn-primary dm-btn-sm factie-dm-uitnodiging" style="margin-left:auto"
-              onclick="window._factieStuurUitnodiging('${esc(f.id)}')"
-              title="Onthul de factie voor de actieve groep én bezorg elke speler een verzegelde uitnodigingsbrief">
-              ${icon('mail')} Stuur uitnodiging</button>
+            <span style="margin-left:auto;display:inline-flex;gap:6px">
+              <button class="dm-btn dm-btn-primary dm-btn-sm factie-dm-uitnodiging"
+                onclick="window._factieStuurUitnodiging('${esc(f.id)}')"
+                title="Onthul de factie voor de actieve groep én bezorg elke speler een verzegelde uitnodigingsbrief">
+                ${icon('mail')} Stuur uitnodiging</button>
+              <button class="dm-btn dm-btn-ghost dm-btn-sm" onclick="window._factieBewerk(${fi})"
+                title="Kaartjes, leden, brief en rangen">${icon('pencil')} Bewerken</button>
+            </span>
           </div>
-          <!-- Het oogje en het renown blijven in beeld: dat is wat je aan tafel
-               aanraakt. De rest zat in één uitklap, en dat werd een waslijst:
-               naam, embleem, beschrijving, kleur, drie koppelingen, begroeting,
-               leden, brief, handschrift, drempels en rangen onder elkaar. Nu
-               vier tabjes, dezelfde vorm als een dienst. -->
-          <details class="factie-dm-config" style="margin-top:6px"${_factieOpen.has(f.id) ? ' open' : ''}
-            ontoggle="window._factieUitklap('${esc(f.id)}', this.open)">
-            <summary class="dm-form-label factie-dm-config-kop">Bewerken</summary>
-            <div class="factie-dm-tabs">
-              <div class="dm-subtab-nav">${_subtabNavHtml({
-                items: _FACTIE_SUBTABS,
-                actief: _factieSubtab(f.id),
-                klik: (id) => `window._factieSubtabKies('${esc(f.id)}','${id}')`,
-                hulp: _FACTIE_SUBTAB_HULP[_factieSubtab(f.id)] || '',
-              })}</div>
-
-              <div class="factie-dm-paneel" data-factie="${esc(f.id)}" data-sub="algemeen"${_factieSubtab(f.id) === 'algemeen' ? '' : ' hidden'}>
-                <div class="dm-form-row" style="gap:6px;align-items:center;margin-bottom:4px">
-                  <label class="dm-form-label">Naam</label>
-                  <input class="dm-input" style="flex:1" placeholder="Naam" value="${esc(f.naam || '')}" oninput="window._factieEdit(${fi},'naam',this.value)">
-                </div>
-                ${_iconPicker(fi, f)}
-                <textarea class="dm-input" style="width:100%;margin-top:6px;min-height:64px;resize:vertical" placeholder="Beschrijving" oninput="window._factieEdit(${fi},'beschrijving',this.value)">${esc(f.beschrijving || '')}</textarea>
-                <!-- Zelfde drie koppelingen als een dienst, en in dezelfde
-                     volgorde: de organisatie is wie ze zijn, de locatie is waar
-                     ze zitten, en het hoofd volgt daar meestal al uit. -->
-                ${_factieKaartVeld(fi, 'entityId', 'Organisatie', _factiesOrganisaties, f.entityId,
-                                   'Zoek het organisatiekaartje…')}
-                ${_factieKaartVeld(fi, 'locatieEntityId', 'Locatie', _factiesLocaties, f.locatieEntityId,
-                                   'Waar zitten ze?')}
-                ${_factieKaartVeld(fi, 'npcEntityId', 'Hoofd', _factiesPersonages, f.npcEntityId,
-                                   'Volgt uit de organisatie, of kies zelf…')}
-                <!-- Zoals bij een dienst: een tafel met openingszinnen. -->
-                <div class="dm-form-row" style="margin-top:4px">
-                  <label class="dm-form-label">Begroeting (tafel)</label>
-                  <div class="dm-feature-row" style="gap:6px;flex:1;min-width:0">
-                    <select class="dm-select dm-input-sm" style="flex:1;min-width:0"
-                      onchange="window._factieEdit(${fi},'groetTafelId',this.value)">
-                      <option value="">— Geen begroeting —</option>
-                      ${(_tables || []).map(t => `<option value="${esc(t.id)}"${f.groetTafelId === t.id ? ' selected' : ''}>${esc(t.name || t.id)}</option>`).join('')}
-                    </select>
-                    <button type="button" class="dm-btn dm-btn-ghost dm-btn-sm"
-                      onclick="window._factieTafelNieuw(${fi})" title="Maak een tafel voor deze factie">${icon('plus')} Nieuw</button>
-                    <button type="button" class="dm-btn dm-btn-ghost dm-btn-sm"
-                      onclick="window._factieTafelBewerk(${fi})" title="Openen in het Tafels-tabblad">${icon('pencil')} Bewerken</button>
-                  </div>
-                </div>
-              </div>
-
-              <div class="factie-dm-paneel" data-factie="${esc(f.id)}" data-sub="leden"${_factieSubtab(f.id) === 'leden' ? '' : ' hidden'}>
-                <div id="factie-leden-${fi}">${_ledenEditor(fi)}</div>
-              </div>
-
-              <div class="factie-dm-paneel" data-factie="${esc(f.id)}" data-sub="brief"${_factieSubtab(f.id) === 'brief' ? '' : ' hidden'}>
-                <div class="dm-form-row" style="margin-bottom:4px">
-                  <label class="dm-form-label">Titel</label>
-                  <input class="dm-input" style="flex:1" placeholder="Een uitnodiging" value="${esc(f.uitnodigingTitel || '')}" oninput="window._factieEdit(${fi},'uitnodigingTitel',this.value)">
-                  <button class="dm-btn dm-btn-ghost dm-btn-sm" onclick="window._factieUitnodigingSjabloon(${fi})" title="Standaard-sjabloon invullen">${icon('refresh-cw')} Sjabloon</button>
-                </div>
-                <textarea id="factie-uitnodiging-${fi}" class="dm-input" style="width:100%;min-height:120px;resize:vertical" placeholder="Schrijf hier de uitnodiging, of klik op Sjabloon…" oninput="window._factieEdit(${fi},'uitnodiging',this.value)">${esc(f.uitnodiging || '')}</textarea>
-                <!-- Dezelfde handschriften als een document en de snelle post: een
-                     uitnodiging van een gilde hoort er anders uit te zien dan een
-                     dreigbrief van een dievenbende. -->
-                <div class="dm-form-row" style="margin-top:4px">
-                  <label class="dm-form-label">Handschrift</label>
-                  <select class="dm-select dm-input-sm" onchange="window._factieEdit(${fi},'briefstijl',this.value)">
-                    ${(window.BRIEF_STIJLEN || [{ value: '', label: 'Automatisch' }]).map(b =>
-                      `<option value="${esc(b.value)}"${(f.briefstijl || '') === b.value ? ' selected' : ''}>${esc(b.label)}</option>`).join('')}
-                  </select>
-                </div>
-                <div class="dm-form-row" style="margin-top:6px;align-items:flex-start">
-                  <label class="dm-form-label">Zegel en briefhoofd</label>
-                  <div class="factie-stijl-picker">
-                    ${_FACTIE_STIJLEN.map(st => `
-                      <button type="button" class="factie-stijl-btn${(f.stijl || '') === st.id ? ' factie-stijl-btn--actief' : ''}"
-                        style="--zegel:${st.hex}" title="Lakzegel en briefhoofd in ${esc(st.label.toLowerCase())}"
-                        onclick="window._factieStijlKies(${fi},'${st.id}',this)">
-                        <span class="factie-stijl-zegel">${icon(f.embleem || 'landmark')}</span>
-                        <span class="factie-stijl-naam">${esc(st.label)}</span>
-                      </button>`).join('')}
-                  </div>
-                </div>
-              </div>
-
-              <div class="factie-dm-paneel" data-factie="${esc(f.id)}" data-sub="rangen"${_factieSubtab(f.id) === 'rangen' ? '' : ' hidden'}>
-                <p class="dm-hint" style="margin:0 0 8px">Elke rang zegt zelf vanaf hoeveel renown hij geldt. De volgorde volgt daaruit; je hoeft ze niet op volgorde in te tikken.</p>
-                <div id="factie-rangen-${fi}"></div>
-                <div class="dm-form-row"><button class="dm-btn dm-btn-ghost dm-btn-sm" onclick="window._factieRangToevoegen(${fi})">${icon('plus')} Rang</button></div>
-              </div>
-            </div>
-          </details>
         </div>`; }).join('')}
       <div class="dm-form-row" style="margin-top:10px;gap:8px">
         <button class="dm-btn dm-btn-ghost dm-btn-sm" onclick="window._factieNieuw()">${icon('plus')} Nieuwe factie</button>
@@ -7934,9 +8009,9 @@ const _FACTIE_LADDER = () => [0, 1, 3, 10, 25, 50].map((renown, i) => ({
 window._factieNieuw = () => {
   _factiesDraft.push({ id: 'factie_' + Date.now(), naam: 'Nieuwe factie', embleem: 'landmark', beschrijving: '', stijl: '', rangen: _FACTIE_LADDER() });
   _renderFactiesDM();
-  // Open de details van de nieuwe factie
-  const kaarten = document.querySelectorAll('.factie-dm-kaart details');
-  kaarten[kaarten.length - 1]?.setAttribute('open', '');
+  // Meteen het venster open: een nieuwe factie heet "Nieuwe factie" en heeft
+  // verder niets, dus daar valt in de lijst niets aan te zien.
+  window._factieBewerk(_factiesDraft.length - 1);
 };
 window._factieRangEdit = (fi, i, field, v) => { const r = _factiesDraft[fi]?.rangen?.[i]; if (r) r[field] = v; };
 window._factieRangToevoegen = (fi) => {
@@ -8033,6 +8108,9 @@ function _factiesPayload() {
       .map(l => ({ entityId: String(l.entityId).trim(), rang: (l.rang || '').trim() })),
     uitnodiging: (f.uitnodiging || '').trim(),
     uitnodigingTitel: (f.uitnodigingTitel || '').trim(),
+    briefAfzender: (f.briefAfzender || '').trim(),
+    briefDatum: (f.briefDatum || '').trim(),
+    briefthema: (f.briefthema || '').trim(),
     rangen: (f.rangen || []).filter(r => (r.naam || '').trim()).map((r, i) => ({
       naam: r.naam.trim(),
       renown: String(r.renown ?? '').trim() !== '' ? parseInt(r.renown) || 0 : ([0,1,3,10,25,50][i] ?? i),

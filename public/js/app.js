@@ -10,7 +10,7 @@ import { renderSpreuken } from './render-spreuken.js?v=41';
 import { renderVaardigheden, zoekVaardigheden } from './render-vaardigheden.js?v=10';
 import { renderStatblock } from './render-statblock.js?v=9';
 import { initSocket } from "./socket-client.js?v=80";
-import { initDmPanel } from "./dm-panel.js?v=354";
+import { initDmPanel } from "./dm-panel.js?v=355";
 import { COND_INFO, COND_LABEL, COND_MET_PLAATJE, COND_ICON } from './conditions.js?v=2';
 import './media-picker.js?v=8';
 import './tafels.js?v=2';
@@ -14336,9 +14336,11 @@ const HELP_CONFIG = {
     { titel: 'Losmaken doe jij', tekst: 'Een eed of vloek verdwijnt niet vanzelf: die haal je hier weg als de scène daarom vraagt. Dat is bewust een handeling van de DM, geen aftellende klok.', afbeelding: null },
   ] }),
   dm_facties: () => ({ titel: 'Facties', stappen: [
-    { titel: 'Wat een factie is', tekst: 'Een groep met een naam, een embleem en een **ladder** van zes treden. Hoe meer aanzien een party heeft, hoe hoger ze staan — en hoe meer er voor hen opengaat.', afbeelding: null },
+    { titel: 'Wat een factie is', tekst: 'Een groep met een naam, een embleem en een **ladder** van rangen. Hoe meer aanzien een party heeft, hoe hoger ze staan — en hoe meer er voor hen opengaat.', afbeelding: null },
+    { titel: 'De lijst is de stand', tekst: 'Per factie zie je hier wat je aan tafel nodig hebt: het **oogje** (kent de party ze al), hun renown en rang, een veld om renown toe te kennen — tik in wat de daad waard was, een min-getal haalt eraf — en de knop om een uitnodiging te sturen. Alles wat je instelt zit achter **Bewerken**, in een eigen venster: kaartjes, leden, brief en rangen. Dat stond hier in een uitklap en werd een blad vol velden waar de stand in verdween.', afbeelding: null },
+    { titel: 'Het embleem komt van het kaartje', tekst: 'Een factie hangt aan een organisatiekaartje, en dáár kies je haar teken (veld **Teken**). Laat je het leeg, dan volgt het het type van de organisatie — een gilde krijgt een pakket, een bende een schedel. Zo staat het teken op één plek en klopt het overal: in de kaartenlijst, in het organogram en op het lakzegel van haar brieven.', afbeelding: null },
     { titel: 'Hoe de sectie heet', tekst: 'De naam boven dit onderdeel stel je zelf in (bij ons *Facties & Aanzien*). Zo kan het in jouw wereld net zo goed *Huizen* of *Orden* heten.', afbeelding: null },
-    { titel: 'Zich voorstellen per brief', tekst: 'Een factie kan zich met één klik voorstellen aan de actieve party: dat onthult haar en bezorgt elke speler een verzegelde brief. Een mooiere binnenkomst dan een vinkje omzetten. Kies er een **handschrift** bij — dezelfde als bij documenten, zodat een gilde er anders uitziet dan een dievenbende.', afbeelding: null },
+    { titel: 'Zich voorstellen per brief', tekst: 'Een factie kan zich met één klik voorstellen aan de actieve party: dat onthult haar en bezorgt elke speler een verzegelde brief. Een mooiere binnenkomst dan een vinkje omzetten. Het tabje **Brief** heeft dezelfde velden als een gewone brief bij de post — afzender, onderwerp, datum in de spelwereld, handschrift, briefhoofd en inhoud — plus de kleur van de lak. Laat je de afzender leeg, dan tekent het hoofd van de factie.', afbeelding: null },
     { titel: 'Koppelen, niet overtikken', tekst: 'Wijs de **organisatie**, de **locatie** en het **hoofd** aan als kaartje. Het hoofd volgt meestal al uit de betrokkenenlijst van de organisatie — diezelfde lijst tekent het organogram op dat kaartje. Zo staat elk gegeven op één plek.', afbeelding: null },
     { titel: 'Onthullen', tekst: 'Spelers zien een factie pas als jij haar onthult (het oogje). Het renown pas je hier aan; de ladder bepaalt wat er dan opengaat.', afbeelding: null },
   ] }),

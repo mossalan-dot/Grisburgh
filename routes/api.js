@@ -13142,19 +13142,26 @@ router.post('/facties/:id/uitnodiging', requireDM, (req, res) => {
 
   // 3) Afzender = NPC-hoofd, anders de factienaam; locatie voor het sjabloon
   const npc = factie.npcEntityId ? (entities.personages || []).find(e => e.id === factie.npcEntityId) : null;
-  const afzender = npc?.name || factie.naam;
+  // Zelfde velden als een gewone brief bij de post: een eigen afzender en een
+  // in-wereld datum mogen, en anders volgt de afzender het hoofd van de factie.
+  const afzender = String(factie.briefAfzender || '').trim() || npc?.name || factie.naam;
   const locatie  = factie.locatieEntityId ? ((entities.locaties || []).find(e => e.id === factie.locatieEntityId)?.name || '') : '';
 
   const tekst = (factie.uitnodiging && factie.uitnodiging.trim()) || _standaardUitnodiging(factie, afzender, locatie);
   const titel = (factie.uitnodigingTitel && factie.uitnodigingTitel.trim()) || 'Een uitnodiging';
+  // Een eigen briefhoofd mag; zonder keuze blijft het zegel van de factie.
+  const THEMAS = ['ursula', 'gock', 'tweespalt', 'heeren'];
+  const thema = THEMAS.includes(String(factie.briefthema || '')) ? factie.briefthema : 'factie';
 
   // 4) Bezorg de verzegelde brief bij elk lid
   let bezorgd = 0;
   for (const lid of leden) {
     const post = _bezorgBrief(req, lid.id, {
-      titel, tekst, afzender, thema: 'factie',
+      titel, tekst, afzender, thema,
+      datum: String(factie.briefDatum || '').trim(),
       entityId: factie.entityId || null, entityType: factie.entityId ? 'organisaties' : null,
       embleem: _factieEmbleem(factie, storage.readJSON('entities.json')), kleur: factie.stijl || '', kop: factie.naam, cinematic: true,
+      ...(factie.briefstijl ? { briefstijl: String(factie.briefstijl) } : {}),
     });
     if (post) bezorgd++;
   }
@@ -13348,6 +13355,9 @@ router.put('/meta/facties', requireDM, (req, res) => {
       .map(l => ({ entityId: String(l.entityId).trim(), rang: String(l.rang || '').trim() })),
     uitnodiging:      f.uitnodiging      ? String(f.uitnodiging).trim()      : '',
     uitnodigingTitel: f.uitnodigingTitel ? String(f.uitnodigingTitel).trim() : '',
+    briefAfzender:    f.briefAfzender    ? String(f.briefAfzender).trim().slice(0, 80) : '',
+    briefDatum:       f.briefDatum       ? String(f.briefDatum).trim().slice(0, 60)    : '',
+    briefthema:       ['ursula','gock','tweespalt','heeren'].includes(String(f.briefthema || '')) ? f.briefthema : '',
     rangen: (Array.isArray(f.rangen) && f.rangen.length)
       ? _rangenOpVolgorde(f).map((r, i) => {
           const rang = {
