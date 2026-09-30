@@ -11914,7 +11914,11 @@ router.post('/gock/opdracht', attachRole, vereistDienst('gock'), (req, res) => {
     return res.status(400).json({ error: 'De detective kan geen onderzoek naar zichzelf uitvoeren' });
   }
   const prijs = config.prijs || { fl: 50 };
-  const tidbits = config.tidbits?.length ? config.tidbits : GOCK_TIDBITS_DEFAULT;
+  // Weetjes komen uit een tafel, net als de begroetingen: één voorraad regels
+  // waaruit er bij elk rapport één gekozen wordt. Een campagne die nog een eigen
+  // lijst in `tidbits` heeft staan houdt die tot ze verhuisd is.
+  const tidbits = _tafelRegels(config.tidbitTafelId)
+    || (config.tidbits?.length ? config.tidbits : GOCK_TIDBITS_DEFAULT);
 
   const prijsCl = toCl(prijs);
   const pc = _effectiveCurrency(dmState, characterId) || { fl: 0, kn: 0, cl: 0 };
@@ -12046,7 +12050,8 @@ router.post('/gock/verzoek/:characterId/kies', requireDM, (req, res) => {
   } else {
     // Niets gevonden: de detective komt terug met een weetje.
     const meta = storage.readJSON('meta.json');
-    const tidbits = meta.gock?.tidbits?.length ? meta.gock.tidbits : GOCK_TIDBITS_DEFAULT;
+    const tidbits = _tafelRegels(meta.gock?.tidbitTafelId)
+      || (meta.gock?.tidbits?.length ? meta.gock.tidbits : GOCK_TIDBITS_DEFAULT);
     geval.gekozen  = [];
     geval.isGeheim = false;
     geval.geheimId = null;
@@ -12146,7 +12151,7 @@ router.put('/meta/ursula', requireDM, (req, res) => {
 router.put('/meta/gock', requireDM, (req, res) => {
   const meta = storage.readJSON('meta.json');
   if (!meta.gock) meta.gock = {};
-  ['naam', 'groet', 'groeten', 'groetTafelId', 'prijs', 'tidbits', 'imageId', 'locatieId', 'backdropId'].forEach(f => { if (req.body[f] !== undefined) meta.gock[f] = req.body[f]; });
+  ['naam', 'groet', 'groeten', 'groetTafelId', 'prijs', 'tidbits', 'tidbitTafelId', 'imageId', 'locatieId', 'backdropId'].forEach(f => { if (req.body[f] !== undefined) meta.gock[f] = req.body[f]; });
   storage.writeJSON('meta.json', meta);
   req.app.get('io').to(_campagneRoom(req)).emit('meta:updated');
   res.json(meta.gock);
@@ -14418,8 +14423,16 @@ router.post('/tweespalt/arena/:boutId/aanmeld', attachRole, vereistDienst('twees
     const compleet = gewoon.length > 0 && gewoon.every(b => ts.arenaVerslagen.includes(b.id));
     if (!compleet) return res.status(400).json({ error: 'Dit strijdperk is nog verzegeld.' });
   }
-  if (ts.arenaSignups.some(s => s.doorId === characterId && s.boutId === bout.id && s.status === 'aangemeld')) {
-    return res.status(400).json({ error: 'Je staat al ingeschreven voor deze partij.' });
+  // Eén partij tegelijk. Je kon je voor dezelfde partij niet twee keer
+  // inschrijven, maar wel voor alle andere tegelijk — dan sta je op vijf
+  // affiches en betaal je vijf keer inleg voor één avond.
+  const lopend = ts.arenaSignups.find(s => s.doorId === characterId && s.status === 'aangemeld');
+  if (lopend) {
+    return res.status(409).json({
+      error: lopend.boutId === bout.id
+        ? 'Je staat al ingeschreven voor deze partij.'
+        : `Je staat al ingeschreven voor ${lopend.boutNaam}. Eerst die partij uitvechten.`,
+    });
   }
 
   // Inleg (optioneel) afschrijven

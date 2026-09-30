@@ -10,7 +10,7 @@ import { renderSpreuken } from './render-spreuken.js?v=41';
 import { renderVaardigheden, zoekVaardigheden } from './render-vaardigheden.js?v=10';
 import { renderStatblock } from './render-statblock.js?v=9';
 import { initSocket } from "./socket-client.js?v=80";
-import { initDmPanel } from "./dm-panel.js?v=359";
+import { initDmPanel } from "./dm-panel.js?v=360";
 import { COND_INFO, COND_LABEL, COND_MET_PLAATJE, COND_ICON } from './conditions.js?v=2';
 import './media-picker.js?v=8';
 import './tafels.js?v=2';
@@ -12687,10 +12687,13 @@ async function renderGock() {
           ? `<p class="herberg-cooldown-tekst">Er zijn nog geen personen bekend.</p>`
           : `<div class="herberg-zoek-wrap">
               <p class="herberg-teller">Naar wie wil je onderzoek laten doen?</p>
+              <!-- "Begin met typen om te zoeken" stond onder een veld waar al
+                   "Typ een naam…" in staat. Twee keer dezelfde aanwijzing; de
+                   regel blijft staan om te melden dát er niets gevonden is. -->
               <input type="text" class="herberg-zoek-input" placeholder="Typ een naam…"
                 oninput="window._gockFilter(this.value)"
                 id="gock-zoek" autocomplete="off">
-              <p class="herberg-zoek-hint" id="gock-hint">Begin met typen om te zoeken.</p>
+              <p class="herberg-zoek-hint" id="gock-hint"></p>
               <div class="herberg-lijst" id="gock-lijst">
                 ${beschikbaar.map(e => `
                   <button class="herberg-item" data-naam="${esc(e.name.toLowerCase())}"
@@ -12711,13 +12714,21 @@ window._gockFilter = (q) => {
   const s = q.trim().toLowerCase();
   if (!s) {
     lijst.querySelectorAll('.herberg-item').forEach(btn => { btn.style.display = 'none'; });
-    if (hint) hint.style.display = '';
+    if (hint) { hint.style.display = 'none'; hint.textContent = ''; }
     return;
   }
-  if (hint) hint.style.display = 'none';
+  // De regel onder het veld zegt niet meer "begin met typen" (dat staat al in
+  // het veld), maar meldt wél als er niemand van die naam bekend is.
+  let raak = 0;
   lijst.querySelectorAll('.herberg-item').forEach(btn => {
-    btn.style.display = btn.dataset.naam.includes(s) ? '' : 'none';
+    const past = btn.dataset.naam.includes(s);
+    btn.style.display = past ? '' : 'none';
+    if (past) raak++;
   });
+  if (hint) {
+    hint.style.display = raak ? 'none' : '';
+    hint.textContent = raak ? '' : 'Niemand van die naam bekend.';
+  }
 };
 
 window._gockKies = async (entityId, entityType, entityName) => {
@@ -14267,9 +14278,10 @@ const HELP_CONFIG = {
     { titel: 'De verborgen eindbaas', tekst: 'Vink je een partij als verborgen aan, dan verschijnt hij pas als alle andere verslagen zijn. Zo bouw je een ladder met een verrassing bovenaan.', afbeelding: null },
     { titel: 'De uitslag bepaal jij', tekst: 'Het gevecht wordt aan tafel gespeeld of verteld; jij zet daarna wie er gewonnen heeft. Bij een overwinning betaalt de app het prijzengeld uit. Die keuze is onomkeerbaar — de inzetten worden er meteen mee verrekend.', afbeelding: null },
   ] }),
-  dm_gokhuis_inschrijvingen: () => ({ titel: 'Strijdperk — inschrijvingen', stappen: [
-    { titel: 'Wie heeft ingezet', tekst: 'Per speler de inzet en op wie. Zolang het kamp loopt kun je zien waar de tafel op gokt; handig om te weten wie er belang bij heeft.', afbeelding: null },
-    { titel: 'Zelf meevechten', tekst: 'Een speler kan ook zelf het perk in. Zijn inzet is dan zijn eigen kamp — en verliezen doet meer pijn dan geld.', afbeelding: null },
+  dm_gokhuis_inschrijvingen: () => ({ titel: 'In het strijdperk', stappen: [
+    { titel: 'Iemand staat in het zand', tekst: 'Een speler heeft zich voor een partij gemeld; zijn inleg is al afgeschreven. Hij staat hier én in het gokhuis, en telt mee in het cijfer op het tabblad — want hij wacht op jou.', afbeelding: null },
+    { titel: 'Eén partij tegelijk', tekst: 'Wie ingeschreven staat kan zich nergens anders voor melden tot deze partij uitgevochten is. Anders stond hij op vijf affiches tegelijk en betaalde hij vijf keer inleg voor één avond. Een verslagen tegenstander is gesloten: daar kan niemand meer tegen aantreden.', afbeelding: null },
+    { titel: 'Je tekent de uitslag', tekst: 'Het gevecht speel je aan tafel — hang er een **encounter** aan bij de partij, dan zet je hem met één knop op. Daarna: **Overwinning** betaalt het prijzengeld uit en sluit de tegenstander, **Nederlaag** laat het bij de inleg die hij al kwijt is.', afbeelding: null },
   ] }),
   dm_gevecht_editor: () => ({ titel: 'Een gevecht bouwen', stappen: [
     { titel: 'Monsters', tekst: 'Zoek een statblock en zet erbij hoeveel je er wilt. Het aantal HP mag je per regel overschrijven — dan rolt de app ze niet uit maar neemt hij jouw getal. Een naam die je zelf intikt wint van de naam van het statblock: zo vecht de party tegen *Gorgo Hoornkop* en niet tegen "Minotaur of Baphomet".', afbeelding: null },
@@ -14292,7 +14304,9 @@ const HELP_CONFIG = {
   ] }),
   dm_detective: () => ({ titel: 'De detective', stappen: [
     { titel: 'Wat hij doet', tekst: 'Spelers leggen een vraag bij hem neer over een persoon, plek of voorwerp. Dat kost geld en tijd; het antwoord schrijf jij. Zo kunnen ze iets uitzoeken zonder dat de hele tafel stilvalt.', afbeelding: null },
+    { titel: 'Wanneer het rapport er ligt', tekst: 'Na de volgende **lange rust**. Niet na zoveel uur op de klok — de party speelt geen echte uren, dus een wachttijd in minuten verloopt tijdens een pauze net zo hard als tijdens een sessie. Dezelfde maat als de Magizoöloog en de schappen van een winkel.', afbeelding: null },
     { titel: 'Het antwoord is een scène', tekst: 'Schrijf wat hij *gevonden* heeft, niet wat waar is — een detective kan zich vergissen, of net te laat komen. Dat maakt van een opzoekactie een verhaallijn.', afbeelding: null },
+    { titel: 'Weetjes uit een tafel', tekst: 'Vindt hij niets bijzonders, dan komt hij terug met een **weetje**: een losse regel over die persoon. Die regels staan in een tafel, net als de begroetingen — één voorraad waar de app er bij elk rapport één uit kiest. `{naam}` wordt de naam van wie er onderzocht is. Kies geen tafel en hij gebruikt de meegeleverde weetjes.', afbeelding: null },
   ] }),
   dm_gunnen: () => ({ titel: 'Gunnen', stappen: [
     { titel: 'Wat van jou naar een speler gaat', tekst: 'Een **level omhoog**, **inspiration** en **exhaustion**, per speler. Dit stond op drie plekken die je moest kennen om te vinden: inspiratie achter een rechtermuisklik, level omhoog onderaan de Rust-tab, en uitputting nergens.', afbeelding: null },

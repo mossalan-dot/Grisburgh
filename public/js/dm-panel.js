@@ -1188,6 +1188,27 @@ function _dienstSectieKop(ic, titel, hulp = '') {
 //
 // De speler krijgt niet de tafel maar de regels ervan (de server lost hem op
 // bij het ophalen van meta); daar kiest zijn scherm er per bezoek een uit.
+// Een tafel koppelen: één veld met een keuzelijst, Nieuw en Bewerken. De
+// begroeting was de eerste die dit kreeg; de tidbits van de detective werken op
+// dezelfde manier (een voorraad regels waaruit er één gekozen wordt), dus
+// krijgen ze hetzelfde veld in plaats van een eigen tekstvak met regels.
+function _tafelVeldHtml({ id, label, gekozen = '', leeg = '— Geen —', nieuw = '', bewerk = '' }) {
+  const tafels = (_tables || []).filter(t => t.type !== 'combined' || (t.delen || []).length);
+  const opties = [`<option value="">${esc(leeg)}</option>`]
+    .concat(tafels.map(t => `<option value="${esc(t.id)}"${gekozen === t.id ? ' selected' : ''}>${esc(t.name || t.id)}</option>`));
+  return `
+    <div class="dm-form-row">
+      <label class="dm-form-label" for="${id}">${esc(label)}</label>
+      <div class="dm-feature-row" style="gap:6px;flex:1;min-width:0">
+        <select id="${id}" class="dm-select" style="flex:1;min-width:0">${opties.join('')}</select>
+        <button type="button" class="dm-btn dm-btn-ghost dm-btn-sm"
+          onclick="${nieuw}" title="Maak hier een tafel voor">${icon('plus')} Nieuw</button>
+        <button type="button" class="dm-btn dm-btn-ghost dm-btn-sm"
+          onclick="${bewerk}" title="Deze tafel openen in het Tafels-tabblad">${icon('pencil')} Bewerken</button>
+      </div>
+    </div>`;
+}
+
 function _groetTafelHtml({ sleutel, config = {}, voorbeeld = '' }) {
   const gekozen = config.groetTafelId || '';
   const tafels = (_tables || []).filter(t => t.type !== 'combined' || (t.delen || []).length);
@@ -6491,7 +6512,10 @@ window._tsArenaUitslag = async (signupId, uitkomst) => {
   if (!confirm(winst ? 'Overwinning bevestigen? Het prijzengeld wordt uitbetaald aan de speler.' : 'Nederlaag registreren voor deze speler?')) return;
   try {
     await api.post(`/tweespalt/arena/signup/${signupId}/uitslag`, { uitkomst });
-    await _renderTweespaltDM();
+    // Hij staat op twee plekken: in het gokhuis en bij Verzoeken. Ververs wat
+    // er openstaat, niet alleen waar je toevallig op klikte.
+    if (_activeTab === 'verzoeken') { _renderVerzoeken(); _verzoekenTeller(); }
+    else { await _renderTweespaltDM(); _verzoekenTeller(); }
   } catch (err) { alert('Fout: ' + err.message); }
 };
 
@@ -6627,25 +6651,58 @@ async function _renderGockSettings() {
 
       ${_bedragVeldHtml('gock-prijs', prijs, { label: 'Prijs van een onderzoek' })}
 
-      <div class="dm-form-row" style="flex-direction:column;gap:4px;align-items:stretch">
-        <label class="dm-form-label" for="gock-tidbits">Eigen tidbits (één per regel, {naam} wordt de speler)</label>
-        <textarea id="gock-tidbits" class="dm-input" rows="8" style="resize:vertical;font-size:11px"
-          placeholder="Laat leeg voor de standaard tidbits…">${esc(tidbitsWaarde)}</textarea>
-      </div>
+      ${_tafelVeldHtml({
+        id: 'gock-tidbittafel', label: 'Weetjes (tafel)',
+        gekozen: config.tidbitTafelId || '', leeg: '— Standaardweetjes —',
+        nieuw: 'window._gockTidbitTafelNieuw()', bewerk: 'window._gockTidbitTafelBewerk()',
+      })}${tidbitsWaarde && !config.tidbitTafelId ? `
+      <!-- Zelfde regel als bij de begroeting: dat een tafel een voorraad regels
+           is staat in het boekje. Dit is een stand van zaken — er ligt nog een
+           eigen lijst, en zonder deze melding zou je niet weten waar die zinnen
+           vandaan komen. -->
+      <span class="dm-hint" style="font-size:11px;display:block;margin:-4px 0 6px">
+        <strong>Nu nog een eigen lijst:</strong> ${(config.tidbits || []).length} regel(s) — kies of maak een tafel om ze daarheen te verhuizen.
+      </span>` : ''}
       ${_dienstOpslaanRij('window._gockSettingsSave()')}
     </div>`;
+};
+
+// Een tafel voor de weetjes: meteen aangemaakt, gekoppeld en geopend in het
+// Tafels-tabblad — dezelfde weg als bij een begroeting.
+window._gockTidbitTafelNieuw = async () => {
+  const naam = window.app?.state?.meta?.gock?.naam || 'De detective';
+  try {
+    const tafel = await api.post('/tables', {
+      name: `Weetjes — ${naam}`, type: 'simple',
+      entries: (window.app?.state?.meta?.gock?.tidbits || [])
+        .slice(0, 50)
+        .map(t => String(t)) || ['{naam} heeft een schuld bij iemand die niet wacht.'],
+    });
+    _tables = await api.listTables().catch(() => _tables);
+    const sel = document.getElementById('gock-tidbittafel');
+    if (sel) { sel.innerHTML += `<option value="${esc(tafel.id)}" selected>${esc(tafel.name)}</option>`; sel.value = tafel.id; }
+    await window._gockSettingsSave();
+    window._gockTidbitTafelBewerk();
+  } catch (e) { alert('Tafel maken mislukt: ' + e.message); }
+};
+
+window._gockTidbitTafelBewerk = () => {
+  const id = document.getElementById('gock-tidbittafel')?.value;
+  if (!id) { alert('Kies eerst een tafel, of maak er een.'); return; }
+  _tafelTerugNaar = 'gock';
+  window.dmPanel.switchTab('tafels');
+  setTimeout(() => { try { window.dmPanel.tabelEdit(id); } catch {} }, 160);
 };
 
 window._gockSettingsSave = async () => {
   const config = window.app?.state?.meta?.gock || {};
   const kop = _dienstKopLees('gock');
   const prijs = _bedragLeesMunten('gock-prijs');
-  const tidbitsRaw = document.getElementById('gock-tidbits')?.value.trim() || '';
-  const tidbits = tidbitsRaw ? tidbitsRaw.split('\n').map(l => l.trim()).filter(Boolean) : [];
+  const tidbitTafelId = document.getElementById('gock-tidbittafel')?.value || '';
   try {
     await api.saveGockConfig({
       ...kop, naam: kop.naam || 'De detective', prijs,
-      tidbits: tidbits.length ? tidbits : undefined,
+      tidbitTafelId,
       backdropId: _dienstBackdropUit('gock', config),
     });
     const newMeta = await api.meta();
@@ -11189,13 +11246,15 @@ async function _verzoekenTeller() {
   if (!knop) return 0;
   let n = 0;
   try {
-    const [sp, bezit, mc, gock] = await Promise.all([
+    const [sp, bezit, mc, gock, arena] = await Promise.all([
       api.getSpellRequests().then(r => (r.requests || []).length).catch(() => 0),
       api.getItemOwnership().then(r => (r.requests || []).filter(x => x.status === 'pending').length).catch(() => 0),
       api.get('/multiclass-verzoeken').then(r => (r.verzoeken || []).length).catch(() => 0),
       api.get('/gock/verzoeken').then(r => (r.verzoeken || []).length).catch(() => 0),
+      // Een inschrijving voor het strijdperk wacht net zo goed op jou.
+      api.getTweespalt().then(d => (d.arenaSignups || []).filter(x => x.status === 'aangemeld').length).catch(() => 0),
     ]);
-    n = sp + bezit + mc + gock;
+    n = sp + bezit + mc + gock + arena;
   } catch { n = 0; }
 
   let penning = knop.querySelector('.dm-tab-penning');
@@ -11307,15 +11366,16 @@ async function _renderVerzoeken() {
   if (!el) return;
   el.innerHTML = _dmLoading();
 
-  let spreuken = [], bezit = null, multiclass = [], dossiers = [], spelers = [], badges = {};
+  let spreuken = [], bezit = null, multiclass = [], dossiers = [], spelers = [], badges = {}, tsData = null;
   try {
-    [spreuken, bezit, multiclass, dossiers, spelers, badges] = await Promise.all([
+    [spreuken, bezit, multiclass, dossiers, spelers, badges, tsData] = await Promise.all([
       api.getSpellRequests().then(r => r.requests || []).catch(() => []),
       api.getItemOwnership().catch(() => null),
       api.get('/multiclass-verzoeken').then(r => r.verzoeken || []).catch(() => []),
       api.get('/gock/verzoeken').then(r => r.verzoeken || []).catch(() => []),
       api.listEntities('personages').catch(() => []),
       api.getBadges().catch(() => ({})),
+      api.getTweespalt().catch(() => null),
     ]);
   } catch { /* hieronder vangen we het lege geval af */ }
   const _open = (bezit?.requests || []).filter(r => r.status === 'pending');
@@ -11342,6 +11402,19 @@ async function _renderVerzoeken() {
     + (r.type === 'trade' ? `ruilen met ${esc(r.targetName || '?')}` : 'claimen'),
     `<button class="dm-btn dm-btn-sm dm-btn-primary" onclick="window.dmPanel.verzoekItem('${esc(r.id)}', true)">${icon('check')} Goedkeuren</button>
      <button class="dm-btn dm-btn-sm dm-btn-ghost" onclick="window.dmPanel.verzoekItem('${esc(r.id)}', false)">${icon('x')} Weigeren</button>`
+  )).join('');
+
+  // Een inschrijving voor het strijdperk wacht net zo goed op jou als een
+  // spreukverzoek: de speler heeft zich gemeld en zijn inleg is al afgeschreven.
+  // Hij stond alleen in het gokhuis-tabblad, dus je moest er langslopen om te
+  // zien of er iemand in het zand stond.
+  const arenaInschrijvingen = ((tsData?.arenaSignups) || []).filter(s => s.status === 'aangemeld');
+  const arenaHtml = arenaInschrijvingen.map(s => rij(
+    `<strong>${esc(s.doorNaam || 'Een speler')}</strong> meldt zich voor <em>${esc(s.boutNaam)}</em>`
+    + (s.tegenstander ? ` tegen ${esc(s.tegenstander)}` : '')
+    + `<span class="dm-verzoek-context">Prijs bij winst: ${esc(s.prijs || '—')}${s.inzet ? ` · inleg betaald: ${esc(s.inzet)}` : ''}</span>`,
+    `<button class="dm-btn dm-btn-sm dm-btn-primary" onclick="window._tsArenaUitslag('${esc(s.id)}','overwinning')" title="Overwinning — betaal prijzengeld uit">${icon('coins')} Overwinning</button>
+     <button class="dm-btn dm-btn-sm dm-btn-ghost" onclick="window._tsArenaUitslag('${esc(s.id)}','nederlaag')" title="Nederlaag">${icon('x')} Nederlaag</button>`
   )).join('');
 
   // Een speler biedt iets aan een winkel aan. Het bedrag is het percentage uit
@@ -11432,6 +11505,11 @@ async function _renderVerzoeken() {
     <div class="dm-feature-section">
       <div class="dm-section-label">${icon('package')} Voorwerpen ${voorwerpen.length ? `(${voorwerpen.length})` : ''}<span class="dm-sectie-hulp">${helpBtn('dm_verzoeken_voorwerpen')}</span></div>
       ${itemHtml || '<p class="dm-hint">Niets openstaand.</p>'}
+    </div>
+
+    <div class="dm-feature-section">
+      <div class="dm-section-label">${icon('crossed-swords', { cls: 'icon-gi' })} In het strijdperk ${arenaInschrijvingen.length ? `(${arenaInschrijvingen.length})` : ''}<span class="dm-sectie-hulp">${helpBtn('dm_gokhuis_inschrijvingen')}</span></div>
+      ${arenaHtml || '<p class="dm-hint">Niets openstaand.</p>'}
     </div>
 
     <div class="dm-feature-section">

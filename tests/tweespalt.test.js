@@ -214,7 +214,16 @@ describe('De Tweespalt: wedden, arena en lenen', () => {
     assert.strictEqual(voor - alsCl(await beurs()), 500, 'de inzet gaat er bij het inschrijven af');
 
     const nogEens = await req(server, 'POST', '/api/tweespalt/arena/bout_proef/aanmeld', {}, spelerC);
-    assert.strictEqual(nogEens.status, 400, 'twee keer inschrijven kan niet');
+    assert.strictEqual(nogEens.status, 409, 'twee keer inschrijven kan niet');
+
+    // Eén partij tegelijk: ook een ándere partij zit dicht zolang deze loopt.
+    // Anders sta je op vijf affiches en betaal je vijf keer inleg voor één avond.
+    const meta = (await req(server, 'GET', '/api/meta', null, dm)).body;
+    const arena = [...(meta.tweespalt?.arena || []), { id: 'bout_tweede', naam: 'Tweede perk', inzet: '1 fl', prijs: '5 fl' }];
+    await req(server, 'PUT', '/api/meta/tweespalt', { arena }, dm);
+    const andere = await req(server, 'POST', '/api/tweespalt/arena/bout_tweede/aanmeld', {}, spelerC);
+    assert.strictEqual(andere.status, 409, 'een tweede partij mag er niet naast');
+    assert.match(andere.body.error, /al ingeschreven/);
   });
 
   it('betaalt het prijzengeld bij overwinning', async () => {
