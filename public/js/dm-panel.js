@@ -5898,56 +5898,21 @@ async function _renderWereldTab() {
     ];
   } catch {}
 
+  // Wáár de party is en wat daar bereikbaar is, staat sinds 30 sep in de
+  // **akteregie** — per akte, bij de rest van wat dat hoofdstuk afsluit. Hier
+  // stond het als één schakelaar "in de stad / eruit", met een lijst
+  // uitzonderingen eronder. Dat is te grof (een akte speelt in een dorp, op zee
+  // of onder de grond, en dan is bereikbaar niet hetzelfde rijtje) en het was
+  // bovendien naar één plaats genoemd. De oude stand wordt nog gelezen zolang
+  // hij ergens aanstaat; zie `_bereikbaarheidVoor` op de server.
   el.innerHTML = `
     <div class="dm-feature-section">
-      <div class="dm-section-label">Locatie van de groep<span class="dm-sectie-hulp">${helpBtn('dm_wereld_locatie')}</span></div>
-
-      <div class="dm-form-row" style="flex-direction:column;gap:10px">
-        <button id="wereld-toggle-btn" class="dm-btn${buitenGrisburgh ? ' dm-btn-danger' : ' dm-btn-primary'}"
-          onclick="window._wereldToggle()" style="font-size:1rem;padding:10px 18px">
-          ${buitenGrisburgh ? `${icon('lock')} ${esc(_plaats)} verlaten — klik om terug te keren` : `${icon('castle')} In ${esc(_plaats)} — klik om te verlaten`}
-        </button>
-        <p style="font-size:11px;opacity:.6">
-          Als de groep ${esc(_plaats)} verlaat, worden alle diensten en winkels
-          geblokkeerd voor spelers. Winkels die je hieronder markeert als
-          "buiten ${esc(_plaats)}" blijven altijd bereikbaar.
-        </p>
+      <div class="dm-section-label">Waar de party is<span class="dm-sectie-hulp">${helpBtn('dm_wereld_locatie')}</span></div>
+      <p class="dm-hint">Wat er tijdens een akte te bereiken is, stel je in bij die akte zelf — onder <em>Bereikbaar tijdens deze akte</em>. Daar staan dezelfde diensten en winkels, maar per hoofdstuk, zodat een reis naar de kust iets anders afsluit dan een nacht in de riolen.</p>
+      <div class="dm-form-row" style="margin-top:8px">
+        <button class="dm-btn dm-btn-ghost dm-btn-sm" onclick="window.dmPanel.switchTab('aktes')">${icon('scroll-text')} Naar de aktes</button>
       </div>
-    </div>
-
-    ${verkopers.length > 0 ? `
-    <div class="dm-feature-section" style="margin-top:14px">
-      <div class="dm-section-label">Bereikbaar buiten ${esc(_plaats)}<span class="dm-sectie-hulp">${helpBtn('dm_wereld_buiten')}</span></div>
-      <p style="font-size:11px;opacity:.6;margin-bottom:10px">
-        Gemarkeerde winkels/verkopers blijven toegankelijk wanneer de groep buiten ${esc(_plaats)} is.
-      </p>
-      ${verkopers.map(v => `
-        <div class="dm-form-row" style="align-items:center;gap:10px;margin-bottom:6px">
-          <label style="display:flex;align-items:center;gap:8px;cursor:pointer;flex:1">
-            <input type="checkbox" ${buitenEntiteiten.includes(v.id) ? 'checked' : ''}
-              onchange="window._wereldToggleEntiteit('${esc(v.id)}')"
-              style="width:16px;height:16px;accent-color:var(--color-gold,#c4a87a)">
-            <span class="dm-form-label" style="margin:0">${esc(v.name)}</span>
-          </label>
-        </div>`).join('')}
-    </div>` : ''}`;
-};
-
-window._wereldToggle = async () => {
-  const meta = window.app?.state?.meta || {};
-  try {
-    const res = await api.setLocatie({ buitenGrisburgh: !meta.buitenGrisburgh });
-    if (window.app?.state) window.app.state.meta = { ...meta, buitenGrisburgh: res.buitenGrisburgh };
-    await _renderWereldTab();
-  } catch (err) { alert('Fout: ' + err.message); }
-};
-
-window._wereldToggleEntiteit = async (entityId) => {
-  const meta = window.app?.state?.meta || {};
-  try {
-    const res = await api.toggleLocatieEntiteit(entityId);
-    if (window.app?.state) window.app.state.meta = { ...meta, buitenGrisburgEntiteiten: res.buitenGrisburgEntiteiten };
-  } catch (err) { alert('Fout: ' + err.message); }
+    </div>`;
 };
 
 let _hbPersonages = [];

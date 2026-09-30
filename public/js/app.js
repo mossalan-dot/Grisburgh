@@ -1,6 +1,6 @@
 import { api, campagneUitUrl, zetCampagne } from './api.js?v=298';
 import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, renderDocumenten, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=326";
-import { initArchief, renderLogboek, openLogboekEditor } from "./render-archief.js?v=138";
+import { initArchief, renderLogboek, openLogboekEditor } from "./render-archief.js?v=139";
 import { renderKaart, queueFlyTo, verversPins, nieuweKaart } from './render-kaart.js?v=31';
 import { renderDungeon } from './render-dungeon.js?v=56';
 import { renderRelatiemap } from './render-relatiemap.js?v=27';
@@ -10,7 +10,7 @@ import { renderSpreuken } from './render-spreuken.js?v=41';
 import { renderVaardigheden, zoekVaardigheden } from './render-vaardigheden.js?v=10';
 import { renderStatblock } from './render-statblock.js?v=9';
 import { initSocket } from "./socket-client.js?v=80";
-import { initDmPanel } from "./dm-panel.js?v=362";
+import { initDmPanel } from "./dm-panel.js?v=363";
 import { COND_INFO, COND_LABEL, COND_MET_PLAATJE, COND_ICON } from './conditions.js?v=2';
 import './media-picker.js?v=8';
 import './tafels.js?v=2';
@@ -14247,13 +14247,10 @@ const HELP_CONFIG = {
     { titel: 'Zoeken over alles heen', tekst: 'Zoeken gaat over alle winkels tegelijk en zet de prijzen naast elkaar — handig, want hetzelfde voorwerp ligt soms bij drie winkels voor drie prijzen.', afbeelding: null },
     { titel: 'Een roterende winkel rolt hier niet', tekst: 'De Markt leest de schappen alleen. Had een winkel zijn assortiment nog niet gerold, dan staat hij hier leeg in plaats van dat de app het stiekem voor hem doet — anders zou een blik op de Markt ieders schappen in één klap vastzetten.', afbeelding: null },
   ] }),
-  dm_wereld_locatie: () => ({ titel: 'Waar is de party?', stappen: [
-    { titel: 'Waar ze zijn bepaalt wat open is', tekst: `Staat de party **in ${window._campagneNaam()}**, dan zijn de diensten bereikbaar zoals je ze hebt opengezet. Zet je ze erbuiten, dan gaat alles dicht — behalve wat je hieronder als uitzondering aanwijst.`, afbeelding: null },
-    { titel: 'Een grove schakelaar, met opzet', tekst: 'Dit is de knop voor "we zijn op reis". Wat er per **akte** bereikbaar is, stel je fijner in bij de akte zelf; die instelling geldt zolang je binnen de stad speelt. Deze schakelaar wint van allebei.', afbeelding: null },
-  ] }),
-  dm_wereld_buiten: () => ({ titel: 'Bereikbaar van onderweg', stappen: [
-    { titel: 'Wat blijft er open', tekst: 'De kaartjes die je hier aanvinkt blijven bereikbaar terwijl de party buiten de stad is — een reisgenoot die meeloopt, een dienst die per brief werkt, een god die overal luistert.', afbeelding: null },
-    { titel: 'Waarom uitvinken en niet invullen', tekst: 'Alles staat standaard dicht zodra ze weg zijn; je wijst dus alleen de uitzonderingen aan. Een dienst die je later toevoegt is dan vanzelf óók dicht op reis, en dat is de veilige kant.', afbeelding: null },
+  dm_wereld_locatie: () => ({ titel: 'Waar de party is', stappen: [
+    { titel: 'Dit staat bij de akte', tekst: 'Wat er tijdens een akte te bereiken is, stel je in bij die **akte** zelf — onder *Bereikbaar tijdens deze akte*. Dezelfde diensten en winkels, maar per hoofdstuk: een reis naar de kust sluit iets anders af dan een nacht in de riolen.', afbeelding: null },
+    { titel: 'Waarom niet één schakelaar', tekst: 'Hier stond een knop "in de stad / eruit", met een lijst uitzonderingen. Dat is te grof — buiten is niet één plek — en het was bovendien naar één stad genoemd, terwijl de app meer campagnes draait. Speelt een akte ver van huis, dan zet je met **Alles dicht** alles uit en vink je daarna aan wat er wél meegaat: de karavaanhandelaar, de tempel waar je post ophaalt.', afbeelding: null },
+    { titel: 'De DM ziet altijd alles', tekst: 'Wat je hier afsluit geldt voor spelers. Jij houdt toegang tot elke dienst en elke winkel, ook als de party er niet bij kan.', afbeelding: null },
   ] }),
   dm_toegang_facties: () => ({ titel: 'Facties per party', stappen: [
     { titel: 'Kennen ze deze factie?', tekst: 'Een factie die uitstaat bestaat voor die party niet: hij staat niet in de lijst, en hun aanzien erbij is onzichtbaar. Zet hem aan op het moment dat ze ervan horen — dat is vaak een scène waard.', afbeelding: null },

@@ -2692,6 +2692,14 @@ const _AKTE_DIENSTEN = [
   { key: 'markt',     val: ()  => 'De Markt' },
 ];
 
+// Alles dicht of alles open: het grove gebaar in één klik. Daarna vink je aan
+// wat er van dáár uit wél te bereiken is — een karavaanhandelaar die meereist,
+// de tempel waar je post ophaalt.
+window._akteBereikbaarAlles = (aan) => {
+  document.querySelectorAll('#akte-edit-form [data-dienst], #akte-edit-form [data-winkel]')
+    .forEach(c => { c.checked = aan; });
+};
+
 window._editAkte = async (ch) => {
   const hk = meta?.hoofdstukken || {};
   const info = hk[ch] || {};
@@ -2795,7 +2803,16 @@ window._editAkte = async (ch) => {
       </div>
       <div>
         <label class="text-xs font-cinzel text-ink-dim font-bold tracking-wide">Bereikbaar tijdens deze akte</label>
+        <!-- Hier staat wáár de party is, in plaats van bij Toegang als één
+             schakelaar "in de stad / eruit". Een akte speelt in een dorp, op
+             zee of onder de grond, en dan is bereikbaar niet hetzelfde rijtje.
+             Twee knoppen voor het grove gebaar: speelt deze akte ver van huis,
+             dan zet je alles dicht en vinkt daarna aan wat wél meegaat. -->
         <p class="text-[10px] text-ink-dim mb-1">Vink uit wat hier niet te bereiken is. Standaard staat alles aan; de DM ziet altijd alles.</p>
+        <div class="flex gap-2 mb-2">
+          <button type="button" class="dm-btn dm-btn-ghost dm-btn-sm" onclick="window._akteBereikbaarAlles(false)">${icon('lock')} Alles dicht</button>
+          <button type="button" class="dm-btn dm-btn-ghost dm-btn-sm" onclick="window._akteBereikbaarAlles(true)">${icon('lock-open')} Alles open</button>
+        </div>
         <div class="flex flex-wrap gap-x-4 gap-y-1 mt-1">
           ${_AKTE_DIENSTEN.map(d => `
             <label class="text-xs text-ink-bright" style="display:inline-flex;align-items:center;gap:5px">
