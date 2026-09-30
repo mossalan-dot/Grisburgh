@@ -199,6 +199,46 @@ const OMSCHRIJVING = {
   hulp_kijk:   'Detailvenster van een kaartje (wat een speler leest)',
   hulp_bewerk: 'Kaartjes-editor (alleen de DM)',
 };
+// ── Indeling: waar hoort dit boekje thuis? ──────────────────────────────────
+// 109 sleutels op alfabet is een lijst, geen document. Wie ze allemaal gaat
+// nalezen doet dat per publiek en per scherm — de toon van een spelersboekje is
+// een andere dan die van het meesterpaneel — dus staan ze zo gegroepeerd.
+// Bestanden die alleen de DM ooit opent. De sleutel verraadt dat niet altijd:
+// `akte_schrijven` begint niet met `dm_` maar is wel degelijk regiegereedschap.
+const DM_SCHERMEN = ['dm-panel.js', 'akte-schrijven.js'];
+
+const GROEPEN = [
+  { id: 'speler',   titel: 'Wat spelers lezen',
+    uitleg: 'Boekjes bij schermen die een speler zelf opent. Toon: je legt iets uit aan iemand die het spel spéélt, niet aan iemand die het maakt. Geen instellingen, geen "je bepaalt".' },
+  { id: 'gedeeld',  titel: 'Gedeelde schermen',
+    uitleg: 'Hier staan DM en speler op hetzelfde scherm en heeft het boekje een **rolverdeling**: stappen met `{alleen jij}` leest de DM, `{alleen spelers}` alleen zij, de rest iedereen. Lees ze in beide rollen na — ze horen allebei op zichzelf te kloppen.' },
+  { id: 'dm',       titel: 'Het meesterpaneel',
+    uitleg: 'Alles achter de deur van de meesterkamer. Toon: je praat tegen de DM, over wat hij instelt en wanneer hij het gebruikt.' },
+  { id: 'kaartje',  titel: 'Kaartjes bekijken en bewerken',
+    uitleg: '`hulp_kijk_*` is wat iedereen op een kaartje ziet, `hulp_bewerk_*` de editor — die laatste is altijd alleen voor de DM. Zonder soort in de naam (`hulp_bewerk_beeld`) geldt het boekje voor élk kaartje; dat is de terugval als er geen eigen tekst is.' },
+  { id: 'inst',     titel: 'Instellingen',
+    uitleg: 'Eén keer goed zetten en daarna vergeten. Toon: zeg wat de keuze betekent en wat de gevolgen zijn, niet waar de knop staat.' },
+];
+
+function groepVan(sleutel, plaatsen, stappen) {
+  if (sleutel.startsWith('inst_')) return 'inst';
+  if (sleutel.startsWith('hulp_kijk_') || sleutel.startsWith('hulp_bewerk_')) return 'kaartje';
+  // Een rolverdeling zegt het zelf: dit scherm heeft twee lezers.
+  if ((stappen || []).some(st => st.rol)) return 'gedeeld';
+  if (sleutel.startsWith('dm_')) return 'dm';
+  const bestanden = (plaatsen || []).map(p => String(p).split(':')[0]);
+  if (bestanden.length && bestanden.every(f => DM_SCHERMEN.includes(f))) return 'dm';
+  return 'speler';
+}
+
+// Grof woorden tellen: markdown en [[links]] eruit, dan op witruimte splitsen.
+function woorden(tekst) {
+  return String(tekst || '')
+    .replace(/\[\[([^\]|]+)(\|[^\]]*)?\]\]/g, '$1')
+    .replace(/[*`_]/g, '')
+    .split(/\s+/).filter(Boolean).length;
+}
+
 function omschrijf(sleutel, plaatsen) {
   const m = /^hulp_(kijk|bewerk)_(?:([a-z]+)_)?([a-z]+)$/.exec(sleutel);
   if (m) {
@@ -213,6 +253,28 @@ function omschrijf(sleutel, plaatsen) {
 // ── Markdown eruit ──────────────────────────────────────────────────────────
 function naarMarkdown(standaard, overrides, plaatsen) {
   const sleutels = [...new Set([...Object.keys(standaard), ...Object.keys(overrides)])].sort();
+
+  // Eerst alles doormeten. De cijfers zijn geen sier: bij het gelijktrekken van
+  // de toon zoek je juist de uitschieters op — het boekje van één regel en dat
+  // van vier alinea's staan allebei in de weg.
+  const meting = new Map();
+  for (const sleutel of sleutels) {
+    const std = standaard[sleutel];
+    const ov  = overrides[sleutel];
+    const nu  = (ov?.stappen?.length ? ov : std) || { titel: null, stappen: [] };
+    const st  = nu.stappen || [];
+    const w   = st.reduce((n, x) => n + woorden(x.tekst), 0);
+    meting.set(sleutel, {
+      std, ov, nu, stappen: st.length, woorden: w,
+      perStap: st.length ? Math.round(w / st.length) : 0,
+      aangepast: !!ov?.stappen?.length,
+      wees: !/^hulp_(kijk|bewerk)_/.test(sleutel) && !(plaatsen[sleutel] || []).length,
+      rollen: [...new Set(st.map(x => x.rol).filter(Boolean))],
+      groep: groepVan(sleutel, plaatsen[sleutel], st),
+    });
+  }
+  const nAangepast = [...meting.values()].filter(m => m.aangepast).length;
+
   const r = [];
   r.push('# Helpteksten');
   r.push('');
@@ -227,8 +289,9 @@ function naarMarkdown(standaard, overrides, plaatsen) {
   r.push('');
   r.push('**Wat je mag wijzigen:** de regel achter `Titel:` en de tekst onder elke `###`-kop.');
   r.push('Laat de `##`-regel met de sleutel staan — daar wordt op gematcht. De `>`-regels zijn');
-  r.push('aantekeningen en worden genegeerd. Markdown in de tekst mag: `**vet**`, `*cursief*`,');
-  r.push('en `[[Naam]]` wordt een link naar een kaartje.');
+  r.push('aantekeningen en worden genegeerd, net als de `#`-koppen die de hoofdstukken maken.');
+  r.push('Markdown in de tekst mag: `**vet**`, `*cursief*`, en `[[Naam]]` wordt een link naar');
+  r.push('een kaartje.');
   r.push('');
   r.push('Achter een `###`-kop mag `{alleen jij}` of `{alleen spelers}` staan: die stap komt dan');
   r.push('alleen in het boekje van die rol. Zonder merkteken leest iedereen hem.');
@@ -236,40 +299,94 @@ function naarMarkdown(standaard, overrides, plaatsen) {
   r.push('Elke `###`-kop is één **stap**: de uitleg bladert erdoorheen met pijltjes. Een stap');
   r.push('erbij zetten of weghalen mag, zolang er minstens één overblijft.');
   r.push('');
-  r.push(`Teksten die gelijk blijven aan de standaard worden **niet** vastgelegd in deze campagne,`);
+  r.push('Teksten die gelijk blijven aan de standaard worden **niet** vastgelegd in deze campagne,');
   r.push('zodat latere verbeteringen in de code vanzelf doorkomen.');
+  r.push('');
+
+  // ── Waar je aan zou beginnen ──
+  const kort  = sleutels.filter(k => meting.get(k).stappen === 1);
+  const lang  = sleutels.filter(k => meting.get(k).perStap > 90);
+  const wezen = sleutels.filter(k => meting.get(k).wees);
+  r.push('## Waar je aan zou beginnen');
+  r.push('');
+  r.push('> Deze lijst is afgeleid, niet gekozen: hij wijst alleen aan waar de vorm uiteenloopt.');
+  r.push('');
+  const totWoorden = [...meting.values()].reduce((n, m) => n + m.woorden, 0);
+  const totStappen = [...meting.values()].reduce((n, m) => n + m.stappen, 0);
+  r.push(`- **${sleutels.length} boekjes, ${totStappen} stappen, ${totWoorden} woorden.** Gemiddeld `
+    + `${(totStappen / sleutels.length).toFixed(1)} stap per boekje en ${Math.round(totWoorden / Math.max(1, totStappen))} woorden per stap.`);
+  if (kort.length)  r.push(`- **${kort.length} boekjes van één stap.** Vaak één zin die alleen zegt wát het scherm is. `
+    + 'Wat kun je er doen, en waar klik je? — ' + kort.map(k => '`' + k + '`').join(', '));
+  if (lang.length)  r.push(`- **${lang.length} met meer dan 90 woorden per stap.** Een stap is een schermpje om doorheen te bladeren; `
+    + 'daar past geen alinea in. — ' + lang.map(k => '`' + k + '`').join(', '));
+  if (wezen.length) r.push(`- **${wezen.length} zonder knop.** Er staat uitleg klaar die niemand kan openen: `
+    + wezen.map(k => '`' + k + '`').join(', ') + '. Knop erbij, of de tekst weg.');
   r.push('');
   r.push('---');
   r.push('');
 
-  let nAangepast = 0;
-  for (const sleutel of sleutels) {
-    const std = standaard[sleutel];
-    const ov  = overrides[sleutel];
-    const nu  = (ov?.stappen?.length ? ov : std) || { titel: null, stappen: [] };
-    if (ov?.stappen?.length) nAangepast++;
-
-    r.push('## `' + sleutel + '`');
+  // ── Inhoud, per hoofdstuk ──
+  r.push('## Inhoud');
+  r.push('');
+  for (const g of GROEPEN) {
+    const inGroep = sleutels.filter(k => meting.get(k).groep === g.id);
+    if (!inGroep.length) continue;
+    r.push(`**${g.titel}** · ${inGroep.length}`);
     r.push('');
-    r.push('> ' + omschrijf(sleutel, plaatsen[sleutel]));
-    r.push('> Nu: ' + (ov?.stappen?.length
-      ? '**aangepast in deze campagne**'
-      : (std ? 'de standaard uit de code' : '_alleen in deze campagne, geen standaard_')));
-    if (std && ov?.stappen?.length) r.push('> De standaard telt ' + std.stappen.length + ' stap(pen).');
-    r.push('');
-    r.push('Titel: ' + (nu.titel || ''));
-    r.push('');
-    for (const stap of (nu.stappen || [])) {
-      // Een stap kan voor één rol zijn. Dat hangt achter de kop, zodat het
-      // markdown-bestand heen en weer kan zonder de verdeling te verliezen.
-      r.push('### ' + (stap.titel || '') + (stap.rol === 'dm' ? ' {alleen jij}' : stap.rol === 'speler' ? ' {alleen spelers}' : ''));
-      r.push('');
-      r.push(String(stap.tekst || '').trim());
-      r.push('');
+    for (const k of inGroep) {
+      const m = meting.get(k);
+      const merk = [
+        m.aangepast ? 'aangepast' : null,
+        m.rollen.length ? 'rolverdeling' : null,
+        m.wees ? 'geen knop' : null,
+      ].filter(Boolean);
+      // GitHub slugt `## `akte_schrijven`` tot #akte_schrijven: de backticks
+      // vallen weg, de underscores blijven. Die eruit halen gaf een dode link.
+      r.push(`- [\`${k}\`](#${k}) — ${m.nu.titel || '_geen titel_'} `
+        + `· ${m.stappen} stap${m.stappen === 1 ? '' : 'pen'}, ${m.woorden} w`
+        + (merk.length ? ` · _${merk.join(', ')}_` : ''));
     }
-    r.push('---');
     r.push('');
   }
+  r.push('---');
+  r.push('');
+
+  for (const g of GROEPEN) {
+    const inGroep = sleutels.filter(k => meting.get(k).groep === g.id);
+    if (!inGroep.length) continue;
+    r.push(`# ${g.titel}`);
+    r.push('');
+    r.push(g.uitleg);
+    r.push('');
+
+    for (const sleutel of inGroep) {
+      const m = meting.get(sleutel);
+      r.push('## `' + sleutel + '`');
+      r.push('');
+      r.push('> ' + omschrijf(sleutel, plaatsen[sleutel]));
+      r.push('> Nu: ' + (m.aangepast
+        ? '**aangepast in deze campagne**'
+        : (m.std ? 'de standaard uit de code' : '_alleen in deze campagne, geen standaard_')));
+      r.push(`> ${m.stappen} stap${m.stappen === 1 ? '' : 'pen'} · ${m.woorden} woorden`
+        + (m.stappen ? ` · ${m.perStap} per stap` : '')
+        + (m.rollen.length ? ` · rolverdeling (${m.rollen.join(' + ')})` : ''));
+      if (m.std && m.aangepast) r.push('> De standaard telt ' + m.std.stappen.length + ' stap(pen).');
+      r.push('');
+      r.push('Titel: ' + (m.nu.titel || ''));
+      r.push('');
+      for (const stap of (m.nu.stappen || [])) {
+        // Een stap kan voor één rol zijn. Dat hangt achter de kop, zodat het
+        // markdown-bestand heen en weer kan zonder de verdeling te verliezen.
+        r.push('### ' + (stap.titel || '') + (stap.rol === 'dm' ? ' {alleen jij}' : stap.rol === 'speler' ? ' {alleen spelers}' : ''));
+        r.push('');
+        r.push(String(stap.tekst || '').trim());
+        r.push('');
+      }
+      r.push('---');
+      r.push('');
+    }
+  }
+
   r.unshift('');
   r.unshift(`_${sleutels.length} sleutels · ${nAangepast} aangepast in **${campagne}** · rest is de standaard uit de code._`);
   return r.join('\n');
@@ -300,6 +417,11 @@ function uitMarkdown(tekst) {
   for (const regel of tekst.split('\n')) {
     const kop = /^##\s+`([a-z_0-9]+)`\s*$/i.exec(regel);
     if (kop) { sluitSleutel(); sleutel = kop[1]; titel = null; stappen = []; continue; }
+    // Een `#`-kop deelt het document in hoofdstukken (en `## Inhoud` is de
+    // inhoudsopgave). Zonder deze regel belandde zo'n kop als tekstregel in de
+    // laatste stap van het boekje erboven — dezelfde val als de `---` hieronder,
+    // en je merkt het pas als --lees zegt dat er honderd teksten gewijzigd zijn.
+    if (/^#{1,2}\s+(?!`)/.test(regel)) { sluitSleutel(); continue; }
     if (!sleutel) continue;
     if (regel.startsWith('>')) continue;                 // aantekening
     if (/^---\s*$/.test(regel) && !stap) continue;        // scheiding tussen sleutels

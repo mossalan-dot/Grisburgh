@@ -2012,6 +2012,20 @@ opgeslagen als JSON-string. Alles eromheen is afgeleid:
 > `--schrijf` wordt alleen het **afwijkende** vastgelegd; een tekst die weer
 > gelijk is aan de code verdwijnt juist uit `dm-state.json`, zodat de campagne
 > latere verbeteringen vanzelf meekrijgt.
+> Het document is ingedeeld om in te **lezen en te redigeren**, niet om in op te
+> zoeken: vijf hoofdstukken (spelerskant, gedeelde schermen, meesterpaneel,
+> kaartjes, instellingen), een inhoudsopgave met per boekje het aantal stappen en
+> woorden, en bovenaan *Waar je aan zou beginnen* — afgeleide signalen, geen
+> oordeel: boekjes van één stap, stappen van meer dan 90 woorden, en sleutels
+> zonder knop. In welk hoofdstuk iets belandt volgt uit de sleutel, uit een
+> rolverdeling (dan is het per definitie gedeeld) en uit het bestand waar de knop
+> staat; `DM_SCHERMEN` vangt de schermen die alleen de DM opent zonder dat hun
+> sleutel met `dm_` begint.
+> **Elke `#`- of `##`-kop die geen sleutel is, sluit het lopende boekje af.**
+> Zonder die regel belandt een hoofdstukkop als tekstregel onder de laatste stap
+> van het boekje erboven — dezelfde val als de `---` hieronder, en je merkt het
+> pas als `--lees` meldt dat er honderd teksten gewijzigd zijn. Controleer na elke
+> wijziging aan het formaat dat `--lees` "aan te passen: 0" zegt.
 > Het blok wordt **uitgevoerd, niet met een regex gelezen**: het zijn
 > template literals met `${window._campagneNaam()}` erin, dus het script knipt
 > `HELP_CONFIG` eruit (`blokEinde()` telt accolades en slaat commentaar, strings
