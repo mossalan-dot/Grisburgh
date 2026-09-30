@@ -10,7 +10,7 @@ import { renderSpreuken } from './render-spreuken.js?v=41';
 import { renderVaardigheden, zoekVaardigheden } from './render-vaardigheden.js?v=10';
 import { renderStatblock } from './render-statblock.js?v=9';
 import { initSocket } from "./socket-client.js?v=80";
-import { initDmPanel } from "./dm-panel.js?v=356";
+import { initDmPanel } from "./dm-panel.js?v=357";
 import { COND_INFO, COND_LABEL, COND_MET_PLAATJE, COND_ICON } from './conditions.js?v=2';
 import './media-picker.js?v=8';
 import './tafels.js?v=2';
@@ -13504,7 +13504,11 @@ async function renderTweespalt() {
     const winnaarOptie = isAfgerond ? event.opties.find(o => o.id === event.uitkomst) : null;
     const gewonnen = isAfgerond && event.mijnInzet?.optieId === event.uitkomst;
     const verloren = isAfgerond && event.mijnInzet && !gewonnen;
-    const restTijd = event.sluitTijd ? Math.max(0, new Date(event.sluitTijd) - Date.now()) : null;
+    // Een weddenschap valt na de lange rust, niet op de klok: de party speelt
+    // geen realtime uren. Er stond een aftellende timer die tijdens een pauze
+    // gewoon doorliep. `sluitTijd` bestaat nog voor wat er al lag.
+    const opRust = event.uitkomstModus === 'auto' && event.sluitRust !== null && event.sluitRust !== undefined;
+    const restTijd = (!opRust && event.sluitTijd) ? Math.max(0, new Date(event.sluitTijd) - Date.now()) : null;
     const minRest = restTijd !== null ? Math.ceil(restTijd / 60000) : null;
 
     return `
@@ -13512,9 +13516,11 @@ async function renderTweespalt() {
         <div class="ts-event-head">
           <span class="ts-event-type">${icon('dice')} ${esc(event.soort || 'Weddenschap')}</span>
           <span class="ts-event-naam">${esc(event.naam)}</span>
-          ${event.uitkomstModus === 'auto' && minRest !== null && !isAfgerond
-            ? `<span class="ts-event-timer">${minRest < 60 ? `${minRest} min` : `${Math.ceil(minRest/60)} uur`}</span>`
-            : ''}
+          ${!isAfgerond && opRust
+            ? `<span class="ts-event-timer" title="De uitslag valt zodra jullie een lange rust hebben gehad">${icon('moon')} na de lange rust</span>`
+            : !isAfgerond && minRest !== null
+              ? `<span class="ts-event-timer">${minRest < 60 ? `${minRest} min` : `${Math.ceil(minRest/60)} uur`}</span>`
+              : ''}
         </div>
         ${isAfgerond
           ? `<div class="ts-uitslag${gewonnen ? ' ts-uitslag--gewonnen' : verloren ? ' ts-uitslag--verloren' : ''}">
@@ -14256,16 +14262,22 @@ const HELP_CONFIG = {
     { titel: 'Aflossen gaat via jou', tekst: 'Er is nog geen knop om een lening af te betalen: dat doe je door het schuldbewijs uit de boedel van de speler te halen. Dan is de schuld weg.', afbeelding: null },
   ] }),
   dm_gokhuis_partijen: () => ({ titel: 'Strijdperk — partijen', stappen: [
-    { titel: 'Wie vecht er', tekst: 'De twee kanten van een kamp, met hun naam en hun kans. Waar de spelers op inzetten en wat het uitbetaalt, volgt hieruit.', afbeelding: null },
-    { titel: 'De uitslag bepaal jij', tekst: 'Het gevecht wordt aan tafel gespeeld of verteld; jij zet daarna wie er gewonnen heeft. Die keuze is onomkeerbaar — de inzetten worden er meteen mee verrekend — dus hij vraagt een bevestiging.', afbeelding: null },
+    { titel: 'Een partij', tekst: 'Een kamp waar een speler zich zelf voor inschrijft: een naam, zijn tegenstander, een sfeerregel, wat de inleg kost en wat er te winnen valt. Dit is iets anders dan **Gokken** hierboven — daar wedden ze op iemand ánders.', afbeelding: null },
+    { titel: 'Hang er een gevecht aan', tekst: 'Kies bij **Gevecht** de encounter die deze tegenstander is, dan zet je hem met één knop op tafel in plaats van hem ter plekke bij elkaar te zoeken. XP en buit komen uit die encounter, dus die stel je daar in en niet hier.', afbeelding: null },
+    { titel: 'De verborgen eindbaas', tekst: 'Vink je een partij als verborgen aan, dan verschijnt hij pas als alle andere verslagen zijn. Zo bouw je een ladder met een verrassing bovenaan.', afbeelding: null },
+    { titel: 'De uitslag bepaal jij', tekst: 'Het gevecht wordt aan tafel gespeeld of verteld; jij zet daarna wie er gewonnen heeft. Bij een overwinning betaalt de app het prijzengeld uit. Die keuze is onomkeerbaar — de inzetten worden er meteen mee verrekend.', afbeelding: null },
   ] }),
   dm_gokhuis_inschrijvingen: () => ({ titel: 'Strijdperk — inschrijvingen', stappen: [
     { titel: 'Wie heeft ingezet', tekst: 'Per speler de inzet en op wie. Zolang het kamp loopt kun je zien waar de tafel op gokt; handig om te weten wie er belang bij heeft.', afbeelding: null },
     { titel: 'Zelf meevechten', tekst: 'Een speler kan ook zelf het perk in. Zijn inzet is dan zijn eigen kamp — en verliezen doet meer pijn dan geld.', afbeelding: null },
   ] }),
-  dm_gokhuis_beheer: () => ({ titel: 'Gokhuis — beheer', stappen: [
-    { titel: 'Wat hier staat', tekst: 'De lopende leningen, de open kampen en de events. Dit is de administratie achter de schermen; de spelers zien er niets van.', afbeelding: null },
-    { titel: 'Opruimen', tekst: 'Een lening van een personage dat niet meer bestaat kun je hier weghalen. Laat hem niet slepen: hij telt door en niemand kan hem afbetalen.', afbeelding: null },
+  dm_gokhuis_beheer: () => ({ titel: 'Gokken', stappen: [
+    { titel: 'Een weddenschap opzetten', tekst: 'Geef hem een **soort** (een vrij woord: gevecht, race, steekspel), een naam, en minstens twee **opties** om op te wedden. Wat loopt staat bovenaan; wat voorbij is zit in de uitklap *Afgelopen*.', afbeelding: null },
+    { titel: 'Kansen moeten 100% zijn', tekst: 'De kansen verdelen één uitkomst, dus ze tellen op tot honderd. Doen ze dat niet, dan weigert de app het met het getal dat je wél hebt erbij — telden ze op tot 90, dan viel er een tiende van de tijd niets en zag niemand dat.', afbeelding: null },
+    { titel: 'Wat er wordt uitbetaald', tekst: 'De **payout** naast een optie is wat de winst *bovenop* de inleg komt. Bij ×3 krijgt een speler die 10 inzet zijn tientje terug plus twintig: dertig in totaal. Verliest hij, dan is zijn inleg weg. Het huis heeft geen kas: winst komt uit het niets en verlies verdwijnt erin — de app rekent alleen de beurs van de speler bij en af.', afbeelding: null },
+    { titel: 'Wanneer de uitslag valt', tekst: '**Na de volgende lange rust**, of **jij bepaalt de winnaar** als je het zelf wilt sturen. Er stond een timer in minuten, maar de party speelt geen echte uren: die liep tijdens een pauze net zo hard door en besliste een gevecht vier keer per sessie.', afbeelding: null },
+    { titel: 'Wie er inzet', tekst: 'Onder een weddenschap staat wie erop gewed heeft, met portret en naam, waarop, en hoeveel. Na afloop staat er een vinkje of een kruisje bij.', afbeelding: null },
+    { titel: 'Leningen', tekst: 'Een lening van een personage dat niet meer bestaat kun je hier weghalen. Laat hem niet slepen: hij telt door en niemand kan hem afbetalen.', afbeelding: null },
   ] }),
   dm_gokhuis_event: () => ({ titel: 'Een event aanmaken', stappen: [
     { titel: 'Waar wordt op gewed', tekst: 'Geef het event een naam en minstens twee opties — paardenrace, hanengevecht, welke raadsheer het haalt. De spelers kiezen er een en zetten in.', afbeelding: null },

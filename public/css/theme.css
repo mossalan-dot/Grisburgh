@@ -28012,3 +28012,38 @@ body.akte-schrijf-open .mp-overlay { z-index: 1320; }
 @media (max-width: 640px) {
   .factie-rangnaam { flex-basis: 100%; }
 }
+
+/* De uitnodiging is de deur uit: geen knop meer, wel de stand */
+.factie-dm-uitgenodigd { display: inline-flex; align-items: center; gap: 5px; opacity: .7; }
+.factie-dm-uitgenodigd svg { width: 14px; height: 14px; }
+
+/* ── Gokhuis: wie er inzet, met gezicht en naam ───────────────────────────── */
+.ts-inzetten { margin-top: 8px; display: flex; flex-direction: column; gap: 4px; }
+.ts-inzet {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 6px;
+  border-radius: 5px;
+  background: rgba(196,168,122,0.07);
+  font-size: 0.82rem;
+}
+.ts-inzet-portret {
+  width: 24px; height: 24px; flex-shrink: 0;
+  border-radius: 50%; object-fit: cover;
+  border: 1px solid rgba(196,168,122,0.45);
+}
+.ts-inzet-portret--leeg { background: rgba(90,64,48,0.18); display: inline-block; }
+.ts-inzet-naam { font-weight: 600; color: var(--color-ink-bright); }
+.ts-inzet-optie { color: var(--color-ink-dim); }
+.ts-inzet-optie::before { content: '→ '; opacity: .5; }
+.ts-inzet-bedrag { margin-left: auto; color: var(--color-ink-dim); white-space: nowrap; }
+.ts-inzet-merk svg { width: 14px; height: 14px; }
+.ts-inzet--won   { background: rgba(34,100,54,0.10); }
+.ts-inzet--won   .ts-inzet-merk { color: #2a6436; }
+.ts-inzet--verloor { opacity: .6; }
+.ts-inzet--verloor .ts-inzet-merk { color: #8b2a2a; }
+
+/* Afgelopen weddenschappen: dicht, want ze duwden de lopende naar beneden */
+.ts-afgerond-uitklap { margin-top: 10px; }
+.ts-afgerond-uitklap > summary { cursor: pointer; }

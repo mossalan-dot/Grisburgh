@@ -13035,6 +13035,8 @@ router.get('/facties', attachRole, (req, res) => {
       id: f.id, naam: f.naam, embleem: _emb, beschrijving: f.beschrijving || '',
       stijl: f.stijl || '', rang: _factieRangView(f, idx), ladder,
       renown, zichtbaar, drempelVolgende, entityId: f.entityId || null,
+      // Alleen voor de DM: is de uitnodiging al de deur uit voor deze party?
+      ...(isDM ? { uitgenodigd: !!(g.factieUitnodiging || {})[f.id] } : {}),
       // Hulp inroepen: het boek zet dit bewust neer als iets wat je vráágt, niet
       // als iemand die voortaan meeloopt. Dus: welke metgezel staat open op de
       // rang die je hebt, en is er er nu al een op pad?
@@ -13164,6 +13166,15 @@ router.post('/facties/:id/uitnodiging', requireDM, (req, res) => {
       ...(factie.briefstijl ? { briefstijl: String(factie.briefstijl) } : {}),
     });
     if (post) bezorgd++;
+  }
+
+  // Onthouden dat deze party hem al heeft gehad: een uitnodiging stuur je één
+  // keer, en een knop die je een tweede keer kunt indrukken nodigt uit tot een
+  // tweede brief in de bus.
+  if (bezorgd) {
+    if (!g.factieUitnodiging) g.factieUitnodiging = {};
+    g.factieUitnodiging[factie.id] = new Date().toISOString();
+    storage.writeJSON('dm-state.json', dmState);
   }
 
   const io = req.app.get('io');
@@ -14136,12 +14147,19 @@ router.get('/tweespalt', attachRole, (req, res) => {
   const now = new Date();
   let needsSave = false;
 
+  // Een weddenschap loopt af na de **lange rust**, niet op de klok. De party
+  // speelt geen realtime uren: een gevecht dat "over 60 minuten" beslist wordt
+  // is over een sessie van drie uur al vier keer beslist, en tijdens een pauze
+  // ook. Zelfde maat als de Magizoöloog en de rotatie van een winkel.
+  // `sluitTijd` blijft gelezen worden voor weddenschappen die er al lagen.
   for (const event of ts.events) {
-    if (event.status === 'open' && event.uitkomstModus === 'auto' && event.sluitTijd) {
-      if (new Date(event.sluitTijd) <= now) {
-        _tsResolveEvent(dmState, event, io, _campagneRoom(req));
-        needsSave = true;
-      }
+    if (event.status !== 'open' || event.uitkomstModus !== 'auto') continue;
+    const opRust = Number.isFinite(event.sluitRust)
+      ? _rustStand(getGroup(dmState), 'long') > event.sluitRust
+      : (event.sluitTijd ? new Date(event.sluitTijd) <= now : false);
+    if (opRust) {
+      _tsResolveEvent(dmState, event, io, _campagneRoom(req));
+      needsSave = true;
     }
   }
   if (needsSave) storage.writeJSON('dm-state.json', dmState);
@@ -14167,7 +14185,7 @@ router.get('/tweespalt', attachRole, (req, res) => {
       // er al ligt.
       soort: e.soort || (e.type === 'godenwedden' ? 'Godenwedden' : 'Gevecht'),
       uitkomstModus: e.uitkomstModus, aangemaakt: e.aangemaakt,
-      sluitTijd: e.sluitTijd, eenmalig: e.eenmalig || false,
+      sluitTijd: e.sluitTijd, sluitRust: e.sluitRust ?? null, eenmalig: e.eenmalig || false,
       opties: e.opties,
       aantalInzetten: Object.keys(e.inzetten || {}).length,
     };
@@ -14207,16 +14225,24 @@ router.post('/tweespalt/events', requireDM, (req, res) => {
   //
   // Dus: één mechaniek, met `soort` als **vrij label** van de DM. `type` blijft
   // meegeschreven voor wat er al ligt, maar er hangt geen gedrag meer aan.
-  const { type, soort, naam, uitkomstModus, uitkomst, opties, duurMinuten } = req.body;
+  const { type, soort, naam, uitkomstModus, uitkomst, opties } = req.body;
   if (!naam?.trim() || !Array.isArray(opties) || !opties.length)
     return res.status(400).json({ error: 'naam en opties vereist' });
+  if (opties.length < 2) return res.status(400).json({ error: 'Een weddenschap heeft minstens twee opties' });
+
+  // De kansen zijn de verdeling van één uitkomst, dus ze horen honderd te zijn.
+  // Telden ze op tot 90, dan viel er tien procent van de tijd niets — en niemand
+  // die dat zag. Nu weigert hij het, met het getal dat je wél hebt erbij.
+  const _som = opties.reduce((n, o) => n + (Number(o.kans) || 0), 0);
+  if (Math.round(_som) !== 100) {
+    return res.status(400).json({ error: `De kansen tellen op tot ${Math.round(_som)}%, dat moet 100% zijn.` });
+  }
 
   const dmState = readDmState();
   const ts = _tsState(dmState);
 
-  const sluitTijd = uitkomstModus === 'auto'
-    ? new Date(Date.now() + (Number(duurMinuten) || 60) * 60 * 1000).toISOString()
-    : null;
+  // De stand van de rustteller nú; de weddenschap valt zodra die verder is.
+  const sluitRust = uitkomstModus === 'auto' ? _rustStand(getGroup(dmState), 'long') : null;
 
   const event = {
     id:           'ts_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6),
@@ -14226,7 +14252,7 @@ router.post('/tweespalt/events', requireDM, (req, res) => {
     uitkomstModus: uitkomstModus || 'auto',
     uitkomst:     uitkomstModus === 'dm' ? (uitkomst || null) : null,
     status:       'open',
-    sluitTijd,
+    sluitRust,
     aangemaakt:   new Date().toISOString(),
     opties:       opties.map((o, i) => ({
       id:     'opt_' + i + '_' + Math.random().toString(36).slice(2, 5),
@@ -14249,14 +14275,22 @@ router.put('/tweespalt/events/:id', requireDM, (req, res) => {
   const event = ts.events.find(e => e.id === req.params.id);
   if (!event) return res.status(404).json({ error: 'Event niet gevonden' });
 
-  const { naam, soort, uitkomst, uitkomstModus, opties, duurMinuten } = req.body;
+  const { naam, soort, uitkomst, uitkomstModus, opties } = req.body;
+  if (Array.isArray(opties)) {
+    const som = opties.reduce((n, o) => n + (Number(o.kans) || 0), 0);
+    if (Math.round(som) !== 100) {
+      return res.status(400).json({ error: `De kansen tellen op tot ${Math.round(som)}%, dat moet 100% zijn.` });
+    }
+  }
   if (naam !== undefined) event.naam = naam.trim();
   if (soort !== undefined) event.soort = String(soort || '').trim().slice(0, 30);
   if (uitkomst !== undefined) event.uitkomst = uitkomst;
   if (uitkomstModus !== undefined) {
     event.uitkomstModus = uitkomstModus;
-    if (uitkomstModus === 'auto' && duurMinuten) {
-      event.sluitTijd = new Date(Date.now() + Number(duurMinuten) * 60 * 1000).toISOString();
+    // Op automatisch zetten betekent: valt na de volgende lange rust.
+    if (uitkomstModus === 'auto') {
+      event.sluitRust = _rustStand(getGroup(readDmState()), 'long');
+      delete event.sluitTijd;
     }
   }
   if (Array.isArray(opties)) {

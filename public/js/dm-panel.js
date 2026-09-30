@@ -1204,11 +1204,15 @@ function _groetTafelHtml({ sleutel, config = {}, voorbeeld = '' }) {
         <button type="button" class="dm-btn dm-btn-ghost dm-btn-sm"
           onclick="window._groetTafelBewerk('${sleutel}')" title="Deze tafel openen in het Tafels-tabblad">${icon('pencil')} Bewerken</button>
       </div>
-    </div>
+    </div>${oud ? `
+    <!-- Wát een begroetingstafel is staat in het boekje van deze dienst; dat
+         hoeft niet onder elk veld te staan. Wat hier wél blijft is de melding
+         dat er nog een oude, vaste begroeting ligt — dat is geen uitleg maar
+         een stand van zaken, en zonder die regel zou je niet weten waarom je
+         spelers steeds dezelfde zin horen. -->
     <span class="dm-hint" style="font-size:11px;display:block;margin:-4px 0 4px">
-      Elke regel is een begroeting; er wordt er bij elk bezoek één gekozen. Gebruik {naam} voor de speler.${
-        oud ? ` <strong>Nu nog vast:</strong> „${esc(oud)}“ — kies of maak een tafel om te variëren.` : ''}
-    </span>`;
+      <strong>Nu nog vast:</strong> „${esc(oud)}“ — kies of maak een tafel om te variëren.
+    </span>` : ''}`;
 }
 
 // Een nieuwe tafel voor deze dienst: meteen aangemaakt, gekoppeld en geopend in
@@ -6247,17 +6251,32 @@ async function _renderTweespaltDM() {
         ${!isAfgerond && evt.uitkomstModus === 'auto'
           ? `<button class="dm-btn dm-btn-sm" onclick="window._tsDmUitslag('${esc(evt.id)}')" title="Nu afronden">${icon('zap')}</button>`
           : ''}
-        ${!isAfgerond && evt.inzetten && Object.keys(evt.inzetten).length
-          ? `<div style="margin-top:6px;font-size:11px;opacity:.7">
+        ${evt.inzetten && Object.keys(evt.inzetten).length
+          ? `<div class="ts-inzetten">
               ${Object.entries(evt.inzetten).map(([cid, inz]) => {
                 const optNaam = evt.opties.find(o => o.id === inz.optieId)?.naam || '?';
-                return `<div>${esc(cid.slice(0,8))}… → ${esc(optNaam)} (${formatCl(inz.bedragCl)})</div>`;
+                // Wie er inzet hoort met gezicht en naam op het scherm; er stond
+                // een afgekapt id, en daar herken je niemand aan.
+                const speler = tsPersonages.find(p => p.id === cid);
+                const won = isAfgerond && inz.optieId === evt.uitkomst;
+                return `<div class="ts-inzet${isAfgerond ? (won ? ' ts-inzet--won' : ' ts-inzet--verloor') : ''}">
+                  <img class="ts-inzet-portret" src="${api.thumbUrl(cid)}" alt=""
+                    onerror="this.replaceWith(Object.assign(document.createElement('span'),{className:'ts-inzet-portret ts-inzet-portret--leeg'}))">
+                  <span class="ts-inzet-naam">${esc(speler?.name || 'Speler')}</span>
+                  <span class="ts-inzet-optie">${esc(optNaam)}</span>
+                  <span class="ts-inzet-bedrag">${formatCl(inz.bedragCl)}</span>
+                  ${isAfgerond ? `<span class="ts-inzet-merk">${won ? icon('check') : icon('x')}</span>` : ''}
+                </div>`;
               }).join('')}
              </div>` : ''}
       </div>`;
   }
 
+  const lopend   = events.filter(e => e.status !== 'afgerond');
+  const afgerond = events.filter(e => e.status === 'afgerond');
+
   let tsPersonages = [], tsLocaties = [];
+  try { _tsEncounters = await api.listEncounters(); } catch { _tsEncounters = []; }
   try { tsPersonages = await api.listEntities('personages'); } catch {}
   try { tsLocaties   = await api.listEntities('locaties');   } catch {}
   const tsAlleEntiteiten = [...tsPersonages, ...tsLocaties];
@@ -6271,35 +6290,18 @@ async function _renderTweespaltDM() {
         groetVoorbeeld: `Welkom bij ${tsConfig.naam || 'het gokhuis'}, {naam}. Speel je mee?`,
       })}
 
-      ${window._deelAan?.('gokhuis-arena') === false ? _deelUitHtml('Strijdperk') : `
-        ${_dienstSectieKop('crossed-swords', 'Strijdperk', 'dm_gokhuis_partijen')}
-        <div id="ts-arena-lijst"></div>
-        <div class="dm-form-row">
-          <button class="dm-btn dm-btn-ghost" onclick="window._tsArenaAdd()" title="Partij toevoegen">${icon('plus')} Partij</button>
-        </div>`}
-
-      ${_dienstOpslaanRij('window._tsSettingsSave()')}
-    </div>
-
-    ${arenaSignups.length && window._deelAan?.('gokhuis-arena') !== false ? `
-    <div class="dm-feature-section" style="margin-top:14px">
-      <div class="dm-section-label" style="display:flex;align-items:center;gap:6px">${icon('swords')} Strijdperk — inschrijvingen<span class="dm-sectie-hulp">${helpBtn('dm_gokhuis_inschrijvingen')}</span></div>
-      ${arenaSignups.map(s => `
-        <div class="dm-feature-section" style="border:1px solid rgba(196,168,122,0.3);margin-bottom:8px;padding:10px">
-          <div><strong>${esc(s.doorNaam || s.doorId?.slice(0,8) || 'Speler')}</strong> → ${esc(s.boutNaam)}${s.tegenstander ? ` <span style="opacity:.65">tegen ${esc(s.tegenstander)}</span>` : ''}</div>
-          <div style="font-size:11px;opacity:.7;margin:3px 0 8px">Prijs bij winst: ${esc(s.prijs || '—')}${s.inzet ? ` · inleg betaald: ${esc(s.inzet)}` : ''}</div>
-          <div class="dm-feature-row" style="gap:6px">
-            <button class="dm-btn dm-btn-sm dm-btn-primary" onclick="window._tsArenaUitslag('${esc(s.id)}','overwinning')" title="Overwinning — betaal prijzengeld uit">${icon('coins')} Overwinning</button>
-            <button class="dm-btn dm-btn-sm dm-btn-ghost" onclick="window._tsArenaUitslag('${esc(s.id)}','nederlaag')" title="Nederlaag">Nederlaag</button>
-          </div>
-        </div>`).join('')}
-    </div>` : ''}
-
-    <div class="dm-feature-section" style="margin-top:14px">
-      <div class="dm-section-label">De Tweespalt — Beheer<span class="dm-sectie-hulp">${helpBtn('dm_gokhuis_beheer')}</span></div>
-      ${events.length
-        ? events.map(renderDMEvent).join('')
-        : `<p style="opacity:.5;font-size:13px">Geen actieve events.</p>`}
+      ${_dienstSectieKop('dice', 'Gokken', 'dm_gokhuis_beheer')}
+      <!-- Wat loopt staat open, wat voorbij is zit in een uitklap. Ze stonden
+           door elkaar in één lijst, dus een afgeronde weddenschap van vorige
+           sessie duwde de lopende naar beneden. -->
+      ${lopend.length
+        ? lopend.map(renderDMEvent).join('')
+        : `<p style="opacity:.5;font-size:13px">Er loopt niets.</p>`}
+      ${afgerond.length ? `
+        <details class="ts-afgerond-uitklap">
+          <summary class="dm-form-label">${icon('check')} Afgelopen <span class="dm-hint">${afgerond.length}</span></summary>
+          <div style="margin-top:6px">${afgerond.map(renderDMEvent).join('')}</div>
+        </details>` : ''}
 
       <div class="dm-section-label" style="margin-top:14px">Nieuw event aanmaken<span class="dm-sectie-hulp">${helpBtn('dm_gokhuis_event')}</span></div>
 
@@ -6327,15 +6329,11 @@ async function _renderTweespaltDM() {
       <div class="dm-form-row" id="ts-modus-row">
         <label class="dm-form-label">Uitkomst</label>
         <select id="ts-modus" class="dm-select" onchange="window._tsToonModusVelden()">
-          <option value="auto">Automatisch (op basis van kansen)</option>
-          <option value="dm">DM bepaalt vooraf</option>
+          <option value="auto">Valt na de volgende lange rust</option>
+          <option value="dm">Jij bepaalt de winnaar</option>
         </select>
       </div>
 
-      <div id="ts-duur-row" class="dm-form-row">
-        <label class="dm-form-label">Duur (minuten)</label>
-        <input id="ts-duur" class="dm-input" type="number" min="1" value="60" style="width:80px">
-      </div>
 
       <div class="dm-section-label" style="margin-top:10px;font-size:11px">Opties (min. 2)</div>
       <div id="ts-opties-lijst"></div>
@@ -6349,7 +6347,31 @@ async function _renderTweespaltDM() {
       <div class="dm-form-row" style="margin-top:12px">
         <button class="dm-btn dm-btn-primary" onclick="window._tsDmOpslaan()" title="Event aanmaken">${icon('save')}</button>
       </div>
+
+      ${window._deelAan?.('gokhuis-arena') === false ? _deelUitHtml('Strijdperk') : `
+        ${_dienstSectieKop('crossed-swords', 'Strijdperk', 'dm_gokhuis_partijen')}
+        <div id="ts-arena-lijst"></div>
+        <div class="dm-form-row">
+          <button class="dm-btn dm-btn-ghost" onclick="window._tsArenaAdd()" title="Partij toevoegen">${icon('plus')} Partij</button>
+        </div>`}
+
+      ${_dienstOpslaanRij('window._tsSettingsSave()')}
     </div>
+
+    ${arenaSignups.length && window._deelAan?.('gokhuis-arena') !== false ? `
+    <div class="dm-feature-section" style="margin-top:14px">
+      <div class="dm-section-label" style="display:flex;align-items:center;gap:6px">${icon('swords')} Strijdperk — inschrijvingen<span class="dm-sectie-hulp">${helpBtn('dm_gokhuis_inschrijvingen')}</span></div>
+      ${arenaSignups.map(s => `
+        <div class="dm-feature-section" style="border:1px solid rgba(196,168,122,0.3);margin-bottom:8px;padding:10px">
+          <div><strong>${esc(s.doorNaam || s.doorId?.slice(0,8) || 'Speler')}</strong> → ${esc(s.boutNaam)}${s.tegenstander ? ` <span style="opacity:.65">tegen ${esc(s.tegenstander)}</span>` : ''}</div>
+          <div style="font-size:11px;opacity:.7;margin:3px 0 8px">Prijs bij winst: ${esc(s.prijs || '—')}${s.inzet ? ` · inleg betaald: ${esc(s.inzet)}` : ''}</div>
+          <div class="dm-feature-row" style="gap:6px">
+            <button class="dm-btn dm-btn-sm dm-btn-primary" onclick="window._tsArenaUitslag('${esc(s.id)}','overwinning')" title="Overwinning — betaal prijzengeld uit">${icon('coins')} Overwinning</button>
+            <button class="dm-btn dm-btn-sm dm-btn-ghost" onclick="window._tsArenaUitslag('${esc(s.id)}','nederlaag')" title="Nederlaag">Nederlaag</button>
+          </div>
+        </div>`).join('')}
+    </div>` : ''}
+
     </div>`;
 
   window._tsAddOptie();
@@ -6360,6 +6382,19 @@ async function _renderTweespaltDM() {
 
 // ── Strijdperk (arena) — DM-editor ──
 let _tsArena = [];
+let _tsEncounters = [];
+
+// Een partij in het strijdperk start het gevecht dat eraan hangt. Zelfde weg als
+// een regiestap: encounter starten, gevecht openen, overlay tonen.
+window._tsArenaStart = async (encounterId) => {
+  try {
+    await api.startEncounter(encounterId);
+    const combat = await api.startCombat();
+    _combat = combat;
+    _combatLoaded = true;
+    _renderCombatOverlay(combat);
+  } catch (e) { alert('Gevecht starten mislukt: ' + e.message); }
+};
 
 function _tsRenderArenaLijst() {
   const el = document.getElementById('ts-arena-lijst');
@@ -6380,6 +6415,19 @@ function _tsRenderArenaLijst() {
           <label class="dm-form-label" style="min-width:auto">Prijs</label>
           <input class="dm-input dm-input-sm ts-arena-prijs" value="${esc(b.prijs || '')}" placeholder="bv. 50 fl">
         </div>
+        <!-- Een partij in het strijdperk ís een gevecht, dus hoort er een
+             encounter aan te hangen: dan zet je hem met één knop op tafel in
+             plaats van de tegenstander ter plekke bij elkaar te zoeken. Loot en
+             XP komen dan ook gewoon uit die encounter. -->
+        <div class="hb-menu-item-effect">
+          <label class="dm-form-label" style="min-width:auto">Gevecht</label>
+          <select class="dm-select dm-input-sm ts-arena-encounter" style="flex:1;min-width:0">
+            <option value="">— nog geen encounter —</option>
+            ${(_tsEncounters || []).map(e => `<option value="${esc(e.id)}"${b.encounterId === e.id ? ' selected' : ''}>${esc(e.name || e.id)}</option>`).join('')}
+          </select>
+          ${b.encounterId ? `<button class="dm-btn dm-btn-ghost dm-btn-sm" title="Nu starten"
+            onclick="window._tsArenaStart('${esc(b.encounterId)}')">${icon('swords')} Starten</button>` : ''}
+        </div>
         <label class="dm-hint" style="display:flex;align-items:center;gap:7px;margin-top:2px;cursor:pointer">
           <input type="checkbox" class="ts-arena-verborgen" ${b.verborgen ? 'checked' : ''}>
           Verborgen eindbaas — verschijnt pas nadat alle andere partijen verslagen zijn
@@ -6395,13 +6443,14 @@ function _tsArenaReadDom() {
     beschrijving: row.querySelector('.ts-arena-desc')?.value.trim() || '',
     inzet: row.querySelector('.ts-arena-inzet')?.value.trim() || '',
     prijs: row.querySelector('.ts-arena-prijs')?.value.trim() || '',
+    encounterId: row.querySelector('.ts-arena-encounter')?.value || '',
     verborgen: row.querySelector('.ts-arena-verborgen')?.checked || false,
   })).filter(b => b.naam);
 }
 
 window._tsArenaAdd = () => {
   _tsArena = _tsArenaReadDom();
-  _tsArena.push({ id: 'bout_' + Date.now().toString(36), naam: '', tegenstander: '', beschrijving: '', inzet: '', prijs: '', verborgen: false });
+  _tsArena.push({ id: 'bout_' + Date.now().toString(36), naam: '', tegenstander: '', beschrijving: '', inzet: '', prijs: '', encounterId: '', verborgen: false });
   _tsRenderArenaLijst();
 };
 
@@ -6452,9 +6501,7 @@ window._tsUpdateWinnaarSelect = () => {
 
 window._tsToonModusVelden = () => {
   const modus = document.getElementById('ts-modus')?.value;
-  const duurRow = document.getElementById('ts-duur-row');
   const winnaarRow = document.getElementById('ts-dm-winnaar-row');
-  if (duurRow) duurRow.classList.toggle('hidden', modus === 'dm');
   if (winnaarRow) winnaarRow.classList.toggle('hidden', modus !== 'dm');
 };
 
@@ -6462,7 +6509,6 @@ window._tsDmOpslaan = async () => {
   const naam  = document.getElementById('ts-naam')?.value.trim();
   const soort = document.getElementById('ts-soort')?.value.trim();
   const modus = document.getElementById('ts-modus')?.value || 'auto';
-  const duur = parseInt(document.getElementById('ts-duur')?.value) || 60;
 
   const optieRijen = document.querySelectorAll('#ts-opties-lijst > .dm-feature-row');
   const opties = [...optieRijen].map(row => ({
@@ -6473,6 +6519,14 @@ window._tsDmOpslaan = async () => {
 
   if (!naam) { alert('Geef een naam op.'); return; }
   if (opties.length < 2) { alert('Voeg minimaal 2 opties toe.'); return; }
+  // De kansen zijn de verdeling van één uitkomst. Telden ze op tot 90, dan viel
+  // er tien procent van de tijd niets en zag niemand dat. De server weigert het
+  // ook, maar hier weet je het voor je klikt.
+  const som = opties.reduce((n, o) => n + o.kans, 0);
+  if (Math.round(som) !== 100) {
+    alert(`De kansen tellen op tot ${Math.round(som)}%. Dat moet 100% zijn.`);
+    return;
+  }
 
   let uitkomst = null;
   if (modus === 'dm') {
@@ -6482,7 +6536,7 @@ window._tsDmOpslaan = async () => {
   }
 
   try {
-    await api.createTweespaltEvent({ naam, soort, uitkomstModus: modus, uitkomst, opties, duurMinuten: duur });
+    await api.createTweespaltEvent({ naam, soort, uitkomstModus: modus, uitkomst, opties });
     _tsOptieCount = 0;
     await _renderTweespaltDM();
   } catch (err) { alert('Fout: ' + err.message); }
@@ -7747,10 +7801,12 @@ function _renderFactiesDM() {
               title="Toekennen">${icon('check')} Toekennen</button>
             ${boonGegeven.length ? `<span class="factie-dm-boon-label">${icon('check-circle')} ${boonGegeven.length} gunst${boonGegeven.length > 1 ? 'en' : ''} uitgedeeld</span>` : ''}
             <span style="margin-left:auto;display:inline-flex;gap:6px">
-              <button class="dm-btn dm-btn-primary dm-btn-sm factie-dm-uitnodiging"
-                onclick="window._factieStuurUitnodiging('${esc(f.id)}')"
-                title="Onthul de factie voor de actieve groep én bezorg elke speler een verzegelde uitnodigingsbrief">
-                ${icon('mail')} Stuur uitnodiging</button>
+              ${live.uitgenodigd
+                ? `<span class="dm-hint factie-dm-uitgenodigd" title="Deze party heeft de uitnodiging al gehad">${icon('mail')} Uitgenodigd</span>`
+                : `<button class="dm-btn dm-btn-primary dm-btn-sm factie-dm-uitnodiging"
+                     onclick="window._factieStuurUitnodiging('${esc(f.id)}')"
+                     title="Onthul de factie voor de actieve groep én bezorg elke speler een verzegelde uitnodigingsbrief">
+                     ${icon('mail')} Stuur uitnodiging</button>`}
               <button class="dm-btn dm-btn-ghost dm-btn-sm" onclick="window._factieBewerk(${fi})"
                 title="Kaartjes, leden, brief en rangen">${icon('pencil')} Bewerken</button>
             </span>
