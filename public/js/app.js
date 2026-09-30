@@ -6080,7 +6080,7 @@ window._invSaveNote = async function() {
   const name = nameEl?.value?.trim();
   if (!name) { nameEl?.focus(); return; }
   const note = bodyEl?.value?.trim() || '';
-  const charId = state.characterId;
+  const charId = window._bladCharId || state.characterId;
   if (!charId) return;
   try {
     const result = await api.addPlayerItem(charId, { name, note });
@@ -6696,7 +6696,7 @@ window._itemTafelRol = async function (knop) {
 };
 
 window._itemGebruik = async function (knop) {
-  const charId = state.characterId;
+  const charId = window._bladCharId || state.characterId;
   if (!charId) return;
   const d = knop?.dataset || {};
   const itemId = d.id;
@@ -8512,11 +8512,17 @@ async function renderMijnKarakter(opts = {}) {
               if (!n && !dm) return '';
               const bolletjes = Array.from({ length: 6 }, (_, i) =>
                 `<span class="exh-bol${i < n ? ' is-aan' : ''}"></span>`).join('');
+              // Het woord stond naast de bolletjes, en dan staat de rij scheef:
+              // links een lang woord, rechts zes puntjes en twee knoppen.
+              // Zelfde vorm als Temporary HP erboven — kopje erboven, de
+              // bediening eronder en gecentreerd.
               return `<div class="player-exhaustion${n ? ' is-aan' : ''}">
                 <span class="player-exhaustion-kop">${icon('battery-low')} Exhaustion</span>
-                ${dm ? `<button class="player-hp-temp-btn" onclick="window._dashExhaustion(-1)" title="Eén niveau eraf">−</button>` : ''}
-                <span class="exh-bollen" title="${n ? `Niveau ${n} van 6` : 'Geen exhaustion'}">${bolletjes}</span>
-                ${dm ? `<button class="player-hp-temp-btn" onclick="window._dashExhaustion(1)" title="Eén niveau erbij">+</button>` : ''}
+                <div class="player-exhaustion-rij">
+                  ${dm ? `<button class="player-hp-temp-btn" onclick="window._dashExhaustion(-1)" title="Eén niveau eraf">−</button>` : ''}
+                  <span class="exh-bollen" title="${n ? `Niveau ${n} van 6` : 'Geen exhaustion'}">${bolletjes}</span>
+                  ${dm ? `<button class="player-hp-temp-btn" onclick="window._dashExhaustion(1)" title="Eén niveau erbij">+</button>` : ''}
+                </div>
                 ${n ? `<span class="player-exhaustion-effect">${n >= 6
                   ? 'Niveau 6 — je personage sterft.'
                   : `−${n} op elke d20 test · gaat met één omlaag na een lange rust`}</span>` : ''}
@@ -9471,6 +9477,10 @@ async function renderMijnKarakter(opts = {}) {
           ? `<div class="player-spell-desc">${mdToHtml(stored)}</div>`
           : '<p class="player-spell-err" style="opacity:.5">Geen beschrijving.</p>';
         body.dataset.loaded = 'true';
+        // Dezelfde uitlegballonnen als in het spreukenboek. Een feature staat
+        // vol met D&D-termen (Saving Throw, Advantage, Bonus Action) en daar
+        // hing hier niets achter — terwijl de woordenlijst er al ligt.
+        window.glossary?.applyDom?.(body);
         _appendTraitUsesRow(body);
         _appendTraitNoteSection(body);
         return;
@@ -9497,6 +9507,7 @@ async function renderMijnKarakter(opts = {}) {
             : `<p class="player-spell-err" style="opacity:.7">Deze beschrijving staat niet in de vrij te gebruiken SRD.</p>
                ${link ? `<a class="prog-geen-tekst-knop" href="${esc(link)}" target="_blank" rel="noopener">${icon('book-open')} Lees hem elders</a>` : ''}`}`;
         body.dataset.loaded = 'true';
+        window.glossary?.applyDom?.(body);
         _appendTraitUsesRow(body);
         _appendTraitNoteSection(body);
       } catch {
@@ -9762,6 +9773,11 @@ async function renderMijnKarakter(opts = {}) {
   };
 
   // Profiel-velden opslaan
+  // Wiens blad staat er? Voor een speler is dat hijzelf, maar de DM kijkt naar
+  // het blad van iemand anders — dan is `state.characterId` leeg. Losse
+  // handlers buiten deze functie hadden daar geen weet van en deden niets.
+  window._bladCharId = charId;
+
   window._saveProfileField = async function(field, value) {
     if (!charId) return;
     try {
@@ -12552,14 +12568,14 @@ window._getExtraSpeedsFromDOM = function() {
 };
 
 window._saveExtraSpeedFull = async function() {
-  const charId = state.characterId;
+  const charId = window._bladCharId || state.characterId;
   if (!charId) return;
   const extras = window._getExtraSpeedsFromDOM();
   await api.patchPlayerProfile(charId, { extraSpeeds: JSON.stringify(extras) }).catch(e => console.warn('extraSpeeds opslaan mislukt', e));
 };
 
 window._addExtraSpeed = async function() {
-  const charId = state.characterId;
+  const charId = window._bladCharId || state.characterId;
   if (!charId) return;
   const extras = window._getExtraSpeedsFromDOM();
   const used = new Set(extras.map(e => e.label));
@@ -12570,7 +12586,7 @@ window._addExtraSpeed = async function() {
 };
 
 window._removeExtraSpeed = async function(idx) {
-  const charId = state.characterId;
+  const charId = window._bladCharId || state.characterId;
   if (!charId) return;
   const extras = window._getExtraSpeedsFromDOM();
   extras.splice(idx, 1);
