@@ -1865,7 +1865,6 @@ async function _renderDienstenToegang() {
   el.innerHTML = `
     <div class="dm-feature-section">
       <div style="display:flex;align-items:center;gap:6px"><div class="dm-section-label">Toegang per groep</div>${helpBtn('dm_toegang')}</div>
-      <p class="dm-form-label" style="opacity:.7;margin:0 0 10px">Bepaal per dienst en per groep of die zichtbaar en/of beschikbaar is.</p>
       <div style="overflow-x:auto">
         <table style="border-collapse:collapse;width:100%">
           <thead><tr>
@@ -1876,10 +1875,7 @@ async function _renderDienstenToegang() {
         </table>
       </div>
     </div>
-    <!-- Waar de party is bepaalt óók wat er bereikbaar is, dus dat hoort hier en
-         niet bij Instellingen. _tabEl('wereld') vindt deze container. -->
-    <div id="dm-diensten-wereld"></div>`;
-  _renderWereldTab();
+`;
 };
 
 // Eén dienst hernoemen vanaf de toegangstabel. Facties is de uitzondering die
@@ -5875,46 +5871,6 @@ async function _campagneSubmit() {
 
 // ── Wereld (Grisburgh verlaten) ───────────────────────────────────────────────
 
-async function _renderWereldTab() {
-  const el = _tabEl('wereld');
-  if (!el) return;
-  el.innerHTML = '<div class="dm-feature-section"><div class="dm-section-label">Laden…</div></div>';
-
-  const meta = window.app?.state?.meta || {};
-  const buitenGrisburgh = !!meta.buitenGrisburgh;
-  const _plaats = window._campagneNaam();
-  const buitenEntiteiten = meta.buitenGrisburgEntiteiten || [];
-
-  // Load all verkopers + winkels
-  let verkopers = [];
-  try {
-    const [p, l] = await Promise.all([
-      api.listEntities('personages').catch(() => []),
-      api.listEntities('locaties').catch(() => []),
-    ]);
-    verkopers = [
-      ...p.filter(e => window._heeftRol?.(e, 'verkoper')),
-      ...l.filter(e => e.data?.locType === 'Winkel'),
-    ];
-  } catch {}
-
-  // Wáár de party is en wat daar bereikbaar is, staat sinds 30 sep in de
-  // **akteregie** — per akte, bij de rest van wat dat hoofdstuk afsluit. Hier
-  // stond het als één schakelaar "in de stad / eruit", met een lijst
-  // uitzonderingen eronder. Dat is te grof (een akte speelt in een dorp, op zee
-  // of onder de grond, en dan is bereikbaar niet hetzelfde rijtje) en het was
-  // bovendien naar één plaats genoemd. De oude stand wordt nog gelezen zolang
-  // hij ergens aanstaat; zie `_bereikbaarheidVoor` op de server.
-  el.innerHTML = `
-    <div class="dm-feature-section">
-      <div class="dm-section-label">Waar de party is<span class="dm-sectie-hulp">${helpBtn('dm_wereld_locatie')}</span></div>
-      <p class="dm-hint">Wat er tijdens een akte te bereiken is, stel je in bij die akte zelf — onder <em>Bereikbaar tijdens deze akte</em>. Daar staan dezelfde diensten en winkels, maar per hoofdstuk, zodat een reis naar de kust iets anders afsluit dan een nacht in de riolen.</p>
-      <div class="dm-form-row" style="margin-top:8px">
-        <button class="dm-btn dm-btn-ghost dm-btn-sm" onclick="window.dmPanel.switchTab('aktes')">${icon('scroll-text')} Naar de aktes</button>
-      </div>
-    </div>`;
-};
-
 let _hbPersonages = [];
 let _hbLocaties   = [];      // voor de koppeling aan het locatiekaartje
 let _hbVoorwerpen = [];      // voor de koppeling van menu-items aan kaartjes
@@ -6888,32 +6844,6 @@ const URSULA_ZINTUIG_VELDEN = [
   { key: 'voelen',  label: 'Voelen',  icoon: 'hand' },
 ];
 
-// Een tafel voor één zintuig van deze akte: meteen gemaakt, gekoppeld en
-// geopend — dezelfde weg als bij een begroeting of de weetjes van de detective.
-window._ursulaZintuigTafelNieuw = async (zintuig, label) => {
-  const akte = _ursulaAktes.find(a => a.key === _ursulaSelectedAkte);
-  const bestaand = (document.getElementById(`ursula-${zintuig}`)?.value || '').trim();
-  try {
-    const tafel = await api.post('/tables', {
-      name: `${label} — Akte ${akte?.num ?? '?'}`, type: 'simple',
-      entries: bestaand ? [bestaand] : [''],
-    });
-    _tables = await api.listTables().catch(() => _tables);
-    const sel = document.getElementById(`ursula-${zintuig}-tafel`);
-    if (sel) { sel.innerHTML += `<option value="${esc(tafel.id)}" selected>${esc(tafel.name)}</option>`; sel.value = tafel.id; }
-    await window._ursulaVoorspellingSave();
-    window._ursulaZintuigTafelBewerk(zintuig);
-  } catch (e) { alert('Tafel maken mislukt: ' + e.message); }
-};
-
-window._ursulaZintuigTafelBewerk = (zintuig) => {
-  const id = document.getElementById(`ursula-${zintuig}-tafel`)?.value;
-  if (!id) { alert('Kies eerst een tafel, of maak er een.'); return; }
-  _tafelTerugNaar = 'ursula';
-  window.dmPanel.switchTab('tafels');
-  setTimeout(() => { try { window.dmPanel.tabelEdit(id); } catch {} }, 160);
-};
-
 async function _renderUrsulaSettings() {
   const el = _tabEl('ursula');
   if (!el) return;
@@ -6972,24 +6902,16 @@ async function _renderUrsulaSettings() {
            voor voelen, een laboratoriumkolf voor proeven. Nu een neus vol wind,
            een hand, een drank. En elk zintuig mag uit een **tafel** komen: dan
            ziet de ene ziener vuur en de andere een gezicht in het water. -->
-      <div class="ursula-zintuigen">
+      <!-- Eén tafel per zintuig was te fijn gesneden: een voorspelling is één
+           beeld dat over vijf zintuigen verdeeld wordt, geen vijf losse potten
+           om uit te trekken. Terug naar één tekstvak per zintuig — alleen de
+           iconen kloppen nu wél. -->
+      <div class="dm-form-row" style="flex-direction:column;gap:4px">
         ${URSULA_ZINTUIG_VELDEN.map(z => `
-          <div class="ursula-zintuig">
-            <label class="dm-form-label" for="ursula-${z.key}">${icon(z.icoon)} ${esc(z.label)}</label>
-            <textarea id="ursula-${z.key}" class="dm-input" rows="2" style="font-size:11px;resize:vertical"
-              placeholder="Eén vast beeld — of kies hiernaast een tafel">${esc(v[z.key] || '')}</textarea>
-            ${_tafelVeldHtml({
-              id: `ursula-${z.key}-tafel`, label: 'Tafel',
-              gekozen: v[z.key + 'TafelId'] || '', leeg: '— Vaste tekst hierboven —',
-              nieuw: `window._ursulaZintuigTafelNieuw('${z.key}','${esc(z.label)}')`,
-              bewerk: `window._ursulaZintuigTafelBewerk('${z.key}')`,
-            })}
-          </div>`).join('')}
-        <div class="ursula-zintuig">
-          <label class="dm-form-label" for="ursula-concreet">${icon('target')} Concrete kern</label>
-          <textarea id="ursula-concreet" class="dm-input" rows="2" style="font-size:11px;resize:vertical"
-            placeholder="Een naam of plek — onthuld bij een 6">${esc(v.concreet || '')}</textarea>
-        </div>
+          <label class="dm-form-label" for="ursula-${z.key}">${icon(z.icoon)} ${esc(z.label)}</label>
+          <textarea id="ursula-${z.key}" class="dm-input" rows="2" style="font-size:11px;resize:vertical">${esc(v[z.key] || '')}</textarea>`).join('')}
+        <label class="dm-form-label" for="ursula-concreet">${icon('target')} Concrete kern (naam/locatie — onthuld bij een 6)</label>
+        <textarea id="ursula-concreet" class="dm-input" rows="2" style="font-size:11px;resize:vertical">${esc(v.concreet || '')}</textarea>
       </div>
       <div class="dm-form-row" style="gap:6px">
         <button class="dm-btn dm-btn-primary" onclick="window._ursulaVoorspellingSave(event)" title="Voorspelling opslaan">${icon('save')} Voorspelling</button>
@@ -7007,11 +6929,6 @@ window._ursulaSelectAkte = (key) => {
     const ta = document.getElementById('ursula-' + f);
     if (ta) ta.value = v[f] || '';
   });
-  // De tafelkeuze hoort net zo goed bij de akte als de tekst.
-  for (const z of URSULA_ZINTUIG_VELDEN) {
-    const sel = document.getElementById(`ursula-${z.key}-tafel`);
-    if (sel) sel.value = v[z.key + 'TafelId'] || '';
-  }
 };
 
 window._ursulaSettingsSave = async () => {
@@ -7033,10 +6950,7 @@ window._ursulaVoorspellingSave = async (ev) => {
   if (!_ursulaSelectedAkte) return;
   const g = (id) => document.getElementById(id)?.value || '';
   const voorspelling = { concreet: g('ursula-concreet') };
-  for (const z of URSULA_ZINTUIG_VELDEN) {
-    voorspelling[z.key] = g(`ursula-${z.key}`);
-    voorspelling[z.key + 'TafelId'] = g(`ursula-${z.key}-tafel`);
-  }
+  for (const z of URSULA_ZINTUIG_VELDEN) voorspelling[z.key] = g(`ursula-${z.key}`);
   const btn = ev?.currentTarget;
   try {
     await api.saveUrsulaVoorspelling(_ursulaSelectedAkte, voorspelling);

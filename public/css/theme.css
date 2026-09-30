@@ -13902,7 +13902,17 @@ body.herberg-actief #app { position: relative; z-index: 1; }
 
 /* ── Spelers-tab (DM) ── */
 .spelers-tab-wrap { display: flex; flex-direction: column; height: 100%; overflow: hidden; }
-.spelers-tab-header { display: flex; align-items: center; gap: 12px; padding: 10px 16px; background: rgba(196,168,122,0.08); border-bottom: 1px solid rgba(196,168,122,0.2); flex-shrink: 0; }
+/* `align-items: center` zette het woord "Speler:" halverwege de stapel zodra de
+   namen over vier regels wikkelden — op een telefoon stond het label ineens
+   naast de derde rij. Uitlijnen op de eerste regel dus, en op een smal scherm
+   helemaal erboven. */
+.spelers-tab-header { display: flex; align-items: flex-start; gap: 12px; padding: 10px 16px; background: rgba(196,168,122,0.08); border-bottom: 1px solid rgba(196,168,122,0.2); flex-shrink: 0; }
+.spelers-tab-label { line-height: 26px; flex-shrink: 0; }
+@media (max-width: 640px) {
+  .spelers-tab-header { flex-direction: column; gap: 6px; padding: 8px 12px; }
+  .spelers-tab-label { line-height: 1.2; }
+  .spelers-tab-selector { width: 100%; }
+}
 .spelers-tab-label { font-size: 0.8rem; color: var(--color-ink-dim); font-style: italic; }
 .spelers-tab-selector { display: flex; gap: 6px; flex-wrap: wrap; }
 .spelers-tab-btn { padding: 4px 14px; border-radius: 20px; border: 1px solid rgba(196,168,122,0.35); background: transparent; color: var(--color-ink-medium); font-size: 0.82rem; cursor: pointer; transition: background 0.15s, color 0.15s; }

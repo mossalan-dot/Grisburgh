@@ -477,11 +477,13 @@ function filterEntityForPlayer(entity, dmState, groupId) {
   if (zichtbareGeheimen.length) e.data.geheim = zichtbareGeheimen[0];
   else delete e.data.geheim;
 
-  // Flavour: per regel bijgehouden of de waard hem al verteld heeft.
-  const flavours = _tekstLijst(entity.data, 'flavours', 'flavour');
-  const gezegd   = _onthuld(entity.data?.flavoursUitgesproken
-    ?? (entity.data?.flavourUitgesproken === true || entity.data?.flavourUitgesproken === 'true'), flavours.length);
-  const zichtbareFlavours = flavours.filter((_, i) => gezegd[i]);
+  // Flavour: per **party** bijgehouden of de waard hem al verteld heeft. Dat
+  // stond op het kaartje zelf, dus campagnebreed: hoorde party 1 iets in de
+  // herberg, dan stond het meteen op het kaartje van party 2 — zonder dat die
+  // het ooit gehoord had, en de herberg vertelde het hun daarna nooit meer.
+  const roddels = _roddelRegels(entity.data);
+  const gehoord = _roddelsGehoord(g, entity);
+  const zichtbareFlavours = roddels.filter(r => gehoord.has(r.id)).map(r => r.tekst);
   if (zichtbareFlavours.length) { e.data.flavours = JSON.stringify(zichtbareFlavours); e.data.flavour = zichtbareFlavours[0]; }
   else { delete e.data.flavours; delete e.data.flavour; }
 
@@ -777,6 +779,43 @@ function _geheimRegels(data) {
   return arr.map((r, i) => (typeof r === 'string' || r == null)
     ? { id: 'i' + i, tekst: String(r || ''), antagonist: !!antagOud[i] }
     : { id: r.id || ('i' + i), tekst: String(r.tekst ?? ''), antagonist: !!(r.antagonist ?? antagOud[i]) });
+}
+
+// Roddels als regels met een id, net als geheimen. Ze waren kale strings met
+// een parallelle ja/nee-lijst ernaast, en die lijst stond **op het kaartje** —
+// dus campagnebreed. Hoorde party 1 een roddel in de herberg, dan zag party 2
+// hem meteen op dat kaartje staan zonder hem ooit gehoord te hebben, én kreeg
+// hij hem nooit meer te horen want hij was uit de pot. Geheimen deden het al
+// goed: `groups[gid].secretReveals`. Roddels nu ook.
+function _roddelRegels(data) {
+  let arr = [];
+  const rauw = data?.flavours;
+  if (Array.isArray(rauw)) arr = rauw;
+  else if (typeof rauw === 'string' && rauw.trim()) {
+    try { const j = JSON.parse(rauw); if (Array.isArray(j)) arr = j; } catch { arr = [rauw]; }
+  }
+  if (!arr.length && data?.flavour) arr = [data.flavour];
+  return arr.map((r, i) => (typeof r === 'string' || r == null)
+    ? { id: 'i' + i, tekst: String(r || '') }
+    : { id: r.id || ('i' + i), tekst: String(r.tekst ?? r.flavour ?? ''),
+        ...(r.geplantDoor ? { geplantDoor: r.geplantDoor, geplantOp: r.geplantOp || null } : {}) });
+}
+
+// Welke roddels heeft déze party gehoord? Per party, met de campagnebrede
+// oude stand als terugval zodat niemand kwijtraakt wat hij al hoorde.
+function _roddelsGehoord(g, entity) {
+  const regels = _roddelRegels(entity?.data);
+  const eigen = (g?.flavourReveals || {})[entity?.id];
+  if (eigen !== undefined) return _onthuldeIds(eigen, regels);
+  return _onthuldeIds(entity?.data?.flavoursUitgesproken
+    ?? (entity?.data?.flavourUitgesproken === true || entity?.data?.flavourUitgesproken === 'true'), regels);
+}
+
+function _roddelHoren(g, entity, roddelId) {
+  if (!g.flavourReveals) g.flavourReveals = {};
+  const gehoord = _roddelsGehoord(g, entity);
+  gehoord.add(roddelId);
+  g.flavourReveals[entity.id] = [...gehoord];
 }
 
 // De onthulstand van één kaartje voor één party, als verzameling regel-id's.
@@ -1679,29 +1718,34 @@ router.put('/entities/:type/:id/secret', requireDM, (req, res) => {
 });
 
 // Eén roddel als verteld markeren (of terugdraaien). De herberg doet dit
-// vanzelf bij een lange rust, maar soms vertel je er zelf een aan tafel — dan
-// wil je hem hier kunnen aanvinken. Dit staat op de entiteit en niet per party:
-// wat de waard verteld heeft, is verteld.
+// vanzelf bij een lange rust, maar soms vertel je er zelf een aan tafel.
+//
+// **Per party**, net als een geheim. Dit stond op het kaartje zelf, met als
+// verdediging "wat de waard verteld heeft, is verteld" — maar de waard vertelt
+// het aan de mensen die er die avond zaten, niet aan de hele wereld. Het gevolg
+// was dat party 2 een roddel op een kaartje zag staan die zij nooit gehoord had,
+// en hem daarna ook nooit meer te horen kreeg: hij was uit de pot.
 router.put('/entities/:type/:id/flavour', requireDM, (req, res) => {
   const { type, id } = req.params;
   const entities = storage.readJSON('entities.json');
   const entity   = (entities[type] || []).find(e => e.id === id);
   if (!entity) return res.status(404).json({ error: 'Entiteit niet gevonden' });
 
-  const regels = _tekstLijst(entity.data, 'flavours', 'flavour');
+  const regels = _roddelRegels(entity.data);
   if (!regels.length) return res.status(400).json({ error: 'Deze entiteit heeft geen flavour tekst' });
   const index = Math.min(Math.max(parseInt(req.body?.index, 10) || 0, 0), regels.length - 1);
-  const stand = _onthuld(entity.data?.flavoursUitgesproken
-    ?? (entity.data?.flavourUitgesproken === true || entity.data?.flavourUitgesproken === 'true'), regels.length);
-  stand[index] = !stand[index];
 
-  if (!entity.data) entity.data = {};
-  entity.data.flavoursUitgesproken = stand;
-  // De oude vlag blijft kloppen: pas 'true' als alles verteld is.
-  entity.data.flavourUitgesproken = stand.every(Boolean) ? 'true' : '';
-  storage.writeJSON('entities.json', entities);
+  const dmState = readDmState();
+  const g = getGroup(dmState, req.body?.gid || dmState.activeGroup);
+  const gehoord = _roddelsGehoord(g, entity);
+  const rid = regels[index].id;
+  if (gehoord.has(rid)) gehoord.delete(rid); else gehoord.add(rid);
+  if (!g.flavourReveals) g.flavourReveals = {};
+  g.flavourReveals[entity.id] = [...gehoord];
+  storage.writeJSON('dm-state.json', dmState);
+
   req.app.get('io').to(_campagneRoom(req)).emit('entity:updated', { type, id });
-  res.json({ uitgesproken: stand });
+  res.json({ uitgesproken: regels.map(r => gehoord.has(r.id)) });
 });
 
 router.put('/entities/:type/:id/deceased', requireDM, (req, res) => {
@@ -4144,24 +4188,22 @@ router.post('/party/long-rest', requireDM, (req, res) => {
       (entities[type] || []).forEach(e => {
         const v = _zicht[e.id] || 'hidden';
         if (v === 'hidden' || v === 'vague') return;
-        const regels = _tekstLijst(e.data, 'flavours', 'flavour');
-        const gezegd = _onthuld(e.data?.flavoursUitgesproken
-          ?? (e.data?.flavourUitgesproken === true || e.data?.flavourUitgesproken === 'true'), regels.length);
-        regels.forEach((tekst, i) => { if (!gezegd[i]) pool.push({ type, e, i, tekst }); });
+        const gehoord = _roddelsGehoord(g, e);
+        _roddelRegels(e.data).forEach(r => {
+          if (!r.tekst || gehoord.has(r.id)) return;
+          pool.push({ type, e, r });
+        });
       });
     }
     for (let i = pool.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [pool[i], pool[j]] = [pool[j], pool[i]]; }
-    pool.slice(0, aantal).forEach(({ type, e, i, tekst }) => {
-      const regels = _tekstLijst(e.data, 'flavours', 'flavour');
-      const gezegd = _onthuld(e.data?.flavoursUitgesproken
-        ?? (e.data?.flavourUitgesproken === true || e.data?.flavourUitgesproken === 'true'), regels.length);
-      gezegd[i] = true;
-      e.data.flavoursUitgesproken = gezegd;
-      if (gezegd.every(Boolean)) e.data.flavourUitgesproken = 'true';   // oude vlag blijft kloppen
-      roddels.push({ id: e.id, type, name: e.name, flavour: tekst });
+    // Een geplant praatje gaat voor: dat is er net ingebracht en hoort rond te
+    // gaan, niet achteraan een geschudde stapel van honderd regels te wachten.
+    pool.sort((a, b) => (b.r.geplantDoor ? 1 : 0) - (a.r.geplantDoor ? 1 : 0));
+    pool.slice(0, aantal).forEach(({ type, e, r }) => {
+      _roddelHoren(g, e, r.id);
+      roddels.push({ id: e.id, type, name: e.name, flavour: r.tekst, geplant: !!r.geplantDoor });
       if (io) io.to(_campagneRoom(req)).emit('entity:updated', { type, id: e.id });
     });
-    if (roddels.length) storage.writeJSON('entities.json', entities);
   }
 
   // ── 6. d100-rustgebeurtenis (binnen én buiten) ──
@@ -13840,11 +13882,10 @@ router.get('/herberg', attachRole, (req, res) => {
     for (const e of (entities[type] || [])) {
       const vis = visibility[e.id] || 'hidden';
       if (vis === 'hidden' || vis === 'vague') continue;  // verborgen/vaag: overslaan
-      const regels = _tekstLijst(e.data, 'flavours', 'flavour');
+      const regels = _roddelRegels(e.data).filter(r => r.tekst);
       if (!regels.length) continue;                       // geen roddel: overslaan
-      const gezegd = _onthuld(e.data?.flavoursUitgesproken
-        ?? (e.data?.flavourUitgesproken === true || e.data?.flavourUitgesproken === 'true'), regels.length);
-      const verteld = gezegd.filter(Boolean).length;
+      const gehoord = _roddelsGehoord(g, e);
+      const verteld = regels.filter(r => gehoord.has(r.id)).length;
       regelsTotaal  += regels.length;
       regelsVerteld += verteld;
       result.push({

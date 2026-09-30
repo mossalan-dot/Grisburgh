@@ -10,7 +10,7 @@ import { renderSpreuken } from './render-spreuken.js?v=41';
 import { renderVaardigheden, zoekVaardigheden } from './render-vaardigheden.js?v=10';
 import { renderStatblock } from './render-statblock.js?v=9';
 import { initSocket } from "./socket-client.js?v=80";
-import { initDmPanel } from "./dm-panel.js?v=363";
+import { initDmPanel } from "./dm-panel.js?v=364";
 import { COND_INFO, COND_LABEL, COND_MET_PLAATJE, COND_ICON } from './conditions.js?v=2';
 import './media-picker.js?v=8';
 import './tafels.js?v=2';
@@ -14246,11 +14246,6 @@ const HELP_CONFIG = {
     { titel: 'Eén plek voor alle winkels', tekst: 'De Markt is een **weergave**, geen tweede voorraad: hij toont de winkels die deze party kan zien, met hun schappen. Klikken opent de winkel zelf. De voorraad blijft dus op het kaartje van die winkel staan, en daar beheer je hem ook.', afbeelding: null },
     { titel: 'Zoeken over alles heen', tekst: 'Zoeken gaat over alle winkels tegelijk en zet de prijzen naast elkaar — handig, want hetzelfde voorwerp ligt soms bij drie winkels voor drie prijzen.', afbeelding: null },
     { titel: 'Een roterende winkel rolt hier niet', tekst: 'De Markt leest de schappen alleen. Had een winkel zijn assortiment nog niet gerold, dan staat hij hier leeg in plaats van dat de app het stiekem voor hem doet — anders zou een blik op de Markt ieders schappen in één klap vastzetten.', afbeelding: null },
-  ] }),
-  dm_wereld_locatie: () => ({ titel: 'Waar de party is', stappen: [
-    { titel: 'Dit staat bij de akte', tekst: 'Wat er tijdens een akte te bereiken is, stel je in bij die **akte** zelf — onder *Bereikbaar tijdens deze akte*. Dezelfde diensten en winkels, maar per hoofdstuk: een reis naar de kust sluit iets anders af dan een nacht in de riolen.', afbeelding: null },
-    { titel: 'Waarom niet één schakelaar', tekst: 'Hier stond een knop "in de stad / eruit", met een lijst uitzonderingen. Dat is te grof — buiten is niet één plek — en het was bovendien naar één stad genoemd, terwijl de app meer campagnes draait. Speelt een akte ver van huis, dan zet je met **Alles dicht** alles uit en vink je daarna aan wat er wél meegaat: de karavaanhandelaar, de tempel waar je post ophaalt.', afbeelding: null },
-    { titel: 'De DM ziet altijd alles', tekst: 'Wat je hier afsluit geldt voor spelers. Jij houdt toegang tot elke dienst en elke winkel, ook als de party er niet bij kan.', afbeelding: null },
   ] }),
   dm_toegang_facties: () => ({ titel: 'Facties per party', stappen: [
     { titel: 'Kennen ze deze factie?', tekst: 'Een factie die uitstaat bestaat voor die party niet: hij staat niet in de lijst, en hun aanzien erbij is onzichtbaar. Zet hem aan op het moment dat ze ervan horen — dat is vaak een scène waard.', afbeelding: null },
