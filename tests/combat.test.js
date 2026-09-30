@@ -96,6 +96,29 @@ describe('Het gevecht: opstellen, beurten en HP', () => {
     assert.strictEqual(speler.hp, 20, 'zijn huidige HP komt van zijn kaartje');
   });
 
+  // Een speler ziet van vijanden alleen een woord en een balk. Maar wat aan hém
+  // toebehoort — een geadopteerd dier, iets wat hij oproept — hoort hij wél te
+  // kunnen lezen: het is zijn beest, zijn statblock, en hij moet kunnen zien of
+  // het de volgende klap overleeft.
+  it('toont een speler zijn eigen metgezel volledig, en een vijand vaag', async () => {
+    await req(server, 'POST', '/api/combat/combatant', {
+      name: 'Rakker', type: 'summon', ownerId: held, entityId: 'pet_proef',
+      hp: 7, maxHp: 14, ac: '13', initiative: 12,
+      statblock: { ac: '13', hp: '14 (2d8+4)' },
+    }, dm);
+
+    const mijn = (await req(server, 'GET', '/api/combat', null, heldC)).body;
+    const dier = mijn.combatants.find(c => c.name === 'Rakker');
+    assert.ok(dier, 'het dier staat in het gevecht');
+    assert.strictEqual(dier.hp, 7, 'zijn baasje leest de echte HP');
+    assert.strictEqual(dier.maxHp, 14);
+    assert.ok(dier.statblock, 'en het statblock van zijn eigen dier');
+
+    const wolf = mijn.combatants.find(c => (c.name || '').startsWith('Veenwolf'));
+    assert.strictEqual(wolf.hp, undefined, 'een vijand houdt zijn cijfers voor zich');
+    assert.ok(wolf.hpStaat, 'die blijft een woord');
+  });
+
   it('laat een afwezige speler buiten het gevecht', async () => {
     await req(server, 'PUT', `/api/groups/${gid}/aanwezigheid`, { afwezig: [maat] }, dm);
     await req(server, 'POST', `/api/encounters/${encId}/start`, {}, dm);

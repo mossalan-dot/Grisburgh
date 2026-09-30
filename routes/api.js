@@ -4532,6 +4532,13 @@ function _combatVoorSpeler(combat, characterId, kennis = {}) {
     ...combat,
     combatants: (combat.combatants || []).map(c => {
       if (characterId && c.entityId && c.entityId === characterId) return c;
+      // **En wat van jou is, zie je ook.** Een geadopteerd dier komt als summon
+      // in het gevecht met zijn baasje in `ownerId`; zijn statblock staat op
+      // zijn eigen kaartje en groeit mee met jouw level. Toch viel hij onder
+      // dezelfde mist als een vijand, dus las je over je eigen beest "licht
+      // gewond" en kon je niet zien of hij de volgende klap overleeft. Hetzelfde
+      // geldt voor alles wat een speler oproept.
+      if (characterId && c.ownerId && c.ownerId === characterId) return c;
       // **Wat de party bestudeerd heeft, mag ze zien.** Het bestiarium is een
       // progressie (naam → deels → volledig) en op *deels* horen de cijfers
       // erbij — `GET /combat` deed dat al, maar de socket stuurde het niet mee,
