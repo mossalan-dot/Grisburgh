@@ -290,6 +290,67 @@ describe('Facties: een rang ontgrendelt iets', () => {
     await req(server, 'POST', '/api/facties/proefgilde/reveal', null, dm);   // weer aan
   });
 
+  // De drempel hoort bij de rang, niet in een lijstje ernaast dat op index moet
+  // matchen. De DM mag ze in elke volgorde intikken; de ladder sorteert zichzelf.
+  it('leest de renown-drempel van de rang zelf en zet ze op volgorde', async () => {
+    // `PUT /meta/facties` vervangt de hele lijst, dus de bestaande erbij houden.
+    const bestaand = (await req(server, 'GET', '/api/meta', null, dm)).body.facties || [];
+    await req(server, 'PUT', '/api/meta/facties', {
+      facties: [...bestaand, {
+        id: 'laddertest', naam: 'De Ladder',
+        rangen: [
+          { naam: 'Meester',        renown: 20 },
+          { naam: 'Buitenstaander', renown: 0  },
+          { naam: 'Gezel',          renown: 4  },
+        ],
+      }],
+    }, dm);
+    await req(server, 'POST', '/api/facties/laddertest/reveal', { zichtbaar: true }, dm);
+
+    const f = () => req(server, 'GET', '/api/facties', null, dm)
+      .then(r => (r.body.facties || []).find(x => x.id === 'laddertest'));
+
+    const na = await f();
+    assert.deepStrictEqual((na.ladder || []).map(r => r.naam),
+      ['Buitenstaander', 'Gezel', 'Meester'], 'op volgorde van renown');
+    assert.deepStrictEqual((na.ladder || []).map(r => r.drempel), [0, 4, 20]);
+    assert.strictEqual(na.rang.naam, 'Buitenstaander', 'zonder renown sta je onderaan');
+    assert.strictEqual(na.drempelVolgende, 4);
+
+    await req(server, 'POST', '/api/facties/laddertest/renown', { delta: 5 }, dm);
+    assert.strictEqual((await f()).rang.naam, 'Gezel', 'vijf renown haalt de trede van vier');
+  });
+
+  // Een voorwerp dat een rang ontgrendelt hoort dat op zijn eigen kaartje te
+  // zeggen. Dat was eenrichtingsverkeer: je koppelde het in het factiepaneel en
+  // op het kaartje van het zwaard stond nergens waar het vandaan komt.
+  it('toont op het voorwerp dat het de gunst van een rang is', async () => {
+    const bestaand = (await req(server, 'GET', '/api/meta', null, dm)).body.facties || [];
+    await req(server, 'PUT', '/api/meta/facties', {
+      facties: [...bestaand.filter(f => f.id !== 'gunsttest'), {
+        id: 'gunsttest', naam: 'De Gunstgevers',
+        rangen: [
+          { naam: 'Buitenstaander', renown: 0 },
+          { naam: 'Gezel', renown: 3, unlocks: [{ type: 'voorwerp', entityId: zwaard }] },
+        ],
+      }],
+    }, dm);
+    await req(server, 'POST', '/api/facties/gunsttest/reveal', { zichtbaar: true }, dm);
+
+    const kaartje = (cookie) => req(server, 'GET', `/api/entities/voorwerpen/${zwaard}`, null, cookie)
+      .then(r => (r.body._hoortBij || []).find(x => x.gunst && x.factieId === 'gunsttest'));
+
+    const rij = await kaartje(dm);
+    assert.ok(rij, 'er staat een gunst-regel op het kaartje');
+    assert.strictEqual(rij.name, 'De Gunstgevers');
+    assert.match(rij.rol, /^Gunst/);
+    assert.match(rij.rol, /Gezel/);
+
+    // Een factie die de party niet kent verklapt zich niet via haar gunst.
+    await req(server, 'POST', '/api/facties/gunsttest/reveal', null, dm);   // uit
+    assert.ok(!(await kaartje(spelerC)), 'een onbekende factie verklapt zich niet via haar gunst');
+  });
+
   // De koppeling van twee kanten: in het factiepaneel stond hij al, maar je
   // bedenkt het meestal terwijl je het personage zit te schrijven. Wat je legt
   // belandt in het **organogram** van het organisatiekaartje — de enige plek

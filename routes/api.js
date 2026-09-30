@@ -576,6 +576,8 @@ function filterEntityForPlayer(entity, dmState, groupId) {
     .filter(x => _geheimOpen(x, dmState, groupId));
   const _fb = _factieBetrekking(entity.id, g, false);
   if (_fb) e._hoortBij = [_fb, ...e._hoortBij];
+  const _gunst = _gunstBetrekkingen(entity.id, g, false);
+  if (_gunst.length) e._hoortBij = [..._gunst, ...e._hoortBij];
   return e;
 }
 
@@ -979,6 +981,31 @@ function _factieBetrekking(entityId, g, isDM) {
   return { factieId: factie.id, name: factie.naam || '', rol: rij.rol || 'Lid' };
 }
 
+// Een voorwerp dat een rang ontgrendelt, zegt dat op zijn eigen kaartje. Dat
+// was eenrichtingsverkeer: in het factiepaneel koppelde je het, maar op het
+// kaartje van het zwaard stond nergens dat het de gunst van een gilde is — en
+// dat is nu juist wat je wil zien als je het in de bibliotheek tegenkomt.
+// Dezelfde regel als bij lidmaatschap: een factie die deze party niet kent
+// levert niets op, anders verklapt het voorwerp dat er een gilde achter zit.
+function _gunstBetrekkingen(entityId, g, isDM) {
+  let meta = {};
+  try { meta = storage.readJSON('meta.json'); } catch { return []; }
+  const uit = [];
+  for (const f of (_factiesConfig(meta) || [])) {
+    if (!isDM && (g?.factieZichtbaar || {})[f.id] !== true) continue;
+    (f.rangen || []).forEach((r) => {
+      if (!_rangUnlocks(r).some(u => u.entityId === entityId)) return;
+      uit.push({
+        factieId: f.id,
+        name: f.naam || '',
+        rol: r.naam ? `Gunst \u2014 ${r.naam}` : 'Gunst',
+        gunst: true,
+      });
+    });
+  }
+  return uit;
+}
+
 function _linksMetTekst(entity) {
   const tekst = _LINK_TEKSTVELDEN.map(v => entity.data?.[v] || '').join('\n');
   if (!tekst.includes('[[')) return entity.links;
@@ -1062,7 +1089,8 @@ router.get('/entities/:type/:id', attachRole, (req, res) => {
     _hoortBij:     (() => {
       const rijen = _betrokkenBij(entity.id);
       const fb = _factieBetrekking(entity.id, g, true);
-      return fb ? [fb, ...rijen] : rijen;
+      const gunst = _gunstBetrekkingen(entity.id, g, true);
+      return [...(fb ? [fb] : []), ...gunst, ...rijen];
     })(),
     _visibility:   g.visibility[entity.id]    || 'hidden',
     _secretReveal: _onthuldeIds(g.secretReveals[entity.id], _geheimRegels(entity.data)).size > 0,
@@ -12747,6 +12775,34 @@ function _rangVereist(rang, stand) {
   return uit;
 }
 
+// De drempel hoort bij de rang, niet in een lijstje ernaast. Twee lijsten die
+// op index moesten matchen was precies de val die de ledenlijst ook had: haal
+// je er een rang tussenuit, dan schuift de hele ladder een plek op.
+// `renownDrempels` blijft gelezen worden voor facties die nog niet opnieuw zijn
+// opgeslagen; bij de eerste save verhuist hij naar de rangen.
+function _rangDrempels(factie) {
+  const rangen = (factie?.rangen && factie.rangen.length) ? factie.rangen : [];
+  const oud = Array.isArray(factie?.renownDrempels) ? factie.renownDrempels : null;
+  return rangen.map((r, i) => {
+    const eigen = Number.isFinite(Number(r?.renown)) && String(r?.renown ?? '').trim() !== ''
+      ? parseInt(r.renown) : null;
+    if (eigen !== null) return eigen;
+    const val = oud?.[i] ?? FACTIE_DREMPELS_STANDAARD[i];
+    return Number.isFinite(val) ? val : i;
+  });
+}
+
+// Bij het opslaan krijgt elke rang zijn eigen drempel mee (uit het veld, of —
+// voor een factie die nog uit de oude vorm komt — uit `renownDrempels`), en
+// daarna gaan ze op volgorde. Een ladder waarin trede 4 minder renown vraagt
+// dan trede 3 is geen ladder; de DM mag de getallen in elke volgorde intikken.
+function _rangenOpVolgorde(f) {
+  const drempels = _rangDrempels(f);
+  return (f.rangen || [])
+    .map((r, i) => ({ ...r, _renown: Math.max(0, parseInt(drempels[i]) || 0) }))
+    .sort((a, b) => a._renown - b._renown);
+}
+
 function _rangIdxVanRenown(renown, drempels, maxRangen) {
   const d = (drempels && drempels.length) ? drempels : FACTIE_DREMPELS_STANDAARD;
   let idx = 0;
@@ -12893,7 +12949,7 @@ router.get('/facties', attachRole, (req, res) => {
 
     const rangen = (f.rangen && f.rangen.length) ? f.rangen : [{ naam: '—', voordelen: '' }];
     const renown = factieRenown[f.id] || 0;
-    const drempels = f.renownDrempels || FACTIE_DREMPELS_STANDAARD;
+    const drempels = _rangDrempels({ ...f, rangen });
     const idx = _rangIdxVanRenown(renown, drempels, rangen.length);
     const isMax = idx >= rangen.length - 1;
     const drempelVolgende = isMax ? null : drempels[idx + 1] ?? null;
@@ -13064,7 +13120,7 @@ function _renownErbij(dmState, g, factie, delta) {
   g.factieRenown[factie.id] = nieuwRenown;
 
   const rangen   = (factie.rangen && factie.rangen.length) ? factie.rangen : [{ naam: '—', voordelen: '' }];
-  const drempels = factie.renownDrempels || FACTIE_DREMPELS_STANDAARD;
+  const drempels = _rangDrempels({ ...factie, rangen });
   const oudeRangIdx   = _rangIdxVanRenown(oudRenown,   drempels, rangen.length);
   const nieuweRangIdx = _rangIdxVanRenown(nieuwRenown, drempels, rangen.length);
 
@@ -13210,12 +13266,13 @@ router.put('/meta/facties', requireDM, (req, res) => {
       .map(l => ({ entityId: String(l.entityId).trim(), rang: String(l.rang || '').trim() })),
     uitnodiging:      f.uitnodiging      ? String(f.uitnodiging).trim()      : '',
     uitnodigingTitel: f.uitnodigingTitel ? String(f.uitnodigingTitel).trim() : '',
-    renownDrempels: (Array.isArray(f.renownDrempels) && f.renownDrempels.length)
-      ? f.renownDrempels.map(n => parseInt(n) || 0)
-      : FACTIE_DREMPELS_STANDAARD,
     rangen: (Array.isArray(f.rangen) && f.rangen.length)
-      ? f.rangen.map(r => {
-          const rang = { naam: String(r.naam || '—').trim(), voordelen: String(r.voordelen || '').trim() };
+      ? _rangenOpVolgorde(f).map((r, i) => {
+          const rang = {
+            naam: String(r.naam || '—').trim(),
+            renown: r._renown,
+            voordelen: String(r.voordelen || '').trim(),
+          };
           if (r.titel && String(r.titel).trim()) rang.titel = String(r.titel).trim();
           const boons = (Array.isArray(r.boons) ? r.boons : [])
             .map(b => {
@@ -13298,7 +13355,7 @@ router.post('/facties/:id/hulp', attachRole, (req, res) => {
 
   const renown = (g.factieRenown || {})[factie.id] || 0;
   const rangen = (factie.rangen && factie.rangen.length) ? factie.rangen : [];
-  const rangIdx = _rangIdxVanRenown(renown, factie.renownDrempels || FACTIE_DREMPELS_STANDAARD, rangen.length || 1);
+  const rangIdx = _rangIdxVanRenown(renown, _rangDrempels({ ...factie, rangen }), rangen.length || 1);
   const { unlock, lopend } = _factieHulpStand(g, factie, rangIdx);
 
   if (!unlock) return res.status(403).json({ error: 'Zover reikt jullie aanzien nog niet' });

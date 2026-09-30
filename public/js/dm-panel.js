@@ -7410,7 +7410,6 @@ async function _renderFactiesSettings() {
     leden: (f.leden || []).map(l => ({ entityId: l.entityId, rang: l.rang || '' })),
     uitnodiging:      f.uitnodiging      || '',
     uitnodigingTitel: f.uitnodigingTitel || '',
-    renownDrempels: (f.renownDrempels || [0,1,3,10,25,50]).join(','),
     rangen: (f.rangen || []).map(r => ({
       naam: r.naam, voordelen: r.voordelen || '', titel: r.titel || '',
       boons: (r.boons || []).map(b => ({ entityId: b.entityId || '', naam: b.naam || '' })),
@@ -7633,10 +7632,7 @@ function _renderFactiesDM() {
               </div>
 
               <div class="factie-dm-paneel" data-factie="${esc(f.id)}" data-sub="rangen"${_factieSubtab(f.id) === 'rangen' ? '' : ' hidden'}>
-                <div class="dm-form-row">
-                  <label class="dm-form-label">Renown-drempels</label>
-                  <input class="dm-input" style="flex:1" placeholder="0,1,3,10,25,50" value="${esc(f.renownDrempels || '0,1,3,10,25,50')}" oninput="window._factieEdit(${fi},'renownDrempels',this.value)">
-                </div>
+                <p class="dm-hint" style="margin:0 0 8px">Elke rang zegt zelf vanaf hoeveel renown hij geldt. De volgorde volgt daaruit; je hoeft ze niet op volgorde in te tikken.</p>
                 <div id="factie-rangen-${fi}"></div>
                 <div class="dm-form-row"><button class="dm-btn dm-btn-ghost dm-btn-sm" onclick="window._factieRangToevoegen(${fi})">${icon('plus')} Rang</button></div>
               </div>
@@ -7655,14 +7651,23 @@ function _renderFactieRangen(fi) {
   const wrap = document.getElementById(`factie-rangen-${fi}`);
   if (!wrap) return;
   const f = _factiesDraft[fi];
-  const drempels = String(f.renownDrempels || '0,1,3,10,25,50').split(',').map(s => parseInt(s.trim()) || 0);
+  // De drempel hoort bij de rang. Hij stond in een apart veld met komma's dat op
+  // index moest matchen met deze lijst: haalde je er een rang tussenuit, dan
+  // schoof de hele ladder een plek op zonder dat iets dat zei.
+  const drempelVan = (r, i) => {
+    const eigen = String(r?.renown ?? '').trim();
+    if (eigen !== '') return parseInt(eigen) || 0;
+    return [0, 1, 3, 10, 25, 50][i] ?? i;
+  };
 
-  wrap.innerHTML = (f.rangen || []).map((r, i) => {
-    const drempelLabel = drempels[i] !== undefined ? `${drempels[i]} renown` : `rang ${i}`;
-    return `
+  wrap.innerHTML = (f.rangen || []).map((r, i) => `
     <div style="border:1px solid rgba(196,168,122,0.18);border-radius:6px;padding:6px;margin-bottom:6px">
       <div class="dm-form-row" style="gap:6px;align-items:center;margin-bottom:4px">
-        <span class="dm-hint" style="white-space:nowrap;width:60px;text-align:right;flex-shrink:0">${drempelLabel}</span>
+        <label class="dm-hint" style="white-space:nowrap;flex-shrink:0">vanaf
+          <input class="dm-input dm-input-sm" type="number" min="0" style="width:64px;margin:0 4px"
+            value="${drempelVan(r, i)}" title="Vanaf hoeveel renown geldt deze rang?"
+            onchange="window._factieRangEdit(${fi},${i},'renown',this.value);window._renderFactieRangen(${fi})">
+          renown</label>
         <input class="dm-input" style="width:130px" placeholder="Rangnaam" value="${esc(r.naam || '')}" oninput="window._factieRangEdit(${fi},${i},'naam',this.value)">
         <textarea class="dm-input" style="flex:1;min-height:48px;resize:vertical" placeholder="Voordelen / omschrijving" oninput="window._factieRangEdit(${fi},${i},'voordelen',this.value)">${esc(r.voordelen || '')}</textarea>
         <button class="dm-btn dm-btn-ghost dm-btn-sm" onclick="window._factieRangVerwijder(${fi},${i})" title="Verwijderen">${icon('trash')}</button>
@@ -7690,8 +7695,18 @@ function _renderFactieRangen(fi) {
           </div>`; }).join('')}
         <button class="dm-btn dm-btn-ghost dm-btn-sm" onclick="window._factieBoonToevoegen(${fi},${i})">${icon('plus')} Boon</button>
       </div>
-    </div>`;
-  }).join('') || '<p class="dm-form-label" style="opacity:.6">Geen rangen.</p>';
+    </div>`).join('') || '<p class="dm-form-label" style="opacity:.6">Geen rangen.</p>';
+};
+// De rangrij roept hem aan na een wijziging aan de drempel: dan gaan ze meteen
+// op volgorde staan, zodat je ziet wat je gemaakt hebt.
+window._renderFactieRangen = (fi) => {
+  const f = _factiesDraft[fi];
+  if (f?.rangen) {
+    f.rangen = f.rangen
+      .map((r, i) => ({ ...r, renown: String(r.renown ?? '').trim() !== '' ? parseInt(r.renown) || 0 : ([0,1,3,10,25,50][i] ?? i) }))
+      .sort((a, b) => a.renown - b.renown);
+  }
+  _renderFactieRangen(fi);
 };
 
 window._filterBoonPicker = (input, selectId) => {
@@ -7812,20 +7827,26 @@ window._factieStijlKies = (fi, stijl, btn) => {
 // erbij. Dit is het generieke deel: de structuur, niet de inhoud.
 // Alleen trede 0 heeft een naam, want die beschrijft de mechaniek (je bent nog
 // geen lid) en niet de campagne.
-const _FACTIE_LADDER = () => ([
-  { naam: 'Buitenstaander', voordelen: '', titel: '', boons: [] },
-  ...Array.from({ length: 5 }, () => ({ naam: '', voordelen: '', titel: '', boons: [] })),
-]);
+const _FACTIE_LADDER = () => [0, 1, 3, 10, 25, 50].map((renown, i) => ({
+  naam: i === 0 ? 'Buitenstaander' : '', renown, voordelen: '', titel: '', boons: [],
+}));
 
 window._factieNieuw = () => {
-  _factiesDraft.push({ id: 'factie_' + Date.now(), naam: 'Nieuwe factie', embleem: 'landmark', beschrijving: '', stijl: '', rangen: _FACTIE_LADDER(), renownDrempels: '0,1,3,10,25,50' });
+  _factiesDraft.push({ id: 'factie_' + Date.now(), naam: 'Nieuwe factie', embleem: 'landmark', beschrijving: '', stijl: '', rangen: _FACTIE_LADDER() });
   _renderFactiesDM();
   // Open de details van de nieuwe factie
   const kaarten = document.querySelectorAll('.factie-dm-kaart details');
   kaarten[kaarten.length - 1]?.setAttribute('open', '');
 };
 window._factieRangEdit = (fi, i, field, v) => { const r = _factiesDraft[fi]?.rangen?.[i]; if (r) r[field] = v; };
-window._factieRangToevoegen = (fi) => { _factiesDraft[fi]?.rangen.push({ naam: '', voordelen: '', titel: '', boons: [] }); _renderFactieRangen(fi); };
+window._factieRangToevoegen = (fi) => {
+  const rangen = _factiesDraft[fi]?.rangen;
+  if (!rangen) return;
+  // Renown is verplicht, dus vul hem meteen: boven de hoogste die er staat.
+  const hoogste = rangen.reduce((n, r) => Math.max(n, parseInt(r.renown) || 0), 0);
+  rangen.push({ naam: '', renown: hoogste + 1, voordelen: '', titel: '', boons: [] });
+  _renderFactieRangen(fi);
+};
 window._factieRangVerwijder = (fi, i) => { _factiesDraft[fi]?.rangen.splice(i, 1); _renderFactieRangen(fi); };
 window._factieBoonEdit = (fi, i, bi, field, v) => { const b = _factiesDraft[fi]?.rangen?.[i]?.boons?.[bi]; if (b) b[field] = v; };
 window._factieBoonToevoegen = (fi, i) => { const r = _factiesDraft[fi]?.rangen?.[i]; if (r) { (r.boons = r.boons || []).push({ entityId: '', naam: '' }); _renderFactieRangen(fi); } };
@@ -7853,14 +7874,14 @@ window._factieRenown = async (id, delta) => {
     // Directe DOM-update renown-badge — accordion blijft open
     const badge = document.getElementById(`factie-dm-badge-${id}`);
     if (badge) {
-      // Bereken rang lokaal uit draft + drempels
+      // Rang lokaal uitrekenen: elke rang draagt zijn eigen drempel.
       const f = _factiesDraft.find(x => x.id === id);
-      const drempels = String(f?.renownDrempels || '0,1,3,10,25,50').split(',').map(s => parseInt(s.trim()) || 0);
       const rangen = f?.rangen || [];
       let idx = 0;
-      for (let i = 0; i < drempels.length && i < rangen.length; i++) {
-        if (res.renown >= drempels[i]) idx = i;
-      }
+      rangen.forEach((r, i) => {
+        const drempel = String(r.renown ?? '').trim() !== '' ? parseInt(r.renown) || 0 : ([0,1,3,10,25,50][i] ?? i);
+        if (res.renown >= drempel) idx = i;
+      });
       const rangNaam = rangen[Math.min(idx, rangen.length - 1)]?.naam || 'Buitenstaander';
       badge.textContent = `renown: ${res.renown} | ${rangNaam}`;
     }
@@ -7898,9 +7919,10 @@ function _factiesPayload() {
       .map(l => ({ entityId: String(l.entityId).trim(), rang: (l.rang || '').trim() })),
     uitnodiging: (f.uitnodiging || '').trim(),
     uitnodigingTitel: (f.uitnodigingTitel || '').trim(),
-    renownDrempels: String(f.renownDrempels || '0,1,3,10,25,50').split(',').map(n => parseInt(n.trim()) || 0),
-    rangen: (f.rangen || []).filter(r => (r.naam || '').trim()).map(r => ({
-      naam: r.naam.trim(), voordelen: (r.voordelen || '').trim(), titel: (r.titel || '').trim(),
+    rangen: (f.rangen || []).filter(r => (r.naam || '').trim()).map((r, i) => ({
+      naam: r.naam.trim(),
+      renown: String(r.renown ?? '').trim() !== '' ? parseInt(r.renown) || 0 : ([0,1,3,10,25,50][i] ?? i),
+      voordelen: (r.voordelen || '').trim(), titel: (r.titel || '').trim(),
       boons: (r.boons || []).filter(b => (b.entityId || '').trim())
         .map(b => ({ entityId: (b.entityId || '').trim(), naam: (b.naam || '').trim() })),
     })),

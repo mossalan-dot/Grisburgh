@@ -10,7 +10,7 @@ import { renderSpreuken } from './render-spreuken.js?v=41';
 import { renderVaardigheden, zoekVaardigheden } from './render-vaardigheden.js?v=10';
 import { renderStatblock } from './render-statblock.js?v=9';
 import { initSocket } from "./socket-client.js?v=79";
-import { initDmPanel } from "./dm-panel.js?v=349";
+import { initDmPanel } from "./dm-panel.js?v=350";
 import { COND_INFO, COND_LABEL, COND_MET_PLAATJE, COND_ICON } from './conditions.js?v=2';
 import './media-picker.js?v=8';
 import './tafels.js?v=2';
@@ -14341,8 +14341,9 @@ const HELP_CONFIG = {
     { titel: 'Hoe het bij de spelers oogt', tekst: 'Wie niemand boven zich heeft staat onder **Leiding**, de rest onder de naam van zijn chef. Een lid waarvan de party het personagekaartje nog niet kent, verschijnt niet bij naam — een organisatie ontmantelen is het spel, en de ledenlijst is niet gratis.', afbeelding: null },
   ] }),
   dm_facties_rangen: () => ({ titel: 'Rangen', stappen: [
-    { titel: 'Zes treden', tekst: 'Elke trede heeft een naam en een drempel aan aanzien (0, 1, 3, 10, 25, 50). Alleen trede 0 krijgt standaard een naam — *Buitenstaander* — want die beschrijft de mechaniek en niet jouw wereld.', afbeelding: null },
-    { titel: 'Wat een trede oplevert', tekst: 'Een titel, en wat jij eraan hangt: toegang, een gunst, een korting. De app rekent de trede uit; wat hij betekent is een afspraak aan tafel.', afbeelding: null },
+    { titel: 'Elke rang zegt zelf vanaf hoeveel', tekst: 'Een rang heeft een naam en een eigen drempel: *vanaf zoveel renown*. Een trede erbij is dus één knop — naam en getal, klaar. De volgorde volgt uit de getallen, dus je hoeft ze niet op volgorde in te tikken. Er stond hier een apart veld met komma\u2019s (`0,1,3,10,25,50`) dat op positie moest matchen met de lijst eronder; haalde je er een rang tussenuit, dan schoof de hele ladder een plek op zonder dat iets dat zei.', afbeelding: null },
+    { titel: 'Waar de getallen vandaan komen', tekst: 'Een nieuwe factie begint op **0, 1, 3, 10, 25 en 50**: de vijf rangen van het boek, met een trede ervóór voor wie nog geen lid is. Die heet *Buitenstaander*, want die naam beschrijft de mechaniek en niet jouw wereld — de rest vul je zelf in. Zet je ze anders, dan houdt de app jouw getallen.', afbeelding: null },
+    { titel: 'Wat een trede oplevert', tekst: 'Een titel, en wat jij eraan hangt: toegang, een gunst, een korting. Koppel je er een **voorwerp** aan, dan staat op het kaartje van dat voorwerp voortaan dat het de gunst van deze rang is — te zien zodra de party de factie kent. De app rekent de trede uit; wat hij betekent is een afspraak aan tafel.', afbeelding: null },
   ] }),
 
   dm_tafels_namen: () => ({ titel: 'Namen trekken', stappen: [
