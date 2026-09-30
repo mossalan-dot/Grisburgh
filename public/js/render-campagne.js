@@ -510,6 +510,8 @@ const SCHEMA = {
   organisaties: {
     fields: [
       { key: 'orgType', label: 'Type', type: 'select', optionGroups: ORG_TYPE_GROEPEN },
+      { key: 'icoon', label: 'Teken', type: 'icoon',
+        hint: 'Het teken van deze organisatie. Laat je het leeg, dan volgt het haar type. Hangt er een factie aan dit kaartje, dan is dit ook haar embleem.' },
       { key: 'motto', label: 'Motto', type: 'text' },
       // Zelfde koppelingen als bij een locatie: waar ze zitten en wie erbij hoort.
       { key: 'wijk', label: 'Gebied', type: 'entiteit', doel: ['locaties'],
@@ -737,7 +739,19 @@ const _NL_ITEM_TYPE = {
 };
 function _normItemType(v) { return _NL_ITEM_TYPE[v] || v; }
 
+// De lijst waaruit een kaartje zijn eigen teken mag kiezen. Zelfde set als de
+// factie-emblemen had: genoeg om een gilde van een bende te onderscheiden,
+// weinig genoeg om in één rijtje te passen.
+const KAART_ICONEN = ['landmark','castle','shield','shield-half','star','package','coins','building',
+  'church','sparkles','book-open','skull','swords','sword','users','house','tree-pine','mountain',
+  'moon','globe','hexagon','crossed-swords','heart','scroll-text','zap','eye','stiletto'];
+
 function getAutoIconSvg(type, e) {
+  // Een eigen teken op het kaartje wint van het teken dat bij zijn type hoort.
+  // `icoon` is een naam uit KAART_ICONEN; het oudere `icon` was rauwe SVG.
+  if (e.data?.icoon && KAART_ICONEN.includes(e.data.icoon)) {
+    return icon(e.data.icoon, e.data.icoon === 'castle' || e.data.icoon === 'stiletto' || e.data.icoon === 'crossed-swords' ? { cls: 'icon-gi' } : undefined);
+  }
   if (e.data?.icon) return e.data.icon;
   const map = _getAutoIconMap(type);
   const key =
@@ -2073,6 +2087,10 @@ function _orgKnoopHtml(r, kinderen, gezien = new Set(), beeld = null) {
     ${kids.length ? `<ul class="org-kinderen">${kids.map(k => _orgKnoopHtml(k, kinderen, gezien, beeld)).join('')}</ul>` : ''}
   </li>`;
 }
+
+// Ook bruikbaar buiten het kaartje: het factiepaneel toont dezelfde boom, zodat
+// de DM daar ziet wie onder wie valt in plaats van een lijstje namen.
+window._organogramHtml = (rijen, beeld) => _organogramHtml(rijen, beeld);
 
 function _organogramHtml(rijen, beeld) {
   const { top, kinderen, plat, rest } = _orgBoom(rijen);
@@ -5486,6 +5504,14 @@ window._itemRemoveOwner = async (itemId, spelerNaam) => {
 // ── Stapelbaar eigendom: qty aanpassen / verwijderen (DM vanuit Eigenaren-tab) ──
 // ── Klik op gekoppeld voorwerp vanuit winkeldetail ──
 // Onthult het kaartje stil als het nog hidden was, dan opent de detailview.
+window._kaartIcoonKies = (veld, naam, btn) => {
+  const hid = document.getElementById(`kaart-icoon-${veld}`);
+  if (hid) hid.value = naam;
+  btn.closest('.kaart-icoon-picker')?.querySelectorAll('.kaart-icoon-btn')
+    .forEach(b => b.classList.remove('kaart-icoon-btn--actief'));
+  btn.classList.add('kaart-icoon-btn--actief');
+};
+
 window._openDetailFromShop = async (entityId) => {
   try {
     await api.shopRevealItem('voorwerpen', entityId);
@@ -7186,6 +7212,24 @@ window._openEditor = async (tab, editId) => {
           ${_keuzeVeldHtml(`kv-${field.key}`, `data_${field.key}`, val, _opties, 'Typ of kies\u2026')}
         </div>
       `;
+    } else if (field.type === 'icoon') {
+      // Eén rij tekens om uit te kiezen, met "geen" als eerste: dan volgt het
+      // kaartje gewoon zijn type. Dit teken is de bron voor alles wat dit
+      // kaartje ergens anders vertegenwoordigt — de kaartenlijst, een wikilink,
+      // en het embleem van de factie die eraan hangt.
+      body += `
+        <div>
+          <label class="text-xs font-cinzel text-ink-dim font-bold tracking-wide">${esc(field.label)}</label>
+          <div class="kaart-icoon-picker">
+            <input type="hidden" name="data_${field.key}" id="kaart-icoon-${field.key}" value="${esc(val)}">
+            <button type="button" class="kaart-icoon-btn${!val ? ' kaart-icoon-btn--actief' : ''}"
+              title="Volg het type van dit kaartje" onclick="window._kaartIcoonKies('${field.key}','',this)">${icon('x')}</button>
+            ${KAART_ICONEN.map(n => `
+              <button type="button" class="kaart-icoon-btn${val === n ? ' kaart-icoon-btn--actief' : ''}"
+                title="${n}" onclick="window._kaartIcoonKies('${field.key}','${n}',this)">${icon(n)}</button>`).join('')}
+          </div>
+          ${field.hint ? `<p class="text-[11px] text-ink-faint mt-1">${esc(field.hint)}</p>` : ''}
+        </div>`;
     } else if (field.type === 'entiteit') {
       // Vrije tekst blijft het veld zelf (data_<key>); het kaartje komt er als
       // data_<key>Id naast. Wie niets koppelt houdt dus gewoon zijn tekst.

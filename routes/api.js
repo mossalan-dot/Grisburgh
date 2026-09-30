@@ -12712,6 +12712,29 @@ router.put('/meta/tempel', requireDM, (req, res) => {
 // met nul.
 const FACTIES_DEFAULT = [];
 
+// Het embleem van een factie komt van het **organisatiekaartje** waar ze aan
+// hangt: daar staat al wie ze zijn, dus daar hoort ook hun teken te staan. Twee
+// pickers voor één symbool was dezelfde val als de ledenlijst en de drempels.
+// Op het kaartje kies je het teken zelf (`data.icoon`); laat je dat leeg, dan
+// volgt het haar type. Een factie zonder kaartje houdt wat ze had.
+const _ORG_ICOON = {
+  Politiek: 'landmark', Adelhuis: 'castle', Militair: 'shield', Wacht: 'shield-half',
+  Orde: 'star', Gilde: 'package', Handelshuis: 'coins', Compagnie: 'building',
+  Religieus: 'church', Klooster: 'church', Cultus: 'sparkles', Genootschap: 'book-open',
+  School: 'book-open', Crimineel: 'stiletto', Bende: 'skull', Huurlingen: 'swords',
+  Factie: 'swords', Volk: 'users', Familie: 'house', Overig: 'landmark',
+};
+function _factieEmbleem(f, entities) {
+  const org = f?.entityId ? (entities?.organisaties || []).find(o => o.id === f.entityId) : null;
+  if (org) {
+    const eigen = String(org.data?.icoon || '').trim();
+    if (eigen) return eigen;
+    const type = String(org.data?.orgType || '').trim();
+    if (_ORG_ICOON[type]) return _ORG_ICOON[type];
+  }
+  return f?.embleem || 'landmark';
+}
+
 function _factiesConfig(meta) {
   const c = meta.facties;
   return (Array.isArray(c) && c.length) ? c : FACTIES_DEFAULT;
@@ -12962,10 +12985,11 @@ router.get('/facties', attachRole, (req, res) => {
       drempel: drempels[i] ?? null,
       bereikt: i <= idx, huidig: i === idx,
     }));
-    rangen.forEach((r, i) => { if (i > 0 && i <= idx && r.titel) titels.push({ titel: r.titel, factie: f.id, factieNaam: f.naam, embleem: f.embleem || 'landmark' }); });
+    const _emb = _factieEmbleem(f, entities);
+    rangen.forEach((r, i) => { if (i > 0 && i <= idx && r.titel) titels.push({ titel: r.titel, factie: f.id, factieNaam: f.naam, embleem: _emb }); });
 
     const view = {
-      id: f.id, naam: f.naam, embleem: f.embleem || 'landmark', beschrijving: f.beschrijving || '',
+      id: f.id, naam: f.naam, embleem: _emb, beschrijving: f.beschrijving || '',
       stijl: f.stijl || '', rang: _factieRangView(f, idx), ladder,
       renown, zichtbaar, drempelVolgende, entityId: f.entityId || null,
       // Hulp inroepen: het boek zet dit bewust neer als iets wat je vráágt, niet
@@ -13087,7 +13111,7 @@ router.post('/facties/:id/uitnodiging', requireDM, (req, res) => {
     const post = _bezorgBrief(req, lid.id, {
       titel, tekst, afzender, thema: 'factie',
       entityId: factie.entityId || null, entityType: factie.entityId ? 'organisaties' : null,
-      embleem: factie.embleem || 'landmark', kleur: factie.stijl || '', kop: factie.naam, cinematic: true,
+      embleem: _factieEmbleem(factie, storage.readJSON('entities.json')), kleur: factie.stijl || '', kop: factie.naam, cinematic: true,
     });
     if (post) bezorgd++;
   }
@@ -13237,7 +13261,7 @@ router.post('/facties/:id/renown', requireDM, (req, res) => {
     io.to(room).emit('factie:rang', {
       groupId:     dmState.activeGroup,
       factie:      factie.naam,
-      embleem:     factie.embleem || 'landmark',
+      embleem:     _factieEmbleem(factie, storage.readJSON('entities.json')),
       rang:        uit.rangNaam || '',
       voorwerpen:  uit.voorwerpen,
       winkelsOpen: uit.winkelsOpen,

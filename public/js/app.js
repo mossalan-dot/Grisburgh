@@ -1,5 +1,5 @@
 import { api, campagneUitUrl, zetCampagne } from './api.js?v=298';
-import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, renderDocumenten, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=324";
+import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, renderDocumenten, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=325";
 import { initArchief, renderLogboek, openLogboekEditor } from "./render-archief.js?v=137";
 import { renderKaart, queueFlyTo, verversPins, nieuweKaart } from './render-kaart.js?v=31';
 import { renderDungeon } from './render-dungeon.js?v=56';
@@ -10,7 +10,7 @@ import { renderSpreuken } from './render-spreuken.js?v=41';
 import { renderVaardigheden, zoekVaardigheden } from './render-vaardigheden.js?v=10';
 import { renderStatblock } from './render-statblock.js?v=9';
 import { initSocket } from "./socket-client.js?v=80";
-import { initDmPanel } from "./dm-panel.js?v=353";
+import { initDmPanel } from "./dm-panel.js?v=354";
 import { COND_INFO, COND_LABEL, COND_MET_PLAATJE, COND_ICON } from './conditions.js?v=2';
 import './media-picker.js?v=8';
 import './tafels.js?v=2';
@@ -13736,7 +13736,10 @@ function _tsLeenPrompt(eventId, optieId, tekortCl) {
 
 // ── Facties & Aanzien (speler-sectie) ──────────────────────────────────────
 
-const _FACTIE_ICON_SET_APP = new Set(['landmark','tree-pine','hexagon','crossed-swords','shield','moon','star','castle','heart','users','globe','mountain','scroll-text','coins','sword','swords','zap']);
+// Het embleem van een factie is het teken van haar organisatiekaartje; dit is
+// de set die een kaartje mag dragen (KAART_ICONEN in render-campagne.js). Staat
+// er iets anders in, dan valt hij terug op het standaardteken.
+const _FACTIE_ICON_SET_APP = new Set(['landmark','castle','shield','shield-half','star','package','coins','building','church','sparkles','book-open','skull','swords','sword','users','house','tree-pine','mountain','moon','globe','hexagon','crossed-swords','heart','scroll-text','zap','eye','stiletto']);
 
 let _factieActiveId   = null;
 let _factieData       = null;  // gecachete API-response

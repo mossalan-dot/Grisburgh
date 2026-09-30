@@ -7369,8 +7369,22 @@ const _FACTIE_STIJLEN = [
   { id: 'staal',   label: 'Staal',  hex: '#5b7a9a' },
 ];
 
-const _FACTIE_ICON_OPTIES = ['landmark','tree-pine','hexagon','crossed-swords','shield','moon','star','castle','heart','users','globe','mountain','scroll-text','coins','sword','swords','zap'];
-const _FACTIE_ICON_SET = new Set(_FACTIE_ICON_OPTIES);
+// Zelfde afleiding als `_factieEmbleem` op de server; hier alleen om het in de
+// editor te kunnen tonen zonder een ronde langs de server.
+const _ORG_ICOON_LOKAAL = {
+  Politiek: 'landmark', Adelhuis: 'castle', Militair: 'shield', Wacht: 'shield-half',
+  Orde: 'star', Gilde: 'package', Handelshuis: 'coins', Compagnie: 'building',
+  Religieus: 'church', Klooster: 'church', Cultus: 'sparkles', Genootschap: 'book-open',
+  School: 'book-open', Crimineel: 'stiletto', Bende: 'skull', Huurlingen: 'swords',
+  Factie: 'swords', Volk: 'users', Familie: 'house', Overig: 'landmark',
+};
+function _factieEmbleemLokaal(f, org) {
+  const eigen = String(org?.data?.icoon || '').trim();
+  if (eigen) return eigen;
+  const type = String(org?.data?.orgType || '').trim();
+  return _ORG_ICOON_LOKAAL[type] || f?.embleem || 'landmark';
+}
+
 
 let _factiesDraft = [];
 let _factiesLiveData = [];
@@ -7515,14 +7529,25 @@ function _renderFactiesDM() {
   const el = _tabEl('facties');
   if (!el) return;
 
-  const _iconPicker = (fi, huidig) => `
-    <div class="factie-icon-picker">
-      ${_FACTIE_ICON_OPTIES.map(n => `
-        <button type="button" class="factie-icon-btn${huidig === n ? ' factie-icon-btn--actief' : ''}"
-          title="${n}" onclick="window._factieIconKies(${fi},'${n}',this)">
-          ${icon(n)}
-        </button>`).join('')}
-    </div>`;
+  // Het embleem stond hier als eigen keuzerij, terwijl het organisatiekaartje
+  // al een teken heeft. Twee pickers voor één symbool; nu volgt de factie het
+  // kaartje en zet je het teken dáár — waar het ook de kaartenlijst, wikilinks
+  // en het organogram bedient.
+  const _iconPicker = (fi, f) => {
+    const org = f.entityId ? _factiesOrganisaties.find(o => o.id === f.entityId) : null;
+    const embleem = _factieEmbleemLokaal(f, org);
+    return `
+      <div class="dm-form-row" style="align-items:center">
+        <label class="dm-form-label">Embleem</label>
+        <span class="factie-embleem-uit">
+          <span class="factie-embleem-teken">${icon(embleem)}</span>
+          ${org
+            ? `<button type="button" class="dm-factie-kaartlink"
+                 onclick="window._openDetail('organisaties','${esc(org.id)}')">volgt ${esc(org.name)}</button>`
+            : `<span class="dm-hint">koppel een organisatiekaartje bij <em>Algemeen</em>; daar staat het teken</span>`}
+        </span>
+      </div>`;
+  };
 
   el.innerHTML = `
     <div class="dm-feature-section">
@@ -7554,10 +7579,17 @@ function _renderFactiesDM() {
             <span id="factie-dm-badge-${esc(f.id)}" class="factie-dm-renown-badge">renown: ${renown} | ${esc(rangNaam)}</span>
           </div>
           <div class="factie-dm-renown-knoppen">
-            <button class="dm-btn dm-btn-ghost dm-btn-sm" onclick="window._factieRenown('${esc(f.id)}',1)">+1</button>
-            <button class="dm-btn dm-btn-ghost dm-btn-sm" onclick="window._factieRenown('${esc(f.id)}',3)">+3</button>
-            <button class="dm-btn dm-btn-ghost dm-btn-sm" onclick="window._factieRenown('${esc(f.id)}',5)">+5</button>
-            <button class="dm-btn dm-btn-ghost dm-btn-sm" onclick="window._factieRenown('${esc(f.id)}',-1)">-1</button>
+            <!-- Er stonden vier vaste knoppen (+1 +3 +5 -1) — getallen die
+                 nergens vandaan kwamen. Wat je toekent hangt van de daad af, dus
+                 één veld: tik in wat het waard was, min mag ook. -->
+            <label class="dm-hint factie-renown-invoer">
+              <input class="dm-input dm-input-sm" type="number" id="factie-renown-${esc(f.id)}"
+                placeholder="0" title="Hoeveel renown erbij? Een min-getal haalt eraf."
+                onkeydown="if(event.key==='Enter'){event.preventDefault();window._factieRenownVeld('${esc(f.id)}');}">
+              renown
+            </label>
+            <button class="dm-btn dm-btn-ghost dm-btn-sm" onclick="window._factieRenownVeld('${esc(f.id)}')"
+              title="Toekennen">${icon('check')} Toekennen</button>
             ${boonGegeven.length ? `<span class="factie-dm-boon-label">${icon('check-circle')} ${boonGegeven.length} gunst${boonGegeven.length > 1 ? 'en' : ''} uitgedeeld</span>` : ''}
             <button class="dm-btn dm-btn-primary dm-btn-sm factie-dm-uitnodiging" style="margin-left:auto"
               onclick="window._factieStuurUitnodiging('${esc(f.id)}')"
@@ -7585,7 +7617,7 @@ function _renderFactiesDM() {
                   <label class="dm-form-label">Naam</label>
                   <input class="dm-input" style="flex:1" placeholder="Naam" value="${esc(f.naam || '')}" oninput="window._factieEdit(${fi},'naam',this.value)">
                 </div>
-                ${_iconPicker(fi, f.embleem)}
+                ${_iconPicker(fi, f)}
                 <textarea class="dm-input" style="width:100%;margin-top:6px;min-height:64px;resize:vertical" placeholder="Beschrijving" oninput="window._factieEdit(${fi},'beschrijving',this.value)">${esc(f.beschrijving || '')}</textarea>
                 <!-- Zelfde drie koppelingen als een dienst, en in dezelfde
                      volgorde: de organisatie is wie ze zijn, de locatie is waar
@@ -7615,7 +7647,6 @@ function _renderFactiesDM() {
 
               <div class="factie-dm-paneel" data-factie="${esc(f.id)}" data-sub="leden"${_factieSubtab(f.id) === 'leden' ? '' : ' hidden'}>
                 <div id="factie-leden-${fi}">${_ledenEditor(fi)}</div>
-                <p class="dm-hint" style="margin-top:8px">Spelers zien alleen wie ze kennen: een lid met een verborgen personagekaartje blijft voor hen weg.</p>
               </div>
 
               <div class="factie-dm-paneel" data-factie="${esc(f.id)}" data-sub="brief"${_factieSubtab(f.id) === 'brief' ? '' : ' hidden'}>
@@ -7865,56 +7896,20 @@ function _ledenUitKaartHtml(f, org) {
   if (typeof betr === 'string') { try { betr = JSON.parse(betr); } catch { betr = []; } }
   const rijen = (Array.isArray(betr) ? betr : []).filter(r => r && (r.naam || r.id));
 
-  const kop = `<p class="dm-hint" style="margin:0 0 8px">Uit het organogram van
-    <button type="button" class="dm-factie-kaartlink" onclick="window._openDetail('organisaties','${esc(org.id)}')">${esc(org.name)}</button>.
-    Daar voeg je iemand toe, geef je hem een rol en zet je hem onder een ander.</p>`;
+  // Dezelfde boom als op het kaartje zelf, niet een tweede weergave ernaast:
+  // het organogram laat in één blik zien wie onder wie valt, en dat is precies
+  // wat je hier komt halen. De knop eronder brengt je naar de plek om het te
+  // veranderen — verder geen uitleg, het plaatje spreekt.
+  const naarKaartje = `<div class="dm-form-row" style="margin-top:8px">
+    <button type="button" class="dm-btn dm-btn-ghost dm-btn-sm"
+      onclick="window._openDetail('organisaties','${esc(org.id)}')">${icon('pencil')} Bewerken op ${esc(org.name)}</button>
+  </div>`;
 
-  if (!rijen.length) return kop + `<p class="dm-hint" style="opacity:.6">Nog niemand op dat kaartje.</p>`;
-
-  // Wie niemand boven zich heeft staat bovenaan; de rest onder zijn chef. Dat
-  // is precies de volgorde die het organogram zelf ook tekent.
-  const naamVan = (r) => (_factiesPersonages.find(x => x.id === r.id)?.name) || r.naam || '(onbekend)';
-  const top = rijen.filter(r => !String(r.chef || '').trim());
-  const onder = rijen.filter(r => String(r.chef || '').trim());
-
-  const rij = (r, leiding) => {
-    const p = _factiesPersonages.find(x => x.id === r.id)
-      || _factiesPersonages.find(x => (x.name || '').toLowerCase() === (r.naam || '').toLowerCase());
-    return `
-      <div class="factie-lid-rij${leiding ? ' factie-lid-rij--leiding' : ''}">
-        ${p ? `<button type="button" class="dm-factie-kaartlink" onclick="window._openDetail('personages','${esc(p.id)}')">${esc(naamVan(r))}</button>`
-            : `<span class="factie-lid-naam" style="opacity:.55">${esc(naamVan(r))} — geen personagekaartje</span>`}
-        ${r.rol ? `<span class="factie-lid-rol">${esc(r.rol)}</span>` : ''}
-      </div>`;
-  };
-
-  let uit = kop;
-  if (top.length) uit += `<div class="factie-leden-kop">${icon('crown')} Leiding</div>` + top.map(r => rij(r, true)).join('');
-  if (onder.length) {
-    const perChef = new Map();
-    for (const r of onder) {
-      const c = String(r.chef || '').trim();
-      if (!perChef.has(c)) perChef.set(c, []);
-      perChef.get(c).push(r);
-    }
-    for (const [chef, lijst] of perChef) {
-      uit += `<div class="factie-leden-kop">Onder ${esc(chef)}</div>` + lijst.map(r => rij(r, false)).join('');
-    }
+  if (!rijen.length) {
+    return `<p class="dm-hint">Nog niemand op het kaartje van ${esc(org.name)}.</p>` + naarKaartje;
   }
-  return uit;
+  return (window._organogramHtml?.(rijen, null) ?? '') + naarKaartje;
 }
-
-window._factieIconKies = (fi, naam, btn) => {
-  window._factieEdit(fi, 'embleem', naam);
-  // Update visueel actieve staat
-  const kaart = btn.closest('.factie-dm-kaart');
-  btn.closest('.factie-icon-picker')?.querySelectorAll('.factie-icon-btn').forEach(b => b.classList.remove('factie-icon-btn--actief'));
-  btn.classList.add('factie-icon-btn--actief');
-  // De zegels tonen het embleem, dus die veranderen mee. Anders koos je een
-  // nieuw teken en bleef het oude op de lak staan tot je het scherm verliet.
-  const teken = btn.querySelector('svg')?.outerHTML;
-  if (teken) kaart?.querySelectorAll('.factie-stijl-zegel').forEach(z => { z.innerHTML = teken; });
-};
 
 window._factieStijlKies = (fi, stijl, btn) => {
   window._factieEdit(fi, 'stijl', stijl);
@@ -7968,6 +7963,15 @@ window._factieReveal = async (id) => {
     const live = _factiesLiveData.find(f => f.id === id);
     if (live) live.zichtbaar = res.zichtbaar;
   } catch (e) { alert('Fout: ' + e.message); }
+};
+
+// Uit het veld ernaast; leeg of nul doet niets.
+window._factieRenownVeld = (id) => {
+  const veld = document.getElementById(`factie-renown-${id}`);
+  const delta = parseInt(veld?.value, 10);
+  if (!delta) return;
+  if (veld) veld.value = '';
+  window._factieRenown(id, delta);
 };
 
 window._factieRenown = async (id, delta) => {

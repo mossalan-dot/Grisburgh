@@ -27908,3 +27908,45 @@ body.akte-schrijf-open .mp-overlay { z-index: 1320; }
   flex-wrap: wrap;
   margin-bottom: 6px;
 }
+
+/* Het teken van een kaartje: één rij om uit te kiezen */
+.kaart-icoon-picker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 4px;
+}
+.kaart-icoon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border: 1px solid var(--color-room-border);
+  border-radius: 5px;
+  background: var(--color-room-bg);
+  color: var(--color-ink-dim);
+  cursor: pointer;
+  transition: border-color 0.15s ease, color 0.15s ease, background 0.15s ease;
+}
+.kaart-icoon-btn:hover { color: var(--color-ink-bright); border-color: rgba(196,168,122,0.5); }
+.kaart-icoon-btn svg { width: 16px; height: 16px; }
+.kaart-icoon-btn--actief {
+  border-color: rgba(196,168,122,0.8);
+  background: rgba(196,168,122,0.16);
+  color: var(--color-ink-bright);
+}
+
+/* Het embleem van een factie: geen keuze meer, een spiegel van het kaartje */
+.factie-embleem-uit { display: inline-flex; align-items: center; gap: 8px; flex: 1; min-width: 0; }
+.factie-embleem-teken {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 30px; height: 30px; flex-shrink: 0;
+  border: 1px solid var(--color-room-border); border-radius: 5px;
+  color: var(--color-ink-bright);
+}
+.factie-embleem-teken svg { width: 17px; height: 17px; }
+
+/* Renown toekennen: één veld in plaats van vier vaste knoppen */
+.factie-renown-invoer { display: inline-flex; align-items: center; gap: 5px; }
+.factie-renown-invoer input { width: 64px; }
