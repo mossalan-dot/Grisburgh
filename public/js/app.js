@@ -10,7 +10,7 @@ import { renderSpreuken } from './render-spreuken.js?v=41';
 import { renderVaardigheden, zoekVaardigheden } from './render-vaardigheden.js?v=10';
 import { renderStatblock } from './render-statblock.js?v=9';
 import { initSocket } from "./socket-client.js?v=80";
-import { initDmPanel } from "./dm-panel.js?v=352";
+import { initDmPanel } from "./dm-panel.js?v=353";
 import { COND_INFO, COND_LABEL, COND_MET_PLAATJE, COND_ICON } from './conditions.js?v=2';
 import './media-picker.js?v=8';
 import './tafels.js?v=2';
@@ -14346,6 +14346,8 @@ const HELP_CONFIG = {
   ] }),
   dm_facties_rangen: () => ({ titel: 'Rangen', stappen: [
     { titel: 'Elke rang zegt zelf vanaf hoeveel', tekst: 'Een rang heeft een naam en een eigen drempel: *vanaf zoveel renown*. Een trede erbij is dus één knop — naam en getal, klaar. De volgorde volgt uit de getallen, dus je hoeft ze niet op volgorde in te tikken. Er stond hier een apart veld met komma\u2019s (`0,1,3,10,25,50`) dat op positie moest matchen met de lijst eronder; haalde je er een rang tussenuit, dan schoof de hele ladder een plek op zonder dat iets dat zei.', afbeelding: null },
+    { titel: 'Renown hoeft niet het enige te zijn', tekst: 'Onder de rangnaam staat *en pas bij*: een **level** en een aantal **voltooide missies** van deze factie. Het boek doet dat ook — vanaf de derde trede wil een gilde meer zien dan alleen aanzien. Laat je ze leeg, dan telt alleen renown. Het level is dat van het hoogste personage in de party.', afbeelding: null },
+    { titel: 'Voorrekenen, niet blokkeren', tekst: 'De eis houdt niemand tegen: de rang volgt uit de renown, en de speler ziet ernaast staan wat er gevraagd wordt en wat hij heeft — met een vinkje of een slotje. Jij beslist aan tafel of het telt. Dezelfde regel als bij multiclassen en spreukverzoeken.', afbeelding: null },
     { titel: 'Waar de getallen vandaan komen', tekst: 'Een nieuwe factie begint op **0, 1, 3, 10, 25 en 50**: de vijf rangen van het boek, met een trede ervóór voor wie nog geen lid is. Die heet *Buitenstaander*, want die naam beschrijft de mechaniek en niet jouw wereld — de rest vul je zelf in. Zet je ze anders, dan houdt de app jouw getallen.', afbeelding: null },
     { titel: 'Wat een trede oplevert', tekst: 'Regel voor regel, met vooraan wat voor soort gunst het is. Er zijn er vijf, en ze doen allemaal iets op het moment dat de party de rang haalt.', afbeelding: null },
     { titel: 'De vijf soorten', tekst: '**Afspraak** is een regel die in hun boedel komt: onderdak, een korting, vrije doorgang — heeft geen korte naam nodig, de regel zelf mag de gunst zijn. **Voorwerp** geeft het kaartje echt in bezit, met het aantal dat je erbij zet. **Winkel** zet een winkel open voor deze party: hij verschijnt op de Markt en ze kunnen er kopen. **Hulp** is iemand die ze mógen inroepen — niet iemand die er voortaan is; je stelt in hoe lang hij blijft en wanneer ze hem weer mogen roepen. **Titel** verschijnt bij de speler zodra hij de rang haalt.', afbeelding: null },

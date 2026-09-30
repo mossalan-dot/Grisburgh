@@ -7412,6 +7412,10 @@ async function _renderFactiesSettings() {
     uitnodigingTitel: f.uitnodigingTitel || '',
     rangen: (f.rangen || []).map(r => ({
       naam: r.naam, renown: r.renown, voordelen: r.voordelen || '',
+      // `vereist` stond niet in dit model en werd ook niet meegestuurd bij het
+      // opslaan: één klik op Opslaan wiste dus elke level- of missie-eis die er
+      // stond. De server kende het veld al en spelers zagen het ook.
+      vereist: { level: r.vereist?.level || '', missies: r.vereist?.missies || '' },
       // Eén lijst met een type erop. Een factie uit de oude vorm heeft `boons`
       // (altijd een voorwerp) en soms een los `titel`-veld; die lezen we hier om
       // zodat de editor nooit twee soorten tegelijk hoeft te tonen.
@@ -7728,6 +7732,12 @@ function _unlockRijHtml(fi, i, bi, u) {
     </div>`;
 }
 
+window._factieVereistEdit = (fi, i, veld, waarde) => {
+  const r = _factiesDraft[fi]?.rangen?.[i];
+  if (!r) return;
+  (r.vereist ||= {})[veld] = waarde;
+};
+
 window._factieUnlockToevoegen = (fi, i) => {
   const r = _factiesDraft[fi]?.rangen?.[i];
   if (!r) return;
@@ -7789,6 +7799,23 @@ function _renderFactieRangen(fi) {
         <input class="dm-input" style="width:130px" placeholder="Rangnaam" value="${esc(r.naam || '')}" oninput="window._factieRangEdit(${fi},${i},'naam',this.value)">
         <textarea class="dm-input" style="flex:1;min-height:48px;resize:vertical" placeholder="Voordelen / omschrijving" oninput="window._factieRangEdit(${fi},${i},'voordelen',this.value)">${esc(r.voordelen || '')}</textarea>
         <button class="dm-btn dm-btn-ghost dm-btn-sm" onclick="window._factieRangVerwijder(${fi},${i})" title="Verwijderen">${icon('trash')}</button>
+      </div>
+      <!-- Renown alleen is niet altijd genoeg: het boek laat een gilde vanaf de
+           derde trede ook karakterlevel en voltooide missies vragen. Voorrekenen
+           en niet blokkeren — de speler ziet wat er gevraagd wordt en wat hij
+           heeft, jij beslist. Leeg laten = geen eis. -->
+      <div class="factie-vereist-rij" style="padding-left:68px">
+        <span class="dm-hint">en pas bij</span>
+        <label class="dm-hint">level
+          <input class="dm-input dm-input-sm" type="number" min="0" style="width:56px;margin-left:4px"
+            placeholder="—" value="${r.vereist?.level || ''}"
+            title="Het hoogste level in de party; leeg = geen eis"
+            onchange="window._factieVereistEdit(${fi},${i},'level',this.value)"></label>
+        <label class="dm-hint">voltooide missies
+          <input class="dm-input dm-input-sm" type="number" min="0" style="width:56px;margin-left:4px"
+            placeholder="—" value="${r.vereist?.missies || ''}"
+            title="Voltooide missies van déze factie; leeg = geen eis"
+            onchange="window._factieVereistEdit(${fi},${i},'missies',this.value)"></label>
       </div>
       <div style="padding-left:68px">
         ${(r.unlocks || []).map((u, bi) => _unlockRijHtml(fi, i, bi, u)).join('')}
@@ -8006,6 +8033,10 @@ function _factiesPayload() {
       naam: r.naam.trim(),
       renown: String(r.renown ?? '').trim() !== '' ? parseInt(r.renown) || 0 : ([0,1,3,10,25,50][i] ?? i),
       voordelen: (r.voordelen || '').trim(),
+      vereist: {
+        level:   Math.max(0, parseInt(r.vereist?.level)   || 0),
+        missies: Math.max(0, parseInt(r.vereist?.missies) || 0),
+      },
       unlocks: (r.unlocks || [])
         .map(u => {
           const uit = { type: _UNLOCK_SOORTEN.some(x => x.id === u.type) ? u.type : 'tekst' };

@@ -27899,3 +27899,12 @@ body.akte-schrijf-open .mp-overlay { z-index: 1320; }
   font-size: 0.82em;
   opacity: 0.8;
 }
+
+/* Extra eisen bij een rang: level en voltooide missies, naast de renown */
+.factie-vereist-rij {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 6px;
+}

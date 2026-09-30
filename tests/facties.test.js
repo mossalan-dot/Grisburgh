@@ -321,6 +321,41 @@ describe('Facties: een rang ontgrendelt iets', () => {
     assert.strictEqual((await f()).rang.naam, 'Gezel', 'vijf renown haalt de trede van vier');
   });
 
+  // Renown alleen is niet altijd genoeg: het boek laat een gilde vanaf de derde
+  // trede ook karakterlevel en voltooide missies vragen. Voorrekenen en niet
+  // blokkeren — en het mag niet verdwijnen als de DM op Opslaan drukt.
+  it('rekent level en missies voor bij een rang, zonder te blokkeren', async () => {
+    const bestaand = (await req(server, 'GET', '/api/meta', null, dm)).body.facties || [];
+    await req(server, 'PUT', '/api/meta/facties', {
+      facties: [...bestaand.filter(f => f.id !== 'eisentest'), {
+        id: 'eisentest', naam: 'De Eisers',
+        rangen: [
+          { naam: 'Buitenstaander', renown: 0 },
+          { naam: 'Meester', renown: 1, vereist: { level: 9, missies: 2 } },
+        ],
+      }],
+    }, dm);
+    await req(server, 'POST', '/api/facties/eisentest/reveal', { zichtbaar: true }, dm);
+    await req(server, 'POST', '/api/facties/eisentest/renown', { delta: 1 }, dm);
+
+    const f = ((await req(server, 'GET', '/api/facties', null, dm)).body.facties || [])
+      .find(x => x.id === 'eisentest');
+    const trede = (f.ladder || [])[1];
+    assert.ok(trede.vereist, 'de eis staat op de trede');
+    assert.strictEqual(trede.vereist.voldaan, false, 'level 9 halen we niet');
+    assert.deepStrictEqual(trede.vereist.regels.map(r => r.ok), [false, false]);
+
+    // Voorrekenen, niet blokkeren: de rang is wél bereikt op renown.
+    assert.strictEqual(f.rang.naam, 'Meester', 'renown bepaalt de rang; de eis is een mededeling');
+
+    // En de eis overleeft een ronde door het paneel (dezelfde vorm terugsturen).
+    const nu = (await req(server, 'GET', '/api/meta', null, dm)).body.facties || [];
+    await req(server, 'PUT', '/api/meta/facties', { facties: nu }, dm);
+    const opnieuw = ((await req(server, 'GET', '/api/facties', null, dm)).body.facties || [])
+      .find(x => x.id === 'eisentest');
+    assert.ok((opnieuw.ladder || [])[1].vereist, 'opslaan wist de eis niet');
+  });
+
   // De vijf soorten gunst die een rang kan geven. De editor kon er maar één
   // maken; de server deed er al vijf. Dit legt vast wat ze elk doen.
   it('kent vijf soorten gunst en deelt ze uit bij het halen van de rang', async () => {
