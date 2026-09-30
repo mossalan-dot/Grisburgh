@@ -477,6 +477,9 @@ export const api = {
   // De Gock
   getGock:         ()              => request('/gock'),
   gockOpdracht:    (data)          => request('/gock/opdracht',   { method: 'POST', body: JSON.stringify(data) }),
+  gockGerucht:     (data)          => request('/gock/gerucht',    { method: 'POST', body: JSON.stringify(data) }),
+  gockGeruchten:   ()              => request('/gock/geruchten'),
+  gockGeruchtBesluit: (id, data)   => request(`/gock/gerucht/${id}/besluit`, { method: 'POST', body: JSON.stringify(data) }),
   gockOpgehaald:   ()              => request('/gock/opgehaald', { method: 'PUT' }),
   saveGockConfig:  (data)          => request('/meta/gock',      { method: 'PUT',  body: JSON.stringify(data) }),
   getMagizoo:        ()            => request('/magizoo'),

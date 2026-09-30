@@ -1,4 +1,4 @@
-import { api, huidigeCampagne } from './api.js?v=298';
+import { api, huidigeCampagne } from './api.js?v=299';
 import { init as canvasInit, update as canvasUpdate, stop as canvasStop, acGetal } from './combat-canvas.js?v=30';
 import { renderStatblock } from './render-statblock.js?v=9';
 
@@ -6428,6 +6428,23 @@ window._tsArenaRemove = (idx) => {
   _tsRenderArenaLijst();
 };
 
+// Een praatje aftekenen. Bij akkoord wordt het een roddel op het kaartje van
+// het doelwit — en soms slaat het terug; de server rolt daarvoor.
+window._geruchtBesluit = async (id, akkoord) => {
+  const tekst = document.getElementById(`ger-${id}`)?.value.trim() || '';
+  if (akkoord && tekst.length < 8) { alert('Schrijf het praatje dat rond moet gaan.'); return; }
+  if (!akkoord && !confirm('Weigeren? De speler krijgt zijn geld terug.')) return;
+  try {
+    const r = await api.gockGeruchtBesluit(id, { akkoord, tekst });
+    if (akkoord) {
+      _showToast(r.status === 'teruggeslagen'
+        ? `${icon('venetian-mask')} Het praatje is naar de bron herleid — het staat nu op hén.`
+        : `${icon('venetian-mask')} Het praatje loopt.`);
+    }
+  } catch (e) { alert('Mislukt: ' + e.message); }
+  _renderVerzoeken(); _verzoekenTeller();
+};
+
 window._tsArenaUitslag = async (signupId, uitkomst) => {
   const winst = uitkomst === 'overwinning';
   if (!confirm(winst ? 'Overwinning bevestigen? Het prijzengeld wordt uitbetaald aan de speler.' : 'Nederlaag registreren voor deze speler?')) return;
@@ -11209,15 +11226,16 @@ async function _verzoekenTeller() {
   if (!knop) return 0;
   let n = 0;
   try {
-    const [sp, bezit, mc, gock, arena] = await Promise.all([
+    const [sp, bezit, mc, gock, arena, praatjes] = await Promise.all([
       api.getSpellRequests().then(r => (r.requests || []).length).catch(() => 0),
       api.getItemOwnership().then(r => (r.requests || []).filter(x => x.status === 'pending').length).catch(() => 0),
       api.get('/multiclass-verzoeken').then(r => (r.verzoeken || []).length).catch(() => 0),
       api.get('/gock/verzoeken').then(r => (r.verzoeken || []).length).catch(() => 0),
-      // Een inschrijving voor het strijdperk wacht net zo goed op jou.
+      // Een inschrijving voor het strijdperk en een praatje dat op jou wacht.
       api.getTweespalt().then(d => (d.arenaSignups || []).filter(x => x.status === 'aangemeld').length).catch(() => 0),
+      api.gockGeruchten().then(d => (d.geruchten || []).length).catch(() => 0),
     ]);
-    n = sp + bezit + mc + gock + arena;
+    n = sp + bezit + mc + gock + arena + praatjes;
   } catch { n = 0; }
 
   let penning = knop.querySelector('.dm-tab-penning');
@@ -11329,9 +11347,9 @@ async function _renderVerzoeken() {
   if (!el) return;
   el.innerHTML = _dmLoading();
 
-  let spreuken = [], bezit = null, multiclass = [], dossiers = [], spelers = [], badges = {}, tsData = null;
+  let spreuken = [], bezit = null, multiclass = [], dossiers = [], spelers = [], badges = {}, tsData = null, gerData = null;
   try {
-    [spreuken, bezit, multiclass, dossiers, spelers, badges, tsData] = await Promise.all([
+    [spreuken, bezit, multiclass, dossiers, spelers, badges, tsData, gerData] = await Promise.all([
       api.getSpellRequests().then(r => r.requests || []).catch(() => []),
       api.getItemOwnership().catch(() => null),
       api.get('/multiclass-verzoeken').then(r => r.verzoeken || []).catch(() => []),
@@ -11339,6 +11357,7 @@ async function _renderVerzoeken() {
       api.listEntities('personages').catch(() => []),
       api.getBadges().catch(() => ({})),
       api.getTweespalt().catch(() => null),
+      api.gockGeruchten().catch(() => null),
     ]);
   } catch { /* hieronder vangen we het lege geval af */ }
   const _open = (bezit?.requests || []).filter(r => r.status === 'pending');
@@ -11371,6 +11390,17 @@ async function _renderVerzoeken() {
   // spreukverzoek: de speler heeft zich gemeld en zijn inleg is al afgeschreven.
   // Hij stond alleen in het gokhuis-tabblad, dus je moest er langslopen om te
   // zien of er iemand in het zand stond.
+  // Een geplant praatje is een verhaalstap, geen aankoop: jij tekent af, en je
+  // mag de tekst overtypen — aan tafel is er misschien iets anders afgesproken
+  // dan wat de speler intikte.
+  const geruchten = (gerData?.geruchten) || [];
+  const geruchtHtml = geruchten.map(v => rij(
+    `<strong>${esc(v.doorNaam)}</strong> wil dit laten rondgaan over <em>${esc(v.entityNaam)}</em>`
+    + `<textarea class="dm-input dm-verzoek-gerucht" id="ger-${esc(v.id)}" rows="2">${esc(v.tekst)}</textarea>`,
+    `<button class="dm-btn dm-btn-sm dm-btn-primary" onclick="window._geruchtBesluit('${esc(v.id)}', true)" title="Laat het rondgaan">${icon('venetian-mask')} Rondlaten gaan</button>
+     <button class="dm-btn dm-btn-sm dm-btn-ghost" onclick="window._geruchtBesluit('${esc(v.id)}', false)" title="Weigeren — het geld gaat terug">${icon('x')} Weigeren</button>`
+  )).join('');
+
   const arenaInschrijvingen = ((tsData?.arenaSignups) || []).filter(s => s.status === 'aangemeld');
   const arenaHtml = arenaInschrijvingen.map(s => rij(
     `<strong>${esc(s.doorNaam || 'Een speler')}</strong> meldt zich voor <em>${esc(s.boutNaam)}</em>`
@@ -11469,6 +11499,12 @@ async function _renderVerzoeken() {
       <div class="dm-section-label">${icon('package')} Voorwerpen ${voorwerpen.length ? `(${voorwerpen.length})` : ''}<span class="dm-sectie-hulp">${helpBtn('dm_verzoeken_voorwerpen')}</span></div>
       ${itemHtml || '<p class="dm-hint">Niets openstaand.</p>'}
     </div>
+
+    ${geruchten.length ? `
+    <div class="dm-feature-section">
+      <div class="dm-section-label">${icon('venetian-mask')} Praatjes om rond te laten gaan (${geruchten.length})<span class="dm-sectie-hulp">${helpBtn('dm_detective_geruchten')}</span></div>
+      ${geruchtHtml}
+    </div>` : ''}
 
     <div class="dm-feature-section">
       <div class="dm-section-label">${icon('crossed-swords', { cls: 'icon-gi' })} In het strijdperk ${arenaInschrijvingen.length ? `(${arenaInschrijvingen.length})` : ''}<span class="dm-sectie-hulp">${helpBtn('dm_gokhuis_inschrijvingen')}</span></div>

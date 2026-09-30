@@ -1,5 +1,5 @@
-import { api, campagneUitUrl, zetCampagne } from './api.js?v=298';
-import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, renderDocumenten, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=326";
+import { api, campagneUitUrl, zetCampagne } from './api.js?v=299';
+import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, renderDocumenten, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=327";
 import { initArchief, renderLogboek, openLogboekEditor } from "./render-archief.js?v=139";
 import { renderKaart, queueFlyTo, verversPins, nieuweKaart } from './render-kaart.js?v=31';
 import { renderDungeon } from './render-dungeon.js?v=56';
@@ -10,7 +10,7 @@ import { renderSpreuken } from './render-spreuken.js?v=41';
 import { renderVaardigheden, zoekVaardigheden } from './render-vaardigheden.js?v=10';
 import { renderStatblock } from './render-statblock.js?v=9';
 import { initSocket } from "./socket-client.js?v=80";
-import { initDmPanel } from "./dm-panel.js?v=364";
+import { initDmPanel } from "./dm-panel.js?v=365";
 import { COND_INFO, COND_LABEL, COND_MET_PLAATJE, COND_ICON } from './conditions.js?v=2';
 import './media-picker.js?v=8';
 import './tafels.js?v=2';
@@ -12629,6 +12629,13 @@ async function renderGock() {
   const heeftLopendeZaak = geval && !geval.gereed;
   const heeftKlaarZaak = geval && geval.gereed && !geval.opgehaald;
 
+  // Loopt er al een praatje van deze speler? Dan geen tweede formulier maar de
+  // stand: hij ligt bij de DM en die tekent hem af.
+  let lopendGerucht = null;
+  if (window._deelAan?.('gock-geruchten')) {
+    try { lopendGerucht = (await api.gockGeruchten()).geruchten?.[0] || null; } catch {}
+  }
+
   function beursTekst(cur) {
     return [cur?.fl && `${cur.fl} fl`, cur?.kn && `${cur.kn} kn`, cur?.cl && `${cur.cl} cl`].filter(Boolean).join(' · ') || '0 cl';
   }
@@ -12645,6 +12652,8 @@ async function renderGock() {
       restTijdTekst = uren > 0 ? `${uren} uur en ${min} min` : `${min} min`;
     }
   }
+
+  const geruchtPrijs = prijsTekst(config.geruchtPrijs || config.prijs || {});
 
   const _bd = window._dienstBackdropId(config);
   const backdrop = _bd ? `style="background-image:url('${api.thumbUrlBreed(_bd)}')"` : '';
@@ -12703,9 +12712,44 @@ async function renderGock() {
                   </button>`).join('')}
               </div>
             </div>`) : ''}
+
+        ${window._deelAan?.('gock-geruchten') && !heeftLopendeZaak && !heeftKlaarZaak ? `
+          <!-- De andere helft van deze dienst: niet iets uithalen maar iets
+               inbrengen. Staat onder het onderzoek, want dit is wat je doet als
+               uitzoeken niet genoeg is. -->
+          <div class="gock-gerucht">
+            <div class="gock-gerucht-kop">${icon('venetian-mask')} Een praatje rondstrooien</div>
+            ${lopendGerucht ? `
+              <p class="gock-gerucht-wacht">${icon('hourglass')} Je praatje over <strong>${esc(lopendGerucht.entityNaam)}</strong> ligt bij hem. Hij laat weten wanneer het loopt.</p>`
+            : beschikbaar.length === 0
+              ? `<p class="herberg-cooldown-tekst">Er zijn nog geen mensen over wie je iets kunt laten rondgaan.</p>`
+              : `
+              <select id="gock-ger-doel" class="herberg-zoek-input">
+                <option value="">Over wie gaat het?</option>
+                ${beschikbaar.map(e => `<option value="${esc(e.id)}|${esc(e.type)}">${esc(e.name)}</option>`).join('')}
+              </select>
+              <textarea id="gock-ger-tekst" class="herberg-zoek-input gock-gerucht-tekst" rows="3"
+                placeholder="Wat moet er over hem rondgaan? Schrijf het zoals je het aan de bar zou horen."></textarea>
+              <button class="herberg-knop" onclick="window._gockGerucht()">${icon('venetian-mask')} Laat het rondgaan${geruchtPrijs ? ` — ${esc(geruchtPrijs)}` : ''}</button>
+              <p class="gock-gerucht-klein">Hij legt het bij de juiste mensen neer. Wat ermee gebeurt is daarna niet meer aan hem — of aan jou.</p>`}
+          </div>` : ''}
       </div>
     </div>`;
 }
+
+window._gockGerucht = async () => {
+  const doel = document.getElementById('gock-ger-doel')?.value || '';
+  const tekst = document.getElementById('gock-ger-tekst')?.value.trim() || '';
+  const [entityId, entityType] = doel.split('|');
+  if (!entityId) { alert('Kies over wie het gaat.'); return; }
+  if (tekst.length < 8) { alert('Schrijf het praatje dat rond moet gaan.'); return; }
+  if (!confirm(`Dit praatje over ${document.getElementById('gock-ger-doel').selectedOptions[0].text} laten rondgaan?\n\n"${tekst}"\n\nDe betaling is meteen; je DM laat weten wanneer het loopt.`)) return;
+  try {
+    await api.gockGerucht({ entityId, entityType, tekst });
+    await renderGock();
+    _tsToast('Het praatje ligt bij hem. Hij laat weten wanneer het loopt.');
+  } catch (err) { alert('Lukt niet: ' + (err.message || err)); }
+};
 
 window._gockFilter = (q) => {
   const lijst = document.getElementById('gock-lijst');
@@ -12816,6 +12860,8 @@ async function renderMagizoo() {
     const min = Math.ceil((new Date(cooldownTot) - Date.now()) / 60000);
     cooldownTekst = `${esc(config.naam || 'De Magizoöloog')} werkt zijn aantekeningen nog bij — nog ± ${min} min.`;
   }
+
+  const geruchtPrijs = prijsTekst(config.geruchtPrijs || config.prijs || {});
 
   const _bd = window._dienstBackdropId(config);
   const backdrop = _bd ? `style="background-image:url('${api.thumbUrlBreed(_bd)}')"` : '';
@@ -13065,6 +13111,8 @@ async function renderUrsula() {
   const prijsTekst = (p) => [p?.fl && `${p.fl} fl`, p?.kn && `${p.kn} kn`, p?.cl && `${p.cl} cl`].filter(Boolean).join(' ') || 'gratis';
 
   const weg = geenSessie; // Ursula is er niet wanneer er geen sessie/akte loopt
+  const geruchtPrijs = prijsTekst(config.geruchtPrijs || config.prijs || {});
+
   const _bd = window._dienstBackdropId(config);
   const backdrop = _bd ? `style="background-image:url('${api.thumbUrlBreed(_bd)}')"` : '';
   const portret = config.imageId
@@ -14297,6 +14345,14 @@ const HELP_CONFIG = {
     { titel: 'Waar wordt op gewed', tekst: 'Geef het event een naam en minstens twee opties — paardenrace, hanengevecht, welke raadsheer het haalt. De spelers kiezen er een en zetten in.', afbeelding: null },
     { titel: 'De uitbetaling', tekst: 'Per optie stel je de verhouding in. Een uitslag die iedereen zag aankomen levert weinig op; de verrassing betaalt.', afbeelding: null },
   ] }),
+  dm_detective_geruchten: () => ({ titel: 'Praatjes om rond te laten gaan', stappen: [
+    { titel: 'Wat hier staat', tekst: 'Een speler heeft de detective betaald om iets over iemand rond te laten gaan, en schreef het zelf. Het ligt bij jou omdat het een **verhaalstap** is en geen aankoop — het veld is bewerkbaar, dus wat jullie aan tafel afspraken wint van wat hij intikte.', afbeelding: null },
+    { titel: 'Wat er gebeurt bij akkoord', tekst: 'Het wordt een **roddel op het kaartje** van het doelwit, met een masker ernaast zodat jij ziet dat het geplant is en door wie. De herberg trekt het naar voren, dus het komt bij de eerstvolgende lange rust terug — uit de mond van een vreemde aan de bar. De speler krijgt een brief van de detective en een buff tot zijn volgende lange rust.', afbeelding: null },
+    { titel: 'Het kan terugslaan', tekst: 'Bij het rondstrooien wordt één keer gerold. Op een 1 wordt het praatje naar de bron herleid: dan staat het niet op het doelwit maar op de **spelers zelf**, en de buff komt er niet. Dat is de prijs van liegen in het openbaar.', afbeelding: null },
+    { titel: 'Alleen voor hún tafel', tekst: 'Een geplant praatje gaat alleen rond bij de party die het plantte. Een andere groep heeft niets te maken met hun leugen en krijgt hem niet te horen.', afbeelding: null },
+    { titel: 'Weigeren', tekst: 'Dan krijgt de speler zijn geld terug — hij heeft er niets voor gehad.', afbeelding: null },
+  ] }),
+
   dm_detective: () => ({ titel: 'De detective', stappen: [
     { titel: 'Wat hij doet', tekst: 'Spelers leggen een vraag bij hem neer over een persoon, plek of voorwerp. Dat kost geld en tijd; het antwoord schrijf jij. Zo kunnen ze iets uitzoeken zonder dat de hele tafel stilvalt.', afbeelding: null },
     { titel: 'Wanneer het rapport er ligt', tekst: 'Na de volgende **lange rust**. Niet na zoveel uur op de klok — de party speelt geen echte uren, dus een wachttijd in minuten verloopt tijdens een pauze net zo hard als tijdens een sessie. Dezelfde maat als de Magizoöloog en de schappen van een winkel.', afbeelding: null },

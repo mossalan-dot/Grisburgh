@@ -1,4 +1,4 @@
-import { api } from './api.js?v=298';
+import { api } from './api.js?v=299';
 
 const esc  = s => window.app?.esc?.(s) ?? String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 const icon = (...a) => window.icon(...a);

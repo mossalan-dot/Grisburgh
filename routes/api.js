@@ -481,7 +481,7 @@ function filterEntityForPlayer(entity, dmState, groupId) {
   // stond op het kaartje zelf, dus campagnebreed: hoorde party 1 iets in de
   // herberg, dan stond het meteen op het kaartje van party 2 — zonder dat die
   // het ooit gehoord had, en de herberg vertelde het hun daarna nooit meer.
-  const roddels = _roddelRegels(entity.data);
+  const roddels = _roddelRegels(entity.data).filter(r => _roddelVoorParty(r, groupId));
   const gehoord = _roddelsGehoord(g, entity);
   const zichtbareFlavours = roddels.filter(r => gehoord.has(r.id)).map(r => r.tekst);
   if (zichtbareFlavours.length) { e.data.flavours = JSON.stringify(zichtbareFlavours); e.data.flavour = zichtbareFlavours[0]; }
@@ -798,7 +798,8 @@ function _roddelRegels(data) {
   return arr.map((r, i) => (typeof r === 'string' || r == null)
     ? { id: 'i' + i, tekst: String(r || '') }
     : { id: r.id || ('i' + i), tekst: String(r.tekst ?? r.flavour ?? ''),
-        ...(r.geplantDoor ? { geplantDoor: r.geplantDoor, geplantOp: r.geplantOp || null } : {}) });
+        ...(r.geplantDoor ? { geplantDoor: r.geplantDoor, geplantOp: r.geplantOp || null,
+                              geplantVoor: r.geplantVoor || null } : {}) });
 }
 
 // Welke roddels heeft déze party gehoord? Per party, met de campagnebrede
@@ -809,6 +810,15 @@ function _roddelsGehoord(g, entity) {
   if (eigen !== undefined) return _onthuldeIds(eigen, regels);
   return _onthuldeIds(entity?.data?.flavoursUitgesproken
     ?? (entity?.data?.flavourUitgesproken === true || entity?.data?.flavourUitgesproken === 'true'), regels);
+}
+
+// Een geplant praatje hoort bij de party die het plantte. Het staat op het
+// kaartje van het doelwit — dat is één kaartje voor iedereen — maar een andere
+// tafel heeft niets te maken met de leugen van deze tafel. Die zou hem anders
+// aan de bar te horen krijgen alsof het nieuws was.
+function _roddelVoorParty(r, gid) {
+  if (!r.geplantDoor) return true;          // gewone roddel: voor iedereen
+  return !r.geplantVoor || r.geplantVoor === gid;
 }
 
 function _roddelHoren(g, entity, roddelId) {
@@ -1138,6 +1148,13 @@ router.get('/entities/:type/:id', attachRole, (req, res) => {
     // Per regel: is hij open? De client rekent zelf niet met posities.
     _onthuld: (() => { const r = _geheimRegels(entity.data), o = _onthuldeIds(g.secretReveals[entity.id], r);
       return r.map(x => o.has(x.id)); })(),
+    // Roddels: per regel of de **actieve** party hem gehoord heeft, en wie hem
+    // eventueel geplant heeft. De DM ziet alle regels; dit zegt alleen in welke
+    // staat ze voor deze party verkeren.
+    _roddels: _roddelRegels(entity.data).map(r => ({
+      id: r.id, gehoord: _roddelsGehoord(g, entity).has(r.id),
+      geplantDoor: r.geplantDoor || null, geplantVoor: r.geplantVoor || null,
+    })),
     _deceased:     !!(g.deceased?.[entity.id]),
     _dmNote:       dmState.dmNotes[entity.id]  || '',
     _tierActief:   _tierStand(g, entity)?.id || null,
@@ -4191,6 +4208,7 @@ router.post('/party/long-rest', requireDM, (req, res) => {
         const gehoord = _roddelsGehoord(g, e);
         _roddelRegels(e.data).forEach(r => {
           if (!r.tekst || gehoord.has(r.id)) return;
+          if (!_roddelVoorParty(r, dmState.activeGroup)) return;   // andermans geplante praatje
           pool.push({ type, e, r });
         });
       });
@@ -11942,11 +11960,186 @@ router.get('/gock', attachRole, (req, res) => {
     .filter(e => !config.imageId || e.id !== config.imageId);
 
   res.json({
-    config: { prijs: config.prijs || { fl: 50 }, naam: config.naam || 'De detective', imageId: config.imageId || null, backdropId: config.backdropId || null },
+    config: {
+      prijs: config.prijs || { fl: 50 }, naam: config.naam || 'De detective',
+      imageId: config.imageId || null, backdropId: config.backdropId || null,
+      geruchtPrijs: config.geruchtPrijs || config.prijs || { fl: 50 },
+    },
     geval: playerCase,
     beschikbaar,
     currency,
   });
+});
+
+// ── De detective: een praatje rondstrooien ──────────────────────────────────
+// De andere helft van deze dienst, en het spiegelbeeld van een onderzoek: niet
+// iets uithalen maar iets inbrengen. De speler schrijft zelf wat er rond moet
+// gaan over een kaartje dat zijn party kent; de DM tekent het af (het is een
+// verhaalstap, geen aankoop) en mag de tekst overtypen.
+//
+// Daarna is het een **roddel op dat kaartje** — dezelfde regels waar de herberg
+// al uit put. Zo komt het praatje terug zoals een praatje hoort te komen: uit de
+// mond van een vreemde aan de bar, en niet als mededeling van de app.
+router.post('/gock/gerucht', attachRole, vereistDienst('gock'), (req, res) => {
+  if (!_deelAan('gock-geruchten')) return res.status(404).json({ error: 'Dat doet hij niet' });
+  const characterId = _handelendKarakter(req);
+  if (!characterId) return res.status(403).json({ error: 'Geen speler ingelogd' });
+
+  const { entityId, entityType, tekst } = req.body || {};
+  if (!entityId || !entityType) return res.status(400).json({ error: 'entityId en entityType vereist' });
+  const praatje = String(tekst || '').trim();
+  if (praatje.length < 8) return res.status(400).json({ error: 'Schrijf het praatje dat rond moet gaan.' });
+  if (praatje.length > 400) return res.status(400).json({ error: 'Houd het bij een praatje — hooguit 400 tekens.' });
+
+  const dmState = readDmState();
+  const gid = _playerGroupId(dmState, characterId);
+  const g = getGroup(dmState, gid);
+  const entities = storage.readJSON('entities.json');
+  const entity = (entities[entityType] || []).find(e => e.id === entityId);
+  if (!entity) return res.status(404).json({ error: 'Kaartje niet gevonden' });
+  // Over iemand die je niet kent kun je niets rondvertellen.
+  if ((g.visibility || {})[entityId] !== 'visible') {
+    return res.status(403).json({ error: 'Over hem weten jullie te weinig om iets rond te laten gaan.' });
+  }
+
+  if (!dmState.gockGeruchten) dmState.gockGeruchten = [];
+  if (dmState.gockGeruchten.some(x => x.status === 'open' && x.doorId === characterId)) {
+    return res.status(409).json({ error: 'Er gaat al een praatje van jou rond — wacht tot dat geland is.' });
+  }
+
+  const meta = storage.readJSON('meta.json');
+  const config = meta.gock || {};
+  const prijs = config.gerachtPrijs || config.geruchtPrijs || config.prijs || { fl: 50 };
+  const prijsCl = toCl(prijs);
+  const pc = _effectiveCurrency(dmState, characterId) || { fl: 0, kn: 0, cl: 0 };
+  if (toCl(pc) < prijsCl) return res.status(400).json({ error: 'Onvoldoende saldo' });
+  if (prijsCl > 0) _deductCurrency(dmState, characterId, prijsCl);
+
+  const verzoek = {
+    id: 'ger_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5),
+    doorId: characterId,
+    doorNaam: req.session.playerName || 'Een speler',
+    groepId: gid,
+    entityId, entityType, entityNaam: entity.name,
+    tekst: praatje,
+    status: 'open',
+    op: new Date().toISOString(),
+  };
+  dmState.gockGeruchten.push(verzoek);
+  storage.writeJSON('dm-state.json', dmState);
+
+  const io = req.app.get('io');
+  io.to(_campagneRoom(req)).emit('gock:geruchten');
+  io.to(_campagneRoom(req)).emit('player:currency-updated', { characterId, currency: _effectiveCurrency(dmState, characterId) });
+  res.status(201).json({ ok: true, verzoek });
+});
+
+// De DM tekent af. Hij mag de tekst overtypen — aan tafel is er misschien iets
+// anders afgesproken dan wat de speler intikte.
+router.post('/gock/gerucht/:id/besluit', requireDM, (req, res) => {
+  const dmState = readDmState();
+  const lijst = dmState.gockGeruchten || [];
+  const v = lijst.find(x => x.id === req.params.id);
+  if (!v) return res.status(404).json({ error: 'Praatje niet gevonden' });
+  if (v.status !== 'open') return res.status(409).json({ error: 'Dit praatje is al afgehandeld' });
+
+  const akkoord = req.body?.akkoord !== false;
+  const tekst = String(req.body?.tekst || v.tekst).trim();
+  const g = getGroup(dmState, v.groepId);
+
+  if (!akkoord) {
+    v.status = 'geweigerd';
+    // Geweigerd = niet gebeurd, dus het geld terug. Hij heeft er niets voor gehad.
+    const meta0 = storage.readJSON('meta.json');
+    const terug = toCl((meta0.gock || {}).geruchtPrijs || (meta0.gock || {}).prijs || { fl: 50 });
+    if (terug > 0) _deductCurrency(dmState, v.doorId, -terug);
+    storage.writeJSON('dm-state.json', dmState);
+    req.app.get('io').to(_campagneRoom(req)).emit('gock:geruchten');
+    return res.json({ ok: true, status: 'geweigerd' });
+  }
+
+  const entities = storage.readJSON('entities.json');
+  const entity = (entities[v.entityType] || []).find(e => e.id === v.entityId);
+  if (!entity) return res.status(404).json({ error: 'Kaartje bestaat niet meer' });
+
+  // Slaat het terug? Eén worp, zoals bij de voorspelling. Bij een 1 wordt het
+  // praatje naar de bron herleid: dan staat het niet op het doelwit maar op de
+  // party zelf, en weet jij wie het gedaan heeft.
+  const worp = 1 + Math.floor(Math.random() * 6);
+  const mislukt = worp === 1;
+  const doelId = mislukt ? null : v.entityId;
+
+  const regels = _roddelRegels(entity.data);
+  const nieuwe = {
+    id: 'f_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5),
+    tekst: mislukt ? `Er gaat een praatje dat ${v.doorNaam} dit over ${entity.name} heeft rondgestrooid: "${tekst}"` : tekst,
+    geplantDoor: v.doorNaam,
+    geplantOp: new Date().toISOString(),
+    geplantVoor: v.groepId,
+  };
+
+  // Bij een misser landt het op de kaartjes van de party zelf; anders op het doelwit.
+  const doelwitten = mislukt
+    ? (entities.personages || []).filter(p => p.subtype === 'speler' && p.data?.groep === v.groepId)
+    : [entity];
+  for (const doel of doelwitten) {
+    const eigen = _roddelRegels(doel.data);
+    eigen.push(mislukt ? { ...nieuwe, id: nieuwe.id + '_' + doel.id.slice(-4) } : nieuwe);
+    if (!doel.data) doel.data = {};
+    doel.data.flavours = JSON.stringify(eigen);
+  }
+  storage.writeJSON('entities.json', entities);
+
+  v.status = mislukt ? 'teruggeslagen' : 'rond';
+  v.tekst = tekst;
+  v.worp = worp;
+  v.roddelId = nieuwe.id;
+  v.afgehandeldOp = new Date().toISOString();
+
+  // De buff: geldig tot de volgende lange rust, en met een naam die zegt waar
+  // hij over gaat. Wie het gelooft beslis jij aan tafel — voorrekenen, niet
+  // blokkeren, net als overal.
+  if (!mislukt) {
+    if (!dmState.playerBuffs) dmState.playerBuffs = {};
+    const lijstB = (dmState.playerBuffs[v.doorId] || []);
+    lijstB.push({
+      id: 'buff_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5),
+      label: `Het praatje over ${entity.name}`,
+      desc: 'Tegen iemand die dit gerucht gelooft heb je voordeel op een sociale worp. Je DM beslist wie het gelooft.',
+      bron: (storage.readJSON('meta.json').gock || {}).naam || 'De detective',
+    });
+    dmState.playerBuffs[v.doorId] = lijstB;
+  }
+  storage.writeJSON('dm-state.json', dmState);
+
+  // En een brief van de Gock, met dezelfde kop als zijn onderzoeksrapport: wat
+  // er rondgaat, over wie, en of het bij hem vandaan te herleiden is.
+  const naamGock = (storage.readJSON('meta.json').gock || {}).naam || 'De detective';
+  _bezorgBrief(req, v.doorId, {
+    titel: mislukt ? `Het praatje over ${entity.name} — misgelopen` : `Het praatje over ${entity.name}`,
+    tekst: mislukt
+      ? `Het is rondgegaan, maar niet zoals u wilde.\n\n"${tekst}"\n\nErgens onderweg is de bron genoemd. Men zegt nu dat u het bent geweest. Ik reken niets voor deze avond.`
+      : `Het praatje loopt.\n\n"${tekst}"\n\nIk heb het bij de juiste mensen neergelegd: aan de tap, bij de marktkramen, en bij twee monden die niets voor zich kunnen houden. Over ${entity.name} wordt het nu doorverteld. Wat ermee gebeurt is niet meer aan mij.`,
+    afzender: naamGock,
+    thema: 'gock',
+    entityId: v.entityId, entityType: v.entityType,
+  });
+
+  const io = req.app.get('io');
+  const room = _campagneRoom(req);
+  io.to(room).emit('gock:geruchten');
+  io.to(room).emit('entity:updated', { type: v.entityType, id: v.entityId });
+  io.to(room).emit('player:buffs-updated', { characterId: v.doorId, buffs: dmState.playerBuffs?.[v.doorId] || [] });
+  res.json({ ok: true, status: v.status, worp });
+});
+
+// Wat er openstaat (DM) of van jou loopt (speler).
+router.get('/gock/geruchten', attachRole, (req, res) => {
+  const dmState = readDmState();
+  const lijst = dmState.gockGeruchten || [];
+  if (req.role === 'dm') return res.json({ geruchten: lijst.filter(x => x.status === 'open') });
+  const cid = _handelendKarakter(req);
+  res.json({ geruchten: lijst.filter(x => x.doorId === cid && x.status === 'open') });
 });
 
 router.post('/gock/opdracht', attachRole, vereistDienst('gock'), (req, res) => {
@@ -12204,7 +12397,7 @@ router.put('/meta/ursula', requireDM, (req, res) => {
 router.put('/meta/gock', requireDM, (req, res) => {
   const meta = storage.readJSON('meta.json');
   if (!meta.gock) meta.gock = {};
-  ['naam', 'groet', 'groeten', 'groetTafelId', 'prijs', 'tidbits', 'tidbitTafelId', 'imageId', 'locatieId', 'backdropId'].forEach(f => { if (req.body[f] !== undefined) meta.gock[f] = req.body[f]; });
+  ['naam', 'groet', 'groeten', 'groetTafelId', 'prijs', 'geruchtPrijs', 'tidbits', 'tidbitTafelId', 'imageId', 'locatieId', 'backdropId'].forEach(f => { if (req.body[f] !== undefined) meta.gock[f] = req.body[f]; });
   storage.writeJSON('meta.json', meta);
   req.app.get('io').to(_campagneRoom(req)).emit('meta:updated');
   res.json(meta.gock);
@@ -13882,7 +14075,8 @@ router.get('/herberg', attachRole, (req, res) => {
     for (const e of (entities[type] || [])) {
       const vis = visibility[e.id] || 'hidden';
       if (vis === 'hidden' || vis === 'vague') continue;  // verborgen/vaag: overslaan
-      const regels = _roddelRegels(e.data).filter(r => r.tekst);
+      const _gid = characterId && characterId !== 'dm' ? _playerGroupId(dmState, characterId) : dmState.activeGroup;
+      const regels = _roddelRegels(e.data).filter(r => r.tekst && _roddelVoorParty(r, _gid));
       if (!regels.length) continue;                       // geen roddel: overslaan
       const gehoord = _roddelsGehoord(g, e);
       const verteld = regels.filter(r => gehoord.has(r.id)).length;

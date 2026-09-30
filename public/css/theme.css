@@ -28109,3 +28109,17 @@ body.akte-schrijf-open .mp-overlay { z-index: 1320; }
 }
 .magizoo-dier-stand svg { width: 13px; height: 13px; }
 .magizoo-dier--weg { opacity: .55; }
+
+/* ── De detective: een praatje rondstrooien ──────────────────────────────── */
+.gock-gerucht { margin-top: 18px; padding-top: 14px; border-top: 1px dashed rgba(196,168,122,0.3); }
+.gock-gerucht-kop {
+  display: flex; align-items: center; justify-content: center; gap: 7px;
+  font-family: 'Cinzel', serif; font-size: 0.82rem; letter-spacing: 0.05em;
+  color: var(--color-ink-dim); margin-bottom: 8px;
+}
+.gock-gerucht-kop svg { width: 16px; height: 16px; }
+.gock-gerucht-tekst { min-height: 64px; resize: vertical; font-family: 'EB Garamond', serif; }
+.gock-gerucht-klein { font-size: 0.75rem; font-style: italic; opacity: .6; margin-top: 6px; text-align: center; }
+.gock-gerucht-wacht { font-style: italic; opacity: .75; text-align: center; }
+.gock-gerucht-wacht svg { width: 14px; height: 14px; vertical-align: -2px; }
+.dm-verzoek-gerucht { width: 100%; margin-top: 5px; resize: vertical; font-family: 'EB Garamond', serif; }

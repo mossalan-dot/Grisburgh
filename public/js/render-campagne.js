@@ -1,4 +1,4 @@
-import { api } from './api.js?v=298';
+import { api } from './api.js?v=299';
 import { renderStatblock } from './render-statblock.js?v=9';
 
 const icon = (...a) => window.icon(...a);
@@ -1301,7 +1301,13 @@ function _tekstLijstUit(data, meervoud, enkelvoud) {
   if (rauw) {
     try {
       const arr = typeof rauw === 'string' ? JSON.parse(rauw) : rauw;
-      if (Array.isArray(arr)) return arr.map(v => String(v ?? '')).filter(v => v.trim());
+      // Roddels dragen sinds 30 sep een id, dus een regel kan een object zijn
+      // ({ id, tekst, geplantDoor }) in plaats van een kale string. Zonder deze
+      // regel las de DM "[object Object]" op elk kaartje — de speler niet, want
+      // de server stuurt hém al platte teksten.
+      if (Array.isArray(arr)) return arr
+        .map(v => (v && typeof v === 'object') ? String(v.tekst ?? '') : String(v ?? ''))
+        .filter(v => v.trim());
     } catch { /* val terug */ }
   }
   const los = String(data?.[enkelvoud] ?? '').trim();
@@ -3350,14 +3356,18 @@ function renderCard(type, e) {
   const _flavRegels = _tekstLijstUit(e.data, 'flavours', 'flavour');
   const _flavGezegd = (() => {
     // Zie het detailvenster: een speler krijgt alleen de vertelde regels binnen.
+    // Voor de DM komt de stand van de **actieve party** van de server mee — hij
+    // stond vroeger op het kaartje zelf, en gold dus voor iedereen.
     if (!isDM()) return _flavRegels.map(() => true);
+    const st = Array.isArray(e._roddels) ? e._roddels : null;
+    if (st) return _flavRegels.map((_, i) => !!st[i]?.gehoord);
     const rauw = e.data?.flavoursUitgesproken;
     if (Array.isArray(rauw)) return _flavRegels.map((_, i) => !!rauw[i]);
     const alles = e.data?.flavourUitgesproken === true || e.data?.flavourUitgesproken === 'true';
     return _flavRegels.map((_, i) => alles && i === 0);
   })();
   const _flavTonen = _flavRegels
-    .map((tekst, i) => ({ tekst, gezegd: _flavGezegd[i] }))
+    .map((tekst, i) => ({ tekst, gezegd: _flavGezegd[i], geplantDoor: e._roddels?.[i]?.geplantDoor || null }))
     .filter(r => r.tekst && (isDM() || r.gezegd));
 
   const chips = [];
