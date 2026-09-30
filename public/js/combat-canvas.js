@@ -1376,9 +1376,11 @@ function _drawCombatant(ctx, c, x, y, w, h, t, isActive, isWide, turnIndex, scha
   // dus het hoort te staan waar je kijkt.
   // Je eigen AC hoort er altijd te staan — dat is je eigen blad, geen geheim,
   // en juist het getal waar je tijdens een gevecht naar zoekt.
-  const isEigen = c.entityId && c.entityId === window.app?.state?.characterId;
-  const acZichtbaar = isDMView || isEigen
-    || (c.type === 'monster' && (c._niveau === 'deels' || c._niveau === 'volledig'));
+  // Zelfde regel als bij de HP-balk: de server stuurt `ac` alleen mee als deze
+  // kijker hem mag zien (eigen personage, eigen metgezel, bestudeerd monster).
+  // AC en het statblock lopen altijd via het bestiarium — ook in een campagne
+  // die de HP-cijfers wél toont; anders geeft die instelling de Magizoöloog weg.
+  const acZichtbaar = isDMView || !!acGetal(c.ac);
   if (acZichtbaar) {
     const acVal = acGetal(c.ac);
     if (acVal) {
@@ -1850,6 +1852,10 @@ function _isUit(c) {
 }
 
 function _drawHpBar(ctx, c, x, y, w, h) {
+  // Bij `binair` zegt de campagne: doet hij nog mee, verder niets. Een balk die
+  // altijd vol staat is dan geen informatie maar ruis — de token laat zelf al
+  // zien wie eruit ligt.
+  if (c._hpModus === 'binair') return;
   // Een speler krijgt van een ander geen hp en maxHp meer binnen, maar wél de
   // verhouding (`hpPct`, afgerond op tienden — zie `_combatVoorSpeler` in
   // routes/api.js). Zonder deze regel viel elke vreemde token terug op 0/1 en
@@ -1859,17 +1865,14 @@ function _drawHpBar(ctx, c, x, y, w, h) {
   const maxHp  = Math.max(1, c.maxHp || 1);
   const tempHp = c.tempHp || 0;
   const pct    = vaag ? Math.max(0, Math.min(1, c.hpPct / 100)) : hp / maxHp;
-  const isDM   = window.app?.isDM?.();
-  const niveau = c._niveau || null;  // null | 'naam' | 'deels' | 'volledig'
-
-  // Voor monsters zonder kennisniveau altijd een ruwe 3-segmenten bar tonen
-  // (gezond / gewond / kritiek), zonder exacte procenten.
-  // Bij deels/volledig: vloeiende 5-kleurige bar + exacte getallen (zoals DM).
-  const isMonster    = c.type === 'monster';
-  const hasKennis    = niveau === 'deels' || niveau === 'volledig';
-  const useCoarse    = (isMonster && !isDM && !hasKennis) || vaag;
-  // Exacte getallen alleen als we ze überhaupt hebben.
-  const showExact    = !vaag && (isDM || (isMonster && hasKennis));
+  // Hebben we echte getallen, of alleen een verhouding? Dat is de hele vraag.
+  // De server stuurt `hp` precies dan mee als deze kijker het mag zien — je
+  // eigen personage, je eigen metgezel, een bestudeerd monster, of een campagne
+  // die de cijfers gewoon toont (meta.combatHp). Hier dus niet nog eens zelf
+  // nagaan wie wat mag: aanwezigheid ís de toestemming, en dat scheelde drie
+  // voorwaarden die uit elkaar konden lopen met de server.
+  const useCoarse = vaag;
+  const showExact = !vaag;
 
   // Render-percentage: bij ruwe modus afkappen op 3 segmenten
   const renderPct = useCoarse

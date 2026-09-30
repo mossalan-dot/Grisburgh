@@ -1,4 +1,4 @@
-_108 sleutels · 16 aangepast in **grisburgh** · rest is de standaard uit de code._
+_109 sleutels · 16 aangepast in **grisburgh** · rest is de standaard uit de code._
 
 # Helpteksten
 
@@ -1671,7 +1671,7 @@ Heeft het voorwerp ladingen, dan staan die als bolletjes in je boedel. Ze laden 
 
 ## `hulp_muziek`
 
-> Helpknop in: dm-panel.js:12117
+> Helpknop in: dm-panel.js:12134
 > Nu: de standaard uit de code
 
 Titel: Muziek uit Spotify
@@ -1704,7 +1704,7 @@ Wat je aan tafel draait telt gewoon mee voor Discover Weekly en Wrapped. Een **p
 
 ## `inst_beheer`
 
-> Helpknop in: dm-panel.js:8252 (de subtab-balk stelt de sleutel samen uit het actieve tabje), dm-panel.js:12110
+> Helpknop in: dm-panel.js:8252 (de subtab-balk stelt de sleutel samen uit het actieve tabje), dm-panel.js:12127
 > Nu: de standaard uit de code
 
 Titel: Beheer
@@ -1750,7 +1750,7 @@ Het **app-icoon** is een ander ding: dat is het plaatje dat je telefoon of table
 
 ## `inst_campagnes`
 
-> Helpknop in: dm-panel.js:12079
+> Helpknop in: dm-panel.js:12096
 > Nu: de standaard uit de code
 
 Titel: Campagnes en modules
@@ -1775,7 +1775,7 @@ Naam, ondertitel en meteen een **DM-wachtwoord** — zonder dat komt er niemand 
 
 ## `inst_export`
 
-> Helpknop in: dm-panel.js:12128
+> Helpknop in: dm-panel.js:12145
 > Nu: de standaard uit de code
 
 Titel: Export & backup
@@ -1791,6 +1791,31 @@ Beide exports gebruiken dezelfde filter als de app zelf: wat een party nog niet 
 ### De echte backup draait vanzelf
 
 Dit is een uitdraai om te lezen, geen reservekopie. Elke nacht maakt de server een kopie van alle campagnes en bewaart die dertig dagen; de character sheets gaan daar als HTML in mee. Je hoeft hier dus niets te doen om veilig te zitten.
+
+---
+
+## `inst_gevecht`
+
+> Helpknop in: dm-panel.js:12061
+> Nu: de standaard uit de code
+
+Titel: In het gevecht
+
+### Wat zien spelers van andermans HP?
+
+Drie standen. **Alleen of hij nog meedoet** geeft geen balk en geen woord — je ziet wie eruit ligt, verder niets; voor een DM die spanning belangrijker vindt dan boekhouding. **Een balk en een woord** is de standaard: *ongedeerd*, *gewond*, *stervend*, met een balk die op tienden is afgerond zodat je het getal er niet uit terugrekent. **De cijfers** toont gewoon 34/52.
+
+### Wat er níét onder valt
+
+AC en het statblock blijven in alle drie de standen verborgen. Die lopen via het **bestiarium**: wat de party bestudeerd heeft mag ze zien, en dat is precies wat de Magizoöloog verkoopt. Zou de stand *de cijfers* ook het statblock vrijgeven, dan kreeg je in ronde één gratis waar hij 50 goudstukken voor vraagt.
+
+### Bestudeerde monsters
+
+Heeft de party een wezen op *deels* of *volledig* staan, dan hoort daar de beloning bij: AC, statblock en de cijfers. Alleen in de stand **alleen of hij nog meedoet** houdt de instelling de HP alsnog tegen — die DM zei nu eenmaal "bij mij geen cijfers in het gevecht". Het statblock blijft ook dan gewoon leesbaar.
+
+### Wat altijd van jou blijft
+
+Je eigen personage zie je volledig, en alles wat aan jou toebehoort: een geadopteerd dier, iets wat je oproept. Het is jouw beest en je moet kunnen zien of het de volgende klap overleeft. Andere spelers en hún metgezellen zie je zoals de stand hierboven zegt.
 
 ---
 
@@ -1821,7 +1846,7 @@ Waar de tijdlijn ophoudt. Twintig is de normale grens van 5e; hoger zet hem alle
 
 ## `inst_partys`
 
-> Helpknop in: dm-panel.js:8252 (de subtab-balk stelt de sleutel samen uit het actieve tabje), dm-panel.js:12091
+> Helpknop in: dm-panel.js:8252 (de subtab-balk stelt de sleutel samen uit het actieve tabje), dm-panel.js:12108
 > Nu: de standaard uit de code
 
 Titel: Party's

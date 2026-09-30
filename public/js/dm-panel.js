@@ -1,5 +1,5 @@
 import { api, huidigeCampagne } from './api.js?v=298';
-import { init as canvasInit, update as canvasUpdate, stop as canvasStop, acGetal } from './combat-canvas.js?v=29';
+import { init as canvasInit, update as canvasUpdate, stop as canvasStop, acGetal } from './combat-canvas.js?v=30';
 import { renderStatblock } from './render-statblock.js?v=9';
 
 // ── DM Panel ──
@@ -12043,6 +12043,23 @@ async function _renderInstellingen() {
       </div>
     `, window._helpBtn?.('inst_levelup') ?? '')}
 
+    <!-- Wat een speler van andermans HP ziet is smaak, geen regel: de ene DM
+         houdt alles verborgen, de andere legt de cijfers op tafel. Wat er níét
+         bij hoort — AC en het statblock — staat in het boekje; die lopen altijd
+         via het bestiarium, ook in de stand die de cijfers wél toont. -->
+    ${_instSectie('gevecht', 'In het gevecht', `
+      <div class="dm-form-row">
+        <label class="dm-form-label" for="inst-combat-hp">Wat zien spelers van andermans HP?</label>
+        <select id="inst-combat-hp" class="dm-input">
+          ${[['binair',   'Alleen of hij nog meedoet'],
+             ['staat',    'Een balk en een woord (standaard)'],
+             ['volledig', 'De cijfers']]
+            .map(([k, label]) => `<option value="${k}"${(meta.combatHp || 'staat') === k ? ' selected' : ''}>${label}</option>`).join('')}
+        </select>
+      </div>
+      <p class="dm-hint">Je eigen personage en je eigen metgezel zie je altijd volledig, in elke stand.</p>
+    `, window._helpBtn?.('inst_gevecht') ?? '')}
+
     ${!magBeheren ? '' : _instSectie('campagnes', 'Campagnes en modules', `
       <div class="dm-beheer-campagnes">
         <div id="dm-campagnes-inst-list">
@@ -12284,6 +12301,7 @@ window._instOpslaan = async () => {
       appIcon:     document.getElementById('inst-appicon')?.value || '',
       inOverzicht: document.getElementById('inst-in-overzicht')?.checked !== false,
       bronLink:    document.getElementById('inst-bron-link')?.value.trim() ?? '',
+      combatHp:    document.getElementById('inst-combat-hp')?.value || 'staat',
       // levelup gaat via zijn eigen route (validatie op de server), zie hieronder
       currency: {
         fl: document.getElementById('inst-munt-fl')?.value.trim(),

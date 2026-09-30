@@ -10,7 +10,7 @@ import { renderSpreuken } from './render-spreuken.js?v=41';
 import { renderVaardigheden, zoekVaardigheden } from './render-vaardigheden.js?v=10';
 import { renderStatblock } from './render-statblock.js?v=9';
 import { initSocket } from "./socket-client.js?v=79";
-import { initDmPanel } from "./dm-panel.js?v=347";
+import { initDmPanel } from "./dm-panel.js?v=348";
 import { COND_INFO, COND_LABEL, COND_MET_PLAATJE, COND_ICON } from './conditions.js?v=2';
 import './media-picker.js?v=8';
 import './tafels.js?v=2';
@@ -14507,6 +14507,13 @@ const HELP_CONFIG = {
     { titel: 'Naslag elders', tekst: 'Niet elke regeltekst mag in de app staan: wat niet in de vrije SRD zit heeft bij ons geen beschrijving. **Linken mag wel.** Hier zet je waarnaar die verwijzing gaat — een zoekopdracht met `{zoek}` erin, of `{naam}` en `{soort}` als je het zelf wil samenstellen. Leeg is een zoekmachine, en dat werkt beter dan een diepe link: die verlept zodra de andere site zijn adressen verandert.', afbeelding: null },
     { titel: 'Campagnes en modules', tekst: 'Alleen de beheerder ziet dit. Per campagne staat hier het DM-wachtwoord, welke campagne de **standaard** is (waar het kale adres naartoe stuurt) en welke **modules** aanstaan. Wat uit staat verdwijnt uit beeld — bij de DM én bij zijn spelers; er komt geen grijze "binnenkort"-knop voor in de plaats.', afbeelding: null },
   ] }),
+  inst_gevecht: () => ({ titel: 'In het gevecht', stappen: [
+    { titel: 'Wat zien spelers van andermans HP?', tekst: 'Drie standen. **Alleen of hij nog meedoet** geeft geen balk en geen woord — je ziet wie eruit ligt, verder niets; voor een DM die spanning belangrijker vindt dan boekhouding. **Een balk en een woord** is de standaard: *ongedeerd*, *gewond*, *stervend*, met een balk die op tienden is afgerond zodat je het getal er niet uit terugrekent. **De cijfers** toont gewoon 34/52.', afbeelding: null },
+    { titel: 'Wat er níét onder valt', tekst: 'AC en het statblock blijven in alle drie de standen verborgen. Die lopen via het **bestiarium**: wat de party bestudeerd heeft mag ze zien, en dat is precies wat de Magizoöloog verkoopt. Zou de stand *de cijfers* ook het statblock vrijgeven, dan kreeg je in ronde één gratis waar hij 50 goudstukken voor vraagt.', afbeelding: null },
+    { titel: 'Bestudeerde monsters', tekst: 'Heeft de party een wezen op *deels* of *volledig* staan, dan hoort daar de beloning bij: AC, statblock en de cijfers. Alleen in de stand **alleen of hij nog meedoet** houdt de instelling de HP alsnog tegen — die DM zei nu eenmaal "bij mij geen cijfers in het gevecht". Het statblock blijft ook dan gewoon leesbaar.', afbeelding: null },
+    { titel: 'Wat altijd van jou blijft', tekst: 'Je eigen personage zie je volledig, en alles wat aan jou toebehoort: een geadopteerd dier, iets wat je oproept. Het is jouw beest en je moet kunnen zien of het de volgende klap overleeft. Andere spelers en hún metgezellen zie je zoals de stand hierboven zegt.', afbeelding: null },
+  ] }),
+
   inst_levelup: () => ({ titel: 'Level omhoog', stappen: [
     { titel: 'XP of Milestone', tekst: 'Bij **Milestone** gun jij het level: je zet een level-up klaar wanneer het verhaal daar is. Bij **XP** wordt hij verdiend — je deelt punten uit met de XP-knop in de regie-balk (die het bedrag van het lopende gevecht al voorstelt) en de level-up staat vanzelf klaar zodra iemand over de drempel komt. Omzetten kan altijd.', afbeelding: null },
     { titel: 'De nullijn bij XP', tekst: 'Speelde je eerst op Milestone, dan heeft iedereen wel een level maar nog geen XP en staat elke balk op nul. De knop **Ieders XP op de nullijn zetten** geeft ieder het minimum dat bij zijn huidige level hoort; wie al meer had houdt dat, en niemand krijgt er een level-up van. Twee keer drukken kan dus geen kwaad.', afbeelding: null },

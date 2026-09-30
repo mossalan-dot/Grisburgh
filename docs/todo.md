@@ -325,6 +325,25 @@ Gevraagd op 14 sep 2026, gebouwd op 14 sep 2026.
       CSS-variabelen — geen tweede set componenten. Pas als er drie of vier
       overtuigend staan, hoort de keuze terug in de wizard.
 
+## Setup-wizard voor een nieuwe DM
+
+- [ ] **De keuzes die een campagne bepalen, één keer langslopen.** Ze staan nu
+      verspreid bij Instellingen, waar een nieuwe DM ze moet vinden. De wizard is
+      de plek waar hij ze één keer beantwoordt en daarna nooit meer hoeft te
+      zoeken. Wat er in elk geval in hoort, met de huidige standaard erbij:
+      - Titel, ondertitel, embleem en app-icoon.
+      - Munten: hoe heten gold, silver en copper hier? (Gold/Silver/Copper)
+      - Level omhoog: milestone of XP, hoe de HP erbij komt, hoogste level.
+        (milestone, gemiddelde, 20)
+      - **In het gevecht: wat zien spelers van andermans HP?** binair / staat /
+        volledig. (staat — een balk en een woord) AC en statblock lopen altijd
+        via het bestiarium; dat is geen keuze en hoeft dus niet gevraagd.
+      - Welke modules aan? (de `startset` uit `lib/modules.js`)
+      - Thema, zodra er meer dan één is — zie hierboven.
+      Elke nieuwe instelling die een **speelstijl** vastlegt hoort hier een regel
+      te krijgen op het moment dat hij gebouwd wordt, niet achteraf; zie
+      *Wat betekent deze functie voor een andere DM?* in CLAUDE.md.
+
 ## Helpteksten
 
 - [ ] **Een gouden standaard schrijven.** Elke DM mag de uitleg in zijn campagne

@@ -119,6 +119,57 @@ describe('Het gevecht: opstellen, beurten en HP', () => {
     assert.ok(wolf.hpStaat, 'die blijft een woord');
   });
 
+  // Hoeveel een speler van andermans HP ziet is een campagnekeuze. Drie standen,
+  // en in alle drie blijven AC en statblock achter de mist — die lopen via het
+  // bestiarium, en dát is wat de Magizoöloog verkoopt.
+  describe('Wat een speler van andermans HP ziet', () => {
+    const zet = async (modus) => req(server, 'PUT', '/api/meta/app', { combatHp: modus }, dm);
+    const wolf = async () => {
+      const c = (await req(server, 'GET', '/api/combat', null, heldC)).body;
+      return c.combatants.find(x => (x.name || '').startsWith('Veenwolf'));
+    };
+    after(async () => { await zet('staat'); });
+
+    it('standaard: een woord en een balk op tienden, geen cijfers', async () => {
+      await zet('staat');
+      const w = await wolf();
+      assert.strictEqual(w.hp, undefined);
+      assert.strictEqual(w.maxHp, undefined);
+      assert.ok(w.hpStaat, 'wel een woord');
+      assert.strictEqual(w.hpPct % 10, 0, 'de balk is op tienden afgerond');
+    });
+
+    it('binair: geen balk, geen woord — alleen of hij nog meedoet', async () => {
+      await zet('binair');
+      const w = await wolf();
+      assert.strictEqual(w.hp, undefined);
+      assert.strictEqual(w.hpStaat, '', 'geen staat zolang hij meedoet');
+      assert.strictEqual(w.hpPct, 100);
+      assert.strictEqual(w._hpModus, 'binair');
+    });
+
+    it('volledig: de cijfers wél, het statblock niet', async () => {
+      await zet('volledig');
+      const w = await wolf();
+      assert.strictEqual(typeof w.hp, 'number', 'de echte HP');
+      assert.ok(w.maxHp > 0, 'en zijn maximum — uitgerold per exemplaar, dus geen vast getal');
+      assert.strictEqual(w.statblock, undefined, 'het statblock blijft van het bestiarium');
+      assert.strictEqual(w.ac, undefined, 'en de AC ook');
+    });
+
+    it('weigert een stand die niet bestaat', async () => {
+      const r = await zet('alles');
+      assert.strictEqual(r.status, 400);
+    });
+
+    it('schrijft de standaard niet weg', async () => {
+      await zet('volledig');
+      await zet('staat');
+      const meta = (await req(server, 'GET', '/api/meta', null, dm)).body;
+      assert.ok(!('combatHp' in meta), 'een ontbrekende sleutel is de standaard');
+    });
+  });
+
   it('laat een afwezige speler buiten het gevecht', async () => {
     await req(server, 'PUT', `/api/groups/${gid}/aanwezigheid`, { afwezig: [maat] }, dm);
     await req(server, 'POST', `/api/encounters/${encId}/start`, {}, dm);

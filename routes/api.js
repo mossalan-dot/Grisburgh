@@ -4508,12 +4508,32 @@ function _hpStaat(hp, maxHp) {
   return _HP_STATEN.find(l => pct >= l.min) || _HP_STATEN[_HP_STATEN.length - 1];
 }
 
+// Hoeveel een speler van andermans HP ziet, is smaak en geen regel: de ene DM
+// houdt alles verborgen, de andere legt de cijfers op tafel. Campagnebreed te
+// kiezen bij Instellingen; een campagne zonder de sleutel houdt wat ze had.
+//
+//   binair    — doet nog mee of ligt eruit. Geen balk, geen woord.
+//   staat     — een woord uit _HP_STATEN + een balk op tienden. (standaard)
+//   volledig  — de echte hp en maxHp.
+//
+// Let op wat híér níét onder valt: AC en het statblock blijven in alle drie de
+// standen achter de mist. Die lopen via het bestiarium, en dat is precies wat
+// de Magizoöloog verkoopt — anders geeft één schakelaar zijn hele dienst weg.
+const _HP_MODI = ['binair', 'staat', 'volledig'];
+function _hpModus() {
+  try {
+    const m = storage.readJSON('meta.json')?.combatHp;
+    return _HP_MODI.includes(m) ? m : 'staat';
+  } catch { return 'staat'; }
+}
+
 // Het gevecht zoals één speler het mag zien: zijn eigen personage compleet,
 // al het andere zonder cijfers. Ook andere **spelers** worden vaag — dat is de
 // regel die het tafelscherm al hanteerde, en twee schermen horen hetzelfde te
 // zeggen.
 function _combatVoorSpeler(combat, characterId, kennis = {}) {
   if (!combat) return combat;
+  const modus = _hpModus();
 
   // **De tokengrootte blijft de dreiging verraden, en dat is met opzet.** Het
   // canvas tekent het zwaarste monster het grootst, gesorteerd op maxHp en dan
@@ -4546,14 +4566,36 @@ function _combatVoorSpeler(combat, characterId, kennis = {}) {
       const niveau = (c.type === 'monster' && c.presetId) ? (kennis[c.presetId] || null) : null;
       const rang = _rang(c);
       const extra = rang >= 0 ? { _dreigingIdx: rang } : {};
-      if (niveau === 'deels' || niveau === 'volledig') return { ...c, ...extra, _niveau: niveau };
+      const heeftKennis = niveau === 'deels' || niveau === 'volledig';
+
+      // Bestudeerd in het bestiarium: AC en statblock horen erbij, dát is de
+      // beloning. Alleen bij `binair` houdt de instelling de HP alsnog tegen —
+      // die DM zei "bij mij geen cijfers in het gevecht", en dan is een knop
+      // die stilletjes meebuigt een leugen.
+      if (heeftKennis && modus !== 'binair') return { ...c, ...extra, _niveau: niveau };
 
       const { hp, maxHp, ac, statblock, ...rest } = c;
+      const basis = { ...rest, ...extra, _niveau: niveau, _hpModus: modus };
+      if (heeftKennis) Object.assign(basis, { ac, statblock });
+
+      if (modus === 'binair') {
+        // Alleen: doet hij nog mee? Geen balk (hpPct stuurt de tekening), wel
+        // een stand zodat "buiten gevecht" blijft staan — anders weet je niet
+        // meer wie je nog moet raken.
+        const uit = !((hp || 0) > 0);
+        return { ...basis, hpStaat: uit ? 'buiten gevecht' : '', hpCls: uit ? 'hp-dead' : '', hpPct: uit ? 0 : 100 };
+      }
+      if (modus === 'volledig') {
+        // De cijfers wél, het statblock niet: dat blijft van het bestiarium.
+        const staatV = _hpStaat(hp, maxHp);
+        return { ...basis, hp, maxHp, hpStaat: staatV.label, hpCls: staatV.cls };
+      }
+
       const staat = _hpStaat(hp, maxHp);
       // De balk mag blijven: die toont een verhouding, geen getal. Afgerond op
       // tienden, anders reken je het getal alsnog terug uit de breedte.
       const pct = maxHp > 0 ? Math.round(Math.max(0, Math.min(1, (hp || 0) / maxHp)) * 10) * 10 : 0;
-      return { ...rest, ...extra, _niveau: niveau, hpStaat: staat.label, hpCls: staat.cls, hpPct: pct };
+      return { ...basis, hpStaat: staat.label, hpCls: staat.cls, hpPct: pct };
     }),
   };
 }
@@ -8971,6 +9013,15 @@ router.put('/meta/app', requireDM, (req, res) => {
   const meta = storage.readJSON('meta.json');
   if (req.body.appTitle    !== undefined) meta.appTitle    = String(req.body.appTitle).trim()    || meta.appTitle;
   if (req.body.appSubtitle !== undefined) meta.appSubtitle = String(req.body.appSubtitle).trim() || meta.appSubtitle;
+  // Hoeveel een speler van andermans HP ziet (zie `_hpModus`). 'staat' is de
+  // standaard en wordt niet weggeschreven: een ontbrekende sleutel ís de
+  // standaard, dus bestaande campagnes veranderen niet en een migratie die hem
+  // overal invult is werk dat later in de weg zit.
+  if (req.body.combatHp !== undefined) {
+    const m = String(req.body.combatHp);
+    if (!_HP_MODI.includes(m)) return res.status(400).json({ error: 'Onbekende HP-weergave' });
+    if (m === 'staat') delete meta.combatHp; else meta.combatHp = m;
+  }
   // Munten: alleen de namen zijn vrij. De sleutels fl/kn/cl blijven de gouden,
   // zilveren en koperen plek in de verhouding 1:10:100 — daar hangt te veel
   // opgeslagen bezit aan om ze te laten verschuiven.
