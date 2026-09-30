@@ -182,7 +182,10 @@ function vindplaatsen() {
       // `openModal(titel, sub, html, 'sleutel')` hangt het boekje naast het
       // kruisje van een venster. De sleutel staat daar als vierde argument en
       // niet in een `helpBtn(...)`, dus geen enkel patroon hierboven ziet hem.
-      if (/openModal\(/.test(r)) {
+      // Een aanroep mag over meerdere regels lopen; kijk dus een paar regels
+      // terug. Zonder dat vond hij `dm_gevecht_editor` niet, want daar staat
+      // `openModal(` op de regel erboven.
+      if (/openModal\(/.test(regels.slice(Math.max(0, n - 3), n + 1).join('\n'))) {
         for (const q of r.matchAll(/'([a-z_][a-z_0-9]*)'/gi)) {
           if (/^(dm_|hulp_|inst_)/.test(q[1])) (per[q[1]] ||= []).push(`${bestand}:${n + 1} (venster)`);
         }

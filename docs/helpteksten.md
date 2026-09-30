@@ -32,7 +32,7 @@ zodat latere verbeteringen in de code vanzelf doorkomen.
 
 - **110 boekjes, 341 stappen, 13771 woorden.** Gemiddeld 3.1 stap per boekje en 40 woorden per stap.
 - **8 boekjes van één stap.** Vaak één zin die alleen zegt wát het scherm is. Wat kun je er doen, en waar klik je? — `documenten`, `gock`, `hulp_kijk_personages_sheet`, `kaart`, `locaties`, `organisaties`, `party`, `personages`
-- **2 zonder knop.** Er staat uitleg klaar die niemand kan openen: `dm_gevecht_editor`, `gevecht`. Knop erbij, of de tekst weg.
+- **1 zonder knop.** Er staat uitleg klaar die niemand kan openen: `gevecht`. Knop erbij, of de tekst weg.
 
 ---
 
@@ -89,7 +89,7 @@ zodat latere verbeteringen in de code vanzelf doorkomen.
 - [`dm_geluiden_spelers`](#dm_geluiden_spelers) — Spelersgeluiden · 3 stappen, 89 w
 - [`dm_geluiden_standaard`](#dm_geluiden_standaard) — Vaste geluiden · 4 stappen, 101 w
 - [`dm_gevecht`](#dm_gevecht) — Gevechten en monsters · 3 stappen, 65 w · _aangepast_
-- [`dm_gevecht_editor`](#dm_gevecht_editor) — Een gevecht bouwen · 4 stappen, 174 w · _geen knop_
+- [`dm_gevecht_editor`](#dm_gevecht_editor) — Een gevecht bouwen · 4 stappen, 174 w
 - [`dm_gokhuis`](#dm_gokhuis) — Het gokhuis · 3 stappen, 99 w
 - [`dm_gokhuis_beheer`](#dm_gokhuis_beheer) — Gokken · 6 stappen, 238 w
 - [`dm_gokhuis_event`](#dm_gokhuis_event) — Een event aanmaken · 2 stappen, 43 w
@@ -1140,7 +1140,7 @@ Ga naar het subtabblad "Monsters" om monsters uit het bestiarium toe te voegen. 
 
 ## `dm_gevecht_editor`
 
-> Geen aanroep gevonden — mogelijk ongebruikt.
+> Helpknop in: dm-panel.js:4739 (venster)
 > Nu: de standaard uit de code
 > 4 stappen · 174 woorden · 44 per stap
 
@@ -1376,7 +1376,7 @@ Vink iemand aan of uit voordat je onthult. Handig als een personage bewust ergen
 
 ## `dm_loot_editor`
 
-> Helpknop in: dm-panel.js:9473
+> Helpknop in: dm-panel.js:9430 (venster), dm-panel.js:9473
 > Nu: de standaard uit de code
 > 7 stappen · 343 woorden · 49 per stap
 
@@ -1854,7 +1854,7 @@ Als DM kun je elke dienst openen en er namens de tafel handelen, ook als hij voo
 
 ## `dm_toegang_facties`
 
-> Helpknop in: dm-panel.js:1941
+> Helpknop in: dm-panel.js:1941, dm-panel.js:1941 (venster)
 > Nu: de standaard uit de code
 > 2 stappen · 60 woorden · 30 per stap
 
