@@ -13229,6 +13229,21 @@ router.post('/facties/:id/renown', requireDM, (req, res) => {
   io.to(room).emit('facties:updated');
   if (uit.boons || uit.voorwerpen.length) io.to(room).emit('player:items-updated', {});
   if (uit.winkelsOpen.length) io.to(room).emit('entities:updated', {});
+  // Een rang kan meer dan één ding tegelijk opleveren — een winkel die opengaat
+  // én een voorwerp. De spelers merkten daar niets van tenzij ze toevallig op
+  // het factiescherm stonden: de secties ververste zichzelf, maar niemand zei
+  // dat er iets gebeurd was. Eén regel, met wat er bij hoort.
+  if (uit.rangOmhoog) {
+    io.to(room).emit('factie:rang', {
+      groupId:     dmState.activeGroup,
+      factie:      factie.naam,
+      embleem:     factie.embleem || 'landmark',
+      rang:        uit.rangNaam || '',
+      voorwerpen:  uit.voorwerpen,
+      winkelsOpen: uit.winkelsOpen,
+      afspraken:   uit.boons,
+    });
+  }
   res.json({
     ok: true, id: factie.id, renown: uit.nieuwRenown, rangIdx: uit.nieuweRangIdx,
     boons: uit.boons, voorwerpen: uit.voorwerpen, winkelsOpen: uit.winkelsOpen,

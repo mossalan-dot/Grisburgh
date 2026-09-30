@@ -7960,14 +7960,22 @@ window._factieRenown = async (id, delta) => {
       const rangNaam = rangen[Math.min(idx, rangen.length - 1)]?.naam || 'Buitenstaander';
       badge.textContent = `renown: ${res.renown} | ${rangNaam}`;
     }
-    if (res.boons > 0) {
+    // Aan één rang kunnen meerdere dingen hangen: een winkel die opengaat, een
+    // voorwerp dat overgaat, een afspraak erbij. De melding keek alleen naar
+    // `boons` (de afspraken), dus een rang die "winkel open + zwaard" gaf zei
+    // helemaal niets — precies de combinatie waarvan je wil weten dát hij liep.
+    const _delen = [];
+    if (res.winkelsOpen?.length) _delen.push(`${res.winkelsOpen.join(', ')} ${res.winkelsOpen.length > 1 ? 'gingen' : 'ging'} open`);
+    if (res.voorwerpen?.length)  _delen.push(res.voorwerpen.join(', '));
+    if (res.boons > 0)           _delen.push(`${res.boons} afspra${res.boons > 1 ? 'ken' : 'ak'}`);
+    if (_delen.length) {
       const kaart = document.getElementById(`factie-dm-kaart-${id}`);
       if (kaart) {
         const notif = document.createElement('div');
         notif.className = 'factie-dm-rang-bereikt';
-        notif.textContent = `Rang bereikt — ${res.boons} gunst${res.boons > 1 ? 'en' : ''} uitgedeeld`;
+        notif.textContent = `Rang bereikt — ${_delen.join(' · ')}`;
         kaart.appendChild(notif);
-        setTimeout(() => notif.remove(), 4000);
+        setTimeout(() => notif.remove(), 6000);
       }
     }
     const live = _factiesLiveData.find(f => f.id === id);

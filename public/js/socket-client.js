@@ -157,6 +157,25 @@ function _ververOpenKaartje(id) {
     window._updateDienstenMenuFromSocket?.();
   });
 
+  // Een rang gehaald. Wat eraan hing kan van alles zijn en meer dan één ding
+  // tegelijk; de toast noemt het, zodat een speler niet zelf hoeft te ontdekken
+  // dat er een winkel is opengegaan.
+  socket.on('factie:rang', ({ groupId, factie, embleem, rang, voorwerpen, winkelsOpen, afspraken } = {}) => {
+    if (window.app?.isDM?.()) return;
+    const mijn = window._myGroupId;
+    if (groupId && mijn && mijn !== groupId) return;
+    const esc = window.app?.esc || (x => x);
+    const delen = [];
+    if (winkelsOpen?.length) delen.push(`${esc(winkelsOpen.join(', '))} ${winkelsOpen.length > 1 ? 'staan' : 'staat'} voor jullie open`);
+    if (voorwerpen?.length)  delen.push(esc(voorwerpen.join(', ')));
+    if (afspraken > 0)       delen.push(`${afspraken} nieuwe afspra${afspraken > 1 ? 'ken' : 'ak'}`);
+    window._showToast?.(
+      `${window.icon(embleem || 'landmark')} <strong>${esc(rang || 'Een nieuwe rang')}</strong> bij ${esc(factie || 'een factie')}`
+      + (delen.length ? `<br><span class="toast-sub">${delen.join(' · ')}</span>` : ''),
+      () => window.app?.switchSection?.('facties'),
+    );
+  });
+
   socket.on('missies:updated', () => {
     if (window.app?.state?.activeSection === 'facties') _refreshSectionDebounced('facties');
     window.dmPanel?.refreshMissieAanvragen?.();

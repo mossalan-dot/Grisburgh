@@ -27891,3 +27891,11 @@ body.akte-schrijf-open .mp-overlay { z-index: 1320; }
   .factie-unlock-rij > * { min-width: 0; }
   .factie-unlock-soort { width: 100%; }
 }
+
+/* Tweede regel in een toast: wat er bij de hoofdmelding hoort */
+.toast-sub {
+  display: block;
+  margin-top: 2px;
+  font-size: 0.82em;
+  opacity: 0.8;
+}

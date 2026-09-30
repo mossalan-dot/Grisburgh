@@ -357,6 +357,12 @@ describe('Facties: een rang ontgrendelt iets', () => {
     const eigenaar = (bezit.owners || {})[zwaard];
     assert.ok(eigenaar, 'het zwaard is uitgedeeld: ' + JSON.stringify(bezit.owners));
 
+    // Meerdere dingen aan één rang: het antwoord noemt ze alle drie apart, zodat
+    // de melding kan zeggen wát er gebeurd is in plaats van alleen hoeveel.
+    assert.deepStrictEqual(r.body.winkelsOpen?.length, 1, JSON.stringify(r.body));
+    assert.deepStrictEqual(r.body.voorwerpen?.length, 1, JSON.stringify(r.body));
+    assert.strictEqual(r.body.boons, 1, 'de afspraak telt apart');
+
     // titel en metgezel worden níét uitgedeeld: de titel staat op de ladder,
     // de metgezel roep je in (POST /hulp).
     const f = ((await req(server, 'GET', '/api/facties', null, dm)).body.facties || [])
