@@ -27795,3 +27795,85 @@ body.akte-schrijf-open .mp-overlay { z-index: 1320; }
 .geluid-btn.hidden { display: none; }
 .geluid-btn--uit { opacity: 0.5; }
 .geluid-btn--uit:hover { opacity: 0.8; }
+
+/* ── Toegang: de dienstnaam is een invulveld ──────────────────────────────── */
+/* Dit is het enige scherm waar alle diensten onder elkaar staan, dus de plek
+   om ze in één keer naar je eigen wereld om te dopen. */
+.dm-toegang-dienst {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+.dm-toegang-dienst > svg { flex-shrink: 0; width: 15px; height: 15px; }
+.dm-toegang-naam { width: 150px; min-width: 0; }
+@media (max-width: 640px) {
+  .dm-toegang-naam { width: 110px; }
+}
+
+/* ── Factiekaart: vier tabjes in plaats van één waslijst ──────────────────── */
+.factie-dm-tabs { margin-top: 8px; }
+.factie-dm-tabs .dm-subtab-nav { margin-bottom: 10px; }
+.factie-dm-paneel[hidden] { display: none; }
+
+/* Zegel en briefhoofd: je kiest een kleur, dus laat je de kleur zien — met het
+   embleem van de factie erin, zoals het op de brief komt te staan. */
+.factie-stijl-picker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  flex: 1;
+}
+.factie-stijl-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 8px;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+.factie-stijl-btn:hover { background: rgba(196,168,122,0.10); }
+.factie-stijl-btn--actief {
+  border-color: rgba(196,168,122,0.55);
+  background: rgba(196,168,122,0.14);
+}
+.factie-stijl-zegel {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--zegel);
+  color: rgba(255,255,255,0.92);
+  box-shadow: inset 0 -2px 4px rgba(0,0,0,0.28), 0 1px 2px rgba(0,0,0,0.25);
+}
+.factie-stijl-zegel svg { width: 17px; height: 17px; }
+.factie-stijl-naam {
+  font-family: 'Cinzel', serif;
+  font-size: 0.68rem;
+  letter-spacing: 0.03em;
+  color: var(--color-ink-dim);
+}
+.factie-stijl-btn--actief .factie-stijl-naam { color: var(--color-ink-bright); }
+
+/* Leden in het DM-paneel: een spiegel van het organogram, geen tweede lijst */
+.factie-leden-kop {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin: 10px 0 4px;
+  font-family: 'Cinzel', serif;
+  font-size: 0.7rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--color-ink-faint);
+}
+.factie-leden-kop svg { width: 13px; height: 13px; }
+.factie-leden-kop:first-child { margin-top: 0; }
+.factie-lid-rij--leiding .factie-lid-naam,
+.factie-lid-rij--leiding .dm-factie-kaartlink { font-weight: 600; }

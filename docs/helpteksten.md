@@ -30,7 +30,7 @@ zodat latere verbeteringen in de code vanzelf doorkomen.
 
 > Deze lijst is afgeleid, niet gekozen: hij wijst alleen aan waar de vorm uiteenloopt.
 
-- **109 boekjes, 322 stappen, 12505 woorden.** Gemiddeld 3.0 stap per boekje en 39 woorden per stap.
+- **109 boekjes, 323 stappen, 12624 woorden.** Gemiddeld 3.0 stap per boekje en 39 woorden per stap.
 - **8 boekjes van één stap.** Vaak één zin die alleen zegt wát het scherm is. Wat kun je er doen, en waar klik je? — `documenten`, `gock`, `hulp_kijk_personages_sheet`, `kaart`, `locaties`, `organisaties`, `party`, `personages`
 - **1 zonder knop.** Er staat uitleg klaar die niemand kan openen: `gevecht`. Knop erbij, of de tekst weg.
 
@@ -79,7 +79,7 @@ zodat latere verbeteringen in de code vanzelf doorkomen.
 - [`dm_detective`](#dm_detective) — De detective · 2 stappen, 60 w
 - [`dm_dienst_algemeen`](#dm_dienst_algemeen) — Algemeen · 4 stappen, 135 w
 - [`dm_facties`](#dm_facties) — Facties · 5 stappen, 168 w
-- [`dm_facties_leden`](#dm_facties_leden) — Leden van een factie · 2 stappen, 43 w
+- [`dm_facties_leden`](#dm_facties_leden) — Leden van een factie · 3 stappen, 162 w
 - [`dm_facties_rangen`](#dm_facties_rangen) — Rangen · 2 stappen, 61 w
 - [`dm_geluiden_condities`](#dm_geluiden_condities) — Conditiegeluiden · 3 stappen, 80 w
 - [`dm_geluiden_decors`](#dm_geluiden_decors) — Decors · 3 stappen, 115 w
@@ -208,7 +208,7 @@ Het **archief**: brieven, aktes, kaarten en aantekeningen die je onderweg verzam
 
 ## `facties`
 
-> Helpknop in: app.js:8785, app.js:13800, app.js:13911
+> Helpknop in: app.js:8785, app.js:13800, app.js:13915
 > Nu: **aangepast in deze campagne**
 > 4 stappen · 144 woorden · 36 per stap
 > De standaard telt 4 stap(pen).
@@ -865,7 +865,7 @@ Koppel een **tafel** met begroetingen: er wordt er bij elk bezoek één gekozen,
 
 ## `dm_facties`
 
-> Helpknop in: dm-panel.js:1340 (de dienstenbalk stelt de sleutel samen uit de actieve dienst), dm-panel.js:7441
+> Helpknop in: dm-panel.js:1340 (de dienstenbalk stelt de sleutel samen uit de actieve dienst), dm-panel.js:7516
 > Nu: de standaard uit de code
 > 5 stappen · 168 woorden · 34 per stap
 
@@ -895,25 +895,29 @@ Spelers zien een factie pas als jij haar onthult (het oogje). Het renown pas je 
 
 ## `dm_facties_leden`
 
-> Helpknop in: dm-panel.js:7520
+> Helpknop in: dm-panel.js:7333 (subtabtabel)
 > Nu: de standaard uit de code
-> 2 stappen · 43 woorden · 22 per stap
+> 3 stappen · 162 woorden · 54 per stap
 
 Titel: Leden van een factie
 
-### Wie erbij hoort
+### Eén lijst: het organogram
 
-Koppel personagekaartjes aan de factie. Dat werkt twee kanten op: op hun eigen kaartje staat daarna dat ze hierbij horen.
+Wie bij een factie hoort staat in het **organogram** van haar organisatiekaartje — daar geef je iemand een rol en zet je hem onder een ander. Wat je hier ziet is een spiegel daarvan; klik de naam van de organisatie om hem te bewerken. Er was hier ook een eigen ledenlijst met een apart rangveld: twee lijsten voor één vraag, die uit elkaar liepen.
 
-### Wat de spelers zien
+### Van twee kanten te leggen
 
-Een lid dat de party nog niet kent, verschijnt niet bij naam. Een organisatie ontmantelen is het spel; de ledenlijst is niet gratis.
+Je kunt het ook op het kaartje van de persoon zelf zeggen, bij *Waar hoort dit personage bij?*. Dat schrijft in hetzelfde organogram — één plek waar het staat, twee kanten om het te leggen. Heeft de factie nog geen organisatiekaartje, dan is er geen plek om het te bewaren; koppel dat eerst bij **Algemeen**.
+
+### Hoe het bij de spelers oogt
+
+Wie niemand boven zich heeft staat onder **Leiding**, de rest onder de naam van zijn chef. Een lid waarvan de party het personagekaartje nog niet kent, verschijnt niet bij naam — een organisatie ontmantelen is het spel, en de ledenlijst is niet gratis.
 
 ---
 
 ## `dm_facties_rangen`
 
-> Helpknop in: dm-panel.js:7552
+> Helpknop in: dm-panel.js:7333 (subtabtabel)
 > Nu: de standaard uit de code
 > 2 stappen · 61 woorden · 31 per stap
 
@@ -931,7 +935,7 @@ Een titel, en wat jij eraan hangt: toegang, een gunst, een korting. De app reken
 
 ## `dm_geluiden_condities`
 
-> Helpknop in: dm-panel.js:8267
+> Helpknop in: dm-panel.js:8345
 > Nu: de standaard uit de code
 > 3 stappen · 80 woorden · 27 per stap
 
@@ -953,7 +957,7 @@ Die klinkt niet bij het toepassen maar bij het begin van elke nieuwe ronde, zola
 
 ## `dm_geluiden_decors`
 
-> Helpknop in: dm-panel.js:8252 (de subtab-balk stelt de sleutel samen uit het actieve tabje)
+> Helpknop in: dm-panel.js:8330 (de subtab-balk stelt de sleutel samen uit het actieve tabje)
 > Nu: de standaard uit de code
 > 3 stappen · 115 woorden · 38 per stap
 
@@ -975,7 +979,7 @@ Daaronder staan de klanken die de app **zelf** op het juiste moment speelt: een 
 
 ## `dm_geluiden_diensten`
 
-> Helpknop in: dm-panel.js:8201
+> Helpknop in: dm-panel.js:8279
 > Nu: de standaard uit de code
 > 3 stappen · 113 woorden · 38 per stap
 
@@ -997,7 +1001,7 @@ Elke factie kan een eigen loop hebben, zodat het gildehuis anders klinkt dan de 
 
 ## `dm_geluiden_facties`
 
-> Helpknop in: dm-panel.js:8203
+> Helpknop in: dm-panel.js:8281
 > Nu: de standaard uit de code
 > 2 stappen · 58 woorden · 29 per stap
 
@@ -1015,7 +1019,7 @@ Het speelt in een lus zolang dat scherm openstaat, dus kies iets zonder duidelij
 
 ## `dm_geluiden_rust`
 
-> Helpknop in: dm-panel.js:8235
+> Helpknop in: dm-panel.js:8313
 > Nu: de standaard uit de code
 > 2 stappen · 56 woorden · 28 per stap
 
@@ -1033,7 +1037,7 @@ Onder een rustscherm wordt er gepraat: dit is achtergrond, geen muziek om naar t
 
 ## `dm_geluiden_spelers`
 
-> Helpknop in: dm-panel.js:8252 (de subtab-balk stelt de sleutel samen uit het actieve tabje), dm-panel.js:8274
+> Helpknop in: dm-panel.js:8330 (de subtab-balk stelt de sleutel samen uit het actieve tabje), dm-panel.js:8352
 > Nu: de standaard uit de code
 > 3 stappen · 89 woorden · 30 per stap
 
@@ -1055,7 +1059,7 @@ Laat ze er zelf een kiezen. Het is het enige geluid in de app dat van hén is, e
 
 ## `dm_geluiden_standaard`
 
-> Helpknop in: dm-panel.js:8252 (de subtab-balk stelt de sleutel samen uit het actieve tabje), dm-panel.js:8263
+> Helpknop in: dm-panel.js:8330 (de subtab-balk stelt de sleutel samen uit het actieve tabje), dm-panel.js:8341
 > Nu: de standaard uit de code
 > 4 stappen · 101 woorden · 25 per stap
 
@@ -1125,7 +1129,7 @@ Er is nog geen knop om een lening af te betalen: dat doe je door het schuldbewij
 
 ## `dm_gokhuis_beheer`
 
-> Helpknop in: dm-panel.js:6265
+> Helpknop in: dm-panel.js:6292
 > Nu: de standaard uit de code
 > 2 stappen · 47 woorden · 24 per stap
 
@@ -1143,7 +1147,7 @@ Een lening van een personage dat niet meer bestaat kun je hier weghalen. Laat he
 
 ## `dm_gokhuis_event`
 
-> Helpknop in: dm-panel.js:6270
+> Helpknop in: dm-panel.js:6297
 > Nu: de standaard uit de code
 > 2 stappen · 43 woorden · 22 per stap
 
@@ -1161,7 +1165,7 @@ Per optie stel je de verhouding in. Een uitslag die iedereen zag aankomen levert
 
 ## `dm_gokhuis_inschrijvingen`
 
-> Helpknop in: dm-panel.js:6252
+> Helpknop in: dm-panel.js:6279
 > Nu: de standaard uit de code
 > 2 stappen · 51 woorden · 26 per stap
 
@@ -1179,7 +1183,7 @@ Een speler kan ook zelf het perk in. Zijn inzet is dan zijn eigen kamp — en ve
 
 ## `dm_gokhuis_partijen`
 
-> Helpknop in: dm-panel.js:6241 (sectiekop)
+> Helpknop in: dm-panel.js:6268 (sectiekop)
 > Nu: de standaard uit de code
 > 2 stappen · 56 woorden · 28 per stap
 
@@ -1197,7 +1201,7 @@ Het gevecht wordt aan tafel gespeeld of verteld; jij zet daarna wie er gewonnen 
 
 ## `dm_gunnen`
 
-> Helpknop in: dm-panel.js:11033 (subtabbalk)
+> Helpknop in: dm-panel.js:11111 (subtabbalk)
 > Nu: de standaard uit de code
 > 5 stappen · 201 woorden · 40 per stap
 
@@ -1227,7 +1231,7 @@ Een per ongeluk gegund level haal je met dezelfde knop weer weg zolang de speler
 
 ## `dm_herberg_rust`
 
-> Helpknop in: dm-panel.js:5938 (sectiekop)
+> Helpknop in: dm-panel.js:5965 (sectiekop)
 > Nu: de standaard uit de code
 > 2 stappen · 85 woorden · 43 per stap
 
@@ -1245,7 +1249,7 @@ Een nacht in de herberg onthult **roddels** van kaartjes die deze party al kent 
 
 ## `dm_herberg_tap`
 
-> Helpknop in: dm-panel.js:5950 (sectiekop)
+> Helpknop in: dm-panel.js:5977 (sectiekop)
 > Nu: de standaard uit de code
 > 4 stappen · 173 woorden · 43 per stap
 
@@ -1271,7 +1275,7 @@ Een bestelling is vooral een reden om iets te laten gebeuren — de waard vertel
 
 ## `dm_loot_deelnemers`
 
-> Helpknop in: dm-panel.js:8765
+> Helpknop in: dm-panel.js:8843
 > Nu: de standaard uit de code
 > 2 stappen · 58 woorden · 29 per stap
 
@@ -1289,7 +1293,7 @@ Vink iemand aan of uit voordat je onthult. Handig als een personage bewust ergen
 
 ## `dm_loot_editor`
 
-> Helpknop in: dm-panel.js:9093
+> Helpknop in: dm-panel.js:9171
 > Nu: de standaard uit de code
 > 7 stappen · 343 woorden · 49 per stap
 
@@ -1327,7 +1331,7 @@ Vink *Dit is een mimic* aan en de kist blijkt een wezen: er valt niets te verdel
 
 ## `dm_loot_goud`
 
-> Helpknop in: dm-panel.js:9127
+> Helpknop in: dm-panel.js:9205
 > Nu: de standaard uit de code
 > 3 stappen · 130 woorden · 43 per stap
 
@@ -1349,7 +1353,7 @@ Die worden bij het invoeren omgerekend (ep = 5 zilver, pp = 10 goud): in de beur
 
 ## `dm_loot_sjablonen`
 
-> Helpknop in: dm-panel.js:9033
+> Helpknop in: dm-panel.js:9111
 > Nu: de standaard uit de code
 > 2 stappen · 68 woorden · 34 per stap
 
@@ -1367,7 +1371,7 @@ Wat je al had staat er nog. *Gebruiken* maakt er een gewone vondst van; daarna k
 
 ## `dm_loot_uitslag`
 
-> Helpknop in: dm-panel.js:8621
+> Helpknop in: dm-panel.js:8699
 > Nu: de standaard uit de code
 > 3 stappen · 84 woorden · 28 per stap
 
@@ -1389,7 +1393,7 @@ Bij het afsluiten gaat alles daadwerkelijk naar de boedel van de spelers en word
 
 ## `dm_loot_vondsten`
 
-> Helpknop in: dm-panel.js:9023
+> Helpknop in: dm-panel.js:9101
 > Nu: de standaard uit de code
 > 3 stappen · 130 woorden · 43 per stap
 
@@ -1429,7 +1433,7 @@ Een metgezel heeft statblokken per niveau; welke geldt, hangt af van het level v
 
 ## `dm_markt`
 
-> Helpknop in: dm-panel.js:1340 (de dienstenbalk stelt de sleutel samen uit de actieve dienst), dm-panel.js:6572 (sectiekop)
+> Helpknop in: dm-panel.js:1340 (de dienstenbalk stelt de sleutel samen uit de actieve dienst), dm-panel.js:6599 (sectiekop)
 > Nu: de standaard uit de code
 > 3 stappen · 111 woorden · 37 per stap
 
@@ -1451,7 +1455,7 @@ De Markt leest de schappen alleen. Had een winkel zijn assortiment nog niet gero
 
 ## `dm_markt_gebieden`
 
-> Helpknop in: dm-panel.js:6579 (sectiekop)
+> Helpknop in: dm-panel.js:6606 (sectiekop)
 > Nu: de standaard uit de code
 > 3 stappen · 106 woorden · 35 per stap
 
@@ -1473,7 +1477,7 @@ Alle wijken als losse knop is zelden wat je wilt. Vink daarom aan welke gebieden
 
 ## `dm_markt_winkels`
 
-> Helpknop in: dm-panel.js:6609
+> Helpknop in: dm-panel.js:6636
 > Nu: de standaard uit de code
 > 3 stappen · 106 woorden · 35 per stap
 
@@ -1495,7 +1499,7 @@ De Markt toont alleen winkels die deze party kan zien, en een doorklik naar het 
 
 ## `dm_post_brief`
 
-> Helpknop in: dm-panel.js:11187
+> Helpknop in: dm-panel.js:11265
 > Nu: de standaard uit de code
 > 5 stappen · 224 woorden · 45 per stap
 
@@ -1525,7 +1529,7 @@ Zet je *cinematisch* aan, dan krijgt de speler eerst een verzegelde envelop die 
 
 ## `dm_post_geschiedenis`
 
-> Helpknop in: dm-panel.js:11275
+> Helpknop in: dm-panel.js:11353
 > Nu: de standaard uit de code
 > 2 stappen · 48 woorden · 24 per stap
 
@@ -1543,7 +1547,7 @@ Een eerdere brief is de snelste opzet voor de volgende: open hem, pas de tekst a
 
 ## `dm_rust_sfeer`
 
-> Helpknop in: dm-panel.js:9412
+> Helpknop in: dm-panel.js:9490
 > Nu: de standaard uit de code
 > 3 stappen · 112 woorden · 37 per stap
 
@@ -1565,7 +1569,7 @@ Je kunt een aparte tabel zetten voor het veld en voor de herberg: wat je wakker 
 
 ## `dm_rust_starten`
 
-> Helpknop in: dm-panel.js:9394
+> Helpknop in: dm-panel.js:9472
 > Nu: de standaard uit de code
 > 3 stappen · 125 woorden · 42 per stap
 
@@ -1587,7 +1591,7 @@ Daar wordt de overnachtingsprijs per speler afgeschreven en worden er twee rodde
 
 ## `dm_tafels_namen`
 
-> Helpknop in: dm-panel.js:3545
+> Helpknop in: dm-panel.js:3572
 > Nu: de standaard uit de code
 > 3 stappen · 105 woorden · 35 per stap
 
@@ -1609,7 +1613,7 @@ Een naam die blijft hangen verdient een kaartje: tik hem over in een nieuw perso
 
 ## `dm_tafels_tabellen`
 
-> Helpknop in: dm-panel.js:3570
+> Helpknop in: dm-panel.js:3597
 > Nu: de standaard uit de code
 > 4 stappen · 127 woorden · 32 per stap
 
@@ -1635,7 +1639,7 @@ Een tafel is ook te koppelen aan een **voorwerp** (een Wand of Wonder), aan de *
 
 ## `dm_tafels_weer`
 
-> Helpknop in: dm-panel.js:3554
+> Helpknop in: dm-panel.js:3581
 > Nu: de standaard uit de code
 > 2 stappen · 63 woorden · 32 per stap
 
@@ -1671,7 +1675,7 @@ Een **zegen** koop je en komt in je boedel. Een **eed** is een belofte met een g
 
 ## `dm_tempel_eden`
 
-> Helpknop in: dm-panel.js:6904 (sectiekop)
+> Helpknop in: dm-panel.js:6931 (sectiekop)
 > Nu: de standaard uit de code
 > 2 stappen · 60 woorden · 30 per stap
 
@@ -1689,7 +1693,7 @@ Een eed of vloek verdwijnt niet vanzelf: die haal je hier weg als de scène daar
 
 ## `dm_tempel_goden`
 
-> Helpknop in: dm-panel.js:6907 (sectiekop)
+> Helpknop in: dm-panel.js:6934 (sectiekop)
 > Nu: de standaard uit de code
 > 7 stappen · 245 woorden · 35 per stap
 
@@ -1727,7 +1731,7 @@ De volgorde die je hier zet is de volgorde in de tempel. Zet de goden die er in 
 
 ## `dm_tempel_prijzen`
 
-> Helpknop in: dm-panel.js:6896 (sectiekop)
+> Helpknop in: dm-panel.js:6923 (sectiekop)
 > Nu: de standaard uit de code
 > 2 stappen · 68 woorden · 34 per stap
 
@@ -1745,7 +1749,7 @@ Schrijf het zoals je het uitspreekt: *2,50* is 2 florinden en 5 knaken, en *5 gp
 
 ## `dm_toegang_diensten`
 
-> Helpknop in: dm-panel.js:1912
+> Helpknop in: dm-panel.js:1939
 > Nu: de standaard uit de code
 > 3 stappen · 94 woorden · 31 per stap
 
@@ -1767,7 +1771,7 @@ Als DM kun je elke dienst openen en er namens de tafel handelen, ook als hij voo
 
 ## `dm_toegang_facties`
 
-> Helpknop in: dm-panel.js:1910
+> Helpknop in: dm-panel.js:1937
 > Nu: de standaard uit de code
 > 2 stappen · 60 woorden · 30 per stap
 
@@ -1785,7 +1789,7 @@ Twee party's in dezelfde wereld hoeven niet dezelfde namen te kennen. Wat de ene
 
 ## `dm_verzoeken_multiclass`
 
-> Helpknop in: dm-panel.js:11063
+> Helpknop in: dm-panel.js:11141
 > Nu: de standaard uit de code
 > 3 stappen · 90 woorden · 30 per stap
 
@@ -1807,7 +1811,7 @@ Je ziet wat 5e vraagt en wat dit personage heeft, maar ook hier blokkeert de app
 
 ## `dm_verzoeken_onderzoek`
 
-> Helpknop in: dm-panel.js:11068
+> Helpknop in: dm-panel.js:11146
 > Nu: de standaard uit de code
 > 2 stappen · 65 woorden · 33 per stap
 
@@ -1825,7 +1829,7 @@ Een dossier kost geld en tijd — dat is de hele charme: de party moet wachten e
 
 ## `dm_verzoeken_spreuken`
 
-> Helpknop in: dm-panel.js:11048
+> Helpknop in: dm-panel.js:11126
 > Nu: de standaard uit de code
 > 2 stappen · 87 woorden · 44 per stap
 
@@ -1843,7 +1847,7 @@ Bij het verzoek staat of de spreuk op de lijst van zijn klasse staat — maar de
 
 ## `dm_verzoeken_verkoop`
 
-> Helpknop in: dm-panel.js:11058
+> Helpknop in: dm-panel.js:11136
 > Nu: de standaard uit de code
 > 3 stappen · 115 woorden · 38 per stap
 
@@ -1865,7 +1869,7 @@ Naar de gedeelde partybeurs als die aanstaat, anders naar de speler zelf — dez
 
 ## `dm_verzoeken_voorwerpen`
 
-> Helpknop in: dm-panel.js:11053
+> Helpknop in: dm-panel.js:11131
 > Nu: de standaard uit de code
 > 2 stappen · 66 woorden · 33 per stap
 
@@ -1901,7 +1905,7 @@ Een voorspelling hoort vaag genoeg te zijn om later te kloppen, en scherp genoeg
 
 ## `dm_waarzegger_akte`
 
-> Helpknop in: dm-panel.js:6764
+> Helpknop in: dm-panel.js:6791
 > Nu: de standaard uit de code
 > 2 stappen · 48 woorden · 24 per stap
 
@@ -1919,7 +1923,7 @@ De app onthoudt wie welke voorspelling al gehad heeft, zodat twee spelers niet h
 
 ## `dm_wereld_buiten`
 
-> Helpknop in: dm-panel.js:5835
+> Helpknop in: dm-panel.js:5862
 > Nu: de standaard uit de code
 > 2 stappen · 65 woorden · 33 per stap
 
@@ -1937,7 +1941,7 @@ Alles staat standaard dicht zodra ze weg zijn; je wijst dus alleen de uitzonderi
 
 ## `dm_wereld_locatie`
 
-> Helpknop in: dm-panel.js:5818
+> Helpknop in: dm-panel.js:5845
 > Nu: de standaard uit de code
 > 2 stappen · 69 woorden · 35 per stap
 
@@ -1955,7 +1959,7 @@ Dit is de knop voor "we zijn op reis". Wat er per **akte** bereikbaar is, stel j
 
 ## `hulp_muziek`
 
-> Helpknop in: dm-panel.js:12134
+> Helpknop in: dm-panel.js:12212
 > Nu: de standaard uit de code
 > 6 stappen · 308 woorden · 51 per stap
 
@@ -2375,7 +2379,7 @@ Eén keer goed zetten en daarna vergeten. Toon: zeg wat de keuze betekent en wat
 
 ## `inst_beheer`
 
-> Helpknop in: dm-panel.js:8252 (de subtab-balk stelt de sleutel samen uit het actieve tabje), dm-panel.js:12127
+> Helpknop in: dm-panel.js:8330 (de subtab-balk stelt de sleutel samen uit het actieve tabje), dm-panel.js:12205
 > Nu: de standaard uit de code
 > 4 stappen · 177 woorden · 44 per stap
 
@@ -2401,7 +2405,7 @@ Alleen de beheerder ziet dit. Per campagne staat hier het DM-wachtwoord, welke c
 
 ## `inst_campagne`
 
-> Helpknop in: dm-panel.js:8252 (de subtab-balk stelt de sleutel samen uit het actieve tabje), dm-panel.js:11969
+> Helpknop in: dm-panel.js:8330 (de subtab-balk stelt de sleutel samen uit het actieve tabje), dm-panel.js:12047
 > Nu: de standaard uit de code
 > 3 stappen · 176 woorden · 59 per stap
 
@@ -2423,7 +2427,7 @@ Het **app-icoon** is een ander ding: dat is het plaatje dat je telefoon of table
 
 ## `inst_campagnes`
 
-> Helpknop in: dm-panel.js:12096
+> Helpknop in: dm-panel.js:12174
 > Nu: de standaard uit de code
 > 4 stappen · 160 woorden · 40 per stap
 
@@ -2449,7 +2453,7 @@ Naam, ondertitel en meteen een **DM-wachtwoord** — zonder dat komt er niemand 
 
 ## `inst_export`
 
-> Helpknop in: dm-panel.js:12145
+> Helpknop in: dm-panel.js:12223
 > Nu: de standaard uit de code
 > 3 stappen · 124 woorden · 41 per stap
 
@@ -2471,7 +2475,7 @@ Dit is een uitdraai om te lezen, geen reservekopie. Elke nacht maakt de server e
 
 ## `inst_gevecht`
 
-> Helpknop in: dm-panel.js:12061
+> Helpknop in: dm-panel.js:12139
 > Nu: de standaard uit de code
 > 4 stappen · 219 woorden · 55 per stap
 
@@ -2497,7 +2501,7 @@ Je eigen personage zie je volledig, en alles wat aan jou toebehoort: een geadopt
 
 ## `inst_levelup`
 
-> Helpknop in: dm-panel.js:12044
+> Helpknop in: dm-panel.js:12122
 > Nu: de standaard uit de code
 > 4 stappen · 203 woorden · 51 per stap
 
@@ -2523,7 +2527,7 @@ Waar de tijdlijn ophoudt. Twintig is de normale grens van 5e; hoger zet hem alle
 
 ## `inst_partys`
 
-> Helpknop in: dm-panel.js:8252 (de subtab-balk stelt de sleutel samen uit het actieve tabje), dm-panel.js:12108
+> Helpknop in: dm-panel.js:8330 (de subtab-balk stelt de sleutel samen uit het actieve tabje), dm-panel.js:12186
 > Nu: de standaard uit de code
 > 7 stappen · 367 woorden · 52 per stap
 
@@ -2561,7 +2565,7 @@ Dat is wat je je spelers stuurt; ze kiezen daarna zelf hun personage. Groepswach
 
 ## `inst_valuta`
 
-> Helpknop in: dm-panel.js:11992
+> Helpknop in: dm-panel.js:12070
 > Nu: de standaard uit de code
 > 3 stappen · 138 woorden · 46 per stap
 

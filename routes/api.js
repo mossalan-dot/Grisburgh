@@ -960,21 +960,23 @@ function _betrokkenBij(id) {
 // een dienst, dus hij komt niet uit `_betrokkenIndex()` — maar op het kaartje
 // van de persoon hoort hij wel in datzelfde rijtje. De rol beschrijft de
 // persoon, net als bij de betrokkenen: op de factie staat "Waard — Bram", hier
-// "Waard — De Gouden Gans". Eén plek waar het staat (`meta.facties[].leden`),
-// twee kanten om het te lezen.
+// "Waard — De Gouden Gans".
 //
+// Wie lid is leest hij uit het **organogram** van het organisatiekaartje waar de
+// factie aan hangt — dezelfde lijst die het paneel en het spelersscherm lezen.
 // Een factie die deze party niet kent levert niets op: anders verklapt het
 // kaartje van de waard dat er een gilde achter zit.
 function _factieBetrekking(entityId, g, isDM) {
-  let meta = {};
-  try { meta = storage.readJSON('meta.json'); } catch { return null; }
-  for (const f of (_factiesConfig(meta) || [])) {
-    const lid = (f.leden || []).find(l => l.entityId === entityId);
-    if (!lid) continue;
-    if (!isDM && (g?.factieZichtbaar || {})[f.id] !== true) return null;
-    return { factieId: f.id, name: f.naam || '', rol: lid.rang || 'Lid' };
-  }
-  return null;
+  let meta = {}, entities = {};
+  try {
+    meta = storage.readJSON('meta.json');
+    entities = storage.readJSON('entities.json');
+  } catch { return null; }
+  const treffer = _factieVanPersoon(meta, entities, entityId);
+  if (!treffer) return null;
+  const { factie, rij } = treffer;
+  if (!isDM && (g?.factieZichtbaar || {})[factie.id] !== true) return null;
+  return { factieId: factie.id, name: factie.naam || '', rol: rij.rol || 'Lid' };
 }
 
 function _linksMetTekst(entity) {
@@ -5820,10 +5822,10 @@ function _koppelingenVan(type, id) {
     factieId:  (facties.find(f => f.entityId === id) || {}).id || '',
     facties:   facties.map(f => ({ id: f.id, naam: f.naam, entityId: f.entityId || null })),
     // Lidmaatschap is iets anders dan "dit kaartje ís de factie": een persoon
-    // staat in `leden[]`, met de rang die hij daar heeft.
-    lidVan:     (facties.find(f => (f.leden || []).some(l => l.entityId === id)) || {}).id || '',
-    lidVanRang: ((facties.find(f => (f.leden || []).some(l => l.entityId === id)) || {}).leden || [])
-                  .find(l => l.entityId === id)?.rang || '',
+    // staat in het organogram van de organisatie waar de factie aan hangt, met
+    // de rol die hij daar heeft.
+    lidVan:     _factieVanPersoon(meta, storage.readJSON('entities.json'), id)?.factie.id || '',
+    lidVanRang: _factieVanPersoon(meta, storage.readJSON('entities.json'), id)?.rij.rol || '',
     // Kamers erbij, zodat de DM een kaartje aan één kamer kan hangen.
     dungeons:  _readDungeons().map(m => ({
       id: m.id, name: m.name,
@@ -5896,6 +5898,29 @@ router.get('/entities/:type/:id/koppelingen', requireDM, (req, res) => {
   res.json(_koppelingenVan(req.params.type, req.params.id));
 });
 
+// Wie er bij een organisatie hoort staat in het **organogram** op haar kaartje:
+// `data.betrokkenen`, een lijst van { id, naam, rol, chef }. Dat is sinds 30 sep
+// de enige lijst — de factie heeft er geen tweede meer naast.
+function _betrokkenenVan(org) {
+  let b = org?.data?.betrokkenen;
+  if (typeof b === 'string') { try { b = JSON.parse(b); } catch { b = []; } }
+  return Array.isArray(b) ? b : [];
+}
+
+// In welke factie zit dit personage, volgens de organogrammen?
+function _factieVanPersoon(meta, entities, persoonId) {
+  const naam = (entities.personages || []).find(p => p.id === persoonId)?.name || '';
+  for (const f of (Array.isArray(meta.facties) ? meta.facties : [])) {
+    if (!f.entityId) continue;
+    const org = (entities.organisaties || []).find(o => o.id === f.entityId);
+    if (!org) continue;
+    const rij = _betrokkenenVan(org).find(r => r.id === persoonId
+      || (naam && (r.naam || '').toLowerCase() === naam.toLowerCase()));
+    if (rij) return { factie: f, org, rij };
+  }
+  return null;
+}
+
 router.put('/entities/:type/:id/koppelingen', requireDM, (req, res) => {
   const { type, id } = req.params;
   const meta = storage.readJSON('meta.json');
@@ -5935,29 +5960,56 @@ router.put('/entities/:type/:id/koppelingen', requireDM, (req, res) => {
   }
 
   // Een **persoon** hoort bij een factie als lid, niet als het kaartje ván de
-  // factie. Dat kon tot nu toe alleen in het factiepaneel van de Meesterkamer,
-  // terwijl je het meestal bedenkt terwijl je het personage zit te schrijven.
-  // Zelfde regel als bij *Waar hoort dit bij?*: één plek waar het staat
-  // (`meta.facties[].leden`), twee kanten om het te leggen. Eén factie per
-  // persoon — wie voor twee gilden tegelijk werkt is een verhaallijn, geen
-  // keuzelijst, en die hoort in de ledenlijst van het paneel.
+  // factie. Dat kon alleen in het factiepaneel van de Meesterkamer, terwijl je
+  // het meestal bedenkt terwijl je het personage zit te schrijven.
+  //
+  // Eén plek waar het staat, twee kanten om het te leggen — en die plek is het
+  // **organogram** op het organisatiekaartje, niet een aparte ledenlijst bij de
+  // factie. Er waren twee lijsten voor één vraag en ze liepen uit elkaar.
+  // Eén factie per persoon: wie voor twee gilden tegelijk werkt is een
+  // verhaallijn, geen keuzelijst.
   if (req.body.factieId !== undefined && type === 'personages') {
-    const facties = Array.isArray(meta.facties) ? meta.facties : [];
+    const entities = storage.readJSON('entities.json');
+    const persoon  = (entities.personages || []).find(p => p.id === id);
+    if (!persoon) return res.status(404).json({ error: 'Personage niet gevonden' });
     const wil  = String(req.body.factieId || '').trim();
-    const rang = req.body.factieRang !== undefined ? String(req.body.factieRang || '').trim() : null;
-    for (const f of facties) {
-      const leden = Array.isArray(f.leden) ? f.leden : [];
-      const bestaand = leden.find(l => l.entityId === id);
-      if (f.id === wil) {
-        if (bestaand) { if (rang !== null) bestaand.rang = rang; }
-        else leden.push({ entityId: id, rang: rang || '' });
-      } else if (bestaand) {
-        f.leden = leden.filter(l => l.entityId !== id);
-        continue;
-      }
-      f.leden = leden;
+    const rol  = req.body.factieRang !== undefined ? String(req.body.factieRang || '').trim() : null;
+    const doelFactie = (Array.isArray(meta.facties) ? meta.facties : []).find(f => f.id === wil);
+    if (wil && !doelFactie?.entityId) {
+      return res.status(400).json({
+        error: 'Die factie heeft nog geen organisatiekaartje; koppel dat eerst, want daar staat het organogram.',
+      });
     }
-    meta.facties = facties;
+
+    let entVeranderd = false;
+    for (const org of (entities.organisaties || [])) {
+      const hoortHier = !!(wil && doelFactie.entityId === org.id);
+      const rijen = _betrokkenenVan(org);
+      const idx = rijen.findIndex(r => r.id === id
+        || (persoon.name && (r.naam || '').toLowerCase() === persoon.name.toLowerCase()));
+
+      if (hoortHier) {
+        if (idx === -1) rijen.push({ id, naam: persoon.name, rol: rol || persoon.data?.rol || '', chef: '' });
+        else {
+          rijen[idx].id = id;                       // een regel op naam krijgt zijn id
+          rijen[idx].naam = persoon.name;
+          if (rol !== null) rijen[idx].rol = rol;
+        }
+      } else if (idx !== -1) {
+        // Alleen loshalen bij een organisatie die aan een factie hangt: een
+        // organogram zonder factie is gewoon een organogram en gaat hier niet over.
+        if (!(meta.facties || []).some(f => f.entityId === org.id)) continue;
+        rijen.splice(idx, 1);
+      } else continue;
+
+      if (!org.data) org.data = {};
+      org.data.betrokkenen = JSON.stringify(rijen);
+      entVeranderd = true;
+    }
+    if (entVeranderd) {
+      storage.writeJSON('entities.json', entities);
+      req.app.get('io').to(_campagneRoom(req)).emit('entities:updated', { type: 'organisaties' });
+    }
     veranderd = true;
   }
 
@@ -12748,33 +12800,32 @@ router.get('/facties', attachRole, (req, res) => {
   //
   // `f.leden` blijft werken voor een factie zonder organisatiekaartje, en voor
   // campagnes die de migratie nog niet gedraaid hebben.
+  // Eén bron: het organogram op het organisatiekaartje. Daar staat al wie erbij
+  // hoort, wat zijn rol is en onder wie hij valt — een tweede ledenlijst met een
+  // eigen rangveld ernaast gaf twee antwoorden op één vraag, en ze liepen uit
+  // elkaar. `chef` is de hiërarchie; wie niemand boven zich heeft is de leiding.
   function _resolveLeden(f) {
     const org = f.entityId ? (entities.organisaties || []).find(o => o.id === f.entityId) : null;
-    const rangen = f.ledenRang || {};
+    if (!org) return [];
+    let betr = org.data?.betrokkenen;
+    if (typeof betr === 'string') { try { betr = JSON.parse(betr); } catch { betr = []; } }
 
-    let rijen;
-    if (org) {
-      let betr = org.data?.betrokkenen;
-      if (typeof betr === 'string') { try { betr = JSON.parse(betr); } catch { betr = []; } }
-      rijen = (Array.isArray(betr) ? betr : [])
-        .filter(r => r && (r.naam || r.id))
-        .map(r => {
-          const e = personages.find(p => p.id === r.id)
-            || personages.find(p => (p.name || '').toLowerCase() === (r.naam || '').toLowerCase());
-          return e ? { entityId: e.id, rang: rangen[e.id] || '' } : null;
-        })
-        .filter(Boolean);
-    } else {
-      rijen = (f.leden || []).map(l => ({ entityId: l.entityId, rang: l.rang || rangen[l.entityId] || '' }));
-    }
-
-    return rijen.map(l => {
-      const e = personages.find(p => p.id === l.entityId);
-      if (!e) return null;
-      const vis = visibility[e.id] || 'hidden';
-      if (!isDM && (vis === 'hidden' || vis === 'vague')) return null;
-      return { entityId: e.id, naam: e.name, rol: e.data?.rol || '', rang: l.rang };
-    }).filter(Boolean);
+    return (Array.isArray(betr) ? betr : [])
+      .filter(r => r && (r.naam || r.id))
+      .map(r => {
+        const e = personages.find(p => p.id === r.id)
+          || personages.find(p => (p.name || '').toLowerCase() === (r.naam || '').toLowerCase());
+        if (!e) return null;
+        const vis = visibility[e.id] || 'hidden';
+        if (!isDM && (vis === 'hidden' || vis === 'vague')) return null;
+        return {
+          entityId: e.id,
+          naam: e.name,
+          rol: r.rol || e.data?.rol || '',
+          chef: String(r.chef || '').trim(),
+        };
+      })
+      .filter(Boolean);
   }
 
   // Een unlock leesbaar maken: naam en beeld komen van het kaartje waar hij
@@ -13143,7 +13194,11 @@ router.put('/meta/facties', requireDM, (req, res) => {
     npcEntityIdDag:  f.npcEntityIdDag  ? String(f.npcEntityIdDag).trim()  : null,
     npcGreet:        f.npcGreet        ? String(f.npcGreet).trim()        : '',
     groetTafelId:    f.groetTafelId    ? String(f.groetTafelId).trim()    : '',
-    // De rang per lid, op id. Wie er lid ís staat op het organisatiekaartje.
+    // `ledenRang` en `leden` hieronder worden nergens meer gelezen: wie lid is,
+    // wat zijn rol is en onder wie hij valt komt sinds 30 sep uit het organogram
+    // op het organisatiekaartje (zie `_resolveLeden`). Ze blijven meegaan bij het
+    // opslaan zodat een campagne die ze nog heeft staan er niets door verliest —
+    // weggooien is een migratie en die levert niets op.
     ledenRang: (f.ledenRang && typeof f.ledenRang === 'object')
       ? Object.fromEntries(Object.entries(f.ledenRang)
           .filter(([k, v]) => k && typeof v === 'string' && v.trim())

@@ -10,7 +10,7 @@ import { renderSpreuken } from './render-spreuken.js?v=41';
 import { renderVaardigheden, zoekVaardigheden } from './render-vaardigheden.js?v=10';
 import { renderStatblock } from './render-statblock.js?v=9';
 import { initSocket } from "./socket-client.js?v=79";
-import { initDmPanel } from "./dm-panel.js?v=348";
+import { initDmPanel } from "./dm-panel.js?v=349";
 import { COND_INFO, COND_LABEL, COND_MET_PLAATJE, COND_ICON } from './conditions.js?v=2';
 import './media-picker.js?v=8';
 import './tafels.js?v=2';
@@ -13865,15 +13865,19 @@ function _renderFactieInterieur(el, f, missies) {
   const _ledenHtml = (() => {
     const leden = f.leden || [];
     if (!leden.length) return '';
+    // De indeling komt uit het organogram van het organisatiekaartje: wie
+    // niemand boven zich heeft is de leiding, de rest staat onder zijn chef.
+    // Eerder stond hier een eigen rangveld dat de DM apart moest invullen —
+    // twee lijsten voor één vraag, en ze liepen uit elkaar.
     const groepen = [];
     const idxVan = {};
     for (const l of leden) {
-      const key = (l.rang || '').trim() || '__leden__';
+      const key = (l.chef || '').trim() || '__leiding__';
       if (idxVan[key] === undefined) { idxVan[key] = groepen.length; groepen.push({ rang: key, leden: [] }); }
       groepen[idxVan[key]].leden.push(l);
     }
-    // Groep zonder rang-label altijd onderaan.
-    groepen.sort((a, b) => (a.rang === '__leden__' ? 1 : 0) - (b.rang === '__leden__' ? 1 : 0));
+    // De leiding bovenaan, ongeacht in welke volgorde ze op het kaartje staan.
+    groepen.sort((a, b) => (a.rang === '__leiding__' ? 0 : 1) - (b.rang === '__leiding__' ? 0 : 1));
     const _lid = (l, isHoofd) => `
       <button class="factie-lid${isHoofd ? ' factie-lid--hoofd' : ''}" onclick="window._openDetail('personages','${esc(l.entityId)}')" title="Bekijk ${esc(l.naam)}">
         <span class="factie-lid-portret-wrap">
@@ -13885,16 +13889,16 @@ function _renderFactieInterieur(el, f, missies) {
         <span class="factie-lid-naam">${esc(l.naam)}</span>
         ${l.rol ? `<span class="factie-lid-rol">${esc(l.rol)}</span>` : ''}
       </button>`;
-    const meerdereGroepen = groepen.length > 1 || groepen[0].rang !== '__leden__';
+    const meerdereGroepen = groepen.length > 1;
     // De bovenste, benoemde rang-groep krijgt een leider-accent (alleen bij een echte hiërarchie).
     return `
       <details class="factie-leden-sectie factie-leden-details">
         <summary class="factie-missies-label factie-leden-summary">${icon('users')} Leden <span class="factie-leden-aantal">${leden.length}</span>${icon('chevron-right', { cls: 'factie-leden-chev' })}</summary>
         ${groepen.map((g, gi) => {
-          const isHoofdGroep = meerdereGroepen && gi === 0 && g.rang !== '__leden__';
+          const isHoofdGroep = meerdereGroepen && g.rang === '__leiding__';
           return `
           <div class="factie-leden-groep${isHoofdGroep ? ' factie-leden-groep--hoofd' : ''}">
-            ${meerdereGroepen ? `<div class="factie-leden-rang-kop">${g.rang === '__leden__' ? 'Leden' : esc(g.rang)}</div>` : ''}
+            ${meerdereGroepen ? `<div class="factie-leden-rang-kop">${g.rang === '__leiding__' ? 'Leiding' : 'Onder ' + esc(g.rang)}</div>` : ''}
             <div class="factie-leden-grid">${g.leden.map(l => _lid(l, isHoofdGroep)).join('')}</div>
           </div>`;
         }).join('')}
@@ -14332,8 +14336,9 @@ const HELP_CONFIG = {
     { titel: 'Onthullen', tekst: 'Spelers zien een factie pas als jij haar onthult (het oogje). Het renown pas je hier aan; de ladder bepaalt wat er dan opengaat.', afbeelding: null },
   ] }),
   dm_facties_leden: () => ({ titel: 'Leden van een factie', stappen: [
-    { titel: 'Wie erbij hoort', tekst: 'Koppel personagekaartjes aan de factie. Dat werkt twee kanten op: op hun eigen kaartje staat daarna dat ze hierbij horen.', afbeelding: null },
-    { titel: 'Wat de spelers zien', tekst: 'Een lid dat de party nog niet kent, verschijnt niet bij naam. Een organisatie ontmantelen is het spel; de ledenlijst is niet gratis.', afbeelding: null },
+    { titel: 'Eén lijst: het organogram', tekst: 'Wie bij een factie hoort staat in het **organogram** van haar organisatiekaartje — daar geef je iemand een rol en zet je hem onder een ander. Wat je hier ziet is een spiegel daarvan; klik de naam van de organisatie om hem te bewerken. Er was hier ook een eigen ledenlijst met een apart rangveld: twee lijsten voor één vraag, die uit elkaar liepen.', afbeelding: null },
+    { titel: 'Van twee kanten te leggen', tekst: 'Je kunt het ook op het kaartje van de persoon zelf zeggen, bij *Waar hoort dit personage bij?*. Dat schrijft in hetzelfde organogram — één plek waar het staat, twee kanten om het te leggen. Heeft de factie nog geen organisatiekaartje, dan is er geen plek om het te bewaren; koppel dat eerst bij **Algemeen**.', afbeelding: null },
+    { titel: 'Hoe het bij de spelers oogt', tekst: 'Wie niemand boven zich heeft staat onder **Leiding**, de rest onder de naam van zijn chef. Een lid waarvan de party het personagekaartje nog niet kent, verschijnt niet bij naam — een organisatie ontmantelen is het spel, en de ledenlijst is niet gratis.', afbeelding: null },
   ] }),
   dm_facties_rangen: () => ({ titel: 'Rangen', stappen: [
     { titel: 'Zes treden', tekst: 'Elke trede heeft een naam en een drempel aan aanzien (0, 1, 3, 10, 25, 50). Alleen trede 0 krijgt standaard een naam — *Buitenstaander* — want die beschrijft de mechaniek en niet jouw wereld.', afbeelding: null },

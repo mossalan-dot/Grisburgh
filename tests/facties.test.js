@@ -291,8 +291,15 @@ describe('Facties: een rang ontgrendelt iets', () => {
   });
 
   // De koppeling van twee kanten: in het factiepaneel stond hij al, maar je
-  // bedenkt het meestal terwijl je het personage zit te schrijven.
+  // bedenkt het meestal terwijl je het personage zit te schrijven. Wat je legt
+  // belandt in het **organogram** van het organisatiekaartje — de enige plek
+  // waar staat wie erbij hoort.
   it('koppelt een persoon aan een factie vanaf zijn eigen kaartje', async () => {
+    const gildehuis = (await req(server, 'POST', '/api/entities/organisaties',
+      { name: 'Het Proefgilde' }, dm)).body.id;
+    await req(server, 'PUT', `/api/entities/organisaties/${gildehuis}/koppelingen`,
+      { factieId: 'proefgilde' }, dm);
+
     const zus = (await req(server, 'POST', '/api/entities/personages', { name: 'Zuster Vonk' }, dm)).body.id;
     await req(server, 'PUT', `/api/entities/personages/${zus}/visibility`, { target: 'visible' }, dm);
 
@@ -302,10 +309,15 @@ describe('Facties: een rang ontgrendelt iets', () => {
     const r = await zet('proefgilde', 'Luitenant');
     assert.strictEqual(r.status, 200, JSON.stringify(r.body));
 
-    // Eén plek waar het staat: de ledenlijst van de factie.
+    // Het staat op het organisatiekaartje, niet in een tweede lijst.
+    const org = (await req(server, 'GET', `/api/entities/organisaties/${gildehuis}`, null, dm)).body;
+    const betr = JSON.parse(org.data?.betrokkenen || '[]');
+    assert.ok(betr.some(b => b.id === zus && b.rol === 'Luitenant'), JSON.stringify(betr));
+
+    // En de factie leest dezelfde lijst.
     const f = ((await req(server, 'GET', '/api/facties', null, dm)).body.facties || [])
       .find(x => x.id === 'proefgilde');
-    assert.ok((f.leden || []).some(l => l.entityId === zus && l.rang === 'Luitenant'),
+    assert.ok((f.leden || []).some(l => l.entityId === zus && l.rol === 'Luitenant'),
       JSON.stringify(f.leden));
 
     // En terug te lezen op het kaartje zelf.
