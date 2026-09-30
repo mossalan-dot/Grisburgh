@@ -4587,11 +4587,9 @@ async function _renderEncounters() {
   if (_encVoorwerpen.length === 0) {
     try { _encVoorwerpen = (await api.listEntities('voorwerpen')).sort((a, b) => (a.name || '').localeCompare(b.name || '', 'nl')); } catch (_) {}
   }
-  if (_editingEncId !== null) {
-    _renderEncounterEditor(el);
-  } else {
-    _renderEncounterList(el);
-  }
+  // De lijst staat altijd in het tabblad; de editor leeft in een eigen venster.
+  _renderEncounterList(el);
+  if (_editingEncId !== null && _encVensterBak()) _renderEncounterEditor();
 };
 
 const ENC_PAGE_SIZE = 5;
@@ -4617,13 +4615,13 @@ function _encCard(enc) {
         ${akte}
         <span class="dm-enc-meta">${monCount} monster${monCount !== 1 ? 's' : ''}</span>
       </div>
+      <!-- In de lijst staat wat je aan tafel doet: openen om iets te wijzigen,
+           of beginnen. Verwijderen zat hier ook, tussen die twee in, en dat is
+           één misklik van een gevecht dat je kwijt bent. Dat staat nu in het
+           venster, bij de andere instellingen. -->
       <div class="dm-enc-card-actions">
-        <button class="dm-btn dm-btn-sm dm-btn-ghost" onclick="window.dmPanel.encEdit('${esc(enc.id)}')" title="Bewerken">${icon('pencil')}</button>
-        <!-- Verwijderen stond alleen ín de editor, dus je moest een gevecht
-             eerst openen om het weg te kunnen gooien. Hier, zoals bij de
-             vondsten; de vraag ernaast is dezelfde. -->
-        <button class="dm-btn dm-btn-sm dm-btn-ghost dm-btn-danger" onclick="window.dmPanel.encDelete('${esc(enc.id)}')" title="Dit gevecht verwijderen">${icon('trash')}</button>
-        <button class="dm-btn dm-btn-sm dm-btn-primary" onclick="window.dmPanel.encStart('${esc(enc.id)}')" title="Gevecht starten">${icon('play')} Starten</button>
+        <button class="dm-btn dm-btn-sm dm-btn-ghost" onclick="window.dmPanel.encEdit('${esc(enc.id)}')" title="Bewerken">${icon('pencil')} Bewerken</button>
+        <button class="dm-btn dm-btn-sm dm-btn-primary" onclick="window.dmPanel.encStart('${esc(enc.id)}')" title="Gevecht starten">${icon('play')} Vechten</button>
       </div>
     </div>`;
 }
@@ -4726,7 +4724,28 @@ function _encTierRegel(r, i) {
   </div>`;
 }
 
+// Het gevecht bewerk je in een eigen venster, net als een factie: de lijst
+// blijft de lijst, en de editor heeft de ruimte van een kaartje in plaats van
+// de plek waar net nog de gevechten stonden.
+function _encVensterBak() {
+  return document.getElementById('modal-overlay')?.classList.contains('active')
+    ? document.getElementById('m-body')
+    : null;
+}
+
+function _encVensterOpen() {
+  const titel = _encIsNew ? 'Nieuw gevecht' : (_encName || 'Gevecht');
+  window.app.openModal(`${icon('crossed-swords', { cls: 'icon-gi' })} ${esc(titel)}`,
+    'Monsters, thema, buit en akte', '<div id="dm-enc-venster"></div>', 'dm_gevecht_editor');
+  _renderEncounterEditor(document.getElementById('dm-enc-venster'));
+}
+
 function _renderEncounterEditor(el) {
+  // Staat het venster open, dan tekent hij daarin — ook als de aanroeper nog
+  // het oude lijstelement meegeeft (de loot-lijst komt bijvoorbeeld later
+  // binnen en hertekent dan).
+  el = _encVensterBak()?.querySelector('#dm-enc-venster') || _encVensterBak() || el;
+  if (!el) return;
   const isNew  = _encIsNew;
   const name   = _encName;
   const akteId = _encAkteId;
@@ -4850,7 +4869,11 @@ function _encNew() {
   _encCanvasPreset = null;
   _encName         = '';
   _encAkteId       = '';
-  _renderEncounters();
+  _encLootId       = null;
+  _encLootOud      = false;
+  _encLootLijst    = [];
+  api.lootEvents().then(d => { _encLootLijst = d.events || d || []; _renderEncounterEditor(); }).catch(() => {});
+  _encVensterOpen();
 };
 
 function _encEdit(id) {
@@ -4865,23 +4888,24 @@ function _encEdit(id) {
   _encLootOud      = !enc.lootId && !!(enc.loot && ((enc.loot.items || []).length
                       || Object.values(enc.loot.goud || {}).some(v => parseInt(v) > 0)));
   _encLootLijst    = [];
-  api.lootEvents().then(d => { _encLootLijst = d.events || d || []; _renderEncounterEditor(document.getElementById('dm-encounters-content')); }).catch(() => {});
+  api.lootEvents().then(d => { _encLootLijst = d.events || d || []; _renderEncounterEditor(); }).catch(() => {});
   _encCanvasPreset = enc.canvasPreset || null;
   _encName         = enc.name    || '';
   _encAkteId       = enc.akteId  || '';
-  _renderEncounters();
+  _encVensterOpen();
 };
 
 function _encCancel() {
   _editingEncId = null;
   _encIsNew     = false;
+  window.app.closeModal();
   _renderEncounterList(document.getElementById('dm-encounters-content'));
 };
 
 // Encounter-loot handlers
 function _encLootGoud(veld, val) { _encLoot.goud = _encLoot.goud || {}; _encLoot.goud[veld] = parseInt(val) || 0; }
-function _encLootItemAdd() { _encLoot.items = _encLoot.items || []; _encLoot.items.push({ naam: '', beschrijving: '', rariteit: '', entityId: null }); _renderEncounterEditor(document.getElementById('dm-encounters-content')); }
-function _encLootItemRemove(i) { _encLoot.items.splice(i, 1); _renderEncounterEditor(document.getElementById('dm-encounters-content')); }
+function _encLootItemAdd() { _encLoot.items = _encLoot.items || []; _encLoot.items.push({ naam: '', beschrijving: '', rariteit: '', entityId: null }); _renderEncounterEditor(); }
+function _encLootItemRemove(i) { _encLoot.items.splice(i, 1); _renderEncounterEditor(); }
 function _encLootItemField(i, veld, val) { if (_encLoot.items[i]) _encLoot.items[i][veld] = val; }
 function _lootRarKey(r) {
   const m = { common: 'common', gewoon: 'common', uncommon: 'uncommon', ongewoon: 'uncommon', rare: 'rare', zeldzaam: 'rare', 'very rare': 'very-rare', 'zeer zeldzaam': 'very-rare', 'very-rare': 'very-rare', legendary: 'legendary', legendarisch: 'legendary' };
@@ -4900,7 +4924,7 @@ function _encLootPick(i, naam) {
     it.naam = naam;
     it.entityId = null;
   }
-  _renderEncounterEditor(document.getElementById('dm-encounters-content'));
+  _renderEncounterEditor();
 }
 
 // Naam → id, zoals elke kiezer in de Meesterkamer. Leeg betekent: geen buit
@@ -4955,6 +4979,7 @@ async function _encSave() {
     }
     _editingEncId = null;
     _encIsNew     = false;
+    window.app.closeModal();
     _renderEncounterList(document.getElementById('dm-encounters-content'));
   } catch (e) { alert('Opslaan mislukt: ' + e.message); }
 };
@@ -4971,6 +4996,7 @@ async function _encDelete(id) {
     _encounters = _encounters.filter(e => e.id !== id);
     _editingEncId = null;
     _encIsNew     = false;
+    window.app.closeModal();
     _renderEncounterList(document.getElementById('dm-encounters-content'));
   } catch (e) { alert('Verwijderen mislukt: ' + e.message); }
 };
@@ -5018,12 +5044,12 @@ function _encAddRow() {
     initiative: first?.initiative ?? 10,
     hp:         first?.maxHp      ?? 10,
   });
-  _renderEncounterEditor(document.getElementById('dm-encounters-content'));
+  _renderEncounterEditor();
 };
 
 function _encRemoveRow(idx) {
   _encMonsterRows.splice(idx, 1);
-  _renderEncounterEditor(document.getElementById('dm-encounters-content'));
+  _renderEncounterEditor();
 };
 
 function _encRowMonsterChange(idx, monsterId) {
@@ -5035,7 +5061,7 @@ function _encRowMonsterChange(idx, monsterId) {
     _encMonsterRows[idx].hp         = m.maxHp      ?? 10;
   }
   // Re-render so Init/HP fields update to monster defaults
-  _renderEncounterEditor(document.getElementById('dm-encounters-content'));
+  _renderEncounterEditor();
 };
 
 // Houdt naam/akte in sync met de state-vars zodat re-renders de waarden bewaren
@@ -5068,7 +5094,7 @@ async function _encTierChange(idx, tierId) {
     _monsters = ((await api.listMonsters()).monsters || []).sort((a, b) => (a.name || '').localeCompare(b.name || '', 'nl'));
     const nieuw = _monsters.find(x => x.id === rij.monsterId);
     if (nieuw) rij.hp = nieuw.maxHp ?? rij.hp;
-    _renderEncounterEditor(document.getElementById('dm-encounters-content'));
+    _renderEncounterEditor();
   } catch (e) { alert('Gedaante omzetten mislukt: ' + e.message); }
 }
 
@@ -5076,14 +5102,14 @@ function _encRowRoll(idx) {
   const r = _encMonsterRows[idx];
   if (!r) return;
   r.hpRoll = !r.hpRoll;
-  _renderEncounterEditor(document.getElementById('dm-encounters-content'));
+  _renderEncounterEditor();
 }
 
 function _encHpAlles(aan) {
   for (const r of _encMonsterRows) {
     if (_encHeeftWorp(r.monsterId)) r.hpRoll = !!aan;
   }
-  _renderEncounterEditor(document.getElementById('dm-encounters-content'));
+  _renderEncounterEditor();
 }
 
 function _encPickBackdrop() {
@@ -5092,7 +5118,7 @@ function _encPickBackdrop() {
     suggestedName: ((_encName || '').trim().toLowerCase().replace(/\s+/g, '-') || 'encounter') + '-backdrop',
     onSelect: (fileId) => {
       _encBackdropId = fileId;
-      _renderEncounterEditor(document.getElementById('dm-encounters-content'));
+      _renderEncounterEditor();
     },
   });
 }
@@ -5100,7 +5126,7 @@ function _encPickBackdrop() {
 function _encBackdropClear() {
   // Alleen de verwijzing wissen — bestand kan elders gebruikt worden.
   _encBackdropId = null;
-  _renderEncounterEditor(document.getElementById('dm-encounters-content'));
+  _renderEncounterEditor();
 };
 
 // ── Gevecht ──

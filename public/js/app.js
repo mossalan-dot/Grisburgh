@@ -10,7 +10,7 @@ import { renderSpreuken } from './render-spreuken.js?v=41';
 import { renderVaardigheden, zoekVaardigheden } from './render-vaardigheden.js?v=10';
 import { renderStatblock } from './render-statblock.js?v=9';
 import { initSocket } from "./socket-client.js?v=80";
-import { initDmPanel } from "./dm-panel.js?v=358";
+import { initDmPanel } from "./dm-panel.js?v=359";
 import { COND_INFO, COND_LABEL, COND_MET_PLAATJE, COND_ICON } from './conditions.js?v=2';
 import './media-picker.js?v=8';
 import './tafels.js?v=2';
@@ -14271,6 +14271,13 @@ const HELP_CONFIG = {
     { titel: 'Wie heeft ingezet', tekst: 'Per speler de inzet en op wie. Zolang het kamp loopt kun je zien waar de tafel op gokt; handig om te weten wie er belang bij heeft.', afbeelding: null },
     { titel: 'Zelf meevechten', tekst: 'Een speler kan ook zelf het perk in. Zijn inzet is dan zijn eigen kamp — en verliezen doet meer pijn dan geld.', afbeelding: null },
   ] }),
+  dm_gevecht_editor: () => ({ titel: 'Een gevecht bouwen', stappen: [
+    { titel: 'Monsters', tekst: 'Zoek een statblock en zet erbij hoeveel je er wilt. Het aantal HP mag je per regel overschrijven — dan rolt de app ze niet uit maar neemt hij jouw getal. Een naam die je zelf intikt wint van de naam van het statblock: zo vecht de party tegen *Gorgo Hoornkop* en niet tegen "Minotaur of Baphomet".', afbeelding: null },
+    { titel: 'Thema', tekst: 'De twee kleuren die straks onder het gevecht liggen — jouw kant en de overkant. Je ziet ze in de lijst al op het kaartje, zodat je weet welke sfeer eraan hangt voor je hem opent.', afbeelding: null },
+    { titel: 'Buit', tekst: 'Koppel een **vondst** die je bij Loot gemaakt hebt; die verdeel je na afloop met de lootverdeler. Een gevecht dat nog losse buit had van vroeger houdt die zolang je geen vondst koppelt — zo raakt een oud gevecht niets kwijt door één keer op te slaan.', afbeelding: null },
+    { titel: 'Waar hoort het bij', tekst: 'Een **akte** groepeert je gevechten in de lijst en in het logboek. Een gevecht kan ook aan een dungeonkamer of aan een partij in het strijdperk hangen; die koppeling leg je daar, niet hier.', afbeelding: null },
+  ] }),
+
   dm_gokhuis_beheer: () => ({ titel: 'Gokken', stappen: [
     { titel: 'Een weddenschap opzetten', tekst: 'Geef hem een **soort** (een vrij woord: gevecht, race, steekspel), een naam, en minstens twee **opties** om op te wedden. Wat loopt staat bovenaan; wat voorbij is zit in de uitklap *Afgelopen*.', afbeelding: null },
     { titel: 'Kansen moeten 100% zijn', tekst: 'De kansen verdelen één uitkomst, dus ze tellen op tot honderd. Doen ze dat niet, dan weigert de app het met het getal dat je wél hebt erbij — telden ze op tot 90, dan viel er een tiende van de tijd niets en zag niemand dat.', afbeelding: null },
