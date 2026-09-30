@@ -27,7 +27,11 @@ const LADDER = {
   bout_gladiator:  { srd: 'Gladiator',            aantal: 1 },
   bout_cyclops:    { srd: 'Hill Giant',           aantal: 1 },   // geen Cyclops in de SRD
   bout_frostgiant: { srd: 'Frost Giant',          aantal: 1 },
-  bout_naamloze:   { srd: 'Troll',                aantal: 2 },   // de eindbaas komt niet alleen
+  // Eén tegenstander, want "De Naamloze" is een hij en geen zij. En een golem
+  // verdient die naam ook echt: hij heeft er geen omdat er niemand in zit. Twee
+  // trollen (CR 5 elk) stonden hier eerst, en dat was op twee manieren mis — het
+  // meervoud, en een ladder die bovenaan terugzakte onder de Frost Giant (CR 8).
+  bout_naamloze:   { srd: 'Stone Golem',          aantal: 1 },
 };
 
 const dir  = path.join(__dirname, '..', 'data', 'campaigns', campagne);
