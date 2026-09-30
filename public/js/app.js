@@ -724,6 +724,7 @@ window._updateDiscoveryChip = async function(force) {
 // Aangeroepen door sound-manager.js wanneer een scène start/stopt of de
 // dempstatus wisselt. Toont de knop alleen als er een scène actief is.
 window._onAmbianceChange = function({ active, label, enabled } = {}) {
+  window._geluidBtnVerversen?.({ active, label, enabled });
   const btn = document.getElementById('ambiance-toggle');
   if (!btn) return;
   if (!active) { btn.classList.add('hidden'); _scheduleFitHeader(); return; }
@@ -8781,7 +8782,7 @@ async function renderMijnKarakter(opts = {}) {
 
       <!-- ═══ TAB: Facties & Aanzien ═══ -->
       <div id="pst-facties" class="player-subtab-panel${_playerSubTab !== 'facties' ? ' hidden' : ''}">
-        <div style="display:flex;justify-content:flex-end;padding:4px 0 0">${_helpBtn('facties')}</div>
+        <div style="display:flex;justify-content:flex-end;padding:4px 0 0">${_geluidBtn()}${_helpBtn('facties')}</div>
         ${!(factiesData || []).some(f => (f.rang?.index ?? 0) > 0)
           ? `<div class="player-dash-section"><p class="dm-hint" style="opacity:.7;text-align:center;padding:24px 0">Je hebt nog geen aanzien bij facties.</p></div>`
           : ''}
@@ -12428,7 +12429,7 @@ async function renderHerberg() {
   el.innerHTML = `
     <div class="herberg-scene">
       <div class="herberg-content">
-        <div class="dienst-beurs-topbar" style="justify-content:flex-end">${_helpBtn('herberg')}</div>
+        <div class="dienst-beurs-topbar" style="justify-content:flex-end">${_geluidBtn()}${_helpBtn('herberg')}</div>
         <div class="herberg-portrait-wrap">
           ${config.imageId
             ? `<img src="${api.thumbUrl(config.imageId)}" class="herberg-portrait-round${cooldownActief ? ' herberg-portrait--weg' : ''}" alt="${esc(config.waard)}">`
@@ -12656,7 +12657,7 @@ async function renderGock() {
       <div class="herberg-content">
         <div class="dienst-beurs-topbar">
           ${currency ? `<span class="ts-beurs tempel-beurs-top">Beurs: <strong>${beursTekst(currency)}</strong></span>` : ''}
-          ${_helpBtn('gock')}
+          ${_geluidBtn()}${_helpBtn('gock')}
         </div>
         <div class="herberg-portrait-wrap">${portret}</div>
         <p class="herberg-groet">${esc(window._dienstGroet(config, `${config.naam} kijkt op van zijn bureau en trekt een wenkbrauw op.`))}</p>
@@ -12818,7 +12819,7 @@ async function renderMagizoo() {
       <div class="herberg-content">
         <div class="dienst-beurs-topbar">
           ${currency ? `<span class="ts-beurs tempel-beurs-top">Beurs: <strong>${_magizooBeurs(currency)}</strong></span>` : ''}
-          ${_helpBtn('magizoo')}
+          ${_geluidBtn()}${_helpBtn('magizoo')}
         </div>
         <div class="herberg-portrait-wrap">${portret}</div>
         <p class="herberg-groet">${esc(window._dienstGroet(config, `${config.naam} kijkt op van een kooi en veegt een inktvlek van zijn notitieboek.`))}</p>
@@ -13081,7 +13082,7 @@ async function renderUrsula() {
       <div class="herberg-content">
         <div class="dienst-beurs-topbar">
           ${currency ? `<span class="ts-beurs tempel-beurs-top">Beurs: <strong>${beursTekst(currency)}</strong></span>` : ''}
-          ${_helpBtn('ursula')}
+          ${_geluidBtn()}${_helpBtn('ursula')}
         </div>
         <div class="herberg-portrait-wrap">${portret}</div>
         <p class="herberg-groet">${groet}</p>
@@ -13160,7 +13161,7 @@ function _renderTempelLijst(el, goden, config, huidigeEed, huidigeZegen, currenc
           ${statusBlokken.length ? `<div class="tempel-status-chips">${statusBlokken.join('')}</div>` : '<div></div>'}
           <div style="display:flex;align-items:center;gap:8px">
             ${currency ? `<span class="ts-beurs tempel-beurs-top">Beurs: <strong>${beursTekst(currency)}</strong></span>` : ''}
-            ${_helpBtn('tempel')}
+            ${_geluidBtn()}${_helpBtn('tempel')}
           </div>
         </div>
         ${goden.length === 0
@@ -13227,7 +13228,7 @@ function _renderTempelInterior(el, g, config, huidigeEed, huidigeZegen, currency
           <button class="tempel-terug-btn" onclick="window._tempelTerugNaarLijst()">${icon('chevron-left')} Terug</button>
           <div style="display:flex;align-items:center;gap:8px">
             ${currency ? `<span class="ts-beurs tempel-beurs-top">Beurs: <strong>${beursTekst(currency)}</strong></span>` : ''}
-            ${_helpBtn('tempel')}
+            ${_geluidBtn()}${_helpBtn('tempel')}
           </div>
         </div>
         <div class="herberg-portrait-wrap">${portret}</div>
@@ -13547,7 +13548,7 @@ async function renderTweespalt() {
       <div class="herberg-content ts-content">
         <div class="dienst-beurs-topbar">
           ${currency ? `<span class="ts-beurs tempel-beurs-top">Beurs: <strong>${beursTekst(currency)}</strong></span>` : ''}
-          ${_helpBtn('tweespalt')}
+          ${_geluidBtn()}${_helpBtn('tweespalt')}
         </div>
         <div class="herberg-portrait-wrap">${tsPortret}</div>
         <div>
@@ -13796,7 +13797,7 @@ async function renderFacties() {
              elke andere dienst dat doet. -->
         <div class="factie-lijst-kop">
           <h2 class="factie-lijst-titel">${icon('landmark')} Facties</h2>
-          ${_helpBtn('facties')}
+          ${_geluidBtn()}${_helpBtn('facties')}
         </div>
         <div class="factie-grid">
           ${zichtbaar.map(f => _renderFactieKaart(f)).join('')}
@@ -13907,7 +13908,7 @@ function _renderFactieInterieur(el, f, missies) {
           <button class="tempel-terug-btn" onclick="window._factieTerugNaarLijst()">${icon('chevron-left')} Terug</button>
           <div style="display:flex;align-items:center;gap:8px">
             ${currency ? `<span class="ts-beurs tempel-beurs-top">Beurs: <strong>${beursTekst(currency)}</strong></span>` : ''}
-            ${_helpBtn('facties')}
+            ${_geluidBtn()}${_helpBtn('facties')}
           </div>
         </div>
         <div class="herberg-portrait-wrap">${portret}</div>
@@ -14462,7 +14463,7 @@ const HELP_CONFIG = {
     { titel: 'Van de speler, niet van jou', tekst: 'Laat ze er zelf een kiezen. Het is het enige geluid in de app dat van hén is, en dat is precies waarom het werkt.', afbeelding: null },
   ] }),
   dm_geluiden_diensten: () => ({ titel: 'Geluid per dienst', stappen: [
-    { titel: 'Begint vanzelf', tekst: 'Loopt iemand een dienst binnen — de herberg, de tempel, het gokhuis — dan begint deze loop op zijn eigen toestel. Daar is geen sessie of tafelscherm voor nodig.', afbeelding: null },
+    { titel: 'Begint vanzelf', tekst: 'Loopt iemand een dienst binnen — de herberg, de tempel, het gokhuis — dan begint deze loop op zijn eigen toestel. Daar is geen sessie of tafelscherm voor nodig. Naast het boekje van die dienst staat een **luidsprekertje** waarmee hij het zelf kan dempen; die keuze blijft op zijn toestel staan en geldt voor alle loops, ook die van de rust. Heb je voor een dienst niets ingesteld, dan staat die knop er niet.', afbeelding: null },
     { titel: 'Een decor gaat voor', tekst: 'Speelt er een decor voor de hele tafel, dan heeft dat voorrang: dat is het geluid van de scène waar jullie samen in zitten.', afbeelding: null },
     { titel: 'Ook per factie', tekst: 'Elke factie kan een eigen loop hebben, zodat het gildehuis anders klinkt dan de tempel.', afbeelding: null },
   ] }),
@@ -15114,6 +15115,43 @@ let _helpOverrides = {};
 // na een reset in de Meesterkamer moeten ze daar ook weer uit.
 window._herlaadHelpTeksten = async () => {
   try { _helpOverrides = (await api.getHelpContent()) || {}; } catch { _helpOverrides = {}; }
+};
+
+// ── Dempknop voor de sfeerloop, naast het boekje ─────────────────────────────
+// De loop van een dienst speelt vanzelf zodra je binnenloopt, en de enige knop
+// om hem uit te zetten stond in de kopbalk van de app — tussen de zoekbalk en
+// het DM-zegel, waar niemand hem zoekt. In een dienst kijk je naar de dienst.
+// Dus staat hij nu waar je hem verwacht: naast de hulpknop, dezelfde maat,
+// dezelfde plek in elke dienst.
+//
+// Hij verschijnt alleen als er voor dít scherm ook echt een loop is ingesteld;
+// een dempknop voor stilte belooft geluid dat er niet is.
+window._geluidBtn = function _geluidBtn() {
+  // Meteen in de juiste stand tekenen. Een dienst hertekent zichzelf na elke
+  // handeling; wachten op het volgende ambiance-event liet de knop dan tot de
+  // eerstvolgende wissel verkeerd staan.
+  const s = window.soundManager?.ambianceState?.() || {};
+  return `<span class="help-btn-wrap"><button type="button" data-geluid-btn
+    class="help-btn geluid-btn${s.active ? '' : ' hidden'}${s.enabled ? '' : ' geluid-btn--uit'}"
+    onclick="event.stopPropagation();window._geluidToggle()"
+    title="${s.enabled ? `${esc(s.label || 'Sfeergeluid')} speelt \u2014 tik om te dempen` : 'Sfeergeluid staat uit \u2014 tik om aan te zetten'}"
+    >${s.active ? icon(s.enabled ? 'volume-2' : 'volume-x') : ''}</button></span>`;
+};
+
+window._geluidToggle = () => { window.soundManager?.toggleAmbiance?.(); };
+
+// Eén plek die alle dempknoppen bijwerkt — de kopbalk deed dit al voor zichzelf.
+window._geluidBtnVerversen = function (staat) {
+  const s = staat || window.soundManager?.ambianceState?.() || {};
+  document.querySelectorAll('[data-geluid-btn]').forEach(btn => {
+    btn.classList.toggle('hidden', !s.active);
+    if (!s.active) return;
+    btn.classList.toggle('geluid-btn--uit', !s.enabled);
+    btn.innerHTML = icon(s.enabled ? 'volume-2' : 'volume-x');
+    btn.title = s.enabled
+      ? `${s.label || 'Sfeergeluid'} speelt \u2014 tik om te dempen`
+      : 'Sfeergeluid staat uit \u2014 tik om aan te zetten';
+  });
 };
 
 window._helpBtn = function _helpBtn(key, opts = {}) {

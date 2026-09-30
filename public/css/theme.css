@@ -27788,3 +27788,10 @@ body.akte-schrijf-open .mp-overlay { z-index: 1320; }
 
 /* Het bedrag dat de DM bij een aanbod mag bijstellen */
 .dm-verzoek-bedrag { width: 96px; flex-shrink: 0; }
+
+/* ── Dempknop naast het boekje ────────────────────────────────────────────── */
+/* Zelfde maat en vorm als de hulpknop: het zijn twee knoppen naast elkaar in
+   dezelfde kopbalk, en ze hoorden er niet verschillend uit te zien. */
+.geluid-btn.hidden { display: none; }
+.geluid-btn--uit { opacity: 0.5; }
+.geluid-btn--uit:hover { opacity: 0.8; }

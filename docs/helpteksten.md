@@ -227,7 +227,7 @@ Titel: Geluid per dienst
 
 ### Begint vanzelf
 
-Loopt iemand een dienst binnen — de herberg, de tempel, het gokhuis — dan begint deze loop op zijn eigen toestel. Daar is geen sessie of tafelscherm voor nodig.
+Loopt iemand een dienst binnen — de herberg, de tempel, het gokhuis — dan begint deze loop op zijn eigen toestel. Daar is geen sessie of tafelscherm voor nodig. Naast het boekje van die dienst staat een **luidsprekertje** waarmee hij het zelf kan dempen; die keuze blijft op zijn toestel staan en geldt voor alle loops, ook die van de rust. Heb je voor een dienst niets ingesteld, dan staat die knop er niet.
 
 ### Een decor gaat voor
 
@@ -1168,7 +1168,7 @@ Het **archief**: brieven, aktes, kaarten en aantekeningen die je onderweg verzam
 
 ## `dungeon`
 
-> Helpknop in: app.js:3468, render-dungeon.js:194
+> Helpknop in: app.js:3469, render-dungeon.js:194
 > Nu: de standaard uit de code
 
 Titel: Dungeonkaarten
@@ -1197,7 +1197,7 @@ Per party stel je in of een dungeon nog niet, nu of al uitgespeeld is. Zo kun je
 
 ## `facties`
 
-> Helpknop in: app.js:8784, app.js:13799, app.js:13910
+> Helpknop in: app.js:8785, app.js:13800, app.js:13911
 > Nu: **aangepast in deze campagne**
 > De standaard telt 4 stap(pen).
 
@@ -1240,7 +1240,7 @@ Vijanden zonder bestiarium-kennis tonen een ruwe balk in drie segmenten: gezond,
 
 ## `gock`
 
-> Helpknop in: app.js:12659
+> Helpknop in: app.js:12660
 > Nu: **aangepast in deze campagne**
 > De standaard telt 1 stap(pen).
 
@@ -1254,7 +1254,7 @@ Juliaan de Gock is een privédetective. Je kunt hem inhuren om een persoon, loca
 
 ## `herberg`
 
-> Helpknop in: app.js:12431
+> Helpknop in: app.js:12432
 > Nu: **aangepast in deze campagne**
 > De standaard telt 2 stap(pen).
 
@@ -1493,7 +1493,7 @@ Dat leg je niet hier vast maar in de **voorraad van de winkel**. Het voorwerp to
 
 ## `hulp_kaart_dungeon`
 
-> Helpknop in: app.js:3468
+> Helpknop in: app.js:3469
 > Nu: de standaard uit de code
 
 Titel: Een dungeon bewerken
@@ -1514,7 +1514,7 @@ Die zet je niet hier maar op het kaartje zelf, met het oogje — en hij geldt vo
 
 ## `hulp_kaart_wereld`
 
-> Helpknop in: app.js:3468
+> Helpknop in: app.js:3469
 > Nu: de standaard uit de code
 
 Titel: Een kaart bewerken
@@ -1879,7 +1879,7 @@ De namen zijn opmaak, geen administratie — al het bezit staat als getal opgesl
 
 ## `kaart`
 
-> Helpknop in: app.js:3233, render-kaart.js:134
+> Helpknop in: app.js:3234, render-kaart.js:134
 > Nu: de standaard uit de code
 
 Titel: De kaart
@@ -1892,7 +1892,7 @@ Wissel tussen de **wereldkaart** en de **stadskaart**. Pins markeren ontdekte lo
 
 ## `knapzak`
 
-> Helpknop in: app.js:8809
+> Helpknop in: app.js:8810
 > Nu: **aangepast in deze campagne**
 > De standaard telt 3 stap(pen).
 
@@ -1949,7 +1949,7 @@ Op het prikbord staan alle missies van de campagne, ingedeeld op status: Beschik
 
 ## `magizoo`
 
-> Helpknop in: app.js:12821
+> Helpknop in: app.js:12822
 > Nu: **aangepast in deze campagne**
 > De standaard telt 2 stap(pen).
 
@@ -1967,7 +1967,7 @@ Er zijn drie kennisniveaus: naam (alleen de identiteit van het wezen), deels (AC
 
 ## `markt`
 
-> Helpknop in: app.js:12038
+> Helpknop in: app.js:12039
 > Nu: de standaard uit de code
 
 Titel: De Markt
@@ -2006,7 +2006,7 @@ Gilden, ordes en groeperingen in de wereld. Klik op een kaart voor hun doel, led
 
 ## `party`
 
-> Helpknop in: app.js:8267
+> Helpknop in: app.js:8268
 > Nu: **aangepast in deze campagne**
 > De standaard telt 2 stap(pen).
 
@@ -2020,7 +2020,7 @@ Dit tabblad toont de andere leden van jouw groep. Je kunt zien wie aanwezig is v
 
 ## `personage`
 
-> Helpknop in: app.js:8402
+> Helpknop in: app.js:8403
 > Nu: **aangepast in deze campagne**
 > De standaard telt 3 stap(pen).
 
@@ -2126,7 +2126,7 @@ Spreuken komen in je eigen boek terecht via je klasse (bij een levelup), via een
 
 ## `spreukenboek`
 
-> Helpknop in: app.js:9155
+> Helpknop in: app.js:9156
 > Nu: de standaard uit de code
 
 Titel: Spreukenboek
@@ -2147,7 +2147,7 @@ Veelgebruikte spreuken kun je vastpinnen via de ster (★) op het kaartje. Ze ve
 
 ## `tempel`
 
-> Helpknop in: app.js:13163, app.js:13230
+> Helpknop in: app.js:13164, app.js:13231
 > Nu: **aangepast in deze campagne**
 > De standaard telt 3 stap(pen).
 
@@ -2169,7 +2169,7 @@ Een eed is een permanente verbintenis met een god. Je ontvangt een blijvende bon
 
 ## `tweespalt`
 
-> Helpknop in: app.js:13550
+> Helpknop in: app.js:13551
 > Nu: **aangepast in deze campagne**
 > De standaard telt 0 stap(pen).
 
@@ -2187,7 +2187,7 @@ Als je goud tekort komt kun je een lening afsluiten bij ~~woekeraar~~ lommerd Ta
 
 ## `ursula`
 
-> Helpknop in: app.js:13084
+> Helpknop in: app.js:13085
 > Nu: **aangepast in deze campagne**
 > De standaard telt 2 stap(pen).
 
@@ -2244,7 +2244,7 @@ Voorwerpen die je hebt geclaimd of die de DM je heeft gegeven, verschijnen op je
 
 ## `winkel`
 
-> Helpknop in: app.js:12166
+> Helpknop in: app.js:12167
 > Nu: de standaard uit de code
 
 Titel: In de winkel
