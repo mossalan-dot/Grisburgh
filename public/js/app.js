@@ -1,6 +1,6 @@
 import { api, campagneUitUrl, zetCampagne } from './api.js?v=298';
 import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, renderDocumenten, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=325";
-import { initArchief, renderLogboek, openLogboekEditor } from "./render-archief.js?v=137";
+import { initArchief, renderLogboek, openLogboekEditor } from "./render-archief.js?v=138";
 import { renderKaart, queueFlyTo, verversPins, nieuweKaart } from './render-kaart.js?v=31';
 import { renderDungeon } from './render-dungeon.js?v=56';
 import { renderRelatiemap } from './render-relatiemap.js?v=27';
@@ -10,7 +10,7 @@ import { renderSpreuken } from './render-spreuken.js?v=41';
 import { renderVaardigheden, zoekVaardigheden } from './render-vaardigheden.js?v=10';
 import { renderStatblock } from './render-statblock.js?v=9';
 import { initSocket } from "./socket-client.js?v=80";
-import { initDmPanel } from "./dm-panel.js?v=355";
+import { initDmPanel } from "./dm-panel.js?v=356";
 import { COND_INFO, COND_LABEL, COND_MET_PLAATJE, COND_ICON } from './conditions.js?v=2';
 import './media-picker.js?v=8';
 import './tafels.js?v=2';
@@ -13799,7 +13799,7 @@ async function renderFacties() {
              Een kop geeft hem die plek, en zegt meteen waar je bent — zoals
              elke andere dienst dat doet. -->
         <div class="factie-lijst-kop">
-          <h2 class="factie-lijst-titel">${icon('landmark')} Facties</h2>
+          <h2 class="factie-lijst-titel">${icon('landmark')} ${esc(window._factiesLabel())}</h2>
           ${_geluidBtn()}${_helpBtn('facties')}
         </div>
         <div class="factie-grid">
@@ -14341,7 +14341,8 @@ const HELP_CONFIG = {
     { titel: 'Het embleem komt van het kaartje', tekst: 'Een factie hangt aan een organisatiekaartje, en dáár kies je haar teken (veld **Teken**). Laat je het leeg, dan volgt het het type van de organisatie — een gilde krijgt een pakket, een bende een schedel. Zo staat het teken op één plek en klopt het overal: in de kaartenlijst, in het organogram en op het lakzegel van haar brieven.', afbeelding: null },
     { titel: 'Hoe de sectie heet', tekst: 'De naam boven dit onderdeel stel je zelf in (bij ons *Facties & Aanzien*). Zo kan het in jouw wereld net zo goed *Huizen* of *Orden* heten.', afbeelding: null },
     { titel: 'Zich voorstellen per brief', tekst: 'Een factie kan zich met één klik voorstellen aan de actieve party: dat onthult haar en bezorgt elke speler een verzegelde brief. Een mooiere binnenkomst dan een vinkje omzetten. Het tabje **Brief** heeft dezelfde velden als een gewone brief bij de post — afzender, onderwerp, datum in de spelwereld, handschrift, briefhoofd en inhoud — plus de kleur van de lak. Laat je de afzender leeg, dan tekent het hoofd van de factie.', afbeelding: null },
-    { titel: 'Koppelen, niet overtikken', tekst: 'Wijs de **organisatie**, de **locatie** en het **hoofd** aan als kaartje. Het hoofd volgt meestal al uit de betrokkenenlijst van de organisatie — diezelfde lijst tekent het organogram op dat kaartje. Zo staat elk gegeven op één plek.', afbeelding: null },
+    { titel: 'Drie koppelingen, elk met een taak', tekst: 'Bij *Algemeen* wijs je drie kaartjes aan, en ze doen alle drie iets anders. De **organisatie** is wíé ze zijn: daar komt hun embleem vandaan, en haar organogram is de ledenlijst van deze factie — hier lees je die, daar bewerk je hem. De **locatie** is wáár ze zitten: die geeft de achtergrond van hun scherm, en een winkel op die plek verschijnt als verkoper van de factie. Het **hoofd** is wie er tekent: hij is de afzender van de uitnodiging als je dat veld leeg laat. Het hoofd volgt meestal al uit het organogram, dus meestal hoef je hem niet zelf te kiezen.', afbeelding: null },
+    { titel: 'En wat er verder aan vastzit', tekst: 'De **begroeting** komt uit een tafel, net als bij een dienst: meerdere openingszinnen, en de app kiest er een. Een **voorwerp** dat je aan een rang hangt krijgt op zijn eigen kaartje de regel *Gunst — <rang>*, zichtbaar zodra de party de factie kent. En een **missie** koppel je aan een factie op het prikbord; daar zet je ook wat hij aan renown oplevert. Overal geldt dezelfde regel: het gegeven staat op één plek, en je kunt het van twee kanten leggen.', afbeelding: null },
     { titel: 'Onthullen', tekst: 'Spelers zien een factie pas als jij haar onthult (het oogje). Het renown pas je hier aan; de ladder bepaalt wat er dan opengaat.', afbeelding: null },
   ] }),
   dm_facties_leden: () => ({ titel: 'Leden van een factie', stappen: [

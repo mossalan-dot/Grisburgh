@@ -3378,6 +3378,13 @@ async function _revealRegieBalkItem(itemId, mode = 'visible') {
       // Geef de groep eerst toegang tot de dungeon, onthul daarna eventueel de kamer.
       await api.grantDungeonAccess(item.dungeonId, grp);
       if (item.roomId) await api.revealDungeonRoom(item.dungeonId, { roomId: item.roomId, groupId: grp });
+    } else if (item.type === 'missie') {
+      // De klus komt op tafel: van Verborgen naar Beschikbaar, voor de groep die
+      // nu speelt. Hoort hij bij een factie, dan staat hij daarna in haar
+      // interieur en kan de party hem aanvragen.
+      const grp = window._activeGroupId;
+      if (!grp) { alert('Geen actieve groep — kies eerst een groep.'); _rbRevealed.delete(itemId); _rbUpdateItem(itemId); return; }
+      await api.updateQuest(item.missieId, { status: 'actief', groepId: grp });
     }
     // Optioneel geluid bij deze reveal (speelt via de tablet; loop → ambiance).
     if (item.soundFileId) {
@@ -7344,13 +7351,17 @@ window._factieSubtabKies = (id, sub) => {
   document.querySelectorAll(`.factie-dm-paneel[data-factie="${id}"]`).forEach(p => {
     p.hidden = p.dataset.sub !== sub;
   });
-  const kaart = document.getElementById(`factie-dm-kaart-${id}`) || document.getElementById('m-body');
-  kaart?.querySelectorAll('.dm-subtab-btn').forEach(b => {
+  // Zoek de balk op vanuit een paneel dat we net omgezet hebben. Eerst kijken of
+  // er een `factie-dm-kaart-<id>` bestaat ging mis zodra het venster openstond:
+  // dat kaartje staat nog ín de lijst erachter, heeft daar geen tabbalk meer, en
+  // dus verschoof de streep niet mee terwijl de panelen wél wisselden.
+  const paneel = document.querySelector(`.factie-dm-paneel[data-factie="${id}"]`);
+  const bak = paneel?.closest('.factie-venster') || paneel?.parentElement
+    || document.getElementById('m-body');
+  bak?.querySelectorAll('.dm-subtab-btn').forEach(b => {
     b.classList.toggle('active', b.dataset.subtab === sub);
   });
   // Het boekje in de balk hoort bij het tabje, niet bij de kaart.
-  // In het venster zit geen .factie-dm-kaart; dan is het venster zelf de bak.
-  const bak = kaart || document.getElementById('m-body');
   const slot = bak?.querySelector('.dm-subtab-hulp');
   if (slot) {
     const sleutel = _FACTIE_SUBTAB_HULP[sub];
@@ -7532,22 +7543,6 @@ window._factieTafelBewerk = (fi) => {
 // al een teken heeft. Twee pickers voor één symbool; nu volgt de factie het
 // kaartje en zet je het teken dáár — waar het ook de kaartenlijst, wikilinks
 // en het organogram bedient.
-const _iconPicker = (fi, f) => {
-  const org = f.entityId ? _factiesOrganisaties.find(o => o.id === f.entityId) : null;
-  const embleem = _factieEmbleemLokaal(f, org);
-  return `
-    <div class="dm-form-row" style="align-items:center">
-      <label class="dm-form-label">Embleem</label>
-      <span class="factie-embleem-uit">
-        <span class="factie-embleem-teken">${icon(embleem)}</span>
-        ${org
-          ? `<button type="button" class="dm-factie-kaartlink"
-               onclick="window._openDetail('organisaties','${esc(org.id)}')">volgt ${esc(org.name)}</button>`
-          : `<span class="dm-hint">koppel een organisatiekaartje bij <em>Algemeen</em>; daar staat het teken</span>`}
-      </span>
-    </div>`;
-};
-
 // ── Een factie bewerken: eigen venster ───────────────────────────────────────
 // In de lijst staat de stand — wie het kent, hoeveel aanzien, welke rang. Alles
 // wat je instelt zit hier, in dezelfde vier tabjes, maar met de ruimte van een
@@ -7589,7 +7584,6 @@ function _factieVensterHtml(fi) {
           <input class="dm-input" style="flex:1" placeholder="Naam" value="${esc(f.naam || '')}"
             oninput="window._factieEdit(${fi},'naam',this.value)">
         </div>
-        ${_iconPicker(fi, f)}
         <textarea class="dm-input" style="width:100%;margin-top:6px;min-height:80px;resize:vertical" placeholder="Beschrijving"
           oninput="window._factieEdit(${fi},'beschrijving',this.value)">${esc(f.beschrijving || '')}</textarea>
         ${_factieKaartVeld(fi, 'entityId', 'Organisatie', _factiesOrganisaties, f.entityId, 'Zoek het organisatiekaartje…')}
@@ -7613,7 +7607,6 @@ function _factieVensterHtml(fi) {
       ${paneel('brief', _factieBriefHtml(fi, f, org))}
 
       ${paneel('rangen', `
-        <p class="dm-hint" style="margin:0 0 8px">Elke rang zegt zelf vanaf hoeveel renown hij geldt. De volgorde volgt daaruit; je hoeft ze niet op volgorde in te tikken.</p>
         <div id="factie-rangen-${fi}"></div>
         <div class="dm-form-row"><button class="dm-btn dm-btn-ghost dm-btn-sm" onclick="window._factieRangToevoegen(${fi})">${icon('plus')} Rang</button></div>`)}
 
@@ -7902,28 +7895,25 @@ function _renderFactieRangen(fi) {
             value="${drempelVan(r, i)}" title="Vanaf hoeveel renown geldt deze rang?"
             onchange="window._factieRangEdit(${fi},${i},'renown',this.value);window._renderFactieRangen(${fi})">
           renown</label>
-        <input class="dm-input" style="width:130px" placeholder="Rangnaam" value="${esc(r.naam || '')}" oninput="window._factieRangEdit(${fi},${i},'naam',this.value)">
-        <textarea class="dm-input" style="flex:1;min-height:48px;resize:vertical" placeholder="Voordelen / omschrijving" oninput="window._factieRangEdit(${fi},${i},'voordelen',this.value)">${esc(r.voordelen || '')}</textarea>
-        <button class="dm-btn dm-btn-ghost dm-btn-sm" onclick="window._factieRangVerwijder(${fi},${i})" title="Verwijderen">${icon('trash')}</button>
-      </div>
-      <!-- Renown alleen is niet altijd genoeg: het boek laat een gilde vanaf de
-           derde trede ook karakterlevel en voltooide missies vragen. Voorrekenen
-           en niet blokkeren — de speler ziet wat er gevraagd wordt en wat hij
-           heeft, jij beslist. Leeg laten = geen eis. -->
-      <div class="factie-vereist-rij" style="padding-left:68px">
-        <span class="dm-hint">en pas bij</span>
-        <label class="dm-hint">level
-          <input class="dm-input dm-input-sm" type="number" min="0" style="width:56px;margin-left:4px"
-            placeholder="—" value="${r.vereist?.level || ''}"
+        <!-- Renown alleen is niet altijd genoeg: het boek laat een gilde vanaf
+             de derde trede ook karakterlevel en voltooide missies vragen. Die
+             eisen horen naast de drempel te staan en niet onder de omschrijving:
+             het zijn alle drie antwoorden op "wanneer geldt deze rang?". -->
+        <label class="dm-hint factie-eis">level
+          <input class="dm-input dm-input-sm" type="number" min="0" placeholder="—"
+            value="${r.vereist?.level || ''}"
             title="Het hoogste level in de party; leeg = geen eis"
             onchange="window._factieVereistEdit(${fi},${i},'level',this.value)"></label>
-        <label class="dm-hint">voltooide missies
-          <input class="dm-input dm-input-sm" type="number" min="0" style="width:56px;margin-left:4px"
-            placeholder="—" value="${r.vereist?.missies || ''}"
+        <label class="dm-hint factie-eis">missies
+          <input class="dm-input dm-input-sm" type="number" min="0" placeholder="—"
+            value="${r.vereist?.missies || ''}"
             title="Voltooide missies van déze factie; leeg = geen eis"
             onchange="window._factieVereistEdit(${fi},${i},'missies',this.value)"></label>
+        <input class="dm-input factie-rangnaam" placeholder="Rangnaam" value="${esc(r.naam || '')}" oninput="window._factieRangEdit(${fi},${i},'naam',this.value)">
+        <button class="dm-btn dm-btn-ghost dm-btn-sm" onclick="window._factieRangVerwijder(${fi},${i})" title="Verwijderen">${icon('trash')}</button>
       </div>
-      <div style="padding-left:68px">
+      <textarea class="dm-input" style="width:100%;min-height:48px;resize:vertical" placeholder="Voordelen / omschrijving" oninput="window._factieRangEdit(${fi},${i},'voordelen',this.value)">${esc(r.voordelen || '')}</textarea>
+      <div class="factie-rang-gunsten">
         ${(r.unlocks || []).map((u, bi) => _unlockRijHtml(fi, i, bi, u)).join('')}
         <button class="dm-btn dm-btn-ghost dm-btn-sm" onclick="window._factieUnlockToevoegen(${fi},${i})">${icon('plus')} Wat levert deze rang op?</button>
       </div>

@@ -26786,10 +26786,14 @@ body.akte-schrijf-open .mp-overlay { z-index: 1320; }
   font-size: 1.05rem;
   font-weight: 600;
   letter-spacing: .06em;
-  color: #4a3218;
-  text-shadow: 0 1px 0 rgba(255,250,240,0.35);
+  /* Dit scherm heeft de achtergrond van de campagne achter zich, en die is bij
+     ons een nachtelijke stad. Donkerbruin met een lichte slagschaduw las daar
+     niet: dat was gekozen voor perkament. Licht met een donkere schaduw houdt
+     het leesbaar op allebei. */
+  color: #f2e2bd;
+  text-shadow: 0 1px 3px rgba(0,0,0,0.75), 0 0 10px rgba(0,0,0,0.5);
 }
-.factie-lijst-titel .icon { width: 18px; height: 18px; opacity: .75; }
+.factie-lijst-titel .icon { width: 18px; height: 18px; opacity: .85; }
 
 /* ── Een dienst waar je nog niet terecht kunt ─────────────────────────────
    Stond alleen op opacity .55, en dat leest net zo goed als "stuk" — een
@@ -27950,3 +27954,61 @@ body.akte-schrijf-open .mp-overlay { z-index: 1320; }
 /* Renown toekennen: één veld in plaats van vier vaste knoppen */
 .factie-renown-invoer { display: inline-flex; align-items: center; gap: 5px; }
 .factie-renown-invoer input { width: 64px; }
+
+/* Het organogram in het factievenster: op een telefoon past een brede boom niet,
+   dus schuift hij in zijn eigen bak in plaats van het venster op te rekken. */
+.factie-venster .org-doek {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: 4px;
+}
+.factie-venster .org-blok { margin: 0; }
+@media (max-width: 640px) {
+  .factie-venster .org-boom { min-width: max-content; }
+}
+
+/* ── Het factievenster op een telefoon ────────────────────────────────────── */
+/* Een brede boom of een lange rangrij mag schuiven in zijn eigen bak; het
+   venster zelf hoort niet op te rekken. */
+.factie-venster .org-doek {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: 4px;
+}
+.factie-venster .org-blok { margin: 0; }
+.factie-venster .veld-uitleg,
+.factie-venster .dm-hint { overflow-wrap: anywhere; }
+.factie-venster input,
+.factie-venster select,
+.factie-venster textarea { max-width: 100%; }
+.factie-venster .dm-form-row { flex-wrap: wrap; }
+
+@media (max-width: 640px) {
+  .factie-venster .org-boom { min-width: max-content; }
+  /* De tabbalk krimpt niet verder dan zijn vier woorden; laat hem schuiven in
+     plaats van de labels af te kappen. */
+  .factie-venster .dm-subtab-nav {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    flex-wrap: nowrap;
+  }
+  .factie-venster .dm-subtab-btn { flex: 0 0 auto; }
+  /* Label boven het veld: naast elkaar past niet bij "Datum (in de spelwereld)". */
+  .factie-venster .dm-form-row { flex-direction: column; align-items: stretch; gap: 3px; }
+  .factie-venster .dm-form-row > .dm-form-label { width: auto; text-align: left; }
+  .factie-venster .factie-venster-voet { flex-direction: row; flex-wrap: wrap; }
+  .factie-venster .factie-venster-voet > span { margin-left: 0 !important; width: 100%; }
+  .factie-venster .factie-venster-voet .dm-btn { flex: 1 1 auto; }
+  .factie-venster .factie-unlock-rij > input,
+  .factie-venster .factie-unlock-rij > select { width: 100%; }
+}
+
+/* Een rangrij: drempel, eisen en naam staan naast elkaar — het zijn alle drie
+   antwoorden op "wanneer geldt deze rang?". De omschrijving staat eronder. */
+.factie-eis { display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; }
+.factie-eis input { width: 54px; }
+.factie-rangnaam { flex: 1 1 130px; min-width: 110px; }
+.factie-rang-gunsten { margin-top: 6px; }
+@media (max-width: 640px) {
+  .factie-rangnaam { flex-basis: 100%; }
+}

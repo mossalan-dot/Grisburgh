@@ -1741,6 +1741,8 @@ function _renderAkteScriptInner(ch, info, chEntries) {
                 ? icon(item.restType === 'long' ? 'moon' : 'zap')
                 : item.type === 'brief'
                   ? icon('mail')
+                  : item.type === 'missie'
+                    ? icon('scroll-text')
                   : item.type === 'loot'
                     ? icon('coins')
                     : item.type === 'kop'
@@ -1902,6 +1904,28 @@ function _renderAkteScriptInner(ch, info, chEntries) {
           style="flex:1;font-size:12px" onkeydown="if(event.key==='Enter')window._scriptAddKop('${esc(ch)}')">
         <button class="dm-btn dm-btn-sm dm-btn-primary" onclick="window._scriptAddKop('${esc(ch)}')">${icon('plus')}</button>
       </div>`;
+  } else if (pickerState.mode === 'missie') {
+    // Een missie *aanbieden* is een regie-daad: op dit punt in het verhaal komt
+    // de klus op tafel. De missie zelf maak je op het prikbord; hier zet je
+    // alleen wannéér hij zichtbaar wordt. De lijst toont wat nog verborgen is —
+    // een missie die al beschikbaar staat valt niets meer te onthullen.
+    const missies = pickerState.missies;
+    if (missies === undefined) {
+      pickerHtml = `<p class="dm-hint">Laden…</p>`;
+      _scriptPickerMissies(ch);
+    } else if (!missies.length) {
+      pickerHtml = `<p class="dm-hint">Geen verborgen missies. Maak er een op het <strong>prikbord</strong> en laat hem in de kolom <em>Verborgen</em> staan; dan kun je hem hier aanbieden.</p>`;
+    } else {
+      pickerHtml = `
+        <p class="dm-hint" style="margin:0 0 6px">Zet hem op dit punt in het verhaal op <em>Beschikbaar</em>. Hoort hij bij een factie, dan staat hij daarna in haar interieur.</p>
+        <div class="script-picker-lijst">
+          ${missies.map(m => `
+            <button class="dm-btn dm-btn-sm script-picker-rij"
+              onclick="window._scriptAddMissie('${esc(ch)}','${esc(m.id)}','${escJS(m.title || 'Missie')}')">
+              ${icon('scroll-text')} <span>${esc(m.title || 'Naamloze missie')}${m.factieNaam ? ` — ${esc(m.factieNaam)}` : ''}</span>
+            </button>`).join('')}
+        </div>`;
+    }
   } else if (pickerState.mode === 'loot') {
     const vondsten = pickerState.loot;
     if (vondsten === undefined) {
@@ -1961,6 +1985,9 @@ function _renderAkteScriptInner(ch, info, chEntries) {
         <button class="script-add-btn${pickerState.mode === 'loot'? ' is-active' : ''}"
           title="Vondst toevoegen"
           onclick="window._scriptTogglePicker('${esc(ch)}','loot')">${icon('coins')}</button>
+        <button class="script-add-btn${pickerState.mode === 'missie'? ' is-active' : ''}"
+          title="Missie aanbieden"
+          onclick="window._scriptTogglePicker('${esc(ch)}','missie')">${icon('scroll-text')}</button>
         <button class="script-add-btn${pickerState.mode === 'brief'? ' is-active' : ''}"
           title="Brief toevoegen"
           onclick="window._scriptTogglePicker('${esc(ch)}','brief')">${icon('mail')}</button>
@@ -2342,6 +2369,31 @@ window._scriptKopHernoem = async (ch, id, titel) => {
   const item = script.find(x => x.id === id);
   if (!item) return;
   item.titel = titel.trim();
+  await _scriptSave(ch, script);
+};
+
+// De verborgen missies ophalen voor de kiezer. Alleen verborgen: wat al
+// beschikbaar is, valt niet meer te onthullen.
+async function _scriptPickerMissies(ch) {
+  const st = _scriptPickers[ch];
+  if (!st || st.missies !== undefined) return;
+  st.missies = [];
+  try {
+    const [quests, fd] = await Promise.all([
+      api.listQuests().catch(() => []),
+      api.getFacties().catch(() => null),
+    ]);
+    const facties = fd?.facties || [];
+    st.missies = (quests || [])
+      .filter(q => (q.status || 'verborgen') === 'verborgen')
+      .map(q => ({ ...q, factieNaam: facties.find(f => f.id === q.factieId)?.naam || '' }));
+  } catch { st.missies = []; }
+  _refreshScriptSection(ch);
+}
+
+window._scriptAddMissie = async (ch, missieId, naam) => {
+  const script = [...(meta?.hoofdstukken?.[ch]?.script || [])];
+  script.push({ id: _scriptGenId(), type: 'missie', missieId, name: naam });
   await _scriptSave(ch, script);
 };
 
