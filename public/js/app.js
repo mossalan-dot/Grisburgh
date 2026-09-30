@@ -4,7 +4,7 @@ import { initArchief, renderLogboek, openLogboekEditor } from "./render-archief.
 import { renderKaart, queueFlyTo, verversPins, nieuweKaart } from './render-kaart.js?v=31';
 import { renderDungeon } from './render-dungeon.js?v=56';
 import { renderRelatiemap } from './render-relatiemap.js?v=27';
-import { renderProgressie, levelupFeatures } from './render-progressie.js?v=53';
+import { renderProgressie, levelupFeatures } from './render-progressie.js?v=54';
 import { renderBestiarium } from './render-bestiarium.js?v=31';
 import { renderSpreuken } from './render-spreuken.js?v=41';
 import { renderVaardigheden, zoekVaardigheden } from './render-vaardigheden.js?v=10';
@@ -4436,6 +4436,7 @@ window._openSpellbook = function(startIdx) {
   // je opeens ergens anders zonder dat je dat vroeg.
   _sbVanTab = _playerSubTab || 'spreukenboek';
   ov.classList.remove('sb-open');
+  document.body.classList.remove('sb-boek-open');
   // Géén requestAnimationFrame om de overlay te tonen: die staat stil in een
   // tabblad dat niet op de voorgrond is, en `.sb-overlay` is zonder `sb-open`
   // `opacity:0; pointer-events:none` — het boek zou dan onzichtbaar én
@@ -4445,6 +4446,8 @@ window._openSpellbook = function(startIdx) {
   if (_sbOpenRafId) { cancelAnimationFrame(_sbOpenRafId); _sbOpenRafId = null; }
   void ov.offsetWidth;
   ov.classList.add('sb-open');
+  // Zolang het boek openstaat schuift de pagina eronder niet mee.
+  document.body.classList.add('sb-boek-open');
   // Close TOC if it was open
   const toc = document.getElementById('sb-toc-panel');
   if (toc) toc.classList.remove('sb-toc-open');

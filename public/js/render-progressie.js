@@ -292,11 +292,28 @@ export async function renderProgressie(container, ctx) {
 
 // Bewaar laatste args zodat refresh() werkt
 let _lastRenderArgs = null;
+// Na een keuze tekent dit blad zichzelf opnieuw. Dat mag je niet merken — maar
+// de scrollpositie werd bewaard met `window.scrollY`, en op het spelersblad
+// scrolt niet het venster maar een bak eromheen. Die stond dus altijd op 0 en de
+// herstelregel deed niets: je sprong naar boven, en dat leest als "de pagina
+// herlaadt". Nu onthouden we de bak die écht schuift.
+function _scrollBak(el) {
+  for (let n = el?.parentElement; n && n !== document.body; n = n.parentElement) {
+    const st = getComputedStyle(n);
+    if (/(auto|scroll)/.test(st.overflowY) && n.scrollHeight > n.clientHeight + 4) return n;
+  }
+  return null;
+}
+
 function _refresh() {
   if (!_lastRenderArgs) return;
-  const scrollY = window.scrollY;
+  const bak = _scrollBak(_lastRenderArgs.container);
+  const top = bak ? bak.scrollTop : window.scrollY;
   renderProgressie(_lastRenderArgs.container, _lastRenderArgs.ctx)
-    .then(() => window.scrollTo({ top: scrollY, behavior: 'instant' }))
+    .then(() => {
+      if (bak) bak.scrollTop = top;
+      else window.scrollTo({ top, behavior: 'instant' });
+    })
     .catch(() => {});
 }
 

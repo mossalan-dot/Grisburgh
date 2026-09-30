@@ -17913,7 +17913,14 @@ body.display-mode .combat-overlay.co-has-backdrop .combat-modal {
 .sb-overlay.sb-open {
   opacity: 1;
   pointer-events: all;
+  /* Vegen in het boek schoof de pagina eronder mee: de overlay ligt er wel
+     overheen, maar een scroll die hier niets te schuiven vindt gaat door naar
+     wat erachter ligt. `contain` houdt hem binnen het boek. */
+  overscroll-behavior: contain;
+  touch-action: pan-y;
 }
+/* En zolang het boek openstaat schuift de pagina eronder helemaal niet meer. */
+body.sb-boek-open { overflow: hidden; }
 
 /* ── Overlay controls row (above book) ── */
 .sb-overlay-controls {
