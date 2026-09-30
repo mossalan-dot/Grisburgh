@@ -7801,8 +7801,12 @@ function _renderFactiesDM() {
               title="Toekennen">${icon('check')} Toekennen</button>
             ${boonGegeven.length ? `<span class="factie-dm-boon-label">${icon('check-circle')} ${boonGegeven.length} gunst${boonGegeven.length > 1 ? 'en' : ''} uitgedeeld</span>` : ''}
             <span style="margin-left:auto;display:inline-flex;gap:6px">
-              ${live.uitgenodigd
-                ? `<span class="dm-hint factie-dm-uitgenodigd" title="Deze party heeft de uitnodiging al gehad">${icon('mail')} Uitgenodigd</span>`
+              <!-- Een uitnodiging is een kennismaking: hij is weg zodra hij de
+                   deur uit is, én zodra de party al aanzien heeft opgebouwd.
+                   Wie al renown heeft kent deze factie allang — dan is "stel je
+                   voor" een brief die te laat komt. -->
+              ${live.uitgenodigd || renown > 0
+                ? `<span class="dm-hint factie-dm-uitgenodigd" title="${live.uitgenodigd ? 'Deze party heeft de uitnodiging al gehad' : 'Deze party heeft al aanzien bij deze factie'}">${icon('mail')} ${live.uitgenodigd ? 'Uitgenodigd' : 'Kennen elkaar al'}</span>`
                 : `<button class="dm-btn dm-btn-primary dm-btn-sm factie-dm-uitnodiging"
                      onclick="window._factieStuurUitnodiging('${esc(f.id)}')"
                      title="Onthul de factie voor de actieve groep én bezorg elke speler een verzegelde uitnodigingsbrief">

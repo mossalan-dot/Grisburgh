@@ -436,6 +436,34 @@ describe('Facties: een rang ontgrendelt iets', () => {
     assert.ok(f.hulp?.beschikbaar, 'de metgezel is in te roepen in plaats van uitgedeeld');
   });
 
+  // Een uitnodiging is een kennismaking: één keer, en niet aan een party die
+  // deze factie allang kent.
+  it('stuurt een uitnodiging maar één keer, en niet bij bestaand aanzien', async () => {
+    const bestaand = (await req(server, 'GET', '/api/meta', null, dm)).body.facties || [];
+    await req(server, 'PUT', '/api/meta/facties', {
+      facties: [...bestaand.filter(f => !['nodig1', 'nodig2'].includes(f.id)),
+        { id: 'nodig1', naam: 'De Eerste Groet', rangen: [{ naam: 'Buitenstaander', renown: 0 }] },
+        { id: 'nodig2', naam: 'De Oude Bekenden', rangen: [{ naam: 'Buitenstaander', renown: 0 }] },
+      ],
+    }, dm);
+
+    const eerste = await req(server, 'POST', '/api/facties/nodig1/uitnodiging', {}, dm);
+    assert.strictEqual(eerste.status, 200, JSON.stringify(eerste.body));
+    assert.ok(eerste.body.bezorgd > 0, 'er is een brief bezorgd');
+
+    const nogmaals = await req(server, 'POST', '/api/facties/nodig1/uitnodiging', {}, dm);
+    assert.strictEqual(nogmaals.status, 409, 'een tweede uitnodiging mag niet');
+
+    const f = ((await req(server, 'GET', '/api/facties', null, dm)).body.facties || [])
+      .find(x => x.id === 'nodig1');
+    assert.strictEqual(f.uitgenodigd, true, 'de DM ziet dat hij de deur uit is');
+
+    // Wie al aanzien heeft, kent deze factie allang.
+    await req(server, 'POST', '/api/facties/nodig2/renown', { delta: 2 }, dm);
+    const telaat = await req(server, 'POST', '/api/facties/nodig2/uitnodiging', {}, dm);
+    assert.strictEqual(telaat.status, 409, 'kennismaken met wie je al kent');
+  });
+
   // Een voorwerp dat een rang ontgrendelt hoort dat op zijn eigen kaartje te
   // zeggen. Dat was eenrichtingsverkeer: je koppelde het in het factiepaneel en
   // op het kaartje van het zwaard stond nergens waar het vandaan komt.

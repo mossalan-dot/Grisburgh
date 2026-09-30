@@ -13128,6 +13128,18 @@ router.post('/facties/:id/uitnodiging', requireDM, (req, res) => {
   const groepId = dmState.activeGroup;
   const g = getGroup(dmState);
 
+  // Een uitnodiging is een kennismaking. Twee keer versturen is een tweede brief
+  // in de bus met dezelfde tekst; versturen aan een party die al aanzien heeft
+  // is een kennismaking met iemand die je al kent. De knop is er in beide
+  // gevallen niet meer, maar de route hoort het zelf ook te weten — anders hangt
+  // de regel aan een scherm.
+  if ((g.factieUitnodiging || {})[factie.id]) {
+    return res.status(409).json({ error: 'Deze party heeft de uitnodiging al gehad' });
+  }
+  if (((g.factieRenown || {})[factie.id] || 0) > 0) {
+    return res.status(409).json({ error: 'Deze party heeft al aanzien bij deze factie — ze kennen elkaar al' });
+  }
+
   // 1) Onthul de factie voor de actieve groep
   if (!g.factieZichtbaar) g.factieZichtbaar = {};
   g.factieZichtbaar[factie.id] = true;
