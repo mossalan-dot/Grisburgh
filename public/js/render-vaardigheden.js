@@ -15,7 +15,7 @@
  */
 
 import { api } from './api.js?v=299';
-import { naslagBron } from './render-progressie.js?v=54';
+import { naslagBron } from './render-progressie.js?v=55';
 
 const esc  = s => window.app?.esc?.(s) ?? String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 const icon = (...a) => window.icon(...a);

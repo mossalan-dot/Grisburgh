@@ -390,12 +390,14 @@ function _buildPanel(prog, ctx, charId, favs, choices) {
 
   const head = `
     <div class="prog-head">
-      <h3 class="prog-title">${icon('sparkles')} Progressie</h3>
+      <h3 class="prog-title">${icon('scroll-text')} Features &amp; Traits</h3>
       <div class="prog-head-right">
         <div class="prog-view-toggle"></div>
         ${charId ? `<button class="prog-fav-toggle${_favFilter ? ' active' : ''}"
           onclick="window.progressie.toggleFavFilter()" title="Toon alleen favorieten"
           >${_favFilter ? '★' : '☆'}</button>` : ''}
+        ${charId ? `<button class="prog-fav-toggle" title="Een eigen kenmerk toevoegen — iets wat niet uit een klasse of volk komt"
+          onclick="window._traitCustomOpen?.()">+</button>` : ''}
         ${isDM() ? `<button class="prog-edit-btn" onclick="window.progressie.openEditor()"
           title="Klassen, subklassen en soorten bewerken — inclusief afbeeldingen per ability"
           >${icon('pencil')} Bewerk</button>` : ''}
@@ -1040,6 +1042,21 @@ window.progressie = {
             return _geenTekstBlok(f.name);
           })()}
           ${detailChoice}
+          ${(() => {
+            // Een feature is niet alleen iets om te lezen: Rage heeft ladingen
+            // en een aantekening. Dat stond in een tweede lijst op het
+            // personageblad met exact dezelfde namen erin. Nu hangt het hier,
+            // aan de kaart van die feature zelf.
+            const t = window._traitBlokVoor?.(f.name);
+            if (!t) return '';
+            const max = t.maxUses || 0, cur = t.currentUses || 0;
+            return `
+              <div class="prog-detail-bijhouden">
+                ${max > 0 ? `<div class="prog-detail-dots">${window._traitDotsHtml?.(t.id, max, cur) || ''}</div>` : ''}
+                ${window._traitUsesRowHtml?.(t.id, max) || ''}
+                ${window._traitNoteBlokHtml?.(t.id, t.note || '') || ''}
+              </div>`;
+          })()}
         </div>
       </div>`);
     _applyGlossaryToModal();

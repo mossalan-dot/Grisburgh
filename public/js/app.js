@@ -4,7 +4,7 @@ import { initArchief, renderLogboek, openLogboekEditor } from "./render-archief.
 import { renderKaart, queueFlyTo, verversPins, nieuweKaart } from './render-kaart.js?v=31';
 import { renderDungeon } from './render-dungeon.js?v=56';
 import { renderRelatiemap } from './render-relatiemap.js?v=27';
-import { renderProgressie, levelupFeatures } from './render-progressie.js?v=54';
+import { renderProgressie, levelupFeatures } from './render-progressie.js?v=55';
 import { renderBestiarium } from './render-bestiarium.js?v=31';
 import { renderSpreuken } from './render-spreuken.js?v=41';
 import { renderVaardigheden, zoekVaardigheden } from './render-vaardigheden.js?v=10';
@@ -8263,7 +8263,7 @@ async function renderMijnKarakter(opts = {}) {
         <button class="player-subtab${_playerSubTab === 'knapzak' ? ' active' : ''}"
           data-tab="knapzak" title="Boedel" onclick="window._setPlayerSubTab('knapzak')">${icon('backpack')}<span class="pst-label">Boedel</span>${(lootData?.actief && lootData.deelnemers?.includes(charId)) ? '<span class="player-loot-badge" id="loot-tab-badge"></span>' : ''}</button>
         ${window._spelerTabAan('progressie') ? `<button class="player-subtab${_playerSubTab === 'progressie' ? ' active' : ''}"
-          data-tab="progressie" title="Progressie" onclick="window._setPlayerSubTab('progressie')">${icon('clipboard-list')}<span class="pst-label">Progressie</span></button>` : ''}
+          data-tab="progressie" title="Features &amp; Traits" onclick="window._setPlayerSubTab('progressie')">${icon('scroll-text')}<span class="pst-label">Features</span></button>` : ''}
         ${window._spelerTabAan('spreukenboek') && _heeftMagie ? `<button class="player-subtab${_playerSubTab === 'spreukenboek' ? ' active' : ''}"
           data-tab="spreukenboek" title="Spreukenboek" onclick="window._setPlayerSubTab('spreukenboek')">${icon('sparkles')}<span class="pst-label">Spreukenboek</span></button>` : ''}
         ${window._spelerTabAan('berichten') ? `<button class="player-subtab${_playerSubTab === 'berichten' ? ' active' : ''}"
@@ -8706,79 +8706,12 @@ async function renderMijnKarakter(opts = {}) {
           <div id="player-cond-detail" class="player-cond-detail hidden" data-cid=""></div>
         </div>` : ''}
 
-        <!-- Kenmerken & Eigenschappen -->
-        <div class="player-dash-section">
-          <div class="player-dash-section-title">
-            ${icon('scroll-text')} Features &amp; Traits
-            <button class="player-trait-add-btn" onclick="window._traitCustomOpen()" title="Nieuw kenmerk toevoegen">+</button>
-          </div>
-
-          <!-- PHB-zoeker -->
-          <div class="player-trait-search-wrap">
-            <input id="player-trait-input" class="player-spell-search-input" type="text"
-              placeholder="Zoek PHB-kenmerk (bv. Rage, Sneak Attack…)" autocomplete="off"
-              oninput="window._playerTraitSearch(this.value)">
-            <div id="player-trait-results" class="player-spell-results"></div>
-          </div>
-
-          <!-- Vastgezette kenmerken (gesorteerd op niveau dan naam) -->
-          ${pinnedTraits.length > 0 ? (() => {
-            const _traitLevel = t => {
-              const m = (t.meta || '').match(/(?:Niv\.|Lv\.)\s*(\d+)/i);
-              return m ? parseInt(m[1]) : (t.source === 'phb-feats' ? 99 : 0);
-            };
-            const sorted = [...pinnedTraits].sort((a, b) =>
-              _traitLevel(a) - _traitLevel(b) || a.name.localeCompare(b.name));
-            return `
-          <div class="player-pinned-traits">
-            ${sorted.map(t => {
-              const maxUses = t.maxUses || 0;
-              const curUses = t.currentUses || 0;
-              const dotsHtml = maxUses > 0 ? `
-                <span class="trait-uses-dots" onclick="event.preventDefault();event.stopPropagation()">
-                  ${Array.from({length: maxUses}, (_, i) => `<button type="button" class="spell-slot-dot ${i < curUses ? 'used' : 'free'}"
-                    onclick="event.preventDefault();event.stopPropagation();window._traitToggleUse('${esc(t.id)}',${i},${maxUses},${curUses})"
-                    title="${i < curUses ? 'Verbruikt' : 'Vrij'}"></button>`).join('')}
-                  <span class="trait-uses-count">${curUses}/${maxUses}</span>
-                </span>` : '';
-              return `
-              <details class="player-trait-accordion" data-trait-id="${esc(t.id)}">
-                <summary class="player-pinned-spell-summary">
-                  <span class="player-pinned-spell-chevron">▾</span>
-                  <span class="player-pinned-spell-name">${esc(t.name)}</span>
-                  ${t.meta ? `<span class="player-pinned-spell-meta">${esc(t.meta)}</span>` : ''}
-                  ${dotsHtml}
-                  <button class="player-pinned-spell-del"
-                    onclick="event.preventDefault();event.stopPropagation();window._playerTraitDelete('${esc(t.id)}')"
-                    title="Verwijder">×</button>
-                </summary>
-                <div class="player-spell-accordion-body"
-                  data-trait-index="${esc(t.index || '')}"
-                  data-trait-source="${esc(t.source)}"
-                  data-trait-desc="${esc(t.desc || '')}"
-                  data-trait-id="${esc(t.id)}"
-                  data-max-uses="${maxUses}"
-                  data-note="${esc(t.note || '')}"
-                  data-loaded="false">
-                  <p class="player-spell-loading-text">Laden…</p>
-                </div>
-              </details>`;
-            }).join('')}
-          </div>`;
-          })() : '<p class="player-dash-empty" style="margin-top:8px">Nog geen kenmerken vastgezet.</p>'}
-
-          <!-- Inline formulier: nieuw kenmerk -->
-          <div id="player-trait-custom-form" class="player-trait-custom-form hidden">
-            <input id="ptf-name"  class="player-trait-form-input" type="text" placeholder="Naam kenmerk" maxlength="80">
-            <input id="ptf-meta"  class="player-trait-form-input" type="text" placeholder="Klasse · Niveau (optioneel)" maxlength="60">
-            <textarea id="ptf-desc" class="player-trait-form-ta" placeholder="Beschrijving (optioneel)" rows="3"></textarea>
-            <div class="player-trait-form-btns">
-              <button class="player-trait-form-save" onclick="window._traitCustomSave()">Opslaan</button>
-              <button class="player-trait-form-cancel" onclick="window._traitCustomClose()">Annuleer</button>
-            </div>
-          </div>
-        </div>
-
+        <!-- Kenmerken & Eigenschappen stonden hier als tweede lijst met exact
+             dezelfde namen als het tabblad Features & Traits (voorheen
+             Progressie): dezelfde features, één keer als kaart met een plaatje
+             en één keer als accordeon. Wat deze lijst uniek maakte — de
+             ladingenteller, je eigen aantekening, een zelfbedacht kenmerk —
+             hangt nu aan de featurekaart zelf. Eén onderwerp, één plek. -->
         <!-- Emotes -->
         ${displayEmotes.length > 0 ? `
         <div class="player-dash-section player-dash-emotes">
@@ -9685,6 +9618,28 @@ async function renderMijnKarakter(opts = {}) {
   // Hit Dice-stand (verbruikt) na-laden op de sheet
   window._loadSheetHitDice?.(charId, playerProfile);
 
+  // Het Features-tabblad hangt de teller en de aantekening aan een featurekaart,
+  // en heeft daarvoor de lijst nodig die hier in de closure zit.
+  window._pinnedTraits = pinnedTraits;
+  window._traitBlokVoor = (naam) => (pinnedTraits || []).find(t =>
+    (t.name || '').toLowerCase() === String(naam || '').toLowerCase()) || null;
+  window._traitUsesRowHtml = (traitId, maxUses) => `
+    <div class="trait-uses-config">
+      <span class="trait-uses-label">Aantal:</span>
+      <button type="button" class="skill-adj-btn" onclick="window._traitAdjUses('${traitId}', -1)" title="Minder">−</button>
+      <span class="trait-uses-count-cfg">${maxUses}</span>
+      <button type="button" class="skill-adj-btn" onclick="window._traitAdjUses('${traitId}', 1)" title="Meer">+</button>
+    </div>`;
+  window._traitNoteBlokHtml = (traitId, note) =>
+    `<div class="trait-note-section" data-trait-id="${traitId}">${_traitNoteSectionHtml(traitId, note)}</div>`;
+  window._traitDotsHtml = (traitId, maxUses, curUses) => maxUses > 0 ? `
+    <span class="trait-uses-dots">
+      ${Array.from({ length: maxUses }, (_, i) => `<button type="button" class="spell-slot-dot ${i < curUses ? 'used' : 'free'}"
+        onclick="window._traitToggleUse('${traitId}',${i},${maxUses},${curUses})"
+        title="${i < curUses ? 'Verbruikt' : 'Vrij'}"></button>`).join('')}
+      <span class="trait-uses-count">${curUses}/${maxUses}</span>
+    </span>` : '';
+
   window._traitToggleUse = async function(traitId, idx, maxUses, currentUses) {
     const newCur = Math.min(Math.max(0, idx < currentUses ? currentUses - 1 : currentUses + 1), maxUses);
     const t = pinnedTraits.find(x => x.id === traitId);
@@ -9752,13 +9707,28 @@ async function renderMijnKarakter(opts = {}) {
   };
 
   // ── Kenmerk: eigen aanmaken ──
+  // Een eigen kenmerk toevoegen. Het formulier stond inline in het blok dat op
+  // het personageblad stond; dat blok is weg omdat het de featurelijst dubbelde.
+  // Nu een venster, aan te roepen vanaf het tabblad Features & Traits.
   window._traitCustomOpen = function() {
-    document.getElementById('player-trait-custom-form')?.classList.remove('hidden');
-    document.getElementById('ptf-name')?.focus();
+    const inline = document.getElementById('player-trait-custom-form');
+    if (inline) { inline.classList.remove('hidden'); document.getElementById('ptf-name')?.focus(); return; }
+    window.app.openModal(`${icon('scroll-text')} Eigen kenmerk`, 'Iets wat niet uit een klasse of volk komt', `
+      <div class="player-trait-custom-form">
+        <input id="ptf-name"  class="player-trait-form-input" type="text" placeholder="Naam kenmerk" maxlength="80">
+        <input id="ptf-meta"  class="player-trait-form-input" type="text" placeholder="Waar komt het vandaan? (optioneel)" maxlength="60">
+        <textarea id="ptf-desc" class="player-trait-form-ta" placeholder="Wat doet het?" rows="4"></textarea>
+        <div class="player-trait-form-btns">
+          <button type="button" class="player-trait-form-save" onclick="window._traitCustomSave()">Opslaan</button>
+          <button type="button" class="player-trait-form-cancel" onclick="window.app.closeModal()">Annuleer</button>
+        </div>
+      </div>`);
+    setTimeout(() => document.getElementById('ptf-name')?.focus(), 80);
   };
   window._traitCustomClose = function() {
     const form = document.getElementById('player-trait-custom-form');
     if (!form) return;
+    if (!document.getElementById('section-mijn-karakter')?.contains(form)) { window.app.closeModal(); return; }
     form.classList.add('hidden');
     form.querySelectorAll('input,textarea').forEach(el => { el.value = ''; });
   };
@@ -14848,25 +14818,15 @@ const HELP_CONFIG = {
   },
 
   progressie: () => ({
-    titel: 'Progressie',
+    titel: 'Features & Traits',
     stappen: [
-      {
-        titel: 'Jouw progressie',
-        tekst: 'Dit tabblad toont alle class features en abilities van je karakter, geordend per level. Vergrendelde levels (hoger dan je huidige level) zijn grijs weergegeven. Je kunt wisselen tussen tijdlijn- en kaartweergave.',
-        afbeelding: null,
-      },
-      {
-        titel: 'Waar de tekst vandaan komt',
-        tekst: 'De features komen uit de progressie van deze campagne. Staat daar een **samengevat** startpunt, dan is dat de meegeleverde set — de DM kan die in de editor nakijken en aanvullen. Beschrijvingen die niet in de vrij te gebruiken SRD staan blijven leeg, met een verwijzing naar een plek waar ze wél staan.',
-        afbeelding: null,
-      },
-      {
-        titel: 'Favorieten & keuzes',
-        tekst: 'Markeer een feature als favoriet door op ☆ te klikken — zo vind je hem snel terug. Bij keuze-features (zoals Ability Score Improvement) kun je je keuze noteren. Dit wordt opgeslagen en is zichtbaar op het kaartje.',
-        afbeelding: null,
-      },
+      { titel: 'Alles wat je kunt', tekst: 'Elke class feature, elke eigenschap van je volk en elke keuze die daarbij hoort, geordend per level. Wat boven je huidige level ligt staat grijs — dat komt nog. Met het sterretje filter je op je favorieten; met **+** voeg je iets toe dat nergens vandaan komt maar wel op je blad hoort.', afbeelding: null },
+      { titel: 'Eén plek, niet twee', tekst: 'Dit stond ook als lijst op je personageblad, met precies dezelfde namen — één keer als kaart met een plaatje en één keer als uitklapregel. Die tweede lijst is weg; wat hem de moeite waard maakte zit nu op de kaart zelf.', afbeelding: null },
+      { titel: 'Bijhouden en aantekenen', tekst: 'Open een feature en je ziet hoeveel ladingen hij heeft (klik een bolletje om er een te verbruiken), hoeveel dat er zijn (− en +), en een veld voor je eigen aantekening. Bij een lange rust lopen ze weer vol.', afbeelding: null },
+      { titel: 'Keuzes', tekst: 'Waar je iets moet kiezen — een feat, een subclass, een Ability Score Improvement — staat dat bij de trede waar het hoort. **Change** naast een gemaakte keuze zet hem open om te wijzigen.', afbeelding: null },
     ],
   }),
+
 
   bestiarium: () => ({
     titel: 'Bestiarium',

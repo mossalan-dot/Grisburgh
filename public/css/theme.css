@@ -28142,3 +28142,13 @@ body.akte-schrijf-open .mp-overlay { z-index: 1320; }
 .gock-gerucht-wacht { font-style: italic; opacity: .75; text-align: center; }
 .gock-gerucht-wacht svg { width: 14px; height: 14px; vertical-align: -2px; }
 .dm-verzoek-gerucht { width: 100%; margin-top: 5px; resize: vertical; font-family: 'EB Garamond', serif; }
+
+/* Een featurekaart draagt nu ook zijn ladingen en je aantekening — dat stond in
+   een tweede lijst met dezelfde namen erin. */
+.prog-detail-bijhouden {
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px dashed rgba(196,168,122,0.35);
+}
+.prog-detail-dots { display: flex; justify-content: center; margin-bottom: 8px; }
+.prog-detail-bijhouden .trait-uses-config { justify-content: center; }
