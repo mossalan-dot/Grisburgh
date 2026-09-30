@@ -1,5 +1,5 @@
 import { api, campagneUitUrl, zetCampagne } from './api.js?v=299';
-import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, renderDocumenten, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=327";
+import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, renderDocumenten, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=328";
 import { initArchief, renderLogboek, openLogboekEditor } from "./render-archief.js?v=139";
 import { renderKaart, queueFlyTo, verversPins, nieuweKaart } from './render-kaart.js?v=31';
 import { renderDungeon } from './render-dungeon.js?v=56';
@@ -2247,8 +2247,12 @@ function _weaponPropsPickerHtml(w, i) {
   const selChips = sel.map(s => {
     const base = s.replace(/\s*\(.*\)$/, '').trim();
     const tip  = WEAPON_PROPERTIES[s] || WEAPON_PROPERTIES[base] || '';
-    return `<button type="button" class="weapon-prop-chip" data-wptip="${esc(tip)}"
-      onclick="window._toggleWeaponProp(${i},'${escJS(base)}')" title="Verwijder eigenschap">${esc(s)}<span class="weapon-prop-chip-x">×</span></button>`;
+    // Alleen het kruisje haalt de eigenschap weg. De hele chip was de knop, dus
+    // op een telefoon — waar je niet kunt hoveren — betekende "even lezen wat
+    // Finesse ook alweer is" dat je hem kwijtraakte.
+    return `<span class="weapon-prop-chip" data-wptip="${esc(tip)}" title="${esc(tip)}">${esc(s)}<button
+      type="button" class="weapon-prop-chip-x" title="Verwijder ${esc(s)}"
+      onclick="event.stopPropagation();window._toggleWeaponProp(${i},'${escJS(base)}')">×</button></span>`;
   }).join('');
 
   const addBtn = `<button type="button" class="weapon-prop-add${open ? ' is-open' : ''}"
@@ -8126,7 +8130,7 @@ async function renderMijnKarakter(opts = {}) {
       if (slot.max === 0 && !spellSlots[lvl]) return '';
       const dots = Array.from({ length: Math.max(slot.max, 0) }, (_, i) => {
         const used = i < slot.used;
-        return `<button class="spell-slot-dot ${used ? 'used' : 'free'}"
+        return `<button type="button" class="spell-slot-dot ${used ? 'used' : 'free'}"
           title="${used ? 'Verbruikt — klik om vrij te maken' : 'Vrij — klik om te verbruiken'}"
           onclick="window._dashToggleSlot(${lvl}, ${i})"></button>`;
       }).join('');
@@ -8723,7 +8727,7 @@ async function renderMijnKarakter(opts = {}) {
               const curUses = t.currentUses || 0;
               const dotsHtml = maxUses > 0 ? `
                 <span class="trait-uses-dots" onclick="event.preventDefault();event.stopPropagation()">
-                  ${Array.from({length: maxUses}, (_, i) => `<button class="spell-slot-dot ${i < curUses ? 'used' : 'free'}"
+                  ${Array.from({length: maxUses}, (_, i) => `<button type="button" class="spell-slot-dot ${i < curUses ? 'used' : 'free'}"
                     onclick="event.preventDefault();event.stopPropagation();window._traitToggleUse('${esc(t.id)}',${i},${maxUses},${curUses})"
                     title="${i < curUses ? 'Verbruikt' : 'Vrij'}"></button>`).join('')}
                   <span class="trait-uses-count">${curUses}/${maxUses}</span>
@@ -8971,7 +8975,15 @@ async function renderMijnKarakter(opts = {}) {
               const rB = iB === -1 ? 999 : iB;
               return rA - rB || a.name.localeCompare(b.name);
             });
-            window._knapzakCarouselIdx = 0;
+            // Sta niet terug op het eerste voorwerp als dezelfde lijst opnieuw
+            // getekend wordt. Een charge verbruiken of een aantal bijstellen
+            // hertekent de carrousel, en dan sprong je naar voorwerp één terug —
+            // dat leest als "de pagina herlaadt". Alleen bij een ánder lijstje
+            // beginnen we opnieuw.
+            const _vorigeIds = (window._knapzakCarouselItems || []).map(x => x.id).join(',');
+            const _nieuweIds = sortedItems.map(x => x.id).join(',');
+            if (_vorigeIds !== _nieuweIds) window._knapzakCarouselIdx = 0;
+            else window._knapzakCarouselIdx = Math.min(window._knapzakCarouselIdx || 0, Math.max(0, sortedItems.length - 1));
             window._knapzakCarouselItems = sortedItems;
             const _charIdEsc = esc(charId);
             const _mdInline = s => mdToHtml(s);
@@ -8984,11 +8996,11 @@ async function renderMijnKarakter(opts = {}) {
               const qty = item._qty;
               const qtyHtml = item._stapelbaar ? `
                 <div class="item-carousel-qty-controls" onclick="event.stopPropagation()">
-                  <button class="item-carousel-qty-btn"
+                  <button type="button" class="item-carousel-qty-btn"
                     onclick="window._dashQtyAdj('${esc(item.id)}','${_charIdEsc}',-1,${qty})"
                     title="Verbruikt">−</button>
                   <span class="item-carousel-qty-label">×${qty}</span>
-                  <button class="item-carousel-qty-btn"
+                  <button type="button" class="item-carousel-qty-btn"
                     onclick="window._dashQtyAdj('${esc(item.id)}','${_charIdEsc}',1,${qty})"
                     title="Nog een gevonden">+</button>
                 </div>` : '';
@@ -8996,14 +9008,14 @@ async function renderMijnKarakter(opts = {}) {
                 <div class="item-carousel-charges" onclick="event.stopPropagation()">
                   <div class="item-charge-label">${icon('zap')} Charges: ${item._charges}/${item._maxCharges}</div>
                   <div class="item-charge-dots-row">
-                    ${item._playerMaxAdjustable ? `<button class="item-carousel-qty-btn" onclick="window._dashMaxChargeAdj('${esc(item.id)}','${_charIdEsc}',-1,${item._maxCharges})" title="Max. charges verlagen">−</button>` : ''}
+                    ${item._playerMaxAdjustable ? `<button type="button" class="item-carousel-qty-btn" onclick="window._dashMaxChargeAdj('${esc(item.id)}','${_charIdEsc}',-1,${item._maxCharges})" title="Max. charges verlagen">−</button>` : ''}
                     <div class="item-charge-dots">
                       ${Array.from({length: item._maxCharges}, (_, i) => `
-                        <button class="spell-slot-dot ${i < item._charges ? 'free' : 'used'}"
+                        <button type="button" class="spell-slot-dot ${i < item._charges ? 'free' : 'used'}"
                           title="${i < item._charges ? 'Vrij — klik om te verbruiken' : 'Verbruikt — klik om te herstellen'}"
                           onclick="window._dashChargeToggle('${esc(item.id)}','${_charIdEsc}',${i},${item._charges},${item._maxCharges})"></button>`).join('')}
                     </div>
-                    ${item._playerMaxAdjustable ? `<button class="item-carousel-qty-btn" onclick="window._dashMaxChargeAdj('${esc(item.id)}','${_charIdEsc}',1,${item._maxCharges})" title="Max. charges verhogen">+</button>` : ''}
+                    ${item._playerMaxAdjustable ? `<button type="button" class="item-carousel-qty-btn" onclick="window._dashMaxChargeAdj('${esc(item.id)}','${_charIdEsc}',1,${item._maxCharges})" title="Max. charges verhogen">+</button>` : ''}
                   </div>
                 </div>` : '';
               const _itemDmg = item.data?.damage;
@@ -9090,7 +9102,7 @@ async function renderMijnKarakter(opts = {}) {
                 <div class="item-charge-dots-row">
                   <div class="item-charge-dots">
                     ${Array.from({length: si.usesMax}, (_, i) =>
-                      `<button class="spell-slot-dot ${i < (si.uses||0) ? 'free' : 'used'}"
+                      `<button type="button" class="spell-slot-dot ${i < (si.uses||0) ? 'free' : 'used'}"
                         onclick="window._dashZegenVerbruik()"></button>`).join('')}
                   </div>
                 </div>
@@ -9639,7 +9651,7 @@ async function renderMijnKarakter(opts = {}) {
     } else {
       const safeId = traitId.replace(/'/g, "\\'");
       const newHtml = Array.from({length: newMax}, (_, i) =>
-        `<button class="spell-slot-dot ${i < newCur ? 'used' : 'free'}"
+        `<button type="button" class="spell-slot-dot ${i < newCur ? 'used' : 'free'}"
           onclick="event.preventDefault();event.stopPropagation();window._traitToggleUse('${safeId}',${i},${newMax},${newCur})"
           title="${i < newCur ? 'Verbruikt' : 'Vrij'}"></button>`
       ).join('') + `<span class="trait-uses-count">${newCur}/${newMax}</span>`;
@@ -10201,11 +10213,11 @@ async function renderMijnKarakter(opts = {}) {
 
       const qtyHtml = item._stapelbaar ? `
         <div class="item-carousel-qty-controls" onclick="event.stopPropagation()">
-          <button class="item-carousel-qty-btn"
+          <button type="button" class="item-carousel-qty-btn"
             onclick="window._dashQtyAdj('${esc(item.id)}','${charIdEsc}',-1,${qty})"
             title="Verbruikt">−</button>
           <span class="item-carousel-qty-label">×${qty}</span>
-          <button class="item-carousel-qty-btn"
+          <button type="button" class="item-carousel-qty-btn"
             onclick="window._dashQtyAdj('${esc(item.id)}','${charIdEsc}',1,${qty})"
             title="Nog een gevonden">+</button>
         </div>` : '';
@@ -10214,14 +10226,14 @@ async function renderMijnKarakter(opts = {}) {
         <div class="item-carousel-charges" onclick="event.stopPropagation()">
           <div class="item-charge-label">${icon('zap')} Charges: ${item._charges}/${item._maxCharges}</div>
           <div class="item-charge-dots-row">
-            ${item._playerMaxAdjustable ? `<button class="item-carousel-qty-btn" onclick="window._dashMaxChargeAdj('${esc(item.id)}','${charIdEsc}',-1,${item._maxCharges})" title="Max. charges verlagen">−</button>` : ''}
+            ${item._playerMaxAdjustable ? `<button type="button" class="item-carousel-qty-btn" onclick="window._dashMaxChargeAdj('${esc(item.id)}','${charIdEsc}',-1,${item._maxCharges})" title="Max. charges verlagen">−</button>` : ''}
             <div class="item-charge-dots">
               ${Array.from({length: item._maxCharges}, (_, i) => `
-                <button class="spell-slot-dot ${i < item._charges ? 'free' : 'used'}"
+                <button type="button" class="spell-slot-dot ${i < item._charges ? 'free' : 'used'}"
                   title="${i < item._charges ? 'Vrij — klik om te verbruiken' : 'Verbruikt — klik om te herstellen'}"
                   onclick="window._dashChargeToggle('${esc(item.id)}','${charIdEsc}',${i},${item._charges},${item._maxCharges})"></button>`).join('')}
             </div>
-            ${item._playerMaxAdjustable ? `<button class="item-carousel-qty-btn" onclick="window._dashMaxChargeAdj('${esc(item.id)}','${charIdEsc}',1,${item._maxCharges})" title="Max. charges verhogen">+</button>` : ''}
+            ${item._playerMaxAdjustable ? `<button type="button" class="item-carousel-qty-btn" onclick="window._dashMaxChargeAdj('${esc(item.id)}','${charIdEsc}',1,${item._maxCharges})" title="Max. charges verhogen">+</button>` : ''}
           </div>
         </div>` : '';
 
@@ -10449,7 +10461,7 @@ async function renderMijnKarakter(opts = {}) {
     const dotsWrap = row.querySelector('.player-dash-slot-dots');
     if (dotsWrap) {
       dotsWrap.innerHTML = Array.from({ length: t.max }, (_, i) => `
-        <button class="spell-slot-dot ${i < t.current ? 'used' : 'free'}"
+        <button type="button" class="spell-slot-dot ${i < t.current ? 'used' : 'free'}"
           title="${i < t.current ? 'Verbruikt — klik om vrij te maken' : 'Vrij — klik om te verbruiken'}"
           onclick="window._dashToggleTracker('${t.id}', ${i})"></button>`).join('');
     }

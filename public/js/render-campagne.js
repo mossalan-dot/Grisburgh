@@ -6172,11 +6172,20 @@ document.addEventListener('change', ev => {
   if (ev.target.name === 'data_verbruikt') window._verbruiktAangeraakt = true;
 });
 
-// ── Wapeneigenschap tooltip (hover) ──
-let _wpTip = null;
-document.addEventListener('mouseover', ev => {
-  const el = ev.target.closest('[data-wptip]');
-  if (!el) return;
+// ── Uitlegballon bij een eigenschap ──
+// Dit hing aan `mouseover`/`mouseout`. Op een telefoon stuurt een tik wél een
+// mouseover maar nooit een mouseout, dus bleef de ballon staan en was hij niet
+// weg te krijgen. Nu: tikken of hoveren opent hem, en hij gaat dicht bij de
+// volgende aanraking, bij scrollen, bij Escape, en anders vanzelf.
+let _wpTip = null, _wpTipTimer = null;
+
+function _wpTipDicht() {
+  clearTimeout(_wpTipTimer);
+  _wpTip?.classList.remove('weapon-prop-tooltip--visible');
+}
+
+function _wpTipToon(el) {
+  if (!el?.dataset?.wptip) return;
   if (!_wpTip) {
     _wpTip = document.createElement('div');
     _wpTip.className = 'weapon-prop-tooltip';
@@ -6184,13 +6193,36 @@ document.addEventListener('mouseover', ev => {
   }
   _wpTip.textContent = el.dataset.wptip;
   _wpTip.classList.add('weapon-prop-tooltip--visible');
+  // Binnen het scherm houden: hij hing er aan de rechterkant vanaf op een
+  // telefoon, en dan lees je de helft.
   const r = el.getBoundingClientRect();
-  _wpTip.style.left = r.left + 'px';
+  const marge = 8;
+  _wpTip.style.left = '0px';
   _wpTip.style.top  = (r.bottom + 6) + 'px';
+  const b = _wpTip.getBoundingClientRect();
+  const links = Math.max(marge, Math.min(r.left, window.innerWidth - b.width - marge));
+  _wpTip.style.left = links + 'px';
+  if (r.bottom + 6 + b.height > window.innerHeight - marge) {
+    _wpTip.style.top = Math.max(marge, r.top - b.height - 6) + 'px';
+  }
+  clearTimeout(_wpTipTimer);
+  _wpTipTimer = setTimeout(_wpTipDicht, 6000);
+}
+
+document.addEventListener('mouseover', ev => {
+  const el = ev.target.closest?.('[data-wptip]');
+  if (el) _wpTipToon(el);
 });
 document.addEventListener('mouseout', ev => {
-  if (ev.target.closest('[data-wptip]') && _wpTip) _wpTip.classList.remove('weapon-prop-tooltip--visible');
+  if (ev.target.closest?.('[data-wptip]')) _wpTipDicht();
 });
+// Eén tik opent hem; de volgende tik ergens anders sluit hem.
+document.addEventListener('pointerdown', ev => {
+  const el = ev.target.closest?.('[data-wptip]');
+  if (el) _wpTipToon(el); else _wpTipDicht();
+}, true);
+window.addEventListener('scroll', _wpTipDicht, true);
+document.addEventListener('keydown', ev => { if (ev.key === 'Escape') _wpTipDicht(); });
 
 // Eén doorloop over alles wat aan een ander veld hangt. Aangeroepen bij elke
 // wijziging in het formulier, want een vinkje en een keuzelijst melden zich
