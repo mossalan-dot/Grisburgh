@@ -2610,7 +2610,7 @@ Waar de tijdlijn ophoudt. Twintig is de normale grens van 5e; hoger zet hem alle
 
 ## `inst_partys`
 
-> Helpknop in: dm-panel.js:8632 (de subtab-balk stelt de sleutel samen uit het actieve tabje), dm-panel.js:12488
+> Helpknop in: dm-panel.js:8632 (de subtab-balk stelt de sleutel samen uit het actieve tabje), dm-panel.js:11999 (venster), dm-panel.js:12488
 > Nu: de standaard uit de code
 > 7 stappen · 367 woorden · 52 per stap
 

@@ -179,6 +179,14 @@ function vindplaatsen() {
       for (const m of r.matchAll(/_dienstSectieKop\([^,]*,[^,]*,\s*'([a-z_0-9]+)'/gi)) {
         (per[m[1]] ||= []).push(`${bestand}:${n + 1} (sectiekop)`);
       }
+      // `openModal(titel, sub, html, 'sleutel')` hangt het boekje naast het
+      // kruisje van een venster. De sleutel staat daar als vierde argument en
+      // niet in een `helpBtn(...)`, dus geen enkel patroon hierboven ziet hem.
+      if (/openModal\(/.test(r)) {
+        for (const q of r.matchAll(/'([a-z_][a-z_0-9]*)'/gi)) {
+          if (/^(dm_|hulp_|inst_)/.test(q[1])) (per[q[1]] ||= []).push(`${bestand}:${n + 1} (venster)`);
+        }
+      }
       // Een tabel die per subtab een boekje aanwijst — `_FACTIE_SUBTAB_HULP` is
       // er zo een. De sleutel staat dan als waarde in een objectliteral en niet
       // in een aanroep, dus geen enkel patroon hierboven ziet hem.
