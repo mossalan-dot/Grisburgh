@@ -2374,6 +2374,36 @@ de catalogus in het beheerscherm en de `verborgen`-lijstjes volgen daaruit.
 
 ---
 
+## Wat betekent deze functie voor een andere DM?
+
+Stel die vraag bij elke functie die een **speelstijl** vastlegt, niet alleen bij
+namen en plaatsen (dat staat hieronder). Grisburgh is één campagne; wat hier
+vanzelfsprekend voelt, is elders een keuze. Drie vragen, in deze volgorde:
+
+1. **Is dit een regel of een smaak?** Dat een dode vijand uit de beurtvolgorde
+   verdwijnt is een regel. Hoeveel een speler van de HP van die vijand ziet is
+   smaak: de ene DM houdt alles verborgen, de andere legt het statblock op tafel.
+   Een regel hardcodeer je; een smaak wordt een instelling.
+2. **Wat is de verstandige standaard?** Nieuwe campagnes krijgen die zonder iets
+   te kiezen, en bestaande campagnes mogen er niet door veranderen — kies dus de
+   waarde die het huidige gedrag beschrijft en schrijf hem nergens weg. Een
+   ontbrekende sleutel *is* de standaard; een migratie die hem overal invult is
+   verloren werk dat later in de weg zit.
+3. **Waar komt de keuze te staan?** Campagnebreed en door de DM gekozen hoort in
+   `meta.json` en krijgt een plek bij **Instellingen**. Zet hem daar meteen neer,
+   ook als jij hem zelf nooit omzet — een instelling die alleen in het JSON-
+   bestand bestaat, bestaat voor een andere DM niet. Noteer hem ook als stap voor
+   de **setup-wizard**: dat is de plek waar een nieuwe DM deze keuzes één keer
+   langsloopt in plaats van ze te moeten vinden.
+
+En kijk wat de keuze raakt vóór je hem bouwt. Een schakelaar die informatie
+verbergt, botst met alles wat informatie juist geeft — het bestiarium, een
+adoptiedier met een eigen statblock, het tafelscherm. Die botsingen beslis je
+bewust (wint de instelling, of wint wat de party verdiend heeft?) en je schrijft
+het antwoord in het boekje, want het is precies wat de volgende DM zich afvraagt.
+
+---
+
 ## Niets van Grisburgh in gedeelde code
 
 De app draait meerdere campagnes; wat van Grisburgh is, hoort in Grisburghs
