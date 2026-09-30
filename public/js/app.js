@@ -14142,12 +14142,6 @@ const HELP_CONFIG = {
   voorwerpen: () => ({ titel: 'Voorwerpen', stappen: [{ titel: 'Voorwerpen', tekst: 'Wapens, uitrusting en magische items. Je kunt voorwerpen claimen, ruilen en in winkels kopen/verkopen. **Zegeningen & Gunsten** (tempel- en factie-beloningen) staan onder een eigen filter, los van de gewone spullen.', afbeelding: null }] }),
   documenten: () => ({ titel: 'Documenten', stappen: [{ titel: 'Documenten', tekst: 'Het **archief**: brieven, aktes, kaarten en aantekeningen die je onderweg verzamelt. De DM onthult documenten wanneer ze relevant worden.', afbeelding: null }] }),
   kaart:      () => ({ titel: 'De kaart', stappen: [{ titel: 'Wereld- en stadskaart', tekst: 'Wissel tussen de **wereldkaart** en de **stadskaart**. Pins markeren ontdekte locaties — klik een pin om het bijbehorende kaartje te openen. Zoom met de knoppen of scroll.', afbeelding: null }] }),
-  dungeon:    () => ({ titel: 'Dungeon-kaarten', stappen: [
-    { titel: 'Verkennen', tekst: 'Kerkers en gebouwen gaan kamer voor kamer open: de DM onthult een ruimte als je er binnenstapt. Wat nog bedekt is, blijft in de mist.', afbeelding: null },
-    { titel: 'Kamers tekenen', tekst: 'Kies een vorm — **rechthoek**, **rond** of **polygoon** — en sleep hem over de plattegrond; bij een polygoon klik je de hoeken en sluit je af met een dubbelklik. Met het **pijltje** selecteer je: slepen verplaatst de kamer, de bolletjes op de punten stellen hem bij. Naast een kamer klikken sluit dat weer.', afbeelding: null },
-    { titel: 'Doorgangen', tekst: 'Een **doorgang** verbindt deze kamer met een kamer op een andere plattegrond; op de kaart verschijnt een pijl waarmee je erheen springt. Hij wordt altijd tweezijdig gelegd. Het kan een trap zijn, maar net zo goed een lift, een luik of een teleportcirkel.', afbeelding: null },
-    { titel: 'Symbolen, vondsten en tegenstand', tekst: 'De **symbolen** (schedel, munt, slot, vinkje) zijn markeringen op de kaart; per symbool bepaal je of de spelers hem zien. Koppel je een **vondst** of een **gevecht** aan de kamer, dan verschijnt het bijbehorende symbool vanzelf — gestippeld, en alleen voor jou. Klikken op de munt opent meteen de verdeling.', afbeelding: null },
-  ] }),
 
   // ── Uitleg per tabblad van een kaartje ──
   // Twee smaken: `hulp_kijk_*` voor het detailvenster (lezen — dat is vooral
@@ -14977,31 +14971,24 @@ const HELP_CONFIG = {
   dungeon: () => ({
     titel: 'Dungeonkaarten',
     stappen: [
-      {
-        titel: 'Fog of war',
-        tekst: 'Een dungeon is een plattegrond waarvan de kamers per party onthuld worden. Wat nog niet onthuld is, blijft voor spelers in het duister. Klik een kamer aan en gebruik "Onthul" — of het oogje in de kamerlijst — om hem zichtbaar te maken. Verbergen kan net zo goed weer.',
-        afbeelding: null,
-      },
-      {
-        titel: 'Kamers tekenen',
-        tekst: 'Met de gereedschappen bovenin teken je een rechthoek of een veelhoek over de plattegrond. Met het schakelicoon verbind je twee kamers met een lijn, zodat spelers zien welke doorgangen er zijn.',
-        afbeelding: null,
-      },
-      {
-        titel: 'Symbolen',
-        tekst: 'Per kamer kun je symbolen zetten: vijanden, buit, vergrendeld of uitgewist. Elk symbool kun je zichtbaar of verborgen maken voor de party — zo geef je een hint zonder alles te verklappen.',
-        afbeelding: null,
-      },
-      {
-        titel: 'Vondsten in een kamer',
-        tekst: 'Onder "Vondsten" hangt de buit die in deze kamer te halen valt. Typ wat er te vinden is en druk op plus, of koppel een vondst die je al in het Loot-tabblad gemaakt hebt. De DC ernaast is een aantekening voor jou — de spelers gooien aan tafel en jij beslist. Met het muntje maak je er een verdeling van; het kruisje koppelt de vondst weer los zonder hem weg te gooien.',
-        afbeelding: null,
-      },
-      {
-        titel: 'Party-toegang',
-        tekst: 'Per party stel je in of een dungeon nog niet, nu of al uitgespeeld is. Zo kun je dezelfde kaart voor meerdere groepen gebruiken zonder dat hun voortgang door elkaar loopt.',
-        afbeelding: null,
-      },
+      { titel: 'Kamer voor kamer', rol: 'speler', afbeelding: null,
+        tekst: 'Een kerker of gebouw gaat open naarmate je erdoorheen loopt: je DM onthult een ruimte als je er binnenstapt. Wat nog bedekt is, blijft in de mist — dat je daar niets ziet betekent niet dat er niets is.' },
+      { titel: 'Doorgangen', rol: 'speler', afbeelding: null,
+        tekst: 'Een pijl op de kaart brengt je naar een andere plattegrond: een trap, een luik, een lift. Klik hem aan en je springt mee; terug gaat net zo.' },
+      { titel: 'Wat de symbolen zeggen', rol: 'speler', afbeelding: null,
+        tekst: 'Een schedel, een munt, een slot: markeringen die je DM heeft achtergelaten. Ze verklappen niet wát er ligt, alleen dát er iets is.' },
+      { titel: 'Fog of war', rol: 'dm', afbeelding: null,
+        tekst: 'De kamers van een dungeon worden **per party** onthuld. Klik een kamer aan en gebruik *Onthul* — of het oogje in de kamerlijst. Verbergen kan net zo goed weer; wat verborgen is, is voor die party nooit geweest.' },
+      { titel: 'Kamers tekenen', rol: 'dm', afbeelding: null,
+        tekst: 'Kies een vorm — **rechthoek**, **rond** of **polygoon** — en sleep hem over de plattegrond; bij een polygoon klik je de hoeken en sluit je af met een dubbelklik. Met het **pijltje** selecteer je: slepen verplaatst de kamer, de bolletjes op de punten stellen hem bij. Naast een kamer klikken sluit dat weer.' },
+      { titel: 'Doorgangen leggen', rol: 'dm', afbeelding: null,
+        tekst: 'Een **doorgang** verbindt deze kamer met een kamer op een andere plattegrond; op de kaart verschijnt een pijl waarmee je erheen springt. Hij wordt altijd tweezijdig gelegd. Het kan een trap zijn, maar net zo goed een lift, een luik of een teleportcirkel.' },
+      { titel: 'Symbolen, vondsten en tegenstand', rol: 'dm', afbeelding: null,
+        tekst: 'De **symbolen** (schedel, munt, slot, vinkje) zijn markeringen op de kaart; per symbool bepaal je of de spelers hem zien — zo geef je een hint zonder alles te verklappen. Koppel je een **vondst** of een **gevecht** aan de kamer, dan verschijnt het bijbehorende symbool vanzelf: gestippeld, en alleen voor jou. Klikken op de munt opent meteen de verdeling.' },
+      { titel: 'Vondsten in een kamer', rol: 'dm', afbeelding: null,
+        tekst: 'Onder *Vondsten* hangt de buit die hier te halen valt. Typ wat er te vinden is en druk op plus, of koppel een vondst die je al in het Loot-tabblad gemaakt hebt. De DC ernaast is een aantekening voor jou — de spelers gooien aan tafel en jij beslist. Met het muntje maak je er een verdeling van; het kruisje koppelt de vondst los zonder hem weg te gooien.' },
+      { titel: 'Party-toegang', rol: 'dm', afbeelding: null,
+        tekst: 'Per party stel je in of een dungeon nog niet, nu of al uitgespeeld is. Zo gebruik je dezelfde kaart voor meerdere groepen zonder dat hun voortgang door elkaar loopt.' },
     ],
   }),
 
@@ -15169,14 +15156,37 @@ window._helpBtn = function _helpBtn(key, opts = {}) {
   // type="button" is niet optioneel: binnen een <form> — en de kaartjeseditor
   // is er een — is de standaard `submit`, dus klikken op het boekje bewaarde en
   // sloot het formulier.
+  // Staat er voor déze lezer niets in het boekje, dan ook geen knop. Sinds een
+  // stap een `rol` kan hebben kan een boekje voor de een leeg zijn en voor de
+  // ander vol; een knop die niets opent is erger dan geen knop.
+  if (!_resolveHelp(key)) return '';
   return `<span class="help-btn-wrap"><button type="button" class="help-btn ${cls}" data-help-key="${key}" onclick="event.stopPropagation();window._openHelp('${key}')" title="Uitleg">${icon('book-open')}</button></span>`;
+}
+
+// Een boekje hangt aan een **scherm**, en op veel schermen staan DM en speler
+// naast elkaar: hetzelfde tabblad, andere knoppen. Eén tekst voor allebei werd
+// dan of een handleiding die een speler niet kan uitvoeren ("teken een kamer"),
+// of een tekst die de DM de helft niet vertelt.
+//
+// Dus krijgt een stap een `rol`: 'dm' of 'speler'. Laat je hem weg, dan geldt de
+// stap voor iedereen — en dat is verreweg het meeste. Zo blijft het één boekje
+// per scherm (één plek om te bewerken, één plek in de export) en leest ieder
+// alleen wat over hem gaat.
+function _helpRol() { return window.app?.isDM?.() ? 'dm' : 'speler'; }
+
+function _helpVoorRol(config) {
+  if (!config?.stappen?.length) return config;
+  const rol = _helpRol();
+  const stappen = config.stappen.filter(st => !st.rol || st.rol === rol);
+  if (stappen.length === config.stappen.length) return config;
+  return stappen.length ? { ...config, stappen } : null;
 }
 
 function _resolveHelp(key) {
   const override = _helpOverrides[key];
-  if (override?.stappen?.length) return override;
+  if (override?.stappen?.length) return _helpVoorRol(override);
   const fn = HELP_CONFIG[key];
-  if (fn) return fn();
+  if (fn) return _helpVoorRol(fn());
   // `hulp_locaties_beeld` bestaat niet, `hulp_beeld` wel: een tabblad dat voor
   // elk soort kaartje hetzelfde werkt hoeft niet vier keer opgeschreven.
   // `hulp_bewerk_locaties_beeld` bestaat niet, `hulp_bewerk_beeld` wel: een
@@ -15185,9 +15195,9 @@ function _resolveHelp(key) {
   const m = /^(hulp_(?:kijk|bewerk))_[a-z]+_([a-z]+)$/.exec(key);
   if (m) {
     const alg = _helpOverrides[`${m[1]}_${m[2]}`];
-    if (alg?.stappen?.length) return alg;
+    if (alg?.stappen?.length) return _helpVoorRol(alg);
     const algFn = HELP_CONFIG[`${m[1]}_${m[2]}`];
-    if (algFn) return algFn();
+    if (algFn) return _helpVoorRol(algFn());
   }
   return null;
 }
@@ -15290,6 +15300,9 @@ function _helpFmtBar(id) {
 
 window._openHelpEditor = (key) => {
   document.getElementById('help-editor-modal')?.remove();
+  // Bewust de ONGEFILTERDE versie: de DM bewerkt het hele boekje, ook de
+  // stappen die alleen zijn spelers lezen. Zou hij zijn eigen helft te zien
+  // krijgen, dan gooide de eerste keer opslaan de spelerstekst weg.
   const defaults = HELP_CONFIG[key]?.() || { titel: key, stappen: [{ titel: '', tekst: '' }] };
   const current  = _helpOverrides[key] || defaults;
 
@@ -15316,6 +15329,12 @@ window._openHelpEditor = (key) => {
                 </div>
                 <label class="help-editor-label">Titel stap</label>
                 <input class="dm-input help-editor-input he-stap-titel" data-i="${i}" value="${esc(s.titel)}">
+                <label class="help-editor-label">Wie leest dit?</label>
+                <select class="dm-input help-editor-input he-stap-rol" data-i="${i}">
+                  <option value=""${!s.rol ? ' selected' : ''}>Iedereen</option>
+                  <option value="dm"${s.rol === 'dm' ? ' selected' : ''}>Alleen jij</option>
+                  <option value="speler"${s.rol === 'speler' ? ' selected' : ''}>Alleen spelers</option>
+                </select>
                 <label class="help-editor-label">Tekst</label>
                 ${_helpFmtBar(`he-stap-tekst-${i}`)}
                 <textarea id="he-stap-tekst-${i}" class="dm-input he-stap-tekst" data-i="${i}" rows="4" style="resize:vertical"
@@ -15374,11 +15393,17 @@ window._openHelpEditor = (key) => {
 
 function _readEditorForm(modal) {
   const titel   = modal.querySelector('#he-titel')?.value || '';
-  const stappen = Array.from(modal.querySelectorAll('.he-stap')).map(el => ({
-    titel: el.querySelector('.he-stap-titel')?.value || '',
-    tekst: el.querySelector('.he-stap-tekst')?.value || '',
-    afbeelding: null,
-  }));
+  const stappen = Array.from(modal.querySelectorAll('.he-stap')).map(el => {
+    const rol = el.querySelector('.he-stap-rol')?.value || '';
+    return {
+      titel: el.querySelector('.he-stap-titel')?.value || '',
+      tekst: el.querySelector('.he-stap-tekst')?.value || '',
+      // Leeg = voor iedereen; de sleutel dan weglaten, zodat een boekje zonder
+      // rolverdeling er in de opslag ook uitziet als vroeger.
+      ...(rol ? { rol } : {}),
+      afbeelding: null,
+    };
+  });
   return { titel, stappen };
 }
 

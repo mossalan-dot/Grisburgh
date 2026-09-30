@@ -1986,6 +1986,21 @@ opgeslagen als JSON-string. Alles eromheen is afgeleid:
 > app** en **Zelf gooien** — in Instellingen, in het formulier voor een nieuwe
 > campagne én in `_LU_METHODE_LABEL` (app.js), dat de speler te zien krijgt.
 
+> **Eén boekje per scherm, maar een stap mag een rol hebben.** Op veel schermen
+> staan DM en speler naast elkaar: hetzelfde tabblad, andere knoppen. Eén tekst
+> voor allebei wordt dan of een handleiding die een speler niet kan uitvoeren
+> ("teken een kamer"), of een tekst die de DM de helft niet vertelt. Daarom kan
+> een stap `rol: 'dm'` of `rol: 'speler'` krijgen; laat je het weg, dan leest
+> iedereen hem — en dat is verreweg het meeste. Géén tweede sleutel aanmaken
+> voor dezelfde knop: dan heb je twee plekken om te bewerken, twee plekken in de
+> export, en gaan ze uit elkaar lopen.
+> `_resolveHelp` filtert op de rol van wie kijkt; blijft er niets over, dan
+> verdwijnt ook de knop (`_helpBtn` geeft dan een lege string). De DM bewerkt
+> altijd het **hele** boekje, ook de stappen die alleen zijn spelers lezen —
+> anders gooit de eerste keer opslaan die tekst weg. In `docs/helpteksten.md`
+> staat de rol achter de kop als `{alleen jij}` of `{alleen spelers}`, en dat
+> leest ook weer terug.
+>
 > **De helpteksten zijn als markdown te lezen en te schrijven.**
 > `node scripts/helpteksten.js <campagne>` zet ze naast elkaar in
 > `docs/helpteksten.md`; `--lees <pad.md>` toont wat er zou veranderen en

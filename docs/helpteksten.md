@@ -16,6 +16,9 @@ Laat de `##`-regel met de sleutel staan — daar wordt op gematcht. De `>`-regel
 aantekeningen en worden genegeerd. Markdown in de tekst mag: `**vet**`, `*cursief*`,
 en `[[Naam]]` wordt een link naar een kaartje.
 
+Achter een `###`-kop mag `{alleen jij}` of `{alleen spelers}` staan: die stap komt dan
+alleen in het boekje van die rol. Zonder merkteken leest iedereen hem.
+
 Elke `###`-kop is één **stap**: de uitleg bladert erdoorheen met pijltjes. Een stap
 erbij zetten of weghalen mag, zolang er minstens één overblijft.
 
@@ -1173,25 +1176,41 @@ Het **archief**: brieven, aktes, kaarten en aantekeningen die je onderweg verzam
 
 Titel: Dungeonkaarten
 
-### Fog of war
+### Kamer voor kamer {alleen spelers}
 
-Een dungeon is een plattegrond waarvan de kamers per party onthuld worden. Wat nog niet onthuld is, blijft voor spelers in het duister. Klik een kamer aan en gebruik "Onthul" — of het oogje in de kamerlijst — om hem zichtbaar te maken. Verbergen kan net zo goed weer.
+Een kerker of gebouw gaat open naarmate je erdoorheen loopt: je DM onthult een ruimte als je er binnenstapt. Wat nog bedekt is, blijft in de mist — dat je daar niets ziet betekent niet dat er niets is.
 
-### Kamers tekenen
+### Doorgangen {alleen spelers}
 
-Met de gereedschappen bovenin teken je een rechthoek of een veelhoek over de plattegrond. Met het schakelicoon verbind je twee kamers met een lijn, zodat spelers zien welke doorgangen er zijn.
+Een pijl op de kaart brengt je naar een andere plattegrond: een trap, een luik, een lift. Klik hem aan en je springt mee; terug gaat net zo.
 
-### Symbolen
+### Wat de symbolen zeggen {alleen spelers}
 
-Per kamer kun je symbolen zetten: vijanden, buit, vergrendeld of uitgewist. Elk symbool kun je zichtbaar of verborgen maken voor de party — zo geef je een hint zonder alles te verklappen.
+Een schedel, een munt, een slot: markeringen die je DM heeft achtergelaten. Ze verklappen niet wát er ligt, alleen dát er iets is.
 
-### Vondsten in een kamer
+### Fog of war {alleen jij}
 
-Onder "Vondsten" hangt de buit die in deze kamer te halen valt. Typ wat er te vinden is en druk op plus, of koppel een vondst die je al in het Loot-tabblad gemaakt hebt. De DC ernaast is een aantekening voor jou — de spelers gooien aan tafel en jij beslist. Met het muntje maak je er een verdeling van; het kruisje koppelt de vondst weer los zonder hem weg te gooien.
+De kamers van een dungeon worden **per party** onthuld. Klik een kamer aan en gebruik *Onthul* — of het oogje in de kamerlijst. Verbergen kan net zo goed weer; wat verborgen is, is voor die party nooit geweest.
 
-### Party-toegang
+### Kamers tekenen {alleen jij}
 
-Per party stel je in of een dungeon nog niet, nu of al uitgespeeld is. Zo kun je dezelfde kaart voor meerdere groepen gebruiken zonder dat hun voortgang door elkaar loopt.
+Kies een vorm — **rechthoek**, **rond** of **polygoon** — en sleep hem over de plattegrond; bij een polygoon klik je de hoeken en sluit je af met een dubbelklik. Met het **pijltje** selecteer je: slepen verplaatst de kamer, de bolletjes op de punten stellen hem bij. Naast een kamer klikken sluit dat weer.
+
+### Doorgangen leggen {alleen jij}
+
+Een **doorgang** verbindt deze kamer met een kamer op een andere plattegrond; op de kaart verschijnt een pijl waarmee je erheen springt. Hij wordt altijd tweezijdig gelegd. Het kan een trap zijn, maar net zo goed een lift, een luik of een teleportcirkel.
+
+### Symbolen, vondsten en tegenstand {alleen jij}
+
+De **symbolen** (schedel, munt, slot, vinkje) zijn markeringen op de kaart; per symbool bepaal je of de spelers hem zien — zo geef je een hint zonder alles te verklappen. Koppel je een **vondst** of een **gevecht** aan de kamer, dan verschijnt het bijbehorende symbool vanzelf: gestippeld, en alleen voor jou. Klikken op de munt opent meteen de verdeling.
+
+### Vondsten in een kamer {alleen jij}
+
+Onder *Vondsten* hangt de buit die hier te halen valt. Typ wat er te vinden is en druk op plus, of koppel een vondst die je al in het Loot-tabblad gemaakt hebt. De DC ernaast is een aantekening voor jou — de spelers gooien aan tafel en jij beslist. Met het muntje maak je er een verdeling van; het kruisje koppelt de vondst los zonder hem weg te gooien.
+
+### Party-toegang {alleen jij}
+
+Per party stel je in of een dungeon nog niet, nu of al uitgespeeld is. Zo gebruik je dezelfde kaart voor meerdere groepen zonder dat hun voortgang door elkaar loopt.
 
 ---
 

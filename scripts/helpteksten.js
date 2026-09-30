@@ -230,6 +230,9 @@ function naarMarkdown(standaard, overrides, plaatsen) {
   r.push('aantekeningen en worden genegeerd. Markdown in de tekst mag: `**vet**`, `*cursief*`,');
   r.push('en `[[Naam]]` wordt een link naar een kaartje.');
   r.push('');
+  r.push('Achter een `###`-kop mag `{alleen jij}` of `{alleen spelers}` staan: die stap komt dan');
+  r.push('alleen in het boekje van die rol. Zonder merkteken leest iedereen hem.');
+  r.push('');
   r.push('Elke `###`-kop is één **stap**: de uitleg bladert erdoorheen met pijltjes. Een stap');
   r.push('erbij zetten of weghalen mag, zolang er minstens één overblijft.');
   r.push('');
@@ -257,7 +260,9 @@ function naarMarkdown(standaard, overrides, plaatsen) {
     r.push('Titel: ' + (nu.titel || ''));
     r.push('');
     for (const stap of (nu.stappen || [])) {
-      r.push('### ' + (stap.titel || ''));
+      // Een stap kan voor één rol zijn. Dat hangt achter de kop, zodat het
+      // markdown-bestand heen en weer kan zonder de verdeling te verliezen.
+      r.push('### ' + (stap.titel || '') + (stap.rol === 'dm' ? ' {alleen jij}' : stap.rol === 'speler' ? ' {alleen spelers}' : ''));
       r.push('');
       r.push(String(stap.tekst || '').trim());
       r.push('');
@@ -301,7 +306,17 @@ function uitMarkdown(tekst) {
     const t = /^Titel:\s*(.*)$/.exec(regel);
     if (t && !stap) { titel = t[1].trim(); continue; }
     const s = /^###\s+(.*)$/.exec(regel);
-    if (s) { sluitStap(); stap = { titel: s[1].trim(), afbeelding: null, regels: [] }; continue; }
+    if (s) {
+      sluitStap();
+      let kopTitel = s[1].trim(), rol = null;
+      const merk = /\s*\{\s*(alleen jij|dm|alleen spelers|speler)\s*\}\s*$/i.exec(kopTitel);
+      if (merk) {
+        rol = /jij|dm/i.test(merk[1]) ? 'dm' : 'speler';
+        kopTitel = kopTitel.slice(0, merk.index).trim();
+      }
+      stap = { titel: kopTitel, afbeelding: null, regels: [], ...(rol ? { rol } : {}) };
+      continue;
+    }
     if (stap) stap.regels.push(regel);
   }
   sluitSleutel();
