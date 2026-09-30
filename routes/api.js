@@ -11324,9 +11324,19 @@ const URSULA_ZINTUIGEN = [
   { key: 'voelen',  label: 'Voelen'  },
 ];
 
+// Een zintuig kan een **tafel** zijn in plaats van één vaste zin: dan ziet de
+// ene ziener vuur en de andere een gezicht in het water, en blijft een tweede
+// bezoek aan dezelfde akte de moeite waard. Staat er geen tafel, dan geldt de
+// losse tekst die er al was.
+function _ursulaZintuigTekst(def, key) {
+  const regels = _tafelRegels(def?.[key + 'TafelId']);
+  if (regels?.length) return regels[Math.floor(Math.random() * regels.length)];
+  return String(def?.[key] || '').trim();
+}
+
 function _ursulaHeeftInhoud(def) {
   if (!def) return false;
-  return URSULA_ZINTUIGEN.some(z => (def[z.key] || '').trim()) || !!(def.concreet || '').trim();
+  return URSULA_ZINTUIGEN.some(z => _ursulaZintuigTekst(def, z.key)) || !!(def.concreet || '').trim();
 }
 
 // De eerstvolgende akte na de actieve (laagste num strikt groter dan de actieve).
@@ -11348,7 +11358,7 @@ function _ursulaOnthulling(def, party) {
   const zintuigen = idxs
     .map(i => URSULA_ZINTUIGEN[i])
     .filter(Boolean)
-    .map(z => ({ label: z.label, icon: z.icon, tekst: (def[z.key] || '').trim() }))
+    .map(z => ({ label: z.label, icon: z.icon, tekst: _ursulaZintuigTekst(def, z.key) }))
     .filter(z => z.tekst);
   const concreet = party?.concreet ? ((def.concreet || '').trim() || null) : null;
   return { zintuigen, concreet };
@@ -11780,14 +11790,15 @@ router.put('/ursula/voorspelling/:akteKey', requireDM, (req, res) => {
   if (!meta.ursula) meta.ursula = {};
   if (!meta.ursula.voorspellingen) meta.ursula.voorspellingen = {};
   const b = req.body || {};
-  meta.ursula.voorspellingen[req.params.akteKey] = {
-    zien:    (b.zien    || '').trim(),
-    horen:   (b.horen   || '').trim(),
-    ruiken:  (b.ruiken  || '').trim(),
-    proeven: (b.proeven || '').trim(),
-    voelen:  (b.voelen  || '').trim(),
-    concreet:(b.concreet|| '').trim(),
-  };
+  const uit = { concreet: (b.concreet || '').trim() };
+  for (const z of URSULA_ZINTUIGEN) {
+    // De losse tekst blijft bewaard zolang er geen tafel gekozen is: zo raakt
+    // een bestaande voorspelling niets kwijt door één keer op te slaan.
+    uit[z.key] = (b[z.key] || '').trim();
+    const tafel = String(b[z.key + 'TafelId'] || '').trim();
+    if (tafel) uit[z.key + 'TafelId'] = tafel;
+  }
+  meta.ursula.voorspellingen[req.params.akteKey] = uit;
   storage.writeJSON('meta.json', meta);
   req.app.get('io').to(_campagneRoom(req)).emit('meta:updated');
   res.json(meta.ursula.voorspellingen[req.params.akteKey]);

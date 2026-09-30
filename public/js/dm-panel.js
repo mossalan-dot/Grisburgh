@@ -6890,6 +6890,43 @@ let _ursulaAktes = [];
 let _ursulaActiveAkte = null;
 let _ursulaSelectedAkte = null;
 
+// De vijf zintuigen, met een icoon dat klopt. Er stond een bliksemschicht bij
+// ruiken (`zap`), een muispijl bij voelen (`mouse-pointer-2`) en een
+// laboratoriumkolf bij proeven — dat leest als een ander soort veld dan het is.
+const URSULA_ZINTUIG_VELDEN = [
+  { key: 'zien',    label: 'Zien',    icoon: 'eye' },
+  { key: 'horen',   label: 'Horen',   icoon: 'bell-ring' },
+  { key: 'ruiken',  label: 'Ruiken',  icoon: 'wind' },
+  { key: 'proeven', label: 'Proeven', icoon: 'potion' },
+  { key: 'voelen',  label: 'Voelen',  icoon: 'hand' },
+];
+
+// Een tafel voor één zintuig van deze akte: meteen gemaakt, gekoppeld en
+// geopend — dezelfde weg als bij een begroeting of de weetjes van de detective.
+window._ursulaZintuigTafelNieuw = async (zintuig, label) => {
+  const akte = _ursulaAktes.find(a => a.key === _ursulaSelectedAkte);
+  const bestaand = (document.getElementById(`ursula-${zintuig}`)?.value || '').trim();
+  try {
+    const tafel = await api.post('/tables', {
+      name: `${label} — Akte ${akte?.num ?? '?'}`, type: 'simple',
+      entries: bestaand ? [bestaand] : [''],
+    });
+    _tables = await api.listTables().catch(() => _tables);
+    const sel = document.getElementById(`ursula-${zintuig}-tafel`);
+    if (sel) { sel.innerHTML += `<option value="${esc(tafel.id)}" selected>${esc(tafel.name)}</option>`; sel.value = tafel.id; }
+    await window._ursulaVoorspellingSave();
+    window._ursulaZintuigTafelBewerk(zintuig);
+  } catch (e) { alert('Tafel maken mislukt: ' + e.message); }
+};
+
+window._ursulaZintuigTafelBewerk = (zintuig) => {
+  const id = document.getElementById(`ursula-${zintuig}-tafel`)?.value;
+  if (!id) { alert('Kies eerst een tafel, of maak er een.'); return; }
+  _tafelTerugNaar = 'ursula';
+  window.dmPanel.switchTab('tafels');
+  setTimeout(() => { try { window.dmPanel.tabelEdit(id); } catch {} }, 160);
+};
+
 async function _renderUrsulaSettings() {
   const el = _tabEl('ursula');
   if (!el) return;
@@ -6916,9 +6953,13 @@ async function _renderUrsulaSettings() {
   const v = sel?.voorspelling || {};
   const actiefLabel = _ursulaActiveAkte ? `Akte ${_ursulaActiveAkte.num} — ${esc(_ursulaActiveAkte.title || '')}` : 'geen';
   const doel = _ursulaActiveAkte ? _ursulaAktes.find(a => a.num > (_ursulaActiveAkte.num ?? -1)) : null;
-  const actiefInfo = _ursulaActiveAkte
-    ? `<p class="dm-form-label" style="opacity:.7;margin:0 0 6px">Actieve akte: <strong>${actiefLabel}</strong>${doel ? ' \u00b7 spelers voorzien nu <strong>Akte ' + doel.num + ' \u2014 ' + esc(doel.title || '') + '</strong>' : ' \u00b7 (geen volgende akte)'}</p>`
-    : '<p class="dm-form-label" style="color:#c0392b;font-weight:600;margin:0 0 8px">' + icon('lock') + ' Geen actieve akte \u2014 Ursula is momenteel niet beschikbaar voor spelers.</p>';
+  // Welke akte actief is en wat de spelers daardoor voorzien, stond hier als
+  // regel uitleg. Dat is af te lezen aan de keuzelijst eronder (de actieve akte
+  // staat er, en de volgende is de voorgeselecteerde). Wat blijft is de
+  // waarschuwing dát er geen akte loopt — dan is deze dienst dicht en dat is
+  // geen uitleg maar een stand van zaken.
+  const actiefInfo = _ursulaActiveAkte ? '' :
+    '<p class="dm-form-label" style="color:#c0392b;font-weight:600;margin:0 0 8px">' + icon('lock') + ' Geen actieve akte \u2014 ' + esc(config.naam || 'de waarzegger') + ' is nu niet beschikbaar voor spelers.</p>';
 
   el.innerHTML = `
     <div class="dm-feature-section">
@@ -6940,13 +6981,28 @@ async function _renderUrsulaSettings() {
         <select id="ursula-akte-select" class="dm-select" onchange="window._ursulaSelectAkte(this.value)">
           ${_ursulaAktes.map(a => `<option value="${esc(a.key)}" ${a.key === _ursulaSelectedAkte ? 'selected' : ''}>Akte ${a.num} — ${esc(a.title)}${a.voorspelling ? ' ✓' : ''}</option>`).join('')}
         </select></div>
-      <div class="dm-form-row" style="flex-direction:column;gap:4px">
-        <label class="dm-form-label">${icon('eye')} Zien</label><textarea id="ursula-zien" class="dm-input" rows="2" style="font-size:11px;resize:vertical">${esc(v.zien || '')}</textarea>
-        <label class="dm-form-label">${icon('volume-2')} Horen</label><textarea id="ursula-horen" class="dm-input" rows="2" style="font-size:11px;resize:vertical">${esc(v.horen || '')}</textarea>
-        <label class="dm-form-label">${icon('zap')} Ruiken</label><textarea id="ursula-ruiken" class="dm-input" rows="2" style="font-size:11px;resize:vertical">${esc(v.ruiken || '')}</textarea>
-        <label class="dm-form-label">${icon('flask-conical')} Proeven</label><textarea id="ursula-proeven" class="dm-input" rows="2" style="font-size:11px;resize:vertical">${esc(v.proeven || '')}</textarea>
-        <label class="dm-form-label">${icon('mouse-pointer-2')} Voelen</label><textarea id="ursula-voelen" class="dm-input" rows="2" style="font-size:11px;resize:vertical">${esc(v.voelen || '')}</textarea>
-        <label class="dm-form-label">${icon('sparkles')} Concrete kern (naam/locatie — onthuld bij een 6)</label><textarea id="ursula-concreet" class="dm-input" rows="2" style="font-size:11px;resize:vertical">${esc(v.concreet || '')}</textarea>
+      <!-- De iconen stonden mis: een bliksemschicht voor ruiken, een muispijl
+           voor voelen, een laboratoriumkolf voor proeven. Nu een neus vol wind,
+           een hand, een drank. En elk zintuig mag uit een **tafel** komen: dan
+           ziet de ene ziener vuur en de andere een gezicht in het water. -->
+      <div class="ursula-zintuigen">
+        ${URSULA_ZINTUIG_VELDEN.map(z => `
+          <div class="ursula-zintuig">
+            <label class="dm-form-label" for="ursula-${z.key}">${icon(z.icoon)} ${esc(z.label)}</label>
+            <textarea id="ursula-${z.key}" class="dm-input" rows="2" style="font-size:11px;resize:vertical"
+              placeholder="Eén vast beeld — of kies hiernaast een tafel">${esc(v[z.key] || '')}</textarea>
+            ${_tafelVeldHtml({
+              id: `ursula-${z.key}-tafel`, label: 'Tafel',
+              gekozen: v[z.key + 'TafelId'] || '', leeg: '— Vaste tekst hierboven —',
+              nieuw: `window._ursulaZintuigTafelNieuw('${z.key}','${esc(z.label)}')`,
+              bewerk: `window._ursulaZintuigTafelBewerk('${z.key}')`,
+            })}
+          </div>`).join('')}
+        <div class="ursula-zintuig">
+          <label class="dm-form-label" for="ursula-concreet">${icon('target')} Concrete kern</label>
+          <textarea id="ursula-concreet" class="dm-input" rows="2" style="font-size:11px;resize:vertical"
+            placeholder="Een naam of plek — onthuld bij een 6">${esc(v.concreet || '')}</textarea>
+        </div>
       </div>
       <div class="dm-form-row" style="gap:6px">
         <button class="dm-btn dm-btn-primary" onclick="window._ursulaVoorspellingSave(event)" title="Voorspelling opslaan">${icon('save')} Voorspelling</button>
@@ -6964,6 +7020,11 @@ window._ursulaSelectAkte = (key) => {
     const ta = document.getElementById('ursula-' + f);
     if (ta) ta.value = v[f] || '';
   });
+  // De tafelkeuze hoort net zo goed bij de akte als de tekst.
+  for (const z of URSULA_ZINTUIG_VELDEN) {
+    const sel = document.getElementById(`ursula-${z.key}-tafel`);
+    if (sel) sel.value = v[z.key + 'TafelId'] || '';
+  }
 };
 
 window._ursulaSettingsSave = async () => {
@@ -6984,10 +7045,11 @@ window._ursulaSettingsSave = async () => {
 window._ursulaVoorspellingSave = async (ev) => {
   if (!_ursulaSelectedAkte) return;
   const g = (id) => document.getElementById(id)?.value || '';
-  const voorspelling = {
-    zien: g('ursula-zien'), horen: g('ursula-horen'), ruiken: g('ursula-ruiken'),
-    proeven: g('ursula-proeven'), voelen: g('ursula-voelen'), concreet: g('ursula-concreet'),
-  };
+  const voorspelling = { concreet: g('ursula-concreet') };
+  for (const z of URSULA_ZINTUIG_VELDEN) {
+    voorspelling[z.key] = g(`ursula-${z.key}`);
+    voorspelling[z.key + 'TafelId'] = g(`ursula-${z.key}-tafel`);
+  }
   const btn = ev?.currentTarget;
   try {
     await api.saveUrsulaVoorspelling(_ursulaSelectedAkte, voorspelling);

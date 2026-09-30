@@ -10,7 +10,7 @@ import { renderSpreuken } from './render-spreuken.js?v=41';
 import { renderVaardigheden, zoekVaardigheden } from './render-vaardigheden.js?v=10';
 import { renderStatblock } from './render-statblock.js?v=9';
 import { initSocket } from "./socket-client.js?v=80";
-import { initDmPanel } from "./dm-panel.js?v=360";
+import { initDmPanel } from "./dm-panel.js?v=361";
 import { COND_INFO, COND_LABEL, COND_MET_PLAATJE, COND_ICON } from './conditions.js?v=2';
 import './media-picker.js?v=8';
 import './tafels.js?v=2';
@@ -13022,8 +13022,11 @@ window._magizooOnderzoek = async (monsterId, modus) => {
 
 // ── Madame Ursula / Waarzegger ───────────────────────────────────────────────
 
-// Zintuig-label → Lucide-icoon (emoji uit de API worden genegeerd)
-const _URSULA_ICONS = { Zien: 'eye', Horen: 'zap', Ruiken: 'flask-conical', Proeven: 'potion', Voelen: 'heart' };
+// Zintuig-label → icoon. Ze stonden allemaal net naast de zin die ze aankondigen
+// — een bliksemschicht bij horen, een laboratoriumkolf bij ruiken, een hartje
+// bij voelen. Dezelfde vijf als in het meesterpaneel, zodat wat jij instelt en
+// wat je speler leest hetzelfde teken dragen.
+const _URSULA_ICONS = { Zien: 'eye', Horen: 'bell-ring', Ruiken: 'wind', Proeven: 'potion', Voelen: 'hand' };
 
 function _ursulaOnthuldHtml(onthuld, roll, doorNaam) {
   const rollLabel  = roll === 6 ? 'Volledig visioen!' : `Worp: ${roll}`;
@@ -14338,8 +14341,10 @@ const HELP_CONFIG = {
     { titel: 'De tekst is van jou', tekst: 'Een voorspelling hoort vaag genoeg te zijn om later te kloppen, en scherp genoeg om aan tafel iets los te maken. Wat zij zegt schrijf jij dus zelf, per akte.', afbeelding: null },
   ] }),
   dm_waarzegger_akte: () => ({ titel: 'Voorspellingen per akte', stappen: [
-    { titel: 'Waarom per akte', tekst: 'Wat zij ziet hangt af van waar het verhaal staat. Per akte leg je vast wat er te voorspellen valt; komt een speler langs, dan krijgt hij wat bij dít hoofdstuk hoort.', afbeelding: null },
-    { titel: 'Eén per speler', tekst: 'De app onthoudt wie welke voorspelling al gehad heeft, zodat twee spelers niet hetzelfde briefje krijgen.', afbeelding: null },
+    { titel: 'Waarom per akte', tekst: 'Wat zij ziet hangt af van waar het verhaal staat. Per akte leg je vast wat er te voorspellen valt; komt een speler langs, dan krijgt hij wat bij de **volgende** akte hoort — voorspellen gaat over wat komt. Loopt er geen akte, dan is ze dicht.', afbeelding: null },
+    { titel: 'Vijf zintuigen, één kern', tekst: 'Schrijf per zintuig een beeld: wat je ziet, hoort, ruikt, proeft, voelt. De worp bepaalt hoeveel ervan doorkomen. De **concrete kern** — een naam of een plek — komt er alleen bij een 6 uit; dat is het harde gegeven onder het beeldspel.', afbeelding: null },
+    { titel: 'Of laat het variëren', tekst: 'Elk zintuig mag ook een **tafel** zijn in plaats van één vaste zin. Dan ziet de ene ziener vuur en de andere een gezicht in het water, en is een tweede bezoek aan dezelfde akte nog de moeite waard. Zelfde veld als bij een begroeting: kiezen, *Nieuw* maakt er een met je huidige tekst in, *Bewerken* opent hem bij Tafels. Laat je de tafel leeg, dan geldt de tekst erboven.', afbeelding: null },
+    { titel: 'Eén per speler', tekst: 'De app onthoudt wie welke voorspelling al gehad heeft, zodat twee spelers niet hetzelfde briefje krijgen. Met *Reset party-worp* mag een party het over doen.', afbeelding: null },
   ] }),
   dm_tempel: () => ({ titel: 'De tempel', stappen: [
     { titel: 'Waar de goden vandaan komen', tekst: 'Er is geen ingebouwd pantheon: een god ontstaat uit **Blessing-kaartjes met een godnaam** (zegen, eed of vloek). Hier voeg je daar volgorde, domein, symbool, prijs en portretten aan toe.', afbeelding: null },

@@ -28047,3 +28047,15 @@ body.akte-schrijf-open .mp-overlay { z-index: 1320; }
 /* Afgelopen weddenschappen: dicht, want ze duwden de lopende naar beneden */
 .ts-afgerond-uitklap { margin-top: 10px; }
 .ts-afgerond-uitklap > summary { cursor: pointer; }
+
+/* Waarzegger: per zintuig een vaste tekst óf een tafel */
+.ursula-zintuigen { display: flex; flex-direction: column; gap: 10px; margin-top: 6px; }
+.ursula-zintuig {
+  padding: 8px;
+  border: 1px solid rgba(196,168,122,0.18);
+  border-radius: 6px;
+}
+.ursula-zintuig > .dm-form-label { display: flex; align-items: center; gap: 6px; margin-bottom: 3px; }
+.ursula-zintuig > .dm-form-label svg { width: 15px; height: 15px; }
+.ursula-zintuig textarea { width: 100%; }
+.ursula-zintuig .dm-form-row { margin-top: 5px; }
