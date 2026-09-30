@@ -7411,8 +7411,18 @@ async function _renderFactiesSettings() {
     uitnodiging:      f.uitnodiging      || '',
     uitnodigingTitel: f.uitnodigingTitel || '',
     rangen: (f.rangen || []).map(r => ({
-      naam: r.naam, voordelen: r.voordelen || '', titel: r.titel || '',
-      boons: (r.boons || []).map(b => ({ entityId: b.entityId || '', naam: b.naam || '' })),
+      naam: r.naam, renown: r.renown, voordelen: r.voordelen || '',
+      // Eén lijst met een type erop. Een factie uit de oude vorm heeft `boons`
+      // (altijd een voorwerp) en soms een los `titel`-veld; die lezen we hier om
+      // zodat de editor nooit twee soorten tegelijk hoeft te tonen.
+      unlocks: Array.isArray(r.unlocks) && r.unlocks.length
+        ? r.unlocks.map(u => ({ ...u }))
+        : [
+            ...(r.boons || []).map(b => b.entityId
+              ? { type: 'voorwerp', entityId: b.entityId, naam: b.naam || '' }
+              : { type: 'tekst', naam: b.naam || '', tekst: b.tekst || '' }),
+            ...(r.titel ? [{ type: 'titel', titel: r.titel }] : []),
+          ],
     })),
   }));
   _renderFactiesDM();
@@ -7525,7 +7535,11 @@ function _renderFactiesDM() {
         const renown = live.renown ?? 0;
         const zichtbaar = live.zichtbaar ?? false;
         const rangNaam = live.rang?.naam || 'Buitenstaander';
-        const boonGegeven = (live.ladder || []).filter(r => r.bereikt && r.index > 0).flatMap(r => r.boons || []);
+        // `unlocks` is de lijst; `boons` stuurt de server alleen nog mee voor
+        // oudere clients. Tel dus de unlocks, anders blijft de teller op nul
+        // staan zodra een rang iets anders geeft dan een voorwerp.
+        const boonGegeven = (live.ladder || []).filter(r => r.bereikt && r.index > 0)
+          .flatMap(r => (r.unlocks?.length ? r.unlocks : (r.boons || [])));
         return `
         <div class="factie-dm-kaart" id="factie-dm-kaart-${f.id}">
           <div class="factie-dm-kaart-header">
@@ -7540,7 +7554,7 @@ function _renderFactiesDM() {
             <button class="dm-btn dm-btn-ghost dm-btn-sm" onclick="window._factieRenown('${esc(f.id)}',3)">+3</button>
             <button class="dm-btn dm-btn-ghost dm-btn-sm" onclick="window._factieRenown('${esc(f.id)}',5)">+5</button>
             <button class="dm-btn dm-btn-ghost dm-btn-sm" onclick="window._factieRenown('${esc(f.id)}',-1)">-1</button>
-            ${boonGegeven.length ? `<span class="factie-dm-boon-label">${icon('check-circle')} ${boonGegeven.length} boon${boonGegeven.length > 1 ? 's' : ''} uitgedeeld</span>` : ''}
+            ${boonGegeven.length ? `<span class="factie-dm-boon-label">${icon('check-circle')} ${boonGegeven.length} gunst${boonGegeven.length > 1 ? 'en' : ''} uitgedeeld</span>` : ''}
             <button class="dm-btn dm-btn-primary dm-btn-sm factie-dm-uitnodiging" style="margin-left:auto"
               onclick="window._factieStuurUitnodiging('${esc(f.id)}')"
               title="Onthul de factie voor de actieve groep én bezorg elke speler een verzegelde uitnodigingsbrief">
@@ -7647,6 +7661,110 @@ function _renderFactiesDM() {
   _factiesDraft.forEach((_, fi) => _renderFactieRangen(fi));
 };
 
+// ── Wat een rang oplevert ────────────────────────────────────────────────────
+// De server kent vijf soorten en deed er ook echt iets mee; de editor kon er
+// maar één maken (een voorwerp). Vandaar één rij met een typekeuze ervoor, en
+// daarachter precies de velden die bij dát type horen — niet vijf velden waarvan
+// er vier leeg blijven.
+const _UNLOCK_SOORTEN = [
+  { id: 'tekst',    label: 'Afspraak',  icoon: 'scroll-text', uitleg: 'Een regel die in hun boedel komt: onderdak, een korting, vrije doorgang.' },
+  { id: 'voorwerp', label: 'Voorwerp',  icoon: 'package',     uitleg: 'Het kaartje komt echt in hun bezit, met het aantal dat je erbij zet.' },
+  { id: 'verkoper', label: 'Winkel',    icoon: 'store',       uitleg: 'Deze winkel gaat open voor de party: hij verschijnt op de Markt en ze kunnen er kopen.' },
+  { id: 'metgezel', label: 'Hulp',      icoon: 'users',       uitleg: 'Iemand die ze mogen inroepen — niet iemand die er voortaan is. Met een duur en een rustpauze.' },
+  { id: 'titel',    label: 'Titel',     icoon: 'star',        uitleg: 'Een titel die bij de speler verschijnt zodra hij de rang haalt.' },
+];
+
+// Een winkel hangt aan een locatie of aan een verkoper; allebei mag hier.
+function _unlockLijst(type) {
+  if (type === 'voorwerp') return _factiesVoorwerpen;
+  if (type === 'metgezel') return _factiesPersonages;
+  if (type === 'verkoper') return [..._factiesLocaties, ..._factiesPersonages];
+  return [];
+}
+
+function _unlockRijHtml(fi, i, bi, u) {
+  const type = _UNLOCK_SOORTEN.some(x => x.id === u.type) ? u.type : 'tekst';
+  const soort = _UNLOCK_SOORTEN.find(x => x.id === type);
+  const lijst = _unlockLijst(type);
+  const dlId  = `unlock-dl-${fi}-${i}-${bi}`;
+  const naamVanKaartje = (lijst.find(e => e.id === u.entityId)?.name) || '';
+  const zet = (veld) => `window._factieUnlockEdit(${fi},${i},${bi},'${veld}',this.value)`;
+
+  const velden = type === 'titel'
+    ? `<input class="dm-input dm-input-sm" style="flex:1" placeholder="Gezel van het gilde"
+         value="${esc(u.titel || '')}" oninput="${zet('titel')}">`
+    : type === 'tekst'
+      ? `<input class="dm-input dm-input-sm" style="width:150px" placeholder="Waarvoor?"
+           value="${esc(u.naam || '')}" oninput="${zet('naam')}">
+         <input class="dm-input dm-input-sm" style="flex:1" placeholder="Wat spreken jullie af?"
+           value="${esc(u.tekst || '')}" oninput="${zet('tekst')}">`
+      : `<input class="dm-input dm-input-sm" style="flex:1" list="${dlId}" autocomplete="off"
+           placeholder="${type === 'voorwerp' ? 'Zoek een voorwerp\u2026' : type === 'verkoper' ? 'Zoek de winkel of verkoper\u2026' : 'Zoek wie ze mogen roepen\u2026'}"
+           value="${esc(naamVanKaartje)}" onchange="window._factieUnlockKaartje(${fi},${i},${bi},this.value)">
+         <datalist id="${dlId}">${[...lijst].sort((a, b) => (a.name || '').localeCompare(b.name || '', 'nl'))
+           .map(e => `<option value="${esc(e.name || '')}"></option>`).join('')}</datalist>
+         ${type === 'voorwerp' ? `
+           <input class="dm-input dm-input-sm" type="number" min="1" style="width:56px" title="Hoeveel?"
+             value="${parseInt(u.aantal) || 1}" onchange="${zet('aantal')}">` : ''}
+         ${type === 'metgezel' ? `
+           <select class="dm-select dm-input-sm" style="width:130px" title="Hoe lang blijft hij?" onchange="${zet('duur')}">
+             ${[['langeRust', 'tot de lange rust'], ['korteRust', 'tot de korte rust'], ['akte', 'de hele akte']]
+               .map(([k, l]) => `<option value="${k}"${(u.duur || 'langeRust') === k ? ' selected' : ''}>${l}</option>`).join('')}
+           </select>
+           <select class="dm-select dm-input-sm" style="width:130px" title="Wanneer mogen ze hem weer roepen?" onchange="${zet('cooldown')}">
+             ${[['akte', 'één keer per akte'], ['langeRust', 'na een lange rust']]
+               .map(([k, l]) => `<option value="${k}"${(u.cooldown || 'akte') === k ? ' selected' : ''}>${l}</option>`).join('')}
+           </select>` : ''}`;
+
+  return `
+    <div class="factie-unlock-rij">
+      <select class="dm-select dm-input-sm factie-unlock-soort" title="${esc(soort?.uitleg || '')}"
+        onchange="window._factieUnlockSoort(${fi},${i},${bi},this.value)">
+        ${_UNLOCK_SOORTEN.map(so => `<option value="${so.id}"${so.id === type ? ' selected' : ''}>${esc(so.label)}</option>`).join('')}
+      </select>
+      ${velden}
+      <button class="dm-btn dm-btn-ghost dm-btn-sm" title="Weghalen"
+        onclick="window._factieUnlockVerwijder(${fi},${i},${bi})">${icon('trash')}</button>
+    </div>`;
+}
+
+window._factieUnlockToevoegen = (fi, i) => {
+  const r = _factiesDraft[fi]?.rangen?.[i];
+  if (!r) return;
+  (r.unlocks ||= []).push({ type: 'tekst', naam: '', tekst: '' });
+  _renderFactieRangen(fi);
+};
+window._factieUnlockVerwijder = (fi, i, bi) => {
+  _factiesDraft[fi]?.rangen?.[i]?.unlocks?.splice(bi, 1);
+  _renderFactieRangen(fi);
+};
+window._factieUnlockEdit = (fi, i, bi, veld, waarde) => {
+  const u = _factiesDraft[fi]?.rangen?.[i]?.unlocks?.[bi];
+  if (u) u[veld] = waarde;
+};
+// Van soort wisselen gooit de velden van de vorige weg: een titel bewaren bij
+// een voorwerp levert een halve gunst op die de server toch niet leest.
+window._factieUnlockSoort = (fi, i, bi, type) => {
+  const r = _factiesDraft[fi]?.rangen?.[i];
+  if (!r?.unlocks?.[bi]) return;
+  const oud = r.unlocks[bi];
+  r.unlocks[bi] = type === 'metgezel'
+    ? { type, naam: oud.naam || '', duur: 'langeRust', cooldown: 'akte' }
+    : { type, naam: oud.naam || '' };
+  _renderFactieRangen(fi);
+};
+window._factieUnlockKaartje = (fi, i, bi, naam) => {
+  const u = _factiesDraft[fi]?.rangen?.[i]?.unlocks?.[bi];
+  if (!u) return;
+  const gezocht = (naam || '').trim().toLowerCase();
+  const treffer = _unlockLijst(u.type).find(e => (e.name || '').toLowerCase() === gezocht);
+  u.entityId = treffer?.id || '';
+  // De naam van het kaartje is de naam van de gunst; zelf iets anders noemen mag
+  // ook, maar dan heeft de DM dat al ingetikt.
+  if (treffer && !u.naam) u.naam = '';
+  _renderFactieRangen(fi);
+};
+
 function _renderFactieRangen(fi) {
   const wrap = document.getElementById(`factie-rangen-${fi}`);
   if (!wrap) return;
@@ -7673,27 +7791,8 @@ function _renderFactieRangen(fi) {
         <button class="dm-btn dm-btn-ghost dm-btn-sm" onclick="window._factieRangVerwijder(${fi},${i})" title="Verwijderen">${icon('trash')}</button>
       </div>
       <div style="padding-left:68px">
-        ${(r.boons || []).map((b, bi) => {
-          const selectId = `boon-select-${fi}-${i}-${bi}`;
-          const zoekId   = `boon-zoek-${fi}-${i}-${bi}`;
-          const huidigNaam = _factiesVoorwerpen.find(v => v.id === b.entityId)?.name || '';
-          return `
-          <div style="margin-bottom:6px">
-            <div class="dm-form-row" style="gap:4px;align-items:center;margin-bottom:2px">
-              <input id="${zoekId}" class="dm-input" style="flex:1" placeholder="Zoek voorwerp…"
-                value="${esc(huidigNaam)}"
-                oninput="window._filterBoonPicker(this,'${selectId}')">
-              <button class="dm-btn dm-btn-ghost dm-btn-sm" onclick="window._factieBoonVerwijder(${fi},${i},${bi})" title="Verwijderen">${icon('trash')}</button>
-            </div>
-            <select id="${selectId}" class="dm-select" style="width:100%;display:none" size="6"
-              onchange="window._factieBoonKies(${fi},${i},${bi},'${zoekId}','${selectId}',this.value)">
-              <option value="">— geen voorwerp —</option>
-              ${_factiesVoorwerpen.sort((a,b)=>a.name.localeCompare(b.name)).map(v =>
-                `<option value="${esc(v.id)}" ${v.id === (b.entityId||'') ? 'selected' : ''}>${esc(v.name)}</option>`
-              ).join('')}
-            </select>
-          </div>`; }).join('')}
-        <button class="dm-btn dm-btn-ghost dm-btn-sm" onclick="window._factieBoonToevoegen(${fi},${i})">${icon('plus')} Boon</button>
+        ${(r.unlocks || []).map((u, bi) => _unlockRijHtml(fi, i, bi, u)).join('')}
+        <button class="dm-btn dm-btn-ghost dm-btn-sm" onclick="window._factieUnlockToevoegen(${fi},${i})">${icon('plus')} Wat levert deze rang op?</button>
       </div>
     </div>`).join('') || '<p class="dm-form-label" style="opacity:.6">Geen rangen.</p>';
 };
@@ -7707,27 +7806,6 @@ window._renderFactieRangen = (fi) => {
       .sort((a, b) => a.renown - b.renown);
   }
   _renderFactieRangen(fi);
-};
-
-window._filterBoonPicker = (input, selectId) => {
-  const q = input.value.toLowerCase().trim();
-  const sel = document.getElementById(selectId);
-  if (!sel) return;
-  // Toon dropdown zodra de gebruiker begint te typen
-  sel.style.display = q ? '' : 'none';
-  Array.from(sel.options).forEach(opt => {
-    opt.hidden = !!q && !opt.text.toLowerCase().includes(q);
-  });
-};
-
-window._factieBoonKies = (fi, i, bi, zoekId, selectId, value) => {
-  // Keuze gemaakt: vul zoekveld met naam, verberg dropdown, sla op
-  const sel = document.getElementById(selectId);
-  const zoek = document.getElementById(zoekId);
-  const naam = sel?.options[sel.selectedIndex]?.text || '';
-  if (zoek) zoek.value = naam === '— geen voorwerp —' ? '' : naam;
-  if (sel) sel.style.display = 'none';
-  window._factieBoonEdit(fi, i, bi, 'entityId', value);
 };
 
 window._factieEdit = (fi, field, v) => { const f = _factiesDraft[fi]; if (f) f[field] = v; };
@@ -7828,7 +7906,7 @@ window._factieStijlKies = (fi, stijl, btn) => {
 // Alleen trede 0 heeft een naam, want die beschrijft de mechaniek (je bent nog
 // geen lid) en niet de campagne.
 const _FACTIE_LADDER = () => [0, 1, 3, 10, 25, 50].map((renown, i) => ({
-  naam: i === 0 ? 'Buitenstaander' : '', renown, voordelen: '', titel: '', boons: [],
+  naam: i === 0 ? 'Buitenstaander' : '', renown, voordelen: '', unlocks: [],
 }));
 
 window._factieNieuw = () => {
@@ -7844,13 +7922,10 @@ window._factieRangToevoegen = (fi) => {
   if (!rangen) return;
   // Renown is verplicht, dus vul hem meteen: boven de hoogste die er staat.
   const hoogste = rangen.reduce((n, r) => Math.max(n, parseInt(r.renown) || 0), 0);
-  rangen.push({ naam: '', renown: hoogste + 1, voordelen: '', titel: '', boons: [] });
+  rangen.push({ naam: '', renown: hoogste + 1, voordelen: '', unlocks: [] });
   _renderFactieRangen(fi);
 };
 window._factieRangVerwijder = (fi, i) => { _factiesDraft[fi]?.rangen.splice(i, 1); _renderFactieRangen(fi); };
-window._factieBoonEdit = (fi, i, bi, field, v) => { const b = _factiesDraft[fi]?.rangen?.[i]?.boons?.[bi]; if (b) b[field] = v; };
-window._factieBoonToevoegen = (fi, i) => { const r = _factiesDraft[fi]?.rangen?.[i]; if (r) { (r.boons = r.boons || []).push({ entityId: '', naam: '' }); _renderFactieRangen(fi); } };
-window._factieBoonVerwijder = (fi, i, bi) => { _factiesDraft[fi]?.rangen?.[i]?.boons?.splice(bi, 1); _renderFactieRangen(fi); };
 
 window._factieReveal = async (id) => {
   try {
@@ -7890,7 +7965,7 @@ window._factieRenown = async (id, delta) => {
       if (kaart) {
         const notif = document.createElement('div');
         notif.className = 'factie-dm-rang-bereikt';
-        notif.textContent = `Rang bereikt — ${res.boons} boon${res.boons > 1 ? 's' : ''} uitgedeeld`;
+        notif.textContent = `Rang bereikt — ${res.boons} gunst${res.boons > 1 ? 'en' : ''} uitgedeeld`;
         kaart.appendChild(notif);
         setTimeout(() => notif.remove(), 4000);
       }
@@ -7922,9 +7997,17 @@ function _factiesPayload() {
     rangen: (f.rangen || []).filter(r => (r.naam || '').trim()).map((r, i) => ({
       naam: r.naam.trim(),
       renown: String(r.renown ?? '').trim() !== '' ? parseInt(r.renown) || 0 : ([0,1,3,10,25,50][i] ?? i),
-      voordelen: (r.voordelen || '').trim(), titel: (r.titel || '').trim(),
-      boons: (r.boons || []).filter(b => (b.entityId || '').trim())
-        .map(b => ({ entityId: (b.entityId || '').trim(), naam: (b.naam || '').trim() })),
+      voordelen: (r.voordelen || '').trim(),
+      unlocks: (r.unlocks || [])
+        .map(u => {
+          const uit = { type: _UNLOCK_SOORTEN.some(x => x.id === u.type) ? u.type : 'tekst' };
+          for (const veld of ['entityId', 'naam', 'tekst', 'titel', 'duur', 'cooldown']) {
+            if ((u[veld] || '').toString().trim()) uit[veld] = String(u[veld]).trim();
+          }
+          if (u.type === 'voorwerp' && parseInt(u.aantal) > 1) uit.aantal = parseInt(u.aantal);
+          return uit;
+        })
+        .filter(u => u.entityId || u.naam || u.tekst || u.titel),
     })),
   }));
 }

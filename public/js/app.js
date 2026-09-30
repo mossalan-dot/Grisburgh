@@ -10,7 +10,7 @@ import { renderSpreuken } from './render-spreuken.js?v=41';
 import { renderVaardigheden, zoekVaardigheden } from './render-vaardigheden.js?v=10';
 import { renderStatblock } from './render-statblock.js?v=9';
 import { initSocket } from "./socket-client.js?v=79";
-import { initDmPanel } from "./dm-panel.js?v=350";
+import { initDmPanel } from "./dm-panel.js?v=351";
 import { COND_INFO, COND_LABEL, COND_MET_PLAATJE, COND_ICON } from './conditions.js?v=2';
 import './media-picker.js?v=8';
 import './tafels.js?v=2';
@@ -14012,7 +14012,11 @@ const _FACTIE_UNLOCK_ICOON = {
 window._factieUnlockChips = function (unlocks, extraCls = '') {
   return (unlocks || []).map(u => {
     const ic = icon(_FACTIE_UNLOCK_ICOON[u.type] || 'sparkles');
-    const label = esc(u.type === 'titel' ? (u.titel || 'Titel') : (u.naam || ''));
+    // Een afspraak hoeft geen korte naam te hebben: soms is de regel zelf de
+    // gunst ("vrije doorgang bij de noordpoort"). Zonder deze terugval viel zo'n
+    // gunst helemaal van het scherm — de DM had hem ingevuld en de speler zag
+    // niets.
+    const label = esc(u.type === 'titel' ? (u.titel || 'Titel') : (u.naam || u.tekst || ''));
     if (!label) return '';
     const tip = esc(u.tekst || (u.type === 'metgezel' ? 'Kan te hulp geroepen worden' : ''));
     return u.entityId
@@ -14343,7 +14347,9 @@ const HELP_CONFIG = {
   dm_facties_rangen: () => ({ titel: 'Rangen', stappen: [
     { titel: 'Elke rang zegt zelf vanaf hoeveel', tekst: 'Een rang heeft een naam en een eigen drempel: *vanaf zoveel renown*. Een trede erbij is dus één knop — naam en getal, klaar. De volgorde volgt uit de getallen, dus je hoeft ze niet op volgorde in te tikken. Er stond hier een apart veld met komma\u2019s (`0,1,3,10,25,50`) dat op positie moest matchen met de lijst eronder; haalde je er een rang tussenuit, dan schoof de hele ladder een plek op zonder dat iets dat zei.', afbeelding: null },
     { titel: 'Waar de getallen vandaan komen', tekst: 'Een nieuwe factie begint op **0, 1, 3, 10, 25 en 50**: de vijf rangen van het boek, met een trede ervóór voor wie nog geen lid is. Die heet *Buitenstaander*, want die naam beschrijft de mechaniek en niet jouw wereld — de rest vul je zelf in. Zet je ze anders, dan houdt de app jouw getallen.', afbeelding: null },
-    { titel: 'Wat een trede oplevert', tekst: 'Een titel, en wat jij eraan hangt: toegang, een gunst, een korting. Koppel je er een **voorwerp** aan, dan staat op het kaartje van dat voorwerp voortaan dat het de gunst van deze rang is — te zien zodra de party de factie kent. De app rekent de trede uit; wat hij betekent is een afspraak aan tafel.', afbeelding: null },
+    { titel: 'Wat een trede oplevert', tekst: 'Regel voor regel, met vooraan wat voor soort gunst het is. Er zijn er vijf, en ze doen allemaal iets op het moment dat de party de rang haalt.', afbeelding: null },
+    { titel: 'De vijf soorten', tekst: '**Afspraak** is een regel die in hun boedel komt: onderdak, een korting, vrije doorgang — heeft geen korte naam nodig, de regel zelf mag de gunst zijn. **Voorwerp** geeft het kaartje echt in bezit, met het aantal dat je erbij zet. **Winkel** zet een winkel open voor deze party: hij verschijnt op de Markt en ze kunnen er kopen. **Hulp** is iemand die ze mógen inroepen — niet iemand die er voortaan is; je stelt in hoe lang hij blijft en wanneer ze hem weer mogen roepen. **Titel** verschijnt bij de speler zodra hij de rang haalt.', afbeelding: null },
+    { titel: 'Wat er wél en niet wordt uitgedeeld', tekst: 'Een afspraak, een voorwerp en een winkel worden **één keer** toegekend en onthouden, dus renown die heen en weer beweegt levert niet twee keer hetzelfde zwaard op. Een titel en hulp worden niet uitgedeeld: de titel staat op de ladder, en hulp vraag je met een knop bij de factie. Koppel je een voorwerp, dan staat op het kaartje van dat voorwerp voortaan dat het de gunst van deze rang is — te zien zodra de party de factie kent.', afbeelding: null },
   ] }),
 
   dm_tafels_namen: () => ({ titel: 'Namen trekken', stappen: [

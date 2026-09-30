@@ -27877,3 +27877,17 @@ body.akte-schrijf-open .mp-overlay { z-index: 1320; }
 .factie-leden-kop:first-child { margin-top: 0; }
 .factie-lid-rij--leiding .factie-lid-naam,
 .factie-lid-rij--leiding .dm-factie-kaartlink { font-weight: 600; }
+
+/* Wat een rang oplevert: één rij per gunst, met de soort voorop */
+.factie-unlock-rij {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 6px;
+  flex-wrap: wrap;
+}
+.factie-unlock-soort { width: 108px; flex-shrink: 0; }
+@media (max-width: 640px) {
+  .factie-unlock-rij > * { min-width: 0; }
+  .factie-unlock-soort { width: 100%; }
+}

@@ -321,6 +321,51 @@ describe('Facties: een rang ontgrendelt iets', () => {
     assert.strictEqual((await f()).rang.naam, 'Gezel', 'vijf renown haalt de trede van vier');
   });
 
+  // De vijf soorten gunst die een rang kan geven. De editor kon er maar één
+  // maken; de server deed er al vijf. Dit legt vast wat ze elk doen.
+  it('kent vijf soorten gunst en deelt ze uit bij het halen van de rang', async () => {
+    const bestaand = (await req(server, 'GET', '/api/meta', null, dm)).body.facties || [];
+    await req(server, 'PUT', '/api/meta/facties', {
+      facties: [...bestaand.filter(f => f.id !== 'vijfsoorten'), {
+        id: 'vijfsoorten', naam: 'De Vijfvoud',
+        rangen: [
+          { naam: 'Buitenstaander', renown: 0 },
+          { naam: 'Gezel', renown: 2, unlocks: [
+            { type: 'tekst',    naam: 'Onderdak', tekst: 'Een bed in de kelder.' },
+            { type: 'voorwerp', entityId: zwaard, aantal: 2 },
+            { type: 'verkoper', entityId: winkel },
+            { type: 'metgezel', entityId: bondgenoot, duur: 'langeRust', cooldown: 'akte' },
+            { type: 'titel',    titel: 'Gezel van de Vijfvoud' },
+          ] },
+        ],
+      }],
+    }, dm);
+    await req(server, 'POST', '/api/facties/vijfsoorten/reveal', { zichtbaar: true }, dm);
+
+    // De winkel is nog dicht en het zwaard nog niet van hen.
+    await req(server, 'PUT', `/api/entities/locaties/${winkel}/visibility`, { target: 'hidden' }, dm);
+
+    const r = await req(server, 'POST', '/api/facties/vijfsoorten/renown', { delta: 2 }, dm);
+    assert.strictEqual(r.status, 200, JSON.stringify(r.body));
+
+    // verkoper → de winkel gaat open voor deze party
+    const loc = (await req(server, 'GET', `/api/entities/locaties/${winkel}`, null, dm)).body;
+    assert.strictEqual(loc._visibility, 'visible', 'de winkel is opengezet');
+
+    // voorwerp → het kaartje is echt in bezit, met het aantal erbij
+    const bezit = (await req(server, 'GET', '/api/items/ownership', null, dm)).body;
+    const eigenaar = (bezit.owners || {})[zwaard];
+    assert.ok(eigenaar, 'het zwaard is uitgedeeld: ' + JSON.stringify(bezit.owners));
+
+    // titel en metgezel worden níét uitgedeeld: de titel staat op de ladder,
+    // de metgezel roep je in (POST /hulp).
+    const f = ((await req(server, 'GET', '/api/facties', null, dm)).body.facties || [])
+      .find(x => x.id === 'vijfsoorten');
+    assert.deepStrictEqual((f.ladder[1].unlocks || []).map(u => u.type),
+      ['tekst', 'voorwerp', 'verkoper', 'metgezel', 'titel']);
+    assert.ok(f.hulp?.beschikbaar, 'de metgezel is in te roepen in plaats van uitgedeeld');
+  });
+
   // Een voorwerp dat een rang ontgrendelt hoort dat op zijn eigen kaartje te
   // zeggen. Dat was eenrichtingsverkeer: je koppelde het in het factiepaneel en
   // op het kaartje van het zwaard stond nergens waar het vandaan komt.
