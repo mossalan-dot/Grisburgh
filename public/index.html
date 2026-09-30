@@ -60,7 +60,7 @@
       },
     }
   </script>
-  <link rel="stylesheet" href="/css/theme.css?v=756">
+  <link rel="stylesheet" href="/css/theme.css?v=757">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
   <script>pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';</script>
   <script src="/socket.io/socket.io.js"></script>
@@ -420,8 +420,13 @@
       <div class="modal-head" id="modal-head">
         <div class="flex items-center gap-2 min-w-0 flex-1">
           <button id="m-back" class="modal-back hidden" onclick="window._modalGoBack()" title="Terug">&#8592;</button>
+          <!-- Het portret kan ook bewegen: hetzelfde `<id>_video` dat een speler
+               op de landingspagina heeft. Het stilstaande beeld blijft eronder
+               liggen als eerste frame en als terugval. -->
           <div id="m-portrait-wrap" class="modal-portrait-wrap hidden">
             <img id="m-portrait" class="modal-portrait-img" alt="">
+            <video id="m-portrait-video" class="modal-portrait-video hidden"
+              muted loop playsinline preload="none"></video>
           </div>
           <div class="min-w-0 flex-1">
             <div class="font-cinzel text-xl text-gold font-bold" id="m-title"></div>
@@ -581,6 +586,6 @@
   <!-- DM Instellingen modal -->
 
   <script type="module" src="/js/sound-manager.js?v=8"></script>
-  <script type="module" src="/js/app.js?v=998"></script>
+  <script type="module" src="/js/app.js?v=999"></script>
 </body>
 </html>

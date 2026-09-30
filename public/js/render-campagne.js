@@ -5406,6 +5406,11 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
     _mPortraitImg.onerror = () => _mPortraitWrap.classList.add('hidden');
     _mPortraitImg.onload  = () => _mPortraitWrap.classList.remove('hidden');
     _mPortraitImg.src = beeldUrl;
+    // Beweegt dit portret? Het filmpje heet `<id>_video`, net als bij een
+    // speler op de landingspagina — hetzelfde bestand, dezelfde grens, alleen
+    // een andere plek waar het speelt. Het stilstaande beeld blijft eronder
+    // liggen: valt de video weg, dan is er niets aan de hand.
+    _portretFilm(tab, e.id);
   }
 
   // Modal header type-color tint
@@ -6284,6 +6289,27 @@ window._editorPickImage = () => {
   });
 };
 
+// Een bewegend portret op het kaartje. We vragen het bestand niet vooraf op met
+// een HEAD: de video zegt zelf of hij er is (`error` → niets aan de hand), en
+// dat scheelt een verzoek bij elk kaartje dat er geen heeft.
+const _PORTRET_FILM_SEC = 6;
+function _portretFilm(tab, id) {
+  const vid = document.getElementById('m-portrait-video');
+  if (!vid) return;
+  vid.classList.add('hidden');
+  vid.removeAttribute('src');
+  vid.onerror = null; vid.oncanplay = null; vid.ontimeupdate = null;
+  if (tab !== 'personages' || !id) { try { vid.load(); } catch {} return; }
+
+  vid.onerror   = () => vid.classList.add('hidden');
+  vid.oncanplay = () => { vid.classList.remove('hidden'); vid.play().catch(() => vid.classList.add('hidden')); };
+  // Langer mag, maar hij stopt vanzelf — zelfde afspraak als op de
+  // landingspagina, zodat een lange clip geen eindeloze lus wordt.
+  vid.ontimeupdate = () => { if (vid.currentTime >= _PORTRET_FILM_SEC) vid.currentTime = 0; };
+  vid.src = `/api/files/${encodeURIComponent(id)}_video`;
+  vid.load();
+}
+
 // ── Filmpje bij een personage ───────────────────────────────────────────────
 // Het bestand heet <entityId>_video; daar kijkt de landingspagina rechtstreeks
 // naar (routes/auth.js). Er is geen ffmpeg op de server, dus we kunnen niet
@@ -6818,9 +6844,12 @@ window._openEditor = async (tab, editId) => {
            landingspagina terwijl er op dát portret wordt ingezoomd. Bij een
            nieuw kaartje bewaren we het bestand tot het personage bestaat, want
            de upload heet naar zijn id. -->
-      <div id="video-section"${e?.subtype === 'speler' ? '' : ' style="display:none"'}>
+      <!-- Ook voor een NPC: hetzelfde bestand, dezelfde grens, alleen een andere
+           plek waar het speelt. Bij een speler is dat de landingspagina; bij
+           iedereen is het het portret op zijn kaartje. -->
+      <div id="video-section">
         <div class="text-xs font-cinzel text-ink-dim font-bold tracking-wide mb-1">Filmpje</div>
-        <p class="text-[10px] text-ink-dim mb-1">Speelt op de landingspagina terwijl er op dit portret wordt ingezoomd. Maximaal 8 MB; langer dan 6 seconden mag, maar stopt dan vanzelf.</p>
+        <p class="text-[10px] text-ink-dim mb-1">Speelt op het portret van dit kaartje${e?.subtype === 'speler' ? ', en op de landingspagina terwijl er op hem wordt ingezoomd' : ''}. Maximaal 8 MB; langer dan 6 seconden mag, maar stopt dan vanzelf.</p>
         <div id="editor-video-status" class="text-xs text-ink-faint italic mb-1">${e?.id ? 'Controleren…' : ''}</div>
         <div class="flex items-center gap-2">
           <button type="button" class="dm-btn dm-btn-ghost dm-btn-sm"
@@ -8064,8 +8093,8 @@ window._openEditor = async (tab, editId) => {
         const zichtbaar = alleen.length ? alleen.includes(sub) : !niet.includes(sub);
         el.style.display = zichtbaar ? '' : 'none';
       });
-      const vidSec = document.getElementById('video-section');
-      if (vidSec) vidSec.style.display = val === 'speler' ? '' : 'none';
+      // Het filmpje blijft staan bij elk subtype: een NPC met een animatie is
+      // precies waarvoor dit veld nu ook bedoeld is.
     };
 
     // LocType-wissel (locaties)

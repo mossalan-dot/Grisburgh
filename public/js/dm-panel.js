@@ -6828,6 +6828,8 @@ async function _renderMagizooSettings() {
   const config = meta.magizoo || {};
   const prijs = config.prijs || { fl: 25 };
   const prijsVol = config.prijsVolledig || { fl: 60 };
+  let aanbod = [];
+  try { aanbod = (await api.getMagizoo()).aanbod || []; } catch {}
 
   let personages = [], locaties = [];
   try { personages = await api.listEntities('personages'); } catch {}
@@ -6861,6 +6863,26 @@ async function _renderMagizooSettings() {
       </div>
 
       ${_dienstOpslaanRij('window._magizooSettingsSave()')}
+
+      ${window._deelAan?.('magizoo-adoptie') === false ? _deelUitHtml('Adoptie') : `
+        ${_dienstSectieKop('paw-print', 'Adoptie', 'dm_magizoo_adoptie')}
+        ${(aanbod.length ? `
+          <div class="magizoo-aanbod">
+            ${aanbod.map(d => `
+              <div class="magizoo-dier${d.overleden ? ' magizoo-dier--weg' : ''}">
+                <img class="magizoo-dier-portret" src="${api.thumbUrl(d.id)}" alt=""
+                  onerror="this.replaceWith(Object.assign(document.createElement('span'),{className:'magizoo-dier-portret magizoo-dier-portret--leeg'}))">
+                <button type="button" class="dm-factie-kaartlink magizoo-dier-naam"
+                  onclick="window._openDetail('personages','${esc(d.id)}')">${esc(d.naam)}</button>
+                ${d.soort ? `<span class="magizoo-dier-soort">${esc(d.soort)}</span>` : ''}
+                <span class="magizoo-dier-prijs">${esc(_bedragTekst(d.prijs) || 'gratis')}</span>
+                <span class="magizoo-dier-stand">${
+                  d.overleden ? `${icon('skull')} overleden`
+                  : d.bij.length ? `${icon('heart')} bij ${d.bij.map(b => esc(b.alsNaam ? `${b.naam} (${b.alsNaam})` : b.naam)).join(', ')}`
+                  : `${icon('paw-print')} vrij`}</span>
+              </div>`).join('')}
+          </div>`
+          : `<p class="dm-hint">Nog geen dieren te adopteren. Zet op het kaartje van een dier <em>adopteerbaar</em> aan en geef hem een prijs; dan staat hij hier.</p>`)}`}
     </div>`;
 };
 

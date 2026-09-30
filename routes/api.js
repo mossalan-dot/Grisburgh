@@ -12217,6 +12217,28 @@ function _magizooWacht(dmState, g, characterId, config) {
   return null;
 }
 
+// Het hele adoptieaanbod, met per dier of hij vrij is en bij welke party hij
+// woont. Eén huisdier per party is de regel; die staat er dus ook bij.
+function _magizooAanbodDM(dmState) {
+  const entities = storage.readJSON('entities.json');
+  const dieren = (entities.personages || []).filter(e => e.subtype === 'dier');
+  const partys = Object.entries(dmState.groups || {});
+  return dieren
+    .filter(e => e.data?.adopteerbaar === true || e.data?.adopteerbaar === 'true')
+    .map(e => {
+      const bij = partys.filter(([, g]) => (g.companions || []).includes(e.id))
+        .map(([gid, g]) => ({ gid, naam: g.name || gid, alsNaam: (g.companionNames || {})[e.id] || null }));
+      return {
+        id: e.id, naam: e.name,
+        soort: e.data?.soortLabel || e.data?.ras || '',
+        prijs: _adoptiePrijs(e),
+        overleden: partys.some(([, g]) => (g.deceased || {})[e.id]),
+        bij,
+      };
+    })
+    .sort((a, b) => a.naam.localeCompare(b.naam, 'nl'));
+}
+
 router.get('/magizoo', attachRole, (req, res) => {
   const meta = storage.readJSON('meta.json');
   const config = meta.magizoo || {};
@@ -12236,6 +12258,10 @@ router.get('/magizoo', attachRole, (req, res) => {
     },
     monsters: _magizooMonsterList(dmState, gid),
     adoptabel: _magizooAdoptabel(dmState, gid),
+    // Voor de DM: het hele aanbod met zijn stand, ook wat voor deze party al
+    // dichtzit. Het tabblad ging alleen over onderzoek, terwijl adoptie de
+    // andere helft van deze dienst is.
+    ...(req.role === 'dm' ? { aanbod: _magizooAanbodDM(dmState) } : {}),
     metgezel: _groupPet(getGroup(dmState, gid), storage.readJSON('entities.json')),
     currency: _effectiveCurrency(dmState, characterId),
     // `wachtOpRust` is de nieuwe vorm; `cooldownTot` blijft erbij zolang er een

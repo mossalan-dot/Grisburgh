@@ -1,5 +1,5 @@
 import { api, campagneUitUrl, zetCampagne } from './api.js?v=298';
-import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, renderDocumenten, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=325";
+import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, renderDocumenten, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=326";
 import { initArchief, renderLogboek, openLogboekEditor } from "./render-archief.js?v=138";
 import { renderKaart, queueFlyTo, verversPins, nieuweKaart } from './render-kaart.js?v=31';
 import { renderDungeon } from './render-dungeon.js?v=56';
@@ -10,7 +10,7 @@ import { renderSpreuken } from './render-spreuken.js?v=41';
 import { renderVaardigheden, zoekVaardigheden } from './render-vaardigheden.js?v=10';
 import { renderStatblock } from './render-statblock.js?v=9';
 import { initSocket } from "./socket-client.js?v=80";
-import { initDmPanel } from "./dm-panel.js?v=361";
+import { initDmPanel } from "./dm-panel.js?v=362";
 import { COND_INFO, COND_LABEL, COND_MET_PLAATJE, COND_ICON } from './conditions.js?v=2';
 import './media-picker.js?v=8';
 import './tafels.js?v=2';
@@ -14332,6 +14332,12 @@ const HELP_CONFIG = {
     { titel: 'Wat een nacht kost', tekst: 'De prijs geldt **per persoon** en gaat er bij een lange rust hier automatisch af — van de eigen beurs, of van de gedeelde beurs als die aanstaat. Eén bedrag, met een komma: *2,50* is 2 florinden en 5 knaken.', afbeelding: null },
     { titel: 'Wat je opvangt', tekst: 'Een nacht in de herberg onthult **roddels** van kaartjes die deze party al kent — je stelt hier in hoeveel per speler. Nul betekent: hier wordt niet gepraat. Op = op: de pot is eindig, dus een stille herberg spreidt hem uit over meer avonden.', afbeelding: null },
   ] }),
+  dm_magizoo_adoptie: () => ({ titel: 'Adoptie', stappen: [
+    { titel: 'Wat hier staat', tekst: 'Elk dier dat te adopteren is, met zijn prijs en waar hij woont: **vrij**, of bij een party — met de naam die zij hem gaven. Een overleden dier blijft staan maar is niet meer te adopteren.', afbeelding: null },
+    { titel: 'Een dier aanbieden', tekst: 'Dat doe je op het kaartje van het dier zelf: zet *adopteerbaar* aan en geef hem een prijs. Hier lees je het aanbod; daar stel je het samen — één plek, twee kanten.', afbeelding: null },
+    { titel: 'Eén per party', tekst: 'Een party kan maar één metgezel tegelijk hebben. Zolang ze er een hebben, is er voor hen niets te adopteren; de andere party\u2019s merken daar niets van. Het statblok van het dier groeit mee met het level van zijn baasje.', afbeelding: null },
+  ] }),
+
   dm_magizoo: () => ({ titel: 'De magizoöloog', stappen: [
     { titel: 'Twee dingen', tekst: 'Hij verkoopt **metgezellen** en hij weet iets van **wezens**: tegen betaling brengt hij het bestiarium van de party een niveau verder. Wat er te koop is en wat het kost, stel je hier in.', afbeelding: null },
     { titel: 'Een dier groeit mee', tekst: 'Een metgezel heeft statblokken per niveau; welke geldt, hangt af van het level van zijn baasje. Eén dier per party, en als hij sneuvelt is dat echt — dat hoort bij het aangaan van de band.', afbeelding: null },
