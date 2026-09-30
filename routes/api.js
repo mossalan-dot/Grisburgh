@@ -7809,6 +7809,14 @@ router.post('/quests', requireDM, (req, res) => {
     // "missiegever" afgeleid in plaats van een vinkje dat je bij moet houden.
     geverId:     req.body.geverId   || null,
     geverType:   req.body.geverType || 'personages',
+    // Een factie-missie wordt hier gemaakt en niet elders: `PUT` nam deze velden
+    // wél over, dus een nieuwe missie raakte bij het aanmaken zijn factie kwijt
+    // en kreeg hem pas terug als je hem een tweede keer opsloeg. De beloning
+    // ging op dezelfde manier verloren.
+    factieId:       req.body.factieId || null,
+    vereistRenown:  Math.max(0, parseInt(req.body.vereistRenown)  || 0),
+    renownBeloning: Math.max(0, parseInt(req.body.renownBeloning) || 0),
+    valuta:         req.body.valuta || null,
     createdAt:   new Date().toISOString(),
   };
   data.quests.push(quest);
@@ -7850,7 +7858,42 @@ router.put('/quests/:id', requireDM, (req, res) => {
     }
     if (groepId) {
       const states   = _readQuestStates(groepId);
+      const vorige   = states[req.params.id];
       states[req.params.id] = status;
+
+      // **Een voltooide factie-missie levert renown op.** Dat stond in
+      // `POST /missies/:id/voltooien`, een route die niets aanroept: het bord
+      // schuift een kaartje met `PUT /quests/:id` en schreef alleen de status
+      // weg. Je kon dus een renown-beloning invullen die nooit uitbetaald werd.
+      // Via dezelfde helper als het handmatig toekennen, zodat een rangstijging
+      // ook hier zijn gunsten uitdeelt en de melding stuurt.
+      const q = data.quests[idx];
+      const alGegeven = states[`${req.params.id}:renown`] === true;
+      if (status === 'voltooid' && vorige !== 'voltooid' && !alGegeven
+          && q.factieId && parseInt(q.renownBeloning) > 0) {
+        const dmState = readDmState();
+        const g = getGroup(dmState, groepId);
+        const meta = storage.readJSON('meta.json');
+        const factie = _factiesConfig(meta).find(f => f.id === q.factieId);
+        if (g && factie) {
+          const uit = _renownErbij(dmState, g, factie, parseInt(q.renownBeloning));
+          storage.writeJSON('dm-state.json', dmState);
+          states[`${req.params.id}:renown`] = true;
+          const io = req.app.get('io');
+          const room = _campagneRoom(req);
+          io.to(room).emit('facties:updated');
+          if (uit.boons || uit.voorwerpen.length) io.to(room).emit('player:items-updated', {});
+          if (uit.winkelsOpen.length) io.to(room).emit('entities:updated', {});
+          if (uit.rangOmhoog) {
+            io.to(room).emit('factie:rang', {
+              groupId: groepId, factie: factie.naam,
+              embleem: _factieEmbleem(factie, storage.readJSON('entities.json')),
+              rang: uit.rangNaam || '', voorwerpen: uit.voorwerpen,
+              winkelsOpen: uit.winkelsOpen, afspraken: uit.boons,
+            });
+          }
+        }
+      }
       _writeQuestStates(groepId, states);
     }
   }

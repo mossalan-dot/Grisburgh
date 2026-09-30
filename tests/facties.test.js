@@ -321,6 +321,35 @@ describe('Facties: een rang ontgrendelt iets', () => {
     assert.strictEqual((await f()).rang.naam, 'Gezel', 'vijf renown haalt de trede van vier');
   });
 
+  // Een factie-missie op het prikbord naar Voltooid schuiven hoort renown op te
+  // leveren. Het bord schuift met PUT /quests/:id; de renown-logica zat in een
+  // route die niets aanriep, dus de beloning die je invulde verdween.
+  it('betaalt de renown-beloning uit als een factie-missie voltooid wordt', async () => {
+    const bestaand = (await req(server, 'GET', '/api/meta', null, dm)).body.facties || [];
+    await req(server, 'PUT', '/api/meta/facties', {
+      facties: [...bestaand.filter(f => f.id !== 'missietest'), {
+        id: 'missietest', naam: 'De Opdrachtgevers',
+        rangen: [{ naam: 'Buitenstaander', renown: 0 }, { naam: 'Gezel', renown: 3 }],
+      }],
+    }, dm);
+    await req(server, 'POST', '/api/facties/missietest/reveal', { zichtbaar: true }, dm);
+
+    const q = (await req(server, 'POST', '/api/quests',
+      { title: 'Breng de kist terug', factieId: 'missietest', renownBeloning: 3 }, dm)).body;
+
+    const renownVan = async () => ((await req(server, 'GET', '/api/facties', null, dm)).body.facties || [])
+      .find(x => x.id === 'missietest')?.renown ?? 0;
+    assert.strictEqual(await renownVan(), 0);
+
+    await req(server, 'PUT', `/api/quests/${q.id}`, { status: 'voltooid', groepId: gid }, dm);
+    assert.strictEqual(await renownVan(), 3, 'de beloning is uitbetaald');
+
+    // En niet twee keer: heen en weer schuiven betaalt niet opnieuw.
+    await req(server, 'PUT', `/api/quests/${q.id}`, { status: 'actief', groepId: gid }, dm);
+    await req(server, 'PUT', `/api/quests/${q.id}`, { status: 'voltooid', groepId: gid }, dm);
+    assert.strictEqual(await renownVan(), 3, 'een tweede keer voltooien betaalt niet opnieuw');
+  });
+
   // Renown alleen is niet altijd genoeg: het boek laat een gilde vanaf de derde
   // trede ook karakterlevel en voltooide missies vragen. Voorrekenen en niet
   // blokkeren — en het mag niet verdwijnen als de DM op Opslaan drukt.
