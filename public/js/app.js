@@ -10,7 +10,7 @@ import { renderSpreuken } from './render-spreuken.js?v=41';
 import { renderVaardigheden, zoekVaardigheden } from './render-vaardigheden.js?v=18';
 import { renderStatblock } from './render-statblock.js?v=9';
 import { initSocket } from "./socket-client.js?v=82";
-import { initDmPanel } from "./dm-panel.js?v=370";
+import { initDmPanel } from "./dm-panel.js?v=371";
 import { COND_INFO, COND_LABEL, COND_MET_PLAATJE, COND_ICON } from './conditions.js?v=2';
 import './media-picker.js?v=8';
 import './tafels.js?v=2';
@@ -64,6 +64,7 @@ const _DIENST_OP_KAART = [
   { sleutel: 'ursula',    sectie: 'ursula',    icoon: 'sparkles',   val: 'De waarzegger' },
   { sleutel: 'tempel',    sectie: 'tempel',    icoon: 'church',     val: 'De tempel' },
   { sleutel: 'magizoo',   sectie: 'magizoo',   icoon: 'paw-print',  val: 'De magizoöloog' },
+  { sleutel: 'woekeraar', sectie: 'woekeraar', icoon: 'coins',      val: 'De woekeraar' },
 ];
 
 // Welke factie hangt aan dít organisatiekaartje? Voor de deur die op het
@@ -103,7 +104,7 @@ window._factiesLabel = () => window.app?.state?.meta?.factiesLabel || 'Facties';
 // plekken in vier volgordes, en dan lijkt het alsof er verschillende dingen
 // bedoeld worden. De volgorde loopt van "waar je het vaakst komt" naar "waar je
 // zelden komt": eerst de plekken die elke sessie meedoen, dan de bijzondere.
-window.DIENST_VOLGORDE = ['markt', 'herberg', 'tempel', 'facties', 'tweespalt', 'gock', 'ursula', 'magizoo'];
+window.DIENST_VOLGORDE = ['markt', 'herberg', 'tempel', 'facties', 'tweespalt', 'gock', 'ursula', 'magizoo', 'woekeraar'];
 
 // Sorteert een lijst met een `key`-veld op die volgorde; wat er niet in staat
 // (zoals 'toegang') blijft achteraan in de volgorde waarin het binnenkwam.
@@ -119,7 +120,7 @@ window._dienstSorteer = (lijst, sleutel = 'key') => {
 const _DIENST_STANDAARD = {
   markt: 'Markt',
   herberg: 'Herberg', tweespalt: 'Gokhuis', gock: 'Detective', ursula: 'Waarzegger',
-  tempel: 'Tempels', magizoo: 'Magizoöloog', facties: 'Facties',
+  tempel: 'Tempels', magizoo: 'Magizoöloog', facties: 'Facties', woekeraar: 'Woekeraar',
 };
 window._dienstNaam = (key) => {
   // Facties is de uitzondering: `meta.facties` is een **lijst facties**, geen
@@ -672,7 +673,7 @@ window._alsSpelerKies = (id) => {
 
 const _DIENST_AMB_LABELS = {
   herberg: 'De Herberg', tweespalt: 'Het gokhuis', gock: 'De detective',
-  ursula: 'De waarzegger', tempel: 'De Tempel', magizoo: 'De Magizoöloog',
+  ursula: 'De waarzegger', tempel: 'De Tempel', magizoo: 'De Magizoöloog', woekeraar: 'De woekeraar',
   // 'facties' heeft géén sectie-loop: de loop schakelt per geopende factie (zie _factieOpen).
 };
 
@@ -3203,6 +3204,7 @@ async function refreshSection(section) {
   else if (section === 'tweespalt') await _dienstPoort('tweespalt', state.meta?.tweespalt?.naam || 'Het gokhuis', renderTweespalt);
   else if (section === 'gock') await _dienstPoort('gock', state.meta?.gock?.naam || 'De detective', renderGock);
   else if (section === 'magizoo') await _dienstPoort('magizoo', state.meta?.magizoo?.naam || 'De Magizoöloog', renderMagizoo);
+  else if (section === 'woekeraar') await _dienstPoort('woekeraar', state.meta?.woekeraar?.naam || 'De woekeraar', renderWoekeraar);
   else if (section === 'ursula') await _dienstPoort('ursula', state.meta?.ursula?.naam || 'De waarzegger', renderUrsula);
   else if (section === 'tempel') await _dienstPoort('tempel', state.meta?.tempel?.naam || 'De Tempel', renderTempel);
   else if (section === 'facties') {
@@ -12007,6 +12009,7 @@ function _updateDienstenMenu() {
     tempel:    document.getElementById('diensten-tempel-item'),
     facties:   document.getElementById('diensten-facties-item'),
     magizoo:   document.getElementById('diensten-magizoo-item'),
+    woekeraar: document.getElementById('diensten-woekeraar-item'),
   };
   for (const [dienst, btn] of Object.entries(KNOPPEN)) {
     if (!btn) continue;
@@ -12956,6 +12959,99 @@ function _magizooPrijs(p) {
   return [p?.fl && `${p.fl} fl`, p?.kn && `${p.kn} kn`, p?.cl && `${p.cl} cl`].filter(Boolean).join(' ') || 'gratis';
 }
 const _MAGIZOO_NIV_LABEL = { naam: 'Naam', deels: 'Deels', volledig: 'Volledig' };
+
+// ── De woekeraar ───────────────────────────────────────────────────────────
+// Zijn eigen deur. Je hoeft niet verloren te hebben om bij hem aan te kloppen:
+// losgeld, een paard, een begrafenis, een harnas dat je net niet kunt betalen.
+// Wat je vraagt gaat langs de DM — een woekeraar die automatisch ja zegt is een
+// geldautomaat.
+async function renderWoekeraar() {
+  const el = document.getElementById('section-woekeraar');
+  if (!el) return;
+  const meta = window.app?.state?.meta || {};
+  if (window._dienstDicht('woekeraar')) { _dienstNietBereikbaar(el, meta.woekeraar?.naam || 'De woekeraar'); return; }
+  _dienstLaden(el);
+
+  let data;
+  try { data = await api.get('/woekeraar'); } catch (e) { _dienstFout(el, e); return; }
+  const cfg = data.config || {};
+  const schuld = (data.schulden || [])[0] || null;
+  const verzoek = data.verzoek || null;
+  const geld = (cl) => window.formatCl?.(cl) ?? `${cl} cl`;
+
+  const bd = window._dienstBackdropId(cfg);
+  const backdrop = bd ? `style="background-image:url('${api.thumbUrlBreed(bd)}')"` : '';
+  const portret = cfg.entityId
+    ? `<img src="${api.thumbUrl(cfg.entityId)}" class="herberg-portrait-round" alt="${esc(cfg.naam || 'De woekeraar')}">`
+    : `<div class="ts-portrait-fallback">${icon('coins')}</div>`;
+
+  // Wat er nu openstaat. Dit is zijn eigen scherm, dus hier staat de schuld —
+  // niet alleen bij het gokhuis waar hij toevallig ook rondhangt.
+  const schuldBlok = schuld ? `
+    <div class="wk-schuld">
+      <div class="wk-schuld-kop">${icon('scroll-text')} Je staat bij hem in het krijt</div>
+      <div class="wk-schuld-cijfers">
+        <div><span>Geleend</span><b>${geld(schuld.hoofdsomCl)}</b></div>
+        <div><span>Staat nu</span><b class="${schuld.stand?.huidigVerschuldigdCl > schuld.hoofdsomCl ? 'wk-op' : ''}">${geld(schuld.stand?.huidigVerschuldigdCl ?? schuld.hoofdsomCl)}</b></div>
+        <div><span>Nachten</span><b>${schuld.stand?.rusten ?? 0}</b></div>
+      </div>
+      ${schuld.waarvoor ? `<p class="wk-waarvoor">Je leende het voor: ${esc(schuld.waarvoor)}</p>` : ''}
+      ${schuld.stand?.afgetopt ? `<p class="wk-op">Hij is gestopt met tellen. Dat is geen goed teken.</p>` : ''}
+      <div class="wk-knoppen">
+        <button class="dm-btn dm-btn-primary dm-btn-sm" onclick="window._tsAflossen()">${icon('coins')} Alles aflossen</button>
+        <button class="dm-btn dm-btn-ghost dm-btn-sm" onclick="window._tsAflossenDeel()">Een deel aflossen</button>
+      </div>
+    </div>` : '';
+
+  const wachtBlok = verzoek ? `
+    <div class="wk-wacht">${icon('hourglass')} Je vroeg <strong>${geld(verzoek.bedragCl)}</strong>${verzoek.waarvoor ? ` voor ${esc(verzoek.waarvoor)}` : ''} — hij denkt erover na.</div>` : '';
+
+  // Het formulier verdwijnt zodra je iets openstaan hebt: één schuld tegelijk.
+  const formulier = (schuld || verzoek) ? '' : `
+    <div class="wk-vraag">
+      <div class="wk-vraag-kop">Iets lenen</div>
+      <div class="wk-vraag-rij">
+        ${window._bedragVeldHtml?.('wk-bedrag', 0, { label: 'Hoeveel heb je nodig?' }) ?? `
+          <label class="dm-form-label" for="wk-bedrag-cl">Hoeveel (in de kleinste munt)</label>
+          <input id="wk-bedrag-cl" class="dm-input" type="number" min="1" placeholder="0">`}
+      </div>
+      <div class="wk-vraag-rij">
+        <label class="dm-form-label" for="wk-waarvoor">Waarvoor?</label>
+        <input id="wk-waarvoor" class="dm-input" maxlength="200" placeholder="Hij vraagt het, en hij onthoudt het.">
+      </div>
+      <p class="dm-hint">Hij leent tot ${geld(cfg.maxLeenCl || 0)}, tegen ${cfg.rentePerRust}% per nacht dat je gezelschap rust — tot ${cfg.maxFactor}× wat je leende. Daarna stopt hij met tellen en komt hij het halen.</p>
+      <button class="dm-btn dm-btn-primary" onclick="window._wkVraag()">${icon('coins')} Vragen</button>
+    </div>`;
+
+  el.innerHTML = `
+    <div class="herberg-hero" ${backdrop}>
+      <div class="herberg-hero-inner">
+        ${portret}
+        <div class="herberg-hero-tekst">
+          <h2 class="herberg-titel">${esc(cfg.naam || 'De woekeraar')}</h2>
+          ${cfg.tekst ? `<p class="herberg-sub">${esc(cfg.tekst)}</p>` : ''}
+        </div>
+        <div class="herberg-hero-knoppen">${_geluidBtn()}${_helpBtn('woekeraar')}</div>
+      </div>
+    </div>
+    <div class="dienst-body">
+      ${schuldBlok}${wachtBlok}${formulier}
+    </div>`;
+}
+
+window._wkVraag = async function () {
+  const munten = window._bedragLeesMunten?.('wk-bedrag');
+  const cl = munten
+    ? (munten.fl * 100 + munten.kn * 10 + munten.cl)
+    : parseInt(document.getElementById('wk-bedrag-cl')?.value || '0', 10);
+  if (!(cl > 0)) { window._showToast?.('Vul een bedrag in.'); return; }
+  const waarvoor = document.getElementById('wk-waarvoor')?.value || '';
+  try {
+    await api.post('/woekeraar/verzoek', { bedrag: { fl: 0, kn: 0, cl }, waarvoor });
+    window._showToast?.(`${icon('hourglass')} Gevraagd. Hij denkt erover na.`, null, 5000);
+    renderWoekeraar();
+  } catch (e) { window._showToast?.(e.message || 'Vragen mislukt', null, 5000); }
+};
 
 async function renderMagizoo() {
   const el = document.getElementById('section-magizoo');
@@ -14493,6 +14589,20 @@ const HELP_CONFIG = {
     { titel: 'Thema', tekst: 'De twee kleuren die straks onder het gevecht liggen — jouw kant en de overkant. Je ziet ze in de lijst al op het kaartje, zodat je weet welke sfeer eraan hangt voor je hem opent.', afbeelding: null },
     { titel: 'Buit', tekst: 'Koppel een **vondst** die je bij Loot gemaakt hebt; die verdeel je na afloop met de lootverdeler. Een gevecht dat nog losse buit had van vroeger houdt die zolang je geen vondst koppelt — zo raakt een oud gevecht niets kwijt door één keer op te slaan.', afbeelding: null },
     { titel: 'Waar hoort het bij', tekst: 'Een **akte** groepeert je gevechten in de lijst en in het logboek. Een gevecht kan ook aan een dungeonkamer of aan een partij in het strijdperk hangen; die koppeling leg je daar, niet hier.', afbeelding: null },
+  ] }),
+
+  dm_verzoeken_lening: () => ({ titel: 'Wil lenen', stappen: [
+    { titel: 'Hij vraagt het, jij tekent', tekst: 'Een speler vraagt de woekeraar om geld. Dat gaat langs jou, net als een spreuk of een multiclass — een woekeraar die automatisch ja zegt is een geldautomaat.', afbeelding: null },
+    { titel: 'Het bedrag mag je aanpassen', tekst: 'Het veld naast het verzoek is wat hij **werkelijk** krijgt. Dat is het afdingen dat aan tafel gebeurt: hij vraagt vijftig, jij maakt er dertig van, of je leent hem meer dan verstandig is.', afbeelding: null },
+    { titel: 'Waarvoor', tekst: 'De speler vult in waar hij het geld voor nodig heeft. Dat is geen administratie maar materiaal: een schuldeiser die weet waar je geld heen ging, weet waar je zwak zit. Het blijft bij de schuld staan.', afbeelding: null },
+    { titel: 'Weigeren mag, met een reden', tekst: 'Zeg je nee, dan vraagt de app om een reden. Die mag leeg blijven, maar wat je invult komt in zijn post te staan — ook als hij op dat moment niet verbonden is.', afbeelding: null },
+  ] }),
+
+  woekeraar: () => ({ titel: 'De woekeraar', stappen: [
+    { titel: 'Hij leent, als enige', tekst: 'Geen winkel schrijft aan, geen tempel geeft krediet. Als je geld tekortkomt is er één adres, en dat is het zijne. Dat maakt een schuld ook iets dat je kunt vertellen: je weet bij wie je in het krijt staat.', afbeelding: null },
+    { titel: 'Vragen gaat langs de DM', tekst: 'Je vult in hoeveel je nodig hebt en waarvoor. Hij denkt erover na — de DM beslist of je het krijgt, en voor hoeveel. Eén schuld tegelijk: los eerst af voor je opnieuw aanklopt.', afbeelding: null },
+    { titel: 'De rente loopt op rust', tekst: 'Niet op de kalender: elke **lange rust** van je gezelschap is een nacht die telt. Haast je dus niet met slapen als je rood staat. Het bedrag groeit tot een plafond; daarna stopt hij met tellen — en dan komt hij het halen.', afbeelding: null },
+    { titel: 'Aflossen', tekst: 'Alles in één keer, of een deel. Bij een deel wordt wat overblijft de nieuwe hoofdsom en beginnen de nachten opnieuw te tellen — aflossen loont dus, ook als je er niet helemaal uitkomt.', afbeelding: null },
   ] }),
 
   dm_schulden: () => ({ titel: 'Schulden', stappen: [

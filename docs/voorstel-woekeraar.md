@@ -38,7 +38,7 @@ uitzetten:
 |---|---|
 | `woekeraar-escalatie` | de drie trappen hieronder; uit = de schuld groeit alleen |
 | `woekeraar-casino` | het aanbod verschijnt bij een verloren weddenschap |
-| `woekeraar-winkel` | op de pof kopen op de Markt (later; zie onderaan) |
+| `woekeraar-opduiken` | hij mengt zich waar je tekortkomt: markt, tempel, herberg |
 
 ## Van wie is de schuld
 
@@ -144,6 +144,25 @@ Per campagne stelt de DM in: het hoogste bedrag dat hij uitleent, de rente per
 nacht, en of een speler meerdere schulden tegelijk mag hebben (standaard: nee —
 één schuld per personage houdt het verhaal leesbaar).
 
+### Waar je tekortkomt — hij mengt zich
+**Hij is de enige die leent.** Een winkel schrijft niet aan, een tempel geeft
+geen krediet, de herberg laat niet aanschrijven. Dat is geen beperking maar de
+vorm: één geldschieter, één mechaniek, één register — in plaats van per dienst
+een eigen soort schuld met eigen regels.
+
+Wat er wél kan: **hij duikt op**. Kom je op de Markt geld tekort voor dat
+harnas, dan staat er naast de weigering een tweede knop — niet *"de smid
+schrijft aan"* maar *"Woekeling staat toevallig achter je"*. Hetzelfde
+verzoek, dezelfde schuld, dezelfde trappen. Alleen de plek verschilt.
+
+Dat is ook dramatisch juister: een woekeraar die precies opduikt waar je iets
+wilt dat je niet kunt betalen is een personage. Een winkel met een
+krediethokje is een formulier.
+
+Dezelfde knop hoort dus thuis bij de Markt, de tempel en de herberg — overal
+waar de app vandaag "je hebt niet genoeg" zegt. Eén deelfunctie
+(`woekeraar-opduiken`) zet ze allemaal aan of uit.
+
 ### Bij het gokhuis — de zijdeur
 Verlies je je inleg bij een weddenschap of in het strijdperk en je beurs is
 leeg, dan verschijnt hetzelfde aanbod **daar**, op het moment dat het pijn
@@ -221,8 +240,9 @@ namen in.
 3. **De drie trappen** (dag). Brief, onderpand via Verzoeken, encounter.
 4. **De renown-de-escalatie** (halve dag). Hangt aan 2.
 5. **Het casino-aanbod** (paar uur) — de zijdeur, zodra de hoofdingang werkt.
-6. **Op de pof in de winkel** — pas hierna, want dan is het een tweede `bron`
-   in een register dat al werkt, in plaats van een tweede mechaniek.
+6. **Hij duikt op waar je tekortkomt** — markt, tempel, herberg. Pas hierna,
+   want dan is het dezelfde knop op een andere plek in plaats van een tweede
+   mechaniek. Geen enkele dienst krijgt een eigen krediet.
 
 ## Wat eerst rechtgezet moet worden
 

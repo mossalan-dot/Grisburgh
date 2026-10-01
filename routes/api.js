@@ -15194,10 +15194,17 @@ router.post('/tweespalt/aflossen', attachRole, (req, res) => {
 
   const dmState = readDmState();
   const ts = _tsState(dmState);
+  // Eén aflosroute voor beide soorten: de lening van het gokhuis en een rij uit
+  // het register. Toen de woekeraar erbij kwam kende deze route alleen het
+  // gokhuis — en dan heb je precies het probleem terug dat vanochtend gefikst
+  // werd: een schuld die je niet kunt betalen.
+  const uitRegister = (dmState.schulden || []).find(r => r.characterId === characterId);
   const lening = ts.leningen[characterId];
-  if (!lening) return res.status(404).json({ error: 'Je hebt geen openstaande schuld' });
+  if (!lening && !uitRegister) return res.status(404).json({ error: 'Je hebt geen openstaande schuld' });
 
-  const stand = _tsSchuld(lening, dmState, characterId);
+  const stand = uitRegister
+    ? _schuldStand(uitRegister, dmState)
+    : _tsSchuld(lening, dmState, characterId);
   const openCl = stand.huidigVerschuldigdCl;
 
   // Niets meegestuurd is "alles": dat is wat je bedoelt als je op de knop drukt.
@@ -15218,19 +15225,28 @@ router.post('/tweespalt/aflossen', attachRole, (req, res) => {
   const restCl = openCl - betaalCl;
   const gs = _tsGeldschieter(storage.readJSON('meta.json'));
 
+  // Het schuldbewijs van het gokhuis heet `ts_leen_…`, dat van de woekeraar
+  // `schuld_…`. Allebei zoeken, want allebei horen ze bij een schuld.
+  const items = (dmState.playerItems?.[characterId] || []);
+  const bewijsIdx = items.findIndex(x => {
+    const id = String(x.id || '');
+    return uitRegister ? id === 'schuld_' + uitRegister.id : id.startsWith('ts_leen_');
+  });
+
   if (restCl <= 0) {
-    delete ts.leningen[characterId];
-    // Het schuldbewijs hoort weg zodra er niets meer staat.
-    const items = (dmState.playerItems?.[characterId] || []);
-    const i = items.findIndex(x => String(x.id || '').startsWith('ts_leen_'));
-    if (i >= 0) items.splice(i, 1);
+    if (uitRegister) dmState.schulden.splice(dmState.schulden.indexOf(uitRegister), 1);
+    else delete ts.leningen[characterId];
+    if (bewijsIdx >= 0) items.splice(bewijsIdx, 1);
   } else {
     // Wat overblijft is de nieuwe hoofdsom, en de nachten tellen opnieuw.
-    lening.bedragCl  = restCl;
-    lening.rustStand = nuStand;
-    const items = (dmState.playerItems?.[characterId] || []);
-    const bewijs = items.find(x => String(x.id || '').startsWith('ts_leen_'));
-    if (bewijs) bewijs.note = `Bedrag: ${_tsFormatCl(restCl)}. Woekerrente: ${lening.rentePerRust ?? TS_RENTE_PER_RUST}% per nacht, tot ${lening.maxFactor ?? TS_MAX_FACTOR}× de hoofdsom.`;
+    const doel = uitRegister || lening;
+    if (uitRegister) { doel.hoofdsomCl = restCl; doel.rustStand = nuStand; }
+    else { doel.bedragCl = restCl; doel.rustStand = nuStand; }
+    const rente = doel.rentePerRust ?? TS_RENTE_PER_RUST;
+    const max   = doel.maxFactor ?? TS_MAX_FACTOR;
+    if (bewijsIdx >= 0) {
+      items[bewijsIdx].note = `Bedrag: ${_tsFormatCl(restCl)}. Rente: ${rente}% per nacht dat de party rust, tot ${max}× de hoofdsom.`;
+    }
   }
 
   storage.writeJSON('dm-state.json', dmState);
@@ -15245,13 +15261,201 @@ router.post('/tweespalt/aflossen', attachRole, (req, res) => {
   res.json({
     ok: true, betaaldCl: betaalCl, restCl,
     currency: _effectiveCurrency(dmState, characterId),
-    lening: restCl > 0 ? _tsSchuld(lening, dmState, characterId) : null,
+    lening: restCl > 0 ? (uitRegister ? _schuldStand(uitRegister, dmState) : _tsSchuld(lening, dmState, characterId)) : null,
   });
 });
 
 // Het overzicht voor de DM: wie heeft schuld, bij wie, hoeveel stond er en
 // hoeveel staat er nu. Met de naam van de speler erbij, want een id zegt niets
 // — en met de weesschulden apart, want die kan niemand afbetalen.
+// ── Lenen aan zijn eigen deur ───────────────────────────────────────────────
+// Tot nu toe kon je alleen lenen in het gokhuis, en dan ook nog zonder dat de
+// DM eraan te pas kwam. Maar je leent niet alleen omdat je verloren hebt:
+// losgeld, een paard, een begrafenis, een omkoping, een harnas dat je net niet
+// kunt betalen. Dat is de hoofdingang.
+//
+// Het gaat langs de DM, als verzoek — zelfde weg als een spreuk, een multiclass
+// of een verkoop. **Een woekeraar die automatisch ja zegt is een geldautomaat**,
+// en de DM mag het bedrag en de rente bijstellen voor er getekend wordt.
+router.post('/woekeraar/verzoek', attachRole, vereistDienst('woekeraar'), (req, res) => {
+  const characterId = _handelendKarakter(req);
+  if (!characterId) return res.status(403).json({ error: 'Geen speler ingelogd' });
+
+  const bedragCl = _tsCl(req.body?.bedrag);
+  if (!(bedragCl > 0)) return res.status(400).json({ error: 'Bedrag moet groter zijn dan 0' });
+  const waarvoor = String(req.body?.waarvoor || '').trim().slice(0, 200);
+
+  const dmState = readDmState();
+  // Eén schuld per personage: dat houdt het verhaal leesbaar, en het is ook
+  // wat het gokhuis al deed.
+  if (_schuldenVan(dmState, characterId).length) {
+    return res.status(409).json({ error: 'Je hebt al een schuld openstaan. Los die eerst af.' });
+  }
+  const g = getGroup(dmState);
+  if (!g.leenVerzoeken) g.leenVerzoeken = [];
+  if (g.leenVerzoeken.some(v => v.characterId === characterId && v.status === 'pending')) {
+    return res.status(409).json({ error: 'Er staat al een verzoek open' });
+  }
+
+  const meta = storage.readJSON('meta.json');
+  const w = _woekeraar(meta);
+  if (bedragCl > w.maxLeenCl) {
+    return res.status(400).json({ error: `Zoveel leent ${w.naam} niet — hoogstens ${_tsFormatCl(w.maxLeenCl)}.` });
+  }
+
+  const entities = storage.readJSON('entities.json');
+  const verzoek = {
+    id: 'leen_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6),
+    characterId,
+    spelerNaam: _spelerNaam(entities, characterId) || 'Een speler',
+    bedragCl,
+    waarvoor,
+    // De voorwaarden zoals ze golden toen hij het vroeg: de DM mag ze bijstellen,
+    // maar dan zie je waar hij van afweek.
+    rentePerRust: w.rentePerRust,
+    maxFactor: w.maxFactor,
+    bron: String(req.body?.bron || 'woekeraar').slice(0, 20),
+    status: 'pending',
+    createdAt: new Date().toISOString(),
+  };
+  g.leenVerzoeken.push(verzoek);
+  storage.writeJSON('dm-state.json', dmState);
+  req.app.get('io').to(_campagneRoom(req)).emit('leen:verzoek', { verzoek });
+  _meldVerzoek(req, 'lening', verzoek.spelerNaam, `${_tsFormatCl(bedragCl)}${waarvoor ? ` — ${waarvoor}` : ''}`);
+  res.json({ ok: true, verzoek });
+});
+
+router.get('/woekeraar/verzoeken', attachRole, (req, res) => {
+  const dmState = readDmState();
+  if (req.role === 'dm') {
+    const alles = [];
+    for (const g of Object.values(dmState.groups || {})) {
+      for (const v of (g.leenVerzoeken || [])) if (v.status === 'pending') alles.push(v);
+    }
+    return res.json({ verzoeken: alles });
+  }
+  const charId = req.session?.characterId;
+  const g = getGroup(dmState, _playerGroupId(dmState, charId));
+  res.json({ verzoeken: (g.leenVerzoeken || []).filter(v => v.characterId === charId && v.status === 'pending') });
+});
+
+// De DM tekent — of niet. Bij akkoord mag hij het bedrag en de rente bijstellen:
+// dat is het afdingen dat aan tafel gebeurt, en het hoort in de app te kunnen.
+router.post('/woekeraar/verzoek/:id/:besluit', requireDM, (req, res) => {
+  const { id, besluit } = req.params;
+  if (besluit !== 'approve' && besluit !== 'reject') return res.status(400).json({ error: 'Onbekend besluit' });
+
+  const dmState = readDmState();
+  let verzoek = null, groep = null;
+  for (const g of Object.values(dmState.groups || {})) {
+    const v = (g.leenVerzoeken || []).find(x => x.id === id && x.status === 'pending');
+    if (v) { verzoek = v; groep = g; break; }
+  }
+  if (!verzoek) return res.status(404).json({ error: 'Verzoek niet gevonden' });
+
+  if (besluit === 'reject') {
+    verzoek.status = 'rejected';
+    verzoek.reden = String(req.body?.reden || '').slice(0, 400);
+    storage.writeJSON('dm-state.json', dmState);
+    _afwijzingInPost(req, verzoek.characterId, `Een lening van ${_tsFormatCl(verzoek.bedragCl)}`, verzoek.reden);
+    req.app.get('io').to(_campagneRoom(req)).emit('leen:besluit', { characterId: verzoek.characterId, besluit });
+    return res.json({ ok: true });
+  }
+
+  const meta = storage.readJSON('meta.json');
+  const w = _woekeraar(meta);
+  const bedragCl = req.body?.bedrag ? _tsCl(req.body.bedrag) : verzoek.bedragCl;
+  const rente = Number.isFinite(parseInt(req.body?.rentePerRust)) ? parseInt(req.body.rentePerRust) : verzoek.rentePerRust;
+  if (!(bedragCl > 0)) return res.status(400).json({ error: 'Bedrag moet groter zijn dan 0' });
+
+  verzoek.status = 'approved';
+  verzoek.bedragCl = bedragCl;
+  verzoek.rentePerRust = rente;
+
+  const cid = verzoek.characterId;
+  const _g = getGroup(dmState, _playerGroupId(dmState, cid));
+  if (!dmState.schulden) dmState.schulden = [];
+  const schuld = {
+    id: 'sch_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5),
+    characterId: cid,
+    schuldeiser: { naam: w.naam, entityId: w.entityId },
+    hoofdsomCl: bedragCl,
+    rentePerRust: rente,
+    maxFactor: verzoek.maxFactor ?? w.maxFactor,
+    rustStand: (_g?.rustTellers || {}).long || 0,
+    bron: verzoek.bron || 'woekeraar',
+    waarvoor: verzoek.waarvoor || '',
+    aangegaan: new Date().toISOString(),
+    trap: 0,
+  };
+  dmState.schulden.push(schuld);
+
+  _deductCurrency(dmState, cid, -bedragCl);
+  if (!dmState.playerItems) dmState.playerItems = {};
+  if (!dmState.playerItems[cid]) dmState.playerItems[cid] = [];
+  dmState.playerItems[cid].push({
+    id: 'schuld_' + schuld.id,
+    name: `Schuldbewijs — ${w.naam}`,
+    note: `Bedrag: ${_tsFormatCl(bedragCl)}. Rente: ${rente}% per nacht dat de party rust, tot ${schuld.maxFactor}× de hoofdsom.`,
+  });
+
+  storage.writeJSON('dm-state.json', dmState);
+  const io = req.app.get('io');
+  io.to(_campagneRoom(req)).emit('player:currency-updated', { characterId: cid, currency: _effectiveCurrency(dmState, cid) });
+  io.to(_campagneRoom(req)).emit('player:items-updated', { characterId: cid });
+  io.to(_campagneRoom(req)).emit('leen:besluit', { characterId: cid, besluit: 'approve' });
+  res.json({ ok: true, schuld });
+});
+
+// Wie er leent, en onder welke voorwaarden. Vallen terug op de geldschieter van
+// het gokhuis zolang een campagne de woekeraar nog niet apart heeft ingevuld —
+// dan verandert er niets voor wie hem al gebruikte.
+function _woekeraar(meta) {
+  const c = (meta.woekeraar || {});
+  const ts = _tsGeldschieter(meta);
+  return {
+    naam:         c.naam || ts.naam,
+    entityId:     c.entityId || ts.entityId || null,
+    locatieId:    c.locatieId || null,
+    maxLeenCl:    Number.isFinite(parseInt(c.maxLeenCl)) ? parseInt(c.maxLeenCl) : ts.maxLeenCl,
+    rentePerRust: Number.isFinite(parseInt(c.rentePerRust)) ? parseInt(c.rentePerRust) : TS_RENTE_PER_RUST,
+    maxFactor:    Number.isFinite(parseInt(c.maxFactor)) ? parseInt(c.maxFactor) : TS_MAX_FACTOR,
+    tekst:        c.tekst || '',
+  };
+}
+
+router.get('/woekeraar', attachRole, vereistDienst('woekeraar'), (req, res) => {
+  const dmState = readDmState();
+  const meta = storage.readJSON('meta.json');
+  const charId = req.session?.characterId || null;
+  const g = getGroup(dmState, _playerGroupId(dmState, charId));
+  res.json({
+    config: _woekeraar(meta),
+    schulden: charId ? _schuldenVan(dmState, charId) : [],
+    verzoek: charId ? ((g.leenVerzoeken || []).find(v => v.characterId === charId && v.status === 'pending') || null) : null,
+  });
+});
+
+router.put('/meta/woekeraar', requireDM, (req, res) => {
+  const meta = storage.readJSON('meta.json');
+  const b = req.body || {};
+  const w = { ...(meta.woekeraar || {}) };
+  if (b.naam !== undefined)     w.naam = String(b.naam).slice(0, 80);
+  if (b.entityId !== undefined) w.entityId = b.entityId || null;
+  if (b.locatieId !== undefined) w.locatieId = b.locatieId || null;
+  if (b.tekst !== undefined)    w.tekst = String(b.tekst).slice(0, 600);
+  for (const k of ['maxLeenCl', 'rentePerRust', 'maxFactor']) {
+    if (b[k] !== undefined) {
+      const n = parseInt(b[k]);
+      if (Number.isFinite(n) && n >= 0) w[k] = n;
+    }
+  }
+  meta.woekeraar = w;
+  storage.writeJSON('meta.json', meta);
+  req.app.get('io').to(_campagneRoom(req)).emit('meta:updated');
+  res.json({ ok: true, woekeraar: w });
+});
+
 router.get('/schulden', requireDM, (req, res) => {
   const dmState = readDmState();
   const entities = storage.readJSON('entities.json');
