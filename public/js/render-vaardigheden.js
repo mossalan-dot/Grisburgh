@@ -137,8 +137,8 @@ async function _load() {
       for (const f of (fs || [])) zet({ soort: 'species', bron: soort, level: Number(lvl), naam: f.name, desc: f.desc || '', img: f.img || '', imgFocus: f.imgFocus || '', herkomst: f.herkomst || '' });
     }
   }
-  for (const f of (_bron.feats?.general || [])) zet({ soort: 'feat', bron: 'Feats',      level: 0, naam: f.name, desc: f.desc || '', img: f.img || '', imgFocus: f.imgFocus || '', herkomst: f.herkomst || '', sluitAan: f.sluitAan || [], vereist: f.vereist || '' });
-  for (const f of (_bron.feats?.epic    || [])) zet({ soort: 'boon', bron: 'Epic Boons', level: 0, naam: f.name, desc: f.desc || '', img: f.img || '', imgFocus: f.imgFocus || '', herkomst: f.herkomst || '', sluitAan: f.sluitAan || [], vereist: f.vereist || '' });
+  for (const f of (_bron.feats?.general || [])) zet({ soort: 'feat', bron: 'Feats',      level: 0, naam: f.name, desc: f.desc || '', img: f.img || '', imgFocus: f.imgFocus || '', herkomst: f.herkomst || '', sluitAan: f.sluitAan || [], vereist: f.vereist || '', geeftSpreuk: f.geeftSpreuk || [] });
+  for (const f of (_bron.feats?.epic    || [])) zet({ soort: 'boon', bron: 'Epic Boons', level: 0, naam: f.name, desc: f.desc || '', img: f.img || '', imgFocus: f.imgFocus || '', herkomst: f.herkomst || '', sluitAan: f.sluitAan || [], vereist: f.vereist || '', geeftSpreuk: f.geeftSpreuk || [] });
   // Een background is één ding met vijf onderdelen (Ability Scores, Feat,
   // Skill Proficiencies, Tool Proficiency, Equipment). Als losse kaartjes krijg
   // je zestien keer "Ability Scores" in de lijst; als één kaartje per background
@@ -302,16 +302,23 @@ function _card(it) {
 // SRD 5.2 (CC BY 4.0) — dezelfde licentie waar de spreuken en de statblokken
 // uit komen. De Artificer staat niet in de SRD; daarvan tonen we alleen wat we
 // weten, in plaats van de rest te raden.
-let _klasseBasis = null, _tellers = null, _mcEisen = null;
+let _klasseBasis = null, _spreukKlassen = null;
 async function _klasseExtra() {
   if (_klasseBasis) return;
   const haal = async (naam) => {
     try { const r = await fetch(`/api/bron/${naam}`, { credentials: 'same-origin' });
           return r.ok ? await r.json() : null; } catch { return null; }
   };
-  const [basis, mc] = await Promise.all([haal('klasse-basis'), haal('volken-klassen')]);
+  const [basis, spreuken] = await Promise.all([haal('klasse-basis'), haal('spells-2024')]);
   _klasseBasis = (basis?.klassen) || {};
-  _mcEisen = mc || null;
+  // Welke klassen hebben deze spreuk op hun lijst? Dat staat al in de
+  // spreukenbron; zo weet een feat die Misty Step geeft vanzelf bij wie hij
+  // hoort, zonder dat iemand dat ergens invult.
+  _spreukKlassen = new Map();
+  for (const sp of (spreuken?.results || [])) {
+    _spreukKlassen.set(String(sp.name || '').toLowerCase(),
+      (sp.classes || []).map(c => c.name).filter(Boolean));
+  }
 }
 
 const _AB_NAAM = { str: 'Strength', dex: 'Dexterity', con: 'Constitution',
@@ -344,7 +351,7 @@ function _featsVoorKlasse(klasse) {
   const mijnArmor = String(basis.armor || '').toLowerCase();
   const feats = (_all || []).filter(x => x.soort === 'feat' || x.soort === 'boon');
 
-  const aangewezen = [], viaEis = [], genoemd = [];
+  const aangewezen = [], viaEis = [], genoemd = [], viaSpreuk = [];
   let zonderTekst = 0;
   const re = new RegExp(`\\b${klasse.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`);
 
@@ -356,16 +363,22 @@ function _featsVoorKlasse(klasse) {
       const nodig = _ARMOR_WOORDEN.filter(a => a.re.test(eis)).map(a => a.training);
       if (nodig.length && nodig.every(t => mijnArmor.includes(t.toLowerCase()))) { viaEis.push(f); continue; }
     }
+    // Geeft hij een spreuk die op de lijst van deze klasse staat?
+    const spreuken = f.geeftSpreuk || [];
+    if (spreuken.length) {
+      const raakt = spreuken.some(n => (_spreukKlassen?.get(String(n).toLowerCase()) || []).includes(klasse));
+      if (raakt) { viaSpreuk.push(f); continue; }
+    }
     const tekst = _tekst(f);
     if (!tekst) { zonderTekst++; continue; }
     if (re.test(tekst)) genoemd.push(f);
   }
-  return { aangewezen, viaEis, genoemd, zonderTekst, totaal: feats.length };
+  return { aangewezen, viaEis, viaSpreuk, genoemd, zonderTekst, totaal: feats.length };
 }
 
 function _featBlokHtml(klasse) {
-  const { aangewezen, viaEis, genoemd, zonderTekst, totaal } = _featsVoorKlasse(klasse);
-  if (!aangewezen.length && !viaEis.length && !genoemd.length && !zonderTekst) return '';
+  const { aangewezen, viaEis, viaSpreuk, genoemd, zonderTekst, totaal } = _featsVoorKlasse(klasse);
+  if (!aangewezen.length && !viaEis.length && !viaSpreuk.length && !genoemd.length && !zonderTekst) return '';
   const chips = (lijst) => lijst
     .sort((a, b) => a.naam.localeCompare(b.naam))
     .map(f => `<button class="vk-feat" onclick="window.vaardigheden.open('${esc(f.key).replace(/'/g, "\\'")}')">${esc(f.naam)}</button>`)
@@ -381,6 +394,7 @@ function _featBlokHtml(klasse) {
       <div class="vk-feats-kop">${icon('zap')} Feats die hierop aansluiten</div>
       ${rij('Aangewezen', 'door de DM aan deze klasse gehangen', aangewezen)}
       ${rij('Via de eis', 'vraagt training die deze klasse geeft', viaEis)}
+      ${rij('Geeft een spreuk', 'een spreuk die op jouw lijst staat', viaSpreuk)}
       ${rij('Genoemd', 'noemt deze klasse in zijn tekst', genoemd)}
       ${zonderTekst ? `<p class="vk-feats-noot">Van ${zonderTekst} van de ${totaal} feats staat er geen tekst in de app, dus die konden niet bekeken worden. ${isDM() ? 'Open er een en vink bij <em>Sluit aan op</em> aan waar hij bij hoort — dan staat hij hier.' : ''}</p>` : ''}
     </div>`;
@@ -807,6 +821,12 @@ function _editorHtml() {
         <input class="dm-input" id="vd-vereist" value="${esc(e.vereist || '')}"
           placeholder="bv. Medium armor training, of Strength 13">
       </div>
+      <div class="dm-form-row">
+        <label class="dm-form-label">Geeft spreuk</label>
+        <input class="dm-input" id="vd-geeft" value="${esc((e.geeftSpreuk || []).join(', '))}"
+          placeholder="bv. Misty Step, Detect Thoughts">
+      </div>
+      <p class="dm-hint" style="margin:-6px 0 10px">Namen met een komma ertussen. De app zoekt op welke klassenlijsten die spreuken staan, en zet de feat daar bij <em>Geeft een spreuk</em>.</p>
       <p class="dm-hint" style="margin:-6px 0 10px">Staat hier een armor training in, dan rekent de app zelf uit welke klassen die geven — die hoef je niet aan te vinken.</p>` : ''}
       <div class="dm-form-row">
         <label class="dm-form-label">Afbeelding</label>
@@ -854,9 +874,10 @@ function _editorOpen(it) {
     ? { oud: { soort: it.soort, bron: it.bron, sub: it.sub, level: it.level, naam: it.naam },
         soort: it.soort, bron: it.bron, sub: it.sub || '', level: it.level || 1,
         naam: it.naam, desc: _schoonVoorEditor(it.desc || ''), herkomst: it.herkomst || '', img: it.img || '', imgFocus: it.imgFocus || '',
-        sluitAan: Array.isArray(it.sluitAan) ? [...it.sluitAan] : [], vereist: it.vereist || '' }
+        sluitAan: Array.isArray(it.sluitAan) ? [...it.sluitAan] : [], vereist: it.vereist || '',
+        geeftSpreuk: Array.isArray(it.geeftSpreuk) ? [...it.geeftSpreuk] : [] }
     : { oud: null, soort: 'feat', bron: 'Feats', sub: '', level: 1, naam: '', desc: '', herkomst: 'zelfbedacht', img: '', imgFocus: '',
-        sluitAan: [], vereist: '' };
+        sluitAan: [], vereist: '', geeftSpreuk: [] };
   // De kiezer bewaart hier niet meteen (dat doet het spreukdetail); de waarde
   // gaat mee met het formulier. Haak dus leegmaken, anders schrijft een eerder
   // geopend venster mee.
@@ -875,6 +896,9 @@ function _editorLees() {
   if (v('vd-sub') !== undefined) _edit.sub = v('vd-sub');
   if (v('vd-bron') !== undefined) _edit.bron = v('vd-bron');
   if (v('vd-vereist') !== undefined) _edit.vereist = v('vd-vereist');
+  if (v('vd-geeft') !== undefined) {
+    _edit.geeftSpreuk = v('vd-geeft').split(',').map(x => x.trim()).filter(Boolean);
+  }
   const vinkjes = document.querySelectorAll('.vd-klasse-vink');
   if (vinkjes.length) _edit.sluitAan = [...vinkjes].filter(c => c.checked).map(c => c.value);
   // De focuskiezer staat buiten de gewone velden; zijn waarde leest hij zelf uit.
@@ -957,7 +981,7 @@ window.vaardigheden = {
         oud: _edit.oud, soort: _edit.soort, bron: _edit.bron, sub: _edit.sub,
         level: _edit.level, naam: _edit.naam.trim(), desc: _edit.desc,
         herkomst: _edit.herkomst, img: _edit.img || null, imgFocus: _edit.imgFocus || '',
-        sluitAan: _edit.sluitAan || [], vereist: _edit.vereist || '',
+        sluitAan: _edit.sluitAan || [], vereist: _edit.vereist || '', geeftSpreuk: _edit.geeftSpreuk || [],
         // Bij een feat of Epic Boon: de bibliotheek mee, zodat de server hem
         // vastlegt als deze campagne er nog geen eigen had (zie de route).
         seedFeats: (_edit.soort === 'feat' || _edit.soort === 'boon') ? _bron?.feats : undefined,

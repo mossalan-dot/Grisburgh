@@ -8834,6 +8834,9 @@ router.post('/progression/feature', requireDM, (req, res) => {
     if (aan.length) regel.sluitAan = aan; else delete regel.sluitAan;
     const eis = String(b.vereist || '').trim().slice(0, 160);
     if (eis) regel.vereist = eis; else delete regel.vereist;
+    const geeft = (Array.isArray(b.geeftSpreuk) ? b.geeftSpreuk : [])
+      .map(x => String(x).trim().slice(0, 60)).filter(Boolean).slice(0, 12);
+    if (geeft.length) regel.geeftSpreuk = geeft; else delete regel.geeftSpreuk;
   }
   doelLijst.push(regel);
 
