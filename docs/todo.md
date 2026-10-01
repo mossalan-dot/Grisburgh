@@ -319,17 +319,20 @@ Gevraagd op 14 sep 2026, gebouwd op 14 sep 2026.
 
 ## Stijlen per campagne
 
-- [ ] **Een echte reeks stijlen bedenken.** Er waren twee thema's — fantasy en
-      Harry Potter — en dat is geen keuze maar een restant van één one-shot. De
-      keuzelijst is uit het paneel gehaald (5 sep); nieuwe campagnes krijgen het
-      standaardthema, bestaande houden wat ze hebben.
-      Denkrichting: **steampunk, sci-fi, noir/detective, gothic horror, mythisch
-      Grieks, wildwest, post-apocalyptisch**. Per stijl gaat het om dezelfde
-      handvol dingen: een palet (grond, inkt, accent), twee lettertypes (kop en
-      broodtekst), de textuur van het papier, en de vorm van randen en zegels.
-      De app leest dat al via `data-theme` op de root, dus een stijl is een blok
-      CSS-variabelen — geen tweede set componenten. Pas als er drie of vier
-      overtuigend staan, hoort de keuze terug in de wizard.
+- [ ] **Een echte reeks stijlen bedenken** → `docs/stijlen-per-campagne.md`
+      (gemeten 1 okt 2026, bewust voor later). Denkrichting: **steampunk,
+      sci-fi, noir/detective, gothic horror, mythisch Grieks, wildwest,
+      post-apocalyptisch**.
+      **De oude aanname hier — "een stijl is een blok CSS-variabelen" — klopt
+      niet**, en dat is nu gemeten: 7.200 harde kleuren tegenover 609 keer
+      `var()`, 31 variabelen, en het bestaande `hp`-thema werkt via 120 losse
+      overschrijvingen. Het goede nieuws: die 995 unieke kleuren zijn maar
+      **124 families**, en de top-30 dekt 88 % — het is dus ongeveer dertig
+      beslissingen, geen duizend. Eén opruimdag maakt de aanname alsnog waar.
+      En een thema is méér dan kleur: oppervlak en textuur, de vorm van hoeken,
+      vier lettertyperollen, een afwijkingenlijst van tien iconen (niet 127),
+      de tafelscherm-effecten en de ornamenten. Volgorde en valkuilen staan in
+      het werkdocument.
 
 - [ ] **Beelden die in het papier uitlopen** (optie, 1 okt 2026). Naar aanleiding
       van [Homebrewery](https://homebrewery.naturalcrit.com), dat D&D-boeken
