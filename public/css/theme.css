@@ -28447,3 +28447,11 @@ body.akte-schrijf-open .mp-overlay { z-index: 1320; }
 /* De herinnering aan een feat weegt zwaarder dan die aan een spreuk: het is de
    grootste keuze van het level. */
 .levelup-herinnering--feat .levelup-herinnering-icoon { color: #d9b24a; }
+
+/* Een subklasse zonder tekst: geen foutmelding maar een uitleg met een uitweg.
+   Zachter dan de andere prog-missing-blokken, want er is niets stuk. */
+.prog-missing--sub {
+  border-left: 3px solid rgba(196,168,122,0.55);
+  background: rgba(196,168,122,0.08);
+  line-height: 1.5;
+}

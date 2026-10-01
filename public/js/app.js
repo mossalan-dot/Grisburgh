@@ -4,7 +4,7 @@ import { initArchief, renderLogboek, openLogboekEditor } from "./render-archief.
 import { renderKaart, queueFlyTo, verversPins, nieuweKaart } from './render-kaart.js?v=31';
 import { renderDungeon } from './render-dungeon.js?v=57';
 import { renderRelatiemap } from './render-relatiemap.js?v=27';
-import { renderProgressie, levelupFeatures } from './render-progressie.js?v=56';
+import { renderProgressie, levelupFeatures } from './render-progressie.js?v=57';
 import { renderBestiarium } from './render-bestiarium.js?v=31';
 import { renderSpreuken } from './render-spreuken.js?v=41';
 import { renderVaardigheden, zoekVaardigheden } from './render-vaardigheden.js?v=10';
@@ -7043,6 +7043,50 @@ const _SIGNATURE = {
     extra: lvl => `${_sigThresh({ 2: 4, 6: 6, 10: 8, 14: 10 }, lvl) || 0} infusions bekend`,
   },
 };
+// ── Kaarten per subklasse ───────────────────────────────────────────────────
+// De kaart hing aan de klasse: één per Barbarian, één per Wizard. Maar een paar
+// subklassen brengen hun eigen voorraad mee die je aan tafel net zo goed moet
+// bijhouden als Sorcery Points — en die stond nergens, dus die telde je op een
+// papiertje naast een app die alles bijhoudt.
+//
+// Niet élke subklasse verdient er een. De maat is: is er een **getal of een
+// stand die tijdens het spelen verandert** en die nergens anders al staat? Een
+// Champion die op 19 crit heeft geen stand; een Battle Master met vier
+// superiority dice wel. Wat op Channel Divinity of Wild Shape teert (de meeste
+// Cleric- en Druid-subklassen) heeft er ook geen nodig: dat is de kaart van de
+// klasse al.
+//
+// De sleutel is de subklassenaam in kleine letters, zoals hij in de
+// progressiedata staat.
+const _SUBKLASSE_SIGNATURE = {
+  'battle master': {
+    feature: 'Superiority Dice', icon: 'swords', key: 'superiority', kleur: '#8a6a3a', vorm: 'uses',
+    naslag: 'Eén die per maneuver, bovenop de aanval. Alles terug na een Short of Long Rest.',
+    uses: lvl => _sigThresh({ 3: 4, 7: 5, 15: 6 }, lvl), herstel: 'Short of Long Rest',
+    extra: lvl => `${_sigThresh({ 3: 'd8', 10: 'd10', 18: 'd12' }, lvl)} · ${_sigThresh({ 3: 3, 7: 5, 10: 7, 15: 9 }, lvl)} maneuvers bekend`,
+  },
+  'psi warrior': {
+    feature: 'Psionic Energy Dice', icon: 'sparkles', key: 'psidice', kleur: '#4a6a9a', vorm: 'uses',
+    naslag: 'Protective Field, Psionic Strike en Telekinetic Movement putten er elk één uit.',
+    uses: lvl => 2 * _sigPb(lvl), herstel: 'Long Rest (en één terug na een Short Rest)',
+    extra: lvl => `${_sigThresh({ 3: 'd6', 5: 'd8', 11: 'd10', 17: 'd12' }, lvl)} per die`,
+  },
+  soulknife: {
+    feature: 'Psionic Energy Dice', icon: 'stiletto', key: 'psidice-rogue', kleur: '#4a4a5c', vorm: 'uses',
+    naslag: 'Psi-Bolstered Knack en Psychic Whispers putten eruit; je Psychic Blades kosten niets.',
+    uses: lvl => 2 * _sigPb(lvl), herstel: 'Long Rest (en één terug na een Short Rest)',
+    extra: lvl => `${_sigThresh({ 3: 'd6', 5: 'd8', 11: 'd10', 17: 'd12' }, lvl)} per die`,
+  },
+  abjurer: {
+    feature: 'Arcane Ward', icon: 'shield', key: 'arcaneward', kleur: '#3f5f8a', vorm: 'pool',
+    eenheid: 'HP', naslag: 'Vangt schade op voordat jij hem krijgt. Groeit als je een Abjuration-spreuk cast.',
+    pool: (lvl, pp) => Math.max(0, (lvl || 0) * 2 + _sigMod(pp, 'int')), herstel: 'Long Rest',
+  },
+};
+const _subSigCfgFor = (naam) => _SUBKLASSE_SIGNATURE[String(naam || '').trim().toLowerCase()];
+// Proficiency bonus uit een level — twee kaarten rekenen ermee.
+function _sigPb(lvl) { return 2 + Math.floor((Math.max(1, lvl || 1) - 1) / 4); }
+
 // Ability-mod uit het profiel; de kaarten van Bard en Ranger hangen eraan.
 function _sigMod(pp, sleutel) {
   const v = parseInt(pp?.[sleutel]);
@@ -7080,13 +7124,18 @@ function _sigCurMaxVoor(cfg, pp, level) {
 function _renderSignatureCards(pp, progData) {
   const multi = pp?.multiclass === true || pp?.multiclass === 'true';
   const kLvl  = parseInt(pp?.klasseLevel) || parseInt(pp?.level) || 0;
-  const rijen = [{ klasse: pp?.klasse, lvl: multi ? kLvl : (parseInt(pp?.level) || kLvl) }];
-  if (multi && pp?.multiKlasse) rijen.push({ klasse: pp.multiKlasse, lvl: parseInt(pp.multiKlasseLevel) || 0 });
-  return rijen.map(r => _renderSignatureCard(r.klasse, r.lvl, progData, pp)).filter(Boolean).join('');
+  const rijen = [{ klasse: pp?.klasse, lvl: multi ? kLvl : (parseInt(pp?.level) || kLvl), sub: pp?.subclass }];
+  if (multi && pp?.multiKlasse) rijen.push({ klasse: pp.multiKlasse, lvl: parseInt(pp.multiKlasseLevel) || 0, sub: pp?.multiSubclass });
+  return rijen.map(r => [
+    _renderSignatureCard(r.klasse, r.lvl, progData, pp),
+    // De kaart van de subklasse komt ná die van de klasse: Superiority Dice
+    // horen onder Second Wind, niet erboven.
+    _renderSignatureCard(r.klasse, r.lvl, progData, pp, _subSigCfgFor(r.sub), r.sub),
+  ].filter(Boolean).join('')).filter(Boolean).join('');
 }
 
-function _renderSignatureCard(klasse, level, progData, pp) {
-  const cfg = _sigCfgFor(klasse);
+function _renderSignatureCard(klasse, level, progData, pp, cfgIn, subNaam) {
+  const cfg = cfgIn || _sigCfgFor(klasse);
   if (!cfg) return '';
   const lvl = parseInt(level) || 0;
   const k   = cfg.key;
@@ -7136,7 +7185,7 @@ function _renderSignatureCard(klasse, level, progData, pp) {
     <div class="sig-card-head">
       <span class="sig-card-icon">${icon(cfg.icon)}</span>
       <span class="sig-card-name">${esc(cfg.feature)}</span>
-      <span class="sig-card-tag">${esc(klasse)}${lvl ? ' ' + lvl : ''}</span>
+      <span class="sig-card-tag">${esc(subNaam || klasse)}${lvl ? ' ' + lvl : ''}</span>
       ${desc ? `<button class="sig-card-info" onclick="window._sigToggleInfo('${k}')" title="Volledige uitleg">${icon('scroll-text')}</button>` : ''}
       ${cfg.vorm === 'waarde' ? '' : `<button class="sig-card-reset" onclick="window._sigReset('${k}')" title="Alles terug">${icon('refresh-cw')}</button>`}
     </div>
@@ -7147,10 +7196,17 @@ function _renderSignatureCard(klasse, level, progData, pp) {
 }
 
 // Zoek de kaartconfiguratie bij een key (de kaart weet zijn eigen klasse niet meer).
-function _sigCfgByKey(k) { return Object.values(_SIGNATURE).find(c => c.key === k); }
+function _sigCfgByKey(k) {
+  return Object.values(_SIGNATURE).find(c => c.key === k)
+      || Object.values(_SUBKLASSE_SIGNATURE).find(c => c.key === k);
+}
 // Het level dat bij díé kaart hoort: de klassehelft waar de feature van is.
 function _sigLevelVoor(pp, cfg) {
   const multi = pp?.multiclass === true || pp?.multiclass === 'true';
+  // Een subklassekaart telt op het level van de klasse waar die subklasse bij
+  // hoort — bij een multiclass is dat de tweede helft als de subklasse daarvan is.
+  if (multi && _subSigCfgFor(pp?.multiSubclass)?.key === cfg.key) return parseInt(pp.multiKlasseLevel) || 0;
+  if (multi && _subSigCfgFor(pp?.subclass)?.key === cfg.key)      return parseInt(pp.klasseLevel) || 0;
   const eigen = _sigCfgFor(pp?.klasse);
   if (multi && eigen?.key !== cfg.key && _sigCfgFor(pp?.multiKlasse)?.key === cfg.key) {
     return parseInt(pp.multiKlasseLevel) || 0;

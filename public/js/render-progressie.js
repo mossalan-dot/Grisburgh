@@ -459,6 +459,28 @@ function _buildPanel(prog, ctx, charId, favs, choices) {
   return `<div class="prog-panel">${head}${body}</div>`;
 }
 
+// ── Een subklasse zonder tekst ──────────────────────────────────────
+// 39 van de 55 subklassen hebben geen enkele feature in de meegeleverde data:
+// alleen de twaalf uit de SRD staan erin, plus een handvol die er met de hand
+// bij is gezet. Voor de andere stond er niets — geen melding, geen lege rij,
+// gewoon een tijdlijn die bij de klassefeatures ophoudt. Een speler die Circle
+// of the Moon koos zag dus nergens dat hij op 3, 6, 10 en 14 iets kreeg.
+// Dat zeggen we nu, met de weg naar de oplossing erbij: de DM kan ze zelf
+// intikken uit zijn eigen boek, en dan staan ze er voor de hele campagne.
+function _subLeegHtml(subclass, subclassName) {
+  if (!subclassName) return '';
+  const heeftIets = subclass && Object.values(subclass.data?.levels || {})
+    .some(arr => (arr || []).length);
+  if (heeftIets) return '';
+  return `<div class="prog-missing prog-missing--sub">
+    Van <strong>${esc(subclass?.key || subclassName)}</strong> staat er geen tekst in de app.
+    De meegeleverde data heeft alleen de subklassen uit de SRD; de rest komt uit het
+    Player's Handbook en mag daar niet uit overgenomen worden.
+    ${isDM() ? 'Je kunt ze zelf intikken met <strong>Bewerken</strong> hierboven — dan staan ze er voor iedereen die deze subklasse speelt.'
+             : 'Vraag je DM of hij ze invult; wat je krijgt staat gewoon in het boek.'}
+  </div>`;
+}
+
 // ── Feat-lijst voor de datalist ───────────────────────────────────
 // Origin Feats (niveau 1 / ASI-vervanging), General Feats, Epic Boons.
 const _ORIGIN_FEATS = ['Alert','Crafter','Healer','Lucky','Magic Initiate','Savage Attacker','Skilled','Tavern Brawler','Tough'];
@@ -645,6 +667,7 @@ function _classTimeline(prog, cls, subclassName, charLevel, isMulti, charId, fav
         ${icon('crossed-swords', { cls: 'icon-gi' })} ${esc(cls.key)}
         <span class="prog-sub-meta">level ${charLevel} · ${subLabel}</span>
       </div>
+      ${_subLeegHtml(subclass, subclassName)}
       <div class="prog-timeline">${rows.join('')}</div>
     </div>`;
 }
@@ -770,6 +793,7 @@ function _classCards(prog, cls, subclassName, charLevel, isMulti, charId, favs, 
     <div class="prog-class${isMulti ? ' prog-class--multi' : ''}">
       <div class="prog-sub-title">${icon('crossed-swords', { cls: 'icon-gi' })} ${esc(cls.key)}
         <span class="prog-sub-meta">level ${charLevel} · ${subLabel}</span></div>
+      ${_subLeegHtml(subclass, subclassName)}
       <div class="prog-cardgrid">${cards.join('')}</div>
     </div>`;
 }
