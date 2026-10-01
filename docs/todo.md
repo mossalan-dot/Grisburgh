@@ -325,6 +325,27 @@ Gevraagd op 14 sep 2026, gebouwd op 14 sep 2026.
       CSS-variabelen — geen tweede set componenten. Pas als er drie of vier
       overtuigend staan, hoort de keuze terug in de wizard.
 
+- [ ] **Beelden die in het papier uitlopen** (optie, 1 okt 2026). Naar aanleiding
+      van [Homebrewery](https://homebrewery.naturalcrit.com), dat D&D-boeken
+      nabootst. De broncode erbij gehaald, want de beschrijvingen op het web
+      kloppen niet: er zit géén `filter: blur()` in. Het is puur `mask-image`
+      met een PNG die een zachte of gescheurde alfa-rand heeft, plus
+      `--offsetX/--offsetY/--rotation` om het masker te verschuiven
+      (`themes/V3/Blank/style.less`, 37 hoek-, 8 rand- en 16 centrummaskers).
+      Voor ons interessant omdat onze Midjourney-beelden nu vierkant op een
+      pagina staan die nergens anders recht is: kaartportretten en
+      akte-achtergronden zouden in het perkament kunnen uitlopen. Valt netjes
+      terug — zonder maskerondersteuning staat de rechthoek er gewoon.
+      **Niet hun PNG's overnemen** (MIT-code, maar de maskers zijn aangeleverde
+      assets met een eigen herkomst): zelf maken met een inline SVG
+      (`feTurbulence` + `feDisplacementMap` over een alfaverloop), dan is er
+      niets te downloaden en kan elke kaart een eigen seed krijgen.
+      **Eerst meten** bij de bewegende portretten: een masker over een `<video>`
+      is op een telefoon duurder dan over een afbeelding. De rest van
+      Homebrewery gaat over gedrukte A4-pagina's en is voor ons niet bruikbaar.
+      Proef: de portretten in de kop van een detailvenster, waar het verschil
+      het grootst is.
+
 ## Setup-wizard voor een nieuwe DM
 
 - [ ] **De keuzes die een campagne bepalen, één keer langslopen.** Ze staan nu
