@@ -73,7 +73,9 @@ const SOORT_VOLGORDE = ['class', 'subclass', 'species', 'feat', 'boon', 'backgro
 let _all        = null;   // null = nog niet geladen
 let _bron       = null;   // wat naslagBron() teruggaf (srdDesc, md, …)
 let _container  = null;
-let _filters    = { q: '', soort: null, bron: null, level: null };
+// `sub` is de subklasse waarop je bent ingezoomd; `bron` de klasse, het volk of
+// de achtergrond erboven. Samen vormen ze de keten die de band bovenaan toont.
+let _filters    = { q: '', soort: null, bron: null, sub: null, level: null };
 let _bronnen    = [];     // klassen, soorten en backgrounds die er zijn
 let _levelsOpen = false;  // staat de levelrij uitgeklapt?
 
@@ -222,6 +224,10 @@ function _filtered() {
     }
     if (_filters.soort && it.soort !== _filters.soort) return false;
     if (_filters.bron  && it.bron  !== _filters.bron)  return false;
+    // Op een subklasse ingezoomd: haar eigen features én die van de klasse
+    // eromheen. Een Battle Master is een Fighter die iets extra's heeft, niet
+    // iets anders — alleen de subklassefeatures tonen liegt over wat je kunt.
+    if (_filters.sub && !(it.sub === _filters.sub || (it.soort === 'class' && it.bron === _filters.bron))) return false;
     if (_filters.level !== null && Number(it.level) !== Number(_filters.level)) return false;
     return true;
   });
@@ -285,6 +291,87 @@ function _card(it) {
 // ── Filterbalk ────────────────────────────────────────────────────
 // Permanent open, net als bij de spreuken: in een lijst van honderden regels is
 // filteren de normale handeling, niet de uitzondering.
+// ── De band: wát je kunt zijn ───────────────────────────────────────────────
+// Dit tabblad was een platte lijst van features: je kon "Superiority Dice"
+// vinden, maar niet "Battle Master". Een klasse, een subklasse, een volk en een
+// achtergrond zijn in het spel dingen op zichzelf, en hier bestonden ze alleen
+// als een waarde in een keuzelijst.
+//
+// De band maakt ze aanklikbaar. Klik een klasse en de lijst eronder waaiert
+// uit naar alles wat erbij hoort; de subklassen verschijnen als tweede rij,
+// zodat je verder kunt inzoomen zonder de klasse kwijt te raken. Hetzelfde
+// voor een volk en een achtergrond — die hebben geen tweede laag.
+const _BAND_GROEPEN = [
+  { id: 'class',      label: 'Klassen',       soorten: ['class', 'subclass'], icoon: KLASSE_ICOON },
+  { id: 'species',    label: 'Volken',        soorten: ['species'],           icoon: SPECIES_ICOON },
+  { id: 'background', label: 'Achtergronden', soorten: ['background'],        icoon: {} },
+];
+
+function _bandBronnen(groep) {
+  const uit = new Map();
+  for (const it of (_all || [])) {
+    if (!groep.soorten.includes(it.soort)) continue;
+    const naam = groep.id === 'background' ? it.naam : it.bron;
+    if (!naam) continue;
+    uit.set(naam, (uit.get(naam) || 0) + 1);
+  }
+  return [...uit.entries()].sort((a, b) => a[0].localeCompare(b[0]));
+}
+
+// De subklassen van de gekozen klasse, met hoeveel er van bekend is. Een
+// subklasse zonder features blijft staan — juist dán wil je zien dat ze bestaat
+// en dat er niets van in de app staat.
+function _bandSubklassen(klasse) {
+  const uit = new Map();
+  for (const [kl, data] of Object.entries(_bron?.prog?.classes || {})) {
+    if (kl !== klasse) continue;
+    for (const [sub, sdata] of Object.entries(data.subclasses || {})) {
+      uit.set(sub, Object.values(sdata.levels || {}).reduce((n, a) => n + (a || []).length, 0));
+    }
+  }
+  return [...uit.entries()].sort((a, b) => a[0].localeCompare(b[0]));
+}
+
+function _bandHtml() {
+  const groepen = _BAND_GROEPEN.map(g => {
+    const rijen = _bandBronnen(g);
+    if (!rijen.length) return '';
+    const knoppen = rijen.map(([naam, n]) => {
+      const aan = _filters.bron === naam || (g.id === 'background' && _filters.q === naam);
+      const ic = g.icoon[naam] || (g.id === 'class' ? 'sword' : g.id === 'species' ? 'user' : 'scroll-text');
+      return `<button class="vb-knop${aan ? ' is-aan' : ''}" onclick="window.vaardigheden.bandKies('${g.id}','${esc(naam).replace(/'/g, "\\'")}')">
+        ${icon(ic)} <span>${esc(naam)}</span><span class="vb-telling">${n}</span></button>`;
+    }).join('');
+    return `<div class="vb-groep"><div class="vb-groep-kop">${esc(g.label)}</div><div class="vb-rij">${knoppen}</div></div>`;
+  }).join('');
+
+  // Tweede laag: de subklassen van de klasse waar je op staat.
+  let subRij = '';
+  if (_filters.bron && _bron?.prog?.classes?.[_filters.bron]) {
+    const subs = _bandSubklassen(_filters.bron);
+    if (subs.length) {
+      subRij = `<div class="vb-groep vb-groep--sub">
+        <div class="vb-groep-kop">Subklassen van ${esc(_filters.bron)}</div>
+        <div class="vb-rij">
+          <button class="vb-knop vb-knop--sub${_filters.sub ? '' : ' is-aan'}"
+            onclick="window.vaardigheden.bandSub(null)">Alle</button>
+          ${subs.map(([naam, n]) => `
+            <button class="vb-knop vb-knop--sub${_filters.sub === naam ? ' is-aan' : ''}${n ? '' : ' vb-knop--leeg'}"
+              onclick="window.vaardigheden.bandSub('${esc(naam).replace(/'/g, "\\'")}')"
+              title="${n ? '' : 'Van deze subklasse staat er geen tekst in de app'}">
+              <span>${esc(naam)}</span>${n ? `<span class="vb-telling">${n}</span>` : `<span class="vb-leeg">—</span>`}</button>`).join('')}
+        </div></div>`;
+    }
+  }
+
+  const keten = _filters.bron
+    ? `<div class="vb-keten">${icon('chevron-right')} ${esc(_filters.bron)}${_filters.sub ? ' · ' + esc(_filters.sub) : ''}
+         <button class="vb-wis" onclick="window.vaardigheden.bandKies(null,null)" title="Terug naar alles">${icon('x')}</button></div>`
+    : '';
+
+  return `<div class="vaardig-band">${groepen}${subRij}${keten}</div>`;
+}
+
 function _filterBar() {
   const soorten = SOORT_VOLGORDE.filter(k => (_all || []).some(x => x.soort === k));
   const soortRij = [`<button class="spreuk-school-btn${_filters.soort ? '' : ' active'}"
@@ -346,6 +433,11 @@ function _paint() {
     : `<p class="spreuk-empty">Niets gevonden.</p>`;
   const tel = document.getElementById('vaardig-telling');
   if (tel) tel.textContent = `${lijst.length} van ${(_all || []).length}`;
+}
+
+function _bandHerteken() {
+  const el = document.getElementById('vaardig-band');
+  if (el) el.innerHTML = _bandHtml();
 }
 
 function _refreshFilterBar() {
@@ -683,7 +775,28 @@ window.vaardigheden = {
   },
   search(q) { _filters.q = q || ''; _paint(); },
   setSoort(k) { _filters.soort = k || null; _filters.bron = null; _filters.level = null; _refreshFilterBar(); _paint(); },
-  setBron(b)  { _filters.bron = b || null; _paint(); },
+  setBron(b)  { _filters.bron = b || null; _filters.sub = null; _bandHerteken(); _paint(); },
+  // Een klasse, volk of achtergrond uit de band. Een achtergrond heeft geen
+  // eigen bron (ze staan allemaal onder "Backgrounds"), dus die zoeken we op
+  // naam — dat is hetzelfde kaartje.
+  bandKies(groep, naam) {
+    if (!groep || !naam) { _filters.bron = null; _filters.sub = null; _filters.soort = null; _filters.q = ''; }
+    else if (groep === 'background') { _filters.soort = 'background'; _filters.bron = null; _filters.sub = null; _filters.q = naam; }
+    else {
+      _filters.q = '';
+      _filters.soort = null;
+      _filters.bron = (_filters.bron === naam) ? null : naam;
+      _filters.sub = null;
+    }
+    _filters.level = null;
+    _bandHerteken(); _refreshFilterBar(); _paint();
+    const zoek = document.querySelector('#section-vaardigheden .sbs-input');
+    if (zoek) zoek.value = _filters.q;
+  },
+  bandSub(naam) {
+    _filters.sub = (naam && _filters.sub !== naam) ? naam : null;
+    _bandHerteken(); _paint();
+  },
   setLevel(l) { _filters.level = (l === null ? null : Number(l)); _refreshFilterBar(); _paint(); },
   toggleLevels() { _levelsOpen = !_levelsOpen; _refreshFilterBar(); },
 };
@@ -716,6 +829,7 @@ export async function renderVaardigheden(container) {
       <div class="section-banner-rule"><span class="section-banner-ornament">◆</span></div>
     </div>
     <div class="spreuk-wrap">
+      <div id="vaardig-band">${_bandHtml()}</div>
       ${_filterBar()}
       <div class="cards-grid grid grid-cols-[repeat(auto-fill,minmax(230px,1fr))] gap-4" id="vaardig-grid"></div>
     </div>`;

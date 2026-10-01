@@ -390,6 +390,21 @@ Gevraagd op 14 sep 2026, gebouwd op 14 sep 2026.
       het opruimscript op termijn overbodig. Klein werk; het wachten is op een
       moment waarop er toch aan die scripts gezeten wordt.
 
+- [ ] **De archieftab, vervolgstappen** (begonnen 1 okt 2026). De band met
+      klassen, volken, achtergronden en subklassen staat; wat er nog ligt:
+      1. **De omgekeerde index.** Van een feat terug naar wie hem kan nemen, van
+         een ability naar welke subklassen hem raken. Nu loopt alles één kant
+         op: een klasse wijst naar zijn features, maar een feat weet niet bij
+         wie hij hoort. Dit is het stuk waar de vraag om begon.
+      2. **Een overzichtskaartje per klasse.** Nu filtert een klik alleen de
+         lijst; er is nog geen kaartje dat zegt *wat een Fighter is* — hit die,
+         saves, proficiencies, het aantal subklassen, op welk level je kiest.
+         Die gegevens staan al in `class-progression.json`.
+      3. **Hetzelfde voor een subklasse**, met het veld uit
+         `docs/subklasse-velden.md` erbij als die er een heeft.
+      4. **Spreuken erbij.** Een klasse heeft een spreukenlijst; die staat in de
+         Spreuken-tab en is hier niet gekoppeld.
+
 ## Setup-wizard voor een nieuwe DM
 
 - [ ] **De keuzes die een campagne bepalen, één keer langslopen.** Ze staan nu
