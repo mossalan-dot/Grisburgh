@@ -1,0 +1,178 @@
+{
+  "_bron": "Wat een feat vraagt en wat hij geeft — korte feitelijke gegevens, geen beschrijvingen. Hiermee kan de app zelf uitrekenen bij welke klassen een feat hoort: uit een armor training volgt wie die training geeft (zie klasse-basis.json), en uit een spreuknaam volgt op wiens lijst die staat (zie spells-2024.json). Dit wordt meegeleverd zodat niet elke DM het opnieuw hoeft in te tikken; wat de DM zelf invult bij een feat wint hiervan.",
+  "_nb": "Niet alle feats staan erin. Wat niet zeker is blijft leeg — een verkeerde eis zet een feat bij een klasse die hem niet kan nemen, en dat merk je pas aan tafel. Ontbreken nu: Mounted Combatant, Skulker en Weapon Master.",
+  "_epic": "Elke Epic Boon vraagt level 19; dat hoeft er niet twaalf keer in te staan en wordt bij het lezen toegevoegd.",
+  "feats": {
+    "Moderately Armored": {
+      "vereist": "Light armor training"
+    },
+    "Heavily Armored": {
+      "vereist": "Medium armor training"
+    },
+    "Medium Armor Master": {
+      "vereist": "Medium armor training"
+    },
+    "Heavy Armor Master": {
+      "vereist": "Heavy armor training"
+    },
+    "Shield Master": {
+      "vereist": "Strength 13, Shield training"
+    },
+    "Fey Touched": {
+      "vereist": "Intelligence, Wisdom of Charisma 13",
+      "geeftSpreuk": [
+        "Misty Step"
+      ]
+    },
+    "Shadow Touched": {
+      "vereist": "Intelligence, Wisdom of Charisma 13",
+      "geeftSpreuk": [
+        "Invisibility"
+      ]
+    },
+    "Shadow-Touched": {
+      "vereist": "Intelligence, Wisdom of Charisma 13",
+      "geeftSpreuk": [
+        "Invisibility"
+      ]
+    },
+    "Telekinetic": {
+      "vereist": "Intelligence, Wisdom of Charisma 13",
+      "geeftSpreuk": [
+        "Mage Hand"
+      ]
+    },
+    "Telepathic": {
+      "vereist": "Intelligence, Wisdom of Charisma 13",
+      "geeftSpreuk": [
+        "Detect Thoughts"
+      ]
+    },
+    "War Caster": {
+      "vereist": "Een spellcasting- of pact magic-feature",
+      "casters": true
+    },
+    "Spell Sniper": {
+      "vereist": "Een spellcasting- of pact magic-feature",
+      "casters": true
+    },
+    "Elemental Adept": {
+      "vereist": "Een spellcasting- of pact magic-feature",
+      "casters": true
+    },
+    "Great Weapon Master": {
+      "vereist": "Strength 13"
+    },
+    "Crossbow Expert": {
+      "vereist": "Dexterity 13"
+    },
+    "Sharpshooter": {
+      "vereist": "Dexterity 13"
+    },
+    "Defensive Duelist": {
+      "vereist": "Dexterity 13"
+    },
+    "Dual Wielder": {
+      "vereist": "Dexterity 13"
+    },
+    "Mobile": {
+      "vereist": "Dexterity 13"
+    },
+    "Polearm Master": {
+      "vereist": "Strength of Dexterity 13"
+    },
+    "Sentinel": {
+      "vereist": "Strength of Dexterity 13"
+    },
+    "Charger": {
+      "vereist": "Strength of Dexterity 13"
+    },
+    "Grappler": {
+      "vereist": "Strength of Dexterity 13"
+    },
+    "Crusher": {
+      "vereist": "Strength of Constitution 13"
+    },
+    "Piercer": {
+      "vereist": "Strength of Dexterity 13"
+    },
+    "Slasher": {
+      "vereist": "Strength of Dexterity 13"
+    },
+    "Mage Slayer": {
+      "vereist": "Strength of Dexterity 13"
+    },
+    "Athlete": {
+      "vereist": "Strength of Dexterity 13"
+    },
+    "Durable": {
+      "vereist": "Constitution 13"
+    },
+    "Actor": {
+      "vereist": "Charisma 13"
+    },
+    "Inspiring Leader": {
+      "vereist": "Wisdom of Charisma 13"
+    },
+    "Observant": {
+      "vereist": "Intelligence of Wisdom 13"
+    },
+    "Keen Mind": {
+      "vereist": "Intelligence 13"
+    },
+    "Speedy": {
+      "vereist": "Dexterity 13"
+    },
+    "Ritual Caster": {
+      "vereist": "Intelligence, Wisdom of Charisma 13"
+    },
+    "Alert": {
+      "vereist": "Geen eis"
+    },
+    "Crafter": {
+      "vereist": "Geen eis"
+    },
+    "Healer": {
+      "vereist": "Geen eis"
+    },
+    "Lucky": {
+      "vereist": "Geen eis"
+    },
+    "Magic Initiate": {
+      "vereist": "Geen eis"
+    },
+    "Savage Attacker": {
+      "vereist": "Geen eis"
+    },
+    "Skilled": {
+      "vereist": "Geen eis"
+    },
+    "Tavern Brawler": {
+      "vereist": "Geen eis"
+    },
+    "Tough": {
+      "vereist": "Geen eis"
+    },
+    "Ability Score Improvement": {
+      "vereist": "Geen eis"
+    },
+    "Dungeon Delver": {
+      "vereist": "Geen eis"
+    },
+    "Martial Weapon Training": {
+      "vereist": "Geen eis"
+    },
+    "Poisoner": {
+      "vereist": "Geen eis"
+    },
+    "Resilient": {
+      "vereist": "Geen eis"
+    },
+    "Skill Expert": {
+      "vereist": "Geen eis"
+    },
+    "Lightly Armored": {
+      "vereist": "Geen eis"
+    }
+  }
+}

@@ -423,9 +423,13 @@ Gevraagd op 14 sep 2026, gebouwd op 14 sep 2026.
         staat er alleen de naam van de feature die een eigen teller krijgt).
       - De **39 subklassen zonder tekst** vullen — handwerk voor de DM, maar de
         app wijst er nu wel naartoe. Zie `docs/subklasse-velden.md`.
-      - Een **exportknop** bij de progressie-editor, zodat ingetikte
-        subklasseteksten en feat-koppelingen tussen campagnes te delen zijn.
-        Nu typt elke DM ze opnieuw.
+      - [x] De **feat-koppelingen worden meegeleverd** (1 okt 2026,
+        `bronnen/feat-koppelingen.json`) in plaats van per campagne ingetikt.
+        Wat de DM zelf invult wint ervan.
+      - Hetzelfde zou kunnen voor **ingetikte subklasseteksten**, maar dat kán
+        niet: die komen uit het Player's Handbook. Wat wél kan is een
+        **exportknop** bij de progressie-editor, zodat een DM zijn eigen
+        invoer met een andere DM kan delen zonder dat wij hem meeleveren.
 
 ## Setup-wizard voor een nieuwe DM
 

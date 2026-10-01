@@ -302,15 +302,17 @@ function _card(it) {
 // SRD 5.2 (CC BY 4.0) — dezelfde licentie waar de spreuken en de statblokken
 // uit komen. De Artificer staat niet in de SRD; daarvan tonen we alleen wat we
 // weten, in plaats van de rest te raden.
-let _klasseBasis = null, _spreukKlassen = null, _spreukAantal = null, _tellers = null;
+let _klasseBasis = null, _spreukKlassen = null, _spreukAantal = null, _tellers = null, _featKoppel = null;
 async function _klasseExtra() {
   if (_klasseBasis) return;
   const haal = async (naam) => {
     try { const r = await fetch(`/api/bron/${naam}`, { credentials: 'same-origin' });
           return r.ok ? await r.json() : null; } catch { return null; }
   };
-  const [basis, spreuken] = await Promise.all([haal('klasse-basis'), haal('spells-2024')]);
+  const [basis, spreuken, koppel] = await Promise.all([
+    haal('klasse-basis'), haal('spells-2024'), haal('feat-koppelingen')]);
   _klasseBasis = (basis?.klassen) || {};
+  _featKoppel = koppel?.feats || {};
   // Hoeveel spreuken staan er op de lijst van elke klasse? Dat telt zichzelf
   // uit de spreukenbron; nergens anders staat het, en het is precies wat je
   // wilt weten als je kiest wát je gaat spelen.
@@ -331,6 +333,33 @@ async function _klasseExtra() {
 
 const _AB_NAAM = { str: 'Strength', dex: 'Dexterity', con: 'Constitution',
                    int: 'Intelligence', wis: 'Wisdom', cha: 'Charisma' };
+
+// Wat deze feat vraagt en geeft. Eerst wat de DM zelf invulde — dat is zijn
+// tafel en zijn beslissing. Staat er niets, dan het meegeleverde antwoord uit
+// `bronnen/feat-koppelingen.json`, zodat een verse campagne niet leeg begint en
+// niemand dit opnieuw hoeft in te tikken.
+function _koppelingVan(it) {
+  const eigen = {
+    vereist: it.vereist || '',
+    geeftSpreuk: it.geeftSpreuk || [],
+    sluitAan: it.sluitAan || [],
+  };
+  if (eigen.vereist || eigen.geeftSpreuk.length || eigen.sluitAan.length) return eigen;
+  const mee = _featKoppel?.[it.naam];
+  if (!mee) {
+    // Elke Epic Boon vraagt level 19; dat staat niet twaalf keer in het bestand.
+    return it.soort === 'boon' ? { vereist: 'Level 19', geeftSpreuk: [], sluitAan: [] } : eigen;
+  }
+  return {
+    vereist: mee.vereist || '',
+    geeftSpreuk: mee.geeftSpreuk || [],
+    // `casters: true` betekent "iedereen die cast"; wie dat zijn staat in
+    // klasse-basis.json, dus die lijst hoeft niet in het koppelbestand.
+    sluitAan: mee.casters
+      ? Object.entries(_klasseBasis || {}).filter(([, v]) => v.castAbility).map(([k]) => k)
+      : [],
+  };
+}
 
 // ── Welke feats sluiten aan op deze klasse? ─────────────────────────────────
 // Drie soorten koppeling, en ze lijken alleen op elkaar:
@@ -364,15 +393,16 @@ function _featsVoorKlasse(klasse) {
   const re = new RegExp(`\\b${klasse.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`);
 
   for (const f of feats) {
-    if ((f.sluitAan || []).includes(klasse)) { aangewezen.push(f); continue; }
+    const k = _koppelingVan(f);
+    if (k.sluitAan.includes(klasse)) { aangewezen.push(f); continue; }
     // De eis: noemt hij een armor training die deze klasse geeft?
-    const eis = String(f.vereist || '');
+    const eis = String(k.vereist || '');
     if (eis) {
       const nodig = _ARMOR_WOORDEN.filter(a => a.re.test(eis)).map(a => a.training);
       if (nodig.length && nodig.every(t => mijnArmor.includes(t.toLowerCase()))) { viaEis.push(f); continue; }
     }
     // Geeft hij een spreuk die op de lijst van deze klasse staat?
-    const spreuken = f.geeftSpreuk || [];
+    const spreuken = k.geeftSpreuk;
     if (spreuken.length) {
       const raakt = spreuken.some(n => (_spreukKlassen?.get(String(n).toLowerCase()) || []).includes(klasse));
       if (raakt) { viaSpreuk.push(f); continue; }
@@ -753,9 +783,10 @@ function _verwijzingen(html) {
 function _klassenVoorFeat(it) {
   if (it.soort !== 'feat' && it.soort !== 'boon') return null;
   const klassen = Object.keys(_bron?.prog?.classes || {});
-  const aangewezen = (it.sluitAan || []).filter(k => klassen.includes(k));
+  const kop = _koppelingVan(it);
+  const aangewezen = kop.sluitAan.filter(k => klassen.includes(k));
 
-  const eis = String(it.vereist || '');
+  const eis = String(kop.vereist || '');
   const nodig = eis ? _ARMOR_WOORDEN.filter(a => a.re.test(eis)).map(a => a.training) : [];
   const viaEis = nodig.length
     ? klassen.filter(k => {
@@ -765,13 +796,16 @@ function _klassenVoorFeat(it) {
     : [];
 
   const viaSpreuk = [];
-  for (const n of (it.geeftSpreuk || [])) {
+  for (const n of kop.geeftSpreuk) {
     for (const k of (_spreukKlassen?.get(String(n).toLowerCase()) || [])) {
       if (klassen.includes(k) && !viaSpreuk.includes(k)) viaSpreuk.push(k);
     }
   }
   if (!aangewezen.length && !viaEis.length && !viaSpreuk.length && !eis) return null;
-  return { aangewezen, viaEis, viaSpreuk, eis };
+  // `geeftSpreuk` gaat mee: de weergave noemt eronder wélke spreuk het is, en
+  // die staat niet per se op het item zelf — hij kan uit de meegeleverde
+  // koppelingen komen.
+  return { aangewezen, viaEis, viaSpreuk, eis, geeftSpreuk: kop.geeftSpreuk };
 }
 
 function _featKoppelingHtml(it) {
@@ -790,7 +824,7 @@ function _featKoppelingHtml(it) {
       ${rij('Aangewezen', 'hier aan gehangen', k.aangewezen)}
       ${rij('Via de eis', 'deze klassen geven die training', k.viaEis)}
       ${rij('Geeft een spreuk', 'staat op hun lijst', k.viaSpreuk)}
-      ${(it.geeftSpreuk || []).length ? `<p class="vk-feats-noot">Geeft: ${(it.geeftSpreuk || []).map(esc).join(', ')}.</p>` : ''}
+      ${k.geeftSpreuk.length ? `<p class="vk-feats-noot">Geeft: ${k.geeftSpreuk.map(esc).join(', ')}.</p>` : ''}
     </div>`;
 }
 

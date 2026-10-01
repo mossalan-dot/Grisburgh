@@ -8,10 +8,19 @@
 // Die laatste twee rekenen zichzelf uit — maar alleen als de feat weet wat hij
 // vraagt en wat hij geeft, en dat staat nergens.
 //
-// Dit vult die twee velden voor de feats waarvan het **vaststaat**. Niet voor
-// alle 67: waar ik het niet zeker weet blijft het leeg, want een verkeerde eis
-// is erger dan geen eis — dan staat een feat bij een klasse die hem niet kan
-// nemen, en daar kom je pas achter aan tafel.
+// **Je hebt dit script meestal niet nodig.** Sinds 1 okt 2026 worden dezelfde
+// koppelingen meegeleverd in `bronnen/feat-koppelingen.json`; de app leest ze
+// daar vanzelf, en wat de DM zelf invult wint. Elke campagne heeft ze dus
+// meteen, zonder iets te draaien.
+//
+// Waarvoor dan nog wel: om ze **vast te leggen in deze campagne**, zodat ze
+// blijven staan zoals ze nu zijn ook als de meegeleverde lijst later verandert.
+// Dat is een keuze voor een campagne die al loopt en geen verrassingen wil.
+//
+// Het vult de velden voor de feats waarvan het **vaststaat**. Niet voor alle
+// 67: waar het niet zeker is blijft het leeg, want een verkeerde eis is erger
+// dan geen eis — dan staat een feat bij een klasse die hem niet kan nemen, en
+// daar kom je pas achter aan tafel.
 //
 // Het gaat om korte feitelijke gegevens (een eis, een spreuknaam), niet om de
 // beschrijvingen: die blijven leeg voor alles wat niet in de SRD staat.
