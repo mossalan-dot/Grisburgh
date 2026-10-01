@@ -773,8 +773,10 @@ window._kaartFsTerug = () => {
 // DM zit niet op een telefoon.
 //
 // Twee regels die het gebaar veilig houden:
-//   • Het telt alleen als de beweging duidelijk horizontaal is (≥ 60 px opzij,
-//     < 45 px omhoog/omlaag). Anders kapen we het scrollen.
+//   • Het telt alleen als de beweging duidelijk horizontaal is: minstens 50 px
+//     opzij én anderhalf keer zoveel opzij als omhoog/omlaag. Er stond een
+//     vaste grens van 45 px verticaal, en een duim die 300 px opzij gaat zakt
+//     makkelijk verder dan dat — dan gebeurde er niets en leek vegen stuk.
 //   • Het negeert gebaren die beginnen in iets dat zélf horizontaal schuift (een
 //     carrousel, een kaart die je pant, een tekstveld). Daar hoort de beweging
 //     al ergens bij.
@@ -804,7 +806,7 @@ window._veegNavigatie = function (el, { vorige, volgende, toetsen = true } = {})
     if (!t) return;
     const dx = t.clientX - x0, dy = t.clientY - y0;
     x0 = null;
-    if (Math.abs(dx) < 60 || Math.abs(dy) > 45) return;
+    if (Math.abs(dx) < 50 || Math.abs(dx) < Math.abs(dy) * 1.5) return;
     (dx < 0 ? volgende : vorige)?.();
   };
   el.addEventListener('touchstart', start, { passive: true });
@@ -10250,6 +10252,26 @@ async function renderMijnKarakter(opts = {}) {
 
     window._knapzakCarouselRender = _renderCarouselInDom;
   })();
+
+  // ── Vegen door de carrousels ──
+  // De pijltjes staan links en rechts van het kaartje, en op een telefoon ligt
+  // daar nauwelijks ruimte — je wil het kaartje zelf opzij duwen. `geen-veeg`
+  // houdt het gebaar hier: anders zag de veeg over het spelerstabblad hem
+  // eerst en sprong je naar het volgende subtabblad.
+  for (const [id, nav] of [['knapzak-carousel-track', '_knapzakCarouselNav'],
+                           ['goddelijk-carousel-track', '_knapzakGoddelijkNav']]) {
+    const track = document.getElementById(id);
+    // De bak wordt bij elke hertekening van het blad vervangen, dus de vlag
+    // hoort op het element en niet op `window`.
+    if (!track || track.dataset.veegKlaar !== undefined) continue;
+    track.dataset.veegKlaar = '';
+    track.dataset.geenVeeg  = '';
+    window._veegNavigatie?.(track, {
+      vorige:   () => window[nav]?.(-1),
+      volgende: () => window[nav]?.(1),
+      toetsen:  false,
+    });
+  }
 
   // ── Item charges ──
   window._dashChargeToggle = async function(itemId, charId, dotIdx, current, maxCharges) {
