@@ -28652,3 +28652,27 @@ body.akte-schrijf-open .mp-overlay { z-index: 1320; }
 
 /* De knoppen onder de leningbanner. */
 .ts-lening-knoppen { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
+
+/* ── Het schuldenregister in de Meesterkamer ─────────────────────────────── */
+.dm-schuld {
+  border: 1px solid rgba(138,109,63,0.28);
+  border-left: 3px solid #8b2a2a;
+  border-radius: 8px; padding: 10px 13px; margin-bottom: 8px;
+  background: var(--color-card-bg, rgba(255,255,255,0.4));
+}
+.dm-schuld--wees { border-left-color: #8a7050; opacity: .85; }
+.dm-schuld-wie { display: flex; flex-direction: column; gap: 1px; margin-bottom: 8px; }
+.dm-schuld-wie strong { font-family: 'Cinzel', serif; font-size: 14px; }
+.dm-schuld-wie span {
+  font-family: 'Crimson Text', serif; font-size: 12px; font-style: italic;
+  color: var(--color-ink-soft, #6a5430);
+}
+.dm-schuld-cijfers { display: flex; flex-wrap: wrap; gap: 6px 20px; }
+.dm-schuld-cijfers > div { display: flex; flex-direction: column; }
+.dm-schuld-label {
+  font-family: 'Cinzel', serif; font-size: 8px; letter-spacing: .14em;
+  text-transform: uppercase; color: var(--color-ink-faint, rgba(120,96,56,0.7));
+}
+.dm-schuld-cijfers b { font-family: 'Cinzel', serif; font-size: 13px; }
+.dm-schuld-op { color: #8b2a2a; }
+.dm-schuld-knoppen { margin-top: 8px; }

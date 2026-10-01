@@ -10,7 +10,7 @@ import { renderSpreuken } from './render-spreuken.js?v=41';
 import { renderVaardigheden, zoekVaardigheden } from './render-vaardigheden.js?v=18';
 import { renderStatblock } from './render-statblock.js?v=9';
 import { initSocket } from "./socket-client.js?v=82";
-import { initDmPanel } from "./dm-panel.js?v=369";
+import { initDmPanel } from "./dm-panel.js?v=370";
 import { COND_INFO, COND_LABEL, COND_MET_PLAATJE, COND_ICON } from './conditions.js?v=2';
 import './media-picker.js?v=8';
 import './tafels.js?v=2';
@@ -14493,6 +14493,14 @@ const HELP_CONFIG = {
     { titel: 'Thema', tekst: 'De twee kleuren die straks onder het gevecht liggen — jouw kant en de overkant. Je ziet ze in de lijst al op het kaartje, zodat je weet welke sfeer eraan hangt voor je hem opent.', afbeelding: null },
     { titel: 'Buit', tekst: 'Koppel een **vondst** die je bij Loot gemaakt hebt; die verdeel je na afloop met de lootverdeler. Een gevecht dat nog losse buit had van vroeger houdt die zolang je geen vondst koppelt — zo raakt een oud gevecht niets kwijt door één keer op te slaan.', afbeelding: null },
     { titel: 'Waar hoort het bij', tekst: 'Een **akte** groepeert je gevechten in de lijst en in het logboek. Een gevecht kan ook aan een dungeonkamer of aan een partij in het strijdperk hangen; die koppeling leg je daar, niet hier.', afbeelding: null },
+  ] }),
+
+  dm_schulden: () => ({ titel: 'Schulden', stappen: [
+    { titel: 'Waarom dit er staat', tekst: 'Schuld zat in een hoek van het gokhuis: één soort, bij één schuldeiser, en nergens een overzicht. Een schuld die niemand ziet is geen verhaallijn — die vergeet je, en dan staat er opeens een bedrag waar niemand meer van weet waar het vandaan kwam.', afbeelding: null },
+    { titel: 'Wat je ziet', tekst: 'Per schuld: wie, bij wie, wat hij **leende**, wat er **nu staat**, hoeveel nachten er verstreken zijn en tegen welke rente. Groeit het bedrag, dan licht het op. Is het plafond bereikt (vijf keer de hoofdsom), dan telt hij niet verder — dan komt de schuldeiser het halen, en dat is jouw scène.', afbeelding: null },
+    { titel: 'De rente loopt op rust', tekst: 'Niet op de kalender. Elke **lange rust** van de party is een nacht die telt. Dat is bewust: een party speelt geen echte dagen, en op de kalender stond één lening ooit op 4,5 × 10¹⁹ — meer geld dan er in de wereld is.', afbeelding: null },
+    { titel: 'Zonder eigenaar', tekst: 'Een schuld op naam van een personage dat niet meer bestaat staat apart. Niemand kan hem afbetalen en hij telt wel door. Ruim hem op — of laat hem staan als er nog een verhaal aan vastzit.', afbeelding: null },
+    { titel: 'Aflossen doet de speler', tekst: 'Onder zijn leningbanner staan de knoppen. Jij hoeft niets te doen; je ziet het langskomen bij Verzoeken. **Kwijtschelden** kan hier wel — dat is een gunst, en die hoort bij jou.', afbeelding: null },
   ] }),
 
   dm_gokhuis_beheer: () => ({ titel: 'Gokken', stappen: [

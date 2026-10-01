@@ -14621,6 +14621,52 @@ function _tsGeldschieter(meta) {
 
 // Wat er nú openstaat. Geeft ook terug hoeveel rustbeurten er geteld zijn, want
 // dat is wat je aan tafel wil kunnen navertellen ("drie nachten verder").
+// ── Het schuldenregister ────────────────────────────────────────────────────
+// Schuld zat in een hoek van het gokhuis (`dmState.tweespalt.leningen`): één
+// soort, bij één schuldeiser, zonder overzicht. Een schuld kan net zo goed uit
+// een winkel komen die aanschrijft, uit losgeld of uit een begrafenis — en een
+// schuld die niemand ziet is geen verhaallijn.
+//
+// `dmState.schulden` is dat overzicht: een lijst, geen map per dienst. De
+// Tweespalt-lening wordt er bij het lezen één rij in, zonder dat er iets
+// verhuist — zo blijft het gokhuis werken terwijl de rest gebouwd wordt, en
+// kan de migratie later pas als er een tweede bron is. Zie
+// `docs/voorstel-woekeraar.md`.
+function _schuldenVan(dmState, characterId = null) {
+  const uit = [];
+  // 1. Wat er in het register staat.
+  for (const r of (dmState.schulden || [])) {
+    if (characterId && r.characterId !== characterId) continue;
+    uit.push({ ...r, stand: _schuldStand(r, dmState) });
+  }
+  // 2. De leningen van het gokhuis, als rij in hetzelfde formaat.
+  const gs = _tsGeldschieter(storage.readJSON('meta.json'));
+  for (const [cid, lening] of Object.entries(dmState.tweespalt?.leningen || {})) {
+    if (characterId && cid !== characterId) continue;
+    uit.push({
+      id: 'ts:' + cid, characterId: cid, bron: 'gokhuis',
+      schuldeiser: { naam: gs.naam, entityId: gs.entityId || null },
+      hoofdsomCl: lening.bedragCl,
+      rentePerRust: lening.rentePerRust ?? TS_RENTE_PER_RUST,
+      maxFactor: lening.maxFactor ?? TS_MAX_FACTOR,
+      rustStand: lening.rustStand,
+      waarvoor: lening.waarvoor || '',
+      aangegaan: lening.aangegaan || null,
+      stand: _tsSchuld(lening, dmState, cid),
+    });
+  }
+  return uit;
+}
+
+// Wat er nu staat. Dezelfde rekensom als `_tsSchuld`, maar op een registerrij —
+// zodat er één plek is die rente uitrekent, ook als er straks drie bronnen zijn.
+function _schuldStand(r, dmState) {
+  return _tsSchuld({
+    bedragCl: r.hoofdsomCl, rustStand: r.rustStand,
+    rentePerRust: r.rentePerRust, maxFactor: r.maxFactor,
+  }, dmState, r.characterId);
+}
+
 function _tsSchuld(lening, dmState, characterId) {
   if (!lening) return null;
   const g       = getGroup(dmState, _playerGroupId(dmState, characterId));
@@ -15201,6 +15247,46 @@ router.post('/tweespalt/aflossen', attachRole, (req, res) => {
     currency: _effectiveCurrency(dmState, characterId),
     lening: restCl > 0 ? _tsSchuld(lening, dmState, characterId) : null,
   });
+});
+
+// Het overzicht voor de DM: wie heeft schuld, bij wie, hoeveel stond er en
+// hoeveel staat er nu. Met de naam van de speler erbij, want een id zegt niets
+// — en met de weesschulden apart, want die kan niemand afbetalen.
+router.get('/schulden', requireDM, (req, res) => {
+  const dmState = readDmState();
+  const entities = storage.readJSON('entities.json');
+  const bestaat = new Set((entities.personages || []).map(p => p.id));
+  const rijen = _schuldenVan(dmState).map(r => ({
+    ...r,
+    spelerNaam: _spelerNaam(entities, r.characterId) || '',
+    wees: !bestaat.has(r.characterId),
+  }));
+  res.json({ schulden: rijen });
+});
+
+// Een weesschuld opruimen: een lening op naam van een personage dat niet meer
+// bestaat telt door en niemand kan hem afbetalen. De hulptekst beloofde deze
+// knop al voordat hij er was.
+router.delete('/schulden/:id', requireDM, (req, res) => {
+  const dmState = readDmState();
+  const id = req.params.id;
+  if (id.startsWith('ts:')) {
+    const cid = id.slice(3);
+    if (!dmState.tweespalt?.leningen?.[cid]) return res.status(404).json({ error: 'Niet gevonden' });
+    delete dmState.tweespalt.leningen[cid];
+    // Het schuldbewijs hoort mee, als de speler nog bestaat.
+    const items = dmState.playerItems?.[cid] || [];
+    const i = items.findIndex(x => String(x.id || '').startsWith('ts_leen_'));
+    if (i >= 0) items.splice(i, 1);
+  } else {
+    const lijst = dmState.schulden || [];
+    const i = lijst.findIndex(r => r.id === id);
+    if (i < 0) return res.status(404).json({ error: 'Niet gevonden' });
+    lijst.splice(i, 1);
+  }
+  storage.writeJSON('dm-state.json', dmState);
+  req.app.get('io').to(_campagneRoom(req)).emit('player:items-updated', {});
+  res.json({ ok: true });
 });
 
 router.get('/tweespalt/log', requireDM, (req, res) => {

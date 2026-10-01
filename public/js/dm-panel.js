@@ -676,6 +676,11 @@ export function initDmPanel() {
         _renderVerzoeken(); _verzoekenTeller();
       } catch (e) { alert('Mislukt: ' + e.message); }
     },
+    async schuldWeg(id, naam) {
+      if (!confirm(`De schuld van ${naam} weghalen? Dat kan niet ongedaan gemaakt worden.`)) return;
+      try { await api.delete(`/schulden/${id}`); } catch (e) { alert('Mislukt: ' + e.message); }
+      _renderSchulden();
+    },
     async verzoekSpreuk(reqId, akkoord) {
       // Bij een nee hoort een reden. Hij mag leeg blijven — soms is "nu even
       // niet" het hele antwoord — maar de vraag wordt wél gesteld, want een
@@ -755,7 +760,7 @@ export function initDmPanel() {
 // Welke tabs zijn "gevecht & monsters"?
 const _GEVECHT_TABS = new Set(['gevecht', 'monsters', 'encounters']);
 // Welke tabs zijn "diensten"?
-const _DIENSTEN_TABS = new Set(['herberg', 'tweespalt', 'gock', 'ursula', 'tempel', 'facties', 'magizoo', 'markt', 'toegang']);
+const _DIENSTEN_TABS = new Set(['herberg', 'tweespalt', 'gock', 'ursula', 'tempel', 'facties', 'magizoo', 'markt', 'schulden', 'toegang']);
 // Welke tabs zijn "instellingen" (niet als tab getoond)?
 const _INSTELLINGEN_TABS = new Set(['campagnes', 'wereld', 'beurs', 'dobbelstenen']);
 
@@ -1392,6 +1397,7 @@ async function _renderDiensten(subTab) {
     { id: 'gock',      label: 'Detective',   icoon: 'search',     key: 'gock' },
     { id: 'ursula',    label: 'Waarzegger',  icoon: 'sparkles',   key: 'ursula' },
     { id: 'magizoo',   label: 'Magizoöloog', icoon: 'paw-print',  key: 'magizoo' },
+    { id: 'schulden',  label: 'Schulden',    icoon: 'coins',      key: 'woekeraar' },
     { id: 'toegang',   label: 'Toegang',     icoon: 'lock', altijd: true, title: 'Toegang per groep', key: 'toegang' },
   ]).filter(d => d.altijd || !(window._verborgen?.secties || []).includes(d.id));
   el.querySelector('.dm-subtab-nav').innerHTML = _subtabNavHtml({
@@ -1423,6 +1429,7 @@ async function _renderDiensten(subTab) {
   if (_dienstenSubTab === 'facties')   _renderFactiesSettings();
   if (_dienstenSubTab === 'magizoo')   _renderMagizooSettings();
   if (_dienstenSubTab === 'markt')     _renderMarktSettings();
+  if (_dienstenSubTab === 'schulden')  _renderSchulden();
   if (_dienstenSubTab === 'toegang')   _renderDienstenToegang();
 };
 
@@ -6238,6 +6245,67 @@ window._hbSave = async () => {
 };
 
 // ── Tweespalt / Gokkantoor ────────────────────────────────────────────────────
+
+// ── Schulden ───────────────────────────────────────────────────────────────
+// Het overzicht dat er niet was. Een schuld zat in een hoek van het gokhuis en
+// niemand zag hem; een schuld die niemand ziet is geen verhaallijn. Hier staat
+// wie er iets open heeft, bij wie, hoeveel hij leende en wat er nu staat.
+async function _renderSchulden() {
+  const el = _tabEl('schulden');
+  if (!el) return;
+  el.innerHTML = '<div class="dm-feature-section"><div class="dm-section-label">Laden…</div></div>';
+
+  let data;
+  try { data = await api.get('/schulden'); } catch (err) {
+    el.innerHTML = `<div class="dm-feature-section"><p style="color:var(--color-seal)">${esc(err.message)}</p></div>`;
+    return;
+  }
+  const rijen = data.schulden || [];
+  const geld = (cl) => window.formatCl?.(cl) ?? `${cl} cl`;
+
+  const rij = (r) => {
+    const st = r.stand || {};
+    const gegroeid = st.huidigVerschuldigdCl > r.hoofdsomCl;
+    return `
+      <div class="dm-schuld${r.wees ? ' dm-schuld--wees' : ''}">
+        <div class="dm-schuld-wie">
+          <strong>${esc(r.spelerNaam || '(onbekend personage)')}</strong>
+          <span>bij ${esc(r.schuldeiser?.naam || 'onbekend')}${r.waarvoor ? ` · ${esc(r.waarvoor)}` : ''}</span>
+        </div>
+        <div class="dm-schuld-cijfers">
+          <div><span class="dm-schuld-label">Geleend</span><b>${geld(r.hoofdsomCl)}</b></div>
+          <div><span class="dm-schuld-label">Staat nu</span>
+            <b class="${gegroeid ? 'dm-schuld-op' : ''}">${geld(st.huidigVerschuldigdCl ?? r.hoofdsomCl)}</b></div>
+          <div><span class="dm-schuld-label">Nachten</span><b>${st.rusten ?? 0}</b></div>
+          <div><span class="dm-schuld-label">Rente</span><b>${r.rentePerRust}%</b></div>
+        </div>
+        ${st.afgetopt ? `<p class="dm-hint dm-schuld-op">Het plafond is bereikt — hij telt niet verder en komt het halen.</p>` : ''}
+        ${r.wees ? `<p class="dm-hint">Dit personage bestaat niet meer. Niemand kan deze schuld afbetalen; hij telt wel door.</p>` : ''}
+        <div class="dm-schuld-knoppen">
+          <button class="dm-btn dm-btn-sm dm-btn-ghost" onclick="window.dmPanel.schuldWeg('${esc(r.id)}','${esc(r.spelerNaam || 'dit personage')}')">
+            ${icon('x')} ${r.wees ? 'Opruimen' : 'Kwijtschelden'}</button>
+        </div>
+      </div>`;
+  };
+
+  const wezen = rijen.filter(r => r.wees);
+  const lopend = rijen.filter(r => !r.wees);
+
+  el.innerHTML = `
+    <div class="dm-feature-section">
+      <div class="dm-section-label">Openstaande schulden<span class="dm-sectie-hulp">${helpBtn('dm_schulden')}</span></div>
+      ${lopend.length ? lopend.map(rij).join('') : '<p class="dm-hint">Niemand heeft iets openstaan.</p>'}
+    </div>
+    ${wezen.length ? `
+    <div class="dm-feature-section">
+      <div class="dm-section-label">Zonder eigenaar</div>
+      <p class="dm-hint">Schulden op naam van een personage dat niet meer bestaat. Laat ze niet slepen: ze tellen door en niemand kan ze afbetalen.</p>
+      ${wezen.map(rij).join('')}
+    </div>` : ''}
+    <div class="dm-feature-section">
+      <p class="dm-hint">Lenen gaat nu nog via het gokhuis; de speler lost zelf af met de knoppen onder zijn leningbanner. De eigen dienst — met zijn eigen deur, de drie trappen en de renown-afspraak — staat beschreven in <strong>docs/voorstel-woekeraar.md</strong>.</p>
+    </div>`;
+}
 
 async function _renderTweespaltDM() {
   const el = _tabEl('tweespalt');
