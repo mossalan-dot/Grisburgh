@@ -396,14 +396,29 @@ Gevraagd op 14 sep 2026, gebouwd op 14 sep 2026.
          proficiencies: die staan in geen bestand dat we mogen gebruiken.
       2. [x] Hetzelfde voor een subklasse, met het veld uit
          `docs/subklasse-velden.md` erbij. Gedaan 1 okt 2026.
-      3. **De omgekeerde index.** Van een feat terug naar wie hem kan nemen, van
-         een ability naar welke subklassen hem raken. Nu loopt alles één kant
-         op: een klasse wijst naar zijn features, maar een feat weet niet bij
-         wie hij hoort. Dit is het stuk waar de vraag om begon, en het vraagt
-         eerst een ontwerpkeuze: wát is een koppeling? Een feat die een klasse
-         noemt in zijn tekst, een feat met een prerequisite, of een feat die een
-         spreuk geeft die op jouw lijst staat? Die drie zijn niet hetzelfde.
-         Het klassekaartje is nu de plek waar ze kunnen landen.
+      3. **De omgekeerde index — eerst data, dan code.** Afgesproken (1 okt 2026)
+         dat alle drie de koppelingen meetellen: een feat die een klasse noemt,
+         een feat met een prerequisite, en een feat die een spreuk geeft.
+         **Maar het is nu niet te bouwen**, en dat is gemeten: van de 67 feats
+         hebben er **negen** een tekst (de rest staat alleen als naam in
+         `feats-2024.json`; hun beschrijving komt uit de PHB). Een scan over die
+         negen levert twee treffers, waarvan er één fout is — *Ability Score
+         Improvement* "noemt" Barbarian omdat het woord in een voorbeeldzin
+         staat. Een index die twee regels oplevert waarvan één gelogen is, is
+         erger dan geen index.
+         Wat er wél kan, in deze volgorde:
+         a. **Een veld bij de feat-editor**: "sluit aan op" (klassen) en
+            "vereist" (vrije tekst). De DM vult het in uit zijn eigen boek,
+            één keer, en het geldt voor de campagne — zelfde patroon als de
+            subklassenteksten.
+         b. **De armorkoppeling uitrekenen.** `bronnen/klasse-basis.json` weet
+            sinds vandaag welke klasse welke armor training geeft; zodra een
+            feat "vereist: Medium armor" draagt, volgt de lijst klassen daaruit
+            vanzelf. Geen invoer, geen gok.
+         c. **Het blok op het klassekaartje**, met de drie soorten als drie
+            zichtbaar verschillende regels — en met het aantal feats dat niet
+            bekeken kon worden eronder, zodat niemand denkt dat de lijst
+            compleet is.
       4. **Spreuken erbij.** Een klasse heeft een spreukenlijst; die staat in de
          Spreuken-tab en is hier niet gekoppeld. `srd-spreukentellers.json` weet
          al hoeveel cantrips en voorbereide spreuken een caster per level heeft —

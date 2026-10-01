@@ -298,9 +298,10 @@ function _card(it) {
 // spreukentellers in een derde bestand. Hier staan ze bij elkaar, boven de
 // features waar ze bij horen.
 //
-// Alleen wat we écht hebben. Saving throws en proficiencies staan in geen enkel
-// databestand dat we mogen gebruiken; die verzinnen we niet, en we laten ze
-// liever weg dan er een leeg vak voor te zetten.
+// Alles komt uit `bronnen/klasse-basis.json`, en dat komt op zijn beurt uit de
+// SRD 5.2 (CC BY 4.0) — dezelfde licentie waar de spreuken en de statblokken
+// uit komen. De Artificer staat niet in de SRD; daarvan tonen we alleen wat we
+// weten, in plaats van de rest te raden.
 let _klasseBasis = null, _tellers = null, _mcEisen = null;
 async function _klasseExtra() {
   if (_klasseBasis) return;
@@ -326,10 +327,24 @@ function _klasseKaartHtml(klasse) {
 
   const feiten = [
     basis.hitDie ? [`d${basis.hitDie}`, 'Hit die'] : null,
+    basis.saves?.length ? [basis.saves.map(a => (_AB_NAAM[a] || a).slice(0, 3).toUpperCase()).join(' · '), 'Saving throws'] : null,
     data.subclassLevel ? [`Level ${data.subclassLevel}`, data.subclassLabel || 'Subklasse'] : null,
     subs.length ? [`${subs.length}`, `Subklassen${gevuld < subs.length ? ` · ${gevuld} met tekst` : ''}`] : null,
     basis.castAbility ? [_AB_NAAM[basis.castAbility] || basis.castAbility, 'Castend ability'] : null,
     basis.featLevels?.length ? [basis.featLevels.join(' · '), 'Feat of verhoging op'] : null,
+  ].filter(Boolean);
+
+  // Training en skills staan apart van de cijfers: het zijn zinnen, geen
+  // getallen, en naast een rij met "d10" en "STR · CON" lezen ze niet mee.
+  const training = [
+    basis.armor   ? ['Armor', basis.armor] : null,
+    basis.weapons ? ['Wapens', basis.weapons] : null,
+    basis.tools   ? ['Gereedschap', basis.tools] : null,
+    basis.skillAantal
+      ? ['Skills', basis.skills?.length
+          ? `kies ${basis.skillAantal} uit ${basis.skills.join(', ')}`
+          : `kies ${basis.skillAantal}, vrij`]
+      : null,
   ].filter(Boolean);
 
   const sig = window._signatureVoor?.(klasse);
@@ -346,6 +361,9 @@ function _klasseKaartHtml(klasse) {
       <div class="vk-feiten">
         ${feiten.map(([w, l]) => `<div class="vk-feit"><span class="vk-feit-waarde">${esc(w)}</span><span class="vk-feit-label">${esc(l)}</span></div>`).join('')}
       </div>
+      ${training.length ? `<dl class="vk-training">
+        ${training.map(([k, v]) => `<dt>${esc(k)}</dt><dd>${esc(v)}</dd>`).join('')}
+      </dl>` : ''}
       ${gevuld < subs.length ? `<p class="vk-noot">Van ${subs.length - gevuld} van de ${subs.length} subklassen staat er geen tekst in de app: die komt uit het Player's Handbook. ${isDM() ? 'Je kunt ze zelf intikken bij een feature hieronder.' : ''}</p>` : ''}
     </div>`;
 }

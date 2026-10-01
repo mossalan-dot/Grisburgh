@@ -1,18 +1,82 @@
 {
-  "_bron": "De harde getallen per klasse: hit die, het ability waarmee je cast, en op welke levels je een feat of verhoging mag kiezen. Alle drie staan ze in de Character Advancement- en klassetabellen van het boek en zijn ze met de hand ingevoerd — het zijn er weinig en ze veranderden tussen 2014 en 2024 niet. Eén bestand, zodat de server (level-up, hit dice) en de client (het klassekaartje in Vaardigheden) hetzelfde lezen.",
+  "_bron": "De harde getallen en lijstjes per klasse: hit die, saving throws, armor- en wapentraining, gereedschap, hoeveel skills je kiest en waaruit, het castende ability en op welke levels je een feat of verhoging mag kiezen. Alles komt uit de System Reference Document 5.2 van Wizards of the Coast, onder CC BY 4.0 — dezelfde licentie waar de spreuken en de statblokken uit komen. Eén bestand, zodat de server (level-up, hit dice) en de client (het klassekaartje in Vaardigheden) hetzelfde lezen.",
+  "_attributie": "System Reference Document 5.2 (\"SRD 5.2\") van Wizards of the Coast LLC, https://www.dndbeyond.com/srd, onder de Creative Commons Attribution 4.0 International License.",
+  "_nb": "De Artificer staat niet in de SRD; daarvan kennen we alleen de hit die uit de speltabellen. Zijn lijstjes blijven leeg in plaats van geraden.",
   "klassen": {
-    "Barbarian": { "hitDie": 12, "castAbility": null,  "featLevels": [4, 8, 12, 16, 19] },
-    "Bard":      { "hitDie": 8,  "castAbility": "cha", "featLevels": [4, 8, 12, 16, 19] },
-    "Cleric":    { "hitDie": 8,  "castAbility": "wis", "featLevels": [4, 8, 12, 16, 19] },
-    "Druid":     { "hitDie": 8,  "castAbility": "wis", "featLevels": [4, 8, 12, 16, 19] },
-    "Fighter":   { "hitDie": 10, "castAbility": null,  "featLevels": [4, 6, 8, 12, 14, 16, 19] },
-    "Monk":      { "hitDie": 8,  "castAbility": null,  "featLevels": [4, 8, 12, 16, 19] },
-    "Paladin":   { "hitDie": 10, "castAbility": "cha", "featLevels": [4, 8, 12, 16, 19] },
-    "Ranger":    { "hitDie": 10, "castAbility": "wis", "featLevels": [4, 8, 12, 16, 19] },
-    "Rogue":     { "hitDie": 8,  "castAbility": null,  "featLevels": [4, 8, 10, 12, 16, 19] },
-    "Sorcerer":  { "hitDie": 6,  "castAbility": "cha", "featLevels": [4, 8, 12, 16, 19] },
-    "Warlock":   { "hitDie": 8,  "castAbility": "cha", "featLevels": [4, 8, 12, 16, 19] },
-    "Wizard":    { "hitDie": 6,  "castAbility": "int", "featLevels": [4, 8, 12, 16, 19] },
-    "Artificer": { "hitDie": 8,  "castAbility": "int", "featLevels": [4, 8, 12, 16, 19] }
+    "Barbarian": {
+      "hitDie": 12, "castAbility": null, "featLevels": [4, 8, 12, 16, 19],
+      "saves": ["str", "con"], "armor": "Light, Medium, Shields", "weapons": "Simple, Martial",
+      "tools": "", "skillAantal": 2,
+      "skills": ["Animal Handling", "Athletics", "Intimidation", "Nature", "Perception", "Survival"]
+    },
+    "Bard": {
+      "hitDie": 8, "castAbility": "cha", "featLevels": [4, 8, 12, 16, 19],
+      "saves": ["dex", "cha"], "armor": "Light", "weapons": "Simple",
+      "tools": "Drie muziekinstrumenten", "skillAantal": 3, "skills": []
+    },
+    "Cleric": {
+      "hitDie": 8, "castAbility": "wis", "featLevels": [4, 8, 12, 16, 19],
+      "saves": ["wis", "cha"], "armor": "Light, Medium, Shields", "weapons": "Simple",
+      "tools": "", "skillAantal": 2,
+      "skills": ["History", "Insight", "Medicine", "Persuasion", "Religion"]
+    },
+    "Druid": {
+      "hitDie": 8, "castAbility": "wis", "featLevels": [4, 8, 12, 16, 19],
+      "saves": ["int", "wis"], "armor": "Light, Shields", "weapons": "Simple",
+      "tools": "Herbalism Kit", "skillAantal": 2,
+      "skills": ["Animal Handling", "Arcana", "Insight", "Medicine", "Nature", "Perception", "Religion", "Survival"]
+    },
+    "Fighter": {
+      "hitDie": 10, "castAbility": null, "featLevels": [4, 6, 8, 12, 14, 16, 19],
+      "saves": ["str", "con"], "armor": "Light, Medium, Heavy, Shields", "weapons": "Simple, Martial",
+      "tools": "", "skillAantal": 2,
+      "skills": ["Acrobatics", "Animal Handling", "Athletics", "History", "Insight", "Intimidation", "Perception", "Persuasion", "Survival"]
+    },
+    "Monk": {
+      "hitDie": 8, "castAbility": null, "featLevels": [4, 8, 12, 16, 19],
+      "saves": ["str", "dex"], "armor": "Geen", "weapons": "Simple, Martial met Light",
+      "tools": "Eén Artisan's Tools of muziekinstrument", "skillAantal": 2,
+      "skills": ["Acrobatics", "Athletics", "History", "Insight", "Religion", "Stealth"]
+    },
+    "Paladin": {
+      "hitDie": 10, "castAbility": "cha", "featLevels": [4, 8, 12, 16, 19],
+      "saves": ["wis", "cha"], "armor": "Light, Medium, Heavy, Shields", "weapons": "Simple, Martial",
+      "tools": "", "skillAantal": 2,
+      "skills": ["Athletics", "Insight", "Intimidation", "Medicine", "Persuasion", "Religion"]
+    },
+    "Ranger": {
+      "hitDie": 10, "castAbility": "wis", "featLevels": [4, 8, 12, 16, 19],
+      "saves": ["str", "dex"], "armor": "Light, Medium, Shields", "weapons": "Simple, Martial",
+      "tools": "", "skillAantal": 3,
+      "skills": ["Animal Handling", "Athletics", "Insight", "Investigation", "Nature", "Perception", "Stealth", "Survival"]
+    },
+    "Rogue": {
+      "hitDie": 8, "castAbility": null, "featLevels": [4, 8, 10, 12, 16, 19],
+      "saves": ["dex", "int"], "armor": "Light", "weapons": "Simple, Martial met Finesse of Light",
+      "tools": "Thieves' Tools", "skillAantal": 4,
+      "skills": ["Acrobatics", "Athletics", "Deception", "Insight", "Intimidation", "Investigation", "Perception", "Performance", "Persuasion", "Sleight of Hand", "Stealth"]
+    },
+    "Sorcerer": {
+      "hitDie": 6, "castAbility": "cha", "featLevels": [4, 8, 12, 16, 19],
+      "saves": ["con", "cha"], "armor": "Geen", "weapons": "Simple",
+      "tools": "", "skillAantal": 2,
+      "skills": ["Arcana", "Deception", "Insight", "Intimidation", "Persuasion", "Religion"]
+    },
+    "Warlock": {
+      "hitDie": 8, "castAbility": "cha", "featLevels": [4, 8, 12, 16, 19],
+      "saves": ["wis", "cha"], "armor": "Light", "weapons": "Simple",
+      "tools": "", "skillAantal": 2,
+      "skills": ["Arcana", "Deception", "History", "Intimidation", "Investigation", "Nature", "Religion"]
+    },
+    "Wizard": {
+      "hitDie": 6, "castAbility": "int", "featLevels": [4, 8, 12, 16, 19],
+      "saves": ["int", "wis"], "armor": "Geen", "weapons": "Simple",
+      "tools": "", "skillAantal": 2,
+      "skills": ["Arcana", "History", "Insight", "Investigation", "Medicine", "Religion"]
+    },
+    "Artificer": {
+      "hitDie": 8, "castAbility": "int", "featLevels": [4, 8, 12, 16, 19],
+      "saves": [], "armor": "", "weapons": "", "tools": "", "skillAantal": 0, "skills": []
+    }
   }
 }
