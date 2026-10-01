@@ -381,6 +381,15 @@ Gevraagd op 14 sep 2026, gebouwd op 14 sep 2026.
       tweede voor presets en deuren. Niets ervan raakt de bestaande kaarten
       zolang een getekende dungeon een eigen soort is.
 
+- [ ] **Scripts laten hun backup in `backups/` leggen.** `scripts/backups-opruimen.js`
+      ruimt de rommel op (en deed dat op 1 okt 2026: 72 bestanden, 19 MB), maar
+      de oorzaak blijft: elke migratie en elk eenmalig script legt zijn kopie in
+      de wortel van de campagne, met een eigen naamgeving. Zes conventies voor
+      hetzelfde ding. Een gedeelde helper — `backupNaast(bestand, label)` die in
+      `backups/` schrijft met het stempel dat `writeJSON` ook gebruikt — maakt
+      het opruimscript op termijn overbodig. Klein werk; het wachten is op een
+      moment waarop er toch aan die scripts gezeten wordt.
+
 ## Setup-wizard voor een nieuwe DM
 
 - [ ] **De keuzes die een campagne bepalen, één keer langslopen.** Ze staan nu
