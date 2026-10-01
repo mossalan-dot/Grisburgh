@@ -352,6 +352,35 @@ Gevraagd op 14 sep 2026, gebouwd op 14 sep 2026.
       Proef: de portretten in de kop van een detailvenster, waar het verschil
       het grootst is.
 
+- [ ] **Zelf een dungeon tekenen** (optie, uitgezocht 1 okt 2026). Nu laad je een
+      verrijkte kaart als afbeelding en plot je daar kamers overheen voor de
+      mist. Dat blijft; de vraag was of er daarnáást een eigen editor kan met
+      stijlpresets en een D&D-grid.
+      **Het meeste staat er al.** `render-dungeon.js` kent kamers als vector
+      (`shape: rect | ovaal | poly`, `points`), mist per kamer per party,
+      verbindingslijnen, conditie-iconen, verdiepingen (`gebouwId`), en loot en
+      gevechten die aan een kamer hangen (`dungeonId`/`roomId`). Een getekende
+      dungeon is dezelfde kaart met een getekende ondergrond in plaats van een
+      geüploade: `fileId` is al optioneel op `POST /dungeons`.
+      **Wat ontbreekt**, in volgorde van gewicht:
+      1. **Een coördinatenstelsel dat een grid aankan.** `points` staat in
+         *procenten van de afbeelding*. Eén vakje is dan 2,5% van een kaart van
+         veertig breed, en een kamer die je op 2,47% tekent ligt scheef. Een
+         getekende dungeon hoort in **hele vakjes** te rekenen. Dit is de
+         ontwerpkeuze die eerst gemaakt moet worden: een tweede stelsel naast
+         het bestaande, of alles omzetten.
+      2. **Het vakje moet 5 voet zijn**, anders kun je er geen beweging op
+         aflezen — en dat is het halve nut van een grid aan tafel.
+      3. **Vastklikken tijdens het tekenen** op datzelfde raster.
+      4. **Stijlpresets**: vloerkleur, muurlijn, arcering. Alles is al SVG, dus
+         een preset is een handvol variabelen en één `<pattern>` — dezelfde
+         aanpak als de campagnestijlen hierboven, en dus werk dat twee keer
+         rendeert.
+      5. **Deuren als ding** tussen twee kamers, nu een lijn.
+      Schatting: een dag voor grid + getekende ondergrond + één stijl, een
+      tweede voor presets en deuren. Niets ervan raakt de bestaande kaarten
+      zolang een getekende dungeon een eigen soort is.
+
 ## Setup-wizard voor een nieuwe DM
 
 - [ ] **De keuzes die een campagne bepalen, één keer langslopen.** Ze staan nu
