@@ -28579,3 +28579,48 @@ body.akte-schrijf-open .mp-overlay { z-index: 1320; }
   .vk-training { grid-template-columns: 1fr; gap: 1px; }
   .vk-training dd { margin-bottom: 6px; }
 }
+
+/* Feats die op een klasse aansluiten, onderaan het klassekaartje. Drie soorten
+   koppeling als drie regels, want ze betekenen niet hetzelfde. */
+.vk-feats { margin-top: 11px; padding-top: 10px; border-top: 1px dashed rgba(196,168,122,0.4); }
+.vk-feats-kop {
+  font-family: 'Cinzel', serif; font-size: 9px; font-weight: 700;
+  letter-spacing: .14em; text-transform: uppercase;
+  color: var(--color-ink-faint, rgba(120,96,56,0.7));
+  display: flex; align-items: center; gap: 5px; margin-bottom: 8px;
+}
+.vk-feats-kop .icon { width: 12px; height: 12px; }
+.vk-featrij { margin-bottom: 8px; }
+.vk-featrij-kop {
+  font-family: 'Cinzel', serif; font-size: 10px; color: var(--color-ink-soft, #6a5430);
+  margin-bottom: 4px;
+}
+.vk-featrij-kop span {
+  font-family: 'Crimson Text', serif; font-size: 11px; font-style: italic;
+  color: var(--color-ink-faint, rgba(120,96,56,0.7)); padding-left: 4px;
+}
+.vk-featchips { display: flex; flex-wrap: wrap; gap: 4px; }
+.vk-feat {
+  font-family: 'Crimson Text', serif; font-size: 12px;
+  padding: 2px 8px; border-radius: 10px; cursor: pointer;
+  background: color-mix(in srgb, var(--vk-kleur, #8a6d3f) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--vk-kleur, #8a6d3f) 35%, transparent);
+  color: var(--color-ink, #3a2d1c);
+}
+.vk-feat:hover { background: color-mix(in srgb, var(--vk-kleur, #8a6d3f) 24%, transparent); }
+.vk-feats-noot {
+  margin: 6px 0 0; font-family: 'Crimson Text', serif; font-size: 11.5px;
+  font-style: italic; color: var(--color-ink-faint, rgba(120,96,56,0.75)); line-height: 1.45;
+}
+/* De klassenvinkjes in de bewerkmodus. */
+.vd-klassen { display: flex; flex-wrap: wrap; gap: 5px; }
+.vd-klasse {
+  display: inline-flex; align-items: center; gap: 5px;
+  font-family: 'Cinzel', serif; font-size: 11px;
+  padding: 4px 9px; border-radius: 7px; cursor: pointer;
+  border: 1px solid rgba(138,109,63,0.3);
+  background: var(--color-card-bg, rgba(255,255,255,0.4));
+}
+.vd-klasse .icon { width: 13px; height: 13px; opacity: .7; }
+.vd-klasse input { accent-color: #8a6d3f; }
+.vd-klasse.is-aan { border-color: #d9b24a; background: rgba(217,178,74,0.14); }

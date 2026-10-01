@@ -137,8 +137,8 @@ async function _load() {
       for (const f of (fs || [])) zet({ soort: 'species', bron: soort, level: Number(lvl), naam: f.name, desc: f.desc || '', img: f.img || '', imgFocus: f.imgFocus || '', herkomst: f.herkomst || '' });
     }
   }
-  for (const f of (_bron.feats?.general || [])) zet({ soort: 'feat', bron: 'Feats',      level: 0, naam: f.name, desc: f.desc || '', img: f.img || '', imgFocus: f.imgFocus || '', herkomst: f.herkomst || '' });
-  for (const f of (_bron.feats?.epic    || [])) zet({ soort: 'boon', bron: 'Epic Boons', level: 0, naam: f.name, desc: f.desc || '', img: f.img || '', imgFocus: f.imgFocus || '', herkomst: f.herkomst || '' });
+  for (const f of (_bron.feats?.general || [])) zet({ soort: 'feat', bron: 'Feats',      level: 0, naam: f.name, desc: f.desc || '', img: f.img || '', imgFocus: f.imgFocus || '', herkomst: f.herkomst || '', sluitAan: f.sluitAan || [], vereist: f.vereist || '' });
+  for (const f of (_bron.feats?.epic    || [])) zet({ soort: 'boon', bron: 'Epic Boons', level: 0, naam: f.name, desc: f.desc || '', img: f.img || '', imgFocus: f.imgFocus || '', herkomst: f.herkomst || '', sluitAan: f.sluitAan || [], vereist: f.vereist || '' });
   // Een background is één ding met vijf onderdelen (Ability Scores, Feat,
   // Skill Proficiencies, Tool Proficiency, Equipment). Als losse kaartjes krijg
   // je zestien keer "Ability Scores" in de lijst; als één kaartje per background
@@ -317,6 +317,75 @@ async function _klasseExtra() {
 const _AB_NAAM = { str: 'Strength', dex: 'Dexterity', con: 'Constitution',
                    int: 'Intelligence', wis: 'Wisdom', cha: 'Charisma' };
 
+// ── Welke feats sluiten aan op deze klasse? ─────────────────────────────────
+// Drie soorten koppeling, en ze lijken alleen op elkaar:
+//
+//   1. **Aangewezen** — de DM heeft de feat aan deze klasse gehangen in de
+//      bewerkmodus. Dat is de enige die klopt zonder te raden, want van 58 van
+//      de 67 feats hebben we geen tekst om het uit af te leiden.
+//   2. **Via de eis** — de feat vraagt een armor training, en we weten welke
+//      klassen die geven. Die rekent zichzelf uit: `bronnen/klasse-basis.json`
+//      kent de training per klasse, dus "vereist: Medium armor" levert vanzelf
+//      de lijst op. Geen invoer, geen gok.
+//   3. **Genoemd in de tekst** — een scan over de feats die wél een tekst
+//      hebben. Dat zijn er negen, dus deze regel is bijna altijd leeg. Hij
+//      staat er omdat hij vanzelf vult zodra de DM teksten intikt.
+//
+// En eronder staat hoeveel feats er niet bekeken konden worden. Een lijst die
+// zwijgt over wat hij niet weet, lees je als compleet.
+const _ARMOR_WOORDEN = [
+  { re: /\blight\b/i,   training: 'Light' },
+  { re: /\bmedium\b/i,  training: 'Medium' },
+  { re: /\bheavy\b/i,   training: 'Heavy' },
+  { re: /\bshield/i,     training: 'Shields' },
+];
+function _featsVoorKlasse(klasse) {
+  const basis = _klasseBasis?.[klasse] || {};
+  const mijnArmor = String(basis.armor || '').toLowerCase();
+  const feats = (_all || []).filter(x => x.soort === 'feat' || x.soort === 'boon');
+
+  const aangewezen = [], viaEis = [], genoemd = [];
+  let zonderTekst = 0;
+  const re = new RegExp(`\\b${klasse.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`);
+
+  for (const f of feats) {
+    if ((f.sluitAan || []).includes(klasse)) { aangewezen.push(f); continue; }
+    // De eis: noemt hij een armor training die deze klasse geeft?
+    const eis = String(f.vereist || '');
+    if (eis) {
+      const nodig = _ARMOR_WOORDEN.filter(a => a.re.test(eis)).map(a => a.training);
+      if (nodig.length && nodig.every(t => mijnArmor.includes(t.toLowerCase()))) { viaEis.push(f); continue; }
+    }
+    const tekst = _tekst(f);
+    if (!tekst) { zonderTekst++; continue; }
+    if (re.test(tekst)) genoemd.push(f);
+  }
+  return { aangewezen, viaEis, genoemd, zonderTekst, totaal: feats.length };
+}
+
+function _featBlokHtml(klasse) {
+  const { aangewezen, viaEis, genoemd, zonderTekst, totaal } = _featsVoorKlasse(klasse);
+  if (!aangewezen.length && !viaEis.length && !genoemd.length && !zonderTekst) return '';
+  const chips = (lijst) => lijst
+    .sort((a, b) => a.naam.localeCompare(b.naam))
+    .map(f => `<button class="vk-feat" onclick="window.vaardigheden.open('${esc(f.key).replace(/'/g, "\\'")}')">${esc(f.naam)}</button>`)
+    .join('');
+  const rij = (label, uitleg, lijst) => lijst.length ? `
+    <div class="vk-featrij">
+      <div class="vk-featrij-kop">${esc(label)} <span>${esc(uitleg)}</span></div>
+      <div class="vk-featchips">${chips(lijst)}</div>
+    </div>` : '';
+
+  return `
+    <div class="vk-feats">
+      <div class="vk-feats-kop">${icon('zap')} Feats die hierop aansluiten</div>
+      ${rij('Aangewezen', 'door de DM aan deze klasse gehangen', aangewezen)}
+      ${rij('Via de eis', 'vraagt training die deze klasse geeft', viaEis)}
+      ${rij('Genoemd', 'noemt deze klasse in zijn tekst', genoemd)}
+      ${zonderTekst ? `<p class="vk-feats-noot">Van ${zonderTekst} van de ${totaal} feats staat er geen tekst in de app, dus die konden niet bekeken worden. ${isDM() ? 'Open er een en vink bij <em>Sluit aan op</em> aan waar hij bij hoort — dan staat hij hier.' : ''}</p>` : ''}
+    </div>`;
+}
+
 function _klasseKaartHtml(klasse) {
   const data = _bron?.prog?.classes?.[klasse];
   if (!data) return '';
@@ -365,6 +434,7 @@ function _klasseKaartHtml(klasse) {
         ${training.map(([k, v]) => `<dt>${esc(k)}</dt><dd>${esc(v)}</dd>`).join('')}
       </dl>` : ''}
       ${gevuld < subs.length ? `<p class="vk-noot">Van ${subs.length - gevuld} van de ${subs.length} subklassen staat er geen tekst in de app: die komt uit het Player's Handbook. ${isDM() ? 'Je kunt ze zelf intikken bij een feature hieronder.' : ''}</p>` : ''}
+      ${_featBlokHtml(klasse)}
     </div>`;
 }
 
@@ -667,6 +737,13 @@ function _editorHtml() {
   const toonBron   = bronnen.length > 0;
   const toonSub    = e.soort === 'subclass';
   const toonLevel  = e.soort === 'class' || e.soort === 'subclass' || e.soort === 'species';
+  // Een feat hangt aan niemand: iedereen mag hem nemen. Juist daarom is "waar
+  // sluit hij op aan" een eigen vraag — en het antwoord is er niet, want van 58
+  // van de 67 feats hebben we geen tekst om het uit af te leiden. Dus vraagt de
+  // app het: één keer invullen, en het geldt voor de hele campagne.
+  const toonKoppeling = e.soort === 'feat' || e.soort === 'boon';
+  const klassen = Object.keys(_bron?.prog?.classes || {});
+  const aan = new Set(e.sluitAan || []);
   const subs = toonSub ? _subklassenVan(e.bron) : [];
   return `
     <div class="dm-feature-section" style="margin:0">
@@ -713,6 +790,24 @@ function _editorHtml() {
         ${window._fmtToolbarHtml?.('vd-desc') ?? ''}
         <textarea class="dm-input" id="vd-desc" rows="9" placeholder="Wat doet het? Een lege regel begint een nieuwe alinea.">${esc(e.desc || '')}</textarea>
       </div>
+      ${toonKoppeling ? `
+      <div class="dm-form-row" style="flex-direction:column;align-items:stretch;gap:5px">
+        <label class="dm-form-label">Sluit aan op</label>
+        <p class="dm-hint" style="margin:0 0 3px">Welke klassen hebben hier iets aan? Dat kan zijn omdat de feat ze noemt (Magic Initiate geeft clericspreuken) of omdat hij bij hun manier van spelen hoort. Hij blijft voor iedereen te kiezen — dit is een wegwijzer, geen eis.</p>
+        <div class="vd-klassen">
+          ${klassen.map(k => `
+            <label class="vd-klasse${aan.has(k) ? ' is-aan' : ''}">
+              <input type="checkbox" class="vd-klasse-vink" value="${esc(k)}"${aan.has(k) ? ' checked' : ''}>
+              ${icon(KLASSE_ICOON[k] || 'sword')} ${esc(k)}
+            </label>`).join('')}
+        </div>
+      </div>
+      <div class="dm-form-row">
+        <label class="dm-form-label">Vereist</label>
+        <input class="dm-input" id="vd-vereist" value="${esc(e.vereist || '')}"
+          placeholder="bv. Medium armor training, of Strength 13">
+      </div>
+      <p class="dm-hint" style="margin:-6px 0 10px">Staat hier een armor training in, dan rekent de app zelf uit welke klassen die geven — die hoef je niet aan te vinken.</p>` : ''}
       <div class="dm-form-row">
         <label class="dm-form-label">Afbeelding</label>
         <div class="vaardig-img-rij">
@@ -758,8 +853,10 @@ function _editorOpen(it) {
   _edit = it
     ? { oud: { soort: it.soort, bron: it.bron, sub: it.sub, level: it.level, naam: it.naam },
         soort: it.soort, bron: it.bron, sub: it.sub || '', level: it.level || 1,
-        naam: it.naam, desc: _schoonVoorEditor(it.desc || ''), herkomst: it.herkomst || '', img: it.img || '', imgFocus: it.imgFocus || '' }
-    : { oud: null, soort: 'feat', bron: 'Feats', sub: '', level: 1, naam: '', desc: '', herkomst: 'zelfbedacht', img: '', imgFocus: '' };
+        naam: it.naam, desc: _schoonVoorEditor(it.desc || ''), herkomst: it.herkomst || '', img: it.img || '', imgFocus: it.imgFocus || '',
+        sluitAan: Array.isArray(it.sluitAan) ? [...it.sluitAan] : [], vereist: it.vereist || '' }
+    : { oud: null, soort: 'feat', bron: 'Feats', sub: '', level: 1, naam: '', desc: '', herkomst: 'zelfbedacht', img: '', imgFocus: '',
+        sluitAan: [], vereist: '' };
   // De kiezer bewaart hier niet meteen (dat doet het spreukdetail); de waarde
   // gaat mee met het formulier. Haak dus leegmaken, anders schrijft een eerder
   // geopend venster mee.
@@ -777,6 +874,9 @@ function _editorLees() {
   if (v('vd-level') !== undefined) _edit.level = Number(v('vd-level')) || 1;
   if (v('vd-sub') !== undefined) _edit.sub = v('vd-sub');
   if (v('vd-bron') !== undefined) _edit.bron = v('vd-bron');
+  if (v('vd-vereist') !== undefined) _edit.vereist = v('vd-vereist');
+  const vinkjes = document.querySelectorAll('.vd-klasse-vink');
+  if (vinkjes.length) _edit.sluitAan = [...vinkjes].filter(c => c.checked).map(c => c.value);
   // De focuskiezer staat buiten de gewone velden; zijn waarde leest hij zelf uit.
   const fp = window._fpWaarde?.();
   if (fp && document.querySelector('#m-body .fp-blok')) _edit.imgFocus = fp;
@@ -857,6 +957,7 @@ window.vaardigheden = {
         oud: _edit.oud, soort: _edit.soort, bron: _edit.bron, sub: _edit.sub,
         level: _edit.level, naam: _edit.naam.trim(), desc: _edit.desc,
         herkomst: _edit.herkomst, img: _edit.img || null, imgFocus: _edit.imgFocus || '',
+        sluitAan: _edit.sluitAan || [], vereist: _edit.vereist || '',
         // Bij een feat of Epic Boon: de bibliotheek mee, zodat de server hem
         // vastlegt als deze campagne er nog geen eigen had (zie de route).
         seedFeats: (_edit.soort === 'feat' || _edit.soort === 'boon') ? _bron?.feats : undefined,

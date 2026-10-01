@@ -8824,6 +8824,17 @@ router.post('/progression/feature', requireDM, (req, res) => {
   if (_SPREUK_HERKOMST.includes(b.herkomst)) regel.herkomst = b.herkomst; else delete regel.herkomst;
   if (b.img) regel.img = String(b.img); else if (b.img === null) { delete regel.img; delete regel.imgFocus; }
   if (b.imgFocus) regel.imgFocus = String(b.imgFocus).slice(0, 32); else delete regel.imgFocus;
+  // Waar een feat op aansluit, en wat hij vraagt. Alleen bij feats en boons —
+  // een klassefeature hoort per definitie bij zijn klasse. De klassenamen
+  // worden getoetst aan de progressie, zodat er geen typefout in de index komt.
+  if (b.soort === 'feat' || b.soort === 'boon') {
+    const bekend = new Set(Object.keys(prog.classes || {}));
+    const aan = (Array.isArray(b.sluitAan) ? b.sluitAan : [])
+      .map(String).filter(k => bekend.has(k));
+    if (aan.length) regel.sluitAan = aan; else delete regel.sluitAan;
+    const eis = String(b.vereist || '').trim().slice(0, 160);
+    if (eis) regel.vereist = eis; else delete regel.vereist;
+  }
   doelLijst.push(regel);
 
   storage.writeJSON('progression.json', { ...prog, bron: prog.bron || 'Aangepast door de DM' });
