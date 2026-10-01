@@ -681,6 +681,28 @@ export function initDmPanel() {
       try { await api.delete(`/schulden/${id}`); } catch (e) { alert('Mislukt: ' + e.message); }
       _renderSchulden();
     },
+    async verzoekLening(reqId, akkoord) {
+      const reden = akkoord ? null : _redenVragen('Waarom leent hij niet? (mag leeg blijven)');
+      if (reden === false) return;
+      const munten = akkoord ? _bedragLeesMunten(`dm-leen-${reqId}`) : null;
+      try {
+        await api.post(`/woekeraar/verzoek/${reqId}/${akkoord ? 'approve' : 'reject'}`,
+          akkoord ? { bedrag: munten } : { reden: reden || '' });
+      } catch (e) { alert('Mislukt: ' + e.message); }
+      _renderVerzoeken(); _verzoekenTeller();
+    },
+    async onderpandKies(id) {
+      const keus = document.getElementById(`dm-ond-${id}`)?.value || '';
+      const [soort, itemId, vanId] = keus.split('|');
+      const anoniem = !!document.getElementById(`dm-ond-anon-${id}`)?.checked;
+      try { await api.post(`/onderpand/${id}`, itemId ? { soort, itemId, vanId, anoniem } : { anoniem }); }
+      catch (e) { alert('Mislukt: ' + e.message); }
+      _renderVerzoeken(); _verzoekenTeller();
+    },
+    async schuldOpeisen(id) {
+      try { await api.post(`/schulden/${id}/opeisen`, {}); } catch (e) { alert('Mislukt: ' + e.message); }
+      _renderSchulden();
+    },
     async verzoekSpreuk(reqId, akkoord) {
       // Bij een nee hoort een reden. Hij mag leeg blijven — soms is "nu even
       // niet" het hele antwoord — maar de vraag wordt wél gesteld, want een
@@ -6282,7 +6304,10 @@ async function _renderSchulden() {
         ${r.ontspannen ? `<p class="dm-hint">${icon('shield')} <strong>${esc(r.ontspannen.naam)}</strong> heeft een woordje gedaan: de rente staat stil zolang het aanzien hoog genoeg blijft. Hij betaalt alleen de hoofdsom.</p>` : ''}
         ${st.afgetopt && !r.ontspannen ? `<p class="dm-hint dm-schuld-op">Het plafond is bereikt — hij telt niet verder en komt het halen.</p>` : ''}
         ${r.wees ? `<p class="dm-hint">Dit personage bestaat niet meer. Niemand kan deze schuld afbetalen; hij telt wel door.</p>` : ''}
+        ${r.trap ? `<p class="dm-hint dm-schuld-trap">${icon('alert-triangle')} Trap ${r.trap} van 3 — ${['', 'de brief is bezorgd', 'er is onderpand gevraagd', 'hij staat voor de deur'][r.trap]}.${r.onderpand ? ` Hij nam <strong>${esc(r.onderpand.naam)}</strong> mee.` : ''}</p>` : ''}
         <div class="dm-schuld-knoppen">
+          ${r.wees ? '' : `<button class="dm-btn dm-btn-sm ${r.opgeeist ? 'dm-btn-primary' : 'dm-btn-ghost'}" onclick="window.dmPanel.schuldOpeisen('${esc(r.id)}')"
+            title="Zonder dit wacht hij tot het plafond bereikt is">${icon('alert-triangle')} ${r.opgeeist ? 'Opgeëist' : 'Opeisen'}</button>`}
           <button class="dm-btn dm-btn-sm dm-btn-ghost" onclick="window.dmPanel.schuldWeg('${esc(r.id)}','${esc(r.spelerNaam || 'dit personage')}')">
             ${icon('x')} ${r.wees ? 'Opruimen' : 'Kwijtschelden'}</button>
         </div>
@@ -11530,9 +11555,10 @@ async function _renderVerzoeken() {
   if (!el) return;
   el.innerHTML = _dmLoading();
 
-  let spreuken = [], bezit = null, multiclass = [], dossiers = [], spelers = [], badges = {}, tsData = null, gerData = null;
+  let spreuken = [], bezit = null, multiclass = [], dossiers = [], spelers = [], badges = {}, tsData = null, gerData = null,
+      leningen = [], onderpand = [];
   try {
-    [spreuken, bezit, multiclass, dossiers, spelers, badges, tsData, gerData] = await Promise.all([
+    [spreuken, bezit, multiclass, dossiers, spelers, badges, tsData, gerData, leningen, onderpand] = await Promise.all([
       api.getSpellRequests().then(r => r.requests || []).catch(() => []),
       api.getItemOwnership().catch(() => null),
       api.get('/multiclass-verzoeken').then(r => r.verzoeken || []).catch(() => []),
@@ -11541,6 +11567,8 @@ async function _renderVerzoeken() {
       api.getBadges().catch(() => ({})),
       api.getTweespalt().catch(() => null),
       api.gockGeruchten().catch(() => null),
+      api.get('/woekeraar/verzoeken').then(r => r.verzoeken || []).catch(() => []),
+      api.get('/onderpand/verzoeken').then(r => r.verzoeken || []).catch(() => []),
     ]);
   } catch { /* hieronder vangen we het lege geval af */ }
   const _open = (bezit?.requests || []).filter(r => r.status === 'pending');
@@ -11643,7 +11671,43 @@ async function _renderVerzoeken() {
      <button class="dm-btn dm-btn-sm dm-btn-ghost" onclick="window.dmPanel.verzoekMulticlass('${esc(v.id)}', false)">${icon('x')} Weigeren</button>`
   )).join('');
 
-  const totaal = spreuken.length + voorwerpen.length + multiclass.length + dossiers.length;
+  // Een leenverzoek: het bedrag staat erbij als veld, want afdingen hoort aan
+  // tafel te gebeuren en dan moet het hier ook kunnen.
+  const leenHtml = leningen.map(v => rij(
+    `<strong>${esc(v.spelerNaam)}</strong> wil <em>${esc(_bedragTekst(_clNaarMunten(v.bedragCl || 0)))}</em> lenen`
+    + (v.waarvoor ? `<span class="dm-verzoek-context">Waarvoor: ${esc(v.waarvoor)}</span>` : '<span class="dm-verzoek-context">Hij zei er niet bij waarvoor.</span>')
+    + `<span class="dm-verzoek-context">${v.rentePerRust}% per nacht, tot ${v.maxFactor}× de hoofdsom</span>`,
+    `<input id="dm-leen-${esc(v.id)}" class="dm-input dm-input-sm dm-verzoek-bedrag"
+       value="${esc(_bedragTekst(_clNaarMunten(v.bedragCl || 0)))}" inputmode="decimal"
+       title="Wat hij werkelijk krijgt — pas het aan als je er iets anders van maakt">
+     <button class="dm-btn dm-btn-sm dm-btn-primary" onclick="window.dmPanel.verzoekLening('${esc(v.id)}', true)">${icon('check')} Uitlenen</button>
+     <button class="dm-btn dm-btn-sm dm-btn-ghost" onclick="window.dmPanel.verzoekLening('${esc(v.id)}', false)">${icon('x')} Weigeren</button>`
+  )).join('');
+
+  // Trap 2. De app wijst níéts aan, en hij pakt uit de spullen van de hele
+  // party: hij neemt wat voor het grijpen ligt, en dat is zelden van de juiste
+  // persoon. Daar zit de scène — zeker als er anoniem gegokt is.
+  const onderpandHtml = onderpand.map(v => `
+    <div class="dm-verzoek-rij dm-verzoek-rij--kolom">
+      <span class="dm-verzoek-tekst">
+        <strong>${esc(v.schuldeiser)}</strong> komt iets halen voor de schuld van <em>${esc(v.spelerNaam)}</em>
+        <span class="dm-verzoek-context">Er staat ${esc(_bedragTekst(_clNaarMunten(v.openCl || 0)))} open. Kies uit de spullen van de hele party — of laat hem met lege handen gaan.</span>
+      </span>
+      <select class="dm-input dm-input-sm" id="dm-ond-${esc(v.id)}">
+        <option value="">— hij neemt niets mee —</option>
+        ${(v.bezit || []).map(b => `<option value="${esc(b.soort)}|${esc(b.id)}|${esc(b.vanId || '')}">${esc(b.naam)} — van ${esc(b.van || '?')}</option>`).join('')}
+      </select>
+      <label class="dm-form-checkbox" style="margin-top:4px">
+        <input type="checkbox" id="dm-ond-anon-${esc(v.id)}">
+        <span>Houd geheim wie er geleend heeft</span>
+      </label>
+      <p class="dm-hint" style="margin:2px 0 0">De brief gaat naar <strong>iedereen</strong> en noemt de naam van de schuldenaar. Wie anoniem gokte heeft iets uit te leggen; vink hierboven aan als je dat nog even wilt bewaren.</p>
+      <span class="dm-verzoek-acties">
+        <button class="dm-btn dm-btn-sm dm-btn-primary" onclick="window.dmPanel.onderpandKies('${esc(v.id)}')">${icon('check')} Zo is het</button>
+      </span>
+    </div>`).join('');
+
+  const totaal = spreuken.length + voorwerpen.length + multiclass.length + dossiers.length + leningen.length + onderpand.length;
   // Twee secties, want het zijn twee richtingen: bij Gunnen geef jij iets, bij
   // Verzoeken vraagt een speler iets. Ze stonden onder één kop "Verzoeken", en
   // dan lijkt gunnen een soort verzoek.
@@ -11707,6 +11771,11 @@ async function _renderVerzoeken() {
     <div class="dm-feature-section">
       <div class="dm-section-label">${icon('coins')} Wil lenen ${leningen.length ? `(${leningen.length})` : ''}<span class="dm-sectie-hulp">${helpBtn('dm_verzoeken_lening')}</span></div>
       ${leenHtml || '<p class="dm-hint">Niets openstaand.</p>'}
+    </div>
+
+    <div class="dm-feature-section">
+      <div class="dm-section-label">${icon('lock')} Onderpand ${onderpand.length ? `(${onderpand.length})` : ''}<span class="dm-sectie-hulp">${helpBtn('dm_verzoeken_onderpand')}</span></div>
+      ${onderpandHtml || '<p class="dm-hint">Niets openstaand.</p>'}
     </div>
 
     <div class="dm-feature-section">

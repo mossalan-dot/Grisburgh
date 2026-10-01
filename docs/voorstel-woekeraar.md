@@ -88,14 +88,26 @@ al ligt, met `cinematic: true` zodat hij op het tafelscherm opengaat). Herhaalt
 het bedrag en de termijn. Kost niets, doet alles: hij komt binnen op het moment
 dat de speler denkt dat het goed gaat.
 
-### Trap 2 — het onderpand
-Bij Verzoeken meldt zich: *"Taevin wil onderpand van Sarbek."* De DM ziet de
-boedel van die speler en **wijst zelf een voorwerp aan** — niet willekeurig, en
-niet automatisch. Dat voorwerp gaat naar de schuldeiser; de speler ziet het als
-onderpand in zijn boedel staan, doorgestreept, met wat het terugkopen kost.
+### Trap 2 — het onderpand, en de scène eromheen
+Bij Verzoeken meldt zich: *"Taevin komt iets halen voor de schuld van Sarbek."*
+De DM kiest uit de spullen van **de hele party** en wijst zelf aan wat er
+verdwijnt — niet willekeurig, en niet automatisch.
 
-*Waarom de DM kiest:* de app weet niet wat een voorwerp aan tafel betekent. Het
-zwaard van je vader en een touw van tien voet staan allebei in de knapzak.
+*Waarom de hele party:* Strum pakt wat voor het grijpen ligt, en dat is zelden
+van de juiste persoon. Daarmee wordt een privéschuld een tafelprobleem. En de
+brief die hij achterlaat gaat naar **iedereen**, met de naam van de schuldenaar
+erin en waarvoor hij leende. Wie anoniem gokte heeft op dat moment iets uit te
+leggen — en dát is de scène, niet het verloren voorwerp.
+
+De DM kan die onthulling nog even bewaren: een vinkje maakt er *"iemand onder
+jullie"* van. Dan weet de party dat er iemand in het krijt staat, maar niet wie.
+
+*Waarom de DM het voorwerp kiest:* de app weet niet wat een voorwerp aan tafel
+betekent. Het zwaard van je vader en een touw van tien voet staan allebei in de
+knapzak. Niets kiezen mag ook — dan is hij langs geweest en vond hij niets van
+zijn gading, en ook dat is een mededeling.
+
+Het voorwerp komt terug bij wie het kwijt was zodra de schuld voldaan is.
 
 ### Trap 3 — het bezoek
 De schuld krijgt een **encounter** aangehangen (dezelfde koppeling als bij een

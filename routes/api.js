@@ -15381,16 +15381,20 @@ router.post('/tweespalt/aflossen', attachRole, (req, res) => {
     // Wat in onderpand ging komt terug: dat was de afspraak.
     if (uitRegister?.onderpand) {
       const o = uitRegister.onderpand;
+      // Terug naar wie het kwijt was, en dat is niet per se de schuldenaar.
+      const naarWie = o.vanId || characterId;
       if (o.soort === 'kaartje') {
-        const gr = getGroup(dmState, _playerGroupId(dmState, characterId));
+        const gr = getGroup(dmState, _playerGroupId(dmState, naarWie));
         if (!gr.itemOwners) gr.itemOwners = {};
         if (!Array.isArray(gr.itemOwners[o.itemId])) gr.itemOwners[o.itemId] = [];
-        gr.itemOwners[o.itemId].push({ characterId, playerName: '', qty: 1 });
+        gr.itemOwners[o.itemId].push({ characterId: naarWie, playerName: '', qty: 1 });
       } else {
-        items.push({ id: o.itemId, name: o.naam, note: 'Teruggekregen bij het aflossen.' });
+        const lijst = dmState.playerItems[naarWie] = dmState.playerItems[naarWie] || [];
+        lijst.push({ id: o.itemId, name: o.naam, note: 'Teruggekregen toen de schuld voldaan werd.' });
       }
-      const oi = items.findIndex(x => String(x.id || '').startsWith('onderpand_'));
-      if (oi >= 0) items.splice(oi, 1);
+      const zijn = dmState.playerItems[naarWie] || [];
+      const oi = zijn.findIndex(x => String(x.id || '').startsWith('onderpand_'));
+      if (oi >= 0) zijn.splice(oi, 1);
     }
     if (uitRegister) dmState.schulden.splice(dmState.schulden.indexOf(uitRegister), 1);
     else delete ts.leningen[characterId];
@@ -15634,17 +15638,28 @@ router.get('/onderpand/verzoeken', requireDM, (req, res) => {
   for (const g of Object.values(dmState.groups || {})) {
     for (const v of (g.onderpandVerzoeken || [])) {
       if (v.status !== 'pending') continue;
-      // Wat heeft hij? Losse spullen én voorwerpkaartjes die op zijn naam staan.
-      const los = (dmState.playerItems?.[v.characterId] || [])
-        .filter(i => !String(i.id || '').startsWith('schuld_') && !String(i.id || '').startsWith('ts_leen_'))
-        .map(i => ({ soort: 'los', id: i.id, naam: i.name }));
-      const kaartjes = [];
-      for (const [itemId, eigenaars] of Object.entries(g.itemOwners || {})) {
-        if (!(eigenaars || []).some(o => o.characterId === v.characterId)) continue;
-        const kaart = (entities.voorwerpen || []).find(e => e.id === itemId);
-        kaartjes.push({ soort: 'kaartje', id: itemId, naam: kaart?.name || itemId });
+      // Het bezit van de **hele party**, niet alleen van de schuldenaar. Strum
+      // pakt wat voor het grijpen ligt, en dat is zelden van de juiste persoon.
+      // Daar zit de scène: één speler heeft geleend, iedereen betaalt.
+      const gid = _playerGroupId(dmState, v.characterId);
+      const leden = _spelersVanGroep(gid);
+      const bezit = [];
+      for (const lid of leden) {
+        for (const i of (dmState.playerItems?.[lid.id] || [])) {
+          const id = String(i.id || '');
+          if (id.startsWith('schuld_') || id.startsWith('ts_leen_') || id.startsWith('onderpand_')) continue;
+          bezit.push({ soort: 'los', id: i.id, naam: i.name, vanId: lid.id, van: lid.name });
+        }
       }
-      uit.push({ ...v, spelerNaam: _spelerNaam(entities, v.characterId) || '', bezit: [...kaartjes, ...los] });
+      for (const [itemId, eigenaars] of Object.entries(g.itemOwners || {})) {
+        for (const o of (eigenaars || [])) {
+          const lid = leden.find(x => x.id === o.characterId);
+          if (!lid) continue;
+          const kaart = (entities.voorwerpen || []).find(e => e.id === itemId);
+          bezit.push({ soort: 'kaartje', id: itemId, naam: kaart?.name || itemId, vanId: lid.id, van: lid.name });
+        }
+      }
+      uit.push({ ...v, spelerNaam: _spelerNaam(entities, v.characterId) || '', leden: leden.map(l => l.name), bezit });
     }
   }
   res.json({ verzoeken: uit });
@@ -15659,7 +15674,7 @@ router.post('/onderpand/:id', requireDM, (req, res) => {
   }
   if (!verzoek) return res.status(404).json({ error: 'Verzoek niet gevonden' });
 
-  const { soort, itemId } = req.body || {};
+  const { soort, itemId, vanId, anoniem } = req.body || {};
   // Niets aanwijzen mag: dan heeft hij niets gevonden dat de moeite waard is,
   // en dat is ook een uitkomst. Dan gaat de trap wel door.
   if (!itemId) {
@@ -15671,14 +15686,16 @@ router.post('/onderpand/:id', requireDM, (req, res) => {
   const entities = storage.readJSON('entities.json');
   const schuld = (dmState.schulden || []).find(r => r.id === verzoek.schuldId);
   let naam = '';
+  // Van wie het is doet er niet toe voor Strum; voor de tafel juist wél.
+  const bestolen = vanId || verzoek.characterId;
   if (soort === 'kaartje') {
     const lijst = groep.itemOwners?.[itemId] || [];
-    const i = lijst.findIndex(o => o.characterId === verzoek.characterId);
+    const i = lijst.findIndex(o => o.characterId === bestolen);
     if (i < 0) return res.status(404).json({ error: 'Dat voorwerp staat niet op zijn naam' });
     naam = (entities.voorwerpen || []).find(e => e.id === itemId)?.name || itemId;
     lijst.splice(i, 1);
   } else {
-    const items = dmState.playerItems?.[verzoek.characterId] || [];
+    const items = dmState.playerItems?.[bestolen] || [];
     const i = items.findIndex(x => x.id === itemId);
     if (i < 0) return res.status(404).json({ error: 'Dat spul heeft hij niet' });
     naam = items[i].name;
@@ -15686,28 +15703,42 @@ router.post('/onderpand/:id', requireDM, (req, res) => {
   }
 
   verzoek.status = 'genomen';
-  verzoek.genomen = { soort, itemId, naam };
-  if (schuld) schuld.onderpand = { soort, itemId, naam, genomenOp: new Date().toISOString() };
+  verzoek.genomen = { soort, itemId, naam, vanId: bestolen };
+  if (schuld) schuld.onderpand = { soort, itemId, naam, vanId: bestolen, genomenOp: new Date().toISOString() };
 
-  // Hij hoort te zien wat er weg is, en wat het terugkopen kost.
+  // Het briefje staat bij degene die het kwijt is, niet bij de schuldenaar.
   if (!dmState.playerItems) dmState.playerItems = {};
-  if (!dmState.playerItems[verzoek.characterId]) dmState.playerItems[verzoek.characterId] = [];
-  dmState.playerItems[verzoek.characterId].push({
+  if (!dmState.playerItems[bestolen]) dmState.playerItems[bestolen] = [];
+  dmState.playerItems[bestolen].push({
     id: 'onderpand_' + verzoek.id,
     name: `In onderpand: ${naam}`,
-    note: `${verzoek.schuldeiser} heeft het meegenomen. Je krijgt het terug als je je schuld aflost.`,
+    note: `${verzoek.schuldeiser} heeft het meegenomen. Het komt terug zodra de schuld voldaan is.`,
   });
 
   storage.writeJSON('dm-state.json', dmState);
   const io = req.app.get('io');
-  io.to(_campagneRoom(req)).emit('player:items-updated', { characterId: verzoek.characterId });
-  _bezorgBrief(req, verzoek.characterId, {
-    titel: 'Wat ik meenam',
-    afzender: verzoek.schuldeiser,
-    tekst: `Ik heb ${naam} meegenomen. Niet uit kwaadheid — uit boekhouding.\n\n`
-         + `Je krijgt het terug zodra je betaalt. Daarna praten we niet meer over deze zaak.`,
-  });
-  res.json({ ok: true, genomen: verzoek.genomen });
+  io.to(_campagneRoom(req)).emit('player:items-updated', { characterId: bestolen });
+
+  // De brief gaat naar **iedereen**. Dat is het hele punt: één speler heeft
+  // geleend, de hele party raakt iets kwijt, en nu ligt er een brief op tafel
+  // waarin staat waarom. Wie anoniem gokte heeft iets uit te leggen.
+  const schuldenaarNaam = _spelerNaam(entities, verzoek.characterId) || 'iemand onder jullie';
+  const wieZegtHij = anoniem ? 'iemand onder jullie' : schuldenaarNaam;
+  const bestolenNaam = _spelerNaam(entities, bestolen) || 'een van jullie';
+  const gidBrief = _playerGroupId(dmState, verzoek.characterId);
+  for (const lid of _spelersVanGroep(gidBrief)) {
+    _bezorgBrief(req, lid.id, {
+      titel: 'Wat ik meenam',
+      afzender: verzoek.schuldeiser,
+      entityId: schuld?.schuldeiser?.entityId || null, entityType: 'personages',
+      cinematic: true,
+      tekst: `Ik heb ${naam} meegenomen uit de spullen van ${bestolenNaam}.\n\n`
+           + `Niet uit kwaadheid — uit boekhouding. ${wieZegtHij} staat bij mij in het krijt voor `
+           + `${_tsFormatCl(verzoek.openCl || 0)}, en ik word moe van wachten.\n\n`
+           + `Het komt terug zodra er betaald is. Wie dat doet, is jullie zaak.`,
+    });
+  }
+  res.json({ ok: true, genomen: verzoek.genomen, bestolen: bestolenNaam });
 });
 
 // De DM kan een schuld opeisen zonder op het plafond te wachten: dan begint de

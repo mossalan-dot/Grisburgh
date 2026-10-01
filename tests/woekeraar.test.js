@@ -220,7 +220,10 @@ describe('De woekeraar', () => {
     assert.ok(!na.some(i => i.id === zwaard.id), 'het zwaard is weg');
     assert.ok(na.some(i => /In onderpand/.test(i.name)), 'en er staat wat er weg is');
     post = (await req(server, 'GET', '/api/berichten', null, spelerC)).body.berichten || [];
-    assert.ok(post.some(m => /uit boekhouding/.test(m.tekst || '')), 'met een brief erover');
+    const brief = post.find(m => /uit boekhouding/.test(m.tekst || ''));
+    assert.ok(brief, 'met een brief erover');
+    // De brief noemt wie er geleend heeft: dat is het sociale conflict aan tafel.
+    assert.match(brief.tekst, /Schuldenaar/, 'en hij noemt de naam van de schuldenaar');
 
     // Nacht 3: de dreiging.
     await req(server, 'POST', '/api/party/long-rest', {}, dm);
