@@ -1,6 +1,7 @@
 # Tafelscherm: effecten en geluid
 
-Werkdocument, 4 sep 2026. **Nog niets gebouwd** — dit is het voorstel.
+Werkdocument, 4 sep 2026. **Gebouwd op 1 oktober 2026** — wat hieronder staat
+is uitgevoerd, met drie afwijkingen van het voorstel die onderaan staan.
 
 ## Wat er nu is
 
@@ -133,12 +134,51 @@ is als dit eerst gebeurt.
   gebaar is er — maar na een herstart van de tablet niet meer. Bij het opstarten
   van het tafelscherm één "tik om te beginnen" is genoeg.
 
-## Openstaande vragen
+## Hoe de vier vragen beantwoord zijn
 
-1. Welke effecten uit de tabel wil je echt? Alles bouwen is zonde als de helft
-   nooit gebruikt wordt.
-2. Automatische wond-flits: aan of uit bij Grisburgh?
-3. Moet een toestand ook vanzelf aflopen (bijvoorbeeld mist na tien minuten), of
-   blijft hij tot de DM hem wegklikt?
-4. Gesynthetiseerd geluid voor alles, of lever je losse samples aan voor donder,
-   regen en vuur?
+1. **Welke effecten?** Alle dertien uit de tabel, plus de bestaande drie. Ze
+   zijn allemaal CSS en delen drie vormen (vignette, waas, schok), dus de
+   dertiende kostte nauwelijks meer dan de derde. Wat niet gebruikt wordt kost
+   niets; wat ontbreekt moet je aan tafel missen.
+2. **Automatische flits aan of uit?** Uit, ook bij Grisburgh. Hij staat één
+   vinkje ver (*Instellingen → In het gevecht*). Een scherm dat bij elke
+   schrammetje meepraat is iets wat je een avond moet uitproberen voor je het
+   laat staan, en dat is jouw keuze, niet die van een standaard.
+3. **Loopt een toestand vanzelf af?** Nee. Hij blijft tot je hem wegklikt of
+   vervangt. Een toestand die na tien minuten uit zichzelf verdwijnt is precies
+   het soort ding dat op het verkeerde moment gebeurt, en "Scherm vrij" is één
+   klik. De uitzondering is de donkere schemer bij 0 HP: die gaat vanzelf uit
+   zodra er niemand meer ligt, want dáár is wel een gebeurtenis die het zegt.
+4. **Geluid?** Gesynthetiseerd, voor alle tien de effecten die klinken — nul
+   bestanden, en het werkt bij een nieuwe DM meteen. Wie een echte donderslag
+   wil hangt er in de Geluiden-tab (*Tafelscherm-effecten*) een eigen bestand
+   aan; dat wint van de synthese. Lever je ze aan, dan is dat dus een kwestie
+   van uploaden, niet van bouwen.
+
+## Wat anders ging dan voorgesteld
+
+- **z-index 90 was veel te laag.** Het voorstel rekende met de gevechtsweergave
+  (55) als plafond, maar de stapel in deze app loopt tot 99999: reveals en
+  cinematics zitten op 9998, een detailvenster op 10001, de dobbelbak op 10050.
+  De laag staat nu op **99990**, vlak onder de glossary-ballon.
+- **De klank zit níét in de catalogus als bestand maar als recept.** `klank:
+  'dreun'` verwijst naar een functie in `sound-manager.js` die de klank ter
+  plekke maakt. De catalogus blijft daarmee data.
+- **De automatische flits hangt aan één route**, `PATCH /player-hp`, en niet aan
+  het `player:hp-updated`-signaal. Dat signaal gaat ook af bij een rust, hit
+  dice, een level-up en een drankje; dan zou het scherm groen pulseren bij elke
+  lange rust. De haak zit nu op de plek waar een klap aan tafel wordt
+  opgeschreven, en alles wat langs een andere route loopt doet vanzelf niets.
+
+## Wat er níét in zit
+
+- **Monsters.** Alleen HP van spelers vuurt iets af. Een monster dat klappen
+  krijgt flitst niet, want dan knippert het scherm bij elke aanval die de party
+  uitdeelt.
+- **De toestand overleeft een herstart niet.** De server stuurt het effect door
+  en vergeet het; start de tablet opnieuw op, dan is het scherm schoon ook al
+  ligt er iemand op 0. Dat is een keuze: een tablet die na een herstart de mist
+  van drie uur geleden terugzet is erger dan een die schoon begint.
+- **Regen is een verloop, geen canvas.** Schuine strepen die langs het scherm
+  schuiven. Goedkoop en overtuigend genoeg op afstand; van dichtbij zie je dat
+  het geen druppels zijn.

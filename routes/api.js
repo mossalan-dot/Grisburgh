@@ -10,6 +10,7 @@ const { buildSnapshot, buildCampagneboek } = require('../lib/snapshot');
 const { sheetHtml } = require('../lib/character-sheet');
 const { MODULES, modulesVoor, schoneModules, verborgenUI } = require('../lib/modules');
 const bronnen = require('../lib/bronnen');
+const { DISPLAY_FX, fxVoor, fxBericht } = require('../lib/display-fx');
 const spotify = require('../lib/spotify');
 const config  = require('../config');
 
@@ -3975,14 +3976,23 @@ router.put('/akte/:key/sfeer', requireDM, (req, res) => {
   res.json({ ok: true, sfeer: sfeer || null });
 });
 
-// Eenmalig effect op het tafelscherm (bliksem, windvlaag, duister).
+// De catalogus van effecten, zodat het DM-paneel zijn knoppen eruit bouwt en de
+// Geluiden-tab weet waar je een eigen klank aan kunt hangen. Lezen mag iedereen
+// die is ingelogd; afvuren is aan de DM.
+router.get('/display/fx', attachRole, (req, res) => {
+  res.json({ fx: DISPLAY_FX });
+});
+
+// Een effect op het tafelscherm. `uit` haalt een lopende toestand weg.
 router.post('/display/effect', requireDM, (req, res) => {
   const effect = String(req.body?.effect || '').trim();
-  if (!['bliksem', 'windvlaag', 'duister'].includes(effect)) {
-    return res.status(400).json({ error: 'Onbekend effect' });
-  }
-  req.app.get('io')?.to(_displayRoom(req)).emit('display:effect', { effect });
-  res.json({ ok: true, effect });
+  const bericht = fxBericht(effect);
+  if (!bericht) return res.status(400).json({ error: 'Onbekend effect' });
+  // De klank die de DM er zelf aan hing wint van de synthese in de client.
+  const eigen = (storage.readJSON('sounds.json') || {}).momenten?.['fx-' + effect];
+  if (eigen) bericht.fileId = String(eigen);
+  req.app.get('io')?.to(_displayRoom(req)).emit('display:effect', bericht);
+  res.json({ ok: true, ...bericht });
 });
 
 // Voorleestekst op het tafelscherm. De klassieke *boxed text*: het stuk dat je
@@ -5509,6 +5519,55 @@ router.post('/items/:itemId/gebruik', attachRole, (req, res) => {
   });
 });
 
+// ── Het scherm praat mee als iemand een klap krijgt ─────────────────────────
+// Het mooiste effect is er een waar niemand op hoeft te drukken. De haak zit
+// bewust op één plek: `PATCH /player-hp`, waar een klap aan tafel wordt
+// opgeschreven. Genezing uit een lange rust, hit dice, een level-up of een
+// drankje loopt langs andere routes en vuurt dus niets af — precies goed, want
+// anders flitst het scherm groen bij elke rust.
+//
+// Wat er afgaat:
+//   • HP omlaag, blijft boven 0   → `wond`, of `kritiek` bij ≥ de helft van je
+//                                   maximum in één klap
+//   • HP raakt 0                  → `stervend`, en die blijft staan
+//   • HP weer boven 0             → `genezing`, en `uit` zodra er níémand meer
+//                                   op 0 staat (twee gevallenen: de toestand
+//                                   blijft tot de tweede overeind is)
+//   • HP omhoog, ≥ een kwart van je maximum → `genezing`
+//
+// Dat laatste met een drempel: zonder drempel pulseert het scherm bij elk punt
+// dat een DM bijstelt terwijl hij zit te schuiven.
+//
+// Wie er op 0 staat lezen we uit `dmState.playerHp` zelf, dus er is geen tweede
+// administratie die uit de pas kan lopen met de HP.
+//
+// Staat standaard uit (`meta.tafelscherm.autoFx`): niet elke tafel wil dat het
+// scherm meepraat bij elke schrammetje.
+function _autoFx(req, dmState, characterId, voor, na, max) {
+  try {
+    if (!storage.readJSON('meta.json')?.tafelscherm?.autoFx) return;
+    if (voor == null || na == null || voor === na) return;
+    const io = req.app.get('io');
+    if (!io) return;
+    const kamer = _displayRoom(req);
+    const stuur = (id) => { const b = fxBericht(id); if (b) io.to(kamer).emit('display:effect', b); };
+
+    if (na < voor) {
+      if (na <= 0) return stuur('stervend');
+      const schade = voor - na;
+      return stuur(max && schade >= max / 2 ? 'kritiek' : 'wond');
+    }
+    // Omhoog. Stond hij op 0, dan is dit overeind komen.
+    if (voor <= 0 && na > 0) {
+      const nogGevallen = Object.entries(dmState.playerHp || {})
+        .some(([id, h]) => id !== characterId && h && h.max != null && (h.current || 0) <= 0);
+      if (!nogGevallen) stuur('uit');
+      return stuur('genezing');
+    }
+    if (max && na - voor >= max / 4) stuur('genezing');
+  } catch { /* een effect is nooit de moeite van een 500 waard */ }
+}
+
 router.patch('/player-hp/:characterId', attachRole, (req, res) => {
   // DM mag alles; speler mag alleen eigen HP
   const { characterId } = req.params;
@@ -5526,6 +5585,11 @@ router.patch('/player-hp/:characterId', attachRole, (req, res) => {
   dmState.playerHp[characterId] = updated;
   storage.writeJSON('dm-state.json', dmState);
   req.app.get('io').to(_campagneRoom(req)).emit('player:hp-updated', { characterId, ...updated });
+  // Alleen als `current` echt verschuift: tijdelijke HP is geen wond, en het
+  // maximum bijstellen bij een level-up al helemaal niet.
+  if (req.body.current !== undefined && existing.current !== updated.current) {
+    _autoFx(req, dmState, characterId, existing.current, updated.current, updated.max);
+  }
   res.json(updated);
 });
 
@@ -8236,7 +8300,12 @@ const _DIENST_SVC_KEYS = ['herberg', 'tweespalt', 'gock', 'ursula', 'tempel', 'm
 // plek in sounds.json (`momenten`) i.p.v. serviceAmbiance.
 // Korte klanken bij één moment. Bewust géén sfeerloop (zie serviceAmbiance):
 // dit zijn klanken die één keer spelen, op het moment zelf.
-const _MOMENT_SOUND_KEYS = new Set(['lootReveal', 'levelUp']);
+// Elk tafelscherm-effect mag een eigen klank krijgen (`fx-<id>`), en die lijst
+// komt uit de catalogus — anders is er een tweede plek waar een effect bestaat.
+const _MOMENT_SOUND_KEYS = new Set([
+  'lootReveal', 'levelUp',
+  ...DISPLAY_FX.filter(f => f.klank).map(f => 'fx-' + f.id),
+]);
 const _REST_SVC_KEYS = ['rust-veld', 'rust-herberg', 'rust-kort'];
 function _validSvcKey(key) {
   if (_DIENST_SVC_KEYS.includes(key) || _REST_SVC_KEYS.includes(key)) return true;
@@ -9200,6 +9269,13 @@ router.put('/meta/app', requireDM, (req, res) => {
   // standaard en wordt niet weggeschreven: een ontbrekende sleutel ís de
   // standaard, dus bestaande campagnes veranderen niet en een migratie die hem
   // overal invult is werk dat later in de weg zit.
+  // Laat het tafelscherm meepraten als er HP verschuift. Standaard uit; een
+  // ontbrekende sleutel ís uit, dus bestaande campagnes veranderen niet.
+  if (req.body.autoFx !== undefined) {
+    if (req.body.autoFx) meta.tafelscherm = { ...(meta.tafelscherm || {}), autoFx: true };
+    else if (meta.tafelscherm) { delete meta.tafelscherm.autoFx;
+      if (!Object.keys(meta.tafelscherm).length) delete meta.tafelscherm; }
+  }
   if (req.body.combatHp !== undefined) {
     const m = String(req.body.combatHp);
     if (!_HP_MODI.includes(m)) return res.status(400).json({ error: 'Onbekende HP-weergave' });

@@ -64,14 +64,20 @@ groot het is. Bijgewerkt 15 sep 2026.
 
 ## Tafelscherm-effecten → `docs/tafelscherm-effecten.md`
 
-- [ ] **Effectlaag naar `<body>`** — moet eerst: nu zit `.display-fx` op z-index 5
+- [x] **Effectlaag naar `<body>`** — gedaan 1 okt 2026 (op 99990, niet 90:
+      de stapel loopt tot 99999).
+      Oud: — moet eerst: nu zit `.display-fx` op z-index 5
       binnen het sfeerscherm, terwijl het gevecht er als fixed overlay (55)
       overheen ligt. Zonder dit werkt geen enkel effect tijdens een gevecht — en
       dat is juist waar laag HP ontstaat. Klein werk.
-- [ ] **Catalogus + geluid** — dertien effecten, flits vs. toestand, klank vast aan
+- [x] **Catalogus + geluid** — gedaan 1 okt 2026: `lib/display-fx.js`, zestien
+      effecten, klank gesynthetiseerd met een eigen bestand als overschrijving.
+      Oud: — dertien effecten, flits vs. toestand, klank vast aan
       het effect (WebAudio, geen bestanden).
-- [ ] **Wond-flits automatisch** bij `player:hp-updated`, per campagne aan/uit.
-- [ ] Vier openstaande vragen onderaan dat document (welke effecten, auto aan/uit,
+- [x] **Wond-flits automatisch** — gedaan 1 okt 2026, aan één route (`PATCH /player-hp`)
+      en standaard uit.
+      Oud: bij `player:hp-updated`, per campagne aan/uit.
+- [x] Vier openstaande vragen beantwoord (1 okt 2026) in dat document. Oud: (welke effecten, auto aan/uit,
       lopen toestanden af, gesynthetiseerd of samples).
 
 ## Multi-DM, resterende stappen → `docs/multi-dm-plan.md`

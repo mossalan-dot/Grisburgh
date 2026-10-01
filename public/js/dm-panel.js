@@ -1,4 +1,4 @@
-import { api, huidigeCampagne } from './api.js?v=299';
+import { api, huidigeCampagne } from './api.js?v=300';
 import { init as canvasInit, update as canvasUpdate, stop as canvasStop, acGetal } from './combat-canvas.js?v=30';
 import { renderStatblock } from './render-statblock.js?v=9';
 
@@ -3140,6 +3140,18 @@ function _rbInitDrag() {
   });
 };
 
+// De catalogus van tafelscherm-effecten, één keer opgehaald. En welke toestand
+// er nu op het scherm staat: dat weet de server niet — hij stuurt het effect
+// door en vergeet het, want een tablet die opnieuw opstart hoort een schoon
+// scherm te tonen, niet de mist van drie uur geleden.
+let _fxCatalogus = null;
+let _fxToestand  = null;
+
+async function _fxCatalogusLaden() {
+  if (!_fxCatalogus) _fxCatalogus = (await api.displayFxLijst()).fx || [];
+  return _fxCatalogus;
+}
+
 // Sfeermenu voor het tafelscherm. De keuze wordt bij de akte bewaard, dus
 // volgende sessie staat hij er weer. De effecten eronder zijn eenmalig en
 // worden nergens opgeslagen — die vuur je af op een dramatisch moment.
@@ -3158,11 +3170,9 @@ function _sfeerMenu(ev) {
       ${sferen.map(s => `
         <button class="dm-sfeer-knop${s.id === huidig ? ' is-actief' : ''}" data-sfeer="${esc(s.id)}">${esc(s.label)}</button>`).join('')}
     </div>
-    <div class="dm-rust-menu-kop">Effect — eenmalig</div>
-    <div class="dm-sfeer-fx">
-      <button class="dm-rust-loc-btn" data-fx="bliksem">${icon('zap')} Bliksem</button>
-      <button class="dm-rust-loc-btn" data-fx="windvlaag">${icon('wind')} Windvlaag</button>
-      <button class="dm-rust-loc-btn" data-fx="duister">${icon('moon')} Duister</button>
+    <div class="dm-rust-menu-kop">Effect<span class="dm-sectie-hulp">${helpBtn('dm_tafelscherm_fx')}</span></div>
+    <div class="dm-sfeer-fx" id="dm-sfeer-fx">
+      <p class="dm-hint" style="opacity:.6;margin:0">Laden…</p>
     </div>`;
   document.body.appendChild(menu);
   const r = knop.getBoundingClientRect();
@@ -3178,9 +3188,39 @@ function _sfeerMenu(ev) {
       if (hs) hs.sfeer = b.dataset.sfeer;      // lokaal bijwerken, scheelt een refetch
     } catch { _showToast('Kon de sfeer niet opslaan'); }
   }));
-  menu.querySelectorAll('[data-fx]').forEach(b => b.addEventListener('click', () => {
-    api.displayEffect(b.dataset.fx).catch(() => _showToast('Effect kon niet worden afgevuurd'));
-  }));
+  // De knoppen komen uit de catalogus op de server (`lib/display-fx.js`), zodat
+  // een nieuw effect niet op drie plekken bijgeschreven hoeft te worden. Eén
+  // keer ophalen per sessie; daarna staat hij in `_fxCatalogus`.
+  _fxCatalogusLaden().then(lijst => {
+    const bak = document.getElementById('dm-sfeer-fx');
+    if (!bak) return;
+    const knop = (f) => `<button class="dm-rust-loc-btn dm-fx-knop${_fxToestand === f.id ? ' is-actief' : ''}"
+      data-fx="${esc(f.id)}" title="${f.soort === 'toestand' ? 'Blijft staan tot je hem uitzet' : 'Eenmalig'}">${icon(f.icoon)} ${esc(f.label)}</button>`;
+    const flitsen   = lijst.filter(f => f.soort === 'flits');
+    const toestanden = lijst.filter(f => f.soort === 'toestand');
+    bak.innerHTML = `
+      <div class="dm-fx-groep-kop">Eenmalig</div>
+      <div class="dm-fx-rij">${flitsen.map(knop).join('')}</div>
+      <div class="dm-fx-groep-kop">Blijft staan</div>
+      <div class="dm-fx-rij">${toestanden.map(knop).join('')}</div>
+      <button class="dm-rust-loc-btn dm-fx-uit${_fxToestand ? '' : ' is-uit'}" data-fx="uit">${icon('x')} Scherm vrij</button>`;
+    bak.querySelectorAll('[data-fx]').forEach(b => b.addEventListener('click', () => {
+      const id = b.dataset.fx;
+      api.displayEffect(id).catch(() => _showToast('Effect kon niet worden afgevuurd'));
+      // Alleen een toestand heeft een stand om te onthouden; een flits is weg
+      // voor je hem hebt losgelaten.
+      const f = lijst.find(x => x.id === id);
+      if (id === 'uit') _fxToestand = null;
+      else if (f?.soort === 'toestand') _fxToestand = (_fxToestand === id ? null : id);
+      else return;
+      if (_fxToestand === null && id !== 'uit') api.displayEffect('uit').catch(() => {});
+      bak.querySelectorAll('.dm-fx-knop').forEach(x => x.classList.toggle('is-actief', x.dataset.fx === _fxToestand));
+      bak.querySelector('.dm-fx-uit')?.classList.toggle('is-uit', !_fxToestand);
+    }));
+  }).catch(() => {
+    const bak = document.getElementById('dm-sfeer-fx');
+    if (bak) bak.innerHTML = '<p class="dm-hint" style="opacity:.6;margin:0">Effecten konden niet worden geladen.</p>';
+  });
   setTimeout(() => {
     const sluit = (e) => {
       if (!menu.contains(e.target)) { menu.remove(); document.removeEventListener('click', sluit); }
@@ -8443,6 +8483,11 @@ window._ambPlay = async (id) => { await _ambBroadcast(id);   _renderGeluiden(); 
 window._ambStop = async ()   => { await _ambBroadcast(null); _renderGeluiden(); _renderRegieBalk(); };
 
 async function _renderGeluiden() {
+  // De effectrijen komen uit de catalogus; die is er bij het eerste bezoek aan
+  // dit tabblad nog niet, want hij wordt pas opgehaald als je het sfeermenu
+  // opent. Hier dus ook, en daarna tekenen.
+  if (!_fxCatalogus) { try { await _fxCatalogusLaden(); } catch { _fxCatalogus = []; } }
+
   const el = document.getElementById('dm-geluiden-content');
   if (!el) return;
 
@@ -8673,6 +8718,23 @@ async function _renderGeluiden() {
     ${momentRow('lootReveal', 'Loot onthullen', 'klinkt zodra de spelers de buit te zien krijgen')}
     ${momentRow('levelUp', 'Level omhoog', 'klinkt bij de speler die een level omhoog gaat, en op het tafelscherm')}`;
 
+  // De klanken bij een tafelscherm-effect. Ze maken zichzelf in de browser, dus
+  // hier staat niets leeg te wachten: wat je kiest vervángt de gemaakte klank.
+  // De lijst komt uit de catalogus op de server, zodat een nieuw effect vanzelf
+  // een rij krijgt. Alleen effecten die überhaupt geluid maken staan erbij.
+  const fxRijen = (_fxCatalogus || []).filter(f => f.klank).map(f => `
+    <div class="dm-sound-row">
+      <span class="dm-sound-slot-label" title="klinkt bij het effect ${esc(f.label)} op het tafelscherm">${icon(f.icoon)} ${esc(f.label)}</span>
+      <div class="dm-sound-controls">
+        ${(sounds.momenten || {})['fx-' + f.id]
+          ? `<button class="dm-btn dm-btn-sm dm-btn-ghost" title="Testplay" onclick="window._sndPlay('${esc((sounds.momenten || {})['fx-' + f.id])}', this)">▶</button>
+             <span class="dm-sound-set">${icon('check')} Eigen klank</span>
+             <button class="dm-btn dm-btn-sm dm-btn-ghost" onclick="window._momentRemove('fx-${esc(f.id)}')" title="Terug naar de gemaakte klank">${icon('x')}</button>`
+          : `<span class="dm-sound-empty">Gemaakt in de browser</span>`}
+        ${_sndKiesKnop(`window._sndKiesMoment('fx-${esc(f.id)}')`, !!(sounds.momenten || {})['fx-' + f.id])}
+      </div>
+    </div>`).join('');
+
   // Wat blijft is de rust: dat is een loop die speelt zolang het rustscherm
   // staat, en dus sfeer.
   const momentSection = `
@@ -8712,6 +8774,11 @@ async function _renderGeluiden() {
         <div class="dm-sound-section-title">${icon('sparkles')} Condities<span class="dm-sectie-hulp">${helpBtn('dm_geluiden_condities')}</span></div>
         <div class="dm-sound-list">${conditionRows}</div>
       </div>
+      ${fxRijen ? `
+      <div class="dm-sound-section">
+        <div class="dm-sound-section-title">${icon('zap')} Tafelscherm-effecten<span class="dm-sectie-hulp">${helpBtn('dm_geluiden_fx')}</span></div>
+        <div class="dm-sound-list">${fxRijen}</div>
+      </div>` : ''}
     </div>
 
     <div class="dm-geluiden-paneel" data-sub="spelers"${_geluidenSubtab === 'spelers' ? '' : ' hidden'}>
@@ -12546,6 +12613,13 @@ async function _renderInstellingen() {
         </select>
       </div>
       <p class="dm-hint">Je eigen personage en je eigen metgezel zie je altijd volledig, in elke stand.</p>
+      <div class="dm-form-row">
+        <label class="dm-form-checkbox">
+          <input type="checkbox" id="inst-auto-fx"${meta.tafelscherm?.autoFx ? ' checked' : ''}>
+          <span>Het tafelscherm praat mee bij HP</span>
+        </label>
+      </div>
+      <p class="dm-hint">Een rode flits als iemand een klap krijgt, een feller beeld bij zware schade, en een donkerrode schemer zolang er iemand op 0 ligt. Genezing uit een rust of een level-up doet niets — alleen wat je aan tafel als klap opschrijft.</p>
     `, window._helpBtn?.('inst_gevecht') ?? '')}
 
     ${!magBeheren ? '' : _instSectie('campagnes', 'Campagnes en modules', `
@@ -12790,6 +12864,7 @@ window._instOpslaan = async () => {
       inOverzicht: document.getElementById('inst-in-overzicht')?.checked !== false,
       bronLink:    document.getElementById('inst-bron-link')?.value.trim() ?? '',
       combatHp:    document.getElementById('inst-combat-hp')?.value || 'staat',
+      autoFx:      !!document.getElementById('inst-auto-fx')?.checked,
       // levelup gaat via zijn eigen route (validatie op de server), zie hieronder
       currency: {
         fl: document.getElementById('inst-munt-fl')?.value.trim(),

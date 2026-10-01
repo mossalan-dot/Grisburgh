@@ -31,6 +31,94 @@ function _play(fileId) {
   } catch { /* ignore */ }
 }
 
+// ── Klanken bij een tafelscherm-effect ───────────────────────────────────────
+// Gemaakt in de browser, niet uit een bestand. Een dreun is een lage sinus die
+// in 200 ms wegzakt met een ruisflard eroverheen; een schittering een paar hoge
+// tonen met lange uitloop. Dat kost nul bestanden, geen licentiegedoe, geen
+// laadtijd, het werkt offline en bij een nieuwe DM meteen. Het klinkt gemaakt —
+// voor een dreun of een tik is dat prima, en wie een echte donderslag wil hangt
+// er in de Geluiden-tab een eigen bestand aan (dat wint, zie `playFx`).
+let _ac = null;
+function _audioCtx() {
+  if (!_ac) {
+    const C = window.AudioContext || window.webkitAudioContext;
+    if (!C) return null;
+    _ac = new C();
+  }
+  // Browsers zetten de context in de wacht tot er één keer geklikt is. Het
+  // tafelscherm wordt door de DM omgezet, dus dat gebaar is er — maar na een
+  // herstart van de tablet niet meer; dan blijft het stil in plaats van te
+  // klappen zodra iemand hem aanraakt.
+  if (_ac.state === 'suspended') _ac.resume().catch(() => {});
+  return _ac;
+}
+
+// Een ruisbuffer van een seconde; hergebruikt, want hem elke keer vullen kost
+// meer dan de klank zelf.
+let _ruisBuf = null;
+function _ruis(ctx) {
+  if (!_ruisBuf || _ruisBuf.sampleRate !== ctx.sampleRate) {
+    _ruisBuf = ctx.createBuffer(1, ctx.sampleRate, ctx.sampleRate);
+    const d = _ruisBuf.getChannelData(0);
+    for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+  }
+  return _ruisBuf;
+}
+
+// Eén toon: golfvorm, toonhoogte (eventueel glijdend), volume en lengte.
+function _toon(ctx, { type = 'sine', van, naar, vol = 0.3, start = 0, duur = 0.3 }) {
+  const t = ctx.currentTime + start;
+  const osc = ctx.createOscillator();
+  const g   = ctx.createGain();
+  osc.type = type;
+  osc.frequency.setValueAtTime(van, t);
+  if (naar && naar !== van) osc.frequency.exponentialRampToValueAtTime(Math.max(1, naar), t + duur);
+  g.gain.setValueAtTime(0.0001, t);
+  g.gain.exponentialRampToValueAtTime(vol, t + Math.min(0.04, duur / 4));
+  g.gain.exponentialRampToValueAtTime(0.0001, t + duur);
+  osc.connect(g).connect(ctx.destination);
+  osc.start(t); osc.stop(t + duur + 0.05);
+}
+
+// Een vlaag ruis door een filter: regen, wind, de flard over een dreun heen.
+function _ruisvlaag(ctx, { filter = 'lowpass', freq = 900, q = 1, vol = 0.25, start = 0, duur = 0.4, loop = false }) {
+  const t = ctx.currentTime + start;
+  const src = ctx.createBufferSource();
+  src.buffer = _ruis(ctx);
+  src.loop = loop;
+  const f = ctx.createBiquadFilter();
+  f.type = filter; f.frequency.value = freq; f.Q.value = q;
+  const g = ctx.createGain();
+  g.gain.setValueAtTime(0.0001, t);
+  g.gain.exponentialRampToValueAtTime(vol, t + Math.min(0.08, duur / 3));
+  g.gain.exponentialRampToValueAtTime(0.0001, t + duur);
+  src.connect(f).connect(g).connect(ctx.destination);
+  src.start(t); src.stop(t + duur + 0.05);
+  return src;
+}
+
+// De recepten. De sleutel is `klank` uit `lib/display-fx.js`.
+const _FX_KLANKEN = {
+  dreun:    (c) => { _toon(c, { type: 'sine', van: 150, naar: 42, vol: 0.34, duur: 0.26 });
+                     _ruisvlaag(c, { freq: 420, vol: 0.14, duur: 0.18 }); },
+  klap:     (c) => { _toon(c, { type: 'square', van: 220, naar: 38, vol: 0.30, duur: 0.18 });
+                     _ruisvlaag(c, { filter: 'bandpass', freq: 1800, q: 0.7, vol: 0.26, duur: 0.3 }); },
+  hartslag: (c) => { _toon(c, { type: 'sine', van: 72, naar: 44, vol: 0.30, duur: 0.22 });
+                     _toon(c, { type: 'sine', van: 66, naar: 40, vol: 0.22, start: 0.34, duur: 0.26 }); },
+  gloed:    (c) => { [523.25, 659.25, 783.99].forEach((f, i) =>
+                       _toon(c, { type: 'sine', van: f, vol: 0.17, start: i * 0.07, duur: 0.9 })); },
+  tinkel:   (c) => { [1046.5, 1396.9, 1760, 2093].forEach((f, i) =>
+                       _toon(c, { type: 'triangle', van: f, vol: 0.12, start: i * 0.05, duur: 0.7 })); },
+  zwiep:    (c) => { _toon(c, { type: 'sawtooth', van: 160, naar: 1400, vol: 0.14, duur: 0.42 });
+                     _ruisvlaag(c, { filter: 'highpass', freq: 1400, vol: 0.12, duur: 0.5 }); },
+  donder:   (c) => { _ruisvlaag(c, { freq: 260, vol: 0.30, duur: 1.6 });
+                     _toon(c, { type: 'sine', van: 64, naar: 28, vol: 0.26, start: 0.05, duur: 1.4 }); },
+  rommel:   (c) => { _ruisvlaag(c, { freq: 170, vol: 0.28, duur: 1.5 });
+                     _toon(c, { type: 'sine', van: 46, naar: 30, vol: 0.24, duur: 1.5 }); },
+  vlaag:    (c) => { _ruisvlaag(c, { filter: 'bandpass', freq: 700, q: 0.5, vol: 0.20, duur: 1.8 }); },
+  ruis:     (c) => { _ruisvlaag(c, { filter: 'highpass', freq: 1100, vol: 0.14, duur: 2.4 }); },
+};
+
 // ── Ambiance (feature #2) ──────────────────────────────────────────────────────
 // Twee blijvende loop-Audio's:
 //  • broadcast-scène — de DM zet 'm voor iedereen (per-campagne via socket).
@@ -309,6 +397,17 @@ window.soundManager = {
     if (!fileId) return;
     if (loop) this.setAmbiance({ actief: 'reveal', fileId, label: label || 'Reveal', volume: _ambVolume });
     else _play(fileId);
+  },
+  // De klank bij een tafelscherm-effect. Een eigen bestand uit de Geluiden-tab
+  // wint; staat er niets, dan synthetiseren we het recept uit de catalogus.
+  // Niets ingesteld én geen recept → stilte, en dat is een geldige uitkomst.
+  playFx({ fileId, klank } = {}) {
+    if (fileId) { _play(fileId); return; }
+    const maak = klank && _FX_KLANKEN[klank];
+    if (!maak) return;
+    const ctx = _audioCtx();
+    if (!ctx) return;
+    try { maak(ctx); } catch { /* een stil effect is beter dan een fout */ }
   },
   // Rust-sfeerloop tijdens de rust-overlay (party-breed, transient). Eigen audio,
   // los van broadcast/dienst-loop; respecteert dezelfde dempvoorkeur als de dienst-loop.

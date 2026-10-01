@@ -1,4 +1,4 @@
-import { api, campagneUitUrl, zetCampagne } from './api.js?v=299';
+import { api, campagneUitUrl, zetCampagne } from './api.js?v=300';
 import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, renderDocumenten, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=328";
 import { initArchief, renderLogboek, openLogboekEditor } from "./render-archief.js?v=139";
 import { renderKaart, queueFlyTo, verversPins, nieuweKaart } from './render-kaart.js?v=31';
@@ -9,8 +9,8 @@ import { renderBestiarium } from './render-bestiarium.js?v=31';
 import { renderSpreuken } from './render-spreuken.js?v=41';
 import { renderVaardigheden, zoekVaardigheden } from './render-vaardigheden.js?v=10';
 import { renderStatblock } from './render-statblock.js?v=9';
-import { initSocket } from "./socket-client.js?v=80";
-import { initDmPanel } from "./dm-panel.js?v=367";
+import { initSocket } from "./socket-client.js?v=81";
+import { initDmPanel } from "./dm-panel.js?v=368";
 import { COND_INFO, COND_LABEL, COND_MET_PLAATJE, COND_ICON } from './conditions.js?v=2';
 import './media-picker.js?v=8';
 import './tafels.js?v=2';
@@ -11673,24 +11673,72 @@ window._setDisplaySfeer = function(sfeerId) {
   _buildIdleEmbers(s.id);
 };
 
-// Eenmalig effect over het sfeerscherm. Verdwijnt vanzelf; bliksem en duister
-// zijn een overlay, een windvlaag duwt de bestaande deeltjes opzij.
-window._displayEffect = function(effect) {
-  const scherm = document.getElementById('display-idle');
-  if (!scherm) return;
-  if (effect === 'windvlaag') {
+// ── Effecten op het tafelscherm ─────────────────────────────────────────────
+// De laag hing binnen `#display-idle` — het sfeerscherm — op z-index 5. De
+// gevechtsweergave is `position: fixed; z-index: 55` en dekt dat volledig af,
+// dus een effect tijdens een gevecht was onzichtbaar: het zat eronder, in een
+// bak die op dat moment niet eens in beeld was. Precies het geval waarvoor je
+// het wil, want laag HP ontstaat in een gevecht. De laag hangt daarom nu aan
+// `<body>`, boven het gevecht, de brief- en lootcinematics en de dungeonkaart.
+//
+// Twee bakken, want een toestand (mist, gif) blijft staan en een flits (wond,
+// bliksem) gaat er juist overheen. Eén bak zou betekenen dat een rode flits je
+// groene gifwaas wegvaagt.
+let _fxFlitsTimer = null;
+
+function _fxLaag() {
+  let laag = document.getElementById('display-fx-laag');
+  if (!laag) {
+    laag = document.createElement('div');
+    laag.id = 'display-fx-laag';
+    laag.className = 'display-fx-laag';
+    laag.innerHTML = '<div class="display-fx-bak" id="display-fx-toestand"></div>' +
+                     '<div class="display-fx-bak" id="display-fx-flits"></div>';
+    document.body.appendChild(laag);
+  }
+  return laag;
+}
+
+window._displayEffect = function(data) {
+  // Een oudere server stuurde alleen een naam; dan weten we de soort niet en
+  // behandelen we het als een flits van een seconde.
+  const d = typeof data === 'string' ? { effect: data, soort: 'flits', duur: 1000 } : (data || {});
+  const id = d.effect;
+  if (!id) return;
+  _fxLaag();
+  const toestand = document.getElementById('display-fx-toestand');
+  const flits    = document.getElementById('display-fx-flits');
+
+  if (id === 'uit') { toestand.className = 'display-fx-bak'; toestand.style.removeProperty('--fx-kleur'); return; }
+
+  // De windvlaag is geen laag maar een duw tegen de deeltjes van het
+  // sfeerscherm; buiten dat scherm valt er niets te duwen.
+  if (id === 'windvlaag') {
     const host = document.getElementById('display-idle-embers');
-    if (!host) return;
-    host.classList.remove('is-windvlaag');
-    void host.offsetWidth;              // herstart de animatie
-    host.classList.add('is-windvlaag');
-    setTimeout(() => host.classList.remove('is-windvlaag'), 2300);
+    if (host) {
+      host.classList.remove('is-windvlaag');
+      void host.offsetWidth;              // herstart de animatie
+      host.classList.add('is-windvlaag');
+      setTimeout(() => host.classList.remove('is-windvlaag'), 2300);
+    }
+    window.soundManager?.playFx?.(d);
     return;
   }
-  const laag = document.createElement('div');
-  laag.className = `display-fx display-fx--${effect === 'duister' ? 'duister' : 'bliksem'}`;
-  scherm.appendChild(laag);
-  setTimeout(() => laag.remove(), effect === 'duister' ? 2800 : 1300);
+
+  const bak = d.soort === 'toestand' ? toestand : flits;
+  // Vervangen, niet stapelen: een tweede flits over een eerste geeft een
+  // knipperend scherm, en dat is precies wat je bij een tafel vol mensen niet
+  // wil riskeren.
+  bak.className = 'display-fx-bak';
+  void bak.offsetWidth;
+  if (d.kleur) bak.style.setProperty('--fx-kleur', d.kleur);
+  bak.classList.add('is-aan', `display-fx--${id}`);
+
+  if (d.soort !== 'toestand') {
+    clearTimeout(_fxFlitsTimer);
+    _fxFlitsTimer = setTimeout(() => { bak.className = 'display-fx-bak'; }, (d.duur || 1000) + 120);
+  }
+  window.soundManager?.playFx?.(d);
 };
 
 function _initDisplayMode() {
@@ -14549,6 +14597,18 @@ const HELP_CONFIG = {
     { titel: 'Alle condities die de app kent', tekst: 'De lijst komt uit dezelfde bron als de conditiekaartjes en de tokens, dus elke condition die je op een deelnemer kunt zetten staat hier — je hoeft niet meer te kiezen uit een handvol.', afbeelding: null },
     { titel: 'De zwaarste wint', tekst: 'Staan er meerdere tegelijk op iemand, dan klinkt alleen de zwaarste. Anders zou het bij een goede ronde een kakofonie worden.', afbeelding: null },
     { titel: 'Concentration is de uitzondering', tekst: 'Die klinkt niet bij het toepassen maar bij het begin van elke nieuwe ronde, zolang er iemand concentreert — het is een herinnering, geen gebeurtenis.', afbeelding: null },
+  ] }),
+  dm_geluiden_fx: () => ({ titel: 'Klanken bij een effect', stappen: [
+    { titel: 'Ze maken zichzelf', tekst: 'Deze klanken worden in de browser gemaakt met een paar tonen en wat ruis — er staat geen bestand tegenover. Dat scheelt laadtijd en licentiegedoe, en bij een nieuwe campagne klinkt het meteen zonder dat jij iets hoeft te vullen. Voor een dreun of een tik is dat prima; een overtuigende donderslag krijg je er niet mee.', afbeelding: null },
+    { titel: 'Een eigen klank wint', tekst: 'Kies je hier een bestand uit de bibliotheek, dan vervangt dat de gemaakte klank. Doe dat vooral bij **donder**, **regen** en de **aardbeving** — daar hoor je het verschil. Het kruisje zet hem terug op de gemaakte klank; er blijft dus nooit iets stils achter.', afbeelding: null },
+    { titel: 'Niet elk effect klinkt', tekst: 'Mist, gif en vuur staan er niet bij: die hóren stil te zijn, want ze blijven staan. Een klank die blijft doorlopen is een sfeerloop, en die stel je in bij Diensten of bij de akte.', afbeelding: null },
+  ] }),
+  dm_tafelscherm_fx: () => ({ titel: 'Effecten op het tafelscherm', stappen: [
+    { titel: 'Twee soorten', tekst: 'Een effect onder **Eenmalig** flitst en ruimt zichzelf op — een wond, bliksem, een schokgolf. Een effect onder **Blijft staan** blijft op het scherm tot jij hem uitzet: mist, gif, vuur, duister. Dat verschil is er omdat een toestand een uitknop nodig heeft; zonder dat zou je scherm groen blijven omdat je tweemaal drukte.', afbeelding: null },
+    { titel: 'Scherm vrij', tekst: 'Haalt de lopende toestand weg. Er kan er maar één tegelijk staan — een nieuwe vervangt de vorige — maar een flits mag er wél overheen: een rode klap over je groene gifwaas.', afbeelding: null },
+    { titel: 'Overal, ook in een gevecht', tekst: 'De effectlaag ligt over álles heen: het sfeerscherm, een getoonde afbeelding, de dungeonkaart en de gevechtsweergave. Dat laatste is waar het om gaat, want laag HP ontstaat nu eenmaal in een gevecht.', afbeelding: null },
+    { titel: 'Vanzelf bij HP', tekst: 'Bij **Instellingen → In het gevecht** kun je het scherm laten meepraten als er HP verschuift: een rode flits bij een klap, feller bij zware schade, en een donkerrode schemer zolang er iemand op 0 ligt. Dat gaat alleen af op wat je aan tafel als klap opschrijft — genezing uit een rust, hit dice of een level-up doet niets. Standaard uit.', afbeelding: null },
+    { titel: 'Rustig aan met de felle', tekst: 'Bliksem, kritiek en de aardbeving zijn felle wisselingen. Wie in zijn systeem heeft staan dat hij minder beweging wil, krijgt ze zachter en zonder schok. Zit er iemand aan tafel die daar gevoelig voor is, gebruik ze dan spaarzaam.', afbeelding: null },
   ] }),
   dm_geluiden_spelers: () => ({ titel: 'Spelersgeluiden', stappen: [
     { titel: 'Een beurtgeluid', tekst: 'Per speler kun je een klank instellen die speelt als hij aan de beurt is. Handig aan een volle tafel: je hoort dat het jouw beurt is voordat je het ziet.', afbeelding: null },

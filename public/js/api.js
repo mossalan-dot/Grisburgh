@@ -467,6 +467,7 @@ export const api = {
   // Sfeer van het tafelscherm (bewaard bij de akte) en eenmalige effecten.
   setAkteSfeer:        (key, sfeer) => request(`/akte/${encodeURIComponent(key)}/sfeer`, { method: 'PUT', body: JSON.stringify({ sfeer }) }),
   displayEffect:       (effect) => request('/display/effect', { method: 'POST', body: JSON.stringify({ effect }) }),
+  displayFxLijst:      ()       => request('/display/fx'),
   onthulAfbeelding:    (sessieId, fileId, caption, groupId) =>
     request(`/sessieLog/${encodeURIComponent(sessieId)}/onthul`, { method: 'POST', body: JSON.stringify({ fileId, caption, groupId }) }),
   // Onthullen terugdraaien — voor de ongedaan-maken-knop in de akte.

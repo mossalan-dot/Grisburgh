@@ -272,8 +272,10 @@ function _ververOpenKaartje(id) {
   socket.on('display:sfeer', ({ sfeer } = {}) => {
     if (window._isDisplayMode) window._setDisplaySfeer?.(sfeer || 'haard');
   });
-  socket.on('display:effect', ({ effect } = {}) => {
-    if (window._isDisplayMode) window._displayEffect?.(effect);
+  socket.on('display:effect', (data = {}) => {
+    // Het hele bericht doorgeven: de server vertelt soort, duur, kleur en
+    // klank, zodat de client de catalogus niet hoeft te kennen.
+    if (window._isDisplayMode) window._displayEffect?.(data);
   });
 
   socket.on('display:idle', () => {
@@ -356,7 +358,7 @@ function _ververOpenKaartje(id) {
   });
 
   socket.on('meta:updated', () => {
-    import('./api.js?v=299').then(({ api }) => api.meta().then(m => {
+    import('./api.js?v=300').then(({ api }) => api.meta().then(m => {
       const prev = window.app?.state?.meta;
       const buitenChanged = prev?.buitenGrisburgh !== m.buitenGrisburgh;
       if (window.app?.state) window.app.state.meta = m;
