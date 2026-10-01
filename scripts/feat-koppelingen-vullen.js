@@ -53,6 +53,8 @@ const KOPPELINGEN = {
   // Feats die een spreuk geven. De klassen volgen uit de spreukenlijst.
   'Fey Touched':    { vereist: 'Intelligence, Wisdom of Charisma 13', geeft: ['Misty Step'] },
   'Shadow Touched': { vereist: 'Intelligence, Wisdom of Charisma 13', geeft: ['Invisibility'] },
+  // Dezelfde feat, maar in sommige bibliotheken met een koppelteken geschreven.
+  'Shadow-Touched': { vereist: 'Intelligence, Wisdom of Charisma 13', geeft: ['Invisibility'] },
   'Telekinetic':    { vereist: 'Intelligence, Wisdom of Charisma 13', geeft: ['Mage Hand'] },
   'Telepathic':     { vereist: 'Intelligence, Wisdom of Charisma 13', geeft: ['Detect Thoughts'] },
 
@@ -88,7 +90,35 @@ const KOPPELINGEN = {
   'Keen Mind':           { vereist: 'Intelligence 13' },
   'Speedy':              { vereist: 'Dexterity 13' },
   'Ritual Caster':       { vereist: 'Intelligence, Wisdom of Charisma 13' },
+
+  // De Origin Feats: die neem je op level 1 bij je achtergrond, en ze hebben
+  // geen eis. Dat is óók informatie — zonder deze regels bleef er bij elk van
+  // hen een leeg veld staan waarvan je niet weet of het "geen eis" betekent of
+  // "nog niet ingevuld". `geenEis` zet er dus met zoveel woorden neer dat er
+  // niets gevraagd wordt.
+  'Alert':                 { geenEis: true },
+  'Crafter':               { geenEis: true },
+  'Healer':                { geenEis: true },
+  'Lucky':                 { geenEis: true },
+  'Magic Initiate':        { geenEis: true },
+  'Savage Attacker':       { geenEis: true },
+  'Skilled':               { geenEis: true },
+  'Tavern Brawler':        { geenEis: true },
+  'Tough':                 { geenEis: true },
+
+  // General feats zonder eis. Ook hier geldt: het stáát er, dus het is bekend.
+  'Ability Score Improvement': { geenEis: true },
+  'Dungeon Delver':        { geenEis: true },
+  'Martial Weapon Training': { geenEis: true },
+  'Poisoner':              { geenEis: true },
+  'Resilient':             { geenEis: true },
+  'Skill Expert':          { geenEis: true },
+  'Lightly Armored':       { geenEis: true },
 };
+
+// Elke Epic Boon vraagt level 19. Dat hoeft niet twaalf keer opgeschreven: wat
+// in de `epic`-lijst staat ís er een.
+const EPIC_EIS = 'Level 19';
 
 const lees = (f, val) => {
   const p = path.join(base, f);
@@ -111,8 +141,12 @@ let gezet = 0, overgeslagen = [];
 for (const sleutel of ['general', 'epic']) {
   for (const f of (prog.feats[sleutel] || [])) {
     const k = KOPPELINGEN[f.name];
-    if (!k) { overgeslagen.push(f.name); continue; }
+    if (!k) {
+      if (sleutel === 'epic') { f.vereist = EPIC_EIS; gezet++; continue; }
+      overgeslagen.push(f.name); continue;
+    }
     if (k.vereist) f.vereist = k.vereist;
+    else if (k.geenEis) f.vereist = 'Geen eis';
     if (k.geeft?.length) f.geeftSpreuk = [...k.geeft];
     if (k.castersAan) f.sluitAan = [...casters];
     gezet++;

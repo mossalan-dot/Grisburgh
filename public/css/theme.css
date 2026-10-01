@@ -28637,3 +28637,15 @@ body.akte-schrijf-open .mp-overlay { z-index: 1320; }
 }
 .vk-naar-spreuken:hover { background: color-mix(in srgb, var(--vk-kleur, #8a6d3f) 26%, transparent); }
 .vk-naar-spreuken .icon { width: 13px; height: 13px; }
+
+/* De koppeling andersom, in het detailvenster van een feat. */
+.vk-feats--omgekeerd { --vk-kleur: #1e4a8a; margin-top: 14px; }
+.vk-eis {
+  display: flex; align-items: flex-start; gap: 6px;
+  font-family: 'Crimson Text', serif; font-size: 13px;
+  color: var(--color-ink-soft, #5a4832); margin-bottom: 9px;
+}
+.vk-eis .icon { width: 13px; height: 13px; margin-top: 2px; opacity: .7; }
+.vk-eis strong { font-family: 'Cinzel', serif; font-size: 10px; letter-spacing: .1em; text-transform: uppercase; }
+.vk-feats--omgekeerd .vk-feat { display: inline-flex; align-items: center; gap: 4px; }
+.vk-feats--omgekeerd .vk-feat .icon { width: 12px; height: 12px; opacity: .75; }

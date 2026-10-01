@@ -508,6 +508,64 @@ function _subklasseKaartHtml(klasse, sub) {
     </div>`;
 }
 
+// Een volk en een achtergrond kregen geen kaartje terwijl ze wel in de band
+// stonden — dan klik je iets aan en er gebeurt alleen iets met de lijst
+// eronder. Ze hebben minder harde getallen dan een klasse, dus het kaartje
+// vertelt wat ze wél hebben: op welke levels je iets krijgt (een volk geeft
+// niet alleen op 1 iets) en wat de onderdelen zijn.
+function _volkKaartHtml(volk) {
+  const data = _bron?.prog?.species?.[volk];
+  if (!data) return '';
+  const levels = Object.keys(data.levels || {}).map(Number)
+    .filter(l => (data.levels[l] || []).length).sort((a, b) => a - b);
+  const n = levels.reduce((t, l) => t + data.levels[l].length, 0);
+  const vroeg = (data.levels?.[1] || []).map(f => f.name);
+  return `
+    <div class="vk-kaart" style="--vk-kleur:#1a6a50">
+      <div class="vk-kop">
+        <span class="vk-icoon">${icon(SPECIES_ICOON[volk] || 'user')}</span>
+        <div>
+          <div class="vk-naam">${esc(volk)}</div>
+          <div class="vk-sig">Origin</div>
+        </div>
+      </div>
+      <div class="vk-feiten">
+        ${n ? `<div class="vk-feit"><span class="vk-feit-waarde">${n}</span><span class="vk-feit-label">Traits</span></div>` : ''}
+        ${levels.length ? `<div class="vk-feit"><span class="vk-feit-waarde">${levels.join(' · ')}</span><span class="vk-feit-label">Op level</span></div>` : ''}
+      </div>
+      ${vroeg.length ? `<dl class="vk-training"><dt>Vanaf 1</dt><dd>${vroeg.map(esc).join(', ')}</dd></dl>` : ''}
+      ${n ? '' : '<p class="vk-noot">Van dit volk staat er niets in de app.</p>'}
+    </div>`;
+}
+
+function _achtergrondKaartHtml(naam) {
+  const data = _bron?.backgrounds?.[naam];
+  if (!data) return '';
+  const delen = Object.values(data.levels || {}).flat().filter(Boolean);
+  // Een achtergrond is één ding met vaste onderdelen; die lezen als rijen,
+  // niet als getallen.
+  const rij = (kop) => delen.find(d => String(d.name || '').toLowerCase() === kop.toLowerCase())?.desc || '';
+  const vaste = [
+    ['Ability Scores', rij('Ability Scores')],
+    ['Feat', rij('Feat')],
+    ['Skills', rij('Skill Proficiencies')],
+    ['Gereedschap', rij('Tool Proficiency')],
+  ].filter(([, v]) => v);
+  return `
+    <div class="vk-kaart" style="--vk-kleur:#962058">
+      <div class="vk-kop">
+        <span class="vk-icoon">${icon('scroll-text')}</span>
+        <div>
+          <div class="vk-naam">${esc(naam)}</div>
+          <div class="vk-sig">Background</div>
+        </div>
+      </div>
+      ${vaste.length ? `<dl class="vk-training">
+        ${vaste.map(([k, v]) => `<dt>${esc(k)}</dt><dd>${esc(v)}</dd>`).join('')}
+      </dl>` : '<p class="vk-noot">Van deze achtergrond staat er niets in de app.</p>'}
+    </div>`;
+}
+
 // ── De band: wát je kunt zijn ───────────────────────────────────────────────
 // Dit tabblad was een platte lijst van features: je kon "Superiority Dice"
 // vinden, maar niet "Battle Master". Een klasse, een subklasse, een volk en een
@@ -581,8 +639,8 @@ function _bandHtml() {
     }
   }
 
-  const keten = _filters.bron
-    ? `<div class="vb-keten">${icon('chevron-right')} ${esc(_filters.bron)}${_filters.sub ? ' · ' + esc(_filters.sub) : ''}
+  const keten = (_filters.bron || (_filters.soort === 'background' && _filters.q))
+    ? `<div class="vb-keten">${icon('chevron-right')} ${esc(_filters.bron || _filters.q)}${_filters.sub ? ' · ' + esc(_filters.sub) : ''}
          <button class="vb-wis" onclick="window.vaardigheden.bandKies(null,null)" title="Terug naar alles">${icon('x')}</button></div>`
     : '';
 
@@ -590,7 +648,11 @@ function _bandHtml() {
   // anders de klasse. Een volk of achtergrond heeft (nog) geen kaartje.
   const kaart = _filters.sub
     ? _subklasseKaartHtml(_filters.bron, _filters.sub)
-    : (_filters.bron ? _klasseKaartHtml(_filters.bron) : '');
+    : _filters.bron
+      ? (_bron?.prog?.classes?.[_filters.bron] ? _klasseKaartHtml(_filters.bron)
+         : _bron?.prog?.species?.[_filters.bron] ? _volkKaartHtml(_filters.bron) : '')
+      : (_filters.soort === 'background' && _filters.q && _bron?.backgrounds?.[_filters.q]
+         ? _achtergrondKaartHtml(_filters.q) : '');
 
   return `<div class="vaardig-band">${groepen}${subRij}${keten}</div>${kaart}`;
 }
@@ -684,6 +746,54 @@ function _verwijzingen(html) {
   });
 }
 
+// ── De koppeling andersom ───────────────────────────────────────────────────
+// Op het klassekaartje staat welke feats erbij passen. Sta je op de feat zelf,
+// dan wil je het omgekeerde zien: bij wie hoor ík? Dezelfde drie wegen, alleen
+// van de andere kant bekeken — en zonder nieuwe gegevens, want ze liggen er al.
+function _klassenVoorFeat(it) {
+  if (it.soort !== 'feat' && it.soort !== 'boon') return null;
+  const klassen = Object.keys(_bron?.prog?.classes || {});
+  const aangewezen = (it.sluitAan || []).filter(k => klassen.includes(k));
+
+  const eis = String(it.vereist || '');
+  const nodig = eis ? _ARMOR_WOORDEN.filter(a => a.re.test(eis)).map(a => a.training) : [];
+  const viaEis = nodig.length
+    ? klassen.filter(k => {
+        const armor = String(_klasseBasis?.[k]?.armor || '').toLowerCase();
+        return nodig.every(t => armor.includes(t.toLowerCase()));
+      })
+    : [];
+
+  const viaSpreuk = [];
+  for (const n of (it.geeftSpreuk || [])) {
+    for (const k of (_spreukKlassen?.get(String(n).toLowerCase()) || [])) {
+      if (klassen.includes(k) && !viaSpreuk.includes(k)) viaSpreuk.push(k);
+    }
+  }
+  if (!aangewezen.length && !viaEis.length && !viaSpreuk.length && !eis) return null;
+  return { aangewezen, viaEis, viaSpreuk, eis };
+}
+
+function _featKoppelingHtml(it) {
+  const k = _klassenVoorFeat(it);
+  if (!k) return '';
+  const chips = (lijst) => lijst.sort().map(n =>
+    `<button class="vk-feat" onclick="window.vaardigheden.naarKlasse('${esc(n).replace(/'/g, "\\'")}')">${icon(KLASSE_ICOON[n] || 'sword')} ${esc(n)}</button>`).join('');
+  const rij = (label, uitleg, lijst) => lijst.length ? `
+    <div class="vk-featrij">
+      <div class="vk-featrij-kop">${esc(label)} <span>${esc(uitleg)}</span></div>
+      <div class="vk-featchips">${chips(lijst)}</div>
+    </div>` : '';
+  return `
+    <div class="vk-feats vk-feats--omgekeerd">
+      ${k.eis ? `<div class="vk-eis">${icon('lock')} <strong>Vereist</strong> ${esc(k.eis)}</div>` : ''}
+      ${rij('Aangewezen', 'hier aan gehangen', k.aangewezen)}
+      ${rij('Via de eis', 'deze klassen geven die training', k.viaEis)}
+      ${rij('Geeft een spreuk', 'staat op hun lijst', k.viaSpreuk)}
+      ${(it.geeftSpreuk || []).length ? `<p class="vk-feats-noot">Geeft: ${(it.geeftSpreuk || []).map(esc).join(', ')}.</p>` : ''}
+    </div>`;
+}
+
 function _open(key) {
   const it = (_all || []).find(x => x.key === key);
   if (!it) return;
@@ -725,6 +835,7 @@ function _open(key) {
         </div>
         ${dmBeeld}
         ${body}
+        ${_featKoppelingHtml(it)}
       </div>
     </div>`);
   // De gedeelde focuskiezer schrijft naar déze vaardigheid tot een ander blok
@@ -1059,6 +1170,13 @@ window.vaardigheden = {
   },
   // Naar de spreukenbibliotheek met de zeef al op deze klasse — zelfde gebaar
   // als de knop in de level-up-omslag.
+  // Vanaf een feat naar de klasse waar hij bij hoort: het venster dicht en de
+  // band eronder springt erheen.
+  naarKlasse(klasse) {
+    window.app.closeModal?.();
+    this.bandKies('class', klasse);
+    document.querySelector('.vaardig-band')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  },
   naarSpreuken(klasse) {
     window.spreuken?.zetFilter?.({ klasse });
     window.app.switchSection('spreuken');

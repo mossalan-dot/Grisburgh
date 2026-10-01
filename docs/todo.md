@@ -413,15 +413,19 @@ Gevraagd op 14 sep 2026, gebouwd op 14 sep 2026.
          van 1 naar 20, en een knop naar de bibliotheek met de zeef al goed.
          Daarmee is dit rijtje af.
 
-      **Wat er hierna nog ligt voor dit tabblad**, als je verder wilt:
-      - De **30 feats zonder eis** invullen (`scripts/feat-koppelingen-vullen.js`
-        noemt ze bij naam). Handwerk, maar elk ingevuld veld laat de koppelingen
-        beter werken.
-      - Een kaartje voor een **volk** en een **achtergrond**: die hebben er nog
-        geen, terwijl ze wel in de band staan.
-      - De koppeling **andersom tonen**: op het kaartje van een feat zien bij
-        welke klassen hij hoort. De gegevens zijn er nu; alleen de weergave
-        ontbreekt.
+      5. [x] De koppeling **andersom** op het kaartje van een feat — gedaan.
+      6. [x] Een kaartje voor een **volk** en een **achtergrond** — gedaan.
+      7. [x] De feat-koppelingen ingevuld: **60 van de 63**. Over: Mounted
+         Combatant, Skulker en Weapon Master; die weet ik niet zeker genoeg.
+
+      **Daarmee is dit tabblad af.** Wat er in de toekomst nog bij zou kunnen:
+      - Een kaartje voor een **subklasse-veld** koppelen aan zijn uitleg (nu
+        staat er alleen de naam van de feature die een eigen teller krijgt).
+      - De **39 subklassen zonder tekst** vullen — handwerk voor de DM, maar de
+        app wijst er nu wel naartoe. Zie `docs/subklasse-velden.md`.
+      - Een **exportknop** bij de progressie-editor, zodat ingetikte
+        subklasseteksten en feat-koppelingen tussen campagnes te delen zijn.
+        Nu typt elke DM ze opnieuw.
 
 ## Setup-wizard voor een nieuwe DM
 
