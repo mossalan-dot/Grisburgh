@@ -28180,3 +28180,7 @@ body.akte-schrijf-open .mp-overlay { z-index: 1320; }
   .dm-dienst-voet { justify-content: stretch; }
   .dm-dienst-voet .dm-btn { flex: 1 1 auto; }
 }
+
+/* Het boekje in de kop van het gevechtsvenster, naast minimaliseren. */
+.co-help { display: inline-flex; align-items: center; margin-left: auto; }
+.co-help + .co-minimize-btn { margin-left: 4px; }

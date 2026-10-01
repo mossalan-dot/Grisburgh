@@ -10239,6 +10239,9 @@ function _renderCombatOverlay(combat) {
         <!-- Ben je zelf aan zet, dan is dát het bericht — niet de hele
              beurtgroep, waar je je eigen naam uit moet vissen. -->
         <span class="co-current-name">▶ ${isMijnBeurt ? 'Jij bent aan zet' : esc(currentLabel)}</span>`}
+      <!-- De hulptekst "gevecht" bestond wel, maar er zat nergens een knop aan:
+           je kon hem alleen vinden door in de instellingen te gaan zoeken. -->
+      <span class="co-help" onclick="event.stopPropagation()">${helpBtn('gevecht')}</span>
       <button class="co-minimize-btn" onclick="document.getElementById('combat-overlay').classList.contains('minimized')?window.dmPanel.combatExpand():window.dmPanel.combatMinimize()" title="Minimaliseren/maximaliseren">▼</button>
       ${isDM ? `<button class="co-end-btn" onclick="event.stopPropagation();window.dmPanel.combatEnd()" title="Gevecht beëindigen">${icon('x')}</button>` : ''}
     </div>
