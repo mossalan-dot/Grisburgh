@@ -186,4 +186,57 @@ describe('Dungeonkaarten: toegang, mist en kamers', () => {
     const r = await req(server, 'POST', '/api/dungeons', { description: 'naamloos' }, dm);
     assert.strictEqual(r.status, 400, JSON.stringify(r.body));
   });
+
+  // ── Zelf getekend ──
+  // Een getekende dungeon is geen tweede systeem maar dezelfde kaart met een
+  // raster en zonder plattegrond. Dat is precies wat hier vastligt.
+  describe('Zelf een dungeon tekenen', () => {
+    let getekendId;
+
+    it('maakt een kaart met een raster in plaats van een plattegrond', async () => {
+      const r = await req(server, 'POST', '/api/dungeons', {
+        name: 'De Proefkelder',
+        grid: { kolommen: 24, rijen: 16, voetPerVak: 5 },
+        stijl: 'grot',
+      }, dm);
+      assert.strictEqual(r.status, 200, JSON.stringify(r.body));
+      getekendId = r.body.id;
+      assert.deepStrictEqual(r.body.grid, { kolommen: 24, rijen: 16, voetPerVak: 5 });
+      assert.strictEqual(r.body.stijl, 'grot');
+      assert.strictEqual(r.body.fileId, '', 'geen plattegrond, dat is het hele punt');
+    });
+
+    it('houdt een onmogelijk raster tegen', async () => {
+      const r = await req(server, 'POST', '/api/dungeons', {
+        name: 'Te groot', grid: { kolommen: 9000, rijen: 0, voetPerVak: 999 },
+      }, dm);
+      assert.strictEqual(r.body.grid.kolommen, 120, 'afgetopt, niet geweigerd');
+      assert.strictEqual(r.body.grid.rijen, 20, 'een onzinwaarde valt terug op de standaard');
+      assert.strictEqual(r.body.grid.voetPerVak, 60);
+    });
+
+    it('laat een gewone kaart ongemoeid', async () => {
+      const r = await req(server, 'POST', '/api/dungeons', { name: 'Met plattegrond', fileId: 'f_plan' }, dm);
+      assert.strictEqual(r.body.grid, undefined, 'geen raster = de kaart zoals hij was');
+      assert.strictEqual(r.body.stijl, undefined);
+    });
+
+    it('bewaart kamers in procenten, net als op een plattegrond', async () => {
+      // Vakje 6 van 24 is exact 25%. Zo klikt de tekenaar ze ook vast, en
+      // daarom hoefde er geen tweede coördinatenstelsel bij.
+      const rooms = [{ id: 'g1', name: 'Zaal', shape: 'rect', points: [[25, 25], [50, 62.5]], conditions: [] }];
+      const r = await req(server, 'PUT', `/api/dungeons/${getekendId}/rooms`, { rooms }, dm);
+      assert.strictEqual(r.status, 200, JSON.stringify(r.body));
+      const terug = (await req(server, 'GET', '/api/dungeons', null, dm)).body.find(m => m.id === getekendId);
+      assert.deepStrictEqual(terug.rooms[0].points, [[25, 25], [50, 62.5]]);
+    });
+
+    it('laat het raster en de stijl achteraf bijstellen', async () => {
+      const r = await req(server, 'PUT', `/api/dungeons/${getekendId}`,
+        { grid: { kolommen: 40, rijen: 24, voetPerVak: 10 }, stijl: 'blauwdruk' }, dm);
+      assert.strictEqual(r.body.grid.kolommen, 40);
+      assert.strictEqual(r.body.grid.voetPerVak, 10);
+      assert.strictEqual(r.body.stijl, 'blauwdruk');
+    });
+  });
 });

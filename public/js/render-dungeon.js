@@ -34,6 +34,55 @@ const _condSpriteSvg = (naam, x, y, size, cls, extra = '') => `<svg x="${x - siz
   width="${size}" height="${size}" viewBox="0 0 24 24" class="${cls}" ${extra}>
   <use href="/img/icons.svg?v=17#icon-${naam}"/></svg>`;
 
+// ══════════════════════════════════════════════════════════════════
+//  ZELF EEN DUNGEON TEKENEN
+// ══════════════════════════════════════════════════════════════════
+// Naast een geüploade plattegrond kun je er ook zelf een tekenen. Dat is
+// bewust géén tweede systeem: een getekende dungeon is dezelfde kaart met
+// `grid` erop en zonder `fileId`. De kamers blijven vormen in procenten van
+// het doek, dus mist per party, verbindingen, conditie-iconen, loot en
+// gevechten per kamer werken ongewijzigd mee.
+//
+// Dat procentenstelsel leek eerst het probleem — "een kamer op 2,47% ligt
+// scheef op het raster" — maar dat is het niet, zolang het ráster uit dezelfde
+// deling komt: lijn n staat op n/kolommen·100 procent, en een vastgeklikte hoek
+// ook. Ze zijn per constructie gelijk, en er hoefde dus niets omgezet te
+// worden. Wat je bij het tekenen vastklikt staat exact op de lijn.
+//
+// Eén vakje is standaard vijf voet, zodat je er beweging op kunt aflezen —
+// zonder die schaal is een raster alleen maar ruitjespapier.
+
+const DUNGEON_STIJLEN = [
+  {
+    id: 'steen', label: 'Grafkelder',
+    buiten: '#120d08', vloer: '#5d5044', muur: '#0d0906', muurDik: 2.4,
+    raster: 'rgba(255,245,220,0.10)',
+  },
+  {
+    id: 'perkament', label: 'Perkament',
+    buiten: '#e8dcc0', vloer: '#f7efd9', muur: '#3a2d1c', muurDik: 2.8,
+    raster: 'rgba(90,70,40,0.18)',
+  },
+  {
+    id: 'grot', label: 'Grot',
+    buiten: '#0d0b10', vloer: '#4a4252', muur: '#07060a', muurDik: 3.2,
+    raster: 'rgba(200,190,220,0.07)',
+  },
+  {
+    id: 'blauwdruk', label: 'Blauwdruk',
+    buiten: '#0d2436', vloer: '#123049', muur: '#7fd4ff', muurDik: 1.8,
+    raster: 'rgba(127,212,255,0.22)',
+  },
+  {
+    id: 'riool', label: 'Riool',
+    buiten: '#0a0e0a', vloer: '#3d4a38', muur: '#0a0f0a', muurDik: 2.6,
+    raster: 'rgba(190,220,180,0.08)',
+  },
+];
+const _stijlVan = (map) =>
+  DUNGEON_STIJLEN.find(x => x.id === map?.stijl) || DUNGEON_STIJLEN[0];
+const _isGetekend = (map) => !!map?.grid;
+
 // ── State ──
 let _maps        = [];      // alle dungeon maps (gefilterd voor speler)
 let _mapIdx      = 0;       // huidig gekozen map
@@ -240,6 +289,25 @@ function _verversVerdiepingen() {
   if (slot) slot.innerHTML = _verdiepingStripHtml();
 }
 
+// Hoe groot het doek is. Bij een geüploade plattegrond is dat de afbeelding;
+// bij een getekende dungeon rekenen we zestig beeldpunten per vakje, zodat een
+// kamer van drie bij drie op ware grootte nog scherp is bij ×4 inzoomen.
+// Alles daarbuiten (zoomen, tekenen, de SVG) leest alleen deze twee getallen,
+// dus het verschil tussen een foto en een raster zit op één plek.
+const _VAK_PX = 60;
+let _dW = 0, _dH = 0;
+
+function _doekMaatZetten(map) {
+  if (_isGetekend(map)) {
+    _dW = map.grid.kolommen * _VAK_PX;
+    _dH = map.grid.rijen    * _VAK_PX;
+  } else {
+    const img = document.getElementById('dng-img');
+    _dW = img?.naturalWidth  || 0;
+    _dH = img?.naturalHeight || 0;
+  }
+}
+
 function _renderMapView() {
   _verversVerdiepingen();
   const area = document.getElementById('dng-map-area');
@@ -247,6 +315,22 @@ function _renderMapView() {
   if (!_maps.length) { area.innerHTML = ''; _renderEmpty(); return; }
 
   const map = _maps[_mapIdx];
+  if (_isGetekend(map)) {
+    // Geen <img>, maar een leeg doek van de juiste maat. De ondergrond — rots,
+    // vloeren, muren, raster — tekent de SVG zelf, want die moet meeveranderen
+    // zodra je een kamer bijtekent.
+    const W = map.grid.kolommen * _VAK_PX, H = map.grid.rijen * _VAK_PX;
+    area.innerHTML = `
+      <div class="dng-img-wrap" id="dng-img-wrap">
+        <div id="dng-img" class="dng-img dng-doek" style="width:${W}px;height:${H}px"></div>
+        <svg id="dng-svg" class="dng-svg" xmlns="http://www.w3.org/2000/svg"></svg>
+      </div>`;
+    _doekMaatZetten(map);
+    _fitZoom(); _renderSvg(); _attachMapEvents(); _renderRoomList();
+    const kopG = document.querySelector('.dng-kaart-naam');
+    if (kopG) kopG.textContent = `${map.name}${Number.isFinite(map.verdieping) ? ` · ${_verdiepingLabel(map.verdieping)}` : ''}`;
+    return;
+  }
   area.innerHTML = `
     <div class="dng-img-wrap" id="dng-img-wrap">
       <img id="dng-img" src="${esc(api.fileUrl(map.fileId))}"
@@ -262,7 +346,7 @@ function _renderMapView() {
   }
 
   const img = document.getElementById('dng-img');
-  const onLoad = () => { _fitZoom(); _renderSvg(); _attachMapEvents(); _renderRoomList(); };
+  const onLoad = () => { _doekMaatZetten(map); _fitZoom(); _renderSvg(); _attachMapEvents(); _renderRoomList(); };
   if (img.complete && img.naturalWidth) onLoad();
   else {
     img.addEventListener('load', onLoad, { once: true });
@@ -274,22 +358,20 @@ function _renderMapView() {
 }
 
 function _fitZoom() {
-  const img  = document.getElementById('dng-img');
   const area = document.getElementById('dng-map-area');
-  if (!img?.naturalWidth || !area) return;
-  _zoom = Math.min(1, (area.clientWidth - 24) / img.naturalWidth,
-                      (area.clientHeight - 24) / img.naturalHeight);
+  if (!_dW || !area) return;
+  _zoom = Math.min(1, (area.clientWidth - 24) / _dW,
+                      (area.clientHeight - 24) / _dH);
   _applyTransform();
 }
 
 // Passend, ×2, ×4, ×8 — dezelfde trap als op de wereldkaart, zodat dubbelklikken
 // overal hetzelfde doet. Na de laatste stap weer passend.
 function _zoomTrapDng() {
-  const img  = document.getElementById('dng-img');
   const area = document.getElementById('dng-map-area');
-  if (!img?.naturalWidth || !area) return [1];
-  const passend = Math.min(1, (area.clientWidth - 24) / img.naturalWidth,
-                              (area.clientHeight - 24) / img.naturalHeight);
+  if (!_dW || !area) return [1];
+  const passend = Math.min(1, (area.clientWidth - 24) / _dW,
+                              (area.clientHeight - 24) / _dH);
   return [...new Set([passend, passend * 2, passend * 4, Math.min(5, passend * 8)])].filter(z => z <= 5);
 }
 
@@ -302,13 +384,53 @@ function _applyTransform() {
 // ──────────────────────────────────────────────────────────────────
 // SVG overlay — kamers, mist, verbindingen, conditie-iconen
 // ──────────────────────────────────────────────────────────────────
+// De ondergrond van een getekende dungeon: rots, dan de vloeren van de kamers,
+// dan het raster daarbinnen, dan de muren eromheen. Het raster loopt niet door
+// over de rots — ruitjes op massief gesteente leest als millimeterpapier, en
+// je wil juist zien wáár de vloer is.
+function _ondergrondSvg(map, W, H, rooms) {
+  if (!_isGetekend(map)) return '';
+  const st   = _stijlVan(map);
+  const g    = map.grid;
+  const vakW = W / g.kolommen, vakH = H / g.rijen;
+  // De kleur gaat via `fillColor`, niet via `extra`: `_roomToSvgShape` zet zelf
+  // al een fill, en bij twee gelijke attributen wint de eerste — dan was alles
+  // zwart geweest.
+  const vorm = (r, kleur, extra = '') => _roomToSvgShape(r, W, H, '', extra, false, kleur);
+
+  const lijnen = [];
+  for (let i = 1; i < g.kolommen; i++) {
+    const x = i * vakW;
+    lijnen.push(`<line x1="${x}" y1="0" x2="${x}" y2="${H}"/>`);
+  }
+  for (let j = 1; j < g.rijen; j++) {
+    const y = j * vakH;
+    lijnen.push(`<line x1="0" y1="${y}" x2="${W}" y2="${y}"/>`);
+  }
+
+  return `
+    <defs>
+      <!-- Het raster blijft binnen de vloeren. Eén clip over alle kamers heen,
+           niet één per kamer: dan kruipt er geen lijn tussen twee kamers die
+           tegen elkaar aan liggen. -->
+      <clipPath id="dng-vloer-clip">
+        ${rooms.map(r => vorm(r, 'white')).join('')}
+      </clipPath>
+    </defs>
+    <rect width="${W}" height="${H}" fill="${st.buiten}"/>
+    ${rooms.map(r => vorm(r, st.vloer, 'stroke="none"')).join('')}
+    <g clip-path="url(#dng-vloer-clip)" stroke="${st.raster}" stroke-width="${Math.max(1, vakW * 0.03)}"
+       pointer-events="none">${lijnen.join('')}</g>
+    ${rooms.map(r => vorm(r, 'none',
+      `stroke="${st.muur}" stroke-width="${Math.max(1.5, st.muurDik * vakW / 20)}" stroke-linejoin="round"`)).join('')}`;
+}
+
 function _renderSvg() {
   const svg = document.getElementById('dng-svg');
-  const img = document.getElementById('dng-img');
-  if (!svg || !img?.naturalWidth) return;
+  if (!svg || !_dW) return;
 
-  const W = img.naturalWidth;
-  const H = img.naturalHeight;
+  const W = _dW;
+  const H = _dH;
   svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
   svg.setAttribute('width',  W);
   svg.setAttribute('height', H);
@@ -455,6 +577,8 @@ function _renderSvg() {
   ).join('') : '';
 
   svg.innerHTML = `
+    <!-- De getekende ondergrond; bij een geüploade plattegrond leeg. -->
+    ${_ondergrondSvg(map, W, H, rooms)}
     <defs>
       <mask id="dng-fog-mask">
         <!-- Zwart = fog weg (zichtbaar); Wit = fog aanwezig (bedekt) -->
@@ -715,13 +839,24 @@ function _updateCursor() {
 // ──────────────────────────────────────────────────────────────────
 function _svgPoint(ev, img) {
   const rect = img.getBoundingClientRect();
-  const x = ((ev.clientX - rect.left) / rect.width  * img.naturalWidth);
-  const y = ((ev.clientY - rect.top)  / rect.height * img.naturalHeight);
+  const x = ((ev.clientX - rect.left) / rect.width  * _dW);
+  const y = ((ev.clientY - rect.top)  / rect.height * _dH);
   return [x, y];
 }
 
-function _svgToPercent(x, y, img) {
-  return [x / img.naturalWidth * 100, y / img.naturalHeight * 100];
+// Van beeldpunt naar procent. Op een getekende dungeon klikt het hier vast op
+// het raster: lijn n staat op n/kolommen·100 procent, en dat is precies wat
+// hieronder uitgerekend wordt — dus een vastgeklikte hoek ligt op de lijn, niet
+// ernaast. Houd Alt ingedrukt om er langs te tekenen (een schuine gang, een
+// ronde put).
+function _svgToPercent(x, y, img, ev) {
+  let px = x / _dW * 100, py = y / _dH * 100;
+  const map = _maps[_mapIdx];
+  if (_isGetekend(map) && !ev?.altKey) {
+    px = Math.round(px / 100 * map.grid.kolommen) / map.grid.kolommen * 100;
+    py = Math.round(py / 100 * map.grid.rijen)    / map.grid.rijen    * 100;
+  }
+  return [Math.max(0, Math.min(100, px)), Math.max(0, Math.min(100, py))];
 }
 
 function _handleDrawStart(ev, wrap) {
@@ -729,7 +864,7 @@ function _handleDrawStart(ev, wrap) {
   const img = document.getElementById('dng-img');
   if (!img) return;
   const [svgX, svgY] = _svgPoint(ev, img);
-  const [pctX, pctY] = _svgToPercent(svgX, svgY, img);
+  const [pctX, pctY] = _svgToPercent(svgX, svgY, img, ev);
 
   // Een ronde kamer sleep je net als een rechthoek: het omhullende vak bepaalt
   // de ovaal. Eén sleepbeweging dus, geen middelpunt-plus-straal — en een ovaal
@@ -757,7 +892,7 @@ function _startRectDrag(img) {
   const onMove = ev => {
     if (!_drawing) return;
     const [svgX,svgY] = _svgPoint(ev, img);
-    _drawing.endPct = _svgToPercent(svgX, svgY, img);
+    _drawing.endPct = _svgToPercent(svgX, svgY, img, ev);
     _renderDrawPreview();
   };
   const onUp = () => {
@@ -774,7 +909,7 @@ function _renderDrawPreview() {
   const layer = document.getElementById('dng-draw-layer');
   const img   = document.getElementById('dng-img');
   if (!layer || !img) return;
-  const W=img.naturalWidth, H=img.naturalHeight;
+  const W=_dW, H=_dH;
 
   if (_drawing?.type==='rect' || _drawing?.type==='ovaal') {
     const [[x1p,y1p],[x2p,y2p]] = [_drawing.startPct, _drawing.endPct];
@@ -1433,9 +1568,8 @@ function _renderRoomList() {
 // Feature 1: Inzoomen op geselecteerde kamer
 // ──────────────────────────────────────────────────────────────────
 function _zoomToRoom(room) {
-  const img = document.getElementById('dng-img');
-  if (!img?.naturalWidth) return;
-  const W = img.naturalWidth, H = img.naturalHeight;
+  if (!_dW) return;
+  const W = _dW, H = _dH;
   const [cx, cy] = _roomCentroid(room, W, H);
   // Centreer het beeld zodat (cx, cy) in het midden van de viewport ligt
   // panX = -(cx - W/2) * zoom, panY = -(cy - H/2) * zoom
@@ -1532,12 +1666,42 @@ function _openNewDungeonDialog() {
           ${icon('image')} <span id="dng-new-thumb-naam">Wat op het kaartje komt te staan…</span>
         </button>
       </div>
-      <div class="dm-form-row" style="flex-direction:column;align-items:stretch;gap:6px">
+      <!-- Twee manieren om aan een kaart te komen, en de rest van het
+           formulier verandert mee. Een geüploade plattegrond is wat er was;
+           zelf tekenen levert dezelfde kaart op met een raster eronder. -->
+      <div class="dm-form-row">
+        <label class="dm-form-label">Waar komt de kaart vandaan?</label>
+        <div class="dng-bron-keuze">
+          <button type="button" class="dm-btn dm-btn-ghost dng-bron is-aan" data-bron="upload">${icon('image')} Plattegrond uploaden</button>
+          <button type="button" class="dm-btn dm-btn-ghost dng-bron" data-bron="tekenen">${icon('pencil')} Zelf tekenen</button>
+        </div>
+      </div>
+      <div class="dm-form-row" style="flex-direction:column;align-items:stretch;gap:6px" id="dng-new-upload">
         <label class="dm-form-label">Plattegronden</label>
         <div id="dng-new-lagen"></div>
         <button type="button" class="dm-btn dm-btn-ghost dm-btn-sm" id="dng-new-laag-erbij" style="align-self:flex-start">
           ${icon('plus')} Verdieping toevoegen
         </button>
+      </div>
+      <div id="dng-new-tekenen" hidden>
+        <div class="dm-form-row">
+          <label class="dm-form-label">Hoe groot?</label>
+          <div class="dng-maat-rij">
+            <input id="dng-new-kol" class="dm-input" type="number" min="4" max="120" value="30" aria-label="Vakjes breed">
+            <span class="dng-maat-x">×</span>
+            <input id="dng-new-rij" class="dm-input" type="number" min="4" max="120" value="20" aria-label="Vakjes hoog">
+            <span class="dng-maat-uitleg" id="dng-new-maat-voet"></span>
+          </div>
+        </div>
+        <div class="dm-form-row">
+          <label class="dm-form-label" for="dng-new-voet">Hoeveel voet is één vakje?</label>
+          <input id="dng-new-voet" class="dm-input dm-input--sm" type="number" min="1" max="60" value="5" style="max-width:90px">
+        </div>
+        <div class="dm-form-row" style="flex-direction:column;align-items:stretch;gap:6px">
+          <label class="dm-form-label">Stijl</label>
+          <div class="dng-stijl-rij" id="dng-new-stijl"></div>
+        </div>
+        <p class="dm-hint">Je tekent de kamers daarna zelf met de gereedschappen op de kaart. Ze klikken vast op het raster; houd <b>Alt</b> ingedrukt om er langs te tekenen.</p>
       </div>
       <div class="dm-feature-row" style="margin-top:6px">
         <button class="dm-btn dm-btn-primary" id="dng-new-ok">${icon('plus')} Aanmaken</button>
@@ -1550,7 +1714,42 @@ function _openNewDungeonDialog() {
   // Je geeft ze hier in één keer op; de app maakt er één kaart per verdieping van
   // en houdt ze bij elkaar met een gedeeld `gebouwId`.
   let thumbId = '';
+  let bron    = 'upload';
+  let stijl   = DUNGEON_STIJLEN[0].id;
   const lagen = [{ verdieping: 0, fileId: '' }];
+
+  const _maatHint = () => {
+    const k = +document.getElementById('dng-new-kol')?.value || 0;
+    const r = +document.getElementById('dng-new-rij')?.value || 0;
+    const v = +document.getElementById('dng-new-voet')?.value || 5;
+    const el = document.getElementById('dng-new-maat-voet');
+    if (el) el.textContent = k && r ? `vakjes · ${k * v} × ${r * v} voet` : 'vakjes';
+  };
+  const _tekenStijlen = () => {
+    const host = document.getElementById('dng-new-stijl');
+    if (!host) return;
+    host.innerHTML = DUNGEON_STIJLEN.map(st => `
+      <button type="button" class="dng-stijl${st.id === stijl ? ' is-aan' : ''}" data-stijl="${esc(st.id)}" title="${esc(st.label)}">
+        <span class="dng-stijl-proef" style="background:${st.buiten}">
+          <span style="background:${st.vloer};box-shadow:inset 0 0 0 1.5px ${st.muur}"></span>
+        </span>
+        <span class="dng-stijl-naam">${esc(st.label)}</span>
+      </button>`).join('');
+    host.querySelectorAll('[data-stijl]').forEach(b => b.addEventListener('click', () => {
+      stijl = b.dataset.stijl; _tekenStijlen();
+    }));
+  };
+  setTimeout(() => {
+    _tekenStijlen(); _maatHint();
+    ['dng-new-kol', 'dng-new-rij', 'dng-new-voet'].forEach(id =>
+      document.getElementById(id)?.addEventListener('input', _maatHint));
+    document.querySelectorAll('.dng-bron').forEach(b => b.addEventListener('click', () => {
+      bron = b.dataset.bron;
+      document.querySelectorAll('.dng-bron').forEach(x => x.classList.toggle('is-aan', x === b));
+      document.getElementById('dng-new-upload').hidden   = bron !== 'upload';
+      document.getElementById('dng-new-tekenen').hidden  = bron !== 'tekenen';
+    }));
+  }, 60);
 
   const _naamHint = () => (document.getElementById('dng-new-name')?.value || '')
     .trim().toLowerCase().replace(/\s+/g, '-');
@@ -1619,6 +1818,22 @@ function _openNewDungeonDialog() {
         description: document.getElementById('dng-new-desc').value.trim(),
         thumbId,
       };
+      // Zelf tekenen is één kaart, geen stapel verdiepingen: die voeg je
+      // daarna toe zoals bij elk ander gebouw.
+      if (bron === 'tekenen') {
+        await api.createDungeon({
+          ...basis,
+          grid: {
+            kolommen:   +document.getElementById('dng-new-kol').value || 30,
+            rijen:      +document.getElementById('dng-new-rij').value || 20,
+            voetPerVak: +document.getElementById('dng-new-voet').value || 5,
+          },
+          stijl,
+        });
+        window.app.closeModal();
+        await window._kaartVerversen?.();
+        return;
+      }
       const meerdere = lagen.length > 1;
       const gebouwId = meerdere ? 'geb_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5) : '';
       // Op volgorde aanmaken (laagste verdieping eerst), zodat de galerij en de

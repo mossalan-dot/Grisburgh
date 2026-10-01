@@ -15371,6 +15371,21 @@ router.post('/dungeons', requireDM, (req, res) => {
     thumbId:  String(req.body.thumbId  || '').slice(0, 80),
     rooms: [], partyAccess: [], reveals: {},
   };
+  // Een getekende dungeon heeft geen plattegrond maar een raster: je tekent de
+  // kamers zelf op vakjes van vijf voet. Alles daarna — mist per party,
+  // verbindingen, loot en gevechten per kamer — is identiek, want de kamers
+  // blijven vormen in procenten van het doek. Ontbreekt `grid`, dan is het een
+  // gewone kaart met een geüploade plattegrond; dat is wat er stond en wat de
+  // bestaande kaarten blijven doen.
+  const g = req.body.grid;
+  if (g && typeof g === 'object') {
+    map.grid = {
+      kolommen:   Math.max(4, Math.min(120, parseInt(g.kolommen, 10)   || 30)),
+      rijen:      Math.max(4, Math.min(120, parseInt(g.rijen, 10)      || 20)),
+      voetPerVak: Math.max(1, Math.min(60,  parseInt(g.voetPerVak, 10) || 5)),
+    };
+    map.stijl = String(req.body.stijl || '').slice(0, 40);
+  }
   const _v = parseInt(req.body.verdieping, 10);
   if (Number.isFinite(_v)) map.verdieping = _v;
   maps.push(map);
@@ -15398,6 +15413,19 @@ router.put('/dungeons/:id', requireDM, (req, res) => {
     const v = parseInt(req.body.verdieping, 10);
     if (Number.isFinite(v)) map.verdieping = v; else delete map.verdieping;
   }
+  // Het raster van een getekende dungeon. Kleiner maken mag: de kamers staan in
+  // procenten, dus ze schuiven mee in plaats van buiten beeld te vallen — ze
+  // komen alleen scheef op het raster te liggen, en dat zie je meteen.
+  if (req.body.grid !== undefined) {
+    const g = req.body.grid;
+    if (!g) delete map.grid;
+    else map.grid = {
+      kolommen:   Math.max(4, Math.min(120, parseInt(g.kolommen, 10)   || map.grid?.kolommen   || 30)),
+      rijen:      Math.max(4, Math.min(120, parseInt(g.rijen, 10)      || map.grid?.rijen      || 20)),
+      voetPerVak: Math.max(1, Math.min(60,  parseInt(g.voetPerVak, 10) || map.grid?.voetPerVak || 5)),
+    };
+  }
+  if (req.body.stijl !== undefined) map.stijl = String(req.body.stijl || '').slice(0, 40);
   _writeDungeons(maps);
   req.app.get('io').to(_campagneRoom(req)).emit('dungeon:updated');
   res.json(map);

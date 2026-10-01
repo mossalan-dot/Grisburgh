@@ -28372,3 +28372,41 @@ body.akte-schrijf-open .mp-overlay { z-index: 1320; }
 /* Scherm vrij is geen effect maar de weg terug; hij vervaagt als er niets staat. */
 .dm-fx-uit { margin-top: 6px; }
 .dm-fx-uit.is-uit { opacity: .4; }
+
+/* ── Zelf een dungeon tekenen ────────────────────────────────────────────────
+   Het doek van een getekende dungeon: geen afbeelding maar een leeg vlak van
+   de maat van het raster. De SVG erbovenop tekent rots, vloeren en muren. */
+.dng-doek { background: transparent; }
+
+.dng-bron-keuze { display: flex; gap: 6px; flex-wrap: wrap; }
+.dng-bron.is-aan {
+  background: linear-gradient(to bottom, #b8860b, #8a6206);
+  border-color: #d9b24a; color: #fff8ea;
+}
+.dng-maat-rij { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.dng-maat-rij .dm-input { max-width: 86px; }
+.dng-maat-x { color: rgba(196,168,122,0.6); font-size: 13px; }
+.dng-maat-uitleg {
+  font-family: 'Kalam', cursive; font-size: 11px;
+  color: rgba(200,170,100,0.70); font-style: italic;
+}
+
+/* De stijlkiezer: je kiest een plaatje, geen woord in een lijst. */
+.dng-stijl-rij { display: flex; gap: 8px; flex-wrap: wrap; }
+.dng-stijl {
+  background: none; border: 1px solid rgba(196,168,122,0.28); border-radius: 8px;
+  padding: 6px; cursor: pointer; display: flex; flex-direction: column;
+  align-items: center; gap: 4px; width: 74px;
+  transition: border-color .15s ease, background .15s ease;
+}
+.dng-stijl:hover { border-color: rgba(217,178,74,0.6); }
+.dng-stijl.is-aan { border-color: #d9b24a; background: rgba(217,178,74,0.12); }
+.dng-stijl-proef {
+  width: 58px; height: 38px; border-radius: 4px;
+  display: grid; place-items: center;
+}
+.dng-stijl-proef > span { display: block; width: 32px; height: 20px; border-radius: 2px; }
+.dng-stijl-naam {
+  font-family: 'Cinzel', serif; font-size: 9px; letter-spacing: .04em;
+  color: rgba(230,205,150,0.8); text-align: center;
+}
