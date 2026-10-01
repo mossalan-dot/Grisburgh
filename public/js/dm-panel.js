@@ -11407,17 +11407,18 @@ async function _verzoekenTeller() {
   if (!knop) return 0;
   let n = 0;
   try {
-    const [sp, bezit, mc, gock, lenen, arena, praatjes] = await Promise.all([
+    const [sp, bezit, mc, gock, lenen, onderpand, arena, praatjes] = await Promise.all([
       api.getSpellRequests().then(r => (r.requests || []).length).catch(() => 0),
       api.getItemOwnership().then(r => (r.requests || []).filter(x => x.status === 'pending').length).catch(() => 0),
       api.get('/multiclass-verzoeken').then(r => (r.verzoeken || []).length).catch(() => 0),
       api.get('/gock/verzoeken').then(r => (r.verzoeken || []).length).catch(() => 0),
       api.get('/woekeraar/verzoeken').then(r => (r.verzoeken || []).length).catch(() => 0),
+      api.get('/onderpand/verzoeken').then(r => (r.verzoeken || []).length).catch(() => 0),
       // Een inschrijving voor het strijdperk en een praatje dat op jou wacht.
       api.getTweespalt().then(d => (d.arenaSignups || []).filter(x => x.status === 'aangemeld').length).catch(() => 0),
       api.gockGeruchten().then(d => (d.geruchten || []).length).catch(() => 0),
     ]);
-    n = sp + bezit + mc + gock + lenen + arena + praatjes;
+    n = sp + bezit + mc + gock + lenen + onderpand + arena + praatjes;
   } catch { n = 0; }
 
   let penning = knop.querySelector('.dm-tab-penning');

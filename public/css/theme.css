@@ -28717,3 +28717,7 @@ body.akte-schrijf-open .mp-overlay { z-index: 1320; }
   display: flex; align-items: flex-start; gap: 6px;
 }
 .wk-afspraak .icon { width: 14px; height: 14px; margin-top: 2px; flex: none; }
+
+/* De trap waarop een schuld staat. */
+.dm-schuld-trap { color: #8b2a2a; display: flex; align-items: flex-start; gap: 5px; }
+.dm-schuld-trap .icon { width: 13px; height: 13px; margin-top: 2px; flex: none; }

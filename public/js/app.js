@@ -10,7 +10,7 @@ import { renderSpreuken } from './render-spreuken.js?v=41';
 import { renderVaardigheden, zoekVaardigheden } from './render-vaardigheden.js?v=18';
 import { renderStatblock } from './render-statblock.js?v=9';
 import { initSocket } from "./socket-client.js?v=82";
-import { initDmPanel } from "./dm-panel.js?v=371";
+import { initDmPanel } from "./dm-panel.js?v=372";
 import { COND_INFO, COND_LABEL, COND_MET_PLAATJE, COND_ICON } from './conditions.js?v=2';
 import './media-picker.js?v=8';
 import './tafels.js?v=2';
@@ -14607,12 +14607,19 @@ const HELP_CONFIG = {
     { titel: 'Aflossen', tekst: 'Alles in één keer, of een deel. Bij een deel wordt wat overblijft de nieuwe hoofdsom en beginnen de nachten opnieuw te tellen — aflossen loont dus, ook als je er niet helemaal uitkomt.', afbeelding: null },
   ] }),
 
+  dm_verzoeken_onderpand: () => ({ titel: 'Onderpand', stappen: [
+    { titel: 'Jij wijst aan', tekst: 'De schuldeiser wil iets meenemen, en de app kiest dat **niet** voor je. Het zwaard van zijn vader en een touw van tien voet staan allebei in de knapzak; alleen jij weet welk van de twee een scène is.', afbeelding: null },
+    { titel: 'Niets meenemen mag ook', tekst: 'Laat de keuzelijst op *hij neemt niets mee* staan en er verdwijnt niets. De trap gaat wél door: hij is langs geweest en hij vond niets van zijn gading. Dat is ook een mededeling.', afbeelding: null },
+    { titel: 'Wat de speler ziet', tekst: 'Het voorwerp verdwijnt uit zijn bezit en er komt een regel voor in de plaats: *In onderpand*. Daarbij krijgt hij een brief van de schuldeiser. Lost hij de schuld volledig af, dan krijgt hij het terug — dat was de afspraak.', afbeelding: null },
+  ] }),
+
   dm_schulden: () => ({ titel: 'Schulden', stappen: [
     { titel: 'Waarom dit er staat', tekst: 'Schuld zat in een hoek van het gokhuis: één soort, bij één schuldeiser, en nergens een overzicht. Een schuld die niemand ziet is geen verhaallijn — die vergeet je, en dan staat er opeens een bedrag waar niemand meer van weet waar het vandaan kwam.', afbeelding: null },
     { titel: 'Wat je ziet', tekst: 'Per schuld: wie, bij wie, wat hij **leende**, wat er **nu staat**, hoeveel nachten er verstreken zijn en tegen welke rente. Groeit het bedrag, dan licht het op. Is het plafond bereikt (vijf keer de hoofdsom), dan telt hij niet verder — dan komt de schuldeiser het halen, en dat is jouw scène.', afbeelding: null },
     { titel: 'De rente loopt op rust', tekst: 'Niet op de kalender. Elke **lange rust** van de party is een nacht die telt. Dat is bewust: een party speelt geen echte dagen, en op de kalender stond één lening ooit op 4,5 × 10¹⁹ — meer geld dan er in de wereld is.', afbeelding: null },
     { titel: 'Zonder eigenaar', tekst: 'Een schuld op naam van een personage dat niet meer bestaat staat apart. Niemand kan hem afbetalen en hij telt wel door. Ruim hem op — of laat hem staan als er nog een verhaal aan vastzit.', afbeelding: null },
     { titel: 'Aflossen doet de speler', tekst: 'Onder zijn leningbanner staan de knoppen. Jij hoeft niets te doen; je ziet het langskomen bij Verzoeken. **Kwijtschelden** kan hier wel — dat is een gunst, en die hoort bij jou.', afbeelding: null },
+    { titel: 'Opeisen', tekst: 'Normaal wacht de schuldeiser tot het plafond bereikt is. Met **Opeisen** begint hij meteen: bij elke lange rust schuift de schuld een trap op. **Trap 1** is een brief. **Trap 2** vraagt om onderpand — jij wijst bij Verzoeken aan wat er verdwijnt. **Trap 3** is het bezoek: de schuld krijgt een gevecht, en jij start het wanneer het uitkomt. Bij elke trap krijgt de speler een brief, en in het rustoverzicht staat wat er die nacht gebeurde. Zet *escalatie* aan bij de instellingen; zonder dat groeit de schuld alleen.', afbeelding: null },
   ] }),
 
   dm_gokhuis_beheer: () => ({ titel: 'Gokken', stappen: [

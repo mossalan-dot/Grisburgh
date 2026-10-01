@@ -178,6 +178,72 @@ describe('De woekeraar', () => {
     await req(server, 'POST', '/api/tweespalt/aflossen', {}, spelerC);
   });
 
+  // De drie trappen. Elke trap is een voorstel: de app rekent, de DM handelt —
+  // en bij elke trap hoort een brief.
+  it('escaleert per nacht zodra de schuld opgeëist is, met een brief per trap', async () => {
+    await req(server, 'PUT', '/api/meta/woekeraar', { escalatie: true, ontspanBij: [] }, dm);
+    const v = await req(server, 'POST', '/api/woekeraar/verzoek',
+      { bedrag: { fl: 10, kn: 0, cl: 0 }, waarvoor: 'Een paard' }, spelerC);
+    const goed = await req(server, 'POST', `/api/woekeraar/verzoek/${v.body.verzoek.id}/approve`, {}, dm);
+    const schuldId = goed.body.schuld.id;
+
+    // Zonder opeisen gebeurt er niets: hij groeit alleen.
+    await req(server, 'POST', '/api/party/long-rest', {}, dm);
+    let reg = (await req(server, 'GET', '/api/schulden', null, dm)).body.schulden;
+    assert.ok(!reg.find(x => x.id === schuldId).trap, 'nog geen trap zonder opeisen');
+
+    await req(server, 'POST', `/api/schulden/${schuldId}/opeisen`, {}, dm);
+
+    // Nacht 1: de brief.
+    await req(server, 'POST', '/api/party/long-rest', {}, dm);
+    reg = (await req(server, 'GET', '/api/schulden', null, dm)).body.schulden;
+    assert.strictEqual(reg.find(x => x.id === schuldId).trap, 1);
+    let post = (await req(server, 'GET', '/api/berichten', null, spelerC)).body.berichten || [];
+    assert.ok(post.some(m => /geduld gehad/.test(m.tekst || '')), 'de eerste brief is bezorgd');
+
+    // Nacht 2: er wordt onderpand gevraagd — bij Verzoeken, niet automatisch.
+    await req(server, 'POST', '/api/party/long-rest', {}, dm);
+    reg = (await req(server, 'GET', '/api/schulden', null, dm)).body.schulden;
+    assert.strictEqual(reg.find(x => x.id === schuldId).trap, 2);
+    const ond = (await req(server, 'GET', '/api/onderpand/verzoeken', null, dm)).body.verzoeken;
+    assert.strictEqual(ond.length, 1, 'het staat bij Verzoeken: ' + JSON.stringify(ond));
+
+    // De DM wijst aan wat er verdwijnt.
+    await req(server, 'POST', `/api/player-items/${speler}`, { name: 'Het zwaard van zijn vader' }, dm);
+    const spullen = (await req(server, 'GET', `/api/player-items/${speler}`, null, dm)).body;
+    const zwaard = spullen.find(i => /zwaard/.test(i.name));
+    const genomen = await req(server, 'POST', `/api/onderpand/${ond[0].id}`,
+      { soort: 'los', itemId: zwaard.id }, dm);
+    assert.strictEqual(genomen.body.genomen.naam, 'Het zwaard van zijn vader');
+
+    const na = (await req(server, 'GET', `/api/player-items/${speler}`, null, dm)).body;
+    assert.ok(!na.some(i => i.id === zwaard.id), 'het zwaard is weg');
+    assert.ok(na.some(i => /In onderpand/.test(i.name)), 'en er staat wat er weg is');
+    post = (await req(server, 'GET', '/api/berichten', null, spelerC)).body.berichten || [];
+    assert.ok(post.some(m => /uit boekhouding/.test(m.tekst || '')), 'met een brief erover');
+
+    // Nacht 3: de dreiging.
+    await req(server, 'POST', '/api/party/long-rest', {}, dm);
+    reg = (await req(server, 'GET', '/api/schulden', null, dm)).body.schulden;
+    assert.strictEqual(reg.find(x => x.id === schuldId).trap, 3);
+    post = (await req(server, 'GET', '/api/berichten', null, spelerC)).body.berichten || [];
+    assert.ok(post.some(m => /Strum komt langs/.test(m.tekst || '')), 'de laatste brief');
+
+    // En hij blijft op 3 staan: verder escaleert het niet vanzelf.
+    await req(server, 'POST', '/api/party/long-rest', {}, dm);
+    reg = (await req(server, 'GET', '/api/schulden', null, dm)).body.schulden;
+    assert.strictEqual(reg.find(x => x.id === schuldId).trap, 3);
+  });
+
+  it('geeft het onderpand terug bij het aflossen', async () => {
+    await req(server, 'PATCH', `/api/player-currency/${speler}`, { fl: 200, kn: 0, cl: 0 }, dm);
+    const r = await req(server, 'POST', '/api/tweespalt/aflossen', {}, spelerC);
+    assert.strictEqual(r.body.restCl, 0, JSON.stringify(r.body));
+    const na = (await req(server, 'GET', `/api/player-items/${speler}`, null, dm)).body;
+    assert.ok(na.some(i => i.name === 'Het zwaard van zijn vader'), 'hij heeft het terug: ' + JSON.stringify(na.map(i => i.name)));
+    assert.ok(!na.some(i => /In onderpand/.test(i.name)), 'en het briefje is weg');
+  });
+
   it('leent niet meer dan het plafond', async () => {
     const r = await req(server, 'POST', '/api/woekeraar/verzoek',
       { bedrag: { fl: 99999, kn: 0, cl: 0 } }, spelerC);

@@ -4300,6 +4300,22 @@ router.post('/party/long-rest', requireDM, (req, res) => {
     if (_playerGroupId(dmState, cid) !== _groupIdVan(g, dmState)) continue;
     if (_woekeraarOntspannen(dmState, cid)) lening.rustStand = (g.rustTellers || {}).long || 0;
   }
+  // En een schuld die opeisbaar is, schuift een trap op.
+  // Wat er 's nachts gebeurde met een schuld hoort in het rustoverzicht thuis:
+  // daar kijkt de DM naar na een lange rust, en een brief die ongezien in de
+  // post belandt is een brief die niemand voorleest.
+  const _entsRust = storage.readJSON('entities.json');
+  for (const e of _schuldenEscaleren(req, dmState, g, _groupIdVan(g, dmState))) {
+    const naam = _spelerNaam(_entsRust, e.characterId) || 'Iemand';
+    // Trap 2 zet alleen het verzoek klaar: wát er verdween kies jij, bij
+    // Verzoeken. Vandaar dat deze regel een opdracht is en geen mededeling —
+    // anders staat er dat er iets weg is terwijl er nog niets weg is.
+    gebeurtenissen.push({ naam, tekst: {
+      1: 'Er lag een brief onder de deur toen hij wakker werd.',
+      2: 'Er wordt onderpand gevraagd — kies bij Verzoeken wat er vannacht verdween.',
+      3: 'Buiten stond iemand te wachten tot het licht werd.',
+    }[e.trap] });
+  }
 
   storage.writeJSON('dm-state.json', dmState);
 
@@ -14678,6 +14694,88 @@ function _schuldenVan(dmState, characterId = null) {
   return uit;
 }
 
+// ── De drie trappen ─────────────────────────────────────────────────────────
+// Een schuld die blijft staan wordt niet alleen duurder, hij wordt ook
+// gevaarlijker. Dat gebeurt per lange rust, en elke trap is een **voorstel**:
+// de app rekent, de DM handelt. Dezelfde regel als bij de loot-DC en de
+// multiclass-eisen.
+//
+//   1 — de brief      een verzegelde brief van de schuldeiser. Gaat vanzelf:
+//                     een brief kost niemand iets en zegt alles.
+//   2 — het onderpand komt bij Verzoeken. De DM wijst zélf een voorwerp aan,
+//                     want de app weet niet wat het zwaard van je vader betekent.
+//   3 — het bezoek    de schuld krijgt een gevecht. De DM start het wanneer het
+//                     uitkomt; de app doet dat nooit zelf.
+//
+// Hij begint pas te escaleren als de schuld **opeisbaar** is: het plafond is
+// geraakt, of de DM eist hem op. Tot die tijd groeit hij alleen.
+const _TRAP_LABELS = ['', 'brief', 'onderpand', 'bezoek'];
+
+function _schuldOpeisbaar(r, stand, dmState) {
+  if (_woekeraarOntspannen(dmState, r.characterId)) return false;
+  return !!(r.opgeeist || stand?.afgetopt);
+}
+
+// Eén nacht verder. Geeft terug wat er veranderde, zodat de rustroute het kan
+// melden en de brief kan versturen.
+function _schuldenEscaleren(req, dmState, g, gid) {
+  const uit = [];
+  const meta = storage.readJSON('meta.json');
+  if (!meta.woekeraar?.escalatie) return uit;   // staat uit: hij groeit alleen
+  const nu = (g.rustTellers || {}).long || 0;
+
+  for (const r of (dmState.schulden || [])) {
+    if (_playerGroupId(dmState, r.characterId) !== gid) continue;
+    const stand = _schuldStand(r, dmState);
+    if (!_schuldOpeisbaar(r, stand, dmState)) continue;
+    const trap = Math.min(3, (r.trap || 0) + 1);
+    if (trap === r.trap) continue;              // hij staat al op 3
+    r.trap = trap;
+    r.trapRust = nu;
+
+    if (trap === 1) {
+      // De brief gaat vanzelf: hij kost niemand iets en komt binnen op het
+      // moment dat de speler denkt dat het goed gaat.
+      _bezorgBrief(req, r.characterId, {
+        titel: 'Een herinnering',
+        afzender: r.schuldeiser?.naam || 'je schuldeiser',
+        entityId: r.schuldeiser?.entityId || null, entityType: 'personages',
+        cinematic: true,
+        tekst: `Je staat bij mij in het krijt voor ${_tsFormatCl(stand.huidigVerschuldigdCl)}.\n\n`
+             + (r.waarvoor ? `Je leende het voor ${r.waarvoor}. Dat is jouw zaak.\n\n` : '')
+             + `Ik heb geduld gehad. Dat is op.\n\nKom langs, of ik kom langs.`,
+      });
+    }
+    if (trap === 3) {
+      // De laatste brief. Geen bedrag meer, geen uitleg — een tijdstip.
+      _bezorgBrief(req, r.characterId, {
+        titel: 'De laatste',
+        afzender: r.schuldeiser?.naam || 'je schuldeiser',
+        entityId: r.schuldeiser?.entityId || null, entityType: 'personages',
+        cinematic: true,
+        tekst: `Ik heb geschreven. Ik heb iets meegenomen. Je hebt niet betaald.\n\n`
+             + `Strum komt langs. Hij is minder geduldig dan ik, en hij leest niet.\n\n`
+             + `Je weet waar ik zit.`,
+      });
+    }
+    if (trap === 2) {
+      // Niet automatisch: de DM wijst aan. Dit zet alleen het verzoek klaar.
+      if (!g.onderpandVerzoeken) g.onderpandVerzoeken = [];
+      if (!g.onderpandVerzoeken.some(v => v.schuldId === r.id && v.status === 'pending')) {
+        g.onderpandVerzoeken.push({
+          id: 'ond_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5),
+          schuldId: r.id, characterId: r.characterId,
+          schuldeiser: r.schuldeiser?.naam || 'de schuldeiser',
+          openCl: stand.huidigVerschuldigdCl,
+          status: 'pending', createdAt: new Date().toISOString(),
+        });
+      }
+    }
+    uit.push({ characterId: r.characterId, trap, label: _TRAP_LABELS[trap] });
+  }
+  return uit;
+}
+
 // ── De-escalatie: iemand heeft een woordje gedaan ───────────────────────────
 // Sta je hoog genoeg bij het Dievengilde of de stadswacht, dan stopt de rente.
 // Je betaalt nog wat je geleend hebt — en verder niets.
@@ -15280,6 +15378,20 @@ router.post('/tweespalt/aflossen', attachRole, (req, res) => {
   });
 
   if (restCl <= 0) {
+    // Wat in onderpand ging komt terug: dat was de afspraak.
+    if (uitRegister?.onderpand) {
+      const o = uitRegister.onderpand;
+      if (o.soort === 'kaartje') {
+        const gr = getGroup(dmState, _playerGroupId(dmState, characterId));
+        if (!gr.itemOwners) gr.itemOwners = {};
+        if (!Array.isArray(gr.itemOwners[o.itemId])) gr.itemOwners[o.itemId] = [];
+        gr.itemOwners[o.itemId].push({ characterId, playerName: '', qty: 1 });
+      } else {
+        items.push({ id: o.itemId, name: o.naam, note: 'Teruggekregen bij het aflossen.' });
+      }
+      const oi = items.findIndex(x => String(x.id || '').startsWith('onderpand_'));
+      if (oi >= 0) items.splice(oi, 1);
+    }
     if (uitRegister) dmState.schulden.splice(dmState.schulden.indexOf(uitRegister), 1);
     else delete ts.leningen[characterId];
     if (bewijsIdx >= 0) items.splice(bewijsIdx, 1);
@@ -15491,6 +15603,8 @@ router.put('/meta/woekeraar', requireDM, (req, res) => {
   if (b.entityId !== undefined) w.entityId = b.entityId || null;
   if (b.locatieId !== undefined) w.locatieId = b.locatieId || null;
   if (b.tekst !== undefined)    w.tekst = String(b.tekst).slice(0, 600);
+  if (b.escalatie !== undefined) { if (b.escalatie) w.escalatie = true; else delete w.escalatie; }
+  if (b.encounterId !== undefined) w.encounterId = b.encounterId || null;
   if (b.ontspanBij !== undefined) {
     const schoon = (Array.isArray(b.ontspanBij) ? b.ontspanBij : [])
       .map(r => ({ factieId: String(r?.factieId || ''), renown: Math.max(0, parseInt(r?.renown) || 0) }))
@@ -15507,6 +15621,105 @@ router.put('/meta/woekeraar', requireDM, (req, res) => {
   storage.writeJSON('meta.json', meta);
   req.app.get('io').to(_campagneRoom(req)).emit('meta:updated');
   res.json({ ok: true, woekeraar: w });
+});
+
+// ── Onderpand ───────────────────────────────────────────────────────────────
+// Trap 2. De app wijst níét aan: hij weet niet wat een voorwerp aan tafel
+// betekent. Het zwaard van je vader en een touw van tien voet staan allebei in
+// de knapzak, en alleen de DM weet welk van de twee een scène is.
+router.get('/onderpand/verzoeken', requireDM, (req, res) => {
+  const dmState = readDmState();
+  const entities = storage.readJSON('entities.json');
+  const uit = [];
+  for (const g of Object.values(dmState.groups || {})) {
+    for (const v of (g.onderpandVerzoeken || [])) {
+      if (v.status !== 'pending') continue;
+      // Wat heeft hij? Losse spullen én voorwerpkaartjes die op zijn naam staan.
+      const los = (dmState.playerItems?.[v.characterId] || [])
+        .filter(i => !String(i.id || '').startsWith('schuld_') && !String(i.id || '').startsWith('ts_leen_'))
+        .map(i => ({ soort: 'los', id: i.id, naam: i.name }));
+      const kaartjes = [];
+      for (const [itemId, eigenaars] of Object.entries(g.itemOwners || {})) {
+        if (!(eigenaars || []).some(o => o.characterId === v.characterId)) continue;
+        const kaart = (entities.voorwerpen || []).find(e => e.id === itemId);
+        kaartjes.push({ soort: 'kaartje', id: itemId, naam: kaart?.name || itemId });
+      }
+      uit.push({ ...v, spelerNaam: _spelerNaam(entities, v.characterId) || '', bezit: [...kaartjes, ...los] });
+    }
+  }
+  res.json({ verzoeken: uit });
+});
+
+router.post('/onderpand/:id', requireDM, (req, res) => {
+  const dmState = readDmState();
+  let verzoek = null, groep = null;
+  for (const g of Object.values(dmState.groups || {})) {
+    const v = (g.onderpandVerzoeken || []).find(x => x.id === req.params.id && x.status === 'pending');
+    if (v) { verzoek = v; groep = g; break; }
+  }
+  if (!verzoek) return res.status(404).json({ error: 'Verzoek niet gevonden' });
+
+  const { soort, itemId } = req.body || {};
+  // Niets aanwijzen mag: dan heeft hij niets gevonden dat de moeite waard is,
+  // en dat is ook een uitkomst. Dan gaat de trap wel door.
+  if (!itemId) {
+    verzoek.status = 'niets';
+    storage.writeJSON('dm-state.json', dmState);
+    return res.json({ ok: true, genomen: null });
+  }
+
+  const entities = storage.readJSON('entities.json');
+  const schuld = (dmState.schulden || []).find(r => r.id === verzoek.schuldId);
+  let naam = '';
+  if (soort === 'kaartje') {
+    const lijst = groep.itemOwners?.[itemId] || [];
+    const i = lijst.findIndex(o => o.characterId === verzoek.characterId);
+    if (i < 0) return res.status(404).json({ error: 'Dat voorwerp staat niet op zijn naam' });
+    naam = (entities.voorwerpen || []).find(e => e.id === itemId)?.name || itemId;
+    lijst.splice(i, 1);
+  } else {
+    const items = dmState.playerItems?.[verzoek.characterId] || [];
+    const i = items.findIndex(x => x.id === itemId);
+    if (i < 0) return res.status(404).json({ error: 'Dat spul heeft hij niet' });
+    naam = items[i].name;
+    items.splice(i, 1);
+  }
+
+  verzoek.status = 'genomen';
+  verzoek.genomen = { soort, itemId, naam };
+  if (schuld) schuld.onderpand = { soort, itemId, naam, genomenOp: new Date().toISOString() };
+
+  // Hij hoort te zien wat er weg is, en wat het terugkopen kost.
+  if (!dmState.playerItems) dmState.playerItems = {};
+  if (!dmState.playerItems[verzoek.characterId]) dmState.playerItems[verzoek.characterId] = [];
+  dmState.playerItems[verzoek.characterId].push({
+    id: 'onderpand_' + verzoek.id,
+    name: `In onderpand: ${naam}`,
+    note: `${verzoek.schuldeiser} heeft het meegenomen. Je krijgt het terug als je je schuld aflost.`,
+  });
+
+  storage.writeJSON('dm-state.json', dmState);
+  const io = req.app.get('io');
+  io.to(_campagneRoom(req)).emit('player:items-updated', { characterId: verzoek.characterId });
+  _bezorgBrief(req, verzoek.characterId, {
+    titel: 'Wat ik meenam',
+    afzender: verzoek.schuldeiser,
+    tekst: `Ik heb ${naam} meegenomen. Niet uit kwaadheid — uit boekhouding.\n\n`
+         + `Je krijgt het terug zodra je betaalt. Daarna praten we niet meer over deze zaak.`,
+  });
+  res.json({ ok: true, genomen: verzoek.genomen });
+});
+
+// De DM kan een schuld opeisen zonder op het plafond te wachten: dan begint de
+// escalatie bij de eerstvolgende nacht.
+router.post('/schulden/:id/opeisen', requireDM, (req, res) => {
+  const dmState = readDmState();
+  const r = (dmState.schulden || []).find(x => x.id === req.params.id);
+  if (!r) return res.status(404).json({ error: 'Niet gevonden' });
+  r.opgeeist = !r.opgeeist;
+  if (!r.opgeeist) { r.trap = 0; r.trapRust = null; }
+  storage.writeJSON('dm-state.json', dmState);
+  res.json({ ok: true, opgeeist: r.opgeeist });
 });
 
 router.get('/schulden', requireDM, (req, res) => {

@@ -244,14 +244,17 @@ namen in.
 
 ## Volgorde van bouwen
 
-1. **Aflossen** (halve dag). Maakt het bestaande meteen heel, en hangt nergens
+**Stap 1 t/m 5 zijn gebouwd op 1 okt 2026.** Wat er nog ligt is stap 6: hij
+duikt op bij de Markt.
+
+1. [x] **Aflossen** (halve dag). Maakt het bestaande meteen heel, en hangt nergens
    aan vast.
-2. **Het register + de dienst** (dag). Migratie van de Tweespalt-lening, het
+2. [x] **Het register + de dienst** (dag). Migratie van de Tweespalt-lening, het
    DM-overzicht, en de dienst zelf: zijn voorwaarden, het leenformulier en het
    verzoek dat daaruit komt.
-3. **De drie trappen** (dag). Brief, onderpand via Verzoeken, encounter.
-4. **De renown-de-escalatie** (halve dag). Hangt aan 2.
-5. **Het casino-aanbod** (paar uur) — de zijdeur, zodra de hoofdingang werkt.
+3. [x] **De drie trappen** (dag). Brief, onderpand via Verzoeken, encounter.
+4. [x] **De renown-de-escalatie** (halve dag). Hangt aan 2.
+5. [ ] **Het casino-aanbod** (paar uur) — de zijdeur, zodra de hoofdingang werkt.
 6. **Hij duikt op waar je tekortkomt** — op de Markt. Pas hierna,
    want dan is het dezelfde knop op een andere plek in plaats van een tweede
    mechaniek. Geen enkele dienst krijgt een eigen krediet.
