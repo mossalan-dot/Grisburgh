@@ -134,6 +134,50 @@ describe('De woekeraar', () => {
     assert.match(bericht.tekst, /Niet na vorige keer/);
   });
 
+  // De-escalatie: sta je hoog genoeg bij een factie met gezag, dan stopt de
+  // rente. Geen kwijtschelding — een afspraak.
+  it('zet de rente stil als een factie een woordje doet', async () => {
+    // Een factie met een drempel, en de schuld die eronder valt.
+    const facties = [{ id: 'f_wacht', naam: 'De Stadswacht', renownDrempels: [0, 1, 3, 10] }];
+    await req(server, 'PUT', '/api/meta/facties', { facties }, dm);
+    await req(server, 'PUT', '/api/meta/woekeraar', { ontspanBij: [{ factieId: 'f_wacht', renown: 3 }] }, dm);
+
+    const v = await req(server, 'POST', '/api/woekeraar/verzoek', { bedrag: { fl: 10, kn: 0, cl: 0 } }, spelerC);
+    await req(server, 'POST', `/api/woekeraar/verzoek/${v.body.verzoek.id}/approve`, {}, dm);
+
+    // Zonder aanzien loopt de rente: één nacht erbij.
+    await req(server, 'POST', '/api/party/long-rest', {}, dm);
+    let reg = (await req(server, 'GET', '/api/schulden', null, dm)).body.schulden;
+    let mijn = reg.find(x => x.bron === 'woekeraar');
+    assert.ok(mijn.stand.huidigVerschuldigdCl > 1000, 'zonder afspraak groeit hij: ' + mijn.stand.huidigVerschuldigdCl);
+    assert.ok(!mijn.ontspannen, 'en er is nog geen afspraak');
+
+    // Nu het aanzien omhoog, over de drempel.
+    await req(server, 'POST', '/api/facties/f_wacht/renown', { delta: 5 }, dm);
+
+    reg = (await req(server, 'GET', '/api/schulden', null, dm)).body.schulden;
+    mijn = reg.find(x => x.bron === 'woekeraar');
+    assert.ok(mijn.ontspannen, 'de afspraak staat: ' + JSON.stringify(mijn.ontspannen));
+    assert.strictEqual(mijn.ontspannen.naam, 'De Stadswacht');
+
+    // En de rente valt terug: je betaalt wat je leende, en verder niets. Dat
+    // gebeurt bij de eerstvolgende nacht, want daar tikt de klok.
+    await req(server, 'POST', '/api/party/long-rest', {}, dm);
+    reg = (await req(server, 'GET', '/api/schulden', null, dm)).body.schulden;
+    mijn = reg.find(x => x.bron === 'woekeraar');
+    assert.strictEqual(mijn.stand.huidigVerschuldigdCl, 1000, 'terug naar de hoofdsom');
+
+    // En hij blijft daar: nog een nacht verandert niets.
+    await req(server, 'POST', '/api/party/long-rest', {}, dm);
+    reg = (await req(server, 'GET', '/api/schulden', null, dm)).body.schulden;
+    mijn = reg.find(x => x.bron === 'woekeraar');
+    assert.strictEqual(mijn.stand.huidigVerschuldigdCl, 1000, 'en hij blijft staan');
+
+    // Opruimen: de volgende test wil een schone lei.
+    await req(server, 'PATCH', `/api/player-currency/${speler}`, { fl: 50, kn: 0, cl: 0 }, dm);
+    await req(server, 'POST', '/api/tweespalt/aflossen', {}, spelerC);
+  });
+
   it('leent niet meer dan het plafond', async () => {
     const r = await req(server, 'POST', '/api/woekeraar/verzoek',
       { bedrag: { fl: 99999, kn: 0, cl: 0 } }, spelerC);

@@ -12987,9 +12987,11 @@ async function renderWoekeraar() {
 
   // Wat er nu openstaat. Dit is zijn eigen scherm, dus hier staat de schuld —
   // niet alleen bij het gokhuis waar hij toevallig ook rondhangt.
+  const ontspannen = data.ontspannen || null;
   const schuldBlok = schuld ? `
-    <div class="wk-schuld">
+    <div class="wk-schuld${ontspannen ? ' wk-schuld--rust' : ''}">
       <div class="wk-schuld-kop">${icon('scroll-text')} Je staat bij hem in het krijt</div>
+      ${ontspannen ? `<p class="wk-afspraak">${icon('shield')} Iemand van <strong>${esc(ontspannen.naam)}</strong> heeft een woordje gedaan. De rente staat stil — je betaalt wat je leende, en verder niets.</p>` : ''}
       <div class="wk-schuld-cijfers">
         <div><span>Geleend</span><b>${geld(schuld.hoofdsomCl)}</b></div>
         <div><span>Staat nu</span><b class="${schuld.stand?.huidigVerschuldigdCl > schuld.hoofdsomCl ? 'wk-op' : ''}">${geld(schuld.stand?.huidigVerschuldigdCl ?? schuld.hoofdsomCl)}</b></div>

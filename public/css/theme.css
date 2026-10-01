@@ -28707,3 +28707,13 @@ body.akte-schrijf-open .mp-overlay { z-index: 1320; }
   font-family: 'Crimson Text', serif; font-size: 13.5px;
   display: flex; align-items: center; gap: 7px;
 }
+
+/* Een schuld waar iemand een woordje over heeft gedaan: de rente staat stil. */
+.wk-schuld--rust { border-left-color: #2a6a3a; }
+.wk-afspraak {
+  margin: 0 0 9px; padding: 7px 10px; border-radius: 6px;
+  background: rgba(42,106,58,0.10); border: 1px solid rgba(42,106,58,0.30);
+  font-family: 'Crimson Text', serif; font-size: 12.5px; line-height: 1.45;
+  display: flex; align-items: flex-start; gap: 6px;
+}
+.wk-afspraak .icon { width: 14px; height: 14px; margin-top: 2px; flex: none; }

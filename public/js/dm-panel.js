@@ -6279,7 +6279,8 @@ async function _renderSchulden() {
           <div><span class="dm-schuld-label">Nachten</span><b>${st.rusten ?? 0}</b></div>
           <div><span class="dm-schuld-label">Rente</span><b>${r.rentePerRust}%</b></div>
         </div>
-        ${st.afgetopt ? `<p class="dm-hint dm-schuld-op">Het plafond is bereikt — hij telt niet verder en komt het halen.</p>` : ''}
+        ${r.ontspannen ? `<p class="dm-hint">${icon('shield')} <strong>${esc(r.ontspannen.naam)}</strong> heeft een woordje gedaan: de rente staat stil zolang het aanzien hoog genoeg blijft. Hij betaalt alleen de hoofdsom.</p>` : ''}
+        ${st.afgetopt && !r.ontspannen ? `<p class="dm-hint dm-schuld-op">Het plafond is bereikt — hij telt niet verder en komt het halen.</p>` : ''}
         ${r.wees ? `<p class="dm-hint">Dit personage bestaat niet meer. Niemand kan deze schuld afbetalen; hij telt wel door.</p>` : ''}
         <div class="dm-schuld-knoppen">
           <button class="dm-btn dm-btn-sm dm-btn-ghost" onclick="window.dmPanel.schuldWeg('${esc(r.id)}','${esc(r.spelerNaam || 'dit personage')}')">

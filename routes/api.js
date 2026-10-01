@@ -2769,6 +2769,13 @@ function _rustStand(g, soort) {
 }
 // Alleen de party die rust. De teller stond eerst op álle groepen, waardoor een
 // nacht van de ene party de schappen van de andere ververste.
+// Van een groepsobject terug naar zijn id — de rustroute heeft `g`, maar
+// `_playerGroupId` geeft een id.
+function _groupIdVan(g, dmState) {
+  for (const [id, groep] of Object.entries(dmState.groups || {})) if (groep === g) return id;
+  return dmState.activeGroup;
+}
+
 function _bumpRustTellers(g, soorten) {
   if (!g) return;
   if (!g.rustTellers) g.rustTellers = { long: 0, short: 0 };
@@ -4280,6 +4287,19 @@ router.post('/party/long-rest', requireDM, (req, res) => {
   // Winkels met een wisselend assortiment verversen na een rust; een lange rust
   // telt ook als korte, want er is een nacht voorbij.
   _bumpRustTellers(g, ['long', 'short']);
+  // Staat er een afspraak, dan schuift de beginstand van elke lopende schuld
+  // mee met de nacht: er komt dus geen rente bij. Dit gebeurt híér en niet bij
+  // het uitrekenen, want dan zou de rente met terugwerkende kracht alsnog
+  // toeslaan zodra het aanzien wegzakt. Een gunst die je verspeelt kost je de
+  // toekomst, niet het verleden.
+  for (const r of (dmState.schulden || [])) {
+    if (_playerGroupId(dmState, r.characterId) !== _groupIdVan(g, dmState)) continue;
+    if (_woekeraarOntspannen(dmState, r.characterId)) r.rustStand = (g.rustTellers || {}).long || 0;
+  }
+  for (const [cid, lening] of Object.entries(dmState.tweespalt?.leningen || {})) {
+    if (_playerGroupId(dmState, cid) !== _groupIdVan(g, dmState)) continue;
+    if (_woekeraarOntspannen(dmState, cid)) lening.rustStand = (g.rustTellers || {}).long || 0;
+  }
 
   storage.writeJSON('dm-state.json', dmState);
 
@@ -14658,6 +14678,32 @@ function _schuldenVan(dmState, characterId = null) {
   return uit;
 }
 
+// ── De-escalatie: iemand heeft een woordje gedaan ───────────────────────────
+// Sta je hoog genoeg bij het Dievengilde of de stadswacht, dan stopt de rente.
+// Je betaalt nog wat je geleend hebt — en verder niets.
+//
+// Dat is geen kwijtschelding en geen verdwijning maar een afspraak: iemand met
+// gezag heeft een woordje gedaan. De schuld blijft bestaan, het woekeren stopt.
+//
+// Welke facties dat gezag hebben stelt de DM in (`meta.woekeraar.ontspanBij`),
+// want welke macht in een stad iets betekent is geen regel van de app.
+function _woekeraarOntspannen(dmState, characterId) {
+  const meta = storage.readJSON('meta.json');
+  const regels = (meta.woekeraar || {}).ontspanBij;
+  if (!Array.isArray(regels) || !regels.length) return null;
+  const g = getGroup(dmState, _playerGroupId(dmState, characterId));
+  const renown = (g?.factieRenown) || {};
+  for (const r of regels) {
+    if (!r?.factieId) continue;
+    const drempel = Number.isFinite(parseInt(r.renown)) ? parseInt(r.renown) : 0;
+    if ((renown[r.factieId] || 0) >= drempel) {
+      const f = (meta.facties || []).find(x => x.id === r.factieId);
+      return { factieId: r.factieId, naam: f?.naam || 'iemand met gezag', renown: drempel };
+    }
+  }
+  return null;
+}
+
 // Wat er nu staat. Dezelfde rekensom als `_tsSchuld`, maar op een registerrij —
 // zodat er één plek is die rente uitrekent, ook als er straks drie bronnen zijn.
 function _schuldStand(r, dmState) {
@@ -15431,6 +15477,7 @@ router.get('/woekeraar', attachRole, vereistDienst('woekeraar'), (req, res) => {
   const g = getGroup(dmState, _playerGroupId(dmState, charId));
   res.json({
     config: _woekeraar(meta),
+    ontspannen: charId ? _woekeraarOntspannen(dmState, charId) : null,
     schulden: charId ? _schuldenVan(dmState, charId) : [],
     verzoek: charId ? ((g.leenVerzoeken || []).find(v => v.characterId === charId && v.status === 'pending') || null) : null,
   });
@@ -15444,6 +15491,12 @@ router.put('/meta/woekeraar', requireDM, (req, res) => {
   if (b.entityId !== undefined) w.entityId = b.entityId || null;
   if (b.locatieId !== undefined) w.locatieId = b.locatieId || null;
   if (b.tekst !== undefined)    w.tekst = String(b.tekst).slice(0, 600);
+  if (b.ontspanBij !== undefined) {
+    const schoon = (Array.isArray(b.ontspanBij) ? b.ontspanBij : [])
+      .map(r => ({ factieId: String(r?.factieId || ''), renown: Math.max(0, parseInt(r?.renown) || 0) }))
+      .filter(r => r.factieId);
+    if (schoon.length) w.ontspanBij = schoon; else delete w.ontspanBij;
+  }
   for (const k of ['maxLeenCl', 'rentePerRust', 'maxFactor']) {
     if (b[k] !== undefined) {
       const n = parseInt(b[k]);
@@ -15464,6 +15517,7 @@ router.get('/schulden', requireDM, (req, res) => {
     ...r,
     spelerNaam: _spelerNaam(entities, r.characterId) || '',
     wees: !bestaat.has(r.characterId),
+    ontspannen: _woekeraarOntspannen(dmState, r.characterId),
   }));
   res.json({ schulden: rijen });
 });

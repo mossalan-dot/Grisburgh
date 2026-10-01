@@ -38,7 +38,7 @@ uitzetten:
 |---|---|
 | `woekeraar-escalatie` | de drie trappen hieronder; uit = de schuld groeit alleen |
 | `woekeraar-casino` | het aanbod verschijnt bij een verloren weddenschap |
-| `woekeraar-opduiken` | hij mengt zich waar je tekortkomt: markt, tempel, herberg |
+| `woekeraar-opduiken` | hij mengt zich waar het om iets groots gaat: de Markt |
 
 ## Van wie is de schuld
 
@@ -159,9 +159,21 @@ Dat is ook dramatisch juister: een woekeraar die precies opduikt waar je iets
 wilt dat je niet kunt betalen is een personage. Een winkel met een
 krediethokje is een formulier.
 
-Dezelfde knop hoort dus thuis bij de Markt, de tempel en de herberg — overal
-waar de app vandaag "je hebt niet genoeg" zegt. Eén deelfunctie
-(`woekeraar-opduiken`) zet ze allemaal aan of uit.
+**Maar niet overal.** Hij duikt op bij de **Markt** en bij het **gokhuis**, en
+daar houdt het op:
+
+- **De herberg niet.** Daar gaat het om een bed en een biertje. Een woekeraar
+  die opduikt omdat je drie koperstukken tekortkomt voor je avondmaal is geen
+  dreiging maar een grap, en hij slijt.
+- **De tempel niet.** Geld lenen om een zegen te kopen voelt blasfemisch, en
+  dat is precies het soort wrijving dat je niet per ongeluk in een spel wilt
+  hebben. Als een DM dat wél wil, is het een scène die hij zelf maakt — geen
+  knop die de app aanbiedt.
+
+De maat is dus: **waar het om iets groots gaat.** Een harnas, een paard, een
+schuld die je aan tafel verliest. Niet waar je een rekening afrekent.
+
+Eén deelfunctie (`woekeraar-opduiken`) zet de plekken aan of uit die er zijn.
 
 ### Bij het gokhuis — de zijdeur
 Verlies je je inleg bij een weddenschap of in het strijdperk en je beurs is
@@ -240,7 +252,7 @@ namen in.
 3. **De drie trappen** (dag). Brief, onderpand via Verzoeken, encounter.
 4. **De renown-de-escalatie** (halve dag). Hangt aan 2.
 5. **Het casino-aanbod** (paar uur) — de zijdeur, zodra de hoofdingang werkt.
-6. **Hij duikt op waar je tekortkomt** — markt, tempel, herberg. Pas hierna,
+6. **Hij duikt op waar je tekortkomt** — op de Markt. Pas hierna,
    want dan is het dezelfde knop op een andere plek in plaats van een tweede
    mechaniek. Geen enkele dienst krijgt een eigen krediet.
 
