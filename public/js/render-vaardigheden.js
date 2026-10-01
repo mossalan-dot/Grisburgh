@@ -1211,6 +1211,66 @@ window.vaardigheden = {
     this.bandKies('class', klasse);
     document.querySelector('.vaardig-band')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   },
+  // ── Je eigen invoer meenemen ──
+  // Wat een DM intikt — subklasseteksten, eigen features, afbeeldingen — blijft
+  // nu in zijn campagne. Dit pakt het in één bestand, zodat hij het mee kan
+  // nemen naar zijn volgende campagne of kan geven aan wie hetzelfde boek heeft.
+  deelVenster() {
+    window.app.openModal('Je eigen invoer', '', `
+      <div class="dm-feature-section" style="margin:0">
+        <div class="dm-section-label">Uitpakken</div>
+        <p class="dm-hint">Alles wat jij hier zelf hebt ingetikt gaat in één bestand: de teksten, wat je bij een feat invulde, en de afbeeldingen die je koos.</p>
+        <label class="dm-form-checkbox"><input type="checkbox" id="vd-exp-alles">
+          <span>Ook overgenomen materiaal meenemen</span></label>
+        <p class="dm-hint">Standaard gaat alleen mee wat je bij <em>Herkomst</em> op <strong>Zelf verzonnen</strong> zette. Overgenomen tekst — uit het Player's Handbook bijvoorbeeld — hoort niet gepubliceerd te worden; neem die alleen mee naar je eigen campagnes, of naar iemand die het boek ook heeft.</p>
+        <label class="dm-form-checkbox"><input type="checkbox" id="vd-exp-beeld" checked>
+          <span>Afbeeldingen meenemen</span></label>
+        <p class="dm-hint">Ze gaan mee in het bestand zelf, want een verwijzing betekent in een andere campagne niets. Dat maakt het bestand wel groot; zet het uit als je alleen de teksten wilt.</p>
+        <div class="dm-feature-row" style="margin-top:8px">
+          <button class="dm-btn dm-btn-primary" onclick="window.vaardigheden.exporteer()">${icon('save')} Uitpakken</button>
+        </div>
+
+        <div class="dm-section-label" style="margin-top:16px">Inpakken</div>
+        <p class="dm-hint">Een bestand van een andere DM inlezen. Wat hier al staat blijft staan, tenzij je het laat overschrijven.</p>
+        <label class="dm-form-checkbox"><input type="checkbox" id="vd-imp-over">
+          <span>Bestaande teksten overschrijven</span></label>
+        <div class="dm-feature-row" style="margin-top:8px">
+          <input type="file" id="vd-imp-bestand" accept="application/json,.json" style="font-size:12px">
+          <button class="dm-btn dm-btn-ghost" onclick="window.vaardigheden.importeer()">${icon('arrow-up-right')} Inlezen</button>
+        </div>
+      </div>`);
+  },
+  async exporteer() {
+    const alles = document.getElementById('vd-exp-alles')?.checked ? '1' : '0';
+    const beelden = document.getElementById('vd-exp-beeld')?.checked ? '1' : '0';
+    try {
+      const d = await api.get(`/progression/export?alles=${alles}&beelden=${beelden}`);
+      if (!d.regels?.length) { alert('Er is niets om mee te nemen. Vink eventueel "ook overgenomen materiaal" aan.'); return; }
+      const blob = new Blob([JSON.stringify(d, null, 2)], { type: 'application/json' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `progressie-${(d._uit || 'campagne').toLowerCase().replace(/[^a-z0-9]+/g, '-')}.json`;
+      a.click();
+      setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+      window._showToast?.(`${icon('check')} ${d.regels.length} stuks ingepakt${d._teGroot ? ` · ${d._teGroot} afbeelding(en) te groot en overgeslagen` : ''}.`);
+    } catch (e) { alert('Uitpakken mislukt: ' + e.message); }
+  },
+  async importeer() {
+    const inp = document.getElementById('vd-imp-bestand');
+    const bestand = inp?.files?.[0];
+    if (!bestand) { alert('Kies eerst een bestand.'); return; }
+    let data;
+    try { data = JSON.parse(await bestand.text()); }
+    catch { alert('Dat is geen leesbaar JSON-bestand.'); return; }
+    data.overschrijf = !!document.getElementById('vd-imp-over')?.checked;
+    try {
+      const r = await api.post('/progression/import', data);
+      window.app.closeModal();
+      _all = null; await _load(); _refreshFilterBar(); _bandHerteken(); _paint();
+      alert(`Ingelezen: ${r.nieuw} nieuw, ${r.bijgewerkt} bijgewerkt, ${r.overgeslagen} overgeslagen` +
+            (r.beelden ? `, ${r.beelden} afbeelding(en)` : '') + '.');
+    } catch (e) { alert('Inlezen mislukt: ' + e.message); }
+  },
   naarSpreuken(klasse) {
     window.spreuken?.zetFilter?.({ klasse });
     window.app.switchSection('spreuken');
@@ -1247,6 +1307,7 @@ export async function renderVaardigheden(container) {
               value="${esc(_filters.q)}" oninput="window.vaardigheden.search(this.value)">
           </div>
           ${window._helpBtn?.('vaardigheden') ?? ''}
+          ${isDM() ? `<button class="sbs-add-btn" onclick="window.vaardigheden.deelVenster()" title="Je eigen invoer in- of uitpakken">${icon('arrow-up-right')}</button>` : ''}
           ${isDM() ? `<button class="sbs-add-btn" onclick="window.vaardigheden.nieuw()" title="Eigen vaardigheid toevoegen">${icon('plus')}</button>` : ''}
         </div>
       </div>

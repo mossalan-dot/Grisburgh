@@ -8818,6 +8818,13 @@ router.post('/progression/feature', requireDM, (req, res) => {
     const oudeLijst = _vaardigLijst(prog, b.oud);
     const i = (oudeLijst || []).findIndex(f => f?.name === b.oud.naam);
     if (i >= 0) { bestaand = oudeLijst[i]; oudeLijst.splice(i, 1); }
+  } else {
+    // Geen `oud` meegestuurd, maar er staat al iets met deze naam op deze plek:
+    // dan bedoelt de schrijver bijwerken, niet een tweede rij ernaast. Via de
+    // bewerkmodus gaat `oud` altijd mee, maar een script of een import niet —
+    // en die kregen zo stilletjes dubbele features.
+    const i = doelLijst.findIndex(f => f?.name === naam);
+    if (i >= 0) { bestaand = doelLijst[i]; doelLijst.splice(i, 1); }
   }
 
   const regel = { ...(bestaand || {}), name: naam, desc: String(b.desc ?? '') };
@@ -8843,6 +8850,125 @@ router.post('/progression/feature', requireDM, (req, res) => {
   storage.writeJSON('progression.json', { ...prog, bron: prog.bron || 'Aangepast door de DM' });
   req.app.get('io').to(_campagneRoom(req)).emit('progression:updated', {});
   res.json({ ok: true, regel });
+});
+
+// ── Je eigen invoer meenemen naar een andere campagne ───────────────────────
+// Van de 55 subklassen staan er 39 niet in de app: die komen uit het Player's
+// Handbook en mogen we niet meeleveren. Een DM die ze intikt doet dat nu voor
+// zijn eigen campagne, en de volgende DM begint weer bij nul.
+//
+// Dit pakt zijn invoer in één bestand. Niet om te publiceren — om te delen met
+// wie het boek ook heeft, of om je eigen werk mee te nemen naar je volgende
+// campagne. Daarom staat `herkomst` erin en kun je kiezen wat er meegaat:
+// standaard alleen wat zelfbedacht is, want dát is van hém.
+//
+// Afbeeldingen gaan mee als data-URI. Ze hangen aan een bestands-id dat in een
+// andere campagne niets betekent, dus alleen het id meesturen levert daar een
+// kapot plaatje op; de inhoud meesturen werkt wel, en de import maakt er weer
+// een bestand van.
+function _progFeatures(prog) {
+  const uit = [];
+  const loop = (lijst, meta) => { for (const f of (lijst || [])) uit.push({ f, meta }); };
+  for (const [klasse, data] of Object.entries(prog.classes || {})) {
+    for (const [lvl, fs_] of Object.entries(data.levels || {})) loop(fs_, { soort: 'class', bron: klasse, level: Number(lvl) });
+    for (const [sub, sdata] of Object.entries(data.subclasses || {})) {
+      for (const [lvl, fs_] of Object.entries(sdata.levels || {})) loop(fs_, { soort: 'subclass', bron: klasse, sub, level: Number(lvl) });
+    }
+  }
+  for (const [soort, data] of Object.entries(prog.species || {})) {
+    for (const [lvl, fs_] of Object.entries(data.levels || {})) loop(fs_, { soort: 'species', bron: soort, level: Number(lvl) });
+  }
+  loop(prog.feats?.general, { soort: 'feat', bron: 'Feats', level: 0 });
+  loop(prog.feats?.epic,    { soort: 'boon', bron: 'Epic Boons', level: 0 });
+  return uit;
+}
+
+const _EXPORT_BEELD_MAX = 2 * 1024 * 1024;   // per afbeelding; anders wordt het bestand onhandelbaar
+
+router.get('/progression/export', requireDM, (req, res) => {
+  const alles = String(req.query.alles || '') === '1';
+  const metBeeld = String(req.query.beelden || '1') !== '0';
+  const prog = _progHuidig();
+  const meta = storage.readJSON('meta.json') || {};
+
+  const regels = [];
+  const beelden = {};
+  let teGroot = 0;
+  for (const { f, meta: m } of _progFeatures(prog)) {
+    // Zonder eigen tekst valt er niets te delen: dat is de kale seed.
+    if (!String(f.desc || '').trim() && !f.img) continue;
+    const herkomst = f.herkomst || '';
+    if (!alles && herkomst !== 'zelfbedacht') continue;
+    const regel = { ...m, naam: f.name, desc: f.desc || '', herkomst };
+    for (const k of ['img', 'imgFocus', 'vereist', 'geeftSpreuk', 'sluitAan']) {
+      if (f[k] !== undefined) regel[k] = f[k];
+    }
+    if (metBeeld && f.img && !beelden[f.img]) {
+      const best = storage.getFile(f.img);
+      if (best) {
+        try {
+          const buf = fs.readFileSync(best.path);
+          if (buf.length <= _EXPORT_BEELD_MAX) {
+            beelden[f.img] = `data:${best.mimetype};base64,${buf.toString('base64')}`;
+          } else teGroot++;
+        } catch { /* een plaatje minder is geen reden om de export te laten mislukken */ }
+      }
+    }
+    regels.push(regel);
+  }
+
+  res.json({
+    _formaat: 'grisburgh-progressie-1',
+    _uit: meta.appTitle || 'Een campagne',
+    _datum: new Date().toISOString().slice(0, 10),
+    _nb: alles
+      ? 'Bevat ook overgenomen materiaal. Bedoeld om met je eigen campagnes of met wie hetzelfde boek heeft te delen — niet om te publiceren.'
+      : 'Alleen zelfbedacht materiaal.',
+    _teGroot: teGroot,
+    regels, beelden,
+  });
+});
+
+router.post('/progression/import', requireDM, (req, res) => {
+  const b = req.body || {};
+  if (b._formaat !== 'grisburgh-progressie-1') return res.status(400).json({ error: 'Dit is geen progressie-export' });
+  const regels = Array.isArray(b.regels) ? b.regels : [];
+  if (!regels.length) return res.status(400).json({ error: 'Er staat niets in' });
+  const overschrijf = !!b.overschrijf;
+
+  const prog = _progHuidig();
+  let nieuw = 0, bijgewerkt = 0, overgeslagen = 0, beeldenGezet = 0;
+
+  for (const r of regels) {
+    if (!r?.naam || !r?.soort) { overgeslagen++; continue; }
+    const lijst = _vaardigLijst(prog, { soort: r.soort, bron: r.bron, sub: r.sub, level: r.level }, true);
+    if (!lijst) { overgeslagen++; continue; }   // een klasse die hier niet bestaat
+    const i = lijst.findIndex(f => f?.name === r.naam);
+    if (i >= 0 && !overschrijf) { overgeslagen++; continue; }
+
+    const regel = i >= 0 ? lijst[i] : { name: r.naam };
+    regel.desc = String(r.desc || '');
+    if (r.herkomst) regel.herkomst = r.herkomst;
+    for (const k of ['vereist', 'geeftSpreuk', 'sluitAan', 'imgFocus']) {
+      if (r[k] !== undefined) regel[k] = r[k];
+    }
+    // Het beeld krijgt een nieuw id in déze campagne: het oude hoort bij de
+    // bestandenmap van de ander.
+    const data = r.img ? b.beelden?.[r.img] : null;
+    const m = data && /^data:([^;]+);base64,(.+)$/.exec(data);
+    if (m) {
+      const id = 'feat-img-' + Math.random().toString(36).slice(2, 10);
+      try { storage.saveFile(id, Buffer.from(m[2], 'base64'), m[1]); regel.img = id; beeldenGezet++; }
+      catch { delete regel.img; }
+    } else if (r.img) {
+      delete regel.img;   // geen inhoud meegekomen: liever geen plaatje dan een kapot plaatje
+    }
+    if (i >= 0) { lijst[i] = regel; bijgewerkt++; } else { lijst.push(regel); nieuw++; }
+  }
+
+  storage.writeJSON('progression.json', { ...prog, bron: prog.bron || 'Aangepast door de DM' });
+  req.app.get('io').to(_campagneRoom(req)).emit('progression:updated', {});
+  res.json({ ok: true, nieuw, bijgewerkt, overgeslagen, beelden: beeldenGezet });
 });
 
 // POST /api/progression/feature/verwijderen — de regel eruit halen. Bewust een
