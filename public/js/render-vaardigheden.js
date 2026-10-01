@@ -302,7 +302,7 @@ function _card(it) {
 // SRD 5.2 (CC BY 4.0) — dezelfde licentie waar de spreuken en de statblokken
 // uit komen. De Artificer staat niet in de SRD; daarvan tonen we alleen wat we
 // weten, in plaats van de rest te raden.
-let _klasseBasis = null, _spreukKlassen = null;
+let _klasseBasis = null, _spreukKlassen = null, _spreukAantal = null, _tellers = null;
 async function _klasseExtra() {
   if (_klasseBasis) return;
   const haal = async (naam) => {
@@ -311,14 +311,22 @@ async function _klasseExtra() {
   };
   const [basis, spreuken] = await Promise.all([haal('klasse-basis'), haal('spells-2024')]);
   _klasseBasis = (basis?.klassen) || {};
+  // Hoeveel spreuken staan er op de lijst van elke klasse? Dat telt zichzelf
+  // uit de spreukenbron; nergens anders staat het, en het is precies wat je
+  // wilt weten als je kiest wát je gaat spelen.
+  _spreukAantal = new Map();
   // Welke klassen hebben deze spreuk op hun lijst? Dat staat al in de
   // spreukenbron; zo weet een feat die Misty Step geeft vanzelf bij wie hij
   // hoort, zonder dat iemand dat ergens invult.
   _spreukKlassen = new Map();
   for (const sp of (spreuken?.results || [])) {
-    _spreukKlassen.set(String(sp.name || '').toLowerCase(),
-      (sp.classes || []).map(c => c.name).filter(Boolean));
+    const klassen = (sp.classes || []).map(c => c.name).filter(Boolean);
+    _spreukKlassen.set(String(sp.name || '').toLowerCase(), klassen);
+    for (const k of klassen) _spreukAantal.set(k, (_spreukAantal.get(k) || 0) + 1);
   }
+  // De tellers (hoeveel cantrips en voorbereide spreuken per level) staan in
+  // hun eigen bron; de server leest ze al voor de level-up.
+  _tellers = await haal('srd-spreukentellers') || {};
 }
 
 const _AB_NAAM = { str: 'Strength', dex: 'Dexterity', con: 'Constitution',
@@ -400,6 +408,26 @@ function _featBlokHtml(klasse) {
     </div>`;
 }
 
+// Wat een caster aan spreuken heeft: hoe groot zijn lijst is, en hoe de
+// tellers meegroeien van level 1 naar 20. Dat stond in de Spreuken-tab en in
+// `srd-spreukentellers.json`, maar nergens bij elkaar — terwijl het juist de
+// vraag is als je kiest wát je gaat spelen.
+function _spreukRegel(klasse, basis) {
+  if (!basis?.castAbility) return null;
+  const n = _spreukAantal?.get(klasse) || 0;
+  const t = _tellers?.[klasse] || null;
+  const delen = [];
+  if (n) delen.push(`${n} op de lijst`);
+  if (t?.['1'] && t?.['20']) {
+    const c1 = t['1'].cantrips, c20 = t['20'].cantrips;
+    const v1 = t['1'].voorbereid, v20 = t['20'].voorbereid;
+    if (c20) delen.push(`cantrips ${c1}${c20 !== c1 ? ` → ${c20}` : ''}`);
+    if (v20) delen.push(`voorbereid ${v1}${v20 !== v1 ? ` → ${v20}` : ''}`);
+  }
+  if (!delen.length) return null;
+  return ['Spreuken', delen.join(' · ')];
+}
+
 function _klasseKaartHtml(klasse) {
   const data = _bron?.prog?.classes?.[klasse];
   if (!data) return '';
@@ -428,6 +456,7 @@ function _klasseKaartHtml(klasse) {
           ? `kies ${basis.skillAantal} uit ${basis.skills.join(', ')}`
           : `kies ${basis.skillAantal}, vrij`]
       : null,
+    _spreukRegel(klasse, basis),
   ].filter(Boolean);
 
   const sig = window._signatureVoor?.(klasse);
@@ -447,6 +476,9 @@ function _klasseKaartHtml(klasse) {
       ${training.length ? `<dl class="vk-training">
         ${training.map(([k, v]) => `<dt>${esc(k)}</dt><dd>${esc(v)}</dd>`).join('')}
       </dl>` : ''}
+      ${basis.castAbility && (_spreukAantal?.get(klasse) || 0) ? `
+        <button class="vk-naar-spreuken" onclick="window.vaardigheden.naarSpreuken('${esc(klasse).replace(/'/g, "\\'")}')">
+          ${icon('book-open')} Bekijk de spreukenlijst van de ${esc(klasse)}</button>` : ''}
       ${gevuld < subs.length ? `<p class="vk-noot">Van ${subs.length - gevuld} van de ${subs.length} subklassen staat er geen tekst in de app: die komt uit het Player's Handbook. ${isDM() ? 'Je kunt ze zelf intikken bij een feature hieronder.' : ''}</p>` : ''}
       ${_featBlokHtml(klasse)}
     </div>`;
@@ -1024,6 +1056,13 @@ window.vaardigheden = {
     _bandHerteken(); _refreshFilterBar(); _paint();
     const zoek = document.querySelector('#section-vaardigheden .sbs-input');
     if (zoek) zoek.value = _filters.q;
+  },
+  // Naar de spreukenbibliotheek met de zeef al op deze klasse — zelfde gebaar
+  // als de knop in de level-up-omslag.
+  naarSpreuken(klasse) {
+    window.spreuken?.zetFilter?.({ klasse });
+    window.app.switchSection('spreuken');
+    setTimeout(() => window.spreuken?.zetFilter?.({ klasse }), 400);
   },
   bandSub(naam) {
     _filters.sub = (naam && _filters.sub !== naam) ? naam : null;

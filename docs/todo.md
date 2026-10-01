@@ -408,10 +408,20 @@ Gevraagd op 14 sep 2026, gebouwd op 14 sep 2026.
          derde veld ("geeft spreuk") of een scan over de spreuknamen in de
          feattekst, en die tekst is er meestal niet. Pas zinvol als de
          feattekstem gevuld raken.
-      4. **Spreuken erbij.** Een klasse heeft een spreukenlijst; die staat in de
-         Spreuken-tab en is hier niet gekoppeld. `srd-spreukentellers.json` weet
-         al hoeveel cantrips en voorbereide spreuken een caster per level heeft —
-         dat kan zo op het klassekaartje.
+      4. [x] **Spreuken erbij** — gedaan 1 okt 2026: hoeveel spreuken er op de
+         lijst staan (geteld uit `spells-2024.json`), hoe de tellers meegroeien
+         van 1 naar 20, en een knop naar de bibliotheek met de zeef al goed.
+         Daarmee is dit rijtje af.
+
+      **Wat er hierna nog ligt voor dit tabblad**, als je verder wilt:
+      - De **30 feats zonder eis** invullen (`scripts/feat-koppelingen-vullen.js`
+        noemt ze bij naam). Handwerk, maar elk ingevuld veld laat de koppelingen
+        beter werken.
+      - Een kaartje voor een **volk** en een **achtergrond**: die hebben er nog
+        geen, terwijl ze wel in de band staan.
+      - De koppeling **andersom tonen**: op het kaartje van een feat zien bij
+        welke klassen hij hoort. De gegevens zijn er nu; alleen de weergave
+        ontbreekt.
 
 ## Setup-wizard voor een nieuwe DM
 

@@ -28624,3 +28624,16 @@ body.akte-schrijf-open .mp-overlay { z-index: 1320; }
 .vd-klasse .icon { width: 13px; height: 13px; opacity: .7; }
 .vd-klasse input { accent-color: #8a6d3f; }
 .vd-klasse.is-aan { border-color: #d9b24a; background: rgba(217,178,74,0.14); }
+
+/* De knop naar de spreukenlijst op het klassekaartje. */
+.vk-naar-spreuken {
+  margin-top: 10px;
+  display: inline-flex; align-items: center; gap: 6px;
+  font-family: 'Cinzel', serif; font-size: 11px;
+  padding: 5px 11px; border-radius: 7px; cursor: pointer;
+  background: color-mix(in srgb, var(--vk-kleur, #8a6d3f) 14%, transparent);
+  border: 1px solid color-mix(in srgb, var(--vk-kleur, #8a6d3f) 40%, transparent);
+  color: var(--color-ink, #3a2d1c);
+}
+.vk-naar-spreuken:hover { background: color-mix(in srgb, var(--vk-kleur, #8a6d3f) 26%, transparent); }
+.vk-naar-spreuken .icon { width: 13px; height: 13px; }
