@@ -399,4 +399,30 @@ describe('Het gevecht: opstellen, beurten en HP', () => {
     assert.strictEqual(v.gevecht.uitkomst, 'overwinning');
     assert.ok(!v.logDm, 'het ronde-voor-ronde-log blijft bij de DM');
   });
+
+  // De XP van een gevecht. Dit telde altijd 0 op: de route las `m.xp`, en dat
+  // staat op geen enkel monster in geen enkele campagne — de XP zit in het
+  // statblok. Gevolg: het voorstel bij de XP-knop in de regie-balk bleef leeg,
+  // terwijl die knop juist belooft dat je niet hoeft op te tellen.
+  it('telt de XP van een gevecht op uit het statblok', async () => {
+    const mon = await req(server, 'POST', '/api/monsters',
+      { name: 'Kwelderrat', maxHp: 7, statblock: { cr: '1/8', xp: 25, ac: '12' } }, dm);
+    assert.ok(mon.status === 200 || mon.status === 201, JSON.stringify(mon.body));
+    const zwaar = await req(server, 'POST', '/api/monsters',
+      { name: 'Vloedhond', maxHp: 66, statblock: { cr: '3', xp: 700, ac: '15' } }, dm);
+
+    const e = await req(server, 'POST', '/api/encounters', {
+      name: 'XP-proef',
+      monsters: [
+        { monsterId: mon.body.id,   name: 'Kwelderrat', count: 4 },
+        { monsterId: zwaar.body.id, name: 'Vloedhond',  count: 1 },
+      ],
+    }, dm);
+    assert.ok(e.status === 200 || e.status === 201, JSON.stringify(e.body));
+
+    const xp = await req(server, 'GET', `/api/encounters/${e.body.id}/xp`, null, dm);
+    assert.strictEqual(xp.status, 200, JSON.stringify(xp.body));
+    assert.strictEqual(xp.body.totaal, 4 * 25 + 700, 'vier ratten en een hond');
+    assert.deepStrictEqual(xp.body.zonderXp, [], 'alles kon worden opgezocht');
+  });
 });

@@ -5252,7 +5252,12 @@ router.get('/encounters/:id/xp', requireDM, (req, res) => {
   const regels = [];
   for (const r of (enc.monsters || [])) {
     const m = monsters.find(x => x.id === r.monsterId);
-    const xp = parseInt(m?.xp) || 0;
+    // De XP staat in het statblok (`statblock.xp`), niet op het monster zelf.
+    // Dit las `m.xp`, en dat bestaat op geen enkel monster in geen enkele
+    // campagne — dus kwam er altijd 0 uit, en bleef het XP-voorstel in de
+    // regie-balk leeg terwijl de knop juist belooft dat je niet hoeft op te
+    // tellen. `m.xp` blijft als terugval staan voor wie het daar wél zet.
+    const xp = parseInt(m?.statblock?.xp ?? m?.xp) || 0;
     const n = Math.max(1, parseInt(r.count) || 1);
     totaal += xp * n;
     regels.push({ naam: r.name || m?.name || '?', aantal: n, xp, samen: xp * n });

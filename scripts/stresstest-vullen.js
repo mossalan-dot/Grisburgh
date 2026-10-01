@@ -93,6 +93,10 @@ if (wegMode) {
   quests.quests    = (quests.quests || []).filter(q => !String(q.id).startsWith(PRE));
   dungeons.maps    = (dungeons.maps || []).filter(m => !String(m.id).startsWith(PRE));
   tafels.tables    = (tafels.tables || []).filter(t => !String(t.id).startsWith(PRE));
+  const ruw0 = lees('monsters.json', { monsters: [] });
+  const mon0 = Array.isArray(ruw0) ? { monsters: ruw0 } : (ruw0 || { monsters: [] });
+  mon0.monsters = (mon0.monsters || []).filter(m => !String(m.id).startsWith(PRE));
+  bewaar('monsters.json', mon0);
   meta.facties     = (meta.facties || []).filter(f => !String(f.id || '').startsWith(PRE));
   for (const k of Object.keys(meta.hoofdstukken || {})) if (k.startsWith(PRE)) delete meta.hoofdstukken[k];
   bewaar('entities.json', ent); bewaar('encounters.json', enc); bewaar('quests.json', quests);
@@ -306,29 +310,80 @@ for (const [n, naam, stijl] of [[1, 'Het Baken — onderbouw', 'steen'], [2, 'De
 }
 
 // ════════════════════════════════════════════════════════════════════════════
-//  GEVECHTEN
+//  BESTIARIUM EN GEVECHTEN
 // ════════════════════════════════════════════════════════════════════════════
-// Een ladder die meeloopt met de aktes: lage CR in de lente, zware in de
-// winter. De monsters komen uit de SRD-namen die het bestiarium al kent.
-const LADDER = [
-  ['Bandit', 1 / 8], ['Giant Rat', 1 / 8], ['Kobold', 1 / 8], ['Guard', 1 / 8],
-  ['Bandit Captain', 2], ['Ghoul', 1], ['Thug', 1 / 2], ['Swarm of Rats', 1 / 4],
-  ['Ogre', 2], ['Wererat', 2], ['Gargoyle', 2], ['Doppelganger', 3],
-  ['Wight', 3], ['Mimic', 2], ['Water Elemental', 5], ['Veteran', 3],
-  ['Revenant', 5], ['Young Black Dragon', 7], ['Mage', 6], ['Assassin', 8],
+// Hier ging het de eerste keer mis: de gevechten verwezen naar monsters op
+// náám, maar de app koppelt uitsluitend op `monsterId` — `monsters.find(x =>
+// x.id === r.monsterId)`. Zestig gevechten zonder statblock, dus 0 XP en
+// deelnemers zonder HP. En `monsters.json` staat per campagne: er is geen
+// gedeelde SRD-voorraad waar een nieuwe campagne uit put. Een stresstest die
+// gevechten maakt, moet dus zijn eigen beesten meebrengen.
+const BEESTEN = [
+  ['kwelderrat',   'Kwelderrat',           '1/8',  7,  12, 25,   'Beast',      'Tiny'],
+  ['kadeschuimer', 'Kadeschuimer',         '1/8',  9,  12, 25,   'Humanoid',   'Medium'],
+  ['netduivel',    'Netduivel',            '1/4',  13, 13, 50,   'Beast',      'Small'],
+  ['zoutwachter',  'Zoutwachter',          '1/4',  16, 14, 50,   'Humanoid',   'Medium'],
+  ['slikkruiper',  'Slikkruiper',          '1/2',  22, 13, 100,  'Monstrosity','Medium'],
+  ['havenbonk',    'Havenbonk',            '1/2',  26, 12, 100,  'Humanoid',   'Medium'],
+  ['wierwurger',   'Wierwurger',           '1',    32, 13, 200,  'Plant',      'Large'],
+  ['drenkeling',   'Drenkeling',           '1',    30, 11, 200,  'Undead',     'Medium'],
+  ['pakhuisspook', 'Pakhuisspook',         '2',    45, 14, 450,  'Undead',     'Medium'],
+  ['kraanmeester', 'Kraanmeester',         '2',    52, 15, 450,  'Humanoid',   'Medium'],
+  ['zeekobold',    'Zeekobold-voorman',    '2',    48, 14, 450,  'Humanoid',   'Small'],
+  ['glibbergeest', 'Glibbergeest',         '3',    60, 13, 700,  'Ooze',       'Large'],
+  ['vloedhond',    'Vloedhond',            '3',    66, 15, 700,  'Monstrosity','Large'],
+  ['sleutelloze',  'De Sleutelloze',       '4',    82, 16, 1100, 'Undead',     'Medium'],
+  ['bakenwachter', 'Bakenwachter',         '5',    95, 17, 1800, 'Construct',  'Large'],
+  ['stormgeest',   'Stormgeest',           '5',    88, 15, 1800, 'Elemental',  'Large'],
+  ['zoutzieder',   'De Zoutzieder',        '6',    110,16, 2300, 'Humanoid',   'Medium'],
+  ['kwelderkoning','De Kwelderkoning',     '7',    130,17, 2900, 'Monstrosity','Huge'],
+  ['onderwalbaas', 'De Baas van de Onderwal','8',  142,18, 3900, 'Humanoid',   'Medium'],
+  ['aaltvorst',    'De Aaltvorst',         '10',   180,19, 5900, 'Dragon',     'Huge'],
 ];
+const CR_GETAL = (cr) => cr.includes('/') ? Number(cr.split('/')[0]) / Number(cr.split('/')[1]) : Number(cr);
+
+// Oudere campagnes hebben `monsters.json` nog als platte array staan (de
+// zaadwaarde in storage.js was dat tot 1 okt 2026). Een eigenschap op een array
+// zetten gooit JSON.stringify stilzwijgend weg, dus eerst omvormen.
+const monsterRuw = lees('monsters.json', { monsters: [] });
+const monsters = Array.isArray(monsterRuw) ? { monsters: monsterRuw } : (monsterRuw || { monsters: [] });
+if (!Array.isArray(monsters.monsters)) monsters.monsters = [];
+monsters.monsters = (monsters.monsters || []).filter(m => !String(m.id).startsWith(PRE));
+BEESTEN.forEach(([sl, naam, cr, hp, ac, xp, type, maat]) => {
+  monsters.monsters.push({
+    id: PRE + 'mon_' + sl, name: naam, maxHp: hp, initiative: 10 + (hp % 7),
+    imageId: null, backdropId: null, chapter: '', inBestiarium: true,
+    description: `Komt voor in en om Veerspoort. Wie hem tegenkomt, komt hem zelden één keer tegen.`,
+    statblock: {
+      size: maat, type, alignment: '', ac: String(ac), hp: `${hp}`,
+      speed: '9 m', str: 10 + (hp % 9), dex: 10 + (ac % 7), con: 10 + (hp % 5),
+      int: 6 + (xp % 9), wis: 8 + (ac % 6), cha: 6 + (hp % 8),
+      savingThrows: '', skills: '', damageVulnerabilities: '', damageResistances: '',
+      damageImmunities: '', conditionImmunities: '',
+      senses: 'passieve Perception 10', languages: '—',
+      cr, xp,
+      traits: `Thuis in het zout. Geen nadeel op aanvallen in ondiep water.`,
+      actions: `Aanval. Melee +${3 + Math.floor(CR_GETAL(cr))}, 1,5 m. Hit: ${3 + Math.ceil(CR_GETAL(cr) * 2)} schade.`,
+      reactions: '', legendaryActions: '',
+    },
+  });
+});
+
+// Een ladder die meeloopt met de aktes: lage CR in de lente, zware in de winter.
 enc.encounters = (enc.encounters || []).filter(e => !String(e.id).startsWith(PRE));
 for (let i = 0; i < 20 * SCHAAL; i++) {
   const akte = Math.min(4, 1 + Math.floor(i / (5 * SCHAAL)));
-  const [mon, cr] = LADDER[i % LADDER.length];
-  const aantal = cr <= 0.5 ? 4 + (i % 4) : cr <= 2 ? 2 + (i % 2) : 1;
+  const [sl, naam, cr, hp] = BEESTEN[i % BEESTEN.length];
+  const crN = CR_GETAL(cr);
+  const aantal = crN <= 0.5 ? 4 + (i % 4) : crN <= 2 ? 2 + (i % 2) : 1;
   enc.encounters.push({
     id: PRE + 'enc' + i,
-    name: `${kies(['Hinderlaag', 'Treffen', 'Overval', 'Wachtpost', 'Achtervolging'])} — ${mon}`,
+    name: `${kies(['Hinderlaag', 'Treffen', 'Overval', 'Wachtpost', 'Achtervolging'])} — ${naam}`,
     akteId: PRE + 'akte' + akte,
     backdropId: null, canvasPreset: null, canvasColors: null,
-    monsters: Array.from({ length: aantal }, (_, k) => ({ name: mon, count: 1, label: `${mon} ${k + 1}` })),
-    loot: { goud: { fl: Math.round(cr * 10), kn: 5 + (i % 9), cl: i % 20 }, items: [] },
+    // `monsterId` is wat telt: op naam koppelen doet de app nergens.
+    monsters: [{ monsterId: PRE + 'mon_' + sl, name: naam, count: aantal, hp, initiative: 10 + (i % 9) }],
+    loot: { goud: { fl: Math.round(crN * 10), kn: 5 + (i % 9), cl: i % 20 }, items: [] },
     dungeonId: i % 5 === 0 ? PRE + 'dng_kelders' : null,
     roomId:    i % 5 === 0 ? PRE + 'k' + (i % 8) : null,
   });
@@ -401,6 +456,7 @@ bewaar('meta.json', meta);
 bewaar('encounters.json', enc);
 bewaar('quests.json', quests);
 bewaar('dungeon-maps.json', dungeons);
+bewaar('monsters.json', monsters);
 
 const tel = (soort) => (ent[soort] || []).filter(x => String(x.id).startsWith(PRE)).length;
 console.log(`\nStresstest voor "${campagne}" op schaal ${SCHAAL}:`);
@@ -412,6 +468,7 @@ console.log(`  documenten    ${tel('documenten')}`);
 console.log(`  facties       ${(meta.facties || []).filter(f => String(f.id || '').startsWith(PRE)).length}`);
 console.log(`  aktes         ${Object.keys(meta.hoofdstukken || {}).filter(k => k.startsWith(PRE)).length}`);
 console.log(`  dungeons      ${(dungeons.maps || []).filter(m => String(m.id).startsWith(PRE)).length}`);
+console.log(`  monsters      ${(monsters.monsters || []).filter(m => String(m.id).startsWith(PRE)).length}`);
 console.log(`  gevechten     ${(enc.encounters || []).filter(e => String(e.id).startsWith(PRE)).length}`);
 console.log(`  missies       ${(quests.quests || []).filter(q => String(q.id).startsWith(PRE)).length}`);
 
