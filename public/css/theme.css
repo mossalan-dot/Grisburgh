@@ -28515,3 +28515,48 @@ body.akte-schrijf-open .mp-overlay { z-index: 1320; }
   .vaardig-band { padding: 9px 10px; }
   .vb-knop { font-size: 10px; padding: 3px 7px; }
 }
+
+/* Het kaartje van een klasse of subklasse, boven haar features. */
+.vk-kaart {
+  margin: 0 0 14px;
+  padding: 13px 16px;
+  border: 1px solid rgba(138,109,63,0.28);
+  border-left: 4px solid var(--vk-kleur, #8a6d3f);
+  border-radius: 10px;
+  background: var(--color-card-bg, rgba(255,255,255,0.45));
+}
+.vk-kop { display: flex; align-items: center; gap: 11px; margin-bottom: 11px; }
+.vk-icoon {
+  width: 34px; height: 34px; flex: none;
+  display: grid; place-items: center; border-radius: 8px;
+  background: color-mix(in srgb, var(--vk-kleur) 18%, transparent);
+  color: var(--vk-kleur);
+}
+.vk-icoon .icon { width: 19px; height: 19px; }
+.vk-naam { font-family: 'Cinzel', serif; font-size: 17px; color: var(--color-ink, #3a2d1c); }
+.vk-sig {
+  font-family: 'Crimson Text', serif; font-size: 12px; font-style: italic;
+  color: var(--color-ink-soft, #6a5430);
+  display: inline-flex; align-items: center; gap: 4px;
+}
+.vk-sig .icon { width: 12px; height: 12px; }
+.vk-feiten { display: flex; flex-wrap: wrap; gap: 8px 22px; }
+.vk-feit { display: flex; flex-direction: column; gap: 1px; }
+.vk-feit-waarde {
+  font-family: 'Cinzel', serif; font-size: 14px; font-weight: 700;
+  color: var(--vk-kleur, #8a6d3f);
+}
+.vk-feit-label {
+  font-family: 'Cinzel', serif; font-size: 8.5px; letter-spacing: .14em;
+  text-transform: uppercase; color: var(--color-ink-faint, rgba(120,96,56,0.7));
+}
+.vk-noot {
+  margin: 10px 0 0; padding-top: 9px;
+  border-top: 1px dashed rgba(196,168,122,0.4);
+  font-family: 'Crimson Text', serif; font-size: 12.5px; line-height: 1.5;
+  color: var(--color-ink-soft, #6a5430);
+}
+@media (max-width: 640px) {
+  .vk-feiten { gap: 8px 16px; }
+  .vk-naam { font-size: 15px; }
+}

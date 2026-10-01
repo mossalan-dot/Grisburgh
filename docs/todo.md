@@ -392,18 +392,22 @@ Gevraagd op 14 sep 2026, gebouwd op 14 sep 2026.
 
 - [ ] **De archieftab, vervolgstappen** (begonnen 1 okt 2026). De band met
       klassen, volken, achtergronden en subklassen staat; wat er nog ligt:
-      1. **De omgekeerde index.** Van een feat terug naar wie hem kan nemen, van
+      1. [x] Overzichtskaartje per klasse — gedaan 1 okt 2026. Zonder saves en
+         proficiencies: die staan in geen bestand dat we mogen gebruiken.
+      2. [x] Hetzelfde voor een subklasse, met het veld uit
+         `docs/subklasse-velden.md` erbij. Gedaan 1 okt 2026.
+      3. **De omgekeerde index.** Van een feat terug naar wie hem kan nemen, van
          een ability naar welke subklassen hem raken. Nu loopt alles één kant
          op: een klasse wijst naar zijn features, maar een feat weet niet bij
-         wie hij hoort. Dit is het stuk waar de vraag om begon.
-      2. **Een overzichtskaartje per klasse.** Nu filtert een klik alleen de
-         lijst; er is nog geen kaartje dat zegt *wat een Fighter is* — hit die,
-         saves, proficiencies, het aantal subklassen, op welk level je kiest.
-         Die gegevens staan al in `class-progression.json`.
-      3. **Hetzelfde voor een subklasse**, met het veld uit
-         `docs/subklasse-velden.md` erbij als die er een heeft.
+         wie hij hoort. Dit is het stuk waar de vraag om begon, en het vraagt
+         eerst een ontwerpkeuze: wát is een koppeling? Een feat die een klasse
+         noemt in zijn tekst, een feat met een prerequisite, of een feat die een
+         spreuk geeft die op jouw lijst staat? Die drie zijn niet hetzelfde.
+         Het klassekaartje is nu de plek waar ze kunnen landen.
       4. **Spreuken erbij.** Een klasse heeft een spreukenlijst; die staat in de
-         Spreuken-tab en is hier niet gekoppeld.
+         Spreuken-tab en is hier niet gekoppeld. `srd-spreukentellers.json` weet
+         al hoeveel cantrips en voorbereide spreuken een caster per level heeft —
+         dat kan zo op het klassekaartje.
 
 ## Setup-wizard voor een nieuwe DM
 

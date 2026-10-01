@@ -3711,14 +3711,21 @@ function rollDice(formula) {
 
 // ── Hit Dice ───────────────────────────────────────────────────────────────
 // Hit die per klasse (2024 PHB). Klassenamen Engels, case-insensitief.
-const CLASS_HIT_DIE = {
-  barbarian: 12,
-  fighter: 10, paladin: 10, ranger: 10,
-  sorcerer: 6, wizard: 6,
-  artificer: 8, bard: 8, cleric: 8, druid: 8, monk: 8, rogue: 8, warlock: 8,
-};
+// Hit die, castend ability en featlevels staan sinds 1 okt 2026 in
+// `bronnen/klasse-basis.json` — één bestand dat de server én het klassekaartje
+// in de Vaardighedentab lezen. Ze stonden hier als tabel en de featlevels nog
+// eens apart; drie plekken voor dertien getallen uit dezelfde tabel in het boek.
+let _klasseBasis = null;
+function _klasseBasisVoor(naam) {
+  if (_klasseBasis === null) {
+    const d = bronnen.lees('klasse-basis') || {};
+    _klasseBasis = new Map(Object.entries(d.klassen || {})
+      .map(([k, v]) => [k.toLowerCase(), v]));
+  }
+  return _klasseBasis.get(String(naam || '').trim().toLowerCase()) || null;
+}
 function _hitDieForClass(naam) {
-  return CLASS_HIT_DIE[String(naam || '').trim().toLowerCase()] || null;
+  return _klasseBasisVoor(naam)?.hitDie || null;
 }
 // ── Spreukenslots afleiden uit klasse + level ───────────────────────────────
 // Net als de Hit Dice hierboven: de tabel staat in het boek, dus die hoeft
@@ -4511,12 +4518,8 @@ function _spreukenOpNiveau(dmState, characterId, niveau) {
 // in de JSON-datasets die we voor de rest gebruiken, dus hij is met de hand
 // ingevoerd — en net als daar: controleer hem desnoods tegen je eigen boek.
 const _ASI_STANDAARD = [4, 8, 12, 16, 19];
-const _ASI_PER_KLASSE = {
-  fighter: [4, 6, 8, 12, 14, 16, 19],
-  rogue:   [4, 8, 10, 12, 16, 19],
-};
 function _isFeatLevel(klasse, klasseLevel) {
-  const lijst = _ASI_PER_KLASSE[String(klasse || '').toLowerCase()] || _ASI_STANDAARD;
+  const lijst = _klasseBasisVoor(klasse)?.featLevels || _ASI_STANDAARD;
   return lijst.includes(parseInt(klasseLevel) || 0);
 }
 // Hoeveel feats dit personage al gekozen heeft. `featChoices` is een map van

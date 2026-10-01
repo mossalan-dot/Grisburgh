@@ -7195,6 +7195,12 @@ function _renderSignatureCard(klasse, level, progData, pp, cfgIn, subNaam) {
   </div>`;
 }
 
+// De catalogus naar buiten, voor het klassekaartje in de Vaardighedentab: dat
+// wil weten wat de kenmerkende feature van een klasse is en welke kleur erbij
+// hoort. Alleen lezen — de kaart op het blad blijft hier wonen.
+window._signatureVoor    = (klasse) => _sigCfgFor(klasse) || null;
+window._subSignatureVoor = (sub)    => _subSigCfgFor(sub) || null;
+
 // Zoek de kaartconfiguratie bij een key (de kaart weet zijn eigen klasse niet meer).
 function _sigCfgByKey(k) {
   return Object.values(_SIGNATURE).find(c => c.key === k)

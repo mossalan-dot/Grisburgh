@@ -1,0 +1,18 @@
+{
+  "_bron": "De harde getallen per klasse: hit die, het ability waarmee je cast, en op welke levels je een feat of verhoging mag kiezen. Alle drie staan ze in de Character Advancement- en klassetabellen van het boek en zijn ze met de hand ingevoerd — het zijn er weinig en ze veranderden tussen 2014 en 2024 niet. Eén bestand, zodat de server (level-up, hit dice) en de client (het klassekaartje in Vaardigheden) hetzelfde lezen.",
+  "klassen": {
+    "Barbarian": { "hitDie": 12, "castAbility": null,  "featLevels": [4, 8, 12, 16, 19] },
+    "Bard":      { "hitDie": 8,  "castAbility": "cha", "featLevels": [4, 8, 12, 16, 19] },
+    "Cleric":    { "hitDie": 8,  "castAbility": "wis", "featLevels": [4, 8, 12, 16, 19] },
+    "Druid":     { "hitDie": 8,  "castAbility": "wis", "featLevels": [4, 8, 12, 16, 19] },
+    "Fighter":   { "hitDie": 10, "castAbility": null,  "featLevels": [4, 6, 8, 12, 14, 16, 19] },
+    "Monk":      { "hitDie": 8,  "castAbility": null,  "featLevels": [4, 8, 12, 16, 19] },
+    "Paladin":   { "hitDie": 10, "castAbility": "cha", "featLevels": [4, 8, 12, 16, 19] },
+    "Ranger":    { "hitDie": 10, "castAbility": "wis", "featLevels": [4, 8, 12, 16, 19] },
+    "Rogue":     { "hitDie": 8,  "castAbility": null,  "featLevels": [4, 8, 10, 12, 16, 19] },
+    "Sorcerer":  { "hitDie": 6,  "castAbility": "cha", "featLevels": [4, 8, 12, 16, 19] },
+    "Warlock":   { "hitDie": 8,  "castAbility": "cha", "featLevels": [4, 8, 12, 16, 19] },
+    "Wizard":    { "hitDie": 6,  "castAbility": "int", "featLevels": [4, 8, 12, 16, 19] },
+    "Artificer": { "hitDie": 8,  "castAbility": "int", "featLevels": [4, 8, 12, 16, 19] }
+  }
+}

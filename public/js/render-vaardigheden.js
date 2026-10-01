@@ -291,6 +291,89 @@ function _card(it) {
 // ── Filterbalk ────────────────────────────────────────────────────
 // Permanent open, net als bij de spreuken: in een lijst van honderden regels is
 // filteren de normale handeling, niet de uitzondering.
+// ── Het kaartje van een klasse of subklasse ─────────────────────────────────
+// Een klik in de band filterde alleen de lijst. Maar "wat ís een Fighter" is
+// een vraag op zich, en het antwoord stond nergens: de hit die zat in een
+// tabel op de server, wanneer je je subklasse kiest in de progressiedata, de
+// spreukentellers in een derde bestand. Hier staan ze bij elkaar, boven de
+// features waar ze bij horen.
+//
+// Alleen wat we écht hebben. Saving throws en proficiencies staan in geen enkel
+// databestand dat we mogen gebruiken; die verzinnen we niet, en we laten ze
+// liever weg dan er een leeg vak voor te zetten.
+let _klasseBasis = null, _tellers = null, _mcEisen = null;
+async function _klasseExtra() {
+  if (_klasseBasis) return;
+  const haal = async (naam) => {
+    try { const r = await fetch(`/api/bron/${naam}`, { credentials: 'same-origin' });
+          return r.ok ? await r.json() : null; } catch { return null; }
+  };
+  const [basis, mc] = await Promise.all([haal('klasse-basis'), haal('volken-klassen')]);
+  _klasseBasis = (basis?.klassen) || {};
+  _mcEisen = mc || null;
+}
+
+const _AB_NAAM = { str: 'Strength', dex: 'Dexterity', con: 'Constitution',
+                   int: 'Intelligence', wis: 'Wisdom', cha: 'Charisma' };
+
+function _klasseKaartHtml(klasse) {
+  const data = _bron?.prog?.classes?.[klasse];
+  if (!data) return '';
+  const basis = _klasseBasis?.[klasse] || {};
+  const subs  = Object.keys(data.subclasses || {});
+  const gevuld = subs.filter(sk =>
+    Object.values(data.subclasses[sk].levels || {}).some(a => (a || []).length)).length;
+
+  const feiten = [
+    basis.hitDie ? [`d${basis.hitDie}`, 'Hit die'] : null,
+    data.subclassLevel ? [`Level ${data.subclassLevel}`, data.subclassLabel || 'Subklasse'] : null,
+    subs.length ? [`${subs.length}`, `Subklassen${gevuld < subs.length ? ` · ${gevuld} met tekst` : ''}`] : null,
+    basis.castAbility ? [_AB_NAAM[basis.castAbility] || basis.castAbility, 'Castend ability'] : null,
+    basis.featLevels?.length ? [basis.featLevels.join(' · '), 'Feat of verhoging op'] : null,
+  ].filter(Boolean);
+
+  const sig = window._signatureVoor?.(klasse);
+
+  return `
+    <div class="vk-kaart" style="--vk-kleur:${sig?.kleur || '#8a6d3f'}">
+      <div class="vk-kop">
+        <span class="vk-icoon">${icon(KLASSE_ICOON[klasse] || 'sword')}</span>
+        <div>
+          <div class="vk-naam">${esc(klasse)}</div>
+          ${sig ? `<div class="vk-sig">${icon(sig.icon)} ${esc(sig.feature)}</div>` : ''}
+        </div>
+      </div>
+      <div class="vk-feiten">
+        ${feiten.map(([w, l]) => `<div class="vk-feit"><span class="vk-feit-waarde">${esc(w)}</span><span class="vk-feit-label">${esc(l)}</span></div>`).join('')}
+      </div>
+      ${gevuld < subs.length ? `<p class="vk-noot">Van ${subs.length - gevuld} van de ${subs.length} subklassen staat er geen tekst in de app: die komt uit het Player's Handbook. ${isDM() ? 'Je kunt ze zelf intikken bij een feature hieronder.' : ''}</p>` : ''}
+    </div>`;
+}
+
+function _subklasseKaartHtml(klasse, sub) {
+  const data = _bron?.prog?.classes?.[klasse]?.subclasses?.[sub];
+  if (!data) return '';
+  const n = Object.values(data.levels || {}).reduce((t, a) => t + (a || []).length, 0);
+  const levels = Object.keys(data.levels || {}).map(Number).filter(l => (data.levels[l] || []).length).sort((a, b) => a - b);
+  const veld = window._subSignatureVoor?.(sub);
+  return `
+    <div class="vk-kaart vk-kaart--sub" style="--vk-kleur:${veld?.kleur || '#5a2e8a'}">
+      <div class="vk-kop">
+        <span class="vk-icoon">${icon(veld?.icon || 'star')}</span>
+        <div>
+          <div class="vk-naam">${esc(sub)}</div>
+          <div class="vk-sig">${esc(_bron?.prog?.classes?.[klasse]?.subclassLabel || 'Subklasse')} · ${esc(klasse)}</div>
+        </div>
+      </div>
+      <div class="vk-feiten">
+        ${n ? `<div class="vk-feit"><span class="vk-feit-waarde">${n}</span><span class="vk-feit-label">Features</span></div>` : ''}
+        ${levels.length ? `<div class="vk-feit"><span class="vk-feit-waarde">${levels.join(' · ')}</span><span class="vk-feit-label">Op level</span></div>` : ''}
+        ${veld ? `<div class="vk-feit"><span class="vk-feit-waarde">${esc(veld.feature)}</span><span class="vk-feit-label">Eigen veld op je blad</span></div>` : ''}
+      </div>
+      ${n ? '' : `<p class="vk-noot">Van deze subklasse staat er geen tekst in de app — die komt uit het Player's Handbook en mag daar niet uit overgenomen worden. ${isDM() ? 'Je kunt de features zelf intikken met de plusknop rechtsboven.' : 'Vraag je DM of hij ze invult.'}</p>`}
+    </div>`;
+}
+
 // ── De band: wát je kunt zijn ───────────────────────────────────────────────
 // Dit tabblad was een platte lijst van features: je kon "Superiority Dice"
 // vinden, maar niet "Battle Master". Een klasse, een subklasse, een volk en een
@@ -369,7 +452,13 @@ function _bandHtml() {
          <button class="vb-wis" onclick="window.vaardigheden.bandKies(null,null)" title="Terug naar alles">${icon('x')}</button></div>`
     : '';
 
-  return `<div class="vaardig-band">${groepen}${subRij}${keten}</div>`;
+  // Het kaartje van waar je op staat: eerst de subklasse als je er een koos,
+  // anders de klasse. Een volk of achtergrond heeft (nog) geen kaartje.
+  const kaart = _filters.sub
+    ? _subklasseKaartHtml(_filters.bron, _filters.sub)
+    : (_filters.bron ? _klasseKaartHtml(_filters.bron) : '');
+
+  return `<div class="vaardig-band">${groepen}${subRij}${keten}</div>${kaart}`;
 }
 
 function _filterBar() {
@@ -806,6 +895,7 @@ export async function renderVaardigheden(container) {
   if (!_container) return;
   _container.innerHTML = `<div class="spreuk-wrap"><p class="spreuk-loading">Naslag laden…</p></div>`;
   await _load();
+  await _klasseExtra();
   if (window.app?.state?.activeSection !== 'vaardigheden') return;   // tijdens het laden gewisseld
 
   _container.innerHTML = `
