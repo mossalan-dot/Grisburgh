@@ -150,6 +150,38 @@ leeg, dan verschijnt hetzelfde aanbod **daar**, op het moment dat het pijn
 doet. Eén knop onder de uitslag, geen apart bezoek — maar wel hetzelfde
 verzoek, dus ook hier beslist de DM.
 
+**Die zijdeur bestaat alleen als de woekeraar aanstaat.** Dat is geen extra
+regel maar wat `ouder: 'woekeraar'` al betekent: staat de dienst uit, dan doet
+het deel er niet toe. Maar het staat hier expliciet omdat de knop in een
+ánder scherm verschijnt dan de dienst waar hij bij hoort — het gokhuis moet
+dus de woekeraar-module controleren, niet zijn eigen. Dat is de eerste keer
+dat een dienst iets toont dat van een andere dienst is, en precies zo'n plek
+waar het later stilletjes misgaat als het nergens staat.
+
+Omgekeerd geldt het ook: zet een DM de woekeraar aan maar het casino-deel uit,
+dan is er een woekeraar die je alleen aan zijn eigen deur spreekt. Dat is een
+geldige campagne.
+
+## Wat er gebeurt met een bestaande schuld als de dienst uitstaat
+
+De Tweespalt-lening van vandaag verhuist bij de migratie naar het register. Is
+de woekeraar dan uit, dan is die schuld onzichtbaar — niet weg, maar
+onbereikbaar: de speler ziet geen banner en kan niet aflossen.
+
+Twee uitwegen, en de tweede is beter:
+
+1. De migratie zet de dienst aan in elke campagne die al een lening heeft.
+   Werkt, maar het zet ongevraagd iets aan.
+2. **De schuld blijft zichtbaar waar hij ontstond.** De banner bij het gokhuis
+   blijft bestaan zolang er een schuld met `bron: 'gokhuis'` openstaat, ook met
+   de woekeraar uit — inclusief de aflosknop uit stap 1. De dienst voegt het
+   register, de trappen en het lenen tóe; hij is geen voorwaarde om een
+   bestaande schuld te mogen zien.
+
+Dat is ook de eerlijkere regel: een module uitzetten hoort te verbergen wat die
+module brengt, niet wat er al was. Zelfde gedachte als bij de bereikbaarheid
+van winkels — uitzetten laat niets achter wat je kwijtraakt.
+
 ## Aflossen — en dit moet eerst
 
 Vandaag kun je niet aflossen. De hulptekst zegt het zelf: *"dat doe je door het
