@@ -3318,6 +3318,29 @@ router.post('/items/:itemId/request', attachRole, (req, res) => {
 // Laat de aanvrager weten wat de DM besloot. Zonder dit hoorde hij niets: het
 // verzoek verdween uit zijn scherm en hij mocht raden of hij het voorwerp had.
 // Eén regel naar zijn eigen socket, net als bij een DM-bericht.
+// Een afwijzing die alleen als toast langskomt is er voor wie net even niet
+// kijkt nooit geweest: `_meldVerzoekAntwoord` stuurt niets als er geen socket
+// is, en dan hoort de speler het dus nooit. Bij een nee hoort bovendien een
+// reden — "de DM wees Fireball af" zonder meer is precies het soort antwoord
+// waar je aan tafel ruzie over krijgt. Dit zet het in zijn post, waar het
+// blijft staan tot hij het leest.
+function _afwijzingInPost(req, characterId, wat, reden) {
+  if (!characterId) return;
+  try {
+    const berichten = storage.readJSON('berichten.json') || {};
+    if (!berichten[characterId]) berichten[characterId] = [];
+    const tekst = reden
+      ? `${wat} — niet goedgekeurd.\n\n${reden}`
+      : `${wat} — niet goedgekeurd. Vraag je DM even waarom.`;
+    const msg = { id: `msg_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+                  tekst, timestamp: Date.now(), gelezen: false };
+    berichten[characterId].unshift(msg);
+    storage.writeJSON('berichten.json', berichten);
+    const socketId = req.app.get('playerSockets')?.get(characterId);
+    if (socketId) req.app.get('io').to(socketId).emit('bericht:nieuw', { msg });
+  } catch (e) { console.error('[post] afwijzing niet bezorgd:', e.message); }
+}
+
 function _meldVerzoekAntwoord(req, verzoek, akkoord) {
   const socketId = req.app.get('playerSockets')?.get(verzoek?.requesterId);
   if (!socketId) return;
@@ -4482,14 +4505,44 @@ function _spreukenOpNiveau(dmState, characterId, niveau) {
   return boek + open;
 }
 
+// ── Op welke levels mag je een feat of een verhoging kiezen ─────────────────
+// Vier van de vijf keer is dat 4, 8, 12, 16 en 19; de Fighter en de Rogue
+// krijgen er elk nog een paar bij. Net als de XP-drempels staat deze tabel niet
+// in de JSON-datasets die we voor de rest gebruiken, dus hij is met de hand
+// ingevoerd — en net als daar: controleer hem desnoods tegen je eigen boek.
+const _ASI_STANDAARD = [4, 8, 12, 16, 19];
+const _ASI_PER_KLASSE = {
+  fighter: [4, 6, 8, 12, 14, 16, 19],
+  rogue:   [4, 8, 10, 12, 16, 19],
+};
+function _isFeatLevel(klasse, klasseLevel) {
+  const lijst = _ASI_PER_KLASSE[String(klasse || '').toLowerCase()] || _ASI_STANDAARD;
+  return lijst.includes(parseInt(klasseLevel) || 0);
+}
+// Hoeveel feats dit personage al gekozen heeft. `featChoices` is een map van
+// keuzesleutel naar featnaam op het spelersprofiel; het aantal is genoeg, net
+// als bij spreuken: groeit het, dan is er gekozen.
+function _featsGekozen(profile) {
+  try { return Object.keys(JSON.parse(profile?.featChoices || '{}') || {}).length; }
+  catch { return 0; }
+}
+
 // Wat er na een level-up nog te kiezen ligt. Zonder dit was de knop in de
 // omslag eenmalig: klik je 'm weg om eerst iets anders te doen, dan herinnert
 // niets je er ooit nog aan dat je een cantrip te goed hebt.
 function _openSpreukKeuzes(dmState, characterId) {
   const uit = [];
+  const profile = (dmState.playerProfiles || {})[characterId];
   for (const regel of ((dmState.levelUps || {})[characterId] || [])) {
     for (const k of (regel.kiezen || [])) {
       if (k.klaar) continue;
+      // Een feat telt zijn eigen voorraad: zodra er een keuze bij staat die er
+      // bij de level-up nog niet was, is hij gemaakt.
+      if (k.soort === 'feat') {
+        if (_featsGekozen(profile) > (k.basis || 0)) continue;
+        uit.push({ ...k, levelUpId: regel.id, naar: regel.naar });
+        continue;
+      }
       const niveau = k.soort === 'cantrip' ? 0 : k.niveau;
       if (_spreukenOpNiveau(dmState, characterId, niveau) > (k.basis || 0)) continue;
       uit.push({ ...k, niveau, levelUpId: regel.id, naar: regel.naar });
@@ -4849,6 +4902,12 @@ router.post('/multiclass-verzoek/:id/:besluit', requireDM, (req, res) => {
   const io = req.app.get('io'); const room = _campagneRoom(req);
   io.to(room).emit('player:profile-updated', { characterId: verzoek.characterId });
   io.to(room).emit('multiclass:besluit', { characterId: verzoek.characterId, klasse: verzoek.klasse, besluit });
+  // Multiclassen weigeren raakt wat het personage ís; dat hoort niet in een
+  // toast van zes seconden te verdwijnen.
+  if (besluit !== 'approve') {
+    verzoek.reden = String(req.body?.reden || '').slice(0, 400);
+    _afwijzingInPost(req, verzoek.characterId, `Een level in ${verzoek.klasse}`, verzoek.reden);
+  }
   res.json({ ok: true, verzoek });
 });
 
@@ -5061,6 +5120,14 @@ router.post('/characters/:characterId/level-up', attachRole, (req, res) => {
   // `groeit`, maar als iets waar de client een knop van kan maken: een nieuw
   // cantrip-slot, of een spreukniveau dat vandaag voor het eerst openging.
   const kiezen = [];
+  // Een feat of een verhoging is de grootste keuze van het hele level, en toch
+  // stond er alleen een kaartje met "dit kies je zelf" en de aanwijzing om het
+  // elders te noteren. Nu is het een keuze als elke andere: een knop in de
+  // omslag, en een herinnering die blijft staan tot je gekozen hebt.
+  if (_isFeatLevel(gekozen.klasse, gekozen.level + 1)) {
+    kiezen.push({ soort: 'feat', klasse: gekozen.klasse, klasseLevel: gekozen.level + 1,
+                  basis: _featsGekozen(profile) });
+  }
   const tel = _spreukTellersVoor(gekozen.klasse);
   if (tel) {
     const c = (tel[String(gekozen.level + 1)]?.cantrips || 0) - (tel[String(gekozen.level)]?.cantrips || 0);
@@ -5098,6 +5165,12 @@ router.post('/characters/:characterId/level-up', attachRole, (req, res) => {
       characterId, naam: _p?.name || 'Iemand', thumb: _p?.data?.imageId || characterId,
       van: regel.van, naar: regel.naar, klasse: regel.klasse, hp: regel.hp,
     });
+    // Het tafelscherm doet mee: een gouden gloed over wat er ook staat. Dit
+    // hangt niet aan `autoFx` — dat vinkje gaat over meepraten bij elke
+    // schrammetje, en een level-up is geen schrammetje maar het moment waar een
+    // avond naartoe werkte.
+    const _glans = fxBericht('glinstering');
+    if (_glans) io.to(_displayRoom(req)).emit('display:effect', _glans);
   }
   res.json({ ok: true, levelUp: regel, level: nieuwLevel, kiezen, hp: { current: nieuwCurrent, max: nieuweMax } });
 });
@@ -5152,7 +5225,8 @@ router.post('/characters/:characterId/level-up/keuze-klaar', attachRole, (req, r
   const niveau = parseInt(req.body?.niveau);
   let geraakt = 0;
   for (const k of (regel.kiezen || [])) {
-    const n = k.soort === 'cantrip' ? 0 : k.niveau;
+    // Een feat heeft geen spreukniveau; de client stuurt daar -1 voor.
+    const n = k.soort === 'feat' ? -1 : k.soort === 'cantrip' ? 0 : k.niveau;
     if (n === niveau) { k.klaar = true; geraakt++; }
   }
   if (!geraakt) return res.status(404).json({ error: 'Die keuze staat niet open' });
@@ -6842,11 +6916,13 @@ router.post('/spells/request/:reqId/reject', requireDM, (req, res) => {
   if (!vondst) return res.status(404).json({ error: 'Verzoek niet gevonden' });
   const r = vondst.g.spellRequests[vondst.i];
   r.status = 'rejected';
+  r.reden = String(req.body?.reden || '').slice(0, 400);
   storage.writeJSON('dm-state.json', dmState);
   req.app.get('io').to(_campagneRoom(req)).emit('spells:requests-updated', {
     requests: _spellRequestsAlles(dmState),
   });
   _meldVerzoekAntwoord(req, { ...r, itemName: r.spellName, type: 'spreuk' }, false);
+  _afwijzingInPost(req, r.requesterId, `${r.spellName} in je spreukenboek`, r.reden);
   res.json({ ok: true });
 });
 

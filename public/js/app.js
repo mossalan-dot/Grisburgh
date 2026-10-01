@@ -1,16 +1,16 @@
-import { api, campagneUitUrl, zetCampagne } from './api.js?v=300';
+import { api, campagneUitUrl, zetCampagne } from './api.js?v=301';
 import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, renderDocumenten, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=328";
 import { initArchief, renderLogboek, openLogboekEditor } from "./render-archief.js?v=139";
 import { renderKaart, queueFlyTo, verversPins, nieuweKaart } from './render-kaart.js?v=31';
 import { renderDungeon } from './render-dungeon.js?v=57';
 import { renderRelatiemap } from './render-relatiemap.js?v=27';
-import { renderProgressie, levelupFeatures } from './render-progressie.js?v=55';
+import { renderProgressie, levelupFeatures } from './render-progressie.js?v=56';
 import { renderBestiarium } from './render-bestiarium.js?v=31';
 import { renderSpreuken } from './render-spreuken.js?v=41';
 import { renderVaardigheden, zoekVaardigheden } from './render-vaardigheden.js?v=10';
 import { renderStatblock } from './render-statblock.js?v=9';
 import { initSocket } from "./socket-client.js?v=82";
-import { initDmPanel } from "./dm-panel.js?v=368";
+import { initDmPanel } from "./dm-panel.js?v=369";
 import { COND_INFO, COND_LABEL, COND_MET_PLAATJE, COND_ICON } from './conditions.js?v=2';
 import './media-picker.js?v=8';
 import './tafels.js?v=2';
@@ -7434,19 +7434,26 @@ async function _levelUpBalk() {
   // doen, dan herinnerde niets je er ooit nog aan. Deze regel blijft staan tot
   // je de spreuk hebt aangevraagd (dan ruimt de server hem zelf op) of hem
   // wegklikt.
-  const keuzes = (st?.openKeuzes || []).map(k => `
-    <div class="levelup-herinnering">
-      <span class="levelup-herinnering-icoon">${icon('open-book')}</span>
+  const keuzes = (st?.openKeuzes || []).map(k => {
+    const isFeat = k.soort === 'feat';
+    return `
+    <div class="levelup-herinnering${isFeat ? ' levelup-herinnering--feat' : ''}">
+      <span class="levelup-herinnering-icoon">${icon(isFeat ? 'star' : 'open-book')}</span>
       <span class="levelup-herinnering-tekst">
-        ${k.soort === 'cantrip'
-          ? `Je mag nog ${k.aantal === 1 ? 'een cantrip' : `${k.aantal} cantrips`} kiezen`
-          : `Niveau ${k.niveau} staat voor je open`}
+        ${isFeat
+          ? 'Je mag een feat kiezen of twee punten verdelen'
+          : k.soort === 'cantrip'
+            ? `Je mag nog ${k.aantal === 1 ? 'een cantrip' : `${k.aantal} cantrips`} kiezen`
+            : `Niveau ${k.niveau} staat voor je open`}
         <span>sinds je level ${k.naar} werd</span>
       </span>
-      <button class="dm-btn dm-btn-sm dm-btn-ghost" onclick="window._luNaarBibliotheek(${k.niveau}, '${esc(k.klasse)}')">Kiezen</button>
+      <button class="dm-btn dm-btn-sm dm-btn-ghost" onclick="${isFeat
+        ? `window._luNaarProgressie(${k.klasseLevel || 0})`
+        : `window._luNaarBibliotheek(${k.niveau}, '${esc(k.klasse)}')`}">Kiezen</button>
       <button class="levelup-herinnering-weg" title="Deze herinnering wegklikken"
-        onclick="window._luKeuzeKlaar('${esc(k.levelUpId)}', ${k.niveau})">${icon('x')}</button>
-    </div>`).join('');
+        onclick="window._luKeuzeKlaar('${esc(k.levelUpId)}', ${isFeat ? -1 : k.niveau})">${icon('x')}</button>
+    </div>`;
+  }).join('');
 
   el.innerHTML = tegoed + xp + keuzes;
 }
@@ -7650,11 +7657,17 @@ function _levelUpCinematic(lu, kiezen = []) {
   // Het moment waarop je een spreuk gaat kiezen is nú — je hebt net gelevaled.
   // De knop springt naar de bibliotheek met de zeef alvast goed, zodat je niet
   // tussen 500 spreuken hoeft te zoeken welke van jouw klasse en niveau zijn.
-  const keuzeKnoppen = (kiezen || []).map(k => k.soort === 'cantrip'
-    ? `<button class="dm-btn dm-btn-primary dm-btn-sm" onclick="window._luNaarBibliotheek(0, '${esc(k.klasse)}')">
-        ${icon('sparkles')} Kies ${k.aantal === 1 ? 'je cantrip' : `${k.aantal} cantrips`}</button>`
-    : `<button class="dm-btn dm-btn-primary dm-btn-sm" onclick="window._luNaarBibliotheek(${k.niveau}, '${esc(k.klasse)}')">
-        ${icon('open-book')} Spreuken van niveau ${k.niveau}</button>`).join('');
+  const keuzeKnoppen = (kiezen || []).map(k => k.soort === 'feat'
+    ? `<button class="dm-btn dm-btn-primary dm-btn-sm" onclick="window._luNaarProgressie(${k.klasseLevel || 0})">
+        ${icon('star')} Kies je feat of verhoging</button>`
+    : k.soort === 'cantrip'
+      ? `<button class="dm-btn dm-btn-primary dm-btn-sm" onclick="window._luNaarBibliotheek(0, '${esc(k.klasse)}')">
+          ${icon('sparkles')} Kies ${k.aantal === 1 ? 'je cantrip' : `${k.aantal} cantrips`}</button>`
+      : `<button class="dm-btn dm-btn-primary dm-btn-sm" onclick="window._luNaarBibliotheek(${k.niveau}, '${esc(k.klasse)}')">
+          ${icon('open-book')} Spreuken van niveau ${k.niveau}</button>`).join('');
+  // Een feat gaat niet langs de DM, een spreuk wel: dan hoort die zin er ook
+  // alleen te staan als er iets is dat langs hem gaat.
+  const gaatLangsDm = (kiezen || []).some(k => k.soort !== 'feat');
 
   // De kleur van je klasse draagt het hele moment: de gloed, de vonken en de
   // rand komen allemaal uit deze ene variabele.
@@ -7687,7 +7700,7 @@ function _levelUpCinematic(lu, kiezen = []) {
         <span>${lu.methode === 'gemiddelde' ? `gemiddelde van d${lu.die}` : `d${lu.die} gaf ${lu.worp}`}${lu.conMod ? `, ${lu.conMod > 0 ? '+' : ''}${lu.conMod} CON` : ''}</span>
       </div>
       ${keuzeKnoppen ? `<div class="levelup-cine-keuzes">${keuzeKnoppen}
-        <p class="levelup-cine-keuze-hint">Wat je kiest gaat langs de DM voordat het in je boek staat.</p></div>` : ''}
+        ${gaatLangsDm ? '<p class="levelup-cine-keuze-hint">Een spreuk gaat langs de DM voordat hij in je boek staat.</p>' : ''}</div>` : ''}
       <button class="dm-btn dm-btn-ghost dm-btn-sm levelup-cine-sluit">${icon('check')} Verder</button>
     </div>`;
   document.body.appendChild(ov);
@@ -7702,6 +7715,23 @@ function _levelUpCinematic(lu, kiezen = []) {
   ov.onclick = ev => { if (ev.target === ov) sluit(); };
   window._luCineSluit = sluit;
 }
+
+// Naar de plek waar je je feat kiest. Dat stond er alleen als zin — "noteer je
+// op het Progressie-tabblad" — en dat is huiswerk, geen keuze.
+window._luNaarProgressie = function (klasseLevel) {
+  window._luCineSluit?.();
+  window.app.closeModal?.();
+  window._setPlayerSubTab?.('progressie');
+  // Even wachten tot het tabblad staat, dan naar het level scrollen waar de
+  // keuze openstaat; anders kijk je naar level 1 en mag je zelf zoeken.
+  setTimeout(() => {
+    const doel = document.querySelector(`[data-prog-level="${klasseLevel}"]`)
+      || document.querySelector('.prog-row.prog-current');
+    doel?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    doel?.classList.add('prog-level--gewezen');
+    setTimeout(() => doel?.classList.remove('prog-level--gewezen'), 2600);
+  }, 500);
+};
 
 // Naar de bibliotheek, met de zeef alvast op jouw klasse en het juiste niveau.
 window._luNaarBibliotheek = function (niveau, klasse) {

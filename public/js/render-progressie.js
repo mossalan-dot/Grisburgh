@@ -2,7 +2,7 @@
  * render-progressie.js — Skill trees / klasse-progressie op het personagetabblad
  */
 
-import { api } from './api.js?v=300';
+import { api } from './api.js?v=301';
 
 // ── Hulpfuncties ───────────────────────────────────────────────────
 const esc  = s => String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
@@ -631,7 +631,9 @@ function _classTimeline(prog, cls, subclassName, charLevel, isMulti, charId, fav
     }).join('');
     if (!featHtml.trim()) continue;
     rows.push(`
-      <div class="prog-row${unlocked ? ' prog-unlocked' : ' prog-preview'}${isCurrent ? ' prog-current' : ''}">
+      <!-- data-prog-level zodat de level-up er rechtstreeks naartoe kan
+           springen: "noteer het op het Progressie-tabblad" liet je zelf zoeken. -->
+      <div class="prog-row${unlocked ? ' prog-unlocked' : ' prog-preview'}${isCurrent ? ' prog-current' : ''}" data-prog-level="${lvl}">
         <div class="prog-lvl"><span class="prog-lvl-num">${lvl}</span></div>
         <div class="prog-feats">${featHtml}</div>
       </div>`);

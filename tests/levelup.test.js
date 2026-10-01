@@ -210,11 +210,14 @@ describe('Level omhoog', () => {
     await req(server, 'POST', `/api/characters/${charId}/level-up/undo`, {}, dm);
   });
 
-  it('geeft een Barbarian niets te kiezen', async () => {
+  it('geeft een Barbarian geen spreuken te kiezen, wel zijn feat', async () => {
     await req(server, 'PATCH', `/api/player-profile/${charId}`,
       { klasse: 'Barbarian', level: '3', klasseLevel: '3' }, dm);
     const r = await req(server, 'POST', `/api/characters/${charId}/level-up`, { hpMethode: 'gemiddelde' }, dm);
-    assert.deepStrictEqual(r.body.kiezen, [], 'een Barbarian casteert niet');
+    const spreuken = (r.body.kiezen || []).filter(k => k.soort !== 'feat');
+    assert.deepStrictEqual(spreuken, [], 'een Barbarian casteert niet');
+    assert.ok((r.body.kiezen || []).some(k => k.soort === 'feat'),
+      'maar level 4 is wel zijn feat: ' + JSON.stringify(r.body.kiezen));
     await req(server, 'POST', `/api/characters/${charId}/level-up/undo`, {}, dm);
     await req(server, 'PATCH', `/api/player-profile/${charId}`,
       { klasse: 'Fighter', level: '4', klasseLevel: '4' }, dm);
@@ -235,7 +238,8 @@ describe('Level omhoog', () => {
 
     // Hij blijft ook staan als je de pagina opnieuw opvraagt.
     st = await stand();
-    assert.strictEqual((st.openKeuzes || []).length, 1, 'en verdwijnt niet bij het opnieuw ophalen');
+    assert.strictEqual((st.openKeuzes || []).filter(k => k.soort !== 'feat').length, 1,
+      'en verdwijnt niet bij het opnieuw ophalen');
 
     // Zodra de speler een cantrip aanvraagt, ruimt de herinnering zichzelf op —
     // ook al staat de spreuk nog niet in zijn boek (die wacht op de DM).
@@ -243,7 +247,7 @@ describe('Level omhoog', () => {
       { index: 'fire-bolt', name: 'Fire Bolt', level: 0, school: 'Evocation' }, speler);
     assert.strictEqual(v.status, 201, JSON.stringify(v.body));
     st = await stand();
-    assert.strictEqual((st.openKeuzes || []).length, 0,
+    assert.strictEqual((st.openKeuzes || []).filter(k => k.soort !== 'feat').length, 0,
       'een openstaand verzoek telt mee — anders blijft de app zeuren terwijl de speler al gekozen heeft');
 
     await req(server, 'POST', `/api/characters/${charId}/level-up/undo`, {}, dm);
@@ -259,6 +263,11 @@ describe('Level omhoog', () => {
     const weg = await req(server, 'POST', `/api/characters/${charId}/level-up/keuze-klaar`,
       { levelUpId: luId, niveau: 0 }, speler);
     assert.strictEqual(weg.status, 200, JSON.stringify(weg.body));
+    // Level 4 is ook een featlevel, dus die herinnering blijft staan: die klik
+    // je apart weg met niveau -1.
+    const featWeg = await req(server, 'POST', `/api/characters/${charId}/level-up/keuze-klaar`,
+      { levelUpId: luId, niveau: -1 }, speler);
+    assert.strictEqual(featWeg.status, 200, JSON.stringify(featWeg.body));
     assert.strictEqual(((await stand()).openKeuzes || []).length, 0);
 
     // en een tweede keer wegklikken botst niet, maar meldt wel dat er niets staat
@@ -266,6 +275,73 @@ describe('Level omhoog', () => {
       { levelUpId: luId, niveau: 7 }, speler);
     assert.strictEqual(nog.status, 404);
     await req(server, 'POST', `/api/characters/${charId}/level-up/undo`, {}, dm);
+  });
+
+  // De feat is de grootste keuze van het level, en hij stond er alleen als
+  // kaartje met de aanwijzing om hem elders te noteren. Nu is hij een keuze als
+  // elke andere: hij staat in `kiezen`, blijft in `openKeuzes` staan tot je
+  // gekozen hebt, en verdwijnt zodra er een keuze bij komt.
+  it('zet op een featlevel een keuze klaar, en ruimt hem op als je kiest', async () => {
+    await req(server, 'PATCH', `/api/player-profile/${charId}`,
+      { klasse: 'Wizard', level: '3', klasseLevel: '3', featChoices: '{}' }, dm);
+    const r = await req(server, 'POST', `/api/characters/${charId}/level-up`, { hpMethode: 'gemiddelde' }, dm);
+    const feat = (r.body.kiezen || []).find(k => k.soort === 'feat');
+    assert.ok(feat, 'level 4 geeft een feat: ' + JSON.stringify(r.body.kiezen));
+    assert.strictEqual(feat.klasseLevel, 4);
+
+    assert.ok(((await stand()).openKeuzes || []).some(k => k.soort === 'feat'),
+      'en hij blijft staan tot er gekozen is');
+
+    // Een feat kiezen is een patch op het profiel: de keuze komt in featChoices.
+    await req(server, 'PATCH', `/api/player-profile/${charId}`,
+      { featChoices: JSON.stringify({ 'wizard-4-asi': 'Alert' }) }, dm);
+    assert.ok(!((await stand()).openKeuzes || []).some(k => k.soort === 'feat'),
+      'zodra er een keuze bij staat, is de herinnering weg');
+
+    await req(server, 'POST', `/api/characters/${charId}/level-up/undo`, {}, dm);
+  });
+
+  it('geeft een Fighter zijn extra featlevels', async () => {
+    // De Fighter krijgt er twee bij (6 en 14), de Rogue één (10). Dat staat in
+    // een tabel met de hand; deze test is de controle erop.
+    await req(server, 'PATCH', `/api/player-profile/${charId}`,
+      { klasse: 'Fighter', level: '5', klasseLevel: '5', featChoices: '{}' }, dm);
+    const r = await req(server, 'POST', `/api/characters/${charId}/level-up`, { hpMethode: 'gemiddelde' }, dm);
+    assert.ok((r.body.kiezen || []).some(k => k.soort === 'feat'),
+      'Fighter 6 is een featlevel: ' + JSON.stringify(r.body.kiezen));
+    await req(server, 'POST', `/api/characters/${charId}/level-up/undo`, {}, dm);
+
+    // En een gewoon level geeft er geen.
+    await req(server, 'PATCH', `/api/player-profile/${charId}`,
+      { klasse: 'Wizard', level: '5', klasseLevel: '5' }, dm);
+    const g = await req(server, 'POST', `/api/characters/${charId}/level-up`, { hpMethode: 'gemiddelde' }, dm);
+    assert.ok(!(g.body.kiezen || []).some(k => k.soort === 'feat'), 'Wizard 6 niet');
+    await req(server, 'POST', `/api/characters/${charId}/level-up/undo`, {}, dm);
+  });
+
+  // Een nee die alleen als toast van zes seconden langskomt, is er voor wie net
+  // niet keek nooit geweest — en de melding ging helemaal niet weg als er geen
+  // socket was. Nu belandt hij in de post, met de reden erbij.
+  it('zet een afgewezen spreuk met reden in de post van de speler', async () => {
+    const v = await req(server, 'POST', `/api/player-spells/${charId}`,
+      { index: 'wish', name: 'Wish', level: 9, school: 'Conjuration' }, speler);
+    assert.strictEqual(v.status, 201, JSON.stringify(v.body));
+
+    const open = (await req(server, 'GET', '/api/spell-requests', null, dm)).body.requests || [];
+    const verzoek = open.find(r => r.spellName === 'Wish');
+    assert.ok(verzoek, 'het verzoek staat bij de DM: ' + JSON.stringify(open));
+
+    const nee = await req(server, 'POST', `/api/spells/request/${verzoek.id}/reject`,
+      { reden: 'Niveau 9 op level 4 — kom er over een akte of acht op terug.' }, dm);
+    assert.strictEqual(nee.status, 200, JSON.stringify(nee.body));
+
+    const post = (await req(server, 'GET', '/api/berichten', null, speler)).body;
+    const lijst = post.berichten || [];
+    const bericht = lijst.find(m => /Wish/.test(m.tekst || ''));
+    assert.ok(bericht, 'de speler vindt het terug in zijn post: ' + JSON.stringify(lijst).slice(0, 200));
+    assert.match(bericht.tekst, /niet goedgekeurd/);
+    assert.match(bericht.tekst, /over een akte of acht/, 'met de reden van de DM erbij');
+    assert.strictEqual(bericht.gelezen, false);
   });
 
   it('rekent de multiclass-eisen voor zonder ze af te dwingen', async () => {

@@ -373,7 +373,7 @@ export const api = {
   spotifyToken:     ()            => request('/spotify/token'),
   spotifyTafelApparaat: (deviceId) => request('/spotify/tafel-apparaat', { method: 'POST', body: JSON.stringify({ deviceId }) }),
   approveSpellRequest: (reqId)  => request(`/spells/request/${reqId}/approve`, { method: 'POST' }),
-  rejectSpellRequest:  (reqId)  => request(`/spells/request/${reqId}/reject`,  { method: 'POST' }),
+  rejectSpellRequest:  (reqId, reden) => request(`/spells/request/${reqId}/reject`,  { method: 'POST', body: JSON.stringify({ reden: reden || '' }) }),
   updatePlayerSpell:  (charId, spellIdx, data) => request(`/player-spells/${charId}/${spellIdx}`, { method: 'PATCH', body: JSON.stringify(data) }),
 
   // Vastgezette kenmerken

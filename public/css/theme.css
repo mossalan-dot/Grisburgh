@@ -28410,3 +28410,40 @@ body.akte-schrijf-open .mp-overlay { z-index: 1320; }
   font-family: 'Cinzel', serif; font-size: 9px; letter-spacing: .04em;
   color: rgba(230,205,150,0.8); text-align: center;
 }
+
+/* De balk "je mag een level omhoog" stond als beige vlak op een beige pagina:
+   het grootste moment van een avond las als een mededeling over openingstijden.
+   Een gouden rand die traag ademt — niet knipperen, dat leest als een fout. */
+.levelup-balk {
+  position: relative;
+  border-color: rgba(217,178,74,0.75) !important;
+  animation: levelup-balk-adem 3.6s ease-in-out infinite;
+}
+@keyframes levelup-balk-adem {
+  0%, 100% { box-shadow: 0 0 0 1px rgba(217,178,74,0.35), 0 2px 10px rgba(184,134,11,0.14); }
+  50%      { box-shadow: 0 0 0 2px rgba(217,178,74,0.70), 0 4px 22px rgba(184,134,11,0.34); }
+}
+.levelup-balk .levelup-balk-icoon { animation: levelup-icoon-tik 3.6s ease-in-out infinite; }
+@keyframes levelup-icoon-tik {
+  0%, 82%, 100% { transform: scale(1)   rotate(0deg); }
+  88%           { transform: scale(1.18) rotate(-7deg); }
+  94%           { transform: scale(1.08) rotate(5deg); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .levelup-balk, .levelup-balk .levelup-balk-icoon { animation: none; }
+  .levelup-balk { box-shadow: 0 0 0 2px rgba(217,178,74,0.6); }
+}
+
+/* De rij waar je net naartoe gesprongen bent licht even op; anders land je
+   middenin een lange lijst en mag je zelf zoeken wat er open stond. */
+.prog-row.prog-level--gewezen {
+  animation: prog-wijs 2.6s ease-out both;
+  border-radius: 8px;
+}
+@keyframes prog-wijs {
+  0%, 60% { box-shadow: 0 0 0 2px #d9b24a, 0 0 22px rgba(217,178,74,0.55); }
+  100%    { box-shadow: 0 0 0 0 rgba(217,178,74,0); }
+}
+/* De herinnering aan een feat weegt zwaarder dan die aan een spreuk: het is de
+   grootste keuze van het level. */
+.levelup-herinnering--feat .levelup-herinnering-icoon { color: #d9b24a; }

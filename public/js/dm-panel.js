@@ -1,4 +1,4 @@
-import { api, huidigeCampagne } from './api.js?v=300';
+import { api, huidigeCampagne } from './api.js?v=301';
 import { init as canvasInit, update as canvasUpdate, stop as canvasStop, acGetal } from './combat-canvas.js?v=30';
 import { renderStatblock } from './render-statblock.js?v=9';
 
@@ -6,6 +6,13 @@ import { renderStatblock } from './render-statblock.js?v=9';
 // icon() helper is defined globally in app.js; grab a local alias for template use.
 const icon    = (...a) => window.icon(...a);
 const helpBtn = (key)  => window._helpBtn?.(key) ?? '';
+
+// Vraagt de DM om een reden bij een nee. `false` betekent: hij bedacht zich en
+// het verzoek blijft staan — leeg is een geldig antwoord, afbreken niet.
+function _redenVragen(vraag) {
+  const r = prompt(vraag, '');
+  return r === null ? false : r.trim();
+}
 
 // De condities staan op één plek; het spelerstabblad leest dezelfde lijst.
 import { CONDITIONS, COND_ICON } from './conditions.js?v=2';
@@ -670,12 +677,19 @@ export function initDmPanel() {
       } catch (e) { alert('Mislukt: ' + e.message); }
     },
     async verzoekSpreuk(reqId, akkoord) {
-      try { await (akkoord ? api.approveSpellRequest(reqId) : api.rejectSpellRequest(reqId)); }
+      // Bij een nee hoort een reden. Hij mag leeg blijven — soms is "nu even
+      // niet" het hele antwoord — maar de vraag wordt wél gesteld, want een
+      // afwijzing zonder uitleg is precies waar je aan tafel ruzie over krijgt.
+      const reden = akkoord ? null : _redenVragen('Waarom niet? (mag leeg blijven)');
+      if (reden === false) return;
+      try { await (akkoord ? api.approveSpellRequest(reqId) : api.rejectSpellRequest(reqId, reden)); }
       catch (e) { alert('Mislukt: ' + e.message); }
       _renderVerzoeken(); _verzoekenTeller();
     },
     async verzoekMulticlass(reqId, akkoord) {
-      try { await api.post(`/multiclass-verzoek/${reqId}/${akkoord ? 'approve' : 'reject'}`, {}); }
+      const reden = akkoord ? null : _redenVragen('Waarom geen level in die klasse? (mag leeg blijven)');
+      if (reden === false) return;
+      try { await api.post(`/multiclass-verzoek/${reqId}/${akkoord ? 'approve' : 'reject'}`, { reden: reden || '' }); }
       catch (e) { alert('Mislukt: ' + e.message); }
       _renderVerzoeken(); _verzoekenTeller();
     },
