@@ -192,6 +192,25 @@ Dat is de eerste bouwstap, los van al het bovenstaande: **een knop bij de
 banner.** Bedrag eraf, schuldbewijs weg, regel uit het register. Ook deels
 aflossen — dan daalt de hoofdsom en gaat het tellen verder over de rest.
 
+## De koppeling in Grisburgh
+
+De kaartjes bestaan al; de dienst hoeft ze alleen aan te wijzen.
+
+| rol | kaartje |
+|---|---|
+| de schuldeiser | **Taevin Woekeling** (personage, `e_1773523435098_p3vxjp`) |
+| zijn zaak | **Woekeling & Co.** (locatie, `e_1773523435071_ut1xxe`) |
+| wie hij stuurt | **Strum** (personage, `e_1773523435098_yg2jmc`) |
+
+Strum heeft nog **geen statblok en geen encounter** — die moeten gemaakt worden
+voordat trap 3 iets kan starten. Dat is bewust werk van de DM: wie hij stuurt
+en hoe zwaar dat weegt is een tafelbesluit, geen instelling. De dienst wijst
+alleen de encounter aan die er dan is, zoals een arenapartij dat ook doet.
+
+Niets hiervan staat in de code: de dienst heeft velden voor schuldeiser, zaak
+en encounter, en Grisburgh vult ze in. Een andere campagne vult er haar eigen
+namen in.
+
 ## Volgorde van bouwen
 
 1. **Aflossen** (halve dag). Maakt het bestaande meteen heel, en hangt nergens

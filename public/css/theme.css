@@ -28649,3 +28649,6 @@ body.akte-schrijf-open .mp-overlay { z-index: 1320; }
 .vk-eis strong { font-family: 'Cinzel', serif; font-size: 10px; letter-spacing: .1em; text-transform: uppercase; }
 .vk-feats--omgekeerd .vk-feat { display: inline-flex; align-items: center; gap: 4px; }
 .vk-feats--omgekeerd .vk-feat .icon { width: 12px; height: 12px; opacity: .75; }
+
+/* De knoppen onder de leningbanner. */
+.ts-lening-knoppen { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }

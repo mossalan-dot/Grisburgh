@@ -15130,6 +15130,79 @@ router.post('/tweespalt/leen', attachRole, vereistDienst('tweespalt'), (req, res
   res.json({ ok: true, currency: _effectiveCurrency(dmState, characterId), lening: _tsSchuld(lening, dmState, characterId) });
 });
 
+// Aflossen. Dit kon niet: de enige uitweg was dat de DM het schuldbewijs uit de
+// boedel haalde, en de hulptekst gaf dat ook toe. Een speler die het geld bij
+// elkaar spaarde kon dus niets — en dan is een schuld geen schuld maar een vlek
+// die iemand wegpoetst.
+//
+// Deels aflossen mag. De hoofdsom daalt met wat er betaald wordt en de rente
+// telt verder over de rest; de klok gaat daarbij op nul, want je hebt zojuist
+// betaald. Dat is in het voordeel van de speler, en dat hoort ook: wie aflost
+// moet er iets voor terugkrijgen.
+router.post('/tweespalt/aflossen', attachRole, (req, res) => {
+  // Bewust géén `vereistDienst('tweespalt')`: een bestaande schuld moet je
+  // kunnen afbetalen ook als de DM het gokhuis heeft uitgezet. Een module
+  // uitzetten hoort te verbergen wat die module brengt, niet wat er al was.
+  const characterId = _handelendKarakter(req);
+  if (!characterId) return res.status(403).json({ error: 'Geen speler ingelogd' });
+
+  const dmState = readDmState();
+  const ts = _tsState(dmState);
+  const lening = ts.leningen[characterId];
+  if (!lening) return res.status(404).json({ error: 'Je hebt geen openstaande schuld' });
+
+  const stand = _tsSchuld(lening, dmState, characterId);
+  const openCl = stand.huidigVerschuldigdCl;
+
+  // Niets meegestuurd is "alles": dat is wat je bedoelt als je op de knop drukt.
+  const gevraagdCl = req.body?.bedrag ? _tsCl(req.body.bedrag) : openCl;
+  if (!(gevraagdCl > 0)) return res.status(400).json({ error: 'Bedrag moet groter zijn dan 0' });
+  const betaalCl = Math.min(gevraagdCl, openCl);
+
+  const beurs = _effectiveCurrency(dmState, characterId);
+  const heeftCl = toCl(beurs);
+  if (heeftCl < betaalCl) {
+    return res.status(409).json({ error: `Je komt ${_tsFormatCl(betaalCl - heeftCl)} tekort.` });
+  }
+
+  _deductCurrency(dmState, characterId, betaalCl);
+
+  const _g = getGroup(dmState, _playerGroupId(dmState, characterId));
+  const nuStand = (_g?.rustTellers || {}).long || 0;
+  const restCl = openCl - betaalCl;
+  const gs = _tsGeldschieter(storage.readJSON('meta.json'));
+
+  if (restCl <= 0) {
+    delete ts.leningen[characterId];
+    // Het schuldbewijs hoort weg zodra er niets meer staat.
+    const items = (dmState.playerItems?.[characterId] || []);
+    const i = items.findIndex(x => String(x.id || '').startsWith('ts_leen_'));
+    if (i >= 0) items.splice(i, 1);
+  } else {
+    // Wat overblijft is de nieuwe hoofdsom, en de nachten tellen opnieuw.
+    lening.bedragCl  = restCl;
+    lening.rustStand = nuStand;
+    const items = (dmState.playerItems?.[characterId] || []);
+    const bewijs = items.find(x => String(x.id || '').startsWith('ts_leen_'));
+    if (bewijs) bewijs.note = `Bedrag: ${_tsFormatCl(restCl)}. Woekerrente: ${lening.rentePerRust ?? TS_RENTE_PER_RUST}% per nacht, tot ${lening.maxFactor ?? TS_MAX_FACTOR}× de hoofdsom.`;
+  }
+
+  storage.writeJSON('dm-state.json', dmState);
+  const io = req.app.get('io');
+  io.to(_campagneRoom(req)).emit('player:currency-updated', { characterId, currency: _effectiveCurrency(dmState, characterId) });
+  io.to(_campagneRoom(req)).emit('player:items-updated', { characterId });
+  // De DM hoort dit: iemand die zijn schuld bij de woekeraar aflost is een
+  // gebeurtenis aan tafel, geen boekhouding.
+  _meldVerzoek(req, 'aflossing', _spelerNaam(storage.readJSON('entities.json'), characterId) || 'Een speler',
+    restCl > 0 ? `${_tsFormatCl(betaalCl)} aan ${gs.naam}` : `de schuld bij ${gs.naam} is voldaan`);
+
+  res.json({
+    ok: true, betaaldCl: betaalCl, restCl,
+    currency: _effectiveCurrency(dmState, characterId),
+    lening: restCl > 0 ? _tsSchuld(lening, dmState, characterId) : null,
+  });
+});
+
 router.get('/tweespalt/log', requireDM, (req, res) => {
   let log = storage.readJSON('gok-log.json');
   if (!Array.isArray(log)) log = [];

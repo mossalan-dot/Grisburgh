@@ -1,4 +1,4 @@
-import { api, campagneUitUrl, zetCampagne } from './api.js?v=301';
+import { api, campagneUitUrl, zetCampagne } from './api.js?v=302';
 import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, renderDocumenten, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=328";
 import { initArchief, renderLogboek, openLogboekEditor } from "./render-archief.js?v=139";
 import { renderKaart, queueFlyTo, verversPins, nieuweKaart } from './render-kaart.js?v=31';
@@ -13612,6 +13612,37 @@ function _tsGeldschieter() {
 }
 function _tsGeldschieterNaam() { return _tsGeldschieter().naam; }
 
+// Aflossen. Dit kon tot 1 okt 2026 niet: de enige uitweg was dat de DM het
+// schuldbewijs uit je boedel haalde. Een speler die het geld bij elkaar spaarde
+// kon dus niets, en dan is een schuld geen schuld maar een vlek.
+window._tsAflossen = async function () {
+  try {
+    const r = await api.tsAflossen(null);
+    window._showToast?.(r.restCl > 0
+      ? `${icon('coins')} Afbetaald. Er staat nog ${window.formatCl?.(r.restCl) ?? r.restCl + ' cl'} open.`
+      : `${icon('check-circle')} Je schuld is voldaan.`, null, 5000);
+    renderTweespalt();
+  } catch (e) { window._showToast?.(e.message || 'Aflossen mislukt', null, 5000); }
+};
+
+// Een deel aflossen: wat je hebt, niet wat je moet. De bedragkiezer van de app
+// zou hier mooier zijn, maar die hangt aan een formulier; dit is één getal in
+// de kleinste munt, met de uitleg erbij.
+window._tsAflossenDeel = async function () {
+  const munt = (window.app?.state?.meta?.currency || {});
+  const in_ = prompt(`Hoeveel wil je aflossen? Vul het aantal ${munt.cl || 'centeling'} in.\n\nDe rest blijft staan als nieuwe hoofdsom, en de nachten beginnen opnieuw te tellen.`, '');
+  if (in_ === null) return;
+  const cl = parseInt(String(in_).replace(/[^0-9]/g, ''), 10);
+  if (!(cl > 0)) return;
+  try {
+    const r = await api.tsAflossen({ fl: 0, kn: 0, cl });
+    window._showToast?.(r.restCl > 0
+      ? `${icon('coins')} Afbetaald. Er staat nog ${window.formatCl?.(r.restCl) ?? r.restCl + ' cl'} open.`
+      : `${icon('check-circle')} Je schuld is voldaan.`, null, 5000);
+    renderTweespalt();
+  } catch (e) { window._showToast?.(e.message || 'Aflossen mislukt', null, 5000); }
+};
+
 async function renderTweespalt() {
   const el = document.getElementById('section-tweespalt');
   if (!el) return;
@@ -13730,6 +13761,10 @@ async function renderTweespalt() {
         <span class="ts-lening-sub">${lening.afgetopt
           ? `${esc(_tsGeldschieterNaam())} is gestopt met tellen — hij komt het halen.`
           : `${lening.rentePerRust ?? 30}% rente per nacht · ${lening.rusten ?? 0} ${(lening.rusten === 1) ? 'nacht' : 'nachten'} verstreken`}</span>
+        <div class="ts-lening-knoppen">
+          <button class="dm-btn dm-btn-primary dm-btn-sm" onclick="window._tsAflossen()">${icon('coins')} Alles aflossen</button>
+          <button class="dm-btn dm-btn-ghost dm-btn-sm" onclick="window._tsAflossenDeel()">Een deel aflossen</button>
+        </div>
        </div>` : '';
 
   const _tsBd = window._dienstBackdropId(config);
@@ -14440,7 +14475,7 @@ const HELP_CONFIG = {
   dm_gokhuis: () => ({ titel: 'Het gokhuis', stappen: [
     { titel: 'Wat het is', tekst: 'Een huis waar spelers geld kunnen inzetten: op een spel, op een gevecht in het strijdperk, of bij de geldschieter. De naam, de baas en de sfeer stel je hier in.', afbeelding: null },
     { titel: 'Lenen kost', tekst: 'De geldschieter rekent rente **per lange rust**, niet per kalenderdag — de party bepaalt zo zelf het tempo. Er zit een plafond op; daarna stopt het tellen en komt hij het halen. Dat is een scène, geen som.', afbeelding: null },
-    { titel: 'Aflossen gaat via jou', tekst: 'Er is nog geen knop om een lening af te betalen: dat doe je door het schuldbewijs uit de boedel van de speler te halen. Dan is de schuld weg.', afbeelding: null },
+    { titel: 'Aflossen doet de speler zelf', tekst: 'Onder de leningbanner staan twee knoppen: **Alles aflossen** en **Een deel aflossen**. Het geld gaat van zijn beurs af en het schuldbewijs verdwijnt zodra er niets meer staat. Bij een deel wordt de rest de nieuwe hoofdsom en beginnen de nachten opnieuw te tellen — wie aflost hoort er iets voor terug te krijgen. Jij krijgt het te zien bij Verzoeken.', afbeelding: null },
   ] }),
   dm_gokhuis_partijen: () => ({ titel: 'Strijdperk — partijen', stappen: [
     { titel: 'Een partij', tekst: 'Een kamp waar een speler zich zelf voor inschrijft: een naam, zijn tegenstander, een sfeerregel, wat de inleg kost en wat er te winnen valt. Dit is iets anders dan **Gokken** hierboven — daar wedden ze op iemand ánders.', afbeelding: null },
@@ -14466,7 +14501,7 @@ const HELP_CONFIG = {
     { titel: 'Wat er wordt uitbetaald', tekst: 'De **payout** naast een optie is wat de winst *bovenop* de inleg komt. Bij ×3 krijgt een speler die 10 inzet zijn tientje terug plus twintig: dertig in totaal. Verliest hij, dan is zijn inleg weg. Het huis heeft geen kas: winst komt uit het niets en verlies verdwijnt erin — de app rekent alleen de beurs van de speler bij en af.', afbeelding: null },
     { titel: 'Wanneer de uitslag valt', tekst: '**Na de volgende lange rust**, of **jij bepaalt de winnaar** als je het zelf wilt sturen. Er stond een timer in minuten, maar de party speelt geen echte uren: die liep tijdens een pauze net zo hard door en besliste een gevecht vier keer per sessie.', afbeelding: null },
     { titel: 'Wie er inzet', tekst: 'Onder een weddenschap staat wie erop gewed heeft, met portret en naam, waarop, en hoeveel. Na afloop staat er een vinkje of een kruisje bij.', afbeelding: null },
-    { titel: 'Leningen', tekst: 'Een lening van een personage dat niet meer bestaat kun je hier weghalen. Laat hem niet slepen: hij telt door en niemand kan hem afbetalen.', afbeelding: null },
+    { titel: 'Leningen', tekst: 'De speler lost zelf af, met de knoppen onder zijn leningbanner. Blijft er een lening hangen van een personage dat niet meer bestaat, dan kun jij hem uit `dm-state.json` halen — er is daar nog geen knop voor; dat komt met de Woekeraar-dienst (zie `docs/voorstel-woekeraar.md`).', afbeelding: null },
   ] }),
   dm_gokhuis_event: () => ({ titel: 'Een event aanmaken', stappen: [
     { titel: 'Waar wordt op gewed', tekst: 'Geef het event een naam en minstens twee opties — paardenrace, hanengevecht, welke raadsheer het haalt. De spelers kiezen er een en zetten in.', afbeelding: null },
