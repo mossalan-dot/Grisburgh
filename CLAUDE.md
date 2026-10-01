@@ -3244,6 +3244,14 @@ plaats van twee — elke rust één te veel.
 
 ## Veelgemaakte fouten
 
+- **Een `--modifier` die hoger in `theme.css` staat dan zijn basisregel doet
+  niets.** Gelijke specificiteit → de laatste wint, en dat is dan de basis.
+  `theme.css` is 28.000 regels oud gegroeid, dus dit gebeurt echt: het DM-veld
+  op de landingspagina (`.landing-pw-input--dm`) en het levelveldje in het
+  spreukenboek (`.sb-manage-input--sm`) waren allebei stilletjes uitgeschakeld.
+  Schrijf een modifier dus als `.x--y.x--y { … }` of als
+  `.ouder .x--y { … }` — niet met `!important`. Een scan die alle gevallen
+  vindt staat in de testronde onder *CSS-modifiers*.
 - **Vergeten versie te bumpen** → browser toont oude JS/CSS. Check altijd index.html + app.js imports.
 - **`api.getEntities()` bestaat niet** → gebruik `api.listEntities('personages')` etc.
 - **Verbindingen-tab bestaat niet meer.** Koppelingen leg je in de tekst met

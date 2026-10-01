@@ -1065,9 +1065,31 @@ function _dienstKopLees(sleutel) {
 }
 
 // De opslaanknop van een dienst: overal dezelfde knop, met zijn naam erop.
+// De opslaanknop hoort onderaan het formulier te staan, met een streep erboven
+// zodat je ziet dat dit het einde is. Hij stond als gewone veldrij tussen de
+// andere, en bij een dienst met een sectie eronder (adoptie, strijdperk) kwam
+// hij dus middenin te hangen. `dm-dienst-opslaan` maakt hem vindbaar voor Ctrl+S.
+// ── Ctrl+S bewaart wat er openstaat ─────────────────────────────────────────
+// Elk formulier in de meesterkamer heeft onderaan een opslaanknop, en die zoek
+// je met de muis terwijl je handen op het toetsenbord liggen. Ctrl+S (of ⌘S)
+// drukt de zichtbare opslaanknop in van het paneel waar je in staat — en houdt
+// de browser tegen, die anders de pagina wil opslaan.
+document.addEventListener('keydown', (ev) => {
+  if (ev.key !== 's' && ev.key !== 'S') return;
+  if (!(ev.ctrlKey || ev.metaKey) || ev.altKey || ev.shiftKey) return;
+  // Alleen in de meesterkamer, en alleen als er iets te bewaren is.
+  const paneel = document.querySelector('#modal-overlay.active .dm-dienst-opslaan, #modal-overlay.active [data-opslaan]')
+    || [...document.querySelectorAll('.dm-tab-content:not([hidden]) .dm-dienst-opslaan')]
+         .find(b => b.offsetParent !== null);
+  if (!paneel) return;
+  ev.preventDefault();
+  paneel.click();
+  window._showToast?.(`${icon('save')} Opgeslagen`);
+});
+
 function _dienstOpslaanRij(fn) {
-  return `<div class="dm-form-row" style="margin-top:12px">
-    <button class="dm-btn dm-btn-primary" onclick="${fn}" title="Opslaan">${icon('save')} Opslaan</button>
+  return `<div class="dm-dienst-voet">
+    <button class="dm-btn dm-btn-primary dm-dienst-opslaan" onclick="${fn}" title="Opslaan (Ctrl+S)">${icon('save')} Opslaan</button>
   </div>`;
 }
 
@@ -6800,7 +6822,6 @@ async function _renderMagizooSettings() {
         </div>
       </div>
 
-      ${_dienstOpslaanRij('window._magizooSettingsSave()')}
 
       ${window._deelAan?.('magizoo-adoptie') === false ? _deelUitHtml('Adoptie') : `
         ${_dienstSectieKop('paw-print', 'Adoptie', 'dm_magizoo_adoptie')}
@@ -6821,6 +6842,8 @@ async function _renderMagizooSettings() {
               </div>`).join('')}
           </div>`
           : `<p class="dm-hint">Nog geen dieren te adopteren. Zet op het kaartje van een dier <em>adopteerbaar</em> aan en geef hem een prijs; dan staat hij hier.</p>`)}`}
+
+      ${_dienstOpslaanRij('window._magizooSettingsSave()')}
     </div>`;
 };
 
@@ -6906,8 +6929,13 @@ async function _renderUrsulaSettings() {
 
       ${_bedragVeldHtml('ursula-prijs', prijs, { label: 'Prijs van een voorspelling' })}
       ${_dienstOpslaanRij('window._ursulaSettingsSave()')}
+    </div>
 
-      <div class="dm-section-label" style="margin-top:14px">Voorspellingen per akte<span class="dm-sectie-hulp">${helpBtn('dm_waarzegger_akte')}</span></div>
+    <!-- Eigen blok: de voorspellingen hebben hun eigen opslaanknop. Ze stonden
+         in dezelfde sectie als de dienstinstellingen, dus die knop hing
+         middenin een formulier dat daaronder gewoon doorliep. -->
+    <div class="dm-feature-section" style="margin-top:14px">
+      <div class="dm-section-label">Voorspellingen per akte<span class="dm-sectie-hulp">${helpBtn('dm_waarzegger_akte')}</span></div>
       ${actiefInfo}
 
       ${_ursulaAktes.length === 0 ? '<p class="dm-form-label" style="opacity:.6">Nog geen aktes/hoofdstukken gedefinieerd.</p>' : `
@@ -6930,9 +6958,9 @@ async function _renderUrsulaSettings() {
         <label class="dm-form-label" for="ursula-concreet">${icon('target')} Concrete kern (naam/locatie — onthuld bij een 6)</label>
         <textarea id="ursula-concreet" class="dm-input" rows="2" style="font-size:11px;resize:vertical">${esc(v.concreet || '')}</textarea>
       </div>
-      <div class="dm-form-row" style="gap:6px">
-        <button class="dm-btn dm-btn-primary" onclick="window._ursulaVoorspellingSave(event)" title="Voorspelling opslaan">${icon('save')} Voorspelling</button>
+      <div class="dm-dienst-voet">
         <button class="dm-btn dm-btn-ghost" onclick="window._ursulaResetParty()" title="Wis de party-worp voor deze akte zodat opnieuw geworpen kan worden">↺ Reset party-worp</button>
+        <button class="dm-btn dm-btn-primary dm-dienst-opslaan" onclick="window._ursulaVoorspellingSave(event)" title="Voorspelling opslaan (Ctrl+S)">${icon('save')} Voorspelling</button>
       </div>`}
     </div>`;
 };

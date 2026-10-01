@@ -10,7 +10,7 @@ import { renderSpreuken } from './render-spreuken.js?v=41';
 import { renderVaardigheden, zoekVaardigheden } from './render-vaardigheden.js?v=10';
 import { renderStatblock } from './render-statblock.js?v=9';
 import { initSocket } from "./socket-client.js?v=80";
-import { initDmPanel } from "./dm-panel.js?v=365";
+import { initDmPanel } from "./dm-panel.js?v=366";
 import { COND_INFO, COND_LABEL, COND_MET_PLAATJE, COND_ICON } from './conditions.js?v=2';
 import './media-picker.js?v=8';
 import './tafels.js?v=2';
@@ -3836,9 +3836,10 @@ const _sbState = {
   idx: 0,
   favs: new Set(),
   charId: null,
-  tocOpen: false,
+  // Eén zijpaneel met tabjes: 'inhoud', 'beheer' of null (dicht). Er waren
+  // drie losse vlaggen voor drie panelen die elkaar met de hand uitzetten.
+  zij: null,
   tocPreparedOnly: false,
-  manageOpen: false,
   slots: {},           // { 1: { max: 3, used: 1 }, ... }
   spellSaveDC: null,
   spellAttackBonus: null,
@@ -4239,16 +4240,14 @@ function _ensureSpellbookOverlay() {
       <button class="sb-ctrl-btn" id="sb-toc-btn" onclick="window._sbToggleToc()">
         ${icon('clipboard-list')} Inhoud
       </button>
-      <button class="sb-ctrl-btn" id="sb-manage-btn" onclick="window._sbToggleManage()" title="Beheer">
-        ${icon('pencil')} Beheer
+      <button class="sb-ctrl-btn" id="sb-manage-btn" onclick="window._sbToggleManage()" data-wptip="Incantatie, marginalia en concentratie van de spreuk die openligt">
+        ${icon('pencil')} Deze spreuk
       </button>
       <button class="sb-ctrl-btn sb-ctrl-conc" id="sb-conc-ctrl-btn" onclick="window._sbToggleConcentration()" title="Concentration" style="display:none">
         ${icon('flame')} Concentration
       </button>
       <div class="sb-prepared-zone" id="sb-prepared-zone"></div>
-      <button class="sb-ctrl-btn sb-ctrl-help" id="sb-help-btn" onclick="window._sbToggleHelp()" title="Help">
-        ${icon('book-open')} Help
-      </button>
+      <span class="sb-ctrl-help">${_helpBtn('spreukenboek_boek')}</span>
       <button class="sb-ctrl-btn sb-ctrl-close" onclick="window._sbCloseAndReturn()" title="Sluit spreukenboek">
         ✕ Sluit spreukenboek
       </button>
@@ -4313,26 +4312,32 @@ function _ensureSpellbookOverlay() {
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="sb-portrait-hint-icon"><rect x="4" y="2" width="16" height="20" rx="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>
         <span>Draai je scherm voor het spreukenboek</span>
       </div>
-      <!-- TOC panel: slides from left -->
-      <div class="sb-toc-panel" id="sb-toc-panel">
-        <div class="sb-toc-header">
-          <div class="sb-toc-title-row">
-            <div class="sb-toc-title">Inhoudsopgave</div>
-            <button class="sb-toc-prep-filter" id="sb-toc-prep-filter" onclick="window._sbTocTogglePreparedOnly()"
-              title="Toon alleen voorbereide spreuken">${icon('check')} Alleen paraat</button>
-          </div>
-          <input type="text" class="sb-toc-search" id="sb-toc-search"
-            placeholder="Zoek spreuk…" oninput="window._sbTocSearch(this.value)">
-        </div>
-        <div class="sb-toc-list" id="sb-toc-list"></div>
-      </div>
-      <!-- Beheer panel: slides from right -->
-      <div class="sb-manage-panel" id="sb-manage-panel">
+      <!-- Eén zijpaneel over het boek heen. Inhoud schoof van links, Beheer
+           van rechts en Help nog eens van rechts: drie panelen die elkaar met
+           de hand moesten uitzetten, terwijl het allebei "wat kan ik hier met
+           mijn spreuken" is. Nu één paneel met tabjes; de uitleg zit in het
+           boekje in de balk, net als overal elders. -->
+      <div class="sb-manage-panel sb-zijpaneel" id="sb-zijpaneel">
         <div class="sb-manage-header">
-          <div class="sb-manage-title">Beheer</div>
-          <button class="sb-manage-close-btn" onclick="window._sbToggleManage()" title="Sluit beheer">✕</button>
+          <div class="sb-zij-tabs">
+            <button class="sb-zij-tab" id="sb-zij-tab-inhoud" onclick="window._sbZijTab('inhoud')">${icon('clipboard-list')} Inhoud</button>
+            <button class="sb-zij-tab" id="sb-zij-tab-beheer" onclick="window._sbZijTab('beheer')">${icon('pencil')} Deze spreuk</button>
+          </div>
+          <button class="sb-manage-close-btn" onclick="window._sbZijDicht()" title="Sluiten">✕</button>
         </div>
-        <div class="sb-manage-body">
+        <div class="sb-zij-blad" id="sb-zij-inhoud">
+          <div class="sb-toc-header">
+            <div class="sb-toc-title-row">
+              <div class="sb-toc-title">Inhoudsopgave</div>
+              <button class="sb-toc-prep-filter" id="sb-toc-prep-filter" onclick="window._sbTocTogglePreparedOnly()"
+                data-wptip="Toon alleen voorbereide spreuken">${icon('check')} Alleen paraat</button>
+            </div>
+            <input type="text" class="sb-toc-search" id="sb-toc-search"
+              placeholder="Zoek spreuk…" oninput="window._sbTocSearch(this.value)">
+          </div>
+          <div class="sb-toc-list" id="sb-toc-list"></div>
+        </div>
+        <div class="sb-manage-body sb-zij-blad hidden" id="sb-zij-beheer">
           <div class="sb-manage-section">
             <div class="sb-manage-label">Incantatie</div>
             <textarea class="sb-manage-input sb-manage-input--quill sb-manage-textarea" id="sb-manage-incant"
@@ -4360,32 +4365,6 @@ function _ensureSpellbookOverlay() {
             <textarea class="sb-manage-input sb-manage-input--quill sb-manage-textarea" id="sb-manage-icon-label"
               rows="2" placeholder="Eigen toelichting…" maxlength="200" style="margin-top:6px"></textarea>
             <button class="sb-manage-add-btn" onclick="window._sbAddMarginalia()">＋ Toevoegen</button>
-          </div>
-        </div>
-      </div>
-      <!-- Help panel: slides from right -->
-      <div class="sb-help-panel" id="sb-help-panel">
-        <div class="sb-manage-header">
-          <div class="sb-manage-title">${icon('book-open')} Help</div>
-          <button class="sb-manage-close-btn" onclick="window._sbToggleHelp()" title="Sluit help">✕</button>
-        </div>
-        <div class="sb-help-body">
-          <div class="sb-help-section">
-            <div class="sb-help-section-title">${icon('clipboard-list')} Inhoud</div>
-            <p>Hier vind je een overzicht van al je spreuken per level. Je kunt ook zoeken: typ een naam of school en klik <strong>+</strong> om een spreuk toe te voegen aan je boek.</p>
-            <p>Spreuken die je al hebt staan bovenaan onder <em>Jouw spreuken</em> — klik op de naam om er direct naartoe te gaan.</p>
-          </div>
-          <div class="sb-help-section">
-            <div class="sb-help-section-title">${icon('pencil')} Beheer</div>
-            <p><strong>Incantatie</strong> — schrijf de spreukformule die jij uitspreekt. Verschijnt als een briefje op de linkerpagina.</p>
-            <p><strong>Level verkregen</strong> — op welk level heb je deze spreuk geleerd? Puur ter herinnering.</p>
-            <p><strong>Concentration</strong> — activeer of stop de concentratie-teller voor een lopende spreuk.</p>
-            <p><strong>Marginalia</strong> — kleine symbolen in de kantlijn die het type spreuk aangeven (schade, healing, utility…). Kies een icoon, typ optioneel een toelichting en klik +.</p>
-          </div>
-          <div class="sb-help-section">
-            <div class="sb-help-section-title">${icon('chevron-left')} Navigatie</div>
-            <p>Gebruik de pijlen links en rechts om door je spreuken te bladeren. Je kunt ook klikken op een spreuk in de Inhoud.</p>
-            <p>Het gouden lint in het boek geeft aan of een spreuk als favoriet is gemarkeerd (klik op het lint).</p>
           </div>
         </div>
       </div>
@@ -4427,7 +4406,6 @@ window._openSpellbook = function(startIdx) {
   }
   if (startIdx === undefined) startIdx = 0;
   _sbState.idx    = Math.max(0, Math.min(startIdx, _sbState.spells.length - 1));
-  _sbState.tocOpen = false;
   _sbRender();
   const ov = document.getElementById('sb-overlay');
   ov.style.display = '';          // undo any post-close display:none
@@ -4448,9 +4426,8 @@ window._openSpellbook = function(startIdx) {
   ov.classList.add('sb-open');
   // Zolang het boek openstaat schuift de pagina eronder niet mee.
   document.body.classList.add('sb-boek-open');
-  // Close TOC if it was open
-  const toc = document.getElementById('sb-toc-panel');
-  if (toc) toc.classList.remove('sb-toc-open');
+  // Het zijpaneel hoort dicht als het boek opengaat.
+  window._sbZijDicht();
 };
 
 window._closeSpellbook = function() {
@@ -4464,21 +4441,14 @@ window._closeSpellbook = function() {
     const _ref = ov;
     setTimeout(() => { if (!_ref.classList.contains('sb-open')) _ref.style.display = 'none'; }, 350);
   }
-  _sbState.tocOpen = false;
-  _sbState.manageOpen = false;
-  const mp = document.getElementById('sb-manage-panel');
-  if (mp) mp.classList.remove('sb-manage-open');
+  window._sbZijDicht();
   window._sbUserClosed = true;  // don't auto-reopen until user explicitly navigates back
 };
 
 window._sbGoTo = function(idx, closeToc) {
   const n = _sbState.spells.length;
   const newIdx = ((idx % n) + n) % n;
-  if (closeToc) {
-    _sbState.tocOpen = false;
-    const toc = document.getElementById('sb-toc-panel');
-    if (toc) toc.classList.remove('sb-toc-open');
-  }
+  if (closeToc) window._sbZijDicht();
   if (newIdx === _sbState.idx) return;
   if (_sbFlipping) return;
 
@@ -4630,48 +4600,42 @@ window._sbTogglePin = async function() {
   catch (e) { console.error('Fout bij opslaan favorieten:', e); }
 };
 
-window._sbToggleToc = function() {
-  _sbState.tocOpen = !_sbState.tocOpen;
-  // Sluit manage paneel als TOC opent
-  if (_sbState.tocOpen) {
-    _sbState.manageOpen = false;
-    const mp = document.getElementById('sb-manage-panel');
-    if (mp) mp.classList.remove('sb-manage-open');
+// ── Het zijpaneel ───────────────────────────────────────────────────────────
+// Eén paneel, twee tabjes. `_sbToggleToc` en `_sbToggleManage` blijven bestaan
+// omdat ze van buitenaf worden aangeroepen (de knop op de linkerpagina bij de
+// incantatie bijvoorbeeld); ze openen nu allebei hetzelfde paneel.
+window._sbZijTab = function(tab) {
+  _sbState.zij = tab;
+  document.getElementById('sb-zijpaneel')?.classList.add('sb-manage-open');
+  for (const t of ['inhoud', 'beheer']) {
+    document.getElementById('sb-zij-' + t)?.classList.toggle('hidden', t !== tab);
+    document.getElementById('sb-zij-tab-' + t)?.classList.toggle('actief', t === tab);
   }
-  const toc = document.getElementById('sb-toc-panel');
-  if (toc) toc.classList.toggle('sb-toc-open', _sbState.tocOpen);
-  if (_sbState.tocOpen) {
+  document.getElementById('sb-toc-btn')?.classList.toggle('active', tab === 'inhoud');
+  document.getElementById('sb-manage-btn')?.classList.toggle('active', tab === 'beheer');
+  if (tab === 'inhoud') {
     const inp = document.getElementById('sb-toc-search');
     if (inp) inp.value = '';
     _sbRenderTocList('');
     setTimeout(() => document.getElementById('sb-toc-search')?.focus(), 50);
+  } else {
+    _sbManageRefresh();
   }
 };
 
-window._sbToggleManage = function() {
-  _sbState.manageOpen = !_sbState.manageOpen;
-  if (_sbState.manageOpen) {
-    _sbState.tocOpen = false;
-    _sbState.helpOpen = false;
-    document.getElementById('sb-toc-panel')?.classList.remove('sb-toc-open');
-    document.getElementById('sb-help-panel')?.classList.remove('sb-manage-open');
-  }
-  const mp = document.getElementById('sb-manage-panel');
-  if (mp) mp.classList.toggle('sb-manage-open', _sbState.manageOpen);
-  if (_sbState.manageOpen) _sbManageRefresh();
+window._sbZijDicht = function() {
+  _sbState.zij = null;
+  document.getElementById('sb-zijpaneel')?.classList.remove('sb-manage-open');
+  document.getElementById('sb-toc-btn')?.classList.remove('active');
+  document.getElementById('sb-manage-btn')?.classList.remove('active');
 };
 
-window._sbToggleHelp = function() {
-  _sbState.helpOpen = !_sbState.helpOpen;
-  if (_sbState.helpOpen) {
-    _sbState.tocOpen = false;
-    _sbState.manageOpen = false;
-    document.getElementById('sb-toc-panel')?.classList.remove('sb-toc-open');
-    document.getElementById('sb-manage-panel')?.classList.remove('sb-manage-open');
-  }
-  document.getElementById('sb-help-panel')?.classList.toggle('sb-manage-open', _sbState.helpOpen);
-  document.getElementById('sb-help-btn')?.classList.toggle('active', _sbState.helpOpen);
-};
+function _sbZijWissel(tab) {
+  if (_sbState.zij === tab) window._sbZijDicht(); else window._sbZijTab(tab);
+}
+
+window._sbToggleToc    = () => _sbZijWissel('inhoud');
+window._sbToggleManage = () => _sbZijWissel('beheer');
 
 window._sbCloseAndReturn = function() {
   window._closeSpellbook();
@@ -5213,7 +5177,7 @@ window._sbTocPin = async function(index, name, btnEl) {
     // Paneel open laten zodat je meteen nóg een spreuk kunt toevoegen;
     // boek navigeert naar de nieuwe spreuk en de inhoudsopgave werkt direct bij.
     _sbRender();
-    if (_sbState.tocOpen) {
+    if (_sbState.zij === 'inhoud') {
       _sbRenderTocList(document.getElementById('sb-toc-search')?.value || '');
     }
     if (typeof window._reRenderKarakter === 'function') window._reRenderKarakter();
@@ -5590,7 +5554,7 @@ window._sbCyclePrepared = async () => {
   _sbRenderPrepared();
   _sbRenderSlots();          // slot-pips ↔ 'bereid voor om te casten'
   _sbUpdateUnprepStamp();    // 'Niet voorbereid'-stempel
-  if (_sbState.tocOpen) _sbRenderTocList(document.getElementById('sb-toc-search')?.value || '');
+  if (_sbState.zij === 'inhoud') _sbRenderTocList(document.getElementById('sb-toc-search')?.value || '');
   try { await api.updatePlayerSpell(_sbState.charId, spell.index, { prepared, alwaysPrepared }); }
   catch { Object.assign(spell, prev); _sbRenderPrepared(); _sbRenderSlots(); _sbUpdateUnprepStamp(); }
 };
@@ -5862,7 +5826,7 @@ function _sbRender() {
   _sbRenderTocList(document.getElementById('sb-toc-search')?.value || '');
 
   // ── Beheer-paneel bijwerken als het open is ──
-  if (_sbState.manageOpen) _sbManageRefresh();
+  if (_sbState.zij === 'beheer') _sbManageRefresh();
 }
 
 // ════════════════════════════════════════════════════════════
@@ -8602,9 +8566,9 @@ async function renderMijnKarakter(opts = {}) {
                     <span class="player-ability-save-kop">Save</span>
                     <button class="player-save-dot${isProf ? ' active' : ''}"
                       onclick="window._toggleSaveProf('${ab}', ${!isProf})"
-                      title="${isProf ? 'Proficient in deze saving throw — klik om uit te zetten' : 'Niet proficient — klik om proficiency aan te zetten'}">
+                      data-wptip="${isProf ? 'Proficient in deze saving throw — tik om uit te zetten' : 'Niet proficient — tik om proficiency aan te zetten'}">
                     </button>
-                    <span class="player-save-val player-roll" title="Rol een ${_AB_LABELS[ab]} saving throw"
+                    <span class="player-save-val player-roll" data-wptip="Rol een ${_AB_LABELS[ab]} saving throw"
                       onclick="window.dice?.rollFormula('1d20${saveBonus >= 0 ? '+' + saveBonus : saveBonus} ${_AB_LABELS[ab]} save')">${saveBonusStr}</span>
                   </div>
                 </div>`;
@@ -8625,15 +8589,15 @@ async function renderMijnKarakter(opts = {}) {
               return `<div class="player-skill-row" style="--ab-c:${_AB_KLEUR[skill.ab] || '#8a7050'}">
                 <button class="player-skill-prof-btn${prof ? ' ' + prof : ''}"
                   onclick="window._cycleSkillProf('${skill.key}')"
-                  title="${prof === 'expert' ? 'Expertise' : prof === 'prof' ? 'Proficient' : 'Geen proficiency'}"></button>
+                  data-wptip="${prof === 'expert' ? 'Expertise — tik voor geen proficiency' : prof === 'prof' ? 'Proficient — tik voor expertise' : 'Geen proficiency — tik voor proficient'}"></button>
                 <span class="player-skill-bonus${bonusCls}">${bonusStr}</span>
-                <span class="player-skill-name player-roll" title="Rol ${skill.label}"
+                <span class="player-skill-name player-roll" data-wptip="Rol ${skill.label}"
                   onclick="window.dice?.rollFormula('1d20${bonus >= 0 ? '+' + bonus : bonus} ${skill.label}')">${skill.label}</span>
                 <span class="player-skill-ab">${skill.ab.toUpperCase()}</span>
                 <span class="skill-adj-ctrl">
-                  <button class="skill-adj-arrow" onclick="window._adjSkill('${skill.key}', 1)" title="Eén hoger — voor een tijdelijke bonus die niet uit je proficiency komt">▲</button>
+                  <button class="skill-adj-arrow" onclick="window._adjSkill('${skill.key}', 1)" data-wptip="Eén hoger — voor een tijdelijke bonus die niet uit je proficiency komt">▲</button>
                   ${adjVal !== 0 ? `<span class="skill-adj-val${adjVal > 0 ? ' buff' : ' nerf'}">${adjVal > 0 ? '+' + adjVal : adjVal}</span>` : '<span class="skill-adj-val"></span>'}
-                  <button class="skill-adj-arrow" onclick="window._adjSkill('${skill.key}', -1)" title="Eén lager — voor een tijdelijk nadeel op deze skill">▼</button>
+                  <button class="skill-adj-arrow" onclick="window._adjSkill('${skill.key}', -1)" data-wptip="Eén lager — voor een tijdelijk nadeel op deze skill">▼</button>
                 </span>
               </div>`;
             }).join('')}
@@ -14956,6 +14920,30 @@ const HELP_CONFIG = {
       {
         titel: 'Vastgepinde spreuken',
         tekst: 'Veelgebruikte spreuken kun je vastpinnen via de ster (★) op het kaartje. Ze verschijnen dan ook als snelknoppen op het Party-tabblad, zodat je ze snel kunt raadplegen tijdens gevecht.',
+        afbeelding: null,
+      },
+    ],
+  }),
+
+  // Het opengeslagen boek zelf. Stond als een eigen paneel in het boek met de
+  // tekst hard in de HTML; nu een gewone hulpknop, dus ook te redigeren per
+  // campagne en terug te vinden in docs/helpteksten.md.
+  spreukenboek_boek: () => ({
+    titel: 'Het opengeslagen boek',
+    stappen: [
+      {
+        titel: 'Inhoud',
+        tekst: 'Een overzicht van al je spreuken per level. Je kunt ook zoeken: typ een naam of school en klik **+** om een spreuk aan je boek toe te voegen. Spreuken die je al hebt staan bovenaan onder *Jouw spreuken* — klik op de naam om er meteen naartoe te bladeren. Met **Alleen paraat** blijven alleen je voorbereide spreuken over.',
+        afbeelding: null,
+      },
+      {
+        titel: 'Deze spreuk',
+        tekst: 'Alles wat je aan de spreuk kunt hangen die openligt. **Incantatie** — de spreukformule die jij uitspreekt; die verschijnt als een briefje op de linkerpagina. **Level verkregen** — op welk level je hem leerde; hoe lager, hoe geler het papier. **Concentration** — de concentratie-teller starten of stoppen. **Marginalia** — kleine symbolen in de kantlijn (schade, healing, utility…): kies een icoon, typ eventueel een toelichting en klik +.',
+        afbeelding: null,
+      },
+      {
+        titel: 'Bladeren',
+        tekst: 'Met de pijlen links en rechts blader je door je spreuken; op een telefoon kun je ook vegen. Het gouden lint in het boek markeert een favoriet — klik erop om hem aan of uit te zetten.',
         afbeelding: null,
       },
     ],
