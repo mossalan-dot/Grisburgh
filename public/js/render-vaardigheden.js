@@ -1286,6 +1286,9 @@ window.vaardigheden = {
           await api.copyFile(id, srcId);
           await _bewaarBeeld(it, { img: id });
           _open(key);
+          // Vervang je een bestaand beeld, dan blijft de URL gelijk en toont de
+          // browser zijn kopie — ook in de focuskiezer.
+          window._beeldVerversen?.(id);
           window._showToast?.('Afbeelding geplaatst.');
         } catch (e) {
           window._showToast?.('Afbeelding instellen mislukt: ' + (e.message || e));

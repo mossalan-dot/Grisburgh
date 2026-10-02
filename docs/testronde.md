@@ -1495,14 +1495,20 @@ Grisburghs **data** te staan — niet in de code.
 - [ ] **De woekeraar is in te stellen** (DM) — bij *Diensten → Schulden* staat nu zijn instelscherm, in dezelfde vorm als de andere diensten: naam, wie hij is, waar hij zit, zijn begroeting, en daaronder **wat hij vraagt** (hoogste bedrag, rente per lange rust, plafond), **of een schuld escaleert** (standaard uit), en **wie hem kan stoppen** (per factie een vinkje met een renowndrempel). Zonder dit scherm was de hele escalatieladder vanuit de app niet aan te zetten en kon de DM niets van hem instellen — de route bestond wel, maar niets riep hem aan.
 - [ ] **Het gokhuis leent ook via de DM** (SP+DM) — `POST /tweespalt/leen` gaf rechtstreeks geld uit; nu wordt het hetzelfde verzoek als aan de deur van de woekeraar, met `bron: 'gokhuis'` zodat je in het register ziet waar het begon. Eén geldschieter, één regel. Controleer: leen bij het gokhuis, zie dat je beurs nog leeg is, keur goed bij *Verzoeken → Wil lenen*, en dan pas staat het geld er. Met een gedeelde beurs landt het dáár, net als eerst.
 - [ ] **Een schuldbewijs kun je nog steeds niet weggooien** (SP) — dit was stuk: de bewaking keek alleen naar `ts_leen_…`, en het bewijs van de woekeraar heet `schuld_…`. Een speler kon dus zijn eigen schuld wegklikken. Nu zijn beide beschermd, plus de *In onderpand*-regel. Haalt de DM het schuldbewijs weg, dan verdwijnt ook de schuld uit het register.
+- [ ] **Een vervangen afbeelding is ook in de focuskiezer de nieuwe** (DM) —
+      upload een nieuw beeld over een bestaand heen (spreuk of vaardigheid) en
+      klap daarna *Focuspunt bijstellen* open: daar hoort het níéuwe beeld te
+      staan. Het leeft onder een vast id, dus zonder verse stempel toont de
+      browser zijn oude kopie en zit je het vorige beeld bij te stellen.
 - [ ] **Het Heldenboek, vier deuren** (ALL) — het tabblad opent met vier tegels
-      (Classes 12 · Species 13 · Backgrounds 16 · Feats & Epic Boons) en verder
-      niets: geen filterbalk, geen raster. Klik *Classes* → twaalf tegels met
-      hun aantal subclasses. Klik *Wizard* → het classkaartje met hit die,
-      saving throws, proficiencies en skills, daaronder vier subclass-kaartjes,
-      daaronder de features. Klik *Evoker* → het classkaartje blíjft staan, het
-      Evoker-kaartje komt eronder, en het raster knipt terug naar Class +
-      Subclass. Het kruimelpad brengt je elke stap terug.
+      (Classes 12 · Species 13 · Backgrounds 16 · Feats & Epic Boons) als vier
+      **staande kaarten** met alleen een icoon, een aantal en een naam. Klik
+      *Classes* → diezelfde kaart wordt een banner over de volle breedte en de
+      twaalf classes waaieren eronder uit. Klik *Barbarian* → het classkaartje,
+      met links een kolom **subclasses met vinkjes**. Vink er een aan: zijn
+      features komen erbij in het raster (16 → 20). Vink er een tweede bij: ze
+      stapelen (→ 25). Uitvinken haalt ze er weer af. Het kaartje van een
+      subclass open je met de naam, het vinkje is een ander gebaar.
 - [ ] **Zoeken gaat dwars door de deuren** (ALL) — typ *battle master* terwijl
       je in Classes staat: je krijgt treffers uit alles, met een regel
       *Resultaten voor…* en een knop terug. Veeg het veld leeg en je staat weer

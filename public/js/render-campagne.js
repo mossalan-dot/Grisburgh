@@ -4283,6 +4283,7 @@ window._maakBanner = (idx) => {
   entityEditorImages.splice(idx, 1);
   if (oudeBanner) entityEditorImages.unshift({ id: oudeBanner, url: api.fileUrl(oudeBanner), isNew: false, caption: '' });
   window._fpZetBron(gekozen.id);
+  window._beeldVerversen?.(gekozen.id);
   _refreshEntityImages();
 };
 
@@ -6119,6 +6120,33 @@ window._fpTouch = (ev) => {
 
 // Eén plek waar de bron van picker én previews wordt gezet, anders raken ze
 // uit elkaar zodra je een andere banner kiest.
+// ── Een vervangen beeld ook écht opnieuw ophalen ────────────────────────────
+// Een afbeelding leeft onder een **vast id** (`spell-img-fireball`,
+// `feat-img-abc`, een kaartje-id). Vervang je hem, dan blijft de URL gelijk en
+// serveert de browser gewoon zijn kopie: je ziet het oude beeld. Op de plek waar
+// dat opvalt — de detailweergave — stond daarom al een `?t=`-stempel, maar de
+// **focuskiezer** en de voorbeelden eromheen kregen die niet. Gevolg: je
+// uploadde een nieuw beeld, klikte op *Focuspunt bijstellen*, en zat het oude
+// bij te stellen.
+//
+// Dit stempelt élke `<img>` die naar dat id wijst in één keer opnieuw, los van
+// wie hem getekend heeft. Eén aanroep na het vervangen en alles klopt.
+window._beeldVerversen = (fileId) => {
+  if (!fileId) return;
+  const stempel = '?t=' + Date.now();
+  const pad = `/api/files/${fileId}`;
+  const thumb = `/api/thumb/${fileId}`;
+  for (const img of document.querySelectorAll('img[src]')) {
+    const kaal = img.getAttribute('src').split('?')[0];
+    if (kaal === pad || kaal === thumb) img.setAttribute('src', kaal + stempel);
+  }
+  // De kiezer tekent zijn uitsnede op een canvas uit de geladen afbeelding; die
+  // moet opnieuw meten zodra het nieuwe beeld binnen is.
+  const hoofd = document.querySelector('.fp-blok:not([hidden]) #fp-wrap img, .fp-blok #fp-wrap img');
+  if (hoofd) hoofd.addEventListener('load', () => window._fpTeken?.(), { once: true });
+  else window._fpTeken?.();
+};
+
 window._fpZetBron = (fileId) => {
   const url = api.fileUrl(fileId);
   const el0 = _fpEl('editor-img-preview');

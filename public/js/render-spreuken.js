@@ -994,7 +994,6 @@ window.spreuken = {
           // de andere zocht — "Bronbestand niet gevonden" terwijl het bestand
           // er wel degelijk was.
           await api.copyFile(`spell-img-${index}`, srcId);
-          const bust = '?t=' + Date.now();
           const dimg = document.getElementById('spreuk-detail-img');
           if (dimg) {
             // Ook het laden van het beeld zelf kan mislukken (een formaat dat
@@ -1002,8 +1001,11 @@ window.spreuken = {
             // leeg vlak.
             dimg.classList.remove('is-on');
             dimg.onerror = () => window._showToast?.('De afbeelding is opgeslagen maar kan niet getoond worden.');
-            dimg.src = `/api/files/spell-img-${index}${bust}`;
           }
+          // Eén aanroep voor álle plekken die dat id tonen: het detailbeeld, het
+          // kaartje in het raster én de focuskiezer. Die laatste hield anders
+          // het oude beeld vast, zodat je het vorige beeld zat bij te stellen.
+          window._beeldVerversen?.(`spell-img-${index}`);
           _paintGrid();
           window._showToast?.('Afbeelding geplaatst.');
         } catch (e) {
