@@ -1,6 +1,6 @@
 # Grisburgh voor meerdere DM's — werkdocument
 
-Status: **stap 1 t/m 5 af.** Bijgewerkt 4 sep 2026.
+Status: **stap 1 t/m 6 af.** Bijgewerkt 2 okt 2026.
 Dit document leeft naast `CLAUDE.md`; als een stap af is, verhuist de blijvende
 kennis daarheen en blijft hier alleen de voortgang staan.
 
@@ -67,13 +67,41 @@ Het bestandslek is in stap 1 gedicht (`_magBestandZien()`); de kaart-fallback,
 de munten, "Jonkers prikbord" en de hardcoded titel in stap 3; de PHB-teksten in
 stap 5. Wat hieronder staat is wat er nog ligt.
 
-| Waar | Wat |
-|---|---|
-| `meta.heeren` bestaat niet | De Heeren van de Nacht hebben als enige dienst geen configuratieblok in `meta.json`, dus ook geen naamveld. In de zijbalk valt hij terug op "Dievengilde"; hernoemen kan niet. Zelfde patroon als de andere diensten volstaat: een blok met `naam` (+ afbeelding/backdrop) en een veld in zijn paneel. |
-| Facties & Aanzien heeft geen sectienaam | Elke factie heeft een naam (`meta.facties[].naam`), maar de sectie zelf niet — die staat als "Facties" in de terugval. Een campagne die haar gilden anders noemt ("Huizen", "Ordes") kan dat kopje niet zetten. Kleinste oplossing: `meta.factiesLabel`. |
-| `_DIENST_SVC_KEYS` / `_DIENST_AMB_LABELS` / `data-section` | Diensten zijn **vaste secties** met eigen HTML, CSS en endpoints; hun configuratie staat wél al in `meta.json` (naam, afbeeldingen, prijzen), dus hernoemen kan zonder verbouwing. |
+Alle drie de scherven uit de eerste ronde zijn weg: **de Heeren** zijn opgeheven
+(21 sep, wat zij deden doet een factie), **`meta.factiesLabel`** bestaat, en de
+diensten zijn alle acht te hernoemen via `meta.<dienst>.naam` — inclusief de
+markt, die als laatste een naamveld kreeg.
 
-## Serverbudget (gemeten 3 sep 2026)
+**Opnieuw gemeten op 2 okt 2026** met een scan over alle niet-commentaarregels
+in `public/js`, `lib`, `routes` en `server.js`. Er stonden er nog acht, en één
+was van diezelfde dag:
+
+| Waar | Wat | Stand |
+|---|---|---|
+| `routes/api.js` — escalatiebrief woekeraar | "**Strum** komt langs" stond hard in een route die élke campagne draait | gefikst: `meta.woekeraar.handlanger`, anders "er komt iemand langs" |
+| `dm-panel.js` — factie-uitnodiging (2×) | "Uw daden in **Grisburgh** zijn ons niet ontgaan" in de briefsjabloon | gefikst: `window._campagneNaam()` |
+| `lib/snapshot.js` — kaarten | Grisburghs stadskaart en Isfār als terugval in de HTML-export | gefikst: geen kaarten is geen kaart |
+| `lib/snapshot.js` — spelden | `p.mapId \|\| 'grisburgh'` — dezelfde migratie-als-standaardwaarde die in `routes/api.js` al was weggehaald | gefikst: de eerste kaart die er is |
+| `app.js` — aflossen | "Vul het aantal **centeling** in" als terugval | gefikst: `_muntNamen()` |
+| `app.js` — hulptekst bedragen | "*2,50* is 2 **florinden** en 5 **knaken**" | gefikst: de munten van de campagne |
+| `app.js` — hulptekst herberg | "*De Swarte Cat*, niet *de herberg*" als voorbeeld | gefikst: geen eigennaam meer |
+| `app.js` — hulptekst Spotify | "**Grisburgh** speelt zelf niets af" | gefikst: de campagnenaam |
+
+Wat bewust blijft staan en géén scherf is: de **datasleutels**
+(`meta.buitenGrisburgh`, `grisburgh-progressie-1`, `grisburgh_party_presence`) —
+hernoemen kost een migratie en levert niets zichtbaars op; de **interne namen**
+van drie diensten (`tweespalt`, `gock`, `ursula` als sleutel voor gokhuis,
+detective en waarzegger) — hun lábel komt uit `meta`; en `BEHEER_CAMPAGNE` en
+`GRISBURGH_DATA_DIR` in de omgeving.
+
+## Serverbudget (gemeten 3 sep 2026 — achterhaald)
+
+> **Deze cijfers zijn van vóór de WebP-omzetting (15 sep).** Beelden worden nu
+> bij binnenkomst omgezet en zijn ongeveer een tiende van wat ze waren; de
+> bestaande 2,2 GB van Grisburgh is met `scripts/beelden-naar-webp.js`
+> teruggebracht. De rekensom hieronder ("acht à tien campagnes") is dus veel te
+> somber, maar hij is niet opnieuw gemeten.
+
 
 38 GB schijf, 27 GB vrij; 3,8 GB RAM waarvan ~0,5 GB in gebruik. Geheugen is
 geen knelpunt. De schijf gaat volledig op aan beeldmateriaal:
@@ -165,17 +193,41 @@ Elke stap eindigt met: Grisburgh doet nog exact wat het deed.
    DM schrijft zijn eigen beschrijving in het spreukdetail; die staat in
    `spells.json` van zijn campagne en is van hem. Negen tests in
    `tests/bronnen.test.js`.
-6. **Wizard + minicampagne.** Campagnenaam → munten → modules → diensten
-   hernoemen → kaart uploaden (optioneel) → eerste groep met wachtwoord →
-   eerste personage: zowel een kaartje in het archief als een speler-personage
-   met profiel en groepskoppeling.
+6. **Wizard.** — **af (2 okt 2026)**, `public/js/wizard.js`. Zes stappen:
+   naam en ondertitel → munten → de namen van je diensten → je eerste party met
+   wachtwoord → je eerste personage → een samenvatting met de weg verder.
+
+   **Twee dingen zijn anders gelopen dan hier stond.**
+
+   *Modules zitten er niet in.* Het plan zei "campagnenaam → munten → modules →
+   diensten", maar `PUT /campaigns/:id/modules` staat op `requireBeheerder` —
+   een nieuwe DM mág ze helemaal niet zetten, en dat is een vaste keuze
+   hierboven ("Modules aanzetten: alleen Alan, stapsgewijs"). Die stap hoort
+   dus bij wie de campagne aanmaakt, niet bij wie hem gaat spelen. Zie
+   `docs/beheerder.md` voor de werkverdeling.
+
+   *Hij draait in de campagne zelf.* Niet in het beheerpaneel, maar als de DM
+   van die campagne, de eerste keer dat hij binnenkomt in een campagne zonder
+   personages (`meta.wizardKlaar` onthoudt dat hij geweest is). Daardoor
+   gebruikt hij **alleen endpoints die er al waren** en voegt hij niets toe aan
+   de server behalve die ene vlag. Later opnieuw doorlopen kan bij
+   Instellingen › Campagne.
+
+   *De kaart is eruit.* Een kaart uploaden vraagt om beeld dat een nieuwe DM op
+   dat moment zelden bij de hand heeft, en de kaartengalerij zegt zelf al wat
+   er moet gebeuren als hij leeg is.
+
+   **De minicampagne is nog niet gemaakt.** Dat hoorde bij dit nummer en staat
+   nu bij stap 7, waar hij thuishoort: hij bestaat om schermafbeeldingen voor
+   de rondleiding te leveren zonder Grisburgh te verklappen.
    **Namen van diensten horen in de wizard.** Elke dienst heeft zijn naam al in
    `meta.<dienst>.naam` (herberg, tweespalt, gock, ursula, tempel, magizoo) en is
    te hernoemen in zijn eigen paneel onder Diensten. De zijbalk gebruikt die naam
    sinds 4 sep; zonder eigen naam staat er wát het is (Herberg, Arena, Detective,
    Waarzegger, Tempel, Magizoöloog) in plaats van hoe het in Grisburgh heet.
    De wizard loopt ze langs, want een dienst die "De Swarte Cat" heet in een
-   andere campagne is precies het soort scherf waar stap 3 over ging.
+   andere campagne is precies het soort scherf waar stap 3 over ging. Alle acht
+   accepteren een `naam`; de markt kreeg zijn veld als laatste.
 
    **Waarschuwen bij het indelen van party's:** twee party's zijn later niet
    samen te voegen. Een personage verhuizen kan wel (`entity.data.groep`), maar
@@ -229,4 +281,5 @@ Elke stap eindigt met: Grisburgh doet nog exact wat het deed.
 
 ## Open vragen
 
-Geen. Stap 1 kan beginnen.
+Geen. Volgende aan de beurt: **stap 7** (handleiding + rondleiding), die op de
+minicampagne wacht.

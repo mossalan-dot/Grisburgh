@@ -28736,3 +28736,104 @@ body.akte-schrijf-open .mp-overlay { z-index: 1320; }
   font-style: italic;
 }
 .shop-woekeraar-btn:hover { background: linear-gradient(to bottom, #8a6020, #5a3c14); }
+
+/* ══════════════════════════════════════════════════════════════════════════
+   DE OPSTARTWIZARD
+   ══════════════════════════════════════════════════════════════════════════
+   Eén kaart midden op het scherm, met een eigen overlay zodat hij over de
+   nog-lege app heen valt. Bewust geen `.modal-overlay`: die draagt het
+   sluitgedrag van het gedeelde venster, en deze mag je niet wegklikken —
+   er is een knop om over te slaan, en dat is het verschil tussen "nu niet"
+   en "per ongeluk". Onderaan de stylesheet, want `.dm-btn` en `.dm-input`
+   staan op eenvijfde en winnen anders op volgorde. */
+.wz-overlay {
+  position: fixed; inset: 0; z-index: 2000;
+  display: flex; align-items: center; justify-content: center;
+  padding: 20px;
+  background: rgba(20, 12, 4, 0.72);
+  backdrop-filter: blur(4px);
+  overflow-y: auto;
+}
+body.wizard-open { overflow: hidden; }
+
+.wz-kaart {
+  width: 100%; max-width: 520px;
+  background: linear-gradient(170deg, #f7f0dd 0%, #efe3c8 100%);
+  border: 1px solid #c4a87a;
+  border-radius: 6px;
+  box-shadow: 0 18px 48px rgba(0, 0, 0, .55);
+  padding: 26px 26px 20px;
+  max-height: calc(100vh - 40px);
+  display: flex; flex-direction: column;
+}
+#wz-body { display: flex; flex-direction: column; min-height: 0; flex: 1; }
+
+/* De bolletjes bovenaan zeggen hoe lang het nog duurt. Dat is het enige wat
+   iemand bij een wizard echt wil weten. */
+.wz-stappen { display: flex; gap: 6px; margin-bottom: 14px; }
+.wz-bol {
+  width: 22px; height: 4px; border-radius: 2px;
+  background: #d8c7a4; transition: background .25s;
+}
+.wz-bol.is-gehad { background: #9a7008; }
+.wz-bol.is-nu    { background: #b8860b; }
+
+.wz-titel {
+  font-family: 'Cinzel', serif; font-size: 1.35em; color: #5a4030;
+  margin: 0 0 6px; letter-spacing: .01em;
+}
+.wz-lead { margin: 0 0 16px; color: #7a6040; font-size: .92em; line-height: 1.5; }
+
+.wz-inhoud { overflow-y: auto; min-height: 0; flex: 1; padding-right: 2px; }
+.wz-veld { margin-bottom: 13px; }
+.wz-veld .dm-input { width: 100%; box-sizing: border-box; }
+.wz-veld .dm-form-label { display: block; margin-bottom: 4px; }
+.wz-hint { display: block; font-weight: 400; font-size: .82em; color: #9a8565; font-style: italic; }
+.wz-rij { display: flex; gap: 10px; }
+.wz-rij .wz-veld { flex: 1; }
+.wz-rij .wz-veld--smal { flex: 0 0 88px; }
+.wz-munten { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+
+/* De enige waarschuwing in de hele wizard, en hij verdient zijn gewicht:
+   party's zijn later niet samen te voegen. */
+.wz-waarschuwing {
+  display: flex; gap: 10px; align-items: flex-start;
+  margin-top: 16px; padding: 12px 13px;
+  background: rgba(154, 112, 8, .09);
+  border: 1px solid rgba(154, 112, 8, .34);
+  border-left-width: 3px;
+  border-radius: 4px;
+  font-size: .86em; line-height: 1.5; color: #5a4030;
+}
+.wz-waarschuwing svg { flex: 0 0 auto; width: 17px; height: 17px; color: #9a7008; margin-top: 1px; }
+.wz-waarschuwing strong { display: block; margin-bottom: 3px; }
+
+.wz-samenvatting { list-style: none; margin: 0 0 18px; padding: 0; }
+.wz-samenvatting li {
+  display: flex; gap: 8px; align-items: flex-start;
+  padding: 7px 0; border-bottom: 1px solid rgba(196, 168, 122, .34);
+  font-size: .93em; color: #3a2410;
+}
+.wz-samenvatting svg { width: 16px; height: 16px; flex: 0 0 auto; margin-top: 2px; }
+.wz-samenvatting .wz-ja  svg { color: #4a7c2f; }
+.wz-samenvatting .wz-nee     { color: #8a7050; }
+.wz-samenvatting .wz-nee svg { color: #b0a088; }
+
+.wz-verder { font-size: .88em; line-height: 1.55; color: #5a4030; }
+.wz-verder strong { font-family: 'Cinzel', serif; display: block; margin-bottom: 5px; color: #5a4030; }
+.wz-verder p { margin: 0 0 8px; }
+
+.wz-voet {
+  display: flex; justify-content: space-between; align-items: center; gap: 10px;
+  margin-top: 18px; padding-top: 14px;
+  border-top: 1px solid rgba(196, 168, 122, .45);
+}
+.wz-voet-rechts { display: flex; gap: 8px; align-items: center; }
+
+/* Op een telefoon vult hij het scherm: een kaart met marges eromheen leest
+   daar als een foutmelding. */
+@media (max-width: 560px) {
+  .wz-overlay { padding: 0; }
+  .wz-kaart { max-width: none; border-radius: 0; border: 0; max-height: 100vh; padding: 20px 16px 16px; }
+  .wz-munten { grid-template-columns: 1fr; }
+}

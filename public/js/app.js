@@ -1,4 +1,4 @@
-import { api, campagneUitUrl, zetCampagne } from './api.js?v=302';
+import { api, campagneUitUrl, zetCampagne } from './api.js?v=303';
 import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, renderDocumenten, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=332";
 import { initArchief, renderLogboek, openLogboekEditor } from "./render-archief.js?v=139";
 import { renderKaart, queueFlyTo, verversPins, nieuweKaart } from './render-kaart.js?v=31';
@@ -10,9 +10,10 @@ import { renderSpreuken } from './render-spreuken.js?v=41';
 import { renderVaardigheden, zoekVaardigheden } from './render-vaardigheden.js?v=18';
 import { renderStatblock } from './render-statblock.js?v=9';
 import { initSocket } from "./socket-client.js?v=82";
-import { initDmPanel } from "./dm-panel.js?v=376";
+import { initDmPanel } from "./dm-panel.js?v=377";
 import { COND_INFO, COND_LABEL, COND_MET_PLAATJE, COND_ICON } from './conditions.js?v=2';
 import './media-picker.js?v=8';
+import './wizard.js?v=1';
 import './tafels.js?v=2';
 
 // ── Icon helper ──
@@ -11688,6 +11689,9 @@ async function init() {
   // iPad kiosk-modus: sla landingspagina over, toon display canvas
   _displayModeInlossen();
   if (state.role === 'dm') _spotifyTerugkeer();
+  // Een verse campagne begroet zijn DM één keer met de opstartwizard. Niet op
+  // een tafelscherm — daar ligt niemand die instellingen invult.
+  if (state.role === 'dm' && !window._isDisplayMode) window.wizard?.misschienOpenen?.();
   if (window._isDisplayMode) {
     _initDisplayMode();
   } else if (state.role === 'player' && state.playerName && state.characterId) {
@@ -13755,7 +13759,7 @@ window._tsAflossen = async function () {
 // de kleinste munt, met de uitleg erbij.
 window._tsAflossenDeel = async function () {
   const munt = (window.app?.state?.meta?.currency || {});
-  const in_ = prompt(`Hoeveel wil je aflossen? Vul het aantal ${munt.cl || 'centeling'} in.\n\nDe rest blijft staan als nieuwe hoofdsom, en de nachten beginnen opnieuw te tellen.`, '');
+  const in_ = prompt(`Hoeveel wil je aflossen? Vul het aantal ${munt.cl || window._muntNamen().cl} in.\n\nDe rest blijft staan als nieuwe hoofdsom, en de nachten beginnen opnieuw te tellen.`, '');
   if (in_ === null) return;
   const cl = parseInt(String(in_).replace(/[^0-9]/g, ''), 10);
   if (!(cl > 0)) return;
@@ -14564,6 +14568,13 @@ const HELP_CONFIG = {
   // Elke sectie van het instellingenpaneel heeft een eigen boekje. Wat hier
   // staat stond eerder als grijze regel ónder het veld; die uitleg hoort in de
   // hulptekst, net als bij de kaartjes-editor.
+  wizard: () => ({ titel: 'De opstartwizard', stappen: [
+    { titel: 'Waarom hij er is', tekst: 'Een verse campagne is leeg, en de keuzes die ertoe doen staan verspreid over Instellingen en de dienstpanelen. Deze wizard loopt ze één keer langs, in de volgorde waarin je ze nodig hebt. Hij draait vanzelf de eerste keer dat je als DM binnenkomt in een campagne zonder personages.', afbeelding: null },
+    { titel: 'Overslaan mag altijd', tekst: 'Geen enkele stap is verplicht. Wat je overslaat vind je terug bij **Instellingen** (naam, munten) en bij **Diensten** (hoe je plekken heten). De wizard zelf staat daar ook, onder *Opstartwizard doorlopen*, voor als je hem later nog eens wilt langslopen.', afbeelding: null },
+    { titel: 'De party is de enige echte waarschuwing', tekst: 'Deel je tafels in zoals je ze gaat spelen. Een personage verhuizen kan later wel, maar alles wat de **party** over hem onthoudt blijft achter: welke voorwerpkaartjes van hem zijn, welke geheimen hij kent, wat er voor hem zichtbaar was, zijn metgezel, de gedeelde beurs. Twee party\'s samenvoegen kan helemaal niet.', afbeelding: null },
+    { titel: 'Wat de wizard níét doet', tekst: 'Welke **onderdelen** je campagne heeft — archief, aktes, tempel, facties — zet de beheerder aan, niet jij. Dat is met opzet: ze worden stapsgewijs vrijgegeven, met uitleg erbij. Mis je iets, vraag erom.', afbeelding: null },
+  ] }),
+
   inst_campagne: () => ({ titel: 'De campagne', stappen: [
     { titel: 'Titel en ondertitel', tekst: `De **titel** is de naam van je wereld: hij staat op de landingspagina, in de kop en als naam van de app op een beginscherm. De **ondertitel** staat eronder — een regel sfeer, of de naam van de groep.`, afbeelding: null },
     { titel: 'Embleem: het wapen ín de app', tekst: 'Het **embleem** is het wapen dat je in de app zelf ziet: groot op de landingspagina, klein in de kop. Het is een gewone afbeelding uit de mediabibliotheek, dus een schild, een zegel of een wapenschild werkt allemaal.', afbeelding: null },
@@ -14641,6 +14652,7 @@ const HELP_CONFIG = {
     { titel: 'Drie trappen, per nacht', tekst: '**Brief** → **onderpand** → **bezoek**. Elke lange rust schuift een opgeëiste schuld een trap op, en bij elke trap krijgt de speler een brief. Wat er die nacht gebeurde staat in het rustoverzicht.', afbeelding: null },
     { titel: 'Jij houdt de teugels', tekst: 'De app stuurt de brief, maar bij **onderpand** wijs jij aan wat er verdwijnt (uit de spullen van de hele party), en bij **bezoek** start jij het gevecht wanneer het uitkomt. De app begint nooit uit zichzelf een gevecht.', afbeelding: null },
     { titel: 'Opeisen', tekst: 'Normaal wacht hij tot het plafond bereikt is. Met **Opeisen** bij een schuld begint het meteen — handig als het verhaal erom vraagt en de cijfers nog niet.', afbeelding: null },
+      { titel: 'Wie hij stuurt', tekst: 'Bij de laatste trap komt er iemand langs. Vul je een naam in, dan noemt de brief hem; laat je het leeg, dan staat er *er komt iemand langs* — en dat leest aan tafel vaak dreigender dan een naam die niemand nog kent. Het gevecht zelf koppel je als encounter.', afbeelding: null },
   ] }),
   dm_woekeraar_ontspan: () => ({ titel: 'Wie hem kan stoppen', stappen: [
     { titel: 'Een woordje, geen kwijtschelding', tekst: 'Staat een party hoog genoeg aan bij een factie die je hier aanvinkt, dan stopt de rente en valt het bedrag terug naar de hoofdsom. De schuld blijft bestaan; het woekeren stopt. Iemand met gezag heeft een woordje gedaan.', afbeelding: null },
@@ -14735,7 +14747,7 @@ const HELP_CONFIG = {
     { titel: 'Zegen, eed, vloek', tekst: 'Een **zegen** koop je en komt in je boedel. Een **eed** is een belofte met een gevolg — wie er een zweert, kan geen tweede zweren. Een **vloek** hangt iemand aan tot hij hem kwijtraakt.', afbeelding: null },
   ] }),
   dm_dienst_algemeen: () => ({ titel: 'Algemeen', stappen: [
-    { titel: 'Naam', tekst: 'Hoe deze plek in jouw campagne heet — *De Swarte Cat*, niet *de herberg*. De tab hierboven houdt de soortnaam, zodat het paneel ook klopt in een campagne waar het huis anders heet.', afbeelding: null },
+    { titel: 'Naam', tekst: 'Hoe deze plek in jouw campagne heet — de eigennaam van het huis, niet *de herberg*. De tab hierboven houdt de soortnaam, zodat het paneel ook klopt in een campagne waar het huis anders heet.', afbeelding: null },
     { titel: 'Eerst waar, dan wie', tekst: 'Koppel een **locatie**; aan zo\'n kaartje hangt meestal al een eigenaar, en die vult zich dan vanzelf in. Typ er gerust iemand anders overheen — jouw keuze wint. Leeg laten mag ook: dan is er geen kaartje om te openen.', afbeelding: null },
     { titel: 'De achtergrond komt van de locatie', tekst: 'Je staat letterlijk in die herberg: het beeld van het locatiekaartje wordt de achtergrond van de scène. Wil je iets anders, kies dan een **eigen achtergrond**; *Weghalen* geeft het kaartje weer terug.', afbeelding: null },
     { titel: 'Begroeting', tekst: 'Koppel een **tafel** met begroetingen: er wordt er bij elk bezoek één gekozen, zodat dezelfde waard je niet elke avond met dezelfde zin aankijkt. Eén regel gedraagt zich als vroeger.', afbeelding: null },
@@ -14751,7 +14763,7 @@ const HELP_CONFIG = {
   ] }),
   dm_tempel_prijzen: () => ({ titel: 'Standaardprijzen', stappen: [
     { titel: 'Voor alle altaren tegelijk', tekst: 'Wat een **eenmalige zegen**, een **eed** en de **boete na een vloek** kosten. Een god met een eigen prijs wint hiervan; laat je die leeg, dan geldt wat hier staat.', afbeelding: null },
-    { titel: 'Eén bedrag', tekst: 'Schrijf het zoals je het uitspreekt: *2,50* is 2 florinden en 5 knaken, en *5 gp 2 sp* mag ook. Een kaal getal telt als hoofdmunt. Zo blijft het kloppen in een campagne die haar munten anders noemt.', afbeelding: null },
+    { titel: 'Eén bedrag', tekst: 'Schrijf het zoals je het uitspreekt: *2,50* is 2 ${window._muntNamen().fl} en 5 ${window._muntNamen().kn}, en *5 gp 2 sp* mag ook. Een kaal getal telt als hoofdmunt. Zo blijft het kloppen in een campagne die haar munten anders noemt.', afbeelding: null },
   ] }),
   dm_tempel_eden: () => ({ titel: 'Actieve eden & vloeken', stappen: [
     { titel: 'Wie draagt wat', tekst: 'Per speler wat er op hem rust. Zo zie je in één blik waarom iemand iets niet mag of juist moet — en hoef je het niet op zijn blad te zoeken.', afbeelding: null },
@@ -14970,7 +14982,7 @@ const HELP_CONFIG = {
   ] }),
   hulp_muziek: () => ({ titel: 'Muziek uit Spotify', stappen: [
     { titel: 'Koppelen: de client-id', tekst: 'Maak op **developer.spotify.com/dashboard** een app aan — die hoort bij jóúw Spotify-account, en de client-id eruit is niet geheim. Zet in die app het **Redirect-URI** dat hier in het scherm staat; het moet er letterlijk in staan, inclusief het campagnepad. Kies bij de instellingen van die app **Web API**, en ook **Web Playback SDK** als je het geluid uit het tafelscherm wilt laten komen. Een tweede campagne heeft dus een eigen redirect-URI in datzelfde dashboard.', afbeelding: null },
-    { titel: 'Hoe het werkt', tekst: 'Grisburgh speelt zelf niets af: het drukt op **play** bij Spotify. In een akte zet je een muziekstap neer (de muzieknoot in het regie-script); tijdens het spelen start je die met de muzieknoot in de regie-balk. Per stap kies je of het nummer één keer speelt of blijft herhalen.', afbeelding: null },
+    { titel: 'Hoe het werkt', tekst: '${window._campagneNaam()} speelt zelf niets af: het drukt op **play** bij Spotify. In een akte zet je een muziekstap neer (de muzieknoot in het regie-script); tijdens het spelen start je die met de muzieknoot in de regie-balk. Per stap kies je of het nummer één keer speelt of blijft herhalen.', afbeelding: null },
     { titel: 'Waar komt het geluid uit', tekst: 'Standaard uit het apparaat waarop jij Spotify hebt draaien — meestal de laptop waarop je de regie bedient. Kies je *Het tafelscherm*, dan meldt de tablet zich zelf aan als Spotify-speler; die moet dan wel open staan en één keer aangeraakt zijn, want een browser mag pas geluid maken na een aanraking.', afbeelding: null },
     { titel: 'Wat Spotify eist', tekst: '**Premium**, anders weigert Spotify het afspelen op afstand. En er speelt maar **één stream per account**: luistert er iemand anders op hetzelfde account, dan nemen jullie het van elkaar over.', afbeelding: null },
     { titel: 'Het volume', tekst: 'Het getal stuurt het volume van de speler waar je naartoe speelt. Laat je het leeg, dan blijft staan wat er stond — handig als je het aan tafel met de knop op je speaker regelt.', afbeelding: null },

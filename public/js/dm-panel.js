@@ -1,4 +1,4 @@
-import { api, huidigeCampagne } from './api.js?v=302';
+import { api, huidigeCampagne } from './api.js?v=303';
 import { init as canvasInit, update as canvasUpdate, stop as canvasStop, acGetal } from './combat-canvas.js?v=30';
 import { renderStatblock } from './render-statblock.js?v=9';
 
@@ -2006,7 +2006,7 @@ window._dienstUitnodigingEditor = async (dienst, label) => {
 };
 window._duSjabloon = (naam) => {
   const ta = document.getElementById('du-tekst');
-  if (ta) ta.value = `Geachte avonturier,\n\nUw daden in Grisburgh zijn ons niet ontgaan. **${naam}** opent haar deuren voor u en nodigt u uit om langs te komen. Wij menen dat u hier welkom zult zijn.\n\nMet achting,\n${naam}`;
+  if (ta) ta.value = `Geachte avonturier,\n\nUw daden in ${window._campagneNaam?.() || 'deze streek'} zijn ons niet ontgaan. **${naam}** opent haar deuren voor u en nodigt u uit om langs te komen. Wij menen dat u hier welkom zult zijn.\n\nMet achting,\n${naam}`;
 };
 window._duOpslaan = async (dienst, verstuur, label) => {
   const uitnodiging      = document.getElementById('du-tekst')?.value || '';
@@ -6375,6 +6375,14 @@ async function _renderSchulden() {
         </label>
       </div>
       <p class="dm-hint">Staat dit uit, dan groeit een schuld alleen. Staat het aan, dan schuift een <em>opgeëiste</em> schuld bij elke lange rust een trap op: een brief, dan onderpand (jij wijst aan wat er verdwijnt), dan het bezoek. Opeisen doe je per schuld hieronder.</p>
+      <!-- Wie hij stuurt stond als vaste naam in de route, en die naam was van
+           Grisburgh. Hier zet je hem; laat je het leeg, dan komt er iemand
+           langs zonder naam — dreigender, en in elke campagne waar. -->
+      <div class="dm-form-row">
+        <label class="dm-form-label" for="woek-handlanger">Wie hij stuurt</label>
+        <input id="woek-handlanger" class="dm-input" maxlength="80"
+          value="${esc(cfg.handlanger || '')}" placeholder="Laat leeg voor iemand zonder naam">
+      </div>
 
       ${_dienstSectieKop('shield', 'Wie hem kan stoppen', 'dm_woekeraar_ontspan')}
       <p class="dm-hint">Staat een party hoog genoeg aan bij een van deze facties, dan heeft iemand een woordje gedaan: de rente stopt en het bedrag valt terug naar de hoofdsom. Geen kwijtschelding — een afspraak.</p>
@@ -6424,6 +6432,7 @@ window._woekeraarSettingsSave = async function () {
       rentePerRust: parseInt(document.getElementById('woek-rente')?.value),
       maxFactor: parseInt(document.getElementById('woek-max-factor')?.value),
       escalatie: !!document.getElementById('woek-escalatie')?.checked,
+      handlanger: document.getElementById('woek-handlanger')?.value.trim() || '',
       ontspanBij,
     });
     const newMeta = await api.meta();
@@ -8531,7 +8540,7 @@ window._factieUitnodigingSjabloon = (fi) => {
   const loc = _factiesLocaties.find(l => l.id === f.locatieEntityId);
   const waar = loc ? ` Kom langs in **${loc.name}**.` : '';
   const greet = (f.npcGreet || '').trim() ? `\n\n_"${f.npcGreet.trim()}"_` : '';
-  const tekst = `Geachte avonturier,\n\nUw daden in Grisburgh zijn ons niet ontgaan. **${f.naam}** nodigt u uit om kennis te maken.${waar} Wij menen dat een verbond ons beiden tot voordeel kan strekken.${greet}\n\nMet achting,\n${afzender}`;
+  const tekst = `Geachte avonturier,\n\nUw daden in ${window._campagneNaam?.() || 'deze streek'} zijn ons niet ontgaan. **${f.naam}** nodigt u uit om kennis te maken.${waar} Wij menen dat een verbond ons beiden tot voordeel kan strekken.${greet}\n\nMet achting,\n${afzender}`;
   f.uitnodiging = tekst;
   const ta = document.getElementById(`factie-uitnodiging-${fi}`);
   if (ta) ta.value = tekst;
@@ -12777,6 +12786,13 @@ async function _renderInstellingen() {
         <input id="inst-bron-link" class="dm-input" type="url"
           placeholder="https://duckduckgo.com/?q={zoek}"
           value="${esc(meta.bronLink ?? '')}">
+      </div>
+      <!-- De opstartwizard loopt de keuzes langs die een campagne bepalen.
+           Hij draait vanzelf in een verse campagne; daarna is dit de weg
+           terug, want wie hem toen oversloeg weet niet meer wát hij oversloeg. -->
+      <div class="dm-form-row">
+        <button class="dm-btn dm-btn-ghost" onclick="window.wizard?.open()"
+          title="Loop de keuzes langs die je campagne bepalen">${icon('compass')} Opstartwizard doorlopen</button>
       </div>`, window._helpBtn?.('inst_campagne') ?? '')}
 
     <!-- Namen voor valuta -->

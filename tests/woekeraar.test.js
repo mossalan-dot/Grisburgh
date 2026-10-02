@@ -230,12 +230,24 @@ describe('De woekeraar', () => {
     reg = (await req(server, 'GET', '/api/schulden', null, dm)).body.schulden;
     assert.strictEqual(reg.find(x => x.id === schuldId).trap, 3);
     post = (await req(server, 'GET', '/api/berichten', null, spelerC)).body.berichten || [];
-    assert.ok(post.some(m => /Strum komt langs/.test(m.tekst || '')), 'de laatste brief');
+    // De handlanger heette hier Strum, en die naam stond hard in een route die
+    // élke campagne draait. Zonder een naam in `meta.woekeraar.handlanger`
+    // komt er iemand langs zonder naam — wat op zichzelf dreigender is.
+    assert.ok(post.some(m => /Er komt iemand langs/.test(m.tekst || '')),
+      'de laatste brief, zonder dat er een naam uit een andere campagne in staat');
+    assert.ok(!post.some(m => /Strum/.test(m.tekst || '')),
+      'en geen eigennaam die deze campagne niet kent');
 
     // En hij blijft op 3 staan: verder escaleert het niet vanzelf.
     await req(server, 'POST', '/api/party/long-rest', {}, dm);
     reg = (await req(server, 'GET', '/api/schulden', null, dm)).body.schulden;
     assert.strictEqual(reg.find(x => x.id === schuldId).trap, 3);
+  });
+
+  it('noemt de handlanger bij naam zodra de DM er een heeft', async () => {
+    await req(server, 'PUT', '/api/meta/woekeraar', { handlanger: 'Strum' }, dm);
+    const cfg = (await req(server, 'GET', '/api/woekeraar', null, dm)).body.config;
+    assert.strictEqual(cfg.handlanger, 'Strum', 'de naam staat in de config');
   });
 
   it('geeft het onderpand terug bij het aflossen', async () => {

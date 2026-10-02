@@ -82,10 +82,14 @@ groot het is. Bijgewerkt 15 sep 2026.
 
 ## Multi-DM, resterende stappen → `docs/multi-dm-plan.md`
 
-- [ ] **6. Wizard + minicampagne** — campagnenaam → munten → modules → **namen van
-      diensten** → kaart → eerste party met wachtwoord → eerste personage.
-      Waarschuwen dat party's later niet samen te voegen zijn. Grootste stap.
-- [ ] **7. Handleiding + visuele rondleiding** — leunt op stap 6.
+- [x] **6. Wizard** — gedaan 2 okt 2026, `public/js/wizard.js`. Zes stappen,
+      in de campagne zelf, door de DM van die campagne. Modules zitten er
+      bewust níét in: die staan op `requireBeheerder` en horen dus bij wie de
+      campagne aanmaakt — zie `docs/beheerder.md`. De minicampagne is
+      verschoven naar stap 7, waar hij thuishoort.
+- [ ] **7. Handleiding + visuele rondleiding + de minicampagne** — leunt op stap 6,
+      die er nu is. De minicampagne hoort hier: hij bestaat om schermafbeeldingen
+      te leveren zonder Grisburgh te verklappen.
 - [ ] **Checklist vóór het spelen.** Een nieuwe DM weet niet wat er aan tafel
       allemaal klaar moet staan, en een ervaren DM vergeet het ene ding dat hij
       deze keer níét standaard had. Een korte lijst die je afvinkt vlak voor je

@@ -9550,6 +9550,13 @@ router.put('/meta/app', requireDM, (req, res) => {
   const meta = storage.readJSON('meta.json');
   if (req.body.appTitle    !== undefined) meta.appTitle    = String(req.body.appTitle).trim()    || meta.appTitle;
   if (req.body.appSubtitle !== undefined) meta.appSubtitle = String(req.body.appSubtitle).trim() || meta.appSubtitle;
+  // De opstartwizard draait één keer, in de campagne zelf, door de DM van die
+  // campagne. Dit is het enige dat hij onthoudt: dat hij geweest is. Bewust
+  // geen stand per stap — wie halverwege stopt vult de rest bij Instellingen,
+  // en dan is een half afgevinkte lijst alleen maar een leugen.
+  if (req.body.wizardKlaar !== undefined) {
+    if (req.body.wizardKlaar) meta.wizardKlaar = true; else delete meta.wizardKlaar;
+  }
   // Hoeveel een speler van andermans HP ziet (zie `_hpModus`). 'staat' is de
   // standaard en wordt niet weggeschreven: een ontbrekende sleutel ís de
   // standaard, dus bestaande campagnes veranderen niet en een migratie die hem
@@ -11570,7 +11577,7 @@ router.get('/export', requireDM, async (req, res) => {
     const dmState  = readDmState();
     const groupId  = req.query.groupId || dmState.activeGroup;
     const html     = await buildSnapshot(dmState, groupId);
-    const appTitle = storage.readJSON('meta.json').appTitle || 'grisburgh';
+    const appTitle = storage.readJSON('meta.json').appTitle || 'campagne';
     const slug     = appTitle.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
     const date     = new Date().toISOString().slice(0,10);
     res.setHeader('Content-Type', 'text/html; charset=utf-8');
@@ -11587,7 +11594,7 @@ router.get('/export/campagneboek', requireDM, async (req, res) => {
     const dmState  = readDmState();
     const groupId  = req.query.groupId || dmState.activeGroup;
     const html     = await buildCampagneboek(dmState, groupId);
-    const appTitle = storage.readJSON('meta.json').appTitle || 'grisburgh';
+    const appTitle = storage.readJSON('meta.json').appTitle || 'campagne';
     const slug     = appTitle.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
     const date     = new Date().toISOString().slice(0,10);
     res.setHeader('Content-Type', 'text/html; charset=utf-8');
@@ -14807,13 +14814,20 @@ function _schuldenEscaleren(req, dmState, g, gid) {
     }
     if (trap === 3) {
       // De laatste brief. Geen bedrag meer, geen uitleg — een tijdstip.
+      // De handlanger heet in Grisburgh Strum, en die naam stond hier hard in
+      // een route die élke campagne draait. Heeft de DM er een genoemd, dan
+      // staat zijn naam er; anders komt er iemand zonder naam langs — wat op
+      // zichzelf dreigender is dan een naam die niemand kent.
+      const handlanger = (_woekeraar(meta).handlanger || '').trim();
       _bezorgBrief(req, r.characterId, {
         titel: 'De laatste',
         afzender: r.schuldeiser?.naam || 'je schuldeiser',
         entityId: r.schuldeiser?.entityId || null, entityType: 'personages',
         cinematic: true,
         tekst: `Ik heb geschreven. Ik heb iets meegenomen. Je hebt niet betaald.\n\n`
-             + `Strum komt langs. Hij is minder geduldig dan ik, en hij leest niet.\n\n`
+             + (handlanger
+                 ? `${handlanger} komt langs. Hij is minder geduldig dan ik, en hij leest niet.\n\n`
+                 : `Er komt iemand langs. Hij is minder geduldig dan ik, en hij leest niet.\n\n`)
              + `Je weet waar ik zit.`,
       });
     }
@@ -15629,6 +15643,7 @@ function _woekeraar(meta) {
     rentePerRust: Number.isFinite(parseInt(c.rentePerRust)) ? parseInt(c.rentePerRust) : TS_RENTE_PER_RUST,
     maxFactor:    Number.isFinite(parseInt(c.maxFactor)) ? parseInt(c.maxFactor) : TS_MAX_FACTOR,
     tekst:        c.tekst || '',
+    handlanger:   c.handlanger || '',
   };
 }
 
@@ -15653,6 +15668,7 @@ router.put('/meta/woekeraar', requireDM, (req, res) => {
   if (b.entityId !== undefined) w.entityId = b.entityId || null;
   if (b.locatieId !== undefined) w.locatieId = b.locatieId || null;
   if (b.tekst !== undefined)    w.tekst = String(b.tekst).slice(0, 600);
+  if (b.handlanger !== undefined) w.handlanger = String(b.handlanger).slice(0, 80);
   if (b.escalatie !== undefined) { if (b.escalatie) w.escalatie = true; else delete w.escalatie; }
   if (b.encounterId !== undefined) w.encounterId = b.encounterId || null;
   if (b.ontspanBij !== undefined) {

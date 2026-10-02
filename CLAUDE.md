@@ -2040,6 +2040,38 @@ opgeslagen als JSON-string. Alles eromheen is afgeleid:
 
 ---
 
+## De opstartwizard
+
+> **Een verse campagne begroet zijn DM één keer.** `public/js/wizard.js` loopt
+> zes stappen langs: naam en ondertitel → munten → de namen van je diensten →
+> je eerste party met wachtwoord → je eerste personage → een samenvatting.
+> Overslaan mag bij elke stap; wat je overslaat staat bij Instellingen, en de
+> wizard zelf ook (*Opstartwizard doorlopen*).
+>
+> **Hij draait in de campagne zelf, als de DM van die campagne** — niet in het
+> beheerpaneel. Daardoor gebruikt hij **alleen endpoints die er al waren** en
+> voegt hij niets toe aan de server behalve `meta.wizardKlaar`. Dat is ook de
+> reden dat **modules er niet in zitten**: `PUT /campaigns/:id/modules` staat op
+> `requireBeheerder`, dus een nieuwe DM mag ze niet zetten. Die stap hoort bij
+> wie de campagne aanmaakt; zie `docs/beheerder.md`.
+>
+> Hij opent vanzelf als: rol is DM, geen tafelscherm, `meta.wizardKlaar`
+> ontbreekt, én er is nog geen enkel personage. Dat laatste is de echte zeef —
+> een bestaande campagne mist de vlag ook (hij is nieuw) en hoort geen wizard te
+> krijgen; die krijgt hem stilzwijgend afgevinkt.
+>
+> **Valkuil bij het uitbreiden:** een stap mag een `async voor()` hebben om iets
+> op te halen vóór hij zich tekent (de party-stap heeft de groepen nodig).
+> `_teken()` is daarom async, en elke aanroeper moet hem awaiten — vergeet je
+> dat, dan slaat die stap stilzwijgend niets op. Precies dát ging mis bij het
+> bouwen, en je ziet het alleen door de wizard écht te doorlopen en daarna in
+> `dm-state.json` te kijken. Bewaakt door `tests/wizard.test.js`.
+>
+> **Het profielveld heet `klasse`, niet `class`** (`PATCH /player-profile/:id`).
+> Met `class` slaat hij het level wél op en de klasse niet, zonder foutmelding.
+
+---
+
 ## Projectstructuur
 
 ```

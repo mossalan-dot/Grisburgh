@@ -176,6 +176,16 @@ export const api = {
   getSounds:      ()            => request('/sounds'),
   revealSound:    (data)        => request('/sounds/reveal', { method: 'POST', body: JSON.stringify(data) }),
   saveAppMeta: (data) => request('/meta/app', { method: 'PUT', body: JSON.stringify(data) }),
+  // Alleen de náám van een dienst zetten. Elk dienstpaneel heeft zijn eigen
+  // wrapper met zijn eigen velden; de opstartwizard loopt ze alle acht langs en
+  // wil er precies één ding in kwijt. De routes voegen per veld samen, dus dit
+  // kan niets anders overschrijven. De whitelist staat hier zodat een typefout
+  // geen PUT naar een pad doet dat we niet bedoelden.
+  saveDienstNaam: (dienst, naam) => {
+    const mag = ['herberg', 'tweespalt', 'gock', 'markt', 'tempel', 'ursula', 'magizoo', 'woekeraar'];
+    if (!mag.includes(dienst)) return Promise.reject(new Error('Onbekende dienst: ' + dienst));
+    return request(`/meta/${dienst}`, { method: 'PUT', body: JSON.stringify({ naam }) });
+  },
   verhuisInfo: (charId) => request(`/characters/${charId}/verhuis-info`),
   setSpreukTekst: (index, desc) => request(`/bron/spreuk/${encodeURIComponent(index)}`, { method: 'PUT', body: JSON.stringify({ desc }) }),
   saveHerberg: (data) => request('/meta/herberg', { method: 'PUT', body: JSON.stringify(data) }),
