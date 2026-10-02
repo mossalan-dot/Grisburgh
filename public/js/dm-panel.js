@@ -1197,6 +1197,13 @@ function _bedragLeesMunten(id) {
   return _bedragUitTekst(document.getElementById(id)?.value || '');
 }
 
+// Ook de spelerskant vraagt om een bedrag — de woekeraar leent op verzoek. Die
+// riep dit veld aan via `window`, waar het nooit stond, en viel daardoor altijd
+// terug op één kaal getal in centelingen: precies de notatie die we overal
+// anders juist vermijden. Eén veld, twee kanten van de tafel.
+window._bedragVeldHtml  = _bedragVeldHtml;
+window._bedragLeesMunten = _bedragLeesMunten;
+
 function _bedragUitTekst(tekst) {
   const uit = { fl: 0, kn: 0, cl: 0 };
   const rauw = String(tekst || '').trim();
@@ -6440,10 +6447,7 @@ async function _renderTweespaltDM() {
   const { events = [], config: tsConfig = {}, arena = [], arenaSignups = [] } = data;
   _tsArena = Array.isArray(arena) ? arena.map(b => ({ ...b })) : [];
 
-  function formatCl(cl) {
-    const fl = Math.floor(cl / 100), kn = Math.floor((cl % 100) / 10), ce = cl % 10;
-    return [fl && `${fl} fl`, kn && `${kn} kn`, ce && `${ce} cl`].filter(Boolean).join(' · ') || '0 cl';
-  }
+  const formatCl = window.formatCl;
 
   function renderDMEvent(evt) {
     const isAfgerond = evt.status === 'afgerond';

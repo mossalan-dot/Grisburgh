@@ -28702,6 +28702,11 @@ body.akte-schrijf-open .mp-overlay { z-index: 1320; }
 }
 .wk-knoppen { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 10px; }
 .wk-vraag-rij { margin-bottom: 9px; }
+/* Het bedrag komt uit `_bedragVeldHtml` en vult de regel; het veld eronder
+   stond op zijn eigen breedte, waardoor de placeholder op een telefoon
+   halverwege afbrak ("Hij vraagt het, en hij ont"). Twee velden onder elkaar
+   die hetzelfde formulier zijn, horen even breed te zijn. */
+.wk-vraag-rij > .dm-input { width: 100%; box-sizing: border-box; }
 .wk-wacht {
   border-left: 4px solid #b8860b;
   font-family: 'Crimson Text', serif; font-size: 13.5px;

@@ -3308,6 +3308,9 @@ function _rarityKey(r) {
   };
   return map[String(r).trim().toLowerCase()] || '';
 }
+// De Markt vraagt hem ook (de treffers kleuren op zeldzaamheid) en zat in een
+// ander bestand; zonder deze regel kwam daar stil een lege kleur uit.
+window._rarityKey = _rarityKey;
 
 // Toon-label voor rariteit altijd in het Engels (PHB-term); valt terug op de
 // opgeslagen waarde bij een onbekende/eigen rariteit.

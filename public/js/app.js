@@ -1,5 +1,5 @@
 import { api, campagneUitUrl, zetCampagne } from './api.js?v=302';
-import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, renderDocumenten, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=331";
+import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, renderDocumenten, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=332";
 import { initArchief, renderLogboek, openLogboekEditor } from "./render-archief.js?v=139";
 import { renderKaart, queueFlyTo, verversPins, nieuweKaart } from './render-kaart.js?v=31';
 import { renderDungeon } from './render-dungeon.js?v=57';
@@ -10,7 +10,7 @@ import { renderSpreuken } from './render-spreuken.js?v=41';
 import { renderVaardigheden, zoekVaardigheden } from './render-vaardigheden.js?v=18';
 import { renderStatblock } from './render-statblock.js?v=9';
 import { initSocket } from "./socket-client.js?v=82";
-import { initDmPanel } from "./dm-panel.js?v=375";
+import { initDmPanel } from "./dm-panel.js?v=376";
 import { COND_INFO, COND_LABEL, COND_MET_PLAATJE, COND_ICON } from './conditions.js?v=2';
 import './media-picker.js?v=8';
 import './tafels.js?v=2';
@@ -31,6 +31,16 @@ const icon = (...a) => window.icon(...a);
 // die zag een andere campagne dan ineens in haar eigen beurs staan.
 const MUNT_STANDAARD = { fl: 'Gold', kn: 'Silver', cl: 'Copper' };
 window._muntNamen = () => window._currency || window.app?.state?.meta?.currency || MUNT_STANDAARD;
+
+// Centelingen → leesbaar bedrag. Stond twee keer als lokale functie (in de
+// Tweespalt en in het DM-paneel) en werd op zes plekken als `window.formatCl`
+// aangeroepen — waar hij dus niet bestond. Met `?.()` ervoor faalt dat stil:
+// de woekeraar zei "10000 cl" in plaats van "100 fl". Eén plek nu.
+window.formatCl = (cl) => {
+  const t = Math.round(Number(cl) || 0);
+  const fl = Math.floor(t / 100), kn = Math.floor((t % 100) / 10), ce = t % 10;
+  return [fl && `${fl} fl`, kn && `${kn} kn`, ce && `${ce} cl`].filter(Boolean).join(' · ') || '0 cl';
+};
 
 // Waar de tekst een plaatsnaam noemt, is dat de naam van de campagne — Grisburgh
 // stond er tot nu toe letterlijk in.
@@ -12867,6 +12877,23 @@ async function renderGock() {
     </div>`;
 }
 
+// De knop *Werp de d6* riep `window._ursulaVoorspel()` aan, en die bestond
+// nergens: de route, de API-wrapper en het onthulscherm waren er wél. Eén klik
+// op de enige knop die de waarzegger heeft deed dus niets — geen melding, geen
+// afschrijving, niets. Hij betaalt, rolt, en het scherm hertekent zichzelf;
+// de brief in het berichtentabblad regelt de server al.
+window._ursulaVoorspel = async () => {
+  const cfg = window.app?.state?.meta?.ursula || {};
+  const p = cfg.prijs || {};
+  const prijs = window.formatCl((p.fl || 0) * 100 + (p.kn || 0) * 10 + (p.cl || 0));
+  if (!confirm(`Een blik op wat komen gaat, voor ${prijs}?\n\nEén worp per akte, voor de hele groep — dit kan maar één keer.`)) return;
+  try {
+    const r = await api.ursulaVoorspel();
+    await renderUrsula();
+    _tsToast(r.roll === 6 ? 'Een volledig visioen.' : `Ze werpt een ${r.roll}.`);
+  } catch (err) { alert('Lukt niet: ' + (err.message || err)); }
+};
+
 window._gockGerucht = async () => {
   const doel = document.getElementById('gock-ger-doel')?.value || '';
   const tekst = document.getElementById('gock-ger-tekst')?.value.trim() || '';
@@ -13764,10 +13791,7 @@ async function renderTweespalt() {
   const openEvents = events.filter(e => e.status === 'open');
   const afgerondEvents = events.filter(e => e.status === 'afgerond');
 
-  function formatCl(cl) {
-    const fl = Math.floor(cl / 100), kn = Math.floor((cl % 100) / 10), ce = cl % 10;
-    return [fl && `${fl} fl`, kn && `${kn} kn`, ce && `${ce} cl`].filter(Boolean).join(' · ') || '0 cl';
-  }
+  const formatCl = window.formatCl;
   function beursTekst(cur) {
     if (!cur) return '';
     const parts = [cur.fl && `${cur.fl} fl`, cur.kn && `${cur.kn} kn`, cur.cl && `${cur.cl} cl`].filter(Boolean);

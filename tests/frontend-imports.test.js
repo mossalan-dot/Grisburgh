@@ -166,3 +166,49 @@ describe('Een ontbrekend bestand geeft 404, geen HTML', () => {
     assert.ok(/javascript/.test(r.type), `kreeg ${r.type}`);
   });
 });
+
+// ════════════════════════════════════════════════════════════════════════════
+//  WINDOW-HELPERS DIE NIET BESTAAN
+// ════════════════════════════════════════════════════════════════════════════
+// De frontend is opgedeeld in modules die elkaar niet importeren; wat ze delen
+// gaat via `window`. Vergeet je de regel `window._x = _x`, dan is er geen
+// foutmelding: met `window._x?.(…)` ervoor valt de aanroep stil terug op niets,
+// en zonder die `?.` gooit hij in de console terwijl de knop gewoon niets doet.
+//
+// Zo bleef de enige knop van de waarzegger maanden dood (`_ursulaVoorspel`
+// bestond nergens), vroeg de woekeraar om een bedrag "in de kleinste munt"
+// omdat `_bedragVeldHtml` niet aankwam, en zei hij "10000 cl" omdat
+// `formatCl` dat ook niet deed. Deze test vangt de hele soort in één keer.
+describe('Gedeelde window-helpers', () => {
+  // Wat de browser zelf levert. Alles daarbuiten moeten wij ergens zetten.
+  const BROWSER = new Set([
+    'app', 'dmPanel', 'location', 'open', 'close', 'alert', 'confirm', 'prompt',
+    'matchMedia', 'getComputedStyle', 'scrollTo', 'requestAnimationFrame',
+    'setTimeout', 'clearTimeout', 'setInterval', 'clearInterval', 'fetch',
+    'addEventListener', 'removeEventListener', 'dispatchEvent', 'focus', 'print',
+    'io', 'L', 'cytoscape', 'Image', 'URL', 'FormData', 'Event', 'CustomEvent',
+    'Audio', 'btoa', 'atob', 'parseInt', 'parseFloat', 'isNaN', 'structuredClone',
+    'encodeURIComponent', 'decodeURIComponent', 'speechSynthesis', 'history',
+    'SpeechSynthesisUtterance', 'AudioContext', 'webkitAudioContext', 'Spotify',
+    'onSpotifyWebPlaybackSDKReady', 'MutationObserver', 'ResizeObserver',
+    'IntersectionObserver', 'DOMParser', 'Blob', 'FileReader', 'Notification',
+  ]);
+
+  it('wordt elke window.x() die wordt aangeroepen ook ergens gezet', () => {
+    const dir = path.join(__dirname, '..', 'public', 'js');
+    let code = '';
+    for (const f of fs.readdirSync(dir).filter(f => f.endsWith('.js'))) {
+      code += '\n' + fs.readFileSync(path.join(dir, f), 'utf8');
+    }
+    const gezet = new Set();
+    for (const m of code.matchAll(/window\.([A-Za-z_$][\w$]*)\s*=/g)) gezet.add(m[1]);
+    for (const m of code.matchAll(/window\[["']([^"']+)["']\]\s*=/g)) gezet.add(m[1]);
+
+    const mis = new Set();
+    for (const m of code.matchAll(/window\.([A-Za-z_$][\w$]*)\s*\??\.?\(/g)) {
+      if (!gezet.has(m[1]) && !BROWSER.has(m[1])) mis.add(m[1]);
+    }
+    assert.deepEqual([...mis], [],
+      `deze worden aangeroepen maar nergens op window gezet: ${[...mis].join(', ')}`);
+  });
+});

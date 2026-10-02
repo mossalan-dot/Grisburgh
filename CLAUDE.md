@@ -3252,6 +3252,15 @@ plaats van twee — elke rust één te veel.
   Schrijf een modifier dus als `.x--y.x--y { … }` of als
   `.ouder .x--y { … }` — niet met `!important`. Een scan die alle gevallen
   vindt staat in de testronde onder *CSS-modifiers*.
+- **Een `window`-helper die je vergeet te exporteren faalt stil.** De frontend
+  is opgedeeld in modules die elkaar niet importeren; wat ze delen gaat via
+  `window`. Vergeet je de regel `window._x = _x`, dan krijg je geen foutmelding:
+  met `window._x?.(…)` ervoor valt de aanroep terug op niets, en zonder die `?.`
+  doet de knop gewoon niets terwijl de fout in een console staat die niemand
+  openheeft. Zo was `window._ursulaVoorspel` er nooit — de enige knop van de
+  waarzegger — en viel de woekeraar altijd terug op een kaal getal in
+  centelingen omdat `_bedragVeldHtml` en `formatCl` niet aankwamen.
+  Bewaakt door `tests/frontend-imports.test.js` (*Gedeelde window-helpers*).
 - **Vergeten versie te bumpen** → browser toont oude JS/CSS. Check altijd index.html + app.js imports.
 - **`api.getEntities()` bestaat niet** → gebruik `api.listEntities('personages')` etc.
 - **Verbindingen-tab bestaat niet meer.** Koppelingen leg je in de tekst met
