@@ -7640,6 +7640,10 @@ window._openEditor = async (tab, editId) => {
     const _showVoorraad = true;
     let winkelConfigEditor = {};
     try { winkelConfigEditor = e?.data?.winkelConfig ? JSON.parse(e.data.winkelConfig) : {}; } catch {}
+    // De kas staat opgeslagen in centelingen; in beeld is het de komma-notatie
+    // die de hele app gebruikt, en de naam van de hoofdmunt staat ernaast.
+    const _kasCl = Math.max(0, parseInt(winkelConfigEditor.kasPerRust) || 0);
+    const _kasMunt = window._muntNamen?.().fl || 'Gold';
     body += `
       <div id="voorraad-section"${_showVoorraad ? '' : ' style="display:none"'}>
         <div class="cs-sectiekop" style="border-top:0;margin-top:0;padding-top:0">Voorraad</div>
@@ -7688,13 +7692,22 @@ window._openEditor = async (tab, editId) => {
               <!-- Een winkel had geen kas: inkopen lukte altijd, hoe duur ook.
                    Dat kwam uit het niets. Nu kan een handelaar blut raken, en
                    dat is sinds de woekeraar een verhaal in plaats van een
-                   storing — dan kijk je verderop, of je leent. -->
-              <div class="flex gap-2 items-center">
-                <label class="text-xs text-ink-dim w-32">Kas per nacht</label>
-                <input type="number" id="wc-kas" min="0" step="1"
-                  value="${parseInt(winkelConfigEditor.kasPerRust) || 0}" oninput="window._wcUpdate()"
+                   storing — dan kijk je verderop, of je leent.
+                   De stand is een vinkje en geen nul: "0 = onbeperkt" is een
+                   afspraak die je moet weten, en een leeg veld las als een
+                   winkel die niets kan betalen. Opgeslagen blijft het één
+                   getal (kasPerRust, 0 = geen grens), dus bestaande winkels
+                   veranderen niet. -->
+              <label class="flex items-center gap-2 text-sm text-ink-medium cursor-pointer">
+                <input type="checkbox" id="wc-kas-aan" ${_kasCl > 0 ? 'checked' : ''} onchange="window._wcUpdate()">
+                Deze winkel heeft een beperkte kas
+              </label>
+              <div id="wc-kas-rij" class="${_kasCl > 0 ? '' : 'hidden'} flex gap-2 items-center">
+                <label class="text-xs text-ink-dim w-32" for="wc-kas">Kan per nacht uitgeven</label>
+                <input type="text" id="wc-kas" inputmode="decimal" placeholder="12,34"
+                  value="${_kasCl > 0 ? _clNaarKomma(_kasCl) : ''}" oninput="window._wcUpdate()"
                   class="w-24 px-2 py-1 bg-room-bg border border-room-border rounded text-ink-bright text-sm focus:border-gold-dim focus:outline-none">
-                <label class="text-xs text-ink-dim">in de kleinste munt · 0 = onbeperkt</label>
+                <label class="text-xs text-ink-dim">${esc(_kasMunt)}</label>
               </div>
             </div>
           </div>
@@ -8332,11 +8345,17 @@ window._openEditor = async (tab, editId) => {
       const _max = Math.max(_min, parseInt(document.getElementById('wc-max')?.value) || _min);
       const _koopt = document.getElementById('wc-koopt')?.checked || false;
       document.getElementById('wc-koop-extra')?.classList.toggle('hidden', !_koopt);
+      // Het vinkje bepaalt óf er een grens is; het veld hoeveel. Staat het
+      // vinkje aan met een leeg veld, dan is er nog niets gekozen en blijft de
+      // kas onbeperkt — beter dan een winkel die stilletjes niets kan betalen.
+      const _kasAan = document.getElementById('wc-kas-aan')?.checked || false;
+      document.getElementById('wc-kas-rij')?.classList.toggle('hidden', !_kasAan);
+      const _kasCl = _kasAan ? Math.max(0, _prijsNaarCl(document.getElementById('wc-kas')?.value) || 0) : 0;
       const config = {
         ...oud,
         koopt: _koopt,
         koopRatio: Math.min(100, Math.max(1, parseInt(document.getElementById('wc-koopratio')?.value) || 50)),
-        kasPerRust: Math.max(0, parseInt(document.getElementById('wc-kas')?.value) || 0),
+        kasPerRust: _kasCl,
         roterend,
         minItems: _min,
         maxItems: _max,

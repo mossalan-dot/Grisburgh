@@ -1,5 +1,5 @@
 import { api, campagneUitUrl, zetCampagne } from './api.js?v=302';
-import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, renderDocumenten, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=330";
+import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, renderDocumenten, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=331";
 import { initArchief, renderLogboek, openLogboekEditor } from "./render-archief.js?v=139";
 import { renderKaart, queueFlyTo, verversPins, nieuweKaart } from './render-kaart.js?v=31';
 import { renderDungeon } from './render-dungeon.js?v=57';
@@ -14977,6 +14977,7 @@ const HELP_CONFIG = {
     { titel: 'Zelf afrekenen aan tafel', tekst: 'In het detailvenster van de winkel reken je af namens een speler, en koop je met *Inkopen van de party* spullen van hen over: je vinkt aan wat de winkel overneemt, zet er een bedrag per stuk bij en rekent af. Het voorwerp verdwijnt uit de boedel; het geld gaat naar de partybeurs als die gedeeld is, anders naar die speler.', afbeelding: null },
     { titel: 'Koopt in van spelers', tekst: 'Staat dit uit, dan is er voor de speler geen verkoopkant: geen lijst, geen knop, geen uitleg — hij ziet niet eens dat het bestaat. Zet je het aan, dan krijgt hij in het winkelvenster zijn eigen boedel te zien met wat deze winkel ervoor biedt: het **percentage van de winkelprijs** dat je hier instelt. Zegeningen, gunsten en class-features blijven altijd buiten de handel, net als alles wat op het voorwerpkaartje zelf *niet verkoopbaar* heet.', afbeelding: null },
     { titel: 'Het percentage is een bod, geen prijs', tekst: 'Biedt een speler iets aan, dan gaat er niets meteen over de toonbank. Het aanbod komt bij **Verzoeken** te staan met het berekende bedrag ernaast — dat veld mag je overtypen. Is er aan tafel om gepingeld, dan betaal je uit wat jullie afspraken; weiger je, dan houdt hij zijn spullen.', afbeelding: null },
+    { titel: 'Een winkel kan blut raken', tekst: 'Zet je *beperkte kas* aan, dan is dat wat deze handelaar per nacht kan uitgeven aan inkopen. Bied je er meer aan, dan weigert de app met het bedrag dat nog over is en vraagt of je er tóch doorheen wilt — want aan tafel mag een smid altijd nog naar zijn spaarpot lopen. Na een lange rust is de kas weer vol; laat je het vinkje uit, dan is er geen grens en verandert er niets.', afbeelding: null },
   ] }),
 
   hulp_bewerk_personages_info: () => ({ titel: 'Een personage', stappen: [
