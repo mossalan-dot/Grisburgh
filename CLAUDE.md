@@ -1986,7 +1986,11 @@ opgeslagen als JSON-string. Alles eromheen is afgeleid:
 > uit beeld zonder dat de JS klaagt. Controle:
 > `grep -c '<!--'` en `grep -c -- '-->'` horen gelijk te zijn.
 > En: **geen backticks in commentaar binnen een template literal** — die sluit
-> de literal.
+> de literal. Dit is nu **vijf keer** gebeurd, steeds in een HTML-commentaar
+> (`<!-- … `oefen_` … -->`), en `node --check` ziet het niet: als CommonJS-script
+> parseert het bestand gewoon. `tests/frontend-imports.test.js` parseert elk
+> `public/js/*.js` als ES-module en vángt het wél — draai die test dus vóór een
+> deploy, niet alleen `node --check`.
 
 > **Een party is één kaartje, geen uitgeklapte lijst.** Alles van een party
 > stond verspreid over drie secties van Instellingen: naam en leden bij
@@ -2110,6 +2114,34 @@ opgeslagen als JSON-string. Alles eromheen is afgeleid:
 >
 > **Het profielveld heet `klasse`, niet `class`** (`PATCH /player-profile/:id`).
 > Met `class` slaat hij het level wél op en de klasse niet, zonder foutmelding.
+>
+> **Tien stappen, en twee die iets ophalen.** Naam → munten → dienstnamen →
+> **onderdelen** → **gevecht** → **spreukbeelden** → party → personage →
+> **blanco of oefenen** → samenvatting.
+>
+> **Modules: twee sloten, één draairichting.** `meta.modules` is van de
+> beheerder (wat een campagne *mag* hebben), `meta.modulesUit` van de DM (wat hij
+> ervan *gebruikt*). `modulesVoor()` trekt het tweede van het eerste af, dus een
+> DM kan wél iets wegdoen en nooit iets erbij nemen. `GET /meta` stuurt voor de
+> DM ook `modulesVrij` en `moduleCatalogus` mee — zonder dat eerste kan hij niet
+> zien dát hij iets uitzette, en de catalogus zit in `GET /campaigns`, dat van de
+> beheerder is.
+>
+> **Spreukbeelden meeleveren** (`GET|POST /bron/spreukbeelden`): kopieert
+> `spell-img-*` uit `config.beheerCampagne` plus de focuspunten. Vult alleen aan,
+> overschrijft nooit, en twee keer drukken levert nul op. Let op de
+> **routevolgorde**: dit moet vóór `GET /bron/:naam` geregistreerd staan, anders
+> vangt die parameterroute het pad af.
+>
+> **Oefenmateriaal** (`POST|DELETE /wizard/oefenen`): vijf kaartjes die samen één
+> avond beschrijven, allemaal met id `oefen_`, meteen zichtbaar voor elke party.
+> Weggooien kan bij Instellingen → Campagne.
+>
+> **Valkuil bij een nieuwe stap:** `beschikbaar()` wordt gevraagd om de
+> stappenlijst te bouwen, dus vóórdat welke `voor()` dan ook gedraaid heeft. Data
+> die `beschikbaar()` nodig heeft moet in `_open()` opgehaald worden — anders
+> staat de stap op "niet beschikbaar" en komt hij nooit aan de beurt om zichzelf
+> te laden. Dat ging mis bij de spreukbeeldenstap.
 
 ---
 

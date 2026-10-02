@@ -8,7 +8,7 @@ const mediaUsage = require('../lib/media-usage');
 const { requireDM, requireBeheerder, attachRole, hashWachtwoord } = require('./auth');
 const { buildSnapshot, buildCampagneboek } = require('../lib/snapshot');
 const { sheetHtml } = require('../lib/character-sheet');
-const { MODULES, modulesVoor, schoneModules, verborgenUI } = require('../lib/modules');
+const { MODULES, modulesVoor, modulesVrijgegeven, schoneModules, verborgenUI } = require('../lib/modules');
 const bronnen = require('../lib/bronnen');
 const { DISPLAY_FX, fxVoor, fxBericht } = require('../lib/display-fx');
 const spotify = require('../lib/spotify');
@@ -8622,6 +8622,70 @@ function _eigenSpreuken() {
   return (d && typeof d.eigen === 'object' && d.eigen) || {};
 }
 
+// ── Spreukafbeeldingen meeleveren ───────────────────────────────────────────
+// De beheercampagne heeft er 158, elk met een focuspunt. Dat is eigen beeld —
+// geen WotC-materiaal — dus delen mag. Maar het is wél een keuze: een campagne
+// met een eigen sfeer wil andermans Fireball misschien niet, en het zijn
+// bestanden, geen JSON, dus kopiëren kost echt schijfruimte.
+//
+// Vandaar: de wizard vráágt het, en dit is wat hij nodig heeft. Nooit
+// automatisch, nooit bij het aanmaken.
+const _SPREUKBEELD = /^spell-img-/;
+
+function _spreukbeeldenVan(campagne) {
+  try {
+    return storage.runInCampaign(campagne, () => {
+      const dir = path.join(storage.CAMPAIGNS_DIR, campagne, 'files');
+      if (!fs.existsSync(dir)) return [];
+      return fs.readdirSync(dir).filter(f => _SPREUKBEELD.test(f));
+    });
+  } catch { return []; }
+}
+
+router.get('/bron/spreukbeelden', requireDM, (req, res) => {
+  const hier = storage.huidigeCampagne();
+  if (hier === config.beheerCampagne) return res.json({ beschikbaar: 0, hier: 0, eigen: true });
+  const bron = _spreukbeeldenVan(config.beheerCampagne);
+  const bytes = bron.reduce((n, f) => {
+    try { return n + fs.statSync(path.join(storage.CAMPAIGNS_DIR, config.beheerCampagne, 'files', f)).size; }
+    catch { return n; }
+  }, 0);
+  const eigen = fs.existsSync(path.join(storage.CAMPAIGNS_DIR, hier, 'files'))
+    ? fs.readdirSync(path.join(storage.CAMPAIGNS_DIR, hier, 'files')).filter(f => _SPREUKBEELD.test(f)).length : 0;
+  res.json({ beschikbaar: bron.length, hier: eigen, bytes, eigen: false });
+});
+
+router.post('/bron/spreukbeelden', requireDM, (req, res) => {
+  const hier = storage.huidigeCampagne();
+  if (hier === config.beheerCampagne) return res.status(400).json({ error: 'Dit ís de bron' });
+  const bronDir = path.join(storage.CAMPAIGNS_DIR, config.beheerCampagne, 'files');
+  const doelDir = path.join(storage.CAMPAIGNS_DIR, hier, 'files');
+  if (!fs.existsSync(bronDir)) return res.json({ gekopieerd: 0, overgeslagen: 0 });
+  fs.mkdirSync(doelDir, { recursive: true });
+  // Wat er al ligt blijft liggen: dit is aanvullen, nooit overschrijven. Wie
+  // zelf een Fireball heeft neergezet raakt die niet kwijt door hier te drukken.
+  const bestaat = new Set(fs.readdirSync(doelDir).map(f => f.slice(0, f.lastIndexOf('.')) || f));
+  let gekopieerd = 0, overgeslagen = 0;
+  for (const f of fs.readdirSync(bronDir)) {
+    if (!_SPREUKBEELD.test(f)) continue;
+    const id = f.slice(0, f.lastIndexOf('.')) || f;
+    if (bestaat.has(id)) { overgeslagen++; continue; }
+    try { fs.copyFileSync(path.join(bronDir, f), path.join(doelDir, f)); gekopieerd++; }
+    catch { overgeslagen++; }
+  }
+  // De focuspunten horen erbij: zonder die uitsnede staat elk beeld gecentreerd
+  // en snijdt het kaartje er net de helft af.
+  const bronMeta = storage.runInCampaign(config.beheerCampagne, () => storage.readJSON('meta.json'));
+  const meta = storage.readJSON('meta.json');
+  const focus = { ...(bronMeta.spellImageFocus || {}), ...(meta.spellImageFocus || {}) };
+  if (Object.keys(focus).length) meta.spellImageFocus = focus;
+  storage.writeJSON('meta.json', meta);
+  req.app.get('io').to(_campagneRoom(req)).emit('meta:updated');
+  res.json({ gekopieerd, overgeslagen });
+});
+
+// Let op: deze parameterroute moet ná /bron/spreukbeelden staan — hij past op
+// elk pad, dus hierboven geregistreerde namen winnen en de rest valt hierheen.
 router.get('/bron/:naam', attachRole, (req, res) => {
   // Wél een sessie vereist: `attachRole` zet de rol standaard op 'player', dus
   // een controle op req.role zou hier nooit afgaan (zelfde valkuil als bij de
@@ -9378,6 +9442,16 @@ router.get('/meta', attachRole, (req, res) => {
   // Afgeleid, niet opgeslagen: de client hoeft zo niet zelf uit te rekenen welke
   // akte er loopt en wat daarin dichtzit.
   const uit = { ...meta, modules: modulesVoor(meta), verborgen: verborgenUI(meta), bereikbaarheid: _bereikbaarheidVoor(meta, dmState, groepId) };
+  // Wat de beheerder vrijgaf, los van wat deze DM ervan uitzette: anders kan hij
+  // niet zien dát hij iets uitzette en het dus ook niet terughalen. Alleen voor
+  // de DM — een speler heeft aan de effectieve stand genoeg.
+  if (req.role === 'dm') {
+    uit.modulesVrij = modulesVrijgegeven(meta);
+    // De namen erbij, zodat de wizard en het instelscherm niet hun eigen lijstje
+    // hoeven bij te houden. `GET /campaigns` heeft die catalogus ook, maar die
+    // route is van de beheerder — een gewone DM komt er niet bij.
+    uit.moduleCatalogus = MODULES.map(({ id, label, groep, ouder }) => ({ id, label, groep, ouder }));
+  }
   // Genormaliseerd meesturen: een campagne die nooit naar de level-upinstelling
   // keek heeft geen `meta.levelup`, en de client hoort de standaardwaarden niet
   // een tweede keer te kennen.
@@ -9544,6 +9618,110 @@ router.put('/meta/spell-image-focus/:index', requireDM, (req, res) => {
   storage.writeJSON('meta.json', meta);
   req.app.get('io').to(_campagneRoom(req)).emit('meta:updated');
   res.json({ ok: true, focus });
+});
+
+// Wat de DM van zijn eigen campagne niet gebruikt. Hij mag hier **alleen
+// uitzetten**: aanzetten blijft bij de beheerder (`PUT /campaigns/:id/modules`),
+// want modules worden stapsgewijs vrijgegeven met uitleg erbij. Een id dat hij
+// toch niet mag hebben filteren we er stil uit — dan staat het al uit.
+// ── Iets om mee te oefenen ──────────────────────────────────────────────────
+// Een lege campagne is eerlijk maar onbruikbaar om te leren: je kunt nergens op
+// klikken, dus je ziet niet wat de app dóét. Dit zet een handvol kaartjes neer
+// die samen één avond beschrijven — een herberg met een waard, een opdracht,
+// een tegenstander en iets te koop — zodat een nieuwe DM de machinerie kan
+// uitproberen op iets wat niet van hem is.
+//
+// Bewust **geen** verhaal van Grisburgh en bewust generiek: geen plaatsnamen,
+// geen eigen munten, niets wat je weer moet uitleggen. En alles draagt het id
+// `oefen_`, zodat het in één greep terug te vinden en weg te gooien is.
+const _OEFEN = {
+  locaties: [
+    { id: 'oefen_loc_herberg', name: 'De Laatste Lantaarn', data: {
+      locType: 'Herberg',
+      desc: 'Een herberg aan de rand van het dorp. De waard kent iedereen, en iedereen weet dat.',
+      flavours: JSON.stringify(['Er hangt een geur van natte wol en gebrande gerst.']),
+    } },
+    { id: 'oefen_loc_winkel', name: 'Winkel van de smid', data: {
+      locType: 'Winkel',
+      desc: 'Een werkplaats met meer gereedschap dan koopwaar. Wat er ligt, ligt er met een reden.',
+      winkelConfig: JSON.stringify({ koopt: true, koopRatio: 50, kasPerRust: 0, roterend: false,
+        voorraad: [{ naam: 'Rope, Hempen (50 feet)', prijs: '1 fl' }, { naam: 'Torch', prijs: '1 cl' }] }),
+    } },
+  ],
+  personages: [
+    { id: 'oefen_pc_waard', name: 'De waard', subtype: 'NPC', data: {
+      rol: 'Waard', desc: 'Praat graag, luistert beter. Weet wie er gisteren binnenkwam en wie niet.',
+      flavours: JSON.stringify(['"Je bent niet de eerste die het vraagt."', '"Dat kost je een rondje."']),
+      geheimen: JSON.stringify([{ id: 'g1', tekst: 'Hij houdt een kamer vrij voor iemand die nooit komt.' }]),
+      kant: 'neutraal',
+    } },
+    { id: 'oefen_pc_vijand', name: 'De schaduw bij de deur', subtype: 'NPC', data: {
+      desc: 'Iemand die al twee avonden op dezelfde plek zit en niets drinkt.',
+      tags: JSON.stringify(['antagonist']), kant: 'vijand',
+    } },
+  ],
+  voorwerpen: [
+    { id: 'oefen_item_sleutel', name: 'Een sleutel zonder label', data: {
+      itemType: 'Wondrous Item', rariteit: 'Common', gebruik: 'uniek',
+      desc: 'Koud, zwaarder dan hij eruitziet. Er staat een getal in gekrast dat niemand herkent.',
+      prijs: '', nietVerkoopbaar: 'true',
+    } },
+  ],
+};
+
+router.post('/wizard/oefenen', requireDM, (req, res) => {
+  const entities = storage.readJSON('entities.json');
+  const dmState  = readDmState();
+  let gezet = 0;
+  for (const [type, rijen] of Object.entries(_OEFEN)) {
+    if (!Array.isArray(entities[type])) entities[type] = [];
+    for (const rij of rijen) {
+      if (entities[type].some(e => e.id === rij.id)) continue;   // twee keer drukken doet niets
+      entities[type].push({ ...rij, data: { ...rij.data } });
+      gezet++;
+      // Meteen zichtbaar voor elke party: oefenmateriaal dat je eerst moet
+      // onthullen leert je niets over onthullen.
+      for (const g of Object.values(dmState.groups || {})) {
+        if (!g.visibility) g.visibility = {};
+        g.visibility[rij.id] = 'visible';
+      }
+    }
+  }
+  storage.writeJSON('entities.json', entities);
+  storage.writeJSON('dm-state.json', dmState);
+  req.app.get('io').to(_campagneRoom(req)).emit('entities:updated');
+  res.json({ gezet });
+});
+
+// Weg ermee. Alles draagt `oefen_`, dus dit kan nooit iets van de DM zelf raken.
+router.delete('/wizard/oefenen', requireDM, (req, res) => {
+  const entities = storage.readJSON('entities.json');
+  const dmState  = readDmState();
+  let weg = 0;
+  for (const type of Object.keys(_OEFEN)) {
+    const voor = (entities[type] || []).length;
+    entities[type] = (entities[type] || []).filter(e => !String(e.id).startsWith('oefen_'));
+    weg += voor - entities[type].length;
+  }
+  for (const g of Object.values(dmState.groups || {})) {
+    for (const k of Object.keys(g.visibility || {})) if (k.startsWith('oefen_')) delete g.visibility[k];
+  }
+  storage.writeJSON('entities.json', entities);
+  storage.writeJSON('dm-state.json', dmState);
+  req.app.get('io').to(_campagneRoom(req)).emit('entities:updated');
+  res.json({ weg });
+});
+
+router.put('/meta/modules-uit', requireDM, (req, res) => {
+  const meta = storage.readJSON('meta.json');
+  const vrij = modulesVrijgegeven(meta);
+  const geldig = new Set(MODULES.map(m => m.id));
+  const lijst = [...new Set((Array.isArray(req.body?.uit) ? req.body.uit : [])
+    .map(String).filter(id => geldig.has(id) && vrij[id]))];
+  if (lijst.length) meta.modulesUit = lijst; else delete meta.modulesUit;
+  storage.writeJSON('meta.json', meta);
+  req.app.get('io').to(_campagneRoom(req)).emit('meta:updated');
+  res.json({ modulesUit: lijst, modules: modulesVoor(meta) });
 });
 
 router.put('/meta/app', requireDM, (req, res) => {

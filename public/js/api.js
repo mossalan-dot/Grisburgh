@@ -181,6 +181,13 @@ export const api = {
   // wil er precies één ding in kwijt. De routes voegen per veld samen, dus dit
   // kan niets anders overschrijven. De whitelist staat hier zodat een typefout
   // geen PUT naar een pad doet dat we niet bedoelden.
+  // Wat de DM van zijn eigen campagne niet gebruikt. Alleen uitzetten; wat er
+  // vrijgegeven is bepaalt de beheerder.
+  saveModulesUit: (uit) => request('/meta/modules-uit', { method: 'PUT', body: JSON.stringify({ uit }) }),
+  oefenmateriaal:     ()  => request('/wizard/oefenen', { method: 'POST' }),
+  oefenmateriaalWeg:  ()  => request('/wizard/oefenen', { method: 'DELETE' }),
+  spreukbeeldenStand: ()  => request('/bron/spreukbeelden'),
+  spreukbeeldenHalen: ()  => request('/bron/spreukbeelden', { method: 'POST' }),
   saveDienstNaam: (dienst, naam) => {
     const mag = ['herberg', 'tweespalt', 'gock', 'markt', 'tempel', 'ursula', 'magizoo', 'woekeraar'];
     if (!mag.includes(dienst)) return Promise.reject(new Error('Onbekende dienst: ' + dienst));

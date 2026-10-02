@@ -28965,3 +28965,53 @@ body.wizard-open { overflow: hidden; }
   .vd-deur { min-height: 108px; padding: 14px; }
   .vd-tegels { grid-template-columns: repeat(auto-fill, minmax(138px, 1fr)); }
 }
+
+/* Wizard: de onderdelenlijst, de gevechtskeuzes en de vinkjes. */
+.wz-onderdelen { display: flex; flex-direction: column; gap: 14px; }
+.wz-ond-kop {
+  font-family: 'Cinzel', serif; font-size: .74em; letter-spacing: .08em;
+  text-transform: uppercase; color: #8a7050; margin-bottom: 5px;
+}
+.wz-vink {
+  display: flex; align-items: center; gap: 8px;
+  padding: 4px 0; cursor: pointer; font-size: .95em; color: #3a2410;
+}
+.wz-vink--deel { padding-left: 18px; font-size: .9em; color: #5a4030; }
+.wz-vink--groot { font-size: 1.02em; padding: 8px 0; }
+.wz-vink input { width: 15px; height: 15px; accent-color: #9a7008; }
+
+.wz-keuzes { display: flex; flex-direction: column; gap: 9px; }
+.wz-keuze {
+  display: grid; grid-template-columns: auto 1fr; gap: 2px 9px;
+  align-items: baseline; padding: 11px 13px; cursor: pointer;
+  border: 1px solid #c4a87a; border-radius: 5px;
+  background: rgba(255, 252, 244, .5); transition: border-color .14s, background .14s;
+}
+.wz-keuze:hover { border-color: #9a7008; }
+.wz-keuze:has(input:checked) { border-color: #9a7008; background: rgba(154, 112, 8, .09); }
+.wz-keuze input { grid-row: span 2; align-self: center; width: 15px; height: 15px; accent-color: #9a7008; }
+.wz-keuze-titel { font-family: 'Cinzel', serif; font-weight: 700; color: #3a2410; font-size: .96em; }
+.wz-keuze-uitleg { font-family: 'Crimson Text', serif; color: #7a6040; font-size: .88em; line-height: 1.45; }
+
+.wz-noot {
+  margin: 12px 0 0; font-family: 'Crimson Text', serif; font-style: italic;
+  color: #8a7050; font-size: .86em; line-height: 1.5;
+}
+
+/* Een uitklap in een instellingenpaneel. Bestond nog niet als bouwsteen; de
+   onderdelenlijst is de eerste die er een nodig had (negentien vinkjes staan
+   anders permanent in de weg van de rest van het paneel). */
+.dm-uitklap {
+  border: 1px solid rgba(196, 168, 122, .6); border-radius: 5px;
+  background: rgba(255, 252, 244, .4); margin: 8px 0;
+}
+.dm-uitklap > summary {
+  display: flex; align-items: center; gap: 7px;
+  padding: 9px 12px; cursor: pointer; list-style: none;
+  font-family: 'Cinzel', serif; font-size: .88em; color: #5a4030;
+}
+.dm-uitklap > summary::-webkit-details-marker { display: none; }
+.dm-uitklap > summary svg { width: 15px; height: 15px; color: #9a7008; }
+.dm-uitklap[open] > summary { border-bottom: 1px solid rgba(196, 168, 122, .5); }
+.dm-uitklap-body { padding: 10px 12px 12px; }
+.dm-module-item--deel { padding-left: 20px; opacity: .92; }

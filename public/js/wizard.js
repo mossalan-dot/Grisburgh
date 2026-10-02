@@ -18,7 +18,10 @@
 // Hij blokkeert nooit. Overslaan mag bij elke stap; wat je overslaat vind je
 // terug bij Instellingen, en dat staat er ook bij.
 
-import { api } from './api.js?v=304';
+import { api } from './api.js?v=306';
+
+// Hoe de groepen uit `lib/modules.js` in beeld heten.
+const _GROEPNAAM = { wereld: 'Je wereld', spel: 'Het spel', sfeer: 'Sfeer', dienst: 'Diensten', overig: 'Overig' };
 
 const esc = s => window.app?.esc?.(s) ?? String(s ?? '')
   .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -27,6 +30,7 @@ const ico = (n, o) => window.icon?.(n, o) ?? '';
 const W = {
   stap: 0,
   groepen: [],
+  vrij: {}, uit: new Set(), beelden: null,
   data: { appTitle: '', appSubtitle: '', currency: null, diensten: {}, groep: null, pc: null },
   bezig: false,
 };
@@ -131,6 +135,95 @@ const STAPPEN = [
     },
   },
   {
+    id: 'onderdelen',
+    titel: 'Wat heeft jouw campagne nodig?',
+    lead: 'Alles staat aan. Vink uit wat je niet gebruikt — dan verdwijnt het helemaal, ook bij je spelers.',
+    // Alleen wat de beheerder vrijgaf. Aanzetten kan hier niet: modules worden
+    // stapsgewijs vrijgegeven, met uitleg erbij. Uitzetten mag altijd.
+    async voor() {
+      const m = await api.meta();
+      W.vrij = m?.modulesVrij || m?.modules || {};
+      W.uit  = new Set(Object.keys(W.vrij).filter(k => W.vrij[k] && m.modules && m.modules[k] === false));
+      W.catalogus = m?.moduleCatalogus || [];
+    },
+    beschikbaar() { return true; },
+    html() {
+      // De catalogus geeft de volgorde én de groepen; zo staat een deelfunctie
+      // (Aan de tap) netjes onder zijn dienst in plaats van alfabetisch ergens.
+      const vrij = (W.catalogus || []).filter(m => W.vrij[m.id]);
+      if (!vrij.length) return `<p class="wz-lead">Er staat nog niets voor je klaar. Vraag de beheerder welke onderdelen je krijgt.</p>`;
+      const groepen = [...new Set(vrij.map(m => m.groep || 'overig'))];
+      return `<div class="wz-onderdelen">${groepen.map(g => `
+        <div class="wz-ond-groep">
+          <div class="wz-ond-kop">${esc(_GROEPNAAM[g] || g)}</div>
+          ${vrij.filter(m => (m.groep || 'overig') === g).map(m => `
+            <label class="wz-vink${m.ouder ? ' wz-vink--deel' : ''}">
+              <input type="checkbox" data-module="${esc(m.id)}" ${W.uit.has(m.id) ? '' : 'checked'}>
+              <span>${esc(m.label || m.id)}</span>
+            </label>`).join('')}
+        </div>`).join('')}</div>
+        <p class="wz-noot">Later bijstellen kan bij <em>Instellingen → Campagne</em>. Iets <strong>erbij</strong> krijgen gaat via de beheerder.</p>`;
+    },
+    async bewaar() {
+      const uit = [...document.querySelectorAll('[data-module]')]
+        .filter(i => !i.checked).map(i => i.dataset.module);
+      await api.saveModulesUit(uit);
+    },
+  },
+  {
+    id: 'gevecht',
+    titel: 'Wat zien je spelers in een gevecht?',
+    lead: 'Hoeveel een tegenstander nog overheeft, is smaak — niet een regel. Kies wat bij jouw tafel past.',
+    html() {
+      const nu = window.app?.state?.meta?.combatHp || 'staat';
+      const opties = [
+        ['staat',     'In woorden',  'Ongedeerd, geschramd, gehavend, zwaar gewond… Je spelers voelen het verloop zonder te rekenen. De standaard.'],
+        ['binair',    'Alleen leeft of niet', 'Je ziet of hij nog staat, verder niets. Het strakste, en het spannendst.'],
+        ['volledig',  'De cijfers',  'Exacte HP op elk token. Handig als je open speelt of veel uitlegt.'],
+      ];
+      return `<div class="wz-keuzes">${opties.map(([k, titel, uitleg]) => `
+        <label class="wz-keuze${nu === k ? ' is-aan' : ''}">
+          <input type="radio" name="wz-hp" value="${k}" ${nu === k ? 'checked' : ''}>
+          <span class="wz-keuze-titel">${esc(titel)}</span>
+          <span class="wz-keuze-uitleg">${esc(uitleg)}</span>
+        </label>`).join('')}</div>
+        <p class="wz-noot">Wat een party in het <strong>bestiarium</strong> ontdekt heeft, wint hier altijd van: verdiende kennis gaat niet verloren door een instelling.</p>`;
+    },
+    async bewaar() {
+      const k = document.querySelector('input[name="wz-hp"]:checked')?.value || 'staat';
+      await api.saveAppMeta({ combatHp: k });
+      if (window.app?.state?.meta) window.app.state.meta.combatHp = k;
+    },
+  },
+  {
+    id: 'beelden',
+    titel: 'Beeld bij je spells',
+    lead: '',
+    // Alleen tonen als er iets te halen valt: in de beheercampagne zelf, of als
+    // er geen bronbeelden zijn, is deze stap een loze vraag.
+    // **Let op:** `beschikbaar()` wordt gevraagd om de stappenlijst te bouwen,
+    // dus vóórdat welke `voor()` dan ook gedraaid heeft. Data die hier nodig is
+    // moet bij het openen al binnen zijn (zie `_open`) — anders staat de stap
+    // op "niet beschikbaar" en komt hij nooit aan de beurt om zichzelf te laden.
+    beschikbaar() { return !!(W.beelden?.beschikbaar > 0 && !W.beelden?.eigen); },
+    html() {
+      const b = W.beelden || {};
+      const mb = b.bytes ? (b.bytes / 1048576).toFixed(0) : '?';
+      return `
+        <p class="wz-lead">Er liggen <strong>${b.beschikbaar} afbeeldingen bij spells</strong> klaar (samen ongeveer ${mb} MB), met het uitsnijdpunt er al bij. Eigen beeld, geen uitgeverijmateriaal — delen mag dus.</p>
+        <label class="wz-vink wz-vink--groot">
+          <input type="checkbox" id="wz-beelden" checked>
+          <span>Neem ze over</span>
+        </label>
+        <p class="wz-noot">Wat je zelf al hebt neergezet blijft staan; dit vult alleen aan. Je kunt ze later alsnog halen bij <em>Instellingen → Campagne</em>, en een beeld dat niet bij jouw wereld past vervang je per spell.</p>`;
+    },
+    async bewaar() {
+      if (!document.getElementById('wz-beelden')?.checked) return;
+      const r = await api.spreukbeeldenHalen();
+      if (r?.gekopieerd) window._showToast?.(`${r.gekopieerd} afbeeldingen overgenomen.`);
+    },
+  },
+  {
     id: 'party',
     titel: 'Je eerste tafel',
     // Dit is de enige stap met een echte waarschuwing, en die hoort hier en
@@ -218,6 +311,31 @@ const STAPPEN = [
     },
   },
   {
+    id: 'oefenen',
+    titel: 'Blanco, of iets om mee te oefenen?',
+    lead: 'Een lege campagne is eerlijk, maar je kunt er nergens op klikken — en dan zie je niet wat de app doet.',
+    html() {
+      return `<div class="wz-keuzes">
+        <label class="wz-keuze is-aan">
+          <input type="radio" name="wz-start" value="oefen" checked>
+          <span class="wz-keuze-titel">Zet er iets neer om mee te spelen</span>
+          <span class="wz-keuze-uitleg">Een herberg met een waard die een geheim heeft, een smid die inkoopt, iemand die te lang bij de deur zit, en een sleutel zonder label. Genoeg om zichtbaarheid, geheimen, de winkel en de boedel uit te proberen.</span>
+        </label>
+        <label class="wz-keuze">
+          <input type="radio" name="wz-start" value="blanco">
+          <span class="wz-keuze-titel">Blanco beginnen</span>
+          <span class="wz-keuze-uitleg">Niets erin. Je maakt zelf je eerste kaartje.</span>
+        </label>
+      </div>
+      <p class="wz-noot">Het oefenmateriaal heet overal <em>oefen_…</em>, dus je gooit het in één keer weg bij <em>Instellingen → Campagne</em> zodra je het niet meer nodig hebt. Het staat los van je eigen kaartjes.</p>`;
+    },
+    async bewaar() {
+      if (document.querySelector('input[name="wz-start"]:checked')?.value !== 'oefen') return;
+      const r = await api.oefenmateriaal();
+      W.data.oefen = r?.gezet || 0;
+    },
+  },
+  {
     id: 'klaar',
     titel: 'Klaar om te spelen',
     lead: '',
@@ -235,6 +353,7 @@ const STAPPEN = [
           ${regel(!!W.data.pc?.name, W.data.pc?.name
             ? `<strong>${esc(W.data.pc.name)}</strong> staat erin`
             : 'Nog geen personage')}
+          ${W.data.oefen ? regel(true, `${W.data.oefen} kaartjes om mee te oefenen`) : ''}
         </ul>
         <div class="wz-verder">
           <strong>Waar je verder gaat</strong>
@@ -308,10 +427,14 @@ function _sluit() {
   location.reload();
 }
 
-function _open(opnieuw = false) {
+async function _open(opnieuw = false) {
   if (document.getElementById('wz-overlay')) return;
   W.stap = 0;
   if (opnieuw) W.data = { appTitle: '', appSubtitle: '', currency: null, diensten: {}, groep: null, pc: null };
+  // Wat `beschikbaar()` nodig heeft, moet er zijn vóór de stappenlijst gebouwd
+  // wordt. Mislukt het, dan valt die stap gewoon weg — beter dan een wizard die
+  // blijft hangen op een vraag die hij niet kan stellen.
+  try { W.beelden = await api.spreukbeeldenStand(); } catch { W.beelden = null; }
   const ov = document.createElement('div');
   ov.id = 'wz-overlay';
   ov.className = 'wz-overlay';

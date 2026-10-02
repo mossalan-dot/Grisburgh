@@ -217,9 +217,21 @@ Elke stap eindigt met: Grisburgh doet nog exact wat het deed.
    dat moment zelden bij de hand heeft, en de kaartengalerij zegt zelf al wat
    er moet gebeuren als hij leeg is.
 
-   **De minicampagne is nog niet gemaakt.** Dat hoorde bij dit nummer en staat
-   nu bij stap 7, waar hij thuishoort: hij bestaat om schermafbeeldingen voor
-   de rondleiding te leveren zonder Grisburgh te verklappen.
+   **Uitgebreid op 2 okt 2026** met vier stappen die er niet in zaten en die de
+   eerste avond bepalen: **welke onderdelen** je gebruikt (uitzetten mag de DM
+   zelf; aanzetten blijft bij de beheerder — `meta.modulesUit` naast
+   `meta.modules`), **hoe een gevecht eruitziet** voor je spelers (de drie
+   HP-weergaven), **of je de spreukafbeeldingen overneemt** uit de
+   beheercampagne (eigen beeld, dus delen mag — maar het is een keuze en het
+   kost schijf), en **blanco of iets om mee te oefenen**: vijf kaartjes die samen
+   één avond beschrijven, in één greep weer weg te gooien.
+   Alle vier staan ook bij Instellingen → Campagne, want een wizard die je
+   oversloeg mag geen doodlopende weg zijn.
+
+   **De minicampagne is nog niet gemaakt.** Het *oefenmateriaal* uit de wizard
+   is iets anders en kleiner: vijf kaartjes om de machinerie uit te proberen.
+   Een minicampagne is een gespéélde campagne waar schermafbeeldingen uit
+   kunnen komen zonder Grisburgh te verklappen; die hoort bij stap 7.
    **Namen van diensten horen in de wizard.** Elke dienst heeft zijn naam al in
    `meta.<dienst>.naam` (herberg, tweespalt, gock, ursula, tempel, magizoo) en is
    te hernoemen in zijn eigen paneel onder Diensten. De zijbalk gebruikt die naam

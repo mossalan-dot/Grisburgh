@@ -144,6 +144,65 @@ describe('De opstartwizard', () => {
     assert.equal((await lees()).wizardKlaar, true);
   });
 
+  it('laat de DM uitzetten wat hij niet gebruikt, maar nooit aanzetten', async () => {
+    // De scheiding waar het hele ontwerp op rust: de beheerder bepaalt wat een
+    // campagne MAG hebben, de DM wat hij ervan GEBRUIKT. Eén kant op dus.
+    const r = await metaOp('/api/meta/modules-uit', { uit: ['markt', 'detective'] }, nieuweDm);
+    assert.equal(r.status, 200);
+    const m = await lees();
+    assert.equal(m.modules.markt, false, 'markt staat uit');
+    assert.equal(m.modules.detective, false);
+    assert.equal(m.modules.herberg, true, 'de rest niet');
+    // En hij ziet nog steeds dát hij het mag hebben, anders kan hij het nooit
+    // terughalen.
+    assert.equal(m.modulesVrij.markt, true, 'vrijgegeven blijft vrijgegeven');
+  });
+
+  it('haalt een uitgezet onderdeel ook weer terug', async () => {
+    await metaOp('/api/meta/modules-uit', { uit: [] }, nieuweDm);
+    assert.equal((await lees()).modules.markt, true);
+  });
+
+  it('negeert een module die de beheerder niet vrijgaf', async () => {
+    // De tempel staat niet in de startset. Uitzetten wat al uitstaat mag geen
+    // regel in meta.json achterlaten die later gaat tegenspreken.
+    await metaOp('/api/meta/modules-uit', { uit: ['tempel'] }, nieuweDm);
+    const m = await lees();
+    assert.equal(m.modules.tempel, false);
+    assert.ok(!(m.modulesUit || []).includes('tempel'), 'niet vastgelegd: hij stond al uit');
+  });
+
+  it('geeft de DM de namen van de onderdelen mee', async () => {
+    const m = await lees();
+    assert.ok(Array.isArray(m.moduleCatalogus) && m.moduleCatalogus.length > 10,
+      'de catalogus hoort bij GET /meta voor de DM; /campaigns is van de beheerder');
+    assert.ok(m.moduleCatalogus.every(x => x.id && x.label), 'elk onderdeel heeft een naam');
+  });
+
+  it('bewaart hoe een gevecht eruitziet voor de spelers', async () => {
+    assert.equal((await metaOp('/api/meta/app', { combatHp: 'binair' }, nieuweDm)).status, 200);
+    assert.equal((await lees()).combatHp, 'binair');
+    assert.equal((await metaOp('/api/meta/app', { combatHp: 'onzin' }, nieuweDm)).status, 400,
+      'een onbekende weergave wordt geweigerd, niet stil genegeerd');
+  });
+
+  it('zegt wat er aan spreukbeelden te halen valt, en haalt ze op', async () => {
+    const stand = (await req(server, 'GET', '/api/bron/spreukbeelden?campagne=bleke-kust', null, nieuweDm)).body;
+    assert.equal(typeof stand.beschikbaar, 'number');
+    assert.equal(stand.eigen, false, 'dit is niet de bron');
+    const r = await req(server, 'POST', '/api/bron/spreukbeelden?campagne=bleke-kust', {}, nieuweDm);
+    assert.equal(r.status, 200);
+    assert.equal(typeof r.body.gekopieerd, 'number');
+    // Twee keer drukken mag niets kapotmaken: dit vult aan, het overschrijft niet.
+    const nog = await req(server, 'POST', '/api/bron/spreukbeelden?campagne=bleke-kust', {}, nieuweDm);
+    assert.equal(nog.body.gekopieerd, 0, 'de tweede keer valt er niets meer te halen');
+  });
+
+  it('kopieert niet uit zichzelf', async () => {
+    const r = await req(server, 'POST', '/api/bron/spreukbeelden?campagne=grisburgh', {}, beheerder);
+    assert.equal(r.status, 400, 'de beheercampagne ís de bron');
+  });
+
   it('laat de nieuwe DM niet aan de modules komen — dat is de beheerder', async () => {
     // Dit is de reden dat de modulestap níét in de wizard zit.
     const r = await req(server, 'PUT', '/api/campaigns/bleke-kust/modules?campagne=bleke-kust',

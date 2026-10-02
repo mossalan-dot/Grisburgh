@@ -1,4 +1,4 @@
-import { api, huidigeCampagne } from './api.js?v=304';
+import { api, huidigeCampagne } from './api.js?v=306';
 import { init as canvasInit, update as canvasUpdate, stop as canvasStop, acGetal } from './combat-canvas.js?v=30';
 import { renderStatblock } from './render-statblock.js?v=9';
 
@@ -5951,6 +5951,82 @@ async function _campagneSwitchTo(id) {
   } catch (err) {
     alert('Instellen mislukt: ' + err.message);
   }
+};
+
+// De onderdelen die deze DM mag hebben, met een vinkje per stuk. Uitzetten
+// schrijft naar `meta.modulesUit`; aanzetten kan alleen tot wat de beheerder
+// vrijgaf — daarboven staat het vinkje er simpelweg niet.
+const _MOD_GROEPNAAM = { wereld: 'Je wereld', spel: 'Het spel', sfeer: 'Sfeer', dienst: 'Diensten', overig: 'Overig' };
+
+function _instModulesHtml(meta) {
+  const cat  = meta?.moduleCatalogus || [];
+  const vrij = meta?.modulesVrij || meta?.modules || {};
+  const nu   = meta?.modules || {};
+  const bruikbaar = cat.filter(m => vrij[m.id]);
+  if (!bruikbaar.length) return '<p class="dm-hint">Er staat nog niets voor je klaar. Vraag de beheerder welke onderdelen je krijgt.</p>';
+  const groepen = [...new Set(bruikbaar.map(m => m.groep || 'overig'))];
+  return groepen.map(g => `
+    <div class="dm-section-label">${esc(_MOD_GROEPNAAM[g] || g)}</div>
+    ${bruikbaar.filter(m => (m.groep || 'overig') === g).map(m => `
+      <label class="dm-module-item${m.ouder ? ' dm-module-item--deel' : ''}">
+        <input type="checkbox" class="inst-mod-vink" value="${esc(m.id)}" ${nu[m.id] === false ? '' : 'checked'}>
+        <span>${esc(m.label || m.id)}</span>
+      </label>`).join('')}`).join('')
+    + '<p class="dm-hint">Wat je uitvinkt verdwijnt helemaal — ook bij je spelers. Iets <strong>erbij</strong> krijgen gaat via de beheerder.</p>'
+    + `<div class="dm-form-row"><button class="dm-btn dm-btn-primary dm-btn-sm" onclick="window._instModulesOpslaan()">${icon('save')} Onderdelen opslaan</button></div>`;
+}
+
+window._instModulesOpslaan = async () => {
+  const uit = [...document.querySelectorAll('.inst-mod-vink')].filter(v => !v.checked).map(v => v.value);
+  try {
+    await api.saveModulesUit(uit);
+    window._showToast?.('Onderdelen opgeslagen. Even verversen om ze te zien verdwijnen of verschijnen.');
+  } catch (e) { alert('Opslaan mislukt: ' + e.message); }
+};
+
+// De knop verschijnt alleen als er echt iets te halen valt.
+// Staat er oefenmateriaal? Dan hoort er een knop te zijn om het weg te halen —
+// anders blijft het rondslingeren tussen de echte kaartjes.
+window._instOefenStand = async () => {
+  const rij = document.getElementById('inst-oefenweg');
+  if (!rij) return;
+  try {
+    const pcs = await api.listEntities('personages');
+    const lijst = Array.isArray(pcs) ? pcs : (pcs?.personages || []);
+    rij.hidden = !lijst.some(e => String(e.id).startsWith('oefen_'));
+  } catch { rij.hidden = true; }
+};
+
+window._instOefenWeg = async () => {
+  if (!confirm('Alle oefenkaartjes weggooien?\n\nDat zijn alleen de kaartjes die de wizard neerzette (herberg, waard, smid, sleutel). Je eigen werk blijft staan.')) return;
+  try {
+    const r = await api.oefenmateriaalWeg();
+    window._showToast?.(`${r.weg} oefenkaartjes weg.`);
+    await window._instOefenStand();
+  } catch (e) { alert('Weggooien mislukt: ' + e.message); }
+};
+
+window._instSpreukbeeldenStand = async () => {
+  const rij = document.getElementById('inst-spreukbeelden');
+  if (!rij) return;
+  try {
+    const st = await api.spreukbeeldenStand();
+    if (!st || st.eigen || !st.beschikbaar) { rij.hidden = true; return; }
+    const lbl = document.getElementById('inst-sb-label');
+    const mb = st.bytes ? ` (~${(st.bytes / 1048576).toFixed(0)} MB)` : '';
+    if (lbl) lbl.textContent = st.hier
+      ? `Nog ${st.beschikbaar - st.hier} afbeeldingen bij spells ophalen${mb}`
+      : `Beeld bij ${st.beschikbaar} spells overnemen${mb}`;
+    rij.hidden = st.hier >= st.beschikbaar;
+  } catch { rij.hidden = true; }
+};
+
+window._instSpreukbeelden = async () => {
+  try {
+    const r = await api.spreukbeeldenHalen();
+    window._showToast?.(`${r.gekopieerd} afbeeldingen overgenomen${r.overgeslagen ? `, ${r.overgeslagen} stonden er al` : ''}.`);
+    await window._instSpreukbeeldenStand();
+  } catch (e) { alert('Ophalen mislukt: ' + e.message); }
 };
 
 function _campagneCreate() {
@@ -12793,6 +12869,31 @@ async function _renderInstellingen() {
       <div class="dm-form-row">
         <button class="dm-btn dm-btn-ghost" onclick="window.wizard?.open()"
           title="Loop de keuzes langs die je campagne bepalen">${icon('compass')} Opstartwizard doorlopen</button>
+      </div>
+
+      <!-- Wat je van je eigen campagne niet gebruikt. Alleen uitzetten: wat je
+           mag hebben bepaalt de beheerder. De wizard verwijst hierheen, dus dit
+           moet er zijn — een belofte in een boekje die nergens uitkomt is erger
+           dan geen belofte. -->
+      <details class="dm-uitklap">
+        <summary>${icon('settings')} Onderdelen van deze campagne</summary>
+        <div class="dm-uitklap-body" id="inst-modules">${_instModulesHtml(meta)}</div>
+      </details>
+
+      <!-- Spreukafbeeldingen uit de beheercampagne. Alleen zinvol als er iets
+           te halen valt; de knop vult zichzelf in na het ophalen van de stand. -->
+      <!-- Oefenmateriaal weggooien. Alleen zichtbaar als het er staat; alles
+           draagt het voorvoegsel "oefen_", dus dit kan nooit iets van de DM
+           zelf raken. (Geen backticks in commentaar hierbinnen: dit staat in
+           een template literal en die sluit erop.) -->
+      <div class="dm-form-row" id="inst-oefenweg" hidden>
+        <button class="dm-btn dm-btn-ghost dm-btn-danger" onclick="window._instOefenWeg()">${icon('trash')}
+          Oefenmateriaal weggooien</button>
+      </div>
+
+      <div class="dm-form-row" id="inst-spreukbeelden" hidden>
+        <button class="dm-btn dm-btn-ghost" onclick="window._instSpreukbeelden()">${icon('image')}
+          <span id="inst-sb-label">Beeld bij je spells overnemen</span></button>
       </div>`, window._helpBtn?.('inst_campagne') ?? '')}
 
     <!-- Namen voor valuta -->
@@ -13034,6 +13135,10 @@ async function _renderInstellingen() {
   // De beurs heeft zijn eigen render; de wereld-instellingen zijn verhuisd naar
   // Diensten → Toegang, waar ze thuishoren.
   _dmWachtwoordStatus();
+  // De knop voor de spreukafbeeldingen weet pas of hij nodig is als hij de
+  // stand heeft opgehaald; tot dan staat hij verborgen.
+  window._instSpreukbeeldenStand?.();
+  window._instOefenStand?.();
 
   // Terug naar waar de DM stond. Na de frame waarin de browser de nieuwe
   // inhoud heeft opgemeten, anders is de bak nog te kort om zo ver te scrollen.
