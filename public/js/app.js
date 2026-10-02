@@ -10,7 +10,7 @@ import { renderSpreuken } from './render-spreuken.js?v=41';
 import { renderVaardigheden, zoekVaardigheden } from './render-vaardigheden.js?v=18';
 import { renderStatblock } from './render-statblock.js?v=9';
 import { initSocket } from "./socket-client.js?v=82";
-import { initDmPanel } from "./dm-panel.js?v=373";
+import { initDmPanel } from "./dm-panel.js?v=374";
 import { COND_INFO, COND_LABEL, COND_MET_PLAATJE, COND_ICON } from './conditions.js?v=2';
 import './media-picker.js?v=8';
 import './tafels.js?v=2';
@@ -14605,6 +14605,23 @@ const HELP_CONFIG = {
     { titel: 'Vragen gaat langs de DM', tekst: 'Je vult in hoeveel je nodig hebt en waarvoor. Hij denkt erover na — de DM beslist of je het krijgt, en voor hoeveel. Eén schuld tegelijk: los eerst af voor je opnieuw aanklopt.', afbeelding: null },
     { titel: 'De rente loopt op rust', tekst: 'Niet op de kalender: elke **lange rust** van je gezelschap is een nacht die telt. Haast je dus niet met slapen als je rood staat. Het bedrag groeit tot een plafond; daarna stopt hij met tellen — en dan komt hij het halen.', afbeelding: null },
     { titel: 'Aflossen', tekst: 'Alles in één keer, of een deel. Bij een deel wordt wat overblijft de nieuwe hoofdsom en beginnen de nachten opnieuw te tellen — aflossen loont dus, ook als je er niet helemaal uitkomt.', afbeelding: null },
+  ] }),
+
+  dm_woekeraar_voorwaarden: () => ({ titel: 'Wat hij vraagt', stappen: [
+    { titel: 'Rente per nacht, niet per dag', tekst: 'De rente loopt per **lange rust** van de party, niet op de kalender: een party speelt geen echte dagen. Op de kalender stond één lening ooit op 4,5 × 10¹⁹ — meer geld dan er in de wereld is.', afbeelding: null },
+    { titel: 'Het plafond', tekst: 'Boven dit veelvoud van de hoofdsom telt hij niet verder. Dat is geen genade maar een omslagpunt: vanaf dat moment is de schuld **opeisbaar** en begint hij te escaleren. Vijf keer is een goede waarde; lager maakt hem ongeduldiger.', afbeelding: null },
+    { titel: 'Het hoogste bedrag', tekst: 'Hoeveel hij in één keer uitleent. Je kunt bij het goedkeuren alsnog afdingen, dus dit is het dak, niet de regel.', afbeelding: null },
+  ] }),
+  dm_woekeraar_escalatie: () => ({ titel: 'Als er niet betaald wordt', stappen: [
+    { titel: 'Staat standaard uit', tekst: 'Zonder deze schakelaar groeit een schuld alleen maar. Dat is een geldige campagne: niet elke tafel wil dat er iemand aanklopt.', afbeelding: null },
+    { titel: 'Drie trappen, per nacht', tekst: '**Brief** → **onderpand** → **bezoek**. Elke lange rust schuift een opgeëiste schuld een trap op, en bij elke trap krijgt de speler een brief. Wat er die nacht gebeurde staat in het rustoverzicht.', afbeelding: null },
+    { titel: 'Jij houdt de teugels', tekst: 'De app stuurt de brief, maar bij **onderpand** wijs jij aan wat er verdwijnt (uit de spullen van de hele party), en bij **bezoek** start jij het gevecht wanneer het uitkomt. De app begint nooit uit zichzelf een gevecht.', afbeelding: null },
+    { titel: 'Opeisen', tekst: 'Normaal wacht hij tot het plafond bereikt is. Met **Opeisen** bij een schuld begint het meteen — handig als het verhaal erom vraagt en de cijfers nog niet.', afbeelding: null },
+  ] }),
+  dm_woekeraar_ontspan: () => ({ titel: 'Wie hem kan stoppen', stappen: [
+    { titel: 'Een woordje, geen kwijtschelding', tekst: 'Staat een party hoog genoeg aan bij een factie die je hier aanvinkt, dan stopt de rente en valt het bedrag terug naar de hoofdsom. De schuld blijft bestaan; het woekeren stopt. Iemand met gezag heeft een woordje gedaan.', afbeelding: null },
+    { titel: 'Welke facties', tekst: 'Dat is aan jou: in de ene stad is het de wacht, in de andere het dievengilde. Welke macht iets betekent is geen regel van de app.', afbeelding: null },
+    { titel: 'En als het aanzien wegzakt', tekst: 'Dan begint het tellen opnieuw vanaf **dat** moment, niet met terugwerkende kracht. Een gunst die je verspeelt kost je de toekomst, niet het verleden.', afbeelding: null },
   ] }),
 
   dm_verzoeken_onderpand: () => ({ titel: 'Onderpand', stappen: [

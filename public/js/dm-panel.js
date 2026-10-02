@@ -6277,11 +6277,20 @@ async function _renderSchulden() {
   if (!el) return;
   el.innerHTML = '<div class="dm-feature-section"><div class="dm-section-label">Laden…</div></div>';
 
-  let data;
-  try { data = await api.get('/schulden'); } catch (err) {
+  let data, personages = [], locaties = [];
+  try {
+    [data, personages, locaties] = await Promise.all([
+      api.get('/schulden'),
+      api.listEntities('personages').catch(() => []),
+      api.listEntities('locaties').catch(() => []),
+    ]);
+  } catch (err) {
     el.innerHTML = `<div class="dm-feature-section"><p style="color:var(--color-seal)">${esc(err.message)}</p></div>`;
     return;
   }
+  const meta = window.app?.state?.meta || {};
+  const cfg = meta.woekeraar || {};
+  const facties = meta.facties || [];
   const rijen = data.schulden || [];
   const geld = (cl) => window.formatCl?.(cl) ?? `${cl} cl`;
 
@@ -6303,7 +6312,6 @@ async function _renderSchulden() {
         </div>
         ${r.ontspannen ? `<p class="dm-hint">${icon('shield')} <strong>${esc(r.ontspannen.naam)}</strong> heeft een woordje gedaan: de rente staat stil zolang het aanzien hoog genoeg blijft. Hij betaalt alleen de hoofdsom.</p>` : ''}
         ${st.afgetopt && !r.ontspannen ? `<p class="dm-hint dm-schuld-op">Het plafond is bereikt — hij telt niet verder en komt het halen.</p>` : ''}
-        ${r.wees ? `<p class="dm-hint">Dit personage bestaat niet meer. Niemand kan deze schuld afbetalen; hij telt wel door.</p>` : ''}
         ${r.trap ? `<p class="dm-hint dm-schuld-trap">${icon('alert-triangle')} Trap ${r.trap} van 3 — ${['', 'de brief is bezorgd', 'er is onderpand gevraagd', 'hij staat voor de deur'][r.trap]}.${r.onderpand ? ` Hij nam <strong>${esc(r.onderpand.naam)}</strong> mee.` : ''}</p>` : ''}
         <div class="dm-schuld-knoppen">
           ${r.wees ? '' : `<button class="dm-btn dm-btn-sm ${r.opgeeist ? 'dm-btn-primary' : 'dm-btn-ghost'}" onclick="window.dmPanel.schuldOpeisen('${esc(r.id)}')"
@@ -6316,8 +6324,63 @@ async function _renderSchulden() {
 
   const wezen = rijen.filter(r => r.wees);
   const lopend = rijen.filter(r => !r.wees);
+  const ontspan = Array.isArray(cfg.ontspanBij) ? cfg.ontspanBij : [];
 
   el.innerHTML = `
+    <div class="dm-feature-section">
+      ${_dienstKopHtml({
+        sleutel: 'woek', config: cfg,
+        personages, locaties,
+        naamVoorbeeld: 'De woekeraar',
+        groetVoorbeeld: 'Ga zitten. Vertel eens waar het over gaat.',
+      })}
+
+      ${_dienstSectieKop('coins', 'Wat hij vraagt', 'dm_woekeraar_voorwaarden')}
+      <div class="dm-form-row">
+        <label class="dm-form-label" for="woek-max">Hoogste bedrag dat hij uitleent</label>
+        ${_bedragVeldHtml('woek-max', _clNaarMunten(cfg.maxLeenCl ?? 10000), {})}
+      </div>
+      <div class="dm-form-row">
+        <label class="dm-form-label" for="woek-rente">Rente per lange rust (%)</label>
+        <input id="woek-rente" class="dm-input dm-input--sm" type="number" min="0" max="500"
+          value="${esc(cfg.rentePerRust ?? 30)}" style="max-width:100px">
+      </div>
+      <div class="dm-form-row">
+        <label class="dm-form-label" for="woek-max-factor">Plafond (× de hoofdsom)</label>
+        <input id="woek-max-factor" class="dm-input dm-input--sm" type="number" min="1" max="50"
+          value="${esc(cfg.maxFactor ?? 5)}" style="max-width:100px">
+      </div>
+      <p class="dm-hint">De rente loopt per <strong>lange rust</strong>, niet op de kalender: een party speelt geen echte dagen. Boven het plafond telt hij niet verder — dan komt hij het halen.</p>
+
+      ${_dienstSectieKop('alert-triangle', 'Als er niet betaald wordt', 'dm_woekeraar_escalatie')}
+      <div class="dm-form-row">
+        <label class="dm-form-checkbox">
+          <input type="checkbox" id="woek-escalatie"${cfg.escalatie ? ' checked' : ''}>
+          <span>Laat een schuld escaleren</span>
+        </label>
+      </div>
+      <p class="dm-hint">Staat dit uit, dan groeit een schuld alleen. Staat het aan, dan schuift een <em>opgeëiste</em> schuld bij elke lange rust een trap op: een brief, dan onderpand (jij wijst aan wat er verdwijnt), dan het bezoek. Opeisen doe je per schuld hieronder.</p>
+
+      ${_dienstSectieKop('shield', 'Wie hem kan stoppen', 'dm_woekeraar_ontspan')}
+      <p class="dm-hint">Staat een party hoog genoeg aan bij een van deze facties, dan heeft iemand een woordje gedaan: de rente stopt en het bedrag valt terug naar de hoofdsom. Geen kwijtschelding — een afspraak.</p>
+      <div id="woek-ontspan">
+        ${facties.length ? facties.map(f => {
+          const gekozen = ontspan.find(o => o.factieId === f.id);
+          return `<div class="dm-form-row dm-woek-ontspan-rij">
+            <label class="dm-form-checkbox">
+              <input type="checkbox" class="woek-ontspan-vink" value="${esc(f.id)}"${gekozen ? ' checked' : ''}>
+              <span>${esc(f.naam || f.id)}</span>
+            </label>
+            <label class="dm-form-label" style="margin-left:auto">vanaf renown</label>
+            <input type="number" class="dm-input dm-input--sm woek-ontspan-renown" data-factie="${esc(f.id)}"
+              min="0" max="999" value="${esc(gekozen?.renown ?? 10)}" style="max-width:80px">
+          </div>`;
+        }).join('') : '<p class="dm-hint">Deze campagne heeft nog geen facties. Zet de module <em>Facties</em> aan en maak er een; dan kun je hier kiezen wie gezag heeft.</p>'}
+      </div>
+
+      ${_dienstOpslaanRij('window._woekeraarSettingsSave()')}
+    </div>
+
     <div class="dm-feature-section">
       <div class="dm-section-label">Openstaande schulden<span class="dm-sectie-hulp">${helpBtn('dm_schulden')}</span></div>
       ${lopend.length ? lopend.map(rij).join('') : '<p class="dm-hint">Niemand heeft iets openstaan.</p>'}
@@ -6327,11 +6390,33 @@ async function _renderSchulden() {
       <div class="dm-section-label">Zonder eigenaar</div>
       <p class="dm-hint">Schulden op naam van een personage dat niet meer bestaat. Laat ze niet slepen: ze tellen door en niemand kan ze afbetalen.</p>
       ${wezen.map(rij).join('')}
-    </div>` : ''}
-    <div class="dm-feature-section">
-      <p class="dm-hint">Lenen gaat nu nog via het gokhuis; de speler lost zelf af met de knoppen onder zijn leningbanner. De eigen dienst — met zijn eigen deur, de drie trappen en de renown-afspraak — staat beschreven in <strong>docs/voorstel-woekeraar.md</strong>.</p>
-    </div>`;
+    </div>` : ''}`;
 }
+
+window._woekeraarSettingsSave = async function () {
+  const kop = _dienstKopLees('woek');
+  const munten = _bedragLeesMunten('woek-max');
+  const ontspanBij = [...document.querySelectorAll('.woek-ontspan-vink')]
+    .filter(c => c.checked)
+    .map(c => ({
+      factieId: c.value,
+      renown: parseInt(document.querySelector(`.woek-ontspan-renown[data-factie="${c.value}"]`)?.value) || 0,
+    }));
+  try {
+    await api.put('/meta/woekeraar', {
+      naam: kop.naam, entityId: kop.imageId || null, locatieId: kop.locatieId || null,
+      maxLeenCl: munten ? (munten.fl * 100 + munten.kn * 10 + munten.cl) : undefined,
+      rentePerRust: parseInt(document.getElementById('woek-rente')?.value),
+      maxFactor: parseInt(document.getElementById('woek-max-factor')?.value),
+      escalatie: !!document.getElementById('woek-escalatie')?.checked,
+      ontspanBij,
+    });
+    const newMeta = await api.meta();
+    if (window.app?.state) window.app.state.meta = newMeta;
+    _showToast(`${icon('check')} Opgeslagen.`);
+    _renderSchulden();
+  } catch (e) { alert('Opslaan mislukt: ' + e.message); }
+};
 
 async function _renderTweespaltDM() {
   const el = _tabEl('tweespalt');

@@ -540,18 +540,23 @@ daar dan in. (Het eerste punt — diensten die de gedeelde beurs omzeilden — i
       een keuze van de DM is. En er is **geen route om af te lossen**: de enige
       uitweg is dat de DM het schuldbewijs uit de boedel haalt. Hoort bij
       `docs/voorstel-op-de-pof.md`.
-- [ ] **Eén schuldenregister** (`dmState.schulden`) waar de Tweespalt-lening een
-      soort van wordt, met een DM-overzicht (wie, bij wie, hoofdsom, wat er nu
-      staat) en knoppen om af te betalen — ook deels — of kwijt te schelden. Dat
-      overzicht ontbreekt nu helemaal: een schuld die niemand ziet is geen
-      verhaallijn.
-- [ ] **Op de pof in de winkel.** Per winkel: schrijft aan ja/nee, tot welk
-      bedrag, welke rente per lange rust. Bij te weinig geld komt er naast de
-      weigering een knop *Op de pof*; de speler krijgt het voorwerp en een
-      schuldbrief in zijn boedel. Bij een lange rust meldt een opeisbaar
-      geworden schuld zich bij de DM — bij voorkeur als verzegelde brief van de
-      schuldeiser (`_bezorgBrief` ligt er al), zodat het aan tafel binnenkomt.
-      Wat er daarna gebeurt verzint de DM.
+- [x] **Eén schuldenregister** — gedaan 1-2 okt 2026, en uitgegroeid tot een
+      eigen dienst: **de Woekeraar**. Zie `docs/voorstel-woekeraar.md`. Register,
+      aflossen (ook deels), kwijtschelden, lenen via een verzoek aan de DM, drie
+      escalatietrappen, de renown-afspraak, en een instelscherm.
+- [ ] **Het gokhuis leent nog buiten de DM om.** `/tweespalt/leen` geeft
+      rechtstreeks geld uit; de woekeraar doet hetzelfde via een verzoek dat de
+      DM goedkeurt en mag bijstellen. Het is dezelfde man achter twee deuren met
+      twee regels. Ofwel die route door hetzelfde verzoek laten lopen (dan
+      verdwijnt het verschil), ofwel bewust houden als "de snelle deur van het
+      gokhuis" — maar dan hoort het ergens te staan. Niet uit zichzelf
+      veranderd, want het raakt bestaand gedrag.
+- [x] **Op de pof in de winkel** — anders opgelost dan hier bedacht, en beter:
+      geen winkel die aanschrijft, maar de **woekeraar die opduikt** op het
+      moment dat je iets wilt wat je niet kunt betalen. Eén geldschieter, één
+      mechaniek, één register — in plaats van per dienst een eigen soort schuld.
+      Niet bij de herberg (daar gaat het om een bed en een biertje) en niet bij
+      de tempel (lenen om een zegen te kopen voelt blasfemisch).
 - [ ] **Een winkel heeft geen kas.** Inkopen van de party lukt altijd, hoe duur
       ook: dat geld komt uit het niets. Bewust zo gelaten — de DM beslist aan
       tafel of de handelaar het kan betalen, en een kas die je eerst moet
