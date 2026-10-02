@@ -28721,3 +28721,13 @@ body.akte-schrijf-open .mp-overlay { z-index: 1320; }
 /* De trap waarop een schuld staat. */
 .dm-schuld-trap { color: #8b2a2a; display: flex; align-items: flex-start; gap: 5px; }
 .dm-schuld-trap .icon { width: 13px; height: 13px; margin-top: 2px; flex: none; }
+
+/* Hij staat achter je in de winkel. De knop hoort bij de weigering, niet
+   ernaast: het is hetzelfde moment. */
+.shop-woekeraar-btn {
+  display: block; margin-top: 8px;
+  background: linear-gradient(to bottom, #6b4a1a, #4a3210);
+  border-color: #8a6d3f; color: #f0e2c0;
+  font-style: italic;
+}
+.shop-woekeraar-btn:hover { background: linear-gradient(to bottom, #8a6020, #5a3c14); }

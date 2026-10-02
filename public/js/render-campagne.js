@@ -5561,13 +5561,51 @@ window._koopItem = async (shopId, itemNaam, entityId, btn, aantal = 1) => {
     const msg = (err.message || 'Kon niet kopen')
       + (_tekort ? ` — je komt ${_muntTekst(_tekort)} tekort` : '');
     if (feedback) {
-      feedback.textContent = '⚠ ' + msg;
+      // Kom je geld tekort, dan staat hij toevallig achter je. Dat is de hele
+      // koppeling: geen winkel die aanschrijft, maar een woekeraar die opduikt
+      // op het moment dat je iets wilt wat je niet kunt betalen. De knop
+      // verschijnt alleen als zijn dienst aanstaat — hij is er niet in elke
+      // campagne, en een winkel hoort niets over hem te weten.
+      // `window._verborgen` is waar de modulestand landt (zie `_pasModulesToe`);
+      // `app.state.verborgen` bestaat niet, en dan was de knop er ook geweest
+      // in een campagne zonder woekeraar.
+      const _kanLenen = _tekort && !window._dienstDicht?.('woekeraar')
+        && !(window._verborgen?.secties || []).includes('woekeraar');
+      feedback.innerHTML = '⚠ ' + esc(msg) + (_kanLenen ? `
+        <button class="shop-koop-btn shop-woekeraar-btn"
+          onclick="window._woekeraarOpduiken('${escJS(itemNaam)}')"
+          title="Er staat iemand achter je die dat bedrag wel heeft">Iemand biedt aan het voor te schieten…</button>` : '');
       feedback.className = 'shop-koop-feedback shop-koop-feedback--fout';
       feedback.classList.remove('hidden');
-      setTimeout(() => feedback.classList.add('hidden'), 5000);
+      // Met een aanbod erbij blijft het langer staan: je moet erover kunnen
+      // nadenken, en dat is precies wat hij wil.
+      setTimeout(() => feedback.classList.add('hidden'), _kanLenen ? 20000 : 5000);
     }
     if (btn) { btn.disabled = false; btn.textContent = 'Kopen'; }
   }
+};
+
+// Hij staat achter je in de winkel. Dezelfde weg als zijn eigen deur: het gaat
+// als verzoek naar de DM, met waar het geld heen zou gaan er alvast bij — dat
+// veld is tenslotte zijn beste informatie.
+window._woekeraarOpduiken = async (itemNaam) => {
+  const cfg = window.app?.state?.meta?.woekeraar || {};
+  const wie = cfg.naam || 'Iemand';
+  const in_ = prompt(
+    `${wie} heeft meegeluisterd en biedt aan het voor te schieten.\n\n`
+    + `Hoeveel wil je lenen? Vul het aantal in de kleinste munt in.\n`
+    + `Het gaat eerst langs je DM.`, '');
+  if (in_ === null) return;
+  const cl = parseInt(String(in_).replace(/[^0-9]/g, ''), 10);
+  if (!(cl > 0)) return;
+  try {
+    await api.post('/woekeraar/verzoek', {
+      bedrag: { fl: 0, kn: 0, cl },
+      waarvoor: itemNaam ? `${itemNaam}, op de markt` : 'iets op de markt',
+      bron: 'markt',
+    });
+    window._showToast?.(`${icon('hourglass')} ${wie} denkt erover na.`, null, 5000);
+  } catch (e) { window._showToast?.(e.message || 'Vragen mislukt', null, 5000); }
 };
 
 // ── Winkel: voorwerp aanbieden aan de winkel ──

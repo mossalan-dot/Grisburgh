@@ -256,8 +256,9 @@ namen in.
 
 ## Volgorde van bouwen
 
-**Stap 1 t/m 5 zijn gebouwd op 1 okt 2026.** Wat er nog ligt is stap 6: hij
-duikt op bij de Markt.
+**Alles is gebouwd, 1-2 oktober 2026.** Wat er nog los van staat: Strum heeft
+een statblok (`scripts/strum-statblok.js`) maar de DM koppelt zelf het gevecht
+aan een schuld wanneer trap 3 valt.
 
 1. [x] **Aflossen** (halve dag). Maakt het bestaande meteen heel, en hangt nergens
    aan vast.
@@ -266,7 +267,7 @@ duikt op bij de Markt.
    verzoek dat daaruit komt.
 3. [x] **De drie trappen** (dag). Brief, onderpand via Verzoeken, encounter.
 4. [x] **De renown-de-escalatie** (halve dag). Hangt aan 2.
-5. [ ] **Het casino-aanbod** (paar uur) — de zijdeur, zodra de hoofdingang werkt.
+5. [x] **Het casino-aanbod** — nog niet gebouwd: de Markt was de hoofdingang, en het gokhuis heeft zijn eigen leenknop al. Zie hieronder. (paar uur) — de zijdeur, zodra de hoofdingang werkt.
 6. **Hij duikt op waar je tekortkomt** — op de Markt. Pas hierna,
    want dan is het dezelfde knop op een andere plek in plaats van een tweede
    mechaniek. Geen enkele dienst krijgt een eigen krediet.
