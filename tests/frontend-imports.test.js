@@ -212,3 +212,47 @@ describe('Gedeelde window-helpers', () => {
       `deze worden aangeroepen maar nergens op window gezet: ${[...mis].join(', ')}`);
   });
 });
+
+// ════════════════════════════════════════════════════════════════════════════
+//  ÉÉN BESTAND = ÉÉN VERSIE, OOK OP DE SERVER
+// ════════════════════════════════════════════════════════════════════════════
+// De regel staat al in CLAUDE.md, maar niets bewaakte hem. Op 2 okt 2026 vroegen
+// dertien bestanden op productie `api.js?v=301`, één `v=302` en drie `v=303`:
+// de browser laadde dezelfde module dan drie keer, elk met eigen state. Dat
+// gebeurt vanzelf zodra je een versie bumpt en maar een deel van de importeurs
+// meedeployt — en je ziet het nergens aan, want alle drie de verzoeken geven
+// hetzelfde bestand terug.
+describe('Versies van frontend-modules', () => {
+  it('vraagt elk bestand onder precies één ?v=', () => {
+    const dir = path.join(__dirname, '..', 'public', 'js');
+    const perBestand = new Map();
+    const noem = (vanuit, m) => {
+      const [, naam, versie] = m;
+      if (!perBestand.has(naam)) perBestand.set(naam, new Map());
+      if (!perBestand.get(naam).has(versie)) perBestand.get(naam).set(versie, []);
+      perBestand.get(naam).get(versie).push(vanuit);
+    };
+    for (const f of fs.readdirSync(dir).filter(f => f.endsWith('.js'))) {
+      const src = fs.readFileSync(path.join(dir, f), 'utf8');
+      for (const m of src.matchAll(/['"`]\.\/([a-z-]+\.js)\?v=(\d+)['"`]/g)) noem(f, m);
+    }
+    const scheef = [...perBestand].filter(([, versies]) => versies.size > 1)
+      .map(([naam, versies]) => `${naam}: ` +
+        [...versies].map(([v, wie]) => `v=${v} (${wie.join(', ')})`).join(' tegenover '));
+    assert.deepEqual(scheef, [],
+      'deze bestanden worden onder meer dan één versie geïmporteerd:\n  ' + scheef.join('\n  '));
+  });
+
+  it('importeert alleen bestanden die ook echt bestaan', () => {
+    const dir = path.join(__dirname, '..', 'public', 'js');
+    const aanwezig = new Set(fs.readdirSync(dir).filter(f => f.endsWith('.js')));
+    const mis = [];
+    for (const f of aanwezig) {
+      const src = fs.readFileSync(path.join(dir, f), 'utf8');
+      for (const m of src.matchAll(/['"`]\.\/([a-z-]+\.js)(?:\?v=\d+)?['"`]/g)) {
+        if (!aanwezig.has(m[1])) mis.push(`${f} → ${m[1]}`);
+      }
+    }
+    assert.deepEqual(mis, [], 'import naar een bestand dat er niet is: ' + mis.join(', '));
+  });
+});

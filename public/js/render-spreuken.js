@@ -11,7 +11,7 @@
  * met die van het spreukenboek (_SB_SCHOOLS in app.js).
  */
 
-import { api } from './api.js?v=303';
+import { api } from './api.js?v=304';
 
 const esc  = s => window.app?.esc?.(s) ?? String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 const icon = (...a) => window.icon(...a);
@@ -983,13 +983,32 @@ window.spreuken = {
       type: 'afbeelding',
       suggestedName: (naam || 'spreuk').toLowerCase().replace(/\s+/g, '-'),
       onSelect: async (srcId) => {
+        // Deze fetch werd niet nagekeken: mislukte hij, dan ving `catch` niets
+        // (een 403 of 404 is geen exception) en schreef `console.error` in een
+        // venster dat niemand openheeft. Je drukte op OK en er gebeurde niets —
+        // zonder dat de app ook maar íéts zei. Nu wordt elk antwoord gelezen.
         try {
-          await fetch(`/api/files/spell-img-${index}/copy-from/${srcId}`, { method: 'POST', credentials: 'include' });
+          const r = await fetch(`/api/files/spell-img-${index}/copy-from/${srcId}`,
+            { method: 'POST', credentials: 'include' });
+          if (!r.ok) {
+            const body = await r.json().catch(() => ({}));
+            throw new Error(body.error || `de server antwoordde ${r.status}`);
+          }
           const bust = '?t=' + Date.now();
           const dimg = document.getElementById('spreuk-detail-img');
-          if (dimg) { dimg.classList.remove('is-on'); dimg.src = `/api/files/spell-img-${index}${bust}`; }
+          if (dimg) {
+            // Ook het laden van het beeld zelf kan mislukken (een formaat dat
+            // sharp niet omzet). Dan hoort dát gezegd te worden, niet een stil
+            // leeg vlak.
+            dimg.classList.remove('is-on');
+            dimg.onerror = () => window._showToast?.('De afbeelding is opgeslagen maar kan niet getoond worden.');
+            dimg.src = `/api/files/spell-img-${index}${bust}`;
+          }
           _paintGrid();
-        } catch (e) { console.error('Spreukafbeelding instellen mislukt:', e); }
+          window._showToast?.('Afbeelding geplaatst.');
+        } catch (e) {
+          window._showToast?.('Afbeelding instellen mislukt: ' + (e.message || e));
+        }
       },
     });
   },

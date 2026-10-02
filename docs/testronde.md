@@ -1495,6 +1495,16 @@ Grisburghs **data** te staan — niet in de code.
 - [ ] **De woekeraar is in te stellen** (DM) — bij *Diensten → Schulden* staat nu zijn instelscherm, in dezelfde vorm als de andere diensten: naam, wie hij is, waar hij zit, zijn begroeting, en daaronder **wat hij vraagt** (hoogste bedrag, rente per lange rust, plafond), **of een schuld escaleert** (standaard uit), en **wie hem kan stoppen** (per factie een vinkje met een renowndrempel). Zonder dit scherm was de hele escalatieladder vanuit de app niet aan te zetten en kon de DM niets van hem instellen — de route bestond wel, maar niets riep hem aan.
 - [ ] **Het gokhuis leent ook via de DM** (SP+DM) — `POST /tweespalt/leen` gaf rechtstreeks geld uit; nu wordt het hetzelfde verzoek als aan de deur van de woekeraar, met `bron: 'gokhuis'` zodat je in het register ziet waar het begon. Eén geldschieter, één regel. Controleer: leen bij het gokhuis, zie dat je beurs nog leeg is, keur goed bij *Verzoeken → Wil lenen*, en dan pas staat het geld er. Met een gedeelde beurs landt het dáár, net als eerst.
 - [ ] **Een schuldbewijs kun je nog steeds niet weggooien** (SP) — dit was stuk: de bewaking keek alleen naar `ts_leen_…`, en het bewijs van de woekeraar heet `schuld_…`. Een speler kon dus zijn eigen schuld wegklikken. Nu zijn beide beschermd, plus de *In onderpand*-regel. Haalt de DM het schuldbewijs weg, dan verdwijnt ook de schuld uit het register.
+- [ ] **Een afbeelding bij een spreuk** (DM) — open een spreuk, *Afbeelding
+      kiezen of uploaden*, kies of upload iets en bevestig: het venster sluit,
+      er komt een melding **Afbeelding geplaatst**, en het beeld staat er. Lukt
+      het niet, dan zegt de app wát er misging — nooit meer een stille klik.
+      Daarna verschijnt pas *Focuspunt bijstellen*: die hoort er niet te staan
+      zolang er geen beeld is.
+- [ ] **Een afbeelding bij een vaardigheid** (DM) — zelfde proef in de
+      Vaardighedentab, en dan bij een **feat**. Controleer daarna dat de
+      featlijst nog compleet is (67 stuks): dit pad stuurde de bibliotheek niet
+      mee, en dat is precies hoe die eerder tot één regel inkromp.
 - [ ] **De waarzegger werpt echt** (SP) — ga naar de waarzegger terwijl er een
       komende akte met inhoud klaarstaat, druk op *Werp de d6*: er komt een
       bevestiging met de prijs, het geld gaat eraf, de uitslag staat op het

@@ -286,6 +286,16 @@ dm-panel.js : combat-canvas.js?v=29   render-statblock.js?v=9
 > `socket-client.js` en `render-archief.js`. Controle:
 > `grep -ohE "\./[a-z-]+\.js(\?v=[0-9]+)?" public/js/*.js | sort | uniq -c`
 > — elk bestand mag maar mét één versie voorkomen.
+>
+> **Dit ging op 2 okt 2026 echt mis, en het is onzichtbaar.** Dertien bestanden
+> op productie vroegen `api.js?v=301`, één `v=302` en drie `v=303`: de browser
+> laadde dezelfde module drie keer, elk met eigen state. Oorzaak: een versiebump
+> waarbij maar een deel van de importeurs meegedeployd werd. Je ziet er niets
+> van — alle drie de verzoeken geven hetzelfde bestand terug, er is geen
+> foutmelding, en de app werkt grotendeels gewoon.
+> **Bij een versiebump dus altijd `scp public/js/*.js`, niet een handvol.**
+> Bewaakt door `tests/frontend-imports.test.js` (*Versies van frontend-modules*),
+> die nu ook controleert dat elke import naar een bestaand bestand wijst.
 
 > **Verzegelde uitnodigingsbrieven (reveal-by-letter).** Een factie of dienst kan zich per
 > brief voorstellen aan de actieve groep — dat onthult het doel én bezorgt elke speler een

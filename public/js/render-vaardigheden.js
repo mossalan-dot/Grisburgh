@@ -14,7 +14,7 @@
  * zelf schreef, dan de SRD, en anders een verwijzing naar buiten.
  */
 
-import { api } from './api.js?v=303';
+import { api } from './api.js?v=304';
 import { naslagBron } from './render-progressie.js?v=57';
 
 const esc  = s => window.app?.esc?.(s) ?? String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
@@ -885,11 +885,18 @@ function _open(key) {
 // alles mee wat we al weten — anders verdwijnt de beschrijving bij het zetten
 // van een plaatje.
 async function _bewaarBeeld(it, velden) {
+  // `seedFeats` hoort hier net zo goed bij als in de editor. De featbibliotheek
+  // (51 general + 12 Epic Boons) zit niet in de progressie-seed maar in de
+  // frontend; schrijft deze campagne haar eerste featregel via dit pad, dan
+  // bestaat `prog.feats.general` daarna uit dat ene ding en zijn de rest weg.
+  // De editor stuurde hem al mee, dit pad niet — en een afbeelding opplakken is
+  // precies zo'n eerste schrijfactie.
   await api.post('/progression/feature', {
     oud: { soort: it.soort, bron: it.bron, sub: it.sub, level: it.level, naam: it.naam },
     soort: it.soort, bron: it.bron, sub: it.sub || '', level: it.level || 1,
     naam: it.naam, desc: it.desc || '', herkomst: it.herkomst || '',
     img: it.img || null, imgFocus: it.imgFocus || '',
+    seedFeats: (it.soort === 'feat' || it.soort === 'boon') ? _bron?.feats : undefined,
     ...velden,
   });
   Object.assign(it, { img: velden.img || '', imgFocus: velden.imgFocus ?? (velden.img ? it.imgFocus : '') });
@@ -1107,10 +1114,21 @@ window.vaardigheden = {
       onSelect: async (srcId) => {
         const id = it.img || `feat-img-${Math.random().toString(36).slice(2, 10)}`;
         try {
-          await fetch(`/api/files/${id}/copy-from/${srcId}`, { method: 'POST', credentials: 'include' });
+          // Een 403 of 404 is geen exception: zonder deze controle liep de code
+          // gewoon door, schreef een `img`-id weg dat naar niets wees, en
+          // tekende een leeg vlak. Je zag dan niets gebeuren.
+          const r = await fetch(`/api/files/${id}/copy-from/${srcId}`,
+            { method: 'POST', credentials: 'include' });
+          if (!r.ok) {
+            const body = await r.json().catch(() => ({}));
+            throw new Error(body.error || `de server antwoordde ${r.status}`);
+          }
           await _bewaarBeeld(it, { img: id });
           _open(key);
-        } catch (e) { alert('Afbeelding instellen mislukt: ' + e.message); }
+          window._showToast?.('Afbeelding geplaatst.');
+        } catch (e) {
+          window._showToast?.('Afbeelding instellen mislukt: ' + (e.message || e));
+        }
       },
     });
   },

@@ -1,4 +1,4 @@
-import { api, campagneUitUrl, zetCampagne } from './api.js?v=303';
+import { api, campagneUitUrl, zetCampagne } from './api.js?v=304';
 import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, renderDocumenten, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=332";
 import { initArchief, renderLogboek, openLogboekEditor } from "./render-archief.js?v=139";
 import { renderKaart, queueFlyTo, verversPins, nieuweKaart } from './render-kaart.js?v=31';
@@ -6,13 +6,13 @@ import { renderDungeon } from './render-dungeon.js?v=57';
 import { renderRelatiemap } from './render-relatiemap.js?v=27';
 import { renderProgressie, levelupFeatures } from './render-progressie.js?v=57';
 import { renderBestiarium } from './render-bestiarium.js?v=31';
-import { renderSpreuken } from './render-spreuken.js?v=41';
-import { renderVaardigheden, zoekVaardigheden } from './render-vaardigheden.js?v=18';
+import { renderSpreuken } from './render-spreuken.js?v=42';
+import { renderVaardigheden, zoekVaardigheden } from './render-vaardigheden.js?v=19';
 import { renderStatblock } from './render-statblock.js?v=9';
 import { initSocket } from "./socket-client.js?v=82";
 import { initDmPanel } from "./dm-panel.js?v=377";
 import { COND_INFO, COND_LABEL, COND_MET_PLAATJE, COND_ICON } from './conditions.js?v=2';
-import './media-picker.js?v=8';
+import './media-picker.js?v=9';
 import './wizard.js?v=1';
 import './tafels.js?v=2';
 

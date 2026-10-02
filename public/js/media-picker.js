@@ -9,7 +9,7 @@
 //     onSelect: (fileId) => { … }  // bestaand id óf vers geüpload id
 //   });
 
-import { api } from './api.js?v=303';
+import { api } from './api.js?v=304';
 
 const icon = (...a) => window.icon(...a);
 const esc  = (s) => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -181,15 +181,25 @@ async function _doUpload() {
   if (!_state?.pendingFile) return;
   const naam = (document.getElementById('media-picker-naam')?.value || '').trim();
   const status = document.getElementById('media-picker-upload-status');
+  const knop = document.querySelector('[onclick*="_doUpload"]');
   if (status) status.textContent = 'Uploaden…';
+  // Twee keer drukken op een trage upload leverde twee bestanden op, allebei
+  // onder een eigen id, waarvan er één meteen wees.
+  if (knop) knop.disabled = true;
   const fileId = `media_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
   try {
     await api.uploadFile(fileId, _state.pendingFile, naam);
     const onSelect = _state.onSelect;
     close();
-    onSelect(fileId);
+    // `onSelect` is wat er écht moet gebeuren (het beeld aan een spreuk of een
+    // vaardigheid hangen) en dat kán mislukken. Het stond hier zonder `await`
+    // en zonder vangnet: ging het daar mis, dan was het venster al dicht en
+    // zag je niets. Nu wachten we erop en zeggen we het als het misgaat.
+    await onSelect(fileId);
   } catch (err) {
-    if (status) status.textContent = 'Upload mislukt: ' + err.message;
+    if (knop) knop.disabled = false;
+    if (status) status.textContent = 'Mislukt: ' + (err.message || err);
+    window._showToast?.('Uploaden mislukt: ' + (err.message || err));
   }
 }
 
@@ -197,7 +207,11 @@ function pick(fileId) {
   if (!_state) return;
   const onSelect = _state.onSelect;
   close();
-  onSelect(fileId);
+  // Zelfde reden als hierboven: wat er na het kiezen gebeurt kan stuklopen, en
+  // dan hoort dat gezegd te worden in plaats van in een afgesloten promise te
+  // verdwijnen.
+  Promise.resolve(onSelect(fileId)).catch(e =>
+    window._showToast?.('Afbeelding instellen mislukt: ' + (e?.message || e)));
 }
 
 window.mediaPicker = {
