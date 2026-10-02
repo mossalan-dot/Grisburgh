@@ -272,11 +272,23 @@ Elke stap eindigt met: Grisburgh doet nog exact wat het deed.
      een browser een halve versie op: het nieuwe `?v=`-nummer verwijst dan naar
      een bestand dat er nog niet is. Dat raakt iedereen tegelijk en is met geen
      enkele gefaseerde uitrol te ondervangen.
-   - **Een teruggang die geoefend is.** Vóór elke deploy blijft een kopie van de
-     vorige bestanden op de server staan, met één commando om ze terug te zetten.
-     Nu is de terugweg "opnieuw scp'en vanuit git en hopen dat je de juiste
-     commit pakt" — midden in andermans sessie is dat het verkeerde moment om
-     daarachter te komen.
+   - **Een teruggang die geoefend is.** — **af (2 okt 2026)**.
+     `scripts/uitrollen.sh` zet vóór elke uitrol een momentopname van de code
+     weg in `releases/` (±8,5 MB, de laatste tien blijven), kopieert in de goede
+     volgorde, kijkt na en draait zichzelf terug als er iets niet klopt.
+     `scripts/terugdraaien.sh` doet het met de hand; `--lijst` toont wat er is.
+     **Geoefend door productie twee keer opzettelijk te slopen**, en dat leverde
+     meteen twee bugs op die je nooit op papier vindt: `ssh` at de stdin van de
+     bevestigingsvraag op (daardoor stopte het script zwijgend), en de standaard
+     terugdraai koos een `-voor-terugdraai`-opname — die bevat juist de storing
+     die je wilde ontvluchten.
+     En een derde bevinding: **een HTTP 200 is geen bewijs**. De server serveert
+     een kapot `app.js` net zo braaf; `scripts/modules-nakijken.sh` haalt daarom
+     elk bestand terug op en parseert het als ES-module.
+     Bijvangst: er stond een verdwaalde `index.html` in `public/js/` op de
+     server, publiek bereikbaar op `/js/index.html`, met verouderde
+     versienummers erin. Het script meldt nu wat er in die mappen staat en er
+     niet hoort.
 
    Wat we bewust **niet** doen zolang het om twee DM's gaat: een tweede
    Node-proces als voorproefomgeving (`canary` op 3001 met alleen Grisburgh,
@@ -293,5 +305,8 @@ Elke stap eindigt met: Grisburgh doet nog exact wat het deed.
 
 ## Open vragen
 
-Geen. Volgende aan de beurt: **stap 7** (handleiding + rondleiding), die op de
-minicampagne wacht.
+Geen. Van stap 9 is de geoefende teruggang af; wat daar nog ligt is de
+vlag-per-campagne (die bestaat al als module) en de afspraak over deployen
+tijdens andermans sessie. Volgende aan de beurt: **het beheerdersoverzicht met
+de mediateller** (stap 8 én de "hebben we een /admin nodig"-vraag), en daarna
+**stap 7** (handleiding + rondleiding), die op de minicampagne wacht.

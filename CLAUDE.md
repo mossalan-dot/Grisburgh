@@ -177,13 +177,60 @@ Gebruik tab 1 voor DM, open een incognito-venster of ander apparaat voor de spel
 ### Deploy-workflow (standaard)
 
 ```bash
+scripts/uitrollen.sh            # tests → versiecheck → momentopname → kopiëren → herstarten → nakijken
+scripts/uitrollen.sh --droog    # zeg wat er zou gebeuren
+scripts/uitrollen.sh --snel     # sla de tests over (alleen bij een herhaling)
+
+scripts/terugdraaien.sh         # terug naar de stand vóór de laatste uitrol
+scripts/terugdraaien.sh --lijst # welke momentopnamen er zijn
+scripts/modules-nakijken.sh     # haal elk js-bestand op bij de server en parseer het als ES-module
+```
+
+> **Waarom een script en geen rijtje `scp`.** Met de hand deployen werkt zolang
+> jij de enige bent die speelt. Zodra er een tweede DM op zit is "ik heb iets
+> kapotgemaakt" iemands avond, en dan is de terugweg "opnieuw scp'en vanuit git
+> en hopen dat je de juiste commit pakt". Het script zet vóór elke uitrol een
+> momentopname van de code weg in `/var/www/grisburgh/releases/` (±8,5 MB, de
+> laatste tien blijven staan) en draait zichzelf terug zodra het nakijken faalt.
+>
+> **De volgorde zit erin:** eerst JS, CSS en bronnen, dán `index.html`.
+> Andersom haalt een browser een halve versie op — het nieuwe `?v=`-nummer wijst
+> dan naar een bestand dat er nog niet is.
+>
+> **Een HTTP 200 is geen bewijs.** De server serveert een kapot `app.js` net zo
+> braaf als een heel bestand; het is de **browser** die erop stukloopt, en dan
+> valt de hele module-graaf stil zónder foutmelding. `scripts/modules-nakijken.sh`
+> haalt daarom elk bestand terug op bij de server en parseert het als ES-module
+> — dezelfde strengheid als de browser. Dat is de enige controle die de
+> backtick-in-commentaar vangt die `node --check` doorlaat.
+>
+> **Twee dingen kwamen pas boven door het één keer echt te oefenen** (productie
+> opzettelijk slopen en terugdraaien, 2 okt 2026):
+> - `ssh` leest standaard **stdin** leeg. Zonder `-n` slikte hij het antwoord op
+>   de bevestigingsvraag op, kreeg `read` een EOF, en stopte het script onder
+>   `set -e` zónder iets te zeggen — je dénkt dat je teruggedraaid hebt.
+> - Een terugdraai bewaart eerst de huidige stand als `…-voor-terugdraai`. Die
+>   mag **nooit** het standaarddoel van een volgende terugdraai zijn: hij bevat
+>   per definitie de storing die je wilde ontvluchten. Twee keer achter elkaar
+>   terugdraaien zette daardoor de eerste storing terug, en de app gaf gewoon 200.
+>
+> Terugdraaien raakt **alleen code**. Data, bestanden en sessies blijven staan;
+> een gegevenswijziging draai je terug uit de nachtelijke backup.
+
+Wat er meegaat: `public/js`, `public/css`, `public/index.html`,
+`public/img/icons.svg`, `routes/`, `lib/`, `bronnen/`, `server.js`, `config.js`,
+`package.json`. Data, `files/` en `node_modules` blijven waar ze zijn.
+
+<details><summary>Met de hand, als het script niet kan</summary>
+
+```bash
 # JS bestanden
 scp "public/js/app.js" "public/js/dm-panel.js" root@46.224.156.154:/var/www/grisburgh/public/js/
 
 # CSS
 scp "public/css/theme.css" root@46.224.156.154:/var/www/grisburgh/public/css/
 
-# HTML
+# HTML — altijd als laatste
 scp "public/index.html" root@46.224.156.154:/var/www/grisburgh/public/
 
 # Server-side (routes/api.js, lib/, server.js, config.js)
@@ -192,6 +239,7 @@ scp "routes/api.js" root@46.224.156.154:/var/www/grisburgh/routes/
 # Herstart (altijd na server-side wijzigingen)
 ssh root@46.224.156.154 "pm2 restart grisburgh"
 ```
+</details>
 
 Bij nieuwe JS-bestanden ook het `public/data/`-mapje deployen als daar bestanden bij zitten.
 
