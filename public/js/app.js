@@ -7,7 +7,7 @@ import { renderRelatiemap } from './render-relatiemap.js?v=27';
 import { renderProgressie, levelupFeatures } from './render-progressie.js?v=57';
 import { renderBestiarium } from './render-bestiarium.js?v=31';
 import { renderSpreuken } from './render-spreuken.js?v=42';
-import { renderVaardigheden, zoekVaardigheden } from './render-vaardigheden.js?v=19';
+import { renderVaardigheden, zoekVaardigheden } from './render-vaardigheden.js?v=20';
 import { renderStatblock } from './render-statblock.js?v=9';
 import { initSocket } from "./socket-client.js?v=82";
 import { initDmPanel } from "./dm-panel.js?v=377";
@@ -909,7 +909,7 @@ const ARCHIEF_LABELS = {
   documenten:   `${icon('scroll-text')} Documenten`,
   bestiarium:   `${icon('skull')} Bestiarium`,
   spreuken:     `${icon('sparkles')} Spreuken`,
-  vaardigheden: `${icon('graduation-cap')} Vaardigheden`,
+  vaardigheden: `${icon('graduation-cap')} Heldenboek`,
   kaart:        `${icon('map')} Kaarten`,
   relatiemap:   `${icon('users')} Relatiemap`,
 };
@@ -15248,7 +15248,7 @@ const HELP_CONFIG = {
   }),
 
   vaardigheden: () => ({
-    titel: 'Vaardigheden',
+    titel: 'Het Heldenboek',
     stappen: [
       {
         titel: 'Alles bij elkaar, niet alleen wat jij hebt',
@@ -15256,8 +15256,13 @@ const HELP_CONFIG = {
         afbeelding: null,
       },
       {
-        titel: 'Waar is het goed voor?',
-        tekst: 'Om te kijken wat *Sentinel* doet vóórdat je hem kiest, om te zien wat een andere subclass op level 6 krijgt, of om na te lezen wat een tegenstander met zijn class feature kan. Filter op soort, op klasse of soort, of op het level waarop iets komt — of zoek gewoon op naam.',
+        titel: 'Vier deuren, dan één laag',
+        tekst: 'Je begint met vier keuzes: **Classes**, **Species**, **Backgrounds** en **Feats & Epic Boons**. Achter een deur staan de twaalf classes (of de species, of de backgrounds); kies er een en je krijgt het kaartje met hit die, saving throws, proficiencies en skills, daaronder de **subclasses** als kaartjes, en daaronder pas de losse features. Zo hoef je nooit door vijfhonderd regels te kijken om te zien wat een Wizard is.',
+        afbeelding: null,
+      },
+      {
+        titel: 'Zoeken gaat er dwars doorheen',
+        tekst: 'Typ je iets in het zoekveld, dan krijg je treffers uit **alles** — ongeacht welke deur openstond. De indeling hoeft dus nooit in de weg te staan van "waar stond dat ook alweer". Met de knop linksboven ben je weer terug bij de vier deuren.',
         afbeelding: null,
       },
       {

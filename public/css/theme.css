@@ -28837,3 +28837,131 @@ body.wizard-open { overflow: hidden; }
   .wz-kaart { max-width: none; border-radius: 0; border: 0; max-height: 100vh; padding: 20px 16px 16px; }
   .wz-munten { grid-template-columns: 1fr; }
 }
+
+/* ══════════════════════════════════════════════════════════════════════════
+   HET HELDENBOEK — vier deuren, dan één laag
+   ══════════════════════════════════════════════════════════════════════════
+   Was een band met veertig knoppen naast elkaar plus een raster van 500
+   kaartjes. Nu vier tegels; wat eronder ligt komt pas als je kiest. Onderaan de
+   stylesheet, want `.entity-card` en `.spreuk-*` staan hoger en winnen anders
+   op volgorde. */
+.vd-deuren {
+  display: grid; gap: 14px;
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+  margin: 6px 0 4px;
+}
+.vd-deur {
+  position: relative; overflow: hidden;
+  display: flex; flex-direction: column; align-items: flex-start; gap: 2px;
+  min-height: 148px; padding: 18px 18px 16px;
+  border: 1px solid #c4a87a; border-radius: 6px;
+  background: linear-gradient(150deg, #f6eeda 0%, #ece0c4 100%);
+  color: #3a2410; text-align: left; cursor: pointer;
+  transition: transform .16s, box-shadow .16s, border-color .16s;
+}
+.vd-deur:hover, .vd-deur:focus-visible {
+  transform: translateY(-2px);
+  border-color: var(--vd-kleur);
+  box-shadow: 0 8px 22px rgba(42, 26, 8, .26);
+}
+/* Het portret ligt eronder en wordt bij hover iets duidelijker: genoeg om
+   sfeer te geven, nooit zoveel dat de tekst eroverheen onleesbaar wordt. */
+.vd-deur-beeld, .vd-tegel-beeld, .vd-sub-beeld {
+  position: absolute; inset: 0;
+  background-size: cover; background-position: center;
+  opacity: .17; transition: opacity .16s;
+}
+.vd-deur:hover .vd-deur-beeld, .vd-tegel:hover .vd-tegel-beeld { opacity: .3; }
+.vd-deur > span:not(.vd-deur-beeld),
+.vd-tegel > span:not(.vd-tegel-beeld) { position: relative; z-index: 1; }
+.vd-deur-icoon { color: var(--vd-kleur); margin-bottom: 6px; }
+.vd-deur-icoon svg { width: 30px; height: 30px; }
+.vd-deur-naam {
+  font-family: 'Cinzel', serif; font-size: 1.12em; font-weight: 700;
+  letter-spacing: .01em; color: #3a2410;
+}
+.vd-deur-sub { font-family: 'Crimson Text', serif; font-style: italic; color: #7a6040; font-size: .9em; }
+.vd-deur-telling {
+  position: absolute; top: 14px; right: 16px;
+  font-family: 'Cinzel', serif; font-size: 1.5em; font-weight: 700;
+  color: var(--vd-kleur); opacity: .5;
+}
+
+/* Laag 1: de classes, species of backgrounds achter een deur. */
+.vd-tegels {
+  display: grid; gap: 10px;
+  grid-template-columns: repeat(auto-fill, minmax(168px, 1fr));
+  margin: 4px 0 2px;
+}
+.vd-tegel {
+  position: relative; overflow: hidden;
+  display: flex; flex-direction: column; align-items: flex-start; gap: 1px;
+  padding: 13px 14px 11px;
+  border: 1px solid #c4a87a; border-radius: 5px;
+  background: linear-gradient(150deg, #f7f1e0 0%, #efe5cc 100%);
+  text-align: left; cursor: pointer;
+  transition: transform .14s, border-color .14s, box-shadow .14s;
+}
+.vd-tegel:hover, .vd-tegel:focus-visible {
+  transform: translateY(-2px); border-color: var(--vd-kleur);
+  box-shadow: 0 6px 16px rgba(42, 26, 8, .2);
+}
+.vd-tegel-icoon { color: var(--vd-kleur); }
+.vd-tegel-icoon svg { width: 20px; height: 20px; }
+.vd-tegel-naam { font-family: 'Cinzel', serif; font-weight: 700; color: #3a2410; font-size: .98em; }
+.vd-tegel-meta { font-family: 'Crimson Text', serif; color: #8a7050; font-size: .82em; }
+
+/* Laag 2: de subclasses, als kaartjes onder het classkaartje. */
+.vd-subs { margin: 14px 0 4px; }
+.vd-subs-kop {
+  display: flex; align-items: center; gap: 7px;
+  font-family: 'Cinzel', serif; font-size: .82em; letter-spacing: .06em;
+  text-transform: uppercase; color: #8a7050; margin-bottom: 9px;
+}
+.vd-subs-kop svg { width: 15px; height: 15px; color: #5a2e8a; }
+.vd-subs-alle {
+  margin-left: auto; font-family: 'Crimson Text', serif; text-transform: none;
+  letter-spacing: 0; font-size: 1.05em; color: #9a7008;
+  background: none; border: 0; cursor: pointer; text-decoration: underline;
+}
+.vd-subs-rij {
+  display: grid; gap: 9px;
+  grid-template-columns: repeat(auto-fill, minmax(156px, 1fr));
+}
+.vd-sub {
+  position: relative; overflow: hidden;
+  display: flex; flex-direction: column; align-items: flex-start; gap: 1px;
+  padding: 11px 12px 9px;
+  border: 1px solid #c4a87a; border-left: 3px solid #5a2e8a; border-radius: 4px;
+  background: linear-gradient(150deg, #f7f1e0 0%, #efe5cc 100%);
+  text-align: left; cursor: pointer;
+  transition: transform .14s, box-shadow .14s;
+}
+.vd-sub > span:not(.vd-sub-beeld) { position: relative; z-index: 1; }
+.vd-sub:hover { transform: translateY(-2px); box-shadow: 0 6px 16px rgba(42, 26, 8, .2); }
+.vd-sub.is-aan { background: linear-gradient(150deg, #efe2f6 0%, #e4d4f0 100%); border-left-color: #200c4e; }
+/* Een subclass zonder tekst blijft staan — juist dán wil je zien dat ze bestaat
+   en dat er niets van in de app staat. Gestippeld, zoals een onaf kaartje. */
+.vd-sub.is-leeg { border-style: dashed; border-left-style: solid; opacity: .72; }
+.vd-sub-naam { font-family: 'Cinzel', serif; font-weight: 700; color: #3a2410; font-size: .92em; }
+.vd-sub-meta { font-family: 'Crimson Text', serif; color: #8a7050; font-size: .8em; }
+
+/* Het kruimelpad. */
+.vd-kruimel {
+  display: flex; align-items: center; flex-wrap: wrap; gap: 5px;
+  margin: 2px 0 12px; font-family: 'Crimson Text', serif; font-size: .94em;
+}
+.vd-kruimel-stap {
+  background: none; border: 0; padding: 2px 4px; cursor: pointer;
+  color: #9a7008; text-decoration: underline; font: inherit;
+}
+.vd-kruimel-stap:hover { color: #b8860b; }
+.vd-kruimel-nu { color: #3a2410; font-weight: 700; padding: 2px 4px; }
+.vd-kruimel-pijl { display: inline-flex; color: #c4a87a; }
+.vd-kruimel-pijl svg { width: 14px; height: 14px; }
+
+@media (max-width: 560px) {
+  .vd-deuren { grid-template-columns: 1fr; }
+  .vd-deur { min-height: 108px; padding: 14px; }
+  .vd-tegels { grid-template-columns: repeat(auto-fill, minmax(138px, 1fr)); }
+}

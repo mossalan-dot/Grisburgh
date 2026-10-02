@@ -1,5 +1,5 @@
 /**
- * render-vaardigheden.js — Archief-tab "Vaardigheden": alles wat een personage kán.
+ * render-vaardigheden.js — Archief-tab "Heldenboek": waar een personage uit bestaat.
  *
  * Class features, subclass features, species traits, feats, epic boons en
  * backgrounds, doorzoekbaar als bibliotheek. De progressie-tab toont dezelfde
@@ -222,8 +222,19 @@ function _filtered() {
       if (sc < 0) return false;
       scores.set(it.key, sc);
     }
+    // De open deur knipt het raster af; zoeken zet dat opzij (zie _bandHtml).
+    if (!tokens.length && _deur) {
+      const d = _DEUR(_deur);
+      if (d && !d.soorten.includes(it.soort)) return false;
+    }
     if (_filters.soort && it.soort !== _filters.soort) return false;
-    if (_filters.bron  && it.bron  !== _filters.bron)  return false;
+    // Alle backgrounds staan onder dezelfde bron ("Backgrounds"); wat ze van
+    // elkaar onderscheidt is hun naam. Op `bron` filteren gaf daar dus nul
+    // regels terwijl het kaartje er wél stond.
+    if (_filters.bron) {
+      const sleutel = it.soort === 'background' ? it.naam : it.bron;
+      if (sleutel !== _filters.bron) return false;
+    }
     // Op een subklasse ingezoomd: haar eigen features én die van de klasse
     // eromheen. Een Battle Master is een Fighter die iets extra's heeft, niet
     // iets anders — alleen de subklassefeatures tonen liegt over wat je kunt.
@@ -455,7 +466,7 @@ function _spreukRegel(klasse, basis) {
     if (v20) delen.push(`voorbereid ${v1}${v20 !== v1 ? ` → ${v20}` : ''}`);
   }
   if (!delen.length) return null;
-  return ['Spreuken', delen.join(' · ')];
+  return ['Spells', delen.join(' · ')];
 }
 
 function _klasseKaartHtml(klasse) {
@@ -469,18 +480,18 @@ function _klasseKaartHtml(klasse) {
   const feiten = [
     basis.hitDie ? [`d${basis.hitDie}`, 'Hit die'] : null,
     basis.saves?.length ? [basis.saves.map(a => (_AB_NAAM[a] || a).slice(0, 3).toUpperCase()).join(' · '), 'Saving throws'] : null,
-    data.subclassLevel ? [`Level ${data.subclassLevel}`, data.subclassLabel || 'Subklasse'] : null,
-    subs.length ? [`${subs.length}`, `Subklassen${gevuld < subs.length ? ` · ${gevuld} met tekst` : ''}`] : null,
-    basis.castAbility ? [_AB_NAAM[basis.castAbility] || basis.castAbility, 'Castend ability'] : null,
-    basis.featLevels?.length ? [basis.featLevels.join(' · '), 'Feat of verhoging op'] : null,
+    data.subclassLevel ? [`Level ${data.subclassLevel}`, data.subclassLabel || 'Subclass'] : null,
+    subs.length ? [`${subs.length}`, `Subclasses${gevuld < subs.length ? ` · ${gevuld} met tekst` : ''}`] : null,
+    basis.castAbility ? [_AB_NAAM[basis.castAbility] || basis.castAbility, 'Spellcasting ability'] : null,
+    basis.featLevels?.length ? [basis.featLevels.join(' · '), 'Feat of ASI op'] : null,
   ].filter(Boolean);
 
   // Training en skills staan apart van de cijfers: het zijn zinnen, geen
   // getallen, en naast een rij met "d10" en "STR · CON" lezen ze niet mee.
   const training = [
     basis.armor   ? ['Armor', basis.armor] : null,
-    basis.weapons ? ['Wapens', basis.weapons] : null,
-    basis.tools   ? ['Gereedschap', basis.tools] : null,
+    basis.weapons ? ['Weapons', basis.weapons] : null,
+    basis.tools   ? ['Tools', basis.tools] : null,
     basis.skillAantal
       ? ['Skills', basis.skills?.length
           ? `kies ${basis.skillAantal} uit ${basis.skills.join(', ')}`
@@ -509,7 +520,7 @@ function _klasseKaartHtml(klasse) {
       ${basis.castAbility && (_spreukAantal?.get(klasse) || 0) ? `
         <button class="vk-naar-spreuken" onclick="window.vaardigheden.naarSpreuken('${esc(klasse).replace(/'/g, "\\'")}')">
           ${icon('book-open')} Bekijk de spreukenlijst van de ${esc(klasse)}</button>` : ''}
-      ${gevuld < subs.length ? `<p class="vk-noot">Van ${subs.length - gevuld} van de ${subs.length} subklassen staat er geen tekst in de app: die komt uit het Player's Handbook. ${isDM() ? 'Je kunt ze zelf intikken bij een feature hieronder.' : ''}</p>` : ''}
+      ${gevuld < subs.length ? `<p class="vk-noot">Van ${subs.length - gevuld} van de ${subs.length} subclasses staat er geen tekst in de app: die komt uit het Player's Handbook. ${isDM() ? 'Je kunt ze zelf intikken bij een feature hieronder.' : ''}</p>` : ''}
       ${_featBlokHtml(klasse)}
     </div>`;
 }
@@ -526,7 +537,7 @@ function _subklasseKaartHtml(klasse, sub) {
         <span class="vk-icoon">${icon(veld?.icon || 'star')}</span>
         <div>
           <div class="vk-naam">${esc(sub)}</div>
-          <div class="vk-sig">${esc(_bron?.prog?.classes?.[klasse]?.subclassLabel || 'Subklasse')} · ${esc(klasse)}</div>
+          <div class="vk-sig">${esc(_bron?.prog?.classes?.[klasse]?.subclassLabel || 'Subclass')} · ${esc(klasse)}</div>
         </div>
       </div>
       <div class="vk-feiten">
@@ -579,7 +590,7 @@ function _achtergrondKaartHtml(naam) {
     ['Ability Scores', rij('Ability Scores')],
     ['Feat', rij('Feat')],
     ['Skills', rij('Skill Proficiencies')],
-    ['Gereedschap', rij('Tool Proficiency')],
+    ['Tools', rij('Tool Proficiency')],
   ].filter(([, v]) => v);
   return `
     <div class="vk-kaart" style="--vk-kleur:#962058">
@@ -592,25 +603,56 @@ function _achtergrondKaartHtml(naam) {
       </div>
       ${vaste.length ? `<dl class="vk-training">
         ${vaste.map(([k, v]) => `<dt>${esc(k)}</dt><dd>${esc(v)}</dd>`).join('')}
-      </dl>` : '<p class="vk-noot">Van deze achtergrond staat er niets in de app.</p>'}
+      </dl>` : '<p class="vk-noot">Van deze background staat er niets in de app.</p>'}
     </div>`;
 }
 
-// ── De band: wát je kunt zijn ───────────────────────────────────────────────
-// Dit tabblad was een platte lijst van features: je kon "Superiority Dice"
-// vinden, maar niet "Battle Master". Een klasse, een subklasse, een volk en een
-// achtergrond zijn in het spel dingen op zichzelf, en hier bestonden ze alleen
-// als een waarde in een keuzelijst.
+// ── Vier deuren ─────────────────────────────────────────────────────────────
+// Dit tabblad begon als een platte lijst van features: je kon "Superiority
+// Dice" vinden, maar niet "Battle Master". Daar kwam een band overheen met élke
+// class, elk species en elke background als knop — veertig stuks naast elkaar,
+// plus een filterbalk, plus vijfhonderd kaartjes eronder. Alles stond er, en
+// juist daarom zag je niets.
 //
-// De band maakt ze aanklikbaar. Klik een klasse en de lijst eronder waaiert
-// uit naar alles wat erbij hoort; de subklassen verschijnen als tweede rij,
-// zodat je verder kunt inzoomen zonder de klasse kwijt te raken. Hetzelfde
-// voor een volk en een achtergrond — die hebben geen tweede laag.
-const _BAND_GROEPEN = [
-  { id: 'class',      label: 'Klassen',       soorten: ['class', 'subclass'], icoon: KLASSE_ICOON },
-  { id: 'species',    label: 'Volken',        soorten: ['species'],           icoon: SPECIES_ICOON },
-  { id: 'background', label: 'Achtergronden', soorten: ['background'],        icoon: {} },
+// Nu zijn het **vier deuren**, en achter elke deur ligt precies één laag:
+//
+//   Classes   → de twaalf classes → die class + haar subclasses + features
+//   Species   → de species        → dat species + zijn traits
+//   Backgrounds → de backgrounds  → die background + wat ze geeft
+//   Feats & Epic Boons            → meteen de lijst; die hebben geen tweede laag
+//
+// Wat je zoekt loopt er dwars doorheen: typ iets en je krijgt resultaten uit
+// alles, ongeacht welke deur openstond. Zo hoeft de indeling nooit in de weg te
+// staan van "waar stond dat ook alweer".
+const _DEUREN = [
+  { id: 'class',      label: 'Classes',           sub: 'Wat je bent, en wat je wordt',   soorten: ['class', 'subclass'], icoon: 'swords',      kleur: '#a03810' },
+  { id: 'species',    label: 'Species',           sub: 'Waar je vandaan komt',           soorten: ['species'],           icoon: 'user',        kleur: '#1a6a50' },
+  { id: 'background', label: 'Backgrounds',       sub: 'Wat je deed voor dit alles',     soorten: ['background'],        icoon: 'scroll-text', kleur: '#962058' },
+  { id: 'feats',      label: 'Feats & Epic Boons',sub: 'Wat je onderweg oppikt',         soorten: ['feat', 'boon'],      icoon: 'zap',         kleur: '#1e4a8a' },
 ];
+const _DEUR = id => _DEUREN.find(d => d.id === id);
+
+// Welke deur staat open, en waar sta je daarbinnen. `_filters.bron` en
+// `_filters.sub` bestonden al; dit is de laag erboven.
+let _deur = null;
+
+// Hoeveel zit er achter een deur? Bij Classes tellen we de classes zelf, niet
+// hun features — "12" zegt meer dan "419".
+function _deurTelling(d) {
+  if (d.id === 'class')  return Object.keys(_bron?.prog?.classes || {}).length;
+  if (d.id === 'species') return _bandBronnen(d).length;
+  if (d.id === 'background') return _bandBronnen(d).length;
+  return (_all || []).filter(x => d.soorten.includes(x.soort)).length;
+}
+
+// Een portret achter de tegel. Er is geen apart "beeld per class"-veld, dus we
+// lenen de eerste afbeelding die de DM aan iets uit die groep hing. Hoe meer
+// hij er plaatst, hoe rijker dit scherm vanzelf wordt; staat er niets, dan is
+// het icoon groot genoeg om op zichzelf te staan.
+function _tegelBeeld(filter) {
+  const met = (_all || []).find(x => x.img && filter(x));
+  return met ? `/api/files/${esc(met.img)}` : '';
+}
 
 function _bandBronnen(groep) {
   const uit = new Map();
@@ -623,9 +665,9 @@ function _bandBronnen(groep) {
   return [...uit.entries()].sort((a, b) => a[0].localeCompare(b[0]));
 }
 
-// De subklassen van de gekozen klasse, met hoeveel er van bekend is. Een
-// subklasse zonder features blijft staan — juist dán wil je zien dat ze bestaat
-// en dat er niets van in de app staat.
+// De subclasses van een class, met hoeveel er van bekend is. Eén zonder
+// features blijft staan — juist dán wil je zien dát ze bestaat en dat er niets
+// van in de app staat.
 function _bandSubklassen(klasse) {
   const uit = new Map();
   for (const [kl, data] of Object.entries(_bron?.prog?.classes || {})) {
@@ -637,76 +679,135 @@ function _bandSubklassen(klasse) {
   return [...uit.entries()].sort((a, b) => a[0].localeCompare(b[0]));
 }
 
-function _bandHtml() {
-  const groepen = _BAND_GROEPEN.map(g => {
-    const rijen = _bandBronnen(g);
-    if (!rijen.length) return '';
-    const knoppen = rijen.map(([naam, n]) => {
-      const aan = _filters.bron === naam || (g.id === 'background' && _filters.q === naam);
-      const ic = g.icoon[naam] || (g.id === 'class' ? 'sword' : g.id === 'species' ? 'user' : 'scroll-text');
-      return `<button class="vb-knop${aan ? ' is-aan' : ''}" onclick="window.vaardigheden.bandKies('${g.id}','${esc(naam).replace(/'/g, "\\'")}')">
-        ${icon(ic)} <span>${esc(naam)}</span><span class="vb-telling">${n}</span></button>`;
-    }).join('');
-    return `<div class="vb-groep"><div class="vb-groep-kop">${esc(g.label)}</div><div class="vb-rij">${knoppen}</div></div>`;
-  }).join('');
+// ── Laag 0: de vier deuren ──────────────────────────────────────────────────
+function _deurenHtml() {
+  return `<div class="vd-deuren">${_DEUREN.map(d => {
+    const beeld = _tegelBeeld(x => d.soorten.includes(x.soort));
+    return `<button class="vd-deur" style="--vd-kleur:${d.kleur}"
+      onclick="window.vaardigheden.deur('${d.id}')">
+      ${beeld ? `<span class="vd-deur-beeld" style="background-image:url('${beeld}')"></span>` : ''}
+      <span class="vd-deur-icoon">${icon(d.icoon)}</span>
+      <span class="vd-deur-naam">${esc(d.label)}</span>
+      <span class="vd-deur-sub">${esc(d.sub)}</span>
+      <span class="vd-deur-telling">${_deurTelling(d)}</span>
+    </button>`;
+  }).join('')}</div>`;
+}
 
-  // Tweede laag: de subklassen van de klasse waar je op staat.
-  let subRij = '';
-  if (_filters.bron && _bron?.prog?.classes?.[_filters.bron]) {
-    const subs = _bandSubklassen(_filters.bron);
-    if (subs.length) {
-      subRij = `<div class="vb-groep vb-groep--sub">
-        <div class="vb-groep-kop">Subklassen van ${esc(_filters.bron)}</div>
-        <div class="vb-rij">
-          <button class="vb-knop vb-knop--sub${_filters.sub ? '' : ' is-aan'}"
-            onclick="window.vaardigheden.bandSub(null)">Alle</button>
-          ${subs.map(([naam, n]) => `
-            <button class="vb-knop vb-knop--sub${_filters.sub === naam ? ' is-aan' : ''}${n ? '' : ' vb-knop--leeg'}"
-              onclick="window.vaardigheden.bandSub('${esc(naam).replace(/'/g, "\\'")}')"
-              title="${n ? '' : 'Van deze subklasse staat er geen tekst in de app'}">
-              <span>${esc(naam)}</span>${n ? `<span class="vb-telling">${n}</span>` : `<span class="vb-leeg">—</span>`}</button>`).join('')}
-        </div></div>`;
-    }
+// ── Laag 1: de keuzes achter één deur ───────────────────────────────────────
+function _tegelsHtml(d) {
+  const rijen = _bandBronnen(d);
+  if (!rijen.length) return `<p class="spreuk-empty">Hier staat nog niets in.</p>`;
+  const icoonVan = (naam) => d.id === 'class' ? (KLASSE_ICOON[naam] || 'sword')
+    : d.id === 'species' ? (SPECIES_ICOON[naam] || 'user') : 'scroll-text';
+  return `<div class="vd-tegels">${rijen.map(([naam, n]) => {
+    const beeld = _tegelBeeld(x => d.soorten.includes(x.soort)
+      && (d.id === 'background' ? x.naam === naam : x.bron === naam));
+    const subs = d.id === 'class' ? _bandSubklassen(naam).length : 0;
+    return `<button class="vd-tegel" style="--vd-kleur:${d.kleur}"
+      onclick="window.vaardigheden.kies('${esc(naam).replace(/'/g, "\\'")}')">
+      ${beeld ? `<span class="vd-tegel-beeld" style="background-image:url('${beeld}')"></span>` : ''}
+      <span class="vd-tegel-icoon">${icon(icoonVan(naam))}</span>
+      <span class="vd-tegel-naam">${esc(naam)}</span>
+      <span class="vd-tegel-meta">${subs ? `${subs} subclasses · ` : ''}${n} ${n === 1 ? 'regel' : 'regels'}</span>
+    </button>`;
+  }).join('')}</div>`;
+}
+
+// ── Laag 2: de subclasses als kaartjes, onder het classkaartje ──────────────
+// Bewust kaartjes en geen knoppenrij: een subclass is een ding op zichzelf, met
+// een eigen signature-veld en een eigen aantal features. Die informatie past
+// niet in een pil, en juist dáár kies je op.
+function _subTegelsHtml(klasse) {
+  const subs = _bandSubklassen(klasse);
+  if (!subs.length) return '';
+  const actief = _filters.sub;
+  return `<div class="vd-subs">
+    <div class="vd-subs-kop">${icon('star')} Subclasses van ${esc(klasse)}
+      ${actief ? `<button class="vd-subs-alle" onclick="window.vaardigheden.kiesSub(null)">Toon de hele class</button>` : ''}
+    </div>
+    <div class="vd-subs-rij">${subs.map(([naam, n]) => {
+      const beeld = _tegelBeeld(x => x.soort === 'subclass' && x.bron === klasse && x.sub === naam);
+      return `<button class="vd-sub${actief === naam ? ' is-aan' : ''}${n ? '' : ' is-leeg'}"
+        onclick="window.vaardigheden.kiesSub('${esc(naam).replace(/'/g, "\\'")}')"
+        ${n ? '' : 'title="Van deze subclass staat er geen tekst in de app"'}>
+        ${beeld ? `<span class="vd-sub-beeld" style="background-image:url('${beeld}')"></span>` : ''}
+        <span class="vd-sub-naam">${esc(naam)}</span>
+        <span class="vd-sub-meta">${n ? `${n} features` : 'geen tekst'}</span>
+      </button>`;
+    }).join('')}</div></div>`;
+}
+
+// ── Het kruimelpad ──────────────────────────────────────────────────────────
+function _kruimelHtml() {
+  const d = _DEUR(_deur);
+  if (!d) return '';
+  const deel = (tekst, actie) => actie
+    ? `<button class="vd-kruimel-stap" onclick="${actie}">${esc(tekst)}</button>`
+    : `<span class="vd-kruimel-nu">${esc(tekst)}</span>`;
+  const stukken = [deel('Alles', 'window.vaardigheden.deur(null)')];
+  stukken.push(deel(d.label, _filters.bron || _filters.sub ? `window.vaardigheden.deur('${d.id}')` : null));
+  if (_filters.bron) stukken.push(deel(_filters.bron, _filters.sub ? `window.vaardigheden.kiesSub(null)` : null));
+  if (_filters.sub)  stukken.push(deel(_filters.sub, null));
+  return `<div class="vd-kruimel">${stukken.join(`<span class="vd-kruimel-pijl">${icon('chevron-right')}</span>`)}</div>`;
+}
+
+function _bandHtml() {
+  // Zoeken gaat dwars door de indeling heen: wie typt wil resultaten, geen
+  // navigatie. De deuren blijven staan als weg terug.
+  if ((_filters.q || '').trim()) {
+    return `<div class="vaardig-band">
+      <div class="vd-kruimel"><button class="vd-kruimel-stap" onclick="window.vaardigheden.wisZoek()">${icon('chevron-left')} Terug</button>
+        <span class="vd-kruimel-nu">Resultaten voor “${esc(_filters.q)}”</span></div></div>`;
   }
 
-  const keten = (_filters.bron || (_filters.soort === 'background' && _filters.q))
-    ? `<div class="vb-keten">${icon('chevron-right')} ${esc(_filters.bron || _filters.q)}${_filters.sub ? ' · ' + esc(_filters.sub) : ''}
-         <button class="vb-wis" onclick="window.vaardigheden.bandKies(null,null)" title="Terug naar alles">${icon('x')}</button></div>`
-    : '';
+  const d = _DEUR(_deur);
+  if (!d) return `<div class="vaardig-band">${_deurenHtml()}</div>`;
 
-  // Het kaartje van waar je op staat: eerst de subklasse als je er een koos,
-  // anders de klasse. Een volk of achtergrond heeft (nog) geen kaartje.
-  const kaart = _filters.sub
-    ? _subklasseKaartHtml(_filters.bron, _filters.sub)
-    : _filters.bron
-      ? (_bron?.prog?.classes?.[_filters.bron] ? _klasseKaartHtml(_filters.bron)
-         : _bron?.prog?.species?.[_filters.bron] ? _volkKaartHtml(_filters.bron) : '')
-      : (_filters.soort === 'background' && _filters.q && _bron?.backgrounds?.[_filters.q]
-         ? _achtergrondKaartHtml(_filters.q) : '');
+  // Feats en Epic Boons hebben geen tweede laag: daar is de lijst het antwoord.
+  if (d.id === 'feats') return `<div class="vaardig-band">${_kruimelHtml()}</div>`;
 
-  return `<div class="vaardig-band">${groepen}${subRij}${keten}</div>${kaart}`;
+  if (!_filters.bron) return `<div class="vaardig-band">${_kruimelHtml()}${_tegelsHtml(d)}</div>`;
+
+  // Het kaartje van de class (of species, of background) blijft altijd staan —
+  // ook als je doorklikt naar een subclass. Een Battle Master is een Fighter
+  // die iets extra's heeft; zijn hit die en zijn saves verdwijnen niet omdat je
+  // zijn subclass aanwijst. Daaronder de subclasses als kaartjes, en pas dáárna
+  // het kaartje van de gekozen subclass.
+  const isClass = !!_bron?.prog?.classes?.[_filters.bron];
+  const kaart = isClass ? _klasseKaartHtml(_filters.bron)
+    : _bron?.prog?.species?.[_filters.bron] ? _volkKaartHtml(_filters.bron)
+    : _bron?.backgrounds?.[_filters.bron] ? _achtergrondKaartHtml(_filters.bron) : '';
+  const subs    = isClass ? _subTegelsHtml(_filters.bron) : '';
+  const subKaart = (isClass && _filters.sub) ? _subklasseKaartHtml(_filters.bron, _filters.sub) : '';
+  return `<div class="vaardig-band">${_kruimelHtml()}</div>${kaart}${subs}${subKaart}`;
 }
 
 function _filterBar() {
-  const soorten = SOORT_VOLGORDE.filter(k => (_all || []).some(x => x.soort === k));
-  const soortRij = [`<button class="spreuk-school-btn${_filters.soort ? '' : ' active'}"
+  // De chips tellen wat er in dít gezichtsveld ligt, niet wat de hele
+  // bibliotheek heeft. Binnen Wizard staan "Species 53" en "Background 16"
+  // alleen maar in de weg: je kunt er niet heen en ze zeggen niets over waar je
+  // staat. Alles buiten de open deur valt dus weg.
+  const inBeeld = (_all || []).filter(it => {
+    if (_deur) { const d = _DEUR(_deur); if (d && !d.soorten.includes(it.soort)) return false; }
+    if (_filters.bron && (it.soort === 'background' ? it.naam : it.bron) !== _filters.bron) return false;
+    return true;
+  });
+  const soorten = SOORT_VOLGORDE.filter(k => inBeeld.some(x => x.soort === k));
+  // Eén soort over? Dan is de rij een mededeling, geen keuze.
+  const soortRij = soorten.length < 2 ? '' : [`<button class="spreuk-school-btn${_filters.soort ? '' : ' active'}"
       onclick="window.vaardigheden.setSoort(null)">Alles</button>`]
     .concat(soorten.map(k => {
       const s = SOORTEN[k];
-      const n = (_all || []).filter(x => x.soort === k).length;
+      const n = inBeeld.filter(x => x.soort === k).length;
       return `<button class="spreuk-school-btn${_filters.soort === k ? ' active' : ''}"
         style="--school-c2:${s.c2}" onclick="window.vaardigheden.setSoort('${k}')">${icon(s.icon)} ${esc(s.label)} <span class="vaardig-telling">${n}</span></button>`;
     })).join('');
 
-  // De bronnenlijst volgt de gekozen soort: bij Feats heeft een klassenkeuze
-  // geen betekenis, en andersom.
-  const zichtbaar = (_all || []).filter(x => !_filters.soort || x.soort === _filters.soort);
-  const bronnen = [...new Set(zichtbaar.map(x => x.bron).filter(b => !_EIGEN_BRON.has(b)))].sort();
-  const bronOpts = ['<option value="">Alle bronnen</option>']
-    .concat(bronnen.map(b => `<option value="${esc(b)}"${_filters.bron === b ? ' selected' : ''}>${esc(b)}</option>`));
-  const bronSelect = bronnen.length
-    ? `<select class="spreuk-class-select" onchange="window.vaardigheden.setBron(this.value)">${bronOpts.join('')}</select>`
-    : '';
+  const zichtbaar = inBeeld.filter(x => !_filters.soort || x.soort === _filters.soort);
+  // De bronnenkeuzelijst is weg: waar je bent staat in het kruimelpad, en twee
+  // bedieningen voor dezelfde stap lopen uit elkaar.
+  const bronSelect = '';
 
   // Zelfde regel als bij de spreuken: wat je het vaakst gebruikt staat altijd in
   // beeld (soort en bron), de brede rij zit achter de trechter. Hier zijn dat de
@@ -739,9 +840,23 @@ function _filterBar() {
     </div>`;
 }
 
+// Op de deurenlaag en de keuzelaag hoort er géén raster te staan: dat is
+// precies de waslijst die we kwijt wilden. Pas als je iets gekozen hebt (of
+// zoekt) is een lijst een antwoord in plaats van een muur.
+function _toontRaster() {
+  if ((_filters.q || '').trim()) return true;
+  if (!_deur) return false;
+  if (_deur === 'feats') return true;
+  return !!_filters.bron;
+}
+
 function _paint() {
   const grid = document.getElementById('vaardig-grid');
+  const fb   = _container?.querySelector('.vaardig-filters');
+  if (fb) fb.hidden = !_toontRaster();
   if (!grid) return;
+  grid.hidden = !_toontRaster();
+  if (!_toontRaster()) { grid.innerHTML = ''; return; }
   const lijst = _filtered();
   grid.innerHTML = lijst.length
     ? lijst.map(_card).join('')
@@ -1200,25 +1315,58 @@ window.vaardigheden = {
       _paint();
     } catch (e) { alert('Verwijderen mislukt: ' + e.message); }
   },
-  search(q) { _filters.q = q || ''; _paint(); },
+  // De band verandert mee: zodra je typt wordt hij een kruimelpad met de weg
+  // terug, en als je het veld leegmaakt staat je deur er weer. Zonder deze
+  // hertekening bleef de oude laag staan onder de resultaten.
+  search(q) {
+    const had = !!(_filters.q || '').trim();
+    _filters.q = q || '';
+    const heeft = !!(_filters.q || '').trim();
+    if (had !== heeft) { _bandHerteken(); _refreshFilterBar(); }
+    _paint();
+  },
   setSoort(k) { _filters.soort = k || null; _filters.bron = null; _filters.level = null; _refreshFilterBar(); _paint(); },
   setBron(b)  { _filters.bron = b || null; _filters.sub = null; _bandHerteken(); _paint(); },
   // Een klasse, volk of achtergrond uit de band. Een achtergrond heeft geen
   // eigen bron (ze staan allemaal onder "Backgrounds"), dus die zoeken we op
   // naam — dat is hetzelfde kaartje.
-  bandKies(groep, naam) {
-    if (!groep || !naam) { _filters.bron = null; _filters.sub = null; _filters.soort = null; _filters.q = ''; }
-    else if (groep === 'background') { _filters.soort = 'background'; _filters.bron = null; _filters.sub = null; _filters.q = naam; }
-    else {
-      _filters.q = '';
-      _filters.soort = null;
-      _filters.bron = (_filters.bron === naam) ? null : naam;
-      _filters.sub = null;
-    }
-    _filters.level = null;
-    _bandHerteken(); _refreshFilterBar(); _paint();
+  // Een deur openen of sluiten. Alles wat eronder hing gaat mee terug, anders
+  // sta je achter een andere deur nog op de class die je daarvoor koos.
+  deur(id) {
+    _deur = id || null;
+    _filters.bron = null; _filters.sub = null; _filters.soort = null;
+    _filters.level = null; _filters.q = '';
     const zoek = document.querySelector('#section-vaardigheden .sbs-input');
-    if (zoek) zoek.value = _filters.q;
+    if (zoek) zoek.value = '';
+    _bandHerteken(); _refreshFilterBar(); _paint();
+    _container?.querySelector('.spreuk-wrap')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  },
+  // Eén class, species of background achter de open deur.
+  kies(naam) {
+    _filters.bron = naam || null;
+    _filters.sub = null; _filters.level = null;
+    _bandHerteken(); _refreshFilterBar(); _paint();
+  },
+  kiesSub(naam) {
+    _filters.sub = naam || null;
+    _bandHerteken(); _paint();
+  },
+  wisZoek() {
+    _filters.q = '';
+    const zoek = document.querySelector('#section-vaardigheden .sbs-input');
+    if (zoek) zoek.value = '';
+    _bandHerteken(); _refreshFilterBar(); _paint();
+  },
+  // Blijft bestaan voor wie er van buiten naartoe springt (een feat die naar
+  // zijn class wijst, de level-up-omslag).
+  bandKies(groep, naam) {
+    if (!groep || !naam) { this.deur(null); return; }
+    _deur = groep === 'background' ? 'background' : groep === 'species' ? 'species' : 'class';
+    _filters.q = ''; _filters.soort = null; _filters.level = null;
+    _filters.bron = naam; _filters.sub = null;
+    const zoek = document.querySelector('#section-vaardigheden .sbs-input');
+    if (zoek) zoek.value = '';
+    _bandHerteken(); _refreshFilterBar(); _paint();
   },
   // Naar de spreukenbibliotheek met de zeef al op deze klasse — zelfde gebaar
   // als de knop in de level-up-omslag.
@@ -1294,10 +1442,8 @@ window.vaardigheden = {
     window.app.switchSection('spreuken');
     setTimeout(() => window.spreuken?.zetFilter?.({ klasse }), 400);
   },
-  bandSub(naam) {
-    _filters.sub = (naam && _filters.sub !== naam) ? naam : null;
-    _bandHerteken(); _paint();
-  },
+  // Oude naam, voor aanroepen van buiten dit bestand.
+  bandSub(naam) { this.kiesSub(naam); },
   setLevel(l) { _filters.level = (l === null ? null : Number(l)); _refreshFilterBar(); _paint(); },
   toggleLevels() { _levelsOpen = !_levelsOpen; _refreshFilterBar(); },
 };
@@ -1315,13 +1461,13 @@ export async function renderVaardigheden(container) {
       <div class="section-banner-head">
         <div class="section-banner-icon-wrap">${icon('graduation-cap')}</div>
         <div class="section-banner-info">
-          <div class="section-banner-label">Vaardigheden</div>
-          <div class="section-banner-desc-line">Alles wat een personage kan leren.</div>
+          <div class="section-banner-label">Heldenboek</div>
+          <div class="section-banner-desc-line">Classes, Species, Backgrounds en Feats.</div>
         </div>
         <div class="section-banner-search">
           <div class="sbs-input-wrap">
             <span class="sbs-icon">⌕</span>
-            <input type="text" class="sbs-input search-input" placeholder="Zoek feature, feat…"
+            <input type="text" class="sbs-input search-input" placeholder="Zoek een class, feat, trait…"
               value="${esc(_filters.q)}" oninput="window.vaardigheden.search(this.value)">
           </div>
           ${window._helpBtn?.('vaardigheden') ?? ''}

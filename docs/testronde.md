@@ -1495,6 +1495,22 @@ Grisburghs **data** te staan — niet in de code.
 - [ ] **De woekeraar is in te stellen** (DM) — bij *Diensten → Schulden* staat nu zijn instelscherm, in dezelfde vorm als de andere diensten: naam, wie hij is, waar hij zit, zijn begroeting, en daaronder **wat hij vraagt** (hoogste bedrag, rente per lange rust, plafond), **of een schuld escaleert** (standaard uit), en **wie hem kan stoppen** (per factie een vinkje met een renowndrempel). Zonder dit scherm was de hele escalatieladder vanuit de app niet aan te zetten en kon de DM niets van hem instellen — de route bestond wel, maar niets riep hem aan.
 - [ ] **Het gokhuis leent ook via de DM** (SP+DM) — `POST /tweespalt/leen` gaf rechtstreeks geld uit; nu wordt het hetzelfde verzoek als aan de deur van de woekeraar, met `bron: 'gokhuis'` zodat je in het register ziet waar het begon. Eén geldschieter, één regel. Controleer: leen bij het gokhuis, zie dat je beurs nog leeg is, keur goed bij *Verzoeken → Wil lenen*, en dan pas staat het geld er. Met een gedeelde beurs landt het dáár, net als eerst.
 - [ ] **Een schuldbewijs kun je nog steeds niet weggooien** (SP) — dit was stuk: de bewaking keek alleen naar `ts_leen_…`, en het bewijs van de woekeraar heet `schuld_…`. Een speler kon dus zijn eigen schuld wegklikken. Nu zijn beide beschermd, plus de *In onderpand*-regel. Haalt de DM het schuldbewijs weg, dan verdwijnt ook de schuld uit het register.
+- [ ] **Het Heldenboek, vier deuren** (ALL) — het tabblad opent met vier tegels
+      (Classes 12 · Species 13 · Backgrounds 16 · Feats & Epic Boons) en verder
+      niets: geen filterbalk, geen raster. Klik *Classes* → twaalf tegels met
+      hun aantal subclasses. Klik *Wizard* → het classkaartje met hit die,
+      saving throws, proficiencies en skills, daaronder vier subclass-kaartjes,
+      daaronder de features. Klik *Evoker* → het classkaartje blíjft staan, het
+      Evoker-kaartje komt eronder, en het raster knipt terug naar Class +
+      Subclass. Het kruimelpad brengt je elke stap terug.
+- [ ] **Zoeken gaat dwars door de deuren** (ALL) — typ *battle master* terwijl
+      je in Classes staat: je krijgt treffers uit alles, met een regel
+      *Resultaten voor…* en een knop terug. Veeg het veld leeg en je staat weer
+      waar je was.
+- [ ] **Backgrounds filteren echt** (ALL) — open *Backgrounds* → *Acolyte*: er
+      staat een kaartje mét ability scores, feat, skills en tools, én een regel
+      in het raster. (Ze staan allemaal onder dezelfde bron, dus hier ging het
+      eerder mis.)
 - [ ] **Een afbeelding bij een spreuk** (DM) — open een spreuk, *Afbeelding
       kiezen of uploaden*, kies of upload iets en bevestig: het venster sluit,
       er komt een melding **Afbeelding geplaatst**, en het beeld staat er. Lukt

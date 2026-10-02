@@ -1606,6 +1606,37 @@ in `_load()` (`render-spreuken.js`), ontdubbeld op `index`:
 
 ---
 
+> **Het Heldenboek: vier deuren, dan één laag.** (Heette *Vaardigheden*; de
+> module-sleutel is nog `vaardigheden`, want hernoemen kost een migratie van elke
+> campagne die hem in `meta.modules` heeft staan.) Het tabblad gaat niet over
+> vaardigheden maar over **waar een personage uit bestaat**, en dat was ook het
+> probleem met de oude band: élke class, elk species en elke background stond er
+> als knop, veertig naast elkaar, plus een filterbalk, plus vijfhonderd
+> kaartjes. Alles stond er en daarom zag je niets.
+> Nu `_DEUREN`: **Classes · Species · Backgrounds · Feats & Epic Boons**. Achter
+> een deur liggen de twaalf classes (of de species, of de backgrounds) als
+> tegels; kies er een en je krijgt het classkaartje (hit die, saving throws,
+> proficiencies, skills, spells, aansluitende feats), daaronder de **subclasses
+> als kaartjes**, en daaronder pas de losse features. Feats en Epic Boons hebben
+> geen tweede laag: daar is de lijst het antwoord.
+> **Het classkaartje blijft staan als je een subclass kiest** — een Battle Master
+> is een Fighter die iets extra's heeft, dus zijn hit die verdwijnt niet omdat je
+> zijn subclass aanwijst. Het subclasskaartje komt eronder.
+> **Het raster staat er alleen als het een antwoord is** (`_toontRaster()`): op de
+> deurenlaag en de tegellaag niet, want dat is precies de waslijst die we kwijt
+> wilden. De filterchips tellen bovendien wat er in dát gezichtsveld ligt —
+> binnen Wizard stond eerst "Species 53", en daar kun je niet eens heen.
+> **Zoeken gaat er dwars doorheen**: typ iets en je krijgt treffers uit alles,
+> ongeacht de open deur. `search()` moet daarom de band hertekenen zodra het veld
+> van leeg naar gevuld gaat (of andersom) — anders blijft de oude laag onder de
+> resultaten staan.
+> **Een background hangt aan zijn naam, niet aan zijn bron**: alle zestien staan
+> onder bron `Backgrounds`. Op `bron` filteren gaf nul regels terwijl het kaartje
+> er wel stond.
+> **Een tegel leent zijn portret** van de eerste afbeelding die de DM aan iets uit
+> die groep hing (`_tegelBeeld`). Er is geen apart "beeld per class"-veld; hoe
+> meer de DM er plaatst, hoe rijker dit scherm vanzelf wordt.
+
 > **Vaardigheden: de bibliotheek naast de tijdlijn.** De Progressie-tab toont class
 > features, traits en feats langs de tijdlijn van één personage — je ziet er dus
 > pas iets als jouw level het ontsluit. De archieftab **Vaardigheden**
