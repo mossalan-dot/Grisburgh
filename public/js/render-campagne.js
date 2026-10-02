@@ -7685,6 +7685,17 @@ window._openEditor = async (tab, editId) => {
                   class="w-16 px-2 py-1 bg-room-bg border border-room-border rounded text-ink-bright text-sm focus:border-gold-dim focus:outline-none">
                 <label class="text-xs text-ink-dim">% van de prijs</label>
               </div>
+              <!-- Een winkel had geen kas: inkopen lukte altijd, hoe duur ook.
+                   Dat kwam uit het niets. Nu kan een handelaar blut raken, en
+                   dat is sinds de woekeraar een verhaal in plaats van een
+                   storing — dan kijk je verderop, of je leent. -->
+              <div class="flex gap-2 items-center">
+                <label class="text-xs text-ink-dim w-32">Kas per nacht</label>
+                <input type="number" id="wc-kas" min="0" step="1"
+                  value="${parseInt(winkelConfigEditor.kasPerRust) || 0}" oninput="window._wcUpdate()"
+                  class="w-24 px-2 py-1 bg-room-bg border border-room-border rounded text-ink-bright text-sm focus:border-gold-dim focus:outline-none">
+                <label class="text-xs text-ink-dim">in de kleinste munt · 0 = onbeperkt</label>
+              </div>
             </div>
           </div>
         </div>
@@ -8325,6 +8336,7 @@ window._openEditor = async (tab, editId) => {
         ...oud,
         koopt: _koopt,
         koopRatio: Math.min(100, Math.max(1, parseInt(document.getElementById('wc-koopratio')?.value) || 50)),
+        kasPerRust: Math.max(0, parseInt(document.getElementById('wc-kas')?.value) || 0),
         roterend,
         minItems: _min,
         maxItems: _max,

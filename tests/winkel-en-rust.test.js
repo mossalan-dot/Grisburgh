@@ -329,4 +329,58 @@ describe('Winkel en rust', () => {
     const hd = (await req(server, 'GET', `/api/characters/${solo}/hit-dice`, null, dm)).body;
     assert.equal(hd.spent['6'] || 0, 0, 'met één die in totaal krijg je die ene terug');
   });
+
+  // Een winkel had geen kas: inkopen lukte altijd, hoe duur ook, en dat geld
+  // kwam uit het niets. Sinds er geleend kan worden is "de smid is blut" een
+  // verhaal in plaats van een storing.
+  describe('De kas van een winkel', () => {
+    let duur;
+
+    before(async () => {
+      await req(server, 'PUT', `/api/entities/locaties/${winkel.id}`, {
+        data: { ...winkel.data, winkelConfig: JSON.stringify({ koopt: true, koopRatio: 100, kasPerRust: 500 }) },
+      }, dm);
+      duur = (await req(server, 'POST', '/api/entities/voorwerpen',
+        { name: 'Zilveren Spiegel', data: { itemType: 'Wonderous Item', prijs: '4 fl' } }, dm)).body.id;
+      await req(server, 'PUT', `/api/items/${duur}/owner`, { characterId: aria, playerName: 'Aria', qty: 3 }, dm);
+    });
+
+    const bied = async () => {
+      // Geen stapelbaar voorwerp, dus hij moet hem elke keer opnieuw hebben.
+      await req(server, 'PUT', `/api/items/${duur}/owner`, { characterId: aria, playerName: 'Aria', qty: 1 }, dm);
+      const r = await req(server, 'POST', `/api/shops/${winkel.id}/verkoop`,
+        { entityId: duur, aantal: 1 }, ariaC);
+      assert.ok(r.status === 200 || r.status === 201, JSON.stringify(r.body));
+      const open = (await req(server, 'GET', '/api/items/ownership', null, dm)).body.requests || [];
+      return open.filter(x => x.status === 'pending' && x.type === 'verkoop').pop();
+    };
+
+    it('betaalt uit zolang er kas is', async () => {
+      const v = await bied();
+      const r = await req(server, 'POST', `/api/items/request/${v.id}/approve`, { bedragCl: 400 }, dm);
+      assert.strictEqual(r.status, 200, JSON.stringify(r.body));
+    });
+
+    it('weigert zodra de kas op is, met wat er nog in zit', async () => {
+      const v = await bied();
+      const r = await req(server, 'POST', `/api/items/request/${v.id}/approve`, { bedragCl: 400 }, dm);
+      assert.strictEqual(r.status, 409, JSON.stringify(r.body));
+      assert.strictEqual(r.body.kasOp, true);
+      assert.strictEqual(r.body.kas.restCl, 100, 'er zat nog 100 cl in');
+      assert.match(r.body.error, /in kas/);
+
+      // De DM mag erdoorheen: hij beslist, de app rekent voor.
+      const toch = await req(server, 'POST', `/api/items/request/${v.id}/approve`,
+        { bedragCl: 400, negeerKas: true }, dm);
+      assert.strictEqual(toch.status, 200, JSON.stringify(toch.body));
+    });
+
+    it('vult de kas aan na een lange rust', async () => {
+      await req(server, 'POST', '/api/party/long-rest', {}, dm);
+      await req(server, 'PUT', `/api/items/${duur}/owner`, { characterId: aria, playerName: 'Aria', qty: 1 }, dm);
+      const v = await bied();
+      const r = await req(server, 'POST', `/api/items/request/${v.id}/approve`, { bedragCl: 400 }, dm);
+      assert.strictEqual(r.status, 200, 'een nacht verder is een nieuwe kas: ' + JSON.stringify(r.body));
+    });
+  });
 });

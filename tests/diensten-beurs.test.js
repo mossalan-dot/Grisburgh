@@ -87,10 +87,17 @@ describe('Diensten betalen uit de beurs die telt', () => {
     assert.equal(r.body.enabled, true);
   });
 
-  it('een lening van de Tweespalt komt in de partybeurs', async () => {
+  // Lenen gaat sinds 2 okt 2026 langs de DM — ook in het gokhuis. Het geld komt
+  // dus pas na goedkeuring, en dán hoort het in de partybeurs te landen.
+  it('een goedgekeurde lening komt in de partybeurs', async () => {
     const voor = cl(await party());
     const r = await req(server, 'POST', '/api/tweespalt/leen', { bedrag: { fl: 40 } }, spelerC);
     assert.equal(r.status, 200);
+    assert.equal(cl(await party()), voor, 'nog niets: de DM moet eerst knikken');
+
+    const open = (await req(server, 'GET', '/api/woekeraar/verzoeken', null, dm)).body.verzoeken;
+    await req(server, 'POST', `/api/woekeraar/verzoek/${open[0].id}/approve`, {}, dm);
+
     assert.equal(cl(await party()), voor + 4000, 'het geleende bedrag staat in de partybeurs');
     assert.equal(cl(await eigen()), 0, 'en niet in een zak die niemand ziet');
   });

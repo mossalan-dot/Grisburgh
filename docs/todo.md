@@ -544,24 +544,20 @@ daar dan in. (Het eerste punt — diensten die de gedeelde beurs omzeilden — i
       eigen dienst: **de Woekeraar**. Zie `docs/voorstel-woekeraar.md`. Register,
       aflossen (ook deels), kwijtschelden, lenen via een verzoek aan de DM, drie
       escalatietrappen, de renown-afspraak, en een instelscherm.
-- [ ] **Het gokhuis leent nog buiten de DM om.** `/tweespalt/leen` geeft
-      rechtstreeks geld uit; de woekeraar doet hetzelfde via een verzoek dat de
-      DM goedkeurt en mag bijstellen. Het is dezelfde man achter twee deuren met
-      twee regels. Ofwel die route door hetzelfde verzoek laten lopen (dan
-      verdwijnt het verschil), ofwel bewust houden als "de snelle deur van het
-      gokhuis" — maar dan hoort het ergens te staan. Niet uit zichzelf
-      veranderd, want het raakt bestaand gedrag.
+- [x] **Het gokhuis leent ook via de DM** — opgelost 2 okt 2026. `/tweespalt/leen`
+      maakt nu hetzelfde verzoek als de woekeraar, met `bron: 'gokhuis'`. Eén
+      geldschieter, één regel.
 - [x] **Op de pof in de winkel** — anders opgelost dan hier bedacht, en beter:
       geen winkel die aanschrijft, maar de **woekeraar die opduikt** op het
       moment dat je iets wilt wat je niet kunt betalen. Eén geldschieter, één
       mechaniek, één register — in plaats van per dienst een eigen soort schuld.
       Niet bij de herberg (daar gaat het om een bed en een biertje) en niet bij
       de tempel (lenen om een zegen te kopen voelt blasfemisch).
-- [ ] **Een winkel heeft geen kas.** Inkopen van de party lukt altijd, hoe duur
-      ook: dat geld komt uit het niets. Bewust zo gelaten — de DM beslist aan
-      tafel of de handelaar het kan betalen, en een kas die je eerst moet
-      bijvullen is meer administratie dan spel. Heroverwegen zodra het krediet
-      hierboven er is, want dan wordt "de smid is blut" opeens wél een verhaal.
+- [x] **Een winkel heeft een kas** — gedaan 2 okt 2026, en inderdaad pas zinvol
+      nu er geleend kan worden. Per winkel een bedrag per lange rust
+      (`winkelConfig.kasPerRust`; 0 = onbeperkt, dus bestaande winkels
+      veranderen niet). Is de kas op, dan weigert de app met wat er nog in zit
+      en vraagt of de DM er toch doorheen wil — hij beslist, de app rekent voor.
 
 ## Afgesproken maar nog niet ingepland
 

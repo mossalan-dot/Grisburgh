@@ -727,7 +727,15 @@ export function initDmPanel() {
         await (akkoord
           ? api.post(`/items/request/${reqId}/approve`, { bedragCl })
           : api.rejectItemRequest(reqId));
-      } catch (e) { alert('Mislukt: ' + e.message); }
+      } catch (e) {
+        // Een winkel kan blut zijn. Dat is een verhaal, geen fout — dus vertel
+        // het en laat de DM beslissen of de handelaar het tóch ophoest.
+        if (e?.data?.kasOp) {
+          if (!confirm(`${e.message}\n\nToch uitbetalen? Dan gaat hij erdoorheen.`)) return;
+          try { await api.post(`/items/request/${reqId}/approve`, { bedragCl, negeerKas: true }); }
+          catch (e2) { alert('Mislukt: ' + e2.message); }
+        } else { alert('Mislukt: ' + e.message); }
+      }
       _renderVerzoeken(); _verzoekenTeller();
     },
     async verzoekItem(reqId, akkoord) {

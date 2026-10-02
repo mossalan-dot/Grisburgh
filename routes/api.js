@@ -3385,6 +3385,19 @@ router.post('/items/request/:reqId/approve', requireDM, (req, res) => {
       : Math.max(0, Math.round(Number(opgegeven) || 0));
     r.bedragCl = bedragCl;
 
+    // Heeft de winkel het? Een handelaar met een lege kas kan niet kopen, en
+    // dat is sinds de woekeraar een verhaal in plaats van een storing. De DM
+    // kan er met `negeerKas` overheen — hij beslist, de app rekent voor.
+    const _entsKas = storage.readJSON('entities.json');
+    const kas = _shopKas(dmState, r.shopId, _entsKas);
+    if (!kas.onbeperkt && bedragCl > kas.restCl && !req.body?.negeerKas) {
+      return res.status(409).json({
+        error: `Deze winkel heeft vannacht nog ${_tsFormatCl(kas.restCl)} in kas.`,
+        kas: { maxCl: kas.maxCl, restCl: kas.restCl }, kasOp: true,
+      });
+    }
+    if (bedragCl > 0) _shopKasAf(dmState, r.shopId, bedragCl, kas);
+
     const owner = g.itemOwners[r.itemId];
     const aantal = Math.max(1, parseInt(r.aantal) || 1);
     if (Array.isArray(owner)) {
@@ -5747,7 +5760,12 @@ router.delete('/player-items/:characterId/:itemId', attachRole, (req, res) => {
 
   // Een schuldbewijs gooi je niet zelf weg — dat is het hele punt van een
   // schuld. (De boete-variant hiernaast is vervallen met het Dievengilde.)
-  const isIOU = itemId.startsWith('ts_leen_');
+  // Een schuldbewijs gooi je niet zelf weg — dat is het hele punt van een
+  // schuld. De woekeraar schrijft ze als `schuld_…`, het gokhuis deed dat als
+  // `ts_leen_…`; allebei moeten hier langs. En een voorwerp dat in onderpand
+  // staat evenmin: dat is een regel die vertelt wat je kwijt bent.
+  const isIOU = itemId.startsWith('ts_leen_') || itemId.startsWith('schuld_')
+             || itemId.startsWith('onderpand_');
   if (isIOU && req.role !== 'dm')
     return res.status(403).json({ error: 'Schuldbrieven kunnen alleen door de DM worden verwijderd' });
 
@@ -5763,6 +5781,13 @@ router.delete('/player-items/:characterId/:itemId', attachRole, (req, res) => {
     dmState.playerItems[characterId] = dmState.playerItems[characterId].filter(i => i.id !== itemId);
 
   // Als het een IOU is: ook de openstaande lening wissen
+  // Haalt de DM een schuldbewijs weg, dan is de schuld daarmee van tafel —
+  // ook die uit het register.
+  if (itemId.startsWith('schuld_')) {
+    const schuldId = itemId.slice('schuld_'.length);
+    const i = (dmState.schulden || []).findIndex(r => r.id === schuldId);
+    if (i >= 0) dmState.schulden.splice(i, 1);
+  }
   if (isIOU && dmState.tweespalt?.leningen?.[characterId]) {
     delete dmState.tweespalt.leningen[characterId];
   }
@@ -14694,6 +14719,40 @@ function _schuldenVan(dmState, characterId = null) {
   return uit;
 }
 
+// ── De kas van een winkel ───────────────────────────────────────────────────
+// Inkopen van de party lukte altijd, hoe duur ook: dat geld kwam uit het niets.
+// Dat was bewust zo — de DM beslist aan tafel of de handelaar het kan betalen —
+// maar nu er geleend kan worden, wordt "de smid is blut" opeens wél een
+// verhaal: dan moet je verderop kijken, of bij de woekeraar aankloppen.
+//
+// Per winkel een bedrag dat hij per **lange rust** kan uitbetalen
+// (`data.kasPerRust` in centeling; leeg of 0 = onbeperkt, dus precies wat het
+// was). Wat hij vannacht al uitgaf staat in `dmState.shopKas`, en dat telt
+// zichzelf terug zodra de party een nacht verder is — geen aparte klok.
+function _shopKas(dmState, shopId, entities) {
+  const winkel = (entities.locaties || []).concat(entities.personages || [])
+    .find(e => e.id === shopId);
+  // De kas staat in de winkelconfig, net als `koopt` en `koopRatio`.
+  let cfg = {};
+  try { cfg = winkel?.data?.winkelConfig ? JSON.parse(winkel.data.winkelConfig) : {}; } catch { cfg = {}; }
+  const maxCl = parseInt(cfg.kasPerRust) || 0;
+  if (!maxCl) return { onbeperkt: true, maxCl: 0, uitgegevenCl: 0, restCl: Infinity };
+
+  const g = getGroup(dmState);
+  const stand = (g?.rustTellers || {}).long || 0;
+  if (!dmState.shopKas) dmState.shopKas = {};
+  const bij = dmState.shopKas[shopId];
+  // Een nacht verder is een nieuwe kas.
+  const uitgegevenCl = (bij && bij.rustStand === stand) ? (bij.uitgegevenCl || 0) : 0;
+  return { onbeperkt: false, maxCl, uitgegevenCl, restCl: Math.max(0, maxCl - uitgegevenCl), stand };
+}
+
+function _shopKasAf(dmState, shopId, bedragCl, kas) {
+  if (kas.onbeperkt) return;
+  if (!dmState.shopKas) dmState.shopKas = {};
+  dmState.shopKas[shopId] = { rustStand: kas.stand, uitgegevenCl: kas.uitgegevenCl + bedragCl };
+}
+
 // ── De drie trappen ─────────────────────────────────────────────────────────
 // Een schuld die blijft staan wordt niet alleen duurder, hij wordt ook
 // gevaarlijker. Dat gebeurt per lange rust, en elke trap is een **voorstel**:
@@ -15267,68 +15326,55 @@ router.post('/tweespalt/arena/signup/:id/uitslag', requireDM, (req, res) => {
   res.json({ ok: true, uitkomst });
 });
 
+// Lenen in het gokhuis. Dit gaf tot 2 okt 2026 rechtstreeks geld uit, zonder
+// dat de DM eraan te pas kwam — terwijl een lening aan de deur van de woekeraar
+// wél langs hem ging. Dezelfde man achter twee deuren met twee regels.
+//
+// Nu één regel: het wordt hetzelfde verzoek, met `bron: 'gokhuis'` zodat je in
+// het register ziet waar het begon. Je verliest je inleg en hij staat naast je
+// — maar je krijgt het geld pas als de DM knikt.
 router.post('/tweespalt/leen', attachRole, vereistDienst('tweespalt'), (req, res) => {
   const characterId = _handelendKarakter(req);
   if (!characterId) return res.status(403).json({ error: 'Geen speler ingelogd' });
 
-  const { bedrag } = req.body;
-  if (!bedrag) return res.status(400).json({ error: 'bedrag vereist' });
-
-  const bedragCl = _tsCl(bedrag);
-  if (bedragCl <= 0) return res.status(400).json({ error: 'Bedrag moet groter zijn dan 0' });
-
-  // Het plafond stond alleen in de client ("leent maximaal 100 fl"), dus een
-  // verzoek dat daarbuiten omging kreeg elk bedrag mee.
-  const _meta = storage.readJSON('meta.json');
-  const gs = _tsGeldschieter(_meta);
-  if (bedragCl > gs.maxLeenCl) {
-    return res.status(400).json({ error: `Zoveel leent ${gs.naam} niet — hoogstens ${_tsFormatCl(gs.maxLeenCl)}.` });
-  }
+  const bedragCl = _tsCl(req.body?.bedrag);
+  if (!(bedragCl > 0)) return res.status(400).json({ error: 'Bedrag moet groter zijn dan 0' });
 
   const dmState = readDmState();
-  const ts = _tsState(dmState);
-  if (ts.leningen[characterId]) return res.status(400).json({ error: `Je hebt al een openstaande lening bij ${gs.naam}` });
+  if (_schuldenVan(dmState, characterId).length) {
+    return res.status(409).json({ error: 'Je hebt al een schuld openstaan. Los die eerst af.' });
+  }
+  const g = getGroup(dmState);
+  if (!g.leenVerzoeken) g.leenVerzoeken = [];
+  if (g.leenVerzoeken.some(v => v.characterId === characterId && v.status === 'pending')) {
+    return res.status(409).json({ error: 'Er staat al een verzoek open' });
+  }
 
-  const _g = getGroup(dmState, _playerGroupId(dmState, characterId));
-  const lening = {
+  const meta = storage.readJSON('meta.json');
+  const w = _woekeraar(meta);
+  if (bedragCl > w.maxLeenCl) {
+    return res.status(400).json({ error: `Zoveel leent ${w.naam} niet — hoogstens ${_tsFormatCl(w.maxLeenCl)}.` });
+  }
+
+  const entities = storage.readJSON('entities.json');
+  const verzoek = {
+    id: 'leen_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6),
+    characterId,
+    spelerNaam: _spelerNaam(entities, characterId) || 'Een speler',
     bedragCl,
-    aangegaan:    new Date().toISOString(),
-    rustStand:    (_g?.rustTellers || {}).long || 0,   // vanaf hier tellen de nachten
-    rentePerRust: TS_RENTE_PER_RUST,
-    maxFactor:    TS_MAX_FACTOR,
+    waarvoor: String(req.body?.waarvoor || '').trim().slice(0, 200) || 'het gokhuis',
+    rentePerRust: w.rentePerRust,
+    maxFactor: w.maxFactor,
+    bron: 'gokhuis',
+    status: 'pending',
+    createdAt: new Date().toISOString(),
   };
-  ts.leningen[characterId] = lening;
-
-  _deductCurrency(dmState, characterId, -bedragCl);
-
-  const bedragFormatted = _tsFormatCl(bedragCl);
-  const iouNaam = `Schuldbewijs — ${gs.naam}`;
-  const iouNote = `Bedrag: ${bedragFormatted}. Woekerrente: ${TS_RENTE_PER_RUST}% per nacht, tot ${TS_MAX_FACTOR}× de hoofdsom.`;
-
-  if (!dmState.playerItems) dmState.playerItems = {};
-  if (!dmState.playerItems[characterId]) dmState.playerItems[characterId] = [];
-  dmState.playerItems[characterId].push({
-    id:   'ts_leen_' + Date.now(),
-    name: iouNaam,
-    note: iouNote,
-  });
-
+  g.leenVerzoeken.push(verzoek);
   storage.writeJSON('dm-state.json', dmState);
-  const io = req.app.get('io');
-  io.to(_campagneRoom(req)).emit('player:currency-updated', { characterId, currency: _effectiveCurrency(dmState, characterId) });
-  io.to(_campagneRoom(req)).emit('player:items-updated', { characterId });
-  res.json({ ok: true, currency: _effectiveCurrency(dmState, characterId), lening: _tsSchuld(lening, dmState, characterId) });
+  req.app.get('io').to(_campagneRoom(req)).emit('leen:verzoek', { verzoek });
+  _meldVerzoek(req, 'lening', verzoek.spelerNaam, `${_tsFormatCl(bedragCl)} — ${verzoek.waarvoor}`);
+  res.json({ ok: true, verzoek });
 });
-
-// Aflossen. Dit kon niet: de enige uitweg was dat de DM het schuldbewijs uit de
-// boedel haalde, en de hulptekst gaf dat ook toe. Een speler die het geld bij
-// elkaar spaarde kon dus niets — en dan is een schuld geen schuld maar een vlek
-// die iemand wegpoetst.
-//
-// Deels aflossen mag. De hoofdsom daalt met wat er betaald wordt en de rente
-// telt verder over de rest; de klok gaat daarbij op nul, want je hebt zojuist
-// betaald. Dat is in het voordeel van de speler, en dat hoort ook: wie aflost
-// moet er iets voor terugkrijgen.
 router.post('/tweespalt/aflossen', attachRole, (req, res) => {
   // Bewust géén `vereistDienst('tweespalt')`: een bestaande schuld moet je
   // kunnen afbetalen ook als de DM het gokhuis heeft uitgezet. Een module

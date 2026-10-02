@@ -263,7 +263,10 @@ describe('De Tweespalt: wedden, arena en lenen', () => {
   });
 
   // ── Lenen ──────────────────────────────────────────────────────────────────
-  it('leent geld uit, met een plafond en één lening tegelijk', async () => {
+  // Dit gaf tot 2 okt 2026 rechtstreeks geld uit, zonder dat de DM eraan te pas
+  // kwam — terwijl lenen aan de deur van de woekeraar wél langs hem ging.
+  // Dezelfde man achter twee deuren met twee regels. Nu één regel.
+  it('maakt van lenen een verzoek aan de DM, met een plafond', async () => {
     await vulBeurs(0);
     const teveel = await req(server, 'POST', '/api/tweespalt/leen',
       { bedrag: { fl: 500, kn: 0, cl: 0 } }, spelerC);
@@ -272,23 +275,31 @@ describe('De Tweespalt: wedden, arena en lenen', () => {
     const r = await req(server, 'POST', '/api/tweespalt/leen',
       { bedrag: { fl: 20, kn: 0, cl: 0 } }, spelerC);
     assert.strictEqual(r.status, 200, JSON.stringify(r.body));
-    assert.strictEqual(alsCl(await beurs()), 2000, 'het geld staat op zijn beurs');
-
-    const bewijs = (await boedel()).find(i => String(i.id || '').startsWith('ts_leen_'));
-    assert.ok(bewijs, 'er hoort een schuldbewijs in de boedel te komen');
-    assert.ok(!/\p{Extended_Pictographic}/u.test(bewijs.name), 'geen emoji in de naam: ' + bewijs.name);
+    assert.strictEqual(alsCl(await beurs()), 0, 'het geld komt pas als de DM knikt');
+    assert.strictEqual(r.body.verzoek.bron, 'gokhuis', 'maar je ziet wel waar het begon');
 
     const tweede = await req(server, 'POST', '/api/tweespalt/leen',
       { bedrag: { fl: 5, kn: 0, cl: 0 } }, spelerC);
-    assert.strictEqual(tweede.status, 400, 'twee leningen tegelijk kan niet');
+    assert.strictEqual(tweede.status, 409, 'twee verzoeken tegelijk kan niet');
+
+    // En na goedkeuring is het een gewone schuld in het register.
+    const open = (await req(server, 'GET', '/api/woekeraar/verzoeken', null, dm)).body.verzoeken;
+    const goed = await req(server, 'POST', `/api/woekeraar/verzoek/${open[0].id}/approve`, {}, dm);
+    assert.strictEqual(goed.status, 200, JSON.stringify(goed.body));
+    assert.strictEqual(alsCl(await beurs()), 2000, 'nu staat het geld er wél');
+
+    const bewijs = (await boedel()).find(i => /Schuldbewijs/.test(i.name || ''));
+    assert.ok(bewijs, 'er hoort een schuldbewijs in de boedel te komen');
+    assert.ok(!/\p{Extended_Pictographic}/u.test(bewijs.name), 'geen emoji in de naam: ' + bewijs.name);
   });
 
   // Aflossen kon niet: de enige uitweg was dat de DM het schuldbewijs uit de
   // boedel haalde, en de hulptekst gaf dat ook toe. Een speler die het geld bij
   // elkaar spaarde kon dus niets.
   it('lost een deel af: de rest wordt de nieuwe hoofdsom', async () => {
-    const voor = (await req(server, 'GET', '/api/tweespalt', null, spelerC)).body.lening;
-    assert.ok(voor, 'er staat een lening open');
+    const reg = (await req(server, 'GET', '/api/schulden', null, dm)).body.schulden;
+    const voor = reg.find(x => x.characterId === speler)?.stand;
+    assert.ok(voor, 'er staat een schuld open: ' + JSON.stringify(reg));
 
     await vulBeurs(50);
     const r = await req(server, 'POST', '/api/tweespalt/aflossen', { bedrag: { fl: 2, kn: 0, cl: 0 } }, spelerC);
@@ -296,11 +307,11 @@ describe('De Tweespalt: wedden, arena en lenen', () => {
     assert.strictEqual(r.body.betaaldCl, 200, 'twee florinde is tweehonderd centeling');
     assert.strictEqual(r.body.restCl, voor.huidigVerschuldigdCl - 200);
 
-    const na = (await req(server, 'GET', '/api/tweespalt', null, spelerC)).body.lening;
-    assert.strictEqual(na.bedragCl, r.body.restCl, 'wat overblijft is de nieuwe hoofdsom');
-    assert.strictEqual(na.rusten, 0, 'en de nachten tellen opnieuw — wie aflost krijgt er iets voor terug');
+    const na = (await req(server, 'GET', '/api/schulden', null, dm)).body.schulden.find(x => x.characterId === speler);
+    assert.strictEqual(na.hoofdsomCl, r.body.restCl, 'wat overblijft is de nieuwe hoofdsom');
+    assert.strictEqual(na.stand.rusten, 0, 'en de nachten tellen opnieuw — wie aflost krijgt er iets voor terug');
 
-    const bewijs = (await boedel()).find(i => String(i.id || '').startsWith('ts_leen_'));
+    const bewijs = (await boedel()).find(i => /Schuldbewijs/.test(i.name || ''));
     assert.ok(bewijs, 'het schuldbewijs blijft staan zolang er iets open staat');
     assert.match(bewijs.note, /Bedrag:/);
   });
@@ -313,7 +324,7 @@ describe('De Tweespalt: wedden, arena en lenen', () => {
   });
 
   it('laat de speler zijn schuldbewijs niet zelf weggooien', async () => {
-    const bewijs = (await boedel()).find(i => String(i.id || '').startsWith('ts_leen_'));
+    const bewijs = (await boedel()).find(i => /Schuldbewijs/.test(i.name || ''));
     const r = await req(server, 'DELETE', `/api/player-items/${speler}/${bewijs.id}`, null, spelerC);
     assert.strictEqual(r.status, 403, JSON.stringify(r.body));
   });
@@ -324,9 +335,9 @@ describe('De Tweespalt: wedden, arena en lenen', () => {
     assert.strictEqual(r.body.restCl, 0);
     assert.strictEqual(r.body.lening, null);
 
-    const na = (await req(server, 'GET', '/api/tweespalt', null, spelerC)).body;
-    assert.strictEqual(na.lening, null, 'er staat niets meer open');
-    const bewijs = (await boedel()).find(i => String(i.id || '').startsWith('ts_leen_'));
+    const na = (await req(server, 'GET', '/api/schulden', null, dm)).body.schulden;
+    assert.ok(!na.some(x => x.characterId === speler), 'er staat niets meer open');
+    const bewijs = (await boedel()).find(i => /Schuldbewijs/.test(i.name || ''));
     assert.ok(!bewijs, 'en het schuldbewijs is weg');
 
     const nog = await req(server, 'POST', '/api/tweespalt/aflossen', {}, spelerC);
