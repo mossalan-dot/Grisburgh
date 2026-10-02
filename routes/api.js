@@ -34,6 +34,27 @@ const uploadMedia = multer({
   limits: { fileSize: 50 * 1024 * 1024 },
   fileFilter: (req, file, cb) => cb(null, MEDIA_MIME.has(file.mimetype)),
 });
+// ── De campagne-context overleeft multer niet ───────────────────────────────
+// `storage` weet via AsyncLocalStorage in welke campagne een verzoek draait.
+// Die context wordt in server.js om `next()` heen gelegd — maar multer leest de
+// **request-stream**, en die stream is aangemaakt toen de verbinding openging,
+// lang vóór onze context bestond. De `next()` die multer aanroept komt dus uit
+// een stream-event dat erbuiten valt, en alles daarna valt terug op de
+// **actieve** campagne.
+//
+// Gevolg, en het bleef lang onzichtbaar: in de actieve campagne klopte het bij
+// toeval. Daarbuiten landde elke upload in Grisburgh — het bestand werd netjes
+// opgeslagen, de route antwoordde 200, en pas de volgende stap (`copy-from`)
+// zei dat het bronbestand niet bestond. Gevonden op 2 okt 2026 doordat een
+// upload in campagne `Test` in `grisburgh/files/` terechtkwam.
+function metUpload(mw) {
+  return (req, res, next) => mw(req, res, (err) => {
+    if (err) return next(err);
+    if (req.campagneId) return storage.runInCampaign(req.campagneId, next);
+    next();
+  });
+}
+
 const uploadText = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: 5 * 1024 * 1024, files: 50 },
@@ -7304,7 +7325,7 @@ function _importMd(content, filename) {
   return { ok: true, id, name, type: collection };
 }
 
-router.post('/import/obsidian', requireDM, uploadText.array('files', 50), (req, res) => {
+router.post('/import/obsidian', requireDM, metUpload(uploadText.array('files', 50)), (req, res) => {
   if (!req.files?.length) return res.status(400).json({ error: 'Geen bestanden ontvangen' });
   const results = [];
   for (const file of req.files) {
@@ -7458,7 +7479,7 @@ router.post('/import/akte/preview', requireDM, (req, res) => {
 });
 
 // Commit: bouw sessieLog-afbeeldingen, encounters en het regie-script.
-router.post('/import/akte/apply', requireDM, uploadMedia.array('images', 100), async (req, res) => {
+router.post('/import/akte/apply', requireDM, metUpload(uploadMedia.array('images', 100)), async (req, res) => {
   let plan;
   try { plan = JSON.parse(req.body.plan || '[]'); } catch { return res.status(400).json({ error: 'Ongeldig plan' }); }
   if (!Array.isArray(plan)) return res.status(400).json({ error: 'Ongeldig plan' });
@@ -8224,7 +8245,7 @@ router.delete('/quests/:id', requireDM, (req, res) => {
 
 // ── Files ──
 
-router.post('/files/:id', requireDM, uploadMedia.single('file'), async (req, res) => {
+router.post('/files/:id', requireDM, metUpload(uploadMedia.single('file')), async (req, res) => {
   if (!req.file) return res.status(400).json({ error: 'Geen bestand of niet-toegestaan type' });
   if (!_sniffMedia(req.file.buffer))
     return res.status(415).json({ error: 'Bestandsinhoud komt niet overeen met een toegestaan mediatype' });
@@ -11819,6 +11840,72 @@ router.get('/campagne', (req, res) => {
 
 // Lijst alle campagnes — beheer, dus niet voor elke DM: de lijst verklapt welke
 // campagnes er nog meer op deze server staan.
+// ── Hoe staat het ervoor? ───────────────────────────────────────────────────
+// De beheerder kon tot nu toe zien dát er campagnes zijn en welke onderdelen ze
+// hebben — meer niet. Welke campagne de schijf opeet, wanneer er voor het laatst
+// gespeeld is, of een DM wel een wachtwoord zette: dat moest met `ssh` en `du`.
+// Dat is de echte ontbrekende beheerderskant, en het is een paneel, geen site.
+//
+// Bewust geteld met readdir+stat en niet met `du`: dat laatste is een extern
+// proces per campagne en het telt ook mappen mee die we juist niet willen
+// (`backups/`, dat `lib/storage.js` zelf bijhoudt). Gemeten: 17 ms voor vijf
+// campagnes, dus geen cache nodig.
+function _mapTelling(dir) {
+  let aantal = 0, bytes = 0;
+  try {
+    for (const naam of fs.readdirSync(dir)) {
+      try {
+        const st = fs.statSync(path.join(dir, naam));
+        if (st.isFile()) { aantal++; bytes += st.size; }
+      } catch { /* weg tijdens het tellen */ }
+    }
+  } catch { /* map bestaat niet */ }
+  return { aantal, bytes };
+}
+
+function _campagneStand(id) {
+  const dir = path.join(storage.CAMPAIGNS_DIR, id);
+  const bestanden = _mapTelling(path.join(dir, 'files'));
+  const thumbs    = _mapTelling(path.join(dir, 'thumbs'));
+  const json      = _mapTelling(dir);
+
+  // Wanneer is hier voor het laatst iets gebeurd? De nieuwste mtime van de
+  // JSON-bestanden is daar een eerlijke maat voor: elke speelhandeling schrijft
+  // er een. Een bestand dat alleen bij een migratie verandert telt ook mee, maar
+  // dat is zeldzaam genoeg om geen verkeerd beeld te geven.
+  let laatst = 0;
+  try {
+    for (const naam of fs.readdirSync(dir)) {
+      if (!naam.endsWith('.json') || naam.includes('.bak') || naam.includes('.voor-')) continue;
+      try { laatst = Math.max(laatst, fs.statSync(path.join(dir, naam)).mtimeMs); } catch { /* ok */ }
+    }
+  } catch { /* ok */ }
+
+  return storage.runInCampaign(id, () => {
+    const dmState = storage.readJSON('dm-state.json');
+    const ents    = storage.readJSON('entities.json');
+    const meta    = storage.readJSON('meta.json');
+    const mods    = modulesVoor(meta);
+    const groepen = Object.values(dmState.groups || {});
+    return {
+      bytes: { bestanden: bestanden.bytes, thumbs: thumbs.bytes, json: json.bytes,
+               totaal: bestanden.bytes + thumbs.bytes + json.bytes },
+      bestanden: bestanden.aantal,
+      laatst: laatst ? new Date(laatst).toISOString() : null,
+      partys: groepen.length,
+      // Party's zonder wachtwoord kunnen hun spelers niet binnenlaten; dat is
+      // het soort ding dat je pas merkt als er iemand voor de deur staat.
+      partysZonderWachtwoord: groepen.filter(g => !g.password).length,
+      spelers: (ents.personages || []).filter(e => e.subtype === 'speler').length,
+      kaartjes: ['personages', 'locaties', 'organisaties', 'voorwerpen', 'documenten']
+        .reduce((n, t) => n + (ents[t] || []).length, 0),
+      modulesAan: Object.values(mods).filter(Boolean).length,
+      modulesTotaal: Object.keys(mods).length,
+      wizardKlaar: !!meta.wizardKlaar,
+    };
+  });
+}
+
 router.get('/campaigns', requireBeheerder, (req, res) => {
   const modules = Object.fromEntries(storage.listCampaigns().map(c => [
     c.id,
@@ -11828,13 +11915,27 @@ router.get('/campaigns', requireBeheerder, (req, res) => {
     c.id,
     storage.runInCampaign(c.id, () => !!storage.readJSON('dm-state.json').dmPassword),
   ]));
+  const stand = Object.fromEntries(storage.listCampaigns().map(c => {
+    try { return [c.id, _campagneStand(c.id)]; } catch { return [c.id, null]; }
+  }));
+  // Wat er op de schijf nog over is. Zonder dit getal zegt "2,4 GB" niets: het
+  // gaat er niet om hoeveel een campagne kost maar of het nog past.
+  let schijf = null;
+  try {
+    const st = fs.statfsSync(storage.CAMPAIGNS_DIR);
+    schijf = { totaal: st.blocks * st.bsize, vrij: st.bavail * st.bsize };
+  } catch { /* niet elk platform heeft statfs */ }
+
   res.json({
     campaigns:      storage.listCampaigns(),
     activeCampaign: storage.getActiveCampaignId(),
+    beheerCampagne: config.beheerCampagne,
     // `ouder` mee: de lijst zet een deelfunctie ingesprongen onder zijn dienst.
     catalogus:      MODULES.map(({ id, label, groep, startset, ouder }) => ({ id, label, groep, startset, ouder })),
     modules,
     wachtwoorden,
+    stand,
+    schijf,
   });
 });
 

@@ -11,7 +11,7 @@
  * met die van het spreukenboek (_SB_SCHOOLS in app.js).
  */
 
-import { api } from './api.js?v=306';
+import { api } from './api.js?v=307';
 
 const esc  = s => window.app?.esc?.(s) ?? String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 const icon = (...a) => window.icon(...a);
@@ -988,12 +988,12 @@ window.spreuken = {
         // venster dat niemand openheeft. Je drukte op OK en er gebeurde niets —
         // zonder dat de app ook maar íéts zei. Nu wordt elk antwoord gelezen.
         try {
-          const r = await fetch(`/api/files/spell-img-${index}/copy-from/${srcId}`,
-            { method: 'POST', credentials: 'include' });
-          if (!r.ok) {
-            const body = await r.json().catch(() => ({}));
-            throw new Error(body.error || `de server antwoordde ${r.status}`);
-          }
+          // Via `api` en niet als kale fetch: dan gaat de campagne uit de
+          // adresbalk mee. Zonder dat viel de server terug op de sessie, en
+          // belandde een upload in de ene campagne terwijl deze kopieerslag in
+          // de andere zocht — "Bronbestand niet gevonden" terwijl het bestand
+          // er wel degelijk was.
+          await api.copyFile(`spell-img-${index}`, srcId);
           const bust = '?t=' + Date.now();
           const dimg = document.getElementById('spreuk-detail-img');
           if (dimg) {

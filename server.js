@@ -97,6 +97,12 @@ app.use((req, res, next) => {
   // wie hier iets anders invult wordt gewoon een bezoeker zonder rol.
   const cid = (storage.campagneBestaat(req.query?.campagne) ? String(req.query.campagne) : null)
     || req.session?.campaignId;
+  // Ook los op het verzoek zetten. De AsyncLocalStorage-context hieronder gaat
+  // namelijk verloren zodra een middleware de **request-stream** leest (multer
+  // doet dat): die stream bestond al vóór deze context, dus zijn events draaien
+  // erbuiten. `metUpload()` in routes/api.js zet de context daarna terug, en
+  // daarvoor is dit veld nodig.
+  if (cid) req.campagneId = cid;
   if (cid) return storage.runInCampaign(cid, next);
   next();
 });

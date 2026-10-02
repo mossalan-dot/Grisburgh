@@ -401,4 +401,48 @@ describe('Campagne-isolatie', () => {
       betaSocket.close();
     }
   });
+
+  // ════════════════════════════════════════════════════════════════════════
+  //  EEN UPLOAD LANDT IN DE CAMPAGNE VAN HET VERZOEK
+  // ════════════════════════════════════════════════════════════════════════
+  // `api.uploadFile` ging als kale fetch de deur uit: zonder `?campagne=` viel
+  // de server terug op de sessie, terwijl élke andere aanroep de campagne uit
+  // de adresbalk meestuurt. Wie in campagne B werkte met een sessie van A
+  // uploadde zo naar A — de upload gaf keurig 200, en pas de vólgende stap
+  // (`copy-from`) zei dat het bronbestand niet bestond.
+  //
+  // En er zat een tweede laag onder: multer leest de request-stream, en die is
+  // aangemaakt vóór de AsyncLocalStorage-context bestond. De `next()` die multer
+  // aanroept valt daardoor buiten die context, zodat alles erna terugviel op de
+  // actieve campagne. `metUpload()` in routes/api.js zet hem terug.
+  it('schrijft een upload in de campagne die het verzoek noemt', async () => {
+    const png = Buffer.from(
+      '89504e470d0a1a0a0000000d49484452000000010000000108060000001f15c489' +
+      '0000000a49444154789c6360000002000100ffff03000006000557bfabd4000000' +
+      '0049454e44ae426082', 'hex');
+    const grens = '----proef' + Date.now();
+    const body = Buffer.concat([
+      Buffer.from(`--${grens}\r\nContent-Disposition: form-data; name="file"; filename="p.png"\r\nContent-Type: image/png\r\n\r\n`),
+      png, Buffer.from(`\r\n--${grens}--\r\n`),
+    ]);
+    const { cookie: dmBeta } = moetLukken(await dmLogin(server, 'beta', 'beta-dm'), 'inloggen als DM van beta');
+    const id = 'proef_upload_' + Date.now();
+    const r = await new Promise((resolve, reject) => {
+      const url = new URL(`/api/files/${id}?campagne=beta`, `http://localhost:${server.address().port}`);
+      const req2 = http.request({ method: 'POST', hostname: url.hostname, port: url.port,
+        path: url.pathname + url.search,
+        headers: { 'Content-Type': `multipart/form-data; boundary=${grens}`,
+                   'Content-Length': body.length, Cookie: dmBeta } }, (res) => {
+        let d = ''; res.on('data', c => d += c); res.on('end', () => resolve({ status: res.statusCode, body: d }));
+      });
+      req2.on('error', reject); req2.write(body); req2.end();
+    });
+    assert.equal(r.status, 200, `upload gaf ${r.status}: ${r.body}`);
+    const inBeta  = fs.existsSync(path.join(DATA_DIR, 'campaigns', 'beta', 'files'))
+      && fs.readdirSync(path.join(DATA_DIR, 'campaigns', 'beta', 'files')).some(f => f.startsWith(id + '.'));
+    const inAlfa  = fs.existsSync(path.join(DATA_DIR, 'campaigns', 'alfa', 'files'))
+      && fs.readdirSync(path.join(DATA_DIR, 'campaigns', 'alfa', 'files')).some(f => f.startsWith(id + '.'));
+    assert.ok(inBeta,  'het bestand hoort in beta te staan');
+    assert.ok(!inAlfa, 'en zeker niet in alfa');
+  });
 });

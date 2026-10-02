@@ -109,12 +109,20 @@ export const api = {
   listArchief: () => request('/archief'),
 
   // Files
+  // Let op `metCampagne`: deze ging als kale fetch de deur uit, zonder te zeggen
+  // in welke campagne hij hoort. De server viel dan terug op de sessie, terwijl
+  // élke andere aanroep de campagne uit de adresbalk meestuurt. Wie in campagne
+  // B werkte met een sessie van A uploadde zo naar A — de upload gaf keurig 200
+  // en pas de vólgende stap zei dat het bestand niet bestond.
   uploadFile: async (id, file, naam) => {
     const form = new FormData();
     form.append('file', file);
     if (naam) form.append('naam', naam);
-    const res = await fetch(`${BASE}/files/${id}`, { method: 'POST', body: form });
-    if (!res.ok) throw new Error('Upload mislukt');
+    const res = await fetch(BASE + metCampagne(`/files/${id}`), { method: 'POST', body: form });
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      throw new Error(body.error || `Upload mislukt (${res.status})`);
+    }
     return res.json();
   },
 

@@ -14,7 +14,7 @@
  * zelf schreef, dan de SRD, en anders een verwijzing naar buiten.
  */
 
-import { api } from './api.js?v=306';
+import { api } from './api.js?v=307';
 import { naslagBron } from './render-progressie.js?v=57';
 
 const esc  = s => window.app?.esc?.(s) ?? String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
@@ -1232,12 +1232,9 @@ window.vaardigheden = {
           // Een 403 of 404 is geen exception: zonder deze controle liep de code
           // gewoon door, schreef een `img`-id weg dat naar niets wees, en
           // tekende een leeg vlak. Je zag dan niets gebeuren.
-          const r = await fetch(`/api/files/${id}/copy-from/${srcId}`,
-            { method: 'POST', credentials: 'include' });
-          if (!r.ok) {
-            const body = await r.json().catch(() => ({}));
-            throw new Error(body.error || `de server antwoordde ${r.status}`);
-          }
+          // Via `api`, zodat de campagne uit de adresbalk meegaat — zie de
+          // toelichting bij dezelfde aanroep in render-spreuken.js.
+          await api.copyFile(id, srcId);
           await _bewaarBeeld(it, { img: id });
           _open(key);
           window._showToast?.('Afbeelding geplaatst.');
@@ -1275,7 +1272,7 @@ window.vaardigheden = {
         // Een eigen id, zodat de afbeelding blijft staan als de naam verandert.
         const id = _edit.img || `feat-img-${Math.random().toString(36).slice(2, 10)}`;
         try {
-          await fetch(`/api/files/${id}/copy-from/${srcId}`, { method: 'POST', credentials: 'include' });
+          await api.copyFile(id, srcId);
           _edit.img = id;
           _editorHerteken();
         } catch (e) { alert('Afbeelding instellen mislukt: ' + e.message); }
