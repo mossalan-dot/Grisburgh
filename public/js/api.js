@@ -196,6 +196,7 @@ export const api = {
   oefenmateriaalWeg:  ()  => request('/wizard/oefenen', { method: 'DELETE' }),
   spreukbeeldenStand: ()  => request('/bron/spreukbeelden'),
   spreukbeeldenHalen: ()  => request('/bron/spreukbeelden', { method: 'POST' }),
+  saveHeldenboek: (data) => request('/meta/heldenboek', { method: 'PUT', body: JSON.stringify(data) }),
   saveDienstNaam: (dienst, naam) => {
     const mag = ['herberg', 'tweespalt', 'gock', 'markt', 'tempel', 'ursula', 'magizoo', 'woekeraar'];
     if (!mag.includes(dienst)) return Promise.reject(new Error('Onbekende dienst: ' + dienst));

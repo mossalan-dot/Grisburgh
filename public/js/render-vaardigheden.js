@@ -14,7 +14,7 @@
  * zelf schreef, dan de SRD, en anders een verwijzing naar buiten.
  */
 
-import { api } from './api.js?v=307';
+import { api } from './api.js?v=308';
 import { naslagBron } from './render-progressie.js?v=57';
 
 const esc  = s => window.app?.esc?.(s) ?? String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
@@ -238,7 +238,11 @@ function _filtered() {
     // Op een subklasse ingezoomd: haar eigen features én die van de klasse
     // eromheen. Een Battle Master is een Fighter die iets extra's heeft, niet
     // iets anders — alleen de subklassefeatures tonen liegt over wat je kunt.
-    if (_filters.sub && !(it.sub === _filters.sub || (it.soort === 'class' && it.bron === _filters.bron))) return false;
+    // Aangevinkte subclasses tellen erbij op: de features van de class zelf
+    // blijven staan, en elke aangevinkte subclass legt de zijne erbovenop. Niets
+    // aangevinkt betekent alleen de class — niet "alle subclasses door elkaar",
+    // want dat is precies de brij waar dit tabblad vanaf moest.
+    if (it.soort === 'subclass' && !_subAan.has(it.sub)) return false;
     if (_filters.level !== null && Number(it.level) !== Number(_filters.level)) return false;
     return true;
   });
@@ -625,33 +629,31 @@ function _achtergrondKaartHtml(naam) {
 // alles, ongeacht welke deur openstond. Zo hoeft de indeling nooit in de weg te
 // staan van "waar stond dat ook alweer".
 const _DEUREN = [
-  { id: 'class',      label: 'Classes',           sub: 'Wat je bent, en wat je wordt',   soorten: ['class', 'subclass'], icoon: 'swords',      kleur: '#a03810' },
-  { id: 'species',    label: 'Species',           sub: 'Waar je vandaan komt',           soorten: ['species'],           icoon: 'user',        kleur: '#1a6a50' },
-  { id: 'background', label: 'Backgrounds',       sub: 'Wat je deed voor dit alles',     soorten: ['background'],        icoon: 'scroll-text', kleur: '#962058' },
-  { id: 'feats',      label: 'Feats & Epic Boons',sub: 'Wat je onderweg oppikt',         soorten: ['feat', 'boon'],      icoon: 'zap',         kleur: '#1e4a8a' },
+  { id: 'class',      label: 'Classes',            soorten: ['class', 'subclass'], icoon: 'swords',      kleur: '#a03810' },
+  { id: 'species',    label: 'Species',            soorten: ['species'],           icoon: 'user',        kleur: '#1a6a50' },
+  { id: 'background', label: 'Backgrounds',        soorten: ['background'],        icoon: 'scroll-text', kleur: '#962058' },
+  { id: 'feats',      label: 'Feats & Epic Boons', soorten: ['feat', 'boon'],      icoon: 'zap',         kleur: '#1e4a8a' },
 ];
 const _DEUR = id => _DEUREN.find(d => d.id === id);
 
-// Welke deur staat open, en waar sta je daarbinnen. `_filters.bron` en
-// `_filters.sub` bestonden al; dit is de laag erboven.
+// Welke deur staat open, en waar sta je daarbinnen.
 let _deur = null;
+// Welke subclasses er aangevinkt staan. **Een Set, geen enkele waarde**: aan
+// tafel vergelijk je ze (wat krijgt een Berserker dat een Zealot niet krijgt?),
+// en dat kan alleen als je er meer dan één tegelijk kunt aanzetten.
+let _subAan = new Set();
+
+function _deurBeeld(id) {
+  const f = window.app?.state?.meta?.heldenboek?.beelden?.[id];
+  return f ? `/api/files/${esc(f)}` : '';
+}
 
 // Hoeveel zit er achter een deur? Bij Classes tellen we de classes zelf, niet
 // hun features — "12" zegt meer dan "419".
 function _deurTelling(d) {
-  if (d.id === 'class')  return Object.keys(_bron?.prog?.classes || {}).length;
-  if (d.id === 'species') return _bandBronnen(d).length;
-  if (d.id === 'background') return _bandBronnen(d).length;
+  if (d.id === 'class') return Object.keys(_bron?.prog?.classes || {}).length;
+  if (d.id === 'species' || d.id === 'background') return _bandBronnen(d).length;
   return (_all || []).filter(x => d.soorten.includes(x.soort)).length;
-}
-
-// Een portret achter de tegel. Er is geen apart "beeld per class"-veld, dus we
-// lenen de eerste afbeelding die de DM aan iets uit die groep hing. Hoe meer
-// hij er plaatst, hoe rijker dit scherm vanzelf wordt; staat er niets, dan is
-// het icoon groot genoeg om op zichzelf te staan.
-function _tegelBeeld(filter) {
-  const met = (_all || []).find(x => x.img && filter(x));
-  return met ? `/api/files/${esc(met.img)}` : '';
 }
 
 function _bandBronnen(groep) {
@@ -679,32 +681,53 @@ function _bandSubklassen(klasse) {
   return [...uit.entries()].sort((a, b) => a[0].localeCompare(b[0]));
 }
 
-// ── Laag 0: de vier deuren ──────────────────────────────────────────────────
+// ── Laag 0: vier staande kaarten ────────────────────────────────────────────
+// Hoog in plaats van breed, met het icoon, het aantal en de naam gecentreerd en
+// verder niets. Een ondertitel las als uitleg bij een knop; wat erachter ligt
+// zie je zodra je klikt, en dat is sneller dan het te lezen.
 function _deurenHtml() {
   return `<div class="vd-deuren">${_DEUREN.map(d => {
-    const beeld = _tegelBeeld(x => d.soorten.includes(x.soort));
-    return `<button class="vd-deur" style="--vd-kleur:${d.kleur}"
-      onclick="window.vaardigheden.deur('${d.id}')">
-      ${beeld ? `<span class="vd-deur-beeld" style="background-image:url('${beeld}')"></span>` : ''}
-      <span class="vd-deur-icoon">${icon(d.icoon)}</span>
-      <span class="vd-deur-naam">${esc(d.label)}</span>
-      <span class="vd-deur-sub">${esc(d.sub)}</span>
-      <span class="vd-deur-telling">${_deurTelling(d)}</span>
-    </button>`;
+    const beeld = _deurBeeld(d.id);
+    return `<div class="vd-deur-wrap">
+      <button class="vd-deur" style="--vd-kleur:${d.kleur}" onclick="window.vaardigheden.deur('${d.id}')">
+        ${beeld ? `<span class="vd-deur-beeld" style="background-image:url('${beeld}')"></span>` : ''}
+        <span class="vd-deur-icoon">${icon(d.icoon)}</span>
+        <span class="vd-deur-telling">${_deurTelling(d)}</span>
+        <span class="vd-deur-naam">${esc(d.label)}</span>
+      </button>
+      ${isDM() ? `<button class="vd-deur-beeldknop" title="Een afbeelding bij deze kaart kiezen"
+        onclick="event.stopPropagation();window.vaardigheden.deurBeeld('${d.id}')">${icon('image')}</button>` : ''}
+    </div>`;
   }).join('')}</div>`;
 }
 
-// ── Laag 1: de keuzes achter één deur ───────────────────────────────────────
+// ── De geopende deur als banner ─────────────────────────────────────────────
+// Dezelfde kaart, nu over de volle breedte. Dat is het hele gebaar: je klikt en
+// de kaart gaat open in plaats van dat er een ander scherm komt.
+function _bannerHtml(d, { klein = false } = {}) {
+  const beeld = _deurBeeld(d.id);
+  return `<button class="vd-banner${klein ? ' vd-banner--klein' : ''}" style="--vd-kleur:${d.kleur}"
+    onclick="window.vaardigheden.${klein ? `deur('${d.id}')` : 'deur(null)'}"
+    title="${klein ? 'Terug naar ' + esc(d.label) : 'Terug naar het overzicht'}">
+    ${beeld ? `<span class="vd-deur-beeld" style="background-image:url('${beeld}')"></span>` : ''}
+    <span class="vd-banner-terug">${icon('chevron-left')}</span>
+    <span class="vd-banner-icoon">${icon(d.icoon)}</span>
+    <span class="vd-banner-naam">${esc(d.label)}</span>
+    <span class="vd-banner-telling">${_deurTelling(d)}</span>
+  </button>`;
+}
+
+// ── Laag 1: de keuzes achter een deur ───────────────────────────────────────
 function _tegelsHtml(d) {
   const rijen = _bandBronnen(d);
   if (!rijen.length) return `<p class="spreuk-empty">Hier staat nog niets in.</p>`;
   const icoonVan = (naam) => d.id === 'class' ? (KLASSE_ICOON[naam] || 'sword')
     : d.id === 'species' ? (SPECIES_ICOON[naam] || 'user') : 'scroll-text';
-  return `<div class="vd-tegels">${rijen.map(([naam, n]) => {
+  return `<div class="vd-tegels">${rijen.map(([naam, n], i) => {
     const beeld = _tegelBeeld(x => d.soorten.includes(x.soort)
       && (d.id === 'background' ? x.naam === naam : x.bron === naam));
     const subs = d.id === 'class' ? _bandSubklassen(naam).length : 0;
-    return `<button class="vd-tegel" style="--vd-kleur:${d.kleur}"
+    return `<button class="vd-tegel" style="--vd-kleur:${d.kleur};--vd-i:${i}"
       onclick="window.vaardigheden.kies('${esc(naam).replace(/'/g, "\\'")}')">
       ${beeld ? `<span class="vd-tegel-beeld" style="background-image:url('${beeld}')"></span>` : ''}
       <span class="vd-tegel-icoon">${icon(icoonVan(naam))}</span>
@@ -714,47 +737,46 @@ function _tegelsHtml(d) {
   }).join('')}</div>`;
 }
 
-// ── Laag 2: de subclasses als kaartjes, onder het classkaartje ──────────────
-// Bewust kaartjes en geen knoppenrij: een subclass is een ding op zichzelf, met
-// een eigen signature-veld en een eigen aantal features. Die informatie past
-// niet in een pil, en juist dáár kies je op.
-function _subTegelsHtml(klasse) {
-  const subs = _bandSubklassen(klasse);
-  if (!subs.length) return '';
-  const actief = _filters.sub;
-  return `<div class="vd-subs">
-    <div class="vd-subs-kop">${icon('star')} Subclasses van ${esc(klasse)}
-      ${actief ? `<button class="vd-subs-alle" onclick="window.vaardigheden.kiesSub(null)">Toon de hele class</button>` : ''}
-    </div>
-    <div class="vd-subs-rij">${subs.map(([naam, n]) => {
-      const beeld = _tegelBeeld(x => x.soort === 'subclass' && x.bron === klasse && x.sub === naam);
-      return `<button class="vd-sub${actief === naam ? ' is-aan' : ''}${n ? '' : ' is-leeg'}"
-        onclick="window.vaardigheden.kiesSub('${esc(naam).replace(/'/g, "\\'")}')"
-        ${n ? '' : 'title="Van deze subclass staat er geen tekst in de app"'}>
-        ${beeld ? `<span class="vd-sub-beeld" style="background-image:url('${beeld}')"></span>` : ''}
-        <span class="vd-sub-naam">${esc(naam)}</span>
-        <span class="vd-sub-meta">${n ? `${n} features` : 'geen tekst'}</span>
-      </button>`;
-    }).join('')}</div></div>`;
+// Een portret achter een tegel: de eerste afbeelding die de DM aan iets uit die
+// groep hing. Er is geen apart "beeld per class"-veld; hoe meer hij er plaatst,
+// hoe rijker dit scherm vanzelf wordt.
+function _tegelBeeld(filter) {
+  const met = (_all || []).find(x => x.img && filter(x));
+  return met ? `/api/files/${esc(met.img)}` : '';
 }
 
-// ── Het kruimelpad ──────────────────────────────────────────────────────────
-function _kruimelHtml() {
-  const d = _DEUR(_deur);
-  if (!d) return '';
-  const deel = (tekst, actie) => actie
-    ? `<button class="vd-kruimel-stap" onclick="${actie}">${esc(tekst)}</button>`
-    : `<span class="vd-kruimel-nu">${esc(tekst)}</span>`;
-  const stukken = [deel('Alles', 'window.vaardigheden.deur(null)')];
-  stukken.push(deel(d.label, _filters.bron || _filters.sub ? `window.vaardigheden.deur('${d.id}')` : null));
-  if (_filters.bron) stukken.push(deel(_filters.bron, _filters.sub ? `window.vaardigheden.kiesSub(null)` : null));
-  if (_filters.sub)  stukken.push(deel(_filters.sub, null));
-  return `<div class="vd-kruimel">${stukken.join(`<span class="vd-kruimel-pijl">${icon('chevron-right')}</span>`)}</div>`;
+// ── Laag 2: de subclasses als kolom, aanvinkbaar ────────────────────────────
+// Bekijken én aanvinken, en meer dan één tegelijk: zo zie je wat een Berserker
+// krijgt bovenop wat elke Barbarian al heeft, en kun je twee subclasses naast
+// elkaar leggen. Het oogje opent het kaartje, het vinkje voegt zijn features
+// toe aan het raster hiernaast.
+function _subKolomHtml(klasse) {
+  const subs = _bandSubklassen(klasse);
+  if (!subs.length) return '';
+  return `<div class="vd-subkolom">
+    <div class="vd-subkolom-kop">Subclasses</div>
+    ${subs.map(([naam, n]) => {
+      const aan = _subAan.has(naam);
+      const veilig = esc(naam).replace(/'/g, "\\'");
+      return `<div class="vd-subkaart${aan ? ' is-aan' : ''}${n ? '' : ' is-leeg'}">
+        <label class="vd-subkaart-vink" title="${aan ? 'Haal zijn features uit de lijst' : 'Zet zijn features erbij'}">
+          <input type="checkbox" ${aan ? 'checked' : ''} onchange="window.vaardigheden.subToggle('${veilig}')">
+        </label>
+        <button class="vd-subkaart-open" onclick="window.vaardigheden.subBekijk('${veilig}')"
+          title="Bekijk deze subclass">
+          <span class="vd-subkaart-naam">${esc(naam)}</span>
+          <span class="vd-subkaart-meta">${n ? `${n} features` : 'geen tekst'}</span>
+        </button>
+      </div>`;
+    }).join('')}
+    ${isDM() ? `<button class="vd-subnieuw" onclick="window.vaardigheden.nieuweSub()"
+      title="Een eigen subclass voor ${esc(klasse)} toevoegen">${icon('plus')} Subclass toevoegen</button>` : ''}
+  </div>`;
 }
 
 function _bandHtml() {
   // Zoeken gaat dwars door de indeling heen: wie typt wil resultaten, geen
-  // navigatie. De deuren blijven staan als weg terug.
+  // navigatie. De weg terug blijft staan.
   if ((_filters.q || '').trim()) {
     return `<div class="vaardig-band">
       <div class="vd-kruimel"><button class="vd-kruimel-stap" onclick="window.vaardigheden.wisZoek()">${icon('chevron-left')} Terug</button>
@@ -765,22 +787,24 @@ function _bandHtml() {
   if (!d) return `<div class="vaardig-band">${_deurenHtml()}</div>`;
 
   // Feats en Epic Boons hebben geen tweede laag: daar is de lijst het antwoord.
-  if (d.id === 'feats') return `<div class="vaardig-band">${_kruimelHtml()}</div>`;
+  if (d.id === 'feats') return `<div class="vaardig-band vd-open">${_bannerHtml(d)}</div>`;
 
-  if (!_filters.bron) return `<div class="vaardig-band">${_kruimelHtml()}${_tegelsHtml(d)}</div>`;
+  if (!_filters.bron) return `<div class="vaardig-band vd-open">${_bannerHtml(d)}${_tegelsHtml(d)}</div>`;
 
-  // Het kaartje van de class (of species, of background) blijft altijd staan —
-  // ook als je doorklikt naar een subclass. Een Battle Master is een Fighter
-  // die iets extra's heeft; zijn hit die en zijn saves verdwijnen niet omdat je
-  // zijn subclass aanwijst. Daaronder de subclasses als kaartjes, en pas dáárna
-  // het kaartje van de gekozen subclass.
+  // Het kaartje van waar je op staat. Bij een class blijft het staan als je een
+  // subclass aanvinkt: een Battle Master is een Fighter die iets extra's heeft,
+  // dus zijn hit die verdwijnt niet omdat je zijn subclass aanwijst.
   const isClass = !!_bron?.prog?.classes?.[_filters.bron];
   const kaart = isClass ? _klasseKaartHtml(_filters.bron)
     : _bron?.prog?.species?.[_filters.bron] ? _volkKaartHtml(_filters.bron)
     : _bron?.backgrounds?.[_filters.bron] ? _achtergrondKaartHtml(_filters.bron) : '';
-  const subs    = isClass ? _subTegelsHtml(_filters.bron) : '';
-  const subKaart = (isClass && _filters.sub) ? _subklasseKaartHtml(_filters.bron, _filters.sub) : '';
-  return `<div class="vaardig-band">${_kruimelHtml()}</div>${kaart}${subs}${subKaart}`;
+  return `<div class="vaardig-band vd-open">
+    ${_bannerHtml(d, { klein: true })}
+    <div class="vd-gekozen">
+      <button class="vd-gekozen-terug" onclick="window.vaardigheden.kies(null)" title="Terug naar ${esc(d.label)}">${icon('chevron-left')}</button>
+      <span class="vd-gekozen-naam">${esc(_filters.bron)}</span>
+    </div>
+  </div>${kaart}`;
 }
 
 function _filterBar() {
@@ -853,7 +877,18 @@ function _toontRaster() {
 function _paint() {
   const grid = document.getElementById('vaardig-grid');
   const fb   = _container?.querySelector('.vaardig-filters');
+  const kol  = document.getElementById('vaardig-subkolom');
   if (fb) fb.hidden = !_toontRaster();
+  // De kolom met subclasses staat links van het raster en hoort alleen bij een
+  // class. Buiten Classes bestaat hij niet.
+  if (kol) {
+    const klasse = _deur === 'class' && _filters.bron && _bron?.prog?.classes?.[_filters.bron]
+      ? _filters.bron : null;
+    const html = (klasse && !(_filters.q || '').trim()) ? _subKolomHtml(klasse) : '';
+    kol.innerHTML = html;
+    kol.hidden = !html;
+    _container?.querySelector('.vaardig-onder')?.classList.toggle('heeft-kolom', !!html);
+  }
   if (!grid) return;
   grid.hidden = !_toontRaster();
   if (!_toontRaster()) { grid.innerHTML = ''; return; }
@@ -863,6 +898,20 @@ function _paint() {
     : `<p class="spreuk-empty">Niets gevonden.</p>`;
   const tel = document.getElementById('vaardig-telling');
   if (tel) tel.textContent = `${lijst.length} van ${(_all || []).length}`;
+}
+
+// Het uitwaaieren. De kaartjes krijgen één voor één een korte opkomst; de
+// vertraging staat als `--vd-i` op de tegel zelf, zodat de CSS het werk doet en
+// er geen timer per kaartje nodig is. Bewust kort (30 ms per stap, 12 stappen
+// max): langer voelt als wachten in plaats van als openvouwen.
+function _cinematisch() {
+  const wrap = _container?.querySelector('.vaardig-band');
+  if (!wrap) return;
+  wrap.classList.remove('vd-waaier');
+  // Een reflow afdwingen, anders ziet de browser geen klasseverandering en
+  // speelt de animatie niet opnieuw af.
+  void wrap.offsetWidth;
+  wrap.classList.add('vd-waaier');
 }
 
 function _bandHerteken() {
@@ -1333,20 +1382,63 @@ window.vaardigheden = {
     _deur = id || null;
     _filters.bron = null; _filters.sub = null; _filters.soort = null;
     _filters.level = null; _filters.q = '';
+    _subAan = new Set();
     const zoek = document.querySelector('#section-vaardigheden .sbs-input');
     if (zoek) zoek.value = '';
     _bandHerteken(); _refreshFilterBar(); _paint();
+    _cinematisch();
     _container?.querySelector('.spreuk-wrap')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   },
   // Eén class, species of background achter de open deur.
   kies(naam) {
     _filters.bron = naam || null;
     _filters.sub = null; _filters.level = null;
+    _subAan = new Set();
     _bandHerteken(); _refreshFilterBar(); _paint();
+    _cinematisch();
   },
-  kiesSub(naam) {
-    _filters.sub = naam || null;
-    _bandHerteken(); _paint();
+  // Aanvinken: zijn features komen erbij in het raster hiernaast.
+  subToggle(naam) {
+    if (_subAan.has(naam)) _subAan.delete(naam); else _subAan.add(naam);
+    _refreshFilterBar(); _paint();
+  },
+  // Bekijken: het kaartje van die subclass, zonder hem aan te vinken.
+  subBekijk(naam) {
+    const it = (_all || []).find(x => x.soort === 'subclass' && x.bron === _filters.bron && x.sub === naam);
+    if (it) { _open(it.key); return; }
+    // Een subclass zonder features heeft geen regel om te openen; dan is het
+    // kaartje van de subclass zelf het antwoord.
+    window._showToast?.(`Van ${naam} staat er geen tekst in de app.`);
+  },
+  kiesSub(naam) { this.subToggle(naam); },
+  // Een eigen subclass: de editor met soort en class al ingevuld, zodat je
+  // alleen nog de naam en de feature hoeft te typen.
+  nieuweSub() {
+    _editorOpen(null);
+    const zet = () => {
+      _edit.soort = 'subclass';
+      _edit.bron = _filters.bron || _bronnenVanSoort('subclass')[0] || '';
+      _edit.sub = '';
+      _editorHerteken();
+    };
+    setTimeout(zet, 60);
+  },
+  // Een beeld bij een van de vier kaarten.
+  deurBeeld(id) {
+    if (!window.mediaPicker?.open) { alert('Mediabibliotheek niet beschikbaar'); return; }
+    window.mediaPicker.open({
+      type: 'afbeelding',
+      suggestedName: 'heldenboek-' + id,
+      onSelect: async (srcId) => {
+        try {
+          await api.saveHeldenboek({ beelden: { [id]: srcId } });
+          const m = window.app?.state?.meta;
+          if (m) { m.heldenboek = m.heldenboek || {}; m.heldenboek.beelden = { ...(m.heldenboek.beelden || {}), [id]: srcId }; }
+          _bandHerteken();
+          window._showToast?.('Afbeelding geplaatst.');
+        } catch (e) { window._showToast?.('Instellen mislukt: ' + (e.message || e)); }
+      },
+    });
   },
   wisZoek() {
     _filters.q = '';
@@ -1456,10 +1548,10 @@ export async function renderVaardigheden(container) {
   _container.innerHTML = `
     <div class="section-banner section-banner--entity section-banner--vaardigheden">
       <div class="section-banner-head">
-        <div class="section-banner-icon-wrap">${icon('graduation-cap')}</div>
+        <div class="section-banner-icon-wrap">${icon('award')}</div>
         <div class="section-banner-info">
           <div class="section-banner-label">Heldenboek</div>
-          <div class="section-banner-desc-line">Classes, Species, Backgrounds en Feats.</div>
+          <div class="section-banner-desc-line">Classes, species, backgrounds en feats.</div>
         </div>
         <div class="section-banner-search">
           <div class="sbs-input-wrap">
@@ -1477,7 +1569,10 @@ export async function renderVaardigheden(container) {
     <div class="spreuk-wrap">
       <div id="vaardig-band">${_bandHtml()}</div>
       ${_filterBar()}
-      <div class="cards-grid grid grid-cols-[repeat(auto-fill,minmax(230px,1fr))] gap-4" id="vaardig-grid"></div>
+      <div class="vaardig-onder">
+        <aside id="vaardig-subkolom" hidden></aside>
+        <div class="cards-grid grid grid-cols-[repeat(auto-fill,minmax(230px,1fr))] gap-4" id="vaardig-grid"></div>
+      </div>
     </div>`;
   _paint();
 }

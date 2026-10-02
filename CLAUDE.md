@@ -1661,15 +1661,25 @@ in `_load()` (`render-spreuken.js`), ontdubbeld op `index`:
 > probleem met de oude band: élke class, elk species en elke background stond er
 > als knop, veertig naast elkaar, plus een filterbalk, plus vijfhonderd
 > kaartjes. Alles stond er en daarom zag je niets.
-> Nu `_DEUREN`: **Classes · Species · Backgrounds · Feats & Epic Boons**. Achter
-> een deur liggen de twaalf classes (of de species, of de backgrounds) als
-> tegels; kies er een en je krijgt het classkaartje (hit die, saving throws,
-> proficiencies, skills, spells, aansluitende feats), daaronder de **subclasses
-> als kaartjes**, en daaronder pas de losse features. Feats en Epic Boons hebben
-> geen tweede laag: daar is de lijst het antwoord.
-> **Het classkaartje blijft staan als je een subclass kiest** — een Battle Master
-> is een Fighter die iets extra's heeft, dus zijn hit die verdwijnt niet omdat je
-> zijn subclass aanwijst. Het subclasskaartje komt eronder.
+> Nu `_DEUREN`: **Classes · Species · Backgrounds · Feats & Epic Boons**, als
+> vier **staande kaarten** met alleen een icoon, een aantal en een naam — geen
+> ondertitel, want wat erachter ligt zie je sneller door te klikken dan te lezen.
+> Elke kaart kan een eigen beeld krijgen (`meta.heldenboek.beelden[deurId]`,
+> `PUT /meta/heldenboek`), met een knopje dat bij hover verschijnt.
+> **Klikken opent de kaart zelf**: dezelfde kaart wordt een banner over de volle
+> breedte (`_bannerHtml`), en wat erachter ligt waaiert eronder uit. Geen ander
+> scherm dus. Het uitwaaieren staat in CSS (`--vd-i` per tegel, 30 ms per stap,
+> afgetopt op twaalf); `_cinematisch()` forceert alleen een reflow zodat de
+> animatie opnieuw speelt.
+> **Subclasses zijn een kolom links van het raster, en je vinkt ze aan.**
+> `_subAan` is een **Set**: aan tafel vergelijk je ze (wat krijgt een Berserker
+> dat een Zealot niet krijgt?), en dat kan alleen als er meer dan één tegelijk
+> aan kan. Het classkaartje blijft staan — een Battle Master is een Fighter die
+> iets extra's heeft — en elke aangevinkte subclass legt zijn features bovenop
+> die van de class. Niets aangevinkt betekent alléén de class, niet "alle
+> subclasses door elkaar": dat is precies de brij waar dit tabblad vanaf moest.
+> Het oogje op een subclasskaartje opent hem, het vinkje telt hem op.
+> Feats en Epic Boons hebben geen tweede laag: daar is de lijst het antwoord.
 > **Het raster staat er alleen als het een antwoord is** (`_toontRaster()`): op de
 > deurenlaag en de tegellaag niet, want dat is precies de waslijst die we kwijt
 > wilden. De filterchips tellen bovendien wat er in dát gezichtsveld ligt —

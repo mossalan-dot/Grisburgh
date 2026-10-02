@@ -1,4 +1,4 @@
-import { api, campagneUitUrl, zetCampagne } from './api.js?v=307';
+import { api, campagneUitUrl, zetCampagne } from './api.js?v=308';
 import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, renderDocumenten, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=332";
 import { initArchief, renderLogboek, openLogboekEditor } from "./render-archief.js?v=139";
 import { renderKaart, queueFlyTo, verversPins, nieuweKaart } from './render-kaart.js?v=31';
@@ -7,7 +7,7 @@ import { renderRelatiemap } from './render-relatiemap.js?v=27';
 import { renderProgressie, levelupFeatures } from './render-progressie.js?v=57';
 import { renderBestiarium } from './render-bestiarium.js?v=31';
 import { renderSpreuken } from './render-spreuken.js?v=43';
-import { renderVaardigheden, zoekVaardigheden } from './render-vaardigheden.js?v=21';
+import { renderVaardigheden, zoekVaardigheden } from './render-vaardigheden.js?v=22';
 import { renderStatblock } from './render-statblock.js?v=9';
 import { initSocket } from "./socket-client.js?v=82";
 import { initDmPanel } from "./dm-panel.js?v=380";
@@ -909,7 +909,7 @@ const ARCHIEF_LABELS = {
   documenten:   `${icon('scroll-text')} Documenten`,
   bestiarium:   `${icon('skull')} Bestiarium`,
   spreuken:     `${icon('sparkles')} Spreuken`,
-  vaardigheden: `${icon('graduation-cap')} Heldenboek`,
+  vaardigheden: `${icon('award')} Heldenboek`,
   kaart:        `${icon('map')} Kaarten`,
   relatiemap:   `${icon('users')} Relatiemap`,
 };

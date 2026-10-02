@@ -9733,6 +9733,28 @@ router.delete('/wizard/oefenen', requireDM, (req, res) => {
   res.json({ weg });
 });
 
+// De vier deuren van het Heldenboek mogen elk een eigen beeld krijgen. Het is
+// puur sfeer — wat erachter ligt verandert er niet door — maar een scherm met
+// vier gelijke tegels leest als een formulier, en met beeld als een boek.
+router.put('/meta/heldenboek', requireDM, (req, res) => {
+  const DEUREN = ['class', 'species', 'background', 'feats'];
+  const meta = storage.readJSON('meta.json');
+  const hb = { ...(meta.heldenboek || {}) };
+  if (req.body?.beelden && typeof req.body.beelden === 'object') {
+    const beelden = { ...(hb.beelden || {}) };
+    for (const d of DEUREN) {
+      if (req.body.beelden[d] === undefined) continue;
+      if (req.body.beelden[d]) beelden[d] = String(req.body.beelden[d]).slice(0, 80);
+      else delete beelden[d];
+    }
+    if (Object.keys(beelden).length) hb.beelden = beelden; else delete hb.beelden;
+  }
+  if (Object.keys(hb).length) meta.heldenboek = hb; else delete meta.heldenboek;
+  storage.writeJSON('meta.json', meta);
+  req.app.get('io').to(_campagneRoom(req)).emit('meta:updated');
+  res.json(meta.heldenboek || {});
+});
+
 router.put('/meta/modules-uit', requireDM, (req, res) => {
   const meta = storage.readJSON('meta.json');
   const vrij = modulesVrijgegeven(meta);
