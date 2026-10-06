@@ -1517,6 +1517,11 @@ Grisburghs **data** te staan — niet in de code.
 - [ ] **De dempknop in de kopbalk** (ALL) — zet sfeergeluid uit: de luidspreker
       in de kopbalk krijgt een streep erdoor, net als de knop in het
       dienstscherm. Die twee stonden eerder verschillend.
+- [ ] **Een eigen class beginnen** (DM) — open *Classes*: vooraan staat een
+      gestippelde tegel **Class toevoegen**. Typ bij *Class* een naam die er nog
+      niet is (bijv. Artificer) en geef hem een feature: hij verschijnt als
+      dertiende class. Zelfde proef bij Species en Backgrounds, en bij een
+      nieuwe subclass onder een bestaande class.
 - [ ] **Subclasses die elders staan** (ALL) — open *Classes → Warlock*: onder de
       vier eigen subclasses staat *Nog 5 elders*. Klap open en er staan The
       Hexblade, The Fathomless, The Genie, The Undead en The Undying, elk met

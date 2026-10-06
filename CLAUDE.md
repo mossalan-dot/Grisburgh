@@ -1783,6 +1783,17 @@ in `_load()` (`render-spreuken.js`), ontdubbeld op `index`:
 > `render-vaardigheden.js`) — zelfde truc als bij de spreuken, want de gewone
 > wikilink-resolver kent alleen kaartjes uit het archief.
 
+> **Een eigen class, species of background beginnen kan ook.** `_vaardigLijst`
+> legde met `maken: true` alleen een leeg *level* aan; bestond de class zelf
+> niet, dan kwam er een 400. Je kon dus features hangen aan wat er al was en
+> nooit een eigen orde of volk beginnen. Nu legt hij de houder ook aan — maar
+> alleen als de aanroeper erom vraagt: lezen mag nooit stilletjes iets
+> aanmaken, anders promoveert een typefout in een filter zich tot class.
+> In de editor zijn *Class* en *Subclass* daarom **zoekbare invoervelden met een
+> datalist** in plaats van keuzelijsten: uit een lijst kun je alleen kiezen wat
+> er al is. Zelfde patroon als de entiteit-kiezers in de Meesterkamer.
+> Bewaakt door `tests/eigen-class.test.js`.
+
 > **Een eigen vaardigheid hoort in de campagne, niet in de broncode** — zelfde
 > regel als bij de spreuken. `POST /progression/feature` (DM) schrijft één regel
 > weg en `POST /progression/feature/verwijderen` haalt hem eruit; bewust niet

@@ -8949,12 +8949,36 @@ function _vaardigLijst(prog, { soort, bron, sub, level }, maken = false) {
     if (!Array.isArray(prog.feats[sleutel])) prog.feats[sleutel] = [];
     return prog.feats[sleutel];
   }
+  // `maken` betekende tot nu toe alleen "leg een leeg level aan"; bestond de
+  // class, het species of de background zelf niet, dan kwam er een 400. Je kon
+  // dus features toevoegen aan wat er al was, maar nooit een **eigen class**
+  // beginnen — en dat is precies wat een campagne met eigen volk of een eigen
+  // orde wil. Nu legt hij de houder ook aan, maar alleen als de aanroeper erom
+  // vraagt: lezen mag nooit stilletjes iets aanmaken.
   if (soort === 'background') {
+    if (!prog.backgrounds?.[bron] && maken && bron) {
+      prog.backgrounds = prog.backgrounds || {};
+      prog.backgrounds[bron] = { levels: {} };
+    }
     const bg = prog.backgrounds?.[bron];
     if (!bg) return null;
     bg.levels = bg.levels || {};
     if (!Array.isArray(bg.levels['1'])) { if (!maken) return null; bg.levels['1'] = []; }
     return bg.levels['1'];
+  }
+  if (maken && bron) {
+    if (soort === 'species' && !prog.species?.[bron]) {
+      prog.species = prog.species || {};
+      prog.species[bron] = { levels: {} };
+    }
+    if ((soort === 'class' || soort === 'subclass') && !prog.classes?.[bron]) {
+      prog.classes = prog.classes || {};
+      prog.classes[bron] = { levels: {}, subclasses: {} };
+    }
+    if (soort === 'subclass' && sub && !prog.classes[bron].subclasses?.[sub]) {
+      prog.classes[bron].subclasses = prog.classes[bron].subclasses || {};
+      prog.classes[bron].subclasses[sub] = { levels: {} };
+    }
   }
   const houder = soort === 'species' ? prog.species?.[bron]
     : soort === 'subclass' ? prog.classes?.[bron]?.subclasses?.[sub]

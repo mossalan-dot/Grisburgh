@@ -644,6 +644,10 @@ const _DEUREN = [
   { id: 'feats',      label: 'Feats & Epic Boons', soorten: ['feat', 'boon'],      icoon: 'zap',         kleur: '#1e4a8a' },
 ];
 const _DEUR = id => _DEUREN.find(d => d.id === id);
+// Hoe heet het ding dat je achter deze deur toevoegt?
+const _NIEUW_LABEL = { class: 'Class', species: 'Species', background: 'Background', feats: 'Feat' };
+// Welke soort de editor moet openen voor een nieuwe achter die deur.
+const _NIEUW_SOORT  = { class: 'class', species: 'species', background: 'background', feats: 'feat' };
 
 // Welke deur staat open, en waar sta je daarbinnen.
 let _deur = null;
@@ -732,7 +736,16 @@ function _tegelsHtml(d) {
   if (!rijen.length) return `<p class="spreuk-empty">Hier staat nog niets in.</p>`;
   const icoonVan = (naam) => d.id === 'class' ? (KLASSE_ICOON[naam] || 'sword')
     : d.id === 'species' ? (SPECIES_ICOON[naam] || 'user') : 'scroll-text';
-  return `<div class="vd-tegels">${rijen.map(([naam, n], i) => {
+  // Een eigen class, species of background toevoegen. Stond alleen bij de
+  // subclasses, en daar kwam je pas als je al een class had gekozen — dus een
+  // dertiende class aanmaken kon nergens.
+  const nieuwKnop = isDM() ? `<button class="vd-tegel vd-tegel--nieuw" style="--vd-kleur:${d.kleur}"
+    onclick="window.vaardigheden.nieuwIn('${d.id}')"
+    title="Een eigen ${esc(_NIEUW_LABEL[d.id] || 'regel')} toevoegen">
+    <span class="vd-tegel-icoon">${icon('plus')}</span>
+    <span class="vd-tegel-naam">${esc(_NIEUW_LABEL[d.id] || '')} toevoegen</span>
+  </button>` : '';
+  return `<div class="vd-tegels">${nieuwKnop}${rijen.map(([naam, n], i) => {
     const beeld = _tegelBeeld(x => d.soorten.includes(x.soort)
       && (d.id === 'background' ? x.naam === naam : x.bron === naam));
     const subs = d.id === 'class' ? _bandSubklassen(naam).length : 0;
@@ -741,7 +754,7 @@ function _tegelsHtml(d) {
       ${beeld ? `<span class="vd-tegel-beeld" style="background-image:url('${beeld}')"></span>` : ''}
       <span class="vd-tegel-icoon">${icon(icoonVan(naam))}</span>
       <span class="vd-tegel-naam">${esc(naam)}</span>
-      <span class="vd-tegel-meta">${subs ? `${subs} subclasses · ` : ''}${n} ${n === 1 ? 'regel' : 'regels'}</span>
+      <span class="vd-tegel-meta">${subs ? `${subs} subclasses · ` : ''}${n} ${n === 1 ? 'feature' : 'features'}</span>
     </button>`;
   }).join('')}</div>`;
 }
@@ -1157,19 +1170,24 @@ function _editorHtml() {
         </select>
       </div>
       ${toonBron ? `
+      <!-- Zoekbaar invoerveld en geen keuzelijst: uit een lijst kun je alleen
+           kiezen wat er al is, en dan kun je dus nooit een **eigen class**
+           beginnen. Typ je een naam die er nog niet is, dan legt de server hem
+           aan. Zelfde patroon als de entiteit-kiezers in de Meesterkamer. -->
       <div class="dm-form-row">
-        <label class="dm-form-label">${e.soort === 'species' ? 'Species' : e.soort === 'background' ? 'Background' : 'Class'}</label>
-        <select class="dm-input" id="vd-bron" onchange="window.vaardigheden.veld('bron',this.value)">
-          ${bronnen.map(b => `<option value="${esc(b)}"${e.bron === b ? ' selected' : ''}>${esc(b)}</option>`).join('')}
-        </select>
+        <label class="dm-form-label" for="vd-bron">${e.soort === 'species' ? 'Species' : e.soort === 'background' ? 'Background' : 'Class'}</label>
+        <input class="dm-input" id="vd-bron" list="vd-bron-dl" autocomplete="off"
+          value="${esc(e.bron || '')}" placeholder="Kies er een, of typ een nieuwe naam"
+          onchange="window.vaardigheden.veld('bron',this.value)">
+        <datalist id="vd-bron-dl">${bronnen.map(b => `<option value="${esc(b)}"></option>`).join('')}</datalist>
       </div>` : ''}
       ${toonSub ? `
       <div class="dm-form-row">
-        <label class="dm-form-label">Subclass</label>
-        <select class="dm-input" id="vd-sub" onchange="window.vaardigheden.veld('sub',this.value)">
-          ${subs.length ? subs.map(b => `<option value="${esc(b)}"${e.sub === b ? ' selected' : ''}>${esc(b)}</option>`).join('')
-                        : '<option value="">(deze class heeft nog geen subclasses)</option>'}
-        </select>
+        <label class="dm-form-label" for="vd-sub">Subclass</label>
+        <input class="dm-input" id="vd-sub" list="vd-sub-dl" autocomplete="off"
+          value="${esc(e.sub || '')}" placeholder="Kies er een, of typ een nieuwe naam"
+          onchange="window.vaardigheden.veld('sub',this.value)">
+        <datalist id="vd-sub-dl">${subs.map(b => `<option value="${esc(b)}"></option>`).join('')}</datalist>
       </div>` : ''}
       ${toonLevel ? `
       <div class="dm-form-row">
@@ -1456,6 +1474,17 @@ window.vaardigheden = {
   },
   kiesSub(naam) { this.subToggle(naam); },
   eldersToggle() { _eldersOpen = !_eldersOpen; _paint(); },
+  // Een eigen class, species, background of feat: de editor met de soort al
+  // ingevuld, zodat je alleen nog de naam hoeft te typen.
+  nieuwIn(deurId) {
+    _editorOpen(null);
+    setTimeout(() => {
+      _edit.soort = _NIEUW_SOORT[deurId] || 'class';
+      _edit.bron = _edit.soort === 'feat' ? 'Feats' : '';
+      _edit.sub = '';
+      _editorHerteken();
+    }, 60);
+  },
   // Een eigen subclass: de editor met soort en class al ingevuld, zodat je
   // alleen nog de naam en de feature hoeft te typen.
   nieuweSub() {

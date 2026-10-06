@@ -28990,10 +28990,18 @@ body.wizard-open { overflow: hidden; }
 .vd-banner--klein { min-height: 64px; padding: 10px 18px; opacity: .82; }
 .vd-banner--klein:hover { opacity: 1; }
 .vd-banner > span:not(.vd-deur-beeld) { position: relative; z-index: 1; }
-.vd-banner .vd-deur-beeld { opacity: .24; }
+/* Zelfde behandeling als op de kaart: het beeld vol in beeld, en de sluier
+   alleen wáár de tekst staat. Hier is dat links (pijl, icoon, naam) en helemaal
+   rechts (het aantal); daartussen mag de plaat gewoon te zien zijn. */
+.vd-banner .vd-deur-beeld { opacity: .85; }
+.vd-banner:hover .vd-deur-beeld { opacity: 1; }
 .vd-banner .vd-deur-beeld::after {
-  background: linear-gradient(90deg, rgba(246,238,218,.9) 0%, rgba(246,238,218,.5) 60%, rgba(246,238,218,.15) 100%);
+  background:
+    linear-gradient(90deg, rgba(246,238,218,.94) 0%, rgba(246,238,218,.88) 26%,
+      rgba(246,238,218,.42) 48%, rgba(246,238,218,.2) 68%, rgba(246,238,218,.72) 100%);
 }
+/* Een banner mét beeld heeft geen eigen verloop nodig; dat vocht met de plaat. */
+.vd-banner:has(.vd-deur-beeld) { background: #e9dcbe; }
 .vd-banner-terug { display: flex; color: var(--vd-kleur); }
 .vd-banner-terug svg { width: 22px; height: 22px; }
 .vd-banner-icoon { display: flex; color: var(--vd-kleur); }
@@ -29216,3 +29224,11 @@ body.wizard-open { overflow: hidden; }
   color: rgba(246, 232, 198, .96);
 }
 .ursula-concreet svg { width: 18px; height: 18px; flex: 0 0 auto; color: #b8860b; margin-top: 2px; }
+/* De knop om er zelf een toe te voegen staat vooraan in het raster, in dezelfde
+   maat als de tegels ernaast maar gestippeld: het is een plek, geen ding. */
+.vd-tegel--nieuw {
+  border-style: dashed; background: none; justify-content: center;
+  align-items: center; text-align: center; gap: 6px; color: #8a7050;
+}
+.vd-tegel--nieuw:hover { border-style: dashed; background: rgba(154, 112, 8, .06); }
+.vd-tegel--nieuw .vd-tegel-naam { font-size: .88em; color: #8a7050; }
