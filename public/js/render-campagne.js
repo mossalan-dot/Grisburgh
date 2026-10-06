@@ -3357,18 +3357,7 @@ function renderCard(type, e) {
   // enkelvoudige veld. Nu alle regels die deze kijker mag zien, met pijltjes
   // erdoorheen (de DM ziet ook wat nog niet verteld is, lichter).
   const _flavRegels = _tekstLijstUit(e.data, 'flavours', 'flavour');
-  const _flavGezegd = (() => {
-    // Zie het detailvenster: een speler krijgt alleen de vertelde regels binnen.
-    // Voor de DM komt de stand van de **actieve party** van de server mee — hij
-    // stond vroeger op het kaartje zelf, en gold dus voor iedereen.
-    if (!isDM()) return _flavRegels.map(() => true);
-    const st = Array.isArray(e._roddels) ? e._roddels : null;
-    if (st) return _flavRegels.map((_, i) => !!st[i]?.gehoord);
-    const rauw = e.data?.flavoursUitgesproken;
-    if (Array.isArray(rauw)) return _flavRegels.map((_, i) => !!rauw[i]);
-    const alles = e.data?.flavourUitgesproken === true || e.data?.flavourUitgesproken === 'true';
-    return _flavRegels.map((_, i) => alles && i === 0);
-  })();
+  const _flavGezegd = _roddelStand(e, _flavRegels);
   const _flavTonen = _flavRegels
     .map((tekst, i) => ({ tekst, gezegd: _flavGezegd[i], geplantDoor: e._roddels?.[i]?.geplantDoor || null }))
     .filter(r => r.tekst && (isDM() || r.gezegd));
@@ -3493,7 +3482,12 @@ function renderCard(type, e) {
           return _los.length ? `<div class="card-doen--los">${_los.join('')}</div>` : '';
         })()}
         <div class="mb-1.5">
-          <span class="card-name block" data-fittext>${esc(e.name)}${e._deceased ? '<span class="card-name-dagger">†</span>' : ''}</span>
+          <!-- Het kruisje staat voor "overleden" en hoort dus bij een persoon.
+               Een organisatie kan ook weg zijn (opgeheven, verboden), en een
+               locatie verwoest — maar daar leest een dagger als een grafsteen
+               bij een gebouw. Die houden hun gedempte kaart en hun markering in
+               het detailvenster; alleen de dagger valt weg. -->
+          <span class="card-name block" data-fittext>${esc(e.name)}${e._deceased && type === 'personages' ? '<span class="card-name-dagger">†</span>' : ''}</span>
           ${(rol || metaText) ? `<span class="card-name-sep"></span>
           <div class="card-meta">
             ${rol      ? `<span class="card-meta-rol">${esc(rol)}</span>` : ''}
@@ -3536,6 +3530,28 @@ function renderCard(type, e) {
 // Roddels op een kaartje: welke regels er staan en waar we zijn. Module-state,
 // net als bij de afbeelding-carousel — het kaartje is een string, dus de tekst
 // van regel 2 moet ergens anders vandaan komen.
+// ── Welke roddels zijn er verteld? ──────────────────────────────────────────
+// Deze stand is ooit verhuisd van het kaartje (`data.flavoursUitgesproken`,
+// campagnebreed) naar de **party** (`g.flavourReveals`, meegestuurd als
+// `_roddels`). Het kaartje in het raster ging mee; het detailvenster niet, en
+// dat las dus eeuwig het oude veld — dat voor een party-stand altijd leeg is.
+// Gevolg: je klikte op *Onthullen*, de server sloeg het netjes op, het venster
+// tekende zichzelf opnieuw en de knop stond er nog precies zo.
+//
+// Twee plekken die hetzelfde moeten weten, dus één functie. De terugval op het
+// oude veld blijft staan voor kaartjes van vóór die verhuizing.
+function _roddelStand(e, regels) {
+  // Een speler krijgt alleen de vertelde regels binnen; alles wat hij ziet is
+  // per definitie verteld.
+  if (!isDM()) return regels.map(() => true);
+  const st = Array.isArray(e?._roddels) ? e._roddels : null;
+  if (st) return regels.map((_, i) => !!st[i]?.gehoord);
+  const rauw = e?.data?.flavoursUitgesproken;
+  if (Array.isArray(rauw)) return regels.map((_, i) => !!rauw[i]);
+  const alles = e?.data?.flavourUitgesproken === true || e?.data?.flavourUitgesproken === 'true';
+  return regels.map((_, i) => alles && i === 0);
+}
+
 const _flavCache = {};
 const _flavPos   = {};
 const _flavCtx   = {};   // extra gegevens voor de rol in het detailvenster
@@ -5004,11 +5020,7 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
     // Een speler krijgt van de server alléén de regels die al verteld zijn —
     // de bijbehorende ja/nee-lijst hoort bij de volledige tekst en past er dus
     // niet op. Voor hem is alles wat hij ziet per definitie verteld.
-    if (!isDM()) return flavourRegels.map(() => true);
-    const rauw = e.data?.flavoursUitgesproken;
-    if (Array.isArray(rauw)) return flavourRegels.map((_, i) => !!rauw[i]);
-    const alles = e.data?.flavourUitgesproken === true || e.data?.flavourUitgesproken === 'true';
-    return flavourRegels.map((_, i) => alles && i === 0);
+    return _roddelStand(e, flavourRegels);
   })();
   const _audioId   = e.data?.audioId || '';
   const zichtbareFlavours = flavourRegels.map((tekst, i) => ({ tekst, i, gezegd: _gezegd[i] }))
@@ -5018,13 +5030,17 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
     // Eén rol perkament met pijltjes erdoorheen, net als op het kaartje: drie
     // roddels onder elkaar maakten van een terloopse opmerking een lijst.
     _flavCache[`det-${e.id}`] = zichtbareFlavours;
-    _flavPos[`det-${e.id}`]   = 0;
+    // Je plek vasthouden. Het venster hertekent zichzelf na elke onthulling, en
+    // met een harde 0 sprong je dan terug naar de eerste roddel — precies op het
+    // moment dat je bij de derde was. Alleen terug naar 0 als die regel er niet
+    // meer is (bijvoorbeeld omdat er een roddel weg is).
+    if (!(_flavPos[`det-${e.id}`] < zichtbareFlavours.length)) _flavPos[`det-${e.id}`] = 0;
     _flavCtx[`det-${e.id}`]   = { tab, id: e.id, audioId: _audioId, soort: 'roddel' };
     const _verteld = _gezegd.filter(Boolean).length;
     infoHtml += `
       <div class="mb-4">
         <div class="detail-field-label detail-field-label--roddel">
-          <span class="dfl-titel">${icon('beer')} ${flavourRegels.length > 1 ? 'Roddels' : 'Roddel'}</span>${
+          <span class="dfl-titel">${icon('beer')} Roddels</span>${
           isDM() && flavourRegels.length ? `<span class="geheim-teller">${_verteld} van ${flavourRegels.length} onthuld</span>` : ''}</div>
         ${_onthulBlok(`det-${e.id}`)}
       </div>`;
@@ -5053,12 +5069,14 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
       tekst: g.tekst, i: g.i, gid: g.gid, gezegd: g.onthuld,
       verraad: isDM() ? !!_geheimObj[g.i]?.antagonist : false,
     }));
-    _flavPos[`geh-${e.id}`]   = 0;
+    // Zelfde reden als bij de roddels: na een onthulling blijf je staan waar je
+    // was in plaats van terug te springen naar het eerste geheim.
+    if (!(_flavPos[`geh-${e.id}`] < zichtbareGeheimen.length)) _flavPos[`geh-${e.id}`] = 0;
     _flavCtx[`geh-${e.id}`]   = { tab, id: e.id, soort: 'geheim', naam: e.name };
     infoHtml += `
       <div class="mb-4">
         <div class="detail-field-label detail-field-label--secret">
-          <span class="dfl-titel">${icon('lock')} ${zichtbareGeheimen.length > 1 ? 'Geheimen' : 'Geheim'}</span>${
+          <span class="dfl-titel">${icon('lock')} Geheimen</span>${
           isDM() && geheimRegels.length ? `<span class="geheim-teller">${_geheimOnthuld.filter(Boolean).length} van ${geheimRegels.length} onthuld</span>` : ''}</div>
         ${_onthulBlok(`geh-${e.id}`)}
       </div>`;

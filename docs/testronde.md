@@ -1502,6 +1502,17 @@ Grisburghs **data** te staan — niet in de code.
       stijlnamen onder de staaltjes zijn leesbaar, de uitrekening achter de
       maat staat in de gewone broodtekst, en rechtsboven zit een hulpknop.
       Proef: zet 30 × 20 en kijk of er "vakjes · 150 × 100 voet" staat.
+- [ ] **Een roddel onthullen blijft staan** (DM) — open een personage met
+      meerdere roddels, klik *Onthullen*: de knop wordt **Onthuld** en je blijft
+      op dezelfde roddel staan (niet terug naar 1/3). Nog een keer klikken
+      draait het terug. Zelfde proef bij de geheimen. De stand hangt aan de
+      **party**, dus wissel van party en kijk of hij daar weer dicht staat.
+- [ ] **Het kruisje is voor personen** (ALL) — markeer een organisatie als
+      opgeheven: het kaartje dempt en de markering staat in het detailvenster,
+      maar er komt géén † achter de naam. Bij een personage wél.
+- [ ] **De dempknop in de kopbalk** (ALL) — zet sfeergeluid uit: de luidspreker
+      in de kopbalk krijgt een streep erdoor, net als de knop in het
+      dienstscherm. Die twee stonden eerder verschillend.
 - [ ] **Subclasses die elders staan** (ALL) — open *Classes → Warlock*: onder de
       vier eigen subclasses staat *Nog 5 elders*. Klap open en er staan The
       Hexblade, The Fathomless, The Genie, The Undead en The Undying, elk met

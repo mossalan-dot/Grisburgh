@@ -3506,6 +3506,15 @@ plaats van twee — elke rust één te veel.
   zonder achtergrond, en niemand zag het omdat er geen foutmelding is. Een scan
   op klassen die de JS gebruikt maar die `theme.css` niet kent brengt dit soort
   gaten boven.
+- **Eén stand, twee lezers → één helper.** De stand "welke roddels zijn er
+  verteld" verhuisde van het kaartje (`data.flavoursUitgesproken`, campagnebreed)
+  naar de **party** (`g.flavourReveals`, meegestuurd als `_roddels`). Het
+  kaartje in het raster ging mee, het **detailvenster niet** — en dat las dus
+  eeuwig een veld dat voor een partystand altijd leeg is. Je klikte op
+  *Onthullen*, de server sloeg het netjes op (200), het venster hertekende
+  zichzelf en de knop stond er nog precies zo. Nu leest één helper
+  (`_roddelStand`) het voor allebei. Verhuist er een stand, zoek dan élke lezer:
+  `grep` op de oude veldnaam vindt ze.
 - **Lichte tekstkleur in een DM-tab** → onzichtbaar. Alleen de **zijbalk** met de
   tabknoppen is donker; de tab-inhoud en het instellingenvenster zijn licht
   perkament. Gebruik `#3a2410` (als `.dm-input`) voor tekst en `#7a6040` (als

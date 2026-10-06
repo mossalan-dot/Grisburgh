@@ -1,5 +1,5 @@
 import { api, campagneUitUrl, zetCampagne } from './api.js?v=308';
-import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, renderDocumenten, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=333";
+import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, renderDocumenten, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=334";
 import { initArchief, renderLogboek, openLogboekEditor } from "./render-archief.js?v=139";
 import { renderKaart, queueFlyTo, verversPins, nieuweKaart } from './render-kaart.js?v=31';
 import { renderDungeon } from './render-dungeon.js?v=58';
@@ -745,7 +745,11 @@ window._onAmbianceChange = function({ active, label, enabled } = {}) {
   _scheduleFitHeader();
   const iconEl  = document.getElementById('ambiance-toggle-icon');
   const labelEl = document.getElementById('ambiance-toggle-label');
-  if (iconEl)  iconEl.innerHTML = icon('volume-2');
+  // Hetzelfde icoon als elke andere dempknop (zie `_geluidBtnVerversen`). Dit
+  // stond hard op `volume-2` en leunde voor "gedempt" alleen op een CSS-klasse,
+  // dus de kopbalk toonde een luidsprekertje mét golven terwijl het geluid uit
+  // stond — en naast een knop die wél een streep door de luidspreker had.
+  if (iconEl)  iconEl.innerHTML = icon(enabled ? 'volume-2' : 'volume-x');
   if (labelEl) labelEl.textContent = label || '';
   btn.title = enabled
     ? `Ambiance: ${label || ''} — tik om te dempen`
