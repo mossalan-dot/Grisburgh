@@ -256,3 +256,40 @@ describe('Versies van frontend-modules', () => {
     assert.deepEqual(mis, [], 'import naar een bestand dat er niet is: ' + mis.join(', '));
   });
 });
+
+// ════════════════════════════════════════════════════════════════════════════
+//  ELK AANGEROEPEN ICOON BESTAAT OOK
+// ════════════════════════════════════════════════════════════════════════════
+// `icon('x')` zet een `<use href="…#icon-x">` neer. Bestaat dat symbool niet,
+// dan tekent de browser **niets** — geen foutmelding, geen vraagteken, gewoon
+// een leeg vlakje van 16 bij 16. Zo stond `alert-triangle` op vijf plekken
+// (het beheerdersoverzicht en de hele escalatieladder van de woekeraar) zonder
+// dat er ooit een driehoek verscheen.
+describe('Iconen', () => {
+  it('verwijst elke icon(...)-aanroep naar een symbool in de sprite', () => {
+    const sprite = fs.readFileSync(path.join(__dirname, '..', 'public', 'img', 'icons.svg'), 'utf8');
+    const bestaat = new Set([...sprite.matchAll(/id="icon-([a-z0-9-]+)"/g)].map(m => m[1]));
+    const dir = path.join(__dirname, '..', 'public', 'js');
+    const mis = new Map();
+    for (const f of fs.readdirSync(dir).filter(f => f.endsWith('.js'))) {
+      const src = fs.readFileSync(path.join(dir, f), 'utf8');
+      // Alleen letterlijke namen: `icon(soort.icon)` kan deze test niet nakijken.
+      for (const m of src.matchAll(/\bicon\(\s*['"]([a-z0-9-]+)['"]/g)) {
+        if (!bestaat.has(m[1])) {
+          if (!mis.has(m[1])) mis.set(m[1], new Set());
+          mis.get(m[1]).add(f);
+        }
+      }
+    }
+    const regels = [...mis].map(([naam, waar]) => `${naam} (${[...waar].join(', ')})`);
+    assert.deepEqual(regels, [], 'deze iconen bestaan niet in de sprite:\n  ' + regels.join('\n  '));
+  });
+
+  it('verwijst ook vanuit index.html naar bestaande symbolen', () => {
+    const sprite = fs.readFileSync(path.join(__dirname, '..', 'public', 'img', 'icons.svg'), 'utf8');
+    const bestaat = new Set([...sprite.matchAll(/id="icon-([a-z0-9-]+)"/g)].map(m => m[1]));
+    const shell = fs.readFileSync(path.join(__dirname, '..', 'public', 'index.html'), 'utf8');
+    const mis = [...shell.matchAll(/#icon-([a-z0-9-]+)/g)].map(m => m[1]).filter(n => !bestaat.has(n));
+    assert.deepEqual([...new Set(mis)], [], 'ontbrekende iconen in de shell');
+  });
+});

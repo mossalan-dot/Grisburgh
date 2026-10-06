@@ -10,7 +10,7 @@ import { renderSpreuken } from './render-spreuken.js?v=44';
 import { renderVaardigheden, zoekVaardigheden } from './render-vaardigheden.js?v=24';
 import { renderStatblock } from './render-statblock.js?v=9';
 import { initSocket } from "./socket-client.js?v=82";
-import { initDmPanel } from "./dm-panel.js?v=380";
+import { initDmPanel } from "./dm-panel.js?v=382";
 import { COND_INFO, COND_LABEL, COND_MET_PLAATJE, COND_ICON } from './conditions.js?v=2';
 import './media-picker.js?v=9';
 import './wizard.js?v=3';
@@ -22,7 +22,7 @@ import './tafels.js?v=2';
 window.icon = function icon(name, { cls = '', title = '' } = {}) {
   const t   = title ? `<title>${title.replace(/[<>&"]/g, c => ({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[c]))}</title>` : '';
   const aria = title ? ' role="img"' : ' aria-hidden="true"';
-  return `<svg class="icon${cls ? ' '+cls : ''}"${aria} focusable="false"><use href="/img/icons.svg?v=17#icon-${name}"/>${t}</svg>`;
+  return `<svg class="icon${cls ? ' '+cls : ''}"${aria} focusable="false"><use href="/img/icons.svg?v=18#icon-${name}"/>${t}</svg>`;
 };
 const icon = (...a) => window.icon(...a);
 

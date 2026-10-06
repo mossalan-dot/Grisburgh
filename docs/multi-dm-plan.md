@@ -259,8 +259,19 @@ Elke stap eindigt met: Grisburgh doet nog exact wat het deed.
    Rondleiding als doorklikbare pagina met afbeeldingen op een eigen link, met
    schermafbeeldingen uit de **minicampagne** — geen spoilers uit Grisburgh.
    Vereist dus dat stap 6 af is.
-8. **Mediabudget.** Teller per campagne + verkleinen bij upload. Naar voren te
-   halen als de schijf eerder knelt.
+8. **Mediabudget.** — **af (6 okt 2026)**, en meteen het antwoord op "hebben we
+   een `/admin` nodig": nee. Het was vijf knoppen; wat ontbrak was niet een
+   eigen site maar **zicht op hoe het ervoor staat**. Instellingen → Campagnes
+   toont nu per campagne het schijfgebruik met een balkje, het aantal kaartjes,
+   party's en spelers, hoeveel onderdelen er aanstaan, wanneer er voor het
+   laatst gespeeld is, en een regel als er iets mis is (geen DM-wachtwoord, een
+   party zonder wachtwoord, nog niet ingericht). Daarboven staat hoeveel schijf
+   er vrij is — zonder dat getal zegt "2,4 GB" niets.
+   Geteld met readdir+stat (17 ms voor vijf campagnes), niet met `du`: dat is
+   een extern proces per campagne en het telt mappen mee die we juist niet
+   willen. Het verkleinen bij upload was al gedaan (WebP, 15 sep).
+   `GET /campaigns` draagt het als `stand` en `schijf`; `_campagneStand(id)` in
+   `routes/api.js` is de enige plek die het uitrekent.
 9. **Gefaseerd uitrollen.** Nieuwe features komen eerst bij Alan terecht, en pas
    daarna bij de rest. Drie afspraken, geen extra infrastructuur:
    - **Vlag per campagne.** Een nieuwe feature krijgt een module die alleen bij

@@ -122,8 +122,12 @@ groot het is. Bijgewerkt 15 sep 2026.
       wordt WebP (q82, max 2560 px); gif en svg blijven met rust en wat er niet
       kleiner van wordt ook. De bestaande bestanden gaan met
       `scripts/beelden-naar-webp.js`.
-- [ ] **8. Mediabudget** — teller per campagne. De helft van dit punt (verkleinen
-      bij upload) is gedaan; wat rest is de DM laten zien hoeveel hij gebruikt.
+- [x] **8. Mediabudget en het beheerdersoverzicht** — gedaan 6 okt 2026.
+      Instellingen → Campagnes toont per campagne schijfgebruik, kaartjes,
+      party's, spelers, actieve onderdelen, wanneer er voor het laatst gespeeld
+      is, en wat er mis is. Daarmee ook de vraag beantwoord of er een
+      `grisburgh.nl/admin` moet komen: nee — het was vijf knoppen, en wat
+      ontbrak was zicht, geen tweede site met een tweede inlogdeur.
 - [ ] **9. Gefaseerd uitrollen** — vlag per campagne, deployvolgorde, en een
       teruggang die geoefend is.
 

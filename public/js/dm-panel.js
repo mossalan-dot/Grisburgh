@@ -5910,8 +5910,10 @@ function _geleden(iso) {
   if (d <= 0) return 'vandaag';
   if (d === 1) return 'gisteren';
   if (d < 31) return `${d} dagen geleden`;
-  if (d < 365) return `${Math.round(d / 30)} maanden geleden`;
-  return `${Math.round(d / 365)} jaar geleden`;
+  const mnd = Math.round(d / 30);
+  if (d < 365) return `${mnd} ${mnd === 1 ? 'maand' : 'maanden'} geleden`;
+  const jr = Math.round(d / 365);
+  return `${jr} jaar geleden`;
 }
 
 function _renderCampagnes(el, campaigns, activeCampaign, cp = {}) {
@@ -12786,6 +12788,10 @@ async function _renderInstellingen() {
   // Campagnebeheer is niet voor elke DM: het endpoint geeft 403 aan wie geen
   // beheerder is, en dan laten we de hele sectie weg.
   let magBeheren = false, catalogus = [], modulesPer = {}, wachtwoorden = {};
+  // Hoe het ervoor staat: schijfgebruik, aantal kaartjes, wanneer er voor het
+  // laatst gespeeld is. Zonder dat was dit een lijst met namen en moest je
+  // `ssh` en `du` om te weten welke campagne de schijf opeet.
+  let stand = {}, schijf = null, beheerCamp = '';
   try {
     const gr = await api.listGroups();
     groups = gr.groups || [];
@@ -12797,6 +12803,9 @@ async function _renderInstellingen() {
     catalogus    = cp.catalogus    || [];
     modulesPer   = cp.modules      || {};
     wachtwoorden = cp.wachtwoorden || {};
+    stand        = cp.stand        || {};
+    schijf       = cp.schijf       || null;
+    beheerCamp   = cp.beheerCampagne || '';
     magBeheren   = true;
   } catch { /* geen beheerder */ }
 
@@ -12806,14 +12815,31 @@ async function _renderInstellingen() {
 
   const groupItems = groups.map(g => _partyRegelHtml(g, alleSpelers)).join('');
 
+  // De balkjes schalen op de grootste campagne, niet op de schijf: anders is
+  // alles een streepje naast de grootste en zie je de verhouding niet.
+  const grootste = Math.max(1, ...campaigns.map(c => stand[c.id]?.bytes?.totaal || 0));
+
   const campaignItems = campaigns.map(c => {
     const isActive = c.id === activeCampaign;
+    const st = stand[c.id];
+    const b  = st?.bytes?.totaal || 0;
+    // Waar een campagne aandacht nodig heeft. Alleen echte signalen: een
+    // melding die altijd staat leest niemand meer.
+    const let_ = [];
+    if (!wachtwoorden[c.id] && c.id !== beheerCamp) let_.push('geen DM-wachtwoord — niemand kan erin');
+    if (st?.partysZonderWachtwoord) let_.push(`${st.partysZonderWachtwoord} party${st.partysZonderWachtwoord === 1 ? '' : "'s"} zonder wachtwoord`);
+    if (st && !st.wizardKlaar && st.kaartjes === 0) let_.push('nog niet ingericht');
     return `
       <div class="campagne-card${isActive ? ' campagne-card--active' : ''}">
         <div class="campagne-card-info">
-          <strong class="campagne-card-title">${esc(c.appTitle || c.id)}</strong>
+          <strong class="campagne-card-title">${esc(c.appTitle || c.id)}${c.id === beheerCamp ? '<span class="campagne-beheer">beheer</span>' : ''}</strong>
           ${c.appSubtitle ? `<span class="campagne-card-sub">${esc(c.appSubtitle)}</span>` : ''}
-          <span class="campagne-card-meta">ID: ${esc(c.id)}</span>
+          <span class="campagne-card-meta">/${esc(c.id)}${st ? ` · ${st.kaartjes} kaartjes · ${st.partys} party${st.partys === 1 ? '' : "'s"} · ${st.spelers} spelers · ${st.modulesAan}/${st.modulesTotaal} onderdelen` : ''}</span>
+          ${st ? `<div class="campagne-maat">
+            <div class="campagne-balk"><span style="width:${Math.max(2, Math.round(b / grootste * 100))}%"></span></div>
+            <span class="campagne-maat-tekst">${_mb(b)}${st.bestanden ? ` · ${st.bestanden} bestanden` : ''} · gespeeld ${_geleden(st.laatst)}</span>
+          </div>` : ''}
+          ${let_.length ? `<div class="campagne-let">${icon('alert-triangle')} ${let_.map(esc).join(' · ')}</div>` : ''}
         </div>
         <div class="campagne-card-actions">
           <a class="dm-btn dm-btn-sm" href="/${esc(c.id)}"
@@ -13049,6 +13075,10 @@ async function _renderInstellingen() {
 
     ${!magBeheren ? '' : _instSectie('campagnes', 'Campagnes en modules', `
       <div class="dm-beheer-campagnes">
+        ${schijf ? `<div class="campagne-schijf">
+          <div class="campagne-balk campagne-balk--schijf"><span style="width:${Math.round((schijf.totaal - schijf.vrij) / schijf.totaal * 100)}%"></span></div>
+          <span class="campagne-maat-tekst">${_mb(schijf.vrij)} vrij van ${_mb(schijf.totaal)} · de campagnes samen ${_mb(campaigns.reduce((n, c) => n + (stand[c.id]?.bytes?.totaal || 0), 0))}</span>
+        </div>` : ''}
         <div id="dm-campagnes-inst-list">
           ${campaignItems || '<p class="dm-hint">Geen campagnes gevonden.</p>'}
         </div>

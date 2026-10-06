@@ -29124,3 +29124,38 @@ body.wizard-open { overflow: hidden; }
 .vd-elders-rij:hover { border-color: #9a7008; background: rgba(154,112,8,.07); }
 .vd-elders-naam { font-family: 'Cinzel', serif; font-size: .84em; color: #5a4030; }
 .vd-elders-boek { font-family: 'Crimson Text', serif; font-style: italic; font-size: .76em; color: #9a8565; }
+
+/* ══════════════════════════════════════════════════════════════════════════
+   HET BEHEERDERSOVERZICHT
+   ══════════════════════════════════════════════════════════════════════════
+   De campagnelijst was een naam en een thema. Wat je als beheerder echt wilt
+   weten — welke campagne de schijf opeet, wanneer er voor het laatst gespeeld
+   is, of een party wel een wachtwoord heeft — moest met ssh en du. Dit is het
+   antwoord op "hebben we een /admin nodig": nee, dit is een paneel. */
+.campagne-schijf { margin-bottom: 12px; }
+.campagne-balk {
+  height: 5px; border-radius: 3px; overflow: hidden;
+  background: rgba(196, 168, 122, .34); margin-bottom: 3px;
+}
+.campagne-balk > span {
+  display: block; height: 100%; border-radius: 3px;
+  background: linear-gradient(90deg, #b8860b, #9a7008);
+}
+/* De schijfbalk kleurt mee met hoe vol hij is: pas als het knelt valt hij op. */
+.campagne-balk--schijf > span { background: linear-gradient(90deg, #4a7c2f, #6a9a3f); }
+.campagne-maat { margin-top: 6px; }
+.campagne-maat-tekst {
+  font-family: 'Crimson Text', serif; font-size: .78em; color: #8a7050;
+}
+.campagne-beheer {
+  display: inline-block; margin-left: 6px; padding: 1px 6px;
+  border: 1px solid rgba(154, 112, 8, .5); border-radius: 3px;
+  font-family: 'Crimson Text', serif; font-size: .72em; font-weight: 400;
+  letter-spacing: .04em; color: #9a7008; vertical-align: middle;
+}
+/* Alleen echte signalen. Een melding die altijd staat leest niemand meer. */
+.campagne-let {
+  display: flex; align-items: flex-start; gap: 6px; margin-top: 7px;
+  font-family: 'Crimson Text', serif; font-size: .8em; color: #8a4a10;
+}
+.campagne-let svg { width: 14px; height: 14px; flex: 0 0 auto; margin-top: 2px; }
