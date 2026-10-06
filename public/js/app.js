@@ -10,7 +10,7 @@ import { renderSpreuken } from './render-spreuken.js?v=44';
 import { renderVaardigheden, zoekVaardigheden } from './render-vaardigheden.js?v=24';
 import { renderStatblock } from './render-statblock.js?v=9';
 import { initSocket } from "./socket-client.js?v=82";
-import { initDmPanel } from "./dm-panel.js?v=382";
+import { initDmPanel } from "./dm-panel.js?v=383";
 import { COND_INFO, COND_LABEL, COND_MET_PLAATJE, COND_ICON } from './conditions.js?v=2';
 import './media-picker.js?v=9';
 import './wizard.js?v=3';
@@ -13339,7 +13339,7 @@ function _ursulaOnthuldHtml(onthuld, roll, doorNaam) {
   const rollLabel  = roll === 6 ? 'Volledig visioen!' : `Worp: ${roll}`;
   const doorLabel  = doorNaam ? ` — gevraagd door ${esc(doorNaam)}` : '';
   const zinHtml    = (onthuld?.zintuigen || []).map(z => `
-    <div class="ursula-zintuig">
+    <div class="ursula-zin">
       <span class="ursula-zintuig-icon">${icon(_URSULA_ICONS[z.label] || 'sparkles')}</span>
       <span class="ursula-zintuig-label">${esc(z.label)}</span>
       <span class="ursula-zintuig-tekst">${esc(z.tekst)}</span>

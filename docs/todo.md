@@ -228,6 +228,14 @@ wordt `companionOwners` gevuld), is dit het moment.
       **200 met HTML** terug via de SPA-fallback — precies de stille fout uit
       CLAUDE.md. `server.js` geeft nu 404 voor elk pad met een extensie;
       bewaakt door `tests/frontend-imports.test.js`.
+- [x] **De tweede campagnelijst is weg** — opgeruimd 6 okt 2026.
+      `_loadAndRenderCampagnes` en `_renderCampagnes` tekenden een campagnelijst
+      met een eigen kaartvorm die nergens werd aangeroepen; de tab waar hij in
+      hoorde had al geen knop meer. Twee weergaven van hetzelfde lopen uit
+      elkaar, en dat gebeurde ook: het beheerdersoverzicht belandde eerst in de
+      dode variant. 78 regels JS, een tab-div in de shell en een ongebruikte
+      `_INSTELLINGEN_TABS`-set.
+
 - [ ] **Dode code van de previewtoggle** — de knop is uit de balk, `dmToggleClick`
       en `state.dmPreview` staan er nog. Laten staan tot zeker is dat je hem niet
       terugwilt.

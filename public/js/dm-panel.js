@@ -791,8 +791,6 @@ export function initDmPanel() {
 const _GEVECHT_TABS = new Set(['gevecht', 'monsters', 'encounters']);
 // Welke tabs zijn "diensten"?
 const _DIENSTEN_TABS = new Set(['herberg', 'tweespalt', 'gock', 'ursula', 'tempel', 'facties', 'magizoo', 'markt', 'schulden', 'toegang']);
-// Welke tabs zijn "instellingen" (niet als tab getoond)?
-const _INSTELLINGEN_TABS = new Set(['campagnes', 'wereld', 'beurs', 'dobbelstenen']);
 
 // Zet legacy tab-namen om naar nieuwe parent-tab
 function _tabToParent(tab) {
@@ -5881,25 +5879,15 @@ function _showToast(msg, duration = 4500) {
 };
 
 // ── Campagnes ─────────────────────────────────────────────────────────────────
+// Hier stonden `_loadAndRenderCampagnes` en `_renderCampagnes`: een tweede
+// campagnelijst, met een eigen kaartvorm, die nergens werd aangeroepen. De tab
+// waar hij in hoorde (`data-tab="campagnes"`) had al geen knop meer in de
+// zijbalk. De lijst die je als beheerder écht ziet staat in Instellingen →
+// Campagnes (`_renderInstellingen`). Twee weergaven van hetzelfde lopen uit
+// elkaar — en dat gebeurde ook: het beheerdersoverzicht belandde eerst in de
+// dode variant. Weggehaald 6 okt 2026; staat in de geschiedenis als je hem
+// terugwilt.
 
-async function _loadAndRenderCampagnes() {
-  const el = document.getElementById('dm-campagnes-content');
-  if (!el) return;
-  el.innerHTML = '<p class="dm-empty" style="padding:16px">Campagnes laden…</p>';
-  try {
-    const cp = await api.getCampaigns();
-    _renderCampagnes(el, cp.campaigns, cp.activeCampaign, cp);
-  } catch (err) {
-    el.innerHTML = `<p class="dm-empty" style="padding:16px;color:#c44">Fout: ${esc(err.message)}</p>`;
-  }
-};
-
-// ── Het beheerdersoverzicht ─────────────────────────────────────────────────
-// Dit was een lijstje met een naam en een thema. Wat je als beheerder echt wilt
-// weten stond nergens: welke campagne de schijf opeet, wanneer er voor het
-// laatst gespeeld is, of een party wel een wachtwoord heeft. Daarvoor moest je
-// `ssh` en `du`. Dat is nu de vraag die dit scherm beantwoordt — en meteen het
-// antwoord op "hebben we een /admin nodig": nee, dit is een paneel.
 const _mb = (b) => b >= 1073741824 ? (b / 1073741824).toFixed(1) + ' GB'
   : b >= 1048576 ? Math.round(b / 1048576) + ' MB'
   : Math.max(1, Math.round(b / 1024)) + ' kB';
@@ -5915,84 +5903,6 @@ function _geleden(iso) {
   const jr = Math.round(d / 365);
   return `${jr} jaar geleden`;
 }
-
-function _renderCampagnes(el, campaigns, activeCampaign, cp = {}) {
-  const stand  = cp.stand || {};
-  const schijf = cp.schijf || null;
-  const wacht  = cp.wachtwoorden || {};
-  const beheer = cp.beheerCampagne;
-  // De balkjes schalen op de grootste campagne, niet op de schijf: anders is
-  // alles een streepje naast Grisburgh en zie je de verhouding niet.
-  const grootste = Math.max(1, ...campaigns.map(c => stand[c.id]?.bytes?.totaal || 0));
-
-  const listHTML = campaigns.map(c => {
-    const isActive = c.id === activeCampaign;
-    const st = stand[c.id];
-    const b  = st?.bytes?.totaal || 0;
-    // Waar een campagne aandacht nodig heeft. Alleen echte signalen: een
-    // melding die altijd staat leest niemand meer.
-    const let_ = [];
-    if (!wacht[c.id] && c.id !== beheer) let_.push('geen DM-wachtwoord — niemand kan erin');
-    if (st?.partysZonderWachtwoord) let_.push(`${st.partysZonderWachtwoord} party${st.partysZonderWachtwoord === 1 ? '' : '\'s'} zonder wachtwoord`);
-    if (st && !st.wizardKlaar && st.kaartjes === 0) let_.push('nog niet ingericht');
-    return `
-      <div class="campagne-card${isActive ? ' campagne-card--active' : ''}">
-        <div class="campagne-card-info">
-          <strong class="campagne-card-title">${esc(c.appTitle || c.id)}${c.id === beheer ? ' <span class="campagne-beheer">beheer</span>' : ''}</strong>
-          ${c.appSubtitle ? `<span class="campagne-card-sub">${esc(c.appSubtitle)}</span>` : ''}
-          <span class="campagne-card-meta">/${esc(c.id)}${st ? ` · ${st.kaartjes} kaartjes · ${st.partys} party${st.partys === 1 ? '' : "'s"} · ${st.spelers} spelers · ${st.modulesAan}/${st.modulesTotaal} onderdelen` : ''}</span>
-          ${st ? `<div class="campagne-maat">
-            <div class="campagne-balk"><span style="width:${Math.max(2, Math.round(b / grootste * 100))}%"></span></div>
-            <span class="campagne-maat-tekst">${_mb(b)}${st.bestanden ? ` · ${st.bestanden} bestanden` : ''} · gespeeld ${_geleden(st.laatst)}</span>
-          </div>` : ''}
-          ${let_.length ? `<div class="campagne-let">${icon('alert-triangle')} ${let_.map(esc).join(' · ')}</div>` : ''}
-        </div>
-        <div class="campagne-card-actions">
-          <a class="dm-btn dm-btn-sm dm-btn-ghost" href="/${esc(c.id)}" target="_blank" title="Deze campagne openen in een nieuw tabblad">${icon('arrow-up-right')}</a>
-          ${isActive
-            ? '<span class="campagne-active-badge">● Standaard</span>'
-            : `<button class="dm-btn dm-btn-sm" onclick="window.dmPanel.campagneSwitchTo('${esc(c.id)}')" title="Maak dit de standaardcampagne: waar grisburgh.nl zonder pad naartoe stuurt">Als standaard</button>`
-          }
-        </div>
-      </div>`;
-  }).join('');
-
-  // De regel die zegt of het nog past. Zonder dit getal zegt "2,4 GB" niets.
-  const totaal = campaigns.reduce((n, c) => n + (stand[c.id]?.bytes?.totaal || 0), 0);
-  const schijfHtml = schijf ? `
-    <div class="campagne-schijf">
-      <div class="campagne-balk campagne-balk--schijf">
-        <span style="width:${Math.round((schijf.totaal - schijf.vrij) / schijf.totaal * 100)}%"></span>
-      </div>
-      <span class="campagne-maat-tekst">${_mb(schijf.vrij)} vrij van ${_mb(schijf.totaal)} · de campagnes samen ${_mb(totaal)}</span>
-    </div>` : '';
-
-  el.innerHTML = `
-    <div class="dm-feature-section">
-      <div class="dm-feature-row" style="justify-content:space-between;align-items:center;margin-bottom:12px">
-        <span class="dm-form-label" style="font-size:1em;font-weight:700">Campagnes</span>
-        <button class="dm-btn dm-btn-sm" onclick="window.dmPanel.campagneCreate()" title="Nieuwe campagne aanmaken">+</button>
-      </div>
-      ${schijfHtml}
-      <div class="campagne-list">${listHTML || '<p class="dm-empty">Geen campagnes gevonden.</p>'}</div>
-    </div>
-    <div class="dm-feature-section" id="campagne-create-form" style="display:none">
-      <div class="dm-form-label" style="font-weight:700;margin-bottom:8px">Nieuwe campagne aanmaken</div>
-      <div class="dm-feature-row" style="gap:8px;flex-wrap:wrap">
-        <input id="campagne-new-id"       class="dm-input" placeholder="ID (bijv. prewett)" style="flex:1;min-width:120px">
-        <input id="campagne-new-title"    class="dm-input" placeholder="Naam" style="flex:2;min-width:140px">
-        <input id="campagne-new-subtitle" class="dm-input" placeholder="Ondertitel (optioneel)" style="flex:2;min-width:140px">
-        <input id="campagne-new-pw" class="dm-input" type="password" autocomplete="new-password"
-          placeholder="DM-wachtwoord (min. 8 tekens)" style="flex:2;min-width:160px"
-          title="Zonder eigen wachtwoord komt niemand in die campagne: alleen de standaardcampagne valt terug op het serverwachtwoord.">
-      </div>
-      <div class="dm-feature-row" style="gap:8px;margin-top:6px;flex-wrap:wrap">
-        <button class="dm-btn dm-btn-sm" onclick="window.dmPanel.campagneSubmit()" title="Aanmaken">${icon('check')}</button>
-        <button class="dm-btn dm-btn-sm dm-btn-ghost" onclick="document.getElementById('campagne-create-form').style.display='none'" title="Annuleren">${icon('x')}</button>
-      </div>
-      <div id="campagne-create-error" style="color:#c44;font-size:.85em;margin-top:6px"></div>
-    </div>`;
-};
 
 // Let op: dit verhuist je niet. Elke campagne heeft haar eigen pad (/naam) en je
 // sessie hoort bij één campagne; "standaard" bepaalt alleen waar het kale domein

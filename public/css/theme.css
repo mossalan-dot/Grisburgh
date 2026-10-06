@@ -29159,3 +29159,53 @@ body.wizard-open { overflow: hidden; }
   font-family: 'Crimson Text', serif; font-size: .8em; color: #8a4a10;
 }
 .campagne-let svg { width: 14px; height: 14px; flex: 0 0 auto; margin-top: 2px; }
+
+/* ══════════════════════════════════════════════════════════════════════════
+   DE VOORSPELLING ZOALS DE SPELER HEM KRIJGT
+   ══════════════════════════════════════════════════════════════════════════
+   Dit blok leunde op `.ursula-zintuig` — maar die klasse is gemaakt voor het
+   DM-formulier waarin je de voorspelling schrijft (labels, textarea's). De
+   onthulling heeft heel andere kinderen, en die hadden geen enkele regel: een
+   icoon, een zintuignaam en een zin stonden gewoon onder elkaar als kale tekst.
+   Viel niemand op omdat de knop die hem oproept tot 2 okt 2026 niet werkte. */
+.ursula-onthuld {
+  display: flex; flex-direction: column; gap: 9px;
+  margin-top: 10px; width: 100%;
+}
+.ursula-roll-label {
+  font-family: 'Cinzel', serif; font-size: .8em; letter-spacing: .06em;
+  text-transform: uppercase; color: rgba(200, 186, 216, .8); text-align: center; margin: 0 0 2px;
+}
+/* Eén zintuig: het icoon ernaast, de naam erboven, de zin eronder. */
+.ursula-zin {
+  display: grid; grid-template-columns: auto 1fr; gap: 1px 10px;
+  align-items: start; padding: 10px 12px;
+  border: 1px solid rgba(140, 90, 220, .34); border-left: 3px solid #8a5ad8;
+  border-radius: 5px; background: rgba(90, 40, 150, .2);
+}
+.ursula-zintuig-icon { grid-row: span 2; display: flex; align-items: center; color: rgba(198, 160, 245, .95); }
+.ursula-zintuig-icon svg { width: 20px; height: 20px; }
+.ursula-zintuig-label {
+  font-family: 'Cinzel', serif; font-size: .74em; letter-spacing: .07em;
+  text-transform: uppercase; color: rgba(198, 160, 245, .95);
+}
+/* **Dit paneel is donker.** Ursula wijkt af van de rest van de diensten: de
+   andere schermen kregen een licht paneel op 0,76, zij houdt haar paarse nacht.
+   Inktkleur zou hier onleesbaar zijn — zelfde kleuren dus als de tekst eromheen
+   (zie `.ursula-scene .ts-beurs`). */
+.ursula-zintuig-tekst {
+  font-family: 'Crimson Text', serif; font-size: 1.02em; line-height: 1.5;
+  color: rgba(228, 220, 240, .92);
+}
+/* Het concrete beeld bij een zes: dat is de hele worp waard, dus het valt op. */
+/* Het concrete beeld bij een zes: dat is de hele worp waard, dus het valt op —
+   goud op donker, niet inkt op goud. */
+.ursula-concreet {
+  display: flex; align-items: flex-start; gap: 9px;
+  padding: 11px 13px; margin-top: 2px;
+  border: 1px solid rgba(217, 178, 74, .55); border-radius: 5px;
+  background: rgba(184, 134, 11, .16);
+  font-family: 'Crimson Text', serif; font-size: 1.04em; line-height: 1.5;
+  color: rgba(246, 232, 198, .96);
+}
+.ursula-concreet svg { width: 18px; height: 18px; flex: 0 0 auto; color: #b8860b; margin-top: 2px; }
