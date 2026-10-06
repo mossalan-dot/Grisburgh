@@ -1680,6 +1680,18 @@ in `_load()` (`render-spreuken.js`), ontdubbeld op `index`:
 > subclasses door elkaar": dat is precies de brij waar dit tabblad vanaf moest.
 > Het oogje op een subclasskaartje opent hem, het vinkje telt hem op.
 > Feats en Epic Boons hebben geen tweede laag: daar is de lijst het antwoord.
+> **En wat er nog meer bestaat.** Onder de kolom staat *Nog N elders*:
+> `bronnen/subclasses-elders.json` noemt 61 subclasses uit andere boeken
+> (PHB 2014, Xanathar's, Tasha's, Sword Coast, Van Richten's, Fizban's,
+> Wildemount, DMG) **bij naam en met hun vindplaats, en verder niets**. Een naam
+> is geen beschermd werk; een beschrijving wél, en die staat er dan ook niet in
+> — klikken opent de naslagzoekopdracht (`window.app.bronLink`). Ze zijn niet
+> aanvinkbaar: er valt niets op te tellen, en dat is precies het eerlijke
+> signaal. De client ontdubbelt op naam tegen wat de campagne zelf heeft, dus
+> een campagne die ze wél heeft ziet ze niet twee keer.
+> Bewaakt door `tests/bronnen.test.js`: elk item draagt **alleen** `naam` en
+> `boek`, elke boekcode bestaat, en er zit niets in dat al in de seed staat.
+> Komt er ooit tekst in dat bestand, dan valt die test om.
 > **Het raster staat er alleen als het een antwoord is** (`_toontRaster()`): op de
 > deurenlaag en de tegellaag niet, want dat is precies de waslijst die we kwijt
 > wilden. De filterchips tellen bovendien wat er in dát gezichtsveld ligt —

@@ -275,3 +275,62 @@ describe('Bronteksten blijven binnen de campagne die ze mag zien', () => {
     assert.equal(r.status, 404);
   });
 });
+
+// ════════════════════════════════════════════════════════════════════════════
+//  SUBCLASSES DIE ELDERS STAAN
+// ════════════════════════════════════════════════════════════════════════════
+// Het Heldenboek liet alleen de twaalf-maal-vier uit de 2024-PHB zien, en
+// daarmee leek de rest niet te bestaan. `bronnen/subclasses-elders.json` noemt
+// ze bij naam en zegt in welk boek ze staan — en verder niets. Die grens is
+// precies waar deze test over gaat: een naam is geen beschermd werk, een
+// beschrijving wél. Komt er ooit tekst in dat bestand, dan valt dit om.
+describe('Subclasses die elders staan', () => {
+  const data = require('../bronnen/subclasses-elders.json');
+
+  it('noemt alleen een naam en een boek, nooit tekst', () => {
+    const verboden = ['desc', 'beschrijving', 'tekst', 'features', 'levels', 'entries'];
+    for (const [klasse, lijst] of Object.entries(data.klassen)) {
+      for (const sub of lijst) {
+        const sleutels = Object.keys(sub);
+        for (const v of verboden) {
+          assert.ok(!sleutels.includes(v),
+            `${klasse} › ${sub.naam} draagt "${v}" — hier hoort geen tekst in te staan`);
+        }
+        assert.deepEqual(sleutels.sort(), ['boek', 'naam'],
+          `${klasse} › ${sub.naam}: alleen naam en boek`);
+        assert.ok(sub.naam && sub.naam.length < 60);
+      }
+    }
+  });
+
+  it('verwijst elke subclass naar een boek dat we kennen', () => {
+    for (const [klasse, lijst] of Object.entries(data.klassen)) {
+      for (const sub of lijst) {
+        assert.ok(data.boeken[sub.boek],
+          `${klasse} › ${sub.naam} verwijst naar onbekende boekcode "${sub.boek}"`);
+      }
+    }
+  });
+
+  it('gaat compleet de deur uit, ook bij een kale campagne', () => {
+    const bronnen = require('../lib/bronnen');
+    const kaal = bronnen.bronVoor('subclasses-elders', { volledig: false });
+    assert.ok(kaal?.klassen, 'ook zonder bronteksten beschikbaar');
+    assert.equal(Object.keys(kaal.klassen).length, 12, 'alle twaalf classes');
+  });
+
+  it('dubbelt niet met wat de app zelf al heeft', () => {
+    // Staat een subclass hier én in de seed, dan zou hij twee keer in de kolom
+    // komen. De client filtert daarop, maar het is netter om het hier al te zien.
+    const seed = require('../bronnen/class-progression.json');
+    const dubbel = [];
+    for (const [klasse, lijst] of Object.entries(data.klassen)) {
+      const eigen = Object.keys(seed.classes?.[klasse]?.subclasses || {})
+        .map(n => n.toLowerCase());
+      for (const sub of lijst) {
+        if (eigen.includes(sub.naam.toLowerCase())) dubbel.push(`${klasse} › ${sub.naam}`);
+      }
+    }
+    assert.deepEqual(dubbel, [], 'deze staan al in de seed: ' + dubbel.join(', '));
+  });
+});

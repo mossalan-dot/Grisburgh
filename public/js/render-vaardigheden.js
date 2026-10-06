@@ -318,6 +318,15 @@ function _card(it) {
 // uit komen. De Artificer staat niet in de SRD; daarvan tonen we alleen wat we
 // weten, in plaats van de rest te raden.
 let _klasseBasis = null, _spreukKlassen = null, _spreukAantal = null, _tellers = null, _featKoppel = null;
+// De subclasses die niet in de app staan: alleen hun naam en in welk boek ze
+// staan. Eén keer ophalen; valt het om, dan tonen we ze simpelweg niet.
+let _elders = null;
+async function _eldersLaden() {
+  if (_elders !== null) return;
+  try { _elders = await api.get('/bron/subclasses-elders'); }
+  catch { _elders = { klassen: {}, boeken: {} }; }
+}
+
 async function _klasseExtra() {
   if (_klasseBasis) return;
   const haal = async (naam) => {
@@ -769,10 +778,42 @@ function _subKolomHtml(klasse) {
         </button>
       </div>`;
     }).join('')}
+    ${_eldersHtml(klasse, subs.map(([n]) => n))}
     ${isDM() ? `<button class="vd-subnieuw" onclick="window.vaardigheden.nieuweSub()"
       title="Een eigen subclass voor ${esc(klasse)} toevoegen">${icon('plus')} Subclass toevoegen</button>` : ''}
   </div>`;
 }
+
+// ── En wat er nog meer bestaat ──────────────────────────────────────────────
+// De twaalf-maal-vier uit de 2024-PHB waren alles wat je hier zag, en daarmee
+// leek de rest niet te bestaan: een speler die vraagt of hij een Hexblade kan
+// spelen kreeg geen antwoord. Deze staan er dus bij, mét het boek waarin ze
+// staan en een knop om het op te zoeken — maar **zonder één woord tekst**, want
+// dat is beschermd en dat hoort in het boek.
+//
+// Ze zijn niet aanvinkbaar: er valt niets op te tellen. Dat is ook precies het
+// eerlijke signaal — de app weet dat ze bestaan en verder niets.
+function _eldersHtml(klasse, aanwezig) {
+  const lijst = (_elders?.klassen?.[klasse] || [])
+    .filter(x => !aanwezig.some(n => n.toLowerCase() === String(x.naam).toLowerCase()));
+  if (!lijst.length) return '';
+  const boeken = _elders?.boeken || {};
+  const open = _eldersOpen ? ' is-open' : '';
+  return `<div class="vd-elders${open}">
+    <button class="vd-elders-kop" onclick="window.vaardigheden.eldersToggle()">
+      ${icon(_eldersOpen ? 'eye' : 'eye-off')} Nog ${lijst.length} elders
+    </button>
+    <div class="vd-elders-lijst">
+      ${lijst.map(x => `<button class="vd-elders-rij"
+        onclick="window.open(window.app.bronLink('${esc(x.naam).replace(/'/g, "\\'")}','subclass'),'_blank')"
+        title="Opzoeken — de tekst staat in het boek, niet in de app">
+        <span class="vd-elders-naam">${esc(x.naam)}</span>
+        <span class="vd-elders-boek">${esc(boeken[x.boek] || x.boek)}</span>
+      </button>`).join('')}
+    </div>
+  </div>`;
+}
+let _eldersOpen = false;
 
 function _bandHtml() {
   // Zoeken gaat dwars door de indeling heen: wie typt wil resultaten, geen
@@ -1414,6 +1455,7 @@ window.vaardigheden = {
     window._showToast?.(`Van ${naam} staat er geen tekst in de app.`);
   },
   kiesSub(naam) { this.subToggle(naam); },
+  eldersToggle() { _eldersOpen = !_eldersOpen; _paint(); },
   // Een eigen subclass: de editor met soort en class al ingevuld, zodat je
   // alleen nog de naam en de feature hoeft te typen.
   nieuweSub() {
@@ -1546,6 +1588,7 @@ export async function renderVaardigheden(container) {
   _container.innerHTML = `<div class="spreuk-wrap"><p class="spreuk-loading">Naslag laden…</p></div>`;
   await _load();
   await _klasseExtra();
+  await _eldersLaden();
   if (window.app?.state?.activeSection !== 'vaardigheden') return;   // tijdens het laden gewisseld
 
   _container.innerHTML = `
