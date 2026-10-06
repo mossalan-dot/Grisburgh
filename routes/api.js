@@ -847,7 +847,7 @@ function _roddelHoren(g, entity, roddelId) {
   if (!g.flavourReveals) g.flavourReveals = {};
   const gehoord = _roddelsGehoord(g, entity);
   gehoord.add(roddelId);
-  g.flavourReveals[entity.id] = [...gehoord];
+  g.flavourReveals[entity.id] = _standVoorOpslag(gehoord, _roddelRegels(entity?.data));
 }
 
 // De onthulstand van één kaartje voor één party, als verzameling regel-id's.
@@ -856,11 +856,41 @@ function _roddelHoren(g, entity, roddelId) {
 // Kale teksten krijgen i0, i1… als noodid — dat is een positie, geen id.
 const _echteIds = (regels) => regels.length > 0 && regels.every(r => r.id && !/^i\d+$/.test(r.id));
 
+// Welke regels staan open? De stand is in de loop van de tijd in **vier** vormen
+// weggeschreven, en die moeten alle vier gelezen kunnen worden:
+//
+//   [true, false, true]   een lijst ja/nee op positie  — de oudste vorm
+//   { i0: true }          een object op regel-id       — wat de geheimen doen
+//   ['i0', 'i2']          een lijst mét de ids erin    — wat de roddelroute schreef
+//   true                  "het eerste geheim is uit"   — de allereerste vorm
+//
+// Die derde was het probleem: een lijst strings viel in de array-tak en werd op
+// **positie** gelezen. `['i2']` — alleen de derde roddel verteld — kwam er dus
+// uit als `i0`, en dan lichtte de eerste op terwijl je de derde had verteld.
+// Een array van strings is te onderscheiden van een array van booleans, dus
+// hier kan het gewoon goed.
 function _onthuldeIds(stand, regels) {
-  if (Array.isArray(stand)) return new Set(regels.filter((_, i) => stand[i]).map(r => r.id));
+  if (Array.isArray(stand)) {
+    const alleenIds = stand.length > 0 && stand.every(x => typeof x === 'string');
+    if (alleenIds) {
+      const bekend = new Set(regels.map(r => r.id));
+      return new Set(stand.filter(id => bekend.has(id)));
+    }
+    return new Set(regels.filter((_, i) => stand[i]).map(r => r.id));
+  }
   if (stand && typeof stand === 'object') return new Set(Object.keys(stand).filter(k => stand[k]));
   if (stand === true || stand === 'true') return new Set(regels.length ? [regels[0].id] : []);
   return new Set();
+}
+
+// En één plek die de stand wegschrijft, zodat roddels en geheimen hetzelfde doen.
+// Dragen de regels echte ids, dan bewaren we op id en schuift er niets meer bij
+// een bewerking; zijn het noodids (i0, i1…), dan blijft het de lijst ja/nee die
+// met de regels meeschuift. Precies de afweging die bij de geheimen al stond.
+function _standVoorOpslag(open, regels) {
+  return _echteIds(regels)
+    ? Object.fromEntries([...open].map(k => [k, true]))
+    : regels.map(r => open.has(r.id));
 }
 
 function _onthuld(waarde, aantal) {
@@ -1710,9 +1740,7 @@ router.put('/entities/:type/:id/secret', requireDM, (req, res) => {
   // er niets meer. Een kaartje dat nog niet om is (kale teksten, dus i0/i1 als
   // noodid) houdt de oude lijst booleans: die wordt bij het bewerken meegeschoven
   // en zou als id-lijst juist stilvallen.
-  g.secretReveals[id] = _echteIds(regels)
-    ? Object.fromEntries([...open].map(k => [k, true]))
-    : stand;
+  g.secretReveals[id] = _standVoorOpslag(open, regels);
   const ietsOnthuld = stand.some(Boolean);
   // Geheime antagonist: hangt per geheim, niet aan het hele kaartje — niet elk
   // geheim is een verraad. Sinds antagonist een rol is, zetten we de rol om en
@@ -1780,7 +1808,10 @@ router.put('/entities/:type/:id/flavour', requireDM, (req, res) => {
   const rid = regels[index].id;
   if (gehoord.has(rid)) gehoord.delete(rid); else gehoord.add(rid);
   if (!g.flavourReveals) g.flavourReveals = {};
-  g.flavourReveals[entity.id] = [...gehoord];
+  // Hier stond `[...gehoord]`: een lijst met de ids erin. De lezer houdt een
+  // array voor een lijst ja/nee op positie, dus `['i2']` kwam terug als "de
+  // eerste is verteld". Nu dezelfde vorm als bij de geheimen.
+  g.flavourReveals[entity.id] = _standVoorOpslag(gehoord, regels);
   storage.writeJSON('dm-state.json', dmState);
 
   req.app.get('io').to(_campagneRoom(req)).emit('entity:updated', { type, id });

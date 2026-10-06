@@ -28938,17 +28938,24 @@ body.wizard-open { overflow: hidden; }
   border-color: var(--vd-kleur);
   box-shadow: 0 12px 30px rgba(42, 26, 8, .3);
 }
+/* Het beeld mag gezien worden. Het stond op .28 mét een sluier die naar 95%
+   liep — samen bleef er een vage waas over waar je een foto in moest raden.
+   Nu vol in beeld, en de sluier zit alleen nog wáár de tekst staat: een ovaal
+   in het midden. Aan de randen zie je de plaat, in het midden lees je. */
 .vd-deur-beeld {
   position: absolute; inset: 0;
   background-size: cover; background-position: center;
-  opacity: .28; transition: opacity .18s;
+  opacity: .85; transition: opacity .18s;
 }
-.vd-deur:hover .vd-deur-beeld { opacity: .42; }
-/* Een leesbare ondergrond onder de tekst, zodat elk beeld kan. */
+.vd-deur:hover .vd-deur-beeld { opacity: 1; }
 .vd-deur-beeld::after {
   content: ''; position: absolute; inset: 0;
-  background: linear-gradient(180deg, rgba(246,238,218,.25) 0%, rgba(246,238,218,.82) 62%, rgba(233,220,190,.95) 100%);
+  background: radial-gradient(ellipse 72% 52% at 50% 56%,
+    rgba(246,238,218,.93) 0%, rgba(246,238,218,.86) 40%,
+    rgba(246,238,218,.52) 72%, rgba(246,238,218,.2) 100%);
 }
+/* Een kaart mét beeld heeft geen eigen verloop nodig; dat vocht met de plaat. */
+.vd-deur:has(.vd-deur-beeld) { background: #e9dcbe; }
 .vd-deur > span:not(.vd-deur-beeld) { position: relative; z-index: 1; }
 .vd-deur-icoon { color: var(--vd-kleur); }
 .vd-deur-icoon svg { width: 44px; height: 44px; }

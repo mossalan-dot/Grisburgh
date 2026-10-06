@@ -1999,6 +1999,19 @@ opgeslagen als JSON-string. Alles eromheen is afgeleid:
 > in de chef-keten. Zelfde patroon als `geheimenAntagonist`: een geheimregel die
 > een gevolg draagt. Zie `docs/voorstel-geheime-verbindingen.md`.
 
+> **De onthulstand kent vier vormen, en één plek schrijft hem.** Welke roddels
+> een party gehoord heeft en welke geheimen open staan is door de jaren heen
+> weggeschreven als een lijst ja/nee op positie (`[true,false,true]`), als een
+> object op regel-id (`{i0:true}`), als een lijst mét de ids erin (`['i0','i2']`)
+> en als een kale `true`. `_onthuldeIds()` leest ze alle vier — let op de derde:
+> een array van **strings** is iets anders dan een array van **booleans**, en
+> zonder dat onderscheid werd `['i2']` gelezen als "de eerste staat open". Dat
+> was geen opmaakfoutje maar de verkeerde regel die openging voor de spelers.
+> Schrijven gaat via `_standVoorOpslag(open, regels)`, voor roddels én geheimen:
+> echte ids → object (dan schuift er niets bij een bewerking), noodids (`i0`,
+> `i1`…) → de lijst ja/nee die met de regels meeschuift. Bewaakt door
+> `tests/onthulstand.test.js`.
+
 > **Een geheimregel heeft een eigen id.** `data.geheimen` is een lijst
 > `{ id, tekst, antagonist? }`; de onthulstand per party
 > (`groups[gid].secretReveals[id]` = `{ <regel-id>: true }`) en een geheime

@@ -1507,6 +1507,10 @@ Grisburghs **data** te staan — niet in de code.
       op dezelfde roddel staan (niet terug naar 1/3). Nog een keer klikken
       draait het terug. Zelfde proef bij de geheimen. De stand hangt aan de
       **party**, dus wissel van party en kijk of hij daar weer dicht staat.
+- [ ] **Alleen de dérde roddel vertellen** (DM) — blader naar roddel 3, onthul
+      hem, en kijk of roddel 1 en 2 dicht blijven. Dit ging eerder mis: de stand
+      werd als lijst ids weggeschreven en als lijst ja/nee teruggelezen, dus de
+      eerste lichtte op terwijl je de derde had verteld.
 - [ ] **Het kruisje is voor personen** (ALL) — markeer een organisatie als
       opgeheven: het kaartje dempt en de markering staat in het detailvenster,
       maar er komt géén † achter de naam. Bij een personage wél.
