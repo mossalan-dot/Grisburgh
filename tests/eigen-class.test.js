@@ -96,4 +96,50 @@ describe('Eigen class, species of background', () => {
     await req(server, 'GET', '/api/progression', null, dm);
     assert.equal(Object.keys(prog().classes).length, voor);
   });
+
+  // ── De uitleg van een houder ──────────────────────────────────────────────
+  // Een subclass heeft een verhaal dat los staat van zijn features: "wat is een
+  // Berserker" is iets anders dan wat Frenzy doet. Dat verhaal hangt aan de
+  // houder zelf, en dat is ook de enige plek waar een subclass uit een ander
+  // boek iets kwijt kan — alleen de naam van dat boek, nooit zijn tekst.
+  it('legt een houder aan met zijn uitleg en het boek erbij', async () => {
+    const r = await req(server, 'POST', '/api/progression/houder',
+      { soort: 'subclass', bron: 'Barbarian', naam: 'Path of the Totem Warrior',
+        boek: "Player's Handbook (2014)", herkomst: 'overgenomen' }, dm);
+    assert.equal(r.status, 200, JSON.stringify(r.body));
+    const sub = prog().classes.Barbarian.subclasses['Path of the Totem Warrior'];
+    assert.ok(sub, 'de subclass staat erin');
+    assert.deepEqual(sub.levels, {}, 'zonder features: die staan in het boek');
+    assert.equal(sub.boek, "Player's Handbook (2014)");
+    assert.equal(sub.desc, undefined, 'en zonder tekst — die mag er niet uit');
+  });
+
+  // Met een verzonnen subclass, niet met een bestaande: de app schrijft nooit
+  // zelf wat een Berserker of een Beast is. Dat doet de DM, uit zijn eigen boek
+  // of uit zijn eigen hoofd.
+  it('werkt de uitleg van een bestaande houder bij', async () => {
+    await req(server, 'POST', '/api/progression/houder',
+      { soort: 'subclass', bron: 'Barbarian', naam: 'Pad van de Veenwachter' }, dm);
+    const r = await req(server, 'PUT', '/api/progression/houder',
+      { soort: 'subclass', bron: 'Barbarian', naam: 'Pad van de Veenwachter',
+        desc: 'Wat de DM hier intikt.' }, dm);
+    assert.equal(r.status, 200, JSON.stringify(r.body));
+    const sub = prog().classes.Barbarian.subclasses['Pad van de Veenwachter'];
+    assert.equal(sub.desc, 'Wat de DM hier intikt.');
+    assert.deepEqual(sub.levels, {}, 'de features blijven met rust');
+  });
+
+  it('wist de uitleg als je het veld leegmaakt', async () => {
+    await req(server, 'POST', '/api/progression/houder',
+      { soort: 'class', naam: 'Blikslager', desc: 'Iets' }, dm);
+    assert.equal(prog().classes.Blikslager.desc, 'Iets');
+    await req(server, 'PUT', '/api/progression/houder', { soort: 'class', naam: 'Blikslager', desc: '  ' }, dm);
+    assert.equal(prog().classes.Blikslager.desc, undefined, 'leeg is weg, niet een lege string');
+  });
+
+  it('weigert de uitleg van een houder die er niet is', async () => {
+    const r = await req(server, 'PUT', '/api/progression/houder',
+      { soort: 'class', naam: 'Bestaat Niet', desc: 'x' }, dm);
+    assert.equal(r.status, 404);
+  });
 });

@@ -201,6 +201,19 @@ wordt `companionOwners` gevuld), is dit het moment.
 
 ## Scherven (klein, los op te pakken)
 
+- [ ] **Meenemen & overnemen — één plek voor de hele app.** De knop stond in
+      het Heldenboek (een downloadpijl naast de hulpknop) en niemand begreep
+      waarom juist dáár. Weggehaald op 6 okt 2026; de machinerie staat er nog
+      (`vaardigheden.deelVenster/exporteer/importeer`, `GET
+      /progression/export`, `POST /progression/import`, met tests) maar is
+      nergens aan te klikken — zie het commentaar bij `deelVenster()`.
+      Het probleem is breder dan de progressie: wat een DM zelf intikt bij
+      **spreuken, tafels, kaartjes en diensten** zit net zo goed vast in zijn
+      campagne. Dat hoort één venster te zijn — "wat neem je mee?" met vinkjes
+      per soort — op één plek (Meesterkamer, bij de campagne zelf), niet een
+      knop per tabblad. Let op dezelfde grens als nu: zelf verzonnen mag mee,
+      overgenomen tekst niet.
+
 - [x] **De Heeren-dienst opruimen** — gedaan 21 sep 2026. Negen routes, de
       DM-tab, `#section-heeren`, `HEEREN_*`, `renderHeeren()` en de tien
       api-wrappers weg; ruim 550 regels. De briefstijl `heeren` (schaduwbrief)

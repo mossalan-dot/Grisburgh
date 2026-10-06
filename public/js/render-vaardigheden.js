@@ -556,6 +556,7 @@ function _klasseKaartHtml(klasse) {
 function _subklasseKaartHtml(klasse, sub) {
   const data = _bron?.prog?.classes?.[klasse]?.subclasses?.[sub];
   if (!data) return '';
+  const uitleg = String(data.desc || '').trim();
   const n = Object.values(data.levels || {}).reduce((t, a) => t + (a || []).length, 0);
   const levels = Object.keys(data.levels || {}).map(Number).filter(l => (data.levels[l] || []).length).sort((a, b) => a - b);
   const veld = window._subSignatureVoor?.(sub);
@@ -573,7 +574,10 @@ function _subklasseKaartHtml(klasse, sub) {
         ${levels.length ? `<div class="vk-feit"><span class="vk-feit-waarde">${levels.join(' · ')}</span><span class="vk-feit-label">Op level</span></div>` : ''}
         ${veld ? `<div class="vk-feit"><span class="vk-feit-waarde">${esc(veld.feature)}</span><span class="vk-feit-label">Eigen veld op je blad</span></div>` : ''}
       </div>
-      ${n ? '' : `<p class="vk-noot">Van deze subklasse staat er geen tekst in de app — die komt uit het Player's Handbook en mag daar niet uit overgenomen worden. ${isDM() ? 'Je kunt de features zelf intikken met de plusknop rechtsboven.' : 'Vraag je DM of hij ze invult.'}</p>`}
+      ${uitleg ? `<div class="vk-uitleg">${_bron?.md?.(uitleg) ?? esc(uitleg)}</div>` : ''}
+      ${data.boek ? `<p class="vk-herkomst">${icon('book-open')} ${esc(data.boek)}</p>` : ''}
+      ${n || uitleg ? '' : `<p class="vk-noot">Van deze subklasse staat er geen tekst in de app — die komt uit het boek en mag daar niet uit overgenomen worden. ${isDM() ? 'Je kunt de uitleg en de features zelf intikken met de plusknop rechtsboven.' : 'Vraag je DM of hij ze invult.'}</p>`}
+      ${isDM() ? `<button class="vk-uitlegknop" onclick="window.vaardigheden.subUitleg('${esc(sub).replace(/'/g, "\\'")}')">${icon('pencil')} ${uitleg ? 'Uitleg bewerken' : 'Uitleg toevoegen'}</button>` : ''}
     </div>`;
 }
 
@@ -660,7 +664,6 @@ const _DEUREN = [
 ];
 const _DEUR = id => _DEUREN.find(d => d.id === id);
 // Hoe heet het ding dat je achter deze deur toevoegt?
-const _NIEUW_LABEL = { class: 'Class', species: 'Species', background: 'Background', feats: 'Feat' };
 // Welke soort de editor moet openen voor een nieuwe achter die deur.
 const _NIEUW_SOORT  = { class: 'class', species: 'species', background: 'background', feats: 'feat' };
 
@@ -760,16 +763,11 @@ function _tegelsHtml(d) {
   if (!rijen.length) return `<p class="spreuk-empty">Hier staat nog niets in.</p>`;
   const icoonVan = (naam) => d.id === 'class' ? (KLASSE_ICOON[naam] || 'sword')
     : d.id === 'species' ? (SPECIES_ICOON[naam] || 'user') : 'scroll-text';
-  // Een eigen class, species of background toevoegen. Stond alleen bij de
-  // subclasses, en daar kwam je pas als je al een class had gekozen — dus een
-  // dertiende class aanmaken kon nergens.
-  const nieuwKnop = isDM() ? `<button class="vd-tegel vd-tegel--nieuw" style="--vd-kleur:${d.kleur}"
-    onclick="window.vaardigheden.nieuwIn('${d.id}')"
-    title="Een eigen ${esc(_NIEUW_LABEL[d.id] || 'regel')} toevoegen">
-    <span class="vd-tegel-icoon">${icon('plus')}</span>
-    <span class="vd-tegel-naam">${esc(_NIEUW_LABEL[d.id] || '')} toevoegen</span>
-  </button>` : '';
-  return `<div class="vd-tegels">${nieuwKnop}${rijen.map(([naam, n], i) => {
+  // Geen plustegel meer tussen de keuzes, en geen plusknop onder de
+  // subclasses: er staat er één in de kopbalk naast de hulpknop, en die weet
+  // zelf waar je staat. Een knop per onderdeel was hetzelfde gebaar op vier
+  // plekken.
+  return `<div class="vd-tegels">${rijen.map(([naam, n], i) => {
     const beeld = _tegelBeeld(x => d.soorten.includes(x.soort)
       && (d.id === 'background' ? x.naam === naam : x.bron === naam));
     const subs = d.id === 'class' ? _bandSubklassen(naam).length : 0;
@@ -816,8 +814,6 @@ function _subKolomHtml(klasse) {
       </div>`;
     }).join('')}
     ${_eldersHtml(klasse, subs.map(([n]) => n))}
-    ${isDM() ? `<button class="vd-subnieuw" onclick="window.vaardigheden.nieuweSub()"
-      title="Een eigen subclass voor ${esc(klasse)} toevoegen">${icon('plus')} Subclass toevoegen</button>` : ''}
   </div>`;
 }
 
@@ -828,25 +824,43 @@ function _subKolomHtml(klasse) {
 // staan en een knop om het op te zoeken — maar **zonder één woord tekst**, want
 // dat is beschermd en dat hoort in het boek.
 //
-// Ze zijn niet aanvinkbaar: er valt niets op te tellen. Dat is ook precies het
-// eerlijke signaal — de app weet dat ze bestaan en verder niets.
+// Ze stonden er eerst alleen ter kennisgeving, met een link naar het boek. Dat
+// vertelde een DM wat hij al wist. Een vinkje doet wel iets: het **zet de
+// subclass in deze campagne**, met het boek erbij, en vanaf dat moment doet hij
+// precies wat de andere doen — hij staat in de kolom, je kunt hem aanvinken en
+// zijn features komen in de lijst eronder.
+//
+// Wat er níét bij komt is de tekst. Die staat in dat boek en mag daar niet uit
+// overgenomen worden; de app maakt de plek, de DM (of een bestand van een
+// andere DM) vult hem. Dat staat er met zoveel woorden bij, anders lijkt een
+// lege subclass een fout.
 function _eldersHtml(klasse, aanwezig) {
   const lijst = (_elders?.klassen?.[klasse] || [])
     .filter(x => !aanwezig.some(n => n.toLowerCase() === String(x.naam).toLowerCase()));
   if (!lijst.length) return '';
   const boeken = _elders?.boeken || {};
   const open = _eldersOpen ? ' is-open' : '';
+  const veiligK = esc(klasse).replace(/'/g, "\\'");
   return `<div class="vd-elders${open}">
     <button class="vd-elders-kop" onclick="window.vaardigheden.eldersToggle()">
       ${icon(_eldersOpen ? 'eye' : 'eye-off')} Nog ${lijst.length} elders
     </button>
     <div class="vd-elders-lijst">
-      ${lijst.map(x => `<button class="vd-elders-rij"
-        onclick="window.open(window.app.bronLink('${esc(x.naam).replace(/'/g, "\\'")}','subclass'),'_blank')"
-        title="Opzoeken — de tekst staat in het boek, niet in de app">
-        <span class="vd-elders-naam">${esc(x.naam)}</span>
-        <span class="vd-elders-boek">${esc(boeken[x.boek] || x.boek)}</span>
-      </button>`).join('')}
+      ${isDM() ? '<p class="vd-elders-uitleg">Vink er een aan en hij staat in je campagne, met het boek erbij. De tekst komt niet mee — die staat in dat boek. De features typ je zelf, of je leest ze in van een andere DM.</p>' : ''}
+      ${lijst.map(x => {
+        const veilig = esc(x.naam).replace(/'/g, "\\'");
+        const veiligB = esc(boeken[x.boek] || x.boek || '').replace(/'/g, "\\'");
+        return `<div class="vd-elders-rij">
+        ${isDM() ? `<label class="vd-subkaart-vink" title="Zet ${esc(x.naam)} in deze campagne">
+          <input type="checkbox" onchange="window.vaardigheden.eldersAan('${veilig}','${veiligB}')"></label>` : ''}
+        <button class="vd-elders-open"
+          onclick="window.open(window.app.bronLink('${veilig}','subclass'),'_blank')"
+          title="Opzoeken — de tekst staat in het boek, niet in de app">
+          <span class="vd-elders-naam">${esc(x.naam)}</span>
+          <span class="vd-elders-boek">${esc(boeken[x.boek] || x.boek)}</span>
+        </button>
+      </div>`;
+      }).join('')}
     </div>
   </div>`;
 }
@@ -952,6 +966,17 @@ function _filterBar() {
 // Op de deurenlaag en de keuzelaag hoort er géén raster te staan: dat is
 // precies de waslijst die we kwijt wilden. Pas als je iets gekozen hebt (of
 // zoekt) is een lijst een antwoord in plaats van een muur.
+// De rij met "Alles · Class 16 · Subclass 18" en de trechter eronder stelden
+// binnen één class dezelfde vraag als de kolom ernaast: welke features wil je
+// zien. Twee bedieningen voor één keuze lopen uit elkaar, dus de rij verdwijnt
+// zodra je in een class, species of background staat. Bij de feats en bij een
+// zoekopdracht is er geen kolom en blijft hij staan.
+function _toontFilters() {
+  if (!_toontRaster()) return false;
+  if ((_filters.q || '').trim()) return true;
+  return !_filters.bron;
+}
+
 function _toontRaster() {
   if ((_filters.q || '').trim()) return true;
   if (!_deur) return false;
@@ -963,7 +988,7 @@ function _paint() {
   const grid = document.getElementById('vaardig-grid');
   const fb   = _container?.querySelector('.vaardig-filters');
   const kol  = document.getElementById('vaardig-subkolom');
-  if (fb) fb.hidden = !_toontRaster();
+  if (fb) fb.hidden = !_toontFilters();
   // De kolom met subclasses staat links van het raster en hoort alleen bij een
   // class. Buiten Classes bestaat hij niet.
   // De subclasses stonden hier als kolom naast het raster; ze staan nu naast het
@@ -1077,6 +1102,74 @@ function _featKoppelingHtml(it) {
       ${rij('Geeft een spreuk', 'staat op hun lijst', k.viaSpreuk)}
       ${k.geeftSpreuk.length ? `<p class="vk-feats-noot">Geeft: ${k.geeftSpreuk.map(esc).join(', ')}.</p>` : ''}
     </div>`;
+}
+
+// ── Het venster van een subclass ────────────────────────────────────────────
+// Niet zijn eerste feature maar de subclass zelf: wat het is, waar het vandaan
+// komt, en dan pas wat het geeft. De features zijn een lijst met het level
+// ervoor; daar klik je door naar de feature die je wil lezen.
+function _subVenster(klasse, sub) {
+  const data = _bron?.prog?.classes?.[klasse]?.subclasses?.[sub];
+  if (!data) { window._showToast?.(`${sub} staat niet in deze campagne.`); return; }
+  const uitleg = String(data.desc || '').trim();
+  const label  = _bron?.prog?.classes?.[klasse]?.subclassLabel || 'Subclass';
+  const veld   = window._subSignatureVoor?.(sub);
+  const levels = Object.keys(data.levels || {}).map(Number)
+    .filter(l => (data.levels[l] || []).length).sort((a, b) => a - b);
+  const aantal = levels.reduce((t, l) => t + data.levels[l].length, 0);
+  const veiligS = esc(sub).replace(/'/g, "\\'");
+
+  const rijen = levels.map(l => (data.levels[l] || []).map(f => {
+    const it = (_all || []).find(x => x.soort === 'subclass' && x.bron === klasse && x.sub === sub && x.naam === f.name);
+    const klik = it ? ` onclick="window.vaardigheden.uitSubVenster('${esc(it.key)}')"` : '';
+    return `<button class="vd-subfeature"${klik}${it ? '' : ' disabled'}>
+      <span class="vd-subfeature-lvl">${l}</span>
+      <span class="vd-subfeature-naam">${esc(f.name)}</span>
+    </button>`;
+  }).join('')).join('');
+
+  window.app.openModal(sub, '', `
+    <div class="vd-subvenster">
+      <p class="vd-subvenster-meta">${esc(label)} · ${esc(klasse)}${data.boek ? ` · ${esc(data.boek)}` : ''}${veld ? ` · eigen veld: ${esc(veld.feature)}` : ''}</p>
+      ${uitleg
+        ? `<div class="prog-detail-desc">${_bron?.md?.(uitleg) ?? esc(uitleg)}</div>`
+        : `<p class="dm-hint">Er staat nog geen uitleg bij deze ${esc(label.toLowerCase())}. ${isDM() ? 'Schrijf hem erbij — dan leest iedereen aan tafel hetzelfde.' : 'Vraag je DM of hij hem invult.'}</p>`}
+      ${isDM() ? `<div class="spreuk-dm-knoppen">
+        <button class="spreuk-detail-imgbtn" onclick="window.vaardigheden.subUitleg('${veiligS}')">${icon('pencil')} ${uitleg ? 'Uitleg bewerken' : 'Uitleg toevoegen'}</button>
+      </div>` : ''}
+      <div class="vd-subvenster-kop">${aantal ? `${aantal} ${aantal === 1 ? 'feature' : 'features'}` : 'Nog geen features'}</div>
+      ${rijen || `<p class="dm-hint">De features komen uit het boek en mogen daar niet uit overgenomen worden. ${isDM() ? 'Tik ze zelf in met de plusknop rechtsboven, of lees ze in van een andere DM.' : ''}</p>`}
+    </div>`);
+}
+
+// ── De uitleg van een houder schrijven ──────────────────────────────────────
+// Een houder (een class, subclass, species of background) heeft geen level en
+// geen features van zichzelf, maar wel een verhaal. Dat is wat hier in gaat.
+function _uitlegVenster(soort, naam, bron) {
+  const h = soort === 'subclass' ? _bron?.prog?.classes?.[bron]?.subclasses?.[naam]
+    : soort === 'class'      ? _bron?.prog?.classes?.[naam]
+    : soort === 'species'    ? _bron?.prog?.species?.[naam]
+    : _bron?.prog?.backgrounds?.[naam];
+  if (!h) { alert(`${naam} staat niet in deze campagne.`); return; }
+  const veilig = esc(naam).replace(/'/g, "\\'");
+  const veiligB = esc(bron || '').replace(/'/g, "\\'");
+  window.app.openModal(`Uitleg bij ${naam}`, '', `
+    <div class="dm-feature-section" style="margin:0">
+      <p class="dm-hint">Wat is dit, in je eigen woorden? Dit staat bovenaan het kaartje, vóór de features. Neem geen tekst over uit een boek dat niet van jou is — vat het samen.</p>
+      <div class="dm-form-row">
+        <label class="dm-form-label">Beschrijving</label>
+        ${window._fmtToolbarHtml?.('vd-houder-desc') ?? ''}
+        <textarea class="dm-input" id="vd-houder-desc" rows="8" placeholder="Een lege regel begint een nieuwe alinea.">${esc(_schoonVoorEditor(h.desc || ''))}</textarea>
+      </div>
+      <div class="dm-form-row">
+        <label class="dm-form-label">Uit welk boek?</label>
+        <input class="dm-input" id="vd-houder-boek" maxlength="120" value="${esc(h.boek || '')}"
+          placeholder="Bijv. Xanathar's Guide to Everything — of leeg als je het zelf verzon">
+      </div>
+      <div class="dm-feature-row" style="margin-top:8px">
+        <button class="dm-btn dm-btn-primary" onclick="window.vaardigheden.bewaarUitleg('${esc(soort)}','${veilig}','${veiligB}')">${icon('save')} Bewaren</button>
+      </div>
+    </div>`);
 }
 
 function _open(key) {
@@ -1285,13 +1378,14 @@ function _editorHtml() {
         <input class="dm-input" id="vd-bronnaam" maxlength="120" value="${esc(e.bron || '')}"
           placeholder="Bijv. Xanathar's Guide to Everything, of: van een tafelgenoot">
       </div>` : ''}
-      ${houder ? `
-      <p class="dm-hint">Je maakt hier alleen de ${esc(maaksel.label.replace(/^Een nieuwe?\s*/i, ''))} zelf. De features hang je er daarna aan met <em>Feature van een ${maaksel.soort === 'species' ? 'species' : maaksel.soort}</em>.</p>` : `
       <div class="dm-form-row">
         <label class="dm-form-label">Beschrijving</label>
         ${window._fmtToolbarHtml?.('vd-desc') ?? ''}
-        <textarea class="dm-input" id="vd-desc" rows="9" placeholder="Wat doet het? Een lege regel begint een nieuwe alinea.">${esc(e.desc || '')}</textarea>
-      </div>`}
+        <textarea class="dm-input" id="vd-desc" rows="${houder ? 6 : 9}"
+          placeholder="${houder ? 'Wat is dit? Dit staat bovenaan het kaartje, vóór de features.' : 'Wat doet het? Een lege regel begint een nieuwe alinea.'}">${esc(e.desc || '')}</textarea>
+      </div>
+      ${houder ? `
+      <p class="dm-hint">Je maakt hier de ${esc(maaksel.label.replace(/^Een nieuwe?\s*/i, ''))} zelf, met zijn uitleg. De features hang je er daarna aan met <em>Feature van een ${maaksel.soort === 'species' ? 'species' : maaksel.soort}</em>.</p>` : ''}
       ${toonKoppeling ? `
       <div class="dm-form-row" style="flex-direction:column;align-items:stretch;gap:5px">
         <label class="dm-form-label">Sluit aan op</label>
@@ -1410,7 +1504,24 @@ function _editorHerteken() {
 // ── Publieke API ──────────────────────────────────────────────────
 window.vaardigheden = {
   open: _open,
-  nieuw() { _editorOpen(null); },
+  // Eén plusknop voor het hele Heldenboek, in de kopbalk naast de hulpknop.
+  // Hij hoeft niet dom te zijn: sta je in Barbarian, dan is een feature van
+  // deze class het waarschijnlijkste, en staat de class al ingevuld. Sta je op
+  // de keuzelaag van Classes, dan is het een nieuwe class.
+  nieuw() {
+    _editorOpen(null);
+    const maaksel = (_filters.bron && _deur === 'class') ? 'f-class'
+      : (_filters.bron && _deur === 'species') ? 'f-species'
+      : (_filters.bron && _deur === 'background') ? 'f-background'
+      : _deur === 'class' ? 'h-class'
+      : _deur === 'species' ? 'h-species'
+      : _deur === 'background' ? 'h-background'
+      : 'feat';
+    setTimeout(() => {
+      this.veld('maaksel', maaksel);
+      if (_filters.bron && !maaksel.startsWith('h-')) { _edit.bron = _filters.bron; _editorHerteken(); }
+    }, 60);
+  },
   bewerk(key) { _editorOpen((_all || []).find(x => x.key === key)); },
   // Kiezen gaat via dezelfde mediabibliotheek als in de bewerkmodal; het
   // detailvenster tekent zichzelf daarna opnieuw, zodat het beeld er staat.
@@ -1498,10 +1609,11 @@ window.vaardigheden = {
     const maaksel = _MAAKSEL(_edit.maaksel);
     try {
       // Een houder is geen regel: andere route, andere velden. Hij heeft geen
-      // level en geen beschrijving — die hangen aan de features die je er
-      // daarna in zet.
+      // level — wél een beschrijving, want "wat is een Berserker" is iets
+      // anders dan wat zijn features doen.
       if (maaksel.houder) {
-        await api.nieuweHouder({ soort: maaksel.soort, naam: _edit.naam.trim(), bron: _edit.bron || '' });
+        await api.nieuweHouder({ soort: maaksel.soort, naam: _edit.naam.trim(), bron: _edit.bron || '',
+          desc: _edit.desc || '', boek: _edit.bronTekst || '', herkomst: _edit.herkomst || '' });
         window.app.closeModal();
         _all = null;
         await _load(); await _klasseExtra();
@@ -1580,37 +1692,44 @@ window.vaardigheden = {
     if (_subAan.has(naam)) _subAan.delete(naam); else _subAan.add(naam);
     _refreshFilterBar(); _paint();
   },
-  // Bekijken: het kaartje van die subclass, zonder hem aan te vinken.
-  subBekijk(naam) {
-    const it = (_all || []).find(x => x.soort === 'subclass' && x.bron === _filters.bron && x.sub === naam);
-    if (it) { _open(it.key); return; }
-    // Een subclass zonder features heeft geen regel om te openen; dan is het
-    // kaartje van de subclass zelf het antwoord.
-    window._showToast?.(`Van ${naam} staat er geen tekst in de app.`);
-  },
+  // Bekijken: de subclass **zelf**. Dit opende zijn eerste feature — je klikte
+  // op Path of the Berserker en kreeg Frenzy, wat leest als een fout in de
+  // gegevens. Nu komt zijn eigen uitleg bovenaan en staan de features eronder
+  // als lijst; daar klik je door naar de feature die je wil.
+  subBekijk(naam) { _subVenster(_filters.bron, naam); },
   kiesSub(naam) { this.subToggle(naam); },
   eldersToggle() { _eldersOpen = !_eldersOpen; _paint(); },
-  // Een eigen class, species, background of feat: de editor met de soort al
-  // ingevuld, zodat je alleen nog de naam hoeft te typen.
-  // De tegel zegt "Class toevoegen", dus het formulier hoort meteen op *Een
-  // nieuwe class* te staan — niet op een feature met een level erbij.
-  nieuwIn(deurId) {
-    _editorOpen(null);
-    setTimeout(() => {
-      const maaksel = { class: 'h-class', species: 'h-species', background: 'h-background', feats: 'feat' }[deurId] || 'h-class';
-      this.veld('maaksel', maaksel);
-    }, 60);
+  // Een subclass uit de elders-lijst in deze campagne zetten. Alleen de naam en
+  // het boek: de tekst hoort in dat boek te blijven.
+  async eldersAan(naam, boek) {
+    try {
+      await api.nieuweHouder({ soort: 'subclass', naam, bron: _filters.bron || '', boek, herkomst: 'overgenomen' });
+    } catch (e) {
+      // Bestaat hij al, dan is dat precies wat we wilden en gaan we door.
+      if (!/bestaat al/i.test(e.message || '')) { alert('Toevoegen mislukt: ' + e.message); return; }
+    }
+    _all = null;
+    await _load(); await _klasseExtra();
+    _subAan.add(naam);
+    _bandHerteken(); _refreshFilterBar(); _paint();
+    window._showToast?.(`${naam} staat in je campagne. De features typ je er zelf bij.`);
   },
-  // Een eigen subclass: de editor met soort en class al ingevuld, zodat je
-  // alleen nog de naam en de feature hoeft te typen.
-  nieuweSub() {
-    const klasse = _filters.bron || '';
-    _editorOpen(null);
-    setTimeout(() => {
-      this.veld('maaksel', 'h-subclass');
-      _edit.bron = klasse;          // bij wélke class hij hoort
-      _editorHerteken();
-    }, 60);
+  // De uitleg van een subclass: wát het is, los van wat het geeft.
+  subUitleg(sub) { _uitlegVenster('subclass', sub, _filters.bron); },
+  // Een feature openen vanuit het subclassvenster: het ene venster sluit, het
+  // andere komt ervoor in de plaats. Twee modals over elkaar is geen stapel
+  // die je nog terug kunt lopen.
+  uitSubVenster(key) { window.app.closeModal?.(); setTimeout(() => _open(key), 40); },
+  async bewaarUitleg(soort, naam, bron) {
+    const desc = document.getElementById('vd-houder-desc')?.value || '';
+    const boek = document.getElementById('vd-houder-boek')?.value || '';
+    try {
+      await api.put('/progression/houder', { soort, naam, bron, desc, boek });
+      window.app.closeModal();
+      _all = null; await _load(); await _klasseExtra();
+      _bandHerteken(); _refreshFilterBar(); _paint();
+      window._showToast?.(`De uitleg bij ${naam} staat erin.`);
+    } catch (e) { alert('Bewaren mislukt: ' + e.message); }
   },
   // Omdraaien blijft staan als je klikt — bij hover draait hij vanzelf, maar op
   // een aanraakscherm bestaat hover niet.
@@ -1684,6 +1803,13 @@ window.vaardigheden = {
   // Wat een DM intikt — subklasseteksten, eigen features, afbeeldingen — blijft
   // nu in zijn campagne. Dit pakt het in één bestand, zodat hij het mee kan
   // nemen naar zijn volgende campagne of kan geven aan wie hetzelfde boek heeft.
+  //
+  // **Geen knop meer in het Heldenboek** (6 okt 2026). Niemand begreep waarom
+  // een downloadpijl juist daar stond, en het hoort ook niet alleen daar:
+  // spreuken, tafels en kaartjes hebben hetzelfde probleem. Het wordt één
+  // plek voor de hele app — zie docs/todo.md, "Meenemen & overnemen". Tot die
+  // tijd blijft dit staan met zijn endpoints en tests: aan te roepen vanuit de
+  // console, niet vanaf het scherm. Dit is dus geen dode code die weg mag.
   deelVenster() {
     window.app.openModal('Meenemen of overnemen', '', `
       <div class="dm-feature-section" style="margin:0">
@@ -1775,12 +1901,6 @@ export async function renderVaardigheden(container) {
               value="${esc(_filters.q)}" oninput="window.vaardigheden.search(this.value)">
           </div>
           ${window._helpBtn?.('vaardigheden') ?? ''}
-          <!-- Niet de schuine pijl: dat gebaar betekent in de hele app "open
-               het kaartje", en hier opent het een in-/uitpakvenster. Een
-               downloadpijl zegt wat het is, en de tooltip zegt waarvoor.
-               (Geen backticks in commentaar hierbinnen: template literal.) -->
-          ${isDM() ? `<button class="sbs-add-btn" onclick="window.vaardigheden.deelVenster()"
-            title="Je eigen classes, feats en teksten in- of uitpakken — om ze mee te nemen naar een andere campagne of te delen met een andere DM">${icon('download')}</button>` : ''}
           ${isDM() ? `<button class="sbs-add-btn" onclick="window.vaardigheden.nieuw()" title="Eigen vaardigheid toevoegen">${icon('plus')}</button>` : ''}
         </div>
       </div>

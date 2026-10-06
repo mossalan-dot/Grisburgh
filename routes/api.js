@@ -9005,19 +9005,29 @@ router.post('/progression/houder', requireDM, (req, res) => {
     return res.status(400).json({ error: 'Onbekende soort' });
   if (!naam) return res.status(400).json({ error: 'Naam is verplicht' });
 
+  // Een houder draagt zijn eigen uitleg. Dat is wat je op het kaartje leest
+  // vóór de features: wát een Berserker is, niet wat hij krijgt. De features
+  // hebben hun eigen beschrijving en die blijft daar.
+  const meta = {};
+  const desc = String(b.desc || '').trim().slice(0, 4000);
+  const boek = String(b.boek || '').trim().slice(0, 120);
+  if (desc) meta.desc = desc;
+  if (boek) meta.boek = boek;
+  if (b.herkomst) meta.herkomst = String(b.herkomst).slice(0, 40);
+
   const prog = _progHuidig();
   if (soort === 'species') {
     prog.species = prog.species || {};
     if (prog.species[naam]) return res.status(409).json({ error: `${naam} bestaat al` });
-    prog.species[naam] = { levels: {} };
+    prog.species[naam] = { levels: {}, ...meta };
   } else if (soort === 'background') {
     prog.backgrounds = prog.backgrounds || {};
     if (prog.backgrounds[naam]) return res.status(409).json({ error: `${naam} bestaat al` });
-    prog.backgrounds[naam] = { levels: {} };
+    prog.backgrounds[naam] = { levels: {}, ...meta };
   } else if (soort === 'class') {
     prog.classes = prog.classes || {};
     if (prog.classes[naam]) return res.status(409).json({ error: `${naam} bestaat al` });
-    prog.classes[naam] = { levels: {}, subclasses: {} };
+    prog.classes[naam] = { levels: {}, subclasses: {}, ...meta };
   } else {
     const klasse = String(b.bron || '').trim();
     if (!klasse) return res.status(400).json({ error: 'Bij welke class hoort deze subclass?' });
@@ -9026,12 +9036,44 @@ router.post('/progression/houder', requireDM, (req, res) => {
     prog.classes[klasse].subclasses = prog.classes[klasse].subclasses || {};
     if (prog.classes[klasse].subclasses[naam])
       return res.status(409).json({ error: `${naam} bestaat al bij ${klasse}` });
-    prog.classes[klasse].subclasses[naam] = { levels: {} };
+    prog.classes[klasse].subclasses[naam] = { levels: {}, ...meta };
   }
 
   storage.writeJSON('progression.json', { ...prog, bron: prog.bron || 'Aangepast door de DM' });
   req.app.get('io').to(_campagneRoom(req)).emit('progression:updated', {});
   res.json({ ok: true, soort, naam });
+});
+
+// De uitleg van een houder die er al staat. Apart van POST, want dat maakt er
+// een en weigert wat bestaat; dit raakt alleen de uitleg en laat de features
+// met rust.
+router.put('/progression/houder', requireDM, (req, res) => {
+  const b = req.body || {};
+  const soort = String(b.soort || '');
+  const naam  = String(b.naam || '').trim();
+  if (!['class', 'subclass', 'species', 'background'].includes(soort))
+    return res.status(400).json({ error: 'Onbekende soort' });
+  if (!naam) return res.status(400).json({ error: 'Naam is verplicht' });
+
+  const prog = _progHuidig();
+  const houder = soort === 'species'    ? prog.species?.[naam]
+    : soort === 'background' ? prog.backgrounds?.[naam]
+    : soort === 'class'      ? prog.classes?.[naam]
+    : prog.classes?.[String(b.bron || '').trim()]?.subclasses?.[naam];
+  if (!houder) return res.status(404).json({ error: `${naam} staat er niet in` });
+
+  const zet = (sleutel, waarde, max) => {
+    if (waarde === undefined) return;
+    const t = String(waarde).trim().slice(0, max);
+    if (t) houder[sleutel] = t; else delete houder[sleutel];
+  };
+  zet('desc', b.desc, 4000);
+  zet('boek', b.boek, 120);
+  zet('herkomst', b.herkomst, 40);
+
+  storage.writeJSON('progression.json', { ...prog, bron: prog.bron || 'Aangepast door de DM' });
+  req.app.get('io').to(_campagneRoom(req)).emit('progression:updated', {});
+  res.json({ ok: true });
 });
 
 router.post('/progression/feature', requireDM, (req, res) => {
