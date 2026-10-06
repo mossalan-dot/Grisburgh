@@ -52,9 +52,15 @@ const _condSpriteSvg = (naam, x, y, size, cls, extra = '') => `<svg x="${x - siz
 // Eén vakje is standaard vijf voet, zodat je er beweging op kunt aflezen —
 // zonder die schaal is een raster alleen maar ruitjespapier.
 
+// De namen zeggen wat je **ziet**, niet waar het zou liggen: "Grafkelder",
+// "Grot" en "Riool" beloofden een plek, en dan past een blauwe zaal er niet
+// meer onder. Een kleur en een materiaal houden alle kanten open.
+// Eén vakje is vijf voet. Een regel, geen keuze.
+const VOET_PER_VAK = 5;
+
 const DUNGEON_STIJLEN = [
   {
-    id: 'steen', label: 'Grafkelder',
+    id: 'steen', label: 'Donkersteen',
     buiten: '#120d08', vloer: '#5d5044', muur: '#0d0906', muurDik: 2.4,
     raster: 'rgba(255,245,220,0.10)',
   },
@@ -64,7 +70,7 @@ const DUNGEON_STIJLEN = [
     raster: 'rgba(90,70,40,0.18)',
   },
   {
-    id: 'grot', label: 'Grot',
+    id: 'grot', label: 'Leisteen',
     buiten: '#0d0b10', vloer: '#4a4252', muur: '#07060a', muurDik: 3.2,
     raster: 'rgba(200,190,220,0.07)',
   },
@@ -74,7 +80,7 @@ const DUNGEON_STIJLEN = [
     raster: 'rgba(127,212,255,0.22)',
   },
   {
-    id: 'riool', label: 'Riool',
+    id: 'riool', label: 'Mosgroen',
     buiten: '#0a0e0a', vloer: '#3d4a38', muur: '#0a0f0a', muurDik: 2.6,
     raster: 'rgba(190,220,180,0.08)',
   },
@@ -1645,6 +1651,7 @@ function _openNewDungeonDialog() {
   // Zelfde venster als de andere kaartformulieren: het modal van de app.
   window.app.openModal('Nieuwe dungeonkaart', '', `
     <div class="dm-feature-section" style="margin:0">
+      <div class="dm-kaartedit-kop">${window._helpBtn?.('hulp_dungeon_nieuw') ?? ''}</div>
       <div class="dm-form-row">
         <label class="dm-form-label" for="dng-new-name">Naam</label>
         <input id="dng-new-name" class="dm-input" placeholder="Bijv. De Crypte van Morthul">
@@ -1667,13 +1674,15 @@ function _openNewDungeonDialog() {
         </button>
       </div>
       <!-- Twee manieren om aan een kaart te komen, en de rest van het
-           formulier verandert mee. Een geüploade plattegrond is wat er was;
-           zelf tekenen levert dezelfde kaart op met een raster eronder. -->
+           formulier verandert mee. Het zijn twee kanten van dezelfde keuze, dus
+           ze zien er ook hetzelfde uit: één strook met twee helften. Eerder was
+           de ene een gevulde knop en de andere een omlijnde, alsof er een
+           voorkeur was. -->
       <div class="dm-form-row">
-        <label class="dm-form-label">Waar komt de kaart vandaan?</label>
-        <div class="dng-bron-keuze">
-          <button type="button" class="dm-btn dm-btn-ghost dng-bron is-aan" data-bron="upload">${icon('image')} Plattegrond uploaden</button>
-          <button type="button" class="dm-btn dm-btn-ghost dng-bron" data-bron="tekenen">${icon('pencil')} Zelf tekenen</button>
+        <label class="dm-form-label">Herkomst</label>
+        <div class="dng-bron-keuze" role="group">
+          <button type="button" class="dng-bron is-aan" data-bron="upload">${icon('image')} Plattegrond uploaden</button>
+          <button type="button" class="dng-bron" data-bron="tekenen">${icon('pencil')} Zelf tekenen</button>
         </div>
       </div>
       <div class="dm-form-row" style="flex-direction:column;align-items:stretch;gap:6px" id="dng-new-upload">
@@ -1684,8 +1693,14 @@ function _openNewDungeonDialog() {
         </button>
       </div>
       <div id="dng-new-tekenen" hidden>
+        <!-- Eén vakje is vijf voet. Dat is in 5e geen instelling maar een
+             regel, en er stond een invulveld voor: een getal dat je nooit wilt
+             veranderen en dat overal in de berekening meeliep. Weg dus; de
+             constante VOET_PER_VAK bovenin is de enige plek waar het nog staat.
+             (Geen backticks in commentaar hierbinnen — dit staat in een
+             template literal en die sluit erop.) -->
         <div class="dm-form-row">
-          <label class="dm-form-label">Hoe groot?</label>
+          <label class="dm-form-label">Grootte</label>
           <div class="dng-maat-rij">
             <input id="dng-new-kol" class="dm-input" type="number" min="4" max="120" value="30" aria-label="Vakjes breed">
             <span class="dng-maat-x">×</span>
@@ -1693,15 +1708,10 @@ function _openNewDungeonDialog() {
             <span class="dng-maat-uitleg" id="dng-new-maat-voet"></span>
           </div>
         </div>
-        <div class="dm-form-row">
-          <label class="dm-form-label" for="dng-new-voet">Hoeveel voet is één vakje?</label>
-          <input id="dng-new-voet" class="dm-input dm-input--sm" type="number" min="1" max="60" value="5" style="max-width:90px">
-        </div>
         <div class="dm-form-row" style="flex-direction:column;align-items:stretch;gap:6px">
           <label class="dm-form-label">Stijl</label>
           <div class="dng-stijl-rij" id="dng-new-stijl"></div>
         </div>
-        <p class="dm-hint">Je tekent de kamers daarna zelf met de gereedschappen op de kaart. Ze klikken vast op het raster; houd <b>Alt</b> ingedrukt om er langs te tekenen.</p>
       </div>
       <div class="dm-feature-row" style="margin-top:6px">
         <button class="dm-btn dm-btn-primary" id="dng-new-ok">${icon('plus')} Aanmaken</button>
@@ -1721,7 +1731,7 @@ function _openNewDungeonDialog() {
   const _maatHint = () => {
     const k = +document.getElementById('dng-new-kol')?.value || 0;
     const r = +document.getElementById('dng-new-rij')?.value || 0;
-    const v = +document.getElementById('dng-new-voet')?.value || 5;
+    const v = VOET_PER_VAK;
     const el = document.getElementById('dng-new-maat-voet');
     if (el) el.textContent = k && r ? `vakjes · ${k * v} × ${r * v} voet` : 'vakjes';
   };
@@ -1741,7 +1751,7 @@ function _openNewDungeonDialog() {
   };
   setTimeout(() => {
     _tekenStijlen(); _maatHint();
-    ['dng-new-kol', 'dng-new-rij', 'dng-new-voet'].forEach(id =>
+    ['dng-new-kol', 'dng-new-rij'].forEach(id =>
       document.getElementById(id)?.addEventListener('input', _maatHint));
     document.querySelectorAll('.dng-bron').forEach(b => b.addEventListener('click', () => {
       bron = b.dataset.bron;
@@ -1826,7 +1836,7 @@ function _openNewDungeonDialog() {
           grid: {
             kolommen:   +document.getElementById('dng-new-kol').value || 30,
             rijen:      +document.getElementById('dng-new-rij').value || 20,
-            voetPerVak: +document.getElementById('dng-new-voet').value || 5,
+            voetPerVak: VOET_PER_VAK,
           },
           stijl,
         });

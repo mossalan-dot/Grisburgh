@@ -2,7 +2,7 @@ import { api, campagneUitUrl, zetCampagne } from './api.js?v=308';
 import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, renderDocumenten, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=333";
 import { initArchief, renderLogboek, openLogboekEditor } from "./render-archief.js?v=139";
 import { renderKaart, queueFlyTo, verversPins, nieuweKaart } from './render-kaart.js?v=31';
-import { renderDungeon } from './render-dungeon.js?v=57';
+import { renderDungeon } from './render-dungeon.js?v=58';
 import { renderRelatiemap } from './render-relatiemap.js?v=27';
 import { renderProgressie, levelupFeatures } from './render-progressie.js?v=57';
 import { renderBestiarium } from './render-bestiarium.js?v=31';
@@ -3398,7 +3398,7 @@ function _kaartCard(type, m, dm, verdiepingen = null) {
 // eerste bestaande kaart: je drukte op + en keek naar Dreghaven.
 window._kaartNieuw = async function (type) {
   if (type === 'wereld') return nieuweKaart();
-  const { nieuweDungeon } = await import('./render-dungeon.js?v=57');
+  const { nieuweDungeon } = await import('./render-dungeon.js?v=58');
   nieuweDungeon();
 };
 
@@ -14997,6 +14997,14 @@ const HELP_CONFIG = {
     { titel: 'Naam en beschrijving', tekst: 'De naam staat op het kaartje in de galerij en boven de kaart zelf; de beschrijving staat eronder, zodat je bij zes kaarten nog weet welke welke is.', afbeelding: null },
     { titel: 'Wie ziet wat', tekst: 'Een hoofdkaart is voor iedereen zichtbaar. Wat een speler erop ziet hangt aan de **locaties**: een speld erft de zichtbaarheid van het kaartje waar hij bij hoort. Verberg dus de locatie, niet de kaart.', afbeelding: null },
   ] }),
+  hulp_dungeon_nieuw: () => ({ titel: 'Een nieuwe dungeonkaart', stappen: [
+    { titel: 'Twee manieren', tekst: 'Je **uploadt een plattegrond** — een kaart die je ergens vandaan hebt, waar je daarna kamers overheen legt om ze te onthullen — of je **tekent zelf**. Dat laatste geeft je een leeg doek met een raster; de kamers teken je er daarna op met de gereedschappen.', afbeelding: null },
+    { titel: 'Eén vakje is vijf voet', tekst: 'Dat is geen instelling maar de maat waarmee 5e rekent. Het getal achter de grootte zegt dus meteen hoe groot je dungeon in voeten is: 30 × 20 vakjes is 150 × 100 voet. Een zaal van tien bij tien vakjes is vijftig voet breed — ruim genoeg voor een gevecht met tien man.', afbeelding: null },
+    { titel: 'Tekenen gaat op het raster', tekst: 'Een kamer klikt vast op de vakjes, zodat muren netjes aansluiten. Houd **Alt** ingedrukt om er langs te tekenen — handig voor een grot of een schuine gang.', afbeelding: null },
+    { titel: 'Meerdere verdiepingen', tekst: 'Bij een geüploade plattegrond geef je ze hier in één keer op; de app maakt er één kaart per verdieping van en houdt ze bij elkaar. Teken je zelf, dan maak je één kaart en voeg je verdiepingen later toe.', afbeelding: null },
+    { titel: 'De stijl bepaalt alleen hoe het eruitziet', tekst: 'Donkersteen, Perkament, Leisteen, Blauwdruk of Mosgroen — het verandert de kleuren van vloer, muur en raster, verder niets. Je kunt hem later omzetten zonder dat er een kamer verschuift.', afbeelding: null },
+  ] }),
+
   hulp_kaart_dungeon: () => ({ titel: 'Een dungeon bewerken', stappen: [
     { titel: 'Naam, beschrijving en beeld', tekst: 'De thumbnail is het plaatje op het kaartje in de galerij. Dat kaartje snijdt bij, dus sleep het kruisje naar wat in beeld moet blijven — net als bij een personage of een aktebanner.', afbeelding: null },
     { titel: 'Verdieping', tekst: '**0** is de begane grond, **−1** een kelder, **1** de eerste verdieping. Leeg laten als deze kaart niet bij een gebouw met verdiepingen hoort. Welke kaarten samen één gebouw vormen leidt de app af uit de **trappen** die je ertussen tekent; bovenin verschijnen dan knopjes om te wisselen.', afbeelding: null },

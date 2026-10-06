@@ -28378,17 +28378,35 @@ body.akte-schrijf-open .mp-overlay { z-index: 1320; }
    de maat van het raster. De SVG erbovenop tekent rots, vloeren en muren. */
 .dng-doek { background: transparent; }
 
-.dng-bron-keuze { display: flex; gap: 6px; flex-wrap: wrap; }
+/* Twee kanten van dezelfde keuze, dus één strook met twee gelijke helften.
+   Eerder was de ene een gevulde knop en de andere omlijnd, alsof er een
+   voorkeur was — terwijl uploaden en zelf tekenen even gewoon zijn. */
+.dng-bron-keuze {
+  display: inline-flex; border: 1px solid #c4a87a; border-radius: 6px;
+  overflow: hidden; background: rgba(255, 252, 244, .5);
+}
+.dng-bron {
+  display: inline-flex; align-items: center; gap: 7px;
+  padding: 9px 15px; border: 0; background: none; cursor: pointer;
+  font-family: 'Cinzel', serif; font-size: .88em; color: #5a4030;
+  transition: background .15s, color .15s;
+}
+.dng-bron + .dng-bron { border-left: 1px solid #c4a87a; }
+.dng-bron svg { width: 15px; height: 15px; }
+.dng-bron:hover { background: rgba(154, 112, 8, .09); }
 .dng-bron.is-aan {
   background: linear-gradient(to bottom, #b8860b, #8a6206);
-  border-color: #d9b24a; color: #fff8ea;
+  color: #fff8ea;
 }
 .dng-maat-rij { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
 .dng-maat-rij .dm-input { max-width: 86px; }
 .dng-maat-x { color: rgba(196,168,122,0.6); font-size: 13px; }
+/* De uitrekening achter de maat. Stond in het handschriftlettertype en
+   cursief — dat is de toon van een aantekening, terwijl dit gewoon een getal
+   is dat meerekent terwijl je typt. */
 .dng-maat-uitleg {
-  font-family: 'Kalam', cursive; font-size: 11px;
-  color: rgba(200,170,100,0.70); font-style: italic;
+  font-family: 'Crimson Text', serif; font-size: .92em;
+  color: #7a6040; font-style: normal;
 }
 
 /* De stijlkiezer: je kiest een plaatje, geen woord in een lijst. */
@@ -28406,10 +28424,14 @@ body.akte-schrijf-open .mp-overlay { z-index: 1320; }
   display: grid; place-items: center;
 }
 .dng-stijl-proef > span { display: block; width: 32px; height: 20px; border-radius: 2px; }
+/* Lichtbeige op perkament: contrast 1,6 — je kon de naam onder het staaltje
+   niet lezen. Die kleur kwam uit de tijd dat dit venster op een donkere
+   ondergrond stond. Nu gewoon inkt, en een maat groter. */
 .dng-stijl-naam {
-  font-family: 'Cinzel', serif; font-size: 9px; letter-spacing: .04em;
-  color: rgba(230,205,150,0.8); text-align: center;
+  font-family: 'Cinzel', serif; font-size: 10px; letter-spacing: .04em;
+  color: #5a4030; text-align: center;
 }
+.dng-stijl.is-aan .dng-stijl-naam { color: #3a2410; font-weight: 700; }
 
 /* De balk "je mag een level omhoog" stond als beige vlak op een beige pagina:
    het grootste moment van een avond las als een mededeling over openingstijden.

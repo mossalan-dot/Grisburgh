@@ -1087,6 +1087,25 @@ dm-panel.js : combat-canvas.js?v=29   render-statblock.js?v=9
 > zelf voegde hij in de praktijk niets toe. Wat al getekend is blijft staan en
 > blijft te verwijderen in de kamerzijbalk; alleen bijtekenen kan niet meer.
 >
+> **Eén vakje is vijf voet, en dat is geen instelling.** Er stond een invulveld
+> *Hoeveel voet is één vakje?* met een getal dat niemand ooit wil veranderen en
+> dat wél overal in de berekening meeliep. Weg; `VOET_PER_VAK` bovenin
+> `render-dungeon.js` is de enige plek waar het nog staat.
+> **De stijlnamen zeggen wat je ziet, niet waar het ligt.** "Grafkelder", "Grot"
+> en "Riool" beloofden een plek, en dan past een blauwe zaal er niet meer onder:
+> nu Donkersteen, Perkament, Leisteen, Blauwdruk en Mosgroen. De `id`'s blijven
+> zoals ze waren (`steen`, `grot`, `riool`) — hernoemen zou elke bestaande kaart
+> raken.
+> **Labels zijn zelfstandige naamwoorden, geen vragen** (*Herkomst*, *Grootte*),
+> en de uitleg eronder is naar de hulpknop verhuisd — `hulp_dungeon_nieuw`, die
+> er helemaal niet was.
+> Twee opmaakdingen die uit de donkere-ondergrond-tijd kwamen: de stijlnaam
+> onder het staaltje stond in lichtbeige op perkament (contrast 1,6, dus
+> onleesbaar), en de maat-uitrekening stond in het handschriftlettertype en
+> cursief alsof het een aantekening was. En *Plattegrond uploaden* en *Zelf
+> tekenen* waren twee verschillend gevormde knoppen terwijl het twee kanten van
+> dezelfde keuze zijn; nu één strook met twee gelijke helften.
+
 > **Een trap heet een doorgang.** In beeld dan: het kan net zo goed een lift, een
 > luik of een teleportcirkel zijn. De sleutel in de data heet nog `trapNaar` —
 > hernoemen kost een migratie en levert niets op.
