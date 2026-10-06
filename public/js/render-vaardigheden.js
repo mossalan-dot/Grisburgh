@@ -14,7 +14,7 @@
  * zelf schreef, dan de SRD, en anders een verwijzing naar buiten.
  */
 
-import { api } from './api.js?v=308';
+import { api } from './api.js?v=309';
 import { naslagBron } from './render-progressie.js?v=57';
 
 const esc  = s => window.app?.esc?.(s) ?? String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
@@ -124,21 +124,21 @@ async function _load() {
 
   for (const [klasse, data] of Object.entries(prog.classes || {})) {
     for (const [lvl, fs] of Object.entries(data.levels || {})) {
-      for (const f of (fs || [])) zet({ soort: 'class', bron: klasse, level: Number(lvl), naam: f.name, desc: f.desc || '', img: f.img || '', imgFocus: f.imgFocus || '', herkomst: f.herkomst || '' });
+      for (const f of (fs || [])) zet({ soort: 'class', bron: klasse, level: Number(lvl), naam: f.name, desc: f.desc || '', img: f.img || '', imgFocus: f.imgFocus || '', herkomst: f.herkomst || '', bronTekst: f.bron || '' });
     }
     for (const [sub, sdata] of Object.entries(data.subclasses || {})) {
       for (const [lvl, fs] of Object.entries(sdata.levels || {})) {
-        for (const f of (fs || [])) zet({ soort: 'subclass', bron: klasse, sub, level: Number(lvl), naam: f.name, desc: f.desc || '', img: f.img || '', imgFocus: f.imgFocus || '', herkomst: f.herkomst || '' });
+        for (const f of (fs || [])) zet({ soort: 'subclass', bron: klasse, sub, level: Number(lvl), naam: f.name, desc: f.desc || '', img: f.img || '', imgFocus: f.imgFocus || '', herkomst: f.herkomst || '', bronTekst: f.bron || '' });
       }
     }
   }
   for (const [soort, data] of Object.entries(prog.species || {})) {
     for (const [lvl, fs] of Object.entries(data.levels || {})) {
-      for (const f of (fs || [])) zet({ soort: 'species', bron: soort, level: Number(lvl), naam: f.name, desc: f.desc || '', img: f.img || '', imgFocus: f.imgFocus || '', herkomst: f.herkomst || '' });
+      for (const f of (fs || [])) zet({ soort: 'species', bron: soort, level: Number(lvl), naam: f.name, desc: f.desc || '', img: f.img || '', imgFocus: f.imgFocus || '', herkomst: f.herkomst || '', bronTekst: f.bron || '' });
     }
   }
-  for (const f of (_bron.feats?.general || [])) zet({ soort: 'feat', bron: 'Feats',      level: 0, naam: f.name, desc: f.desc || '', img: f.img || '', imgFocus: f.imgFocus || '', herkomst: f.herkomst || '', sluitAan: f.sluitAan || [], vereist: f.vereist || '', geeftSpreuk: f.geeftSpreuk || [] });
-  for (const f of (_bron.feats?.epic    || [])) zet({ soort: 'boon', bron: 'Epic Boons', level: 0, naam: f.name, desc: f.desc || '', img: f.img || '', imgFocus: f.imgFocus || '', herkomst: f.herkomst || '', sluitAan: f.sluitAan || [], vereist: f.vereist || '', geeftSpreuk: f.geeftSpreuk || [] });
+  for (const f of (_bron.feats?.general || [])) zet({ soort: 'feat', bron: 'Feats',      level: 0, naam: f.name, desc: f.desc || '', img: f.img || '', imgFocus: f.imgFocus || '', herkomst: f.herkomst || '', bronTekst: f.bron || '', sluitAan: f.sluitAan || [], vereist: f.vereist || '', geeftSpreuk: f.geeftSpreuk || [] });
+  for (const f of (_bron.feats?.epic    || [])) zet({ soort: 'boon', bron: 'Epic Boons', level: 0, naam: f.name, desc: f.desc || '', img: f.img || '', imgFocus: f.imgFocus || '', herkomst: f.herkomst || '', bronTekst: f.bron || '', sluitAan: f.sluitAan || [], vereist: f.vereist || '', geeftSpreuk: f.geeftSpreuk || [] });
   // Een background is één ding met vijf onderdelen (Ability Scores, Feat,
   // Skill Proficiencies, Tool Proficiency, Equipment). Als losse kaartjes krijg
   // je zestien keer "Ability Scores" in de lijst; als één kaartje per background
@@ -686,6 +686,15 @@ function _deurTelling(d) {
 
 function _bandBronnen(groep) {
   const uit = new Map();
+  // Eerst wat er in de progressie staat, ook als er nog geen enkele feature in
+  // hangt: een class die je net begon hoort meteen zichtbaar te zijn. Hij werd
+  // hiervoor uit de **features** afgeleid, dus een lege class bestond niet tot
+  // je er iets in zette — en dan zoek je naar iets wat je net hebt aangemaakt.
+  const houders = groep.id === 'class' ? Object.keys(_bron?.prog?.classes || {})
+    : groep.id === 'species' ? Object.keys(_bron?.prog?.species || {})
+    : groep.id === 'background' ? Object.keys(_bron?.backgrounds || {})
+    : [];
+  for (const naam of houders) uit.set(naam, 0);
   for (const it of (_all || [])) {
     if (!groep.soorten.includes(it.soort)) continue;
     const naam = groep.id === 'background' ? it.naam : it.bron;
@@ -769,7 +778,7 @@ function _tegelsHtml(d) {
       ${beeld ? `<span class="vd-tegel-beeld" style="background-image:url('${beeld}')"></span>` : ''}
       <span class="vd-tegel-icoon">${icon(icoonVan(naam))}</span>
       <span class="vd-tegel-naam">${esc(naam)}</span>
-      <span class="vd-tegel-meta">${subs ? `${subs} subclasses · ` : ''}${n} ${n === 1 ? 'feature' : 'features'}</span>
+      <span class="vd-tegel-meta">${subs ? `${subs} subclasses · ` : ''}${n ? `${n} ${n === 1 ? 'feature' : 'features'}` : 'nog leeg'}</span>
     </button>`;
   }).join('')}</div>`;
 }
@@ -1171,12 +1180,42 @@ function _subklassenVan(klasse) {
 
 let _edit = null;    // { oud, soort, bron, sub, level, naam, desc, herkomst, img }
 
+// Wat kun je hier maken? Twee heel verschillende dingen, en die zaten door
+// elkaar: een **houder** (een class, een species) is een ding op zichzelf, een
+// **feature** is een regel binnen zo'n houder. Het formulier vroeg altijd om
+// een level en een beschrijving, ook als je een class wilde beginnen — en dat
+// kon pas als je er meteen een feature bij verzon.
+const _MAAKSELS = [
+  { id: 'f-class',      label: 'Feature van een class',    houder: false, soort: 'class' },
+  { id: 'f-subclass',   label: 'Feature van een subclass', houder: false, soort: 'subclass' },
+  { id: 'f-species',    label: 'Trait van een species',    houder: false, soort: 'species' },
+  { id: 'feat',         label: 'Feat',                     houder: false, soort: 'feat' },
+  { id: 'boon',         label: 'Epic Boon',                houder: false, soort: 'boon' },
+  { id: 'f-background', label: 'Onderdeel van een background', houder: false, soort: 'background' },
+  { id: 'h-class',      label: 'Een nieuwe class',         houder: true,  soort: 'class' },
+  { id: 'h-subclass',   label: 'Een nieuwe subclass',      houder: true,  soort: 'subclass' },
+  { id: 'h-species',    label: 'Een nieuw species',        houder: true,  soort: 'species' },
+  { id: 'h-background', label: 'Een nieuwe background',    houder: true,  soort: 'background' },
+];
+const _MAAKSEL = id => _MAAKSELS.find(m => m.id === id) || _MAAKSELS[0];
+
+// Wat vraag je als naam? "Vlasbaards Greep" is een prima feature, maar een
+// rare class.
+const _NAAM_HINT = {
+  'h-class': 'Bijv. Artificer', 'h-subclass': 'Bijv. Path of the Ashen Road',
+  'h-species': 'Bijv. Leemlander', 'h-background': 'Bijv. Veerman',
+  feat: 'Bijv. Sentinel', boon: 'Bijv. Epic Boon of Fortitude',
+};
+
 function _editorHtml() {
   const e = _edit;
+  const maaksel = _MAAKSEL(e.maaksel);
+  const houder  = maaksel.houder;
   const bronnen = _bronnenVanSoort(e.soort);
-  const toonBron   = bronnen.length > 0;
-  const toonSub    = e.soort === 'subclass';
-  const toonLevel  = e.soort === 'class' || e.soort === 'subclass' || e.soort === 'species';
+  const toonBron   = houder ? maaksel.soort === 'subclass' : bronnen.length > 0;
+  const toonSub    = !houder && e.soort === 'subclass';
+  // Een houder zit niet op een level: die heeft er juist een hele reeks.
+  const toonLevel  = !houder && (e.soort === 'class' || e.soort === 'subclass' || e.soort === 'species');
   // Een feat hangt aan niemand: iedereen mag hem nemen. Juist daarom is "waar
   // sluit hij op aan" een eigen vraag — en het antwoord is er niet, want van 58
   // van de 67 feats hebben we geen tekst om het uit af te leiden. Dus vraagt de
@@ -1189,8 +1228,13 @@ function _editorHtml() {
     <div class="dm-feature-section" style="margin:0">
       <div class="dm-form-row">
         <label class="dm-form-label">Soort</label>
-        <select class="dm-input" id="vd-soort" onchange="window.vaardigheden.veld('soort',this.value)">
-          ${SOORT_VOLGORDE.map(k => `<option value="${k}"${e.soort === k ? ' selected' : ''}>${esc(SOORTEN[k].label)}</option>`).join('')}
+        <select class="dm-input" id="vd-soort" onchange="window.vaardigheden.veld('maaksel',this.value)">
+          <optgroup label="Een regel binnen iets">
+            ${_MAAKSELS.filter(m => !m.houder).map(m => `<option value="${m.id}"${e.maaksel === m.id ? ' selected' : ''}>${esc(m.label)}</option>`).join('')}
+          </optgroup>
+          <optgroup label="Iets nieuws beginnen">
+            ${_MAAKSELS.filter(m => m.houder).map(m => `<option value="${m.id}"${e.maaksel === m.id ? ' selected' : ''}>${esc(m.label)}</option>`).join('')}
+          </optgroup>
         </select>
       </div>
       ${toonBron ? `
@@ -1222,19 +1266,32 @@ function _editorHtml() {
       </div>` : ''}
       <div class="dm-form-row">
         <label class="dm-form-label">Naam</label>
-        <input class="dm-input" id="vd-naam" value="${esc(e.naam || '')}" placeholder="Vlasbaards Greep">
+        <input class="dm-input" id="vd-naam" value="${esc(e.naam || '')}"
+          placeholder="${esc(_NAAM_HINT[maaksel.id] || 'Bijv. Vlasbaards Greep')}">
       </div>
       <div class="dm-form-row">
-        <label class="dm-form-label">Herkomst</label>
-        <select class="dm-input" id="vd-herkomst" title="Wat je later met een andere campagne mag delen: zelf verzonnen mag mee, overgenomen materiaal niet.">
+        <label class="dm-form-label" for="vd-herkomst">Herkomst</label>
+        <select class="dm-input" id="vd-herkomst" onchange="window.vaardigheden.veld('herkomst',this.value)"
+          title="Wat je later met een andere campagne mag delen: zelf verzonnen mag mee, overgenomen materiaal niet.">
           ${HERKOMST.map(h => `<option value="${esc(h.value)}"${(e.herkomst || '') === h.value ? ' selected' : ''}>${esc(h.label)}</option>`).join('')}
         </select>
       </div>
+      <!-- Wáár het vandaan komt, in woorden. De keuzelijst hierboven zegt
+           alleen óf het overgenomen is; bij "ja" wil je weten waaruit, anders
+           is over een jaar niet meer na te gaan wat er gedeeld mag worden. -->
+      ${e.herkomst && e.herkomst !== 'zelfbedacht' ? `
+      <div class="dm-form-row">
+        <label class="dm-form-label" for="vd-bronnaam">Waaruit?</label>
+        <input class="dm-input" id="vd-bronnaam" maxlength="120" value="${esc(e.bron || '')}"
+          placeholder="Bijv. Xanathar's Guide to Everything, of: van een tafelgenoot">
+      </div>` : ''}
+      ${houder ? `
+      <p class="dm-hint">Je maakt hier alleen de ${esc(maaksel.label.replace(/^Een nieuwe?\s*/i, ''))} zelf. De features hang je er daarna aan met <em>Feature van een ${maaksel.soort === 'species' ? 'species' : maaksel.soort}</em>.</p>` : `
       <div class="dm-form-row">
         <label class="dm-form-label">Beschrijving</label>
         ${window._fmtToolbarHtml?.('vd-desc') ?? ''}
         <textarea class="dm-input" id="vd-desc" rows="9" placeholder="Wat doet het? Een lege regel begint een nieuwe alinea.">${esc(e.desc || '')}</textarea>
-      </div>
+      </div>`}
       ${toonKoppeling ? `
       <div class="dm-form-row" style="flex-direction:column;align-items:stretch;gap:5px">
         <label class="dm-form-label">Sluit aan op</label>
@@ -1304,16 +1361,21 @@ function _editorOpen(it) {
   _edit = it
     ? { oud: { soort: it.soort, bron: it.bron, sub: it.sub, level: it.level, naam: it.naam },
         soort: it.soort, bron: it.bron, sub: it.sub || '', level: it.level || 1,
-        naam: it.naam, desc: _schoonVoorEditor(it.desc || ''), herkomst: it.herkomst || '', img: it.img || '', imgFocus: it.imgFocus || '',
+        naam: it.naam, desc: _schoonVoorEditor(it.desc || ''), herkomst: it.herkomst || '',
+        bronTekst: it.bronTekst || '', img: it.img || '', imgFocus: it.imgFocus || '',
         sluitAan: Array.isArray(it.sluitAan) ? [...it.sluitAan] : [], vereist: it.vereist || '',
         geeftSpreuk: Array.isArray(it.geeftSpreuk) ? [...it.geeftSpreuk] : [] }
-    : { oud: null, soort: 'feat', bron: 'Feats', sub: '', level: 1, naam: '', desc: '', herkomst: 'zelfbedacht', img: '', imgFocus: '',
+    : { oud: null, maaksel: 'feat', soort: 'feat', bron: 'Feats', sub: '', level: 1, naam: '', desc: '', herkomst: 'zelfbedacht', bron_: '', img: '', imgFocus: '',
         sluitAan: [], vereist: '', geeftSpreuk: [] };
+  // Bij bewerken weten we welk soort het is; dat is altijd een regel binnen
+  // iets, nooit een houder.
+  if (it) _edit.maaksel = { class: 'f-class', subclass: 'f-subclass', species: 'f-species',
+    feat: 'feat', boon: 'boon', background: 'f-background' }[it.soort] || 'f-class';
   // De kiezer bewaart hier niet meteen (dat doet het spreukdetail); de waarde
   // gaat mee met het formulier. Haak dus leegmaken, anders schrijft een eerder
   // geopend venster mee.
   window._fpOnChange = null;
-  window.app.openModal(it ? 'Vaardigheid bewerken' : 'Nieuwe vaardigheid', '', _editorHtml());
+  window.app.openModal(it ? `${it.naam} bewerken` : 'Iets toevoegen aan het Heldenboek', '', _editorHtml());
 }
 
 // Wat er in de velden staat, terug in _edit — nodig zodra het venster
@@ -1327,6 +1389,7 @@ function _editorLees() {
   if (v('vd-sub') !== undefined) _edit.sub = v('vd-sub');
   if (v('vd-bron') !== undefined) _edit.bron = v('vd-bron');
   if (v('vd-vereist') !== undefined) _edit.vereist = v('vd-vereist');
+  if (v('vd-bronnaam') !== undefined) _edit.bronTekst = v('vd-bronnaam');
   if (v('vd-geeft') !== undefined) {
     _edit.geeftSpreuk = v('vd-geeft').split(',').map(x => x.trim()).filter(Boolean);
   }
@@ -1388,6 +1451,20 @@ window.vaardigheden = {
   veld(naam, waarde) {
     _editorLees();
     _edit[naam] = waarde;
+    // "Wat maak je?" bepaalt de soort én of het een houder is; de rest van het
+    // formulier hangt daaraan.
+    if (naam === 'maaksel') {
+      const m = _MAAKSEL(waarde);
+      _edit.soort = m.soort;
+      if (m.houder) { _edit.bron = m.soort === 'subclass' ? (_edit.bron || '') : ''; _edit.sub = ''; }
+      else if (m.soort === 'feat') _edit.bron = 'Feats';
+      else if (m.soort === 'boon') _edit.bron = 'Epic Boons';
+      else _edit.bron = _bronnenVanSoort(m.soort)[0] || '';
+      if (m.soort === 'subclass' && !m.houder) _edit.sub = _subklassenVan(_edit.bron)[0] || '';
+      _editorHerteken();
+      return;
+    }
+    if (naam === 'herkomst') { _editorHerteken(); return; }
     if (naam === 'soort') {
       // Van soort wisselen betekent een andere bron: pak de eerste die past.
       const b = _bronnenVanSoort(waarde);
@@ -1418,11 +1495,26 @@ window.vaardigheden = {
   async bewaar() {
     _editorLees();
     if (!_edit.naam.trim()) { document.getElementById('vd-naam')?.focus(); return; }
+    const maaksel = _MAAKSEL(_edit.maaksel);
     try {
+      // Een houder is geen regel: andere route, andere velden. Hij heeft geen
+      // level en geen beschrijving — die hangen aan de features die je er
+      // daarna in zet.
+      if (maaksel.houder) {
+        await api.nieuweHouder({ soort: maaksel.soort, naam: _edit.naam.trim(), bron: _edit.bron || '' });
+        window.app.closeModal();
+        _all = null;
+        await _load(); await _klasseExtra();
+        _bandHerteken(); _refreshFilterBar(); _paint();
+        window._showToast?.(`${_edit.naam.trim()} staat erin.`);
+        return;
+      }
       await api.post('/progression/feature', {
         oud: _edit.oud, soort: _edit.soort, bron: _edit.bron, sub: _edit.sub,
         level: _edit.level, naam: _edit.naam.trim(), desc: _edit.desc,
-        herkomst: _edit.herkomst, img: _edit.img || null, imgFocus: _edit.imgFocus || '',
+        // `bron` is hierboven al de class/het species; de **vindplaats** is een
+        // eigen veld, anders botsen twee betekenissen op één naam.
+        herkomst: _edit.herkomst, bronTekst: _edit.bronTekst || '',
         sluitAan: _edit.sluitAan || [], vereist: _edit.vereist || '', geeftSpreuk: _edit.geeftSpreuk || [],
         // Bij een feat of Epic Boon: de bibliotheek mee, zodat de server hem
         // vastlegt als deze campagne er nog geen eigen had (zie de route).
@@ -1500,26 +1592,25 @@ window.vaardigheden = {
   eldersToggle() { _eldersOpen = !_eldersOpen; _paint(); },
   // Een eigen class, species, background of feat: de editor met de soort al
   // ingevuld, zodat je alleen nog de naam hoeft te typen.
+  // De tegel zegt "Class toevoegen", dus het formulier hoort meteen op *Een
+  // nieuwe class* te staan — niet op een feature met een level erbij.
   nieuwIn(deurId) {
     _editorOpen(null);
     setTimeout(() => {
-      _edit.soort = _NIEUW_SOORT[deurId] || 'class';
-      _edit.bron = _edit.soort === 'feat' ? 'Feats' : '';
-      _edit.sub = '';
-      _editorHerteken();
+      const maaksel = { class: 'h-class', species: 'h-species', background: 'h-background', feats: 'feat' }[deurId] || 'h-class';
+      this.veld('maaksel', maaksel);
     }, 60);
   },
   // Een eigen subclass: de editor met soort en class al ingevuld, zodat je
   // alleen nog de naam en de feature hoeft te typen.
   nieuweSub() {
+    const klasse = _filters.bron || '';
     _editorOpen(null);
-    const zet = () => {
-      _edit.soort = 'subclass';
-      _edit.bron = _filters.bron || _bronnenVanSoort('subclass')[0] || '';
-      _edit.sub = '';
+    setTimeout(() => {
+      this.veld('maaksel', 'h-subclass');
+      _edit.bron = klasse;          // bij wélke class hij hoort
       _editorHerteken();
-    };
-    setTimeout(zet, 60);
+    }, 60);
   },
   // Omdraaien blijft staan als je klikt — bij hover draait hij vanzelf, maar op
   // een aanraakscherm bestaat hover niet.
@@ -1594,10 +1685,10 @@ window.vaardigheden = {
   // nu in zijn campagne. Dit pakt het in één bestand, zodat hij het mee kan
   // nemen naar zijn volgende campagne of kan geven aan wie hetzelfde boek heeft.
   deelVenster() {
-    window.app.openModal('Je eigen invoer', '', `
+    window.app.openModal('Meenemen of overnemen', '', `
       <div class="dm-feature-section" style="margin:0">
         <div class="dm-section-label">Uitpakken</div>
-        <p class="dm-hint">Alles wat jij hier zelf hebt ingetikt gaat in één bestand: de teksten, wat je bij een feat invulde, en de afbeeldingen die je koos.</p>
+        <p class="dm-hint">Alles wat jij hier zelf hebt ingetikt gaat in één bestand: eigen classes en subclasses, de teksten, wat je bij een feat invulde en de afbeeldingen die je koos. Daarmee neem je het mee naar een andere campagne, of geef je het aan een andere DM.</p>
         <label class="dm-form-checkbox"><input type="checkbox" id="vd-exp-alles">
           <span>Ook overgenomen materiaal meenemen</span></label>
         <p class="dm-hint">Standaard gaat alleen mee wat je bij <em>Herkomst</em> op <strong>Zelf verzonnen</strong> zette. Overgenomen tekst — uit het Player's Handbook bijvoorbeeld — hoort niet gepubliceerd te worden; neem die alleen mee naar je eigen campagnes, of naar iemand die het boek ook heeft.</p>
@@ -1684,7 +1775,12 @@ export async function renderVaardigheden(container) {
               value="${esc(_filters.q)}" oninput="window.vaardigheden.search(this.value)">
           </div>
           ${window._helpBtn?.('vaardigheden') ?? ''}
-          ${isDM() ? `<button class="sbs-add-btn" onclick="window.vaardigheden.deelVenster()" title="Je eigen invoer in- of uitpakken">${icon('arrow-up-right')}</button>` : ''}
+          <!-- Niet de schuine pijl: dat gebaar betekent in de hele app "open
+               het kaartje", en hier opent het een in-/uitpakvenster. Een
+               downloadpijl zegt wat het is, en de tooltip zegt waarvoor.
+               (Geen backticks in commentaar hierbinnen: template literal.) -->
+          ${isDM() ? `<button class="sbs-add-btn" onclick="window.vaardigheden.deelVenster()"
+            title="Je eigen classes, feats en teksten in- of uitpakken — om ze mee te nemen naar een andere campagne of te delen met een andere DM">${icon('download')}</button>` : ''}
           ${isDM() ? `<button class="sbs-add-btn" onclick="window.vaardigheden.nieuw()" title="Eigen vaardigheid toevoegen">${icon('plus')}</button>` : ''}
         </div>
       </div>

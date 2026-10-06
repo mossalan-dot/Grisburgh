@@ -1517,6 +1517,14 @@ Grisburghs **data** te staan — niet in de code.
 - [ ] **De dempknop in de kopbalk** (ALL) — zet sfeergeluid uit: de luidspreker
       in de kopbalk krijgt een streep erdoor, net als de knop in het
       dienstscherm. Die twee stonden eerder verschillend.
+- [ ] **De editor vraagt wát je maakt** (DM) — de **+** geeft twee groepen: een
+      regel binnen iets, of iets nieuws beginnen. Kies *Een nieuwe class*: geen
+      level, geen beschrijving, en de naamhint zegt "Bijv. Artificer". Kies
+      *Feature van een class*: level en beschrijving komen terug. Zet *Herkomst*
+      op overgenomen en er verschijnt **Waaruit?** — dat veld hoort bewaard te
+      blijven.
+- [ ] **Een lege class is meteen zichtbaar** (DM) — maak er een zonder features:
+      hij staat tussen de tegels met "nog leeg".
 - [ ] **Een eigen class beginnen** (DM) — open *Classes*: vooraan staat een
       gestippelde tegel **Class toevoegen**. Typ bij *Class* een naam die er nog
       niet is (bijv. Artificer) en geef hem een feature: hij verschijnt als

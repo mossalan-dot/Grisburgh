@@ -1783,6 +1783,24 @@ in `_load()` (`render-spreuken.js`), ontdubbeld op `index`:
 > `render-vaardigheden.js`) — zelfde truc als bij de spreuken, want de gewone
 > wikilink-resolver kent alleen kaartjes uit het archief.
 
+> **De editor vraagt eerst wát je maakt.** Twee heel verschillende dingen zaten
+> door elkaar: een **houder** (een class, een species) is een ding op zichzelf,
+> een **feature** is een regel daarbinnen. Het formulier vroeg altijd om een
+> level en een beschrijving — ook als je een class wilde beginnen, en dat kon
+> pas als je er meteen een feature bij verzon. `_MAAKSELS` is nu de enige lijst:
+> zes "regel binnen iets" en vier "iets nieuws beginnen", en de velden, de
+> naamhint en de route volgen daaruit (`POST /progression/houder` voor een
+> houder, `/progression/feature` voor een regel).
+> **Een lege houder is meteen zichtbaar:** `_bandBronnen` leidde de tegels af
+> uit de **features**, dus een class die je net begon bestond niet tot je er
+> iets in zette. Nu komen de houders uit de progressie zelf en staat er "nog
+> leeg" bij.
+> **`herkomst` en `bron` zijn twee dingen.** Het eerste zegt óf het overgenomen
+> is (dat bepaalt wat je mag delen), het tweede waaruit — en dat is de helft die
+> ontbrak: bij "overgenomen" wil je over een jaar nog kunnen nagaan uit welk
+> boek. Let op de naamgeving in de payload: `bron` is daar al de class, dus de
+> vindplaats heet `bronTekst`.
+
 > **Een eigen class, species of background beginnen kan ook.** `_vaardigLijst`
 > legde met `maken: true` alleen een leeg *level* aan; bestond de class zelf
 > niet, dan kwam er een 400. Je kon dus features hangen aan wat er al was en

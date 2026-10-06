@@ -8991,6 +8991,49 @@ function _vaardigLijst(prog, { soort, bron, sub, level }, maken = false) {
 
 // POST /api/progression/feature — aanmaken of bijwerken. `oud` (soort/bron/sub/
 // level/naam) zegt welke regel vervangen wordt; zonder `oud` is het een nieuwe.
+// ── Een lege class, subclass, species of background ─────────────────────────
+// Tot nu toe ontstond een class alleen als **bijvangst** van een feature: je
+// maakte "Magical Tinkering" en kreeg er een Artificer bij. Dat werkt, maar het
+// dwingt je om een feature te verzinnen voordat je een class mag beginnen — en
+// het formulier vroeg dan om een level, wat voor een class niets betekent.
+// Dit is de andere helft: een houder zonder inhoud.
+router.post('/progression/houder', requireDM, (req, res) => {
+  const b = req.body || {};
+  const soort = String(b.soort || '');
+  const naam  = String(b.naam || '').trim().slice(0, 60);
+  if (!['class', 'subclass', 'species', 'background'].includes(soort))
+    return res.status(400).json({ error: 'Onbekende soort' });
+  if (!naam) return res.status(400).json({ error: 'Naam is verplicht' });
+
+  const prog = _progHuidig();
+  if (soort === 'species') {
+    prog.species = prog.species || {};
+    if (prog.species[naam]) return res.status(409).json({ error: `${naam} bestaat al` });
+    prog.species[naam] = { levels: {} };
+  } else if (soort === 'background') {
+    prog.backgrounds = prog.backgrounds || {};
+    if (prog.backgrounds[naam]) return res.status(409).json({ error: `${naam} bestaat al` });
+    prog.backgrounds[naam] = { levels: {} };
+  } else if (soort === 'class') {
+    prog.classes = prog.classes || {};
+    if (prog.classes[naam]) return res.status(409).json({ error: `${naam} bestaat al` });
+    prog.classes[naam] = { levels: {}, subclasses: {} };
+  } else {
+    const klasse = String(b.bron || '').trim();
+    if (!klasse) return res.status(400).json({ error: 'Bij welke class hoort deze subclass?' });
+    prog.classes = prog.classes || {};
+    if (!prog.classes[klasse]) prog.classes[klasse] = { levels: {}, subclasses: {} };
+    prog.classes[klasse].subclasses = prog.classes[klasse].subclasses || {};
+    if (prog.classes[klasse].subclasses[naam])
+      return res.status(409).json({ error: `${naam} bestaat al bij ${klasse}` });
+    prog.classes[klasse].subclasses[naam] = { levels: {} };
+  }
+
+  storage.writeJSON('progression.json', { ...prog, bron: prog.bron || 'Aangepast door de DM' });
+  req.app.get('io').to(_campagneRoom(req)).emit('progression:updated', {});
+  res.json({ ok: true, soort, naam });
+});
+
 router.post('/progression/feature', requireDM, (req, res) => {
   const b = req.body || {};
   const soort = String(b.soort || '');
@@ -9030,6 +9073,12 @@ router.post('/progression/feature', requireDM, (req, res) => {
 
   const regel = { ...(bestaand || {}), name: naam, desc: String(b.desc ?? '') };
   if (_SPREUK_HERKOMST.includes(b.herkomst)) regel.herkomst = b.herkomst; else delete regel.herkomst;
+  // Wáár het vandaan komt, in woorden. `herkomst` zegt alleen of het eigen werk
+  // is, overgenomen of aangepast — en dat is precies de helft van het antwoord:
+  // bij "overgenomen" wil je weten waaruit, anders is het over een jaar niet
+  // meer na te gaan wat er wel en niet gedeeld mag worden.
+  const bronTekst = String(b.bronTekst || '').trim().slice(0, 120);
+  if (bronTekst) regel.bron = bronTekst; else delete regel.bron;
   if (b.img) regel.img = String(b.img); else if (b.img === null) { delete regel.img; delete regel.imgFocus; }
   if (b.imgFocus) regel.imgFocus = String(b.imgFocus).slice(0, 32); else delete regel.imgFocus;
   // Waar een feat op aansluit, en wat hij vraagt. Alleen bij feats en boons —

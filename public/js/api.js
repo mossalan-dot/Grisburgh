@@ -197,6 +197,9 @@ export const api = {
   spreukbeeldenStand: ()  => request('/bron/spreukbeelden'),
   spreukbeeldenHalen: ()  => request('/bron/spreukbeelden', { method: 'POST' }),
   saveHeldenboek: (data) => request('/meta/heldenboek', { method: 'PUT', body: JSON.stringify(data) }),
+  // Een lege class, subclass, species of background — zonder dat je er eerst
+  // een feature voor hoeft te verzinnen.
+  nieuweHouder: (data) => request('/progression/houder', { method: 'POST', body: JSON.stringify(data) }),
   saveDienstNaam: (dienst, naam) => {
     const mag = ['herberg', 'tweespalt', 'gock', 'markt', 'tempel', 'ursula', 'magizoo', 'woekeraar'];
     if (!mag.includes(dienst)) return Promise.reject(new Error('Onbekende dienst: ' + dienst));

@@ -1,4 +1,4 @@
-import { api, campagneUitUrl, zetCampagne } from './api.js?v=308';
+import { api, campagneUitUrl, zetCampagne } from './api.js?v=309';
 import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, renderDocumenten, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=334";
 import { initArchief, renderLogboek, openLogboekEditor } from "./render-archief.js?v=139";
 import { renderKaart, queueFlyTo, verversPins, nieuweKaart } from './render-kaart.js?v=31';
@@ -7,7 +7,7 @@ import { renderRelatiemap } from './render-relatiemap.js?v=27';
 import { renderProgressie, levelupFeatures } from './render-progressie.js?v=57';
 import { renderBestiarium } from './render-bestiarium.js?v=31';
 import { renderSpreuken } from './render-spreuken.js?v=44';
-import { renderVaardigheden, zoekVaardigheden } from './render-vaardigheden.js?v=26';
+import { renderVaardigheden, zoekVaardigheden } from './render-vaardigheden.js?v=27';
 import { renderStatblock } from './render-statblock.js?v=9';
 import { initSocket } from "./socket-client.js?v=82";
 import { initDmPanel } from "./dm-panel.js?v=383";
@@ -15280,6 +15280,16 @@ const HELP_CONFIG = {
       {
         titel: 'Zoeken gaat er dwars doorheen',
         tekst: 'Typ je iets in het zoekveld, dan krijg je treffers uit **alles** — ongeacht welke deur openstond. De indeling hoeft dus nooit in de weg te staan van "waar stond dat ook alweer". Met de knop linksboven ben je weer terug bij de vier deuren.',
+        afbeelding: null,
+      },
+      {
+        titel: 'Zelf iets toevoegen',
+        tekst: 'Met de **+** maak je twee soorten dingen: *een regel binnen iets* (een feature van een class, een trait van een species, een feat) of *iets nieuws* — een eigen class, subclass, species of background. Dat laatste is een lege houder; de features hang je er daarna in. Elke tegellaag heeft ook een gestippelde tegel vooraan die het formulier meteen goed zet.',
+        afbeelding: null,
+      },
+      {
+        titel: 'Meenemen of overnemen',
+        tekst: 'De **downloadknop** pakt alles wat jij zelf hebt ingetikt in één bestand — om mee te nemen naar een andere campagne of te geven aan een andere DM. Standaard gaat alleen mee wat je bij *Herkomst* op **Zelf verzonnen** zette: overgenomen tekst hoort niet gepubliceerd te worden. Vul bij *Waaruit?* in waar het vandaan komt, dan is dat over een jaar nog na te gaan.',
         afbeelding: null,
       },
       {
