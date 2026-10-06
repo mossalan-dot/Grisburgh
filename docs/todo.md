@@ -188,6 +188,15 @@ niemand iets afdrukken, uit velden die niemand heeft ingevuld.
 **Trigger:** zodra de eerste speler een dier adopteert bij de magizoöloog (dan
 wordt `companionOwners` gevuld), is dit het moment.
 
+## Houding van personages → `docs/voorstel-houding.md`
+
+De spec staat ernaast als `docs/houding-npc-spec.md`. Eén waarde per personage
+(1–5), alleen zichtbaar als een glans of schaduw bij hover, met een insight-DC
+en een toast naar de speler die hem haalt. Gemeten op 6 okt 2026: de glans
+bestaat al (`card-sheen`), maar loopt eindeloos door en zit op een
+`::before` die op personagekaartjes al bezet is. Vijf aannames in de spec
+kloppen niet meer met de app; die staan in het voorstel, met de volgorde.
+
 ## Nog te verzinnen
 
 - [ ] **Een gerechtshof als dienst.** Uit de Heeren komt één idee dat het waard
