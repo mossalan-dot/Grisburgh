@@ -9804,6 +9804,16 @@ router.put('/meta/heldenboek', requireDM, (req, res) => {
     }
     if (Object.keys(beelden).length) hb.beelden = beelden; else delete hb.beelden;
   }
+  // Een beeld per class (het portret van de Barbarian), los van de vier
+  // deurkaarten. Vrije sleutels, want een campagne mag een eigen class hebben.
+  if (req.body?.klassen && typeof req.body.klassen === 'object') {
+    const klassen = { ...(hb.klassen || {}) };
+    for (const [naam, id] of Object.entries(req.body.klassen)) {
+      const sleutel = String(naam).slice(0, 60);
+      if (id) klassen[sleutel] = String(id).slice(0, 80); else delete klassen[sleutel];
+    }
+    if (Object.keys(klassen).length) hb.klassen = klassen; else delete hb.klassen;
+  }
   if (Object.keys(hb).length) meta.heldenboek = hb; else delete meta.heldenboek;
   storage.writeJSON('meta.json', meta);
   req.app.get('io').to(_campagneRoom(req)).emit('meta:updated');

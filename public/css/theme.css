@@ -29232,3 +29232,95 @@ body.wizard-open { overflow: hidden; }
 }
 .vd-tegel--nieuw:hover { border-style: dashed; background: rgba(154, 112, 8, .06); }
 .vd-tegel--nieuw .vd-tegel-naam { font-size: .88em; color: #8a7050; }
+
+/* ══════════════════════════════════════════════════════════════════════════
+   HET CLASSKAARTJE — twee kanten, halve breedte
+   ══════════════════════════════════════════════════════════════════════════
+   Het kaartje nam een heel scherm met dingen die je elders ook ziet. Nu de
+   kerntrekken uit de PHB en verder niets, op de helft van de breedte, met de
+   subclasses ernaast. De voorkant is een plaat met alleen de naam; hij draait
+   om bij hover, en blijft om als je klikt — op een aanraakscherm bestaat hover
+   niet. */
+/* Het kaartje pakt ongeveer de helft, de subclasses staan ernaast, en de rest
+   blijft leeg — het raster eronder heeft de volle breedte nodig, dit niet. */
+.vd-klasvlak {
+  display: grid; grid-template-columns: minmax(260px, 42%) minmax(200px, 250px);
+  justify-content: start; gap: 18px; align-items: start; margin-top: 14px;
+}
+.vd-klasvlak--alleen { grid-template-columns: minmax(260px, 46%); }
+@media (max-width: 880px) {
+  .vd-klasvlak, .vd-klasvlak--alleen { grid-template-columns: minmax(0, 1fr); }
+}
+
+.vk-flip { perspective: 1400px; cursor: pointer; }
+.vk-flip-binnen {
+  position: relative; transform-style: preserve-3d;
+  transition: transform .62s cubic-bezier(.3, .8, .3, 1);
+  min-height: 300px;
+}
+.vk-flip:hover .vk-flip-binnen,
+.vk-flip.is-om .vk-flip-binnen { transform: rotateY(180deg); }
+/* Zonder beeld is de voorkant een lege tegel; dan begint hij meteen omgedraaid
+   zodat je de gegevens ziet in plaats van een leeg vlak. */
+.vk-flip--geenbeeld .vk-flip-binnen { transform: rotateY(180deg); }
+.vk-flip--geenbeeld:hover .vk-flip-binnen { transform: rotateY(180deg); }
+
+.vk-voor, .vk-achter {
+  position: absolute; inset: 0; backface-visibility: hidden;
+  border: 1px solid #c4a87a; border-radius: 7px; overflow: hidden;
+}
+.vk-voor {
+  display: flex; align-items: flex-end; justify-content: center;
+  background: linear-gradient(160deg, #f6eeda 0%, #e9dcbe 100%);
+}
+.vk-voor-beeld {
+  position: absolute; inset: 0; background-size: cover; background-position: center;
+}
+.vk-voor-beeld::after {
+  content: ''; position: absolute; inset: 0;
+  background: linear-gradient(180deg, rgba(20,12,4,0) 45%, rgba(20,12,4,.72) 100%);
+}
+.vk-voor-naam {
+  position: relative; z-index: 1; padding: 0 18px 18px;
+  font-family: 'Cinzel', serif; font-size: 1.5em; font-weight: 700;
+  letter-spacing: .02em; color: #fff8ea; text-shadow: 0 2px 10px rgba(0,0,0,.7);
+}
+.vk-flip--geenbeeld .vk-voor-naam { color: #3a2410; text-shadow: none; }
+.vk-beeldknop {
+  position: absolute; top: 9px; right: 9px; z-index: 2;
+  width: 28px; height: 28px; display: flex; align-items: center; justify-content: center;
+  border: 1px solid rgba(196,168,122,.8); border-radius: 5px;
+  background: rgba(255,252,244,.86); color: #8a7050; cursor: pointer;
+  opacity: 0; transition: opacity .15s;
+}
+.vk-flip:hover .vk-beeldknop { opacity: 1; }
+.vk-beeldknop svg { width: 15px; height: 15px; }
+
+.vk-achter {
+  transform: rotateY(180deg);
+  display: flex; flex-direction: column; gap: 2px;
+  padding: 15px 17px 14px; overflow-y: auto;
+  background: linear-gradient(160deg, #f8f2e2 0%, #f1e8d2 100%);
+  border-left: 3px solid var(--vk-kleur);
+}
+.vk-kerntrekken {
+  font-family: 'Cinzel', serif; font-size: .72em; letter-spacing: .09em;
+  text-transform: uppercase; color: #8a7050; margin: 8px 0 4px;
+}
+
+/* Subclasses naast het kaartje in plaats van naast het raster. */
+.vd-klasvlak .vd-subkolom { margin: 0; }
+
+/* Het kaartje met de uitleg van een aangevinkte subclass, bovenaan de lijst. */
+.vaardig-subkop { grid-column: 1 / -1; display: flex; flex-direction: column; gap: 10px; margin-bottom: 4px; }
+
+/* ── Een subclass-feature is zichtbaar iets anders ────────────────────────
+   Class en subclass verschilden alleen in het kleurbalkje bovenaan; naast
+   elkaar in één raster las dat als één lijst. Nu een paarse ondergrond en een
+   paarse rand, zodat je in één oogopslag ziet wat van de class is en wat van
+   de subclass die je aanvinkte. */
+.entity-card[data-soort="subclass"] {
+  background: linear-gradient(165deg, #f4edfa 0%, #ebe0f4 100%);
+  border-color: rgba(120, 60, 200, .4);
+}
+.entity-card[data-soort="subclass"] .card-name { color: #2c1050; }

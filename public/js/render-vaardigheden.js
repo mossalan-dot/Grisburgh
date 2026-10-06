@@ -270,7 +270,8 @@ function _card(it) {
   // voor te openen — zelfde regel als bij de spreuken.
   const link = tekst ? '' : (window.app?.bronLink?.(it.naam, 'features') || '');
   return `
-    <div class="entity-card vaardig-card" onclick="window.vaardigheden.open('${esc(it.key)}')" title="${esc(it.naam)}"
+    <div class="entity-card vaardig-card" data-soort="${esc(it.soort)}"
+      onclick="window.vaardigheden.open('${esc(it.key)}')" title="${esc(it.naam)}"
       style="--soort-c1:${s.c1};--soort-c2:${s.c2}">
       <div class="card-accent vaardig-accent"></div>
       ${it.level ? `<span class="vaardig-card-niv">${it.level}</span>` : ''}
@@ -482,59 +483,73 @@ function _spreukRegel(klasse, basis) {
   return ['Spells', delen.join(' · ')];
 }
 
+// ── Het kaartje van een class ───────────────────────────────────────────────
+// **De kerntrekken, en verder niets.** Hier stond een wand met de signature
+// feature, het aantal subclasses, op welke levels je een feat of ASI krijgt, de
+// feats die erop aansluiten en een voetnoot over hoeveel feats geen tekst
+// hebben. Allemaal waar, en allemaal dingen die je ergens anders ook ziet — het
+// aantal subclasses staat ernaast, de feats hebben hun eigen deur. Wat
+// overblijft is wat de PHB onder *Core Traits* zet, in die volgorde.
+//
+// Het kaartje heeft twee kanten: een plaat met alleen de naam erop, en de
+// gegevens. Hij draait om bij hover en blijft om als je klikt — zo kun je er
+// ook met een vinger bij.
+function _klasseBeeld(klasse) {
+  const f = window.app?.state?.meta?.heldenboek?.klassen?.[klasse];
+  return f ? `/api/files/${esc(f)}` : '';
+}
+
 function _klasseKaartHtml(klasse) {
-  const data = _bron?.prog?.classes?.[klasse];
-  if (!data) return '';
+  const data  = _bron?.prog?.classes?.[klasse] || {};
   const basis = _klasseBasis?.[klasse] || {};
-  const subs  = Object.keys(data.subclasses || {});
-  const gevuld = subs.filter(sk =>
-    Object.values(data.subclasses[sk].levels || {}).some(a => (a || []).length)).length;
+  const sig   = window._signatureVoor?.(klasse);
+  const beeld = _klasseBeeld(klasse);
 
-  const feiten = [
-    basis.hitDie ? [`d${basis.hitDie}`, 'Hit die'] : null,
-    basis.saves?.length ? [basis.saves.map(a => (_AB_NAAM[a] || a).slice(0, 3).toUpperCase()).join(' · '), 'Saving throws'] : null,
-    data.subclassLevel ? [`Level ${data.subclassLevel}`, data.subclassLabel || 'Subclass'] : null,
-    subs.length ? [`${subs.length}`, `Subclasses${gevuld < subs.length ? ` · ${gevuld} met tekst` : ''}`] : null,
-    basis.castAbility ? [_AB_NAAM[basis.castAbility] || basis.castAbility, 'Spellcasting ability'] : null,
-    basis.featLevels?.length ? [basis.featLevels.join(' · '), 'Feat of ASI op'] : null,
-  ].filter(Boolean);
-
-  // Training en skills staan apart van de cijfers: het zijn zinnen, geen
-  // getallen, en naast een rij met "d10" en "STR · CON" lezen ze niet mee.
-  const training = [
-    basis.armor   ? ['Armor', basis.armor] : null,
-    basis.weapons ? ['Weapons', basis.weapons] : null,
-    basis.tools   ? ['Tools', basis.tools] : null,
+  // De volgorde van de PHB: Primary Ability, Hit Point Die, Saving Throws,
+  // Skills, Weapons, Armor.
+  const rijen = [
+    basis.primary ? ['Primary Ability', basis.primary] : null,
+    basis.hitDie ? ['Hit Point Die', `d${basis.hitDie} per ${klasse} level`] : null,
+    basis.saves?.length
+      ? ['Saving Throws', basis.saves.map(a => _AB_NAAM[a] || a).join(', ')] : null,
     basis.skillAantal
       ? ['Skills', basis.skills?.length
           ? `kies ${basis.skillAantal} uit ${basis.skills.join(', ')}`
           : `kies ${basis.skillAantal}, vrij`]
       : null,
-    _spreukRegel(klasse, basis),
+    basis.weapons ? ['Weapons', basis.weapons] : null,
+    basis.armor   ? ['Armor Training', basis.armor] : null,
+    basis.tools   ? ['Tools', basis.tools] : null,
+    basis.castAbility
+      ? ['Spellcasting', _AB_NAAM[basis.castAbility] || basis.castAbility] : null,
   ].filter(Boolean);
 
-  const sig = window._signatureVoor?.(klasse);
+  const heeftSpreuken = basis.castAbility && (_spreukAantal?.get(klasse) || 0);
 
   return `
-    <div class="vk-kaart" style="--vk-kleur:${sig?.kleur || '#8a6d3f'}">
-      <div class="vk-kop">
-        <span class="vk-icoon">${icon(KLASSE_ICOON[klasse] || 'sword')}</span>
-        <div>
-          <div class="vk-naam">${esc(klasse)}</div>
-          ${sig ? `<div class="vk-sig">${icon(sig.icon)} ${esc(sig.feature)}</div>` : ''}
+    <div class="vk-flip${beeld ? '' : ' vk-flip--geenbeeld'}" style="--vk-kleur:${sig?.kleur || '#8a6d3f'}"
+      onclick="window.vaardigheden.flip(event)">
+      <div class="vk-flip-binnen">
+        <div class="vk-voor">
+          ${beeld ? `<span class="vk-voor-beeld" style="background-image:url('${beeld}')"></span>` : ''}
+          <span class="vk-voor-naam">${esc(klasse)}</span>
+          ${isDM() ? `<button class="vk-beeldknop" title="Een afbeelding bij deze class kiezen"
+            onclick="event.stopPropagation();window.vaardigheden.klasseBeeld('${esc(klasse).replace(/'/g, "\\'")}')">${icon('image')}</button>` : ''}
+        </div>
+        <div class="vk-achter">
+          <div class="vk-kop">
+            <span class="vk-icoon">${icon(KLASSE_ICOON[klasse] || 'sword')}</span>
+            <div class="vk-naam">${esc(klasse)}</div>
+          </div>
+          <div class="vk-kerntrekken">Core Traits</div>
+          <dl class="vk-training">
+            ${rijen.map(([k, v]) => `<dt>${esc(k)}</dt><dd>${esc(v)}</dd>`).join('')}
+          </dl>
+          ${heeftSpreuken ? `
+            <button class="vk-naar-spreuken" onclick="event.stopPropagation();window.vaardigheden.naarSpreuken('${esc(klasse).replace(/'/g, "\\'")}')">
+              ${icon('book-open')} Spreukenlijst</button>` : ''}
         </div>
       </div>
-      <div class="vk-feiten">
-        ${feiten.map(([w, l]) => `<div class="vk-feit"><span class="vk-feit-waarde">${esc(w)}</span><span class="vk-feit-label">${esc(l)}</span></div>`).join('')}
-      </div>
-      ${training.length ? `<dl class="vk-training">
-        ${training.map(([k, v]) => `<dt>${esc(k)}</dt><dd>${esc(v)}</dd>`).join('')}
-      </dl>` : ''}
-      ${basis.castAbility && (_spreukAantal?.get(klasse) || 0) ? `
-        <button class="vk-naar-spreuken" onclick="window.vaardigheden.naarSpreuken('${esc(klasse).replace(/'/g, "\\'")}')">
-          ${icon('book-open')} Bekijk de spreukenlijst van de ${esc(klasse)}</button>` : ''}
-      ${gevuld < subs.length ? `<p class="vk-noot">Van ${subs.length - gevuld} van de ${subs.length} subclasses staat er geen tekst in de app: die komt uit het Player's Handbook. ${isDM() ? 'Je kunt ze zelf intikken bij een feature hieronder.' : ''}</p>` : ''}
-      ${_featBlokHtml(klasse)}
     </div>`;
 }
 
@@ -852,13 +867,20 @@ function _bandHtml() {
   const kaart = isClass ? _klasseKaartHtml(_filters.bron)
     : _bron?.prog?.species?.[_filters.bron] ? _volkKaartHtml(_filters.bron)
     : _bron?.backgrounds?.[_filters.bron] ? _achtergrondKaartHtml(_filters.bron) : '';
+  // De aparte terugrij met de naam erin is weg: de banner brengt je al terug en
+  // het kaartje eronder zegt zelf hoe hij heet. Twee keer "Barbarian" onder
+  // elkaar, met een knop ertussen, was een halve schermhoogte aan herhaling.
+  //
+  // Bij een class staan de subclasses **naast** het kaartje in plaats van naast
+  // het raster: ze horen bij de class, niet bij de lijst eronder.
+  const subKolom = isClass ? _subKolomHtml(_filters.bron) : '';
   return `<div class="vaardig-band vd-open">
     ${_bannerHtml(d, { klein: true })}
-    <div class="vd-gekozen">
-      <button class="vd-gekozen-terug" onclick="window.vaardigheden.kies(null)" title="Terug naar ${esc(d.label)}">${icon('chevron-left')}</button>
-      <span class="vd-gekozen-naam">${esc(_filters.bron)}</span>
+    <div class="vd-klasvlak${subKolom ? '' : ' vd-klasvlak--alleen'}">
+      <div class="vd-klaskaart">${kaart}</div>
+      ${subKolom}
     </div>
-  </div>${kaart}`;
+  </div>`;
 }
 
 function _filterBar() {
@@ -935,21 +957,23 @@ function _paint() {
   if (fb) fb.hidden = !_toontRaster();
   // De kolom met subclasses staat links van het raster en hoort alleen bij een
   // class. Buiten Classes bestaat hij niet.
-  if (kol) {
-    const klasse = _deur === 'class' && _filters.bron && _bron?.prog?.classes?.[_filters.bron]
-      ? _filters.bron : null;
-    const html = (klasse && !(_filters.q || '').trim()) ? _subKolomHtml(klasse) : '';
-    kol.innerHTML = html;
-    kol.hidden = !html;
-    _container?.querySelector('.vaardig-onder')?.classList.toggle('heeft-kolom', !!html);
-  }
+  // De subclasses stonden hier als kolom naast het raster; ze staan nu naast het
+  // classkaartje erboven, waar ze thuishoren.
+  if (kol) { kol.innerHTML = ''; kol.hidden = true; }
   if (!grid) return;
   grid.hidden = !_toontRaster();
   if (!_toontRaster()) { grid.innerHTML = ''; return; }
   const lijst = _filtered();
-  grid.innerHTML = lijst.length
-    ? lijst.map(_card).join('')
-    : `<p class="spreuk-empty">Niets gevonden.</p>`;
+  // Het kaartje met de algemene uitleg van een aangevinkte subclass hoort
+  // bovenaan de waslijst: eerst wát een Berserker is, dan pas wat hij krijgt.
+  // Vink je er meer aan, dan staan ze alle twee boven hun features.
+  const kop = (_deur === 'class' && _filters.bron && !(_filters.q || '').trim())
+    ? [..._subAan].sort().map(sub => _subklasseKaartHtml(_filters.bron, sub)).join('')
+    : '';
+  grid.innerHTML = (kop ? `<div class="vaardig-subkop">${kop}</div>` : '')
+    + (lijst.length
+      ? lijst.map(_card).join('')
+      : `<p class="spreuk-empty">Niets gevonden.</p>`);
   const tel = document.getElementById('vaardig-telling');
   if (tel) tel.textContent = `${lijst.length} van ${(_all || []).length}`;
 }
@@ -1496,6 +1520,31 @@ window.vaardigheden = {
       _editorHerteken();
     };
     setTimeout(zet, 60);
+  },
+  // Omdraaien blijft staan als je klikt — bij hover draait hij vanzelf, maar op
+  // een aanraakscherm bestaat hover niet.
+  flip(ev) {
+    const kaart = ev.currentTarget;
+    if (!kaart) return;
+    kaart.classList.toggle('is-om');
+  },
+  // Een beeld bij één class. Staat los van de vier deurkaarten: dit is het
+  // portret van de Barbarian, niet van "Classes".
+  klasseBeeld(klasse) {
+    if (!window.mediaPicker?.open) { alert('Mediabibliotheek niet beschikbaar'); return; }
+    window.mediaPicker.open({
+      type: 'afbeelding',
+      suggestedName: 'class-' + klasse.toLowerCase(),
+      onSelect: async (srcId) => {
+        try {
+          await api.saveHeldenboek({ klassen: { [klasse]: srcId } });
+          const m = window.app?.state?.meta;
+          if (m) { m.heldenboek = m.heldenboek || {}; m.heldenboek.klassen = { ...(m.heldenboek.klassen || {}), [klasse]: srcId }; }
+          _bandHerteken();
+          window._showToast?.('Afbeelding geplaatst.');
+        } catch (e) { window._showToast?.('Instellen mislukt: ' + (e.message || e)); }
+      },
+    });
   },
   // Een beeld bij een van de vier kaarten.
   deurBeeld(id) {
