@@ -2078,6 +2078,14 @@ opgeslagen als JSON-string. Alles eromheen is afgeleid:
 > de literal. Dit is nu **vijf keer** gebeurd, steeds in een HTML-commentaar
 > (`<!-- … `oefen_` … -->`), en `node --check` ziet het niet: als CommonJS-script
 > parseert het bestand gewoon. `tests/frontend-imports.test.js` parseert elk
+> **Zeven keer** inmiddels, steeds dezelfde vorm: een `<!-- … -->` in een
+> template literal waarin je een klasse of variabele tussen backticks noemt.
+> Sinds 6 okt 2026 wijst `tests/frontend-imports.test.js` het bestand én de
+> regel aan (*Commentaar in template literals*) in plaats van alleen te melden
+> dat het bestand niet parseert — die foutmelding ("Unexpected identifier
+> 'herberg'") wijst namelijk nergens naartoe. Backticks bínnen een `${…}` zijn
+> wél geldig: dat is een geneste literal, en zo staat er in render-campagne.js
+> een stuk uitgecommentarieerde code dat prima werkt.
 > `public/js/*.js` als ES-module en vángt het wél — draai die test dus vóór een
 > deploy, niet alleen `node --check`.
 
@@ -3489,6 +3497,15 @@ plaats van twee — elke rust één te veel.
   maanden ongemarkeerd) en `.detail-weapon-tag--attune`. Nieuwe regels dus
   **onderaan** toevoegen, en een variant van een regel met twee klassen
   (`.item-kenmerken-rij--eigenschappen .detail-weapon-tag`) even specifiek maken.
+- **Een eigen klassenaam verzinnen voor een dienstscherm → geen opmaak.** Elk
+  dienstscherm hoort de gedeelde romp te gebruiken (`herberg-scene` →
+  `herberg-content` → `herberg-portrait-round` → `tempel-priester-naam` →
+  `herberg-groet`); zie *Dienstschermen — de gedeelde romp*. De woekeraar had
+  een eigen `herberg-hero`-structuur bedacht, en die klassen stonden nergens in
+  `theme.css`: het scherm stond als kale tekst op de pagina, zonder paneel en
+  zonder achtergrond, en niemand zag het omdat er geen foutmelding is. Een scan
+  op klassen die de JS gebruikt maar die `theme.css` niet kent brengt dit soort
+  gaten boven.
 - **Lichte tekstkleur in een DM-tab** → onzichtbaar. Alleen de **zijbalk** met de
   tabknoppen is donker; de tab-inhoud en het instellingenvenster zijn licht
   perkament. Gebruik `#3a2410` (als `.dm-input`) voor tekst en `#7a6040` (als

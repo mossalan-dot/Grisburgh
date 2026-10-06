@@ -13014,7 +13014,10 @@ async function renderWoekeraar() {
   const backdrop = bd ? `style="background-image:url('${api.thumbUrlBreed(bd)}')"` : '';
   const portret = cfg.entityId
     ? `<img src="${api.thumbUrl(cfg.entityId)}" class="herberg-portrait-round" alt="${esc(cfg.naam || 'De woekeraar')}">`
-    : `<div class="ts-portrait-fallback">${icon('coins')}</div>`;
+    // Zelfde terugval als elke andere dienst: een rond portret met een icoon
+    // erin. De ts-portrait-fallback die hier stond is van de Tweespalt en
+    // heeft een eigen maat.
+    : `<div class="herberg-portrait-round herberg-portrait-fallback">${icon('coins')}</div>`;
 
   // Wat er nu openstaat. Dit is zijn eigen scherm, dus hier staat de schuld —
   // niet alleen bij het gokhuis waar hij toevallig ook rondhangt.
@@ -13057,18 +13060,20 @@ async function renderWoekeraar() {
     </div>`;
 
   el.innerHTML = `
-    <div class="herberg-hero" ${backdrop}>
-      <div class="herberg-hero-inner">
-        ${portret}
-        <div class="herberg-hero-tekst">
-          <h2 class="herberg-titel">${esc(cfg.naam || 'De woekeraar')}</h2>
-          ${cfg.tekst ? `<p class="herberg-sub">${esc(cfg.tekst)}</p>` : ''}
-        </div>
-        <div class="herberg-hero-knoppen">${_geluidBtn()}${_helpBtn('woekeraar')}</div>
+    <div class="herberg-scene" ${backdrop}>
+      <div class="herberg-content">
+        <div class="dienst-beurs-topbar" style="justify-content:flex-end">${_geluidBtn()}${_helpBtn('woekeraar')}</div>
+        <div class="herberg-portrait-wrap">${portret}</div>
+        <!-- Dezelfde romp als elke andere dienst: scene → content → rond
+             portret → naam → groet. Dit scherm had zijn eigen herberg-hero-
+             structuur, en die klassen bestonden nergens in de stylesheet —
+             het stond dus
+             als kale tekst op de pagina, zonder paneel en zonder achtergrond.
+             Zie "Dienstschermen — de gedeelde romp" in CLAUDE.md. -->
+        <p class="tempel-priester-naam">${esc(cfg.naam || 'De woekeraar')}</p>
+        ${cfg.tekst ? `<p class="herberg-groet">${esc(cfg.tekst)}</p>` : ''}
+        ${schuldBlok}${wachtBlok}${formulier}
       </div>
-    </div>
-    <div class="dienst-body">
-      ${schuldBlok}${wachtBlok}${formulier}
     </div>`;
 }
 

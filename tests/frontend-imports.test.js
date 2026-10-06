@@ -293,3 +293,53 @@ describe('Iconen', () => {
     assert.deepEqual([...new Set(mis)], [], 'ontbrekende iconen in de shell');
   });
 });
+
+// ════════════════════════════════════════════════════════════════════════════
+//  GEEN BACKTICK IN EEN HTML-COMMENTAAR
+// ════════════════════════════════════════════════════════════════════════════
+// Dit is zeven keer misgegaan, steeds op dezelfde manier: je schrijft in een
+// template literal een `<!-- … -->` en noemt daarin een klasse of een variabele
+// tussen backticks. Die backtick sluit de literal, en de rest van het bestand
+// wordt onzin. `node --check` ziet het niet (als CommonJS-script parseert het
+// vaak gewoon), en in de browser valt de hele module-graaf stil zónder
+// foutmelding.
+//
+// De module-parse hierboven vangt het óók, maar pas als het al stuk is en met
+// een foutmelding die nergens naar wijst ("Unexpected identifier 'herberg'").
+// Deze test wijst het bestand, de regel en de tekst aan.
+describe('Commentaar in template literals', () => {
+  it('gebruikt nergens een backtick in een HTML-commentaar', () => {
+    const dir = path.join(__dirname, '..', 'public', 'js');
+    const fout = [];
+    for (const f of fs.readdirSync(dir).filter(f => f.endsWith('.js'))) {
+      const regels = fs.readFileSync(path.join(dir, f), 'utf8').split('\n');
+      let inComment = false;
+      regels.forEach((r, i) => {
+        const opent = r.includes('<!--');
+        const sluit = r.includes('-->');
+        const binnen = inComment || opent;
+        if (binnen && r.includes('`')) {
+          // Een regel die het commentaar opent én sluit mag een backtick ná de
+          // afsluiting hebben; alleen wat ertussen staat telt.
+          let deel = opent && sluit ? r.slice(r.indexOf('<!--'), r.indexOf('-->'))
+            : opent ? r.slice(r.indexOf('<!--'))
+            : sluit ? r.slice(0, r.indexOf('-->'))
+            : r;
+          // Backticks bínnen een ${…} horen bij een geneste template literal en
+          // zijn volkomen geldig — zo staat er in render-campagne.js een stuk
+          // uitgecommentarieerde code dat prima parseert. Alleen een backtick in
+          // de **tekst** van het commentaar sluit de literal eromheen.
+          // Van binnen naar buiten strippen: een `${…}` kan er zelf weer een
+          // bevatten, en één niet-gretige match stopt dan bij de binnenste `}`.
+          let vorig;
+          do { vorig = deel; deel = deel.replace(/\$\{[^{}]*\}/g, ''); } while (deel !== vorig);
+          if (deel.includes('`')) fout.push(`${f}:${i + 1}  ${r.trim().slice(0, 70)}`);
+        }
+        if (opent && !sluit) inComment = true;
+        if (sluit) inComment = false;
+      });
+    }
+    assert.deepEqual(fout, [],
+      'backtick in een HTML-commentaar — die sluit de template literal:\n  ' + fout.join('\n  '));
+  });
+});

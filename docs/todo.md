@@ -658,12 +658,10 @@ daar dan in. (Het eerste punt — diensten die de gedeelde beurs omzeilden — i
       leest een los streepje voortaan als "geen prijs" — anders staat er een
       muntje met een liggend streepje ernaast.
 
-- [ ] **Spreukafbeeldingen meegeven aan een nieuwe campagne.** Grisburgh heeft er
-      48 met een focuspunt. Vraag in de aanmaak-wizard: wil je die erbij? Ze zijn
-      niet van WotC (eigen beeld), dus delen mag — maar het is wel een keuze, en
-      een campagne met een eigen sfeer wil ze misschien niet. Let op de omvang:
-      dit zijn bestanden, geen JSON, dus kopiëren of verwijzen is een echte
-      afweging.
+- [x] **Spreukafbeeldingen meegeven aan een nieuwe campagne** — gedaan 2 okt
+      2026 als stap in de opstartwizard, en terug te vinden bij Instellingen →
+      Campagne. Kopiëren dus, niet verwijzen; het vult alleen aan en
+      overschrijft nooit.
 
 - [x] **Een spreuk in je boek hoort langs de DM** — gedaan 11 sep 2026.
       Verzoek in `groups[gid].spellRequests`, balk bovenin het spreukentabblad met
