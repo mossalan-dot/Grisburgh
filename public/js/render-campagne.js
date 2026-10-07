@@ -473,6 +473,14 @@ const SCHEMA = {
       { key: 'symbool', label: 'Heilig symbool', type: 'text', alleenBij: ['god'], hint: 'Een purperen waterrad' },
       { key: 'alignment', label: 'Alignment', type: 'lijst', lijst: 'alignments' },
       { key: 'tags', label: 'Rollen', type: 'rollen' },
+      // ── Houding ──
+      // Hoe staat hij tegenover de avonturiers? Eén waarde, en op het kaartje
+      // is er in rust niets van te zien: de houding verschijnt als een baan
+      // licht of schaduw zodra je erover gaat. Blijft het veld leeg, dan rekent
+      // de app hem uit — uit de renown van zijn factie, anders uit zijn rol.
+      { key: 'houding', label: 'Houding tegenover de groep', type: 'houding', dmOnly: true },
+      { key: 'insightDC', label: 'Insight-DC', type: 'text', dmOnly: true,
+        hint: '12' },
       { key: 'desc', label: 'Beschrijving', type: 'textarea' },
       { key: 'flavours', label: 'Roddels', type: 'lijst-tekst', enkelvoud: 'flavour' },
       { key: 'geheimen', label: 'Geheimen', type: 'lijst-tekst', enkelvoud: 'geheim' },
@@ -517,6 +525,14 @@ const SCHEMA = {
       { key: 'wijk', label: 'Gebied', type: 'entiteit', doel: ['locaties'],
         hint: 'De stad, streek of het gebouw waar dit in zit' },
       { key: 'desc', label: 'Beschrijving', type: 'textarea' },
+      // ── Houding ──
+      // Hoe staat hij tegenover de avonturiers? Eén waarde, en op het kaartje
+      // is er in rust niets van te zien: de houding verschijnt als een baan
+      // licht of schaduw zodra je erover gaat. Blijft het veld leeg, dan rekent
+      // de app hem uit — uit de renown van zijn factie, anders uit zijn rol.
+      { key: 'houding', label: 'Houding tegenover de groep', type: 'houding', dmOnly: true },
+      { key: 'insightDC', label: 'Insight-DC', type: 'text', dmOnly: true,
+        hint: '12' },
       // Waren één tekstvak; nu lijsten, zoals bij personages en locaties — de
       // oude tekst blijft de eerste regel (_tekstLijstUit leest allebei).
       { key: 'flavours', label: 'Roddels', type: 'lijst-tekst', enkelvoud: 'flavour' },
@@ -630,6 +646,116 @@ const LINK_TYPES = ['personages', 'locaties', 'organisaties', 'voorwerpen', 'arc
 const LINK_LABELS = { personages: 'Personages', locaties: 'Locaties', organisaties: 'Organisaties', voorwerpen: 'Voorwerpen', archief: 'Documenten' };
 // Enkelvoud, voor zinnen als "aanmaken als Personage of Organisatie?"
 const LINK_ENKELVOUD = { personages: 'Personage', locaties: 'Locatie', organisaties: 'Organisatie', voorwerpen: 'Voorwerp', archief: 'Document' };
+
+// ── De glans op een kaartje ─────────────────────────────────────────────────
+// Eén baan die over het kaartje trekt, met alles wat eraan te draaien valt als
+// variabele erop (zie `.kaart-glans` in theme.css). Twee aanleidingen:
+//
+//   voorwerpen   de twee hoogste zeldzaamheden glanzen **doorlopend** — ze
+//                moeten opvallen in een raster vol kaartjes.
+//   personages   straks de houding, **één keer bij hover** — die ontdek je
+//                door even stil te staan, niet door ernaar te kijken.
+//
+// Wie er geen heeft krijgt niets in de DOM: een leeg element dat nergens op
+// staat is een val voor de volgende die hier kijkt.
+function _glansHtml(type, e, rarKey) {
+  if (type === 'voorwerpen' && (rarKey === 'legendary' || rarKey === 'very-rare'))
+    return '<span class="kaart-glans kaart-glans--altijd"></span>';
+
+  // De houding komt van de server als `_houding` — uitgerekend, en alleen
+  // meegestuurd aan wie hem mag zien. Staat hij er niet, dan is er niets te
+  // tonen; dat is óók het geval bij onverschillig, en dat is de bedoeling.
+  if (type === 'personages' || type === 'organisaties') {
+    const h = _HOUDING_TABEL.get(Number(e?._houding));
+    if (h?.glans) {
+      const g = h.glans;
+      return `<span class="kaart-glans kaart-glans--hover" title="${esc(h.naam)}"
+        style="--glans-kleur:${g.kleur};--glans-sterkte:${g.sterkte};--glans-duur:${g.duur};--glans-blend:${g.blend}"></span>`;
+    }
+  }
+  return '';
+}
+
+// De schaal komt één keer van de server (`GET /api/houdingen`), net als de
+// tafelschermeffecten. Tot hij er is tekent er niets — een kaartje zonder
+// glans is een geldige stand, dus dat valt niet op als een fout.
+const _HOUDING_TABEL = new Map();
+let _houdingDC = 12;
+export async function laadHoudingen() {
+  if (_HOUDING_TABEL.size) return;
+  try {
+    const d = await api.get('/houdingen');
+    for (const h of (d.houdingen || [])) _HOUDING_TABEL.set(h.waarde, h);
+    _houdingDC = d.dcStandaard || 12;
+  } catch { /* zonder tabel geen glans; de rest van het kaartje staat er wel */ }
+}
+window._houdingTabel = () => [..._HOUDING_TABEL.values()];
+
+// ── Het schuifje ───────────────────────────────────────────────────────────
+// De namen en de kleuren komen uit dezelfde tabel als de glans, dus wat je
+// hier instelt en wat je op het kaartje ziet kunnen niet uit elkaar lopen.
+function _houdingVeldHtml(field, eigen, berekend) {
+  const nu = eigen === null ? berekend : eigen;
+  const h  = _HOUDING_TABEL.get(nu);
+  const kleur = h?.glans?.kleur || '#8a7050';
+  // Het schuifje draagt de waarde niet: een `range` kan niet leeg zijn, en leeg
+  // is hier een betekenis — "reken het zelf maar uit". De opgeslagen waarde zit
+  // dus in een verborgen veld dat wél leeg mag, en het schuifje schrijft erin.
+  return `
+    <div class="houding-veld" id="houding-veld">
+      <label class="dm-form-label">${esc(field.label)}</label>
+      <input type="hidden" name="data_${esc(field.key)}" id="houding-waarde"
+        value="${eigen === null ? '' : eigen}">
+      <div class="houding-rij">
+        <input type="range" min="1" max="${_HOUDING_TABEL.size || 5}" step="1" value="${nu}"
+          id="houding-schuif" class="houding-schuif" style="--houding-kleur:${kleur}"
+          data-berekend="${berekend}"
+          oninput="window._houdingSchuif(this)">
+        <span class="houding-naam" id="houding-naam">${esc(h?.naam || '')}</span>
+        <button type="button" class="houding-terug${eigen === null ? ' is-uit' : ''}"
+          id="houding-terug" onclick="window._houdingTerug()"
+          title="Laat de app het weer uitrekenen">${icon('refresh-cw')} Standaard</button>
+      </div>
+      <p class="houding-hint" id="houding-hint">${eigen === null
+        ? `Standaard — ${esc(h?.uitleg || '')}`
+        : esc(h?.uitleg || '')}</p>
+    </div>`;
+}
+
+// Het schuifje bewegen maakt de waarde van jou. Dat is met opzet: wie eraan
+// zit, bedoelt iets.
+window._houdingSchuif = (el) => {
+  const w = Number(el.value);
+  const waarde = document.getElementById('houding-waarde');
+  if (waarde) waarde.value = String(w);
+  const h = _HOUDING_TABEL.get(w);
+  el.style.setProperty('--houding-kleur', h?.glans?.kleur || '#8a7050');
+  const naam = document.getElementById('houding-naam');
+  if (naam) naam.textContent = h?.naam || '';
+  const hint = document.getElementById('houding-hint');
+  if (hint) hint.textContent = h?.uitleg || '';
+  document.getElementById('houding-terug')?.classList.remove('is-uit');
+};
+
+// Terug naar leeg. Het schuifje springt terug naar wat de app uitrekent — niet
+// naar waar je hem net liet staan, want dan zou "Standaard" een andere trede
+// aanwijzen dan er geldt. Opgeslagen wordt er niets meer: verandert de renown
+// van zijn factie, dan schuift hij vanzelf mee.
+window._houdingTerug = () => {
+  const el = document.getElementById('houding-schuif');
+  if (!el) return;
+  const berekend = Number(el.dataset.berekend) || 3;
+  el.value = String(berekend);
+  const h = _HOUDING_TABEL.get(berekend);
+  el.style.setProperty('--houding-kleur', h?.glans?.kleur || '#8a7050');
+  const waarde = document.getElementById('houding-waarde');
+  if (waarde) waarde.value = '';
+  const naam = document.getElementById('houding-naam');
+  if (naam) naam.textContent = h?.naam || '';
+  document.getElementById('houding-terug')?.classList.add('is-uit');
+  const hint = document.getElementById('houding-hint');
+  if (hint) hint.textContent = `Standaard — ${h?.uitleg || ''}`;
+};
 
 // ── Auto-icons per subtype / type-field (lazy SVG, avoids module-init timing issue) ──
 let _autoIconsCache = null;
@@ -2714,7 +2840,12 @@ window._csSpellAdd = (input) => {
 };
 window._csSpellWeg = (idx) => _csSpellSchrijf(_csSpellLees().filter(x => x !== idx));
 
-export function initCampagne() {}
+export function initCampagne() {
+  // De houdingenschaal één keer ophalen. Het kaartje tekent er zijn glans
+  // mee en de bewerkmodus zijn schuifje; zonder de tabel blijft de glans
+  // gewoon weg, en dat is een geldige stand.
+  laadHoudingen();
+}
 
 // Expose for global search
 window._entityTypeMeta = TYPE_META;
@@ -3399,6 +3530,7 @@ function renderCard(type, e) {
   return `
     <div class="entity-card${e._beeld === false ? ' no-img' : ''}${vis === 'hidden' && isDM() ? ' card-hidden' : ''}${vis === 'vague' && isDM() ? ' card-vague-dm' : ''}${e._deceased ? ' card-deceased' : ''}${_goddelijkType ? ` card-goddelijk card-goddelijk--${_goddelijkType}` : ''}${_isBoon ? ' card-boon' : ''}${_isProtagonist ? ' card-protagonist' : ''}${isDM() && _isConcept(e) ? ' card-concept' : ''}"${_rarKey ? ` data-rarity="${_rarKey}"` : ''}${_isProtagonist ? ' data-protagonist="true"' : ''}
       onclick="window._openDetail('${type}','${e.id}')">
+      ${_glansHtml(type, e, _rarKey)}
       ${isDM() ? `
         <div class="dm-only absolute top-7 right-2 z-30 flex flex-col gap-1">
           <button class="w-7 h-7 flex items-center justify-center rounded bg-black/75 hover:bg-black/95 backdrop-blur-sm transition text-xs text-white shadow ring-1 ring-white/20"
@@ -7161,6 +7293,18 @@ window._openEditor = async (tab, editId) => {
     }
     if (field.type === 'scheiding') {
       body += `<hr class="veld-scheiding">`;
+      continue;
+    }
+    // ── Het houdingschuifje ──
+    // Eén schuifje van vijandig naar bondgenoot, met de naam van de trede
+    // ernaast. Is het veld leeg, dan staat het schuifje op wat de app uitrekent
+    // en zegt het "Standaard" — zo zie je meteen wat er geldt zonder dat je
+    // iets vastzet. Zodra je schuift is het van jou; de knop ernaast maakt het
+    // weer leeg.
+    if (field.type === 'houding') {
+      const berekend = Number(e?._houding) || 3;
+      const eigen = val === '' || val === null || val === undefined ? null : Number(val);
+      body += _houdingVeldHtml(field, eigen, berekend);
       continue;
     }
     if (field.type === 'reveal-toggle') {

@@ -10,6 +10,7 @@ const { buildSnapshot, buildCampagneboek } = require('../lib/snapshot');
 const { sheetHtml } = require('../lib/character-sheet');
 const { MODULES, modulesVoor, modulesVrijgegeven, schoneModules, verborgenUI } = require('../lib/modules');
 const bronnen = require('../lib/bronnen');
+const houdingen = require('../lib/houding');
 const { DISPLAY_FX, fxVoor, fxBericht } = require('../lib/display-fx');
 const spotify = require('../lib/spotify');
 const config  = require('../config');
@@ -471,7 +472,58 @@ function _playerGroupId(dmState, characterId) {
   return (groep && dmState.groups?.[groep]) ? groep : null;
 }
 
-function filterEntityForPlayer(entity, dmState, groupId) {
+// ── Welke houding een personage heeft ───────────────────────────────────────
+// De regel staat in `lib/houding.js`; hier wordt hij gevoed met wat deze
+// campagne weet. Drie stappen: wat de DM zelf zette, anders de stand van zijn
+// factie, anders de standaard die bij zijn rol hoort.
+//
+// **Dit draait alleen op de server.** De uitkomst gaat als `_houding` mee naar
+// het kaartje, en voor een speler die hem nog niet verdiend heeft gaat er
+// niets mee. Zou de frontend het uitrekenen, dan stond de houding van elke
+// antagonist in de netwerktab — dezelfde les als bij de verzegelde brief.
+function _houdingVan(entity, { meta, entities, dmState, groupId }) {
+  if (!houdingen.heeftHouding(entity?.subtype)) return null;
+  const rollen = _tagsVan(entity?.data?.tags);
+
+  // De factie waar hij bij hoort, als hij er een heeft: zijn renownrang wordt
+  // de stand die hij overneemt zolang hij er zelf geen heeft.
+  let vanFactie = null;
+  try {
+    const treffer = _factieVanPersoon(meta || {}, entities || {}, entity.id);
+    if (treffer) {
+      const g = getGroup(dmState, groupId);
+      const renown   = (g.factieRenown || {})[treffer.factie.id] || 0;
+      const rangen   = _rangenOpVolgorde(treffer.factie);
+      const drempels = _rangDrempels(treffer.factie);
+      const idx = _rangIdxVanRenown(renown, drempels, Math.max(1, rangen.length));
+      vanFactie = houdingen.vanRenown(idx);
+    }
+  } catch { /* een factie die niet klopt mag geen kaartje slopen */ }
+
+  return houdingen.gelden({
+    eigen: entity?.data?.houding,
+    renownHouding: vanFactie,
+    rollen,
+    subtype: entity?.subtype,
+  }).waarde;
+}
+
+// De rollen uit `data.tags`, in welke vorm ze ook zijn opgeslagen.
+function _tagsVan(tags) {
+  if (Array.isArray(tags)) return tags.map(String);
+  if (typeof tags === 'string') {
+    try { const j = JSON.parse(tags); if (Array.isArray(j)) return j.map(String); } catch { /* ok */ }
+    return tags.split(',').map(t => t.trim()).filter(Boolean);
+  }
+  return [];
+}
+
+// `ctx` draagt de twee bestanden die de houding nodig heeft (meta en de
+// entiteiten, voor de factie waar iemand bij hoort). Wie een hele lijst
+// filtert geeft ze één keer mee; zonder `ctx` leest hij ze zelf, en dat is
+// alleen goed voor één kaartje. Dat onderscheid staat hier omdat het anders
+// niemand opvalt: 168 personages werden 336 bestandslezingen per verzoek.
+function filterEntityForPlayer(entity, dmState, groupId, ctx) {
   const g   = getGroup(dmState, groupId);
   const vis = g.visibility[entity.id] || 'hidden';
   if (vis === 'hidden') return null;
@@ -488,6 +540,25 @@ function filterEntityForPlayer(entity, dmState, groupId) {
   }
   // Visible: full entity, strip DM-only fields
   const e = { ...entity, data: { ...entity.data } };
+
+  // ── Houding ──
+  // Wat de DM instelde en de DC die erbij hoort zijn administratie; die gaan
+  // er altijd uit. Wát er geldt komt als `_houding` mee — maar alleen als
+  // iemand in de groep de insight-DC van dit personage gehaald heeft. Zolang
+  // dat niet zo is krijgt de speler níéts: geen waarde, geen veld. Zijn
+  // kaartje gedraagt zich dan als onverschillig, en een stil kaartje kan alles
+  // betekenen. Zou hier een 3 staan in plaats van niets, dan was "stil" een
+  // uitspraak en lekte het alsnog.
+  delete e.data.houding;
+  delete e.data.insightDC;
+  if (g.houdingGezien?.[entity.id]) {
+    const h = _houdingVan(entity, {
+      meta:     ctx?.meta     || storage.readJSON('meta.json'),
+      entities: ctx?.entities || storage.readJSON('entities.json'),
+      dmState, groupId,
+    });
+    if (h !== null) e._houding = h;
+  }
 
   const geheimen = _geheimRegels(entity.data);
   const open     = _onthuldeIds(g.secretReveals[entity.id], geheimen);
@@ -1141,8 +1212,9 @@ router.get('/entities/:type', attachRole, (req, res) => {
     if (!req.session.characterId) return res.json([]);
     const playerGid = _playerGroupId(dmState, req.session.characterId);
     const pg = getGroup(dmState, playerGid);
+    const ctx = { meta: storage.readJSON('meta.json'), entities };
     list = list.map(e => {
-      const fe = filterEntityForPlayer(e, dmState, playerGid);
+      const fe = filterEntityForPlayer(e, dmState, playerGid, ctx);
       if (fe) {
         fe._gockOnderzocht = !!pg.gockOnderzocht?.[e.id];
         if (fe.links) fe.links = _linksMetTekst(fe);
@@ -1150,9 +1222,13 @@ router.get('/entities/:type', attachRole, (req, res) => {
       return fe;
     }).filter(Boolean);
   } else {
+    const _meta = storage.readJSON('meta.json');
     list = list.map(e => ({
       ...e,
       links:         _linksMetTekst(e),
+      // De DM ziet de houding altijd: hij heeft hem zelf gezet, of hij ziet
+      // wat de app ervan maakt.
+      _houding:      _houdingVan(e, { meta: _meta, entities, dmState }),
       _visibility:   g.visibility[e.id]    || 'hidden',
       _secretReveal: _onthuldeIds(g.secretReveals[e.id], _geheimRegels(e.data)).size > 0,
       _geheimTotaal: _geheimRegels(e.data).length,
@@ -1187,6 +1263,10 @@ router.get('/entities/:type/:id', attachRole, (req, res) => {
   res.json({
     ...entity,
     links:         _linksMetTekst(entity),
+    // Ook hier, anders staat het schuifje in de bewerkmodus op een andere
+    // standaard dan de glans op het kaartje — en dan zet een DM iets vast
+    // wat hij niet bedoelde.
+    _houding:      _houdingVan(entity, { meta: storage.readJSON('meta.json'), entities, dmState }),
     _hoortBij:     (() => {
       const rijen = _betrokkenBij(entity.id);
       const fb = _factieBetrekking(entity.id, g, true);
@@ -4081,6 +4161,23 @@ router.put('/akte/:key/sfeer', requireDM, (req, res) => {
 // De catalogus van effecten, zodat het DM-paneel zijn knoppen eruit bouwt en de
 // Geluiden-tab weet waar je een eigen klank aan kunt hangen. Lezen mag iedereen
 // die is ingelogd; afvuren is aan de DM.
+// De houdingenschaal. Hetzelfde patroon als de tafelschermeffecten: één
+// catalogus op de server, en het schuifje, de glans en de toast lezen hem
+// allemaal daar. Zet je er een trede bij, dan werkt hij overal.
+router.get('/houdingen', attachRole, (req, res) => {
+  // Zelfde valkuil als bij de bronnen: `attachRole` zet de rol standaard op
+  // 'player', dus een controle op `req.role` gaat hier nooit af. Vóór het
+  // inloggen heeft niemand de schaal nodig.
+  const ingelogd = req.session?.role === 'dm' || !!req.session?.characterId;
+  if (!ingelogd) return res.status(401).json({ error: 'Niet ingelogd' });
+  res.json({
+    houdingen: houdingen.HOUDINGEN,
+    neutraal:  houdingen.NEUTRAAL,
+    zonder:    houdingen.ZONDER_HOUDING,
+    dcStandaard: houdingen.insightDC(null, storage.readJSON('meta.json')?.insightDC),
+  });
+});
+
 router.get('/display/fx', attachRole, (req, res) => {
   res.json({ fx: DISPLAY_FX });
 });

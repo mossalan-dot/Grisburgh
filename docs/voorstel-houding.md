@@ -1,8 +1,8 @@
 # Houding van personages — het bouwplan
 
-Werkdocument, 6 oktober 2026. **Nog niets gebouwd.** Dit is de spec
-(`houding-npc-spec.md`) langs de code gelegd: wat klopt, wat niet, en in welke
-volgorde het gebouwd wordt.
+Werkdocument, 6 oktober 2026, bijgewerkt 8 oktober. **Stap 1 tot en met 4 zijn
+gebouwd**; 5 en 6 liggen er nog. Dit is de spec (`houding-npc-spec.md`) langs de
+code gelegd: wat klopt, wat niet, en in welke volgorde het gebouwd wordt.
 
 De spec is geschreven voor `grisburgh-campagne-7.html` — de oude
 één-bestandsversie. Het idee staat als een huis; vijf aannames over de app
@@ -98,22 +98,46 @@ daar juist iets: een korte vervaging naar de tint van de houding. Dat is beter
 dan niets — de informatie blijft, alleen de beweging verdwijnt — maar het
 betekent dat de bestaande regel wordt vervangen, niet aangevuld.
 
+## Wat er staat (8 okt 2026)
+
+- `lib/houding.js` — de hele schaal: vijf treden met naam, DMG-houding, uitleg,
+  glansvariabelen en toasttekst, plus de regel (`gelden`), de standaard per rol
+  (`standaardVoor`), de renownvertaling (`vanRenown`), wie het mag zien
+  (`magZien`) en de DC (`insightDC`). 21 tests.
+- `.kaart-glans` in `theme.css` — de baan als eigen element, aangestuurd met
+  `--glans-kleur / -sterkte / -duur / -blend`, in twee smaken: `--altijd`
+  (voorwerpen, doorlopend) en `--hover` (personages, één keer). De
+  rariteitsglans loopt sindsdien over dezelfde machinerie en ziet er precies zo
+  uit als eerst: wit op .45, 6,5 s, very rare 8 s en zwakker.
+- `GET /api/houdingen` — de catalogus, net als `GET /display/fx`. Vereist een
+  sessie (anders maakt `attachRole` van een bezoeker stilletjes een speler).
+- `_houdingVan()` in `routes/api.js` — de regel gevoed met wat deze campagne
+  weet. Draait **alleen op de server**; de uitkomst gaat als `_houding` mee.
+- Het schuifje in de bewerkmodus, bij Rollen en Kant in gevecht, met
+  "Standaard" en een knop terug. Op personages én organisaties.
+- `tests/houding-api.test.js` — 9 toetsen over wat er de deur uitgaat.
+
+**Voor een speler verandert er nog niets**, en dat is met opzet: zonder de
+insight-machinerie van stap 5 is `houdingGezien` nooit waar, dus krijgt een
+speler geen houding mee. Niet een 3 als dekmantel maar helemaal niets — een
+veld dat er niet is. De DM ziet hem wel, overal.
+
 ## De volgorde
 
-1. **De glans losmaken.** Eigen element, variabelen (`--glans-kleur`,
+1. ~~**De glans losmaken.**~~ Gedaan. Eigen element, variabelen (`--glans-kleur`,
    `--glans-sterkte`, `--glans-duur`, `--glans-blend`), één doorloop bij hover,
    en de reduced-motion-variant. Daarna doet de bestaande rariteitsglans
    hetzelfde via diezelfde variabelen — dat is meteen de proef dat het
    algemeen genoeg is. **Niets nieuws zichtbaar; alles moet eruitzien als
    voorheen.**
-2. **De schaal als één tabel** (`HOUDINGEN` in `lib/`): waarde, naam,
+2. ~~**De schaal als één tabel**~~ Gedaan — (`HOUDINGEN` in `lib/`): waarde, naam,
    DMG-houding, de vier glansvariabelen en de toasttekst. Vijf treden. Zeven
    blijft een wijziging op één plek, mét de omrekening die de spec geeft.
-3. **Het veld en de regel.** `houding` (null of 1–5) op het personage, de
+3. ~~**Het veld en de regel.**~~ Gedaan — `houding` (null of 1–5) op het personage, de
    drie-stappen-regel (eigen → factie → rol/subtype) als één functie die
    frontend en backend allebei gebruiken. Schuifje in de bewerkmodus met
    "Standaard" en een knop terug.
-4. **De glans op personages en facties.** Pas nu wordt er iets zichtbaar.
+4. ~~**De glans op personages en facties.**~~ Gedaan — Pas nu wordt er iets zichtbaar.
 5. **Insight-DC en de toast.** Eén instelling voor de standaard-DC, een veld
    per personage, de toast naar het juiste apparaat, en de twee standen die
    bijhouden wie wat zag.

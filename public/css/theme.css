@@ -20762,28 +20762,77 @@ body.sb-boek-open { overflow: hidden; }
     inset 0 0 0 1px rgba(255,255,255,0.22);
 }
 
-/* Glans-sweep over zeer zeldzame & legendarische items */
-.entity-card[data-rarity="very-rare"]::before,
-.entity-card[data-rarity="legendary"]::before {
+/* De twee hoogste zeldzaamheden dragen de glans doorlopend. De waarden zijn
+   precies die van vóór de ombouw: wit op .45, 6,5 s, en voor very rare iets
+   trager en zwakker. Het ziet er dus hetzelfde uit — alleen komt het nu uit
+   dezelfde machinerie als de houding. */
+.entity-card[data-rarity="legendary"]  { --glans-duur: 6.5s; }
+.entity-card[data-rarity="very-rare"]  { --glans-duur: 8s; --glans-sterkte: 0.7; }
+
+/* ══════════════════════════════════════════════════════════════════
+   DE GLANS — één baan, overal dezelfde
+   ══════════════════════════════════════════════════════════════════
+   Dit was een `::before` op `[data-rarity]`, en daarmee kon alleen een
+   voorwerp hem hebben. Op een personagekaartje zijn `::before` en `::after`
+   allebei al bezet (eed, boon, protagonist, vloek, de rariteitsring), dus
+   krijgt de glans een eigen element. Dat is ook de enige manier om hem bij
+   meer dan één ding te gebruiken zonder dat ze om dezelfde plek vechten.
+
+   Alles wat eraan te draaien valt staat als variabele op het element zelf:
+
+     --glans-kleur     de kleur van de baan
+     --glans-sterkte   hoe hard (opacity)
+     --glans-duur      hoe traag hij overtrekt
+     --glans-blend     `screen` voor licht, `multiply` voor schaduw
+
+   En er zijn twee aanleidingen:
+     --altijd   loopt door, ook in rust. Dat is wat een legendarisch voorwerp
+                doet: het moet opvallen in een raster vol kaartjes.
+     --hover    één doorloop als je erover gaat, en in rust niets. Dat is wat
+                een houding doet: je ontdekt hem door even stil te staan. */
+.kaart-glans {
+  position: absolute; inset: 0; z-index: 6;
+  border-radius: inherit; overflow: hidden; pointer-events: none;
+}
+.kaart-glans::before {
   content: '';
   position: absolute;
   top: -10%;
   left: -70%;
   width: 55%;
   height: 120%;
-  background: linear-gradient(105deg, transparent 0%, rgba(255,255,255,0.45) 50%, transparent 100%);
+  background: linear-gradient(105deg, transparent 0%, var(--glans-kleur, rgba(255,255,255,0.45)) 50%, transparent 100%);
   transform: skewX(-18deg);
-  pointer-events: none;
-  z-index: 6;
-  animation: card-sheen 6.5s ease-in-out infinite;
+  opacity: var(--glans-sterkte, 1);
+  mix-blend-mode: var(--glans-blend, normal);
 }
-.entity-card[data-rarity="very-rare"]::before { animation-duration: 8s; opacity: 0.7; }
+.kaart-glans--altijd::before { animation: card-sheen var(--glans-duur, 6.5s) ease-in-out infinite; }
+/* In rust staat de baan links buiten beeld; de hover zet hem één keer in
+   beweging. `forwards` zou hem rechts laten staan — dat hoeft niet, want de
+   beginstand is al onzichtbaar. */
+.entity-card:hover .kaart-glans--hover::before { animation: card-sheen var(--glans-duur, 2.4s) ease-out 1; }
 @keyframes card-sheen {
   0%        { left: -70%; }
   55%, 100% { left: 130%; }
 }
+
+/* Wie geen beweging wil, krijgt de informatie wel. De baan verdwijnt en het
+   kaartje kleurt kort naar de tint van wat hij te zeggen had — bij een hover,
+   en bij een doorlopende glans één keer zodra hij in beeld komt. */
 @media (prefers-reduced-motion: reduce) {
-  .entity-card[data-rarity]::before { animation: none; display: none; }
+  .kaart-glans::before { display: none; }
+  /* `opacity: 0` is de ruststand. Zonder die regel staat het kaartje ná de
+     animatie volledig in de tint: een animatie zonder fill-mode zet de waarde
+     terug naar wat er in de CSS staat, en dat was 1. */
+  .kaart-glans--hover, .kaart-glans--altijd {
+    background: var(--glans-kleur, transparent); opacity: 0;
+  }
+  .entity-card:hover .kaart-glans--hover { animation: kaart-tint 1.2s ease-in-out 1; }
+  .kaart-glans--altijd { animation: kaart-tint 2s ease-in-out 1; }
+}
+@keyframes kaart-tint {
+  0%, 100% { opacity: 0; }
+  45%      { opacity: var(--glans-sterkte, 1); }
 }
 
 /* Detail-modal: rariteit-tekst in de zeldzaamheidskleur */
@@ -29368,3 +29417,46 @@ body.wizard-open { overflow: hidden; }
   border-color: rgba(120, 60, 200, .4);
 }
 .entity-card[data-soort="subclass"] .card-name { color: #2c1050; }
+
+/* ══════════════════════════════════════════════════════════════════
+   HET HOUDINGSCHUIFJE
+   ══════════════════════════════════════════════════════════════════
+   Vijandig links, bondgenoot rechts, en de knop zelf kleurt mee met de
+   trede waar hij op staat — dezelfde kleur als de glans die het kaartje
+   straks laat zien. Zo kun je niet instellen wat je niet terugziet. */
+.houding-veld { margin: 10px 0 4px; }
+.houding-rij { display: flex; align-items: center; gap: 10px; margin-top: 4px; }
+.houding-schuif {
+  flex: 1; min-width: 120px; height: 4px; -webkit-appearance: none; appearance: none;
+  border-radius: 2px; cursor: pointer;
+  background: linear-gradient(90deg, #9a3328 0%, #b5652e 25%, #c4a87a 50%, #e8c56a 75%, #f2d27a 100%);
+}
+.houding-schuif::-webkit-slider-thumb {
+  -webkit-appearance: none; appearance: none;
+  width: 17px; height: 17px; border-radius: 50%; cursor: pointer;
+  background: var(--houding-kleur, #8a7050);
+  border: 2px solid #fff8ea; box-shadow: 0 1px 4px rgba(60,40,10,.45);
+}
+.houding-schuif::-moz-range-thumb {
+  width: 15px; height: 15px; border-radius: 50%; cursor: pointer;
+  background: var(--houding-kleur, #8a7050);
+  border: 2px solid #fff8ea; box-shadow: 0 1px 4px rgba(60,40,10,.45);
+}
+.houding-naam {
+  min-width: 96px; font-family: 'Cinzel', serif; font-size: .86em; color: #3a2410;
+}
+.houding-terug {
+  display: flex; align-items: center; gap: 5px; padding: 4px 9px;
+  border: 1px solid rgba(196,168,122,.8); border-radius: 4px;
+  background: rgba(255,252,244,.6); color: #8a7050; cursor: pointer;
+  font-family: 'Crimson Text', serif; font-size: .82em; white-space: nowrap;
+}
+.houding-terug:hover { border-color: #9a7008; color: #9a7008; }
+.houding-terug svg { width: 12px; height: 12px; }
+/* Staat hij al op standaard, dan valt er niets terug te zetten. Hij blijft
+   staan (anders springt de rij) maar is niet aan te klikken. */
+.houding-terug.is-uit { opacity: .35; pointer-events: none; }
+.houding-hint {
+  margin: 5px 0 0; font-family: 'Crimson Text', serif; font-size: .83em;
+  font-style: italic; color: #8a7050;
+}
