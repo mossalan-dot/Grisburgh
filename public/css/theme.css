@@ -29521,3 +29521,28 @@ body.wizard-open { overflow: hidden; }
   opacity: 1; top: 12px; left: 12px;
   width: 32px; height: 118px;
 }
+
+/* ══════════════════════════════════════════════════════════════════
+   DE VLOERKIEZER IN HET KAMERVENSTER
+   ══════════════════════════════════════════════════════════════════
+   Acht hokjes die elk hun eigen materiaal tónen, in het palet van de
+   kaart waar je op werkt. Een keuzelijst met woorden zou je laten raden
+   wat "plavuizen" is. */
+.dng-vloerrij {
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px;
+  margin: 2px 0 10px;
+}
+.dng-vloerkeus {
+  display: flex; flex-direction: column; align-items: center; gap: 3px;
+  padding: 5px 3px 4px; cursor: pointer;
+  border: 1px solid rgba(196,168,122,.45); border-radius: 4px;
+  background: rgba(0,0,0,.18);
+  font-family: 'Crimson Text', serif; font-size: .74em; color: #c4a87a;
+  transition: border-color .12s, background .12s;
+}
+.dng-vloerkeus svg { border-radius: 2px; display: block; }
+.dng-vloerkeus:hover { border-color: #b8860b; background: rgba(184,134,11,.12); }
+.dng-vloerkeus.is-aan {
+  border-color: #b8860b; background: rgba(184,134,11,.2); color: #f2e8d2;
+  box-shadow: inset 0 0 0 1px rgba(184,134,11,.5);
+}

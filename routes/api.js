@@ -16866,8 +16866,19 @@ router.get('/dungeons', attachRole, (req, res) => {
       return {
         id: m.id, name: m.name, hoofdstukId: m.hoofdstukId, fileId: m.fileId,
         partyCompleted: m.partyCompleted || [],
+        // `grid` en `stijl` moeten mee, en dat deden ze niet. Bij een
+        // **getekende** dungeon tekent de client zijn ondergrond daaruit: de
+        // vloer, het raster van vijf voet en de muren. Zonder die twee velden
+        // zag een speler alleen zwevende omtrekken op een lege achtergrond —
+        // bij een geüploade plattegrond viel het niet op, want daar is het
+        // bestand de ondergrond.
+        grid: m.grid || null, stijl: m.stijl || '',
         rooms: (m.rooms || []).map(r => ({
           id: r.id, shape: r.shape, points: r.points,
+          // Het materiaal van de vloer alleen bij een kamer die hij kent.
+          // Zelfde reden als bij de naam: anders staat in de netwerktab dat
+          // kamer vier onder water staat voordat iemand er geweest is.
+          vloer: groupReveals.has(r.id) ? (r.vloer || '') : '',
           // De **vorm** van een kamer die nog niet onthuld is moet mee: daar
           // tekent de client de mist mee. De **naam** niet — die stond gewoon in
           // de payload, dus wie in de netwerktab keek las "Schatkelder" voordat

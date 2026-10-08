@@ -105,6 +105,34 @@ describe('Dungeonkaarten: toegang, mist en kamers', () => {
     }
   });
 
+  // ── De ondergrond van een getekende dungeon ───────────────────────────────
+  // Een getekende dungeon heeft geen plaatje: de client tekent zijn vloer,
+  // het raster van vijf voet en de muren uit `grid` en `stijl`. Die twee
+  // stonden niet in wat een speler kreeg, en dus zag hij zwevende omtrekken
+  // op een lege achtergrond. Bij een geüploade plattegrond viel dat niet op,
+  // want daar is het bestand de ondergrond.
+  it('stuurt het raster en de stijl mee, anders heeft een speler geen vloer', async () => {
+    await req(server, 'PUT', `/api/dungeons/${mapId}`,
+      { grid: { kolommen: 20, rijen: 14, voetPerVak: 5 }, stijl: 'grot' }, dm);
+    const kaart = (await alsSpeler())[0];
+    assert.ok(kaart.grid, 'het raster komt mee');
+    assert.strictEqual(kaart.grid.kolommen, 20);
+    assert.strictEqual(kaart.stijl, 'grot', 'en de stijl, want dat is het palet');
+  });
+
+  it('geeft het materiaal van een vloer pas na de onthulling', async () => {
+    // Zelfde reden als bij de naam: anders staat er in de netwerktab dat
+    // kamer vier onder water staat voordat iemand er geweest is.
+    const kamers = (await alsDm())[0].rooms.map((r, i) => ({ ...r, vloer: i === 0 ? 'water' : 'hout' }));
+    await req(server, 'PUT', `/api/dungeons/${mapId}/rooms`, { rooms: kamers, connections: [] }, dm);
+    const voor = (await alsSpeler())[0].rooms;
+    assert.ok(voor.every(r => !r.vloer), 'onbekende kamers geven hun vloer niet prijs');
+
+    await req(server, 'POST', `/api/dungeons/${mapId}/reveal`, { roomId: kamers[0].id, groupId: gid }, dm);
+    const na = (await alsSpeler())[0].rooms.find(r => r.id === kamers[0].id);
+    assert.strictEqual(na.vloer, 'water', 'en een onthulde kamer wel');
+  });
+
   it('geeft de aantekening van de DM nooit aan een speler', async () => {
     const kaart = (await alsSpeler())[0];
     const alles = JSON.stringify(kaart);

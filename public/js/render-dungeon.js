@@ -85,6 +85,78 @@ const DUNGEON_STIJLEN = [
     raster: 'rgba(190,220,180,0.08)',
   },
 ];
+// ── Het materiaal van een vloer ─────────────────────────────────────────────
+// De stijl is het **palet** van de hele kaart: wat de vloer, de muren en het
+// raster voor kleur hebben. Het materiaal is wat er per **kamer** overheen
+// ligt: tegels, plavuizen, planken, zand. Die twee staan los van elkaar, en
+// dat is de hele truc — een materiaal draagt géén eigen kleur.
+//
+// Waarom niet: zou "hout" zijn eigen bruin meebrengen, dan klopt het op
+// Donkersteen, staat het raar op Perkament en is het onzin op Blauwdruk. Dan
+// had je zeven materialen maal vijf stijlen met de hand moeten bijstellen.
+// Nu tekent elk materiaal met één inktkleur die uit de vloer van de stijl
+// volgt (donker op een lichte vloer, licht op een donkere), en werkt elke
+// combinatie vanzelf.
+//
+// Alles is procedureel: een `<pattern>` in de SVG, geen bestand. Dat schaalt
+// mee met de zoom, kost niets om te laden, en is per materiaal één regel.
+// Zie `docs/stijlen-per-campagne.md`, waar dezelfde keuze voor de thema's staat.
+//
+// **De maat is altijd een deling van een vak.** Een patroon dat niet op het
+// raster staat leest als ruis; een patroon dat er precies op valt verdubbelt
+// de rasterlijnen. Vandaar halve en derde vakken, nooit een heel vak.
+// **De maat is altijd een deling van een vak**, en niet per se vierkant. Een
+// patroon dat niet op het raster staat leest als ruis; een patroon dat er
+// precies op valt verdubbelt de rasterlijnen. En planken zijn lang en smal —
+// die in een vierkant tegeltje persen maakt er ruitjespapier van, wat de
+// eerste poging ook deed. Vandaar `breed` en `hoog` apart, allebei als deel
+// van één vak.
+const VLOEREN = [
+  { id: 'vlak',    label: 'Vlak',      breed: 1,   hoog: 1,     teken: () => '' },
+  // Tegels op een half vak: 2,5 voet, en daardoor te onderscheiden van het
+  // raster dat op hele vakken staat.
+  { id: 'tegels',  label: 'Tegels',    breed: 0.5, hoog: 0.5,   teken: (d, w, h) =>
+      `<path d="M0 0H${w}M0 0V${h}" stroke="${d}" stroke-width="${w * 0.045}" fill="none"/>` },
+  // Halfsteens verband: elke rij een halve steen verspringend.
+  { id: 'plavuis', label: 'Plavuizen', breed: 0.5, hoog: 0.5,   teken: (d, w, h) =>
+      `<g stroke="${d}" stroke-width="${w * 0.045}" fill="none">
+         <path d="M0 0H${w}M0 ${h / 2}H${w}"/><path d="M0 0V${h / 2}"/><path d="M${w / 2} ${h / 2}V${h}"/></g>` },
+  // Planken: breed als een heel vak, een derde vak hoog. Twee rijen in één
+  // tegel, met de kopse naad op verschillende hoogte — anders staan alle naden
+  // onder elkaar en lees je een raster in plaats van een vloer.
+  { id: 'hout',    label: 'Hout',      breed: 1,   hoog: 2 / 3, teken: (d, w, h) =>
+      `<g stroke="${d}" fill="none">
+         <path d="M0 0H${w}M0 ${h / 2}H${w}" stroke-width="${h * 0.06}"/>
+         <path d="M${w * 0.38} 0V${h / 2}M${w * 0.78} ${h / 2}V${h}" stroke-width="${h * 0.05}"/></g>` },
+  // Geen willekeur: dezelfde korrels op elke kaart, anders danst het zand bij
+  // elke hertekening.
+  { id: 'zand',    label: 'Zand',      breed: 0.5, hoog: 0.5,   teken: (d, w) =>
+      Array.from({ length: 9 }, (_, i) =>
+        `<circle cx="${(((i * 7.3) % 10) / 10 * w).toFixed(2)}" cy="${(((i * 11.7) % 10) / 10 * w).toFixed(2)}" r="${(w * 0.065).toFixed(2)}" fill="${d}"/>`).join('') },
+  { id: 'water',   label: 'Water',     breed: 0.5, hoog: 0.5,   teken: (d, w, h) =>
+      `<path d="M0 ${h * 0.3}q${w / 4} ${-h * 0.18} ${w / 2} 0t${w / 2} 0M0 ${h * 0.8}q${w / 4} ${-h * 0.18} ${w / 2} 0t${w / 2} 0"
+         stroke="${d}" stroke-width="${w * 0.045}" fill="none"/>` },
+  { id: 'rooster', label: 'Rooster',   breed: 1 / 3, hoog: 1 / 3, teken: (d, w, h) =>
+      `<path d="M0 0H${w}M0 0V${h}" stroke="${d}" stroke-width="${w * 0.06}" fill="none"/>` },
+  { id: 'gras',    label: 'Begroeid',  breed: 0.5, hoog: 0.5,   teken: (d, w, h) =>
+      `<g stroke="${d}" stroke-width="${w * 0.05}" fill="none" stroke-linecap="round">
+         <path d="M${w * 0.2} ${h * 0.82}V${h * 0.46}M${w * 0.31} ${h * 0.82}l${-w * 0.08} ${-h * 0.26}M${w * 0.1} ${h * 0.82}l${w * 0.07} ${-h * 0.24}"/>
+         <path d="M${w * 0.72} ${h * 0.38}V${h * 0.06}M${w * 0.83} ${h * 0.38}l${-w * 0.08} ${-h * 0.24}"/></g>` },
+];
+const _vloerVan = (kamer) =>
+  VLOEREN.find(x => x.id === kamer?.vloer) || VLOEREN[0];
+
+// Waarmee een materiaal tekent. Op een lichte vloer zwart, op een donkere wit,
+// allebei op lage dekking: het patroon hoort een suggestie te zijn, geen
+// tweede kaart bovenop de eerste.
+function _inktVoor(vloerKleur) {
+  const h = String(vloerKleur || '').replace('#', '');
+  if (h.length < 6) return 'rgba(0,0,0,0.22)';
+  const r = parseInt(h.slice(0, 2), 16), g = parseInt(h.slice(2, 4), 16), b = parseInt(h.slice(4, 6), 16);
+  const helder = r * 0.299 + g * 0.587 + b * 0.114;
+  return helder > 140 ? 'rgba(0,0,0,0.20)' : 'rgba(255,255,255,0.14)';
+}
+
 const _stijlVan = (map) =>
   DUNGEON_STIJLEN.find(x => x.id === map?.stijl) || DUNGEON_STIJLEN[0];
 const _isGetekend = (map) => !!map?.grid;
@@ -414,8 +486,30 @@ function _ondergrondSvg(map, W, H, rooms) {
     lijnen.push(`<line x1="0" y1="${y}" x2="${W}" y2="${y}"/>`);
   }
 
+  // ── De materialen ──
+  // Alleen de materialen die op deze kaart echt voorkomen krijgen een patroon;
+  // acht ongebruikte definities in elke SVG is ballast.
+  //
+  // `patternUnits="userSpaceOnUse"` meet vanaf de oorsprong van de kaart, niet
+  // vanaf de kamer. Daardoor staat het patroon in elke kamer op dezelfde lijnen
+  // en lopen twee kamers die tegen elkaar aan liggen netjes door.
+  const inkt = _inktVoor(st.vloer);
+  const gebruikt = [...new Set(rooms.map(r => _vloerVan(r).id))]
+    .map(id => VLOEREN.find(x => x.id === id))
+    .filter(m => m && m.id !== 'vlak');
+  const patronen = gebruikt.map(m => {
+    const bw = vakW * m.breed, bh = vakH * m.hoog;
+    return `<pattern id="dng-vloer-${m.id}" width="${bw}" height="${bh}" patternUnits="userSpaceOnUse">
+      <rect width="${bw}" height="${bh}" fill="${st.vloer}"/>${m.teken(inkt, bw, bh)}</pattern>`;
+  }).join('');
+  const vulling = (r) => {
+    const m = _vloerVan(r);
+    return m.id === 'vlak' ? st.vloer : `url(#dng-vloer-${m.id})`;
+  };
+
   return `
     <defs>
+      ${patronen}
       <!-- Het raster blijft binnen de vloeren. Eén clip over alle kamers heen,
            niet één per kamer: dan kruipt er geen lijn tussen twee kamers die
            tegen elkaar aan liggen. -->
@@ -424,7 +518,7 @@ function _ondergrondSvg(map, W, H, rooms) {
       </clipPath>
     </defs>
     <rect width="${W}" height="${H}" fill="${st.buiten}"/>
-    ${rooms.map(r => vorm(r, st.vloer, 'stroke="none"')).join('')}
+    ${rooms.map(r => vorm(r, vulling(r), 'stroke="none"')).join('')}
     <g clip-path="url(#dng-vloer-clip)" stroke="${st.raster}" stroke-width="${Math.max(1, vakW * 0.03)}"
        pointer-events="none">${lijnen.join('')}</g>
     ${rooms.map(r => vorm(r, 'none',
@@ -981,6 +1075,37 @@ function _cancelDrawing() {
 // ──────────────────────────────────────────────────────────────────
 
 // ──────────────────────────────────────────────────────────────────
+// Acht hokjes die elk hun eigen materiaal laten zien, in het palet van déze
+// kaart. Een keuzelijst met woorden zou je laten raden wat "plavuizen" is; dit
+// is wat je krijgt.
+function _vloerKiezerHtml(nu) {
+  const st   = _stijlVan(_maps[_mapIdx]);
+  const inkt = _inktVoor(st.vloer);
+  const huidig = nu || 'vlak';
+  const V = 34;              // het hokje
+  // Het hokje toont ongeveer anderhalf vak, zodat een patroon dat op een half
+  // vak staat er twee of drie keer in past en je ziet wat het is.
+  const vak = V / 1.5;
+  return `<div class="dng-vloerrij">${VLOEREN.map(m => {
+    const bw = vak * m.breed, bh = vak * m.hoog;
+    return `<button type="button" class="dng-vloerkeus${m.id === huidig ? ' is-aan' : ''}"
+      data-vloer="${m.id}" title="${esc(m.label)}"
+      onclick="window._dngVloerKies(this)">
+      <svg width="${V}" height="${V}" viewBox="0 0 ${V} ${V}" aria-hidden="true">
+        <defs><pattern id="dngk-${m.id}" width="${bw}" height="${bh}" patternUnits="userSpaceOnUse">
+          <rect width="${bw}" height="${bh}" fill="${st.vloer}"/>${m.teken(inkt, bw, bh)}</pattern></defs>
+        <rect width="${V}" height="${V}" fill="url(#dngk-${m.id})"/>
+      </svg>
+      <span>${esc(m.label)}</span>
+    </button>`;
+  }).join('')}</div>`;
+}
+
+window._dngVloerKies = (el) => {
+  for (const b of document.querySelectorAll('.dng-vloerkeus')) b.classList.remove('is-aan');
+  el.classList.add('is-aan');
+};
+
 // Kamer naam/notities dialog
 // ──────────────────────────────────────────────────────────────────
 function _openRoomNameDialog(shapeData, existingRoom=null) {
@@ -993,6 +1118,8 @@ function _openRoomNameDialog(shapeData, existingRoom=null) {
         <input id="dng-room-name" class="dng-input" placeholder="Bijv. De Crypte"
           value="${esc(existingRoom?.name||'')}">
       </label>
+      <label class="dng-label">Vloer</label>
+      ${_vloerKiezerHtml(existingRoom?.vloer)}
       <label class="dng-label">DM-notities
         <textarea id="dng-room-notes" class="dng-textarea" rows="4"
           placeholder="Alleen zichtbaar voor de DM...">${esc(existingRoom?.dmNotes||'')}</textarea>
@@ -1011,14 +1138,20 @@ function _openRoomNameDialog(shapeData, existingRoom=null) {
     const name  = document.getElementById('dng-room-name').value.trim();
     if (!name) { document.getElementById('dng-room-name').focus(); return; }
     const notes = document.getElementById('dng-room-notes').value;
+    // 'vlak' is de standaard en wordt niet opgeslagen: een veld dat er niet is
+    // leest als "niets gekozen", en dat is precies wat het betekent.
+    const gekozen = document.querySelector('.dng-vloerkeus.is-aan')?.dataset.vloer || 'vlak';
+    const vloer = gekozen === 'vlak' ? undefined : gekozen;
     const map   = _maps[_mapIdx];
     if (isEdit) {
       existingRoom.name    = name;
       existingRoom.dmNotes = notes;
+      if (vloer) existingRoom.vloer = vloer; else delete existingRoom.vloer;
     } else {
       map.rooms = map.rooms || [];
       map.rooms.push({
         id: uid(), name, dmNotes: notes,
+        ...(vloer ? { vloer } : {}),
         shape: shapeData.shape, points: shapeData.points,
         conditions: [],
       });
