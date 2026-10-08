@@ -3601,6 +3601,18 @@ function filterEntities(type, list) {
   const q  = searchQueries[type];
   const sf = subtypeFilters[type] || null;
   let filtered = list;
+  // ── Zegeningen en gunsten staan in het Heldenboek ──
+  // Ze zijn en blijven voorwerp-kaartjes: de tempel leidt zijn pantheon eruit
+  // af, een factie geeft ze als rangbeloning, ze staan in de boedel en ze
+  // blijven onverkoopbaar. Alleen de plek waar je ze zóékt is verhuisd — met
+  // 98 van de 249 waren ze hier de grootste groep terwijl niemand ze hier
+  // zocht.
+  //
+  // Alleen deze lijst: de winkel, de boedel, de tempel en elke doorklik gaan
+  // langs hun eigen weg en zien ze gewoon.
+  if (type === 'voorwerpen' && !q) {
+    filtered = filtered.filter(e => !['Blessing', 'Boon'].includes(e?.data?.itemType));
+  }
   // Score per kaartje bewaren: die bepaalt straks de volgorde. Zonder dit werd
   // er alleen gefilterd en bleef de alfabetische volgorde staan — dan stond een
   // kaartje dat de naam in zijn beschrijving noemt vóór het kaartje zelf.

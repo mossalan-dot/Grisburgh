@@ -334,3 +334,28 @@ describe('Subclasses die elders staan', () => {
     assert.deepEqual(dubbel, [], 'deze staan al in de seed: ' + dubbel.join(', '));
   });
 });
+
+// ── Zegeningen en gunsten blijven voorwerpen ────────────────────────────────
+// Ze staan sinds 8 okt 2026 in het Heldenboek in plaats van tussen de
+// voorwerpen. Dat is een verhuizing van het uitzicht, niet van de gegevens: de
+// tempel leidt zijn pantheon nog steeds uit Blessing-kaartjes af, een factie
+// geeft ze als rangbeloning, ze staan in de boedel en ze blijven onverkoopbaar.
+// Zou de soort zelf veranderen, dan brak dat allemaal — en pas aan tafel.
+describe('Zegeningen en gunsten', () => {
+  const api = require('fs').readFileSync(require('path').join(__dirname, '..', 'routes', 'api.js'), 'utf8');
+
+  it('leidt de goden nog steeds uit Blessing-kaartjes af', () => {
+    assert.ok(api.includes("(e.data?.itemType) === 'Blessing'"),
+      'de tempel leest de voorwerpen; verandert die soort, dan verdwijnt het pantheon');
+  });
+
+  it('houdt ze onverkoopbaar', () => {
+    assert.ok(api.includes("['Blessing', 'Boon', 'Feature'].includes(d.itemType)"),
+      'een zegen of een gunst hoort niet in een winkel te liggen');
+  });
+
+  it('zoekt de zegen op bij een eed of een vloek', () => {
+    assert.ok(api.includes("e.data?.itemType === 'Blessing' &&"),
+      '_koppelGoddelijkEntity koppelt het kaartje aan wat de speler krijgt');
+  });
+});

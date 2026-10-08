@@ -30,6 +30,18 @@ const SOORTEN = {
   feat:       { label: 'Feat',      icon: 'zap',            c1: '#0c2248', c2: '#1e4a8a' },
   boon:       { label: 'Epic Boon', icon: 'sparkles',       c1: '#301800', c2: '#7a4a08' },
   background: { label: 'Background',icon: 'scroll-text',    c1: '#4a082e', c2: '#962058' },
+  // Een zegening is een soort boon: iets wat je van de wereld krijgt in plaats
+  // van iets wat je bij een level-up kiest. Ze stonden tussen de voorwerpen,
+  // en daar waren ze met 98 van de 249 kaartjes de grootste groep terwijl je
+  // ze er nooit zocht.
+  //
+  // **Het zijn en blijven voorwerp-kaartjes.** Alleen de plek waar je ze vindt
+  // verhuist; de tempel leidt zijn pantheon er nog steeds uit af, een factie
+  // geeft ze nog steeds als rangbeloning, ze staan nog steeds in de boedel en
+  // ze blijven onverkoopbaar. Zou de soort zelf veranderen, dan moest dat
+  // allemaal opnieuw gelegd worden — en dat merk je pas aan tafel.
+  zegen:      { label: 'Zegening',  icon: 'sparkles',       c1: '#3a2a00', c2: '#9a7008' },
+  gunst:      { label: 'Gunst',     icon: 'star',           c1: '#2a1030', c2: '#7a2a80' },
 };
 // Een icoon per class en per species. De soort bepaalt de kleur van het
 // kaartje (dat is waar het filter op staat), het icoon zegt wáárvan het is —
@@ -68,7 +80,7 @@ const HERKOMST = [
 ];
 const HERKOMST_LABEL = { zelfbedacht: 'Zelf verzonnen', aangepast: 'Aangepast', overgenomen: 'Overgenomen' };
 
-const SOORT_VOLGORDE = ['class', 'subclass', 'species', 'feat', 'boon', 'background'];
+const SOORT_VOLGORDE = ['class', 'subclass', 'species', 'feat', 'boon', 'zegen', 'gunst', 'background'];
 
 let _all        = null;   // null = nog niet geladen
 let _bron       = null;   // wat naslagBron() teruggaf (srdDesc, md, …)
@@ -151,6 +163,33 @@ async function _load() {
       desc: delen.map(f => `**${f.name}.** ${f.desc || ''}`.trim()).join('\n\n'),
     });
   }
+
+  // ── Zegeningen en gunsten ──
+  // Die liggen niet in de progressie maar als kaartjes in de campagne, dus die
+  // komen van het andere eind. `listEntities` zeeft al op rol en party: een
+  // speler krijgt alleen wat hij mag zien, en dat hoeft hier dus niet nog eens.
+  try {
+    const voorwerpen = await api.listEntities('voorwerpen');
+    for (const e of (Array.isArray(voorwerpen) ? voorwerpen : [])) {
+      const t = e?.data?.itemType;
+      if (t !== 'Blessing' && t !== 'Boon') continue;
+      const gt = e.data?.goddelijkType || '';
+      zet({
+        soort: t === 'Blessing' ? 'zegen' : 'gunst',
+        // Waar het vandaan komt: de god bij een zegening, "Gunst" bij een
+        // factiebeloning. Dat is wat je als kop boven het kaartje wil lezen.
+        bron: t === 'Blessing' ? (e.data?.godNaam || 'Zegeningen') : 'Gunsten',
+        level: 0, naam: e.name || '',
+        desc: e.data?.desc || '',
+        img: e.data?.imageId || '', imgFocus: e.data?.imgFocus || '',
+        // De doorklik gaat naar het kaartje zelf: daar staat de eedtekst, de
+        // permanente zegen en de rest al goed. Eén plek om een zegening te
+        // bekijken, niet twee.
+        entityId: e.id,
+        subsoort: gt,
+      });
+    }
+  } catch { /* geen kaartjes is geen fout */ }
 
   // Een background noemt een feat ("Feat. Magic Initiate (Cleric)"), en die
   // staat hier gewoon als kaartje. Dus schrijven we hem als [[verwijzing]],
@@ -265,7 +304,7 @@ function _filtered() {
 
 // Waar iets bij hoort. Bij een feat, een Epic Boon of een background zegt de
 // bron hetzelfde als de soort ("Feat · Feats") — dan laten we hem weg.
-const _EIGEN_BRON = new Set(['Feats', 'Epic Boons', 'Backgrounds']);
+const _EIGEN_BRON = new Set(['Feats', 'Epic Boons', 'Backgrounds', 'Gunsten', 'Zegeningen']);
 function _bronRegel(it) {
   if (it.soort === 'subclass') return `${it.sub} · ${it.bron}`;
   return _EIGEN_BRON.has(it.bron) ? '' : it.bron;
@@ -279,9 +318,15 @@ function _card(it) {
   // Staat de tekst er niet, dan hoeft de kijker het kaartje daar niet eerst
   // voor te openen — zelfde regel als bij de spreuken.
   const link = tekst ? '' : (window.app?.bronLink?.(it.naam, 'features') || '');
+  // Een zegening of een gunst is een kaartje in de campagne, en dat heeft zijn
+  // eigen venster — met de god, de eedtekst en de permanente zegen erin. Daar
+  // klikken we dus heen: één plek om een zegening te bekijken, niet twee.
+  const klik = it.entityId
+    ? `window._openDetail('voorwerpen','${esc(it.entityId)}')`
+    : `window.vaardigheden.open('${esc(it.key)}')`;
   return `
     <div class="entity-card vaardig-card" data-soort="${esc(it.soort)}"
-      onclick="window.vaardigheden.open('${esc(it.key)}')" title="${esc(it.naam)}"
+      onclick="${klik}" title="${esc(it.naam)}"
       style="--soort-c1:${s.c1};--soort-c2:${s.c2}">
       <div class="card-accent vaardig-accent"></div>
       ${it.level ? `<span class="vaardig-card-niv">${it.level}</span>` : ''}
@@ -690,7 +735,7 @@ const _DEUREN = [
   { id: 'class',      label: 'Classes',            soorten: ['class', 'subclass'], icoon: 'swords',      kleur: '#a03810' },
   { id: 'species',    label: 'Species',            soorten: ['species'],           icoon: 'user',        kleur: '#1a6a50' },
   { id: 'background', label: 'Backgrounds',        soorten: ['background'],        icoon: 'scroll-text', kleur: '#962058' },
-  { id: 'feats',      label: 'Feats & Epic Boons', soorten: ['feat', 'boon'],      icoon: 'zap',         kleur: '#1e4a8a' },
+  { id: 'feats',      label: 'Feats & Boons',      soorten: ['feat', 'boon', 'zegen', 'gunst'], icoon: 'zap', kleur: '#1e4a8a' },
 ];
 const _DEUR = id => _DEUREN.find(d => d.id === id);
 // Hoe heet het ding dat je achter deze deur toevoegt?
