@@ -140,4 +140,39 @@ describe('Houding: wat de deur uitgaat', () => {
     assert.ok(!e.data.houding, 'niets opgeslagen');
     assert.equal((await vanDM()).find(x => x.id === hond)._houding, 4, 'en nog steeds uitgerekend');
   });
+
+  // ── Het balkje op het kaartje ─────────────────────────────────────────────
+  // Het zet alléén de houding. Zou het de hele PUT gebruiken, dan schrijft een
+  // tik op een balkje het kaartje in zijn geheel terug — inclusief wat er
+  // ondertussen door iemand anders aan veranderd is.
+  it('zet alleen de houding en laat de rest met rust', async () => {
+    const voor = (await req(server, 'GET', `/api/entities/personages/${hond}`, null, dm)).body;
+    const r = await req(server, 'PUT', `/api/entities/personages/${hond}/houding`, { houding: 2 }, dm);
+    assert.equal(r.status, 200, JSON.stringify(r.body));
+    const na = (await req(server, 'GET', `/api/entities/personages/${hond}`, null, dm)).body;
+    assert.equal(na.data.houding, 2);
+    assert.equal(na._houding, 2);
+    assert.equal(na.name, voor.name, 'de naam blijft');
+    assert.equal(na.subtype, voor.subtype, 'het subtype blijft');
+  });
+
+  it('zet hem met null terug op standaard, niet op 3', async () => {
+    await req(server, 'PUT', `/api/entities/personages/${hond}/houding`, { houding: 2 }, dm);
+    const r = await req(server, 'PUT', `/api/entities/personages/${hond}/houding`, { houding: null }, dm);
+    assert.equal(r.status, 200);
+    assert.equal(r.body.eigen, false);
+    const na = (await req(server, 'GET', `/api/entities/personages/${hond}`, null, dm)).body;
+    assert.equal(na.data.houding, undefined, 'het veld is weg');
+    assert.equal(na._houding, 4, 'en de berekening is terug');
+  });
+
+  it('weigert een houding op een kaartje dat niet op de schaal staat', async () => {
+    const r = await req(server, 'PUT', `/api/entities/personages/${god}/houding`, { houding: 5 }, dm);
+    assert.equal(r.status, 400);
+  });
+
+  it('laat een speler de houding niet verzetten', async () => {
+    const r = await req(server, 'PUT', `/api/entities/personages/${schurk}/houding`, { houding: 5 }, spelerC);
+    assert.ok(r.status === 401 || r.status === 403, `kreeg ${r.status}`);
+  });
 });

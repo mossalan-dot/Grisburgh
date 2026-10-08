@@ -647,6 +647,78 @@ const LINK_LABELS = { personages: 'Personages', locaties: 'Locaties', organisati
 // Enkelvoud, voor zinnen als "aanmaken als Personage of Organisatie?"
 const LINK_ENKELVOUD = { personages: 'Personage', locaties: 'Locatie', organisaties: 'Organisatie', voorwerpen: 'Voorwerp', archief: 'Document' };
 
+// ── Het houdingbalkje op het kaartje ───────────────────────────────────────
+// Vijf treden onder elkaar, links op het kaartje, in dezelfde maat en op
+// dezelfde hoogte als de knoppenrij rechts. Vijandig onderaan, bondgenoot
+// bovenaan — omhoog is vriendelijker, en dat hoef je niemand uit te leggen.
+//
+// Alleen voor de DM: dit is een bediening, geen mededeling. Wat de spelers
+// ervan merken is de glans die over het kaartje trekt, en verder niets.
+//
+// De trede die al aanstaat nog eens aantikken zet hem terug op **standaard**.
+// Dat is de enige weg terug sinds de knop eronder weg is, en het is het
+// gebaar dat je toch al maakt als je je bedenkt.
+function _houdingBalkHtml(type, e) {
+  if (!isDM()) return '';
+  if (type !== 'personages' && type !== 'organisaties') return '';
+  const geldt = Number(e?._houding);
+  if (!geldt) return '';                       // god, speler: geen houding
+  const eigen = e?.data?.houding ? Number(e.data.houding) : null;
+  const treden = [..._HOUDING_TABEL.values()].slice().reverse();   // 5 bovenaan
+  if (!treden.length) return '';
+  return `<div class="houding-balk${eigen === null ? ' is-standaard' : ''}"
+    data-id="${esc(e.id)}" data-type="${esc(type)}" data-nu="${geldt}"
+    onclick="event.stopPropagation()">
+    ${treden.map(h => `<button type="button" class="houding-stap${h.waarde === geldt ? ' is-aan' : ''}"
+      style="--houding-kleur:${h.glans?.kleur || '#c4a87a'}"
+      title="${esc(h.naam)}${h.waarde === geldt ? (eigen === null ? ' · nu, uitgerekend' : ' · nu — tik nog eens voor standaard') : ''}"
+      onclick="event.stopPropagation();window._houdingZet('${esc(type)}','${esc(e.id)}',${h.waarde})"></button>`).join('')}
+  </div>`;
+}
+
+// ── Schuiven zonder brokken ────────────────────────────────────────────────
+// Je gaat per ongeluk een tik te hoog en corrigeert een seconde later. Zou
+// elke tik meteen doorgaan, dan heeft de speler ondertussen al een toast
+// gehad over een houding die je niet bedoelde — en een toast kun je aan tafel
+// niet meer afpakken.
+//
+// Dus wacht de app tot je stil bent. Het kaartje volgt je direct (je ziet wat
+// je doet), maar wat er opgeslagen wordt — en dus wat de spelers merken —
+// gaat pas na `_HOUDING_WACHT` de deur uit. Tik je binnen die tijd nog eens,
+// dan begint de klok opnieuw en is er maar één verandering geweest.
+const _HOUDING_WACHT = 1600;
+const _houdingKlok = new Map();
+
+window._houdingZet = (type, id, waarde) => {
+  const balk = document.querySelector(`.houding-balk[data-id="${id}"]`);
+  if (!balk) return;
+  const stond = Number(balk.dataset.nu);
+  const wasStandaard = balk.classList.contains('is-standaard');
+  // Dezelfde trede nog eens: terug naar wat de app uitrekent. Stond hij al op
+  // standaard, dan valt er niets terug te zetten en gebeurt er niets.
+  const terug = waarde === stond && !wasStandaard;
+
+  // Het kaartje volgt meteen, zodat je ziet wat je doet.
+  balk.dataset.nu = String(waarde);
+  balk.classList.toggle('is-standaard', terug);
+  for (const knop of balk.querySelectorAll('.houding-stap')) knop.classList.remove('is-aan');
+  balk.querySelectorAll('.houding-stap')[[..._HOUDING_TABEL.values()].length - waarde]?.classList.add('is-aan');
+
+  clearTimeout(_houdingKlok.get(id));
+  _houdingKlok.set(id, setTimeout(async () => {
+    _houdingKlok.delete(id);
+    try {
+      await api.put(`/entities/${type}/${id}/houding`, { houding: terug ? null : waarde });
+      const h = _HOUDING_TABEL.get(Number(balk.dataset.nu));
+      window._showToast?.(terug
+        ? `Houding terug op standaard — ${h?.naam || ''}.`
+        : `Houding: ${h?.naam || ''}.`);
+      // Het kaartje opnieuw laten tekenen, zodat de glans meeverandert.
+      renderEntitySection(type);
+    } catch (err) { alert('Houding opslaan mislukt: ' + err.message); }
+  }, _HOUDING_WACHT));
+};
+
 // ── De glans op een kaartje ─────────────────────────────────────────────────
 // Eén baan die over het kaartje trekt, met alles wat eraan te draaien valt als
 // variabele erop (zie `.kaart-glans` in theme.css). Twee aanleidingen:
@@ -701,6 +773,12 @@ function _houdingVeldHtml(field, eigen, berekend) {
   // Het schuifje draagt de waarde niet: een `range` kan niet leeg zijn, en leeg
   // is hier een betekenis — "reken het zelf maar uit". De opgeslagen waarde zit
   // dus in een verborgen veld dat wél leeg mag, en het schuifje schrijft erin.
+  //
+  // De uitleg eronder en de knop "Standaard" zijn weg. De naam naast het
+  // schuifje zegt al wat de trede is, en wie wil weten wat "Wantrouwig"
+  // betekent leest dat in de hulpknop, niet in het formulier. Terug naar
+  // standaard gaat via het balkje op het kaartje: de trede die aanstaat nog
+  // eens aantikken.
   return `
     <div class="houding-veld" id="houding-veld">
       <label class="dm-form-label">${esc(field.label)}</label>
@@ -711,14 +789,8 @@ function _houdingVeldHtml(field, eigen, berekend) {
           id="houding-schuif" class="houding-schuif" style="--houding-kleur:${kleur}"
           data-berekend="${berekend}"
           oninput="window._houdingSchuif(this)">
-        <span class="houding-naam" id="houding-naam">${esc(h?.naam || '')}</span>
-        <button type="button" class="houding-terug${eigen === null ? ' is-uit' : ''}"
-          id="houding-terug" onclick="window._houdingTerug()"
-          title="Laat de app het weer uitrekenen">${icon('refresh-cw')} Standaard</button>
+        <span class="houding-naam" id="houding-naam">${esc(h?.naam || '')}${eigen === null ? ' <em>· standaard</em>' : ''}</span>
       </div>
-      <p class="houding-hint" id="houding-hint">${eigen === null
-        ? `Standaard — ${esc(h?.uitleg || '')}`
-        : esc(h?.uitleg || '')}</p>
     </div>`;
 }
 
@@ -732,30 +804,8 @@ window._houdingSchuif = (el) => {
   el.style.setProperty('--houding-kleur', h?.glans?.kleur || '#8a7050');
   const naam = document.getElementById('houding-naam');
   if (naam) naam.textContent = h?.naam || '';
-  const hint = document.getElementById('houding-hint');
-  if (hint) hint.textContent = h?.uitleg || '';
-  document.getElementById('houding-terug')?.classList.remove('is-uit');
 };
 
-// Terug naar leeg. Het schuifje springt terug naar wat de app uitrekent — niet
-// naar waar je hem net liet staan, want dan zou "Standaard" een andere trede
-// aanwijzen dan er geldt. Opgeslagen wordt er niets meer: verandert de renown
-// van zijn factie, dan schuift hij vanzelf mee.
-window._houdingTerug = () => {
-  const el = document.getElementById('houding-schuif');
-  if (!el) return;
-  const berekend = Number(el.dataset.berekend) || 3;
-  el.value = String(berekend);
-  const h = _HOUDING_TABEL.get(berekend);
-  el.style.setProperty('--houding-kleur', h?.glans?.kleur || '#8a7050');
-  const waarde = document.getElementById('houding-waarde');
-  if (waarde) waarde.value = '';
-  const naam = document.getElementById('houding-naam');
-  if (naam) naam.textContent = h?.naam || '';
-  document.getElementById('houding-terug')?.classList.add('is-uit');
-  const hint = document.getElementById('houding-hint');
-  if (hint) hint.textContent = `Standaard — ${h?.uitleg || ''}`;
-};
 
 // ── Auto-icons per subtype / type-field (lazy SVG, avoids module-init timing issue) ──
 let _autoIconsCache = null;
@@ -3531,6 +3581,7 @@ function renderCard(type, e) {
     <div class="entity-card${e._beeld === false ? ' no-img' : ''}${vis === 'hidden' && isDM() ? ' card-hidden' : ''}${vis === 'vague' && isDM() ? ' card-vague-dm' : ''}${e._deceased ? ' card-deceased' : ''}${_goddelijkType ? ` card-goddelijk card-goddelijk--${_goddelijkType}` : ''}${_isBoon ? ' card-boon' : ''}${_isProtagonist ? ' card-protagonist' : ''}${isDM() && _isConcept(e) ? ' card-concept' : ''}"${_rarKey ? ` data-rarity="${_rarKey}"` : ''}${_isProtagonist ? ' data-protagonist="true"' : ''}
       onclick="window._openDetail('${type}','${e.id}')">
       ${_glansHtml(type, e, _rarKey)}
+      ${_houdingBalkHtml(type, e)}
       ${isDM() ? `
         <div class="dm-only absolute top-7 right-2 z-30 flex flex-col gap-1">
           <button class="w-7 h-7 flex items-center justify-center rounded bg-black/75 hover:bg-black/95 backdrop-blur-sm transition text-xs text-white shadow ring-1 ring-white/20"
@@ -4855,6 +4906,7 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
           : `<div class="detail-hero-icon">${getAutoIconSvg(tab, e)}</div>`}
         ${_heroBadges.length ? `<div class="detail-hero-badges">${_heroBadges.map(b => `<span class="detail-hero-badge badge ${b.cls}">${esc(b.label)}</span>`).join('')}</div>` : ''}
         ${_rolVal ? `<div class="detail-hero-rol">${esc(_rolVal)}</div>` : ''}
+        ${_houdingBalkHtml(tab, e)}
       </div>
       ${_primaryCaption ? `<p class="text-center text-xs text-ink-dim font-crimson -mt-3 mb-3 italic">${esc(_primaryCaption)}</p>` : ''}
     `;

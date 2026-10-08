@@ -29445,18 +29445,55 @@ body.wizard-open { overflow: hidden; }
 .houding-naam {
   min-width: 96px; font-family: 'Cinzel', serif; font-size: .86em; color: #3a2410;
 }
-.houding-terug {
-  display: flex; align-items: center; gap: 5px; padding: 4px 9px;
-  border: 1px solid rgba(196,168,122,.8); border-radius: 4px;
-  background: rgba(255,252,244,.6); color: #8a7050; cursor: pointer;
-  font-family: 'Crimson Text', serif; font-size: .82em; white-space: nowrap;
+.houding-naam em { font-style: italic; color: #8a7050; font-size: .9em; }
+
+/* ══════════════════════════════════════════════════════════════════
+   HET HOUDINGBALKJE OP HET KAARTJE
+   ══════════════════════════════════════════════════════════════════
+   Links op het kaartje, in dezelfde maat en op dezelfde hoogte als de
+   knoppenrij rechts (drie knoppen van 28 px met 4 px ertussen = 92 px).
+   Vijf treden onder elkaar: vijandig onderaan, bondgenoot bovenaan.
+
+   In rust is hij er bijna niet — een smalle streep. Ga je over het
+   kaartje, dan komt hij op: het is een bediening voor de DM, geen
+   versiering die altijd om aandacht vraagt. */
+.houding-balk {
+  position: absolute; top: 28px; left: 8px; z-index: 30;
+  width: 28px; height: 92px;
+  display: flex; flex-direction: column; gap: 4px;
+  padding: 3px; border-radius: 5px;
+  background: rgba(0,0,0,.55); backdrop-filter: blur(3px);
+  box-shadow: 0 1px 3px rgba(0,0,0,.4);
+  opacity: 0; transition: opacity .15s;
 }
-.houding-terug:hover { border-color: #9a7008; color: #9a7008; }
-.houding-terug svg { width: 12px; height: 12px; }
-/* Staat hij al op standaard, dan valt er niets terug te zetten. Hij blijft
-   staan (anders springt de rij) maar is niet aan te klikken. */
-.houding-terug.is-uit { opacity: .35; pointer-events: none; }
-.houding-hint {
-  margin: 5px 0 0; font-family: 'Crimson Text', serif; font-size: .83em;
-  font-style: italic; color: #8a7050;
+.entity-card:hover .houding-balk, .houding-balk:focus-within { opacity: 1; }
+.houding-stap {
+  flex: 1; min-height: 0; padding: 0; cursor: pointer;
+  border: 1px solid rgba(255,255,255,.22); border-radius: 2px;
+  background: rgba(255,255,255,.08);
+  transition: background .12s, border-color .12s;
+}
+.houding-stap:hover { background: var(--houding-kleur); border-color: var(--houding-kleur); opacity: .8; }
+.houding-stap.is-aan {
+  background: var(--houding-kleur);
+  border-color: rgba(255,255,255,.55);
+  box-shadow: inset 0 0 0 1px rgba(0,0,0,.25);
+}
+/* Staat de houding op standaard, dan is hij uitgerekend en niet gekozen. Dat
+   verschil moet te zien zijn: anders weet je niet of je iets vastgezet hebt. */
+.houding-balk.is-standaard .houding-stap.is-aan {
+  background: transparent;
+  box-shadow: inset 0 0 0 2px var(--houding-kleur);
+}
+/* Op een aanraakscherm bestaat hover niet; daar staat hij gedempt in beeld. */
+@media (hover: none) {
+  .houding-balk { opacity: .75; }
+}
+
+/* In het detailvenster staat hij op dezelfde plek op de hero, maar altijd in
+   beeld: daar ben je al aan het kijken naar dít kaartje, dus hoeft hij niet
+   op te komen. Het beeld is groter, dus hij mag mee. */
+.detail-hero .houding-balk {
+  opacity: 1; top: 12px; left: 12px;
+  width: 32px; height: 118px;
 }

@@ -113,14 +113,50 @@ betekent dat de bestaande regel wordt vervangen, niet aangevuld.
   sessie (anders maakt `attachRole` van een bezoeker stilletjes een speler).
 - `_houdingVan()` in `routes/api.js` — de regel gevoed met wat deze campagne
   weet. Draait **alleen op de server**; de uitkomst gaat als `_houding` mee.
-- Het schuifje in de bewerkmodus, bij Rollen en Kant in gevecht, met
-  "Standaard" en een knop terug. Op personages én organisaties.
+- **Het balkje op het kaartje** (8 okt): vijf treden onder elkaar, links,
+  in dezelfde maat en op dezelfde hoogte als de knoppenrij rechts (28 px breed,
+  92 px hoog = 3 × 28 + 2 × 4). Vijandig onderaan, bondgenoot bovenaan. Alleen
+  voor de DM, en in rust onzichtbaar tot je over het kaartje gaat. Staat ook op
+  de hero in het detailvenster, daar altijd in beeld.
+  De trede die aanstaat nog eens aantikken zet hem terug op standaard — dat is
+  de weg terug sinds de knop weg is, en het is het gebaar dat je toch al maakt.
+  Een uitgerekende houding staat als omlijning, een gekozen houding als vlak.
+- `PUT /api/entities/:type/:id/houding` — zet alléén de houding. De hele PUT
+  zou het kaartje in zijn geheel terugschrijven, en dan wist een tik op een
+  balkje wat er ondertussen veranderd was.
+- Het schuifje in de bewerkmodus, bij Rollen en Kant in gevecht. Zonder uitleg
+  eronder en zonder knop: de naam ernaast zegt genoeg, en wat een trede
+  betekent hoort in de hulpknop, niet in een formulier.
 - `tests/houding-api.test.js` — 9 toetsen over wat er de deur uitgaat.
 
 **Voor een speler verandert er nog niets**, en dat is met opzet: zonder de
 insight-machinerie van stap 5 is `houdingGezien` nooit waar, dus krijgt een
 speler geen houding mee. Niet een 3 als dekmantel maar helemaal niets — een
 veld dat er niet is. De DM ziet hem wel, overal.
+
+## De wachttijd — en waarom hij er is
+
+Het balkje schuift per tik, en je gaat weleens een tik te hoog. Zou elke tik
+meteen doorgaan, dan heeft een speler ondertussen al een toast gehad over een
+houding die je niet bedoelde, en **een toast kun je aan tafel niet meer
+afpakken**.
+
+Daarom wacht de app tot je stil bent: `_HOUDING_WACHT` is 1600 ms. Het kaartje
+volgt je tik direct — je ziet wat je doet — maar wat er opgeslagen wordt, en
+dus wat de spelers merken, gaat pas daarna de deur uit. Tik je binnen die tijd
+nog eens, dan begint de klok opnieuw en is er één verandering geweest in plaats
+van twee. Gemeten: twee tikken met 300 ms ertussen leveren één verzoek op, met
+de laatste waarde.
+
+**Dit is ook de afspraak voor stap 5.** De DC-check en de toast hangen aan de
+opgeslagen waarde, niet aan het balkje. Wat na de wachttijd wordt vastgelegd is
+wat er gebeurd is; alles daarvóór was nog aan het mikken. Zou de toast aan het
+balkje hangen, dan was de wachttijd zinloos.
+
+Eén ding om in de gaten te houden als stap 5 er is: ga je van 3 naar 5 en
+binnen de wachttijd terug naar 3, dan is er níéts veranderd en hoort er ook
+geen toast te komen. De vergelijking moet dus met de stand vóór de reeks tikken
+zijn, niet met de vorige tik.
 
 ## De volgorde
 

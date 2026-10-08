@@ -1244,6 +1244,33 @@ router.get('/entities/:type', attachRole, (req, res) => {
   res.json(list);
 });
 
+// Alleen de houding verzetten, vanaf het balkje op het kaartje. Apart van de
+// hele PUT, want die schrijft het kaartje in zijn geheel terug — en dan zou
+// een tik op een balkje alles overschrijven wat er ondertussen veranderd is.
+//
+// `houding: null` betekent *terug naar standaard*: het veld gaat weg en de app
+// rekent hem weer uit. Dat is iets anders dan een 3 opslaan.
+router.put('/entities/:type/:id/houding', requireDM, (req, res) => {
+  const { type, id } = req.params;
+  if (!['personages', 'organisaties'].includes(type))
+    return res.status(400).json({ error: 'Dit soort kaartje heeft geen houding' });
+  const entities = storage.readJSON('entities.json');
+  const entity = (entities[type] || []).find(e => e.id === id);
+  if (!entity) return res.status(404).json({ error: 'Niet gevonden' });
+  if (!houdingen.heeftHouding(entity.subtype))
+    return res.status(400).json({ error: 'Dit kaartje staat niet op deze schaal' });
+
+  const w = houdingen.schoon(req.body?.houding);
+  entity.data = entity.data || {};
+  if (w === null) delete entity.data.houding; else entity.data.houding = w;
+  storage.writeJSON('entities.json', entities);
+
+  const dmState = readDmState();
+  const geldt = _houdingVan(entity, { meta: storage.readJSON('meta.json'), entities, dmState });
+  req.app.get('io').to(_campagneRoom(req)).emit('entities:updated', { type, id });
+  res.json({ ok: true, houding: w, geldt, eigen: w !== null });
+});
+
 router.get('/entities/:type/:id', attachRole, (req, res) => {
   const { type, id } = req.params;
   if (!ENTITY_TYPES.includes(type)) return res.status(400).json({ error: 'Ongeldig type' });
