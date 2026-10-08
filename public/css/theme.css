@@ -65,6 +65,25 @@ body::before {
 
 /* Scrollbar — zwevende gradient-thumb met marge (background-clip) */
 html { scrollbar-width: thin; scrollbar-color: #b08e58 rgba(196,168,122,0.12); }
+
+/* ── Geen vergrote letters op de telefoon ──────────────────────────────────
+   Safari op iOS blaast tekst in brede blokken vanzelf op ("font boosting"):
+   het staat standaard op `auto` en kiest zelf een grotere maat, waar Chrome
+   standaard op `100%` staat en niets doet. Gevolg: de app paste op elke
+   breedte die je hier meet, en stond op een echte iPhone een tik te groot —
+   kaartjes met grotere letters, een kopbalk die net niet meer paste, en
+   uitzoomen om het goed te krijgen.
+
+   Dat is niet in deze ontwikkelomgeving na te bootsen; het verschil zit in de
+   standaardwaarde van de browser zelf. Daarom staat hij hier met zoveel
+   woorden op 100%: de maten die in deze stylesheet staan zijn de maten die je
+   krijgt, op elk apparaat.
+
+   `-webkit-` erbij omdat Safari de ongeprefixte vorm (nog) niet kent. */
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
 ::-webkit-scrollbar { width: 11px; height: 11px; }
 ::-webkit-scrollbar-track { background: rgba(196,168,122,0.10); }
 ::-webkit-scrollbar-thumb {
@@ -3780,6 +3799,10 @@ html { scrollbar-width: thin; scrollbar-color: #b08e58 rgba(196,168,122,0.12); }
   display: flex;
   align-items: center;
   gap: 0;
+  /* De kopbalk is de breedste rij van de app en dus de plek waar overloop
+     begint. `max-width: 100%` is het vangnet: wat er ook in komt te staan, hij
+     maakt het venster niet breder. */
+  max-width: 100%;
   background: linear-gradient(180deg, #f5eacb 0%, #e2cc90 60%, #d8be80 100%);
   border-bottom: 2px solid rgba(180,140,60,0.75);
   box-shadow:
@@ -3965,7 +3988,21 @@ html { scrollbar-width: thin; scrollbar-color: #b08e58 rgba(196,168,122,0.12); }
   display: flex;
   align-items: center;
   gap: 6px;
-  flex-shrink: 0;
+  /* **Mag wijken.** Stond op `flex-shrink: 0`, en dan duwt één ding dat breder
+     uitvalt dan verwacht de hele pagina uit elkaar: de kopbalk wordt breder
+     dan het scherm, de layout-viewport gaat mee, en je staat op je telefoon
+     een tik uit te zoomen om de rechterkolom te zien. Dat gebeurt eerder dan
+     je denkt — een webfont die nog niet binnen is laat Cinzel terugvallen op
+     een bredere schreef, en een pil met een getal erin groeit mee met dat
+     getal. Lokaal in Chrome merk je daar niets van, want daar staat het
+     lettertype meteen en is het getal klein.
+
+     Nu geeft de balk mee in plaats van te duwen. De iconen hebben hun eigen
+     vaste maat, dus er valt niets uit elkaar; wat niet past schuift op.
+     `min-width: 0` hoort erbij: zonder dat weigert een flex-kind onder zijn
+     eigen inhoud te krimpen en verandert `flex-shrink` niets. */
+  flex-shrink: 1;
+  min-width: 0;
   padding-left: 8px;
 }
 
