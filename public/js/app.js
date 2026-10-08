@@ -10,7 +10,7 @@ import { renderSpreuken } from './render-spreuken.js?v=44';
 import { renderVaardigheden, zoekVaardigheden } from './render-vaardigheden.js?v=28';
 import { renderStatblock } from './render-statblock.js?v=9';
 import { initSocket } from "./socket-client.js?v=83";
-import { initDmPanel } from "./dm-panel.js?v=384";
+import { initDmPanel } from "./dm-panel.js?v=385";
 import { COND_INFO, COND_LABEL, COND_MET_PLAATJE, COND_ICON } from './conditions.js?v=2';
 import './media-picker.js?v=9';
 import './wizard.js?v=3';
@@ -14986,11 +14986,18 @@ const HELP_CONFIG = {
     { titel: 'Naslag elders', tekst: 'Niet elke regeltekst mag in de app staan: wat niet in de vrije SRD zit heeft bij ons geen beschrijving. **Linken mag wel.** Hier zet je waarnaar die verwijzing gaat — een zoekopdracht met `{zoek}` erin, of `{naam}` en `{soort}` als je het zelf wil samenstellen. Leeg is een zoekmachine, en dat werkt beter dan een diepe link: die verlept zodra de andere site zijn adressen verandert.', afbeelding: null },
     { titel: 'Campagnes en modules', tekst: 'Alleen de beheerder ziet dit. Per campagne staat hier het DM-wachtwoord, welke campagne de **standaard** is (waar het kale adres naartoe stuurt) en welke **modules** aanstaan. Wat uit staat verdwijnt uit beeld — bij de DM én bij zijn spelers; er komt geen grijze "binnenkort"-knop voor in de plaats.', afbeelding: null },
   ] }),
+  inst_onderdelen: () => ({ titel: 'Onderdelen van deze campagne', stappen: [
+    { titel: 'Wat dit doet', tekst: 'Elk vinkje is een stuk van de app. Haal je er een weg, dan **verdwijnt het helemaal** — de knop in de zijbalk, het tabblad in de Meesterkamer, de routes erachter, en ook bij je spelers. Geen grijze knop die zegt "binnenkort": die belooft iets.\n\nWat je uitzet blijft wel staan. Zet je het later weer aan, dan is alles er nog precies zoals je het achterliet.', afbeelding: null },
+    { titel: 'Diensten en hun delen', tekst: 'Een dienst doet soms twee dingen die los van elkaar staan: je kunt in een herberg slapen én drinken, maar niet elke herberg schenkt. Die delen staan ingesprongen onder hun eigen dienst — *Aan de tap* en *Roddels* onder de herberg, *Eden en vloeken* onder de tempel, *Strijdperk* onder het gokhuis, *Adoptie* onder de magizoöloog.\n\nZet je de dienst zelf uit, dan doen zijn delen er niet meer toe; die verdwijnen vanzelf mee.', afbeelding: null },
+    { titel: 'Iets erbij krijgen', tekst: 'Je kunt alles uitzetten en alles wat je zelf uitzette weer aanzetten. Wat je **nog nooit gehad hebt** staat er niet bij: dat geeft de beheerder vrij.\n\nDat is geen wantrouwen. Een deel van de app is gebouwd maar vraagt uitleg die er in de app nog niet staat — aktes, facties, tempels, de waarzegger, de magizoöloog, de woekeraar. De beheerder geeft die erbij mét die uitleg, in plaats van je in een scherm te laten vallen dat je nergens vraagt wat het van je wil.', afbeelding: null },
+  ] }),
+
   inst_gevecht: () => ({ titel: 'In het gevecht', stappen: [
     { titel: 'Wat zien spelers van andermans HP?', tekst: 'Drie standen. **Alleen of hij nog meedoet** geeft geen balk en geen woord — je ziet wie eruit ligt, verder niets; voor een DM die spanning belangrijker vindt dan boekhouding. **Een balk en een woord** is de standaard: *ongedeerd*, *gewond*, *stervend*, met een balk die op tienden is afgerond zodat je het getal er niet uit terugrekent. **De cijfers** toont gewoon 34/52.', afbeelding: null },
     { titel: 'Wat er níét onder valt', tekst: 'AC en het statblock blijven in alle drie de standen verborgen. Die lopen via het **bestiarium**: wat de party bestudeerd heeft mag ze zien, en dat is precies wat de Magizoöloog verkoopt. Zou de stand *de cijfers* ook het statblock vrijgeven, dan kreeg je in ronde één gratis waar hij 50 goudstukken voor vraagt.', afbeelding: null },
     { titel: 'Bestudeerde monsters', tekst: 'Heeft de party een wezen op *deels* of *volledig* staan, dan hoort daar de beloning bij: AC, statblock en de cijfers. Alleen in de stand **alleen of hij nog meedoet** houdt de instelling de HP alsnog tegen — die DM zei nu eenmaal "bij mij geen cijfers in het gevecht". Het statblock blijft ook dan gewoon leesbaar.', afbeelding: null },
     { titel: 'Wat altijd van jou blijft', tekst: 'Je eigen personage zie je volledig, en alles wat aan jou toebehoort: een geadopteerd dier, iets wat je oproept. Het is jouw beest en je moet kunnen zien of het de volgende klap overleeft. Andere spelers en hún metgezellen zie je zoals de stand hierboven zegt.', afbeelding: null },
+    { titel: 'Visuele effecten bij schade', tekst: 'Zet je dit aan, dan praat het **tafelscherm** mee zodra er HP verandert: een rode flits als iemand een klap krijgt, een feller beeld bij zware schade, en een donkerrode schemer zolang er iemand op 0 ligt.\n\nAlleen schade doet iets. Genezing uit een rust of een level-up laat het scherm met rust — anders flitste het bij elke lange rust, en dan betekent een flits niets meer. Het volgt dus wat je aan tafel als klap opschrijft.', afbeelding: null },
   ] }),
 
   inst_levelup: () => ({ titel: 'Level omhoog', stappen: [

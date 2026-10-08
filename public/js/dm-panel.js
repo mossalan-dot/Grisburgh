@@ -5965,14 +5965,28 @@ function _instModulesHtml(meta) {
   const bruikbaar = cat.filter(m => vrij[m.id]);
   if (!bruikbaar.length) return '<p class="dm-hint">Er staat nog niets voor je klaar. Vraag de beheerder welke onderdelen je krijgt.</p>';
   const groepen = [...new Set(bruikbaar.map(m => m.groep || 'overig'))];
-  return groepen.map(g => `
-    <div class="dm-section-label">${esc(_MOD_GROEPNAAM[g] || g)}</div>
-    ${bruikbaar.filter(m => (m.groep || 'overig') === g).map(m => `
+  const vink = (m) => `
       <label class="dm-module-item${m.ouder ? ' dm-module-item--deel' : ''}">
         <input type="checkbox" class="inst-mod-vink" value="${esc(m.id)}" ${nu[m.id] === false ? '' : 'checked'}>
         <span>${esc(m.label || m.id)}</span>
-      </label>`).join('')}`).join('')
-    + '<p class="dm-hint">Wat je uitvinkt verdwijnt helemaal — ook bij je spelers. Iets <strong>erbij</strong> krijgen gaat via de beheerder.</p>'
+      </label>`;
+  return groepen.map(g => {
+    const inGroep = bruikbaar.filter(m => (m.groep || 'overig') === g);
+    // **Een deel hoort onder zijn eigen dienst.** De catalogus zet alle
+    // deelfuncties achteraan, en die volgorde werd hier letterlijk gevolgd —
+    // dus hingen de tap, de roddels, de eden en het strijdperk allemaal onder
+    // de magizoöloog, puur omdat die toevallig de laatste dienst in de lijst
+    // is. Nu komt elk deel meteen achter de dienst waar het bij hoort, en de
+    // inspringing zegt dus iets.
+    const delenVan = (id) => inGroep.filter(x => x.ouder === id);
+    const rijen = inGroep.filter(m => !m.ouder)
+      .map(m => vink(m) + delenVan(m.id).map(vink).join(''))
+      .join('');
+    // Een deel waarvan de dienst niet in deze groep vrijgegeven is zou anders
+    // stilletjes verdwijnen; die hangt onderaan, zonder inspringing.
+    const wees = inGroep.filter(m => m.ouder && !inGroep.some(x => x.id === m.ouder));
+    return `<div class="dm-section-label">${esc(_MOD_GROEPNAAM[g] || g)}</div>${rijen}${wees.map(vink).join('')}`;
+  }).join('')
     + `<div class="dm-form-row"><button class="dm-btn dm-btn-primary dm-btn-sm" onclick="window._instModulesOpslaan()">${icon('save')} Onderdelen opslaan</button></div>`;
 }
 
@@ -12900,7 +12914,9 @@ async function _renderInstellingen() {
            moet er zijn — een belofte in een boekje die nergens uitkomt is erger
            dan geen belofte. -->
       <details class="dm-uitklap">
-        <summary>${icon('settings')} Onderdelen van deze campagne</summary>
+        <summary>${icon('settings')} Onderdelen van deze campagne
+          <span class="dm-uitklap-hulp" onclick="event.preventDefault();event.stopPropagation()">${helpBtn('inst_onderdelen')}</span>
+        </summary>
         <div class="dm-uitklap-body" id="inst-modules">${_instModulesHtml(meta)}</div>
       </details>
 
@@ -13009,14 +13025,12 @@ async function _renderInstellingen() {
             .map(([k, label]) => `<option value="${k}"${(meta.combatHp || 'staat') === k ? ' selected' : ''}>${label}</option>`).join('')}
         </select>
       </div>
-      <p class="dm-hint">Je eigen personage en je eigen metgezel zie je altijd volledig, in elke stand.</p>
       <div class="dm-form-row">
         <label class="dm-form-checkbox">
           <input type="checkbox" id="inst-auto-fx"${meta.tafelscherm?.autoFx ? ' checked' : ''}>
-          <span>Het tafelscherm praat mee bij HP</span>
+          <span>Toon visuele effecten bij schade</span>
         </label>
       </div>
-      <p class="dm-hint">Een rode flits als iemand een klap krijgt, een feller beeld bij zware schade, en een donkerrode schemer zolang er iemand op 0 ligt. Genezing uit een rust of een level-up doet niets — alleen wat je aan tafel als klap opschrijft.</p>
     `, window._helpBtn?.('inst_gevecht') ?? '')}
 
     ${!magBeheren ? '' : _instSectie('campagnes', 'Campagnes en modules', `

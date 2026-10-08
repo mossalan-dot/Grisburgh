@@ -20847,10 +20847,19 @@ body.sb-boek-open { overflow: hidden; }
   width: 55%;
   height: 120%;
   background: linear-gradient(105deg, transparent 0%, var(--glans-kleur, rgba(255,255,255,0.45)) 50%, transparent 100%);
-  transform: skewX(-18deg);
   opacity: var(--glans-sterkte, 1);
   mix-blend-mode: var(--glans-blend, normal);
 }
+/* **Geen `skewX` meer.** Die stond er voor de schuine stand, maar scheeftrekken
+   draait om het midden: de bovenrand schuift `tan(hoek) × halve hoogte` naar
+   rechts. Bij een kaartje van 900 px hoog is dat ruim 130 px, en dus stak er in
+   rust een punt van de baan de linkerbovenhoek in — zichtbaar goud of schaduw
+   op een kaartje waar niets te zien hoort te zijn.
+   Het verschuift mee met de hóógte en niet met de breedte, dus met een
+   startpositie in procenten is het niet te repareren.
+   En het hoeft ook niet: de schuine stand zit al in de gradiënt zelf (105°).
+   Zonder de scheeftrekking is de baan een gewone rechthoek die op `left: -70%`
+   met een breedte van 55% altijd volledig links buiten het kaartje ligt. */
 .kaart-glans--altijd::before { animation: card-sheen var(--glans-duur, 6.5s) ease-in-out infinite; }
 /* In rust staat de baan links buiten beeld; de hover zet hem één keer in
    beweging. `forwards` zou hem rechts laten staan — dat hoeft niet, want de
@@ -29628,3 +29637,5 @@ body.wizard-open { overflow: hidden; }
   .brief-gecodeerd { transition: opacity .3s, letter-spacing .3s; }
 }
 .brief-code-knoppen { display: flex; gap: 6px; flex-wrap: wrap; }
+/* De hulpknop in de kop van een uitklap: niet meeklikken met het openklappen. */
+.dm-uitklap-hulp { margin-left: auto; display: inline-flex; }
