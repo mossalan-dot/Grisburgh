@@ -29175,10 +29175,6 @@ body.wizard-open { overflow: hidden; }
 .vaardig-onder { display: block; }
 .vaardig-onder.heeft-kolom { display: grid; grid-template-columns: 186px 1fr; gap: 16px; align-items: start; }
 .vd-subkolom { display: flex; flex-direction: column; gap: 7px; }
-.vd-subkolom-kop {
-  font-family: 'Cinzel', serif; font-size: .74em; letter-spacing: .08em;
-  text-transform: uppercase; color: #8a7050; margin-bottom: 1px;
-}
 .vd-subkaart {
   display: flex; align-items: stretch; gap: 0;
   border: 1px solid #c4a87a; border-left: 3px solid #5a2e8a; border-radius: 4px;
@@ -29213,33 +29209,6 @@ body.wizard-open { overflow: hidden; }
 /* Subclasses die niet in de app staan: hun naam, het boek en een vinkje om ze
    in deze campagne te zetten. Gedempt en gestippeld zolang ze er niet in
    staan — het is een voorraad, geen keuze die al gemaakt is. */
-.vd-elders { margin-top: 10px; border-top: 1px solid rgba(196,168,122,.5); padding-top: 8px; }
-.vd-elders-kop {
-  display: flex; align-items: center; gap: 6px; width: 100%;
-  background: none; border: 0; padding: 3px 2px; cursor: pointer;
-  font-family: 'Cinzel', serif; font-size: .72em; letter-spacing: .06em;
-  text-transform: uppercase; color: #8a7050;
-}
-.vd-elders-kop:hover { color: #9a7008; }
-.vd-elders-kop svg { width: 13px; height: 13px; }
-.vd-elders-lijst { display: none; flex-direction: column; gap: 4px; margin-top: 6px; }
-.vd-elders.is-open .vd-elders-lijst { display: flex; }
-.vd-elders-rij {
-  display: flex; align-items: center; gap: 8px;
-  padding: 6px 8px; text-align: left;
-  border: 1px dashed rgba(196,168,122,.85); border-radius: 4px;
-  background: rgba(255,252,244,.4);
-}
-.vd-elders-rij:hover { border-color: #9a7008; background: rgba(154,112,8,.07); }
-.vd-elders-open {
-  display: flex; flex-direction: column; align-items: flex-start; gap: 0;
-  flex: 1; min-width: 0; padding: 0; border: 0; background: none;
-  cursor: pointer; text-align: left;
-}
-.vd-elders-uitleg {
-  margin: 0 0 6px; font-family: 'Crimson Text', serif; font-size: .82em;
-  line-height: 1.45; color: #8a7050;
-}
 
 /* Het venster van een subclass: eerst wat het is, dan pas wat het geeft. */
 .vd-subvenster-meta {
@@ -29286,8 +29255,6 @@ body.wizard-open { overflow: hidden; }
 }
 .vk-uitlegknop:hover { border-color: #9a7008; color: #9a7008; }
 .vk-uitlegknop svg { width: 13px; height: 13px; }
-.vd-elders-naam { font-family: 'Cinzel', serif; font-size: .84em; color: #5a4030; }
-.vd-elders-boek { font-family: 'Crimson Text', serif; font-style: italic; font-size: .76em; color: #9a8565; }
 
 /* ══════════════════════════════════════════════════════════════════════════
    HET BEHEERDERSOVERZICHT
@@ -29383,14 +29350,47 @@ body.wizard-open { overflow: hidden; }
    niet. */
 /* Het kaartje pakt ongeveer de helft, de subclasses staan ernaast, en de rest
    blijft leeg — het raster eronder heeft de volle breedte nodig, dit niet. */
+/* Het scherm in drieën: de class, de subclass die je koos, en de lijst om uit
+   te kiezen. Hoeveel delen er zijn hangt af van waar je staat, dus de indeling
+   draagt dat aantal in zijn naam — één regel per geval leest beter dan een
+   stapel uitzonderingen. */
 .vd-klasvlak {
-  display: grid; grid-template-columns: minmax(260px, 42%) minmax(200px, 250px);
-  justify-content: start; gap: 18px; align-items: start; margin-top: 14px;
+  display: grid; justify-content: start; gap: 18px; align-items: start; margin-top: 14px;
 }
-.vd-klasvlak--alleen { grid-template-columns: minmax(260px, 46%); }
+.vd-klasvlak--1 { grid-template-columns: minmax(260px, 46%); }
+.vd-klasvlak--2 { grid-template-columns: minmax(260px, 42%) minmax(200px, 250px); }
+/* Drie delen: de twee kaartjes even breed, want het is dezelfde soort kaart. */
+.vd-klasvlak--3 { grid-template-columns: minmax(220px, 1fr) minmax(220px, 1fr) minmax(190px, 230px); }
+@media (max-width: 1100px) {
+  .vd-klasvlak--3 { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+}
 @media (max-width: 880px) {
-  .vd-klasvlak, .vd-klasvlak--alleen { grid-template-columns: minmax(0, 1fr); }
+  .vd-klasvlak--1, .vd-klasvlak--2, .vd-klasvlak--3 { grid-template-columns: minmax(0, 1fr); }
 }
+
+/* Bladeren door de subclasslijst: vier tegelijk, zodat de kolom even hoog
+   blijft als de kaartjes ernaast. */
+.vd-subblader {
+  display: flex; align-items: center; justify-content: center; gap: 10px;
+  margin-top: 2px;
+}
+.vd-subblader-knop {
+  display: flex; align-items: center; justify-content: center;
+  width: 26px; height: 26px; padding: 0; cursor: pointer;
+  border: 1px solid rgba(196,168,122,.7); border-radius: 4px;
+  background: rgba(255,252,244,.55); color: #8a7050;
+}
+.vd-subblader-knop:hover { border-color: #9a7008; color: #9a7008; }
+.vd-subblader-knop svg { width: 14px; height: 14px; }
+.vd-subblader-stand {
+  font-family: 'Cinzel', serif; font-size: .74em; color: #8a7050; letter-spacing: .06em;
+}
+/* Een subclass die alleen elders bestaat: gestippeld, want hij staat nog niet
+   in deze campagne. Zelfde rij, geen eigen kop meer. */
+.vd-subkaart--elders {
+  border-style: dashed; background: rgba(255,252,244,.4);
+}
+.vd-subkaart--elders .vd-subkaart-naam { font-weight: 400; }
 
 .vk-flip { perspective: 1400px; cursor: pointer; }
 .vk-flip-binnen {
@@ -29459,7 +29459,6 @@ body.wizard-open { overflow: hidden; }
 .vd-klasvlak .vd-subkolom { margin: 0; }
 
 /* Het kaartje met de uitleg van een aangevinkte subclass, bovenaan de lijst. */
-.vaardig-subkop { grid-column: 1 / -1; display: flex; flex-direction: column; gap: 10px; margin-bottom: 4px; }
 
 /* ── Een subclass-feature is zichtbaar iets anders ────────────────────────
    Class en subclass verschilden alleen in het kleurbalkje bovenaan; naast

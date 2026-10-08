@@ -10132,6 +10132,18 @@ router.put('/meta/heldenboek', requireDM, (req, res) => {
     }
     if (Object.keys(klassen).length) hb.klassen = klassen; else delete hb.klassen;
   }
+  // Hetzelfde voor een species en voor een subclass. Eigen bakken en niet één
+  // gedeelde: een class, een species en een subclass mogen dezelfde naam
+  // hebben, en dan zou de een het beeld van de ander overschrijven.
+  for (const [veld, bak] of [['species', 'species'], ['subclassen', 'subclassen']]) {
+    if (!req.body?.[veld] || typeof req.body[veld] !== 'object') continue;
+    const uit = { ...(hb[bak] || {}) };
+    for (const [naam, id] of Object.entries(req.body[veld])) {
+      const sleutel = String(naam).slice(0, 80);
+      if (id) uit[sleutel] = String(id).slice(0, 80); else delete uit[sleutel];
+    }
+    if (Object.keys(uit).length) hb[bak] = uit; else delete hb[bak];
+  }
   if (Object.keys(hb).length) meta.heldenboek = hb; else delete meta.heldenboek;
   storage.writeJSON('meta.json', meta);
   req.app.get('io').to(_campagneRoom(req)).emit('meta:updated');
