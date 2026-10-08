@@ -95,6 +95,20 @@ de tekst omwisselen, meten waar alles hóórt, en het verschil weganimeren. Elke
 letter vliegt van zijn oude plek naar zijn eigen plek, en de alinea vouwt
 zichzelf onderweg in de goede vorm. Het ziet er eerder beter uit dan slechter.
 
+## In de akteregie
+
+De regiebalk kende documenten al — als *vaag onthullen* en *volledig
+onthullen*, dezelfde weg als elk ander kaartje. De twee nieuwe momenten zaten
+er niet in, en dat zijn juist regiemomenten: je legt de brief op tafel, en
+later zeg je dat ze hem gekraakt hebben.
+
+Een document met tekst krijgt in de balk nu een derde knop (**op het
+tafelscherm**, koel blauw — er verandert niets aan wie wat mag zien, er komt
+alleen iets op het scherm) en een gecodeerd document een vierde (**ontcijferen**,
+goud). Allebei blijven ze klikbaar: een brief mag twee keer op tafel, en de
+ontcijferknop verdwijnt niet na gebruik — dan zou je denken dat je iets
+verkeerd deed.
+
 ## Beslist (8 okt 2026)
 
 1. **De DM drukt.** Spelers ontcijferen aan tafel; de knop bevestigt dat het

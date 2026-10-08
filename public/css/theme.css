@@ -4659,6 +4659,14 @@ html {
 .dm-rb-reveal-btn--vaag:hover { background: #3a6aa0; }
 .dm-rb-reveal-btn--geheim { background: var(--seal, #8b2a2a); }
 .dm-rb-reveal-btn--geheim:hover { background: #a83434; }
+/* Op het tafelscherm leggen is een andere soort handeling dan onthullen: er
+   verandert niets aan wie wat mag zien, er komt alleen iets op het scherm.
+   Vandaar een eigen, koelere kleur. */
+.dm-rb-reveal-btn--tafel { background: #2f5d70; }
+.dm-rb-reveal-btn--tafel:hover { background: #3d7893; }
+/* Ontcijferen is het moment waar de hele brief voor gemaakt is. */
+.dm-rb-reveal-btn--ontcijfer { background: #8a6a12; }
+.dm-rb-reveal-btn--ontcijfer:hover { background: #ab861c; }
 
 /* Regie-balk header: scheidingsstreepje, klikbare voortgang, rust-snelacties */
 .dm-rb-sep {

@@ -164,6 +164,11 @@ let _rbGroep      = null; // groep waarvoor de voortgang geldt
 let _rbVoortgangT = null; // debounce-timer voor het opslaan
 let _rbEntityImg  = {};   // entityId → imageId, voor de thumbnails in de strip
 let _rbSecretIds  = new Set(); // entity-IDs in deze akte die een geheim hebben
+// Documenten met tekst (die kun je op het tafelscherm leggen) en documenten
+// die gecodeerd zijn (die kun je daarna laten ontcijferen). Twee aparte
+// verzamelingen, want een gewone brief mag ook op tafel.
+let _rbBriefIds   = new Set();
+let _rbCodeIds    = new Set();
 
 // ── Spreuken state ──
 let _spellList   = null;   // null = not yet loaded, [] = loaded (possibly empty)
@@ -503,6 +508,26 @@ export function initDmPanel() {
     partyActiefMaken:        (gid) => _partyActiefMaken(gid),
     regieBalkLoad:           (key, title) => _loadRegieBalk(key, title),
     regieBalkReveal:         (id) => _revealRegieBalkItem(id),
+    // De brief op het gedeelde scherm, en het moment dat de party hem gekraakt
+    // heeft. Allebei blijven ze klikbaar: een brief mag twee keer op tafel, en
+    // ontcijferen kan maar één keer maar de knop verdwijnt niet — dan zou je
+    // denken dat je iets verkeerd deed.
+    async regieBalkNaarTafel(id) {
+      const item = _rbScript.find(x => x.id === id);
+      if (!item?.entityId) return;
+      try {
+        const r = await api.post(`/entities/documenten/${item.entityId}/tafelscherm`, {});
+        window._showToast?.(`${icon('monitor')} Op het tafelscherm${r.gecodeerd ? ' — nog gecodeerd' : ''}.`);
+      } catch (e) { alert('Naar het tafelscherm sturen mislukt: ' + e.message); }
+    },
+    async regieBalkOntcijfer(id) {
+      const item = _rbScript.find(x => x.id === id);
+      if (!item?.entityId) return;
+      try {
+        await api.post(`/entities/documenten/${item.entityId}/ontcijfer`, {});
+        window._showToast?.(`${icon('lock-open')} De brief is ontcijferd voor deze party.`);
+      } catch (e) { alert('Ontcijferen mislukt: ' + e.message); }
+    },
 
     // PKCE: de verifier blijft in deze browser, alleen de code gaat straks naar de
     // server. Zo staat er nergens een client secret — die bestaat niet eens.
@@ -2640,6 +2665,8 @@ async function _loadRegieBalk(chapterKey, chapterTitle) {
   }
   // Markeer welke entity-items een geheim hebben → bepaalt de 'Geheim'-knop.
   _rbSecretIds = new Set();
+  _rbBriefIds  = new Set();
+  _rbCodeIds   = new Set();
   _rbEntityImg = {};
   try {
     const entTypes = [...new Set(_rbScript.filter(x => x.type === 'entity' && x.entityType).map(x => x.entityType))];
@@ -2647,6 +2674,8 @@ async function _loadRegieBalk(chapterKey, chapterTitle) {
     for (const list of lists) {
       for (const e of (list || [])) {
         if ((e.data?.geheim || '').trim()) _rbSecretIds.add(e.id);
+        if ((e.data?.tekst || '').trim()) _rbBriefIds.add(e.id);
+        if (e.data?.gecodeerd && (e.data?.tekst || '').trim()) _rbCodeIds.add(e.id);
         // Portret onthouden: de strip toonde alleen een generiek icoon, waardoor
         // je als DM moest gokken welk kaartje welke entiteit was.
         if (e.data?.imageId) _rbEntityImg[e.id] = e.data.imageId;
@@ -2737,6 +2766,11 @@ function _renderRegieBalkItem(item) {
   const isEntity   = item.type === 'entity';
   const canVague   = isEntity && ['personages', 'locaties', 'documenten'].includes(item.entityType);
   const hasSecret  = isEntity && _rbSecretIds.has(item.entityId);
+  // Een document met tekst kan op het tafelscherm; is hij gecodeerd, dan kan
+  // hij daarna ontcijferd worden. Allebei horen ze hier thuis: het zijn
+  // momenten in de akte, net als een geheim onthullen.
+  const isBrief    = isEntity && item.entityType === 'documenten' && _rbBriefIds.has(item.entityId);
+  const isCode     = isBrief && _rbCodeIds.has(item.entityId);
   let actions;
   if (item.type === 'rust') {
     // Rust-stap: party-brede rust starten (met de locatie van de stap). Blijft klikbaar
@@ -2758,7 +2792,9 @@ function _renderRegieBalkItem(item) {
     actions = `
       ${canVague ? `<button class="dm-rb-reveal-btn dm-rb-reveal-btn--vaag" onclick="window.dmPanel.regieBalkRevealVague('${esc(item.id)}')" title="Vaag onthullen">${icon('eye-off')}</button>` : ''}
       <button class="dm-rb-reveal-btn dm-rb-reveal-btn--vol" onclick="window.dmPanel.regieBalkReveal('${esc(item.id)}')" title="Volledig onthullen">${icon('eye')}</button>
-      ${hasSecret ? `<button class="dm-rb-reveal-btn dm-rb-reveal-btn--geheim" onclick="window.dmPanel.regieBalkRevealSecret('${esc(item.id)}')" title="Geheim onthullen">${icon('lock')}</button>` : ''}`;
+      ${hasSecret ? `<button class="dm-rb-reveal-btn dm-rb-reveal-btn--geheim" onclick="window.dmPanel.regieBalkRevealSecret('${esc(item.id)}')" title="Geheim onthullen">${icon('lock')}</button>` : ''}
+      ${isBrief ? `<button class="dm-rb-reveal-btn dm-rb-reveal-btn--tafel" onclick="window.dmPanel.regieBalkNaarTafel('${esc(item.id)}')" title="Op het tafelscherm leggen">${icon('monitor')}</button>` : ''}
+      ${isCode ? `<button class="dm-rb-reveal-btn dm-rb-reveal-btn--ontcijfer" onclick="window.dmPanel.regieBalkOntcijfer('${esc(item.id)}')" title="Ontcijferen — de letters vliegen naar hun plek">${icon('lock-open')}</button>` : ''}`;
   } else {
     actions = !revealed
       ? `<button class="dm-rb-reveal-btn" onclick="window.dmPanel.regieBalkReveal('${esc(item.id)}')" title="Onthul">${icon('play')}</button>`
