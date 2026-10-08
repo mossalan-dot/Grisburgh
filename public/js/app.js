@@ -1,5 +1,5 @@
 import { api, campagneUitUrl, zetCampagne } from './api.js?v=309';
-import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, renderDocumenten, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=340";
+import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, renderDocumenten, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=342";
 import { initArchief, renderLogboek, openLogboekEditor } from "./render-archief.js?v=139";
 import { renderKaart, queueFlyTo, verversPins, nieuweKaart } from './render-kaart.js?v=31';
 import { renderDungeon } from './render-dungeon.js?v=60';
@@ -9,7 +9,7 @@ import { renderBestiarium } from './render-bestiarium.js?v=31';
 import { renderSpreuken } from './render-spreuken.js?v=44';
 import { renderVaardigheden, zoekVaardigheden } from './render-vaardigheden.js?v=28';
 import { renderStatblock } from './render-statblock.js?v=9';
-import { initSocket } from "./socket-client.js?v=82";
+import { initSocket } from "./socket-client.js?v=83";
 import { initDmPanel } from "./dm-panel.js?v=383";
 import { COND_INFO, COND_LABEL, COND_MET_PLAATJE, COND_ICON } from './conditions.js?v=2';
 import './media-picker.js?v=9';
@@ -6517,7 +6517,17 @@ window._briefCinematic = (msg) => {
         <div class="brief-cinematic-letter">
           ${msg.titel ? `<div class="brief-cinematic-letter-titel">${esc(msg.titel)}</div>` : ''}
           ${msg.afzender ? `<div class="brief-cinematic-letter-van">van <em>${esc(msg.afzender)}</em>${msg.datum ? ` · ${esc(msg.datum)}` : ''}</div>` : ''}
-          <div class="brief-cinematic-letter-tekst parchment-block" data-stijl="${esc(msg.briefstijl || 'oud')}">${esc(msg.tekst || '')}</div>
+          <div class="brief-cinematic-letter-tekst parchment-block${msg.gecodeerd ? ' brief-gecodeerd' : ''}"
+            id="brief-cinematic-tekst" data-doc="${esc(msg.docId || '')}"
+            data-stijl="${esc(msg.briefstijl || 'oud')}"
+            ${msg.gecodeerd ? 'aria-label="Gecodeerde brief, nog niet leesbaar"' : ''}
+          >${msg.gecodeerd
+            // `_codeLetters` wikkelt alleen tekst die tússen tags staat — zo
+            // blijft het van attributen af. De brief op het tafelscherm is
+            // kale tekst, dus er valt dan niets te wikkelen; een omhulsel
+            // eromheen geeft het wel iets om te pakken.
+            ? (window._codeLetters?.(`<span>${esc(msg.tekst || '')}</span>`) ?? esc(msg.tekst || ''))
+            : esc(msg.tekst || '')}</div>
         </div>
         ${!isDisplay ? `<button class="brief-cinematic-knop">${icon('mail')} Bewaar in Berichten</button>` : ''}
         <div class="brief-cinematic-hint">klik buiten de brief om te sluiten</div>

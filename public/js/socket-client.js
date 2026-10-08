@@ -813,6 +813,14 @@ function _ververOpenKaartje(id) {
     if (window._isDisplayMode && window._briefCinematic) window._briefCinematic(msg);
   });
 
+  // ── Een gecodeerde brief is gekraakt ──
+  // Komt alleen aan bij de spelers van de party die hem gekraakt heeft, en bij
+  // het tafelscherm. Daar gaat het trager: zes seconden, te volgen vanaf de
+  // andere kant van de tafel.
+  socket.on('brief:ontcijferd', (msg = {}) => {
+    window._briefOntcijferd?.({ ...msg, tafel: !!msg.tafel && !!window._isDisplayMode });
+  });
+
   // ── Gedeelde beurs ──
   socket.on('party-currency:updated', ({ groupId, currency, actor } = {}) => {
     // Alleen relevant als dit mijn groep is

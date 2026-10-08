@@ -1,8 +1,8 @@
 # Gecodeerde brief
 
-Werkdocument, 8 oktober 2026. **Nog niets gebouwd.** De bron is het prototype
-*Gecodeerde brief* (artefact, 2 okt 2026); dit is wat erin zit, wat het in deze
-app raakt, en wat er beslist moet worden.
+Werkdocument, 8 oktober 2026. **Gebouwd en uitgerold.** De bron is het
+prototype *Gecodeerde brief* (artefact, 2 okt 2026); dit is wat erin zat, wat
+ervan over is, en waar het anders liep.
 
 ## Wat het prototype doet
 
@@ -14,13 +14,21 @@ naar huis. De opmaak verspringt daarbij nooit — het is dezelfde regelval, voor
 en na. Dat is de hele vondst, en het is mooier dan letters die veranderen: je
 ziet dat het *dezelfde brief* is.
 
-Drie bereiken, met de uitleg die het prototype er zelf bij geeft:
+### Drie bereiken werden er één
 
-| bereik | wat er door elkaar gaat | wie het kan oplossen |
-|---|---|---|
-| `woord` | elk woord is een anagram van zichzelf | *"Spelers kunnen dit zelf oplossen."* |
-| `regel` | de letters van een hele regel | *"Lastig, maar niet onmogelijk."* |
-| `brief` | alle letters van de brief | *"Alleen de DM kan dit onthullen."* |
+Het prototype kende drie: per woord (een anagram dat spelers zelf kunnen
+oplossen), per regel, en de hele brief. Die keuze hoorde bij een ander idee —
+dat je de puzzel op het scherm oplost.
+
+Zo gaat het niet. **Spelers ontcijferen aan tafel**, met een check of met een
+puzzel in hun handen, en de DM drukt op de knop als het gelukt is. Dan hoeft
+het husselen alleen nog onleesbaar te zijn, en is een keuzelijst met drie
+bereiken een vraag zonder reden. Het is dus altijd de hele tekst.
+
+**En alles doet mee behalve witruimte.** Het prototype husselde alleen letters
+(`\p{L}`); daardoor bleven cijfers en leestekens staan, en was "Betaal
+Wimmerdinck 42 kronen" voor de helft te lezen in een brief die geheim heette.
+Witruimte blijft wél staan — die draagt de vorm van de brief.
 
 Verder, en dit zijn geen details:
 
@@ -74,20 +82,27 @@ onthulling aan tafel niet met wat iemand op zijn eigen scherm zag.
 | `brief:display` → `_briefCinematic()` | Het zegel breekt al in een eigen fase. De ontcijfering is de **tweede** fase, op tempo `tafelscherm` |
 | `display:tekst` | Raakt dit niet |
 
-## Wat er beslist moet worden
+## Waar het anders liep dan het prototype
 
-1. **Wie drukt?** Bij `brief` is het de DM. Bij `woord` lossen de spelers het in
-   hun hoofd op — maar wie zet het dan om op het scherm? Voorstel: ook de DM,
-   als bevestiging dat ze het goed hebben. Dan is er één knop en één regel.
-2. **Per party of per campagne?** Voorstel: per party, zoals geheimen. Twee
-   groepen door dezelfde brief laten lopen is anders stuk.
-3. **Terug kunnen.** Het prototype kan opnieuw versleutelen. Aan tafel is dat
-   vooral handig om te oefenen; in de app hoort een onthulling onomkeerbaar te
-   voelen. Voorstel: wel terug kunnen, maar alleen voor de DM en zonder
-   vertoning.
-4. **Welke tekens doen mee.** Het prototype husselt alleen `\p{L}` — leestekens
-   en cijfers blijven staan. Een datum of een bedrag blijft dus leesbaar. Dat
-   is een keuze, geen vergissing; bevestigen.
+**De opmaak verspringt wél, en dat mag.** Het prototype kon de eerste meting
+overslaan: daar stond de échte tekst al in de DOM en bewogen alleen de glyphs,
+dus de regelval veranderde nooit. Hier staat er eerst een andere tekst, en die
+breekt zijn regels op zijn eigen plekken. Gemeten over vijf teksten en vier
+lettertypes: **in zes van de twintig gevallen anders**.
+
+Dat is geen probleem maar precies waar FLIP voor is. Meten waar alles stáát,
+de tekst omwisselen, meten waar alles hóórt, en het verschil weganimeren. Elke
+letter vliegt van zijn oude plek naar zijn eigen plek, en de alinea vouwt
+zichzelf onderweg in de goede vorm. Het ziet er eerder beter uit dan slechter.
+
+## Beslist (8 okt 2026)
+
+1. **De DM drukt.** Spelers ontcijferen aan tafel; de knop bevestigt dat het
+   gelukt is. Eén knop, één regel.
+2. **Per party**, zoals geheimen.
+3. **Geen weg terug.** Een onthulling hoort onomkeerbaar te voelen, en wat aan
+   tafel gezien is kun je toch niet meer afpakken.
+4. **Alles doet mee** behalve witruimte.
 
 ## De volgorde
 

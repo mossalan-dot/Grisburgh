@@ -29583,3 +29583,40 @@ body.wizard-open { overflow: hidden; }
   border-color: #b8860b; background: rgba(184,134,11,.2); color: #f2e8d2;
   box-shadow: inset 0 0 0 1px rgba(184,134,11,.5);
 }
+
+/* ══════════════════════════════════════════════════════════════════
+   GECODEERDE BRIEF
+   ══════════════════════════════════════════════════════════════════
+   De tekens staan door elkaar tot de party hem gekraakt heeft. Elk teken
+   zit in een eigen span, zodat ze bij het ontcijferen los kunnen vliegen
+   — dezelfde techniek als bij de uitgeknipte krantenletters. */
+.brief-teken {
+  display: inline-block;
+  will-change: transform;
+}
+/* Zolang hij gecodeerd is: iets vager en met de letters een tikje uit
+   elkaar, zodat je ziet dát het geen tekst is en je niet gaat zitten
+   turen. Het is geen puzzel om op te lossen — dat gebeurt aan tafel. */
+.brief-gecodeerd {
+  opacity: .88;
+  letter-spacing: .04em;
+  -webkit-user-select: none; user-select: none;
+}
+.brief-gecodeerd .brief-teken { cursor: default; }
+
+.brief-code-regel {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  flex-wrap: wrap; margin-top: 8px; padding: 7px 10px;
+  border: 1px dashed rgba(196,168,122,.8); border-radius: 5px;
+  background: rgba(154,112,8,.07);
+  font-family: 'Crimson Text', serif; font-size: .85em; color: #8a7050;
+}
+.brief-code-regel svg { width: 14px; height: 14px; vertical-align: -2px; }
+
+/* Wie geen beweging wil krijgt geen vliegende letters maar één knippering;
+   dat zit in de animatie zelf (`prefers-reduced-motion`). Hier alleen de
+   overgang van de wolk naar gewone tekst. */
+@media (prefers-reduced-motion: reduce) {
+  .brief-gecodeerd { transition: opacity .3s, letter-spacing .3s; }
+}
+.brief-code-knoppen { display: flex; gap: 6px; flex-wrap: wrap; }

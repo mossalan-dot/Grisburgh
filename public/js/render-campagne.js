@@ -447,6 +447,13 @@ const SCHEMA = {
       // hoort in de editor bij elkaar te staan met zijn opmaakregels.
       { key: 'tekst', label: 'De tekst zelf', type: 'perkament' },
       { key: 'briefstijl', label: 'Hoe ziet de tekst eruit?', type: 'select', options: BRIEF_STIJLEN },
+      // ── Gecodeerd ──
+      // De tekens staan door elkaar tot de party hem ontcijferd heeft. Dat
+      // ontcijferen gebeurt aan tafel — met een check of met een puzzel in je
+      // handen — en de knop hier bevestigt alleen dat het gelukt is.
+      // De code staat los van het handschrift: een gecodeerde brief kan in
+      // elke hand geschreven zijn.
+      { key: 'gecodeerd', label: 'Gecodeerd — de tekens staan door elkaar', type: 'checkbox', dmOnly: true },
       { key: 'flavours', label: 'Roddels', type: 'lijst-tekst', enkelvoud: 'flavour' },
       { key: 'geheimen', label: 'Geheimen', type: 'lijst-tekst', enkelvoud: 'geheim' },
       { key: 'persoonlijkheid', label: 'Aantekeningen voor de DM', type: 'textarea', dmOnly: true },
@@ -3204,6 +3211,158 @@ export async function renderVoorwerpen() {
   return renderEntitySection('voorwerpen');
 }
 
+// ── Gecodeerde brief ────────────────────────────────────────────────────────
+// Een brief waarvan de tekens door elkaar staan tot de party hem gekraakt
+// heeft. Het ontcijferen gebeurt aan tafel — met een check of met een puzzel
+// in je handen — en de DM bevestigt dat met een knop. Wat hier gebeurt is dus
+// geen puzzel maar een onthulling.
+//
+// De server stuurt tot die tijd alleen de gehusselde tekst; de klare tekst
+// komt pas bij het onthullen mee, samen met de volgorde waarin de tekens
+// stonden. Daarom staat hier nergens een husselfunctie: die zou de brief
+// verraden.
+//
+// **Elk teken in een eigen span.** Dezelfde techniek als bij `knipsel`, en om
+// dezelfde reden: je moet ze los kunnen aanspreken. Dat gebeurt op de
+// gerenderde HTML, alleen tussen de tags door, zodat vet en cursief heel
+// blijven.
+function _codeLetters(html) {
+  return html.replace(/>([^<]+)</g, (heel, tekst) => {
+    const uit = [...tekst].map(ch => /\s/u.test(ch)
+      ? ch
+      : `<span class="brief-teken">${ch === '&' ? '&amp;' : ch}</span>`).join('');
+    return '>' + uit + '<';
+  });
+}
+
+window._codeLetters = _codeLetters;
+
+// Welke tekens meedoen: alles behalve witruimte, precies zoals op de server
+// (`lib/brief-code.js`). Die twee moeten dezelfde regel aanhouden, anders
+// landen de letters naast hun plek.
+const _codeTekens = (wortel) => [...wortel.querySelectorAll('.brief-teken')];
+
+// ── Het ontcijferen ─────────────────────────────────────────────────────────
+// FLIP over twee opmaken heen. Het prototype kon de eerste meting overslaan
+// omdat zijn opmaak nooit veranderde: daar stond de échte tekst al in de DOM
+// en bewogen alleen de glyphs. Hier staat er eerst een andere tekst, en die
+// breekt zijn regels op zijn eigen plekken — in ongeveer een derde van de
+// gevallen anders dan de echte tekst.
+//
+// Dat is geen probleem maar precies waar FLIP voor is: meten waar alles
+// stáát, de tekst omwisselen, meten waar alles hóórt, en het verschil
+// weganimeren. Elke letter vliegt van zijn oude plek naar zijn eigen plek, en
+// de alinea vouwt zichzelf onderweg in de goede vorm.
+//
+// `traag` is het tafelscherm: daar mag het zes seconden duren en moet het van
+// achteren in de zaal te volgen zijn.
+async function _ontcijferBrief(wortel, klareTekst, volgorde, { traag = false } = {}) {
+  if (!wortel || !klareTekst) return;
+  const tempo = traag
+    ? { basis: 1600, reis: 1600, perPx: 2.2, spreiding: 2800, jitter: 600 }
+    : { basis: 700,  reis: 900,  perPx: 1.2, spreiding: 900,  jitter: 250 };
+
+  // 1. Waar staat alles nu?
+  const oud = _codeTekens(wortel);
+  if (!oud.length) return;
+  const doosVoor = wortel.getBoundingClientRect();
+  const posVoor = oud.map(el => {
+    const r = el.getBoundingClientRect();
+    return { x: r.left - doosVoor.left, y: r.top - doosVoor.top };
+  });
+
+  // 2. De echte tekst erin, met dezelfde opmaakregels als altijd.
+  const stijlKnipsel = wortel.dataset.stijl === 'knipsel';
+  let binnen = renderParchment(klareTekst);
+  if (stijlKnipsel) binnen = _knipselLetters(binnen);
+  wortel.innerHTML = _codeLetters(binnen);
+  const nieuw = _codeTekens(wortel);
+  // Zouden de aantallen niet kloppen, dan is er iets grondig mis en is een
+  // scheve animatie erger dan geen: dan staat de brief er gewoon ineens.
+  if (nieuw.length !== oud.length) { wortel.classList.remove('brief-gecodeerd'); return; }
+
+  // 3. Waar hoort alles?
+  const doosNa = wortel.getBoundingClientRect();
+  const posNa = nieuw.map(el => {
+    const r = el.getBoundingClientRect();
+    return { x: r.left - doosNa.left, y: r.top - doosNa.top };
+  });
+
+  // 4. Elke letter terugzetten op de plek waar hij stond, en naar huis laten
+  //    vliegen. `volgorde[k]` zegt op welke plek het k-de teken te zien was.
+  const minder = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const animaties = [];
+  nieuw.forEach((el, k) => {
+    const van = posVoor[volgorde[k]];
+    if (!van) return;
+    const dx = van.x - posNa[k].x, dy = van.y - posNa[k].y;
+    if (minder) {
+      animaties.push(el.animate([{ opacity: 1 }, { opacity: 0, offset: .5 }, { opacity: 1 }], { duration: 500 }));
+      return;
+    }
+    const afstand = Math.hypot(dx, dy);
+    // Een boogje: letters die ver moeten reizen komen hoger. Zonder dit is het
+    // een rechte schuif en ziet het eruit als een tabel die sorteert.
+    const lift = -(14 + Math.min(40, afstand * 0.08));
+    const rot  = ((k * 37) % 100 / 100 - 0.5) * 10;
+    const start = `translate(${dx}px, ${dy}px) rotate(${rot}deg)`;
+    const mid   = `translate(${dx / 2}px, ${dy / 2 + lift}px) rotate(${rot / 3}deg)`;
+    const duur  = tempo.basis + Math.min(tempo.reis, afstand * tempo.perPx);
+    const wacht = (k / nieuw.length) * tempo.spreiding + Math.random() * tempo.jitter;
+    el.style.transform = start;
+    animaties.push(el.animate(
+      [{ transform: start }, { transform: mid, offset: .55 }, { transform: 'translate(0,0) rotate(0deg)' }],
+      { duration: duur, delay: wacht, easing: 'cubic-bezier(.55,.05,.25,1)', fill: 'forwards' },
+    ));
+  });
+
+  await Promise.all(animaties.map(a => a.finished.catch(() => {})));
+  for (const el of nieuw) { el.getAnimations().forEach(a => a.cancel()); el.style.transform = ''; }
+  wortel.classList.remove('brief-gecodeerd');
+  wortel.setAttribute('aria-label', '');
+}
+
+// Het document op het gedeelde scherm leggen. Hetzelfde pad als de snelle
+// post, dus het zegel breekt en de opmaak klopt; is hij gecodeerd, dan komt
+// hij onleesbaar aan en vliegen de letters pas bij het ontcijferen.
+window._briefNaarTafel = async (id) => {
+  try {
+    const r = await api.post(`/entities/documenten/${id}/tafelscherm`, {});
+    window._showToast?.(`${icon('monitor')} Op het tafelscherm${r.gecodeerd ? ' — nog gecodeerd' : ''}.`);
+  } catch (e) { alert('Naar het tafelscherm sturen mislukt: ' + e.message); }
+};
+
+// De DM bevestigt dat de party hem gekraakt heeft. Pas hier komt de klare
+// tekst van de server, en vliegen de letters naar hun plek.
+window._briefOntcijfer = async (id) => {
+  try {
+    const r = await api.post(`/entities/documenten/${id}/ontcijfer`, {});
+    // De DM ziet de klare tekst al, dus bij hem valt er niets te animeren.
+    // Het effect is voor de spelers en voor het tafelscherm, en dat loopt via
+    // de socket.
+    window._showToast?.(`${icon('eye')} De brief is ontcijferd voor deze party.`);
+  } catch (e) { alert('Ontcijferen mislukt: ' + e.message); }
+};
+
+// Bij de spelers komt het binnen over de socket. Staat de brief open, dan
+// vliegen de letters voor hun neus; staat hij dicht, dan is hij gewoon
+// leesbaar als ze hem openen.
+window._briefOntcijferd = async ({ id, tekst, volgorde, tafel } = {}) => {
+  // Drie plekken waar dezelfde brief kan staan: het kaartje, het vergrote
+  // blad, en de brief op het tafelscherm. Alle drie dezelfde animatie.
+  const tafelBlad = document.getElementById('brief-cinematic-tekst');
+  const bladen = [
+    document.getElementById(`perkament-${id}`),
+    document.getElementById('perk-kolommen'),
+    (tafelBlad && (!tafelBlad.dataset.doc || tafelBlad.dataset.doc === id)) ? tafelBlad : null,
+  ].filter(Boolean);
+  for (const wortel of bladen) {
+    if (wortel.classList.contains('brief-gecodeerd')) {
+      await _ontcijferBrief(wortel, tekst, volgorde, { traag: !!tafel });
+    }
+  }
+};
+
 // Geeft de subtype-waarde terug die gebruikt wordt voor filteren per type
 // ── Perkamentweergave ───────────────────────────────────────────────────────
 // De reden dat een brief een brief is en geen tekstvak. Twee eigen regels boven
@@ -3272,6 +3431,10 @@ window._perkamentGroot = (id) => {
   const stijl = _docStijl(e);
   let binnen = renderParchment(e.data.tekst);
   if (stijl === 'knipsel') binnen = _knipselLetters(binnen);
+  // Vergroot geldt dezelfde regel als in het venster: zolang deze party hem
+  // niet gekraakt heeft staan de tekens door elkaar.
+  const codeAan = !!e.data?.gecodeerd && !isDM() && e._gecodeerd;
+  if (codeAan) binnen = _codeLetters(binnen);
 
   document.getElementById('perkament-overlay')?.remove();
   const ov = document.createElement('div');
@@ -3283,7 +3446,9 @@ window._perkamentGroot = (id) => {
     <div class="perk-podium">
       <button class="perk-pijl perk-pijl--links" onclick="window._perkamentBlad(-1)" title="Vorig blad">\u2039</button>
       <div class="perk-blad" data-stijl="${esc(stijl)}">
-        <div class="perk-viewport"><div class="perk-kolommen" id="perk-kolommen">${binnen}</div></div>
+        <div class="perk-viewport"><div class="perk-kolommen${codeAan ? ' brief-gecodeerd' : ''}"
+          id="perk-kolommen" data-stijl="${esc(stijl)}"
+          ${codeAan ? 'aria-label="Gecodeerde brief, nog niet leesbaar"' : ''}>${binnen}</div></div>
       </div>
       <button class="perk-pijl perk-pijl--rechts" onclick="window._perkamentBlad(1)" title="Volgend blad">\u203a</button>
     </div>
@@ -5070,6 +5235,12 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
   const _metaPills = [];
   let _descVal = '';
   for (const field of (schema.fields || [])) {
+    // Een veld dat alleen de DM aangaat hoort nergens als pil te staan. Dat
+    // ging tot nu toe op naam ('persoonlijkheid' stond in de lijst hieronder),
+    // en dus gleed het eerste nieuwe dmOnly-veld er zo doorheen: een speler
+    // zag "Gecodeerd — de tekens staan door elkaar: true" boven een brief die
+    // hij niet kon lezen.
+    if (field.dmOnly) continue;
     if (['geheim', 'flavour', 'rol', 'stapelbaar', 'gedeeld', 'gebruik', 'attunement', 'persoonlijkheid', 'nietVerkoopbaar'].includes(field.key)) continue;
     // Wat al onder de naam staat (rol · origin · class · alignment · type)
     // hoeft er niet nóg eens als pil onder: dat was de helft van de pillenrij.
@@ -5128,13 +5299,34 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
         const _stijl = _docStijl(e);
         let _binnen = renderParchment(e.data.tekst);
         if (_stijl === 'knipsel') _binnen = _knipselLetters(_binnen);
+        // Gecodeerd: elk teken in een eigen span, zodat ze straks los kunnen
+        // vliegen. De DM ziet de klare tekst — hij heeft hem zelf geschreven —
+        // maar wél met de knop erbij.
+        const _codeAan = !!e.data?.gecodeerd && !isDM() && e._gecodeerd;
+        if (_codeAan) _binnen = _codeLetters(_binnen);
         infoHtml += `
           <div class="parchment-wrap mb-4">
-            <div class="parchment-block parchment-block--inkijk" data-stijl="${esc(_stijl)}"
+            <div class="parchment-block parchment-block--inkijk${_codeAan ? ' brief-gecodeerd' : ''}"
+              id="perkament-${esc(e.id)}" data-stijl="${esc(_stijl)}"
+              ${_codeAan ? 'aria-label="Gecodeerde brief, nog niet leesbaar"' : ''}
               onclick="window._perkamentGroot('${esc(e.id)}')">${_binnen}</div>
             <button type="button" class="parchment-groot-knop" onclick="window._perkamentGroot('${esc(e.id)}')">
               ${icon('maximize-2')} Lees de hele tekst
             </button>
+            ${isDM() ? `
+            <div class="brief-code-regel">
+              <span>${e.data?.gecodeerd
+                ? `${icon('lock')} Gecodeerd — de party ziet de tekens door elkaar.`
+                : `${icon('monitor')} Op tafel leggen voor de party.`}</span>
+              <span class="brief-code-knoppen">
+                <button type="button" class="dm-btn dm-btn-sm"
+                  onclick="event.stopPropagation();window._briefNaarTafel('${esc(e.id)}')">
+                  ${icon('monitor')} Op het tafelscherm</button>
+                ${e.data?.gecodeerd ? `<button type="button" class="dm-btn dm-btn-sm dm-btn-primary"
+                  onclick="event.stopPropagation();window._briefOntcijfer('${esc(e.id)}')">
+                  ${icon('eye')} Ontcijferen</button>` : ''}
+              </span>
+            </div>` : ''}
           </div>`;
       }
       infoHtml += `<div class="mb-4" id="doc-bestand-${esc(e.id)}"></div>`;

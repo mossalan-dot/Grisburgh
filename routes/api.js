@@ -11,6 +11,7 @@ const { sheetHtml } = require('../lib/character-sheet');
 const { MODULES, modulesVoor, modulesVrijgegeven, schoneModules, verborgenUI } = require('../lib/modules');
 const bronnen = require('../lib/bronnen');
 const houdingen = require('../lib/houding');
+const briefCode = require('../lib/brief-code');
 const { DISPLAY_FX, fxVoor, fxBericht } = require('../lib/display-fx');
 const spotify = require('../lib/spotify');
 const config  = require('../config');
@@ -544,6 +545,23 @@ function filterEntityForPlayer(entity, dmState, groupId, ctx) {
   }
   // Visible: full entity, strip DM-only fields
   const e = { ...entity, data: { ...entity.data } };
+
+  // ── Gecodeerde brief ──
+  // Zolang deze party hem niet ontcijferd heeft, gaat alleen de **gehusselde**
+  // tekst mee. Niet de klare tekst met een vlaggetje erbij: dan staat hij in
+  // de netwerktab en is het geen geheim meer — dezelfde les als bij de
+  // verzegelde brief op het tafelscherm.
+  //
+  // De husseling gebeurt hier en niet in de browser, want telefoon en
+  // tafelscherm moeten dezelfde letters op dezelfde plek hebben.
+  if (e.data?.gecodeerd && String(e.data.tekst || '').trim()) {
+    if (g.ontcijferd?.[entity.id]) {
+      e._ontcijferd = true;
+    } else {
+      e.data.tekst = briefCode.husselTekst(e.data.tekst);
+      e._gecodeerd = true;
+    }
+  }
 
   // ── Houding ──
   // Wat de DM instelde en de DC die erbij hoort zijn administratie; die gaan
@@ -1254,6 +1272,83 @@ router.get('/entities/:type', attachRole, (req, res) => {
 //
 // `houding: null` betekent *terug naar standaard*: het veld gaat weg en de app
 // rekent hem weer uit. Dat is iets anders dan een 3 opslaan.
+// ── Een document op het tafelscherm leggen ──────────────────────────────────
+// Dit kon alleen met de snelle post: een brief die je als DM schrijft breekt
+// zijn zegel op het scherm (`brief:display`). Een document uit het archief —
+// de brief die de party gevonden heeft — kon nergens heen. Nu wel, en langs
+// precies dezelfde weg, dus het zegel en de opmaak werken ongewijzigd mee.
+//
+// Alleen naar de room van de tafelschermen, nooit naar de campagne-room: die
+// les staat bij `brief:display` al opgeschreven en geldt hier dubbel, want een
+// gecodeerde brief hoort juist onleesbaar aan te komen.
+router.post('/entities/documenten/:id/tafelscherm', requireDM, (req, res) => {
+  const { id } = req.params;
+  const entities = storage.readJSON('entities.json');
+  const doc = (entities.documenten || []).find(e => e.id === id);
+  if (!doc) return res.status(404).json({ error: 'Niet gevonden' });
+  const tekst = String(doc.data?.tekst || '').trim();
+  if (!tekst) return res.status(400).json({ error: 'Dit document heeft geen tekst' });
+
+  const dmState = readDmState();
+  const g = getGroup(dmState, String(req.body?.groupId || '') || dmState.activeGroup);
+  // Gecodeerd en nog niet gekraakt? Dan gaat de gehusselde tekst naar het
+  // scherm. Zou de klare tekst meegaan met een vlaggetje "toon hem gecodeerd",
+  // dan stond hij in de netwerktab van het tafelscherm.
+  const nogGecodeerd = !!doc.data?.gecodeerd && !g?.ontcijferd?.[id];
+
+  req.app.get('io').to(_displayRoom(req)).emit('brief:display', {
+    titel: doc.name || '', tekst: nogGecodeerd ? briefCode.husselTekst(tekst) : tekst,
+    afzender: '', datum: '', thema: '',
+    briefstijl: String(doc.data?.briefstijl || ''),
+    gecodeerd: nogGecodeerd, docId: id, cinematic: true,
+  });
+  res.json({ ok: true, gecodeerd: nogGecodeerd });
+});
+
+// ── Een gecodeerde brief ontcijferen ────────────────────────────────────────
+// De spelers hebben hem aan tafel gekraakt — met een check of met een puzzel
+// in hun handen — en de DM bevestigt dat hier. Per party, zoals bij geheimen:
+// twee groepen door dezelfde brief laten lopen is anders stuk.
+//
+// Pas hier gaat de klare tekst de deur uit, en met hem de volgorde waarin de
+// letters stonden. Die twee samen zijn wat de client nodig heeft om elke
+// letter van zijn oude plek naar zijn eigen plek te laten vliegen. Eerder
+// versturen zou de hele brief weggeven.
+//
+// Er is geen weg terug. Een onthulling hoort onomkeerbaar te voelen, en wat
+// aan tafel gezien is kun je toch niet meer afpakken.
+router.post('/entities/documenten/:id/ontcijfer', requireDM, (req, res) => {
+  const { id } = req.params;
+  const entities = storage.readJSON('entities.json');
+  const doc = (entities.documenten || []).find(e => e.id === id);
+  if (!doc) return res.status(404).json({ error: 'Niet gevonden' });
+  if (!doc.data?.gecodeerd) return res.status(400).json({ error: 'Dit document is niet gecodeerd' });
+
+  const dmState = readDmState();
+  const groupId = String(req.body?.groupId || '') || dmState.activeGroup;
+  const g = getGroup(dmState, groupId);
+  if (!g) return res.status(400).json({ error: 'Welke party?' });
+  g.ontcijferd = g.ontcijferd || {};
+  g.ontcijferd[id] = true;
+  storage.writeJSON('dm-state.json', dmState);
+
+  const tekst = String(doc.data.tekst || '');
+  const { volgorde } = briefCode.hussel(tekst);
+
+  // Naar de spelers van déze party, en naar het tafelscherm. Niet naar de hele
+  // campagne-room: een andere party mag deze brief nog niet kunnen lezen.
+  const io = req.app.get('io');
+  const sockets = req.app.get('playerSockets');
+  for (const speler of (entities.personages || [])) {
+    if (speler?.data?.groep !== groupId) continue;
+    const sock = sockets?.get(speler.id);
+    if (sock) io.to(sock).emit('brief:ontcijferd', { id, tekst, volgorde });
+  }
+  io.to(_displayRoom(req)).emit('brief:ontcijferd', { id, tekst, volgorde, tafel: true });
+
+  res.json({ ok: true, tekst, volgorde });
+});
+
 router.put('/entities/:type/:id/houding', requireDM, (req, res) => {
   if (!_deelAan('houding')) return res.status(403).json({ error: 'De houding staat uit voor deze campagne' });
   const { type, id } = req.params;
