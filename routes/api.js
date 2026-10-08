@@ -10150,16 +10150,23 @@ router.put('/meta/heldenboek', requireDM, (req, res) => {
   res.json(meta.heldenboek || {});
 });
 
+// Wat de DM zelf uitzet én wat hij er zelf bij neemt. Twee lijsten, want de
+// startset blijft bepalen wat er áán staat als je niets doet — "niet in `uit`"
+// betekent dus niet vanzelf "aan". Alleen wat de beheerder uitdrukkelijk
+// dichtzette blijft buiten bereik.
 router.put('/meta/modules-uit', requireDM, (req, res) => {
   const meta = storage.readJSON('meta.json');
   const vrij = modulesVrijgegeven(meta);
   const geldig = new Set(MODULES.map(m => m.id));
-  const lijst = [...new Set((Array.isArray(req.body?.uit) ? req.body.uit : [])
+  const schoon = (lijst) => [...new Set((Array.isArray(lijst) ? lijst : [])
     .map(String).filter(id => geldig.has(id) && vrij[id]))];
-  if (lijst.length) meta.modulesUit = lijst; else delete meta.modulesUit;
+  const uit = schoon(req.body?.uit);
+  const aan = schoon(req.body?.aan).filter(id => !uit.includes(id));
+  if (uit.length) meta.modulesUit = uit; else delete meta.modulesUit;
+  if (aan.length) meta.modulesAan = aan; else delete meta.modulesAan;
   storage.writeJSON('meta.json', meta);
   req.app.get('io').to(_campagneRoom(req)).emit('meta:updated');
-  res.json({ modulesUit: lijst, modules: modulesVoor(meta) });
+  res.json({ modulesUit: uit, modulesAan: aan, modules: modulesVoor(meta) });
 });
 
 router.put('/meta/app', requireDM, (req, res) => {

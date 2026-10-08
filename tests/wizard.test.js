@@ -144,9 +144,9 @@ describe('De opstartwizard', () => {
     assert.equal((await lees()).wizardKlaar, true);
   });
 
-  it('laat de DM uitzetten wat hij niet gebruikt, maar nooit aanzetten', async () => {
-    // De scheiding waar het hele ontwerp op rust: de beheerder bepaalt wat een
-    // campagne MAG hebben, de DM wat hij ervan GEBRUIKT. Eén kant op dus.
+  it('laat de DM uitzetten wat hij niet gebruikt', async () => {
+    // De scheiding waar het ontwerp op rust: de beheerder bepaalt wat een
+    // campagne MAG hebben, de DM wat hij ervan GEBRUIKT.
     const r = await metaOp('/api/meta/modules-uit', { uit: ['markt', 'detective'] }, nieuweDm);
     assert.equal(r.status, 200);
     const m = await lees();
@@ -163,13 +163,29 @@ describe('De opstartwizard', () => {
     assert.equal((await lees()).modules.markt, true);
   });
 
-  it('negeert een module die de beheerder niet vrijgaf', async () => {
-    // De tempel staat niet in de startset. Uitzetten wat al uitstaat mag geen
-    // regel in meta.json achterlaten die later gaat tegenspreken.
-    await metaOp('/api/meta/modules-uit', { uit: ['tempel'] }, nieuweDm);
+  it('laat de DM aanzetten waar de beheerder niets over zei', async () => {
+    // **Niet beslist is niet verboden.** De tempel staat niet in de startset,
+    // maar de beheerder heeft hem ook nooit dichtgezet — dan mag de DM zelf
+    // kiezen. Dit stond andersom: alles buiten de startset was onbereikbaar,
+    // en een DM moest voor acht van de dertig onderdelen aankloppen.
+    let m = await lees();
+    assert.equal(m.modules.tempel, false, 'standaard uit');
+    assert.equal(m.modulesVrij.tempel, true, 'maar wel binnen bereik');
+
+    await metaOp('/api/meta/modules-uit', { uit: [], aan: ['tempel'] }, nieuweDm);
+    m = await lees();
+    assert.equal(m.modules.tempel, true, 'en nu staat hij aan');
+  });
+
+  it('houdt dicht wat de beheerder uitdrukkelijk dichtzette', async () => {
+    // Een beslissing van de beheerder blijft staan. Anders was zijn slot een
+    // suggestie, en dat is geen slot.
+    await req(server, 'PUT', '/api/campaigns/bleke-kust/modules',
+      { modules: { woekeraar: false } }, beheerder);
     const m = await lees();
-    assert.equal(m.modules.tempel, false);
-    assert.ok(!(m.modulesUit || []).includes('tempel'), 'niet vastgelegd: hij stond al uit');
+    assert.equal(m.modulesVrij.woekeraar, false, 'buiten bereik');
+    await metaOp('/api/meta/modules-uit', { uit: [], aan: ['woekeraar'] }, nieuweDm);
+    assert.equal((await lees()).modules.woekeraar, false, 'en aanzetten lukt niet');
   });
 
   it('geeft de DM de namen van de onderdelen mee', async () => {

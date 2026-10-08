@@ -1,4 +1,4 @@
-import { api, campagneUitUrl, zetCampagne } from './api.js?v=309';
+import { api, campagneUitUrl, zetCampagne } from './api.js?v=310';
 import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, renderDocumenten, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=342";
 import { initArchief, renderLogboek, openLogboekEditor } from "./render-archief.js?v=139";
 import { renderKaart, queueFlyTo, verversPins, nieuweKaart } from './render-kaart.js?v=31';
@@ -10,10 +10,10 @@ import { renderSpreuken } from './render-spreuken.js?v=44';
 import { renderVaardigheden, zoekVaardigheden } from './render-vaardigheden.js?v=29';
 import { renderStatblock } from './render-statblock.js?v=9';
 import { initSocket } from "./socket-client.js?v=83";
-import { initDmPanel } from "./dm-panel.js?v=385";
+import { initDmPanel } from "./dm-panel.js?v=386";
 import { COND_INFO, COND_LABEL, COND_MET_PLAATJE, COND_ICON } from './conditions.js?v=2';
 import './media-picker.js?v=9';
-import './wizard.js?v=3';
+import './wizard.js?v=4';
 import './tafels.js?v=2';
 
 // ── Icon helper ──
@@ -14989,7 +14989,7 @@ const HELP_CONFIG = {
   inst_onderdelen: () => ({ titel: 'Onderdelen van deze campagne', stappen: [
     { titel: 'Wat dit doet', tekst: 'Elk vinkje is een stuk van de app. Haal je er een weg, dan **verdwijnt het helemaal** — de knop in de zijbalk, het tabblad in de Meesterkamer, de routes erachter, en ook bij je spelers. Geen grijze knop die zegt "binnenkort": die belooft iets.\n\nWat je uitzet blijft wel staan. Zet je het later weer aan, dan is alles er nog precies zoals je het achterliet.', afbeelding: null },
     { titel: 'Diensten en hun delen', tekst: 'Een dienst doet soms twee dingen die los van elkaar staan: je kunt in een herberg slapen én drinken, maar niet elke herberg schenkt. Die delen staan ingesprongen onder hun eigen dienst — *Aan de tap* en *Roddels* onder de herberg, *Eden en vloeken* onder de tempel, *Strijdperk* onder het gokhuis, *Adoptie* onder de magizoöloog.\n\nZet je de dienst zelf uit, dan doen zijn delen er niet meer toe; die verdwijnen vanzelf mee.', afbeelding: null },
-    { titel: 'Iets erbij krijgen', tekst: 'Je kunt alles uitzetten en alles wat je zelf uitzette weer aanzetten. Wat je **nog nooit gehad hebt** staat er niet bij: dat geeft de beheerder vrij.\n\nDat is geen wantrouwen. Een deel van de app is gebouwd maar vraagt uitleg die er in de app nog niet staat — aktes, facties, tempels, de waarzegger, de magizoöloog, de woekeraar. De beheerder geeft die erbij mét die uitleg, in plaats van je in een scherm te laten vallen dat je nergens vraagt wat het van je wil.', afbeelding: null },
+    { titel: 'Iets erbij nemen', tekst: 'Alles wat hier staat kun je aan- en uitzetten, ook wat standaard uit stond. Een deel van de app begint uit omdat niet elke tafel het wil — de woekeraar die aanklopt, de eed die je niet meer terugneemt, de geruchten die je kunt laten rondgaan. Dat zijn keuzes over je spel, niet over of je ze mag.\n\nWat je **helemaal niet ziet staan** heeft de beheerder voor deze campagne dichtgezet. Dat is dan een beslissing, en die haal je bij hem terug.', afbeelding: null },
   ] }),
 
   inst_gevecht: () => ({ titel: 'In het gevecht', stappen: [

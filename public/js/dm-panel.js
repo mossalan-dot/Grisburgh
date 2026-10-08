@@ -1,4 +1,4 @@
-import { api, huidigeCampagne } from './api.js?v=309';
+import { api, huidigeCampagne } from './api.js?v=310';
 import { init as canvasInit, update as canvasUpdate, stop as canvasStop, acGetal } from './combat-canvas.js?v=30';
 import { renderStatblock } from './render-statblock.js?v=9';
 
@@ -5967,7 +5967,7 @@ function _instModulesHtml(meta) {
   const groepen = [...new Set(bruikbaar.map(m => m.groep || 'overig'))];
   const vink = (m) => `
       <label class="dm-module-item${m.ouder ? ' dm-module-item--deel' : ''}">
-        <input type="checkbox" class="inst-mod-vink" value="${esc(m.id)}" ${nu[m.id] === false ? '' : 'checked'}>
+        <input type="checkbox" class="inst-mod-vink" value="${esc(m.id)}" ${nu[m.id] ? 'checked' : ''}>
         <span>${esc(m.label || m.id)}</span>
       </label>`;
   return groepen.map(g => {
@@ -5991,9 +5991,14 @@ function _instModulesHtml(meta) {
 }
 
 window._instModulesOpslaan = async () => {
-  const uit = [...document.querySelectorAll('.inst-mod-vink')].filter(v => !v.checked).map(v => v.value);
+  const vinkjes = [...document.querySelectorAll('.inst-mod-vink')];
+  const uit = vinkjes.filter(v => !v.checked).map(v => v.value);
+  // Wat aan staat gaat óók mee. "Niet uitgevinkt" betekent niet vanzelf "aan":
+  // de startset bepaalt wat er standaard staat, en zonder deze tweede lijst
+  // kon je een onderdeel dat standaard uit staat nooit zelf aanzetten.
+  const aan = vinkjes.filter(v => v.checked).map(v => v.value);
   try {
-    await api.saveModulesUit(uit);
+    await api.saveModulesUit(uit, aan);
     window._showToast?.('Onderdelen opgeslagen. Even verversen om ze te zien verdwijnen of verschijnen.');
   } catch (e) { alert('Opslaan mislukt: ' + e.message); }
 };

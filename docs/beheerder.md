@@ -49,11 +49,19 @@ De werkverdeling is bewust gesplitst: **jij levert de doos, hij richt hem in.**
    letters, cijfers, `_` en `-`; dit wordt zijn URL), een naam, en een
    DM-wachtwoord van minstens acht tekens. Zonder dat wachtwoord komt niemand
    erin — alleen de standaardcampagne valt terug op het serverwachtwoord.
-2. **Zet zijn modules.** Open de uitklap op zijn kaartje en vink aan wat hij
-   krijgt. Begin klein: de startset dekt archief, logboek, kaarten, gevecht,
-   boedel, progressie en de drie basisdiensten. Aktes, facties, tempel en de
-   rest zijn bewust uit — niet omdat ze stuk zijn, maar omdat ze uitleg vragen
-   die je er dan bij geeft.
+2. **Zet zijn modules — als je iets wilt tegenhouden.** Sinds 8 okt 2026 is
+   dit geen verplichte stap meer. Wat jij niet uitdrukkelijk dichtzet, mag de
+   DM zelf aan- en uitzetten bij Instellingen of in de wizard; de startset
+   bepaalt alleen nog wat er áán staat als hij niets doet.
+
+   De oude regel was dat alles buiten de startset onbereikbaar bleef, "niet
+   omdat ze stuk zijn, maar omdat ze uitleg vragen die je er dan bij geeft."
+   Die uitleg staat inmiddels in de hulpknoppen, en acht van de dertig
+   onderdelen achter een telefoontje zetten is dan alleen nog wrijving.
+
+   Wat je wél dichtzet blijft dicht: zet je een module op **uit** in de
+   uitklap, dan ziet hij hem niet staan en kan hij hem niet terughalen. Dat is
+   een beslissing, geen standaard.
 3. **Geef hem het pad en het wachtwoord.** `grisburgh.nl/<zijn-id>`. Meer niet.
 4. **De rest doet hij zelf.** De eerste keer dat hij als DM binnenkomt in een
    campagne zonder personages start de **opstartwizard**: naam en ondertitel,

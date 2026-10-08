@@ -18,7 +18,7 @@
 // Hij blokkeert nooit. Overslaan mag bij elke stap; wat je overslaat vind je
 // terug bij Instellingen, en dat staat er ook bij.
 
-import { api } from './api.js?v=309';
+import { api } from './api.js?v=310';
 
 // Hoe de groepen uit `lib/modules.js` in beeld heten.
 const _GROEPNAAM = { wereld: 'Je wereld', spel: 'Het spel', sfeer: 'Sfeer', dienst: 'Diensten', overig: 'Overig' };
@@ -137,13 +137,15 @@ const STAPPEN = [
   {
     id: 'onderdelen',
     titel: 'Wat heeft jouw campagne nodig?',
-    lead: 'Alles staat aan. Vink uit wat je niet gebruikt — dan verdwijnt het helemaal, ook bij je spelers.',
-    // Alleen wat de beheerder vrijgaf. Aanzetten kan hier niet: modules worden
-    // stapsgewijs vrijgegeven, met uitleg erbij. Uitzetten mag altijd.
+    lead: 'Vink uit wat je niet gebruikt — dan verdwijnt het helemaal, ook bij je spelers. Wat nog uit staat kun je hier gewoon aanzetten.',
+    // Wat binnen bereik is. De beheerder die iets uitdrukkelijk dichtzette
+    // houdt zijn slot; waar hij niets over gezegd heeft kies je zelf.
     async voor() {
       const m = await api.meta();
       W.vrij = m?.modulesVrij || m?.modules || {};
-      W.uit  = new Set(Object.keys(W.vrij).filter(k => W.vrij[k] && m.modules && m.modules[k] === false));
+      // De stand zoals hij nu is, niet "alles aan behalve": een deel staat
+      // standaard uit, en dat moet je hier zien staan.
+      W.uit  = new Set(Object.keys(W.vrij).filter(k => W.vrij[k] && !(m.modules || {})[k]));
       W.catalogus = m?.moduleCatalogus || [];
     },
     beschikbaar() { return true; },
@@ -153,21 +155,30 @@ const STAPPEN = [
       const vrij = (W.catalogus || []).filter(m => W.vrij[m.id]);
       if (!vrij.length) return `<p class="wz-lead">Er staat nog niets voor je klaar. Vraag de beheerder welke onderdelen je krijgt.</p>`;
       const groepen = [...new Set(vrij.map(m => m.groep || 'overig'))];
-      return `<div class="wz-onderdelen">${groepen.map(g => `
-        <div class="wz-ond-groep">
-          <div class="wz-ond-kop">${esc(_GROEPNAAM[g] || g)}</div>
-          ${vrij.filter(m => (m.groep || 'overig') === g).map(m => `
+      const vink = (m) => `
             <label class="wz-vink${m.ouder ? ' wz-vink--deel' : ''}">
               <input type="checkbox" data-module="${esc(m.id)}" ${W.uit.has(m.id) ? '' : 'checked'}>
               <span>${esc(m.label || m.id)}</span>
-            </label>`).join('')}
-        </div>`).join('')}</div>
-        <p class="wz-noot">Later bijstellen kan bij <em>Instellingen → Campagne</em>. Iets <strong>erbij</strong> krijgen gaat via de beheerder.</p>`;
+            </label>`;
+      return `<div class="wz-onderdelen">${groepen.map(g => {
+        // Een deel hoort onder zijn eigen dienst, niet achteraan bij de laatste
+        // die toevallig in de catalogus staat. Zelfde regel als bij
+        // Instellingen.
+        const inGroep = vrij.filter(m => (m.groep || 'overig') === g);
+        const rijen = inGroep.filter(m => !m.ouder)
+          .map(m => vink(m) + inGroep.filter(x => x.ouder === m.id).map(vink).join('')).join('');
+        const wees = inGroep.filter(m => m.ouder && !inGroep.some(x => x.id === m.ouder));
+        return `<div class="wz-ond-groep">
+          <div class="wz-ond-kop">${esc(_GROEPNAAM[g] || g)}</div>${rijen}${wees.map(vink).join('')}
+        </div>`;
+      }).join('')}</div>
+        <p class="wz-noot">Later bijstellen kan bij <em>Instellingen → Campagne</em>.</p>`;
     },
     async bewaar() {
-      const uit = [...document.querySelectorAll('[data-module]')]
-        .filter(i => !i.checked).map(i => i.dataset.module);
-      await api.saveModulesUit(uit);
+      const vinkjes = [...document.querySelectorAll('[data-module]')];
+      const uit = vinkjes.filter(i => !i.checked).map(i => i.dataset.module);
+      const aan = vinkjes.filter(i =>  i.checked).map(i => i.dataset.module);
+      await api.saveModulesUit(uit, aan);
     },
   },
   {
@@ -358,7 +369,7 @@ const STAPPEN = [
         <div class="wz-verder">
           <strong>Waar je verder gaat</strong>
           <p>Alles hierboven staat bij <em>Instellingen</em>, en de namen van je plekken bij
-          <em>Diensten</em>. Wil je meer onderdelen aan of uit? Dat doet de beheerder — vraag erom.</p>
+          <em>Diensten</em>. Onderdelen aan- of uitzetten kan daar ook.</p>
           <p>Wat ik zou doen voor je eerste sessie: een <em>locatie</em> aanmaken waar je begint,
           er een <em>personage</em> bij zetten dat ze ontmoeten, en dat kaartje zichtbaar maken voor je party.</p>
         </div>`;

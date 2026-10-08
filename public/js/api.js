@@ -191,7 +191,7 @@ export const api = {
   // geen PUT naar een pad doet dat we niet bedoelden.
   // Wat de DM van zijn eigen campagne niet gebruikt. Alleen uitzetten; wat er
   // vrijgegeven is bepaalt de beheerder.
-  saveModulesUit: (uit) => request('/meta/modules-uit', { method: 'PUT', body: JSON.stringify({ uit }) }),
+  saveModulesUit: (uit, aan = []) => request('/meta/modules-uit', { method: 'PUT', body: JSON.stringify({ uit, aan }) }),
   oefenmateriaal:     ()  => request('/wizard/oefenen', { method: 'POST' }),
   oefenmateriaalWeg:  ()  => request('/wizard/oefenen', { method: 'DELETE' }),
   spreukbeeldenStand: ()  => request('/bron/spreukbeelden'),
