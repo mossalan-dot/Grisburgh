@@ -188,6 +188,16 @@ niemand iets afdrukken, uit velden die niemand heeft ingevuld.
 **Trigger:** zodra de eerste speler een dier adopteert bij de magizoöloog (dan
 wordt `companionOwners` gevuld), is dit het moment.
 
+## Gecodeerde brief → `docs/voorstel-gecodeerde-brief.md`
+
+Een document dat je niet kunt lezen tot het ontcijferd wordt, en dan vliegen
+de letters naar hun plek. Bron is het prototype van 2 okt 2026: geen
+cijferschrift maar een anagram door verplaatsing, in drie bereiken (per woord,
+per regel, hele brief), met een eigen tempo voor het tafelscherm. Het
+knelpunt staat in het voorstel: de echte tekst mag er niet staan voordat hij
+onthuld is, dus het husselen hoort op de server en de klare tekst komt pas bij
+de onthulling mee.
+
 ## Houding van personages → `docs/voorstel-houding.md`
 
 De spec staat ernaast als `docs/houding-npc-spec.md`. Eén waarde per personage
