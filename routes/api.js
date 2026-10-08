@@ -482,6 +482,10 @@ function _playerGroupId(dmState, characterId) {
 // niets mee. Zou de frontend het uitrekenen, dan stond de houding van elke
 // antagonist in de netwerktab — dezelfde les als bij de verzegelde brief.
 function _houdingVan(entity, { meta, entities, dmState, groupId }) {
+  // Staat de module uit, dan bestaat de houding niet — ook niet voor de DM.
+  // Deze ene regel dekt elke route die hem zou kunnen meesturen; zou elke
+  // route het zelf moeten controleren, dan vergeet er ooit een het.
+  if ((verborgenUI(meta || {}).delen || []).includes('houding')) return null;
   if (!houdingen.heeftHouding(entity?.subtype)) return null;
   const rollen = _tagsVan(entity?.data?.tags);
 
@@ -1251,6 +1255,7 @@ router.get('/entities/:type', attachRole, (req, res) => {
 // `houding: null` betekent *terug naar standaard*: het veld gaat weg en de app
 // rekent hem weer uit. Dat is iets anders dan een 3 opslaan.
 router.put('/entities/:type/:id/houding', requireDM, (req, res) => {
+  if (!_deelAan('houding')) return res.status(403).json({ error: 'De houding staat uit voor deze campagne' });
   const { type, id } = req.params;
   if (!['personages', 'organisaties'].includes(type))
     return res.status(400).json({ error: 'Dit soort kaartje heeft geen houding' });
@@ -4197,6 +4202,9 @@ router.get('/houdingen', attachRole, (req, res) => {
   // inloggen heeft niemand de schaal nodig.
   const ingelogd = req.session?.role === 'dm' || !!req.session?.characterId;
   if (!ingelogd) return res.status(401).json({ error: 'Niet ingelogd' });
+  // Staat de module uit, dan is er geen schaal om te tonen. De client tekent
+  // dan geen balkje en geen glans: zonder tabel gebeurt er niets.
+  if (!_deelAan('houding')) return res.json({ houdingen: [], uit: true });
   res.json({
     houdingen: houdingen.HOUDINGEN,
     neutraal:  houdingen.NEUTRAAL,

@@ -129,6 +129,16 @@ betekent dat de bestaande regel wordt vervangen, niet aangevuld.
   betekent hoort in de hulpknop, niet in een formulier.
 - `tests/houding-api.test.js` — 9 toetsen over wat er de deur uitgaat.
 
+- **Een schakelaar** (8 okt): `houding` is een module in `lib/modules.js`, met
+  `delen: ['houding']` — het haakje dat de client (`window._deelAan`) en de
+  routes (`_deelAan`) al kennen, dus geen nieuwe machinerie. Hij staat in de
+  startset aan (in rust is er niets van te zien, dus hij valt niemand lastig)
+  en verschijnt vanzelf in de wizard en bij Instellingen, want die lezen
+  allebei `meta.moduleCatalogus`. Uit = geen balkje, geen glans, geen waarde
+  in het antwoord van de server — maar wat de DM al had ingesteld blijft
+  staan. De controle zit in `_houdingVan()` zelf, zodat geen enkele route hem
+  per ongeluk alsnog meestuurt.
+
 **Voor een speler verandert er nog niets**, en dat is met opzet: zonder de
 insight-machinerie van stap 5 is `houdingGezien` nooit waar, dus krijgt een
 speler geen houding mee. Niet een 3 als dekmantel maar helemaal niets — een

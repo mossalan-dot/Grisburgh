@@ -29458,7 +29458,10 @@ body.wizard-open { overflow: hidden; }
    kaartje, dan komt hij op: het is een bediening voor de DM, geen
    versiering die altijd om aandacht vraagt. */
 .houding-balk {
-  position: absolute; top: 28px; left: 8px; z-index: 30;
+  /* 25 in plaats van 28: de knoppenrij rechts draagt `top-7` (28 px) maar
+     landt op 26 vanaf de kaartrand, omdat de kaart een rand en een
+     accentstreep heeft. Gemeten tot ze gelijk stonden. */
+  position: absolute; top: 25px; left: 9px; z-index: 30;
   width: 28px; height: 92px;
   display: flex; flex-direction: column; gap: 4px;
   padding: 3px; border-radius: 5px;
@@ -29488,6 +29491,27 @@ body.wizard-open { overflow: hidden; }
 /* Op een aanraakscherm bestaat hover niet; daar staat hij gedempt in beeld. */
 @media (hover: none) {
   .houding-balk { opacity: .75; }
+}
+
+/* ── Kaartje zonder afbeelding ──
+   Zonder beeldstrook is de kaart maar een paar regels hoog en gaan de
+   DM-knoppen rechts van een kolom naar een rij in de bovenhoek (zie
+   `.entity-card.no-img > .dm-only`). Het balkje doet hetzelfde aan de andere
+   kant, in dezelfde maat: anders hangt hij over de badge en de naam.
+
+   `row-reverse`, want de treden staan in de DOM met bondgenoot eerst (boven).
+   Liggend hoort vijandig juist links te staan: naar rechts is vriendelijker,
+   net als bij het schuifje in de bewerkmodus.
+
+   Botst niet met `.card-secret-badge`, die op dezelfde plek staat: die is
+   alleen voor spelers en dit balkje alleen voor de DM. */
+.entity-card.no-img .houding-balk {
+  /* 8 in plaats van 11, net als bij de kolom: de knoppenrij heeft zelf geen
+     achtergrond en dit balkje wel, dus hij meet drie pixels anders. Gemeten
+     tot ze gelijk stonden. */
+  top: 8px; left: 6px;
+  width: 80px; height: 24px;
+  flex-direction: row-reverse;
 }
 
 /* In het detailvenster staat hij op dezelfde plek op de hero, maar altijd in

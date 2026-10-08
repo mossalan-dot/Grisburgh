@@ -175,4 +175,32 @@ describe('Houding: wat de deur uitgaat', () => {
     const r = await req(server, 'PUT', `/api/entities/personages/${schurk}/houding`, { houding: 5 }, spelerC);
     assert.ok(r.status === 401 || r.status === 403, `kreeg ${r.status}`);
   });
+
+  // ── De schakelaar ─────────────────────────────────────────────────────────
+  // Niet elke tafel wil dit. Uitzetten moet alles doven — ook voor de DM,
+  // want een half uitgezette functie is verwarrender dan een hele.
+  it('dooft alles als de DM de module uitzet', async () => {
+    await req(server, 'PUT', '/api/meta/modules-uit', { uit: ['houding'] }, dm);
+    const lijst = (await req(server, 'GET', '/api/entities/personages', null, dm)).body;
+    assert.ok(lijst.every(e => e._houding === null || e._houding === undefined),
+      'geen enkel kaartje draagt nog een houding');
+    const schaal = (await req(server, 'GET', '/api/houdingen', null, dm)).body;
+    assert.equal(schaal.houdingen.length, 0, 'en er is geen schaal om mee te tekenen');
+    assert.equal(schaal.uit, true);
+  });
+
+  it('weigert de houding te verzetten zolang de module uitstaat', async () => {
+    const r = await req(server, 'PUT', `/api/entities/personages/${hond}/houding`, { houding: 5 }, dm);
+    assert.equal(r.status, 403, 'de client verbergt het balkje al, maar de route moet het ook weigeren');
+  });
+
+  it('laat staan wat de DM al ingesteld had', async () => {
+    // Niets weggooien wat iemand getypt heeft: zet hij de module later weer
+    // aan, dan is zijn werk er nog.
+    const ruw = JSON.parse(fs.readFileSync(path.join(DATA_DIR, 'campaigns', 'grisburgh', 'entities.json'), 'utf8'));
+    assert.equal(ruw.personages.find(x => x.id === schurk).data.houding, 1);
+    await req(server, 'PUT', '/api/meta/modules-uit', { uit: [] }, dm);
+    const na = (await req(server, 'GET', `/api/entities/personages/${schurk}`, null, dm)).body;
+    assert.equal(na._houding, 1, 'en hij geldt meteen weer');
+  });
 });

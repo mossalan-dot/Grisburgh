@@ -660,6 +660,10 @@ const LINK_ENKELVOUD = { personages: 'Personage', locaties: 'Locatie', organisat
 // gebaar dat je toch al maakt als je je bedenkt.
 function _houdingBalkHtml(type, e) {
   if (!isDM()) return '';
+  // Staat de module uit, dan stuurt de server geen houding mee en blijft de
+  // tabel leeg — beide volgende regels vangen dat al. Deze staat er voor wie
+  // hier leest: er is één schakelaar, en dit is wat hij doet.
+  if (!window._deelAan?.('houding')) return '';
   if (type !== 'personages' && type !== 'organisaties') return '';
   const geldt = Number(e?._houding);
   if (!geldt) return '';                       // god, speler: geen houding
