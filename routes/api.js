@@ -9898,7 +9898,7 @@ router.get('/meta', attachRole, (req, res) => {
 // bezoek een. Een gewogen tafel ("1-5: tekst") levert zijn teksten zonder de
 // bereiken; wegen doet er voor een begroeting niet toe, en het bereik hoort
 // niet op het scherm van de speler.
-const _DIENSTEN_MET_GROET = ['herberg', 'tweespalt', 'gock', 'ursula', 'tempel', 'magizoo'];
+const _DIENSTEN_MET_GROET = ['herberg', 'tweespalt', 'gock', 'ursula', 'tempel', 'magizoo', 'woekeraar'];
 // De regels van één tafel, zonder de bereiken van een gewogen tafel. Gedeeld,
 // want diensten, goden en facties vragen er alle drie om.
 function _tafelRegels(id) {
@@ -16422,16 +16422,29 @@ router.post('/woekeraar/verzoek/:id/:besluit', requireDM, (req, res) => {
 // het gokhuis zolang een campagne de woekeraar nog niet apart heeft ingevuld —
 // dan verandert er niets voor wie hem al gebruikte.
 function _woekeraar(meta) {
-  const c = (meta.woekeraar || {});
+  const c  = (meta.woekeraar || {});
   const ts = _tsGeldschieter(meta);
+  // Hij leent zijn gezicht en zijn plek van het gokhuis zolang de DM hem niets
+  // eigens gaf — daar hing hij tenslotte al rond voor hij een eigen deur had.
+  // `imageId` en `backdropId` gaan mee omdat elk ander dienstscherm die twee
+  // namen gebruikt (en het instellingenformulier ook): zijn eigen `entityId`
+  // en `locatieId` las niemand, dus hij kwam als enige zonder portret en
+  // zonder achtergrond in beeld.
+  const tsCfg = (meta.tweespalt || {});
   return {
     naam:         c.naam || ts.naam,
     entityId:     c.entityId || ts.entityId || null,
+    imageId:      c.entityId || ts.entityId || null,
     locatieId:    c.locatieId || null,
+    backdropId:   c.locatieId || tsCfg.backdropId || tsCfg.locatieId || null,
     maxLeenCl:    Number.isFinite(parseInt(c.maxLeenCl)) ? parseInt(c.maxLeenCl) : ts.maxLeenCl,
     rentePerRust: Number.isFinite(parseInt(c.rentePerRust)) ? parseInt(c.rentePerRust) : TS_RENTE_PER_RUST,
     maxFactor:    Number.isFinite(parseInt(c.maxFactor)) ? parseInt(c.maxFactor) : TS_MAX_FACTOR,
     tekst:        c.tekst || '',
+    // De begroetingstafel van elke andere dienst. Zonder dit veld viel hij
+    // terug op één vast zinnetje — of, als de DM niets had ingevuld, op niets.
+    groeten:      _tafelRegels(c.groetTafelId) || [],
+    groetTafelId: c.groetTafelId || '',
     handlanger:   c.handlanger || '',
   };
 }
@@ -16456,6 +16469,12 @@ router.put('/meta/woekeraar', requireDM, (req, res) => {
   if (b.naam !== undefined)     w.naam = String(b.naam).slice(0, 80);
   if (b.entityId !== undefined) w.entityId = b.entityId || null;
   if (b.locatieId !== undefined) w.locatieId = b.locatieId || null;
+  // Een begroetingstafel, net als bij elke andere dienst: de DM wijst een tafel
+  // aan en de server zet er de regels bij. Niet de regels zelf opslaan — dan
+  // staat dezelfde tekst op twee plekken en loopt er één achter.
+  if (b.groetTafelId !== undefined) {
+    if (b.groetTafelId) w.groetTafelId = String(b.groetTafelId); else delete w.groetTafelId;
+  }
   if (b.tekst !== undefined)    w.tekst = String(b.tekst).slice(0, 600);
   if (b.handlanger !== undefined) w.handlanger = String(b.handlanger).slice(0, 80);
   if (b.escalatie !== undefined) { if (b.escalatie) w.escalatie = true; else delete w.escalatie; }

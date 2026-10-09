@@ -10,7 +10,7 @@ import { renderSpreuken } from './render-spreuken.js?v=45';
 import { renderVaardigheden, zoekVaardigheden } from './render-vaardigheden.js?v=39';
 import { renderStatblock } from './render-statblock.js?v=9';
 import { initSocket } from "./socket-client.js?v=84";
-import { initDmPanel } from "./dm-panel.js?v=387";
+import { initDmPanel } from "./dm-panel.js?v=388";
 import { COND_INFO, COND_LABEL, COND_MET_PLAATJE, COND_ICON } from './conditions.js?v=2';
 import './media-picker.js?v=9';
 import './wizard.js?v=4';
@@ -13102,8 +13102,8 @@ async function renderWoekeraar() {
 
   const bd = window._dienstBackdropId(cfg);
   const backdrop = bd ? `style="background-image:url('${api.thumbUrlBreed(bd)}')"` : '';
-  const portret = cfg.entityId
-    ? `<img src="${api.thumbUrl(cfg.entityId)}" class="herberg-portrait-round" alt="${esc(cfg.naam || 'De woekeraar')}">`
+  const portret = (cfg.imageId || cfg.entityId)
+    ? `<img src="${api.thumbUrl(cfg.imageId || cfg.entityId)}" class="herberg-portrait-round" alt="${esc(cfg.naam || 'De woekeraar')}">`
     // Zelfde terugval als elke andere dienst: een rond portret met een icoon
     // erin. De ts-portrait-fallback die hier stond is van de Tweespalt en
     // heeft een eigen maat.
@@ -13145,7 +13145,11 @@ async function renderWoekeraar() {
         <label class="dm-form-label" for="wk-waarvoor">Waarvoor?</label>
         <input id="wk-waarvoor" class="dm-input" maxlength="200" placeholder="Hij vraagt het, en hij onthoudt het.">
       </div>
-      <p class="dm-hint">Hij leent tot ${geld(cfg.maxLeenCl || 0)}, tegen ${cfg.rentePerRust}% per nacht dat je gezelschap rust — tot ${cfg.maxFactor}× wat je leende. Daarna stopt hij met tellen en komt hij het halen.</p>
+      <!-- De voorwaarden stonden hier als alinea onder het formulier. Dat is
+           uitleg, en uitleg hoort in het boekje — dat staat rechtsboven op dit
+           scherm. Wat je hier wél moet weten is het plafond: dat is een getal
+           waar je je bedrag op afstemt, geen uitleg. -->
+      <p class="wk-plafond">Hij leent tot <strong>${geld(cfg.maxLeenCl || 0)}</strong>.</p>
       <button class="dm-btn dm-btn-primary" onclick="window._wkVraag()">${icon('coins')} Vragen</button>
     </div>`;
 
@@ -13161,7 +13165,13 @@ async function renderWoekeraar() {
              als kale tekst op de pagina, zonder paneel en zonder achtergrond.
              Zie "Dienstschermen — de gedeelde romp" in CLAUDE.md. -->
         <p class="tempel-priester-naam">${esc(cfg.naam || 'De woekeraar')}</p>
-        ${cfg.tekst ? `<p class="herberg-groet">${esc(cfg.tekst)}</p>` : ''}
+        <!-- Hij was de enige dienst zonder openingszin: het tekstveld stond
+             leeg en dan stond er niets. Nu dezelfde begroetingstafel als de
+             rest, met een terugval eronder — een dienst zonder zin is een
+             scherm dat begint met een formulier.
+             (Geen backticks in commentaar hierbinnen: template literal.) -->
+        <p class="herberg-groet">${esc(window._dienstGroet(cfg,
+          `${cfg.naam || 'De woekeraar'} kijkt je aan zonder te knipperen en schuift zijn boek opzij.`))}</p>
         ${schuldBlok}${wachtBlok}${formulier}
       </div>
     </div>`;
@@ -13240,11 +13250,12 @@ async function renderMagizoo() {
         </div>` : ''}
 
         <div class="dienst-subtab-panel${_magizooActiveTab === 'onderzoek' || !window._deelAan('magizoo-adoptie') ? '' : ' hidden'}" id="magizoo-panel-onderzoek">
-          <!-- De wachttijd stond nergens in beeld, terwijl De Gock er wél iets
-               over zegt. Twee diensten met dezelfde regel horen hem allebei te
-               noemen — anders lijkt een weigering op een storing. -->
-          <p class="ts-beurs">Onderzoek: <strong>${_magizooPrijs(config.prijs)}</strong> per trede · Volledig ineens: <strong>${_magizooPrijs(config.prijsVolledig)}</strong>${
-            (config.cooldownMinuten ?? 5) !== 0 ? ' · één onderzoek per lange rust' : ''}</p>
+          <!-- Alleen de twee bedragen. "Eén onderzoek per lange rust" stond
+               erachter als uitleg, en dat merk je vanzelf: op het moment dat
+               het geldt staat de regel erónder in beeld ("Kom terug na een
+               lange rust"). Twee keer hetzelfde zeggen, waarvan één keer
+               voordat het ergens over gaat. De regel staat in het boekje. -->
+          <p class="ts-beurs">Onderzoek: <strong>${_magizooPrijs(config.prijs)}</strong> per trede · Volledig ineens: <strong>${_magizooPrijs(config.prijsVolledig)}</strong></p>
 
           ${cooldownActief ? `<div class="gock-lopend"><p class="herberg-cooldown-tekst">${icon('paw-print')} ${cooldownTekst}</p></div>` : ''}
 
@@ -15288,7 +15299,7 @@ const HELP_CONFIG = {
       stappen: [
         {
           titel: naam,
-          tekst: `${naam} onderzoekt wezens die de party heeft ontmoet. Per onderzoek onthult hij een niveau meer over het wezen in je bestiarium — van naam naar deels naar volledig. Elk onderzoek kost goud en heeft een afkoeltijd.`,
+          tekst: `${naam} onderzoekt wezens die de party heeft ontmoet. Per onderzoek onthult hij een niveau meer over het wezen in je bestiarium — van naam naar deels naar volledig.\n\nElk onderzoek kost goud, en hij neemt er **één tegelijk** aan: pas na een lange rust is hij er klaar mee en kun je weer bij hem terecht. Niet zoveel minuten op de klok — een party speelt geen echte uren.`,
           afbeelding: null,
         },
         {

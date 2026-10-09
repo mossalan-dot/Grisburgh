@@ -6558,6 +6558,7 @@ window._woekeraarSettingsSave = async function () {
   try {
     await api.put('/meta/woekeraar', {
       naam: kop.naam, entityId: kop.imageId || null, locatieId: kop.locatieId || null,
+      groetTafelId: kop.groetTafelId || '',
       maxLeenCl: munten ? (munten.fl * 100 + munten.kn * 10 + munten.cl) : undefined,
       rentePerRust: parseInt(document.getElementById('woek-rente')?.value),
       maxFactor: parseInt(document.getElementById('woek-max-factor')?.value),

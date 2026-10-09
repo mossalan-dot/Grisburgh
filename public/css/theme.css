@@ -12160,8 +12160,22 @@ body.herberg-actief #app { position: relative; z-index: 1; }
 .gock-scene.herberg-scene[style]::before      { background: rgba(5,25,50,0.40); }
 .tweespalt-scene.herberg-scene[style]::before { background: rgba(8,8,22,0.38); }
 .magizoo-scene.herberg-scene[style]::before   { background: rgba(20,45,25,0.40); }
+/* Een dienst zonder achtergrondfoto. Het donkere paneel hing aan `[style]` —
+   dat attribuut staat er alleen als er een backdrop gekozen is. Een dienst
+   waar de DM nog geen plaat bij zette (de woekeraar, pas vrijgegeven) viel
+   daardoor helemaal uit de opmaak: lichte letters met een schaduw op
+   perkament, zonder paneel. Alles ín zo'n scherm is voor een donkere
+   ondergrond gemaakt, dus die hoort er altijd te zijn — met of zonder foto.
+   De foto geeft de sfeer, niet de leesbaarheid. */
+.herberg-scene:not([style]) {
+  background-color: #241606;
+  background-image:
+    radial-gradient(120% 90% at 50% 0%, rgba(96,62,20,0.38), transparent 70%),
+    radial-gradient(90% 70% at 50% 100%, rgba(20,10,2,0.6), transparent 75%);
+}
+
 /* Content boven de overlay: positie + leesbaarheidspaneel */
-.herberg-scene[style] .herberg-content {
+.herberg-scene .herberg-content {
   position: relative;
   z-index: 1;
   /* Dit vlak stond op 0,52 met een blur van 3px, en dat was per dienst
@@ -15249,12 +15263,15 @@ body.herberg-actief #app { position: relative; z-index: 1; }
 
 /* ══ Witte tekst op donkere backdrop (Tweespalt, Ursula, Gock) ══════════════ */
 
-/* Basis: alle tekst in content-paneel met backdrop lichter maken */
-.herberg-scene[style] .herberg-content,
-.herberg-scene[style] .herberg-content p,
-.herberg-scene[style] .herberg-content span,
-.herberg-scene[style] .herberg-content label,
-.herberg-scene[style] .herberg-content strong {
+/* Basis: alle tekst in het content-paneel lichter maken. Hing aan `[style]`,
+   net als het paneel zelf — en bij een dienst zonder achtergrondfoto stond er
+   dus donkere tekst op een paneel dat er niet was. Het paneel is er nu altijd,
+   dus de letters horen er ook altijd bij te passen. */
+.herberg-scene .herberg-content,
+.herberg-scene .herberg-content p,
+.herberg-scene .herberg-content span,
+.herberg-scene .herberg-content label,
+.herberg-scene .herberg-content strong {
   color: rgba(240,235,225,0.93);
 }
 
@@ -21413,20 +21430,36 @@ video.prog-detail-art { width: 100%; height: 180px; object-fit: cover; border-ra
 
 /* ── De Magizoöloog — dienst-specifiek ── */
 .magizoo-lijst { display: flex; flex-direction: column; gap: 8px; }
-.magizoo-item { background: rgba(245,237,216,0.55); border: 1px solid rgba(42,106,58,0.25); border-radius: 9px; padding: 9px 11px; }
+/* Dit kaartje was als enige op een dienstscherm **licht**: perkament op 55 %
+   met donkerbruine letters. Alle andere kaartjes op zo'n scherm zijn donker,
+   want ze liggen op een achtergrondfoto. Half doorzichtig perkament boven de
+   groene waas van de magizoöloog werd grijsgroen, en de donkere letters erop
+   waren niet meer te lezen. Nu dezelfde doos als de rest. */
+.magizoo-item {
+  background: rgba(30, 18, 6, 0.62);
+  border: 1px solid rgba(196,168,122,0.28);
+  border-radius: 9px; padding: 9px 11px;
+  backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px);
+}
 .magizoo-item-head { display: flex; align-items: center; gap: 8px; }
-.magizoo-item-head .herberg-item-naam { font-family: 'Cinzel', serif; font-size: 0.95rem; color: #2a1a08; }
-.magizoo-item-tier { font-family: 'JetBrains Mono', monospace; font-size: 0.66rem; padding: 2px 8px; border-radius: 999px; margin-left: auto; }
-.magizoo-tier--naam     { color: #6a4f30; background: rgba(154,112,80,0.16); }
-.magizoo-tier--deels    { color: #2a5a8a; background: rgba(42,90,138,0.16); }
-.magizoo-tier--volledig { color: #2a6a3a; background: rgba(42,106,58,0.18); }
-.magizoo-item-bron { color: #2a6a3a; display: inline-flex; }
+.magizoo-item-head .herberg-item-naam { font-family: 'Cinzel', serif; font-size: 0.95rem; color: #f0dcaa; }
+/* Dezelfde drie tinten als de pillen elders op een dienstscherm: neutraal
+   goud voor "hier weten we alleen de naam van", blauw voor halverwege, groen
+   voor af. */
+.magizoo-item-tier { font-family: 'JetBrains Mono', monospace; font-size: 0.66rem; padding: 2px 8px; border-radius: 999px; margin-left: auto; border: 1px solid; }
+.magizoo-tier--naam     { color: #e6c88a; background: rgba(212,170,60,0.16); border-color: rgba(212,170,67,0.4); }
+.magizoo-tier--deels    { color: #b4d4f5; background: rgba(70,130,210,0.16); border-color: rgba(110,170,235,0.45); }
+.magizoo-tier--volledig { color: #a8e6b8; background: rgba(60,170,90,0.16); border-color: rgba(90,200,120,0.45); }
+.magizoo-item-bron { color: #a8e6b8; display: inline-flex; }
 .magizoo-item-bron .icon { width: 14px; height: 14px; }
 .magizoo-item-acties { display: flex; gap: 8px; margin-top: 8px; flex-wrap: wrap; }
 .magizoo-btn { font-size: 0.82rem; padding: 6px 12px; }
-.magizoo-btn--premium { background: rgba(42,106,58,0.16); border-color: rgba(42,106,58,0.45); color: #2a6a3a; }
-.magizoo-btn[disabled] { opacity: 0.45; cursor: not-allowed; }
-.magizoo-item-klaar { font-family: 'IM Fell English', serif; font-style: italic; font-size: 0.82rem; color: #2a6a3a; margin-top: 4px; }
+.magizoo-btn--premium { background: rgba(60,170,90,0.16); border-color: rgba(90,200,120,0.45); color: #a8e6b8; }
+.magizoo-btn--premium:hover { background: rgba(60,170,90,0.28); }
+/* Uitgeschakeld stond op 0.45: samen met de half doorzichtige doos eronder
+   bleef er niets leesbaars over. Je mag zien dát er een knop is. */
+.magizoo-btn[disabled] { opacity: 0.6; cursor: not-allowed; }
+.magizoo-item-klaar { font-family: 'IM Fell English', serif; font-style: italic; font-size: 0.82rem; color: #a8e6b8; margin-top: 4px; }
 .magizoo-dossier { border-color: rgba(42,106,58,0.4); }
 .magizoo-dossier-tier { font-family: 'Crimson Text', serif; font-size: 0.88rem; color: #4a3a24; margin: 2px 0 6px; }
 .magizoo-roddel { display: flex; gap: 7px; align-items: flex-start; font-family: 'IM Fell English', serif; font-size: 0.9rem; color: #2a6a3a; }
@@ -28858,11 +28891,24 @@ body.akte-schrijf-open .mp-overlay { z-index: 1320; }
 .dm-schuld-knoppen { margin-top: 8px; }
 
 /* ── De woekeraar ──────────────────────────────────────────────────────────── */
+/* Deze drie blokken waren als enige op een dienstscherm licht: ze zijn
+   geschreven toen de woekeraar nog geen eigen deur had en zijn blokken in het
+   DM-paneel stonden. Op het donkere paneel van een dienst werd dat een grijze
+   doos met grijze velden erin. Zelfde doos als elk ander kaartje op zo'n
+   scherm. */
 .wk-schuld, .wk-vraag, .wk-wacht {
-  border: 1px solid rgba(138,109,63,0.28); border-radius: 10px;
+  border: 1px solid rgba(196,168,122,0.28); border-radius: 10px;
   padding: 13px 16px; margin-bottom: 12px;
-  background: var(--color-card-bg, rgba(255,255,255,0.45));
+  background: rgba(30, 18, 6, 0.62);
+  backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px);
 }
+.wk-vraag .dm-input, .wk-vraag .bedrag-veld input {
+  background: rgba(12, 7, 2, 0.5); border-color: rgba(196,168,122,0.3);
+  color: rgba(240,235,225,0.93);
+}
+.wk-vraag .dm-form-label, .wk-schuld-kop, .wk-vraag-kop { color: #e6c88a; }
+.wk-schuld-cijfers b { color: #f0dcaa; }
+.wk-op { color: #e0897e; }
 .wk-schuld { border-left: 4px solid #8b2a2a; }
 .wk-schuld-kop, .wk-vraag-kop {
   font-family: 'Cinzel', serif; font-size: 13px; margin-bottom: 9px;
@@ -28872,13 +28918,13 @@ body.akte-schrijf-open .mp-overlay { z-index: 1320; }
 .wk-schuld-cijfers > div { display: flex; flex-direction: column; }
 .wk-schuld-cijfers span {
   font-family: 'Cinzel', serif; font-size: 8px; letter-spacing: .14em;
-  text-transform: uppercase; color: var(--color-ink-faint, rgba(120,96,56,0.7));
+  text-transform: uppercase; color: rgba(212,180,110,0.75);
 }
 .wk-schuld-cijfers b { font-family: 'Cinzel', serif; font-size: 15px; }
 .wk-op { color: #8b2a2a; }
 .wk-waarvoor {
   margin: 8px 0 0; font-family: 'Crimson Text', serif; font-size: 12.5px;
-  font-style: italic; color: var(--color-ink-soft, #6a5430);
+  font-style: italic; color: rgba(224,206,164,0.72);
 }
 .wk-knoppen { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 10px; }
 .wk-vraag-rij { margin-bottom: 9px; }
@@ -28897,7 +28943,8 @@ body.akte-schrijf-open .mp-overlay { z-index: 1320; }
 .wk-schuld--rust { border-left-color: #2a6a3a; }
 .wk-afspraak {
   margin: 0 0 9px; padding: 7px 10px; border-radius: 6px;
-  background: rgba(42,106,58,0.10); border: 1px solid rgba(42,106,58,0.30);
+  color: #a8e6b8;
+  background: rgba(60,170,90,0.14); border: 1px solid rgba(90,200,120,0.4);
   font-family: 'Crimson Text', serif; font-size: 12.5px; line-height: 1.45;
   display: flex; align-items: flex-start; gap: 6px;
 }
@@ -29766,6 +29813,14 @@ body.wizard-open { overflow: hidden; }
 }
 .dienst-bestel-balk:hover { background: rgba(212,170,60,0.26); color: #fff6dd; }
 .dienst-bestel-balk svg { width: 15px; height: 15px; }
+
+/* Het plafond van de woekeraar: een getal waar je je bedrag op afstemt, geen
+   uitleg. De voorwaarden eromheen (rente, hoe lang hij telt) staan in het
+   boekje rechtsboven. */
+.wk-plafond {
+  font-family: 'IM Fell English', serif; font-size: .86rem;
+  color: rgba(224,206,164,0.82); margin: 2px 0 8px;
+}
 
 /* De regel onder de naam: "tegen Grommel de Tweede". Hetzelfde plekje als een
    ondertitel elders — direct onder de naam, gecentreerd, en stiller. */
