@@ -571,12 +571,21 @@ function _flipKaartHtml({ soort, naam, kleur, icoon, bijschrift = '', rijen = []
   return `
     <div class="vk-flip${beeld ? '' : ' vk-flip--geenbeeld'}" style="--vk-kleur:${kleur}"
       onclick="window.vaardigheden.flip(event)">
+      <!-- **De beeldknop staat buiten de draaiende kanten.** Hij hing op de
+           voorkant, en een kaartje zonder afbeelding staat permanent
+           omgedraaid (zie de regel vk-flip--geenbeeld) zodat je de gegevens
+           ziet in plaats van een leeg vlak. Daarmee was de knop juist
+           onbereikbaar bij precies de kaartjes die er nog een nodig hadden:
+           wie er al een had kon hem wisselen, wie er geen had kon er nooit
+           een kiezen. Buiten vk-flip-binnen draait hij niet mee en ligt hij
+           altijd boven.
+           (Geen backticks in commentaar hierbinnen: template literal.) -->
+      ${isDM() ? `<button class="vk-beeldknop" title="Een afbeelding hierbij kiezen"
+        onclick="event.stopPropagation();window.vaardigheden.kaartBeeld('${esc(soort)}','${veilig}')">${icon('image')}</button>` : ''}
       <div class="vk-flip-binnen">
         <div class="vk-voor">
           ${beeld ? `<span class="vk-voor-beeld" style="background-image:url('${beeld}')"></span>` : ''}
           <span class="vk-voor-naam">${esc(naam)}</span>
-          ${isDM() ? `<button class="vk-beeldknop" title="Een afbeelding hierbij kiezen"
-            onclick="event.stopPropagation();window.vaardigheden.kaartBeeld('${esc(soort)}','${veilig}')">${icon('image')}</button>` : ''}
         </div>
         <div class="vk-achter">
           <div class="vk-kop">

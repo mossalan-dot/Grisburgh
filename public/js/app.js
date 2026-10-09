@@ -2,12 +2,12 @@ import { api, campagneUitUrl, zetCampagne } from './api.js?v=310';
 import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, renderDocumenten, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=343";
 import { initArchief, renderLogboek, openLogboekEditor } from "./render-archief.js?v=140";
 import { renderKaart, queueFlyTo, verversPins, nieuweKaart } from './render-kaart.js?v=31';
-import { renderDungeon } from './render-dungeon.js?v=61';
+import { renderDungeon } from './render-dungeon.js?v=62';
 import { renderRelatiemap } from './render-relatiemap.js?v=27';
 import { renderProgressie, levelupFeatures } from './render-progressie.js?v=57';
 import { renderBestiarium } from './render-bestiarium.js?v=31';
 import { renderSpreuken } from './render-spreuken.js?v=44';
-import { renderVaardigheden, zoekVaardigheden } from './render-vaardigheden.js?v=33';
+import { renderVaardigheden, zoekVaardigheden } from './render-vaardigheden.js?v=34';
 import { renderStatblock } from './render-statblock.js?v=9';
 import { initSocket } from "./socket-client.js?v=84";
 import { initDmPanel } from "./dm-panel.js?v=386";
@@ -3402,7 +3402,7 @@ function _kaartCard(type, m, dm, verdiepingen = null) {
 // eerste bestaande kaart: je drukte op + en keek naar Dreghaven.
 window._kaartNieuw = async function (type) {
   if (type === 'wereld') return nieuweKaart();
-  const { nieuweDungeon } = await import('./render-dungeon.js?v=61');
+  const { nieuweDungeon } = await import('./render-dungeon.js?v=62');
   nieuweDungeon();
 };
 

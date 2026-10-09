@@ -24976,7 +24976,25 @@ body.kaart-fs-active .dng-topbar { padding-right: 14px; }
   color: var(--color-ink-bright, #2a1a08); white-space: nowrap;
 }
 /* Het label naast het verdiepingsnummer in het aanmaakvenster (0 → BG). */
-.dng-laag-rij { display: flex; align-items: center; gap: 6px; margin-bottom: 4px; }
+/* Een raster, geen flexrij. De keuzeknoppen van elke verdieping stonden
+   anders te verschuiven met de breedte van het nummerveld ernaast, en dan
+   loopt niets meer onder elkaar. Vier kolommen met een vaste maat; zonder
+   verdiepingen vallen de eerste twee weg. */
+.dng-lagen { display: grid; gap: 8px; }
+.dng-laag-rij {
+  display: grid; align-items: center; gap: 10px;
+  grid-template-columns: minmax(0, 1fr) 36px;
+}
+.dng-lagen--verdiepingen .dng-laag-rij {
+  grid-template-columns: 72px 28px max-content minmax(0, 1fr) 36px;
+}
+.dng-lagen:not(.dng-lagen--verdiepingen) .dng-laag-rij {
+  grid-template-columns: max-content minmax(0, 1fr) 36px;
+}
+.dng-laag-nr { width: 100%; }
+.dng-laag-label {
+  font-family: 'Cinzel', serif; font-size: .8em; color: #8a7050; text-align: center;
+}
 .dng-laag-label {
   min-width: 26px; font-family: 'Cinzel', serif; font-size: 11px; font-weight: 600;
   color: #7a6040; text-align: center;
@@ -28652,7 +28670,11 @@ body.akte-schrijf-open .mp-overlay { z-index: 1320; }
 }
 .vb-wis:hover { color: #a03810; }
 @media (max-width: 640px) {
-  .vaardig-band { padding: 9px 10px; }
+  /* De band heeft binnenruimte, het raster eronder niet — en dus stonden de
+   kaartjes tien pixels verder naar links dan de banner en het kaartje erboven.
+   Dezelfde inspringing voor allebei: ze horen op één lijn te beginnen. */
+.vaardig-band { padding: 9px 10px; }
+#vaardig-grid { padding-left: 10px; padding-right: 10px; }
   .vb-knop { font-size: 10px; padding: 3px 7px; }
 }
 
@@ -29445,7 +29467,7 @@ body.wizard-open { overflow: hidden; }
    vlak haalt ze uit elkaar; het is niet te zien en het is wel beslist. */
 .vk-voor   { transform: translateZ(0.5px); }
 .vk-achter { transform: rotateY(180deg) translateZ(0.5px); }
-.vk-voor-beeld, .vk-voor-naam, .vk-beeldknop { backface-visibility: hidden; }
+.vk-voor-beeld, .vk-voor-naam { backface-visibility: hidden; }
 .vk-voor {
   display: flex; align-items: flex-end; justify-content: center;
   background: linear-gradient(160deg, #f6eeda 0%, #e9dcbe 100%);
@@ -29464,7 +29486,10 @@ body.wizard-open { overflow: hidden; }
 }
 .vk-flip--geenbeeld .vk-voor-naam { color: #3a2410; text-shadow: none; }
 .vk-beeldknop {
-  position: absolute; top: 9px; right: 9px; z-index: 2;
+  /* Boven allebei de kanten: hij staat buiten `vk-flip-binnen`, dus hij draait
+     niet mee en is ook bereikbaar op een kaartje dat omgedraaid staat omdat er
+     nog geen afbeelding is. */
+  position: absolute; top: 9px; right: 9px; z-index: 12;
   width: 28px; height: 28px; display: flex; align-items: center; justify-content: center;
   border: 1px solid rgba(196,168,122,.8); border-radius: 5px;
   background: rgba(255,252,244,.86); color: #8a7050; cursor: pointer;
