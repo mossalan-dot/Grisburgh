@@ -5047,6 +5047,25 @@ html {
 .dm-tab-content { display: none; }
 .dm-tab-content.active { display: block; }
 .dm-feature-section + .dm-feature-section { border-top: 1px solid rgba(196,168,122,0.45); }
+/* Een sectie die op een opslaanknop eindigt heeft zijn eigen streep al (de
+   rand boven .dm-dienst-voet). De streep van de sectie erna kwam daar vlak
+   onder te liggen: twee lijnen met een knop ertussen. */
+.dm-feature-section:has(.dm-dienst-voet) + .dm-feature-section { border-top: none; }
+
+/* Een factie met zijn renowndrempel: naam links, drempel rechts, en ze blijven
+   op één regel. Dit was een .dm-form-row met margin-left:auto op het label,
+   waardoor het invoerveld omviel naar de volgende regel — en dus onder de
+   verkeerde factie kwam te staan. */
+.dm-woek-ontspan-rij {
+  display: flex; align-items: center; gap: 12px;
+  padding: 3px 0;
+}
+.dm-woek-ontspan-rij .dm-form-checkbox { flex: 1; min-width: 0; }
+.dm-woek-ontspan-drempel {
+  display: inline-flex; align-items: center; gap: 7px; flex-shrink: 0;
+}
+.dm-woek-ontspan-drempel .dm-form-label { margin: 0; white-space: nowrap; }
+.dm-woek-ontspan-drempel .dm-input { width: 76px; }
 
 /* ── Sessieverslagen in de aktekaart ─────────────────────────────────────────
    Stonden alleen in het Logboek; dat is nu puur het overzicht dat spelers na
@@ -18202,10 +18221,6 @@ body.sb-boek-open { overflow: hidden; }
 .sb-prep-btn--always { background: linear-gradient(to bottom, #7a5aaa, #5a3a8a); border-color: #a98ad0; color: #fff; font-weight: 700; }
 .sb-prep-btn--always:hover { background: linear-gradient(to bottom, #8a6aba, #6a4a9a); }
 /* TOC: 'alleen paraat'-filter + markers */
-.sb-toc-title-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
-.sb-toc-prep-filter { font-family: 'Cinzel', serif; font-size: 10px; color: #6a5430; background: rgba(196,168,122,0.16); border: 1px solid rgba(196,168,122,0.45); border-radius: 6px; padding: 3px 8px; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; }
-.sb-toc-prep-filter .icon { width: 11px; height: 11px; }
-.sb-toc-prep-filter--on { background: linear-gradient(to bottom, #b8860b, #8a6206); border-color: #d9b24a; color: #fff8ea; }
 .sb-toc-prep-mark { display: inline-flex; align-items: center; justify-content: center; width: 15px; flex-shrink: 0; }
 .sb-toc-prep-mark .icon { width: 11px; height: 11px; }
 .sb-toc-prep-mark--on { color: #2a8a4a; }
@@ -19699,6 +19714,11 @@ body.sb-boek-open { overflow: hidden; }
   transform: translateX(0);
   pointer-events: all;
 }
+/* Zolang het paneel openstaat hoort de knoppenbalk van het boek eronder er
+   niet doorheen te staan: twee rijen knoppen boven elkaar die allebei iets
+   anders doen leest als één rommelige balk. */
+.sb-overlay.sb-zij-aan .sb-overlay-controls { opacity: 0; pointer-events: none; transition: opacity .18s; }
+
 .sb-manage-header {
   padding: 18px 20px 12px;
   border-bottom: 1px solid rgba(255,255,255,0.08);
@@ -19716,6 +19736,29 @@ body.sb-boek-open { overflow: hidden; }
 /* ── Het zijpaneel van het spreukenboek ──────────────────────────────────────
    Inhoud en Deze spreuk zitten in hetzelfde paneel; de tabjes staan in de kop
    waar anders de titel stond. */
+/* De kop van het paneel: titel links, hulp en sluiten rechts — zoals elk ander
+   venster in de app. Hier stonden twee tabjes naar één lijst en één veld. */
+.sb-zij-titel {
+  font-family: 'Cinzel', Georgia, serif; font-size: 12px; letter-spacing: .12em;
+  text-transform: uppercase; color: rgba(230,185,100,0.85);
+  display: inline-flex; align-items: center; gap: 7px; margin-right: auto;
+}
+.sb-zij-titel .icon { width: 14px; height: 14px; }
+.sb-manage-header .help-btn-wrap { flex-shrink: 0; }
+
+/* Het veld voor de incantatie, in de regel van de spreuk zelf. */
+.sb-toc-item-name--vast { flex: 0 0 auto; cursor: default; color: rgba(240,220,170,0.95); }
+.sb-toc-incant-input {
+  flex: 1; min-width: 0; margin-left: 8px;
+  font-family: 'Kalam', cursive; font-size: 13px;
+  background: rgba(255,255,255,0.06); color: rgba(240,230,210,0.95);
+  border: 1px solid rgba(230,185,100,0.4); border-radius: 6px;
+  padding: 4px 9px; outline: none;
+}
+.sb-toc-incant-input:focus { border-color: rgba(230,185,100,0.8); background: rgba(255,255,255,0.1); }
+.sb-toc-incant-input::placeholder { color: rgba(255,255,255,0.3); font-style: italic; }
+.sb-toc-item.sb-toc-bewerkt { background: rgba(230,185,100,0.07); }
+
 .sb-zij-tabs { display: flex; gap: 4px; flex-wrap: wrap; }
 .sb-zij-tab {
   font-family: 'Cinzel', Georgia, serif;
@@ -22211,63 +22254,6 @@ body.kaart-fs-active { overflow: hidden; }
 .sb-addspells-confirm:disabled { opacity: 0.45; cursor: default; }
 .sb-addspells-confirm .icon { width: 13px; height: 13px; }
 .sb-toc-custom-btn--primary { background: linear-gradient(to bottom, rgba(184,134,11,0.18), rgba(184,134,11,0.1)); border-color: rgba(184,134,11,0.5); color: #6a4818; font-weight: 700; }
-
-/* ════════════════════════════════════════════════════════
-   SIGNATUUR-KAART — klasse-kernfeature (Personage-subtab)
-   --sig-kleur = klassekleur (inline gezet)
-   ════════════════════════════════════════════════════════ */
-.sig-card {
-  position: relative; margin: 8px 0 14px; border-radius: 12px; overflow: hidden;
-  background:
-    radial-gradient(ellipse at 0% 0%, color-mix(in srgb, var(--sig-kleur,#b3402a) 14%, transparent) 0%, transparent 55%),
-    linear-gradient(168deg, #faf3e1 0%, #efe2c2 100%);
-  border: 1px solid color-mix(in srgb, var(--sig-kleur,#b3402a) 38%, #c4a87a);
-  border-left: 4px solid var(--sig-kleur,#b3402a);
-  box-shadow: 0 2px 10px rgba(80,40,10,0.12);
-  transition: box-shadow 0.25s, border-color 0.25s;
-}
-.sig-card-head { display: flex; align-items: center; gap: 9px; padding: 10px 13px 6px; }
-.sig-card-icon { display: inline-flex; width: 30px; height: 30px; align-items: center; justify-content: center; border-radius: 50%;
-  background: color-mix(in srgb, var(--sig-kleur,#b3402a) 16%, transparent); color: var(--sig-kleur,#b3402a); flex-shrink: 0; }
-.sig-card-icon .icon { width: 18px; height: 18px; }
-.sig-card-name { font-family: 'Cinzel', serif; font-size: 1.15rem; font-weight: 700; color: #3a2208; letter-spacing: 0.02em; }
-.sig-card-tag { font-family: 'IM Fell English', serif; font-style: italic; font-size: 11px; color: color-mix(in srgb, var(--sig-kleur,#b3402a) 65%, #6a5430); }
-.sig-card-info, .sig-card-reset { margin-left: auto; background: none; border: none; color: #9a7a4a; cursor: pointer; padding: 4px; display: inline-flex; border-radius: 6px; }
-.sig-card-reset { margin-left: 0; }
-.sig-card-info:hover, .sig-card-reset:hover { color: var(--sig-kleur,#b3402a); background: rgba(0,0,0,0.04); }
-.sig-card-info .icon, .sig-card-reset .icon { width: 14px; height: 14px; }
-.sig-card-body { display: flex; align-items: center; gap: 14px; padding: 4px 13px 8px; flex-wrap: wrap; }
-.sig-toggle {
-  font-family: 'Cinzel', serif; font-size: 13px; font-weight: 700; letter-spacing: 0.04em;
-  color: var(--sig-kleur,#b3402a); background: color-mix(in srgb, var(--sig-kleur,#b3402a) 9%, #fffdf6);
-  border: 1.5px solid color-mix(in srgb, var(--sig-kleur,#b3402a) 45%, transparent); border-radius: 9px;
-  padding: 8px 18px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; transition: all 0.15s;
-}
-.sig-toggle:hover { background: color-mix(in srgb, var(--sig-kleur,#b3402a) 16%, #fffdf6); }
-.sig-toggle .icon { width: 14px; height: 14px; }
-.sig-toggle.on { background: linear-gradient(to bottom, var(--sig-kleur,#b3402a), color-mix(in srgb, var(--sig-kleur,#b3402a) 72%, #000));
-  border-color: color-mix(in srgb, var(--sig-kleur,#b3402a) 60%, #000); color: #fff8ea; box-shadow: 0 2px 8px color-mix(in srgb, var(--sig-kleur,#b3402a) 40%, transparent); }
-.sig-uses { display: flex; align-items: center; gap: 9px; margin-left: auto; }
-.sig-dots { display: flex; gap: 5px; }
-.sig-dot { width: 15px; height: 15px; border-radius: 50%; border: 1.5px solid color-mix(in srgb, var(--sig-kleur,#b3402a) 50%, #b09870);
-  background: #fffdf6; cursor: pointer; transition: all 0.12s; padding: 0; }
-.sig-dot:hover { transform: scale(1.12); }
-.sig-dot.used { background: var(--sig-kleur,#b3402a); border-color: var(--sig-kleur,#b3402a); box-shadow: inset 0 1px 2px rgba(0,0,0,0.3); }
-.sig-none { color: #b09870; font-style: italic; }
-.sig-uses-count { font-family: 'Cinzel', serif; font-size: 12px; font-weight: 700; color: #5a4426; background: rgba(0,0,0,0.05);
-  border: 1px solid rgba(150,120,70,0.3); border-radius: 999px; padding: 3px 10px; cursor: pointer; line-height: 1; }
-.sig-uses-count:hover { border-color: var(--sig-kleur,#b3402a); }
-.sig-card-extra { padding: 0 13px 11px; font-family: 'Crimson Text', serif; font-size: 12px; color: #6a5638; line-height: 1.4; }
-.sig-card-desc { padding: 2px 13px 12px; margin-top: -4px; font-family: 'Crimson Text', serif; font-size: 12.5px; color: #4a3826; line-height: 1.5; border-top: 1px solid rgba(196,168,122,0.3); }
-.sig-card-desc.hidden { display: none; }
-.sig-card--active { border-color: var(--sig-kleur,#b3402a); box-shadow: 0 0 0 1px var(--sig-kleur,#b3402a), 0 2px 22px color-mix(in srgb, var(--sig-kleur,#b3402a) 35%, transparent); animation: sig-pulse 2.2s ease-in-out infinite; }
-.sig-card--active::before { content: ''; position: absolute; inset: 0; pointer-events: none;
-  background: radial-gradient(ellipse at 50% 120%, color-mix(in srgb, var(--sig-kleur,#b3402a) 22%, transparent) 0%, transparent 60%); }
-@keyframes sig-pulse {
-  0%,100% { box-shadow: 0 0 0 1px var(--sig-kleur,#b3402a), 0 2px 18px color-mix(in srgb, var(--sig-kleur,#b3402a) 28%, transparent); }
-  50%     { box-shadow: 0 0 0 1px var(--sig-kleur,#b3402a), 0 2px 30px color-mix(in srgb, var(--sig-kleur,#b3402a) 50%, transparent); }
-}
-@media (prefers-reduced-motion: reduce) { .sig-card--active { animation: none; } }
 
 /* ═══ Mediabibliotheek (DM-tab) ═══════════════════════════════════════════ */
 .media-toolbar {
@@ -26226,51 +26212,6 @@ body.herberg-actief .herberg-scene .herberg-content {
   z-index: 0;
 }
 
-/* ── Signatuurkaart: de vormen 'pool' en 'waarde' ──────────────────────────
-   Bolletjes werken tot een stuk of zes; Lay on Hands heeft er veertig en
-   Sorcery Points groeien tot twintig. Die krijgen een balk met een teller.
-   Deze regels staan onderaan omdat .sig-card-body duizenden regels hoger
-   staat — bovenin zou de basisregel op volgorde winnen. */
-.sig-card-body--pool,
-.sig-card-body--waarde { display: block; }
-
-.sig-pool { display: flex; flex-direction: column; gap: 6px; }
-.sig-pool-balk {
-  height: 8px; border-radius: 4px; overflow: hidden;
-  background: rgba(42, 26, 8, .18);
-  box-shadow: inset 0 1px 2px rgba(42, 26, 8, .25);
-}
-.sig-pool-balk > span {
-  display: block; height: 100%;
-  background: var(--sig-kleur, #c4a87a);
-  transition: width .25s ease;
-}
-.sig-pool-rij { display: flex; align-items: center; gap: 8px; }
-.sig-pool-knop {
-  width: 28px; height: 28px; flex: 0 0 auto;
-  border: 1px solid rgba(196, 168, 122, .55); border-radius: 6px;
-  background: rgba(242, 232, 210, .5); color: #3a2410;
-  font-size: 1.1rem; line-height: 1; cursor: pointer;
-}
-.sig-pool-knop:hover:not(:disabled) { background: rgba(196, 168, 122, .35); }
-.sig-pool-knop:disabled { opacity: .35; cursor: default; }
-.sig-pool-cijfer {
-  flex: 1 1 auto; text-align: center; cursor: pointer;
-  border: 0; background: none; color: #2a1a08;
-  font-family: 'Cinzel', serif; font-size: 1.35rem; font-weight: 600;
-  font-variant-numeric: tabular-nums;
-}
-.sig-pool-max { font-family: 'Crimson Text', serif; font-size: .85rem; font-weight: 400; opacity: .7; }
-
-.sig-waarde {
-  text-align: center; padding: 2px 0 4px;
-  /* Cinzel kent alleen kapitalen, dus "3d6" kwam eruit als "3D6" — en dat is
-     geen dobbelnotatie. Crimson Text heeft een echte kleine d. */
-  font-family: 'Crimson Text', Georgia, serif; font-size: 2.1rem; font-weight: 700;
-  color: var(--sig-kleur, #2a1a08);
-  text-shadow: 0 1px 0 rgba(255, 255, 255, .35);
-}
-
 /* ── Inklapbare secties op de Personage-tab ────────────────────────────────
    De kop blijft staan, de rest van de sectie verdwijnt. Bewust geen <details>:
    dat had elke sectie in een ander element gewrongen, terwijl nu alleen een
@@ -26302,7 +26243,6 @@ body.herberg-actief .herberg-scene .herberg-content {
 
 /* IM Fell zet oudestijl-cijfers; de "7" achter "Paladin" kreeg daardoor een
    staart die als een vreemd teken las. Lining figures voor het klasselabel. */
-.sig-card-tag { font-variant-numeric: lining-nums tabular-nums; }
 
 /* ── Level omhoog ──────────────────────────────────────────────────────────
    De balk op de Personage-tab, het venster met de stappen, en de omslag. */
@@ -26794,18 +26734,6 @@ body.kaart-fs-active .combat-overlay { z-index: 1350; top: 0; }
 #pst-party > .player-dash-section:first-of-type,
 #pst-personage > .player-dash-section:first-of-type { margin-top: 6px; }
 #pst-party > div:first-child { padding-bottom: 8px; }
-
-/* De uitleg op een signatuurkaart liep als losse regels door elkaar: `mdToHtml`
-   maakt van elke nieuwe regel een <br>, en zonder ritme leest dat als één brok.
-   Alinea's krijgen lucht, en het blok een streep erboven zodat het losstaat van
-   de samenvattingsregel. */
-.sig-card-desc {
-  border-top: 1px solid rgba(196, 168, 122, .45);
-  padding-top: 10px; margin-top: 6px; line-height: 1.6;
-}
-.sig-card-desc > p { margin: 0 0 .6em; }
-.sig-card-desc > p:last-child { margin-bottom: 0; }
-.sig-card-desc br + br { line-height: 1.9; }
 
 /* ── Subtabbalk van de speler: iconen, met alleen op de actieve tab een naam ─
    Met zeven tabs brak de balk in twee regels, en dan staat de helft van je
@@ -28970,6 +28898,12 @@ body.akte-schrijf-open .mp-overlay { z-index: 1320; }
   background: rgba(12, 7, 2, 0.5); border-color: rgba(196,168,122,0.3);
   color: rgba(240,235,225,0.93);
 }
+/* De placeholders bleven de donkere kleur van een licht formulier houden en
+   waren op dit paneel nauwelijks te zien. */
+.wk-vraag .dm-input::placeholder, .wk-vraag .bedrag-veld input::placeholder {
+  color: rgba(224,206,164,0.42);
+}
+.wk-vraag .bedrag-veld-munt, .wk-vraag .dm-hint { color: rgba(212,180,110,0.78); }
 .wk-vraag .dm-form-label, .wk-schuld-kop, .wk-vraag-kop { color: #e6c88a; }
 .wk-schuld-cijfers b { color: #f0dcaa; }
 .wk-op { color: #e0897e; }

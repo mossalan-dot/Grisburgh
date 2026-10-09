@@ -10,7 +10,7 @@ import { renderSpreuken } from './render-spreuken.js?v=46';
 import { renderVaardigheden, zoekVaardigheden, heldenboekTekst } from './render-vaardigheden.js?v=40';
 import { renderStatblock } from './render-statblock.js?v=9';
 import { initSocket } from "./socket-client.js?v=84";
-import { initDmPanel } from "./dm-panel.js?v=390";
+import { initDmPanel } from "./dm-panel.js?v=392";
 import { COND_INFO, COND_LABEL, COND_MET_PLAATJE, COND_ICON } from './conditions.js?v=2';
 import './media-picker.js?v=9';
 import './wizard.js?v=4';
@@ -3863,7 +3863,6 @@ const _sbState = {
   // Eén zijpaneel met tabjes: 'inhoud', 'beheer' of null (dicht). Er waren
   // drie losse vlaggen voor drie panelen die elkaar met de hand uitzetten.
   zij: null,
-  tocPreparedOnly: false,
   slots: {},           // { 1: { max: 3, used: 1 }, ... }
   spellSaveDC: null,
   spellAttackBonus: null,
@@ -4306,44 +4305,25 @@ function _ensureSpellbookOverlay() {
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="sb-portrait-hint-icon"><rect x="4" y="2" width="16" height="20" rx="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>
         <span>Draai je scherm voor het spreukenboek</span>
       </div>
-      <!-- Eén zijpaneel over het boek heen. Inhoud schoof van links, Beheer
-           van rechts en Help nog eens van rechts: drie panelen die elkaar met
-           de hand moesten uitzetten, terwijl het allebei "wat kan ik hier met
-           mijn spreuken" is. Nu één paneel met tabjes; de uitleg zit in het
-           boekje in de balk, net als overal elders. -->
+      <!-- Eén paneel over het boek heen. Inhoud schoof van links, Beheer van
+           rechts en Help nog eens van rechts: drie panelen die elkaar met de
+           hand moesten uitzetten. Het zijn er nu nul geworden op één na. -->
       <div class="sb-manage-panel sb-zijpaneel" id="sb-zijpaneel">
         <div class="sb-manage-header">
-          <div class="sb-zij-tabs">
-            <button class="sb-zij-tab" id="sb-zij-tab-inhoud" onclick="window._sbZijTab('inhoud')">${icon('clipboard-list')} Inhoud</button>
-            <button class="sb-zij-tab" id="sb-zij-tab-beheer" onclick="window._sbZijTab('beheer')">${icon('pencil')} Deze spreuk</button>
-          </div>
-          <button class="sb-manage-close-btn" onclick="window._sbZijDicht()" title="Sluiten">✕</button>
+          <!-- Eén venster. Hier stonden twee tabjes ("Inhoud" en "Deze
+               spreuk") naar één lijst en één veld; het veld staat nu in de
+               regel van de spreuk zelf, en dan is er niets meer om tussen te
+               wisselen. -->
+          <div class="sb-zij-titel">${icon('clipboard-list')} Inhoudsopgave</div>
+          ${_helpBtn('spreukenboek_inhoud')}
+          <button class="sb-manage-close-btn" onclick="window._sbZijDicht()" title="Sluiten">${icon('x')}</button>
         </div>
         <div class="sb-zij-blad" id="sb-zij-inhoud">
           <div class="sb-toc-header">
-            <div class="sb-toc-title-row">
-              <div class="sb-toc-title">Inhoudsopgave</div>
-              <button class="sb-toc-prep-filter" id="sb-toc-prep-filter" onclick="window._sbTocTogglePreparedOnly()"
-                data-wptip="Toon alleen voorbereide spreuken">${icon('check')} Alleen paraat</button>
-            </div>
             <input type="text" class="sb-toc-search" id="sb-toc-search"
               placeholder="Zoek spreuk…" oninput="window._sbTocSearch(this.value)">
           </div>
           <div class="sb-toc-list" id="sb-toc-list"></div>
-        </div>
-        <div class="sb-manage-body sb-zij-blad hidden" id="sb-zij-beheer">
-          <div class="sb-manage-section">
-            <div class="sb-manage-label">Incantatie</div>
-            <textarea class="sb-manage-input sb-manage-input--quill sb-manage-textarea" id="sb-manage-incant"
-              rows="2" placeholder="Eigen incantatie…" maxlength="200"
-              onblur="window._sbSaveIncantation(this.value)"></textarea>
-          </div>
-          <!-- Hier stonden ook "op welk level verkregen", een tweede
-               concentratieknop en de marginalia. Het level wordt nu vanzelf
-               vastgelegd op het moment dat de spreuk in het boek komt (het
-               vergeelt zijn bladzijde), concentratie heeft al een knop in de
-               balk, en de marginalia zijn eruit. Wat blijft is het enige dat
-               je zelf schrijft. -->
         </div>
       </div>
     </div>`;
@@ -4588,82 +4568,75 @@ window._sbTogglePin = async function() {
 // Eén paneel, twee tabjes. `_sbToggleToc` en `_sbToggleManage` blijven bestaan
 // omdat ze van buitenaf worden aangeroepen (de knop op de linkerpagina bij de
 // incantatie bijvoorbeeld); ze openen nu allebei hetzelfde paneel.
-window._sbZijTab = function(tab) {
-  _sbState.zij = tab;
+window._sbZijTab = function() {
+  _sbState.zij = 'inhoud';
   document.getElementById('sb-zijpaneel')?.classList.add('sb-manage-open');
-  for (const t of ['inhoud', 'beheer']) {
-    document.getElementById('sb-zij-' + t)?.classList.toggle('hidden', t !== tab);
-    document.getElementById('sb-zij-tab-' + t)?.classList.toggle('actief', t === tab);
-  }
-  // Eén knop naar dit paneel, dus hij licht op zodra het openstaat — welk
-  // tabje je daarbinnen koos doet er voor de knop niet toe.
-  _sbState.zijLaatst = tab;
+  // Het boek eronder heeft zijn eigen knoppenbalk, en die bleef erdoorheen
+  // staan: twee rijen knoppen boven elkaar die allebei iets anders doen.
+  document.getElementById('sb-overlay')?.classList.add('sb-zij-aan');
   document.getElementById('sb-manage-btn')?.classList.add('active');
-  if (tab === 'inhoud') {
-    const inp = document.getElementById('sb-toc-search');
-    if (inp) inp.value = '';
-    _sbRenderTocList('');
-    setTimeout(() => document.getElementById('sb-toc-search')?.focus(), 50);
-  } else {
-    _sbManageRefresh();
+  const inp = document.getElementById('sb-toc-search');
+  if (inp) inp.value = '';
+  _sbRenderTocList('');
+  // De bronlijst zegt welke spreuken een V-component hebben; oudere regels in
+  // een boek dragen dat niet zelf. Eén keer ophalen, dan opnieuw tekenen.
+  if (!_playerSpellList) {
+    _spreukenVoorSpeler().then(() => {
+      if (_sbState.zij) _sbRenderTocList(document.getElementById('sb-toc-search')?.value || '');
+    }).catch(() => {});
   }
+  setTimeout(() => document.getElementById('sb-toc-search')?.focus(), 50);
 };
 
 window._sbZijDicht = function() {
   _sbState.zij = null;
   document.getElementById('sb-zijpaneel')?.classList.remove('sb-manage-open');
+  document.getElementById('sb-overlay')?.classList.remove('sb-zij-aan');
   document.getElementById('sb-manage-btn')?.classList.remove('active');
 };
 
-function _sbZijWissel(tab) {
-  if (_sbState.zij === tab) window._sbZijDicht(); else window._sbZijTab(tab);
-}
-
-// Vanaf de incantatie op de linkerpagina: altijd de inhoudsopgave.
-window._sbToggleToc = () => _sbZijWissel('inhoud');
-// De knop in de balk. Staat het paneel open, dan gaat het dicht; anders opent
-// het op het tabje waar je het laatst was. De eerste keer is dat "Deze spreuk",
-// want dat is waar de knop naar heet.
-window._sbToggleManage = () => {
-  if (_sbState.zij) window._sbZijDicht();
-  else window._sbZijTab(_sbState.zijLaatst || 'beheer');
+// Eén paneel, dus één knop die het open- en dichtdoet. Beide oude namen blijven
+// bestaan: ze worden van buitenaf aangeroepen (de incantatieknop op de
+// linkerpagina) en wijzen nu naar hetzelfde.
+window._sbToggleToc = window._sbToggleManage = () => {
+  if (_sbState.zij) window._sbZijDicht(); else window._sbZijTab();
 };
 
-// Bewerken vanuit de inhoudsopgave: sla de bladzijde op én wissel naar het
-// tabje waar je hem bewerkt. Anders moest je eerst klikken om hem te openen en
-// daarna nog eens om bij zijn velden te komen.
+// Bewerken: de incantatiebalk verschijnt in de regel van de spreuk zelf. Dat
+// was een apart tabje met één veld, en dan moest je twee keer klikken om één
+// zin te typen — en onderwijl zag je niet meer bij welke spreuk je hoorde.
 window._sbTocBewerk = function(i) {
-  window._sbGoTo(i, false);
-  window._sbZijTab('beheer');
+  _sbState.tocBewerk = _sbState.tocBewerk === i ? null : i;
+  _sbRenderTocList(document.getElementById('sb-toc-search')?.value || '');
+  if (_sbState.tocBewerk === i) {
+    setTimeout(() => {
+      const veld = document.querySelector('.sb-toc-incant-input');
+      veld?.focus(); veld?.select();
+    }, 30);
+  }
 };
 
 window._sbCloseAndReturn = function() {
   window._closeSpellbook();
   if (typeof window._setPlayerSubTab === 'function') {
-    window._setPlayerSubTab(_sbVanTab || 'spreukenboek');
+    window._setPlayerSubTab(_sbVanTab || 'spreukenboek', false);
   }
 };
 
-window._sbSaveIncantation = async function(text) {
-  const spell = _sbState.spells[_sbState.idx];
+// Bewaren vanuit de inhoudsopgave. De bladzijde die openligt hoeft daar niet
+// voor te wisselen: je schrijft een zin bij een spreuk, niet bij de pagina.
+window._sbTocIncantBewaar = async function(i, tekst) {
+  const spell = _sbState.spells[i];
   if (!spell || !_sbState.charId) return;
-  const trimmed = text.trim();
-  if (trimmed === (spell.incantation || '')) return;
-  spell.incantation = trimmed;
-  _sbAudio.write();
-  try {
-    await api.updatePlayerSpell(_sbState.charId, spell.index, { incantation: trimmed });
-    _sbRender();
-  } catch(e) { console.warn('Incantatie opslaan mislukt:', e); }
+  const nieuw = String(tekst || '').slice(0, 200);
+  if (nieuw === (spell.incantation || '')) { _sbState.tocBewerk = null; _sbRenderTocList(document.getElementById('sb-toc-search')?.value || ''); return; }
+  spell.incantation = nieuw;
+  _sbState.tocBewerk = null;
+  _sbRenderTocList(document.getElementById('sb-toc-search')?.value || '');
+  if (i === _sbState.idx) _sbRender();
+  try { await api.updatePlayerSpell(_sbState.charId, spell.index, { incantation: nieuw }); }
+  catch (e) { console.warn('Incantatie opslaan mislukt:', e); }
 };
-
-// ── Beheer panel: er staat nog één veld, dus er valt één ding te vullen ──
-function _sbManageRefresh() {
-  const spell = _sbState.spells[_sbState.idx];
-  if (!spell) return;
-  const el = document.getElementById('sb-manage-incant');
-  if (el && document.activeElement !== el) el.value = spell.incantation || '';
-}
 
 // De marginalia (losse icoontjes met een toelichting langs de kantlijn) zijn
 // eruit, met hun bewerkknoppen, hun iconenpicker en de sleepcode. Ze waren een
@@ -5158,10 +5131,25 @@ window._sbCustomSpellSave = async function() {
 };
 
 window._sbTocSearch = function(q) { _sbRenderTocList(q); };
-window._sbTocTogglePreparedOnly = function() {
-  _sbState.tocPreparedOnly = !_sbState.tocPreparedOnly;
-  _sbRenderTocList(document.getElementById('sb-toc-search')?.value || '');
-};
+// Een incantatie zijn de woorden die je uitspreekt. Heeft een spreuk geen
+// **V**-component, dan spreek je niets uit en valt er niets te schrijven — dan
+// hoort de knop er ook niet te staan.
+//
+// Van spreuken die vóór vandaag in een boek belandden is `components` niet
+// meegeschreven (73 van de 133 in deze campagne). Daarom zoeken we hem er dan
+// bij in de bronlijst. Weten we het echt niet, dan tonen we de knop wél: een
+// onbekende is geen reden om iets weg te halen.
+function _sbSpreektUit(s) {
+  const tekst = (c) => Array.isArray(c) ? c.join(',') : String(c || '');
+  let comp = tekst(s.components);
+  if (!comp.trim()) {
+    const bron = (_playerSpellList || []).find(x => x.index === s.index);
+    comp = tekst(bron?.components);
+    if (bron && bron.material && !comp) comp = 'M';
+  }
+  if (!comp.trim()) return true;
+  return /\bV\b/i.test(comp);
+}
 
 function _sbRenderTocList(q) {
   const list = document.getElementById('sb-toc-list');
@@ -5170,28 +5158,20 @@ function _sbRenderTocList(q) {
   const pinnedIndices = new Set(_sbState.spells.map(s => s.index));
   let html = '';
 
-  // Reflecteer de filter-knop-staat
-  const prepFilterBtn = document.getElementById('sb-toc-prep-filter');
-  if (prepFilterBtn) prepFilterBtn.classList.toggle('sb-toc-prep-filter--on', !!_sbState.tocPreparedOnly);
-
   // Is een spreuk 'paraat'? (cantrip = altijd, of voorbereid, of altijd-paraat)
-  const _ready = s => (s.level || 0) === 0 || s.prepared || s.alwaysPrepared;
   // Markertje per spreuk in de lijst
   const _mark = s => (s.level || 0) === 0 || s.alwaysPrepared
     ? '<span class="sb-toc-prep-mark sb-toc-prep-mark--always" title="Altijd paraat">★</span>'
     : (s.prepared ? `<span class="sb-toc-prep-mark sb-toc-prep-mark--on" title="Voorbereid">${icon('check')}</span>` : '');
 
   if (!query) {
-    // Lege zoekterm: toon toegevoegde spreuken per level met verwijderknop
-    const bron = _sbState.tocPreparedOnly ? _sbState.spells.filter(_ready) : _sbState.spells;
+    // "Alleen paraat" stond als tweede filterknop boven de lijst, terwijl het
+    // vinkje in elke regel al zegt wat paraat is én het ter plekke omzet.
     if (_sbState.spells.length === 0) {
       html = '<div class="sb-toc-empty">Nog geen spreuken toegevoegd.<br>Zoek er een op om te beginnen.</div>';
-    } else if (bron.length === 0) {
-      html = '<div class="sb-toc-empty">Geen voorbereide spreuken.<br>Bereid er een voor met de knop bovenaan.</div>';
     } else {
       const groups = {};
       _sbState.spells.forEach((s, i) => {
-        if (_sbState.tocPreparedOnly && !_ready(s)) return;
         const k = s.level || 0;
         if (!groups[k]) groups[k] = [];
         groups[k].push({ s, i });
@@ -5207,14 +5187,23 @@ function _sbRenderTocList(q) {
           // (die is altijd paraat), dus daar staat hij er niet — een knop die
           // nooit iets doet is erger dan geen knop.
           const paraat = s.prepared || s.alwaysPrepared;
-          html += `<div class="sb-toc-item${active ? ' sb-toc-active' : ''}">
+          const bewerkt = _sbState.tocBewerk === i;
+          const spreekt = _sbSpreektUit(s);
+          html += `<div class="sb-toc-item${active ? ' sb-toc-active' : ''}${bewerkt ? ' sb-toc-bewerkt' : ''}">
             ${_mark(s)}
-            <span class="sb-toc-item-name" onclick="window._sbGoTo(${i}, true)">${esc(s.name)}</span>
-            ${school ? `<span class="sb-toc-item-school">${esc(school)}</span>` : ''}
+            ${bewerkt && spreekt
+              ? `<span class="sb-toc-item-name sb-toc-item-name--vast">${esc(s.name)}</span>
+                 <input class="sb-toc-incant-input" type="text" maxlength="200"
+                   placeholder="Wat zeg je als je hem uitspreekt?"
+                   value="${esc(s.incantation || '')}"
+                   onblur="window._sbTocIncantBewaar(${i}, this.value)"
+                   onkeydown="if(event.key==='Enter')this.blur();if(event.key==='Escape')window._sbTocBewerk(${i})">`
+              : `<span class="sb-toc-item-name" onclick="window._sbGoTo(${i}, true)">${esc(s.name)}</span>
+                 ${school ? `<span class="sb-toc-item-school">${esc(school)}</span>` : ''}`}
             <span class="sb-toc-item-knoppen">
               ${k === 0 ? '' : `<button class="sb-toc-ibtn${paraat ? ' is-aan' : ''}" onclick="window._sbCyclePrepared(${i})"
                 title="${s.alwaysPrepared ? 'Altijd paraat — klik om op te heffen' : s.prepared ? 'Paraat — klik voor altijd paraat' : 'Zet gereed'}">${icon('check')}</button>`}
-              <button class="sb-toc-ibtn" onclick="window._sbTocBewerk(${i})" title="Bewerken">${icon('pencil')}</button>
+              ${spreekt ? `<button class="sb-toc-ibtn${bewerkt ? ' is-aan' : ''}" onclick="window._sbTocBewerk(${i})" title="${bewerkt ? 'Klaar' : 'Incantatie schrijven'}">${icon('pencil')}</button>` : ''}
               <button class="sb-toc-ibtn sb-toc-ibtn--weg" onclick="window._sbTocUnpin('${esc(s.index)}')" title="Verwijderen">${icon('trash')}</button>
             </span>
           </div>`;
@@ -5692,9 +5681,6 @@ function _sbRender() {
 
   // ── TOC ──
   _sbRenderTocList(document.getElementById('sb-toc-search')?.value || '');
-
-  // ── Beheer-paneel bijwerken als het open is ──
-  if (_sbState.zij === 'beheer') _sbManageRefresh();
 }
 
 // ════════════════════════════════════════════════════════════
@@ -6972,208 +6958,16 @@ function _sigMod(pp, sleutel) {
   const v = parseInt(pp?.[sleutel]);
   return Number.isFinite(v) ? Math.floor((v - 10) / 2) : 0;
 }
-// Een tabel (level → waarde) of een functie; beide mogen in `uses`/`pool`.
-function _sigGetal(bron, lvl, pp) {
-  if (typeof bron === 'function') return parseInt(bron(lvl, pp)) || 0;
-  return _sigThresh(bron || {}, lvl) || 0;
-}
 function _sigThresh(table, level) {
   let v = 0;
   for (const t of Object.keys(table).map(Number).sort((a, b) => a - b)) if ((level || 0) >= t) v = table[t];
   return v;
 }
-function _findClassFeatureDesc(progData, classKey, featureName) {
-  const cls = progData?.classes?.[classKey];
-  if (!cls) return '';
-  const nn = String(featureName).toLowerCase().replace(/[^a-z0-9]/g, '');
-  for (const arr of Object.values(cls.levels || {}))
-    for (const f of (arr || [])) if (String(f.name || '').toLowerCase().replace(/[^a-z0-9]/g, '') === nn) return f.desc || '';
-  return '';
-}
-function _sigReadState(pp) { try { return JSON.parse(pp?.signatureState || '{}'); } catch { return {}; } }
-function _sigCfgFor(klasse) { return _SIGNATURE[String(klasse || '').toLowerCase()]; }
-function _sigCurMaxVoor(cfg, pp, level) {
-  const st = _sigReadState(pp)[cfg.key] || {};
-  const auto = _sigGetal(cfg.vorm === 'pool' ? cfg.pool : cfg.uses, level, pp);
-  return (st.maxOverride != null && String(st.maxOverride) !== '') ? (parseInt(st.maxOverride) || 0) : auto;
-}
-
-// Eén kaart per klasse. Een multiclass krijgt er dus twee — die van zijn Cleric
-// én die van zijn Wizard — elk met hun eigen level, want Channel Divinity telt
-// op Clericlevel en Arcane Recovery op Wizardlevel.
-function _renderSignatureCards(pp, progData) {
-  const multi = pp?.multiclass === true || pp?.multiclass === 'true';
-  const kLvl  = parseInt(pp?.klasseLevel) || parseInt(pp?.level) || 0;
-  const rijen = [{ klasse: pp?.klasse, lvl: multi ? kLvl : (parseInt(pp?.level) || kLvl), sub: pp?.subclass }];
-  if (multi && pp?.multiKlasse) rijen.push({ klasse: pp.multiKlasse, lvl: parseInt(pp.multiKlasseLevel) || 0, sub: pp?.multiSubclass });
-  return rijen.map(r => [
-    _renderSignatureCard(r.klasse, r.lvl, progData, pp),
-    // De kaart van de subklasse komt ná die van de klasse: Superiority Dice
-    // horen onder Second Wind, niet erboven.
-    _renderSignatureCard(r.klasse, r.lvl, progData, pp, _subSigCfgFor(r.sub), r.sub),
-  ].filter(Boolean).join('')).filter(Boolean).join('');
-}
-
-function _renderSignatureCard(klasse, level, progData, pp, cfgIn, subNaam) {
-  const cfg = cfgIn || _sigCfgFor(klasse);
-  if (!cfg) return '';
-  const lvl = parseInt(level) || 0;
-  const k   = cfg.key;
-  const st  = _sigReadState(pp)[k] || {};
-  const desc = _findClassFeatureDesc(progData, _progClassKey(progData, klasse), cfg.feature);
-  const max  = _sigCurMaxVoor(cfg, pp, lvl);
-  const used = Math.min(st.used || 0, max);
-  const active = !!st.active;
-
-  let body = '';
-  if (cfg.vorm === 'waarde') {
-    // Niets bij te houden: het getal groeit met je level en dat is de hele kaart.
-    body = `<div class="sig-waarde">${esc(cfg.waarde(lvl))}</div>`;
-  } else if (cfg.vorm === 'pool') {
-    // Een voorraad waar je met ongelijke happen uit put — bolletjes zouden er
-    // bij Lay on Hands veertig zijn. Dus een balk met een teller.
-    const over = max - used;
-    const pct  = max > 0 ? Math.round((over / max) * 100) : 0;
-    body = `
-      <div class="sig-pool">
-        <div class="sig-pool-balk"><span style="width:${pct}%"></span></div>
-        <div class="sig-pool-rij">
-          <button class="sig-pool-knop" onclick="window._sigPool('${k}',1)" title="Eén verbruiken"${over <= 0 ? ' disabled' : ''}>−</button>
-          <button class="sig-pool-cijfer" onclick="window._sigPoolVraag('${k}')" title="Een aantal ineens verbruiken">${over}<span class="sig-pool-max"> / ${max}${cfg.eenheid ? ' ' + esc(cfg.eenheid) : ''}</span></button>
-          <button class="sig-pool-knop" onclick="window._sigPool('${k}',-1)" title="Eén terug"${used <= 0 ? ' disabled' : ''}>+</button>
-        </div>
-      </div>`;
-  } else {
-    const dots = max > 0
-      ? Array.from({ length: max }, (_, i) => `<button class="sig-dot${i < used ? ' used' : ''}" onclick="window._sigToggleUse('${k}',${i})" title="${i < used ? 'Verbruikt — klik om vrij te geven' : 'Vrij — klik om te verbruiken'}"></button>`).join('')
-      : '<span class="sig-none">—</span>';
-    body = `
-      ${cfg.activeOff ? `<button class="sig-toggle${active ? ' on' : ''}" onclick="window._sigToggleActive('${k}')">
-        ${active ? icon('check') + ' ' + esc(cfg.activeOn) : esc(cfg.activeOff)}
-      </button>` : ''}
-      <div class="sig-uses">
-        <div class="sig-dots">${dots}</div>
-        <button class="sig-uses-count" onclick="window._sigEditMax('${k}')" title="Maximum aanpassen (leeg = automatisch)">${max - used} / ${max}</button>
-      </div>`;
-  }
-
-  const onder = [cfg.extra && cfg.extra(lvl), cfg.herstel && `Terug na ${cfg.herstel}`, cfg.naslag]
-    .filter(Boolean).map(esc).join(' · ');
-
-  return `
-  <div class="sig-card${active ? ' sig-card--active' : ''}" data-sig="${k}" style="--sig-kleur:${cfg.kleur}">
-    <div class="sig-card-head">
-      <span class="sig-card-icon">${icon(cfg.icon)}</span>
-      <span class="sig-card-name">${esc(cfg.feature)}</span>
-      <span class="sig-card-tag">${esc(subNaam || klasse)}${lvl ? ' ' + lvl : ''}</span>
-      ${desc ? `<button class="sig-card-info" onclick="window._sigToggleInfo('${k}')" title="Volledige uitleg">${icon('scroll-text')}</button>` : ''}
-      ${cfg.vorm === 'waarde' ? '' : `<button class="sig-card-reset" onclick="window._sigReset('${k}')" title="Alles terug">${icon('refresh-cw')}</button>`}
-    </div>
-    <div class="sig-card-body sig-card-body--${cfg.vorm || 'uses'}">${body}</div>
-    <div class="sig-card-extra">${onder}</div>
-    ${desc ? `<div class="sig-card-desc hidden" id="sig-card-desc-${k}">${window.glossary?.annotate?.(mdToHtml(desc)) ?? mdToHtml(desc)}</div>` : ''}
-  </div>`;
-}
-
 // De catalogus naar buiten, voor het klassekaartje in de Vaardighedentab: dat
 // wil weten wat de kenmerkende feature van een klasse is en welke kleur erbij
-// hoort. Alleen lezen — de kaart op het blad blijft hier wonen.
+// hoort. Alleen lezen; de kaart op het spelersblad is er niet meer.
 window._signatureVoor    = (klasse) => _sigCfgFor(klasse) || null;
 window._subSignatureVoor = (sub)    => _subSigCfgFor(sub) || null;
-
-// Zoek de kaartconfiguratie bij een key (de kaart weet zijn eigen klasse niet meer).
-function _sigCfgByKey(k) {
-  return Object.values(_SIGNATURE).find(c => c.key === k)
-      || Object.values(_SUBKLASSE_SIGNATURE).find(c => c.key === k);
-}
-// Het level dat bij díé kaart hoort: de klassehelft waar de feature van is.
-function _sigLevelVoor(pp, cfg) {
-  const multi = pp?.multiclass === true || pp?.multiclass === 'true';
-  // Een subklassekaart telt op het level van de klasse waar die subklasse bij
-  // hoort — bij een multiclass is dat de tweede helft als de subklasse daarvan is.
-  if (multi && _subSigCfgFor(pp?.multiSubclass)?.key === cfg.key) return parseInt(pp.multiKlasseLevel) || 0;
-  if (multi && _subSigCfgFor(pp?.subclass)?.key === cfg.key)      return parseInt(pp.klasseLevel) || 0;
-  const eigen = _sigCfgFor(pp?.klasse);
-  if (multi && eigen?.key !== cfg.key && _sigCfgFor(pp?.multiKlasse)?.key === cfg.key) {
-    return parseInt(pp.multiKlasseLevel) || 0;
-  }
-  return multi ? (parseInt(pp?.klasseLevel) || 0) : (parseInt(pp?.level) || parseInt(pp?.klasseLevel) || 0);
-}
-
-function _sigRefreshDynamic() {
-  const pp = window._lastPlayerProfile || {};
-  for (const card of document.querySelectorAll('.sig-card')) {
-    const cfg = _sigCfgByKey(card.dataset.sig);
-    if (!cfg) continue;
-    const lvl  = _sigLevelVoor(pp, cfg);
-    const st   = _sigReadState(pp)[cfg.key] || {};
-    const max  = _sigCurMaxVoor(cfg, pp, lvl);
-    const used = Math.min(st.used || 0, max);
-    card.classList.toggle('sig-card--active', !!st.active);
-
-    const dotsEl = card.querySelector('.sig-dots');
-    if (dotsEl) dotsEl.innerHTML = max > 0
-      ? Array.from({ length: max }, (_, i) => `<button class="sig-dot${i < used ? ' used' : ''}" onclick="window._sigToggleUse('${cfg.key}',${i})"></button>`).join('')
-      : '<span class="sig-none">—</span>';
-    const cnt = card.querySelector('.sig-uses-count');
-    if (cnt) cnt.textContent = `${max - used} / ${max}`;
-
-    const balk = card.querySelector('.sig-pool-balk span');
-    if (balk) balk.style.width = `${max > 0 ? Math.round(((max - used) / max) * 100) : 0}%`;
-    const cij = card.querySelector('.sig-pool-cijfer');
-    if (cij) cij.innerHTML = `${max - used}<span class="sig-pool-max"> / ${max}${cfg.eenheid ? ' ' + esc(cfg.eenheid) : ''}</span>`;
-    const min  = card.querySelector('.sig-pool-knop[onclick*="\',1)"]');   // verbruiken
-    const plus = card.querySelector('.sig-pool-knop[onclick*="\',-1)"]');  // teruggeven
-    if (min)  min.disabled  = (max - used) <= 0;
-    if (plus) plus.disabled = used <= 0;
-
-    const tog = card.querySelector('.sig-toggle');
-    if (tog && cfg.activeOff) { tog.classList.toggle('on', !!st.active); tog.innerHTML = st.active ? icon('check') + ' ' + esc(cfg.activeOn) : esc(cfg.activeOff); }
-  }
-}
-
-async function _sigMutate(k, fn) {
-  const pp  = window._lastPlayerProfile;
-  const cfg = _sigCfgByKey(k);
-  if (!pp || !cfg) return;
-  const lvl = _sigLevelVoor(pp, cfg);
-  const all = _sigReadState(pp);
-  const st  = all[cfg.key] || {};
-  fn(st, _sigCurMaxVoor(cfg, pp, lvl));
-  all[cfg.key] = st;
-  pp.signatureState = JSON.stringify(all);
-  _sigRefreshDynamic();
-  if (window._lastCharId) { try { await api.patchPlayerProfile(window._lastCharId, { signatureState: pp.signatureState }); } catch {} }
-}
-window._sigToggleActive = (k) => _sigMutate(k, (st, max) => {
-  if (!st.active) { st.active = true; if (max > 0) st.used = Math.min((st.used || 0) + 1, max); }
-  else st.active = false;
-});
-window._sigToggleUse = (k, i) => _sigMutate(k, (st, max) => { const used = Math.min(st.used || 0, max); st.used = i < used ? i : i + 1; });
-window._sigReset = (k) => _sigMutate(k, st => { st.used = 0; st.active = false; });
-window._sigToggleInfo = (k) => document.getElementById(`sig-card-desc-${k}`)?.classList.toggle('hidden');
-window._sigPool = (k, n) => _sigMutate(k, (st, max) => {
-  st.used = Math.max(0, Math.min((st.used || 0) + n, max));
-});
-window._sigPoolVraag = (k) => {
-  const cfg = _sigCfgByKey(k); if (!cfg) return;
-  const v = prompt(`Hoeveel ${cfg.feature} verbruik je?\n(een negatief getal geeft terug)`, '1');
-  if (v === null) return;
-  const n = parseInt(v.trim()); if (!Number.isFinite(n) || n === 0) return;
-  window._sigPool(k, n);
-};
-window._sigEditMax = (k) => {
-  const pp = window._lastPlayerProfile;
-  const cfg = _sigCfgByKey(k);
-  if (!pp || !cfg) return;
-  const lvl = _sigLevelVoor(pp, cfg);
-  const auto = _sigGetal(cfg.vorm === 'pool' ? cfg.pool : cfg.uses, lvl, pp);
-  const cur = (_sigReadState(pp)[cfg.key] || {}).maxOverride ?? '';
-  const v = prompt(`Maximaal aantal ${cfg.feature}?\n(laat leeg voor automatisch op basis van level: ${auto})`, String(cur));
-  if (v === null) return;
-  const t = v.trim();
-  _sigMutate(k, st => { if (t === '') delete st.maxOverride; else st.maxOverride = Math.max(0, parseInt(t) || 0); });
-};
 
 // De gevallenen. `groups[gid].deceased` staat al lang in de data — bij de
 // eerste party van Grisburgh acht namen — maar werd nergens getoond. Lui
@@ -8588,9 +8382,13 @@ async function renderMijnKarakter(opts = {}) {
           </div>
         </div>
 
-        <!-- De klasse-eigen kaart hoort hier: eerst wie je bent (abilities,
-             skills), dan het ene ding waar je klasse aan tafel over gaat. -->
-        ${_renderSignatureCards(playerProfile, progData)}
+        <!-- Hier stond de klasse-eigen kaart (Rage, Bardic Inspiration, Sneak
+             Attack): een balk met bolletjes die je afstreepte. Die bolletjes
+             kun je al bij een kenmerk zetten, en dan staat de teller waar de
+             feature zelf staat in plaats van los bovenaan. De catalogus met
+             klassefeatures blijft bestaan: het klassekaartje in het heldenboek
+             en de kleur van de level-up komen eruit.
+             (Geen backticks in commentaar hierbinnen: template literal.) -->
 
         <!-- Proficiencies -->
         <div class="player-dash-section">
@@ -10052,7 +9850,11 @@ async function renderMijnKarakter(opts = {}) {
     return true;
   })();
 
-  window._setPlayerSubTab = function(tab) {
+  // `autoOpen` is er voor één geval: de sluitknop van het spreukenboek brengt
+  // je terug naar het tabblad waar je vandaan kwam, en dat is meestal het
+  // spreukenboektabblad — dat het boek vanzelf opent. Het boek ging dus dicht
+  // en meteen weer open, en de knop leek stuk.
+  window._setPlayerSubTab = function(tab, autoOpen = true) {
     // Beurs opslaan vóórdat de DOM vervangen wordt (alleen als dirty)
     if (typeof window._dashCurrencyFlush === 'function') window._dashCurrencyFlush();
 
@@ -10110,7 +9912,7 @@ async function renderMijnKarakter(opts = {}) {
       if (_pm) renderProgressie(_pm, _ctx);
     }
     // Auto-open spellbook when navigating to spreukenboek tab
-    if (tab === 'spreukenboek' && _sbState.spells.length > 0) {
+    if (tab === 'spreukenboek' && autoOpen && _sbState.spells.length > 0) {
       window._sbUserClosed = false;  // explicit tab nav resets the closed flag
       const ov = document.getElementById('sb-overlay');
       if (!ov?.classList.contains('sb-open')) window._openSpellbook();
@@ -13009,6 +12811,7 @@ async function renderWoekeraar() {
   let data;
   try { data = await api.get('/woekeraar'); } catch (e) { _dienstFout(el, e); return; }
   const cfg = data.config || {};
+  const currency = data.currency || null;
   const schuld = (data.schulden || [])[0] || null;
   const verzoek = data.verzoek || null;
   const geld = (cl) => window.formatCl?.(cl) ?? `${cl} cl`;
@@ -13069,7 +12872,10 @@ async function renderWoekeraar() {
   el.innerHTML = `
     <div class="herberg-scene" ${backdrop}>
       <div class="herberg-content">
-        <div class="dienst-beurs-topbar" style="justify-content:flex-end">${_geluidBtn()}${_helpBtn('woekeraar')}</div>
+        <div class="dienst-beurs-topbar">
+          ${currency ? `<span class="ts-beurs tempel-beurs-top">Beurs: <strong>${_magizooBeurs(currency)}</strong></span>` : ''}
+          ${_geluidBtn()}${_helpBtn('woekeraar')}
+        </div>
         <div class="herberg-portrait-wrap">${portret}</div>
         <!-- Dezelfde romp als elke andere dienst: scene → content → rond
              portret → naam → groet. Dit scherm had zijn eigen herberg-hero-
@@ -15552,6 +15358,11 @@ const HELP_CONFIG = {
 
   // De uitleg die als alinea boven de lijst stond. Met dezelfde getallen erin,
   // want dát was het nuttige deel — alleen stond het in de weg.
+  spreukenboek_inhoud: () => ({ titel: 'Inhoudsopgave', stappen: [
+    { titel: 'Bladeren', tekst: 'Klik op een naam en het boek slaat die bladzijde op. Zoeken gaat met het veld bovenaan; typ je iets dat niet in je boek staat, dan zoekt hij ook in de spreuken die je nog *kunt* leren.\n\nEen ★ betekent altijd paraat (elke cantrip is dat), een vinkje betekent dat je hem voor vandaag hebt voorbereid.', afbeelding: null },
+    { titel: 'De drie knoppen', tekst: '**Vinkje** — zet een spreuk gereed. Hij loopt drie standen af: niet paraat, paraat, altijd paraat. Cantrips hebben hem niet; die zijn het al.\n\n**Potlood** — schrijf een incantatie: de woorden die jij uitspreekt als je hem cast. Die verschijnen op de bladzijde.\n\n**Prullenbak** — haal hem uit je boek.', afbeelding: null },
+  ] }),
+
   spreuken_toevoegen: () => {
     const klasseEN = _spellClassEN(_sbState.klasse) || '';
     const lvl = parseInt(_sbState.klasseLevel)

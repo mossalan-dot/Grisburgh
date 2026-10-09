@@ -16445,7 +16445,7 @@ function _woekeraar(meta) {
     entityId:     c.entityId || ts.entityId || null,
     imageId:      c.entityId || ts.entityId || null,
     locatieId:    c.locatieId || null,
-    backdropId:   c.locatieId || tsCfg.backdropId || tsCfg.locatieId || null,
+    backdropId:   c.backdropId || c.locatieId || tsCfg.backdropId || tsCfg.locatieId || null,
     maxLeenCl:    Number.isFinite(parseInt(c.maxLeenCl)) ? parseInt(c.maxLeenCl) : ts.maxLeenCl,
     rentePerRust: Number.isFinite(parseInt(c.rentePerRust)) ? parseInt(c.rentePerRust) : TS_RENTE_PER_RUST,
     maxFactor:    Number.isFinite(parseInt(c.maxFactor)) ? parseInt(c.maxFactor) : TS_MAX_FACTOR,
@@ -16465,6 +16465,9 @@ router.get('/woekeraar', attachRole, vereistDienst('woekeraar'), (req, res) => {
   const g = getGroup(dmState, _playerGroupId(dmState, charId));
   res.json({
     config: _woekeraar(meta),
+    // De beurs stond op elk ander dienstscherm bovenin en hier niet — terwijl
+    // dit de dienst is waar het nu net over geld gaat.
+    currency: charId ? _effectiveCurrency(dmState, charId) : null,
     ontspannen: charId ? _woekeraarOntspannen(dmState, charId) : null,
     schulden: charId ? _schuldenVan(dmState, charId) : [],
     verzoek: charId ? ((g.leenVerzoeken || []).find(v => v.characterId === charId && v.status === 'pending') || null) : null,
@@ -16478,6 +16481,10 @@ router.put('/meta/woekeraar', requireDM, (req, res) => {
   if (b.naam !== undefined)     w.naam = String(b.naam).slice(0, 80);
   if (b.entityId !== undefined) w.entityId = b.entityId || null;
   if (b.locatieId !== undefined) w.locatieId = b.locatieId || null;
+  // Een eigen brede achtergrond, los van het locatiekaartje. Zelfde paar als
+  // bij de andere diensten: `locatieId` is wáár het is, `backdropId` is wat je
+  // ziet als het kaartje niet de goede plaat heeft.
+  if (b.backdropId !== undefined) w.backdropId = b.backdropId || null;
   // Een begroetingstafel, net als bij elke andere dienst: de DM wijst een tafel
   // aan en de server zet er de regels bij. Niet de regels zelf opslaan — dan
   // staat dezelfde tekst op twee plekken en loopt er één achter.

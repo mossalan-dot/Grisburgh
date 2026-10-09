@@ -6151,6 +6151,7 @@ const _SVC_BACKDROP = {
   magizoo: { preview: 'magizoo-backdrop-preview', suggested: 'magizoo-backdrop',   set: v => { window._magizooBackdropPending = v; }, get: () => window._magizooBackdropPending },
   ursula:  { preview: 'ursula-backdrop-preview',  suggested: 'waarzegger-backdrop', set: v => { _ursulaBackdropPending = v; },      get: () => _ursulaBackdropPending },
   tempel:  { preview: 'tempel-backdrop-preview',  suggested: 'tempel-backdrop',    set: v => { _tempelBackdropPending = v; },       get: () => _tempelBackdropPending },
+  woek:    { preview: 'woek-backdrop-preview',    suggested: 'woekeraar-backdrop', set: v => { window._woekBackdropPending = v; },  get: () => window._woekBackdropPending },
 };
 
 function _updateBackdropPreview(previewId, fileId) {
@@ -6500,8 +6501,6 @@ async function _renderSchulden() {
         <input id="woek-max-factor" class="dm-input dm-input--sm" type="number" min="1" max="50"
           value="${esc(cfg.maxFactor ?? 5)}" style="max-width:100px">
       </div>
-      <p class="dm-hint">De rente loopt per <strong>lange rust</strong>, niet op de kalender: een party speelt geen echte dagen. Boven het plafond telt hij niet verder — dan komt hij het halen.</p>
-
       ${_dienstSectieKop('alert-triangle', 'Als er niet betaald wordt', 'dm_woekeraar_escalatie')}
       <div class="dm-form-row">
         <label class="dm-form-checkbox">
@@ -6509,29 +6508,34 @@ async function _renderSchulden() {
           <span>Laat een schuld escaleren</span>
         </label>
       </div>
-      <p class="dm-hint">Staat dit uit, dan groeit een schuld alleen. Staat het aan, dan schuift een <em>opgeëiste</em> schuld bij elke lange rust een trap op: een brief, dan onderpand (jij wijst aan wat er verdwijnt), dan het bezoek. Opeisen doe je per schuld hieronder.</p>
       <!-- Wie hij stuurt stond als vaste naam in de route, en die naam was van
            Grisburgh. Hier zet je hem; laat je het leeg, dan komt er iemand
            langs zonder naam — dreigender, en in elke campagne waar. -->
       <div class="dm-form-row">
         <label class="dm-form-label" for="woek-handlanger">Wie hij stuurt</label>
-        <input id="woek-handlanger" class="dm-input" maxlength="80"
-          value="${esc(cfg.handlanger || '')}" placeholder="Laat leeg voor iemand zonder naam">
+        <input id="woek-handlanger" class="dm-input dm-input--sm" maxlength="80"
+          value="${esc(cfg.handlanger || '')}" placeholder="Laat leeg voor iemand zonder naam"
+          style="max-width:260px">
       </div>
 
       ${_dienstSectieKop('shield', 'Wie hem kan stoppen', 'dm_woekeraar_ontspan')}
-      <p class="dm-hint">Staat een party hoog genoeg aan bij een van deze facties, dan heeft iemand een woordje gedaan: de rente stopt en het bedrag valt terug naar de hoofdsom. Geen kwijtschelding — een afspraak.</p>
       <div id="woek-ontspan">
         ${facties.length ? facties.map(f => {
           const gekozen = ontspan.find(o => o.factieId === f.id);
-          return `<div class="dm-form-row dm-woek-ontspan-rij">
+          // De drempel hoort bij de factie ernaast, niet onder de volgende.
+          // `margin-left:auto` duwde het label naar de rand en het veld
+          // daarachter viel om naar de volgende regel — en stond dan onder de
+          // verkeerde naam.
+          return `<div class="dm-woek-ontspan-rij">
             <label class="dm-form-checkbox">
               <input type="checkbox" class="woek-ontspan-vink" value="${esc(f.id)}"${gekozen ? ' checked' : ''}>
               <span>${esc(f.naam || f.id)}</span>
             </label>
-            <label class="dm-form-label" style="margin-left:auto">vanaf renown</label>
-            <input type="number" class="dm-input dm-input--sm woek-ontspan-renown" data-factie="${esc(f.id)}"
-              min="0" max="999" value="${esc(gekozen?.renown ?? 10)}" style="max-width:80px">
+            <span class="dm-woek-ontspan-drempel">
+              <label class="dm-form-label" for="woek-renown-${esc(f.id)}">vanaf renown</label>
+              <input type="number" id="woek-renown-${esc(f.id)}" class="dm-input dm-input--sm woek-ontspan-renown"
+                data-factie="${esc(f.id)}" min="0" max="999" value="${esc(gekozen?.renown ?? 10)}">
+            </span>
           </div>`;
         }).join('') : '<p class="dm-hint">Deze campagne heeft nog geen facties. Zet de module <em>Facties</em> aan en maak er een; dan kun je hier kiezen wie gezag heeft.</p>'}
       </div>
@@ -6564,6 +6568,7 @@ window._woekeraarSettingsSave = async function () {
     await api.put('/meta/woekeraar', {
       naam: kop.naam, entityId: kop.imageId || null, locatieId: kop.locatieId || null,
       groetTafelId: kop.groetTafelId || '',
+      backdropId: _dienstBackdropUit('woek', cfg),
       maxLeenCl: munten ? (munten.fl * 100 + munten.kn * 10 + munten.cl) : undefined,
       rentePerRust: parseInt(document.getElementById('woek-rente')?.value),
       maxFactor: parseInt(document.getElementById('woek-max-factor')?.value),
@@ -6573,6 +6578,7 @@ window._woekeraarSettingsSave = async function () {
     });
     const newMeta = await api.meta();
     if (window.app?.state) window.app.state.meta = newMeta;
+    window._woekBackdropPending = null;
     _showToast(`${icon('check')} Opgeslagen.`);
     _renderSchulden();
   } catch (e) { alert('Opslaan mislukt: ' + e.message); }
