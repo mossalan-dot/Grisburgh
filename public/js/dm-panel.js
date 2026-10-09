@@ -716,6 +716,14 @@ export function initDmPanel() {
       } catch (e) { alert('Mislukt: ' + e.message); }
       _renderVerzoeken(); _verzoekenTeller();
     },
+    // Het gevecht bij de laatste trap. De app begint nooit uit zichzelf een
+    // gevecht; dit is de knop waarmee jij dat doet, op het moment dat het
+    // uitkomt.
+    async schuldGevecht(encounterId) {
+      if (!encounterId) return;
+      try { await api.startEncounter(encounterId); _showToast(`${icon('crossed-swords')} Het gevecht staat klaar.`); }
+      catch (e) { alert('Starten mislukt: ' + e.message); }
+    },
     async onderpandKies(id) {
       const keus = document.getElementById(`dm-ond-${id}`)?.value || '';
       const [soort, itemId, vanId] = keus.split('|');
@@ -6428,12 +6436,13 @@ async function _renderSchulden() {
   if (!el) return;
   el.innerHTML = '<div class="dm-feature-section"><div class="dm-section-label">Laden…</div></div>';
 
-  let data, personages = [], locaties = [];
+  let data, personages = [], locaties = [], encounters = [];
   try {
-    [data, personages, locaties] = await Promise.all([
+    [data, personages, locaties, encounters] = await Promise.all([
       api.get('/schulden'),
       api.listEntities('personages').catch(() => []),
       api.listEntities('locaties').catch(() => []),
+      api.listEncounters().catch(() => []),
     ]);
   } catch (err) {
     el.innerHTML = `<div class="dm-feature-section"><p style="color:var(--color-seal)">${esc(err.message)}</p></div>`;
@@ -6467,6 +6476,9 @@ async function _renderSchulden() {
         <div class="dm-schuld-knoppen">
           ${r.wees ? '' : `<button class="dm-btn dm-btn-sm ${r.opgeeist ? 'dm-btn-primary' : 'dm-btn-ghost'}" onclick="window.dmPanel.schuldOpeisen('${esc(r.id)}')"
             title="Zonder dit wacht hij tot het plafond bereikt is">${icon('alert-triangle')} ${r.opgeeist ? 'Opgeëist' : 'Opeisen'}</button>`}
+          ${r.trap === 3 && cfg.encounterId ? `<button class="dm-btn dm-btn-sm dm-btn-primary"
+            onclick="window.dmPanel.schuldGevecht('${esc(cfg.encounterId)}')"
+            title="Start het gevecht dat je bij deze dienst koppelde">${icon('crossed-swords')} Hij staat voor de deur</button>` : ''}
           <button class="dm-btn dm-btn-sm dm-btn-ghost" onclick="window.dmPanel.schuldWeg('${esc(r.id)}','${esc(r.spelerNaam || 'dit personage')}')">
             ${icon('x')} ${r.wees ? 'Opruimen' : 'Kwijtschelden'}</button>
         </div>
@@ -6517,6 +6529,28 @@ async function _renderSchulden() {
           value="${esc(cfg.handlanger || '')}" placeholder="Laat leeg voor iemand zonder naam"
           style="max-width:260px">
       </div>
+      <!-- Het gevecht bij de laatste trap. Dit veld werd wél opgeslagen en
+           nergens gelezen: de hulptekst beloofde "het gevecht koppel je als
+           encounter" en er was geen plek om dat te doen. -->
+      <div class="dm-form-row">
+        <label class="dm-form-label" for="woek-encounter">Het gevecht bij het bezoek</label>
+        <select id="woek-encounter" class="dm-select" style="max-width:300px">
+          <option value="">— geen —</option>
+          ${(encounters || []).map(e => `<option value="${esc(e.id)}"${cfg.encounterId === e.id ? ' selected' : ''}>${esc(e.name || e.naam || e.id)}</option>`).join('')}
+        </select>
+      </div>
+
+      ${_dienstSectieKop('mail', 'Wat hij schrijft', 'dm_woekeraar_brieven')}
+      ${[
+        { k: 'brief1', label: 'De herinnering (trap 1)', plaats: 'Je staat bij mij in het krijt voor {bedrag}.…' },
+        { k: 'brief2', label: 'Wat ik meenam (trap 2)',  plaats: 'Ik heb {voorwerp} meegenomen uit de spullen van {van}.…' },
+        { k: 'brief3', label: 'De laatste (trap 3)',     plaats: '{wie} komt langs. Hij is minder geduldig dan ik.…' },
+      ].map(b => `
+        <div class="dm-form-row" style="flex-direction:column;align-items:stretch;gap:4px">
+          <label class="dm-form-label" for="woek-${b.k}">${esc(b.label)}</label>
+          <textarea id="woek-${b.k}" class="dm-input" rows="4" maxlength="2000"
+            placeholder="${esc(b.plaats)}">${esc(cfg[b.k] || '')}</textarea>
+        </div>`).join('')}
 
       ${_dienstSectieKop('shield', 'Wie hem kan stoppen', 'dm_woekeraar_ontspan')}
       <div id="woek-ontspan">
@@ -6574,6 +6608,10 @@ window._woekeraarSettingsSave = async function () {
       maxFactor: parseInt(document.getElementById('woek-max-factor')?.value),
       escalatie: !!document.getElementById('woek-escalatie')?.checked,
       handlanger: document.getElementById('woek-handlanger')?.value.trim() || '',
+      encounterId: document.getElementById('woek-encounter')?.value || '',
+      brief1: document.getElementById('woek-brief1')?.value || '',
+      brief2: document.getElementById('woek-brief2')?.value || '',
+      brief3: document.getElementById('woek-brief3')?.value || '',
       ontspanBij,
     });
     const newMeta = await api.meta();

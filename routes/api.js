@@ -15575,6 +15575,20 @@ function _shopKasAf(dmState, shopId, bedragCl, kas) {
 // geraakt, of de DM eist hem op. Tot die tijd groeit hij alleen.
 const _TRAP_LABELS = ['', 'brief', 'onderpand', 'bezoek'];
 
+// ── De drie brieven ─────────────────────────────────────────────────────────
+// Ze stonden als vaste tekst in deze route, en daarmee was de toon van elke
+// campagne die van Grisburgh. Nu schrijft de DM ze zelf bij Instellingen; laat
+// hij een veld leeg, dan staat de oude tekst er.
+//
+// Een brief noemt bedragen en namen die pas op het moment zelf bekend zijn, dus
+// er zijn een paar haakjes die ingevuld worden. Wat er niet in hoort verdwijnt
+// gewoon; een DM die `{waarvoor}` weglaat krijgt geen gat.
+function _woekBriefTekst(sjabloon, standaard, velden) {
+  const bron = String(sjabloon || '').trim() || standaard;
+  return bron.replace(/\{(\w+)\}/g, (heel, naam) =>
+    Object.prototype.hasOwnProperty.call(velden, naam) ? String(velden[naam] ?? '') : heel);
+}
+
 function _schuldOpeisbaar(r, stand, dmState) {
   if (_woekeraarOntspannen(dmState, r.characterId)) return false;
   return !!(r.opgeeist || stand?.afgetopt);
@@ -15605,9 +15619,14 @@ function _schuldenEscaleren(req, dmState, g, gid) {
         afzender: r.schuldeiser?.naam || 'je schuldeiser',
         entityId: r.schuldeiser?.entityId || null, entityType: 'personages',
         cinematic: true,
-        tekst: `Je staat bij mij in het krijt voor ${_tsFormatCl(stand.huidigVerschuldigdCl)}.\n\n`
-             + (r.waarvoor ? `Je leende het voor ${r.waarvoor}. Dat is jouw zaak.\n\n` : '')
-             + `Ik heb geduld gehad. Dat is op.\n\nKom langs, of ik kom langs.`,
+        tekst: _woekBriefTekst(
+          meta.woekeraar?.brief1,
+          `Je staat bij mij in het krijt voor {bedrag}.\n\n`
+          + `{waarvoor}Ik heb geduld gehad. Dat is op.\n\nKom langs, of ik kom langs.`,
+          {
+            bedrag: _tsFormatCl(stand.huidigVerschuldigdCl),
+            waarvoor: r.waarvoor ? `Je leende het voor ${r.waarvoor}. Dat is jouw zaak.\n\n` : '',
+          }),
       });
     }
     if (trap === 3) {
@@ -15622,11 +15641,18 @@ function _schuldenEscaleren(req, dmState, g, gid) {
         afzender: r.schuldeiser?.naam || 'je schuldeiser',
         entityId: r.schuldeiser?.entityId || null, entityType: 'personages',
         cinematic: true,
-        tekst: `Ik heb geschreven. Ik heb iets meegenomen. Je hebt niet betaald.\n\n`
-             + (handlanger
-                 ? `${handlanger} komt langs. Hij is minder geduldig dan ik, en hij leest niet.\n\n`
-                 : `Er komt iemand langs. Hij is minder geduldig dan ik, en hij leest niet.\n\n`)
-             + `Je weet waar ik zit.`,
+        // De standaardtekst loopt anders mét en zonder naam ("Strum komt
+        // langs" tegenover "Er komt iemand langs"), dus die blijft als twee
+        // zinnen staan. Schrijft de DM zijn eigen brief, dan heeft hij `{wie}`
+        // — de naam, of "iemand" als hij er geen gaf.
+        tekst: _woekBriefTekst(
+          meta.woekeraar?.brief3,
+          `Ik heb geschreven. Ik heb iets meegenomen. Je hebt niet betaald.\n\n`
+          + (handlanger
+              ? `${handlanger} komt langs. Hij is minder geduldig dan ik, en hij leest niet.\n\n`
+              : `Er komt iemand langs. Hij is minder geduldig dan ik, en hij leest niet.\n\n`)
+          + `Je weet waar ik zit.`,
+          { wie: handlanger || 'iemand', handlanger: handlanger || 'iemand' }),
       });
     }
     if (trap === 2) {
@@ -16450,6 +16476,10 @@ function _woekeraar(meta) {
     rentePerRust: Number.isFinite(parseInt(c.rentePerRust)) ? parseInt(c.rentePerRust) : TS_RENTE_PER_RUST,
     maxFactor:    Number.isFinite(parseInt(c.maxFactor)) ? parseInt(c.maxFactor) : TS_MAX_FACTOR,
     tekst:        c.tekst || '',
+    brief1:       c.brief1 || '',
+    brief2:       c.brief2 || '',
+    brief3:       c.brief3 || '',
+    encounterId:  c.encounterId || null,
     // De begroetingstafel van elke andere dienst. Zonder dit veld viel hij
     // terug op één vast zinnetje — of, als de DM niets had ingevuld, op niets.
     groeten:      _tafelRegels(c.groetTafelId) || [],
@@ -16495,6 +16525,9 @@ router.put('/meta/woekeraar', requireDM, (req, res) => {
   if (b.handlanger !== undefined) w.handlanger = String(b.handlanger).slice(0, 80);
   if (b.escalatie !== undefined) { if (b.escalatie) w.escalatie = true; else delete w.escalatie; }
   if (b.encounterId !== undefined) w.encounterId = b.encounterId || null;
+  for (const k of ['brief1', 'brief2', 'brief3']) {
+    if (b[k] !== undefined) { const t = String(b[k] || '').slice(0, 2000).trim(); if (t) w[k] = t; else delete w[k]; }
+  }
   if (b.ontspanBij !== undefined) {
     const schoon = (Array.isArray(b.ontspanBij) ? b.ontspanBij : [])
       .map(r => ({ factieId: String(r?.factieId || ''), renown: Math.max(0, parseInt(r?.renown) || 0) }))
@@ -16618,10 +16651,13 @@ router.post('/onderpand/:id', requireDM, (req, res) => {
       afzender: verzoek.schuldeiser,
       entityId: schuld?.schuldeiser?.entityId || null, entityType: 'personages',
       cinematic: true,
-      tekst: `Ik heb ${naam} meegenomen uit de spullen van ${bestolenNaam}.\n\n`
-           + `Niet uit kwaadheid — uit boekhouding. ${wieZegtHij} staat bij mij in het krijt voor `
-           + `${_tsFormatCl(verzoek.openCl || 0)}, en ik word moe van wachten.\n\n`
-           + `Het komt terug zodra er betaald is. Wie dat doet, is jullie zaak.`,
+      tekst: _woekBriefTekst(
+        (storage.readJSON('meta.json').woekeraar || {}).brief2,
+        `Ik heb {voorwerp} meegenomen uit de spullen van {van}.\n\n`
+        + `Niet uit kwaadheid — uit boekhouding. {wie} staat bij mij in het krijt voor `
+        + `{bedrag}, en ik word moe van wachten.\n\n`
+        + `Het komt terug zodra er betaald is. Wie dat doet, is jullie zaak.`,
+        { voorwerp: naam, van: bestolenNaam, wie: wieZegtHij, bedrag: _tsFormatCl(verzoek.openCl || 0) }),
     });
   }
   res.json({ ok: true, genomen: verzoek.genomen, bestolen: bestolenNaam });

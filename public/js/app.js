@@ -10,7 +10,7 @@ import { renderSpreuken } from './render-spreuken.js?v=46';
 import { renderVaardigheden, zoekVaardigheden, heldenboekTekst } from './render-vaardigheden.js?v=40';
 import { renderStatblock } from './render-statblock.js?v=9';
 import { initSocket } from "./socket-client.js?v=84";
-import { initDmPanel } from "./dm-panel.js?v=392";
+import { initDmPanel } from "./dm-panel.js?v=393";
 import { COND_INFO, COND_LABEL, COND_MET_PLAATJE, COND_ICON } from './conditions.js?v=2';
 import './media-picker.js?v=9';
 import './wizard.js?v=4';
@@ -14513,6 +14513,12 @@ const HELP_CONFIG = {
     { titel: 'Opeisen', tekst: 'Normaal wacht hij tot het plafond bereikt is. Met **Opeisen** bij een schuld begint het meteen — handig als het verhaal erom vraagt en de cijfers nog niet.', afbeelding: null },
       { titel: 'Wie hij stuurt', tekst: 'Bij de laatste trap komt er iemand langs. Vul je een naam in, dan noemt de brief hem; laat je het leeg, dan staat er *er komt iemand langs* — en dat leest aan tafel vaak dreigender dan een naam die niemand nog kent. Het gevecht zelf koppel je als encounter.', afbeelding: null },
   ] }),
+  dm_woekeraar_brieven: () => ({ titel: 'Wat hij schrijft', stappen: [
+    { titel: 'Drie brieven', tekst: 'Elke trap heeft er een. De **herinnering** komt vanzelf, de nacht nadat een schuld opeisbaar werd. **Wat ik meenam** gaat naar de hele party op het moment dat jij aanwijst wat hij meeneemt. **De laatste** komt de nacht daarna, en noemt wie er langskomt.\n\nLaat je een veld leeg, dan staat er de tekst die de app meelevert. Die is van Grisburgh; schrijf hem gerust om naar jouw stad.', afbeelding: null },
+    { titel: 'De haakjes', tekst: 'Een brief noemt bedragen en namen die pas op het moment zelf bekend zijn. Die vul je niet in, die zet je tussen accolades:\n\n**Alle drie:** `{bedrag}` — wat er op dat moment openstaat.\n\n**De herinnering:** `{waarvoor}` — de zin "Je leende het voor …", of niets als de speler niets invulde.\n\n**Wat ik meenam:** `{voorwerp}`, `{van}` (van wie hij het pakte) en `{wie}` (de schuldenaar — of "iemand onder jullie" als je hem geheim houdt).\n\n**De laatste:** `{wie}` — de naam van wie je stuurt, of "iemand" als je het leeg liet.', afbeelding: null },
+    { titel: 'Waar ze aankomen', tekst: 'In het berichtentabblad van de speler, als een verzegelde brief die openvouwt. De eerste en de laatste gaan naar de schuldenaar alleen; die over het onderpand gaat naar **iedereen** in de party — dat is het hele punt van die trap.\n\nOp het tafelscherm komen ze niet uit zichzelf. Wil je er een aan tafel tonen, dan zet je hem als briefstap in een akte; daar zit de knop *Op het tafelscherm leggen*.', afbeelding: null },
+  ] }),
+
   dm_woekeraar_ontspan: () => ({ titel: 'Wie hem kan stoppen', stappen: [
     { titel: 'Een woordje, geen kwijtschelding', tekst: 'Staat een party hoog genoeg aan bij een factie die je hier aanvinkt, dan stopt de rente en valt het bedrag terug naar de hoofdsom. De schuld blijft bestaan; het woekeren stopt. Iemand met gezag heeft een woordje gedaan.', afbeelding: null },
     { titel: 'Welke facties', tekst: 'Dat is aan jou: in de ene stad is het de wacht, in de andere het dievengilde. Welke macht iets betekent is geen regel van de app.', afbeelding: null },

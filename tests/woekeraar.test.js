@@ -265,4 +265,54 @@ describe('De woekeraar', () => {
     assert.strictEqual(r.status, 400, JSON.stringify(r.body));
     assert.match(r.body.error, /leent/);
   });
+
+  // De drie brieven stonden als vaste tekst in de route, en daarmee was de toon
+  // van elke campagne die van Grisburgh. Ze zijn nu in te stellen; wat de DM
+  // niet kan weten (het bedrag van dat moment) gaat via een haakje.
+  //
+  // Eigen speler per test: de suite deelt één personage en één schuld tegelijk.
+  const _nieuweSchuldenaar = async (naam) => {
+    const groepen = (await req(server, 'GET', '/api/groups', null, dm)).body;
+    const gid = groepen?.activeGroup || (groepen?.groups || [])[0]?.id;
+    const id = (await req(server, 'POST', '/api/entities/personages',
+      { name: naam, subtype: 'speler', data: { groep: gid } }, dm)).body.id;
+    const cookie = (await req(server, 'POST', '/api/auth/player-login',
+      { campagne: 'grisburgh', characterId: id, password: 'proef1234' })).cookie;
+    return cookie;
+  };
+
+  const _totTrapEen = async (cookie) => {
+    const v = await req(server, 'POST', '/api/woekeraar/verzoek',
+      { bedrag: { fl: 10, kn: 0, cl: 0 }, waarvoor: 'Een paard' }, cookie);
+    const goed = await req(server, 'POST', `/api/woekeraar/verzoek/${v.body.verzoek.id}/approve`, {}, dm);
+    assert.ok(goed.body?.schuld?.id, 'de schuld staat er');
+    await req(server, 'POST', `/api/schulden/${goed.body.schuld.id}/opeisen`, {}, dm);
+    await req(server, 'POST', '/api/party/long-rest', {}, dm);
+  };
+
+  it('stuurt de brief die de DM zelf schreef, met het bedrag ingevuld', async () => {
+    await req(server, 'PUT', '/api/meta/woekeraar', {
+      escalatie: true, ontspanBij: [],
+      brief1: 'Ik tel {bedrag}. Meer heb ik niet te zeggen.',
+    }, dm);
+    const c = await _nieuweSchuldenaar('Eigen brief');
+    await _totTrapEen(c);
+
+    const post = (await req(server, 'GET', '/api/berichten', null, c)).body.berichten || [];
+    const brief = post.find(m => /Ik tel/.test(m.tekst || ''));
+    assert.ok(brief, 'de eigen tekst van de DM');
+    assert.ok(!/\{bedrag\}/.test(brief.tekst), 'het haakje is ingevuld');
+    assert.match(brief.tekst, /\d/, 'en wel met een bedrag erin');
+    assert.ok(!/geduld gehad/.test(brief.tekst), 'de meegeleverde tekst staat er niet meer');
+  });
+
+  it('valt terug op de meegeleverde tekst als het veld leeg blijft', async () => {
+    await req(server, 'PUT', '/api/meta/woekeraar', { escalatie: true, ontspanBij: [], brief1: '' }, dm);
+    const c = await _nieuweSchuldenaar('Standaardbrief');
+    await _totTrapEen(c);
+
+    const post = (await req(server, 'GET', '/api/berichten', null, c)).body.berichten || [];
+    assert.ok(post.some(m => /Ik heb geduld gehad/.test(m.tekst || '')));
+  });
+
 });
