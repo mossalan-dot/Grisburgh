@@ -4,13 +4,13 @@ import { initArchief, renderLogboek, openLogboekEditor } from "./render-archief.
 import { renderKaart, queueFlyTo, verversPins, nieuweKaart } from './render-kaart.js?v=31';
 import { renderDungeon } from './render-dungeon.js?v=63';
 import { renderRelatiemap } from './render-relatiemap.js?v=27';
-import { renderProgressie, levelupFeatures } from './render-progressie.js?v=59';
+import { renderProgressie, levelupFeatures } from './render-progressie.js?v=60';
 import { renderBestiarium } from './render-bestiarium.js?v=31';
 import { renderSpreuken } from './render-spreuken.js?v=45';
-import { renderVaardigheden, zoekVaardigheden } from './render-vaardigheden.js?v=39';
+import { renderVaardigheden, zoekVaardigheden, heldenboekTekst } from './render-vaardigheden.js?v=40';
 import { renderStatblock } from './render-statblock.js?v=9';
 import { initSocket } from "./socket-client.js?v=84";
-import { initDmPanel } from "./dm-panel.js?v=389";
+import { initDmPanel } from "./dm-panel.js?v=390";
 import { COND_INFO, COND_LABEL, COND_MET_PLAATJE, COND_ICON } from './conditions.js?v=2';
 import './media-picker.js?v=9';
 import './wizard.js?v=4';
@@ -4419,6 +4419,11 @@ function _ensureSpellbookOverlay() {
 }
 
 let _sbVanTab = null;   // subtab waar het boek vandaan geopend werd
+
+// dm-panel.js importeert render-vaardigheden niet (het zou de hele
+// vaardighedentab meeladen in een paneel dat er niets mee doet). Eén haakje op
+// window volstaat; zo leest de meesterkamer dezelfde tekst als de speler.
+window._heldenboekTekst = heldenboekTekst;
 
 window._openSpellbook = function(startIdx) {
   _ensureSpellbookOverlay();
@@ -9472,10 +9477,20 @@ async function renderMijnKarakter(opts = {}) {
       if (!body || body.dataset.loaded === 'true') return;
       const source = body.dataset.traitSource;
       const index  = body.dataset.traitIndex;
-      const stored = body.dataset.traitDesc;
+      let   stored = body.dataset.traitDesc;
 
-      // Opgeslagen beschrijving heeft voorrang (custom én progressie-gesyncte
-      // features dragen hun eigen tekst; alleen 'kale' PHB-traits hebben er geen).
+      // Het heldenboek is leidend. Een feature die van de progressie komt haalt
+      // zijn tekst daar op het moment van lezen op, zodat een aangepaste
+      // beschrijving meteen op elk spelersblad staat. Lukt dat niet (hernoemd,
+      // weggehaald), dan blijft staan wat er bij de speler lag.
+      if (source === 'progression' || source === 'progressie') {
+        const naam = this.querySelector('.player-pinned-spell-name')?.textContent?.trim() || '';
+        const meta = this.querySelector('.player-pinned-spell-meta')?.textContent?.trim() || '';
+        try { stored = (await heldenboekTekst(naam, meta)) || stored; } catch { /* dan het oude */ }
+        if (!body.isConnected) return;
+      }
+
+      // Wat een speler zelf schreef (`custom`) blijft van hem.
       if (stored || source === 'custom' || source === 'progression' || source === 'progressie') {
         body.innerHTML = stored
           ? `<div class="player-spell-desc">${mdToHtml(stored)}</div>`

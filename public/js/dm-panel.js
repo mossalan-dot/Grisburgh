@@ -11171,8 +11171,12 @@ function _attachCombatTraitAccordionListeners(container) {
       const body = this.querySelector('.player-spell-accordion-body');
       if (!body || body.dataset.loaded === 'true') return;
       const source = body.dataset.traitSource;
-      const index  = body.dataset.traitIndex;
       const stored = body.dataset.traitDesc;
+      // Wat de speler zelf schreef is van hem; de rest komt uit het heldenboek.
+      // Dit haalde zijn tekst live bij dnd5eapi.co — een externe host midden in
+      // een sessie, en de editie van 2014. Precies wat aan de spelerskant al
+      // weggehaald was; hier bleef het staan, dus de DM las iets anders dan
+      // zijn speler.
       if (source === 'custom') {
         body.innerHTML = stored
           ? `<div class="player-spell-desc">${esc(stored).replace(/\n/g,'<br>')}</div>`
@@ -11180,33 +11184,15 @@ function _attachCombatTraitAccordionListeners(container) {
         body.dataset.loaded = 'true';
         return;
       }
-      try {
-        if (!index) throw new Error('geen index');
-        const apiType = source === 'phb-traits' ? 'traits'
-                      : source === 'phb-feats'  ? 'feats'
-                      : 'features';
-        const r = await fetch(`https://www.dnd5eapi.co/api/${apiType}/${index}`);
-        const f = await r.json();
-        const _md = t => String(t)
-          .replace(/\*\*\*(.+?)\*\*\*/g, '<strong><em>$1</em></strong>')
-          .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-          .replace(/\*(.+?)\*/g, '<em>$1</em>');
-        const desc = (f.desc || []).map(_md).join('<br><br>');
-        let metaParts = [];
-        if (apiType === 'features') {
-          metaParts = [
-            f.class?.name    ? `Klasse: ${f.class.name}` : '',
-            f.subclass?.name ? `Subklasse: ${f.subclass.name}` : '',
-            f.level          ? `Niveau ${f.level}` : '',
-          ].filter(Boolean);
-        }
-        body.innerHTML = `
-          ${metaParts.length ? `<div class="player-spell-meta2">${metaParts.join(' · ')}</div>` : ''}
-          <div class="player-spell-desc">${desc || '<em>Geen beschrijving beschikbaar.</em>'}</div>`;
-        body.dataset.loaded = 'true';
-      } catch {
-        body.innerHTML = '<p class="player-spell-err">Beschrijving kon niet worden geladen.</p>';
-      }
+      const naam = this.querySelector('.player-pinned-spell-name')?.textContent?.trim() || '';
+      const meta = this.querySelector('.player-pinned-spell-meta')?.textContent?.trim() || '';
+      let tekst = stored;
+      try { tekst = (await window._heldenboekTekst?.(naam, meta)) || stored; } catch { /* dan het oude */ }
+      if (!body.isConnected) return;
+      body.innerHTML = `
+        ${meta ? `<div class="player-spell-meta2">${esc(meta)}</div>` : ''}
+        <div class="player-spell-desc">${tekst ? window.app.mdToHtml(tekst) : '<em>Geen beschrijving beschikbaar.</em>'}</div>`;
+      body.dataset.loaded = 'true';
     });
   });
 };

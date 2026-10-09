@@ -357,11 +357,16 @@ async function _syncNewFeaturesToTraits(prog, ctx, charId) {
         const featName = (f._kind === 'sub' && subclass)
           ? `${f.name} (${subclass.key})`
           : f.name;
-        const featDesc = f.desc || _srdDesc(f.name, cls.key) || '';
+        // **Geen tekst meeschrijven.** Het heldenboek is leidend; het blad van
+        // een speler is de neerslag daarvan. Zodra het kenmerk hier zijn tekst
+        // zou dragen, staat dezelfde beschrijving op twee plekken en loopt er
+        // één achter zodra de DM iets bijschaaft. `meta` is wat de koppeling
+        // maakt: daarin staan de klasse en het level, en daarmee wordt hij bij
+        // het openklappen opgezocht (zie `heldenboekTekst`).
         newFeatures.push({
           name:   featName,
           meta:   `${cls.key} · Lv. ${lvl}`,   // geen esc — plain text opgeslagen
-          desc:   featDesc,
+          desc:   '',
           source: 'progression',
           index:  `progression-${cls.key}-${lvl}-${f.name}`.replace(/[^a-z0-9-]/gi, '_'),
         });

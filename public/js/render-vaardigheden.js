@@ -15,7 +15,7 @@
  */
 
 import { api } from './api.js?v=310';
-import { naslagBron } from './render-progressie.js?v=59';
+import { naslagBron } from './render-progressie.js?v=60';
 
 const esc  = s => window.app?.esc?.(s) ?? String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 const icon = (...a) => window.icon(...a);
@@ -104,6 +104,46 @@ let _levelsOpen = false;  // staat de levelrij uitgeklapt?
 //
 // `eigen` (klasse, subklasse, volk, background) zet wat bij jóu hoort bovenaan —
 // een Wizard die "ac" typt hoort niet eerst Action Surge te zien.
+// ════════════════════════════════════════════════════════════════════════════
+//  DE TEKST VAN ÉÉN FEATURE, UIT HET HELDENBOEK
+// ════════════════════════════════════════════════════════════════════════════
+// Wat bij een speler onder Features staat is de **neerslag** van het
+// heldenboek, niet een tweede bron. Tot nu toe werd de tekst bij een level-up
+// één keer overgeschreven naar het spelersblad; paste de DM hem daarna aan in
+// het heldenboek, dan bleef de speler de oude lezen. Twee keer dezelfde tekst,
+// en ze liepen uit elkaar.
+//
+// Deze functie zoekt hem op het moment van lezen op. `meta` is de regel die al
+// bij het kenmerk staat ("Barbarian · Lv. 3", "Path of the Berserker · Lv. 3"):
+// daarmee kiezen we de juiste als twee klassen een feature met dezelfde naam
+// hebben — Extra Attack staat bij vijf klassen.
+//
+// Geen treffer? Dan geeft hij null terug en valt de aanroeper terug op wat er
+// bij de speler was opgeslagen. Niemand verliest tekst doordat een feature
+// hernoemd of weggehaald is.
+export async function heldenboekTekst(naam, meta = '') {
+  const n = String(naam || '').trim();
+  if (!n) return null;
+  let treffers = [];
+  try { treffers = await zoekVaardigheden(n, {}, 12); } catch { return null; }
+  const gelijk = treffers.filter(t => String(t.naam || '').toLowerCase() === n.toLowerCase());
+  if (!gelijk.length) return null;
+
+  // "Barbarian · Lv. 3" → de brokken waarop we mogen matchen.
+  const delen = String(meta || '').split('·').map(d => d.trim()).filter(Boolean);
+  const lvl   = (delen.map(d => /^Lv\.\s*(\d+)$/.exec(d)).find(Boolean) || [])[1];
+  const herkomst = delen.filter(d => !/^Lv\.\s*\d+$/.test(d)).map(d => d.toLowerCase());
+
+  const past = (t) => {
+    if (lvl && String(t.level || '') !== String(lvl)) return false;
+    if (!herkomst.length) return true;
+    return herkomst.some(h => String(t.bron || '').toLowerCase() === h
+                           || String(t.sub || '').toLowerCase() === h);
+  };
+  const raak = gelijk.find(past) || gelijk.find(t => !lvl || String(t.level || '') === String(lvl)) || gelijk[0];
+  return raak?.desc ? raak.desc : null;
+}
+
 export async function zoekVaardigheden(query, eigen = {}, limiet = 12) {
   const alles = await _load();
   const q = String(query || '').trim().toLowerCase();
