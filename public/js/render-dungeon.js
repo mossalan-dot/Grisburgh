@@ -1806,25 +1806,30 @@ function _openNewDungeonDialog() {
           ${icon('image')} <span id="dng-new-thumb-naam">Wat op het kaartje komt te staan…</span>
         </button>
       </div>
-      <!-- Twee manieren om aan een kaart te komen, en de rest van het
-           formulier verandert mee. Het zijn twee kanten van dezelfde keuze, dus
-           ze zien er ook hetzelfde uit: één strook met twee helften. Eerder was
-           de ene een gevulde knop en de andere een omlijnde, alsof er een
-           voorkeur was. -->
+      <!-- **Eén sectie voor de plattegrond.** Hierboven stond een strook
+           "Herkomst" met *uploaden* of *tekenen*, en daaronder een aparte
+           verdiepingenlijst. Dat liep niet rond: je kon één plattegrond
+           uploaden, één tekenen, of meerdere uploaden — maar een verdieping
+           tékenen kon nergens, terwijl een verdieping gewoon een eigen kaart
+           is en dat dus prima kan.
+           Nu is er één vraag (één plattegrond of verdiepingen) en kiest elke
+           plattegrond zelf of hij geüpload of getekend wordt. -->
       <div class="dm-form-row">
-        <label class="dm-form-label">Herkomst</label>
-        <div class="dng-bron-keuze" role="group">
-          <button type="button" class="dng-bron is-aan" data-bron="upload">${icon('image')} Plattegrond uploaden</button>
-          <button type="button" class="dng-bron" data-bron="tekenen">${icon('pencil')} Zelf tekenen</button>
-        </div>
+        <label class="dm-form-label" for="dng-new-indeling">Plattegrond</label>
+        <select id="dng-new-indeling" class="dm-input">
+          <option value="een">Eén volledige plattegrond</option>
+          <option value="verdiepingen">Verdiepingen</option>
+        </select>
       </div>
-      <div class="dm-form-row" style="flex-direction:column;align-items:stretch;gap:6px" id="dng-new-upload">
-        <label class="dm-form-label">Plattegronden</label>
+      <div class="dm-form-row" style="flex-direction:column;align-items:stretch;gap:6px">
         <div id="dng-new-lagen"></div>
-        <button type="button" class="dm-btn dm-btn-ghost dm-btn-sm" id="dng-new-laag-erbij" style="align-self:flex-start">
+        <button type="button" class="dm-btn dm-btn-ghost dm-btn-sm" id="dng-new-laag-erbij" hidden style="align-self:flex-start">
           ${icon('plus')} Verdieping toevoegen
         </button>
       </div>
+      <!-- Grootte en stijl gelden voor het hele gebouw: verdiepingen van
+           hetzelfde pand horen even groot te zijn en in dezelfde stijl. Dit
+           blok verschijnt zodra er iets getekend wordt. -->
       <div id="dng-new-tekenen" hidden>
         <!-- Eén vakje is vijf voet. Dat is in 5e geen instelling maar een
              regel, en er stond een invulveld voor: een getal dat je nooit wilt
@@ -1856,10 +1861,14 @@ function _openNewDungeonDialog() {
   // Eén gebouw kan meerdere plattegronden hebben: begane grond, zolder, kelder.
   // Je geeft ze hier in één keer op; de app maakt er één kaart per verdieping van
   // en houdt ze bij elkaar met een gedeeld `gebouwId`.
-  let thumbId = '';
-  let bron    = 'upload';
-  let stijl   = DUNGEON_STIJLEN[0].id;
-  const lagen = [{ verdieping: 0, fileId: '' }];
+  let thumbId  = '';
+  let indeling = 'een';            // 'een' | 'verdiepingen'
+  let stijl    = DUNGEON_STIJLEN[0].id;
+  // Elke laag kiest zelf hoe hij aan zijn plattegrond komt. Een verdieping is
+  // in deze app gewoon een eigen kaart met een gedeeld `gebouwId`, dus tekenen
+  // per verdieping kost niets extra's — het formulier liet het alleen niet toe.
+  const lagen = [{ verdieping: 0, fileId: '', bron: 'upload' }];
+  const erWordtGetekend = () => lagen.some(l => l.bron === 'tekenen');
 
   const _maatHint = () => {
     const k = +document.getElementById('dng-new-kol')?.value || 0;
@@ -1886,12 +1895,12 @@ function _openNewDungeonDialog() {
     _tekenStijlen(); _maatHint();
     ['dng-new-kol', 'dng-new-rij'].forEach(id =>
       document.getElementById(id)?.addEventListener('input', _maatHint));
-    document.querySelectorAll('.dng-bron').forEach(b => b.addEventListener('click', () => {
-      bron = b.dataset.bron;
-      document.querySelectorAll('.dng-bron').forEach(x => x.classList.toggle('is-aan', x === b));
-      document.getElementById('dng-new-upload').hidden   = bron !== 'upload';
-      document.getElementById('dng-new-tekenen').hidden  = bron !== 'tekenen';
-    }));
+    document.getElementById('dng-new-indeling')?.addEventListener('change', (e) => {
+      indeling = e.target.value;
+      // Terug naar één plattegrond: de bovenste laag blijft, de rest gaat weg.
+      if (indeling === 'een') lagen.splice(1);
+      _tekenLagen();
+    });
   }, 60);
 
   const _naamHint = () => (document.getElementById('dng-new-name')?.value || '')
@@ -1900,16 +1909,36 @@ function _openNewDungeonDialog() {
   function _tekenLagen() {
     const host = document.getElementById('dng-new-lagen');
     if (!host) return;
+    const meer = indeling === 'verdiepingen';
+    document.getElementById('dng-new-laag-erbij').hidden = !meer;
+    // Grootte en stijl horen bij het tekenen; ze staan er alleen als er iets
+    // te tekenen valt.
+    const tekenBlok = document.getElementById('dng-new-tekenen');
+    if (tekenBlok) tekenBlok.hidden = !erWordtGetekend();
+
     host.innerHTML = lagen.map((l, i) => `
       <div class="dng-laag-rij">
-        <input type="number" class="dm-input dm-input-sm dng-laag-nr" data-i="${i}" value="${l.verdieping}"
+        ${meer ? `<input type="number" class="dm-input dm-input-sm dng-laag-nr" data-i="${i}" value="${l.verdieping}"
           title="0 = begane grond, −1 = kelder" style="width:64px">
-        <span class="dng-laag-label">${esc(_verdiepingLabel(l.verdieping))}</span>
-        <button type="button" class="dm-btn dm-btn-ghost dm-btn-sm dng-laag-kies" data-i="${i}" style="flex:1;justify-content:flex-start">
-          ${icon('image')} ${l.fileId ? 'Afbeelding gekozen' : 'Kies of upload een plattegrond…'}
-        </button>
+        <span class="dng-laag-label">${esc(_verdiepingLabel(l.verdieping))}</span>` : ''}
+        <span class="dng-laag-bron" role="group">
+          <button type="button" class="dng-bron${l.bron === 'upload' ? ' is-aan' : ''}" data-i="${i}" data-bron="upload"
+            title="Een plattegrond uploaden of uit de bibliotheek kiezen">${icon('image')} Uploaden</button>
+          <button type="button" class="dng-bron${l.bron === 'tekenen' ? ' is-aan' : ''}" data-i="${i}" data-bron="tekenen"
+            title="Zelf tekenen op een raster">${icon('pencil')} Tekenen</button>
+        </span>
+        ${l.bron === 'upload'
+          ? `<button type="button" class="dm-btn dm-btn-ghost dm-btn-sm dng-laag-kies" data-i="${i}" style="flex:1;justify-content:flex-start">
+              ${icon('image')} ${l.fileId ? 'Afbeelding gekozen' : 'Kies of upload een plattegrond…'}
+            </button>`
+          : `<span class="dng-laag-noot">Je tekent hem straks op het raster.</span>`}
         ${lagen.length > 1 ? `<button type="button" class="dm-btn dm-btn-ghost dm-btn-sm dm-btn-danger dng-laag-weg" data-i="${i}" title="Deze verdieping weghalen">${icon('x')}</button>` : ''}
       </div>`).join('');
+
+    host.querySelectorAll('.dng-bron').forEach(b => b.addEventListener('click', () => {
+      lagen[+b.dataset.i].bron = b.dataset.bron;
+      _tekenLagen();
+    }));
     // Het label ernaast zegt wat het getal betekent: 0 is de begane grond, en
     // "BG" leest nu eenmaal makkelijker dan een nul.
     host.querySelectorAll('.dng-laag-nr').forEach(inp => inp.addEventListener('input', () => {
@@ -1934,7 +1963,7 @@ function _openNewDungeonDialog() {
 
   document.getElementById('dng-new-laag-erbij').addEventListener('click', () => {
     const hoogste = Math.max(...lagen.map(l => l.verdieping));
-    lagen.push({ verdieping: hoogste + 1, fileId: '' });
+    lagen.push({ verdieping: hoogste + 1, fileId: '', bron: 'upload' });
     _tekenLagen();
   });
 
@@ -1961,22 +1990,14 @@ function _openNewDungeonDialog() {
         description: document.getElementById('dng-new-desc').value.trim(),
         thumbId,
       };
-      // Zelf tekenen is één kaart, geen stapel verdiepingen: die voeg je
-      // daarna toe zoals bij elk ander gebouw.
-      if (bron === 'tekenen') {
-        await api.createDungeon({
-          ...basis,
-          grid: {
-            kolommen:   +document.getElementById('dng-new-kol').value || 30,
-            rijen:      +document.getElementById('dng-new-rij').value || 20,
-            voetPerVak: VOET_PER_VAK,
-          },
-          stijl,
-        });
-        window.app.closeModal();
-        await window._kaartVerversen?.();
-        return;
-      }
+      // Elke laag wordt een kaart. Een getekende laag krijgt een raster en een
+      // stijl, een geüploade een bestand — en dat mag door elkaar: de begane
+      // grond uit een boek, de kelder zelf getekend.
+      const raster = {
+        kolommen:   +document.getElementById('dng-new-kol')?.value || 30,
+        rijen:      +document.getElementById('dng-new-rij')?.value || 20,
+        voetPerVak: VOET_PER_VAK,
+      };
       const meerdere = lagen.length > 1;
       const gebouwId = meerdere ? 'geb_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5) : '';
       // Op volgorde aanmaken (laagste verdieping eerst), zodat de galerij en de
@@ -1984,7 +2005,7 @@ function _openNewDungeonDialog() {
       for (const laag of [...lagen].sort((a, b) => a.verdieping - b.verdieping)) {
         await api.createDungeon({
           ...basis,
-          fileId: laag.fileId,
+          ...(laag.bron === 'tekenen' ? { grid: raster, stijl } : { fileId: laag.fileId }),
           ...(meerdere ? { verdieping: laag.verdieping, gebouwId } : {}),
         });
       }

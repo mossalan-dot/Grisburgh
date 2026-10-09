@@ -2,12 +2,12 @@ import { api, campagneUitUrl, zetCampagne } from './api.js?v=310';
 import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, renderDocumenten, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=343";
 import { initArchief, renderLogboek, openLogboekEditor } from "./render-archief.js?v=140";
 import { renderKaart, queueFlyTo, verversPins, nieuweKaart } from './render-kaart.js?v=31';
-import { renderDungeon } from './render-dungeon.js?v=60';
+import { renderDungeon } from './render-dungeon.js?v=61';
 import { renderRelatiemap } from './render-relatiemap.js?v=27';
 import { renderProgressie, levelupFeatures } from './render-progressie.js?v=57';
 import { renderBestiarium } from './render-bestiarium.js?v=31';
 import { renderSpreuken } from './render-spreuken.js?v=44';
-import { renderVaardigheden, zoekVaardigheden } from './render-vaardigheden.js?v=32';
+import { renderVaardigheden, zoekVaardigheden } from './render-vaardigheden.js?v=33';
 import { renderStatblock } from './render-statblock.js?v=9';
 import { initSocket } from "./socket-client.js?v=84";
 import { initDmPanel } from "./dm-panel.js?v=386";
@@ -3402,7 +3402,7 @@ function _kaartCard(type, m, dm, verdiepingen = null) {
 // eerste bestaande kaart: je drukte op + en keek naar Dreghaven.
 window._kaartNieuw = async function (type) {
   if (type === 'wereld') return nieuweKaart();
-  const { nieuweDungeon } = await import('./render-dungeon.js?v=60');
+  const { nieuweDungeon } = await import('./render-dungeon.js?v=61');
   nieuweDungeon();
 };
 
@@ -15019,6 +15019,12 @@ const HELP_CONFIG = {
     { titel: 'Naslag elders', tekst: 'Niet elke regeltekst mag in de app staan: wat niet in de vrije SRD zit heeft bij ons geen beschrijving. **Linken mag wel.** Hier zet je waarnaar die verwijzing gaat — een zoekopdracht met `{zoek}` erin, of `{naam}` en `{soort}` als je het zelf wil samenstellen. Leeg is een zoekmachine, en dat werkt beter dan een diepe link: die verlept zodra de andere site zijn adressen verandert.', afbeelding: null },
     { titel: 'Campagnes en modules', tekst: 'Alleen de beheerder ziet dit. Per campagne staat hier het DM-wachtwoord, welke campagne de **standaard** is (waar het kale adres naartoe stuurt) en welke **modules** aanstaan. Wat uit staat verdwijnt uit beeld — bij de DM én bij zijn spelers; er komt geen grijze "binnenkort"-knop voor in de plaats.', afbeelding: null },
   ] }),
+  hulp_heldenboek_editor: () => ({ titel: 'Iets toevoegen aan het Heldenboek', stappen: [
+    { titel: 'Eerst: wát maak je?', tekst: 'De lijst bovenaan is de vraag waar de rest uit volgt. **Een regel binnen iets** is een feature: iets wat je op een bepaald level krijgt van je class, subclass, species of background. **Iets nieuws beginnen** is de houder zelf — een eigen class, subclass, species of background, nog zonder features.\n\nDaarom vraagt een houder niet om een level: hij ís geen regel op een ladder. De features hang je er daarna aan, met *Feature van een…*.', afbeelding: null },
+    { titel: 'Herkomst en waaruit', tekst: '**Herkomst** zegt alleen óf het overgenomen is. Zet je iets anders dan *zelf verzonnen*, dan komt er een veld **Waaruit?** bij: de naam van het boek, of van de tafelgenoot die het bedacht.\n\nDat is geen boekhouding om de boekhouding. Het bepaalt wat je later mag meenemen naar een andere campagne: zelf verzonnen mag mee, overgenomen tekst niet. Over een jaar weet je het niet meer.', afbeelding: null },
+    { titel: 'Beschrijving', tekst: 'Bij een feature: wat het doet. Bij een houder: wat het **is** — dat staat bovenaan het kaartje, vóór de features. Een lege regel begint een nieuwe alinea, en met de knoppen erboven maak je vet, cursief of gekleurd.\n\nNeem geen tekst over uit een boek dat niet van jou is. Vat het samen in je eigen woorden; dan mag het mee en leest het bovendien korter.', afbeelding: null },
+  ] }),
+
   inst_onderdelen: () => ({ titel: 'Onderdelen van deze campagne', stappen: [
     { titel: 'Wat dit doet', tekst: 'Elk vinkje is een stuk van de app. Haal je er een weg, dan **verdwijnt het helemaal** — de knop in de zijbalk, het tabblad in de Meesterkamer, de routes erachter, en ook bij je spelers. Geen grijze knop die zegt "binnenkort": die belooft iets.\n\nWat je uitzet blijft wel staan. Zet je het later weer aan, dan is alles er nog precies zoals je het achterliet.', afbeelding: null },
     { titel: 'Diensten en hun delen', tekst: 'Een dienst doet soms twee dingen die los van elkaar staan: je kunt in een herberg slapen én drinken, maar niet elke herberg schenkt. Die delen staan ingesprongen onder hun eigen dienst — *Aan de tap* en *Roddels* onder de herberg, *Eden en vloeken* onder de tempel, *Strijdperk* onder het gokhuis, *Adoptie* onder de magizoöloog.\n\nZet je de dienst zelf uit, dan doen zijn delen er niet meer toe; die verdwijnen vanzelf mee.', afbeelding: null },

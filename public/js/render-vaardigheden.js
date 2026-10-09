@@ -1490,8 +1490,7 @@ function _editorHtml() {
         <textarea class="dm-input" id="vd-desc" rows="${houder ? 6 : 9}"
           placeholder="${houder ? 'Wat is dit? Dit staat bovenaan het kaartje, vóór de features.' : 'Wat doet het? Een lege regel begint een nieuwe alinea.'}">${esc(e.desc || '')}</textarea>
       </div>
-      ${houder ? `
-      <p class="dm-hint">Je maakt hier de ${esc(maaksel.label.replace(/^Een nieuwe?\s*/i, ''))} zelf, met zijn uitleg. De features hang je er daarna aan met <em>Feature van een ${maaksel.soort === 'species' ? 'species' : maaksel.soort}</em>.</p>` : ''}
+
       ${toonKoppeling ? `
       <div class="dm-form-row" style="flex-direction:column;align-items:stretch;gap:5px">
         <label class="dm-form-label">Sluit aan op</label>
@@ -1575,7 +1574,8 @@ function _editorOpen(it) {
   // gaat mee met het formulier. Haak dus leegmaken, anders schrijft een eerder
   // geopend venster mee.
   window._fpOnChange = null;
-  window.app.openModal(it ? `${it.naam} bewerken` : 'Iets toevoegen aan het Heldenboek', '', _editorHtml());
+  window.app.openModal(it ? `${it.naam} bewerken` : 'Iets toevoegen aan het Heldenboek', '', _editorHtml(),
+    'hulp_heldenboek_editor');
 }
 
 // Wat er in de velden staat, terug in _edit — nodig zodra het venster

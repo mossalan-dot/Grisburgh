@@ -307,7 +307,7 @@ function _ververOpenKaartje(id) {
     }
     if (window.app.state.activeSection !== 'kaart') return;
     if (window.app.state.role === 'dm') return; // DM al bijgewerkt via _renderSvg()
-    import('./render-dungeon.js?v=60').then(m => {
+    import('./render-dungeon.js?v=61').then(m => {
       const content = document.getElementById('kaart-mode-content');
       if (content) m.renderDungeon(content);
     });
@@ -315,7 +315,7 @@ function _ververOpenKaartje(id) {
   // Dungeon meta bijgewerkt (nieuwe map, party-access) → iedereen herlaadt
   socket.on('dungeon:updated', () => {
     if (window.app.state.activeSection !== 'kaart') return;
-    import('./render-dungeon.js?v=60').then(m => {
+    import('./render-dungeon.js?v=61').then(m => {
       const content = document.getElementById('kaart-mode-content');
       if (content) m.renderDungeon(content);
     });
