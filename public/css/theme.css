@@ -29783,3 +29783,27 @@ body.wizard-open { overflow: hidden; }
 /* Tweede knopje op de kaart: het focuspunt van de afbeelding. Onder de
    beeldknop, zodat ze elkaar niet overlappen. */
 .vk-beeldknop--focus { top: 43px; }
+
+/* ── De DM-knoppen op een zegening of gunst in het Heldenboek ─────────────── */
+/* Zelfde plek en maat als op een kaartje in het archief: rechtsboven, onder
+   elkaar, en pas in beeld als je over het kaartje gaat. Het kleurtje zegt wat
+   de stand is — een slot is verborgen, een doorgestreept oog is vaag. */
+.vaardig-dmrij {
+  position: absolute; top: 8px; right: 8px; z-index: 20;
+  display: flex; flex-direction: column; gap: 4px;
+  opacity: 0; transition: opacity .15s;
+}
+.vaardig-card:hover .vaardig-dmrij, .vaardig-dmrij:focus-within { opacity: 1; }
+@media (hover: none) { .vaardig-dmrij { opacity: .85; } }
+.vaardig-dmknop {
+  display: flex; align-items: center; justify-content: center;
+  width: 28px; height: 28px; padding: 0; cursor: pointer;
+  border: 1px solid rgba(255,255,255,.2); border-radius: 5px;
+  background: rgba(0,0,0,.72); color: #f2e8d2;
+  backdrop-filter: blur(3px);
+}
+.vaardig-dmknop:hover { background: rgba(0,0,0,.92); }
+.vaardig-dmknop svg { width: 14px; height: 14px; }
+.vaardig-dmknop--hidden  { color: #e0a0a0; }
+.vaardig-dmknop--vague   { color: #e8c56a; }
+.vaardig-dmknop--visible { color: #9fe0a8; }

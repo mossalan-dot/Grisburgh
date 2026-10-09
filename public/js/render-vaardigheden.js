@@ -186,6 +186,9 @@ async function _load() {
         // permanente zegen en de rest al goed. Eén plek om een zegening te
         // bekijken, niet twee.
         entityId: e.id,
+        // De stand van dit kaartje voor de party die nu speelt, zodat het
+        // knopje op het kaartje weet of hij verborgen, vaag of zichtbaar is.
+        zichtbaar: e._visibility || 'hidden',
         subsoort: gt,
       });
     }
@@ -318,6 +321,23 @@ function _card(it) {
   // Staat de tekst er niet, dan hoeft de kijker het kaartje daar niet eerst
   // voor te openen — zelfde regel als bij de spreuken.
   const link = tekst ? '' : (window.app?.bronLink?.(it.naam, 'features') || '');
+  // Een zegening of een gunst is een kaartje in de campagne: hij is verborgen
+  // tot de party hem krijgt, en dat onthullen hoort hier te kunnen. Dezelfde
+  // knoppenrij als op een kaartje in het archief, met dezelfde handlers — een
+  // tweede manier om hetzelfde te doen loopt vroeg of laat uit de pas.
+  const dmRij = (isDM() && it.entityId) ? (() => {
+    const vis = it.zichtbaar || 'hidden';
+    const vIcon = vis === 'visible' ? icon('eye') : vis === 'vague' ? icon('eye-off') : icon('lock');
+    const vTitel = vis === 'visible' ? 'Verbergen' : vis === 'vague' ? 'Volledig tonen' : 'Zichtbaar maken';
+    const id = esc(it.entityId);
+    return `<div class="vaardig-dmrij" onclick="event.stopPropagation()">
+      <button class="vaardig-dmknop vaardig-dmknop--${esc(vis)}" title="${vTitel}"
+        onclick="window.vaardigheden.zichtbaarheid('${id}', event)">${vIcon}</button>
+      <button class="vaardig-dmknop" title="Bewerken"
+        onclick="window._openEditor('voorwerpen','${id}')">${icon('pencil')}</button>
+    </div>`;
+  })() : '';
+
   // Een zegening of een gunst is een kaartje in de campagne, en dat heeft zijn
   // eigen venster — met de god, de eedtekst en de permanente zegen erin. Daar
   // klikken we dus heen: één plek om een zegening te bekijken, niet twee.
@@ -329,6 +349,7 @@ function _card(it) {
       onclick="${klik}" title="${esc(it.naam)}"
       style="--soort-c1:${s.c1};--soort-c2:${s.c2}">
       <div class="card-accent vaardig-accent"></div>
+      ${dmRij}
       ${it.level ? `<span class="vaardig-card-niv">${it.level}</span>` : ''}
       <div class="card-img-wrap vaardig-card-img-wrap">
         <div class="vaardig-card-silhouet">${icon(_itemIcoon(it))}</div>
@@ -1340,10 +1361,10 @@ function _open(key, vanWaar = null) {
         }) || ''}</div>
       </details>` : ''}
       <div class="spreuk-dm-knoppen">
-        <button class="spreuk-detail-imgbtn" onclick="window.vaardigheden.kiesDetailAfbeelding('${esc(it.key)}')">
-          ${icon('image')} Afbeelding kiezen of uploaden</button>
-        ${it.img ? `<button class="spreuk-detail-imgbtn" onclick="window.vaardigheden.wisDetailAfbeelding('${esc(it.key)}')">
-          ${icon('x')} Afbeelding weghalen</button>` : ''}
+        <!-- "Afbeelding kiezen of uploaden" en "Afbeelding weghalen" stonden
+             hier naast "Bewerken", terwijl de bewerkmodus allebei al doet —
+             en daar staat ook de focuskiezer bij. Twee wegen naar hetzelfde,
+             waarvan er één minder kan. -->
         <button class="spreuk-detail-imgbtn" onclick="window.vaardigheden.bewerk('${esc(it.key)}')">
           ${icon('pencil')} Bewerken</button>
       </div>` : '';
@@ -1671,40 +1692,6 @@ window.vaardigheden = {
   bewerk(key) { _editorOpen((_all || []).find(x => x.key === key)); },
   // Kiezen gaat via dezelfde mediabibliotheek als in de bewerkmodal; het
   // detailvenster tekent zichzelf daarna opnieuw, zodat het beeld er staat.
-  kiesDetailAfbeelding(key) {
-    const it = (_all || []).find(x => x.key === key);
-    if (!it) return;
-    if (!window.mediaPicker?.open) { alert('Mediabibliotheek niet beschikbaar'); return; }
-    window.mediaPicker.open({
-      type: 'afbeelding',
-      suggestedName: (it.naam || 'vaardigheid').toLowerCase().replace(/\s+/g, '-'),
-      onSelect: async (srcId) => {
-        const id = it.img || `feat-img-${Math.random().toString(36).slice(2, 10)}`;
-        try {
-          // Een 403 of 404 is geen exception: zonder deze controle liep de code
-          // gewoon door, schreef een `img`-id weg dat naar niets wees, en
-          // tekende een leeg vlak. Je zag dan niets gebeuren.
-          // Via `api`, zodat de campagne uit de adresbalk meegaat — zie de
-          // toelichting bij dezelfde aanroep in render-spreuken.js.
-          await api.copyFile(id, srcId);
-          await _bewaarBeeld(it, { img: id });
-          _open(key);
-          // Vervang je een bestaand beeld, dan blijft de URL gelijk en toont de
-          // browser zijn kopie — ook in de focuskiezer.
-          window._beeldVerversen?.(id);
-          window._showToast?.('Afbeelding geplaatst.');
-        } catch (e) {
-          window._showToast?.('Afbeelding instellen mislukt: ' + (e.message || e));
-        }
-      },
-    });
-  },
-  async wisDetailAfbeelding(key) {
-    const it = (_all || []).find(x => x.key === key);
-    if (!it) return;
-    try { await _bewaarBeeld(it, { img: null, imgFocus: '' }); _open(key); }
-    catch (e) { alert('Afbeelding weghalen mislukt: ' + e.message); }
-  },
   veld(naam, waarde) {
     _editorLees();
     _edit[naam] = waarde;
@@ -1883,6 +1870,17 @@ window.vaardigheden = {
   },
   // De uitleg bij een species, net als bij een subclass.
   volkUitleg(volk) { _uitlegVenster('species', volk, ''); },
+  // Een zegening of gunst onthullen. Langs dezelfde weg als in het archief,
+  // inclusief de waarschuwing als iemand hem draagt; alleen het verversen is
+  // hier anders, want we staan in het Heldenboek.
+  async zichtbaarheid(id, ev) {
+    try {
+      await window._toggleVis?.('voorwerpen', id, ev);
+      _all = null;
+      await _load(); await _klasseExtra();
+      _paint();
+    } catch (e) { alert('Niet gelukt: ' + e.message); }
+  },
   // Het focuspunt van de afbeelding op een kaart. Dezelfde kiezer als bij een
   // spreuk, een kaartje en de aktebanner — één plek waar dit gekozen wordt.
   kaartFocus(soort, naam) {
