@@ -22768,7 +22768,11 @@ body.kaart-fs-active { overflow: hidden; }
 .spreuk-klasfilter:hover { background: rgba(196,168,122,0.2); }
 .spreuk-klasfilter.active { background: rgba(184,134,11,0.9); border-color: rgba(184,134,11,0.9); color: #fff; }
 .spreuk-klasfilter.active:hover { background: #b8860b; }
-.spreuk-levels { display: flex; gap: 3px; flex-wrap: wrap; }
+/* Was een rij van elf knopjes; is nu de schuifbalk met twee bolletjes, zoals
+   bij "Spreuken toevoegen". Een vaste breedte, want een schuifbalk die met de
+   rest meerekt wordt op een breed scherm een meter lang. */
+.spreuk-levels { flex: 0 0 auto; width: 230px; min-width: 180px; }
+.spreuk-levels .sb-lvlschuif { padding: 0; }
 .spreuk-lvl-btn {
   font-family: 'Cinzel', serif; font-size: 12px; font-weight: 700;
   min-width: 30px; padding: 6px 8px; cursor: pointer;

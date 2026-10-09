@@ -42,7 +42,7 @@ const _CLASS_COL = {
 
 let _all       = null;      // null = nog niet geladen
 let _container = null;
-let _filters   = { q: '', level: null, klasse: null, school: null, ritual: false, concentratie: false, mijnKlasse: true };
+let _filters   = { q: '', van: null, tot: null, klasse: null, school: null, ritual: false, concentratie: false, mijnKlasse: true };
 let _classes   = [];
 let _scholenOpen = false;    // staat de schoolrij uitgeklapt?
 let _myBook    = new Set(); // index-set van de spreuken in het eigen spreukenboek (speler)
@@ -171,7 +171,9 @@ function _filtered() {
       if (sc < 0) return false;
       scores.set(s.index, sc);
     }
-    if (_filters.level !== null && Number(s.level) !== Number(_filters.level)) return false;
+    const _lvl = Number(s.level) || 0;
+    if (_filters.van !== null && _lvl < _filters.van) return false;
+    if (_filters.tot !== null && _lvl > _filters.tot) return false;
     if (_filters.school && _school(s) !== _filters.school) return false;
     if (_filters.ritual       && !s.ritual)        return false;
     if (_filters.concentratie && !s.concentration) return false;
@@ -252,11 +254,17 @@ function _card(s) {
 
 // ── Filterrij (niveau + klasse) ──
 function _filterBar() {
-  const levels = ['<button class="spreuk-lvl-btn' + (_filters.level === null ? ' active' : '') +
-    '" onclick="window.spreuken.setLevel(null)">Alle</button>'];
-  for (let i = 0; i <= 9; i++) {
-    levels.push(`<button class="spreuk-lvl-btn${_filters.level === i ? ' active' : ''}" onclick="window.spreuken.setLevel(${i})">${i === 0 ? 'C' : i}</button>`);
-  }
+  // Dezelfde balk als bij "Spreuken toevoegen": elf knopjes (Alle, C, 1…9)
+  // namen een hele regel terwijl je er bijna altijd een bereik uit wilt.
+  // Eén helper, op window gezet door app.js, zodat de twee plekken niet uit
+  // elkaar kunnen lopen.
+  const aanwezig = [...new Set((_all || []).map(s => Number(s.level) || 0))].sort((a, b) => a - b);
+  const levels = aanwezig.length > 1
+    ? window._lvlSchuifHtml({
+        aanwezig, van: _filters.van, tot: _filters.tot,
+        schuif: 'window.spreuken.setLvlBereik', reset: 'window.spreuken.resetLvlBereik',
+      })
+    : '';
   const klasOpts = ['<option value="">Alle classes</option>']
     .concat(_classes.map(c => `<option value="${esc(c)}"${_filters.klasse === c ? ' selected' : ''}>${esc(c)}</option>`));
   // Speler met spreuk-klasse(n): toggle "Alleen mijn klasse" (standaard aan).
@@ -300,7 +308,7 @@ function _filterBar() {
     </div>`;
   return `
     <div class="spreuk-filters">
-      <div class="spreuk-levels">${levels.join('')}</div>
+      <div class="spreuk-levels">${levels}</div>
       ${toggle}
       ${select}
       ${schoolKnop}
@@ -900,7 +908,12 @@ window.spreuken = {
     window._fpOnChange = null;   // anders schrijft de volgende kiezer nog naar een spreuk
   },
   search(v)    { _filters.q = v; _paintGrid(); },
-  setLevel(lv) { _filters.level = lv; _refreshFilterBar(); _paintGrid(); },
+  setLvlBereik(welk, waarde) {
+    const aanwezig = [...new Set((_all || []).map(s => Number(s.level) || 0))].sort((a, b) => a - b);
+    Object.assign(_filters, window._lvlSchuifStap(welk, waarde, aanwezig, _filters));
+    _refreshFilterBar(); _paintGrid();
+  },
+  resetLvlBereik() { _filters.van = null; _filters.tot = null; _refreshFilterBar(); _paintGrid(); },
   setKlasse(k) { _filters.klasse = k || null; _paintGrid(); },
   setSchool(sc) { _filters.school = sc || null; if (sc) _scholenOpen = true; _refreshFilterBar(); _paintGrid(); },
   toggleScholen() { _scholenOpen = !_scholenOpen; _refreshFilterBar(); },
@@ -953,7 +966,10 @@ window.spreuken = {
   zetFilter(o = {}) {
     const stand = {
       q: '', school: null, ritual: false, concentratie: false,
-      level: (o.level === 0 || o.level) ? o.level : null,
+      // Van buitenaf (de level-up wijst naar één niveau) komt één getal; dat
+      // is een bereik van dat niveau tot zichzelf.
+      van: (o.level === 0 || o.level) ? o.level : null,
+      tot: (o.level === 0 || o.level) ? o.level : null,
       klasse: o.klasse || null,
       mijnKlasse: !o.klasse,
     };

@@ -6,7 +6,7 @@ import { renderDungeon } from './render-dungeon.js?v=63';
 import { renderRelatiemap } from './render-relatiemap.js?v=27';
 import { renderProgressie, levelupFeatures } from './render-progressie.js?v=60';
 import { renderBestiarium } from './render-bestiarium.js?v=31';
-import { renderSpreuken } from './render-spreuken.js?v=45';
+import { renderSpreuken } from './render-spreuken.js?v=46';
 import { renderVaardigheden, zoekVaardigheden, heldenboekTekst } from './render-vaardigheden.js?v=40';
 import { renderStatblock } from './render-statblock.js?v=9';
 import { initSocket } from "./socket-client.js?v=84";
@@ -4864,29 +4864,46 @@ function _sbAddSpPool() {
 }
 const _sbLvlLabel = (l) => (l === 0 ? 'Cantrips' : 'Level ' + l);
 
-// Tien niveaus zijn tien pillen die twee regels in beslag namen, en je wilt er
-// bijna altijd een *bereik* uit ("alles tot en met level 3"). Dus één balk met
-// twee bolletjes: links de cantrips, rechts level 9.
-function _sbAddSpSchuifHtml(aanwezig) {
+// ════════════════════════════════════════════════════════════════════════════
+//  NIVEAUBEREIK — ÉÉN BAAN, TWEE BOLLETJES
+// ════════════════════════════════════════════════════════════════════════════
+// Tien niveaus zijn tien pillen die twee regels in beslag nemen, en je wilt er
+// bijna altijd een *bereik* uit ("alles tot en met level 3").
+//
+// Staat op window omdat ook de Spreukentab in het archief hem gebruikt; die
+// zit in een eigen module en moet precies hetzelfde ding tonen. `schuif` en
+// `reset` zijn de namen van de functies die de aanroeper op window heeft gezet.
+window._lvlSchuifHtml = function({ aanwezig, van, tot, schuif, reset }) {
   const min = aanwezig[0], max = aanwezig[aanwezig.length - 1];
-  const van = _addSp.van ?? min, tot = _addSp.tot ?? max;
+  van = van ?? min; tot = tot ?? max;
   const pct = (v) => max === min ? 0 : ((v - min) / (max - min)) * 100;
   return `
-    <div class="sb-lvlschuif" id="sb-lvlschuif">
+    <div class="sb-lvlschuif">
       <div class="sb-lvlschuif-kop">
         <span class="sb-lvlschuif-waarde">${esc(van === tot ? _sbLvlLabel(van) : `${_sbLvlLabel(van)} — ${_sbLvlLabel(tot)}`)}</span>
-        ${(van !== min || tot !== max) ? `<button class="sb-lvlschuif-reset" onclick="window._sbAddSpLevelReset()">${icon('x')} alles</button>` : ''}
+        ${(van !== min || tot !== max) ? `<button class="sb-lvlschuif-reset" onclick="${reset}()">${icon('x')} alles</button>` : ''}
       </div>
       <div class="sb-lvlschuif-baan">
         <div class="sb-lvlschuif-vulling" style="left:${pct(van)}%;right:${100 - pct(tot)}%"></div>
         <input type="range" class="sb-lvlschuif-input sb-lvlschuif-input--van" min="${min}" max="${max}" step="1" value="${van}"
-          aria-label="Laagste niveau" oninput="window._sbAddSpLevelSchuif('van', this.value)">
+          aria-label="Laagste niveau" oninput="${schuif}('van', this.value)">
         <input type="range" class="sb-lvlschuif-input sb-lvlschuif-input--tot" min="${min}" max="${max}" step="1" value="${tot}"
-          aria-label="Hoogste niveau" oninput="window._sbAddSpLevelSchuif('tot', this.value)">
+          aria-label="Hoogste niveau" oninput="${schuif}('tot', this.value)">
       </div>
       <div class="sb-lvlschuif-schaal">${aanwezig.map(l => `<span>${l === 0 ? 'C' : l}</span>`).join('')}</div>
     </div>`;
-}
+};
+
+// Twee bolletjes op één baan mogen elkaar niet passeren: dan is het bereik
+// achterstevoren en valt de lijst leeg. Ook gedeeld met de Spreukentab.
+window._lvlSchuifStap = function(welk, waarde, aanwezig, huidig) {
+  const min = aanwezig[0], max = aanwezig[aanwezig.length - 1];
+  const v = Math.max(min, Math.min(max, parseInt(waarde, 10) || 0));
+  let van = huidig.van ?? min, tot = huidig.tot ?? max;
+  if (welk === 'van') { van = v; if (van > tot) tot = van; }
+  else                { tot = v; if (tot < van) van = tot; }
+  return { van, tot };
+};
 
 function _sbAddSpRenderFilters() {
   const klassen = _sbKlassenEN();
@@ -4907,7 +4924,10 @@ function _sbAddSpRenderFilters() {
   const typeChips = Object.entries(_SP_TYPE_LABELS).map(([k, lbl]) =>
     `<button class="sb-addsp-chip sb-addsp-chip--${k}${_addSp.types.has(k) ? ' on' : ''}" onclick="window._sbAddSpToggleType('${k}')">${esc(lbl)}</button>`).join('');
   el.innerHTML = `
-    ${levelsPresent.length > 1 ? _sbAddSpSchuifHtml(levelsPresent) : ''}
+    ${levelsPresent.length > 1 ? window._lvlSchuifHtml({
+      aanwezig: levelsPresent, van: _addSp.van, tot: _addSp.tot,
+      schuif: 'window._sbAddSpLevelSchuif', reset: 'window._sbAddSpLevelReset',
+    }) : ''}
     <div class="sb-addsp-filterrij">
       <button class="sb-addsp-filterknop${actief ? ' on' : ''}" onclick="window._sbAddSpFilterOpen()">
         ${icon('filter')} Filter${actief ? ` · ${actief}` : ''}
@@ -4922,17 +4942,9 @@ function _sbAddSpRenderFilters() {
     </div>`;
 }
 window._sbAddSpFilterOpen = function() { _addSp.ladeOpen = !_addSp.ladeOpen; _sbAddSpRenderFilters(); };
-// Twee bolletjes op één baan: die mogen elkaar niet passeren, anders is het
-// bereik achterstevoren en valt de lijst leeg.
 window._sbAddSpLevelSchuif = function(welk, waarde) {
-  const pool = _sbAddSpPool();
-  const aanwezig = [...new Set(pool.map(s => s.level || 0))].sort((a, b) => a - b);
-  const min = aanwezig[0], max = aanwezig[aanwezig.length - 1];
-  const v = Math.max(min, Math.min(max, parseInt(waarde, 10) || 0));
-  let van = _addSp.van ?? min, tot = _addSp.tot ?? max;
-  if (welk === 'van') { van = v; if (van > tot) tot = van; }
-  else                { tot = v; if (tot < van) van = tot; }
-  _addSp.van = van; _addSp.tot = tot;
+  const aanwezig = [...new Set(_sbAddSpPool().map(s => s.level || 0))].sort((a, b) => a - b);
+  Object.assign(_addSp, window._lvlSchuifStap(welk, waarde, aanwezig, _addSp));
   _sbAddSpRenderFilters(); _sbAddSpRenderList();
 };
 window._sbAddSpLevelReset = function() {
