@@ -25854,39 +25854,69 @@ body.lade-open .dm-regie-balk-inner { height: auto; }
 .markt-sectie-kop .icon { width: 13px; height: 13px; }
 
 /* ── De winkels ── */
+.dienst-overzicht,
 .markt-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 12px; }
+/* ══════════════════════════════════════════════════════════════════
+   DE OVERZICHTSKAART VAN EEN DIENST
+   ══════════════════════════════════════════════════════════════════
+   Markt, tempel en facties stellen alle drie dezelfde vraag: waar wil je
+   heen? Ze beantwoordden hem op drie manieren — de markt met een brede rij,
+   de tempel met een vierkante tegel, en de facties met een lichte
+   perkamentkaart op een donker scherm. Dat was geen keuze maar drie keer
+   apart gebouwd.
+
+   Eén vorm dus: beeld links, naam en ondertitel rechts, en daaronder één
+   regel die zegt hoe het ervoor staat — hoeveel er in de schappen ligt, welk
+   domein een god heeft, welke rang je bij een factie hebt. Waar een stand een
+   balk verdient (renown) past die in diezelfde regel.
+
+   De markt-klassen blijven bestaan: zij hadden deze vorm al, en hernoemen
+   kost een wijziging in elke plek die ernaar verwijst zonder dat er iets
+   zichtbaars verandert. */
+.dienst-kaart,
 .markt-kaart {
   display: flex; align-items: stretch; gap: 0; text-align: left; cursor: pointer;
   background: rgba(38,24,10,0.72); border: 1px solid rgba(196,168,122,0.26);
   border-radius: 9px; overflow: hidden; padding: 0;
   transition: border-color .18s, background .18s, transform .18s;
 }
+.dienst-kaart:hover,
 .markt-kaart:hover {
   background: rgba(52,33,13,0.85); border-color: rgba(212,168,67,0.55);
   transform: translateY(-2px);
 }
 .markt-kaart--dicht { opacity: .55; border-style: dashed; }
+.dienst-kaart-beeld,
 .markt-kaart-beeld {
   position: relative; flex: 0 0 76px; width: 76px; background: rgba(20,12,4,0.6);
   display: flex; align-items: center; justify-content: center; overflow: hidden;
 }
+.dienst-kaart-beeld img,
 .markt-kaart-beeld img { width: 100%; height: 100%; object-fit: cover; }
+.dienst-kaart-icoon,
 .markt-kaart-icoon {
   position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
   color: rgba(196,168,122,0.35); pointer-events: none;
 }
+.dienst-kaart-beeld img + .dienst-kaart-icoon,
 .markt-kaart-beeld img + .markt-kaart-icoon { display: none; }
 /* Op het kaartje staat de wínkelier, niet de gevel — die hangt al als
    achtergrond achter het hele scherm. Een portret wil van bovenaf bijgesneden
    worden, anders kijk je tegen een kin aan. */
+.dienst-kaart-portret,
 .markt-kaart-portret { object-position: 50% 22%; }
+.dienst-kaart-icoon .icon,
 .markt-kaart-icoon .icon { width: 26px; height: 26px; }
+.dienst-kaart-body,
 .markt-kaart-body { display: flex; flex-direction: column; gap: 3px; padding: 11px 13px; min-width: 0; }
+.dienst-kaart-naam,
 .markt-kaart-naam { font-family: 'Cinzel', serif; font-size: 0.92rem; color: #f2e3c2; line-height: 1.2; }
+.dienst-kaart-sub,
 .markt-kaart-type {
   font-family: 'Cinzel', serif; font-size: 0.6rem; letter-spacing: .1em;
   text-transform: uppercase; color: rgba(196,168,122,0.7);
 }
+.dienst-kaart-stand,
 .markt-kaart-tel { font-family: 'Crimson Text', serif; font-size: 0.82rem; color: rgba(240,228,196,0.6); }
 .markt-kaart-dicht {
   display: inline-flex; align-items: center; gap: 4px;
@@ -25940,7 +25970,7 @@ body.lade-open .dm-regie-balk-inner { height: auto; }
 
 @media (max-width: 640px) {
   .markt-content { padding: 16px 14px 24px; }
-  .markt-grid { grid-template-columns: 1fr; }
+  .dienst-overzicht, .markt-grid { grid-template-columns: 1fr; }
   .markt-beurs { width: 100%; justify-content: center; }
 }
 /* De hulpknop hoort rechtsboven; .markt-content rekt zijn kinderen, dus hij
@@ -29807,3 +29837,42 @@ body.wizard-open { overflow: hidden; }
 .vaardig-dmknop--hidden  { color: #e0a0a0; }
 .vaardig-dmknop--vague   { color: #e8c56a; }
 .vaardig-dmknop--visible { color: #9fe0a8; }
+
+/* De renownbalk van een factie past in dezelfde standregel als "7 dingen in de
+   schappen". Smal, want hij is een bijzin, geen kop. */
+.dienst-kaart-balk {
+  display: block; height: 4px; width: 100%; margin-top: 5px;
+  border-radius: 2px; background: rgba(255,255,255,.13); overflow: hidden;
+}
+.dienst-kaart-balk > span {
+  display: block; height: 100%; border-radius: 2px;
+  background: linear-gradient(90deg, #8a6206, #d4aa3c);
+}
+/* Een embleem in plaats van een portret: rond, gecentreerd, en met wat lucht
+   eromheen zodat een wapen niet tegen de rand plakt. */
+.dienst-kaart-embleem {
+  width: 46px; height: 46px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(20,12,4,.55); border: 1px solid rgba(196,168,122,.35);
+  overflow: hidden;
+}
+.dienst-kaart-embleem img { width: 100%; height: 100%; object-fit: cover; }
+.dienst-kaart-embleem svg { width: 24px; height: 24px; color: #d4aa3c; }
+/* De factie waar je eed ligt of waar iets speelt: dezelfde markering als een
+   actieve god, en in dezelfde kleur als de rest van het scherm. */
+.dienst-kaart--actief { border-color: rgba(212,168,67,.7); background: rgba(60,40,12,.82); }
+/* De doorklik naar het kaartje achter een dienst: rechtsboven op de kaart,
+   als eigen knop ernaast (een knop in een knop is geen geldige HTML). */
+.dienst-kaart-wrap { position: relative; display: block; }
+.dienst-kaart-wrap > .dienst-kaart { width: 100%; }
+.dienst-kaart-link {
+  position: absolute; top: 7px; right: 7px; z-index: 2;
+  display: flex; align-items: center; justify-content: center;
+  width: 24px; height: 24px; padding: 0; cursor: pointer;
+  border: 1px solid rgba(196,168,122,.3); border-radius: 5px;
+  background: rgba(20,12,4,.6); color: #d4aa3c;
+  opacity: 0; transition: opacity .15s;
+}
+.dienst-kaart-wrap:hover .dienst-kaart-link { opacity: 1; }
+@media (hover: none) { .dienst-kaart-link { opacity: .8; } }
+.dienst-kaart-link svg { width: 13px; height: 13px; }

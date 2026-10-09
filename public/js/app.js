@@ -12407,7 +12407,7 @@ function _marktWinkels(winkels) {
         <span class="markt-kaart-beeld">
           ${w.eigenaar ? `<img src="${api.thumbUrl(w.eigenaar.imageId)}" loading="lazy" alt=""
              class="markt-kaart-portret"${w.eigenaar.imgFocus ? ` style="object-position:${esc(w.eigenaar.imgFocus)}"` : ''}
-             onerror="this.style.display='none'">` : ''}
+             onerror="this.remove()">` : ''}
           <span class="markt-kaart-icoon">${icon(window._locIcoon?.(w.type) || 'store')}</span>
         </span>
         <span class="markt-kaart-body">
@@ -13579,24 +13579,37 @@ function _renderTempelLijst(el, goden, config, huidigeEed, huidigeZegen, currenc
                    en zet per kaartje of het een zegen, een eed of een vloek is. In Meesterkamer&nbsp;→&nbsp;Diensten&nbsp;→&nbsp;Tempel
                    geef je ze daarna een domein, een symbool en een portret.</p>`
               : `<p class="herberg-cooldown-tekst">Er zijn nog geen goden bekend in deze tempel.</p>`)
-          : `<div class="tempel-goden-grid">
+          // Dezelfde kaart als op de markt en bij de facties: beeld links,
+          // naam en ondertitel rechts, en één regel over hoe het ervoor
+          // staat. Drie overzichten die dezelfde vraag stellen hoorden niet
+          // drie verschillende vormen te hebben.
+          : `<div class="dienst-overzicht">
               ${goden.map(g => {
                 const actiefEed = huidigeEed && huidigeEed.godId === g.id;
                 // Portret: DM-geconfigureerde imageId → anders automatisch entity-match op naam
                 const portraitUrl = g.imageId
                   ? api.thumbUrl(g.imageId)
                   : godPortraitMap[(g.naam || '').trim().toLowerCase()];
-                const avatar = portraitUrl
-                  ? `<img src="${portraitUrl}" class="tempel-god-avatar" alt="${esc(g.naam)}" onerror="this.style.display='none';this.insertAdjacentHTML('afterend','<div class=\\'tempel-god-avatar-fallback\\'></div>')">`
-                  : `<div class="tempel-god-avatar-fallback"></div>`;
                 return `
-                  <div class="tempel-god-kaart${actiefEed ? ' tempel-god--actief' : ''}"
-                       onclick="window._tempelBinnenTreden('${esc(g.id)}')">
-                    <div class="tempel-god-avatar-wrap">${avatar}</div>
-                    <div class="tempel-god-naam">${esc(g.naam)}</div>
-                    ${g.domein ? `<div class="tempel-god-domein">${esc(g.domein)}</div>` : ''}
-                    ${actiefEed ? `<div class="tempel-god-eed-badge">${icon('scroll-text')} eed</div>` : ''}
-                  </div>`;
+                  <button class="dienst-kaart${actiefEed ? ' dienst-kaart--actief' : ''}"
+                       onclick="window._tempelBinnenTreden('${esc(g.id)}')" title="${esc(g.naam)}">
+                    <span class="dienst-kaart-beeld">
+                      <!-- remove() en niet display:none: het icoon eronder is een
+                           adjacent sibling van de img, dus zolang die in de DOM
+                           staat blijft het icoon verborgen — en dan zie je een
+                           leeg vak in plaats van een terugval.
+                           (Geen backticks in commentaar hierbinnen: template literal.) -->
+                      ${portraitUrl ? `<img src="${portraitUrl}" alt="" loading="lazy" onerror="this.remove()">` : ''}
+                      <span class="dienst-kaart-icoon">${icon('church')}</span>
+                    </span>
+                    <span class="dienst-kaart-body">
+                      <span class="dienst-kaart-naam">${esc(g.naam)}</span>
+                      ${g.domein ? `<span class="dienst-kaart-sub">${esc(g.domein)}</span>` : ''}
+                      <span class="dienst-kaart-stand">${actiefEed
+                        ? `${icon('scroll-text')} je eed ligt hier`
+                        : 'Zegeningen en eden'}</span>
+                    </span>
+                  </button>`;
               }).join('')}
             </div>`}
       </div>
@@ -14245,7 +14258,7 @@ async function renderFacties() {
           <h2 class="factie-lijst-titel">${icon('landmark')} ${esc(window._factiesLabel())}</h2>
           ${_geluidBtn()}${_helpBtn('facties')}
         </div>
-        <div class="factie-grid">
+        <div class="dienst-overzicht">
           ${zichtbaar.map(f => _renderFactieKaart(f)).join('')}
         </div>
       </div>
@@ -14530,33 +14543,38 @@ function _renderFactieKaart(f) {
   const nextRang = ladder.find(r => !r.bereikt);
   const rangIdx = f.rang?.index ?? 0;
 
+  // Dezelfde kaart als op de markt en in de tempel: beeld links, naam en
+  // rang rechts, en één regel over hoe het ervoor staat. Dit was een lichte
+  // perkamentkaart met een gouden kop op een donker scherm — mooi op zichzelf,
+  // maar het derde uiterlijk voor dezelfde vraag: waar wil je heen?
+  //
+  // Wat er van de oude kaart overblijft staat in het paneel dat je opent:
+  // de voordelen, de verworven gunsten en de hele ladder. Een overzicht hoort
+  // te zeggen wáár je staat, niet alles al te vertellen.
+  const stand = rangIdx > 0
+    ? `${isMax ? 'Max aanzien bereikt' : `${f.renown || 0} / ${f.drempelVolgende} renown`}${nextRang ? ` — volgende: ${esc(nextRang.naam)}` : ''}`
+    : `Nog geen aanzien${nextRang ? ` — eerste rang: ${esc(nextRang.naam)}` : ''}`;
+  // De doorklik naar het organisatiekaartje stond op de oude kaart en hoort er
+  // te blijven. Hij ligt náást de knop en niet erin: een knop in een knop is
+  // geen geldige HTML, en dan werkt de binnenste op de helft van de apparaten
+  // niet.
   return `
-  <div class="factie-kaart${stijl ? ' factie-kaart--' + stijl : ''}" onclick="window._factieOpen('${esc(f.id)}')" style="cursor:pointer">
-    <div class="factie-kaart-header">
-      <span class="factie-kaart-embleem">${embIcon}</span>
-      <div class="factie-kaart-titels">
-        <span class="factie-kaart-naam">${esc(f.naam)}</span>
-        <span class="factie-kaart-rang">${esc(f.rang?.naam || 'Buitenstaander')}</span>
-      </div>
-      ${f.entityId ? `<button class="factie-kaart-link" onclick="event.stopPropagation();window._openDetail('organisaties','${esc(f.entityId)}')" title="Bekijk organisatiekaartje">${icon('arrow-up-right')}</button>` : ''}
-    </div>
-    ${rangIdx > 0 ? `
-    <div class="factie-kaart-body">
-      ${f.rang?.voordelen ? `<p class="factie-voordelen">${esc(f.rang.voordelen)}</p>` : ''}
-      <div class="factie-progress-wrap">
-        <div class="factie-progress-bar" style="width:${pct}%"></div>
-      </div>
-      <div class="factie-progress-label">
-        ${isMax ? 'Max aanzien bereikt' : `${f.renown || 0} / ${f.drempelVolgende} renown`}${nextRang ? ` — volgende: <strong>${esc(nextRang.naam)}</strong>` : ''}
-      </div>
-      ${verworven.length ? `
-      <div class="factie-boons">${window._factieUnlockChips(verworven)}</div>` : ''}
-    </div>` : `
-    <div class="factie-kaart-body">
-      <p class="factie-kaart-onbekend">Je kent deze factie, maar hebt nog geen aanzien opgebouwd.</p>
-      ${nextRang ? `<p class="factie-progress-label">Eerste rang: <strong>${esc(nextRang.naam)}</strong> (${f.drempelVolgende ?? 1} renown)</p>` : ''}
-    </div>`}
-  </div>`;
+  <span class="dienst-kaart-wrap">
+  ${f.entityId ? `<button class="dienst-kaart-link" title="Bekijk het organisatiekaartje"
+    onclick="window._openDetail('organisaties','${esc(f.entityId)}')">${icon('arrow-up-right')}</button>` : ''}
+  <button class="dienst-kaart${stijl ? ' dienst-kaart--' + stijl : ''}"
+    onclick="window._factieOpen('${esc(f.id)}')" title="${esc(f.naam)} openen">
+    <span class="dienst-kaart-beeld">
+      <span class="dienst-kaart-embleem">${embIcon}</span>
+    </span>
+    <span class="dienst-kaart-body">
+      <span class="dienst-kaart-naam">${esc(f.naam)}</span>
+      <span class="dienst-kaart-sub">${esc(f.rang?.naam || 'Buitenstaander')}</span>
+      <span class="dienst-kaart-stand">${stand}</span>
+      ${rangIdx > 0 ? `<span class="dienst-kaart-balk"><span style="width:${pct}%"></span></span>` : ''}
+    </span>
+  </button>
+  </span>`;
 }
 
 function showMissieAanvraagToast({ missieId, titel, door, factieId }) {
