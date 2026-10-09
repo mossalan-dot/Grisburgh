@@ -29490,7 +29490,8 @@ body.wizard-open { overflow: hidden; }
   background: linear-gradient(180deg, rgba(20,12,4,0) 45%, rgba(20,12,4,.72) 100%);
 }
 .vk-voor-naam {
-  position: relative; z-index: 1; padding: 0 18px 18px;
+  /* Gecentreerd: een naam van twee regels hing anders scheef in de hoek. */
+  position: relative; z-index: 1; padding: 0 18px 18px; width: 100%; text-align: center;
   font-family: 'Cinzel', serif; font-size: 1.5em; font-weight: 700;
   letter-spacing: .02em; color: #fff8ea; text-shadow: 0 2px 10px rgba(0,0,0,.7);
 }
@@ -29767,3 +29768,15 @@ body.wizard-open { overflow: hidden; }
 .herberg-menu-tag--temp {
   background: rgba(70,130,210,0.16); border-color: rgba(110,170,235,0.45); color: #b4d4f5;
 }
+/* De eigen ondertitel van de DM, onder de soortregel op het kaartje. */
+.vk-onder {
+  font-family: 'Crimson Text', serif; font-size: .84em; font-style: italic;
+  color: #8a7050; margin-top: 2px;
+}
+/* De beeldknop tijdens het omdraaien: die hoorde niet mee te draaien, maar
+   stond daardoor wél stil boven een kaartje dat kantelt. Hij komt pas op als
+   de flip klaar is. */
+.vk-beeldknop { transition: opacity .15s .55s; }
+/* Het pijltje onder het subklassekaartje: alleen als je er meer dan één hebt
+   aangevinkt, want anders is er niets om tussen te bladeren. */
+.vd-subblader--kaart { margin-top: 8px; }

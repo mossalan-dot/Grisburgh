@@ -565,7 +565,7 @@ function _hbBeeld(soort, naam) {
 //
 // `rijen` is wat er op de achterkant onder elkaar staat, `extra` wat daar nog
 // achteraan komt (een knop naar de spreukenlijst, een noot).
-function _flipKaartHtml({ soort, naam, kleur, icoon, bijschrift = '', rijen = [], kop = '', extra = '' }) {
+function _flipKaartHtml({ soort, naam, kleur, icoon, bijschrift = '', onder = '', rijen = [], kop = '', extra = '' }) {
   const beeld = _hbBeeld(soort, naam);
   const veilig = esc(naam).replace(/'/g, "\\'");
   return `
@@ -593,6 +593,7 @@ function _flipKaartHtml({ soort, naam, kleur, icoon, bijschrift = '', rijen = []
             <div>
               <div class="vk-naam">${esc(naam)}</div>
               ${bijschrift ? `<div class="vk-sig">${esc(bijschrift)}</div>` : ''}
+              ${onder ? `<div class="vk-onder">${esc(onder)}</div>` : ''}
             </div>
           </div>
           ${kop ? `<div class="vk-kerntrekken">${esc(kop)}</div>` : ''}
@@ -648,16 +649,21 @@ function _subklasseKaartHtml(klasse, sub) {
   const veld = window._subSignatureVoor?.(sub);
   const label = _bron?.prog?.classes?.[klasse]?.subclassLabel || 'Subclass';
 
+  // "4 features" en "op level 3 · 6 · 10 · 14" stonden allebei op het kaartje
+  // én in de lijst ernaast én in de kaartjes eronder. Drie keer hetzelfde
+  // getal is twee keer te veel; wat hier overblijft is wat je nergens anders
+  // ziet.
   const rijen = [
-    n ? ['Features', String(n)] : null,
-    levels.length ? ['Op level', levels.join(' · ')] : null,
     veld ? ['Eigen veld', veld.feature] : null,
     data.boek ? ['Uit', data.boek] : null,
   ].filter(Boolean);
 
   return _flipKaartHtml({
     soort: 'subclass', naam: sub, kleur: veld?.kleur || '#5a2e8a',
-    icoon: veld?.icon || 'star', bijschrift: `${label} · ${klasse}`, rijen,
+    icoon: veld?.icon || 'star', bijschrift: `${label} · ${klasse}`,
+    // De eigen ondertitel van de DM, direct onder "Primal Path · Barbarian".
+    onder: String(data.ondertitel || '').trim(),
+    rijen,
     extra: `
       ${uitleg ? `<div class="vk-uitleg">${_bron?.md?.(uitleg) ?? esc(uitleg)}</div>` : ''}
       ${n || uitleg ? '' : `<p class="vk-noot">Van deze subklasse staat er geen tekst in de app — die komt uit het boek en mag daar niet uit overgenomen worden.</p>`}
@@ -986,8 +992,17 @@ function _bandHtml() {
   // uit te kiezen. Bij een species is er geen tweede en derde deel, dus staat
   // dat kaartje alleen — in dezelfde maat, want het is dezelfde soort kaart.
   const subKolom = isClass ? _subKolomHtml(_filters.bron) : '';
+  // Meer dan één aangevinkt? Dan hoort er onder het kaartje een pijltje te
+  // staan — anders zie je er één en weet je niet dat de andere er ook zijn.
+  const aangevinkt = [..._subAan].filter(x => _bron?.prog?.classes?.[_filters.bron]?.subclasses?.[x]);
+  if (aangevinkt.length && !aangevinkt.includes(_subKaart)) _subKaart = aangevinkt[0];
   const subKaart = (isClass && _subKaart && _bron?.prog?.classes?.[_filters.bron]?.subclasses?.[_subKaart])
-    ? _subklasseKaartHtml(_filters.bron, _subKaart) : '';
+    ? `${_subklasseKaartHtml(_filters.bron, _subKaart)}
+       ${aangevinkt.length > 1 ? `<div class="vd-subblader vd-subblader--kaart">
+         <button class="vd-subblader-knop" onclick="window.vaardigheden.subKaartBlader(-1)" title="Vorige">${icon('chevron-left')}</button>
+         <span class="vd-subblader-stand">${aangevinkt.indexOf(_subKaart) + 1} / ${aangevinkt.length}</span>
+         <button class="vd-subblader-knop" onclick="window.vaardigheden.subKaartBlader(1)" title="Volgende">${icon('chevron-right')}</button>
+       </div>` : ''}` : '';
   const delen = 1 + (subKaart ? 1 : 0) + (subKolom ? 1 : 0);
   return `<div class="vaardig-band vd-open">
     ${_bannerHtml(d, { klein: true })}
@@ -1251,11 +1266,15 @@ function _uitlegVenster(soort, naam, bron) {
   const veiligB = esc(bron || '').replace(/'/g, "\\'");
   window.app.openModal(`Uitleg bij ${naam}`, '', `
     <div class="dm-feature-section" style="margin:0">
-      <p class="dm-hint">Wat is dit, in je eigen woorden? Dit staat bovenaan het kaartje, vóór de features. Neem geen tekst over uit een boek dat niet van jou is — vat het samen.</p>
       <div class="dm-form-row">
         <label class="dm-form-label">Beschrijving</label>
         ${window._fmtToolbarHtml?.('vd-houder-desc') ?? ''}
         <textarea class="dm-input" id="vd-houder-desc" rows="8" placeholder="Een lege regel begint een nieuwe alinea.">${esc(_schoonVoorEditor(h.desc || ''))}</textarea>
+      </div>
+      <div class="dm-form-row">
+        <label class="dm-form-label" for="vd-houder-onder">Ondertitel</label>
+        <input class="dm-input" id="vd-houder-onder" maxlength="120" value="${esc(h.ondertitel || '')}"
+          placeholder="Eén regel onder de soort — bijv. &quot;Woede als wapen&quot;">
       </div>
       <div class="dm-form-row">
         <label class="dm-form-label">Uit welk boek?</label>
@@ -1822,6 +1841,14 @@ window.vaardigheden = {
   // De lijst bladert per vier; de elders staan er gewoon in, dus er valt
   // niets meer open of dicht te klappen.
   subBlader(richting) { _subPagina = Math.max(0, _subPagina + richting); _bandHerteken(); },
+  // Tussen de kaartjes van de aangevinkte subklassen.
+  subKaartBlader(richting) {
+    const lijst = [..._subAan].filter(x => _bron?.prog?.classes?.[_filters.bron]?.subclasses?.[x]);
+    if (lijst.length < 2) return;
+    const nu = Math.max(0, lijst.indexOf(_subKaart));
+    _subKaart = lijst[(nu + richting + lijst.length) % lijst.length];
+    _bandHerteken();
+  },
   // Een afbeelding bij een class, een species of een subclass. Eén picker voor
   // alle drie: het is dezelfde handeling.
   kaartBeeld(soort, naam) {
@@ -1868,8 +1895,9 @@ window.vaardigheden = {
   async bewaarUitleg(soort, naam, bron) {
     const desc = document.getElementById('vd-houder-desc')?.value || '';
     const boek = document.getElementById('vd-houder-boek')?.value || '';
+    const ondertitel = document.getElementById('vd-houder-onder')?.value || '';
     try {
-      await api.put('/progression/houder', { soort, naam, bron, desc, boek });
+      await api.put('/progression/houder', { soort, naam, bron, desc, boek, ondertitel });
       window.app.closeModal();
       _all = null; await _load(); await _klasseExtra();
       _bandHerteken(); _refreshFilterBar(); _paint();

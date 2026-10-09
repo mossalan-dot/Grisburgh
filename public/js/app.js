@@ -7,7 +7,7 @@ import { renderRelatiemap } from './render-relatiemap.js?v=27';
 import { renderProgressie, levelupFeatures } from './render-progressie.js?v=57';
 import { renderBestiarium } from './render-bestiarium.js?v=31';
 import { renderSpreuken } from './render-spreuken.js?v=44';
-import { renderVaardigheden, zoekVaardigheden } from './render-vaardigheden.js?v=34';
+import { renderVaardigheden, zoekVaardigheden } from './render-vaardigheden.js?v=35';
 import { renderStatblock } from './render-statblock.js?v=9';
 import { initSocket } from "./socket-client.js?v=84";
 import { initDmPanel } from "./dm-panel.js?v=387";
@@ -5015,13 +5015,19 @@ async function _spreukenVoorSpeler() {
     hp ? [] : lees('/api/bron/extra-spells'),
     lees('/api/spreuken/eigen'),
   ]);
+  // **Ontdubbelen op naam én index.** Dit keek alleen naar de index, en
+  // daardoor stond Tasha's Caustic Brew twee keer in de lijst: de SRD noemt
+  // hem `tashas-caustic-brew` en de extra-lijst `tasha-caustic-brew`. Eén
+  // letter verschil, twee spreuken. Een spreuk is wat hij heet, niet hoe zijn
+  // sleutel gespeld is.
   const gezien = new Set(bron.map(s => s.index));
+  const gezienNaam = new Set(bron.map(s => String(s.name || '').toLowerCase()));
   _playerSpellList = [
     // Alleen echte spreuken uit de bron: regels zonder school zijn magische
     // voorwerpen die in die lijst terecht zijn gekomen. Voor een eigen spreuk
     // geldt die zeef niet — daar is alleen de naam verplicht.
     ...bron.filter(s => s.school?.name || (typeof s.school === 'string' && s.school)),
-    ...extra.filter(s => !gezien.has(s.index)),
+    ...extra.filter(s => !gezien.has(s.index) && !gezienNaam.has(String(s.name || '').toLowerCase())),
     ...eigen,
   ];
   return _playerSpellList;

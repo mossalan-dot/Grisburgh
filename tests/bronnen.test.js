@@ -359,3 +359,26 @@ describe('Zegeningen en gunsten', () => {
       '_koppelGoddelijkEntity koppelt het kaartje aan wat de speler krijgt');
   });
 });
+
+// ── Geen spreuk twee keer ───────────────────────────────────────────────────
+// `extra-spells.json` is voor spreuken die niet in de SRD staan. Stond er een
+// in die daar wél staat, dan kreeg je hem twee keer in je spreukenboek — en
+// negen van de tien stonden er dubbel in, allemaal in het Nederlands, nog uit
+// de tijd vóór de Engelse import. Het samenvoegen zeefde op index, en twee van
+// die negen waren net anders gespeld (`tasha-` tegen `tashas-`).
+describe('Extra spreuken', () => {
+  const srd = require('../bronnen/spells-2024.json');
+  const srdLijst = Array.isArray(srd) ? srd : (srd.spells || srd.results || []);
+  const extra = require('../bronnen/extra-spells.json').results || [];
+
+  it('bevat geen spreuk die al in de SRD staat', () => {
+    const namen = new Set(srdLijst.map(s => String(s.name || '').toLowerCase()));
+    const dubbel = extra.filter(s => namen.has(String(s.name || '').toLowerCase())).map(s => s.name);
+    assert.deepEqual(dubbel, [], 'deze staan al in spells-2024.json');
+  });
+
+  it('bevat geen index die al in de SRD staat', () => {
+    const idx = new Set(srdLijst.map(s => s.index));
+    assert.deepEqual(extra.filter(s => idx.has(s.index)).map(s => s.index), []);
+  });
+});

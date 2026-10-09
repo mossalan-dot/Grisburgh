@@ -9264,8 +9264,10 @@ router.post('/progression/houder', requireDM, (req, res) => {
   const meta = {};
   const desc = String(b.desc || '').trim().slice(0, 4000);
   const boek = String(b.boek || '').trim().slice(0, 120);
+  const ondertitel = String(b.ondertitel || '').trim().slice(0, 120);
   if (desc) meta.desc = desc;
   if (boek) meta.boek = boek;
+  if (ondertitel) meta.ondertitel = ondertitel;
   if (b.herkomst) meta.herkomst = String(b.herkomst).slice(0, 40);
 
   const prog = _progHuidig();
@@ -9322,6 +9324,7 @@ router.put('/progression/houder', requireDM, (req, res) => {
   };
   zet('desc', b.desc, 4000);
   zet('boek', b.boek, 120);
+  zet('ondertitel', b.ondertitel, 120);
   zet('herkomst', b.herkomst, 40);
 
   storage.writeJSON('progression.json', { ...prog, bron: prog.bron || 'Aangepast door de DM' });
