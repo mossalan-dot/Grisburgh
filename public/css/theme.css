@@ -15570,17 +15570,35 @@ body.herberg-actief #app { position: relative; z-index: 1; }
 }
 
 /* ── Aanzien / renown-kaart (spelersoverzicht) ── */
-.renown-card { background: linear-gradient(180deg,#26222c 0%,#1c1922 100%); border:1px solid #4a4350; border-radius:8px; padding:10px 12px; color:#e7e2ee; }
-.renown-rang { font-family:'Cinzel',serif; font-size:1.02rem; font-weight:700; color:#d8c98f; display:flex; align-items:baseline; gap:8px; }
-.renown-trap { font-size:0.72rem; color:#9a93a6; font-family:'IM Fell English',serif; font-weight:400; }
-.renown-voordelen { font-family:'IM Fell English',serif; font-size:0.86rem; color:#c9c2d6; margin-top:4px; }
-.renown-volgende { font-size:0.76rem; color:#8f8a9c; margin-top:8px; padding-top:7px; border-top:1px solid rgba(196,168,122,0.14); display:flex; align-items:center; gap:5px; }
+/* Dit kaartje was paarsgrijs-donker op een spelerstabblad dat verder helemaal
+   perkament is — het sprong eruit als een stuk van een andere app. De kleur
+   van de factie zit al in de rand (factie-card--hout/metaal/staal); de doos
+   eromheen hoort die van elk ander blok op dit tabblad te zijn. */
+.renown-card { background:#f6edd8; border:1px solid #c4a87a; border-radius:8px; padding:10px 12px; color:#4a3826; }
+.renown-rang { font-family:'Cinzel',serif; font-size:1.02rem; font-weight:700; color:#6a4a16; display:flex; align-items:baseline; gap:8px; }
+.renown-trap { font-size:0.72rem; color:#8a7050; font-family:'IM Fell English',serif; font-weight:400; }
+.renown-voordelen { font-family:'IM Fell English',serif; font-size:0.86rem; color:#5a4030; margin-top:4px; }
+.renown-volgende { font-size:0.76rem; color:#8a7050; margin-top:8px; padding-top:7px; border-top:1px solid rgba(138,112,80,0.28); display:flex; align-items:center; gap:5px; }
 .renown-volgende .icon { width:12px; height:12px; opacity:.7; flex-shrink:0; }
-.renown-boete { font-size:0.8rem; color:#e0a36a; margin-top:6px; }
+.renown-volgende strong { color:#6a4a16; }
+.renown-boete { font-size:0.8rem; color:#9a4a16; margin-top:6px; }
 
 /* ── Facties & Aanzien ── */
 .factie-boons { display:flex; flex-wrap:wrap; gap:6px; margin-top:8px; }
-.factie-boon { font-size:0.74rem; background:rgba(196,168,122,0.12); border:1px solid rgba(196,168,122,0.28); border-radius:10px; padding:2px 8px; color:#d8cdb0; cursor:default; }
+/* Een verworven boon. Zag eruit als een knop en deed niets; nu opent hij zijn
+   kaartje, mits de party dat kaartje kent. Een boon zonder kaartje (een titel
+   bijvoorbeeld) blijft een stil label — dan hoort hij er ook niet als knop uit
+   te zien. */
+.factie-boon {
+  font-family:'Crimson Text',serif; font-size:0.78rem;
+  background:rgba(184,134,11,0.10); border:1px solid rgba(184,134,11,0.3);
+  border-radius:12px; padding:3px 10px; color:#5a3800; cursor:default;
+  display:inline-flex; align-items:center; gap:4px;
+}
+.factie-boon--klik { cursor:pointer; background:rgba(184,134,11,0.16); border-color:rgba(184,134,11,0.45); }
+.factie-boon--klik:hover { background:rgba(184,134,11,0.28); color:#3a2400; }
+.factie-boon--klik .icon { width:11px; height:11px; opacity:.6; }
+.factie-boon--stil { background:transparent; border-style:dashed; color:#7a5f3a; }
 .renown-card.factie-card--hout   { border-color:#7a5a30; }
 .renown-card.factie-card--metaal { border-color:#c4a840; }
 .renown-card.factie-card--staal  { border-color:#7a2a2a; }

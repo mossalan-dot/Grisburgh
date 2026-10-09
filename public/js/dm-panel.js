@@ -815,7 +815,7 @@ export function initDmPanel() {
 // Welke tabs zijn "gevecht & monsters"?
 const _GEVECHT_TABS = new Set(['gevecht', 'monsters', 'encounters']);
 // Welke tabs zijn "diensten"?
-const _DIENSTEN_TABS = new Set(['herberg', 'tweespalt', 'gock', 'ursula', 'tempel', 'facties', 'magizoo', 'markt', 'schulden', 'toegang']);
+const _DIENSTEN_TABS = new Set(['herberg', 'tweespalt', 'gock', 'ursula', 'tempel', 'facties', 'magizoo', 'markt', 'woekeraar', 'toegang']);
 
 // Zet legacy tab-namen om naar nieuwe parent-tab
 function _tabToParent(tab) {
@@ -1492,7 +1492,11 @@ async function _renderDiensten(subTab) {
     { id: 'gock',      label: 'Detective',   icoon: 'search',     key: 'gock' },
     { id: 'ursula',    label: 'Waarzegger',  icoon: 'sparkles',   key: 'ursula' },
     { id: 'magizoo',   label: 'Magizoöloog', icoon: 'paw-print',  key: 'magizoo' },
-    { id: 'schulden',  label: 'Schulden',    icoon: 'coins',      key: 'woekeraar' },
+    // Heette 'schulden', naar het register dat erin staat. Maar elke andere
+    // tab heet naar de dienst — en de filterregel hieronder vergelijkt het id
+    // met `verborgen.secties`, waar 'woekeraar' in staat. Met de oude naam
+    // bleef de tab dus ook staan als de dienst uit was.
+    { id: 'woekeraar', label: 'Woekeraar',   icoon: 'coins',      key: 'woekeraar' },
     { id: 'toegang',   label: 'Toegang',     icoon: 'lock', altijd: true, title: 'Toegang per groep', key: 'toegang' },
   ]).filter(d => d.altijd || !(window._verborgen?.secties || []).includes(d.id));
   el.querySelector('.dm-subtab-nav').innerHTML = _subtabNavHtml({
@@ -1503,7 +1507,7 @@ async function _renderDiensten(subTab) {
   });
 
   // Gooi de legacy tab-content divs om naar sub-divs binnen #diensten
-  ['herberg','tweespalt','gock','ursula','tempel','facties','magizoo','markt','toegang'].forEach(name => {
+  ['herberg','tweespalt','gock','ursula','tempel','facties','magizoo','markt','woekeraar','toegang'].forEach(name => {
     let legacy = document.querySelector(`.dm-tab-content[data-tab="${name}"]`);
     if (legacy && legacy.closest('.dm-tab-content[data-tab="diensten"]') == null) {
       el.appendChild(legacy);
@@ -1511,7 +1515,7 @@ async function _renderDiensten(subTab) {
   });
 
   // Toon alleen de actieve subtab
-  ['herberg','tweespalt','gock','ursula','tempel','facties','magizoo','markt','toegang'].forEach(name => {
+  ['herberg','tweespalt','gock','ursula','tempel','facties','magizoo','markt','woekeraar','toegang'].forEach(name => {
     const div = el.querySelector('.dm-tab-content[data-tab="' + name + '"]');
     if (div) div.classList.toggle('active', name === _dienstenSubTab);
   });
@@ -1524,7 +1528,7 @@ async function _renderDiensten(subTab) {
   if (_dienstenSubTab === 'facties')   _renderFactiesSettings();
   if (_dienstenSubTab === 'magizoo')   _renderMagizooSettings();
   if (_dienstenSubTab === 'markt')     _renderMarktSettings();
-  if (_dienstenSubTab === 'schulden')  _renderSchulden();
+  if (_dienstenSubTab === 'woekeraar') _renderSchulden();
   if (_dienstenSubTab === 'toegang')   _renderDienstenToegang();
 };
 
@@ -1941,6 +1945,7 @@ const _DIENSTEN_TOEGANG_INFO = [
   { key: 'gock',      label: 'Detective',    icon: 'search'    },
   { key: 'ursula',    label: 'Waarzegger',   icon: 'sparkles'  },
   { key: 'magizoo',   label: 'Magizoöloog',  icon: 'paw-print' },
+  { key: 'woekeraar', label: 'Woekeraar',    icon: 'coins'     },
 ];
 
 const _STAAT_LABELS = {
@@ -6418,7 +6423,7 @@ window._hbSave = async () => {
 // niemand zag hem; een schuld die niemand ziet is geen verhaallijn. Hier staat
 // wie er iets open heeft, bij wie, hoeveel hij leende en wat er nu staat.
 async function _renderSchulden() {
-  const el = _tabEl('schulden');
+  const el = _tabEl('woekeraar');
   if (!el) return;
   el.innerHTML = '<div class="dm-feature-section"><div class="dm-section-label">Laden…</div></div>';
 
@@ -6535,7 +6540,7 @@ async function _renderSchulden() {
     </div>
 
     <div class="dm-feature-section">
-      <div class="dm-section-label">Openstaande schulden<span class="dm-sectie-hulp">${helpBtn('dm_schulden')}</span></div>
+      <div class="dm-section-label">Openstaande schulden<span class="dm-sectie-hulp">${helpBtn('dm_woekeraar_register')}</span></div>
       ${lopend.length ? lopend.map(rij).join('') : '<p class="dm-hint">Niemand heeft iets openstaan.</p>'}
     </div>
     ${wezen.length ? `

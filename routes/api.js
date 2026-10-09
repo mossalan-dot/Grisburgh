@@ -9820,7 +9820,7 @@ router.delete('/help-content/:key', requireDM, (req, res) => {
 // 'markt' hoort hier ook in: de Markt is een plek, en een party die drie dagen
 // varen van de stad is kan er niet heen. Zonder deze sleutel kon de DM hem in
 // de akte-editor niet eens aanvinken.
-const _BEREIKBAAR_KEYS = ['herberg', 'tweespalt', 'gock', 'ursula', 'tempel', 'magizoo', 'markt'];
+const _BEREIKBAAR_KEYS = ['herberg', 'tweespalt', 'gock', 'ursula', 'tempel', 'magizoo', 'markt', 'woekeraar'];
 
 function _bereikbaarheidVoor(meta, dmState, groepId) {
   // activeAkte is een object {key, num, title} — niet de sleutel zelf.
@@ -12590,7 +12590,7 @@ const TEMPEL_GODEN_DEFAULT = [];
 
 
 // ── Diensten toegang per groep ──
-const _DIENSTEN_NAMEN = ['herberg', 'tweespalt', 'gock', 'ursula', 'tempel', 'facties', 'magizoo'];
+const _DIENSTEN_NAMEN = ['herberg', 'tweespalt', 'gock', 'ursula', 'tempel', 'facties', 'magizoo', 'woekeraar'];
 
 // De toegangsschakelaar van de DM (Diensten → Toegang per groep) werd alleen in
 // de **client** afgedwongen: `switchSection` verbergt de sectie. De routes zelf
@@ -12749,6 +12749,7 @@ const _DIENST_BRIEF = {
   tempel:    { icon: 'church',    kleur: 'hout',   naam: 'De Tempel' },
   facties:   { icon: 'landmark',  kleur: 'metaal', naam: 'De Facties' },
   magizoo:   { icon: 'paw-print', kleur: 'hout',   naam: 'De Magizoöloog' },
+  woekeraar: { icon: 'coins',     kleur: 'metaal', naam: 'De woekeraar' },
 };
 
 // Onthul een dienst (beschikbaar) voor de actieve groep én bezorg een verzegelde uitnodiging.

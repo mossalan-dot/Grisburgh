@@ -4,13 +4,13 @@ import { initArchief, renderLogboek, openLogboekEditor } from "./render-archief.
 import { renderKaart, queueFlyTo, verversPins, nieuweKaart } from './render-kaart.js?v=31';
 import { renderDungeon } from './render-dungeon.js?v=63';
 import { renderRelatiemap } from './render-relatiemap.js?v=27';
-import { renderProgressie, levelupFeatures } from './render-progressie.js?v=58';
+import { renderProgressie, levelupFeatures } from './render-progressie.js?v=59';
 import { renderBestiarium } from './render-bestiarium.js?v=31';
 import { renderSpreuken } from './render-spreuken.js?v=45';
 import { renderVaardigheden, zoekVaardigheden } from './render-vaardigheden.js?v=39';
 import { renderStatblock } from './render-statblock.js?v=9';
 import { initSocket } from "./socket-client.js?v=84";
-import { initDmPanel } from "./dm-panel.js?v=388";
+import { initDmPanel } from "./dm-panel.js?v=389";
 import { COND_INFO, COND_LABEL, COND_MET_PLAATJE, COND_ICON } from './conditions.js?v=2';
 import './media-picker.js?v=9';
 import './wizard.js?v=4';
@@ -8840,7 +8840,10 @@ async function renderMijnKarakter(opts = {}) {
           <div class="renown-card factie-card--${stijl}">
             <div class="renown-rang">${esc(f.rang?.naam || '')}<span class="renown-trap">${(f.rang?.index ?? 0) + 1}/${f.rang?.aantal || 1}</span></div>
             ${f.rang?.voordelen ? `<div class="renown-voordelen">${esc(f.rang.voordelen)}</div>` : ''}
-            ${verworven.length ? `<div class="factie-boons">${verworven.map(b => `<span class="factie-boon" title="${esc(b.tekst || b.naam || '')}">${esc(b.naam || '')}</span>`).join('')}</div>` : ''}
+            ${verworven.length ? `<div class="factie-boons">${verworven.map(b => (b.entityId && b.entityType)
+              ? `<button class="factie-boon factie-boon--klik" title="${esc(b.tekst || b.naam || '')}"
+                  onclick="window._openDetail('${esc(b.entityType)}','${esc(b.entityId)}')">${esc(b.naam || '')}${icon('arrow-up-right')}</button>`
+              : `<span class="factie-boon factie-boon--stil" title="${esc(b.tekst || b.naam || '')}">${esc(b.naam || '')}</span>`).join('')}</div>` : ''}
             ${next ? `<div class="renown-volgende">${icon('lock')} Volgende — <strong>${esc(next.naam)}</strong>${next.boons[0] ? `: ${esc(next.boons[0].naam || '')}` : ''}</div>`
                    : (f.rang?.volgende ? `<div class="renown-volgende">Volgende — <strong>${esc(f.rang.volgende.naam)}</strong></div>` : '')}
           </div>
@@ -12843,6 +12846,11 @@ window._herbergVraag = async (entityId) => {
 
 // ── De Gock / Privédetective ────────────────────────────────────────────────
 
+// Welke helft van de detective je openhad. Zelfde patroon als de herberg en
+// het gokhuis: onthouden over een hertekening heen, anders klap je telkens
+// terug naar de eerste.
+let _gockActiveTab = 'onderzoek';   // 'onderzoek' | 'geruchten'
+
 async function renderGock() {
   const el = document.getElementById('section-gock');
   if (!el) return;
@@ -12895,17 +12903,15 @@ async function renderGock() {
     ? `<img src="${api.thumbUrl(config.imageId)}" class="herberg-portrait-round" alt="${esc(config.naam)}">`
     : `<div class="gock-portret-fallback">${icon('search')}</div>`;
 
-  el.innerHTML = `
-    <div class="herberg-scene gock-scene" ${backdrop}>
-      <div class="herberg-content">
-        <div class="dienst-beurs-topbar">
-          ${currency ? `<span class="ts-beurs tempel-beurs-top">Beurs: <strong>${beursTekst(currency)}</strong></span>` : ''}
-          ${_geluidBtn()}${_helpBtn('gock')}
-        </div>
-        <div class="herberg-portrait-wrap">${portret}</div>
-        <p class="herberg-groet">${esc(window._dienstGroet(config, `${config.naam} kijkt op van zijn bureau en trekt een wenkbrauw op.`))}</p>
+  const beursRegel = currency
+    ? `<p class="herberg-tap-beurs">Beurs: <strong>${beursTekst(currency)}</strong></p>` : '';
+
+  // Paneel 1 — Onderzoek: iets uit de wereld halen.
+  const onderzoekPaneel = `
+        ${beursRegel}
         <!-- Stond hier als "Resultaat binnen 24 uur"; de wachttijd hangt sinds
-             21 sep aan de lange rust, dus dat beloofde iets anders dan de app doet. -->
+             21 sep aan de lange rust, dus dat beloofde iets anders dan de app doet.
+             (Geen backticks in commentaar hierbinnen: template literal.) -->
         <p class="ts-beurs">Vooruitbetaling: <strong>${prijsTekst(config.prijs)}</strong> · Rapport na de volgende lange rust</p>
 
         ${heeftKlaarZaak ? `
@@ -12945,31 +12951,76 @@ async function renderGock() {
                     <span class="herberg-item-naam">${esc(e.name)}</span>
                   </button>`).join('')}
               </div>
-            </div>`) : ''}
+            </div>`) : ''}`;
 
-        ${window._deelAan?.('gock-geruchten') && !heeftLopendeZaak && !heeftKlaarZaak ? `
-          <!-- De andere helft van deze dienst: niet iets uithalen maar iets
-               inbrengen. Staat onder het onderzoek, want dit is wat je doet als
-               uitzoeken niet genoeg is. -->
-          <div class="gock-gerucht">
-            <div class="gock-gerucht-kop">${icon('venetian-mask')} Een praatje rondstrooien</div>
-            ${lopendGerucht ? `
-              <p class="gock-gerucht-wacht">${icon('hourglass')} Je praatje over <strong>${esc(lopendGerucht.entityNaam)}</strong> ligt bij hem. Hij laat weten wanneer het loopt.</p>`
-            : beschikbaar.length === 0
-              ? `<p class="herberg-cooldown-tekst">Er zijn nog geen mensen over wie je iets kunt laten rondgaan.</p>`
-              : `
-              <select id="gock-ger-doel" class="herberg-zoek-input">
-                <option value="">Over wie gaat het?</option>
-                ${beschikbaar.map(e => `<option value="${esc(e.id)}|${esc(e.type)}">${esc(e.name)}</option>`).join('')}
-              </select>
-              <textarea id="gock-ger-tekst" class="herberg-zoek-input gock-gerucht-tekst" rows="3"
-                placeholder="Wat moet er over hem rondgaan? Schrijf het zoals je het aan de bar zou horen."></textarea>
-              <button class="herberg-knop" onclick="window._gockGerucht()">${icon('venetian-mask')} Laat het rondgaan${geruchtPrijs ? ` — ${esc(geruchtPrijs)}` : ''}</button>
-              <p class="gock-gerucht-klein">Hij legt het bij de juiste mensen neer. Wat ermee gebeurt is daarna niet meer aan hem — of aan jou.</p>`}
-          </div>` : ''}
+  // Paneel 2 — Geruchten: iets in de wereld brengen. Dit stond als blok ónder
+  // het onderzoek, en dat is iets anders: je komt voor het een of voor het
+  // ander. Zelfde tweedeling als de herberg (slapen én schenken) en het
+  // gokhuis (wedden én vechten), dus dezelfde tabbalk.
+  // (Geen backticks in commentaar hierbinnen: template literal.)
+  const geruchtPaneel = `
+        ${beursRegel}
+        <p class="ts-beurs">Een praatje rondstrooien: <strong>${esc(geruchtPrijs)}</strong></p>
+        <div class="gock-gerucht">
+          ${lopendGerucht ? `
+            <p class="gock-gerucht-wacht">${icon('hourglass')} Je praatje over <strong>${esc(lopendGerucht.entityNaam)}</strong> ligt bij hem. Hij laat weten wanneer het loopt.</p>`
+          : beschikbaar.length === 0
+            ? `<p class="herberg-cooldown-tekst">Er zijn nog geen mensen over wie je iets kunt laten rondgaan.</p>`
+            : `
+            <select id="gock-ger-doel" class="herberg-zoek-input">
+              <option value="">Over wie gaat het?</option>
+              ${beschikbaar.map(e => `<option value="${esc(e.id)}|${esc(e.type)}">${esc(e.name)}</option>`).join('')}
+            </select>
+            <textarea id="gock-ger-tekst" class="herberg-zoek-input gock-gerucht-tekst" rows="3"
+              placeholder="Wat moet er over hem rondgaan? Schrijf het zoals je het aan de bar zou horen."></textarea>
+            <!-- Stond op .herberg-knop, en die klasse bestaat nergens in de
+                 stylesheet: de knop was al die tijd kale tekst. Dezelfde knop
+                 als "Dossier ontvangen" een paneel verderop. -->
+            <button class="ts-wedden-btn" style="margin-top:4px" onclick="window._gockGerucht()">${icon('venetian-mask')} Laat het rondgaan</button>`}
+        </div>`;
+
+  // Hij begroet je anders als je komt om iets te laten rondgaan dan als je
+  // komt om iets te laten uitzoeken — tweede begroetingstafel, net als de waard.
+  const _groet    = window._dienstGroet(config, `${config.naam} kijkt op van zijn bureau en trekt een wenkbrauw op.`);
+  const _groet2   = window._dienstGroet(config, _groet, 2);
+  const _geruchtenAan = !!window._deelAan?.('gock-geruchten');
+
+  el.innerHTML = `
+    <div class="herberg-scene gock-scene" ${backdrop}>
+      <div class="herberg-content">
+        <div class="dienst-beurs-topbar" style="justify-content:flex-end">${_geluidBtn()}${_helpBtn('gock')}</div>
+        <div class="herberg-portrait-wrap">${portret}</div>
+        ${config.naam ? `<p class="tempel-priester-naam">${esc(config.naam)}</p>` : ''}
+        <p class="herberg-groet" id="gock-groet"
+          data-onderzoek="${esc(_groet)}" data-geruchten="${esc(_groet2)}"
+        >${esc(_gockActiveTab === 'geruchten' && _geruchtenAan ? _groet2 : _groet)}</p>
+
+        ${!_geruchtenAan ? onderzoekPaneel : `
+          <div class="dienst-subtab-nav">
+            <button class="dienst-subtab-btn${_gockActiveTab === 'onderzoek' ? ' active' : ''}" data-tab="onderzoek" onclick="window._gockTab('onderzoek')">${icon('search')} Onderzoek</button>
+            <button class="dienst-subtab-btn${_gockActiveTab === 'geruchten' ? ' active' : ''}" data-tab="geruchten" onclick="window._gockTab('geruchten')">${icon('venetian-mask')} Geruchten</button>
+          </div>
+          <div class="dienst-subtab-panel${_gockActiveTab === 'onderzoek' ? '' : ' hidden'}" id="gock-panel-onderzoek">${onderzoekPaneel}</div>
+          <div class="dienst-subtab-panel${_gockActiveTab === 'geruchten' ? '' : ' hidden'}" id="gock-panel-geruchten">${geruchtPaneel}</div>`}
       </div>
     </div>`;
+
+  // De zoeklijst begint leeg en vult zich terwijl je typt; bij het openen van
+  // de tab staat de hint er nog niet. Zelfde aanroep als de herberg doet.
+  window._gockFilter?.(document.getElementById('gock-zoek')?.value || '');
 }
+
+// Wissel tussen Onderzoek en Geruchten. Zoals bij de herberg: de begroeting
+// hoort bij de helft waar je in staat.
+window._gockTab = (naam) => {
+  _gockActiveTab = naam;
+  document.querySelectorAll('#section-gock .dienst-subtab-panel')
+    .forEach(p => p.classList.toggle('hidden', p.id !== 'gock-panel-' + naam));
+  document.querySelectorAll('#section-gock .dienst-subtab-btn')
+    .forEach(b => b.classList.toggle('active', b.dataset.tab === naam));
+  const groet = document.getElementById('gock-groet');
+  if (groet) groet.textContent = groet.dataset[naam] || groet.textContent;
+};
 
 // De knop *Werp de d6* riep `window._ursulaVoorspel()` aan, en die bestond
 // nergens: de route, de API-wrapper en het onthulscherm waren er wél. Eén klik
@@ -14773,6 +14824,15 @@ const HELP_CONFIG = {
     { titel: 'Aflossen', tekst: 'Alles in één keer, of een deel. Bij een deel wordt wat overblijft de nieuwe hoofdsom en beginnen de nachten opnieuw te tellen — aflossen loont dus, ook als je er niet helemaal uitkomt.', afbeelding: null },
   ] }),
 
+  // De tab zelf. Elke dienst-tab heeft er een onder `dm_<tabnaam>`; deze
+  // ontbrak omdat de tab 'schulden' heette en dus naar een sleutel wees die
+  // nergens stond.
+  dm_woekeraar: () => ({ titel: 'De woekeraar', stappen: [
+    { titel: 'Waarvoor hij er is', tekst: 'Geen winkel schrijft aan en geen tempel geeft krediet — als een party geld tekortkomt is hij het enige adres. Dat maakt een schuld iets dat je kunt spelen: er is iemand aan wie het verschuldigd is, en die iemand heeft een naam.\n\nHij duikt ook buiten dit scherm op: bij de markt als er te weinig in de beurs zit, en bij het gokhuis als iemand wil doorspelen. Dat gebeurt alleen zolang deze dienst aanstaat.', afbeelding: null },
+    { titel: 'Jij beslist, niet de app', tekst: 'Een speler vraagt een bedrag en zegt waarvoor. Dat verzoek komt hier binnen en blijft staan tot jij het goedkeurt of afwijst — je mag ook een lager bedrag teruggeven. De app leent nooit uit zichzelf.\n\nEén schuld per speler tegelijk. Pas als die afgelost is kan er een nieuwe bij.', afbeelding: null },
+    { titel: 'Wie hem te zien krijgt', tekst: 'Zijn deur staat per groep los, net als bij elke andere dienst: bij **Toegang** zet je hem op verborgen, zichtbaar of beschikbaar. Verborgen betekent dat hij niet in het menu staat — de party weet niet dat hij bestaat.\n\nZet je hem op beschikbaar, dan onthult de app meteen zijn kaartje en zijn plek voor die groep.', afbeelding: null },
+  ] }),
+
   dm_woekeraar_voorwaarden: () => ({ titel: 'Wat hij vraagt', stappen: [
     { titel: 'Rente per nacht, niet per dag', tekst: 'De rente loopt per **lange rust** van de party, niet op de kalender: een party speelt geen echte dagen. Op de kalender stond één lening ooit op 4,5 × 10¹⁹ — meer geld dan er in de wereld is.', afbeelding: null },
     { titel: 'Het plafond', tekst: 'Boven dit veelvoud van de hoofdsom telt hij niet verder. Dat is geen genade maar een omslagpunt: vanaf dat moment is de schuld **opeisbaar** en begint hij te escaleren. Vijf keer is een goede waarde; lager maakt hem ongeduldiger.', afbeelding: null },
@@ -14797,7 +14857,7 @@ const HELP_CONFIG = {
     { titel: 'Wat de speler ziet', tekst: 'Het voorwerp verdwijnt uit zijn bezit en er komt een regel voor in de plaats: *In onderpand*. Daarbij krijgt hij een brief van de schuldeiser. Lost hij de schuld volledig af, dan krijgt hij het terug — dat was de afspraak.', afbeelding: null },
   ] }),
 
-  dm_schulden: () => ({ titel: 'Schulden', stappen: [
+  dm_woekeraar_register: () => ({ titel: 'Schulden', stappen: [
     { titel: 'Waarom dit er staat', tekst: 'Schuld zat in een hoek van het gokhuis: één soort, bij één schuldeiser, en nergens een overzicht. Een schuld die niemand ziet is geen verhaallijn — die vergeet je, en dan staat er opeens een bedrag waar niemand meer van weet waar het vandaan kwam.', afbeelding: null },
     { titel: 'Wat je ziet', tekst: 'Per schuld: wie, bij wie, wat hij **leende**, wat er **nu staat**, hoeveel nachten er verstreken zijn en tegen welke rente. Groeit het bedrag, dan licht het op. Is het plafond bereikt (vijf keer de hoofdsom), dan telt hij niet verder — dan komt de schuldeiser het halen, en dat is jouw scène.', afbeelding: null },
     { titel: 'De rente loopt op rust', tekst: 'Niet op de kalender. Elke **lange rust** van de party is een nacht die telt. Dat is bewust: een party speelt geen echte dagen, en op de kalender stond één lening ooit op 4,5 × 10¹⁹ — meer geld dan er in de wereld is.', afbeelding: null },
@@ -15615,8 +15675,13 @@ const HELP_CONFIG = {
       titel: naam,
       stappen: [
         {
-          titel: naam,
-          tekst: `${naam} is een particulier onderzoeksbureau. Je kunt hem inhuren om een persoon, locatie of organisatie te onderzoeken. Na de volgende lange rust levert hij een rapport op dat in het archief verschijnt. Heeft het doelwit meer dan één geheim, dan kies jij als DM eerst welke de detective vindt.`,
+          titel: 'Onderzoek',
+          tekst: `${naam} is een particulier onderzoeksbureau. Je huurt hem in om een persoon, locatie of organisatie te laten uitzoeken; je betaalt vooruit en na de volgende lange rust ligt er een rapport, dat in het archief verschijnt.\n\nHeeft het doelwit meer dan één geheim, dan kiest de DM eerst welke hij vindt. Eén zaak tegelijk.`,
+          afbeelding: null,
+        },
+        {
+          titel: 'Geruchten',
+          tekst: `De andere helft van zijn werk: niet iets uit de wereld halen maar er iets in brengen. Je kiest over wie het gaat en schrijft op wat er over hem rond moet gaan — zoals je het aan de bar zou horen.\n\nHij legt het bij de juiste mensen neer. Wat er daarna mee gebeurt is niet meer aan hem, en niet meer aan jou. De DM beslist of en wanneer het gaat lopen; tot die tijd zie je dat het bij hem ligt.`,
           afbeelding: null,
         },
       ],

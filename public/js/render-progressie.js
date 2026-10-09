@@ -382,9 +382,11 @@ async function _syncNewFeaturesToTraits(prog, ctx, charId) {
       if (!r?.duplicate) added++;
     } catch { /* stille fout per feature — ga door met de rest */ }
   }
-  if (added > 0) {
-    _toast(`${added} nieuwe feature${added === 1 ? '' : 's'} toegevoegd aan Kenmerken & Eigenschappen.`);
-  }
+  // Geen melding. Deze sync draait precies op het moment dat je het
+  // featuresscherm opent, en daar staan ze dan al — een toast die je vertelt
+  // wat er een halve seconde later vanzelf voor je neus staat is ruis.
+  // (De server dedupliceert op `index`, dus `added` blijft wel kloppen voor
+  // wie het ooit ergens anders wil gebruiken.)
 }
 
 // ── Panel opbouwen ─────────────────────────────────────────────────
