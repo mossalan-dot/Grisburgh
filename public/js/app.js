@@ -3915,26 +3915,6 @@ const _sbAudio = (() => {
   };
 })();
 
-// ── Marginalia icon definitions (20×20 viewBox, stroke-based) ──
-const _SB_ICONS = {
-  damage:    `<line x1="5" y1="15" x2="15" y2="5" stroke-width="2"/><line x1="5" y1="9" x2="5" y2="5"/><line x1="5" y1="5" x2="9" y2="5"/>`,
-  aoe:       `<circle cx="10" cy="10" r="2.5"/><circle cx="10" cy="10" r="6.5" stroke-dasharray="2 1.8" stroke-width="1.2"/>`,
-  buff:      `<line x1="10" y1="14" x2="10" y2="5"/><polyline points="6,9 10,5 14,9"/><line x1="5" y1="16" x2="15" y2="16" stroke-width="1.2"/>`,
-  control:   `<path d="M7 10 a3 3 0 0 1 6 0 v4 H7 Z"/><circle cx="10" cy="8" r="1.5" stroke-width="1.2"/>`,
-  healing:   `<line x1="10" y1="4" x2="10" y2="16" stroke-width="2"/><line x1="4" y1="10" x2="16" y2="10" stroke-width="2"/>`,
-  mobility:  `<path d="M4 10 H16"/><polyline points="12,6 16,10 12,14"/><path d="M8 7 C5 8 5 12 8 13" stroke-width="1.2"/>`,
-  utility:   `<circle cx="10" cy="10" r="2"/><line x1="10" y1="4" x2="10" y2="6.5"/><line x1="10" y1="13.5" x2="10" y2="16"/><line x1="4" y1="10" x2="6.5" y2="10"/><line x1="13.5" y1="10" x2="16" y2="10"/>`,
-  divination:`<path d="M3 10 C5 5.5 15 5.5 17 10 C15 14.5 5 14.5 3 10 Z"/><circle cx="10" cy="10" r="2.5"/>`,
-  stealth:   `<path d="M14 5 A6 6 0 1 0 14 15 A4 4 0 0 1 14 5"/><circle cx="9.5" cy="10" r="1.5" fill="currentColor" stroke="none"/>`,
-  reaction:  `<polyline points="11,3 7,11 11,11 9,17 15,9 11,9 13,3" stroke-linejoin="round"/>`,
-  ritual:    `<circle cx="10" cy="10" r="7" stroke-width="1.2"/><path d="M10 4 L11.2 7.5 L15 7.5 L12 9.7 L13 13 L10 11 L7 13 L8 9.7 L5 7.5 L8.8 7.5 Z" stroke-width="1"/>`,
-  social:    `<path d="M5 6 H15 a1 1 0 0 1 1 1 V12 a1 1 0 0 1-1 1 H8 L5 16 V13 H5 a1 1 0 0 1-1-1 V7 a1 1 0 0 1 1-1 Z"/>`,
-};
-const _SB_ICON_LABELS = {
-  damage:'Damage', aoe:'Area of Effect', buff:'Buff', control:'Crowd Control',
-  healing:'Healing', mobility:'Movement', utility:'Utility', divination:'Divination',
-  stealth:'Stealth / Illusion', reaction:'Reaction', ritual:'Ritual', social:'Social',
-};
 let   _sbFlipping  = false;    // prevent overlapping flip animations
 
 // Glossary: D&D terms → Dutch explanation (shown as hover tooltip)
@@ -4254,7 +4234,7 @@ function _ensureSpellbookOverlay() {
       <!-- Eén knop. "Inhoud" en "Deze spreuk" openden allebei hetzelfde
            zijpaneel — dat is sinds de samenvoeging één venster met twee
            tabjes, dus twee knoppen ernaartoe is er een te veel. -->
-      <button class="sb-ctrl-btn" id="sb-manage-btn" onclick="window._sbToggleManage()" data-wptip="De inhoudsopgave, en de incantatie, marginalia en concentratie van de spreuk die openligt">
+      <button class="sb-ctrl-btn" id="sb-manage-btn" onclick="window._sbToggleManage()" data-wptip="De inhoudsopgave, en de incantatie van de spreuk die openligt">
         ${icon('pencil')} Bewerk
       </button>
       <button class="sb-ctrl-btn sb-ctrl-conc" id="sb-conc-ctrl-btn" onclick="window._sbToggleConcentration()" title="Concentration" style="display:none">
@@ -4301,8 +4281,6 @@ function _ensureSpellbookOverlay() {
             <path d="M0 0 H32 V52 L16 62 L0 52 Z" fill="none" stroke="rgba(0,0,0,0.2)" stroke-width="1"/>
           </svg>
         </div>
-        <!-- Marginalia icons — right spine edge -->
-        <div class="sb-marginalia" id="sb-marginalia"></div>
         <!-- Concentration fold corner -->
         <div class="sb-conc-fold sb-conc-fold--hidden" id="sb-conc-fold"></div>
         <!-- No-slots-available fade overlay -->
@@ -4360,28 +4338,12 @@ function _ensureSpellbookOverlay() {
               rows="2" placeholder="Eigen incantatie…" maxlength="200"
               onblur="window._sbSaveIncantation(this.value)"></textarea>
           </div>
-          <div class="sb-manage-section">
-            <div class="sb-manage-label">Op welk level verkregen</div>
-            <div class="sb-manage-row">
-              <input type="number" class="sb-manage-input sb-manage-input--sm" id="sb-manage-acqlevel"
-                min="1" max="20" placeholder="1–20"
-                onblur="window._sbSaveAcqLevel(+this.value)">
-              <span class="sb-manage-hint">Lager = geler papier</span>
-            </div>
-          </div>
-          <div class="sb-manage-section" id="sb-manage-conc-section" style="display:none">
-            <div class="sb-manage-label">Concentration</div>
-            <button class="sb-manage-conc-btn" id="sb-manage-conc-btn"
-              onclick="window._sbToggleConcentration()">${icon('flame')} Inactief</button>
-          </div>
-          <div class="sb-manage-section">
-            <div class="sb-manage-label">Marginalia</div>
-            <div id="sb-manage-marginalia-list"></div>
-            <div class="sb-manage-icon-picker" id="sb-manage-icon-picker"></div>
-            <textarea class="sb-manage-input sb-manage-input--quill sb-manage-textarea" id="sb-manage-icon-label"
-              rows="2" placeholder="Eigen toelichting…" maxlength="200" style="margin-top:6px"></textarea>
-            <button class="sb-manage-add-btn" onclick="window._sbAddMarginalia()">＋ Toevoegen</button>
-          </div>
+          <!-- Hier stonden ook "op welk level verkregen", een tweede
+               concentratieknop en de marginalia. Het level wordt nu vanzelf
+               vastgelegd op het moment dat de spreuk in het boek komt (het
+               vergeelt zijn bladzijde), concentratie heeft al een knop in de
+               balk, en de marginalia zijn eruit. Wat blijft is het enige dat
+               je zelf schrijft. -->
         </div>
       </div>
     </div>`;
@@ -4667,6 +4629,14 @@ window._sbToggleManage = () => {
   else window._sbZijTab(_sbState.zijLaatst || 'beheer');
 };
 
+// Bewerken vanuit de inhoudsopgave: sla de bladzijde op én wissel naar het
+// tabje waar je hem bewerkt. Anders moest je eerst klikken om hem te openen en
+// daarna nog eens om bij zijn velden te komen.
+window._sbTocBewerk = function(i) {
+  window._sbGoTo(i, false);
+  window._sbZijTab('beheer');
+};
+
 window._sbCloseAndReturn = function() {
   window._closeSpellbook();
   if (typeof window._setPlayerSubTab === 'function') {
@@ -4687,101 +4657,21 @@ window._sbSaveIncantation = async function(text) {
   } catch(e) { console.warn('Incantatie opslaan mislukt:', e); }
 };
 
-// ── Beheer panel refresh: populate all fields from current spell ──
+// ── Beheer panel: er staat nog één veld, dus er valt één ding te vullen ──
 function _sbManageRefresh() {
   const spell = _sbState.spells[_sbState.idx];
   if (!spell) return;
-  const active = el => document.activeElement !== el;
-  const setVal = (id, v) => { const el = document.getElementById(id); if (el && active(el)) el.value = v; };
-  setVal('sb-manage-incant', spell.incantation || '');
-  setVal('sb-manage-acqlevel', spell.acquisitionLevel || '');
-  // Concentration section
-  const concSec = document.getElementById('sb-manage-conc-section');
-  const concBtn = document.getElementById('sb-manage-conc-btn');
-  if (concSec) concSec.style.display = spell.concentration ? '' : 'none';
-  if (concBtn) {
-    const on = !!spell.concentrationActive;
-    concBtn.innerHTML = icon('flame') + (on ? ' Actief — klik om te stoppen' : ' Inactief — klik om te activeren');
-    concBtn.classList.toggle('sb-manage-conc-btn--active', on);
-  }
-  // Marginalia list
-  _sbRenderManageMarginalia();
-  // Icon picker (only build once)
-  const picker = document.getElementById('sb-manage-icon-picker');
-  if (picker && !picker.dataset.built) {
-    picker.dataset.built = '1';
-    picker.innerHTML = Object.keys(_SB_ICONS).map(key =>
-      `<button class="sb-icon-pick-btn" data-icon="${key}" onclick="window._sbSelectManageIcon('${key}')"
-        title="${_SB_ICON_LABELS[key]}">
-        <svg viewBox="0 0 20 20" fill="none" stroke="currentColor"
-          stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-          ${_SB_ICONS[key]}
-        </svg>
-      </button>`
-    ).join('');
-  }
+  const el = document.getElementById('sb-manage-incant');
+  if (el && document.activeElement !== el) el.value = spell.incantation || '';
 }
 
-function _sbRenderManageMarginalia() {
-  const spell = _sbState.spells[_sbState.idx];
-  const el = document.getElementById('sb-manage-marginalia-list');
-  if (!el) return;
-  const items = spell?.marginalia || [];
-  el.innerHTML = items.length ? items.map((m, i) => `
-    <div class="sb-manage-marginal-row">
-      <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5"
-        stroke-linecap="round" stroke-linejoin="round" class="sb-manage-marginal-icon">
-        ${_SB_ICONS[m.icon] || ''}
-      </svg>
-      <span class="sb-manage-marginal-label">${esc(m.label || _SB_ICON_LABELS[m.icon] || m.icon)}</span>
-      <button class="sb-manage-marginal-del" onclick="window._sbRemoveMarginalia(${i})">×</button>
-    </div>`).join('') : '<p class="sb-manage-hint">Nog geen marginalia toegevoegd.</p>';
-}
-
-window._sbSelectManageIcon = function(key) {
-  document.querySelectorAll('.sb-icon-pick-btn').forEach(b => b.classList.toggle('selected', b.dataset.icon === key));
-  document.getElementById('sb-manage-icon-label').dataset.icon = key;
-  const labelEl = document.getElementById('sb-manage-icon-label');
-  if (labelEl && !labelEl.value) labelEl.placeholder = _SB_ICON_LABELS[key] || key;
-};
-
-window._sbAddMarginalia = async function() {
-  const spell = _sbState.spells[_sbState.idx];
-  if (!spell || !_sbState.charId) return;
-  const labelEl = document.getElementById('sb-manage-icon-label');
-  const icon = labelEl?.dataset.icon;
-  if (!icon) { labelEl?.focus(); return; }
-  const label = (labelEl?.value || _SB_ICON_LABELS[icon] || icon).trim();
-  spell.marginalia = [...(spell.marginalia || []), { icon, label }];
-  _sbAudio.write();
-  try {
-    await api.updatePlayerSpell(_sbState.charId, spell.index, { marginalia: spell.marginalia });
-    if (labelEl) { labelEl.value = ''; delete labelEl.dataset.icon; }
-    document.querySelectorAll('.sb-icon-pick-btn').forEach(b => b.classList.remove('selected'));
-    _sbRender();
-  } catch(e) { console.warn('Marginalia opslaan mislukt:', e); }
-};
-
-window._sbRemoveMarginalia = async function(idx) {
-  const spell = _sbState.spells[_sbState.idx];
-  if (!spell || !_sbState.charId) return;
-  spell.marginalia = (spell.marginalia || []).filter((_, i) => i !== idx);
-  try {
-    await api.updatePlayerSpell(_sbState.charId, spell.index, { marginalia: spell.marginalia });
-    _sbRender();
-  } catch(e) { console.warn('Marginalia verwijderen mislukt:', e); }
-};
-
-window._sbSaveAcqLevel = async function(val) {
-  const spell = _sbState.spells[_sbState.idx];
-  if (!spell || !_sbState.charId || !val || val < 1 || val > 20) return;
-  if (val === (spell.acquisitionLevel || 0)) return;
-  spell.acquisitionLevel = val;
-  try {
-    await api.updatePlayerSpell(_sbState.charId, spell.index, { acquisitionLevel: val });
-    _sbRender();
-  } catch(e) { console.warn('Level opslaan mislukt:', e); }
-};
+// De marginalia (losse icoontjes met een toelichting langs de kantlijn) zijn
+// eruit, met hun bewerkknoppen, hun iconenpicker en de sleepcode. Ze waren een
+// tweede soort aantekening naast de incantatie, en niemand gebruikte ze.
+//
+// `_sbSaveAcqLevel` is ook weg: op welk level je een spreuk kreeg bepaalt nog
+// steeds hoe geel zijn bladzijde is, maar dat vul je niet meer met de hand in —
+// het wordt vastgelegd op het moment dat de spreuk in je boek komt.
 
 window._sbToggleConcentration = async function() {
   const spell = _sbState.spells[_sbState.idx];
@@ -4824,110 +4714,6 @@ window._sbToggleHigher = function(checked) {
     el.style.display = 'none';
   }
 };
-
-// ── Marginalia: render handwritten draggable notes on the right page ──
-function _sbRenderMarginalia() {
-  const margEl = document.getElementById('sb-marginalia');
-  if (!margEl) return;
-  const spell = _sbState.spells[_sbState.idx];
-  const items = spell?.marginalia || [];
-
-  // Default positions spread down the page (% of page height, right-side strip)
-  margEl.innerHTML = items.map((m, i) => {
-    const x   = m.x != null ? m.x : 85;                  // % from left of page
-    const y   = m.y != null ? m.y : 12 + i * 12;         // % from top of page
-    const rot = ((i * 37 + 7) % 13) - 6;                 // deterministic slight rotation
-    const paths = _SB_ICONS[m.icon] || '';
-    const lbl = esc(m.label || _SB_ICON_LABELS[m.icon] || m.icon);
-    return `<div class="sb-marginal-note" data-idx="${i}"
-        style="left:${x}%;top:${y}%;transform:rotate(${rot}deg)"
-        title="${lbl}">
-      <svg class="sb-marginal-note-icon" viewBox="0 0 20 20" fill="none" stroke="currentColor"
-        stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">${paths}</svg>
-      <span class="sb-marginal-note-text">${lbl}</span>
-    </div>`;
-  }).join('');
-
-  // Attach drag handlers to each note
-  margEl.querySelectorAll('.sb-marginal-note').forEach(note => {
-    note.addEventListener('pointerdown', _sbMarginalDragStart, { passive: false });
-  });
-}
-
-// Drag state for marginalia
-const _sbDrag = { active: false, el: null, idx: -1, ox: 0, oy: 0 };
-
-function _sbMarginalDragStart(e) {
-  if (e.button !== 0 && e.pointerType !== 'touch') return;
-  e.preventDefault();
-  const note = e.currentTarget;
-  const page = document.getElementById('sb-page-right');
-  if (!page) return;
-  const idx = parseInt(note.dataset.idx);
-  const pageRect = page.getBoundingClientRect();
-  const noteRect = note.getBoundingClientRect();
-
-  // Offset of pointer within note (normalised to page width/height)
-  _sbDrag.active = true;
-  _sbDrag.el     = note;
-  _sbDrag.idx    = idx;
-  _sbDrag.pageRect = pageRect;
-  _sbDrag.ox = (e.clientX - noteRect.left) / pageRect.width * 100;
-  _sbDrag.oy = (e.clientY - noteRect.top)  / pageRect.height * 100;
-
-  note.classList.add('dragging');
-  note.setPointerCapture(e.pointerId);
-
-  note.addEventListener('pointermove', _sbMarginalDragMove, { passive: false });
-  note.addEventListener('pointerup',   _sbMarginalDragEnd,  { once: true });
-  note.addEventListener('pointercancel', _sbMarginalDragEnd, { once: true });
-}
-
-function _sbMarginalDragMove(e) {
-  if (!_sbDrag.active) return;
-  e.preventDefault();
-  const { el, pageRect, ox, oy } = _sbDrag;
-  // New position as % of page
-  let nx = (e.clientX - pageRect.left) / pageRect.width  * 100 - ox;
-  let ny = (e.clientY - pageRect.top)  / pageRect.height * 100 - oy;
-  // Constrain: keep within page, avoid ribbon (top-right 28px area) and spine
-  nx = Math.max(2, Math.min(88, nx));
-  ny = Math.max(5, Math.min(88, ny));
-  el.style.left      = nx + '%';
-  el.style.top       = ny + '%';
-  el.style.transform = 'rotate(0deg) scale(1.05)';
-}
-
-async function _sbMarginalDragEnd(e) {
-  if (!_sbDrag.active) return;
-  const { el, idx } = _sbDrag;
-  _sbDrag.active = false;
-  el.classList.remove('dragging');
-  el.removeEventListener('pointermove', _sbMarginalDragMove);
-
-  // Read final position
-  const page = document.getElementById('sb-page-right');
-  if (!page) return;
-  const pageRect  = page.getBoundingClientRect();
-  const noteRect  = el.getBoundingClientRect();
-  const nx = (noteRect.left - pageRect.left) / pageRect.width  * 100;
-  const ny = (noteRect.top  - pageRect.top)  / pageRect.height * 100;
-
-  // Restore rotation
-  const spell = _sbState.spells[_sbState.idx];
-  const rot   = ((idx * 37 + 7) % 13) - 6;
-  el.style.transform = `rotate(${rot}deg)`;
-
-  // Save new position
-  if (spell?.marginalia?.[idx]) {
-    spell.marginalia[idx].x = Math.round(nx * 10) / 10;
-    spell.marginalia[idx].y = Math.round(ny * 10) / 10;
-    if (_sbState.charId) {
-      try { await api.updatePlayerSpell(_sbState.charId, spell.index, { marginalia: spell.marginalia }); }
-      catch (e) { console.warn('Positie opslaan mislukt:', e); }
-    }
-  }
-}
 
 // Returns true when a spell's level is >0 and no slots remain at any valid level
 function _sbHasNoSlots(spell) {
@@ -5032,7 +4818,6 @@ window._sbOpenAddSpells = async function() {
   const ov = document.createElement('div');
   ov.id = 'sb-addspells';
   ov.className = 'sb-addspells-overlay';
-  const klasseEN = _spellClassEN(_sbState.klasse);
   ov.innerHTML = `
     <div class="sb-addspells-panel" onclick="event.stopPropagation()">
       <div class="sb-addspells-head">
@@ -5064,9 +4849,18 @@ window._sbAddSpSearch = function(q) { _addSp.query = q || ''; _sbAddSpRenderList
 window._sbAddSpToggleType = function(t) { _addSp.types.has(t) ? _addSp.types.delete(t) : _addSp.types.add(t); _sbAddSpRenderFilters(); _sbAddSpRenderList(); };
 window._sbAddSpToggleFlag = function(f) { _addSp[f] = !_addSp[f]; _sbAddSpRenderFilters(); _sbAddSpRenderList(); };
 
+// De klassen waaruit dit personage mag leren, in het Engels zoals de
+// spreukdata ze noemt. Eén klasse is het gewone geval; bij een multiclass
+// staan ze er allebei.
+function _sbKlassenEN() {
+  const lijst = (_sbState.klassen && _sbState.klassen.length ? _sbState.klassen : [_sbState.klasse])
+    .map(k => _spellClassEN(k)).filter(Boolean);
+  return [...new Set(lijst)];
+}
 function _sbAddSpPool() {
-  const klasseEN = _spellClassEN(_sbState.klasse);
-  return (_playerSpellList || []).filter(s => !_addSp.klasseOnly || _spellMatchesClass(s, klasseEN));
+  const klassen = _sbKlassenEN();
+  return (_playerSpellList || []).filter(s =>
+    !_addSp.klasseOnly || !klassen.length || klassen.some(k => _spellMatchesClass(s, k)));
 }
 const _sbLvlLabel = (l) => (l === 0 ? 'Cantrips' : 'Level ' + l);
 
@@ -5095,11 +4889,12 @@ function _sbAddSpSchuifHtml(aanwezig) {
 }
 
 function _sbAddSpRenderFilters() {
-  const klasseEN = _spellClassEN(_sbState.klasse);
+  const klassen = _sbKlassenEN();
+  const klasseTxt = klassen.join(' + ');
   const classBtn = document.getElementById('sb-addspells-class');
   if (classBtn) classBtn.innerHTML = _addSp.klasseOnly
-    ? `${icon('user')} ${esc(klasseEN || 'Klasse')} · <span class="sb-addspells-class-switch">toon alle</span>`
-    : `${icon('users')} Alle klassen · <span class="sb-addspells-class-switch">alleen ${esc(klasseEN || 'klasse')}</span>`;
+    ? `${icon('user')} ${esc(klasseTxt || 'Klasse')} · <span class="sb-addspells-class-switch">toon alle</span>`
+    : `${icon('users')} Alle klassen · <span class="sb-addspells-class-switch">alleen ${esc(klasseTxt || 'klasse')}</span>`;
   const el = document.getElementById('sb-addspells-filters');
   if (!el) return;
   const pool = _sbAddSpPool();
@@ -5198,6 +4993,7 @@ window._sbAddSpCommit = async function() {
   const btn = document.getElementById('sb-addspells-confirm');
   if (btn) { btn.disabled = true; btn.innerHTML = 'Toevoegen…'; }
   const indices = [..._addSp.selected];
+  let erbij = 0, gevraagd = 0;
   for (const index of indices) {
     if (_sbState.spells.find(s => s.index === index)) continue;
     const full = (_playerSpellList || []).find(s => s.index === index);
@@ -5207,18 +5003,29 @@ window._sbAddSpCommit = async function() {
     const concentration = !!full.concentration;
     const ritual = !!full.ritual;
     try {
-      await api.addPlayerSpell(_sbState.charId, {
+      const r = await api.addPlayerSpell(_sbState.charId, {
         index, name: full.name, level: full.level || 0, school, concentration, ritual,
         source: full.source || 'phb2024', desc,
         casting_time: full.casting_time || '', range: full.range || '', duration: full.duration || '',
         components: Array.isArray(full.components) ? full.components.join(', ') + (full.material ? ` (${full.material})` : '') : (full.components || ''),
       });
+      // **Een speler vraagt, de DM geeft.** De route maakt er een verzoek van
+      // (de DM ziet het op zijn Vragen-tab); alleen de DM schrijft rechtstreeks
+      // in een boek. Dit zette de spreuk er hoe dan ook bij, dus een speler zag
+      // hem staan terwijl er nog niets goedgekeurd was — en kon hem casten.
+      if (r?.verzoek) { gevraagd++; continue; }
       _sbState.spells.push({ ...full, index, name: full.name, school, source: full.source || 'phb2024', concentration, ritual, level: full.level || 0, desc });
+      erbij++;
     } catch (e) { console.warn('Spreuk toevoegen mislukt:', e); }
   }
   _sbState.spells.sort((a, b) => (a.level || 0) - (b.level || 0) || a.name.localeCompare(b.name));
   window._sbCloseAddSpells();
   _sbRender();
+  if (gevraagd) {
+    _tsToast(`${gevraagd === 1 ? 'Je vraag ligt' : `Je ${gevraagd} vragen liggen`} bij de DM. Zodra hij ja zegt staat ${gevraagd === 1 ? 'hij' : 'ze'} in je boek.`);
+  } else if (erbij) {
+    _tsToast(`${erbij} spreuk${erbij === 1 ? '' : 'en'} toegevoegd.`);
+  }
   if (typeof window._reRenderKarakter === 'function') window._reRenderKarakter();
 };
 
@@ -5384,11 +5191,20 @@ function _sbRenderTocList(q) {
         for (const { s, i } of groups[k]) {
           const active = i === _sbState.idx;
           const school = s.school?.name || (typeof s.school === 'string' ? s.school : '');
+          // Drie knoppen per regel. Voorbereiden hoort niet bij een cantrip
+          // (die is altijd paraat), dus daar staat hij er niet — een knop die
+          // nooit iets doet is erger dan geen knop.
+          const paraat = s.prepared || s.alwaysPrepared;
           html += `<div class="sb-toc-item${active ? ' sb-toc-active' : ''}">
             ${_mark(s)}
             <span class="sb-toc-item-name" onclick="window._sbGoTo(${i}, true)">${esc(s.name)}</span>
             ${school ? `<span class="sb-toc-item-school">${esc(school)}</span>` : ''}
-            <button class="sb-toc-item-del" onclick="window._sbTocUnpin('${esc(s.index)}')" title="Verwijderen">×</button>
+            <span class="sb-toc-item-knoppen">
+              ${k === 0 ? '' : `<button class="sb-toc-ibtn${paraat ? ' is-aan' : ''}" onclick="window._sbCyclePrepared(${i})"
+                title="${s.alwaysPrepared ? 'Altijd paraat — klik om op te heffen' : s.prepared ? 'Paraat — klik voor altijd paraat' : 'Zet gereed'}">${icon('check')}</button>`}
+              <button class="sb-toc-ibtn" onclick="window._sbTocBewerk(${i})" title="Bewerken">${icon('pencil')}</button>
+              <button class="sb-toc-ibtn sb-toc-ibtn--weg" onclick="window._sbTocUnpin('${esc(s.index)}')" title="Verwijderen">${icon('trash')}</button>
+            </span>
           </div>`;
         }
       }
@@ -5602,8 +5418,11 @@ function _sbRenderPrepared() {
 }
 
 // Cycle: niet voorbereid → paraat (telt mee) → altijd paraat (gratis) → niet voorbereid.
-window._sbCyclePrepared = async () => {
-  const spell = _sbState.spells[_sbState.idx];
+// `i` is optioneel: zonder meegegeven index gaat het over de spreuk die
+// openligt (de knop in de balk), mét index over die regel in de
+// inhoudsopgave. Drie standen: niet paraat → paraat → altijd paraat.
+window._sbCyclePrepared = async (i) => {
+  const spell = _sbState.spells[i === undefined ? _sbState.idx : i];
   if (!spell || (spell.level || 0) === 0 || !_sbState.charId) return;
   let prepared, alwaysPrepared;
   if (!spell.prepared && !spell.alwaysPrepared)      { prepared = true;  alwaysPrepared = false; }
@@ -5830,9 +5649,6 @@ function _sbRender() {
       _sbApplyGlossary_DOM(contentEl);
     }
   }
-
-  // ── Marginalia — handwritten notes on right page ──
-  _sbRenderMarginalia();
 
   // ── Concentration fold corner — always hidden (replaced by overlay button) ──
   const foldEl = document.getElementById('sb-conc-fold');
@@ -8063,6 +7879,16 @@ async function renderMijnKarakter(opts = {}) {
   _sbState.spellAttackBonus = playerProfile.spellAttackBonus ?? null;
   _sbState.klasse           = playerProfile.klasse || playerProfile.multiKlasse || '';
   _sbState.klasseLevel      = playerProfile.klasseLevel || playerProfile.level || '';
+  // **Een multiclass cast uit twee lijsten.** Dit kende alleen de eerste, dus
+  // een Wizard/Cleric zag bij "alleen klasse" geen enkele clericspreuk staan en
+  // moest terugvallen op alle 355 — zonder te kunnen zien welke daarvan hij
+  // überhaupt mag leren. Beide klassen staan er nu, en de filterknop noemt ze
+  // allebei.
+  const _multiAan = playerProfile.multiclass === true || playerProfile.multiclass === 'true';
+  _sbState.klassen = [...new Set([
+    playerProfile.klasse,
+    _multiAan ? playerProfile.multiKlasse : null,
+  ].map(k => String(k || '').trim()).filter(Boolean))];
 
   // Sla unread bericht-teller op (niet resetten als berichten-tab open is)
   const unreadCount = berichtenLijst.filter(m => !m.gelezen).length;

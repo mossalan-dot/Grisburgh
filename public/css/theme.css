@@ -19786,6 +19786,22 @@ body.sb-boek-open { overflow: hidden; }
 .sb-toc-item { display: flex; align-items: center; gap: 4px; padding: 0 8px; }
 .sb-toc-item-name { flex: 1; cursor: pointer; padding: 7px 2px; font-size: 13px; }
 .sb-toc-item-name:hover { color: rgba(230,185,100,0.9); }
+/* Drie knoppen achter elke regel: gereed zetten (niet bij een cantrip, die is
+   altijd paraat), bewerken en verwijderen. Ze stonden er niet: je kon alleen
+   verwijderen, en voor de rest moest je eerst de bladzijde opslaan. */
+.sb-toc-item-knoppen { display: inline-flex; align-items: center; gap: 2px; flex-shrink: 0; }
+.sb-toc-ibtn {
+  width: 24px; height: 24px; padding: 0; flex-shrink: 0;
+  display: inline-flex; align-items: center; justify-content: center;
+  background: none; border: none; border-radius: 5px; cursor: pointer;
+  color: rgba(255,255,255,0.3);
+  transition: color .15s, background .15s;
+}
+.sb-toc-ibtn .icon { width: 13px; height: 13px; }
+.sb-toc-ibtn:hover { color: rgba(240,220,170,0.95); background: rgba(255,255,255,0.08); }
+.sb-toc-ibtn.is-aan { color: #8fd9a8; }
+.sb-toc-ibtn--weg:hover { color: #e74c3c; background: rgba(231,76,60,0.12); }
+
 .sb-toc-item-del {
   flex-shrink: 0; width: 22px; height: 22px;
   background: none; border: none;

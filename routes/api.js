@@ -7294,6 +7294,14 @@ function _spreukInBoek(dmState, characterId, body) {
   if (range)        entry.range        = range;
   if (components)   entry.components   = components;
   if (duration)     entry.duration     = duration;
+  // **Op welk level hij hem kreeg.** Dat bepaalt hoe geel zijn bladzijde in het
+  // spreukenboek is: wat je op level 1 leerde ligt er al jaren in. Je vulde dat
+  // met de hand in — een veld dat niemand bijhield en dat je bovendien niet kúnt
+  // weten als je het later invult. Nu legt de app het vast op het moment dat de
+  // spreuk erin komt, want dát is precies wat het betekent.
+  const prof = (dmState.playerProfiles || {})[characterId] || {};
+  const nu = parseInt(prof.level) || parseInt(prof.klasseLevel) || 0;
+  if (nu > 0) entry.acquisitionLevel = Math.min(20, nu);
   dmState.playerSpells[characterId].push(entry);
   return true;
 }
