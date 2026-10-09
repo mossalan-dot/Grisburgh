@@ -29189,7 +29189,14 @@ body.wizard-open { overflow: hidden; }
   flex: 1; display: flex; flex-direction: column; align-items: flex-start; gap: 0;
   padding: 9px 10px 8px 2px; background: none; border: 0; cursor: pointer; text-align: left;
 }
-.vd-subkaart-naam { font-family: 'Cinzel', serif; font-weight: 700; color: #3a2410; font-size: .9em; }
+.vd-subkaart-naam {
+  font-family: 'Cinzel', serif; font-weight: 700; color: #3a2410; font-size: .9em;
+  /* Loopt een naam om, dan mag hij hooguit twee regels worden. Zonder dit was
+     een rij met een lange naam anderhalf keer zo hoog als zijn buren en liep
+     de kolom niet meer gelijk met het kaartje ernaast. */
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+  overflow: hidden; line-height: 1.25;
+}
 .vd-subkaart-meta { font-family: 'Crimson Text', serif; color: #8a7050; font-size: .78em; }
 
 .vd-kruimel { display: flex; align-items: center; flex-wrap: wrap; gap: 5px; margin: 2px 0 12px; font-family: 'Crimson Text', serif; font-size: .94em; }
@@ -29359,13 +29366,20 @@ body.wizard-open { overflow: hidden; }
 }
 .vd-klasvlak--1 { grid-template-columns: minmax(260px, 46%); }
 .vd-klasvlak--2 { grid-template-columns: minmax(260px, 42%) minmax(200px, 250px); }
-/* Drie delen: de twee kaartjes even breed, want het is dezelfde soort kaart. */
-.vd-klasvlak--3 { grid-template-columns: minmax(220px, 1fr) minmax(220px, 1fr) minmax(190px, 230px); }
-@media (max-width: 1100px) {
-  .vd-klasvlak--3 { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+/* Drie delen: de twee kaartjes even breed, want het is dezelfde soort kaart.
+   De kolommen mogen smal worden (`minmax(0, …)`) zodat de indeling blijft
+   staan op een kleiner scherm; hij viel terug op twee kolommen rond 1100 px,
+   en dan zakte de lijst onder de kaartjes terwijl er rechts een halve breedte
+   leeg bleef. */
+.vd-klasvlak--3 { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(150px, 210px); }
+/* Pas als er echt geen drie kolommen meer in passen gaat hij om. Onder de
+   760 px is dat zo: twee kaartjes van 180 plus een lijst van 150 plus de
+   tussenruimtes is al meer dan de helft van wat er dan nog over is. */
+@media (max-width: 760px) {
+  .vd-klasvlak--2, .vd-klasvlak--3 { grid-template-columns: minmax(0, 1fr); }
 }
 @media (max-width: 880px) {
-  .vd-klasvlak--1, .vd-klasvlak--2, .vd-klasvlak--3 { grid-template-columns: minmax(0, 1fr); }
+  .vd-klasvlak--1 { grid-template-columns: minmax(0, 1fr); }
 }
 
 /* Bladeren door de subclasslijst: vier tegelijk, zodat de kolom even hoog
@@ -29571,7 +29585,10 @@ body.wizard-open { overflow: hidden; }
    beeld: daar ben je al aan het kijken naar dít kaartje, dus hoeft hij niet
    op te komen. Het beeld is groter, dus hij mag mee. */
 .detail-hero .houding-balk {
-  opacity: 1; top: 12px; left: 12px;
+  /* Onder de badge, niet erover. Op het kaartje staat er links niets en kan hij
+     bovenaan; in het detailvenster zit daar de soort-pil ("Automaton"), en daar
+     viel het balkje half overheen. */
+  opacity: 1; top: 52px; left: 12px;
   width: 32px; height: 118px;
 }
 
@@ -29638,3 +29655,23 @@ body.wizard-open { overflow: hidden; }
 .brief-code-knoppen { display: flex; gap: 6px; flex-wrap: wrap; }
 /* De hulpknop in de kop van een uitklap: niet meeklikken met het openklappen. */
 .dm-uitklap-hulp { margin-left: auto; display: inline-flex; }
+/* Elke rij in de subclasslijst even hoog, ook die met een omgelopen naam: de
+   vier samen moeten naast het kaartje passen zonder dat de kolom uitloopt. */
+.vd-subkaart { min-height: 54px; }
+/* De boekaanduiding bij een subklasse die alleen elders bestaat is de korte
+   code (SCAG, XGE); de volle titel hangt eronder als tooltip. Die titel is
+   soms langer dan de naam van de subklasse zelf. */
+.vd-subkaart--elders .vd-subkaart-meta {
+  font-family: 'Cinzel', serif; font-size: .68em; letter-spacing: .08em; opacity: .75;
+}
+/* De weg terug in het Heldenboek: een background opent zijn feat, en daar
+   hoort een stap terug te staan. Eén niveau diep — verder gaat deze lijst niet. */
+.vaardig-terug {
+  display: inline-flex; align-items: center; gap: 5px;
+  margin: 0 0 10px; padding: 4px 9px 4px 5px; cursor: pointer;
+  border: 1px solid rgba(196,168,122,.7); border-radius: 4px;
+  background: rgba(255,252,244,.55); color: #8a7050;
+  font-family: 'Crimson Text', serif; font-size: .85em;
+}
+.vaardig-terug:hover { border-color: #9a7008; color: #9a7008; }
+.vaardig-terug svg { width: 14px; height: 14px; }

@@ -137,6 +137,11 @@ const _ONTDEK_RIJEN = [
   { key: 'organisaties', label: 'Organisaties', ic: 'landmark' },
   { key: 'voorwerpen',   label: 'Voorwerpen',   ic: 'package' },
   { key: 'documenten',   label: 'Documenten',   ic: 'scroll-text' },
+  // Zegeningen, eden, vloeken en factiegunsten telden mee onder Voorwerpen,
+  // en dat waren er 98 van de 249 — een meter die vooral zei hoeveel zegeningen
+  // je nog niet had. Ze staan sinds 8 okt 2026 in het Heldenboek en hebben nu
+  // ook hier hun eigen regel: wat de wereld je geeft, niet wat je vindt.
+  { key: 'zegeningen',   label: 'Zegeningen & gunsten', ic: 'sparkles' },
   // Het bestiarium telde de route al mee, maar het stond niet in de lijst —
   // terwijl het een eigen archief-tabblad is en precies zo werkt.
   { key: 'bestiarium',   label: 'Bestiarium',   ic: 'paw-print' },

@@ -880,7 +880,11 @@ function _subKolomHtml(klasse) {
   // wat elders bestaat is gestippeld.
   const rijen = [
     ...eigen.map(([naam, n]) => ({ naam, n, elders: false })),
-    ...elders.map(x => ({ naam: x.naam, boek: boeken[x.boek] || x.boek, elders: true })),
+    // De korte code erbij (`scag`, `xge`). De volle boektitel is soms langer
+    // dan de naam van de subklasse zelf, en dan loopt de regel om en wordt de
+    // rij anderhalf keer zo hoog als die ernaast. De code staat er dus, de
+    // titel hangt eronder als tooltip.
+    ...elders.map(x => ({ naam: x.naam, boek: boeken[x.boek] || x.boek, code: x.boek, elders: true })),
   ];
   if (!rijen.length) return '';
 
@@ -901,9 +905,9 @@ function _subKolomHtml(klasse) {
             <input type="checkbox" onchange="window.vaardigheden.eldersAan('${veilig}','${veiligB}')"></label>` : ''}
           <button class="vd-subkaart-open"
             onclick="window.open(window.app.bronLink('${veilig}','subclass'),'_blank')"
-            title="Opzoeken — de tekst staat in het boek, niet in de app">
+            title="${esc(r.boek || '')} — opzoeken; de tekst staat in het boek, niet in de app">
             <span class="vd-subkaart-naam">${esc(r.naam)}</span>
-            <span class="vd-subkaart-meta">${esc(r.boek || 'elders')}</span>
+            <span class="vd-subkaart-meta">${esc((r.code || 'elders').toUpperCase())}</span>
           </button>
         </div>`;
       }
@@ -1121,12 +1125,16 @@ function _refreshFilterBar() {
 // [[Naam]] → een knop die dat kaartje opent, als het bestaat. Zelfde truc als
 // bij de spreuken: de gewone wikilink-resolver kent alleen kaartjes uit het
 // archief, en een feat is er daar geen van.
+// Welke sleutel er nú getekend wordt; die gaat mee als "waar kwam je vandaan"
+// in elke verwijzing in zijn tekst.
+let _vanWaarNu = '';
+
 function _verwijzingen(html) {
   return String(html).replace(/\[\[([^\]|]+?)(?:\|([^\]]+?))?\]\]/g, (heel, naam, alias) => {
     const doel = (_all || []).find(x => x.naam.toLowerCase() === naam.trim().toLowerCase());
     const tekst = esc((alias || naam).trim());
     return doel
-      ? `<a class="spreuk-verwijzing" onclick="window.vaardigheden.open('${esc(doel.key)}')" title="Open ${tekst}">${tekst}</a>`
+      ? `<a class="spreuk-verwijzing" onclick="window.vaardigheden.open('${esc(doel.key)}','${esc(_vanWaarNu || '')}')" title="Open ${tekst}">${tekst}</a>`
       : tekst;
   });
 }
@@ -1251,14 +1259,32 @@ function _uitlegVenster(soort, naam, bron) {
     </div>`);
 }
 
-function _open(key) {
+// Waar je vandaan kwam. Een background noemt zijn feat als [[verwijzing]], en
+// die opent het featkaartje — maar daarna stond je vast: geen knop terug, en
+// de background was uit beeld. Eén stap is genoeg; een hele geschiedenis is
+// het niet waard, want verder dan twee diep gaat deze lijst niet.
+let _vanWaar = null;
+
+function _open(key, vanWaar = null) {
   const it = (_all || []).find(x => x.key === key);
   if (!it) return;
+  _vanWaar = vanWaar;
+  _vanWaarNu = key;                 // verwijzingen in deze tekst wijzen hierheen terug
   const s = SOORTEN[it.soort] || SOORTEN.class;
   const tekst = _tekst(it);
   const body = tekst
     ? `<div class="prog-detail-desc">${_verwijzingen(_bron?.md?.(tekst) ?? esc(tekst))}</div>`
     : (_bron?.geenTekstBlok?.(it.naam) ?? '');
+  // Kwam je ergens vandaan, dan hoort er een weg terug te zijn. Zonder dit
+  // opende een background zijn feat en stond je vast: het featkaartje weet
+  // niets van de background die ernaar wees.
+  const terug = (() => {
+    const vorige = vanWaar ? (_all || []).find(x => x.key === vanWaar) : null;
+    return vorige
+      ? `<button class="vaardig-terug" onclick="window.vaardigheden.open('${esc(vorige.key)}')">
+           ${icon('chevron-left')} Terug naar ${esc(vorige.naam)}</button>`
+      : '';
+  })();
   // De DM stelt de afbeelding hier in, niet in de bewerkmodal: bij de spreuken
   // gaat het ook zo, en dan hoef je voor een plaatje niet eerst het potlood.
   const dmBeeld = isDM() ? `
@@ -1285,6 +1311,7 @@ function _open(key) {
   window.app.openModal(it.naam, '', `
     <div class="prog-detail">
       <div class="prog-detail-body">
+        ${terug}
         <div class="prog-detail-chips">
           <span class="prog-detail-chip">${icon(_itemIcoon(it))} ${esc(s.label)}</span>
           ${_bronRegel(it) ? `<span class="prog-detail-chip">${esc(_bronRegel(it))}</span>` : ''}

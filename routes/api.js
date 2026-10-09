@@ -1497,16 +1497,22 @@ router.get('/ontdekkingen', attachRole, (req, res) => {
   const g   = getGroup(dmState, gid);
   const vis = g?.visibility || {};
   const out = {};
+  const isOntdekt = (e) => ['vague', 'visible'].includes(vis[e.id]);
   for (const type of ENTITY_TYPES) {
     let list = entities[type] || [];
     // Eigen party telt niet mee — de teller meet wereld-ontdekking, geen spelers.
     if (type === 'personages') list = list.filter(e => e.subtype !== 'speler');
-    const ontdekt = list.filter(e => {
-      const v = vis[e.id];
-      return v === 'vague' || v === 'visible';
-    }).length;
-    out[type] = { ontdekt, totaal: list.length };
+    // Zegeningen en gunsten zijn voorwerp-kaartjes, maar sinds 8 okt 2026 vind
+    // je ze in het Heldenboek. Ze bleven hier onder "Voorwerpen" meetellen, en
+    // dat waren er 98 van de 249 — een teller die vooral zei hoeveel zegeningen
+    // je nog niet had. Ze krijgen hun eigen meter hieronder.
+    if (type === 'voorwerpen') list = list.filter(e => !['Blessing', 'Boon'].includes(e?.data?.itemType));
+    out[type] = { ontdekt: list.filter(isOntdekt).length, totaal: list.length };
   }
+  // Zegeningen, eden, vloeken en factiegunsten bij elkaar: wat de wereld je
+  // geeft in plaats van wat je vindt.
+  const gaven = (entities.voorwerpen || []).filter(e => ['Blessing', 'Boon'].includes(e?.data?.itemType));
+  if (gaven.length) out.zegeningen = { ontdekt: gaven.filter(isOntdekt).length, totaal: gaven.length };
   // Bestiarium: wezens die de groep al kent (≥ naam) van alle bestiarium-monsters.
   const bestMonsters = (storage.readJSON('monsters.json').monsters || []).filter(m => m.inBestiarium !== false);
   const bestKennis   = g?.bestiarium || {};
@@ -9122,6 +9128,26 @@ router.get('/progression', attachRole, (req, res) => {
   // geen campagne-eigen backgrounds zijn opgeslagen.
   if (!base.backgrounds || !Object.keys(base.backgrounds).length) {
     base.backgrounds = _readBackgroundsSeed();
+  }
+  // ── De intro van een subklasse ──
+  // Een campagne met een eigen progressie krijgt de seed niet, en zou dus de
+  // SRD-intro's missen die daar sinds 9 okt 2026 in staan ("Barbarians who
+  // walk the Path of the Berserker…"). Die zijn CC BY 4.0, net als de
+  // featureteksten die er al in staan; ze ontbraken omdat ons bronbestand ze
+  // nooit had, niet omdat het niet mocht.
+  //
+  // Zelfde regel als overal: **wat de DM zelf schreef wint**, en alleen waar
+  // niets staat vult de seed aan. En alleen voor een campagne die de brontekst
+  // mag zien — anders lekt hij via deze omweg alsnog binnen.
+  if (eigen && _magBronTeksten(req)) {
+    const seed = _readProgressionSeed();
+    for (const [klasse, data] of Object.entries(base.classes || {})) {
+      for (const [naam, sub] of Object.entries(data.subclasses || {})) {
+        if (sub.desc) continue;
+        const uitSeed = seed?.classes?.[klasse]?.subclasses?.[naam]?.desc;
+        if (uitSeed) sub.desc = uitSeed;
+      }
+    }
   }
   // Wat de DM zelf heeft geschreven blijft staan; de meegeleverde seed gaat
   // kaal de deur uit als deze campagne de brontekst niet mag zien.

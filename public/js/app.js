@@ -1,15 +1,15 @@
 import { api, campagneUitUrl, zetCampagne } from './api.js?v=310';
 import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, renderDocumenten, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=343";
-import { initArchief, renderLogboek, openLogboekEditor } from "./render-archief.js?v=139";
+import { initArchief, renderLogboek, openLogboekEditor } from "./render-archief.js?v=140";
 import { renderKaart, queueFlyTo, verversPins, nieuweKaart } from './render-kaart.js?v=31';
 import { renderDungeon } from './render-dungeon.js?v=60';
 import { renderRelatiemap } from './render-relatiemap.js?v=27';
 import { renderProgressie, levelupFeatures } from './render-progressie.js?v=57';
 import { renderBestiarium } from './render-bestiarium.js?v=31';
 import { renderSpreuken } from './render-spreuken.js?v=44';
-import { renderVaardigheden, zoekVaardigheden } from './render-vaardigheden.js?v=30';
+import { renderVaardigheden, zoekVaardigheden } from './render-vaardigheden.js?v=32';
 import { renderStatblock } from './render-statblock.js?v=9';
-import { initSocket } from "./socket-client.js?v=83";
+import { initSocket } from "./socket-client.js?v=84";
 import { initDmPanel } from "./dm-panel.js?v=386";
 import { COND_INFO, COND_LABEL, COND_MET_PLAATJE, COND_ICON } from './conditions.js?v=2';
 import './media-picker.js?v=9';
@@ -11337,7 +11337,7 @@ function _gsHighlight(name, tokens) {
 
 const _GS_TYPE_LABEL = {
   personages: 'personage', locaties: 'locatie', organisaties: 'organisatie',
-  voorwerpen: 'voorwerp', documenten: 'document',
+  voorwerpen: 'voorwerp', documenten: 'document', heldenboek: 'Heldenboek',
 };
 
 // Waaróm staat dit kaartje in de resultaten? Zit de treffer niet in de naam,
@@ -11452,6 +11452,32 @@ window.app._globalSearchRun = async function(q) {
     }
   }
 
+  // Het Heldenboek: classes, subclasses, species, backgrounds, feats, Epic
+  // Boons, zegeningen en gunsten. Het stond er niet in, en daarmee was een
+  // heel tabblad onvindbaar vanuit de zoekbalk — terwijl je juist daar naar
+  // een featurenaam zoekt die je half onthouden hebt.
+  if (!_gsTypeFilter || _gsTypeFilter === 'heldenboek') {
+    let treffers = [];
+    try { treffers = await zoekVaardigheden(q, {}, 8); } catch { treffers = []; }
+    if (treffers.length) {
+      html += `<div class="gs-group"><div class="gs-group-label">${icon('award')} Heldenboek</div>`;
+      for (const t of treffers) {
+        const idx = _gsResults.push({ type: 'heldenboek', id: t.key }) - 1;
+        const LABEL = { class: 'Class', subclass: 'Subclass', species: 'Species', feat: 'Feat',
+                        boon: 'Epic Boon', background: 'Background', zegen: 'Zegening', gunst: 'Gunst' };
+        const sub = [LABEL[t.soort] || t.soort, t.sub || (t.bron && t.bron !== t.naam ? t.bron : ''),
+                     t.level ? `level ${t.level}` : ''].filter(Boolean).join(' · ');
+        html += `<button class="gs-result" data-gs-idx="${idx}" onclick="window.app._globalSearchGo('heldenboek','${esc(t.key)}')">
+            <span class="gs-result-kop">
+              <span class="gs-result-name">${_gsHighlight(t.naam, tokens)}</span>
+              <span class="gs-result-sub">${esc(sub)}</span>
+            </span>
+          </button>`;
+      }
+      html += `</div>`;
+    }
+  }
+
   // Bestiarium: alleen wat deze kijker mag zien — de server filtert dat al.
   if (!_gsTypeFilter || _gsTypeFilter === 'bestiarium') {
     const norm = window._normSearch || (s => String(s || '').toLowerCase());
@@ -11514,6 +11540,13 @@ window.app._globalSearchGo = function(type, id) {
   if (type === 'bestiarium') {
     switchSection('bestiarium');
     setTimeout(() => window.bestiarium?.openId?.(id), 200);
+    return;
+  }
+  // Het Heldenboek heeft geen kaartjes per id maar een eigen sleutel; het
+  // tabblad opent hem zelf en zet de band op de goede plek.
+  if (type === 'heldenboek') {
+    switchSection('vaardigheden');
+    setTimeout(() => window.vaardigheden?.open?.(id), 250);
     return;
   }
   switchSection(type);
