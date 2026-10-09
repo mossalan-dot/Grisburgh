@@ -1082,7 +1082,8 @@ function _dienstKopHtml({ sleutel, config = {}, personages = [], locaties = [],
       </div>
     </div>
 
-    ${_groetTafelHtml({ sleutel, config, voorbeeld: groetVoorbeeld })}`;
+    ${_groetTafelHtml({ sleutel, config, voorbeeld: groetVoorbeeld })}
+    ${_groetTafel2Html({ sleutel, config })}`;
 }
 
 // Wie hoort er bij deze plek? Een locatiekaartje draagt een lijst betrokkenen
@@ -1130,7 +1131,8 @@ function _dienstKopLees(sleutel) {
   };
   return {
     naam:         document.getElementById(`${sleutel}-naam`)?.value.trim() || '',
-    groetTafelId: document.getElementById(`${sleutel}-groettafel`)?.value || '',
+    groetTafelId:  document.getElementById(`${sleutel}-groettafel`)?.value || '',
+    groetTafel2Id: document.getElementById(`${sleutel}-groettafel2`)?.value || '',
     imageId:      idVan('eigenaar', [..._dienstKaartjes.personages, ..._dienstKaartjes.locaties]),
     locatieId:    idVan('locatie', _dienstKaartjes.locaties),
   };
@@ -1306,6 +1308,39 @@ function _tafelVeldHtml({ id, label, gekozen = '', leeg = '— Geen —', nieuw 
           onclick="${nieuw}" title="Maak hier een tafel voor">${icon('plus')} Nieuw</button>
         <button type="button" class="dm-btn dm-btn-ghost dm-btn-sm"
           onclick="${bewerk}" title="Deze tafel openen in het Tafels-tabblad">${icon('pencil')} Bewerken</button>
+      </div>
+    </div>`;
+}
+
+// Een dienst die twee dingen doet begroet je twee keer: de waard die roddels
+// vertelt zegt iets anders dan de waard die inschenkt. Hier staat welk tweede
+// ding dat is en hoe het heet; wie geen tweede tafel kiest houdt één
+// begroeting voor allebei.
+const _TWEEDE_FUNCTIE = {
+  herberg:   { deel: 'herberg-tap',     label: 'Aan de tap' },
+  tempel:    { deel: 'tempel-eden',     label: 'Eden en vloeken' },
+  tweespalt: { deel: 'gokhuis-arena',   label: 'Het strijdperk' },
+  magizoo:   { deel: 'magizoo-adoptie', label: 'Adoptie' },
+  gock:      { deel: 'gock-geruchten',  label: 'Geruchten' },
+};
+
+// De tweede begroetingstafel. Staat er alleen als deze dienst echt twee dingen
+// doet én het tweede deel aanstaat — anders beloof je een keuze die nergens
+// uitkomt.
+function _groetTafel2Html({ sleutel, config = {} }) {
+  const tweede = _TWEEDE_FUNCTIE[sleutel];
+  if (!tweede || !window._deelAan?.(tweede.deel)) return '';
+  const gekozen = config.groetTafel2Id || '';
+  const tafels = (_tables || []).filter(t => t.type !== 'combined' || (t.delen || []).length);
+  const opties = ['<option value="">— Dezelfde als hierboven —</option>']
+    .concat(tafels.map(t => `<option value="${esc(t.id)}"${gekozen === t.id ? ' selected' : ''}>${esc(t.name || t.id)}</option>`));
+  return `
+    <div class="dm-form-row">
+      <label class="dm-form-label" for="${sleutel}-groettafel2">Begroeting bij <em>${esc(tweede.label)}</em></label>
+      <div class="dm-feature-row" style="gap:6px;flex:1;min-width:0">
+        <select id="${sleutel}-groettafel2" class="dm-select" style="flex:1;min-width:0">${opties.join('')}</select>
+        <button type="button" class="dm-btn dm-btn-ghost dm-btn-sm"
+          onclick="window._groetTafelNieuw('${sleutel}')" title="Maak een tafel voor deze begroeting">${icon('plus')} Nieuw</button>
       </div>
     </div>`;
 }

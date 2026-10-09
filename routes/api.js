@@ -9919,11 +9919,26 @@ function _groetTafelsOplossen(uit) {
     return r.length ? r : null;
   };
 
+  // Een dienst die twee dingen doet begroet je twee keer. De herberg schenkt
+  // én roddelt, de tempel zegent én neemt eden af, het gokhuis neemt weddenschappen
+  // én heeft een strijdperk. Dezelfde waard met dezelfde zin voor allebei leest
+  // alsof hij niet doorheeft waar je voor komt.
+  //
+  // Vandaar een tweede tafel: `groetTafel2Id` → `groeten2`. Wie er geen kiest
+  // houdt één begroeting voor allebei, precies zoals het was.
   for (const sleutel of _DIENSTEN_MET_GROET) {
     const c = uit[sleutel];
-    if (!c || !c.groetTafelId) continue;
-    const regels = regelsVan(c.groetTafelId);
-    if (regels) uit[sleutel] = { ...c, groeten: regels };
+    if (!c) continue;
+    let nieuwC = c;
+    if (c.groetTafelId) {
+      const regels = regelsVan(c.groetTafelId);
+      if (regels) nieuwC = { ...nieuwC, groeten: regels };
+    }
+    if (c.groetTafel2Id) {
+      const regels2 = regelsVan(c.groetTafel2Id);
+      if (regels2) nieuwC = { ...nieuwC, groeten2: regels2 };
+    }
+    if (nieuwC !== c) uit[sleutel] = nieuwC;
   }
 
   // Een factie heeft een hoofd dat je begroet; ook die krijgt zijn regels mee.
@@ -10539,7 +10554,7 @@ router.put('/meta/herberg', requireDM, (req, res) => {
   if (!meta.herberg) meta.herberg = {};
   // `locatieId`: de herberg is ook een pand op de kaart. `menu[].entityId` komt
   // mee in `menu` zelf — dat is één veld met de hele lijst.
-  const allowed = ['naam','waard','imageId','locatieId','backdropId','maxVragen','cooldownMinutenMin','cooldownMinutenMax','groet', 'groeten', 'groetTafelId','overnachtingPrijs','roddelsPerSpeler','menu'];
+  const allowed = ['naam','waard','imageId','locatieId','backdropId','maxVragen','cooldownMinutenMin','cooldownMinutenMax','groet', 'groeten', 'groetTafelId', 'groetTafel2Id', 'groetTafel2Id','overnachtingPrijs','roddelsPerSpeler','menu'];
   for (const f of allowed) {
     if (req.body[f] !== undefined) meta.herberg[f] = req.body[f];
   }
@@ -13476,7 +13491,7 @@ router.put('/gock/opgehaald', attachRole, vereistDienst('gock'), (req, res) => {
 router.put('/meta/tweespalt', requireDM, (req, res) => {
   const meta = storage.readJSON('meta.json');
   if (!meta.tweespalt) meta.tweespalt = {};
-  ['naam', 'groet', 'groeten', 'groetTafelId', 'imageId', 'locatieId', 'backdropId', 'arena', 'geldschieter'].forEach(f => { if (req.body[f] !== undefined) meta.tweespalt[f] = req.body[f]; });
+  ['naam', 'groet', 'groeten', 'groetTafelId', 'groetTafel2Id', 'imageId', 'locatieId', 'backdropId', 'arena', 'geldschieter'].forEach(f => { if (req.body[f] !== undefined) meta.tweespalt[f] = req.body[f]; });
   storage.writeJSON('meta.json', meta);
   req.app.get('io').to(_campagneRoom(req)).emit('meta:updated');
   res.json(meta.tweespalt);
@@ -13485,7 +13500,7 @@ router.put('/meta/tweespalt', requireDM, (req, res) => {
 router.put('/meta/ursula', requireDM, (req, res) => {
   const meta = storage.readJSON('meta.json');
   if (!meta.ursula) meta.ursula = {};
-  ['naam', 'groet', 'groeten', 'groetTafelId', 'prijs', 'imageId', 'locatieId', 'backdropId'].forEach(f => { if (req.body[f] !== undefined) meta.ursula[f] = req.body[f]; });
+  ['naam', 'groet', 'groeten', 'groetTafelId', 'groetTafel2Id', 'prijs', 'imageId', 'locatieId', 'backdropId'].forEach(f => { if (req.body[f] !== undefined) meta.ursula[f] = req.body[f]; });
   storage.writeJSON('meta.json', meta);
   req.app.get('io').to(_campagneRoom(req)).emit('meta:updated');
   res.json(meta.ursula);
@@ -13494,7 +13509,7 @@ router.put('/meta/ursula', requireDM, (req, res) => {
 router.put('/meta/gock', requireDM, (req, res) => {
   const meta = storage.readJSON('meta.json');
   if (!meta.gock) meta.gock = {};
-  ['naam', 'groet', 'groeten', 'groetTafelId', 'prijs', 'geruchtPrijs', 'tidbits', 'tidbitTafelId', 'imageId', 'locatieId', 'backdropId'].forEach(f => { if (req.body[f] !== undefined) meta.gock[f] = req.body[f]; });
+  ['naam', 'groet', 'groeten', 'groetTafelId', 'groetTafel2Id', 'prijs', 'geruchtPrijs', 'tidbits', 'tidbitTafelId', 'imageId', 'locatieId', 'backdropId'].forEach(f => { if (req.body[f] !== undefined) meta.gock[f] = req.body[f]; });
   storage.writeJSON('meta.json', meta);
   req.app.get('io').to(_campagneRoom(req)).emit('meta:updated');
   res.json(meta.gock);
@@ -13736,7 +13751,7 @@ router.post('/magizoo/onderzoek', attachRole, vereistDienst('magizoo'), (req, re
 router.put('/meta/magizoo', requireDM, (req, res) => {
   const meta = storage.readJSON('meta.json');
   if (!meta.magizoo) meta.magizoo = {};
-  ['naam', 'groet', 'groeten', 'groetTafelId', 'imageId', 'locatieId', 'backdropId', 'prijs', 'prijsVolledig', 'cooldownMinuten']
+  ['naam', 'groet', 'groeten', 'groetTafelId', 'groetTafel2Id', 'imageId', 'locatieId', 'backdropId', 'prijs', 'prijsVolledig', 'cooldownMinuten']
     .forEach(f => { if (req.body[f] !== undefined) meta.magizoo[f] = req.body[f]; });
   storage.writeJSON('meta.json', meta);
   req.app.get('io').to(_campagneRoom(req)).emit('meta:updated');
@@ -14108,7 +14123,7 @@ router.post('/tempel/eed/hef', requireDM, (req, res) => {
 router.put('/meta/tempel', requireDM, (req, res) => {
   const meta = storage.readJSON('meta.json');
   if (!meta.tempel) meta.tempel = {};
-  ['naam', 'groet', 'groeten', 'groetTafelId', 'prijs', 'eedPrijs', 'boetePrijs', 'imageId', 'locatieId', 'backdropId', 'voorwerpNaam', 'goden'].forEach(f => { if (req.body[f] !== undefined) meta.tempel[f] = req.body[f]; });
+  ['naam', 'groet', 'groeten', 'groetTafelId', 'groetTafel2Id', 'prijs', 'eedPrijs', 'boetePrijs', 'imageId', 'locatieId', 'backdropId', 'voorwerpNaam', 'goden'].forEach(f => { if (req.body[f] !== undefined) meta.tempel[f] = req.body[f]; });
   storage.writeJSON('meta.json', meta);
   req.app.get('io').to(_campagneRoom(req)).emit('meta:updated');
   res.json(meta.tempel);
@@ -15144,8 +15159,29 @@ router.get('/herberg', attachRole, (req, res) => {
   const herbergState = storage.readJSON('herberg-state.json');
   let playerState = herbergState[characterId] || { vragen: 0, cooldownTot: null };
 
-  // Reset cooldown als die verlopen is
-  if (playerState.cooldownTot && new Date(playerState.cooldownTot) < new Date()) {
+  // ── Is de waard weer aanspreekbaar? ──
+  // Dit liep op de wandklok: drie tot tien minuten, en daarna had hij weer
+  // tijd. Aan tafel is dat niets — je haalt koffie en hij staat er weer — en
+  // een dag later is hij sowieso vergeten dat je er was. "Hij heeft het druk
+  // gehad" is een avond, geen pauze.
+  //
+  // Dezelfde vraag als bij De Gock en de Magizoöloog, en die hangen allebei al
+  // aan de **lange rust**. De herberg was de laatste op de klok. Nu dus ook:
+  // je vragen zijn op tot de party geslapen heeft.
+  //
+  // Een lopende klok-cooldown uit de oude vorm wordt uitgediend, zodat niemand
+  // halverwege een sessie ineens weer aan de beurt is.
+  const _gHerb = characterId && characterId !== 'dm'
+    ? getGroup(readDmState(), _playerGroupId(readDmState(), characterId))
+    : getGroup(readDmState());
+  const _nuRust = _rustStand(_gHerb || {}, 'long');
+  if (playerState.wachtRust !== undefined) {
+    if (_nuRust > playerState.wachtRust) {
+      playerState = { vragen: 0, wachtRust: undefined, cooldownTot: null };
+      herbergState[characterId] = playerState;
+      storage.writeJSON('herberg-state.json', herbergState);
+    }
+  } else if (playerState.cooldownTot && new Date(playerState.cooldownTot) < new Date()) {
     playerState = { vragen: 0, cooldownTot: null };
     herbergState[characterId] = playerState;
     storage.writeJSON('herberg-state.json', herbergState);
@@ -15208,7 +15244,10 @@ router.get('/herberg', attachRole, (req, res) => {
       prijs:     config.prijs || null,
       menu:      Array.isArray(config.menu) ? config.menu : [],
     },
-    state:           playerState,
+    // `wachtOpRust` is wat de client moet weten: wacht hij nog? De rauwe
+    // teller zegt dat niet, want die betekent alleen iets náást de huidige
+    // stand van de rusttellers.
+    state: { ...playerState, wachtOpRust: playerState.wachtRust !== undefined && _nuRust <= playerState.wachtRust },
     entities:        result,
     // Hoeveel er nog in de pot zit. Alleen voor de DM: een speler die weet dat
     // er nog 121 roddels liggen, weet ineens hoeveel hij mist. Zelfde
@@ -15266,10 +15305,18 @@ router.post('/herberg/vraag', attachRole, vereistDienst('herberg'), (req, res) =
   // Update spelerstoestand
   playerState.vragen += 1;
   if (playerState.vragen >= maxVragen) {
-    const minMin = config.cooldownMinutenMin ?? 3;
-    const maxMin = config.cooldownMinutenMax ?? 10;
-    const cooldownMin = minMin + Math.floor(Math.random() * (maxMin - minMin + 1));
-    playerState.cooldownTot = new Date(Date.now() + cooldownMin * 60 * 1000).toISOString();
+    // Op bij deze rust: de teller onthoudt op welke stand hij vol raakte, en
+    // de volgende lange rust zet hem terug. `cooldownMinutenMin: 0` betekende
+    // "geen wachttijd" en blijft dat betekenen.
+    const geenWacht = (config.cooldownMinutenMin ?? 3) === 0 && (config.cooldownMinutenMax ?? 10) === 0;
+    if (!geenWacht) {
+      const dmSt = readDmState();
+      const gRust = characterId && characterId !== 'dm'
+        ? getGroup(dmSt, _playerGroupId(dmSt, characterId))
+        : getGroup(dmSt);
+      playerState.wachtRust = _rustStand(gRust || {}, 'long');
+      playerState.cooldownTot = null;
+    }
   }
   herbergState[characterId] = playerState;
   storage.writeJSON('herberg-state.json', herbergState);

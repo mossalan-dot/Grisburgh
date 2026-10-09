@@ -10,7 +10,7 @@ import { renderSpreuken } from './render-spreuken.js?v=44';
 import { renderVaardigheden, zoekVaardigheden } from './render-vaardigheden.js?v=34';
 import { renderStatblock } from './render-statblock.js?v=9';
 import { initSocket } from "./socket-client.js?v=84";
-import { initDmPanel } from "./dm-panel.js?v=386";
+import { initDmPanel } from "./dm-panel.js?v=387";
 import { COND_INFO, COND_LABEL, COND_MET_PLAATJE, COND_ICON } from './conditions.js?v=2';
 import './media-picker.js?v=9';
 import './wizard.js?v=4';
@@ -57,10 +57,15 @@ window._dienstBackdropId = (config) => (config?.backdropId || config?.locatieId 
 // elk bezoek een, zodat dezelfde waard je niet elke avond met dezelfde zin
 // aankijkt. Eén regel gedraagt zich als vroeger, en een campagne die alleen het
 // oude `groet`-veld heeft blijft gewoon werken.
-window._dienstGroet = (config, terugval = '') => {
-  const lijst = Array.isArray(config?.groeten) && config.groeten.length
+// `welk` kiest de tweede begroeting: een dienst die twee dingen doet mag voor
+// elk een eigen tafel hebben (de herberg schenkt én roddelt). Kiest de DM er
+// geen tweede, dan valt hij terug op de eerste — dan is er niets veranderd.
+window._dienstGroet = (config, terugval = '', welk = 1) => {
+  const tweede = welk === 2 && Array.isArray(config?.groeten2) && config.groeten2.length
+    ? config.groeten2.filter(Boolean) : null;
+  const lijst = tweede || (Array.isArray(config?.groeten) && config.groeten.length
     ? config.groeten.filter(Boolean)
-    : (config?.groet ? [config.groet] : []);
+    : (config?.groet ? [config.groet] : []));
   if (!lijst.length) return terugval;
   return lijst[Math.floor(Math.random() * lijst.length)];
 };
@@ -12532,15 +12537,25 @@ async function renderHerberg() {
 
   const { config, state: hState, entities, playerFirstName, currency, roddelStand } = data;
   const remaining = config.maxVragen - hState.vragen;
-  const cooldownActief = hState.cooldownTot && new Date(hState.cooldownTot) > new Date();
+  // De waard wacht op een nacht, niet op de klok — net als De Gock en de
+  // Magizoöloog. `cooldownTot` kan nog binnenkomen van een klok die nog liep
+  // toen de regel veranderde; die dienen we gewoon uit.
+  const cooldownActief = hState.wachtOpRust
+    || (hState.cooldownTot && new Date(hState.cooldownTot) > new Date());
   const menu = Array.isArray(config.menu) ? config.menu : [];
   const heeftMenu = menu.length > 0;
 
-  // Begroetingstekst — {naam} vervangen door voornaam speler
-  const _gekozenGroet = window._dienstGroet(config);
-  const _groetTekst = _gekozenGroet
-    ? _gekozenGroet.replace(/\{naam\}/gi, esc(playerFirstName || 'avonturier'))
-    : `${playerFirstName ? esc(playerFirstName) + '!' : 'Avonturiers!'} Wat kan ik voor je betekenen?`;
+  // Begroetingstekst — {naam} vervangen door voornaam speler. Eén per functie:
+  // de waard die je roddels vertelt zegt iets anders dan de waard die je een
+  // kroes inschenkt.
+  const _groetVoor = (welk) => {
+    const g = window._dienstGroet(config, '', welk);
+    return g
+      ? g.replace(/\{naam\}/gi, esc(playerFirstName || 'avonturier'))
+      : `${playerFirstName ? esc(playerFirstName) + '!' : 'Avonturiers!'} Wat kan ik voor je betekenen?`;
+  };
+  const _groetTekst    = _groetVoor(1);
+  const _groetTekstTap = _groetVoor(2);
 
   // Alleen entiteiten tonen waarvan de roddel nog niet uitgesproken is
   const beschikbaar = entities.filter(e => !e.uitgesproken);
@@ -12608,8 +12623,10 @@ async function renderHerberg() {
 
   // Paneel 2 — Aan de tap (drankjes/maaltijden: temp HP + status)
   const tapPaneel = `
-        <p class="herberg-teller">${icon('beer')} ${esc(config.waard)} schuift wat voor je aan de tap</p>
-        <!-- Heette hier "Op zak" en overal elders "Beurs". Eén woord voor één
+        <!-- "Brÿlwaen schuift wat voor je aan de tap" stond hier boven de
+             beurs. Dat zag je al: je hebt net op *Aan de tap* geklikt en zijn
+             begroeting staat erboven. Weg dus.
+             Heette hier "Op zak" en overal elders "Beurs". Eén woord voor één
              ding; anders lijkt het iets anders te zijn. -->
         ${currency ? `<p class="herberg-tap-beurs">Beurs: <strong>${_magizooBeurs(currency)}</strong></p>` : ''}
         <div class="herberg-menu-lijst">
@@ -12633,7 +12650,9 @@ async function renderHerberg() {
              plek en zelfde opmaak. -->
         ${config.waard ? `<p class="tempel-priester-naam">${esc(config.waard)}</p>` : ''}
         ${config.naam ? `<p class="dienst-huisnaam">${esc(config.naam)}</p>` : ''}
-        <p class="herberg-groet">${_groetTekst}</p>
+        <p class="herberg-groet" id="herberg-groet"
+          data-roddels="${esc(_groetTekst)}" data-tap="${esc(_groetTekstTap)}"
+        >${_herbergActiveTab === 'tap' ? _groetTekstTap : _groetTekst}</p>
 
         ${(() => {
           // Twee deelfuncties die los van elkaar uit kunnen: de roddels en de
@@ -12666,22 +12685,28 @@ function _herbergMenuKaart(m) {
     const n = parseInt(t, 10) || 0;
     return n > 0 ? `+${n} ${achter}` : '';
   };
+  // Elk soort effect zijn eigen kleur, zoals overal in de app: genezing groen,
+  // tijdelijke HP blauw, en wat de DM erbij schrijft neutraal. Ze droegen
+  // alle drie hetzelfde goud, en dan zegt de kleur niets.
   const _heal = spec(m.heal, 'HP');
   const _temp = spec(m.tempHp, 'temp HP');
-  if (_heal) effecten.push(_heal);
-  if (_temp) effecten.push(_temp);
-  if (m.buffDesc) effecten.push(esc(m.buffDesc));
+  if (_heal) effecten.push({ tekst: _heal, soort: 'heal' });
+  if (_temp) effecten.push({ tekst: _temp, soort: 'temp' });
+  if (m.buffDesc) effecten.push({ tekst: esc(m.buffDesc), soort: 'buff' });
+  // De prijs stond als los getal naast een knop "Bestel", en de beschrijving
+  // werd daardoor in een smalle kolom geperst. Nu één kaartje van boven naar
+  // beneden: naam gecentreerd, de tekst over de volle breedte, en onderaan één
+  // balk waar de prijs in staat — dan weet je wat je indrukt.
   return `
     <div class="herberg-menu-kaart">
       <div class="herberg-menu-kaart-body">
         <div class="herberg-menu-kaart-naam">${esc(m.naam)}</div>
         ${m.beschrijving ? `<div class="herberg-menu-kaart-desc">${esc(m.beschrijving)}</div>` : ''}
-        ${effecten.length ? `<div class="herberg-menu-effecten">${effecten.map(e => `<span class="herberg-menu-tag">${e}</span>`).join('')}</div>` : ''}
+        ${effecten.length ? `<div class="herberg-menu-effecten">${effecten.map(e => `<span class="herberg-menu-tag herberg-menu-tag--${e.soort}">${e.tekst}</span>`).join('')}</div>` : ''}
       </div>
-      <div class="herberg-menu-kaart-actie">
-        <span class="herberg-menu-prijs">${m.prijs ? esc(m.prijs) : 'gratis'}</span>
-        <button class="ts-wedden-btn" onclick="window._herbergBestel('${esc(m.id)}')">Bestel</button>
-      </div>
+      <button class="herberg-bestel-balk" onclick="window._herbergBestel('${esc(m.id)}')">
+        ${icon('beer')} Bestel${m.prijs ? ` · ${esc(m.prijs)}` : ' · gratis'}
+      </button>
     </div>`;
 }
 
@@ -12692,6 +12717,10 @@ window._herbergTab = (name) => {
     .forEach(p => p.classList.toggle('hidden', p.id !== 'herberg-panel-' + name));
   document.querySelectorAll('#section-herberg .dienst-subtab-btn')
     .forEach(b => b.classList.toggle('active', b.dataset.tab === name));
+  // De begroeting hoort bij de functie waar je in staat: de waard die roddels
+  // vertelt zegt iets anders dan de waard die inschenkt.
+  const groet = document.getElementById('herberg-groet');
+  if (groet) groet.textContent = groet.dataset[name === 'tap' ? 'tap' : 'roddels'] || groet.textContent;
 };
 
 window._herbergBestel = async (itemId) => {
