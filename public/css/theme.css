@@ -18227,11 +18227,21 @@ body.sb-boek-open { overflow: hidden; }
 }
 .sb-ctrl-btn:hover { background: rgba(255,255,255,0.2); }
 .sb-ctrl-btn .icon { width: 13px; height: 13px; vertical-align: -0.1em; }
-.sb-ctrl-close {
-  margin-left: auto;
-  opacity: 0.80;
+/* Hulp en sluiten staan samen rechts, zoals in elk ander venster. Het kruisje
+   was een brede tekstknop met een los ✕-teken erin; nu hetzelfde vierkante
+   icoonknopje dat de rest van de app gebruikt. */
+.sb-ctrl-rechts { margin-left: auto; display: inline-flex; align-items: center; gap: 6px; }
+.sb-ctrl-sluit {
+  width: 30px; height: 30px; flex-shrink: 0;
+  display: inline-flex; align-items: center; justify-content: center;
+  background: rgba(255,255,255,0.10);
+  border: 1px solid rgba(255,255,255,0.18);
+  border-radius: 6px; cursor: pointer;
+  color: rgba(255,255,255,0.75);
+  transition: background .14s, color .14s;
 }
-.sb-ctrl-close:hover { opacity: 1; }
+.sb-ctrl-sluit:hover { background: rgba(150,40,30,0.4); border-color: rgba(200,80,60,0.5); color: #fff; }
+.sb-ctrl-sluit .icon { width: 15px; height: 15px; }
 
 /* ── Concentration control button (overlay bar) ── */
 .sb-ctrl-conc {
@@ -18385,29 +18395,7 @@ body.sb-boek-open { overflow: hidden; }
 }
 
 /* ── Left: wax seal ── */
-.sb-wax-seal {
-  position: absolute;
-  bottom: 20px;
-  left: 12px;
-  width: 42px;
-  height: 42px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-family: 'Cinzel', serif;
-  font-size: 17px;
-  font-weight: 700;
-  color: rgba(255,255,255,0.82);
-  text-shadow: 0 1px 3px rgba(0,0,0,0.6);
-  box-shadow:
-    0 3px 10px rgba(0,0,0,0.55),
-    inset 0 2px 4px rgba(255,255,255,0.14),
-    inset 0 -2px 4px rgba(0,0,0,0.25);
-  z-index: 3;
-  /* border-radius + background set by JS */
-}
-
-/* ── Left: spell stats (Save DC + Attack Bonus) — bottom-right, mirrors the wax seal ── */
+/* ── Left: spell stats (Save DC + Attack Bonus), rechtsonder ── */
 .sb-spell-stats {
   position: absolute;
   bottom: 14px;
@@ -18547,26 +18535,6 @@ body.sb-boek-open { overflow: hidden; }
 }
 
 /* ── Left: camera upload button ── */
-.sb-img-btn {
-  position: absolute;
-  top: 8px;
-  right: 8px;
-  background: rgba(255,255,255,0.1);
-  border: 1px solid rgba(255,255,255,0.18);
-  color: rgba(255,255,255,0.55);
-  border-radius: 5px;
-  width: 28px;
-  height: 28px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  z-index: 4;
-  transition: background 0.14s, color 0.14s;
-}
-.sb-img-btn:hover { background: rgba(255,255,255,0.2); color: #fff; }
-.sb-img-btn .icon { width: 14px; height: 14px; }
-
 /* ── Right page (parchment / text) ── */
 .sb-page-right {
   flex: 1;

@@ -4261,20 +4261,23 @@ function _ensureSpellbookOverlay() {
   el.innerHTML = `
     <!-- Overlay controls row (above book) -->
     <div class="sb-overlay-controls">
-      <button class="sb-ctrl-btn" id="sb-toc-btn" onclick="window._sbToggleToc()">
-        ${icon('clipboard-list')} Inhoud
-      </button>
-      <button class="sb-ctrl-btn" id="sb-manage-btn" onclick="window._sbToggleManage()" data-wptip="Incantatie, marginalia en concentratie van de spreuk die openligt">
-        ${icon('pencil')} Deze spreuk
+      <!-- Eén knop. "Inhoud" en "Deze spreuk" openden allebei hetzelfde
+           zijpaneel — dat is sinds de samenvoeging één venster met twee
+           tabjes, dus twee knoppen ernaartoe is er een te veel. -->
+      <button class="sb-ctrl-btn" id="sb-manage-btn" onclick="window._sbToggleManage()" data-wptip="De inhoudsopgave, en de incantatie, marginalia en concentratie van de spreuk die openligt">
+        ${icon('pencil')} Bewerk
       </button>
       <button class="sb-ctrl-btn sb-ctrl-conc" id="sb-conc-ctrl-btn" onclick="window._sbToggleConcentration()" title="Concentration" style="display:none">
         ${icon('flame')} Concentration
       </button>
       <div class="sb-prepared-zone" id="sb-prepared-zone"></div>
-      <span class="sb-ctrl-help">${_helpBtn('spreukenboek_boek')}</span>
-      <button class="sb-ctrl-btn sb-ctrl-close" onclick="window._sbCloseAndReturn()" title="Sluit spreukenboek">
-        ✕ Sluit spreukenboek
-      </button>
+      <!-- Hulp en sluiten horen bij elkaar en horen rechts, zoals in elk ander
+           venster van de app. Het kruisje stond als los teken in een brede
+           tekstknop; nu hetzelfde icoonknopje als overal. -->
+      <span class="sb-ctrl-rechts">
+        ${_helpBtn('spreukenboek_boek')}
+        <button class="sb-ctrl-sluit" onclick="window._sbCloseAndReturn()" title="Sluit spreukenboek" aria-label="Sluit spreukenboek">${icon('x')}</button>
+      </span>
     </div>
     <div class="sb-book" id="sb-book">
       <!-- Left page: school gradient + incantation + icon/image + slots -->
@@ -4290,15 +4293,14 @@ function _ensureSpellbookOverlay() {
         <!-- School + Level labels -->
         <div class="sb-left-school" id="sb-left-school"></div>
         <div class="sb-left-level"  id="sb-left-level"></div>
-        <!-- Wax seal (bottom-left, school-themed) -->
-        <div class="sb-wax-seal" id="sb-wax-seal"></div>
+        <!-- Het lakzegel linksonder droeg de beginletter van de school, en de
+             school staat voluit op dezelfde bladzijde ("EVOCATION"). Eén keer
+             is genoeg; het zegel dekte bovendien een hoek van de afbeelding af. -->
         <!-- Spell stats: Save DC + Attack Bonus (bottom-right) -->
         <div class="sb-spell-stats" id="sb-spell-stats"></div>
-        <!-- Afbeelding kiezen uit bibliotheek of uploaden — DM only -->
-        ${app.isDM() ? `
-        <button class="sb-img-btn" onclick="window._sbPickImage()" title="Afbeelding kiezen of uploaden">
-          ${icon('camera')}
-        </button>` : ''}
+        <!-- Geen eigen afbeeldingsknop meer: de plaat hangt aan het
+             spreukkaartje en die bewerk je in het archief, met de focuspicker
+             erbij. Twee plekken om dezelfde afbeelding te kiezen is er een. -->
       </div>
       <!-- Right page: parchment -->
       <div class="sb-page-right" id="sb-page-right">
@@ -4635,8 +4637,10 @@ window._sbZijTab = function(tab) {
     document.getElementById('sb-zij-' + t)?.classList.toggle('hidden', t !== tab);
     document.getElementById('sb-zij-tab-' + t)?.classList.toggle('actief', t === tab);
   }
-  document.getElementById('sb-toc-btn')?.classList.toggle('active', tab === 'inhoud');
-  document.getElementById('sb-manage-btn')?.classList.toggle('active', tab === 'beheer');
+  // Eén knop naar dit paneel, dus hij licht op zodra het openstaat — welk
+  // tabje je daarbinnen koos doet er voor de knop niet toe.
+  _sbState.zijLaatst = tab;
+  document.getElementById('sb-manage-btn')?.classList.add('active');
   if (tab === 'inhoud') {
     const inp = document.getElementById('sb-toc-search');
     if (inp) inp.value = '';
@@ -4650,7 +4654,6 @@ window._sbZijTab = function(tab) {
 window._sbZijDicht = function() {
   _sbState.zij = null;
   document.getElementById('sb-zijpaneel')?.classList.remove('sb-manage-open');
-  document.getElementById('sb-toc-btn')?.classList.remove('active');
   document.getElementById('sb-manage-btn')?.classList.remove('active');
 };
 
@@ -4658,8 +4661,15 @@ function _sbZijWissel(tab) {
   if (_sbState.zij === tab) window._sbZijDicht(); else window._sbZijTab(tab);
 }
 
-window._sbToggleToc    = () => _sbZijWissel('inhoud');
-window._sbToggleManage = () => _sbZijWissel('beheer');
+// Vanaf de incantatie op de linkerpagina: altijd de inhoudsopgave.
+window._sbToggleToc = () => _sbZijWissel('inhoud');
+// De knop in de balk. Staat het paneel open, dan gaat het dicht; anders opent
+// het op het tabje waar je het laatst was. De eerste keer is dat "Deze spreuk",
+// want dat is waar de knop naar heet.
+window._sbToggleManage = () => {
+  if (_sbState.zij) window._sbZijDicht();
+  else window._sbZijTab(_sbState.zijLaatst || 'beheer');
+};
 
 window._sbCloseAndReturn = function() {
   window._closeSpellbook();
@@ -5512,28 +5522,6 @@ window._sbToggleSlot = async function(lvl, i) {
   }
 };
 
-// Spreukafbeelding: kies uit de mediabibliotheek óf upload nieuw via de picker.
-// De gekozen file wordt server-side gekopieerd naar de vaste id spell-img-<index>,
-// zodat het render-pad (en de fallback) ongewijzigd blijft.
-window._sbPickImage = function() {
-  const spell = _sbState.spells[_sbState.idx];
-  if (!spell) return;
-  const fileId = 'spell-img-' + spell.index;
-  window.mediaPicker.open({
-    type: 'afbeelding',
-    suggestedName: (spell.name || 'spreuk').toLowerCase().replace(/\s+/g, '-'),
-    onSelect: async (srcId) => {
-      try {
-        await api.copyFile(fileId, srcId);
-        const imgEl = document.getElementById('sb-left-img');
-        if (imgEl) { imgEl.src = `/api/files/${fileId}?t=${Date.now()}`; imgEl.style.display = 'block'; }
-        const iconEl = document.getElementById('sb-left-icon');
-        if (iconEl) iconEl.style.opacity = '0.08'; // dim icon behind image
-      } catch (e) { console.error('Afbeelding instellen mislukt:', e); }
-    },
-  });
-};
-
 // Werk het 'Niet voorbereid'-stempel + pagina-ontkleuring bij voor de huidige spreuk.
 function _sbUpdateUnprepStamp() {
   const spell = _sbState.spells[_sbState.idx];
@@ -5738,26 +5726,6 @@ function _sbRender() {
     }
   }
 
-  // ── Left: wax seal (bottom-left, school-themed blob) ──
-  const sealEl = document.getElementById('sb-wax-seal');
-  if (sealEl && spell.school) {
-    const letter = spell.school.charAt(0).toUpperCase();
-    // Blob shape varies per spell
-    const r = [46,54,49,51,44,56,52,48].map((v,i) => v + ((seed >> i) & 3) - 1);
-    sealEl.style.borderRadius = `${r[0]}% ${r[1]}% ${r[2]}% ${r[3]}% / ${r[4]}% ${r[5]}% ${r[6]}% ${r[7]}%`;
-    // Glossy wax gradient using school colours
-    sealEl.style.background =
-      `radial-gradient(circle at 36% 30%, rgba(255,255,255,0.22) 0%, transparent 52%),
-       radial-gradient(circle at 60% 65%, rgba(0,0,0,0.18) 0%, transparent 42%),
-       linear-gradient(145deg, ${sCfg.c2}dd, ${sCfg.c1}ff)`;
-    const tilt = ((seed % 11) - 5) * 1.4;
-    sealEl.style.transform = `rotate(${tilt}deg)`;
-    sealEl.textContent = letter;
-    sealEl.style.display = 'flex';
-  } else if (sealEl) {
-    sealEl.style.display = 'none';
-  }
-
   // ── Ribbon ──
   _sbRenderRibbon();
 
@@ -5923,7 +5891,11 @@ function _ensureInventarisOverlay() {
   el.className = 'inv-overlay';
   el.innerHTML = `
     <div class="inv-controls">
-      <button class="sb-ctrl-btn sb-ctrl-close" onclick="window._closeInventaris()">✕ Sluit inventaris</button>
+      <!-- Zelfde sluitknop als het spreukenboek: rechts, en het icoon dat de
+           rest van de app gebruikt in plaats van een los ✕-teken. -->
+      <span class="sb-ctrl-rechts">
+        <button class="sb-ctrl-sluit" onclick="window._closeInventaris()" title="Sluit inventaris" aria-label="Sluit inventaris">${icon('x')}</button>
+      </span>
     </div>
     <div class="inv-wrap" id="inv-wrap">
       <div class="inv-clipboard-col">
