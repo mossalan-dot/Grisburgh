@@ -22,7 +22,7 @@ import './tafels.js?v=2';
 window.icon = function icon(name, { cls = '', title = '' } = {}) {
   const t   = title ? `<title>${title.replace(/[<>&"]/g, c => ({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[c]))}</title>` : '';
   const aria = title ? ' role="img"' : ' aria-hidden="true"';
-  return `<svg class="icon${cls ? ' '+cls : ''}"${aria} focusable="false"><use href="/img/icons.svg?v=18#icon-${name}"/>${t}</svg>`;
+  return `<svg class="icon${cls ? ' '+cls : ''}"${aria} focusable="false"><use href="/img/icons.svg?v=19#icon-${name}"/>${t}</svg>`;
 };
 const icon = (...a) => window.icon(...a);
 
@@ -3904,16 +3904,6 @@ const _sbAudio = (() => {
         src.buffer = buf; src.connect(f); f.connect(c.destination); src.start();
       } catch(e) {}
     },
-    dice() {
-      try {
-        const c = gc();
-        [0, 65, 130].forEach(delay => setTimeout(() => {
-          const buf = c.createBuffer(1, c.sampleRate*0.035, c.sampleRate), d = buf.getChannelData(0);
-          for (let i=0;i<d.length;i++) d[i]=(Math.random()*2-1)*Math.pow(1-i/d.length,1.8)*0.18;
-          const src = c.createBufferSource(); src.buffer=buf; src.connect(c.destination); src.start();
-        }, delay));
-      } catch(e) {}
-    },
     write() {
       try {
         const c = gc(), osc = c.createOscillator(), g = c.createGain();
@@ -4546,7 +4536,7 @@ window._sbNext = function() {
 // `total` is al gerold; `tickMin`/`tickMax` bepalen waartussen de cijfers
 // ratelen voordat hij stilvalt.
 window._sbFlashKaart = function(kop, formule, total, tickMin, tickMax, opties = {}) {
-  const { soort = '', geluid = true } = opties;
+  const { soort = '' } = opties;
   let el = document.getElementById('sb-dice-flash');
   if (!el) {
     el = document.createElement('div');
@@ -4570,7 +4560,8 @@ window._sbFlashKaart = function(kop, formule, total, tickMin, tickMax, opties = 
   // Genezing krijgt een eigen kleur: op een tafel vol worpen wil je zonder
   // lezen zien of er iets kapotgaat of juist heel wordt.
   el.querySelector('.sb-dice-card')?.classList.toggle('sb-dice-card--heal', soort === 'heal');
-  if (geluid) _sbAudio.dice();
+  // Geen ratelend geluidje bij een worp: de dobbelstenen liggen op tafel, en
+  // die maken hun eigen geluid. De animatie zegt al dat er gerold wordt.
 
   // Rolling animation — random numbers cycling then settle
   const span = Math.max(1, (tickMax ?? total) - (tickMin ?? 1));
@@ -4999,23 +4990,6 @@ function _cantripsKnown(klasseEN, level) {
   for (const lv of Object.keys(tbl).map(Number).sort((a, b) => a - b)) if (level >= lv) v = tbl[lv];
   return v;
 }
-function _sbAddSpHint() {
-  const klasseEN = _spellClassEN(_sbState.klasse);
-  const lvl = parseInt(_sbState.klasseLevel) || parseInt(window._lastPlayerProfile?.klasseLevel) || parseInt(window._lastPlayerProfile?.level) || 0;
-  if (!klasseEN || !lvl) return '';
-  const curC = _sbState.spells.filter(s => (s.level || 0) === 0).length;
-  const curS = _sbState.spells.filter(s => (s.level || 0) >= 1).length;
-  const knownC = _cantripsKnown(klasseEN, lvl);
-  const isBook = /wizard|artificer/i.test(klasseEN);
-  const spreukDeel = isBook
-    ? `je <strong>spreukenboek</strong> groeit met <strong>2 spreuken</strong> per level`
-    : (_sbState.preparedMax ? `je kunt tot <strong>${_sbState.preparedMax} spreuken</strong> voorbereiden` : 'je bereidt spreuken voor uit je lijst');
-  const cantripDeel = knownC ? `doorgaans <strong>${knownC} cantrip${knownC === 1 ? '' : 's'}</strong> (je hebt er nu ${curC})` : 'geen cantrips';
-  // Alles in één <span>: de hint is een flexrij (icoon | tekst), en zonder dit
-  // omhulsel werd elk <strong> een eigen flexitem — met gaten ertussen.
-  return `<div class="sb-addspells-hint">${icon('sparkles')}<span>Als <strong>${esc(klasseEN)}</strong> op level ${lvl}: ${cantripDeel}, en ${spreukDeel}. Je boek telt nu ${curC} cantrip${curC === 1 ? '' : 's'} en ${curS} spreuk${curS === 1 ? '' : 'en'}.</span></div>`;
-}
-
 // De spreukenlijst voor de speler: de bron plus wat deze campagne zelf verzon.
 // Zonder die laatste kon de DM wel een eigen spreuk schrijven (hij staat in de
 // bibliotheek) maar kon de speler hem niet aan zijn boek toevoegen — dezelfde
@@ -5048,7 +5022,7 @@ async function _spreukenVoorSpeler() {
   return _playerSpellList;
 }
 
-const _addSp = { klasseOnly: true, levels: new Set(), types: new Set(), ritueel: false, concentratie: false, query: '', selected: new Set() };
+const _addSp = { klasseOnly: true, van: null, tot: null, types: new Set(), ritueel: false, concentratie: false, ladeOpen: false, query: '', selected: new Set() };
 
 window._sbOpenAddSpells = async function() {
   await _spreukenVoorSpeler();
@@ -5064,9 +5038,12 @@ window._sbOpenAddSpells = async function() {
       <div class="sb-addspells-head">
         <div class="sb-addspells-title">${icon('open-book',{cls:'icon-gi'})} Spreuken toevoegen</div>
         <button class="sb-addspells-class" id="sb-addspells-class" onclick="window._sbAddSpToggleClass()"></button>
+        ${_helpBtn('spreuken_toevoegen')}
         <button class="sb-addspells-close" onclick="window._sbCloseAddSpells()" title="Sluiten">${icon('x')}</button>
       </div>
-      ${_sbAddSpHint()}
+      <!-- De alinea die hier stond ("Als Wizard op level 3: doorgaans 3
+           cantrips…") is uitleg, en uitleg hoort in het boekje hiernaast — mét
+           dezelfde getallen erin, dus er gaat niets verloren. -->
       <input type="text" class="sb-addspells-search" id="sb-addspells-search" placeholder="Zoek op naam…"
         oninput="window._sbAddSpSearch(this.value)">
       <div class="sb-addspells-filters" id="sb-addspells-filters"></div>
@@ -5084,7 +5061,6 @@ window._sbOpenAddSpells = async function() {
 window._sbCloseAddSpells = function() { document.getElementById('sb-addspells')?.remove(); };
 window._sbAddSpToggleClass = function() { _addSp.klasseOnly = !_addSp.klasseOnly; _sbAddSpRenderFilters(); _sbAddSpRenderList(); };
 window._sbAddSpSearch = function(q) { _addSp.query = q || ''; _sbAddSpRenderList(); };
-window._sbAddSpToggleLevel = function(l) { l = +l; _addSp.levels.has(l) ? _addSp.levels.delete(l) : _addSp.levels.add(l); _sbAddSpRenderFilters(); _sbAddSpRenderList(); };
 window._sbAddSpToggleType = function(t) { _addSp.types.has(t) ? _addSp.types.delete(t) : _addSp.types.add(t); _sbAddSpRenderFilters(); _sbAddSpRenderList(); };
 window._sbAddSpToggleFlag = function(f) { _addSp[f] = !_addSp[f]; _sbAddSpRenderFilters(); _sbAddSpRenderList(); };
 
@@ -5092,6 +5068,32 @@ function _sbAddSpPool() {
   const klasseEN = _spellClassEN(_sbState.klasse);
   return (_playerSpellList || []).filter(s => !_addSp.klasseOnly || _spellMatchesClass(s, klasseEN));
 }
+const _sbLvlLabel = (l) => (l === 0 ? 'Cantrips' : 'Level ' + l);
+
+// Tien niveaus zijn tien pillen die twee regels in beslag namen, en je wilt er
+// bijna altijd een *bereik* uit ("alles tot en met level 3"). Dus één balk met
+// twee bolletjes: links de cantrips, rechts level 9.
+function _sbAddSpSchuifHtml(aanwezig) {
+  const min = aanwezig[0], max = aanwezig[aanwezig.length - 1];
+  const van = _addSp.van ?? min, tot = _addSp.tot ?? max;
+  const pct = (v) => max === min ? 0 : ((v - min) / (max - min)) * 100;
+  return `
+    <div class="sb-lvlschuif" id="sb-lvlschuif">
+      <div class="sb-lvlschuif-kop">
+        <span class="sb-lvlschuif-waarde">${esc(van === tot ? _sbLvlLabel(van) : `${_sbLvlLabel(van)} — ${_sbLvlLabel(tot)}`)}</span>
+        ${(van !== min || tot !== max) ? `<button class="sb-lvlschuif-reset" onclick="window._sbAddSpLevelReset()">${icon('x')} alles</button>` : ''}
+      </div>
+      <div class="sb-lvlschuif-baan">
+        <div class="sb-lvlschuif-vulling" style="left:${pct(van)}%;right:${100 - pct(tot)}%"></div>
+        <input type="range" class="sb-lvlschuif-input sb-lvlschuif-input--van" min="${min}" max="${max}" step="1" value="${van}"
+          aria-label="Laagste niveau" oninput="window._sbAddSpLevelSchuif('van', this.value)">
+        <input type="range" class="sb-lvlschuif-input sb-lvlschuif-input--tot" min="${min}" max="${max}" step="1" value="${tot}"
+          aria-label="Hoogste niveau" oninput="window._sbAddSpLevelSchuif('tot', this.value)">
+      </div>
+      <div class="sb-lvlschuif-schaal">${aanwezig.map(l => `<span>${l === 0 ? 'C' : l}</span>`).join('')}</div>
+    </div>`;
+}
+
 function _sbAddSpRenderFilters() {
   const klasseEN = _spellClassEN(_sbState.klasse);
   const classBtn = document.getElementById('sb-addspells-class');
@@ -5102,19 +5104,52 @@ function _sbAddSpRenderFilters() {
   if (!el) return;
   const pool = _sbAddSpPool();
   const levelsPresent = [...new Set(pool.map(s => s.level || 0))].sort((a, b) => a - b);
-  const levelChips = levelsPresent.map(l => `<button class="sb-addsp-chip${_addSp.levels.has(l) ? ' on' : ''}" onclick="window._sbAddSpToggleLevel(${l})">${l === 0 ? 'Cantrips' : 'Level ' + l}</button>`).join('');
-  const typeChips = Object.entries(_SP_TYPE_LABELS).map(([k, lbl]) => `<button class="sb-addsp-chip sb-addsp-chip--type${_addSp.types.has(k) ? ' on' : ''}" onclick="window._sbAddSpToggleType('${k}')">${esc(lbl)}</button>`).join('');
+  // De soortfilters zitten achter één knop. Ze stonden als vijf grijze pillen
+  // naast de niveaus, terwijl dezelfde soorten op de kaartjes eronder wél hun
+  // kleur dragen — nu dragen ze hem hier ook, zodat je de pil in de lijst
+  // herkent.
+  const actief = _addSp.types.size + (_addSp.ritueel ? 1 : 0) + (_addSp.concentratie ? 1 : 0);
+  const typeChips = Object.entries(_SP_TYPE_LABELS).map(([k, lbl]) =>
+    `<button class="sb-addsp-chip sb-addsp-chip--${k}${_addSp.types.has(k) ? ' on' : ''}" onclick="window._sbAddSpToggleType('${k}')">${esc(lbl)}</button>`).join('');
   el.innerHTML = `
-    <div class="sb-addsp-chiprow">${levelChips}</div>
-    <div class="sb-addsp-chiprow">${typeChips}
-      <button class="sb-addsp-chip sb-addsp-chip--flag${_addSp.ritueel ? ' on' : ''}" onclick="window._sbAddSpToggleFlag('ritueel')">Ritual</button>
-      <button class="sb-addsp-chip sb-addsp-chip--flag${_addSp.concentratie ? ' on' : ''}" onclick="window._sbAddSpToggleFlag('concentratie')">Concentration</button>
+    ${levelsPresent.length > 1 ? _sbAddSpSchuifHtml(levelsPresent) : ''}
+    <div class="sb-addsp-filterrij">
+      <button class="sb-addsp-filterknop${actief ? ' on' : ''}" onclick="window._sbAddSpFilterOpen()">
+        ${icon('filter')} Filter${actief ? ` · ${actief}` : ''}
+      </button>
+      <div class="sb-addsp-filterlade${_addSp.ladeOpen ? '' : ' hidden'}" id="sb-addsp-filterlade">
+        <div class="sb-addsp-chiprow">${typeChips}</div>
+        <div class="sb-addsp-chiprow">
+          <button class="sb-addsp-chip sb-addsp-chip--flag${_addSp.ritueel ? ' on' : ''}" onclick="window._sbAddSpToggleFlag('ritueel')">Ritual</button>
+          <button class="sb-addsp-chip sb-addsp-chip--flag${_addSp.concentratie ? ' on' : ''}" onclick="window._sbAddSpToggleFlag('concentratie')">Concentration</button>
+        </div>
+      </div>
     </div>`;
 }
+window._sbAddSpFilterOpen = function() { _addSp.ladeOpen = !_addSp.ladeOpen; _sbAddSpRenderFilters(); };
+// Twee bolletjes op één baan: die mogen elkaar niet passeren, anders is het
+// bereik achterstevoren en valt de lijst leeg.
+window._sbAddSpLevelSchuif = function(welk, waarde) {
+  const pool = _sbAddSpPool();
+  const aanwezig = [...new Set(pool.map(s => s.level || 0))].sort((a, b) => a - b);
+  const min = aanwezig[0], max = aanwezig[aanwezig.length - 1];
+  const v = Math.max(min, Math.min(max, parseInt(waarde, 10) || 0));
+  let van = _addSp.van ?? min, tot = _addSp.tot ?? max;
+  if (welk === 'van') { van = v; if (van > tot) tot = van; }
+  else                { tot = v; if (tot < van) van = tot; }
+  _addSp.van = van; _addSp.tot = tot;
+  _sbAddSpRenderFilters(); _sbAddSpRenderList();
+};
+window._sbAddSpLevelReset = function() {
+  _addSp.van = null; _addSp.tot = null;
+  _sbAddSpRenderFilters(); _sbAddSpRenderList();
+};
 function _sbAddSpFiltered() {
   const q = _addSp.query.toLowerCase().trim();
   return _sbAddSpPool().filter(s => {
-    if (_addSp.levels.size && !_addSp.levels.has(s.level || 0)) return false;
+    const lvl = s.level || 0;
+    if (_addSp.van != null && lvl < _addSp.van) return false;
+    if (_addSp.tot != null && lvl > _addSp.tot) return false;
     if (_addSp.types.size) { const t = _spellTypes(s); if (![..._addSp.types].some(x => t.has(x))) return false; }
     if (_addSp.ritueel && !s.ritual) return false;
     if (_addSp.concentratie && !s.concentration) return false;
@@ -5141,7 +5176,7 @@ function _sbAddSpRenderList() {
         <div class="sb-addsp-check">${has ? icon('check') : (sel ? icon('check') : '')}</div>
         <div class="sb-addsp-main">
           <div class="sb-addsp-cardtop"><span class="sb-addsp-name">${esc(s.name)}</span>
-            <span class="sb-addsp-meta">${lvl}${school ? ' · ' + esc(school) : ''}${s.concentration ? ' · C' : ''}${s.ritual ? ' · R' : ''}</span></div>
+            <span class="sb-addsp-meta">${lvl}${school ? ' · ' + esc(school) : ''}${s.concentration ? ' · Concentration' : ''}${s.ritual ? ' · Ritual' : ''}</span></div>
           <div class="sb-addsp-badges">${types}${has ? '<span class="sb-addsp-inbook">in je boek</span>' : ''}</div>
           <div class="sb-addsp-preview">${esc(preview)}${preview.length >= 130 ? '…' : ''}</div>
         </div>
@@ -5398,10 +5433,12 @@ function _sbRenderTocList(q) {
     }
   }
 
-  // Toevoeg-knoppen altijd onderaan
+  // Eén knop onderaan. "Eigen spreuk" hoorde hier niet: een nieuwe spreuk
+  // schrijft de DM in de Spreukentab, en dan staat hij gewoon in deze lijst.
+  // Een speler die er zelf een verzint maakte er een die nergens anders
+  // bestond.
   html += `<div class="sb-toc-custom-btn-row">
     <button class="sb-toc-custom-btn sb-toc-custom-btn--primary" onclick="window._sbOpenAddSpells()">${icon('open-book',{cls:'icon-gi'})} Spreuken toevoegen</button>
-    <button class="sb-toc-custom-btn" onclick="window._sbCustomSpellOpen()">＋ Eigen spreuk</button>
   </div>`;
 
   list.innerHTML = html;
@@ -11180,7 +11217,7 @@ async function refreshAll() {
       const kop = [label, r.label].filter(Boolean).join(' · ');
       // Bewust stil: dit gooi je terwijl je een kaartje leest, niet als moment
       // aan tafel. Het spreukenboek houdt zijn geluid wel.
-      window._sbFlashKaart(kop, r.formula, r.total, r.tickMin, r.tickMax, { soort, geluid: false });
+      window._sbFlashKaart(kop, r.formula, r.total, r.tickMin, r.tickMax, { soort });
     },
 
     // Rolt de formule uit een invoerveld (paneel).
@@ -15673,6 +15710,30 @@ const HELP_CONFIG = {
         },
       ],
     };
+  },
+
+  // De uitleg die als alinea boven de lijst stond. Met dezelfde getallen erin,
+  // want dát was het nuttige deel — alleen stond het in de weg.
+  spreuken_toevoegen: () => {
+    const klasseEN = _spellClassEN(_sbState.klasse) || '';
+    const lvl = parseInt(_sbState.klasseLevel)
+      || parseInt(window._lastPlayerProfile?.klasseLevel)
+      || parseInt(window._lastPlayerProfile?.level) || 0;
+    const sp = _sbState.spells || [];
+    const curC = sp.filter(s => (s.level || 0) === 0).length;
+    const curS = sp.filter(s => (s.level || 0) >= 1).length;
+    const knownC = _cantripsKnown(klasseEN, lvl) || 0;
+    const isBook = /wizard|artificer/i.test(klasseEN);
+    const regel = klasseEN && lvl
+      ? `Als **${klasseEN}** op level ${lvl}: ${knownC ? `doorgaans **${knownC} cantrip${knownC === 1 ? '' : 's'}**` : 'geen cantrips'}, en ${isBook
+          ? 'je **spreukenboek** groeit met **2 spreuken** per level'
+          : (_sbState.preparedMax ? `je kunt tot **${_sbState.preparedMax} spreuken** voorbereiden` : 'je bereidt spreuken voor uit je lijst')}.\n\nJe boek telt nu **${curC} cantrip${curC === 1 ? '' : 's'}** en **${curS} spreuk${curS === 1 ? '' : 'en'}**.`
+      : 'Hier zet je spreuken in je boek. Hoeveel je er mag kennen hangt af van je klasse en je level.';
+    return { titel: 'Spreuken toevoegen', stappen: [
+      { titel: 'Hoeveel je er mag', tekst: regel, afbeelding: null },
+      { titel: 'Zoeken en filteren', tekst: 'De balk met twee bolletjes kiest een **bereik** aan niveaus: helemaal links de cantrips, helemaal rechts level 9. Sleep ze naar elkaar toe om bijvoorbeeld alleen level 1 tot en met 3 te zien.\n\nAchter **Filter** zitten de soorten (damage, area, healing, control, utility) en de twee kenmerken die er aan tafel het meest toe doen: *Ritual* kun je zonder slot casten, *Concentration* kun je maar bij één spreuk tegelijk volhouden.\n\nStandaard zie je alleen wat jouw klasse kan leren. Rechtsboven schakel je dat uit — handig bij een multiclass of als de DM je iets buiten je lijst gunt.', afbeelding: null },
+      { titel: 'Wat er daarna gebeurt', tekst: 'Je vinkt aan wat je wilt en drukt op *Toevoegen*. Spreuken die al in je boek staan hebben een vinkje en zijn niet aan te klikken.\n\nStaat er een spreuk niet bij, dan bestaat hij nog niet in deze campagne. Je DM maakt hem aan in de Spreukentab; daarna staat hij hier vanzelf.', afbeelding: null },
+    ] };
   },
 
   dungeon: () => ({

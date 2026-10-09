@@ -22080,15 +22080,6 @@ body.kaart-fs-active { overflow: hidden; }
   overflow: hidden;
 }
 /* Klasse/level-hint — als een aangeplakt notitiebriefje */
-.sb-addspells-hint {
-  margin: 10px 16px 0; padding: 8px 12px; font-family: 'Crimson Text', serif; font-size: 12.5px;
-  color: #5a4426; line-height: 1.4; border-radius: 8px;
-  background: linear-gradient(180deg, rgba(255,250,235,0.8), rgba(244,233,205,0.7));
-  border: 1px solid rgba(150,120,70,0.32); box-shadow: 0 1px 3px rgba(120,80,30,0.1);
-  display: flex; gap: 7px; align-items: flex-start;
-}
-.sb-addspells-hint .icon { width: 14px; height: 14px; flex-shrink: 0; margin-top: 2px; color: #b8860b; }
-.sb-addspells-hint strong { color: #4a3208; }
 .sb-addspells-head { display: flex; align-items: center; gap: 10px; padding: 14px 16px 10px; border-bottom: 1px solid rgba(196,168,122,0.4); }
 .sb-addspells-title { font-family: 'Cinzel', serif; font-size: 1.05rem; font-weight: 700; color: #5a3a10; display: flex; align-items: center; gap: 7px; }
 .sb-addspells-title .icon { width: 18px; height: 18px; }
@@ -22104,8 +22095,75 @@ body.kaart-fs-active { overflow: hidden; }
 .sb-addsp-chip { font-family: 'Cinzel', serif; font-size: 10.5px; font-weight: 600; letter-spacing: 0.02em; color: #6a5430; background: rgba(255,253,246,0.7); border: 1px solid rgba(196,168,122,0.5); border-radius: 999px; padding: 3px 11px; cursor: pointer; transition: all 0.12s; }
 .sb-addsp-chip:hover { border-color: var(--color-gold-bright); }
 .sb-addsp-chip.on { background: linear-gradient(to bottom, #b8860b, #8a6206); border-color: #d9b24a; color: #fff8ea; }
-.sb-addsp-chip--type.on { background: linear-gradient(to bottom, #7a5aaa, #5a3a8a); border-color: #a98ad0; color: #fff; }
+/* Een aangezet soortfilter draagt de kleur die diezelfde soort op de kaartjes
+   eronder heeft (.sb-addsp-badge--*). Zo zie je zonder lezen waar je op filtert
+   en welke pil in de lijst daarbij hoort. */
+.sb-addsp-chip--schade.on   { background: #b3543a; border-color: #d4775c; color: #fff; }
+.sb-addsp-chip--gebied.on   { background: #b8860b; border-color: #d9b24a; color: #fff; }
+.sb-addsp-chip--genezing.on { background: #3f8a5a; border-color: #6ab98a; color: #fff; }
+.sb-addsp-chip--controle.on { background: #7a5aaa; border-color: #a98ad0; color: #fff; }
+.sb-addsp-chip--hulp.on     { background: #8a8170; border-color: #b0a694; color: #fff; }
 .sb-addsp-chip--flag.on { background: linear-gradient(to bottom, #3a7a5a, #2a5a3a); border-color: #6ab98a; color: #fff; }
+
+/* ── Niveaubereik: één baan, twee bolletjes ──────────────────────────────── */
+/* Tien pillen namen twee regels, en je wilt er bijna altijd een bereik uit.
+   Twee <input type=range> over elkaar: de baan en de vulling tekenen we zelf,
+   de inputs zijn doorzichtig en vangen alleen hun eigen bolletje. */
+.sb-lvlschuif { padding: 2px 2px 0; }
+.sb-lvlschuif-kop { display: flex; align-items: center; gap: 8px; margin-bottom: 5px; }
+.sb-lvlschuif-waarde { font-family: 'Cinzel', serif; font-size: 11px; font-weight: 700; color: #6a5430; letter-spacing: .03em; }
+.sb-lvlschuif-reset {
+  font-family: 'Crimson Text', serif; font-size: 11px; color: #9a6a2a;
+  background: none; border: none; cursor: pointer; display: inline-flex; align-items: center; gap: 3px; padding: 0;
+}
+.sb-lvlschuif-reset .icon { width: 10px; height: 10px; }
+.sb-lvlschuif-baan { position: relative; height: 20px; }
+.sb-lvlschuif-baan::before {
+  content: ''; position: absolute; left: 0; right: 0; top: 8px; height: 4px;
+  background: rgba(150,120,70,0.25); border-radius: 2px;
+}
+.sb-lvlschuif-vulling {
+  position: absolute; top: 8px; height: 4px; border-radius: 2px;
+  background: linear-gradient(to right, #b8860b, #8a6206);
+}
+.sb-lvlschuif-input {
+  position: absolute; left: 0; width: 100%; top: 0; height: 20px; margin: 0;
+  -webkit-appearance: none; appearance: none; background: none; pointer-events: none;
+}
+.sb-lvlschuif-input:focus { outline: none; }
+.sb-lvlschuif-input::-webkit-slider-thumb {
+  -webkit-appearance: none; appearance: none; pointer-events: auto;
+  width: 16px; height: 16px; border-radius: 50%; cursor: grab;
+  background: radial-gradient(circle at 35% 30%, #fdf3d8, #c9a227);
+  border: 1px solid #8a6206; box-shadow: 0 1px 3px rgba(80,50,10,0.35);
+}
+.sb-lvlschuif-input::-moz-range-thumb {
+  pointer-events: auto;
+  width: 16px; height: 16px; border-radius: 50%; cursor: grab; border: 1px solid #8a6206;
+  background: radial-gradient(circle at 35% 30%, #fdf3d8, #c9a227);
+  box-shadow: 0 1px 3px rgba(80,50,10,0.35);
+}
+.sb-lvlschuif-schaal {
+  display: flex; justify-content: space-between; margin-top: 1px;
+  font-family: 'IM Fell English', serif; font-size: 9.5px; color: #9a8468;
+}
+
+/* ── De filterknop en wat eronder uitklapt ───────────────────────────────── */
+.sb-addsp-filterrij { position: relative; }
+.sb-addsp-filterknop {
+  font-family: 'Cinzel', serif; font-size: 10.5px; font-weight: 600; letter-spacing: .02em;
+  color: #6a5430; background: rgba(255,253,246,0.7);
+  border: 1px solid rgba(196,168,122,0.5); border-radius: 999px;
+  padding: 4px 12px; cursor: pointer; display: inline-flex; align-items: center; gap: 5px;
+}
+.sb-addsp-filterknop:hover { border-color: var(--color-gold-bright); }
+.sb-addsp-filterknop.on { background: linear-gradient(to bottom, #b8860b, #8a6206); border-color: #d9b24a; color: #fff8ea; }
+.sb-addsp-filterknop .icon { width: 11px; height: 11px; }
+.sb-addsp-filterlade {
+  margin-top: 6px; padding: 8px 10px; border-radius: 9px;
+  background: rgba(255,250,235,0.7); border: 1px solid rgba(196,168,122,0.45);
+  display: flex; flex-direction: column; gap: 5px;
+}
 .sb-addspells-list { flex: 1; overflow-y: auto; padding: 8px 16px; display: flex; flex-direction: column; gap: 7px; }
 .sb-addsp-empty { text-align: center; color: #8a7050; font-style: italic; font-family: 'IM Fell English', serif; padding: 30px 10px; }
 .sb-addsp-card { display: flex; gap: 10px; background: linear-gradient(168deg, rgba(253,247,228,0.78), rgba(244,233,203,0.7)); border: 1px solid rgba(170,140,90,0.4); border-radius: 9px; padding: 9px 11px; cursor: pointer; transition: all 0.12s; box-shadow: 0 1px 2px rgba(120,80,30,0.06); }
