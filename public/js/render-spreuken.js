@@ -1007,6 +1007,13 @@ window.spreuken = {
           // het oude beeld vast, zodat je het vorige beeld zat bij te stellen.
           window._beeldVerversen?.(`spell-img-${index}`);
           _paintGrid();
+          // **Het venster opnieuw tekenen.** De focuskiezer stond verborgen
+          // tot het detailbeeld zijn `onload` gaf; bij een vers geüpload
+          // bestand kwam die soms later dan deze regel, en dan bleef de knop
+          // *Focuspunt bijstellen* weg tot je het kaartje opnieuw opende.
+          // Opnieuw tekenen met het nieuwe beeld erin klopt altijd, ongeacht
+          // hoe snel de server klaar was.
+          window.spreuken.open(index);
           window._showToast?.('Afbeelding geplaatst.');
         } catch (e) {
           window._showToast?.('Afbeelding instellen mislukt: ' + (e.message || e));

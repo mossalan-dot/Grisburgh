@@ -10168,23 +10168,27 @@ router.put('/meta/heldenboek', requireDM, (req, res) => {
   }
   // Een beeld per class (het portret van de Barbarian), los van de vier
   // deurkaarten. Vrije sleutels, want een campagne mag een eigen class hebben.
-  if (req.body?.klassen && typeof req.body.klassen === 'object') {
-    const klassen = { ...(hb.klassen || {}) };
-    for (const [naam, id] of Object.entries(req.body.klassen)) {
-      const sleutel = String(naam).slice(0, 60);
-      if (id) klassen[sleutel] = String(id).slice(0, 80); else delete klassen[sleutel];
-    }
-    if (Object.keys(klassen).length) hb.klassen = klassen; else delete hb.klassen;
-  }
   // Hetzelfde voor een species en voor een subclass. Eigen bakken en niet één
   // gedeelde: een class, een species en een subclass mogen dezelfde naam
   // hebben, en dan zou de een het beeld van de ander overschrijven.
-  for (const [veld, bak] of [['species', 'species'], ['subclassen', 'subclassen']]) {
+  // Een waarde mag een kaal bestand-id zijn (zoals het was) of `{ id, focus }`.
+  // Het focuspunt kwam er later bij; een oude campagne hoeft daar niets voor
+  // te doen.
+  const _beeldWaarde = (v) => {
+    if (!v) return null;
+    if (typeof v === 'string') return String(v).slice(0, 80);
+    const id = String(v.id || '').slice(0, 80);
+    if (!id) return null;
+    const focus = String(v.focus || '').slice(0, 24);
+    return focus ? { id, focus } : id;
+  };
+  for (const [veld, bak] of [['species', 'species'], ['subclassen', 'subclassen'], ['klassen', 'klassen']]) {
     if (!req.body?.[veld] || typeof req.body[veld] !== 'object') continue;
     const uit = { ...(hb[bak] || {}) };
-    for (const [naam, id] of Object.entries(req.body[veld])) {
+    for (const [naam, v] of Object.entries(req.body[veld])) {
       const sleutel = String(naam).slice(0, 80);
-      if (id) uit[sleutel] = String(id).slice(0, 80); else delete uit[sleutel];
+      const w = _beeldWaarde(v);
+      if (w) uit[sleutel] = w; else delete uit[sleutel];
     }
     if (Object.keys(uit).length) hb[bak] = uit; else delete hb[bak];
   }

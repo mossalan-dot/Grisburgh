@@ -15,7 +15,7 @@
  */
 
 import { api } from './api.js?v=310';
-import { naslagBron } from './render-progressie.js?v=57';
+import { naslagBron } from './render-progressie.js?v=58';
 
 const esc  = s => window.app?.esc?.(s) ?? String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 const icon = (...a) => window.icon(...a);
@@ -552,9 +552,18 @@ function _spreukRegel(klasse, basis) {
 // Het beeld bij een class, een species of een subclass. Drie eigen bakken in
 // `meta.heldenboek`, want ze mogen dezelfde naam hebben.
 const _HB_BAK = { class: 'klassen', species: 'species', subclass: 'subclassen' };
-function _hbBeeld(soort, naam) {
+// Een beeld bij een kaart was alleen een bestand-id. Nu mag het ook een id mét
+// een focuspunt zijn — dezelfde kiezer als bij een spreuk of een kaartje, want
+// een portret dat op de borst is uitgesneden mist het gezicht. Een oude waarde
+// (een kale string) blijft gewoon werken.
+function _hbBeeldRuw(soort, naam) {
   const f = window.app?.state?.meta?.heldenboek?.[_HB_BAK[soort]]?.[naam];
-  return f ? `/api/files/${esc(f)}` : '';
+  if (!f) return null;
+  return typeof f === 'string' ? { id: f, focus: '' } : { id: f.id || '', focus: f.focus || '' };
+}
+function _hbBeeld(soort, naam) {
+  const f = _hbBeeldRuw(soort, naam);
+  return f?.id ? `/api/files/${esc(f.id)}` : '';
 }
 
 // ── De flipkaart ────────────────────────────────────────────────────────────
@@ -567,6 +576,7 @@ function _hbBeeld(soort, naam) {
 // achteraan komt (een knop naar de spreukenlijst, een noot).
 function _flipKaartHtml({ soort, naam, kleur, icoon, bijschrift = '', onder = '', rijen = [], kop = '', extra = '' }) {
   const beeld = _hbBeeld(soort, naam);
+  const focus = _hbBeeldRuw(soort, naam)?.focus || '';
   const veilig = esc(naam).replace(/'/g, "\\'");
   return `
     <div class="vk-flip${beeld ? '' : ' vk-flip--geenbeeld'}" style="--vk-kleur:${kleur}"
@@ -582,9 +592,11 @@ function _flipKaartHtml({ soort, naam, kleur, icoon, bijschrift = '', onder = ''
            (Geen backticks in commentaar hierbinnen: template literal.) -->
       ${isDM() ? `<button class="vk-beeldknop" title="Een afbeelding hierbij kiezen"
         onclick="event.stopPropagation();window.vaardigheden.kaartBeeld('${esc(soort)}','${veilig}')">${icon('image')}</button>` : ''}
+      ${isDM() && beeld ? `<button class="vk-beeldknop vk-beeldknop--focus" title="Het focuspunt van deze afbeelding bijstellen"
+        onclick="event.stopPropagation();window.vaardigheden.kaartFocus('${esc(soort)}','${veilig}')">${icon('target')}</button>` : ''}
       <div class="vk-flip-binnen">
         <div class="vk-voor">
-          ${beeld ? `<span class="vk-voor-beeld" style="background-image:url('${beeld}')"></span>` : ''}
+          ${beeld ? `<span class="vk-voor-beeld" style="background-image:url('${beeld}')${focus ? `;background-position:${esc(focus)}` : ''}"></span>` : ''}
           <span class="vk-voor-naam">${esc(naam)}</span>
         </div>
         <div class="vk-achter">
@@ -1543,7 +1555,7 @@ function _editorHtml() {
       </div>
       <p class="dm-hint" style="margin:-6px 0 10px">Namen met een komma ertussen. De app zoekt op welke klassenlijsten die spreuken staan, en zet de feat daar bij <em>Geeft een spreuk</em>.</p>
       <p class="dm-hint" style="margin:-6px 0 10px">Staat hier een armor training in, dan rekent de app zelf uit welke klassen die geven — die hoef je niet aan te vinken.</p>` : ''}
-      <div class="dm-form-row">
+      <div class="dm-form-row" style="flex-direction:column;align-items:stretch;gap:6px">
         <label class="dm-form-label">Afbeelding</label>
         <div class="vaardig-img-rij">
           <button class="dm-btn dm-btn-ghost dm-btn-sm" onclick="window.vaardigheden.kiesAfbeelding()">${icon('image')} ${e.img ? 'Andere kiezen' : 'Kiezen of uploaden'}</button>
@@ -1871,6 +1883,39 @@ window.vaardigheden = {
   },
   // De uitleg bij een species, net als bij een subclass.
   volkUitleg(volk) { _uitlegVenster('species', volk, ''); },
+  // Het focuspunt van de afbeelding op een kaart. Dezelfde kiezer als bij een
+  // spreuk, een kaartje en de aktebanner — één plek waar dit gekozen wordt.
+  kaartFocus(soort, naam) {
+    const huidig = _hbBeeldRuw(soort, naam);
+    if (!huidig?.id) return;
+    window.app.openModal(`Focuspunt — ${naam}`, '', `
+      <div class="dm-feature-section" style="margin:0">
+        <p class="dm-hint">Welk deel van de afbeelding op de kaart te zien is. Sleep het kruis naar wat er niet af mag vallen.</p>
+        ${window._fpBlokHtml?.({
+          src: `/api/files/${esc(huidig.id)}`,
+          value: huidig.focus || '50% 50%',
+          previews: [{ cls: 'fp-prev--hoog', label: 'De kaart' }],
+        }) || ''}
+        <div class="dm-feature-row" style="margin-top:10px">
+          <button class="dm-btn dm-btn-primary" onclick="window.vaardigheden.bewaarKaartFocus('${esc(soort)}','${esc(naam).replace(/'/g, "\\'")}')">${icon('save')} Bewaren</button>
+        </div>
+      </div>`);
+  },
+  async bewaarKaartFocus(soort, naam) {
+    const focus = window._fpWaarde?.() || document.getElementById('fp-value')?.value || '50% 50%';
+    const huidig = _hbBeeldRuw(soort, naam);
+    if (!huidig?.id) return;
+    const bak = _HB_BAK[soort];
+    const veld = soort === 'subclass' ? 'subclassen' : soort === 'species' ? 'species' : 'klassen';
+    try {
+      await api.saveHeldenboek({ [veld]: { [naam]: { id: huidig.id, focus } } });
+      const m = window.app?.state?.meta;
+      if (m) { m.heldenboek = m.heldenboek || {}; m.heldenboek[bak] = { ...(m.heldenboek[bak] || {}), [naam]: { id: huidig.id, focus } }; }
+      window.app.closeModal();
+      _bandHerteken();
+      window._showToast?.('Focuspunt bewaard.');
+    } catch (e) { alert('Bewaren mislukt: ' + e.message); }
+  },
   // Een subclass uit de elders-lijst in deze campagne zetten. Alleen de naam en
   // het boek: de tekst hoort in dat boek te blijven.
   async eldersAan(naam, boek) {

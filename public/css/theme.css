@@ -29780,3 +29780,6 @@ body.wizard-open { overflow: hidden; }
 /* Het pijltje onder het subklassekaartje: alleen als je er meer dan één hebt
    aangevinkt, want anders is er niets om tussen te bladeren. */
 .vd-subblader--kaart { margin-top: 8px; }
+/* Tweede knopje op de kaart: het focuspunt van de afbeelding. Onder de
+   beeldknop, zodat ze elkaar niet overlappen. */
+.vk-beeldknop--focus { top: 43px; }

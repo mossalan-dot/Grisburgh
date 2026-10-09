@@ -23,6 +23,12 @@ function _md(text) {
   let s = esc(text);
   // Bold (**text**)
   s = s.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+  // Cursief met één asterisk (*text*). Dit ontbrak, en juist dát is wat de
+  // opmaakbalk invoegt als je op *I* drukt — dus alles wat een DM cursief
+  // maakte kwam als sterretjes op het kaartje te staan. `mdToHtml` (de
+  // renderer van een kaartje-tekst) kende hem allang; deze twee liepen uit
+  // elkaar. **Ná** het vet, anders eet hij de helft van een `**`-paar op.
+  s = s.replace(/\*(?!\*)([^*\n]+?)\*/g, '<em>$1</em>');
   // Italic (_text_) — alleen als het geen witruimte direct grenst
   s = s.replace(/(?<![a-z])_([^_\n]+)_(?![a-z])/gi, '<em>$1</em>');
   // Paragrafen (dubbele newline)

@@ -4,10 +4,10 @@ import { initArchief, renderLogboek, openLogboekEditor } from "./render-archief.
 import { renderKaart, queueFlyTo, verversPins, nieuweKaart } from './render-kaart.js?v=31';
 import { renderDungeon } from './render-dungeon.js?v=62';
 import { renderRelatiemap } from './render-relatiemap.js?v=27';
-import { renderProgressie, levelupFeatures } from './render-progressie.js?v=57';
+import { renderProgressie, levelupFeatures } from './render-progressie.js?v=58';
 import { renderBestiarium } from './render-bestiarium.js?v=31';
-import { renderSpreuken } from './render-spreuken.js?v=44';
-import { renderVaardigheden, zoekVaardigheden } from './render-vaardigheden.js?v=35';
+import { renderSpreuken } from './render-spreuken.js?v=45';
+import { renderVaardigheden, zoekVaardigheden } from './render-vaardigheden.js?v=36';
 import { renderStatblock } from './render-statblock.js?v=9';
 import { initSocket } from "./socket-client.js?v=84";
 import { initDmPanel } from "./dm-panel.js?v=387";
