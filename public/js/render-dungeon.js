@@ -1978,6 +1978,17 @@ function _openNewDungeonDialog() {
   }
   _tekenLagen();
 
+  // De keuze "Verdiepingen" deed niets: er luisterde niemand naar de dropdown,
+  // dus `indeling` bleef altijd 'een' en de knop "Verdieping toevoegen" bleef
+  // verborgen. Terug naar één plattegrond gooit de extra verdiepingen weg —
+  // anders maakt *Aanmaken* stilletjes kaarten die je niet meer ziet staan.
+  document.getElementById('dng-new-indeling').addEventListener('change', (e) => {
+    indeling = e.target.value;
+    if (indeling === 'een') lagen.splice(1);
+    else if (lagen.length === 1) lagen.push(nieuweLaag(1));
+    _tekenLagen();
+  });
+
   document.getElementById('dng-new-laag-erbij').addEventListener('click', () => {
     const hoogste = Math.max(...lagen.map(l => l.verdieping));
     lagen.push(nieuweLaag(hoogste + 1));

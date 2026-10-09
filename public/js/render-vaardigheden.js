@@ -314,8 +314,17 @@ function _bronRegel(it) {
 }
 
 // ── Kaartje ───────────────────────────────────────────────────────
+// De eigen kleur van een subclass, als de DM er een koos. Hij kleurt zowel het
+// kaartje van de subclass als zijn features — anders zie je aan tafel niet
+// welke regel bij welke hoort zodra je er twee naast elkaar legt.
+function _subKleur(it) {
+  if (it.soort !== 'subclass' || !it.sub) return null;
+  return _bron?.prog?.classes?.[it.bron]?.subclasses?.[it.sub]?.kleur || null;
+}
+
 function _card(it) {
   const s = SOORTEN[it.soort] || SOORTEN.class;
+  const eigenKleur = _subKleur(it);
   const tekst = _tekst(it);
   const bronRegel = _bronRegel(it);
   // Staat de tekst er niet, dan hoeft de kijker het kaartje daar niet eerst
@@ -347,7 +356,7 @@ function _card(it) {
   return `
     <div class="entity-card vaardig-card" data-soort="${esc(it.soort)}"
       onclick="${klik}" title="${esc(it.naam)}"
-      style="--soort-c1:${s.c1};--soort-c2:${s.c2}">
+      style="--soort-c1:${eigenKleur ? esc(eigenKleur) : s.c1};--soort-c2:${eigenKleur ? esc(eigenKleur) : s.c2}">
       <div class="card-accent vaardig-accent"></div>
       ${dmRij}
       ${it.level ? `<span class="vaardig-card-niv">${it.level}</span>` : ''}
@@ -611,10 +620,13 @@ function _flipKaartHtml({ soort, naam, kleur, icoon, bijschrift = '', onder = ''
            een kiezen. Buiten vk-flip-binnen draait hij niet mee en ligt hij
            altijd boven.
            (Geen backticks in commentaar hierbinnen: template literal.) -->
-      ${isDM() ? `<button class="vk-beeldknop" title="Een afbeelding hierbij kiezen"
-        onclick="event.stopPropagation();window.vaardigheden.kaartBeeld('${esc(soort)}','${veilig}')">${icon('image')}</button>` : ''}
-      ${isDM() && beeld ? `<button class="vk-beeldknop vk-beeldknop--focus" title="Het focuspunt van deze afbeelding bijstellen"
-        onclick="event.stopPropagation();window.vaardigheden.kaartFocus('${esc(soort)}','${veilig}')">${icon('target')}</button>` : ''}
+      <!-- Eén knop. Er stonden er drie op dit kaartje — een beeldknop, een
+           focusknop en "Uitleg bewerken" onderaan — voor drie stukjes van
+           hetzelfde ding. Nu staat alles in één venster: de tekst, de
+           ondertitel, het boek, de afbeelding en zijn focuspunt.
+           (Geen backticks in commentaar hierbinnen: template literal.) -->
+      ${isDM() ? `<button class="vk-beeldknop" title="Dit kaartje bewerken"
+        onclick="event.stopPropagation();window.vaardigheden.kaartBewerken('${esc(soort)}','${veilig}')">${icon('pencil')}</button>` : ''}
       <div class="vk-flip-binnen">
         <div class="vk-voor">
           ${beeld ? `<span class="vk-voor-beeld" style="background-image:url('${beeld}')${focus ? `;background-position:${esc(focus)}` : ''}"></span>` : ''}
@@ -692,7 +704,7 @@ function _subklasseKaartHtml(klasse, sub) {
   ].filter(Boolean);
 
   return _flipKaartHtml({
-    soort: 'subclass', naam: sub, kleur: veld?.kleur || '#5a2e8a',
+    soort: 'subclass', naam: sub, kleur: data.kleur || veld?.kleur || '#5a2e8a',
     icoon: veld?.icon || 'star', bijschrift: `${label} · ${klasse}`,
     // De eigen ondertitel van de DM, direct onder "Primal Path · Barbarian".
     onder: String(data.ondertitel || '').trim(),
@@ -700,7 +712,7 @@ function _subklasseKaartHtml(klasse, sub) {
     extra: `
       ${uitleg ? `<div class="vk-uitleg">${_bron?.md?.(uitleg) ?? esc(uitleg)}</div>` : ''}
       ${n || uitleg ? '' : `<p class="vk-noot">Van deze subklasse staat er geen tekst in de app — die komt uit het boek en mag daar niet uit overgenomen worden.</p>`}
-      ${isDM() ? `<button class="vk-uitlegknop" onclick="event.stopPropagation();window.vaardigheden.subUitleg('${esc(sub).replace(/'/g, "\\'")}')">${icon('pencil')} ${uitleg ? 'Uitleg bewerken' : 'Uitleg toevoegen'}</button>` : ''}`,
+`,
   });
 }
 
@@ -730,7 +742,7 @@ function _volkKaartHtml(volk) {
     extra: `
       ${uitleg ? `<div class="vk-uitleg">${_bron?.md?.(uitleg) ?? esc(uitleg)}</div>` : ''}
       ${n ? '' : '<p class="vk-noot">Van dit volk staat er niets in de app.</p>'}
-      ${isDM() ? `<button class="vk-uitlegknop" onclick="event.stopPropagation();window.vaardigheden.volkUitleg('${esc(volk).replace(/'/g, "\\'")}')">${icon('pencil')} ${uitleg ? 'Uitleg bewerken' : 'Uitleg toevoegen'}</button>` : ''}`,
+`,
   });
 }
 
@@ -1289,6 +1301,21 @@ function _subVenster(klasse, sub) {
 // ── De uitleg van een houder schrijven ──────────────────────────────────────
 // Een houder (een class, subclass, species of background) heeft geen level en
 // geen features van zichzelf, maar wel een verhaal. Dat is wat hier in gaat.
+// Het beeld van een kaart vastleggen: één plek, want het venster en de
+// bewaarknop doen het allebei.
+async function _kaartBeeldZet(soort, naam, waarde) {
+  const veld = soort === 'subclass' ? 'subclassen' : soort === 'species' ? 'species' : 'klassen';
+  await api.saveHeldenboek({ [veld]: { [naam]: waarde } });
+  const m = window.app?.state?.meta;
+  if (m) {
+    m.heldenboek = m.heldenboek || {};
+    const bak = { ...(m.heldenboek[veld] || {}) };
+    if (waarde) bak[naam] = waarde; else delete bak[naam];
+    m.heldenboek[veld] = bak;
+  }
+  _bandHerteken();
+}
+
 function _uitlegVenster(soort, naam, bron) {
   const h = soort === 'subclass' ? _bron?.prog?.classes?.[bron]?.subclasses?.[naam]
     : soort === 'class'      ? _bron?.prog?.classes?.[naam]
@@ -1297,34 +1324,66 @@ function _uitlegVenster(soort, naam, bron) {
   if (!h) { alert(`${naam} staat niet in deze campagne.`); return; }
   const veilig = esc(naam).replace(/'/g, "\\'");
   const veiligB = esc(bron || '').replace(/'/g, "\\'");
-  window.app.openModal(`Uitleg bij ${naam}`, '', `
-    <div class="dm-feature-section" style="margin:0">
-      <div class="dm-form-row">
-        <label class="dm-form-label">Beschrijving</label>
-        ${window._fmtToolbarHtml?.('vd-houder-desc') ?? ''}
-        <textarea class="dm-input" id="vd-houder-desc" rows="8" placeholder="Een lege regel begint een nieuwe alinea.">${esc(_schoonVoorEditor(h.desc || ''))}</textarea>
-      </div>
+  const beeld = _hbBeeldRuw(soort, naam);
+  const soortLabel = { class: 'class', subclass: 'subclass', species: 'species', background: 'background' }[soort] || soort;
+
+  window.app.openModal(`${naam} bewerken`, '', `
+    <div class="dm-feature-section" style="margin:0" id="vd-kaart-bewerk"
+      data-soort="${esc(soort)}" data-naam="${esc(naam)}" data-bron="${esc(bron || '')}"
+      data-beeld="${esc(beeld?.id || '')}">
       <div class="dm-form-row">
         <label class="dm-form-label" for="vd-houder-onder">Ondertitel</label>
         <input class="dm-input" id="vd-houder-onder" maxlength="120" value="${esc(h.ondertitel || '')}"
           placeholder="Eén regel onder de soort — bijv. &quot;Woede als wapen&quot;">
       </div>
       <div class="dm-form-row">
+        <label class="dm-form-label">Beschrijving</label>
+        ${window._fmtToolbarHtml?.('vd-houder-desc') ?? ''}
+        <textarea class="dm-input" id="vd-houder-desc" rows="8"
+          placeholder="Wat is dit? Dit staat bovenaan het kaartje, vóór de features.">${esc(_schoonVoorEditor(h.desc || ''))}</textarea>
+      </div>
+      <!-- Een eigen kleur voor een subclass. Die kleurt zijn kaartje én de
+           features eronder, zodat je aan tafel in één oogopslag ziet wat van
+           de Berserker is en wat van de Zealot — juist als je er twee hebt
+           aangevinkt om te vergelijken.
+           (Geen backticks in commentaar hierbinnen: template literal.) -->
+      ${soort === 'subclass' ? `
+      <div class="dm-form-row">
+        <label class="dm-form-label" for="vd-houder-kleur">Kleur</label>
+        <div class="vd-kleurrij">
+          <input type="color" class="vd-kleurveld" id="vd-houder-kleur"
+            value="${esc(h.kleur || window._subSignatureVoor?.(naam)?.kleur || '#5a2e8a')}">
+          <span class="dm-hint" style="margin:0">Kleurt dit kaartje en zijn features.</span>
+        </div>
+      </div>` : ''}
+      <div class="dm-form-row">
         <label class="dm-form-label">Uit welk boek?</label>
         <input class="dm-input" id="vd-houder-boek" maxlength="120" value="${esc(h.boek || '')}"
           placeholder="Bijv. Xanathar's Guide to Everything — of leeg als je het zelf verzon">
       </div>
+      <!-- De afbeelding hoort hier, niet achter een eigen knopje op de kaart:
+           dan staat de focuskiezer er meteen bij en is er één plek waar je dit
+           kaartje bijwerkt. -->
+      <div class="dm-form-row" style="flex-direction:column;align-items:stretch;gap:6px">
+        <label class="dm-form-label">Afbeelding</label>
+        <div class="vaardig-img-rij">
+          <button class="dm-btn dm-btn-ghost dm-btn-sm"
+            onclick="window.vaardigheden.kaartBeeld('${esc(soort)}','${veilig}')">${icon('image')} ${beeld?.id ? 'Andere kiezen' : 'Kiezen of uploaden'}</button>
+          ${beeld?.id ? `<button class="dm-btn dm-btn-ghost dm-btn-sm"
+            onclick="window.vaardigheden.kaartBeeldWeg('${esc(soort)}','${veilig}')">${icon('x')} Weghalen</button>` : ''}
+        </div>
+        <div id="vd-kaart-fp">${beeld?.id ? (window._fpBlokHtml?.({
+          src: `/api/files/${esc(beeld.id)}`,
+          value: beeld.focus || '50% 50%',
+          previews: [{ cls: 'fp-prev--hoog', label: 'De kaart' }],
+        }) || '') : ''}</div>
+      </div>
       <div class="dm-feature-row" style="margin-top:8px">
         <button class="dm-btn dm-btn-primary" onclick="window.vaardigheden.bewaarUitleg('${esc(soort)}','${veilig}','${veiligB}')">${icon('save')} Bewaren</button>
       </div>
-    </div>`);
+      <p class="dm-hint">Je bewerkt de ${esc(soortLabel)} zelf. De features eronder hebben hun eigen kaartje.</p>
+    </div>`, 'hulp_heldenboek_kaart');
 }
-
-// Waar je vandaan kwam. Een background noemt zijn feat als [[verwijzing]], en
-// die opent het featkaartje — maar daarna stond je vast: geen knop terug, en
-// de background was uit beeld. Eén stap is genoeg; een hele geschiedenis is
-// het niet waard, want verder dan twee diep gaat deze lijst niet.
-let _vanWaar = null;
 
 function _open(key, vanWaar = null) {
   const it = (_all || []).find(x => x.key === key);
@@ -1850,26 +1909,70 @@ window.vaardigheden = {
   },
   // Een afbeelding bij een class, een species of een subclass. Eén picker voor
   // alle drie: het is dezelfde handeling.
+  // De knop op het kaartje: één venster voor alles.
+  kaartBewerken(soort, naam) { _uitlegVenster(soort, naam, _filters.bron || ''); },
+
+  // Een afbeelding kiezen vanuit dat venster. Hij wordt meteen vastgelegd —
+  // anders zou de focuskiezer naar een bestand wijzen dat nog nergens staat —
+  // en daarna tekent het venster zichzelf opnieuw met de kiezer erin.
   kaartBeeld(soort, naam) {
     if (!window.mediaPicker?.open) { alert('Mediabibliotheek niet beschikbaar'); return; }
-    const bak = { class: 'klassen', species: 'species', subclass: 'subclassen' }[soort];
-    if (!bak) return;
     window.mediaPicker.open({
       type: 'afbeelding',
       suggestedName: soort + '-' + String(naam).toLowerCase(),
       onSelect: async (srcId) => {
         try {
-          await api.saveHeldenboek({ [soort === 'subclass' ? 'subclassen' : soort === 'species' ? 'species' : 'klassen']: { [naam]: srcId } });
-          const m = window.app?.state?.meta;
-          if (m) { m.heldenboek = m.heldenboek || {}; m.heldenboek[bak] = { ...(m.heldenboek[bak] || {}), [naam]: srcId }; }
-          _bandHerteken();
+          await _kaartBeeldZet(soort, naam, { id: srcId, focus: '' });
+          _uitlegVenster(soort, naam, _filters.bron || '');
           window._showToast?.('Afbeelding geplaatst.');
         } catch (e) { window._showToast?.('Instellen mislukt: ' + (e.message || e)); }
       },
     });
   },
+  async kaartBeeldWeg(soort, naam) {
+    try {
+      await _kaartBeeldZet(soort, naam, null);
+      _uitlegVenster(soort, naam, _filters.bron || '');
+    } catch (e) { alert('Weghalen mislukt: ' + e.message); }
+  },
+
   // De uitleg bij een species, net als bij een subclass.
   volkUitleg(volk) { _uitlegVenster('species', volk, ''); },
+  // Een zegening of gunst onthullen. Langs dezelfde weg als in het archief,
+  // inclusief de waarschuwing als iemand hem draagt; alleen het verversen is
+  // hier anders, want we staan in het Heldenboek.
+  async zichtbaarheid(id, ev) {
+    try {
+      await window._toggleVis?.('voorwerpen', id, ev);
+      _all = null;
+      await _load(); await _klasseExtra();
+      _paint();
+    } catch (e) { alert('Niet gelukt: ' + e.message); }
+  },
+  // Een zegening of gunst onthullen. Langs dezelfde weg als in het archief,
+  // inclusief de waarschuwing als iemand hem draagt; alleen het verversen is
+  // hier anders, want we staan in het Heldenboek.
+  async zichtbaarheid(id, ev) {
+    try {
+      await window._toggleVis?.('voorwerpen', id, ev);
+      _all = null;
+      await _load(); await _klasseExtra();
+      _paint();
+    } catch (e) { alert('Niet gelukt: ' + e.message); }
+  },
+  // Het focuspunt van de afbeelding op een kaart. Dezelfde kiezer als bij een
+  // spreuk, een kaartje en de aktebanner — één plek waar dit gekozen wordt.
+  // Een zegening of gunst onthullen. Langs dezelfde weg als in het archief,
+  // inclusief de waarschuwing als iemand hem draagt; alleen het verversen is
+  // hier anders, want we staan in het Heldenboek.
+  async zichtbaarheid(id, ev) {
+    try {
+      await window._toggleVis?.('voorwerpen', id, ev);
+      _all = null;
+      await _load(); await _klasseExtra();
+      _paint();
+    } catch (e) { alert('Niet gelukt: ' + e.message); }
+  },
   // Een zegening of gunst onthullen. Langs dezelfde weg als in het archief,
   // inclusief de waarschuwing als iemand hem draagt; alleen het verversen is
   // hier anders, want we staan in het Heldenboek.
@@ -1939,8 +2042,16 @@ window.vaardigheden = {
     const desc = document.getElementById('vd-houder-desc')?.value || '';
     const boek = document.getElementById('vd-houder-boek')?.value || '';
     const ondertitel = document.getElementById('vd-houder-onder')?.value || '';
+    const kleur = document.getElementById('vd-houder-kleur')?.value || '';
+    // Het focuspunt staat in hetzelfde venster, dus het gaat in dezelfde klik
+    // mee. Twee keer opslaan voor één bewerking voelt als een fout van de app.
+    const beeldId = document.getElementById('vd-kaart-bewerk')?.dataset.beeld || '';
+    if (beeldId) {
+      const focus = window._fpWaarde?.() || '50% 50%';
+      try { await _kaartBeeldZet(soort, naam, { id: beeldId, focus }); } catch { /* het beeld is bijzaak */ }
+    }
     try {
-      await api.put('/progression/houder', { soort, naam, bron, desc, boek, ondertitel });
+      await api.put('/progression/houder', { soort, naam, bron, desc, boek, ondertitel, kleur });
       window.app.closeModal();
       _all = null; await _load(); await _klasseExtra();
       _bandHerteken(); _refreshFilterBar(); _paint();

@@ -1,13 +1,13 @@
 import { api, campagneUitUrl, zetCampagne } from './api.js?v=310';
 import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, renderDocumenten, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=343";
-import { initArchief, renderLogboek, openLogboekEditor } from "./render-archief.js?v=140";
+import { initArchief, renderLogboek, openLogboekEditor } from "./render-archief.js?v=141";
 import { renderKaart, queueFlyTo, verversPins, nieuweKaart } from './render-kaart.js?v=31';
-import { renderDungeon } from './render-dungeon.js?v=62';
+import { renderDungeon } from './render-dungeon.js?v=63';
 import { renderRelatiemap } from './render-relatiemap.js?v=27';
 import { renderProgressie, levelupFeatures } from './render-progressie.js?v=58';
 import { renderBestiarium } from './render-bestiarium.js?v=31';
 import { renderSpreuken } from './render-spreuken.js?v=45';
-import { renderVaardigheden, zoekVaardigheden } from './render-vaardigheden.js?v=38';
+import { renderVaardigheden, zoekVaardigheden } from './render-vaardigheden.js?v=39';
 import { renderStatblock } from './render-statblock.js?v=9';
 import { initSocket } from "./socket-client.js?v=84";
 import { initDmPanel } from "./dm-panel.js?v=387";
@@ -3407,7 +3407,7 @@ function _kaartCard(type, m, dm, verdiepingen = null) {
 // eerste bestaande kaart: je drukte op + en keek naar Dreghaven.
 window._kaartNieuw = async function (type) {
   if (type === 'wereld') return nieuweKaart();
-  const { nieuweDungeon } = await import('./render-dungeon.js?v=62');
+  const { nieuweDungeon } = await import('./render-dungeon.js?v=63');
   nieuweDungeon();
 };
 
@@ -12509,6 +12509,17 @@ function _muntTekst(b) {
 window._marktOpen = (soort, id) => window._marktWinkelOpen(soort, id);
 
 // ── De vorm van een dienstscherm ────────────────────────────────────────────
+// Een bedrag zoals het aan tafel wordt uitgesproken. Dit stond vier keer apart
+// in vier dienstfuncties, met twee verschillende uitkomsten voor "niets" ("0"
+// en "gratis"). Vivarius liet zien waarom dat erg is: de magizoöloog kreeg een
+// gerucht met een prijs, de regel werd overgenomen uit De Gock, maar de helper
+// bleef daar staan — en de hele dienst bleef hangen op "Laden…". Eén plek dus,
+// en "gratis" als uitkomst, want dat is wat er staat te gebeuren.
+function prijsTekst(p) {
+  return [p?.fl && `${p.fl} fl`, p?.kn && `${p.kn} kn`, p?.cl && `${p.cl} cl`]
+    .filter(Boolean).join(' ') || 'gratis';
+}
+
 // Elk dienstscherm (herberg, tempel, Gock, Ursula, magizoo, Tweespalt,
 // facties) heeft dezelfde romp: een schermvullende achtergrond, daarin een
 // paneel, en daarin een rond portret met een groet eronder. Die romp heet in de
@@ -12635,7 +12646,7 @@ async function renderHerberg() {
              Heette hier "Op zak" en overal elders "Beurs". Eén woord voor één
              ding; anders lijkt het iets anders te zijn. -->
         ${currency ? `<p class="herberg-tap-beurs">Beurs: <strong>${_magizooBeurs(currency)}</strong></p>` : ''}
-        <div class="herberg-menu-lijst">
+        <div class="dienst-menu-lijst">
           ${menu.map(m => _herbergMenuKaart(m)).join('')}
         </div>
         <div id="herberg-bestel-resultaat" class="herberg-antwoord hidden"></div>`;
@@ -12704,13 +12715,13 @@ function _herbergMenuKaart(m) {
   // beneden: naam gecentreerd, de tekst over de volle breedte, en onderaan één
   // balk waar de prijs in staat — dan weet je wat je indrukt.
   return `
-    <div class="herberg-menu-kaart">
-      <div class="herberg-menu-kaart-body">
-        <div class="herberg-menu-kaart-naam">${esc(m.naam)}</div>
-        ${m.beschrijving ? `<div class="herberg-menu-kaart-desc">${esc(m.beschrijving)}</div>` : ''}
-        ${effecten.length ? `<div class="herberg-menu-effecten">${effecten.map(e => `<span class="herberg-menu-tag herberg-menu-tag--${e.soort}">${e.tekst}</span>`).join('')}</div>` : ''}
+    <div class="dienst-menu-kaart">
+      <div class="dienst-menu-kaart-body">
+        <div class="dienst-menu-kaart-naam">${esc(m.naam)}</div>
+        ${m.beschrijving ? `<div class="dienst-menu-kaart-desc">${esc(m.beschrijving)}</div>` : ''}
+        ${effecten.length ? `<div class="dienst-menu-effecten">${effecten.map(e => `<span class="dienst-menu-tag dienst-menu-tag--${e.soort}">${e.tekst}</span>`).join('')}</div>` : ''}
       </div>
-      <button class="herberg-bestel-balk" onclick="window._herbergBestel('${esc(m.id)}')">
+      <button class="dienst-bestel-balk" onclick="window._herbergBestel('${esc(m.id)}')">
         ${icon('beer')} Bestel${m.prijs ? ` · ${esc(m.prijs)}` : ' · gratis'}
       </button>
     </div>`;
@@ -12743,7 +12754,7 @@ window._herbergBestel = async (itemId) => {
       resEl.innerHTML = `
         <div class="herberg-bubble">
           <p class="herberg-bubble-text">„${esc(res.item.beschrijving || 'Proost!')}“</p>
-          ${effecten.length ? `<div class="herberg-menu-effecten" style="margin-top:8px;justify-content:center">${effecten.map(e => `<span class="herberg-menu-tag">${e}</span>`).join('')}</div>` : ''}
+          ${effecten.length ? `<div class="dienst-menu-effecten" style="margin-top:8px;justify-content:center">${effecten.map(e => `<span class="dienst-menu-tag">${e}</span>`).join('')}</div>` : ''}
         </div>`;
     }
     _tsToast(`${res.item.naam} besteld — proost!`);
@@ -12864,9 +12875,6 @@ async function renderGock() {
 
   function beursTekst(cur) {
     return [cur?.fl && `${cur.fl} fl`, cur?.kn && `${cur.kn} kn`, cur?.cl && `${cur.cl} cl`].filter(Boolean).join(' · ') || '0 cl';
-  }
-  function prijsTekst(p) {
-    return [p.fl && `${p.fl} fl`, p.kn && `${p.kn} kn`, p.cl && `${p.cl} cl`].filter(Boolean).join(' ') || '0';
   }
 
   let restTijdTekst = '';
@@ -13451,7 +13459,6 @@ async function renderUrsula() {
 
   const { config, beschikbaar, geenSessie, geenAkte, alGeworpen, roll, doorNaam, onthuld, currency } = data;
   const beursTekst = (cur) => [cur?.fl && `${cur.fl} fl`, cur?.kn && `${cur.kn} kn`, cur?.cl && `${cur.cl} cl`].filter(Boolean).join(' · ') || '0 cl';
-  const prijsTekst = (p) => [p?.fl && `${p.fl} fl`, p?.kn && `${p.kn} kn`, p?.cl && `${p.cl} cl`].filter(Boolean).join(' ') || 'gratis';
 
   const weg = geenSessie; // Ursula is er niet wanneer er geen sessie/akte loopt
   const geruchtPrijs = prijsTekst(config.geruchtPrijs || config.prijs || {});
@@ -13524,8 +13531,6 @@ async function renderTempel() {
   const goden = config.goden || [];
   const beursTekst = (cur) =>
     [cur?.fl && `${cur.fl} fl`, cur?.kn && `${cur.kn} kn`, cur?.cl && `${cur.cl} cl`].filter(Boolean).join(' · ') || '0 cl';
-  const prijsTekst = (p) =>
-    [p?.fl && `${p.fl} fl`, p?.kn && `${p.kn} kn`, p?.cl && `${p.cl} cl`].filter(Boolean).join(' ') || 'gratis';
 
   const activeGod = _tempelActiveGodId ? goden.find(g => g.id === _tempelActiveGodId) : null;
 
@@ -13723,7 +13728,6 @@ window._tempelEedCinema = () => {
   document.getElementById('tempel-eed-cinema')?.remove();
 
   const playerName = window.app?.state?.playerName || 'Pelgrim';
-  const prijsTekst = (p) => [p?.fl && `${p.fl} fl`, p?.kn && `${p.kn} kn`, p?.cl && `${p.cl} cl`].filter(Boolean).join(' ') || 'gratis';
 
   const titel    = g.eedTitel || '';
   const eedTekst = g.eedTekst || `Ik, ${playerName}, zweer een eed aan ${g.naam}.\n\nZolang ik deze eed nakome, verleen ${g.naam} mij:\n${g.zegen || '—'}.\n\nVerzaak ik mijn eed, dan treft mij de toorn van ${g.naam}:\n${g.vloek || '—'}.\n\nDit is mijn belofte, nu en altijd.`;
@@ -14034,7 +14038,7 @@ async function renderTweespalt() {
               </div>` : ''}
             ${arena.length === 0
               ? `<p class="herberg-leeg">Er staan nu geen partijen op het programma.</p>`
-              : arena.map(b => _arenaBoutKaart(b, arenaSignups, arenaVerslagen)).join('')}`;
+              : `<div class="dienst-menu-lijst">${arena.map(b => _arenaBoutKaart(b, arenaSignups, arenaVerslagen)).join('')}</div>`}`;
 
           const heeftArena = window._deelAan('gokhuis-arena') && (arena.length > 0 || arenaSignups.length > 0);
           if (!heeftArena) return weddenPaneel;
@@ -14050,28 +14054,39 @@ async function renderTweespalt() {
     </div>`;
 }
 
-// Eén arenapartij-kaartje
+// Eén arenapartij-kaartje. Zelfde model als een menukaartje aan de tap: de
+// naam gecentreerd, de beschrijving over de volle breedte, de getallen als
+// pillen, en onderaan één balk met daarin wat het kost. Twee diensten die
+// hetzelfde doen — iets uitzoeken en er één knop onder zetten — hoorden er
+// niet verschillend uit te zien.
 function _arenaBoutKaart(b, signups, verslagenIds) {
   const ingeschreven = (signups || []).some(s => s.boutId === b.id);
   const verslagen = (verslagenIds || []).includes(b.id);
   const legend = !!b.verborgen && !verslagen;
+  // De inleg kost je iets, het prijzengeld levert iets op. Dezelfde tweedeling
+  // als genezing en tijdelijke HP aan de tap, dus dezelfde twee kleuren.
+  const pillen = [
+    b.inzet ? { tekst: `Inleg ${esc(b.inzet)}`, soort: 'kosten' } : null,
+    b.prijs ? { tekst: `Prijs ${esc(b.prijs)}`, soort: 'heal' } : null,
+    verslagen ? { tekst: `${icon('skull')} Verslagen`, soort: 'uit' } : null,
+    legend ? { tekst: `${icon('star')} Ontgrendeld`, soort: 'buff' } : null,
+  ].filter(Boolean);
+  const knop = verslagen
+    ? `<button class="dienst-bestel-balk" disabled>${icon('skull')} Al verslagen</button>`
+    : ingeschreven
+      ? `<button class="dienst-bestel-balk" disabled>${icon('check')} Ingeschreven</button>`
+      : `<button class="dienst-bestel-balk" onclick="window._arenaAanmeld('${esc(b.id)}')">
+          ${icon('crossed-swords',{cls:'icon-gi'})} Betreed het strijdperk${b.inzet ? ` · ${esc(b.inzet)}` : ''}
+        </button>`;
   return `
-    <div class="ts-arena-kaart${verslagen ? ' is-verslagen' : ''}${legend ? ' is-legendarisch' : ''}">
-      <div class="ts-arena-kaart-head">
-        <span class="ts-arena-kaart-naam">${esc(b.naam || 'Arenapartij')}</span>
-        ${b.tegenstander ? `<span class="ts-arena-kaart-tegen">tegen ${esc(b.tegenstander)}</span>` : ''}
-        ${verslagen ? `<span class="ts-arena-verslagen-badge">${icon('skull')} Verslagen</span>`
-          : legend ? `<span class="ts-arena-legend-badge">${icon('star')} Ontgrendeld</span>` : ''}
+    <div class="dienst-menu-kaart ts-arena-kaart${verslagen ? ' is-verslagen' : ''}${legend ? ' is-legendarisch' : ''}">
+      <div class="dienst-menu-kaart-body">
+        <div class="dienst-menu-kaart-naam">${esc(b.naam || 'Arenapartij')}</div>
+        ${b.tegenstander ? `<div class="dienst-menu-kaart-onder">tegen ${esc(b.tegenstander)}</div>` : ''}
+        ${b.beschrijving ? `<div class="dienst-menu-kaart-desc">${esc(b.beschrijving)}</div>` : ''}
+        ${pillen.length ? `<div class="dienst-menu-effecten">${pillen.map(p => `<span class="dienst-menu-tag dienst-menu-tag--${p.soort}">${p.tekst}</span>`).join('')}</div>` : ''}
       </div>
-      ${b.beschrijving ? `<p class="ts-arena-kaart-desc">${esc(b.beschrijving)}</p>` : ''}
-      <div class="ts-arena-kaart-foot">
-        <span class="ts-arena-kaart-prijs">${b.inzet ? `Inleg ${esc(b.inzet)} · ` : ''}Prijs: <strong>${esc(b.prijs || '—')}</strong></span>
-        ${verslagen
-          ? `<button class="ts-wedden-btn" disabled style="opacity:.5">Al verslagen</button>`
-          : ingeschreven
-            ? `<button class="ts-wedden-btn" disabled style="opacity:.55">Ingeschreven</button>`
-            : `<button class="ts-wedden-btn" onclick="window._arenaAanmeld('${esc(b.id)}')">Betreed het strijdperk</button>`}
-      </div>
+      ${knop}
     </div>`;
 }
 
@@ -15072,6 +15087,12 @@ const HELP_CONFIG = {
     { titel: 'Naslag elders', tekst: 'Niet elke regeltekst mag in de app staan: wat niet in de vrije SRD zit heeft bij ons geen beschrijving. **Linken mag wel.** Hier zet je waarnaar die verwijzing gaat — een zoekopdracht met `{zoek}` erin, of `{naam}` en `{soort}` als je het zelf wil samenstellen. Leeg is een zoekmachine, en dat werkt beter dan een diepe link: die verlept zodra de andere site zijn adressen verandert.', afbeelding: null },
     { titel: 'Campagnes en modules', tekst: 'Alleen de beheerder ziet dit. Per campagne staat hier het DM-wachtwoord, welke campagne de **standaard** is (waar het kale adres naartoe stuurt) en welke **modules** aanstaan. Wat uit staat verdwijnt uit beeld — bij de DM én bij zijn spelers; er komt geen grijze "binnenkort"-knop voor in de plaats.', afbeelding: null },
   ] }),
+  hulp_heldenboek_kaart: () => ({ titel: 'Een kaart bewerken', stappen: [
+    { titel: 'Wat je hier bewerkt', tekst: 'De **class, subclass of species zelf** — niet zijn features. Die hebben elk hun eigen kaartje in de lijst eronder, met een eigen potlood.\n\nDe beschrijving staat bovenaan het kaartje, vóór de features. Komt hij uit de SRD, dan staat die tekst er al in en mag je hem gewoon aanpassen: wat jij schrijft wint, en de meegeleverde tekst blijft eronder liggen voor campagnes die niets wijzigden.', afbeelding: null },
+    { titel: 'Afbeelding en focuspunt', tekst: 'De kaart heeft twee kanten: een plaat met de naam erop, en de gegevens. Kies hier het beeld voor de voorkant.\n\nHet **focuspunt** bepaalt welk deel in beeld blijft. Een portret is hoog en de kaart is breed, dus zonder bijstellen valt er van alles af — meestal net het gezicht. Sleep het kruis naar wat er móét blijven staan; het voorbeeld ernaast toont de echte uitsnede.', afbeelding: null },
+    { titel: 'Kleur van een subclass', tekst: 'Alleen bij een subclass. De kleur die je kiest kleurt zijn kaartje én al zijn features in de lijst eronder.\n\nDat is geen versiering: vink je er twee aan om ze te vergelijken, dan lopen hun features door elkaar in de volgorde waarin je ze krijgt. De kleur zegt dan in één oogopslag welke regel van wie is.', afbeelding: null },
+  ] }),
+
   hulp_heldenboek_editor: () => ({ titel: 'Iets toevoegen aan het Heldenboek', stappen: [
     { titel: 'Eerst: wát maak je?', tekst: 'De lijst bovenaan is de vraag waar de rest uit volgt. **Een regel binnen iets** is een feature: iets wat je op een bepaald level krijgt van je class, subclass, species of background. **Iets nieuws beginnen** is de houder zelf — een eigen class, subclass, species of background, nog zonder features.\n\nDaarom vraagt een houder niet om een level: hij ís geen regel op een ladder. De features hang je er daarna aan, met *Feature van een…*.', afbeelding: null },
     { titel: 'Herkomst en waaruit', tekst: '**Herkomst** zegt alleen óf het overgenomen is. Zet je iets anders dan *zelf verzonnen*, dan komt er een veld **Waaruit?** bij: de naam van het boek, of van de tafelgenoot die het bedacht.\n\nDat is geen boekhouding om de boekhouding. Het bepaalt wat je later mag meenemen naar een andere campagne: zelf verzonnen mag mee, overgenomen tekst niet. Over een jaar weet je het niet meer.', afbeelding: null },

@@ -9325,6 +9325,12 @@ router.put('/progression/houder', requireDM, (req, res) => {
   zet('desc', b.desc, 4000);
   zet('boek', b.boek, 120);
   zet('ondertitel', b.ondertitel, 120);
+  // Alleen een echte kleurcode; wat anders binnenkomt gaat overboord in
+  // plaats van als stijl in de pagina te belanden.
+  if (b.kleur !== undefined) {
+    const k = String(b.kleur || '').trim();
+    if (/^#[0-9a-f]{6}$/i.test(k)) houder.kleur = k; else delete houder.kleur;
+  }
   zet('herkomst', b.herkomst, 40);
 
   storage.writeJSON('progression.json', { ...prog, bron: prog.bron || 'Aangepast door de DM' });

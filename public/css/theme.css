@@ -12359,8 +12359,8 @@ body.herberg-actief #app { position: relative; z-index: 1; }
 /* ── Herberg "Aan de tap" — menu ── */
 .herberg-tap-beurs { text-align: center; font-size: 0.8rem; color: rgba(212,180,110,0.85); margin: -2px 0 12px; }
 .herberg-tap-beurs strong { color: #f2e0b0; }
-.herberg-menu-lijst { display: flex; flex-direction: column; gap: 8px; }
-.herberg-menu-kaart {
+.dienst-menu-lijst { display: flex; flex-direction: column; gap: 8px; }
+.dienst-menu-kaart {
   /* Van boven naar beneden in plaats van naast elkaar: de beschrijving kreeg
      anders een smalle kolom omdat de prijs en de knop er rechts naast stonden.
      Nu de naam gecentreerd, de tekst over de volle breedte, en de bestelknop
@@ -12372,25 +12372,25 @@ body.herberg-actief #app { position: relative; z-index: 1; }
   border-radius: 9px;
   backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px);
 }
-.herberg-menu-kaart-body { flex: 1; min-width: 0; }
-.herberg-menu-kaart-naam {
+.dienst-menu-kaart-body { flex: 1; min-width: 0; }
+.dienst-menu-kaart-naam {
   font-family: 'Cinzel', serif; font-size: 1rem; color: #f0dcaa;
   text-align: center; letter-spacing: .03em;
 }
-.herberg-menu-kaart-desc {
+.dienst-menu-kaart-desc {
   font-family: 'IM Fell English', serif; font-style: italic; font-size: 0.86rem;
   line-height: 1.5; color: rgba(224,206,164,0.78); margin-top: 0;
 }
-.herberg-menu-effecten { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 6px; }
-.herberg-menu-tag {
+.dienst-menu-effecten { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 6px; }
+.dienst-menu-tag {
   font-size: 0.66rem; letter-spacing: 0.03em;
   padding: 2px 8px; border-radius: 10px;
   background: rgba(212,170,60,0.16);
   border: 1px solid rgba(212,170,67,0.4);
   color: #e6c88a;
 }
-.herberg-menu-kaart-actie { display: flex; flex-direction: column; align-items: flex-end; justify-content: center; gap: 6px; flex-shrink: 0; }
-.herberg-menu-prijs { font-size: 0.78rem; color: rgba(212,180,110,0.9); white-space: nowrap; }
+.dienst-menu-kaart-actie { display: flex; flex-direction: column; align-items: flex-end; justify-content: center; gap: 6px; flex-shrink: 0; }
+.dienst-menu-prijs { font-size: 0.78rem; color: rgba(212,180,110,0.9); white-space: nowrap; }
 
 /* ── Actieve status-buffs op het karakterblad ── */
 .player-buffs-lijst { display: flex; flex-wrap: wrap; gap: 8px; }
@@ -12454,42 +12454,20 @@ body.herberg-actief #app { position: relative; z-index: 1; }
   border-radius: 9px;
   font-family: 'IM Fell English', serif; font-size: 0.86rem; color: #f0dcaa;
 }
-.ts-arena-kaart {
-  padding: 12px 14px; margin-bottom: 9px;
-  background: rgba(30, 18, 6, 0.62);
-  border: 1px solid rgba(196,168,122,0.28);
-  border-radius: 9px;
-  backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px);
-}
-.ts-arena-kaart-head { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
-.ts-arena-kaart-naam { font-family: 'Cinzel', serif; font-size: 0.95rem; color: #f0dcaa; }
-.ts-arena-kaart-tegen { font-family: 'IM Fell English', serif; font-style: italic; font-size: 0.82rem; color: rgba(224,206,164,0.72); }
-.ts-arena-kaart-desc { font-family: 'IM Fell English', serif; font-style: italic; font-size: 0.84rem; color: rgba(224,206,164,0.75); margin: 6px 0; }
-.ts-arena-kaart-foot { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 8px; flex-wrap: wrap; }
-.ts-arena-kaart-prijs { font-size: 0.82rem; color: rgba(212,180,110,0.9); }
-.ts-arena-kaart-prijs strong { color: #f2e0b0; }
+/* Een arenapartij is nu een `.dienst-menu-kaart`, net als een menukaartje aan
+   de tap — doos, naam, beschrijving en de balk eronder komen daarvandaan.
+   Hier blijft alleen staan wat van het strijdperk zelf is: hoe een verslagen
+   en een legendarische partij eruitzien. Zonder dat weghalen won de oude
+   `padding: 12px 14px` het van de nieuwe (hij staat verderop in dit bestand)
+   en bleef er een rand onder de balk staan. */
 .ts-arena-kaart.is-verslagen { opacity: 0.62; filter: grayscale(0.4); border-color: rgba(150,60,50,0.4); }
-.ts-arena-kaart.is-verslagen .ts-arena-kaart-naam { text-decoration: line-through; text-decoration-color: rgba(180,80,70,0.6); }
-.ts-arena-verslagen-badge {
-  display: inline-flex; align-items: center; gap: 4px; margin-left: auto;
-  font-family: 'Cinzel', serif; font-size: 0.7rem; letter-spacing: 0.06em; text-transform: uppercase;
-  color: #d89a8e; background: rgba(120,40,34,0.28);
-  border: 1px solid rgba(180,80,70,0.45); border-radius: 5px; padding: 2px 7px;
-}
-.ts-arena-verslagen-badge svg { width: 13px; height: 13px; }
+.ts-arena-kaart.is-verslagen .dienst-menu-kaart-naam { text-decoration: line-through; text-decoration-color: rgba(180,80,70,0.6); }
 .ts-arena-kaart.is-legendarisch {
   border-color: rgba(226,190,110,0.65);
   background: linear-gradient(135deg, rgba(60,40,12,0.72), rgba(40,24,6,0.72));
   box-shadow: 0 0 14px rgba(226,190,110,0.28), inset 0 0 0 1px rgba(226,190,110,0.18);
 }
-.ts-arena-kaart.is-legendarisch .ts-arena-kaart-naam { color: #f6dfa0; text-shadow: 0 0 8px rgba(226,190,110,0.4); }
-.ts-arena-legend-badge {
-  display: inline-flex; align-items: center; gap: 4px; margin-left: auto;
-  font-family: 'Cinzel', serif; font-size: 0.7rem; letter-spacing: 0.06em; text-transform: uppercase;
-  color: #2a1a08; background: linear-gradient(180deg, #f0d38a, #d4af6e);
-  border-radius: 5px; padding: 2px 8px;
-}
-.ts-arena-legend-badge svg { width: 13px; height: 13px; }
+.ts-arena-kaart.is-legendarisch .dienst-menu-kaart-naam { color: #f6dfa0; text-shadow: 0 0 8px rgba(226,190,110,0.4); }
 
 /* Antwoord bubble */
 .herberg-antwoord { width: 100%; }
@@ -29777,7 +29755,7 @@ body.wizard-open { overflow: hidden; }
 /* De bestelknop als balk over de volle breedte, met de prijs erin. Hij stond
    als klein knopje rechts met het bedrag erboven; dan moet je twee dingen
    lezen om te weten wat je indrukt. */
-.herberg-bestel-balk {
+.dienst-bestel-balk {
   display: flex; align-items: center; justify-content: center; gap: 8px;
   width: calc(100% + 28px); margin: 4px -14px 0; padding: 10px 14px;
   border: 0; border-top: 1px solid rgba(196,168,122,0.28);
@@ -29786,18 +29764,37 @@ body.wizard-open { overflow: hidden; }
   font-family: 'Cinzel', serif; font-size: .84em; letter-spacing: .04em;
   transition: background .15s, color .15s;
 }
-.herberg-bestel-balk:hover { background: rgba(212,170,60,0.26); color: #fff6dd; }
-.herberg-bestel-balk svg { width: 15px; height: 15px; }
+.dienst-bestel-balk:hover { background: rgba(212,170,60,0.26); color: #fff6dd; }
+.dienst-bestel-balk svg { width: 15px; height: 15px; }
+
+/* De regel onder de naam: "tegen Grommel de Tweede". Hetzelfde plekje als een
+   ondertitel elders — direct onder de naam, gecentreerd, en stiller. */
+.dienst-menu-kaart-onder {
+  font-family: 'IM Fell English', serif; font-style: italic; font-size: .8rem;
+  text-align: center; color: rgba(224,206,164,0.66); margin-top: 1px;
+}
+/* Een balk die niets meer te bieden heeft: je ziet dat hij er is, maar niet
+   dat je erop moet drukken. */
+.dienst-bestel-balk:disabled { opacity: .5; cursor: default; }
+.dienst-bestel-balk:disabled:hover { background: rgba(212,170,60,0.12); color: #f0dcaa; }
 
 /* De effectpillen droegen alle drie hetzelfde goud, en dan zegt de kleur
    niets. Zelfde betekenis als elders in de app: genezing groen, tijdelijke HP
    blauw. Hier op een donkere ondergrond, dus de tinten zijn lichter. */
-.herberg-menu-tag--heal {
+.dienst-menu-tag--heal {
   background: rgba(60,170,90,0.16); border-color: rgba(90,200,120,0.45); color: #a8e6b8;
 }
-.herberg-menu-tag--temp {
+.dienst-menu-tag--temp {
   background: rgba(70,130,210,0.16); border-color: rgba(110,170,235,0.45); color: #b4d4f5;
 }
+/* Wat het je kost, en wat er niet meer te halen valt. */
+.dienst-menu-tag--kosten {
+  background: rgba(200,140,50,0.14); border-color: rgba(226,180,96,0.42); color: #f0cf96;
+}
+.dienst-menu-tag--uit {
+  background: rgba(120,40,34,0.26); border-color: rgba(180,80,70,0.45); color: #d89a8e;
+}
+.dienst-menu-tag--heal svg, .dienst-menu-tag--uit svg, .dienst-menu-tag--buff svg { width: 12px; height: 12px; vertical-align: -2px; }
 /* De eigen ondertitel van de DM, onder de soortregel op het kaartje. */
 .vk-onder {
   font-family: 'Crimson Text', serif; font-size: .84em; font-style: italic;
@@ -29876,3 +29873,8 @@ body.wizard-open { overflow: hidden; }
 .dienst-kaart-wrap:hover .dienst-kaart-link { opacity: 1; }
 @media (hover: none) { .dienst-kaart-link { opacity: .8; } }
 .dienst-kaart-link svg { width: 13px; height: 13px; }
+.vd-kleurrij { display: flex; align-items: center; gap: 10px; flex: 1; }
+.vd-kleurveld {
+  width: 44px; height: 30px; padding: 0; cursor: pointer;
+  border: 1px solid rgba(196,168,122,.7); border-radius: 5px; background: none;
+}
