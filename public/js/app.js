@@ -9,7 +9,7 @@ import { renderBestiarium } from './render-bestiarium.js?v=31';
 import { renderSpreuken } from './render-spreuken.js?v=46';
 import { renderVaardigheden, zoekVaardigheden, heldenboekTekst } from './render-vaardigheden.js?v=40';
 import { renderStatblock } from './render-statblock.js?v=9';
-import { initSocket } from "./socket-client.js?v=84";
+import { initSocket } from "./socket-client.js?v=85";
 import { initDmPanel } from "./dm-panel.js?v=394";
 import { COND_INFO, COND_LABEL, COND_MET_PLAATJE, COND_ICON } from './conditions.js?v=2';
 import './media-picker.js?v=9';
@@ -12716,11 +12716,23 @@ async function renderGock() {
           : beschikbaar.length === 0
             ? `<p class="herberg-cooldown-tekst">Er zijn nog geen mensen over wie je iets kunt laten rondgaan.</p>`
             : `
-            <select id="gock-ger-doel" class="herberg-zoek-input">
-              <option value="">Over wie gaat het?</option>
-              ${beschikbaar.map(e => `<option value="${esc(e.id)}|${esc(e.type)}">${esc(e.name)}</option>`).join('')}
-            </select>
-            <textarea id="gock-ger-tekst" class="herberg-zoek-input gock-gerucht-tekst" rows="3"
+            <!-- Stond als keuzelijst terwijl het onderzoek ernaast een
+                 zoeklijst heeft. Twee keer dezelfde vraag ("over wie gaat
+                 het?") op twee manieren; met honderd namen is een dropdown
+                 bovendien onwerkbaar. -->
+            <p class="herberg-teller">Over wie gaat het?</p>
+            <input type="text" class="herberg-zoek-input" placeholder="Typ een naam…"
+              oninput="window._gockGerFilter(this.value)" id="gock-ger-zoek" autocomplete="off">
+            <p class="herberg-zoek-hint" id="gock-ger-hint"></p>
+            <div class="herberg-lijst" id="gock-ger-lijst">
+              ${beschikbaar.map(e => `
+                <button class="herberg-item" data-naam="${esc(e.name.toLowerCase())}"
+                  data-doel="${esc(e.id)}|${esc(e.type)}" style="display:none"
+                  onclick="window._gockGerKies(this)">
+                  <span class="herberg-item-naam">${esc(e.name)}</span>
+                </button>`).join('')}
+            </div>
+            <textarea id="gock-ger-tekst" class="gock-gerucht-tekst" rows="3"
               placeholder="Wat moet er over hem rondgaan? Schrijf het zoals je het aan de bar zou horen."></textarea>
             <!-- Stond op .herberg-knop, en die klasse bestaat nergens in de
                  stylesheet: de knop was al die tijd kale tekst. Dezelfde knop
@@ -12761,6 +12773,37 @@ async function renderGock() {
 
 // Wissel tussen Onderzoek en Geruchten. Zoals bij de herberg: de begroeting
 // hoort bij de helft waar je in staat.
+// Dezelfde zoeklijst als bij het onderzoek: filteren op wat je typt, en wie je
+// aanklikt blijft staan als gekozen doelwit.
+window._gockGerFilter = (q) => {
+  const lijst = document.getElementById('gock-ger-lijst');
+  const hint  = document.getElementById('gock-ger-hint');
+  if (!lijst) return;
+  const term = (q || '').trim().toLowerCase();
+  if (term.length < 2) {
+    lijst.querySelectorAll('.herberg-item').forEach(el => { el.style.display = 'none'; });
+    if (hint) hint.textContent = '';
+    return;
+  }
+  let n = 0;
+  lijst.querySelectorAll('.herberg-item').forEach(el => {
+    const raak = (el.dataset.naam || '').includes(term);
+    el.style.display = raak ? '' : 'none';
+    if (raak) n++;
+  });
+  if (hint) hint.textContent = n ? '' : 'Niemand gevonden.';
+};
+
+window._gockGerKies = (knop) => {
+  document.querySelectorAll('#gock-ger-lijst .herberg-item').forEach(el => el.classList.remove('is-gekozen'));
+  knop.classList.add('is-gekozen');
+  const veld = document.getElementById('gock-ger-zoek');
+  if (veld) veld.value = knop.textContent.trim();
+  document.getElementById('gock-ger-lijst')?.querySelectorAll('.herberg-item')
+    .forEach(el => { if (el !== knop) el.style.display = 'none'; });
+  document.getElementById('gock-ger-tekst')?.focus();
+};
+
 window._gockTab = (naam) => {
   _gockActiveTab = naam;
   document.querySelectorAll('#section-gock .dienst-subtab-panel')
@@ -12789,12 +12832,13 @@ window._ursulaVoorspel = async () => {
 };
 
 window._gockGerucht = async () => {
-  const doel = document.getElementById('gock-ger-doel')?.value || '';
+  const gekozen = document.querySelector('#gock-ger-lijst .herberg-item.is-gekozen');
+  const doel = gekozen?.dataset.doel || '';
   const tekst = document.getElementById('gock-ger-tekst')?.value.trim() || '';
   const [entityId, entityType] = doel.split('|');
-  if (!entityId) { alert('Kies over wie het gaat.'); return; }
-  if (tekst.length < 8) { alert('Schrijf het praatje dat rond moet gaan.'); return; }
-  if (!confirm(`Dit praatje over ${document.getElementById('gock-ger-doel').selectedOptions[0].text} laten rondgaan?\n\n"${tekst}"\n\nDe betaling is meteen; je DM laat weten wanneer het loopt.`)) return;
+  if (!entityId) { _tsToast('Zoek eerst op over wie het gaat.'); return; }
+  if (tekst.length < 8) { _tsToast('Schrijf het praatje dat rond moet gaan.'); return; }
+  if (!confirm(`Dit praatje over ${gekozen.textContent.trim()} laten rondgaan?\n\n"${tekst}"\n\nDe betaling is meteen; je DM laat weten wanneer het loopt.`)) return;
   try {
     await api.gockGerucht({ entityId, entityType, tekst });
     await renderGock();
@@ -12943,15 +12987,22 @@ async function renderWoekeraar() {
           <input id="wk-bedrag-cl" class="dm-input" type="number" min="1" placeholder="0">`}
       </div>
       <div class="wk-vraag-rij">
-        <label class="dm-form-label" for="wk-waarvoor">Waarvoor?</label>
-        <input id="wk-waarvoor" class="dm-input" maxlength="200" placeholder="Hij vraagt het, en hij onthoudt het.">
+        <!-- Waarvoor je het leent is niet verplicht, en het is geen formaliteit:
+             het komt op de schuld te staan en hij haalt het aan in zijn
+             brieven ("Je leende het voor een paard. Dat is jouw zaak."). Dat
+             stond er niet bij, dus het las als een vraag die je moest
+             beantwoorden voordat je geld kreeg. -->
+        <label class="dm-form-label" for="wk-waarvoor">Waarvoor? <span class="wk-optioneel">mag leeg</span></label>
+        <input id="wk-waarvoor" class="dm-input" maxlength="200" placeholder="Hij onthoudt het, en haalt het later aan.">
       </div>
       <!-- De voorwaarden stonden hier als alinea onder het formulier. Dat is
            uitleg, en uitleg hoort in het boekje — dat staat rechtsboven op dit
            scherm. Wat je hier wél moet weten is het plafond: dat is een getal
            waar je je bedrag op afstemt, geen uitleg. -->
       <p class="wk-plafond">Hij leent tot <strong>${geld(cfg.maxLeenCl || 0)}</strong>.</p>
-      <button class="dm-btn dm-btn-primary" onclick="window._wkVraag()">${icon('coins')} Vragen</button>
+      <!-- Stond op de knopvorm van het DM-paneel; elke andere knop op een
+           dienstscherm is een .ts-wedden-btn. -->
+      <button class="ts-wedden-btn wk-vraag-knop" onclick="window._wkVraag()">${icon('coins')} Vraag het hem</button>
     </div>`;
 
   el.innerHTML = `
@@ -13091,13 +13142,17 @@ function _magizooItemBody(m, cooldownActief) {
       ${klaar
         ? `<p class="magizoo-item-klaar">Volledig onderzocht.</p>`
         : `<div class="magizoo-item-acties">
+            <!-- "Onderzoek → Deels" en "Volledig ineens" zeiden niet wat je
+                 koopt. Het zijn twee soorten onderzoek, dus noemen we ze zo. -->
             <button class="ts-wedden-btn magizoo-btn" ${disabled ? 'disabled' : ''}
-              onclick="window._magizooOnderzoek('${esc(m.id)}','stap')">
-              Onderzoek → ${esc(volgendeLabel || '')}</button>
+              onclick="window._magizooOnderzoek('${esc(m.id)}','stap')"
+              title="Eén trede verder: ${esc(volgendeLabel || '')}">
+              Gedeeltelijk onderzoek</button>
             ${m.niveau === 'naam'
               ? `<button class="ts-wedden-btn magizoo-btn magizoo-btn--premium" ${disabled ? 'disabled' : ''}
-                  onclick="window._magizooOnderzoek('${esc(m.id)}','volledig')">
-                  Volledig ineens</button>`
+                  onclick="window._magizooOnderzoek('${esc(m.id)}','volledig')"
+                  title="In één keer alles">
+                  Volledig onderzoek</button>`
               : ''}
           </div>`}`;
 }

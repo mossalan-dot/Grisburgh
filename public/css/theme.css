@@ -28157,7 +28157,7 @@ body.akte-schrijf-open .mp-overlay { z-index: 1320; }
 .shop-verkoop-kop svg { width: 15px; height: 15px; }
 .shop-verkoop-ratio {
   margin-left: auto;
-  font-family: 'EB Garamond', serif;
+  font-family: 'Crimson Text', serif;
   font-style: italic;
   letter-spacing: 0;
   color: var(--color-ink-faint);
@@ -28191,7 +28191,7 @@ body.akte-schrijf-open .mp-overlay { z-index: 1320; }
 .shop-verkoop-leeg {
   padding: 14px 12px;
   text-align: center;
-  font-family: 'EB Garamond', serif;
+  font-family: 'Crimson Text', serif;
   font-style: italic;
   color: var(--color-ink-faint);
 }
@@ -28520,11 +28520,31 @@ body.akte-schrijf-open .mp-overlay { z-index: 1320; }
   color: var(--color-ink-dim); margin-bottom: 8px;
 }
 .gock-gerucht-kop svg { width: 16px; height: 16px; }
-.gock-gerucht-tekst { min-height: 64px; resize: vertical; font-family: 'EB Garamond', serif; }
+/* Het praatje dat je zelf schrijft. Zag er anders uit dan het zoekveld
+   erboven: het vroeg om 'EB Garamond', en die wordt nergens geladen — de
+   browser viel terug op zijn eigen serif. Nu dezelfde doos als de velden
+   ernaast, met het handschrift dat de app voor eigen tekst gebruikt. */
+.gock-gerucht-tekst {
+  width: 100%; box-sizing: border-box; min-height: 72px; resize: vertical;
+  margin-top: 8px; padding: 10px 14px;
+  background: rgba(30, 18, 6, 0.72);
+  border: 1px solid rgba(196,168,122,0.45);
+  border-radius: 8px;
+  color: rgba(240,220,170,0.92);
+  font-family: 'Kalam', cursive; font-size: 0.92rem; line-height: 1.5;
+  outline: none;
+}
+.gock-gerucht-tekst::placeholder { color: rgba(240,220,170,0.38); }
+.gock-gerucht-tekst:focus { border-color: rgba(230,185,100,0.8); }
+/* Wie je koos blijft staan. */
+#gock-ger-lijst .herberg-item.is-gekozen {
+  border-color: rgba(230,185,100,0.75);
+  background: rgba(212,170,60,0.16);
+}
 .gock-gerucht-klein { font-size: 0.75rem; font-style: italic; opacity: .6; margin-top: 6px; text-align: center; }
 .gock-gerucht-wacht { font-style: italic; opacity: .75; text-align: center; }
 .gock-gerucht-wacht svg { width: 14px; height: 14px; vertical-align: -2px; }
-.dm-verzoek-gerucht { width: 100%; margin-top: 5px; resize: vertical; font-family: 'EB Garamond', serif; }
+.dm-verzoek-gerucht { width: 100%; margin-top: 5px; resize: vertical; font-family: 'Crimson Text', serif; }
 
 /* Een featurekaart draagt nu ook zijn ladingen en je aantekening — dat stond in
    een tweede lijst met dezelfde namen erin. */
@@ -29833,6 +29853,11 @@ body.wizard-open { overflow: hidden; }
 /* Het plafond van de woekeraar: een getal waar je je bedrag op afstemt, geen
    uitleg. De voorwaarden eromheen (rente, hoe lang hij telt) staan in het
    boekje rechtsboven. */
+.wk-optioneel {
+  font-family: 'IM Fell English', serif; font-style: italic;
+  font-size: .78em; opacity: .62; text-transform: none; letter-spacing: 0;
+}
+.wk-vraag-knop { margin-top: 4px; padding: 8px 18px; font-size: .86rem; }
 .wk-plafond {
   font-family: 'IM Fell English', serif; font-size: .86rem;
   color: rgba(224,206,164,0.82); margin: 2px 0 8px;

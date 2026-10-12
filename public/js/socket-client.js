@@ -116,6 +116,21 @@ function _ververOpenKaartje(id) {
     }
   });
 
+  // De beurs is veranderd: de DM gaf of nam geld, een lening werd goedgekeurd,
+  // iemand kocht iets uit de gedeelde beurs. De server riep dit al om, maar er
+  // luisterde niemand — en dus bleef het bedrag bovenin een dienstscherm staan
+  // op wat het was toen je binnenkwam.
+  //
+  // Alleen als het over jóú gaat, of over een gedeelde beurs (dan is er geen
+  // characterId en raakt het iedereen).
+  socket.on('player:currency-updated', ({ characterId } = {}) => {
+    const ik = window._lastCharId || null;
+    if (characterId && ik && characterId !== ik) return;
+    const nu = window.app?.state?.activeSection;
+    if (nu && (window.DIENST_VOLGORDE || []).includes(nu)) _refreshSectionDebounced(nu, 150);
+    _refreshSectionDebounced('mijn-karakter', 200);
+  });
+
   socket.on('party-board:updated', () => {
     const section = window.app.state.activeSection;
     if (section === 'logboek' && window._logboekActiveTab === 'prikbord') {
