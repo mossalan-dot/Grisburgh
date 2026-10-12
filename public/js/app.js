@@ -6,8 +6,8 @@ import { renderDungeon } from './render-dungeon.js?v=63';
 import { renderRelatiemap } from './render-relatiemap.js?v=27';
 import { renderProgressie, levelupFeatures } from './render-progressie.js?v=62';
 import { renderBestiarium } from './render-bestiarium.js?v=31';
-import { renderSpreuken } from './render-spreuken.js?v=46';
-import { renderVaardigheden, zoekVaardigheden, heldenboekTekst } from './render-vaardigheden.js?v=41';
+import { renderSpreuken } from './render-spreuken.js?v=47';
+import { renderVaardigheden, zoekVaardigheden, heldenboekTekst } from './render-vaardigheden.js?v=42';
 import { renderStatblock } from './render-statblock.js?v=9';
 import { initSocket } from "./socket-client.js?v=85";
 import { initDmPanel } from "./dm-panel.js?v=396";
@@ -4908,12 +4908,43 @@ window._lvlSchuifHtml = function({ aanwezig, van, tot, schuif, reset }) {
       <div class="sb-lvlschuif-baan">
         <div class="sb-lvlschuif-vulling" style="left:${pct(van)}%;right:${100 - pct(tot)}%"></div>
         <input type="range" class="sb-lvlschuif-input sb-lvlschuif-input--van" min="${min}" max="${max}" step="1" value="${van}"
-          aria-label="Laagste niveau" oninput="${schuif}('van', this.value)">
+          aria-label="Laagste niveau" oninput="${schuif}('van', this.value, this)">
         <input type="range" class="sb-lvlschuif-input sb-lvlschuif-input--tot" min="${min}" max="${max}" step="1" value="${tot}"
-          aria-label="Hoogste niveau" oninput="${schuif}('tot', this.value)">
+          aria-label="Hoogste niveau" oninput="${schuif}('tot', this.value, this)">
       </div>
       <div class="sb-lvlschuif-schaal">${aanwezig.map(l => `<span>${l === 0 ? 'C' : l}</span>`).join('')}</div>
     </div>`;
+};
+
+// Tijdens het slepen mag de baan niet opnieuw getekend worden. Tekenden we de
+// hele filterrij opnieuw bij elke `oninput`, dan verdween de input waar de muis
+// op stond en was de sleep voorbij: je kwam met elke beweging precies één
+// streepje verder. Dit zet alleen de waarden bij, zonder één knoop te
+// vervangen. Geeft `false` terug als de baan niet gevonden is — dan mag de
+// aanroeper alsnog hertekenen.
+window._lvlSchuifBij = function(invoer, { aanwezig, van, tot, reset }) {
+  const baan = invoer && invoer.closest ? invoer.closest('.sb-lvlschuif') : null;
+  if (!baan) return false;
+  const min = aanwezig[0], max = aanwezig[aanwezig.length - 1];
+  const pct = (v) => max === min ? 0 : ((v - min) / (max - min)) * 100;
+  const vul = baan.querySelector('.sb-lvlschuif-vulling');
+  if (vul) { vul.style.left = `${pct(van)}%`; vul.style.right = `${100 - pct(tot)}%`; }
+  const waarde = baan.querySelector('.sb-lvlschuif-waarde');
+  if (waarde) waarde.textContent = van === tot ? _sbLvlLabel(van) : `${_sbLvlLabel(van)} — ${_sbLvlLabel(tot)}`;
+  // Het andere bolletje kan meegeduwd zijn; dat van de sleep zelf krijgt geen
+  // nieuwe waarde, anders springt hij onder je muis vandaan.
+  const vanIn = baan.querySelector('.sb-lvlschuif-input--van');
+  const totIn = baan.querySelector('.sb-lvlschuif-input--tot');
+  if (vanIn && vanIn !== invoer) vanIn.value = van;
+  if (totIn && totIn !== invoer) totIn.value = tot;
+  // "alles" hoort er te staan zodra je niet meer het hele bereik toont.
+  const kop = baan.querySelector('.sb-lvlschuif-kop');
+  const knop = kop ? kop.querySelector('.sb-lvlschuif-reset') : null;
+  const nodig = van !== min || tot !== max;
+  if (nodig && !knop && kop) kop.insertAdjacentHTML('beforeend',
+    `<button class="sb-lvlschuif-reset" onclick="${reset}()">${icon('x')} alles</button>`);
+  if (!nodig && knop) knop.remove();
+  return true;
 };
 
 // Twee bolletjes op één baan mogen elkaar niet passeren: dan is het bereik
@@ -4964,10 +4995,11 @@ function _sbAddSpRenderFilters() {
     </div>`;
 }
 window._sbAddSpFilterOpen = function() { _addSp.ladeOpen = !_addSp.ladeOpen; _sbAddSpRenderFilters(); };
-window._sbAddSpLevelSchuif = function(welk, waarde) {
+window._sbAddSpLevelSchuif = function(welk, waarde, invoer) {
   const aanwezig = [...new Set(_sbAddSpPool().map(s => s.level || 0))].sort((a, b) => a - b);
   Object.assign(_addSp, window._lvlSchuifStap(welk, waarde, aanwezig, _addSp));
-  _sbAddSpRenderFilters(); _sbAddSpRenderList();
+  if (!window._lvlSchuifBij(invoer, { aanwezig, van: _addSp.van, tot: _addSp.tot, reset: 'window._sbAddSpLevelReset' })) _sbAddSpRenderFilters();
+  _sbAddSpRenderList();
 };
 window._sbAddSpLevelReset = function() {
   _addSp.van = null; _addSp.tot = null;

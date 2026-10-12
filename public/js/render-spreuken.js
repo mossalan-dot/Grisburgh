@@ -908,10 +908,12 @@ window.spreuken = {
     window._fpOnChange = null;   // anders schrijft de volgende kiezer nog naar een spreuk
   },
   search(v)    { _filters.q = v; _paintGrid(); },
-  setLvlBereik(welk, waarde) {
+  setLvlBereik(welk, waarde, invoer) {
     const aanwezig = [...new Set((_all || []).map(s => Number(s.level) || 0))].sort((a, b) => a - b);
     Object.assign(_filters, window._lvlSchuifStap(welk, waarde, aanwezig, _filters));
-    _refreshFilterBar(); _paintGrid();
+    // Niet de hele filterbalk hertekenen zolang je sleept — zie `_lvlSchuifBij`.
+    if (!window._lvlSchuifBij(invoer, { aanwezig, van: _filters.van, tot: _filters.tot, reset: 'window.spreuken.resetLvlBereik' })) _refreshFilterBar();
+    _paintGrid();
   },
   resetLvlBereik() { _filters.van = null; _filters.tot = null; _refreshFilterBar(); _paintGrid(); },
   setKlasse(k) { _filters.klasse = k || null; _paintGrid(); },

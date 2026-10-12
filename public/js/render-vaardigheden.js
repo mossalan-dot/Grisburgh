@@ -1060,6 +1060,20 @@ function _bandHtml() {
 
   if (!_filters.bron) return `<div class="vaardig-band vd-open">${_bannerHtml(d)}${_tegelsHtml(d)}</div>`;
 
+  return `<div class="vaardig-band vd-open" data-stand="${esc(_bandStand())}">
+    ${_bannerHtml(d, { klein: true })}
+    ${_vlakHtml()}
+  </div>`;
+}
+
+// Waar de band op staat: welke deur open is en welke bron daarin gekozen is.
+// Zolang dat gelijk blijft hoeft de banner niet opnieuw neergezet te worden —
+// zie `_bandHerteken`.
+function _bandStand() { return `${_deur || ''}|${_filters.bron || ''}`; }
+
+// Het vlak onder de banner: het kaartje van waar je op staat, het kaartje van
+// de subclass die je aanwees, en de kolom om uit te kiezen.
+function _vlakHtml() {
   // Het kaartje van waar je op staat. Bij een class blijft het staan als je een
   // subclass aanvinkt: een Battle Master is een Fighter die iets extra's heeft,
   // dus zijn hit die verdwijnt niet omdat je zijn subclass aanwijst.
@@ -1089,13 +1103,10 @@ function _bandHtml() {
          <button class="vd-subblader-knop" onclick="window.vaardigheden.subKaartBlader(1)" title="Volgende">${icon('chevron-right')}</button>
        </div>` : ''}` : '';
   const delen = 1 + (subKaart ? 1 : 0) + (subKolom ? 1 : 0);
-  return `<div class="vaardig-band vd-open">
-    ${_bannerHtml(d, { klein: true })}
-    <div class="vd-klasvlak vd-klasvlak--${delen}">
-      <div class="vd-klaskaart">${kaart}</div>
-      ${subKaart ? `<div class="vd-klaskaart vd-klaskaart--sub">${subKaart}</div>` : ''}
-      ${subKolom}
-    </div>
+  return `<div class="vd-klasvlak vd-klasvlak--${delen}">
+    <div class="vd-klaskaart">${kaart}</div>
+    ${subKaart ? `<div class="vd-klaskaart vd-klaskaart--sub">${subKaart}</div>` : ''}
+    ${subKolom}
   </div>`;
 }
 
@@ -1220,7 +1231,19 @@ function _cinematisch() {
 
 function _bandHerteken() {
   const el = document.getElementById('vaardig-band');
-  if (el) el.innerHTML = _bandHtml();
+  if (!el) return;
+  // Alleen het vlak eronder hertekenen zolang je binnen dezelfde deur en
+  // dezelfde class blijft. De banner opnieuw neerzetten gaf hem elke klik zijn
+  // openklap-animatie terug (`vd-open`, .34s) en liet zijn plaat opnieuw
+  // inladen — dat zag je als een flikkering van de balk boven de kaartjes
+  // zodra je door aangevinkte subklassen klikte.
+  const band = el.querySelector('.vaardig-band');
+  const vlak = el.querySelector('.vd-klasvlak');
+  if (band && vlak && !(_filters.q || '').trim() && band.dataset.stand === _bandStand()) {
+    vlak.outerHTML = _vlakHtml();
+    return;
+  }
+  el.innerHTML = _bandHtml();
 }
 
 function _refreshFilterBar() {
