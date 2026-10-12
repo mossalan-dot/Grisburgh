@@ -29987,3 +29987,52 @@ body.wizard-open { overflow: hidden; }
   .sb-arrow-btn--prev { left: 8px; }
   .sb-arrow-btn--next { right: 38px; }
 }
+
+/* ── "Je komt tekort" ─────────────────────────────────────────────────────
+   Eén blok, op elk dienstscherm hetzelfde: wat je mist, dat er hier niet
+   wordt aangeschreven, en de deur van de woekeraar. Donker, want het hoort
+   bij de dienstschermen. */
+.dienst-tekort {
+  margin: 10px 0 4px; padding: 12px 14px;
+  background: rgba(30, 18, 6, 0.62);
+  border: 1px solid rgba(196,168,122,0.28);
+  border-left: 3px solid rgba(200,140,50,0.65);
+  border-radius: 9px;
+  display: flex; flex-direction: column; align-items: flex-start; gap: 6px;
+  backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px);
+}
+.dienst-tekort-regel {
+  margin: 0; font-family: 'Cinzel', serif; font-size: .9rem; color: #f0cf96;
+  display: flex; align-items: center; gap: 7px;
+}
+.dienst-tekort-regel .icon { width: 15px; height: 15px; }
+.dienst-tekort-regel strong { color: #fff0cc; }
+.dienst-tekort-sub {
+  margin: 0; font-family: 'IM Fell English', serif; font-style: italic;
+  font-size: .86rem; color: rgba(224,206,164,0.78);
+}
+
+/* ── Een telefoon dwars: breed maar laag ──────────────────────────────────
+   De smalle-schermregels kijken naar de breedte, en een gedraaide telefoon is
+   667 tot 932 px breed — die vallen er dus buiten. Maar hij is nog maar 375
+   tot 430 px hóóg, en dan ligt het dobbeltabje op `bottom: 96px` precies
+   middenin: op een keuzelijst, op de bladerpijl van het spreukenboek. */
+@media (max-height: 480px) {
+  .dice-fab, .dm-dice-fab {
+    top: auto;
+    bottom: 10px;
+    right: 0;
+    transform: none;
+    width: 24px;
+    height: 46px;
+    border-radius: 10px 0 0 10px;
+    border-right: 0;
+    opacity: .82;
+  }
+  .dm-dice-fab { bottom: 62px; }
+  .dice-fab:hover, .dm-dice-fab:hover,
+  .dice-fab:active, .dm-dice-fab:active { transform: none; opacity: 1; width: 24px; }
+  /* De bladerpijlen staan hier nog verticaal gecentreerd aan de rand; de
+     rechter schuift op zodat hij het tabje niet raakt. */
+  .sb-arrow-btn--next { right: 34px; }
+}

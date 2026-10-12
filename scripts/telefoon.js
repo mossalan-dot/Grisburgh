@@ -14,6 +14,7 @@
 //
 //   npm run telefoon                      # alle schermen, als DM
 //   node scripts/telefoon.js --volledig    # de hele pagina i.p.v. alleen het scherm
+//   node scripts/telefoon.js --liggend     # gedraaid (breedte en hoogte verwisseld)
 //   node scripts/telefoon.js --speler      # als speler (SPELER + SPELER_WW)
 //   node scripts/telefoon.js --toestel "iPhone SE" --tab spreukenboek
 //
@@ -48,6 +49,11 @@ const tab      = arg('tab') || 'personage';
 const alleen   = arg('toestel');
 const uitMap   = arg('uit') || path.join(os.tmpdir(), 'grisburgh-telefoon');
 const heelPagina = !!arg('volledig', false);
+// Gedraaid kijken: dezelfde toestellen, breedte en hoogte verwisseld. Sommige
+// schermen hebben een eigen opmaak rechtop (het spreukenboek zet zijn twee
+// bladzijden dan onder elkaar), dus allebei nalopen is de enige manier om te
+// weten of ze het allebei doen.
+const liggend  = !!arg('liggend', false);
 const poort    = 9345;
 
 fs.mkdirSync(uitMap, { recursive: true });
@@ -103,23 +109,46 @@ const chrome = spawn('/Applications/Google Chrome.app/Contents/MacOS/Google Chro
     const naam = (el) => ((el.className && el.className.toString && el.className.toString()) || el.tagName).slice(0, 48);
     const zichtbaar = (el) => !el.checkVisibility || el.checkVisibility({ visibilityProperty: true, opacityProperty: true });
 
+    // **Wat je er werkelijk van ziet.** Een element kan ver buiten zijn ouder
+    // steken en toch onzichtbaar zijn: het spreukenboek heeft overflow:hidden,
+    // dus het dichtgeschoven zijpaneel staat geometrisch naast het boek maar
+    // visueel nergens. Zonder deze stap meldt de controle dat als "afgesneden"
+    // en kijk je een halve avond naar iets dat niet stuk is.
+    const zichtRect = (el) => {
+      let r = el.getBoundingClientRect();
+      let box = { l: r.left, t: r.top, r: r.right, b: r.bottom };
+      for (let p = el.parentElement; p && p !== document.documentElement; p = p.parentElement) {
+        const c = getComputedStyle(p);
+        if (c.overflowX === 'visible' && c.overflowY === 'visible') continue;
+        const q = p.getBoundingClientRect();
+        box = { l: Math.max(box.l, q.left), t: Math.max(box.t, q.top),
+                r: Math.min(box.r, q.right), b: Math.min(box.b, q.bottom) };
+        if (box.r <= box.l || box.b <= box.t) return null;
+      }
+      return box;
+    };
+
+    // **Afgesneden**: een element begint binnen het scherm en loopt eroverheen.
+    // De pagina scrolt niet horizontaal, dus wat eruit steekt is weg. Een
+    // paneel dat helemaal buiten beeld geparkeerd staat telt niet mee.
     const afgesneden = [];
     document.querySelectorAll('body *').forEach(el => {
-      const r = el.getBoundingClientRect();
-      if (r.width < 1 || r.height < 1 || !zichtbaar(el)) return;
-      const steekt = (r.right > vw + 1 && r.left < vw - 1) || (r.left < -1 && r.right > 1);
+      if (!zichtbaar(el)) return;
+      const b = zichtRect(el);
+      if (!b || b.r - b.l < 1 || b.b - b.t < 1) return;
+      const steekt = (b.r > vw + 1 && b.l < vw - 1) || (b.l < -1 && b.r > 1);
       if (!steekt) return;
-      if ([...el.children].some(k => { const q = k.getBoundingClientRect();
-        return (q.right > vw + 1 && q.left < vw - 1) || (q.left < -1 && q.right > 1); })) return;
-      afgesneden.push(naam(el) + ' (' + Math.round(r.left) + '→' + Math.round(r.right) + ')');
+      if ([...el.children].some(k => { const q = zichtRect(k);
+        return q && ((q.r > vw + 1 && q.l < vw - 1) || (q.l < -1 && q.r > 1)); })) return;
+      afgesneden.push(naam(el) + ' (' + Math.round(b.l) + '→' + Math.round(b.r) + ')');
     });
 
-    // Vastgezette knoppen die ergens bovenop liggen.
+    // **Bedekt**: een vastgezette knop ligt boven iets waar je op moet tikken.
     const bedekt = [];
     document.querySelectorAll('body *').forEach(el => {
-      if (getComputedStyle(el).position !== 'fixed') return;
+      if (getComputedStyle(el).position !== 'fixed' || !zichtbaar(el)) return;
       const r = el.getBoundingClientRect();
-      if (r.width < 1 || r.width > 120 || !zichtbaar(el)) return;
+      if (r.width < 1 || r.width > 120) return;
       const punten = [[r.left + 3, r.top + r.height / 2], [r.left + r.width / 2, r.top + 3]];
       for (const [x, y] of punten) {
         const onder = document.elementsFromPoint(x, y).find(k => !el.contains(k)
@@ -135,8 +164,9 @@ const chrome = spawn('/Applications/Google Chrome.app/Contents/MacOS/Google Chro
   let problemen = 0;
   for (const t of TOESTELLEN) {
     if (alleen && !t.naam.toLowerCase().includes(String(alleen).toLowerCase())) continue;
+    const [bw, bh] = liggend ? [t.h, t.b] : [t.b, t.h];
     await stuur('Emulation.setDeviceMetricsOverride',
-      { width: t.b, height: t.h, deviceScaleFactor: t.dpr, mobile: true });
+      { width: bw, height: bh, deviceScaleFactor: t.dpr, mobile: true });
     await stuur('Page.navigate', { url }); await wacht(3200);
     await stuur('Runtime.evaluate', { awaitPromise: true, returnByValue: true,
       expression: `(async()=>{window._setPlayerSubTab&&window._setPlayerSubTab(${JSON.stringify(tab)});`
@@ -148,13 +178,13 @@ const chrome = spawn('/Applications/Google Chrome.app/Contents/MacOS/Google Chro
     // van in beeld — dan staat het dobbeltabje op de foto ergens onderaan
     // terwijl het in werkelijkheid middenin je scherm hangt, en klopt de foto
     // niet meer met de meting. Wil je de hele pagina: --volledig.
-    const bestand = path.join(uitMap, t.naam.replace(/\s+/g, '-').toLowerCase() + '.png');
+    const bestand = path.join(uitMap, t.naam.replace(/\s+/g, '-').toLowerCase() + (liggend ? '-liggend' : '') + '.png');
     const foto = await stuur('Page.captureScreenshot', { format: 'png', captureBeyondViewport: heelPagina });
     fs.writeFileSync(bestand, Buffer.from(foto.data, 'base64'));
 
     const buiten = m.buiten || [], bedekt = m.bedekt || [];
     problemen += buiten.length + bedekt.length;
-    console.log(`\n${t.naam}  ${t.b}×${t.h} @${t.dpr}x`);
+    console.log(`\n${t.naam}  ${bw}×${bh} @${t.dpr}x${liggend ? ' (liggend)' : ''}`);
     console.log(`  foto: ${bestand}`);
     if (m.scroll > m.vw) console.log(`  ⚠ de pagina is ${m.scroll - m.vw}px breder dan het scherm`);
     if (!buiten.length && !bedekt.length) console.log('  ✓ alles past en niets ligt in de weg');

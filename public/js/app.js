@@ -4469,6 +4469,44 @@ window._sbNext = function() {
   window._sbGoTo((_sbState.idx + 1) % n);
 };
 
+// ════════════════════════════════════════════════════════════════════════════
+//  JE KOMT TEKORT — DE VERWIJZING NAAR DE WOEKERAAR
+// ════════════════════════════════════════════════════════════════════════════
+// Het gokhuis liet de geldschieter ter plekke een lening aanbieden: een eigen
+// knop, een eigen route, een eigen bedrag en een eigen rentevoet naast die van
+// de woekeraar. Twee plekken die hetzelfde doen lopen uit elkaar, en de speler
+// kreeg een schuld zonder ooit bij de schuldeiser langs te zijn geweest.
+//
+// Nu doet een dienst één ding: hij constateert dat je tekortkomt en noemt de
+// man die er wél over gaat. Het lenen zelf gebeurt op zijn eigen scherm, langs
+// zijn eigen regels, en met de goedkeuring van de DM die daar al zit.
+//
+// Staat de woekeraar uit of is hij voor deze party nog verborgen, dan blijft
+// alleen de constatering staan — geen verwijzing naar een deur die niet
+// bestaat.
+window._tekortHtml = function(tekortCl, dienstNaam = '') {
+  const bedrag = window.formatCl ? window.formatCl(tekortCl) : `${tekortCl} cl`;
+  // Zonder eigen naam heet hij "de woekeraar" — met een kleine letter, want
+  // het is geen naam. Aan het begin van een zin moet hij wel omhoog.
+  const naam = window.app?.state?.meta?.woekeraar?.naam || 'de woekeraar';
+  const Naam = naam.charAt(0).toUpperCase() + naam.slice(1);
+  // Drie sloten, en ze moeten alle drie open staan: de module aan, de akte
+  // laat hem toe, en deze party heeft hem al ontmoet.
+  const uit = (window.app?.state?.meta?.verborgen?.secties || []).includes('woekeraar');
+  const kan = !uit && !window._dienstDicht('woekeraar')
+    && _getDienstToegang('woekeraar') === 'beschikbaar';
+  return `
+    <div class="dienst-tekort">
+      <p class="dienst-tekort-regel">${icon('coins')} Je komt <strong>${esc(bedrag)}</strong> tekort${dienstNaam ? ` bij ${esc(dienstNaam)}` : ''}.</p>
+      ${kan ? `
+        <p class="dienst-tekort-sub">Hier wordt niet aangeschreven. ${esc(Naam)} leent wel — tegen zijn voorwaarden.</p>
+        <button class="ts-wedden-btn" onclick="window._naarWoekeraar()">${icon('arrow-up-right')} Ga langs ${esc(naam)}</button>`
+        : '<p class="dienst-tekort-sub">Hier wordt niet aangeschreven.</p>'}
+    </div>`;
+};
+
+window._naarWoekeraar = () => window.app.switchSection('woekeraar');
+
 // Flashy dice roll overlay
 // De grote gloeiende worp uit het spreukenboek. Hij stond alleen daar, terwijl
 // het de mooiste weergave is die de app heeft: hij landt midden op wat je aan
@@ -13873,16 +13911,9 @@ window._tsWedden = async (eventId, optieId) => {
   const heeftCl = currency ? (currency.fl * 100 + currency.kn * 10 + currency.cl) : Infinity;
 
   if (bedragCl > heeftCl) {
-    const tekortCl = bedragCl - heeftCl;
-    // Het plafond komt van de server (meta.tweespalt.geldschieter.maxLeenCl);
-    // hier stond een kale 10000 die nergens anders bekend was — en de route
-    // eronder kende hem helemaal niet.
-    const _max = _tsGeldschieter().maxLeenCl;
-    if (tekortCl > _max) {
-      _tsToast(`Onvoldoende saldo. ${_tsGeldschieterNaam()} leent hoogstens ${formatCl(_max)}.`);
-      return;
-    }
-    _tsLeenPrompt(eventId, optieId, tekortCl);
+    // Het gokhuis leende hier zelf uit, met een eigen knop en een eigen route.
+    // Nu wijst het alleen de weg; zie `window._tekortHtml`.
+    _tsTekortTonen(eventId, optieId, bedragCl - heeftCl);
     return;
   }
 
@@ -13895,50 +13926,13 @@ window._tsWedden = async (eventId, optieId) => {
   }
 };
 
-function _tsLeenPrompt(eventId, optieId, tekortCl) {
-  const fl = Math.floor(tekortCl / 100), kn = Math.ceil((tekortCl % 100) / 10);
-  const leenBedrag = { fl, kn: kn + 1, cl: 0 };
-  const leenCl = leenBedrag.fl * 100 + leenBedrag.kn * 10;
-  const leenTekst = [leenBedrag.fl && `${leenBedrag.fl} fl`, leenBedrag.kn && `${leenBedrag.kn} kn`].filter(Boolean).join(' en ');
-
-  const gs = _tsGeldschieter();
-  const gsNaam = _tsGeldschieterNaam();
-  const taevinPortret = gs.entityId ? api.thumbUrl(gs.entityId) : '';
-
-  const bubble = document.createElement('div');
-  bubble.className = 'ts-taevin-bubble';
-  bubble.innerHTML = `
-    <div class="ts-taevin-hoofd">
-      ${taevinPortret ? `<img src="${taevinPortret}" class="ts-taevin-portret" alt="${esc(gsNaam)}">` : ''}
-      <div class="ts-taevin-bericht">
-        <p class="ts-taevin-tekst">
-          <em>Psst… beetje krap bij kas, vriend? Lenen kan altijd, uiteraard tegen een heel vriendschappelijk prijsje.</em>
-        </p>
-        <p class="ts-taevin-sub">${esc(gsNaam)} kan je <strong>${leenTekst}</strong> lenen — ${gs.rentePerRust}% rente per nacht dat de party rust.</p>
-      </div>
-    </div>
-    <div class="ts-taevin-knoppen">
-      <button class="ts-btn ts-btn--gevaar" id="ts-leen-ja">Akkoord, leen me het geld</button>
-      <button class="ts-btn ts-btn--ghost" id="ts-leen-nee">Laat maar zitten</button>
-    </div>`;
-
+function _tsTekortTonen(eventId, optieId, tekortCl) {
+  document.querySelector('.dienst-tekort')?.remove();
+  const bak = document.createElement('div');
+  bak.innerHTML = window._tekortHtml(tekortCl, window._dienstNaam('tweespalt'));
+  const vak = bak.firstElementChild;
   const form = document.getElementById(`ts-form-${eventId}-${optieId}`);
-  if (form) form.after(bubble);
-
-  document.getElementById('ts-leen-nee')?.addEventListener('click', () => bubble.remove());
-  document.getElementById('ts-leen-ja')?.addEventListener('click', async () => {
-    try {
-      await api.leenTweespalt(leenBedrag);
-      bubble.remove();
-      const inputEl2 = document.getElementById(`ts-fl-input-${eventId}-${optieId}`);
-      const parsed2 = _tsParseInzet(inputEl2?.value) || { fl: 0, kn: 0, cl: 0 };
-      await api.weddenTweespalt(eventId, { optieId, bedrag: { fl: parsed2.fl, kn: parsed2.kn, cl: parsed2.cl } });
-      await renderTweespalt();
-      _tsToast(`${icon('scroll-text')} Geleend van ${gsNaam}. Schuldbewijs in je knapzak.`);
-    } catch (err) {
-      _tsToast(err.message || 'Fout.');
-    }
-  });
+  if (form) form.after(vak); else _tsToast('Je komt tekort.');
 }
 
 // ── Facties & Aanzien (speler-sectie) ──────────────────────────────────────
@@ -15341,8 +15335,8 @@ const HELP_CONFIG = {
           afbeelding: null,
         },
         {
-          titel: 'Leningen',
-          tekst: `Als je goud tekortkomt kun je een lening afsluiten bij ${_tsGeldschieterNaam()}. De rente loopt per nacht dat de party rust, niet per dag op de kalender — en hij telt tot vijf keer de hoofdsom. Daarna stopt hij met tellen en komt hij het halen.`,
+          titel: 'Als je tekortkomt',
+          tekst: `Hier wordt niet aangeschreven. Zet je meer in dan er in je beurs zit, dan zegt het gokhuis alleen dát je tekortkomt en wijst het je naar ${window.app?.state?.meta?.woekeraar?.naam || 'de woekeraar'} — lenen gebeurt op zijn eigen scherm, langs zijn eigen regels en met goedkeuring van de DM.\n\nDat liep hier vroeger binnendoor: je kreeg een schuld zonder ooit bij de schuldeiser langs te zijn geweest, met een rentevoet die los stond van de zijne.`,
           afbeelding: null,
         },
       ],
