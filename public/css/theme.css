@@ -12356,7 +12356,15 @@ body.herberg-actief #app { position: relative; z-index: 1; }
 .herberg-search:focus { outline: none; border-color: rgba(212,168,67,0.65); background: rgba(30,18,6,0.85); }
 
 /* Lijst */
-.herberg-lijst { display: flex; flex-direction: column; gap: 5px; max-height: 260px; overflow-y: auto; }
+/* `scrollbar-gutter: stable` houdt de breedte gelijk of er nu wel of niet
+   gescrold wordt — anders versprong de achtergrond van een dienstscherm zodra
+   er een balk bijkwam (die neemt breedte, en een `cover`-achtergrond
+   herschaalt dan mee). De padding houdt de balk los van de rand. */
+.herberg-lijst {
+  display: flex; flex-direction: column; gap: 5px;
+  max-height: 260px; overflow-y: auto;
+  scrollbar-gutter: stable; padding-right: 4px;
+}
 .herberg-item-row { display: flex; align-items: center; gap: 6px; }
 .herberg-item-row .herberg-item { flex: 1; min-width: 0; }
 .herberg-item-card-btn {
@@ -21506,7 +21514,10 @@ video.prog-detail-art { width: 100%; height: 180px; object-fit: cover; border-ra
 .magizoo-tier--volledig { color: #a8e6b8; background: rgba(60,170,90,0.16); border-color: rgba(90,200,120,0.45); }
 .magizoo-item-bron { color: #a8e6b8; display: inline-flex; }
 .magizoo-item-bron .icon { width: 14px; height: 14px; }
-.magizoo-item-acties { display: flex; gap: 8px; margin-top: 8px; flex-wrap: wrap; }
+/* Twee knoppen die hetzelfde aanbieden in twee maten horen naast elkaar; ze
+   braken af omdat de kolom smal is en ze niet mochten krimpen. */
+.magizoo-item-acties { display: flex; gap: 8px; margin-top: 8px; flex-wrap: nowrap; }
+.magizoo-item-acties .magizoo-btn { flex: 1 1 0; min-width: 0; text-align: center; white-space: nowrap; }
 .magizoo-btn { font-size: 0.82rem; padding: 6px 12px; }
 .magizoo-btn--premium { background: rgba(60,170,90,0.16); border-color: rgba(90,200,120,0.45); color: #a8e6b8; }
 .magizoo-btn--premium:hover { background: rgba(60,170,90,0.28); }
@@ -25923,13 +25934,22 @@ body.lade-open .dm-regie-balk-inner { height: auto; }
   position: absolute; left: 13px; top: 50%; transform: translateY(-50%);
   width: 16px; height: 16px; color: #c8a870; pointer-events: none;
 }
-.markt-beurs {
+/* Eén beurs voor de hele app: een pil met het muntje erin. Hij stond er op
+   drie manieren — als pil met volle muntnamen op de markt, als kale tekst met
+   afkortingen in de dienstkoppen, en in een winkel helemaal niet. */
+.markt-beurs, .dienst-beurs {
   display: inline-flex; align-items: center; gap: 7px;
   font-family: 'Cinzel', serif; font-size: 0.82rem; color: #d4b068;
   background: rgba(30,18,6,0.6); border: 1px solid rgba(196,168,122,0.3);
   border-radius: 999px; padding: 7px 15px; white-space: nowrap;
 }
-.markt-beurs .icon { width: 14px; height: 14px; }
+.markt-beurs .icon, .dienst-beurs .icon { width: 14px; height: 14px; }
+.dienst-beurs { margin-right: auto; }
+
+/* De kaartjes onder de klassenband lagen vijftien pixel buiten de band erboven,
+   want die band heeft eigen padding en het raster niet. Niets is zo zichtbaar
+   als twee randen die net niet onder elkaar staan. */
+#section-vaardigheden .cards-grid { padding-left: 15px; padding-right: 15px; }
 
 .markt-sectie-kop {
   display: flex; align-items: center; gap: 7px;
@@ -28533,7 +28553,11 @@ body.akte-schrijf-open .mp-overlay { z-index: 1320; }
   border: 1px solid rgba(196,168,122,0.45);
   border-radius: 8px;
   color: rgba(240,220,170,0.92);
-  font-family: 'Kalam', cursive; font-size: 0.92rem; line-height: 1.5;
+  /* Zelfde letter als het zoekveld erboven. Het stond op 'Kalam' (handschrift)
+     en dat sprong eruit naast een veld dat IM Fell gebruikt — twee velden van
+     hetzelfde formulier horen dezelfde stem te hebben. */
+  font-family: 'IM Fell English', serif; font-style: italic;
+  font-size: 0.92rem; line-height: 1.5;
   outline: none;
 }
 .gock-gerucht-tekst::placeholder { color: rgba(240,220,170,0.38); }
@@ -30081,6 +30105,13 @@ body.wizard-open { overflow: hidden; }
    dobbelnotatie in de tekst is een knop. */
 body:has(#sb-overlay.sb-open) .dice-fab,
 body:has(#sb-overlay.sb-open) .dm-dice-fab { display: none !important; }
+
+/* Een dienstscherm scrolt zelf; komt daar een balk bij, dan werd het vlak
+   smaller en herschaalde de `cover`-achtergrond — de hele plaat versprong
+   terwijl je aan het typen was. Een vaste goot houdt de breedte gelijk. */
+.section-content, #section-gock, #section-herberg, #section-magizoo,
+#section-tempel, #section-tweespalt, #section-ursula, #section-woekeraar,
+#section-markt, #section-facties { scrollbar-gutter: stable; }
 
 /* ── Een telefoon dwars: breed maar laag ──────────────────────────────────
    De smalle-schermregels kijken naar de breedte, en een gedraaide telefoon is

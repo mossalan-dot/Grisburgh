@@ -11992,7 +11992,7 @@ function _marktTeken() {
               oninput="window._marktZoek(this.value)">
           </div>
           ${_marktData.beurs ? `<div class="markt-beurs" title="Wat de party te besteden heeft">
-            ${icon('coins')} ${esc(_muntTekst(_marktData.beurs))}
+            ${icon('coins')} ${esc(_magizooBeurs(_marktData.beurs))}
           </div>` : ''}
         </div>
         ${(_marktFilterOpen || _marktGebied || _marktFactie) ? `
@@ -12110,6 +12110,9 @@ function _marktWinkelTeken(el) {
         <div class="markt-winkel-balk">
           <button class="markt-terug" onclick="window._marktTerug()">
             ${icon('chevron-left')} Terug naar de markt</button>
+          <!-- Een winkel toonde als enige plek waar je geld uitgeeft helemaal
+               geen bedrag. -->
+          ${window._beursPil?.(_marktData?.beurs) ?? ''}
           ${window._helpBtn?.('winkel') ?? ''}
         </div>
         ${eig
@@ -12273,6 +12276,14 @@ function prijsTekst(p) {
 // laad- en foutstand niet meer dertien keer woordelijk in dit bestand staat.
 //
 // Nieuwe dienst? Begin met deze twee, dan ziet hij er meteen uit als de rest.
+// De beurs, overal hetzelfde. Hij stond er op drie manieren: als pil met de
+// volle muntnamen (de markt), als kale tekst met afkortingen (de dienstkoppen)
+// en nergens (de winkels). Eén pil met het muntje erin, en de afkortingen —
+// want in een kop is "99469 Florinde · 8 Knaker · 9 Centeling" een regel die
+// de knoppen ernaast van het scherm duwt.
+window._beursPil = (currency, titel = 'Wat je te besteden hebt') =>
+  currency ? `<span class="dienst-beurs" title="${esc(titel)}">${icon('coins')} ${_magizooBeurs(currency)}</span>` : '';
+
 // ════════════════════════════════════════════════════════════════════════════
 //  DE KOP VAN EEN DIENSTSCHERM — ÉÉN KEER
 // ════════════════════════════════════════════════════════════════════════════
@@ -12287,8 +12298,7 @@ function prijsTekst(p) {
 // precies één regel, uit hetzelfde veld: `naam`, wat de DM deze dienst noemde.
 // Wie er staat zie je aan het portret erboven en hoor je in de groet eronder.
 function _dienstKop({ sleutel, naam = '', portret = '', groet = '', groetData = '', currency = null }) {
-  const beurs = currency
-    ? `<span class="ts-beurs tempel-beurs-top">Beurs: <strong>${_magizooBeurs(currency)}</strong></span>` : '';
+  const beurs = window._beursPil(currency);
   return `
     <div class="dienst-beurs-topbar">
       ${beurs}
