@@ -10955,6 +10955,13 @@ body.lade-dicht .regie-lade-body { display: none; }
   grid-template-columns: repeat(6, 1fr);
   gap: 8px;
 }
+/* Op een telefoon passen er geen zes naast elkaar: de zesde (Charisma) viel
+   buiten het scherm, en omdat de pagina zelf niet horizontaal scrollt was hij
+   simpelweg weg. Twee rijen van drie — dezelfde maat die het overzicht in de
+   meesterkamer (.co-ability-grid) al hanteert. */
+@media (max-width: 560px) {
+  .player-ability-grid { grid-template-columns: repeat(3, 1fr); }
+}
 .player-ability-card {
   display: flex;
   flex-direction: column;
@@ -11018,6 +11025,12 @@ body.lade-dicht .regie-lade-body { display: none; }
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 1px 16px;
+}
+/* Eén kolom op een telefoon. Een vaardigheidsregel heeft een bolletje, een
+   bonus, een naam, de ability en de stappertjes nodig; twee van die regels
+   naast elkaar liepen rechts het scherm uit, met de stappertjes als eerste. */
+@media (max-width: 560px) {
+  .player-skills-list { grid-template-columns: 1fr; }
 }
 .player-skill-row {
   display: flex;

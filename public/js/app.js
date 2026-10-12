@@ -7995,19 +7995,25 @@ async function renderMijnKarakter(opts = {}) {
       </div>
 
       <!-- Subtab nav -->
+      <!-- De volgorde loopt van samen naar alleen: eerst de groep, dan je
+           personage, dan wat je kunt, dan wat je hebt, dan je boek — en de
+           twee die van buiten komen (facties, berichten) achteraan.
+           De kopjes zijn hier Nederlands. De spelterm blijft Engels waar hij
+           een spelterm is (een feature heet een feature op een kaartje), maar
+           een tabblad is navigatie, en daar leest de app Nederlands. -->
       <div class="player-subtabs">
         <button class="player-subtab${_playerSubTab === 'party' ? ' active' : ''}"
-          data-tab="party" title="Party" onclick="window._setPlayerSubTab('party')">${icon('users')}<span class="pst-label">Party</span></button>
+          data-tab="party" title="Groep" onclick="window._setPlayerSubTab('party')">${icon('users')}<span class="pst-label">Groep</span></button>
         <button class="player-subtab${_playerSubTab === 'personage' ? ' active' : ''}"
           data-tab="personage" title="Personage" onclick="window._setPlayerSubTab('personage')">${icon('user')}<span class="pst-label">Personage</span></button>
-        ${window._spelerTabAan('facties') ? `<button class="player-subtab${_playerSubTab === 'facties' ? ' active' : ''}"
-          data-tab="facties" title="Facties" onclick="window._setPlayerSubTab('facties')">${icon('landmark')}<span class="pst-label">Facties</span></button>` : ''}
+        ${window._spelerTabAan('progressie') ? `<button class="player-subtab${_playerSubTab === 'progressie' ? ' active' : ''}"
+          data-tab="progressie" title="Vaardigheden" onclick="window._setPlayerSubTab('progressie')">${icon('scroll-text')}<span class="pst-label">Vaardigheden</span></button>` : ''}
         <button class="player-subtab${_playerSubTab === 'knapzak' ? ' active' : ''}"
           data-tab="knapzak" title="Boedel" onclick="window._setPlayerSubTab('knapzak')">${icon('backpack')}<span class="pst-label">Boedel</span>${(lootData?.actief && lootData.deelnemers?.includes(charId)) ? '<span class="player-loot-badge" id="loot-tab-badge"></span>' : ''}</button>
-        ${window._spelerTabAan('progressie') ? `<button class="player-subtab${_playerSubTab === 'progressie' ? ' active' : ''}"
-          data-tab="progressie" title="Features &amp; Traits" onclick="window._setPlayerSubTab('progressie')">${icon('scroll-text')}<span class="pst-label">Features</span></button>` : ''}
         ${window._spelerTabAan('spreukenboek') && _heeftMagie ? `<button class="player-subtab${_playerSubTab === 'spreukenboek' ? ' active' : ''}"
           data-tab="spreukenboek" title="Spreukenboek" onclick="window._setPlayerSubTab('spreukenboek')">${icon('sparkles')}<span class="pst-label">Spreukenboek</span></button>` : ''}
+        ${window._spelerTabAan('facties') ? `<button class="player-subtab${_playerSubTab === 'facties' ? ' active' : ''}"
+          data-tab="facties" title="${esc(window._factiesLabel?.() || 'Facties')}" onclick="window._setPlayerSubTab('facties')">${icon('landmark')}<span class="pst-label">${esc(window._factiesLabel?.() || 'Facties')}</span></button>` : ''}
         ${window._spelerTabAan('berichten') ? `<button class="player-subtab${_playerSubTab === 'berichten' ? ' active' : ''}"
           data-tab="berichten" title="Berichten" onclick="window._setPlayerSubTab('berichten')">${icon('message-circle')}<span class="pst-label">Berichten</span>${window._berichtenUnread ? ` <span class="bericht-badge">${window._berichtenUnread}</span>` : ''}</button>` : ''}
       </div>
