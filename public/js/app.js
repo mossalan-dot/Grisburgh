@@ -6991,6 +6991,11 @@ const _SUBKLASSE_SIGNATURE = {
   },
 };
 const _subSigCfgFor = (naam) => _SUBKLASSE_SIGNATURE[String(naam || '').trim().toLowerCase()];
+// Deze ging mee toen de kaart van het spelersblad verdween, maar het
+// klassekaartje in het heldenboek leest hem nog via `window._signatureVoor` —
+// en dan stond er alleen "is not defined" in de console terwijl de hele
+// klassepagina leeg bleef.
+const _sigCfgFor = (klasse) => _SIGNATURE[String(klasse || '').trim().toLowerCase()];
 // Proficiency bonus uit een level — twee kaarten rekenen ermee.
 function _sigPb(lvl) { return 2 + Math.floor((Math.max(1, lvl || 1) - 1) / 4); }
 
