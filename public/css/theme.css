@@ -30113,6 +30113,18 @@ body:has(#sb-overlay.sb-open) .dm-dice-fab { display: none !important; }
 #section-tempel, #section-tweespalt, #section-ursula, #section-woekeraar,
 #section-markt, #section-facties { scrollbar-gutter: stable; }
 
+/* De drie groepen in het verzoekenpaneel: waar een verzoek over gaat. Een
+   stille tussenkop, want het zijn geen secties maar een ordening. */
+.dm-verzoek-groep {
+  font-family: 'Cinzel', serif; font-size: 10px; font-weight: 700;
+  letter-spacing: .14em; text-transform: uppercase;
+  color: rgba(138,112,80,0.85);
+  padding: 16px 14px 2px; margin: 0;
+}
+.dm-verzoek-groep:first-child { padding-top: 6px; }
+/* Een sectie na een tussenkop heeft de streep van de vorige niet nodig. */
+.dm-verzoek-groep + .dm-feature-section { border-top: none; }
+
 /* ── Een telefoon dwars: breed maar laag ──────────────────────────────────
    De smalle-schermregels kijken naar de breedte, en een gedraaide telefoon is
    667 tot 932 px breed — die vallen er dus buiten. Maar hij is nog maar 375

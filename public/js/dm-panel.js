@@ -11947,7 +11947,10 @@ async function _renderVerzoeken() {
   // tafel te gebeuren en dan moet het hier ook kunnen.
   const leenHtml = leningen.map(v => rij(
     `<strong>${esc(v.spelerNaam)}</strong> wil <em>${esc(_bedragTekst(_clNaarMunten(v.bedragCl || 0)))}</em> lenen`
-    + (v.waarvoor ? `<span class="dm-verzoek-context">Waarvoor: ${esc(v.waarvoor)}</span>` : '<span class="dm-verzoek-context">Hij zei er niet bij waarvoor.</span>')
+    // "Waarvoor" is weg bij de geldschieter: het veranderde niets aan wat je
+    // kreeg. Een oudere schuld kan het nog dragen, dan tonen we het; anders
+    // staat er niets in plaats van een zin over een veld dat niet meer bestaat.
+    + (v.waarvoor ? `<span class="dm-verzoek-context">Waarvoor: ${esc(v.waarvoor)}</span>` : '')
     + `<span class="dm-verzoek-context">${v.rentePerRust}% per nacht, tot ${v.maxFactor}× de hoofdsom</span>`,
     `<input id="dm-leen-${esc(v.id)}" class="dm-input dm-input-sm dm-verzoek-bedrag"
        value="${esc(_bedragTekst(_clNaarMunten(v.bedragCl || 0)))}" inputmode="decimal"
@@ -12009,35 +12012,33 @@ async function _renderVerzoeken() {
       <button class="dm-btn dm-btn-sm dm-btn-ghost" onclick="window.dmPanel.verzoekenRefresh()" title="Opnieuw ophalen">${icon('refresh-cw')} Opnieuw ophalen</button>
     </div>
 
+    <!-- De volgorde volgt waar een verzoek over gáát: eerst zijn personage,
+         dan zijn spullen en geld, dan de diensten die hij bezoekt. Dat stond
+         door elkaar — spreuken, voorwerpen, het strijdperk, een winkel,
+         multiclassen, lenen — en dan moet je elke keer zoeken.
+         De koppen hebben alle negen dezelfde vorm: icoon, naam, aantal, boekje. -->
+    <div class="dm-verzoek-groep">Zijn personage</div>
+
     <div class="dm-feature-section">
       <div class="dm-section-label">${icon('sparkles')} Spreuken ${spreuken.length ? `(${spreuken.length})` : ''}<span class="dm-sectie-hulp">${helpBtn('dm_verzoeken_spreuken')}</span></div>
       ${spreukHtml || '<p class="dm-hint">Niets openstaand.</p>'}
     </div>
 
     <div class="dm-feature-section">
+      <div class="dm-section-label">${icon('user')} Multiclassen ${multiclass.length ? `(${multiclass.length})` : ''}<span class="dm-sectie-hulp">${helpBtn('dm_verzoeken_multiclass')}</span></div>
+      ${mcHtml || '<p class="dm-hint">Niets openstaand.</p>'}
+    </div>
+
+    <div class="dm-verzoek-groep">Zijn spullen en zijn beurs</div>
+
+    <div class="dm-feature-section">
       <div class="dm-section-label">${icon('package')} Voorwerpen ${voorwerpen.length ? `(${voorwerpen.length})` : ''}<span class="dm-sectie-hulp">${helpBtn('dm_verzoeken_voorwerpen')}</span></div>
       ${itemHtml || '<p class="dm-hint">Niets openstaand.</p>'}
     </div>
 
-    ${geruchten.length ? `
     <div class="dm-feature-section">
-      <div class="dm-section-label">${icon('venetian-mask')} Praatjes om rond te laten gaan (${geruchten.length})<span class="dm-sectie-hulp">${helpBtn('dm_detective_geruchten')}</span></div>
-      ${geruchtHtml}
-    </div>` : ''}
-
-    <div class="dm-feature-section">
-      <div class="dm-section-label">${icon('crossed-swords', { cls: 'icon-gi' })} In het strijdperk ${arenaInschrijvingen.length ? `(${arenaInschrijvingen.length})` : ''}<span class="dm-sectie-hulp">${helpBtn('dm_gokhuis_inschrijvingen')}</span></div>
-      ${arenaHtml || '<p class="dm-hint">Niets openstaand.</p>'}
-    </div>
-
-    <div class="dm-feature-section">
-      <div class="dm-section-label">${icon('coins')} Aangeboden aan een winkel ${verkopen.length ? `(${verkopen.length})` : ''}<span class="dm-sectie-hulp">${helpBtn('dm_verzoeken_verkoop')}</span></div>
+      <div class="dm-section-label">${icon('coins')} Verkopen ${verkopen.length ? `(${verkopen.length})` : ''}<span class="dm-sectie-hulp">${helpBtn('dm_verzoeken_verkoop')}</span></div>
       ${verkoopHtml || '<p class="dm-hint">Niets openstaand.</p>'}
-    </div>
-
-    <div class="dm-feature-section">
-      <div class="dm-section-label">${icon('user')} Multiclassen ${multiclass.length ? `(${multiclass.length})` : ''}<span class="dm-sectie-hulp">${helpBtn('dm_verzoeken_multiclass')}</span></div>
-      ${mcHtml || '<p class="dm-hint">Niets openstaand.</p>'}
     </div>
 
     <div class="dm-feature-section">
@@ -12050,9 +12051,21 @@ async function _renderVerzoeken() {
       ${onderpandHtml || '<p class="dm-hint">Niets openstaand.</p>'}
     </div>
 
+    <div class="dm-verzoek-groep">De diensten</div>
+
     <div class="dm-feature-section">
       <div class="dm-section-label">${icon('search')} Onderzoek ${dossiers.length ? `(${dossiers.length})` : ''}<span class="dm-sectie-hulp">${helpBtn('dm_verzoeken_onderzoek')}</span></div>
       ${dossierHtml || '<p class="dm-hint">Niets openstaand.</p>'}
+    </div>
+
+    <div class="dm-feature-section">
+      <div class="dm-section-label">${icon('venetian-mask')} Praatjes ${geruchten.length ? `(${geruchten.length})` : ''}<span class="dm-sectie-hulp">${helpBtn('dm_detective_geruchten')}</span></div>
+      ${geruchtHtml || '<p class="dm-hint">Niets openstaand.</p>'}
+    </div>
+
+    <div class="dm-feature-section">
+      <div class="dm-section-label">${icon('crossed-swords', { cls: 'icon-gi' })} In het strijdperk ${arenaInschrijvingen.length ? `(${arenaInschrijvingen.length})` : ''}<span class="dm-sectie-hulp">${helpBtn('dm_gokhuis_inschrijvingen')}</span></div>
+      ${arenaHtml || '<p class="dm-hint">Niets openstaand.</p>'}
     </div>
     </div>`;
 }
