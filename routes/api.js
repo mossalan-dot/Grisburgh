@@ -12881,7 +12881,7 @@ router.get('/ursula', attachRole, (req, res) => {
   const onthuld = party ? _ursulaOnthulling(def, party) : null;
 
   res.json({
-    config: { naam: config.naam || 'De waarzegger', prijs: config.prijs || { fl: 20 }, imageId: config.imageId || null, backdropId: config.backdropId || null },
+    config: { naam: config.naam || 'De waarzegger', prijs: config.prijs || { fl: 20 }, imageId: config.imageId || null, backdropId: config.backdropId || null, locatieId: config.locatieId || null },
     beschikbaar,
     geenSessie: !_activeAkteVoor(dmState) || _activeAkteVoor(dmState).num == null,
     geenAkte: !doel,
@@ -13097,6 +13097,7 @@ router.get('/gock', attachRole, (req, res) => {
     config: {
       prijs: config.prijs || { fl: 50 }, naam: config.naam || 'De detective',
       imageId: config.imageId || null, backdropId: config.backdropId || null,
+      locatieId: config.locatieId || null,
       geruchtPrijs: config.geruchtPrijs || config.prijs || { fl: 50 },
     },
     geval: playerCase,
@@ -13621,6 +13622,7 @@ router.get('/magizoo', attachRole, (req, res) => {
       groet:   config.groet || '',
       imageId: config.imageId || null,
       backdropId: config.backdropId || null,
+      locatieId: config.locatieId || null,
       prijs:         config.prijs         || { fl: 25 },
       prijsVolledig: config.prijsVolledig || { fl: 60 },
       cooldownMinuten: config.cooldownMinuten ?? 5,
@@ -13903,6 +13905,7 @@ router.get('/tempel', attachRole, (req, res) => {
       boetePrijs: config.boetePrijs || { fl: 100 },
       imageId: config.imageId || null,
       backdropId: config.backdropId || null,
+      locatieId: config.locatieId || null,
       voorwerpNaam: config.voorwerpNaam || 'Votiefmunt van {god}',
       goden: _godenVoor(req, dmState, _tempelGoden(config)),
     },
@@ -15259,10 +15262,17 @@ router.get('/herberg', attachRole, (req, res) => {
   res.json({
     config: {
       naam:      config.naam,
-      waard:     config.waard,
+      waard:     config.waard || '',
       imageId:   config.imageId || '',
+      // Deze twee gingen nooit mee, en daardoor kon de herberg haar
+      // achtergrond niet tonen hoe vaak de DM er ook een koos: de client
+      // kreeg het veld simpelweg niet. Elke andere dienst stuurt ze wel.
+      backdropId: config.backdropId || null,
+      locatieId:  config.locatieId || null,
       maxVragen: config.maxVragen || 3,
       groet:     config.groet || '',
+      groeten:   Array.isArray(config.groeten) ? config.groeten : [],
+      groeten2:  Array.isArray(config.groeten2) ? config.groeten2 : [],
       prijs:     config.prijs || null,
       menu:      Array.isArray(config.menu) ? config.menu : [],
     },

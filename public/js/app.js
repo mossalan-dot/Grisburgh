@@ -9391,7 +9391,23 @@ async function renderMijnKarakter(opts = {}) {
 
   // ── Trait uses: bolletje aan/uit klikken ──
   // Helper: dots + teller in-place updaten zonder de hele pagina te her-renderen
+  // Dezelfde bolletjes staan op twee plekken: in de kenmerkenlijst en sinds
+  // kort in de tijdlijn van het Vaardighedentabblad. De updater hieronder keek
+  // alleen in de lijst, dus in de tijdlijn gebeurde er zichtbaar niets — de
+  // server werd wél bijgewerkt. Eén functie die ze allebei hertekent.
+  function _hertekenAlleDots(traitId, max, cur) {
+    document.querySelectorAll('.trait-uses-dots').forEach(wrap => {
+      if (!wrap.querySelector(`[onclick*="${traitId}"]`)) return;
+      const nieuw = window._traitDotsHtml(traitId, max, cur);
+      const tmp = document.createElement('div');
+      tmp.innerHTML = nieuw;
+      const vervanger = tmp.firstElementChild;
+      if (vervanger) wrap.replaceWith(vervanger);
+    });
+  }
+
   function _updateTraitDotsDOM(traitId, newMax, newCur) {
+    _hertekenAlleDots(traitId, newMax, newCur);
     const details = document.querySelector(`.player-trait-accordion[data-trait-id="${traitId}"]`);
     if (!details) return;
     // Update data-max-uses op body
@@ -12248,6 +12264,31 @@ function prijsTekst(p) {
 // laad- en foutstand niet meer dertien keer woordelijk in dit bestand staat.
 //
 // Nieuwe dienst? Begin met deze twee, dan ziet hij er meteen uit als de rest.
+// ════════════════════════════════════════════════════════════════════════════
+//  DE KOP VAN EEN DIENSTSCHERM — ÉÉN KEER
+// ════════════════════════════════════════════════════════════════════════════
+// Elk dienstscherm begon met dezelfde vier dingen en elk deed het nét anders:
+// de beurs stond bij de een linksboven en bij de ander nergens, de naam van de
+// zaak stond alleen bij de herberg, en de naam van wie je tegenover je hebt
+// alleen bij de herberg, De Gock en de geldschieter. Eén functie dus.
+//
+// `persoon` is wie je aanspreekt (de waard, de detective); `huis` is hoe de
+// zaak heet (De Swarte Cat). Heeft een dienst er maar één, dan staat die er
+// als naam van de zaak — want dát is waar je bent.
+function _dienstKop({ sleutel, persoon = '', huis = '', portret = '', groet = '', groetData = '', currency = null }) {
+  const beurs = currency
+    ? `<span class="ts-beurs tempel-beurs-top">Beurs: <strong>${_magizooBeurs(currency)}</strong></span>` : '';
+  return `
+    <div class="dienst-beurs-topbar">
+      ${beurs}
+      ${_geluidBtn()}${_helpBtn(sleutel)}
+    </div>
+    ${portret ? `<div class="herberg-portrait-wrap">${portret}</div>` : ''}
+    ${persoon ? `<p class="tempel-priester-naam">${esc(persoon)}</p>` : ''}
+    ${huis ? `<p class="dienst-huisnaam">${esc(huis)}</p>` : ''}
+    ${groet ? `<p class="herberg-groet"${groetData}>${esc(groet)}</p>` : ''}`;
+}
+
 const _dienstLaden = (el) => {
   if (el) el.innerHTML = '<div class="herberg-scene"><div class="herberg-content"><p class="herberg-laden">Laden…</p></div></div>';
 };
@@ -12373,22 +12414,14 @@ async function renderHerberg() {
   el.innerHTML = `
     <div class="herberg-scene">
       <div class="herberg-content">
-        <div class="dienst-beurs-topbar" style="justify-content:flex-end">${_geluidBtn()}${_helpBtn('herberg')}</div>
-        <div class="herberg-portrait-wrap">
-          ${config.imageId
-            ? `<img src="${api.thumbUrl(config.imageId)}" class="herberg-portrait-round${cooldownActief ? ' herberg-portrait--weg' : ''}" alt="${esc(config.waard)}">`
-            : `<div class="herberg-portrait-round herberg-portrait-fallback${cooldownActief ? ' herberg-portrait--weg' : ''}">${icon('beer')}</div>`}
-        </div>
-        <!-- De herberg noemde zichzelf nergens: je zag een vrouw, een groet en
-             knoppen, maar niet waar je was of tegen wie je sprak. Elke andere
-             dienst doet dat wel — de Tempel met .tempel-priester-naam, de
-             Tweespalt in zijn groet. Zelfde klasse als de priester, dus zelfde
-             plek en zelfde opmaak. -->
-        ${config.waard ? `<p class="tempel-priester-naam">${esc(config.waard)}</p>` : ''}
-        ${config.naam ? `<p class="dienst-huisnaam">${esc(config.naam)}</p>` : ''}
-        <p class="herberg-groet" id="herberg-groet"
-          data-roddels="${esc(_groetTekst)}" data-tap="${esc(_groetTekstTap)}"
-        >${_herbergActiveTab === 'tap' ? _groetTekstTap : _groetTekst}</p>
+        ${_dienstKop({
+          sleutel: 'herberg', persoon: config.waard, huis: config.naam, currency,
+          portret: config.imageId
+            ? `<img src="${api.thumbUrl(config.imageId)}" class="herberg-portrait-round${cooldownActief ? ' herberg-portrait--weg' : ''}" alt="${esc(config.waard || config.naam || '')}">`
+            : `<div class="herberg-portrait-round herberg-portrait-fallback${cooldownActief ? ' herberg-portrait--weg' : ''}">${icon('beer')}</div>`,
+          groet: _herbergActiveTab === 'tap' ? _groetTekstTap : _groetTekst,
+          groetData: ` id="herberg-groet" data-roddels="${esc(_groetTekst)}" data-tap="${esc(_groetTekstTap)}"`,
+        })}
 
         ${(() => {
           // Twee deelfuncties die los van elkaar uit kunnen: de roddels en de
@@ -12704,12 +12737,12 @@ async function renderGock() {
   el.innerHTML = `
     <div class="herberg-scene gock-scene" ${backdrop}>
       <div class="herberg-content">
-        <div class="dienst-beurs-topbar" style="justify-content:flex-end">${_geluidBtn()}${_helpBtn('gock')}</div>
-        <div class="herberg-portrait-wrap">${portret}</div>
-        ${config.naam ? `<p class="tempel-priester-naam">${esc(config.naam)}</p>` : ''}
-        <p class="herberg-groet" id="gock-groet"
-          data-onderzoek="${esc(_groet)}" data-geruchten="${esc(_groet2)}"
-        >${esc(_gockActiveTab === 'geruchten' && _geruchtenAan ? _groet2 : _groet)}</p>
+        ${_dienstKop({
+          sleutel: 'gock', persoon: config.naam, huis: config.huisnaam, currency,
+          portret,
+          groet: _gockActiveTab === 'geruchten' && _geruchtenAan ? _groet2 : _groet,
+          groetData: ` id="gock-groet" data-onderzoek="${esc(_groet)}" data-geruchten="${esc(_groet2)}"`,
+        })}
 
         ${!_geruchtenAan ? onderzoekPaneel : `
           <div class="dienst-subtab-nav">
@@ -12924,25 +12957,11 @@ async function renderWoekeraar() {
   el.innerHTML = `
     <div class="herberg-scene" ${backdrop}>
       <div class="herberg-content">
-        <div class="dienst-beurs-topbar">
-          ${currency ? `<span class="ts-beurs tempel-beurs-top">Beurs: <strong>${_magizooBeurs(currency)}</strong></span>` : ''}
-          ${_geluidBtn()}${_helpBtn('woekeraar')}
-        </div>
-        <div class="herberg-portrait-wrap">${portret}</div>
-        <!-- Dezelfde romp als elke andere dienst: scene → content → rond
-             portret → naam → groet. Dit scherm had zijn eigen herberg-hero-
-             structuur, en die klassen bestonden nergens in de stylesheet —
-             het stond dus
-             als kale tekst op de pagina, zonder paneel en zonder achtergrond.
-             Zie "Dienstschermen — de gedeelde romp" in CLAUDE.md. -->
-        <p class="tempel-priester-naam">${esc(cfg.naam || 'De geldschieter')}</p>
-        <!-- Hij was de enige dienst zonder openingszin: het tekstveld stond
-             leeg en dan stond er niets. Nu dezelfde begroetingstafel als de
-             rest, met een terugval eronder — een dienst zonder zin is een
-             scherm dat begint met een formulier.
-             (Geen backticks in commentaar hierbinnen: template literal.) -->
-        <p class="herberg-groet">${esc(window._dienstGroet(cfg,
-          `${cfg.naam || 'De geldschieter'} kijkt je aan zonder te knipperen en schuift zijn boek opzij.`))}</p>
+        ${_dienstKop({
+          sleutel: 'woekeraar', persoon: cfg.naam || 'De geldschieter', huis: cfg.huisnaam, currency, portret,
+          groet: window._dienstGroet(cfg,
+            `${cfg.naam || 'De geldschieter'} kijkt je aan zonder te knipperen en schuift zijn boek opzij.`),
+        })}
         ${schuldBlok}${wachtBlok}${formulier}
       </div>
     </div>`;
@@ -13006,12 +13025,10 @@ async function renderMagizoo() {
   el.innerHTML = `
     <div class="herberg-scene magizoo-scene" ${backdrop}>
       <div class="herberg-content">
-        <div class="dienst-beurs-topbar">
-          ${currency ? `<span class="ts-beurs tempel-beurs-top">Beurs: <strong>${_magizooBeurs(currency)}</strong></span>` : ''}
-          ${_geluidBtn()}${_helpBtn('magizoo')}
-        </div>
-        <div class="herberg-portrait-wrap">${portret}</div>
-        <p class="herberg-groet">${esc(window._dienstGroet(config, `${config.naam} kijkt op van een kooi en veegt een inktvlek van zijn notitieboek.`))}</p>
+        ${_dienstKop({
+          sleutel: 'magizoo', persoon: config.naam, huis: config.huisnaam, currency, portret,
+          groet: window._dienstGroet(config, `${config.naam} kijkt op van een kooi en veegt een inktvlek van zijn notitieboek.`),
+        })}
         <!-- Adoptie is een deelfunctie: een magizoöloog die alleen onderzoekt
              en geen dieren verkoopt, hoort dat tweede tabje niet te hebben. -->
         ${window._deelAan('magizoo-adoptie') ? `
@@ -13274,12 +13291,10 @@ async function renderUrsula() {
   el.innerHTML = `
     <div class="herberg-scene gock-scene" ${backdrop}>
       <div class="herberg-content">
-        <div class="dienst-beurs-topbar">
-          ${currency ? `<span class="ts-beurs tempel-beurs-top">Beurs: <strong>${beursTekst(currency)}</strong></span>` : ''}
-          ${_geluidBtn()}${_helpBtn('ursula')}
-        </div>
-        <div class="herberg-portrait-wrap">${portret}</div>
-        <p class="herberg-groet">${groet}</p>
+        ${_dienstKop({
+          sleutel: 'ursula', persoon: config.naam, huis: config.huisnaam, currency, portret,
+          groet: typeof groet === 'string' ? groet.replace(/<[^>]*>/g, '') : '',
+        })}
         ${body}
       </div>
     </div>`;
@@ -13438,6 +13453,7 @@ function _renderTempelInterior(el, g, config, huidigeEed, huidigeZegen, currency
         </div>
         <div class="herberg-portrait-wrap">${portret}</div>
         ${priesterNaam ? `<p class="tempel-priester-naam">${esc(priesterNaam)}</p>` : ''}
+        ${config.naam ? `<p class="dienst-huisnaam">${esc(config.naam)}</p>` : ''}
         <p class="herberg-groet">${esc(
           window._dienstGroet(g, '') ||
           g.priesterGreet ||
@@ -13788,20 +13804,10 @@ async function renderTweespalt() {
   el.innerHTML = `
     <div class="herberg-scene tweespalt-scene" ${tsBackdrop}>
       <div class="herberg-content ts-content">
-        <div class="dienst-beurs-topbar">
-          ${currency ? `<span class="ts-beurs tempel-beurs-top">Beurs: <strong>${beursTekst(currency)}</strong></span>` : ''}
-          ${_geluidBtn()}${_helpBtn('tweespalt')}
-        </div>
-        <div class="herberg-portrait-wrap">${tsPortret}</div>
-        <div>
-          <!-- De groet stond hier hardgecodeerd met een Grisburghse NPC erin
-               ("Korporaal Standhall knikt je toe"), dus elke campagne werd door
-               hem begroet. Hij komt nu uit meta.tweespalt.groet, zoals de
-               herberg dat al deed; zonder invulling blijft er een neutrale
-               regel over. -->
-          <p class="herberg-groet">${esc(window._dienstGroet(config, `Welkom bij ${config.naam || 'Het gokhuis'}.`))}</p>
-        </div>
-
+        ${_dienstKop({
+          sleutel: 'tweespalt', persoon: config.gastheer || '', huis: config.naam, currency, portret: tsPortret,
+          groet: window._dienstGroet(config, `Welkom bij ${config.naam || 'Het gokhuis'}.`),
+        })}
         ${leningBanner}
 
         ${(() => {

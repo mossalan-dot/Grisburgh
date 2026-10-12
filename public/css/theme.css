@@ -29969,7 +29969,19 @@ body.wizard-open { overflow: hidden; }
   .sb-page-right { flex: 1 1 auto; min-height: 0; border-radius: 0 0 4px 4px; }
   /* De rug stond verticaal in het midden; tussen twee gestapelde pagina's is
      dat een horizontale naad. */
-  .sb-spine { left: 0; right: 0; top: 34%; bottom: auto; width: auto; height: 7px; transform: none; }
+  /* De rug is hier een horizontale naad. Let op `padding: 18% 0` in de
+     basisregel: procentuele padding rekent met de **breedte** van de ouder, en
+     die is hier de volle pagina — 18 % van 377 px is 68 px boven én onder. De
+     rug werd daardoor een donkere band van 136 px dwars over de bovenkant van
+     het perkament, precies over de titel en de gegevens heen. Vandaar
+     `padding: 0`, en een verloop van boven naar beneden in plaats van naar
+     rechts. */
+  .sb-spine {
+    left: 0; right: 0; top: 34%; bottom: auto; width: auto; height: 7px;
+    transform: none; padding: 0;
+    background: linear-gradient(to bottom,
+      rgba(0,0,0,0.55) 0%, rgba(70,40,12,0.30) 50%, rgba(0,0,0,0.45) 100%);
+  }
   .sb-spine-band { display: none; }
   /* De bladwijzer en de omgevouwen hoek hangen aan de rechterpagina en zaten
      op een smal scherm boven de tekst. */
