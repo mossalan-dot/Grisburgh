@@ -18955,10 +18955,6 @@ body.sb-boek-open { overflow: hidden; }
   50%, 80% { transform: rotate(-90deg); }
   100%     { transform: rotate(-90deg); }
 }
-@media (max-width: 600px) and (orientation: portrait) {
-  .sb-portrait-hint { display: flex; }
-}
-
 /* ── Book spine — raised leather strip at the centre ── */
 .sb-spine {
   position: absolute;
@@ -19724,7 +19720,10 @@ body.sb-boek-open { overflow: hidden; }
   position: absolute; inset: 0; z-index: 20;
   background: linear-gradient(160deg, #2b1a0e 0%, #1e1208 100%);
   border-radius: inherit;
-  transform: translateX(101%);
+  /* Dicht staat hij buiten beeld. Op 101% stak er een reepje van een paar
+     pixels langs de rechterrand naar binnen — op een breed scherm valt dat
+     weg naast het boek, op een telefoon is het een streep tegen de rand. */
+  transform: translateX(calc(100% + 24px));
   transition: transform 0.28s cubic-bezier(0.4,0,0.2,1);
   display: flex; flex-direction: column;
   overflow: hidden;
@@ -29956,4 +29955,35 @@ body.wizard-open { overflow: hidden; }
 .vd-kleurveld {
   width: 44px; height: 30px; padding: 0; cursor: pointer;
   border: 1px solid rgba(196,168,122,.7); border-radius: 5px; background: none;
+}
+
+/* ── Het spreukenboek rechtop ─────────────────────────────────────────────
+   Hier stond: "Draai je scherm voor het spreukenboek" — een zwart vlak over
+   het boek heen, met de knoppenbalk er bovenlangs gewoon aan. Je kreeg dus een
+   werkende balk boven een dood boek, terwijl de rest van de app rechtop prima
+   werkt.
+   Een boek heeft twee bladzijden naast elkaar; op een smal, hoog scherm zet je
+   ze onder elkaar. De plaat bovenaan (en die mag kleiner, hij is sfeer), de
+   tekst eronder met de ruimte die overblijft. De rug ertussen is een naad
+   tussen twee pagina's die nu boven elkaar liggen, dus die klapt om. */
+@media (max-width: 600px) and (orientation: portrait) {
+  .sb-book {
+    flex-direction: column;
+    width: 96vw;
+    height: min(640px, 80vh);
+  }
+  .sb-page-left  { flex: 0 0 34%; border-radius: 4px 4px 0 0; }
+  .sb-page-right { flex: 1 1 auto; min-height: 0; border-radius: 0 0 4px 4px; }
+  /* De rug stond verticaal in het midden; tussen twee gestapelde pagina's is
+     dat een horizontale naad. */
+  .sb-spine { left: 0; right: 0; top: 34%; bottom: auto; width: auto; height: 7px; transform: none; }
+  .sb-spine-band { display: none; }
+  /* De bladwijzer en de omgevouwen hoek hangen aan de rechterpagina en zaten
+     op een smal scherm boven de tekst. */
+  .sb-ribbon { transform: scale(0.8); transform-origin: top right; }
+  /* Pijltjes naar de onderhoeken: in het midden lagen ze op de tekst. De
+     rechter schuift op, want daar hangt het dobbeltabje aan de schermrand. */
+  .sb-arrow-btn { top: auto; bottom: 8px; transform: none; }
+  .sb-arrow-btn--prev { left: 8px; }
+  .sb-arrow-btn--next { right: 38px; }
 }
