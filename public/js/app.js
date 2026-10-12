@@ -4071,7 +4071,16 @@ function _sbApplyGlossary_DOM(rootEl) {
 // Highlight-spans (dice, damage-type, save, range) zijn al visueel gemarkeerd —
 // daarbinnen geen lexicon-uitleg toevoegen (voorkomt dubbele onderstreping en
 // een verkeerde/overbodige tooltip, bv. "saving throw" in "Wisdom saving throw").
-const _GLOSS_SKIP = ['sb-gloss', 'sb-hl-dice', 'sb-hl-dmg', 'sb-hl-save', 'sb-hl-range'];
+// Een **kop** krijgt geen uitleg. "Fire Bolt" kreeg een stippellijn onder
+// "Fire" omdat het woord toevallig ook een schadesoort is; dat leest als een
+// fout in de titel. Hetzelfde geldt voor de naam van een kaartje of een
+// sectiekop: daar lees je wát je voor je hebt, niet wat een term betekent.
+const _GLOSS_SKIP = ['sb-gloss', 'sb-hl-dice', 'sb-hl-dmg', 'sb-hl-save', 'sb-hl-range',
+  // Ook de labels van de gegevenstabel: "SAVE DC" kreeg een stippellijn onder
+  // "SAVE". Dat is een kolomkop, geen zin waarin een term valt uit te leggen —
+  // en dat geldt net zo voor het blokje met Save DC en Attack ernaast.
+  'sb-meta-key', 'sb-spell-meta-row', 'sb-badge', 'sb-stat-label', 'sb-spell-stats'];
+const _GLOSS_SKIP_TAGS = new Set(['H1', 'H2', 'H3', 'H4', 'H5', 'H6', 'BUTTON', 'SUMMARY', 'LABEL']);
 
 function _sbGlossWalk(node, seen) {
   if (node.nodeType === Node.TEXT_NODE) {
@@ -4107,6 +4116,7 @@ function _sbGlossWalk(node, seen) {
   } else if (node.nodeType === Node.ELEMENT_NODE) {
     // Skip elements that are themselves glossary spans, dice links, highlights of headings
     if (_GLOSS_SKIP.some(c => node.classList.contains(c))) return;
+    if (_GLOSS_SKIP_TAGS.has(node.tagName)) return;
     // Iterate over a static copy since we'll be mutating childNodes
     for (const child of Array.from(node.childNodes)) _sbGlossWalk(child, seen);
   }
@@ -4265,8 +4275,6 @@ function _ensureSpellbookOverlay() {
         <!-- Het lakzegel linksonder droeg de beginletter van de school, en de
              school staat voluit op dezelfde bladzijde ("EVOCATION"). Eén keer
              is genoeg; het zegel dekte bovendien een hoek van de afbeelding af. -->
-        <!-- Spell stats: Save DC + Attack Bonus (bottom-right) -->
-        <div class="sb-spell-stats" id="sb-spell-stats"></div>
         <!-- Geen eigen afbeeldingsknop meer: de plaat hangt aan het
              spreukkaartje en die bewerk je in het archief, met de focuspicker
              erbij. Twee plekken om dezelfde afbeelding te kiezen is er een. -->
@@ -5612,23 +5620,6 @@ function _sbRender() {
   const levelEl = document.getElementById('sb-left-level');
   if (levelEl) levelEl.textContent = spell.level === 0 ? 'Cantrip' : `Level ${spell.level} spell`;
 
-  // ── Left: spell save DC + attack bonus ──
-  const statsEl = document.getElementById('sb-spell-stats');
-  if (statsEl) {
-    const dc  = _sbState.spellSaveDC;
-    const atk = _sbState.spellAttackBonus;
-    if (dc || atk) {
-      const atkNum = parseInt(atk);
-      const atkStr = !isNaN(atkNum) ? (atkNum >= 0 ? `+${atkNum}` : `${atkNum}`) : String(atk);
-      statsEl.innerHTML = [
-        dc  ? `<div class="sb-stat"><span class="sb-stat-label">Save DC</span><span class="sb-stat-value">${esc(String(dc))}</span></div>` : '',
-        atk ? `<div class="sb-stat"><span class="sb-stat-label">Atk</span><span class="sb-stat-value">${esc(atkStr)}</span></div>` : '',
-      ].join('');
-    } else {
-      statsEl.innerHTML = '';
-    }
-  }
-
   // ── Ribbon ──
   _sbRenderRibbon();
 
@@ -5658,12 +5649,27 @@ function _sbRender() {
       const diceColor = _sbDiceColor(spell.damage);
       const desc = _renderSpellDesc(rawDesc, { diceColor });
 
+      // Save DC en de aanvalsbonus stonden als twee losse plaatjes op de
+      // afbeelding. Het zijn gewoon twee gegevens van deze spreuk, dus horen ze
+      // in dezelfde tabel als Casting Time en Range — op dezelfde regelhoogte
+      // en met dezelfde uitlijning.
+      const _dc  = _sbState.spellSaveDC;
+      const _atkRuw = _sbState.spellAttackBonus;
+      const _atkNum = parseInt(_atkRuw);
+      const _atk = _atkRuw ? (!isNaN(_atkNum) ? (_atkNum >= 0 ? `+${_atkNum}` : `${_atkNum}`) : String(_atkRuw)) : '';
       const metaRows = [
         spell.casting_time ? ['Casting Time', spell.casting_time] : null,
         spell.range        ? ['Range',        spell.range]        : null,
         spell.components   ? ['Components',   spell.components]   : null,
         spell.duration     ? ['Duration',     spell.duration]     : null,
       ].filter(Boolean);
+      // Twee blokjes naast elkaar: links wat de spreuk kost en doet, rechts de
+      // twee getallen die van jóú afhangen. Ze stonden als plaatjes op de
+      // illustratie; daar lazen ze als decoratie in plaats van als gegevens.
+      const statsBlok = (_dc || _atk) ? `<div class="sb-spell-stats">
+        ${_dc  ? `<div class="sb-stat"><span class="sb-stat-label">Save DC</span><span class="sb-stat-value">${esc(String(_dc))}</span></div>` : ''}
+        ${_atk ? `<div class="sb-stat"><span class="sb-stat-label">Attack</span><span class="sb-stat-value">${esc(_atk)}</span></div>` : ''}
+      </div>` : '';
 
       const badges = [
         spell.concentration ? `<span class="sb-badge sb-badge--conc">Concentration</span>` : '',
@@ -5676,9 +5682,12 @@ function _sbRender() {
       contentEl.innerHTML = `
         <h2 class="sb-spell-name">${esc(spell.name)}</h2>
         ${badges ? `<div class="sb-spell-meta-row">${badges}</div>` : ''}
-        ${metaRows.length ? `<div class="sb-meta-table">${
-          metaRows.map(([k,v]) => `<span class="sb-meta-key">${k}</span><span class="sb-meta-val">${esc(v)}</span>`).join('')
-        }</div>` : ''}
+        ${(metaRows.length || statsBlok) ? `<div class="sb-meta-wrap">
+          ${metaRows.length ? `<div class="sb-meta-table">${
+            metaRows.map(([k,v]) => `<span class="sb-meta-key">${k}</span><span class="sb-meta-val">${esc(v)}</span>`).join('')
+          }</div>` : '<div></div>'}
+          ${statsBlok}
+        </div>` : ''}
         ${hasHigher ? `<label class="sb-higher-toggle">
           <input type="checkbox" id="sb-higher-check" onchange="window._sbToggleHigher(this.checked)">
           <span>Op een hoger Spell Slot level</span>

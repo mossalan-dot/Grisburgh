@@ -18431,45 +18431,6 @@ body.sb-boek-open { overflow: hidden; }
 
 /* ── Left: wax seal ── */
 /* ── Left: spell stats (Save DC + Attack Bonus), rechtsonder ── */
-.sb-spell-stats {
-  position: absolute;
-  bottom: 14px;
-  right: 10px;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  align-items: center;
-  z-index: 3;
-}
-.sb-stat {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  background: rgba(0,0,0,0.28);
-  border: 1px solid rgba(255,255,255,0.10);
-  border-radius: 5px;
-  padding: 2px 7px 3px;
-  min-width: 38px;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.07);
-}
-.sb-stat-label {
-  font-family: 'Cinzel', serif;
-  font-size: 6.5px;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: rgba(255,255,255,0.38);
-  line-height: 1.4;
-}
-.sb-stat-value {
-  font-family: 'Cinzel', serif;
-  font-size: 14px;
-  font-weight: 700;
-  color: rgba(255,255,255,0.80);
-  text-shadow: 0 1px 4px rgba(0,0,0,0.6);
-  line-height: 1.1;
-}
-
-/* ── Left: incantation note container ── */
 .sb-left-incantation {
   position: absolute;
   top: 16px;
@@ -18675,6 +18636,23 @@ body.sb-boek-open { overflow: hidden; }
   gap: 3px 14px;
   margin-bottom: 12px;
 }
+/* De gegevens links, de twee getallen die van jóú afhangen rechts. Ze stonden
+   als plaatjes op de illustratie, waar ze als versiering lazen. */
+.sb-meta-wrap {
+  display: flex; align-items: flex-start; justify-content: space-between;
+  gap: 18px; flex-wrap: wrap; margin-bottom: 12px;
+}
+.sb-meta-wrap .sb-meta-table { margin-bottom: 0; flex: 1 1 auto; min-width: 0; }
+.sb-spell-stats {
+  display: flex; gap: 14px; flex-shrink: 0;
+  padding-left: 14px; border-left: 1px solid rgba(138,106,48,0.25);
+}
+.sb-stat { display: flex; flex-direction: column; align-items: center; gap: 1px; }
+.sb-stat-label {
+  font-family: 'Cinzel', serif; font-size: 8.5px; font-weight: 700;
+  letter-spacing: .1em; text-transform: uppercase; color: #8a6a30; white-space: nowrap;
+}
+.sb-stat-value { font-family: 'Cinzel', serif; font-size: 1.12rem; font-weight: 700; color: #3a2a0e; }
 .sb-meta-key {
   font-size: 9.5px;
   font-weight: 700;
@@ -30015,14 +29993,32 @@ body.wizard-open { overflow: hidden; }
       rgba(0,0,0,0.55) 0%, rgba(70,40,12,0.30) 50%, rgba(0,0,0,0.45) 100%);
   }
   .sb-spine-band { display: none; }
-  /* De bladwijzer en de omgevouwen hoek hangen aan de rechterpagina en zaten
-     op een smal scherm boven de tekst. */
-  .sb-ribbon { transform: scale(0.8); transform-origin: top right; }
-  /* Pijltjes naar de onderhoeken: in het midden lagen ze op de tekst. De
-     rechter schuift op, want daar hangt het dobbeltabje aan de schermrand. */
-  .sb-arrow-btn { top: auto; bottom: 8px; transform: none; }
-  .sb-arrow-btn--prev { left: 8px; }
-  .sb-arrow-btn--next { right: 38px; }
+  /* De plaat mag bijna de hele bovenpagina vullen. De insets waren gekozen
+     voor een pagina van 450 px hoog; staand is die er nog 218, en dan blijft er
+     van de illustratie een strookje over met veel achtergrond eromheen.
+     Onderaan blijft net genoeg ruimte voor de school en het niveau — het
+     lakzegel en de Save DC die daar ook stonden zijn er niet meer. */
+  .sb-left-img {
+    top: 30px; left: 14px;
+    width: calc(100% - 28px); height: calc(100% - 88px);
+    opacity: 0.82;
+  }
+  /* De bladwijzer hoort bovenaan de bladzijde en niet half over de titel. */
+  .sb-ribbon { top: -2px; right: 14px; transform: scale(0.82); transform-origin: top right; }
+  /* Bladerknoppen tegen de rand aan in plaats van ernaast te zweven: ze zijn
+     de hoeken van de bladzijde, dus de buitenste hoeken zijn vierkant en de
+     binnenste rond. De rechter houdt afstand van het dobbeltabje. */
+  .sb-arrow-btn {
+    top: auto; bottom: 0; transform: none;
+    width: 30px; height: 56px;
+  }
+  .sb-arrow-btn--prev { left: 0; border-radius: 0 8px 0 4px; }
+  .sb-arrow-btn--next { right: 0; border-radius: 8px 0 4px 0; }
+  /* De hoeken van het boek: staand loopt de ronding over de bovenkant van de
+     plaat en de onderkant van het perkament, niet langs de rug links. */
+  .sb-book { border-radius: 10px; }
+  .sb-page-left  { border-radius: 10px 10px 0 0; }
+  .sb-page-right { border-radius: 0 0 10px 10px; }
 }
 
 /* ── "Je komt tekort" ─────────────────────────────────────────────────────
@@ -30059,6 +30055,14 @@ body.wizard-open { overflow: hidden; }
 .dienst-tekort--licht .dienst-tekort-regel { color: #6a4a16; }
 .dienst-tekort--licht .dienst-tekort-regel strong { color: #3a2a0e; }
 .dienst-tekort--licht .dienst-tekort-sub { color: #6a5430; }
+
+/* Zolang het spreukenboek openligt gaat het dobbeltabje weg. Het boek is een
+   overlay met eigen knoppen in de hoeken, en het tabje plakt aan de rand van
+   het schérm — waar die twee elkaar raken hangt af van hoe hoog het boek staat,
+   dus ze botsen vroeg of laat altijd. Rollen kan in het boek zelf: elke
+   dobbelnotatie in de tekst is een knop. */
+body:has(#sb-overlay.sb-open) .dice-fab,
+body:has(#sb-overlay.sb-open) .dm-dice-fab { display: none !important; }
 
 /* ── Een telefoon dwars: breed maar laag ──────────────────────────────────
    De smalle-schermregels kijken naar de breedte, en een gedraaide telefoon is
