@@ -14482,7 +14482,10 @@ router.get('/facties', attachRole, (req, res) => {
     return view;
   }).filter(Boolean);
 
-  res.json({ facties, titels });
+  // De beurs, zodat het factieoverzicht dezelfde kop kan tonen als elke andere
+  // dienst. Hier geef je geld uit aan niets, maar een bedrag dat op acht van de
+  // negen schermen staat en op het negende niet, valt op.
+  res.json({ facties, titels, currency: _effectiveCurrency(dmState, _handelendKarakter(req)) });
 });
 
 // Behoud oud rang-endpoint voor backwards-compatibiliteit (non-breaking)
@@ -15628,10 +15631,10 @@ function _schuldenEscaleren(req, dmState, g, gid) {
       // De brief gaat vanzelf: hij kost niemand iets en komt binnen op het
       // moment dat de speler denkt dat het goed gaat.
       _bezorgBrief(req, r.characterId, {
-        titel: 'Een herinnering',
+        titel: (meta.woekeraar?.brief1Titel || '').trim() || 'Een herinnering',
         afzender: r.schuldeiser?.naam || 'je schuldeiser',
         entityId: r.schuldeiser?.entityId || null, entityType: 'personages',
-        cinematic: true,
+        cinematic: true, briefstijl: meta.woekeraar?.briefstijl || '',
         tekst: _woekBriefTekst(
           meta.woekeraar?.brief1,
           `Je staat bij mij in het krijt voor {bedrag}.\n\n`
@@ -15650,10 +15653,10 @@ function _schuldenEscaleren(req, dmState, g, gid) {
       // zichzelf dreigender is dan een naam die niemand kent.
       const handlanger = (_woekeraar(meta).handlanger || '').trim();
       _bezorgBrief(req, r.characterId, {
-        titel: 'De laatste',
+        titel: (meta.woekeraar?.brief3Titel || '').trim() || 'De laatste',
         afzender: r.schuldeiser?.naam || 'je schuldeiser',
         entityId: r.schuldeiser?.entityId || null, entityType: 'personages',
-        cinematic: true,
+        cinematic: true, briefstijl: meta.woekeraar?.briefstijl || '',
         // De standaardtekst loopt anders mét en zonder naam ("Strum komt
         // langs" tegenover "Er komt iemand langs"), dus die blijft als twee
         // zinnen staan. Schrijft de DM zijn eigen brief, dan heeft hij `{wie}`
@@ -16498,6 +16501,10 @@ function _woekeraar(meta) {
     brief1:       c.brief1 || '',
     brief2:       c.brief2 || '',
     brief3:       c.brief3 || '',
+    brief1Titel:  c.brief1Titel || '',
+    brief2Titel:  c.brief2Titel || '',
+    brief3Titel:  c.brief3Titel || '',
+    briefstijl:   c.briefstijl || '',
     encounterId:  c.encounterId || null,
     // De begroetingstafel van elke andere dienst. Zonder dit veld viel hij
     // terug op één vast zinnetje — of, als de DM niets had ingevuld, op niets.
@@ -16547,8 +16554,14 @@ router.put('/meta/woekeraar', requireDM, (req, res) => {
   if (b.handlanger !== undefined) w.handlanger = String(b.handlanger).slice(0, 80);
   if (b.escalatie !== undefined) { if (b.escalatie) w.escalatie = true; else delete w.escalatie; }
   if (b.encounterId !== undefined) w.encounterId = b.encounterId || null;
-  for (const k of ['brief1', 'brief2', 'brief3']) {
+  for (const k of ['brief1', 'brief2', 'brief3', 'brief1Titel', 'brief2Titel', 'brief3Titel']) {
     if (b[k] !== undefined) { const t = String(b[k] || '').slice(0, 2000).trim(); if (t) w[k] = t; else delete w[k]; }
+  }
+  // Het handschrift van zijn brieven, dezelfde lijst als bij een factie of een
+  // document. Een onbekende waarde laten we vallen.
+  if (b.briefstijl !== undefined) {
+    const STIJLEN = ['hand', 'hand2', 'machine', 'drukwerk', 'knipsel', 'gotisch', 'aanplak', 'oud'];
+    if (STIJLEN.includes(String(b.briefstijl))) w.briefstijl = b.briefstijl; else delete w.briefstijl;
   }
   if (b.ontspanBij !== undefined) {
     const schoon = (Array.isArray(b.ontspanBij) ? b.ontspanBij : [])
@@ -16669,10 +16682,10 @@ router.post('/onderpand/:id', requireDM, (req, res) => {
   const gidBrief = _playerGroupId(dmState, verzoek.characterId);
   for (const lid of _spelersVanGroep(gidBrief)) {
     _bezorgBrief(req, lid.id, {
-      titel: 'Wat ik meenam',
+      titel: ((storage.readJSON('meta.json').woekeraar || {}).brief2Titel || '').trim() || 'Wat ik meenam',
       afzender: verzoek.schuldeiser,
       entityId: schuld?.schuldeiser?.entityId || null, entityType: 'personages',
-      cinematic: true,
+      cinematic: true, briefstijl: (storage.readJSON('meta.json').woekeraar || {}).briefstijl || '',
       tekst: _woekBriefTekst(
         (storage.readJSON('meta.json').woekeraar || {}).brief2,
         `Ik heb {voorwerp} meegenomen uit de spullen van {van}.\n\n`

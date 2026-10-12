@@ -10,7 +10,7 @@ import { renderSpreuken } from './render-spreuken.js?v=46';
 import { renderVaardigheden, zoekVaardigheden, heldenboekTekst } from './render-vaardigheden.js?v=41';
 import { renderStatblock } from './render-statblock.js?v=9';
 import { initSocket } from "./socket-client.js?v=85";
-import { initDmPanel } from "./dm-panel.js?v=395";
+import { initDmPanel } from "./dm-panel.js?v=396";
 import { COND_INFO, COND_LABEL, COND_MET_PLAATJE, COND_ICON } from './conditions.js?v=2';
 import './media-picker.js?v=9';
 import './wizard.js?v=4';
@@ -13445,7 +13445,7 @@ function _renderTempelLijst(el, goden, config, huidigeEed, huidigeZegen, currenc
         <div class="tempel-list-topbar">
           ${statusBlokken.length ? `<div class="tempel-status-chips">${statusBlokken.join('')}</div>` : '<div></div>'}
           <div style="display:flex;align-items:center;gap:8px">
-            ${currency ? `<span class="ts-beurs tempel-beurs-top">Beurs: <strong>${beursTekst(currency)}</strong></span>` : ''}
+            ${window._beursPil?.(currency) ?? ''}
             ${_geluidBtn()}${_helpBtn('tempel')}
           </div>
         </div>
@@ -13525,7 +13525,7 @@ function _renderTempelInterior(el, g, config, huidigeEed, huidigeZegen, currency
         <div class="tempel-interior-topbar">
           <button class="tempel-terug-btn" onclick="window._tempelTerugNaarLijst()">${icon('chevron-left')} Terug</button>
           <div style="display:flex;align-items:center;gap:8px">
-            ${currency ? `<span class="ts-beurs tempel-beurs-top">Beurs: <strong>${beursTekst(currency)}</strong></span>` : ''}
+            ${window._beursPil?.(currency) ?? ''}
             ${_geluidBtn()}${_helpBtn('tempel')}
           </div>
         </div>
@@ -14089,7 +14089,7 @@ async function renderFacties() {
          vlak tonen. Nu dezelfde romp als de rest. -->
     <div class="herberg-scene gock-scene facties-lijst-scene" ${_factieBackdrop}>
       <div class="herberg-content">
-        ${_dienstKop({ sleutel: 'facties', naam: window._factiesLabel() })}
+        ${_dienstKop({ sleutel: 'facties', naam: window._factiesLabel(), currency: data?.currency || null })}
         <div class="dienst-overzicht">
           ${zichtbaar.map(f => _renderFactieKaart(f)).join('')}
         </div>
@@ -14202,7 +14202,7 @@ function _renderFactieInterieur(el, f, missies) {
         <div class="tempel-interior-topbar">
           <button class="tempel-terug-btn" onclick="window._factieTerugNaarLijst()">${icon('chevron-left')} Terug</button>
           <div style="display:flex;align-items:center;gap:8px">
-            ${currency ? `<span class="ts-beurs tempel-beurs-top">Beurs: <strong>${beursTekst(currency)}</strong></span>` : ''}
+            ${window._beursPil?.(currency) ?? ''}
             ${_geluidBtn()}${_helpBtn('facties')}
           </div>
         </div>
@@ -14603,6 +14603,7 @@ const HELP_CONFIG = {
   dm_woekeraar_brieven: () => ({ titel: 'Wat hij schrijft', stappen: [
     { titel: 'Drie brieven', tekst: 'Elke trap heeft er een. De **herinnering** komt vanzelf, de nacht nadat een schuld opeisbaar werd. **Wat ik meenam** gaat naar de hele party op het moment dat jij aanwijst wat hij meeneemt. **De laatste** komt de nacht daarna, en noemt wie er langskomt.\n\nLaat je een veld leeg, dan staat er de tekst die de app meelevert. Die is van Grisburgh; schrijf hem gerust om naar jouw stad.', afbeelding: null },
     { titel: 'De haakjes', tekst: 'Een brief noemt bedragen en namen die pas op het moment zelf bekend zijn. Die vul je niet in, die zet je tussen accolades:\n\n**Alle drie:** `{bedrag}` — wat er op dat moment openstaat.\n\n**De herinnering:** `{waarvoor}` — de zin "Je leende het voor …", of niets als de speler niets invulde.\n\n**Wat ik meenam:** `{voorwerp}`, `{van}` (van wie hij het pakte) en `{wie}` (de schuldenaar — of "iemand onder jullie" als je hem geheim houdt).\n\n**De laatste:** `{wie}` — de naam van wie je stuurt, of "iemand" als je het leeg liet.', afbeelding: null },
+    { titel: 'Onderwerp en handschrift', tekst: 'Elke brief heeft een onderwerp — dat is wat er in de postlijst staat. Laat je het leeg, dan heet hij zoals de app hem noemt (Een herinnering, Wat ik meenam, De laatste).\n\nHet **handschrift** geldt voor alle drie: het is dezelfde hand. Dezelfde lijst als bij een factiebrief of een document, dus een brief van hem ziet er overal hetzelfde uit.\n\nDe knop **Sjabloon** zet de meegeleverde tekst in het veld, zodat je kunt bijschaven in plaats van met een leeg vel te beginnen.', afbeelding: null },
     { titel: 'Waar ze aankomen', tekst: 'In het berichtentabblad van de speler, als een verzegelde brief die openvouwt. De eerste en de laatste gaan naar de schuldenaar alleen; die over het onderpand gaat naar **iedereen** in de party — dat is het hele punt van die trap.\n\nOp het tafelscherm komen ze niet uit zichzelf. Wil je er een aan tafel tonen, dan zet je hem als briefstap in een akte; daar zit de knop *Op het tafelscherm leggen*.', afbeelding: null },
   ] }),
 

@@ -719,6 +719,17 @@ export function initDmPanel() {
     // Het gevecht bij de laatste trap. De app begint nooit uit zichzelf een
     // gevecht; dit is de knop waarmee jij dat doet, op het moment dat het
     // uitkomt.
+    // De meegeleverde tekst in het veld zetten, zodat je kunt bijschaven in
+    // plaats van met een leeg vel te beginnen.
+    woekSjabloon(k) {
+      const b = _WOEK_BRIEVEN.find(x => x.k === k);
+      const veld = document.getElementById('woek-' + k);
+      if (!b || !veld) return;
+      if (veld.value.trim() && !confirm('Wat hier staat overschrijven met het sjabloon?')) return;
+      veld.value = b.sjabloon;
+      const titel = document.getElementById('woek-' + k + '-titel');
+      if (titel && !titel.value.trim()) titel.value = b.titel;
+    },
     async schuldGevecht(encounterId) {
       if (!encounterId) return;
       try { await api.startEncounter(encounterId); _showToast(`${icon('crossed-swords')} Het gevecht staat klaar.`); }
@@ -6431,6 +6442,21 @@ window._hbSave = async () => {
 // Het overzicht dat er niet was. Een schuld zat in een hoek van het gokhuis en
 // niemand zag hem; een schuld die niemand ziet is geen verhaallijn. Hier staat
 // wie er iets open heeft, bij wie, hoeveel hij leende en wat er nu staat.
+// De drie brieven van de geldschieter, met hun onderwerp en de meegeleverde
+// tekst. Die tekst staat ook op de server (die stuurt hem als het veld leeg
+// blijft); hier staat hij zodat de Sjabloon-knop iets in te vullen heeft.
+const _WOEK_BRIEVEN = [
+  { k: 'brief1', label: 'De herinnering (trap 1)', titel: 'Een herinnering',
+    plaats: 'Je staat bij mij in het krijt voor {bedrag}.…',
+    sjabloon: 'Je staat bij mij in het krijt voor {bedrag}.\n\n{waarvoor}Ik heb geduld gehad. Dat is op.\n\nKom langs, of ik kom langs.' },
+  { k: 'brief2', label: 'Wat ik meenam (trap 2)', titel: 'Wat ik meenam',
+    plaats: 'Ik heb {voorwerp} meegenomen uit de spullen van {van}.…',
+    sjabloon: 'Ik heb {voorwerp} meegenomen uit de spullen van {van}.\n\nNiet uit kwaadheid — uit boekhouding. {wie} staat bij mij in het krijt voor {bedrag}, en ik word moe van wachten.\n\nHet komt terug zodra er betaald is. Wie dat doet, is jullie zaak.' },
+  { k: 'brief3', label: 'De laatste (trap 3)', titel: 'De laatste',
+    plaats: '{wie} komt langs. Hij is minder geduldig dan ik.…',
+    sjabloon: 'Ik heb geschreven. Ik heb iets meegenomen. Je hebt niet betaald.\n\n{wie} komt langs. Hij is minder geduldig dan ik, en hij leest niet.\n\nJe weet waar ik zit.' },
+];
+
 async function _renderSchulden() {
   const el = _tabEl('woekeraar');
   if (!el) return;
@@ -6523,11 +6549,18 @@ async function _renderSchulden() {
       <!-- Wie hij stuurt stond als vaste naam in de route, en die naam was van
            Grisburgh. Hier zet je hem; laat je het leeg, dan komt er iemand
            langs zonder naam — dreigender, en in elke campagne waar. -->
+      <!-- Zoeken in plaats van blind typen, zoals overal waar je in de
+           meesterkamer een kaartje aanwijst: je typt en de namen die je al hebt
+           komen eronder. Een naam die hier niet tussen staat mag ook — het is
+           een naam in een brief, geen koppeling. -->
       <div class="dm-form-row">
         <label class="dm-form-label" for="woek-handlanger">Wie hij stuurt</label>
-        <input id="woek-handlanger" class="dm-input dm-input--sm" maxlength="80"
-          value="${esc(cfg.handlanger || '')}" placeholder="Laat leeg voor iemand zonder naam"
-          style="max-width:260px">
+        <input id="woek-handlanger" class="dm-input" maxlength="80" list="woek-handlanger-dl"
+          autocomplete="off" value="${esc(cfg.handlanger || '')}"
+          placeholder="Zoek een personage — of laat leeg voor iemand zonder naam"
+          style="max-width:340px">
+        <datalist id="woek-handlanger-dl">${(personages || [])
+          .map(p => `<option value="${esc(p.name || '')}">${esc(p.data?.role || '')}</option>`).join('')}</datalist>
       </div>
       <!-- Het gevecht bij de laatste trap. Dit veld werd wél opgeslagen en
            nergens gelezen: de hulptekst beloofde "het gevecht koppel je als
@@ -6541,14 +6574,28 @@ async function _renderSchulden() {
       </div>
 
       ${_dienstSectieKop('mail', 'Wat hij schrijft', 'dm_woekeraar_brieven')}
-      ${[
-        { k: 'brief1', label: 'De herinnering (trap 1)', plaats: 'Je staat bij mij in het krijt voor {bedrag}.…' },
-        { k: 'brief2', label: 'Wat ik meenam (trap 2)',  plaats: 'Ik heb {voorwerp} meegenomen uit de spullen van {van}.…' },
-        { k: 'brief3', label: 'De laatste (trap 3)',     plaats: '{wie} komt langs. Hij is minder geduldig dan ik.…' },
-      ].map(b => `
-        <div class="dm-form-row" style="flex-direction:column;align-items:stretch;gap:4px">
-          <label class="dm-form-label" for="woek-${b.k}">${esc(b.label)}</label>
+      <!-- Zelfde opzet als een factiebrief: een onderwerp, een handschrift en
+           de inhoud, met een knop die het meegeleverde sjabloon invult zodat je
+           kunt bijschaven in plaats van met een leeg vel te beginnen. Het
+           handschrift geldt voor alle drie — het is dezelfde hand. -->
+      <div class="dm-form-row">
+        <label class="dm-form-label" for="woek-briefstijl">Handschrift</label>
+        <select id="woek-briefstijl" class="dm-select" style="max-width:340px">
+          ${(window.BRIEF_STIJLEN || [{ value: '', label: 'Standaard' }])
+            .map(b => `<option value="${esc(b.value)}"${(cfg.briefstijl || '') === b.value ? ' selected' : ''}>${esc(b.value ? b.label : 'Standaard — oud handschrift')}</option>`).join('')}
+        </select>
+      </div>
+      ${_WOEK_BRIEVEN.map(b => `
+        <div class="dm-brief-blok">
+          <div class="dm-form-row">
+            <label class="dm-form-label" for="woek-${b.k}-titel">${esc(b.label)}</label>
+            <input id="woek-${b.k}-titel" class="dm-input" maxlength="80"
+              placeholder="${esc(b.titel)}" value="${esc(cfg[b.k + 'Titel'] || '')}" style="max-width:260px">
+            <button class="dm-btn dm-btn-ghost dm-btn-sm" onclick="window.dmPanel.woekSjabloon('${b.k}')"
+              title="De meegeleverde tekst invullen">${icon('refresh-cw')} Sjabloon</button>
+          </div>
           <textarea id="woek-${b.k}" class="dm-input" rows="4" maxlength="2000"
+            style="font-family:'IM Fell English',serif"
             placeholder="${esc(b.plaats)}">${esc(cfg[b.k] || '')}</textarea>
         </div>`).join('')}
 
@@ -6609,9 +6656,13 @@ window._woekeraarSettingsSave = async function () {
       escalatie: !!document.getElementById('woek-escalatie')?.checked,
       handlanger: document.getElementById('woek-handlanger')?.value.trim() || '',
       encounterId: document.getElementById('woek-encounter')?.value || '',
+      briefstijl: document.getElementById('woek-briefstijl')?.value || '',
       brief1: document.getElementById('woek-brief1')?.value || '',
       brief2: document.getElementById('woek-brief2')?.value || '',
       brief3: document.getElementById('woek-brief3')?.value || '',
+      brief1Titel: document.getElementById('woek-brief1-titel')?.value || '',
+      brief2Titel: document.getElementById('woek-brief2-titel')?.value || '',
+      brief3Titel: document.getElementById('woek-brief3-titel')?.value || '',
       ontspanBij,
     });
     const newMeta = await api.meta();

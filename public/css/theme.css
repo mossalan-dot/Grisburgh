@@ -30165,3 +30165,14 @@ body:has(#sb-overlay.sb-open) .dm-dice-fab { display: none !important; }
 /* De terugknop van een winkel houdt de linkerkant; de beurs en het boekje
    staan rechts, net als op elk ander dienstscherm. */
 .markt-winkel-balk .markt-terug { margin-right: auto; }
+
+/* Eén brief in de instellingen: onderwerp en sjabloonknop op een regel, de
+   inhoud eronder. Een kader eromheen, zodat drie brieven onder elkaar niet
+   één lange sliert velden worden. */
+.dm-brief-blok {
+  border: 1px solid rgba(196,168,122,0.3); border-radius: 9px;
+  padding: 10px 12px; margin-bottom: 10px;
+  background: rgba(255,253,246,0.4);
+}
+.dm-brief-blok .dm-form-row { margin-bottom: 6px; }
+.dm-brief-blok textarea { width: 100%; box-sizing: border-box; resize: vertical; }
