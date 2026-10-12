@@ -5972,54 +5972,28 @@ window._koopItem = async (shopId, itemNaam, entityId, btn, aantal = 1) => {
     // De server stuurt bij te weinig geld ook het tekort mee; dat is bruikbaarder
     // dan "Niet genoeg geld" alleen.
     const _tekort = err?.data?.tekort;
-    const msg = (err.message || 'Kon niet kopen')
-      + (_tekort ? ` — je komt ${_muntTekst(_tekort)} tekort` : '');
+    const _tekortCl = _tekort ? ((_tekort.fl || 0) * 100 + (_tekort.kn || 0) * 10 + (_tekort.cl || 0)) : 0;
     if (feedback) {
-      // Kom je geld tekort, dan staat hij toevallig achter je. Dat is de hele
-      // koppeling: geen winkel die aanschrijft, maar een woekeraar die opduikt
-      // op het moment dat je iets wilt wat je niet kunt betalen. De knop
-      // verschijnt alleen als zijn dienst aanstaat — hij is er niet in elke
-      // campagne, en een winkel hoort niets over hem te weten.
-      // `window._verborgen` is waar de modulestand landt (zie `_pasModulesToe`);
-      // `app.state.verborgen` bestaat niet, en dan was de knop er ook geweest
-      // in een campagne zonder woekeraar.
-      const _kanLenen = _tekort && !window._dienstDicht?.('woekeraar')
-        && !(window._verborgen?.secties || []).includes('woekeraar');
-      feedback.innerHTML = '⚠ ' + esc(msg) + (_kanLenen ? `
-        <button class="shop-koop-btn shop-woekeraar-btn"
-          onclick="window._woekeraarOpduiken('${escJS(itemNaam)}')"
-          title="Er staat iemand achter je die dat bedrag wel heeft">Iemand biedt aan het voor te schieten…</button>` : '');
-      feedback.className = 'shop-koop-feedback shop-koop-feedback--fout';
+      if (_tekortCl > 0 && window._tekortHtml) {
+        // **De winkel leent niet.** Hier stond een knop die ter plekke een
+        // lening aanvroeg, met een `prompt()` waarin je het bedrag in de
+        // kleinste munt moest intikken — de winkel wist dus hoe lenen werkt, en
+        // de speler kreeg een schuld zonder ooit bij de schuldeiser te zijn
+        // geweest. Nu alleen de constatering en de weg ernaartoe; hetzelfde
+        // blok als bij het gokhuis.
+        feedback.innerHTML = window._tekortHtml(_tekortCl);
+        feedback.className = 'shop-koop-feedback';
+      } else {
+        feedback.innerHTML = '⚠ ' + esc(err.message || 'Kon niet kopen');
+        feedback.className = 'shop-koop-feedback shop-koop-feedback--fout';
+      }
       feedback.classList.remove('hidden');
-      // Met een aanbod erbij blijft het langer staan: je moet erover kunnen
-      // nadenken, en dat is precies wat hij wil.
-      setTimeout(() => feedback.classList.add('hidden'), _kanLenen ? 20000 : 5000);
+      // Met een verwijzing erbij blijft het langer staan: je moet erover kunnen
+      // nadenken en de knop kunnen vinden.
+      setTimeout(() => feedback.classList.add('hidden'), _tekortCl > 0 ? 20000 : 5000);
     }
     if (btn) { btn.disabled = false; btn.textContent = 'Kopen'; }
   }
-};
-
-// Hij staat achter je in de winkel. Dezelfde weg als zijn eigen deur: het gaat
-// als verzoek naar de DM, met waar het geld heen zou gaan er alvast bij — dat
-// veld is tenslotte zijn beste informatie.
-window._woekeraarOpduiken = async (itemNaam) => {
-  const cfg = window.app?.state?.meta?.woekeraar || {};
-  const wie = cfg.naam || 'Iemand';
-  const in_ = prompt(
-    `${wie} heeft meegeluisterd en biedt aan het voor te schieten.\n\n`
-    + `Hoeveel wil je lenen? Vul het aantal in de kleinste munt in.\n`
-    + `Het gaat eerst langs je DM.`, '');
-  if (in_ === null) return;
-  const cl = parseInt(String(in_).replace(/[^0-9]/g, ''), 10);
-  if (!(cl > 0)) return;
-  try {
-    await api.post('/woekeraar/verzoek', {
-      bedrag: { fl: 0, kn: 0, cl },
-      waarvoor: itemNaam ? `${itemNaam}, op de markt` : 'iets op de markt',
-      bron: 'markt',
-    });
-    window._showToast?.(`${icon('hourglass')} ${wie} denkt erover na.`, null, 5000);
-  } catch (e) { window._showToast?.(e.message || 'Vragen mislukt', null, 5000); }
 };
 
 // ── Winkel: voorwerp aanbieden aan de winkel ──

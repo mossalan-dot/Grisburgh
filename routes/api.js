@@ -16171,6 +16171,12 @@ router.post('/tweespalt/arena/signup/:id/uitslag', requireDM, (req, res) => {
 // Nu één regel: het wordt hetzelfde verzoek, met `bron: 'gokhuis'` zodat je in
 // het register ziet waar het begon. Je verliest je inleg en hij staat naast je
 // — maar je krijgt het geld pas als de DM knikt.
+//
+// **Sinds 12 okt 2026 komt hier niets meer binnen vanuit het scherm.** Een
+// dienst die tekortkomt wijst naar de woekeraar in plaats van zelf uit te
+// lenen (`window._tekortHtml`), dus lenen begint altijd op zijn eigen deur.
+// De route blijft staan omdat hij klopt en getest is; wil je hem weg, dan
+// kunnen de twee tests in tweespalt.test.js en diensten-beurs.test.js mee.
 router.post('/tweespalt/leen', attachRole, vereistDienst('tweespalt'), (req, res) => {
   const characterId = _handelendKarakter(req);
   if (!characterId) return res.status(403).json({ error: 'Geen speler ingelogd' });
