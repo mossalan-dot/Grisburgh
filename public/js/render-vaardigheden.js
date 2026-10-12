@@ -1356,6 +1356,35 @@ async function _kaartBeeldZet(soort, naam, waarde) {
   _bandHerteken();
 }
 
+// De knoppen en de focuskiezer van de afbeelding. Apart, omdat alleen dít
+// stuk ververst als je een andere plaat kiest — hertekende het venster zich
+// helemaal, dan was alles wat je er net in had getypt weg, en schreef
+// *Bewaren* daarna de oude tekst terug.
+function _beeldBlokHtml(soort, veiligeNaam, beeld) {
+  return `
+    <div class="vaardig-img-rij">
+      <button class="dm-btn dm-btn-ghost dm-btn-sm"
+        onclick="window.vaardigheden.kaartBeeld('${esc(soort)}','${veiligeNaam}')">${icon('image')} ${beeld?.id ? 'Andere kiezen' : 'Kiezen of uploaden'}</button>
+      ${beeld?.id ? `<button class="dm-btn dm-btn-ghost dm-btn-sm"
+        onclick="window.vaardigheden.kaartBeeldWeg('${esc(soort)}','${veiligeNaam}')">${icon('x')} Weghalen</button>` : ''}
+    </div>
+    <div id="vd-kaart-fp">${beeld?.id ? (window._fpBlokHtml?.({
+      src: `/api/files/${esc(beeld.id)}`,
+      value: beeld.focus || '50% 50%',
+      previews: [{ cls: 'fp-prev--hoog', label: 'De kaart' }],
+    }) || '') : ''}</div>`;
+}
+
+// Alleen het beeldblok opnieuw tekenen, met de velden eromheen onaangeroerd.
+function _beeldBlokVernieuwen(soort, naam, beeld) {
+  const host = document.getElementById('vd-beeldblok');
+  if (!host) return;
+  host.innerHTML = _beeldBlokHtml(soort, String(naam).replace(/'/g, "\\'"), beeld);
+  const kaart = document.getElementById('vd-kaart-bewerk');
+  if (kaart) { if (beeld?.id) kaart.dataset.beeld = beeld.id; else delete kaart.dataset.beeld; }
+  window._fpTeken?.();
+}
+
 function _uitlegVenster(soort, naam, bron) {
   const h = soort === 'subclass' ? _bron?.prog?.classes?.[bron]?.subclasses?.[naam]
     : soort === 'class'      ? _bron?.prog?.classes?.[naam]
@@ -1406,17 +1435,7 @@ function _uitlegVenster(soort, naam, bron) {
            kaartje bijwerkt. -->
       <div class="dm-form-row" style="flex-direction:column;align-items:stretch;gap:6px">
         <label class="dm-form-label">Afbeelding</label>
-        <div class="vaardig-img-rij">
-          <button class="dm-btn dm-btn-ghost dm-btn-sm"
-            onclick="window.vaardigheden.kaartBeeld('${esc(soort)}','${veilig}')">${icon('image')} ${beeld?.id ? 'Andere kiezen' : 'Kiezen of uploaden'}</button>
-          ${beeld?.id ? `<button class="dm-btn dm-btn-ghost dm-btn-sm"
-            onclick="window.vaardigheden.kaartBeeldWeg('${esc(soort)}','${veilig}')">${icon('x')} Weghalen</button>` : ''}
-        </div>
-        <div id="vd-kaart-fp">${beeld?.id ? (window._fpBlokHtml?.({
-          src: `/api/files/${esc(beeld.id)}`,
-          value: beeld.focus || '50% 50%',
-          previews: [{ cls: 'fp-prev--hoog', label: 'De kaart' }],
-        }) || '') : ''}</div>
+        <div id="vd-beeldblok">${_beeldBlokHtml(soort, veilig, beeld)}</div>
       </div>
       <div class="dm-feature-row" style="margin-top:8px">
         <button class="dm-btn dm-btn-primary" onclick="window.vaardigheden.bewaarUitleg('${esc(soort)}','${veilig}','${veiligB}')">${icon('save')} Bewaren</button>
@@ -1963,7 +1982,10 @@ window.vaardigheden = {
       onSelect: async (srcId) => {
         try {
           await _kaartBeeldZet(soort, naam, { id: srcId, focus: '' });
-          _uitlegVenster(soort, naam, _filters.bron || '');
+          // **Niet het hele venster hertekenen.** Dat deed het eerst, en dan
+          // was de beschrijving die je net had getypt weg — en schreef
+          // *Bewaren* daarna de oude tekst terug over de nieuwe heen.
+          _beeldBlokVernieuwen(soort, naam, { id: srcId, focus: '' });
           window._showToast?.('Afbeelding geplaatst.');
         } catch (e) { window._showToast?.('Instellen mislukt: ' + (e.message || e)); }
       },
@@ -1972,7 +1994,7 @@ window.vaardigheden = {
   async kaartBeeldWeg(soort, naam) {
     try {
       await _kaartBeeldZet(soort, naam, null);
-      _uitlegVenster(soort, naam, _filters.bron || '');
+      _beeldBlokVernieuwen(soort, naam, null);
     } catch (e) { alert('Weghalen mislukt: ' + e.message); }
   },
 

@@ -7,7 +7,7 @@ import { renderRelatiemap } from './render-relatiemap.js?v=27';
 import { renderProgressie, levelupFeatures } from './render-progressie.js?v=62';
 import { renderBestiarium } from './render-bestiarium.js?v=31';
 import { renderSpreuken } from './render-spreuken.js?v=46';
-import { renderVaardigheden, zoekVaardigheden, heldenboekTekst } from './render-vaardigheden.js?v=40';
+import { renderVaardigheden, zoekVaardigheden, heldenboekTekst } from './render-vaardigheden.js?v=41';
 import { renderStatblock } from './render-statblock.js?v=9';
 import { initSocket } from "./socket-client.js?v=85";
 import { initDmPanel } from "./dm-panel.js?v=395";
@@ -11977,10 +11977,15 @@ function _marktTeken() {
              chiprijen zijn samen een muur van knoppen zodra er een paar
              gebieden en facties zijn; ze horen pas in beeld als je ze zoekt —
              of vanzelf, zodra er iets gefilterd staat. -->
-        <div class="markt-acties">
+        <!-- Dezelfde kop als elk ander dienstscherm: de beurs links, de knoppen
+             rechts, en daaronder pas het zoekveld over de volle breedte. De
+             beurs hing hier naast de zoekbalk en de knoppen stonden op een
+             eigen regel erboven — twee rijen die bij een dienst één rij zijn. -->
+        <div class="dienst-beurs-topbar">
+          ${window._beursPil?.(_marktData.beurs, 'Wat de party te besteden heeft') ?? ''}
           <button class="sf-toggle-btn${_marktFilterOpen || _marktGebied || _marktFactie ? ' sf-toggle-btn--active' : ''}"
             onclick="window._marktFilterToggle()" title="Filter op gebied en factie">
-            <svg width="13" height="11" viewBox="0 0 13 11" fill="currentColor"><polygon points="0,0 13,0 8,5.5 8,11 5,11 5,5.5"/></svg>
+            ${icon('filter')}
           </button>
           ${window._helpBtn?.('markt') ?? ''}
         </div>
@@ -11991,9 +11996,6 @@ function _marktTeken() {
               placeholder="Zoek een voorwerp of een winkel…" value="${esc(_marktZoek)}"
               oninput="window._marktZoek(this.value)">
           </div>
-          ${_marktData.beurs ? `<div class="markt-beurs" title="Wat de party te besteden heeft">
-            ${icon('coins')} ${esc(_magizooBeurs(_marktData.beurs))}
-          </div>` : ''}
         </div>
         ${(_marktFilterOpen || _marktGebied || _marktFactie) ? `
           ${_marktGebiedBalk(winkels)}
@@ -13168,12 +13170,12 @@ function _magizooItemBody(m, cooldownActief) {
             <button class="ts-wedden-btn magizoo-btn" ${disabled ? 'disabled' : ''}
               onclick="window._magizooOnderzoek('${esc(m.id)}','stap')"
               title="Eén trede verder: ${esc(volgendeLabel || '')}">
-              Gedeeltelijk onderzoek</button>
+              Gedeeltelijk</button>
             ${m.niveau === 'naam'
               ? `<button class="ts-wedden-btn magizoo-btn magizoo-btn--premium" ${disabled ? 'disabled' : ''}
                   onclick="window._magizooOnderzoek('${esc(m.id)}','volledig')"
                   title="In één keer alles">
-                  Volledig onderzoek</button>`
+                  Volledig</button>`
               : ''}
           </div>`}`;
 }

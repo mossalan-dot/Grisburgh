@@ -14699,9 +14699,15 @@ body.herberg-actief #app { position: relative; z-index: 1; }
 .help-modal-dot--actief { background: #c4a87a; }
 
 /* ── Generieke beurs-topbar voor alle diensten ── */
+/* De bovenbalk van elk dienstscherm: wat er links staat (een terugknop, soms
+   niets) houdt links, de beurs en de knoppen staan rechts bij elkaar. Zo leest
+   elke dienst, de markt en een winkel hetzelfde: inhoud links, bediening
+   rechts, met het bedrag er direct naast. */
 .dienst-beurs-topbar {
   display: flex;
+  align-items: center;
   justify-content: flex-end;
+  gap: 8px;
   width: 100%;
 }
 .tempel-list-topbar {
@@ -21517,7 +21523,13 @@ video.prog-detail-art { width: 100%; height: 180px; object-fit: cover; border-ra
 /* Twee knoppen die hetzelfde aanbieden in twee maten horen naast elkaar; ze
    braken af omdat de kolom smal is en ze niet mochten krimpen. */
 .magizoo-item-acties { display: flex; gap: 8px; margin-top: 8px; flex-wrap: nowrap; }
-.magizoo-item-acties .magizoo-btn { flex: 1 1 0; min-width: 0; text-align: center; white-space: nowrap; }
+/* Twee gelijke helften. `nowrap` stond erop en dan loopt een te lang label
+   gewoon buiten zijn knop door — de tekst stak over de rand van het paneel.
+   De namen zijn bovendien ingekort tot waar het over gaat. */
+.magizoo-item-acties .magizoo-btn {
+  flex: 1 1 0; min-width: 0; text-align: center;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
 .magizoo-btn { font-size: 0.82rem; padding: 6px 12px; }
 .magizoo-btn--premium { background: rgba(60,170,90,0.16); border-color: rgba(90,200,120,0.45); color: #a8e6b8; }
 .magizoo-btn--premium:hover { background: rgba(60,170,90,0.28); }
@@ -25944,7 +25956,7 @@ body.lade-open .dm-regie-balk-inner { height: auto; }
   border-radius: 999px; padding: 7px 15px; white-space: nowrap;
 }
 .markt-beurs .icon, .dienst-beurs .icon { width: 14px; height: 14px; }
-.dienst-beurs { margin-right: auto; }
+
 
 /* De kaartjes onder de klassenband lagen vijftien pixel buiten de band erboven,
    want die band heeft eigen padding en het raster niet. Niets is zo zichtbaar
@@ -28146,8 +28158,8 @@ body.akte-schrijf-open .mp-overlay { z-index: 1320; }
 /* In de winkel: de terugknop links, het boekje rechts — zoals op de markt
    erbuiten. Zonder deze balk stond het boekje onder de knop. */
 .markt-winkel-balk {
-  display: flex; align-items: center; justify-content: space-between;
-  gap: 10px; margin-bottom: 6px;
+  display: flex; align-items: center; justify-content: flex-end;
+  gap: 8px; margin-bottom: 6px;
   /* .markt-winkel centreert zijn kinderen, dus zonder breedte krimpt de balk
      mee met zijn inhoud en staan terugknop en boekje samen in het midden. */
   width: 100%;
@@ -30149,3 +30161,7 @@ body:has(#sb-overlay.sb-open) .dm-dice-fab { display: none !important; }
      rechter schuift op zodat hij het tabje niet raakt. */
   .sb-arrow-btn--next { right: 34px; }
 }
+
+/* De terugknop van een winkel houdt de linkerkant; de beurs en het boekje
+   staan rechts, net als op elk ander dienstscherm. */
+.markt-winkel-balk .markt-terug { margin-right: auto; }
