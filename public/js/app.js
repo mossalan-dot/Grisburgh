@@ -12652,8 +12652,9 @@ async function renderGock() {
     ? `<img src="${api.thumbUrl(config.imageId)}" class="herberg-portrait-round" alt="${esc(config.naam)}">`
     : `<div class="gock-portret-fallback">${icon('search')}</div>`;
 
-  const beursRegel = currency
-    ? `<p class="herberg-tap-beurs">Beurs: <strong>${beursTekst(currency)}</strong></p>` : '';
+  // De beurs staat sinds de gedeelde kop al bovenin; hier stond hij een
+  // tweede keer, één scherm lager.
+  const beursRegel = '';
 
   // Paneel 1 — Onderzoek: iets uit de wereld halen.
   const onderzoekPaneel = `
@@ -12797,8 +12798,8 @@ window._gockGerFilter = (q) => {
 window._gockGerKies = (knop) => {
   document.querySelectorAll('#gock-ger-lijst .herberg-item').forEach(el => el.classList.remove('is-gekozen'));
   knop.classList.add('is-gekozen');
-  const veld = document.getElementById('gock-ger-zoek');
-  if (veld) veld.value = knop.textContent.trim();
+  // Niet ook in het zoekveld plakken: dan staat dezelfde naam twee keer onder
+  // elkaar. De opgelichte regel is het antwoord.
   document.getElementById('gock-ger-lijst')?.querySelectorAll('.herberg-item')
     .forEach(el => { if (el !== knop) el.style.display = 'none'; });
   document.getElementById('gock-ger-tekst')?.focus();

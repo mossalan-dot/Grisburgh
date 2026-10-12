@@ -21964,19 +21964,26 @@ body.kaart-fs-active { overflow: hidden; }
   min-height: 0;
   border-radius: 14px;
   border-color: rgba(196,168,122,0.8);
-  /* **Een schaduw moet donkerder zijn dan waar hij op valt.** Deze was warm
-     bruin op 30 % over een even warme waas, en dan zie je geen schaduw maar
-     een perkamentkleurige gloed: het venster zweefde zonder rand. Nu een
-     echte donkere schaduw, in dezelfde warme familie maar veel dieper. */
+  /* **Een schaduw moet donkerder zijn dan waar hij op valt.** Hij was eerst
+     warm bruin op 30 % over een even warme waas — dan zie je geen schaduw maar
+     een gloed. Daarna werd hij dieper bruin, maar tegelijk werd de waas
+     erachter donkerder: toen viel bruin weg in bruin en zweefde het venster
+     weer zonder rand.
+     Dus: een bijna-zwarte slagschaduw (die wint van elke tint eronder) plús
+     een dunne lichte ring om het paneel zelf. Die ring is wat de rand echt
+     aftekent; een schaduw alleen is op een donkere ondergrond nooit genoeg. */
   box-shadow:
-    0 24px 60px rgba(28,16,2,0.52),
-    0 6px 18px rgba(28,16,2,0.30),
+    0 0 0 1px rgba(255,248,230,0.14),
+    0 26px 64px rgba(0,0,0,0.58),
+    0 8px 20px rgba(0,0,0,0.36),
     inset 0 1px 0 rgba(255,255,255,0.4);
 }
 .modal-overlay {
   /* En de waas erachter donkerder: op 46 % bleef de pagina eronder gewoon
-     leesbaar, waardoor het venster niet losklikte van wat eronder lag. */
-  background: rgba(26,15,2,0.66);
+     leesbaar, waardoor het venster niet losklikte van wat eronder lag. Iets
+     minder bruin dan daarvoor — een warme waas kleurt een perkamenten paneel
+     mee en dan lijkt alles één vlak. */
+  background: rgba(16,11,4,0.70);
   backdrop-filter: blur(5px); -webkit-backdrop-filter: blur(5px);
 }
 .modal-overlay.active { animation: gb-fadein 0.18s ease; }
