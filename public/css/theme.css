@@ -10955,6 +10955,13 @@ body.lade-dicht .regie-lade-body { display: none; }
   grid-template-columns: repeat(6, 1fr);
   gap: 8px;
 }
+/* De teller van een feature in de tijdlijn: tussen de naam en de ster, zodat
+   je hem kunt aftikken zonder het kaartje te openen. */
+.prog-feat-dots { display: inline-flex; align-items: center; flex-shrink: 0; margin-left: auto; }
+.prog-feat-dots .trait-uses-dots { gap: 3px; }
+.prog-feat-dots .spell-slot-dot { width: 11px; height: 11px; }
+.prog-feat-dots .trait-uses-count { font-size: 10px; opacity: .7; }
+
 /* Op een telefoon passen er geen zes naast elkaar: de zesde (Charisma) viel
    buiten het scherm, en omdat de pagina zelf niet horizontaal scrollt was hij
    simpelweg weg. Twee rijen van drie — dezelfde maat die het overzicht in de

@@ -653,12 +653,23 @@ function _classTimeline(prog, cls, subclassName, charLevel, isMulti, charId, fav
         onclick="event.stopPropagation();window.progressie.toggleFav(${fi})"
         title="${fav ? 'Favoriet verwijderen' : 'Favoriet'}">${fav ? '★' : '☆'}</button>` : '';
 
+      // Heeft deze feature een teller (bolletjes die je afstreept), laat die dan
+      // hier staan en niet alleen achter een klik. Juist een teller wil je aan
+      // tafel in één oogopslag zien en met één tik bijwerken — hij stond in de
+      // detailweergave, drie klikken verderop.
+      const tel = window._traitBlokVoor?.(f.name);
+      const telMax = tel ? (parseInt(tel.maxUses) || 0) : 0;
+      const telHtml = telMax > 0
+        ? `<span class="prog-feat-dots">${window._traitDotsHtml?.(tel.id, telMax, parseInt(tel.currentUses) || 0) || ''}</span>`
+        : '';
+
       return `<div class="prog-feat${cls2}">
         <div class="prog-feat-header">
           <button type="button" class="prog-feat-name-btn"
             onclick="window.progressie.openFeature(${fi})">
             ${label}${f._kind === 'sub' ? ' <span class="prog-feat-tag">Subclass</span>' : ''}
           </button>
+          ${telHtml}
           ${favBtn}
         </div>
         ${choiceHtml}
