@@ -145,15 +145,22 @@ const _CAT_ALL = [..._CATS, _TALENT];
 const _catById  = id => _CAT_ALL.find(c => c.id === id) || _TALENT;
 const _CAT_CHOICES = ['magie','aanval','verdediging','genezing','beweging','sociaal','kennis','zintuig','talent'];
 
+// `_TALENT` is de restbak: wat nergens op matcht belandt hier. Dat is prima
+// als vangnet voor de kleur en het icoon, maar het **label** hoorde er niet uit
+// te komen — "Talent" las als een categorie terwijl het "niet herkend"
+// betekent, en de sortering kijkt alleen naar de naam van een feature. Monk's
+// Focus heet nergens naar wat hij doet, dus die kreeg een etiket dat nergens
+// op sloeg. `gegokt` zegt dat we het niet weten; het chipje blijft dan weg.
 function _featCat(name, kind) {
   if (kind === 'subclass') return _CATS[0];
   const n = _norm(name);
   for (let i = 1; i < _CATS.length; i++) {
     if (_CATS[i].kw.some(k => n.includes(k))) return _CATS[i];
   }
-  return _TALENT;
+  return { ..._TALENT, gegokt: true };
 }
 function _resolveCat(feat, kind) {
+  // Heeft de DM er zelf een gekozen, dan staat die vast — ook 'Talent'.
   if (feat?.cat) return _catById(feat.cat);
   return _featCat(feat?.name, kind);
 }
@@ -788,7 +795,7 @@ function _featCard(feat, level, artKey, kind, unlocked, scope, charId, favs, cho
     <button class="prog-card${unlocked ? '' : ' prog-card--locked'} prog-card--${cat.id}${fav ? ' prog-card--fav' : ''}"
       onclick="window.progressie.openFeature(${fi})">
       ${art}<div class="prog-card-veil"></div>
-      <span class="prog-card-cat" title="${esc(cat.label)}">${icon(cat.icon)}</span>
+      ${cat.gegokt ? '' : `<span class="prog-card-cat" title="${esc(cat.label)}">${icon(cat.icon)}</span>`}
       <span class="prog-card-lvl">${level}</span>
       ${star}
       ${unlocked ? '' : `<span class="prog-card-lock">${icon('lock')}</span>`}
@@ -1079,7 +1086,7 @@ window.progressie = {
       <div class="prog-detail">
         <div class="prog-detail-body">
           <div class="prog-detail-chips">
-            <span class="prog-detail-chip">${icon(f.cat.icon)} ${esc(f.cat.label)}</span>
+            ${f.cat?.gegokt ? '' : `<span class="prog-detail-chip">${icon(f.cat.icon)} ${esc(f.cat.label)}</span>`}
             <span class="prog-detail-chip">Level ${f.level}</span>
             <span class="prog-detail-chip prog-chip--${f.kind || 'class'}">${_kindLabel(f.kind)}</span>
             ${favBtn}
