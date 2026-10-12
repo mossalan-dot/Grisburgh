@@ -1504,7 +1504,7 @@ async function _renderDiensten(subTab) {
     // tab heet naar de dienst — en de filterregel hieronder vergelijkt het id
     // met `verborgen.secties`, waar 'woekeraar' in staat. Met de oude naam
     // bleef de tab dus ook staan als de dienst uit was.
-    { id: 'woekeraar', label: 'Woekeraar',   icoon: 'coins',      key: 'woekeraar' },
+    { id: 'woekeraar', label: 'Geldschieter',   icoon: 'coins',      key: 'woekeraar' },
     { id: 'toegang',   label: 'Toegang',     icoon: 'lock', altijd: true, title: 'Toegang per groep', key: 'toegang' },
   ]).filter(d => d.altijd || !(window._verborgen?.secties || []).includes(d.id));
   el.querySelector('.dm-subtab-nav').innerHTML = _subtabNavHtml({
@@ -1953,7 +1953,7 @@ const _DIENSTEN_TOEGANG_INFO = [
   { key: 'gock',      label: 'Detective',    icon: 'search'    },
   { key: 'ursula',    label: 'Waarzegger',   icon: 'sparkles'  },
   { key: 'magizoo',   label: 'Magizoöloog',  icon: 'paw-print' },
-  { key: 'woekeraar', label: 'Woekeraar',    icon: 'coins'     },
+  { key: 'woekeraar', label: 'Geldschieter',    icon: 'coins'     },
 ];
 
 const _STAAT_LABELS = {
@@ -6494,7 +6494,7 @@ async function _renderSchulden() {
       ${_dienstKopHtml({
         sleutel: 'woek', config: cfg,
         personages, locaties,
-        naamVoorbeeld: 'De woekeraar',
+        naamVoorbeeld: 'De geldschieter',
         groetVoorbeeld: 'Ga zitten. Vertel eens waar het over gaat.',
       })}
 

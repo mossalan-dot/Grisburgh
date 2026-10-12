@@ -5981,7 +5981,7 @@ window._koopItem = async (shopId, itemNaam, entityId, btn, aantal = 1) => {
         // de speler kreeg een schuld zonder ooit bij de schuldeiser te zijn
         // geweest. Nu alleen de constatering en de weg ernaartoe; hetzelfde
         // blok als bij het gokhuis.
-        feedback.innerHTML = window._tekortHtml(_tekortCl);
+        feedback.innerHTML = window._tekortHtml(_tekortCl, '', true);
         feedback.className = 'shop-koop-feedback';
       } else {
         feedback.innerHTML = '⚠ ' + esc(err.message || 'Kon niet kopen');

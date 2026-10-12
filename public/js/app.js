@@ -1,5 +1,5 @@
 import { api, campagneUitUrl, zetCampagne } from './api.js?v=310';
-import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, renderDocumenten, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=344";
+import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, renderDocumenten, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=345";
 import { initArchief, renderLogboek, openLogboekEditor } from "./render-archief.js?v=141";
 import { renderKaart, queueFlyTo, verversPins, nieuweKaart } from './render-kaart.js?v=31';
 import { renderDungeon } from './render-dungeon.js?v=63';
@@ -10,7 +10,7 @@ import { renderSpreuken } from './render-spreuken.js?v=46';
 import { renderVaardigheden, zoekVaardigheden, heldenboekTekst } from './render-vaardigheden.js?v=40';
 import { renderStatblock } from './render-statblock.js?v=9';
 import { initSocket } from "./socket-client.js?v=84";
-import { initDmPanel } from "./dm-panel.js?v=393";
+import { initDmPanel } from "./dm-panel.js?v=394";
 import { COND_INFO, COND_LABEL, COND_MET_PLAATJE, COND_ICON } from './conditions.js?v=2';
 import './media-picker.js?v=9';
 import './wizard.js?v=4';
@@ -80,7 +80,7 @@ const _DIENST_OP_KAART = [
   { sleutel: 'ursula',    sectie: 'ursula',    icoon: 'sparkles',   val: 'De waarzegger' },
   { sleutel: 'tempel',    sectie: 'tempel',    icoon: 'church',     val: 'De tempel' },
   { sleutel: 'magizoo',   sectie: 'magizoo',   icoon: 'paw-print',  val: 'De magizoöloog' },
-  { sleutel: 'woekeraar', sectie: 'woekeraar', icoon: 'coins',      val: 'De woekeraar' },
+  { sleutel: 'woekeraar', sectie: 'woekeraar', icoon: 'coins',      val: 'De geldschieter' },
 ];
 
 // Welke factie hangt aan dít organisatiekaartje? Voor de deur die op het
@@ -136,7 +136,7 @@ window._dienstSorteer = (lijst, sleutel = 'key') => {
 const _DIENST_STANDAARD = {
   markt: 'Markt',
   herberg: 'Herberg', tweespalt: 'Gokhuis', gock: 'Detective', ursula: 'Waarzegger',
-  tempel: 'Tempels', magizoo: 'Magizoöloog', facties: 'Facties', woekeraar: 'Woekeraar',
+  tempel: 'Tempels', magizoo: 'Magizoöloog', facties: 'Facties', woekeraar: 'Geldschieter',
 };
 window._dienstNaam = (key) => {
   // Facties is de uitzondering: `meta.facties` is een **lijst facties**, geen
@@ -689,7 +689,7 @@ window._alsSpelerKies = (id) => {
 
 const _DIENST_AMB_LABELS = {
   herberg: 'De Herberg', tweespalt: 'Het gokhuis', gock: 'De detective',
-  ursula: 'De waarzegger', tempel: 'De Tempel', magizoo: 'De Magizoöloog', woekeraar: 'De woekeraar',
+  ursula: 'De waarzegger', tempel: 'De Tempel', magizoo: 'De Magizoöloog', woekeraar: 'De geldschieter',
   // 'facties' heeft géén sectie-loop: de loop schakelt per geopende factie (zie _factieOpen).
 };
 
@@ -3224,7 +3224,7 @@ async function refreshSection(section) {
   else if (section === 'tweespalt') await _dienstPoort('tweespalt', state.meta?.tweespalt?.naam || 'Het gokhuis', renderTweespalt);
   else if (section === 'gock') await _dienstPoort('gock', state.meta?.gock?.naam || 'De detective', renderGock);
   else if (section === 'magizoo') await _dienstPoort('magizoo', state.meta?.magizoo?.naam || 'De Magizoöloog', renderMagizoo);
-  else if (section === 'woekeraar') await _dienstPoort('woekeraar', state.meta?.woekeraar?.naam || 'De woekeraar', renderWoekeraar);
+  else if (section === 'woekeraar') await _dienstPoort('woekeraar', state.meta?.woekeraar?.naam || 'De geldschieter', renderWoekeraar);
   else if (section === 'ursula') await _dienstPoort('ursula', state.meta?.ursula?.naam || 'De waarzegger', renderUrsula);
   else if (section === 'tempel') await _dienstPoort('tempel', state.meta?.tempel?.naam || 'De Tempel', renderTempel);
   else if (section === 'facties') {
@@ -4484,11 +4484,14 @@ window._sbNext = function() {
 // Staat de woekeraar uit of is hij voor deze party nog verborgen, dan blijft
 // alleen de constatering staan — geen verwijzing naar een deur die niet
 // bestaat.
-window._tekortHtml = function(tekortCl, dienstNaam = '') {
+// `licht` voor de plekken waar het blok niet op een dienstpaneel staat maar in
+// een kaartjesmodal (de voorraad van een winkel). Daar is de ondergrond
+// perkament; een donkere doos valt er als een gat in.
+window._tekortHtml = function(tekortCl, dienstNaam = '', licht = false) {
   const bedrag = window.formatCl ? window.formatCl(tekortCl) : `${tekortCl} cl`;
   // Zonder eigen naam heet hij "de woekeraar" — met een kleine letter, want
   // het is geen naam. Aan het begin van een zin moet hij wel omhoog.
-  const naam = window.app?.state?.meta?.woekeraar?.naam || 'de woekeraar';
+  const naam = window.app?.state?.meta?.woekeraar?.naam || 'de geldschieter';
   const Naam = naam.charAt(0).toUpperCase() + naam.slice(1);
   // Drie sloten, en ze moeten alle drie open staan: de module aan, de akte
   // laat hem toe, en deze party heeft hem al ontmoet.
@@ -4496,11 +4499,11 @@ window._tekortHtml = function(tekortCl, dienstNaam = '') {
   const kan = !uit && !window._dienstDicht('woekeraar')
     && _getDienstToegang('woekeraar') === 'beschikbaar';
   return `
-    <div class="dienst-tekort">
+    <div class="dienst-tekort${licht ? ' dienst-tekort--licht' : ''}">
       <p class="dienst-tekort-regel">${icon('coins')} Je komt <strong>${esc(bedrag)}</strong> tekort${dienstNaam ? ` bij ${esc(dienstNaam)}` : ''}.</p>
       ${kan ? `
         <p class="dienst-tekort-sub">Hier wordt niet aangeschreven. ${esc(Naam)} leent wel — tegen zijn voorwaarden.</p>
-        <button class="ts-wedden-btn" onclick="window._naarWoekeraar()">${icon('arrow-up-right')} Ga langs ${esc(naam)}</button>`
+        <button class="${licht ? 'dm-btn dm-btn-primary dm-btn-sm' : 'ts-wedden-btn'}" onclick="window._naarWoekeraar()">${icon('arrow-up-right')} Ga langs ${esc(naam)}</button>`
         : '<p class="dienst-tekort-sub">Hier wordt niet aangeschreven.</p>'}
     </div>`;
 };
@@ -12849,7 +12852,7 @@ async function renderWoekeraar() {
   const el = document.getElementById('section-woekeraar');
   if (!el) return;
   const meta = window.app?.state?.meta || {};
-  if (window._dienstDicht('woekeraar')) { _dienstNietBereikbaar(el, meta.woekeraar?.naam || 'De woekeraar'); return; }
+  if (window._dienstDicht('woekeraar')) { _dienstNietBereikbaar(el, meta.woekeraar?.naam || 'De geldschieter'); return; }
   _dienstLaden(el);
 
   let data;
@@ -12863,7 +12866,7 @@ async function renderWoekeraar() {
   const bd = window._dienstBackdropId(cfg);
   const backdrop = bd ? `style="background-image:url('${api.thumbUrlBreed(bd)}')"` : '';
   const portret = (cfg.imageId || cfg.entityId)
-    ? `<img src="${api.thumbUrl(cfg.imageId || cfg.entityId)}" class="herberg-portrait-round" alt="${esc(cfg.naam || 'De woekeraar')}">`
+    ? `<img src="${api.thumbUrl(cfg.imageId || cfg.entityId)}" class="herberg-portrait-round" alt="${esc(cfg.naam || 'De geldschieter')}">`
     // Zelfde terugval als elke andere dienst: een rond portret met een icoon
     // erin. De ts-portrait-fallback die hier stond is van de Tweespalt en
     // heeft een eigen maat.
@@ -12927,14 +12930,14 @@ async function renderWoekeraar() {
              het stond dus
              als kale tekst op de pagina, zonder paneel en zonder achtergrond.
              Zie "Dienstschermen — de gedeelde romp" in CLAUDE.md. -->
-        <p class="tempel-priester-naam">${esc(cfg.naam || 'De woekeraar')}</p>
+        <p class="tempel-priester-naam">${esc(cfg.naam || 'De geldschieter')}</p>
         <!-- Hij was de enige dienst zonder openingszin: het tekstveld stond
              leeg en dan stond er niets. Nu dezelfde begroetingstafel als de
              rest, met een terugval eronder — een dienst zonder zin is een
              scherm dat begint met een formulier.
              (Geen backticks in commentaar hierbinnen: template literal.) -->
         <p class="herberg-groet">${esc(window._dienstGroet(cfg,
-          `${cfg.naam || 'De woekeraar'} kijkt je aan zonder te knipperen en schuift zijn boek opzij.`))}</p>
+          `${cfg.naam || 'De geldschieter'} kijkt je aan zonder te knipperen en schuift zijn boek opzij.`))}</p>
         ${schuldBlok}${wachtBlok}${formulier}
       </div>
     </div>`;
@@ -14479,13 +14482,13 @@ const HELP_CONFIG = {
   ] }),
 
   dm_verzoeken_lening: () => ({ titel: 'Wil lenen', stappen: [
-    { titel: 'Hij vraagt het, jij tekent', tekst: 'Een speler vraagt de woekeraar om geld. Dat gaat langs jou, net als een spreuk of een multiclass — een woekeraar die automatisch ja zegt is een geldautomaat.', afbeelding: null },
+    { titel: 'Hij vraagt het, jij tekent', tekst: 'Een speler vraagt de geldschieter om geld. Dat gaat langs jou, net als een spreuk of een multiclass — een geldschieter die automatisch ja zegt is een geldautomaat.', afbeelding: null },
     { titel: 'Het bedrag mag je aanpassen', tekst: 'Het veld naast het verzoek is wat hij **werkelijk** krijgt. Dat is het afdingen dat aan tafel gebeurt: hij vraagt vijftig, jij maakt er dertig van, of je leent hem meer dan verstandig is.', afbeelding: null },
     { titel: 'Waarvoor', tekst: 'De speler vult in waar hij het geld voor nodig heeft. Dat is geen administratie maar materiaal: een schuldeiser die weet waar je geld heen ging, weet waar je zwak zit. Het blijft bij de schuld staan.', afbeelding: null },
     { titel: 'Weigeren mag, met een reden', tekst: 'Zeg je nee, dan vraagt de app om een reden. Die mag leeg blijven, maar wat je invult komt in zijn post te staan — ook als hij op dat moment niet verbonden is.', afbeelding: null },
   ] }),
 
-  woekeraar: () => ({ titel: 'De woekeraar', stappen: [
+  woekeraar: () => ({ titel: 'De geldschieter', stappen: [
     { titel: 'Hij leent, als enige', tekst: 'Geen winkel schrijft aan, geen tempel geeft krediet. Als je geld tekortkomt is er één adres, en dat is het zijne. Dat maakt een schuld ook iets dat je kunt vertellen: je weet bij wie je in het krijt staat.', afbeelding: null },
     { titel: 'Vragen gaat langs de DM', tekst: 'Je vult in hoeveel je nodig hebt en waarvoor. Hij denkt erover na — de DM beslist of je het krijgt, en voor hoeveel. Eén schuld tegelijk: los eerst af voor je opnieuw aanklopt.', afbeelding: null },
     { titel: 'De rente loopt op rust', tekst: 'Niet op de kalender: elke **lange rust** van je gezelschap is een nacht die telt. Haast je dus niet met slapen als je rood staat. Het bedrag groeit tot een plafond; daarna stopt hij met tellen — en dan komt hij het halen.', afbeelding: null },
@@ -14495,7 +14498,7 @@ const HELP_CONFIG = {
   // De tab zelf. Elke dienst-tab heeft er een onder `dm_<tabnaam>`; deze
   // ontbrak omdat de tab 'schulden' heette en dus naar een sleutel wees die
   // nergens stond.
-  dm_woekeraar: () => ({ titel: 'De woekeraar', stappen: [
+  dm_woekeraar: () => ({ titel: 'De geldschieter', stappen: [
     { titel: 'Waarvoor hij er is', tekst: 'Geen winkel schrijft aan en geen tempel geeft krediet — als een party geld tekortkomt is hij het enige adres. Dat maakt een schuld iets dat je kunt spelen: er is iemand aan wie het verschuldigd is, en die iemand heeft een naam.\n\nHij duikt ook buiten dit scherm op: bij de markt als er te weinig in de beurs zit, en bij het gokhuis als iemand wil doorspelen. Dat gebeurt alleen zolang deze dienst aanstaat.', afbeelding: null },
     { titel: 'Jij beslist, niet de app', tekst: 'Een speler vraagt een bedrag en zegt waarvoor. Dat verzoek komt hier binnen en blijft staan tot jij het goedkeurt of afwijst — je mag ook een lager bedrag teruggeven. De app leent nooit uit zichzelf.\n\nEén schuld per speler tegelijk. Pas als die afgelost is kan er een nieuwe bij.', afbeelding: null },
     { titel: 'Wie hem te zien krijgt', tekst: 'Zijn deur staat per groep los, net als bij elke andere dienst: bij **Toegang** zet je hem op verborgen, zichtbaar of beschikbaar. Verborgen betekent dat hij niet in het menu staat — de party weet niet dat hij bestaat.\n\nZet je hem op beschikbaar, dan onthult de app meteen zijn kaartje en zijn plek voor die groep.', afbeelding: null },
@@ -14546,7 +14549,7 @@ const HELP_CONFIG = {
     { titel: 'Wat er wordt uitbetaald', tekst: 'De **payout** naast een optie is wat de winst *bovenop* de inleg komt. Bij ×3 krijgt een speler die 10 inzet zijn tientje terug plus twintig: dertig in totaal. Verliest hij, dan is zijn inleg weg. Het huis heeft geen kas: winst komt uit het niets en verlies verdwijnt erin — de app rekent alleen de beurs van de speler bij en af.', afbeelding: null },
     { titel: 'Wanneer de uitslag valt', tekst: '**Na de volgende lange rust**, of **jij bepaalt de winnaar** als je het zelf wilt sturen. Er stond een timer in minuten, maar de party speelt geen echte uren: die liep tijdens een pauze net zo hard door en besliste een gevecht vier keer per sessie.', afbeelding: null },
     { titel: 'Wie er inzet', tekst: 'Onder een weddenschap staat wie erop gewed heeft, met portret en naam, waarop, en hoeveel. Na afloop staat er een vinkje of een kruisje bij.', afbeelding: null },
-    { titel: 'Leningen', tekst: 'De speler lost zelf af, met de knoppen onder zijn leningbanner. Blijft er een lening hangen van een personage dat niet meer bestaat, dan kun jij hem uit `dm-state.json` halen — er is daar nog geen knop voor; dat komt met de Woekeraar-dienst (zie `docs/voorstel-woekeraar.md`).', afbeelding: null },
+    { titel: 'Leningen', tekst: 'De speler lost zelf af, met de knoppen onder zijn leningbanner. Blijft er een lening hangen van een personage dat niet meer bestaat, dan kun jij hem uit `dm-state.json` halen — er is daar nog geen knop voor; dat komt met de Geldschieter-dienst (zie `docs/voorstel-woekeraar.md`).', afbeelding: null },
   ] }),
   dm_gokhuis_event: () => ({ titel: 'Een event aanmaken', stappen: [
     { titel: 'Waar wordt op gewed', tekst: 'Geef het event een naam en minstens twee opties — paardenrace, hanengevecht, welke raadsheer het haalt. De spelers kiezen er een en zetten in.', afbeelding: null },
@@ -14847,7 +14850,7 @@ const HELP_CONFIG = {
   inst_onderdelen: () => ({ titel: 'Onderdelen van deze campagne', stappen: [
     { titel: 'Wat dit doet', tekst: 'Elk vinkje is een stuk van de app. Haal je er een weg, dan **verdwijnt het helemaal** — de knop in de zijbalk, het tabblad in de Meesterkamer, de routes erachter, en ook bij je spelers. Geen grijze knop die zegt "binnenkort": die belooft iets.\n\nWat je uitzet blijft wel staan. Zet je het later weer aan, dan is alles er nog precies zoals je het achterliet.', afbeelding: null },
     { titel: 'Diensten en hun delen', tekst: 'Een dienst doet soms twee dingen die los van elkaar staan: je kunt in een herberg slapen én drinken, maar niet elke herberg schenkt. Die delen staan ingesprongen onder hun eigen dienst — *Aan de tap* en *Roddels* onder de herberg, *Eden en vloeken* onder de tempel, *Strijdperk* onder het gokhuis, *Adoptie* onder de magizoöloog.\n\nZet je de dienst zelf uit, dan doen zijn delen er niet meer toe; die verdwijnen vanzelf mee.', afbeelding: null },
-    { titel: 'Iets erbij nemen', tekst: 'Alles wat hier staat kun je aan- en uitzetten, ook wat standaard uit stond. Een deel van de app begint uit omdat niet elke tafel het wil — de woekeraar die aanklopt, de eed die je niet meer terugneemt, de geruchten die je kunt laten rondgaan. Dat zijn keuzes over je spel, niet over of je ze mag.\n\nWat je **helemaal niet ziet staan** heeft de beheerder voor deze campagne dichtgezet. Dat is dan een beslissing, en die haal je bij hem terug.', afbeelding: null },
+    { titel: 'Iets erbij nemen', tekst: 'Alles wat hier staat kun je aan- en uitzetten, ook wat standaard uit stond. Een deel van de app begint uit omdat niet elke tafel het wil — de geldschieter die aanklopt, de eed die je niet meer terugneemt, de geruchten die je kunt laten rondgaan. Dat zijn keuzes over je spel, niet over of je ze mag.\n\nWat je **helemaal niet ziet staan** heeft de beheerder voor deze campagne dichtgezet. Dat is dan een beslissing, en die haal je bij hem terug.', afbeelding: null },
   ] }),
 
   inst_gevecht: () => ({ titel: 'In het gevecht', stappen: [
@@ -15336,7 +15339,7 @@ const HELP_CONFIG = {
         },
         {
           titel: 'Als je tekortkomt',
-          tekst: `Hier wordt niet aangeschreven. Zet je meer in dan er in je beurs zit, dan zegt het gokhuis alleen dát je tekortkomt en wijst het je naar ${window.app?.state?.meta?.woekeraar?.naam || 'de woekeraar'} — lenen gebeurt op zijn eigen scherm, langs zijn eigen regels en met goedkeuring van de DM.\n\nDat liep hier vroeger binnendoor: je kreeg een schuld zonder ooit bij de schuldeiser langs te zijn geweest, met een rentevoet die los stond van de zijne.`,
+          tekst: `Hier wordt niet aangeschreven. Zet je meer in dan er in je beurs zit, dan zegt het gokhuis alleen dát je tekortkomt en wijst het je naar ${window.app?.state?.meta?.woekeraar?.naam || 'de geldschieter'} — lenen gebeurt op zijn eigen scherm, langs zijn eigen regels en met goedkeuring van de DM.\n\nDat liep hier vroeger binnendoor: je kreeg een schuld zonder ooit bij de schuldeiser langs te zijn geweest, met een rentevoet die los stond van de zijne.`,
           afbeelding: null,
         },
       ],

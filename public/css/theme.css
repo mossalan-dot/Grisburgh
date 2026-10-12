@@ -30005,6 +30005,17 @@ body.wizard-open { overflow: hidden; }
   font-size: .86rem; color: rgba(224,206,164,0.78);
 }
 
+/* Hetzelfde blok op perkament: in een kaartjesmodal (de voorraad van een
+   winkel) is de ondergrond licht, en dan valt de donkere doos erin als een gat. */
+.dienst-tekort--licht {
+  background: rgba(255,250,235,0.7);
+  border-color: rgba(170,140,90,0.4);
+  border-left-color: rgba(184,134,11,0.7);
+}
+.dienst-tekort--licht .dienst-tekort-regel { color: #6a4a16; }
+.dienst-tekort--licht .dienst-tekort-regel strong { color: #3a2a0e; }
+.dienst-tekort--licht .dienst-tekort-sub { color: #6a5430; }
+
 /* ── Een telefoon dwars: breed maar laag ──────────────────────────────────
    De smalle-schermregels kijken naar de breedte, en een gedraaide telefoon is
    667 tot 932 px breed — die vallen er dus buiten. Maar hij is nog maar 375

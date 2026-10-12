@@ -12757,7 +12757,7 @@ const _DIENST_BRIEF = {
   tempel:    { icon: 'church',    kleur: 'hout',   naam: 'De Tempel' },
   facties:   { icon: 'landmark',  kleur: 'metaal', naam: 'De Facties' },
   magizoo:   { icon: 'paw-print', kleur: 'hout',   naam: 'De Magizoöloog' },
-  woekeraar: { icon: 'coins',     kleur: 'metaal', naam: 'De woekeraar' },
+  woekeraar: { icon: 'coins',     kleur: 'metaal', naam: 'De geldschieter' },
 };
 
 // Onthul een dienst (beschikbaar) voor de actieve groep én bezorg een verzegelde uitnodiging.
