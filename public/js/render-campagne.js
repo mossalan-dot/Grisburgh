@@ -4737,9 +4737,13 @@ window._winkelSceneData = async function (soort, id) {
   const [besch, uitv, beurs] = await Promise.all([
     api.getShopBeschikbaar(id).catch(() => null),
     api.getShopUitverkocht(id).catch(() => null),
-    (window.app?.isDM?.() || !window.app?.state?.characterId)
-      ? Promise.resolve(null)
-      : api.getPlayerCurrency(window.app.state.characterId).catch(() => null),
+    // Ook voor de DM, mits hij namens iemand handelt: dan hoort hij te zien
+    // wat díé speler te besteden heeft. Zonder dat stond er in een winkel
+    // helemaal geen bedrag, terwijl elke dienst er inmiddels een toont.
+    (() => {
+      const wie = window.app?.state?.characterId || window._alsSpeler || null;
+      return wie ? api.getPlayerCurrency(wie).catch(() => null) : Promise.resolve(null);
+    })(),
   ]);
   const uitverkochtSet = new Set((uitv?.uitverkocht || []).map(k => (k || '').toLowerCase().trim()));
   return {
@@ -4780,9 +4784,10 @@ window._winkelVoorraadHtml = function _winkelVoorraadHtml({ e, tab, beschikbaarD
       }));
     }
 
-    // Beurs weergave (alleen voor spelers) — altijd persoonlijke beurs
+    // De beurs van wie er koopt. Stond op "alleen spelers"; een DM die namens
+    // iemand handelt koopt óók, en zag dan geen bedrag.
     let beursHtml = '';
-    if (!isDM() && shopCurrencyData) {
+    if (shopCurrencyData) {
       const cur = shopCurrencyData.player;
       const _cN = window._currency || { fl: 'fl', kn: 'kn', cl: 'cl' };
       if (cur) {

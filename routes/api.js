@@ -2666,7 +2666,10 @@ router.get('/markt', attachRole, (req, res) => {
   res.json({
     winkels,
     factieFilters,
-    beurs: _effectiveCurrency(dmState, req.session?.characterId),
+    // `_handelendKarakter` en niet de rauwe sessie: anders ziet een DM die
+    // namens een speler handelt geen beurs, en dan staat er op de markt niets
+    // waar elke andere dienst wél een bedrag toont.
+    beurs: _effectiveCurrency(dmState, _handelendKarakter(req)),
     akte:  bereik.akte || null,
     gebiedKeuze: gekozen,
     ...(isDM ? { gebiedenBeschikbaar: [...alle].sort((a, b) => a.localeCompare(b, 'nl', { sensitivity: 'base' })) } : {}),
@@ -16507,7 +16510,10 @@ function _woekeraar(meta) {
 router.get('/woekeraar', attachRole, vereistDienst('woekeraar'), (req, res) => {
   const dmState = readDmState();
   const meta = storage.readJSON('meta.json');
-  const charId = req.session?.characterId || null;
+  // `_handelendKarakter` in plaats van de rauwe sessie: dan werkt "handel
+  // namens" hier net als bij elke andere dienst, en ziet de DM de beurs van
+  // het personage waar hij voor optreedt in plaats van niets.
+  const charId = _handelendKarakter(req) || null;
   const g = getGroup(dmState, _playerGroupId(dmState, charId));
   res.json({
     config: _woekeraar(meta),

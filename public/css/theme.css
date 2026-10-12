@@ -544,6 +544,18 @@ html {
   flex-shrink: 0;
 }
 .modal-close:hover { color: #2a1a08; background: rgba(60,40,10,0.07); }
+/* Het kruisje stond als kaal teken naast een omlijnde hulpknop: twee knoppen
+   naast elkaar die er niet als elkaars gelijke uitzagen. Zelfde doos, zelfde
+   maat — pas op hover wordt het verschil zichtbaar (rood = weg). */
+.modal-head .modal-close, .modal-header .modal-close {
+  width: 30px; height: 30px; font-size: 20px;
+  border: 1px solid rgba(196,168,122,0.55);
+  border-radius: 8px;
+  background: rgba(255,253,246,0.5);
+}
+.modal-head .modal-close:hover, .modal-header .modal-close:hover {
+  color: #8b2a2a; border-color: rgba(139,42,42,0.5); background: rgba(139,42,42,0.08);
+}
 
 /* DM-only elements */
 .player-mode .dm-only { display: none !important; }
@@ -15691,10 +15703,10 @@ body.herberg-actief #app { position: relative; z-index: 1; }
 /* ── Factie grid-lijst ── */
 /* Facties-overzicht als dienst-scene met Grisburgh-backdrop (uniform met andere diensten) */
 .facties-lijst-scene { position: relative; }
-.facties-lijst-scene::before {
-  content: ''; position: absolute; inset: 0; pointer-events: none;
-  background: linear-gradient(to bottom, rgba(244,236,212,0.82) 0%, rgba(240,228,196,0.72) 100%);
-}
+/* De lichte perkamentwaas is eruit: hij maakte van dit overzicht het enige
+   dienstscherm met een lichte ondergrond, terwijl de kaarten erop dezelfde
+   zijn als bij de markt en de tempels. De gewone tint-overlay van een
+   dienstscherm doet het werk nu. */
 .facties-lijst-scene > * { position: relative; z-index: 1; }
 .facties-lijst-scene--leeg { justify-content: center; align-items: center; min-height: 200px; }
 .facties-lijst-scene .factie-sectie { width: 100%; }
@@ -23284,6 +23296,11 @@ body.landing-open > *:not(#landing-overlay):not(#landing-zoom):not(script) { vis
 .fp-prev--kaart { width: 112px; height: 70px; border-radius: 3px; }
 /* En het ronde portret zoals op het printbare blad en in de party-rij. */
 .fp-prev--rond { width: 60px; height: 60px; border-radius: 50%; margin: 0 auto; }
+/* Staand, zoals de kaart van een class, species of subclass in het heldenboek.
+   Deze ontbrak terwijl het heldenboek er al om vroeg: zonder maat heeft .fp-prev
+   geen afmeting en rekt de <img> erin uit tot zijn eigen grootte — een plaat van
+   1400 px breed in een venster, die de kiezer ernaast tot een streep platduwt. */
+.fp-prev--hoog { width: 74px; height: 116px; border-radius: 3px; }
 .fp-prev-label {
   display: block;
   margin-top: 2px;
@@ -29842,7 +29859,8 @@ body.wizard-open { overflow: hidden; }
   font-family: 'IM Fell English', serif; font-style: italic;
   font-size: .78em; opacity: .62; text-transform: none; letter-spacing: 0;
 }
-.wk-vraag-knop { margin-top: 4px; padding: 8px 18px; font-size: .86rem; }
+/* Eén knop onder één veld: dan hoort hij in het midden, niet links. */
+.wk-vraag-knop { display: block; margin: 10px auto 0; padding: 9px 22px; font-size: .88rem; }
 .wk-plafond {
   font-family: 'IM Fell English', serif; font-size: .86rem;
   color: rgba(224,206,164,0.82); margin: 2px 0 8px;
