@@ -1367,6 +1367,12 @@ function _featKoppelingHtml(it) {
     </div>`;
 }
 
+// **Geen meldingen bij het bijwerken van een kaartje.** Dit tabblad gaf een
+// toast bij elke bewaarde uitleg, elke gekozen plaat en elk focuspunt — en dat
+// zijn precies de handelingen waarvan je het resultaat voor je neus ziet: het
+// venster gaat dicht en het kaartje staat er anders bij. Een melding die zegt
+// wat je net zag, onderbreekt alleen. Fouten melden zich wel.
+
 // ── Het venster achter een kaartje ──────────────────────────────────────────
 // Een class, een subclass, een species en een background hebben allemaal
 // hetzelfde venster. Op het kaartje zelf past maar een stukje: dat heeft een
@@ -2063,7 +2069,6 @@ window.vaardigheden = {
         _all = null;
         await _load(); await _klasseExtra();
         _bandHerteken(); _refreshFilterBar(); _paint();
-        window._showToast?.(`${_edit.naam.trim()} staat erin.`);
         return;
       }
       await api.post('/progression/feature', {
@@ -2182,7 +2187,6 @@ window.vaardigheden = {
           // was de beschrijving die je net had getypt weg — en schreef
           // *Bewaren* daarna de oude tekst terug over de nieuwe heen.
           _beeldBlokVernieuwen(soort, naam, { id: srcId, focus: '' });
-          window._showToast?.('Afbeelding geplaatst.');
         } catch (e) { window._showToast?.('Instellen mislukt: ' + (e.message || e)); }
       },
     });
@@ -2272,7 +2276,6 @@ window.vaardigheden = {
       if (m) { m.heldenboek = m.heldenboek || {}; m.heldenboek[bak] = { ...(m.heldenboek[bak] || {}), [naam]: { id: huidig.id, focus } }; }
       window.app.closeModal();
       _bandHerteken();
-      window._showToast?.('Focuspunt bewaard.');
     } catch (e) { alert('Bewaren mislukt: ' + e.message); }
   },
   // Een subclass uit de elders-lijst in deze campagne zetten. Alleen de naam en
@@ -2288,12 +2291,6 @@ window.vaardigheden = {
     await _load(); await _klasseExtra();
     _subAan.add(naam);
     _bandHerteken(); _refreshFilterBar(); _paint();
-    // Zijn features staan er bij naam al in, dus beloof niet dat je ze zelf
-    // moet verzinnen; wat ontbreekt is hun tekst.
-    const bekend = (_eldersFeatures?.subclasses?.[naam] || []).length;
-    window._showToast?.(bekend
-      ? `${naam} staat in je campagne. Zijn ${bekend} features staan er bij naam in; hun tekst typ je er zelf bij.`
-      : `${naam} staat in je campagne. De features typ je er zelf bij.`);
   },
   // De uitleg van een subclass: wát het is, los van wat het geeft.
   subUitleg(sub) { _uitlegVenster('subclass', sub, _filters.bron); },
@@ -2318,7 +2315,6 @@ window.vaardigheden = {
       window.app.closeModal();
       _all = null; await _load(); await _klasseExtra();
       _bandHerteken(); _refreshFilterBar(); _paint();
-      window._showToast?.(`De uitleg bij ${naam} staat erin.`);
     } catch (e) { alert('Bewaren mislukt: ' + e.message); }
   },
   // Een beeld bij één class. Staat los van de vier deurkaarten: dit is het
@@ -2335,7 +2331,6 @@ window.vaardigheden = {
           const m = window.app?.state?.meta;
           if (m) { m.heldenboek = m.heldenboek || {}; m.heldenboek.beelden = { ...(m.heldenboek.beelden || {}), [id]: srcId }; }
           _bandHerteken();
-          window._showToast?.('Afbeelding geplaatst.');
         } catch (e) { window._showToast?.('Instellen mislukt: ' + (e.message || e)); }
       },
     });
