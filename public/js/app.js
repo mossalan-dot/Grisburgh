@@ -7,7 +7,7 @@ import { renderRelatiemap } from './render-relatiemap.js?v=27';
 import { renderProgressie, levelupFeatures } from './render-progressie.js?v=62';
 import { renderBestiarium } from './render-bestiarium.js?v=31';
 import { renderSpreuken } from './render-spreuken.js?v=47';
-import { renderVaardigheden, zoekVaardigheden, heldenboekTekst } from './render-vaardigheden.js?v=46';
+import { renderVaardigheden, zoekVaardigheden, heldenboekTekst } from './render-vaardigheden.js?v=47';
 import { renderStatblock } from './render-statblock.js?v=9';
 import { initSocket } from "./socket-client.js?v=85";
 import { initDmPanel } from "./dm-panel.js?v=396";
@@ -2278,8 +2278,6 @@ function _weaponPropsPickerHtml(w, i) {
       onclick="event.stopPropagation();window._toggleWeaponProp(${i},'${escJS(base)}')">×</button></span>`;
   }).join('');
 
-  const addBtn = `<button type="button" class="weapon-prop-add${open ? ' is-open' : ''}"
-    onclick="window._toggleWeaponPropsPicker(${i})">${open ? 'Klaar' : '+ Eigenschap'}</button>`;
 
   // Volledige keuzelijst — alleen renderen wanneer uitgeklapt
   let grid = '';
@@ -2306,12 +2304,16 @@ function _weaponPropsPickerHtml(w, i) {
     grid = `<div class="weapon-tags-picker">${chips}</div>`;
   }
 
-  return `<div class="player-weapon-props" id="wprops-${i}">
-      <div class="weapon-props-summary">
-        <span class="player-weapon-props-label">Eigenschappen</span>
-        ${selChips}
-        ${addBtn}
-      </div>
+  // Geen kop en geen "+ Eigenschap" meer: het potlood naast het kruisje opent
+  // de lijst, en staat er niets gekozen, dan staat er ook geen lege regel. Dit
+  // blok was op een telefoon een derde van de hoogte van de wapentabel.
+  //
+  // Het blijft wél staan als het niets toont — verborgen, maar aanwezig, want
+  // het is het haakje waar `_rerenderWeaponProps` aan trekt. Lieten we het weg,
+  // dan deed het potlood op een wapen zonder eigenschappen niets.
+  const leeg = !selChips && !open;
+  return `<div class="player-weapon-props${leeg ? ' player-weapon-props--leeg' : ''}" id="wprops-${i}">
+      ${selChips ? `<div class="weapon-props-summary">${selChips}</div>` : ''}
       ${grid}
     </div>`;
 }
@@ -8405,6 +8407,9 @@ async function renderMijnKarakter(opts = {}) {
                   onblur="window._saveWeapon(${i},'atk',this.value)">
                 <input class="pw-input pw-dmg" type="text" value="${esc(w.dmg || '')}" placeholder="1d8+3 Piercing"
                   onblur="window._saveWeapon(${i},'dmg',this.value)">
+                <button class="pw-prop-btn${_openWeaponProps.has(i) ? ' is-open' : ''}" id="wpropbtn-${i}"
+                  onclick="window._toggleWeaponPropsPicker(${i})"
+                  title="Eigenschappen van dit wapen">${icon('pencil')}</button>
                 <button class="pw-del-btn" onclick="window._deleteWeapon(${i})" title="Verwijder">×</button>
               </div>
               ${_weaponPropsPickerHtml(w, i)}
@@ -9704,6 +9709,9 @@ async function renderMijnKarakter(opts = {}) {
     if (_openWeaponProps.has(idx)) _openWeaponProps.delete(idx);
     else _openWeaponProps.add(idx);
     _rerenderWeaponProps(idx);
+    // Het potlood staat in de rij erboven en wordt daar niet opnieuw getekend;
+    // zonder dit bleef zijn open-standje achter.
+    document.getElementById('wpropbtn-' + idx)?.classList.toggle('is-open', _openWeaponProps.has(idx));
   };
 
   window._toggleWeaponProp = function(idx, prop) {
@@ -12774,7 +12782,7 @@ async function renderGock() {
         <p class="ts-beurs">Een praatje rondstrooien: <strong>${esc(geruchtPrijs)}</strong></p>
         <div class="gock-gerucht">
           ${lopendGerucht ? `
-            <p class="gock-gerucht-wacht">${icon('hourglass')} Je praatje over <strong>${esc(lopendGerucht.entityNaam)}</strong> ligt bij hem. Hij laat weten wanneer het loopt.</p>`
+            <p class="gock-gerucht-wacht">${icon('hourglass')} ${esc(window._dienstNaam('gock'))} gaat je praatje over <strong>${esc(lopendGerucht.entityNaam)}</strong> verspreiden.</p>`
           : beschikbaar.length === 0
             ? `<p class="herberg-cooldown-tekst">Er zijn nog geen mensen over wie je iets kunt laten rondgaan.</p>`
             : `
@@ -12900,11 +12908,13 @@ window._gockGerucht = async () => {
   const [entityId, entityType] = doel.split('|');
   if (!entityId) { _tsToast('Zoek eerst op over wie het gaat.'); return; }
   if (tekst.length < 8) { _tsToast('Schrijf het praatje dat rond moet gaan.'); return; }
-  if (!confirm(`Dit praatje over ${gekozen.textContent.trim()} laten rondgaan?\n\n"${tekst}"\n\nDe betaling is meteen; je DM laat weten wanneer het loopt.`)) return;
+  if (!confirm(`Dit praatje over ${gekozen.textContent.trim()} laten verspreiden?\n\n"${tekst}"\n\nDe betaling is meteen.`)) return;
   try {
     await api.gockGerucht({ entityId, entityType, tekst });
     await renderGock();
-    _tsToast('Het praatje ligt bij hem. Hij laat weten wanneer het loopt.');
+    // Wie het verspreidt staat erbij: "hij" is op een dienst die de DM zelf een
+    // naam gaf een vreemde die niemand kent.
+    _tsToast(`${window._dienstNaam('gock')} gaat dit praatje verspreiden.`);
   } catch (err) { alert('Lukt niet: ' + (err.message || err)); }
 };
 
@@ -12930,6 +12940,7 @@ window._gockFilter = (q) => {
     hint.style.display = raak ? 'none' : '';
     hint.textContent = raak ? '' : 'Niemand van die naam bekend.';
   }
+  window._zoeklijstPassend(lijst);
 };
 
 window._gockKies = async (entityId, entityType, entityName) => {
@@ -12948,6 +12959,22 @@ window._gockOpgehaald = async () => {
   await renderGock();
 };
 
+// De zoeklijst van een dienst zweeft onder het zoekveld (zie `.herberg-zoek-wrap`
+// in de stylesheet): zo verspringt de achtergrond niet terwijl je typt. Maar
+// zweven betekent ook dat de lijst niet weet waar het paneel ophoudt — op een
+// telefoon liep hij onder het zwarte vlak door. Dit geeft hem de ruimte die er
+// werkelijk ís en niet meer; binnen die ruimte scrollt hij vanzelf.
+window._zoeklijstPassend = (lijst) => {
+  if (!lijst) return;
+  const paneel = lijst.closest('.herberg-content');
+  if (!paneel) return;
+  lijst.style.maxHeight = '';                       // eerst terug naar de CSS-maat
+  const vol = parseFloat(getComputedStyle(lijst).maxHeight) || 260;
+  const ruimte = paneel.getBoundingClientRect().bottom
+    - lijst.getBoundingClientRect().top - 16;       // 16 = de voet van het paneel
+  lijst.style.maxHeight = `${Math.max(120, Math.min(vol, ruimte))}px`;
+};
+
 window._magizooFilter = (q) => {
   const lijst = document.getElementById('magizoo-lijst');
   const hint  = document.getElementById('magizoo-hint');
@@ -12962,6 +12989,7 @@ window._magizooFilter = (q) => {
   lijst.querySelectorAll('.magizoo-item').forEach(el => {
     el.style.display = el.dataset.naam.includes(s) ? '' : 'none';
   });
+  window._zoeklijstPassend(lijst);
 };
 
 // ── De Magizoöloog ───────────────────────────────────────────────────────────

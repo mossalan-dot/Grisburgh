@@ -1022,12 +1022,20 @@ function _subKolomHtml(klasse) {
   const zicht = rijen.slice(_subPagina * PER, _subPagina * PER + PER);
   const veiligK = esc(klasse).replace(/'/g, "\\'");
 
+  // Dezelfde kleur als op zijn kaartje en op zijn features. Hij stond hier
+  // niet, dus was de hele kolom paars en zag je pas aan het kaartje ernaast dat
+  // de Berserker rood is en de Zealot goud — terwijl je juist in deze lijst
+  // kiest welke je ernaast legt.
+  const kleurVan = (naam) => _bron?.prog?.classes?.[klasse]?.subclasses?.[naam]?.kleur
+    || window._subSignatureVoor?.(naam)?.kleur || '#5a2e8a';
+
   return `<div class="vd-subkolom">
     ${zicht.map(r => {
       const veilig = esc(r.naam).replace(/'/g, "\\'");
+      const kleur = esc(kleurVan(r.naam));
       if (r.elders) {
         const veiligB = esc(r.boek || '').replace(/'/g, "\\'");
-        return `<div class="vd-subkaart vd-subkaart--elders">
+        return `<div class="vd-subkaart vd-subkaart--elders" style="--vd-subkleur:${kleur}">
           ${isDM() ? `<label class="vd-subkaart-vink" title="Zet ${esc(r.naam)} in deze campagne">
             <input type="checkbox" onchange="window.vaardigheden.eldersAan('${veilig}','${veiligB}')"></label>` : ''}
           <button class="vd-subkaart-open"
@@ -1042,7 +1050,7 @@ function _subKolomHtml(klasse) {
       // "geen tekst" klopte niet meer zodra we zijn featurenamen kennen: er
       // staat dan wél iets, alleen niet de tekst erbij.
       const eldersN = r.n ? 0 : (_eldersFeatures?.subclasses?.[r.naam] || []).length;
-      return `<div class="vd-subkaart${aan ? ' is-aan' : ''}${r.n ? '' : ' is-leeg'}">
+      return `<div class="vd-subkaart${aan ? ' is-aan' : ''}${r.n ? '' : ' is-leeg'}" style="--vd-subkleur:${kleur}">
         <label class="vd-subkaart-vink" title="${aan ? 'Haal zijn features uit de lijst' : 'Zet zijn features erbij'}">
           <input type="checkbox" ${aan ? 'checked' : ''} onchange="window.vaardigheden.subToggle('${veilig}')">
         </label>

@@ -7772,7 +7772,7 @@ body.lade-dicht .regie-lade-body { display: none; }
 }
 .player-weapons-header {
   display: grid;
-  grid-template-columns: 2fr 1fr 2fr 22px;
+  grid-template-columns: 2fr 1fr 2fr 22px 22px;
   gap: 4px;
   padding: 0 2px 4px;
   border-bottom: 1.5px solid rgba(196,168,122,0.45);
@@ -7792,7 +7792,7 @@ body.lade-dicht .regie-lade-body { display: none; }
 .player-weapon-entry:last-child { border-bottom: none; }
 .player-weapon-row {
   display: grid;
-  grid-template-columns: 2fr 1fr 2fr 22px;
+  grid-template-columns: 2fr 1fr 2fr 22px 22px;
   gap: 4px;
   align-items: center;
 }
@@ -7803,6 +7803,7 @@ body.lade-dicht .regie-lade-body { display: none; }
   margin-top: 5px;
   padding-left: 2px;
 }
+.player-weapon-props--leeg { display: none; }
 .weapon-props-summary {
   display: flex;
   align-items: center;
@@ -7888,6 +7889,17 @@ body.lade-dicht .regie-lade-body { display: none; }
 }
 .pw-input::placeholder { color: #b0956a; opacity: 0.65; }
 .pw-name { font-weight: 600; }
+/* Het potlood naast het kruisje: hier zet je de eigenschappen van dit wapen.
+   Dat stond als een rij "EIGENSCHAPPEN  + EIGENSCHAP" ónder elk wapen, en dat
+   was op een telefoon een derde van de hele wapentabel aan kop en knop. */
+.pw-prop-btn {
+  display: flex; align-items: center; justify-content: center;
+  background: none; border: none; padding: 0; cursor: pointer;
+  color: #9a7050; opacity: .6; transition: opacity .15s, color .15s;
+}
+.pw-prop-btn svg { width: 13px; height: 13px; }
+.pw-prop-btn:hover, .pw-prop-btn.is-open { color: #7a4a1a; opacity: 1; }
+
 .pw-del-btn {
   background: none;
   border: none;
@@ -12243,6 +12255,14 @@ body.herberg-actief #app { position: relative; z-index: 1; }
   -webkit-backdrop-filter: blur(5px);
 }
 
+/* Een flexkind krimpt standaard als de kolom te krap is, en dit paneel is een
+   flexkolom. Op een telefoon werd het paneel daardoor niet hóger maar werd zijn
+   inhoud platgedrukt: de zoeklijst van Vivarius kreeg 98 px toebedeeld terwijl
+   hij er 370 nodig had, en wat er niet in paste stak gewoon onder het zwarte
+   vlak uit — het paneel knipt niets af. De kolom hoort te groeien en de pagina
+   eronder te scrollen, dus krimpt hier niets. */
+.herberg-content > * { flex-shrink: 0; }
+
 /* De maat van een dienstpaneel.
    460px is de standaard: een portret, een groet en een kolom knoppen. Elke
    dienst gebruikt die, en wie ervan afwijkt doet dat met een reden — er zijn er
@@ -13957,6 +13977,9 @@ body.herberg-actief #app { position: relative; z-index: 1; }
   border-color: rgba(255,255,255,0.5);
 }
 .player-dashboard[data-klasse] .pw-input::placeholder { color: rgba(255,255,255,0.3); }
+.player-dashboard[data-klasse] .pw-prop-btn { color: rgba(255,255,255,0.35); }
+.player-dashboard[data-klasse] .pw-prop-btn:hover,
+.player-dashboard[data-klasse] .pw-prop-btn.is-open { color: #f0d8a0; opacity: 1; }
 .player-dashboard[data-klasse] .pw-del-btn { color: rgba(255,255,255,0.35); }
 .player-dashboard[data-klasse] .pw-del-btn:hover { color: #ff7070; opacity: 1; }
 .player-dashboard[data-klasse] .player-weapon-add-btn {
@@ -29351,16 +29374,24 @@ body.wizard-open { overflow: hidden; }
 .vaardig-onder { display: block; }
 .vaardig-onder.heeft-kolom { display: grid; grid-template-columns: 186px 1fr; gap: 16px; align-items: start; }
 .vd-subkolom { display: flex; flex-direction: column; gap: 7px; }
+/* De streep links draagt de kleur van de subclass zelf (`--vd-subkleur`),
+   dezelfde die zijn kaartje en zijn features in de lijst eronder krijgen. Vink
+   je er twee aan om ze te vergelijken, dan zie je hier al welke welke is. */
 .vd-subkaart {
   display: flex; align-items: stretch; gap: 0;
-  border: 1px solid #c4a87a; border-left: 3px solid #5a2e8a; border-radius: 4px;
+  border: 1px solid #c4a87a; border-left: 3px solid var(--vd-subkleur, #5a2e8a); border-radius: 4px;
   background: linear-gradient(150deg, #f7f1e0 0%, #efe5cc 100%);
   overflow: hidden; transition: background .15s, border-color .15s;
 }
-.vd-subkaart.is-aan { background: linear-gradient(150deg, #efe2f6 0%, #e4d4f0 100%); border-left-color: #200c4e; }
+.vd-subkaart.is-aan {
+  background: linear-gradient(150deg,
+    color-mix(in srgb, var(--vd-subkleur, #5a2e8a) 11%, #f7f1e0) 0%,
+    color-mix(in srgb, var(--vd-subkleur, #5a2e8a) 20%, #efe5cc) 100%);
+  border-left-color: color-mix(in srgb, var(--vd-subkleur, #5a2e8a) 72%, #140826);
+}
 .vd-subkaart.is-leeg { border-style: dashed; border-left-style: solid; opacity: .75; }
 .vd-subkaart-vink { display: flex; align-items: center; padding: 0 8px; cursor: pointer; }
-.vd-subkaart-vink input { width: 15px; height: 15px; accent-color: #5a2e8a; cursor: pointer; }
+.vd-subkaart-vink input { width: 15px; height: 15px; accent-color: var(--vd-subkleur, #5a2e8a); cursor: pointer; }
 .vd-subkaart-open {
   flex: 1; display: flex; flex-direction: column; align-items: flex-start; gap: 0;
   padding: 9px 10px 8px 2px; background: none; border: 0; cursor: pointer; text-align: left;
