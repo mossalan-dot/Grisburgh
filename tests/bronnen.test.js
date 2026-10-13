@@ -382,3 +382,53 @@ describe('Extra spreuken', () => {
     assert.deepEqual(extra.filter(s => idx.has(s.index)).map(s => s.index), []);
   });
 });
+
+// ════════════════════════════════════════════════════════════════════════════
+//  DE FEATURES VAN WAT ELDERS STAAT
+// ════════════════════════════════════════════════════════════════════════════
+// Dezelfde grens, een laag dieper. `bronnen/features-elders.json` noemt de
+// features van die subclasses (en van de classes en species die niet in de app
+// staan) **alleen bij naam**, zodat een leeg kaartje toch zegt wát je krijgt en
+// waar je het opzoekt. Een naam is geen beschermd werk, een beschrijving wél —
+// en een beschrijving herken je aan zijn lengte. Komt er ooit tekst in dat
+// bestand, dan valt dit om.
+describe('De features van wat elders staat', () => {
+  const data = require('../bronnen/features-elders.json');
+  const groepen = ['classes', 'subclasses', 'species'];
+
+  it('noemt alleen namen, nooit tekst', () => {
+    for (const groep of groepen) {
+      for (const [houder, lijst] of Object.entries(data[groep] || {})) {
+        assert.ok(Array.isArray(lijst), `${groep} › ${houder} hoort een lijst te zijn`);
+        for (const naam of lijst) {
+          assert.equal(typeof naam, 'string', `${groep} › ${houder}: alleen namen, geen objecten`);
+          assert.ok(naam.trim().length > 0, `${groep} › ${houder}: lege naam`);
+          // Een featurenaam is kort. Alles wat op een zin lijkt is een
+          // beschrijving, en die hoort in het boek.
+          assert.ok(naam.length < 60,
+            `${groep} › ${houder}: "${naam.slice(0, 40)}…" is te lang voor een naam`);
+          assert.ok(!/[.!?]\s/.test(naam),
+            `${groep} › ${houder}: "${naam}" leest als een zin`);
+        }
+      }
+    }
+  });
+
+  it('dubbelt niet met wat de app zelf al heeft', () => {
+    // Een subclass die wél in de seed staat heeft zijn eigen features; die
+    // horen hier niet nog eens, want dan zie je ze dubbel.
+    const seed = require('../bronnen/class-progression.json');
+    const eigen = new Set();
+    for (const klasse of Object.values(seed.classes || {})) {
+      for (const sub of Object.keys(klasse.subclasses || {})) eigen.add(sub.toLowerCase());
+    }
+    const dubbel = Object.keys(data.subclasses || {}).filter(n => eigen.has(n.toLowerCase()));
+    assert.deepEqual(dubbel, [], 'deze staan al in de seed: ' + dubbel.join(', '));
+  });
+
+  it('gaat compleet de deur uit, ook bij een kale campagne', () => {
+    const bronnen = require('../lib/bronnen');
+    const kaal = bronnen.bronVoor('features-elders', { volledig: false });
+    assert.ok(kaal?.subclasses, 'ook zonder bronteksten beschikbaar');
+  });
+});

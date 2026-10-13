@@ -447,10 +447,16 @@ let _klasseBasis = null, _spreukKlassen = null, _spreukAantal = null, _tellers =
 // De subclasses die niet in de app staan: alleen hun naam en in welk boek ze
 // staan. Eén keer ophalen; valt het om, dan tonen we ze simpelweg niet.
 let _elders = null;
+// En van wat elders staat: de námen van hun features. Zonder die lijst is een
+// subclass die je uit de elders-lijst overneemt een leeg kaartje — je ziet dát
+// de Hexblade bestaat maar niet wát hij geeft.
+let _eldersFeatures = null;
 async function _eldersLaden() {
   if (_elders !== null) return;
   try { _elders = await api.get('/bron/subclasses-elders'); }
   catch { _elders = { klassen: {}, boeken: {} }; }
+  try { _eldersFeatures = await api.get('/bron/features-elders'); }
+  catch { _eldersFeatures = { classes: {}, subclasses: {}, species: {} }; }
 }
 
 async function _klasseExtra() {
@@ -1033,6 +1039,9 @@ function _subKolomHtml(klasse) {
         </div>`;
       }
       const aan = _subAan.has(r.naam);
+      // "geen tekst" klopte niet meer zodra we zijn featurenamen kennen: er
+      // staat dan wél iets, alleen niet de tekst erbij.
+      const eldersN = r.n ? 0 : (_eldersFeatures?.subclasses?.[r.naam] || []).length;
       return `<div class="vd-subkaart${aan ? ' is-aan' : ''}${r.n ? '' : ' is-leeg'}">
         <label class="vd-subkaart-vink" title="${aan ? 'Haal zijn features uit de lijst' : 'Zet zijn features erbij'}">
           <input type="checkbox" ${aan ? 'checked' : ''} onchange="window.vaardigheden.subToggle('${veilig}')">
@@ -1040,7 +1049,7 @@ function _subKolomHtml(klasse) {
         <button class="vd-subkaart-open" onclick="window.vaardigheden.subToggle('${veilig}')"
           title="Bekijk deze subclass">
           <span class="vd-subkaart-naam">${esc(r.naam)}</span>
-          <span class="vd-subkaart-meta">${r.n ? `${r.n} features` : 'geen tekst'}</span>
+          <span class="vd-subkaart-meta">${r.n ? `${r.n} features` : eldersN ? `${eldersN} features · elders` : 'geen tekst'}</span>
         </button>
       </div>`;
     }).join('')}
@@ -1368,6 +1377,11 @@ function _houderFeaturesHtml(soort, naam, bron) {
   const levels = Object.keys(data?.levels || {}).map(Number)
     .filter(l => (data.levels[l] || []).length).sort((a, b) => a - b);
   const aantal = levels.reduce((t, l) => t + data.levels[l].length, 0);
+  // Staat er niets in de app, dan zijn de námen er misschien wel. Die komen uit
+  // `bronnen/features-elders.json` en dragen geen tekst: je ziet waar het over
+  // gaat en klikt door naar de naslag. Zodra de DM er zelf features bij zet
+  // wint wat in de campagne staat — dit is alleen de wegwijzer bij een leegte.
+  if (!aantal) return _eldersFeaturesHtml(soort, naam);
   const zoek = (f) => (_all || []).find(x => x.naam === f.name && x.soort === soort
     && (soort === 'subclass' ? x.bron === bron && x.sub === naam : x.bron === naam));
   const rijen = levels.map(l => (data.levels[l] || []).map(f => {
@@ -1379,6 +1393,25 @@ function _houderFeaturesHtml(soort, naam, bron) {
     </button>`;
   }).join('')).join('');
   return { aantal, rijen };
+}
+
+// De namen van de features van iets dat niet in de app staat, elk met de weg
+// naar buiten. Geen level ervoor: dat staat in het boek, en de ene druk zet het
+// anders dan de andere.
+function _eldersFeaturesHtml(soort, naam) {
+  const groep = soort === 'class' ? 'classes' : soort === 'species' ? 'species' : 'subclasses';
+  const lijst = _eldersFeatures?.[groep]?.[naam] || [];
+  if (!lijst.length) return { aantal: 0, rijen: '', elders: false };
+  const rijen = lijst.map(f => {
+    const zoek = window.app?.bronLink?.(`${f} ${naam}`, 'feature') || '';
+    return `<a class="vd-subfeature vd-subfeature--elders" href="${esc(zoek)}" target="_blank" rel="noopener"
+      title="${esc(f)} opzoeken — de tekst staat in het boek, niet in de app">
+      <span class="vd-subfeature-lvl">${icon('book-open')}</span>
+      <span class="vd-subfeature-naam">${esc(f)}</span>
+      <span class="vd-subfeature-naslag">${icon('arrow-up-right')}</span>
+    </a>`;
+  }).join('');
+  return { aantal: lijst.length, rijen, elders: true };
 }
 
 // Wat er op het kaartje in de kolom "Core Traits" staat, hier als dezelfde
@@ -1415,7 +1448,7 @@ function _kaartVenster(soort, naam, bron = '') {
   // De knop naar de spreukenlijst stond op het kaartje zelf en viel daar weg
   // zodra de kerngegevens de hoogte opmaakten. Hier is er plaats voor.
   const naarSpreuken = soort === 'class' && (_spreukAantal?.get(naam) || 0);
-  const { aantal, rijen: features } = _houderFeaturesHtml(soort, naam, bron);
+  const { aantal, rijen: features, elders } = _houderFeaturesHtml(soort, naam, bron);
 
   window.app.openModal(naam, '', `
     <div class="vd-subvenster">
@@ -1433,7 +1466,8 @@ function _kaartVenster(soort, naam, bron = '') {
         ${isDM() ? `<button class="spreuk-detail-imgbtn" onclick="window.vaardigheden.kaartBewerken('${esc(soort)}','${veilig}','${veiligB}')">${icon('pencil')} ${uitleg ? 'Kaartje bewerken' : 'Uitleg toevoegen'}</button>` : ''}
       </div>` : ''}
       ${soort === 'background' ? '' : `
-        <div class="vd-subvenster-kop">${aantal ? `${aantal} ${aantal === 1 ? 'feature' : 'features'}` : 'Nog geen features'}</div>
+        <div class="vd-subvenster-kop">${aantal ? `${aantal} ${aantal === 1 ? 'feature' : 'features'}${elders ? ' — elders' : ''}` : 'Nog geen features'}</div>
+        ${elders ? `<p class="vd-elders-noot">Deze staan niet in de app: hun tekst komt uit een boek en mag hier niet staan. Dit zijn hun namen, zodat je weet wat je krijgt — klik er een aan om hem op te zoeken.</p>` : ''}
         ${features || `<p class="dm-hint">De features komen uit het boek en mogen daar niet uit overgenomen worden. ${isDM() ? 'Tik ze zelf in met de plusknop rechtsboven, of lees ze in van een andere DM.' : ''}</p>`}`}
     </div>`);
 }
@@ -2193,7 +2227,12 @@ window.vaardigheden = {
     await _load(); await _klasseExtra();
     _subAan.add(naam);
     _bandHerteken(); _refreshFilterBar(); _paint();
-    window._showToast?.(`${naam} staat in je campagne. De features typ je er zelf bij.`);
+    // Zijn features staan er bij naam al in, dus beloof niet dat je ze zelf
+    // moet verzinnen; wat ontbreekt is hun tekst.
+    const bekend = (_eldersFeatures?.subclasses?.[naam] || []).length;
+    window._showToast?.(bekend
+      ? `${naam} staat in je campagne. Zijn ${bekend} features staan er bij naam in; hun tekst typ je er zelf bij.`
+      : `${naam} staat in je campagne. De features typ je er zelf bij.`);
   },
   // De uitleg van een subclass: wát het is, los van wat het geeft.
   subUitleg(sub) { _uitlegVenster('subclass', sub, _filters.bron); },

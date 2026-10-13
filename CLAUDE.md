@@ -1711,6 +1711,17 @@ in `_load()` (`render-spreuken.js`), ontdubbeld op `index`:
 > Bewaakt door `tests/bronnen.test.js`: elk item draagt **alleen** `naam` en
 > `boek`, elke boekcode bestaat, en er zit niets in dat al in de seed staat.
 > Komt er ooit tekst in dat bestand, dan valt die test om.
+> **En wát ze geven.** Neemt de DM er een over, dan stond er daarna een leeg
+> kaartje: je zag dát de Hexblade bestaat, niet wát hij geeft.
+> `bronnen/features-elders.json` noemt daarom de **namen** van hun features —
+> 65 subclasses (de 61 elders plus de vier van de Artificer), 29 species uit
+> `volkenOverig` en de Artificer zelf — en verder niets: geen tekst, geen
+> levels. Het venster achter een kaartje valt daarop terug zodra de houder zelf
+> geen features heeft (`_eldersFeaturesHtml`), met per naam de naslagzoekopdracht
+> ernaast. Wat de campagne zelf heeft wint altijd. Dezelfde test bewaakt de
+> grens: alles korter dan 60 tekens en niets dat als een zin leest.
+> Met de hand samengesteld, dus **kijk een lijst na voor je erop bouwt**;
+> Genasi, Giff, Leonin, Verdan en Yuan-ti staan er bewust niet in.
 > **Het raster staat er alleen als het een antwoord is** (`_toontRaster()`): op de
 > deurenlaag en de tegellaag niet, want dat is precies de waslijst die we kwijt
 > wilden. De filterchips tellen bovendien wat er in dát gezichtsveld ligt —

@@ -29427,6 +29427,21 @@ body.wizard-open { overflow: hidden; }
   font-family: 'Cinzel', serif; font-size: .78em;
 }
 .vd-subfeature-naam { font-family: 'Cinzel', serif; font-size: .92em; color: #3a2410; }
+/* Een feature die niet in de app staat: alleen zijn naam en de weg naar het
+   boek. Gestippeld, net als de subclasses in de kolom die hier ook niet in
+   staan — dat is hetzelfde signaal, dus hetzelfde randje. */
+.vd-subfeature--elders {
+  text-decoration: none; border-style: dashed; background: rgba(255,252,244,.3);
+}
+.vd-subfeature--elders:hover { border-color: #9a7008; background: rgba(154,112,8,.07); }
+.vd-subfeature--elders .vd-subfeature-lvl { background: rgba(154,112,8,.12); color: #9a7008; }
+.vd-subfeature--elders .vd-subfeature-lvl svg { width: 13px; height: 13px; }
+.vd-subfeature-naslag { margin-left: auto; display: flex; color: #9a8468; }
+.vd-subfeature-naslag svg { width: 14px; height: 14px; }
+.vd-elders-noot {
+  margin: 0 0 8px; font-family: 'Crimson Text', serif; font-size: .88em;
+  font-style: italic; line-height: 1.5; color: #8a7050;
+}
 
 /* De uitleg op het kaartje zelf, boven de waslijst. Vijf regels en dan een
    beletselteken — hetzelfde als op de featurekaartjes eronder, en het hele
