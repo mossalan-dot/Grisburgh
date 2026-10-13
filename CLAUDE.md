@@ -1718,9 +1718,12 @@ in `_load()` (`render-spreuken.js`), ontdubbeld op `index`:
 > **En wát ze geven.** Neemt de DM er een over, dan stond er daarna een leeg
 > kaartje: je zag dát de Hexblade bestaat, niet wát hij geeft.
 > `bronnen/features-elders.json` noemt daarom de **namen** van hun features —
-> 65 subclasses (de 61 elders plus de vier van de Artificer), 29 species uit
-> `volkenOverig` en de Artificer zelf — en verder niets: geen tekst, geen
-> levels. Het venster achter een kaartje valt daarop terug zodra de houder zelf
+> 102 subclasses, 29 species uit `volkenOverig` en de Artificer zelf, samen 505
+> namen — en verder niets: geen tekst, geen levels. Dat zijn niet alleen de
+> boeken van buiten: ook de 2024-subclasses die de app zelf meebrengt maar
+> waarvan de tekst buiten de SRD valt (Battle Master, Assassin, Gloom Stalker…)
+> staan erin, zodat een verse campagne daar geen kaartje zonder wegwijzer
+> heeft. Nagerekend: elke houder die in de seed leeg staat, heeft zijn namen. Het venster achter een kaartje valt daarop terug zodra de houder zelf
 > geen features heeft (`_eldersFeaturesHtml`), met per naam de naslagzoekopdracht
 > ernaast. Wat de campagne zelf heeft wint altijd. Dezelfde test bewaakt de
 > grens: alles korter dan 60 tekens en niets dat als een zin leest.

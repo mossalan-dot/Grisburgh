@@ -1,5 +1,5 @@
 {
-  "_wat": "De námen van de features die horen bij classes, subclasses en species die niet in de app staan. Alleen namen — geen tekst, geen levels, geen regels.",
+  "_wat": "De námen van de features die horen bij classes, subclasses en species waarvan de tekst niet in de app staat — of dat nu is omdat ze uit een ander boek komen, of omdat het 2024-materiaal is dat buiten de SRD valt. Alleen namen: geen tekst, geen levels, geen regels.",
   "_waarom": "Zet de DM een subclass uit de elders-lijst in zijn campagne, dan stond er daarna een leeg kaartje: 'geen tekst'. Je zag dát de Hexblade bestaat, maar niet wát hij geeft. Met de namen erbij weet een speler waar hij naar kijkt en waar hij het opzoekt — en daar is de knop naast elke naam voor.",
   "_grens": "Hier staan UITSLUITEND namen. Een naam is geen beschermd werk; de beschrijving eronder wél, en die hoort in het boek dat je ervoor koopt. Dit bestand gaat daarom net als subclasses-elders.json compleet mee naar elke campagne.",
   "_let_op": "Met de hand samengesteld, dus kijk het na voordat je erop bouwt. Wat ik niet zeker wist staat er niet in: een ontbrekende naam kost een zoekopdracht, een verkeerde naam kost vertrouwen. Namen zijn per druk veranderd, en een paar species (Genasi, Giff, Leonin, Verdan, Yuan-ti) staan er nog niet in omdat ze per variant verschillen of omdat ik hun lijst niet compleet kende.",
@@ -501,6 +501,233 @@
       "Thunderbolt Strike",
       "Divine Strike",
       "Stormborn"
+    ],
+    "Path of the Wild Heart": [
+      "Animal Speaker",
+      "Rage of the Wilds",
+      "Aspect of the Wilds",
+      "Nature Speaker",
+      "Power of the Wilds"
+    ],
+    "Path of the World Tree": [
+      "Vitality of the Tree",
+      "Branches of the Tree",
+      "Battering Roots",
+      "Travel along the Tree"
+    ],
+    "Path of the Zealot": [
+      "Divine Fury",
+      "Warrior of the Gods",
+      "Fanatical Focus",
+      "Zealous Presence",
+      "Rage of the Gods"
+    ],
+    "College of Dance": [
+      "Dazzling Footwork",
+      "Inspiring Movement",
+      "Tandem Footwork",
+      "Leading Evasion"
+    ],
+    "College of Glamour": [
+      "Beguiling Magic",
+      "Mantle of Inspiration",
+      "Mantle of Majesty",
+      "Unbreakable Majesty"
+    ],
+    "College of Valor": [
+      "Combat Inspiration",
+      "Martial Training",
+      "Extra Attack",
+      "Battle Magic"
+    ],
+    "Light Domain": [
+      "Radiance of the Dawn",
+      "Warding Flare",
+      "Improved Warding Flare",
+      "Potent Spellcasting",
+      "Corona of Light"
+    ],
+    "War Domain": [
+      "Guided Strike",
+      "War Priest",
+      "War God's Blessing",
+      "Divine Strike",
+      "Avatar of Battle"
+    ],
+    "Trickery Domain": [
+      "Blessing of the Trickster",
+      "Invoke Duplicity",
+      "Trickster's Transposition",
+      "Divine Strike",
+      "Improved Duplicity"
+    ],
+    "Circle of the Moon": [
+      "Circle Forms",
+      "Improved Circle Forms",
+      "Moonlight Step",
+      "Lunar Form"
+    ],
+    "Circle of the Sea": [
+      "Wrath of the Sea",
+      "Aquatic Affinity",
+      "Stormborn",
+      "Oceanic Gift"
+    ],
+    "Circle of the Stars": [
+      "Star Map",
+      "Starry Form",
+      "Cosmic Omen",
+      "Twinkling Constellations",
+      "Full of Stars"
+    ],
+    "Battle Master": [
+      "Combat Superiority",
+      "Student of War",
+      "Know Your Enemy",
+      "Improved Combat Superiority",
+      "Relentless",
+      "Ultimate Combat Superiority"
+    ],
+    "Eldritch Knight": [
+      "Spellcasting",
+      "War Bond",
+      "War Magic",
+      "Eldritch Strike",
+      "Arcane Charge",
+      "Improved War Magic"
+    ],
+    "Warrior of Shadow": [
+      "Shadow Arts",
+      "Shadow Step",
+      "Improved Shadow Step",
+      "Cloak of Shadows"
+    ],
+    "Warrior of the Elements": [
+      "Elemental Attunement",
+      "Manipulate Elements",
+      "Stride of the Elements",
+      "Elemental Epitome"
+    ],
+    "Warrior of Mercy": [
+      "Hand of Harm",
+      "Hand of Healing",
+      "Implements of Mercy",
+      "Physician's Touch",
+      "Flurry of Healing and Harm",
+      "Hand of Ultimate Mercy"
+    ],
+    "Oath of the Ancients": [
+      "Channel Divinity: Nature's Wrath",
+      "Aura of Warding",
+      "Undying Sentinel",
+      "Elder Champion"
+    ],
+    "Oath of Glory": [
+      "Channel Divinity: Inspiring Smite",
+      "Channel Divinity: Peerless Athlete",
+      "Aura of Alacrity",
+      "Glorious Defense",
+      "Living Legend"
+    ],
+    "Oath of Vengeance": [
+      "Channel Divinity: Vow of Enmity",
+      "Relentless Avenger",
+      "Soul of Vengeance",
+      "Avenging Angel"
+    ],
+    "Beast Master": [
+      "Primal Companion",
+      "Exceptional Training",
+      "Bestial Fury",
+      "Share Spells"
+    ],
+    "Fey Wanderer": [
+      "Dreadful Strikes",
+      "Otherworldly Glamour",
+      "Beguiling Twist",
+      "Fey Reinforcements",
+      "Misty Wanderer"
+    ],
+    "Gloom Stalker": [
+      "Dread Ambusher",
+      "Umbral Sight",
+      "Iron Mind",
+      "Stalker's Flurry",
+      "Shadowy Dodge"
+    ],
+    "Arcane Trickster": [
+      "Spellcasting",
+      "Mage Hand Legerdemain",
+      "Magical Ambush",
+      "Versatile Trickster",
+      "Spell Thief"
+    ],
+    "Assassin": [
+      "Assassinate",
+      "Assassin's Tools",
+      "Infiltration Expertise",
+      "Envenom Weapons",
+      "Death Strike"
+    ],
+    "Soulknife": [
+      "Psionic Power",
+      "Psychic Blades",
+      "Soul Blades",
+      "Psychic Veil",
+      "Rend Mind"
+    ],
+    "Clockwork Sorcery": [
+      "Restore Balance",
+      "Bastion of Law",
+      "Trance of Order",
+      "Clockwork Cavalcade"
+    ],
+    "Aberrant Sorcery": [
+      "Telepathic Speech",
+      "Psionic Sorcery",
+      "Psychic Defenses",
+      "Revelation in Flesh",
+      "Warping Implosion"
+    ],
+    "Archfey Patron": [
+      "Steps of the Fey",
+      "Misty Escape",
+      "Beguiling Defenses",
+      "Bewitching Magic"
+    ],
+    "Celestial Patron": [
+      "Healing Light",
+      "Radiant Soul",
+      "Celestial Resilience",
+      "Searing Vengeance"
+    ],
+    "Great Old One Patron": [
+      "Awakened Mind",
+      "Psychic Spells",
+      "Clairvoyant Combatant",
+      "Eldritch Hex",
+      "Create Thrall"
+    ],
+    "Abjurer": [
+      "Abjuration Savant",
+      "Arcane Ward",
+      "Projected Ward",
+      "Spell Breaker",
+      "Spell Resistance"
+    ],
+    "Diviner": [
+      "Divination Savant",
+      "Portent",
+      "Expert Divination",
+      "The Third Eye",
+      "Greater Portent"
+    ],
+    "Illusionist": [
+      "Illusion Savant",
+      "Improved Illusions",
+      "Phantasmal Creatures",
+      "Illusory Self",
+      "Illusory Reality"
     ]
   },
   "species": {
