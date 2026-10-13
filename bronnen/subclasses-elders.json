@@ -2,103 +2,298 @@
   "_wat": "Subclasses die niet in de app staan, met alleen hun naam en waar ze te vinden zijn.",
   "_waarom": "Het Heldenboek liet alleen de twaalf-maal-vier uit de 2024-PHB zien, en daarmee leek de rest niet te bestaan. Een speler die vraagt of hij een Hexblade kan spelen hoort te zien dát die bestaat en in welk boek hij staat.",
   "_grens": "Hier staan UITSLUITEND namen en vindplaatsen. Geen features, geen beschrijvingen, geen levels — dat is beschermde tekst en die hoort in het boek, niet hier. Een naam is geen beschermd werk; een beschrijving wel.",
-  "_let_op": "Met de hand samengesteld, dus kijk het na voordat je erop bouwt. Namen zijn soms per druk veranderd (de 2024-PHB hernoemde er een flink aantal).",
+  "_let_op": "Met de hand samengesteld, dus kijk het na voordat je erop bouwt. Namen zijn soms per druk veranderd (de 2024-PHB hernoemde er een flink aantal). Een naam die in de seed staat maar daar geen features draagt mag hier ook staan: dat is dezelfde soort naam, en een campagne die hem niet heeft kan hem er zo bij zetten.",
   "boeken": {
     "phb14": "Player's Handbook (2014)",
-    "dmg":   "Dungeon Master's Guide",
-    "scag":  "Sword Coast Adventurer's Guide",
-    "xge":   "Xanathar's Guide to Everything",
-    "tce":   "Tasha's Cauldron of Everything",
-    "egw":   "Explorer's Guide to Wildemount",
-    "vrgr":  "Van Richten's Guide to Ravenloft",
-    "ftd":   "Fizban's Treasury of Dragons",
-    "ggr":   "Guildmasters' Guide to Ravnica"
+    "dmg": "Dungeon Master's Guide",
+    "scag": "Sword Coast Adventurer's Guide",
+    "xge": "Xanathar's Guide to Everything",
+    "tce": "Tasha's Cauldron of Everything",
+    "egw": "Explorer's Guide to Wildemount",
+    "vrgr": "Van Richten's Guide to Ravenloft",
+    "ftd": "Fizban's Treasury of Dragons",
+    "ggr": "Guildmasters' Guide to Ravnica"
   },
   "klassen": {
     "Barbarian": [
-      { "naam": "Path of the Totem Warrior",      "boek": "phb14" },
-      { "naam": "Path of the Battlerager",         "boek": "scag" },
-      { "naam": "Path of the Ancestral Guardian",  "boek": "xge" },
-      { "naam": "Path of the Storm Herald",        "boek": "xge" },
-      { "naam": "Path of the Beast",               "boek": "tce" },
-      { "naam": "Path of Wild Magic",              "boek": "tce" }
+      {
+        "naam": "Path of the Totem Warrior",
+        "boek": "phb14"
+      },
+      {
+        "naam": "Path of the Battlerager",
+        "boek": "scag"
+      },
+      {
+        "naam": "Path of the Ancestral Guardian",
+        "boek": "xge"
+      },
+      {
+        "naam": "Path of the Storm Herald",
+        "boek": "xge"
+      },
+      {
+        "naam": "Path of the Beast",
+        "boek": "tce"
+      },
+      {
+        "naam": "Path of Wild Magic",
+        "boek": "tce"
+      }
     ],
     "Bard": [
-      { "naam": "College of Swords",     "boek": "xge" },
-      { "naam": "College of Whispers",   "boek": "xge" },
-      { "naam": "College of Creation",   "boek": "tce" },
-      { "naam": "College of Eloquence",  "boek": "tce" }
+      {
+        "naam": "College of Swords",
+        "boek": "xge"
+      },
+      {
+        "naam": "College of Whispers",
+        "boek": "xge"
+      },
+      {
+        "naam": "College of Creation",
+        "boek": "tce"
+      },
+      {
+        "naam": "College of Eloquence",
+        "boek": "tce"
+      }
     ],
     "Cleric": [
-      { "naam": "Death Domain",     "boek": "dmg" },
-      { "naam": "Arcana Domain",    "boek": "scag" },
-      { "naam": "Forge Domain",     "boek": "xge" },
-      { "naam": "Grave Domain",     "boek": "xge" },
-      { "naam": "Order Domain",     "boek": "tce" },
-      { "naam": "Peace Domain",     "boek": "tce" }
+      {
+        "naam": "Death Domain",
+        "boek": "dmg"
+      },
+      {
+        "naam": "Arcana Domain",
+        "boek": "scag"
+      },
+      {
+        "naam": "Forge Domain",
+        "boek": "xge"
+      },
+      {
+        "naam": "Grave Domain",
+        "boek": "xge"
+      },
+      {
+        "naam": "Order Domain",
+        "boek": "tce"
+      },
+      {
+        "naam": "Peace Domain",
+        "boek": "tce"
+      },
+      {
+        "naam": "Knowledge Domain",
+        "boek": "phb14"
+      },
+      {
+        "naam": "Nature Domain",
+        "boek": "phb14"
+      },
+      {
+        "naam": "Tempest Domain",
+        "boek": "phb14"
+      }
     ],
     "Druid": [
-      { "naam": "Circle of Dreams",       "boek": "xge" },
-      { "naam": "Circle of the Shepherd",  "boek": "xge" },
-      { "naam": "Circle of Spores",        "boek": "tce" },
-      { "naam": "Circle of Wildfire",      "boek": "tce" }
+      {
+        "naam": "Circle of Dreams",
+        "boek": "xge"
+      },
+      {
+        "naam": "Circle of the Shepherd",
+        "boek": "xge"
+      },
+      {
+        "naam": "Circle of Spores",
+        "boek": "tce"
+      },
+      {
+        "naam": "Circle of Wildfire",
+        "boek": "tce"
+      }
     ],
     "Fighter": [
-      { "naam": "Purple Dragon Knight (Banneret)", "boek": "scag" },
-      { "naam": "Arcane Archer",                   "boek": "xge" },
-      { "naam": "Cavalier",                        "boek": "xge" },
-      { "naam": "Samurai",                         "boek": "xge" },
-      { "naam": "Rune Knight",                     "boek": "tce" },
-      { "naam": "Echo Knight",                     "boek": "egw" }
+      {
+        "naam": "Purple Dragon Knight (Banneret)",
+        "boek": "scag"
+      },
+      {
+        "naam": "Arcane Archer",
+        "boek": "xge"
+      },
+      {
+        "naam": "Cavalier",
+        "boek": "xge"
+      },
+      {
+        "naam": "Samurai",
+        "boek": "xge"
+      },
+      {
+        "naam": "Rune Knight",
+        "boek": "tce"
+      },
+      {
+        "naam": "Echo Knight",
+        "boek": "egw"
+      }
     ],
     "Monk": [
-      { "naam": "Way of the Long Death",     "boek": "scag" },
-      { "naam": "Way of the Drunken Master", "boek": "xge" },
-      { "naam": "Way of the Kensei",         "boek": "xge" },
-      { "naam": "Way of the Sun Soul",       "boek": "xge" },
-      { "naam": "Way of the Astral Self",    "boek": "tce" },
-      { "naam": "Way of the Cobalt Soul",    "boek": "egw" }
+      {
+        "naam": "Way of the Long Death",
+        "boek": "scag"
+      },
+      {
+        "naam": "Way of the Drunken Master",
+        "boek": "xge"
+      },
+      {
+        "naam": "Way of the Kensei",
+        "boek": "xge"
+      },
+      {
+        "naam": "Way of the Sun Soul",
+        "boek": "xge"
+      },
+      {
+        "naam": "Way of the Astral Self",
+        "boek": "tce"
+      },
+      {
+        "naam": "Way of the Cobalt Soul",
+        "boek": "egw"
+      }
     ],
     "Paladin": [
-      { "naam": "Oathbreaker",          "boek": "dmg" },
-      { "naam": "Oath of Conquest",     "boek": "xge" },
-      { "naam": "Oath of Redemption",   "boek": "xge" },
-      { "naam": "Oath of the Watchers", "boek": "tce" }
+      {
+        "naam": "Oathbreaker",
+        "boek": "dmg"
+      },
+      {
+        "naam": "Oath of Conquest",
+        "boek": "xge"
+      },
+      {
+        "naam": "Oath of Redemption",
+        "boek": "xge"
+      },
+      {
+        "naam": "Oath of the Watchers",
+        "boek": "tce"
+      }
     ],
     "Ranger": [
-      { "naam": "Horizon Walker", "boek": "xge" },
-      { "naam": "Monster Slayer", "boek": "xge" },
-      { "naam": "Swarmkeeper",    "boek": "tce" },
-      { "naam": "Drakewarden",    "boek": "ftd" }
+      {
+        "naam": "Horizon Walker",
+        "boek": "xge"
+      },
+      {
+        "naam": "Monster Slayer",
+        "boek": "xge"
+      },
+      {
+        "naam": "Swarmkeeper",
+        "boek": "tce"
+      },
+      {
+        "naam": "Drakewarden",
+        "boek": "ftd"
+      }
     ],
     "Rogue": [
-      { "naam": "Inquisitive",  "boek": "xge" },
-      { "naam": "Mastermind",   "boek": "xge" },
-      { "naam": "Scout",        "boek": "xge" },
-      { "naam": "Phantom",      "boek": "tce" }
+      {
+        "naam": "Inquisitive",
+        "boek": "xge"
+      },
+      {
+        "naam": "Mastermind",
+        "boek": "xge"
+      },
+      {
+        "naam": "Scout",
+        "boek": "xge"
+      },
+      {
+        "naam": "Phantom",
+        "boek": "tce"
+      }
     ],
     "Sorcerer": [
-      { "naam": "Divine Soul",    "boek": "xge" },
-      { "naam": "Shadow Magic",   "boek": "xge" },
-      { "naam": "Storm Sorcery",  "boek": "xge" }
+      {
+        "naam": "Divine Soul",
+        "boek": "xge"
+      },
+      {
+        "naam": "Shadow Magic",
+        "boek": "xge"
+      },
+      {
+        "naam": "Storm Sorcery",
+        "boek": "xge"
+      }
     ],
     "Warlock": [
-      { "naam": "The Undying",    "boek": "scag" },
-      { "naam": "The Hexblade",   "boek": "xge" },
-      { "naam": "The Fathomless", "boek": "tce" },
-      { "naam": "The Genie",      "boek": "tce" },
-      { "naam": "The Undead",     "boek": "vrgr" }
+      {
+        "naam": "The Undying",
+        "boek": "scag"
+      },
+      {
+        "naam": "The Hexblade",
+        "boek": "xge"
+      },
+      {
+        "naam": "The Fathomless",
+        "boek": "tce"
+      },
+      {
+        "naam": "The Genie",
+        "boek": "tce"
+      },
+      {
+        "naam": "The Undead",
+        "boek": "vrgr"
+      }
     ],
     "Wizard": [
-      { "naam": "School of Conjuration",  "boek": "phb14" },
-      { "naam": "School of Enchantment",  "boek": "phb14" },
-      { "naam": "School of Necromancy",   "boek": "phb14" },
-      { "naam": "School of Transmutation","boek": "phb14" },
-      { "naam": "Bladesinging",           "boek": "scag" },
-      { "naam": "War Magic",              "boek": "xge" },
-      { "naam": "Order of Scribes",       "boek": "tce" },
-      { "naam": "Chronurgy Magic",        "boek": "egw" },
-      { "naam": "Graviturgy Magic",       "boek": "egw" }
+      {
+        "naam": "School of Conjuration",
+        "boek": "phb14"
+      },
+      {
+        "naam": "School of Enchantment",
+        "boek": "phb14"
+      },
+      {
+        "naam": "School of Necromancy",
+        "boek": "phb14"
+      },
+      {
+        "naam": "School of Transmutation",
+        "boek": "phb14"
+      },
+      {
+        "naam": "Bladesinging",
+        "boek": "scag"
+      },
+      {
+        "naam": "War Magic",
+        "boek": "xge"
+      },
+      {
+        "naam": "Order of Scribes",
+        "boek": "tce"
+      },
+      {
+        "naam": "Chronurgy Magic",
+        "boek": "egw"
+      },
+      {
+        "naam": "Graviturgy Magic",
+        "boek": "egw"
+      }
     ]
   }
 }

@@ -1700,7 +1700,7 @@ in `_load()` (`render-spreuken.js`), ontdubbeld op `index`:
 > Het oogje op een subclasskaartje opent hem, het vinkje telt hem op.
 > Feats en Epic Boons hebben geen tweede laag: daar is de lijst het antwoord.
 > **En wat er nog meer bestaat.** Onder de kolom staat *Nog N elders*:
-> `bronnen/subclasses-elders.json` noemt 61 subclasses uit andere boeken
+> `bronnen/subclasses-elders.json` noemt 64 subclasses uit andere boeken
 > (PHB 2014, Xanathar's, Tasha's, Sword Coast, Van Richten's, Fizban's,
 > Wildemount, DMG) **bij naam en met hun vindplaats, en verder niets**. Een naam
 > is geen beschermd werk; een beschrijving wél, en die staat er dan ook niet in
@@ -1709,7 +1709,11 @@ in `_load()` (`render-spreuken.js`), ontdubbeld op `index`:
 > signaal. De client ontdubbelt op naam tegen wat de campagne zelf heeft, dus
 > een campagne die ze wél heeft ziet ze niet twee keer.
 > Bewaakt door `tests/bronnen.test.js`: elk item draagt **alleen** `naam` en
-> `boek`, elke boekcode bestaat, en er zit niets in dat al in de seed staat.
+> `boek`, elke boekcode bestaat, en er zit niets in dat de app zélf meebrengt —
+> dat wil zeggen: niets dat in de seed features draagt. Een naam die er leeg in
+> staat mag hier wél, want dat is dezelfde soort naam. Knowledge, Nature en
+> Tempest Domain stonden zo in de seed en vielen daardoor tussen wal en schip:
+> een campagne die ze niet had kon er niet bij, want ze werden hier geweerd.
 > Komt er ooit tekst in dat bestand, dan valt die test om.
 > **En wát ze geven.** Neemt de DM er een over, dan stond er daarna een leeg
 > kaartje: je zag dát de Hexblade bestaat, niet wát hij geeft.

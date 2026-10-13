@@ -3,120 +3,674 @@
   "_waarom": "Zet de DM een subclass uit de elders-lijst in zijn campagne, dan stond er daarna een leeg kaartje: 'geen tekst'. Je zag dát de Hexblade bestaat, maar niet wát hij geeft. Met de namen erbij weet een speler waar hij naar kijkt en waar hij het opzoekt — en daar is de knop naast elke naam voor.",
   "_grens": "Hier staan UITSLUITEND namen. Een naam is geen beschermd werk; de beschrijving eronder wél, en die hoort in het boek dat je ervoor koopt. Dit bestand gaat daarom net als subclasses-elders.json compleet mee naar elke campagne.",
   "_let_op": "Met de hand samengesteld, dus kijk het na voordat je erop bouwt. Wat ik niet zeker wist staat er niet in: een ontbrekende naam kost een zoekopdracht, een verkeerde naam kost vertrouwen. Namen zijn per druk veranderd, en een paar species (Genasi, Giff, Leonin, Verdan, Yuan-ti) staan er nog niet in omdat ze per variant verschillen of omdat ik hun lijst niet compleet kende.",
-
   "classes": {
-    "Artificer": ["Magical Tinkering", "Spellcasting", "Infuse Item", "Artificer Specialist", "The Right Tool for the Job", "Tool Expertise", "Flash of Genius", "Magic Item Adept", "Spell-Storing Item", "Magic Item Savant", "Magic Item Master", "Soul of Artifice"]
+    "Artificer": [
+      "Magical Tinkering",
+      "Spellcasting",
+      "Infuse Item",
+      "Artificer Specialist",
+      "The Right Tool for the Job",
+      "Tool Expertise",
+      "Flash of Genius",
+      "Magic Item Adept",
+      "Spell-Storing Item",
+      "Magic Item Savant",
+      "Magic Item Master",
+      "Soul of Artifice"
+    ]
   },
-
   "subclasses": {
-    "Path of the Totem Warrior": ["Spirit Seeker", "Totem Spirit", "Aspect of the Beast", "Spirit Walker", "Totemic Attunement"],
-    "Path of the Battlerager": ["Battlerager Armor", "Reckless Abandon", "Battlerager Charge", "Spiked Retribution"],
-    "Path of the Ancestral Guardian": ["Ancestral Protectors", "Spirit Shield", "Consult the Spirits", "Vengeful Ancestors"],
-    "Path of the Storm Herald": ["Storm Aura", "Storm Soul", "Shielding Storm", "Raging Storm"],
-    "Path of the Beast": ["Form of the Beast", "Bestial Soul", "Infectious Fury", "Call the Hunt"],
-    "Path of Wild Magic": ["Magic Awareness", "Wild Surge", "Bolstering Magic", "Unstable Backlash", "Controlled Surge"],
-
-    "College of Swords": ["Bonus Proficiencies", "Fighting Style", "Blade Flourish", "Extra Attack", "Master's Flourish"],
-    "College of Whispers": ["Psychic Blades", "Words of Terror", "Mantle of Whispers", "Shadow Lore"],
-    "College of Creation": ["Mote of Potential", "Performance of Creation", "Animating Performance", "Creative Crescendo"],
-    "College of Eloquence": ["Silver Tongue", "Unsettling Words", "Unfailing Inspiration", "Universal Speech", "Infectious Inspiration"],
-
-    "Death Domain": ["Bonus Proficiency", "Reaper", "Channel Divinity: Touch of Death", "Inescapable Destruction", "Divine Strike", "Improved Reaper"],
-    "Arcana Domain": ["Arcane Initiate", "Channel Divinity: Arcane Abjuration", "Spell Breaker", "Potent Spellcasting", "Arcane Mastery"],
-    "Forge Domain": ["Bonus Proficiencies", "Blessing of the Forge", "Channel Divinity: Artisan's Blessing", "Soul of the Forge", "Divine Strike", "Saint of Forge and Fire"],
-    "Grave Domain": ["Circle of Mortality", "Eyes of the Grave", "Channel Divinity: Path to the Grave", "Sentinel at Death's Door", "Potent Spellcasting", "Keeper of Souls"],
-    "Order Domain": ["Bonus Proficiencies", "Voice of Authority", "Channel Divinity: Order's Demand", "Embodiment of the Law", "Divine Strike", "Order's Wrath"],
-    "Peace Domain": ["Implement of Peace", "Emboldening Bond", "Channel Divinity: Balm of Peace", "Protective Bond", "Potent Spellcasting", "Expansive Bond"],
-
-    "Circle of Dreams": ["Balm of the Summer Court", "Hearth of Moonlight and Shadow", "Hidden Paths", "Walker in Dreams"],
-    "Circle of the Shepherd": ["Speech of the Woods", "Spirit Totem", "Mighty Summoner", "Guardian Spirit", "Faithful Summons"],
-    "Circle of Spores": ["Circle Spells", "Halo of Spores", "Symbiotic Entity", "Fungal Infestation", "Spreading Spores", "Fungal Body"],
-    "Circle of Wildfire": ["Circle Spells", "Summon Wildfire Spirit", "Enhanced Bond", "Cauterizing Flames", "Blazing Revival"],
-
-    "Purple Dragon Knight (Banneret)": ["Rallying Cry", "Royal Envoy", "Inspiring Surge", "Bulwark"],
-    "Arcane Archer": ["Arcane Archer Lore", "Arcane Shot", "Magic Arrow", "Curving Shot", "Ever-Ready Shot"],
-    "Cavalier": ["Bonus Proficiency", "Born to the Saddle", "Unwavering Mark", "Warding Maneuver", "Hold the Line", "Ferocious Charger", "Vigilant Defender"],
-    "Samurai": ["Bonus Proficiency", "Fighting Spirit", "Elegant Courtier", "Tireless Spirit", "Rapid Strike", "Strength before Death"],
-    "Rune Knight": ["Bonus Proficiencies", "Rune Carver", "Giant's Might", "Runic Shield", "Great Stature", "Master of Runes", "Runic Juggernaut"],
-    "Echo Knight": ["Manifest Echo", "Unleash Incarnation", "Echo Avatar", "Shadow Martyr", "Reclaim Potential", "Legion of One"],
-
-    "Way of the Long Death": ["Touch of Death", "Hour of Reaping", "Mastery of Death", "Touch of the Long Death"],
-    "Way of the Drunken Master": ["Bonus Proficiencies", "Drunken Technique", "Tipsy Sway", "Drunkard's Luck", "Intoxicated Frenzy"],
-    "Way of the Kensei": ["Path of the Kensei", "One with the Blade", "Sharpen the Blade", "Unerring Accuracy"],
-    "Way of the Sun Soul": ["Radiant Sun Bolt", "Searing Arc Strike", "Searing Sunburst", "Sun Shield"],
-    "Way of the Astral Self": ["Arms of the Astral Self", "Visage of the Astral Self", "Body of the Astral Self", "Awakened Astral Self"],
-    "Way of the Cobalt Soul": ["Extract Aspects", "Extort Truth", "Mystical Erudition", "Mind of Mercury", "Debilitating Barrage"],
-
-    "Oathbreaker": ["Channel Divinity: Control Undead", "Channel Divinity: Dreadful Aspect", "Aura of Hate", "Supernatural Resistance", "Dread Lord"],
-    "Oath of Conquest": ["Channel Divinity: Conquering Presence", "Channel Divinity: Guided Strike", "Aura of Conquest", "Scornful Rebuke", "Invincible Conqueror"],
-    "Oath of Redemption": ["Channel Divinity: Emissary of Peace", "Channel Divinity: Rebuke the Violent", "Aura of the Guardian", "Protective Spirit", "Emissary of Redemption"],
-    "Oath of the Watchers": ["Channel Divinity: Watcher's Will", "Channel Divinity: Abjure the Extraplanar", "Aura of the Sentinel", "Vigilant Rebuke", "Mortal Bulwark"],
-
-    "Horizon Walker": ["Detect Portal", "Planar Warrior", "Ethereal Step", "Distant Strike", "Spectral Defense"],
-    "Monster Slayer": ["Hunter's Sense", "Slayer's Prey", "Supernatural Defense", "Magic-User's Nemesis", "Slayer's Counter"],
-    "Swarmkeeper": ["Gathered Swarm", "Writhing Tide", "Mighty Swarm", "Swarming Dispersal"],
-    "Drakewarden": ["Draconic Gift", "Drake Companion", "Bond of Fang and Scale", "Drake's Breath", "Perfected Bond"],
-
-    "Inquisitive": ["Ear for Deceit", "Eye for Detail", "Insightful Fighting", "Steady Eye", "Unerring Eye", "Eye for Weakness"],
-    "Mastermind": ["Master of Intrigue", "Master of Tactics", "Insightful Manipulator", "Misdirection", "Soul of Deceit"],
-    "Scout": ["Skirmisher", "Survivalist", "Superior Mobility", "Ambush Master", "Sudden Strike"],
-    "Phantom": ["Whispers of the Dead", "Wails from the Grave", "Tokens of the Departed", "Ghost Walk", "Death's Friend"],
-
-    "Divine Soul": ["Divine Magic", "Favored by the Gods", "Empowered Healing", "Otherworldly Wings", "Unearthly Recovery"],
-    "Shadow Magic": ["Eyes of the Dark", "Strength of the Grave", "Hound of Ill Omen", "Shadow Walk", "Umbral Form"],
-    "Storm Sorcery": ["Wind Speaker", "Tempestuous Magic", "Heart of the Storm", "Storm Guide", "Storm's Fury", "Wind Soul"],
-
-    "The Undying": ["Among the Dead", "Defy Death", "Undying Nature", "Indestructible Life"],
-    "The Hexblade": ["Hexblade's Curse", "Hex Warrior", "Accursed Specter", "Armor of Hexes", "Master of Hexes"],
-    "The Fathomless": ["Tentacle of the Deeps", "Gift of the Sea", "Oceanic Soul", "Guardian Coil", "Grasping Tentacles", "Fathomless Plunge"],
-    "The Genie": ["Genie's Vessel", "Elemental Gift", "Sanctuary Vessel", "Limited Wish"],
-    "The Undead": ["Form of Dread", "Grave Touched", "Necrotic Husk", "Spirit Projection"],
-
-    "School of Conjuration": ["Conjuration Savant", "Minor Conjuration", "Benign Transposition", "Focused Conjuration", "Durable Summons"],
-    "School of Enchantment": ["Enchantment Savant", "Hypnotic Gaze", "Instinctive Charm", "Split Enchantment", "Alter Memories"],
-    "School of Necromancy": ["Necromancy Savant", "Grim Harvest", "Undead Thralls", "Inured to Undeath", "Command Undead"],
-    "School of Transmutation": ["Transmutation Savant", "Minor Alchemy", "Transmuter's Stone", "Shapechanger", "Master Transmuter"],
-    "Bladesinging": ["Training in War and Song", "Bladesong", "Extra Attack", "Song of Defense", "Song of Victory"],
-    "War Magic": ["Arcane Deflection", "Tactical Wit", "Power Surge", "Durable Magic", "Deflecting Shroud"],
-    "Order of Scribes": ["Wizardly Quill", "Awakened Spellbook", "Manifest Mind", "Master Scrivener", "One with the Word"],
-    "Chronurgy Magic": ["Chronal Shift", "Temporal Awareness", "Momentary Stasis", "Arcane Abeyance", "Convergent Future"],
-    "Graviturgy Magic": ["Adjust Density", "Gravity Well", "Violent Attraction", "Event Horizon"],
-
-    "Alchemist": ["Tool Proficiency", "Alchemist Spells", "Experimental Elixir", "Alchemical Savant", "Restorative Reagents", "Chemical Mastery"],
-    "Armorer": ["Tools of the Trade", "Armorer Spells", "Arcane Armor", "Armor Model", "Extra Attack", "Armor Modifications", "Perfected Armor"],
-    "Artillerist": ["Tool Proficiency", "Artillerist Spells", "Eldritch Cannon", "Arcane Firearm", "Explosive Cannon", "Fortified Position"],
-    "Battle Smith": ["Tool Proficiency", "Battle Smith Spells", "Battle Ready", "Steel Defender", "Extra Attack", "Arcane Jolt", "Improved Defender"]
+    "Path of the Totem Warrior": [
+      "Spirit Seeker",
+      "Totem Spirit",
+      "Aspect of the Beast",
+      "Spirit Walker",
+      "Totemic Attunement"
+    ],
+    "Path of the Battlerager": [
+      "Battlerager Armor",
+      "Reckless Abandon",
+      "Battlerager Charge",
+      "Spiked Retribution"
+    ],
+    "Path of the Ancestral Guardian": [
+      "Ancestral Protectors",
+      "Spirit Shield",
+      "Consult the Spirits",
+      "Vengeful Ancestors"
+    ],
+    "Path of the Storm Herald": [
+      "Storm Aura",
+      "Storm Soul",
+      "Shielding Storm",
+      "Raging Storm"
+    ],
+    "Path of the Beast": [
+      "Form of the Beast",
+      "Bestial Soul",
+      "Infectious Fury",
+      "Call the Hunt"
+    ],
+    "Path of Wild Magic": [
+      "Magic Awareness",
+      "Wild Surge",
+      "Bolstering Magic",
+      "Unstable Backlash",
+      "Controlled Surge"
+    ],
+    "College of Swords": [
+      "Bonus Proficiencies",
+      "Fighting Style",
+      "Blade Flourish",
+      "Extra Attack",
+      "Master's Flourish"
+    ],
+    "College of Whispers": [
+      "Psychic Blades",
+      "Words of Terror",
+      "Mantle of Whispers",
+      "Shadow Lore"
+    ],
+    "College of Creation": [
+      "Mote of Potential",
+      "Performance of Creation",
+      "Animating Performance",
+      "Creative Crescendo"
+    ],
+    "College of Eloquence": [
+      "Silver Tongue",
+      "Unsettling Words",
+      "Unfailing Inspiration",
+      "Universal Speech",
+      "Infectious Inspiration"
+    ],
+    "Death Domain": [
+      "Bonus Proficiency",
+      "Reaper",
+      "Channel Divinity: Touch of Death",
+      "Inescapable Destruction",
+      "Divine Strike",
+      "Improved Reaper"
+    ],
+    "Arcana Domain": [
+      "Arcane Initiate",
+      "Channel Divinity: Arcane Abjuration",
+      "Spell Breaker",
+      "Potent Spellcasting",
+      "Arcane Mastery"
+    ],
+    "Forge Domain": [
+      "Bonus Proficiencies",
+      "Blessing of the Forge",
+      "Channel Divinity: Artisan's Blessing",
+      "Soul of the Forge",
+      "Divine Strike",
+      "Saint of Forge and Fire"
+    ],
+    "Grave Domain": [
+      "Circle of Mortality",
+      "Eyes of the Grave",
+      "Channel Divinity: Path to the Grave",
+      "Sentinel at Death's Door",
+      "Potent Spellcasting",
+      "Keeper of Souls"
+    ],
+    "Order Domain": [
+      "Bonus Proficiencies",
+      "Voice of Authority",
+      "Channel Divinity: Order's Demand",
+      "Embodiment of the Law",
+      "Divine Strike",
+      "Order's Wrath"
+    ],
+    "Peace Domain": [
+      "Implement of Peace",
+      "Emboldening Bond",
+      "Channel Divinity: Balm of Peace",
+      "Protective Bond",
+      "Potent Spellcasting",
+      "Expansive Bond"
+    ],
+    "Circle of Dreams": [
+      "Balm of the Summer Court",
+      "Hearth of Moonlight and Shadow",
+      "Hidden Paths",
+      "Walker in Dreams"
+    ],
+    "Circle of the Shepherd": [
+      "Speech of the Woods",
+      "Spirit Totem",
+      "Mighty Summoner",
+      "Guardian Spirit",
+      "Faithful Summons"
+    ],
+    "Circle of Spores": [
+      "Circle Spells",
+      "Halo of Spores",
+      "Symbiotic Entity",
+      "Fungal Infestation",
+      "Spreading Spores",
+      "Fungal Body"
+    ],
+    "Circle of Wildfire": [
+      "Circle Spells",
+      "Summon Wildfire Spirit",
+      "Enhanced Bond",
+      "Cauterizing Flames",
+      "Blazing Revival"
+    ],
+    "Purple Dragon Knight (Banneret)": [
+      "Rallying Cry",
+      "Royal Envoy",
+      "Inspiring Surge",
+      "Bulwark"
+    ],
+    "Arcane Archer": [
+      "Arcane Archer Lore",
+      "Arcane Shot",
+      "Magic Arrow",
+      "Curving Shot",
+      "Ever-Ready Shot"
+    ],
+    "Cavalier": [
+      "Bonus Proficiency",
+      "Born to the Saddle",
+      "Unwavering Mark",
+      "Warding Maneuver",
+      "Hold the Line",
+      "Ferocious Charger",
+      "Vigilant Defender"
+    ],
+    "Samurai": [
+      "Bonus Proficiency",
+      "Fighting Spirit",
+      "Elegant Courtier",
+      "Tireless Spirit",
+      "Rapid Strike",
+      "Strength before Death"
+    ],
+    "Rune Knight": [
+      "Bonus Proficiencies",
+      "Rune Carver",
+      "Giant's Might",
+      "Runic Shield",
+      "Great Stature",
+      "Master of Runes",
+      "Runic Juggernaut"
+    ],
+    "Echo Knight": [
+      "Manifest Echo",
+      "Unleash Incarnation",
+      "Echo Avatar",
+      "Shadow Martyr",
+      "Reclaim Potential",
+      "Legion of One"
+    ],
+    "Way of the Long Death": [
+      "Touch of Death",
+      "Hour of Reaping",
+      "Mastery of Death",
+      "Touch of the Long Death"
+    ],
+    "Way of the Drunken Master": [
+      "Bonus Proficiencies",
+      "Drunken Technique",
+      "Tipsy Sway",
+      "Drunkard's Luck",
+      "Intoxicated Frenzy"
+    ],
+    "Way of the Kensei": [
+      "Path of the Kensei",
+      "One with the Blade",
+      "Sharpen the Blade",
+      "Unerring Accuracy"
+    ],
+    "Way of the Sun Soul": [
+      "Radiant Sun Bolt",
+      "Searing Arc Strike",
+      "Searing Sunburst",
+      "Sun Shield"
+    ],
+    "Way of the Astral Self": [
+      "Arms of the Astral Self",
+      "Visage of the Astral Self",
+      "Body of the Astral Self",
+      "Awakened Astral Self"
+    ],
+    "Way of the Cobalt Soul": [
+      "Extract Aspects",
+      "Extort Truth",
+      "Mystical Erudition",
+      "Mind of Mercury",
+      "Debilitating Barrage"
+    ],
+    "Oathbreaker": [
+      "Channel Divinity: Control Undead",
+      "Channel Divinity: Dreadful Aspect",
+      "Aura of Hate",
+      "Supernatural Resistance",
+      "Dread Lord"
+    ],
+    "Oath of Conquest": [
+      "Channel Divinity: Conquering Presence",
+      "Channel Divinity: Guided Strike",
+      "Aura of Conquest",
+      "Scornful Rebuke",
+      "Invincible Conqueror"
+    ],
+    "Oath of Redemption": [
+      "Channel Divinity: Emissary of Peace",
+      "Channel Divinity: Rebuke the Violent",
+      "Aura of the Guardian",
+      "Protective Spirit",
+      "Emissary of Redemption"
+    ],
+    "Oath of the Watchers": [
+      "Channel Divinity: Watcher's Will",
+      "Channel Divinity: Abjure the Extraplanar",
+      "Aura of the Sentinel",
+      "Vigilant Rebuke",
+      "Mortal Bulwark"
+    ],
+    "Horizon Walker": [
+      "Detect Portal",
+      "Planar Warrior",
+      "Ethereal Step",
+      "Distant Strike",
+      "Spectral Defense"
+    ],
+    "Monster Slayer": [
+      "Hunter's Sense",
+      "Slayer's Prey",
+      "Supernatural Defense",
+      "Magic-User's Nemesis",
+      "Slayer's Counter"
+    ],
+    "Swarmkeeper": [
+      "Gathered Swarm",
+      "Writhing Tide",
+      "Mighty Swarm",
+      "Swarming Dispersal"
+    ],
+    "Drakewarden": [
+      "Draconic Gift",
+      "Drake Companion",
+      "Bond of Fang and Scale",
+      "Drake's Breath",
+      "Perfected Bond"
+    ],
+    "Inquisitive": [
+      "Ear for Deceit",
+      "Eye for Detail",
+      "Insightful Fighting",
+      "Steady Eye",
+      "Unerring Eye",
+      "Eye for Weakness"
+    ],
+    "Mastermind": [
+      "Master of Intrigue",
+      "Master of Tactics",
+      "Insightful Manipulator",
+      "Misdirection",
+      "Soul of Deceit"
+    ],
+    "Scout": [
+      "Skirmisher",
+      "Survivalist",
+      "Superior Mobility",
+      "Ambush Master",
+      "Sudden Strike"
+    ],
+    "Phantom": [
+      "Whispers of the Dead",
+      "Wails from the Grave",
+      "Tokens of the Departed",
+      "Ghost Walk",
+      "Death's Friend"
+    ],
+    "Divine Soul": [
+      "Divine Magic",
+      "Favored by the Gods",
+      "Empowered Healing",
+      "Otherworldly Wings",
+      "Unearthly Recovery"
+    ],
+    "Shadow Magic": [
+      "Eyes of the Dark",
+      "Strength of the Grave",
+      "Hound of Ill Omen",
+      "Shadow Walk",
+      "Umbral Form"
+    ],
+    "Storm Sorcery": [
+      "Wind Speaker",
+      "Tempestuous Magic",
+      "Heart of the Storm",
+      "Storm Guide",
+      "Storm's Fury",
+      "Wind Soul"
+    ],
+    "The Undying": [
+      "Among the Dead",
+      "Defy Death",
+      "Undying Nature",
+      "Indestructible Life"
+    ],
+    "The Hexblade": [
+      "Hexblade's Curse",
+      "Hex Warrior",
+      "Accursed Specter",
+      "Armor of Hexes",
+      "Master of Hexes"
+    ],
+    "The Fathomless": [
+      "Tentacle of the Deeps",
+      "Gift of the Sea",
+      "Oceanic Soul",
+      "Guardian Coil",
+      "Grasping Tentacles",
+      "Fathomless Plunge"
+    ],
+    "The Genie": [
+      "Genie's Vessel",
+      "Elemental Gift",
+      "Sanctuary Vessel",
+      "Limited Wish"
+    ],
+    "The Undead": [
+      "Form of Dread",
+      "Grave Touched",
+      "Necrotic Husk",
+      "Spirit Projection"
+    ],
+    "School of Conjuration": [
+      "Conjuration Savant",
+      "Minor Conjuration",
+      "Benign Transposition",
+      "Focused Conjuration",
+      "Durable Summons"
+    ],
+    "School of Enchantment": [
+      "Enchantment Savant",
+      "Hypnotic Gaze",
+      "Instinctive Charm",
+      "Split Enchantment",
+      "Alter Memories"
+    ],
+    "School of Necromancy": [
+      "Necromancy Savant",
+      "Grim Harvest",
+      "Undead Thralls",
+      "Inured to Undeath",
+      "Command Undead"
+    ],
+    "School of Transmutation": [
+      "Transmutation Savant",
+      "Minor Alchemy",
+      "Transmuter's Stone",
+      "Shapechanger",
+      "Master Transmuter"
+    ],
+    "Bladesinging": [
+      "Training in War and Song",
+      "Bladesong",
+      "Extra Attack",
+      "Song of Defense",
+      "Song of Victory"
+    ],
+    "War Magic": [
+      "Arcane Deflection",
+      "Tactical Wit",
+      "Power Surge",
+      "Durable Magic",
+      "Deflecting Shroud"
+    ],
+    "Order of Scribes": [
+      "Wizardly Quill",
+      "Awakened Spellbook",
+      "Manifest Mind",
+      "Master Scrivener",
+      "One with the Word"
+    ],
+    "Chronurgy Magic": [
+      "Chronal Shift",
+      "Temporal Awareness",
+      "Momentary Stasis",
+      "Arcane Abeyance",
+      "Convergent Future"
+    ],
+    "Graviturgy Magic": [
+      "Adjust Density",
+      "Gravity Well",
+      "Violent Attraction",
+      "Event Horizon"
+    ],
+    "Alchemist": [
+      "Tool Proficiency",
+      "Alchemist Spells",
+      "Experimental Elixir",
+      "Alchemical Savant",
+      "Restorative Reagents",
+      "Chemical Mastery"
+    ],
+    "Armorer": [
+      "Tools of the Trade",
+      "Armorer Spells",
+      "Arcane Armor",
+      "Armor Model",
+      "Extra Attack",
+      "Armor Modifications",
+      "Perfected Armor"
+    ],
+    "Artillerist": [
+      "Tool Proficiency",
+      "Artillerist Spells",
+      "Eldritch Cannon",
+      "Arcane Firearm",
+      "Explosive Cannon",
+      "Fortified Position"
+    ],
+    "Battle Smith": [
+      "Tool Proficiency",
+      "Battle Smith Spells",
+      "Battle Ready",
+      "Steel Defender",
+      "Extra Attack",
+      "Arcane Jolt",
+      "Improved Defender"
+    ],
+    "Knowledge Domain": [
+      "Blessings of Knowledge",
+      "Channel Divinity: Knowledge of the Ages",
+      "Channel Divinity: Read Thoughts",
+      "Potent Spellcasting",
+      "Visions of the Past"
+    ],
+    "Nature Domain": [
+      "Acolyte of Nature",
+      "Bonus Proficiency",
+      "Channel Divinity: Charm Animals and Plants",
+      "Dampen Elements",
+      "Divine Strike",
+      "Master of Nature"
+    ],
+    "Tempest Domain": [
+      "Bonus Proficiencies",
+      "Wrath of the Storm",
+      "Channel Divinity: Destructive Wrath",
+      "Thunderbolt Strike",
+      "Divine Strike",
+      "Stormborn"
+    ]
   },
-
   "species": {
-    "Bugbear": ["Darkvision", "Long-Limbed", "Powerful Build", "Sneaky", "Surprise Attack"],
-    "Centaur": ["Charge", "Equine Build", "Hooves", "Natural Affinity"],
-    "Changeling": ["Changeling Instincts", "Shapechanger"],
-    "Deep Gnome": ["Superior Darkvision", "Gnomish Magic Resistance", "Svirfneblin Camouflage"],
-    "Duergar": ["Superior Darkvision", "Duergar Magic", "Dwarven Resilience", "Psionic Fortitude"],
-    "Eladrin": ["Darkvision", "Fey Ancestry", "Fey Step", "Keen Senses", "Trance"],
-    "Fairy": ["Fairy Magic", "Flight"],
-    "Firbolg": ["Firbolg Magic", "Hidden Step", "Powerful Build", "Speech of Beast and Leaf"],
-    "Githyanki": ["Astral Knowledge", "Githyanki Psionics", "Psychic Resilience"],
-    "Githzerai": ["Githzerai Psionics", "Mental Discipline", "Psychic Resilience"],
-    "Goblin": ["Darkvision", "Fury of the Small", "Nimble Escape"],
-    "Harengon": ["Hare-Trigger", "Leporine Senses", "Lucky Footwork", "Rabbit Hop"],
-    "Hobgoblin": ["Darkvision", "Fey Gift", "Fortune from the Many"],
-    "Kalashtar": ["Dual Mind", "Mental Discipline", "Mind Link", "Severed from Dreams"],
-    "Kenku": ["Expert Forgery", "Kenku Recall", "Mimicry"],
-    "Kobold": ["Darkvision", "Draconic Cry", "Kobold Legacy"],
-    "Lizardfolk": ["Bite", "Cunning Artisan", "Hold Breath", "Hunter's Lore", "Natural Armor", "Hungry Jaws"],
-    "Loxodon": ["Powerful Build", "Loxodon Serenity", "Natural Armor", "Trunk", "Keen Smell"],
-    "Minotaur": ["Horns", "Goring Rush", "Hammering Horns", "Imposing Presence"],
-    "Owlin": ["Darkvision", "Flight", "Silent Feathers"],
-    "Satyr": ["Ram", "Magic Resistance", "Mirthful Leaps"],
-    "Sea Elf": ["Darkvision", "Child of the Sea", "Friend of the Sea", "Fey Ancestry", "Keen Senses", "Trance"],
-    "Shadar-kai": ["Darkvision", "Blessing of the Raven Queen", "Necrotic Resistance", "Fey Ancestry", "Keen Senses", "Trance"],
-    "Shifter": ["Darkvision", "Shifting", "Shifting Feature"],
-    "Simic Hybrid": ["Darkvision", "Animal Enhancement"],
-    "Tortle": ["Claws", "Hold Breath", "Natural Armor", "Shell Defense", "Survival Instinct"],
-    "Triton": ["Amphibious", "Control Air and Water", "Darkvision", "Emissary of the Sea", "Guardians of the Depths"],
-    "Vedalken": ["Vedalken Dispassion", "Tireless Precision", "Partially Amphibious"],
-    "Warforged": ["Constructed Resilience", "Sentry's Rest", "Integrated Protection", "Specialized Design"]
+    "Bugbear": [
+      "Darkvision",
+      "Long-Limbed",
+      "Powerful Build",
+      "Sneaky",
+      "Surprise Attack"
+    ],
+    "Centaur": [
+      "Charge",
+      "Equine Build",
+      "Hooves",
+      "Natural Affinity"
+    ],
+    "Changeling": [
+      "Changeling Instincts",
+      "Shapechanger"
+    ],
+    "Deep Gnome": [
+      "Superior Darkvision",
+      "Gnomish Magic Resistance",
+      "Svirfneblin Camouflage"
+    ],
+    "Duergar": [
+      "Superior Darkvision",
+      "Duergar Magic",
+      "Dwarven Resilience",
+      "Psionic Fortitude"
+    ],
+    "Eladrin": [
+      "Darkvision",
+      "Fey Ancestry",
+      "Fey Step",
+      "Keen Senses",
+      "Trance"
+    ],
+    "Fairy": [
+      "Fairy Magic",
+      "Flight"
+    ],
+    "Firbolg": [
+      "Firbolg Magic",
+      "Hidden Step",
+      "Powerful Build",
+      "Speech of Beast and Leaf"
+    ],
+    "Githyanki": [
+      "Astral Knowledge",
+      "Githyanki Psionics",
+      "Psychic Resilience"
+    ],
+    "Githzerai": [
+      "Githzerai Psionics",
+      "Mental Discipline",
+      "Psychic Resilience"
+    ],
+    "Goblin": [
+      "Darkvision",
+      "Fury of the Small",
+      "Nimble Escape"
+    ],
+    "Harengon": [
+      "Hare-Trigger",
+      "Leporine Senses",
+      "Lucky Footwork",
+      "Rabbit Hop"
+    ],
+    "Hobgoblin": [
+      "Darkvision",
+      "Fey Gift",
+      "Fortune from the Many"
+    ],
+    "Kalashtar": [
+      "Dual Mind",
+      "Mental Discipline",
+      "Mind Link",
+      "Severed from Dreams"
+    ],
+    "Kenku": [
+      "Expert Forgery",
+      "Kenku Recall",
+      "Mimicry"
+    ],
+    "Kobold": [
+      "Darkvision",
+      "Draconic Cry",
+      "Kobold Legacy"
+    ],
+    "Lizardfolk": [
+      "Bite",
+      "Cunning Artisan",
+      "Hold Breath",
+      "Hunter's Lore",
+      "Natural Armor",
+      "Hungry Jaws"
+    ],
+    "Loxodon": [
+      "Powerful Build",
+      "Loxodon Serenity",
+      "Natural Armor",
+      "Trunk",
+      "Keen Smell"
+    ],
+    "Minotaur": [
+      "Horns",
+      "Goring Rush",
+      "Hammering Horns",
+      "Imposing Presence"
+    ],
+    "Owlin": [
+      "Darkvision",
+      "Flight",
+      "Silent Feathers"
+    ],
+    "Satyr": [
+      "Ram",
+      "Magic Resistance",
+      "Mirthful Leaps"
+    ],
+    "Sea Elf": [
+      "Darkvision",
+      "Child of the Sea",
+      "Friend of the Sea",
+      "Fey Ancestry",
+      "Keen Senses",
+      "Trance"
+    ],
+    "Shadar-kai": [
+      "Darkvision",
+      "Blessing of the Raven Queen",
+      "Necrotic Resistance",
+      "Fey Ancestry",
+      "Keen Senses",
+      "Trance"
+    ],
+    "Shifter": [
+      "Darkvision",
+      "Shifting",
+      "Shifting Feature"
+    ],
+    "Simic Hybrid": [
+      "Darkvision",
+      "Animal Enhancement"
+    ],
+    "Tortle": [
+      "Claws",
+      "Hold Breath",
+      "Natural Armor",
+      "Shell Defense",
+      "Survival Instinct"
+    ],
+    "Triton": [
+      "Amphibious",
+      "Control Air and Water",
+      "Darkvision",
+      "Emissary of the Sea",
+      "Guardians of the Depths"
+    ],
+    "Vedalken": [
+      "Vedalken Dispassion",
+      "Tireless Precision",
+      "Partially Amphibious"
+    ],
+    "Warforged": [
+      "Constructed Resilience",
+      "Sentry's Rest",
+      "Integrated Protection",
+      "Specialized Design"
+    ]
   }
 }

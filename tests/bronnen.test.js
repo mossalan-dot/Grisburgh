@@ -319,19 +319,27 @@ describe('Subclasses die elders staan', () => {
     assert.equal(Object.keys(kaal.klassen).length, 12, 'alle twaalf classes');
   });
 
-  it('dubbelt niet met wat de app zelf al heeft', () => {
-    // Staat een subclass hier én in de seed, dan zou hij twee keer in de kolom
-    // komen. De client filtert daarop, maar het is netter om het hier al te zien.
+  it('dubbelt niet met wat de app zelf meebrengt', () => {
+    // Staat een subclass hier én in de seed mét features, dan brengt de app hem
+    // zelf mee en hoort hij niet in de voorraadlijst.
+    //
+    // Een naam die in de seed staat zónder features is iets anders: dat is
+    // precies wat deze lijst óók is — een naam en een vindplaats, verder niets.
+    // Knowledge, Nature en Tempest stonden zo in de seed, en vielen daardoor
+    // tussen wal en schip: een campagne die ze niet had kon er niet bij, want
+    // ze werden hier geweerd. De client ontdubbelt tegen wat de campagne zelf
+    // heeft, dus twee keer in de kolom kan niet gebeuren.
     const seed = require('../bronnen/class-progression.json');
+    const telt = (sc) => Object.values(sc?.levels || {}).reduce((t, a) => t + (a || []).length, 0);
     const dubbel = [];
     for (const [klasse, lijst] of Object.entries(data.klassen)) {
-      const eigen = Object.keys(seed.classes?.[klasse]?.subclasses || {})
-        .map(n => n.toLowerCase());
+      const eigen = seed.classes?.[klasse]?.subclasses || {};
       for (const sub of lijst) {
-        if (eigen.includes(sub.naam.toLowerCase())) dubbel.push(`${klasse} › ${sub.naam}`);
+        const seedSub = Object.entries(eigen).find(([n]) => n.toLowerCase() === sub.naam.toLowerCase())?.[1];
+        if (seedSub && telt(seedSub)) dubbel.push(`${klasse} › ${sub.naam}`);
       }
     }
-    assert.deepEqual(dubbel, [], 'deze staan al in de seed: ' + dubbel.join(', '));
+    assert.deepEqual(dubbel, [], 'deze brengt de app zelf al mee: ' + dubbel.join(', '));
   });
 });
 
@@ -414,16 +422,20 @@ describe('De features van wat elders staat', () => {
     }
   });
 
-  it('dubbelt niet met wat de app zelf al heeft', () => {
-    // Een subclass die wél in de seed staat heeft zijn eigen features; die
-    // horen hier niet nog eens, want dan zie je ze dubbel.
+  it('dubbelt niet met wat de app zelf meebrengt', () => {
+    // Een subclass die in de seed features draagt heeft zijn eigen tekst; die
+    // namen horen hier niet nog eens. Een naam die er leeg in staat is precies
+    // wat dit bestand óók is — zie dezelfde afweging bij subclasses-elders.
     const seed = require('../bronnen/class-progression.json');
-    const eigen = new Set();
+    const telt = (sc) => Object.values(sc?.levels || {}).reduce((t, a) => t + (a || []).length, 0);
+    const gevuld = new Set();
     for (const klasse of Object.values(seed.classes || {})) {
-      for (const sub of Object.keys(klasse.subclasses || {})) eigen.add(sub.toLowerCase());
+      for (const [sub, data] of Object.entries(klasse.subclasses || {})) {
+        if (telt(data)) gevuld.add(sub.toLowerCase());
+      }
     }
-    const dubbel = Object.keys(data.subclasses || {}).filter(n => eigen.has(n.toLowerCase()));
-    assert.deepEqual(dubbel, [], 'deze staan al in de seed: ' + dubbel.join(', '));
+    const dubbel = Object.keys(data.subclasses || {}).filter(n => gevuld.has(n.toLowerCase()));
+    assert.deepEqual(dubbel, [], 'deze brengt de app zelf al mee: ' + dubbel.join(', '));
   });
 
   it('gaat compleet de deur uit, ook bij een kale campagne', () => {
