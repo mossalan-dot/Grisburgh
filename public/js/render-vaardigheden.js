@@ -644,13 +644,18 @@ function _hbBeeld(soort, naam) {
 //
 // `rijen` is wat er op de achterkant onder elkaar staat, `extra` wat daar nog
 // achteraan komt (een knop naar de spreukenlijst, een noot).
-function _flipKaartHtml({ soort, naam, kleur, icoon, bijschrift = '', onder = '', rijen = [], kop = '', extra = '' }) {
+function _flipKaartHtml({ soort, naam, kleur, icoon, bijschrift = '', onder = '', rijen = [], kop = '', extra = '', bron = '' }) {
   const beeld = _hbBeeld(soort, naam);
   const focus = _hbBeeldRuw(soort, naam)?.focus || '';
   const veilig = esc(naam).replace(/'/g, "\\'");
+  const veiligB = esc(bron || '').replace(/'/g, "\\'");
+  // Klikken opent het venster met het hele verhaal, net als bij de features
+  // eronder. Omdraaien gebeurt vanzelf als je eroverheen gaat; wat je op de
+  // achterkant ziet is een voorproefje dat mag afkappen.
   return `
     <div class="vk-flip${beeld ? '' : ' vk-flip--geenbeeld'}" style="--vk-kleur:${kleur}"
-      onclick="window.vaardigheden.flip(event)">
+      title="Lees meer over ${esc(naam)}"
+      onclick="window.vaardigheden.kaartOpen('${esc(soort)}','${veilig}','${veiligB}')">
       <!-- **De beeldknop staat buiten de draaiende kanten.** Hij hing op de
            voorkant, en een kaartje zonder afbeelding staat permanent
            omgedraaid (zie de regel vk-flip--geenbeeld) zodat je de gegevens
@@ -666,7 +671,7 @@ function _flipKaartHtml({ soort, naam, kleur, icoon, bijschrift = '', onder = ''
            ondertitel, het boek, de afbeelding en zijn focuspunt.
            (Geen backticks in commentaar hierbinnen: template literal.) -->
       ${isDM() ? `<button class="vk-beeldknop" title="Dit kaartje bewerken"
-        onclick="event.stopPropagation();window.vaardigheden.kaartBewerken('${esc(soort)}','${veilig}')">${icon('pencil')}</button>` : ''}
+        onclick="event.stopPropagation();window.vaardigheden.kaartBewerken('${esc(soort)}','${veilig}','${veiligB}')">${icon('pencil')}</button>` : ''}
       <div class="vk-flip-binnen">
         <div class="vk-voor">
           ${beeld ? `<span class="vk-voor-beeld" style="background-image:url('${beeld}')${focus ? `;background-position:${esc(focus)}` : ''}"></span>` : ''}
@@ -691,13 +696,13 @@ function _flipKaartHtml({ soort, naam, kleur, icoon, bijschrift = '', onder = ''
     </div>`;
 }
 
-function _klasseKaartHtml(klasse) {
+// De kerngegevens van een class. Apart, want het kaartje én het venster
+// erachter tonen ze allebei — en ze horen hetzelfde te zeggen.
+// De volgorde van de PHB: Primary Ability, Hit Point Die, Saving Throws,
+// Skills, Weapons, Armor.
+function _klasseRijen(klasse) {
   const basis = _klasseBasis?.[klasse] || {};
-  const sig   = window._signatureVoor?.(klasse);
-
-  // De volgorde van de PHB: Primary Ability, Hit Point Die, Saving Throws,
-  // Skills, Weapons, Armor.
-  const rijen = [
+  return [
     basis.primary ? ['Primary Ability', basis.primary] : null,
     basis.hitDie ? ['Hit Point Die', `d${basis.hitDie} per ${klasse} level`] : null,
     basis.saves?.length
@@ -713,7 +718,12 @@ function _klasseKaartHtml(klasse) {
     basis.castAbility
       ? ['Spellcasting', _AB_NAAM[basis.castAbility] || basis.castAbility] : null,
   ].filter(Boolean);
+}
 
+function _klasseKaartHtml(klasse) {
+  const basis = _klasseBasis?.[klasse] || {};
+  const sig   = window._signatureVoor?.(klasse);
+  const rijen = _klasseRijen(klasse);
   const heeftSpreuken = basis.castAbility && (_spreukAantal?.get(klasse) || 0);
   return _flipKaartHtml({
     soort: 'class', naam: klasse, kleur: sig?.kleur || '#8a6d3f',
@@ -744,7 +754,7 @@ function _subklasseKaartHtml(klasse, sub) {
   ].filter(Boolean);
 
   return _flipKaartHtml({
-    soort: 'subclass', naam: sub, kleur: data.kleur || veld?.kleur || '#5a2e8a',
+    soort: 'subclass', naam: sub, bron: klasse, kleur: data.kleur || veld?.kleur || '#5a2e8a',
     icoon: veld?.icon || 'star', bijschrift: `${label} · ${klasse}`,
     // De eigen ondertitel van de DM, direct onder "Primal Path · Barbarian".
     onder: String(data.ondertitel || '').trim(),
@@ -761,21 +771,26 @@ function _subklasseKaartHtml(klasse, sub) {
 // eronder. Ze hebben minder harde getallen dan een klasse, dus het kaartje
 // vertelt wat ze wél hebben: op welke levels je iets krijgt (een volk geeft
 // niet alleen op 1 iets) en wat de onderdelen zijn.
-function _volkKaartHtml(volk) {
+function _volkRijen(volk) {
   const data = _bron?.prog?.species?.[volk];
-  if (!data) return '';
+  if (!data) return [];
   const levels = Object.keys(data.levels || {}).map(Number)
     .filter(l => (data.levels[l] || []).length).sort((a, b) => a - b);
   const n = levels.reduce((t, l) => t + data.levels[l].length, 0);
   const vroeg = (data.levels?.[1] || []).map(f => f.name);
-  const uitleg = String(data.desc || '').trim();
-
-  const rijen = [
+  return [
     n ? ['Traits', String(n)] : null,
     levels.length ? ['Op level', levels.join(' · ')] : null,
     vroeg.length ? ['Vanaf 1', vroeg.join(', ')] : null,
   ].filter(Boolean);
+}
 
+function _volkKaartHtml(volk) {
+  const data = _bron?.prog?.species?.[volk];
+  if (!data) return '';
+  const n = Object.values(data.levels || {}).reduce((t, a) => t + (a || []).length, 0);
+  const uitleg = String(data.desc || '').trim();
+  const rijen = _volkRijen(volk);
   return _flipKaartHtml({
     soort: 'species', naam: volk, kleur: '#1a6a50',
     icoon: SPECIES_ICOON[volk] || 'user', bijschrift: 'Origin', rijen,
@@ -786,19 +801,25 @@ function _volkKaartHtml(volk) {
   });
 }
 
-function _achtergrondKaartHtml(naam) {
+// Een achtergrond is één ding met vaste onderdelen; die lezen als rijen,
+// niet als getallen.
+function _achtergrondRijen(naam) {
   const data = _bron?.backgrounds?.[naam];
-  if (!data) return '';
+  if (!data) return [];
   const delen = Object.values(data.levels || {}).flat().filter(Boolean);
-  // Een achtergrond is één ding met vaste onderdelen; die lezen als rijen,
-  // niet als getallen.
   const rij = (kop) => delen.find(d => String(d.name || '').toLowerCase() === kop.toLowerCase())?.desc || '';
-  const vaste = [
+  return [
     ['Ability Scores', rij('Ability Scores')],
     ['Feat', rij('Feat')],
     ['Skills', rij('Skill Proficiencies')],
     ['Tools', rij('Tool Proficiency')],
   ].filter(([, v]) => v);
+}
+
+function _achtergrondKaartHtml(naam) {
+  const data = _bron?.backgrounds?.[naam];
+  if (!data) return '';
+  const vaste = _achtergrondRijen(naam);
   return `
     <div class="vk-kaart" style="--vk-kleur:#962058">
       <div class="vk-kop">
@@ -1323,41 +1344,97 @@ function _featKoppelingHtml(it) {
     </div>`;
 }
 
-// ── Het venster van een subclass ────────────────────────────────────────────
-// Niet zijn eerste feature maar de subclass zelf: wat het is, waar het vandaan
-// komt, en dan pas wat het geeft. De features zijn een lijst met het level
-// ervoor; daar klik je door naar de feature die je wil lezen.
-function _subVenster(klasse, sub) {
-  const data = _bron?.prog?.classes?.[klasse]?.subclasses?.[sub];
-  if (!data) { window._showToast?.(`${sub} staat niet in deze campagne.`); return; }
-  const uitleg = String(data.desc || '').trim();
-  const label  = _bron?.prog?.classes?.[klasse]?.subclassLabel || 'Subclass';
-  const veld   = window._subSignatureVoor?.(sub);
-  const levels = Object.keys(data.levels || {}).map(Number)
+// ── Het venster achter een kaartje ──────────────────────────────────────────
+// Een class, een subclass, een species en een background hebben allemaal
+// hetzelfde venster. Op het kaartje zelf past maar een stukje: dat heeft een
+// vaste hoogte, want de voorkant en de achterkant liggen over elkaar heen om
+// te kunnen draaien. Daarom kapt de tekst dáár af en staat hier het hele
+// verhaal — precies zoals je op een feature klikt om die uit te lezen.
+//
+// Waar een houder staat, staat op één plek. Dat was drie keer apart
+// uitgeschreven, en op één van die plekken stond `prog.backgrounds` in plaats
+// van `backgrounds`: een background bewerken zei dan dat hij niet bestond.
+function _houderVan(soort, naam, bron = '') {
+  if (soort === 'subclass') return _bron?.prog?.classes?.[bron]?.subclasses?.[naam];
+  if (soort === 'class')    return _bron?.prog?.classes?.[naam];
+  if (soort === 'species')  return _bron?.prog?.species?.[naam];
+  return _bron?.backgrounds?.[naam];
+}
+
+// De features die onder een houder hangen, met het level ervoor. Je klikt er
+// doorheen naar het kaartje van die feature zelf.
+function _houderFeaturesHtml(soort, naam, bron) {
+  const data = _houderVan(soort, naam, bron);
+  const levels = Object.keys(data?.levels || {}).map(Number)
     .filter(l => (data.levels[l] || []).length).sort((a, b) => a - b);
   const aantal = levels.reduce((t, l) => t + data.levels[l].length, 0);
-  const veiligS = esc(sub).replace(/'/g, "\\'");
-
+  const zoek = (f) => (_all || []).find(x => x.naam === f.name && x.soort === soort
+    && (soort === 'subclass' ? x.bron === bron && x.sub === naam : x.bron === naam));
   const rijen = levels.map(l => (data.levels[l] || []).map(f => {
-    const it = (_all || []).find(x => x.soort === 'subclass' && x.bron === klasse && x.sub === sub && x.naam === f.name);
-    const klik = it ? ` onclick="window.vaardigheden.uitSubVenster('${esc(it.key)}')"` : '';
+    const it = zoek(f);
+    const klik = it ? ` onclick="window.vaardigheden.uitKaartVenster('${esc(it.key)}')"` : '';
     return `<button class="vd-subfeature"${klik}${it ? '' : ' disabled'}>
       <span class="vd-subfeature-lvl">${l}</span>
       <span class="vd-subfeature-naam">${esc(f.name)}</span>
     </button>`;
   }).join('')).join('');
+  return { aantal, rijen };
+}
 
-  window.app.openModal(sub, '', `
+// Wat er op het kaartje in de kolom "Core Traits" staat, hier als dezelfde
+// rijen. Eén bron voor allebei, zodat het kaartje en het venster niet uit
+// elkaar kunnen lopen.
+function _houderRijen(soort, naam, bron, { metBoek = true } = {}) {
+  if (soort === 'class')   return _klasseRijen(naam);
+  if (soort === 'species') return _volkRijen(naam);
+  if (soort === 'background') return _achtergrondRijen(naam);
+  const data = _houderVan(soort, naam, bron);
+  const veld = window._subSignatureVoor?.(naam);
+  return [
+    veld ? ['Eigen veld', veld.feature] : null,
+    // In het venster staat het boek al in de regel bovenaan; twee keer
+    // hetzelfde boek onder elkaar is er een te veel.
+    metBoek && data?.boek ? ['Uit', data.boek] : null,
+  ].filter(Boolean);
+}
+
+function _kaartVenster(soort, naam, bron = '') {
+  const data = _houderVan(soort, naam, bron);
+  if (!data) { window._showToast?.(`${naam} staat niet in deze campagne.`); return; }
+  const uitleg = String(data.desc || '').trim();
+  const beeld  = _hbBeeld(soort, naam);
+  const focus  = _hbBeeldRuw(soort, naam)?.focus || '';
+  const veilig = esc(naam).replace(/'/g, "\\'");
+  const veiligB = esc(bron || '').replace(/'/g, "\\'");
+  const soortLabel = soort === 'subclass'
+    ? (_bron?.prog?.classes?.[bron]?.subclassLabel || 'Subclass')
+    : { class: 'Class', species: 'Origin', background: 'Background' }[soort] || soort;
+  const meta = [soortLabel, soort === 'subclass' ? bron : '', data.boek || '']
+    .filter(Boolean).map(esc).join(' · ');
+  const rijen = _houderRijen(soort, naam, bron, { metBoek: false });
+  // De knop naar de spreukenlijst stond op het kaartje zelf en viel daar weg
+  // zodra de kerngegevens de hoogte opmaakten. Hier is er plaats voor.
+  const naarSpreuken = soort === 'class' && (_spreukAantal?.get(naam) || 0);
+  const { aantal, rijen: features } = _houderFeaturesHtml(soort, naam, bron);
+
+  window.app.openModal(naam, '', `
     <div class="vd-subvenster">
-      <p class="vd-subvenster-meta">${esc(label)} · ${esc(klasse)}${data.boek ? ` · ${esc(data.boek)}` : ''}${veld ? ` · eigen veld: ${esc(veld.feature)}` : ''}</p>
+      ${beeld ? `<div class="vd-kv-beeld" style="background-image:url('${beeld}')${focus ? `;background-position:${esc(focus)}` : ''}"></div>` : ''}
+      <p class="vd-subvenster-meta">${meta}</p>
+      ${data.ondertitel ? `<p class="vd-kv-onder">${esc(String(data.ondertitel).trim())}</p>` : ''}
       ${uitleg
         ? `<div class="prog-detail-desc">${_bron?.md?.(uitleg) ?? esc(uitleg)}</div>`
-        : `<p class="dm-hint">Er staat nog geen uitleg bij deze ${esc(label.toLowerCase())}. ${isDM() ? 'Schrijf hem erbij — dan leest iedereen aan tafel hetzelfde.' : 'Vraag je DM of hij hem invult.'}</p>`}
-      ${isDM() ? `<div class="spreuk-dm-knoppen">
-        <button class="spreuk-detail-imgbtn" onclick="window.vaardigheden.subUitleg('${veiligS}')">${icon('pencil')} ${uitleg ? 'Uitleg bewerken' : 'Uitleg toevoegen'}</button>
+        : `<p class="dm-hint">Er staat nog geen uitleg bij deze ${esc(soortLabel.toLowerCase())}. ${isDM() ? 'Schrijf hem erbij — dan leest iedereen aan tafel hetzelfde.' : 'Vraag je DM of hij hem invult.'}</p>`}
+      ${rijen.length ? `<dl class="vk-training vd-kv-training">
+        ${rijen.map(([k, v]) => `<dt>${esc(k)}</dt><dd>${esc(v)}</dd>`).join('')}
+      </dl>` : ''}
+      ${naarSpreuken || isDM() ? `<div class="spreuk-dm-knoppen">
+        ${naarSpreuken ? `<button class="spreuk-detail-imgbtn" onclick="window.vaardigheden.naarSpreuken('${veilig}')">${icon('book-open')} Spreukenlijst</button>` : ''}
+        ${isDM() ? `<button class="spreuk-detail-imgbtn" onclick="window.vaardigheden.kaartBewerken('${esc(soort)}','${veilig}','${veiligB}')">${icon('pencil')} ${uitleg ? 'Kaartje bewerken' : 'Uitleg toevoegen'}</button>` : ''}
       </div>` : ''}
-      <div class="vd-subvenster-kop">${aantal ? `${aantal} ${aantal === 1 ? 'feature' : 'features'}` : 'Nog geen features'}</div>
-      ${rijen || `<p class="dm-hint">De features komen uit het boek en mogen daar niet uit overgenomen worden. ${isDM() ? 'Tik ze zelf in met de plusknop rechtsboven, of lees ze in van een andere DM.' : ''}</p>`}
+      ${soort === 'background' ? '' : `
+        <div class="vd-subvenster-kop">${aantal ? `${aantal} ${aantal === 1 ? 'feature' : 'features'}` : 'Nog geen features'}</div>
+        ${features || `<p class="dm-hint">De features komen uit het boek en mogen daar niet uit overgenomen worden. ${isDM() ? 'Tik ze zelf in met de plusknop rechtsboven, of lees ze in van een andere DM.' : ''}</p>`}`}
     </div>`);
 }
 
@@ -1409,10 +1486,7 @@ function _beeldBlokVernieuwen(soort, naam, beeld) {
 }
 
 function _uitlegVenster(soort, naam, bron) {
-  const h = soort === 'subclass' ? _bron?.prog?.classes?.[bron]?.subclasses?.[naam]
-    : soort === 'class'      ? _bron?.prog?.classes?.[naam]
-    : soort === 'species'    ? _bron?.prog?.species?.[naam]
-    : _bron?.prog?.backgrounds?.[naam];
+  const h = _houderVan(soort, naam, bron);
   if (!h) { alert(`${naam} staat niet in deze campagne.`); return; }
   const veilig = esc(naam).replace(/'/g, "\\'");
   const veiligB = esc(bron || '').replace(/'/g, "\\'");
@@ -1470,7 +1544,9 @@ function _uitlegVenster(soort, naam, bron) {
 function _open(key, vanWaar = null) {
   const it = (_all || []).find(x => x.key === key);
   if (!it) return;
-  _vanWaar = vanWaar;
+  // `vanWaar` wordt hieronder gelezen voor de terugknop; het stond hier ook in
+  // een `_vanWaar` die nergens bestond, en dáár brak elk featurevenster op:
+  // toewijzen aan een naam die niet verklaard is gooit in een module.
   _vanWaarNu = key;                 // verwijzingen in deze tekst wijzen hierheen terug
   const s = SOORTEN[it.soort] || SOORTEN.class;
   const tekst = _tekst(it);
@@ -1976,7 +2052,9 @@ window.vaardigheden = {
   // op Path of the Berserker en kreeg Frenzy, wat leest als een fout in de
   // gegevens. Nu komt zijn eigen uitleg bovenaan en staan de features eronder
   // als lijst; daar klik je door naar de feature die je wil.
-  subBekijk(naam) { _subVenster(_filters.bron, naam); },
+  subBekijk(naam) { _kaartVenster('subclass', naam, _filters.bron); },
+  // Hetzelfde venster voor elk kaartje in de band.
+  kaartOpen(soort, naam, bron) { _kaartVenster(soort, naam, bron || _filters.bron || ''); },
   kiesSub(naam) { this.subToggle(naam); },
   // De lijst bladert per vier; de elders staan er gewoon in, dus er valt
   // niets meer open of dicht te klappen.
@@ -1992,7 +2070,7 @@ window.vaardigheden = {
   // Een afbeelding bij een class, een species of een subclass. Eén picker voor
   // alle drie: het is dezelfde handeling.
   // De knop op het kaartje: één venster voor alles.
-  kaartBewerken(soort, naam) { _uitlegVenster(soort, naam, _filters.bron || ''); },
+  kaartBewerken(soort, naam, bron) { _uitlegVenster(soort, naam, bron || _filters.bron || ''); },
 
   // Een afbeelding kiezen vanuit dat venster. Hij wordt meteen vastgelegd —
   // anders zou de focuskiezer naar een bestand wijzen dat nog nergens staat —
@@ -2122,7 +2200,7 @@ window.vaardigheden = {
   // Een feature openen vanuit het subclassvenster: het ene venster sluit, het
   // andere komt ervoor in de plaats. Twee modals over elkaar is geen stapel
   // die je nog terug kunt lopen.
-  uitSubVenster(key) { window.app.closeModal?.(); setTimeout(() => _open(key), 40); },
+  uitKaartVenster(key) { window.app.closeModal?.(); setTimeout(() => _open(key), 40); },
   async bewaarUitleg(soort, naam, bron) {
     const desc = document.getElementById('vd-houder-desc')?.value || '';
     const boek = document.getElementById('vd-houder-boek')?.value || '';
@@ -2142,13 +2220,6 @@ window.vaardigheden = {
       _bandHerteken(); _refreshFilterBar(); _paint();
       window._showToast?.(`De uitleg bij ${naam} staat erin.`);
     } catch (e) { alert('Bewaren mislukt: ' + e.message); }
-  },
-  // Omdraaien blijft staan als je klikt — bij hover draait hij vanzelf, maar op
-  // een aanraakscherm bestaat hover niet.
-  flip(ev) {
-    const kaart = ev.currentTarget;
-    if (!kaart) return;
-    kaart.classList.toggle('is-om');
   },
   // Een beeld bij één class. Staat los van de vier deurkaarten: dit is het
   // portret van de Barbarian, niet van "Classes".
@@ -2263,6 +2334,9 @@ window.vaardigheden = {
     } catch (e) { alert('Inlezen mislukt: ' + e.message); }
   },
   naarSpreuken(klasse) {
+    // Hij staat nu ook in het venster achter een kaartje; dat moet dicht, want
+    // anders sta je op het spreukentabblad met de kaart er nog overheen.
+    window.app.closeModal?.();
     window.spreuken?.zetFilter?.({ klasse });
     window.app.switchSection('spreuken');
     setTimeout(() => window.spreuken?.zetFilter?.({ klasse }), 400);

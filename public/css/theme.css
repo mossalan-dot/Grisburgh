@@ -29394,6 +29394,16 @@ body.wizard-open { overflow: hidden; }
    staan — het is een voorraad, geen keuze die al gemaakt is. */
 
 /* Het venster van een subclass: eerst wat het is, dan pas wat het geeft. */
+.vd-kv-beeld {
+  height: 190px; margin: 0 0 12px; border-radius: 7px;
+  background-size: cover; background-position: center;
+  border: 1px solid rgba(196,168,122,.7);
+}
+.vd-kv-onder {
+  margin: -6px 0 10px; font-family: 'Crimson Text', serif; font-style: italic;
+  font-size: 1.02em; color: #6a5430;
+}
+.vd-kv-training { margin-top: 12px; }
 .vd-subvenster-meta {
   margin: 0 0 10px; font-family: 'Cinzel', serif; font-size: .74em;
   letter-spacing: .06em; text-transform: uppercase; color: #8a7050;
@@ -29418,10 +29428,14 @@ body.wizard-open { overflow: hidden; }
 }
 .vd-subfeature-naam { font-family: 'Cinzel', serif; font-size: .92em; color: #3a2410; }
 
-/* De uitleg op het subclasskaartje zelf, boven de waslijst. */
+/* De uitleg op het kaartje zelf, boven de waslijst. Vijf regels en dan een
+   beletselteken — hetzelfde als op de featurekaartjes eronder, en het hele
+   stuk staat in het venster achter de kaart. */
 .vk-uitleg {
   font-family: 'Crimson Text', serif; font-size: .92em; line-height: 1.5;
   color: #5a4030; margin: 8px 0 2px;
+  display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 5;
+  overflow: hidden;
 }
 .vk-uitleg p { margin: 0 0 6px; }
 .vk-herkomst {
@@ -29593,8 +29607,7 @@ body.wizard-open { overflow: hidden; }
   transition: transform .62s cubic-bezier(.3, .8, .3, 1);
   min-height: 300px;
 }
-.vk-flip:hover .vk-flip-binnen,
-.vk-flip.is-om .vk-flip-binnen { transform: rotateY(180deg); }
+.vk-flip:hover .vk-flip-binnen { transform: rotateY(180deg); }
 /* Zonder beeld is de voorkant een lege tegel; dan begint hij meteen omgedraaid
    zodat je de gegevens ziet in plaats van een leeg vlak. */
 .vk-flip--geenbeeld .vk-flip-binnen { transform: rotateY(180deg); }
@@ -29612,6 +29625,11 @@ body.wizard-open { overflow: hidden; }
 .vk-voor   { transform: translateZ(0.5px); }
 .vk-achter { transform: rotateY(180deg) translateZ(0.5px); }
 .vk-voor-beeld, .vk-voor-naam { backface-visibility: hidden; }
+.vk-achter::after {
+  content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: 30px;
+  background: linear-gradient(to top, #f1e8d2 38%, rgba(241,232,210,0));
+  pointer-events: none;
+}
 .vk-voor {
   display: flex; align-items: flex-end; justify-content: center;
   background: linear-gradient(160deg, #f6eeda 0%, #e9dcbe 100%);
@@ -29643,9 +29661,13 @@ body.wizard-open { overflow: hidden; }
 .vk-flip:hover .vk-beeldknop { opacity: 1; }
 .vk-beeldknop svg { width: 15px; height: 15px; }
 
+/* De achterkant is een voorproefje, geen scrollgebied: het hele verhaal staat
+   in het venster dat opengaat als je op het kaartje klikt. Wat er niet op past
+   vervaagt naar de onderrand — die vervaging heeft de kleur van de kaart zelf,
+   dus op een kaartje dat wél past zie je er niets van. */
 .vk-achter {
   display: flex; flex-direction: column; gap: 2px;
-  padding: 15px 17px 14px; overflow-y: auto;
+  padding: 15px 17px 14px; overflow: hidden;
   background: linear-gradient(160deg, #f8f2e2 0%, #f1e8d2 100%);
   border-left: 3px solid var(--vk-kleur);
 }
