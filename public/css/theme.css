@@ -5192,6 +5192,16 @@ html {
   border: 1px solid var(--color-room-border, #c4a87a); border-radius: 14px; padding: 4px 12px;
 }
 .item-geef-btn:hover { background: rgba(196,168,122,0.28); }
+/* Hetzelfde plekje, maar dan als mededeling in plaats van als knop: dit
+   voorwerp gaat niet van hand tot hand. Geen uitgegrijsde knop — die belooft
+   dat het ooit wel kan. */
+.item-geef-vast {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-family: 'Cinzel', serif; font-size: 11px; letter-spacing: .04em;
+  color: var(--color-ink-faint, #8a7050); font-style: italic;
+  border: 1px dashed rgba(196,168,122,.7); border-radius: 14px; padding: 4px 12px;
+}
+.item-geef-vast .icon { width: 12px; height: 12px; }
 .item-geef-btn .icon { width: 13px; height: 13px; }
 .geef-menu {
   position: fixed; z-index: 9500; min-width: 190px;

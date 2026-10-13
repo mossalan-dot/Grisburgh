@@ -3012,6 +3012,16 @@ function _winkelKoopConfig(winkelConfig) {
   return { koopt, ratio, categorieen };
 }
 
+// Blijft dit voorwerp bij wie het heeft? Een tatoeage zit in je huid, een pact
+// in je ziel: dat schuif je niet over de tafel. Zegeningen, gunsten en
+// class-features zijn het altijd — die zijn aan een persoon gegeven, niet aan
+// een rugzak. De rest staat op het kaartje zelf.
+function _voorwerpGebonden(vw) {
+  const d = vw?.data || {};
+  if (['Blessing', 'Boon', 'Feature'].includes(d.itemType)) return true;
+  return d.nietRuilbaar === true || d.nietRuilbaar === 'true';
+}
+
 // Bepaalt of één voorwerp-entiteit verkoopbaar is + de reden als dat niet kan.
 function _voorwerpVerkoopbaar(vw, koopCfg) {
   const d = vw?.data || {};
@@ -3558,6 +3568,11 @@ router.post('/items/:itemId/request', attachRole, (req, res) => {
     const entities = storage.readJSON('entities.json');
     const item = (entities.voorwerpen || []).find(e => e.id === itemId);
     if (item) itemName = item.name;
+    // Ruilen vraag je niet eens aan als het voorwerp bij zijn drager hoort.
+    // Claimen blijft kunnen: iets dat nog van niemand is moet opgepakt worden.
+    if (item && type === 'trade' && _voorwerpGebonden(item)) {
+      return res.status(403).json({ error: `${item.name} blijft bij wie het heeft` });
+    }
   } catch { /* ok */ }
 
   // Controleer of er al een openstaand verzoek is voor dit item door deze speler
@@ -3746,8 +3761,12 @@ router.post('/items/:itemId/geef', attachRole, (req, res) => {
 
   const { itemId } = req.params;
   const entities   = storage.readJSON('entities.json');
-  const isEntity   = (entities.voorwerpen || []).some(v => v.id === itemId);
+  const voorwerp   = (entities.voorwerpen || []).find(v => v.id === itemId);
+  const isEntity   = !!voorwerp;
   const naamVan    = (id) => (entities.personages || []).find(e => e.id === id)?.name || 'iemand';
+  if (isEntity && _voorwerpGebonden(voorwerp)) {
+    return res.status(403).json({ error: `${voorwerp.name} blijft bij wie het heeft` });
+  }
 
   let itemNaam = '';
   if (isEntity) {

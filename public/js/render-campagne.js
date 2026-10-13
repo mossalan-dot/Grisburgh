@@ -631,7 +631,16 @@ const SCHEMA = {
       { key: 'attunement', label: 'Vereist attunement', type: 'checkbox' },
       { key: 'attunementEis', label: 'Attunement alleen door', type: 'text',
         hint: 'Wizard', showWhen: { key: 'attunement', values: ['true'] } },
-      { key: 'nietVerkoopbaar', label: 'Niet te verkopen aan winkels', type: 'checkbox' },
+      // Twee vinkjes die elk iets anders zeggen. "Niet te verkopen" gaat over de
+      // winkel: waardeloos daar, of te belangrijk om weg te doen. "Niet te
+      // ruilen" gaat over de drager: een tatoeage zit in je huid, een pact in
+      // je ziel — dat schuif je niet over de tafel naar je buurman.
+      //
+      // Het eerste zet het tweede aan (`zetOokAan`), want wat een winkel niet
+      // mag hebben wil je meestal ook niet onderling zien verdwijnen; daarna
+      // mag je het los weer uitzetten.
+      { key: 'nietVerkoopbaar', label: 'Niet te verkopen aan winkels', type: 'checkbox', zetOokAan: 'nietRuilbaar' },
+      { key: 'nietRuilbaar', label: 'Niet te ruilen met andere spelers', type: 'checkbox' },
       // Een Wand of Wonder, een Bag of Beans, een zak met bonen van eigen makelij:
       // een voorwerp waarvan het effect uitgerold wordt. De tafel zelf blijft in
       // de tafelbibliotheek staan — hier hangt alleen de verwijzing, zodat
@@ -5121,6 +5130,7 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
     const _prijsRuw = String(e.data?.prijs || '').trim();
     const _prijs    = /^[-\u2010-\u2015]+$/.test(_prijsRuw) ? '' : _prijsRuw;
     const _nietTeKoop = e.data?.nietVerkoopbaar === true || e.data?.nietVerkoopbaar === 'true';
+    const _nietTeRuilen = e.data?.nietRuilbaar === true || e.data?.nietRuilbaar === 'true';
     const _maxCh  = parseInt(e.data?.maxCharges) || 0;
     const _herlaad = { longRest: 'lange rust', shortRest: 'korte rust', dawn: 'lange rust',
                        longRestRoll: `lange rust, ${e.data?.rechargeRoll || '1d3'}` }[e.data?.rechargeOn || ''] || '';
@@ -5136,6 +5146,7 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
     const _kost = [];
     if (_prijs) _kost.push(`<span class="ik-prijs">${icon('coins')} ${esc(_prijs)}</span>`);
     if (_nietTeKoop) _kost.push(`<span class="ik-noot">winkels kopen dit niet in</span>`);
+    if (_nietTeRuilen) _kost.push(`<span class="ik-noot">blijft bij wie het heeft</span>`);
     if (_vraagt.length || _kost.length) {
       _naDesc = `<div class="item-navraag">
         ${_vraagt.length ? `<div class="item-kenmerken-rij">${_vraagt.join('')}</div>` : ''}
@@ -5258,7 +5269,7 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
     // zag "Gecodeerd — de tekens staan door elkaar: true" boven een brief die
     // hij niet kon lezen.
     if (field.dmOnly) continue;
-    if (['geheim', 'flavour', 'rol', 'stapelbaar', 'gedeeld', 'gebruik', 'attunement', 'persoonlijkheid', 'nietVerkoopbaar'].includes(field.key)) continue;
+    if (['geheim', 'flavour', 'rol', 'stapelbaar', 'gedeeld', 'gebruik', 'attunement', 'persoonlijkheid', 'nietVerkoopbaar', 'nietRuilbaar'].includes(field.key)) continue;
     // Wat al onder de naam staat (rol · origin · class · alignment · type)
     // hoeft er niet nóg eens als pil onder: dat was de helft van de pillenrij.
     if (['ras', 'klasse', 'alignment', 'domein', 'locType', 'wijk', 'orgType', 'itemType', 'rariteit'].includes(field.key)) continue;
@@ -5908,6 +5919,14 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
       });
     }
   }
+};
+
+// Eén vinkje dat een ander aanzet. Het blijft een gewoon vinkje — je kunt het
+// daarna los weer uitzetten — maar de stand die je bijna altijd wilt staat er
+// meteen. Zie `zetOokAan` bij de veldbeschrijvingen.
+window._veldZetAan = (key) => {
+  const cb = document.getElementById('cb_' + key);
+  if (cb && !cb.checked) { cb.checked = true; cb.dispatchEvent(new Event('change')); }
 };
 
 // ── Voorwerpen: claimen & eigendom ──
@@ -7569,7 +7588,7 @@ window._openEditor = async (tab, editId) => {
           <input type="hidden" name="data_${field.key}" value="${checked ? 'true' : ''}">
           <input type="checkbox" id="cb_${field.key}" class="rounded"
             ${checked ? 'checked' : ''}
-            onchange="this.previousElementSibling.value=this.checked?'true':''">
+            onchange="this.previousElementSibling.value=this.checked?'true':'';${field.zetOokAan ? `if(this.checked)window._veldZetAan('${esc(field.zetOokAan)}')` : ''}">
           <label for="cb_${field.key}" class="text-xs font-cinzel text-ink-dim font-bold tracking-wide cursor-pointer">${esc(field.label)}</label>
         </div>
       `;

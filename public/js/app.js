@@ -1,5 +1,5 @@
 import { api, campagneUitUrl, zetCampagne } from './api.js?v=310';
-import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, renderDocumenten, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=346";
+import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, renderDocumenten, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=347";
 import { initArchief, renderLogboek, openLogboekEditor } from "./render-archief.js?v=141";
 import { renderKaart, queueFlyTo, verversPins, nieuweKaart } from './render-kaart.js?v=31';
 import { renderDungeon } from './render-dungeon.js?v=63';
@@ -6296,6 +6296,15 @@ function _briefCinematicSound() {
 // ── Een voorwerp aan een medespeler geven ───────────────────────────────────
 // Direct, zonder tussenkomst van de DM: aan tafel schuif je een ding over de
 // tafel en dan is het van de ander. De DM kan het per party uitzetten.
+// Blijft dit voorwerp bij wie het heeft? Zelfde regel als op de server
+// (`_voorwerpGebonden`): een zegening, een gunst of een class-feature is aan een
+// persoon gegeven en niet aan een rugzak, en de rest staat op het kaartje.
+window._itemGebonden = (item) => {
+  const d = item?.data || {};
+  if (['Blessing', 'Boon', 'Feature'].includes(d.itemType)) return true;
+  return d.nietRuilbaar === true || d.nietRuilbaar === 'true';
+};
+
 window._geefItemMenu = async (itemId, knop) => {
   document.getElementById('geef-menu')?.remove();
   let leden = [];
@@ -8887,8 +8896,10 @@ async function renderMijnKarakter(opts = {}) {
                 ${qtyHtml}
                 ${chargesHtml}
                 <div class="item-carousel-geef" onclick="event.stopPropagation()">
-                  <button class="item-geef-btn" onclick="window._geefItemMenu('${esc(item.id)}', this)"
-                    title="Dit voorwerp aan een medespeler geven">${icon('users')} Geven aan…</button>
+                  ${window._itemGebonden(item)
+                    ? `<span class="item-geef-vast" title="Dit voorwerp hoort bij jou en gaat niet van hand tot hand">${icon('lock')} Blijft bij jou</span>`
+                    : `<button class="item-geef-btn" onclick="window._geefItemMenu('${esc(item.id)}', this)"
+                    title="Dit voorwerp aan een medespeler geven">${icon('users')} Geven aan…</button>`}
                 </div>
               </div>`;
             };
@@ -10193,8 +10204,10 @@ async function renderMijnKarakter(opts = {}) {
         ${qtyHtml}
         ${chargesHtml}
         <div class="item-carousel-geef" onclick="event.stopPropagation()">
-          <button class="item-geef-btn" onclick="window._geefItemMenu('${esc(item.id)}', this)"
-            title="Dit voorwerp aan een medespeler geven">${icon('users')} Geven aan…</button>
+          ${window._itemGebonden(item)
+            ? `<span class="item-geef-vast" title="Dit voorwerp hoort bij jou en gaat niet van hand tot hand">${icon('lock')} Blijft bij jou</span>`
+            : `<button class="item-geef-btn" onclick="window._geefItemMenu('${esc(item.id)}', this)"
+            title="Dit voorwerp aan een medespeler geven">${icon('users')} Geven aan…</button>`}
         </div>
       </div>`;
 

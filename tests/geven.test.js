@@ -105,6 +105,37 @@ describe('Voorwerp aan een medespeler geven', () => {
     await req(server, 'PUT', '/api/items/trade-allowed', { allowed: true, groupId: 'groep1' }, dm);
   });
 
+  // Een tatoeage zit in je huid en een pact in je ziel: dat schuif je niet over
+  // de tafel naar je buurman. Het vinkje staat op het voorwerp zelf; zegeningen,
+  // gunsten en class-features zijn het altijd, want die zijn aan een persoon
+  // gegeven en niet aan een rugzak.
+  it('geeft niet weg wat bij zijn drager hoort', async () => {
+    const tattoo = (await req(server, 'POST', '/api/entities/voorwerpen',
+      { name: 'Eldritch Claw Tattoo', data: { nietRuilbaar: 'true' } }, dm)).body.id;
+    await req(server, 'PUT', `/api/items/${tattoo}/owner`, { characterId: A, playerName: 'Gever', groupId: 'groep1' }, dm);
+    const r = await req(server, 'POST', `/api/items/${tattoo}/geef`, { targetId: B }, cookieA);
+    assert.equal(r.status, 403, 'een tatoeage gaat niet van hand tot hand');
+    const o = (await req(server, 'GET', '/api/items/ownership', null, dm)).body.owners[tattoo];
+    assert.equal(Array.isArray(o) ? o[0]?.characterId : o?.characterId, A, 'hij blijft bij wie hem droeg');
+  });
+
+  it('houdt een zegening ook zonder vinkje bij zijn drager', async () => {
+    const zegen = (await req(server, 'POST', '/api/entities/voorwerpen',
+      { name: 'Zegen van Matall', data: { itemType: 'Blessing' } }, dm)).body.id;
+    await req(server, 'PUT', `/api/items/${zegen}/owner`, { characterId: A, playerName: 'Gever', groupId: 'groep1' }, dm);
+    const r = await req(server, 'POST', `/api/items/${zegen}/geef`, { targetId: B }, cookieA);
+    assert.equal(r.status, 403, 'een zegening is aan een persoon gegeven, niet aan een rugzak');
+  });
+
+  it('vraagt geen ruil aan voor zoiets', async () => {
+    const tattoo = (await req(server, 'POST', '/api/entities/voorwerpen',
+      { name: 'Tweede Tatoeage', data: { nietRuilbaar: 'true' } }, dm)).body.id;
+    await req(server, 'PUT', `/api/items/${tattoo}/owner`, { characterId: A, playerName: 'Gever', groupId: 'groep1' }, dm);
+    const cookieB = (await req(server, 'POST', '/api/auth/player-login', { campagne: 'grisburgh', characterId: B })).cookie;
+    const r = await req(server, 'POST', `/api/items/${tattoo}/request`, { type: 'trade', targetId: A }, cookieB);
+    assert.equal(r.status, 403);
+  });
+
   it('verhuist ook een losse boedelregel', async () => {
     const gemaakt = (await req(server, 'POST', `/api/player-items/${A}`, { name: 'Touw (15 m)' }, dm)).body;
     const lijst = (await req(server, 'GET', `/api/player-items/${A}`, null, dm)).body;
