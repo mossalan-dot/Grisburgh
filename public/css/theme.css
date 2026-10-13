@@ -29537,8 +29537,13 @@ body.wizard-open { overflow: hidden; }
    te kiezen. Hoeveel delen er zijn hangt af van waar je staat, dus de indeling
    draagt dat aantal in zijn naam — één regel per geval leest beter dan een
    stapel uitzonderingen. */
+/* De kaartjes hebben een vaste hoogte, dus wordt elke pixel extra breedte een
+   stuk dat van boven en onder van de plaat afvalt: op een breed scherm sneed
+   hij de kop van een portret af. Daarom groeit het vlak niet verder mee dan
+   waar het goed uitkomt; de ruimte die overblijft valt rechts weg. */
 .vd-klasvlak {
   display: grid; justify-content: start; gap: 18px; align-items: start; margin-top: 14px;
+  max-width: 900px;
 }
 .vd-klasvlak--1 { grid-template-columns: minmax(260px, 46%); }
 .vd-klasvlak--2 { grid-template-columns: minmax(260px, 42%) minmax(200px, 250px); }
