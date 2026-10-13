@@ -60,12 +60,15 @@ describe('Eigen class, species of background', () => {
 
   const voeg = (body) => req(server, 'POST', '/api/progression/feature', body, dm);
 
+  // Een verzonnen naam, en met opzet: dit ging over de Artificer zolang die
+  // niet meegeleverd werd, maar sinds hij in de seed staat bewees die test niets
+  // meer. Een class die écht nergens staat is de enige goede proef.
   it('legt een class aan die er nog niet was', async () => {
-    const r = await voeg({ soort: 'class', bron: 'Artificer', level: 1, naam: 'Magical Tinkering', desc: '' });
+    const r = await voeg({ soort: 'class', bron: 'Lantaarnwachter', level: 1, naam: 'Vlam Aansteken', desc: '' });
     assert.equal(r.status, 200, JSON.stringify(r.body));
-    const cls = prog().classes.Artificer;
+    const cls = prog().classes.Lantaarnwachter;
     assert.ok(cls, 'de class staat er');
-    assert.equal(cls.levels['1'][0].name, 'Magical Tinkering');
+    assert.equal(cls.levels['1'][0].name, 'Vlam Aansteken');
     assert.deepEqual(cls.subclasses, {}, 'met een lege plek voor subclasses');
   });
 

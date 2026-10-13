@@ -1609,6 +1609,41 @@
           "levels": {}
         }
       }
+    },
+    "Artificer": {
+      "subclassLabel": "Artificer Specialist",
+      "subclassLevel": 3,
+      "aliassen": [
+        "artificier",
+        "kunstenaar",
+        "uitvinder"
+      ],
+      "subclassDefault": "Battle Smith",
+      "boek": "Tasha's Cauldron of Everything",
+      "herkomst": "overgenomen",
+      "levels": {},
+      "subclasses": {
+        "Alchemist": {
+          "levels": {},
+          "boek": "Tasha's Cauldron of Everything",
+          "herkomst": "overgenomen"
+        },
+        "Armorer": {
+          "levels": {},
+          "boek": "Tasha's Cauldron of Everything",
+          "herkomst": "overgenomen"
+        },
+        "Artillerist": {
+          "levels": {},
+          "boek": "Tasha's Cauldron of Everything",
+          "herkomst": "overgenomen"
+        },
+        "Battle Smith": {
+          "levels": {},
+          "boek": "Tasha's Cauldron of Everything",
+          "herkomst": "overgenomen"
+        }
+      }
     }
   },
   "species": {
