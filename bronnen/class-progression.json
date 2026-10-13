@@ -498,9 +498,6 @@
         },
         "Circle of the Stars": {
           "levels": {}
-        },
-        "Circle of the Wildfire": {
-          "levels": {}
         }
       }
     },
@@ -1396,10 +1393,10 @@
             ]
           }
         },
-        "Aberrant Mind Sorcery": {
+        "Clockwork Sorcery": {
           "levels": {}
         },
-        "Clockwork Sorcery": {
+        "Aberrant Sorcery": {
           "levels": {}
         }
       }
@@ -1609,9 +1606,6 @@
           "levels": {}
         },
         "Illusionist": {
-          "levels": {}
-        },
-        "Transmuter": {
           "levels": {}
         }
       }
