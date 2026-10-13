@@ -18,6 +18,12 @@ import { api } from './api.js?v=310';
 import { naslagBron } from './render-progressie.js?v=62';
 
 const esc  = s => window.app?.esc?.(s) ?? String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+// Hetzelfde, maar ook veilig tússen enkele quotes in een onclick. Een naam met
+// een apostrof — "Giant's Power" — sloot daar de JS-string af en dan deed de
+// klik niets: precies de kaartjes die een DM zelf bedenkt, want de meegeleverde
+// namen hebben er zelden een. Op de paar plekken waar het al goed ging stond
+// deze replace met de hand; nu staat hij op één plek.
+const escA = s => esc(s).replace(/'/g, "\\'");
 const icon = (...a) => window.icon(...a);
 const isDM = () => !!window.app?.isDM?.();
 
@@ -392,7 +398,7 @@ function _card(it) {
   // klikken we dus heen: één plek om een zegening te bekijken, niet twee.
   const klik = it.entityId
     ? `window._openDetail('voorwerpen','${esc(it.entityId)}')`
-    : `window.vaardigheden.open('${esc(it.key)}')`;
+    : `window.vaardigheden.open('${escA(it.key)}')`;
   return `
     <div class="entity-card vaardig-card" data-soort="${esc(it.soort)}"
       onclick="${klik}" title="${esc(it.naam)}"
@@ -575,7 +581,7 @@ function _featBlokHtml(klasse) {
   if (!aangewezen.length && !viaEis.length && !viaSpreuk.length && !genoemd.length && !zonderTekst) return '';
   const chips = (lijst) => lijst
     .sort((a, b) => a.naam.localeCompare(b.naam))
-    .map(f => `<button class="vk-feat" onclick="window.vaardigheden.open('${esc(f.key).replace(/'/g, "\\'")}')">${esc(f.naam)}</button>`)
+    .map(f => `<button class="vk-feat" onclick="window.vaardigheden.open('${escA(f.key)}')">${esc(f.naam)}</button>`)
     .join('');
   const rij = (label, uitleg, lijst) => lijst.length ? `
     <div class="vk-featrij">
@@ -1304,7 +1310,7 @@ function _verwijzingen(html) {
     const doel = (_all || []).find(x => x.naam.toLowerCase() === naam.trim().toLowerCase());
     const tekst = esc((alias || naam).trim());
     return doel
-      ? `<a class="spreuk-verwijzing" onclick="window.vaardigheden.open('${esc(doel.key)}','${esc(_vanWaarNu || '')}')" title="Open ${tekst}">${tekst}</a>`
+      ? `<a class="spreuk-verwijzing" onclick="window.vaardigheden.open('${escA(doel.key)}','${escA(_vanWaarNu || '')}')" title="Open ${tekst}">${tekst}</a>`
       : tekst;
   });
 }
@@ -1394,7 +1400,7 @@ function _houderFeaturesHtml(soort, naam, bron) {
     && (soort === 'subclass' ? x.bron === bron && x.sub === naam : x.bron === naam));
   const rijen = levels.map(l => (data.levels[l] || []).map(f => {
     const it = zoek(f);
-    const klik = it ? ` onclick="window.vaardigheden.uitKaartVenster('${esc(it.key)}')"` : '';
+    const klik = it ? ` onclick="window.vaardigheden.uitKaartVenster('${escA(it.key)}')"` : '';
     return `<button class="vd-subfeature"${klik}${it ? '' : ' disabled'}>
       <span class="vd-subfeature-lvl">${l}</span>
       <span class="vd-subfeature-naam">${esc(f.name)}</span>
@@ -1486,7 +1492,7 @@ function _kaartVenster(soort, naam, bron = '') {
 // Het beeld van een kaart vastleggen: één plek, want het venster en de
 // bewaarknop doen het allebei.
 async function _kaartBeeldZet(soort, naam, waarde) {
-  const veld = soort === 'subclass' ? 'subclassen' : soort === 'species' ? 'species' : 'klassen';
+  const veld = _HB_BAK[soort] || 'klassen';
   await api.saveHeldenboek({ [veld]: { [naam]: waarde } });
   const m = window.app?.state?.meta;
   if (m) {
@@ -1601,7 +1607,7 @@ function _open(key, vanWaar = null) {
   const terug = (() => {
     const vorige = vanWaar ? (_all || []).find(x => x.key === vanWaar) : null;
     return vorige
-      ? `<button class="vaardig-terug" onclick="window.vaardigheden.open('${esc(vorige.key)}')">
+      ? `<button class="vaardig-terug" onclick="window.vaardigheden.open('${escA(vorige.key)}')">
            ${icon('chevron-left')} Terug naar ${esc(vorige.naam)}</button>`
       : '';
   })();
@@ -1624,7 +1630,7 @@ function _open(key, vanWaar = null) {
              hier naast "Bewerken", terwijl de bewerkmodus allebei al doet —
              en daar staat ook de focuskiezer bij. Twee wegen naar hetzelfde,
              waarvan er één minder kan. -->
-        <button class="spreuk-detail-imgbtn" onclick="window.vaardigheden.bewerk('${esc(it.key)}')">
+        <button class="spreuk-detail-imgbtn" onclick="window.vaardigheden.bewerk('${escA(it.key)}')">
           ${icon('pencil')} Bewerken</button>
       </div>` : '';
 
@@ -1801,7 +1807,13 @@ function _editorHtml() {
       ${e.herkomst && e.herkomst !== 'zelfbedacht' ? `
       <div class="dm-form-row">
         <label class="dm-form-label" for="vd-bronnaam">Waaruit?</label>
-        <input class="dm-input" id="vd-bronnaam" maxlength="120" value="${esc(e.bron || '')}"
+        <!-- Dit toont bronTekst en niet bron: dat laatste is de class of het
+             species waar dit onder hangt. Het veld stond dus altijd op
+             "Barbarian" in plaats van op het boek, en het lezen van het
+             formulier schreef dat daarna terug — elke overgenomen feature
+             kreeg zo zijn eigen class als vindplaats.
+             (Geen backticks in commentaar hierbinnen: template literal.) -->
+        <input class="dm-input" id="vd-bronnaam" maxlength="120" value="${esc(e.bronTekst || '')}"
           placeholder="Bijv. Xanathar's Guide to Everything, of: van een tafelgenoot">
       </div>` : ''}
       <div class="dm-form-row">
@@ -1835,6 +1847,20 @@ function _editorHtml() {
       </div>
       <p class="dm-hint" style="margin:-6px 0 10px">Namen met een komma ertussen. De app zoekt op welke klassenlijsten die spreuken staan, en zet de feat daar bij <em>Geeft een spreuk</em>.</p>
       <p class="dm-hint" style="margin:-6px 0 10px">Staat hier een armor training in, dan rekent de app zelf uit welke klassen die geven — die hoef je niet aan te vinken.</p>` : ''}
+      ${houder && maaksel.soort === 'subclass' ? `
+      <!-- Dezelfde vraag als in het bewerkvenster, en om dezelfde reden: vink
+           je er twee aan om ze te vergelijken, dan lopen hun features door
+           elkaar in de lijst eronder en zegt de kleur welke regel van wie is.
+           Hij stond daar alleen, dus moest je een subclass eerst aanmaken en
+           hem daarna nog eens openen — terwijl je het op dit moment weet.
+           (Geen backticks in commentaar hierbinnen: template literal.) -->
+      <div class="dm-form-row">
+        <label class="dm-form-label" for="vd-kleur">Kleur</label>
+        <div class="vd-kleurrij">
+          <input type="color" class="vd-kleurveld" id="vd-kleur" value="${esc(e.kleur || '#5a2e8a')}">
+          <span class="dm-hint" style="margin:0">Kleurt zijn kaartje, zijn rij in de kolom en zijn features.</span>
+        </div>
+      </div>` : ''}
       <div class="dm-form-row" style="flex-direction:column;align-items:stretch;gap:6px">
         <label class="dm-form-label">Afbeelding</label>
         <div class="vaardig-img-rij">
@@ -1900,6 +1926,19 @@ function _editorOpen(it) {
 
 // Wat er in de velden staat, terug in _edit — nodig zodra het venster
 // zichzelf opnieuw tekent (van soort wisselen wisselt de velden).
+// De herkomst en het boek van de houder waar je iets onder hangt. Alleen voor
+// een feature (een houder heeft zijn eigen antwoord), en alleen als die houder
+// het zelf weet — anders blijft staan wat je al koos.
+function _volgHerkomst() {
+  if (_MAAKSEL(_edit.maaksel).houder) return;
+  const h = _edit.soort === 'subclass' ? _houderVan('subclass', _edit.sub, _edit.bron)
+    : (_edit.soort === 'class' || _edit.soort === 'species') ? _houderVan(_edit.soort, _edit.bron)
+    : null;
+  if (!h) return;
+  if (h.herkomst) _edit.herkomst = h.herkomst;
+  if (h.boek) _edit.bronTekst = h.boek;
+}
+
 function _editorLees() {
   const v = id => document.getElementById(id)?.value;
   if (v('vd-naam') !== undefined) _edit.naam = v('vd-naam');
@@ -1910,6 +1949,7 @@ function _editorLees() {
   if (v('vd-bron') !== undefined) _edit.bron = v('vd-bron');
   if (v('vd-vereist') !== undefined) _edit.vereist = v('vd-vereist');
   if (v('vd-bronnaam') !== undefined) _edit.bronTekst = v('vd-bronnaam');
+  if (v('vd-kleur') !== undefined) _edit.kleur = v('vd-kleur');
   if (v('vd-geeft') !== undefined) {
     _edit.geeftSpreuk = v('vd-geeft').split(',').map(x => x.trim()).filter(Boolean);
   }
@@ -1975,6 +2015,10 @@ window.vaardigheden = {
       _edit.sub  = waarde === 'subclass' ? (_subklassenVan(_edit.bron)[0] || '') : '';
     }
     if (naam === 'bron' && _edit.soort === 'subclass') _edit.sub = _subklassenVan(waarde)[0] || '';
+    // Een feature van een subclass komt uit hetzelfde boek als die subclass.
+    // Dat stond er al bij de subclass zelf, en je tikte het er per feature
+    // opnieuw in — tien keer dezelfde regel, met tien kansen op een afwijking.
+    if (naam === 'sub' || naam === 'bron' || naam === 'soort') _volgHerkomst();
     _editorHerteken();
   },
   kiesAfbeelding() {
@@ -2004,8 +2048,17 @@ window.vaardigheden = {
       // level — wél een beschrijving, want "wat is een Berserker" is iets
       // anders dan wat zijn features doen.
       if (maaksel.houder) {
-        await api.nieuweHouder({ soort: maaksel.soort, naam: _edit.naam.trim(), bron: _edit.bron || '',
-          desc: _edit.desc || '', boek: _edit.bronTekst || '', herkomst: _edit.herkomst || '' });
+        const houderNaam = _edit.naam.trim();
+        await api.nieuweHouder({ soort: maaksel.soort, naam: houderNaam, bron: _edit.bron || '',
+          desc: _edit.desc || '', boek: _edit.bronTekst || '', herkomst: _edit.herkomst || '',
+          ...(maaksel.soort === 'subclass' && _edit.kleur ? { kleur: _edit.kleur } : {}) });
+        // De gekozen plaat ging hier verloren. Het beeld van een class, subclass
+        // of species staat niet in de progressie maar in `meta.heldenboek`
+        // (daar kijkt het kaartje), en dit formulier stuurde hem nergens heen:
+        // je koos een afbeelding, sloeg op, en er stond een leeg kaartje.
+        if (_edit.img && _HB_BAK[maaksel.soort]) {
+          await _kaartBeeldZet(maaksel.soort, houderNaam, { id: _edit.img, focus: _edit.imgFocus || '' });
+        }
         window.app.closeModal();
         _all = null;
         await _load(); await _klasseExtra();

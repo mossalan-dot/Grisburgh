@@ -18518,6 +18518,16 @@ body.sb-boek-open { overflow: hidden; }
   border: 0.5px solid rgba(180,165,130,0.38);
   box-shadow: 0 1px 4px rgba(0,0,0,0.22);
 }
+/* Slepen: de cursor zegt dat het kan, en tijdens het slepen licht het briefje
+   op en staat het boven alles. `touch-action: none` is nodig omdat een telefoon
+   een veeg anders als scrollen opeist en de pointermove nooit aankomt. */
+.sb-note { cursor: grab; touch-action: none; }
+.sb-note--sleept {
+  cursor: grabbing; z-index: 30;
+  filter: brightness(1.06);
+  box-shadow: 4px 10px 26px rgba(0,0,0,.7), 0 1px 3px rgba(0,0,0,.3);
+}
+
 .sb-note-text {
   font-family: 'Kalam', cursive;
   font-size: 11.5px;
@@ -18951,7 +18961,11 @@ body.sb-boek-open { overflow: hidden; }
 .sb-arrow-btn:hover {
   opacity: 1;
   filter: brightness(1.3);
-  transform: translateY(-50%);  /* no scale — keep the clean edge flush */
+  /* Hier stond `transform: translateY(-50%)` om een schaalsprong te voorkomen.
+     Maar staand hangt de knop onderaan met `transform: none`, en een aanraking
+     telt op een telefoon als hover: de knop sprong bij elke tik een halve
+     knophoogte omhoog. Niets declareren doet hetzelfde werk — de transform van
+     de knop zelf blijft gewoon staan. */
 }
 
 /* ── Mobile portrait rotation hint ── */
@@ -30138,6 +30152,9 @@ body.wizard-open { overflow: hidden; }
   .sb-arrow-btn {
     top: auto; bottom: 0; transform: none;
     width: 30px; height: 56px;
+    /* Staand ligt de knop óp de tekst in plaats van ernaast; op 0,82 las je de
+       zinnen er dwars doorheen. */
+    opacity: 1;
   }
   .sb-arrow-btn--prev { left: 0; border-radius: 0 8px 0 4px; }
   .sb-arrow-btn--next { right: 0; border-radius: 8px 0 4px 0; }

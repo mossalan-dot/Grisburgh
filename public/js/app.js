@@ -7,7 +7,7 @@ import { renderRelatiemap } from './render-relatiemap.js?v=27';
 import { renderProgressie, levelupFeatures } from './render-progressie.js?v=62';
 import { renderBestiarium } from './render-bestiarium.js?v=31';
 import { renderSpreuken } from './render-spreuken.js?v=47';
-import { renderVaardigheden, zoekVaardigheden, heldenboekTekst } from './render-vaardigheden.js?v=47';
+import { renderVaardigheden, zoekVaardigheden, heldenboekTekst } from './render-vaardigheden.js?v=49';
 import { renderStatblock } from './render-statblock.js?v=9';
 import { initSocket } from "./socket-client.js?v=85";
 import { initDmPanel } from "./dm-panel.js?v=396";
@@ -4689,6 +4689,48 @@ window._sbTocIncantBewaar = async function(i, tekst) {
   catch (e) { console.warn('Incantatie opslaan mislukt:', e); }
 };
 
+// Het briefje met de incantatie mag je over de plaat schuiven: de ene spreuk
+// heeft een gezicht in het midden, de andere lucht links. Zijn plek staat in
+// procenten bij de spreuk zelf (`incPos`), dus hij ligt op elk scherm gelijk en
+// hij blijft liggen. Slepen begint pas na een paar pixels, anders zou een tik
+// op het placeholder-briefje ("stel een incantatie in") nooit meer aankomen.
+window._sbNoteSleep = function(ev) {
+  const briefje = ev.currentTarget;
+  const vak = document.getElementById('sb-left-incantation');
+  const blad = document.getElementById('sb-page-left');
+  if (!vak || !blad) return;
+  const start = { x: ev.clientX, y: ev.clientY };
+  let sleept = false;
+  const naar = (e) => {
+    const r = blad.getBoundingClientRect();
+    if (!r.width || !r.height) return;
+    const x = Math.max(2, Math.min(98, ((e.clientX - r.left) / r.width) * 100));
+    const y = Math.max(2, Math.min(98, ((e.clientY - r.top) / r.height) * 100));
+    vak.style.cssText = `top:${y}%;left:${x}%;right:auto;transform:translate(-50%,-50%);justify-content:flex-start`;
+    return { x: +x.toFixed(1), y: +y.toFixed(1) };
+  };
+  const beweeg = (e) => {
+    if (!sleept && Math.hypot(e.clientX - start.x, e.clientY - start.y) < 5) return;
+    if (!sleept) { sleept = true; briefje.classList.add('sb-note--sleept'); }
+    e.preventDefault();
+    naar(e);
+  };
+  const los = async (e) => {
+    document.removeEventListener('pointermove', beweeg);
+    document.removeEventListener('pointerup', los);
+    briefje.classList.remove('sb-note--sleept');
+    if (!sleept) return;                       // het was een klik, geen sleep
+    const p = naar(e);
+    const spell = _sbState.spells[_sbState.idx];
+    if (!spell || !_sbState.charId || !p) return;
+    spell.incPos = p;
+    try { await api.updatePlayerSpell(_sbState.charId, spell.index, { incPos: p }); }
+    catch (err) { console.warn('Plek van het briefje opslaan mislukt:', err); }
+  };
+  document.addEventListener('pointermove', beweeg);
+  document.addEventListener('pointerup', los);
+};
+
 // De marginalia (losse icoontjes met een toelichting langs de kantlijn) zijn
 // eruit, met hun bewerkknoppen, hun iconenpicker en de sleepcode. Ze waren een
 // tweede soort aantekening naast de incantatie, en niemand gebruikte ze.
@@ -5605,9 +5647,18 @@ function _sbRender() {
 
     const hasVerbal = spell.components && /\bV\b/.test(spell.components);
 
+    // Waar het briefje hangt. Standaard bovenaan en gecentreerd, zoals het
+    // altijd stond; heb je het verplaatst, dan staat zijn plek in `incPos` (in
+    // procenten van de bladzijde, zodat hij op elk scherm hetzelfde ligt).
+    const pos = spell.incPos;
+    incEl.style.cssText = pos
+      ? `top:${pos.y}%;left:${pos.x}%;right:auto;transform:translate(-50%,-50%);justify-content:flex-start`
+      : '';
+
     if (spell.incantation) {
       incEl.innerHTML = `
-        <div class="sb-note" style="transform:rotate(${rot}deg);background:linear-gradient(145deg,${t1},${t2})">
+        <div class="sb-note" style="transform:rotate(${rot}deg);background:linear-gradient(145deg,${t1},${t2})"
+             onpointerdown="window._sbNoteSleep(event)" title="Sleep het briefje waar je wilt">
           ${tape}
           <div class="sb-note-text">${esc(spell.incantation)}</div>
         </div>`;
@@ -5615,7 +5666,8 @@ function _sbRender() {
       // Placeholder: verbale spreuk zonder incantatie
       incEl.innerHTML = `
         <div class="sb-note sb-note--placeholder" style="transform:rotate(${rot}deg)"
-             onclick="window._sbToggleManage()" title="Klik om een incantatie in te stellen">
+             onpointerdown="window._sbNoteSleep(event)"
+             onclick="window._sbToggleManage()" title="Klik om een incantatie in te stellen — of sleep hem ergens anders heen">
           <div class="sb-tape" style="position:absolute;top:-6px;left:-5px;transform:rotate(-34deg)"></div>
           <div class="sb-tape" style="position:absolute;top:-6px;right:-5px;transform:rotate(33deg)"></div>
           <div class="sb-note-text sb-note-text--hint">✦ Stel een incantatie in</div>
@@ -9953,8 +10005,11 @@ async function renderMijnKarakter(opts = {}) {
   window._spelerVeegKlaar = window._spelerVeegKlaar || (() => {
     const host = document.getElementById('section-mijn-karakter');
     if (!host) return false;
-    const orde = () => ['party', 'personage', 'facties', 'knapzak', 'progressie', 'spreukenboek', 'berichten']
-      .filter(t => document.querySelector(`.player-subtab[data-tab="${t}"]`));
+    // De volgorde staat in de tabbalk zelf en nergens anders. Hier stond hem
+    // een tweede keer, met de hand, en die twee liepen uiteen: vegen vanaf
+    // Personage bracht je op Facties terwijl Vaardigheden ernaast stond.
+    const orde = () => [...document.querySelectorAll('.player-subtabs .player-subtab[data-tab]')]
+      .map(b => b.dataset.tab);
     const stap = (richting) => {
       const lijst = orde();
       const i = lijst.indexOf(_playerSubTab);

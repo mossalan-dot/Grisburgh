@@ -6840,11 +6840,15 @@ router.get('/party', attachRole, (req, res) => {
 });
 
 // Wie deze party onderweg verloren heeft. Staat als `groups[gid].deceased`
-// (een object `{entityId: true}`) al lang in de data — in Grisburgh acht namen
-// bij de eerste party — maar werd nergens getoond. Bewust een eigen route en
-// niet aan `/party` geplakt: dat is de vraag "wie loopt er nu mee", dit is een
-// andere vraag. Alleen namen die de party kent: een gesneuvelde NPC van wie ze
-// nooit gehoord hebben verklap je hiermee niet.
+// (een object `{entityId: true}`) al lang in de data, maar werd nergens
+// getoond. Bewust een eigen route en niet aan `/party` geplakt: dat is de vraag
+// "wie loopt er nu mee", dit is een andere vraag.
+//
+// **Alleen spelers.** Het doodsvinkje staat op élk personage — zo houdt de DM
+// bij wie er niet meer is, en dat zijn vooral NPC's. Die kwamen hier allemaal
+// onder "Gevallenen" op het partytabblad te staan, naast de levenden van de
+// groep, terwijl ze nooit met de party meeliepen. Een gevallene is hier iemand
+// die naast je stond.
 router.get('/party/gevallenen', attachRole, (req, res) => {
   const myId = req.session?.characterId;
   if (!myId && req.role !== 'dm') return res.status(403).json({ error: 'Geen karakter geselecteerd' });
@@ -6859,6 +6863,7 @@ router.get('/party/gevallenen', attachRole, (req, res) => {
   for (const id of ids) {
     const e = (entities.personages || []).find(x => x.id === id);
     if (!e) continue;
+    if (e.subtype !== 'speler') continue;        // zie de uitleg boven de route
     // De DM ziet alles; een speler alleen wie zijn party kent.
     if (req.role !== 'dm' && (g.visibility || {})[id] !== 'visible') continue;
     uit.push({
@@ -7364,7 +7369,7 @@ router.patch('/player-spells/:characterId/:spellIndex', attachRole, (req, res) =
   const spells  = (dmState.playerSpells || {})[characterId] || [];
   const spell   = spells.find(s => s.index === spellIndex);
   if (!spell) return res.status(404).json({ error: 'Spreuk niet gevonden' });
-  const { school, desc, damage, casting_time, range, components, duration, incantation, concentrationActive, prepared, alwaysPrepared } = req.body;
+  const { school, desc, damage, casting_time, range, components, duration, incantation, incPos, concentrationActive, prepared, alwaysPrepared } = req.body;
   if (prepared       !== undefined) spell.prepared       = !!prepared;
   if (alwaysPrepared !== undefined) spell.alwaysPrepared = !!alwaysPrepared;
   if (school       !== undefined) spell.school       = school;
@@ -7375,6 +7380,15 @@ router.patch('/player-spells/:characterId/:spellIndex', attachRole, (req, res) =
   if (components   !== undefined) spell.components   = components;
   if (duration     !== undefined) spell.duration     = duration;
   if (incantation  !== undefined) spell.incantation  = incantation;
+  // Waar het briefje op de plaat geplakt zit, in procenten van de bladzijde.
+  // `null` plakt hem terug op zijn oude plek bovenaan.
+  if (incPos !== undefined) {
+    if (!incPos) delete spell.incPos;
+    else {
+      const klem = (v) => Math.max(2, Math.min(98, Number(v) || 0));
+      spell.incPos = { x: klem(incPos.x), y: klem(incPos.y) };
+    }
+  }
   // #1: concentratie-vlag (gebruikt door de Concentration-save-waarschuwing in combat).
   // Exclusief: maar één spreuk tegelijk actief.
   if (concentrationActive !== undefined) {
@@ -9280,6 +9294,11 @@ router.post('/progression/houder', requireDM, (req, res) => {
   if (boek) meta.boek = boek;
   if (ondertitel) meta.ondertitel = ondertitel;
   if (b.herkomst) meta.herkomst = String(b.herkomst).slice(0, 40);
+  // Een subclass draagt een kleur: die kleurt zijn kaartje, zijn rij in de
+  // kolom en al zijn features. Dat stond alleen in het bewerkvenster, dus je
+  // moest een subclass eerst aanmaken en daarna nog eens openen om hem te
+  // kiezen — terwijl je op dat moment precies weet welke kleur je wil.
+  if (soort === 'subclass' && /^#[0-9a-f]{6}$/i.test(String(b.kleur || ''))) meta.kleur = String(b.kleur);
 
   const prog = _progHuidig();
   if (soort === 'species') {
