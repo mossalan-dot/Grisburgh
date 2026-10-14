@@ -408,9 +408,9 @@ function _card(it) {
       ${it.level ? `<span class="vaardig-card-niv">${it.level}</span>` : ''}
       <div class="card-img-wrap vaardig-card-img-wrap">
         <div class="vaardig-card-silhouet">${icon(_itemIcoon(it))}</div>
-        ${it.img ? `<img class="vaardig-card-img" src="/api/files/${esc(it.img)}" alt="" loading="lazy"
-          style="${it.imgFocus ? `object-position:${esc(it.imgFocus)}` : ''}"
-          onload="this.classList.add('is-on')" onerror="this.remove()">` : ''}
+        ${(() => { const b = _beeldVan(it); return b ? `<img class="vaardig-card-img" src="/api/files/${esc(b.id)}" alt="" loading="lazy"
+          style="${b.focus ? `object-position:${esc(b.focus)}` : ''}"
+          onload="this.classList.add('is-on')" onerror="this.remove()">` : ''; })()}
       </div>
       <div class="entity-card-body vaardig-card-body">
         <div class="vaardig-card-name">${esc(it.naam)}</div>
@@ -646,6 +646,34 @@ function _hbBeeldRuw(soort, naam) {
 function _hbBeeld(soort, naam) {
   const f = _hbBeeldRuw(soort, naam);
   return f?.id ? `/api/files/${esc(f.id)}` : '';
+}
+
+// Een feature erft het beeld van waar hij onder hangt. Een class heeft er één,
+// een subclass meestal ook, en daaronder zitten er vijf tot twintig — die een
+// voor een een plaat geven is een avond werk voor een rij kaartjes die daarna
+// allemaal iets anders laat zien dan waar ze bij horen.
+//
+// **Niet gekopieerd maar geërfd**: er wordt niets in de feature geschreven. Zet
+// je later een andere plaat op de class, dan volgen ze allemaal mee; zet je er
+// bij één zelf een, dan wint die. "Weghalen" betekent dus niet "geen beeld"
+// maar "weer dat van mijn moeder".
+//
+// Een subclass zonder eigen plaat valt door naar zijn class: een feature van de
+// Berserker hoort nog steeds bij een Barbarian.
+function _beeldVan(it) {
+  if (!it) return null;
+  if (it.img) return { id: it.img, focus: it.imgFocus || '' };
+  const ketens = {
+    class:    [['class', it.bron]],
+    subclass: [['subclass', it.sub], ['class', it.bron]],
+    species:  [['species', it.bron]],
+  }[it.soort] || [];
+  for (const [soort, naam] of ketens) {
+    if (!naam) continue;
+    const b = _hbBeeldRuw(soort, naam);
+    if (b?.id) return { id: b.id, focus: b.focus || '', geerfd: `${naam}` };
+  }
+  return null;
 }
 
 // ── De flipkaart ────────────────────────────────────────────────────────────
@@ -1671,7 +1699,17 @@ function _open(key, vanWaar = null) {
   })();
   // De DM stelt de afbeelding hier in, niet in de bewerkmodal: bij de spreuken
   // gaat het ook zo, en dan hoef je voor een plaatje niet eerst het potlood.
+  // Erft hij zijn beeld van zijn class of subclass, dan tonen we dát — maar
+  // zonder focuskiezer: het uitsnijdpunt hoort bij de plaat, en die is van zijn
+  // moeder. Wie hem hier anders wil snijden geeft hem eerst een eigen plaat.
+  const geerfd = !it.img ? _beeldVan(it) : null;
   const dmBeeld = isDM() ? `
+      ${geerfd ? `<div class="vaardig-detail-imgwrap">
+        <img class="vaardig-detail-img" src="/api/files/${esc(geerfd.id)}" alt=""
+          style="${geerfd.focus ? `object-position:${esc(geerfd.focus)}` : ''}">
+      </div>
+      <p class="dm-hint" style="margin:4px 0 0">Neemt de afbeelding over van <strong>${esc(geerfd.geerfd || 'zijn class')}</strong>.
+      Geef hem er zelf een via <em>Bewerken</em> als hij iets anders moet laten zien.</p>` : ''}
       ${it.img ? `<div class="vaardig-detail-imgwrap">
         <img class="vaardig-detail-img" id="vaardig-detail-img" src="/api/files/${esc(it.img)}" alt=""
           style="${it.imgFocus ? `object-position:${esc(it.imgFocus)}` : ''}">
@@ -1921,6 +1959,13 @@ function _editorHtml() {
       </div>` : ''}
       <div class="dm-form-row" style="flex-direction:column;align-items:stretch;gap:6px">
         <label class="dm-form-label">Afbeelding</label>
+        ${!e.img && !houder ? (() => {
+          // Wat hij nú laat zien, geërfd van waar hij onder hangt. Zonder deze
+          // regel lijkt "geen afbeelding" te betekenen dat het kaartje leeg is.
+          const g = _beeldVan({ soort: e.soort, bron: e.bron, sub: e.sub });
+          return g ? `<p class="dm-hint" style="margin:0">Laat nu de afbeelding van <strong>${esc(g.geerfd || 'zijn class')}</strong> zien.
+            Kies er hier een om dat voor dit kaartje te overrulen.</p>` : '';
+        })() : ''}
         <div class="vaardig-img-rij">
           <button class="dm-btn dm-btn-ghost dm-btn-sm" onclick="window.vaardigheden.kiesAfbeelding()">${icon('image')} ${e.img ? 'Andere kiezen' : 'Kiezen of uploaden'}</button>
           ${e.img ? `<button class="dm-btn dm-btn-ghost dm-btn-sm" onclick="window.vaardigheden.wisAfbeelding()">${icon('x')} Weghalen</button>` : ''}
