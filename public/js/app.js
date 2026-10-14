@@ -1289,7 +1289,12 @@ function applyRole() {
   // De houdingenschaal hoort bij wie binnen is. Bij de start wordt hij
   // overgeslagen voor een bezoeker (dat gaf een 401 op de landingspagina); wie
   // daarna inlogt komt hier langs, en dan is dit het moment.
-  if (state.role === 'dm' || state.characterId) window._laadHoudingen?.();
+  if (state.role === 'dm' || state.characterId) {
+    window._laadHoudingen?.();
+    // Zelfde verhaal voor de geluiden: de module laadt ze bij binnenkomst,
+    // maar wie via de landingspagina komt was toen nog bezoeker.
+    window.soundManager?.start?.();
+  }
   const isDmPreview = state.role === 'dm' && state.dmPreview;
 
   appEl.classList.toggle('dm-mode',     isDmActive);

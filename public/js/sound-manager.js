@@ -369,6 +369,9 @@ window.soundManager = {
   },
   onCombatUpdated: _onCombatUpdated,
   reloadSounds:    _loadSounds,
+  // Wat er bij het laden van de module gebeurt, maar dan op aanvraag: voor wie
+  // via de landingspagina binnenkomt is dat moment al voorbij.
+  start: () => _loadSounds().then(_initAmbianceFromLoaded),
   // Herlaad de sound-config en pas de loop van het huidige scherm opnieuw toe
   // (zodat een net door de DM ingestelde dienst-loop direct begint te spelen).
   async refreshConfig() {
@@ -455,4 +458,11 @@ async function _initAmbianceFromLoaded() {
   if (scene) window.soundManager.setAmbiance({ actief: amb.actief, fileId: scene.fileId, label: scene.label, volume: amb.volume });
 }
 
-_loadSounds().then(_initAmbianceFromLoaded);
+// Bij het laden van de module, maar alleen voor wie binnen is: de route vraagt
+// een sessie, en een bezoeker op de landingspagina kreeg hier een 401 in zijn
+// console. Hij heeft ook niets aan de sfeerlus — die begint pas als er iemand
+// kijkt. Wie daarna inlogt haalt hem alsnog op (`reloadSounds`, aangeroepen bij
+// elke sounds:updated en bij het starten van de sfeer).
+if (window.app?.state?.role === 'dm' || window.app?.state?.characterId || window._isDisplayMode) {
+  _loadSounds().then(_initAmbianceFromLoaded);
+}
