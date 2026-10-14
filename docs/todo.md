@@ -82,6 +82,17 @@ groot het is. Bijgewerkt 15 sep 2026.
 
 ## Multi-DM, resterende stappen → `docs/multi-dm-plan.md`
 
+- [x] **Foutmeldingen** — gedaan 14 okt 2026. Drie wegen naar één boekje
+      (`lib/fouten.js`, ringbuffer van 200 in `data/fouten.json`):
+      de foutafhandelaar van Express, de vangers in de browser
+      (`render-melding.js`) en het meldtabje van de DM. Ontdubbeld op soort +
+      melding + eerste stackregel met een teller; meldingen van mensen juist
+      niet, en die staan bovenaan. Alleen campagne-id, route en rol — nooit de
+      inhoud van een campagne. Te lezen bij Instellingen → *Wat er misging*
+      (alleen beheerder), per stuk weg te strepen.
+      Nog open: **uitnodigingslink** voor een nieuwe DM, en de cijfers per
+      campagne naast het schijfgebruik dat er al staat.
+
 - [x] **6. Wizard** — gedaan 2 okt 2026, `public/js/wizard.js`. Zes stappen,
       in de campagne zelf, door de DM van die campagne. Modules zitten er
       bewust níét in: die staan op `requireBeheerder` en horen dus bij wie de

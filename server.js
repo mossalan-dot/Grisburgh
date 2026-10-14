@@ -8,6 +8,7 @@ const { Server } = require('socket.io');
 const path       = require('path');
 const config     = require('./config');
 const storage    = require('./lib/storage');
+const fouten     = require('./lib/fouten');
 const apiRoutes  = require('./routes/api');
 const { router: authRouter } = require('./routes/auth');
 
@@ -294,6 +295,47 @@ app.get('*', (req, res) => {
     .replace(/href="\/img\/favicon-32\.png\?v=\d+"/,
              `href="/app-icon-180.png?campagne=${encodeURIComponent(cid)}"`);
   res.type('html').send(html);
+});
+
+// ── Wat er omviel ────────────────────────────────────────────────────────────
+// Een fout die niemand opvangt eindigde in het pm2-logboek, tussen de scanners
+// die `/%c0/` proberen — en daarmee nergens. Hier wordt hij een regel in
+// `data/fouten.json`, met de route en de campagne erbij maar zonder de inhoud
+// van die campagne, zodat de beheerder hem ziet staan.
+//
+// Vier stuks moet deze laag staan: Express herkent een middleware met vier
+// argumenten als foutafhandelaar, en met drie wordt het stilletjes een gewone
+// route die nooit afgaat.
+app.use((err, req, res, _next) => {
+  // Een pad dat niet te decoderen valt is geen fout van ons maar een scanner.
+  // Die hoeven we niet te bewaren; we hebben er al achthonderd kilobyte van.
+  const scanner = err instanceof URIError || /Failed to decode param/.test(err?.message || '');
+  if (!scanner) {
+    try {
+      fouten.meld({
+        soort: 'server',
+        melding: String(err?.message || err).slice(0, 300),
+        stack: String(err?.stack || ''),
+        waar: `${req.method} ${String(req.path).slice(0, 160)}`,
+        rol: req.session?.role === 'dm' ? 'dm' : (req.session?.characterId ? 'speler' : 'bezoeker'),
+        campagne: req.session?.campaignId || storage.getActiveCampaignId(),
+      });
+    } catch { /* het logboek mag het verzoek niet meeslepen */ }
+    console.error('[fout]', req.method, req.path, err?.message || err);
+  }
+  if (res.headersSent) return;
+  res.status(err?.status || 500).json({ error: 'Er ging iets mis' });
+});
+
+// Wat helemaal buiten een verzoek omvalt. Niet afsluiten: een DM die midden in
+// een akte zit heeft meer aan een app die doorhobbelt dan aan een schone dood.
+process.on('unhandledRejection', (reden) => {
+  try { fouten.meld({ soort: 'server', melding: 'Onafgehandelde belofte: ' + String(reden?.message || reden).slice(0, 200), stack: String(reden?.stack || ''), waar: 'buiten een verzoek' }); } catch {}
+  console.error('[fout] unhandledRejection', reden);
+});
+process.on('uncaughtException', (err) => {
+  try { fouten.meld({ soort: 'server', melding: String(err?.message || err).slice(0, 200), stack: String(err?.stack || ''), waar: 'buiten een verzoek' }); } catch {}
+  console.error('[fout] uncaughtException', err);
 });
 
 // Track which socket belongs to which characterId (for direct messaging)

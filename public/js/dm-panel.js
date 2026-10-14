@@ -1,4 +1,4 @@
-import { api, huidigeCampagne } from './api.js?v=311';
+import { api, huidigeCampagne } from './api.js?v=312';
 import { init as canvasInit, update as canvasUpdate, stop as canvasStop, acGetal } from './combat-canvas.js?v=30';
 import { renderStatblock } from './render-statblock.js?v=9';
 
@@ -191,6 +191,9 @@ function escJS(s) {
 export function initDmPanel() {
   window.dmPanel = {
     switchTab(tab) { _switchTab(tab); },
+    // Waar sta je nu? Het meldtabje vult daarmee zijn eerste regel in, zodat een
+    // DM niet hoeft uit te leggen waar hij was toen het misging.
+    huidigeTab() { return _activeTab; },
     renderMeesterkamer() {
       _buildTabs();
       _switchTab(_activeTab);
@@ -487,6 +490,11 @@ export function initDmPanel() {
     },
     akteImport:   () => _akteImportWizard(),
     checklist:    () => _checklistOpen(),
+    async foutWeg(id) {
+      if (id === 'alles' && !confirm('Alles opruimen?\n\nDe lijst gaat leeg; wat er nog misgaat komt vanzelf terug.')) return;
+      try { await api.wisFout(id); _renderInstellingen(); }
+      catch (e) { alert('Opruimen lukt niet: ' + (e.message || e)); }
+    },
     akteImpAnalyse: () => _akteImpAnalyse(),
     akteImpToggle:  (id) => _akteImpToggle(id),
     akteImpField:   (id, f, val) => _akteImpField(id, f, val),
@@ -12725,6 +12733,53 @@ const _INST_DICHT_KEY = 'grisburgh:inst-dicht';
 let _instDicht = new Set();
 try { _instDicht = new Set(JSON.parse(localStorage.getItem(_INST_DICHT_KEY) || '[]')); } catch { /* geen stand, alles open */ }
 
+// ── Wat er misging ──────────────────────────────────────────────────────────
+// Drie soorten in één lijst, want ze beantwoorden dezelfde vraag — werkt het?
+// Een **melding** komt van een mens en staat bovenaan: daar wacht iemand op een
+// antwoord. Een fout uit de **browser** of van de **server** is geteld: honderd
+// keer dezelfde fout is één regel met honderd erachter.
+const _FOUT_SOORT = {
+  melding: { label: 'Gemeld', icoon: 'message-circle' },
+  client:  { label: 'Browser', icoon: 'x' },
+  server:  { label: 'Server', icoon: 'x' },
+};
+
+function _foutWanneer(iso) {
+  if (!iso) return '';
+  const d = new Date(iso), nu = Date.now();
+  const min = Math.round((nu - d.getTime()) / 60000);
+  if (min < 1) return 'net';
+  if (min < 60) return min + ' min geleden';
+  if (min < 60 * 24) return Math.round(min / 60) + ' uur geleden';
+  return d.toLocaleDateString('nl-NL', { day: 'numeric', month: 'short' });
+}
+
+function _foutenHtml(lijst) {
+  if (!lijst.length) {
+    return `<p class="dm-hint" style="margin:0">Niets te melden. Fouten in de browser en op de server komen
+      hier vanzelf terecht, en wat een DM zelf meldt met het tabje naast de dobbelsteen ook.</p>`;
+  }
+  const rijen = lijst.slice(0, 40).map(f => {
+    const s = _FOUT_SOORT[f.soort] || _FOUT_SOORT.client;
+    const melding = f.soort === 'melding' ? (f.toelichting || f.melding) : f.melding;
+    return `<div class="dm-fout dm-fout--${esc(f.soort)}">
+      <div class="dm-fout-kop">
+        <span class="dm-fout-soort">${icon(s.icoon)} ${esc(s.label)}</span>
+        ${f.aantal > 1 ? `<span class="dm-fout-aantal">${f.aantal}×</span>` : ''}
+        <span class="dm-fout-wanneer">${esc(_foutWanneer(f.laatst))}</span>
+        <button class="dm-fout-weg" onclick="window.dmPanel.foutWeg('${esc(f.id)}')" title="Afgehandeld — haal hem weg">${icon('x')}</button>
+      </div>
+      <div class="dm-fout-tekst">${esc(melding)}</div>
+      <div class="dm-fout-meta">${[f.campagne, f.rol, f.waar, f.versie].filter(Boolean).map(esc).join(' · ')}</div>
+      ${f.stack ? `<details class="dm-fout-stack"><summary>Stack</summary><pre>${esc(f.stack)}</pre></details>` : ''}
+    </div>`;
+  }).join('');
+  return `${rijen}
+    <div class="dm-form-row" style="margin-top:10px">
+      <button class="dm-btn dm-btn-sm dm-btn-ghost" onclick="window.dmPanel.foutWeg('alles')">${icon('trash')} Alles opruimen</button>
+    </div>`;
+}
+
 // ── Klaar om te spelen? ─────────────────────────────────────────────────────
 // Geen formulier en niets om te bewaren: een lijst om te lezen vlak voor je
 // begint. De helft kan de app zelf nakijken — meldt er een tafelscherm, zit de
@@ -12972,6 +13027,10 @@ async function _renderInstellingen() {
     beheerCamp   = cp.beheerCampagne || '';
     magBeheren   = true;
   } catch { /* geen beheerder */ }
+  // Wat er misging. Alleen voor de beheerder, want het gaat over álle
+  // campagnes — de DM van één campagne heeft daar niets te zoeken.
+  let foutenLijst = [];
+  if (magBeheren) { try { foutenLijst = (await api.getFouten()).fouten || []; } catch { /* ok */ } }
 
   // Personages erbij, zodat we per party kunnen tonen wie er vanavond is.
   let alleSpelers = [];
@@ -13242,6 +13301,10 @@ async function _renderInstellingen() {
         </label>
       </div>
     `, window._helpBtn?.('inst_gevecht') ?? '')}
+
+    ${!magBeheren ? '' : _instSectie('fouten',
+      `Wat er misging${foutenLijst.length ? ` (${foutenLijst.length})` : ''}`,
+      _foutenHtml(foutenLijst))}
 
     ${!magBeheren ? '' : _instSectie('campagnes', 'Campagnes en modules', `
       <div class="dm-beheer-campagnes">

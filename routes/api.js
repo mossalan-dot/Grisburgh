@@ -6,6 +6,7 @@ const { spawn } = require('child_process');
 const storage = require('../lib/storage');
 const mediaUsage = require('../lib/media-usage');
 const { requireDM, requireBeheerder, attachRole, hashWachtwoord } = require('./auth');
+const fouten = require('../lib/fouten');
 const { buildSnapshot, buildCampagneboek } = require('../lib/snapshot');
 const { sheetHtml } = require('../lib/character-sheet');
 const { MODULES, modulesVoor, modulesVrijgegeven, schoneModules, verborgenUI } = require('../lib/modules');
@@ -15243,6 +15244,47 @@ router.get('/checklist', requireDM, (req, res) => {
       entiteitenDicht: bereik.entiteitenDicht.length,
     },
   });
+});
+
+// ── Wat er misging ──────────────────────────────────────────────────────────
+// Eén deur naar binnen voor twee soorten: wat de browser zelf opving (een
+// uitzondering die niemand meldde) en wat een DM zelf opschrijft. Ze gaan in
+// hetzelfde boekje, want ze beantwoorden dezelfde vraag — werkt het?
+//
+// Alleen wie is ingelogd mag melden. Dat is geen vertrouwen in de melder maar
+// een rem: een open deur naar een schrijfbaar bestand is een uitnodiging.
+router.post('/fout', attachRole, (req, res) => {
+  const ingelogd = req.session?.role === 'dm' || !!req.session?.characterId;
+  if (!ingelogd) return res.status(401).json({ error: 'Niet ingelogd' });
+  const b = req.body || {};
+  const rol = req.session?.role === 'dm' ? 'dm' : (req.session?.characterId ? 'speler' : 'bezoeker');
+  const f = fouten.meld({
+    soort:   b.soort === 'melding' ? 'melding' : 'client',
+    melding: b.melding,
+    stack:   b.stack,
+    waar:    b.waar,
+    rol,
+    campagne: _campagneRoom(req),
+    versie:   b.versie,
+    toelichting: b.toelichting,
+  });
+  res.json({ ok: true, id: f.id });
+});
+
+// Alleen de beheerder leest ze: het gaat over álle campagnes, en de DM van één
+// campagne heeft daar niets te zoeken.
+router.get('/fouten', requireBeheerder, (req, res) => {
+  const lijst = fouten.alle();
+  res.json({
+    fouten: lijst,
+    meldingen: lijst.filter(f => f.soort === 'melding').length,
+    max: fouten.MAX,
+  });
+});
+
+router.delete('/fouten/:id', requireBeheerder, (req, res) => {
+  const over = fouten.wis(req.params.id === 'alles' ? null : req.params.id);
+  res.json({ over });
 });
 
 // ── Locatie (Grisburgh verlaten) ──
