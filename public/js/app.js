@@ -15443,6 +15443,11 @@ const HELP_CONFIG = {
         tekst: 'Dan mag hij hier niet staan. De **SRD**-teksten zijn vrij te gebruiken en staan er voluit; de rest niet, en daar staat een knop *Lees hem elders* die je naar een naslagpagina brengt. Wat de DM zelf schreef staat er altijd.',
         afbeelding: null,
       },
+      {
+        titel: 'Een gestippeld kaartje',
+        tekst: 'Kaartjes met een **gestippelde rand** en een iets vagere plaat zijn er niet echt: ze staan in de lijst van wat er in de boeken nog meer bestaat, zodat je de naam kunt opzoeken, maar deze wereld heeft er verder niets over. Vul je er zelf iets in, dan wordt het een gewoon kaartje met een doorgetrokken rand.',
+        afbeelding: null,
+      },
     ],
   }),
 
