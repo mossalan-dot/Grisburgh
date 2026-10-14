@@ -10,8 +10,8 @@
 //
 // **Met de hand.** Niet alles wat misgaat gooit een fout: een knop op de
 // verkeerde plek, een naam die niet klopt, een tekst die iets anders zegt dan
-// hij doet. Daarvoor is het tabje onder de dobbelsteen. Waar je was vult hij
-// zelf in — dat is precies het stukje dat een melder vergeet en dat je als
+// hij doet. Daarvoor staat onderin elk boekje een uitklapper. Waar je was vult
+// hij zelf in — dat is precies het stukje dat een melder vergeet en dat je als
 // beheerder nodig hebt.
 
 const esc = (s) => window.app?.esc?.(s) ?? String(s ?? '');
@@ -22,11 +22,12 @@ const esc = (s) => window.app?.esc?.(s) ?? String(s ?? '');
 function _waarBenIk() {
   const d = [];
   const sectie = window.app?.state?.activeSection;
-  if (sectie) d.push(sectie);
-  if (sectie === 'meesterkamer' || document.getElementById('dm-panel')?.offsetParent) {
-    const t = window.dmPanel?.huidigeTab?.();
-    if (t) d.push('meesterkamer › ' + t);
-  }
+  const tab = (sectie === 'meesterkamer' || document.getElementById('dm-panel')?.offsetParent)
+    ? window.dmPanel?.huidigeTab?.() : null;
+  // Het tabje zegt al in welke sectie je zit, dus niet allebei: "meesterkamer ·
+  // meesterkamer › aktes" is één keer te veel.
+  if (tab) d.push('meesterkamer › ' + tab);
+  else if (sectie) d.push(sectie);
   const subtab = document.querySelector('.player-subtab.active')?.dataset?.tab;
   if (subtab) d.push('speler › ' + subtab);
   const modal = document.querySelector('#modal-overlay.active .modal-title, #modal-overlay.active #m-title');
@@ -73,73 +74,54 @@ window.addEventListener('unhandledrejection', (ev) => {
 });
 
 // ── Met de hand melden ──────────────────────────────────────────────────────
-window._meldToggle = function () {
-  const p = document.getElementById('meld-panel');
-  if (!p) return;
-  const open = p.classList.toggle('open');
-  if (!open) return;
-  const waar = document.getElementById('meld-waar');
-  if (waar) waar.value = _waarBenIk();            // elke keer opnieuw: je bent verhuisd
-  document.getElementById('meld-wat')?.focus();
+// In het boekje, niet onder een eigen knop in de hoek. Je slaat een boekje open
+// omdat je iets niet snapt, en dat is precies het moment waarop blijkt dat het
+// aan het scherm ligt en niet aan jou. Eén knop die twee dingen doet in plaats
+// van twee knoppen die naast elkaar staan te wachten.
+//
+// En het antwoord op "waar" is er meteen beter van: de sleutel van het boekje
+// (`dm_aktes`, `hulp_bewerk_locaties`) zegt exact welk scherm het is. Dat is
+// harder dan wat we uit de DOM kunnen afleiden — al gaat dat er nog bij, want
+// het venster dat eroverheen stond weet de sleutel niet.
+window._meldBlokHtml = function (sleutel, titel) {
+  return `
+    <details class="meld-blok" id="meld-blok">
+      <summary>${esc('Werkt dit scherm niet zoals het hoort?')}</summary>
+      <div class="meld-blok-body">
+        <input type="hidden" id="meld-sleutel" value="${esc(sleutel || '')}">
+        <input type="hidden" id="meld-titel" value="${esc(titel || '')}">
+        <label class="meld-label" for="meld-wat">Wat ging er mis?</label>
+        <textarea id="meld-wat" class="meld-veld meld-veld--groot" rows="3"
+          placeholder="Wat deed je, en wat gebeurde er in plaats van wat je verwachtte?"></textarea>
+        <div class="meld-voet">
+          <span class="meld-uit" id="meld-uit"></span>
+          <button class="meld-knop" onclick="event.stopPropagation();window._meldVerstuur()">Versturen</button>
+        </div>
+      </div>
+    </details>`;
 };
 
 window._meldVerstuur = async function () {
-  const wat  = document.getElementById('meld-wat');
-  const waar = document.getElementById('meld-waar');
-  const uit  = document.getElementById('meld-uit');
+  const wat = document.getElementById('meld-wat');
+  const uit = document.getElementById('meld-uit');
   const tekst = (wat?.value || '').trim();
   if (tekst.length < 5) { wat?.focus(); if (uit) uit.textContent = 'Schrijf even wat er misging.'; return; }
   if (uit) uit.textContent = 'Versturen…';
+  const sleutel = document.getElementById('meld-sleutel')?.value || '';
+  const titel   = document.getElementById('meld-titel')?.value || '';
+  // Drie lagen in één regel: hoe het scherm heet, hoe het heet in de code, en
+  // waar je stond. De eerste twee komen uit het boekje, de derde uit de DOM —
+  // die voegt toe wat de sleutel niet weet, zoals het venster dat eroverheen
+  // stond toen je het opendeed.
+  const waar = [titel, sleutel ? `(${sleutel})` : '', '— ' + _waarBenIk()].filter(Boolean).join(' ');
   const ok = await _stuur({
     soort: 'melding',
     melding: tekst.split('\n')[0].slice(0, 120),
     toelichting: tekst,
-    waar: (waar?.value || '').trim() || _waarBenIk(),
+    waar,
   });
   if (!ok) { if (uit) uit.textContent = 'Versturen lukte niet. Staat de verbinding nog?'; return; }
   if (wat) wat.value = '';
   if (uit) uit.textContent = 'Staat genoteerd. Dank je.';
-  setTimeout(() => { document.getElementById('meld-panel')?.classList.remove('open'); if (uit) uit.textContent = ''; }, 1800);
+  setTimeout(() => { document.getElementById('meld-blok')?.removeAttribute('open'); if (uit) uit.textContent = ''; }, 1800);
 };
-
-// De knop en het paneel hangen naast de dobbelsteen en horen bij de DM: een
-// speler meldt het aan zijn DM, niet aan de beheerder van de server.
-function _bouw() {
-  if (document.getElementById('meld-fab')) return;
-  const knop = document.createElement('button');
-  knop.id = 'meld-fab'; knop.className = 'meld-fab hidden';
-  knop.title = 'Een fout melden';
-  knop.setAttribute('aria-label', 'Een fout melden');
-  knop.onclick = () => window._meldToggle();
-  knop.innerHTML = `<svg class="icon" aria-hidden="true"><use href="/img/icons.svg?v=19#icon-message-circle"/></svg>`;
-  const paneel = document.createElement('div');
-  paneel.id = 'meld-panel'; paneel.className = 'meld-panel';
-  paneel.innerHTML = `
-    <div class="meld-kop">
-      <span class="meld-titel">Een fout melden</span>
-      <span class="meld-kop-knoppen">
-        ${window._helpBtn ? window._helpBtn('dm_melden') : ''}
-        <button class="meld-sluit" onclick="window._meldToggle()" title="Sluiten">&times;</button>
-      </span>
-    </div>
-    <label class="meld-label" for="meld-waar">Waar</label>
-    <input id="meld-waar" class="meld-veld" readonly>
-    <label class="meld-label" for="meld-wat">Wat ging er mis?</label>
-    <textarea id="meld-wat" class="meld-veld meld-veld--groot" rows="4"
-      placeholder="Wat deed je, en wat gebeurde er in plaats van wat je verwachtte?"></textarea>
-    <div class="meld-voet">
-      <span class="meld-uit" id="meld-uit"></span>
-      <button class="meld-knop" onclick="window._meldVerstuur()">Versturen</button>
-    </div>`;
-  document.body.append(knop, paneel);
-}
-
-// Alleen voor de DM in beeld. De knop bestaat voor iedereen in de DOM maar
-// blijft verborgen; zo hoeft er bij het wisselen van rol niets herbouwd.
-window._meldZichtbaar = (aan) => {
-  _bouw();
-  document.getElementById('meld-fab')?.classList.toggle('hidden', !aan);
-  if (!aan) document.getElementById('meld-panel')?.classList.remove('open');
-};
-
-_bouw();

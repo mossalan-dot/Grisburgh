@@ -85,7 +85,7 @@ groot het is. Bijgewerkt 15 sep 2026.
 - [x] **Foutmeldingen** — gedaan 14 okt 2026. Drie wegen naar één boekje
       (`lib/fouten.js`, ringbuffer van 200 in `data/fouten.json`):
       de foutafhandelaar van Express, de vangers in de browser
-      (`render-melding.js`) en het meldtabje van de DM. Ontdubbeld op soort +
+      (`render-melding.js`) en een uitklapper onderin elk hulpboekje. Ontdubbeld op soort +
       melding + eerste stackregel met een teller; meldingen van mensen juist
       niet, en die staan bovenaan. Alleen campagne-id, route en rol — nooit de
       inhoud van een campagne. Te lezen bij Instellingen → *Wat er misging*

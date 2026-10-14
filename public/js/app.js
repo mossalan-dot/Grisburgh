@@ -8,7 +8,7 @@ import { renderProgressie, levelupFeatures } from './render-progressie.js?v=62';
 import { renderBestiarium } from './render-bestiarium.js?v=31';
 import { renderSpreuken } from './render-spreuken.js?v=47';
 import './render-handleiding.js?v=2';
-import './render-melding.js?v=2';
+import './render-melding.js?v=4';
 import { renderVaardigheden, zoekVaardigheden, heldenboekTekst } from './render-vaardigheden.js?v=50';
 import { renderStatblock } from './render-statblock.js?v=9';
 import { initSocket } from "./socket-client.js?v=85";
@@ -1324,10 +1324,6 @@ function applyRole() {
   if (diceFab)   diceFab.classList.toggle('hidden', opTafel || isDmActive);
   if (dmDiceFab) dmDiceFab.classList.toggle('hidden', opTafel || !isDmActive);
   if (opTafel) document.getElementById('dice-panel')?.classList.add('hidden');
-  // Het meldtabje hangt naast de dobbelsteen en hoort bij de DM: een speler
-  // meldt het aan zijn DM, niet aan de beheerder van de server. En op tafel
-  // staat helemaal niets — daar wordt niet getypt.
-  window._meldZichtbaar?.(isDmActive && !opTafel);
 
   // Meesterkamer-tab: alleen zichtbaar voor actieve DM
   const dmTab = document.getElementById('dm-tab');
@@ -15054,12 +15050,6 @@ const HELP_CONFIG = {
     { titel: 'Naslag elders', tekst: 'Niet elke regeltekst mag in de app staan: wat niet in de vrije SRD zit heeft bij ons geen beschrijving. **Linken mag wel.** Hier zet je waarnaar die verwijzing gaat — een zoekopdracht met `{zoek}` erin, of `{naam}` en `{soort}` als je het zelf wil samenstellen. Leeg is een zoekmachine, en dat werkt beter dan een diepe link: die verlept zodra de andere site zijn adressen verandert.', afbeelding: null },
     { titel: 'Campagnes en modules', tekst: 'Alleen de beheerder ziet dit. Per campagne staat hier het DM-wachtwoord, welke campagne de **standaard** is (waar het kale adres naartoe stuurt) en welke **modules** aanstaan. Wat uit staat verdwijnt uit beeld — bij de DM én bij zijn spelers; er komt geen grijze "binnenkort"-knop voor in de plaats.', afbeelding: null },
   ] }),
-  dm_melden: () => ({ titel: 'Een fout melden', stappen: [
-    { titel: 'Waarvoor dit is', tekst: 'Niet alles wat misgaat gooit een foutmelding. Een knop op de verkeerde plek, een naam die niet klopt, een tekst die iets anders zegt dan hij doet — daar merkt de app niets van, en jij wel.\n\nTyp het hier op. Het komt bij de beheerder terecht, niet bij je spelers.', afbeelding: null },
-    { titel: 'Waar je was vult hij zelf in', tekst: 'Het veld **Waar** staat al ingevuld met het scherm waar je stond toen je het tabje opendeed — inclusief het tabje van de meesterkamer en het venster dat eroverheen stond. Dat is precies het stukje dat een melder vergeet en dat nodig is om het terug te vinden.\n\nStaat er iets anders? Doe het tabje dicht, ga naar de plek waar het misging en open hem daar opnieuw.', afbeelding: null },
-    { titel: 'Wat er vanzelf al gemeld wordt', tekst: 'Gaat er iets écht stuk — een uitzondering in de browser of op de server — dan wordt dat zonder jou al opgeschreven, met de plek en de versie erbij. Je hoeft dus niet te melden dat er niets gebeurde; wél wát je probeerde te doen.', afbeelding: null },
-  ] }),
-
   dm_checklist: () => ({ titel: 'Klaar om te spelen?', stappen: [
     { titel: 'Waarvoor dit is', tekst: 'Een lijst om te lézen, vlak voordat je begint — geen formulier, er wordt niets bewaard. Een nieuwe DM weet niet wat er aan tafel klaar moet staan, en een ervaren DM vergeet het ene ding dat hij deze keer níét standaard had.', afbeelding: null },
     { titel: 'Vinkje of vraagteken', tekst: 'Een **vinkje** betekent dat de app het zelf heeft nagekeken: meldt er een tafelscherm, staat de juiste party actief, hangt er een akte in de regie-balk, is de muziek gekoppeld en op een apparaat gezet.\n\nEen **vraagteken** betekent dat alleen jij het weet. De privésessie van Spotify geeft hun API niet vrij, en of het geluid uit de juiste boxen komt weet alleen wie in de kamer zit. Een vinkje dat niets betekent is erger dan geen vinkje.', afbeelding: null },
@@ -15915,6 +15905,12 @@ function _renderHelpModal(config, idx) {
       <div class="help-modal-body">
         <div class="help-modal-stap-titel">${esc(stap.titel)}</div>
         <div class="help-modal-tekst">${mdToHtml(stap.tekst)}</div>
+        <!-- Melden hoort hier en niet onder een eigen knop in de hoek. Je komt
+             in dit boekje omdat je iets niet snapt — en dat is precies het
+             moment waarop blijkt dat het aan het scherm ligt en niet aan jou.
+             De sleutel van het boekje zegt bovendien exact welk scherm het is;
+             dat is een beter antwoord op "waar" dan wat we eruit kunnen afleiden. -->
+        ${window.app?.isDM?.() ? (window._meldBlokHtml?.(window._helpModalKey, config.titel) || '') : ''}
       </div>
       ${totaal > 1 ? `
       <div class="help-modal-footer">

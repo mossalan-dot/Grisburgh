@@ -30370,45 +30370,24 @@ body:has(#sb-overlay.sb-open) .dm-dice-fab { display: none !important; }
 /* ══════════════════════════════════════════════════════════════════════════
    EEN FOUT MELDEN
    ══════════════════════════════════════════════════════════════════════════
-   Hetzelfde tabje als de dobbelsteen, één plekje erboven: zelfde maat, zelfde
-   plaats, zelfde manier van uitklappen. Wie de dobbelsteen kan vinden, vindt
-   dit ook. Alleen de kleur verschilt — goud is voor gooien. */
-/* In de onderste rij, links van de dobbelsteen — niet erboven: staat de
-   dobbelsteen uit (een campagne mag hem uitzetten), dan zweefde er anders een
-   knop boven een lege hoek. */
-.meld-fab {
-  position: fixed;
-  bottom: 1.5rem;
-  right: calc(1.5rem + 2 * (3.5rem + 10px));
-  width: 3.5rem; height: 3.5rem; border-radius: 50%;
-  display: flex; align-items: center; justify-content: center;
-  cursor: pointer; z-index: 45; color: #f2e8d2;
-  background: radial-gradient(circle at 38% 30%, #6e5b44 0%, #584736 38%, #3f3324 75%, #2f261a 100%);
-  border: 1px solid rgba(60,46,26,0.6);
-  box-shadow: 0 3px 10px rgba(30,20,6,0.32), inset 0 1.5px 1px rgba(255,244,200,0.22);
-  transition: transform 0.18s ease, box-shadow 0.18s ease;
+   Onderin het boekje, uitklapbaar. Geen eigen knop in de hoek: je slaat een
+   boekje open omdat je iets niet snapt, en dat is precies het moment waarop
+   blijkt dat het aan het scherm ligt. Eén knop die twee dingen doet. */
+.meld-blok {
+  margin-top: 16px; padding-top: 10px;
+  border-top: 1px dashed rgba(196,168,122,.5);
 }
-.meld-fab:hover { transform: scale(1.10); box-shadow: 0 6px 18px rgba(30,20,6,0.4); }
-.meld-fab:active { transform: scale(0.95); }
-.meld-fab svg { width: 20px; height: 20px; }
-
-.meld-panel {
-  position: fixed; z-index: 46;
-  bottom: calc(1.5rem + 3.5rem + 10px); right: 1.5rem;
-  width: min(330px, calc(100vw - 32px));
-  padding: 12px 14px 14px;
-  background: linear-gradient(170deg, #f6eeda, #efe5cc);
-  border: 1px solid rgba(138,109,63,.55); border-radius: 10px;
-  box-shadow: 0 10px 30px rgba(30,20,6,.35);
-  opacity: 0; visibility: hidden; transform: translateY(8px);
-  transition: opacity .18s ease, transform .18s ease, visibility .18s;
+.meld-blok > summary {
+  font-family: 'Crimson Text', serif; font-size: .88em; font-style: italic;
+  color: #9a8468; cursor: pointer; list-style: none;
 }
-.meld-panel.open { opacity: 1; visibility: visible; transform: none; }
-.meld-kop { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
-.meld-titel { font-family: 'Cinzel', serif; font-size: .92em; color: #5a4030; }
-.meld-sluit { background: none; border: 0; font-size: 18px; line-height: 1; color: #8a7050; cursor: pointer; }
+.meld-blok > summary::-webkit-details-marker { display: none; }
+.meld-blok > summary::before { content: '✎ '; }
+.meld-blok > summary:hover { color: #9a7008; }
+.meld-blok[open] > summary { color: #7a6040; margin-bottom: 6px; }
+.meld-blok-body { padding-bottom: 2px; }
 .meld-label {
-  display: block; margin: 8px 0 2px;
+  display: block; margin: 6px 0 2px;
   font-family: 'Cinzel', serif; font-size: 9.5px; letter-spacing: .08em;
   text-transform: uppercase; color: #9a7050;
 }
@@ -30417,55 +30396,13 @@ body:has(#sb-overlay.sb-open) .dm-dice-fab { display: none !important; }
   font-family: 'Crimson Text', serif; font-size: .95em; color: #3a2410;
   background: rgba(255,252,244,.8); border: 1px solid rgba(196,168,122,.8); border-radius: 5px;
 }
-.meld-veld[readonly] { color: #7a6040; font-style: italic; }
 .meld-veld--groot { resize: vertical; }
-.meld-voet { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 10px; }
+.meld-voet { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 8px; }
 .meld-uit { font-family: 'Crimson Text', serif; font-size: .85em; font-style: italic; color: #7a6040; }
 .meld-knop {
   font-family: 'Cinzel', serif; font-size: 11px; letter-spacing: .04em;
-  padding: 6px 14px; cursor: pointer; color: #f5edd8;
+  padding: 5px 13px; cursor: pointer; color: #f5edd8;
   background: linear-gradient(180deg, #8a6a22, #6d5316);
   border: 1px solid rgba(60,46,26,.6); border-radius: 6px;
 }
 .meld-knop:hover { background: linear-gradient(180deg, #9a7a2a, #7d631e); }
-
-@media (max-width: 640px) {
-  /* Op een telefoon staan ze in een kolom tegen de rand, en daar is "onder de
-     dobbelsteen" wél letterlijk waar: de dobbel zit op 126. */
-  .meld-fab { right: 0; bottom: 74px; width: 38px; height: 38px; }
-  .meld-fab:hover { transform: none; }
-  .meld-panel { right: 10px; left: 10px; bottom: 240px; width: auto; }
-}
-
-/* ── Wat er misging, in de beheerpagina ──────────────────────────────────── */
-.dm-fout {
-  border: 1px solid rgba(196,168,122,.45); border-left: 3px solid #8a7050;
-  border-radius: 6px; padding: 8px 11px; margin-bottom: 8px;
-  background: rgba(255,252,244,.5);
-}
-.dm-fout--melding { border-left-color: #9a7008; background: rgba(154,112,8,.07); }
-.dm-fout--server  { border-left-color: #8b2a2a; }
-.dm-fout-kop { display: flex; align-items: center; gap: 8px; margin-bottom: 3px; }
-.dm-fout-soort {
-  display: inline-flex; align-items: center; gap: 4px;
-  font-family: 'Cinzel', serif; font-size: 9px; letter-spacing: .07em;
-  text-transform: uppercase; color: #8a7050;
-}
-.dm-fout-soort svg { width: 11px; height: 11px; }
-.dm-fout-aantal {
-  font-family: 'Cinzel', serif; font-size: 10px; color: #8b2a2a;
-  border: 1px solid rgba(139,42,42,.4); border-radius: 9px; padding: 0 6px;
-}
-.dm-fout-wanneer { margin-left: auto; font-family: 'Crimson Text', serif; font-size: .82em; color: #9a8468; }
-.dm-fout-weg { background: none; border: 0; color: #9a8468; cursor: pointer; padding: 0 2px; display: flex; }
-.dm-fout-weg:hover { color: #8b2a2a; }
-.dm-fout-weg svg { width: 12px; height: 12px; }
-.dm-fout-tekst { font-family: 'Crimson Text', serif; font-size: .96em; color: #3a2410; white-space: pre-wrap; }
-.dm-fout-meta { font-family: 'Crimson Text', serif; font-size: .8em; color: #9a8468; margin-top: 2px; }
-.dm-fout-stack summary { font-family: 'Cinzel', serif; font-size: 9px; letter-spacing: .06em; text-transform: uppercase; color: #9a8468; cursor: pointer; margin-top: 5px; }
-.dm-fout-stack pre {
-  font-size: 11px; line-height: 1.4; color: #6a5430; overflow-x: auto;
-  background: rgba(42,26,8,.05); border-radius: 4px; padding: 7px 9px; margin: 4px 0 0;
-}
-.meld-kop-knoppen { display: flex; align-items: center; gap: 4px; }
-.meld-kop-knoppen .help-btn { transform: scale(.85); }
