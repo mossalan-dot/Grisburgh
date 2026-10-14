@@ -439,9 +439,13 @@ function _card(it) {
       ${it.level ? `<span class="vaardig-card-niv">${it.level}</span>` : ''}
       <div class="card-img-wrap vaardig-card-img-wrap">
         <div class="vaardig-card-silhouet">${icon(_itemIcoon(it))}</div>
-        ${(() => { const b = _beeldVan(it); return b ? `<img class="vaardig-card-img" src="/api/files/${esc(b.id)}" alt="" loading="lazy"
+        ${(() => {
+          const [b, ...rest] = _beeldKeten(it);
+          return b ? `<img class="vaardig-card-img" src="/api/files/${esc(b.id)}" alt="" loading="lazy"
           style="${b.focus ? `object-position:${esc(b.focus)}` : ''}"
-          onload="this.classList.add('is-on')" onerror="this.remove()">` : ''; })()}
+          ${rest.length ? `data-terugval="${esc(JSON.stringify(rest))}"` : ''}
+          onload="this.classList.add('is-on')" onerror="window.vaardigheden.beeldMis(this)">` : '';
+        })()}
       </div>
       <div class="entity-card-body vaardig-card-body">
         <div class="vaardig-card-name">${esc(it.naam)}</div>
@@ -695,9 +699,15 @@ function _hbBeeld(soort, naam) {
 //
 // Een subclass zonder eigen plaat valt door naar zijn class: een feature van de
 // Berserker hoort nog steeds bij een Barbarian.
-function _beeldVan(it) {
-  if (!it) return null;
-  if (it.img) return { id: it.img, focus: it.imgFocus || '' };
+//
+// `_beeldKeten` geeft ze allemaal, van eigen naar moeder; `_beeldVan` pakt de
+// eerste. De rest is er voor het geval de eerste er niet meer is: een bestand
+// kan uit de bibliotheek verdwijnen terwijl het kaartje er nog naar wijst, en
+// dan hoort het kaartje terug te vallen op zijn moeder in plaats van op niets.
+function _beeldKeten(it) {
+  if (!it) return [];
+  const uit = [];
+  if (it.img) uit.push({ id: it.img, focus: it.imgFocus || '' });
   const ketens = {
     class:    [['class', it.bron]],
     subclass: [['subclass', it.sub], ['class', it.bron]],
@@ -710,9 +720,22 @@ function _beeldVan(it) {
   for (const [soort, naam] of ketens) {
     if (!naam) continue;
     const b = _hbBeeldRuw(soort, naam);
-    if (b?.id) return { id: b.id, focus: b.focus || '', geerfd: `${naam}` };
+    if (b?.id) uit.push({ id: b.id, focus: b.focus || '', geerfd: `${naam}` });
   }
-  return null;
+  return uit;
+}
+function _beeldVan(it) { return _beeldKeten(it)[0] || null; }
+
+// Het beeld laadde niet. Schuif door naar de volgende uit de keten; is die er
+// niet, dan pas verdwijnt de plaat en blijft het silhouet eronder staan.
+function _beeldMis(img) {
+  let rest = [];
+  try { rest = JSON.parse(img.dataset.terugval || '[]'); } catch { rest = []; }
+  const volgende = rest.shift();
+  if (!volgende) { img.remove(); return; }
+  img.dataset.terugval = JSON.stringify(rest);
+  img.style.objectPosition = volgende.focus || '';
+  img.src = `/api/files/${volgende.id}`;
 }
 
 // ── De flipkaart ────────────────────────────────────────────────────────────
@@ -2115,6 +2138,7 @@ function _editorHerteken() {
 // ── Publieke API ──────────────────────────────────────────────────
 window.vaardigheden = {
   open: _open,
+  beeldMis: _beeldMis,
   // Eén plusknop voor het hele Heldenboek, in de kopbalk naast de hulpknop.
   // Hij hoeft niet dom te zijn: sta je in Barbarian, dan is een feature van
   // deze class het waarschijnlijkste, en staat de class al ingevuld. Sta je op
