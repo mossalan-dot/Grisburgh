@@ -30349,3 +30349,9 @@ body:has(#sb-overlay.sb-open) .dm-dice-fab { display: none !important; }
   color: #8a6a2a;
 }
 .quest-card-door svg { width: 11px; height: 11px; flex-shrink: 0; }
+
+/* Een feature waarvan alleen de naam bekend is: zijn tekst staat in een boek,
+   niet in de app. Gestippeld, net als de subclasses in de kolom die er ook niet
+   in staan — hetzelfde signaal, dus hetzelfde randje. */
+.vaardig-card--elders { border-style: dashed; }
+.vaardig-card--elders .vaardig-card-img-wrap { opacity: .75; }

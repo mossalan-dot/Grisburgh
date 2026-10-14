@@ -210,6 +210,31 @@ async function _load() {
     });
   }
 
+  // ── Wat elders staat, ook als kaartje ──────────────────────────────────
+  // Een class of subclass die de app niet meebrengt heeft hier geen features,
+  // en dan stond er een leeg raster: de Artificer leek een class zonder
+  // features, terwijl zijn twaalf namen bekend zijn. Ze horen gewoon in de
+  // lijst, met alleen hun naam — net als een feature waarvan de tekst niet
+  // overgenomen mag worden. Klikken opent hetzelfde venster als bij de rest,
+  // met de weg naar het boek erin.
+  const telt = (h) => Object.values(h?.levels || {}).reduce((t, a) => t + (a || []).length, 0);
+  const uitVoorraad = (soort, bron, sub, naam) => {
+    const namen = _eldersFeatures?.[soort === 'class' ? 'classes' : soort === 'species' ? 'species' : 'subclasses']?.[naam] || [];
+    for (const f of namen) {
+      zet({ soort, bron, ...(sub ? { sub } : {}), level: 0, naam: f,
+            desc: '', img: '', imgFocus: '', herkomst: 'overgenomen', bronTekst: '', elders: true });
+    }
+  };
+  for (const [klasse, data] of Object.entries(prog.classes || {})) {
+    if (!telt(data)) uitVoorraad('class', klasse, null, klasse);
+    for (const [sub, sdata] of Object.entries(data.subclasses || {})) {
+      if (!telt(sdata)) uitVoorraad('subclass', klasse, sub, sub);
+    }
+  }
+  for (const [volk, data] of Object.entries(prog.species || {})) {
+    if (!telt(data)) uitVoorraad('species', volk, null, volk);
+  }
+
   // ── Zegeningen en gunsten ──
   // Die liggen niet in de progressie maar als kaartjes in de campagne, dus die
   // komen van het andere eind. `listEntities` zeeft al op rol en party: een
@@ -406,7 +431,7 @@ function _card(it) {
       ? `window.vaardigheden.kaartOpen('background','${escA(it.naam)}')`
       : `window.vaardigheden.open('${escA(it.key)}')`;
   return `
-    <div class="entity-card vaardig-card" data-soort="${esc(it.soort)}"
+    <div class="entity-card vaardig-card${it.elders ? ' vaardig-card--elders' : ''}" data-soort="${esc(it.soort)}"
       onclick="${klik}" title="${esc(it.naam)}"
       style="--soort-c1:${eigenKleur ? esc(eigenKleur) : s.c1};--soort-c2:${eigenKleur ? esc(eigenKleur) : s.c2}">
       <div class="card-accent vaardig-accent"></div>
@@ -2572,9 +2597,11 @@ export async function renderVaardigheden(container) {
   _container = container || document.getElementById('section-vaardigheden');
   if (!_container) return;
   _container.innerHTML = `<div class="spreuk-wrap"><p class="spreuk-loading">Naslag laden…</p></div>`;
+  // Eerst de voorraadnamen, dan pas de lijst: `_load` zet de features van wat
+  // elders staat als kaartjes in het raster, en daarvoor moet die lijst er zijn.
+  await _eldersLaden();
   await _load();
   await _klasseExtra();
-  await _eldersLaden();
   if (window.app?.state?.activeSection !== 'vaardigheden') return;   // tijdens het laden gewisseld
 
   _container.innerHTML = `
