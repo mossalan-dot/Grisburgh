@@ -1,7 +1,7 @@
 {
   "_bron": "De harde getallen en lijstjes per klasse: hit die, saving throws, armor- en wapentraining, gereedschap, hoeveel skills je kiest en waaruit, het castende ability en op welke levels je een feat of verhoging mag kiezen. Alles komt uit de System Reference Document 5.2 van Wizards of the Coast, onder CC BY 4.0 — dezelfde licentie waar de spreuken en de statblokken uit komen. Eén bestand, zodat de server (level-up, hit dice) en de client (het klassekaartje in Vaardigheden) hetzelfde lezen.",
   "_attributie": "System Reference Document 5.2 (\"SRD 5.2\") van Wizards of the Coast LLC, https://www.dndbeyond.com/srd, onder de Creative Commons Attribution 4.0 International License.",
-  "_nb": "De Artificer staat niet in de SRD; daarvan kennen we alleen de hit die uit de speltabellen. Zijn lijstjes blijven leeg in plaats van geraden. Alles staat in het Engels, net als op het kaartje: een hit die en een armor training zijn speltermen, geen Nederlandse woorden.",
+  "_nb": "De Artificer staat niet in de SRD. Zijn hit die en castende ability kwamen uit de speltabellen; de rest is op 14 okt 2026 ingevuld door de DM van Grisburgh, uit Tasha’s Cauldron of Everything, en daarna hierheen gehaald zodat elke campagne hem meekrijgt. Schrijfwijze gelijkgetrokken met de andere twaalf: de categorieën met een hoofdletter, niet de hele zin uit het boek. Alles staat in het Engels, net als op het kaartje: een hit die en een armor training zijn speltermen, geen Nederlandse woorden.",
   "klassen": {
     "Barbarian": {
       "hitDie": 12,
@@ -357,12 +357,23 @@
         16,
         19
       ],
-      "saves": [],
-      "armor": "",
-      "weapons": "",
-      "tools": "",
-      "skillAantal": 0,
-      "skills": [],
+      "saves": [
+        "con",
+        "int"
+      ],
+      "armor": "Light, Medium, Shields",
+      "weapons": "Simple",
+      "tools": "Thieves' Tools, Tinker's Tools, one Artisan's Tools of your choice",
+      "skillAantal": 2,
+      "skills": [
+        "Arcana",
+        "History",
+        "Investigation",
+        "Medicine",
+        "Nature",
+        "Perception",
+        "Sleight of Hand"
+      ],
       "primary": "Intelligence"
     }
   }
