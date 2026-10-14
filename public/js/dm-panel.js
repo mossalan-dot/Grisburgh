@@ -1,4 +1,4 @@
-import { api, huidigeCampagne } from './api.js?v=310';
+import { api, huidigeCampagne } from './api.js?v=311';
 import { init as canvasInit, update as canvasUpdate, stop as canvasStop, acGetal } from './combat-canvas.js?v=30';
 import { renderStatblock } from './render-statblock.js?v=9';
 
@@ -486,6 +486,7 @@ export function initDmPanel() {
       } catch (e) { _showToast('Kon zichtbaarheid niet wijzigen'); }
     },
     akteImport:   () => _akteImportWizard(),
+    checklist:    () => _checklistOpen(),
     akteImpAnalyse: () => _akteImpAnalyse(),
     akteImpToggle:  (id) => _akteImpToggle(id),
     akteImpField:   (id, f, val) => _akteImpField(id, f, val),
@@ -1583,6 +1584,9 @@ async function _renderAktes(preserveScroll = false) {
     ${_dmTabHead({
       icon: 'clipboard-list', title: 'Aktes', sub: 'voorbereiding & regie',
       actions: `
+        <!-- Vlak voor je een akte start: staat alles klaar? Hier en niet op
+             elke akterij, want het gaat over de avond en niet over één akte. -->
+        <button class="dm-btn dm-btn-ghost dm-btn-sm" onclick="window.dmPanel.checklist()" title="Loop na of alles klaarstaat voor vanavond">${icon('check-circle')} Klaar om te spelen?</button>
         <button class="dm-btn dm-btn-ghost dm-btn-sm" onclick="window.dmPanel.sheetsPrint()" title="Printbare character sheets van de actieve groep">${icon('scroll-text')} Sheets</button>
         <button class="dm-btn dm-btn-ghost dm-btn-sm" onclick="window.dmPanel.akteImport()" title="Importeer een Obsidian-hoofdstuk (.md) als regie-script">${icon('upload')} Importeer</button>
         <button class="dm-btn dm-btn-primary dm-btn-sm" onclick="window.dmPanel.akteNieuw()" title="Nieuwe akte">${icon('plus')} Nieuwe akte</button>
@@ -12720,6 +12724,66 @@ function _naarTabletmodus() {
 const _INST_DICHT_KEY = 'grisburgh:inst-dicht';
 let _instDicht = new Set();
 try { _instDicht = new Set(JSON.parse(localStorage.getItem(_INST_DICHT_KEY) || '[]')); } catch { /* geen stand, alles open */ }
+
+// ── Klaar om te spelen? ─────────────────────────────────────────────────────
+// Geen formulier en niets om te bewaren: een lijst om te lezen vlak voor je
+// begint. De helft kan de app zelf nakijken — meldt er een tafelscherm, zit de
+// juiste party klaar, hangt er een akte in de regie-balk. De andere helft kan
+// hij níét weten (de privésessie van Spotify geeft hun API niet vrij; of het
+// geluid uit de juiste boxen komt weet alleen wie in de kamer zit) en draagt
+// daarom een vraagteken in plaats van een vinkje. Een vinkje dat niets
+// betekent is erger dan geen vinkje.
+const _CHECK_ICOON = { ja: 'check', nee: 'x', vraag: 'circle-dashed' };
+
+function _checkRegel(stand, kop, regel) {
+  return `<li class="dm-check dm-check--${stand}">
+    <span class="dm-check-merk">${icon(_CHECK_ICOON[stand] || 'circle-dashed')}</span>
+    <span class="dm-check-tekst"><strong>${esc(kop)}</strong><span>${regel}</span></span>
+  </li>`;
+}
+
+async function _checklistOpen() {
+  let d;
+  try { d = await api.getChecklist(); }
+  catch (e) { alert('Nakijken lukt niet: ' + (e.message || e)); return; }
+
+  const p = d.party || {}, m = d.muziek || {}, b = d.bereikbaarheid || {};
+  const aanwezig = Math.max(0, (p.leden || 0) - (p.afwezig || 0));
+  const regels = [
+    _checkRegel(d.tafelschermen ? 'ja' : 'nee', 'Tafelscherm',
+      d.tafelschermen
+        ? `${d.tafelschermen} scherm${d.tafelschermen === 1 ? '' : 'en'} meldt zich. Wat je toont komt aan.`
+        : 'Er kijkt nog niets mee. Log op het tweede scherm in en zet hem op tafelstand.'),
+    _checkRegel(p.leden ? 'ja' : 'nee', 'Party',
+      p.leden
+        ? `<strong>${esc(p.naam || 'naamloos')}</strong> staat actief: ${aanwezig} van ${p.leden} aan tafel${p.afwezig ? `, ${p.afwezig} uitgevinkt` : ''}. Dat stuurt rust, loot en het vullen van een gevecht.`
+        : 'De actieve party heeft geen personages. Rust, loot en gevechten weten dan niet over wie ze gaan.'),
+    _checkRegel(d.akte ? 'ja' : 'nee', 'Akte geladen',
+      d.akte
+        ? `Akte ${esc(String(d.akte.num ?? '?'))} — <strong>${esc(d.akte.titel)}</strong> hangt in de regie-balk.`
+        : 'Er hangt nog geen akte in de regie-balk. Druk op ▶ bij de akte die je speelt.'),
+    _checkRegel('vraag', 'Bereikbaarheid',
+      (b.buitenGrisburgh ? 'Je party is <strong>de stad uit</strong>: alles is dicht behalve wat je vrijstelde. ' : '')
+      + (b.dienstenDicht ? `${b.dienstenDicht} dienst${b.dienstenDicht === 1 ? '' : 'en'} dicht in deze akte. ` : (b.buitenGrisburgh ? '' : 'Alle diensten open. '))
+      + (b.entiteitenDicht ? `${b.entiteitenDicht} kaartje${b.entiteitenDicht === 1 ? '' : 's'} onbereikbaar. ` : '')
+      + 'Klopt dat voor vanavond?'),
+    _checkRegel(m.gekoppeld ? (m.apparaatNaam ? 'ja' : 'nee') : 'nee', 'Muziek',
+      m.gekoppeld
+        ? (m.apparaatNaam
+            ? `Gekoppeld, speelt op <strong>${esc(m.apparaatNaam)}</strong>${m.doel === 'tafel' ? ' (tafelscherm)' : ''}.`
+            : 'Gekoppeld, maar er is nog geen apparaat gekozen — dan komt er niets uit.')
+        : 'Niet gekoppeld. Kan ook zonder, maar dan zonder muziekknoppen.'),
+    _checkRegel('vraag', 'Privésessie',
+      'Staat Spotify in privésessie, of houd je je sfeerlijsten buiten je smaakprofiel? Dat kan de app niet zien.'),
+    _checkRegel('vraag', 'Geluid uit de goede boxen',
+      'Laptop of tafelscherm op de speaker, en niet per ongeluk op de ingebouwde luidspreker. De klassieker: alles werkt, en niemand hoort het.'),
+  ].join('');
+
+  window.app.openModal('Klaar om te spelen?', '', `
+    <p class="dm-hint" style="margin-top:0">Vlak voor je begint. Wat de app zelf kon nakijken staat hieronder al
+    afgevinkt; een vraagteken betekent dat alleen jij het weet.</p>
+    <ul class="dm-checklist">${regels}</ul>`, 'dm_checklist');
+}
 
 // ── Instellingen: drie tabjes ──
 // Het paneel was één kolom van acht secties waarin campagne, party's en beheer

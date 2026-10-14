@@ -99,7 +99,7 @@ groot het is. Bijgewerkt 15 sep 2026.
             wizard en bij Instellingen → Campagne.
       - [ ] **De minicampagne** — nog niet gemaakt; nodig voor de schermafbeeldingen.
       - [ ] **De rondleiding** — doorklikbare pagina met die schermafbeeldingen.
-- [ ] **Checklist vóór het spelen.** Een nieuwe DM weet niet wat er aan tafel
+- [x] **Checklist vóór het spelen** — gedaan 14 okt 2026. Een nieuwe DM weet niet wat er aan tafel
       allemaal klaar moet staan, en een ervaren DM vergeet het ene ding dat hij
       deze keer níét standaard had. Een korte lijst die je afvinkt vlak voor je
       een akte start — geen handleiding, een checklist: één scherm, hooguit acht
@@ -127,6 +127,15 @@ groot het is. Bijgewerkt 15 sep 2026.
       laadt), en nog een keer in de handleiding van stap 7. Bewaren hoeft niet —
       dit is een lijst om te lezen, geen formulier; alleen wat de app zélf kan
       controleren toont een vinkje.
+
+      **Zo gebouwd.** `GET /api/checklist` (alleen DM) levert wat na te kijken
+      valt; `_checklistOpen()` in `dm-panel.js` zet er zeven regels van. Knop in
+      de kop van het tabblad Aktes — niet op elke akterij, want het gaat over de
+      avond en niet over één akte. Drie merktekens: vinkje (nagekeken en goed),
+      kruisje (nagekeken en niet goed), open rondje (alleen jij weet het).
+      Tafelschermen worden geteld in de socketroom `_displayRoom`. Het boekje
+      `dm_checklist` staat in HELP_CONFIG, dus hij staat vanzelf ook in de
+      handleiding.
 - [x] **Verkleinen bij upload** — gedaan 15 sep 2026. Elk binnenkomend beeld
       wordt WebP (q82, max 2560 px); gif en svg blijven met rust en wat er niet
       kleiner van wordt ook. De bestaande bestanden gaan met

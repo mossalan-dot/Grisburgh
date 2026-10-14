@@ -15194,6 +15194,57 @@ router.post('/missies/:id/falen', requireDM, (req, res) => {
   res.json({ ok: true });
 });
 
+// ── De checklist vóór het spelen ────────────────────────────────────────────
+// Een nieuwe DM weet niet wat er aan tafel klaar moet staan, en een ervaren DM
+// vergeet het ene ding dat hij deze keer níét standaard had. Dit is geen
+// formulier en er wordt niets bewaard: het is een lijst om te lezen, waarvan de
+// app de helft zelf kan nakijken.
+//
+// Wat hij **niet** kan nakijken staat er even goed in — de privésessie van
+// Spotify geeft hun API niet vrij, en of het geluid uit de juiste boxen komt
+// weet alleen wie in de kamer zit. Die regels dragen geen vinkje maar een
+// vraagteken; dat is eerlijker dan een vinkje dat niets betekent.
+router.get('/checklist', requireDM, (req, res) => {
+  const meta    = storage.readJSON('meta.json');
+  const dmState = readDmState();
+  const gid     = dmState.activeGroup;
+  const g       = (dmState.groups || {})[gid] || {};
+  const entities = storage.readJSON('entities.json');
+  const leden = (entities.personages || []).filter(e => e.subtype === 'speler' && e.data?.groep === gid);
+  const afwezig = (g.afwezig || []).filter(id => leden.some(e => e.id === id));
+
+  // Hoeveel schermen zich als tafelscherm gemeld hebben. Een tablet die
+  // verbonden is zit in de room `display:<campagne>`; nul betekent dus dat er
+  // niets meekijkt, hoe mooi je sfeerbeeld ook is.
+  // Via `_displayRoom`, want de naam van die room hoort op één plek gemaakt te
+  // worden — daar is een test voor, en die had gelijk.
+  const room = req.app.get('io')?.sockets?.adapter?.rooms?.get(_displayRoom(req));
+  const tafelschermen = room ? room.size : 0;
+
+  const tok = (() => { try { return spotify.lees(_spotifyCampagne(req)); } catch { return null; } })();
+  const akte = _activeAkteVoor(dmState, gid);
+  const bereik = _bereikbaarheidVoor(meta, dmState, gid);
+
+  res.json({
+    tafelschermen,
+    party: {
+      naam: g.name || '', leden: leden.length, afwezig: afwezig.length,
+      wachtwoord: !!g.password,
+    },
+    muziek: {
+      gekoppeld:    !!tok?.refreshToken,
+      apparaatNaam: meta.spotify?.apparaatNaam || '',
+      doel:         meta.spotify?.doel || 'dm',
+    },
+    akte: akte ? { key: akte.key, num: akte.num ?? null, titel: akte.title || akte.key } : null,
+    bereikbaarheid: {
+      buitenGrisburgh: !!meta.buitenGrisburgh,
+      dienstenDicht:   bereik.dienstenDicht.length,
+      entiteitenDicht: bereik.entiteitenDicht.length,
+    },
+  });
+});
+
 // ── Locatie (Grisburgh verlaten) ──
 
 router.put('/locatie', requireDM, (req, res) => {

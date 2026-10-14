@@ -30349,3 +30349,20 @@ body:has(#sb-overlay.sb-open) .dm-dice-fab { display: none !important; }
 .hl-inhoud-sub li { padding: 1px 0; }
 .hl-inhoud-sub a { color: #7a6040; font-size: .94em; border-bottom: none; }
 .hl-inhoud-sub a:hover { color: #8a5a10; border-bottom: 1px dotted rgba(138,109,63,.6); }
+
+/* ── De checklist vóór het spelen ────────────────────────────────────────── */
+.dm-checklist { list-style: none; padding: 0; margin: 10px 0 0; }
+.dm-check {
+  display: flex; align-items: flex-start; gap: 10px;
+  padding: 9px 0; border-top: 1px solid rgba(196,168,122,.3);
+}
+.dm-check:first-child { border-top: none; }
+.dm-check-merk { flex: 0 0 22px; display: flex; justify-content: center; padding-top: 2px; }
+.dm-check-merk svg { width: 16px; height: 16px; }
+.dm-check--ja    .dm-check-merk { color: #3f7a3f; }
+.dm-check--nee   .dm-check-merk { color: #9a4a2a; }
+.dm-check--vraag .dm-check-merk { color: #9a8468; }
+.dm-check-tekst { display: flex; flex-direction: column; gap: 1px; }
+.dm-check-tekst strong { font-family: 'Cinzel', serif; font-size: .88em; color: #3a2410; }
+.dm-check-tekst span { font-family: 'Crimson Text', serif; font-size: .95em; line-height: 1.45; color: #6a5430; }
+.dm-check--nee .dm-check-tekst span { color: #8a4a2a; }
