@@ -1,7 +1,7 @@
 {
   "_bron": "De harde getallen en lijstjes per klasse: hit die, saving throws, armor- en wapentraining, gereedschap, hoeveel skills je kiest en waaruit, het castende ability en op welke levels je een feat of verhoging mag kiezen. Alles komt uit de System Reference Document 5.2 van Wizards of the Coast, onder CC BY 4.0 — dezelfde licentie waar de spreuken en de statblokken uit komen. Eén bestand, zodat de server (level-up, hit dice) en de client (het klassekaartje in Vaardigheden) hetzelfde lezen.",
   "_attributie": "System Reference Document 5.2 (\"SRD 5.2\") van Wizards of the Coast LLC, https://www.dndbeyond.com/srd, onder de Creative Commons Attribution 4.0 International License.",
-  "_nb": "De Artificer staat niet in de SRD; daarvan kennen we alleen de hit die uit de speltabellen. Zijn lijstjes blijven leeg in plaats van geraden.",
+  "_nb": "De Artificer staat niet in de SRD; daarvan kennen we alleen de hit die uit de speltabellen. Zijn lijstjes blijven leeg in plaats van geraden. Alles staat in het Engels, net als op het kaartje: een hit die en een armor training zijn speltermen, geen Nederlandse woorden.",
   "klassen": {
     "Barbarian": {
       "hitDie": 12,
@@ -47,7 +47,7 @@
       ],
       "armor": "Light",
       "weapons": "Simple",
-      "tools": "Drie muziekinstrumenten",
+      "tools": "Three Musical Instruments",
       "skillAantal": 3,
       "skills": [],
       "primary": "Charisma"
@@ -156,9 +156,9 @@
         "str",
         "dex"
       ],
-      "armor": "Geen",
-      "weapons": "Simple, Martial met Light",
-      "tools": "Eén Artisan's Tools of muziekinstrument",
+      "armor": "None",
+      "weapons": "Simple, Martial with Light",
+      "tools": "One type of Artisan's Tools or Musical Instrument",
       "skillAantal": 2,
       "skills": [
         "Acrobatics",
@@ -244,7 +244,7 @@
         "int"
       ],
       "armor": "Light",
-      "weapons": "Simple, Martial met Finesse of Light",
+      "weapons": "Simple, Martial with Finesse or Light",
       "tools": "Thieves' Tools",
       "skillAantal": 4,
       "skills": [
@@ -276,7 +276,7 @@
         "con",
         "cha"
       ],
-      "armor": "Geen",
+      "armor": "None",
       "weapons": "Simple",
       "tools": "",
       "skillAantal": 2,
@@ -333,7 +333,7 @@
         "int",
         "wis"
       ],
-      "armor": "Geen",
+      "armor": "None",
       "weapons": "Simple",
       "tools": "",
       "skillAantal": 2,

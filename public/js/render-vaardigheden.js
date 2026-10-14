@@ -795,10 +795,13 @@ function _klasseRijen(klasse) {
     basis.hitDie ? ['Hit Point Die', `d${basis.hitDie} per ${klasse} level`] : null,
     basis.saves?.length
       ? ['Saving Throws', basis.saves.map(a => _AB_NAAM[a] || a).join(', ')] : null,
+    // Engels, net als de rest van dit kaartje. "kies 3, vrij" stond tussen
+    // Charisma, Simple en Light als enige in het Nederlands — en een skill
+    // kiezen is een spelterm, geen Nederlandse zin.
     basis.skillAantal
       ? ['Skills', basis.skills?.length
-          ? `kies ${basis.skillAantal} uit ${basis.skills.join(', ')}`
-          : `kies ${basis.skillAantal}, vrij`]
+          ? `Choose ${basis.skillAantal}: ${basis.skills.join(', ')}`
+          : `Choose any ${basis.skillAantal}`]
       : null,
     basis.weapons ? ['Weapons', basis.weapons] : null,
     basis.armor   ? ['Armor Training', basis.armor] : null,
