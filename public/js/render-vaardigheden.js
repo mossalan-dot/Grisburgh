@@ -217,12 +217,17 @@ async function _load() {
   // lijst, met alleen hun naam — net als een feature waarvan de tekst niet
   // overgenomen mag worden. Klikken opent hetzelfde venster als bij de rest,
   // met de weg naar het boek erin.
+  //
+  // Ze zien er verder niet anders uit dan de rest. Dat was wel zo (een
+  // gestippeld randje, een vagere plaat), maar het kaartje zégt al dat de
+  // beschrijving er niet staat en draagt een knop *Naslag* — twee signalen
+  // zijn genoeg, een derde maakt er alleen een kaartje van dat er kapot uitziet.
   const telt = (h) => Object.values(h?.levels || {}).reduce((t, a) => t + (a || []).length, 0);
   const uitVoorraad = (soort, bron, sub, naam) => {
     const namen = _eldersFeatures?.[soort === 'class' ? 'classes' : soort === 'species' ? 'species' : 'subclasses']?.[naam] || [];
     for (const f of namen) {
       zet({ soort, bron, ...(sub ? { sub } : {}), level: 0, naam: f,
-            desc: '', img: '', imgFocus: '', herkomst: 'overgenomen', bronTekst: '', elders: true });
+            desc: '', img: '', imgFocus: '', herkomst: 'overgenomen', bronTekst: '' });
     }
   };
   for (const [klasse, data] of Object.entries(prog.classes || {})) {
@@ -431,7 +436,7 @@ function _card(it) {
       ? `window.vaardigheden.kaartOpen('background','${escA(it.naam)}')`
       : `window.vaardigheden.open('${escA(it.key)}')`;
   return `
-    <div class="entity-card vaardig-card${it.elders ? ' vaardig-card--elders' : ''}" data-soort="${esc(it.soort)}"
+    <div class="entity-card vaardig-card" data-soort="${esc(it.soort)}"
       onclick="${klik}" title="${esc(it.naam)}"
       style="--soort-c1:${eigenKleur ? esc(eigenKleur) : s.c1};--soort-c2:${eigenKleur ? esc(eigenKleur) : s.c2}">
       <div class="card-accent vaardig-accent"></div>

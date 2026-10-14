@@ -9,7 +9,7 @@ import { renderBestiarium } from './render-bestiarium.js?v=31';
 import { renderSpreuken } from './render-spreuken.js?v=47';
 import './render-handleiding.js?v=2';
 import './render-melding.js?v=4';
-import { renderVaardigheden, zoekVaardigheden, heldenboekTekst } from './render-vaardigheden.js?v=57';
+import { renderVaardigheden, zoekVaardigheden, heldenboekTekst } from './render-vaardigheden.js?v=58';
 import { renderStatblock } from './render-statblock.js?v=9';
 import { initSocket } from "./socket-client.js?v=85";
 import { initDmPanel } from "./dm-panel.js?v=405";
@@ -15444,8 +15444,8 @@ const HELP_CONFIG = {
         afbeelding: null,
       },
       {
-        titel: 'Een gestippeld kaartje',
-        tekst: 'Kaartjes met een **gestippelde rand** en een iets vagere plaat zijn er niet echt: ze staan in de lijst van wat er in de boeken nog meer bestaat, zodat je de naam kunt opzoeken, maar deze wereld heeft er verder niets over. Vul je er zelf iets in, dan wordt het een gewoon kaartje met een doorgetrokken rand.',
+        titel: 'Soms alleen een naam',
+        tekst: 'Staat er bij een class of subclass alleen een rij **namen** zonder tekst, dan brengt de app die features niet mee maar weet hij wel dát ze bestaan. Je kunt ze opzoeken met de knop *Naslag*, en er zelf tekst in zetten als je ze aan tafel gebruikt.',
         afbeelding: null,
       },
     ],
