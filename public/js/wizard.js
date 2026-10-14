@@ -372,6 +372,9 @@ const STAPPEN = [
           <em>Diensten</em>. Onderdelen aan- of uitzetten kan daar ook.</p>
           <p>Wat ik zou doen voor je eerste sessie: een <em>locatie</em> aanmaken waar je begint,
           er een <em>personage</em> bij zetten dat ze ontmoeten, en dat kaartje zichtbaar maken voor je party.</p>
+          <!-- De handleiding hoort hier en niet pas bij Instellingen: dit is het
+               moment waarop je niet weet wat er allemaal is. -->
+          <p><button class="dm-btn dm-btn-ghost" onclick="window._handleidingOpen?.()">Handleiding lezen of afdrukken</button></p>
         </div>`;
     },
     async bewaar() { await api.saveAppMeta({ wizardKlaar: true }); },

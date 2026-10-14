@@ -13047,6 +13047,12 @@ async function _renderInstellingen() {
       <div class="dm-form-row">
         <button class="dm-btn dm-btn-ghost" onclick="window.wizard?.open()"
           title="Loop de keuzes langs die je campagne bepalen">${icon('compass')} Opstartwizard doorlopen</button>
+        <!-- Dezelfde boekjes die bij elk scherm hangen, achter elkaar als één
+             document — om te lezen voordat je het scherm kent, of om af te
+             drukken. Hij leest jóuw teksten: wat je zelf hebt bijgeschaafd
+             staat erin. -->
+        <button class="dm-btn dm-btn-ghost" onclick="window._handleidingOpen?.()"
+          title="Alle uitleg achter elkaar, om te lezen of af te drukken">${icon('book-open')} Handleiding openen</button>
       </div>
 
       <!-- Wat je van je eigen campagne niet gebruikt. Alleen uitzetten: wat je

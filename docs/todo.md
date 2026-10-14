@@ -90,6 +90,15 @@ groot het is. Bijgewerkt 15 sep 2026.
 - [ ] **7. Handleiding + visuele rondleiding + de minicampagne** — leunt op stap 6,
       die er nu is. De minicampagne hoort hier: hij bestaat om schermafbeeldingen
       te leveren zonder Grisburgh te verklappen.
+      - [x] **De handleiding** — gedaan 14 okt 2026, `public/js/render-handleiding.js`.
+            Geen tweede tekst: hij leest `_resolveHelp`, dus dezelfde boekjes als
+            bij de schermen zelf, inclusief wat een campagne er zelf van maakte.
+            Vier hoofdstukken uit de sleutelnaam (meesterkamer, kaartjes,
+            instellingen, spelers), 139 boekjes, inhoudsopgave in twee lagen,
+            afdrukstijl en een `.md` om te bewaren. Knop aan het eind van de
+            wizard en bij Instellingen → Campagne.
+      - [ ] **De minicampagne** — nog niet gemaakt; nodig voor de schermafbeeldingen.
+      - [ ] **De rondleiding** — doorklikbare pagina met die schermafbeeldingen.
 - [ ] **Checklist vóór het spelen.** Een nieuwe DM weet niet wat er aan tafel
       allemaal klaar moet staan, en een ervaren DM vergeet het ene ding dat hij
       deze keer níét standaard had. Een korte lijst die je afvinkt vlak voor je

@@ -7,13 +7,14 @@ import { renderRelatiemap } from './render-relatiemap.js?v=27';
 import { renderProgressie, levelupFeatures } from './render-progressie.js?v=62';
 import { renderBestiarium } from './render-bestiarium.js?v=31';
 import { renderSpreuken } from './render-spreuken.js?v=47';
+import './render-handleiding.js?v=2';
 import { renderVaardigheden, zoekVaardigheden, heldenboekTekst } from './render-vaardigheden.js?v=50';
 import { renderStatblock } from './render-statblock.js?v=9';
 import { initSocket } from "./socket-client.js?v=85";
-import { initDmPanel } from "./dm-panel.js?v=396";
+import { initDmPanel } from "./dm-panel.js?v=397";
 import { COND_INFO, COND_LABEL, COND_MET_PLAATJE, COND_ICON } from './conditions.js?v=2';
 import './media-picker.js?v=9';
-import './wizard.js?v=4';
+import './wizard.js?v=5';
 import './tafels.js?v=2';
 
 // ── Icon helper ──
@@ -15844,6 +15845,12 @@ function _resolveHelp(key) {
 // Bestaat er uitleg voor deze sleutel? De knop hoort niet te verschijnen als er
 // niets achter zit.
 window._heeftHelp = (key) => !!_resolveHelp(key);
+
+// De handleiding (`render-handleiding.js`) zet dezelfde boekjes achter elkaar in
+// één document. Hij leest ze hier op, zodat er geen tweede tekst ontstaat die
+// achterloopt zodra je er één bijschaaft.
+window._helpSleutels = () => Object.keys(HELP_CONFIG);
+window._resolveHelp = _resolveHelp;
 
 window._openHelp = (key) => {
   document.getElementById('help-modal')?.remove();

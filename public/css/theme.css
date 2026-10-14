@@ -30276,3 +30276,76 @@ body:has(#sb-overlay.sb-open) .dm-dice-fab { display: none !important; }
 }
 .dm-brief-blok .dm-form-row { margin-bottom: 6px; }
 .dm-brief-blok textarea { width: 100%; box-sizing: border-box; resize: vertical; }
+
+/* ══════════════════════════════════════════════════════════════════════════
+   DE HANDLEIDING
+   ══════════════════════════════════════════════════════════════════════════
+   Dezelfde boekjes als bij de schermen, achter elkaar als één document. Dus
+   geen app-vormgeving maar een blad: ruime regelafstand, een smalle kolom en
+   een afdruk die er net zo uitziet als het scherm. Onderaan de stylesheet,
+   want het is een laag over alles heen. */
+.hl-overlay {
+  position: fixed; inset: 0; z-index: 9800;
+  display: flex; flex-direction: column;
+  background: #efe5cc;
+}
+.hl-balk {
+  display: flex; align-items: center; justify-content: flex-end; gap: 8px;
+  padding: 8px 14px; border-bottom: 1px solid rgba(138,109,63,.35);
+  background: linear-gradient(180deg, #f6eeda, #efe5cc);
+}
+.hl-knop {
+  font-family: 'Cinzel', serif; font-size: 12px; letter-spacing: .04em;
+  padding: 6px 14px; cursor: pointer; color: #5a4030;
+  border: 1px solid rgba(138,109,63,.55); border-radius: 6px;
+  background: rgba(255,252,244,.72);
+}
+.hl-knop:hover { background: rgba(196,168,122,.3); }
+.hl-knop--sluit { font-size: 18px; line-height: 1; padding: 3px 11px; }
+
+.hl-blad {
+  flex: 1; overflow-y: auto; padding: 34px 20px 80px;
+  font-family: 'Crimson Text', serif; color: #3a2410; line-height: 1.62;
+}
+.hl-blad > * { max-width: 760px; margin-left: auto; margin-right: auto; }
+.hl-blad h1 {
+  font-family: 'Cinzel', serif; font-size: 2em; margin: 0 0 6px; color: #6a4a10;
+}
+.hl-blad h2 {
+  font-family: 'Cinzel', serif; font-size: 1.4em; margin: 46px 0 4px; color: #6a4a10;
+  border-bottom: 1px solid rgba(138,109,63,.4); padding-bottom: 6px;
+}
+.hl-blad h3 { font-family: 'Cinzel', serif; font-size: 1.08em; margin: 26px 0 4px; color: #3a2410; }
+.hl-stap-kop { font-family: 'Cinzel', serif; font-size: .92em; margin: 14px 0 2px; color: #7a6040; }
+.hl-stap-tekst p { margin: 0 0 8px; }
+.hl-intro, .hl-lead { color: #6a5430; font-style: italic; margin: 0 0 10px; }
+.hl-rol, .hl-rol-los {
+  font-family: 'Cinzel', serif; font-size: .74em; letter-spacing: .06em; text-transform: uppercase;
+  color: #9a7008; margin-left: 8px;
+}
+.hl-rol-los { display: block; margin: 10px 0 2px; }
+.hl-begin {
+  border: 1px solid rgba(138,109,63,.4); border-left: 4px solid #9a7008;
+  border-radius: 8px; padding: 12px 18px; margin: 18px auto 10px;
+  background: rgba(255,252,244,.6);
+}
+.hl-begin h3 { margin-top: 4px; }
+.hl-inhoud ul { list-style: none; padding: 0; margin: 6px 0 0; }
+.hl-inhoud li { padding: 3px 0; }
+.hl-inhoud a { color: #8a5a10; text-decoration: none; border-bottom: 1px dotted rgba(138,109,63,.6); }
+.hl-inh-aantal { color: #9a8468; font-size: .85em; }
+.hl-boekje { margin-bottom: 18px; }
+
+/* Afdrukken: alleen het blad, zonder balk en zonder de app eronder. */
+@media print {
+  body > *:not(.hl-overlay) { display: none !important; }
+  .hl-overlay { position: static; background: #fff; }
+  .hl-balk { display: none; }
+  .hl-blad { overflow: visible; padding: 0; color: #000; }
+  .hl-blad h2 { break-before: page; }
+  .hl-boekje { break-inside: avoid; }
+}
+.hl-inhoud-sub { list-style: none; padding: 0 0 6px 16px; margin: 2px 0 0; }
+.hl-inhoud-sub li { padding: 1px 0; }
+.hl-inhoud-sub a { color: #7a6040; font-size: .94em; border-bottom: none; }
+.hl-inhoud-sub a:hover { color: #8a5a10; border-bottom: 1px dotted rgba(138,109,63,.6); }
