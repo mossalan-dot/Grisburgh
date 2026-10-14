@@ -379,7 +379,7 @@ function _ververOpenKaartje(id) {
   });
 
   socket.on('meta:updated', () => {
-    import('./api.js?v=313').then(({ api }) => api.meta().then(m => {
+    import('./api.js?v=314').then(({ api }) => api.meta().then(m => {
       const prev = window.app?.state?.meta;
       const buitenChanged = prev?.buitenGrisburgh !== m.buitenGrisburgh;
       if (window.app?.state) window.app.state.meta = m;
@@ -430,19 +430,6 @@ function _ververOpenKaartje(id) {
     // De ontdekkingsmeter telt per party; zonder 'force' bleef de stand van de
     // vórige party staan (4/4 bij een party die nog niets ontdekt heeft).
     window._updateDiscoveryChip?.(true);
-  });
-
-  // ── Tunnel ──
-  socket.on('tunnel:url', ({ url } = {}) => {
-    if (window.dmPanel) {
-      window._dmPanelTunnelUrl = url;
-      window._dmPanelTunnelActive = true;
-      window.dmPanel.onTunnelUrl(url);
-    }
-  });
-
-  socket.on('tunnel:stopped', () => {
-    if (window.dmPanel) window.dmPanel.onTunnelStopped();
   });
 
   // ── Gevecht ──

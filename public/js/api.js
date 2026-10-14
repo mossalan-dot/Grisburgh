@@ -237,9 +237,6 @@ export const api = {
   grantDungeonAccess:   (id, groupId) => request(`/dungeons/${id}/grant-access`, { method: 'POST', body: JSON.stringify({ groupId }) }),
 
   // Tunnel
-  tunnelStart:  ()     => request('/tunnel/start',  { method: 'POST' }),
-  tunnelStop:   ()     => request('/tunnel/stop',   { method: 'DELETE' }),
-  tunnelStatus: ()     => request('/tunnel/status'),
 
   // Tafels
   listTables:    ()         => request('/tables'),

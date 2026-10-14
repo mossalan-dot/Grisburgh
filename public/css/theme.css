@@ -5732,42 +5732,6 @@ body.lade-dicht .regie-lade-body { display: none; }
   color: #8a6000;
   flex: 1;
 }
-.dm-tunnel-url-wrap {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  background: rgba(255,255,255,0.55);
-  border: 1px solid rgba(196,168,122,0.5);
-  border-radius: 5px;
-  padding: 6px 8px;
-}
-.dm-tunnel-url {
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 11px;
-  color: #5a9acf;
-  text-decoration: none;
-  flex: 1;
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.dm-tunnel-url:hover { text-decoration: underline; }
-.dm-tunnel-status-label {
-  flex: 1;
-  font-size: 12px;
-  color: #7a6040;
-  font-style: italic;
-}
-.dm-tunnel-url-inline {
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 11px;
-  color: #5a9acf;
-  flex: 1;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
 
 /* Namen */
 /* Géén eigen border-bottom: `.dm-feature-section + .dm-feature-section` tekent
@@ -12062,49 +12026,6 @@ body.lade-dicht .regie-lade-body { display: none; }
 .log-detail-note-ta:focus { outline: none; border-color: #c8a840; }
 
 /* ── Export tab ── */
-.export-option-card {
-  display: flex;
-  gap: 16px;
-  padding: 18px;
-  background: rgba(196,168,122,0.07);
-  border: 1px solid rgba(196,168,122,0.28);
-  border-radius: 8px;
-  margin-bottom: 14px;
-}
-.export-option-icon {
-  font-size: 2rem;
-  flex-shrink: 0;
-  line-height: 1;
-  padding-top: 2px;
-}
-.export-option-body { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
-.export-option-title {
-  font-family: 'Cinzel', serif;
-  font-size: 0.92rem;
-  font-weight: 600;
-  color: var(--color-ink-bright);
-}
-.export-option-desc {
-  font-size: 0.8rem;
-  color: var(--color-ink-dim);
-  line-height: 1.5;
-}
-.export-option-btn { align-self: flex-start; margin-top: 6px; }
-.export-template-links { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
-.export-template-link {
-  font-family: 'Cinzel', serif;
-  font-size: 0.7rem;
-  font-weight: 600;
-  padding: 3px 9px;
-  border: 1px solid rgba(196,168,122,0.4);
-  border-radius: 5px;
-  color: var(--color-ink-dim);
-  background: rgba(196,168,122,0.08);
-  text-decoration: none;
-  transition: background 0.12s, color 0.12s;
-}
-.export-template-link:hover { background: rgba(196,168,122,0.2); color: var(--color-ink-bright); }
-.export-import-label { cursor: pointer; }
 .import-md-results { margin-top: 10px; display: flex; flex-direction: column; gap: 4px; }
 .import-md-results.hidden { display: none; }
 .import-md-row {

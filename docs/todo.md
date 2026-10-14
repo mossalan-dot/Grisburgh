@@ -591,13 +591,25 @@ Gevraagd op 14 sep 2026, gebouwd op 14 sep 2026.
       positieve kant erbij: een boek dat per ongeluk leeg blijft slaagde anders
       voor élke kanarie.
 
-- [ ] **Drie tabbladen zonder deur** (gevonden 14 okt 2026). `delen`, `tunnel`
+- [x] **Drie tabbladen zonder deur** — opgeruimd 14 okt 2026. `delen`, `tunnel`
       en `export` hebben elk een `dm-tab-content` in de shell en een
       renderfunctie, maar staan niet in `_DM_TABS` — er is dus geen knop in de
       zijbalk die ze opent. De **tunnel** is een echte functie (je campagne
       tijdelijk van buiten bereikbaar maken) en hoort waarschijnlijk zijn knop
       terug te krijgen; `export` is sinds vandaag dubbelop, want de uitdraaien
       staan bij Instellingen → Beheer. Beslis per stuk: knop terug, of weg.
+      **Alle drie weg.** De tunnel was van vóór de website: hij startte
+      `cloudflared` zodat een app op een laptop van buiten bereikbaar werd. Nu
+      draait alles op een server met een vast adres, staat `cloudflared` daar
+      niet eens, en zou een tunnel hetzelfde adres nog eens naar buiten brengen.
+      Weg: 3 routes, ~70 regels procesbeheer, 2 socket-events, 136 regels
+      paneelcode, 79 regels CSS en twee lege tabbladen in de shell — en daarmee
+      de laatste plek waar de app een proces startte op de server.
+      `npm run tunnel` bestaat nog, voor wie lokaal op zijn telefoon kijkt.
+      Uit het exporttabblad zijn de **Obsidian-sjablonen en de
+      markdown-import** gered: die waren uniek en stonden daarmee ook nergens.
+      Ze staan nu bij Instellingen → Beheer onder *Export & backup*, zodat in-
+      en uitgaand bij elkaar staan.
 - [x] **Lekt het campagneboek geheimen?** — nagekeken 15 sep 2026. Het
       **campagneboek** niet (dat rendert alleen HTML), de **snapshot** wél en
       erger dan gedacht: die plakt zijn datamodel als JSON in het bestand, dus

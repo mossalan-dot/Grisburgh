@@ -60,7 +60,7 @@
       },
     }
   </script>
-  <link rel="stylesheet" href="/css/theme.css?v=885">
+  <link rel="stylesheet" href="/css/theme.css?v=886">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
   <script>pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';</script>
   <script src="/socket.io/socket.io.js"></script>
@@ -264,10 +264,6 @@
         <div class="dm-section-layout">
         <div class="dm-section-tabs" id="dm-section-tabs"></div>
         <div class="dm-section-body" id="dm-section-body">
-          <!-- Tunnel tab -->
-          <div class="dm-tab-content active" data-tab="tunnel">
-            <div id="dm-tunnel-content"></div>
-          </div>
           <!-- Tafels tab -->
           <div class="dm-tab-content" data-tab="tafels">
             <div id="dm-tafels-content"></div>
@@ -289,10 +285,6 @@
           <!-- Geluiden tab -->
           <div class="dm-tab-content" data-tab="geluiden">
             <div id="dm-geluiden-content"></div>
-          </div>
-          <!-- Export tab -->
-          <div class="dm-tab-content" data-tab="export">
-            <div id="dm-export-content"></div>
           </div>
           <!-- Instellingen tab — was een modal; nu een tab als alle andere -->
           <div class="dm-tab-content" data-tab="instellingen">
@@ -325,8 +317,6 @@
           <div class="dm-tab-content" data-tab="berichten"></div>
           <!-- Verzoeken tab: spreuken + voorwerpen die op de DM wachten -->
           <div class="dm-tab-content" data-tab="verzoeken"></div>
-          <!-- Delen tab (Tunnel + Export) -->
-          <div class="dm-tab-content" data-tab="delen"></div>
           <!-- Diensten tab (Herberg + Tweespalt + Gock) -->
           <div class="dm-tab-content" data-tab="diensten"></div>
         </div><!-- /.dm-section-body -->
@@ -590,6 +580,6 @@
   <!-- DM Instellingen modal -->
 
   <script type="module" src="/js/sound-manager.js?v=10"></script>
-  <script type="module" src="/js/app.js?v=1085"></script>
+  <script type="module" src="/js/app.js?v=1087"></script>
 </body>
 </html>

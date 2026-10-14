@@ -1,4 +1,4 @@
-import { api, huidigeCampagne } from './api.js?v=313';
+import { api, huidigeCampagne } from './api.js?v=314';
 import { init as canvasInit, update as canvasUpdate, stop as canvasStop, acGetal } from './combat-canvas.js?v=30';
 import { renderStatblock } from './render-statblock.js?v=9';
 
@@ -248,10 +248,6 @@ export function initDmPanel() {
     mediaRenameToggleAll: _mediaRenameToggleAll,
     mediaRenameApply:    _mediaRenameApply,
 
-    // Tunnel
-    tunnelToggle:  _tunnelToggle,
-    tunnelCopy:    _tunnelCopy,
-    exportFile:      _exportFile,
     importObsidian:  _importObsidian,
 
     // Tafels
@@ -806,15 +802,6 @@ export function initDmPanel() {
     sjabloonDelete:     _sjabloonDelete,
 
     // Socket callbacks
-    onTunnelUrl(url) {
-      window._dmPanelTunnelUrl = url;
-      if (_activeTab === 'tunnel') _renderTunnel();
-    },
-    onTunnelStopped() {
-      window._dmPanelTunnelUrl = null;
-      window._dmPanelTunnelActive = false;
-      if (_activeTab === 'tunnel') _renderTunnel();
-    },
     onCombatUpdated(combat) {
       _combat = combat;
       _combatLoaded = true;
@@ -828,15 +815,6 @@ export function initDmPanel() {
       if (_combat) _renderCombatOverlay(_combat);
     },
   };
-
-  // Load initial tunnel status — alleen als DM. Een speler kreeg hier een 403
-  // op elke start: afgevangen, dus onschuldig, maar het stond wel in zijn
-  // console. Een logboek vol onschuldige fouten is precies de reden dat
-  // niemand nog kijkt als er een echte in staat.
-  if (window.app?.isDM?.()) api.tunnelStatus().then(({ active, url }) => {
-    window._dmPanelTunnelActive = active;
-    window._dmPanelTunnelUrl = url || null;
-  }).catch(() => {});
 
   // Load initial combat state
   api.getCombat().then(c => {
@@ -2151,44 +2129,6 @@ window._regieBriefVerstuur = async (soort, id, naam) => {
   } catch (e) { alert('Versturen mislukt: ' + e.message); }
 };
 
-// ── Delen (Tunnel + Export gecombineerd) ──
-
-let _delenSubTab = 'tunnel'; // 'tunnel' | 'export'
-
-function _renderDelen(subTab) {
-  if (subTab && _DELEN_TABS.has(subTab)) _delenSubTab = subTab;
-  const el = document.querySelector('.dm-tab-content[data-tab="delen"]');
-  if (!el) return;
-
-  // Sub-tab-nav
-  if (!el.querySelector('.dm-subtab-nav')) {
-    const nav = document.createElement('div');
-    nav.className = 'dm-subtab-nav';
-    el.prepend(nav);
-  }
-  el.querySelector('.dm-subtab-nav').innerHTML = `
-    <button class="dm-subtab-btn${_delenSubTab==='tunnel' ?' active':''}" onclick="window.dmPanel.switchTab('tunnel')">${icon('globe')} Tunnel</button>
-    <button class="dm-subtab-btn${_delenSubTab==='export' ?' active':''}" onclick="window.dmPanel.switchTab('export')">${icon('download')} Export</button>
-  `;
-
-  ['tunnel','export'].forEach(name => {
-    let legacy = document.querySelector(`.dm-tab-content[data-tab="${name}"]`);
-    if (!legacy) return;
-    let sub = el.querySelector(`#dm-delen-${name}`);
-    if (!sub) {
-      sub = document.createElement('div');
-      sub.id = `dm-delen-${name}`;
-      while (legacy.firstChild) sub.appendChild(legacy.firstChild);
-      el.appendChild(sub);
-    }
-    sub.classList.toggle('hidden', _delenSubTab !== name);
-    legacy.classList.remove('active');
-  });
-
-  if (_delenSubTab === 'tunnel') _renderTunnel();
-  if (_delenSubTab === 'export') _renderExportTab();
-};
-
 async function _loadSpells() {
   const url = _isHpCampaign()
     ? '/api/bron/hp-spells'
@@ -2339,110 +2279,6 @@ function _spellSearch(q) {
   _updateSpellResults();
 };
 
-// ── Tunnel ──
-
-window._dmPanelTunnelUrl = null;
-window._dmPanelTunnelActive = false;
-
-async function _tunnelToggle() {
-  const btn = document.getElementById('dm-tunnel-btn');
-  if (btn) btn.disabled = true;
-  try {
-    if (window._dmPanelTunnelActive) {
-      await api.tunnelStop();
-      window._dmPanelTunnelActive = false;
-      window._dmPanelTunnelUrl = null;
-    } else {
-      const result = await api.tunnelStart();
-      if (result && result.error) {
-        _showTunnelError(result.error);
-      } else {
-        window._dmPanelTunnelActive = true;
-        window._dmPanelTunnelUrl = null; // URL comes via socket
-      }
-    }
-  } catch (e) {
-    console.error('Tunnel error:', e);
-    _showTunnelError('Verbinding mislukt — zie server-console.');
-  }
-  if (btn) btn.disabled = false;
-  _renderTunnel();
-};
-
-function _showTunnelError(msg) {
-  const el = document.getElementById('dm-tunnel-content');
-  if (!el) return;
-  const err = document.createElement('p');
-  err.className = 'dm-hint dm-hint-error';
-  err.innerHTML = icon('x') + ' ' + msg;
-  el.appendChild(err);
-  setTimeout(() => err.remove(), 6000);
-};
-
-function _tunnelCopy() {
-  const url = window._dmPanelTunnelUrl;
-  if (!url) return;
-  navigator.clipboard.writeText(url).then(() => {
-    const btn = document.getElementById('dm-tunnel-copy');
-    if (btn) { const orig = btn.textContent; btn.textContent = '✓'; setTimeout(() => { btn.textContent = orig; }, 1500); }
-  });
-};
-
-function _renderExportTab() {
-  const el = document.getElementById('dm-export-content');
-  if (!el) return;
-  el.innerHTML = `
-    <div class="dm-feature-section">
-      <div class="dm-feature-label">Exporteren</div>
-
-      <div class="export-option-card" id="export-card-boek">
-        <div class="export-option-icon">${icon('book-open')}</div>
-        <div class="export-option-body">
-          <div class="export-option-title">Campagneboek</div>
-          <div class="export-option-desc">Lineair, printklaar boek met inhoudsopgave, alle sessies per hoofdstuk, afbeeldingen en een register van personages, locaties en meer. Gebruik Afdrukken → Opslaan als PDF.</div>
-          <button class="dm-btn dm-btn-primary export-option-btn" id="export-btn-boek"
-            onclick="window.dmPanel.exportFile('campagneboek')">
-            ${icon('book-open')} Campagneboek downloaden
-          </button>
-        </div>
-      </div>
-    </div>
-
-    <div class="dm-feature-section" style="margin-top:18px">
-      <div class="dm-feature-label">Importeren vanuit Obsidian</div>
-
-      <div class="export-option-card">
-        <div class="export-option-icon">${icon('scroll-text')}</div>
-        <div class="export-option-body">
-          <div class="export-option-title">Sjablonen downloaden</div>
-          <div class="export-option-desc">Gebruik deze Obsidian-sjablonen om personages, locaties, organisaties, voorwerpen en documenten voor te bereiden. Vul het YAML-blok bovenaan in en importeer de bestanden hieronder.</div>
-          <div class="export-template-links">
-            ${['Personage','Locatie','Organisatie','Voorwerp','Document'].map(t =>
-              `<a class="export-template-link" href="/obsidian-templates/${t}.md" download="${t}.md">${icon('download')} ${t}</a>`
-            ).join('')}
-          </div>
-        </div>
-      </div>
-
-      <div class="export-option-card" id="export-card-import">
-        <div class="export-option-icon">${icon('folder-open')}</div>
-        <div class="export-option-body">
-          <div class="export-option-title">Markdown-bestanden importeren</div>
-          <div class="export-option-desc">Selecteer één of meerdere ingevulde <code>.md</code>-bestanden. Elk bestand wordt als nieuwe entiteit of document aangemaakt op basis van het <code>type</code>-veld in de frontmatter.</div>
-          <label class="export-import-label">
-            <input type="file" id="import-md-input" accept=".md" multiple style="display:none"
-              onchange="window.dmPanel.importObsidian(this.files)">
-            <span class="dm-btn dm-btn-primary export-option-btn" onclick="document.getElementById('import-md-input').click()">
-              ${icon('folder-open')} Bestanden kiezen…
-            </span>
-          </label>
-          <div id="import-md-results" class="import-md-results hidden"></div>
-        </div>
-      </div>
-    </div>
-  `;
-};
-
 async function _importObsidian(files) {
   const resultsEl = document.getElementById('import-md-results');
   if (!files?.length || !resultsEl) return;
@@ -2477,54 +2313,7 @@ async function _importObsidian(files) {
   }
 };
 
-// Eén soort uitdraai sinds de snapshot eruit ging; `type` blijft staan omdat de
-// character sheets er ooit bij kunnen komen en de knopafhandeling dezelfde is.
-async function _exportFile(type) {
-  const btn = document.getElementById('export-btn-boek');
-  const origText = btn?.textContent;
-  if (btn) { btn.textContent = '⏳ Bezig…'; btn.disabled = true; }
-  try {
-    const url = '/api/export/campagneboek';
-    const res = await fetch(url, { credentials: 'include' });
-    if (!res.ok) throw new Error(await res.text());
-    const blob = await res.blob();
-    const disp = res.headers.get('Content-Disposition') || '';
-    const match = disp.match(/filename="([^"]+)"/);
-    const filename = match ? match[1] : `${type}.html`;
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = filename;
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    URL.revokeObjectURL(a.href);
-    if (btn) { btn.textContent = '✓ Klaar!'; setTimeout(() => { btn.textContent = origText; btn.disabled = false; }, 2500); }
-  } catch (err) {
-    if (btn) { btn.textContent = '✕ Fout'; setTimeout(() => { btn.textContent = origText; btn.disabled = false; }, 3000); }
-  }
-};
 
-function _renderTunnel() {
-  const el = document.getElementById('dm-tunnel-content');
-  if (!el) return;
-  const active = window._dmPanelTunnelActive;
-  const url = window._dmPanelTunnelUrl;
-  el.innerHTML = `
-    <div class="dm-feature-section">
-      <div class="dm-feature-row">
-        <div class="dm-status-dot ${active ? 'dm-status-on' : 'dm-status-off'}" title="${active ? (url ? 'Active' : 'Connecting…') : 'Inactive'}"></div>
-        ${!active ? `
-          <button id="dm-tunnel-btn" class="dm-btn dm-btn-primary" onclick="window.dmPanel.tunnelToggle()" title="Start tunnel">▶</button>
-        ` : `
-          <span class="dm-tunnel-status-label">${url ? 'Active' : '⏳ Connecting…'}</span>
-          <button id="dm-tunnel-copy" class="dm-btn dm-btn-sm" onclick="window.dmPanel.tunnelCopy()" title="Kopieer link" ${!url ? 'disabled' : ''}>⎘</button>
-          <button id="dm-tunnel-btn" class="dm-btn dm-btn-danger-sm" onclick="window.dmPanel.tunnelToggle()" title="Stop tunnel">■</button>
-        `}
-      </div>
-    </div>
-
-  `;
-};
 
 // ── Reveal strip ──
 
@@ -13442,7 +13231,27 @@ async function _renderInstellingen() {
           title="Narratief document van de campagne">${icon('book-open')} Campagneboek</a>
         <a href="/api/party/sheets" target="_blank" rel="noopener" class="dm-btn dm-btn-sm dm-btn-ghost"
           title="Character sheets van de actieve party — printen of als pdf bewaren">${icon('scroll-text')} Character sheets</a>
-      </div>`, window._helpBtn?.('inst_export') ?? '')}
+      </div>
+
+      <!-- Naar binnen, en daarmee staat in- en uitgaand eindelijk bij elkaar.
+           Dit zat in het tabblad Delen → Export, en dat tabblad had geen knop in
+           de zijbalk — deze twee waren dus nergens te bereiken. -->
+      <div class="dm-subgroep-label" style="margin-top:14px">Importeren vanuit Obsidian</div>
+      <p class="dm-hint" style="margin-top:0">Vul een sjabloon in met het YAML-blok bovenaan, en lees het hier weer in.
+      Elk bestand wordt een kaartje op basis van het <code>type</code>-veld.</p>
+      <div class="dm-feature-row dm-knoprij">
+        ${['Personage','Locatie','Organisatie','Voorwerp','Document'].map(t =>
+          `<a class="dm-btn dm-btn-sm dm-btn-ghost" href="/obsidian-templates/${t}.md" download="${t}.md">${icon('download')} ${esc(t)}</a>`
+        ).join('')}
+      </div>
+      <div class="dm-feature-row" style="margin-top:6px">
+        <input type="file" id="import-md-input" accept=".md" multiple style="display:none"
+          onchange="window.dmPanel.importObsidian(this.files)">
+        <button class="dm-btn dm-btn-sm dm-btn-ghost" onclick="document.getElementById('import-md-input').click()">
+          ${icon('folder-open')} Markdown-bestanden inlezen…</button>
+      </div>
+      <div id="import-md-results" class="import-md-results hidden"></div>`,
+      window._helpBtn?.('inst_export') ?? '')}
     </div>
 
     <!-- Eén opslaanknop voor alles hierboven wat niet vanzelf bewaart -->

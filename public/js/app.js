@@ -1,4 +1,4 @@
-import { api, campagneUitUrl, zetCampagne } from './api.js?v=313';
+import { api, campagneUitUrl, zetCampagne } from './api.js?v=314';
 import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, renderDocumenten, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=348";
 import { initArchief, renderLogboek, openLogboekEditor } from "./render-archief.js?v=141";
 import { renderKaart, queueFlyTo, verversPins, nieuweKaart } from './render-kaart.js?v=31';
@@ -12,7 +12,7 @@ import './render-melding.js?v=4';
 import { renderVaardigheden, zoekVaardigheden, heldenboekTekst } from './render-vaardigheden.js?v=53';
 import { renderStatblock } from './render-statblock.js?v=9';
 import { initSocket } from "./socket-client.js?v=85";
-import { initDmPanel } from "./dm-panel.js?v=404";
+import { initDmPanel } from "./dm-panel.js?v=405";
 import { COND_INFO, COND_LABEL, COND_MET_PLAATJE, COND_ICON } from './conditions.js?v=2';
 import './media-picker.js?v=9';
 import './wizard.js?v=5';
@@ -15077,6 +15077,7 @@ const HELP_CONFIG = {
   inst_export: () => ({ titel: 'Export & backup', stappen: [
     { titel: 'Twee uitdraaien', tekst: 'Het **campagneboek** is je campagne in verhalende vorm: een inhoudsopgave, de sessies op volgorde en een register van personages, locaties en voorwerpen. De **character sheets** zijn de printbare bladen van de actieve party. Allebei kun je ze in je browser als pdf bewaren.', afbeelding: null },
     { titel: 'Wat er níét in staat', tekst: 'De uitdraai gebruikt dezelfde filter als de app zelf: wat een party nog niet ontdekt heeft, gaat niet mee. Geef je een bestand aan je spelers, dan staan jouw aantekeningen, de geheimen en het regie-script er dus niet in.', afbeelding: null },
+    { titel: 'En naar binnen', tekst: 'Onder dezelfde kop staat de weg terug: vijf **Obsidian-sjablonen** om een kaartje buiten de app voor te bereiden, en de knop om ingevulde `.md`-bestanden weer in te lezen. Het `type`-veld in het YAML-blok bepaalt wat het wordt.\n\nDie twee stonden in een tabblad zonder knop, en waren dus nergens te bereiken; sinds 14 oktober 2026 staan in- en uitgaand bij elkaar.', afbeelding: null },
     { titel: 'De echte backup draait vanzelf', tekst: 'Dit is een uitdraai om te lezen, geen reservekopie. Elke nacht maakt de server een kopie van alle campagnes en bewaart die dertig dagen; de character sheets gaan daar als HTML in mee. Je hoeft hier dus niets te doen om veilig te zitten.', afbeelding: null },
   ] }),
   inst_partys: () => ({ titel: "Party's", stappen: [

@@ -2,7 +2,6 @@ const express = require('express');
 const multer  = require('multer');
 const fs      = require('fs');
 const path    = require('path');
-const { spawn } = require('child_process');
 const storage = require('../lib/storage');
 const mediaUsage = require('../lib/media-usage');
 const { requireDM, requireBeheerder, attachRole, hashWachtwoord } = require('./auth');
@@ -11080,76 +11079,13 @@ router.delete('/map/pins/:id', requireDM, (req, res) => {
   res.json({ ok: true });
 });
 
-// ── Tunnel ──
-
-let _io = null;
-let _tunnelRoom = 'main';
-let _tunnelProcess = null;
-let _tunnelUrl = null;
-
-router.post('/tunnel/start', requireDM, (req, res) => {
-  _io = req.app.get('io');
-  _tunnelRoom = _campagneRoom(req);
-  if (_tunnelProcess) return res.json({ status: 'running', url: _tunnelUrl });
-  _tunnelUrl = null;
-
-  // Try common install paths in case cloudflared isn't in PATH
-  const candidates = [
-    'cloudflared',
-    '/usr/local/bin/cloudflared',
-    '/opt/homebrew/bin/cloudflared',
-    `${process.env.HOME}/.cloudflared/cloudflared`,
-  ];
-  let proc = null;
-  for (const cmd of candidates) {
-    try {
-      proc = spawn(cmd, ['tunnel', '--url', 'http://localhost:3000']);
-      break;
-    } catch { /* try next */ }
-  }
-  if (!proc) return res.status(500).json({ error: 'cloudflared niet gevonden' });
-
-  _tunnelProcess = proc;
-  let respondedError = false;
-
-  const urlPattern = /https:\/\/[a-z0-9-]+\.trycloudflare\.com/i;
-  const handleData = (data) => {
-    const text = data.toString();
-    console.log('[cloudflared]', text.trim());
-    const match = text.match(urlPattern);
-    if (match && !_tunnelUrl) {
-      _tunnelUrl = match[0];
-      if (_io) _io.to(_tunnelRoom).emit('tunnel:url', { url: _tunnelUrl });
-    }
-  };
-  _tunnelProcess.stderr.on('data', handleData);
-  _tunnelProcess.stdout.on('data', handleData);
-  _tunnelProcess.on('error', (err) => {
-    console.error('[cloudflared] spawn error:', err.message);
-    _tunnelProcess = null;
-    _tunnelUrl = null;
-    if (!respondedError) {
-      respondedError = true;
-      if (_io) _io.to(_tunnelRoom).emit('tunnel:stopped', {});
-    }
-  });
-  _tunnelProcess.on('close', (code) => {
-    console.log('[cloudflared] process closed, code:', code);
-    _tunnelProcess = null;
-    _tunnelUrl = null;
-    if (_io) _io.to(_tunnelRoom).emit('tunnel:stopped', {});
-  });
-  res.json({ status: 'starting' });
-});
-
-router.get('/tunnel/status', requireDM, (req, res) => {
-  res.json({ active: !!_tunnelProcess, url: _tunnelUrl });
-});
-
-router.delete('/tunnel/stop', requireDM, (req, res) => {
-  if (_tunnelProcess) { _tunnelProcess.kill(); _tunnelProcess = null; _tunnelUrl = null; }
-  res.json({ ok: true });
-});
+// De tunnel stond hier: een knop die `cloudflared` startte en zo een tijdelijk
+// publiek adres naar localhost:3000 maakte. Dat was van vóór de website — de app
+// draaide op een laptop en je spelers moesten er van buiten bij. Nu draait hij
+// op een server met een vast adres, staat `cloudflared` daar niet eens, en zou
+// een tunnel hetzelfde adres nog eens naar buiten brengen. Weg op 14 okt 2026,
+// met de laatste plek waar de app een proces startte op de server.
+// `npm run tunnel` bestaat nog, voor wie lokaal op zijn telefoon wil kijken.
 
 // ── Tafels (Random Tables) ──
 
