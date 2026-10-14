@@ -8,7 +8,7 @@ const mediaUsage = require('../lib/media-usage');
 const { requireDM, requireBeheerder, attachRole, hashWachtwoord } = require('./auth');
 const fouten = require('../lib/fouten');
 const uitnodigingen = require('../lib/uitnodigingen');
-const { buildSnapshot, buildCampagneboek } = require('../lib/snapshot');
+const { buildCampagneboek } = require('../lib/campagneboek');
 const { sheetHtml } = require('../lib/character-sheet');
 const { MODULES, modulesVoor, modulesVrijgegeven, schoneModules, verborgenUI } = require('../lib/modules');
 const bronnen = require('../lib/bronnen');
@@ -12349,24 +12349,12 @@ router.delete('/combat/combatant/:id', requireDM, (req, res) => {
   res.json({ ok: true });
 });
 
-// ── Snapshot export ──
-
-router.get('/export', requireDM, async (req, res) => {
-  try {
-    const dmState  = readDmState();
-    const groupId  = req.query.groupId || dmState.activeGroup;
-    const html     = await buildSnapshot(dmState, groupId);
-    const appTitle = storage.readJSON('meta.json').appTitle || 'campagne';
-    const slug     = appTitle.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
-    const date     = new Date().toISOString().slice(0,10);
-    res.setHeader('Content-Type', 'text/html; charset=utf-8');
-    res.setHeader('Content-Disposition', `attachment; filename="${slug}-snapshot-${date}.html"`);
-    res.send(html);
-  } catch (err) {
-    console.error('Export error:', err);
-    res.status(500).json({ error: err.message });
-  }
-});
+// ── Het campagneboek ──
+// De snapshot stond hier ook: dezelfde export maar als klikbare mini-app, uit
+// de tijd dat de app niet altijd draaide. Eruit op 14 okt 2026 — met een app
+// die wél altijd draait beantwoordde een bevroren kopie van het archief geen
+// vraag meer die iemand had. Het boek is iets anders: geen tweede app maar iets
+// om te lezen, en desnoods te laten drukken.
 
 router.get('/export/campagneboek', requireDM, async (req, res) => {
   try {
@@ -17788,11 +17776,11 @@ router.post('/encounters/:id/start', requireDM, (req, res) => {
 // De backup schrijft de sheets ook als HTML weg (scripts/sheets-bewaren.js);
 // die heeft dezelfde twee helpers nodig als de route hierboven.
 module.exports = router;
-// `lib/snapshot.js` had een eigen, jaren achtergebleven kopie van de
+// Het campagneboek had een eigen, jaren achtergebleven kopie van de
 // spelersfilter (hij kende alleen het enkelvoudige `data.geheim`). Er hoort er
-// één te zijn. De export vraagt hem hier op met een lázy require — snapshot.js
-// wordt bovenin dít bestand geladen, dus een require terug bij het laden zou
-// een halve module opleveren.
+// één te zijn. De export vraagt hem hier op met een lázy require —
+// campagneboek.js wordt bovenin dít bestand geladen, dus een require terug bij
+// het laden zou een halve module opleveren.
 module.exports.filterEntityForPlayer   = (...a) => filterEntityForPlayer(...a);
 module.exports.hoofdstukkenVoorSpeler  = (...a) => _hoofdstukkenVoorSpeler(...a);
 module.exports.sheetPersonage = (...a) => _sheetPersonage(...a);

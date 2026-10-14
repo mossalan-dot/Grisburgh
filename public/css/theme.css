@@ -4065,44 +4065,6 @@ html {
 .app-player-switch-btn:hover { background: rgba(196,168,122,0.25); border-color: rgba(196,147,10,0.55); }
 .app-player-switch-btn.hidden { display: none; }
 
-/* DM-zegel — thematische toggle */
-.dm-seal {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  height: 32px;
-  padding: 0 12px;
-  background: rgba(196,168,122,0.08);
-  border: 1px solid rgba(196,168,122,0.35);
-  border-radius: 6px;
-  cursor: pointer;
-  transition: background 0.2s, border-color 0.2s, box-shadow 0.2s;
-  white-space: nowrap;
-  flex-shrink: 0;
-}
-.dm-seal:hover { background: rgba(196,168,122,0.18); border-color: rgba(196,147,10,0.5); }
-.dm-seal-icon { font-size: 1.05rem; line-height: 1; font-style: normal; }
-.dm-seal-label {
-  font-family: 'Cinzel', serif;
-  font-size: 0.72rem;
-  font-weight: 700;
-  color: #7a6040;
-  letter-spacing: 0.04em;
-  transition: color 0.2s;
-}
-/* DM active state */
-.dm-seal--active {
-  background: linear-gradient(135deg, rgba(154,112,8,0.25), rgba(196,147,10,0.15));
-  border-color: rgba(196,147,10,0.75);
-  box-shadow: 0 0 8px rgba(196,147,10,0.2);
-}
-.dm-seal--active .dm-seal-label { color: #c4930a; }
-/* DM preview state */
-.dm-seal--preview {
-  background: rgba(90,60,10,0.12);
-  border-color: rgba(120,80,20,0.45);
-}
-.dm-seal--preview .dm-seal-label { color: #7a5820; }
 
 /* DM party bar — below header, DM-only */
 .dm-party-bar {
@@ -4176,8 +4138,6 @@ html {
   .app-subtitle { display: none; }
   .app-search-label { display: none; }
   .app-search-btn { padding: 0 10px; border-radius: 6px; }
-  .dm-seal-label { display: none; }
-  .dm-seal { padding: 0 10px; border-radius: 6px; }
 
   /* ── Nav tabs: horizontaal scrollbaar zodat alle tabs bereikbaar zijn ── */
   #section-tabs {
@@ -10602,10 +10562,6 @@ body.lade-dicht .regie-lade-body { display: none; }
 [data-theme="hp"] #app-title     { color: #d4a830 !important; text-shadow: 0 0 14px rgba(212,168,48,0.6); }
 [data-theme="hp"] .app-subtitle  { color: #c25090 !important; }
 [data-theme="hp"] #player-name-display { color: #c4a0e0 !important; }
-[data-theme="hp"] .dm-seal       { border-color: rgba(107,63,160,0.6) !important; background: rgba(107,63,160,0.15) !important; }
-[data-theme="hp"] .dm-seal-label { color: #c4a0e0 !important; }
-[data-theme="hp"] .dm-seal--active { background: rgba(107,63,160,0.35) !important; border-color: #d4a830 !important; }
-[data-theme="hp"] .dm-seal--active .dm-seal-label { color: #d4a830 !important; }
 [data-theme="hp"] .app-search-btn { border-color: rgba(107,63,160,0.5) !important; color: #c4a0e0 !important; background: rgba(107,63,160,0.12) !important; }
 
 /* nav inside app-header — transparant, kleur al van header */
@@ -20827,8 +20783,6 @@ body.sb-boek-open { overflow: hidden; }
 .app-header--compact .tab-mob-icon   { display: inline-block; }
 .app-header--compact .app-search-label { display: none; }
 .app-header--compact .app-search-btn { padding: 0 10px; }
-.app-header--compact .dm-seal-label  { display: none; }
-.app-header--compact .dm-seal        { padding: 0 10px; }
 
 /* ── Dice formula: collapsible ── */
 .dice-formula { display: none; }
@@ -21832,13 +21786,6 @@ textarea:focus-visible { outline: none; box-shadow: var(--gb-ring); }
 }
 
 /* DM-status rustiger: geen gloed, gedempt goud i.p.v. een luide pill */
-.dm-seal--active {
-  background: rgba(196,168,122,0.12);
-  border-color: rgba(196,147,10,0.4);
-  box-shadow: none;
-}
-.dm-seal--active .dm-seal-label { color: #9a7008; }
-.dm-seal--active .dm-seal-icon  { color: #b8860b; }
 
 /* Touch-apparaten (tablet): DM-hoekknoppen altijd zichtbaar — geen hover nodig */
 @media (hover: none) {

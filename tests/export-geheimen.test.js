@@ -5,13 +5,16 @@ const os   = require('os');
 const path = require('path');
 const fs   = require('fs');
 
-// De snapshot-export (`/api/export`) plakt zijn hele datamodel als JSON in het
-// HTML-bestand. Wat de filter laat staan, staat dus letterlijk in een bestand
-// dat je aan je spelers geeft — ook wat nergens op het scherm getekend wordt.
-// `lib/snapshot.js` had daarvoor een eigen kopie van de spelersfilter die alleen
-// het oude enkelvoudige `data.geheim` kende: alle regels uit `data.geheimen`
-// gingen mee, onthuld of niet, plus de antagonist-vlaggen, de DM-aantekeningen
-// en het complete regie-script in `meta.hoofdstukken`.
+// Het campagneboek is een bestand dat je aan je spelers geeft. Alles wat de
+// filter laat staan, staat daar dus in — en de export had ooit een eigen kopie
+// van de spelersfilter die alleen het oude enkelvoudige `data.geheim` kende:
+// alle regels uit `data.geheimen` gingen mee, onthuld of niet, plus de
+// antagonist-vlaggen, de DM-aantekeningen en het complete regie-script.
+// Hij leent nu `filterEntityForPlayer` uit `routes/api.js` — dezelfde filter
+// als de app. Deze kanaries bewaken dat.
+//
+// De snapshot stond hier ook in (die plakte zijn datamodel als JSON in het
+// bestand, wat het erger maakte). Die is weg sinds 14 okt 2026.
 const DATA_DIR = path.join(os.tmpdir(), `grisburgh-test-export-${Date.now()}-${Math.random().toString(36).slice(2)}`);
 
 function req(server, method, p, body, cookie) {
@@ -40,7 +43,7 @@ function req(server, method, p, body, cookie) {
 }
 
 describe('Export: wat niet onthuld is, komt er niet in', () => {
-  let server, io, dm, snapshot, boek;
+  let server, io, dm, boek;
   const OPEN    = 'Deze regel is onthuld en mag mee.';
   const DICHT   = 'KANARIE-GEHEIM: deze regel is nooit onthuld.';
   const NOTITIE = 'KANARIE-NOTITIE: aantekening voor de DM.';
@@ -49,7 +52,7 @@ describe('Export: wat niet onthuld is, komt er niet in', () => {
   before(async () => {
     process.env.GRISBURGH_DATA_DIR = DATA_DIR;
     if (fs.existsSync(DATA_DIR)) fs.rmSync(DATA_DIR, { recursive: true, force: true });
-    for (const m of ['../server', '../lib/storage', '../lib/snapshot', '../routes/api', '../routes/auth']) {
+    for (const m of ['../server', '../lib/storage', '../lib/campagneboek', '../routes/api', '../routes/auth']) {
       delete require.cache[require.resolve(m)];
     }
     const mod = require('../server');
@@ -75,8 +78,7 @@ describe('Export: wat niet onthuld is, komt er niet in', () => {
     await req(server, 'PUT', '/api/meta/hoofdstuk/h1', { num: 1, title: 'Proefakte', short: 'A1' }, dm);
     await req(server, 'PUT', '/api/meta/akte/h1/tekst', { tekst: VERHAAL }, dm);
 
-    snapshot = (await req(server, 'GET', `/api/export?groupId=${gid}`, null, dm)).body;
-    boek     = (await req(server, 'GET', `/api/export/campagneboek?groupId=${gid}`, null, dm)).body;
+    boek = (await req(server, 'GET', `/api/export/campagneboek?groupId=${gid}`, null, dm)).body;
   });
 
   after(async () => {
@@ -85,13 +87,23 @@ describe('Export: wat niet onthuld is, komt er niet in', () => {
     fs.rmSync(DATA_DIR, { recursive: true, force: true });
   });
 
-  it('levert allebei de exports op', () => {
-    assert.ok(typeof snapshot === 'string' && snapshot.length > 1000, 'snapshot is HTML');
+  it('levert een campagneboek op', () => {
     assert.ok(typeof boek === 'string' && boek.length > 1000, 'campagneboek is HTML');
   });
 
-  it('neemt het onthulde geheim wél mee', () => {
-    assert.ok(snapshot.includes(OPEN), 'wat de party weet hoort in de snapshot te staan');
+  // Een negatieve test alleen is gevaarlijk: een boek dat per ongeluk leeg
+  // blijft slaagt voor élke kanarie. Dus ook de andere kant op — wat de party
+  // wél kent hoort erin te staan.
+  //
+  // Niet het onthulde geheim zelf: het boek is de verhalende vorm en drukt
+  // geen geheimenlijst af, onthuld of niet. (De snapshot deed dat wel, want die
+  // plakte het hele datamodel als JSON in het bestand — en dat was nu juist de
+  // reden dat hij strenger gefilterd moest worden dan het boek.)
+  it('neemt wél mee wat de party gewoon mag zien', () => {
+    // Zijn naam, want het register noemt wie de party kent. Zijn beschrijving
+    // staat er niet standaard in; het boek is een register en een verslag, geen
+    // tweede archief.
+    assert.ok(boek.includes('Proefpersoon'), 'het kaartje zelf hoort in het boek te staan');
   });
 
   for (const [wat, kanarie] of [
@@ -99,20 +111,14 @@ describe('Export: wat niet onthuld is, komt er niet in', () => {
     ['de aantekeningen van de DM',          'KANARIE-NOTITIE'],
     ['de verhaaltekst van een akte',        'KANARIE-VERHAAL'],
   ]) {
-    it(`laat ${wat} uit de snapshot`, () => {
-      assert.ok(!snapshot.includes(kanarie), `${kanarie} hoort niet in de snapshot`);
-    });
     it(`laat ${wat} uit het campagneboek`, () => {
       assert.ok(!boek.includes(kanarie), `${kanarie} hoort niet in het campagneboek`);
     });
   }
 
-  it('laat het statblok uit de snapshot', () => {
-    assert.ok(!/"stats":\s*\{/.test(snapshot), 'een statblok gaat nooit mee naar een speler');
-    assert.ok(!/"statblockTiers"/.test(snapshot), 'en de gedaantes die hij nog niet kent ook niet');
-  });
-
-  it('laat het regie-script uit de snapshot', () => {
-    assert.ok(!/"script":\s*\[\s*\{/.test(snapshot), 'het regie-script is wat er nog onthuld moet worden');
+  it('laat een statblok en het regie-script eruit', () => {
+    assert.ok(!/"stats":\s*\{/.test(boek), 'een statblok gaat nooit mee naar een speler');
+    assert.ok(!/"statblockTiers"/.test(boek), 'en de gedaantes die hij nog niet kent ook niet');
+    assert.ok(!/"script":\s*\[\s*\{/.test(boek), 'het regie-script is wat er nog onthuld moet worden');
   });
 });

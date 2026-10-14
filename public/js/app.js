@@ -12,7 +12,7 @@ import './render-melding.js?v=4';
 import { renderVaardigheden, zoekVaardigheden, heldenboekTekst } from './render-vaardigheden.js?v=53';
 import { renderStatblock } from './render-statblock.js?v=9';
 import { initSocket } from "./socket-client.js?v=85";
-import { initDmPanel } from "./dm-panel.js?v=401";
+import { initDmPanel } from "./dm-panel.js?v=404";
 import { COND_INFO, COND_LABEL, COND_MET_PLAATJE, COND_ICON } from './conditions.js?v=2';
 import './media-picker.js?v=9';
 import './wizard.js?v=5';
@@ -225,7 +225,6 @@ function _displayModeInlossen() {
 // ── App State ──
 const state = {
   role:        'player',
-  dmPreview:   false,   // true = DM authenticated but viewing as player
   isSandbox:   false,   // true = ingelogd als sandbox-DM (demo omgeving)
   playerName:  null,    // naam van ingelogde speler (of null als anoniem)
   characterId: null,    // ID van bijbehorend personage-kaartje
@@ -275,7 +274,7 @@ function openCombatMonsterPanel(c) {
 window.app = {
   state,
   $, $$,
-  isDM:        () => state.role === 'dm' && !state.dmPreview,
+  isDM:        () => state.role === 'dm',
   isPlayer:    () => state.role === 'player' && !!state.playerName,
   toggleLoginModal,
   closeLoginModal,
@@ -296,7 +295,6 @@ window.app = {
   _landingSandboxLogin,
   _landingTabletLogin,
   _landingTestLogin,
-  dmToggleClick,
   onFabClick,
   openModal,
   closeModal,
@@ -1285,7 +1283,7 @@ async function sandboxLoginSubmit() {
 
 function applyRole() {
   const appEl   = $('#app');
-  const isDmActive  = state.role === 'dm' && !state.dmPreview;
+  const isDmActive  = state.role === 'dm';
   // De houdingenschaal hoort bij wie binnen is. Bij de start wordt hij
   // overgeslagen voor een bezoeker (dat gaf een 401 op de landingspagina); wie
   // daarna inlogt komt hier langs, en dan is dit het moment.
@@ -1295,24 +1293,12 @@ function applyRole() {
     // maar wie via de landingspagina komt was toen nog bezoeker.
     window.soundManager?.start?.();
   }
-  const isDmPreview = state.role === 'dm' && state.dmPreview;
-
   appEl.classList.toggle('dm-mode',     isDmActive);
   appEl.classList.toggle('player-mode', !isDmActive);
 
-  const toggle    = $('#dm-toggle');
-  const label     = $('#dm-toggle-label');
+  // Het DM-zegel en zijn label zijn met de spelerweergave meegegaan; alleen de
+  // uitlogknop staat er nog.
   const logoutBtn = $('#dm-logout-btn');
-
-  if (toggle) {
-    toggle.classList.toggle('hidden',           state.role !== 'dm');
-    toggle.classList.toggle('dm-seal--active',  isDmActive);
-    toggle.classList.toggle('dm-seal--preview', isDmPreview);
-    toggle.title = isDmActive ? 'Spelerweergave tonen' : isDmPreview ? 'Terug naar DM-weergave' : 'Dungeon Master modus';
-  }
-  if (label) {
-    label.textContent = isDmActive ? 'DM actief' : isDmPreview ? 'Preview' : 'DM';
-  }
   if (logoutBtn) {
     logoutBtn.classList.toggle('hidden', state.role !== 'dm');
   }
@@ -1404,25 +1390,6 @@ function applyRole() {
   // Nog een keer nadat de browser alles heeft neergezet: de chip en de partybalk
   // komen soms een tel later binnen en maken de kop dan alsnog te breed.
   setTimeout(_scheduleFitHeader, 250);
-}
-
-function dmToggleClick() {
-  if (state.role === 'dm' && !state.dmPreview) {
-    // DM active → enter player preview
-    state.dmPreview = true;
-    applyRole();
-    refreshAll();
-    window.dmPanel?.refreshCombatOverlay();
-  } else if (state.role === 'dm' && state.dmPreview) {
-    // Preview → back to DM
-    state.dmPreview = false;
-    applyRole();
-    refreshAll();
-    window.dmPanel?.refreshCombatOverlay();
-  } else {
-    // Not logged in → open login
-    toggleLoginModal();
-  }
 }
 
 // ── Waar wijzen we naartoe als een tekst er niet mag staan? ─────────────────
@@ -3077,7 +3044,7 @@ window.renderGroupSwitcher = async function(groups, activeGroupId) {
   const dd   = document.getElementById('group-dropdown');
   if (!wrap || !pill || !dd) return;
   // Alleen zichtbaar in DM-modus
-  const isDm = state.role === 'dm' && !state.dmPreview;
+  const isDm = state.role === 'dm';
   wrap.classList.toggle('hidden', !isDm);
   if (!isDm) return;
   if (!groups || !groups.length) { pill.innerHTML = ''; dd.innerHTML = ''; return; }
@@ -15108,8 +15075,8 @@ const HELP_CONFIG = {
     { titel: 'Een nieuwe campagne', tekst: 'Naam, ondertitel en meteen een **DM-wachtwoord** — zonder dat komt er niemand in, want alleen de standaardcampagne valt terug op het serverwachtwoord. De vraag *XP of Milestone* staat er ook bij; die bepaalt de hele level-up-kant, en je kunt hem later omzetten bij Campagne → Level omhoog.', afbeelding: null },
   ] }),
   inst_export: () => ({ titel: 'Export & backup', stappen: [
-    { titel: 'Drie uitdraaien', tekst: 'De **snapshot** is een HTML-bestand met de stand van de campagne, het **campagneboek** is de verhalende vorm met inhoudsopgave, en de **character sheets** zijn de printbare bladen van de actieve party — die kun je in je browser als pdf bewaren.', afbeelding: null },
-    { titel: 'Wat er níét in staat', tekst: 'Beide exports gebruiken dezelfde filter als de app zelf: wat een party nog niet ontdekt heeft, gaat niet mee. Geef je een bestand aan je spelers, dan staan jouw aantekeningen, de geheimen en het regie-script er dus niet in.', afbeelding: null },
+    { titel: 'Twee uitdraaien', tekst: 'Het **campagneboek** is je campagne in verhalende vorm: een inhoudsopgave, de sessies op volgorde en een register van personages, locaties en voorwerpen. De **character sheets** zijn de printbare bladen van de actieve party. Allebei kun je ze in je browser als pdf bewaren.', afbeelding: null },
+    { titel: 'Wat er níét in staat', tekst: 'De uitdraai gebruikt dezelfde filter als de app zelf: wat een party nog niet ontdekt heeft, gaat niet mee. Geef je een bestand aan je spelers, dan staan jouw aantekeningen, de geheimen en het regie-script er dus niet in.', afbeelding: null },
     { titel: 'De echte backup draait vanzelf', tekst: 'Dit is een uitdraai om te lezen, geen reservekopie. Elke nacht maakt de server een kopie van alle campagnes en bewaart die dertig dagen; de character sheets gaan daar als HTML in mee. Je hoeft hier dus niets te doen om veilig te zitten.', afbeelding: null },
   ] }),
   inst_partys: () => ({ titel: "Party's", stappen: [

@@ -251,7 +251,6 @@ export function initDmPanel() {
     // Tunnel
     tunnelToggle:  _tunnelToggle,
     tunnelCopy:    _tunnelCopy,
-    exportSnapshot:  _exportSnapshot,
     exportFile:      _exportFile,
     importObsidian:  _importObsidian,
 
@@ -2396,18 +2395,6 @@ function _renderExportTab() {
     <div class="dm-feature-section">
       <div class="dm-feature-label">Exporteren</div>
 
-      <div class="export-option-card" id="export-card-snapshot">
-        <div class="export-option-icon">${icon('camera')}</div>
-        <div class="export-option-body">
-          <div class="export-option-title">Snapshot</div>
-          <div class="export-option-desc">Interactieve HTML-versie van de campagnedata voor spelers — met kaarten, modals en alle onthuld materiaal.</div>
-          <button class="dm-btn dm-btn-primary export-option-btn" id="export-btn-snapshot"
-            onclick="window.dmPanel.exportFile('snapshot')">
-            ${icon('download')} Snapshot downloaden
-          </button>
-        </div>
-      </div>
-
       <div class="export-option-card" id="export-card-boek">
         <div class="export-option-icon">${icon('book-open')}</div>
         <div class="export-option-body">
@@ -2490,13 +2477,14 @@ async function _importObsidian(files) {
   }
 };
 
+// Eén soort uitdraai sinds de snapshot eruit ging; `type` blijft staan omdat de
+// character sheets er ooit bij kunnen komen en de knopafhandeling dezelfde is.
 async function _exportFile(type) {
-  const btnId = type === 'campagneboek' ? 'export-btn-boek' : 'export-btn-snapshot';
-  const btn = document.getElementById(btnId);
+  const btn = document.getElementById('export-btn-boek');
   const origText = btn?.textContent;
   if (btn) { btn.textContent = '⏳ Bezig…'; btn.disabled = true; }
   try {
-    const url = type === 'campagneboek' ? '/api/export/campagneboek' : '/api/export';
+    const url = '/api/export/campagneboek';
     const res = await fetch(url, { credentials: 'include' });
     if (!res.ok) throw new Error(await res.text());
     const blob = await res.blob();
@@ -2514,10 +2502,6 @@ async function _exportFile(type) {
   } catch (err) {
     if (btn) { btn.textContent = '✕ Fout'; setTimeout(() => { btn.textContent = origText; btn.disabled = false; }, 3000); }
   }
-};
-
-async function _exportSnapshot() {
-  await _exportFile('snapshot');
 };
 
 function _renderTunnel() {
@@ -13228,6 +13212,14 @@ async function _renderInstellingen() {
              staat erin. -->
         <button class="dm-btn dm-btn-ghost" onclick="window._handleidingOpen?.()"
           title="Alle uitleg achter elkaar, om te lezen of af te drukken">${icon('book-open')} Handleiding openen</button>
+        <!-- Wat jij zelf bedacht meenemen naar een andere campagne, of het werk
+             van een andere DM inlezen. De knop stond in het Heldenboek, naast
+             de hulpknop, en niemand begreep waarom juist dáár — het gaat over
+             je campagne, niet over één tabblad. Hier dus, bij de campagne zelf.
+             (Voor nu alleen het Heldenboek; spreuken, tafels en kaartjes zitten
+             net zo goed vast in een campagne, zie docs/todo.md.) -->
+        <button class="dm-btn dm-btn-ghost" onclick="window.vaardigheden?.deelVenster?.()"
+          title="Je eigen classes, subclasses en feats meenemen naar een andere campagne — of die van iemand anders inlezen">${icon('arrow-up-right')} Meenemen of overnemen</button>
       </div>
 
       <!-- Wat je van je eigen campagne niet gebruikt. Alleen uitzetten: wat je
@@ -13442,9 +13434,10 @@ async function _renderInstellingen() {
 
     <!-- Export & backup -->
     ${_instSectie('export', 'Export &amp; backup', `
+      <!-- De snapshot stond hier ook: een klikbare mini-app met de stand van de
+           campagne, uit de tijd dat de app niet altijd draaide. Eruit op 14 okt
+           2026; het campagneboek is iets anders en blijft. -->
       <div class="dm-feature-row dm-knoprij">
-        <a href="/api/export" download class="dm-btn dm-btn-sm dm-btn-ghost"
-          title="HTML-overzicht van alle spelersdata en entities">${icon('download')} Snapshot</a>
         <a href="/api/export/campagneboek" download class="dm-btn dm-btn-sm dm-btn-ghost"
           title="Narratief document van de campagne">${icon('book-open')} Campagneboek</a>
         <a href="/api/party/sheets" target="_blank" rel="noopener" class="dm-btn dm-btn-sm dm-btn-ghost"

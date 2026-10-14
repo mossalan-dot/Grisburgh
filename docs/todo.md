@@ -268,12 +268,19 @@ kloppen niet meer met de app; die staan in het voorstel, met de volgorde.
 
 ## Scherven (klein, los op te pakken)
 
-- [ ] **Meenemen & overnemen — één plek voor de hele app.** De knop stond in
+- [~] **Meenemen & overnemen — één plek voor de hele app.** De knop stond in
       het Heldenboek (een downloadpijl naast de hulpknop) en niemand begreep
       waarom juist dáár. Weggehaald op 6 okt 2026; de machinerie staat er nog
       (`vaardigheden.deelVenster/exporteer/importeer`, `GET
       /progression/export`, `POST /progression/import`, met tests) maar is
       nergens aan te klikken — zie het commentaar bij `deelVenster()`.
+      **14 okt 2026:** de knop staat weer, nu bij Instellingen → Campagne, naast
+      de wizard en de handleiding. Dat is de plek waar hij hoort: het gaat over
+      je campagne, niet over één tabblad. Werkende, geteste machinerie weggooien
+      die we volgende maand terugwillen is zonde — hij heeft nu weer een deur.
+      Wat open blijft staan is de **brede** vorm: spreuken, tafels, kaartjes en
+      diensten zitten net zo goed vast in een campagne, en dat hoort één venster
+      met vinkjes per soort te worden.
       Het probleem is breder dan de progressie: wat een DM zelf intikt bij
       **spreuken, tafels, kaartjes en diensten** zit net zo goed vast in zijn
       campagne. Dat hoort één venster te zijn — "wat neem je mee?" met vinkjes
@@ -316,7 +323,7 @@ kloppen niet meer met de app; die staan in het voorstel, met de volgorde.
       dode variant. 78 regels JS, een tab-div in de shell en een ongebruikte
       `_INSTELLINGEN_TABS`-set.
 
-- [ ] **Dode code van de previewtoggle** — de knop is uit de balk, `dmToggleClick`
+- [x] **Dode code van de previewtoggle** — opgeruimd 14 okt 2026. — de knop is uit de balk, `dmToggleClick`
       en `state.dmPreview` staan er nog. Laten staan tot zeker is dat je hem niet
       terugwilt.
       **Bevinding 24 sep 2026:** hij kán niet terugkomen zoals hij was. De
@@ -325,6 +332,10 @@ kloppen niet meer met de app; die staan in het voorstel, met de volgorde.
       speler" zou dus spelers-chrome om DM-data heen tekenen — inclusief
       geheimen die de party niet kent. Wil je die stand écht, dan moet het langs
       de server (een tweede sessie of een expliciete preview-rol).
+      **Weg:** `state.dmPreview`, `dmToggleClick` en zijn export, de vier plekken
+      die de vlag nog aftastten, het dode blok in `applyRole` dat `#dm-toggle`
+      en `#dm-toggle-label` bijwerkte (die elementen bestaan al niet meer), en
+      53 regels `.dm-seal*`-CSS inclusief de hp-thema-variant.
 
 ## Personage-kaartje → `docs/personage-kaartje.md`
 
@@ -562,7 +573,7 @@ Gevraagd op 14 sep 2026, gebouwd op 14 sep 2026.
 
 ## Campagneboek en snapshot
 
-- [ ] **Snapshot eruit?** `lib/snapshot.js` maakt een HTML-export van de hele
+- [x] **Snapshot eruit** — gedaan 14 okt 2026. `lib/snapshot.js` maakt een HTML-export van de hele
       campagne (`/api/export` + `/api/export/campagneboek`), uit de tijd dat de
       app niet altijd draaide. Op 15 sep 2026 zei de DM: *"ik vind die snapshot
       niet zo boeiend meer met een live app"* — dus de vraag is niet meer óf we
@@ -572,6 +583,21 @@ Gevraagd op 14 sep 2026, gebouwd op 14 sep 2026.
       met inhoudsopgave) is een ander ding dan de snapshot en is misschien wél
       het bewaren waard; beslis die twee apart. De printbare character sheets
       staan hier los van en blijven.
+      **Gedaan.** `lib/snapshot.js` (1.779 regels) is gesplitst: het
+      campagneboek verhuisde met zijn drie helpers naar `lib/campagneboek.js`
+      (615 regels), de rest is weg — de snapshotroute `/api/export`, de knop bij
+      Instellingen, de dode kaart in `_renderExportTab`, en de snapshot-helft van
+      `tests/export-geheimen.test.js`. Die test bewaakt nu het boek, met een
+      positieve kant erbij: een boek dat per ongeluk leeg blijft slaagde anders
+      voor élke kanarie.
+
+- [ ] **Drie tabbladen zonder deur** (gevonden 14 okt 2026). `delen`, `tunnel`
+      en `export` hebben elk een `dm-tab-content` in de shell en een
+      renderfunctie, maar staan niet in `_DM_TABS` — er is dus geen knop in de
+      zijbalk die ze opent. De **tunnel** is een echte functie (je campagne
+      tijdelijk van buiten bereikbaar maken) en hoort waarschijnlijk zijn knop
+      terug te krijgen; `export` is sinds vandaag dubbelop, want de uitdraaien
+      staan bij Instellingen → Beheer. Beslis per stuk: knop terug, of weg.
 - [x] **Lekt het campagneboek geheimen?** — nagekeken 15 sep 2026. Het
       **campagneboek** niet (dat rendert alleen HTML), de **snapshot** wél en
       erger dan gedacht: die plakt zijn datamodel als JSON in het bestand, dus

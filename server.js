@@ -233,6 +233,16 @@ app.use(express.static(path.join(__dirname, 'public'), {
 app.use('/api/auth', authRouter);
 app.use('/api', apiRoutes);
 
+// Een onbekend API-pad hoort een 404 te zijn. Zonder deze regel viel het door
+// naar de SPA-fallback hieronder en kreeg je **200 met de HTML-schil** terug —
+// dezelfde stille fout als bij een verdwenen .js: `r.ok` is waar, dus de
+// aanroeper denkt dat het goed ging en struikelt pas bij `r.json()`, of niet
+// eens als hij dat afvangt. Een route die je verkeerd spelt hoort meteen te
+// zeggen dat hij niet bestaat.
+app.use('/api', (req, res) => {
+  res.status(404).json({ error: 'Onbekend eindpunt: ' + req.method + ' ' + req.path });
+});
+
 // ── SPA fallback ─────────────────────────────────────────────────────────────
 // Nooit cachen, geen ETag. En: de <title> wordt hier al ingevuld met de naam van
 // de campagne uit het pad. index.html is één bestand voor alle campagnes, dus
