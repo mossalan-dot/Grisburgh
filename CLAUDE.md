@@ -1700,7 +1700,7 @@ in `_load()` (`render-spreuken.js`), ontdubbeld op `index`:
 > Het oogje op een subclasskaartje opent hem, het vinkje telt hem op.
 > Feats en Epic Boons hebben geen tweede laag: daar is de lijst het antwoord.
 > **En wat er nog meer bestaat.** Onder de kolom staat *Nog N elders*:
-> `bronnen/subclasses-elders.json` noemt 64 subclasses uit andere boeken
+> `bronnen/subclasses-elders.json` noemt 63 subclasses uit andere boeken
 > (PHB 2014, Xanathar's, Tasha's, Sword Coast, Van Richten's, Fizban's,
 > Wildemount, DMG) **bij naam en met hun vindplaats, en verder niets**. Een naam
 > is geen beschermd werk; een beschrijving wél, en die staat er dan ook niet in
@@ -1718,7 +1718,7 @@ in `_load()` (`render-spreuken.js`), ontdubbeld op `index`:
 > **En wát ze geven.** Neemt de DM er een over, dan stond er daarna een leeg
 > kaartje: je zag dát de Hexblade bestaat, niet wát hij geeft.
 > `bronnen/features-elders.json` noemt daarom de **namen** van hun features —
-> 102 subclasses, 29 species uit `volkenOverig` en de Artificer zelf, samen 505
+> 101 subclasses, 29 species uit `volkenOverig` en de Artificer zelf, samen 500
 > namen — en verder niets: geen tekst, geen levels. Dat zijn niet alleen de
 > boeken van buiten: ook de 2024-subclasses die de app zelf meebrengt maar
 > waarvan de tekst buiten de SRD valt (Battle Master, Assassin, Gloom Stalker…)
