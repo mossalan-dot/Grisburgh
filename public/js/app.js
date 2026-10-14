@@ -12,7 +12,7 @@ import './render-melding.js?v=4';
 import { renderVaardigheden, zoekVaardigheden, heldenboekTekst } from './render-vaardigheden.js?v=53';
 import { renderStatblock } from './render-statblock.js?v=9';
 import { initSocket } from "./socket-client.js?v=85";
-import { initDmPanel } from "./dm-panel.js?v=400";
+import { initDmPanel } from "./dm-panel.js?v=401";
 import { COND_INFO, COND_LABEL, COND_MET_PLAATJE, COND_ICON } from './conditions.js?v=2';
 import './media-picker.js?v=9';
 import './wizard.js?v=5';
@@ -11642,12 +11642,17 @@ async function init() {
   initSocket();
   initDmPanel();
 
-  // Laad groepen en render wisselaar (alleen relevant voor DM, maar state ook voor spelers)
-  try {
-    const { groups, activeGroup } = await api.listGroups();
-    _activeGroupId = activeGroup;
-    window.renderGroupSwitcher(groups, activeGroup);
-  } catch { /* niet ingelogd als DM */ }
+  // Laad groepen en render de wisselaar. Alleen als DM: de route staat op
+  // `requireDM`, dus een speler kreeg hier een 403 bij elke start. Hij werd
+  // afgevangen en deed niets, maar hij stond wel in zijn console — en een
+  // console vol onschuldige fouten is hoe een echte fout onzichtbaar wordt.
+  if (state.role === 'dm') {
+    try {
+      const { groups, activeGroup } = await api.listGroups();
+      _activeGroupId = activeGroup;
+      window.renderGroupSwitcher(groups, activeGroup);
+    } catch { /* ok */ }
+  }
 
   renderParty();
   const hashSection   = location.hash.replace('#', '');

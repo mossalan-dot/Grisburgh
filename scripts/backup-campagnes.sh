@@ -6,6 +6,11 @@
 # de per-schrijfactie-backups in campaigns/*/backups/, die zichzelf al
 # vernieuwen en de snapshot alleen maar zouden opblazen.
 #
+# Buiten campaigns/ staan twee bestanden die hier bewust níét in zitten:
+# `data/fouten.json` (een ringbuffer van tweehonderd; kwijt is geen verlies) en
+# `data/uitnodigingen.json` (links van hooguit een week; een nieuwe maken is één
+# klik). Alles wat een campagne is, staat in campaigns/.
+#
 # Elke dag is een volledige map, maar ongewijzigde bestanden worden met
 # --link-dest aan gisteren gehárdlinkt: dertig snapshots kosten daardoor
 # ongeveer één keer 56 MB plus de dagelijkse verschillen, niet dertig keer.

@@ -8831,7 +8831,15 @@ function _ontbrekendeGeluiden(data) {
   return weg;
 }
 
-router.get('/sounds', (req, res) => {
+// Wél een sessie vereist, al is het maar een speler: dit is de inhoud van een
+// campagne (welke geluiden er klaarstaan, met hun bestand-ids) en die hoort
+// achter de deur. Hij stond als enige inhoudsroute open — niet gevaarlijk, maar
+// wel een gat in een muur die verder overal dicht is. Zelfde controle als bij
+// `/bron/:naam`: `attachRole` zet de rol standaard op 'player', dus daar kun je
+// niet op toetsen.
+router.get('/sounds', attachRole, (req, res) => {
+  const ingelogd = req.session?.role === 'dm' || !!req.session?.characterId;
+  if (!ingelogd) return res.status(401).json({ error: 'Niet ingelogd' });
   let data = storage.readJSON('sounds.json');
   if (!data) data = { standard: {}, emotes: {}, playerTurn: {} };
   if (!data.playerTurn) data.playerTurn = {};

@@ -830,8 +830,11 @@ export function initDmPanel() {
     },
   };
 
-  // Load initial tunnel status
-  api.tunnelStatus().then(({ active, url }) => {
+  // Load initial tunnel status — alleen als DM. Een speler kreeg hier een 403
+  // op elke start: afgevangen, dus onschuldig, maar het stond wel in zijn
+  // console. Een logboek vol onschuldige fouten is precies de reden dat
+  // niemand nog kijkt als er een echte in staat.
+  if (window.app?.isDM?.()) api.tunnelStatus().then(({ active, url }) => {
     window._dmPanelTunnelActive = active;
     window._dmPanelTunnelUrl = url || null;
   }).catch(() => {});
