@@ -418,18 +418,15 @@
         "con",
         "cha"
       ],
-      "armor": "Light, Medium, Shields",
-      "weapons": "Simple, Martial",
+      "armor": "Medium, Shields",
+      "weapons": "Martial",
       "skillAantal": 2,
       "skills": [
-        "Arcana",
-        "Athletics",
         "Deception",
         "Insight",
         "Intimidation",
-        "Investigation",
+        "Perception",
         "Persuasion",
-        "Religion",
         "Stealth"
       ]
     }

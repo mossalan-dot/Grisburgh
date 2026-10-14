@@ -783,6 +783,42 @@
       "Brand of the Sapping Scar",
       "Unsealed Arcana",
       "Blood Curse of the Souleater"
+    ],
+    "Architect of Ruin": [
+      "Asmodeus's Blessing",
+      "Spellcasting",
+      "Asmodeus's Interdiction",
+      "Submit",
+      "Vile Transmogrification"
+    ],
+    "Hellspeaker": [
+      "Moloch's Blessing",
+      "Charm Enemy",
+      "Moloch's Interdiction",
+      "Intransigent",
+      "Let's Make a Deal",
+      "Quid Pro Quo"
+    ],
+    "Painkiller": [
+      "Dispater's Blessing",
+      "Devastator",
+      "Dispater's Interdiction",
+      "You Die on My Command!",
+      "Deathstrike"
+    ],
+    "Sanguine Knight": [
+      "Exsanguinate",
+      "Sutekh's Blessing",
+      "Sutekh's Interdiction",
+      "Bloodstroke",
+      "Haemel Exchange"
+    ],
+    "Shadowmaster": [
+      "Marked for Death",
+      "Strike from the Dark",
+      "Belial's Interdiction",
+      "Umbral Killer",
+      "Doomed to the Shadows"
     ]
   },
   "species": {
