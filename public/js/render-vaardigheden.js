@@ -396,9 +396,15 @@ function _card(it) {
   // Een zegening of een gunst is een kaartje in de campagne, en dat heeft zijn
   // eigen venster — met de god, de eedtekst en de permanente zegen erin. Daar
   // klikken we dus heen: één plek om een zegening te bekijken, niet twee.
+  // Een background is geen regel binnen iets maar een houder: één kaartje dat
+  // zijn vijf onderdelen samenvat. Hij hoort dus zijn eigen venster te openen,
+  // met zijn plaat, zijn verhaal en het potlood erbij — hetzelfde venster als
+  // een class. De andere kaartjes zijn features en openen hun featurevenster.
   const klik = it.entityId
     ? `window._openDetail('voorwerpen','${esc(it.entityId)}')`
-    : `window.vaardigheden.open('${escA(it.key)}')`;
+    : it.soort === 'background'
+      ? `window.vaardigheden.kaartOpen('background','${escA(it.naam)}')`
+      : `window.vaardigheden.open('${escA(it.key)}')`;
   return `
     <div class="entity-card vaardig-card" data-soort="${esc(it.soort)}"
       onclick="${klik}" title="${esc(it.naam)}"
@@ -633,7 +639,11 @@ function _spreukRegel(klasse, basis) {
 // ook met een vinger bij.
 // Het beeld bij een class, een species of een subclass. Drie eigen bakken in
 // `meta.heldenboek`, want ze mogen dezelfde naam hebben.
-const _HB_BAK = { class: 'klassen', species: 'species', subclass: 'subclassen' };
+// Een background hoorde hier niet in: hij had als enige geen kaartbeeld, en
+// daarmee ook niets om aan zijn onderdelen door te geven. Hij heeft nu een
+// eigen bak, net als de rest — eigen bakken en niet één gedeelde, want een
+// class en een background mogen dezelfde naam hebben.
+const _HB_BAK = { class: 'klassen', species: 'species', subclass: 'subclassen', background: 'backgrounds' };
 // Een beeld bij een kaart was alleen een bestand-id. Nu mag het ook een id mét
 // een focuspunt zijn — dezelfde kiezer als bij een spreuk of een kaartje, want
 // een portret dat op de borst is uitgesneden mist het gezicht. Een oude waarde
@@ -667,6 +677,10 @@ function _beeldVan(it) {
     class:    [['class', it.bron]],
     subclass: [['subclass', it.sub], ['class', it.bron]],
     species:  [['species', it.bron]],
+    // Een background is één kaartje dat zijn vijf onderdelen samenvat, dus hij
+    // is zijn eigen moeder: zijn naam staat in `naam`, niet in `bron` (daar
+    // staat "Backgrounds", de deur waar hij achter hangt).
+    background: [['background', it.naam]],
   }[it.soort] || [];
   for (const [soort, naam] of ketens) {
     if (!naam) continue;
@@ -865,23 +879,23 @@ function _achtergrondRijen(naam) {
   ].filter(([, v]) => v);
 }
 
+// Dezelfde kaart als een class, een species en een subclass. Hij was als enige
+// nog plat — en daarmee de enige zonder plaat, terwijl een achtergrond juist
+// een beeld verdient: het is waar je vandaan komt.
 function _achtergrondKaartHtml(naam) {
   const data = _bron?.backgrounds?.[naam];
   if (!data) return '';
   const vaste = _achtergrondRijen(naam);
-  return `
-    <div class="vk-kaart" style="--vk-kleur:#962058">
-      <div class="vk-kop">
-        <span class="vk-icoon">${icon('scroll-text')}</span>
-        <div>
-          <div class="vk-naam">${esc(naam)}</div>
-          <div class="vk-sig">Background</div>
-        </div>
-      </div>
-      ${vaste.length ? `<dl class="vk-training">
-        ${vaste.map(([k, v]) => `<dt>${esc(k)}</dt><dd>${esc(v)}</dd>`).join('')}
-      </dl>` : '<p class="vk-noot">Van deze background staat er niets in de app.</p>'}
-    </div>`;
+  const uitleg = String(data.desc || '').trim();
+  return _flipKaartHtml({
+    soort: 'background', naam, kleur: '#962058', icoon: 'scroll-text',
+    bijschrift: 'Background', onder: String(data.ondertitel || '').trim(),
+    rijen: vaste,
+    extra: `
+      ${uitleg ? `<div class="vk-uitleg">${_bron?.md?.(uitleg) ?? esc(uitleg)}</div>` : ''}
+      ${vaste.length ? '' : '<p class="vk-noot">Van deze background staat er niets in de app.</p>'}
+`,
+  });
 }
 
 // ── Vier deuren ─────────────────────────────────────────────────────────────

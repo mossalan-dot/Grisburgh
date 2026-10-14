@@ -10281,7 +10281,8 @@ router.put('/meta/heldenboek', requireDM, (req, res) => {
     const focus = String(v.focus || '').slice(0, 24);
     return focus ? { id, focus } : id;
   };
-  for (const [veld, bak] of [['species', 'species'], ['subclassen', 'subclassen'], ['klassen', 'klassen']]) {
+  for (const [veld, bak] of [['species', 'species'], ['subclassen', 'subclassen'], ['klassen', 'klassen'],
+                             ['backgrounds', 'backgrounds']]) {
     if (!req.body?.[veld] || typeof req.body[veld] !== 'object') continue;
     const uit = { ...(hb[bak] || {}) };
     for (const [naam, v] of Object.entries(req.body[veld])) {
