@@ -8402,7 +8402,10 @@ router.get('/quests', attachRole, (req, res) => {
   const states  = groepId ? _readQuestStates(groepId) : {};
   const result  = quests.map(q => ({
     ...q,
-    status: states[q.id] ?? 'verborgen',
+    status: _questStatus(states[q.id]),
+    // Wie hem aanvroeg, als dat bekend is. De DM ziet het op het bord; voor een
+    // speler verandert er niets, want hij vroeg hem zelf aan.
+    ..._questDoor(states[q.id]),
   }));
   res.json(result);
 });
@@ -8469,8 +8472,13 @@ router.put('/quests/:id', requireDM, (req, res) => {
     }
     if (groepId) {
       const states   = _readQuestStates(groepId);
-      const vorige   = states[req.params.id];
-      states[req.params.id] = status;
+      const vorige   = _questStatus(states[req.params.id]);
+      // Wie hem aanvroeg blijft staan zolang de missie loopt: ook bij
+      // *In uitvoering* wil je weten wie erom kwam. Pas als hij weer vrij of
+      // verborgen is, is die naam niet meer van belang.
+      const herkomst = ['aangevraagd', 'in-uitvoering', 'voltooid'].includes(status)
+        ? _questDoor(states[req.params.id]) : {};
+      states[req.params.id] = herkomst.door ? { status, ...herkomst } : status;
 
       // **Een voltooide factie-missie levert renown op.** Dat stond in
       // `POST /missies/:id/voltooien`, een route die niets aanroept: het bord
@@ -8531,7 +8539,7 @@ router.post('/quests/:id/accepteer', attachRole, (req, res) => {
   const states = _readQuestStates(groepId);
 
   // Controleer huidige status van déze quest
-  const huidig = states[quest.id] || 'verborgen';
+  const huidig = _questStatus(states[quest.id]);
   if (huidig !== 'actief') return res.status(400).json({ error: 'Missie is niet beschikbaar' });
 
   // Controleer of de groep al een actieve missie heeft voor dezelfde factie
@@ -8539,15 +8547,20 @@ router.post('/quests/:id/accepteer', attachRole, (req, res) => {
   const heeftActief = (data.quests || []).some(q =>
     q.id !== quest.id &&
     q.factieId === quest.factieId &&
-    actieveStatussen.has(states[q.id])
+    actieveStatussen.has(_questStatus(states[q.id]))
   );
   if (heeftActief) return res.status(400).json({ error: 'De party heeft al een actieve missie voor deze factie' });
 
-  // Sla aanvraag op
-  states[quest.id] = 'aangevraagd';
+  const char = (storage.readJSON('entities.json').personages || []).find(e => e.id === charId);
+
+  // Sla aanvraag op, mét wie het vroeg en wanneer.
+  states[quest.id] = {
+    status: 'aangevraagd',
+    door:   char?.name || 'Onbekende speler',
+    opTijd: new Date().toISOString(),
+  };
   _writeQuestStates(groepId, states);
 
-  const char = (storage.readJSON('entities.json').personages || []).find(e => e.id === charId);
   const io = req.app.get('io');
   const room = _campagneRoom(req);
   io.to(room).emit('quests:updated');
@@ -8560,6 +8573,22 @@ router.delete('/quests/:id', requireDM, (req, res) => {
   if (!data.quests) return res.json({});
   data.quests = data.quests.filter(q => q.id !== req.params.id);
   storage.writeJSON('quests.json', data);
+
+  // Zijn stand per party ging niet mee: elke verwijderde missie liet in élk
+  // `quest-states/<groep>.json` een regel achter, en die bestanden groeiden dus
+  // alleen maar. Niemand zag er iets van — tot je ooit een id hergebruikt en
+  // een nieuwe missie meteen "voltooid" blijkt te zijn.
+  try {
+    const dmState = readDmState();
+    for (const groepId of Object.keys(dmState.groups || {})) {
+      const states = _readQuestStates(groepId);
+      if (states[req.params.id] === undefined && states[`${req.params.id}:renown`] === undefined) continue;
+      delete states[req.params.id];
+      delete states[`${req.params.id}:renown`];
+      _writeQuestStates(groepId, states);
+    }
+  } catch { /* de missie is weg; de standen opruimen is netheid, geen must */ }
+
   req.app.get('io').to(_campagneRoom(req)).emit('quests:updated');
   res.json({});
 });
@@ -16934,6 +16963,15 @@ router.get('/tweespalt/log', requireDM, (req, res) => {
 });
 
 // ── Quest States (per party) ─────────────────────────────────────────────────
+
+// De stand van een missie was een kale string. Daarmee stond er op het bord
+// *Aangevraagd* zonder dat erbij stond door wie — en met meer dan één party aan
+// tafel is dat precies wat je wilt weten. Een waarde mag nu ook een object zijn
+// (`{ status, door, opTijd }`); een oude campagne heeft nog strings staan, dus
+// alles leest via deze twee helpers. Het renown-vinkje (`<id>:renown`) is een
+// boolean en blijft wat het is.
+function _questStatus(v) { return typeof v === 'string' ? v : (v?.status ?? 'verborgen'); }
+function _questDoor(v)   { return (v && typeof v === 'object') ? { door: v.door || '', opTijd: v.opTijd || '' } : {}; }
 
 function _readQuestStates(groepId) {
   const fp = path.join(storage.DATA_DIR, 'quest-states', `${groepId}.json`);

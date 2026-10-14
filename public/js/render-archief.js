@@ -442,7 +442,19 @@ async function _renderPrikbord(container) {
     const rot        = _questRot(q.id);
     const showDesc   = q.description && col.key === 'actief';
     const hasNext    = !!VOLGENDE[q.status];
-    const clickHandler = isDm
+    // "Aangevraagd" zei niet door wie, en met meer dan één party aan tafel is dat
+  // precies de vraag. Hoe lang het al ligt staat erbij, want een verzoek dat een
+  // week wacht is iets anders dan een van vijf minuten geleden.
+  const _sindsTekst = (iso) => {
+    if (!iso) return '';
+    const min = Math.round((Date.now() - new Date(iso).getTime()) / 60000);
+    if (min < 2)        return ' · net';
+    if (min < 60)       return ` · ${min} min`;
+    if (min < 60 * 24)  return ` · ${Math.round(min / 60)} uur`;
+    return ` · ${Math.round(min / 1440)} dagen`;
+  };
+
+  const clickHandler = isDm
       ? `window._questEdit('${q.id}')`
       : (q.description ? `window._questViewPlayer('${q.id}')` : '');
     return `
@@ -460,6 +472,7 @@ async function _renderPrikbord(container) {
         ${showDesc ? `<div class="quest-card-desc">${q.description.replace(/</g,'&lt;')}</div>` : ''}
         ${chLabel ? `<div class="quest-card-chapter">${chLabel.replace(/</g,'&lt;')}</div>` : ''}
         ${q.geverId && _geverNamen[q.geverId] ? `<div class="quest-card-gever">${icon('user')} ${esc(_geverNamen[q.geverId])}</div>` : ''}
+        ${isDm && q.door ? `<div class="quest-card-door" title="Aangevraagd${q.opTijd ? ' op ' + new Date(q.opTijd).toLocaleString('nl-NL') : ''}">${icon('hourglass')} Gevraagd door ${esc(q.door)}${_sindsTekst(q.opTijd)}</div>` : ''}
         ${q.factieId ? `<div class="quest-card-factie">${icon('landmark')} Factie-missie</div>` : ''}
       </div>`;
   };

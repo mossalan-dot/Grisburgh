@@ -67,7 +67,7 @@ function _ververOpenKaartje(id) {
       // verborgen" staan nadat je er zelf een kaartje in onthuld had. Pas na
       // herladen klopte het. De ontdekkingsmeters hangen aan dezelfde stand,
       // dus die liepen even hard achter.
-      import('./render-archief.js?v=141').then(m => m.renderLogboek());
+      import('./render-archief.js?v=142').then(m => m.renderLogboek());
     }
     window._updateDiscoveryChip?.(true); // #5: header-meter verversen
   });
@@ -146,20 +146,20 @@ function _ververOpenKaartje(id) {
   // het logboek — daar landt de regel die bij een onthulling geschreven wordt.
   socket.on('archief:updated', () => {
     if (window.app.state.activeSection === 'logboek') {
-      import('./render-archief.js?v=141').then(m => m.renderLogboek());
+      import('./render-archief.js?v=142').then(m => m.renderLogboek());
     }
   });
 
   socket.on('logboek:updated', () => {
     if (window.app.state.activeSection === 'logboek') {
-      import('./render-archief.js?v=141').then(m => m.renderLogboek());
+      import('./render-archief.js?v=142').then(m => m.renderLogboek());
     }
   });
 
   socket.on('quests:updated', () => {
     const section = window.app?.state?.activeSection;
     if (section === 'logboek') {
-      import('./render-archief.js?v=141').then(m => m.renderLogboek());
+      import('./render-archief.js?v=142').then(m => m.renderLogboek());
     }
     // Factie-interieur herlaadt ook (missies zijn quests met factieId)
     if (section === 'facties') _refreshSectionDebounced('facties');
@@ -173,7 +173,7 @@ function _ververOpenKaartje(id) {
     if (section === 'facties') _refreshSectionDebounced('facties');
     if (section === 'mijn-karakter') _refreshSectionDebounced('mijn-karakter');
     if (section === 'logboek' && window._logboekActiveTab === 'prikbord') {
-      import('./render-archief.js?v=141').then(m => m.renderLogboek());
+      import('./render-archief.js?v=142').then(m => m.renderLogboek());
     }
     window._updateDienstenMenuFromSocket?.();
   });
@@ -233,7 +233,7 @@ function _ververOpenKaartje(id) {
 
   socket.on('chapter-visibility:updated', () => {
     if (window.app.state.activeSection === 'logboek') {
-      import('./render-archief.js?v=141').then(m => m.renderLogboek());
+      import('./render-archief.js?v=142').then(m => m.renderLogboek());
     }
   });
 
@@ -271,7 +271,7 @@ function _ververOpenKaartje(id) {
     // betreft. Zonder groupId (oudere events) tonen we het aan iedereen.
     if (groupId && !window._isDisplayMode && window._myGroupId && window._myGroupId !== groupId) return;
     if (window.app.state.activeSection === 'logboek') {
-      import('./render-archief.js?v=141').then(m => m.renderLogboek());
+      import('./render-archief.js?v=142').then(m => m.renderLogboek());
     }
     if (!window.app.isDM()) {
       if (window._isDisplayMode) {

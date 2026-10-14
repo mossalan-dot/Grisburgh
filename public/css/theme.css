@@ -30339,3 +30339,13 @@ body:has(#sb-overlay.sb-open) .dm-dice-fab { display: none !important; }
 }
 .vd-basis-veld { display: flex; flex-direction: column; gap: 2px; }
 .vd-basis-veld .dm-input { width: 100%; box-sizing: border-box; }
+
+/* Wie een missie aanvroeg, op het kaartje in de kolom Aangevraagd. Stond er
+   niet: je zag dát er iets wachtte maar niet van wie, en met meer dan één party
+   aan tafel is dat precies de vraag. */
+.quest-card-door {
+  display: flex; align-items: center; gap: 5px; margin-top: 4px;
+  font-family: 'Crimson Text', serif; font-size: .8em; font-style: italic;
+  color: #8a6a2a;
+}
+.quest-card-door svg { width: 11px; height: 11px; flex-shrink: 0; }

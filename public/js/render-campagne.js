@@ -7077,7 +7077,10 @@ function _hoortbijHtml(tab, e) {
 let _petTiers = [];
 let _tierVoorDier = true;
 const _TIER_UITLEG = {
-  dier: 'Het statblok hierboven is het dier vanaf level&nbsp;1. Een tier neemt het over zodra het baasje dat level haalt, en zegt alleen wat er verandert.',
+  // "Meegroeien met het baasje" klinkt verplicht, en dat is het niet: een
+  // rijdier of een opgeroepen wezen blijft wat het is, hoe hoog zijn baasje ook
+  // komt. Zonder deze zin ging een DM tiers invullen omdat het veld er stond.
+  dier: 'Het statblok hierboven is het dier vanaf level&nbsp;1. Een tier neemt het over zodra het baasje dat level haalt, en zegt alleen wat er verandert.<br><strong>Hoeft niet:</strong> laat je dit leeg, dan blijft hij altijd het statblok hierboven — een rijdier of een opgeroepen wezen groeit nu eenmaal niet mee.',
   npc:  'Dezelfde persoon, een andere ontmoeting. Het statblok hierboven is de basis; elk extra statblok zegt alleen wat er anders is. <strong>Welke versie geldt, kies je na het opslaan</strong> — op het kaartje zelf, in de strook boven het statblok, of onder de monsterregel in een encounter. Die keuze staat per party.',
 };
 

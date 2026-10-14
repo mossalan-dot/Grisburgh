@@ -353,8 +353,9 @@ kloppen niet meer met de app; die staan in het voorstel, met de volgorde.
       in het partytabblad naast de medestanders, met een knop op het kaartje.
       **Oppakken wanneer we de partytab doen**, want daar willen we toch al
       portretjes van medestanders laten zien.
-- [ ] **Tier-editor**: zeg dat tiers optioneel zijn (een rijdier of summon groeit
-      niet mee met het level van zijn baasje).
+- [x] **Tier-editor: tiers zijn optioneel** — gedaan 14 okt 2026. "Meegroeien met
+      het baasje" klonk verplicht; er staat nu bij dat je het leeg mag laten, en
+      waarom (een rijdier of een opgeroepen wezen groeit niet mee).
 - [x] **Subtypes opsplitsen** *(5 sep)* — vier subtypes (NPC, speler, dier, god),
       twee rollen als tag (verkoper, antagonist) en een veld *kant in gevecht*.
       33 kaartjes gemigreerd; oude subtypes blijven meetellen via `_heeftRol`.
@@ -384,9 +385,11 @@ Gevraagd op 14 sep 2026, gebouwd op 14 sep 2026.
 - [x] **Waar we het níét doen** — de wereldkaart en de dungeonkaart, het tekenen
       van kamers, en elk veld waar je in typt of schuift.
 
-- [ ] **Bijwerking: ← en → in het archiefraster zelf** (zonder venster) — selectie
-      verplaatsen en Enter opent. Blijft liggen: het bladeren ín het venster
-      staat er nu, en twee toetsmodellen door elkaar is erger dan één.
+- [~] **Bijwerking: ← en → in het archiefraster zelf** (zonder venster) — selectie
+      verplaatsen en Enter opent. **Besloten: niet doen.** Het bladeren ín het
+      venster staat er, en twee toetsmodellen door elkaar is erger dan één. Dit
+      staat hier als beslissing, niet als schuld — pak het alleen op als iemand
+      er aan tafel om vraagt.
 
 ## Op de telefoon
 
@@ -394,13 +397,23 @@ Gevraagd op 14 sep 2026, gebouwd op 14 sep 2026.
       kolom tegelijk onder 760 px, met de statusnamen als strip erboven en vegen
       ertussen.
 
-- [ ] **"Aangevraagd" zegt niet wie het vroeg.** De kolom is de wachtrij van
+- [x] **"Aangevraagd" zegt wie het vroeg** — gedaan 14 okt 2026. De kolom is de wachtrij van
       spelersaanvragen (Facties → *Missie aanvragen*), maar op het kaartje staat
       geen naam: `questStates[questId]` bewaart alleen de status, en wie het
       vroeg gaat alleen als socket-melding langs. Het label zegt nu *Aangevraagd
       door een party* met uitleg in de tooltip; de naam erbij vraagt een
       datawijziging (`{ status, door, opTijd }`) en is dat op zichzelf misschien
       waard zodra er meerdere party's tegelijk spelen.
+      **Gedaan, precies zo.** Een waarde in `quest-states/<groep>.json` mag nu
+      ook een object zijn; een oude campagne heeft nog kale strings staan en die
+      blijven werken (`_questStatus` / `_questDoor`). Op het kaartje staat
+      *Gevraagd door Cleopas Purper · 3 min*, met de volledige datum in de
+      tooltip — hoe lang het al ligt is het halve antwoord. De naam blijft staan
+      zolang de missie loopt; pas als hij weer vrij of verborgen is, vervalt hij.
+      **Bijvangst:** een verwijderde missie liet zijn stand in élk
+      groepsbestand achter. Die bestanden groeiden dus alleen maar, en bij een
+      hergebruikt id zou een nieuwe missie meteen "voltooid" kunnen zijn.
+      `DELETE /quests/:id` ruimt ze nu op.
 
 - [ ] **Alles nog eens doorlopen op een telefoon.** De app wordt aan tafel op
       laptops en een tablet gebruikt, dus daar is hij op gebouwd — maar spelers
@@ -500,7 +513,7 @@ Gevraagd op 14 sep 2026, gebouwd op 14 sep 2026.
       het opruimscript op termijn overbodig. Klein werk; het wachten is op een
       moment waarop er toch aan die scripts gezeten wordt.
 
-- [ ] **De archieftab, vervolgstappen** (begonnen 1 okt 2026). De band met
+- [x] **De archieftab, vervolgstappen** — af (1 okt 2026, laatste punt 14 okt). De band met
       klassen, volken, achtergronden en subklassen staat; wat er nog ligt:
       1. [x] Overzichtskaartje per klasse — gedaan 1 okt 2026. Zonder saves en
          proficiencies: die staan in geen bestand dat we mogen gebruiken.
@@ -536,10 +549,10 @@ Gevraagd op 14 sep 2026, gebouwd op 14 sep 2026.
       - [x] De **feat-koppelingen worden meegeleverd** (1 okt 2026,
         `bronnen/feat-koppelingen.json`) in plaats van per campagne ingetikt.
         Wat de DM zelf invult wint ervan.
-      - Hetzelfde zou kunnen voor **ingetikte subklasseteksten**, maar dat kán
-        niet: die komen uit het Player's Handbook. Wat wél kan is een
-        **exportknop** bij de progressie-editor, zodat een DM zijn eigen
-        invoer met een andere DM kan delen zonder dat wij hem meeleveren.
+      - [x] Hetzelfde zou kunnen voor **ingetikte subklasseteksten**, maar dat
+        kán niet: die komen uit het Player's Handbook. Wat wél kan is een
+        **exportknop** — staat er sinds 14 okt 2026 als *Meenemen of overnemen*
+        bij Instellingen → Campagne.
 
 ## Setup-wizard voor een nieuwe DM
 
