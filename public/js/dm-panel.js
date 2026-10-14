@@ -1,4 +1,4 @@
-import { api, huidigeCampagne } from './api.js?v=312';
+import { api, huidigeCampagne } from './api.js?v=313';
 import { init as canvasInit, update as canvasUpdate, stop as canvasStop, acGetal } from './combat-canvas.js?v=30';
 import { renderStatblock } from './render-statblock.js?v=9';
 
@@ -490,6 +490,12 @@ export function initDmPanel() {
     },
     akteImport:   () => _akteImportWizard(),
     checklist:    () => _checklistOpen(),
+    uitnodigen:   () => _uitnodigenOpen(),
+    async uitnodigingIn(id) {
+      if (!confirm('Deze uitnodiging intrekken?\n\nDe link werkt daarna niet meer.')) return;
+      try { await api.trekUitnodigingIn(id); _renderInstellingen(); }
+      catch (e) { alert('Intrekken lukt niet: ' + (e.message || e)); }
+    },
     async foutWeg(id) {
       if (id === 'alles' && !confirm('Alles opruimen?\n\nDe lijst gaat leeg; wat er nog misgaat komt vanzelf terug.')) return;
       try { await api.wisFout(id); _renderInstellingen(); }
@@ -12733,6 +12739,46 @@ const _INST_DICHT_KEY = 'grisburgh:inst-dicht';
 let _instDicht = new Set();
 try { _instDicht = new Set(JSON.parse(localStorage.getItem(_INST_DICHT_KEY) || '[]')); } catch { /* geen stand, alles open */ }
 
+// ── Uitnodigingen ───────────────────────────────────────────────────────────
+// Wat er openstaat. Het token staat er niet bij en kán er niet bij: we bewaren
+// alleen zijn afdruk, dus de link is één keer te zien geweest. Kwijt betekent
+// een nieuwe maken, en dat is één klik.
+function _uitnodigingenHtml(lijst) {
+  const open = lijst.filter(u => u.open);
+  if (!open.length) return '';
+  return `<div class="dm-uitnodigingen">
+    ${open.map(u => {
+      const dagen = Math.max(0, Math.ceil((new Date(u.verloopt) - Date.now()) / 864e5));
+      return `<div class="dm-uitnodiging">
+        <span class="dm-uitnodiging-naam">${icon('mail')} ${esc(u.naam || u.campagne)}</span>
+        <span class="dm-uitnodiging-meta">/${esc(u.campagne)} · nog ${dagen} dag${dagen === 1 ? '' : 'en'} geldig</span>
+        <button class="dm-btn dm-btn-sm dm-btn-ghost" onclick="window.dmPanel.uitnodigingIn('${esc(u.id)}')" title="Deze uitnodiging intrekken">${icon('x')}</button>
+      </div>`;
+    }).join('')}
+  </div>`;
+}
+
+async function _uitnodigenOpen() {
+  const campagne = (prompt('Voor welke campagne?\n\nEen nieuwe naam legt hem meteen aan — alleen letters, cijfers, _ en -.\nDit wordt zijn adres: grisburgh.nl/<naam>') || '').trim();
+  if (!campagne) return;
+  const naam = (prompt('Hoe heet die campagne? (mag je leeg laten — dan kiest hij hem zelf)') || '').trim();
+  try {
+    const r = await api.maakUitnodiging({ campagne, naam });
+    const link = location.origin + r.pad;
+    try { await navigator.clipboard.writeText(link); } catch { /* geen klembord, geen ramp */ }
+    window.app.openModal('Uitnodiging klaar', '', `
+      <p class="dm-hint" style="margin-top:0">Stuur deze link naar je nieuwe DM. Hij werkt <strong>één keer</strong> en
+      verloopt over een week; wie hem opent kiest zijn eigen wachtwoord.</p>
+      <input class="dm-input" readonly onclick="this.select()" value="${esc(link)}">
+      <p class="dm-hint">Hij staat op je klembord. <strong>Bewaar hem even</strong> tot je hem verstuurd hebt —
+      wij bewaren alleen een afdruk, dus hierna is hij niet meer op te vragen. Kwijt is één klik: maak een nieuwe.</p>`);
+    _renderInstellingen();
+  } catch (e) {
+    alert('Uitnodigen lukt niet: ' + (e.message === 'Die campagne heeft al een DM met een wachtwoord'
+      ? 'die campagne heeft al een DM. Zet zijn wachtwoord opnieuw als hij eruit ligt.' : (e.message || e)));
+  }
+}
+
 // ── Wat er misging ──────────────────────────────────────────────────────────
 // Drie soorten in één lijst, want ze beantwoorden dezelfde vraag — werkt het?
 // Een **melding** komt van een mens en staat bovenaan: daar wacht iemand op een
@@ -13029,8 +13075,11 @@ async function _renderInstellingen() {
   } catch { /* geen beheerder */ }
   // Wat er misging. Alleen voor de beheerder, want het gaat over álle
   // campagnes — de DM van één campagne heeft daar niets te zoeken.
-  let foutenLijst = [];
-  if (magBeheren) { try { foutenLijst = (await api.getFouten()).fouten || []; } catch { /* ok */ } }
+  let foutenLijst = [], uitnodigingenLijst = [];
+  if (magBeheren) {
+    try { foutenLijst = (await api.getFouten()).fouten || []; } catch { /* ok */ }
+    try { uitnodigingenLijst = (await api.getUitnodigingen()).uitnodigingen || []; } catch { /* ok */ }
+  }
 
   // Personages erbij, zodat we per party kunnen tonen wie er vanavond is.
   let alleSpelers = [];
@@ -13317,7 +13366,12 @@ async function _renderInstellingen() {
         </div>
         <div class="dm-form-row">
           <button class="dm-btn dm-btn-sm dm-btn-ghost" onclick="window.dmPanel.campagneCreate()" title="Nieuwe campagne aanmaken">${icon('plus')} Nieuwe campagne</button>
+          <!-- Een campagne aanmaken en er zelf een wachtwoord bij verzinnen is
+               het oude pad; dit is het nieuwe. Hij staat ernaast en niet in
+               plaats van: een campagne voor jezelf heeft geen uitnodiging nodig. -->
+          <button class="dm-btn dm-btn-sm dm-btn-ghost" onclick="window.dmPanel.uitnodigen()" title="Een andere DM uitnodigen met een eenmalige link">${icon('mail')} DM uitnodigen</button>
         </div>
+        ${_uitnodigingenHtml(uitnodigingenLijst)}
         <div id="campagne-create-form" style="display:none;margin-top:10px">
           <div class="dm-feature-row dm-knoprij">
             <input id="campagne-new-id"       class="dm-input" placeholder="ID (bijv. prewett)" style="flex:1;min-width:120px">

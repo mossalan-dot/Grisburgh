@@ -22,6 +22,8 @@ zichzelf het beheer in kunnen schuiven.
 | Per campagne de modules aan- en uitzetten | de uitklap op een campagnekaartje |
 | Het DM-wachtwoord van een campagne opnieuw zetten | dezelfde uitklap |
 | Bepalen welke campagne de **standaard** is | de knop *Als standaard* |
+| Een DM uitnodigen met een eenmalige link | Instellingen › Campagnes › *DM uitnodigen* |
+| Lezen wat er misging, in alle campagnes | Instellingen › *Wat er misging* |
 
 Die laatste betekent minder dan hij lijkt. Elke campagne heeft haar eigen pad
 (`/grisburgh`, `/bleke-kust`); "standaard" bepaalt alleen waar het kále domein
@@ -29,6 +31,21 @@ en een verzoek **zonder sessie** landen. Je verhuist er zelf niet door, en de
 spelers van een andere campagne merken er niets van.
 
 ## Wat je níét mag, en dat is met opzet
+
+### En wat een gewone DM juist wél mag
+
+Dit wordt makkelijk omgedraaid, dus voor de duidelijkheid: **binnen zijn eigen
+campagne is een tweede DM volledig baas.** Party's aanmaken, hernoemen en
+verwijderen, hun wachtwoorden zetten, zijn eigen DM-wachtwoord veranderen,
+personages, kaartjes, diensten, modules aan- en uitzetten, zijn helpteksten
+herschrijven. Van de 247 DM-routes zijn er **zeven** alleen voor de beheerder —
+de vijf hierboven over campagnes, plus het lezen en opruimen van het
+foutenboekje.
+
+Wat hij níét kan is een campagne erbíj maken of iemand uitnodigen. Dat is geen
+wantrouwen: een campagne kost schijf, een regel in de backup en een plek in de
+URL, en dat is van wie de server betaalt. Vraagt hij om een tweede campagne voor
+een one-shot, dan maak jij de uitnodiging en vult hij hem verder zelf in.
 
 **Beheerder zijn maakt je nergens anders DM.** Je sessie hoort bij één campagne
 (`sessieHoortHier`), en in een vreemde campagne ben je een bezoeker: je krijgt
@@ -44,6 +61,33 @@ noodingang, geen achterdeur.
 ## Een nieuwe DM op gang helpen
 
 De werkverdeling is bewust gesplitst: **jij levert de doos, hij richt hem in.**
+
+### Met een uitnodiging (sinds 14 okt 2026)
+
+Instellingen › Campagnes › **DM uitnodigen**. Je geeft een id (dat wordt zijn
+adres: `grisburgh.nl/<id>`) en eventueel een naam; bestaat de campagne nog niet,
+dan legt hij hem meteen aan — **zonder wachtwoord**, want dat kiest de genodigde
+zelf. Je krijgt een link die op je klembord staat.
+
+Die link **werkt één keer** en verloopt na een week. Wie hem opent krijgt één
+scherm: kies een wachtwoord, twee keer. Daarna zit hij binnen en begint zijn
+wizard.
+
+Drie dingen die daarmee weg zijn: je verzint geen wachtwoord meer vóór iemand
+anders, er reist er geen één in platte tekst door een chat, en wat je stuurt
+blijft niet eeuwig geldig.
+
+**De link is één keer te zien.** We bewaren alleen een afdruk van het token —
+zelfde reden als bij een wachtwoord: wie het bestand in handen krijgt mag er
+niets aan hebben. Kwijt betekent een nieuwe maken, en dat is één klik. Een
+tweede uitnodiging voor dezelfde campagne trekt de eerste in: twee links naar
+dezelfde deur is twee keer de kans dat er een rondslingert.
+
+Een campagne die **al een DM met een wachtwoord** heeft kun je niet uitnodigen —
+dat zou geen uitnodiging zijn maar een overname. Daarvoor is de noodingang
+hieronder, en die is zichtbaar.
+
+### Met de hand
 
 1. **Maak de campagne aan.** Instellingen › Campagnes › **+**. Een id (alleen
    letters, cijfers, `_` en `-`; dit wordt zijn URL), een naam, en een

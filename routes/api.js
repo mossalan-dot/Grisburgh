@@ -7,6 +7,7 @@ const storage = require('../lib/storage');
 const mediaUsage = require('../lib/media-usage');
 const { requireDM, requireBeheerder, attachRole, hashWachtwoord } = require('./auth');
 const fouten = require('../lib/fouten');
+const uitnodigingen = require('../lib/uitnodigingen');
 const { buildSnapshot, buildCampagneboek } = require('../lib/snapshot');
 const { sheetHtml } = require('../lib/character-sheet');
 const { MODULES, modulesVoor, modulesVrijgegeven, schoneModules, verborgenUI } = require('../lib/modules');
@@ -12519,6 +12520,78 @@ router.post('/campaigns', requireBeheerder, (req, res) => {
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
+});
+
+// ── Een DM uitnodigen ───────────────────────────────────────────────────────
+// Tot nu toe verzon de beheerder een wachtwoord vóór iemand anders en stuurde
+// dat via een kanaal waar het blijft staan. Een uitnodiging is een link die één
+// keer werkt: wie hem opent kiest zijn eigen wachtwoord.
+//
+// Alleen de beheerder maakt ze. Een tweede DM is baas in zijn eigen campagne —
+// party's, wachtwoorden, personages, modules — maar een campagne erbíj kost
+// schijf, een backupregel en een plek in de URL, en dat is niet van hem.
+router.post('/uitnodigingen', requireBeheerder, (req, res) => {
+  const b = req.body || {};
+  const campagne = String(b.campagne || '').trim();
+  if (!campagne || !/^[a-z0-9_-]+$/i.test(campagne))
+    return res.status(400).json({ error: 'Ongeldige campagne-ID' });
+  const bestaat = storage.listCampaigns().some(c => c.id === campagne);
+  // Nieuw? Dan leggen we hem meteen aan, zónder wachtwoord: dat kiest de
+  // genodigde straks zelf. Een campagne zonder wachtwoord is op slot voor
+  // iedereen behalve wie de uitnodiging heeft.
+  if (!bestaat) {
+    try { storage.createCampaign(campagne, { appTitle: String(b.naam || campagne).slice(0, 80) }); }
+    catch (err) { return res.status(500).json({ error: err.message }); }
+  } else {
+    // Een bestaande campagne mág uitgenodigd worden, maar niet als er al een DM
+    // in zit: dan is het geen uitnodiging maar een overname. Daarvoor is de
+    // noodingang (het wachtwoord opnieuw zetten), en die is zichtbaar.
+    const heeftDm = storage.runInCampaign(campagne, () => !!storage.readJSON('dm-state.json').dmPassword);
+    if (heeftDm) return res.status(409).json({ error: 'Die campagne heeft al een DM met een wachtwoord' });
+  }
+  const { uitnodiging, token } = uitnodigingen.maak({ campagne, naam: b.naam || '' });
+  res.status(201).json({
+    uitnodiging: { ...uitnodiging, afdruk: undefined },
+    // Eén keer te zien, want we bewaren alleen de afdruk. Het pad zet de client
+    // voor de host; die kent zijn eigen adres beter dan wij.
+    pad: `/${encodeURIComponent(campagne)}?uitnodiging=${token}`,
+  });
+});
+
+router.get('/uitnodigingen', requireBeheerder, (req, res) => {
+  res.json({ uitnodigingen: uitnodigingen.alle(), dagen: uitnodigingen.DAGEN });
+});
+
+router.delete('/uitnodigingen/:id', requireBeheerder, (req, res) => {
+  uitnodigingen.trekIn(req.params.id);
+  res.json({ ok: true });
+});
+
+// Inwisselen. Geen sessie nodig — dit ís de manier om er een te krijgen — maar
+// wel drie sloten: de uitnodiging moet geldig zijn, de campagne mag nog geen DM
+// hebben, en het wachtwoord moet lang genoeg zijn.
+router.post('/uitnodiging/inwisselen', (req, res) => {
+  const b = req.body || {};
+  const campagne = String(b.campagne || '').trim();
+  const { uitnodiging, fout } = uitnodigingen.zoek(campagne, String(b.token || ''));
+  if (fout) return res.status(403).json({ error: fout });
+  const wachtwoord = String(b.wachtwoord || '');
+  if (wachtwoord.length < 8) return res.status(400).json({ error: 'Kies een wachtwoord van minstens 8 tekens' });
+  const heeftDm = storage.runInCampaign(campagne, () => !!storage.readJSON('dm-state.json').dmPassword);
+  if (heeftDm) return res.status(409).json({ error: 'Deze campagne heeft al een DM' });
+
+  storage.runInCampaign(campagne, () => {
+    const dm = storage.readJSON('dm-state.json');
+    dm.dmPassword = hashWachtwoord(wachtwoord);
+    storage.writeJSON('dm-state.json', dm);
+  });
+  uitnodigingen.gebruik(uitnodiging.id);
+  // Meteen binnen: de wizard begint bij de eerste keer dat je als DM binnenkomt
+  // in een campagne zonder personages, en dat is precies nu.
+  req.session.role = 'dm';
+  req.session.campaignId = campagne;
+  req.session.characterId = null;
+  res.json({ ok: true, campagne });
 });
 
 // Welke campagne is de standaard: waar het kale domein en een verzoek zonder

@@ -1,4 +1,4 @@
-import { api, campagneUitUrl, zetCampagne } from './api.js?v=312';
+import { api, campagneUitUrl, zetCampagne } from './api.js?v=313';
 import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, renderDocumenten, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=347";
 import { initArchief, renderLogboek, openLogboekEditor } from "./render-archief.js?v=141";
 import { renderKaart, queueFlyTo, verversPins, nieuweKaart } from './render-kaart.js?v=31';
@@ -12,7 +12,7 @@ import './render-melding.js?v=4';
 import { renderVaardigheden, zoekVaardigheden, heldenboekTekst } from './render-vaardigheden.js?v=50';
 import { renderStatblock } from './render-statblock.js?v=9';
 import { initSocket } from "./socket-client.js?v=85";
-import { initDmPanel } from "./dm-panel.js?v=399";
+import { initDmPanel } from "./dm-panel.js?v=400";
 import { COND_INFO, COND_LABEL, COND_MET_PLAATJE, COND_ICON } from './conditions.js?v=2';
 import './media-picker.js?v=9';
 import './wizard.js?v=5';
@@ -11539,12 +11539,75 @@ function cancelHeader() {
   document.getElementById('header-editor')?.classList.add('hidden');
 }
 
+// ── Binnenkomen met een uitnodiging ─────────────────────────────────────────
+// `?uitnodiging=<token>` in het adres. De link werkt één keer en er is nog geen
+// wachtwoord, dus de gewone weg (landingspagina, DM-veld) kán niet werken —
+// daarom onderschept dit de start. Geeft `true` terug als de app gewoon verder
+// mag starten.
+async function _uitnodigingAfhandelen() {
+  const token = new URLSearchParams(location.search).get('uitnodiging');
+  if (!token) return true;
+  const campagne = campagneUitUrl() || '';
+  // Het token uit de adresbalk halen voordat er iets anders gebeurt: hij hoort
+  // niet in de geschiedenis van de browser, niet in een bladwijzer en niet in
+  // een schermafbeelding van iemand die hulp vraagt.
+  const schoon = location.pathname + location.hash;
+  history.replaceState(null, '', schoon);
+
+  document.body.classList.add('landing-open');
+  const vak = document.createElement('div');
+  vak.className = 'uitnodiging-overlay';
+  vak.innerHTML = `
+    <div class="uitnodiging-blad">
+      <h1>Welkom</h1>
+      <p>Je bent uitgenodigd als <strong>Dungeon Master</strong>${campagne ? ` van <strong>${esc(campagne)}</strong>` : ''}.
+      Kies een wachtwoord; daarmee kom je er vanaf nu in.</p>
+      <label class="uitnodiging-label" for="uitn-pw">Jouw DM-wachtwoord</label>
+      <input id="uitn-pw" class="uitnodiging-veld" type="password" autocomplete="new-password" placeholder="Minstens 8 tekens">
+      <label class="uitnodiging-label" for="uitn-pw2">Nog een keer</label>
+      <input id="uitn-pw2" class="uitnodiging-veld" type="password" autocomplete="new-password" placeholder="Zelfde wachtwoord">
+      <p class="uitnodiging-fout" id="uitn-fout"></p>
+      <button class="uitnodiging-knop" id="uitn-knop">Aan de slag</button>
+      <p class="uitnodiging-klein">Deze link werkt één keer. Bewaar je wachtwoord goed — alleen de beheerder kan het
+      opnieuw zetten, en dan ligt het oude eruit.</p>
+    </div>`;
+  document.body.appendChild(vak);
+
+  const fout = (t) => { const e = document.getElementById('uitn-fout'); if (e) e.textContent = t; };
+  const probeer = async () => {
+    const a = document.getElementById('uitn-pw')?.value || '';
+    const b = document.getElementById('uitn-pw2')?.value || '';
+    if (a.length < 8)  return fout('Minstens acht tekens.');
+    if (a !== b)       return fout('De twee velden zijn niet gelijk.');
+    fout('');
+    try {
+      await api.wisselUitnodigingIn({ campagne, token, wachtwoord: a });
+      location.replace(schoon);     // opnieuw starten, nu als DM
+    } catch (e) {
+      const m = String(e.message || e);
+      fout(m === 'verlopen' ? 'Deze uitnodiging is verlopen. Vraag een nieuwe.'
+        : m === 'gebruikt'  ? 'Deze uitnodiging is al gebruikt.'
+        : m === 'onbekend'  ? 'Deze link klopt niet. Vraag een nieuwe.'
+        : m);
+    }
+  };
+  document.getElementById('uitn-knop')?.addEventListener('click', probeer);
+  document.getElementById('uitn-pw2')?.addEventListener('keydown', (e) => { if (e.key === 'Enter') probeer(); });
+  document.getElementById('uitn-pw')?.focus();
+  return false;
+}
+
 async function init() {
   // Welke campagne kijken we? Normaal staat die in het pad (/grisburgh); komt
   // iemand via een oude bladwijzer binnen, dan vertelt de server het.
   if (!campagneUitUrl()) {
     try { zetCampagne((await api.campagneInfo()).campagne); } catch { /* ok */ }
   }
+
+  // Kom je binnen met een uitnodiging in het adres, dan gaat alles wat hierna
+  // komt niet over jou: er is nog geen wachtwoord, dus er valt niets in te
+  // loggen. Eerst het wachtwoord, dan de gewone start.
+  if (!(await _uitnodigingAfhandelen())) return;
 
   try {
     const me = await api.role();

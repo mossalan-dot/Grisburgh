@@ -90,8 +90,16 @@ groot het is. Bijgewerkt 15 sep 2026.
       niet, en die staan bovenaan. Alleen campagne-id, route en rol — nooit de
       inhoud van een campagne. Te lezen bij Instellingen → *Wat er misging*
       (alleen beheerder), per stuk weg te strepen.
-      Nog open: **uitnodigingslink** voor een nieuwe DM, en de cijfers per
-      campagne naast het schijfgebruik dat er al staat.
+      Nog open: de cijfers per campagne naast het schijfgebruik dat er al staat.
+
+- [x] **Uitnodigingslink voor een nieuwe DM** — gedaan 14 okt 2026,
+      `lib/uitnodigingen.js`. Eenmalig token (alleen de afdruk bewaard), zeven
+      dagen geldig, intrekbaar, één open uitnodiging per campagne. Legt een
+      nieuwe campagne meteen aan zónder wachtwoord; de genodigde kiest dat zelf
+      op een eigen scherm en zit daarna in zijn wizard. Kan niet op een campagne
+      die al een DM heeft — dat is een overname, daarvoor is de noodingang.
+      Acht tests in `tests/uitnodigingen.test.js`, waaronder: een gewone DM mag
+      níét uitnodigen maar wél zijn eigen party's beheren.
 
 - [x] **6. Wizard** — gedaan 2 okt 2026, `public/js/wizard.js`. Zes stappen,
       in de campagne zelf, door de DM van die campagne. Modules zitten er

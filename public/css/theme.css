@@ -30406,3 +30406,61 @@ body:has(#sb-overlay.sb-open) .dm-dice-fab { display: none !important; }
   border: 1px solid rgba(60,46,26,.6); border-radius: 6px;
 }
 .meld-knop:hover { background: linear-gradient(180deg, #9a7a2a, #7d631e); }
+
+/* ══════════════════════════════════════════════════════════════════════════
+   BINNENKOMEN MET EEN UITNODIGING
+   ══════════════════════════════════════════════════════════════════════════
+   Het eerste wat een nieuwe DM van de app ziet. Geen landingspagina met
+   portretten — die zijn er nog niet — maar één blad met één vraag. */
+.uitnodiging-overlay {
+  position: fixed; inset: 0; z-index: 9900;
+  display: flex; align-items: center; justify-content: center; padding: 20px;
+  background: radial-gradient(120% 90% at 50% 0%, #2a1a08, #140c04 70%);
+  overflow-y: auto;
+}
+.uitnodiging-blad {
+  width: min(420px, 100%); padding: 28px 26px 22px;
+  background: linear-gradient(170deg, #f6eeda, #e9dcbe);
+  border: 1px solid rgba(138,109,63,.6); border-radius: 12px;
+  box-shadow: 0 18px 50px rgba(0,0,0,.5);
+  font-family: 'Crimson Text', serif; color: #3a2410;
+}
+.uitnodiging-blad h1 {
+  font-family: 'Cinzel', serif; font-size: 1.7em; margin: 0 0 8px; color: #6a4a10;
+}
+.uitnodiging-blad p { margin: 0 0 14px; line-height: 1.55; }
+.uitnodiging-label {
+  display: block; margin: 10px 0 3px;
+  font-family: 'Cinzel', serif; font-size: 9.5px; letter-spacing: .08em;
+  text-transform: uppercase; color: #9a7050;
+}
+.uitnodiging-veld {
+  width: 100%; box-sizing: border-box; padding: 9px 11px;
+  font-family: 'Crimson Text', serif; font-size: 1em; color: #3a2410;
+  background: rgba(255,252,244,.85); border: 1px solid rgba(196,168,122,.9); border-radius: 6px;
+}
+.uitnodiging-veld:focus { outline: none; border-color: #9a7008; }
+.uitnodiging-fout { min-height: 1.2em; margin: 8px 0 0; color: #8b2a2a; font-size: .92em; }
+.uitnodiging-knop {
+  width: 100%; margin-top: 6px; padding: 10px 0; cursor: pointer;
+  font-family: 'Cinzel', serif; font-size: 13px; letter-spacing: .05em; color: #f5edd8;
+  background: linear-gradient(180deg, #8a6a22, #6d5316);
+  border: 1px solid rgba(60,46,26,.6); border-radius: 7px;
+}
+.uitnodiging-knop:hover { background: linear-gradient(180deg, #9a7a2a, #7d631e); }
+.uitnodiging-klein { margin: 14px 0 0; font-size: .85em; font-style: italic; color: #7a6040; }
+
+/* ── Openstaande uitnodigingen in het beheerscherm ───────────────────────── */
+.dm-uitnodigingen { margin: 8px 0 4px; }
+.dm-uitnodiging {
+  display: flex; align-items: center; gap: 10px;
+  padding: 7px 10px; margin-bottom: 5px;
+  border: 1px dashed rgba(196,168,122,.8); border-radius: 6px;
+  background: rgba(154,112,8,.06);
+}
+.dm-uitnodiging-naam {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-family: 'Cinzel', serif; font-size: .86em; color: #3a2410;
+}
+.dm-uitnodiging-naam svg { width: 13px; height: 13px; color: #9a7008; }
+.dm-uitnodiging-meta { font-family: 'Crimson Text', serif; font-size: .86em; color: #8a7050; margin-right: auto; }
