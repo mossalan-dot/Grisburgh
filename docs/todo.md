@@ -170,11 +170,22 @@ groot het is. Bijgewerkt 15 sep 2026.
 
 ## In de vriezer — opruimen vanaf 15 oktober 2026
 
-- [ ] **Originelen van de WebP-omzetting weggooien.** Op 15 sep 2026 zijn de
+- [x] **Originelen van de WebP-omzetting weggooien** — gedaan 14 okt 2026. Op 15 sep 2026 zijn de
       beelden van **alle drie de campagnes** omgezet naar WebP — Grisburgh
       (2.053 → 208 MB), Test (78 → 8 MB) en prewett (114 → 10 MB). De originelen
       staan een maand in `data/campaigns/<campagne>/files-origineel-2026-09-15/`
       (samen 2,3 GB).
+
+      **Weg op 14 okt 2026**, een maand na de omzetting en na de backup van die
+      ochtend. 1.252 bestanden, 2,2 GB; de schijf ging van 29 % naar 23 %.
+      Vooraf twee keer gecontroleerd dat ze nergens voor dienden: in de code
+      komt `files-origineel-*` alleen voor in het omzetscript zelf (de app leest
+      uitsluitend uit `files/`), en op productie is één origineel opzijgezet
+      waarna hetzelfde kaartje byte voor byte dezelfde webp bleef serveren.
+      Ook getest wat er gebeurt als je een plaat weghaalt die aan een kaartje
+      hangt: het kaartje blijft werken, de `<img>` verdwijnt netjes, het
+      detailvenster toont een tijdelijke afbeelding, en terugzetten maakt de
+      thumbnail vanzelf opnieuw aan.
       Ze zitten **niet in de nachtelijke backup** (`files/` zit daar sowieso
       nooit in), dus dit is de enige kopie — vandaar de wachttijd.
       Ziet alles er goed uit, dan:
