@@ -489,7 +489,7 @@ function _card(it) {
 // SRD 5.2 (CC BY 4.0) — dezelfde licentie waar de spreuken en de statblokken
 // uit komen. De Artificer staat niet in de SRD; daarvan tonen we alleen wat we
 // weten, in plaats van de rest te raden.
-let _klasseBasis = null, _spreukKlassen = null, _spreukAantal = null, _tellers = null, _featKoppel = null;
+let _klasseBasis = null, _spreukKlassen = null, _spreukAantal = null, _tellers = null, _featKoppel = null, _mcEisen = null;
 // De subclasses die niet in de app staan: alleen hun naam en in welk boek ze
 // staan. Eén keer ophalen; valt het om, dan tonen we ze simpelweg niet.
 let _elders = null;
@@ -511,9 +511,11 @@ async function _klasseExtra() {
     try { const r = await fetch(`/api/bron/${naam}`, { credentials: 'same-origin' });
           return r.ok ? await r.json() : null; } catch { return null; }
   };
-  const [basis, spreuken, koppel] = await Promise.all([
-    haal('klasse-basis'), haal('spells-2024'), haal('feat-koppelingen')]);
+  const [basis, spreuken, koppel, multi] = await Promise.all([
+    haal('klasse-basis'), haal('spells-2024'), haal('feat-koppelingen'),
+    haal('srd-multiclass-eisen')]);
   _klasseBasis = (basis?.klassen) || {};
+  _mcEisen = multi || {};
   _featKoppel = koppel?.feats || {};
   // Hoeveel spreuken staan er op de lijst van elke klasse? Dat telt zichzelf
   // uit de spreukenbron; nergens anders staat het, en het is precies wat je
@@ -816,6 +818,38 @@ function _basisVan(klasse) {
   return eigen ? { ...uitBron, ...eigen } : uitBron;
 }
 
+// Bijbeginnen in deze class. Dat stond alleen bij de level-up, waar de server
+// het voorrekent — maar het is een eigenschap van de class, en de vraag "mag ik
+// hier nog bij in?" stel je terwijl je naar het kaartje kijkt. Zelfde bestand
+// als de server leest, dus één plek voor één feit.
+//
+// Er zijn achttien skills in het spel; mag je uit alle achttien kiezen, dan is
+// dat "any" — net als bij de Skills-regel hierboven, waar een lege lijst
+// hetzelfde betekent.
+function _mcVan(klasse) {
+  const n = String(klasse || '').trim().toLowerCase();
+  const sleutel = Object.keys(_mcEisen || {}).find(k => k.toLowerCase() === n);
+  return sleutel ? _mcEisen[sleutel] : null;
+}
+function _mcEisTekst(mc) {
+  const ab = (e) => `${_AB_NAAM[e.ability] || e.ability} ${e.minimum}`;
+  const delen = (mc.eisen || []).map(ab);
+  if (mc.keuze?.length) delen.push(mc.keuze.map(ab).join(' or '));
+  return delen.join(' and ');
+}
+function _mcTrainingTekst(mc) {
+  const kaal = (w) => w.replace(/^(Skill|Tool): /, '');
+  const delen = (mc.training || []).map(kaal);
+  for (const k of mc.keuzeTraining || []) {
+    const alleenSkills = k.waaruit.every(w => w.startsWith('Skill: '));
+    const lijst = k.waaruit.map(kaal);
+    delen.push(alleenSkills && lijst.length >= 18
+      ? `Choose any ${k.aantal}`
+      : `Choose ${k.aantal}: ${lijst.join(', ')}`);
+  }
+  return delen.join(' · ');
+}
+
 function _klasseRijen(klasse) {
   const basis = _basisVan(klasse);
   return [
@@ -836,6 +870,15 @@ function _klasseRijen(klasse) {
     basis.tools   ? ['Tools', basis.tools] : null,
     basis.castAbility
       ? ['Spellcasting', _AB_NAAM[basis.castAbility] || basis.castAbility] : null,
+    ...(() => {
+      const mc = _mcVan(klasse);
+      if (!mc) return [];
+      const training = _mcTrainingTekst(mc);
+      return [
+        ['Multiclassing', _mcEisTekst(mc)],
+        training ? ['Multiclass Training', training] : null,
+      ];
+    })(),
   ].filter(Boolean);
 }
 

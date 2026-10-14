@@ -6,7 +6,12 @@
         "minimum": 13
       }
     ],
-    "keuze": []
+    "keuze": [],
+    "training": [
+      "Shields",
+      "Martial Weapons"
+    ],
+    "keuzeTraining": []
   },
   "Bard": {
     "eisen": [
@@ -15,7 +20,50 @@
         "minimum": 13
       }
     ],
-    "keuze": []
+    "keuze": [],
+    "training": [
+      "Light Armor"
+    ],
+    "keuzeTraining": [
+      {
+        "aantal": 1,
+        "waaruit": [
+          "Skill: Acrobatics",
+          "Skill: Animal Handling",
+          "Skill: Arcana",
+          "Skill: Athletics",
+          "Skill: Deception",
+          "Skill: History",
+          "Skill: Insight",
+          "Skill: Intimidation",
+          "Skill: Investigation",
+          "Skill: Medicine",
+          "Skill: Nature",
+          "Skill: Perception",
+          "Skill: Performance",
+          "Skill: Persuasion",
+          "Skill: Religion",
+          "Skill: Sleight of Hand",
+          "Skill: Stealth",
+          "Skill: Survival"
+        ]
+      },
+      {
+        "aantal": 1,
+        "waaruit": [
+          "Bagpipes",
+          "Drum",
+          "Dulcimer",
+          "Flute",
+          "Lute",
+          "Lyre",
+          "Horn",
+          "Pan flute",
+          "Shawm",
+          "Viol"
+        ]
+      }
+    ]
   },
   "Cleric": {
     "eisen": [
@@ -24,7 +72,13 @@
         "minimum": 13
       }
     ],
-    "keuze": []
+    "keuze": [],
+    "training": [
+      "Light Armor",
+      "Medium Armor",
+      "Shields"
+    ],
+    "keuzeTraining": []
   },
   "Druid": {
     "eisen": [
@@ -33,7 +87,12 @@
         "minimum": 13
       }
     ],
-    "keuze": []
+    "keuze": [],
+    "training": [
+      "Light Armor",
+      "Shields"
+    ],
+    "keuzeTraining": []
   },
   "Fighter": {
     "eisen": [],
@@ -46,7 +105,14 @@
         "ability": "dex",
         "minimum": 13
       }
-    ]
+    ],
+    "training": [
+      "Light Armor",
+      "Medium Armor",
+      "Shields",
+      "Martial Weapons"
+    ],
+    "keuzeTraining": []
   },
   "Monk": {
     "eisen": [
@@ -59,7 +125,9 @@
         "minimum": 13
       }
     ],
-    "keuze": []
+    "keuze": [],
+    "training": [],
+    "keuzeTraining": []
   },
   "Paladin": {
     "eisen": [
@@ -72,7 +140,14 @@
         "minimum": 13
       }
     ],
-    "keuze": []
+    "keuze": [],
+    "training": [
+      "Light Armor",
+      "Medium Armor",
+      "Shields",
+      "Martial Weapons"
+    ],
+    "keuzeTraining": []
   },
   "Ranger": {
     "eisen": [
@@ -85,7 +160,28 @@
         "minimum": 13
       }
     ],
-    "keuze": []
+    "keuze": [],
+    "training": [
+      "Light Armor",
+      "Medium Armor",
+      "Shields",
+      "Martial Weapons"
+    ],
+    "keuzeTraining": [
+      {
+        "aantal": 1,
+        "waaruit": [
+          "Skill: Animal Handling",
+          "Skill: Athletics",
+          "Skill: Insight",
+          "Skill: Investigation",
+          "Skill: Nature",
+          "Skill: Perception",
+          "Skill: Stealth",
+          "Skill: Survival"
+        ]
+      }
+    ]
   },
   "Rogue": {
     "eisen": [
@@ -94,7 +190,29 @@
         "minimum": 13
       }
     ],
-    "keuze": []
+    "keuze": [],
+    "training": [
+      "Light Armor",
+      "Tool: Thieves' Tools"
+    ],
+    "keuzeTraining": [
+      {
+        "aantal": 1,
+        "waaruit": [
+          "Skill: Acrobatics",
+          "Skill: Athletics",
+          "Skill: Deception",
+          "Skill: Insight",
+          "Skill: Intimidation",
+          "Skill: Investigation",
+          "Skill: Perception",
+          "Skill: Performance",
+          "Skill: Persuasion",
+          "Skill: Sleight of Hand",
+          "Skill: Stealth"
+        ]
+      }
+    ]
   },
   "Sorcerer": {
     "eisen": [
@@ -103,7 +221,9 @@
         "minimum": 13
       }
     ],
-    "keuze": []
+    "keuze": [],
+    "training": [],
+    "keuzeTraining": []
   },
   "Warlock": {
     "eisen": [
@@ -112,7 +232,11 @@
         "minimum": 13
       }
     ],
-    "keuze": []
+    "keuze": [],
+    "training": [
+      "Light Armor"
+    ],
+    "keuzeTraining": []
   },
   "Wizard": {
     "eisen": [
@@ -121,6 +245,8 @@
         "minimum": 13
       }
     ],
-    "keuze": []
+    "keuze": [],
+    "training": [],
+    "keuzeTraining": []
   }
 }
