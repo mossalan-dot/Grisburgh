@@ -17,6 +17,35 @@
       "Magic Item Savant",
       "Magic Item Master",
       "Soul of Artifice"
+    ],
+    "Blood Hunter": [
+      "Hunter's Bane",
+      "Blood Maledict",
+      "Fighting Style",
+      "Crimson Rite",
+      "Blood Hunter Order",
+      "Extra Attack",
+      "Brand of Castigation",
+      "Grim Psychometry",
+      "Dark Augmentation",
+      "Brand of Tethering",
+      "Hardened Soul",
+      "Sanguine Mastery"
+    ],
+    "Illrigger": [
+      "Baleful Interdict",
+      "Forked Tongue",
+      "Combat Mastery",
+      "Interdiction",
+      "Diabolic Contract",
+      "Invoke Hell",
+      "Extra Attack",
+      "Infernal Conduit",
+      "Blood Price",
+      "Terrorizing Force",
+      "Superior Interdict",
+      "Infernal Majesty",
+      "Master of Hell"
     ]
   },
   "subclasses": {
@@ -721,6 +750,39 @@
       "Phantasmal Creatures",
       "Illusory Self",
       "Illusory Reality"
+    ],
+    "Order of the Ghostslayer": [
+      "Rite of the Dawn",
+      "Curse Specialist",
+      "Aether Walk",
+      "Brand of Sundering",
+      "Blood Curse of the Exorcist",
+      "Rite Revival"
+    ],
+    "Order of the Lycan": [
+      "Heightened Senses",
+      "Hybrid Transformation",
+      "Stalker's Prowess",
+      "Advanced Transformation",
+      "Brand of the Voracious",
+      "Hybrid Transformation Mastery"
+    ],
+    "Order of the Mutant": [
+      "Mutagencraft",
+      "Strange Metabolism",
+      "Brand of Axiom",
+      "Blood Curse of Corrosion",
+      "Exalted Mutation"
+    ],
+    "Order of the Profane Soul": [
+      "Otherworldly Patron",
+      "Pact Magic",
+      "Rite Focus",
+      "Mystic Frenzy",
+      "Revealed Arcana",
+      "Brand of the Sapping Scar",
+      "Unsealed Arcana",
+      "Blood Curse of the Souleater"
     ]
   },
   "species": {

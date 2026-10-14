@@ -1644,6 +1644,69 @@
           "herkomst": "overgenomen"
         }
       }
+    },
+    "Blood Hunter": {
+      "subclassLabel": "Blood Hunter Order",
+      "subclassLevel": 3,
+      "boek": "Blood Hunter (Matthew Mercer, D&D Beyond)",
+      "herkomst": "overgenomen",
+      "levels": {},
+      "subclasses": {
+        "Order of the Ghostslayer": {
+          "levels": {},
+          "boek": "Blood Hunter (Matthew Mercer, D&D Beyond)",
+          "herkomst": "overgenomen"
+        },
+        "Order of the Lycan": {
+          "levels": {},
+          "boek": "Blood Hunter (Matthew Mercer, D&D Beyond)",
+          "herkomst": "overgenomen"
+        },
+        "Order of the Mutant": {
+          "levels": {},
+          "boek": "Blood Hunter (Matthew Mercer, D&D Beyond)",
+          "herkomst": "overgenomen"
+        },
+        "Order of the Profane Soul": {
+          "levels": {},
+          "boek": "Blood Hunter (Matthew Mercer, D&D Beyond)",
+          "herkomst": "overgenomen"
+        }
+      }
+    },
+    "Illrigger": {
+      "subclassLabel": "Diabolic Contract",
+      "subclassLevel": 3,
+      "boek": "Illrigger (MCDM Productions)",
+      "herkomst": "overgenomen",
+      "levels": {},
+      "subclasses": {
+        "Architect of Ruin": {
+          "levels": {},
+          "boek": "Illrigger (MCDM Productions)",
+          "herkomst": "overgenomen"
+        },
+        "Hellspeaker": {
+          "levels": {},
+          "boek": "Illrigger (MCDM Productions)",
+          "herkomst": "overgenomen"
+        },
+        "Painkiller": {
+          "levels": {},
+          "boek": "Illrigger (MCDM Productions)",
+          "herkomst": "overgenomen"
+        },
+        "Sanguine Knight": {
+          "levels": {},
+          "boek": "Illrigger (MCDM Productions)",
+          "herkomst": "overgenomen"
+        },
+        "Shadowmaster": {
+          "levels": {},
+          "boek": "Illrigger (MCDM Productions)",
+          "herkomst": "overgenomen"
+        }
+      }
     }
   },
   "species": {

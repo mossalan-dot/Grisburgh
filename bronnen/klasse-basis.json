@@ -375,6 +375,63 @@
         "Sleight of Hand"
       ],
       "primary": "Intelligence"
+    },
+    "Blood Hunter": {
+      "hitDie": 10,
+      "featLevels": [
+        4,
+        8,
+        12,
+        16,
+        19
+      ],
+      "saves": [
+        "dex",
+        "int"
+      ],
+      "armor": "Light, Medium, Shields",
+      "weapons": "Simple, Martial",
+      "tools": "Alchemist's Supplies",
+      "skillAantal": 3,
+      "skills": [
+        "Acrobatics",
+        "Arcana",
+        "Athletics",
+        "History",
+        "Insight",
+        "Investigation",
+        "Religion",
+        "Survival"
+      ],
+      "primary": "Intelligence"
+    },
+    "Illrigger": {
+      "hitDie": 10,
+      "featLevels": [
+        4,
+        8,
+        12,
+        16,
+        19
+      ],
+      "saves": [
+        "con",
+        "cha"
+      ],
+      "armor": "Light, Medium, Shields",
+      "weapons": "Simple, Martial",
+      "skillAantal": 2,
+      "skills": [
+        "Arcana",
+        "Athletics",
+        "Deception",
+        "Insight",
+        "Intimidation",
+        "Investigation",
+        "Persuasion",
+        "Religion",
+        "Stealth"
+      ]
     }
   }
 }

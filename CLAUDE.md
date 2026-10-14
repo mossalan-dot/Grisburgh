@@ -1718,7 +1718,8 @@ in `_load()` (`render-spreuken.js`), ontdubbeld op `index`:
 > **En wát ze geven.** Neemt de DM er een over, dan stond er daarna een leeg
 > kaartje: je zag dát de Hexblade bestaat, niet wát hij geeft.
 > `bronnen/features-elders.json` noemt daarom de **namen** van hun features —
-> 101 subclasses, 29 species uit `volkenOverig` en de Artificer zelf, samen 500
+> 105 subclasses, 29 species uit `volkenOverig` en de drie classes die de app
+> zonder tekst meebrengt (Artificer, Blood Hunter, Illrigger), samen 672
 > namen — en verder niets: geen tekst, geen levels. Dat zijn niet alleen de
 > boeken van buiten: ook de 2024-subclasses die de app zelf meebrengt maar
 > waarvan de tekst buiten de SRD valt (Battle Master, Assassin, Gloom Stalker…)
