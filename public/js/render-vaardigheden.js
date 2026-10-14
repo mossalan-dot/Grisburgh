@@ -712,8 +712,17 @@ function _flipKaartHtml({ soort, naam, kleur, icoon, bijschrift = '', onder = ''
 // erachter tonen ze allebei — en ze horen hetzelfde te zeggen.
 // De volgorde van de PHB: Primary Ability, Hit Point Die, Saving Throws,
 // Skills, Weapons, Armor.
+// Wat de campagne zelf zette wint, veld voor veld, boven wat de app meebrengt.
+// Een eigen class staat niet in `klasse-basis.json` en had daarom een leeg
+// kaartje; de Artificer heeft er bewust maar de helft van.
+function _basisVan(klasse) {
+  const uitBron = _klasseBasis?.[klasse] || {};
+  const eigen   = _bron?.prog?.classes?.[klasse]?.basis || null;
+  return eigen ? { ...uitBron, ...eigen } : uitBron;
+}
+
 function _klasseRijen(klasse) {
-  const basis = _klasseBasis?.[klasse] || {};
+  const basis = _basisVan(klasse);
   return [
     basis.primary ? ['Primary Ability', basis.primary] : null,
     basis.hitDie ? ['Hit Point Die', `d${basis.hitDie} per ${klasse} level`] : null,
@@ -733,7 +742,7 @@ function _klasseRijen(klasse) {
 }
 
 function _klasseKaartHtml(klasse) {
-  const basis = _klasseBasis?.[klasse] || {};
+  const basis = _basisVan(klasse);
   const sig   = window._signatureVoor?.(klasse);
   const rijen = _klasseRijen(klasse);
   const heeftSpreuken = basis.castAbility && (_spreukAantal?.get(klasse) || 0);
@@ -1539,6 +1548,48 @@ function _beeldBlokVernieuwen(soort, naam, beeld) {
   window._fpTeken?.();
 }
 
+// De kerngegevens van een class, in het bewerkvenster. Ze stonden alleen op het
+// kaartje — en daarmee nergens te wijzigen: ze komen uit `klasse-basis.json`,
+// en dat bestand is van de app en niet van deze campagne. Een eigen class had
+// dus een leeg kaartje en geen enkele knop om dat te verhelpen.
+//
+// De velden staan vóór-ingevuld met wat de app weet. Laat je ze zo staan, dan
+// verandert er niets en blijf je meeliften op latere verbeteringen aan de bron;
+// typ je iets anders, dan geldt dat hier.
+function _basisVeldenHtml(klasse) {
+  const b = _basisVan(klasse);
+  const lijst = (v) => Array.isArray(v) ? v.join(', ') : String(v || '');
+  const abKeuze = (nu) => ['', 'str', 'dex', 'con', 'int', 'wis', 'cha']
+    .map(k => `<option value="${k}"${String(nu || '') === k ? ' selected' : ''}>${k ? esc(_AB_NAAM[k]) : '—'}</option>`).join('');
+  const veld = (id, label, waarde, hint = '', extra = '') => `
+    <div class="vd-basis-veld">
+      <label class="dm-form-label" for="${id}">${esc(label)}</label>
+      <input class="dm-input" id="${id}" value="${esc(waarde)}" placeholder="${esc(hint)}" ${extra}>
+    </div>`;
+  return `
+    <details class="dm-uitklap vd-basis">
+      <summary>${icon('dice')} Core Traits</summary>
+      <div class="dm-uitklap-body">
+        <p class="dm-hint" style="margin-top:0">Wat op het kaartje staat, en wat de app gebruikt om Hit Dice te
+        rollen en spreukenslots af te leiden. Leeg laten betekent: neem wat de app zelf weet.</p>
+        <div class="vd-basis-raster">
+          ${veld('vd-basis-primary', 'Primary Ability', b.primary || '', 'Strength')}
+          ${veld('vd-basis-hitdie', 'Hit Point Die', b.hitDie ? 'd' + b.hitDie : '', 'd8')}
+          ${veld('vd-basis-saves', 'Saving Throws', lijst(b.saves), 'str, con')}
+          <div class="vd-basis-veld">
+            <label class="dm-form-label" for="vd-basis-cast">Spellcasting</label>
+            <select class="dm-input" id="vd-basis-cast">${abKeuze(b.castAbility)}</select>
+          </div>
+          ${veld('vd-basis-skillaantal', 'Skills — hoeveel', b.skillAantal || '', '2')}
+          ${veld('vd-basis-skills', 'Skills — waaruit', lijst(b.skills), 'Arcana, History, …')}
+          ${veld('vd-basis-weapons', 'Weapons', b.weapons || '', 'Simple, Martial')}
+          ${veld('vd-basis-armor', 'Armor Training', b.armor || '', 'Light, Medium, Shields')}
+          ${veld('vd-basis-tools', 'Tools', b.tools || '', "Thieves' Tools")}
+        </div>
+      </div>
+    </details>`;
+}
+
 function _uitlegVenster(soort, naam, bron) {
   const h = _houderVan(soort, naam, bron);
   if (!h) { alert(`${naam} staat niet in deze campagne.`); return; }
@@ -1576,6 +1627,7 @@ function _uitlegVenster(soort, naam, bron) {
           <span class="dm-hint" style="margin:0">Kleurt dit kaartje en zijn features.</span>
         </div>
       </div>` : ''}
+      ${soort === 'class' ? _basisVeldenHtml(naam) : ''}
       <div class="dm-form-row">
         <label class="dm-form-label">Uit welk boek?</label>
         <input class="dm-input" id="vd-houder-boek" maxlength="120" value="${esc(h.boek || '')}"
@@ -2300,6 +2352,21 @@ window.vaardigheden = {
   uitKaartVenster(key) { window.app.closeModal?.(); setTimeout(() => _open(key), 40); },
   async bewaarUitleg(soort, naam, bron) {
     const desc = document.getElementById('vd-houder-desc')?.value || '';
+    // De kerngegevens gaan als geheel mee: wat je leegmaakt valt terug op de
+    // bron, wat je invult geldt hier. `d8` en `8` allebei goed — een hit die
+    // schrijf je nu eenmaal met een d ervoor.
+    const v = (id) => document.getElementById(id)?.value?.trim() || '';
+    const basis = document.getElementById('vd-basis-primary') ? {
+      primary:     v('vd-basis-primary'),
+      hitDie:      v('vd-basis-hitdie').replace(/^d/i, ''),
+      saves:       v('vd-basis-saves'),
+      castAbility: v('vd-basis-cast'),
+      skillAantal: v('vd-basis-skillaantal'),
+      skills:      v('vd-basis-skills'),
+      weapons:     v('vd-basis-weapons'),
+      armor:       v('vd-basis-armor'),
+      tools:       v('vd-basis-tools'),
+    } : undefined;
     const boek = document.getElementById('vd-houder-boek')?.value || '';
     const ondertitel = document.getElementById('vd-houder-onder')?.value || '';
     const kleur = document.getElementById('vd-houder-kleur')?.value || '';
@@ -2311,7 +2378,7 @@ window.vaardigheden = {
       try { await _kaartBeeldZet(soort, naam, { id: beeldId, focus }); } catch { /* het beeld is bijzaak */ }
     }
     try {
-      await api.put('/progression/houder', { soort, naam, bron, desc, boek, ondertitel, kleur });
+      await api.put('/progression/houder', { soort, naam, bron, desc, boek, ondertitel, kleur, basis });
       window.app.closeModal();
       _all = null; await _load(); await _klasseExtra();
       _bandHerteken(); _refreshFilterBar(); _paint();

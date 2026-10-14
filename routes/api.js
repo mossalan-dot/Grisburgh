@@ -4031,7 +4031,19 @@ function _klasseBasisVoor(naam) {
     _klasseBasis = new Map(Object.entries(d.klassen || {})
       .map(([k, v]) => [k.toLowerCase(), v]));
   }
-  return _klasseBasis.get(String(naam || '').trim().toLowerCase()) || null;
+  const uitBron = _klasseBasis.get(String(naam || '').trim().toLowerCase()) || null;
+  // Wat de campagne zelf heeft gezet wint, veld voor veld. Een eigen class
+  // staat niet in de bron en zou anders geen hit die hebben — en dan rolt de
+  // app zijn Hit Dice niet en krijgt hij geen spreukenslots.
+  let eigen = null;
+  try {
+    const prog = storage.readJSON('progression.json');
+    const sleutel = Object.keys(prog.classes || {})
+      .find(k => k.toLowerCase() === String(naam || '').trim().toLowerCase());
+    eigen = sleutel ? prog.classes[sleutel]?.basis : null;
+  } catch { /* geen campagne-context: dan alleen de bron */ }
+  if (!eigen) return uitBron;
+  return { ...(uitBron || {}), ...eigen };
 }
 function _hitDieForClass(naam) {
   return _klasseBasisVoor(naam)?.hitDie || null;
@@ -9383,6 +9395,36 @@ router.put('/progression/houder', requireDM, (req, res) => {
     if (/^#[0-9a-f]{6}$/i.test(k)) houder.kleur = k; else delete houder.kleur;
   }
   zet('herkomst', b.herkomst, 40);
+
+  // De kerngegevens van een class: hit die, saving throws, skills, trainingen.
+  // Die staan in `bronnen/klasse-basis.json` voor de twaalf die we meeleveren,
+  // en dat bestand is van de app — niet van deze campagne. Een eigen class had
+  // er dus geen, en de Artificer heeft er bewust maar de helft van.
+  //
+  // Wat hier binnenkomt is de **afwijking van die bron**: leeg laten betekent
+  // "neem wat de app weet", invullen betekent "bij ons is het dit". Zo profiteer
+  // je van latere verbeteringen aan de bron zolang je niets eigen hebt gezet.
+  if (soort === 'class' && b.basis !== undefined) {
+    const inv = b.basis || {};
+    const lijst = (v, max = 12) => String(v || '').split(',').map(x => x.trim()).filter(Boolean).slice(0, max);
+    const ab = (v) => ['str', 'dex', 'con', 'int', 'wis', 'cha'].includes(String(v)) ? String(v) : '';
+    const basis = {};
+    const hd = parseInt(inv.hitDie, 10);
+    if ([4, 6, 8, 10, 12, 20].includes(hd)) basis.hitDie = hd;
+    if (String(inv.primary || '').trim())   basis.primary = String(inv.primary).trim().slice(0, 40);
+    if (ab(inv.castAbility))                basis.castAbility = ab(inv.castAbility);
+    const saves = lijst(inv.saves, 6).map(x => x.toLowerCase()).filter(ab);
+    if (saves.length) basis.saves = saves;
+    const sk = parseInt(inv.skillAantal, 10);
+    if (sk > 0 && sk <= 8) basis.skillAantal = sk;
+    const skills = lijst(inv.skills, 18);
+    if (skills.length) basis.skills = skills;
+    for (const sleutel of ['weapons', 'armor', 'tools']) {
+      const t = String(inv[sleutel] || '').trim().slice(0, 120);
+      if (t) basis[sleutel] = t;
+    }
+    if (Object.keys(basis).length) houder.basis = basis; else delete houder.basis;
+  }
 
   storage.writeJSON('progression.json', { ...prog, bron: prog.bron || 'Aangepast door de DM' });
   req.app.get('io').to(_campagneRoom(req)).emit('progression:updated', {});

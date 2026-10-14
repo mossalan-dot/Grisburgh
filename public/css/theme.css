@@ -30464,3 +30464,10 @@ body:has(#sb-overlay.sb-open) .dm-dice-fab { display: none !important; }
 }
 .dm-uitnodiging-naam svg { width: 13px; height: 13px; color: #9a7008; }
 .dm-uitnodiging-meta { font-family: 'Crimson Text', serif; font-size: .86em; color: #8a7050; margin-right: auto; }
+
+/* ── Core Traits in het bewerkvenster van een class ──────────────────────── */
+.vd-basis-raster {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px 12px;
+}
+.vd-basis-veld { display: flex; flex-direction: column; gap: 2px; }
+.vd-basis-veld .dm-input { width: 100%; box-sizing: border-box; }

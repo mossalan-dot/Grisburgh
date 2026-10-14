@@ -9,7 +9,7 @@ import { renderBestiarium } from './render-bestiarium.js?v=31';
 import { renderSpreuken } from './render-spreuken.js?v=47';
 import './render-handleiding.js?v=2';
 import './render-melding.js?v=4';
-import { renderVaardigheden, zoekVaardigheden, heldenboekTekst } from './render-vaardigheden.js?v=50';
+import { renderVaardigheden, zoekVaardigheden, heldenboekTekst } from './render-vaardigheden.js?v=51';
 import { renderStatblock } from './render-statblock.js?v=9';
 import { initSocket } from "./socket-client.js?v=85";
 import { initDmPanel } from "./dm-panel.js?v=400";
@@ -15121,6 +15121,7 @@ const HELP_CONFIG = {
 
   hulp_heldenboek_kaart: () => ({ titel: 'Een kaart bewerken', stappen: [
     { titel: 'Wat je hier bewerkt', tekst: 'De **class, subclass of species zelf** — niet zijn features. Die hebben elk hun eigen kaartje in de lijst eronder, met een eigen potlood.\n\nDe beschrijving staat bovenaan het kaartje, vóór de features. Komt hij uit de SRD, dan staat die tekst er al in en mag je hem gewoon aanpassen: wat jij schrijft wint, en de meegeleverde tekst blijft eronder liggen voor campagnes die niets wijzigden.', afbeelding: null },
+    { titel: 'Core Traits', tekst: 'Alleen bij een class. Dit is wat op zijn kaartje staat én wat de app gebruikt om Hit Dice te rollen en spreukenslots af te leiden.\n\nDe velden staan vóór-ingevuld met wat de app zelf weet. **Laat je ze zo staan, dan verandert er niets** — en lift je mee op latere verbeteringen aan die gegevens. Typ je iets anders, dan geldt dat in jouw campagne.\n\nDat is er vooral voor een class die de app níét meebrengt: een eigen orde, of de Artificer, waarvan alleen de hit die bekend is. Zonder dit bleef zijn kaartje half leeg en was er geen knop om dat te verhelpen.', afbeelding: null },
     { titel: 'Afbeelding en focuspunt', tekst: 'De kaart heeft twee kanten: een plaat met de naam erop, en de gegevens. Kies hier het beeld voor de voorkant.\n\nHet **focuspunt** bepaalt welk deel in beeld blijft. Een portret is hoog en de kaart is breed, dus zonder bijstellen valt er van alles af — meestal net het gezicht. Sleep het kruis naar wat er móét blijven staan; het voorbeeld ernaast toont de echte uitsnede.', afbeelding: null },
     { titel: 'Kleur van een subclass', tekst: 'Alleen bij een subclass. De kleur die je kiest kleurt zijn kaartje én al zijn features in de lijst eronder.\n\nDat is geen versiering: vink je er twee aan om ze te vergelijken, dan lopen hun features door elkaar in de volgorde waarin je ze krijgt. De kleur zegt dan in één oogopslag welke regel van wie is.', afbeelding: null },
   ] }),
