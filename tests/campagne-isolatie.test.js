@@ -445,4 +445,25 @@ describe('Campagne-isolatie', () => {
     assert.ok(inBeta,  'het bestand hoort in beta te staan');
     assert.ok(!inAlfa, 'en zeker niet in alfa');
   });
+
+  // Beheerder ben je van de server, DM van één campagne. Die twee lijken meer
+  // op elkaar dan ze zijn, en het foutenboekje is precies zo'n plek waar het
+  // misgaat: het gaat over álle campagnes, dus een tweede DM hoort er niet in
+  // te kunnen kijken — en al helemaal niet in te kunnen opruimen.
+  it('laat alleen de beheerder het foutenboekje lezen', async () => {
+    const { cookie: dmBeta } = moetLukken(await dmLogin(server, 'beta', 'beta-dm'), 'inloggen als DM van beta');
+    const lezen = await req(server, 'GET', '/api/fouten?campagne=beta', null, dmBeta);
+    assert.equal(lezen.status, 403, 'de DM van beta is geen beheerder');
+    const wissen = await req(server, 'DELETE', '/api/fouten/alles?campagne=beta', null, dmBeta);
+    assert.equal(wissen.status, 403, 'en opruimen al helemaal niet');
+  });
+
+  // Mélden moet hij wél kunnen: een tweede DM die iets ziet misgaan is precies
+  // de reden dat dit boekje bestaat.
+  it('laat elke ingelogde DM wél een melding doen', async () => {
+    const { cookie: dmBeta } = moetLukken(await dmLogin(server, 'beta', 'beta-dm'), 'inloggen als DM van beta');
+    const r = await req(server, 'POST', '/api/fout?campagne=beta',
+      { soort: 'melding', melding: 'knop doet niets', toelichting: 'proef', waar: 'ergens' }, dmBeta);
+    assert.equal(r.status, 200, `melden gaf ${r.status}`);
+  });
 });
