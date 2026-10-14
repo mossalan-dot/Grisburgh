@@ -782,6 +782,10 @@ export async function laadHoudingen() {
   } catch { /* zonder tabel geen glans; de rest van het kaartje staat er wel */ }
 }
 window._houdingTabel = () => [..._HOUDING_TABEL.values()];
+// Ook na het inloggen op te halen: wie als bezoeker binnenkomt en daarna een
+// portret kiest, heeft `initCampagne` allang gehad. Hij haalt hem één keer op
+// en onthoudt hem, dus twee keer vragen kan geen kwaad.
+window._laadHoudingen = laadHoudingen;
 
 // ── Het schuifje ───────────────────────────────────────────────────────────
 // De namen en de kleuren komen uit dezelfde tabel als de glans, dus wat je
@@ -2914,7 +2918,11 @@ export function initCampagne() {
   // De houdingenschaal één keer ophalen. Het kaartje tekent er zijn glans
   // mee en de bewerkmodus zijn schuifje; zonder de tabel blijft de glans
   // gewoon weg, en dat is een geldige stand.
-  laadHoudingen();
+  //
+  // Alleen voor wie binnen is: de route vraagt een sessie, dus op de
+  // landingspagina gaf dit een 401 in de console van elke bezoeker. Zodra er
+  // een kaartje te tekenen valt is die er wel.
+  if (window.app?.state?.role === 'dm' || window.app?.state?.characterId) laadHoudingen();
 }
 
 // Expose for global search

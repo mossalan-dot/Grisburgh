@@ -1,5 +1,5 @@
 import { api, campagneUitUrl, zetCampagne } from './api.js?v=313';
-import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, renderDocumenten, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=347";
+import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, renderDocumenten, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=348";
 import { initArchief, renderLogboek, openLogboekEditor } from "./render-archief.js?v=141";
 import { renderKaart, queueFlyTo, verversPins, nieuweKaart } from './render-kaart.js?v=31';
 import { renderDungeon } from './render-dungeon.js?v=63';
@@ -1286,6 +1286,10 @@ async function sandboxLoginSubmit() {
 function applyRole() {
   const appEl   = $('#app');
   const isDmActive  = state.role === 'dm' && !state.dmPreview;
+  // De houdingenschaal hoort bij wie binnen is. Bij de start wordt hij
+  // overgeslagen voor een bezoeker (dat gaf een 401 op de landingspagina); wie
+  // daarna inlogt komt hier langs, en dan is dit het moment.
+  if (state.role === 'dm' || state.characterId) window._laadHoudingen?.();
   const isDmPreview = state.role === 'dm' && state.dmPreview;
 
   appEl.classList.toggle('dm-mode',     isDmActive);
