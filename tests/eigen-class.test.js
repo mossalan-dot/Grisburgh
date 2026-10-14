@@ -145,4 +145,48 @@ describe('Eigen class, species of background', () => {
       { soort: 'class', naam: 'Bestaat Niet', desc: 'x' }, dm);
     assert.equal(r.status, 404);
   });
+
+  // ── En weer weg ───────────────────────────────────────────────────────────
+  // Aanmaken kon, weghalen niet: een class die je per ongeluk begon bleef staan
+  // tot je de hele progressie reset.
+  it('haalt een eigen class weg, met zijn subclasses en features', async () => {
+    await req(server, 'POST', '/api/progression/houder', { soort: 'class', naam: 'Veenloper' }, dm);
+    await req(server, 'POST', '/api/progression/houder',
+      { soort: 'subclass', bron: 'Veenloper', naam: 'Pad van het Riet' }, dm);
+    await req(server, 'POST', '/api/progression/feature',
+      { soort: 'class', bron: 'Veenloper', level: 1, naam: 'Moerasvoet', desc: 'x' }, dm);
+    await req(server, 'POST', '/api/progression/feature',
+      { soort: 'subclass', bron: 'Veenloper', sub: 'Pad van het Riet', level: 3, naam: 'Rietsnede', desc: 'x' }, dm);
+
+    const r = await req(server, 'POST', '/api/progression/houder/verwijderen',
+      { soort: 'class', naam: 'Veenloper' }, dm);
+    assert.equal(r.status, 200, JSON.stringify(r.body));
+    assert.equal(r.body.subclasses, 1, 'het zegt hoeveel subclasses er meegingen');
+    assert.equal(r.body.features, 2, 'en hoeveel features — die van de subclass ook');
+    assert.equal(prog().classes.Veenloper, undefined);
+  });
+
+  it('weigert een houder weg te halen die in gebruik is, tenzij je doordrukt', async () => {
+    await req(server, 'POST', '/api/progression/houder', { soort: 'class', naam: 'Kruidenlezer' }, dm);
+    const pc = await req(server, 'POST', '/api/entities/personages',
+      { name: 'Griet', data: { klasse: 'Kruidenlezer' } }, dm);
+    assert.equal(pc.status, 201, JSON.stringify(pc.body));
+
+    const weigering = await req(server, 'POST', '/api/progression/houder/verwijderen',
+      { soort: 'class', naam: 'Kruidenlezer' }, dm);
+    assert.equal(weigering.status, 409);
+    assert.deepEqual(weigering.body.gebruik, ['Griet'], 'het zegt bij wie hij staat');
+    assert.ok(prog().classes.Kruidenlezer, 'en hij staat er nog');
+
+    const toch = await req(server, 'POST', '/api/progression/houder/verwijderen',
+      { soort: 'class', naam: 'Kruidenlezer', toch: true }, dm);
+    assert.equal(toch.status, 200, JSON.stringify(toch.body));
+    assert.equal(prog().classes.Kruidenlezer, undefined);
+  });
+
+  it('weigert een houder weg te halen die er niet is', async () => {
+    const r = await req(server, 'POST', '/api/progression/houder/verwijderen',
+      { soort: 'class', naam: 'Bestaat Niet' }, dm);
+    assert.equal(r.status, 404);
+  });
 });

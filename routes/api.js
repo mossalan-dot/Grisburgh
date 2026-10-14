@@ -9670,6 +9670,89 @@ router.post('/progression/feature/verwijderen', requireDM, (req, res) => {
   res.json({ ok: true });
 });
 
+// ── Een houder weghalen ─────────────────────────────────────────────────────
+// Een class, subclass, species of background aanmaken kon al; weghalen niet.
+// Wie zich vertikte in de naam, of een class had verzonnen die het toch niet
+// werd, zat eraan vast — en de enige uitweg was de hele progressie resetten.
+//
+// Het gaat met alles wat eronder hangt mee: de features van de houder zelf, en
+// bij een class ook zijn subclasses en hún features. Dat staat in het antwoord
+// zodat de client het kan tellen vóór hij het vraagt.
+//
+// **Is hij in gebruik, dan gaat het niet zomaar.** Een personage dat Monk is
+// terwijl Monk verdwijnt houdt een klasse die nergens meer op slaat. De DM
+// krijgt de namen te zien en kan het daarna alsnog doordrukken (`toch`) — het
+// is zijn wereld, maar niet per ongeluk.
+router.post('/progression/houder/verwijderen', requireDM, (req, res) => {
+  const b = req.body || {};
+  const soort = String(b.soort || '');
+  const naam  = String(b.naam || '').trim();
+  const bron  = String(b.bron || '').trim();
+  if (!['class', 'subclass', 'species', 'background'].includes(soort))
+    return res.status(400).json({ error: 'Onbekende soort' });
+  if (!naam) return res.status(400).json({ error: 'Naam is verplicht' });
+
+  const prog = _progHuidig();
+  const bak = soort === 'species' ? prog.species
+    : soort === 'background' ? prog.backgrounds
+    : soort === 'class' ? prog.classes
+    : prog.classes?.[bron]?.subclasses;
+  const houder = bak?.[naam];
+  if (!houder) return res.status(404).json({ error: `${naam} staat er niet in` });
+
+  // Wie heeft dit? Een profiel draagt zijn klasse, subclass en background als
+  // tekst; een personagekaartje draagt klasse en ras los daarvan.
+  const gelijk = (v) => String(v || '').trim().toLowerCase() === naam.toLowerCase();
+  const gebruik = [];
+  const entities = storage.readJSON('entities.json') || {};
+  // Een profiel hangt aan het personagekaartje met hetzelfde id; de naam staat
+  // daar, niet in dm-state.
+  const naamVan = new Map((entities.personages || []).map(e => [e.id, e.name || e.id]));
+  const dmState = storage.readJSON('dm-state.json') || {};
+  for (const [id, p] of Object.entries(dmState.playerProfiles || {})) {
+    const velden = soort === 'class' ? [p.klasse, p.multiKlasse]
+      : soort === 'subclass' ? [p.subclass]
+      : soort === 'background' ? [p.background]
+      : [p.origin, p.species];
+    if (velden.some(gelijk)) gebruik.push(naamVan.get(id) || id);
+  }
+  for (const e of (entities.personages || [])) {
+    const velden = soort === 'class' ? [e.data?.klasse] : soort === 'species' ? [e.data?.ras] : [];
+    if (velden.some(gelijk)) gebruik.push(e.name || e.id);
+  }
+  if (gebruik.length && !b.toch) {
+    return res.status(409).json({ error: `${naam} is in gebruik`, gebruik: [...new Set(gebruik)] });
+  }
+
+  const telFeatures = (h) => Object.values(h?.levels || {}).reduce((t, a) => t + (a || []).length, 0);
+  const geteld = {
+    features: telFeatures(houder),
+    subclasses: soort === 'class' ? Object.keys(houder.subclasses || {}).length : 0,
+  };
+  if (soort === 'class') {
+    for (const sub of Object.values(houder.subclasses || {})) geteld.features += telFeatures(sub);
+  }
+  delete bak[naam];
+
+  // De afbeelding van het kaartje hangt niet in de progressie maar in het
+  // heldenboek. Blijft die staan, dan krijgt de volgende met dezelfde naam een
+  // plaat die hij nooit koos.
+  const meta = storage.readJSON('meta.json') || {};
+  const hbBak = { class: 'klassen', subclass: 'subclassen', species: 'species', background: 'backgrounds' }[soort];
+  const subs = soort === 'class' ? Object.keys(houder.subclasses || {}) : [];
+  let metaGewijzigd = false;
+  if (meta.heldenboek?.[hbBak]?.[naam]) { delete meta.heldenboek[hbBak][naam]; metaGewijzigd = true; }
+  for (const sub of subs) {
+    if (meta.heldenboek?.subclassen?.[sub]) { delete meta.heldenboek.subclassen[sub]; metaGewijzigd = true; }
+  }
+  if (metaGewijzigd) storage.writeJSON('meta.json', meta);
+
+  storage.writeJSON('progression.json', { ...prog, bron: prog.bron || 'Aangepast door de DM' });
+  req.app.get('io').to(_campagneRoom(req)).emit('progression:updated', {});
+  if (metaGewijzigd) req.app.get('io').to(_campagneRoom(req)).emit('meta:updated');
+  res.json({ ok: true, ...geteld });
+});
+
 // Reset naar de meegeleverde seed (verwijder de campagne-override).
 router.delete('/progression', requireDM, (req, res) => {
   storage.writeJSON('progression.json', {});

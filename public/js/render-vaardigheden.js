@@ -843,8 +843,8 @@ function _mcTrainingTekst(mc) {
   for (const k of mc.keuzeTraining || []) {
     const alleenSkills = k.waaruit.every(w => w.startsWith('Skill: '));
     const lijst = k.waaruit.map(kaal);
-    delen.push(alleenSkills && lijst.length >= 18
-      ? `Choose any ${k.aantal}`
+    delen.push(alleenSkills
+      ? (lijst.length >= 18 ? `Choose any ${k.aantal} skill` : `Choose ${k.aantal} skill: ${lijst.join(', ')}`)
       : `Choose ${k.aantal}: ${lijst.join(', ')}`);
   }
   return delen.join(' · ');
@@ -1783,6 +1783,10 @@ function _uitlegVenster(soort, naam, bron) {
       </div>
       <div class="dm-feature-row" style="margin-top:8px">
         <button class="dm-btn dm-btn-primary" onclick="window.vaardigheden.bewaarUitleg('${esc(soort)}','${veilig}','${veiligB}')">${icon('save')} Bewaren</button>
+        <!-- Weghalen staat waar bewerken staat, net als bij een feature. Het
+             zat nergens, dus een class die je per ongeluk aanmaakte bleef
+             staan tot je de hele progressie reset. -->
+        <button class="dm-btn dm-btn-danger" onclick="window.vaardigheden.verwijderHouder('${esc(soort)}','${veilig}','${veiligB}')">${icon('trash')} Verwijderen</button>
       </div>
       <p class="dm-hint">Je bewerkt de ${esc(soortLabel)} zelf. De features eronder hebben hun eigen kaartje.</p>
     </div>`, 'hulp_heldenboek_kaart');
@@ -2542,6 +2546,38 @@ window.vaardigheden = {
       _all = null; await _load(); await _klasseExtra();
       _bandHerteken(); _refreshFilterBar(); _paint();
     } catch (e) { alert('Bewaren mislukt: ' + e.message); }
+  },
+  // Een class, subclass, species of background weghalen — met alles wat eronder
+  // hangt. Wat dat is telt de client zelf uit wat hij al heeft, zodat je vóór
+  // de klik leest hoeveel je kwijtraakt in plaats van erna.
+  async verwijderHouder(soort, naam, bron) {
+    const h = _houderVan(soort, naam, bron);
+    const tel = (x) => Object.values(x?.levels || {}).reduce((t, a) => t + (a || []).length, 0);
+    const subs = soort === 'class' ? Object.keys(h?.subclasses || {}) : [];
+    let features = tel(h);
+    for (const sub of subs) features += tel(h.subclasses[sub]);
+    const erbij = [
+      subs.length ? `${subs.length} subclass${subs.length === 1 ? '' : 'es'}` : '',
+      features ? `${features} feature${features === 1 ? '' : 's'}` : '',
+    ].filter(Boolean).join(' en ');
+    if (!confirm(`"${naam}" verwijderen uit deze campagne?` + (erbij ? `\n\nDaar gaat ${erbij} mee weg.` : ''))) return;
+
+    const stuur = (toch) => api.post('/progression/houder/verwijderen', { soort, naam, bron, toch });
+    try {
+      try { await stuur(false); }
+      catch (e) {
+        // In gebruik: de server noemt bij wie. Dat is geen fout maar een vraag.
+        const wie = e?.data?.gebruik;
+        if (!wie?.length) throw e;
+        if (!confirm(`${naam} staat nog bij ${wie.join(', ')}.\n\nToch verwijderen? Dan houden zij een ${soort} die nergens meer op slaat.`)) return;
+        await stuur(true);
+      }
+      window.app.closeModal();
+      // Je keek naar het kaartje dat net weg is: terug naar de laag erboven.
+      _filters.bron = '';
+      _all = null; await _load();
+      _bandHerteken(); _refreshFilterBar(); _paint();
+    } catch (e) { alert('Verwijderen mislukt: ' + (e.message || e)); }
   },
   // Een beeld bij één class. Staat los van de vier deurkaarten: dit is het
   // portret van de Barbarian, niet van "Classes".
