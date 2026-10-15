@@ -146,6 +146,23 @@ describe('Eigen class, species of background', () => {
     assert.equal(r.status, 404);
   });
 
+  // Een eigen class heeft geen icoon in de app — die kent alleen de namen die
+  // ze meebrengt. Wat voor soort class het is, is wél in te vullen, en dáár
+  // hangt het icoon aan.
+  it('onthoudt of een class martial, half-caster of caster is', async () => {
+    await req(server, 'POST', '/api/progression/houder', { soort: 'class', naam: 'Veenzanger' }, dm);
+    const r = await req(server, 'PUT', '/api/progression/houder',
+      { soort: 'class', naam: 'Veenzanger', basis: { aard: 'caster', hitDie: 'd6' } }, dm);
+    assert.equal(r.status, 200, JSON.stringify(r.body));
+    assert.equal(prog().classes.Veenzanger.basis.aard, 'caster');
+
+    await req(server, 'PUT', '/api/progression/houder',
+      { soort: 'class', naam: 'Veenzanger', basis: { aard: 'onzin', hitDie: 'd6' } }, dm);
+    // Niets geldigs ingevuld, dus er blijft geen afwijking over en `basis`
+    // valt helemaal weg — net als bij een leeggemaakt tekstveld.
+    assert.equal(prog().classes.Veenzanger.basis, undefined, 'alleen de drie die bestaan');
+  });
+
   // ── En weer weg ───────────────────────────────────────────────────────────
   // Aanmaken kon, weghalen niet: een class die je per ongeluk begon bleef staan
   // tot je de hele progressie reset.

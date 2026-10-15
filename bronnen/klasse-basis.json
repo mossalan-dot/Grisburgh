@@ -4,6 +4,7 @@
   "_nb": "De Artificer staat niet in de SRD. Zijn hit die en castende ability kwamen uit de speltabellen; de rest is op 14 okt 2026 ingevuld door de DM van Grisburgh, uit Tasha’s Cauldron of Everything, en daarna hierheen gehaald zodat elke campagne hem meekrijgt. Schrijfwijze gelijkgetrokken met de andere twaalf: de categorieën met een hoofdletter, niet de hele zin uit het boek. Alles staat in het Engels, net als op het kaartje: een hit die en een armor training zijn speltermen, geen Nederlandse woorden.",
   "klassen": {
     "Barbarian": {
+      "aard": "martial",
       "hitDie": 12,
       "castAbility": null,
       "featLevels": [
@@ -32,6 +33,7 @@
       "primary": "Strength"
     },
     "Bard": {
+      "aard": "caster",
       "hitDie": 8,
       "castAbility": "cha",
       "featLevels": [
@@ -53,6 +55,7 @@
       "primary": "Charisma"
     },
     "Cleric": {
+      "aard": "caster",
       "hitDie": 8,
       "castAbility": "wis",
       "featLevels": [
@@ -80,6 +83,7 @@
       "primary": "Wisdom"
     },
     "Druid": {
+      "aard": "caster",
       "hitDie": 8,
       "castAbility": "wis",
       "featLevels": [
@@ -110,6 +114,7 @@
       "primary": "Wisdom"
     },
     "Fighter": {
+      "aard": "martial",
       "hitDie": 10,
       "castAbility": null,
       "featLevels": [
@@ -143,6 +148,7 @@
       "primary": "Strength or Dexterity"
     },
     "Monk": {
+      "aard": "martial",
       "hitDie": 8,
       "castAbility": null,
       "featLevels": [
@@ -171,6 +177,7 @@
       "primary": "Dexterity and Wisdom"
     },
     "Paladin": {
+      "aard": "half",
       "hitDie": 10,
       "castAbility": "cha",
       "featLevels": [
@@ -199,6 +206,7 @@
       "primary": "Strength and Charisma"
     },
     "Ranger": {
+      "aard": "half",
       "hitDie": 10,
       "castAbility": "wis",
       "featLevels": [
@@ -229,6 +237,7 @@
       "primary": "Dexterity and Wisdom"
     },
     "Rogue": {
+      "aard": "martial",
       "hitDie": 8,
       "castAbility": null,
       "featLevels": [
@@ -263,6 +272,7 @@
       "primary": "Dexterity"
     },
     "Sorcerer": {
+      "aard": "caster",
       "hitDie": 6,
       "castAbility": "cha",
       "featLevels": [
@@ -291,6 +301,7 @@
       "primary": "Charisma"
     },
     "Warlock": {
+      "aard": "caster",
       "hitDie": 8,
       "castAbility": "cha",
       "featLevels": [
@@ -320,6 +331,7 @@
       "primary": "Charisma"
     },
     "Wizard": {
+      "aard": "caster",
       "hitDie": 6,
       "castAbility": "int",
       "featLevels": [
@@ -348,6 +360,7 @@
       "primary": "Intelligence"
     },
     "Artificer": {
+      "aard": "half",
       "hitDie": 8,
       "castAbility": "int",
       "featLevels": [
@@ -377,6 +390,7 @@
       "primary": "Intelligence"
     },
     "Blood Hunter": {
+      "aard": "martial",
       "hitDie": 10,
       "featLevels": [
         4,
@@ -406,6 +420,7 @@
       "primary": "Intelligence"
     },
     "Illrigger": {
+      "aard": "martial",
       "hitDie": 10,
       "featLevels": [
         4,
@@ -430,5 +445,6 @@
         "Stealth"
       ]
     }
-  }
+  },
+  "_aard": "`aard` zegt of een class zijn werk doet met wapens (`martial`), met spreuken (`caster`) of met allebei (`half`). Dat staat in geen enkele tabel — het is hoe spelers en DM's over classes praten, en het is wat een eigen class een icoon geeft zonder dat er voor elke verzonnen naam een icoon in de app hoeft te staan."
 }

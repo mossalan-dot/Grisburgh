@@ -60,6 +60,15 @@ const KLASSE_ICOON = {
   Sorcerer: 'flame',       Warlock: 'eye',       Wizard: 'book-open',
   Artificer: 'hammer',
 };
+// Waar een class zijn werk mee doet. Dat staat in geen tabel, maar het is wel
+// hoe er over classes gepraat wordt — en het lost op dat elke zelfverzonnen
+// class een zwaard kreeg: de app kan geen icoon hebben voor een naam die ze
+// nog nooit zag, maar wel voor "dit is een caster".
+const AARD = {
+  martial: { label: 'Martial',     icoon: 'swords' },
+  half:    { label: 'Half-Caster', icoon: 'zap' },
+  caster:  { label: 'Full Caster', icoon: 'sparkles' },
+};
 const SPECIES_ICOON = {
   Human: 'user',        Elf: 'sparkle',       Dwarf: 'pickaxe',
   Halfling: 'house',    Dragonborn: 'flame',  Gnome: 'flask-conical',
@@ -67,10 +76,17 @@ const SPECIES_ICOON = {
   Aasimar: 'sparkles',  Aarakocra: 'wind',    Tabaxi: 'paw-print',
   'Half-Elf': 'users',
 };
+// Het icoon van een class: het zijne als we hem kennen, anders dat van zijn
+// aard, en pas als ook die ontbreekt het zwaard. Vijf plekken vroegen hier
+// hetzelfde en deden het alle vijf zelf.
+function _klasseIcoon(naam, terugval = 'sword') {
+  return KLASSE_ICOON[naam] || AARD[_basisVan(naam).aard]?.icoon || terugval;
+}
+
 // Het icoon van één regel: klasse of species als we die kennen, anders het
 // icoon van de soort.
 function _itemIcoon(it) {
-  if (it.soort === 'class' || it.soort === 'subclass') return KLASSE_ICOON[it.bron] || SOORTEN[it.soort].icon;
+  if (it.soort === 'class' || it.soort === 'subclass') return _klasseIcoon(it.bron, SOORTEN[it.soort].icon);
   if (it.soort === 'species') return SPECIES_ICOON[it.bron] || SOORTEN.species.icon;
   return SOORTEN[it.soort]?.icon || 'hexagon';
 }
@@ -853,6 +869,7 @@ function _mcTrainingTekst(mc) {
 function _klasseRijen(klasse) {
   const basis = _basisVan(klasse);
   return [
+    AARD[basis.aard] ? ['Class Type', AARD[basis.aard].label] : null,
     basis.primary ? ['Primary Ability', basis.primary] : null,
     basis.hitDie ? ['Hit Point Die', `d${basis.hitDie} per ${klasse} level`] : null,
     basis.saves?.length
@@ -889,7 +906,7 @@ function _klasseKaartHtml(klasse) {
   const heeftSpreuken = basis.castAbility && (_spreukAantal?.get(klasse) || 0);
   return _flipKaartHtml({
     soort: 'class', naam: klasse, kleur: sig?.kleur || '#8a6d3f',
-    icoon: KLASSE_ICOON[klasse] || 'sword', kop: 'Core Traits', rijen,
+    icoon: _klasseIcoon(klasse), kop: 'Core Traits', rijen,
     extra: heeftSpreuken ? `
       <button class="vk-naar-spreuken" onclick="event.stopPropagation();window.vaardigheden.naarSpreuken('${esc(klasse).replace(/'/g, "\\'")}')">
         ${icon('book-open')} Spreukenlijst</button>` : '',
@@ -1119,7 +1136,7 @@ function _bannerHtml(d, { klein = false } = {}) {
 function _tegelsHtml(d) {
   const rijen = _bandBronnen(d);
   if (!rijen.length) return `<p class="spreuk-empty">Hier staat nog niets in.</p>`;
-  const icoonVan = (naam) => d.id === 'class' ? (KLASSE_ICOON[naam] || 'sword')
+  const icoonVan = (naam) => d.id === 'class' ? _klasseIcoon(naam)
     : d.id === 'species' ? (SPECIES_ICOON[naam] || 'user') : 'scroll-text';
   // Geen plustegel meer tussen de keuzes, en geen plusknop onder de
   // subclasses: er staat er één in de kopbalk naast de hulpknop, en die weet
@@ -1501,7 +1518,7 @@ function _featKoppelingHtml(it) {
   const k = _klassenVoorFeat(it);
   if (!k) return '';
   const chips = (lijst) => lijst.sort().map(n =>
-    `<button class="vk-feat" onclick="window.vaardigheden.naarKlasse('${esc(n).replace(/'/g, "\\'")}')">${icon(KLASSE_ICOON[n] || 'sword')} ${esc(n)}</button>`).join('');
+    `<button class="vk-feat" onclick="window.vaardigheden.naarKlasse('${esc(n).replace(/'/g, "\\'")}')">${icon(_klasseIcoon(n))} ${esc(n)}</button>`).join('');
   const rij = (label, uitleg, lijst) => lijst.length ? `
     <div class="vk-featrij">
       <div class="vk-featrij-kop">${esc(label)} <span>${esc(uitleg)}</span></div>
@@ -1712,8 +1729,17 @@ function _basisVeldenHtml(klasse) {
       <summary>${icon('dice')} Core Traits</summary>
       <div class="dm-uitklap-body">
         <p class="dm-hint" style="margin-top:0">Wat op het kaartje staat, en wat de app gebruikt om Hit Dice te
-        rollen en spreukenslots af te leiden. Leeg laten betekent: neem wat de app zelf weet.</p>
+        rollen en spreukenslots af te leiden. Leeg laten betekent: neem wat de app zelf weet.
+        <strong>Class Type</strong> bepaalt ook het icoontje van een eigen class.</p>
         <div class="vd-basis-raster">
+          <div class="vd-basis-veld">
+            <label class="dm-form-label" for="vd-basis-aard">Class Type</label>
+            <select class="dm-input" id="vd-basis-aard">
+              <option value=""${b.aard ? '' : ' selected'}>—</option>
+              ${Object.entries(AARD).map(([k, v]) =>
+                `<option value="${k}"${b.aard === k ? ' selected' : ''}>${esc(v.label)}</option>`).join('')}
+            </select>
+          </div>
           ${veld('vd-basis-primary', 'Primary Ability', b.primary || '', 'Strength')}
           ${veld('vd-basis-hitdie', 'Hit Point Die', b.hitDie ? 'd' + b.hitDie : '', 'd8')}
           ${veld('vd-basis-saves', 'Saving Throws', lijst(b.saves), 'str, con')}
@@ -2044,7 +2070,7 @@ function _editorHtml() {
           ${klassen.map(k => `
             <label class="vd-klasse${aan.has(k) ? ' is-aan' : ''}">
               <input type="checkbox" class="vd-klasse-vink" value="${esc(k)}"${aan.has(k) ? ' checked' : ''}>
-              ${icon(KLASSE_ICOON[k] || 'sword')} ${esc(k)}
+              ${icon(_klasseIcoon(k))} ${esc(k)}
             </label>`).join('')}
         </div>
       </div>
@@ -2520,6 +2546,7 @@ window.vaardigheden = {
     // schrijf je nu eenmaal met een d ervoor.
     const v = (id) => document.getElementById(id)?.value?.trim() || '';
     const basis = document.getElementById('vd-basis-primary') ? {
+      aard:        v('vd-basis-aard'),
       primary:     v('vd-basis-primary'),
       hitDie:      v('vd-basis-hitdie').replace(/^d/i, ''),
       saves:       v('vd-basis-saves'),

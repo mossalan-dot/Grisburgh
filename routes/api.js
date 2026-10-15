@@ -9445,6 +9445,9 @@ router.put('/progression/houder', requireDM, (req, res) => {
     const lijst = (v, max = 12) => String(v || '').split(',').map(x => x.trim()).filter(Boolean).slice(0, max);
     const ab = (v) => ['str', 'dex', 'con', 'int', 'wis', 'cha'].includes(String(v)) ? String(v) : '';
     const basis = {};
+    // Martial, half-caster of full caster. Niet alleen een regel op het
+    // kaartje: het is ook wat een eigen class zijn icoon geeft.
+    if (['martial', 'half', 'caster'].includes(String(inv.aard))) basis.aard = String(inv.aard);
     const hd = parseInt(inv.hitDie, 10);
     if ([4, 6, 8, 10, 12, 20].includes(hd)) basis.hitDie = hd;
     if (String(inv.primary || '').trim())   basis.primary = String(inv.primary).trim().slice(0, 40);
