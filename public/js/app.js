@@ -15394,7 +15394,17 @@ const HELP_CONFIG = {
       },
       {
         titel: 'Invoegen zonder tekens te typen',
-        tekst: 'Onder **Invoegen** staat alles wat je in een akte kwijt kunt: een sectie, een lijst, een tabel, een voorleesblok, een gevecht, een tabel om te rollen, een vondst, een kamer, muziek, een brief. Elk item heeft een sneltoets (**Alt** + de letter erachter). *Kaartje* en *Beeld* staan los, want die gebruik je in bijna elke alinea; een kaartje kan ook met `[[` — dan zoekt de app mee.',
+        tekst: 'Onder **Invoegen** staat alles wat je in een akte kwijt kunt: een sectie, een lijst, een tabel, een voorleesblok, een gevecht, een tabel om te rollen, een vondst, een kamer, een geluid, muziek, een brief, een missie. Elk item heeft een sneltoets (**Alt** + de letter erachter). *Kaartje* en *Beeld* staan los, want die gebruik je in bijna elke alinea; een kaartje kan ook met `[[` — dan zoekt de app mee.',
+        afbeelding: null,
+      },
+      {
+        titel: 'Een missie verzetten vanuit je tekst',
+        tekst: 'Het blok **Missie** zet een missie op het bord op de plek in het verhaal waar het gebeurt. Zonder meer wordt hij **Beschikbaar** — hier horen ze ervan. Wil je iets anders, zet dat er met een punt achter: `De verdwenen klok · voltooid`. Dat mag ook *in uitvoering*, *mislukt* of *verborgen*. Het geldt voor de party die vanavond speelt, en één klik terug zet hem weer waar hij stond.',
+        afbeelding: null,
+      },
+      {
+        titel: 'Geluid',
+        tekst: 'Een **geluid** voeg je net zo in als een beeld en het staat er ook zo: `![[…]]`. Tijdens het spelen staat er *Laat horen* bij — dan hoort de hele party het, niet alleen jij. Zet je **loop** of **herhaal** in het bijschrift, dan blijft het doorlopen; dat is dezelfde afspraak als bij een muziekblok.',
         afbeelding: null,
       },
       {

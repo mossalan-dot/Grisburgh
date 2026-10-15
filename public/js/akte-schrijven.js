@@ -42,7 +42,34 @@ export const REGIE_BLOKKEN = {
   // beproeving, de terugkeer in de stad. Dan wil je 'm daar kunnen geven en
   // niet eerst naar het rustpaneel.
   levelup:   { label: 'Level omhoog', icon: 'sparkles',    hint: 'Zet voor de hele party een level-up klaar' },
+  // Een missie hoort bij een plek in het verhaal: hier krijgen ze hem, hier
+  // ronden ze hem af. Dat stond los in het missiebord, terwijl je het in je
+  // hoofdstuk opschrijft.
+  quest:     { label: 'Missie',    icon: 'pin',            hint: 'Een missie op het bord zetten of verderzetten — "Naam · voltooid"' },
 };
+
+// De kolommen van het missiebord, zoals je ze opschrijft. "Beschikbaar" is wat
+// de party ziet liggen; dat is ook wat een blok zonder status doet.
+const QUEST_STATUS = {
+  verborgen:        { key: 'verborgen',     label: 'Verborgen' },
+  beschikbaar:      { key: 'actief',        label: 'Beschikbaar' },
+  actief:           { key: 'actief',        label: 'Beschikbaar' },
+  aangevraagd:      { key: 'aangevraagd',   label: 'Aangevraagd' },
+  'in uitvoering':  { key: 'in-uitvoering', label: 'In uitvoering' },
+  'in-uitvoering':  { key: 'in-uitvoering', label: 'In uitvoering' },
+  voltooid:         { key: 'voltooid',      label: 'Voltooid' },
+  mislukt:          { key: 'mislukt',       label: 'Mislukt' },
+};
+// `Naam · status` uit elkaar halen. Staat er geen status, dan is het
+// "Beschikbaar": dat is wat je in een akte het vaakst bedoelt — hier horen ze
+// ervan.
+function _questUitKop(kop) {
+  const delen = String(kop || '').split(/\s*[·:|]\s*|\s+[-–]\s+/);
+  const laatste = (delen[delen.length - 1] || '').trim().toLowerCase();
+  const status = QUEST_STATUS[laatste];
+  const naam = (status && delen.length > 1 ? delen.slice(0, -1).join(' · ') : String(kop || '')).trim();
+  return { naam, status: status || QUEST_STATUS.beschikbaar, genoemd: !!status };
+}
 
 // ── Staat ────────────────────────────────────────────────────────────────────
 let _ch       = null;     // aktesleutel
@@ -253,7 +280,14 @@ function _embedHtml(ruw) {
   const isId = /^[A-Za-z0-9_-]{8,}$/.test(naam) && !/\.[a-z0-9]{2,4}$/i.test(naam);
   if (isId) {
     if (isAudio) {
-      return `<figure class="akte-embed akte-embed--audio"><audio controls src="/api/files/${esc(naam)}"></audio>
+      // Een beeld heeft *Toon aan spelers*; een geluid hoorde dat ook te
+      // hebben. Zonder die knop was de speler zelf de enige die het hoorde:
+      // de DM, met een koptelefoon, in zijn eigen browser.
+      const knop = _acties
+        ? `<button class="dm-btn dm-btn-primary dm-btn-sm akte-beeld-knop"
+             onclick="window.akteSchrijven.laatHoren('${esc(naam)}', this, '${esc(bijschrift).replace(/'/g, "\\'")}')">${icon('volume-2')} Laat horen</button>`
+        : '';
+      return `<figure class="akte-embed akte-embed--audio"><audio controls src="/api/files/${esc(naam)}"></audio>${knop}
         ${bijschrift ? `<figcaption class="akte-embed-bijschrift">${esc(bijschrift)}</figcaption>` : ''}</figure>`;
     }
     // In de speelstand is een beeld iets dat je **toont**: dezelfde weg als de
@@ -455,6 +489,12 @@ function _blokActie(soort, kop, body) {
   if (soort === 'rust')      return knop('startRust', 'Rust starten', 'moon');
   if (soort === 'levelup')   return knop('geefLevelUp', 'Klaarzetten', 'sparkles');
   if (soort === 'kamer')     return knop('onthulKamer', 'Onthullen', 'eye');
+  if (soort === 'quest') {
+    // De knop zegt waar hij hem heen zet: "Naar Voltooid" is wat je doet, en
+    // zonder status is het "Beschikbaar maken".
+    const q = _questUitKop(kop);
+    return knop('zetQuest', q.genoemd ? `Naar ${q.status.label}` : 'Beschikbaar maken', 'pin');
+  }
   if (soort === 'muziek')    return knop('startMuziek', 'Afspelen', 'play');
   if (soort === 'brief') {
     const tekst = esc(body.join('\n').replace(/'/g, "\\'").replace(/\n/g, '\\n'));
@@ -735,7 +775,8 @@ const INVOEG_MENU = [
   ]},
   { groep: 'Verwijzen', items: [
     { id: 'kaartje',   label: 'Kaartje',       icon: 'user',        toets: 'K', hint: 'Verwijs naar een kaartje — [[Naam]]' },
-    { id: 'beeld',     label: 'Beeld',         icon: 'image',       toets: 'B', hint: 'Een afbeelding of geluid uit de bibliotheek' },
+    { id: 'beeld',     label: 'Beeld',         icon: 'image',       toets: 'B', hint: 'Een afbeelding uit de bibliotheek' },
+    { id: 'geluid',    label: 'Geluid',        icon: 'volume-2',    toets: 'Z', hint: 'Een geluid dat je hier laat horen' },
     { id: 'kaart',     label: 'Plattegrond',   icon: 'castle',      toets: 'P', hint: 'Een dungeonkaart om te openen' },
     { id: 'kamer',     label: 'Kamer',         icon: 'door-open',   toets: 'A', hint: 'Eén kamer onthullen' },
   ]},
@@ -747,6 +788,7 @@ const INVOEG_MENU = [
     { id: 'muziek',    label: 'Muziek',        icon: 'music',       toets: 'M', hint: 'Een nummer of afspeellijst' },
     { id: 'rust',      label: 'Rust',          icon: 'moon',        toets: 'E', hint: 'Lange of korte rust' },
     { id: 'levelup',   label: 'Level omhoog',  icon: 'sparkles',    toets: 'O', hint: 'Zet voor de hele party een level-up klaar' },
+    { id: 'quest',     label: 'Missie',        icon: 'pin',         toets: 'I', hint: 'Een missie op het bord zetten of verderzetten' },
   ]},
 ];
 const _INVOEG_OP_TOETS = {};
@@ -905,13 +947,16 @@ function _teken() {
   if (_voorbeeld || _split) _tekenVoorbeeld();
 }
 
+// De status die de server bij deze missie meestuurt, voor deze party.
+function _questStatus(q) { return String(q?.status || 'verborgen'); }
+
 // Een blok verwijst met een **naam**, want dat is wat je schrijft. Namen zijn
 // niet uniek en niet exact; vandaar dezelfde losse vergelijking als elders:
 // gelijk, anders "begint met", anders "bevat".
 function _vindOpNaam(lijst, naam) {
   const n = String(naam || '').trim().toLowerCase();
   if (!n) return null;
-  const naamVan = (x) => String(x.name || x.naam || '').toLowerCase();
+  const naamVan = (x) => String(x.name || x.naam || x.title || '').toLowerCase();
   // Je schrijft "vier twig blights", de bibliotheek kent "Twig Blight". Dus
   // ook zonder meervoud-s en zonder -en proberen; een zin buigt nu eenmaal.
   const vormen = [n, n.replace(/s$/, ''), n.replace(/en$/, '')].filter((v, i, a) => v && a.indexOf(v) === i);
@@ -1021,6 +1066,7 @@ window.akteSchrijven = {
     if (id === 'kop')      return _voegIn('## ', { marker: true });
     if (id === 'kaartje')  return this.kaartje();
     if (id === 'beeld')    return this.afbeelding();
+    if (id === 'geluid')   return this.geluid();
     if (id === 'lijst')    return _voegIn('- ', { marker: true });
     if (id === 'lijst-nr') return _voegIn('1. ', { marker: true });
     if (id === 'citaat')   return _voegIn('> ', { marker: true });
@@ -1141,6 +1187,30 @@ window.akteSchrijven = {
       return _kiezer('Dungeonkaart invoegen', rijen, (r) => _voegIn(_blokTekst('kaart', r.naam), { blok: true }),
         'Nog geen dungeonkaarten.');
     }
+    if (soort === 'quest') {
+      const lijst = await api.listQuests(window._activeGroupId || null).catch(() => []);
+      const rijen = (lijst || []).map(q => ({ naam: q.title || 'Missie', icoon: 'pin' }));
+      // Zonder status erachter betekent het blok "Beschikbaar". Wil je er een
+      // afronding van maken, dan zet je er ` · voltooid` achter — dat staat in
+      // de hint en in het bijstelvenster.
+      return _kiezer('Missie invoegen', rijen, (r) => _voegIn(_blokTekst('quest', r.naam), { blok: true }),
+        'Nog geen missies op het bord.');
+    }
+  },
+
+  // Een geluid uit de bibliotheek. Zelfde schrijfwijze als een beeld
+  // (`![[fileId|bijschrift]]`), want het is hetzelfde: een bestand uit de
+  // bibliotheek op een plek in je tekst. Staat er "loop" of "herhaal" in het
+  // bijschrift, dan blijft hij doorlopen — dezelfde afspraak als bij muziek.
+  geluid() {
+    if (!window.mediaPicker?.open) { alert('Mediabibliotheek niet beschikbaar'); return; }
+    window.mediaPicker.open({
+      type: 'audio',
+      onSelect: (fileId) => {
+        const bij = (prompt('Wat is dit voor geluid? (zet er "loop" bij als het moet blijven doorlopen)') || '').trim();
+        _voegIn(`![[${fileId}${bij ? '|' + bij.replace(/[\]|]/g, '') : ''}]]`, { blok: true });
+      },
+    });
   },
 
   // Een beeld-slot vullen: kies een bestand en elke verwijzing met die naam
@@ -1469,6 +1539,50 @@ window.akteSchrijven = {
     catch (e) { alert('Onthullen mislukt: ' + e.message); }
   },
 
+  // Een missie op het bord verzetten. Hetzelfde als hem daar verslepen, maar
+  // op de plek in het verhaal waar het gebeurt. De vorige kolom onthouden we,
+  // zodat een misklik één klik terug is — net als bij een onthuld kaartje.
+  async zetQuest(kop, btn) {
+    const { naam, status } = _questUitKop(kop);
+    let lijst = [];
+    try { lijst = await api.listQuests(window._activeGroupId || null); } catch {}
+    const q = _vindOpNaam(lijst, naam);
+    if (!q) return _geenTreffer(btn, `Geen missie "${naam}" gevonden`);
+    if (_questStatus(q) === status.key) return _melding(btn, `"${q.title}" staat al op ${status.label}.`);
+    const vorige = _questStatus(q);
+    try {
+      await api.updateQuest(q.id, { status: status.key, groepId: window._activeGroupId || undefined });
+      btn.innerHTML = `${icon('check')} ${status.label}`;
+      btn.classList.add('is-klaar');
+      btn.setAttribute('onclick', `window.akteSchrijven.questTerug('${esc(q.id)}','${esc(vorige)}','${esc(kop).replace(/'/g, "\\'")}', this)`);
+      btn.title = `Terug naar ${QUEST_STATUS[vorige]?.label || vorige}`;
+    } catch (e) { _melding(btn, 'Verzetten mislukt: ' + e.message); }
+  },
+
+  async questTerug(id, vorige, kop, btn) {
+    const { status, genoemd } = _questUitKop(kop);
+    try {
+      await api.updateQuest(id, { status: vorige, groepId: window._activeGroupId || undefined });
+      btn.innerHTML = `${icon('pin')} ${genoemd ? `Naar ${status.label}` : 'Beschikbaar maken'}`;
+      btn.classList.remove('is-klaar');
+      btn.setAttribute('onclick', `window.akteSchrijven.zetQuest('${esc(kop).replace(/'/g, "\\'")}', this)`);
+      btn.title = '';
+    } catch (e) { _melding(btn, 'Terugdraaien mislukt: ' + e.message); }
+  },
+
+  // Een geluid laten horen aan iedereen. Zelfde weg als het oogje in de
+  // Geluiden-tab en de regie-balk: één `sound:reveal` naar de hele campagne.
+  async laatHoren(fileId, btn, label = '') {
+    btn.disabled = true;
+    try {
+      await api.revealSound({ fileId, label: label.replace(/\s*\((loop|herhaal)\)\s*/i, '').trim(),
+                              loop: /loop|herhaal/i.test(label) });
+      btn.innerHTML = `${icon('check')} Klinkt`;
+      btn.classList.add('is-klaar');
+      btn.disabled = false;
+    } catch (e) { btn.disabled = false; _melding(btn, 'Afspelen mislukt: ' + e.message); }
+  },
+
   async openKaart(naam, btn) {
     let kaarten = [];
     try { kaarten = await api.listDungeons(); } catch {}
@@ -1505,7 +1619,7 @@ window.akteSchrijven = {
   // gebeurt is één regel vervangen — de rest blijft letterlijk staan.
   blokBewerk(soort, kop, regel = null) {
     const blok = REGIE_BLOKKEN[soort] || {};
-    const metKiezer = ['gevecht', 'tabel', 'buit', 'kaart', 'kamer'].includes(soort);
+    const metKiezer = ['gevecht', 'tabel', 'buit', 'kaart', 'kamer', 'quest'].includes(soort);
     window.app.openModal(`${blok.label || soort} bijstellen`, '', `
       <div class="dm-feature-section" style="margin:0">
         <div class="dm-form-row">
@@ -1547,6 +1661,11 @@ window.akteSchrijven = {
       const lijst = (await api.lootEvents().catch(() => ({})))?.events || [];
       return _kiezer('Vondst kiezen', lijst.map(v => ({ naam: v.naam || 'Vondst', icoon: 'vault' })),
         (r) => { window.app.openModal('Buit bijstellen', '', bewaarModal); vul(r.naam); });
+    }
+    if (soort === 'quest') {
+      const lijst = await api.listQuests(window._activeGroupId || null).catch(() => []);
+      return _kiezer('Missie kiezen', (lijst || []).map(q => ({ naam: q.title || 'Missie', icoon: 'pin' })),
+        (r) => { window.app.openModal('Missie bijstellen', '', bewaarModal); vul(r.naam); });
     }
     const kaarten = await api.listDungeons().catch(() => []);
     if (soort === 'kaart') {
@@ -1654,6 +1773,10 @@ window.akteSchrijven = {
   // verzegelde envelop.
   async stuurBrief(onderwerp, tekst, btn) {
     if (!String(tekst || '').trim()) return _melding(btn, 'Dit blok heeft geen brieftekst — schrijf hem onder de kop.');
+    // De enige handeling die iets de deur uit stuurt en niet terug te draaien
+    // is. Een gevecht kun je afbreken en een onthulling terugzetten; een brief
+    // ligt bij de spelers zodra je klikt.
+    if (!confirm(`"${onderwerp || 'Een brief'}" nu versturen naar de party?`)) return;
     const gid = window._activeGroupId;
     try {
       await api.sendPost({
