@@ -669,7 +669,10 @@ function _syncVoorbeeld() {
   while (i + 1 < stukken.length && stukken[i + 1].regel <= pos.regel) i++;
   const hier = stukken[i], na = stukken[i + 1];
   const tops = _regelTops();
-  let y = hier.el.offsetTop;
+  // `offsetTop` telt vanaf de bovenkant van de inhoud, dus inclusief de marge
+  // van de kolom; die eraf, anders schuift het eerste stuk er half uit.
+  const marge = parseFloat(getComputedStyle(host).paddingTop) || 0;
+  let y = hier.el.offsetTop - marge;
   if (na) {
     // Hoe ver de bovenste regel tussen dit stuk en het volgende ligt, in
     // dezelfde verhouding op het voorbeeld toegepast.
