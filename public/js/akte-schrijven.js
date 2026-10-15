@@ -371,62 +371,70 @@ function _prozaHtml(md) {
 // Alles wat geen callout is: eerst de blokvormen (tabel, lijst, embed), de rest
 // naar `mdToHtml`.// Alles wat geen callout is: eerst de blokvormen (tabel, lijst, embed), de rest
 // naar `mdToHtml`. Die kent de wikilinks en de opmaak van de rest van de app.
-function _gewoonHtml(regels) {
+function _gewoonHtml(regels, offset = 0) {
   const uit = [];
-  let buffer = [];
-  const leeg = () => { if (buffer.join('').trim()) uit.push(_prozaHtml(buffer.join('\n'))); buffer = []; };
+  let buffer = [], bufBegin = 0;
+  // Elk stuk draagt de bronregel waar het begint. Daar loopt het voorbeeld op
+  // mee met het tekstvak, en daarop springt een klik in het voorbeeld terug
+  // naar de juiste plek in de tekst.
+  const anker = (html, regel) => html.replace(/^\s*<([a-z][a-z0-9]*)/i, (m, tag) => `<${tag} data-akteregel="${offset + regel}"`);
+  const leeg = () => { if (buffer.join('').trim()) uit.push(anker(_prozaHtml(buffer.join('\n')), bufBegin)); buffer = []; };
   for (let i = 0; i < regels.length; i++) {
     const r = regels[i];
+    // Een witregel sluit de alinea af. Dat deed `mdToHtml` ook al (hij maakt er
+    // twee <p>'s van), maar dan hing er één anker aan een half hoofdstuk.
+    if (!r.trim()) { leeg(); continue; }
     // Koppen zelf tekenen: `mdToHtml` gaat tot drie hekjes, en juist de
     // diepere niveaus dragen hier de scènes (`###### Madame Ursula`).
     const kop = r.match(/^(#{1,6})\s+(.*)$/);
     if (kop) {
       leeg();
       const n = kop[1].length;
-      uit.push(`<h${n} class="akte-kop akte-kop--n${n}">${window.app.mdToHtml(kop[2]).replace(/<\/?p>/g, '')}</h${n}>`);
+      uit.push(anker(`<h${n} class="akte-kop akte-kop--n${n}">${window.app.mdToHtml(kop[2]).replace(/<\/?p>/g, '')}</h${n}>`, i));
       continue;
     }
     const embed = r.match(/^\s*!\[\[([^\]]+?)\]\]\s*$/);
-    if (embed) { leeg(); uit.push(_embedHtml(embed[1])); continue; }
+    if (embed) { leeg(); uit.push(anker(_embedHtml(embed[1]), i)); continue; }
     if (/^\s*\|.*\|\s*$/.test(r) && /^\s*\|[\s:|-]+\|\s*$/.test(regels[i + 1] || '')) {
       leeg();
-      const tabel = [];
+      const tabel = [], i0 = i;
       while (i < regels.length && /^\s*\|.*\|\s*$/.test(regels[i])) tabel.push(regels[i++]);
       i--;
-      uit.push(_tabelHtml(tabel));
+      uit.push(anker(_tabelHtml(tabel), i0));
       continue;
     }
     if (/^\s*[-*]\s+/.test(r)) {
       leeg();
-      const items = [];
+      const items = [], i0 = i;
       while (i < regels.length && /^\s*[-*]\s+/.test(regels[i])) items.push(regels[i++].replace(/^\s*[-*]\s+/, ''));
       i--;
-      uit.push(`<ul class="akte-lijst">${items.map(it => `<li>${_prozaHtml(it).replace(/<\/?p>/g, '')}</li>`).join('')}</ul>`);
+      uit.push(anker(`<ul class="akte-lijst">${items.map(it => `<li>${_prozaHtml(it).replace(/<\/?p>/g, '')}</li>`).join('')}</ul>`, i0));
       continue;
     }
     // Genummerd: een reeks die op volgorde gebeurt ("1. De wacht draait zich om").
     if (/^\s*\d+[.)]\s+/.test(r)) {
       leeg();
-      const items = [];
+      const items = [], i0 = i;
       while (i < regels.length && /^\s*\d+[.)]\s+/.test(regels[i])) items.push(regels[i++].replace(/^\s*\d+[.)]\s+/, ''));
       i--;
-      uit.push(`<ol class="akte-lijst akte-lijst--nr">${items.map(it => `<li>${_prozaHtml(it).replace(/<\/?p>/g, '')}</li>`).join('')}</ol>`);
+      uit.push(anker(`<ol class="akte-lijst akte-lijst--nr">${items.map(it => `<li>${_prozaHtml(it).replace(/<\/?p>/g, '')}</li>`).join('')}</ol>`, i0));
       continue;
     }
     // Een citaat zonder `[!soort]`: gewoon aangehaalde tekst — een spreuk in
     // een boek, een regel uit een lied. Geen knop, wel een streep ernaast.
     if (/^\s*>\s?/.test(r) && !/^\s*>\s*\[!/.test(r)) {
       leeg();
-      const items = [];
+      const items = [], i0 = i;
       while (i < regels.length && /^\s*>\s?/.test(regels[i]) && !/^\s*>\s*\[!/.test(regels[i])) {
         items.push(regels[i++].replace(/^\s*>\s?/, ''));
       }
       i--;
-      uit.push(`<blockquote class="akte-citaat">${_prozaHtml(items.join('\n'))}</blockquote>`);
+      uit.push(anker(`<blockquote class="akte-citaat">${_prozaHtml(items.join('\n'))}</blockquote>`, i0));
       continue;
     }
     // `---` op een eigen regel: een sprong in tijd of plaats binnen een scène.
-    if (/^\s*-{3,}\s*$/.test(r)) { leeg(); uit.push('<hr class="akte-breuk">'); continue; }
+    if (/^\s*-{3,}\s*$/.test(r)) { leeg(); uit.push(anker('<hr class="akte-breuk">', i)); continue; }
+    if (!buffer.length) bufBegin = i;
     buffer.push(r);
   }
   leeg();
@@ -479,25 +487,31 @@ export function regieNaarHtml(md, { acties } = {}) {
       const soort = m[1].toLowerCase();
       const kop   = m[2].trim();
       const body  = [];
+      // De regel waar dit blok staat. Twee blokken van dezelfde soort zonder
+      // kop ("> [!voorlezen]") waren uit elkaar niet te houden: het potlood
+      // bewerkte dan altijd de eerste. Een regelnummer is wél uniek.
+      const blokRegel = i;
+      const bodyBegin = i + 1;
       i++;
       while (i < regels.length && /^>\s?/.test(regels[i])) { body.push(regels[i].replace(/^>\s?/, '')); i++; }
       const blok = REGIE_BLOKKEN[soort];
-      uit.push(`<div class="regie-blok regie-blok--${esc(soort)}">
+      uit.push(`<div class="regie-blok regie-blok--${esc(soort)}" data-akteregel="${blokRegel}">
         <div class="regie-blok-kop">
           ${icon(blok?.icon || 'hexagon')} ${esc(kop || blok?.label || soort)}
           ${_acties ? _blokActie(soort, kop, body) : ''}
           ${_potloden ? `<button class="akte-act akte-act--blokpen" title="Dit blok bijstellen"
-            onclick="window.akteSchrijven.blokBewerk('${soort}','${esc(kop).replace(/'/g, "\\'")}')">${icon('pencil')}</button>` : ''}
+            onclick="window.akteSchrijven.blokBewerk('${soort}','${esc(kop).replace(/'/g, "\\'")}',${blokRegel})">${icon('pencil')}</button>` : ''}
         </div>
-        ${body.length ? `<div class="regie-blok-body">${_gewoonHtml(body)}</div>` : ''}
+        ${body.length ? `<div class="regie-blok-body">${_gewoonHtml(body, bodyBegin)}</div>` : ''}
         <div class="regie-blok-uitslag" hidden></div>
       </div>`);
       continue;
     }
     // Gewone regels tot de volgende callout.
     const blokRegels = [];
+    const vanaf = i;
     while (i < regels.length && !/^>\s*\[!/.test(regels[i])) { blokRegels.push(regels[i]); i++; }
-    const html = _gewoonHtml(blokRegels);
+    const html = _gewoonHtml(blokRegels, vanaf);
     if (html.trim()) uit.push(html);
   }
   return uit.join('\n');
@@ -582,10 +596,117 @@ function _sectieVerplaats(van, naar, secties) {
   if (_voorbeeld || _split) _tekenVoorbeeld();
 }
 
+// ── Meelopen ─────────────────────────────────────────────────────────────────
+// Naast elkaar stond het voorbeeld stil: je schreef onderaan en keek naar de
+// eerste alinea. Een tekstvak wil niet zeggen op welke pixel een bronregel
+// staat — zachte afbrekingen tellen mee, dus "regel x regelhoogte" klopt niet
+// zodra er een alinea omloopt.
+//
+// Dus meten we het in een onzichtbare kopie met dezelfde breedte, hetzelfde
+// lettertype en dezelfde marges: een span per bronregel, en `offsetTop` zegt
+// waar hij staat. Die kopie wordt alleen opnieuw opgebouwd als de tekst of de
+// breedte verandert.
+let _spiegelCache = { tekst: null, breedte: 0, tops: [] };
+function _regelTops() {
+  const ta = _ta();
+  if (!ta) return [];
+  const tekst = ta.value, breedte = ta.clientWidth;
+  if (_spiegelCache.tekst === tekst && _spiegelCache.breedte === breedte) return _spiegelCache.tops;
+  let sp = document.getElementById('akte-schrijf-spiegel');
+  if (!sp) {
+    sp = document.createElement('div');
+    sp.id = 'akte-schrijf-spiegel';
+    sp.className = 'akte-schrijf-spiegel';
+    document.body.appendChild(sp);
+  }
+  const st = getComputedStyle(ta);
+  for (const k of ['fontFamily', 'fontSize', 'fontWeight', 'fontStyle', 'lineHeight', 'letterSpacing',
+                   'paddingTop', 'paddingRight', 'paddingBottom', 'paddingLeft', 'textIndent',
+                   'wordSpacing', 'wordBreak', 'overflowWrap', 'tabSize']) {
+    sp.style[k] = st[k];
+  }
+  sp.style.width = breedte + 'px';
+  sp.textContent = '';
+  for (const regel of tekst.split('\n')) {
+    const el = document.createElement('span');
+    // Een lege regel heeft geen hoogte zonder iets erin; een zero-width spatie
+    // geeft hem er een zonder dat hij breder wordt.
+    el.textContent = regel || '\u200b';
+    sp.appendChild(el);
+    sp.appendChild(document.createTextNode('\n'));
+  }
+  const tops = [...sp.querySelectorAll('span')].map(el => el.offsetTop);
+  _spiegelCache = { tekst, breedte, tops };
+  return tops;
+}
+
+// De bronregel die bovenaan in beeld staat, en hoe ver je er doorheen bent.
+function _regelBovenaan() {
+  const ta = _ta();
+  const tops = _regelTops();
+  if (!ta || !tops.length) return null;
+  const y = ta.scrollTop;
+  let i = 0;
+  while (i + 1 < tops.length && tops[i + 1] <= y) i++;
+  const volgende = tops[i + 1] ?? (tops[i] + 20);
+  const deel = volgende > tops[i] ? (y - tops[i]) / (volgende - tops[i]) : 0;
+  return { regel: i, deel: Math.max(0, Math.min(1, deel)) };
+}
+
+// Het voorbeeld op dezelfde plek zetten. We zoeken het laatste stuk dat op of
+// voor die bronregel begint, en schuiven evenredig door naar het volgende —
+// anders springt het bij elke alinea.
+function _syncVoorbeeld() {
+  if (!_split) return;
+  const host = document.getElementById('akte-schrijf-voorbeeld');
+  const pos = _regelBovenaan();
+  if (!host || !pos) return;
+  const stukken = [...host.querySelectorAll('[data-akteregel]')]
+    .map(el => ({ el, regel: +el.dataset.akteregel }))
+    .filter(x => Number.isFinite(x.regel));
+  if (!stukken.length) return;
+  let i = 0;
+  while (i + 1 < stukken.length && stukken[i + 1].regel <= pos.regel) i++;
+  const hier = stukken[i], na = stukken[i + 1];
+  const tops = _regelTops();
+  let y = hier.el.offsetTop;
+  if (na) {
+    // Hoe ver de bovenste regel tussen dit stuk en het volgende ligt, in
+    // dezelfde verhouding op het voorbeeld toegepast.
+    const vanY = tops[hier.regel] ?? 0, totY = tops[na.regel] ?? vanY;
+    const nu = (tops[pos.regel] ?? vanY) + pos.deel * ((tops[pos.regel + 1] ?? tops[pos.regel] ?? vanY) - (tops[pos.regel] ?? vanY));
+    const f = totY > vanY ? Math.max(0, Math.min(1, (nu - vanY) / (totY - vanY))) : 0;
+    y += f * (na.el.offsetTop - hier.el.offsetTop);
+  }
+  host.scrollTop = Math.max(0, y);
+}
+
+// Waar de cursor staat krijgt een randje in het voorbeeld. Scrollen laat zien
+// waar je bent; dit laat zien welke alinea je onder handen hebt.
+function _merkCursor() {
+  if (!_split) return;
+  const ta = _ta();
+  const host = document.getElementById('akte-schrijf-voorbeeld');
+  if (!ta || !host) return;
+  const regel = ta.value.slice(0, ta.selectionStart).split('\n').length - 1;
+  let gekozen = null;
+  for (const el of host.querySelectorAll('[data-akteregel]')) {
+    if (+el.dataset.akteregel <= regel) gekozen = el; else break;
+  }
+  host.querySelectorAll('.is-hier').forEach(el => el.classList.remove('is-hier'));
+  gekozen?.classList.add('is-hier');
+}
+
 function _tekenVoorbeeld() {
   const host = document.getElementById('akte-schrijf-voorbeeld');
   if (!host) return;
-  host.innerHTML = regieNaarHtml(_ta()?.value ?? _tekst) || '<p class="dm-hint">Nog niets geschreven.</p>';
+  // In de **Spelen**-stand horen de knoppen erbij: dat is wat de knop belooft
+  // ("de akte zoals je hem speelt") en wat het boekje zegt. Naast elkaar
+  // schrijf je, en dan zijn het alleen de potloden.
+  host.innerHTML = regieNaarHtml(_ta()?.value ?? _tekst, _voorbeeld ? { acties: true } : undefined)
+    || '<p class="dm-hint">Nog niets geschreven.</p>';
+  _merkCursor();
+  _syncVoorbeeld();
 }
 
 // ── Invoegen ─────────────────────────────────────────────────────────────────
@@ -727,6 +848,12 @@ function _teken() {
       // die kant rendert een heel hoofdstuk.
       if (_split) { clearTimeout(_splitTimer); _splitTimer = setTimeout(_tekenVoorbeeld, 400); }
     });
+    // Meelopen: scrollen schuift het voorbeeld mee, en de cursor (klik, pijl,
+    // typen) markeert waar je bent. `selectionchange` vangt die alle drie.
+    ta.addEventListener('scroll', _syncVoorbeeld);
+    document.addEventListener('selectionchange', () => {
+      if (document.activeElement === ta) _merkCursor();
+    });
     ta.addEventListener('keydown', (e) => {
       window._fmtKey?.(e, 'akte-schrijf-ta');
       // Alt + letter: invoegen zonder je handen van het toetsenbord te halen.
@@ -755,6 +882,16 @@ function _teken() {
           _merkVuil();
         }
       }
+    });
+  }
+  // En terug: een klik in het voorbeeld zet de cursor op diezelfde regel in de
+  // tekst. Niet op een knop of een link — daar klik je ergens anders voor.
+  const vb = document.getElementById('akte-schrijf-voorbeeld');
+  if (vb && !_voorbeeld) {
+    vb.addEventListener('click', (e) => {
+      if (e.target.closest('button, a, input, select, textarea, audio')) return;
+      const el = e.target.closest('[data-akteregel]');
+      if (el) window.akteSchrijven.naarSectie(+el.dataset.akteregel);
     });
   }
   _tekenSecties();
@@ -800,12 +937,16 @@ function _rolTabel(tabel) {
 
 // Eén regel in de tekst vervangen (of het hele blok weghalen). Wat er niet
 // gevonden wordt, blijft onaangeroerd — nooit gokken in andermans hoofdstuk.
-function _blokRegelVervang(soort, kop, nieuweRegel) {
+function _blokRegelVervang(soort, kop, nieuweRegel, regel = null) {
   const ta = _ta();
   const tekst = ta?.value ?? _tekst;
   const regels = tekst.split('\n');
   const zoek = `> [!${soort}]${kop ? ' ' + kop : ''}`;
-  const i = regels.findIndex(r => r.trim() === zoek.trim());
+  // Het regelnummer komt uit het blok zelf en is het enige wat twee gelijke
+  // blokken uit elkaar houdt. Klopt het niet meer (de tekst is intussen
+  // veranderd), dan alsnog zoeken op wat er staat.
+  const opRegel = Number.isInteger(regel) && String(regels[regel] || '').trim() === zoek.trim();
+  const i = opRegel ? regel : regels.findIndex(r => r.trim() === zoek.trim());
   if (i < 0) { alert('Dit blok staat niet meer zo in de tekst — hij is intussen aangepast.'); return; }
   if (nieuweRegel === null) {
     // Het blok is de kopregel plus alles wat er met `>` onder hangt.
@@ -856,10 +997,14 @@ window.akteSchrijven = {
     const pos = ta.value.split('\n').slice(0, regel).join('\n').length + (regel ? 1 : 0);
     ta.focus();
     ta.setSelectionRange(pos, pos);
-    // De cursor staat er, maar de regel kan buiten beeld liggen: ruw meten op
-    // regelhoogte is nauwkeurig genoeg om hem bovenaan te zetten.
+    // Waar die regel echt staat vraagt hij aan de spiegel: regel x regelhoogte
+    // klopt niet zodra er een alinea omloopt, en in een hoofdstuk lopen ze
+    // allemaal om.
+    const tops = _regelTops();
     const rh = parseFloat(getComputedStyle(ta).lineHeight) || 20;
-    ta.scrollTop = Math.max(0, regel * rh - rh * 2);
+    ta.scrollTop = Math.max(0, (tops[regel] ?? regel * rh) - rh * 2);
+    _merkCursor();
+    _syncVoorbeeld();
   },
 
   // Eén ingang: de menu-items, de losse knoppen en de sneltoetsen komen hier
@@ -1351,7 +1496,7 @@ window.akteSchrijven = {
   // Het potlood op een regieblok. Je verandert de kop (en daarmee waar het
   // blok naar wijst) zonder in de tekst te hoeven zoeken. Wat er in de tekst
   // gebeurt is één regel vervangen — de rest blijft letterlijk staan.
-  blokBewerk(soort, kop) {
+  blokBewerk(soort, kop, regel = null) {
     const blok = REGIE_BLOKKEN[soort] || {};
     const metKiezer = ['gevecht', 'tabel', 'buit', 'kaart', 'kamer'].includes(soort);
     window.app.openModal(`${blok.label || soort} bijstellen`, '', `
@@ -1368,10 +1513,10 @@ window.akteSchrijven = {
         <p class="dm-hint">${esc(blok.hint || '')}</p>
       </div>
       <div class="dm-feature-row" style="justify-content:flex-end">
-        <button class="dm-btn dm-btn-danger" onclick="window.akteSchrijven.blokWeg('${soort}','${esc(kop).replace(/'/g, "\\'")}')">
+        <button class="dm-btn dm-btn-danger" onclick="window.akteSchrijven.blokWeg('${soort}','${esc(kop).replace(/'/g, "\\'")}',${Number.isInteger(regel) ? regel : 'null'})">
           ${icon('trash')} Blok verwijderen</button>
         <button class="dm-btn dm-btn-ghost" onclick="window.app.closeModal()">Annuleren</button>
-        <button class="dm-btn dm-btn-primary" onclick="window.akteSchrijven.blokBewaar('${soort}','${esc(kop).replace(/'/g, "\\'")}')">
+        <button class="dm-btn dm-btn-primary" onclick="window.akteSchrijven.blokBewaar('${soort}','${esc(kop).replace(/'/g, "\\'")}',${Number.isInteger(regel) ? regel : 'null'})">
           ${icon('save')} Opslaan</button>
       </div>`);
   },
@@ -1406,15 +1551,15 @@ window.akteSchrijven = {
     return _kiezer('Kamer kiezen', rijen, (r) => { window.app.openModal('Kamer bijstellen', '', bewaarModal); vul(r.naam); });
   },
 
-  blokBewaar(soort, oudeKop) {
+  blokBewaar(soort, oudeKop, regel = null) {
     const nieuw = document.getElementById('blok-kop')?.value.trim() ?? '';
-    _blokRegelVervang(soort, oudeKop, `> [!${soort}]${nieuw ? ' ' + nieuw : ''}`);
+    _blokRegelVervang(soort, oudeKop, `> [!${soort}]${nieuw ? ' ' + nieuw : ''}`, regel);
     window.app.closeModal();
   },
 
-  blokWeg(soort, kop) {
+  blokWeg(soort, kop, regel = null) {
     if (!confirm('Dit blok uit de tekst halen?')) return;
-    _blokRegelVervang(soort, kop, null);
+    _blokRegelVervang(soort, kop, null, regel);
     window.app.closeModal();
   },
 
@@ -1562,6 +1707,8 @@ window.akteSchrijven = {
     if (!_bewaard) await _bewaar();
     document.body.classList.remove('akte-schrijf-open');
     document.getElementById('akte-schrijf-overlay')?.remove();
+    document.getElementById('akte-schrijf-spiegel')?.remove();
+    _spiegelCache = { tekst: null, breedte: 0, tops: [] };
     _ch = null;
     window._logboekVerversen?.();
   },

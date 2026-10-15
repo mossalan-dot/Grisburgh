@@ -15399,7 +15399,7 @@ const HELP_CONFIG = {
       },
       {
         titel: 'Tekst en beeld, en Spelen',
-        tekst: '**Tekst en beeld** zet je tekst links en het perkament rechts, zodat je ziet wat je maakt. **Spelen** toont alleen het perkament, met de knoppen erbij: onthullen bij een naam, *Toon aan spelers* bij een beeld, *Start gevecht* bij een gevechtsblok. Diezelfde weergave krijg je tijdens het spelen in de lade onderin.',
+        tekst: '**Tekst en beeld** zet je tekst links en het perkament rechts, zodat je ziet wat je maakt. Het perkament **loopt mee**: scroll je in de tekst, dan schuift het mee, en de alinea waar je cursor staat krijgt een streepje in de kantlijn. Klik je in het perkament, dan springt de cursor naar diezelfde regel in de tekst. **Spelen** toont alleen het perkament, met de knoppen erbij: onthullen bij een naam, *Toon aan spelers* bij een beeld, *Start gevecht* bij een gevechtsblok. Die knoppen doen het écht — het is dezelfde weergave als de lade onderin tijdens het spelen.',
         afbeelding: null,
       },
       {
