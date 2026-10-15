@@ -672,7 +672,11 @@ function _syncVoorbeeld() {
   // `offsetTop` telt vanaf de bovenkant van de inhoud, dus inclusief de marge
   // van de kolom; die eraf, anders schuift het eerste stuk er half uit.
   const marge = parseFloat(getComputedStyle(host).paddingTop) || 0;
-  let y = hier.el.offsetTop - marge;
+  // Bovenaan is bovenaan: een kop draagt zijn eigen witruimte mee en zou het
+  // perkament anders twintig pixels te laag zetten.
+  const ta = _ta();
+  if (ta && ta.scrollTop <= 0) { host.scrollTop = 0; return; }
+  let y = hier.el.offsetTop - marge - (parseFloat(getComputedStyle(hier.el).marginTop) || 0);
   if (na) {
     // Hoe ver de bovenste regel tussen dit stuk en het volgende ligt, in
     // dezelfde verhouding op het voorbeeld toegepast.
