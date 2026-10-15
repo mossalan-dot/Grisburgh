@@ -58,7 +58,7 @@ const KLASSE_ICOON = {
   Druid: 'tree-pine',      Fighter: 'swords',    Monk: 'hand',
   Paladin: 'shield-plus',  Ranger: 'bow-arrow',  Rogue: 'stiletto',
   Sorcerer: 'flame',       Warlock: 'eye',       Wizard: 'book-open',
-  Artificer: 'hammer',
+  Artificer: 'hammer',     'Blood Hunter': 'droplet', Illrigger: 'chess-knight',
 };
 // Waar een class zijn werk mee doet. Dat staat in geen tabel, maar het is wel
 // hoe er over classes gepraat wordt — en het lost op dat elke zelfverzonnen
@@ -1023,7 +1023,7 @@ function _achtergrondKaartHtml(naam) {
 //
 // Nu zijn het **vier deuren**, en achter elke deur ligt precies één laag:
 //
-//   Classes   → de twaalf classes → die class + haar subclasses + features
+//   Classes   → alle classes → die class + haar subclasses + features
 //   Species   → de species        → dat species + zijn traits
 //   Backgrounds → de backgrounds  → die background + wat ze geeft
 //   Feats & Epic Boons            → meteen de lijst; die hebben geen tweede laag

@@ -9433,7 +9433,7 @@ router.put('/progression/houder', requireDM, (req, res) => {
   zet('herkomst', b.herkomst, 40);
 
   // De kerngegevens van een class: hit die, saving throws, skills, trainingen.
-  // Die staan in `bronnen/klasse-basis.json` voor de twaalf die we meeleveren,
+  // Die staan in `bronnen/klasse-basis.json` voor de vijftien die we meeleveren,
   // en dat bestand is van de app — niet van deze campagne. Een eigen class had
   // er dus geen, en de Artificer heeft er bewust maar de helft van.
   //

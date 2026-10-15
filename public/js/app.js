@@ -9,7 +9,7 @@ import { renderBestiarium } from './render-bestiarium.js?v=31';
 import { renderSpreuken } from './render-spreuken.js?v=47';
 import './render-handleiding.js?v=2';
 import './render-melding.js?v=4';
-import { renderVaardigheden, zoekVaardigheden, heldenboekTekst } from './render-vaardigheden.js?v=61';
+import { renderVaardigheden, zoekVaardigheden, heldenboekTekst } from './render-vaardigheden.js?v=62';
 import { renderStatblock } from './render-statblock.js?v=9';
 import { initSocket } from "./socket-client.js?v=85";
 import { initDmPanel } from "./dm-panel.js?v=405";
@@ -15420,7 +15420,7 @@ const HELP_CONFIG = {
       },
       {
         titel: 'Vier deuren, dan één laag',
-        tekst: 'Je begint met vier keuzes: **Classes**, **Species**, **Backgrounds** en **Feats & Epic Boons**. Achter een deur staan de twaalf classes (of de species, of de backgrounds); kies er een en je krijgt het kaartje met hit die, saving throws, proficiencies en skills, daaronder de **subclasses** als kaartjes, en daaronder pas de losse features. Zo hoef je nooit door vijfhonderd regels te kijken om te zien wat een Wizard is.',
+        tekst: 'Je begint met vier keuzes: **Classes**, **Species**, **Backgrounds** en **Feats & Epic Boons**. Achter een deur staan alle classes (of de species, of de backgrounds); kies er een en je krijgt het kaartje met hit die, saving throws, proficiencies en skills, daaronder de **subclasses** als kaartjes, en daaronder pas de losse features. Zo hoef je nooit door vijfhonderd regels te kijken om te zien wat een Wizard is.',
         afbeelding: null,
       },
       {
