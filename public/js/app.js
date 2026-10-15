@@ -15404,7 +15404,7 @@ const HELP_CONFIG = {
       },
       {
         titel: 'Geluid',
-        tekst: 'Een **geluid** voeg je net zo in als een beeld en het staat er ook zo: `![[…]]`. Tijdens het spelen staat er *Laat horen* bij — dan hoort de hele party het, niet alleen jij. Zet je **loop** of **herhaal** in het bijschrift, dan blijft het doorlopen; dat is dezelfde afspraak als bij een muziekblok.',
+        tekst: 'Het blok **Geluid** haalt een geluid bij naam uit je mediabibliotheek en laat het tijdens het spelen aan de hele party horen — niet alleen aan jou in je eigen browser. Zet je **loop** of **herhaal** achter de naam, dan blijft het doorlopen; dat is dezelfde afspraak als bij een muziekblok. *Muziek* is voor Spotify, *Geluid* voor je eigen bestanden.',
         afbeelding: null,
       },
       {

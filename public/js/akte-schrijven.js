@@ -46,7 +46,25 @@ export const REGIE_BLOKKEN = {
   // ronden ze hem af. Dat stond los in het missiebord, terwijl je het in je
   // hoofdstuk opschrijft.
   quest:     { label: 'Missie',    icon: 'pin',            hint: 'Een missie op het bord zetten of verderzetten — "Naam · voltooid"' },
+  // Muziek is Spotify; dit is de bibliotheek van de campagne zelf — een
+  // donderslag, een lied, het gekraak van een deur.
+  geluid:    { label: 'Geluid',    icon: 'volume-2',       hint: 'Een geluid uit de bibliotheek — zet "loop" erachter om te blijven herhalen' },
 };
+
+// ── De mediabibliotheek ──────────────────────────────────────────────────────
+// Een geluid noem je bij zijn naam, net als een gevecht of een tabel. Daarvoor
+// moet de lijst er zijn; hij wordt een keer opgehaald en daarna onthouden.
+// Hij doet nog iets: in de tekst staat een bestand als `![[fileId]]` — zonder
+// extensie, dus aan de naam is niet te zien of het een plaat of een geluid is.
+// Het was daardoor altijd een plaat, en een geluid dus een kapot beeld.
+let _media = null;
+function _mediaLaden() {
+  if (_media) return Promise.resolve(_media);
+  return api.listMedia().then(r => (_media = r?.files || [])).catch(() => (_media = []));
+}
+function _mediaType(id) {
+  return (_media || []).find(m => m.id === id)?.type || '';
+}
 
 // De kolommen van het missiebord, zoals je ze opschrijft. "Beschikbaar" is wat
 // de party ziet liggen; dat is ook wat een blok zonder status doet.
@@ -276,18 +294,14 @@ function _embedHtml(ruw) {
   const pijp = String(ruw).indexOf('|');
   const bijschrift = pijp >= 0 ? String(ruw).slice(pijp + 1).trim() : '';
   const naam = (pijp >= 0 ? String(ruw).slice(0, pijp) : String(ruw)).trim();
-  const isAudio = _AUDIO.test(naam);
+  const isAudio = _AUDIO.test(naam) || _mediaType(naam) === 'audio';
   const isId = /^[A-Za-z0-9_-]{8,}$/.test(naam) && !/\.[a-z0-9]{2,4}$/i.test(naam);
   if (isId) {
     if (isAudio) {
-      // Een beeld heeft *Toon aan spelers*; een geluid hoorde dat ook te
-      // hebben. Zonder die knop was de speler zelf de enige die het hoorde:
-      // de DM, met een koptelefoon, in zijn eigen browser.
-      const knop = _acties
-        ? `<button class="dm-btn dm-btn-primary dm-btn-sm akte-beeld-knop"
-             onclick="window.akteSchrijven.laatHoren('${esc(naam)}', this, '${esc(bijschrift).replace(/'/g, "\\'")}')">${icon('volume-2')} Laat horen</button>`
-        : '';
-      return `<figure class="akte-embed akte-embed--audio"><audio controls src="/api/files/${esc(naam)}"></audio>${knop}
+      // Hier staat geen knop: een geluid dat de hele party moet horen gaat via
+      // het **Geluid**-blok, dat het bij naam uit de bibliotheek haalt. Dit is
+      // het bestand zelf, om het zelf even terug te luisteren.
+      return `<figure class="akte-embed akte-embed--audio"><audio controls src="/api/files/${esc(naam)}"></audio>
         ${bijschrift ? `<figcaption class="akte-embed-bijschrift">${esc(bijschrift)}</figcaption>` : ''}</figure>`;
     }
     // In de speelstand is een beeld iets dat je **toont**: dezelfde weg als de
@@ -489,6 +503,7 @@ function _blokActie(soort, kop, body) {
   if (soort === 'rust')      return knop('startRust', 'Rust starten', 'moon');
   if (soort === 'levelup')   return knop('geefLevelUp', 'Klaarzetten', 'sparkles');
   if (soort === 'kamer')     return knop('onthulKamer', 'Onthullen', 'eye');
+  if (soort === 'geluid')    return knop('laatHoren', 'Laat horen', 'volume-2');
   if (soort === 'quest') {
     // De knop zegt waar hij hem heen zet: "Naar Voltooid" is wat je doet, en
     // zonder status is het "Beschikbaar maken".
@@ -776,7 +791,6 @@ const INVOEG_MENU = [
   { groep: 'Verwijzen', items: [
     { id: 'kaartje',   label: 'Kaartje',       icon: 'user',        toets: 'K', hint: 'Verwijs naar een kaartje — [[Naam]]' },
     { id: 'beeld',     label: 'Beeld',         icon: 'image',       toets: 'B', hint: 'Een afbeelding uit de bibliotheek' },
-    { id: 'geluid',    label: 'Geluid',        icon: 'volume-2',    toets: 'Z', hint: 'Een geluid dat je hier laat horen' },
     { id: 'kaart',     label: 'Plattegrond',   icon: 'castle',      toets: 'P', hint: 'Een dungeonkaart om te openen' },
     { id: 'kamer',     label: 'Kamer',         icon: 'door-open',   toets: 'A', hint: 'Eén kamer onthullen' },
   ]},
@@ -789,6 +803,7 @@ const INVOEG_MENU = [
     { id: 'rust',      label: 'Rust',          icon: 'moon',        toets: 'E', hint: 'Lange of korte rust' },
     { id: 'levelup',   label: 'Level omhoog',  icon: 'sparkles',    toets: 'O', hint: 'Zet voor de hele party een level-up klaar' },
     { id: 'quest',     label: 'Missie',        icon: 'pin',         toets: 'I', hint: 'Een missie op het bord zetten of verderzetten' },
+    { id: 'geluid',    label: 'Geluid',        icon: 'volume-2',    toets: 'Z', hint: 'Een geluid uit de bibliotheek, hier laten horen' },
   ]},
 ];
 const _INVOEG_OP_TOETS = {};
@@ -1066,7 +1081,6 @@ window.akteSchrijven = {
     if (id === 'kop')      return _voegIn('## ', { marker: true });
     if (id === 'kaartje')  return this.kaartje();
     if (id === 'beeld')    return this.afbeelding();
-    if (id === 'geluid')   return this.geluid();
     if (id === 'lijst')    return _voegIn('- ', { marker: true });
     if (id === 'lijst-nr') return _voegIn('1. ', { marker: true });
     if (id === 'citaat')   return _voegIn('> ', { marker: true });
@@ -1187,6 +1201,12 @@ window.akteSchrijven = {
       return _kiezer('Dungeonkaart invoegen', rijen, (r) => _voegIn(_blokTekst('kaart', r.naam), { blok: true }),
         'Nog geen dungeonkaarten.');
     }
+    if (soort === 'geluid') {
+      const rijen = (await _mediaLaden()).filter(m => m.type === 'audio')
+        .map(m => ({ naam: m.naam || m.id, icoon: 'volume-2' }));
+      return _kiezer('Geluid invoegen', rijen, (r) => _voegIn(_blokTekst('geluid', r.naam), { blok: true }),
+        'Nog geen geluiden in de bibliotheek.');
+    }
     if (soort === 'quest') {
       const lijst = await api.listQuests(window._activeGroupId || null).catch(() => []);
       const rijen = (lijst || []).map(q => ({ naam: q.title || 'Missie', icoon: 'pin' }));
@@ -1196,21 +1216,6 @@ window.akteSchrijven = {
       return _kiezer('Missie invoegen', rijen, (r) => _voegIn(_blokTekst('quest', r.naam), { blok: true }),
         'Nog geen missies op het bord.');
     }
-  },
-
-  // Een geluid uit de bibliotheek. Zelfde schrijfwijze als een beeld
-  // (`![[fileId|bijschrift]]`), want het is hetzelfde: een bestand uit de
-  // bibliotheek op een plek in je tekst. Staat er "loop" of "herhaal" in het
-  // bijschrift, dan blijft hij doorlopen — dezelfde afspraak als bij muziek.
-  geluid() {
-    if (!window.mediaPicker?.open) { alert('Mediabibliotheek niet beschikbaar'); return; }
-    window.mediaPicker.open({
-      type: 'audio',
-      onSelect: (fileId) => {
-        const bij = (prompt('Wat is dit voor geluid? (zet er "loop" bij als het moet blijven doorlopen)') || '').trim();
-        _voegIn(`![[${fileId}${bij ? '|' + bij.replace(/[\]|]/g, '') : ''}]]`, { blok: true });
-      },
-    });
   },
 
   // Een beeld-slot vullen: kies een bestand en elke verwijzing met die naam
@@ -1571,12 +1576,18 @@ window.akteSchrijven = {
   },
 
   // Een geluid laten horen aan iedereen. Zelfde weg als het oogje in de
-  // Geluiden-tab en de regie-balk: één `sound:reveal` naar de hele campagne.
-  async laatHoren(fileId, btn, label = '') {
+  // Geluiden-tab en de regie-balk: een `sound:reveal` naar de hele campagne.
+  // In de kop staat de naam uit de bibliotheek; "loop" of "herhaal" erachter
+  // laat hem doorlopen — dezelfde afspraak als bij een muziekblok.
+  async laatHoren(kop, btn) {
+    const herhaal = /\b(loop|herhaal)\b/i.test(kop);
+    const naam = String(kop || '').replace(/\s*[·:|]?\s*\b(loop|herhaal)\b\s*/i, '').trim();
+    const lijst = (await _mediaLaden()).filter(m => m.type === 'audio');
+    const m = _vindOpNaam(lijst, naam);
+    if (!m) return _geenTreffer(btn, `Geen geluid "${naam}" in de bibliotheek`);
     btn.disabled = true;
     try {
-      await api.revealSound({ fileId, label: label.replace(/\s*\((loop|herhaal)\)\s*/i, '').trim(),
-                              loop: /loop|herhaal/i.test(label) });
+      await api.revealSound({ fileId: m.id, label: m.naam || '', loop: herhaal });
       btn.innerHTML = `${icon('check')} Klinkt`;
       btn.classList.add('is-klaar');
       btn.disabled = false;
@@ -1619,7 +1630,7 @@ window.akteSchrijven = {
   // gebeurt is één regel vervangen — de rest blijft letterlijk staan.
   blokBewerk(soort, kop, regel = null) {
     const blok = REGIE_BLOKKEN[soort] || {};
-    const metKiezer = ['gevecht', 'tabel', 'buit', 'kaart', 'kamer', 'quest'].includes(soort);
+    const metKiezer = ['gevecht', 'tabel', 'buit', 'kaart', 'kamer', 'quest', 'geluid'].includes(soort);
     window.app.openModal(`${blok.label || soort} bijstellen`, '', `
       <div class="dm-feature-section" style="margin:0">
         <div class="dm-form-row">
@@ -1661,6 +1672,11 @@ window.akteSchrijven = {
       const lijst = (await api.lootEvents().catch(() => ({})))?.events || [];
       return _kiezer('Vondst kiezen', lijst.map(v => ({ naam: v.naam || 'Vondst', icoon: 'vault' })),
         (r) => { window.app.openModal('Buit bijstellen', '', bewaarModal); vul(r.naam); });
+    }
+    if (soort === 'geluid') {
+      const lijst = (await _mediaLaden()).filter(m => m.type === 'audio');
+      return _kiezer('Geluid kiezen', lijst.map(m => ({ naam: m.naam || m.id, icoon: 'volume-2' })),
+        (r) => { window.app.openModal('Geluid bijstellen', '', bewaarModal); vul(r.naam); });
     }
     if (soort === 'quest') {
       const lijst = await api.listQuests(window._activeGroupId || null).catch(() => []);
@@ -1849,6 +1865,7 @@ window.akteSchrijven = {
 export function zetAkte(chapterKey, tekst) {
   _ch = chapterKey;
   _tekst = String(tekst || '');
+  _mediaLaden();
 }
 
 // ── Openen ───────────────────────────────────────────────────────────────────
@@ -1874,6 +1891,7 @@ export async function openAkteSchrijven(chapterKey, titel) {
     document.body.appendChild(el);
   }
   document.body.classList.add('akte-schrijf-open');
+  await _mediaLaden();
   _namenZonder = null;
   _teken();
   _ta()?.focus();

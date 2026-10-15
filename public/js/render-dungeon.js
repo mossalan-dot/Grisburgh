@@ -263,7 +263,7 @@ window._dngNaarVerdieping = (mapId, roomId) => {
 // Een kaartje aanmaken vanuit een kameraantekening. Leent de plaatshouder-
 // kiezer van het schrijfscherm: een plaatshouder ontstaat op een plek.
 window._dngMaakKaartje = async (naam) => {
-  await import('./akte-schrijven.js?v=33');
+  await import('./akte-schrijven.js?v=34');
   window.akteSchrijven?.maakPlaceholder?.(naam);
 };
 
