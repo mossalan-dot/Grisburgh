@@ -5334,8 +5334,34 @@ function _maakBronnen() {
       .flat().map(f => f?.name).filter(Boolean),
   }));
   const backgrounds = Object.keys(bgSeed).filter(k => !k.startsWith('_')).sort()
-    .map(naam => ({ naam, ...personageConcept.backgroundDelen(naam) }));
-  return { klassen, species, backgrounds, _basisUitBron: Object.keys(basis).length };
+    .map(naam => ({
+      naam, ...personageConcept.backgroundDelen(naam),
+      opties: personageConcept.uitrustingOpties(naam),
+    }));
+  // De spreuken kaal: naam, niveau, school en voor wie hij is. De teksten
+  // blijven waar ze horen — de wizard laat je kiezen, niet lezen.
+  const alleSpreuken = (bronnen.lees('spells-2024')?.results || []).map(sp => ({
+    index: sp.index, naam: sp.name, niveau: sp.level,
+    school: sp.school?.name || '',
+    klassen: (sp.classes || []).map(c => c.name),
+  }));
+  const kaal = (i) => ({ key: i.key, naam: i.name, prijs: i.prijs, gewicht: i.gewicht,
+                         soort: i.itemType, schade: i.damage || '', eigenschappen: i.weaponProperties || '',
+                         ac: i.armorBaseAC || null, harnasSoort: i.armorType || '' });
+  const meta = storage.readJSON('meta.json');
+  const inst = personageConcept.instellingen(meta);
+  const tafel = inst.trinketTafel
+    ? (storage.readJSON('tables.json').tables || []).find(t => t.id === inst.trinketTafel || t.name === inst.trinketTafel)
+    : null;
+  return {
+    klassen, species, backgrounds,
+    tellers: bronnen.lees('srd-spreukentellers') || {},
+    spreuken: alleSpreuken,
+    wapens: personageConcept.wapensVoor().map(kaal),
+    harnassen: personageConcept.srdItems()
+      .filter(i => i.itemType === 'Armor' || i.itemType === 'Shield').map(kaal),
+    trinketTafel: tafel ? tafel.name : '',
+  };
 }
 
 // Het concept zoals de wizard en de DM het zien: wat erin staat, plus wat
@@ -5343,9 +5369,14 @@ function _maakBronnen() {
 function _conceptAntwoord(c, dmState) {
   const prog = _progHuidig();
   const meta = storage.readJSON('meta.json');
+  const profiel = personageConcept.profielVan(c, { prog });
   return {
     concept: c,
-    profiel: personageConcept.profielVan(c, { prog }),
+    profiel,
+    // Welke spreukniveaus hij al kan: dezelfde afleiding als op het
+    // spelersblad, zodat een level-3 Cleric hier geen niveau-2 spreuk kiest
+    // die hij nog niet kan lanceren.
+    slots: _slotsAfgeleid(profiel),
     nakijk: personageConcept.nakijken(c, { meta, prog }),
     groepNaam: dmState.groups?.[c.groep]?.name || '',
   };
@@ -5418,6 +5449,12 @@ router.patch('/personage-concept/:id', (req, res) => {
   }
   if (Array.isArray(b.skills)) c.skills = b.skills.map(x => tekst(x, 40)).filter(Boolean).slice(0, 12);
   if (Array.isArray(b.worpen)) c.worpen = b.worpen.map(x => parseInt(x) || 0).slice(0, 6);
+  // Fase 2: wat hij kent en wat hij draagt.
+  if (Array.isArray(b.spreuken)) c.spreuken = b.spreuken.map(x => tekst(x, 60)).filter(Boolean).slice(0, 40);
+  if (b.bgOptie !== undefined) c.bgOptie = ['A', 'B'].includes(b.bgOptie) ? b.bgOptie : '';
+  if (b.wapen   !== undefined) c.wapen   = tekst(b.wapen, 60);
+  if (b.harnas  !== undefined) c.harnas  = tekst(b.harnas, 60);
+  if (b.schild  !== undefined) c.schild  = !!b.schild;
   // Terugsturen gaf een reden; zodra hij er weer aan werkt is die van de baan.
   if (c.status === 'terug') { c.status = 'bezig'; }
   c.bijgewerkt = new Date().toISOString();
@@ -5441,6 +5478,29 @@ router.post('/personage-concept/:id/indienen', (req, res) => {
   storage.writeJSON('dm-state.json', dmState);
   _meldVerzoek(req, 'personage', c.naam, `${c.species || ''} ${c.klasse || ''}`.trim());
   res.json(_conceptAntwoord(c, dmState));
+});
+
+// Eén worp op de tafel die de DM aanwees. De app verzint geen trinkets: wat
+// je uit je zak haalt is wat er in zijn eigen tafel staat, en elke campagne
+// heeft andere rommel.
+router.post('/personage-concept/:id/trinket', (req, res) => {
+  const dmState = readDmState();
+  const c = _concepten(dmState)[req.params.id];
+  if (!c) return res.status(404).json({ error: 'Niet gevonden' });
+  if (req.session?.conceptId !== c.id && req.session?.role !== 'dm') {
+    return res.status(403).json({ error: 'Geen toegang' });
+  }
+  const inst = personageConcept.instellingen(storage.readJSON('meta.json'));
+  if (!inst.trinketTafel) return res.status(400).json({ error: 'De DM heeft geen tafel aangewezen' });
+  const tafels = storage.readJSON('tables.json').tables || [];
+  const tafel = tafels.find(t => t.id === inst.trinketTafel || t.name === inst.trinketTafel);
+  if (!tafel) return res.status(404).json({ error: 'Die tafel staat er niet meer' });
+  // Eén keer. Nog eens rollen tot je iets leuks hebt is geen worp meer.
+  if (c.trinket) return res.json({ trinket: c.trinket, alGerold: true });
+  c.trinket = _rolTafelRegel(tafel) || '';
+  c.bijgewerkt = new Date().toISOString();
+  storage.writeJSON('dm-state.json', dmState);
+  res.json({ trinket: c.trinket, tafel: tafel.name });
 });
 
 // Wat er op de DM ligt te wachten.
@@ -5493,6 +5553,42 @@ router.post('/personage-concept/:id/:besluit', requireDM, (req, res) => {
   dmState.playerProfiles[ent.id] = profiel;
   if (!dmState.playerHp) dmState.playerHp = {};
   dmState.playerHp[ent.id] = { current: hp, max: hp };
+
+  // Zijn spreuken, langs dezelfde deur als elke andere spreuk die in een boek
+  // belandt — die dedupliceert en vult de velden aan uit de bron.
+  const alleSpreuken = bronnen.lees('spells-2024')?.results || [];
+  for (const index of (c.spreuken || [])) {
+    const sp = alleSpreuken.find(x => x.index === index);
+    if (sp) _spreukInBoek(dmState, ent.id, sp);
+  }
+
+  // Zijn spullen: wat zijn background gaf, wat hij koos, en wat hij uit zijn
+  // zak haalde. Allemaal als gewone regels in de boedel, zoals alles wat een
+  // speler bij zich draagt.
+  const spullen = [];
+  const bgOpties = c.background ? personageConcept.uitrustingOpties(c.background) : [];
+  const gekozenOptie = bgOpties.find(o => o.sleutel === (c.bgOptie || 'A'));
+  for (const naam of (gekozenOptie?.spullen || [])) spullen.push(naam);
+  for (const sleutel of [c.wapen, c.harnas].filter(Boolean)) {
+    const item = personageConcept.itemOp(sleutel);
+    if (item) spullen.push(item.name);
+  }
+  if (c.schild && !spullen.includes('Shield')) spullen.push('Shield');
+  if (c.trinket) spullen.push(c.trinket);
+  if (spullen.length) {
+    if (!dmState.playerItems) dmState.playerItems = {};
+    dmState.playerItems[ent.id] = spullen.map((naam, i) => ({
+      id: `pi_${Date.now()}_${i}_${Math.random().toString(36).slice(2, 5)}`,
+      name: naam, note: '',
+    }));
+  }
+  // En zijn beurs. De prijzen in de bron staan al in de munt van deze
+  // campagne, dus het goud van zijn background gaat er zo in.
+  const goud = parseInt(gekozenOptie?.goud) || 0;
+  if (goud) {
+    if (!dmState.playerCurrency) dmState.playerCurrency = {};
+    dmState.playerCurrency[ent.id] = { fl: goud, kn: 0, cl: 0 };
+  }
   c.status = 'gegund';
   c.entityId = ent.id;
   c.gegund = new Date().toISOString();

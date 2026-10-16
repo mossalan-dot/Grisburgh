@@ -471,6 +471,7 @@ export const api = {
   conceptMijn:      ()        => request('/personage-concept'),
   conceptBewaar:    (id, data) => request(`/personage-concept/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
   conceptIndienen:  (id)      => request(`/personage-concept/${id}/indienen`, { method: 'POST' }),
+  conceptTrinket:   (id)      => request(`/personage-concept/${id}/trinket`, { method: 'POST' }),
   conceptenOpen:    ()        => request('/personage-concepten'),
   conceptBesluit:   (id, besluit, reden) => request(`/personage-concept/${id}/${besluit}`, { method: 'POST', body: JSON.stringify({ reden: reden || '' }) }),
   savePersonageMaken: (data)  => request('/meta/personage-maken', { method: 'PUT', body: JSON.stringify(data) }),

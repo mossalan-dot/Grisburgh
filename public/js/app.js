@@ -1,4 +1,4 @@
-import { api, campagneUitUrl, zetCampagne } from './api.js?v=315';
+import { api, campagneUitUrl, zetCampagne } from './api.js?v=316';
 import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, renderDocumenten, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=349";
 import { initArchief, renderLogboek, openLogboekEditor } from "./render-archief.js?v=142";
 import { renderKaart, queueFlyTo, verversPins, nieuweKaart } from './render-kaart.js?v=31';
@@ -1567,7 +1567,7 @@ async function _landingNieuwTegel() {
   if (!host || !_groepsWachtwoord || document.getElementById('landing-nieuw')) return;
   let stand = null;
   try {
-    await import('./personage-maken.js?v=2');
+    await import('./personage-maken.js?v=3');
     stand = await window.personageMaken.stand();
   } catch { return; }
   if (stand?.instellingen && stand.instellingen.aan === false) return;
@@ -1589,7 +1589,7 @@ async function _landingNieuwTegel() {
 
 async function _landingNieuw() {
   try {
-    await import('./personage-maken.js?v=2');
+    await import('./personage-maken.js?v=3');
     const stand = await window.personageMaken.stand();
     if (stand?.concept && stand.concept.status !== 'gegund') {
       if (stand.concept.status === 'wacht') {
@@ -15166,7 +15166,8 @@ const HELP_CONFIG = {
     { titel: 'Waarom dit er is', tekst: 'Een speler kon zijn blad altijd al bijwerken, maar het **kaartje** aanmaken kon alleen jij. Een nieuwe speler stond daardoor niet tussen de portretten en kwam nergens binnen — en jij moest midden in een sessie een leeg kaartje maken terwijl de rest wachtte.\n\nNu maakt hij er zelf een. De drempel is het **partywachtwoord**: wie dat heeft zit aan tafel, dezelfde afspraak als bij het inloggen.', afbeelding: null },
     { titel: 'Het bestaat pas als jij het gunt', tekst: 'Wat hij maakt is een **concept** en geen kaartje. Het staat nergens in je wereld: niet in de partylijst, niet in een gevecht, niet op het tafelscherm. Je vindt het op één plek — **Vragen → Nieuw personage** — met zijn hele blad erbij: wat hij koos, wat daaruit volgt, en wat de app erover op te merken heeft.\n\nGun je het, dan ontstaan het kaartje, het profiel en zijn HP in één keer, in de party waar hij het wachtwoord van had. Stuur je het terug, dan hoort daar een reden bij; die leest hij zodra hij verder gaat.', afbeelding: null },
     { titel: 'De scores', tekst: 'Vier manieren, en jij zegt welke er aan jouw tafel mogen: de **standaardreeks**, **point buy**, **rollen** (zes keer 4d6, de laagste eraf, in de app) en **vrij intikken** voor een personage dat elders gemaakt is.\n\nDe app rekent voor maar houdt niets tegen. Kiest iemand scores die niet kunnen, dan staat dat als opmerking op jouw scherm en beslis jij.', afbeelding: null },
-    { titel: 'Beginnen boven level 1', tekst: 'Standaard begint iedereen op 1. Zet je het hoger, dan mag een speler erom **vragen** — hij vult het in, jij ziet het staan voordat je gunt. Zijn HP en proficiency rekenen mee; zijn subclass vraagt de wizard zodra zijn beginlevel hoog genoeg is.', afbeelding: null },
+    { titel: 'Beginnen boven level 1', tekst: 'Standaard begint iedereen op 1. Zet je het hoger, dan mag een speler erom **vragen** — hij vult het in, jij ziet het staan voordat je gunt. Zijn HP, proficiency, hit dice en het aantal spreuken rekenen mee, en zijn subclass vraagt de wizard zodra zijn beginlevel hoog genoeg is.\n\nWat de wizard **niet** vraagt zijn de ability score improvements en feats vanaf level 4: dat zijn keuzes die je aan tafel maakt en die de level-up al kent. Je krijgt het als opmerking te zien bij het gunnen.', afbeelding: null },
+    { titel: 'Rommel in zijn zak', tekst: 'De app verzint geen trinkets — wat er in je zak zit hoort bij jouw wereld. Wijs hier een **tafel van je eigen campagne** aan, dan rolt elke nieuwe speler daar één keer op en gaat de uitkomst als voorwerp mee in zijn boedel.\n\nEén keer: opnieuw rollen tot er iets leuks staat is geen worp meer.', afbeelding: null },
   ] }),
 
   dm_verzoeken_personage: () => ({ titel: 'Een nieuw personage', stappen: [

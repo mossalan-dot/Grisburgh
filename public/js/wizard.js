@@ -18,7 +18,7 @@
 // Hij blokkeert nooit. Overslaan mag bij elke stap; wat je overslaat vind je
 // terug bij Instellingen, en dat staat er ook bij.
 
-import { api } from './api.js?v=315';
+import { api } from './api.js?v=316';
 
 // Hoe de groepen uit `lib/modules.js` in beeld heten.
 const _GROEPNAAM = { wereld: 'Je wereld', spel: 'Het spel', sfeer: 'Sfeer', dienst: 'Diensten', overig: 'Overig' };

@@ -14,7 +14,7 @@
 //
 // Hij leent de opmaak van de opstartwizard (`wz-*`): twee wizards die er
 // anders uitzien zijn twee wizards om te onderhouden.
-import { api } from './api.js?v=315';
+import { api } from './api.js?v=316';
 
 const esc = s => window.app?.esc?.(s) ?? String(s ?? '')
   .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -39,9 +39,18 @@ const SKILLS = {
 };
 
 const P = {
-  c: null, bronnen: null, inst: null, profiel: null, nakijk: null,
+  c: null, bronnen: null, inst: null, profiel: null, nakijk: null, slots: {},
   stap: 0, bezig: false,
 };
+
+// Hoeveel spreuken kent deze class op dit level? Staat er niets, dan is het
+// geen caster en slaan we het hele scherm over.
+function _tellerVan() {
+  const t = P.bronnen?.tellers?.[P.c?.klasse];
+  if (!t) return null;
+  const lvl = String(Math.max(1, Math.min(20, parseInt(P.c.level) || 1)));
+  return t[lvl] || null;
+}
 
 const abMod = (s) => Math.floor(((parseInt(s) || 10) - 10) / 2);
 const teken = (n) => (n >= 0 ? `+${n}` : `${n}`);
@@ -199,6 +208,113 @@ const STAPPEN = [
   },
 
   {
+    id: 'spreuken',
+    titel: 'Wat kun je oproepen?',
+    lead: 'Zoveel als je class op dit level kent. Je kiest hier wát; wanneer je ze voorbereidt doe je aan tafel.',
+    // Alleen voor wie spreuken krijgt. Een Fighter heeft hier niets te zoeken,
+    // en een leeg scherm met "jij niet" is erger dan geen scherm.
+    beschikbaar() { return !!_tellerVan(); },
+    html() {
+      const t = _tellerVan();
+      const klasse = P.c.klasse;
+      const niveaus = [0, ...Object.keys(P.slots || {}).map(Number)].sort((a, b) => a - b);
+      const gekozen = new Set(P.keuze.spreuken || P.c.spreuken || []);
+      const lijst = (P.bronnen.spreuken || []).filter(sp => sp.klassen.includes(klasse) && niveaus.includes(sp.niveau));
+      const perNiveau = niveaus.map(n => ({
+        niveau: n,
+        max: n === 0 ? (t.cantrips || 0) : null,
+        spreuken: lijst.filter(sp => sp.niveau === n).sort((a, b) => a.naam.localeCompare(b.naam)),
+      })).filter(g => g.spreuken.length);
+      const gekozenCantrips = [...gekozen].filter(i => lijst.find(sp => sp.index === i && sp.niveau === 0)).length;
+      const gekozenRest = [...gekozen].length - gekozenCantrips;
+      return `
+        <p class="wz-lead">Nog <strong>${Math.max(0, (t.cantrips || 0) - gekozenCantrips)}</strong> cantrips
+          en <strong>${Math.max(0, (t.voorbereid || 0) - gekozenRest)}</strong> spreuken te kiezen.</p>
+        ${perNiveau.map(g => `
+          <div class="wz-veld">
+            <label class="dm-form-label">${g.niveau === 0 ? 'Cantrips' : `Niveau ${g.niveau}`}</label>
+            <div class="pm-skills">
+              ${g.spreuken.map(sp => `
+                <button class="pm-skill${gekozen.has(sp.index) ? ' is-aan' : ''}"
+                  onclick="window.personageMaken.spreuk('${esc(sp.index)}',${g.niveau})">
+                  ${ico('check')} ${esc(sp.naam)} <span class="pm-skill-ab">${esc(sp.school.slice(0, 4))}</span></button>`).join('')}
+            </div>
+          </div>`).join('')}`;
+    },
+    waarden() { return { spreuken: P.keuze.spreuken ?? P.c.spreuken ?? [] }; },
+  },
+
+  {
+    id: 'uitrusting',
+    titel: 'Waar ga je mee op pad?',
+    lead: 'Wat je background meegeeft, en wat je zelf uitzoekt uit de uitrusting die de app kent.',
+    html() {
+      const bg = bgVan(P.c.background);
+      const k = klasseVan(P.c.klasse);
+      const magHarnas = String(k?.basis?.armor || '').toLowerCase();
+      const harnassen = (P.bronnen.harnassen || []).filter(h =>
+        h.soort === 'Armor' && magHarnas.includes(String(h.harnasSoort || '').toLowerCase()));
+      const magSchild = magHarnas.includes('shield');
+      const opties = bg?.opties || [];
+      const gekozenOptie = P.keuze.bgOptie ?? P.c.bgOptie ?? 'A';
+      return `
+        ${opties.length ? `
+          <div class="wz-veld">
+            <label class="dm-form-label">Van je background</label>
+            ${opties.map(o => `
+              <button class="pm-tegel pm-tegel--breed${o.sleutel === gekozenOptie ? ' is-aan' : ''}" data-veld="bgOptie"
+                onclick="window.personageMaken.kies('bgOptie','${o.sleutel}')">
+                <span class="pm-tegel-naam">${o.sleutel === 'A' ? 'Spullen' : 'Alleen geld'}${o.goud ? ` · ${o.goud} goud` : ''}</span>
+                ${o.spullen.length ? `<span class="pm-tegel-onder">${esc(o.spullen.join(', '))}</span>` : ''}
+              </button>`).join('')}
+          </div>` : '<p class="wz-lead">Zonder background krijg je hier niets mee — dat kies je een stap terug.</p>'}
+
+        <div class="wz-rij">
+          <div class="wz-veld">
+            <label class="dm-form-label" for="pm-wapen">Een wapen</label>
+            <select class="dm-input" id="pm-wapen">
+              <option value="">— geen —</option>
+              ${(P.bronnen.wapens || []).map(w => `
+                <option value="${esc(w.key)}"${w.key === P.c.wapen ? ' selected' : ''}>${esc(w.naam)}${w.schade ? ` (${esc(w.schade)})` : ''}</option>`).join('')}
+            </select>
+            <span class="wz-hint">Je class mag ${esc(k?.basis?.weapons || 'wat je DM goedvindt')}.</span>
+          </div>
+          <div class="wz-veld">
+            <label class="dm-form-label" for="pm-harnas">Een harnas</label>
+            <select class="dm-input" id="pm-harnas" onchange="window.personageMaken.uitrusting()">
+              <option value="">— geen —</option>
+              ${harnassen.map(h => `
+                <option value="${esc(h.key)}"${h.key === P.c.harnas ? ' selected' : ''}>${esc(h.naam)} (AC ${esc(String(h.ac || ''))})</option>`).join('')}
+            </select>
+            ${magSchild ? `
+              <label class="dm-form-checkbox" style="margin-top:6px">
+                <input type="checkbox" id="pm-schild"${P.c.schild ? ' checked' : ''} onchange="window.personageMaken.uitrusting()">
+                <span>En een schild (+2)</span>
+              </label>` : ''}
+          </div>
+        </div>
+
+        ${P.bronnen.trinketTafel ? `
+          <div class="wz-veld">
+            <label class="dm-form-label">Wat zit er nog in je zak?</label>
+            ${P.c.trinket
+              ? `<p class="wz-lead" style="margin:0">${ico('backpack')} <strong>${esc(P.c.trinket)}</strong></p>`
+              : `<button class="dm-btn dm-btn-ghost" onclick="window.personageMaken.trinket()">
+                   ${ico('dices')} Rol op ${esc(P.bronnen.trinketTafel)}</button>
+                 <span class="wz-hint">Eén worp. Wat eruit komt, hou je.</span>`}
+          </div>` : ''}`;
+    },
+    waarden() {
+      return {
+        bgOptie: P.keuze.bgOptie ?? P.c.bgOptie ?? 'A',
+        wapen: document.getElementById('pm-wapen')?.value || '',
+        harnas: document.getElementById('pm-harnas')?.value || '',
+        schild: !!document.getElementById('pm-schild')?.checked,
+      };
+    },
+  },
+
+  {
     id: 'nakijken',
     titel: 'Zo komt hij eruit te zien',
     lead: 'Klopt het? Dan gaat hij naar je DM. Die zet hem klaar en dan kun je inloggen.',
@@ -236,7 +352,21 @@ const STAPPEN = [
             ${rij('Tools', p.toolProfs)}
             ${bg?.feat ? rij('Feat', bg.feat) : ''}
           </dl>
-          ${bg?.uitrusting ? `<p class="wz-lead" style="margin-top:10px">${ico('backpack')} ${esc(bg.uitrusting)}</p>` : ''}
+          ${(() => {
+            const bgOptie = (bg?.opties || []).find(o => o.sleutel === (P.c.bgOptie || 'A'));
+            const spullen = [
+              ...(bgOptie?.spullen || []),
+              ...[P.c.wapen, P.c.harnas].map(k => (P.bronnen.wapens || []).concat(P.bronnen.harnassen || [])
+                .find(i => i.key === k)?.naam).filter(Boolean),
+              ...(P.c.schild ? ['Shield'] : []),
+              ...(P.c.trinket ? [P.c.trinket] : []),
+            ];
+            const spreuknamen = (P.c.spreuken || [])
+              .map(i => (P.bronnen.spreuken || []).find(sp => sp.index === i)?.naam).filter(Boolean);
+            return `
+              ${spreuknamen.length ? `<p class="wz-lead" style="margin-top:10px">${ico('sparkles')} ${esc(spreuknamen.join(', '))}</p>` : ''}
+              ${spullen.length ? `<p class="wz-lead" style="margin-top:6px">${ico('backpack')} ${esc(spullen.join(', '))}${bgOptie?.goud ? ` · ${bgOptie.goud} goud` : ''}</p>` : ''}`;
+          })()}
         </div>
         ${(P.nakijk?.opmerkingen || []).length ? `
           <div class="pm-let-op">
@@ -375,7 +505,7 @@ async function _bewaar(extra = {}) {
   const stap = _actief()[P.stap];
   const data = { ...(stap?.waarden?.() || {}), ...extra };
   const r = await api.conceptBewaar(P.c.id, data);
-  P.c = r.concept; P.profiel = r.profiel; P.nakijk = r.nakijk;
+  P.c = r.concept; P.profiel = r.profiel; P.nakijk = r.nakijk; P.slots = r.slots || {};
   return r;
 }
 
@@ -402,7 +532,7 @@ window.personageMaken = {
     try {
       const r = await api.conceptStart(wachtwoord, naam);
       P.c = r.concept; P.bronnen = r.bronnen; P.inst = r.instellingen;
-      P.profiel = r.profiel; P.nakijk = r.nakijk; P.stap = 0;
+      P.profiel = r.profiel; P.nakijk = r.nakijk; P.slots = r.slots || {}; P.stap = 0;
       _open();
     } catch (e) {
       window._showToast?.(e.message || 'Dat lukte niet');
@@ -415,7 +545,7 @@ window.personageMaken = {
     const r = await api.conceptMijn();
     if (!r.concept) return false;
     P.c = r.concept; P.bronnen = r.bronnen; P.inst = r.instellingen;
-    P.profiel = r.profiel; P.nakijk = r.nakijk; P.stap = 0;
+    P.profiel = r.profiel; P.nakijk = r.nakijk; P.slots = r.slots || {}; P.stap = 0;
     _open();
     return true;
   },
@@ -448,6 +578,41 @@ window.personageMaken = {
     P.keuze.skills = [...nu];
     P.c.skills = [...nu];
     document.getElementById('pm-inhoud').innerHTML = _actief()[P.stap].html();
+  },
+
+  // Een spreuk aan- of uitzetten, met de tellers van je class als plafond:
+  // cantrips tellen apart van de rest, want dat zijn twee verschillende
+  // getallen op het blad.
+  spreuk(index, niveau) {
+    const t = _tellerVan() || {};
+    const nu = new Set(P.keuze.spreuken || P.c.spreuken || []);
+    const lijst = P.bronnen.spreuken || [];
+    const isCantrip = (i) => lijst.find(sp => sp.index === i)?.niveau === 0;
+    if (nu.has(index)) nu.delete(index);
+    else {
+      const aantal = [...nu].filter(i => isCantrip(i) === (niveau === 0)).length;
+      const max = niveau === 0 ? (t.cantrips || 0) : (t.voorbereid || 0);
+      if (aantal >= max) { window._showToast?.(`Je kent er ${max} op dit level.`); return; }
+      nu.add(index);
+    }
+    P.keuze.spreuken = [...nu];
+    P.c.spreuken = [...nu];
+    document.getElementById('pm-inhoud').innerHTML = _actief()[P.stap].html();
+  },
+
+  // Het harnas verandert je AC; dat hoort je meteen te zien en niet pas op het
+  // laatste scherm.
+  uitrusting() {
+    P.c.harnas = document.getElementById('pm-harnas')?.value || '';
+    P.c.schild = !!document.getElementById('pm-schild')?.checked;
+  },
+
+  async trinket() {
+    try {
+      const r = await api.conceptTrinket(P.c.id);
+      P.c.trinket = r.trinket;
+      document.getElementById('pm-inhoud').innerHTML = _actief()[P.stap].html();
+    } catch (e) { window._showToast?.(e.message || 'Rollen lukte niet'); }
   },
 
   methode(m) {

@@ -1,4 +1,4 @@
-import { api, huidigeCampagne } from './api.js?v=315';
+import { api, huidigeCampagne } from './api.js?v=316';
 import { init as canvasInit, update as canvasUpdate, stop as canvasStop, acGetal } from './combat-canvas.js?v=30';
 import { renderStatblock } from './render-statblock.js?v=9';
 
@@ -13197,6 +13197,16 @@ async function _renderInstellingen() {
         <label class="dm-form-label" for="inst-pm-max">Hoogste beginlevel dat ze mogen vragen</label>
         <input id="inst-pm-max" class="dm-input" type="number" min="1" max="20" value="${pm.maxLevel || 1}">
       </div>
+      <!-- Een trinket is wat er onderin je zak zit als je begint. De app
+           verzint er geen: je wijst een tafel van je eigen campagne aan, en
+           dan rolt elke nieuwe speler daar één keer op. -->
+      <div class="dm-form-row">
+        <label class="dm-form-label" for="inst-pm-trinket">Rommel in zijn zak — rol op</label>
+        <select id="inst-pm-trinket" class="dm-input">
+          <option value="">— niets —</option>
+          ${(_tables || []).map(t => `<option value="${esc(t.id)}"${pm.trinketTafel === t.id ? ' selected' : ''}>${esc(t.name || t.id)}</option>`).join('')}
+        </select>
+      </div>
     `, window._helpBtn?.('inst_personage') ?? '')}
 
     <!-- Wat een speler van andermans HP ziet is smaak, geen regel: de ene DM
@@ -13541,6 +13551,7 @@ window._instOpslaan = async () => {
       aan: !!document.getElementById('inst-pm-aan')?.checked,
       methodes: pmMethodes.length ? pmMethodes : ['array', 'pointbuy', 'rollen', 'vrij'],
       maxLevel: parseInt(document.getElementById('inst-pm-max')?.value) || 1,
+      trinketTafel: document.getElementById('inst-pm-trinket')?.value || '',
     });
 
     const nieuweMeta = await api.meta();
