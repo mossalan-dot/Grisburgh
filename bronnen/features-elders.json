@@ -840,8 +840,14 @@
       }
     ],
     "Oathbreaker": [
-      "Channel Divinity: Control Undead",
-      "Channel Divinity: Dreadful Aspect",
+      {
+        "naam": "Channel Divinity: Control Undead",
+        "level": 3
+      },
+      {
+        "naam": "Channel Divinity: Dreadful Aspect",
+        "level": 3
+      },
       {
         "naam": "Aura of Hate",
         "level": 7
@@ -856,8 +862,14 @@
       }
     ],
     "Oath of Conquest": [
-      "Channel Divinity: Conquering Presence",
-      "Channel Divinity: Guided Strike",
+      {
+        "naam": "Channel Divinity: Conquering Presence",
+        "level": 3
+      },
+      {
+        "naam": "Channel Divinity: Guided Strike",
+        "level": 3
+      },
       {
         "naam": "Aura of Conquest",
         "level": 7
@@ -872,8 +884,14 @@
       }
     ],
     "Oath of Redemption": [
-      "Channel Divinity: Emissary of Peace",
-      "Channel Divinity: Rebuke the Violent",
+      {
+        "naam": "Channel Divinity: Emissary of Peace",
+        "level": 3
+      },
+      {
+        "naam": "Channel Divinity: Rebuke the Violent",
+        "level": 3
+      },
       {
         "naam": "Aura of the Guardian",
         "level": 7
@@ -888,8 +906,14 @@
       }
     ],
     "Oath of the Watchers": [
-      "Channel Divinity: Watcher's Will",
-      "Channel Divinity: Abjure the Extraplanar",
+      {
+        "naam": "Channel Divinity: Watcher's Will",
+        "level": 3
+      },
+      {
+        "naam": "Channel Divinity: Abjure the Extraplanar",
+        "level": 3
+      },
       {
         "naam": "Aura of the Sentinel",
         "level": 7
@@ -1614,17 +1638,44 @@
       }
     ],
     "Path of the Wild Heart": [
-      "Animal Speaker",
-      "Rage of the Wilds",
-      "Aspect of the Wilds",
-      "Nature Speaker",
-      "Power of the Wilds"
+      {
+        "naam": "Animal Speaker",
+        "level": 3
+      },
+      {
+        "naam": "Rage of the Wilds",
+        "level": 3
+      },
+      {
+        "naam": "Aspect of the Wilds",
+        "level": 6
+      },
+      {
+        "naam": "Nature Speaker",
+        "level": 10
+      },
+      {
+        "naam": "Power of the Wilds",
+        "level": 14
+      }
     ],
     "Path of the World Tree": [
-      "Vitality of the Tree",
-      "Branches of the Tree",
-      "Battering Roots",
-      "Travel along the Tree"
+      {
+        "naam": "Vitality of the Tree",
+        "level": 3
+      },
+      {
+        "naam": "Branches of the Tree",
+        "level": 6
+      },
+      {
+        "naam": "Battering Roots",
+        "level": 10
+      },
+      {
+        "naam": "Travel along the Tree",
+        "level": 14
+      }
     ],
     "Path of the Zealot": [
       {
@@ -1643,16 +1694,34 @@
         "naam": "Zealous Presence",
         "level": 10
       },
-      "Rage of the Gods"
+      {
+        "naam": "Rage of the Gods",
+        "level": 14
+      }
     ],
     "College of Dance": [
-      "Dazzling Footwork",
-      "Inspiring Movement",
-      "Tandem Footwork",
-      "Leading Evasion"
+      {
+        "naam": "Dazzling Footwork",
+        "level": 3
+      },
+      {
+        "naam": "Inspiring Movement",
+        "level": 6
+      },
+      {
+        "naam": "Tandem Footwork",
+        "level": 6
+      },
+      {
+        "naam": "Leading Evasion",
+        "level": 14
+      }
     ],
     "College of Glamour": [
-      "Beguiling Magic",
+      {
+        "naam": "Beguiling Magic",
+        "level": 3
+      },
       {
         "naam": "Mantle of Inspiration",
         "level": 3
@@ -1671,7 +1740,10 @@
         "naam": "Combat Inspiration",
         "level": 3
       },
-      "Martial Training",
+      {
+        "naam": "Martial Training",
+        "level": 3
+      },
       {
         "naam": "Extra Attack",
         "level": 6
@@ -1682,9 +1754,18 @@
       }
     ],
     "Light Domain": [
-      "Radiance of the Dawn",
-      "Warding Flare",
-      "Improved Warding Flare",
+      {
+        "naam": "Radiance of the Dawn",
+        "level": 3
+      },
+      {
+        "naam": "Warding Flare",
+        "level": 3
+      },
+      {
+        "naam": "Improved Warding Flare",
+        "level": 6
+      },
       "Potent Spellcasting",
       {
         "naam": "Corona of Light",
@@ -1692,8 +1773,14 @@
       }
     ],
     "War Domain": [
-      "Guided Strike",
-      "War Priest",
+      {
+        "naam": "Guided Strike",
+        "level": 3
+      },
+      {
+        "naam": "War Priest",
+        "level": 3
+      },
       {
         "naam": "War God's Blessing",
         "level": 6
@@ -1705,9 +1792,18 @@
       }
     ],
     "Trickery Domain": [
-      "Blessing of the Trickster",
-      "Invoke Duplicity",
-      "Trickster's Transposition",
+      {
+        "naam": "Blessing of the Trickster",
+        "level": 3
+      },
+      {
+        "naam": "Invoke Duplicity",
+        "level": 3
+      },
+      {
+        "naam": "Trickster's Transposition",
+        "level": 6
+      },
       "Divine Strike",
       {
         "naam": "Improved Duplicity",
@@ -1715,20 +1811,50 @@
       }
     ],
     "Circle of the Moon": [
-      "Circle Forms",
-      "Improved Circle Forms",
-      "Moonlight Step",
-      "Lunar Form"
+      {
+        "naam": "Circle Forms",
+        "level": 3
+      },
+      {
+        "naam": "Improved Circle Forms",
+        "level": 6
+      },
+      {
+        "naam": "Moonlight Step",
+        "level": 10
+      },
+      {
+        "naam": "Lunar Form",
+        "level": 14
+      }
     ],
     "Circle of the Sea": [
-      "Wrath of the Sea",
-      "Aquatic Affinity",
-      "Stormborn",
-      "Oceanic Gift"
+      {
+        "naam": "Wrath of the Sea",
+        "level": 3
+      },
+      {
+        "naam": "Aquatic Affinity",
+        "level": 6
+      },
+      {
+        "naam": "Stormborn",
+        "level": 10
+      },
+      {
+        "naam": "Oceanic Gift",
+        "level": 14
+      }
     ],
     "Circle of the Stars": [
-      "Star Map",
-      "Starry Form",
+      {
+        "naam": "Star Map",
+        "level": 3
+      },
+      {
+        "naam": "Starry Form",
+        "level": 3
+      },
       {
         "naam": "Cosmic Omen",
         "level": 6
@@ -1763,14 +1889,20 @@
         "naam": "Relentless",
         "level": 15
       },
-      "Ultimate Combat Superiority"
+      {
+        "naam": "Ultimate Combat Superiority",
+        "level": 18
+      }
     ],
     "Eldritch Knight": [
       {
         "naam": "Spellcasting",
         "level": 3
       },
-      "War Bond",
+      {
+        "naam": "War Bond",
+        "level": 3
+      },
       {
         "naam": "War Magic",
         "level": 7
@@ -1797,21 +1929,42 @@
         "naam": "Shadow Step",
         "level": 6
       },
-      "Improved Shadow Step",
+      {
+        "naam": "Improved Shadow Step",
+        "level": 11
+      },
       {
         "naam": "Cloak of Shadows",
         "level": 11
       }
     ],
     "Warrior of the Elements": [
-      "Elemental Attunement",
-      "Manipulate Elements",
-      "Stride of the Elements",
-      "Elemental Epitome"
+      {
+        "naam": "Elemental Attunement",
+        "level": 3
+      },
+      {
+        "naam": "Manipulate Elements",
+        "level": 3
+      },
+      {
+        "naam": "Stride of the Elements",
+        "level": 11
+      },
+      {
+        "naam": "Elemental Epitome",
+        "level": 17
+      }
     ],
     "Warrior of Mercy": [
-      "Hand of Harm",
-      "Hand of Healing",
+      {
+        "naam": "Hand of Harm",
+        "level": 3
+      },
+      {
+        "naam": "Hand of Healing",
+        "level": 3
+      },
       {
         "naam": "Implements of Mercy",
         "level": 3
@@ -1830,7 +1983,10 @@
       }
     ],
     "Oath of the Ancients": [
-      "Channel Divinity: Nature's Wrath",
+      {
+        "naam": "Channel Divinity: Nature's Wrath",
+        "level": 3
+      },
       {
         "naam": "Aura of Warding",
         "level": 7
@@ -1845,8 +2001,14 @@
       }
     ],
     "Oath of Glory": [
-      "Channel Divinity: Inspiring Smite",
-      "Channel Divinity: Peerless Athlete",
+      {
+        "naam": "Channel Divinity: Inspiring Smite",
+        "level": 3
+      },
+      {
+        "naam": "Channel Divinity: Peerless Athlete",
+        "level": 3
+      },
       {
         "naam": "Aura of Alacrity",
         "level": 7
@@ -1861,7 +2023,10 @@
       }
     ],
     "Oath of Vengeance": [
-      "Channel Divinity: Vow of Enmity",
+      {
+        "naam": "Channel Divinity: Vow of Enmity",
+        "level": 3
+      },
       {
         "naam": "Relentless Avenger",
         "level": 7
@@ -1876,7 +2041,10 @@
       }
     ],
     "Beast Master": [
-      "Primal Companion",
+      {
+        "naam": "Primal Companion",
+        "level": 3
+      },
       {
         "naam": "Exceptional Training",
         "level": 7
@@ -1961,12 +2129,18 @@
         "naam": "Assassinate",
         "level": 3
       },
-      "Assassin's Tools",
+      {
+        "naam": "Assassin's Tools",
+        "level": 3
+      },
       {
         "naam": "Infiltration Expertise",
         "level": 9
       },
-      "Envenom Weapons",
+      {
+        "naam": "Envenom Weapons",
+        "level": 13
+      },
       {
         "naam": "Death Strike",
         "level": 17
@@ -1995,20 +2169,50 @@
       }
     ],
     "Clockwork Sorcery": [
-      "Restore Balance",
-      "Bastion of Law",
-      "Trance of Order",
-      "Clockwork Cavalcade"
+      {
+        "naam": "Restore Balance",
+        "level": 3
+      },
+      {
+        "naam": "Bastion of Law",
+        "level": 6
+      },
+      {
+        "naam": "Trance of Order",
+        "level": 14
+      },
+      {
+        "naam": "Clockwork Cavalcade",
+        "level": 18
+      }
     ],
     "Aberrant Sorcery": [
-      "Telepathic Speech",
-      "Psionic Sorcery",
-      "Psychic Defenses",
-      "Revelation in Flesh",
-      "Warping Implosion"
+      {
+        "naam": "Telepathic Speech",
+        "level": 3
+      },
+      {
+        "naam": "Psionic Sorcery",
+        "level": 6
+      },
+      {
+        "naam": "Psychic Defenses",
+        "level": 6
+      },
+      {
+        "naam": "Revelation in Flesh",
+        "level": 14
+      },
+      {
+        "naam": "Warping Implosion",
+        "level": 18
+      }
     ],
     "Archfey Patron": [
-      "Steps of the Fey",
+      {
+        "naam": "Steps of the Fey",
+        "level": 3
+      },
       {
         "naam": "Misty Escape",
         "level": 6
@@ -2017,50 +2221,116 @@
         "naam": "Beguiling Defenses",
         "level": 10
       },
-      "Bewitching Magic"
+      {
+        "naam": "Bewitching Magic",
+        "level": 14
+      }
     ],
     "Celestial Patron": [
-      "Healing Light",
+      {
+        "naam": "Healing Light",
+        "level": 3
+      },
       {
         "naam": "Radiant Soul",
         "level": 6
       },
-      "Celestial Resilience",
+      {
+        "naam": "Celestial Resilience",
+        "level": 10
+      },
       {
         "naam": "Searing Vengeance",
         "level": 14
       }
     ],
     "Great Old One Patron": [
-      "Awakened Mind",
-      "Psychic Spells",
-      "Clairvoyant Combatant",
-      "Eldritch Hex",
+      {
+        "naam": "Awakened Mind",
+        "level": 3
+      },
+      {
+        "naam": "Psychic Spells",
+        "level": 3
+      },
+      {
+        "naam": "Clairvoyant Combatant",
+        "level": 6
+      },
+      {
+        "naam": "Eldritch Hex",
+        "level": 10
+      },
       {
         "naam": "Create Thrall",
         "level": 14
       }
     ],
     "Abjurer": [
-      "Abjuration Savant",
-      "Arcane Ward",
-      "Projected Ward",
-      "Spell Breaker",
-      "Spell Resistance"
+      {
+        "naam": "Abjuration Savant",
+        "level": 3
+      },
+      {
+        "naam": "Arcane Ward",
+        "level": 3
+      },
+      {
+        "naam": "Projected Ward",
+        "level": 6
+      },
+      {
+        "naam": "Spell Breaker",
+        "level": 10
+      },
+      {
+        "naam": "Spell Resistance",
+        "level": 14
+      }
     ],
     "Diviner": [
-      "Divination Savant",
-      "Portent",
-      "Expert Divination",
-      "The Third Eye",
-      "Greater Portent"
+      {
+        "naam": "Divination Savant",
+        "level": 3
+      },
+      {
+        "naam": "Portent",
+        "level": 3
+      },
+      {
+        "naam": "Expert Divination",
+        "level": 6
+      },
+      {
+        "naam": "The Third Eye",
+        "level": 10
+      },
+      {
+        "naam": "Greater Portent",
+        "level": 14
+      }
     ],
     "Illusionist": [
-      "Illusion Savant",
-      "Improved Illusions",
-      "Phantasmal Creatures",
-      "Illusory Self",
-      "Illusory Reality"
+      {
+        "naam": "Illusion Savant",
+        "level": 3
+      },
+      {
+        "naam": "Improved Illusions",
+        "level": 3
+      },
+      {
+        "naam": "Phantasmal Creatures",
+        "level": 6
+      },
+      {
+        "naam": "Illusory Self",
+        "level": 10
+      },
+      {
+        "naam": "Illusory Reality",
+        "level": 14
+      }
     ],
     "Order of the Ghostslayer": [
       {
@@ -2455,5 +2725,5 @@
       "Specialized Design"
     ]
   },
-  "_niveaus": "Een naam mag een level dragen: {\"naam\": \"…\", \"level\": 3}. Opgehaald met scripts/srd-2024/elders-niveaus.js van dnd5e.wikidot.com — de kop is de naam, de eerste levelvermelding eronder is het level. Alleen waar de naam exact overeenkomt: een kop die wij niet kennen hoort bij een andere druk. Bij een subclass die de app als 2024-materiaal meebrengt wordt bovendien alleen een level overgenomen dat deze class zijn subclasses ook echt geeft — wikidot beschrijft 2014, en daar begint een Cleric-domein op level 1. Het level is dat van het boek waar de subclass in staat; dat staat op zijn kaartje erbij."
+  "_niveaus": "Een naam mag een level dragen: {\"naam\": \"…\", \"level\": 3}. Opgehaald met scripts/srd-2024/elders-niveaus.js van dnd5e.wikidot.com — de kop is de naam, de eerste levelvermelding eronder is het level; een \"Channel Divinity: …\"-optie deelt het level van de Channel Divinity-feature waar hij onder staat. Alleen waar de naam exact overeenkomt: een kop die wij niet kennen hoort bij een andere druk. Bij een subclass die de app als 2024-materiaal meebrengt wordt bovendien alleen een level overgenomen dat deze class zijn subclasses ook echt geeft — wikidot beschrijft 2014, en daar begint een Cleric-domein op level 1. De elf subclasses die alleen in 2024 bestaan hebben geen wikidotpagina; hun levels komen uit de campagne van Grisburgh, waar de DM ze zelf had ingevuld. Het level is dat van het boek waar de subclass in staat; dat boek staat op zijn kaartje erbij. De species hebben geen level: een trait hoort bij wie je bent, niet bij een level."
 }

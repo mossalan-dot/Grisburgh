@@ -171,7 +171,11 @@ function klasseLevels(seed, klasse) {
     // dan kijken we naar de verkeerde druk en laten we hem liever leeg.
     const toegestaan = hoort.boek === 'phb24' ? klasseLevels(seed, hoort.klasse) : null;
     const nieuw = lijst.map(n => {
-      const lv = opNaam.get(sleutel(n));
+      // "Channel Divinity: Vow of Enmity" staat op de pagina onder één kop
+      // *Channel Divinity*, met de opties eronder. Die optie krijg je met die
+      // feature mee, dus hij deelt zijn level. Dat is de bron lezen, niet raden.
+      const lv = opNaam.get(sleutel(n))
+        || (/^channel divinity:/i.test(n) ? opNaam.get(sleutel('Channel Divinity')) : 0);
       if (!lv) return n;
       if (toegestaan && toegestaan.length && !toegestaan.includes(lv)) return n;
       return { naam: n, level: lv };

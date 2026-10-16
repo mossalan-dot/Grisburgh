@@ -1721,7 +1721,8 @@ in `_load()` (`render-spreuken.js`), ontdubbeld op `index`:
 > 110 subclasses, 29 species uit `volkenOverig` en de drie classes die de app
 > zonder tekst meebrengt (Artificer, Blood Hunter, Illrigger), samen 698
 > namen — en verder niets: geen tekst, geen regels. Een naam mág een level
-> dragen (`{naam, level}`) — 488 van de 698 hebben er een, opgehaald met
+> dragen (`{naam, level}`) — 578 van de 588 bij classes en subclasses hebben er
+> een (de species niet: een trait hoort bij wie je bent), opgehaald met
 > `scripts/srd-2024/elders-niveaus.js` van dnd5e.wikidot.com. Alleen waar de
 > naam exact overeenkomt (een kop die wij niet kennen hoort bij een andere
 > druk), en bij 2024-subclasses alleen een level dat die class zijn subclasses
