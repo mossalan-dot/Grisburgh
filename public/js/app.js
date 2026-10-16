@@ -15561,7 +15561,7 @@ const HELP_CONFIG = {
       },
       {
         titel: 'Soms alleen een naam',
-        tekst: 'Staat er bij een class of subclass alleen een rij **namen** zonder tekst, dan brengt de app die features niet mee maar weet hij wel dát ze bestaan. Je kunt ze opzoeken met de knop *Naslag*, en er zelf tekst in zetten als je ze aan tafel gebruikt.\n\nBij de meeste staat het **level** erbij — dat is het level uit het boek waar die subclass in staat, en dat boek staat op zijn kaartje. Een subclass uit 2014 telt dus vanaf een ander level dan een uit 2024. Ontbreekt het level, dan zegt het kaartje van de subclass op welke levels déze class zijn features geeft.',
+        tekst: 'Staat er bij een class of subclass alleen een rij **namen** zonder tekst, dan brengt de app die features niet mee maar weet hij wel dát ze bestaan. Je kunt ze opzoeken met de knop *Naslag*, en er zelf tekst in zetten als je ze aan tafel gebruikt.\n\nBij de meeste staat het **level** erbij. Dat komt uit het boek waar die subclass in staat, omgerekend naar deze tafel: je kiest je subclass op level 3, dus wat in een boek van 2014 eerder kwam — een domein op 1, een school op 2 — staat hier op 3. Ontbreekt het level, dan zegt het kaartje van de subclass op welke levels déze class zijn features geeft.',
         afbeelding: null,
       },
     ],

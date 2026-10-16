@@ -356,15 +356,15 @@
     "Death Domain": [
       {
         "naam": "Bonus Proficiency",
-        "level": 1
+        "level": 3
       },
       {
         "naam": "Reaper",
-        "level": 1
+        "level": 3
       },
       {
         "naam": "Channel Divinity: Touch of Death",
-        "level": 2
+        "level": 3
       },
       {
         "naam": "Inescapable Destruction",
@@ -382,11 +382,11 @@
     "Arcana Domain": [
       {
         "naam": "Arcane Initiate",
-        "level": 1
+        "level": 3
       },
       {
         "naam": "Channel Divinity: Arcane Abjuration",
-        "level": 2
+        "level": 3
       },
       {
         "naam": "Spell Breaker",
@@ -404,15 +404,15 @@
     "Forge Domain": [
       {
         "naam": "Bonus Proficiencies",
-        "level": 1
+        "level": 3
       },
       {
         "naam": "Blessing of the Forge",
-        "level": 1
+        "level": 3
       },
       {
         "naam": "Channel Divinity: Artisan's Blessing",
-        "level": 2
+        "level": 3
       },
       {
         "naam": "Soul of the Forge",
@@ -430,15 +430,15 @@
     "Grave Domain": [
       {
         "naam": "Circle of Mortality",
-        "level": 1
+        "level": 3
       },
       {
         "naam": "Eyes of the Grave",
-        "level": 1
+        "level": 3
       },
       {
         "naam": "Channel Divinity: Path to the Grave",
-        "level": 2
+        "level": 3
       },
       {
         "naam": "Sentinel at Death's Door",
@@ -456,15 +456,15 @@
     "Order Domain": [
       {
         "naam": "Bonus Proficiencies",
-        "level": 1
+        "level": 3
       },
       {
         "naam": "Voice of Authority",
-        "level": 1
+        "level": 3
       },
       {
         "naam": "Channel Divinity: Order's Demand",
-        "level": 2
+        "level": 3
       },
       {
         "naam": "Embodiment of the Law",
@@ -482,15 +482,15 @@
     "Peace Domain": [
       {
         "naam": "Implement of Peace",
-        "level": 1
+        "level": 3
       },
       {
         "naam": "Emboldening Bond",
-        "level": 1
+        "level": 3
       },
       {
         "naam": "Channel Divinity: Balm of Peace",
-        "level": 2
+        "level": 3
       },
       {
         "naam": "Protective Bond",
@@ -508,7 +508,7 @@
     "Circle of Dreams": [
       {
         "naam": "Balm of the Summer Court",
-        "level": 2
+        "level": 3
       },
       {
         "naam": "Hearth of Moonlight and Shadow",
@@ -526,11 +526,11 @@
     "Circle of the Shepherd": [
       {
         "naam": "Speech of the Woods",
-        "level": 2
+        "level": 3
       },
       {
         "naam": "Spirit Totem",
-        "level": 2
+        "level": 3
       },
       {
         "naam": "Mighty Summoner",
@@ -548,15 +548,15 @@
     "Circle of Spores": [
       {
         "naam": "Circle Spells",
-        "level": 2
+        "level": 3
       },
       {
         "naam": "Halo of Spores",
-        "level": 2
+        "level": 3
       },
       {
         "naam": "Symbiotic Entity",
-        "level": 2
+        "level": 3
       },
       {
         "naam": "Fungal Infestation",
@@ -574,11 +574,11 @@
     "Circle of Wildfire": [
       {
         "naam": "Circle Spells",
-        "level": 2
+        "level": 3
       },
       {
         "naam": "Summon Wildfire Spirit",
-        "level": 2
+        "level": 3
       },
       {
         "naam": "Enhanced Bond",
@@ -1106,11 +1106,11 @@
     "Divine Soul": [
       {
         "naam": "Divine Magic",
-        "level": 1
+        "level": 3
       },
       {
         "naam": "Favored by the Gods",
-        "level": 1
+        "level": 3
       },
       {
         "naam": "Empowered Healing",
@@ -1125,11 +1125,11 @@
     "Shadow Magic": [
       {
         "naam": "Eyes of the Dark",
-        "level": 1
+        "level": 3
       },
       {
         "naam": "Strength of the Grave",
-        "level": 1
+        "level": 3
       },
       {
         "naam": "Hound of Ill Omen",
@@ -1148,7 +1148,7 @@
       "Wind Speaker",
       {
         "naam": "Tempestuous Magic",
-        "level": 1
+        "level": 3
       },
       {
         "naam": "Heart of the Storm",
@@ -1170,7 +1170,7 @@
     "The Undying": [
       {
         "naam": "Among the Dead",
-        "level": 1
+        "level": 3
       },
       {
         "naam": "Defy Death",
@@ -1188,11 +1188,11 @@
     "The Hexblade": [
       {
         "naam": "Hexblade's Curse",
-        "level": 1
+        "level": 3
       },
       {
         "naam": "Hex Warrior",
-        "level": 1
+        "level": 3
       },
       {
         "naam": "Accursed Specter",
@@ -1211,7 +1211,7 @@
       "Tentacle of the Deeps",
       {
         "naam": "Gift of the Sea",
-        "level": 1
+        "level": 3
       },
       {
         "naam": "Oceanic Soul",
@@ -1233,7 +1233,7 @@
     "The Genie": [
       {
         "naam": "Genie's Vessel",
-        "level": 1
+        "level": 3
       },
       {
         "naam": "Elemental Gift",
@@ -1251,7 +1251,7 @@
     "The Undead": [
       {
         "naam": "Form of Dread",
-        "level": 1
+        "level": 3
       },
       {
         "naam": "Grave Touched",
@@ -1269,11 +1269,11 @@
     "School of Conjuration": [
       {
         "naam": "Conjuration Savant",
-        "level": 2
+        "level": 3
       },
       {
         "naam": "Minor Conjuration",
-        "level": 2
+        "level": 3
       },
       "Benign Transposition",
       {
@@ -1288,11 +1288,11 @@
     "School of Enchantment": [
       {
         "naam": "Enchantment Savant",
-        "level": 2
+        "level": 3
       },
       {
         "naam": "Hypnotic Gaze",
-        "level": 2
+        "level": 3
       },
       {
         "naam": "Instinctive Charm",
@@ -1310,11 +1310,11 @@
     "School of Necromancy": [
       {
         "naam": "Necromancy Savant",
-        "level": 2
+        "level": 3
       },
       {
         "naam": "Grim Harvest",
-        "level": 2
+        "level": 3
       },
       {
         "naam": "Undead Thralls",
@@ -1332,11 +1332,11 @@
     "School of Transmutation": [
       {
         "naam": "Transmutation Savant",
-        "level": 2
+        "level": 3
       },
       {
         "naam": "Minor Alchemy",
-        "level": 2
+        "level": 3
       },
       {
         "naam": "Transmuter's Stone",
@@ -1354,11 +1354,11 @@
     "Bladesinging": [
       {
         "naam": "Training in War and Song",
-        "level": 2
+        "level": 3
       },
       {
         "naam": "Bladesong",
-        "level": 2
+        "level": 3
       },
       {
         "naam": "Extra Attack",
@@ -1376,11 +1376,11 @@
     "War Magic": [
       {
         "naam": "Arcane Deflection",
-        "level": 2
+        "level": 3
       },
       {
         "naam": "Tactical Wit",
-        "level": 2
+        "level": 3
       },
       {
         "naam": "Power Surge",
@@ -1398,11 +1398,11 @@
     "Order of Scribes": [
       {
         "naam": "Wizardly Quill",
-        "level": 2
+        "level": 3
       },
       {
         "naam": "Awakened Spellbook",
-        "level": 2
+        "level": 3
       },
       {
         "naam": "Manifest Mind",
@@ -1417,11 +1417,11 @@
     "Chronurgy Magic": [
       {
         "naam": "Chronal Shift",
-        "level": 2
+        "level": 3
       },
       {
         "naam": "Temporal Awareness",
-        "level": 2
+        "level": 3
       },
       {
         "naam": "Momentary Stasis",
@@ -1439,7 +1439,7 @@
     "Graviturgy Magic": [
       {
         "naam": "Adjust Density",
-        "level": 2
+        "level": 3
       },
       {
         "naam": "Gravity Well",
@@ -1569,11 +1569,11 @@
     "Knowledge Domain": [
       {
         "naam": "Blessings of Knowledge",
-        "level": 1
+        "level": 3
       },
       {
         "naam": "Channel Divinity: Knowledge of the Ages",
-        "level": 2
+        "level": 3
       },
       {
         "naam": "Channel Divinity: Read Thoughts",
@@ -1591,15 +1591,15 @@
     "Nature Domain": [
       {
         "naam": "Acolyte of Nature",
-        "level": 1
+        "level": 3
       },
       {
         "naam": "Bonus Proficiency",
-        "level": 1
+        "level": 3
       },
       {
         "naam": "Channel Divinity: Charm Animals and Plants",
-        "level": 2
+        "level": 3
       },
       {
         "naam": "Dampen Elements",
@@ -1617,15 +1617,15 @@
     "Tempest Domain": [
       {
         "naam": "Bonus Proficiencies",
-        "level": 1
+        "level": 3
       },
       {
         "naam": "Wrath of the Storm",
-        "level": 1
+        "level": 3
       },
       {
         "naam": "Channel Divinity: Destructive Wrath",
-        "level": 2
+        "level": 3
       },
       "Thunderbolt Strike",
       {

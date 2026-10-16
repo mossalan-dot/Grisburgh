@@ -1727,7 +1727,8 @@ in `_load()` (`render-spreuken.js`), ontdubbeld op `index`:
 > naam exact overeenkomt (een kop die wij niet kennen hoort bij een andere
 > druk), en bij 2024-subclasses alleen een level dat die class zijn subclasses
 > ook echt geeft — wikidot beschrijft 2014, en daar begint een Cleric-domein op
-> level 1. Raden uit de volgorde kan niet: twee features op hetzelfde level is
+> level 1. Wat in het oude boek vóór level 3 kwam staat hier op 3: je kiest je
+> subclass nu eenmaal op 3. Classfeatures blijven staan waar ze staan. Raden uit de volgorde kan niet: twee features op hetzelfde level is
 > eerder regel dan uitzondering. Dat zijn niet alleen de
 > boeken van buiten: ook de 2024-subclasses die de app zelf meebrengt maar
 > waarvan de tekst buiten de SRD valt (Battle Master, Assassin, Gloom Stalker…)

@@ -91,6 +91,15 @@ function kopNiveaus(tekst) {
   return uit;
 }
 
+// ── De omrekening naar deze tafel ───────────────────────────────────────────
+// Een subclass uit 2014 begint vroeg: een Cleric koos zijn domein op level 1 en
+// een Wizard zijn school op 2. In 2024 kies je je subclass pas op **3**, dus
+// alles wat volgens het oude boek eerder kwam, krijg je hier op 3. Dat is de
+// regel die aan deze tafel geldt, en hij geldt alleen voor subclasses — een
+// classfeature op level 1 blijft gewoon level 1.
+const VANAF = 3;
+const omgerekend = (lv) => Math.max(VANAF, lv);
+
 // Op welke levels geeft deze class zijn subclasses features? Af te lezen aan de
 // subclasses die de app zélf meebrengt; bij elke class is dat één vaste reeks.
 function klasseLevels(seed, klasse) {
@@ -178,7 +187,7 @@ function klasseLevels(seed, klasse) {
         || (/^channel divinity:/i.test(n) ? opNaam.get(sleutel('Channel Divinity')) : 0);
       if (!lv) return n;
       if (toegestaan && toegestaan.length && !toegestaan.includes(lv)) return n;
-      return { naam: n, level: lv };
+      return { naam: n, level: omgerekend(lv) };
     });
     const raak = nieuw.filter(x => typeof x === 'object').length;
     if (!raak) { overgeslagen.push(`${naam} (${gebruiktPad}) — geen enkele naam kwam overeen`); continue; }
