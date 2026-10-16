@@ -1567,7 +1567,7 @@ async function _landingNieuwTegel() {
   if (!host || !_groepsWachtwoord || document.getElementById('landing-nieuw')) return;
   let stand = null;
   try {
-    await import('./personage-maken.js?v=1');
+    await import('./personage-maken.js?v=2');
     stand = await window.personageMaken.stand();
   } catch { return; }
   if (stand?.instellingen && stand.instellingen.aan === false) return;
@@ -1589,7 +1589,7 @@ async function _landingNieuwTegel() {
 
 async function _landingNieuw() {
   try {
-    await import('./personage-maken.js?v=1');
+    await import('./personage-maken.js?v=2');
     const stand = await window.personageMaken.stand();
     if (stand?.concept && stand.concept.status !== 'gegund') {
       if (stand.concept.status === 'wacht') {

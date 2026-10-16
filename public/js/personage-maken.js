@@ -142,6 +142,11 @@ const STAPPEN = [
     html() {
       const methodes = P.inst.methodes || [];
       const nu = methodes.includes(P.c.methode) ? P.c.methode : methodes[0];
+      P.c.methode = nu;
+      // Zes keer een 10 is geen standaardreeks en geen point buy. Staat er iets
+      // dat niet bij de manier past, dan leggen we eerst iets geldigs neer —
+      // anders begin je met een scherm dat je zelf eerst moet rechtzetten.
+      _scoresIjken(nu);
       const kiezer = methodes.length > 1 ? `
         <div class="pm-methodes">
           ${methodes.map(m => `
@@ -273,6 +278,20 @@ function _tegels(rijen, gekozen, veld) {
 }
 
 // ── De zes getallen ──────────────────────────────────────────────────────────
+// Hoort wat er staat bij de gekozen manier? Zo niet: leg de beginstand neer.
+function _scoresIjken(methode) {
+  const nu = ABILITIES.map(a => parseInt(P.c.scores?.[a]) || 0);
+  if (methode === 'array') {
+    const klopt = [...nu].sort((x, y) => y - x).join() === [...STANDAARDREEKS].sort((x, y) => y - x).join();
+    if (!klopt) ABILITIES.forEach((a, i) => { P.c.scores[a] = STANDAARDREEKS[i]; });
+  }
+  if (methode === 'pointbuy') {
+    const binnen = nu.every(v => PUNTEN[v] !== undefined);
+    const kosten = ABILITIES.reduce((t, a) => t + (PUNTEN[P.c.scores[a]] ?? 99), 0);
+    if (!binnen || kosten > PUNTEN_BUDGET) ABILITIES.forEach(a => { P.c.scores[a] = 8; });
+  }
+}
+
 function _scoresHtml(methode) {
   const bg = bgVan(P.c.background);
   const bonusKan = bg?.abilities?.length ? bg.abilities : [];
@@ -295,7 +314,7 @@ function _scoresHtml(methode) {
           <div class="pm-ability">
             <label class="dm-form-label" for="pm-sc-${a}">${esc(AB_NAAM[a])}</label>
             ${opties
-              ? `<select class="dm-input" id="pm-sc-${a}" onchange="window.personageMaken.score()">
+              ? `<select class="dm-input" id="pm-sc-${a}" onchange="window.personageMaken.score('${a}')">
                    ${opties.map(o => `<option value="${o}"${o === eigen ? ' selected' : ''}>${o}</option>`).join('')}
                  </select>`
               : `<input class="dm-input" id="pm-sc-${a}" type="number" min="1" max="30" value="${eigen}"
@@ -454,7 +473,21 @@ window.personageMaken = {
   },
 
   // Wat je intikt telt meteen door naar de modifier eronder en de puntenteller.
-  score() {
+  // Bij de standaardreeks heb je precies zes getallen: geef je er een weg die
+  // al ergens stond, dan ruilen die twee. Zo blijft het altijd een geldige
+  // verdeling zonder dat je ergens "die is al op" te lezen krijgt.
+  score(ab) {
+    if (ab && P.c.methode === 'array') {
+      const nieuw = parseInt(document.getElementById(`pm-sc-${ab}`)?.value) || 10;
+      const oud = parseInt(P.c.scores[ab]) || 10;
+      const ander = ABILITIES.find(a => a !== ab && (parseInt(P.c.scores[a]) || 0) === nieuw);
+      if (ander) {
+        P.c.scores[ander] = oud;
+        const el = document.getElementById(`pm-sc-${ander}`);
+        if (el) el.value = oud;
+      }
+      P.c.scores[ab] = nieuw;
+    }
     const scores = {};
     for (const a of ABILITIES) scores[a] = parseInt(document.getElementById(`pm-sc-${a}`)?.value) || 10;
     for (const a of ABILITIES) {
