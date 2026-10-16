@@ -440,6 +440,17 @@ function _card(it) {
     </div>`;
   })() : '';
 
+  // En op alles wat géén kaartje in de campagne is: hetzelfde potlood als op
+  // een class, een species of een subclass. Dat zat daar op de flipkaart en
+  // hier nergens, dus een background en een Epic Boon leken niet te bewerken —
+  // terwijl het venster erachter gewoon een afbeelding, een boek en een
+  // beschrijving aanbiedt. Eén regel: het potlood opent het bewerkvenster.
+  const dmPen = (isDM() && !it.entityId) ? `
+    <button class="vaardig-pen" title="Dit kaartje bewerken"
+      onclick="event.stopPropagation();${it.soort === 'background'
+        ? `window.vaardigheden.kaartBewerken('background','${escA(it.naam)}')`
+        : `window.vaardigheden.bewerk('${escA(it.key)}')`}">${icon('pencil')}</button>` : '';
+
   // Een zegening of een gunst is een kaartje in de campagne, en dat heeft zijn
   // eigen venster — met de god, de eedtekst en de permanente zegen erin. Daar
   // klikken we dus heen: één plek om een zegening te bekijken, niet twee.
@@ -457,7 +468,7 @@ function _card(it) {
       onclick="${klik}" title="${esc(it.naam)}"
       style="--soort-c1:${eigenKleur ? esc(eigenKleur) : s.c1};--soort-c2:${eigenKleur ? esc(eigenKleur) : s.c2}">
       <div class="card-accent vaardig-accent"></div>
-      ${dmRij}
+      ${dmRij}${dmPen}
       ${it.level ? `<span class="vaardig-card-niv">${it.level}</span>` : ''}
       <div class="card-img-wrap vaardig-card-img-wrap">
         <div class="vaardig-card-silhouet">${icon(_itemIcoon(it))}</div>
@@ -1686,7 +1697,7 @@ function _kaartVenster(soort, naam, bron = '') {
       </dl>` : ''}
       ${naarSpreuken || isDM() ? `<div class="spreuk-dm-knoppen">
         ${naarSpreuken ? `<button class="spreuk-detail-imgbtn" onclick="window.vaardigheden.naarSpreuken('${veilig}')">${icon('book-open')} Spreukenlijst</button>` : ''}
-        ${isDM() ? `<button class="spreuk-detail-imgbtn" onclick="window.vaardigheden.kaartBewerken('${esc(soort)}','${veilig}','${veiligB}')">${icon('pencil')} ${uitleg ? 'Kaartje bewerken' : 'Uitleg toevoegen'}</button>` : ''}
+        ${isDM() ? `<button class="spreuk-detail-imgbtn" onclick="window.vaardigheden.kaartBewerken('${esc(soort)}','${veilig}','${veiligB}')">${icon('pencil')} Kaartje bewerken</button>` : ''}
       </div>` : ''}
       ${soort === 'background' ? '' : `
         <div class="vd-subvenster-kop">${aantal ? `${aantal} ${aantal === 1 ? 'feature' : 'features'}${elders ? ' — elders' : ''}` : 'Nog geen features'}</div>

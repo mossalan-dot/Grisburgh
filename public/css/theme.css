@@ -29738,6 +29738,26 @@ body.wizard-open { overflow: hidden; }
 .vk-flip:hover .vk-beeldknop { opacity: 1; }
 .vk-beeldknop svg { width: 15px; height: 15px; }
 
+/* Hetzelfde potlood op een gewoon kaartje in het raster. Het stond alleen op
+   de flipkaarten, dus een background en een Epic Boon leken niet te bewerken.
+   Linksboven, want rechtsboven staat het level. */
+.vaardig-pen {
+  position: absolute; top: 8px; left: 8px; z-index: 6;
+  width: 26px; height: 26px; display: flex; align-items: center; justify-content: center;
+  border: 1px solid rgba(196,168,122,.8); border-radius: 5px;
+  background: rgba(255,252,244,.88); color: #8a7050; cursor: pointer;
+  padding: 0; transition: opacity .15s, border-color .15s;
+}
+.vaardig-pen svg { width: 14px; height: 14px; }
+.vaardig-pen:hover { border-color: #b8860b; color: #5a4030; }
+/* Op een muisscherm pas als je erover gaat; op een telefoon is er geen hover,
+   dan staat hij er gewoon. */
+@media (hover: hover) {
+  .vaardig-pen { opacity: 0; }
+  .vaardig-card:hover .vaardig-pen,
+  .vaardig-pen:focus-visible { opacity: 1; }
+}
+
 /* De achterkant is een voorproefje, geen scrollgebied: het hele verhaal staat
    in het venster dat opengaat als je op het kaartje klikt. Wat er niet op past
    vervaagt naar de onderrand — die vervaging heeft de kleur van de kaart zelf,
