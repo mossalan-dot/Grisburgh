@@ -1,4 +1,4 @@
-import { api, campagneUitUrl, zetCampagne } from './api.js?v=314';
+import { api, campagneUitUrl, zetCampagne } from './api.js?v=315';
 import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, renderDocumenten, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=349";
 import { initArchief, renderLogboek, openLogboekEditor } from "./render-archief.js?v=142";
 import { renderKaart, queueFlyTo, verversPins, nieuweKaart } from './render-kaart.js?v=31';
@@ -330,6 +330,7 @@ window.app = {
   landingDmVeld,
   hideLanding,
   _landingPortraitClick,
+  _landingNieuw,
   openPlayerPicker,
   closePlayerPicker,
   playerLogin,
@@ -1136,6 +1137,7 @@ async function _landingToonGroep(r) {
   // Opnieuw tekenen met alleen deze party: de kiezer is een carrousel met een
   // slide per party, en losse portretten verstoppen breekt die indeling.
   await showLanding({ alleenGroep: r.groep?.id || null });
+  await _landingNieuwTegel();
   const sub = document.getElementById('landing-subtitle');
   if (sub && r.groep?.naam) sub.textContent = `Kies je personage — ${r.groep.naam}`;
   document.querySelector('.landing-toegang')?.classList.add('hidden');
@@ -1553,6 +1555,52 @@ async function showLanding({ alleenGroep = null } = {}) {
   } catch {
     list.innerHTML = '<p class="landing-loading">Fout bij laden.</p>';
   }
+}
+
+// ── Zelf een personage maken ────────────────────────────────────────────────
+// Wie het partywachtwoord typte zit aan tafel, en dat is de drempel — dezelfde
+// als bij het inloggen. Tussen de portretten komt daarom een leeg vak: begin er
+// een, of ga verder met wat je al had liggen. Zie
+// docs/voorstel-personage-maken.md voor waarom een concept nog geen kaartje is.
+async function _landingNieuwTegel() {
+  const host = document.getElementById('landing-portraits');
+  if (!host || !_groepsWachtwoord || document.getElementById('landing-nieuw')) return;
+  let stand = null;
+  try {
+    await import('./personage-maken.js?v=1');
+    stand = await window.personageMaken.stand();
+  } catch { return; }
+  if (stand?.instellingen && stand.instellingen.aan === false) return;
+  const bezig = stand?.concept && stand.concept.status !== 'gegund' ? stand.concept : null;
+  const doel = host.querySelector('.landing-carousel-slide') || host;
+  doel.insertAdjacentHTML('beforeend', `
+    <div class="landing-portrait landing-portrait--nieuw" id="landing-nieuw"
+      title="${bezig ? 'Verder waar je gebleven was' : 'Maak zelf een personage'}"
+      onclick="window.app._landingNieuw()">
+      <div class="landing-portrait-ring">
+        <div class="landing-portrait-fallback">${icon(bezig ? 'pencil' : 'plus')}</div>
+      </div>
+      <div class="landing-portrait-name">${bezig ? esc(bezig.naam || 'Naamloos') : 'Nieuw personage'}</div>
+      <div class="landing-portrait-sub">${bezig
+        ? (bezig.status === 'wacht' ? 'Wacht op je DM' : 'Verder gaan')
+        : 'Zelf maken'}</div>
+    </div>`);
+}
+
+async function _landingNieuw() {
+  try {
+    await import('./personage-maken.js?v=1');
+    const stand = await window.personageMaken.stand();
+    if (stand?.concept && stand.concept.status !== 'gegund') {
+      if (stand.concept.status === 'wacht') {
+        _showToast('Hij ligt bij je DM. Zodra hij hem goedkeurt staat hij hier tussen.');
+        return;
+      }
+      await window.personageMaken.hervat();
+      return;
+    }
+    await window.personageMaken.start(_groepsWachtwoord);
+  } catch (e) { _showToast(e.message || 'Dat lukte niet'); }
 }
 
 // ── Landing portret-klik: stap 1 = wachtwoord (indien vereist) ──
@@ -15112,6 +15160,18 @@ const HELP_CONFIG = {
     { titel: 'Eerst: wát maak je?', tekst: 'De lijst bovenaan is de vraag waar de rest uit volgt. **Een regel binnen iets** is een feature: iets wat je op een bepaald level krijgt van je class, subclass, species of background. **Iets nieuws beginnen** is de houder zelf — een eigen class, subclass, species of background, nog zonder features.\n\nDaarom vraagt een houder niet om een level: hij ís geen regel op een ladder. De features hang je er daarna aan, met *Feature van een…*.', afbeelding: null },
     { titel: 'Herkomst en waaruit', tekst: '**Herkomst** zegt alleen óf het overgenomen is. Zet je iets anders dan *zelf verzonnen*, dan komt er een veld **Waaruit?** bij: de naam van het boek, of van de tafelgenoot die het bedacht.\n\nDat is geen boekhouding om de boekhouding. Het bepaalt wat je later mag meenemen naar een andere campagne: zelf verzonnen mag mee, overgenomen tekst niet. Over een jaar weet je het niet meer.', afbeelding: null },
     { titel: 'Beschrijving', tekst: 'Bij een feature: wat het doet. Bij een houder: wat het **is** — dat staat bovenaan het kaartje, vóór de features. Een lege regel begint een nieuwe alinea, en met de knoppen erboven maak je vet, cursief of gekleurd.\n\nNeem geen tekst over uit een boek dat niet van jou is. Vat het samen in je eigen woorden; dan mag het mee en leest het bovendien korter.', afbeelding: null },
+  ] }),
+
+  inst_personage: () => ({ titel: 'Zelf een personage maken', stappen: [
+    { titel: 'Waarom dit er is', tekst: 'Een speler kon zijn blad altijd al bijwerken, maar het **kaartje** aanmaken kon alleen jij. Een nieuwe speler stond daardoor niet tussen de portretten en kwam nergens binnen — en jij moest midden in een sessie een leeg kaartje maken terwijl de rest wachtte.\n\nNu maakt hij er zelf een. De drempel is het **partywachtwoord**: wie dat heeft zit aan tafel, dezelfde afspraak als bij het inloggen.', afbeelding: null },
+    { titel: 'Het bestaat pas als jij het gunt', tekst: 'Wat hij maakt is een **concept** en geen kaartje. Het staat nergens in je wereld: niet in de partylijst, niet in een gevecht, niet op het tafelscherm. Je vindt het op één plek — **Vragen → Nieuw personage** — met zijn hele blad erbij: wat hij koos, wat daaruit volgt, en wat de app erover op te merken heeft.\n\nGun je het, dan ontstaan het kaartje, het profiel en zijn HP in één keer, in de party waar hij het wachtwoord van had. Stuur je het terug, dan hoort daar een reden bij; die leest hij zodra hij verder gaat.', afbeelding: null },
+    { titel: 'De scores', tekst: 'Vier manieren, en jij zegt welke er aan jouw tafel mogen: de **standaardreeks**, **point buy**, **rollen** (zes keer 4d6, de laagste eraf, in de app) en **vrij intikken** voor een personage dat elders gemaakt is.\n\nDe app rekent voor maar houdt niets tegen. Kiest iemand scores die niet kunnen, dan staat dat als opmerking op jouw scherm en beslis jij.', afbeelding: null },
+    { titel: 'Beginnen boven level 1', tekst: 'Standaard begint iedereen op 1. Zet je het hoger, dan mag een speler erom **vragen** — hij vult het in, jij ziet het staan voordat je gunt. Zijn HP en proficiency rekenen mee; zijn subclass vraagt de wizard zodra zijn beginlevel hoog genoeg is.', afbeelding: null },
+  ] }),
+
+  dm_verzoeken_personage: () => ({ titel: 'Een nieuw personage', stappen: [
+    { titel: 'Wat je hier ziet', tekst: 'Iemand heeft met het partywachtwoord van een van je partys een personage gemaakt. Je ziet zijn naam, zijn species, class en background, zijn zes scores, zijn HP en zijn AC — en met welke manier hij die scores bepaalde.\n\nWat er niet klopt staat eronder als opmerking. Die blokkeren niets: het is jouw tafel, en soms is de uitzondering juist de bedoeling.', afbeelding: null },
+    { titel: 'Gunnen of terugsturen', tekst: '**Gunnen** maakt het personage echt: het kaartje, het profiel, zijn hit points en zijn plek in de party. Daarna kan hij met hetzelfde partywachtwoord inloggen en staat hij tussen de portretten.\n\n**Terugsturen** vraagt om een reden. Die leest hij zodra hij zijn concept weer opent, en hij kan er meteen aan verder werken — er gaat niets verloren.', afbeelding: null },
   ] }),
 
   inst_onderdelen: () => ({ titel: 'Onderdelen van deze campagne', stappen: [

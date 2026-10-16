@@ -464,6 +464,16 @@ export const api = {
   saveAkteMonsters:   (key, monsters)   => request(`/meta/akte/${encodeURIComponent(key)}/monsters`,   { method: 'PUT', body: JSON.stringify({ monsters }) }),
   saveAkteBereikbaarheid: (key, data) => request(`/meta/akte/${encodeURIComponent(key)}/bereikbaarheid`, { method: 'PUT', body: JSON.stringify(data) }),
   lootEvents:       ()        => request('/loot/events'),
+
+  // Een personage in wording. De eerste twee mogen zonder sessie: wie het
+  // partywachtwoord typt mag er een beginnen, dat is de drempel.
+  conceptStart:     (wachtwoord, naam) => request('/personage-concept', { method: 'POST', body: JSON.stringify({ wachtwoord, naam }) }),
+  conceptMijn:      ()        => request('/personage-concept'),
+  conceptBewaar:    (id, data) => request(`/personage-concept/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
+  conceptIndienen:  (id)      => request(`/personage-concept/${id}/indienen`, { method: 'POST' }),
+  conceptenOpen:    ()        => request('/personage-concepten'),
+  conceptBesluit:   (id, besluit, reden) => request(`/personage-concept/${id}/${besluit}`, { method: 'POST', body: JSON.stringify({ reden: reden || '' }) }),
+  savePersonageMaken: (data)  => request('/meta/personage-maken', { method: 'PUT', body: JSON.stringify(data) }),
   lootEventCreate:  (data)    => request('/loot/events',                { method: 'POST',   body: JSON.stringify(data) }),
   lootEventUpdate:  (id, d)   => request(`/loot/events/${id}`,          { method: 'PUT',    body: JSON.stringify(d) }),
   lootEventDelete:  (id)      => request(`/loot/events/${id}`,          { method: 'DELETE' }),

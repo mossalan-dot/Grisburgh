@@ -1,4 +1,4 @@
-import { api, huidigeCampagne } from './api.js?v=314';
+import { api, huidigeCampagne } from './api.js?v=315';
 import { init as canvasInit, update as canvasUpdate, stop as canvasStop, acGetal } from './combat-canvas.js?v=30';
 import { renderStatblock } from './render-statblock.js?v=9';
 
@@ -11673,9 +11673,9 @@ async function _renderVerzoeken() {
   el.innerHTML = _dmLoading();
 
   let spreuken = [], bezit = null, multiclass = [], dossiers = [], spelers = [], badges = {}, tsData = null, gerData = null,
-      leningen = [], onderpand = [];
+      leningen = [], onderpand = [], concepten = [];
   try {
-    [spreuken, bezit, multiclass, dossiers, spelers, badges, tsData, gerData, leningen, onderpand] = await Promise.all([
+    [spreuken, bezit, multiclass, dossiers, spelers, badges, tsData, gerData, leningen, onderpand, concepten] = await Promise.all([
       api.getSpellRequests().then(r => r.requests || []).catch(() => []),
       api.getItemOwnership().catch(() => null),
       api.get('/multiclass-verzoeken').then(r => r.verzoeken || []).catch(() => []),
@@ -11686,6 +11686,7 @@ async function _renderVerzoeken() {
       api.gockGeruchten().catch(() => null),
       api.get('/woekeraar/verzoeken').then(r => r.verzoeken || []).catch(() => []),
       api.get('/onderpand/verzoeken').then(r => r.verzoeken || []).catch(() => []),
+      api.conceptenOpen().then(r => r.concepten || []).catch(() => []),
     ]);
   } catch { /* hieronder vangen we het lege geval af */ }
   const _open = (bezit?.requests || []).filter(r => r.status === 'pending');
@@ -11827,7 +11828,31 @@ async function _renderVerzoeken() {
       </span>
     </div>`).join('');
 
-  const totaal = spreuken.length + voorwerpen.length + multiclass.length + dossiers.length + leningen.length + onderpand.length;
+  // Een nieuw personage is het enige verzoek van iemand die nog niet bestaat.
+  // Het hele blad staat erbij, want je gunt hier geen regel maar een speler:
+  // wat hij koos, wat eruit volgt, en wat de app erover op te merken heeft.
+  const conceptHtml = concepten.map(({ concept: c, profiel, nakijk, groepNaam }) => `
+    <div class="dm-verzoek-rij dm-verzoek-rij--kolom">
+      <span class="dm-verzoek-tekst">
+        <strong>${esc(c.naam)}</strong> wil meespelen${groepNaam ? ` bij <em>${esc(groepNaam)}</em>` : ''}
+        <span class="dm-verzoek-context">${esc([c.species, c.klasse, c.subclass].filter(Boolean).join(' · '))} · level ${esc(String(c.level || 1))}
+          · ${esc(_pmMethodeLabel(c.methode))}</span>
+      </span>
+      <div class="dm-concept-blad">
+        ${['str','dex','con','int','wis','cha'].map(a => `
+          <span class="dm-concept-score"><em>${a.toUpperCase()}</em> ${esc(String(profiel[a] ?? 10))}</span>`).join('')}
+        <span class="dm-concept-score"><em>HP</em> ${esc(String(profiel._hp ?? ''))}</span>
+        <span class="dm-concept-score"><em>AC</em> ${esc(String(profiel.ac ?? ''))}</span>
+      </div>
+      ${(nakijk?.opmerkingen || []).length
+        ? `<p class="dm-hint" style="margin:4px 0 0">${icon('alert-triangle')} ${nakijk.opmerkingen.map(esc).join(' ')}</p>` : ''}
+      <span class="dm-verzoek-acties">
+        <button class="dm-btn dm-btn-sm dm-btn-primary" onclick="window.dmPanel.conceptBesluit('${esc(c.id)}','gunnen')">${icon('check')} Gunnen</button>
+        <button class="dm-btn dm-btn-sm dm-btn-ghost" onclick="window.dmPanel.conceptBesluit('${esc(c.id)}','terug')">${icon('x')} Terugsturen</button>
+      </span>
+    </div>`).join('');
+
+  const totaal = spreuken.length + voorwerpen.length + multiclass.length + dossiers.length + leningen.length + onderpand.length + concepten.length;
   // Twee secties, want het zijn twee richtingen: bij Gunnen geef jij iets, bij
   // Verzoeken vraagt een speler iets. Ze stonden onder één kop "Verzoeken", en
   // dan lijkt gunnen een soort verzoek.
@@ -11863,6 +11888,11 @@ async function _renderVerzoeken() {
          multiclassen, lenen — en dan moet je elke keer zoeken.
          De koppen hebben alle negen dezelfde vorm: icoon, naam, aantal, boekje. -->
     <div class="dm-verzoek-groep">Zijn personage</div>
+
+    <div class="dm-feature-section">
+      <div class="dm-section-label">${icon('user')} Nieuw personage ${concepten.length ? `(${concepten.length})` : ''}<span class="dm-sectie-hulp">${helpBtn('dm_verzoeken_personage')}</span></div>
+      ${conceptHtml || '<p class="dm-hint">Niets openstaand.</p>'}
+    </div>
 
     <div class="dm-feature-section">
       <div class="dm-section-label">${icon('sparkles')} Spreuken ${spreuken.length ? `(${spreuken.length})` : ''}<span class="dm-sectie-hulp">${helpBtn('dm_verzoeken_spreuken')}</span></div>
@@ -11914,6 +11944,25 @@ async function _renderVerzoeken() {
     </div>
     </div>`;
 }
+
+const _PM_METHODE = { array: 'standaardreeks', pointbuy: 'point buy', rollen: 'gerold', vrij: 'zelf ingevuld' };
+function _pmMethodeLabel(m) { return _PM_METHODE[m] || 'onbekend'; }
+
+// Gunnen is het moment waarop het personage ontstaat: kaartje, profiel, HP en
+// party in één keer. Terugsturen vraagt om een reden — de speler leest hem
+// zodra hij zijn concept weer opent, en zonder reden weet hij niets.
+window.dmPanel.conceptBesluit = async (id, besluit) => {
+  let reden = '';
+  if (besluit === 'terug') {
+    reden = prompt('Wat moet er anders? Dit leest hij als hij verder gaat.') || '';
+    if (!reden.trim()) return;
+  } else if (!confirm('Dit personage aanmaken en bij zijn party zetten?')) return;
+  try {
+    await api.conceptBesluit(id, besluit, reden);
+    window._showToast?.(besluit === 'gunnen' ? 'Het personage staat klaar.' : 'Teruggestuurd.');
+    _renderVerzoeken();
+  } catch (e) { alert('Dat lukte niet: ' + (e.message || e)); }
+};
 
 // Welke van de twee in beeld staat. Wisselen hoeft niets op te halen: allebei
 // de panelen staan er al.
@@ -12815,6 +12864,11 @@ async function _renderInstellingen() {
   // GET /meta levert dit genormaliseerd; een campagne die er nooit naar keek
   // heeft geen meta.levelup en krijgt hier toch de drie manieren te zien.
   const lu = (window.app?.state?.meta?.levelup) || { methodes: ['gemiddelde', 'app', 'tafel'], standaard: 'gemiddelde', maxLevel: 20 };
+  // Staat het blok er nog niet, dan mag alles: de app heeft geen mening over
+  // hoe jouw tafel zijn scores bepaalt. Alleen een beginlevel boven 1 is een
+  // beslissing die je zelf neemt.
+  const pm = (window.app?.state?.meta?.personageMaken)
+    || { aan: true, methodes: ['array', 'pointbuy', 'rollen', 'vrij'], maxLevel: 1 };
   if (!body) return;
 
   // Half het paneel hertekent zichzelf na elke wijziging (party erbij,
@@ -13112,6 +13166,38 @@ async function _renderInstellingen() {
         <input id="inst-lu-max" class="dm-input" type="number" min="1" max="30" value="${lu.maxLevel || 20}">
       </div>
     `, window._helpBtn?.('inst_levelup') ?? '')}
+
+    <!-- Een speler kon zijn blad al bijwerken maar zijn kaartje niet aanmaken,
+         dus stond een nieuwe speler niet in de inloglijst. Nu maakt hij een
+         concept met het partywachtwoord en gun jij het. Wat hier staat is wat
+         je hem toestaat — niet of de app het kan. -->
+    ${_instSectie('personage', 'Zelf een personage maken', `
+      <div class="dm-form-row">
+        <label class="dm-form-checkbox">
+          <input type="checkbox" id="inst-pm-aan"${pm.aan !== false ? ' checked' : ''}>
+          <span>Spelers mogen er zelf een beginnen (met het partywachtwoord)</span>
+        </label>
+      </div>
+      <div class="dm-form-row">
+        <label class="dm-form-label">Hoe mogen ze hun ability scores bepalen?</label>
+      </div>
+      ${[['array', 'Standaardreeks', '15, 14, 13, 12, 10, 8 verdelen.'],
+         ['pointbuy', 'Point buy', '27 punten, alles begint op 8.'],
+         ['rollen', 'Rollen', 'Zes keer 4d6, de laagste eraf — in de app, zichtbaar.'],
+         ['vrij', 'Vrij intikken', 'Zes vakjes. Voor een personage dat elders gemaakt is.']]
+        .map(([k, label, uitleg]) => `
+        <div class="dm-form-row">
+          <label class="dm-module-item" title="${esc(uitleg)}">
+            <input type="checkbox" class="inst-pm-methode" value="${k}"
+              ${(pm.methodes || []).includes(k) ? 'checked' : ''}>
+            <span>${label}</span>
+          </label>
+        </div>`).join('')}
+      <div class="dm-form-row">
+        <label class="dm-form-label" for="inst-pm-max">Hoogste beginlevel dat ze mogen vragen</label>
+        <input id="inst-pm-max" class="dm-input" type="number" min="1" max="20" value="${pm.maxLevel || 1}">
+      </div>
+    `, window._helpBtn?.('inst_personage') ?? '')}
 
     <!-- Wat een speler van andermans HP ziet is smaak, geen regel: de ene DM
          houdt alles verborgen, de andere legt de cijfers op tafel. Wat er níét
@@ -13445,6 +13531,16 @@ window._instOpslaan = async () => {
       methodes: luMethodes, standaard: luStd,
       maxLevel: parseInt(document.getElementById('inst-lu-max')?.value) || 20,
       systeem: document.getElementById('inst-lu-systeem')?.value || 'milestone',
+    });
+
+    // Zelf een personage maken: eigen route, net als de level-upinstellingen.
+    // Geen enkele manier aangevinkt zou betekenen dat de wizard geen scherm
+    // heeft voor de scores; dan mag alles, want dat is wat "geen voorkeur" is.
+    const pmMethodes = [...document.querySelectorAll('.inst-pm-methode')].filter(c => c.checked).map(c => c.value);
+    await api.savePersonageMaken({
+      aan: !!document.getElementById('inst-pm-aan')?.checked,
+      methodes: pmMethodes.length ? pmMethodes : ['array', 'pointbuy', 'rollen', 'vrij'],
+      maxLevel: parseInt(document.getElementById('inst-pm-max')?.value) || 1,
     });
 
     const nieuweMeta = await api.meta();

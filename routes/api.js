@@ -13,6 +13,8 @@ const { MODULES, modulesVoor, modulesVrijgegeven, schoneModules, verborgenUI } =
 const bronnen = require('../lib/bronnen');
 const houdingen = require('../lib/houding');
 const briefCode = require('../lib/brief-code');
+const personageConcept = require('../lib/personage-concept');
+const crypto = require('crypto');
 const { DISPLAY_FX, fxVoor, fxBericht } = require('../lib/display-fx');
 const spotify = require('../lib/spotify');
 const config  = require('../config');
@@ -5281,6 +5283,243 @@ router.post('/multiclass-verzoek/:id/:besluit', requireDM, (req, res) => {
     _afwijzingInPost(req, verzoek.characterId, `Een level in ${verzoek.klasse}`, verzoek.reden);
   }
   res.json({ ok: true, verzoek });
+});
+
+// ── Een personage in wording ────────────────────────────────────────────────
+// Het vijfde soort verzoek, en het enige dat van iemand komt die nog geen
+// personage heeft. Daarom hangt het niet aan een `characterId` maar aan de
+// sessie: wie het partywachtwoord typt krijgt een concept, en dat concept
+// blijft van hem tot de DM het gunt of terugstuurt.
+//
+// Waarom een concept en geen kaartje: zie lib/personage-concept.js.
+
+function _concepten(dmState) {
+  if (!dmState.conceptPersonages) dmState.conceptPersonages = {};
+  return dmState.conceptPersonages;
+}
+
+// Hetzelfde wachtwoord als waarmee je inlogt, dus dezelfde vergelijking: zonder
+// dat de reactietijd verklapt hoe ver je kwam.
+function _zelfdeWachtwoord(a, b) {
+  const A = Buffer.from(String(a ?? ''), 'utf8');
+  const B = Buffer.from(String(b ?? ''), 'utf8');
+  if (A.length !== B.length) { crypto.timingSafeEqual(A, A); return false; }
+  return crypto.timingSafeEqual(A, B);
+}
+
+function _groepBijWachtwoord(dmState, wachtwoord) {
+  const treffer = Object.entries(dmState.groups || {})
+    .find(([, g]) => g.password && _zelfdeWachtwoord(wachtwoord, g.password));
+  return treffer ? { id: treffer[0], groep: treffer[1] } : null;
+}
+
+// Alles wat de wizard moet weten om zijn keuzes te tonen, in één antwoord. Het
+// moet wel: wie een personage maakt is nog niet ingelogd, en `/api/bron/:naam`
+// vraagt om een sessie met een rol. Dit is dezelfde data, maar alleen wat je
+// voor het maken nodig hebt — namen, getallen en lijstjes, geen teksten.
+function _maakBronnen() {
+  const prog = _progHuidig();
+  const basis = bronnen.lees('klasse-basis')?.klassen || {};
+  const bgSeed = bronnen.lees('backgrounds-2024') || {};
+  const klassen = Object.keys(prog.classes || {}).sort().map(naam => ({
+    naam,
+    basis: personageConcept.klasseBasis(naam, prog),
+    subclassLabel: prog.classes[naam].subclassLabel || 'Subclass',
+    subclassLevel: parseInt(prog.classes[naam].subclassLevel) || 3,
+    subclasses: Object.keys(prog.classes[naam].subclasses || {}).sort(),
+  }));
+  const species = Object.keys(prog.species || {}).sort().map(naam => ({
+    naam,
+    traits: Object.values(prog.species[naam].levels || {})
+      .flat().map(f => f?.name).filter(Boolean),
+  }));
+  const backgrounds = Object.keys(bgSeed).filter(k => !k.startsWith('_')).sort()
+    .map(naam => ({ naam, ...personageConcept.backgroundDelen(naam) }));
+  return { klassen, species, backgrounds, _basisUitBron: Object.keys(basis).length };
+}
+
+// Het concept zoals de wizard en de DM het zien: wat erin staat, plus wat
+// eruit volgt. Twee keer dezelfde berekening zou twee keer uit elkaar lopen.
+function _conceptAntwoord(c, dmState) {
+  const prog = _progHuidig();
+  const meta = storage.readJSON('meta.json');
+  return {
+    concept: c,
+    profiel: personageConcept.profielVan(c, { prog }),
+    nakijk: personageConcept.nakijken(c, { meta, prog }),
+    groepNaam: dmState.groups?.[c.groep]?.name || '',
+  };
+}
+
+// Een nieuw concept beginnen. Het partywachtwoord is de drempel — wie dat
+// heeft zit aan tafel, dezelfde afspraak als bij het inloggen.
+router.post('/personage-concept', (req, res) => {
+  const meta = storage.readJSON('meta.json');
+  const inst = personageConcept.instellingen(meta);
+  if (!inst.aan) return res.status(403).json({ error: 'De DM heeft dit uitgezet' });
+  const dmState = readDmState();
+  const hit = _groepBijWachtwoord(dmState, req.body?.wachtwoord);
+  if (!hit) return res.status(401).json({ error: 'Dat is geen partywachtwoord' });
+
+  const id = `cp_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
+  const c = {
+    id, groep: hit.id, status: 'bezig',
+    naam: String(req.body?.naam || '').trim().slice(0, 60),
+    species: '', klasse: '', subclass: '', background: '',
+    level: 1, methode: inst.methodes[0] || 'array',
+    scores: { str: 10, dex: 10, con: 10, int: 10, wis: 10, cha: 10 },
+    bgBonus: {}, skills: [], worpen: [],
+    gemaakt: new Date().toISOString(), bijgewerkt: new Date().toISOString(),
+  };
+  _concepten(dmState)[id] = c;
+  storage.writeJSON('dm-state.json', dmState);
+  req.session.conceptId = id;
+  res.json({ ..._conceptAntwoord(c, dmState), instellingen: inst, bronnen: _maakBronnen() });
+});
+
+// Wat de sessie onderhanden heeft. Zonder concept een leeg antwoord, zodat de
+// landingspagina kan zien of er "+ Nieuw personage" of "Verder met …" staat.
+router.get('/personage-concept', (req, res) => {
+  const meta = storage.readJSON('meta.json');
+  const inst = personageConcept.instellingen(meta);
+  const dmState = readDmState();
+  const c = _concepten(dmState)[req.session?.conceptId];
+  if (!c) return res.json({ concept: null, instellingen: inst });
+  res.json({ ..._conceptAntwoord(c, dmState), instellingen: inst, bronnen: _maakBronnen() });
+});
+
+// Opslaan terwijl je bezig bent. Wat de wizard stuurt is altijd het hele
+// concept; wat er niet in staat blijft staan.
+router.patch('/personage-concept/:id', (req, res) => {
+  const dmState = readDmState();
+  const c = _concepten(dmState)[req.params.id];
+  if (!c) return res.status(404).json({ error: 'Niet gevonden' });
+  const magDM = (req.session?.role === 'dm');
+  if (!magDM && req.session?.conceptId !== c.id) return res.status(403).json({ error: 'Geen toegang' });
+  if (c.status === 'gegund') return res.status(409).json({ error: 'Dit personage is al gemaakt' });
+
+  const b = req.body || {};
+  const tekst = (v, max) => String(v ?? '').trim().slice(0, max);
+  if (b.naam       !== undefined) c.naam = tekst(b.naam, 60);
+  if (b.species    !== undefined) c.species = tekst(b.species, 60);
+  if (b.klasse     !== undefined) c.klasse = tekst(b.klasse, 60);
+  if (b.subclass   !== undefined) c.subclass = tekst(b.subclass, 60);
+  if (b.background !== undefined) c.background = tekst(b.background, 60);
+  if (b.methode    !== undefined && personageConcept.METHODES[b.methode]) c.methode = b.methode;
+  if (b.level      !== undefined) c.level = Math.max(1, Math.min(20, parseInt(b.level) || 1));
+  if (b.scores     !== undefined) {
+    c.scores = Object.fromEntries(personageConcept.ABILITIES.map(a =>
+      [a, Math.max(1, Math.min(30, parseInt(b.scores?.[a]) || 10))]));
+  }
+  if (b.bgBonus !== undefined) {
+    c.bgBonus = Object.fromEntries(personageConcept.ABILITIES
+      .map(a => [a, Math.max(0, Math.min(2, parseInt(b.bgBonus?.[a]) || 0))])
+      .filter(([, v]) => v > 0));
+  }
+  if (Array.isArray(b.skills)) c.skills = b.skills.map(x => tekst(x, 40)).filter(Boolean).slice(0, 12);
+  if (Array.isArray(b.worpen)) c.worpen = b.worpen.map(x => parseInt(x) || 0).slice(0, 6);
+  // Terugsturen gaf een reden; zodra hij er weer aan werkt is die van de baan.
+  if (c.status === 'terug') { c.status = 'bezig'; }
+  c.bijgewerkt = new Date().toISOString();
+  storage.writeJSON('dm-state.json', dmState);
+  res.json(_conceptAntwoord(c, dmState));
+});
+
+// Ter goedkeuring. Vanaf nu staat hij bij de DM op de Vragen-tab.
+router.post('/personage-concept/:id/indienen', (req, res) => {
+  const dmState = readDmState();
+  const c = _concepten(dmState)[req.params.id];
+  if (!c) return res.status(404).json({ error: 'Niet gevonden' });
+  if (req.session?.conceptId !== c.id && req.session?.role !== 'dm') {
+    return res.status(403).json({ error: 'Geen toegang' });
+  }
+  const nakijk = personageConcept.nakijken(c, { meta: storage.readJSON('meta.json'), prog: _progHuidig() });
+  if (!nakijk.kanWeg) return res.status(400).json({ error: nakijk.fouten[0], fouten: nakijk.fouten });
+  c.status = 'wacht';
+  c.reden = '';
+  c.ingediend = new Date().toISOString();
+  storage.writeJSON('dm-state.json', dmState);
+  _meldVerzoek(req, 'personage', c.naam, `${c.species || ''} ${c.klasse || ''}`.trim());
+  res.json(_conceptAntwoord(c, dmState));
+});
+
+// Wat er op de DM ligt te wachten.
+router.get('/personage-concepten', requireDM, (req, res) => {
+  const dmState = readDmState();
+  const alles = Object.values(_concepten(dmState))
+    .filter(c => c.status === 'wacht')
+    .sort((a, b) => String(a.ingediend || '').localeCompare(String(b.ingediend || '')))
+    .map(c => _conceptAntwoord(c, dmState));
+  res.json({ concepten: alles });
+});
+
+// Gunnen of terugsturen. Gunnen is het moment waarop het personage ontstaat:
+// het kaartje, het profiel, de HP en de party, in één schrijfbeurt.
+router.post('/personage-concept/:id/:besluit', requireDM, (req, res) => {
+  const { besluit } = req.params;
+  if (!['gunnen', 'terug'].includes(besluit)) return res.status(400).json({ error: 'Onbekend besluit' });
+  const dmState = readDmState();
+  const c = _concepten(dmState)[req.params.id];
+  if (!c) return res.status(404).json({ error: 'Niet gevonden' });
+
+  if (besluit === 'terug') {
+    c.status = 'terug';
+    c.reden = String(req.body?.reden || '').slice(0, 400);
+    storage.writeJSON('dm-state.json', dmState);
+    req.app.get('io').to(_campagneRoom(req)).emit('personage:besluit', { id: c.id, besluit, naam: c.naam });
+    return res.json({ ok: true, concept: c });
+  }
+
+  const prog = _progHuidig();
+  const profiel = personageConcept.profielVan(c, { prog });
+  const hp = profiel._hp;
+  delete profiel._hp;
+
+  // Het kaartje. Subtype `speler`, want daar kijkt de inloglijst naar, en in
+  // dezelfde party als het wachtwoord waarmee hij begon.
+  const entities = storage.readJSON('entities.json');
+  if (!entities.personages) entities.personages = [];
+  const ent = {
+    id: `e_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+    name: c.naam, icon: '', subtype: 'speler',
+    data: { ras: c.species || '', klasse: c.klasse || '', groep: c.groep || '', desc: '' },
+    links: { personages: [], locaties: [], organisaties: [], voorwerpen: [], archief: [] },
+    stats: null,
+  };
+  entities.personages.push(ent);
+  storage.writeJSON('entities.json', entities);
+
+  if (!dmState.playerProfiles) dmState.playerProfiles = {};
+  dmState.playerProfiles[ent.id] = profiel;
+  if (!dmState.playerHp) dmState.playerHp = {};
+  dmState.playerHp[ent.id] = { current: hp, max: hp };
+  c.status = 'gegund';
+  c.entityId = ent.id;
+  c.gegund = new Date().toISOString();
+  storage.writeJSON('dm-state.json', dmState);
+
+  const io = req.app.get('io'); const room = _campagneRoom(req);
+  io.to(room).emit('entities:updated', { type: 'personages' });
+  io.to(room).emit('player:profile-updated', { characterId: ent.id, profile: profiel });
+  io.to(room).emit('personage:besluit', { id: c.id, besluit, naam: c.naam, entityId: ent.id });
+  res.json({ ok: true, entityId: ent.id, profiel });
+});
+
+// De instellingen van de DM: mag het, hoe mogen de scores bepaald worden, tot
+// welk level, en rolt er een trinket mee.
+router.put('/meta/personage-maken', requireDM, (req, res) => {
+  const meta = storage.readJSON('meta.json');
+  const b = req.body || {};
+  meta.personageMaken = {
+    aan: b.aan !== false,
+    methodes: Array.isArray(b.methodes)
+      ? b.methodes.filter(m => personageConcept.METHODES[m]) : Object.keys(personageConcept.METHODES),
+    maxLevel: Math.max(1, Math.min(20, parseInt(b.maxLevel) || 1)),
+    trinketTafel: String(b.trinketTafel || '').slice(0, 80),
+  };
+  storage.writeJSON('meta.json', meta);
+  req.app.get('io').to(_campagneRoom(req)).emit('meta:updated');
+  res.json(personageConcept.instellingen(meta));
 });
 
 function _levelupTegoed(dmState, characterId, meta) {
