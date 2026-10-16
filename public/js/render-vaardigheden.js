@@ -241,8 +241,9 @@ async function _load() {
   const telt = (h) => Object.values(h?.levels || {}).reduce((t, a) => t + (a || []).length, 0);
   const uitVoorraad = (soort, bron, sub, naam) => {
     const namen = _eldersFeatures?.[soort === 'class' ? 'classes' : soort === 'species' ? 'species' : 'subclasses']?.[naam] || [];
-    for (const f of namen) {
-      zet({ soort, bron, ...(sub ? { sub } : {}), level: 0, naam: f,
+    for (const rij of namen) {
+      const f = _eldersRij(rij);
+      zet({ soort, bron, ...(sub ? { sub } : {}), level: f.level, naam: f.naam,
             desc: '', img: '', imgFocus: '', herkomst: 'overgenomen', bronTekst: '' });
     }
   };
@@ -513,6 +514,15 @@ let _elders = null;
 // subclass die je uit de elders-lijst overneemt een leeg kaartje — je ziet dát
 // de Hexblade bestaat maar niet wát hij geeft.
 let _eldersFeatures = null;
+
+// Een regel uit de voorraadlijst is een naam, of een naam met een level erbij.
+// Dat tweede alleen waar het level is nagekeken; raden uit de volgorde gaat mis
+// zodra twee features op hetzelfde level liggen, en dat is bij elke subclass zo.
+function _eldersRij(rij) {
+  return (rij && typeof rij === 'object')
+    ? { naam: String(rij.naam || ''), level: parseInt(rij.level) || 0 }
+    : { naam: String(rij || ''), level: 0 };
+}
 async function _eldersLaden() {
   if (_elders !== null) return;
   try { _elders = await api.get('/bron/subclasses-elders'); }
@@ -1585,16 +1595,33 @@ function _houderFeaturesHtml(soort, naam, bron) {
 // De namen van de features van iets dat niet in de app staat, elk met de weg
 // naar buiten. Geen level ervoor: dat staat in het boek, en de ene druk zet het
 // anders dan de andere.
+// Op welke levels geeft deze class zijn subclasses features? Niet uit een
+// tabel die we zelf bijhouden, maar afgelezen aan de subclasses die hun
+// features wél meebrengen — bij elke class van de app is dat één vaste reeks.
+function _subclassLevelsVan(klasse) {
+  const subs = _bron?.prog?.classes?.[klasse]?.subclasses || {};
+  for (const data of Object.values(subs)) {
+    const lv = Object.entries(data.levels || {})
+      .filter(([, rijen]) => (rijen || []).length)
+      .map(([n]) => parseInt(n)).filter(Boolean).sort((a, b) => a - b);
+    if (lv.length) return lv;
+  }
+  return [];
+}
+
 function _eldersFeaturesHtml(soort, naam) {
   const groep = soort === 'class' ? 'classes' : soort === 'species' ? 'species' : 'subclasses';
   const lijst = _eldersFeatures?.[groep]?.[naam] || [];
   if (!lijst.length) return { aantal: 0, rijen: '', elders: false };
-  const rijen = lijst.map(f => {
-    const zoek = window.app?.bronLink?.(`${f} ${naam}`, 'feature') || '';
+  const rijen = lijst.map(rij => {
+    const f = _eldersRij(rij);
+    const zoek = window.app?.bronLink?.(`${f.naam} ${naam}`, 'feature') || '';
+    // Staat het level erbij, dan staat het waar het bij een eigen feature ook
+    // staat. Zo niet, dan het boekje: hier niet, daar wel.
     return `<a class="vd-subfeature vd-subfeature--elders" href="${esc(zoek)}" target="_blank" rel="noopener"
-      title="${esc(f)} opzoeken — de tekst staat in het boek, niet in de app">
-      <span class="vd-subfeature-lvl">${icon('book-open')}</span>
-      <span class="vd-subfeature-naam">${esc(f)}</span>
+      title="${esc(f.naam)} opzoeken — de tekst staat in het boek, niet in de app">
+      <span class="vd-subfeature-lvl">${f.level ? esc(String(f.level)) : icon('book-open')}</span>
+      <span class="vd-subfeature-naam">${esc(f.naam)}</span>
       <span class="vd-subfeature-naslag">${icon('arrow-up-right')}</span>
     </a>`;
   }).join('');
@@ -1612,6 +1639,15 @@ function _houderRijen(soort, naam, bron, { metBoek = true } = {}) {
   const veld = window._subSignatureVoor?.(naam);
   return [
     veld ? ['Eigen veld', veld.feature] : null,
+    // Heeft deze subclass geen features met een level, dan is "wanneer krijg ik
+    // wat" niet te beantwoorden uit wat hier staat. Wél te zeggen is waar ze
+    // bij déze class liggen — dat leest de app af aan de subclasses die hun
+    // features wél meebrengen.
+    (() => {
+      if (Object.values(data?.levels || {}).flat().length) return null;
+      const lv = _subclassLevelsVan(bron);
+      return lv.length ? ['Features op', `level ${lv.join(', ')}`] : null;
+    })(),
     // In het venster staat het boek al in de regel bovenaan; twee keer
     // hetzelfde boek onder elkaar is er een te veel.
     metBoek && data?.boek ? ['Uit', data.boek] : null,

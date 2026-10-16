@@ -1,5 +1,5 @@
 {
-  "_wat": "De námen van de features die horen bij classes, subclasses en species waarvan de tekst niet in de app staat — of dat nu is omdat ze uit een ander boek komen, of omdat het 2024-materiaal is dat buiten de SRD valt. Alleen namen: geen tekst, geen levels, geen regels.",
+  "_wat": "De námen van de features die horen bij classes, subclasses en species waarvan de tekst niet in de app staat — of dat nu is omdat ze uit een ander boek komen, of omdat het 2024-materiaal is dat buiten de SRD valt. Alleen namen, en waar het nagekeken is het level erbij: geen tekst, geen regels.",
   "_waarom": "Zet de DM een subclass uit de elders-lijst in zijn campagne, dan stond er daarna een leeg kaartje: 'geen tekst'. Je zag dát de Hexblade bestaat, maar niet wát hij geeft. Met de namen erbij weet een speler waar hij naar kijkt en waar hij het opzoekt — en daar is de knop naast elke naam voor.",
   "_grens": "Hier staan UITSLUITEND namen. Een naam is geen beschermd werk; de beschrijving eronder wél, en die hoort in het boek dat je ervoor koopt. Dit bestand gaat daarom net als subclasses-elders.json compleet mee naar elke campagne.",
   "_let_op": "Met de hand samengesteld, dus kijk het na voordat je erop bouwt. Wat ik niet zeker wist staat er niet in: een ontbrekende naam kost een zoekopdracht, een verkeerde naam kost vertrouwen. Namen zijn per druk veranderd, en een paar species (Genasi, Giff, Leonin, Verdan, Yuan-ti) staan er nog niet in omdat ze per variant verschillen of omdat ik hun lijst niet compleet kende.",
@@ -19,33 +19,108 @@
       "Soul of Artifice"
     ],
     "Blood Hunter": [
-      "Hunter's Bane",
-      "Blood Maledict",
-      "Fighting Style",
-      "Crimson Rite",
-      "Blood Hunter Order",
-      "Extra Attack",
-      "Brand of Castigation",
-      "Grim Psychometry",
-      "Dark Augmentation",
-      "Brand of Tethering",
-      "Hardened Soul",
-      "Sanguine Mastery"
+      {
+        "naam": "Hunter's Bane",
+        "level": 1
+      },
+      {
+        "naam": "Blood Maledict",
+        "level": 1
+      },
+      {
+        "naam": "Fighting Style",
+        "level": 2
+      },
+      {
+        "naam": "Crimson Rite",
+        "level": 2
+      },
+      {
+        "naam": "Blood Hunter Order",
+        "level": 3
+      },
+      {
+        "naam": "Extra Attack",
+        "level": 5
+      },
+      {
+        "naam": "Brand of Castigation",
+        "level": 6
+      },
+      {
+        "naam": "Grim Psychometry",
+        "level": 9
+      },
+      {
+        "naam": "Dark Augmentation",
+        "level": 10
+      },
+      {
+        "naam": "Brand of Tethering",
+        "level": 13
+      },
+      {
+        "naam": "Hardened Soul",
+        "level": 14
+      },
+      {
+        "naam": "Sanguine Mastery",
+        "level": 20
+      }
     ],
     "Illrigger": [
-      "Baleful Interdict",
-      "Forked Tongue",
-      "Combat Mastery",
-      "Interdiction",
-      "Diabolic Contract",
-      "Invoke Hell",
-      "Extra Attack",
-      "Infernal Conduit",
-      "Blood Price",
-      "Terrorizing Force",
-      "Superior Interdict",
-      "Infernal Majesty",
-      "Master of Hell"
+      {
+        "naam": "Baleful Interdict",
+        "level": 1
+      },
+      {
+        "naam": "Forked Tongue",
+        "level": 1
+      },
+      {
+        "naam": "Combat Mastery",
+        "level": 2
+      },
+      {
+        "naam": "Interdiction",
+        "level": 2
+      },
+      {
+        "naam": "Diabolic Contract",
+        "level": 3
+      },
+      {
+        "naam": "Invoke Hell",
+        "level": 3
+      },
+      {
+        "naam": "Extra Attack",
+        "level": 5
+      },
+      {
+        "naam": "Infernal Conduit",
+        "level": 6
+      },
+      {
+        "naam": "Blood Price",
+        "level": 10
+      },
+      {
+        "naam": "Terrorizing Force",
+        "level": 11
+      },
+      {
+        "naam": "Superior Interdict",
+        "level": 14
+      },
+      {
+        "naam": "Infernal Majesty",
+        "level": 17
+      },
+      {
+        "naam": "Master of Hell",
+        "level": 20
+      }
     ]
   },
   "subclasses": {
@@ -752,73 +827,226 @@
       "Illusory Reality"
     ],
     "Order of the Ghostslayer": [
-      "Rite of the Dawn",
-      "Curse Specialist",
-      "Aether Walk",
-      "Brand of Sundering",
-      "Blood Curse of the Exorcist",
-      "Rite Revival"
+      {
+        "naam": "Rite of the Dawn",
+        "level": 3
+      },
+      {
+        "naam": "Curse Specialist",
+        "level": 3
+      },
+      {
+        "naam": "Aether Walk",
+        "level": 7
+      },
+      {
+        "naam": "Brand of Sundering",
+        "level": 11
+      },
+      {
+        "naam": "Blood Curse of the Exorcist",
+        "level": 15
+      },
+      {
+        "naam": "Rite Revival",
+        "level": 18
+      }
     ],
     "Order of the Lycan": [
-      "Heightened Senses",
-      "Hybrid Transformation",
-      "Stalker's Prowess",
-      "Advanced Transformation",
-      "Brand of the Voracious",
-      "Hybrid Transformation Mastery"
+      {
+        "naam": "Heightened Senses",
+        "level": 3
+      },
+      {
+        "naam": "Hybrid Transformation",
+        "level": 3
+      },
+      {
+        "naam": "Stalker's Prowess",
+        "level": 7
+      },
+      {
+        "naam": "Advanced Transformation",
+        "level": 11
+      },
+      {
+        "naam": "Brand of the Voracious",
+        "level": 15
+      },
+      {
+        "naam": "Hybrid Transformation Mastery",
+        "level": 18
+      }
     ],
     "Order of the Mutant": [
-      "Mutagencraft",
-      "Strange Metabolism",
-      "Brand of Axiom",
-      "Blood Curse of Corrosion",
-      "Exalted Mutation"
+      {
+        "naam": "Mutagencraft",
+        "level": 3
+      },
+      {
+        "naam": "Strange Metabolism",
+        "level": 7
+      },
+      {
+        "naam": "Brand of Axiom",
+        "level": 11
+      },
+      {
+        "naam": "Blood Curse of Corrosion",
+        "level": 15
+      },
+      {
+        "naam": "Exalted Mutation",
+        "level": 18
+      }
     ],
     "Order of the Profane Soul": [
-      "Otherworldly Patron",
-      "Pact Magic",
-      "Rite Focus",
-      "Mystic Frenzy",
-      "Revealed Arcana",
-      "Brand of the Sapping Scar",
-      "Unsealed Arcana",
-      "Blood Curse of the Souleater"
+      {
+        "naam": "Otherworldly Patron",
+        "level": 3
+      },
+      {
+        "naam": "Pact Magic",
+        "level": 3
+      },
+      {
+        "naam": "Rite Focus",
+        "level": 3
+      },
+      {
+        "naam": "Mystic Frenzy",
+        "level": 7
+      },
+      {
+        "naam": "Revealed Arcana",
+        "level": 7
+      },
+      {
+        "naam": "Brand of the Sapping Scar",
+        "level": 11
+      },
+      {
+        "naam": "Unsealed Arcana",
+        "level": 15
+      },
+      {
+        "naam": "Blood Curse of the Souleater",
+        "level": 18
+      }
     ],
     "Architect of Ruin": [
-      "Asmodeus's Blessing",
-      "Spellcasting",
-      "Asmodeus's Interdiction",
-      "Submit",
-      "Vile Transmogrification"
+      {
+        "naam": "Asmodeus's Blessing",
+        "level": 3
+      },
+      {
+        "naam": "Spellcasting",
+        "level": 3
+      },
+      {
+        "naam": "Asmodeus's Interdiction",
+        "level": 7
+      },
+      {
+        "naam": "Submit",
+        "level": 11
+      },
+      {
+        "naam": "Vile Transmogrification",
+        "level": 15
+      }
     ],
     "Hellspeaker": [
-      "Moloch's Blessing",
-      "Charm Enemy",
-      "Moloch's Interdiction",
-      "Intransigent",
-      "Let's Make a Deal",
-      "Quid Pro Quo"
+      {
+        "naam": "Moloch's Blessing",
+        "level": 3
+      },
+      {
+        "naam": "Charm Enemy",
+        "level": 3
+      },
+      {
+        "naam": "Moloch's Interdiction",
+        "level": 7
+      },
+      {
+        "naam": "Intransigent",
+        "level": 11
+      },
+      {
+        "naam": "Let's Make a Deal",
+        "level": 15
+      },
+      {
+        "naam": "Quid Pro Quo",
+        "level": 15
+      }
     ],
     "Painkiller": [
-      "Dispater's Blessing",
-      "Devastator",
-      "Dispater's Interdiction",
-      "You Die on My Command!",
-      "Deathstrike"
+      {
+        "naam": "Dispater's Blessing",
+        "level": 3
+      },
+      {
+        "naam": "Devastator",
+        "level": 3
+      },
+      {
+        "naam": "Dispater's Interdiction",
+        "level": 7
+      },
+      {
+        "naam": "You Die on My Command!",
+        "level": 11
+      },
+      {
+        "naam": "Deathstrike",
+        "level": 15
+      }
     ],
     "Sanguine Knight": [
-      "Exsanguinate",
-      "Sutekh's Blessing",
-      "Sutekh's Interdiction",
-      "Bloodstroke",
-      "Haemel Exchange"
+      {
+        "naam": "Exsanguinate",
+        "level": 3
+      },
+      {
+        "naam": "Sutekh's Blessing",
+        "level": 3
+      },
+      {
+        "naam": "Sutekh's Interdiction",
+        "level": 7
+      },
+      {
+        "naam": "Bloodstroke",
+        "level": 11
+      },
+      {
+        "naam": "Haemel Exchange",
+        "level": 15
+      }
     ],
     "Shadowmaster": [
-      "Marked for Death",
-      "Strike from the Dark",
-      "Belial's Interdiction",
-      "Umbral Killer",
-      "Doomed to the Shadows"
+      {
+        "naam": "Marked for Death",
+        "level": 3
+      },
+      {
+        "naam": "Strike from the Dark",
+        "level": 3
+      },
+      {
+        "naam": "Belial's Interdiction",
+        "level": 7
+      },
+      {
+        "naam": "Umbral Killer",
+        "level": 11
+      },
+      {
+        "naam": "Doomed to the Shadows",
+        "level": 15
+      }
     ]
   },
   "species": {
@@ -990,5 +1218,6 @@
       "Integrated Protection",
       "Specialized Design"
     ]
-  }
+  },
+  "_niveaus": "Een naam mag een level dragen: `{\"naam\": \"…\", \"level\": 3}` in plaats van alleen de naam. Alleen waar het level **nagekeken** is — bij de Blood Hunter en de Illrigger, waar de bron hem noemde. Een level raden uit de volgorde gaat mis zodra twee features op hetzelfde level liggen, en dat is bij elke subclass zo. Staat er geen level, dan staat het in het boek en niet hier."
 }

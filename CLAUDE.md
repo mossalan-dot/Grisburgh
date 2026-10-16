@@ -1720,7 +1720,11 @@ in `_load()` (`render-spreuken.js`), ontdubbeld op `index`:
 > `bronnen/features-elders.json` noemt daarom de **namen** van hun features —
 > 110 subclasses, 29 species uit `volkenOverig` en de drie classes die de app
 > zonder tekst meebrengt (Artificer, Blood Hunter, Illrigger), samen 698
-> namen — en verder niets: geen tekst, geen levels. Dat zijn niet alleen de
+> namen — en verder niets: geen tekst, geen regels. Een naam mág een level
+> dragen (`{naam, level}`), maar alléén waar dat is nagekeken: bij de Blood
+> Hunter en de Illrigger, waar de bron het noemde. Raden uit de volgorde gaat
+> mis zodra twee features op hetzelfde level liggen, en dat is bij elke
+> subclass zo. Dat zijn niet alleen de
 > boeken van buiten: ook de 2024-subclasses die de app zelf meebrengt maar
 > waarvan de tekst buiten de SRD valt (Battle Master, Assassin, Gloom Stalker…)
 > staan erin, zodat een verse campagne daar geen kaartje zonder wegwijzer

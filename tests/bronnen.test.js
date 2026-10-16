@@ -408,7 +408,17 @@ describe('De features van wat elders staat', () => {
     for (const groep of groepen) {
       for (const [houder, lijst] of Object.entries(data[groep] || {})) {
         assert.ok(Array.isArray(lijst), `${groep} › ${houder} hoort een lijst te zijn`);
-        for (const naam of lijst) {
+        for (const rij of lijst) {
+          // Een naam mag een level dragen, en verder niets. Dat is geen tekst
+          // maar een getal uit dezelfde tabel waar de naam uit komt; wie het
+          // level nagekeken heeft zet het erbij, de rest blijft een kale naam.
+          if (rij && typeof rij === 'object') {
+            assert.deepEqual(Object.keys(rij).sort(), ['level', 'naam'],
+              `${groep} › ${houder}: alleen naam en level, verder niets`);
+            assert.ok(Number.isInteger(rij.level) && rij.level >= 1 && rij.level <= 20,
+              `${groep} › ${houder} › ${rij.naam}: level ${rij.level} bestaat niet`);
+          }
+          const naam = (rij && typeof rij === 'object') ? rij.naam : rij;
           assert.equal(typeof naam, 'string', `${groep} › ${houder}: alleen namen, geen objecten`);
           assert.ok(naam.trim().length > 0, `${groep} › ${houder}: lege naam`);
           // Een featurenaam is kort. Alles wat op een zin lijkt is een
