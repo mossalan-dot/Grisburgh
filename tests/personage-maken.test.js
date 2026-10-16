@@ -274,6 +274,26 @@ describe('Een personage maken', () => {
     await req(server, 'PUT', '/api/meta/personage-maken', { aan: true, maxLevel: 1 }, dm);
   });
 
+  it('laat een speler zijn eigen blad afdrukken, en dat van een ander niet', async () => {
+    // Iemand die alleen het partywachtwoord typte is nog geen personage.
+    const bezoeker = await req(server, 'POST', '/api/personage-concept', { wachtwoord: 'rinkeldekink' });
+    const zonder = await req(server, 'GET', '/api/mijn/sheet', null, bezoeker.cookie);
+    assert.equal(zonder.status, 401);
+
+    // De eerste test maakte Brigitta; die kan inloggen en zijn blad ophalen.
+    const spelers = await req(server, 'GET', '/api/auth/players');
+    const brigitta = spelers.body.find(p => p.name === 'Brigitta Veenstra');
+    assert.ok(brigitta, 'ze staat in de inloglijst');
+    const login = await req(server, 'POST', '/api/auth/player-login',
+      { campagne: 'grisburgh', characterId: brigitta.id, password: 'rinkeldekink' });
+    assert.equal(login.status, 200, JSON.stringify(login.body));
+
+    const blad = await req(server, 'GET', '/api/mijn/sheet', null, login.cookie);
+    assert.equal(blad.status, 200);
+    assert.match(String(blad.body), /Brigitta Veenstra/, 'haar naam staat op het blad');
+    assert.match(String(blad.body), /Cleric/);
+  });
+
   it('kent de instellingen van de DM', async () => {
     const r = await req(server, 'PUT', '/api/meta/personage-maken',
       { aan: true, methodes: ['array', 'pointbuy'], maxLevel: 3, trinketTafel: 'Rommel' }, dm);
