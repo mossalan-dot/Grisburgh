@@ -408,7 +408,10 @@
   </div>
 
   <!-- Detail / Editor modal -->
-  <div class="modal-overlay" id="modal-overlay" onclick="if(event.target===this&&!document.querySelector('#m-body form'))window.app.closeModal()">
+  <!-- Het sluiten-bij-klikken-buiten zit in app.js (sluitBijKlikBuiten): een
+       inline onclick kan niet zien waar de muisbeweging begón, en sloot het
+       venster zodra je een zin selecteerde die net buiten het kaartje eindigde. -->
+  <div class="modal-overlay" id="modal-overlay">
     <div class="modal animate-modal-in">
       <div id="m-accent" class="modal-accent"></div>
       <div class="modal-head" id="modal-head">
@@ -580,6 +583,6 @@
   <!-- DM Instellingen modal -->
 
   <script type="module" src="/js/sound-manager.js?v=10"></script>
-  <script type="module" src="/js/app.js?v=1112"></script>
+  <script type="module" src="/js/app.js?v=1113"></script>
 </body>
 </html>

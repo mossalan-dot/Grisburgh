@@ -6,7 +6,7 @@ import { renderDungeon } from './render-dungeon.js?v=63';
 import { renderRelatiemap } from './render-relatiemap.js?v=27';
 import { renderProgressie, levelupFeatures } from './render-progressie.js?v=62';
 import { renderBestiarium } from './render-bestiarium.js?v=31';
-import { renderSpreuken } from './render-spreuken.js?v=47';
+import { renderSpreuken } from './render-spreuken.js?v=48';
 import './render-handleiding.js?v=2';
 import './render-melding.js?v=4';
 import { renderVaardigheden, zoekVaardigheden, heldenboekTekst } from './render-vaardigheden.js?v=63';
@@ -14,7 +14,7 @@ import { renderStatblock } from './render-statblock.js?v=9';
 import { initSocket } from "./socket-client.js?v=85";
 import { initDmPanel } from "./dm-panel.js?v=405";
 import { COND_INFO, COND_LABEL, COND_MET_PLAATJE, COND_ICON } from './conditions.js?v=2';
-import './media-picker.js?v=9';
+import './media-picker.js?v=10';
 import './wizard.js?v=5';
 import './tafels.js?v=2';
 
@@ -331,6 +331,7 @@ window.app = {
   hideLanding,
   _landingPortraitClick,
   _landingNieuw,
+  sluitBijKlikBuiten,
   openPlayerPicker,
   closePlayerPicker,
   playerLogin,
@@ -2022,6 +2023,27 @@ function openModal(title, subtitle, bodyHtml, hulp = '') {
       }, { once: true });
     }
   }, 300);
+}
+
+// ── Klikken naast een venster ───────────────────────────────────────────────
+// Naast het venster klikken sluit het. Dat ging mis zodra je tekst selecteerde
+// en je muis bij het loslaten net buiten het kaartje uitkwam: een `click` vuurt
+// op de gemeenschappelijke ouder van waar je indrukte en waar je losliet, en
+// dat is dan de overlay. Je selecteerde een zin en het venster klapte dicht.
+//
+// Dus kijken we waar de **beweging begon**. Alleen een druk die buiten begon
+// én buiten eindigt telt als "naast het venster geklikt".
+function sluitBijKlikBuiten(el, sluit) {
+  if (!el || el.dataset.klikBuiten) return;
+  el.dataset.klikBuiten = '1';
+  let binnenBegonnen = false;
+  const begin = (e) => { binnenBegonnen = e.target !== el; };
+  el.addEventListener('mousedown', begin);
+  el.addEventListener('touchstart', begin, { passive: true });
+  el.addEventListener('click', (e) => {
+    if (e.target !== el || binnenBegonnen) return;
+    sluit(e);
+  });
 }
 
 function closeModal() {
@@ -4367,7 +4389,7 @@ function _ensureSpellbookOverlay() {
   // Prevent scroll-through to the page behind while the overlay is open
   el.addEventListener('wheel',     e => { if (!e.target.closest('.sb-right-content, .sb-toc-list, .sb-manage-panel')) e.preventDefault(); }, { passive: false });
   el.addEventListener('touchmove', e => { if (!e.target.closest('.sb-right-content, .sb-toc-list, .sb-manage-panel')) e.preventDefault(); }, { passive: false });
-  el.addEventListener('click', e => { if (e.target === el) window._closeSpellbook(); });
+  sluitBijKlikBuiten(el, () => window._closeSpellbook());
   // Click on inline dice notation → flash-roll it
   el.addEventListener('click', e => {
     const dice = e.target.closest('.sb-hl-dice');
@@ -5967,7 +5989,7 @@ function _ensureInventarisOverlay() {
       </div>
     </div>`;
   document.body.appendChild(el);
-  el.addEventListener('click', e => { if (e.target === el) window._closeInventaris(); });
+  sluitBijKlikBuiten(el, () => window._closeInventaris());
   el.addEventListener('click', e => {
     const dice = e.target.closest('.sb-hl-dice');
     if (dice) { e.stopPropagation(); window._sbFlashRoll?.(dice.textContent.trim(), ''); }
@@ -11634,6 +11656,16 @@ async function _uitnodigingAfhandelen() {
 }
 
 async function init() {
+  // Het hoofdvenster sluit bij een klik ernaast — maar alleen als die klik
+  // daar ook begon. Stond als inline handler in index.html; die kon niet zien
+  // waar de muisbeweging vandaan kwam.
+  sluitBijKlikBuiten(document.getElementById('modal-overlay'), () => {
+    // Een formulier in het venster betekent half ingevulde velden; dat gooi je
+    // niet weg met een misklik. Zelfde afspraak als voorheen.
+    if (document.querySelector('#m-body form')) return;
+    closeModal();
+  });
+
   // Welke campagne kijken we? Normaal staat die in het pad (/grisburgh); komt
   // iemand via een oude bladwijzer binnen, dan vertelt de server het.
   if (!campagneUitUrl()) {

@@ -39,7 +39,9 @@ function _ensureOverlay() {
   ov = document.createElement('div');
   ov.id = 'media-picker-overlay';
   ov.className = 'media-picker-overlay';
-  ov.addEventListener('click', (e) => { if (e.target === ov) close(); });
+  // Alleen een klik die buiten begon: anders sluit het venster zodra je er
+  // tekst in selecteert en je muis net buiten de rand loslaat.
+  (window.app?.sluitBijKlikBuiten || ((el, fn) => el.addEventListener('click', e => { if (e.target === el) fn(); })))(ov, close);
   document.body.appendChild(ov);
   return ov;
 }

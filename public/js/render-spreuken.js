@@ -708,7 +708,8 @@ function _ensureOverlay() {
       vorige:   () => _spreukBuur(-1),
       volgende: () => _spreukBuur(1),
     });
-    ov.addEventListener('click', e => { if (e.target === ov) window.spreuken.close(); });
+    // Alleen een klik die buiten begon — zie app.js.
+    (window.app?.sluitBijKlikBuiten || ((el, fn) => el.addEventListener('click', e => { if (e.target === el) fn(); })))(ov, () => window.spreuken.close());
     // Inline dice-notatie (damage-getint) → klik om te gooien, net als in het spreukenboek.
     ov.addEventListener('click', e => {
       const dice = e.target.closest('.sb-hl-dice');
