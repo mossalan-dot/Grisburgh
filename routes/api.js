@@ -5455,6 +5455,13 @@ router.patch('/personage-concept/:id', (req, res) => {
   if (b.wapen   !== undefined) c.wapen   = tekst(b.wapen, 60);
   if (b.harnas  !== undefined) c.harnas  = tekst(b.harnas, 60);
   if (b.schild  !== undefined) c.schild  = !!b.schild;
+  // Fase 3: een tweede class. Zijn level is dan de som van de twee; de wizard
+  // rekent het voor en de server kapt het af op wat er past.
+  if (b.multiKlasse      !== undefined) c.multiKlasse = tekst(b.multiKlasse, 60);
+  if (b.multiKlasseLevel !== undefined) {
+    c.multiKlasseLevel = Math.max(0, Math.min((parseInt(c.level) || 1) - 1, parseInt(b.multiKlasseLevel) || 0));
+  }
+  if (b.multiSubclass !== undefined) c.multiSubclass = tekst(b.multiSubclass, 60);
   // Terugsturen gaf een reden; zodra hij er weer aan werkt is die van de baan.
   if (c.status === 'terug') { c.status = 'bezig'; }
   c.bijgewerkt = new Date().toISOString();
@@ -5478,6 +5485,30 @@ router.post('/personage-concept/:id/indienen', (req, res) => {
   storage.writeJSON('dm-state.json', dmState);
   _meldVerzoek(req, 'personage', c.naam, `${c.species || ''} ${c.klasse || ''}`.trim());
   res.json(_conceptAntwoord(c, dmState));
+});
+
+// Zijn portret. Het kaartje bestaat nog niet, dus het bestand krijgt het id van
+// het concept; bij het gunnen verhuist het naar het id van het kaartje, want
+// dáár kijkt de rest van de app. Zelfde pijplijn als elke andere upload:
+// verkleinen, snuffelen aan de inhoud, in de mediabibliotheek.
+router.post('/personage-concept/:id/portret', metUpload(uploadMedia.single('file')), async (req, res) => {
+  const dmState = readDmState();
+  const c = _concepten(dmState)[req.params.id];
+  if (!c) return res.status(404).json({ error: 'Niet gevonden' });
+  if (req.session?.conceptId !== c.id && req.session?.role !== 'dm') {
+    return res.status(403).json({ error: 'Geen toegang' });
+  }
+  if (!req.file) return res.status(400).json({ error: 'Geen bestand of niet-toegestaan type' });
+  if (!_sniffMedia(req.file.buffer)) {
+    return res.status(415).json({ error: 'Bestandsinhoud komt niet overeen met een toegestaan mediatype' });
+  }
+  const klein = await _beeldVerkleinen(req.file.buffer, req.file.mimetype);
+  storage.saveFile(c.id, klein.buffer, klein.mimetype);
+  storage.deleteThumb?.(c.id);
+  c.portret = true;
+  c.bijgewerkt = new Date().toISOString();
+  storage.writeJSON('dm-state.json', dmState);
+  res.json({ ok: true, fileId: c.id });
 });
 
 // Eén worp op de tafel die de DM aanwees. De app verzint geen trinkets: wat
@@ -5553,6 +5584,16 @@ router.post('/personage-concept/:id/:besluit', requireDM, (req, res) => {
   dmState.playerProfiles[ent.id] = profiel;
   if (!dmState.playerHp) dmState.playerHp = {};
   dmState.playerHp[ent.id] = { current: hp, max: hp };
+
+  // Zijn portret stond op het id van het concept; het kaartje kijkt naar het
+  // zijne. Kopiëren in plaats van verplaatsen: het concept blijft leesbaar in
+  // de geschiedenis van wat er gegund is.
+  if (c.portret) {
+    try {
+      const bron = storage.getFile(c.id);
+      if (bron) storage.saveFile(ent.id, fs.readFileSync(bron.path), bron.mimetype);
+    } catch (e) { fouten.meld('personage-portret', e); }
+  }
 
   // Zijn spreuken, langs dezelfde deur als elke andere spreuk die in een boek
   // belandt — die dedupliceert en vult de velden aan uit de bron.
@@ -10309,6 +10350,23 @@ router.get('/characters/:id/sheet', requireDM, (req, res) => {
   const meta    = storage.readJSON('meta.json') || {};
   const p = _sheetPersonage(entity, dmState, _sheetProgressie(), meta, personages);
   res.type('html').send(sheetHtml([p], { titel: entity.name }));
+});
+
+// GET /mijn/sheet — je eigen blad, om af te drukken. De DM kon de hele party
+// al printen; een speler kon zijn eigen blad nergens op papier krijgen, en dat
+// is juist wat je wilt zodra je personage net gemaakt is.
+router.get('/mijn/sheet', attachRole, (req, res) => {
+  const characterId = req.session?.characterId;
+  if (!characterId) return res.status(401).send('Niet ingelogd als personage');
+  const dmState = readDmState();
+  const meta    = storage.readJSON('meta.json') || {};
+  const personages = storage.readJSON('entities.json').personages || [];
+  const ik = personages.find(e => e.id === characterId);
+  if (!ik) return res.status(404).send('Personage niet gevonden');
+  res.type('html').send(sheetHtml(
+    [_sheetPersonage(ik, dmState, _sheetProgressie(), meta, personages)],
+    { titel: ik.name }
+  ));
 });
 
 // GET /party/sheets?groep=<id> — de hele groep in één print-opdracht

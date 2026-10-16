@@ -1567,7 +1567,7 @@ async function _landingNieuwTegel() {
   if (!host || !_groepsWachtwoord || document.getElementById('landing-nieuw')) return;
   let stand = null;
   try {
-    await import('./personage-maken.js?v=3');
+    await import('./personage-maken.js?v=4');
     stand = await window.personageMaken.stand();
   } catch { return; }
   if (stand?.instellingen && stand.instellingen.aan === false) return;
@@ -1589,7 +1589,7 @@ async function _landingNieuwTegel() {
 
 async function _landingNieuw() {
   try {
-    await import('./personage-maken.js?v=3');
+    await import('./personage-maken.js?v=4');
     const stand = await window.personageMaken.stand();
     if (stand?.concept && stand.concept.status !== 'gegund') {
       if (stand.concept.status === 'wacht') {
@@ -7761,6 +7761,12 @@ document.addEventListener('keydown', ev => {
   }
 });
 
+// De printlink is een gewone <a>, geen api-aanroep, dus de campagne moet er
+// zelf bij — anders drukt /prewett het blad van Grisburgh af.
+function _campagneVoorLink() {
+  try { return new URL(location.href).pathname.split('/').filter(Boolean)[0] || ''; } catch { return ''; }
+}
+
 async function renderMijnKarakter(opts = {}) {
   // Flush pending currency save only if user has typed a change (dirty)
   if (typeof window._dashCurrencyFlush === 'function') await window._dashCurrencyFlush();
@@ -8104,6 +8110,12 @@ async function renderMijnKarakter(opts = {}) {
           <button class="player-hero-collapse-btn${localStorage.getItem('_heroCollapsed') === '1' ? ' collapsed' : ''}"
             onclick="window._toggleHeroCollapse()" title="Verberg/toon karakterinfo">▲</button>
           ${sub ? `<p class="player-dash-sub">${esc(sub)}</p>` : ''}
+          <!-- De DM kon de hele party al printen; een speler kreeg zijn eigen
+               blad nergens op papier. Juist bij een vers personage wil je dat.
+               Alleen voor wie het zelf ís: de route kijkt naar de sessie. -->
+          ${state.characterId === charId ? `
+            <a class="player-dash-print" href="/api/mijn/sheet?campagne=${esc(_campagneVoorLink())}"
+               target="_blank" rel="noopener" title="Je blad op papier">${icon('scroll-text')} Blad afdrukken</a>` : ''}
           <div class="player-profile-fields">
             <div class="ppf-row"><label class="ppf-label">Level</label>
               <input class="ppf-input ppf-level" type="number" min="1" max="20"
@@ -15167,12 +15179,13 @@ const HELP_CONFIG = {
     { titel: 'Het bestaat pas als jij het gunt', tekst: 'Wat hij maakt is een **concept** en geen kaartje. Het staat nergens in je wereld: niet in de partylijst, niet in een gevecht, niet op het tafelscherm. Je vindt het op één plek — **Vragen → Nieuw personage** — met zijn hele blad erbij: wat hij koos, wat daaruit volgt, en wat de app erover op te merken heeft.\n\nGun je het, dan ontstaan het kaartje, het profiel en zijn HP in één keer, in de party waar hij het wachtwoord van had. Stuur je het terug, dan hoort daar een reden bij; die leest hij zodra hij verder gaat.', afbeelding: null },
     { titel: 'De scores', tekst: 'Vier manieren, en jij zegt welke er aan jouw tafel mogen: de **standaardreeks**, **point buy**, **rollen** (zes keer 4d6, de laagste eraf, in de app) en **vrij intikken** voor een personage dat elders gemaakt is.\n\nDe app rekent voor maar houdt niets tegen. Kiest iemand scores die niet kunnen, dan staat dat als opmerking op jouw scherm en beslis jij.', afbeelding: null },
     { titel: 'Beginnen boven level 1', tekst: 'Standaard begint iedereen op 1. Zet je het hoger, dan mag een speler erom **vragen** — hij vult het in, jij ziet het staan voordat je gunt. Zijn HP, proficiency, hit dice en het aantal spreuken rekenen mee, en zijn subclass vraagt de wizard zodra zijn beginlevel hoog genoeg is.\n\nWat de wizard **niet** vraagt zijn de ability score improvements en feats vanaf level 4: dat zijn keuzes die je aan tafel maakt en die de level-up al kent. Je krijgt het als opmerking te zien bij het gunnen.', afbeelding: null },
+    { titel: 'Twee classes tegelijk beginnen', tekst: 'Staat het beginlevel op 2 of hoger, dan kan een speler zijn levels over **twee classes** verdelen — Fighter 3 / Rogue 2 bijvoorbeeld. Het staat achter een uitklapper bij de class: het is de uitzondering, en wie het niet zoekt hoort er geen last van te hebben.\n\nZijn hit dice tellen dan per class (3d10 + 2d8) en de **eisen** staan erbij zoals overal in deze app: voorrekenen, niet blokkeren. Haalt hij de Strength 13 voor Paladin niet, dan lees jij dat bij het gunnen en beslis jij.', afbeelding: null },
     { titel: 'Rommel in zijn zak', tekst: 'De app verzint geen trinkets — wat er in je zak zit hoort bij jouw wereld. Wijs hier een **tafel van je eigen campagne** aan, dan rolt elke nieuwe speler daar één keer op en gaat de uitkomst als voorwerp mee in zijn boedel.\n\nEén keer: opnieuw rollen tot er iets leuks staat is geen worp meer.', afbeelding: null },
   ] }),
 
   dm_verzoeken_personage: () => ({ titel: 'Een nieuw personage', stappen: [
     { titel: 'Wat je hier ziet', tekst: 'Iemand heeft met het partywachtwoord van een van je partys een personage gemaakt. Je ziet zijn naam, zijn species, class en background, zijn zes scores, zijn HP en zijn AC — en met welke manier hij die scores bepaalde.\n\nWat er niet klopt staat eronder als opmerking. Die blokkeren niets: het is jouw tafel, en soms is de uitzondering juist de bedoeling.', afbeelding: null },
-    { titel: 'Gunnen of terugsturen', tekst: '**Gunnen** maakt het personage echt: het kaartje, het profiel, zijn hit points en zijn plek in de party. Daarna kan hij met hetzelfde partywachtwoord inloggen en staat hij tussen de portretten.\n\n**Terugsturen** vraagt om een reden. Die leest hij zodra hij zijn concept weer opent, en hij kan er meteen aan verder werken — er gaat niets verloren.', afbeelding: null },
+    { titel: 'Gunnen of terugsturen', tekst: '**Gunnen** maakt het personage echt: het kaartje met zijn portret, het profiel, zijn hit points, zijn spreukenboek, zijn boedel, zijn beurs en zijn plek in de party. Daarna kan hij met hetzelfde partywachtwoord inloggen en staat hij tussen de portretten.\n\n**Terugsturen** vraagt om een reden. Die leest hij zodra hij zijn concept weer opent, en hij kan er meteen aan verder werken — er gaat niets verloren.', afbeelding: null },
   ] }),
 
   inst_onderdelen: () => ({ titel: 'Onderdelen van deze campagne', stappen: [

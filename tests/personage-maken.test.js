@@ -236,6 +236,44 @@ describe('Een personage maken', () => {
     assert.equal(r.body.profiel.hitDie, '5d10');
   });
 
+  // ── Fase 3: twee classes, een portret en papier ───────────────────────────
+  it('verdeelt zijn levels over twee classes', async () => {
+    await req(server, 'PUT', '/api/meta/personage-maken', { aan: true, maxLevel: 5 }, dm);
+    const start = await req(server, 'POST', '/api/personage-concept',
+      { wachtwoord: 'rinkeldekink', naam: 'Hidde' });
+    const id = start.body.concept.id;
+    const r = await req(server, 'PATCH', `/api/personage-concept/${id}`, {
+      species: 'Human', klasse: 'Fighter', level: 5, multiKlasse: 'Rogue', multiKlasseLevel: 2,
+      scores: { str: 15, dex: 14, con: 13, int: 12, wis: 10, cha: 8 },
+      skills: ['Athletics', 'Perception'],
+    }, start.cookie);
+    assert.equal(r.status, 200, JSON.stringify(r.body));
+    assert.equal(r.body.profiel.multiclass, 'true');
+    assert.equal(r.body.profiel.klasseLevel, '3');
+    assert.equal(r.body.profiel.multiKlasseLevel, '2');
+    // Elk level telt met de hit die van zijn eigen class.
+    assert.equal(r.body.profiel.hitDie, '3d10 + 2d8');
+
+    // Meer levels in de tweede class dan je hebt kan niet.
+    const teveel = await req(server, 'PATCH', `/api/personage-concept/${id}`, { multiKlasseLevel: 9 }, start.cookie);
+    assert.equal(teveel.body.concept.multiKlasseLevel, 4, 'er blijft minstens één level over voor de eerste');
+    await req(server, 'PUT', '/api/meta/personage-maken', { aan: true, maxLevel: 1 }, dm);
+  });
+
+  it('waarschuwt als hij de eisen voor multiclassen niet haalt', async () => {
+    await req(server, 'PUT', '/api/meta/personage-maken', { aan: true, maxLevel: 5 }, dm);
+    const start = await req(server, 'POST', '/api/personage-concept',
+      { wachtwoord: 'rinkeldekink', naam: 'Wobbe' });
+    const r = await req(server, 'PATCH', `/api/personage-concept/${start.body.concept.id}`, {
+      species: 'Human', klasse: 'Wizard', level: 3, multiKlasse: 'Paladin', multiKlasseLevel: 1,
+      scores: { str: 8, dex: 14, con: 13, int: 15, wis: 10, cha: 10 },
+    }, start.cookie);
+    assert.ok(r.body.nakijk.opmerkingen.some(o => /Paladin/.test(o) && /Strength 13/.test(o)),
+      'de eis staat erbij, maar hij mag het wel vragen');
+    assert.equal(r.body.nakijk.kanWeg, true, 'voorrekenen, niet blokkeren');
+    await req(server, 'PUT', '/api/meta/personage-maken', { aan: true, maxLevel: 1 }, dm);
+  });
+
   it('kent de instellingen van de DM', async () => {
     const r = await req(server, 'PUT', '/api/meta/personage-maken',
       { aan: true, methodes: ['array', 'pointbuy'], maxLevel: 3, trinketTafel: 'Rommel' }, dm);

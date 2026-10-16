@@ -14,7 +14,7 @@
 //
 // Hij leent de opmaak van de opstartwizard (`wz-*`): twee wizards die er
 // anders uitzien zijn twee wizards om te onderhouden.
-import { api } from './api.js?v=316';
+import { api, huidigeCampagne } from './api.js?v=316';
 
 const esc = s => window.app?.esc?.(s) ?? String(s ?? '')
   .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -74,6 +74,19 @@ const STAPPEN = [
           <input id="pm-naam" class="dm-input" maxlength="60" value="${esc(P.c.naam || '')}"
             placeholder="Zoals hij aan tafel heet">
         </div>
+        <div class="wz-veld">
+          <label class="dm-form-label">Portret (mag later)</label>
+          <div class="pm-portret-rij">
+            <div class="pm-portret" id="pm-portret">
+              ${P.c.portret ? `<img src="/api/files/${esc(P.c.id)}?t=${Date.now()}" alt="">` : ico('user')}
+            </div>
+            <label class="dm-btn dm-btn-ghost dm-btn-sm">
+              ${ico('upload')} ${P.c.portret ? 'Andere kiezen' : 'Kiezen'}
+              <input type="file" accept="image/*" style="display:none"
+                onchange="window.personageMaken.portret(this.files[0], this)">
+            </label>
+          </div>
+        </div>
         ${maxLevel > 1 ? `
         <div class="wz-veld">
           <label class="dm-form-label" for="pm-level">Op welk level begin je?</label>
@@ -116,18 +129,47 @@ const STAPPEN = [
       const k = klasseVan(P.keuze.klasse ?? P.c.klasse);
       const level = parseInt(P.c.level) || 1;
       const subNu = level >= (k?.subclassLevel || 3) && k?.subclasses?.length;
+      // Vanaf level 2 kan hij zijn levels over twee classes verdelen. Dat staat
+      // onder een uitklapper: het is de uitzondering, en wie het niet zoekt
+      // hoort er geen last van te hebben. De eisen rekent de nakijker voor.
+      const multi = level > 1 ? `
+        <details class="dm-uitklap" style="margin-top:14px"${P.c.multiKlasse ? ' open' : ''}>
+          <summary>${ico('users')} Twee classes (multiclass)</summary>
+          <div class="dm-uitklap-body">
+            <div class="wz-rij">
+              <div class="wz-veld">
+                <label class="dm-form-label" for="pm-multi">Tweede class</label>
+                <select class="dm-input" id="pm-multi" onchange="window.personageMaken.multi()">
+                  <option value="">— geen —</option>
+                  ${(P.bronnen.klassen || []).filter(x => x.naam !== (P.keuze.klasse ?? P.c.klasse)).map(x => `
+                    <option value="${esc(x.naam)}"${x.naam === P.c.multiKlasse ? ' selected' : ''}>${esc(x.naam)}</option>`).join('')}
+                </select>
+              </div>
+              <div class="wz-veld wz-veld--smal">
+                <label class="dm-form-label" for="pm-multi-level">Levels daarin</label>
+                <input class="dm-input" id="pm-multi-level" type="number" min="0" max="${level - 1}"
+                  value="${esc(String(P.c.multiKlasseLevel || 0))}" onchange="window.personageMaken.multi()">
+              </div>
+            </div>
+            <p class="wz-lead" style="margin:0" id="pm-multi-uit">${_multiTekst(level)}</p>
+          </div>
+        </details>` : '';
       return tegels + (subNu ? `
         <div class="wz-veld" style="margin-top:14px">
           <label class="dm-form-label">${esc(k.subclassLabel || 'Subclass')}</label>
           ${_tegels(k.subclasses.map(s => ({ waarde: s, titel: s })), P.c.subclass, 'subclass')}
-        </div>` : '');
+        </div>` : '') + multi;
     },
     waarden() {
       const k = P.keuze.klasse ?? P.c.klasse;
       // Een andere class betekent een andere subclass-lijst; wat er stond slaat
       // dan nergens meer op.
       const sub = (k === P.c.klasse) ? (P.keuze.subclass ?? P.c.subclass) : (P.keuze.subclass || '');
-      return { klasse: k, subclass: sub, skills: k === P.c.klasse ? P.c.skills : [] };
+      return {
+        klasse: k, subclass: sub, skills: k === P.c.klasse ? P.c.skills : [],
+        multiKlasse: document.getElementById('pm-multi')?.value ?? P.c.multiKlasse ?? '',
+        multiKlasseLevel: parseInt(document.getElementById('pm-multi-level')?.value) || 0,
+      };
     },
   },
 
@@ -329,7 +371,9 @@ const STAPPEN = [
         <div class="pm-blad">
           <div class="pm-blad-kop">
             <strong>${esc(P.c.naam || 'Naamloos')}</strong>
-            <span>${esc([P.c.species, P.c.klasse, P.c.subclass].filter(Boolean).join(' · '))} · level ${esc(p.level || '1')}</span>
+            <span>${esc([P.c.species,
+              p.multiKlasse ? `${P.c.klasse} ${p.klasseLevel} / ${p.multiKlasse} ${p.multiKlasseLevel}` : P.c.klasse,
+              P.c.subclass].filter(Boolean).join(' · '))} · level ${esc(p.level || '1')}</span>
           </div>
           <div class="pm-scores">
             ${ABILITIES.map(a => `
@@ -390,6 +434,16 @@ const _METHODE = {
   rollen:   { label: 'Rollen',         hint: 'Zes keer 4d6, de laagste valt af. Wat je rolt, dat is het.' },
   vrij:     { label: 'Vrij intikken',  hint: 'Zes vakjes, zelf invullen.' },
 };
+// Wat de verdeling betekent, in woorden. Een getal in een vakje zegt niet dat
+// je er drie levels Fighter aan overhoudt.
+function _multiTekst(level) {
+  const tweede = P.c.multiKlasse;
+  const n = Math.max(0, Math.min(level - 1, parseInt(P.c.multiKlasseLevel) || 0));
+  if (!tweede || !n) return 'Laat dit leeg als je één class speelt.';
+  return `${level - n} level${level - n === 1 ? '' : 's'} ${P.c.klasse} en ${n} ${tweede}. `
+    + 'Je DM ziet of je aan de eisen voldoet voordat hij je personage gunt.';
+}
+
 const _aardLabel = (a) => ({ martial: 'Martial', half: 'Half-caster', caster: 'Full caster' }[a] || '');
 
 // ── Tegels ───────────────────────────────────────────────────────────────────
@@ -613,6 +667,35 @@ window.personageMaken = {
       P.c.trinket = r.trinket;
       document.getElementById('pm-inhoud').innerHTML = _actief()[P.stap].html();
     } catch (e) { window._showToast?.(e.message || 'Rollen lukte niet'); }
+  },
+
+  multi() {
+    P.c.multiKlasse = document.getElementById('pm-multi')?.value || '';
+    const level = parseInt(P.c.level) || 1;
+    P.c.multiKlasseLevel = Math.max(0, Math.min(level - 1, parseInt(document.getElementById('pm-multi-level')?.value) || 0));
+    const veld = document.getElementById('pm-multi-level');
+    if (veld) veld.value = P.c.multiKlasseLevel;
+    const uit = document.getElementById('pm-multi-uit');
+    if (uit) uit.textContent = _multiTekst(level);
+  },
+
+  // Het portret gaat mee vóór het kaartje bestaat: het bestand krijgt het id
+  // van het concept en verhuist bij het gunnen naar het kaartje.
+  async portret(file, invoer) {
+    if (!file) return;
+    const fd = new FormData();
+    fd.append('file', file);
+    try {
+      // Met de hand, want een bestand gaat niet als JSON: de campagne moet er
+      // wel bij, anders landt het portret in de verkeerde wereld.
+      const r = await fetch(`/api/personage-concept/${P.c.id}/portret?campagne=${encodeURIComponent(huidigeCampagne() || '')}`,
+        { method: 'POST', body: fd, credentials: 'same-origin' });
+      if (!r.ok) throw new Error((await r.json().catch(() => ({}))).error || 'Uploaden mislukt');
+      P.c.portret = true;
+      const vak = document.getElementById('pm-portret');
+      if (vak) vak.innerHTML = `<img src="/api/files/${esc(P.c.id)}?t=${Date.now()}" alt="">`;
+    } catch (e) { window._showToast?.(e.message || 'Uploaden mislukt'); }
+    finally { if (invoer) invoer.value = ''; }
   },
 
   methode(m) {

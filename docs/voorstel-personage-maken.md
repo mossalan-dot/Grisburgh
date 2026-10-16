@@ -102,13 +102,24 @@ Onder Instellingen, bij de andere spelersinstellingen:
 
 ## De fasering
 
-| fase | wat | waarom eerst |
+| fase | wat | stand |
 |---|---|---|
-| **1** | Het concept, de goedkeuring, de instellingen, en de wizard tot en met skills | Dit is de route. Zonder dit is de rest een formulier zonder deur. |
-| **2** | Spreuken, uitrusting, trinkettafel, beginlevel boven 1 | Dit maakt het blad écht af. |
-| **3** | Portret, en het blad meteen kunnen printen | Afwerking. |
+| **1** | Het concept, de goedkeuring, de instellingen, en de wizard tot en met skills | **af** (16 okt) |
+| **2** | Spreuken, uitrusting, trinkettafel, beginlevel boven 1 | **af** (16 okt) |
+| **3** | Portret, het blad kunnen printen, en multiclassen bij het maken | **af** (16 okt) |
 
-Elke fase gaat apart naar productie, zoals altijd.
+Elke fase ging apart naar productie, zoals altijd.
+
+## Wat er bewust niet in zit
+
+- **Ability score improvements en feats vanaf level 4.** Die horen bij de
+  level-up die er al is, en het zijn keuzes die je aan tafel maakt. De
+  nakijker zegt het erbij in plaats van ze stilzwijgend over te slaan.
+- **Wapens filteren op simple/martial.** Dat veld staat niet in
+  `srd-items.json`; er staat wél bij wat zijn class mag dragen, en de DM ziet
+  de keuze voordat hij gunt.
+- **Een eigen rechtensysteem.** Het partywachtwoord is de drempel, net als bij
+  het inloggen.
 
 ## Wat het níét wordt
 
