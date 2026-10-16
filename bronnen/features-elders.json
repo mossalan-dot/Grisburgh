@@ -9,7 +9,10 @@
         "naam": "Magical Tinkering",
         "level": 1
       },
-      "Spellcasting",
+      {
+        "naam": "Spellcasting",
+        "level": 1
+      },
       {
         "naam": "Infuse Item",
         "level": 2
@@ -1116,7 +1119,10 @@
         "naam": "Empowered Healing",
         "level": 6
       },
-      "Otherworldly Wings",
+      {
+        "naam": "Otherworldly Wings",
+        "level": 14
+      },
       {
         "naam": "Unearthly Recovery",
         "level": 18
@@ -1145,7 +1151,10 @@
       }
     ],
     "Storm Sorcery": [
-      "Wind Speaker",
+      {
+        "naam": "Wind Speaker",
+        "level": 3
+      },
       {
         "naam": "Tempestuous Magic",
         "level": 3
@@ -1208,7 +1217,10 @@
       }
     ],
     "The Fathomless": [
-      "Tentacle of the Deeps",
+      {
+        "naam": "Tentacle of the Deeps",
+        "level": 3
+      },
       {
         "naam": "Gift of the Sea",
         "level": 3
@@ -1275,7 +1287,10 @@
         "naam": "Minor Conjuration",
         "level": 3
       },
-      "Benign Transposition",
+      {
+        "naam": "Benign Transposition",
+        "level": 6
+      },
       {
         "naam": "Focused Conjuration",
         "level": 10
@@ -1408,7 +1423,10 @@
         "naam": "Manifest Mind",
         "level": 6
       },
-      "Master Scrivener",
+      {
+        "naam": "Master Scrivener",
+        "level": 10
+      },
       {
         "naam": "One with the Word",
         "level": 14
@@ -1627,7 +1645,10 @@
         "naam": "Channel Divinity: Destructive Wrath",
         "level": 3
       },
-      "Thunderbolt Strike",
+      {
+        "naam": "Thunderbolt Strike",
+        "level": 6
+      },
       {
         "naam": "Divine Strike",
         "level": 8
@@ -1766,7 +1787,10 @@
         "naam": "Improved Warding Flare",
         "level": 6
       },
-      "Potent Spellcasting",
+      {
+        "naam": "Potent Spellcasting",
+        "level": 8
+      },
       {
         "naam": "Corona of Light",
         "level": 17
@@ -1785,7 +1809,10 @@
         "naam": "War God's Blessing",
         "level": 6
       },
-      "Divine Strike",
+      {
+        "naam": "Divine Strike",
+        "level": 8
+      },
       {
         "naam": "Avatar of Battle",
         "level": 17
@@ -1804,7 +1831,10 @@
         "naam": "Trickster's Transposition",
         "level": 6
       },
-      "Divine Strike",
+      {
+        "naam": "Divine Strike",
+        "level": 8
+      },
       {
         "naam": "Improved Duplicity",
         "level": 17
