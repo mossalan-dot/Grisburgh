@@ -5,18 +5,51 @@
   "_let_op": "Met de hand samengesteld, dus kijk het na voordat je erop bouwt. Wat ik niet zeker wist staat er niet in: een ontbrekende naam kost een zoekopdracht, een verkeerde naam kost vertrouwen. Namen zijn per druk veranderd, en een paar species (Genasi, Giff, Leonin, Verdan, Yuan-ti) staan er nog niet in omdat ze per variant verschillen of omdat ik hun lijst niet compleet kende.",
   "classes": {
     "Artificer": [
-      "Magical Tinkering",
+      {
+        "naam": "Magical Tinkering",
+        "level": 1
+      },
       "Spellcasting",
-      "Infuse Item",
-      "Artificer Specialist",
-      "The Right Tool for the Job",
-      "Tool Expertise",
-      "Flash of Genius",
-      "Magic Item Adept",
-      "Spell-Storing Item",
-      "Magic Item Savant",
-      "Magic Item Master",
-      "Soul of Artifice"
+      {
+        "naam": "Infuse Item",
+        "level": 2
+      },
+      {
+        "naam": "Artificer Specialist",
+        "level": 3
+      },
+      {
+        "naam": "The Right Tool for the Job",
+        "level": 3
+      },
+      {
+        "naam": "Tool Expertise",
+        "level": 6
+      },
+      {
+        "naam": "Flash of Genius",
+        "level": 7
+      },
+      {
+        "naam": "Magic Item Adept",
+        "level": 10
+      },
+      {
+        "naam": "Spell-Storing Item",
+        "level": 11
+      },
+      {
+        "naam": "Magic Item Savant",
+        "level": 14
+      },
+      {
+        "naam": "Magic Item Master",
+        "level": 18
+      },
+      {
+        "naam": "Soul of Artifice",
+        "level": 20
+      }
     ],
     "Blood Hunter": [
       {
@@ -125,479 +158,1460 @@
   },
   "subclasses": {
     "Path of the Totem Warrior": [
-      "Spirit Seeker",
-      "Totem Spirit",
-      "Aspect of the Beast",
-      "Spirit Walker",
-      "Totemic Attunement"
+      {
+        "naam": "Spirit Seeker",
+        "level": 3
+      },
+      {
+        "naam": "Totem Spirit",
+        "level": 3
+      },
+      {
+        "naam": "Aspect of the Beast",
+        "level": 6
+      },
+      {
+        "naam": "Spirit Walker",
+        "level": 10
+      },
+      {
+        "naam": "Totemic Attunement",
+        "level": 14
+      }
     ],
     "Path of the Battlerager": [
-      "Battlerager Armor",
-      "Reckless Abandon",
-      "Battlerager Charge",
-      "Spiked Retribution"
+      {
+        "naam": "Battlerager Armor",
+        "level": 3
+      },
+      {
+        "naam": "Reckless Abandon",
+        "level": 6
+      },
+      {
+        "naam": "Battlerager Charge",
+        "level": 10
+      },
+      {
+        "naam": "Spiked Retribution",
+        "level": 14
+      }
     ],
     "Path of the Ancestral Guardian": [
-      "Ancestral Protectors",
-      "Spirit Shield",
-      "Consult the Spirits",
-      "Vengeful Ancestors"
+      {
+        "naam": "Ancestral Protectors",
+        "level": 3
+      },
+      {
+        "naam": "Spirit Shield",
+        "level": 6
+      },
+      {
+        "naam": "Consult the Spirits",
+        "level": 10
+      },
+      {
+        "naam": "Vengeful Ancestors",
+        "level": 14
+      }
     ],
     "Path of the Storm Herald": [
-      "Storm Aura",
-      "Storm Soul",
-      "Shielding Storm",
-      "Raging Storm"
+      {
+        "naam": "Storm Aura",
+        "level": 3
+      },
+      {
+        "naam": "Storm Soul",
+        "level": 6
+      },
+      {
+        "naam": "Shielding Storm",
+        "level": 10
+      },
+      {
+        "naam": "Raging Storm",
+        "level": 14
+      }
     ],
     "Path of the Beast": [
-      "Form of the Beast",
-      "Bestial Soul",
-      "Infectious Fury",
-      "Call the Hunt"
+      {
+        "naam": "Form of the Beast",
+        "level": 3
+      },
+      {
+        "naam": "Bestial Soul",
+        "level": 6
+      },
+      {
+        "naam": "Infectious Fury",
+        "level": 10
+      },
+      {
+        "naam": "Call the Hunt",
+        "level": 14
+      }
     ],
     "Path of Wild Magic": [
-      "Magic Awareness",
-      "Wild Surge",
-      "Bolstering Magic",
-      "Unstable Backlash",
-      "Controlled Surge"
+      {
+        "naam": "Magic Awareness",
+        "level": 3
+      },
+      {
+        "naam": "Wild Surge",
+        "level": 3
+      },
+      {
+        "naam": "Bolstering Magic",
+        "level": 6
+      },
+      {
+        "naam": "Unstable Backlash",
+        "level": 10
+      },
+      {
+        "naam": "Controlled Surge",
+        "level": 14
+      }
     ],
     "College of Swords": [
-      "Bonus Proficiencies",
-      "Fighting Style",
-      "Blade Flourish",
-      "Extra Attack",
-      "Master's Flourish"
+      {
+        "naam": "Bonus Proficiencies",
+        "level": 3
+      },
+      {
+        "naam": "Fighting Style",
+        "level": 3
+      },
+      {
+        "naam": "Blade Flourish",
+        "level": 3
+      },
+      {
+        "naam": "Extra Attack",
+        "level": 6
+      },
+      {
+        "naam": "Master's Flourish",
+        "level": 14
+      }
     ],
     "College of Whispers": [
-      "Psychic Blades",
-      "Words of Terror",
-      "Mantle of Whispers",
-      "Shadow Lore"
+      {
+        "naam": "Psychic Blades",
+        "level": 3
+      },
+      {
+        "naam": "Words of Terror",
+        "level": 3
+      },
+      {
+        "naam": "Mantle of Whispers",
+        "level": 6
+      },
+      {
+        "naam": "Shadow Lore",
+        "level": 14
+      }
     ],
     "College of Creation": [
-      "Mote of Potential",
-      "Performance of Creation",
-      "Animating Performance",
-      "Creative Crescendo"
+      {
+        "naam": "Mote of Potential",
+        "level": 3
+      },
+      {
+        "naam": "Performance of Creation",
+        "level": 3
+      },
+      {
+        "naam": "Animating Performance",
+        "level": 6
+      },
+      {
+        "naam": "Creative Crescendo",
+        "level": 14
+      }
     ],
     "College of Eloquence": [
-      "Silver Tongue",
-      "Unsettling Words",
-      "Unfailing Inspiration",
-      "Universal Speech",
-      "Infectious Inspiration"
+      {
+        "naam": "Silver Tongue",
+        "level": 3
+      },
+      {
+        "naam": "Unsettling Words",
+        "level": 3
+      },
+      {
+        "naam": "Unfailing Inspiration",
+        "level": 6
+      },
+      {
+        "naam": "Universal Speech",
+        "level": 6
+      },
+      {
+        "naam": "Infectious Inspiration",
+        "level": 14
+      }
     ],
     "Death Domain": [
-      "Bonus Proficiency",
-      "Reaper",
-      "Channel Divinity: Touch of Death",
-      "Inescapable Destruction",
-      "Divine Strike",
-      "Improved Reaper"
+      {
+        "naam": "Bonus Proficiency",
+        "level": 1
+      },
+      {
+        "naam": "Reaper",
+        "level": 1
+      },
+      {
+        "naam": "Channel Divinity: Touch of Death",
+        "level": 2
+      },
+      {
+        "naam": "Inescapable Destruction",
+        "level": 6
+      },
+      {
+        "naam": "Divine Strike",
+        "level": 8
+      },
+      {
+        "naam": "Improved Reaper",
+        "level": 17
+      }
     ],
     "Arcana Domain": [
-      "Arcane Initiate",
-      "Channel Divinity: Arcane Abjuration",
-      "Spell Breaker",
-      "Potent Spellcasting",
-      "Arcane Mastery"
+      {
+        "naam": "Arcane Initiate",
+        "level": 1
+      },
+      {
+        "naam": "Channel Divinity: Arcane Abjuration",
+        "level": 2
+      },
+      {
+        "naam": "Spell Breaker",
+        "level": 6
+      },
+      {
+        "naam": "Potent Spellcasting",
+        "level": 8
+      },
+      {
+        "naam": "Arcane Mastery",
+        "level": 17
+      }
     ],
     "Forge Domain": [
-      "Bonus Proficiencies",
-      "Blessing of the Forge",
-      "Channel Divinity: Artisan's Blessing",
-      "Soul of the Forge",
-      "Divine Strike",
-      "Saint of Forge and Fire"
+      {
+        "naam": "Bonus Proficiencies",
+        "level": 1
+      },
+      {
+        "naam": "Blessing of the Forge",
+        "level": 1
+      },
+      {
+        "naam": "Channel Divinity: Artisan's Blessing",
+        "level": 2
+      },
+      {
+        "naam": "Soul of the Forge",
+        "level": 6
+      },
+      {
+        "naam": "Divine Strike",
+        "level": 8
+      },
+      {
+        "naam": "Saint of Forge and Fire",
+        "level": 17
+      }
     ],
     "Grave Domain": [
-      "Circle of Mortality",
-      "Eyes of the Grave",
-      "Channel Divinity: Path to the Grave",
-      "Sentinel at Death's Door",
-      "Potent Spellcasting",
-      "Keeper of Souls"
+      {
+        "naam": "Circle of Mortality",
+        "level": 1
+      },
+      {
+        "naam": "Eyes of the Grave",
+        "level": 1
+      },
+      {
+        "naam": "Channel Divinity: Path to the Grave",
+        "level": 2
+      },
+      {
+        "naam": "Sentinel at Death's Door",
+        "level": 6
+      },
+      {
+        "naam": "Potent Spellcasting",
+        "level": 8
+      },
+      {
+        "naam": "Keeper of Souls",
+        "level": 17
+      }
     ],
     "Order Domain": [
-      "Bonus Proficiencies",
-      "Voice of Authority",
-      "Channel Divinity: Order's Demand",
-      "Embodiment of the Law",
-      "Divine Strike",
-      "Order's Wrath"
+      {
+        "naam": "Bonus Proficiencies",
+        "level": 1
+      },
+      {
+        "naam": "Voice of Authority",
+        "level": 1
+      },
+      {
+        "naam": "Channel Divinity: Order's Demand",
+        "level": 2
+      },
+      {
+        "naam": "Embodiment of the Law",
+        "level": 6
+      },
+      {
+        "naam": "Divine Strike",
+        "level": 8
+      },
+      {
+        "naam": "Order's Wrath",
+        "level": 17
+      }
     ],
     "Peace Domain": [
-      "Implement of Peace",
-      "Emboldening Bond",
-      "Channel Divinity: Balm of Peace",
-      "Protective Bond",
-      "Potent Spellcasting",
-      "Expansive Bond"
+      {
+        "naam": "Implement of Peace",
+        "level": 1
+      },
+      {
+        "naam": "Emboldening Bond",
+        "level": 1
+      },
+      {
+        "naam": "Channel Divinity: Balm of Peace",
+        "level": 2
+      },
+      {
+        "naam": "Protective Bond",
+        "level": 6
+      },
+      {
+        "naam": "Potent Spellcasting",
+        "level": 8
+      },
+      {
+        "naam": "Expansive Bond",
+        "level": 17
+      }
     ],
     "Circle of Dreams": [
-      "Balm of the Summer Court",
-      "Hearth of Moonlight and Shadow",
-      "Hidden Paths",
-      "Walker in Dreams"
+      {
+        "naam": "Balm of the Summer Court",
+        "level": 2
+      },
+      {
+        "naam": "Hearth of Moonlight and Shadow",
+        "level": 6
+      },
+      {
+        "naam": "Hidden Paths",
+        "level": 10
+      },
+      {
+        "naam": "Walker in Dreams",
+        "level": 14
+      }
     ],
     "Circle of the Shepherd": [
-      "Speech of the Woods",
-      "Spirit Totem",
-      "Mighty Summoner",
-      "Guardian Spirit",
-      "Faithful Summons"
+      {
+        "naam": "Speech of the Woods",
+        "level": 2
+      },
+      {
+        "naam": "Spirit Totem",
+        "level": 2
+      },
+      {
+        "naam": "Mighty Summoner",
+        "level": 6
+      },
+      {
+        "naam": "Guardian Spirit",
+        "level": 10
+      },
+      {
+        "naam": "Faithful Summons",
+        "level": 14
+      }
     ],
     "Circle of Spores": [
-      "Circle Spells",
-      "Halo of Spores",
-      "Symbiotic Entity",
-      "Fungal Infestation",
-      "Spreading Spores",
-      "Fungal Body"
+      {
+        "naam": "Circle Spells",
+        "level": 2
+      },
+      {
+        "naam": "Halo of Spores",
+        "level": 2
+      },
+      {
+        "naam": "Symbiotic Entity",
+        "level": 2
+      },
+      {
+        "naam": "Fungal Infestation",
+        "level": 6
+      },
+      {
+        "naam": "Spreading Spores",
+        "level": 10
+      },
+      {
+        "naam": "Fungal Body",
+        "level": 14
+      }
     ],
     "Circle of Wildfire": [
-      "Circle Spells",
-      "Summon Wildfire Spirit",
-      "Enhanced Bond",
-      "Cauterizing Flames",
-      "Blazing Revival"
+      {
+        "naam": "Circle Spells",
+        "level": 2
+      },
+      {
+        "naam": "Summon Wildfire Spirit",
+        "level": 2
+      },
+      {
+        "naam": "Enhanced Bond",
+        "level": 6
+      },
+      {
+        "naam": "Cauterizing Flames",
+        "level": 10
+      },
+      {
+        "naam": "Blazing Revival",
+        "level": 14
+      }
     ],
     "Purple Dragon Knight (Banneret)": [
-      "Rallying Cry",
-      "Royal Envoy",
-      "Inspiring Surge",
-      "Bulwark"
+      {
+        "naam": "Rallying Cry",
+        "level": 3
+      },
+      {
+        "naam": "Royal Envoy",
+        "level": 7
+      },
+      {
+        "naam": "Inspiring Surge",
+        "level": 10
+      },
+      {
+        "naam": "Bulwark",
+        "level": 15
+      }
     ],
     "Arcane Archer": [
-      "Arcane Archer Lore",
-      "Arcane Shot",
-      "Magic Arrow",
-      "Curving Shot",
-      "Ever-Ready Shot"
+      {
+        "naam": "Arcane Archer Lore",
+        "level": 3
+      },
+      {
+        "naam": "Arcane Shot",
+        "level": 3
+      },
+      {
+        "naam": "Magic Arrow",
+        "level": 7
+      },
+      {
+        "naam": "Curving Shot",
+        "level": 7
+      },
+      {
+        "naam": "Ever-Ready Shot",
+        "level": 15
+      }
     ],
     "Cavalier": [
-      "Bonus Proficiency",
-      "Born to the Saddle",
-      "Unwavering Mark",
-      "Warding Maneuver",
-      "Hold the Line",
-      "Ferocious Charger",
-      "Vigilant Defender"
+      {
+        "naam": "Bonus Proficiency",
+        "level": 3
+      },
+      {
+        "naam": "Born to the Saddle",
+        "level": 3
+      },
+      {
+        "naam": "Unwavering Mark",
+        "level": 3
+      },
+      {
+        "naam": "Warding Maneuver",
+        "level": 7
+      },
+      {
+        "naam": "Hold the Line",
+        "level": 10
+      },
+      {
+        "naam": "Ferocious Charger",
+        "level": 15
+      },
+      {
+        "naam": "Vigilant Defender",
+        "level": 18
+      }
     ],
     "Samurai": [
-      "Bonus Proficiency",
-      "Fighting Spirit",
-      "Elegant Courtier",
-      "Tireless Spirit",
-      "Rapid Strike",
-      "Strength before Death"
+      {
+        "naam": "Bonus Proficiency",
+        "level": 3
+      },
+      {
+        "naam": "Fighting Spirit",
+        "level": 3
+      },
+      {
+        "naam": "Elegant Courtier",
+        "level": 7
+      },
+      {
+        "naam": "Tireless Spirit",
+        "level": 10
+      },
+      {
+        "naam": "Rapid Strike",
+        "level": 15
+      },
+      {
+        "naam": "Strength before Death",
+        "level": 18
+      }
     ],
     "Rune Knight": [
-      "Bonus Proficiencies",
-      "Rune Carver",
-      "Giant's Might",
-      "Runic Shield",
-      "Great Stature",
-      "Master of Runes",
-      "Runic Juggernaut"
+      {
+        "naam": "Bonus Proficiencies",
+        "level": 3
+      },
+      {
+        "naam": "Rune Carver",
+        "level": 3
+      },
+      {
+        "naam": "Giant's Might",
+        "level": 3
+      },
+      {
+        "naam": "Runic Shield",
+        "level": 7
+      },
+      {
+        "naam": "Great Stature",
+        "level": 10
+      },
+      {
+        "naam": "Master of Runes",
+        "level": 15
+      },
+      {
+        "naam": "Runic Juggernaut",
+        "level": 18
+      }
     ],
     "Echo Knight": [
-      "Manifest Echo",
-      "Unleash Incarnation",
-      "Echo Avatar",
-      "Shadow Martyr",
-      "Reclaim Potential",
-      "Legion of One"
+      {
+        "naam": "Manifest Echo",
+        "level": 3
+      },
+      {
+        "naam": "Unleash Incarnation",
+        "level": 3
+      },
+      {
+        "naam": "Echo Avatar",
+        "level": 7
+      },
+      {
+        "naam": "Shadow Martyr",
+        "level": 10
+      },
+      {
+        "naam": "Reclaim Potential",
+        "level": 15
+      },
+      {
+        "naam": "Legion of One",
+        "level": 18
+      }
     ],
     "Way of the Long Death": [
-      "Touch of Death",
-      "Hour of Reaping",
-      "Mastery of Death",
-      "Touch of the Long Death"
+      {
+        "naam": "Touch of Death",
+        "level": 3
+      },
+      {
+        "naam": "Hour of Reaping",
+        "level": 6
+      },
+      {
+        "naam": "Mastery of Death",
+        "level": 11
+      },
+      {
+        "naam": "Touch of the Long Death",
+        "level": 17
+      }
     ],
     "Way of the Drunken Master": [
-      "Bonus Proficiencies",
-      "Drunken Technique",
-      "Tipsy Sway",
-      "Drunkard's Luck",
-      "Intoxicated Frenzy"
+      {
+        "naam": "Bonus Proficiencies",
+        "level": 3
+      },
+      {
+        "naam": "Drunken Technique",
+        "level": 3
+      },
+      {
+        "naam": "Tipsy Sway",
+        "level": 6
+      },
+      {
+        "naam": "Drunkard's Luck",
+        "level": 11
+      },
+      {
+        "naam": "Intoxicated Frenzy",
+        "level": 17
+      }
     ],
     "Way of the Kensei": [
-      "Path of the Kensei",
-      "One with the Blade",
-      "Sharpen the Blade",
-      "Unerring Accuracy"
+      {
+        "naam": "Path of the Kensei",
+        "level": 3
+      },
+      {
+        "naam": "One with the Blade",
+        "level": 6
+      },
+      {
+        "naam": "Sharpen the Blade",
+        "level": 11
+      },
+      {
+        "naam": "Unerring Accuracy",
+        "level": 17
+      }
     ],
     "Way of the Sun Soul": [
-      "Radiant Sun Bolt",
-      "Searing Arc Strike",
-      "Searing Sunburst",
-      "Sun Shield"
+      {
+        "naam": "Radiant Sun Bolt",
+        "level": 3
+      },
+      {
+        "naam": "Searing Arc Strike",
+        "level": 6
+      },
+      {
+        "naam": "Searing Sunburst",
+        "level": 11
+      },
+      {
+        "naam": "Sun Shield",
+        "level": 17
+      }
     ],
     "Way of the Astral Self": [
-      "Arms of the Astral Self",
-      "Visage of the Astral Self",
-      "Body of the Astral Self",
-      "Awakened Astral Self"
+      {
+        "naam": "Arms of the Astral Self",
+        "level": 3
+      },
+      {
+        "naam": "Visage of the Astral Self",
+        "level": 6
+      },
+      {
+        "naam": "Body of the Astral Self",
+        "level": 11
+      },
+      {
+        "naam": "Awakened Astral Self",
+        "level": 17
+      }
     ],
     "Oathbreaker": [
       "Channel Divinity: Control Undead",
       "Channel Divinity: Dreadful Aspect",
-      "Aura of Hate",
-      "Supernatural Resistance",
-      "Dread Lord"
+      {
+        "naam": "Aura of Hate",
+        "level": 7
+      },
+      {
+        "naam": "Supernatural Resistance",
+        "level": 15
+      },
+      {
+        "naam": "Dread Lord",
+        "level": 20
+      }
     ],
     "Oath of Conquest": [
       "Channel Divinity: Conquering Presence",
       "Channel Divinity: Guided Strike",
-      "Aura of Conquest",
-      "Scornful Rebuke",
-      "Invincible Conqueror"
+      {
+        "naam": "Aura of Conquest",
+        "level": 7
+      },
+      {
+        "naam": "Scornful Rebuke",
+        "level": 15
+      },
+      {
+        "naam": "Invincible Conqueror",
+        "level": 20
+      }
     ],
     "Oath of Redemption": [
       "Channel Divinity: Emissary of Peace",
       "Channel Divinity: Rebuke the Violent",
-      "Aura of the Guardian",
-      "Protective Spirit",
-      "Emissary of Redemption"
+      {
+        "naam": "Aura of the Guardian",
+        "level": 7
+      },
+      {
+        "naam": "Protective Spirit",
+        "level": 15
+      },
+      {
+        "naam": "Emissary of Redemption",
+        "level": 20
+      }
     ],
     "Oath of the Watchers": [
       "Channel Divinity: Watcher's Will",
       "Channel Divinity: Abjure the Extraplanar",
-      "Aura of the Sentinel",
-      "Vigilant Rebuke",
-      "Mortal Bulwark"
+      {
+        "naam": "Aura of the Sentinel",
+        "level": 7
+      },
+      {
+        "naam": "Vigilant Rebuke",
+        "level": 15
+      },
+      {
+        "naam": "Mortal Bulwark",
+        "level": 20
+      }
     ],
     "Horizon Walker": [
-      "Detect Portal",
-      "Planar Warrior",
-      "Ethereal Step",
-      "Distant Strike",
-      "Spectral Defense"
+      {
+        "naam": "Detect Portal",
+        "level": 3
+      },
+      {
+        "naam": "Planar Warrior",
+        "level": 3
+      },
+      {
+        "naam": "Ethereal Step",
+        "level": 7
+      },
+      {
+        "naam": "Distant Strike",
+        "level": 11
+      },
+      {
+        "naam": "Spectral Defense",
+        "level": 15
+      }
     ],
     "Monster Slayer": [
-      "Hunter's Sense",
-      "Slayer's Prey",
-      "Supernatural Defense",
-      "Magic-User's Nemesis",
-      "Slayer's Counter"
+      {
+        "naam": "Hunter's Sense",
+        "level": 3
+      },
+      {
+        "naam": "Slayer's Prey",
+        "level": 3
+      },
+      {
+        "naam": "Supernatural Defense",
+        "level": 7
+      },
+      {
+        "naam": "Magic-User's Nemesis",
+        "level": 11
+      },
+      {
+        "naam": "Slayer's Counter",
+        "level": 15
+      }
     ],
     "Swarmkeeper": [
-      "Gathered Swarm",
-      "Writhing Tide",
-      "Mighty Swarm",
-      "Swarming Dispersal"
+      {
+        "naam": "Gathered Swarm",
+        "level": 3
+      },
+      {
+        "naam": "Writhing Tide",
+        "level": 7
+      },
+      {
+        "naam": "Mighty Swarm",
+        "level": 11
+      },
+      {
+        "naam": "Swarming Dispersal",
+        "level": 15
+      }
     ],
     "Drakewarden": [
-      "Draconic Gift",
-      "Drake Companion",
-      "Bond of Fang and Scale",
-      "Drake's Breath",
-      "Perfected Bond"
+      {
+        "naam": "Draconic Gift",
+        "level": 3
+      },
+      {
+        "naam": "Drake Companion",
+        "level": 3
+      },
+      {
+        "naam": "Bond of Fang and Scale",
+        "level": 7
+      },
+      {
+        "naam": "Drake's Breath",
+        "level": 11
+      },
+      {
+        "naam": "Perfected Bond",
+        "level": 15
+      }
     ],
     "Inquisitive": [
-      "Ear for Deceit",
-      "Eye for Detail",
-      "Insightful Fighting",
-      "Steady Eye",
-      "Unerring Eye",
-      "Eye for Weakness"
+      {
+        "naam": "Ear for Deceit",
+        "level": 3
+      },
+      {
+        "naam": "Eye for Detail",
+        "level": 3
+      },
+      {
+        "naam": "Insightful Fighting",
+        "level": 3
+      },
+      {
+        "naam": "Steady Eye",
+        "level": 9
+      },
+      {
+        "naam": "Unerring Eye",
+        "level": 13
+      },
+      {
+        "naam": "Eye for Weakness",
+        "level": 17
+      }
     ],
     "Mastermind": [
-      "Master of Intrigue",
-      "Master of Tactics",
-      "Insightful Manipulator",
-      "Misdirection",
-      "Soul of Deceit"
+      {
+        "naam": "Master of Intrigue",
+        "level": 3
+      },
+      {
+        "naam": "Master of Tactics",
+        "level": 3
+      },
+      {
+        "naam": "Insightful Manipulator",
+        "level": 9
+      },
+      {
+        "naam": "Misdirection",
+        "level": 13
+      },
+      {
+        "naam": "Soul of Deceit",
+        "level": 17
+      }
     ],
     "Scout": [
-      "Skirmisher",
-      "Survivalist",
-      "Superior Mobility",
-      "Ambush Master",
-      "Sudden Strike"
+      {
+        "naam": "Skirmisher",
+        "level": 3
+      },
+      {
+        "naam": "Survivalist",
+        "level": 3
+      },
+      {
+        "naam": "Superior Mobility",
+        "level": 9
+      },
+      {
+        "naam": "Ambush Master",
+        "level": 13
+      },
+      {
+        "naam": "Sudden Strike",
+        "level": 17
+      }
     ],
     "Phantom": [
-      "Whispers of the Dead",
-      "Wails from the Grave",
-      "Tokens of the Departed",
-      "Ghost Walk",
-      "Death's Friend"
+      {
+        "naam": "Whispers of the Dead",
+        "level": 3
+      },
+      {
+        "naam": "Wails from the Grave",
+        "level": 3
+      },
+      {
+        "naam": "Tokens of the Departed",
+        "level": 9
+      },
+      {
+        "naam": "Ghost Walk",
+        "level": 13
+      },
+      {
+        "naam": "Death's Friend",
+        "level": 17
+      }
     ],
     "Divine Soul": [
-      "Divine Magic",
-      "Favored by the Gods",
-      "Empowered Healing",
+      {
+        "naam": "Divine Magic",
+        "level": 1
+      },
+      {
+        "naam": "Favored by the Gods",
+        "level": 1
+      },
+      {
+        "naam": "Empowered Healing",
+        "level": 6
+      },
       "Otherworldly Wings",
-      "Unearthly Recovery"
+      {
+        "naam": "Unearthly Recovery",
+        "level": 18
+      }
     ],
     "Shadow Magic": [
-      "Eyes of the Dark",
-      "Strength of the Grave",
-      "Hound of Ill Omen",
-      "Shadow Walk",
-      "Umbral Form"
+      {
+        "naam": "Eyes of the Dark",
+        "level": 1
+      },
+      {
+        "naam": "Strength of the Grave",
+        "level": 1
+      },
+      {
+        "naam": "Hound of Ill Omen",
+        "level": 6
+      },
+      {
+        "naam": "Shadow Walk",
+        "level": 14
+      },
+      {
+        "naam": "Umbral Form",
+        "level": 18
+      }
     ],
     "Storm Sorcery": [
       "Wind Speaker",
-      "Tempestuous Magic",
-      "Heart of the Storm",
-      "Storm Guide",
-      "Storm's Fury",
-      "Wind Soul"
+      {
+        "naam": "Tempestuous Magic",
+        "level": 1
+      },
+      {
+        "naam": "Heart of the Storm",
+        "level": 6
+      },
+      {
+        "naam": "Storm Guide",
+        "level": 6
+      },
+      {
+        "naam": "Storm's Fury",
+        "level": 14
+      },
+      {
+        "naam": "Wind Soul",
+        "level": 18
+      }
     ],
     "The Undying": [
-      "Among the Dead",
-      "Defy Death",
-      "Undying Nature",
-      "Indestructible Life"
+      {
+        "naam": "Among the Dead",
+        "level": 1
+      },
+      {
+        "naam": "Defy Death",
+        "level": 6
+      },
+      {
+        "naam": "Undying Nature",
+        "level": 10
+      },
+      {
+        "naam": "Indestructible Life",
+        "level": 14
+      }
     ],
     "The Hexblade": [
-      "Hexblade's Curse",
-      "Hex Warrior",
-      "Accursed Specter",
-      "Armor of Hexes",
-      "Master of Hexes"
+      {
+        "naam": "Hexblade's Curse",
+        "level": 1
+      },
+      {
+        "naam": "Hex Warrior",
+        "level": 1
+      },
+      {
+        "naam": "Accursed Specter",
+        "level": 6
+      },
+      {
+        "naam": "Armor of Hexes",
+        "level": 10
+      },
+      {
+        "naam": "Master of Hexes",
+        "level": 14
+      }
     ],
     "The Fathomless": [
       "Tentacle of the Deeps",
-      "Gift of the Sea",
-      "Oceanic Soul",
-      "Guardian Coil",
-      "Grasping Tentacles",
-      "Fathomless Plunge"
+      {
+        "naam": "Gift of the Sea",
+        "level": 1
+      },
+      {
+        "naam": "Oceanic Soul",
+        "level": 6
+      },
+      {
+        "naam": "Guardian Coil",
+        "level": 6
+      },
+      {
+        "naam": "Grasping Tentacles",
+        "level": 10
+      },
+      {
+        "naam": "Fathomless Plunge",
+        "level": 14
+      }
     ],
     "The Genie": [
-      "Genie's Vessel",
-      "Elemental Gift",
-      "Sanctuary Vessel",
-      "Limited Wish"
+      {
+        "naam": "Genie's Vessel",
+        "level": 1
+      },
+      {
+        "naam": "Elemental Gift",
+        "level": 6
+      },
+      {
+        "naam": "Sanctuary Vessel",
+        "level": 10
+      },
+      {
+        "naam": "Limited Wish",
+        "level": 14
+      }
     ],
     "The Undead": [
-      "Form of Dread",
-      "Grave Touched",
-      "Necrotic Husk",
-      "Spirit Projection"
+      {
+        "naam": "Form of Dread",
+        "level": 1
+      },
+      {
+        "naam": "Grave Touched",
+        "level": 6
+      },
+      {
+        "naam": "Necrotic Husk",
+        "level": 10
+      },
+      {
+        "naam": "Spirit Projection",
+        "level": 14
+      }
     ],
     "School of Conjuration": [
-      "Conjuration Savant",
-      "Minor Conjuration",
+      {
+        "naam": "Conjuration Savant",
+        "level": 2
+      },
+      {
+        "naam": "Minor Conjuration",
+        "level": 2
+      },
       "Benign Transposition",
-      "Focused Conjuration",
-      "Durable Summons"
+      {
+        "naam": "Focused Conjuration",
+        "level": 10
+      },
+      {
+        "naam": "Durable Summons",
+        "level": 14
+      }
     ],
     "School of Enchantment": [
-      "Enchantment Savant",
-      "Hypnotic Gaze",
-      "Instinctive Charm",
-      "Split Enchantment",
-      "Alter Memories"
+      {
+        "naam": "Enchantment Savant",
+        "level": 2
+      },
+      {
+        "naam": "Hypnotic Gaze",
+        "level": 2
+      },
+      {
+        "naam": "Instinctive Charm",
+        "level": 6
+      },
+      {
+        "naam": "Split Enchantment",
+        "level": 10
+      },
+      {
+        "naam": "Alter Memories",
+        "level": 14
+      }
     ],
     "School of Necromancy": [
-      "Necromancy Savant",
-      "Grim Harvest",
-      "Undead Thralls",
-      "Inured to Undeath",
-      "Command Undead"
+      {
+        "naam": "Necromancy Savant",
+        "level": 2
+      },
+      {
+        "naam": "Grim Harvest",
+        "level": 2
+      },
+      {
+        "naam": "Undead Thralls",
+        "level": 6
+      },
+      {
+        "naam": "Inured to Undeath",
+        "level": 10
+      },
+      {
+        "naam": "Command Undead",
+        "level": 14
+      }
     ],
     "School of Transmutation": [
-      "Transmutation Savant",
-      "Minor Alchemy",
-      "Transmuter's Stone",
-      "Shapechanger",
-      "Master Transmuter"
+      {
+        "naam": "Transmutation Savant",
+        "level": 2
+      },
+      {
+        "naam": "Minor Alchemy",
+        "level": 2
+      },
+      {
+        "naam": "Transmuter's Stone",
+        "level": 6
+      },
+      {
+        "naam": "Shapechanger",
+        "level": 10
+      },
+      {
+        "naam": "Master Transmuter",
+        "level": 14
+      }
     ],
     "Bladesinging": [
-      "Training in War and Song",
-      "Bladesong",
-      "Extra Attack",
-      "Song of Defense",
-      "Song of Victory"
+      {
+        "naam": "Training in War and Song",
+        "level": 2
+      },
+      {
+        "naam": "Bladesong",
+        "level": 2
+      },
+      {
+        "naam": "Extra Attack",
+        "level": 6
+      },
+      {
+        "naam": "Song of Defense",
+        "level": 10
+      },
+      {
+        "naam": "Song of Victory",
+        "level": 14
+      }
     ],
     "War Magic": [
-      "Arcane Deflection",
-      "Tactical Wit",
-      "Power Surge",
-      "Durable Magic",
-      "Deflecting Shroud"
+      {
+        "naam": "Arcane Deflection",
+        "level": 2
+      },
+      {
+        "naam": "Tactical Wit",
+        "level": 2
+      },
+      {
+        "naam": "Power Surge",
+        "level": 6
+      },
+      {
+        "naam": "Durable Magic",
+        "level": 10
+      },
+      {
+        "naam": "Deflecting Shroud",
+        "level": 14
+      }
     ],
     "Order of Scribes": [
-      "Wizardly Quill",
-      "Awakened Spellbook",
-      "Manifest Mind",
+      {
+        "naam": "Wizardly Quill",
+        "level": 2
+      },
+      {
+        "naam": "Awakened Spellbook",
+        "level": 2
+      },
+      {
+        "naam": "Manifest Mind",
+        "level": 6
+      },
       "Master Scrivener",
-      "One with the Word"
+      {
+        "naam": "One with the Word",
+        "level": 14
+      }
     ],
     "Chronurgy Magic": [
-      "Chronal Shift",
-      "Temporal Awareness",
-      "Momentary Stasis",
-      "Arcane Abeyance",
-      "Convergent Future"
+      {
+        "naam": "Chronal Shift",
+        "level": 2
+      },
+      {
+        "naam": "Temporal Awareness",
+        "level": 2
+      },
+      {
+        "naam": "Momentary Stasis",
+        "level": 6
+      },
+      {
+        "naam": "Arcane Abeyance",
+        "level": 10
+      },
+      {
+        "naam": "Convergent Future",
+        "level": 14
+      }
     ],
     "Graviturgy Magic": [
-      "Adjust Density",
-      "Gravity Well",
-      "Violent Attraction",
-      "Event Horizon"
+      {
+        "naam": "Adjust Density",
+        "level": 2
+      },
+      {
+        "naam": "Gravity Well",
+        "level": 6
+      },
+      {
+        "naam": "Violent Attraction",
+        "level": 10
+      },
+      {
+        "naam": "Event Horizon",
+        "level": 14
+      }
     ],
     "Alchemist": [
-      "Tool Proficiency",
-      "Alchemist Spells",
-      "Experimental Elixir",
-      "Alchemical Savant",
-      "Restorative Reagents",
-      "Chemical Mastery"
+      {
+        "naam": "Tool Proficiency",
+        "level": 3
+      },
+      {
+        "naam": "Alchemist Spells",
+        "level": 3
+      },
+      {
+        "naam": "Experimental Elixir",
+        "level": 3
+      },
+      {
+        "naam": "Alchemical Savant",
+        "level": 5
+      },
+      {
+        "naam": "Restorative Reagents",
+        "level": 9
+      },
+      {
+        "naam": "Chemical Mastery",
+        "level": 15
+      }
     ],
     "Armorer": [
-      "Tools of the Trade",
-      "Armorer Spells",
-      "Arcane Armor",
-      "Armor Model",
-      "Extra Attack",
-      "Armor Modifications",
-      "Perfected Armor"
+      {
+        "naam": "Tools of the Trade",
+        "level": 3
+      },
+      {
+        "naam": "Armorer Spells",
+        "level": 3
+      },
+      {
+        "naam": "Arcane Armor",
+        "level": 3
+      },
+      {
+        "naam": "Armor Model",
+        "level": 3
+      },
+      {
+        "naam": "Extra Attack",
+        "level": 5
+      },
+      {
+        "naam": "Armor Modifications",
+        "level": 9
+      },
+      {
+        "naam": "Perfected Armor",
+        "level": 15
+      }
     ],
     "Artillerist": [
-      "Tool Proficiency",
-      "Artillerist Spells",
-      "Eldritch Cannon",
-      "Arcane Firearm",
-      "Explosive Cannon",
-      "Fortified Position"
+      {
+        "naam": "Tool Proficiency",
+        "level": 3
+      },
+      {
+        "naam": "Artillerist Spells",
+        "level": 3
+      },
+      {
+        "naam": "Eldritch Cannon",
+        "level": 3
+      },
+      {
+        "naam": "Arcane Firearm",
+        "level": 5
+      },
+      {
+        "naam": "Explosive Cannon",
+        "level": 9
+      },
+      {
+        "naam": "Fortified Position",
+        "level": 15
+      }
     ],
     "Battle Smith": [
-      "Tool Proficiency",
-      "Battle Smith Spells",
-      "Battle Ready",
-      "Steel Defender",
-      "Extra Attack",
-      "Arcane Jolt",
-      "Improved Defender"
+      {
+        "naam": "Tool Proficiency",
+        "level": 3
+      },
+      {
+        "naam": "Battle Smith Spells",
+        "level": 3
+      },
+      {
+        "naam": "Battle Ready",
+        "level": 3
+      },
+      {
+        "naam": "Steel Defender",
+        "level": 3
+      },
+      {
+        "naam": "Extra Attack",
+        "level": 5
+      },
+      {
+        "naam": "Arcane Jolt",
+        "level": 9
+      },
+      {
+        "naam": "Improved Defender",
+        "level": 15
+      }
     ],
     "Knowledge Domain": [
-      "Blessings of Knowledge",
-      "Channel Divinity: Knowledge of the Ages",
-      "Channel Divinity: Read Thoughts",
-      "Potent Spellcasting",
-      "Visions of the Past"
+      {
+        "naam": "Blessings of Knowledge",
+        "level": 1
+      },
+      {
+        "naam": "Channel Divinity: Knowledge of the Ages",
+        "level": 2
+      },
+      {
+        "naam": "Channel Divinity: Read Thoughts",
+        "level": 6
+      },
+      {
+        "naam": "Potent Spellcasting",
+        "level": 8
+      },
+      {
+        "naam": "Visions of the Past",
+        "level": 17
+      }
     ],
     "Nature Domain": [
-      "Acolyte of Nature",
-      "Bonus Proficiency",
-      "Channel Divinity: Charm Animals and Plants",
-      "Dampen Elements",
-      "Divine Strike",
-      "Master of Nature"
+      {
+        "naam": "Acolyte of Nature",
+        "level": 1
+      },
+      {
+        "naam": "Bonus Proficiency",
+        "level": 1
+      },
+      {
+        "naam": "Channel Divinity: Charm Animals and Plants",
+        "level": 2
+      },
+      {
+        "naam": "Dampen Elements",
+        "level": 6
+      },
+      {
+        "naam": "Divine Strike",
+        "level": 8
+      },
+      {
+        "naam": "Master of Nature",
+        "level": 17
+      }
     ],
     "Tempest Domain": [
-      "Bonus Proficiencies",
-      "Wrath of the Storm",
-      "Channel Divinity: Destructive Wrath",
+      {
+        "naam": "Bonus Proficiencies",
+        "level": 1
+      },
+      {
+        "naam": "Wrath of the Storm",
+        "level": 1
+      },
+      {
+        "naam": "Channel Divinity: Destructive Wrath",
+        "level": 2
+      },
       "Thunderbolt Strike",
-      "Divine Strike",
-      "Stormborn"
+      {
+        "naam": "Divine Strike",
+        "level": 8
+      },
+      {
+        "naam": "Stormborn",
+        "level": 17
+      }
     ],
     "Path of the Wild Heart": [
       "Animal Speaker",
@@ -613,10 +1627,22 @@
       "Travel along the Tree"
     ],
     "Path of the Zealot": [
-      "Divine Fury",
-      "Warrior of the Gods",
-      "Fanatical Focus",
-      "Zealous Presence",
+      {
+        "naam": "Divine Fury",
+        "level": 3
+      },
+      {
+        "naam": "Warrior of the Gods",
+        "level": 3
+      },
+      {
+        "naam": "Fanatical Focus",
+        "level": 6
+      },
+      {
+        "naam": "Zealous Presence",
+        "level": 10
+      },
       "Rage of the Gods"
     ],
     "College of Dance": [
@@ -627,36 +1653,66 @@
     ],
     "College of Glamour": [
       "Beguiling Magic",
-      "Mantle of Inspiration",
-      "Mantle of Majesty",
-      "Unbreakable Majesty"
+      {
+        "naam": "Mantle of Inspiration",
+        "level": 3
+      },
+      {
+        "naam": "Mantle of Majesty",
+        "level": 6
+      },
+      {
+        "naam": "Unbreakable Majesty",
+        "level": 14
+      }
     ],
     "College of Valor": [
-      "Combat Inspiration",
+      {
+        "naam": "Combat Inspiration",
+        "level": 3
+      },
       "Martial Training",
-      "Extra Attack",
-      "Battle Magic"
+      {
+        "naam": "Extra Attack",
+        "level": 6
+      },
+      {
+        "naam": "Battle Magic",
+        "level": 14
+      }
     ],
     "Light Domain": [
       "Radiance of the Dawn",
       "Warding Flare",
       "Improved Warding Flare",
       "Potent Spellcasting",
-      "Corona of Light"
+      {
+        "naam": "Corona of Light",
+        "level": 17
+      }
     ],
     "War Domain": [
       "Guided Strike",
       "War Priest",
-      "War God's Blessing",
+      {
+        "naam": "War God's Blessing",
+        "level": 6
+      },
       "Divine Strike",
-      "Avatar of Battle"
+      {
+        "naam": "Avatar of Battle",
+        "level": 17
+      }
     ],
     "Trickery Domain": [
       "Blessing of the Trickster",
       "Invoke Duplicity",
       "Trickster's Transposition",
       "Divine Strike",
-      "Improved Duplicity"
+      {
+        "naam": "Improved Duplicity",
+        "level": 17
+      }
     ],
     "Circle of the Moon": [
       "Circle Forms",
@@ -673,31 +1729,79 @@
     "Circle of the Stars": [
       "Star Map",
       "Starry Form",
-      "Cosmic Omen",
-      "Twinkling Constellations",
-      "Full of Stars"
+      {
+        "naam": "Cosmic Omen",
+        "level": 6
+      },
+      {
+        "naam": "Twinkling Constellations",
+        "level": 10
+      },
+      {
+        "naam": "Full of Stars",
+        "level": 14
+      }
     ],
     "Battle Master": [
-      "Combat Superiority",
-      "Student of War",
-      "Know Your Enemy",
-      "Improved Combat Superiority",
-      "Relentless",
+      {
+        "naam": "Combat Superiority",
+        "level": 3
+      },
+      {
+        "naam": "Student of War",
+        "level": 3
+      },
+      {
+        "naam": "Know Your Enemy",
+        "level": 7
+      },
+      {
+        "naam": "Improved Combat Superiority",
+        "level": 10
+      },
+      {
+        "naam": "Relentless",
+        "level": 15
+      },
       "Ultimate Combat Superiority"
     ],
     "Eldritch Knight": [
-      "Spellcasting",
+      {
+        "naam": "Spellcasting",
+        "level": 3
+      },
       "War Bond",
-      "War Magic",
-      "Eldritch Strike",
-      "Arcane Charge",
-      "Improved War Magic"
+      {
+        "naam": "War Magic",
+        "level": 7
+      },
+      {
+        "naam": "Eldritch Strike",
+        "level": 10
+      },
+      {
+        "naam": "Arcane Charge",
+        "level": 15
+      },
+      {
+        "naam": "Improved War Magic",
+        "level": 18
+      }
     ],
     "Warrior of Shadow": [
-      "Shadow Arts",
-      "Shadow Step",
+      {
+        "naam": "Shadow Arts",
+        "level": 3
+      },
+      {
+        "naam": "Shadow Step",
+        "level": 6
+      },
       "Improved Shadow Step",
-      "Cloak of Shadows"
+      {
+        "naam": "Cloak of Shadows",
+        "level": 11
+      }
     ],
     "Warrior of the Elements": [
       "Elemental Attunement",
@@ -708,70 +1812,187 @@
     "Warrior of Mercy": [
       "Hand of Harm",
       "Hand of Healing",
-      "Implements of Mercy",
-      "Physician's Touch",
-      "Flurry of Healing and Harm",
-      "Hand of Ultimate Mercy"
+      {
+        "naam": "Implements of Mercy",
+        "level": 3
+      },
+      {
+        "naam": "Physician's Touch",
+        "level": 6
+      },
+      {
+        "naam": "Flurry of Healing and Harm",
+        "level": 11
+      },
+      {
+        "naam": "Hand of Ultimate Mercy",
+        "level": 17
+      }
     ],
     "Oath of the Ancients": [
       "Channel Divinity: Nature's Wrath",
-      "Aura of Warding",
-      "Undying Sentinel",
-      "Elder Champion"
+      {
+        "naam": "Aura of Warding",
+        "level": 7
+      },
+      {
+        "naam": "Undying Sentinel",
+        "level": 15
+      },
+      {
+        "naam": "Elder Champion",
+        "level": 20
+      }
     ],
     "Oath of Glory": [
       "Channel Divinity: Inspiring Smite",
       "Channel Divinity: Peerless Athlete",
-      "Aura of Alacrity",
-      "Glorious Defense",
-      "Living Legend"
+      {
+        "naam": "Aura of Alacrity",
+        "level": 7
+      },
+      {
+        "naam": "Glorious Defense",
+        "level": 15
+      },
+      {
+        "naam": "Living Legend",
+        "level": 20
+      }
     ],
     "Oath of Vengeance": [
       "Channel Divinity: Vow of Enmity",
-      "Relentless Avenger",
-      "Soul of Vengeance",
-      "Avenging Angel"
+      {
+        "naam": "Relentless Avenger",
+        "level": 7
+      },
+      {
+        "naam": "Soul of Vengeance",
+        "level": 15
+      },
+      {
+        "naam": "Avenging Angel",
+        "level": 20
+      }
     ],
     "Beast Master": [
       "Primal Companion",
-      "Exceptional Training",
-      "Bestial Fury",
-      "Share Spells"
+      {
+        "naam": "Exceptional Training",
+        "level": 7
+      },
+      {
+        "naam": "Bestial Fury",
+        "level": 11
+      },
+      {
+        "naam": "Share Spells",
+        "level": 15
+      }
     ],
     "Fey Wanderer": [
-      "Dreadful Strikes",
-      "Otherworldly Glamour",
-      "Beguiling Twist",
-      "Fey Reinforcements",
-      "Misty Wanderer"
+      {
+        "naam": "Dreadful Strikes",
+        "level": 3
+      },
+      {
+        "naam": "Otherworldly Glamour",
+        "level": 3
+      },
+      {
+        "naam": "Beguiling Twist",
+        "level": 7
+      },
+      {
+        "naam": "Fey Reinforcements",
+        "level": 11
+      },
+      {
+        "naam": "Misty Wanderer",
+        "level": 15
+      }
     ],
     "Gloom Stalker": [
-      "Dread Ambusher",
-      "Umbral Sight",
-      "Iron Mind",
-      "Stalker's Flurry",
-      "Shadowy Dodge"
+      {
+        "naam": "Dread Ambusher",
+        "level": 3
+      },
+      {
+        "naam": "Umbral Sight",
+        "level": 3
+      },
+      {
+        "naam": "Iron Mind",
+        "level": 7
+      },
+      {
+        "naam": "Stalker's Flurry",
+        "level": 11
+      },
+      {
+        "naam": "Shadowy Dodge",
+        "level": 15
+      }
     ],
     "Arcane Trickster": [
-      "Spellcasting",
-      "Mage Hand Legerdemain",
-      "Magical Ambush",
-      "Versatile Trickster",
-      "Spell Thief"
+      {
+        "naam": "Spellcasting",
+        "level": 3
+      },
+      {
+        "naam": "Mage Hand Legerdemain",
+        "level": 3
+      },
+      {
+        "naam": "Magical Ambush",
+        "level": 9
+      },
+      {
+        "naam": "Versatile Trickster",
+        "level": 13
+      },
+      {
+        "naam": "Spell Thief",
+        "level": 17
+      }
     ],
     "Assassin": [
-      "Assassinate",
+      {
+        "naam": "Assassinate",
+        "level": 3
+      },
       "Assassin's Tools",
-      "Infiltration Expertise",
+      {
+        "naam": "Infiltration Expertise",
+        "level": 9
+      },
       "Envenom Weapons",
-      "Death Strike"
+      {
+        "naam": "Death Strike",
+        "level": 17
+      }
     ],
     "Soulknife": [
-      "Psionic Power",
-      "Psychic Blades",
-      "Soul Blades",
-      "Psychic Veil",
-      "Rend Mind"
+      {
+        "naam": "Psionic Power",
+        "level": 3
+      },
+      {
+        "naam": "Psychic Blades",
+        "level": 3
+      },
+      {
+        "naam": "Soul Blades",
+        "level": 9
+      },
+      {
+        "naam": "Psychic Veil",
+        "level": 13
+      },
+      {
+        "naam": "Rend Mind",
+        "level": 17
+      }
     ],
     "Clockwork Sorcery": [
       "Restore Balance",
@@ -788,22 +2009,37 @@
     ],
     "Archfey Patron": [
       "Steps of the Fey",
-      "Misty Escape",
-      "Beguiling Defenses",
+      {
+        "naam": "Misty Escape",
+        "level": 6
+      },
+      {
+        "naam": "Beguiling Defenses",
+        "level": 10
+      },
       "Bewitching Magic"
     ],
     "Celestial Patron": [
       "Healing Light",
-      "Radiant Soul",
+      {
+        "naam": "Radiant Soul",
+        "level": 6
+      },
       "Celestial Resilience",
-      "Searing Vengeance"
+      {
+        "naam": "Searing Vengeance",
+        "level": 14
+      }
     ],
     "Great Old One Patron": [
       "Awakened Mind",
       "Psychic Spells",
       "Clairvoyant Combatant",
       "Eldritch Hex",
-      "Create Thrall"
+      {
+        "naam": "Create Thrall",
+        "level": 14
+      }
     ],
     "Abjurer": [
       "Abjuration Savant",
@@ -1219,5 +2455,5 @@
       "Specialized Design"
     ]
   },
-  "_niveaus": "Een naam mag een level dragen: `{\"naam\": \"…\", \"level\": 3}` in plaats van alleen de naam. Alleen waar het level **nagekeken** is — bij de Blood Hunter en de Illrigger, waar de bron hem noemde. Een level raden uit de volgorde gaat mis zodra twee features op hetzelfde level liggen, en dat is bij elke subclass zo. Staat er geen level, dan staat het in het boek en niet hier."
+  "_niveaus": "Een naam mag een level dragen: {\"naam\": \"…\", \"level\": 3}. Opgehaald met scripts/srd-2024/elders-niveaus.js van dnd5e.wikidot.com — de kop is de naam, de eerste levelvermelding eronder is het level. Alleen waar de naam exact overeenkomt: een kop die wij niet kennen hoort bij een andere druk. Bij een subclass die de app als 2024-materiaal meebrengt wordt bovendien alleen een level overgenomen dat deze class zijn subclasses ook echt geeft — wikidot beschrijft 2014, en daar begint een Cleric-domein op level 1. Het level is dat van het boek waar de subclass in staat; dat staat op zijn kaartje erbij."
 }

@@ -1721,10 +1721,13 @@ in `_load()` (`render-spreuken.js`), ontdubbeld op `index`:
 > 110 subclasses, 29 species uit `volkenOverig` en de drie classes die de app
 > zonder tekst meebrengt (Artificer, Blood Hunter, Illrigger), samen 698
 > namen — en verder niets: geen tekst, geen regels. Een naam mág een level
-> dragen (`{naam, level}`), maar alléén waar dat is nagekeken: bij de Blood
-> Hunter en de Illrigger, waar de bron het noemde. Raden uit de volgorde gaat
-> mis zodra twee features op hetzelfde level liggen, en dat is bij elke
-> subclass zo. Dat zijn niet alleen de
+> dragen (`{naam, level}`) — 488 van de 698 hebben er een, opgehaald met
+> `scripts/srd-2024/elders-niveaus.js` van dnd5e.wikidot.com. Alleen waar de
+> naam exact overeenkomt (een kop die wij niet kennen hoort bij een andere
+> druk), en bij 2024-subclasses alleen een level dat die class zijn subclasses
+> ook echt geeft — wikidot beschrijft 2014, en daar begint een Cleric-domein op
+> level 1. Raden uit de volgorde kan niet: twee features op hetzelfde level is
+> eerder regel dan uitzondering. Dat zijn niet alleen de
 > boeken van buiten: ook de 2024-subclasses die de app zelf meebrengt maar
 > waarvan de tekst buiten de SRD valt (Battle Master, Assassin, Gloom Stalker…)
 > staan erin, zodat een verse campagne daar geen kaartje zonder wegwijzer
