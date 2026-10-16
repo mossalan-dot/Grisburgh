@@ -1763,7 +1763,6 @@ function _uitlegVenster(soort, naam, bron) {
   const veilig = esc(naam).replace(/'/g, "\\'");
   const veiligB = esc(bron || '').replace(/'/g, "\\'");
   const beeld = _hbBeeldRuw(soort, naam);
-  const soortLabel = { class: 'class', subclass: 'subclass', species: 'species', background: 'background' }[soort] || soort;
 
   window.app.openModal(`${naam} bewerken`, '', `
     <div class="dm-feature-section" style="margin:0" id="vd-kaart-bewerk"
@@ -1814,7 +1813,6 @@ function _uitlegVenster(soort, naam, bron) {
              staan tot je de hele progressie reset. -->
         <button class="dm-btn dm-btn-danger" onclick="window.vaardigheden.verwijderHouder('${esc(soort)}','${veilig}','${veiligB}')">${icon('trash')} Verwijderen</button>
       </div>
-      <p class="dm-hint">Je bewerkt de ${esc(soortLabel)} zelf. De features eronder hebben hun eigen kaartje.</p>
     </div>`, 'hulp_heldenboek_kaart');
 }
 
