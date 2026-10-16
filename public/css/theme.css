@@ -23117,7 +23117,10 @@ body.landing-open { overflow: hidden; background: #0c0805; }
    daarbuiten — daar zag je de kopbalk van de app doorschemeren. Zelfde
    aanpak als `boot`: alleen de landingspagina (en de inzoom-cirkel) blijven
    zichtbaar. */
-body.landing-open > *:not(#landing-overlay):not(#landing-zoom):not(script) { visibility: hidden; }
+/* Op de landingspagina staat alles behalve de landing zelf op onzichtbaar.
+   De personagewizard hoort daar wél doorheen te komen: hij draait juist
+   terwijl je nog niet ingelogd bent. */
+body.landing-open > *:not(#landing-overlay):not(#landing-zoom):not(#pm-overlay):not(script) { visibility: hidden; }
 
 /* Wachtwoordprompt boven het toetsenbord: vastgezet in het zichtbare deel, met
    een eigen achtergrond zodat hij niet over de portretten heen leest. De
