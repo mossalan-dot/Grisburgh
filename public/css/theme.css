@@ -344,7 +344,11 @@ html {
     0 1px 0 rgba(255,255,255,0.5) inset,
     0 -1px 0 rgba(120,80,20,0.12) inset;
   min-width: 175px;
-  padding: 5px 0;
+  /* Geen marge boven en onder. Die was er wel (5px), en daar zaten juist de
+     ronde hoeken in: de arcering van het eerste en het laatste item hield op
+     vóór de hoek, zodat die twee bij hover ongeschaduwd leken. Nu loopt het
+     item tot de rand en knipt `overflow: hidden` hem netjes langs de bocht. */
+  padding: 0;
   transform-origin: top center;
   animation: menuDrop 0.18s cubic-bezier(.2,.8,.3,1);
   overflow: hidden;
@@ -410,6 +414,11 @@ html {
   color: #2a1808;
   padding-left: 19px;
 }
+/* De hoeken van het eerste en het laatste item volgen die van het menu. De
+   overflow knipt ze al, maar zo klopt het ook als er ooit iets overheen komt
+   te staan dat niet geknipt wordt. */
+.archief-menu-item:first-child { border-radius: 10px 10px 0 0; }
+.archief-menu-item:last-child  { border-radius: 0 0 10px 10px; }
 .archief-menu-item:hover .icon { color: rgb(var(--sect-c)); transform: scale(1.15); }
 .archief-menu-item:hover::after { transform: scaleY(1); }
 .archief-menu-item.active {
