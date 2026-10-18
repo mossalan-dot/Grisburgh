@@ -316,7 +316,12 @@ describe('Subclasses die elders staan', () => {
     const bronnen = require('../lib/bronnen');
     const kaal = bronnen.bronVoor('subclasses-elders', { volledig: false });
     assert.ok(kaal?.klassen, 'ook zonder bronteksten beschikbaar');
-    assert.equal(Object.keys(kaal.klassen).length, 12, 'alle twaalf classes');
+    // Tegen het bestand zelf, niet tegen een getal: "compleet" is wat hier
+    // staat, en dat groeit mee zodra er een class met een voorraadlijst bij
+    // komt (Artificer kreeg er een toen Reanimator verscheen).
+    const opSchijf = require('../bronnen/subclasses-elders.json');
+    assert.equal(Object.keys(kaal.klassen).length, Object.keys(opSchijf.klassen).length,
+      'alle classes uit het bestand');
   });
 
   it('dubbelt niet met wat de app zelf meebrengt', () => {

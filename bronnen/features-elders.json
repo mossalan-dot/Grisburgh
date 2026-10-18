@@ -6,27 +6,23 @@
   "classes": {
     "Artificer": [
       {
-        "naam": "Magical Tinkering",
-        "level": 1
-      },
-      {
         "naam": "Spellcasting",
         "level": 1
       },
       {
-        "naam": "Infuse Item",
+        "naam": "Tinker's Magic",
+        "level": 1
+      },
+      {
+        "naam": "Replicate Magic Item",
         "level": 2
       },
       {
-        "naam": "Artificer Specialist",
+        "naam": "Artificer Subclass",
         "level": 3
       },
       {
-        "naam": "The Right Tool for the Job",
-        "level": 3
-      },
-      {
-        "naam": "Tool Expertise",
+        "naam": "Magic Item Tinker",
         "level": 6
       },
       {
@@ -42,7 +38,7 @@
         "level": 11
       },
       {
-        "naam": "Magic Item Savant",
+        "naam": "Advanced Artifice",
         "level": 14
       },
       {
@@ -2827,6 +2823,36 @@
       },
       {
         "naam": "Bulwark",
+        "level": 15
+      }
+    ],
+    "Reanimator": [
+      {
+        "naam": "Reanimated Companion",
+        "level": 3
+      },
+      {
+        "naam": "Reanimator Spells",
+        "level": 3
+      },
+      {
+        "naam": "Reanimator's Skill Set",
+        "level": 3
+      },
+      {
+        "naam": "Strange Modifications",
+        "level": 5
+      },
+      {
+        "naam": "Improved Reanimation",
+        "level": 9
+      },
+      {
+        "naam": "Macabre Modifications",
+        "level": 9
+      },
+      {
+        "naam": "Refined Reanimation",
         "level": 15
       }
     ]

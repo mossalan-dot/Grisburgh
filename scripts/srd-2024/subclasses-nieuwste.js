@@ -19,6 +19,15 @@
 //     level erbij. Dat staat in de spiegel als een eigen veld, dus hier hoeft
 //     niets uit een kop gevist te worden zoals bij de wiki.
 //
+// Hetzelfde geldt een laag hoger, voor de **classes** in die voorraadlijst. De
+// Artificer stond er met zijn features uit Tasha's (2020), terwijl Eberron:
+// Forge of the Artificer hem opnieuw heeft uitgegeven: Magical Tinkering,
+// Infuse Item en Tool Expertise bestaan daar niet meer, en er kwamen Tinker's
+// Magic, Replicate Magic Item en Advanced Artifice voor terug. In een campagne
+// die al op die nieuwe druk draait kwamen de vijf oude namen er sinds kort als
+// losse wegwijzers bíj te staan — de voorraadlijst vult nu immers per naam aan
+// in plaats van per houder.
+//
 // Wat de app zelf meebrengt blijft met rust: dat is SRD-tekst en die hoort bij
 // de druk waar hij uit komt.
 //
@@ -58,6 +67,13 @@ const BOEK = {
   AU: ['au', 'Arcana Unleashed'],
 };
 
+// Voor de classes: welke druk is de nieuwste. Bij de subclasses hoeft dit niet
+// — daar wijst `reprintedAs` de weg.
+const JAAR = { PHB: 2014, DMG: 2014, SCAG: 2015, VGM: 2016, XGE: 2017, MTF: 2018, GGR: 2018,
+  AI: 2019, ERLW: 2019, EGW: 2020, MOT: 2020, TCE: 2021, VRGR: 2021, FTD: 2021, SCC: 2021,
+  MPMM: 2022, AAG: 2022, SatO: 2023, BMT: 2024, XPHB: 2024, XDMG: 2024, XMM: 2025,
+  FRHoF: 2025, EFA: 2025, RHW: 2026, AU: 2026 };
+
 const sleutel = (naam, bron) => `${String(naam).toLowerCase()}|${bron}`;
 const schoon = (n) => String(n || '').replace(/[’]/g, "'").replace(/\s+/g, ' ').trim();
 
@@ -70,8 +86,16 @@ const schoon = (n) => String(n || '').replace(/[’]/g, "'").replace(/\s+/g, ' '
   const index = await (await fetch(MIRROR + 'index.json')).json();
   const alle = new Map();          // "naam|bron" → subclass-record
   const featuresVan = new Map();   // "naam|bron" → [{naam, level}]
+  const klassen = new Map();       // "naam|bron" → class-record
+  const klasFeatures = new Map();  // "naam|bron" → [{naam, level}]
   for (const bestand of Object.values(index)) {
     const d = await (await fetch(MIRROR + bestand)).json();
+    for (const c of (d.class || [])) klassen.set(sleutel(c.name, c.source), c);
+    for (const f of (d.classFeature || [])) {
+      const k = sleutel(f.className, f.source);
+      if (!klasFeatures.has(k)) klasFeatures.set(k, []);
+      klasFeatures.get(k).push({ naam: schoon(f.name), level: Number(f.level) || 0 });
+    }
     for (const sc of (d.subclass || [])) alle.set(sleutel(sc.name, sc.source), sc);
     for (const f of (d.subclassFeature || [])) {
       const sc = (d.subclass || []).find(x => x.shortName === f.subclassShortName && x.source === f.subclassSource);
@@ -148,9 +172,39 @@ const schoon = (n) => String(n || '').replace(/[’]/g, "'").replace(/\s+/g, ' '
   }
   Object.assign(elders.boeken, boekBij);
 
+  // ── De classes in de voorraadlijst, op hun nieuwste druk ───────────────
+  // Wat elke class krijgt staat elders in de app (de tijdlijn deelt ze uit) of
+  // is geen feature om op te zoeken: een Ability Score Improvement, een Epic
+  // Boon en de plaatshouder "Subclass feature" horen hier niet in de lijst.
+  const GEEN = /^(ability score improvement|epic boon)$/i;
+  const PLAATSHOUDER = /\bsubclass feature\b|\bspecialist feature$/i;
+  const klasBij = [];
+  for (const naam of Object.keys(features.classes || {})) {
+    // De nieuwste druk van déze class, als de spiegel hem kent.
+    const kandidaten = [...klassen.values()].filter(c => schoon(c.name).toLowerCase() === naam.toLowerCase());
+    const beste = kandidaten.sort((a, b) => (JAAR[a.source] || 0) - (JAAR[b.source] || 0)).pop();
+    if (!beste) continue;
+    const lijst = (klasFeatures.get(sleutel(beste.name, beste.source)) || [])
+      .filter(f => !GEEN.test(f.naam) && !PLAATSHOUDER.test(f.naam));
+    if (!lijst.length) continue;
+    const oudeNamen = (features.classes[naam] || []).map(x => (x && typeof x === 'object') ? x.naam : x);
+    const nieuweNamen = lijst.map(f => f.naam);
+    const weg = oudeNamen.filter(n => !nieuweNamen.includes(n));
+    const bij = nieuweNamen.filter(n => !oudeNamen.includes(n));
+    if (!weg.length && !bij.length) continue;
+    features.classes[naam] = lijst;
+    klasBij.push({ naam, boek: beste.source, weg, bij });
+  }
+
   for (const h of hernoemd) console.log(`  ${h.klasse.padEnd(10)} ${h.van.padEnd(34)} → ${h.naar}`);
   console.log(`\n${hernoemd.length} hernoemd, ${nieuweLevels.length} met hun featurenamen erbij.`);
   if (Object.keys(boekBij).length) console.log(`Boeken erbij: ${Object.entries(boekBij).map(([c, t]) => `${c} (${t})`).join(', ')}`);
+  for (const k of klasBij) {
+    console.log(`  ${k.naam} → ${k.boek}`);
+    if (k.weg.length) console.log(`      weg:   ${k.weg.join(', ')}`);
+    if (k.bij.length) console.log(`      erbij: ${k.bij.join(', ')}`);
+  }
+  if (klasBij.length) console.log(`${klasBij.length} class${klasBij.length === 1 ? '' : 'es'} bijgewerkt.`);
   if (overgeslagen.length) console.log(`\nOvergeslagen (${overgeslagen.length}):\n  ${overgeslagen.join('\n  ')}`);
 
   if (!schrijf) { console.log('\nProefronde — draai opnieuw met --schrijf.'); return; }

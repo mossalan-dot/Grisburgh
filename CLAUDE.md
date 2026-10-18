@@ -2441,6 +2441,19 @@ factie — `star` betekent in de app al *favoriet*), `award` (factie-boon), `bac
 > overgenomen houdt zo zijn featurenamen in plaats van terug te vallen op "geen tekst".
 > Zes hernoemd op 18 okt 2026: Conjurer, Enchanter, Necromancer, Transmuter (AU),
 > Bladesinger en Banneret (HoF).
+> **Hetzelfde geldt een laag hoger, voor de classes in die lijst.** De Artificer stond er
+> met zijn features uit Tasha's terwijl Eberron: Forge of the Artificer hem opnieuw heeft
+> uitgegeven. In een campagne die al op die nieuwe druk draait kwamen de vijf oude namen er
+> sinds de per-naam-aanvulling als losse wegwijzers bíj te staan — zichtbaar als kaartjes
+> zonder tekst tussen features die er wél een hebben. De generieke rijen (Ability Score
+> Improvement, Epic Boon, de plaatshouder "Subclass feature") blijven uit de lijst: die
+> deelt de tijdlijn al uit.
+> **Een algehele verversing van de subclasses doen we bewust níét.** Nagemeten: 53 van de
+> 117 zouden "verschillen", maar dat zijn bijna allemaal twee dingen die we expres anders
+> doen — de spiegel zet de keuze-opties als losse features in de lijst (Totem Warrior krijgt
+> Bear, Eagle, Elk, Tiger en Wolf drie keer) en zet 2014-features terug op hun oude level,
+> terwijl hier de regel geldt dat wat vóór level 3 kwam op 3 staat. Overnemen zou die twee
+> afspraken stilzwijgend terugdraaien.
 
 > **Een tabel in een vaardigheidstekst is platgeslagen binnengekomen.** Elf teksten in
 > `bronnen/srd-features.json` dragen er een (de domeinspreuken, Draconic/Fiend Spells, het

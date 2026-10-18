@@ -19,6 +19,12 @@
     "rhw": "Ravenloft: The Horrors Within"
   },
   "klassen": {
+    "Artificer": [
+      {
+        "naam": "Reanimator",
+        "boek": "rhw"
+      }
+    ],
     "Barbarian": [
       {
         "naam": "Path of the Totem Warrior",

@@ -1594,6 +1594,13 @@ Grisburghs **data** te staan — niet in de code.
       staan de naam, de regel *Evoker · Wizard · level 3* en de beschrijving.
       Géén chips voor soort en herkomst meer; de penning met het level blijft op
       de plaat staan, en *Naslag* staat er alleen bij een kaartje zonder tekst.
+- [ ] **De Artificer is die uit Eberron** (ALL) — open *Classes* → *Artificer*:
+      er staan **Tinker's Magic**, **Replicate Magic Item**, **Magic Item
+      Tinker** en **Advanced Artifice**, en níét meer Magical Tinkering, Infuse
+      Item, The Right Tool for the Job, Tool Expertise of Magic Item Savant —
+      dat is de druk van Tasha's. Er hoort geen kaartje zonder tekst tussen te
+      staan; die vijf stonden er als wegwijzer bij omdat de voorraadlijst nog
+      op de oude druk stond. In de kolom staat ook **Reanimator** (RHW).
 - [ ] **Zoeken gaat dwars door de deuren** (ALL) — typ *battle master* terwijl
       je in Classes staat: je krijgt treffers uit alles, met een regel
       *Resultaten voor…* en een knop terug. Veeg het veld leeg en je staat weer
