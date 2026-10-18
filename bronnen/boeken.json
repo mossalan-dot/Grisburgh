@@ -1,0 +1,271 @@
+{
+  "_wat": "De boeken waar materiaal uit kan komen, voor het veld \"Uit welk boek?\". Een keuzelijst naast een vrij veld — je eigen wereld staat in geen enkel boek.",
+  "_bron": "De boekenlijst van 5e.tools (data/books.json), opgehaald met scripts/srd-2024/boekenlijst.js.",
+  "boeken": [
+    {
+      "code": "DMG",
+      "naam": "Dungeon Master's Guide (2014)",
+      "jaar": "2014"
+    },
+    {
+      "code": "MM",
+      "naam": "Monster Manual (2014)",
+      "jaar": "2014"
+    },
+    {
+      "code": "PHB",
+      "naam": "Player's Handbook (2014)",
+      "jaar": "2014"
+    },
+    {
+      "code": "SCAG",
+      "naam": "Sword Coast Adventurer's Guide",
+      "jaar": "2015"
+    },
+    {
+      "code": "AL",
+      "naam": "Adventurers League",
+      "jaar": "2016"
+    },
+    {
+      "code": "PS-I",
+      "naam": "Plane Shift: Innistrad",
+      "jaar": "2016"
+    },
+    {
+      "code": "PS-Z",
+      "naam": "Plane Shift: Zendikar",
+      "jaar": "2016"
+    },
+    {
+      "code": "VGM",
+      "naam": "Volo's Guide to Monsters",
+      "jaar": "2016"
+    },
+    {
+      "code": "OGA",
+      "naam": "One Grung Above",
+      "jaar": "2017"
+    },
+    {
+      "code": "PS-A",
+      "naam": "Plane Shift: Amonkhet",
+      "jaar": "2017"
+    },
+    {
+      "code": "PS-K",
+      "naam": "Plane Shift: Kaladesh",
+      "jaar": "2017"
+    },
+    {
+      "code": "XGE",
+      "naam": "Xanathar's Guide to Everything",
+      "jaar": "2017"
+    },
+    {
+      "code": "GGR",
+      "naam": "Guildmasters' Guide to Ravnica",
+      "jaar": "2018"
+    },
+    {
+      "code": "MTF",
+      "naam": "Mordenkainen's Tome of Foes",
+      "jaar": "2018"
+    },
+    {
+      "code": "PS-D",
+      "naam": "Plane Shift: Dominaria",
+      "jaar": "2018"
+    },
+    {
+      "code": "PS-X",
+      "naam": "Plane Shift: Ixalan",
+      "jaar": "2018"
+    },
+    {
+      "code": "AI",
+      "naam": "Acquisitions Incorporated",
+      "jaar": "2019"
+    },
+    {
+      "code": "AWM",
+      "naam": "Adventure with Muk",
+      "jaar": "2019"
+    },
+    {
+      "code": "RMR",
+      "naam": "Dungeons & Dragons vs. Rick and Morty: Basic Rules",
+      "jaar": "2019"
+    },
+    {
+      "code": "ERLW",
+      "naam": "Eberron: Rising from the Last War",
+      "jaar": "2019"
+    },
+    {
+      "code": "SAC",
+      "naam": "Sage Advice Compendium (2014)",
+      "jaar": "2019"
+    },
+    {
+      "code": "EGW",
+      "naam": "Explorer's Guide to Wildemount",
+      "jaar": "2020"
+    },
+    {
+      "code": "MGELFT",
+      "naam": "Muk's Guide to Everything He Learned From Tasha",
+      "jaar": "2020"
+    },
+    {
+      "code": "MOT",
+      "naam": "Mythic Odysseys of Theros",
+      "jaar": "2020"
+    },
+    {
+      "code": "TCE",
+      "naam": "Tasha's Cauldron of Everything",
+      "jaar": "2020"
+    },
+    {
+      "code": "DoD",
+      "naam": "Domains of Delight",
+      "jaar": "2021"
+    },
+    {
+      "code": "FTD",
+      "naam": "Fizban's Treasury of Dragons",
+      "jaar": "2021"
+    },
+    {
+      "code": "MaBJoV",
+      "naam": "Minsc and Boo's Journal of Villainy",
+      "jaar": "2021"
+    },
+    {
+      "code": "SCC",
+      "naam": "Strixhaven: A Curriculum of Chaos",
+      "jaar": "2021"
+    },
+    {
+      "code": "VRGR",
+      "naam": "Van Richten's Guide to Ravenloft",
+      "jaar": "2021"
+    },
+    {
+      "code": "AAG",
+      "naam": "Astral Adventurer's Guide",
+      "jaar": "2022"
+    },
+    {
+      "code": "BAM",
+      "naam": "Boo's Astral Menagerie",
+      "jaar": "2022"
+    },
+    {
+      "code": "MCV1SC",
+      "naam": "Monstrous Compendium Volume 1: Spelljammer Creatures",
+      "jaar": "2022"
+    },
+    {
+      "code": "MPMM",
+      "naam": "Mordenkainen Presents: Monsters of the Multiverse",
+      "jaar": "2022"
+    },
+    {
+      "code": "AATM",
+      "naam": "Adventure Atlas: The Mortuary",
+      "jaar": "2023"
+    },
+    {
+      "code": "BGG",
+      "naam": "Bigby Presents: Glory of the Giants",
+      "jaar": "2023"
+    },
+    {
+      "code": "MCV4EC",
+      "naam": "Monstrous Compendium Volume 4: Eldraine Creatures",
+      "jaar": "2023"
+    },
+    {
+      "code": "MPP",
+      "naam": "Morte's Planar Parade",
+      "jaar": "2023"
+    },
+    {
+      "code": "SatO",
+      "naam": "Sigil and the Outlands",
+      "jaar": "2023"
+    },
+    {
+      "code": "BMT",
+      "naam": "The Book of Many Things",
+      "jaar": "2023"
+    },
+    {
+      "code": "HAT-TG",
+      "naam": "Thieves' Gallery",
+      "jaar": "2023"
+    },
+    {
+      "code": "XDMG",
+      "naam": "Dungeon Master's Guide (2024)",
+      "jaar": "2024"
+    },
+    {
+      "code": "XPHB",
+      "naam": "Player's Handbook (2024)",
+      "jaar": "2024"
+    },
+    {
+      "code": "ABH",
+      "naam": "Astarion's Book of Hungers",
+      "jaar": "2025"
+    },
+    {
+      "code": "EFA",
+      "naam": "Eberron: Forge of the Artificer",
+      "jaar": "2025"
+    },
+    {
+      "code": "FRAiF",
+      "naam": "Forgotten Realms: Adventures in Faerûn",
+      "jaar": "2025"
+    },
+    {
+      "code": "FRHoF",
+      "naam": "Forgotten Realms: Heroes of Faerûn",
+      "jaar": "2025"
+    },
+    {
+      "code": "LFL",
+      "naam": "Lorwyn: First Light",
+      "jaar": "2025"
+    },
+    {
+      "code": "XMM",
+      "naam": "Monster Manual (2025)",
+      "jaar": "2025"
+    },
+    {
+      "code": "NF",
+      "naam": "Netheril's Fall",
+      "jaar": "2025"
+    },
+    {
+      "code": "XSAC",
+      "naam": "Sage Advice Compendium (2025)",
+      "jaar": "2025"
+    },
+    {
+      "code": "AU",
+      "naam": "Arcana Unleashed",
+      "jaar": "2026"
+    },
+    {
+      "code": "RHW",
+      "naam": "Ravenloft: The Horrors Within",
+      "jaar": "2026"
+    }
+  ]
+}

@@ -540,13 +540,16 @@ function _card(it) {
 // uit komen. De Artificer staat niet in de SRD; daarvan tonen we alleen wat we
 // weten, in plaats van de rest te raden.
 let _klasseBasis = null, _spreukKlassen = null, _spreukAantal = null, _tellers = null, _featKoppel = null, _mcEisen = null;
-// Welke keuze een species binnen zichzelf heeft. Een Tiefling is niet zomaar
-// een Tiefling: hij is een Infernal. Dat is voor een species wat een subclass
-// voor een class is, en het hoort dus op zijn kaartje te staan.
-let _speciesVarianten = {};
-export function variantenVan(volk) {
-  const v = _speciesVarianten[volk];
-  return v?.opties?.length ? v : null;
+// De boeken waar materiaal uit kan komen. Het veld blijft vrij — je eigen
+// wereld staat in geen enkel boek — maar wie overneemt hoeft de titel niet
+// elke keer over te tikken, en dan staat er niet de ene keer "Xanathars" en de
+// andere keer "XGtE".
+let _boeken = [];
+function _boekenLijstHtml(id) {
+  if (!_boeken.length) return '';
+  return `<datalist id="${esc(id)}">
+    ${_boeken.map(b => `<option value="${esc(b.naam)}"></option>`).join('')}
+  </datalist>`;
 }
 // De subclasses die niet in de app staan: alleen hun naam en in welk boek ze
 // staan. Eén keer ophalen; valt het om, dan tonen we ze simpelweg niet.
@@ -578,10 +581,10 @@ async function _klasseExtra() {
     try { const r = await fetch(`/api/bron/${naam}`, { credentials: 'same-origin' });
           return r.ok ? await r.json() : null; } catch { return null; }
   };
-  const [basis, spreuken, koppel, multi, varianten] = await Promise.all([
+  const [basis, spreuken, koppel, multi, boeken] = await Promise.all([
     haal('klasse-basis'), haal('spells-2024'), haal('feat-koppelingen'),
-    haal('srd-multiclass-eisen'), haal('species-varianten')]);
-  _speciesVarianten = varianten?.species || {};
+    haal('srd-multiclass-eisen'), haal('boeken')]);
+  _boeken = boeken?.boeken || [];
   _klasseBasis = (basis?.klassen) || {};
   _mcEisen = multi || {};
   _featKoppel = koppel?.feats || {};
@@ -1013,11 +1016,13 @@ function _volkRijen(volk) {
     .filter(l => (data.levels[l] || []).length).sort((a, b) => a - b);
   const n = levels.reduce((t, l) => t + data.levels[l].length, 0);
   const vroeg = (data.levels?.[1] || []).map(f => f.name);
-  const variant = variantenVan(volk);
+  // De keuze binnen het species staat bovenaan: dat is het eerste wat je kiest
+  // als je er een speelt. De opties zijn echte houders (zie `_tweedeLaag`), dus
+  // ze staan ook als kaartjes in de kolom ernaast — hier alleen hun namen.
+  const laag = _tweedeLaag(volk);
+  const opties = laag?.soort === 'variant' ? Object.keys(laag.bak) : [];
   return [
-    // De keuze binnen het species staat bovenaan: dat is het eerste wat je
-    // kiest als je er een speelt.
-    variant ? [variant.keuze, variant.opties.join(' · ')] : null,
+    opties.length ? [laag.label, opties.join(' · ')] : null,
     n ? ['Traits', String(n)] : null,
     levels.length ? ['Op level', levels.join(' · ')] : null,
     vroeg.length ? ['Vanaf 1', vroeg.join(', ')] : null,
@@ -1927,7 +1932,9 @@ function _uitlegVenster(soort, naam, bron) {
       <div class="dm-form-row">
         <label class="dm-form-label">Uit welk boek?</label>
         <input class="dm-input" id="vd-houder-boek" maxlength="120" value="${esc(h.boek || '')}"
+          list="vd-boeken-houder" autocomplete="off"
           placeholder="Bijv. Xanathar's Guide to Everything — of leeg als je het zelf verzon">
+        ${_boekenLijstHtml('vd-boeken-houder')}
       </div>
       <!-- De afbeelding hoort hier, niet achter een eigen knopje op de kaart:
            dan staat de focuskiezer er meteen bij en is er één plek waar je dit
@@ -2186,7 +2193,9 @@ function _editorHtml() {
              kreeg zo zijn eigen class als vindplaats.
              (Geen backticks in commentaar hierbinnen: template literal.) -->
         <input class="dm-input" id="vd-bronnaam" maxlength="120" value="${esc(e.bronTekst || '')}"
+          list="vd-boeken-feature" autocomplete="off"
           placeholder="Bijv. Xanathar's Guide to Everything, of: van een tafelgenoot">
+        ${_boekenLijstHtml('vd-boeken-feature')}
       </div>` : ''}
       <div class="dm-form-row">
         <label class="dm-form-label">Beschrijving</label>
