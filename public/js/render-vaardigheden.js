@@ -914,10 +914,18 @@ function _beeldMis(img) {
   let rest = [];
   try { rest = JSON.parse(img.dataset.terugval || '[]'); } catch { rest = []; }
   const volgende = rest.shift();
-  if (!volgende) { img.remove(); return; }
+  if (!volgende) {
+    // In het detailvenster hangt er een onscherpe vergroting áchter de plaat;
+    // die moet mee weg, anders blijft er een gekleurd vlak staan.
+    const hero = img.closest('.detail-hero');
+    if (hero) hero.style.display = 'none'; else img.remove();
+    return;
+  }
   img.dataset.terugval = JSON.stringify(rest);
   img.style.objectPosition = volgende.focus || '';
   img.src = `/api/files/${volgende.id}`;
+  const bg = img.closest('.detail-hero')?.querySelector('.detail-hero-bg');
+  if (bg) bg.style.backgroundImage = `url('/api/files/${volgende.id}')`;
 }
 
 // ── De flipkaart ────────────────────────────────────────────────────────────
@@ -2252,23 +2260,33 @@ function _rijenUit(cellen, n) {
 // SRD-regel ("3 | Aid, Bless") en een gewoon getypte markdown-tabel
 // ("| 3 | Aid, Bless |"), die de DM met de tabelknop in de opmaakbalk maakt.
 const _kaal = (r) => String(r || '').trim().replace(/^\|/, '').replace(/\|$/, '');
-const _isRij = (r) => _kaal(r).includes('|');
+// Welk teken scheidt de kolommen? Een pijp, of een **tab** — zo plakt een
+// tabel uit een boek-website: "Cleric Level\tSpells". Dat is de vorm waarin de
+// oudere spreukenlijsten binnenkwamen, en zonder dit stonden ze als losse
+// regels onder elkaar terwijl de nieuwere er als tabel bij stonden.
+const _scheider = (r) => (_kaal(r).includes('|') ? '|' : (String(r || '').includes('\t') ? '\t' : null));
+const _isRij = (r) => !!_scheider(r);
 // De streepjesregel onder de kop (`| --- | --- |`) hoort bij markdown en niet
 // in de tabel.
 const _isStreep = (r) => /^[\s:|-]+$/.test(String(r || '').trim()) && String(r).includes('-');
 
 function _tabellenUit(tekst) {
   const bron = String(tekst || '');
-  if (!bron.includes('|')) return { tekst: bron, tabellen: [] };
-  const regels = bron.split('\n').map(r => r.trim());
+  if (!bron.includes('|') && !bron.includes('\t')) return { tekst: bron, tabellen: [] };
+  // Alleen de pijpen aan de rand weghalen; een tab aan het begin van een regel
+  // is inspringing en geen lege cel.
+  const regels = bron.split('\n').map(r => r.replace(/\s+$/, '').replace(/^[ ]+/, ''));
 
   const uit = [], tabellen = [];
   for (let i = 0; i < regels.length; i++) {
-    const rij = (n) => _isRij(regels[n] || '');
-    if (!rij(i) || !rij(i + 1)) { uit.push(regels[i]); continue; }
+    // Een rij hoort bij de tabel erboven als hij hetzelfde scheidingsteken
+    // gebruikt. Zo loopt een tab-tabel niet door in een pijp-tabel eronder.
+    const sep = _scheider(regels[i]);
+    const rij = (n) => _scheider(regels[n] || '') === sep;
+    if (!sep || !rij(i + 1)) { uit.push(regels[i]); continue; }
     let eind = i;
     while (rij(eind + 1)) eind++;
-    const cel = (r) => _kaal(r).split('|').map(c => c.trim());
+    const cel = (r) => (sep === '|' ? _kaal(r) : String(r).trim()).split(sep).map(c => c.trim());
     const kopCellen = cel(regels[i]);
     const blok = [kopCellen, ...regels.slice(i + 1, eind + 1)
       .filter(r => !_isStreep(r))
@@ -2413,17 +2431,39 @@ function _open(key, vanWaar = null) {
   // zonder focuskiezer: het uitsnijdpunt hoort bij de plaat, en die is van zijn
   // moeder. Wie hem hier anders wil snijden geeft hem eerst een eigen plaat.
   const geerfd = !it.img ? _beeldVan(it) : null;
+  // **Zelfde beeldblok als op een kaartje uit het archief.** Dat toont zijn
+  // plaat *passend* met een onscherpe vergroting erachter en een verloop
+  // eronder (`.detail-hero`), en een klik opent hem groot. Hier werd hij
+  // bijgesneden tot een strook van 220px en deed een klik niets — dat las als
+  // een banner in plaats van als een portret.
+  //
+  // En het hele blok zat achter `isDM()`, dus een speler zag de afbeelding
+  // helemaal niet. Op een kaartje uit het archief ziet hij hem wel; alleen het
+  // instellen is van de DM.
+  // Dezelfde **terugvalketen** als op het kaartje: laadt het bestand niet, dan
+  // schuift hij door naar het beeld van zijn subclass of class. Zonder dat
+  // toonde het venster niets terwijl het kaartje ernaast wél een plaat had —
+  // Rage draagt een id van een bestand dat niet meer bestaat.
+  const keten = _beeldKeten(it);
+  const beeldBlok = (() => {
+    const [eerste, ...rest] = keten;
+    if (!eerste) return '';
+    const eigen = !!it.img && eerste.id === it.img;
+    return `
+    <div class="detail-hero mb-6" id="vd-hero"
+      onclick="window.vaardigheden.beeldGroot()">
+      <div class="detail-hero-bg" style="background-image:url('/api/files/${esc(eerste.id)}')"></div>
+      <img src="/api/files/${esc(eerste.id)}" class="detail-hero-img"${eigen ? ' id="vaardig-detail-img"' : ''}
+        style="${eerste.focus ? `object-position:${esc(eerste.focus)}` : ''}"
+        ${rest.length ? `data-terugval="${esc(JSON.stringify(rest))}"` : ''}
+        onerror="window.vaardigheden.beeldMis(this)">
+      <div class="detail-hero-overlay"></div>
+    </div>`;
+  })();
   const dmBeeld = isDM() ? `
-      ${geerfd ? `<div class="vaardig-detail-imgwrap">
-        <img class="vaardig-detail-img" src="/api/files/${esc(geerfd.id)}" alt=""
-          style="${geerfd.focus ? `object-position:${esc(geerfd.focus)}` : ''}">
-      </div>
-      <p class="dm-hint" style="margin:4px 0 0">Neemt de afbeelding over van <strong>${esc(geerfd.geerfd || 'zijn class')}</strong>.
+      ${geerfd ? `<p class="dm-hint" style="margin:4px 0 0">Neemt de afbeelding over van <strong>${esc(geerfd.geerfd || 'zijn class')}</strong>.
       Geef hem er zelf een via <em>Bewerken</em> als hij iets anders moet laten zien.</p>` : ''}
-      ${it.img ? `<div class="vaardig-detail-imgwrap">
-        <img class="vaardig-detail-img" id="vaardig-detail-img" src="/api/files/${esc(it.img)}" alt=""
-          style="${it.imgFocus ? `object-position:${esc(it.imgFocus)}` : ''}">
-      </div>
+      ${it.img ? `
       <details class="spreuk-focus-blok">
         <summary>${icon('image')} Focuspunt bijstellen</summary>
         <div class="spreuk-focus-body">${window._fpBlokHtml?.({
@@ -2449,6 +2489,7 @@ function _open(key, vanWaar = null) {
           ${_bronRegel(it) ? `<span class="prog-detail-chip">${esc(_bronRegel(it))}</span>` : ''}
           ${it.level ? `<span class="prog-detail-chip">Level ${it.level}</span>` : ''}
         </div>
+        ${beeldBlok}
         ${dmBeeld}
         ${body}
         ${_featKoppelingHtml(it)}
@@ -2457,6 +2498,17 @@ function _open(key, vanWaar = null) {
   // De gedeelde focuskiezer schrijft naar déze vaardigheid tot een ander blok
   // hem claimt (zelfde afspraak als in het spreukdetail).
   window._fpOnChange = isDM() && it.img ? (v => _zetBeeldFocus(it, v)) : null;
+  // Bladeren met de pijltjes en met een veeg, net als bij een kaartje uit het
+  // archief en bij het bestiarium. "De volgende" is de volgende **zoals je hem
+  // nu gefilterd ziet** — anders spring je naar iets dat nergens op het scherm
+  // ligt. De gedeelde ingang slaat dit over zolang er een terugknop staat, dus
+  // een sprong vanuit een verwijzing komt hier niet in de weg.
+  window._bladerBron = (richting) => {
+    const lijst = _filtered();
+    const i = lijst.findIndex(x => x.key === it.key);
+    const doel = i >= 0 ? lijst[i + richting] : null;
+    if (doel) _open(doel.key);
+  };
   // Het lexicon leest mee, net als in het spreukdetail en het statblok.
   const el = document.querySelector('#modal-overlay .prog-detail');
   if (el) window.glossary?.applyDom?.(el);
@@ -3149,6 +3201,12 @@ window.vaardigheden = {
   // Een **kopie**, net als bij een |-tabel in een akte: de tekst van de
   // feature blijft zoals hij is, anders verandert het bewaren stilzwijgend wat
   // er op het kaartje staat.
+  // Groot bekijken opent wat er **nu** staat: de keten kan doorgeschoven zijn
+  // naar het beeld van de class omdat het eigen bestand weg is.
+  beeldGroot() {
+    const img = document.querySelector('#modal-overlay .detail-hero-img');
+    if (img?.src) window.app.openLightbox(img.getAttribute('src'), '');
+  },
   async tabelBewaren(nr) {
     const t = _tabelBak[nr];
     if (!t) return;

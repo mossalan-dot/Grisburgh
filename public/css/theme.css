@@ -27535,11 +27535,8 @@ body.akte-schrijf-open .mp-overlay { z-index: 1320; }
    moeten pakken was het enige verschil tussen de twee archiefbladen. Zelfde
    maten als `.spreuk-detail-img`, alleen hoeft dit beeld niet op `is-on` te
    wachten: staat het er niet, dan tekenen we de zone ook niet. */
-.vaardig-detail-imgwrap { position: relative; }
-.vaardig-detail-img {
-  display: block; width: 100%; max-height: 220px; object-fit: cover;
-  border-radius: 8px; margin: 14px 0 4px;
-}
+/* `.vaardig-detail-img(wrap)` is vervallen: het detailvenster van het
+   Heldenboek gebruikt nu `.detail-hero`, net als een kaartje uit het archief. */
 
 /* De deur naar een dienst op zijn locatiekaartje. Zelfde vorm als de andere
    doorklikknoppen in een detailvenster; goud omdat het een plek is waar je

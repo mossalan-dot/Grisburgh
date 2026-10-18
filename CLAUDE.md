@@ -2496,6 +2496,23 @@ factie — `star` betekent in de app al *favoriet*), `award` (factie-boon), `bac
 > knipt en in een `vm` draait (zelfde truc als `scripts/helpteksten.js` met HELP_CONFIG) —
 > de toets hoort op de échte code en de échte bronteksten te staan.
 
+> **Het detailvenster van het Heldenboek is gelijkgetrokken met een kaartje uit het
+> archief.** Vier verschillen zaten erin: het sneed zijn plaat bij tot een strook van
+> 220px waar een kaartje hem *passend* toont met een onscherpe vergroting erachter
+> (`.detail-hero`), een klik deed niets waar een kaartje de lightbox opent, het hele
+> beeldblok zat achter `isDM()` zodat een speler niets zag, en het miste de
+> terugvalketen (`_beeldKeten`) die het kaartje wél heeft — Rage draagt een id van een
+> bestand dat niet meer bestaat, en toonde daardoor in het venster niets terwijl het
+> kaartje ernaast de Barbarian-plaat liet zien. Ook het bladeren met de pijltjes
+> (`window._bladerBron`) ontbrak; dat werkt nu zoals bij het bestiarium, over de lijst
+> **zoals hij nu gefilterd is**.
+
+> **Een tabel mag ook met tabs.** Zo plakt een tabel uit een boek-website
+> ("Cleric Level\tSpells"), en zo kwamen de oudere spreukenlijsten de campagne in: de
+> Peace Domain-spreuken lagen er als losse regels bij terwijl de nieuwere domeinen een
+> echte tabel hadden. `_scheider()` kiest per blok de pijp of de tab, en een rij hoort
+> alleen bij de tabel erboven als hij hetzelfde teken gebruikt.
+
 > **De sleutel van een kaartje noemt ook de subclass.** `soort|bron|sub|level|naam` —
 > zonder dat stuk droegen de Bonus Proficiency van het Death Domain en die van het Nature
 > Domain allebei `subclass|Cleric|3|Bonus Proficiency`, en de ontdubbeling in

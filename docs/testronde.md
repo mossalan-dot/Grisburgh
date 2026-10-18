@@ -1638,6 +1638,23 @@ Grisburghs **data** te staan — niet in de code.
       **Speed · 30 feet**, ook als er een omschrijving is. In het bewerkvenster
       staan ze als drie lege velden mét die waarden als grijze hint: leeg laten
       betekent "neem wat de app weet", invullen geldt voor deze campagne.
+- [ ] **Het beeld in het venster is een portret, geen banner** (ALL) — open een
+      featurekaartje met een plaat: hij staat er **passend** in met een onscherpe
+      vergroting erachter, precies als op een kaartje uit het archief, en een
+      klik opent hem groot. Ook een **speler** hoort hem te zien — dat hele blok
+      zat eerder achter een DM-controle. Laadt het bestand niet (Rage draagt een
+      id dat niet meer bestaat), dan schuift hij door naar de plaat van zijn
+      class in plaats van niets te tonen.
+- [ ] **Bladeren met de pijltjes** (ALL) — open een featurekaartje en druk op →:
+      je gaat naar het volgende kaartje **zoals je de lijst nu gefilterd ziet**.
+      ← gaat terug. Kwam je via een verwijzing in een tekst, dan staat er een
+      terugknop en bladert er niets — twee betekenissen voor één pijl is er één
+      te veel.
+- [ ] **Een spreukentabel met tabs** (ALL) — *Cleric* → **Peace Domain** →
+      *Domain Spells*: de lijst staat als tabel met *Peace Domain Spells*
+      erboven en elke spreuk als knop. Die stond met tabs in plaats van pijpen
+      — zo plakt een tabel uit een boek-website — en lag er eerder als losse
+      regels onder elkaar bij.
 - [ ] **Zoeken gaat dwars door de deuren** (ALL) — typ *battle master* terwijl
       je in Classes staat: je krijgt treffers uit alles, met een regel
       *Resultaten voor…* en een knop terug. Veeg het veld leeg en je staat weer

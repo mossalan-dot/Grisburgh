@@ -136,6 +136,24 @@ describe('Tabellen in een vaardigheidstekst', () => {
     assert.deepEqual(uit.tabellen[0].rijen, [['1', '2', ''], ['3', '4', '5']]);
   });
 
+  it('leest ook een tabel met tabs', () => {
+    // Zo plakt een tabel uit een boek-website, en zo kwamen de oudere
+    // spreukenlijsten binnen. Zonder dit stonden ze als losse regels onder
+    // elkaar terwijl de nieuwere er als tabel bij stonden.
+    const uit = _tabellenUit([
+      'You gain domain spells at the cleric levels listed in the Peace Domain Spells table.',
+      '',
+      'Peace Domain Spells',
+      'Cleric Level\tSpells',
+      '1st\theroism, sanctuary',
+      '3rd\taid, warding bond',
+    ].join('\n'));
+    assert.equal(uit.tabellen.length, 1);
+    assert.equal(uit.tabellen[0].naam, 'Peace Domain Spells');
+    assert.deepEqual(uit.tabellen[0].kop, ['Cleric Level', 'Spells']);
+    assert.deepEqual(uit.tabellen[0].rijen[0], ['1st', 'heroism, sanctuary']);
+  });
+
   it('laat een tekst zonder tabel met rust', () => {
     const uit = _tabellenUit('Gewone tekst.\nNog een regel.');
     assert.deepEqual(uit.tabellen, []);
