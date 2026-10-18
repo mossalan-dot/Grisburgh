@@ -2016,7 +2016,11 @@ function _kaartVenster(soort, naam, bron = '') {
         ${features || `<p class="dm-hint">De features komen uit het boek en mogen daar niet uit overgenomen worden. ${isDM() ? 'Tik ze zelf in met de plusknop rechtsboven, of lees ze in van een andere DM.' : ''}</p>`}`}
     </div>`);
   const vak = document.querySelector('#modal-overlay .vd-subvenster');
-  if (vak) { window.glossary?.applyDom?.(vak); window.spreuken?.linkInDom?.(vak); }
+  if (vak) {
+    window.glossary?.applyDom?.(vak);
+    window.spreuken?.linkInDom?.(vak);
+    window.spreuken?.linkInProza?.(vak.querySelector('.prog-detail-desc'));
+  }
 }
 
 // ── De uitleg van een houder schrijven ──────────────────────────────────────
@@ -2517,6 +2521,9 @@ function _open(key, vanWaar = null) {
   // spreukenlijst zijn, en de bibliotheek — die lui laadt — maakt daarbinnen
   // van elke naam die hij kent een knop.
   window.spreuken?.linkInDom?.(el);
+  // En de spreuknamen die in de lópende tekst staan — alleen die van twee
+  // woorden of meer, zie `linkInProza`.
+  window.spreuken?.linkInProza?.(el?.querySelector('.prog-detail-desc'));
 }
 
 // ── Afbeelding vanuit het detailvenster ───────────────────────────

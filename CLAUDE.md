@@ -2501,6 +2501,16 @@ factie — `star` betekent in de app al *favoriet*), `award` (factie-boon), `bac
 > lijst. Het venster van een houder krijgt dezelfde behandeling, en zijn uitleg loopt sinds
 > dezelfde ronde door `window._vaardigTekstHtml` — één renderer voor een vaardigheidstekst.
 
+> **In lopende tekst alleen namen van twee woorden of meer.**
+> `window.spreuken.linkInProza(el)` maakt ook buiten een tabel knoppen van spreuknamen,
+> maar met die ene harde regel. Nagemeten op de Druid-features: van de 32 spreuknamen die
+> daar in proza voorkomen zijn er **12 helemaal geen spreuk** — "you have Resistance to a
+> damage type", "you teleport up to 30 feet", "sheds Bright Light", "a primal being of
+> creation". Stuk voor stuk één gewoon Engels woord. Elke naam van twee woorden die er
+> stond (Find Familiar, Chill Touch, Teleportation Circle, Speak with Animals) was wél de
+> spreuk. Wat we daarmee laten liggen is een handvol eenwoordsnamen (Druidcraft,
+> Thunderwave); die blijven tekst, en `[[Druidcraft]]` werkt al.
+
 > **Zelf een tabel invoegen** gaat met een knop in de opmaakbalk:
 > `fmtToolbar(id, { tabel: true })` zet hem erbij en `window._fmtTabel(id)` (app.js)
 > plaatst een gewone markdown-tabel met de titelregel geselecteerd. Die knop staat

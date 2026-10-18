@@ -772,6 +772,9 @@ function _markAdded(index) {
 // leestekens, want in een statblok staat "Blindness/Deafness" en in de
 // bibliotheek "blindness-deafness".
 let _naamIndex = null;
+// Voor spreuknamen in lopende tekst: één regex van alle namen van twee
+// woorden of meer, en hun index erbij. Zie `linkInProza`.
+let _prozaRe = null, _prozaIdx = null;
 const _spNorm = s => String(s || '').toLowerCase().replace(/[^a-z0-9]+/g, '');
 
 window.spreuken = {
@@ -812,6 +815,57 @@ window.spreuken = {
           onclick="event.stopPropagation();window.spreuken.open('${idx}')">${naam}</button>${na}`;
       }).join(',');
     }
+  },
+  // Spreuknamen in **lopende tekst**. Dat is riskanter dan in een lijstje, en
+  // daarom geldt er één harde regel: alleen namen van **twee woorden of meer**.
+  //
+  // Nagemeten op de Druid-features: van de 32 spreuknamen die daar in proza
+  // voorkomen zijn er 12 helemaal geen spreuk — "you have Resistance to a
+  // damage type", "you teleport up to 30 feet", "sheds Bright Light", "a primal
+  // being of creation". Stuk voor stuk één gewoon Engels woord. Elke naam van
+  // twee woorden die er stond (Find Familiar, Chill Touch, Teleportation
+  // Circle, Speak with Animals) was wél de spreuk.
+  //
+  // Wat we daarmee laten liggen is een handvol eenwoordsnamen (Druidcraft,
+  // Thunderwave). Die blijven gewoon tekst, en wie er toch heen wil schrijft
+  // `[[Druidcraft]]` — dat werkt al.
+  async linkInProza(rootEl) {
+    if (!rootEl || rootEl.dataset?.prozaGelinkt) return;
+    if (!_all) await _load();
+    if (!_prozaRe) {
+      const namen = (_all || []).map(s => String(s.name || '').trim())
+        .filter(n => n.split(/\s+/).length >= 2)
+        .sort((a, b) => b.length - a.length);
+      if (!namen.length) return;
+      _prozaIdx = new Map(namen.map(n => [_spNorm(n), (_all || []).find(s => s.name === n)?.index]));
+      // De apostrof komt in beide vormen voor (Melf's / Melf’s).
+      const los = namen.map(n => n.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/['’]/g, "['’]"));
+      _prozaRe = new RegExp(`\\b(${los.join('|')})\\b`, 'gi');
+    }
+    // Een tabel doet dit zelf (daar weet de kolomkop wát er staat), en in een
+    // knop of een link zetten we geen tweede knop.
+    const OVERSLAAN = 'a, button, code, pre, table, .sb-spell, .spreuk-verwijzing';
+    const loper = document.createTreeWalker(rootEl, NodeFilter.SHOW_TEXT, {
+      acceptNode: (n) => (n.nodeValue && n.nodeValue.trim() && !n.parentElement?.closest(OVERSLAAN))
+        ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT,
+    });
+    const knopen = [];
+    while (loper.nextNode()) knopen.push(loper.currentNode);
+    for (const knoop of knopen) {
+      _prozaRe.lastIndex = 0;
+      if (!_prozaRe.test(knoop.nodeValue)) continue;
+      _prozaRe.lastIndex = 0;
+      const stuk = document.createElement('span');
+      stuk.innerHTML = knoop.nodeValue.replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]))
+        .replace(_prozaRe, (heel) => {
+          const idx = _prozaIdx.get(_spNorm(heel));
+          if (!idx) return heel;
+          return `<button type="button" class="sb-spell" title="Open ${heel.replace(/"/g, '&quot;')} in het spreukenboek"
+            onclick="event.stopPropagation();window.spreuken.open('${idx}')">${heel}</button>`;
+        });
+      knoop.parentNode.replaceChild(stuk, knoop);
+    }
+    if (rootEl.dataset) rootEl.dataset.prozaGelinkt = '1';
   },
   // Kan ook aangeroepen worden vanuit een kaartje, en dan is de bibliotheek nog
   // niet geladen — dus eerst laden, dan tonen.

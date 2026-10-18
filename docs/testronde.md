@@ -1599,6 +1599,13 @@ Grisburghs **data** te staan — niet in de code.
       er een link naar de spreuk en een vetgedrukte kop — geen vierkante haken
       en geen sterretjes. Eerder gingen cellen kaal door de ontsmetting heen en
       bleef alles letterlijk staan.
+- [ ] **Een spreuk in de lopende tekst** (ALL) — *Druid* → *Wild Companion*:
+      **Find Familiar** is een knop. In *Circle of Spores → Circle Spells* geldt
+      dat voor *chill touch*, in *Walker in Dreams* voor *teleportation circle*.
+      En let op wat er **niet** gebeurt: in *Starry Form* blijft "sheds Bright
+      Light" gewone tekst, en in *Nature's Ward* "you have Resistance to". Eén
+      woord is te weinig om zeker te weten dat het een spreuk is; alleen namen
+      van twee woorden of meer worden een knop.
 - [ ] **Een worptabel kun je wél bewaren** (DM) — tik in een eigen feature een
       tabel met `| d6 | … |` als kop: dan staat er *Bewaren als tafel* onder, en
       na een klik staat hij in de Tafels-tab. De tekst van de feature blijft
