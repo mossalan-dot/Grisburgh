@@ -33,6 +33,11 @@ const SOORTEN = {
   class:      { label: 'Class',     icon: 'sword',          c1: '#4a1000', c2: '#a03810' },
   subclass:   { label: 'Subclass',  icon: 'star',           c1: '#200c4e', c2: '#5a2e8a' },
   species:    { label: 'Species',   icon: 'user',           c1: '#0a3020', c2: '#1a6a50' },
+  // Een variant is voor een species wat een subclass voor een class is: een
+  // Tiefling is een Infernal, een Elf is een Drow. Eigen soort, want
+  // "subclass" op een speciekaartje zou niet kloppen — en hij erft de groene
+  // familiekleur van species, want hij hoort daar.
+  variant:    { label: 'Variant',   icon: 'sparkle',        c1: '#0a3020', c2: '#2a8a60' },
   feat:       { label: 'Feat',      icon: 'zap',            c1: '#0c2248', c2: '#1e4a8a' },
   boon:       { label: 'Epic Boon', icon: 'sparkles',       c1: '#301800', c2: '#7a4a08' },
   background: { label: 'Background',icon: 'scroll-text',    c1: '#4a082e', c2: '#962058' },
@@ -87,7 +92,7 @@ function _klasseIcoon(naam, terugval = 'sword') {
 // icoon van de soort.
 function _itemIcoon(it) {
   if (it.soort === 'class' || it.soort === 'subclass') return _klasseIcoon(it.bron, SOORTEN[it.soort].icon);
-  if (it.soort === 'species') return SPECIES_ICOON[it.bron] || SOORTEN.species.icon;
+  if (it.soort === 'species' || it.soort === 'variant') return SPECIES_ICOON[it.bron] || SOORTEN[it.soort].icon;
   return SOORTEN[it.soort]?.icon || 'hexagon';
 }
 
@@ -102,7 +107,7 @@ const HERKOMST = [
 ];
 const HERKOMST_LABEL = { zelfbedacht: 'Zelf verzonnen', aangepast: 'Aangepast', overgenomen: 'Overgenomen' };
 
-const SOORT_VOLGORDE = ['class', 'subclass', 'species', 'feat', 'boon', 'zegen', 'gunst', 'background'];
+const SOORT_VOLGORDE = ['class', 'subclass', 'species', 'variant', 'feat', 'boon', 'zegen', 'gunst', 'background'];
 
 let _all        = null;   // null = nog niet geladen
 let _bron       = null;   // wat naslagBron() teruggaf (srdDesc, md, …)
@@ -172,7 +177,7 @@ export async function zoekVaardigheden(query, eigen = {}, limiet = 12) {
   if (!q) return [];
   const norm = t => String(t || '').trim().toLowerCase();
   const mijn = new Set([eigen.klasse, eigen.multiKlasse, eigen.species, eigen.background].filter(Boolean).map(norm));
-  const mijnSub = new Set([eigen.subclass, eigen.multiSubclass].filter(Boolean).map(norm));
+  const mijnSub = new Set([eigen.subclass, eigen.multiSubclass, eigen.originVariant].filter(Boolean).map(norm));
 
   return alles
     .filter(it => norm(it.naam).includes(q))
@@ -180,7 +185,7 @@ export async function zoekVaardigheden(query, eigen = {}, limiet = 12) {
       // Van jou als de klasse/het volk klopt; een subklasse alleen als jij die
       // subklasse hebt — anders is "Channel Divinity: Sacred Weapon" van jou
       // zodra je Cleric bent, terwijl dat een Paladin-feature is.
-      const vanMij = it.soort === 'subclass'
+      const vanMij = (it.soort === 'subclass' || it.soort === 'variant')
         ? mijnSub.has(norm(it.sub))
         : (it.soort === 'feat' || it.soort === 'boon') ? false : mijn.has(norm(it.bron));
       return { ...it, vanMij };
@@ -209,6 +214,12 @@ async function _load() {
   for (const [soort, data] of Object.entries(prog.species || {})) {
     for (const [lvl, fs] of Object.entries(data.levels || {})) {
       for (const f of (fs || [])) zet({ soort: 'species', bron: soort, level: Number(lvl), naam: f.name, desc: f.desc || '', img: f.img || '', imgFocus: f.imgFocus || '', herkomst: f.herkomst || '', bronTekst: f.bron || '' });
+    }
+    // En wat onder een variant hangt — net als de features van een subclass.
+    for (const [variant, vdata] of Object.entries(data.varianten || {})) {
+      for (const [lvl, fs] of Object.entries(vdata.levels || {})) {
+        for (const f of (fs || [])) zet({ soort: 'variant', bron: soort, sub: variant, level: Number(lvl), naam: f.name, desc: f.desc || '', img: f.img || '', imgFocus: f.imgFocus || '', herkomst: f.herkomst || '', bronTekst: f.bron || '' });
+      }
     }
   }
   for (const f of (_bron.feats?.general || [])) zet({ soort: 'feat', bron: 'Feats',      level: 0, naam: f.name, desc: f.desc || '', img: f.img || '', imgFocus: f.imgFocus || '', herkomst: f.herkomst || '', bronTekst: f.bron || '', sluitAan: f.sluitAan || [], vereist: f.vereist || '', geeftSpreuk: f.geeftSpreuk || [] });
@@ -388,7 +399,7 @@ function _filtered() {
     // blijven staan, en elke aangevinkte subclass legt de zijne erbovenop. Niets
     // aangevinkt betekent alleen de class — niet "alle subclasses door elkaar",
     // want dat is precies de brij waar dit tabblad vanaf moest.
-    if (it.soort === 'subclass' && !_subAan.has(it.sub)) return false;
+    if ((it.soort === 'subclass' || it.soort === 'variant') && !_subAan.has(it.sub)) return false;
     if (_filters.level !== null && Number(it.level) !== Number(_filters.level)) return false;
     return true;
   });
@@ -413,7 +424,7 @@ function _filtered() {
 // bron hetzelfde als de soort ("Feat · Feats") — dan laten we hem weg.
 const _EIGEN_BRON = new Set(['Feats', 'Epic Boons', 'Backgrounds', 'Gunsten', 'Zegeningen']);
 function _bronRegel(it) {
-  if (it.soort === 'subclass') return `${it.sub} · ${it.bron}`;
+  if (it.soort === 'subclass' || it.soort === 'variant') return `${it.sub} · ${it.bron}`;
   return _EIGEN_BRON.has(it.bron) ? '' : it.bron;
 }
 
@@ -736,7 +747,7 @@ function _spreukRegel(klasse, basis) {
 // daarmee ook niets om aan zijn onderdelen door te geven. Hij heeft nu een
 // eigen bak, net als de rest — eigen bakken en niet één gedeelde, want een
 // class en een background mogen dezelfde naam hebben.
-const _HB_BAK = { class: 'klassen', species: 'species', subclass: 'subclassen', background: 'backgrounds' };
+const _HB_BAK = { class: 'klassen', species: 'species', subclass: 'subclassen', variant: 'varianten', background: 'backgrounds' };
 // Een beeld bij een kaart was alleen een bestand-id. Nu mag het ook een id mét
 // een focuspunt zijn — dezelfde kiezer als bij een spreuk of een kaartje, want
 // een portret dat op de borst is uitgesneden mist het gezicht. Een oude waarde
@@ -776,6 +787,8 @@ function _beeldKeten(it) {
     class:    [['class', it.bron]],
     subclass: [['subclass', it.sub], ['class', it.bron]],
     species:  [['species', it.bron]],
+    // Een variant valt terug op zijn species, zoals een subclass op zijn class.
+    variant:  [['variant', it.sub], ['species', it.bron]],
     // Een background is één kaartje dat zijn vijf onderdelen samenvat, dus hij
     // is zijn eigen moeder: zijn naam staat in `naam`, niet in `bron` (daar
     // staat "Backgrounds", de deur waar hij achter hangt).
@@ -955,14 +968,15 @@ function _klasseKaartHtml(klasse) {
 }
 
 function _subklasseKaartHtml(klasse, sub) {
-  const data = _bron?.prog?.classes?.[klasse]?.subclasses?.[sub];
+  const laag = _tweedeLaag(klasse);
+  const data = laag?.bak?.[sub];
   if (!data) return '';
   const uitleg = String(data.desc || '').trim();
   const n = Object.values(data.levels || {}).reduce((t, a) => t + (a || []).length, 0);
   const levels = Object.keys(data.levels || {}).map(Number)
     .filter(l => (data.levels[l] || []).length).sort((a, b) => a - b);
   const veld = window._subSignatureVoor?.(sub);
-  const label = _bron?.prog?.classes?.[klasse]?.subclassLabel || 'Subclass';
+  const label = laag.label;
 
   // "4 features" en "op level 3 · 6 · 10 · 14" stonden allebei op het kaartje
   // én in de lijst ernaast én in de kaartjes eronder. Drie keer hetzelfde
@@ -974,14 +988,15 @@ function _subklasseKaartHtml(klasse, sub) {
   ].filter(Boolean);
 
   return _flipKaartHtml({
-    soort: 'subclass', naam: sub, bron: klasse, kleur: data.kleur || veld?.kleur || '#5a2e8a',
-    icoon: veld?.icon || 'star', bijschrift: `${label} · ${klasse}`,
+    soort: laag.soort, naam: sub, bron: klasse,
+    kleur: data.kleur || veld?.kleur || (laag.soort === 'variant' ? '#2a8a60' : '#5a2e8a'),
+    icoon: veld?.icon || SOORTEN[laag.soort].icon, bijschrift: `${label} · ${klasse}`,
     // De eigen ondertitel van de DM, direct onder "Primal Path · Barbarian".
     onder: String(data.ondertitel || '').trim(),
     rijen,
     extra: `
       ${uitleg ? `<div class="vk-uitleg">${_bron?.md?.(uitleg) ?? esc(uitleg)}</div>` : ''}
-      ${n || uitleg ? '' : `<p class="vk-noot">Van deze subklasse staat er geen tekst in de app — die komt uit het boek en mag daar niet uit overgenomen worden.</p>`}
+      ${n || uitleg ? '' : `<p class="vk-noot">Van deze ${laag.soort === 'variant' ? 'variant' : 'subklasse'} staat er geen tekst in de app — die komt uit het boek en mag daar niet uit overgenomen worden.</p>`}
 `,
   });
 }
@@ -1150,15 +1165,12 @@ function _bandBronnen(groep) {
 // De subclasses van een class, met hoeveel er van bekend is. Eén zonder
 // features blijft staan — juist dán wil je zien dát ze bestaat en dat er niets
 // van in de app staat.
-function _bandSubklassen(klasse) {
-  const uit = new Map();
-  for (const [kl, data] of Object.entries(_bron?.prog?.classes || {})) {
-    if (kl !== klasse) continue;
-    for (const [sub, sdata] of Object.entries(data.subclasses || {})) {
-      uit.set(sub, Object.values(sdata.levels || {}).reduce((n, a) => n + (a || []).length, 0));
-    }
-  }
-  return [...uit.entries()].sort((a, b) => a[0].localeCompare(b[0]));
+function _bandSubklassen(houder) {
+  const laag = _tweedeLaag(houder);
+  if (!laag) return [];
+  return Object.entries(laag.bak)
+    .map(([naam, data]) => [naam, Object.values(data.levels || {}).reduce((n, a) => n + (a || []).length, 0)])
+    .sort((a, b) => a[0].localeCompare(b[0]));
 }
 
 // ── Laag 0: vier staande kaarten ────────────────────────────────────────────
@@ -1235,8 +1247,11 @@ function _tegelBeeld(filter) {
 // elkaar leggen. Het oogje opent het kaartje, het vinkje voegt zijn features
 // toe aan het raster hiernaast.
 function _subKolomHtml(klasse) {
+  const laag = _tweedeLaag(klasse);
   const eigen = _bandSubklassen(klasse);
-  const elders = (_elders?.klassen?.[klasse] || [])
+  // Een voorraadlijst van "wat er elders nog bestaat" is er alleen voor
+  // subclasses; varianten staan in het boek van hun species.
+  const elders = (laag?.soort === 'variant' ? [] : (_elders?.klassen?.[klasse] || []))
     .filter(x => !eigen.some(([n]) => n.toLowerCase() === String(x.naam).toLowerCase()));
   const boeken = _elders?.boeken || {};
   // **Eén lijst.** Er stonden twee koppen boven ("Subclasses" en "Nog 6
@@ -1264,8 +1279,9 @@ function _subKolomHtml(klasse) {
   // niet, dus was de hele kolom paars en zag je pas aan het kaartje ernaast dat
   // de Berserker rood is en de Zealot goud — terwijl je juist in deze lijst
   // kiest welke je ernaast legt.
-  const kleurVan = (naam) => _bron?.prog?.classes?.[klasse]?.subclasses?.[naam]?.kleur
-    || window._subSignatureVoor?.(naam)?.kleur || '#5a2e8a';
+  const kleurVan = (naam) => laag?.bak?.[naam]?.kleur
+    || window._subSignatureVoor?.(naam)?.kleur
+    || (laag?.soort === 'variant' ? '#2a8a60' : '#5a2e8a');
 
   return `<div class="vd-subkolom">
     ${zicht.map(r => {
@@ -1357,6 +1373,9 @@ function _vlakHtml() {
   const kaart = isClass ? _klasseKaartHtml(_filters.bron)
     : _bron?.prog?.species?.[_filters.bron] ? _volkKaartHtml(_filters.bron)
     : _bron?.backgrounds?.[_filters.bron] ? _achtergrondKaartHtml(_filters.bron) : '';
+  // Een species met varianten krijgt dezelfde kolom als een class met
+  // subclasses: de keuze hoort naast het kaartje, niet in de lijst eronder.
+  const laag = _tweedeLaag(_filters.bron);
   // De aparte terugrij met de naam erin is weg: de banner brengt je al terug en
   // het kaartje eronder zegt zelf hoe hij heet. Twee keer "Barbarian" onder
   // elkaar, met een knop ertussen, was een halve schermhoogte aan herhaling.
@@ -1366,12 +1385,12 @@ function _vlakHtml() {
   // Het scherm in drieën: de class, de subclass die je koos, en de lijst om
   // uit te kiezen. Bij een species is er geen tweede en derde deel, dus staat
   // dat kaartje alleen — in dezelfde maat, want het is dezelfde soort kaart.
-  const subKolom = isClass ? _subKolomHtml(_filters.bron) : '';
+  const subKolom = (laag && Object.keys(laag.bak).length) ? _subKolomHtml(_filters.bron) : '';
   // Meer dan één aangevinkt? Dan hoort er onder het kaartje een pijltje te
   // staan — anders zie je er één en weet je niet dat de andere er ook zijn.
-  const aangevinkt = [..._subAan].filter(x => _bron?.prog?.classes?.[_filters.bron]?.subclasses?.[x]);
+  const aangevinkt = [..._subAan].filter(x => laag?.bak?.[x]);
   if (aangevinkt.length && !aangevinkt.includes(_subKaart)) _subKaart = aangevinkt[0];
-  const subKaart = (isClass && _subKaart && _bron?.prog?.classes?.[_filters.bron]?.subclasses?.[_subKaart])
+  const subKaart = (laag && _subKaart && laag.bak[_subKaart])
     ? `${_subklasseKaartHtml(_filters.bron, _subKaart)}
        ${aangevinkt.length > 1 ? `<div class="vd-subblader vd-subblader--kaart">
          <button class="vd-subblader-knop" onclick="window.vaardigheden.subKaartBlader(-1)" title="Vorige">${icon('chevron-left')}</button>
@@ -1617,9 +1636,29 @@ function _featKoppelingHtml(it) {
 // van `backgrounds`: een background bewerken zei dan dat hij niet bestond.
 function _houderVan(soort, naam, bron = '') {
   if (soort === 'subclass') return _bron?.prog?.classes?.[bron]?.subclasses?.[naam];
+  if (soort === 'variant')  return _bron?.prog?.species?.[bron]?.varianten?.[naam];
   if (soort === 'class')    return _bron?.prog?.classes?.[naam];
   if (soort === 'species')  return _bron?.prog?.species?.[naam];
   return _bron?.backgrounds?.[naam];
+}
+
+// ── De tweede laag ───────────────────────────────────────────────────────────
+// Een class heeft subclasses, een species heeft varianten. Hetzelfde begrip
+// met twee namen, want "subclass" zou op een speciekaartje niet kloppen. Eén
+// plek die zegt welke het is, zodat de kolom, het kaartje en de editor er niet
+// ieder hun eigen antwoord op hoeven te hebben.
+function _tweedeLaag(bron) {
+  const k = _bron?.prog?.classes?.[bron];
+  if (k) {
+    return { bak: k.subclasses || {}, soort: 'subclass', veld: 'subclasses',
+             label: k.subclassLabel || 'Subclass', level: parseInt(k.subclassLevel) || 3 };
+  }
+  const v = _bron?.prog?.species?.[bron];
+  if (v) {
+    return { bak: v.varianten || {}, soort: 'variant', veld: 'varianten',
+             label: v.variantLabel || 'Variant', level: parseInt(v.variantLevel) || 1 };
+  }
+  return null;
 }
 
 // De features die onder een houder hangen, met het level ervoor. Je klikt er
@@ -1635,7 +1674,7 @@ function _houderFeaturesHtml(soort, naam, bron) {
   // wint wat in de campagne staat — dit is alleen de wegwijzer bij een leegte.
   if (!aantal) return _eldersFeaturesHtml(soort, naam);
   const zoek = (f) => (_all || []).find(x => x.naam === f.name && x.soort === soort
-    && (soort === 'subclass' ? x.bron === bron && x.sub === naam : x.bron === naam));
+    && ((soort === 'subclass' || soort === 'variant') ? x.bron === bron && x.sub === naam : x.bron === naam));
   const rijen = levels.map(l => (data.levels[l] || []).map(f => {
     const it = zoek(f);
     const klik = it ? ` onclick="window.vaardigheden.uitKaartVenster('${escA(it.key)}')"` : '';
@@ -1717,10 +1756,10 @@ function _kaartVenster(soort, naam, bron = '') {
   const focus  = _hbBeeldRuw(soort, naam)?.focus || '';
   const veilig = esc(naam).replace(/'/g, "\\'");
   const veiligB = esc(bron || '').replace(/'/g, "\\'");
-  const soortLabel = soort === 'subclass'
-    ? (_bron?.prog?.classes?.[bron]?.subclassLabel || 'Subclass')
+  const soortLabel = (soort === 'subclass' || soort === 'variant')
+    ? (_tweedeLaag(bron)?.label || (soort === 'variant' ? 'Variant' : 'Subclass'))
     : { class: 'Class', species: 'Origin', background: 'Background' }[soort] || soort;
-  const meta = [soortLabel, soort === 'subclass' ? bron : '', data.boek || '']
+  const meta = [soortLabel, (soort === 'subclass' || soort === 'variant') ? bron : '', data.boek || '']
     .filter(Boolean).map(esc).join(' · ');
   const rijen = _houderRijen(soort, naam, bron, { metBoek: false });
   // De knop naar de spreukenlijst stond op het kaartje zelf en viel daar weg
@@ -1875,7 +1914,7 @@ function _uitlegVenster(soort, naam, bron) {
            de Berserker is en wat van de Zealot — juist als je er twee hebt
            aangevinkt om te vergelijken.
            (Geen backticks in commentaar hierbinnen: template literal.) -->
-      ${soort === 'subclass' ? `
+      ${(soort === 'subclass' || soort === 'variant') ? `
       <div class="dm-form-row">
         <label class="dm-form-label" for="vd-houder-kleur">Kleur</label>
         <div class="vd-kleurrij">
@@ -2023,12 +2062,15 @@ function _zetBeeldFocus(it, focus) {
 function _bronnenVanSoort(soort) {
   const prog = _bron?.prog || {};
   if (soort === 'class' || soort === 'subclass') return Object.keys(prog.classes || {}).sort();
+  if (soort === 'variant') return Object.keys(prog.species || {}).sort();
   if (soort === 'species')    return Object.keys(prog.species || {}).sort();
   if (soort === 'background') return Object.keys(_bron?.backgrounds || {}).sort();
   return [];
 }
-function _subklassenVan(klasse) {
-  return Object.keys(_bron?.prog?.classes?.[klasse]?.subclasses || {}).sort();
+// De tweede laag van een houder, bij naam: subclasses bij een class,
+// varianten bij een species.
+function _subklassenVan(houder) {
+  return Object.keys(_tweedeLaag(houder)?.bak || {}).sort();
 }
 
 let _edit = null;    // { oud, soort, bron, sub, level, naam, desc, herkomst, img }
@@ -2042,12 +2084,14 @@ const _MAAKSELS = [
   { id: 'f-class',      label: 'Feature van een class',    houder: false, soort: 'class' },
   { id: 'f-subclass',   label: 'Feature van een subclass', houder: false, soort: 'subclass' },
   { id: 'f-species',    label: 'Trait van een species',    houder: false, soort: 'species' },
+  { id: 'f-variant',    label: 'Trait van een variant',    houder: false, soort: 'variant' },
   { id: 'feat',         label: 'Feat',                     houder: false, soort: 'feat' },
   { id: 'boon',         label: 'Epic Boon',                houder: false, soort: 'boon' },
   { id: 'f-background', label: 'Onderdeel van een background', houder: false, soort: 'background' },
   { id: 'h-class',      label: 'Een nieuwe class',         houder: true,  soort: 'class' },
   { id: 'h-subclass',   label: 'Een nieuwe subclass',      houder: true,  soort: 'subclass' },
   { id: 'h-species',    label: 'Een nieuw species',        houder: true,  soort: 'species' },
+  { id: 'h-variant',    label: 'Een variant van een species', houder: true, soort: 'variant' },
   { id: 'h-background', label: 'Een nieuwe background',    houder: true,  soort: 'background' },
 ];
 const _MAAKSEL = id => _MAAKSELS.find(m => m.id === id) || _MAAKSELS[0];
@@ -2065,10 +2109,10 @@ function _editorHtml() {
   const maaksel = _MAAKSEL(e.maaksel);
   const houder  = maaksel.houder;
   const bronnen = _bronnenVanSoort(e.soort);
-  const toonBron   = houder ? maaksel.soort === 'subclass' : bronnen.length > 0;
-  const toonSub    = !houder && e.soort === 'subclass';
+  const toonBron   = houder ? (maaksel.soort === 'subclass' || maaksel.soort === 'variant') : bronnen.length > 0;
+  const toonSub    = !houder && (e.soort === 'subclass' || e.soort === 'variant');
   // Een houder zit niet op een level: die heeft er juist een hele reeks.
-  const toonLevel  = !houder && (e.soort === 'class' || e.soort === 'subclass' || e.soort === 'species');
+  const toonLevel  = !houder && (e.soort === 'class' || e.soort === 'subclass' || e.soort === 'species' || e.soort === 'variant');
   // Een feat hangt aan niemand: iedereen mag hem nemen. Juist daarom is "waar
   // sluit hij op aan" een eigen vraag — en het antwoord is er niet, want van 58
   // van de 67 feats hebben we geen tekst om het uit af te leiden. Dus vraagt de
@@ -2175,7 +2219,7 @@ function _editorHtml() {
       </div>
       <p class="dm-hint" style="margin:-6px 0 10px">Namen met een komma ertussen. De app zoekt op welke klassenlijsten die spreuken staan, en zet de feat daar bij <em>Geeft een spreuk</em>.</p>
       <p class="dm-hint" style="margin:-6px 0 10px">Staat hier een armor training in, dan rekent de app zelf uit welke klassen die geven — die hoef je niet aan te vinken.</p>` : ''}
-      ${houder && maaksel.soort === 'subclass' ? `
+      ${houder && (maaksel.soort === 'subclass' || maaksel.soort === 'variant') ? `
       <!-- Dezelfde vraag als in het bewerkvenster, en om dezelfde reden: vink
            je er twee aan om ze te vergelijken, dan lopen hun features door
            elkaar in de lijst eronder en zegt de kleur welke regel van wie is.
@@ -2266,7 +2310,7 @@ function _editorOpen(it) {
 // het zelf weet — anders blijft staan wat je al koos.
 function _volgHerkomst() {
   if (_MAAKSEL(_edit.maaksel).houder) return;
-  const h = _edit.soort === 'subclass' ? _houderVan('subclass', _edit.sub, _edit.bron)
+  const h = (_edit.soort === 'subclass' || _edit.soort === 'variant') ? _houderVan(_edit.soort, _edit.sub, _edit.bron)
     : (_edit.soort === 'class' || _edit.soort === 'species') ? _houderVan(_edit.soort, _edit.bron)
     : null;
   if (!h) return;
@@ -2335,11 +2379,11 @@ window.vaardigheden = {
     if (naam === 'maaksel') {
       const m = _MAAKSEL(waarde);
       _edit.soort = m.soort;
-      if (m.houder) { _edit.bron = m.soort === 'subclass' ? (_edit.bron || '') : ''; _edit.sub = ''; }
+      if (m.houder) { _edit.bron = (m.soort === 'subclass' || m.soort === 'variant') ? (_edit.bron || '') : ''; _edit.sub = ''; }
       else if (m.soort === 'feat') _edit.bron = 'Feats';
       else if (m.soort === 'boon') _edit.bron = 'Epic Boons';
       else _edit.bron = _bronnenVanSoort(m.soort)[0] || '';
-      if (m.soort === 'subclass' && !m.houder) _edit.sub = _subklassenVan(_edit.bron)[0] || '';
+      if ((m.soort === 'subclass' || m.soort === 'variant') && !m.houder) _edit.sub = _subklassenVan(_edit.bron)[0] || '';
       _editorHerteken();
       return;
     }
@@ -2350,7 +2394,7 @@ window.vaardigheden = {
       _edit.bron = waarde === 'feat' ? 'Feats' : waarde === 'boon' ? 'Epic Boons' : (b[0] || '');
       _edit.sub  = waarde === 'subclass' ? (_subklassenVan(_edit.bron)[0] || '') : '';
     }
-    if (naam === 'bron' && _edit.soort === 'subclass') _edit.sub = _subklassenVan(waarde)[0] || '';
+    if (naam === 'bron' && (_edit.soort === 'subclass' || _edit.soort === 'variant')) _edit.sub = _subklassenVan(waarde)[0] || '';
     // Een feature van een subclass komt uit hetzelfde boek als die subclass.
     // Dat stond er al bij de subclass zelf, en je tikte het er per feature
     // opnieuw in — tien keer dezelfde regel, met tien kansen op een afwijking.
@@ -2387,7 +2431,7 @@ window.vaardigheden = {
         const houderNaam = _edit.naam.trim();
         await api.nieuweHouder({ soort: maaksel.soort, naam: houderNaam, bron: _edit.bron || '',
           desc: _edit.desc || '', boek: _edit.bronTekst || '', herkomst: _edit.herkomst || '',
-          ...(maaksel.soort === 'subclass' && _edit.kleur ? { kleur: _edit.kleur } : {}) });
+          ...((maaksel.soort === 'subclass' || maaksel.soort === 'variant') && _edit.kleur ? { kleur: _edit.kleur } : {}) });
         // De gekozen plaat ging hier verloren. Het beeld van een class, subclass
         // of species staat niet in de progressie maar in `meta.heldenboek`
         // (daar kijkt het kaartje), en dit formulier stuurde hem nergens heen:

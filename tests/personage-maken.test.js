@@ -294,6 +294,35 @@ describe('Een personage maken', () => {
     assert.match(String(blad.body), /Cleric/);
   });
 
+  // ── Varianten: een species met een tweede laag ────────────────────────────
+  it('kent een variant als houder onder een species', async () => {
+    // Zoals een subclass onder een class: eigen houder, eigen features.
+    const gemaakt = await req(server, 'POST', '/api/progression/houder',
+      { soort: 'variant', bron: 'Tiefling', naam: 'Veenlegaat', boek: 'Eigen wereld',
+        variantLabel: 'Fiendish Legacy' }, dm);
+    assert.equal(gemaakt.status, 200, JSON.stringify(gemaakt.body));
+
+    const feature = await req(server, 'POST', '/api/progression/feature',
+      { soort: 'variant', bron: 'Tiefling', sub: 'Veenlegaat', level: 1,
+        naam: 'Moerasgloed', desc: 'Hij gloeit.' }, dm);
+    assert.equal(feature.status, 200, JSON.stringify(feature.body));
+
+    const prog = JSON.parse(fs.readFileSync(
+      path.join(DATA_DIR, 'campaigns', 'grisburgh', 'progression.json'), 'utf8'));
+    const v = prog.species.Tiefling.varianten.Veenlegaat;
+    assert.ok(v, 'de variant staat onder het species');
+    assert.equal(v.levels['1'][0].name, 'Moerasgloed');
+    assert.equal(prog.species.Tiefling.variantLabel, 'Fiendish Legacy');
+
+    // En hij kan er ook weer uit, met zijn features mee.
+    const weg = await req(server, 'POST', '/api/progression/houder/verwijderen',
+      { soort: 'variant', bron: 'Tiefling', naam: 'Veenlegaat' }, dm);
+    assert.equal(weg.status, 200, JSON.stringify(weg.body));
+    const na = JSON.parse(fs.readFileSync(
+      path.join(DATA_DIR, 'campaigns', 'grisburgh', 'progression.json'), 'utf8'));
+    assert.equal(na.species.Tiefling.varianten.Veenlegaat, undefined);
+  });
+
   it('kent de instellingen van de DM', async () => {
     const r = await req(server, 'PUT', '/api/meta/personage-maken',
       { aan: true, methodes: ['array', 'pointbuy'], maxLevel: 3, trinketTafel: 'Rommel' }, dm);

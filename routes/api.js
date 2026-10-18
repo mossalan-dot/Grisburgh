@@ -9651,7 +9651,10 @@ router.put('/progression', requireDM, (req, res) => {
 // Let op: `GET /progression` geeft de **seed** terug zolang deze campagne nog
 // niets eigens heeft. De eerste bewerking legt die seed dus vast in
 // progression.json; daarna is het campagnedata en blijft hij van de campagne.
-const _VAARDIG_SOORTEN = ['class', 'subclass', 'species', 'feat', 'boon', 'background'];
+// `variant` is voor een species wat `subclass` voor een class is: een Tiefling
+// is een Infernal, een Elf is een Drow. Zelfde vorm, andere naam — want
+// "subclass" zou op een speciekaartje niet kloppen.
+const _VAARDIG_SOORTEN = ['class', 'subclass', 'species', 'variant', 'feat', 'boon', 'background'];
 
 function _progHuidig() {
   const saved = storage.readJSON('progression.json');
@@ -9702,9 +9705,20 @@ function _vaardigLijst(prog, { soort, bron, sub, level }, maken = false) {
       prog.classes[bron].subclasses = prog.classes[bron].subclasses || {};
       prog.classes[bron].subclasses[sub] = { levels: {} };
     }
+    if (soort === 'variant') {
+      if (!prog.species?.[bron]) {
+        prog.species = prog.species || {};
+        prog.species[bron] = { levels: {}, varianten: {} };
+      }
+      if (sub && !prog.species[bron].varianten?.[sub]) {
+        prog.species[bron].varianten = prog.species[bron].varianten || {};
+        prog.species[bron].varianten[sub] = { levels: {} };
+      }
+    }
   }
   const houder = soort === 'species' ? prog.species?.[bron]
     : soort === 'subclass' ? prog.classes?.[bron]?.subclasses?.[sub]
+    : soort === 'variant' ? prog.species?.[bron]?.varianten?.[sub]
     : prog.classes?.[bron];
   if (!houder) return null;
   houder.levels = houder.levels || {};
@@ -9724,7 +9738,7 @@ router.post('/progression/houder', requireDM, (req, res) => {
   const b = req.body || {};
   const soort = String(b.soort || '');
   const naam  = String(b.naam || '').trim().slice(0, 60);
-  if (!['class', 'subclass', 'species', 'background'].includes(soort))
+  if (!['class', 'subclass', 'species', 'variant', 'background'].includes(soort))
     return res.status(400).json({ error: 'Onbekende soort' });
   if (!naam) return res.status(400).json({ error: 'Naam is verplicht' });
 
@@ -9743,7 +9757,7 @@ router.post('/progression/houder', requireDM, (req, res) => {
   // kolom en al zijn features. Dat stond alleen in het bewerkvenster, dus je
   // moest een subclass eerst aanmaken en daarna nog eens openen om hem te
   // kiezen — terwijl je op dat moment precies weet welke kleur je wil.
-  if (soort === 'subclass' && /^#[0-9a-f]{6}$/i.test(String(b.kleur || ''))) meta.kleur = String(b.kleur);
+  if ((soort === 'subclass' || soort === 'variant') && /^#[0-9a-f]{6}$/i.test(String(b.kleur || ''))) meta.kleur = String(b.kleur);
 
   const prog = _progHuidig();
   if (soort === 'species') {
@@ -9758,6 +9772,20 @@ router.post('/progression/houder', requireDM, (req, res) => {
     prog.classes = prog.classes || {};
     if (prog.classes[naam]) return res.status(409).json({ error: `${naam} bestaat al` });
     prog.classes[naam] = { levels: {}, subclasses: {}, ...meta };
+  } else if (soort === 'variant') {
+    const volk = String(b.bron || '').trim();
+    if (!volk) return res.status(400).json({ error: 'Bij welk species hoort deze variant?' });
+    prog.species = prog.species || {};
+    if (!prog.species[volk]) prog.species[volk] = { levels: {}, varianten: {} };
+    prog.species[volk].varianten = prog.species[volk].varianten || {};
+    if (prog.species[volk].varianten[naam])
+      return res.status(409).json({ error: `${naam} bestaat al bij ${volk}` });
+    prog.species[volk].varianten[naam] = { levels: {}, ...meta };
+    // De eerste variant geeft de keuze een naam. Zonder label staat er
+    // "Variant" op het kaartje, en dat is geen spelterm.
+    if (!prog.species[volk].variantLabel && String(b.variantLabel || '').trim()) {
+      prog.species[volk].variantLabel = String(b.variantLabel).trim().slice(0, 60);
+    }
   } else {
     const klasse = String(b.bron || '').trim();
     if (!klasse) return res.status(400).json({ error: 'Bij welke class hoort deze subclass?' });
@@ -9781,7 +9809,7 @@ router.put('/progression/houder', requireDM, (req, res) => {
   const b = req.body || {};
   const soort = String(b.soort || '');
   const naam  = String(b.naam || '').trim();
-  if (!['class', 'subclass', 'species', 'background'].includes(soort))
+  if (!['class', 'subclass', 'species', 'variant', 'background'].includes(soort))
     return res.status(400).json({ error: 'Onbekende soort' });
   if (!naam) return res.status(400).json({ error: 'Naam is verplicht' });
 
@@ -9789,6 +9817,7 @@ router.put('/progression/houder', requireDM, (req, res) => {
   const houder = soort === 'species'    ? prog.species?.[naam]
     : soort === 'background' ? prog.backgrounds?.[naam]
     : soort === 'class'      ? prog.classes?.[naam]
+    : soort === 'variant'    ? prog.species?.[String(b.bron || '').trim()]?.varianten?.[naam]
     : prog.classes?.[String(b.bron || '').trim()]?.subclasses?.[naam];
   if (!houder) return res.status(404).json({ error: `${naam} staat er niet in` });
 
@@ -10067,7 +10096,7 @@ router.post('/progression/houder/verwijderen', requireDM, (req, res) => {
   const soort = String(b.soort || '');
   const naam  = String(b.naam || '').trim();
   const bron  = String(b.bron || '').trim();
-  if (!['class', 'subclass', 'species', 'background'].includes(soort))
+  if (!['class', 'subclass', 'species', 'variant', 'background'].includes(soort))
     return res.status(400).json({ error: 'Onbekende soort' });
   if (!naam) return res.status(400).json({ error: 'Naam is verplicht' });
 
@@ -10075,6 +10104,7 @@ router.post('/progression/houder/verwijderen', requireDM, (req, res) => {
   const bak = soort === 'species' ? prog.species
     : soort === 'background' ? prog.backgrounds
     : soort === 'class' ? prog.classes
+    : soort === 'variant' ? prog.species?.[bron]?.varianten
     : prog.classes?.[bron]?.subclasses;
   const houder = bak?.[naam];
   if (!houder) return res.status(404).json({ error: `${naam} staat er niet in` });
@@ -10091,6 +10121,7 @@ router.post('/progression/houder/verwijderen', requireDM, (req, res) => {
   for (const [id, p] of Object.entries(dmState.playerProfiles || {})) {
     const velden = soort === 'class' ? [p.klasse, p.multiKlasse]
       : soort === 'subclass' ? [p.subclass]
+      : soort === 'variant' ? [p.originVariant]
       : soort === 'background' ? [p.background]
       : [p.origin, p.species];
     if (velden.some(gelijk)) gebruik.push(naamVan.get(id) || id);
@@ -10117,7 +10148,8 @@ router.post('/progression/houder/verwijderen', requireDM, (req, res) => {
   // heldenboek. Blijft die staan, dan krijgt de volgende met dezelfde naam een
   // plaat die hij nooit koos.
   const meta = storage.readJSON('meta.json') || {};
-  const hbBak = { class: 'klassen', subclass: 'subclassen', species: 'species', background: 'backgrounds' }[soort];
+  const hbBak = { class: 'klassen', subclass: 'subclassen', species: 'species',
+                  variant: 'varianten', background: 'backgrounds' }[soort];
   const subs = soort === 'class' ? Object.keys(houder.subclasses || {}) : [];
   let metaGewijzigd = false;
   if (meta.heldenboek?.[hbBak]?.[naam]) { delete meta.heldenboek[hbBak][naam]; metaGewijzigd = true; }
@@ -10797,7 +10829,7 @@ router.put('/meta/heldenboek', requireDM, (req, res) => {
     return focus ? { id, focus } : id;
   };
   for (const [veld, bak] of [['species', 'species'], ['subclassen', 'subclassen'], ['klassen', 'klassen'],
-                             ['backgrounds', 'backgrounds']]) {
+                             ['varianten', 'varianten'], ['backgrounds', 'backgrounds']]) {
     if (!req.body?.[veld] || typeof req.body[veld] !== 'object') continue;
     const uit = { ...(hb[bak] || {}) };
     for (const [naam, v] of Object.entries(req.body[veld])) {
