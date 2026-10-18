@@ -163,6 +163,20 @@ describe('Eigen class, species of background', () => {
     assert.equal(prog().classes.Veenzanger.basis, undefined, 'alleen de drie die bestaan');
   });
 
+  // De multiclass-eis hoort bij de Core Traits: op het kaartje stond hij al,
+  // maar hij kwam uit een tabel van de app en was dus niet te zetten — en voor
+  // een class die daar niet in staat stond er niets.
+  it('onthoudt de multiclass-eis van een eigen class', async () => {
+    await req(server, 'POST', '/api/progression/houder', { soort: 'class', naam: 'Veenwachter' }, dm);
+    const r = await req(server, 'PUT', '/api/progression/houder',
+      { soort: 'class', naam: 'Veenwachter',
+        basis: { hitDie: 'd10', multiEis: 'Wisdom 13', multiTraining: 'Light Armor, Shields' } }, dm);
+    assert.equal(r.status, 200, JSON.stringify(r.body));
+    const basis = prog().classes.Veenwachter.basis;
+    assert.equal(basis.multiEis, 'Wisdom 13');
+    assert.equal(basis.multiTraining, 'Light Armor, Shields');
+  });
+
   // ── En weer weg ───────────────────────────────────────────────────────────
   // Aanmaken kon, weghalen niet: een class die je per ongeluk begon bleef staan
   // tot je de hele progressie reset.

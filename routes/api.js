@@ -9868,7 +9868,7 @@ router.put('/progression/houder', requireDM, (req, res) => {
     if (sk > 0 && sk <= 8) basis.skillAantal = sk;
     const skills = lijst(inv.skills, 18);
     if (skills.length) basis.skills = skills;
-    for (const sleutel of ['weapons', 'armor', 'tools']) {
+    for (const sleutel of ['weapons', 'armor', 'tools', 'multiEis', 'multiTraining']) {
       const t = String(inv[sleutel] || '').trim().slice(0, 120);
       if (t) basis[sleutel] = t;
     }

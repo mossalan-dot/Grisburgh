@@ -949,11 +949,15 @@ function _klasseRijen(klasse) {
     basis.castAbility
       ? ['Spellcasting', _AB_NAAM[basis.castAbility] || basis.castAbility] : null,
     ...(() => {
+      // Wat de campagne zelf zette wint, veld voor veld — zoals bij de rest
+      // van de Core Traits. Staat er niets, dan de tabel die de app meebrengt;
+      // en voor een class die daar niet in staat (een eigen orde, de Blood
+      // Hunter) is dit de enige plek waar het vandaan kan komen.
       const mc = _mcVan(klasse);
-      if (!mc) return [];
-      const training = _mcTrainingTekst(mc);
+      const eis = String(basis.multiEis || '').trim() || (mc ? _mcEisTekst(mc) : '');
+      const training = String(basis.multiTraining || '').trim() || (mc ? _mcTrainingTekst(mc) : '');
       return [
-        ['Multiclassing', _mcEisTekst(mc)],
+        eis ? ['Multiclassing', eis] : null,
         training ? ['Multiclass Training', training] : null,
       ];
     })(),
@@ -1868,6 +1872,18 @@ function _beeldBlokVernieuwen(soort, naam, beeld) {
 // De velden staan vóór-ingevuld met wat de app weet. Laat je ze zo staan, dan
 // verandert er niets en blijf je meeliften op latere verbeteringen aan de bron;
 // typ je iets anders, dan geldt dat hier.
+// Wat er in de twee multiclassvelden staat: wat de campagne zelf zette, en
+// anders wat de app weet. Zo zie je in het formulier hetzelfde als op het
+// kaartje, en leeg laten betekent nog steeds "neem wat de app weet".
+function _basisMulti(klasse, welk) {
+  const b = _basisVan(klasse);
+  const eigen = String(welk === 'eis' ? b.multiEis : b.multiTraining || '').trim();
+  if (eigen) return eigen;
+  const mc = _mcVan(klasse);
+  if (!mc) return '';
+  return welk === 'eis' ? _mcEisTekst(mc) : _mcTrainingTekst(mc);
+}
+
 function _basisVeldenHtml(klasse) {
   const b = _basisVan(klasse);
   const lijst = (v) => Array.isArray(v) ? v.join(', ') : String(v || '');
@@ -1903,6 +1919,8 @@ function _basisVeldenHtml(klasse) {
           ${veld('vd-basis-weapons', 'Weapons', b.weapons || '', 'Simple, Martial')}
           ${veld('vd-basis-armor', 'Armor Training', b.armor || '', 'Light, Medium, Shields')}
           ${veld('vd-basis-tools', 'Tools', b.tools || '', "Thieves' Tools")}
+          ${veld('vd-basis-multi', 'Multiclassing', _basisMulti(klasse, 'eis'), 'Strength 13')}
+          ${veld('vd-basis-multitr', 'Multiclass Training', _basisMulti(klasse, 'training'), 'Light Armor, Shields')}
         </div>
       </div>
     </details>`;
@@ -2727,6 +2745,8 @@ window.vaardigheden = {
       weapons:     v('vd-basis-weapons'),
       armor:       v('vd-basis-armor'),
       tools:       v('vd-basis-tools'),
+      multiEis:      v('vd-basis-multi'),
+      multiTraining: v('vd-basis-multitr'),
     } : undefined;
     const boek = document.getElementById('vd-houder-boek')?.value || '';
     const ondertitel = document.getElementById('vd-houder-onder')?.value || '';
