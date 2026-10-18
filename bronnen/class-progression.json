@@ -1361,7 +1361,7 @@
           },
           "desc": "_Breathe the Magic of Dragons_\n\nYour innate magic comes from the gift of a dragon. Perhaps an ancient dragon facing death bequeathed some of its magical power to you or your ancestor. You might have absorbed magic from a site infused with dragons' power. Or perhaps you handled a treasure taken from a dragon's hoard that was steeped in draconic power. Or you might have a dragon for an ancestor."
         },
-        "Wild Magic (Chaos)": {
+        "Wild Magic Sorcery": {
           "levels": {
             "3": [
               {
@@ -1387,8 +1387,7 @@
             ],
             "18": [
               {
-                "name": "Spell Bombardment",
-                "desc": "Beginning at 18th level, the harmful energy of your spells intensifies. When you roll damage for a spell and roll the highest number possible on any of the dice, choose one of those dice, roll it again and add that roll to the damage. You can use the feature only once per turn."
+                "name": "Tamed Surge"
               }
             ]
           }
