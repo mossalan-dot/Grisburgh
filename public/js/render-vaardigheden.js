@@ -1716,7 +1716,9 @@ function _houderFeaturesHtml(soort, naam, bron) {
     && ((soort === 'subclass' || soort === 'variant') ? x.bron === bron && x.sub === naam : x.bron === naam));
   const rijen = levels.map(l => (data.levels[l] || []).map(f => {
     const it = zoek(f);
-    const klik = it ? ` onclick="window.vaardigheden.uitKaartVenster('${escA(it.key)}')"` : '';
+    const klik = it
+      ? ` onclick="window.vaardigheden.uitKaartVenster('${escA(it.key)}','${escA(soort)}','${escA(naam)}','${escA(bron || '')}')"`
+      : '';
     return `<button class="vd-subfeature"${klik}${it ? '' : ' disabled'}>
       <span class="vd-subfeature-lvl">${l}</span>
       <span class="vd-subfeature-naam">${esc(f.name)}</span>
@@ -2014,6 +2016,16 @@ function _open(key, vanWaar = null) {
   // opende een background zijn feat en stond je vast: het featkaartje weet
   // niets van de background die ernaar wees.
   const terug = (() => {
+    // Kwam je van een **houder** (het venster van een class, species, subclass
+    // of background), dan brengt de knop je daarheen terug. Dat venster werd
+    // gesloten om plaats te maken voor dit; zonder weg terug sta je na één
+    // klik op een feature buiten de class waar je in zat te lezen.
+    if (vanWaar && typeof vanWaar === 'object' && vanWaar.houder) {
+      const h = vanWaar;
+      return `<button class="vaardig-terug"
+        onclick="window.vaardigheden.kaartOpen('${escA(h.soort)}','${escA(h.naam)}','${escA(h.bron || '')}')">
+          ${icon('chevron-left')} Terug naar ${esc(h.naam)}</button>`;
+    }
     const vorige = vanWaar ? (_all || []).find(x => x.key === vanWaar) : null;
     return vorige
       ? `<button class="vaardig-terug" onclick="window.vaardigheden.open('${escA(vorige.key)}')">
@@ -2738,7 +2750,14 @@ window.vaardigheden = {
   // Een feature openen vanuit het subclassvenster: het ene venster sluit, het
   // andere komt ervoor in de plaats. Twee modals over elkaar is geen stapel
   // die je nog terug kunt lopen.
-  uitKaartVenster(key) { window.app.closeModal?.(); setTimeout(() => _open(key), 40); },
+  uitKaartVenster(key, soort, naam, bron) {
+    window.app.closeModal?.();
+    // De houder gaat mee, zodat het featurevenster een weg terug heeft. Twee
+    // vensters over elkaar is geen stapel die je nog terug kunt lopen; één
+    // venster met een kruimel wel.
+    const vanWaar = soort ? { houder: true, soort, naam, bron: bron || '' } : null;
+    setTimeout(() => _open(key, vanWaar), 40);
+  },
   async bewaarUitleg(soort, naam, bron) {
     const desc = document.getElementById('vd-houder-desc')?.value || '';
     // De kerngegevens gaan als geheel mee: wat je leegmaakt valt terug op de
