@@ -1523,7 +1523,9 @@ html {
 .modal-accent {
   height: 8px;
   margin: -1px -1px 0;
-  border-radius: 10px 10px 0 0;
+  /* Dezelfde bocht als het venster zelf (14px, min de 1px rand). Hij stond nog
+     op 10px van voor de laatste afronding. */
+  border-radius: 13px 13px 0 0;
   flex-shrink: 0;
   transition: background 0.2s ease;
 }
@@ -21900,6 +21902,11 @@ body.kaart-fs-active { overflow: hidden; }
 .modal {
   min-height: 0;
   border-radius: 14px;
+  /* Alles binnen de bocht. De kopbalk heeft een eigen achtergrond met rechte
+     hoeken en begint 8px onder de rand, terwijl de bocht pas na 14px klaar is
+     — dus stak zijn vierkante hoek door de ronding heen. Dat zag je als een
+     lichte wig linksboven en rechtsboven. */
+  overflow: hidden;
   border-color: rgba(196,168,122,0.8);
   /* **Een schaduw moet donkerder zijn dan waar hij op valt.** Hij was eerst
      warm bruin op 30 % over een even warme waas — dan zie je geen schaduw maar
