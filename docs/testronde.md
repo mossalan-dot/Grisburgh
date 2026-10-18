@@ -1550,6 +1550,13 @@ Grisburghs **data** te staan — niet in de code.
       features komen erbij in het raster (16 → 20). Vink er een tweede bij: ze
       stapelen (→ 25). Uitvinken haalt ze er weer af. Het kaartje van een
       subclass open je met de naam, het vinkje is een ander gebaar.
+- [ ] **Eén wegwijzer bewerken laat de andere staan** (DM) — open *Classes* →
+      *Cleric*, vink **Knowledge Domain** aan: er staan vijf featurekaartjes,
+      allemaal alleen een naam (de tekst staat in het boek). Bewerk er één en
+      bewaar. Er horen er **vijf** te blijven staan: de bewerkte als echte
+      feature met jouw tekst, de andere vier nog als wegwijzer — en in de kolom
+      staat *5 features · 4 elders*. Eerder verdwenen de andere vier, want de
+      voorraadlijst gold per houder in plaats van per naam.
 - [ ] **Zoeken gaat dwars door de deuren** (ALL) — typ *battle master* terwijl
       je in Classes staat: je krijgt treffers uit alles, met een regel
       *Resultaten voor…* en een knop terug. Veeg het veld leeg en je staat weer

@@ -260,23 +260,26 @@ async function _load() {
   // gestippeld randje, een vagere plaat), maar het kaartje zégt al dat de
   // beschrijving er niet staat en draagt een knop *Naslag* — twee signalen
   // zijn genoeg, een derde maakt er alleen een kaartje van dat er kapot uitziet.
-  const telt = (h) => Object.values(h?.levels || {}).reduce((t, a) => t + (a || []).length, 0);
-  const uitVoorraad = (soort, bron, sub, naam) => {
-    const namen = _eldersFeatures?.[soort === 'class' ? 'classes' : soort === 'species' ? 'species' : 'subclasses']?.[naam] || [];
-    for (const rij of namen) {
-      const f = _eldersRij(rij);
+  //
+  // Per náám, niet per houder: wat de campagne zelf heeft wint, de rest blijft
+  // als wegwijzer staan. Zie `_eldersAanvulling`.
+  const uitVoorraad = (soort, bron, sub, naam, houder) => {
+    for (const f of _eldersAanvulling(soort, naam, houder)) {
       zet({ soort, bron, ...(sub ? { sub } : {}), level: f.level, naam: f.naam,
-            desc: '', img: '', imgFocus: '', herkomst: 'overgenomen', bronTekst: '' });
+            // Waaruit? Uit het boek van zijn moeder. Dat is precies waar deze
+            // wegwijzer naar wijst, en het stond er leeg.
+            desc: '', img: '', imgFocus: '', herkomst: 'overgenomen',
+            bronTekst: String(houder?.boek || '') });
     }
   };
   for (const [klasse, data] of Object.entries(prog.classes || {})) {
-    if (!telt(data)) uitVoorraad('class', klasse, null, klasse);
+    uitVoorraad('class', klasse, null, klasse, data);
     for (const [sub, sdata] of Object.entries(data.subclasses || {})) {
-      if (!telt(sdata)) uitVoorraad('subclass', klasse, sub, sub);
+      uitVoorraad('subclass', klasse, sub, sub, sdata);
     }
   }
   for (const [volk, data] of Object.entries(prog.species || {})) {
-    if (!telt(data)) uitVoorraad('species', volk, null, volk);
+    uitVoorraad('species', volk, null, volk, data);
   }
 
   // ── Zegeningen en gunsten ──
@@ -570,6 +573,26 @@ function _eldersRij(rij) {
     ? { naam: String(rij.naam || ''), level: parseInt(rij.level) || 0 }
     : { naam: String(rij || ''), level: 0 };
 }
+// Welke namen uit de voorraadlijst deze houder **nog niet zelf heeft.**
+//
+// Dit was eerder alles-of-niets: had een subclass geen enkele feature, dan
+// stonden zijn namen uit de voorraadlijst er als wegwijzer; had hij er één, dan
+// verdwenen ze allemaal. Dat is precies de verkeerde kant op: bewerk je in de
+// Battle Master één kaartje, dan maakt dat van die ene een echte feature — en
+// vielen de andere elf namen weg, alsof je ze kwijt was. Het **ontbreken** van
+// een feature is de reden om de wegwijzer te tonen, en dat geldt per naam.
+//
+// Vergelijken op naam, kleine letters: in de campagne staat dezelfde feature op
+// een eigen level, en dan is de naam het enige dat de twee verbindt.
+function _eldersAanvulling(soort, naam, houder) {
+  const groep = soort === 'class' ? 'classes' : soort === 'species' ? 'species' : 'subclasses';
+  const al = new Set(Object.values(houder?.levels || {}).flat()
+    .map(f => String(f?.name || '').trim().toLowerCase()).filter(Boolean));
+  return (_eldersFeatures?.[groep]?.[naam] || [])
+    .map(_eldersRij)
+    .filter(f => f.naam && !al.has(f.naam.toLowerCase()));
+}
+
 async function _eldersLaden() {
   if (_elders !== null) return;
   try { _elders = await api.get('/bron/subclasses-elders'); }
@@ -1053,13 +1076,24 @@ function _volkKaartHtml(volk) {
   if (!data) return '';
   const n = Object.values(data.levels || {}).reduce((t, a) => t + (a || []).length, 0);
   const uitleg = String(data.desc || '').trim();
-  const rijen = _volkRijen(volk);
+  // Zoals bij een class: het kaartje vertelt wat dit volk ís. "Traits 3 · op
+  // level 1 · vanaf 1: Flight, Talons" zijn getallen over de lijst eronder, en
+  // die staat er al. Zonder beschrijving vallen ze terug, want dan heeft het
+  // kaartje niets anders te zeggen.
+  const rijen = uitleg ? [] : _volkRijen(volk);
   return _flipKaartHtml({
     soort: 'species', naam: volk, kleur: '#1a6a50',
     icoon: SPECIES_ICOON[volk] || 'user', bijschrift: 'Origin', rijen,
     extra: `
       ${uitleg ? `<div class="vk-uitleg">${_bron?.md?.(uitleg) ?? esc(uitleg)}</div>` : ''}
-      ${n ? '' : '<p class="vk-noot">Van dit volk staat er niets in de app.</p>'}
+      ${n ? '' : (() => {
+        // "Niets in de app" was te somber zodra we zijn traitnamen kennen: er
+        // staat dan wél iets, alleen niet de tekst erbij.
+        const e = _eldersAanvulling('species', volk, data).length;
+        return `<p class="vk-noot">${e
+          ? `${e} ${e === 1 ? 'trait' : 'traits'} bij naam bekend — hun tekst staat in het boek.`
+          : 'Van dit volk staat er niets in de app.'}</p>`;
+      })()}
 `,
   });
 }
@@ -1261,7 +1295,7 @@ function _tegelsHtml(d) {
     </button>`;
   }).join('')}
   ${elders.map((naam, i) => {
-    const aantal = (_eldersFeatures?.species?.[naam] || []).length;
+    const aantal = _eldersAanvulling('species', naam, null).length;
     return `<div class="vd-tegel vd-tegel--elders" style="--vd-kleur:${d.kleur};--vd-i:${rijen.length + i}">
       ${isDM() ? `<label class="vd-tegel-vink" title="Zet ${esc(naam)} in deze campagne">
         <input type="checkbox" onchange="window.vaardigheden.volkAan('${escA(naam)}')"></label>` : ''}
@@ -1342,7 +1376,8 @@ function _subKolomHtml(klasse) {
       const aan = _subAan.has(r.naam);
       // "geen tekst" klopte niet meer zodra we zijn featurenamen kennen: er
       // staat dan wél iets, alleen niet de tekst erbij.
-      const eldersN = r.n ? 0 : (_eldersFeatures?.subclasses?.[r.naam] || []).length;
+      const eldersN = _eldersAanvulling('subclass', r.naam,
+        _bron?.prog?.classes?.[klasse]?.subclasses?.[r.naam]).length;
       return `<div class="vd-subkaart${aan ? ' is-aan' : ''}${r.n ? '' : ' is-leeg'}" style="--vd-subkleur:${kleur}">
         <label class="vd-subkaart-vink" title="${aan ? 'Haal zijn features uit de lijst' : 'Zet zijn features erbij'}">
           <input type="checkbox" ${aan ? 'checked' : ''} onchange="window.vaardigheden.subToggle('${veilig}')">
@@ -1350,7 +1385,9 @@ function _subKolomHtml(klasse) {
         <button class="vd-subkaart-open" onclick="window.vaardigheden.subToggle('${veilig}')"
           title="Bekijk deze subclass">
           <span class="vd-subkaart-naam">${esc(r.naam)}</span>
-          <span class="vd-subkaart-meta">${r.n ? `${r.n} features` : eldersN ? `${eldersN} features · elders` : 'geen tekst'}</span>
+          <span class="vd-subkaart-meta">${r.n + eldersN
+          ? `${r.n + eldersN} features${eldersN ? r.n ? ` · ${eldersN} elders` : ' · elders' : ''}`
+          : 'geen tekst'}</span>
         </button>
       </div>`;
     }).join('')}
@@ -1706,12 +1743,14 @@ function _houderFeaturesHtml(soort, naam, bron) {
   const data = _houderVan(soort, naam, bron);
   const levels = Object.keys(data?.levels || {}).map(Number)
     .filter(l => (data.levels[l] || []).length).sort((a, b) => a - b);
-  const aantal = levels.reduce((t, l) => t + data.levels[l].length, 0);
-  // Staat er niets in de app, dan zijn de námen er misschien wel. Die komen uit
-  // `bronnen/features-elders.json` en dragen geen tekst: je ziet waar het over
-  // gaat en klikt door naar de naslag. Zodra de DM er zelf features bij zet
-  // wint wat in de campagne staat — dit is alleen de wegwijzer bij een leegte.
-  if (!aantal) return _eldersFeaturesHtml(soort, naam);
+  const eigen = levels.reduce((t, l) => t + data.levels[l].length, 0);
+  // En wat de app níét heeft: de námen uit `bronnen/features-elders.json`, die
+  // geen tekst dragen — je ziet waar het over gaat en klikt door naar de
+  // naslag. Per naam, niet per houder: wat in de campagne staat wint, de rest
+  // blijft wegwijzer. Zie `_eldersAanvulling`.
+  const aanvul = _eldersAanvulling(soort, naam, data);
+  const aantal = eigen + aanvul.length;
+  if (!eigen) return { ..._eldersFeaturesHtml(soort, naam, aanvul), eigen: 0 };
   const zoek = (f) => (_all || []).find(x => x.naam === f.name && x.soort === soort
     && ((soort === 'subclass' || soort === 'variant') ? x.bron === bron && x.sub === naam : x.bron === naam));
   const rijen = levels.map(l => (data.levels[l] || []).map(f => {
@@ -1724,7 +1763,8 @@ function _houderFeaturesHtml(soort, naam, bron) {
       <span class="vd-subfeature-naam">${esc(f.name)}</span>
     </button>`;
   }).join('')).join('');
-  return { aantal, rijen };
+  const bij = _eldersFeaturesHtml(soort, naam, aanvul);
+  return { aantal, rijen: rijen + bij.rijen, elders: bij.aantal, eigen };
 }
 
 // De namen van de features van iets dat niet in de app staat, elk met de weg
@@ -1744,12 +1784,10 @@ function _subclassLevelsVan(klasse) {
   return [];
 }
 
-function _eldersFeaturesHtml(soort, naam) {
-  const groep = soort === 'class' ? 'classes' : soort === 'species' ? 'species' : 'subclasses';
-  const lijst = _eldersFeatures?.[groep]?.[naam] || [];
-  if (!lijst.length) return { aantal: 0, rijen: '', elders: false };
-  const rijen = lijst.map(rij => {
-    const f = _eldersRij(rij);
+function _eldersFeaturesHtml(soort, naam, lijst) {
+  const rijen_ = lijst || _eldersAanvulling(soort, naam, null);
+  if (!rijen_.length) return { aantal: 0, rijen: '', elders: 0 };
+  const rijen = rijen_.map(f => {
     const zoek = window.app?.bronLink?.(`${f.naam} ${naam}`, 'feature') || '';
     // Staat het level erbij, dan staat het waar het bij een eigen feature ook
     // staat. Zo niet, dan het boekje: hier niet, daar wel.
@@ -1760,7 +1798,7 @@ function _eldersFeaturesHtml(soort, naam) {
       <span class="vd-subfeature-naslag">${icon('arrow-up-right')}</span>
     </a>`;
   }).join('');
-  return { aantal: lijst.length, rijen, elders: true };
+  return { aantal: rijen_.length, rijen, elders: rijen_.length };
 }
 
 // Wat er op het kaartje in de kolom "Core Traits" staat, hier als dezelfde
@@ -1806,7 +1844,10 @@ function _kaartVenster(soort, naam, bron = '') {
   // De knop naar de spreukenlijst stond op het kaartje zelf en viel daar weg
   // zodra de kerngegevens de hoogte opmaakten. Hier is er plaats voor.
   const naarSpreuken = soort === 'class' && (_spreukAantal?.get(naam) || 0);
-  const { aantal, rijen: features, elders } = _houderFeaturesHtml(soort, naam, bron);
+  // `elders` is hier een **aantal**: hoeveel van die features alleen bij naam
+  // bekend zijn. Dat kan nu naast eigen features staan — bewerk je er één van
+  // een subclass uit een boek, dan is die eigen en blijven de andere wegwijzer.
+  const { aantal, rijen: features, elders, eigen } = _houderFeaturesHtml(soort, naam, bron);
 
   window.app.openModal(naam, '', `
     <div class="vd-subvenster">
@@ -1824,8 +1865,8 @@ function _kaartVenster(soort, naam, bron = '') {
         ${isDM() ? `<button class="spreuk-detail-imgbtn" onclick="window.vaardigheden.kaartBewerken('${esc(soort)}','${veilig}','${veiligB}')">${icon('pencil')} Kaartje bewerken</button>` : ''}
       </div>` : ''}
       ${soort === 'background' ? '' : `
-        <div class="vd-subvenster-kop">${aantal ? `${aantal} ${aantal === 1 ? 'feature' : 'features'}${elders ? ' — elders' : ''}` : 'Nog geen features'}</div>
-        ${elders ? `<p class="vd-elders-noot">Deze staan niet in de app: hun tekst komt uit een boek en mag hier niet staan. Dit zijn hun namen, zodat je weet wat je krijgt — klik er een aan om hem op te zoeken.</p>` : ''}
+        <div class="vd-subvenster-kop">${aantal ? `${aantal} ${aantal === 1 ? 'feature' : 'features'}${elders ? (eigen ? ` · ${elders} elders` : ' — elders') : ''}` : 'Nog geen features'}</div>
+        ${elders ? `<p class="vd-elders-noot">${eigen ? `Van ${elders === 1 ? 'één staat' : `${elders} staan`} alleen de naam hier` : 'Deze staan niet in de app'}: hun tekst komt uit een boek en mag hier niet staan. Dit zijn hun namen, zodat je weet wat je krijgt — klik er een aan om hem op te zoeken.</p>` : ''}
         ${features || `<p class="dm-hint">De features komen uit het boek en mogen daar niet uit overgenomen worden. ${isDM() ? 'Tik ze zelf in met de plusknop rechtsboven, of lees ze in van een andere DM.' : ''}</p>`}`}
     </div>`);
 }
@@ -2365,6 +2406,11 @@ function _editorOpen(it) {
   // gaat mee met het formulier. Haak dus leegmaken, anders schrijft een eerder
   // geopend venster mee.
   window._fpOnChange = null;
+  // Een featurekaartje neemt de vindplaats van zijn moeder over. Dat gebeurde
+  // alleen als je in de editor van class of subclass wisselde; opende je een
+  // kaartje dat er al stond, dan bleef "Waaruit?" leeg terwijl het boek bij de
+  // subclass erboven gewoon bekend is.
+  if (it) _volgHerkomst({ alleenLeeg: true });
   window.app.openModal(it ? `${it.naam} bewerken` : 'Iets toevoegen aan het Heldenboek', '', _editorHtml(),
     'hulp_heldenboek_editor');
 }
@@ -2374,14 +2420,18 @@ function _editorOpen(it) {
 // De herkomst en het boek van de houder waar je iets onder hangt. Alleen voor
 // een feature (een houder heeft zijn eigen antwoord), en alleen als die houder
 // het zelf weet — anders blijft staan wat je al koos.
-function _volgHerkomst() {
+function _volgHerkomst({ alleenLeeg = false } = {}) {
   if (_MAAKSEL(_edit.maaksel).houder) return;
   const h = (_edit.soort === 'subclass' || _edit.soort === 'variant') ? _houderVan(_edit.soort, _edit.sub, _edit.bron)
     : (_edit.soort === 'class' || _edit.soort === 'species') ? _houderVan(_edit.soort, _edit.bron)
     : null;
   if (!h) return;
-  if (h.herkomst) _edit.herkomst = h.herkomst;
-  if (h.boek) _edit.bronTekst = h.boek;
+  // Bij het **openen** van een bestaand kaartje vullen we alleen de gaten: wat
+  // de DM daar zelf neerzette is een afwijking van zijn moeder, en die mag een
+  // bewerkronde niet stilzwijgend rechttrekken. Wisselt hij van class of
+  // subclass, dan is het wél een nieuwe moeder en wint die.
+  if (h.herkomst && !(alleenLeeg && _edit.herkomst)) _edit.herkomst = h.herkomst;
+  if (h.boek && !(alleenLeeg && _edit.bronTekst)) _edit.bronTekst = h.boek;
 }
 
 function _editorLees() {
@@ -2525,6 +2575,10 @@ window.vaardigheden = {
       window.app.closeModal();
       _all = null;
       await _load();
+      // Óók de band: daar staat per subclass hoeveel features hij heeft en
+      // hoeveel er alleen bij naam bekend zijn. Zonder dit bleef die teller op
+      // de stand van vóór het opslaan staan.
+      _bandHerteken();
       _refreshFilterBar();
       _paint();
     } catch (e) { alert('Opslaan mislukt: ' + e.message); }
@@ -2537,6 +2591,7 @@ window.vaardigheden = {
       window.app.closeModal();
       _all = null;
       await _load();
+      _bandHerteken();
       _refreshFilterBar();
       _paint();
     } catch (e) { alert('Verwijderen mislukt: ' + e.message); }
