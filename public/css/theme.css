@@ -29758,7 +29758,11 @@ body.wizard-open { overflow: hidden; }
    de flipkaarten, dus een background en een Epic Boon leken niet te bewerken.
    Linksboven, want rechtsboven staat het level. */
 .vaardig-pen {
-  position: absolute; top: 8px; left: 8px; z-index: 6;
+  /* Rechtsboven, net als het potlood op een class- of speciekaartje — dat
+     stond op de flipkaart rechts en hier eerst links, en dan zoek je bij een
+     background op de verkeerde plek. Staat er een levelbadge, dan schuift hij
+     ernaast in plaats van eronder. */
+  position: absolute; top: 8px; right: 8px; z-index: 6;
   width: 26px; height: 26px; display: flex; align-items: center; justify-content: center;
   border: 1px solid rgba(196,168,122,.8); border-radius: 5px;
   background: rgba(255,252,244,.88); color: #8a7050; cursor: pointer;
@@ -29766,6 +29770,7 @@ body.wizard-open { overflow: hidden; }
 }
 .vaardig-pen svg { width: 14px; height: 14px; }
 .vaardig-pen:hover { border-color: #b8860b; color: #5a4030; }
+.vaardig-card:has(.vaardig-card-niv) .vaardig-pen { right: 46px; }
 /* Op een muisscherm pas als je erover gaat; op een telefoon is er geen hover,
    dan staat hij er gewoon. */
 @media (hover: hover) {
