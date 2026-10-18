@@ -2436,6 +2436,18 @@ factie — `star` betekent in de app al *favoriet*), `award` (factie-boon), `bac
 > `icons.svg?v=N` staat in `app.js`, `index.html`, `render-dungeon.js`,
 > `render-relatiemap.js` én `combat-canvas.js` — één bestand, één versie.
 
+> **Een nagelopen campagne mag de voorraadlijst bijwerken.**
+> `scripts/srd-2024/voorraad-uit-campagne.js <progression.json> <class…> --schrijf` neemt de
+> **namen en levels** over uit een campagne waar een class helemaal is nagelopen. Alleen
+> namen en levels: de beschrijvingen blijven waar ze zijn, want dat is tekst uit een boek —
+> precies waarom deze lijst bestaat. Wat de app zelf mét tekst meebrengt (Life Domain,
+> College of Lore) wordt overgeslagen, anders dubbelt het met de seed.
+> Gedraaid op 19 okt 2026 voor Artificer, Barbarian, Bard, Blood Hunter, Cleric en Druid
+> uit Grisburgh: zeventien lijsten bijgewerkt en drie nieuwe (Path of the Giant, College of
+> Spirits, College of the Moon). **Het vervangt, het vult niet aan** — dat is het punt (zo
+> verdween Divine Strike), maar het betekent ook dat een naam die de campagne níét heeft
+> uit de lijst valt; bij Blood Hunter gold dat voor *Blood Hunter Order*.
+
 > **De nieuwste druk wint — ook voor de boeken van 2025/26.**
 > `scripts/srd-2024/subclasses-2024.js` haalde zijn levels van dnd2024.wikidot.com, en die
 > wiki stopt bij de Player's Handbook: Arcana Unleashed, Heroes of Faerûn, Forge of the

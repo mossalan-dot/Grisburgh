@@ -52,24 +52,20 @@
     ],
     "Blood Hunter": [
       {
-        "naam": "Hunter's Bane",
-        "level": 1
-      },
-      {
         "naam": "Blood Maledict",
         "level": 1
       },
       {
-        "naam": "Fighting Style",
-        "level": 2
+        "naam": "Hunter's Bane",
+        "level": 1
       },
       {
         "naam": "Crimson Rite",
         "level": 2
       },
       {
-        "naam": "Blood Hunter Order",
-        "level": 3
+        "naam": "Fighting Style",
+        "level": 2
       },
       {
         "naam": "Extra Attack",
@@ -274,15 +270,15 @@
     ],
     "College of Swords": [
       {
+        "naam": "Blade Flourish",
+        "level": 3
+      },
+      {
         "naam": "Bonus Proficiencies",
         "level": 3
       },
       {
         "naam": "Fighting Style",
-        "level": 3
-      },
-      {
-        "naam": "Blade Flourish",
         "level": 3
       },
       {
@@ -358,11 +354,11 @@
         "level": 3
       },
       {
-        "naam": "Reaper",
+        "naam": "Channel Divinity: Touch of Death",
         "level": 3
       },
       {
-        "naam": "Channel Divinity: Touch of Death",
+        "naam": "Reaper",
         "level": 3
       },
       {
@@ -398,11 +394,11 @@
     ],
     "Forge Domain": [
       {
-        "naam": "Bonus Proficiencies",
+        "naam": "Blessing of the Forge",
         "level": 3
       },
       {
-        "naam": "Blessing of the Forge",
+        "naam": "Bonus Proficiencies",
         "level": 3
       },
       {
@@ -420,11 +416,11 @@
     ],
     "Grave Domain": [
       {
-        "naam": "Grave Domain Spells",
+        "naam": "Circle of Mortality",
         "level": 3
       },
       {
-        "naam": "Circle of Mortality",
+        "naam": "Grave Domain Spells",
         "level": 3
       },
       {
@@ -446,11 +442,11 @@
         "level": 3
       },
       {
-        "naam": "Voice of Authority",
+        "naam": "Channel Divinity: Order's Demand",
         "level": 3
       },
       {
-        "naam": "Channel Divinity: Order's Demand",
+        "naam": "Voice of Authority",
         "level": 3
       },
       {
@@ -464,7 +460,11 @@
     ],
     "Peace Domain": [
       {
-        "naam": "Implement of Peace",
+        "naam": "Domain Spells",
+        "level": 1
+      },
+      {
+        "naam": "Channel Divinity: Balm of Peace",
         "level": 3
       },
       {
@@ -472,7 +472,7 @@
         "level": 3
       },
       {
-        "naam": "Channel Divinity: Balm of Peace",
+        "naam": "Implement of Peace",
         "level": 3
       },
       {
@@ -1334,15 +1334,15 @@
     ],
     "Alchemist": [
       {
-        "naam": "Tools of the Trade",
-        "level": 3
-      },
-      {
         "naam": "Alchemist Spells",
         "level": 3
       },
       {
         "naam": "Experimental Elixir",
+        "level": 3
+      },
+      {
+        "naam": "Tools of the Trade",
         "level": 3
       },
       {
@@ -1360,7 +1360,11 @@
     ],
     "Armorer": [
       {
-        "naam": "Tools of the Trade",
+        "naam": "Arcane Armor",
+        "level": 3
+      },
+      {
+        "naam": "Armor Model",
         "level": 3
       },
       {
@@ -1368,11 +1372,7 @@
         "level": 3
       },
       {
-        "naam": "Arcane Armor",
-        "level": 3
-      },
-      {
-        "naam": "Armor Model",
+        "naam": "Tools of the Trade",
         "level": 3
       },
       {
@@ -1390,15 +1390,15 @@
     ],
     "Artillerist": [
       {
-        "naam": "Tools of the Trade",
-        "level": 3
-      },
-      {
         "naam": "Artillerist Spells",
         "level": 3
       },
       {
         "naam": "Eldritch Cannon",
+        "level": 3
+      },
+      {
+        "naam": "Tools of the Trade",
         "level": 3
       },
       {
@@ -1416,7 +1416,7 @@
     ],
     "Battle Smith": [
       {
-        "naam": "Tools of the Trade",
+        "naam": "Battle Ready",
         "level": 3
       },
       {
@@ -1424,11 +1424,11 @@
         "level": 3
       },
       {
-        "naam": "Battle Ready",
+        "naam": "Steel Defender",
         "level": 3
       },
       {
-        "naam": "Steel Defender",
+        "naam": "Tools of the Trade",
         "level": 3
       },
       {
@@ -1494,11 +1494,11 @@
         "level": 3
       },
       {
-        "naam": "Wrath of the Storm",
+        "naam": "Channel Divinity: Destructive Wrath",
         "level": 3
       },
       {
-        "naam": "Channel Divinity: Destructive Wrath",
+        "naam": "Wrath of the Storm",
         "level": 3
       },
       {
@@ -1546,7 +1546,7 @@
         "level": 10
       },
       {
-        "naam": "Travel along the Tree",
+        "naam": "Travel Along the Tree",
         "level": 14
       }
     ],
@@ -1676,11 +1676,11 @@
         "level": 3
       },
       {
-        "naam": "Trickery Domain Spells",
+        "naam": "Invoke Duplicity",
         "level": 3
       },
       {
-        "naam": "Invoke Duplicity",
+        "naam": "Trickery Domain Spells",
         "level": 3
       },
       {
@@ -2268,11 +2268,11 @@
     ],
     "Order of the Ghostslayer": [
       {
-        "naam": "Rite of the Dawn",
+        "naam": "Curse Specialist",
         "level": 3
       },
       {
-        "naam": "Curse Specialist",
+        "naam": "Rite of the Dawn",
         "level": 3
       },
       {
@@ -2490,7 +2490,7 @@
     ],
     "Cartographer": [
       {
-        "naam": "Tools of the Trade",
+        "naam": "Adventurer's Atlas",
         "level": 3
       },
       {
@@ -2498,11 +2498,11 @@
         "level": 3
       },
       {
-        "naam": "Adventurer's Atlas",
+        "naam": "Mapping Magic",
         "level": 3
       },
       {
-        "naam": "Mapping Magic",
+        "naam": "Tools of the Trade",
         "level": 3
       },
       {
@@ -2829,7 +2829,65 @@
       },
       {
         "naam": "Refined Reanimation",
-        "level": 15
+        "level": 14
+      }
+    ],
+    "Path of the Giant": [
+      {
+        "naam": "Giant's Havoc",
+        "level": 3
+      },
+      {
+        "naam": "Giant's Power",
+        "level": 3
+      },
+      {
+        "naam": "Elemental Cleaver",
+        "level": 6
+      },
+      {
+        "naam": "Mighty Impel",
+        "level": 10
+      },
+      {
+        "naam": "Demiurgic Colossus",
+        "level": 14
+      }
+    ],
+    "College of Spirits": [
+      {
+        "naam": "Channeler",
+        "level": 3
+      },
+      {
+        "naam": "Spirits from Beyond",
+        "level": 3
+      },
+      {
+        "naam": "Empowered Channeling",
+        "level": 6
+      },
+      {
+        "naam": "Mystical Connection",
+        "level": 14
+      }
+    ],
+    "College of the Moon": [
+      {
+        "naam": "Moon's Inspiration",
+        "level": 3
+      },
+      {
+        "naam": "Primal Lore",
+        "level": 3
+      },
+      {
+        "naam": "Blessing of Moonlight",
+        "level": 6
+      },
+      {
+        "naam": "Eventide's Splendor",
+        "level": 14
       }
     ]
   },
