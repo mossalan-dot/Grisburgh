@@ -220,9 +220,20 @@ async function _load() {
   for (const [bg, data] of Object.entries(_bron.backgrounds || {})) {
     const delen = Object.values(data.levels || {}).flat().filter(Boolean);
     if (!delen.length) continue;
+    // Wat er op het kaartje staat is zijn **verhaal**, niet zijn mechaniek:
+    // "Ability Scores. Intelligence, Wisdom, Charisma Feat. Magic Initiate…"
+    // is wat eronder al in rijtjes staat, en als aanprijzing zegt het niets.
+    // Heeft hij geen eigen beschrijving, dan pas de onderdelen.
+    const verhaal = String(data.desc || '').trim();
+    // Staat die er niet — en bij de zestien meegeleverde backgrounds staat hij
+    // er niet, want dat is tekst uit het boek — dan het kortste dat een
+    // background van een ander onderscheidt: zijn skills en zijn feat. Niet de
+    // hele opsomming: die staat op het kaartje al in rijtjes eronder.
+    const deel = (n) => delen.find(d => String(d.name || '').toLowerCase() === n)?.desc || '';
+    const kort = [deel('skill proficiencies'), deel('feat')].filter(Boolean).join(' · ');
     zet({
       soort: 'background', bron: 'Backgrounds', level: 0, naam: bg,
-      desc: delen.map(f => `**${f.name}.** ${f.desc || ''}`.trim()).join('\n\n'),
+      desc: verhaal || kort,
     });
   }
 
