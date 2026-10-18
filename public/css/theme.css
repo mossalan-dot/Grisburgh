@@ -29771,6 +29771,18 @@ body.wizard-open { overflow: hidden; }
 .vaardig-pen svg { width: 14px; height: 14px; }
 .vaardig-pen:hover { border-color: #b8860b; color: #5a4030; }
 .vaardig-card:has(.vaardig-card-niv) .vaardig-pen { right: 46px; }
+
+/* Een waarde in een kv-rij die ergens heen gaat — de feat van een background
+   bijvoorbeeld. Hij leest als tekst en gedraagt zich als een link. */
+.vd-rij-knop {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 0; border: 0; background: none; cursor: pointer;
+  font: inherit; color: inherit; text-align: left;
+  border-bottom: 1px dotted rgba(154,112,8,.55);
+}
+.vd-rij-knop svg { width: 11px; height: 11px; opacity: .6; flex-shrink: 0; }
+.vd-rij-knop:hover { color: #9a7008; border-bottom-color: #9a7008; }
+.vd-rij-knop:hover svg { opacity: 1; }
 /* Op een muisscherm pas als je erover gaat; op een telefoon is er geen hover,
    dan staat hij er gewoon. */
 @media (hover: hover) {

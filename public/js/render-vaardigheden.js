@@ -834,7 +834,7 @@ function _flipKaartHtml({ soort, naam, kleur, icoon, bijschrift = '', onder = ''
           </div>
           ${kop ? `<div class="vk-kerntrekken">${esc(kop)}</div>` : ''}
           ${rijen.length ? `<dl class="vk-training">
-            ${rijen.map(([k, v]) => `<dt>${esc(k)}</dt><dd>${esc(v)}</dd>`).join('')}
+            ${rijen.map(([k, v, html]) => `<dt>${esc(k)}</dt><dd>${html ?? esc(v)}</dd>`).join('')}
           </dl>` : ''}
           ${extra}
         </div>
@@ -1003,14 +1003,34 @@ function _volkKaartHtml(volk) {
 
 // Een achtergrond is één ding met vaste onderdelen; die lezen als rijen,
 // niet als getallen.
+// Welk featkaartje hoort bij deze tekst? Exact, en anders zonder het stukje
+// tussen haakjes — dat is in 2024 de variant en niet de naam.
+function _featKaartVoor(tekst) {
+  const kaal = String(tekst || '').replace(/\s*\([^)]*\)\s*$/, '').trim();
+  const norm = (x) => String(x || '').trim().toLowerCase();
+  const feats = (_all || []).filter(x => x.soort === 'feat' || x.soort === 'boon');
+  return feats.find(f => norm(f.naam) === norm(tekst))
+      || feats.find(f => norm(f.naam) === norm(kaal))
+      || null;
+}
+
 function _achtergrondRijen(naam) {
   const data = _bron?.backgrounds?.[naam];
   if (!data) return [];
   const delen = Object.values(data.levels || {}).flat().filter(Boolean);
   const rij = (kop) => delen.find(d => String(d.name || '').toLowerCase() === kop.toLowerCase())?.desc || '';
+  // De feat die je van deze background krijgt staat ook als kaartje in het
+  // Heldenboek, en dan wil je erheen kunnen. In het boek heet hij "Magic
+  // Initiate (Cleric)" en in de lijst gewoon "Magic Initiate": de haakjes
+  // zeggen wélke spreuklijst, niet welke feat.
+  const feat = rij('Feat');
+  const featKaart = feat ? _featKaartVoor(feat) : null;
   return [
     ['Ability Scores', rij('Ability Scores')],
-    ['Feat', rij('Feat')],
+    ['Feat', feat, featKaart
+      ? `<button class="vd-rij-knop" title="Bekijk ${esc(featKaart.naam)}"
+          onclick="window.vaardigheden.open('${escA(featKaart.key)}')">${esc(feat)} ${icon('arrow-up-right')}</button>`
+      : null],
     ['Skills', rij('Skill Proficiencies')],
     ['Tools', rij('Tool Proficiency')],
   ].filter(([, v]) => v);
@@ -1693,7 +1713,7 @@ function _kaartVenster(soort, naam, bron = '') {
         ? `<div class="prog-detail-desc">${_bron?.md?.(uitleg) ?? esc(uitleg)}</div>`
         : `<p class="dm-hint">Er staat nog geen uitleg bij deze ${esc(soortLabel.toLowerCase())}. ${isDM() ? 'Schrijf hem erbij — dan leest iedereen aan tafel hetzelfde.' : 'Vraag je DM of hij hem invult.'}</p>`}
       ${rijen.length ? `<dl class="vk-training vd-kv-training">
-        ${rijen.map(([k, v]) => `<dt>${esc(k)}</dt><dd>${esc(v)}</dd>`).join('')}
+        ${rijen.map(([k, v, html]) => `<dt>${esc(k)}</dt><dd>${html ?? esc(v)}</dd>`).join('')}
       </dl>` : ''}
       ${naarSpreuken || isDM() ? `<div class="spreuk-dm-knoppen">
         ${naarSpreuken ? `<button class="spreuk-detail-imgbtn" onclick="window.vaardigheden.naarSpreuken('${veilig}')">${icon('book-open')} Spreukenlijst</button>` : ''}
