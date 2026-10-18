@@ -983,8 +983,9 @@ function _klasseKaartHtml(klasse) {
     extra: `
       ${uitleg ? `<div class="vk-uitleg">${_bron?.md?.(uitleg) ?? esc(uitleg)}</div>` : ''}
       ${heeftSpreuken ? `
-        <button class="vk-naar-spreuken" onclick="event.stopPropagation();window.vaardigheden.naarSpreuken('${esc(klasse).replace(/'/g, "\\'")}')">
-          ${icon('book-open')} Spreukenlijst</button>` : ''}`,
+        <button class="vk-naar-spreuken" title="De spreuken die deze class kan leren"
+          onclick="event.stopPropagation();window.vaardigheden.naarSpreuken('${esc(klasse).replace(/'/g, "\\'")}')">
+          ${icon('book-open')} Spell list</button>` : ''}`,
   });
 }
 
