@@ -592,24 +592,6 @@
         "level": 14
       }
     ],
-    "Purple Dragon Knight (Banneret)": [
-      {
-        "naam": "Rallying Cry",
-        "level": 3
-      },
-      {
-        "naam": "Royal Envoy",
-        "level": 7
-      },
-      {
-        "naam": "Inspiring Surge",
-        "level": 10
-      },
-      {
-        "naam": "Bulwark",
-        "level": 15
-      }
-    ],
     "Arcane Archer": [
       {
         "naam": "Arcane Archer Lore",
@@ -1283,116 +1265,6 @@
       },
       {
         "naam": "Spirit Projection",
-        "level": 14
-      }
-    ],
-    "School of Conjuration": [
-      {
-        "naam": "Conjuration Savant",
-        "level": 3
-      },
-      {
-        "naam": "Minor Conjuration",
-        "level": 3
-      },
-      {
-        "naam": "Benign Transposition",
-        "level": 6
-      },
-      {
-        "naam": "Focused Conjuration",
-        "level": 10
-      },
-      {
-        "naam": "Durable Summons",
-        "level": 14
-      }
-    ],
-    "School of Enchantment": [
-      {
-        "naam": "Enchantment Savant",
-        "level": 3
-      },
-      {
-        "naam": "Hypnotic Gaze",
-        "level": 3
-      },
-      {
-        "naam": "Instinctive Charm",
-        "level": 6
-      },
-      {
-        "naam": "Split Enchantment",
-        "level": 10
-      },
-      {
-        "naam": "Alter Memories",
-        "level": 14
-      }
-    ],
-    "School of Necromancy": [
-      {
-        "naam": "Necromancy Savant",
-        "level": 3
-      },
-      {
-        "naam": "Grim Harvest",
-        "level": 3
-      },
-      {
-        "naam": "Undead Thralls",
-        "level": 6
-      },
-      {
-        "naam": "Inured to Undeath",
-        "level": 10
-      },
-      {
-        "naam": "Command Undead",
-        "level": 14
-      }
-    ],
-    "School of Transmutation": [
-      {
-        "naam": "Transmutation Savant",
-        "level": 3
-      },
-      {
-        "naam": "Minor Alchemy",
-        "level": 3
-      },
-      {
-        "naam": "Transmuter's Stone",
-        "level": 6
-      },
-      {
-        "naam": "Shapechanger",
-        "level": 10
-      },
-      {
-        "naam": "Master Transmuter",
-        "level": 14
-      }
-    ],
-    "Bladesinging": [
-      {
-        "naam": "Training in War and Song",
-        "level": 3
-      },
-      {
-        "naam": "Bladesong",
-        "level": 3
-      },
-      {
-        "naam": "Extra Attack",
-        "level": 6
-      },
-      {
-        "naam": "Song of Defense",
-        "level": 10
-      },
-      {
-        "naam": "Song of Victory",
         "level": 14
       }
     ],
@@ -2673,6 +2545,290 @@
         "naam": "Superior Atlas",
         "level": 15
       }
+    ],
+    "Banneret": [
+      {
+        "naam": "Group Recovery",
+        "level": 3
+      },
+      {
+        "naam": "Knightly Envoy",
+        "level": 3
+      },
+      {
+        "naam": "Team Tactics",
+        "level": 7
+      },
+      {
+        "naam": "Rallying Surge",
+        "level": 10
+      },
+      {
+        "naam": "Shared Resilience",
+        "level": 15
+      },
+      {
+        "naam": "Inspiring Commander",
+        "level": 18
+      }
+    ],
+    "Conjurer": [
+      {
+        "naam": "Benign Transposition",
+        "level": 3
+      },
+      {
+        "naam": "Conjuration Savant",
+        "level": 3
+      },
+      {
+        "naam": "Distant Transposition",
+        "level": 6
+      },
+      {
+        "naam": "Durable Summons",
+        "level": 6
+      },
+      {
+        "naam": "Focused Conjuration",
+        "level": 10
+      },
+      {
+        "naam": "Splintered Summons",
+        "level": 14
+      }
+    ],
+    "Enchanter": [
+      {
+        "naam": "Enchanting Conversationalist",
+        "level": 3
+      },
+      {
+        "naam": "Enchantment Savant",
+        "level": 3
+      },
+      {
+        "naam": "Hypnotic Presence",
+        "level": 3
+      },
+      {
+        "naam": "Split Enchantment",
+        "level": 6
+      },
+      {
+        "naam": "Instinctive Charm",
+        "level": 10
+      },
+      {
+        "naam": "Alter Memories",
+        "level": 14
+      }
+    ],
+    "Necromancer": [
+      {
+        "naam": "Necromancy Savant",
+        "level": 3
+      },
+      {
+        "naam": "Necromancy Spellbook",
+        "level": 3
+      },
+      {
+        "naam": "Grave Power",
+        "level": 6
+      },
+      {
+        "naam": "Undead Thralls",
+        "level": 6
+      },
+      {
+        "naam": "Harvest Undead",
+        "level": 10
+      },
+      {
+        "naam": "Death's Master",
+        "level": 14
+      }
+    ],
+    "Transmuter": [
+      {
+        "naam": "Transmutation Savant",
+        "level": 3
+      },
+      {
+        "naam": "Transmuter's Stone",
+        "level": 3
+      },
+      {
+        "naam": "Wondrous Alteration",
+        "level": 3
+      },
+      {
+        "naam": "Empowered Transmutation",
+        "level": 6
+      },
+      {
+        "naam": "Potent Stone",
+        "level": 10
+      },
+      {
+        "naam": "Shape-Shifter",
+        "level": 10
+      },
+      {
+        "naam": "Master Transmuter",
+        "level": 14
+      }
+    ],
+    "Bladesinger": [
+      {
+        "naam": "Bladesong",
+        "level": 3
+      },
+      {
+        "naam": "Training in War and Song",
+        "level": 3
+      },
+      {
+        "naam": "Extra Attack",
+        "level": 6
+      },
+      {
+        "naam": "Song of Defense",
+        "level": 10
+      },
+      {
+        "naam": "Song of Victory",
+        "level": 14
+      }
+    ],
+    "School of Conjuration": [
+      {
+        "naam": "Conjuration Savant",
+        "level": 3
+      },
+      {
+        "naam": "Minor Conjuration",
+        "level": 3
+      },
+      {
+        "naam": "Benign Transposition",
+        "level": 6
+      },
+      {
+        "naam": "Focused Conjuration",
+        "level": 10
+      },
+      {
+        "naam": "Durable Summons",
+        "level": 14
+      }
+    ],
+    "School of Enchantment": [
+      {
+        "naam": "Enchantment Savant",
+        "level": 3
+      },
+      {
+        "naam": "Hypnotic Gaze",
+        "level": 3
+      },
+      {
+        "naam": "Instinctive Charm",
+        "level": 6
+      },
+      {
+        "naam": "Split Enchantment",
+        "level": 10
+      },
+      {
+        "naam": "Alter Memories",
+        "level": 14
+      }
+    ],
+    "School of Necromancy": [
+      {
+        "naam": "Necromancy Savant",
+        "level": 3
+      },
+      {
+        "naam": "Grim Harvest",
+        "level": 3
+      },
+      {
+        "naam": "Undead Thralls",
+        "level": 6
+      },
+      {
+        "naam": "Inured to Undeath",
+        "level": 10
+      },
+      {
+        "naam": "Command Undead",
+        "level": 14
+      }
+    ],
+    "School of Transmutation": [
+      {
+        "naam": "Transmutation Savant",
+        "level": 3
+      },
+      {
+        "naam": "Minor Alchemy",
+        "level": 3
+      },
+      {
+        "naam": "Transmuter's Stone",
+        "level": 6
+      },
+      {
+        "naam": "Shapechanger",
+        "level": 10
+      },
+      {
+        "naam": "Master Transmuter",
+        "level": 14
+      }
+    ],
+    "Bladesinging": [
+      {
+        "naam": "Training in War and Song",
+        "level": 3
+      },
+      {
+        "naam": "Bladesong",
+        "level": 3
+      },
+      {
+        "naam": "Extra Attack",
+        "level": 6
+      },
+      {
+        "naam": "Song of Defense",
+        "level": 10
+      },
+      {
+        "naam": "Song of Victory",
+        "level": 14
+      }
+    ],
+    "Purple Dragon Knight (Banneret)": [
+      {
+        "naam": "Rallying Cry",
+        "level": 3
+      },
+      {
+        "naam": "Royal Envoy",
+        "level": 7
+      },
+      {
+        "naam": "Inspiring Surge",
+        "level": 10
+      },
+      {
+        "naam": "Bulwark",
+        "level": 15
+      }
     ]
   },
   "species": {
@@ -2959,5 +3115,6 @@
       "Call to the Wave"
     ]
   },
-  "_varianten": "De varianten van een species, met de sleutel \"Species|Variant\". Alleen waar de nieuwste druk van dat species zijn inhoud nog ín zijn varianten heeft — bij Genasi is dat zo (Monsters of the Multiverse), bij Tiefling en Elf niet: daar zijn de lineages van 2024 en geeft de lineage spreuken per level, en dat is tekst uit het boek."
+  "_varianten": "De varianten van een species, met de sleutel \"Species|Variant\". Alleen waar de nieuwste druk van dat species zijn inhoud nog ín zijn varianten heeft — bij Genasi is dat zo (Monsters of the Multiverse), bij Tiefling en Elf niet: daar zijn de lineages van 2024 en geeft de lineage spreuken per level, en dat is tekst uit het boek.",
+  "_oude_namen": "Een subclass die onder een nieuwere naam is heruitgegeven (School of Conjuration → Conjurer) blijft hier ook onder zijn oude naam staan, met de features van díé druk. De lijst \"bestaat elders\" wijst alleen naar de nieuwste, maar een campagne die de oude al had overgenomen houdt zo zijn featurenamen in plaats van op \"geen tekst\" te vallen."
 }

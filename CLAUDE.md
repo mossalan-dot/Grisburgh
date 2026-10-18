@@ -2426,6 +2426,22 @@ factie — `star` betekent in de app al *favoriet*), `award` (factie-boon), `bac
 > `icons.svg?v=N` staat in `app.js`, `index.html`, `render-dungeon.js`,
 > `render-relatiemap.js` én `combat-canvas.js` — één bestand, één versie.
 
+> **De nieuwste druk wint — ook voor de boeken van 2025/26.**
+> `scripts/srd-2024/subclasses-2024.js` haalde zijn levels van dnd2024.wikidot.com, en die
+> wiki stopt bij de Player's Handbook: Arcana Unleashed, Heroes of Faerûn, Forge of the
+> Artificer en The Horrors Within staan er niet in. `scripts/srd-2024/subclasses-nieuwste.js`
+> doet dat deel via de 5etools-spiegel, en hoeft niets te raden: elke oude subclass draagt
+> daar een **`reprintedAs`** die naar de nieuwe wijst (`"Conjurer|Wizard|XPHB|AU"`), en het
+> script volgt die keten tot het eind — PHB → XPHB → AU is één keten. De levels staan er als
+> eigen veld, dus er hoeft niets uit een kop gevist te worden.
+> Twee dingen die het script met opzet doet: de regel die net zo heet als de subclass zelf
+> is de **inleiding** van de spiegel en geen feature (onze seed heeft hem ook nergens), en
+> **de oude naam blijft in `features-elders.json` staan** — de lijst "bestaat elders" wijst
+> alleen nog naar de nieuwste, maar een campagne die *School of Conjuration* al had
+> overgenomen houdt zo zijn featurenamen in plaats van terug te vallen op "geen tekst".
+> Zes hernoemd op 18 okt 2026: Conjurer, Enchanter, Necromancer, Transmuter (AU),
+> Bladesinger en Banneret (HoF).
+
 > **Een tabel in een vaardigheidstekst is platgeslagen binnengekomen.** Elf teksten in
 > `bronnen/srd-features.json` dragen er een (de domeinspreuken, Draconic/Fiend Spells, het
 > omrekenen van spell slots), en ze stonden er als een alinea met pijpjes: geen streepjesrij,

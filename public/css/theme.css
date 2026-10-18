@@ -25347,7 +25347,6 @@ body.kaart-fs-active .dng-topbar { padding-right: 14px; }
   display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;
 }
 .vaardig-card-desc--leeg { font-style: italic; color: #8a7458; }
-.vaardig-tag--soort { background: rgba(196,168,122,0.18); }
 .vaardig-telling { opacity: 0.6; font-size: 11px; margin-left: 2px; }
 /* De soortenrij staat altijd in beeld en deelt de eerste regel met de bron en
    de trechter — net als de niveauknoppen bij de spreuken. De uitklaprij met de

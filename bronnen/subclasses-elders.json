@@ -121,8 +121,8 @@
     ],
     "Fighter": [
       {
-        "naam": "Purple Dragon Knight (Banneret)",
-        "boek": "scag"
+        "naam": "Banneret",
+        "boek": "hof"
       },
       {
         "naam": "Arcane Archer",
@@ -259,24 +259,24 @@
     ],
     "Wizard": [
       {
-        "naam": "School of Conjuration",
-        "boek": "phb14"
+        "naam": "Conjurer",
+        "boek": "au"
       },
       {
-        "naam": "School of Enchantment",
-        "boek": "phb14"
+        "naam": "Enchanter",
+        "boek": "au"
       },
       {
-        "naam": "School of Necromancy",
-        "boek": "phb14"
+        "naam": "Necromancer",
+        "boek": "au"
       },
       {
-        "naam": "School of Transmutation",
-        "boek": "phb14"
+        "naam": "Transmuter",
+        "boek": "au"
       },
       {
-        "naam": "Bladesinging",
-        "boek": "scag"
+        "naam": "Bladesinger",
+        "boek": "hof"
       },
       {
         "naam": "War Magic",

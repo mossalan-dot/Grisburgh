@@ -145,7 +145,6 @@ const HERKOMST = [
   { value: 'aangepast',    label: 'Aangepast uit ander materiaal' },
   { value: 'overgenomen',  label: 'Overgenomen uit ander materiaal' },
 ];
-const HERKOMST_LABEL = { zelfbedacht: 'Zelf verzonnen', aangepast: 'Aangepast', overgenomen: 'Overgenomen' };
 
 const SOORT_VOLGORDE = ['class', 'subclass', 'species', 'variant', 'feat', 'boon', 'zegen', 'gunst', 'background'];
 
@@ -551,19 +550,23 @@ function _card(it) {
       <div class="entity-card-body vaardig-card-body">
         <div class="vaardig-card-name">${esc(it.naam)}</div>
         ${(() => {
-          // De soort staat al als chip op het kaartje; deze regel zegt waar het
-          // bij hoort. Is er niets te zeggen (een feat hoort nergens bij), dan
-          // ook geen lege regel.
+          // Deze regel zegt waar het bij hoort en op welk level. Is er niets te
+          // zeggen (een feat hoort nergens bij), dan ook geen lege regel.
           const meta = [esc(bronRegel), it.level ? `level ${it.level}` : ''].filter(Boolean).join(' · ');
           return meta ? `<div class="vaardig-card-meta">${meta}</div>` : '';
         })()}
-        <div class="vaardig-card-tags">
-          <span class="spreuk-tag vaardig-tag--soort">${icon(_itemIcoon(it))} ${esc(s.label)}</span>
-          ${it.herkomst ? `<span class="spreuk-tag spreuk-tag--eigen${it.herkomst === 'overgenomen' ? ' spreuk-tag--overgenomen' : ''}"
-            title="Van deze campagne">${icon('sparkles')} ${esc(HERKOMST_LABEL[it.herkomst] || 'Eigen')}</span>` : ''}
-          ${link ? `<a class="spreuk-tag spreuk-tag--naslag" href="${esc(link)}" target="_blank" rel="noopener"
-            onclick="event.stopPropagation()" title="De beschrijving staat hier niet — zoek hem elders op">${icon('book-open')} Naslag</a>` : ''}
-        </div>
+        <!-- **Geen chips voor soort en herkomst meer.** Ze stonden onder elke
+             kaart als een tweede regel pillen, en ze zeiden allebei iets wat je
+             al ziet: de soort staat in de kleur van het kaartje én in de regel
+             erboven ("Alchemist · Artificer · level 3"), en of iets overgenomen
+             is, is een aantekening voor de DM — niet wat je op een
+             dashboardkaartje zoekt. Wat blijft is de penning met het level op de
+             plaat, en *Naslag*: dat is geen label maar de enige weg naar het
+             boek bij een kaartje zonder tekst. -->
+        ${link ? `<div class="vaardig-card-tags">
+          <a class="spreuk-tag spreuk-tag--naslag" href="${esc(link)}" target="_blank" rel="noopener"
+            onclick="event.stopPropagation()" title="De beschrijving staat hier niet — zoek hem elders op">${icon('book-open')} Naslag</a>
+        </div>` : ''}
         ${tekst
           ? `<div class="vaardig-card-desc">${esc(tekst.replace(/\[\[([^\]|]+?)(?:\|[^\]]+?)?\]\]/g, '$1').replace(/[*_#]/g, '').slice(0, 130))}…</div>`
           : `<div class="vaardig-card-desc vaardig-card-desc--leeg">De beschrijving staat hier niet — hij valt buiten de vrij te gebruiken SRD.</div>`}
@@ -1440,9 +1443,16 @@ function _subKolomHtml(klasse) {
             onclick="window.open(window.app.bronLink('${veilig}','${r.variant ? 'species' : 'subclass'}'),'_blank')"
             title="${esc(r.boek || '')} — opzoeken; de tekst staat in het boek, niet in de app">
             <span class="vd-subkaart-naam">${esc(r.naam)}</span>
-            <span class="vd-subkaart-meta">${r.variant
-              ? `${_eldersAanvulling('variant', r.naam, null, klasse).length} traits · elders`
-              : esc((r.code || 'elders').toUpperCase())}</span>
+            <!-- Er stond alleen de boekcode. Nu we van de meeste ook de
+                 featurenamen kennen, hoort het aantal erbij: anders zie je bij
+                 Conjurer "AU" staan en bij de rij eronder "5 features", alsof
+                 de eerste er geen heeft. -->
+            <span class="vd-subkaart-meta">${(() => {
+              const n = _eldersAanvulling(r.variant ? 'variant' : 'subclass', r.naam, null, klasse).length;
+              const wat = r.variant ? 'traits' : 'features';
+              const waar = r.variant ? 'elders' : esc((r.code || 'elders').toUpperCase());
+              return n ? `${n} ${wat} · ${waar}` : waar;
+            })()}</span>
           </button>
         </div>`;
       }

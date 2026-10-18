@@ -1583,6 +1583,17 @@ Grisburghs **data** te staan — niet in de code.
       *Een nieuwe subclass*: er staat een veld **Ondertitel**, net als in het
       bewerkvenster. Vul hem meteen in en bewaar; de regel staat op het kaartje
       zonder dat je het daarna nog eens hoeft te openen.
+- [ ] **De nieuwste druk staat in de kolom** (ALL) — open *Classes* → *Wizard*
+      en blader de subclasskolom door: er staan **Conjurer · Enchanter ·
+      Necromancer · Transmuter** (AU) en **Bladesinger** (HoF), elk met hun
+      aantal features ernaast — niet meer *School of Conjuration* uit 2014.
+      Bij Fighter is *Purple Dragon Knight* nu **Banneret**. Een campagne die de
+      oude naam al had overgenomen houdt zijn featurenamen: *Bladesinging* zegt
+      nog steeds *5 features · elders* en niet *geen tekst*.
+- [ ] **Een kaartje in het raster is rustig** (ALL) — op een featurekaartje
+      staan de naam, de regel *Evoker · Wizard · level 3* en de beschrijving.
+      Géén chips voor soort en herkomst meer; de penning met het level blijft op
+      de plaat staan, en *Naslag* staat er alleen bij een kaartje zonder tekst.
 - [ ] **Zoeken gaat dwars door de deuren** (ALL) — typ *battle master* terwijl
       je in Classes staat: je krijgt treffers uit alles, met een regel
       *Resultaten voor…* en een knop terug. Veeg het veld leeg en je staat weer
