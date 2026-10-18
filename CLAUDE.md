@@ -2496,6 +2496,25 @@ factie — `star` betekent in de app al *favoriet*), `award` (factie-boon), `bac
 > knipt en in een `vm` draait (zelfde truc als `scripts/helpteksten.js` met HELP_CONFIG) —
 > de toets hoort op de échte code en de échte bronteksten te staan.
 
+> **De sleutel van een kaartje noemt ook de subclass.** `soort|bron|sub|level|naam` —
+> zonder dat stuk droegen de Bonus Proficiency van het Death Domain en die van het Nature
+> Domain allebei `subclass|Cleric|3|Bonus Proficiency`, en de ontdubbeling in
+> `_vaardigLijst` gooide de tweede weg. Dat las als "die feature laadt niet", terwijl hij
+> gewoon in de campagne stond. Raakte elke gelijknamige feature van twee subclasses van
+> dezelfde class: Extra Attack en Bonus Proficiencies bij de Bard-colleges, Domain Spells
+> bij elk domein.
+
+> **Creature Type, Size en Speed horen bij een species.** `bronnen/species-basis.json`
+> (gemaakt met `scripts/srd-2024/species-basis.js` uit de 5etools-spiegel, nieuwste druk
+> wint) is de bron; `species.<naam>.basis` in de campagne gaat eroverheen. Exact dezelfde
+> afspraak als bij `klasse-basis.json`: een leeg veld betekent "neem wat de app weet", en
+> zo profiteer je van latere verbeteringen zolang je niets eigens zette. Het veld toont de
+> bronwaarde als grijze hint, zodat je ziet wát je overneemt. 55 van de 59 species hebben
+> maat en snelheid; het creature type staat alleen in de nieuwere drukken (28), en raden
+> doen we niet — een Warforged is een Construct en een Satyr een Fey.
+> Op het kaartje staan ze **altijd**, ook naast een omschrijving: anders dan "Traits 3 · op
+> level 1" zijn dit geen getallen óver de lijst eronder maar inhoud.
+
 > **Elk species heeft een eigen icoon.** `SPECIES_ICOON` in `render-vaardigheden.js` dekt
 > alle achtenvijftig; eerder stonden er dertien en viel de rest terug op `user`, waardoor
 > de tegelrij vijfenveertig identieke poppetjes toonde. Het icoon is daar het enige

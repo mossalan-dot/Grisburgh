@@ -9875,6 +9875,20 @@ router.put('/progression/houder', requireDM, (req, res) => {
     if (Object.keys(basis).length) houder.basis = basis; else delete houder.basis;
   }
 
+  // En de drie van een species: Creature Type, Size en Speed. Zelfde afweging
+  // als hierboven — wat hier binnenkomt is de **afwijking** van wat de app
+  // weet (`bronnen/species-basis.json`), dus leeg laten betekent "neem de
+  // bron" en niet "er staat niets".
+  if (soort === 'species' && b.basis !== undefined) {
+    const inv = b.basis || {};
+    const basis = {};
+    for (const sleutel of ['creatureType', 'size', 'speed']) {
+      const t = String(inv[sleutel] || '').trim().slice(0, 80);
+      if (t) basis[sleutel] = t;
+    }
+    if (Object.keys(basis).length) houder.basis = basis; else delete houder.basis;
+  }
+
   storage.writeJSON('progression.json', { ...prog, bron: prog.bron || 'Aangepast door de DM' });
   req.app.get('io').to(_campagneRoom(req)).emit('progression:updated', {});
   res.json({ ok: true });

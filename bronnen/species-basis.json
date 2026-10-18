@@ -1,0 +1,313 @@
+{
+  "_wat": "Creature Type, Size en Speed per species — de drie regels waar het boek mee begint.",
+  "_bron": "data/races.json van de 5etools-spiegel, nieuwste druk wint. Gemaakt met scripts/srd-2024/species-basis.js.",
+  "_let_op": "Dit is de **bron**; wat een campagne zelf invult (species.<naam>.basis) gaat eroverheen. Zelfde afspraak als bij klasse-basis.json.",
+  "species": {
+    "Aarakocra": {
+      "size": "Medium",
+      "speed": "30 feet, fly 30 feet",
+      "_boek": "MPMM"
+    },
+    "Aasimar": {
+      "creatureType": "Humanoid",
+      "size": "Small or Medium",
+      "speed": "30 feet",
+      "_boek": "XPHB"
+    },
+    "Bugbear": {
+      "creatureType": "Humanoid",
+      "size": "Medium",
+      "speed": "30 feet",
+      "_boek": "MPMM"
+    },
+    "Centaur": {
+      "creatureType": "Fey",
+      "size": "Medium",
+      "speed": "40 feet",
+      "_boek": "MPMM"
+    },
+    "Changeling": {
+      "creatureType": "Fey",
+      "size": "Small or Medium",
+      "speed": "30 feet",
+      "_boek": "EFA"
+    },
+    "Deep Gnome": {
+      "creatureType": "Humanoid",
+      "size": "Small",
+      "speed": "30 feet",
+      "_boek": "MPMM"
+    },
+    "Dhampir": {
+      "size": "Small or Medium",
+      "speed": "35 feet, climb 35 feet",
+      "_boek": "RHW"
+    },
+    "Dragonborn": {
+      "creatureType": "Humanoid",
+      "size": "Medium",
+      "speed": "30 feet",
+      "_boek": "XPHB"
+    },
+    "Duergar": {
+      "creatureType": "Humanoid",
+      "size": "Medium",
+      "speed": "30 feet",
+      "_boek": "MPMM"
+    },
+    "Dwarf": {
+      "creatureType": "Humanoid",
+      "size": "Medium",
+      "speed": "30 feet",
+      "_boek": "XPHB"
+    },
+    "Eladrin": {
+      "creatureType": "Humanoid",
+      "size": "Medium",
+      "speed": "30 feet",
+      "_boek": "MPMM"
+    },
+    "Elf": {
+      "creatureType": "Humanoid",
+      "size": "Medium",
+      "speed": "30 feet",
+      "_boek": "XPHB"
+    },
+    "Fairy": {
+      "creatureType": "Fey",
+      "size": "Small",
+      "speed": "30 feet, fly 30 feet",
+      "_boek": "MPMM"
+    },
+    "Firbolg": {
+      "size": "Medium",
+      "speed": "30 feet",
+      "_boek": "MPMM"
+    },
+    "Genasi": {
+      "size": "Small or Medium",
+      "speed": "30 feet",
+      "_boek": "MPMM"
+    },
+    "Giff": {
+      "size": "Medium",
+      "speed": "30 feet, swim 30 feet",
+      "_boek": "AAG"
+    },
+    "Githyanki": {
+      "size": "Medium",
+      "speed": "30 feet",
+      "_boek": "MPMM"
+    },
+    "Githzerai": {
+      "size": "Medium",
+      "speed": "30 feet",
+      "_boek": "MPMM"
+    },
+    "Gnome": {
+      "creatureType": "Humanoid",
+      "size": "Small",
+      "speed": "30 feet",
+      "_boek": "XPHB"
+    },
+    "Goblin": {
+      "creatureType": "Humanoid",
+      "size": "Small",
+      "speed": "30 feet",
+      "_boek": "MPMM"
+    },
+    "Goliath": {
+      "creatureType": "Humanoid",
+      "size": "Medium",
+      "speed": "35 feet",
+      "_boek": "XPHB"
+    },
+    "Half-Elf": {
+      "size": "Medium",
+      "speed": "30 feet",
+      "_boek": "PHB"
+    },
+    "Half-Orc": {
+      "size": "Medium",
+      "speed": "30 feet",
+      "_boek": "PHB"
+    },
+    "Halfling": {
+      "creatureType": "Humanoid",
+      "size": "Small",
+      "speed": "30 feet",
+      "_boek": "XPHB"
+    },
+    "Harengon": {
+      "size": "Small or Medium",
+      "speed": "30 feet",
+      "_boek": "MPMM"
+    },
+    "Hexblood": {
+      "creatureType": "Fey",
+      "size": "Small or Medium",
+      "speed": "30 feet",
+      "_boek": "RHW"
+    },
+    "Hobgoblin": {
+      "creatureType": "Humanoid",
+      "size": "Medium",
+      "speed": "30 feet",
+      "_boek": "MPMM"
+    },
+    "Human": {
+      "creatureType": "Humanoid",
+      "size": "Small or Medium",
+      "speed": "30 feet",
+      "_boek": "XPHB"
+    },
+    "Kalashtar": {
+      "creatureType": "Aberration",
+      "size": "Medium",
+      "speed": "30 feet",
+      "_boek": "EFA"
+    },
+    "Kenku": {
+      "size": "Small or Medium",
+      "speed": "30 feet",
+      "_boek": "MPMM"
+    },
+    "Khoravar": {
+      "creatureType": "Humanoid",
+      "size": "Small or Medium",
+      "speed": "30 feet",
+      "_boek": "EFA"
+    },
+    "Kobold": {
+      "size": "Small",
+      "speed": "30 feet",
+      "_boek": "MPMM"
+    },
+    "Leonin": {
+      "size": "Medium",
+      "speed": "35 feet",
+      "_boek": "MOT"
+    },
+    "Lizardfolk": {
+      "size": "Medium",
+      "speed": "30 feet, swim 30 feet",
+      "_boek": "MPMM"
+    },
+    "Lorwyn Changeling": {
+      "creatureType": "Fey",
+      "size": "Small or Medium",
+      "speed": "30 feet",
+      "_boek": "LFL"
+    },
+    "Loxodon": {
+      "size": "Medium",
+      "speed": "30 feet",
+      "_boek": "GGR"
+    },
+    "Lupin": {
+      "creatureType": "Humanoid",
+      "size": "Small or Medium",
+      "speed": "30 feet",
+      "_boek": "RHW"
+    },
+    "Minotaur": {
+      "size": "Medium",
+      "speed": "30 feet",
+      "_boek": "MPMM"
+    },
+    "Orc": {
+      "creatureType": "Humanoid",
+      "size": "Medium",
+      "speed": "30 feet",
+      "_boek": "XPHB"
+    },
+    "Owlin": {
+      "size": "Small or Medium",
+      "speed": "30 feet, fly 30 feet",
+      "_boek": "SCC"
+    },
+    "Reborn": {
+      "creatureType": "Humanoid",
+      "size": "Small or Medium",
+      "speed": "30 feet",
+      "_boek": "RHW"
+    },
+    "Rimekin": {
+      "creatureType": "Humanoid",
+      "size": "Small or Medium",
+      "speed": "30 feet",
+      "_boek": "LFL"
+    },
+    "Satyr": {
+      "creatureType": "Fey",
+      "size": "Medium",
+      "speed": "35 feet",
+      "_boek": "MPMM"
+    },
+    "Sea Elf": {
+      "creatureType": "Humanoid",
+      "size": "Medium",
+      "speed": "30 feet, swim 30 feet",
+      "_boek": "MPMM"
+    },
+    "Shadar-kai": {
+      "creatureType": "Humanoid",
+      "size": "Medium",
+      "speed": "30 feet",
+      "_boek": "MPMM"
+    },
+    "Shifter": {
+      "creatureType": "Humanoid",
+      "size": "Small or Medium",
+      "speed": "30 feet",
+      "_boek": "EFA"
+    },
+    "Simic Hybrid": {
+      "size": "Medium",
+      "speed": "30 feet",
+      "_boek": "GGR"
+    },
+    "Tabaxi": {
+      "size": "Small or Medium",
+      "speed": "30 feet, climb 30 feet",
+      "_boek": "MPMM"
+    },
+    "Tiefling": {
+      "creatureType": "Humanoid",
+      "size": "Small or Medium",
+      "speed": "30 feet",
+      "_boek": "XPHB"
+    },
+    "Tortle": {
+      "size": "Small or Medium",
+      "speed": "30 feet",
+      "_boek": "MPMM"
+    },
+    "Triton": {
+      "size": "Medium",
+      "speed": "30 feet, swim 30 feet",
+      "_boek": "MPMM"
+    },
+    "Vedalken": {
+      "size": "Medium",
+      "speed": "30 feet",
+      "_boek": "GGR"
+    },
+    "Verdan": {
+      "size": "Varies",
+      "speed": "30 feet",
+      "_boek": "AI"
+    },
+    "Warforged": {
+      "creatureType": "Construct",
+      "size": "Small or Medium",
+      "speed": "30 feet",
+      "_boek": "EFA"
+    },
+    "Yuan-ti": {
+      "size": "Small or Medium",
+      "speed": "30 feet",
+      "_boek": "MPMM"
+    }
+  }
+}

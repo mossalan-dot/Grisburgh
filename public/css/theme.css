@@ -30581,3 +30581,10 @@ body:has(#sb-overlay.sb-open) .dm-dice-fab { display: none !important; }
   text-transform: uppercase; color: #7a6040; margin: 0 0 4px;
 }
 .vd-tabelblok > .akte-tabel { margin-bottom: 6px; }
+
+/* ── De filterpillen springen niet meer uit ──────────────────────────────────
+   Opgemeten: de balk erboven heeft 14px binnenruimte plus 1px rand, en het
+   raster eronder 15px — hun inhoud begint dus allebei op 15. De pillenrij had
+   er nul, en stond daarmee als enige strak tegen de rand. Eén lijn voor alle
+   drie: de band, de pillen en de kaartjes. */
+.vaardig-filters { padding-left: 15px; padding-right: 15px; }

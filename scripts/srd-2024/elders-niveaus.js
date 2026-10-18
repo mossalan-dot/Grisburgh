@@ -100,6 +100,14 @@ function kopNiveaus(tekst) {
 const VANAF = 3;
 const omgerekend = (lv) => Math.max(VANAF, lv);
 
+// Wat in 2014 bij élk domein stond maar in 2024 een **classfeature** is.
+// De Cleric van 2024 krijgt Blessed Strikes op 7 en Improved Blessed Strikes op
+// 14; de oude wiki zet Divine Strike of Potent Spellcasting op 8 bij ieder
+// domein apart. Die namen horen dus niet in de voorraadlijst van een subclass:
+// je ziet ze dan twee keer, en bij een domein dat ze helemaal niet meer heeft
+// komen ze als wegwijzer bovenop wat de DM zelf heeft ingevuld.
+const KLASSEFEATURE = new Set(['divine strike', 'potent spellcasting']);
+
 // Op welke levels geeft deze class zijn subclasses features? Af te lezen aan de
 // subclasses die de app zélf meebrengt; bij elke class is dat één vaste reeks.
 function klasseLevels(seed, klasse) {
@@ -153,7 +161,10 @@ function klasseLevels(seed, klasse) {
     console.log(`  ${klasse.padEnd(34)} ${raak}/${lijst.length}  (${slug(klasse)})`);
   }
 
-  for (const [naam, lijst] of Object.entries(features.subclasses)) {
+  for (const [naam, rauw] of Object.entries(features.subclasses)) {
+    // Eerst eruit wat in 2024 geen domeinfeature meer is (zie KLASSEFEATURE).
+    const lijst = rauw.filter(n => !KLASSEFEATURE.has(String(n?.naam ?? n).toLowerCase()));
+    if (lijst.length !== rauw.length) features.subclasses[naam] = lijst;
     if (lijst.some(x => x && typeof x === 'object')) { klaar++; continue; }  // al gedaan
     const hoort = bij[naam];
     if (!hoort) { zonderPagina.push(`${naam} (geen class bekend)`); continue; }

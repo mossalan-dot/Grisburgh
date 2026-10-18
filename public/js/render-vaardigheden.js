@@ -238,7 +238,14 @@ async function _load() {
   _bron = await naslagBron();
   const prog = _bron.prog || {};
   const uit  = [];
-  const zet = (o) => { uit.push({ ...o, key: `${o.soort}|${o.bron}|${o.level}|${o.naam}` }); };
+  // **De subclass hoort in de sleutel.** Hij stond er niet in, en daardoor
+  // droeg de Bonus Proficiency van het Death Domain dezelfde sleutel als die
+  // van het Nature Domain — allebei `subclass|Cleric|3|Bonus Proficiency`. De
+  // ontdubbeling hieronder gooide de tweede dan weg, en zo "laadde" een
+  // feature die gewoon in de campagne stond niet. Datzelfde gold voor Extra
+  // Attack en Bonus Proficiencies bij de Bard-colleges en voor Domain Spells
+  // bij elk domein.
+  const zet = (o) => { uit.push({ ...o, key: `${o.soort}|${o.bron}|${o.sub || ''}|${o.level}|${o.naam}` }); };
 
   for (const [klasse, data] of Object.entries(prog.classes || {})) {
     for (const [lvl, fs] of Object.entries(data.levels || {})) {
@@ -369,8 +376,9 @@ async function _load() {
   }
 
   // Dezelfde feature staat bij een multiklasse-campagne soms twee keer; de
-  // eerste wint, maar een gelijknamige feature van een ándere klasse blijft
-  // staan (Wizards Spellcasting is niet die van de Cleric).
+  // eerste wint, maar een gelijknamige feature van een ándere klasse of
+  // subclass blijft staan (Wizards Spellcasting is niet die van de Cleric, en
+  // de Bonus Proficiency van het Death Domain niet die van het Nature Domain).
   const gezien = new Set();
   _all = uit.filter(x => { if (gezien.has(x.key)) return false; gezien.add(x.key); return true; });
   _bronnen = [...new Set(_all.map(x => x.bron))].sort();
@@ -589,6 +597,10 @@ function _card(it) {
 // uit komen. De Artificer staat niet in de SRD; daarvan tonen we alleen wat we
 // weten, in plaats van de rest te raden.
 let _klasseBasis = null, _spreukKlassen = null, _spreukAantal = null, _tellers = null, _featKoppel = null, _mcEisen = null;
+// Creature Type, Size en Speed per species — de drie regels waar het boek mee
+// begint. Meegeleverd in `bronnen/species-basis.json`; wat de campagne zelf
+// invult gaat eroverheen. Zelfde afspraak als bij de kerngegevens van een class.
+let _volkBasis = {};
 // De boeken waar materiaal uit kan komen. Het veld blijft vrij — je eigen
 // wereld staat in geen enkel boek — maar wie overneemt hoeft de titel niet
 // elke keer over te tikken, en dan staat er niet de ene keer "Xanathars" en de
@@ -668,9 +680,11 @@ async function _klasseExtra() {
     try { const r = await fetch(`/api/bron/${naam}`, { credentials: 'same-origin' });
           return r.ok ? await r.json() : null; } catch { return null; }
   };
-  const [basis, spreuken, koppel, multi, boeken, volken] = await Promise.all([
+  const [basis, spreuken, koppel, multi, boeken, volken, volkBasis] = await Promise.all([
     haal('klasse-basis'), haal('spells-2024'), haal('feat-koppelingen'),
-    haal('srd-multiclass-eisen'), haal('boeken'), haal('volken-klassen')]);
+    haal('srd-multiclass-eisen'), haal('boeken'), haal('volken-klassen'),
+    haal('species-basis')]);
+  _volkBasis = volkBasis?.species || {};
   _boeken = boeken?.boeken || [];
   _alleVolken = [...(volken?.volkenGangbaar || []), ...(volken?.volkenOverig || [])];
   _klasseBasis = (basis?.klassen) || {};
@@ -1065,7 +1079,7 @@ function _klasseKaartHtml(klasse) {
     kop: uitleg ? '' : 'Core Traits',
     rijen: uitleg ? [] : _klasseRijen(klasse),
     extra: `
-      ${uitleg ? `<div class="vk-uitleg">${_bron?.md?.(uitleg) ?? esc(uitleg)}</div>` : ''}
+      ${uitleg ? `<div class="vk-uitleg">${window._vaardigTekstHtml?.(uitleg) ?? _bron?.md?.(uitleg) ?? esc(uitleg)}</div>` : ''}
       ${heeftSpreuken ? `
         <button class="vk-naar-spreuken" title="De spreuken die deze class kan leren"
           onclick="event.stopPropagation();window.vaardigheden.naarSpreuken('${esc(klasse).replace(/'/g, "\\'")}')">
@@ -1101,7 +1115,7 @@ function _subklasseKaartHtml(klasse, sub) {
     onder: String(data.ondertitel || '').trim(),
     rijen,
     extra: `
-      ${uitleg ? `<div class="vk-uitleg">${_bron?.md?.(uitleg) ?? esc(uitleg)}</div>` : ''}
+      ${uitleg ? `<div class="vk-uitleg">${window._vaardigTekstHtml?.(uitleg) ?? _bron?.md?.(uitleg) ?? esc(uitleg)}</div>` : ''}
       ${n || uitleg ? '' : `<p class="vk-noot">Van deze ${laag.soort === 'variant' ? 'variant' : 'subklasse'} staat er geen tekst in de app — die komt uit het boek en mag daar niet uit overgenomen worden.</p>`}
 `,
   });
@@ -1112,7 +1126,20 @@ function _subklasseKaartHtml(klasse, sub) {
 // eronder. Ze hebben minder harde getallen dan een klasse, dus het kaartje
 // vertelt wat ze wél hebben: op welke levels je iets krijgt (een volk geeft
 // niet alleen op 1 iets) en wat de onderdelen zijn.
-function _volkRijen(volk) {
+// De drie kernregels van een species: eerst wat deze campagne zelf invulde,
+// anders wat de app weet. Leeg laten betekent dus "neem de bron".
+function _volkBasisVan(volk) {
+  const eigen = _bron?.prog?.species?.[volk]?.basis || {};
+  const bron = _volkBasis?.[volk] || {};
+  const pak = (sleutel) => String(eigen[sleutel] || bron[sleutel] || '').trim();
+  return { creatureType: pak('creatureType'), size: pak('size'), speed: pak('speed') };
+}
+
+// `kern: true` geeft alleen de drie regels waar het boek mee begint. De rest
+// (Traits 3 · op level 1 · vanaf 1: …) zijn getallen óver de lijst eronder, en
+// die staat er al — die vallen weg zodra er een omschrijving is. Creature Type,
+// Size en Speed zijn geen afgeleide getallen maar inhoud, en horen er altijd.
+function _volkRijen(volk, { kern = false } = {}) {
   const data = _bron?.prog?.species?.[volk];
   if (!data) return [];
   const levels = Object.keys(data.levels || {}).map(Number)
@@ -1124,11 +1151,16 @@ function _volkRijen(volk) {
   // ze staan ook als kaartjes in de kolom ernaast — hier alleen hun namen.
   const laag = _tweedeLaag(volk);
   const opties = laag?.soort === 'variant' ? Object.keys(laag.bak) : [];
+  const b = _volkBasisVan(volk);
   return [
-    opties.length ? [laag.label, opties.join(' · ')] : null,
-    n ? ['Traits', String(n)] : null,
-    levels.length ? ['Op level', levels.join(' · ')] : null,
-    vroeg.length ? ['Vanaf 1', vroeg.join(', ')] : null,
+    // In deze volgorde, want zo begint het boek: wát je bent, hoe groot, hoe snel.
+    b.creatureType ? ['Creature Type', b.creatureType] : null,
+    b.size ? ['Size', b.size] : null,
+    b.speed ? ['Speed', b.speed] : null,
+    kern ? null : (opties.length ? [laag.label, opties.join(' · ')] : null),
+    kern ? null : (n ? ['Traits', String(n)] : null),
+    kern ? null : (levels.length ? ['Op level', levels.join(' · ')] : null),
+    kern ? null : (vroeg.length ? ['Vanaf 1', vroeg.join(', ')] : null),
   ].filter(Boolean);
 }
 
@@ -1141,12 +1173,12 @@ function _volkKaartHtml(volk) {
   // level 1 · vanaf 1: Flight, Talons" zijn getallen over de lijst eronder, en
   // die staat er al. Zonder beschrijving vallen ze terug, want dan heeft het
   // kaartje niets anders te zeggen.
-  const rijen = uitleg ? [] : _volkRijen(volk);
+  const rijen = uitleg ? _volkRijen(volk, { kern: true }) : _volkRijen(volk);
   return _flipKaartHtml({
     soort: 'species', naam: volk, kleur: '#1a6a50',
     icoon: SPECIES_ICOON[volk] || 'user', bijschrift: 'Origin', rijen,
     extra: `
-      ${uitleg ? `<div class="vk-uitleg">${_bron?.md?.(uitleg) ?? esc(uitleg)}</div>` : ''}
+      ${uitleg ? `<div class="vk-uitleg">${window._vaardigTekstHtml?.(uitleg) ?? _bron?.md?.(uitleg) ?? esc(uitleg)}</div>` : ''}
       ${n ? '' : (() => {
         // "Niets in de app" was te somber zodra we zijn traitnamen kennen: er
         // staat dan wél iets, alleen niet de tekst erbij.
@@ -1207,7 +1239,7 @@ function _achtergrondKaartHtml(naam) {
     bijschrift: 'Background', onder: String(data.ondertitel || '').trim(),
     rijen: vaste,
     extra: `
-      ${uitleg ? `<div class="vk-uitleg">${_bron?.md?.(uitleg) ?? esc(uitleg)}</div>` : ''}
+      ${uitleg ? `<div class="vk-uitleg">${window._vaardigTekstHtml?.(uitleg) ?? _bron?.md?.(uitleg) ?? esc(uitleg)}</div>` : ''}
       ${vaste.length ? '' : '<p class="vk-noot">Van deze background staat er niets in de app.</p>'}
 `,
   });
@@ -1688,6 +1720,16 @@ function _cinematisch() {
   wrap.classList.add('vd-waaier');
 }
 
+// Het lexicon en de spreukenbibliotheek lezen ook mee op het kaartje van een
+// class of species — daar staat de omschrijving voluit, inclusief zijn tabel.
+// In het venster gebeurde dat al; hier niet, en dan is dezelfde spreuknaam op
+// het ene scherm een knop en op het andere niet.
+function _bandLezers(el) {
+  const vlak = el.querySelector('.vd-klasvlak') || el;
+  window.glossary?.applyDom?.(vlak);
+  window.spreuken?.linkInDom?.(vlak);
+}
+
 function _bandHerteken() {
   const el = document.getElementById('vaardig-band');
   if (!el) return;
@@ -1700,9 +1742,11 @@ function _bandHerteken() {
   const vlak = el.querySelector('.vd-klasvlak');
   if (band && vlak && !(_filters.q || '').trim() && band.dataset.stand === _bandStand()) {
     vlak.outerHTML = _vlakHtml();
+    _bandLezers(el);
     return;
   }
   el.innerHTML = _bandHtml();
+  _bandLezers(el);
 }
 
 function _refreshFilterBar() {
@@ -2034,6 +2078,32 @@ function _basisMulti(klasse, welk) {
   return welk === 'eis' ? _mcEisTekst(mc) : _mcTrainingTekst(mc);
 }
 
+// Dezelfde uitklapper als bij een class, met de drie regels die boven elk
+// species staan. Leeg laten betekent "neem wat de app weet"; wat je invult
+// geldt hier. Zo profiteer je van latere verbeteringen aan de bron zolang je
+// niets eigens hebt gezet.
+function _volkBasisVeldenHtml(volk) {
+  const eigen = _bron?.prog?.species?.[volk]?.basis || {};
+  const bron = _volkBasis?.[volk] || {};
+  const veld = (id, label, sleutel, hint) => `
+    <div class="vd-basis-veld">
+      <label class="dm-form-label" for="${id}">${esc(label)}</label>
+      <input class="dm-input" id="${id}" maxlength="80" value="${esc(eigen[sleutel] || '')}"
+        placeholder="${esc(bron[sleutel] || hint)}">
+    </div>`;
+  return `
+    <details class="dm-uitklap vd-basis">
+      <summary>${icon('dice')} Core Traits</summary>
+      <div class="dm-uitklap-body">
+        <div class="vd-basis-raster">
+          ${veld('vd-volk-type', 'Creature Type', 'creatureType', 'Humanoid')}
+          ${veld('vd-volk-size', 'Size', 'size', 'Medium')}
+          ${veld('vd-volk-speed', 'Speed', 'speed', '30 feet')}
+        </div>
+      </div>
+    </details>`;
+}
+
 function _basisVeldenHtml(klasse) {
   const b = _basisVan(klasse);
   const lijst = (v) => Array.isArray(v) ? v.join(', ') : String(v || '');
@@ -2113,6 +2183,7 @@ function _uitlegVenster(soort, naam, bron) {
         </div>
       </div>` : ''}
       ${soort === 'class' ? _basisVeldenHtml(naam) : ''}
+      ${soort === 'species' ? _volkBasisVeldenHtml(naam) : ''}
       <div class="dm-form-row">
         <label class="dm-form-label">Uit welk boek?</label>
         <input class="dm-input" id="vd-houder-boek" maxlength="120" value="${esc(h.boek || '')}"
@@ -2848,6 +2919,12 @@ window.vaardigheden = {
         // `bron` is hierboven al de class/het species; de **vindplaats** is een
         // eigen veld, anders botsen twee betekenissen op één naam.
         herkomst: _edit.herkomst, bronTekst: _edit.bronTekst || '',
+        // **De afbeelding ging hier niet mee.** Je koos er een in de editor,
+        // drukte op opslaan, en er stond een leeg kaartje — en omdat de route
+        // een ontbrekende `imgFocus` als "weghalen" leest, raakte je bij elke
+        // bewerking ook het focuspunt kwijt van een plaatje dat er al stond.
+        // Leeg betekent hier echt weg (de wisknop), vandaar `null` en niet ''.
+        img: _edit.img || null, imgFocus: _edit.imgFocus || '',
         sluitAan: _edit.sluitAan || [], vereist: _edit.vereist || '', geeftSpreuk: _edit.geeftSpreuk || [],
         // Bij een feat of Epic Boon: de bibliotheek mee, zodat de server hem
         // vastlegt als deze campagne er nog geen eigen had (zie de route).
@@ -3138,6 +3215,12 @@ window.vaardigheden = {
     // bron, wat je invult geldt hier. `d8` en `8` allebei goed — een hit die
     // schrijf je nu eenmaal met een d ervoor.
     const v = (id) => document.getElementById(id)?.value?.trim() || '';
+    // Een species heeft zijn eigen drie kerngegevens.
+    const volkBasis = document.getElementById('vd-volk-type') ? {
+      creatureType: v('vd-volk-type'),
+      size:         v('vd-volk-size'),
+      speed:        v('vd-volk-speed'),
+    } : undefined;
     const basis = document.getElementById('vd-basis-primary') ? {
       aard:        v('vd-basis-aard'),
       primary:     v('vd-basis-primary'),
@@ -3163,7 +3246,8 @@ window.vaardigheden = {
       try { await _kaartBeeldZet(soort, naam, { id: beeldId, focus }); } catch { /* het beeld is bijzaak */ }
     }
     try {
-      await api.put('/progression/houder', { soort, naam, bron, desc, boek, ondertitel, kleur, basis });
+      await api.put('/progression/houder', { soort, naam, bron, desc, boek, ondertitel, kleur,
+        basis: basis ?? volkBasis });
       window.app.closeModal();
       _all = null; await _load(); await _klasseExtra();
       _bandHerteken(); _refreshFilterBar(); _paint();

@@ -1625,6 +1625,19 @@ Grisburghs **data** te staan — niet in de code.
       dat is de druk van Tasha's. Er hoort geen kaartje zonder tekst tussen te
       staan; die vijf stonden er als wegwijzer bij omdat de voorraadlijst nog
       op de oude druk stond. In de kolom staat ook **Reanimator** (RHW).
+- [ ] **Twee subclasses met dezelfde featurenaam** (ALL) — open *Classes* →
+      *Cleric* en vink **Nature Domain** aan: *Bonus Proficiency* staat erbij.
+      Vink hem uit en **Death Domain** aan: daar staat hij ook. Eerder viel de
+      tweede weg — de sleutel van een kaartje noemde de class maar niet de
+      subclass, dus droegen ze allebei `subclass|Cleric|3|Bonus Proficiency` en
+      gooide de ontdubbeling er één van weg. Zelfde proef bij *College of
+      Swords* (Bonus Proficiencies, Extra Attack) en bij *Domain Spells*, dat
+      bij elk domein zo heet.
+- [ ] **Core Traits van een species** (ALL) — open *Species* → *Aasimar*: op het
+      kaartje staan **Creature Type · Humanoid**, **Size · Small or Medium** en
+      **Speed · 30 feet**, ook als er een omschrijving is. In het bewerkvenster
+      staan ze als drie lege velden mét die waarden als grijze hint: leeg laten
+      betekent "neem wat de app weet", invullen geldt voor deze campagne.
 - [ ] **Zoeken gaat dwars door de deuren** (ALL) — typ *battle master* terwijl
       je in Classes staat: je krijgt treffers uit alles, met een regel
       *Resultaten voor…* en een knop terug. Veeg het veld leeg en je staat weer
