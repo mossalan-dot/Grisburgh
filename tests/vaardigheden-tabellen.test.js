@@ -75,6 +75,44 @@ describe('Tabellen in een vaardigheidstekst', () => {
     assert.equal(font.kop[0], 'Spell Slot Level');
   });
 
+  it('leest ook een tabel zoals de knop hem neerzet', () => {
+    // De tabelknop in de opmaakbalk zet een gewone markdown-tabel neer: pijpen
+    // aan de buitenkant en een streepjesregel onder de kop. Die streepjesregel
+    // hoort in de tabel niet voor te komen, en de titel erboven wordt de kop.
+    const uit = _tabellenUit([
+      'Wat je krijgt staat hieronder.',
+      'Replicate Magic Item',
+      '| Artificer Level | Magic Items |',
+      '| --- | --- |',
+      '| 2 | Common |',
+      '| 10 | Uncommon |',
+      '',
+      'En verder niets.',
+    ].join('\n'));
+    assert.equal(uit.tabellen.length, 1);
+    const t = uit.tabellen[0];
+    assert.equal(t.naam, 'Replicate Magic Item');
+    assert.deepEqual(t.kop, ['Artificer Level', 'Magic Items']);
+    assert.deepEqual(t.rijen, [['2', 'Common'], ['10', 'Uncommon']]);
+    // De titelregel is uit de lopende tekst gehaald; de zin ervoor blijft.
+    assert.match(uit.tekst, /Wat je krijgt staat hieronder\./);
+    assert.ok(!uit.tekst.includes('Replicate Magic Item'), 'de titel staat nu bóven de tabel');
+    assert.match(uit.tekst, /En verder niets\./);
+  });
+
+  it('eet een zin boven de tabel niet op als titel', () => {
+    // Een zin eindigt op een leesteken, een titel niet. Zonder dat verschil
+    // verdwijnt de aanloopzin uit de tekst.
+    const uit = _tabellenUit([
+      'Rol op de tabel hieronder:',
+      '| d6 | Wat er gebeurt |',
+      '| 1 | Niets |',
+      '| 2 | Iets |',
+    ].join('\n'));
+    assert.equal(uit.tabellen[0].naam, '');
+    assert.match(uit.tekst, /Rol op de tabel hieronder:/);
+  });
+
   it('laat een tekst zonder tabel met rust', () => {
     const uit = _tabellenUit('Gewone tekst.\nNog een regel.');
     assert.deepEqual(uit.tabellen, []);

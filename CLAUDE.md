@@ -2469,6 +2469,16 @@ factie — `star` betekent in de app al *favoriet*), `award` (factie-boon), `bac
 > het begin van de kolomkop zijn of de losse regel er direct boven. Font of Magic noemt
 > namelijk "the Sorcerer Features table", en die staat daar helemaal niet.
 > De tabel leent `.akte-tabel`: dat is de enige tabelstijl die de app heeft.
+> **Zelf een tabel invoegen** gaat met een knop in de opmaakbalk:
+> `fmtToolbar(id, { tabel: true })` zet hem erbij en `window._fmtTabel(id)` (app.js)
+> plaatst een gewone markdown-tabel met de titelregel geselecteerd. Die knop staat
+> **alleen** in de vaardigheden-editors — een knop die een tabel belooft in een veld dat
+> hem als losse regels toont, is erger dan geen knop. De parser leest daarom twee vormen:
+> de platgeslagen SRD-regel én echte markdown (pijpen aan de rand, streepjesregel eronder).
+> De kop komt uit de regel direct erboven als die kort is en niet op een leesteken eindigt
+> — een titel wel, een aanloopzin niet. Het **oogje** rendert via `window._vaardigTekstHtml`
+> hetzelfde als het kaartje; anders zie je daar nog pijpen staan en vertrouw je die knop
+> niet meer. Uitleg staat in `hulp_heldenboek_editor`, niet onder het veld.
 > **Bewaren als tafel kan alleen bij een worptabel** (de eerste kolomkop noemt een steen),
 > precies zoals bij een `|`-tabel in een akte — een spreukenlijst per level hoort niet als
 > "rol maar" in de tafelbibliotheek. Het is een **kopie**: de tekst van de feature blijft

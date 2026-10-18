@@ -2086,7 +2086,7 @@ function _uitlegVenster(soort, naam, bron) {
       </div>
       <div class="dm-form-row">
         <label class="dm-form-label">Beschrijving</label>
-        ${window._fmtToolbarHtml?.('vd-houder-desc') ?? ''}
+        ${window._fmtToolbarHtml?.('vd-houder-desc', { tabel: true }) ?? ''}
         <textarea class="dm-input" id="vd-houder-desc" rows="8"
           placeholder="Wat is dit? Dit staat bovenaan het kaartje, vóór de features.">${esc(_schoonVoorEditor(h.desc || ''))}</textarea>
       </div>
@@ -2168,20 +2168,31 @@ function _rijenUit(cellen, n) {
   return rijen;
 }
 
+// Een regel is een tabelrij als er ná het weghalen van de pijpen aan de
+// buitenkant nog een pijp in zit. Dat dekt allebei de vormen: de platgeslagen
+// SRD-regel ("3 | Aid, Bless") en een gewoon getypte markdown-tabel
+// ("| 3 | Aid, Bless |"), die de DM met de tabelknop in de opmaakbalk maakt.
+const _kaal = (r) => String(r || '').trim().replace(/^\|/, '').replace(/\|$/, '');
+const _isRij = (r) => _kaal(r).includes('|');
+// De streepjesregel onder de kop (`| --- | --- |`) hoort bij markdown en niet
+// in de tabel.
+const _isStreep = (r) => /^[\s:|-]+$/.test(String(r || '').trim()) && String(r).includes('-');
+
 function _tabellenUit(tekst) {
   const bron = String(tekst || '');
-  if (!bron.includes(' | ')) return { tekst: bron, tabellen: [] };
+  if (!bron.includes('|')) return { tekst: bron, tabellen: [] };
   const regels = bron.split('\n').map(r => r.trim());
 
   const uit = [], tabellen = [];
   for (let i = 0; i < regels.length; i++) {
-    const rij = (n) => (regels[n] || '').includes(' | ');
+    const rij = (n) => _isRij(regels[n] || '');
     if (!rij(i) || !rij(i + 1)) { uit.push(regels[i]); continue; }
     let eind = i;
     while (rij(eind + 1)) eind++;
-    const cel = (r) => r.split('|').map(c => c.trim());
+    const cel = (r) => _kaal(r).split('|').map(c => c.trim());
     const kopCellen = cel(regels[i]);
     const blok = [kopCellen, ...regels.slice(i + 1, eind + 1)
+      .filter(r => !_isStreep(r))
       .flatMap(r => _rijenUit(cel(r), kopCellen.length))];
 
     // Hoe heet deze tabel? Uit de tekst erboven, en dan weg uit de kolomkop —
@@ -2209,6 +2220,13 @@ function _tabellenUit(tekst) {
         const stuk = woorden.slice(0, w).join(' ');
         if (ervoor.includes(stuk)) { kop = stuk; break; }
       }
+    }
+    // En de eenvoudigste vorm, die de tabelknop neerzet: een korte regel
+    // direct boven de tabel die geen zin is. Een zin eindigt op een leesteken
+    // ("…zoals in de tabel hieronder:"); een titel niet.
+    if (!kop && uit.length) {
+      const boven = uit[uit.length - 1].trim();
+      if (boven && boven.length <= 60 && !boven.includes('|') && !/[.!?:;]$/.test(boven)) kop = boven;
     }
     let naam = '';
     if (kop && blok[0][0].startsWith(kop + ' ')) { naam = kop; blok[0][0] = blok[0][0].slice(kop.length + 1); }
@@ -2238,6 +2256,17 @@ function _tabelHtml(t, nr) {
       onclick="window.vaardigheden.tabelBewaren(${nr})">${icon('dices')} Bewaren als tafel</button>` : ''}
   </div>`;
 }
+
+// Tekst mét zijn tabellen, als HTML. Het kaartje tekent hem zo, en de
+// voorbeeldknop in de opmaakbalk leent hem — anders zie je in het voorbeeld
+// nog de pijpen staan en op het kaartje een tabel, en dan vertrouw je die knop
+// niet meer.
+window._vaardigTekstHtml = (tekst) => {
+  const stuk = _tabellenUit(String(tekst || ''));
+  const bak = stuk.tabellen;
+  return (_bron?.md?.(stuk.tekst) ?? esc(stuk.tekst))
+    .replace(/@@tafel(\d+)@@/g, (m, n) => _tabelHtml(bak[n], Number(n)));
+};
 
 function _open(key, vanWaar = null) {
   const it = (_all || []).find(x => x.key === key);
@@ -2511,7 +2540,7 @@ function _editorHtml() {
       </div>` : ''}
       <div class="dm-form-row">
         <label class="dm-form-label">Beschrijving</label>
-        ${window._fmtToolbarHtml?.('vd-desc') ?? ''}
+        ${window._fmtToolbarHtml?.('vd-desc', { tabel: true }) ?? ''}
         <textarea class="dm-input" id="vd-desc" rows="${houder ? 6 : 9}"
           placeholder="${houder ? 'Wat is dit? Dit staat bovenaan het kaartje, vóór de features.' : 'Wat doet het? Een lege regel begint een nieuwe alinea.'}">${esc(e.desc || '')}</textarea>
       </div>

@@ -1,5 +1,5 @@
 import { api, campagneUitUrl, zetCampagne } from './api.js?v=316';
-import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, renderDocumenten, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=349";
+import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, renderDocumenten, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=350";
 import { initArchief, renderLogboek, openLogboekEditor } from "./render-archief.js?v=142";
 import { renderKaart, queueFlyTo, verversPins, nieuweKaart } from './render-kaart.js?v=31';
 import { renderDungeon } from './render-dungeon.js?v=63';
@@ -9,7 +9,7 @@ import { renderBestiarium } from './render-bestiarium.js?v=31';
 import { renderSpreuken } from './render-spreuken.js?v=48';
 import './render-handleiding.js?v=2';
 import './render-melding.js?v=4';
-import { renderVaardigheden, zoekVaardigheden, heldenboekTekst } from './render-vaardigheden.js?v=86';
+import { renderVaardigheden, zoekVaardigheden, heldenboekTekst } from './render-vaardigheden.js?v=87';
 import { renderStatblock } from './render-statblock.js?v=9';
 import { initSocket } from "./socket-client.js?v=85";
 import { initDmPanel } from "./dm-panel.js?v=405";
@@ -2792,6 +2792,28 @@ window._fmtStructuur = (id, marker, voorbeeld = '') => {
   ta.dispatchEvent(new Event('input', { bubbles: true }));
 };
 
+// Een tabel invoegen. Je kunt hem ook gewoon typen — opeenvolgende regels met
+// een pijp ertussen is alles wat de weergave nodig heeft — maar dat is niet te
+// raden, en bij Replicate Magic Item horen er twee. De knop zet er een neer met
+// een titel erboven: die regel wordt de kop van de tabel en verdwijnt uit de
+// lopende tekst.
+window._fmtTabel = (id) => {
+  const ta = document.getElementById(id);
+  if (!ta) return;
+  const pos = ta.selectionStart;
+  const before = ta.value.slice(0, pos);
+  const after  = ta.value.slice(pos);
+  const nl = before.length && !before.endsWith('\n') ? '\n' : '';
+  const titel = 'Naam van de tabel';
+  const insert = `${nl}${titel}\n| Kolom | Kolom |\n| --- | --- |\n| | |\n| | |\n`;
+  ta.value = before + insert + after;
+  // De titel staat geselecteerd: typen vervangt hem meteen.
+  const start = before.length + nl.length;
+  ta.setSelectionRange(start, start + titel.length);
+  ta.focus();
+  ta.dispatchEvent(new Event('input', { bubbles: true }));
+};
+
 window._fmtHr = (id) => {
   const ta = document.getElementById(id);
   if (!ta) return;
@@ -2850,8 +2872,9 @@ window._fmtVoorbeeld = (id, knop, soort = '') => {
   const kijken = ta.classList.contains('hidden') === false;
   if (kijken) {
     const tekst = ta.value.trim();
-    const render = (soort === 'statblok' && window._sbMdBlokHtml)
-      ? window._sbMdBlokHtml : window.app.mdToHtml;
+    const render = (soort === 'statblok' && window._sbMdBlokHtml) ? window._sbMdBlokHtml
+      : (soort === 'tabel' && window._vaardigTekstHtml) ? window._vaardigTekstHtml
+      : window.app.mdToHtml;
     vak.innerHTML = tekst
       ? render(ta.value)
       : '<span class="fmt-voorbeeld-leeg">Nog niets geschreven.</span>';
@@ -15219,6 +15242,8 @@ const HELP_CONFIG = {
     { titel: 'Eerst: wát maak je?', tekst: 'De lijst bovenaan is de vraag waar de rest uit volgt. **Een regel binnen iets** is een feature: iets wat je op een bepaald level krijgt van je class, subclass, species of background. **Iets nieuws beginnen** is de houder zelf — een eigen class, subclass, species of background, nog zonder features.\n\nDaarom vraagt een houder niet om een level: hij ís geen regel op een ladder. De features hang je er daarna aan, met *Feature van een…*.', afbeelding: null },
     { titel: 'Herkomst en waaruit', tekst: '**Herkomst** zegt alleen óf het overgenomen is. Zet je iets anders dan *zelf verzonnen*, dan komt er een veld **Waaruit?** bij: de naam van het boek, of van de tafelgenoot die het bedacht.\n\nDat is geen boekhouding om de boekhouding. Het bepaalt wat je later mag meenemen naar een andere campagne: zelf verzonnen mag mee, overgenomen tekst niet. Over een jaar weet je het niet meer.', afbeelding: null },
     { titel: 'Beschrijving', tekst: 'Bij een feature: wat het doet. Bij een houder: wat het **is** — dat staat bovenaan het kaartje, vóór de features. Een lege regel begint een nieuwe alinea, en met de knoppen erboven maak je vet, cursief of gekleurd.\n\nNeem geen tekst over uit een boek dat niet van jou is. Vat het samen in je eigen woorden; dan mag het mee en leest het bovendien korter.', afbeelding: null },
+    { titel: 'Een tabel erbij', tekst: 'Sommige features zijn een tabel: wat je op welk level krijgt, of waar je op rolt. De knop met de twee kolommen zet er een neer, en de regel **boven** de tabel wordt zijn kop — die verdwijnt dan uit de lopende tekst en komt erboven te staan. Wil je geen kop, laat die regel dan weg of eindig hem op een leesteken; dan leest de app hem als een gewone zin.\n\nDe pijpen hoef je niet netjes uit te lijnen en de streepjesregel mag weg. Met het **oogje** rechts zie je precies wat er op het kaartje komt te staan.', afbeelding: null },
+    { titel: 'Een worptabel wordt een tafel', tekst: 'Noemt de eerste kolomkop een steen — **d6**, **d100** — dan staat er onder de tabel een knop *Bewaren als tafel*. Eén klik en hij staat in de Tafels-tab, waar je hem kunt rollen en hergebruiken.\n\nHet is een **kopie**: de tekst van de feature blijft staan zoals hij is. En het werkt alleen bij een worptabel: een overzicht van wat je per level krijgt is geen tafel om op te rollen, en die hoort niet tussen je dobbeltabellen te belanden.', afbeelding: null },
   ] }),
 
   inst_personage: () => ({ titel: 'Zelf een personage maken', stappen: [

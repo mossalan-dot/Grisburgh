@@ -1165,7 +1165,7 @@ window._clearHistory = _clearHistory;
 // niet, vandaar via window). Eén opmaakbalk in plaats van een derde kopie.
 window._fmtToolbarHtml = (id, opts) => fmtToolbar(id, opts);
 
-function fmtToolbar(id, { perkament = false, statblok = false } = {}) {
+function fmtToolbar(id, { perkament = false, statblok = false, tabel = false } = {}) {
   const hex = window._FMT_KLEUR_HEX || {};
   // Elk trait en elke action begint met de naam vetgedrukt-cursief en een punt.
   const sbKnop = !statblok ? '' : `
@@ -1186,6 +1186,11 @@ function fmtToolbar(id, { perkament = false, statblok = false } = {}) {
     <button type="button" class="fmt-btn fmt-btn-s" title="Doorhalen" onclick="window._fmt('${id}','~~')">S</button>
     <button type="button" class="fmt-btn fmt-btn-mark" title="Markeren" onclick="window._fmt('${id}','==')">A</button>
     <button type="button" class="fmt-btn fmt-btn-hr" title="Scheidingslijn" onclick="window._fmtHr('${id}')">—</button>
+    <!-- Alleen waar een tabel ook echt getekend wordt (de vaardigheidsteksten).
+         Een knop die een tabel belooft in een veld dat hem als losse regels
+         toont, is erger dan geen knop. -->
+    ${tabel ? `<button type="button" class="fmt-btn fmt-btn-struct" title="Tabel invoegen"
+      onclick="window._fmtTabel('${id}')">${window.icon('columns-2')}</button>` : ''}
     <div class="fmt-toolbar-sep"></div>
     <div class="fmt-kleuren">
       ${Object.entries(hex).map(([naam, kleur]) =>
@@ -1195,7 +1200,7 @@ function fmtToolbar(id, { perkament = false, statblok = false } = {}) {
     <!-- Helemaal rechts, los van de rest: dit maakt niets op, het laat alleen
          zien hoe het eruitkomt. -->
     <button type="button" class="fmt-btn fmt-btn-oog" title="Voorbeeld — hoe het eruitkomt"
-      onclick="window._fmtVoorbeeld('${id}', this, '${statblok ? 'statblok' : ''}')">${window.icon('eye')}</button>
+      onclick="window._fmtVoorbeeld('${id}', this, '${statblok ? 'statblok' : tabel ? 'tabel' : ''}')">${window.icon('eye')}</button>
   </div>`;
 }
 

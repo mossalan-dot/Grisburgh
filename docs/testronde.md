@@ -1575,6 +1575,13 @@ Grisburghs **data** te staan — niet in de code.
       op één regel aan elkaar en horen nu twee rijen te zijn. Er staat géén knop
       *Bewaren als tafel* — dit is een overzicht, geen worptabel. Zelfde proef
       bij *Font of Magic* (Sorcerer) en de domeinspreuken van een Cleric.
+- [ ] **Een tabel invoegen** (DM) — bewerk een featurekaartje (bijv. *Replicate
+      Magic Item* bij de Artificer): in de opmaakbalk staat een knop met twee
+      kolommen. Klik hem: er komt een tabel in de tekst met de titelregel
+      geselecteerd. Tik een naam, vul de cellen, en druk op het **oogje**: het
+      voorbeeld toont dezelfde tabel als het kaartje straks, met die naam als
+      kop erboven. Zet je er een zin boven die op een leesteken eindigt, dan
+      blijft die zin gewoon staan en krijgt de tabel geen kop.
 - [ ] **Een worptabel kun je wél bewaren** (DM) — tik in een eigen feature een
       tabel met `| d6 | … |` als kop: dan staat er *Bewaren als tafel* onder, en
       na een klik staat hij in de Tafels-tab. De tekst van de feature blijft
