@@ -1582,6 +1582,12 @@ Grisburghs **data** te staan — niet in de code.
       voorbeeld toont dezelfde tabel als het kaartje straks, met die naam als
       kop erboven. Zet je er een zin boven die op een leesteken eindigt, dan
       blijft die zin gewoon staan en krijgt de tabel geen kop.
+- [ ] **Een tabel mag meer dan twee kolommen hebben** (ALL) — open *Classes* →
+      *Sorcerer* → *Font of Magic*: daar staat een tabel van **drie** kolommen
+      (Spell Slot Level · Sorcery Point Cost · Min. Sorcerer Level) met
+      *Creating Spell Slots* erboven. De eerste kolomnaam hoort heel te zijn:
+      hij heette een tijdje "Level", omdat de titel erboven ook "Spell Slot"
+      bevat en dat stuk van de kolomkop werd afgeknipt.
 - [ ] **Een worptabel kun je wél bewaren** (DM) — tik in een eigen feature een
       tabel met `| d6 | … |` als kop: dan staat er *Bewaren als tafel* onder, en
       na een klik staat hij in de Tafels-tab. De tekst van de feature blijft

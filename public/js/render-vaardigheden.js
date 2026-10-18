@@ -2195,42 +2195,46 @@ function _tabellenUit(tekst) {
       .filter(r => !_isStreep(r))
       .flatMap(r => _rijenUit(cel(r), kopCellen.length))];
 
-    // Hoe heet deze tabel? Uit de tekst erboven, en dan weg uit de kolomkop —
-    // anders staat de titel twee keer: boven de tabel en vastgeplakt aan de
-    // eerste kolom.
+    // Hoe heet deze tabel? Drie vormen, en ze moeten in déze volgorde
+    // geprobeerd worden — anders eet de ene de andere op.
     //
-    // Twee vormen, en een naam telt pas als hij ergens op slaat: hij moet óf
-    // het begin van de eerste kolomkop zijn ("Draconic Spells Sorcerer
-    // Level"), óf de losse regel er direct boven ("Life Domain Spells"). Zo
-    // niet, dan noemde die zin een ándere tabel — in Font of Magic staat "the
-    // Sorcerer Features table", en die bestaat hier helemaal niet.
+    //  1. Een losse titelregel er direct boven ("Life Domain Spells", en wat
+    //     de tabelknop neerzet). Kort, geen pijp, geen leesteken op het eind:
+    //     een zin eindigt wél op een leesteken, een titel niet.
+    //  2. Anders: "…specified in the Draconic Spells table" in de zin ervoor,
+    //     mits die naam ook echt het begin van de eerste kolomkop is.
+    //  3. Anders: de titel hangt aan de kolomkop vast terwijl hij nergens als
+    //     "the X table" staat ("Creating Spell Slots Spell Slot Level").
+    //     Het langste begin van die kolomkop dat hierboven letterlijk staat.
+    //
+    // Stond 3 vóór 1, dan verloor een tabel met vier kolommen zijn eerste
+    // kolomnaam: boven "Creating Spell Slots" met een kolomkop "Spell Slot
+    // Level" vindt die zoektocht "Spell Slot" en knipt dat eraf.
     const ervoor = uit.join('\n');
-    const past = (k) => !!k && (blok[0][0].startsWith(k + ' ')
-      || (uit.length && uit[uit.length - 1].trim() === k));
-    // De laatste vermelding, niet de eerste: die staat het dichtst bij de tabel.
-    const genoemd = [...ervoor.matchAll(_TAFELKOP)].map(m => m[1]);
-    let kop = genoemd.filter(past).pop() || '';
-    // Staat het er nergens als "the X table", dan hangt de titel nog steeds aan
-    // de kolomkop ("Creating Spell Slots Spell Slot Level"). Hij komt dan wel
-    // als tussenkopje in de tekst erboven voor: neem het langste begin van die
-    // kolomkop dat hierboven letterlijk staat.
-    if (!kop) {
-      const woorden = blok[0][0].split(' ');
-      for (let w = woorden.length - 1; w >= 2; w--) {
-        const stuk = woorden.slice(0, w).join(' ');
-        if (ervoor.includes(stuk)) { kop = stuk; break; }
-      }
-    }
-    // En de eenvoudigste vorm, die de tabelknop neerzet: een korte regel
-    // direct boven de tabel die geen zin is. Een zin eindigt op een leesteken
-    // ("…zoals in de tabel hieronder:"); een titel niet.
-    if (!kop && uit.length) {
-      const boven = uit[uit.length - 1].trim();
-      if (boven && boven.length <= 60 && !boven.includes('|') && !/[.!?:;]$/.test(boven)) kop = boven;
-    }
+    const boven = uit.length ? uit[uit.length - 1].trim() : '';
+    const titelregel = boven && boven.length <= 60 && !boven.includes('|') && !/[.!?:;]$/.test(boven);
     let naam = '';
-    if (kop && blok[0][0].startsWith(kop + ' ')) { naam = kop; blok[0][0] = blok[0][0].slice(kop.length + 1); }
-    else if (kop && uit.length && uit[uit.length - 1].trim() === kop) { naam = uit.pop(); }
+    if (titelregel) {
+      naam = uit.pop().trim();
+    } else {
+      const genoemd = [...ervoor.matchAll(_TAFELKOP)].map(m => m[1])
+        .filter(k => blok[0][0].startsWith(k + ' '));
+      let kop = genoemd.pop() || '';
+      if (!kop) {
+        const woorden = blok[0][0].split(' ');
+        for (let w = woorden.length - 1; w >= 2; w--) {
+          const stuk = woorden.slice(0, w).join(' ');
+          if (ervoor.includes(stuk)) { kop = stuk; break; }
+        }
+      }
+      if (kop) { naam = kop; blok[0][0] = blok[0][0].slice(kop.length + 1); }
+    }
+
+    // Een rij met te weinig cellen vullen we aan tot de breedte van de kop.
+    // Zonder dat mist de tabel een hokje en schuift alles ernaast een plek op.
+    for (let r = 1; r < blok.length; r++) {
+      while (blok[r].length < blok[0].length) blok[r].push('');
+    }
 
     tabellen.push({ naam, kop: blok[0], rijen: blok.slice(1) });
     uit.push(`@@tafel${tabellen.length - 1}@@`);

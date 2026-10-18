@@ -113,6 +113,29 @@ describe('Tabellen in een vaardigheidstekst', () => {
     assert.match(uit.tekst, /Rol op de tabel hieronder:/);
   });
 
+  it('telt de kolommen van de kop, niet twee', () => {
+    const uit = _tabellenUit([
+      'Creating Spell Slots',
+      '| Spell Slot Level | Sorcery Point Cost | Min. Level | Opmerking |',
+      '| --- | --- | --- | --- |',
+      '| 1 | 2 | 2 | — |',
+      '| 2 | 3 | 3 | — |',
+    ].join('\n'));
+    const t = uit.tabellen[0];
+    assert.equal(t.naam, 'Creating Spell Slots');
+    // En de eerste kolomnaam blijft heel. Toen de "titel zit vastgeplakt aan
+    // de kolomkop"-regel vóór de titelregel-regel kwam, vond die in de titel
+    // erboven het stuk "Spell Slot" terug en knipte dat van de kolomkop af.
+    assert.deepEqual(t.kop, ['Spell Slot Level', 'Sorcery Point Cost', 'Min. Level', 'Opmerking']);
+    assert.deepEqual(t.rijen, [['1', '2', '2', '—'], ['2', '3', '3', '—']]);
+  });
+
+  it('vult een te korte rij aan tot de breedte van de kop', () => {
+    // Anders mist de tabel een hokje en schuift alles ernaast een plek op.
+    const uit = _tabellenUit(['| A | B | C |', '| 1 | 2 |', '| 3 | 4 | 5 |'].join('\n'));
+    assert.deepEqual(uit.tabellen[0].rijen, [['1', '2', ''], ['3', '4', '5']]);
+  });
+
   it('laat een tekst zonder tabel met rust', () => {
     const uit = _tabellenUit('Gewone tekst.\nNog een regel.');
     assert.deepEqual(uit.tabellen, []);
