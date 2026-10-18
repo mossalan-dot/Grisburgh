@@ -2469,6 +2469,16 @@ factie — `star` betekent in de app al *favoriet*), `award` (factie-boon), `bac
 > het begin van de kolomkop zijn of de losse regel er direct boven. Font of Magic noemt
 > namelijk "the Sorcerer Features table", en die staat daar helemaal niet.
 > De tabel leent `.akte-tabel`: dat is de enige tabelstijl die de app heeft.
+> **Spreuknamen in zo'n tabel zijn knoppen naar het spreukenboek.** Hergebruikt de twee
+> stappen van het statblok: de weergave markeert welke stukken een spreukenlijst zijn
+> (`.sb-spellijst`) en `window.spreuken.linkInDom()` maakt daarbinnen van elke naam die de
+> bibliotheek kent een knop — die laadt lui, vandaar twee stappen. Welke kolom dat is zegt
+> de **kolomkop** (`_SPREUKKOLOM`: "Spells", "Prepared Spells", "Spreuken"), niet de inhoud:
+> buiten een spreukenlijst is *Shield* een schild en *Light* gewoon licht, en dat oordeel
+> staat al zo in `render-statblock.js`. Ook wat een feat geeft (`geeftSpreuk`) is zo'n
+> lijst. Het venster van een houder krijgt dezelfde behandeling, en zijn uitleg loopt sinds
+> dezelfde ronde door `window._vaardigTekstHtml` — één renderer voor een vaardigheidstekst.
+
 > **Zelf een tabel invoegen** gaat met een knop in de opmaakbalk:
 > `fmtToolbar(id, { tabel: true })` zet hem erbij en `window._fmtTabel(id)` (app.js)
 > plaatst een gewone markdown-tabel met de titelregel geselecteerd. Die knop staat

@@ -1778,7 +1778,7 @@ function _featKoppelingHtml(it) {
       ${rij('Aangewezen', 'hier aan gehangen', k.aangewezen)}
       ${rij('Via de eis', 'deze klassen geven die training', k.viaEis)}
       ${rij('Geeft een spreuk', 'staat op hun lijst', k.viaSpreuk)}
-      ${k.geeftSpreuk.length ? `<p class="vk-feats-noot">Geeft: ${k.geeftSpreuk.map(esc).join(', ')}.</p>` : ''}
+      ${k.geeftSpreuk.length ? `<p class="vk-feats-noot">Geeft: <span class="sb-spellijst">${k.geeftSpreuk.map(esc).join(', ')}</span>.</p>` : ''}
     </div>`;
 }
 
@@ -1943,7 +1943,7 @@ function _kaartVenster(soort, naam, bron = '') {
       <p class="vd-subvenster-meta">${meta}</p>
       ${data.ondertitel ? `<p class="vd-kv-onder">${esc(String(data.ondertitel).trim())}</p>` : ''}
       ${uitleg
-        ? `<div class="prog-detail-desc">${_bron?.md?.(uitleg) ?? esc(uitleg)}</div>`
+        ? `<div class="prog-detail-desc">${window._vaardigTekstHtml?.(uitleg) ?? _bron?.md?.(uitleg) ?? esc(uitleg)}</div>`
         : `<p class="dm-hint">Er staat nog geen uitleg bij deze ${esc(soortLabel.toLowerCase())}. ${isDM() ? 'Schrijf hem erbij — dan leest iedereen aan tafel hetzelfde.' : 'Vraag je DM of hij hem invult.'}</p>`}
       ${rijen.length ? `<dl class="vk-training vd-kv-training">
         ${rijen.map(([k, v, html]) => `<dt>${esc(k)}</dt><dd>${html ?? esc(v)}</dd>`).join('')}
@@ -1957,6 +1957,8 @@ function _kaartVenster(soort, naam, bron = '') {
         ${elders ? `<p class="vd-elders-noot">${eigen ? `Van ${elders === 1 ? 'één staat' : `${elders} staan`} alleen de naam hier` : 'Deze staan niet in de app'}: hun tekst komt uit een boek en mag hier niet staan. Dit zijn hun namen, zodat je weet wat je krijgt — klik er een aan om hem op te zoeken.</p>` : ''}
         ${features || `<p class="dm-hint">De features komen uit het boek en mogen daar niet uit overgenomen worden. ${isDM() ? 'Tik ze zelf in met de plusknop rechtsboven, of lees ze in van een andere DM.' : ''}</p>`}`}
     </div>`);
+  const vak = document.querySelector('#modal-overlay .vd-subvenster');
+  if (vak) { window.glossary?.applyDom?.(vak); window.spreuken?.linkInDom?.(vak); }
 }
 
 // ── De uitleg van een houder schrijven ──────────────────────────────────────
@@ -2245,8 +2247,15 @@ function _tabellenUit(tekst) {
 
 // De tabel als tabel, met dezelfde opmaak als in een akte — dat is de enige
 // tabelstijl die de app heeft, en twee zouden er een te veel zijn.
+// Welke kolom gaat over spreuken? Die van de kop, niet die van de inhoud:
+// "Prepared Spells", "Spells", "Spreuken". Dat is hetzelfde oordeel dat het
+// statblok maakt — bínnen een spreukenlijst is Shield een spreuk, daarbuiten
+// is het een schild. Alleen dáár maken we namen klikbaar.
+const _SPREUKKOLOM = /\bspells?\b|\bspreuk/i;
+
 function _tabelHtml(t, nr) {
   const dobbel = window.tafels?.dobbelUitKop?.(t.kop[0]);
+  const spreukKolom = t.kop.map(k => _SPREUKKOLOM.test(k));
   // Bewaren als tafel kan alleen bij een **worptabel**: zelfde regel als bij
   // een |-tabel in een akte. Een spreukenlijst per level is een overzicht, en
   // die hoort niet als "rol maar" in de tafelbibliotheek te belanden.
@@ -2254,7 +2263,8 @@ function _tabelHtml(t, nr) {
     ${t.naam ? `<p class="vd-tabelkop">${esc(t.naam)}</p>` : ''}
     <table class="akte-tabel"${dobbel ? ` data-dobbel="${esc(dobbel)}"` : ''}>
       <thead><tr>${t.kop.map(c => `<th>${esc(c)}</th>`).join('')}</tr></thead>
-      <tbody>${t.rijen.map(r => `<tr>${r.map(c => `<td>${esc(c)}</td>`).join('')}</tr>`).join('')}</tbody>
+      <tbody>${t.rijen.map(r => `<tr>${r.map((c, i) =>
+        `<td${spreukKolom[i] ? ' class="sb-spellijst"' : ''}>${esc(c)}</td>`).join('')}</tr>`).join('')}</tbody>
     </table>
     ${(dobbel && isDM()) ? `<button class="dm-btn dm-btn-ghost dm-btn-sm"
       onclick="window.vaardigheden.tabelBewaren(${nr})">${icon('dices')} Bewaren als tafel</button>` : ''}
@@ -2362,6 +2372,11 @@ function _open(key, vanWaar = null) {
   // Het lexicon leest mee, net als in het spreukdetail en het statblok.
   const el = document.querySelector('#modal-overlay .prog-detail');
   if (el) window.glossary?.applyDom?.(el);
+  // En de spreuknamen worden knoppen naar het spreukenboek. Twee stappen, net
+  // als in een statblok: de weergave markeert hierboven wélke stukken een
+  // spreukenlijst zijn, en de bibliotheek — die lui laadt — maakt daarbinnen
+  // van elke naam die hij kent een knop.
+  window.spreuken?.linkInDom?.(el);
 }
 
 // ── Afbeelding vanuit het detailvenster ───────────────────────────

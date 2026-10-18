@@ -1588,6 +1588,12 @@ Grisburghs **data** te staan — niet in de code.
       *Creating Spell Slots* erboven. De eerste kolomnaam hoort heel te zijn:
       hij heette een tijdje "Level", omdat de titel erboven ook "Spell Slot"
       bevat en dat stuk van de kolomkop werd afgeknipt.
+- [ ] **Spreuknamen zijn knoppen** (ALL) — open *Classes* → *Sorcerer*, vink
+      **Draconic Sorcery** aan en klik op *Draconic Spells*: in de kolom
+      *Spells* is elke naam een knop. Klik *Chromatic Orb* → het spreukenboek
+      gaat open op die spreuk. De kolom *Sorcerer Level* blijft gewone tekst:
+      het is de **kolomkop** die zegt dat er spreuken in staan. Buiten een
+      spreukenlijst gebeurt er niets — daar is *Shield* een schild.
 - [ ] **Een worptabel kun je wél bewaren** (DM) — tik in een eigen feature een
       tabel met `| d6 | … |` als kop: dan staat er *Bewaren als tafel* onder, en
       na een klik staat hij in de Tafels-tab. De tekst van de feature blijft
