@@ -28874,6 +28874,11 @@ body.akte-schrijf-open .mp-overlay { z-index: 1320; }
    `margin-top: auto` duwt hem naar beneden, de negatieve marges halen de
    padding van `.vk-achter` weg. */
 .vk-naar-spreuken {
+  /* Boven de vervagingsstrook die onderaan de kaart ligt (`.vk-achter::after`,
+     voor tekst die afgekapt wordt). Die lag eroverheen en waste de knop uit.
+     De strook blijft eronder liggen en doet nog steeds wat hij moet doen: de
+     tekst die achter de knop verdwijnt zacht laten eindigen. */
+  position: relative; z-index: 2;
   margin: auto -17px -14px; width: calc(100% + 34px);
   display: flex; align-items: center; justify-content: center; gap: 7px;
   font-family: 'Cinzel', serif; font-size: 11px; letter-spacing: .05em;
