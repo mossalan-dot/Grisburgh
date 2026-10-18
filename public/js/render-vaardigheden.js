@@ -967,14 +967,24 @@ function _klasseRijen(klasse) {
 function _klasseKaartHtml(klasse) {
   const basis = _basisVan(klasse);
   const sig   = window._signatureVoor?.(klasse);
-  const rijen = _klasseRijen(klasse);
+  const data  = _bron?.prog?.classes?.[klasse];
+  const uitleg = String(data?.desc || '').trim();
   const heeftSpreuken = basis.castAbility && (_spreukAantal?.get(klasse) || 0);
+  // **Wat een class ís, niet wat hij heeft.** Hier stonden negen regels Core
+  // Traits — hit die, saves, skills, trainingen — terwijl die allemaal ook in
+  // het venster erachter staan. Een kaartje dat je omdraait hoort het verhaal
+  // te vertellen, net als bij een subclass. Staat er geen verhaal, dan vallen
+  // de gegevens terug: beter een half kaartje dan een leeg.
   return _flipKaartHtml({
     soort: 'class', naam: klasse, kleur: sig?.kleur || '#8a6d3f',
-    icoon: _klasseIcoon(klasse), kop: 'Core Traits', rijen,
-    extra: heeftSpreuken ? `
-      <button class="vk-naar-spreuken" onclick="event.stopPropagation();window.vaardigheden.naarSpreuken('${esc(klasse).replace(/'/g, "\\'")}')">
-        ${icon('book-open')} Spreukenlijst</button>` : '',
+    icoon: _klasseIcoon(klasse),
+    kop: uitleg ? '' : 'Core Traits',
+    rijen: uitleg ? [] : _klasseRijen(klasse),
+    extra: `
+      ${uitleg ? `<div class="vk-uitleg">${_bron?.md?.(uitleg) ?? esc(uitleg)}</div>` : ''}
+      ${heeftSpreuken ? `
+        <button class="vk-naar-spreuken" onclick="event.stopPropagation();window.vaardigheden.naarSpreuken('${esc(klasse).replace(/'/g, "\\'")}')">
+          ${icon('book-open')} Spreukenlijst</button>` : ''}`,
   });
 }
 
