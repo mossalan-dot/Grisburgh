@@ -1882,9 +1882,6 @@ function _basisVeldenHtml(klasse) {
     <details class="dm-uitklap vd-basis">
       <summary>${icon('dice')} Core Traits</summary>
       <div class="dm-uitklap-body">
-        <p class="dm-hint" style="margin-top:0">Wat op het kaartje staat, en wat de app gebruikt om Hit Dice te
-        rollen en spreukenslots af te leiden. Leeg laten betekent: neem wat de app zelf weet.
-        <strong>Class Type</strong> bepaalt ook het icoontje van een eigen class.</p>
         <div class="vd-basis-raster">
           <div class="vd-basis-veld">
             <label class="dm-form-label" for="vd-basis-aard">Class Type</label>
