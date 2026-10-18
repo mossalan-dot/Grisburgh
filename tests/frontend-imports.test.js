@@ -285,6 +285,38 @@ describe('Iconen', () => {
     assert.deepEqual(regels, [], 'deze iconen bestaan niet in de sprite:\n  ' + regels.join('\n  '));
   });
 
+  // De tegelrij van de species leeft van zijn iconen: de kleur zegt overal
+  // "species" en de naam staat klein eronder, dus het icoon is het enige dat
+  // ze van elkaar onderscheidt. Vielen er veertig terug op `user`, dan stond er
+  // een rij identieke poppetjes. Deze test houdt de lijst compleet én uniek.
+  it('geeft elk species een eigen icoon', () => {
+    const src = fs.readFileSync(path.join(__dirname, '..', 'public', 'js', 'render-vaardigheden.js'), 'utf8');
+    const blok = src.match(/const SPECIES_ICOON = \{[\s\S]*?\n\};/);
+    assert.ok(blok, 'SPECIES_ICOON niet gevonden');
+    const kaart = {};
+    for (const m of blok[0].matchAll(/(?:'([^']+)'|([A-Za-z][\w-]*))\s*:\s*'([a-z0-9-]+)'/g)) {
+      kaart[m[1] || m[2]] = m[3];
+    }
+    const seed = require('../bronnen/class-progression.json');
+    const volken = require('../bronnen/volken-klassen.json');
+    const alle = [...new Set([...Object.keys(seed.species || {}), ...(volken.volkenOverig || [])])];
+
+    const zonder = alle.filter(n => !kaart[n]);
+    assert.deepEqual(zonder, [], 'deze species hebben geen icoon: ' + zonder.join(', '));
+
+    const wees = Object.keys(kaart).filter(n => !alle.includes(n));
+    assert.deepEqual(wees, [], 'dit icoon hoort bij geen enkel species: ' + wees.join(', '));
+
+    const waarden = Object.values(kaart);
+    const dubbel = [...new Set(waarden.filter((x, i) => waarden.indexOf(x) !== i))];
+    assert.deepEqual(dubbel, [], 'twee species delen een icoon: ' + dubbel.join(', '));
+
+    const sprite = fs.readFileSync(path.join(__dirname, '..', 'public', 'img', 'icons.svg'), 'utf8');
+    const bestaat = new Set([...sprite.matchAll(/id="icon-([a-z0-9-]+)"/g)].map(m => m[1]));
+    const mis = waarden.filter(n => !bestaat.has(n));
+    assert.deepEqual(mis, [], 'deze iconen staan niet in de sprite: ' + mis.join(', '));
+  });
+
   it('verwijst ook vanuit index.html naar bestaande symbolen', () => {
     const sprite = fs.readFileSync(path.join(__dirname, '..', 'public', 'img', 'icons.svg'), 'utf8');
     const bestaat = new Set([...sprite.matchAll(/id="icon-([a-z0-9-]+)"/g)].map(m => m[1]));

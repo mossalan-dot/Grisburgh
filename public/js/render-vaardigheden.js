@@ -74,12 +74,52 @@ const AARD = {
   half:    { label: 'Half-Caster', icoon: 'zap' },
   caster:  { label: 'Full Caster', icoon: 'sparkles' },
 };
+// Een icoon per species — alle achtenvijftig, elk een eigen.
+//
+// Er stonden er dertien; de rest viel terug op `user`, en dan zie je in de
+// tegelrij één poppetje naast vijfenveertig andere poppetjes. Het icoon is hier
+// juist het enige dat de tegels van elkaar onderscheidt: de kleur zegt
+// "species" en de naam staat eronder in kleine letters.
+//
+// Gekozen op wát het volk ís, niet op wat het kan — een Githyanki krijgt het
+// astrale atoom en niet een zwaard, want `sword` betekent in deze app al
+// *class*. Datzelfde gold voor `star` (favoriet), `link` (koppeling) en
+// `potion` (itemtype); die staan hier dus niet.
 const SPECIES_ICOON = {
-  Human: 'user',        Elf: 'sparkle',       Dwarf: 'pickaxe',
-  Halfling: 'house',    Dragonborn: 'flame',  Gnome: 'flask-conical',
-  Orc: 'shield-half',   Tiefling: 'ghost',    Goliath: 'mountain',
-  Aasimar: 'sparkles',  Aarakocra: 'wind',    Tabaxi: 'paw-print',
-  'Half-Elf': 'users',
+  // De oorsprongen uit de Player's Handbook
+  Human: 'user',              Elf: 'sparkle',             Dwarf: 'pickaxe',
+  Halfling: 'house',          Dragonborn: 'flame',        Gnome: 'flask-conical',
+  Orc: 'shield-half',         Tiefling: 'ghost',          Goliath: 'mountain',
+  Aasimar: 'sparkles',        Aarakocra: 'wind',          Tabaxi: 'paw-print',
+  'Half-Elf': 'users',        'Half-Orc': 'biceps-flexed',
+  // Dier en halfdier
+  Leonin: 'cat',              Lupin: 'dog',               Harengon: 'rabbit',
+  Owlin: 'bird',              Tortle: 'turtle',           Loxodon: 'ear',
+  Minotaur: 'beef',           Centaur: 'footprints',      'Yuan-ti': 'worm',
+  Lizardfolk: 'bone',         Giff: 'crosshair',          Kenku: 'megaphone',
+  // Goblinoïden en wat daarbij hoort
+  Goblin: 'rat',              Hobgoblin: 'flag',          Bugbear: 'axe',
+  Kobold: 'egg',              Verdan: 'flower-2',
+  // Onder de grond
+  'Deep Gnome': 'gem',        Duergar: 'hard-hat',
+  // Fey
+  Faerie: 'flower',           Fairy: 'wand-sparkles',     Eladrin: 'leaf',
+  Satyr: 'wine',              Firbolg: 'trees',           Boggart: 'clover',
+  Hexblood: 'wand',           'Shadar-kai': 'cloud-moon',
+  // Elementair en de elementen
+  Genasi: 'tornado',          Flamekin: 'flame-kindling', Rimekin: 'snowflake',
+  Duskling: 'sunset',
+  // Water
+  Triton: 'waves-vertical',   'Sea Elf': 'fish-symbol',
+  // Van gedaante wisselen
+  Changeling: 'scan-face',    'Lorwyn Changeling': 'shapes',
+  Shifter: 'moon-star',
+  // Geest en gedachte
+  Githyanki: 'atom',          Githzerai: 'infinity',      Kalashtar: 'brain-circuit',
+  Vedalken: 'glasses',
+  // Gemaakt, herrezen, gekruist
+  Warforged: 'bot',           Reborn: 'bandage',          'Simic Hybrid': 'dna',
+  Dhampir: 'droplet',         Khoravar: 'users-round',
 };
 // Het icoon van een class: het zijne als we hem kennen, anders dat van zijn
 // aard, en pas als ook die ontbreekt het zwaard. Vijf plekken vroegen hier
@@ -264,7 +304,7 @@ async function _load() {
   // Per náám, niet per houder: wat de campagne zelf heeft wint, de rest blijft
   // als wegwijzer staan. Zie `_eldersAanvulling`.
   const uitVoorraad = (soort, bron, sub, naam, houder) => {
-    for (const f of _eldersAanvulling(soort, naam, houder)) {
+    for (const f of _eldersAanvulling(soort, naam, houder, bron)) {
       zet({ soort, bron, ...(sub ? { sub } : {}), level: f.level, naam: f.naam,
             // Waaruit? Uit het boek van zijn moeder. Dat is precies waar deze
             // wegwijzer naar wijst, en het stond er leeg.
@@ -280,6 +320,9 @@ async function _load() {
   }
   for (const [volk, data] of Object.entries(prog.species || {})) {
     uitVoorraad('species', volk, null, volk, data);
+    for (const [variant, vdata] of Object.entries(data.varianten || {})) {
+      uitVoorraad('variant', volk, variant, variant, vdata);
+    }
   }
 
   // ── Zegeningen en gunsten ──
@@ -584,13 +627,28 @@ function _eldersRij(rij) {
 //
 // Vergelijken op naam, kleine letters: in de campagne staat dezelfde feature op
 // een eigen level, en dan is de naam het enige dat de twee verbindt.
-function _eldersAanvulling(soort, naam, houder) {
-  const groep = soort === 'class' ? 'classes' : soort === 'species' ? 'species' : 'subclasses';
+// Een variant staat onder zijn species: twee species kunnen allebei een
+// variant "Air" hebben, dus daar is de sleutel `"Species|Variant"` en moet de
+// moeder mee.
+function _eldersAanvulling(soort, naam, houder, moeder = '') {
+  const groep = soort === 'class' ? 'classes' : soort === 'species' ? 'species'
+    : soort === 'variant' ? 'varianten' : 'subclasses';
+  const sleutel = soort === 'variant' ? `${moeder}|${naam}` : naam;
   const al = new Set(Object.values(houder?.levels || {}).flat()
     .map(f => String(f?.name || '').trim().toLowerCase()).filter(Boolean));
-  return (_eldersFeatures?.[groep]?.[naam] || [])
+  return (_eldersFeatures?.[groep]?.[sleutel] || [])
     .map(_eldersRij)
     .filter(f => f.naam && !al.has(f.naam.toLowerCase()));
+}
+
+// Welke varianten van dit species we bij naam kennen, ook als het species zelf
+// nog niet in de campagne staat. Dat is wat de tegel van een species uit de
+// "bestaat elders"-lijst erbij hoort te zetten, en wat `volkAan` meteen
+// aanmaakt — een Genasi *is* zijn variant.
+function _eldersVarianten(volk) {
+  const pre = `${volk}|`;
+  return Object.keys(_eldersFeatures?.varianten || {})
+    .filter(k => k.startsWith(pre)).map(k => k.slice(pre.length));
 }
 
 async function _eldersLaden() {
@@ -1296,12 +1354,16 @@ function _tegelsHtml(d) {
   }).join('')}
   ${elders.map((naam, i) => {
     const aantal = _eldersAanvulling('species', naam, null).length;
+    const varN = _eldersVarianten(naam).length;
     return `<div class="vd-tegel vd-tegel--elders" style="--vd-kleur:${d.kleur};--vd-i:${rijen.length + i}">
       ${isDM() ? `<label class="vd-tegel-vink" title="Zet ${esc(naam)} in deze campagne">
         <input type="checkbox" onchange="window.vaardigheden.volkAan('${escA(naam)}')"></label>` : ''}
       <span class="vd-tegel-icoon">${icon(SPECIES_ICOON[naam] || 'user')}</span>
       <span class="vd-tegel-naam">${esc(naam)}</span>
-      <span class="vd-tegel-meta">${aantal ? `${aantal} traits · elders` : 'bestaat elders'}</span>
+      <span class="vd-tegel-meta">${[
+        aantal ? `${aantal} ${aantal === 1 ? 'trait' : 'traits'}` : '',
+        varN ? `${varN} varianten` : '',
+      ].filter(Boolean).join(' · ') || 'bestaat'} · elders</span>
     </div>`;
   }).join('')}</div>`;
 }
@@ -1324,7 +1386,13 @@ function _subKolomHtml(klasse) {
   const eigen = _bandSubklassen(klasse);
   // Een voorraadlijst van "wat er elders nog bestaat" is er alleen voor
   // subclasses; varianten staan in het boek van hun species.
-  const elders = (laag?.soort === 'variant' ? [] : (_elders?.klassen?.[klasse] || []))
+  // Wat er nog bestaat buiten deze campagne. Bij een class komt dat uit
+  // `subclasses-elders.json`; bij een **species** uit de varianten die we bij
+  // naam kennen — zonder dat stond Genasi er met één trait en zonder zijn
+  // Air/Earth/Fire/Water, terwijl bij dat volk alles in de variant zit.
+  const elders = (laag?.soort === 'variant'
+      ? _eldersVarianten(klasse).map(naam => ({ naam, boek: '', variant: true }))
+      : (_elders?.klassen?.[klasse] || []))
     .filter(x => !eigen.some(([n]) => n.toLowerCase() === String(x.naam).toLowerCase()));
   const boeken = _elders?.boeken || {};
   // **Eén lijst.** Er stonden twee koppen boven ("Subclasses" en "Nog 6
@@ -1337,7 +1405,8 @@ function _subKolomHtml(klasse) {
     // dan de naam van de subklasse zelf, en dan loopt de regel om en wordt de
     // rij anderhalf keer zo hoog als die ernaast. De code staat er dus, de
     // titel hangt eronder als tooltip.
-    ...elders.map(x => ({ naam: x.naam, boek: boeken[x.boek] || x.boek, code: x.boek, elders: true })),
+    ...elders.map(x => ({ naam: x.naam, boek: boeken[x.boek] || x.boek, code: x.boek,
+                          elders: true, variant: !!x.variant })),
   ];
   if (!rijen.length) return '';
 
@@ -1364,20 +1433,24 @@ function _subKolomHtml(klasse) {
         const veiligB = esc(r.boek || '').replace(/'/g, "\\'");
         return `<div class="vd-subkaart vd-subkaart--elders" style="--vd-subkleur:${kleur}">
           ${isDM() ? `<label class="vd-subkaart-vink" title="Zet ${esc(r.naam)} in deze campagne">
-            <input type="checkbox" onchange="window.vaardigheden.eldersAan('${veilig}','${veiligB}')"></label>` : ''}
+            <input type="checkbox" onchange="window.vaardigheden.${r.variant
+              ? `variantAan('${veiligK}','${veilig}')`
+              : `eldersAan('${veilig}','${veiligB}')`}"></label>` : ''}
           <button class="vd-subkaart-open"
-            onclick="window.open(window.app.bronLink('${veilig}','subclass'),'_blank')"
+            onclick="window.open(window.app.bronLink('${veilig}','${r.variant ? 'species' : 'subclass'}'),'_blank')"
             title="${esc(r.boek || '')} — opzoeken; de tekst staat in het boek, niet in de app">
             <span class="vd-subkaart-naam">${esc(r.naam)}</span>
-            <span class="vd-subkaart-meta">${esc((r.code || 'elders').toUpperCase())}</span>
+            <span class="vd-subkaart-meta">${r.variant
+              ? `${_eldersAanvulling('variant', r.naam, null, klasse).length} traits · elders`
+              : esc((r.code || 'elders').toUpperCase())}</span>
           </button>
         </div>`;
       }
       const aan = _subAan.has(r.naam);
       // "geen tekst" klopte niet meer zodra we zijn featurenamen kennen: er
       // staat dan wél iets, alleen niet de tekst erbij.
-      const eldersN = _eldersAanvulling('subclass', r.naam,
-        _bron?.prog?.classes?.[klasse]?.subclasses?.[r.naam]).length;
+      const eldersN = _eldersAanvulling(laag?.soort || 'subclass', r.naam,
+        laag?.bak?.[r.naam], klasse).length;
       return `<div class="vd-subkaart${aan ? ' is-aan' : ''}${r.n ? '' : ' is-leeg'}" style="--vd-subkleur:${kleur}">
         <label class="vd-subkaart-vink" title="${aan ? 'Haal zijn features uit de lijst' : 'Zet zijn features erbij'}">
           <input type="checkbox" ${aan ? 'checked' : ''} onchange="window.vaardigheden.subToggle('${veilig}')">
@@ -1461,7 +1534,12 @@ function _vlakHtml() {
   // Het scherm in drieën: de class, de subclass die je koos, en de lijst om
   // uit te kiezen. Bij een species is er geen tweede en derde deel, dus staat
   // dat kaartje alleen — in dezelfde maat, want het is dezelfde soort kaart.
-  const subKolom = (laag && Object.keys(laag.bak).length) ? _subKolomHtml(_filters.bron) : '';
+  // De kolom staat er ook als de campagne er zelf nog geen heeft: dan is hij
+  // juist het aanbod. Genasi stond er met nul varianten en dus zonder kolom,
+  // en daarmee zonder de vier die we bij naam kennen — precies het volk waar
+  // alles ín de variant zit. `_subKolomHtml` geeft zelf niets terug als er ook
+  // niets te bieden valt.
+  const subKolom = laag ? _subKolomHtml(_filters.bron) : '';
   // Meer dan één aangevinkt? Dan hoort er onder het kaartje een pijltje te
   // staan — anders zie je er één en weet je niet dat de andere er ook zijn.
   const aangevinkt = [..._subAan].filter(x => laag?.bak?.[x]);
@@ -1748,7 +1826,7 @@ function _houderFeaturesHtml(soort, naam, bron) {
   // geen tekst dragen — je ziet waar het over gaat en klikt door naar de
   // naslag. Per naam, niet per houder: wat in de campagne staat wint, de rest
   // blijft wegwijzer. Zie `_eldersAanvulling`.
-  const aanvul = _eldersAanvulling(soort, naam, data);
+  const aanvul = _eldersAanvulling(soort, naam, data, bron);
   const aantal = eigen + aanvul.length;
   if (!eigen) return { ..._eldersFeaturesHtml(soort, naam, aanvul), eigen: 0 };
   const zoek = (f) => (_all || []).find(x => x.naam === f.name && x.soort === soort
@@ -2787,6 +2865,22 @@ window.vaardigheden = {
     _subAan.add(naam);
     _bandHerteken(); _refreshFilterBar(); _paint();
   },
+  // Een variant die we bij naam kennen bij dit species zetten. Zelfde gebaar
+  // als bij een subclass uit een ander boek, en nodig omdat een species dat er
+  // al stond zijn varianten niet vanzelf meekrijgt — Genasi stond er met één
+  // trait en zonder zijn Air/Earth/Fire/Water.
+  async variantAan(volk, naam) {
+    try {
+      await api.nieuweHouder({ soort: 'variant', naam, bron: volk, herkomst: 'overgenomen' });
+    } catch (e) {
+      if (!/bestaat al/i.test(e.message || '')) { alert('Toevoegen mislukt: ' + e.message); return; }
+    }
+    _all = null;
+    await _load(); await _klasseExtra();
+    _subAan.add(naam);
+    _bandHerteken(); _refreshFilterBar(); _paint();
+    window._showToast?.(`${naam} staat nu bij ${volk}.`);
+  },
   // Een species uit de lijst "bestaat elders" in deze campagne zetten. Daarna
   // staat hij tussen de andere, met zijn traits uit de voorraadlijst.
   async volkAan(naam) {
@@ -2794,6 +2888,13 @@ window.vaardigheden = {
       await api.nieuweHouder({ soort: 'species', naam, herkomst: 'overgenomen' });
     } catch (e) {
       if (!/bestaat al/i.test(e.message || '')) { alert('Toevoegen mislukt: ' + e.message); return; }
+    }
+    // En zijn varianten, waar we die bij naam kennen. Een Genasi zónder zijn
+    // Air/Earth/Fire/Water is een leeg kaartje met één trait: bij dit volk zit
+    // alles in de variant, net als bij een subclass.
+    for (const v of _eldersVarianten(naam)) {
+      try { await api.nieuweHouder({ soort: 'variant', naam: v, bron: naam, herkomst: 'overgenomen' }); }
+      catch { /* bestaat al, of hij wil hem niet — het volk staat er en dat is de hoofdzaak */ }
     }
     _all = null;
     await _load(); await _klasseExtra();

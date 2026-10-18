@@ -1557,6 +1557,16 @@ Grisburghs **data** te staan — niet in de code.
       feature met jouw tekst, de andere vier nog als wegwijzer — en in de kolom
       staat *5 features · 4 elders*. Eerder verdwenen de andere vier, want de
       voorraadlijst gold per houder in plaats van per naam.
+- [ ] **Elk species heeft zijn eigen icoon** (ALL) — open *Species*: negenenvijftig
+      tegels met negenenvijftig verschillende iconen. Alleen **Human** draagt het
+      poppetje; staat er ergens een tweede, dan is dat een species dat door de
+      kaart heen gevallen is.
+- [ ] **Genasi is zijn varianten** (DM) — open *Species* → *Genasi*: links staan
+      **Air, Earth, Fire en Water Genasi** als gestippelde rijen met *N traits ·
+      elders* en een vinkje. Vink er een aan: hij staat in de campagne en zijn
+      traits staan als kaartjes in het raster. Dit was de enige plek waar de
+      kolom helemaal wegviel — een species zonder varianten kreeg er geen, en
+      juist daar zit bij dit volk alles in.
 - [ ] **Zoeken gaat dwars door de deuren** (ALL) — typ *battle master* terwijl
       je in Classes staat: je krijgt treffers uit alles, met een regel
       *Resultaten voor…* en een knop terug. Veeg het veld leeg en je staat weer

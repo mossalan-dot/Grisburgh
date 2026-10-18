@@ -402,7 +402,7 @@ describe('Extra spreuken', () => {
 // bestand, dan valt dit om.
 describe('De features van wat elders staat', () => {
   const data = require('../bronnen/features-elders.json');
-  const groepen = ['classes', 'subclasses', 'species'];
+  const groepen = ['classes', 'subclasses', 'species', 'varianten'];
 
   it('noemt alleen namen, nooit tekst', () => {
     for (const groep of groepen) {
@@ -446,6 +446,23 @@ describe('De features van wat elders staat', () => {
     }
     const dubbel = Object.keys(data.subclasses || {}).filter(n => gevuld.has(n.toLowerCase()));
     assert.deepEqual(dubbel, [], 'deze brengt de app zelf al mee: ' + dubbel.join(', '));
+  });
+
+  it('noemt een variant bij species én variant', () => {
+    // De sleutel is `"Species|Variant"`, want twee species kunnen allebei een
+    // variant "Air" hebben. En de helft vóór de streep hoort een species te
+    // zijn dat we ook echt hebben — anders staan er namen bij een volk dat
+    // niemand kan kiezen (de spiegel draagt de hele Plane Shift-reeks mee).
+    const seed = require('../bronnen/class-progression.json');
+    const volken = require('../bronnen/volken-klassen.json');
+    const onze = new Set([...Object.keys(seed.species || {}), ...(volken.volkenOverig || [])]
+      .map(n => n.toLowerCase()));
+    for (const sleutel of Object.keys(data.varianten || {})) {
+      const delen = sleutel.split('|');
+      assert.equal(delen.length, 2, `"${sleutel}" hoort "Species|Variant" te zijn`);
+      assert.ok(onze.has(delen[0].toLowerCase()),
+        `"${sleutel}" hoort bij een species dat we niet hebben`);
+    }
   });
 
   it('gaat compleet de deur uit, ook bij een kale campagne', () => {

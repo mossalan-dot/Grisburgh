@@ -2412,6 +2412,29 @@ factie — `star` betekent in de app al *favoriet*), `award` (factie-boon), `bac
 (spelerstab Boedel — dat deelde `package` met het archieftabblad Voorwerpen), `vault`
 (de Loot-tab), `dices`, `quote` (het voorleesblok in een akte)
 
+**Toegevoegd voor de species-iconen** (Lucide, ISC, 18 okt 2026, sprite v=20): `clover`
+`axe` `footprints` `scan-face` `gem` `hard-hat` `sunset` `leaf` `flower` `flower-2`
+`wand-sparkles` `wand` `flame-kindling` `tornado` `crosshair` `atom` `infinity` `rat`
+`rabbit` `flag` `brain-circuit` `megaphone` `users-round` `egg` `cat` `bone` `shapes`
+`ear` `dog` `beef` `bird` `bandage` `snowflake` `wine` `fish-symbol` `cloud-moon`
+`moon-star` `dna` `turtle` `waves-vertical` `glasses` `bot` `worm`
+
+> **Iconen bijzetten gaat met een script.** `node scripts/sprite-aanvullen.js <naam…>
+> --schrijf` haalt ze bij lucide-static en zet ze in dezelfde vorm als de rest; wat er al
+> in staat wordt overgeslagen, dus twee keer draaien kan geen kwaad. Met de hand paden
+> plakken werkt voor drie iconen en niet voor drieënveertig. **Vergeet de versie niet:**
+> `icons.svg?v=N` staat in `app.js`, `index.html`, `render-dungeon.js`,
+> `render-relatiemap.js` én `combat-canvas.js` — één bestand, één versie.
+
+> **Elk species heeft een eigen icoon.** `SPECIES_ICOON` in `render-vaardigheden.js` dekt
+> alle achtenvijftig; eerder stonden er dertien en viel de rest terug op `user`, waardoor
+> de tegelrij vijfenveertig identieke poppetjes toonde. Het icoon is daar het enige
+> onderscheid: de kleur zegt overal "species" en de naam staat klein eronder. Gekozen op
+> wat het volk ís, en bewust niet uit de set die in deze app al iets anders betekent —
+> `sword` is *class*, `star` is *favoriet*, `link` is *koppeling*, `potion` is een
+> itemtype. Bewaakt door `tests/frontend-imports.test.js` (*geeft elk species een eigen
+> icoon*): compleet, uniek, en elk icoon bestaat in de sprite.
+
 > **Eén icoon per soort plek.** `LOC_TYPE_ICOON` in `render-campagne.js` koppelt
 > elk `data.locType` aan een sprite-naam; lezen doe je met
 > `window._locIcoon(type)` (of `_locIcoonNaam`). De kaartpins toonden allemaal
