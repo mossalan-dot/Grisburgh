@@ -1776,6 +1776,10 @@
     ],
     "Light Domain": [
       {
+        "naam": "Light Domain Spells",
+        "level": 3
+      },
+      {
         "naam": "Radiance of the Dawn",
         "level": 3
       },
@@ -1788,10 +1792,6 @@
         "level": 6
       },
       {
-        "naam": "Potent Spellcasting",
-        "level": 8
-      },
-      {
         "naam": "Corona of Light",
         "level": 17
       }
@@ -1802,16 +1802,16 @@
         "level": 3
       },
       {
+        "naam": "War Domain Spells",
+        "level": 3
+      },
+      {
         "naam": "War Priest",
         "level": 3
       },
       {
         "naam": "War God's Blessing",
         "level": 6
-      },
-      {
-        "naam": "Divine Strike",
-        "level": 8
       },
       {
         "naam": "Avatar of Battle",
@@ -1824,16 +1824,16 @@
         "level": 3
       },
       {
+        "naam": "Trickery Domain Spells",
+        "level": 3
+      },
+      {
         "naam": "Invoke Duplicity",
         "level": 3
       },
       {
         "naam": "Trickster's Transposition",
         "level": 6
-      },
-      {
-        "naam": "Divine Strike",
-        "level": 8
       },
       {
         "naam": "Improved Duplicity",
@@ -1843,6 +1843,10 @@
     "Circle of the Moon": [
       {
         "naam": "Circle Forms",
+        "level": 3
+      },
+      {
+        "naam": "Circle of the Moon Spells",
         "level": 3
       },
       {
@@ -1859,6 +1863,10 @@
       }
     ],
     "Circle of the Sea": [
+      {
+        "naam": "Circle of the Sea Spells",
+        "level": 3
+      },
       {
         "naam": "Wrath of the Sea",
         "level": 3
@@ -1965,7 +1973,7 @@
       },
       {
         "naam": "Cloak of Shadows",
-        "level": 11
+        "level": 17
       }
     ],
     "Warrior of the Elements": [
@@ -1976,6 +1984,10 @@
       {
         "naam": "Manipulate Elements",
         "level": 3
+      },
+      {
+        "naam": "Elemental Burst",
+        "level": 6
       },
       {
         "naam": "Stride of the Elements",
@@ -2014,7 +2026,11 @@
     ],
     "Oath of the Ancients": [
       {
-        "naam": "Channel Divinity: Nature's Wrath",
+        "naam": "Nature's Wrath",
+        "level": 3
+      },
+      {
+        "naam": "Oath of the Ancients Spells",
         "level": 3
       },
       {
@@ -2032,11 +2048,15 @@
     ],
     "Oath of Glory": [
       {
-        "naam": "Channel Divinity: Inspiring Smite",
+        "naam": "Inspiring Smite",
         "level": 3
       },
       {
-        "naam": "Channel Divinity: Peerless Athlete",
+        "naam": "Oath of Glory Spells",
+        "level": 3
+      },
+      {
+        "naam": "Peerless Athlete",
         "level": 3
       },
       {
@@ -2054,7 +2074,11 @@
     ],
     "Oath of Vengeance": [
       {
-        "naam": "Channel Divinity: Vow of Enmity",
+        "naam": "Oath of Vengeance Spells",
+        "level": 3
+      },
+      {
+        "naam": "Vow of Enmity",
         "level": 3
       },
       {
@@ -2094,6 +2118,10 @@
         "level": 3
       },
       {
+        "naam": "Fey Wanderer Spells",
+        "level": 3
+      },
+      {
         "naam": "Otherworldly Glamour",
         "level": 3
       },
@@ -2113,6 +2141,10 @@
     "Gloom Stalker": [
       {
         "naam": "Dread Ambusher",
+        "level": 3
+      },
+      {
+        "naam": "Gloom Stalker Spells",
         "level": 3
       },
       {
@@ -2200,6 +2232,10 @@
     ],
     "Clockwork Sorcery": [
       {
+        "naam": "Clockwork Spells",
+        "level": 3
+      },
+      {
         "naam": "Restore Balance",
         "level": 3
       },
@@ -2217,6 +2253,10 @@
       }
     ],
     "Aberrant Sorcery": [
+      {
+        "naam": "Psionic Spells",
+        "level": 3
+      },
       {
         "naam": "Telepathic Speech",
         "level": 3
@@ -2240,6 +2280,10 @@
     ],
     "Archfey Patron": [
       {
+        "naam": "Archfey Spells",
+        "level": 3
+      },
+      {
         "naam": "Steps of the Fey",
         "level": 3
       },
@@ -2257,6 +2301,10 @@
       }
     ],
     "Celestial Patron": [
+      {
+        "naam": "Celestial Spells",
+        "level": 3
+      },
       {
         "naam": "Healing Light",
         "level": 3
@@ -2280,6 +2328,10 @@
         "level": 3
       },
       {
+        "naam": "Great Old One Spells",
+        "level": 3
+      },
+      {
         "naam": "Psychic Spells",
         "level": 3
       },
@@ -2289,6 +2341,10 @@
       },
       {
         "naam": "Eldritch Hex",
+        "level": 10
+      },
+      {
+        "naam": "Thought Shield",
         "level": 10
       },
       {
@@ -2330,10 +2386,6 @@
       {
         "naam": "Expert Divination",
         "level": 6
-      },
-      {
-        "naam": "The Third Eye",
-        "level": 10
       },
       {
         "naam": "Greater Portent",
@@ -2816,5 +2868,5 @@
       "Inner Magic"
     ]
   },
-  "_niveaus": "Een naam mag een level dragen: {\"naam\": \"…\", \"level\": 3}. Opgehaald met scripts/srd-2024/elders-niveaus.js van dnd5e.wikidot.com — de kop is de naam, de eerste levelvermelding eronder is het level; een \"Channel Divinity: …\"-optie deelt het level van de Channel Divinity-feature waar hij onder staat. Alleen waar de naam exact overeenkomt: een kop die wij niet kennen hoort bij een andere druk. Bij een subclass die de app als 2024-materiaal meebrengt wordt bovendien alleen een level overgenomen dat deze class zijn subclasses ook echt geeft — wikidot beschrijft 2014, en daar begint een Cleric-domein op level 1. De elf subclasses die alleen in 2024 bestaan hebben geen wikidotpagina; hun levels komen uit de campagne van Grisburgh, waar de DM ze zelf had ingevuld. Het level is dat van het boek waar de subclass in staat; dat boek staat op zijn kaartje erbij. De species hebben geen level: een trait hoort bij wie je bent, niet bij een level."
+  "_niveaus": "Een naam mag een level dragen: {\"naam\": \"…\", \"level\": 3}. De PHB 2024 is leidend: wat op dnd2024.wikidot.com als Player's Handbook staat is overgenomen met scripts/srd-2024/subclasses-2024.js, waar naam en level in dezelfde kop staan. De rest is opgehaald met scripts/srd-2024/elders-niveaus.js van dnd5e.wikidot.com — de kop is de naam, de eerste levelvermelding eronder is het level; een \"Channel Divinity: …\"-optie deelt het level van de Channel Divinity-feature waar hij onder staat. Alleen waar de naam exact overeenkomt: een kop die wij niet kennen hoort bij een andere druk. Bij een subclass die de app als 2024-materiaal meebrengt wordt bovendien alleen een level overgenomen dat deze class zijn subclasses ook echt geeft — wikidot beschrijft 2014, en daar begint een Cleric-domein op level 1. De elf subclasses die alleen in 2024 bestaan hebben geen wikidotpagina; hun levels komen uit de campagne van Grisburgh, waar de DM ze zelf had ingevuld. Het level is dat van het boek waar de subclass in staat; dat boek staat op zijn kaartje erbij. De species hebben geen level: een trait hoort bij wie je bent, niet bij een level."
 }
