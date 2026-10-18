@@ -9,10 +9,12 @@
 //
 // dnd2024.wikidot.com heeft per subclass een pagina waar naam én level in
 // dezelfde kop staan ("Level 3: Cutting Words"). Dat is de beste bron die er
-// is, en dit script zet hem erin — maar alleen waar de pagina zegt dat hij uit
-// de **Player's Handbook** komt. Een subclass die alleen in een ouder boek
-// bestaat blijft zoals hij is; wat de wiki uit een ánder boek beschrijft komt
-// in de melding te staan, zodat jij beslist.
+// is, en dit script zet hem erin.
+//
+// **De nieuwste versie wint**, niet alleen de Player's Handbook: een Artificer
+// is in 2024 opnieuw uitgegeven in Eberron, het Knowledge Domain in Heroes of
+// Faerûn. Welk boek het was staat in de melding, zodat je ziet waar een
+// subclass vandaan komt. Wat geen 2024-pagina heeft blijft zoals het is.
 //
 //   node scripts/srd-2024/subclasses-2024.js            (proefronde)
 //   node scripts/srd-2024/subclasses-2024.js --schrijf
@@ -71,10 +73,12 @@ async function pagina(pad) {
     const p = await pagina(`${slug(klasse)}:${slug(naam)}`);
     await new Promise(r => setTimeout(r, 120));
     if (!p || !p.features.length) { geenPagina.push(naam); continue; }
-    if (!/^player'?s handbook/i.test(p.boek)) {
-      anderBoek.push(`${naam} — de wiki noemt "${p.boek}"`);
+    // Een UA-pagina is een proefdruk, geen boek: die laten we liggen.
+    if (/\bua\b|unearthed arcana|playtest/i.test(p.boek)) {
+      anderBoek.push(`${naam} — alleen als proefdruk: "${p.boek}"`);
       continue;
     }
+    if (!/^player'?s handbook/i.test(p.boek)) anderBoek.push(`${naam} — uit "${p.boek}"`);
     const oudeNamen = oud.map(x => (x && typeof x === 'object') ? x.naam : x);
     // De wiki tikt wel eens een hoofdletter mis ("Arcane ward"). Kende onze
     // lijst hem al, dan houden we onze schrijfwijze: het level komt van daar,
@@ -99,7 +103,7 @@ async function pagina(pad) {
   }
   console.log(`\n${vervangen.length} subclasses uit de PHB 2024 overgenomen.`);
   if (anderBoek.length) {
-    console.log(`\nDe wiki kent ze, maar uit een ander boek (${anderBoek.length}) — niet aangeraakt:`);
+    console.log(`\nUit een ander boek dan de PHB (${anderBoek.length}):`);
     for (const r of anderBoek) console.log('  ·', r);
   }
   if (geenPagina.length) {

@@ -1624,22 +1624,27 @@
       "subclasses": {
         "Alchemist": {
           "levels": {},
-          "boek": "Tasha's Cauldron of Everything",
+          "boek": "Eberron: Forge of the Artificer",
           "herkomst": "overgenomen"
         },
         "Armorer": {
           "levels": {},
-          "boek": "Tasha's Cauldron of Everything",
+          "boek": "Eberron: Forge of the Artificer",
           "herkomst": "overgenomen"
         },
         "Artillerist": {
           "levels": {},
-          "boek": "Tasha's Cauldron of Everything",
+          "boek": "Eberron: Forge of the Artificer",
           "herkomst": "overgenomen"
         },
         "Battle Smith": {
           "levels": {},
-          "boek": "Tasha's Cauldron of Everything",
+          "boek": "Eberron: Forge of the Artificer",
+          "herkomst": "overgenomen"
+        },
+        "Cartographer": {
+          "levels": {},
+          "boek": "Eberron: Forge of the Artificer",
           "herkomst": "overgenomen"
         }
       }

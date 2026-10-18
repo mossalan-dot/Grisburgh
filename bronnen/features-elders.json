@@ -384,23 +384,23 @@
     ],
     "Arcana Domain": [
       {
-        "naam": "Arcane Initiate",
+        "naam": "Arcana Domain Spells",
         "level": 3
       },
       {
-        "naam": "Channel Divinity: Arcane Abjuration",
+        "naam": "Modify Magic",
         "level": 3
       },
       {
-        "naam": "Spell Breaker",
+        "naam": "Student of Arcana",
+        "level": 3
+      },
+      {
+        "naam": "Dispelling Recovery",
         "level": 6
       },
       {
-        "naam": "Potent Spellcasting",
-        "level": 8
-      },
-      {
-        "naam": "Arcane Mastery",
+        "naam": "Magical Mastery",
         "level": 17
       }
     ],
@@ -432,15 +432,15 @@
     ],
     "Grave Domain": [
       {
+        "naam": "Grave Domain Spells",
+        "level": 3
+      },
+      {
         "naam": "Circle of Mortality",
         "level": 3
       },
       {
-        "naam": "Eyes of the Grave",
-        "level": 3
-      },
-      {
-        "naam": "Channel Divinity: Path to the Grave",
+        "naam": "Path to the Grave",
         "level": 3
       },
       {
@@ -448,11 +448,7 @@
         "level": 6
       },
       {
-        "naam": "Potent Spellcasting",
-        "level": 8
-      },
-      {
-        "naam": "Keeper of Souls",
+        "naam": "Divine Reaper",
         "level": 17
       }
     ],
@@ -624,16 +620,24 @@
         "level": 3
       },
       {
-        "naam": "Magic Arrow",
-        "level": 7
-      },
-      {
         "naam": "Curving Shot",
         "level": 7
       },
       {
+        "naam": "Magical Ammunition",
+        "level": 7
+      },
+      {
         "naam": "Ever-Ready Shot",
+        "level": 10
+      },
+      {
+        "naam": "Indomitable Teleport",
         "level": 15
+      },
+      {
+        "naam": "Masterful Shots",
+        "level": 18
       }
     ],
     "Cavalier": [
@@ -1086,15 +1090,19 @@
     ],
     "Phantom": [
       {
-        "naam": "Whispers of the Dead",
-        "level": 3
-      },
-      {
         "naam": "Wails from the Grave",
         "level": 3
       },
       {
+        "naam": "Whispers of the Dead",
+        "level": 3
+      },
+      {
         "naam": "Tokens of the Departed",
+        "level": 9
+      },
+      {
+        "naam": "Voice of Death",
         "level": 9
       },
       {
@@ -1474,7 +1482,7 @@
     ],
     "Alchemist": [
       {
-        "naam": "Tool Proficiency",
+        "naam": "Tools of the Trade",
         "level": 3
       },
       {
@@ -1520,7 +1528,7 @@
         "level": 5
       },
       {
-        "naam": "Armor Modifications",
+        "naam": "Improved Armorer",
         "level": 9
       },
       {
@@ -1530,7 +1538,7 @@
     ],
     "Artillerist": [
       {
-        "naam": "Tool Proficiency",
+        "naam": "Tools of the Trade",
         "level": 3
       },
       {
@@ -1556,7 +1564,7 @@
     ],
     "Battle Smith": [
       {
-        "naam": "Tool Proficiency",
+        "naam": "Tools of the Trade",
         "level": 3
       },
       {
@@ -1590,19 +1598,19 @@
         "level": 3
       },
       {
-        "naam": "Channel Divinity: Knowledge of the Ages",
+        "naam": "Knowledge Domain Spells",
         "level": 3
       },
       {
-        "naam": "Channel Divinity: Read Thoughts",
+        "naam": "Mind Magic",
+        "level": 3
+      },
+      {
+        "naam": "Unfettered Mind",
         "level": 6
       },
       {
-        "naam": "Potent Spellcasting",
-        "level": 8
-      },
-      {
-        "naam": "Visions of the Past",
+        "naam": "Divine Foreknowledge",
         "level": 17
       }
     ],
@@ -2635,6 +2643,36 @@
         "naam": "Doomed to the Shadows",
         "level": 15
       }
+    ],
+    "Cartographer": [
+      {
+        "naam": "Tools of the Trade",
+        "level": 3
+      },
+      {
+        "naam": "Cartographer Spells",
+        "level": 3
+      },
+      {
+        "naam": "Adventurer's Atlas",
+        "level": 3
+      },
+      {
+        "naam": "Mapping Magic",
+        "level": 3
+      },
+      {
+        "naam": "Guided Precision",
+        "level": 5
+      },
+      {
+        "naam": "Ingenious Movement",
+        "level": 9
+      },
+      {
+        "naam": "Superior Atlas",
+        "level": 15
+      }
     ]
   },
   "species": {
@@ -2868,5 +2906,5 @@
       "Inner Magic"
     ]
   },
-  "_niveaus": "Een naam mag een level dragen: {\"naam\": \"…\", \"level\": 3}. De PHB 2024 is leidend: wat op dnd2024.wikidot.com als Player's Handbook staat is overgenomen met scripts/srd-2024/subclasses-2024.js, waar naam en level in dezelfde kop staan. De rest is opgehaald met scripts/srd-2024/elders-niveaus.js van dnd5e.wikidot.com — de kop is de naam, de eerste levelvermelding eronder is het level; een \"Channel Divinity: …\"-optie deelt het level van de Channel Divinity-feature waar hij onder staat. Alleen waar de naam exact overeenkomt: een kop die wij niet kennen hoort bij een andere druk. Bij een subclass die de app als 2024-materiaal meebrengt wordt bovendien alleen een level overgenomen dat deze class zijn subclasses ook echt geeft — wikidot beschrijft 2014, en daar begint een Cleric-domein op level 1. De elf subclasses die alleen in 2024 bestaan hebben geen wikidotpagina; hun levels komen uit de campagne van Grisburgh, waar de DM ze zelf had ingevuld. Het level is dat van het boek waar de subclass in staat; dat boek staat op zijn kaartje erbij. De species hebben geen level: een trait hoort bij wie je bent, niet bij een level."
+  "_niveaus": "Een naam mag een level dragen: {\"naam\": \"…\", \"level\": 3}. De nieuwste druk is leidend: wat op dnd2024.wikidot.com staat is overgenomen — de PHB 2024 waar die hem heeft, en anders het boek dat hem opnieuw uitgaf (Eberron voor de Artificer, Heroes of Faerûn voor het Knowledge Domain, Ravenloft voor Grave en Phantom, Arcana Unleashed voor Arcana Domain en Arcane Archer). Proefdrukken (UA) tellen niet mee. Overgenomen met scripts/srd-2024/subclasses-2024.js, waar naam en level in dezelfde kop staan. De rest is opgehaald met scripts/srd-2024/elders-niveaus.js van dnd5e.wikidot.com — de kop is de naam, de eerste levelvermelding eronder is het level; een \"Channel Divinity: …\"-optie deelt het level van de Channel Divinity-feature waar hij onder staat. Alleen waar de naam exact overeenkomt: een kop die wij niet kennen hoort bij een andere druk. Bij een subclass die de app als 2024-materiaal meebrengt wordt bovendien alleen een level overgenomen dat deze class zijn subclasses ook echt geeft — wikidot beschrijft 2014, en daar begint een Cleric-domein op level 1. De elf subclasses die alleen in 2024 bestaan hebben geen wikidotpagina; hun levels komen uit de campagne van Grisburgh, waar de DM ze zelf had ingevuld. Het level is dat van het boek waar de subclass in staat; dat boek staat op zijn kaartje erbij. De species hebben geen level: een trait hoort bij wie je bent, niet bij een level."
 }

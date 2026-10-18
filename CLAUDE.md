@@ -1718,7 +1718,7 @@ in `_load()` (`render-spreuken.js`), ontdubbeld op `index`:
 > **En wát ze geven.** Neemt de DM er een over, dan stond er daarna een leeg
 > kaartje: je zag dát de Hexblade bestaat, niet wát hij geeft.
 > `bronnen/features-elders.json` noemt daarom de **namen** van hun features —
-> 110 subclasses, 29 species uit `volkenOverig` en de drie classes die de app
+> 111 subclasses, 40 species uit `volkenOverig` en de drie classes die de app
 > zonder tekst meebrengt (Artificer, Blood Hunter, Illrigger), samen 698
 > namen — en verder niets: geen tekst, geen regels. Een naam mág een level
 > dragen (`{naam, level}`) — 578 van de 588 bij classes en subclasses hebben er
