@@ -7302,7 +7302,7 @@ router.patch('/player-profile/:characterId', attachRole, (req, res) => {
   if (!dmState.playerProfiles) dmState.playerProfiles = {};
   const existing = dmState.playerProfiles[characterId] || {};
   const allowed = [
-    'level', 'klasse', 'subclass', 'background', 'origin', 'bloodStatus', 'spellSaveDC', 'spellAttackBonus',
+    'level', 'klasse', 'subclass', 'background', 'origin', 'originVariant', 'bloodStatus', 'spellSaveDC', 'spellAttackBonus',
     'str', 'dex', 'con', 'int', 'wis', 'cha',
     'ac', 'speed', 'initiative', 'profBonus', 'hitDie',
     'deathSaveSuccesses', 'deathSaveFailures',

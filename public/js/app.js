@@ -9,7 +9,7 @@ import { renderBestiarium } from './render-bestiarium.js?v=31';
 import { renderSpreuken } from './render-spreuken.js?v=48';
 import './render-handleiding.js?v=2';
 import './render-melding.js?v=4';
-import { renderVaardigheden, zoekVaardigheden, heldenboekTekst } from './render-vaardigheden.js?v=67';
+import { renderVaardigheden, zoekVaardigheden, heldenboekTekst } from './render-vaardigheden.js?v=68';
 import { renderStatblock } from './render-statblock.js?v=9';
 import { initSocket } from "./socket-client.js?v=85";
 import { initDmPanel } from "./dm-panel.js?v=405";
@@ -3714,6 +3714,22 @@ function _progClassKey(prog, klasse) {
 
 // Bouw een profiel-dropdown. Bestaande (mogelijk niet-canonieke) waarde blijft selecteerbaar
 // zodat er geen data verloren gaat; de speler kan zo overstappen op een canonieke optie.
+// De keuze binnen een species (Fiendish Legacy, Elven Lineage). Eén bestand,
+// één keer ophalen; staat er niets voor dit species, dan is er niets te kiezen
+// en komt de rij er ook niet.
+let _speciesVariantenCache = null;
+function _speciesVariant(volk) {
+  if (!volk || !_speciesVariantenCache) return null;
+  return _speciesVariantenCache[volk] || null;
+}
+async function _speciesVariantenLaden() {
+  if (_speciesVariantenCache) return;
+  try {
+    const r = await api.get('/bron/species-varianten');
+    _speciesVariantenCache = r?.species || {};
+  } catch { _speciesVariantenCache = {}; }
+}
+
 function _ppfSelectField(field, current, options, placeholder, extraOnchange = '') {
   const cur = current ?? '';
   const opts = [...options];
@@ -7804,6 +7820,7 @@ async function renderMijnKarakter(opts = {}) {
   }
   // Allow inline HTML event handlers to re-render with same opts
   window._reRenderKarakter = () => renderMijnKarakter(opts);
+  await _speciesVariantenLaden();
 
 
   // Laad data parallel
@@ -8197,6 +8214,17 @@ async function renderMijnKarakter(opts = {}) {
                 ? _ppfSelectField('origin', playerProfile.origin, _originOpts, '—')
                 : `<input class="ppf-input" type="text" value="${esc(playerProfile.origin ?? '')}" placeholder="—"
                 onblur="window._saveProfileField('origin', this.value)">`}</div>
+            <!-- Een species heeft soms een keuze binnen zichzelf: een Tiefling
+                 kiest zijn Fiendish Legacy, een Elf zijn lineage. Dat is voor
+                 een species wat een subclass voor een class is, en het hoorde
+                 dus net zo goed op zijn blad te staan. De rij verschijnt alleen
+                 bij een species dat iets te kiezen heeft. -->
+            ${(() => {
+              const v = _speciesVariant(playerProfile.origin);
+              if (!v) return '';
+              return `<div class="ppf-row"><label class="ppf-label">${esc(v.keuze)}</label>
+                ${_ppfSelectField('originVariant', playerProfile.originVariant, v.opties, '—')}</div>`;
+            })()}
             ${isHp ? `<div class="ppf-row"><label class="ppf-label">Blood Status</label>
               <input class="ppf-input" type="text" value="${esc(playerProfile.bloodStatus ?? '')}" placeholder="—"
                 onblur="window._saveProfileField('bloodStatus', this.value)"></div>` : ''}
