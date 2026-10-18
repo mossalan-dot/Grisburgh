@@ -328,6 +328,16 @@ app.js      : api.js?v=296  dm-panel.js?v=312  media-picker.js?v=8  tafels.js?v=
 dm-panel.js : combat-canvas.js?v=29   render-statblock.js?v=9
 ```
 
+> **Een importeur moet zelf ook opschuiven.** `index.html` vraagt om `app.js?v=N`.
+> Verander je alleen een import *binnenin* (`render-vaardigheden.js?v=M`), dan haalt een
+> browser die `app.js?v=N` al in zijn cache heeft hem niet opnieuw op — en importeert hij
+> eeuwig de oude M. Je ziet er niets van: de server levert het nieuwe bestand netjes,
+> alleen vraagt niemand erom. **Dit ging op 19 okt 2026 echt mis**: vier ronden werk
+> stonden op productie terwijl de DM naar de stand van ervoor keek, en meldde als bug wat
+> al gerepareerd was. Bewaakt door `scripts/uitrollen.sh` (*elke importeur schoof mee op*):
+> die vergelijkt de importlijst van `app.js` en `dm-panel.js` met wat er op de server
+> staat, en weigert als die veranderd is zonder dat hun eigen nummer omhoog ging.
+
 > **Eén bestand = één URL.** ES-modules met verschillende `?v=`-nummers zijn aparte
 > module-instanties (eigen state!) én omzeilen de cache-busting. Bij een versiebump dus
 > **alle** importerende bestanden meenemen — ook de dynamische `import(...)`-aanroepen in

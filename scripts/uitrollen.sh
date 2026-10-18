@@ -85,6 +85,36 @@ if [ -n "$SCHEEF" ]; then
 fi
 ok "elk bestand onder één ?v="
 
+# **Een importeur moet zelf ook opschuiven.** `index.html` vraagt om
+# `app.js?v=N`. Verander je alleen een import dáárbinnen (`render-x.js?v=M`),
+# dan haalt een browser die app.js al onder datzelfde nummer in zijn cache
+# heeft hem niet opnieuw op — en importeert hij eeuwig de oude M. Je ziet er
+# niets van: de server levert het nieuwe bestand netjes, alleen vraagt niemand
+# erom. Dit is één keer echt misgegaan (19 okt 2026): vier ronden werk stonden
+# op de server en de DM keek naar de stand van ervoor.
+for IMPORTEUR in app.js dm-panel.js; do
+  LOKAAL=$(grep -ohE "\./[a-z-]+\.js\?v=[0-9]+" "public/js/$IMPORTEUR" 2>/dev/null | sort | md5 -q 2>/dev/null \
+           || grep -ohE "\./[a-z-]+\.js\?v=[0-9]+" "public/js/$IMPORTEUR" 2>/dev/null | sort | md5sum | cut -d' ' -f1)
+  OP_SERVER=$(ssh -n "$SERVER" "grep -ohE '\./[a-z-]+\.js\?v=[0-9]+' $DOEL/public/js/$IMPORTEUR 2>/dev/null | sort" \
+              | { md5 -q 2>/dev/null || md5sum | cut -d' ' -f1; })
+  [ "$LOKAAL" = "$OP_SERVER" ] && continue
+  # De importlijst verandert — dan moet zijn eigen nummer ook omhoog.
+  if [ "$IMPORTEUR" = "app.js" ]; then
+    EIGEN_LOKAAL=$(grep -o "app\.js?v=[0-9]*" public/index.html | head -1)
+    EIGEN_SERVER=$(ssh -n "$SERVER" "grep -o 'app\.js?v=[0-9]*' $DOEL/public/index.html | head -1")
+  else
+    EIGEN_LOKAAL=$(grep -o "dm-panel\.js?v=[0-9]*" public/js/app.js | head -1)
+    EIGEN_SERVER=$(ssh -n "$SERVER" "grep -o 'dm-panel\.js?v=[0-9]*' $DOEL/public/js/app.js | head -1")
+  fi
+  if [ "$EIGEN_LOKAAL" = "$EIGEN_SERVER" ]; then
+    fout "$IMPORTEUR importeert iets nieuws, maar staat zelf nog op $EIGEN_LOKAAL."
+    echo "      Een browser die hem onder dat nummer in de cache heeft, haalt hem niet opnieuw op"
+    echo "      en blijft de oude import gebruiken. Hoog $IMPORTEUR zelf ook op en probeer opnieuw."
+    exit 1
+  fi
+done
+ok "elke importeur schoof mee op"
+
 if [ "$DROOG" = 1 ]; then
   zeg "Droogdraai — hier zou de uitrol beginnen. Mee zouden gaan:"
   printf '      %s\n' "${PADEN[@]}"
