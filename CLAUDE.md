@@ -2426,6 +2426,27 @@ factie — `star` betekent in de app al *favoriet*), `award` (factie-boon), `bac
 > `icons.svg?v=N` staat in `app.js`, `index.html`, `render-dungeon.js`,
 > `render-relatiemap.js` én `combat-canvas.js` — één bestand, één versie.
 
+> **Een tabel in een vaardigheidstekst is platgeslagen binnengekomen.** Elf teksten in
+> `bronnen/srd-features.json` dragen er een (de domeinspreuken, Draconic/Fiend Spells, het
+> omrekenen van spell slots), en ze stonden er als een alinea met pijpjes: geen streepjesrij,
+> geen pijp aan de rand, de titel vastgeplakt aan de eerste kolomkop ("Draconic Spells
+> Sorcerer Level | Spells"), en soms twee rijen op één regel ("5 | Fear, Fly 7 | Arcane
+> Eye"). `_tabellenUit()` in `render-vaardigheden.js` herkent ze aan wat er wél staat —
+> opeenvolgende regels met een pijp — en zet een merkteken `@@tafelN@@` in de tekst, want
+> `mdToHtml()` kent deze vorm niet en zou hem opeten.
+> **Het uit elkaar halen van een doorgelopen regel gaat op het kolomaantal van de kop**,
+> niet op een regex: een kale "getal met een pijp"-regel knipt `1 | 2 | 2` middendoor.
+> De titel komt uit de tekst erboven, maar **telt pas als hij ergens op slaat** — hij moet
+> het begin van de kolomkop zijn of de losse regel er direct boven. Font of Magic noemt
+> namelijk "the Sorcerer Features table", en die staat daar helemaal niet.
+> De tabel leent `.akte-tabel`: dat is de enige tabelstijl die de app heeft.
+> **Bewaren als tafel kan alleen bij een worptabel** (de eerste kolomkop noemt een steen),
+> precies zoals bij een `|`-tabel in een akte — een spreukenlijst per level hoort niet als
+> "rol maar" in de tafelbibliotheek. Het is een **kopie**: de tekst van de feature blijft
+> staan. Bewaakt door `tests/vaardigheden-tabellen.test.js`, die het blok uit de module
+> knipt en in een `vm` draait (zelfde truc als `scripts/helpteksten.js` met HELP_CONFIG) —
+> de toets hoort op de échte code en de échte bronteksten te staan.
+
 > **Elk species heeft een eigen icoon.** `SPECIES_ICOON` in `render-vaardigheden.js` dekt
 > alle achtenvijftig; eerder stonden er dertien en viel de rest terug op `user`, waardoor
 > de tegelrij vijfenveertig identieke poppetjes toonde. Het icoon is daar het enige

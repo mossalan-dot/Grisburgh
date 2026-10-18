@@ -1567,6 +1567,18 @@ Grisburghs **data** te staan — niet in de code.
       traits staan als kaartjes in het raster. Dit was de enige plek waar de
       kolom helemaal wegviel — een species zonder varianten kreeg er geen, en
       juist daar zit bij dit volk alles in.
+- [ ] **Een tabel in een vaardigheidstekst is een tabel** (ALL) — open *Classes*
+      → *Sorcerer*, vink **Draconic Sorcery** aan en klik op *Draconic Spells*:
+      onder de zin staat een echte tabel met *Sorcerer Level* en *Spells*, met
+      **Draconic Spells** als bovenschrift (en dus niet nog eens vastgeplakt aan
+      de kolomkop). Let op de rij van level 5 en 7: die stonden in de brontekst
+      op één regel aan elkaar en horen nu twee rijen te zijn. Er staat géén knop
+      *Bewaren als tafel* — dit is een overzicht, geen worptabel. Zelfde proef
+      bij *Font of Magic* (Sorcerer) en de domeinspreuken van een Cleric.
+- [ ] **Een worptabel kun je wél bewaren** (DM) — tik in een eigen feature een
+      tabel met `| d6 | … |` als kop: dan staat er *Bewaren als tafel* onder, en
+      na een klik staat hij in de Tafels-tab. De tekst van de feature blijft
+      ongemoeid — het is een kopie, net als bij een tabel in een akte.
 - [ ] **Zoeken gaat dwars door de deuren** (ALL) — typ *battle master* terwijl
       je in Classes staat: je krijgt treffers uit alles, met een regel
       *Resultaten voor…* en een knop terug. Veeg het veld leeg en je staat weer

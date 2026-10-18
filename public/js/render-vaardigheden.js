@@ -2119,6 +2119,116 @@ function _uitlegVenster(soort, naam, bron) {
     </div>`, 'hulp_heldenboek_kaart');
 }
 
+// ── Een tabel in een vaardigheidstekst ──────────────────────────────────────
+// Elf features dragen er een — de spreukentabel van een domein, de Draconic
+// Spells van een Sorcerer — en ze stonden er als een alinea met pijpjes in.
+// Het ís geen markdown-tabel en we kunnen hem ook niet als zodanig inlezen: de
+// SRD-import heeft hem platgeslagen. Geen streepjesrij eronder, geen pijp aan
+// het begin of eind, de titel soms vastgeplakt aan de eerste kolomkop
+// ("Draconic Spells Sorcerer Level | Spells"), en twee rijen kunnen op één
+// regel staan ("5 | Fear, Fly 7 | Arcane Eye").
+//
+// Dus herkennen we hem aan wat er wél staat: opeenvolgende regels met een pijp
+// erin. De kop van de tabel staat meestal in de zin ervoor ("specified in the
+// Draconic Spells table"); die naam halen we daar weg en zetten we erboven,
+// zodat hij niet twee keer in de eerste kolomkop blijft plakken.
+const _TAFELKOP = /\bthe ([A-Z][\w'’ -]*?) table\b/g;
+// De tabellen van het kaartje dat nu openstaat — de knop *Bewaren als tafel*
+// verwijst ernaar met zijn nummer, net zoals de akte dat met zijn regelnummer
+// doet.
+let _tabelBak = [];
+
+// Een regel die doorloopt uit elkaar halen. Niet op gevoel — op het aantal
+// kolommen dat de kop noemt. Een kale regex op "een getal met een pijp" knipt
+// `1 | 2 | 2` middendoor; de kop zegt dat die rij drie cellen heeft en dan is
+// er niets te knippen. Alleen waar er cellen óver zijn kan er een volgend
+// rijnummer aan de laatste cel vastgeplakt zitten ("Fear, Fly 7").
+function _rijenUit(cellen, n) {
+  const rijen = [];
+  let rij = [];
+  for (let i = 0; i < cellen.length; i++) {
+    if (rij.length === n - 1) {
+      const m = (i < cellen.length - 1) && /^(.*\S)\s+(\d{1,2})$/.exec(cellen[i]);
+      if (m) { rijen.push([...rij, m[1]]); rij = [m[2]]; continue; }
+      rijen.push([...rij, cellen[i]]); rij = []; continue;
+    }
+    rij.push(cellen[i]);
+  }
+  if (rij.length) rijen.push(rij);
+  return rijen;
+}
+
+function _tabellenUit(tekst) {
+  const bron = String(tekst || '');
+  if (!bron.includes(' | ')) return { tekst: bron, tabellen: [] };
+  const regels = bron.split('\n').map(r => r.trim());
+
+  const uit = [], tabellen = [];
+  for (let i = 0; i < regels.length; i++) {
+    const rij = (n) => (regels[n] || '').includes(' | ');
+    if (!rij(i) || !rij(i + 1)) { uit.push(regels[i]); continue; }
+    let eind = i;
+    while (rij(eind + 1)) eind++;
+    const cel = (r) => r.split('|').map(c => c.trim());
+    const kopCellen = cel(regels[i]);
+    const blok = [kopCellen, ...regels.slice(i + 1, eind + 1)
+      .flatMap(r => _rijenUit(cel(r), kopCellen.length))];
+
+    // Hoe heet deze tabel? Uit de tekst erboven, en dan weg uit de kolomkop —
+    // anders staat de titel twee keer: boven de tabel en vastgeplakt aan de
+    // eerste kolom.
+    //
+    // Twee vormen, en een naam telt pas als hij ergens op slaat: hij moet óf
+    // het begin van de eerste kolomkop zijn ("Draconic Spells Sorcerer
+    // Level"), óf de losse regel er direct boven ("Life Domain Spells"). Zo
+    // niet, dan noemde die zin een ándere tabel — in Font of Magic staat "the
+    // Sorcerer Features table", en die bestaat hier helemaal niet.
+    const ervoor = uit.join('\n');
+    const past = (k) => !!k && (blok[0][0].startsWith(k + ' ')
+      || (uit.length && uit[uit.length - 1].trim() === k));
+    // De laatste vermelding, niet de eerste: die staat het dichtst bij de tabel.
+    const genoemd = [...ervoor.matchAll(_TAFELKOP)].map(m => m[1]);
+    let kop = genoemd.filter(past).pop() || '';
+    // Staat het er nergens als "the X table", dan hangt de titel nog steeds aan
+    // de kolomkop ("Creating Spell Slots Spell Slot Level"). Hij komt dan wel
+    // als tussenkopje in de tekst erboven voor: neem het langste begin van die
+    // kolomkop dat hierboven letterlijk staat.
+    if (!kop) {
+      const woorden = blok[0][0].split(' ');
+      for (let w = woorden.length - 1; w >= 2; w--) {
+        const stuk = woorden.slice(0, w).join(' ');
+        if (ervoor.includes(stuk)) { kop = stuk; break; }
+      }
+    }
+    let naam = '';
+    if (kop && blok[0][0].startsWith(kop + ' ')) { naam = kop; blok[0][0] = blok[0][0].slice(kop.length + 1); }
+    else if (kop && uit.length && uit[uit.length - 1].trim() === kop) { naam = uit.pop(); }
+
+    tabellen.push({ naam, kop: blok[0], rijen: blok.slice(1) });
+    uit.push(`@@tafel${tabellen.length - 1}@@`);
+    i = eind;
+  }
+  return { tekst: uit.join('\n'), tabellen };
+}
+
+// De tabel als tabel, met dezelfde opmaak als in een akte — dat is de enige
+// tabelstijl die de app heeft, en twee zouden er een te veel zijn.
+function _tabelHtml(t, nr) {
+  const dobbel = window.tafels?.dobbelUitKop?.(t.kop[0]);
+  // Bewaren als tafel kan alleen bij een **worptabel**: zelfde regel als bij
+  // een |-tabel in een akte. Een spreukenlijst per level is een overzicht, en
+  // die hoort niet als "rol maar" in de tafelbibliotheek te belanden.
+  return `<div class="vd-tabelblok">
+    ${t.naam ? `<p class="vd-tabelkop">${esc(t.naam)}</p>` : ''}
+    <table class="akte-tabel"${dobbel ? ` data-dobbel="${esc(dobbel)}"` : ''}>
+      <thead><tr>${t.kop.map(c => `<th>${esc(c)}</th>`).join('')}</tr></thead>
+      <tbody>${t.rijen.map(r => `<tr>${r.map(c => `<td>${esc(c)}</td>`).join('')}</tr>`).join('')}</tbody>
+    </table>
+    ${(dobbel && isDM()) ? `<button class="dm-btn dm-btn-ghost dm-btn-sm"
+      onclick="window.vaardigheden.tabelBewaren(${nr})">${icon('dices')} Bewaren als tafel</button>` : ''}
+  </div>`;
+}
+
 function _open(key, vanWaar = null) {
   const it = (_all || []).find(x => x.key === key);
   if (!it) return;
@@ -2128,8 +2238,13 @@ function _open(key, vanWaar = null) {
   _vanWaarNu = key;                 // verwijzingen in deze tekst wijzen hierheen terug
   const s = SOORTEN[it.soort] || SOORTEN.class;
   const tekst = _tekst(it);
+  // De tabellen gaan er eerst uit en na het opmaken weer in: `mdToHtml` kent
+  // deze platgeslagen vorm niet, en een merkteken overleeft hem ongeschonden.
+  const stuk = _tabellenUit(tekst);
+  _tabelBak = stuk.tabellen;
   const body = tekst
-    ? `<div class="prog-detail-desc">${_verwijzingen(_bron?.md?.(tekst) ?? esc(tekst))}</div>`
+    ? `<div class="prog-detail-desc">${_verwijzingen(_bron?.md?.(stuk.tekst) ?? esc(stuk.tekst))
+        .replace(/@@tafel(\d+)@@/g, (m, n) => _tabelHtml(stuk.tabellen[n], Number(n)))}</div>`
     : (_bron?.geenTekstBlok?.(it.naam) ?? '');
   // Kwam je ergens vandaan, dan hoort er een weg terug te zijn. Zonder dit
   // opende een background zijn feat en stond je vast: het featkaartje weet
@@ -2864,6 +2979,21 @@ window.vaardigheden = {
     await _load(); await _klasseExtra();
     _subAan.add(naam);
     _bandHerteken(); _refreshFilterBar(); _paint();
+  },
+  // Een worptabel uit een vaardigheidstekst in de tafelbibliotheek zetten.
+  // Een **kopie**, net als bij een |-tabel in een akte: de tekst van de
+  // feature blijft zoals hij is, anders verandert het bewaren stilzwijgend wat
+  // er op het kaartje staat.
+  async tabelBewaren(nr) {
+    const t = _tabelBak[nr];
+    if (!t) return;
+    const regels = [t.kop, ...t.rijen].map(r => '| ' + r.join(' | ') + ' |');
+    const tafel = window.tafels?.uitMarkdown?.(regels, t.naam || '');
+    if (!tafel) { alert('Dit is geen worptabel — de eerste kolom hoort een steen te noemen (d6, d100).'); return; }
+    try {
+      await api.post('/tables', tafel);
+      window._showToast?.(`"${tafel.name}" staat nu in de Tafels-tab.`);
+    } catch (e) { alert('Bewaren mislukt: ' + (e.message || e)); }
   },
   // Een variant die we bij naam kennen bij dit species zetten. Zelfde gebaar
   // als bij een subclass uit een ander boek, en nodig omdat een species dat er
