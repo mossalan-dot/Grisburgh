@@ -2464,6 +2464,17 @@ function _editorHtml() {
         <input class="dm-input" id="vd-naam" value="${esc(e.naam || '')}"
           placeholder="${esc(_NAAM_HINT[maaksel.id] || 'Bijv. Vlasbaards Greep')}">
       </div>
+      ${houder ? `
+      <!-- Dezelfde regel als in het bewerkvenster: een houder draagt onder zijn
+           soort één regel van zichzelf. Die stond daar wel en hier niet, dus
+           moest je een nieuwe subclass eerst aanmaken en daarna nog eens openen
+           om hem te geven — terwijl je op dat moment precies weet wat er staan
+           moet. -->
+      <div class="dm-form-row">
+        <label class="dm-form-label" for="vd-onder">Ondertitel</label>
+        <input class="dm-input" id="vd-onder" maxlength="120" value="${esc(e.ondertitel || '')}"
+          placeholder="Eén regel onder de soort — bijv. &quot;Woede als wapen&quot;">
+      </div>` : ''}
       <div class="dm-form-row">
         <label class="dm-form-label" for="vd-herkomst">Herkomst</label>
         <select class="dm-input" id="vd-herkomst" onchange="window.vaardigheden.veld('herkomst',this.value)"
@@ -2632,6 +2643,7 @@ function _editorLees() {
   if (v('vd-naam') !== undefined) _edit.naam = v('vd-naam');
   if (v('vd-desc') !== undefined) _edit.desc = v('vd-desc');
   if (v('vd-herkomst') !== undefined) _edit.herkomst = v('vd-herkomst');
+  if (v('vd-onder') !== undefined) _edit.ondertitel = v('vd-onder');
   if (v('vd-level') !== undefined) _edit.level = Number(v('vd-level')) || 1;
   if (v('vd-sub') !== undefined) _edit.sub = v('vd-sub');
   if (v('vd-bron') !== undefined) _edit.bron = v('vd-bron');
@@ -2740,6 +2752,7 @@ window.vaardigheden = {
         const houderNaam = _edit.naam.trim();
         await api.nieuweHouder({ soort: maaksel.soort, naam: houderNaam, bron: _edit.bron || '',
           desc: _edit.desc || '', boek: _edit.bronTekst || '', herkomst: _edit.herkomst || '',
+          ondertitel: _edit.ondertitel || '',
           ...((maaksel.soort === 'subclass' || maaksel.soort === 'variant') && _edit.kleur ? { kleur: _edit.kleur } : {}) });
         // De gekozen plaat ging hier verloren. Het beeld van een class, subclass
         // of species staat niet in de progressie maar in `meta.heldenboek`

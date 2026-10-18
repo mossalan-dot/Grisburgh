@@ -1579,6 +1579,10 @@ Grisburghs **data** te staan — niet in de code.
       tabel met `| d6 | … |` als kop: dan staat er *Bewaren als tafel* onder, en
       na een klik staat hij in de Tafels-tab. De tekst van de feature blijft
       ongemoeid — het is een kopie, net als bij een tabel in een akte.
+- [ ] **Aanmaken vraagt hetzelfde als bewerken** (DM) — plus rechtsboven →
+      *Een nieuwe subclass*: er staat een veld **Ondertitel**, net als in het
+      bewerkvenster. Vul hem meteen in en bewaar; de regel staat op het kaartje
+      zonder dat je het daarna nog eens hoeft te openen.
 - [ ] **Zoeken gaat dwars door de deuren** (ALL) — typ *battle master* terwijl
       je in Classes staat: je krijgt treffers uit alles, met een regel
       *Resultaten voor…* en een knop terug. Veeg het veld leeg en je staat weer
