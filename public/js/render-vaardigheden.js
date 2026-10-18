@@ -1877,7 +1877,7 @@ function _beeldBlokVernieuwen(soort, naam, beeld) {
 // kaartje, en leeg laten betekent nog steeds "neem wat de app weet".
 function _basisMulti(klasse, welk) {
   const b = _basisVan(klasse);
-  const eigen = String(welk === 'eis' ? b.multiEis : b.multiTraining || '').trim();
+  const eigen = String((welk === 'eis' ? b.multiEis : b.multiTraining) || '').trim();
   if (eigen) return eigen;
   const mc = _mcVan(klasse);
   if (!mc) return '';
