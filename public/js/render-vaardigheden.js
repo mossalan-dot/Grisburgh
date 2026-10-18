@@ -1724,9 +1724,15 @@ function _verwijzingen(html) {
   return String(html).replace(/\[\[([^\]|]+?)(?:\|([^\]]+?))?\]\]/g, (heel, naam, alias) => {
     const doel = (_all || []).find(x => x.naam.toLowerCase() === naam.trim().toLowerCase());
     const tekst = esc((alias || naam).trim());
-    return doel
-      ? `<a class="spreuk-verwijzing" onclick="window.vaardigheden.open('${escA(doel.key)}','${escA(_vanWaarNu || '')}')" title="Open ${tekst}">${tekst}</a>`
-      : tekst;
+    if (doel) {
+      return `<a class="spreuk-verwijzing" onclick="window.vaardigheden.open('${escA(doel.key)}','${escA(_vanWaarNu || '')}')" title="Open ${tekst}">${tekst}</a>`;
+    }
+    // Geen class feature, geen feat, geen background — dan nog kan het een
+    // **spreuk** zijn. Die staan niet in `_all` (dat is het Heldenboek, niet de
+    // spreukenbibliotheek), dus markeren we hem en laat de bibliotheek er een
+    // knop van maken zodra hij geladen is. Blijkt het ook geen spreuk, dan
+    // blijft er gewoon de naam staan — en niet de vierkante haken.
+    return `<span class="sb-spellijst">${tekst}</span>`;
   });
 }
 
@@ -2253,6 +2259,17 @@ function _tabellenUit(tekst) {
 // is het een schild. Alleen dáár maken we namen klikbaar.
 const _SPREUKKOLOM = /\bspells?\b|\bspreuk/i;
 
+// Een cel is een stukje tekst zoals elk ander: vet, cursief en [[verwijzingen]]
+// horen er te werken. Ze gingen kaal door `esc()`, dus stonden de vierkante
+// haken er letterlijk in. `md()` maakt er een alinea van en die pellen we eraf
+// — in een cel hoort geen <p>.
+function _celHtml(tekst) {
+  const kaal = String(tekst ?? '');
+  if (!kaal.trim()) return '';
+  const html = _bron?.md?.(kaal) ?? esc(kaal);
+  return _verwijzingen(html.replace(/^\s*<p>([\s\S]*?)<\/p>\s*$/, '$1'));
+}
+
 function _tabelHtml(t, nr) {
   const dobbel = window.tafels?.dobbelUitKop?.(t.kop[0]);
   const spreukKolom = t.kop.map(k => _SPREUKKOLOM.test(k));
@@ -2260,11 +2277,11 @@ function _tabelHtml(t, nr) {
   // een |-tabel in een akte. Een spreukenlijst per level is een overzicht, en
   // die hoort niet als "rol maar" in de tafelbibliotheek te belanden.
   return `<div class="vd-tabelblok">
-    ${t.naam ? `<p class="vd-tabelkop">${esc(t.naam)}</p>` : ''}
+    ${t.naam ? `<p class="vd-tabelkop">${_celHtml(t.naam)}</p>` : ''}
     <table class="akte-tabel"${dobbel ? ` data-dobbel="${esc(dobbel)}"` : ''}>
-      <thead><tr>${t.kop.map(c => `<th>${esc(c)}</th>`).join('')}</tr></thead>
+      <thead><tr>${t.kop.map(c => `<th>${_celHtml(c)}</th>`).join('')}</tr></thead>
       <tbody>${t.rijen.map(r => `<tr>${r.map((c, i) =>
-        `<td${spreukKolom[i] ? ' class="sb-spellijst"' : ''}>${esc(c)}</td>`).join('')}</tr>`).join('')}</tbody>
+        `<td${spreukKolom[i] ? ' class="sb-spellijst"' : ''}>${_celHtml(c)}</td>`).join('')}</tr>`).join('')}</tbody>
     </table>
     ${(dobbel && isDM()) ? `<button class="dm-btn dm-btn-ghost dm-btn-sm"
       onclick="window.vaardigheden.tabelBewaren(${nr})">${icon('dices')} Bewaren als tafel</button>` : ''}

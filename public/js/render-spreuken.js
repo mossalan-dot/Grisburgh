@@ -793,6 +793,12 @@ window.spreuken = {
     }
     for (const el of lijsten) {
       if (el.dataset.gelinkt) continue;
+      // Zit er een spreukenlijst ín deze? Dan is dit de omhulling (een
+      // tabelcel waarvan de kop "Spells" zegt) en staan de namen daarbinnen al
+      // apart gemarkeerd — bijvoorbeeld omdat ze als [[Healing Word]] getypt
+      // zijn. Alleen de binnenste behandelen, anders knipt de buitenste de
+      // elementen eronder weg terwijl we er nog overheen lopen.
+      if (el.querySelector('.sb-spellijst')) continue;
       el.dataset.gelinkt = '1';
       // Splitsen op komma's: de namen staan altijd als opsomming. Wat geen
       // spreuk blijkt te zijn laten we woordelijk staan.

@@ -1594,6 +1594,11 @@ Grisburghs **data** te staan — niet in de code.
       gaat open op die spreuk. De kolom *Sorcerer Level* blijft gewone tekst:
       het is de **kolomkop** die zegt dat er spreuken in staan. Buiten een
       spreukenlijst gebeurt er niets — daar is *Shield* een schild.
+- [ ] **Opmaak werkt ook ín een tabel** (DM) — zet in een cel `[[Healing
+      Word]]` en in de titelregel `**Alchemist Spells**`. Op het kaartje staat
+      er een link naar de spreuk en een vetgedrukte kop — geen vierkante haken
+      en geen sterretjes. Eerder gingen cellen kaal door de ontsmetting heen en
+      bleef alles letterlijk staan.
 - [ ] **Een worptabel kun je wél bewaren** (DM) — tik in een eigen feature een
       tabel met `| d6 | … |` als kop: dan staat er *Bewaren als tafel* onder, en
       na een klik staat hij in de Tafels-tab. De tekst van de feature blijft
