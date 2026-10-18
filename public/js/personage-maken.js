@@ -55,6 +55,7 @@ function _tellerVan() {
 const abMod = (s) => Math.floor(((parseInt(s) || 10) - 10) / 2);
 const teken = (n) => (n >= 0 ? `+${n}` : `${n}`);
 const klasseVan = (naam) => (P.bronnen?.klassen || []).find(k => k.naam === naam) || null;
+const _volkVan = (naam) => (P.bronnen?.species || []).find(s => s.naam === naam) || null;
 const bgVan = (naam) => (P.bronnen?.backgrounds || []).find(b => b.naam === naam) || null;
 
 // ── De stappen ───────────────────────────────────────────────────────────────
@@ -108,12 +109,28 @@ const STAPPEN = [
     titel: 'Wat ben je?',
     lead: 'Je species bepaalt waar je vandaan komt en wat je van huis uit meekrijgt.',
     html() {
-      return _tegels((P.bronnen.species || []).map(s => ({
+      const tegels = _tegels((P.bronnen.species || []).map(s => ({
         waarde: s.naam, titel: s.naam,
         onder: s.traits.length ? s.traits.slice(0, 4).join(' · ') : '',
       })), P.c.species, 'species');
+      // Sommige species kiezen nog iets binnen zichzelf: een Tiefling zijn
+      // Fiendish Legacy, een Elf zijn lineage. Dat verschijnt pas als je het
+      // species hebt gekozen — anders staan er zesentwintig tegels onder een
+      // keuze die je nog niet gemaakt hebt.
+      const volk = _volkVan(P.keuze.species ?? P.c.species);
+      return tegels + (volk?.varianten?.length ? `
+        <div class="wz-veld" style="margin-top:14px">
+          <label class="dm-form-label">${esc(volk.variantLabel || 'Variant')}</label>
+          ${_tegels(volk.varianten.map(v => ({ waarde: v, titel: v })), P.c.speciesVariant, 'speciesVariant')}
+        </div>` : '');
     },
-    waarden() { return { species: P.keuze.species ?? P.c.species }; },
+    waarden() {
+      const volk = P.keuze.species ?? P.c.species;
+      // Een ander species betekent een andere lijst; wat er stond slaat dan
+      // nergens meer op.
+      const variant = (volk === P.c.species) ? (P.keuze.speciesVariant ?? P.c.speciesVariant) : (P.keuze.speciesVariant || '');
+      return { species: volk, speciesVariant: variant || '' };
+    },
   },
 
   {
@@ -371,7 +388,7 @@ const STAPPEN = [
         <div class="pm-blad">
           <div class="pm-blad-kop">
             <strong>${esc(P.c.naam || 'Naamloos')}</strong>
-            <span>${esc([P.c.species,
+            <span>${esc([P.c.speciesVariant ? `${P.c.speciesVariant} ${P.c.species}` : P.c.species,
               p.multiKlasse ? `${P.c.klasse} ${p.klasseLevel} / ${p.multiKlasse} ${p.multiKlasseLevel}` : P.c.klasse,
               P.c.subclass].filter(Boolean).join(' · '))} · level ${esc(p.level || '1')}</span>
           </div>
@@ -619,6 +636,7 @@ window.personageMaken = {
     });
     // Een andere class betekent een andere subclass-lijst eronder.
     if (veld === 'klasse') { P.c.klasse = waarde; P.c.subclass = ''; host.innerHTML = _actief()[P.stap].html(); }
+    if (veld === 'species') { P.c.species = waarde; P.c.speciesVariant = ''; host.innerHTML = _actief()[P.stap].html(); }
     if (veld === 'background') { P.c.background = waarde; P.c.bgBonus = {}; }
   },
 

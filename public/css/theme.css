@@ -29783,6 +29783,22 @@ body.wizard-open { overflow: hidden; }
 .vd-rij-knop svg { width: 11px; height: 11px; opacity: .6; flex-shrink: 0; }
 .vd-rij-knop:hover { color: #9a7008; border-bottom-color: #9a7008; }
 .vd-rij-knop:hover svg { opacity: 1; }
+
+/* Een species dat wel bestaat maar niet in deze campagne staat. Gestippeld,
+   net als een subclass uit de voorraadlijst: hetzelfde signaal, hetzelfde
+   randje. Met een vinkje om hem binnen te halen. */
+.vd-tegel--elders {
+  position: relative;
+  border-style: dashed;
+  opacity: .82;
+  cursor: default;
+}
+.vd-tegel--elders .vd-tegel-icoon { opacity: .7; }
+.vd-tegel-vink {
+  position: absolute; top: 6px; right: 6px; z-index: 3;
+  display: flex; align-items: center; justify-content: center; cursor: pointer;
+}
+.vd-tegel-vink input { width: 15px; height: 15px; cursor: pointer; accent-color: #9a7008; }
 /* Op een muisscherm pas als je erover gaat; op een telefoon is er geen hover,
    dan staat hij er gewoon. */
 @media (hover: hover) {

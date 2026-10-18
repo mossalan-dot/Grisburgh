@@ -323,6 +323,25 @@ describe('Een personage maken', () => {
     assert.equal(na.species.Tiefling.varianten.Veenlegaat, undefined);
   });
 
+  it('vraagt de variant van een species en zet hem op het blad', async () => {
+    const start = await req(server, 'POST', '/api/personage-concept',
+      { wachtwoord: 'rinkeldekink', naam: 'Belle' });
+    const tiefling = start.body.bronnen.species.find(s => s.naam === 'Tiefling');
+    assert.equal(tiefling.variantLabel, 'Fiendish Legacy', 'de wizard weet hoe de keuze heet');
+    assert.deepEqual(tiefling.varianten, ['Abyssal', 'Chthonic', 'Infernal']);
+
+    const zonder = await req(server, 'PATCH', `/api/personage-concept/${start.body.concept.id}`,
+      { species: 'Tiefling', klasse: 'Bard',
+        scores: { str: 10, dex: 14, con: 12, int: 11, wis: 10, cha: 15 } }, start.cookie);
+    assert.ok(zonder.body.nakijk.opmerkingen.some(o => /Fiendish Legacy/.test(o)),
+      'zonder keuze staat er een opmerking');
+
+    const met = await req(server, 'PATCH', `/api/personage-concept/${start.body.concept.id}`,
+      { speciesVariant: 'Infernal' }, start.cookie);
+    assert.equal(met.body.profiel.originVariant, 'Infernal', 'en hij belandt op het blad');
+    assert.ok(!met.body.nakijk.opmerkingen.some(o => /Fiendish Legacy/.test(o)));
+  });
+
   it('kent de instellingen van de DM', async () => {
     const r = await req(server, 'PUT', '/api/meta/personage-maken',
       { aan: true, methodes: ['array', 'pointbuy'], maxLevel: 3, trinketTafel: 'Rommel' }, dm);

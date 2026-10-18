@@ -5332,6 +5332,10 @@ function _maakBronnen() {
     naam,
     traits: Object.values(prog.species[naam].levels || {})
       .flat().map(f => f?.name).filter(Boolean),
+    // De keuze binnen een species — een Tiefling kiest zijn Fiendish Legacy.
+    // Zelfde vorm als de subclasses bij een class hieronder.
+    variantLabel: prog.species[naam].variantLabel || '',
+    varianten: Object.keys(prog.species[naam].varianten || {}).sort(),
   }));
   const backgrounds = Object.keys(bgSeed).filter(k => !k.startsWith('_')).sort()
     .map(naam => ({
@@ -5433,6 +5437,7 @@ router.patch('/personage-concept/:id', (req, res) => {
   const tekst = (v, max) => String(v ?? '').trim().slice(0, max);
   if (b.naam       !== undefined) c.naam = tekst(b.naam, 60);
   if (b.species    !== undefined) c.species = tekst(b.species, 60);
+  if (b.speciesVariant !== undefined) c.speciesVariant = tekst(b.speciesVariant, 60);
   if (b.klasse     !== undefined) c.klasse = tekst(b.klasse, 60);
   if (b.subclass   !== undefined) c.subclass = tekst(b.subclass, 60);
   if (b.background !== undefined) c.background = tekst(b.background, 60);

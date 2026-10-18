@@ -545,6 +545,9 @@ let _klasseBasis = null, _spreukKlassen = null, _spreukAantal = null, _tellers =
 // elke keer over te tikken, en dan staat er niet de ene keer "Xanathars" en de
 // andere keer "XGtE".
 let _boeken = [];
+// Alle species die er bestaan, ook die deze campagne (nog) niet heeft. Net als
+// bij de subclasses: je ziet wát er is en haalt het met één vinkje binnen.
+let _alleVolken = [];
 function _boekenLijstHtml(id) {
   if (!_boeken.length) return '';
   return `<datalist id="${esc(id)}">
@@ -581,10 +584,11 @@ async function _klasseExtra() {
     try { const r = await fetch(`/api/bron/${naam}`, { credentials: 'same-origin' });
           return r.ok ? await r.json() : null; } catch { return null; }
   };
-  const [basis, spreuken, koppel, multi, boeken] = await Promise.all([
+  const [basis, spreuken, koppel, multi, boeken, volken] = await Promise.all([
     haal('klasse-basis'), haal('spells-2024'), haal('feat-koppelingen'),
-    haal('srd-multiclass-eisen'), haal('boeken')]);
+    haal('srd-multiclass-eisen'), haal('boeken'), haal('volken-klassen')]);
   _boeken = boeken?.boeken || [];
+  _alleVolken = [...(volken?.volkenGangbaar || []), ...(volken?.volkenOverig || [])];
   _klasseBasis = (basis?.klassen) || {};
   _mcEisen = multi || {};
   _featKoppel = koppel?.feats || {};
@@ -1217,7 +1221,12 @@ function _bannerHtml(d, { klein = false } = {}) {
 // ── Laag 1: de keuzes achter een deur ───────────────────────────────────────
 function _tegelsHtml(d) {
   const rijen = _bandBronnen(d);
-  if (!rijen.length) return `<p class="spreuk-empty">Hier staat nog niets in.</p>`;
+  // Wat deze campagne niet heeft maar wel bestaat. Alleen bij species: bij de
+  // classes zit die lijst in de subclasskolom, en backgrounds hebben er geen.
+  const elders = d.id === 'species'
+    ? _alleVolken.filter(v => !rijen.some(([n]) => n.toLowerCase() === v.toLowerCase())).sort()
+    : [];
+  if (!rijen.length && !elders.length) return `<p class="spreuk-empty">Hier staat nog niets in.</p>`;
   const icoonVan = (naam) => d.id === 'class' ? _klasseIcoon(naam)
     : d.id === 'species' ? (SPECIES_ICOON[naam] || 'user') : 'scroll-text';
   // Geen plustegel meer tussen de keuzes, en geen plusknop onder de
@@ -1235,6 +1244,16 @@ function _tegelsHtml(d) {
       <span class="vd-tegel-naam">${esc(naam)}</span>
       <span class="vd-tegel-meta">${subs ? `${subs} subclasses · ` : ''}${n ? `${n} ${n === 1 ? 'feature' : 'features'}` : 'nog leeg'}</span>
     </button>`;
+  }).join('')}
+  ${elders.map((naam, i) => {
+    const aantal = (_eldersFeatures?.species?.[naam] || []).length;
+    return `<div class="vd-tegel vd-tegel--elders" style="--vd-kleur:${d.kleur};--vd-i:${rijen.length + i}">
+      ${isDM() ? `<label class="vd-tegel-vink" title="Zet ${esc(naam)} in deze campagne">
+        <input type="checkbox" onchange="window.vaardigheden.volkAan('${escA(naam)}')"></label>` : ''}
+      <span class="vd-tegel-icoon">${icon(SPECIES_ICOON[naam] || 'user')}</span>
+      <span class="vd-tegel-naam">${esc(naam)}</span>
+      <span class="vd-tegel-meta">${aantal ? `${aantal} traits · elders` : 'bestaat elders'}</span>
+    </div>`;
   }).join('')}</div>`;
 }
 
@@ -2674,6 +2693,19 @@ window.vaardigheden = {
     await _load(); await _klasseExtra();
     _subAan.add(naam);
     _bandHerteken(); _refreshFilterBar(); _paint();
+  },
+  // Een species uit de lijst "bestaat elders" in deze campagne zetten. Daarna
+  // staat hij tussen de andere, met zijn traits uit de voorraadlijst.
+  async volkAan(naam) {
+    try {
+      await api.nieuweHouder({ soort: 'species', naam, herkomst: 'overgenomen' });
+    } catch (e) {
+      if (!/bestaat al/i.test(e.message || '')) { alert('Toevoegen mislukt: ' + e.message); return; }
+    }
+    _all = null;
+    await _load(); await _klasseExtra();
+    _bandHerteken(); _refreshFilterBar(); _paint();
+    window._showToast?.(`${naam} staat nu in deze campagne.`);
   },
   // De uitleg van een subclass: wát het is, los van wat het geeft.
   subUitleg(sub) { _uitlegVenster('subclass', sub, _filters.bron); },
