@@ -1606,6 +1606,11 @@ Grisburghs **data** te staan — niet in de code.
       Light" gewone tekst, en in *Nature's Ward* "you have Resistance to". Eén
       woord is te weinig om zeker te weten dat het een spreuk is; alleen namen
       van twee woorden of meer worden een knop.
+- [ ] **Puntjes alleen als er iets wegvalt** (ALL) — *Fighter* → *Battle
+      Master* → *Ultimate Combat Superiority*: op het kaartje staat "Your
+      Superiority Die becomes a d12." **zonder** beletselteken, want de hele
+      tekst past. Een lange beschrijving krijgt ze wél, en dan op een
+      woordgrens — niet middenin een woord en niet achter een punt.
 - [ ] **Een worptabel kun je wél bewaren** (DM) — tik in een eigen feature een
       tabel met `| d6 | … |` als kop: dan staat er *Bewaren als tafel* onder, en
       na een klik staat hij in de Tafels-tab. De tekst van de feature blijft

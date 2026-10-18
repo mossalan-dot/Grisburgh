@@ -576,10 +576,31 @@ function _card(it) {
             onclick="event.stopPropagation()" title="De beschrijving staat hier niet — zoek hem elders op">${icon('book-open')} Naslag</a>
         </div>` : ''}
         ${tekst
-          ? `<div class="vaardig-card-desc">${esc(tekst.replace(/\[\[([^\]|]+?)(?:\|[^\]]+?)?\]\]/g, '$1').replace(/[*_#]/g, '').slice(0, 130))}…</div>`
+          ? `<div class="vaardig-card-desc">${_kort(tekst)}</div>`
           : `<div class="vaardig-card-desc vaardig-card-desc--leeg">De beschrijving staat hier niet — hij valt buiten de vrij te gebruiken SRD.</div>`}
       </div>
     </div>`;
+}
+
+// De beschrijving zoals hij op het kaartje past: zonder opmaaktekens, en
+// afgekapt op een woordgrens.
+//
+// De puntjes stonden er **altijd** achter, ook als de hele tekst er gewoon in
+// paste. "Your Superiority Die becomes a d12.…" belooft dan iets wat er niet
+// is. Ze horen er alleen te staan als er echt iets wegvalt — en dan op een
+// woord, niet middenin een woord.
+const _KAART_TEKST = 130;
+function _kort(tekst) {
+  const kaal = String(tekst || '')
+    .replace(/\[\[([^\]|]+?)(?:\|[^\]]+?)?\]\]/g, '$1')
+    .replace(/[*_#]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+  if (kaal.length <= _KAART_TEKST) return esc(kaal);
+  const stuk = kaal.slice(0, _KAART_TEKST);
+  const spatie = stuk.lastIndexOf(' ');
+  // Een punt of komma vlak voor het afkappunt hoort niet vóór het beletselteken.
+  return esc((spatie > _KAART_TEKST - 25 ? stuk.slice(0, spatie) : stuk).replace(/[\s.,;:]+$/, '')) + '…';
 }
 
 // ── Filterbalk ────────────────────────────────────────────────────
