@@ -62,6 +62,19 @@ groot het is. Bijgewerkt 15 sep 2026.
       groepswachtwoord in de DM-ingang echt alleen díé party toont. Daarna blok 2
       t/m 10. → `docs/testronde.md`
 
+## Keuzes op een featurekaartje → `docs/voorstel-feature-keuzes.md`
+
+**In de wacht tot alle subclasses nagelopen zijn** (gevraagd 19 okt 2026). Het
+voorstel is af en gemeten: `featChoices` en een vrij tekstveld bestaan al en
+worden door nul van de 889 features gebruikt, want `choice: true` is in de
+editor niet te zetten. 72 features zeggen "kies één uit een lijst", en dat is
+de vorm die met een vinkje af is.
+
+Het advies daarin blijft staan: **begin met tien features met de hand** (Totem
+Spirit, Divine Order, Elven Lineage, Fighting Style, Path of the Kensei) en
+kijk of het op de tijdlijn leest zoals het hoort. De editor komt daarna, want
+dan weet je wat erin moet.
+
 ## Tafelscherm-effecten → `docs/tafelscherm-effecten.md`
 
 - [x] **Effectlaag naar `<body>`** — gedaan 1 okt 2026 (op 99990, niet 90:
