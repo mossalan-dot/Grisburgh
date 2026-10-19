@@ -3395,6 +3395,11 @@ Context voor lazy render staat in `window._lastPlayerProfile`, `window._lastPlay
 - Klassenamen: Engels, case-insensitief, aliassen ondersteund
 - Subklasse-matching: fuzzy (`includes`-check in beide richtingen)
 - Keuze-features: `feat.choice: true` of `_kind: 'shared'` (ASI, Epic Boon)
+- **De tijdlijn prikt ASI en Epic Boon alleen bij als de class ze niet zelf heeft.** Ze
+  staan met opzet niet in de seed (ze gelden voor elke class), maar een campagne die haar
+  classes nageloopt heeft kan ze mét tekst hebben ingetikt — en dan stonden ze er twee
+  keer, één keer van de DM en één keer leeg. Bewaakt door
+  `tests/progressie-tijdlijn.test.js`.
 - Keuzes opgeslagen in `playerProfile.featChoices` (JSON-string: `{ featKey → tekst }`)
 - featKey-formaat: `"KlasseNaam|level|FeatureNaam"`
 

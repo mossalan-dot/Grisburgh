@@ -1714,6 +1714,12 @@ Grisburghs **data** te staan — niet in de code.
       *Boon of Combat Prowess* staat in de lijst. Kies hem en de naam wordt
       overal een knop naar zijn kaartje in het Heldenboek, ook op een
       personagekaartje. Idem voor `[[magic initi`.
+- [ ] **Epic Boon en ASI staan er één keer** (SP) — open de Progressie-tijdlijn
+      van een personage op level 19: **Epic Boon** staat er één keer, met de
+      tekst die jij erbij schreef. Idem op 4, 8, 12 en 16 voor *Ability Score
+      Improvement*. De tijdlijn prikt die twee zelf bij omdat ze voor elke
+      class gelden; sinds jij ze in de classes hebt ingetikt stonden ze dubbel
+      — één keer van jou en één keer leeg.
 - [ ] **Zoeken gaat dwars door de deuren** (ALL) — typ *battle master* terwijl
       je in Classes staat: je krijgt treffers uit alles, met een regel
       *Resultaten voor…* en een knop terug. Veeg het veld leeg en je staat weer

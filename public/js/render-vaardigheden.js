@@ -15,7 +15,7 @@
  */
 
 import { api } from './api.js?v=316';
-import { naslagBron } from './render-progressie.js?v=62';
+import { naslagBron } from './render-progressie.js?v=63';
 
 const esc  = s => window.app?.esc?.(s) ?? String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 // Hetzelfde, maar ook veilig tússen enkele quotes in een onclick. Een naam met

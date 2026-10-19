@@ -236,10 +236,17 @@ function _featuresForLevel(prog, classData, subclass, level) {
   }
   for (const f of (classData.levels?.[level] || [])) out.push(f);
   if (subclass) for (const f of (subclass.data.levels?.[level] || [])) out.push({ ...f, _kind: 'sub' });
-  if ((g.asiLevels || [4, 8, 12, 16]).includes(level)) {
+  // **Alleen bijprikken wat er nog niet staat.** De seed laat Ability Score
+  // Improvement en Epic Boon met opzet weg — de tijdlijn zet ze er zelf bij,
+  // op de levels uit `gedeeld`. Maar een campagne die haar classes zelf
+  // nagelopen heeft kan ze wél hebben ingetikt, en dan stonden ze er twee
+  // keer: één keer met de tekst van de DM en één keer leeg. Wat de campagne
+  // zelf heeft wint, zoals overal.
+  const alAanwezig = (naam) => out.some(f => String(f.name || '').toLowerCase() === naam.toLowerCase());
+  if ((g.asiLevels || [4, 8, 12, 16]).includes(level) && !alAanwezig('Ability Score Improvement')) {
     out.push({ name: 'Ability Score Improvement', desc: '', _kind: 'shared' });
   }
-  if ((g.epicBoonLevel || 19) === level) {
+  if ((g.epicBoonLevel || 19) === level && !alAanwezig('Epic Boon')) {
     out.push({ name: 'Epic Boon', desc: '', _kind: 'shared' });
   }
   return out;
