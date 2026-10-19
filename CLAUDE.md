@@ -2461,6 +2461,10 @@ factie — `star` betekent in de app al *favoriet*), `award` (factie-boon), `bac
 > **de oude naam blijft in `features-elders.json` staan** — de lijst "bestaat elders" wijst
 > alleen nog naar de nieuwste, maar een campagne die *School of Conjuration* al had
 > overgenomen houdt zo zijn featurenamen in plaats van terug te vallen op "geen tekst".
+> Die alias vervalt zodra niemand hem meer draagt: *Purple Dragon Knight (Banneret)* is er
+> op 19 okt 2026 uit gehaald nadat de houder in Grisburgh **Banneret** ging heten, want
+> dan beschrijft hij een naam die nergens meer bestaat — en zijn vier features (Rallying
+> Cry, Royal Envoy, Inspiring Surge, Bulwark) zijn die van de druk van 2014.
 > Zes hernoemd op 18 okt 2026: Conjurer, Enchanter, Necromancer, Transmuter (AU),
 > Bladesinger en Banneret (HoF).
 > **Hetzelfde geldt een laag hoger, voor de classes in die lijst.** De Artificer stond er
