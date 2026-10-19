@@ -1171,11 +1171,18 @@ function _klasseKaartHtml(klasse) {
   // het venster erachter staan. Een kaartje dat je omdraait hoort het verhaal
   // te vertellen, net als bij een subclass. Staat er geen verhaal, dan vallen
   // de gegevens terug: beter een half kaartje dan een leeg.
+  // Een subclasskaartje droeg allang zijn soort, zijn ondertitel en de regel
+  // **Uit** met zijn boek; een classkaartje geen van drieën. Dat is dezelfde
+  // vraag en dus dezelfde vorm — en nu elk kaartje zijn bron draagt, hoort hij
+  // ook hier te staan. Hij blijft staan als er een omschrijving is: anders dan
+  // de Core Traits is dat geen samenvatting van wat eronder ligt.
+  const uitRij = data?.boek ? [['Uit', data.boek]] : [];
   return _flipKaartHtml({
     soort: 'class', naam: klasse, kleur: sig?.kleur || '#8a6d3f',
-    icoon: _klasseIcoon(klasse),
+    icoon: _klasseIcoon(klasse), bijschrift: 'Class',
+    onder: String(data?.ondertitel || '').trim(),
     kop: uitleg ? '' : 'Core Traits',
-    rijen: uitleg ? [] : _klasseRijen(klasse),
+    rijen: uitleg ? uitRij : [..._klasseRijen(klasse), ...uitRij],
     extra: `
       ${uitleg ? `<div class="vk-uitleg">${window._vaardigTekstHtml?.(uitleg) ?? _bron?.md?.(uitleg) ?? esc(uitleg)}</div>` : ''}
       ${heeftSpreuken ? `
@@ -1271,10 +1278,14 @@ function _volkKaartHtml(volk) {
   // level 1 · vanaf 1: Flight, Talons" zijn getallen over de lijst eronder, en
   // die staat er al. Zonder beschrijving vallen ze terug, want dan heeft het
   // kaartje niets anders te zeggen.
-  const rijen = uitleg ? _volkRijen(volk, { kern: true }) : _volkRijen(volk);
+  const rijen = [
+    ...(uitleg ? _volkRijen(volk, { kern: true }) : _volkRijen(volk)),
+    ...(data.boek ? [['Uit', data.boek]] : []),
+  ];
   return _flipKaartHtml({
     soort: 'species', naam: volk, kleur: '#1a6a50',
-    icoon: SPECIES_ICOON[volk] || 'user', bijschrift: 'Origin', rijen,
+    icoon: SPECIES_ICOON[volk] || 'user', bijschrift: 'Origin',
+    onder: String(data.ondertitel || '').trim(), rijen,
     extra: `
       ${uitleg ? `<div class="vk-uitleg">${window._vaardigTekstHtml?.(uitleg) ?? _bron?.md?.(uitleg) ?? esc(uitleg)}</div>` : ''}
       ${n ? '' : (() => {
@@ -1335,7 +1346,7 @@ function _achtergrondKaartHtml(naam) {
   return _flipKaartHtml({
     soort: 'background', naam, kleur: '#962058', icoon: 'scroll-text',
     bijschrift: 'Background', onder: String(data.ondertitel || '').trim(),
-    rijen: vaste,
+    rijen: [...vaste, ...(data.boek ? [['Uit', data.boek]] : [])],
     extra: `
       ${uitleg ? `<div class="vk-uitleg">${window._vaardigTekstHtml?.(uitleg) ?? _bron?.md?.(uitleg) ?? esc(uitleg)}</div>` : ''}
       ${vaste.length ? '' : '<p class="vk-noot">Van deze background staat er niets in de app.</p>'}

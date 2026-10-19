@@ -2572,6 +2572,14 @@ factie — `star` betekent in de app al *favoriet*), `award` (factie-boon), `bac
 > verwijderen en het hernoemen gebruiken. Instellen: Instellingen → Campagne; uitleg in
 > `inst_heldenboek`.
 
+> **`[[Naam]]` kent ook spreuken.** De naam-index achter de wikilinks bevat alleen
+> kaartjes; een spreuk is er geen. `_resolveWikilink` valt daarom terug op de
+> spreukenbibliotheek voordat hij "onbekend" zegt, en de suggestielijst bij `[[` biedt ze
+> aan (kaartjes eerst — die zijn van deze wereld, een spreuk is naslag). Die bibliotheek
+> laadt lui, dus de eerste keer dat je `[[` typt staan de spreuken er nog niet bij en één
+> toetsaanslag later wel; een naam die intussen al gerenderd was wordt opgelost zodra de
+> lijst binnen is, via dezelfde `wikilink-wacht`-haak die de kaartjes-index gebruikt.
+
 > **Rechtsonder op een kaartje staat waar het vandaan komt.** Het veld *Uit welk boek?*
 > draagt de volle titel en die past daar niet; `_boekKort()` maakt er de code van die
 > 5e.tools ook gebruikt (`bronnen/boeken.json`), met twee aanpassingen: de X die een

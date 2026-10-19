@@ -9,7 +9,7 @@ import { renderBestiarium } from './render-bestiarium.js?v=31';
 import { renderSpreuken } from './render-spreuken.js?v=50';
 import './render-handleiding.js?v=2';
 import './render-melding.js?v=4';
-import { renderVaardigheden, zoekVaardigheden, heldenboekTekst } from './render-vaardigheden.js?v=101';
+import { renderVaardigheden, zoekVaardigheden, heldenboekTekst } from './render-vaardigheden.js?v=102';
 import { renderStatblock } from './render-statblock.js?v=9';
 import { initSocket } from "./socket-client.js?v=85";
 import { initDmPanel } from "./dm-panel.js?v=406";
@@ -2542,6 +2542,21 @@ function _resolveWikilink(name, isFirst) {
     if (!Object.keys(idx).length) {
       return `<span class="wikilink-wacht" data-wl="${safeName}">${safeName}</span>`;
     }
+    // Geen kaartje? Dan kan het nog een **spreuk** zijn. `[[Healing Word]]`
+    // werkte al in een vaardigheidstekst, en sinds die namen ook in de
+    // suggestielijst bij `[[` staan hoort hij overal te werken — anders stelt
+    // de app iets voor dat elders als haakjes blijft staan.
+    _wlSpreukenLaden();
+    const spIdx = _wlSpreukIdx?.get(name.toLowerCase());
+    if (spIdx) {
+      return `<button type="button" class="sb-spell" title="Open ${safeName} in het spreukenboek"
+        onclick="event.stopPropagation();window.spreuken.open('${String(spIdx).replace(/'/g, "\\'")}')">${safeName}</button>`;
+    }
+    // De bibliotheek laadt lui. Is hij er nog niet, dan weten we het antwoord
+    // simpelweg nog niet; markeren en later opnieuw oplossen.
+    if (!_wlSpreukIdx?.size) {
+      return `<span class="wikilink-wacht" data-wl="${safeName}">${safeName}</span>`;
+    }
     // Voor een speler bestaat de naam gewoon niet (of hij mag het kaartje niet
     // zien): dan is het lopende tekst, geen dubbele haken. De haken blijven voor
     // de DM, want die zeggen hem "hier hoort nog een kaartje bij".
@@ -2660,13 +2675,46 @@ function _wlAcInit() {
   });
 }
 
+// De spreuknamen, voor de suggestielijst bij `[[`. Een spreuk is geen kaartje
+// en staat dus niet in de naam-index — terwijl `[[Healing Word]]` in een
+// vaardigheidstekst wél werkt. Dan hoort hij ook voorgesteld te worden.
+//
+// De spreukenbibliotheek laadt lui (500+ regels), dus we halen hem op zodra je
+// voor het eerst `[[` typt. De eerste keer staat hij er nog niet bij; bij de
+// volgende toetsaanslag wel, en dat is precies één letter later.
+let _wlSpreuken = null;        // namen, voor de suggestielijst
+let _wlSpreukIdx = null;       // naam → index, voor het oplossen van [[Naam]]
+function _wlSpreukenLaden() {
+  if (_wlSpreuken) return;
+  _wlSpreuken = [];
+  _wlSpreukIdx = new Map();
+  window.spreuken?.alle?.()
+    .then(l => {
+      _wlSpreuken = (l || []).map(s => String(s.name || '')).filter(Boolean);
+      for (const sp of (l || [])) {
+        if (sp?.name && sp?.index) _wlSpreukIdx.set(String(sp.name).toLowerCase(), sp.index);
+      }
+      // Namen die eerder gerenderd werden toen we de bibliotheek nog niet
+      // hadden, alsnog omzetten — dezelfde haak die de kaartjes-index gebruikt.
+      _wikilinksHerstellen();
+    })
+    .catch(() => { /* geen bibliotheek, geen suggesties */ });
+}
+
 function _wlAcShow(textarea, query) {
   const idx   = window._entityNameIndex || {};
   const lower = query.toLowerCase();
-  const matches = Object.entries(idx)
+  _wlSpreukenLaden();
+  const uitIndex = Object.entries(idx)
     .filter(([name]) => name.toLowerCase().includes(lower))
-    .map(([name, entry]) => ({ name, type: entry.type }))
-    .slice(0, 9);
+    .map(([name, entry]) => ({ name, type: entry.type }));
+  // Kaartjes eerst — die zijn van deze wereld; een spreuk is naslag. Samen
+  // negen, zodat de lijst niet over het tekstvak heen groeit.
+  const spreuken = (_wlSpreuken || [])
+    .filter(n => n.toLowerCase().includes(lower))
+    .slice(0, Math.max(3, 9 - uitIndex.length))
+    .map(name => ({ name, type: 'spreuk' }));
+  const matches = [...uitIndex.slice(0, 9 - Math.min(spreuken.length, 3)), ...spreuken].slice(0, 9);
 
   if (!matches.length) { _wlAcClose(); return; }
 
@@ -2684,7 +2732,7 @@ function _wlAcShow(textarea, query) {
   ac.style.width = Math.max(rect.width, 280) + 'px';
   ac.style.display = '';
 
-  const ICONS = { personages: icon('user'), locaties: icon('castle', {cls:'icon-gi'}), organisaties: icon('landmark'), voorwerpen: icon('package') };
+  const ICONS = { personages: icon('user'), locaties: icon('castle', {cls:'icon-gi'}), organisaties: icon('landmark'), voorwerpen: icon('package'), spreuk: icon('sparkles') };
   ac.innerHTML = matches.map((e, i) =>
     `<div class="wikilink-ac-item${i === 0 ? ' wikilink-ac-item--active' : ''}"
       data-wl-name="${e.name.replace(/"/g,'&quot;')}">

@@ -1690,6 +1690,18 @@ Grisburghs **data** te staan — niet in de code.
       een class uit die iemand **speelt**: dat weigert de app en zegt bij wie
       het staat, want zijn tijdlijn zou leeg worden. Een class die je er daarna
       bij maakt staat vanzelf aan: we bewaren wat er úít staat.
+- [ ] **Een classkaartje zegt hetzelfde als een subclasskaartje** (ALL) — draai
+      het kaartje van *Paladin* om: er staat **Class** onder de naam, zijn
+      ondertitel als je die invulde, en een regel **Uit** met zijn boek. Dat had
+      een subclasskaartje allang en een classkaartje niet. Zelfde proef bij een
+      species (daar staan Creature Type, Size en Speed erboven) en bij een
+      background.
+- [ ] **Een spreuk voorstellen bij `[[`** (DM) — typ in een beschrijving `[[heal`:
+      de lijst toont je eigen kaartjes én spreuken (Healing Word, Mass Healing
+      Word) met een sterrenicoon. De allereerste keer staan de spreuken er nog
+      niet bij — de bibliotheek laadt dan nog — maar één letter later wel.
+      Kies er een: `[[Healing Word]]` wordt overal een knop naar het
+      spreukenboek, ook op een personagekaartje.
 - [ ] **Zoeken gaat dwars door de deuren** (ALL) — typ *battle master* terwijl
       je in Classes staat: je krijgt treffers uit alles, met een regel
       *Resultaten voor…* en een knop terug. Veeg het veld leeg en je staat weer
