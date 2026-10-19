@@ -1182,11 +1182,11 @@
     ],
     "The Hexblade": [
       {
-        "naam": "Hexblade's Curse",
+        "naam": "Hex Warrior",
         "level": 3
       },
       {
-        "naam": "Hex Warrior",
+        "naam": "Hexblade's Curse",
         "level": 3
       },
       {
@@ -1204,7 +1204,7 @@
     ],
     "The Fathomless": [
       {
-        "naam": "Tentacle of the Deeps",
+        "naam": "Expanded Spell List",
         "level": 3
       },
       {
@@ -1212,11 +1212,15 @@
         "level": 3
       },
       {
-        "naam": "Oceanic Soul",
-        "level": 6
+        "naam": "Tentacle of the Deeps",
+        "level": 3
       },
       {
         "naam": "Guardian Coil",
+        "level": 6
+      },
+      {
+        "naam": "Oceanic Soul",
         "level": 6
       },
       {
@@ -1229,6 +1233,10 @@
       }
     ],
     "The Genie": [
+      {
+        "naam": "Expanded Spell List",
+        "level": 3
+      },
       {
         "naam": "Genie's Vessel",
         "level": 3
@@ -1252,12 +1260,20 @@
         "level": 3
       },
       {
+        "naam": "Undead Spells",
+        "level": 3
+      },
+      {
         "naam": "Grave Touched",
         "level": 6
       },
       {
         "naam": "Necrotic Husk",
         "level": 10
+      },
+      {
+        "naam": "Superior Dread",
+        "level": 14
       }
     ],
     "War Magic": [
@@ -2778,28 +2794,6 @@
         "level": 14
       }
     ],
-    "Bladesinging": [
-      {
-        "naam": "Training in War and Song",
-        "level": 3
-      },
-      {
-        "naam": "Bladesong",
-        "level": 3
-      },
-      {
-        "naam": "Extra Attack",
-        "level": 6
-      },
-      {
-        "naam": "Song of Defense",
-        "level": 10
-      },
-      {
-        "naam": "Song of Victory",
-        "level": 14
-      }
-    ],
     "Reanimator": [
       {
         "naam": "Reanimated Companion",
@@ -3066,6 +3060,24 @@
       {
         "naam": "Crown of Spellfire",
         "level": 18
+      }
+    ],
+    "Vestige Patron": [
+      {
+        "naam": "Vestige Companion",
+        "level": 3
+      },
+      {
+        "naam": "Vestige Spells",
+        "level": 3
+      },
+      {
+        "naam": "Vestige Recovery",
+        "level": 10
+      },
+      {
+        "naam": "Semblance of Life",
+        "level": 14
       }
     ]
   },
