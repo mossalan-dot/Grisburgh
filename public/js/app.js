@@ -9,7 +9,7 @@ import { renderBestiarium } from './render-bestiarium.js?v=31';
 import { renderSpreuken } from './render-spreuken.js?v=50';
 import './render-handleiding.js?v=2';
 import './render-melding.js?v=4';
-import { renderVaardigheden, zoekVaardigheden, heldenboekTekst } from './render-vaardigheden.js?v=103';
+import { renderVaardigheden, zoekVaardigheden, heldenboekTekst } from './render-vaardigheden.js?v=105';
 import { renderStatblock } from './render-statblock.js?v=9';
 import { initSocket } from "./socket-client.js?v=85";
 import { initDmPanel } from "./dm-panel.js?v=406";
@@ -2547,6 +2547,13 @@ function _resolveWikilink(name, isFirst) {
     // suggestielijst bij `[[` staan hoort hij overal te werken — anders stelt
     // de app iets voor dat elders als haakjes blijft staan.
     _wlSpreukenLaden();
+    _wlHeldenboekLaden();
+    // Een feat, een boon of een class feature: die opent zijn kaartje in het
+    // Heldenboek.
+    if (_wlHbSoort?.has(name.toLowerCase())) {
+      return `<button type="button" class="sb-spell" title="Open ${safeName} in het Heldenboek"
+        onclick="event.stopPropagation();window.vaardigheden.openOpNaam('${safeName.replace(/'/g, "\\'")}')">${safeName}</button>`;
+    }
     const spIdx = _wlSpreukIdx?.get(name.toLowerCase());
     if (spIdx) {
       return `<button type="button" class="sb-spell" title="Open ${safeName} in het spreukenboek"
@@ -2554,7 +2561,7 @@ function _resolveWikilink(name, isFirst) {
     }
     // De bibliotheek laadt lui. Is hij er nog niet, dan weten we het antwoord
     // simpelweg nog niet; markeren en later opnieuw oplossen.
-    if (!_wlSpreukIdx?.size) {
+    if (!_wlSpreukIdx?.size || !_wlHbSoort?.size) {
       return `<span class="wikilink-wacht" data-wl="${safeName}">${safeName}</span>`;
     }
     // Voor een speler bestaat de naam gewoon niet (of hij mag het kaartje niet
@@ -2684,6 +2691,23 @@ function _wlAcInit() {
 // volgende toetsaanslag wel, en dat is precies één letter later.
 let _wlSpreuken = null;        // namen, voor de suggestielijst
 let _wlSpreukIdx = null;       // naam → index, voor het oplossen van [[Naam]]
+// En hetzelfde voor het Heldenboek: feats, Epic Boons, class features, traits.
+// Die zijn geen kaartje uit het archief en staan dus niet in de naam-index,
+// terwijl `[[Magic Initiate]]` er wél heen hoort te gaan.
+let _wlHeldenboek = null;      // namen
+let _wlHbSoort = null;         // naam (klein) → soort, voor het icoon
+function _wlHeldenboekLaden() {
+  if (_wlHeldenboek) return;
+  _wlHeldenboek = [];
+  _wlHbSoort = new Map();
+  window.vaardigheden?.namen?.()
+    .then(l => {
+      _wlHeldenboek = (l || []).map(x => String(x.naam || '')).filter(Boolean);
+      for (const x of (l || [])) if (x?.naam) _wlHbSoort.set(String(x.naam).toLowerCase(), x.soort);
+      _wikilinksHerstellen();
+    })
+    .catch(() => { /* geen Heldenboek, geen suggesties */ });
+}
 function _wlSpreukenLaden() {
   if (_wlSpreuken) return;
   _wlSpreuken = [];
@@ -2705,6 +2729,7 @@ function _wlAcShow(textarea, query) {
   const idx   = window._entityNameIndex || {};
   const lower = query.toLowerCase();
   _wlSpreukenLaden();
+  _wlHeldenboekLaden();
   const uitIndex = Object.entries(idx)
     .filter(([name]) => name.toLowerCase().includes(lower))
     .map(([name, entry]) => ({ name, type: entry.type }));
@@ -2712,9 +2737,14 @@ function _wlAcShow(textarea, query) {
   // negen, zodat de lijst niet over het tekstvak heen groeit.
   const spreuken = (_wlSpreuken || [])
     .filter(n => n.toLowerCase().includes(lower))
-    .slice(0, Math.max(3, 9 - uitIndex.length))
     .map(name => ({ name, type: 'spreuk' }));
-  const matches = [...uitIndex.slice(0, 9 - Math.min(spreuken.length, 3)), ...spreuken].slice(0, 9);
+  const heldenboek = (_wlHeldenboek || [])
+    .filter(n => n.toLowerCase().includes(lower))
+    .map(name => ({ name, type: _wlHbSoort?.get(name.toLowerCase()) || 'feat' }));
+  // Kaartjes eerst — die zijn van deze wereld; het Heldenboek en de spreuken
+  // zijn naslag. Samen negen, zodat de lijst niet over het tekstvak groeit.
+  const extra = [...heldenboek, ...spreuken];
+  const matches = [...uitIndex.slice(0, Math.max(3, 9 - extra.length)), ...extra].slice(0, 9);
 
   if (!matches.length) { _wlAcClose(); return; }
 
@@ -2732,7 +2762,9 @@ function _wlAcShow(textarea, query) {
   ac.style.width = Math.max(rect.width, 280) + 'px';
   ac.style.display = '';
 
-  const ICONS = { personages: icon('user'), locaties: icon('castle', {cls:'icon-gi'}), organisaties: icon('landmark'), voorwerpen: icon('package'), spreuk: icon('sparkles') };
+  const ICONS = { personages: icon('user'), locaties: icon('castle', {cls:'icon-gi'}), organisaties: icon('landmark'), voorwerpen: icon('package'), spreuk: icon('sparkles'),
+    feat: icon('zap'), boon: icon('sparkle'), class: icon('swords'), subclass: icon('swords'),
+    species: icon('user'), variant: icon('sparkle'), background: icon('scroll-text') };
   ac.innerHTML = matches.map((e, i) =>
     `<div class="wikilink-ac-item${i === 0 ? ' wikilink-ac-item--active' : ''}"
       data-wl-name="${e.name.replace(/"/g,'&quot;')}">

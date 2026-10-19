@@ -1704,6 +1704,16 @@ Grisburghs **data** te staan — niet in de code.
       niet bij — de bibliotheek laadt dan nog — maar één letter later wel.
       Kies er een: `[[Healing Word]]` wordt overal een knop naar het
       spreukenboek, ook op een personagekaartje.
+- [ ] **De keuzelijst noemt alleen de naam** (ALL) — in de subclasskolom staat
+      per rij de naam en rechtsonder zijn boek, en verder niets. Het aantal
+      features stond er ook in de lijst eronder én op de kaartjes zelf.
+- [ ] **Elk kaartje toont zijn bron** (ALL) — open *Species* → *Elf*: zijn
+      traits dragen **PHB'24**, ook al vulde niemand bij dat species een boek
+      in. Dat komt uit `species-basis.json`; wat je zelf invult gaat eroverheen.
+- [ ] **Een boon of feat voorstellen bij `[[`** (DM) — typ `[[boon of comb`:
+      *Boon of Combat Prowess* staat in de lijst. Kies hem en de naam wordt
+      overal een knop naar zijn kaartje in het Heldenboek, ook op een
+      personagekaartje. Idem voor `[[magic initi`.
 - [ ] **Zoeken gaat dwars door de deuren** (ALL) — typ *battle master* terwijl
       je in Classes staat: je krijgt treffers uit alles, met een regel
       *Resultaten voor…* en een knop terug. Veeg het veld leeg en je staat weer

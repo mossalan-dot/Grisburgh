@@ -623,6 +623,10 @@ function _boekKort(titel) {
   }
   const code = _boekIndex.get(_boekSleutel(vol));
   if (code) return _BOEK_LABEL[code] || code;
+  // Ook een kále code mag binnenkomen ("XPHB", "MPMM"): zo staat het in
+  // `species-basis.json`, en dan hoeven we daar geen titels bij te zoeken.
+  const alsCode = [...(_boeken || [])].find(b => String(b.code).toLowerCase() === vol.toLowerCase());
+  if (alsCode) return _BOEK_LABEL[alsCode.code] || alsCode.code;
   // Onbekend: het eerste woord, kort. Beter dan niets, en het valt op als het
   // raar leest — dan hoort die titel in de boekenlijst.
   return vol.replace(/[^A-Za-z0-9 ]/g, ' ').trim().split(/\s+/)[0].slice(0, 5).toUpperCase();
@@ -648,6 +652,12 @@ function _boekVan(it) {
     const boek = _houderVan(soort, naam, bron)?.boek;
     if (boek) return boek;
   }
+  // Heeft het species zelf geen boek ingevuld, dan weet de meegeleverde bron
+  // het meestal wel — daar staat per species uit welke druk zijn Creature
+  // Type, Size en Speed komen. Beter die dan een leeg hoekje; wat de DM zelf
+  // invult gaat er nog altijd overheen.
+  const volk = (it?.soort === 'species' || it?.soort === 'variant') ? it.bron : '';
+  if (volk && _volkBasis?.[volk]?._boek) return _volkBasis[volk]._boek;
   return '';
 }
 
@@ -1280,7 +1290,8 @@ function _volkKaartHtml(volk) {
   // kaartje niets anders te zeggen.
   const rijen = [
     ...(uitleg ? _volkRijen(volk, { kern: true }) : _volkRijen(volk)),
-    ...(data.boek ? [['Uit', data.boek]] : []),
+    ...((data.boek || _volkBasis?.[volk]?._boek)
+      ? [['Uit', data.boek || _boekKort(_volkBasis[volk]._boek)]] : []),
   ];
   return _flipKaartHtml({
     soort: 'species', naam: volk, kleur: '#1a6a50',
@@ -1592,25 +1603,16 @@ function _subKolomHtml(klasse) {
           <button class="vd-subkaart-open"
             onclick="window.open(window.app.bronLink('${veilig}','${r.variant ? 'species' : 'subclass'}'),'_blank')"
             title="${esc(r.boek || '')} — opzoeken; de tekst staat in het boek, niet in de app">
+            <!-- **Alleen de naam.** Het aantal features stond er ook in de
+                 lijst eronder én op de kaartjes; drie keer hetzelfde getal is
+                 twee keer te veel. Wat deze rij nog zegt is waar hij vandaan
+                 komt, en dat staat in de penning rechtsonder. -->
             <span class="vd-subkaart-naam">${esc(r.naam)}</span>
-            <!-- Er stond alleen de boekcode. Nu we van de meeste ook de
-                 featurenamen kennen, hoort het aantal erbij: anders zie je bij
-                 Conjurer "AU" staan en bij de rij eronder "5 features", alsof
-                 de eerste er geen heeft. -->
-            <span class="vd-subkaart-meta">${(() => {
-              const n = _eldersAanvulling(r.variant ? 'variant' : 'subclass', r.naam, null, klasse).length;
-              const wat = r.variant ? 'traits' : 'features';
-              return n ? `${n} ${wat} · elders` : 'elders';
-            })()}</span>
           </button>
           ${_subkaartBoek(r.variant ? '' : (boeken[r.boek] || r.boek))}
         </div>`;
       }
       const aan = _subAan.has(r.naam);
-      // "geen tekst" klopte niet meer zodra we zijn featurenamen kennen: er
-      // staat dan wél iets, alleen niet de tekst erbij.
-      const eldersN = _eldersAanvulling(laag?.soort || 'subclass', r.naam,
-        laag?.bak?.[r.naam], klasse).length;
       return `<div class="vd-subkaart${aan ? ' is-aan' : ''}${r.n ? '' : ' is-leeg'}" style="--vd-subkleur:${kleur}">
         <label class="vd-subkaart-vink" title="${aan ? 'Haal zijn features uit de lijst' : 'Zet zijn features erbij'}">
           <input type="checkbox" ${aan ? 'checked' : ''} onchange="window.vaardigheden.subToggle('${veilig}')">
@@ -1618,9 +1620,6 @@ function _subKolomHtml(klasse) {
         <button class="vd-subkaart-open" onclick="window.vaardigheden.subToggle('${veilig}')"
           title="Bekijk deze subclass">
           <span class="vd-subkaart-naam">${esc(r.naam)}</span>
-          <span class="vd-subkaart-meta">${r.n + eldersN
-          ? `${r.n + eldersN} features${eldersN ? r.n ? ` · ${eldersN} elders` : ' · elders' : ''}`
-          : 'geen tekst'}</span>
         </button>
         ${_subkaartBoek(laag?.bak?.[r.naam]?.boek)}
       </div>`;
@@ -3385,6 +3384,24 @@ window.vaardigheden = {
   // Een feature openen vanuit het subclassvenster: het ene venster sluit, het
   // andere komt ervoor in de plaats. Twee modals over elkaar is geen stapel
   // die je nog terug kunt lopen.
+  // ── Van buiten het Heldenboek ──────────────────────────────────────────
+  // Een feat, een boon, een class feature: ze zijn allemaal een kaartje hier,
+  // en `[[Epic Boon of Combat Prowess]]` hoort dus overal te werken — niet
+  // alleen in een vaardigheidstekst. Twee haken naar buiten: één om de namen
+  // op te halen (voor de suggestielijst bij `[[`) en één om er een te openen.
+  //
+  // De lijst laadt lui, net als de spreukenbibliotheek: wie het Heldenboek
+  // nooit opent hoeft er niet op te wachten.
+  async namen() {
+    if (!_all) { try { await _load(); } catch { return []; } }
+    return (_all || []).map(x => ({ naam: x.naam, soort: x.soort, key: x.key }));
+  },
+  async openOpNaam(naam) {
+    if (!_all) { try { await _load(); } catch { return; } }
+    const laag = String(naam || '').trim().toLowerCase();
+    const doel = (_all || []).find(x => String(x.naam).toLowerCase() === laag);
+    if (doel) _open(doel.key);
+  },
   uitKaartVenster(key, soort, naam, bron) {
     window.app.closeModal?.();
     // De houder gaat mee, zodat het featurevenster een weg terug heeft. Twee

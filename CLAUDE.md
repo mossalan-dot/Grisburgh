@@ -2572,6 +2572,11 @@ factie — `star` betekent in de app al *favoriet*), `award` (factie-boon), `bac
 > verwijderen en het hernoemen gebruiken. Instellen: Instellingen → Campagne; uitleg in
 > `inst_heldenboek`.
 
+> **`[[Naam]]` kent ook het Heldenboek.** Een feat, een Epic Boon, een class feature: die
+> zijn geen kaartje uit het archief en stonden dus niet in de naam-index, terwijl
+> `[[Magic Initiate]]` er wél heen hoort. `window.vaardigheden.namen()` en `.openOpNaam()`
+> zijn de twee haken naar buiten; de lijst laadt lui, net als de spreukenbibliotheek.
+
 > **`[[Naam]]` kent ook spreuken.** De naam-index achter de wikilinks bevat alleen
 > kaartjes; een spreuk is er geen. `_resolveWikilink` valt daarom terug op de
 > spreukenbibliotheek voordat hij "onbekend" zegt, en de suggestielijst bij `[[` biedt ze
