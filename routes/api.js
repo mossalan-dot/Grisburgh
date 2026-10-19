@@ -9624,6 +9624,26 @@ router.get('/progression', attachRole, (req, res) => {
       }
     }
   }
+  // Wat de DM uitzette bestaat voor een speler niet. Niet grijs, niet met een
+  // regel "hier mis je iets" — weg, zoals overal in deze app: zichtbaarheid is
+  // een antwoord op "bestaat dit hier?", en dat antwoord is dan nee.
+  if (req.role !== 'dm') {
+    const verborgen = _verborgenUit(storage.readJSON('meta.json'));
+    if (verborgen.classes.length || verborgen.subclasses.length) {
+      const weg = new Set(verborgen.classes.map(n => n.toLowerCase()));
+      const wegSub = new Set(verborgen.subclasses.map(n => n.toLowerCase()));
+      const classes = {};
+      for (const [naam, data] of Object.entries(base.classes || {})) {
+        if (weg.has(naam.toLowerCase())) continue;
+        const subs = {};
+        for (const [sub, sd] of Object.entries(data.subclasses || {})) {
+          if (!wegSub.has(sub.toLowerCase())) subs[sub] = sd;
+        }
+        classes[naam] = { ...data, subclasses: subs };
+      }
+      base.classes = classes;
+    }
+  }
   // Wat de DM zelf heeft geschreven blijft staan; de meegeleverde seed gaat
   // kaal de deur uit als deze campagne de brontekst niet mag zien.
   res.json((eigen || _magBronTeksten(req)) ? base : bronnen.kaleProgressie(base));
@@ -10641,6 +10661,13 @@ router.get('/meta', attachRole, (req, res) => {
   // want hij krijgt er zo meteen een van te horen. Dus lossen we hem hier op.
   _groetTafelsOplossen(uit);
   if (req.role !== 'dm') uit.hoofdstukken = _hoofdstukkenVoorSpeler(meta.hoofdstukken);
+  // Welke classes de DM voor zijn spelers uitzette is zijn administratie. Een
+  // speler ziet ze toch niet staan; de lijst met hun námen meesturen zou
+  // precies verklappen wat er bestaat.
+  if (req.role !== 'dm' && uit.heldenboek?.verborgen) {
+    uit.heldenboek = { ...uit.heldenboek };
+    delete uit.heldenboek.verborgen;
+  }
   res.json(uit);
 });
 
@@ -10909,6 +10936,69 @@ router.delete('/wizard/oefenen', requireDM, (req, res) => {
 // De vier deuren van het Heldenboek mogen elk een eigen beeld krijgen. Het is
 // puur sfeer — wat erachter ligt verandert er niet door — maar een scherm met
 // vier gelijke tegels leest als een formulier, en met beeld als een boek.
+// ── Wat spelers van het Heldenboek te zien krijgen ──────────────────────────
+// Niet elke campagne speelt met alles. De ene DM wil geen Artificer in zijn
+// wereld, de andere houdt een subclass achter tot iemand hem verdient. Dat is
+// **smaak, geen regel**, dus het is een instelling — en campagnebreed, want
+// het Heldenboek is een naslagwerk en niet iets wat je per party onthult.
+//
+// We bewaren wat er **uit** staat, niet wat er aan staat. Zo is een class die
+// er morgen bij komt vanzelf zichtbaar, net als bij de bereikbaarheid van een
+// dienst.
+const _verborgenUit = (meta) => ({
+  classes:    Array.isArray(meta?.heldenboek?.verborgen?.classes) ? meta.heldenboek.verborgen.classes : [],
+  subclasses: Array.isArray(meta?.heldenboek?.verborgen?.subclasses) ? meta.heldenboek.verborgen.subclasses : [],
+});
+
+// Wie draagt dit op zijn blad? Dezelfde velden als bij het verwijderen en het
+// hernoemen van een houder — één lijst, zodat ze niet uit de pas lopen.
+function _houderInGebruik(soort, namen) {
+  const velden = _HOUDER_VELDEN[soort];
+  if (!velden || !namen.length) return [];
+  const laag = new Set(namen.map(n => String(n).trim().toLowerCase()));
+  const raakt = (v) => laag.has(String(v || '').trim().toLowerCase());
+  const entities = storage.readJSON('entities.json') || {};
+  const dmState = storage.readJSON('dm-state.json') || {};
+  const naamVan = new Map((entities.personages || []).map(e => [e.id, e.name || e.id]));
+  const uit = [];
+  for (const [id, pr] of Object.entries(dmState.playerProfiles || {})) {
+    if (velden.profiel.some(v => raakt(pr[v]))) uit.push(naamVan.get(id) || id);
+  }
+  for (const e of (entities.personages || [])) {
+    if (velden.kaartje.some(v => raakt(e.data?.[v]))) uit.push(e.name || e.id);
+  }
+  return [...new Set(uit)];
+}
+
+router.put('/meta/heldenboek/verborgen', requireDM, (req, res) => {
+  const lijst = (v) => (Array.isArray(v) ? v : []).map(x => String(x || '').trim()).filter(Boolean).slice(0, 400);
+  const classes = lijst(req.body?.classes);
+  const subclasses = lijst(req.body?.subclasses);
+
+  // **Niet verbergen wat iemand speelt.** Zijn tijdlijn haalt zijn class uit
+  // deze lijst; valt die weg, dan kijkt hij naar een leeg blad en snapt hij
+  // niet waarom. Dit is geen waarschuwing maar een weigering: de DM bedoelt
+  // dit vrijwel zeker niet, en het kost hem één klik om het terug te draaien
+  // terwijl de speler er een avond mee zit.
+  const bezet = [
+    ..._houderInGebruik('class', classes).map(n => ({ wie: n })),
+    ..._houderInGebruik('subclass', subclasses).map(n => ({ wie: n })),
+  ].map(x => x.wie);
+  if (bezet.length) {
+    return res.status(409).json({ error: 'In gebruik bij een personage', gebruik: [...new Set(bezet)] });
+  }
+
+  const meta = storage.readJSON('meta.json');
+  const hb = { ...(meta.heldenboek || {}) };
+  if (classes.length || subclasses.length) hb.verborgen = { classes, subclasses };
+  else delete hb.verborgen;
+  if (Object.keys(hb).length) meta.heldenboek = hb; else delete meta.heldenboek;
+  storage.writeJSON('meta.json', meta);
+  req.app.get('io').to(_campagneRoom(req)).emit('meta:updated');
+  req.app.get('io').to(_campagneRoom(req)).emit('progression:updated', {});
+  res.json(_verborgenUit(meta));
+});
+
 router.put('/meta/heldenboek', requireDM, (req, res) => {
   const DEUREN = ['class', 'species', 'background', 'feats'];
   const meta = storage.readJSON('meta.json');

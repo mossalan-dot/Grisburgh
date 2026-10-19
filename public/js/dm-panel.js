@@ -190,6 +190,7 @@ function escJS(s) {
 
 export function initDmPanel() {
   window.dmPanel = {
+    heldenboekZichtbaarheidOpslaan: _heldenboekZichtbaarheidOpslaan,
     switchTab(tab) { _switchTab(tab); },
     // Waar sta je nu? Het meldtabje vult daarmee zijn eerste regel in, zodat een
     // DM niet hoeft uit te leggen waar hij was toen het misging.
@@ -12843,6 +12844,74 @@ async function _partyKaartVul(gid) {
   host.innerHTML = _partyKaartHtml(g, spelers, beurzen.find(b => b.id === gid) || { beurs: {} });
 }
 
+// ── Wat spelers in het Heldenboek zien ──────────────────────────────────────
+// Niet elke campagne speelt met alles: de ene DM wil geen Artificer in zijn
+// wereld, de andere houdt een subclass achter tot iemand hem verdient. Dat is
+// smaak, dus een instelling — en campagnebreed, want het Heldenboek is een
+// naslagwerk en geen onthulling per party.
+//
+// Een vínkje betekent **zichtbaar**; wat de DM uitvinkt bewaren we. Zo is een
+// class die er morgen bij komt vanzelf zichtbaar, net als bij de
+// bereikbaarheid van een dienst.
+async function _instHeldenboekVullen() {
+  const bak = document.getElementById('inst-heldenboek-body');
+  if (!bak) return;
+  const hint = bak.previousElementSibling;
+  let prog, verborgen;
+  try {
+    prog = await api.progression();
+    verborgen = (await api.meta())?.heldenboek?.verborgen || {};
+  } catch (e) { if (hint) hint.textContent = 'Kon de classes niet ophalen: ' + (e.message || e); return; }
+  if (hint) hint.remove();
+  const uitC = new Set((verborgen.classes || []).map(n => String(n).toLowerCase()));
+  const uitS = new Set((verborgen.subclasses || []).map(n => String(n).toLowerCase()));
+  const klassen = Object.entries(prog?.classes || {});
+  if (!klassen.length) { bak.innerHTML = '<p class="dm-hint">Er staan nog geen classes in deze campagne.</p>'; return; }
+
+  const vink = (soort, naam, aan, klein) => `
+    <label class="dm-form-checkbox${klein ? ' dm-hb-sub' : ''}">
+      <input type="checkbox" data-hb="${esc(soort)}" value="${esc(naam)}"${aan ? ' checked' : ''}>
+      <span>${esc(naam)}</span>
+    </label>`;
+  bak.innerHTML = `
+    <div class="dm-hb-lijst">
+      ${klassen.map(([naam, data]) => `
+        <div class="dm-hb-groep">
+          ${vink('class', naam, !uitC.has(naam.toLowerCase()), false)}
+          ${Object.keys(data.subclasses || {}).map(sub =>
+            vink('subclass', sub, !uitS.has(sub.toLowerCase()), true)).join('')}
+        </div>`).join('')}
+    </div>
+    <div class="dm-feature-row" style="margin-top:10px">
+      <button class="dm-btn dm-btn-primary" onclick="window.dmPanel.heldenboekZichtbaarheidOpslaan()">
+        ${icon('save')} Bewaren</button>
+      <span class="dm-hint" id="inst-hb-stand" style="margin:0"></span>
+    </div>`;
+}
+
+// Opslaan gaat apart van de rest van het paneel: deze instelling heeft zijn
+// eigen route, en zijn eigen antwoord als het niet kan.
+async function _heldenboekZichtbaarheidOpslaan() {
+  const bak = document.getElementById('inst-heldenboek-body');
+  if (!bak) return;
+  const uit = (soort) => [...bak.querySelectorAll(`input[data-hb="${soort}"]`)]
+    .filter(i => !i.checked).map(i => i.value);
+  const stand = document.getElementById('inst-hb-stand');
+  try {
+    const r = await api.heldenboekVerborgen({ classes: uit('class'), subclasses: uit('subclass') });
+    const n = (r.classes?.length || 0) + (r.subclasses?.length || 0);
+    if (stand) stand.textContent = n ? `${n} verborgen voor spelers.` : 'Alles staat aan.';
+    window._showToast?.('Bewaard.');
+  } catch (e) {
+    // De server weigert als iemand het speelt: zijn tijdlijn haalt zijn class
+    // hier vandaan, en die zou leeg worden.
+    const wie = e?.data?.gebruik;
+    if (wie?.length) {
+      alert(`Dat kan niet: ${wie.join(', ')} ${wie.length === 1 ? 'speelt' : 'spelen'} iets wat je wil verbergen.\n\nZijn tijdlijn haalt zijn class hier vandaan en zou leeg worden.`);
+    } else alert('Bewaren mislukt: ' + (e.message || e));
+  }
+}
+
 function _instSectie(key, kop, inhoud, acties = '') {
   return `<details class="dm-feature-section dm-inst-sectie" data-sectie="${key}"${_instDicht.has(key) ? '' : ' open'}>
     <summary class="dm-section-label">${kop}${acties ? `<span class="dm-inst-sectie-acties">${acties}</span>` : ''}</summary>
@@ -13231,6 +13300,11 @@ async function _renderInstellingen() {
       </div>
     `, window._helpBtn?.('inst_gevecht') ?? '')}
 
+    ${_instSectie('heldenboek', 'Wat spelers in het Heldenboek zien', `
+      <p class="dm-hint">Laden…</p>
+      <div id="inst-heldenboek-body"></div>
+    `, window._helpBtn?.('inst_heldenboek') ?? '')}
+
     ${!magBeheren ? '' : _instSectie('fouten',
       `Wat er misging${foutenLijst.length ? ` (${foutenLijst.length})` : ''}`,
       _foutenHtml(foutenLijst))}
@@ -13408,6 +13482,7 @@ async function _renderInstellingen() {
   // De knop voor de spreukafbeeldingen weet pas of hij nodig is als hij de
   // stand heeft opgehaald; tot dan staat hij verborgen.
   window._instSpreukbeeldenStand?.();
+  _instHeldenboekVullen();
   window._instOefenStand?.();
 
   // Terug naar waar de DM stond. Na de frame waarin de browser de nieuwe

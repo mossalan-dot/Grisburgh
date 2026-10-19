@@ -261,6 +261,48 @@ describe('Eigen class, species of background', () => {
     assert.equal(Object.keys(prog().classes)[i], 'Veenzieder');
   });
 
+  it('houdt een verborgen class weg bij de speler, maar niet bij de DM', async () => {
+    await req(server, 'POST', '/api/progression/houder', { soort: 'class', naam: 'Nevelloper' }, dm);
+    await req(server, 'POST', '/api/progression/houder',
+      { soort: 'subclass', naam: 'Pad van de Mist', bron: 'Nevelloper' }, dm);
+
+    const aan = await req(server, 'PUT', '/api/meta/heldenboek/verborgen',
+      { classes: ['Nevelloper'], subclasses: [] }, dm);
+    assert.equal(aan.status, 200, JSON.stringify(aan.body));
+
+    // Zonder sessie ben je in deze app een speler.
+    const speler = await req(server, 'GET', '/api/progression');
+    assert.equal(speler.body.classes?.Nevelloper, undefined, 'de speler ziet hem niet');
+    const vanDm = await req(server, 'GET', '/api/progression', null, dm);
+    assert.ok(vanDm.body.classes?.Nevelloper, 'de DM wel — hij moet hem terug kunnen zetten');
+
+    // En een subclass apart, met zijn class gewoon zichtbaar.
+    await req(server, 'PUT', '/api/meta/heldenboek/verborgen',
+      { classes: [], subclasses: ['Pad van de Mist'] }, dm);
+    const weer = await req(server, 'GET', '/api/progression');
+    assert.ok(weer.body.classes?.Nevelloper, 'de class staat er weer');
+    assert.equal(weer.body.classes.Nevelloper.subclasses['Pad van de Mist'], undefined,
+      'maar zijn subclass niet');
+
+    await req(server, 'PUT', '/api/meta/heldenboek/verborgen', { classes: [], subclasses: [] }, dm);
+  });
+
+  it('weigert te verbergen wat iemand speelt', async () => {
+    await req(server, 'POST', '/api/progression/houder', { soort: 'class', naam: 'Mosdrager' }, dm);
+    const pc = await req(server, 'POST', '/api/entities/personages',
+      { name: 'Tijmen', data: { klasse: 'Mosdrager' } }, dm);
+    assert.equal(pc.status, 201, JSON.stringify(pc.body));
+
+    const r = await req(server, 'PUT', '/api/meta/heldenboek/verborgen',
+      { classes: ['Mosdrager'], subclasses: [] }, dm);
+    assert.equal(r.status, 409);
+    assert.deepEqual(r.body.gebruik, ['Tijmen'], 'het zegt wie hem speelt');
+
+    // En er is niets opgeslagen: een halve wijziging is erger dan geen.
+    const speler = await req(server, 'GET', '/api/progression');
+    assert.ok(speler.body.classes?.Mosdrager, 'hij staat er nog gewoon');
+  });
+
   it('weigert een houder weg te halen die er niet is', async () => {
     const r = await req(server, 'POST', '/api/progression/houder/verwijderen',
       { soort: 'class', naam: 'Bestaat Niet' }, dm);

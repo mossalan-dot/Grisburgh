@@ -1683,6 +1683,13 @@ Grisburghs **data** te staan — niet in de code.
       van zijn class of subclass, dus er hoort er geen leeg te blijven zolang de
       houder zijn boek heeft. En hij ligt nooit over de tekst heen, ook niet bij
       drie regels beschrijving.
+- [ ] **Wat spelers in het Heldenboek zien** (DM) — Instellingen → Campagne →
+      *Wat spelers in het Heldenboek zien*: elke class met zijn subclasses
+      eronder, een vinkje is zichtbaar. Vink *Echo Knight* uit en bewaar: bij
+      een speler bestaat die subclass niet meer — niet grijs, gewoon weg. Vink
+      een class uit die iemand **speelt**: dat weigert de app en zegt bij wie
+      het staat, want zijn tijdlijn zou leeg worden. Een class die je er daarna
+      bij maakt staat vanzelf aan: we bewaren wat er úít staat.
 - [ ] **Zoeken gaat dwars door de deuren** (ALL) — typ *battle master* terwijl
       je in Classes staat: je krijgt treffers uit alles, met een regel
       *Resultaten voor…* en een knop terug. Veeg het veld leeg en je staat weer

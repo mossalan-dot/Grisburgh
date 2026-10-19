@@ -30602,3 +30602,17 @@ body:has(#sb-overlay.sb-open) .dm-dice-fab { display: none !important; }
   background: rgba(196,168,122,0.16); border: 1px solid rgba(196,168,122,0.3);
   border-radius: 4px; padding: 1px 5px; pointer-events: none;
 }
+
+/* ── Wat spelers in het Heldenboek zien ──────────────────────────────────────
+   Een class met zijn subclasses eronder, ingesprongen — dezelfde vorm als de
+   diensten met hun delen bij Onderdelen. Twee kolommen zodat vijftien classes
+   niet een halve pagina scrollen. */
+.dm-hb-lijst {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 10px 18px;
+}
+.dm-hb-groep {
+  display: flex; flex-direction: column; gap: 2px;
+  padding-bottom: 6px; border-bottom: 1px solid rgba(196,168,122,0.2);
+}
+.dm-hb-groep > .dm-form-checkbox:first-child { font-weight: 700; }
+.dm-form-checkbox.dm-hb-sub { margin-left: 16px; font-size: 12px; opacity: 0.88; }

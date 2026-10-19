@@ -12,7 +12,7 @@ import './render-melding.js?v=4';
 import { renderVaardigheden, zoekVaardigheden, heldenboekTekst } from './render-vaardigheden.js?v=101';
 import { renderStatblock } from './render-statblock.js?v=9';
 import { initSocket } from "./socket-client.js?v=85";
-import { initDmPanel } from "./dm-panel.js?v=405";
+import { initDmPanel } from "./dm-panel.js?v=406";
 import { COND_INFO, COND_LABEL, COND_MET_PLAATJE, COND_ICON } from './conditions.js?v=2';
 import './media-picker.js?v=10';
 import './wizard.js?v=5';
@@ -15236,6 +15236,12 @@ const HELP_CONFIG = {
     { titel: 'Core Traits', tekst: 'Alleen bij een class. Dit is wat op zijn kaartje staat én wat de app gebruikt om Hit Dice te rollen en spreukenslots af te leiden.\n\nDe velden staan vóór-ingevuld met wat de app zelf weet. **Laat je ze zo staan, dan verandert er niets** — en lift je mee op latere verbeteringen aan die gegevens. Typ je iets anders, dan geldt dat in jouw campagne.\n\nDat is er vooral voor een class die de app níét meebrengt: een eigen orde, of de Artificer, waarvan alleen de hit die bekend is. Zonder dit bleef zijn kaartje half leeg en was er geen knop om dat te verhelpen.\n\n**Class Type** doet er nog iets bij: martial, half-caster of full caster bepaalt het icoontje van een class die de app niet kent.\n\nOnderaan staan de twee regels over **multiclassen**: wat je nodig hebt om in deze class bij te beginnen, en wat je er dan aan training bij krijgt. Voor de twaalf uit de SRD vult de app ze zelf; voor een eigen class of een Blood Hunter is dit de enige plek waar ze vandaan kunnen komen.', afbeelding: null },
     { titel: 'Afbeelding en focuspunt', tekst: 'De kaart heeft twee kanten: een plaat met de naam erop, en de gegevens. Kies hier het beeld voor de voorkant.\n\nHet **focuspunt** bepaalt welk deel in beeld blijft. Een portret is hoog en de kaart is breed, dus zonder bijstellen valt er van alles af — meestal net het gezicht. Sleep het kruis naar wat er móét blijven staan; het voorbeeld ernaast toont de echte uitsnede.', afbeelding: null },
     { titel: 'Kleur van een subclass', tekst: 'Alleen bij een subclass. De kleur die je kiest kleurt zijn kaartje én al zijn features in de lijst eronder.\n\nDat is geen versiering: vink je er twee aan om ze te vergelijken, dan lopen hun features door elkaar in de volgorde waarin je ze krijgt. De kleur zegt dan in één oogopslag welke regel van wie is.', afbeelding: null },
+  ] }),
+
+  inst_heldenboek: () => ({ titel: 'Wat spelers in het Heldenboek zien', stappen: [
+    { titel: 'Waarom je dit zou doen', tekst: 'Niet elke wereld heeft alles. Misschien bestaat de Artificer bij jou niet, of houd je een subclass achter tot iemand hem verdient. Een **vinkje betekent zichtbaar**; wat je uitvinkt bestaat voor je spelers niet — geen grijze regel, geen "hier mis je iets", gewoon weg.\n\nHet geldt voor de hele campagne, niet per party. Het Heldenboek is een naslagwerk: wat erin staat bestaat in je wereld, en dat is voor iedereen aan tafel hetzelfde.', afbeelding: null },
+    { titel: 'Wat je niet kunt uitzetten', tekst: 'Een class of subclass die iemand **speelt**. Zijn tijdlijn haalt zijn features hier vandaan; zou je hem verbergen, dan kijkt hij naar een leeg blad zonder te snappen waarom. De app weigert dat en zegt bij wie het staat.\n\nWil je er toch vanaf, dan verzet je eerst zijn class op zijn blad.', afbeelding: null },
+    { titel: 'Nieuw materiaal staat aan', tekst: 'We bewaren wat er **uit** staat, niet wat er aan staat. Een class die je er morgen bij maakt is dus meteen zichtbaar — je hoeft niet te onthouden dat je hem ergens moet aanvinken. Zelfde afspraak als bij de bereikbaarheid van een dienst.', afbeelding: null },
   ] }),
 
   hulp_heldenboek_editor: () => ({ titel: 'Iets toevoegen aan het Heldenboek', stappen: [

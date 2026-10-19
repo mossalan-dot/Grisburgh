@@ -2560,6 +2560,18 @@ factie — `star` betekent in de app al *favoriet*), `award` (factie-boon), `bac
 > volgorde is redactioneel. Het venster toont nu een veld *Naam*; verandert die, dan
 > hernoemt de client eerst en schrijft de rest daarna onder de nieuwe naam weg.
 
+> **Wat spelers in het Heldenboek zien, is een instelling.** `meta.heldenboek.verborgen`
+> = `{ classes: [], subclasses: [] }` — we bewaren wat er **uit** staat, zodat nieuw
+> materiaal vanzelf zichtbaar is (dezelfde afspraak als bij de bereikbaarheid van een
+> dienst). Campagnebreed en niet per party: het Heldenboek is een naslagwerk, geen
+> onthulling. `GET /progression` knipt het eruit voor wie geen DM is, en `GET /meta`
+> stuurt de lijst met námen alleen naar de DM — anders verklapt hij precies wat er bestaat.
+> **De route weigert te verbergen wat iemand speelt** (409 met de namen): zijn tijdlijn
+> haalt zijn features daar vandaan en zou leeg worden, en dat is geen waarschuwing waard
+> maar een weigering. Wie draagt wat, komt uit `_HOUDER_VELDEN` — dezelfde lijst die het
+> verwijderen en het hernoemen gebruiken. Instellen: Instellingen → Campagne; uitleg in
+> `inst_heldenboek`.
+
 > **Rechtsonder op een kaartje staat waar het vandaan komt.** Het veld *Uit welk boek?*
 > draagt de volle titel en die past daar niet; `_boekKort()` maakt er de code van die
 > 5e.tools ook gebruikt (`bronnen/boeken.json`), met twee aanpassingen: de X die een

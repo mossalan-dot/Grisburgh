@@ -197,6 +197,9 @@ export const api = {
   spreukbeeldenStand: ()  => request('/bron/spreukbeelden'),
   spreukbeeldenHalen: ()  => request('/bron/spreukbeelden', { method: 'POST' }),
   saveHeldenboek: (data) => request('/meta/heldenboek', { method: 'PUT', body: JSON.stringify(data) }),
+  // Welke classes en subclasses spelers te zien krijgen. We bewaren wat er
+  // **uit** staat, zodat nieuw materiaal vanzelf zichtbaar is.
+  heldenboekVerborgen: (data) => request('/meta/heldenboek/verborgen', { method: 'PUT', body: JSON.stringify(data) }),
   // Een lege class, subclass, species of background — zonder dat je er eerst
   // een feature voor hoeft te verzinnen.
   nieuweHouder: (data) => request('/progression/houder', { method: 'POST', body: JSON.stringify(data) }),
