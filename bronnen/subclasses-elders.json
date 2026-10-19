@@ -210,6 +210,14 @@
       {
         "naam": "Oath of the Watchers",
         "boek": "tce"
+      },
+      {
+        "naam": "Oath of the Crown",
+        "boek": "scag"
+      },
+      {
+        "naam": "Oath of the Noble Genies",
+        "boek": "hof"
       }
     ],
     "Ranger": [

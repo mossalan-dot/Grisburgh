@@ -826,11 +826,7 @@
     ],
     "Oathbreaker": [
       {
-        "naam": "Channel Divinity: Control Undead",
-        "level": 3
-      },
-      {
-        "naam": "Channel Divinity: Dreadful Aspect",
+        "naam": "Channel Divinity",
         "level": 3
       },
       {
@@ -848,6 +844,10 @@
     ],
     "Oath of Conquest": [
       {
+        "naam": "Channel Divinity",
+        "level": 3
+      },
+      {
         "naam": "Aura of Conquest",
         "level": 7
       },
@@ -862,6 +862,10 @@
     ],
     "Oath of Redemption": [
       {
+        "naam": "Channel Divinity",
+        "level": 3
+      },
+      {
         "naam": "Aura of the Guardian",
         "level": 7
       },
@@ -875,6 +879,14 @@
       }
     ],
     "Oath of the Watchers": [
+      {
+        "naam": "Channel Divinity",
+        "level": 3
+      },
+      {
+        "naam": "Oath Spells",
+        "level": 3
+      },
       {
         "naam": "Aura of the Sentinel",
         "level": 7
@@ -2910,6 +2922,50 @@
       {
         "naam": "Improved Mystic Fighting Style",
         "level": 17
+      }
+    ],
+    "Oath of the Crown": [
+      {
+        "naam": "Channel Divinity",
+        "level": 3
+      },
+      {
+        "naam": "Divine Allegiance",
+        "level": 7
+      },
+      {
+        "naam": "Unyielding Spirit",
+        "level": 15
+      },
+      {
+        "naam": "Exalted Champion",
+        "level": 20
+      }
+    ],
+    "Oath of the Noble Genies": [
+      {
+        "naam": "Elemental Smite",
+        "level": 3
+      },
+      {
+        "naam": "Genie Spells",
+        "level": 3
+      },
+      {
+        "naam": "Genie' Splendor",
+        "level": 3
+      },
+      {
+        "naam": "Aura of Elemental Shielding",
+        "level": 7
+      },
+      {
+        "naam": "Elemental Rebuke",
+        "level": 15
+      },
+      {
+        "naam": "Noble Scion",
+        "level": 20
       }
     ]
   },
