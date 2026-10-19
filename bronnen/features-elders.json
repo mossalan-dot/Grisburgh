@@ -2038,11 +2038,11 @@
     ],
     "Arcane Trickster": [
       {
-        "naam": "Spellcasting",
+        "naam": "Mage Hand Legerdemain",
         "level": 3
       },
       {
-        "naam": "Mage Hand Legerdemain",
+        "naam": "Spellcasting",
         "level": 3
       },
       {
@@ -2060,11 +2060,11 @@
     ],
     "Assassin": [
       {
-        "naam": "Assassinate",
+        "naam": "Assassin's Tools",
         "level": 3
       },
       {
-        "naam": "Assassin's Tools",
+        "naam": "Assassinate",
         "level": 3
       },
       {
@@ -3026,6 +3026,28 @@
       {
         "naam": "Frozen Haunt",
         "level": 15
+      }
+    ],
+    "Scion of the Three": [
+      {
+        "naam": "Bloodthirst",
+        "level": 3
+      },
+      {
+        "naam": "Dread Allegiance",
+        "level": 3
+      },
+      {
+        "naam": "Strike Fear",
+        "level": 9
+      },
+      {
+        "naam": "Aura of Malevolence",
+        "level": 13
+      },
+      {
+        "naam": "Dread Incarnate",
+        "level": 17
       }
     ]
   },
