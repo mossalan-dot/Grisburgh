@@ -1116,6 +1116,18 @@
     ],
     "Shadow Magic": [
       {
+        "naam": "Power of Shadow",
+        "level": 3
+      },
+      {
+        "naam": "Shadow Spells",
+        "level": 3
+      },
+      {
+        "naam": "Beasts of Ill Omen",
+        "level": 6
+      },
+      {
         "naam": "Shadow Walk",
         "level": 14
       },
@@ -1126,11 +1138,11 @@
     ],
     "Storm Sorcery": [
       {
-        "naam": "Wind Speaker",
+        "naam": "Tempestuous Magic",
         "level": 3
       },
       {
-        "naam": "Tempestuous Magic",
+        "naam": "Wind Speaker",
         "level": 3
       },
       {
@@ -3036,6 +3048,28 @@
       {
         "naam": "Dread Incarnate",
         "level": 17
+      }
+    ],
+    "Spellfire Sorcery": [
+      {
+        "naam": "Spellfire Burst",
+        "level": 3
+      },
+      {
+        "naam": "Spellfire Spells",
+        "level": 3
+      },
+      {
+        "naam": "Absorb Spells",
+        "level": 6
+      },
+      {
+        "naam": "Honed Spellfire",
+        "level": 14
+      },
+      {
+        "naam": "Crown of Spellfire",
+        "level": 18
       }
     ]
   },
