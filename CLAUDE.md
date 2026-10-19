@@ -2442,8 +2442,8 @@ factie — `star` betekent in de app al *favoriet*), `award` (factie-boon), `bac
 > namen en levels: de beschrijvingen blijven waar ze zijn, want dat is tekst uit een boek —
 > precies waarom deze lijst bestaat. Wat de app zelf mét tekst meebrengt (Life Domain,
 > College of Lore) wordt overgeslagen, anders dubbelt het met de seed.
-> Gedraaid op 19 okt 2026 voor Artificer, Barbarian, Bard, Blood Hunter, Cleric, Druid en
-> Fighter uit Grisburgh (de DM loopt ze één voor één na): zeventien lijsten bijgewerkt en drie nieuwe (Path of the Giant, College of
+> Gedraaid op 19 okt 2026 voor Artificer, Barbarian, Bard, Blood Hunter, Cleric, Druid,
+> Fighter en Monk uit Grisburgh (de DM loopt ze één voor één na): zeventien lijsten bijgewerkt en drie nieuwe (Path of the Giant, College of
 > Spirits, College of the Moon). **Het vervangt, het vult niet aan** — dat is het punt (zo
 > verdween Divine Strike), maar het betekent ook dat een naam die de campagne níét heeft
 > uit de lijst valt; bij Blood Hunter gold dat voor *Blood Hunter Order*.

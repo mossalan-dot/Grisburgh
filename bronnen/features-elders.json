@@ -2891,6 +2891,50 @@
         "naam": "Eventide's Splendor",
         "level": 14
       }
+    ],
+    "Way of the Ascendant Dragon": [
+      {
+        "naam": "Breath of the Dragon",
+        "level": 3
+      },
+      {
+        "naam": "Draconic Disciple",
+        "level": 3
+      },
+      {
+        "naam": "Wings Unfurled",
+        "level": 6
+      },
+      {
+        "naam": "Aspect of the Wyrm",
+        "level": 11
+      },
+      {
+        "naam": "Ascendant Aspect",
+        "level": 17
+      }
+    ],
+    "Warrior of the Mystic Arts": [
+      {
+        "naam": "Spellcasting",
+        "level": 3
+      },
+      {
+        "naam": "Mystic Fighting Style",
+        "level": 6
+      },
+      {
+        "naam": "Mystic Focus",
+        "level": 6
+      },
+      {
+        "naam": "Focused Strike",
+        "level": 11
+      },
+      {
+        "naam": "Improved Mystic Fighting Style",
+        "level": 17
+      }
     ]
   },
   "species": {

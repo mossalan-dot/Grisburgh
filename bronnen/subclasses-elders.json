@@ -16,7 +16,8 @@
     "eberron": "Eberron: Forge of the Artificer",
     "hof": "Forgotten Realms: Heroes of Faerûn",
     "au": "Arcana Unleashed",
-    "rhw": "Ravenloft: The Horrors Within"
+    "rhw": "Ravenloft: The Horrors Within",
+    "bgg": "Bigby Presents: Glory of the Giants"
   },
   "klassen": {
     "Artificer": [
@@ -49,6 +50,10 @@
       {
         "naam": "Path of Wild Magic",
         "boek": "tce"
+      },
+      {
+        "naam": "Path of the Giant",
+        "boek": "bgg"
       }
     ],
     "Bard": [
@@ -67,6 +72,14 @@
       {
         "naam": "College of Eloquence",
         "boek": "tce"
+      },
+      {
+        "naam": "College of Spirits",
+        "boek": "rhw"
+      },
+      {
+        "naam": "College of the Moon",
+        "boek": "hof"
       }
     ],
     "Cleric": [
@@ -171,6 +184,14 @@
       {
         "naam": "Way of the Astral Self",
         "boek": "tce"
+      },
+      {
+        "naam": "Way of the Ascendant Dragon",
+        "boek": "ftd"
+      },
+      {
+        "naam": "Warrior of the Mystic Arts",
+        "boek": "au"
       }
     ],
     "Paladin": [
