@@ -63,7 +63,7 @@ const KLASSE_ICOON = {
   Druid: 'tree-pine',      Fighter: 'swords',    Monk: 'hand',
   Paladin: 'shield-plus',  Ranger: 'bow-arrow',  Rogue: 'stiletto',
   Sorcerer: 'flame',       Warlock: 'eye',       Wizard: 'book-open',
-  Artificer: 'hammer',     'Blood Hunter': 'droplet', Illrigger: 'chess-knight',
+  Artificer: 'hammer',     'Blood Hunter': 'droplet',
 };
 // Waar een class zijn werk mee doet. Dat staat in geen tabel, maar het is wel
 // hoe er over classes gepraat wordt — en het lost op dat elke zelfverzonnen

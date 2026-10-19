@@ -1677,40 +1677,6 @@
           "herkomst": "overgenomen"
         }
       }
-    },
-    "Illrigger": {
-      "subclassLabel": "Diabolic Contract",
-      "subclassLevel": 3,
-      "boek": "Illrigger (MCDM Productions)",
-      "herkomst": "overgenomen",
-      "levels": {},
-      "subclasses": {
-        "Architect of Ruin": {
-          "levels": {},
-          "boek": "Illrigger (MCDM Productions)",
-          "herkomst": "overgenomen"
-        },
-        "Hellspeaker": {
-          "levels": {},
-          "boek": "Illrigger (MCDM Productions)",
-          "herkomst": "overgenomen"
-        },
-        "Painkiller": {
-          "levels": {},
-          "boek": "Illrigger (MCDM Productions)",
-          "herkomst": "overgenomen"
-        },
-        "Sanguine Knight": {
-          "levels": {},
-          "boek": "Illrigger (MCDM Productions)",
-          "herkomst": "overgenomen"
-        },
-        "Shadowmaster": {
-          "levels": {},
-          "boek": "Illrigger (MCDM Productions)",
-          "herkomst": "overgenomen"
-        }
-      }
     }
   },
   "species": {

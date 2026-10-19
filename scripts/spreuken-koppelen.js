@@ -20,6 +20,16 @@
 //     spreukenkolom linkt de weergave zelf al, en wat al tussen haken staat is
 //     een keuze van de DM.
 //
+// **Epic Boons gaan in dezelfde ronde mee**, en die zijn eenvoudig: ze heten
+// allemaal "Boon of …", dus er valt niets te verwarren. Anders dan bij een
+// spreuk linkt de weergave ze niet vanzelf — die kent alleen de
+// spreukenbibliotheek — dus hier is `[[ ]]` de enige manier.
+//
+// **Gewone feats bewust niet.** Gemeten in Grisburgh: 130 treffers, waarvan
+// "Ability Score Improvement" 56× (de naam van de feature zelf), "Protection"
+// 26× en "Defense" 12× — dat zijn fighting styles en gewone woorden. Daar is
+// geen regel voor te maken die meer goed dan kwaad doet.
+//
 //   node scripts/spreuken-koppelen.js <campagne>            (rapport)
 //   node scripts/spreuken-koppelen.js <campagne> --schrijf
 const fs   = require('fs');
@@ -65,6 +75,10 @@ const KOPPEL     = { voor: /-$/, na: /^-/ };
 // werkwoord. Dus: bij kleine letters moet het woord "spell" of "cantrip" kort
 // erna staan, zoals in "the augury or clairvoyance spell".
 const NABIJ      = /\b(spell|cantrip)s?\b/i;
+// Acht van de spreuknamen zijn ook een **school**: "when you cast a Divination
+// spell" gaat over de school, niet over de spreuk Divination.
+const SCHOLEN = new Set(['abjuration', 'conjuration', 'divination', 'enchantment',
+  'evocation', 'illusion', 'necromancy', 'transmutation']);
 const RUIMTE = 45;
 
 const esc = (n) => n.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/['’]/g, "['’]");
@@ -78,7 +92,12 @@ const esc = (n) => n.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/['’]/g, "
 
   const prog = JSON.parse(fs.readFileSync(pad, 'utf8'));
   const spreuken = JSON.parse(fs.readFileSync(path.join(WORTEL, 'bronnen', 'spells-2024.json'), 'utf8'));
-  const namen = (spreuken.results || spreuken || []).map(s => String(s.name || '')).filter(Boolean)
+  const feats = JSON.parse(fs.readFileSync(path.join(WORTEL, 'bronnen', 'feats-2024.json'), 'utf8'));
+  const boons = (feats.epic || feats.boons || []).map(b => String(b.name || b))
+    .filter(n => /^Boon of /i.test(n));
+  const boonSet = new Set(boons.map(n => n.toLowerCase()));
+  const namen = [...(spreuken.results || spreuken || []).map(s => String(s.name || '')), ...boons]
+    .filter(Boolean)
     .sort((a, b) => b.length - a.length);          // langste eerst
   const eenWoord = new Set(namen.filter(n => n.split(/\s+/).length === 1).map(n => n.toLowerCase()));
   const alle = new RegExp(`\\b(${namen.map(esc).join('|')})\\b`, 'gi');
@@ -100,11 +119,18 @@ const esc = (n) => n.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/['’]/g, "
       for (const s of stukken) {
         const woorden = s.tekst.split(/\s+/).length;
         const voor = regel.slice(0, s.start);
+        const na = regel.slice(s.eind);
         // Al tussen haken? Dan is het een keuze van de DM.
         if (/\[\[[^\]]*$/.test(voor)) continue;
+        // Een Epic Boon pakken we altijd: de weergave linkt hem nergens zelf.
+        if (boonSet.has(s.tekst.toLowerCase())) { s.pak = true; continue; }
         if (woorden > 1) continue;                  // die linkt de weergave zelf
         if (!eenWoord.has(s.tekst.toLowerCase())) continue;
-        const na = regel.slice(s.eind);
+        // De naam van een school, gevolgd door "spell": dat is de school.
+        if (SCHOLEN.has(s.tekst.toLowerCase()) && NA_NAAM.test(na)) {
+          overgeslagen.push({ naam: s.tekst, om: regel.slice(Math.max(0, s.start - RUIMTE), s.eind + RUIMTE) });
+          continue;
+        }
         if (GEEN.test(na)) { overgeslagen.push({ naam: s.tekst, om: s.tekst + na.slice(0, 20) }); continue; }
         // Deel van een langere eigennaam? Dan is het die naam, niet de spreuk.
         if (HOOFD_NA.test(na) || VAN_DE.test(voor)
@@ -159,7 +185,11 @@ const esc = (n) => n.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/['’]/g, "
     + Object.entries(tel).sort((a, b) => b[1] - a[1]).slice(0, 12).map(([n, c]) => `${n}×${c}`).join(', '));
 
   if (!schrijf) { console.log('\nProefronde — draai opnieuw met --schrijf.'); return; }
-  const kopie = pad.replace(/\.json$/, `.voor-spreuklinks.${new Date().toISOString().slice(0, 10)}.json`);
+  // Met het tijdstip erbij, niet alleen de datum: twee rondes op één dag
+  // zouden anders elkaars kopie overschrijven — en juist de eerste is degene
+  // waar je naar terug wil.
+  const stempel = new Date().toISOString().slice(0, 16).replace(/[:T]/g, '-');
+  const kopie = pad.replace(/\.json$/, `.voor-spreuklinks.${stempel}.json`);
   fs.copyFileSync(pad, kopie);
   fs.writeFileSync(pad + '.tmp', JSON.stringify(prog, null, 2));
   fs.renameSync(pad + '.tmp', pad);

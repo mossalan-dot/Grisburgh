@@ -1196,6 +1196,13 @@ dm-panel.js : combat-canvas.js?v=29   render-statblock.js?v=9
 > gezocht — vandaar ook dat `.fp-blok` een echte box moet houden
 > (`display:contents` zou `offsetParent` op null zetten).
 
+> **Illrigger wordt niet meer meegeleverd** (20 okt 2026). Hij kwam op verzoek mee als
+> canon, maar de campagne heeft hem zelf weggehaald en wil hem ook niet in de seed. Vijf
+> bestanden noemden hem: `class-progression.json` (met vijf subclasses),
+> `features-elders.json` (de class én die vijf), `volken-klassen.json`,
+> `klasse-basis.json` en `KLASSE_ICOON` in `render-vaardigheden.js`. De app levert nu
+> veertien classes mee.
+
 > **Standaard-statblokken (SRD 5.2) worden meegeleverd.** `bronnen/srd-monsters.json`
 > (331 wezens, 466 kB) komt uit `node scripts/srd-2024/srd-monsters.js --schrijf`
 > — Open5e, document `srd-2024`. Die tekst staat onder CC BY 4.0 en gaat dus bij
@@ -2442,9 +2449,8 @@ factie — `star` betekent in de app al *favoriet*), `award` (factie-boon), `bac
 > namen en levels: de beschrijvingen blijven waar ze zijn, want dat is tekst uit een boek —
 > precies waarom deze lijst bestaat. Wat de app zelf mét tekst meebrengt (Life Domain,
 > College of Lore) wordt overgeslagen, anders dubbelt het met de seed.
-> Gedraaid op 19 okt 2026 voor Artificer, Barbarian, Bard, Blood Hunter, Cleric, Druid,
-> Fighter, Monk, Paladin, Ranger, Rogue, Sorcerer en Warlock uit Grisburgh (de DM loopt ze
-> één voor één na): zeventien lijsten bijgewerkt en drie nieuwe (Path of the Giant, College of
+> Gedraaid op 19-20 okt 2026 voor **alle veertien classes** uit Grisburgh, één voor één
+> nagelopen door de DM: zeventien lijsten bijgewerkt en drie nieuwe (Path of the Giant, College of
 > Spirits, College of the Moon). **Het vervangt, het vult niet aan** — dat is het punt (zo
 > verdween Divine Strike), maar het betekent ook dat een naam die de campagne níét heeft
 > uit de lijst valt; bij Blood Hunter gold dat voor *Blood Hunter Order*.
@@ -2516,8 +2522,16 @@ factie — `star` betekent in de app al *favoriet*), `award` (factie-boon), `bac
 > **hoofdletterwoord ernaast** is deel van een langere eigennaam (*Sending Stones*, *Rite
 > of the Dawn*), en een **kleine letter** vraagt om het woord *spell* of *cantrip* vlak
 > erna — anders glipt "others heal you as well" erdoor.
-> Gedraaid op 19 okt 2026 in Grisburgh: 22 koppelingen in 17 features, 387 treffers
-> overgeslagen (Resistance 40×, teleport 32×, light 29×). Het schrijft een kopie ernaast.
+> **Epic Boons gaan in dezelfde ronde mee** en zijn eenvoudig: ze heten allemaal "Boon of
+> …". Anders dan een spreuk linkt de weergave ze nergens vanzelf, dus daar is `[[ ]]` de
+> enige manier. **Gewone feats bewust niet**: 130 treffers, waarvan "Ability Score
+> Improvement" 56× (de naam van de feature zelf), "Protection" 26× en "Defense" 12× — dat
+> zijn fighting styles en gewone woorden.
+> En acht spreuknamen zijn ook een **school**: "when you cast a Divination spell" gaat over
+> de school, niet over de spreuk.
+> Gedraaid 19 okt 2026 (22 koppelingen in 17 features) en 20 okt (16 meer, waarvan 13
+> boons). Het schrijft een kopie ernaast, met het tijdstip erin — twee rondes op één dag
+> zouden elkaars kopie overschrijven, en juist de eerste is degene waar je naar terug wil.
 
 > **In lopende tekst alleen namen van twee woorden of meer.**
 > `window.spreuken.linkInProza(el)` maakt ook buiten een tabel knoppen van spreuknamen,

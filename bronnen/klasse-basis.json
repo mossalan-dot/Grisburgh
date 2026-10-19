@@ -418,32 +418,6 @@
         "Survival"
       ],
       "primary": "Intelligence"
-    },
-    "Illrigger": {
-      "aard": "martial",
-      "hitDie": 10,
-      "featLevels": [
-        4,
-        8,
-        12,
-        16,
-        19
-      ],
-      "saves": [
-        "con",
-        "cha"
-      ],
-      "armor": "Medium, Shields",
-      "weapons": "Martial",
-      "skillAantal": 2,
-      "skills": [
-        "Deception",
-        "Insight",
-        "Intimidation",
-        "Perception",
-        "Persuasion",
-        "Stealth"
-      ]
     }
   },
   "_aard": "`aard` zegt of een class zijn werk doet met wapens (`martial`), met spreuken (`caster`) of met allebei (`half`). Dat staat in geen enkele tabel — het is hoe spelers en DM's over classes praten, en het is wat een eigen class een icoon geeft zonder dat er voor elke verzonnen naam een icoon in de app hoeft te staan."

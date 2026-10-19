@@ -95,60 +95,6 @@
         "naam": "Sanguine Mastery",
         "level": 20
       }
-    ],
-    "Illrigger": [
-      {
-        "naam": "Baleful Interdict",
-        "level": 1
-      },
-      {
-        "naam": "Forked Tongue",
-        "level": 1
-      },
-      {
-        "naam": "Combat Mastery",
-        "level": 2
-      },
-      {
-        "naam": "Interdiction",
-        "level": 2
-      },
-      {
-        "naam": "Diabolic Contract",
-        "level": 3
-      },
-      {
-        "naam": "Invoke Hell",
-        "level": 3
-      },
-      {
-        "naam": "Extra Attack",
-        "level": 5
-      },
-      {
-        "naam": "Infernal Conduit",
-        "level": 6
-      },
-      {
-        "naam": "Blood Price",
-        "level": 10
-      },
-      {
-        "naam": "Terrorizing Force",
-        "level": 11
-      },
-      {
-        "naam": "Superior Interdict",
-        "level": 14
-      },
-      {
-        "naam": "Infernal Majesty",
-        "level": 17
-      },
-      {
-        "naam": "Master of Hell",
-        "level": 20
-      }
     ]
   },
   "subclasses": {
@@ -1300,11 +1246,11 @@
     ],
     "Order of Scribes": [
       {
-        "naam": "Wizardly Quill",
+        "naam": "Awakened Spellbook",
         "level": 3
       },
       {
-        "naam": "Awakened Spellbook",
+        "naam": "Wizardly Quill",
         "level": 3
       },
       {
@@ -2272,6 +2218,10 @@
         "level": 6
       },
       {
+        "naam": "The Third Eye",
+        "level": 10
+      },
+      {
         "naam": "Greater Portent",
         "level": 14
       }
@@ -2404,120 +2354,6 @@
       {
         "naam": "Blood Curse of the Souleater",
         "level": 18
-      }
-    ],
-    "Architect of Ruin": [
-      {
-        "naam": "Asmodeus's Blessing",
-        "level": 3
-      },
-      {
-        "naam": "Spellcasting",
-        "level": 3
-      },
-      {
-        "naam": "Asmodeus's Interdiction",
-        "level": 7
-      },
-      {
-        "naam": "Submit",
-        "level": 11
-      },
-      {
-        "naam": "Vile Transmogrification",
-        "level": 15
-      }
-    ],
-    "Hellspeaker": [
-      {
-        "naam": "Moloch's Blessing",
-        "level": 3
-      },
-      {
-        "naam": "Charm Enemy",
-        "level": 3
-      },
-      {
-        "naam": "Moloch's Interdiction",
-        "level": 7
-      },
-      {
-        "naam": "Intransigent",
-        "level": 11
-      },
-      {
-        "naam": "Let's Make a Deal",
-        "level": 15
-      },
-      {
-        "naam": "Quid Pro Quo",
-        "level": 15
-      }
-    ],
-    "Painkiller": [
-      {
-        "naam": "Dispater's Blessing",
-        "level": 3
-      },
-      {
-        "naam": "Devastator",
-        "level": 3
-      },
-      {
-        "naam": "Dispater's Interdiction",
-        "level": 7
-      },
-      {
-        "naam": "You Die on My Command!",
-        "level": 11
-      },
-      {
-        "naam": "Deathstrike",
-        "level": 15
-      }
-    ],
-    "Sanguine Knight": [
-      {
-        "naam": "Exsanguinate",
-        "level": 3
-      },
-      {
-        "naam": "Sutekh's Blessing",
-        "level": 3
-      },
-      {
-        "naam": "Sutekh's Interdiction",
-        "level": 7
-      },
-      {
-        "naam": "Bloodstroke",
-        "level": 11
-      },
-      {
-        "naam": "Haemel Exchange",
-        "level": 15
-      }
-    ],
-    "Shadowmaster": [
-      {
-        "naam": "Marked for Death",
-        "level": 3
-      },
-      {
-        "naam": "Strike from the Dark",
-        "level": 3
-      },
-      {
-        "naam": "Belial's Interdiction",
-        "level": 7
-      },
-      {
-        "naam": "Umbral Killer",
-        "level": 11
-      },
-      {
-        "naam": "Doomed to the Shadows",
-        "level": 15
       }
     ],
     "Cartographer": [
