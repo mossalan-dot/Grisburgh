@@ -1677,6 +1677,12 @@ Grisburghs **data** te staan — niet in de code.
 - [ ] **Ctrl+B en Ctrl+I in het Heldenboek** (DM) — selecteer tekst in de
       beschrijving van een feature of een houder en druk Ctrl+B: er komen
       sterretjes omheen, net als in de andere editors. Ook Ctrl+I en Ctrl+U.
+- [ ] **Waar een kaartje vandaan komt** (ALL) — rechtsonder op elk kaartje in
+      het Heldenboek staat een afkorting: **PHB'24**, **TCE**, **XGE**, **MCDM**.
+      Wijs hem aan voor de volle titel. Een feature zonder eigen bron erft die
+      van zijn class of subclass, dus er hoort er geen leeg te blijven zolang de
+      houder zijn boek heeft. En hij ligt nooit over de tekst heen, ook niet bij
+      drie regels beschrijving.
 - [ ] **Zoeken gaat dwars door de deuren** (ALL) — typ *battle master* terwijl
       je in Classes staat: je krijgt treffers uit alles, met een regel
       *Resultaten voor…* en een knop terug. Veeg het veld leeg en je staat weer

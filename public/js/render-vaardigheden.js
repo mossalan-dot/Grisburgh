@@ -575,11 +575,80 @@ function _card(it) {
           <a class="spreuk-tag spreuk-tag--naslag" href="${esc(link)}" target="_blank" rel="noopener"
             onclick="event.stopPropagation()" title="De beschrijving staat hier niet — zoek hem elders op">${icon('book-open')} Naslag</a>
         </div>` : ''}
+        <!-- Waar het vandaan komt, in de rechteronderhoek: PHB'24, TCE, MCDM.
+             Nu elk kaartje zijn bron draagt is dat het laatste wat je wil
+             weten voordat je het gebruikt, en het past in drie tekens. -->
+        ${(() => {
+          const boek = _boekVan(it);
+          const kort = _boekKort(boek);
+          return kort ? `<span class="vaardig-card-boek" title="${esc(boek)}">${esc(kort)}</span>` : '';
+        })()}
         ${tekst
           ? `<div class="vaardig-card-desc">${_kort(tekst)}</div>`
           : `<div class="vaardig-card-desc vaardig-card-desc--leeg">De beschrijving staat hier niet — hij valt buiten de vrij te gebruiken SRD.</div>`}
       </div>
     </div>`;
+}
+
+// ── Waar komt dit vandaan, in één hoekje ────────────────────────────────────
+// Het veld "Uit welk boek?" draagt de volle titel ("Player's Handbook (2024)")
+// en die past niet op een kaartje. `bronnen/boeken.json` kent de codes die
+// 5e.tools ook gebruikt, dus die hoeven we niet te verzinnen — alleen de twee
+// drukken van dezelfde titel moeten uit elkaar te houden zijn, en daar zet dat
+// bestand een X voor (XPHB naast PHB). Op een kaartje leest het jaartal beter
+// dan die X.
+const _BOEK_LABEL = {
+  XPHB: "PHB'24", PHB: "PHB'14", XDMG: "DMG'24", DMG: "DMG'14", XMM: "MM'24",
+  FRHoF: 'HoF',
+};
+// Wat in geen enkel boek staat maar wel een vaste plek heeft. Derde partijen
+// dragen hun uitgever als naam; die herken je eerder aan het merk dan aan een
+// afkorting van de titel.
+const _BOEK_EIGEN = [
+  [/mcdm/i, 'MCDM'],
+  [/\bd\s*&?\s*n?\s*d\s*beyond\b|dndbeyond/i, 'DDB'],
+  [/unearthed arcana|\bua\b/i, 'UA'],
+];
+let _boekIndex = null;
+function _boekKort(titel) {
+  const vol = String(titel || '').trim();
+  if (!vol) return '';
+  for (const [re, kort] of _BOEK_EIGEN) if (re.test(vol)) return kort;
+  if (!_boekIndex) {
+    _boekIndex = new Map();
+    // Leestekens weg bij het vergelijken: in de campagne staat "Bigby Presents
+    // - Glory of the Giants" en in de boekenlijst "Bigby Presents: Glory of
+    // the Giants". Dat is dezelfde titel.
+    for (const b of (_boeken || [])) _boekIndex.set(_boekSleutel(b.naam), b.code);
+  }
+  const code = _boekIndex.get(_boekSleutel(vol));
+  if (code) return _BOEK_LABEL[code] || code;
+  // Onbekend: het eerste woord, kort. Beter dan niets, en het valt op als het
+  // raar leest — dan hoort die titel in de boekenlijst.
+  return vol.replace(/[^A-Za-z0-9 ]/g, ' ').trim().split(/\s+/)[0].slice(0, 5).toUpperCase();
+}
+const _boekSleutel = (t) => String(t || '').toLowerCase().replace(/[^a-z0-9]+/g, '');
+
+// Uit welk boek komt dít kaartje? Zijn eigen antwoord, en anders dat van zijn
+// moeder — dezelfde keten als bij de afbeelding, en dezelfde regel die de
+// editor hanteert als hij "Waaruit?" invult. De features die de app zelf
+// meebrengt dragen geen eigen bron; die van de Fighter komen uit het boek dat
+// op de Fighter staat.
+function _boekVan(it) {
+  if (it?.bronTekst) return it.bronTekst;
+  const ketens = {
+    class:      [['class', it?.bron]],
+    subclass:   [['subclass', it?.sub, it?.bron], ['class', it?.bron]],
+    species:    [['species', it?.bron]],
+    variant:    [['variant', it?.sub, it?.bron], ['species', it?.bron]],
+    background: [['background', it?.naam]],
+  }[it?.soort] || [];
+  for (const [soort, naam, bron] of ketens) {
+    if (!naam) continue;
+    const boek = _houderVan(soort, naam, bron)?.boek;
+    if (boek) return boek;
+  }
+  return '';
 }
 
 // De beschrijving zoals hij op het kaartje past: zonder opmaaktekens, en

@@ -30585,3 +30585,20 @@ body:has(#sb-overlay.sb-open) .dm-dice-fab { display: none !important; }
    er nul, en stond daarmee als enige strak tegen de rand. Eén lijn voor alle
    drie: de band, de pillen en de kaartjes. */
 .vaardig-filters { padding-left: 15px; padding-right: 15px; }
+
+/* ── Waar een kaartje in het Heldenboek vandaan komt ─────────────────────────
+   Rechtsonder, klein en rustig: je leest het pas als je het zoekt. Absoluut
+   geplaatst zodat hij niet meeschuift met een beschrijving die één regel
+   korter is — anders staat hij op elk kaartje op een andere hoogte. */
+.vaardig-card { position: relative; }
+/* Ruimte onder de tekst, zodat de penning er niet overheen ligt. Bij drie
+   regels beschrijving deed hij dat: hij staat absoluut (anders zweeft hij per
+   kaartje op een andere hoogte), dus de tekst moet zelf plaatsmaken. */
+.vaardig-card-body:has(.vaardig-card-boek) { padding-bottom: 24px; }
+.vaardig-card-boek {
+  position: absolute; right: 9px; bottom: 7px;
+  font-family: 'Cinzel', serif; font-size: 9px; font-weight: 700;
+  letter-spacing: .08em; color: var(--color-ink-faint, rgba(120,96,56,0.7));
+  background: rgba(196,168,122,0.16); border: 1px solid rgba(196,168,122,0.3);
+  border-radius: 4px; padding: 1px 5px; pointer-events: none;
+}

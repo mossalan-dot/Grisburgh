@@ -2560,6 +2560,17 @@ factie — `star` betekent in de app al *favoriet*), `award` (factie-boon), `bac
 > volgorde is redactioneel. Het venster toont nu een veld *Naam*; verandert die, dan
 > hernoemt de client eerst en schrijft de rest daarna onder de nieuwe naam weg.
 
+> **Rechtsonder op een kaartje staat waar het vandaan komt.** Het veld *Uit welk boek?*
+> draagt de volle titel en die past daar niet; `_boekKort()` maakt er de code van die
+> 5e.tools ook gebruikt (`bronnen/boeken.json`), met twee aanpassingen: de X die een
+> herdruk markeert wordt een jaartal (XPHB → **PHB'24**, PHB → **PHB'14**), en wat in geen
+> enkel boek staat krijgt zijn merk (`MCDM`, `DDB`, `UA`). Vergelijken gaat zonder
+> leestekens — in de campagne staat "Bigby Presents - Glory of the Giants" en in de lijst
+> "Bigby Presents: Glory of the Giants". Een onbekende titel valt terug op zijn eerste
+> woord; leest dat raar, dan hoort dat boek in de lijst.
+> Een feature zonder eigen bron erft die van zijn houder (`_boekVan`), dezelfde keten als
+> bij de afbeelding — de meegeleverde features dragen er zelf geen.
+
 > **De sleutel van een kaartje noemt ook de subclass.** `soort|bron|sub|level|naam` —
 > zonder dat stuk droegen de Bonus Proficiency van het Death Domain en die van het Nature
 > Domain allebei `subclass|Cleric|3|Bonus Proficiency`, en de ontdubbeling in
