@@ -236,6 +236,14 @@
       {
         "naam": "Drakewarden",
         "boek": "ftd"
+      },
+      {
+        "naam": "Hollow Warden",
+        "boek": "rhw"
+      },
+      {
+        "naam": "Winter Walker",
+        "boek": "hof"
       }
     ],
     "Rogue": [

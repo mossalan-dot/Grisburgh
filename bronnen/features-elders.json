@@ -906,6 +906,10 @@
         "level": 3
       },
       {
+        "naam": "Horizon Walker Magic",
+        "level": 3
+      },
+      {
         "naam": "Planar Warrior",
         "level": 3
       },
@@ -928,6 +932,10 @@
         "level": 3
       },
       {
+        "naam": "Monster Slayer Magic",
+        "level": 3
+      },
+      {
         "naam": "Slayer's Prey",
         "level": 3
       },
@@ -947,6 +955,10 @@
     "Swarmkeeper": [
       {
         "naam": "Gathered Swarm",
+        "level": 3
+      },
+      {
+        "naam": "Swarmkeeper Magic",
         "level": 3
       },
       {
@@ -2966,6 +2978,54 @@
       {
         "naam": "Noble Scion",
         "level": 20
+      }
+    ],
+    "Hollow Warden": [
+      {
+        "naam": "Hollow Warden Spells",
+        "level": 3
+      },
+      {
+        "naam": "Wrath of the Wild",
+        "level": 3
+      },
+      {
+        "naam": "Hungering Might",
+        "level": 7
+      },
+      {
+        "naam": "Rot and Violence",
+        "level": 11
+      },
+      {
+        "naam": "Ancient Might",
+        "level": 15
+      }
+    ],
+    "Winter Walker": [
+      {
+        "naam": "Frigid Explorer",
+        "level": 3
+      },
+      {
+        "naam": "Hunter's Rime",
+        "level": 3
+      },
+      {
+        "naam": "Winter Walker Spells",
+        "level": 3
+      },
+      {
+        "naam": "Fortifying Soul",
+        "level": 7
+      },
+      {
+        "naam": "Chilling Retribution",
+        "level": 11
+      },
+      {
+        "naam": "Frozen Haunt",
+        "level": 15
       }
     ]
   },
