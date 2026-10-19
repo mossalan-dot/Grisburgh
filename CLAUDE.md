@@ -2505,6 +2505,19 @@ factie — `star` betekent in de app al *favoriet*), `award` (factie-boon), `bac
 > lijst. Het venster van een houder krijgt dezelfde behandeling, en zijn uitleg loopt sinds
 > dezelfde ronde door `window._vaardigTekstHtml` — één renderer voor een vaardigheidstekst.
 
+> **De eenwoordsnamen koppel je met de hand — of met een script dat zich inhoudt.**
+> `scripts/spreuken-koppelen.js <campagne> --schrijf` zet `[[Naam]]` om een eenwoordsspreuk
+> die in de tekst écht als spreuk genoemd wordt, en laat de rest met rust. Vier regels
+> houden het eerlijk, en ze zijn alle vier uit een misser geboren: **de langste naam wint**
+> ("Commune" zit in *Commune with Nature*, "Heal" in *Power Word Heal*), er moet een
+> **patroon** staan en niet alleen een spreukwoord in de buurt ("you have Resistance to
+> that damage type, and when you cast a spell…" haalde het anders), een naam met een
+> **hoofdletterwoord ernaast** is deel van een langere eigennaam (*Sending Stones*, *Rite
+> of the Dawn*), en een **kleine letter** vraagt om het woord *spell* of *cantrip* vlak
+> erna — anders glipt "others heal you as well" erdoor.
+> Gedraaid op 19 okt 2026 in Grisburgh: 22 koppelingen in 17 features, 387 treffers
+> overgeslagen (Resistance 40×, teleport 32×, light 29×). Het schrijft een kopie ernaast.
+
 > **In lopende tekst alleen namen van twee woorden of meer.**
 > `window.spreuken.linkInProza(el)` maakt ook buiten een tabel knoppen van spreuknamen,
 > maar met die ene harde regel. Nagemeten op de Druid-features: van de 32 spreuknamen die
