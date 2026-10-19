@@ -2190,6 +2190,14 @@ function _uitlegVenster(soort, naam, bron) {
     <div class="dm-feature-section" style="margin:0" id="vd-kaart-bewerk"
       data-soort="${esc(soort)}" data-naam="${esc(naam)}" data-bron="${esc(bron || '')}"
       data-beeld="${esc(beeld?.id || '')}">
+      <!-- De naam stond hier niet, dus een class die je anders wilde noemen kon
+           alleen weg en opnieuw — met zijn features, zijn kleur en zijn plaat.
+           Hernoemen neemt de verwijzingen mee: wat spelers op hun blad dragen
+           en de afbeelding, die aan de naam hangt. -->
+      <div class="dm-form-row">
+        <label class="dm-form-label" for="vd-houder-naam">Naam</label>
+        <input class="dm-input" id="vd-houder-naam" maxlength="60" value="${esc(naam)}">
+      </div>
       <div class="dm-form-row">
         <label class="dm-form-label" for="vd-houder-onder">Ondertitel</label>
         <input class="dm-input" id="vd-houder-onder" maxlength="120" value="${esc(h.ondertitel || '')}"
@@ -2198,7 +2206,7 @@ function _uitlegVenster(soort, naam, bron) {
       <div class="dm-form-row">
         <label class="dm-form-label">Beschrijving</label>
         ${window._fmtToolbarHtml?.('vd-houder-desc', { tabel: true }) ?? ''}
-        <textarea class="dm-input" id="vd-houder-desc" rows="8"
+        <textarea class="dm-input" id="vd-houder-desc" rows="8" onkeydown="window._fmtKey(event)"
           placeholder="Wat is dit? Dit staat bovenaan het kaartje, vóór de features.">${esc(_schoonVoorEditor(h.desc || ''))}</textarea>
       </div>
       <!-- Een eigen kleur voor een subclass. Die kleurt zijn kaartje én de
@@ -2728,7 +2736,7 @@ function _editorHtml() {
       <div class="dm-form-row">
         <label class="dm-form-label">Beschrijving</label>
         ${window._fmtToolbarHtml?.('vd-desc', { tabel: true }) ?? ''}
-        <textarea class="dm-input" id="vd-desc" rows="${houder ? 6 : 9}"
+        <textarea class="dm-input" id="vd-desc" rows="${houder ? 6 : 9}" onkeydown="window._fmtKey(event)"
           placeholder="${houder ? 'Wat is dit? Dit staat bovenaan het kaartje, vóór de features.' : 'Wat doet het? Een lege regel begint een nieuwe alinea.'}">${esc(e.desc || '')}</textarea>
       </div>
 
@@ -3296,6 +3304,28 @@ window.vaardigheden = {
     setTimeout(() => _open(key, vanWaar), 40);
   },
   async bewaarUitleg(soort, naam, bron) {
+    // Eerst de naam, als die veranderd is: de rest wordt daarna onder de
+    // nieuwe naam weggeschreven. Andersom zou de beschrijving bij de oude
+    // naam belanden en meteen daarna meeverhuizen — of niet, als het
+    // hernoemen stukloopt.
+    const getikt = (document.getElementById('vd-houder-naam')?.value || '').trim();
+    if (getikt && getikt !== naam) {
+      try {
+        const r = await api.post('/progression/houder/hernoemen',
+          { soort, naam, bron, nieuweNaam: getikt });
+        const oudeNaam = naam;
+        naam = r?.naam || getikt;
+        // Waar je stond wees nog naar de oude naam: de open class in de band,
+        // en de aangevinkte subclasses. Zonder dit kijk je na het opslaan naar
+        // een lege lijst.
+        if (_filters.bron === oudeNaam) _filters.bron = naam;
+        if (_subAan.delete(oudeNaam)) _subAan.add(naam);
+        if (_subKaart === oudeNaam) _subKaart = naam;
+        if (r?.meegegaan?.length) {
+          window._showToast?.(`Hernoemd; ${r.meegegaan.length === 1 ? 'één personage ging' : `${r.meegegaan.length} personages gingen`} mee.`);
+        }
+      } catch (e) { alert('Hernoemen mislukt: ' + (e.message || e)); return; }
+    }
     const desc = document.getElementById('vd-houder-desc')?.value || '';
     // De kerngegevens gaan als geheel mee: wat je leegmaakt valt terug op de
     // bron, wat je invult geldt hier. `d8` en `8` allebei goed — een hit die

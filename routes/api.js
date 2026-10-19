@@ -10110,6 +10110,97 @@ router.post('/progression/feature/verwijderen', requireDM, (req, res) => {
 // terwijl Monk verdwijnt houdt een klasse die nergens meer op slaat. De DM
 // krijgt de namen te zien en kan het daarna alsnog doordrukken (`toch`) — het
 // is zijn wereld, maar niet per ongeluk.
+// Een houder hernoemen. Dat kon niet, en dat is vervelender dan het klinkt:
+// een class die je "Purple Dragon Knight (Banneret)" noemde heet in het nieuwe
+// boek gewoon Banneret, en de enige uitweg was hem weggooien en opnieuw
+// intikken — met zijn features, zijn kleur en zijn plaat.
+//
+// Een naam is hier geen sleutel maar wél een verwijzing: spelers dragen hem op
+// hun blad, de afbeelding hangt eraan in `meta.heldenboek`. Die gaan dus mee.
+// Welke velden dat zijn staat hieronder op één plek, zodat het niet uit de pas
+// loopt met de verwijderroute die dezelfde velden afzoekt.
+const _HOUDER_VELDEN = {
+  class:      { profiel: ['klasse', 'multiKlasse'], kaartje: ['klasse'], hb: 'klassen' },
+  subclass:   { profiel: ['subclass'],              kaartje: [],         hb: 'subclassen' },
+  species:    { profiel: ['origin', 'species'],     kaartje: ['ras'],    hb: 'species' },
+  variant:    { profiel: ['originVariant'],         kaartje: [],         hb: 'varianten' },
+  background: { profiel: ['background'],            kaartje: [],         hb: 'backgrounds' },
+};
+
+router.post('/progression/houder/hernoemen', requireDM, (req, res) => {
+  const b = req.body || {};
+  const soort = String(b.soort || '');
+  const naam  = String(b.naam || '').trim();
+  const bron  = String(b.bron || '').trim();
+  const nieuw = String(b.nieuweNaam || '').trim().slice(0, 60);
+  if (!_HOUDER_VELDEN[soort]) return res.status(400).json({ error: 'Onbekende soort' });
+  if (!naam || !nieuw) return res.status(400).json({ error: 'Naam is verplicht' });
+  if (naam === nieuw) return res.json({ ok: true, ongewijzigd: true });
+
+  const prog = _progHuidig();
+  const bak = soort === 'species' ? prog.species
+    : soort === 'background' ? prog.backgrounds
+    : soort === 'class' ? prog.classes
+    : soort === 'variant' ? prog.species?.[bron]?.varianten
+    : prog.classes?.[bron]?.subclasses;
+  if (!bak?.[naam]) return res.status(404).json({ error: `${naam} staat er niet in` });
+  if (bak[nieuw]) return res.status(409).json({ error: `${nieuw} bestaat al` });
+
+  // **Op zijn plek laten staan.** Een sleutel weghalen en achteraan weer
+  // toevoegen zet de class onderaan de lijst; de volgorde is hier redactioneel
+  // (de Barbarian staat vooraan omdat hij vooraan hoort).
+  const opnieuw = {};
+  for (const [k, v] of Object.entries(bak)) opnieuw[k === naam ? nieuw : k] = v;
+  for (const k of Object.keys(bak)) delete bak[k];
+  Object.assign(bak, opnieuw);
+
+  const velden = _HOUDER_VELDEN[soort];
+  const gelijk = (v) => String(v || '').trim().toLowerCase() === naam.toLowerCase();
+  const meegegaan = [];
+
+  const dmState = storage.readJSON('dm-state.json') || {};
+  const entities = storage.readJSON('entities.json') || {};
+  const naamVan = new Map((entities.personages || []).map(e => [e.id, e.name || e.id]));
+  let dmGewijzigd = false;
+  for (const [id, p] of Object.entries(dmState.playerProfiles || {})) {
+    for (const veld of velden.profiel) {
+      if (!gelijk(p[veld])) continue;
+      p[veld] = nieuw; dmGewijzigd = true;
+      meegegaan.push(naamVan.get(id) || id);
+    }
+  }
+  // Een concept is nog geen personage, maar draagt dezelfde keuzes.
+  for (const c of Object.values(dmState.conceptPersonages || {})) {
+    for (const veld of velden.profiel) {
+      if (gelijk(c?.[veld])) { c[veld] = nieuw; dmGewijzigd = true; }
+    }
+  }
+  if (dmGewijzigd) storage.writeJSON('dm-state.json', dmState);
+
+  let entGewijzigd = false;
+  for (const e of (entities.personages || [])) {
+    for (const veld of velden.kaartje) {
+      if (!gelijk(e.data?.[veld])) continue;
+      e.data[veld] = nieuw; entGewijzigd = true;
+      meegegaan.push(e.name || e.id);
+    }
+  }
+  if (entGewijzigd) storage.writeJSON('entities.json', entities);
+
+  // De afbeelding hangt aan de naam, niet aan de houder.
+  const meta = storage.readJSON('meta.json') || {};
+  let metaGewijzigd = false;
+  const hb = meta.heldenboek?.[velden.hb];
+  if (hb?.[naam]) { hb[nieuw] = hb[naam]; delete hb[naam]; metaGewijzigd = true; }
+  if (metaGewijzigd) storage.writeJSON('meta.json', meta);
+
+  storage.writeJSON('progression.json', { ...prog, bron: prog.bron || 'Aangepast door de DM' });
+  const io_ = req.app.get('io');
+  io_.to(_campagneRoom(req)).emit('progression:updated', {});
+  if (metaGewijzigd) io_.to(_campagneRoom(req)).emit('meta:updated');
+  res.json({ ok: true, naam: nieuw, meegegaan: [...new Set(meegegaan)], beeld: metaGewijzigd });
+});
+
 router.post('/progression/houder/verwijderen', requireDM, (req, res) => {
   const b = req.body || {};
   const soort = String(b.soort || '');

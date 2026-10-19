@@ -215,6 +215,52 @@ describe('Eigen class, species of background', () => {
     assert.equal(prog().classes.Kruidenlezer, undefined);
   });
 
+  it('hernoemt een class en neemt mee wie hem draagt', async () => {
+    await req(server, 'POST', '/api/progression/houder', { soort: 'class', naam: 'Veenwachter' }, dm);
+    await req(server, 'POST', '/api/progression/houder',
+      { soort: 'subclass', naam: 'Orde van het Riet', bron: 'Veenwachter' }, dm);
+    const pc = await req(server, 'POST', '/api/entities/personages',
+      { name: 'Marre', data: { klasse: 'Veenwachter' } }, dm);
+    assert.equal(pc.status, 201, JSON.stringify(pc.body));
+
+    const r = await req(server, 'POST', '/api/progression/houder/hernoemen',
+      { soort: 'class', naam: 'Veenwachter', nieuweNaam: 'Veenloper' }, dm);
+    assert.equal(r.status, 200, JSON.stringify(r.body));
+    assert.deepEqual(r.body.meegegaan, ['Marre'], 'het zegt wie er meeging');
+
+    const p_ = prog();
+    assert.ok(p_.classes.Veenloper, 'hij staat onder de nieuwe naam');
+    assert.equal(p_.classes.Veenwachter, undefined, 'en niet meer onder de oude');
+    assert.ok(p_.classes.Veenloper.subclasses['Orde van het Riet'], 'zijn subclass ging mee');
+
+    // En het kaartje van de speler draagt de nieuwe naam, anders wijst zijn
+    // blad naar een class die niet meer bestaat.
+    const lijst = await req(server, 'GET', '/api/entities/personages', null, dm);
+    const marre = (lijst.body || []).find(e => e.name === 'Marre');
+    assert.equal(marre?.data?.klasse, 'Veenloper');
+  });
+
+  it('weigert een naam die al bezet is, en laat alles staan', async () => {
+    await req(server, 'POST', '/api/progression/houder', { soort: 'class', naam: 'Zoutzieder' }, dm);
+    const r = await req(server, 'POST', '/api/progression/houder/hernoemen',
+      { soort: 'class', naam: 'Zoutzieder', nieuweNaam: 'Veenloper' }, dm);
+    assert.equal(r.status, 409);
+    assert.ok(prog().classes.Zoutzieder, 'hij staat er nog onder zijn eigen naam');
+  });
+
+  it('houdt een hernoemde class op zijn plek in de lijst', async () => {
+    // De volgorde is redactioneel — de Barbarian staat vooraan omdat hij
+    // vooraan hoort. Een sleutel weghalen en opnieuw toevoegen zet hem
+    // onderaan.
+    const voor = Object.keys(prog().classes);
+    const i = voor.indexOf('Veenloper');
+    assert.ok(i >= 0);
+    const r = await req(server, 'POST', '/api/progression/houder/hernoemen',
+      { soort: 'class', naam: 'Veenloper', nieuweNaam: 'Veenzieder' }, dm);
+    assert.equal(r.status, 200, JSON.stringify(r.body));
+    assert.equal(Object.keys(prog().classes)[i], 'Veenzieder');
+  });
+
   it('weigert een houder weg te halen die er niet is', async () => {
     const r = await req(server, 'POST', '/api/progression/houder/verwijderen',
       { soort: 'class', naam: 'Bestaat Niet' }, dm);

@@ -2545,6 +2545,17 @@ factie — `star` betekent in de app al *favoriet*), `award` (factie-boon), `bac
 > echte tabel hadden. `_scheider()` kiest per blok de pijp of de tab, en een rij hoort
 > alleen bij de tabel erboven als hij hetzelfde teken gebruikt.
 
+> **Een houder hernoemen neemt zijn verwijzingen mee.**
+> `POST /progression/houder/hernoemen` — een naam is hier geen sleutel maar wél een
+> verwijzing: spelers dragen hem op hun blad (`playerProfiles.klasse`, `.subclass`,
+> `.origin`, `.background`, …), een personagekaartje draagt hem in `data.klasse`/`data.ras`,
+> en de afbeelding hangt eraan in `meta.heldenboek`. Welke velden dat zijn staat in
+> `_HOUDER_VELDEN`, op één plek — dezelfde die de verwijderroute afzoekt om te melden
+> "in gebruik bij", zodat die twee niet uit de pas lopen. De houder blijft **op zijn plek
+> in de lijst**: een sleutel weghalen en opnieuw toevoegen zet hem onderaan, en die
+> volgorde is redactioneel. Het venster toont nu een veld *Naam*; verandert die, dan
+> hernoemt de client eerst en schrijft de rest daarna onder de nieuwe naam weg.
+
 > **De sleutel van een kaartje noemt ook de subclass.** `soort|bron|sub|level|naam` —
 > zonder dat stuk droegen de Bonus Proficiency van het Death Domain en die van het Nature
 > Domain allebei `subclass|Cleric|3|Bonus Proficiency`, en de ontdubbeling in

@@ -1667,6 +1667,16 @@ Grisburghs **data** te staan — niet in de code.
       erboven en elke spreuk als knop. Die stond met tabs in plaats van pijpen
       — zo plakt een tabel uit een boek-website — en lag er eerder als losse
       regels onder elkaar bij.
+- [ ] **Een class hernoemen** (DM) — open het potlood op een classkaartje: er
+      staat nu een veld **Naam**. Tik er iets anders in en bewaar. Hij staat
+      onder de nieuwe naam, **op dezelfde plek in de lijst**, met zijn
+      subclasses, features, kleur en plaat. Draagt een speler hem op zijn blad,
+      dan verhuist die naam mee en zegt een melding hoeveel personages dat
+      waren. Een naam die al bezet is wordt geweigerd en laat alles staan.
+      Werkt ook voor een subclass, een species, een variant en een background.
+- [ ] **Ctrl+B en Ctrl+I in het Heldenboek** (DM) — selecteer tekst in de
+      beschrijving van een feature of een houder en druk Ctrl+B: er komen
+      sterretjes omheen, net als in de andere editors. Ook Ctrl+I en Ctrl+U.
 - [ ] **Zoeken gaat dwars door de deuren** (ALL) — typ *battle master* terwijl
       je in Classes staat: je krijgt treffers uit alles, met een regel
       *Resultaten voor…* en een knop terug. Veeg het veld leeg en je staat weer
