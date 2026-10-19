@@ -582,6 +582,10 @@
         "level": 3
       },
       {
+        "naam": "Arcane Shot Options",
+        "level": 3
+      },
+      {
         "naam": "Curving Shot",
         "level": 7
       },
@@ -664,20 +668,32 @@
         "level": 3
       },
       {
+        "naam": "Giant's Might",
+        "level": 3
+      },
+      {
         "naam": "Rune Carver",
         "level": 3
       },
       {
-        "naam": "Giant's Might",
-        "level": 3
+        "naam": "Additional Rune Known",
+        "level": 7
       },
       {
         "naam": "Runic Shield",
         "level": 7
       },
       {
+        "naam": "Additional Rune Known",
+        "level": 10
+      },
+      {
         "naam": "Great Stature",
         "level": 10
+      },
+      {
+        "naam": "Additional Rune Known",
+        "level": 15
       },
       {
         "naam": "Master of Runes",
@@ -1761,6 +1777,10 @@
     "Battle Master": [
       {
         "naam": "Combat Superiority",
+        "level": 3
+      },
+      {
+        "naam": "Maneuver Options",
         "level": 3
       },
       {
