@@ -1525,6 +1525,15 @@ function _tegelBeeld(filter) {
 // krijgt bovenop wat elke Barbarian al heeft, en kun je twee subclasses naast
 // elkaar leggen. Het oogje opent het kaartje, het vinkje voegt zijn features
 // toe aan het raster hiernaast.
+// Dezelfde penning als rechtsonder op een kaartje: waar deze subclass vandaan
+// komt, in drie tekens. In de kolom stond het boek alleen bij de rijen die
+// elders bestaan, en dan als hoofdletters middenin de regel — terwijl een
+// subclass die je wél hebt net zo goed uit een boek komt.
+function _subkaartBoek(titel) {
+  const kort = _boekKort(titel);
+  return kort ? `<span class="vd-subkaart-boek" title="${esc(titel)}">${esc(kort)}</span>` : '';
+}
+
 function _subKolomHtml(klasse) {
   const laag = _tweedeLaag(klasse);
   const eigen = _bandSubklassen(klasse);
@@ -1591,10 +1600,10 @@ function _subKolomHtml(klasse) {
             <span class="vd-subkaart-meta">${(() => {
               const n = _eldersAanvulling(r.variant ? 'variant' : 'subclass', r.naam, null, klasse).length;
               const wat = r.variant ? 'traits' : 'features';
-              const waar = r.variant ? 'elders' : esc((r.code || 'elders').toUpperCase());
-              return n ? `${n} ${wat} · ${waar}` : waar;
+              return n ? `${n} ${wat} · elders` : 'elders';
             })()}</span>
           </button>
+          ${_subkaartBoek(r.variant ? '' : (boeken[r.boek] || r.boek))}
         </div>`;
       }
       const aan = _subAan.has(r.naam);
@@ -1613,6 +1622,7 @@ function _subKolomHtml(klasse) {
           ? `${r.n + eldersN} features${eldersN ? r.n ? ` · ${eldersN} elders` : ' · elders' : ''}`
           : 'geen tekst'}</span>
         </button>
+        ${_subkaartBoek(laag?.bak?.[r.naam]?.boek)}
       </div>`;
     }).join('')}
     ${paginas > 1 ? `<div class="vd-subblader">

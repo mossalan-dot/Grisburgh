@@ -30616,3 +30616,18 @@ body:has(#sb-overlay.sb-open) .dm-dice-fab { display: none !important; }
 }
 .dm-hb-groep > .dm-form-checkbox:first-child { font-weight: 700; }
 .dm-form-checkbox.dm-hb-sub { margin-left: 16px; font-size: 12px; opacity: 0.88; }
+
+/* ── Waar een subclass vandaan komt, in de kolom ─────────────────────────────
+   Dezelfde penning als rechtsonder op een kaartje, op dezelfde plek. De rij
+   heeft al een vaste hoogte, dus hij hangt rechtsonder zonder iets te duwen;
+   `pointer-events: none` zodat hij de klik op de rij niet opvangt. */
+.vd-subkaart { position: relative; }
+.vd-subkaart-boek {
+  position: absolute; right: 7px; bottom: 5px;
+  font-family: 'Cinzel', serif; font-size: 8.5px; font-weight: 700;
+  letter-spacing: .07em; color: var(--color-ink-faint, rgba(120,96,56,0.7));
+  background: rgba(196,168,122,0.16); border: 1px solid rgba(196,168,122,0.3);
+  border-radius: 4px; padding: 0 4px; pointer-events: none;
+}
+/* De naam mag niet onder de penning door lopen. */
+.vd-subkaart-open { padding-right: 46px; }

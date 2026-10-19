@@ -1682,7 +1682,9 @@ Grisburghs **data** te staan — niet in de code.
       Wijs hem aan voor de volle titel. Een feature zonder eigen bron erft die
       van zijn class of subclass, dus er hoort er geen leeg te blijven zolang de
       houder zijn boek heeft. En hij ligt nooit over de tekst heen, ook niet bij
-      drie regels beschrijving.
+      drie regels beschrijving. In de **subclasskolom** staat dezelfde penning
+      rechtsonder in elke rij — ook bij een subclass die je zelf hebt, niet
+      alleen bij een die elders bestaat.
 - [ ] **Wat spelers in het Heldenboek zien** (DM) — Instellingen → Campagne →
       *Wat spelers in het Heldenboek zien*: elke class met zijn subclasses
       eronder, een vinkje is zichtbaar. Vink *Echo Knight* uit en bewaar: bij
