@@ -13,7 +13,13 @@
 // tekst uit een boek en die hoort niet in meegeleverde bestanden. Precies
 // daarom bestaat deze lijst.
 //
+// Met `--species` doet hij hetzelfde voor species en hun varianten. Daar zit
+// één verschil: bij een class filteren we weg wat de tijdlijn zelf uitdeelt
+// (Ability Score Improvement, Epic Boon), bij een species is er niets dat de
+// app zelf uitdeelt — wat de DM erop zette is wat erop hoort.
+//
 //   node scripts/srd-2024/voorraad-uit-campagne.js <progressie.json> Druid Cleric …
+//   node … --species <progressie.json> Bugbear Centaur …
 //   node … --schrijf
 const fs   = require('fs');
 const path = require('path');
@@ -24,16 +30,18 @@ const SEED = path.join(__dirname, '..', '..', 'bronnen', 'class-progression.json
 // Wat de tijdlijn zelf uitdeelt is geen feature om op te zoeken.
 const GEEN = /^(ability score improvement|epic boon)$/i;
 
-const rijen = (houder) => Object.entries(houder?.levels || {})
+const rijen = (houder, { alles = false } = {}) => Object.entries(houder?.levels || {})
   .flatMap(([lvl, fs_]) => (fs_ || []).map(f => ({ naam: String(f.name || '').trim(), level: Number(lvl) || 0 })))
-  .filter(r => r.naam && !GEEN.test(r.naam))
+  .filter(r => r.naam && (alles || !GEEN.test(r.naam)))
   .sort((a, b) => a.level - b.level || a.naam.localeCompare(b.naam));
 
 const zelfde = (a, b) => JSON.stringify(a) === JSON.stringify(b);
 
 (async () => {
-  const args = process.argv.slice(2).filter(a => a !== '--schrijf');
-  const schrijf = process.argv.includes('--schrijf');
+  const vlag = (v) => process.argv.includes(v);
+  const args = process.argv.slice(2).filter(a => !a.startsWith('--'));
+  const schrijf = vlag('--schrijf');
+  const volken = vlag('--species');
   const [pad, ...klassen] = args;
   if (!pad || !klassen.length) {
     console.error('Geef het pad naar een progression.json en één of meer classes.');
@@ -47,6 +55,9 @@ const zelfde = (a, b) => JSON.stringify(a) === JSON.stringify(b);
   // Wat de app zélf met tekst meebrengt hoort hier niet: die namen staan al in
   // de seed, en de test bewaakt dat ze niet dubbelen.
   const metTekst = new Set();
+  for (const [sp, d] of Object.entries(seed.species || {})) {
+    if (Object.values(d.levels || {}).flat().length) metTekst.add('species:' + sp.toLowerCase());
+  }
   for (const [kl, d] of Object.entries(seed.classes || {})) {
     if (Object.values(d.levels || {}).flat().length) metTekst.add('class:' + kl.toLowerCase());
     for (const [sub, sd] of Object.entries(d.subclasses || {})) {
@@ -55,18 +66,19 @@ const zelfde = (a, b) => JSON.stringify(a) === JSON.stringify(b);
   }
 
   const gewijzigd = [], nieuw = [], overgeslagen = [];
+  const BAK = { class: 'classes', sub: 'subclasses', species: 'species', variant: 'varianten' };
   for (const klasse of klassen) {
-    const c = campagne.classes?.[klasse];
+    const c = volken ? campagne.species?.[klasse] : campagne.classes?.[klasse];
     if (!c) { overgeslagen.push(`${klasse} — staat niet in die campagne`); continue; }
 
     const zet = (soort, sleutel, houder, label) => {
-      const lijst = rijen(houder);
+      const lijst = rijen(houder, { alles: soort === 'species' || soort === 'variant' });
       if (!lijst.length) { overgeslagen.push(`${label} — niets ingevuld`); return; }
       if (metTekst.has(`${soort}:${sleutel.toLowerCase()}`)) {
         overgeslagen.push(`${label} — de app brengt hem zelf met tekst mee`);
         return;
       }
-      const bak = soort === 'class' ? features.classes : features.subclasses;
+      const bak = features[BAK[soort]] = features[BAK[soort]] || {};
       const oud = bak[sleutel];
       if (!oud) { bak[sleutel] = lijst; nieuw.push(`${label}: ${lijst.length}`); return; }
       if (zelfde(oud, lijst)) return;
@@ -78,8 +90,15 @@ const zelfde = (a, b) => JSON.stringify(a) === JSON.stringify(b);
         bij: nieuweNamen.filter(n => !oudeNamen.includes(n)) });
     };
 
-    zet('class', klasse, c, klasse);
-    for (const [sub, sd] of Object.entries(c.subclasses || {})) zet('sub', sub, sd, `${klasse} › ${sub}`);
+    if (volken) {
+      zet('species', klasse, c, klasse);
+      // Een variant staat onder "Species|Variant", want twee species mogen
+      // allebei een Lineage hebben die anders heet dan die van de ander.
+      for (const [v, vd] of Object.entries(c.varianten || {})) zet('variant', `${klasse}|${v}`, vd, `${klasse} › ${v}`);
+    } else {
+      zet('class', klasse, c, klasse);
+      for (const [sub, sd] of Object.entries(c.subclasses || {})) zet('sub', sub, sd, `${klasse} › ${sub}`);
+    }
   }
 
   for (const g of gewijzigd) {

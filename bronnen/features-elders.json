@@ -2919,32 +2919,118 @@
   },
   "species": {
     "Bugbear": [
-      "Darkvision",
-      "Long-Limbed",
-      "Powerful Build",
-      "Sneaky",
-      "Surprise Attack"
+      {
+        "naam": "Darkvision",
+        "level": 1
+      },
+      {
+        "naam": "Fey Ancestry",
+        "level": 1
+      },
+      {
+        "naam": "Languages",
+        "level": 1
+      },
+      {
+        "naam": "Long-Limbed",
+        "level": 1
+      },
+      {
+        "naam": "Powerful Build",
+        "level": 1
+      },
+      {
+        "naam": "Sneaky",
+        "level": 1
+      },
+      {
+        "naam": "Surprise Attack",
+        "level": 1
+      }
     ],
     "Centaur": [
-      "Charge",
-      "Equine Build",
-      "Hooves",
-      "Natural Affinity"
+      {
+        "naam": "Charge",
+        "level": 1
+      },
+      {
+        "naam": "Equine Build",
+        "level": 1
+      },
+      {
+        "naam": "Hooves",
+        "level": 1
+      },
+      {
+        "naam": "Languages",
+        "level": 1
+      },
+      {
+        "naam": "Natural Affinity",
+        "level": 1
+      }
     ],
     "Changeling": [
-      "Changeling Instincts",
-      "Shapechanger"
+      {
+        "naam": "Changeling Instincts",
+        "level": 1
+      },
+      {
+        "naam": "Shapechanger",
+        "level": 1
+      }
     ],
     "Deep Gnome": [
-      "Superior Darkvision",
-      "Gnomish Magic Resistance",
-      "Svirfneblin Camouflage"
+      {
+        "naam": "Creature Type",
+        "level": 1
+      },
+      {
+        "naam": "Darkvision",
+        "level": 1
+      },
+      {
+        "naam": "Gnomish Magic Resistance",
+        "level": 1
+      },
+      {
+        "naam": "Languages",
+        "level": 1
+      },
+      {
+        "naam": "Svirfneblin Camouflage",
+        "level": 1
+      },
+      {
+        "naam": "Gift of the Svirfneblin",
+        "level": 3
+      }
     ],
     "Duergar": [
-      "Superior Darkvision",
-      "Duergar Magic",
-      "Dwarven Resilience",
-      "Psionic Fortitude"
+      {
+        "naam": "Creature Type",
+        "level": 1
+      },
+      {
+        "naam": "Darkvision",
+        "level": 1
+      },
+      {
+        "naam": "Dwarven Resilience",
+        "level": 1
+      },
+      {
+        "naam": "Languages",
+        "level": 1
+      },
+      {
+        "naam": "Psionic Fortitude",
+        "level": 1
+      },
+      {
+        "naam": "Duergar Magic",
+        "level": 3
+      }
     ],
     "Eladrin": [
       "Darkvision",
@@ -3093,37 +3179,23 @@
       "Lethargy Resilience",
       "Skill Versatility"
     ],
-    "Boggart": [
-      "Darkvision",
-      "Fey Ancestry",
-      "Fury of the Small",
-      "Nimble Escape"
-    ],
-    "Faerie": [
-      "Fairy Magic",
-      "Flight"
-    ],
-    "Flamekin": [
-      "Darkvision",
-      "Fire Resistance",
-      "Reach to the Blaze"
-    ],
-    "Lorwyn Changeling": [
-      "Shape Self",
-      "Darkvision",
-      "Delightful Imitator",
-      "Unpredictable Movement"
-    ],
-    "Rimekin": [
-      "Cold Fire Magic",
-      "Cold Resistance",
-      "Darkvision"
-    ],
     "Dhampir": [
-      "Darkvision",
-      "Spider Climb",
-      "Trace of Undeath",
-      "Vampiric Bite"
+      {
+        "naam": "Darkvision",
+        "level": 1
+      },
+      {
+        "naam": "Spider Climb",
+        "level": 1
+      },
+      {
+        "naam": "Trace of Undeath",
+        "level": 1
+      },
+      {
+        "naam": "Vampiric Bite",
+        "level": 1
+      }
     ],
     "Hexblood": [
       "Darkvision",
@@ -3180,20 +3252,64 @@
       "Savage Attacks"
     ],
     "Astral Elf": [
-      "Astral Fire",
-      "Darkvision",
-      "Fey Ancestry",
-      "Keen Senses",
-      "Starlight Step",
-      "Astral Trance"
+      {
+        "naam": "Astral Fire",
+        "level": 1
+      },
+      {
+        "naam": "Astral Trance",
+        "level": 1
+      },
+      {
+        "naam": "Darkvision",
+        "level": 1
+      },
+      {
+        "naam": "Fey Ancestry",
+        "level": 1
+      },
+      {
+        "naam": "Keen Senses",
+        "level": 1
+      },
+      {
+        "naam": "Languages",
+        "level": 1
+      },
+      {
+        "naam": "Starlight Step",
+        "level": 1
+      }
     ],
     "Autognome": [
-      "Armored Casing",
-      "Built for Success",
-      "Healing Machine",
-      "Mechanical Nature",
-      "Sentry's Rest",
-      "Specialized Design"
+      {
+        "naam": "Armored Casing",
+        "level": 1
+      },
+      {
+        "naam": "Built for Success",
+        "level": 1
+      },
+      {
+        "naam": "Healing Machine",
+        "level": 1
+      },
+      {
+        "naam": "Languages",
+        "level": 1
+      },
+      {
+        "naam": "Mechanical Nature",
+        "level": 1
+      },
+      {
+        "naam": "Sentry's Rest",
+        "level": 1
+      },
+      {
+        "naam": "Specialized Design",
+        "level": 1
+      }
     ],
     "Hadozee": [
       "Dexterous Feet",

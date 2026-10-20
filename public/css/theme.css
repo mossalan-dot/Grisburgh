@@ -28754,15 +28754,8 @@ body.akte-schrijf-open .mp-overlay { z-index: 1320; }
   .vb-knop { font-size: 10px; padding: 3px 7px; }
 }
 
-/* Het kaartje van een klasse of subklasse, boven haar features. */
-.vk-kaart {
-  margin: 0 0 14px;
-  padding: 13px 16px;
-  border: 1px solid rgba(138,109,63,0.28);
-  border-left: 4px solid var(--vk-kleur, #8a6d3f);
-  border-radius: 10px;
-  background: var(--color-card-bg, rgba(255,255,255,0.45));
-}
+/* (Het platte kaartje van vóór de flipkaart stond hier; die regel bestond
+   alleen nog in de stijl en legde nu padding over de bladerkaart heen.) */
 .vk-kop { display: flex; align-items: center; gap: 11px; margin-bottom: 11px; }
 .vk-icoon {
   width: 34px; height: 34px; flex: none;
@@ -28868,14 +28861,16 @@ body.akte-schrijf-open .mp-overlay { z-index: 1320; }
    knoppen onder een voorwerpkaartje. Hij stond als los pilletje midden in de
    tekst, en dan leest hij als een zin in plaats van als een knop.
    `margin-top: auto` duwt hem naar beneden, de negatieve marges halen de
-   padding van `.vk-achter` weg. */
+   zijkanten van de bladzijde weg. Onder hem blijft de strook met de stippen
+   vrij: die horen bij de kaart en niet bij deze bladzijde. */
 .vk-naar-spreuken {
-  /* Boven de vervagingsstrook die onderaan de kaart ligt (`.vk-achter::after`,
-     voor tekst die afgekapt wordt). Die lag eroverheen en waste de knop uit.
-     De strook blijft eronder liggen en doet nog steeds wat hij moet doen: de
-     tekst die achter de knop verdwijnt zacht laten eindigen. */
+  /* Boven de vervagingsstrook die onderaan de bladzijde ligt
+     (`.vk-blad--tekst::after`, voor tekst die afgekapt wordt). Die lag
+     eroverheen en waste de knop uit. De strook blijft eronder liggen en doet
+     nog steeds wat hij moet doen: de tekst die achter de knop verdwijnt zacht
+     laten eindigen. */
   position: relative; z-index: 2;
-  margin: auto -17px -14px; width: calc(100% + 34px);
+  margin: auto -17px 0; width: calc(100% + 34px);
   display: flex; align-items: center; justify-content: center; gap: 7px;
   font-family: 'Cinzel', serif; font-size: 11px; letter-spacing: .05em;
   padding: 9px 11px; cursor: pointer;
@@ -29479,11 +29474,6 @@ body.wizard-open { overflow: hidden; }
    staan — het is een voorraad, geen keuze die al gemaakt is. */
 
 /* Het venster van een subclass: eerst wat het is, dan pas wat het geeft. */
-.vd-kv-beeld {
-  height: 190px; margin: 0 0 12px; border-radius: 7px;
-  background-size: cover; background-position: center;
-  border: 1px solid rgba(196,168,122,.7);
-}
 .vd-kv-onder {
   margin: -6px 0 10px; font-family: 'Crimson Text', serif; font-style: italic;
   font-size: 1.02em; color: #6a5430;
@@ -29701,38 +29691,34 @@ body.wizard-open { overflow: hidden; }
 }
 .vd-subkaart--elders .vd-subkaart-naam { font-weight: 400; }
 
-.vk-flip { perspective: 1400px; cursor: pointer; }
-.vk-flip-binnen {
-  position: relative; transform-style: preserve-3d;
-  transition: transform .62s cubic-bezier(.3, .8, .3, 1);
-  min-height: 300px;
+/* ── De bladerkaart ────────────────────────────────────────────────────────
+   Was een flipkaart die bij hover omdraaide. Eén achterkant betekende één
+   plek voor zowel de beschrijving als de Core Traits, en dus moest er een
+   wijken; nu liggen ze naast elkaar op een spoor dat opzij schuift. En het
+   werkt op een tablet, waar niets hovert. */
+.vk-kaart {
+  position: relative; cursor: pointer; overflow: hidden;
+  min-height: 300px; border: 1px solid #c4a87a; border-radius: 7px;
+  border-left: 3px solid var(--vk-kleur);
+  background: linear-gradient(160deg, #f8f2e2 0%, #f1e8d2 100%);
 }
-.vk-flip:hover .vk-flip-binnen { transform: rotateY(180deg); }
-/* Zonder beeld is de voorkant een lege tegel; dan begint hij meteen omgedraaid
-   zodat je de gegevens ziet in plaats van een leeg vlak. */
-.vk-flip--geenbeeld .vk-flip-binnen { transform: rotateY(180deg); }
-.vk-flip--geenbeeld:hover .vk-flip-binnen { transform: rotateY(180deg); }
-
-.vk-voor, .vk-achter {
-  position: absolute; inset: 0; backface-visibility: hidden;
-  border: 1px solid #c4a87a; border-radius: 7px; overflow: hidden;
+.vk-spoor {
+  display: flex; height: 100%; min-height: inherit;
+  transform: translateX(calc(var(--vk-i, 0) * -100%));
+  transition: transform .42s cubic-bezier(.3, .8, .3, 1);
 }
-/* De naam op de voorkant bleef in spiegelschrift door de achterkant heen
-   staan. Twee vlakken die allebei op z=0 liggen vechten om wie er voor ligt,
-   en `backface-visibility` geldt in Chrome niet voor een kind dat zelf een
-   stapelcontext maakt (de naam heeft z-index). Een halve pixel diepte per
-   vlak haalt ze uit elkaar; het is niet te zien en het is wel beslist. */
-.vk-voor   { transform: translateZ(0.5px); }
-.vk-achter { transform: rotateY(180deg) translateZ(0.5px); }
-.vk-voor-beeld, .vk-voor-naam { backface-visibility: hidden; }
-.vk-achter::after {
+.vk-blad {
+  flex: 0 0 100%; min-width: 100%; position: relative; overflow: hidden;
+  display: flex; flex-direction: column; gap: 2px;
+  /* Onderaan ruimte voor het bladerbalkje, dat over alle bladzijden heen ligt. */
+  padding: 15px 17px 38px;
+}
+/* De plaat vult zijn bladzijde tot de rand; de tekstbladzijden hebben marge. */
+.vk-blad--beeld { padding: 0; align-items: center; justify-content: flex-end; }
+.vk-blad--tekst::after, .vk-blad--kern::after {
   content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: 30px;
   background: linear-gradient(to top, #f1e8d2 38%, rgba(241,232,210,0));
   pointer-events: none;
-}
-.vk-voor {
-  display: flex; align-items: flex-end; justify-content: center;
-  background: linear-gradient(160deg, #f6eeda 0%, #e9dcbe 100%);
 }
 .vk-voor-beeld {
   position: absolute; inset: 0; background-size: cover; background-position: center;
@@ -29747,18 +29733,49 @@ body.wizard-open { overflow: hidden; }
   font-family: 'Cinzel', serif; font-size: 1.5em; font-weight: 700;
   letter-spacing: .02em; color: #fff8ea; text-shadow: 0 2px 10px rgba(0,0,0,.7);
 }
-.vk-flip--geenbeeld .vk-voor-naam { color: #3a2410; text-shadow: none; }
+/* Het bladerbalkje ligt op het kaartje en niet in het spoor: het schuift niet
+   mee. Onderaan, want midden op de kaart lagen de pijltjes over de tekst. Het
+   staat er altijd — op een tablet verschijnt er niets bij hover, en een knop
+   die je pas ziet als je hem al gevonden hebt is geen knop. */
+.vk-blader {
+  position: absolute; left: 0; right: 0; bottom: 0; z-index: 11;
+  display: flex; align-items: center; justify-content: center; gap: 10px;
+  padding: 5px 0 7px;
+  background: linear-gradient(to top, #f1e8d2 55%, rgba(241,232,210,0));
+}
+/* Op de bladzijde met de plaat zou een cremekleurige strook de foto afsnijden.
+   Die heeft zelf al een donkere voet voor de naam, dus daar gaat het balkje
+   doorzichtig over de foto heen. */
+.vk-kaart[data-beeld="1"][data-blad="0"] .vk-blader { background: none; }
+.vk-kaart[data-beeld="1"][data-blad="0"] .vk-pijl {
+  border-color: rgba(255,248,234,.45); background: rgba(20,12,4,.4); color: #f3e7cf;
+}
+.vk-kaart[data-beeld="1"][data-blad="0"] .vk-stip { background: rgba(255,248,234,.45); }
+/* De naam staat boven het balkje in plaats van erachter. */
+.vk-blad--beeld .vk-voor-naam { padding-bottom: 40px; }
+.vk-pijl {
+  width: 24px; height: 24px; display: flex; align-items: center; justify-content: center;
+  border: 1px solid rgba(196,168,122,.7); border-radius: 5px;
+  background: rgba(255,252,244,.8); color: #8a7050; cursor: pointer;
+  opacity: .7; transition: opacity .15s, background .15s;
+}
+.vk-kaart:hover .vk-pijl { opacity: 1; background: rgba(255,252,244,.96); }
+.vk-pijl:hover { color: #3a2d1c; }
+.vk-pijl svg { width: 14px; height: 14px; }
+.vk-stippen { display: flex; gap: 5px; pointer-events: none; }
+.vk-stip {
+  width: 5px; height: 5px; border-radius: 50%;
+  background: rgba(122,98,62,.3); transition: background .2s, transform .2s;
+}
+.vk-stip.is-aan { background: var(--vk-kleur); transform: scale(1.25); }
 .vk-beeldknop {
-  /* Boven allebei de kanten: hij staat buiten `vk-flip-binnen`, dus hij draait
-     niet mee en is ook bereikbaar op een kaartje dat omgedraaid staat omdat er
-     nog geen afbeelding is. */
   position: absolute; top: 9px; right: 9px; z-index: 12;
   width: 28px; height: 28px; display: flex; align-items: center; justify-content: center;
   border: 1px solid rgba(196,168,122,.8); border-radius: 5px;
   background: rgba(255,252,244,.86); color: #8a7050; cursor: pointer;
   opacity: 0; transition: opacity .15s;
 }
-.vk-flip:hover .vk-beeldknop { opacity: 1; }
+.vk-kaart:hover .vk-beeldknop { opacity: 1; }
 .vk-beeldknop svg { width: 15px; height: 15px; }
 
 /* Hetzelfde potlood op een gewoon kaartje in het raster. Het stond alleen op
@@ -29818,12 +29835,6 @@ body.wizard-open { overflow: hidden; }
    in het venster dat opengaat als je op het kaartje klikt. Wat er niet op past
    vervaagt naar de onderrand — die vervaging heeft de kleur van de kaart zelf,
    dus op een kaartje dat wél past zie je er niets van. */
-.vk-achter {
-  display: flex; flex-direction: column; gap: 2px;
-  padding: 15px 17px 14px; overflow: hidden;
-  background: linear-gradient(160deg, #f8f2e2 0%, #f1e8d2 100%);
-  border-left: 3px solid var(--vk-kleur);
-}
 .vk-kerntrekken {
   font-family: 'Cinzel', serif; font-size: .72em; letter-spacing: .09em;
   text-transform: uppercase; color: #8a7050; margin: 8px 0 4px;
@@ -30115,10 +30126,6 @@ body.wizard-open { overflow: hidden; }
   font-family: 'Crimson Text', serif; font-size: .84em; font-style: italic;
   color: #8a7050; margin-top: 2px;
 }
-/* De beeldknop tijdens het omdraaien: die hoorde niet mee te draaien, maar
-   stond daardoor wél stil boven een kaartje dat kantelt. Hij komt pas op als
-   de flip klaar is. */
-.vk-beeldknop { transition: opacity .15s .55s; }
 /* Het pijltje onder het subklassekaartje: alleen als je er meer dan één hebt
    aangevinkt, want anders is er niets om tussen te bladeren. */
 .vd-subblader--kaart { margin-top: 8px; }

@@ -103,20 +103,16 @@ const SPECIES_ICOON = {
   // Onder de grond
   'Deep Gnome': 'gem',        Duergar: 'hard-hat',
   // Fey
-  Faerie: 'flower',           Fairy: 'wand-sparkles',     Eladrin: 'leaf',
-  Satyr: 'wine',              Firbolg: 'trees',           Boggart: 'clover',
-  Hexblood: 'wand',           'Shadar-kai': 'cloud-moon',
+  Fairy: 'wand-sparkles',     Eladrin: 'leaf',
+  Satyr: 'wine',              Firbolg: 'trees',           Hexblood: 'wand',           'Shadar-kai': 'cloud-moon',
   // Elementair en de elementen
-  Genasi: 'tornado',          Flamekin: 'flame-kindling', Rimekin: 'snowflake',
-  Duskling: 'sunset',
+  Genasi: 'tornado',          Duskling: 'sunset',
   // Water
   Triton: 'waves-vertical',   'Sea Elf': 'fish-symbol',
   // Uit de Astral Sea (Spelljammer) en van Lorwyn
   'Astral Elf': 'orbit',      Autognome: 'cog',           Hadozee: 'squirrel',
-  Plasmoid: 'droplets',       'Thri-kreen': 'bug',        Kithkin: 'puzzle',
-  // Van gedaante wisselen
-  Changeling: 'scan-face',    'Lorwyn Changeling': 'shapes',
-  Shifter: 'moon-star',
+  Plasmoid: 'droplets',       'Thri-kreen': 'bug',        // Van gedaante wisselen
+  Changeling: 'scan-face',    Shifter: 'moon-star',
   // Geest en gedachte
   Githyanki: 'atom',          Githzerai: 'infinity',      Kalashtar: 'brain-circuit',
   Vedalken: 'glasses',
@@ -970,6 +966,24 @@ function _hbBeeld(soort, naam) {
   return f?.id ? `/api/files/${esc(f.id)}` : '';
 }
 
+// **Hetzelfde beeldblok in elk detailvenster.** Een feature toonde zijn plaat
+// passend met een onscherpe vergroting erachter (`.detail-hero`, net als een
+// kaartje uit het archief), en een class, subclass of species kreeg een strook
+// van 190px waar de kop van af viel. Dat las als een banner en niet als een
+// portret — en het was hetzelfde venster met twee gezichten.
+function _heroHtml({ src, focus = '', id = '', terugval = '' }) {
+  if (!src) return '';
+  return `
+    <div class="detail-hero mb-6" id="vd-hero" onclick="window.vaardigheden.beeldGroot()">
+      <div class="detail-hero-bg" style="background-image:url('${src}')"></div>
+      <img src="${src}" class="detail-hero-img"${id ? ` id="${id}"` : ''}
+        style="${focus ? `object-position:${esc(focus)}` : ''}"
+        ${terugval ? `data-terugval="${esc(terugval)}"` : ''}
+        onerror="window.vaardigheden.beeldMis(this)">
+      <div class="detail-hero-overlay"></div>
+    </div>`;
+}
+
 // Een feature erft het beeld van waar hij onder hangt. Een class heeft er één,
 // een subclass meestal ook, en daaronder zitten er vijf tot twintig — die een
 // voor een een plaat geven is een avond werk voor een rij kaartjes die daarna
@@ -1031,63 +1045,86 @@ function _beeldMis(img) {
   if (bg) bg.style.backgroundImage = `url('/api/files/${volgende.id}')`;
 }
 
-// ── De flipkaart ────────────────────────────────────────────────────────────
-// Eén vorm voor een class, een species en een subclass: een plaat met de naam
-// erop die bij hover omdraait naar de gegevens. Dat was eerst alleen de class;
-// een species kreeg een plat kaartje en een subclass een nóg platter. Terwijl
-// het dezelfde vraag is — wat ís dit — en dus dezelfde vorm verdient.
+// ── De bladerkaart ──────────────────────────────────────────────────────────
+// Eén vorm voor een class, een species, een subclass en een background: een
+// plaat met de naam erop, en pijltjes om door te bladeren naar wat erover te
+// zeggen valt.
 //
-// `rijen` is wat er op de achterkant onder elkaar staat, `extra` wat daar nog
-// achteraan komt (een knop naar de spreukenlijst, een noot).
-function _flipKaartHtml({ soort, naam, kleur, icoon, bijschrift = '', onder = '', rijen = [], kop = '', extra = '', bron = '' }) {
+// **Dit was een flipkaart**: je ging er met de muis overheen en hij draaide om
+// naar de gegevens. Dat zag er aardig uit en het kostte een kant — er was maar
+// één achterkant, dus de beschrijving en de Core Traits moesten om dezelfde
+// plek vechten. De oplossing was toen "heeft hij een beschrijving, dan de
+// Core Traits niet", en zo stond bij elke class die een verhaal had niet meer
+// wát hij is: geen hit die, geen saving throws. Drie bladzijden lossen dat op,
+// en ze werken ook op een tablet, waar niets "hovert".
+//
+// `rijen` staat bij de beschrijving (een regel of twee), `kern` krijgt een
+// eigen bladzijde.
+function _bladerKaartHtml({ soort, naam, kleur, icoon, bijschrift = '', onder = '',
+                            uitleg = '', rijen = [], kern = null, extra = '', bron = '' }) {
   const beeld = _hbBeeld(soort, naam);
   const focus = _hbBeeldRuw(soort, naam)?.focus || '';
   const veilig = esc(naam).replace(/'/g, "\\'");
   const veiligB = esc(bron || '').replace(/'/g, "\\'");
+  const dlHtml = (lijst) => lijst.length ? `<dl class="vk-training">
+    ${lijst.map(([k, v, html]) => `<dt>${esc(k)}</dt><dd>${html ?? esc(v)}</dd>`).join('')}
+  </dl>` : '';
+
+  const bladen = [];
+  if (beeld) bladen.push(`
+    <div class="vk-blad vk-blad--beeld">
+      <span class="vk-voor-beeld" style="background-image:url('${beeld}')${focus ? `;background-position:${esc(focus)}` : ''}"></span>
+      <span class="vk-voor-naam">${esc(naam)}</span>
+    </div>`);
+  bladen.push(`
+    <div class="vk-blad vk-blad--tekst">
+      <div class="vk-kop">
+        <span class="vk-icoon">${icon(icoon)}</span>
+        <div>
+          <div class="vk-naam">${esc(naam)}</div>
+          ${bijschrift ? `<div class="vk-sig">${esc(bijschrift)}</div>` : ''}
+          ${onder ? `<div class="vk-onder">${esc(onder)}</div>` : ''}
+        </div>
+      </div>
+      ${uitleg ? `<div class="vk-uitleg">${window._vaardigTekstHtml?.(uitleg) ?? _bron?.md?.(uitleg) ?? esc(uitleg)}</div>` : ''}
+      ${dlHtml(rijen)}
+      ${extra}
+    </div>`);
+  if (kern?.rijen?.length) bladen.push(`
+    <div class="vk-blad vk-blad--kern">
+      <div class="vk-kerntrekken">${esc(kern.kop || 'Core Traits')}</div>
+      ${dlHtml(kern.rijen)}
+    </div>`);
+
   // Klikken opent het venster met het hele verhaal, net als bij de features
-  // eronder. Omdraaien gebeurt vanzelf als je eroverheen gaat; wat je op de
-  // achterkant ziet is een voorproefje dat mag afkappen.
+  // eronder; de pijltjes houden hun klik bij zich.
   return `
-    <div class="vk-flip${beeld ? '' : ' vk-flip--geenbeeld'}" style="--vk-kleur:${kleur}"
+    <div class="vk-kaart" style="--vk-kleur:${kleur};--vk-i:0" data-blad="0" data-bladen="${bladen.length}"
+      ${beeld ? 'data-beeld="1"' : ''}
       title="Lees meer over ${esc(naam)}"
       onclick="window.vaardigheden.kaartOpen('${esc(soort)}','${veilig}','${veiligB}')">
-      <!-- **De beeldknop staat buiten de draaiende kanten.** Hij hing op de
-           voorkant, en een kaartje zonder afbeelding staat permanent
-           omgedraaid (zie de regel vk-flip--geenbeeld) zodat je de gegevens
-           ziet in plaats van een leeg vlak. Daarmee was de knop juist
-           onbereikbaar bij precies de kaartjes die er nog een nodig hadden:
-           wie er al een had kon hem wisselen, wie er geen had kon er nooit
-           een kiezen. Buiten vk-flip-binnen draait hij niet mee en ligt hij
+      <!-- **Het potlood staat buiten het spoor.** Het hing op de voorkant van
+           de flipkaart, en een kaartje zonder afbeelding begon omgedraaid —
+           dus juist bij de kaartjes die nog een plaat nodig hadden was de knop
+           onbereikbaar. Buiten het spoor schuift hij niet mee en ligt hij
            altijd boven.
-           (Geen backticks in commentaar hierbinnen: template literal.) -->
-      <!-- Eén knop. Er stonden er drie op dit kaartje — een beeldknop, een
-           focusknop en "Uitleg bewerken" onderaan — voor drie stukjes van
-           hetzelfde ding. Nu staat alles in één venster: de tekst, de
-           ondertitel, het boek, de afbeelding en zijn focuspunt.
            (Geen backticks in commentaar hierbinnen: template literal.) -->
       ${isDM() ? `<button class="vk-beeldknop" title="Dit kaartje bewerken"
         onclick="event.stopPropagation();window.vaardigheden.kaartBewerken('${esc(soort)}','${veilig}','${veiligB}')">${icon('pencil')}</button>` : ''}
-      <div class="vk-flip-binnen">
-        <div class="vk-voor">
-          ${beeld ? `<span class="vk-voor-beeld" style="background-image:url('${beeld}')${focus ? `;background-position:${esc(focus)}` : ''}"></span>` : ''}
-          <span class="vk-voor-naam">${esc(naam)}</span>
-        </div>
-        <div class="vk-achter">
-          <div class="vk-kop">
-            <span class="vk-icoon">${icon(icoon)}</span>
-            <div>
-              <div class="vk-naam">${esc(naam)}</div>
-              ${bijschrift ? `<div class="vk-sig">${esc(bijschrift)}</div>` : ''}
-              ${onder ? `<div class="vk-onder">${esc(onder)}</div>` : ''}
-            </div>
-          </div>
-          ${kop ? `<div class="vk-kerntrekken">${esc(kop)}</div>` : ''}
-          ${rijen.length ? `<dl class="vk-training">
-            ${rijen.map(([k, v, html]) => `<dt>${esc(k)}</dt><dd>${html ?? esc(v)}</dd>`).join('')}
-          </dl>` : ''}
-          ${extra}
-        </div>
-      </div>
+      <div class="vk-spoor">${bladen.join('')}</div>
+      <!-- Het balkje onderaan, niet twee pijltjes midden op de kaart: daar
+           lagen ze over de tekst heen. Dezelfde vorm als onder de kolom met
+           subclasses, waar je al zo bladert.
+           (Geen backticks in commentaar hierbinnen: template literal.) -->
+      ${bladen.length > 1 ? `
+      <div class="vk-blader">
+        <button class="vk-pijl" title="Terug" aria-label="Vorige bladzijde"
+          onclick="event.stopPropagation();window.vaardigheden.blader(this,-1)">${icon('chevron-left')}</button>
+        <span class="vk-stippen">${bladen.map((_, i) =>
+          `<span class="vk-stip${i ? '' : ' is-aan'}"></span>`).join('')}</span>
+        <button class="vk-pijl" title="Verder" aria-label="Volgende bladzijde"
+          onclick="event.stopPropagation();window.vaardigheden.blader(this,1)">${icon('chevron-right')}</button>
+      </div>` : ''}
     </div>`;
 }
 
@@ -1190,14 +1227,15 @@ function _klasseKaartHtml(klasse) {
   // ook hier te staan. Hij blijft staan als er een omschrijving is: anders dan
   // de Core Traits is dat geen samenvatting van wat eronder ligt.
   const uitRij = data?.boek ? [['Uit', data.boek]] : [];
-  return _flipKaartHtml({
+  return _bladerKaartHtml({
     soort: 'class', naam: klasse, kleur: sig?.kleur || '#8a6d3f',
     icoon: _klasseIcoon(klasse), bijschrift: 'Class',
     onder: String(data?.ondertitel || '').trim(),
-    kop: uitleg ? '' : 'Core Traits',
-    rijen: uitleg ? uitRij : [..._klasseRijen(klasse), ...uitRij],
+    uitleg, rijen: uitRij,
+    // De Core Traits hoeven niet meer te wijken voor de beschrijving: ze
+    // hebben hun eigen bladzijde.
+    kern: { kop: 'Core Traits', rijen: _klasseRijen(klasse) },
     extra: `
-      ${uitleg ? `<div class="vk-uitleg">${window._vaardigTekstHtml?.(uitleg) ?? _bron?.md?.(uitleg) ?? esc(uitleg)}</div>` : ''}
       ${heeftSpreuken ? `
         <button class="vk-naar-spreuken" title="De spreuken die deze class kan leren"
           onclick="event.stopPropagation();window.vaardigheden.naarSpreuken('${esc(klasse).replace(/'/g, "\\'")}')">
@@ -1225,15 +1263,14 @@ function _subklasseKaartHtml(klasse, sub) {
     data.boek ? ['Uit', data.boek] : null,
   ].filter(Boolean);
 
-  return _flipKaartHtml({
+  return _bladerKaartHtml({
     soort: laag.soort, naam: sub, bron: klasse,
     kleur: data.kleur || veld?.kleur || (laag.soort === 'variant' ? '#2a8a60' : '#5a2e8a'),
     icoon: veld?.icon || SOORTEN[laag.soort].icon, bijschrift: `${label} · ${klasse}`,
     // De eigen ondertitel van de DM, direct onder "Primal Path · Barbarian".
     onder: String(data.ondertitel || '').trim(),
-    rijen,
+    uitleg, rijen,
     extra: `
-      ${uitleg ? `<div class="vk-uitleg">${window._vaardigTekstHtml?.(uitleg) ?? _bron?.md?.(uitleg) ?? esc(uitleg)}</div>` : ''}
       ${n || uitleg ? '' : `<p class="vk-noot">Van deze ${laag.soort === 'variant' ? 'variant' : 'subklasse'} staat er geen tekst in de app — die komt uit het boek en mag daar niet uit overgenomen worden.</p>`}
 `,
   });
@@ -1291,17 +1328,18 @@ function _volkKaartHtml(volk) {
   // level 1 · vanaf 1: Flight, Talons" zijn getallen over de lijst eronder, en
   // die staat er al. Zonder beschrijving vallen ze terug, want dan heeft het
   // kaartje niets anders te zeggen.
-  const rijen = [
-    ...(uitleg ? _volkRijen(volk, { kern: true }) : _volkRijen(volk)),
-    ...((data.boek || _volkBasis?.[volk]?._boek)
-      ? [['Uit', data.boek || _boekKort(_volkBasis[volk]._boek)]] : []),
-  ];
-  return _flipKaartHtml({
+  const uitRij = (data.boek || _volkBasis?.[volk]?._boek)
+    ? [['Uit', data.boek || _boekKort(_volkBasis[volk]._boek)]] : [];
+  return _bladerKaartHtml({
     soort: 'species', naam: volk, kleur: '#1a6a50',
     icoon: SPECIES_ICOON[volk] || 'user', bijschrift: 'Origin',
-    onder: String(data.ondertitel || '').trim(), rijen,
+    onder: String(data.ondertitel || '').trim(),
+    uitleg, rijen: uitRij,
+    // "Traits 3 · op level 1 · vanaf 1: Flight, Talons" zijn getallen óver de
+    // lijst eronder, en die staat er al; `kern` geeft de drie regels waar het
+    // boek mee begint.
+    kern: { kop: 'Core Traits', rijen: _volkRijen(volk, { kern: true }) },
     extra: `
-      ${uitleg ? `<div class="vk-uitleg">${window._vaardigTekstHtml?.(uitleg) ?? _bron?.md?.(uitleg) ?? esc(uitleg)}</div>` : ''}
       ${n ? '' : (() => {
         // "Niets in de app" was te somber zodra we zijn traitnamen kennen: er
         // staat dan wél iets, alleen niet de tekst erbij.
@@ -1357,12 +1395,12 @@ function _achtergrondKaartHtml(naam) {
   if (!data) return '';
   const vaste = _achtergrondRijen(naam);
   const uitleg = String(data.desc || '').trim();
-  return _flipKaartHtml({
+  return _bladerKaartHtml({
     soort: 'background', naam, kleur: '#962058', icoon: 'scroll-text',
     bijschrift: 'Background', onder: String(data.ondertitel || '').trim(),
-    rijen: [...vaste, ...(data.boek ? [['Uit', data.boek]] : [])],
+    uitleg, rijen: data.boek ? [['Uit', data.boek]] : [],
+    kern: { kop: 'Wat het geeft', rijen: vaste },
     extra: `
-      ${uitleg ? `<div class="vk-uitleg">${window._vaardigTekstHtml?.(uitleg) ?? _bron?.md?.(uitleg) ?? esc(uitleg)}</div>` : ''}
       ${vaste.length ? '' : '<p class="vk-noot">Van deze background staat er niets in de app.</p>'}
 `,
   });
@@ -2127,7 +2165,7 @@ function _kaartVenster(soort, naam, bron = '') {
 
   window.app.openModal(naam, '', `
     <div class="vd-subvenster">
-      ${beeld ? `<div class="vd-kv-beeld" style="background-image:url('${beeld}')${focus ? `;background-position:${esc(focus)}` : ''}"></div>` : ''}
+      ${_heroHtml({ src: beeld, focus })}
       <p class="vd-subvenster-meta">${meta}</p>
       ${data.ondertitel ? `<p class="vd-kv-onder">${esc(String(data.ondertitel).trim())}</p>` : ''}
       ${uitleg
@@ -2374,15 +2412,16 @@ function _uitlegVenster(soort, naam, bron) {
       <div class="dm-form-row">
         <label class="dm-form-label" for="vd-houder-herkomst">Herkomst</label>
         <select class="dm-input" id="vd-houder-herkomst"
-          title="Wat je later met een andere campagne mag delen: zelf verzonnen mag mee, overgenomen materiaal niet.">
+          title="Wat je later met een andere campagne mag delen: zelf verzonnen mag mee, overgenomen materiaal niet."
+          onchange="window.vaardigheden.herkomstGewisseld(this.value)">
           ${HERKOMST.map(x => `<option value="${esc(x.value)}"${(h.herkomst || '') === x.value ? ' selected' : ''}>${esc(x.label)}</option>`).join('')}
         </select>
       </div>
-      <div class="dm-form-row">
+      <div class="dm-form-row" id="vd-houder-boekrij"${h.herkomst === 'zelfbedacht' ? ' hidden' : ''}>
         <label class="dm-form-label" for="vd-houder-boek">Uit welk boek?</label>
         <input class="dm-input" id="vd-houder-boek" maxlength="120" value="${esc(h.boek || _eigenBoekUitBron(soort, naam))}"
           list="vd-boeken-houder" autocomplete="off"
-          placeholder="Bijv. Xanathar's Guide to Everything — of leeg als je het zelf verzon">
+          placeholder="Bijv. Xanathar's Guide to Everything">
         ${_boekenLijstHtml('vd-boeken-houder')}
       </div>
       <div class="dm-form-row">
@@ -2656,17 +2695,11 @@ function _open(key, vanWaar = null) {
   const beeldBlok = (() => {
     const [eerste, ...rest] = keten;
     if (!eerste) return '';
-    const eigen = !!it.img && eerste.id === it.img;
-    return `
-    <div class="detail-hero mb-6" id="vd-hero"
-      onclick="window.vaardigheden.beeldGroot()">
-      <div class="detail-hero-bg" style="background-image:url('/api/files/${esc(eerste.id)}')"></div>
-      <img src="/api/files/${esc(eerste.id)}" class="detail-hero-img"${eigen ? ' id="vaardig-detail-img"' : ''}
-        style="${eerste.focus ? `object-position:${esc(eerste.focus)}` : ''}"
-        ${rest.length ? `data-terugval="${esc(JSON.stringify(rest))}"` : ''}
-        onerror="window.vaardigheden.beeldMis(this)">
-      <div class="detail-hero-overlay"></div>
-    </div>`;
+    return _heroHtml({
+      src: `/api/files/${esc(eerste.id)}`, focus: eerste.focus || '',
+      id: (!!it.img && eerste.id === it.img) ? 'vaardig-detail-img' : '',
+      terugval: rest.length ? JSON.stringify(rest) : '',
+    });
   })();
   const dmBeeld = isDM() ? `
       ${geerfd ? `<p class="dm-hint" style="margin:4px 0 0">Neemt de afbeelding over van <strong>${esc(geerfd.geerfd || 'zijn class')}</strong>.
@@ -2894,12 +2927,12 @@ function _editorHtml() {
       <!-- Wáár het vandaan komt, in woorden. De keuzelijst hierboven zegt
            alleen óf het overgenomen is; bij "ja" wil je weten waaruit, anders
            is over een jaar niet meer na te gaan wat er gedeeld mag worden. -->
-      <!-- Het stond hier alleen als je op "overgenomen" stond, en heette dan
-           "Waaruit?". Dat is hetzelfde veld als "Uit welk boek?" in het
-           bewerkvenster, dus het heet nu overal zo en staat er overal — een
-           veld dat verdwijnt als je de keuzelijst erboven verzet is lastiger
-           te volgen dan een veld dat je leeg laat.
+      <!-- Het heette hier "Waaruit?" en in het bewerkvenster "Uit welk boek?",
+           terwijl het hetzelfde veld is: nu overal die tweede naam. Wát het
+           vraagt blijft hetzelfde — zelf verzonnen heeft geen boek, dus dan
+           staat de vraag er niet.
            (Geen backticks in commentaar hierbinnen: template literal.) -->
+      ${_edit.herkomst !== 'zelfbedacht' ? `
       <div class="dm-form-row">
         <label class="dm-form-label" for="vd-bronnaam">Uit welk boek?</label>
         <!-- Dit toont bronTekst en niet bron: dat laatste is de class of het
@@ -2910,9 +2943,9 @@ function _editorHtml() {
              (Geen backticks in commentaar hierbinnen: template literal.) -->
         <input class="dm-input" id="vd-bronnaam" maxlength="120" value="${esc(e.bronTekst || '')}"
           list="vd-boeken-feature" autocomplete="off"
-          placeholder="Bijv. Xanathar's Guide to Everything — of leeg als je het zelf verzon">
+          placeholder="Bijv. Xanathar's Guide to Everything">
         ${_boekenLijstHtml('vd-boeken-feature')}
-      </div>
+      </div>` : ''}
       <div class="dm-form-row">
         <label class="dm-form-label">Beschrijving</label>
         ${window._fmtToolbarHtml?.('vd-desc', { tabel: true }) ?? ''}
@@ -3303,8 +3336,13 @@ window.vaardigheden = {
   // niets meer open of dicht te klappen.
   subBlader(richting) { _subPagina = Math.max(0, _subPagina + richting); _bandHerteken(); },
   // Tussen de kaartjes van de aangevinkte subklassen.
+  // Bladeren door de aangevinkte kaartjes naast de class. **Via `_tweedeLaag`**,
+  // want die weet of de tweede laag subclasses zijn (een class) of varianten
+  // (een species). Dit keek rechtstreeks in `classes[...].subclasses`, dus bij
+  // een species vond hij nooit iets en deden de pijltjes niets.
   subKaartBlader(richting) {
-    const lijst = [..._subAan].filter(x => _bron?.prog?.classes?.[_filters.bron]?.subclasses?.[x]);
+    const laag = _tweedeLaag(_filters.bron);
+    const lijst = [..._subAan].filter(x => laag?.bak?.[x]);
     if (lijst.length < 2) return;
     const nu = Math.max(0, lijst.indexOf(_subKaart));
     _subKaart = lijst[(nu + richting + lijst.length) % lijst.length];
@@ -3314,6 +3352,28 @@ window.vaardigheden = {
   // alle drie: het is dezelfde handeling.
   // De knop op het kaartje: één venster voor alles.
   kaartBewerken(soort, naam, bron) { _uitlegVenster(soort, naam, bron || _filters.bron || ''); },
+  // Een bladzijde verder op een kaartje. De stand staat op het kaartje zelf
+  // (`data-blad`) en niet in een variabele hier: er staan er twaalf naast
+  // elkaar, ze hertekenen bij elke filterwissel, en dan is "welke bladzijde
+  // lag er ook alweer open" precies het soort boekhouding dat scheef gaat.
+  //
+  // Hij loopt rond: voorbij de laatste bladzijde ben je weer bij de plaat.
+  blader(knop, richting) {
+    const kaart = knop.closest('.vk-kaart');
+    if (!kaart) return;
+    const n = Number(kaart.dataset.bladen) || 1;
+    const i = ((Number(kaart.dataset.blad) || 0) + richting + n) % n;
+    kaart.dataset.blad = String(i);
+    kaart.style.setProperty('--vk-i', String(i));
+    kaart.querySelectorAll('.vk-stip').forEach((s, j) => s.classList.toggle('is-aan', j === i));
+  },
+  // Zelf verzonnen heeft geen boek, dus dan is de vraag er niet. Het
+  // maakvenster tekent zichzelf opnieuw bij zo'n wissel; dit venster is één
+  // formulier dat blijft staan, dus hier schuift alleen die ene rij weg.
+  herkomstGewisseld(waarde) {
+    const rij = document.getElementById('vd-houder-boekrij');
+    if (rij) rij.hidden = waarde === 'zelfbedacht';
+  },
 
   // Een afbeelding kiezen vanuit dat venster. Hij wordt meteen vastgelegd —
   // anders zou de focuskiezer naar een bestand wijzen dat nog nergens staat —
@@ -3551,8 +3611,11 @@ window.vaardigheden = {
     // bron, wat je invult geldt hier. `d8` en `8` allebei goed — een hit die
     // schrijf je nu eenmaal met een d ervoor.
     const basis = _basisUitFormulier();
-    const boek = document.getElementById('vd-houder-boek')?.value || '';
     const herkomst = document.getElementById('vd-houder-herkomst')?.value || '';
+    // Zelf verzonnen heeft geen boek. Stond er een omdat je hem eerst
+    // overgenomen noemde, dan hoort die weg te gaan en niet onzichtbaar te
+    // blijven staan.
+    const boek = herkomst === 'zelfbedacht' ? '' : (document.getElementById('vd-houder-boek')?.value || '');
     const ondertitel = document.getElementById('vd-houder-onder')?.value || '';
     const kleur = document.getElementById('vd-houder-kleur')?.value || '';
     // Het focuspunt staat in hetzelfde venster, dus het gaat in dezelfde klik
