@@ -135,7 +135,7 @@ function _ververOpenKaartje(id) {
     const section = window.app.state.activeSection;
     if (section === 'logboek' && window._logboekActiveTab === 'prikbord') {
       // Herlaad alleen de relatiemap, niet het hele logboek
-      import('./render-relatiemap.js?v=29').then(m => {
+      import('./render-relatiemap.js?v=30').then(m => {
         const el = document.getElementById('pb-relatiemap-container');
         if (el) m.renderRelatiemap(el);
       });
@@ -322,7 +322,7 @@ function _ververOpenKaartje(id) {
     }
     if (window.app.state.activeSection !== 'kaart') return;
     if (window.app.state.role === 'dm') return; // DM al bijgewerkt via _renderSvg()
-    import('./render-dungeon.js?v=65').then(m => {
+    import('./render-dungeon.js?v=66').then(m => {
       const content = document.getElementById('kaart-mode-content');
       if (content) m.renderDungeon(content);
     });
@@ -330,7 +330,7 @@ function _ververOpenKaartje(id) {
   // Dungeon meta bijgewerkt (nieuwe map, party-access) → iedereen herlaadt
   socket.on('dungeon:updated', () => {
     if (window.app.state.activeSection !== 'kaart') return;
-    import('./render-dungeon.js?v=65').then(m => {
+    import('./render-dungeon.js?v=66').then(m => {
       const content = document.getElementById('kaart-mode-content');
       if (content) m.renderDungeon(content);
     });
@@ -892,13 +892,13 @@ function _ververOpenKaartje(id) {
 
   socket.on('relations:updated', () => {
     if (window.app.state.activeSection === 'relatiemap') {
-      import('./render-relatiemap.js?v=29').then(m => m.renderRelatiemap());
+      import('./render-relatiemap.js?v=30').then(m => m.renderRelatiemap());
     }
   });
 
   socket.on('relations:revealed', ({ id } = {}) => {
     if (window.app.state.activeSection === 'relatiemap') {
-      import('./render-relatiemap.js?v=29').then(m => m.renderRelatiemap());
+      import('./render-relatiemap.js?v=30').then(m => m.renderRelatiemap());
     }
     if (!window.app.isDM()) {
       _showToast(`${window.icon('link')} <strong>Nieuwe verbinding onthuld!</strong>`, () => {

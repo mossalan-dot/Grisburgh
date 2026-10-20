@@ -96,7 +96,7 @@ const SPECIES_ICOON = {
   Leonin: 'cat',              Lupin: 'dog',               Harengon: 'rabbit',
   Owlin: 'bird',              Tortle: 'turtle',           Loxodon: 'ear',
   Minotaur: 'beef',           Centaur: 'horse-head',      'Yuan-ti': 'worm',
-  Lizardfolk: 'bone',         Giff: 'crosshair',          Kenku: 'megaphone',
+  Lizardfolk: 'bone',         Giff: 'snout',          Kenku: 'megaphone',
   // Goblinoïden en wat daarbij hoort
   Goblin: 'rat',              Hobgoblin: 'flag',          Bugbear: 'bear-head',
   Kobold: 'egg',              Verdan: 'flower-2',
@@ -110,7 +110,7 @@ const SPECIES_ICOON = {
   // Water
   Triton: 'waves-vertical',   'Sea Elf': 'fish-symbol',
   // Uit de Astral Sea (Spelljammer) en van Lorwyn
-  'Astral Elf': 'orbit',      Autognome: 'cog',           Hadozee: 'squirrel',
+  'Astral Elf': 'orbit',      Autognome: 'cog',           Hadozee: 'gorilla',
   Plasmoid: 'droplets',       'Thri-kreen': 'bug',        // Van gedaante wisselen
   Changeling: 'scan-face',    Shifter: 'moon-star',
   // Geest en gedachte
