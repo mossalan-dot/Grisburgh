@@ -1231,10 +1231,10 @@ function _klasseKaartHtml(klasse) {
     soort: 'class', naam: klasse, kleur: sig?.kleur || '#8a6d3f',
     icoon: _klasseIcoon(klasse), bijschrift: 'Class',
     onder: String(data?.ondertitel || '').trim(),
-    uitleg, rijen: uitRij,
+    uitleg,
     // De Core Traits hoeven niet meer te wijken voor de beschrijving: ze
-    // hebben hun eigen bladzijde.
-    kern: { kop: 'Core Traits', rijen: _klasseRijen(klasse) },
+    // hebben hun eigen bladzijde, met de vindplaats eronder.
+    kern: { kop: 'Core Traits', rijen: [..._klasseRijen(klasse), ...uitRij] },
     extra: `
       ${heeftSpreuken ? `
         <button class="vk-naar-spreuken" title="De spreuken die deze class kan leren"
@@ -1328,17 +1328,21 @@ function _volkKaartHtml(volk) {
   // level 1 · vanaf 1: Flight, Talons" zijn getallen over de lijst eronder, en
   // die staat er al. Zonder beschrijving vallen ze terug, want dan heeft het
   // kaartje niets anders te zeggen.
-  const uitRij = (data.boek || _volkBasis?.[volk]?._boek)
-    ? [['Uit', data.boek || _boekKort(_volkBasis[volk]._boek)]] : [];
+  // De volledige titel, niet de afkorting: op het kaartje is er plaats voor,
+  // en "MPMM" moet je weten. De afkorting blijft waar ze hoort — in het
+  // hoekje van een featurekaartje, waar geen regel bij past.
+  const boek = data.boek || _boekVol(_volkBasis?.[volk]?._boek);
+  const uitRij = boek ? [['Uit', boek]] : [];
   return _bladerKaartHtml({
     soort: 'species', naam: volk, kleur: '#1a6a50',
     icoon: SPECIES_ICOON[volk] || 'user', bijschrift: 'Origin',
     onder: String(data.ondertitel || '').trim(),
-    uitleg, rijen: uitRij,
+    uitleg,
     // "Traits 3 · op level 1 · vanaf 1: Flight, Talons" zijn getallen óver de
     // lijst eronder, en die staat er al; `kern` geeft de drie regels waar het
-    // boek mee begint.
-    kern: { kop: 'Core Traits', rijen: _volkRijen(volk, { kern: true }) },
+    // boek mee begint. **Uit welk boek hoort daarbij**, en niet bij het
+    // verhaal: zo heeft de beschrijving de hele bladzijde voor zich.
+    kern: { kop: 'Core Traits', rijen: [..._volkRijen(volk, { kern: true }), ...uitRij] },
     extra: `
       ${n ? '' : (() => {
         // "Niets in de app" was te somber zodra we zijn traitnamen kennen: er
@@ -1398,8 +1402,8 @@ function _achtergrondKaartHtml(naam) {
   return _bladerKaartHtml({
     soort: 'background', naam, kleur: '#962058', icoon: 'scroll-text',
     bijschrift: 'Background', onder: String(data.ondertitel || '').trim(),
-    uitleg, rijen: data.boek ? [['Uit', data.boek]] : [],
-    kern: { kop: 'Wat het geeft', rijen: vaste },
+    uitleg,
+    kern: { kop: 'Wat het geeft', rijen: [...vaste, ...(data.boek ? [['Uit', data.boek]] : [])] },
     extra: `
       ${vaste.length ? '' : '<p class="vk-noot">Van deze background staat er niets in de app.</p>'}
 `,
@@ -2151,7 +2155,7 @@ function _kaartVenster(soort, naam, bron = '') {
   // gewoon weten. Zelfde terugval als op het kaartje.
   const boek = data.boek
     || ((soort === 'species' || soort === 'variant')
-        ? _boekKort(_volkBasis?.[soort === 'variant' ? bron : naam]?._boek) : '');
+        ? _boekVol(_volkBasis?.[soort === 'variant' ? bron : naam]?._boek) : '');
   const meta = [soortLabel, (soort === 'subclass' || soort === 'variant') ? bron : '', boek || '']
     .filter(Boolean).map(esc).join(' · ');
   const rijen = _houderRijen(soort, naam, bron, { metBoek: false });
@@ -2375,9 +2379,17 @@ function _basisUitFormulier() {
 // het boek van hun moeder, en dat erven hoort te blijven erven — vul je het
 // hier in, dan staat het straks vijf keer apart en loopt het uit elkaar.
 function _eigenBoekUitBron(soort, naam) {
-  const code = soort === 'species' ? _volkBasis?.[naam]?._boek : '';
-  if (!code) return '';
-  return _boeken.find(b => b.code === code)?.naam || code;
+  return soort === 'species' ? _boekVol(_volkBasis?.[naam]?._boek) : '';
+}
+
+// De volledige titel bij een boekcode. `species-basis.json` noteert het boek
+// als code ("MPMM"), want dat is wat de bron zelf schrijft; op een kaartje
+// staat liever waar het echt in staat. Kent de boekenlijst de code niet, dan
+// is de code nog altijd beter dan niets.
+function _boekVol(code) {
+  const c = String(code || '').trim();
+  if (!c) return '';
+  return _boeken.find(b => b.code === c)?.naam || c;
 }
 
 function _uitlegVenster(soort, naam, bron) {
