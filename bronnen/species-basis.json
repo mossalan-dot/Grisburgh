@@ -14,6 +14,18 @@
       "speed": "30 feet",
       "_boek": "XPHB"
     },
+    "Astral Elf": {
+      "creatureType": "Humanoid",
+      "size": "Medium",
+      "speed": "30 feet",
+      "_boek": "AAG"
+    },
+    "Autognome": {
+      "creatureType": "Construct",
+      "size": "Small",
+      "speed": "30 feet",
+      "_boek": "AAG"
+    },
     "Bugbear": {
       "creatureType": "Humanoid",
       "size": "Medium",
@@ -122,6 +134,11 @@
       "speed": "35 feet",
       "_boek": "XPHB"
     },
+    "Hadozee": {
+      "size": "Small or Medium",
+      "speed": "30 feet, climb 30 feet",
+      "_boek": "AAG"
+    },
     "Half-Elf": {
       "size": "Medium",
       "speed": "30 feet",
@@ -226,6 +243,12 @@
       "speed": "30 feet, fly 30 feet",
       "_boek": "SCC"
     },
+    "Plasmoid": {
+      "creatureType": "Ooze",
+      "size": "Small or Medium",
+      "speed": "30 feet",
+      "_boek": "AAG"
+    },
     "Reborn": {
       "creatureType": "Humanoid",
       "size": "Small or Medium",
@@ -271,6 +294,12 @@
       "size": "Small or Medium",
       "speed": "30 feet, climb 30 feet",
       "_boek": "MPMM"
+    },
+    "Thri-kreen": {
+      "creatureType": "Monstrosity",
+      "size": "Small or Medium",
+      "speed": "30 feet",
+      "_boek": "AAG"
     },
     "Tiefling": {
       "creatureType": "Humanoid",

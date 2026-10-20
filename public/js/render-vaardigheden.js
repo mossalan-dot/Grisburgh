@@ -111,6 +111,9 @@ const SPECIES_ICOON = {
   Duskling: 'sunset',
   // Water
   Triton: 'waves-vertical',   'Sea Elf': 'fish-symbol',
+  // Uit de Astral Sea (Spelljammer) en van Lorwyn
+  'Astral Elf': 'orbit',      Autognome: 'cog',           Hadozee: 'squirrel',
+  Plasmoid: 'droplets',       'Thri-kreen': 'bug',        Kithkin: 'puzzle',
   // Van gedaante wisselen
   Changeling: 'scan-face',    'Lorwyn Changeling': 'shapes',
   Shifter: 'moon-star',

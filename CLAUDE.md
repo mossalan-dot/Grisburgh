@@ -2429,6 +2429,9 @@ factie — `star` betekent in de app al *favoriet*), `award` (factie-boon), `bac
 (spelerstab Boedel — dat deelde `package` met het archieftabblad Voorwerpen), `vault`
 (de Loot-tab), `dices`, `quote` (het voorleesblok in een akte)
 
+**Toegevoegd voor de zes species uit Spelljammer en Lorwyn** (Lucide, ISC, 20 okt 2026,
+sprite v=22): `orbit` `cog` `squirrel` `bug` `puzzle` `droplets`
+
 **Toegevoegd voor de species-iconen** (Lucide, ISC, 18 okt 2026, sprite v=20): `clover`
 `axe` `footprints` `scan-face` `gem` `hard-hat` `sunset` `leaf` `flower` `flower-2`
 `wand-sparkles` `wand` `flame-kindling` `tornado` `crosshair` `atom` `infinity` `rat`

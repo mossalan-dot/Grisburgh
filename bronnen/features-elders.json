@@ -3178,6 +3178,41 @@
       "Menacing",
       "Relentless Endurance",
       "Savage Attacks"
+    ],
+    "Astral Elf": [
+      "Astral Fire",
+      "Darkvision",
+      "Fey Ancestry",
+      "Keen Senses",
+      "Starlight Step",
+      "Astral Trance"
+    ],
+    "Autognome": [
+      "Armored Casing",
+      "Built for Success",
+      "Healing Machine",
+      "Mechanical Nature",
+      "Sentry's Rest",
+      "Specialized Design"
+    ],
+    "Hadozee": [
+      "Dexterous Feet",
+      "Glide",
+      "Hadozee Dodge"
+    ],
+    "Plasmoid": [
+      "Amorphous",
+      "Darkvision",
+      "Hold Breath",
+      "Natural Resilience",
+      "Shape Self"
+    ],
+    "Thri-kreen": [
+      "Chameleon Carapace",
+      "Darkvision",
+      "Secondary Arms",
+      "Sleepless",
+      "Thri-kreen Telepathy"
     ]
   },
   "_niveaus": "Een naam mag een level dragen: {\"naam\": \"…\", \"level\": 3}. De nieuwste druk is leidend: wat op dnd2024.wikidot.com staat is overgenomen — de PHB 2024 waar die hem heeft, en anders het boek dat hem opnieuw uitgaf (Eberron voor de Artificer, Heroes of Faerûn voor het Knowledge Domain, Ravenloft voor Grave en Phantom, Arcana Unleashed voor Arcana Domain en Arcane Archer). Proefdrukken (UA) tellen niet mee. Overgenomen met scripts/srd-2024/subclasses-2024.js, waar naam en level in dezelfde kop staan. De rest is opgehaald met scripts/srd-2024/elders-niveaus.js van dnd5e.wikidot.com — de kop is de naam, de eerste levelvermelding eronder is het level; een \"Channel Divinity: …\"-optie deelt het level van de Channel Divinity-feature waar hij onder staat. Alleen waar de naam exact overeenkomt: een kop die wij niet kennen hoort bij een andere druk. Bij een subclass die de app als 2024-materiaal meebrengt wordt bovendien alleen een level overgenomen dat deze class zijn subclasses ook echt geeft — wikidot beschrijft 2014, en daar begint een Cleric-domein op level 1. De elf subclasses die alleen in 2024 bestaan hebben geen wikidotpagina; hun levels komen uit de campagne van Grisburgh, waar de DM ze zelf had ingevuld. Het level is dat van het boek waar de subclass in staat; dat boek staat op zijn kaartje erbij. De species hebben geen level: een trait hoort bij wie je bent, niet bij een level.",
