@@ -1542,6 +1542,15 @@ function _bannerHtml(d, { klein = false } = {}) {
   </button>`;
 }
 
+// Wat er onder een houder hangt heet niet overal hetzelfde: een species heeft
+// **traits**, een background onderdelen, een class features. De elders-tegel
+// zei al "4 traits" en de gewone tegel ernaast "4 features" — over dezelfde
+// dingen.
+function _tegelWoord(deur, n) {
+  if (deur === 'species') return n === 1 ? 'trait' : 'traits';
+  return n === 1 ? 'feature' : 'features';
+}
+
 // ── Laag 1: de keuzes achter een deur ───────────────────────────────────────
 function _tegelsHtml(d) {
   const rijen = _bandBronnen(d);
@@ -1561,6 +1570,12 @@ function _tegelsHtml(d) {
     const beeld = _tegelBeeld(x => d.soorten.includes(x.soort)
       && (d.id === 'background' ? x.naam === naam : x.bron === naam));
     const subs = d.id === 'class' ? _bandSubklassen(naam).length : 0;
+    // Een species met varianten: dát is wat je hier wilt weten, net als het
+    // aantal subclasses bij een class. Maar 55 van de 62 hebben er geen, en
+    // "geen varianten" op 55 tegels vertelt niemand iets — dan is het aantal
+    // traits het enige dat er te melden valt, en bij een leeg species is
+    // "nog leeg" juist het signaal waar je op zoekt tijdens het nalopen.
+    const varN = d.id === 'species' ? Object.keys(_houderVan('species', naam)?.varianten || {}).length : 0;
     return `<button class="vd-tegel" style="--vd-kleur:${d.kleur};--vd-i:${i}"
       onclick="window.vaardigheden.kies('${esc(naam).replace(/'/g, "\\'")}')">
       ${beeld ? `<span class="vd-tegel-beeld" style="background-image:url('${beeld}')"></span>` : ''}
@@ -1571,7 +1586,8 @@ function _tegelsHtml(d) {
            optelsom van alles wat je een laag dieper los ziet staan. -->
       <span class="vd-tegel-meta">${d.id === 'class'
         ? (subs ? `${subs} subclasses` : (n ? 'nog geen subclasses' : 'nog leeg'))
-        : (n ? `${n} ${n === 1 ? 'feature' : 'features'}` : 'nog leeg')}</span>
+        : varN ? `${varN} ${varN === 1 ? 'variant' : 'varianten'}`
+        : n ? `${n} ${_tegelWoord(d.id, n)}` : 'nog leeg'}</span>
     </button>`;
   }).join('')}
   ${elders.map((naam, i) => {
