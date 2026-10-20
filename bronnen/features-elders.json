@@ -3245,17 +3245,48 @@
       }
     ],
     "Kobold": [
-      "Darkvision",
-      "Draconic Cry",
-      "Kobold Legacy"
+      {
+        "naam": "Darkvision",
+        "level": 1
+      },
+      {
+        "naam": "Draconic Cry",
+        "level": 1
+      },
+      {
+        "naam": "Kobold Legacy",
+        "level": 1
+      },
+      {
+        "naam": "Languages",
+        "level": 1
+      }
     ],
     "Lizardfolk": [
-      "Bite",
-      "Cunning Artisan",
-      "Hold Breath",
-      "Hunter's Lore",
-      "Natural Armor",
-      "Hungry Jaws"
+      {
+        "naam": "Bite",
+        "level": 1
+      },
+      {
+        "naam": "Hold Breath",
+        "level": 1
+      },
+      {
+        "naam": "Hungry Jaws",
+        "level": 1
+      },
+      {
+        "naam": "Languages",
+        "level": 1
+      },
+      {
+        "naam": "Natural Armor",
+        "level": 1
+      },
+      {
+        "naam": "Nature's Intuition",
+        "level": 1
+      }
     ],
     "Loxodon": [
       "Powerful Build",
@@ -3422,10 +3453,26 @@
       }
     ],
     "Leonin": [
-      "Darkvision",
-      "Claws",
-      "Hunter's Instincts",
-      "Daunting Roar"
+      {
+        "naam": "Claws",
+        "level": 1
+      },
+      {
+        "naam": "Darkvision",
+        "level": 1
+      },
+      {
+        "naam": "Daunting Roar",
+        "level": 1
+      },
+      {
+        "naam": "Hunter's Instincts",
+        "level": 1
+      },
+      {
+        "naam": "Languages",
+        "level": 1
+      }
     ],
     "Verdan": [
       "Black Blood Healing",
