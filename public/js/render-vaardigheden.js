@@ -1542,15 +1542,6 @@ function _bannerHtml(d, { klein = false } = {}) {
   </button>`;
 }
 
-// Wat er onder een houder hangt heet niet overal hetzelfde: een species heeft
-// **traits**, een background onderdelen, een class features. De elders-tegel
-// zei al "4 traits" en de gewone tegel ernaast "4 features" — over dezelfde
-// dingen.
-function _tegelWoord(deur, n) {
-  if (deur === 'species') return n === 1 ? 'trait' : 'traits';
-  return n === 1 ? 'feature' : 'features';
-}
-
 // ── Laag 1: de keuzes achter een deur ───────────────────────────────────────
 function _tegelsHtml(d) {
   const rijen = _bandBronnen(d);
@@ -1566,7 +1557,7 @@ function _tegelsHtml(d) {
   // subclasses: er staat er één in de kopbalk naast de hulpknop, en die weet
   // zelf waar je staat. Een knop per onderdeel was hetzelfde gebaar op vier
   // plekken.
-  return `<div class="vd-tegels">${rijen.map(([naam, n], i) => {
+  return `<div class="vd-tegels">${rijen.map(([naam], i) => {
     const beeld = _tegelBeeld(x => d.soorten.includes(x.soort)
       && (d.id === 'background' ? x.naam === naam : x.bron === naam));
     const subs = d.id === 'class' ? _bandSubklassen(naam).length : 0;
@@ -1576,32 +1567,32 @@ function _tegelsHtml(d) {
     // traits het enige dat er te melden valt, en bij een leeg species is
     // "nog leeg" juist het signaal waar je op zoekt tijdens het nalopen.
     const varN = d.id === 'species' ? Object.keys(_houderVan('species', naam)?.varianten || {}).length : 0;
+    const tweedeLaag = d.id === 'class' ? (subs ? `${subs} subclasses` : '')
+      : d.id === 'species' ? (varN ? `${varN} ${varN === 1 ? 'variant' : 'varianten'}` : '')
+      : '';
     return `<button class="vd-tegel" style="--vd-kleur:${d.kleur};--vd-i:${i}"
       onclick="window.vaardigheden.kies('${esc(naam).replace(/'/g, "\\'")}')">
       ${beeld ? `<span class="vd-tegel-beeld" style="background-image:url('${beeld}')"></span>` : ''}
       <span class="vd-tegel-icoon">${icon(icoonVan(naam))}</span>
       <span class="vd-tegel-naam">${esc(naam)}</span>
-      <!-- Bij een class is het aantal subclasses genoeg: hoeveel features er
-           samen onder hangen zegt niets wat je hier wil weten, en het is de
-           optelsom van alles wat je een laag dieper los ziet staan. -->
-      <span class="vd-tegel-meta">${d.id === 'class'
-        ? (subs ? `${subs} subclasses` : (n ? 'nog geen subclasses' : 'nog leeg'))
-        : varN ? `${varN} ${varN === 1 ? 'variant' : 'varianten'}`
-        : n ? `${n} ${_tegelWoord(d.id, n)}` : 'nog leeg'}</span>
+      <!-- **Alleen de naam, het icoon en de laag eronder.** Hoeveel features
+           of traits er samen onder hangen zegt niets wat je op dit scherm
+           wilt weten: het is de optelsom van alles wat je een laag dieper los
+           ziet staan, en het verschilt ook nog eens per bron of het er al in
+           staat. Heeft hij niets onder zich, dan staat er niets — een lege
+           regel zegt genoeg.
+           (Geen backticks in commentaar hierbinnen: template literal.) -->
+      ${tweedeLaag ? `<span class="vd-tegel-meta">${esc(tweedeLaag)}</span>` : ''}
     </button>`;
   }).join('')}
   ${elders.map((naam, i) => {
-    const aantal = _eldersAanvulling('species', naam, null).length;
     const varN = _eldersVarianten(naam).length;
     return `<div class="vd-tegel vd-tegel--elders" style="--vd-kleur:${d.kleur};--vd-i:${rijen.length + i}">
       ${isDM() ? `<label class="vd-tegel-vink" title="Zet ${esc(naam)} in deze campagne">
         <input type="checkbox" onchange="window.vaardigheden.volkAan('${escA(naam)}')"></label>` : ''}
       <span class="vd-tegel-icoon">${icon(SPECIES_ICOON[naam] || 'user')}</span>
       <span class="vd-tegel-naam">${esc(naam)}</span>
-      <span class="vd-tegel-meta">${[
-        aantal ? `${aantal} ${aantal === 1 ? 'trait' : 'traits'}` : '',
-        varN ? `${varN} varianten` : '',
-      ].filter(Boolean).join(' · ') || 'bestaat'} · elders</span>
+      <span class="vd-tegel-meta">${varN ? `${varN} varianten · ` : ''}elders</span>
     </div>`;
   }).join('')}</div>`;
 }

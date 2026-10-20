@@ -3063,35 +3063,124 @@
       }
     ],
     "Fairy": [
-      "Fairy Magic",
-      "Flight"
+      {
+        "naam": "Fairy Magic",
+        "level": 1
+      },
+      {
+        "naam": "Flight",
+        "level": 1
+      },
+      {
+        "naam": "Languages",
+        "level": 1
+      }
     ],
     "Firbolg": [
-      "Firbolg Magic",
-      "Hidden Step",
-      "Powerful Build",
-      "Speech of Beast and Leaf"
+      {
+        "naam": "Firbolg Magic",
+        "level": 1
+      },
+      {
+        "naam": "Hidden Step",
+        "level": 1
+      },
+      {
+        "naam": "Languages",
+        "level": 1
+      },
+      {
+        "naam": "Powerful Build",
+        "level": 1
+      },
+      {
+        "naam": "Speech of Beast and Leaf",
+        "level": 1
+      }
     ],
     "Githyanki": [
-      "Astral Knowledge",
-      "Githyanki Psionics",
-      "Psychic Resilience"
+      {
+        "naam": "Astral Knowledge",
+        "level": 1
+      },
+      {
+        "naam": "Githyanki Psionics",
+        "level": 1
+      },
+      {
+        "naam": "Languages",
+        "level": 1
+      },
+      {
+        "naam": "Psychic Resilience",
+        "level": 1
+      }
     ],
     "Githzerai": [
-      "Githzerai Psionics",
-      "Mental Discipline",
-      "Psychic Resilience"
+      {
+        "naam": "Githzerai Psionics",
+        "level": 1
+      },
+      {
+        "naam": "Languages",
+        "level": 1
+      },
+      {
+        "naam": "Mental Discipline",
+        "level": 1
+      },
+      {
+        "naam": "Psychic Resilience",
+        "level": 1
+      }
     ],
     "Goblin": [
-      "Darkvision",
-      "Fury of the Small",
-      "Nimble Escape"
+      {
+        "naam": "Creature Type",
+        "level": 1
+      },
+      {
+        "naam": "Darkvision",
+        "level": 1
+      },
+      {
+        "naam": "Fey Ancestry",
+        "level": 1
+      },
+      {
+        "naam": "Fury of the Small",
+        "level": 1
+      },
+      {
+        "naam": "Languages",
+        "level": 1
+      },
+      {
+        "naam": "Nimble Escape",
+        "level": 1
+      }
     ],
     "Harengon": [
-      "Hare-Trigger",
-      "Leporine Senses",
-      "Lucky Footwork",
-      "Rabbit Hop"
+      {
+        "naam": "Hare-Trigger",
+        "level": 1
+      },
+      {
+        "naam": "Languages",
+        "level": 1
+      },
+      {
+        "naam": "Leporine Senses",
+        "level": 1
+      },
+      {
+        "naam": "Lucky Footwork",
+        "level": 1
+      },
+      {
+        "naam": "Rabbit Hop",
+        "level": 1
+      }
     ],
     "Hobgoblin": [
       "Darkvision",
@@ -3222,8 +3311,7 @@
     ],
     "Hexblood": [
       "Darkvision",
-      "Eerie Token",
-      "Hex Magic"
+      "Eerie Token"
     ],
     "Lupin": [
       "Darkvision",
@@ -3260,12 +3348,32 @@
       }
     ],
     "Genasi": [
-      "Darkvision"
+      {
+        "naam": "Darkvision",
+        "level": 1
+      },
+      {
+        "naam": "Languages",
+        "level": 1
+      }
     ],
     "Giff": [
-      "Astral Spark",
-      "Firearms Mastery",
-      "Hippo Build"
+      {
+        "naam": "Astral Spark",
+        "level": 1
+      },
+      {
+        "naam": "Firearms Mastery",
+        "level": 1
+      },
+      {
+        "naam": "Hippo Build",
+        "level": 1
+      },
+      {
+        "naam": "Languages",
+        "level": 1
+      }
     ],
     "Leonin": [
       "Darkvision",
@@ -3286,10 +3394,26 @@
       "Serpentine Spellcasting"
     ],
     "Half-Orc": [
-      "Darkvision",
-      "Menacing",
-      "Relentless Endurance",
-      "Savage Attacks"
+      {
+        "naam": "Darkvision",
+        "level": 1
+      },
+      {
+        "naam": "Languages",
+        "level": 1
+      },
+      {
+        "naam": "Menacing",
+        "level": 1
+      },
+      {
+        "naam": "Relentless Endurance",
+        "level": 1
+      },
+      {
+        "naam": "Savage Attacks",
+        "level": 1
+      }
     ],
     "Astral Elf": [
       {
@@ -3352,9 +3476,22 @@
       }
     ],
     "Hadozee": [
-      "Dexterous Feet",
-      "Glide",
-      "Hadozee Dodge"
+      {
+        "naam": "Dexterous Feet",
+        "level": 1
+      },
+      {
+        "naam": "Glide",
+        "level": 1
+      },
+      {
+        "naam": "Hadozee Dodge",
+        "level": 1
+      },
+      {
+        "naam": "Languages",
+        "level": 1
+      }
     ],
     "Plasmoid": [
       "Amorphous",
@@ -3374,22 +3511,56 @@
   "_niveaus": "Een naam mag een level dragen: {\"naam\": \"…\", \"level\": 3}. De nieuwste druk is leidend: wat op dnd2024.wikidot.com staat is overgenomen — de PHB 2024 waar die hem heeft, en anders het boek dat hem opnieuw uitgaf (Eberron voor de Artificer, Heroes of Faerûn voor het Knowledge Domain, Ravenloft voor Grave en Phantom, Arcana Unleashed voor Arcana Domain en Arcane Archer). Proefdrukken (UA) tellen niet mee. Overgenomen met scripts/srd-2024/subclasses-2024.js, waar naam en level in dezelfde kop staan. De rest is opgehaald met scripts/srd-2024/elders-niveaus.js van dnd5e.wikidot.com — de kop is de naam, de eerste levelvermelding eronder is het level; een \"Channel Divinity: …\"-optie deelt het level van de Channel Divinity-feature waar hij onder staat. Alleen waar de naam exact overeenkomt: een kop die wij niet kennen hoort bij een andere druk. Bij een subclass die de app als 2024-materiaal meebrengt wordt bovendien alleen een level overgenomen dat deze class zijn subclasses ook echt geeft — wikidot beschrijft 2014, en daar begint een Cleric-domein op level 1. De elf subclasses die alleen in 2024 bestaan hebben geen wikidotpagina; hun levels komen uit de campagne van Grisburgh, waar de DM ze zelf had ingevuld. Het level is dat van het boek waar de subclass in staat; dat boek staat op zijn kaartje erbij. De species hebben geen level: een trait hoort bij wie je bent, niet bij een level.",
   "varianten": {
     "Genasi|Air Genasi": [
-      "Unending Breath",
-      "Lightning Resistance",
-      "Mingle with the Wind"
+      {
+        "naam": "Lightning Resistance",
+        "level": 1
+      },
+      {
+        "naam": "Mingle with the Wind",
+        "level": 1
+      },
+      {
+        "naam": "Unending Breath",
+        "level": 1
+      }
     ],
     "Genasi|Earth Genasi": [
-      "Earth Walk",
-      "Merge with Stone"
+      {
+        "naam": "Earth Walk",
+        "level": 1
+      },
+      {
+        "naam": "Merge with Stone",
+        "level": 1
+      }
     ],
     "Genasi|Fire Genasi": [
-      "Fire Resistance",
-      "Reach to the Blaze"
+      {
+        "naam": "Fire Resistance",
+        "level": 1
+      },
+      {
+        "naam": "Reach to the Blaze",
+        "level": 1
+      }
     ],
     "Genasi|Water Genasi": [
-      "Acid Resistance",
-      "Amphibious",
-      "Call to the Wave"
+      {
+        "naam": "Acid Resistance",
+        "level": 1
+      },
+      {
+        "naam": "Amphibious",
+        "level": 1
+      },
+      {
+        "naam": "Call to the Wave",
+        "level": 1
+      },
+      {
+        "naam": "Speed",
+        "level": 1
+      }
     ],
     "Elf|Drow": [
       {
@@ -3406,6 +3577,94 @@
     "Elf|Wood Elf": [
       {
         "naam": "Elven Lineage",
+        "level": 1
+      }
+    ],
+    "Gnome|Forest Gnome": [
+      {
+        "naam": "Gnomish Lineage",
+        "level": 1
+      }
+    ],
+    "Gnome|Rock Gnome": [
+      {
+        "naam": "Gnomish Lineage",
+        "level": 1
+      }
+    ],
+    "Goliath|Cloud Giant": [
+      {
+        "naam": "Giant Ancestry: Cloud's Jaunt",
+        "level": 1
+      }
+    ],
+    "Goliath|Frost Giant": [
+      {
+        "naam": "Giant Ancestry: Frost's Chill",
+        "level": 1
+      }
+    ],
+    "Goliath|Hill Giant": [
+      {
+        "naam": "Giant Ancestry: Hill's Tumble",
+        "level": 1
+      }
+    ],
+    "Goliath|Fire Goliath": [
+      {
+        "naam": "Giant Ancestry: Fire's Burn",
+        "level": 1
+      }
+    ],
+    "Goliath|Stone Giant": [
+      {
+        "naam": "Giant Ancestry: Stone's Endurance",
+        "level": 1
+      }
+    ],
+    "Goliath|Storm Giant": [
+      {
+        "naam": "Giant Ancestry: Storm's Thunder",
+        "level": 1
+      }
+    ],
+    "Half-Elf|Aquatic Elf Descent": [
+      {
+        "naam": "Variant Feature (Choose 1)",
+        "level": 1
+      }
+    ],
+    "Half-Elf|Drow Descent": [
+      {
+        "naam": "Variant Feature (Choose 1)",
+        "level": 1
+      }
+    ],
+    "Half-Elf|Moon Elf or Sun Elf Descent": [
+      {
+        "naam": "Variant Feature (Choose 1)",
+        "level": 1
+      }
+    ],
+    "Half-Elf|Wood Elf Descent": [
+      {
+        "naam": "Variant Feature (Choose 1)",
+        "level": 1
+      }
+    ],
+    "Halfling|Ghostwise": [
+      {
+        "naam": "Silent Speech",
+        "level": 1
+      }
+    ],
+    "Halfling|Lotusden": [
+      {
+        "naam": "Child of the Wood",
+        "level": 1
+      },
+      {
+        "naam": "Timberwalk",
         "level": 1
       }
     ]
