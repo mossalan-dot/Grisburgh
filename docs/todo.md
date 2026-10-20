@@ -857,3 +857,42 @@ daar dan in. (Het eerste punt — diensten die de gedeelde beurs omzeilden — i
       Als het er ooit komt: eerst een round-trip-test over álle bestaande
       teksten (parse → serialiseer → vergelijk), vóór er ook maar iets
       opgeslagen wordt.
+- [ ] **Verplichte en optionele varianten uit elkaar houden.** Gevraagd op
+      20 okt 2026, om later over na te denken. Een Dragonborn *moet* een
+      Draconic Ancestry kiezen en een Goliath een Giant Ancestry — zonder die
+      keuze is het personage niet af. Een Half-Elf hoeft niets te kiezen: de
+      descents zijn 2014-materiaal dat je erbij kúnt nemen. De app kent dat
+      verschil niet en zet voor allebei dezelfde keuzelijst met "—" erboven op
+      het spelersblad (`app.js`, de rij onder Origin).
+
+      **Wat er nu staat** (Grisburgh, 7 van de 62 species hebben een tweede
+      laag):
+
+      | Species | Label | Trait die de keuze afdwingt | n |
+      |---|---|---|---|
+      | Dragonborn | Draconic Ancestry | Draconic Ancestry | 10 |
+      | Elf | Elven Lineage | Elven Lineage | 3 |
+      | Gnome | Gnomish Lineage | Gnomish Lineage | 2 |
+      | Tiefling | Fiendish Legacy | Fiendish Legacy | 3 |
+      | Goliath | Giant Ancestry | — | 6 |
+      | Genasi | (geen) | — | 4 |
+      | Half-Elf | (geen) | — | 4 |
+
+      **Het signaal zit er misschien al in.** De vijf die verplicht zijn hebben
+      een `variantLabel` uit het boek ("Fiendish Legacy"), de twee optionele
+      niet. Dat is wel toeval van hoe ze zijn ingevoerd en geen afgesproken
+      regel — en Goliath laat zien dat het wankel is: hij heeft een label maar
+      zijn trait *Giant Ancestry* staat niet in zijn lijst, terwijl die bij
+      Dragonborn en Tiefling wél meekomt. Een expliciet veld op de houder
+      (`variantVerplicht`) is eerlijker dan een afleiding uit twee andere
+      velden die er niet voor bedoeld zijn.
+
+      **Waar het opduikt:** het spelersblad (de rij moet dan zeggen dát er
+      gekozen moet worden, en een leeg veld is een gat en niet een stand), het
+      Heldenboek (het kaartje van een species kan het noemen), en de
+      personagewizard. Let op dat een lege keuze bij een optioneel species
+      juist een geldig antwoord is — "—" mag daar blijven.
+
+      Zelfde familie als [`voorstel-feature-keuzes.md`](voorstel-feature-
+      keuzes.md): dat gaat over features die de speler iets laten kiezen, dit
+      over de laag erboven. Als er één keuzemechaniek komt, hoort deze erin.
