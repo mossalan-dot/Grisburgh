@@ -317,6 +317,22 @@ describe('Iconen', () => {
     assert.deepEqual(mis, [], 'deze iconen staan niet in de sprite: ' + mis.join(', '));
   });
 
+  // Een deur filtert op soort, en alles wat er niet in staat valt weg vóór
+  // enig ander filter. De tweede laag kwam later dan die regel: `variant`
+  // ontbrak bij Species, en dus kon je traits van een subspecies wel maken en
+  // opslaan maar nooit zien staan.
+  it('laat elke deur ook de tweede laag door', () => {
+    const src = fs.readFileSync(path.join(__dirname, '..', 'public', 'js', 'render-vaardigheden.js'), 'utf8');
+    const regels = [...src.matchAll(/\{ id: '(class|species)',[\s\S]*?soorten: \[([^\]]*)\]/g)]
+      .map(m => [m[1], m[2].replace(/['\s]/g, '').split(',')]);
+    assert.equal(regels.length, 2, 'de deuren Classes en Species niet gevonden');
+    for (const [id, soorten] of regels) {
+      const tweede = id === 'class' ? 'subclass' : 'variant';
+      assert.ok(soorten.includes(id), `de deur ${id} laat ${id} niet door`);
+      assert.ok(soorten.includes(tweede), `de deur ${id} laat ${tweede} niet door`);
+    }
+  });
+
   // game-icons.net levert elk icoon op een zwart vlak: een eerste pad dat het
   // hele doek vult. Blijft dat staan, dan is het icoon een gevuld vierkant en
   // zie je van het paard niets. Dat is één keer gebeurd, en je ziet het pas

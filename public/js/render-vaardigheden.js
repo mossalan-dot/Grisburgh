@@ -1429,7 +1429,11 @@ function _achtergrondKaartHtml(naam) {
 // staan van "waar stond dat ook alweer".
 const _DEUREN = [
   { id: 'class',      label: 'Classes',            soorten: ['class', 'subclass'], icoon: 'swords',      kleur: '#a03810' },
-  { id: 'species',    label: 'Species',            soorten: ['species'],           icoon: 'user',        kleur: '#1a6a50' },
+  // **`variant` hoort erbij.** De tweede laag van een species kwam later dan
+  // deze regel, en zonder hem viel elk traitkaartje van een subspecies al bij
+  // de deur af: je kon er een maken, hij stond in het bestand, en je zag hem
+  // nooit. Bij Classes stond `subclass` er van begin af aan wel bij.
+  { id: 'species',    label: 'Species',            soorten: ['species', 'variant'], icoon: 'user',       kleur: '#1a6a50' },
   { id: 'background', label: 'Backgrounds',        soorten: ['background'],        icoon: 'scroll-text', kleur: '#962058' },
   { id: 'feats',      label: 'Feats & Boons',      soorten: ['feat', 'boon', 'zegen', 'gunst'], icoon: 'zap', kleur: '#1e4a8a' },
 ];
@@ -1470,7 +1474,11 @@ function _bandBronnen(groep) {
     : [];
   for (const naam of houders) uit.set(naam, 0);
   for (const it of (_all || [])) {
-    if (!groep.soorten.includes(it.soort)) continue;
+    // Alleen wat **direct** onder deze houder hangt. De features van een
+    // subclass en de traits van een variant hangen onder hun eigen kaartje in
+    // de kolom ernaast; op de tegel van de class of het species zouden ze de
+    // telling opblazen met wat je daar niet ziet staan.
+    if (it.soort !== groep.id) continue;
     const naam = groep.id === 'background' ? it.naam : it.bron;
     if (!naam) continue;
     uit.set(naam, (uit.get(naam) || 0) + 1);
@@ -2892,7 +2900,8 @@ function _editorHtml() {
            beginnen. Typ je een naam die er nog niet is, dan legt de server hem
            aan. Zelfde patroon als de entiteit-kiezers in de Meesterkamer. -->
       <div class="dm-form-row">
-        <label class="dm-form-label" for="vd-bron">${e.soort === 'species' ? 'Species' : e.soort === 'background' ? 'Background' : 'Class'}</label>
+        <label class="dm-form-label" for="vd-bron">${(e.soort === 'species' || e.soort === 'variant') ? 'Species'
+          : e.soort === 'background' ? 'Background' : 'Class'}</label>
         <input class="dm-input" id="vd-bron" list="vd-bron-dl" autocomplete="off"
           value="${esc(e.bron || '')}" placeholder="Kies er een, of typ een nieuwe naam"
           onchange="window.vaardigheden.veld('bron',this.value)">
@@ -2900,7 +2909,7 @@ function _editorHtml() {
       </div>` : ''}
       ${toonSub ? `
       <div class="dm-form-row">
-        <label class="dm-form-label" for="vd-sub">Subclass</label>
+        <label class="dm-form-label" for="vd-sub">${e.soort === 'variant' ? (_tweedeLaag(e.bron)?.label || 'Variant') : 'Subclass'}</label>
         <input class="dm-input" id="vd-sub" list="vd-sub-dl" autocomplete="off"
           value="${esc(e.sub || '')}" placeholder="Kies er een, of typ een nieuwe naam"
           onchange="window.vaardigheden.veld('sub',this.value)">
