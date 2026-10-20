@@ -317,6 +317,35 @@ describe('Iconen', () => {
     assert.deepEqual(mis, [], 'deze iconen staan niet in de sprite: ' + mis.join(', '));
   });
 
+  // De levels waarop een feature verandert staan alleen in zijn eigen tekst.
+  // Die eruit lezen is prozawerk, en daar zit één gemene val in: een
+  // spreuklevel is ook een level. "slots you have of 2nd level or higher"
+  // kostte een ronde — Wind Caller kreeg er een trede 2 van.
+  it('leest de groeilevels uit de tekst, en spreuklevels niet', () => {
+    const src = fs.readFileSync(path.join(__dirname, '..', 'public', 'js', 'render-vaardigheden.js'), 'utf8');
+    const stuk = src.match(/const _GROEI_ORD[\s\S]*?\nfunction _groeiUitTekst[\s\S]*?\n\}/);
+    assert.ok(stuk, '_groeiUitTekst niet gevonden');
+    const f = new Function(stuk[0] + '; return _groeiUitTekst;')();
+
+    assert.deepEqual(f('The die becomes a d8 at 5th level.', 1), [5]);
+    assert.deepEqual(f('You learn another curse at 6th, 10th, 14th, and 18th level.', 1), [6, 10, 14, 18]);
+    assert.deepEqual(f('You gain this feature again at Fighter levels 6, 8, and 12.', 4), [6, 8, 12]);
+    assert.deepEqual(f('When you reach character level 5, you can fly.', 1), [5]);
+    assert.deepEqual(f('The die becomes a d8 at level 5, a d10 at level 10, and a d12 at level 15.', 1),
+      [5, 10, 15], 'de vorm zonder classnaam ervoor');
+    assert.deepEqual(f('Starting at level 17, you can use it twice.', 2), [17]);
+
+    // En wat er níét uit mag komen
+    assert.deepEqual(f('You can cast it using any spell slots you have of 2nd level or higher.', 1), [],
+      'een spreukslot is geen trede');
+    assert.deepEqual(f('Choose one level 6 Warlock Spell as your arcanum.', 11), [],
+      'een spreuklevel is geen trede');
+    assert.deepEqual(f('You know two level 1 spells from the Bard list.', 1), []);
+    assert.deepEqual(f('This uses the skill list available to Barbarians at level 1.', 3), [],
+      'een lager level is geen groei');
+    assert.deepEqual(f('', 1), []);
+  });
+
   // Een trait van een species is inherent: je bent een Dragonborn, je krijgt
   // Darkvision niet op level 1. Bij een class klopt het level wél, en boven 1
   // klopt het ook bij een species (Gift of the Svirfneblin op 3).

@@ -232,6 +232,48 @@ export async function zoekVaardigheden(query, eigen = {}, limiet = 12) {
     .slice(0, limiet);
 }
 
+// ── Wanneer verandert deze feature nog? ─────────────────────────────────────
+// Veel features staan één keer in de progressie en groeien daarna mee: "the
+// die becomes a d8 at 5th level", "You gain this feature again at Fighter
+// levels 6, 8, and 12". Dat staat alleen in de lopende tekst, dus niets in de
+// app weet het — terwijl het precies is wat je op het kaartje wilt zien.
+//
+// Dit leest die levels uit de tekst. **Alleen de twee vormen die niet anders
+// te lezen zijn**, want een spreuklevel is ook een level:
+//
+//   "at 5th level", "at 6th, 10th, and 14th level"   (de druk van 2014)
+//   "Fighter levels 6, 8, and 12", "character level 5" (de druk van 2024)
+//
+// Wat een **spreukslot of een spreuklevel** is valt eruit: "level 1 spells",
+// "a level 6 Warlock Spell", "slots you have of 2nd level or higher". Die
+// laatste kostte een ronde — Wind Caller kreeg er een 2 van.
+const _GROEI_ORD   = /\b(\d{1,2})(?:st|nd|rd|th)(?:\s*,\s*\d{1,2}(?:st|nd|rd|th))*(?:\s*,?\s*(?:and|or)\s+\d{1,2}(?:st|nd|rd|th))?[-\s]level\b/gi;
+const _GROEI_REEKS = /\b(?:[A-Z][a-z]+(?:\s[A-Z][a-z]+)?|character)\s+levels?\s+(\d{1,2}(?:\s*,\s*\d{1,2})*(?:\s*,?\s*and\s+\d{1,2})?)\b/g;
+// En de derde: "starting at level 17", "The die becomes a d8 at level 5". Het
+// voorzetsel **at** doet hier het werk — een spreuk staat er altijd anders bij
+// ("spells *of* levels 1 and 2", "a level 6 Warlock Spell"). In de 1158
+// teksten van Grisburgh komt deze vorm 24 keer voor en geen enkele keer over
+// een spreuk.
+const _GROEI_AT    = /\bat\s+level\s+(\d{1,2})\b/gi;
+const _GROEI_SPREUK = /^\s*(?:or (?:higher|lower)|(?:[a-z]+\s+)?(?:spell|slot|cantrip))/i;
+
+function _groeiUitTekst(tekst, eigenLevel) {
+  const t = String(tekst || '');
+  if (!t) return [];
+  const nrs = new Set();
+  const pak = (re, groep) => {
+    for (const m of t.matchAll(re)) {
+      // Wat erachter staat beslist of dit over spreuken gaat.
+      if (_GROEI_SPREUK.test(t.slice(m.index + m[0].length))) continue;
+      for (const n of (groep ? m[groep] : m[0]).match(/\d{1,2}/g) || []) nrs.add(Number(n));
+    }
+  };
+  pak(_GROEI_ORD, 0);
+  pak(_GROEI_REEKS, 1);
+  pak(_GROEI_AT, 1);
+  return [...nrs].filter(n => n > Number(eigenLevel || 0) && n <= 20).sort((a, b) => a - b);
+}
+
 // **Eén kaartje per feature, met al zijn levels erop.** Ability Score
 // Improvement staat vijf keer onder de Fighter — zo staat het in de brontekst,
 // en zo hoort het in de tijdlijn te staan, want op 4, 8, 12, 14 én 16 krijg je
@@ -258,7 +300,11 @@ function _voegLevelsSamen(lijst) {
     bak.get(k).push(it);
   }
   for (const groep of bak.values()) {
-    if (groep.length < 2) continue;
+    // Eén regel: dan is wat er in de tekst staat het enige wat we weten.
+    // Staat hij er meerdere keren in, dan zijn díé levels het antwoord — de
+    // tekst van de Fighter noemt ook een 6 die in deze campagne niet als regel
+    // bestaat, en dan wint wat de DM heeft ingevoerd.
+    if (groep.length < 2) { groep[0].groei = _groeiUitTekst(groep[0].desc, groep[0].level); continue; }
     groep.sort((a, b) => (a.level || 0) - (b.level || 0));
     const [eerste, ...rest] = groep;
     eerste.levels = groep.map(x => x.level);
@@ -625,7 +671,15 @@ function _card(it) {
           // zeggen (een feat hoort nergens bij), dan ook geen lege regel.
           const niveaus = (it.levels || [it.level]).join(' · ');
           const meta = [esc(bronRegel), _toontLevel(it.soort, it.level) ? `level ${niveaus}` : ''].filter(Boolean).join(' · ');
-          return meta ? `<div class="vaardig-card-meta">${meta}</div>` : '';
+          // En de levels waarop hij verandert, uit zijn eigen tekst gelezen.
+          // Open pillen, want dit is iets anders dan "hier krijg je hem": hier
+          // wordt hij sterker. Een eigen regel, zodat een feature met zes
+          // treden de plaat niet opeet.
+          const groei = (it.groei || []).length
+            ? `<div class="vaardig-card-groei" title="Deze feature verandert op ${it.groei.join(', ')}">
+                 ${it.groei.map(l => `<span class="vaardig-card-groeipil">${l}</span>`).join('')}
+               </div>` : '';
+          return (meta || groei) ? `${meta ? `<div class="vaardig-card-meta">${meta}</div>` : ''}${groei}` : '';
         })()}
         <!-- **Geen chips voor soort en herkomst meer.** Ze stonden onder elke
              kaart als een tweede regel pillen, en ze zeiden allebei iets wat je
@@ -2843,6 +2897,7 @@ function _open(key, vanWaar = null) {
           <span class="prog-detail-chip">${icon(_itemIcoon(it))} ${esc(s.label)}</span>
           ${_bronRegel(it) ? `<span class="prog-detail-chip">${esc(_bronRegel(it))}</span>` : ''}
           ${_toontLevel(it.soort, it.level) ? `<span class="prog-detail-chip">Level ${(it.levels || [it.level]).join(' · ')}</span>` : ''}
+          ${(it.groei || []).length ? `<span class="prog-detail-chip prog-detail-chip--groei">Groeit op ${it.groei.join(' · ')}</span>` : ''}
         </div>
         ${beeldBlok}
         ${dmBeeld}

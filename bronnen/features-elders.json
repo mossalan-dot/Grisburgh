@@ -3183,20 +3183,66 @@
       }
     ],
     "Hobgoblin": [
-      "Darkvision",
-      "Fey Gift",
-      "Fortune from the Many"
+      {
+        "naam": "Creature Type",
+        "level": 1
+      },
+      {
+        "naam": "Darkvision",
+        "level": 1
+      },
+      {
+        "naam": "Fey Ancestry",
+        "level": 1
+      },
+      {
+        "naam": "Fey Gift",
+        "level": 1
+      },
+      {
+        "naam": "Fortune from the Many",
+        "level": 1
+      },
+      {
+        "naam": "Languages",
+        "level": 1
+      }
     ],
     "Kalashtar": [
-      "Dual Mind",
-      "Mental Discipline",
-      "Mind Link",
-      "Severed from Dreams"
+      {
+        "naam": "Dual Mind",
+        "level": 1
+      },
+      {
+        "naam": "Mental Discipline",
+        "level": 1
+      },
+      {
+        "naam": "Mind Link",
+        "level": 1
+      },
+      {
+        "naam": "Severed from Dreams",
+        "level": 1
+      }
     ],
     "Kenku": [
-      "Expert Forgery",
-      "Kenku Recall",
-      "Mimicry"
+      {
+        "naam": "Expert Duplication",
+        "level": 1
+      },
+      {
+        "naam": "Kenku Recall",
+        "level": 1
+      },
+      {
+        "naam": "Languages",
+        "level": 1
+      },
+      {
+        "naam": "Mimicry",
+        "level": 1
+      }
     ],
     "Kobold": [
       "Darkvision",

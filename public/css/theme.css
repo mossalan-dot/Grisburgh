@@ -29513,6 +29513,19 @@ body.wizard-open { overflow: hidden; }
   display: flex; flex-direction: column; gap: 3px; align-items: flex-end;
 }
 .vaardig-card-nivs .vaardig-card-niv { position: static; }
+/* De levels waarop een feature verándert, uit zijn eigen tekst gelezen. Open
+   in plaats van gevuld: "hier krijg je hem" en "hier wordt hij sterker" zijn
+   twee verschillende dingen, en dit tweede is een lezing van proza en geen
+   regel in de progressie. Onder de bronregel, zodat zes treden de plaat niet
+   opeten. */
+.vaardig-card-groei { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 5px; }
+.vaardig-card-groeipil {
+  min-width: 18px; height: 18px; padding: 0 4px; border-radius: 9px;
+  display: flex; align-items: center; justify-content: center;
+  border: 1px solid var(--soort-c2, #5a3a8c); color: var(--soort-c2, #5a3a8c);
+  font-family: 'Cinzel', serif; font-size: 10px; font-weight: 700; line-height: 1;
+}
+.prog-detail-chip--groei { background: none; border: 1px solid currentColor; }
 /* Wat er op een hogere trede ánders staat, in het detailvenster onder de
    beschrijving: met zijn level ervoor, dezelfde bol als in de featurelijst. */
 .vd-trede { display: flex; gap: 10px; align-items: flex-start; margin-top: 10px; }
