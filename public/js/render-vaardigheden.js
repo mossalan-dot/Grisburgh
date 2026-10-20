@@ -1507,7 +1507,12 @@ function _tegelsHtml(d) {
       ${beeld ? `<span class="vd-tegel-beeld" style="background-image:url('${beeld}')"></span>` : ''}
       <span class="vd-tegel-icoon">${icon(icoonVan(naam))}</span>
       <span class="vd-tegel-naam">${esc(naam)}</span>
-      <span class="vd-tegel-meta">${subs ? `${subs} subclasses · ` : ''}${n ? `${n} ${n === 1 ? 'feature' : 'features'}` : 'nog leeg'}</span>
+      <!-- Bij een class is het aantal subclasses genoeg: hoeveel features er
+           samen onder hangen zegt niets wat je hier wil weten, en het is de
+           optelsom van alles wat je een laag dieper los ziet staan. -->
+      <span class="vd-tegel-meta">${d.id === 'class'
+        ? (subs ? `${subs} subclasses` : (n ? 'nog geen subclasses' : 'nog leeg'))
+        : (n ? `${n} ${n === 1 ? 'feature' : 'features'}` : 'nog leeg')}</span>
     </button>`;
   }).join('')}
   ${elders.map((naam, i) => {
