@@ -3033,11 +3033,34 @@
       }
     ],
     "Eladrin": [
-      "Darkvision",
-      "Fey Ancestry",
-      "Fey Step",
-      "Keen Senses",
-      "Trance"
+      {
+        "naam": "Creature Type",
+        "level": 1
+      },
+      {
+        "naam": "Darkvision",
+        "level": 1
+      },
+      {
+        "naam": "Fey Ancestry",
+        "level": 1
+      },
+      {
+        "naam": "Fey Step",
+        "level": 1
+      },
+      {
+        "naam": "Keen Senses",
+        "level": 1
+      },
+      {
+        "naam": "Languages",
+        "level": 1
+      },
+      {
+        "naam": "Trance",
+        "level": 1
+      }
     ],
     "Fairy": [
       "Fairy Magic",
@@ -3215,9 +3238,26 @@
       "Strange Endurance"
     ],
     "Duskling": [
-      "Darkvision",
-      "Enhanced Jump",
-      "Inner Magic"
+      {
+        "naam": "Ardor",
+        "level": 1
+      },
+      {
+        "naam": "Enhanced Jump",
+        "level": 1
+      },
+      {
+        "naam": "Inner Magic",
+        "level": 1
+      },
+      {
+        "naam": "Mobility",
+        "level": 1
+      },
+      {
+        "naam": "Vigor",
+        "level": 1
+      }
     ],
     "Genasi": [
       "Darkvision"
@@ -3350,6 +3390,24 @@
       "Acid Resistance",
       "Amphibious",
       "Call to the Wave"
+    ],
+    "Elf|Drow": [
+      {
+        "naam": "Elven Lineage",
+        "level": 1
+      }
+    ],
+    "Elf|High Elf": [
+      {
+        "naam": "Elven Lineage",
+        "level": 1
+      }
+    ],
+    "Elf|Wood Elf": [
+      {
+        "naam": "Elven Lineage",
+        "level": 1
+      }
     ]
   },
   "_varianten": "De varianten van een species, met de sleutel \"Species|Variant\". Alleen waar de nieuwste druk van dat species zijn inhoud nog ín zijn varianten heeft — bij Genasi is dat zo (Monsters of the Multiverse), bij Tiefling en Elf niet: daar zijn de lineages van 2024 en geeft de lineage spreuken per level, en dat is tekst uit het boek.",
