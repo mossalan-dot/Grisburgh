@@ -36,7 +36,47 @@ een:
    de 79 gevallen gebeurt. Niets in de app weet het, dus de tijdlijn zwijgt
    erover en een speler van level 5 moet het zelf uit de alinea vissen.
 
-## Voorstel: een feature krijgt een lijstje `groei`
+## Besloten: visueel, met meer pillen (20 okt 2026)
+
+> *"De ability score improvements wil ik zo houden (zo staat het in de
+> brontekst), maar de volgnummers vind ik lelijk. Een veld groei klinkt
+> interessant, maar ook ingewikkeld en wat overbodig. Volgens mij is het prima
+> om het visueel aan te pakken door meer pills te tonen."*
+
+En dat is wat er staat. **De progressie verandert niet**: Ability Score
+Improvement blijft vijf regels onder de Fighter, want zo staat het in het boek
+en zo hoort de tijdlijn het te vertellen — op 4, 8, 12, 14 én 16 krijg je echt
+iets. Het Heldenboek voegt ze bij het inlezen samen tot één kaartje met een pil
+per trede, en de rij onder de class zegt *Ability Score Improvement · ook 8 ·
+12 · 14 · 16*.
+
+Dat scheelt 36 dubbele kaartjes, en het lost de volgnummers op: noem de twee
+Tiefling-regels allebei gewoon *Legacy-spreuk* en ze worden één kaartje met de
+pillen 3 en 5.
+
+**Samenvoegen mag nooit iets laten verdwijnen.** Dat is in dit bestand al twee
+keer misgegaan (een sleutel zonder subclass erin, een alles-of-niets-terugval),
+dus hier staat de regel expliciet: wijkt de tekst van een hogere trede af van
+die van de laagste, dan komt hij in het venster onder de beschrijving te staan
+met zijn level ervoor. Het Mystic Arcanum van de Warlock is daar het geval dat
+telt — één kaartje met de pillen 11, 13, 15 en 17, en daaronder drie regels die
+zeggen dat je op 13 een level 7-spreuk krijgt, op 15 een level 8 en op 17 een
+level 9. Bij de achttien gevallen waar de tekst alleen in een hoofdletter
+verschilt staat er niets extra's.
+
+## Wat hiermee níét is opgelost
+
+De 60 features waar de groei **alleen in de lopende tekst** staat: "the die
+becomes a d8 at 5th level". Daar is één regel in de progressie, dus er valt
+niets samen te voegen en er zijn geen pillen om te tonen. Een speler van level
+7 leest nog steeds de hele alinea en zoekt zelf welke trede voor hem geldt.
+
+Als dat ooit gaat knellen — het meest waarschijnlijke moment is wanneer het
+spelersblad wil zeggen *"jouw steen is een d8"* — dan staat de overweging
+hieronder nog. Nu niet doen.
+
+## Als het ooit tóch moet: een lijstje `groei`
+
 
 ```jsonc
 {

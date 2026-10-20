@@ -897,11 +897,12 @@ daar dan in. (Het eerste punt — diensten die de gedeelde beurs omzeilden — i
       keuzes.md): dat gaat over features die de speler iets laten kiezen, dit
       over de laag erboven. Als er één keuzemechaniek komt, hoort deze erin.
 
-- [ ] **Features die meegroeien met je level.** Gevraagd op 20 okt 2026.
-      Bardic Inspiration wordt een d8 op 5, een Breath Weapon doet meer schade
-      op 5, 11 en 17 — maar een feature heeft in de app één level, en wat er
-      later verandert staat midden in de lopende tekst. 79 van de 1158
-      features in Grisburgh noemen een hoger level dan hun eigen. Voorstel
-      (een veld `groei` met level + tekst, één kaartje in plaats van drie)
-      staat in [`voorstel-feature-groei.md`](voorstel-feature-groei.md), met
-      wat het kost en waar het opduikt.
+- [ ] **Features die meegroeien met je level — het tekstgeval.** Gevraagd op
+      20 okt 2026; het zichtbare deel is dezelfde dag opgelost met pillen (één
+      kaartje per feature, een pil per trede, zie
+      [`voorstel-feature-groei.md`](voorstel-feature-groei.md)). Wat blijft
+      liggen zijn de ~60 features waar de groei alleen in de lopende tekst
+      staat ("the die becomes a d8 at 5th level"): één regel in de progressie,
+      dus niets om samen te voegen. Gaat pas knellen als het spelersblad wil
+      zeggen *jouw steen is een d8*; de overweging voor een veld `groei` staat
+      onderaan datzelfde document.

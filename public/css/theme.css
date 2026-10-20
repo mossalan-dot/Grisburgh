@@ -29505,7 +29505,30 @@ body.wizard-open { overflow: hidden; }
    staat er geen getal. De bol blijft wel zijn plek innemen, zodat de namen
    eronder op één lijn blijven staan als er ook traits op 3 of 5 zijn. */
 .vd-subfeature-lvl.is-leeg { visibility: hidden; }
+/* Een feature die je op meerdere levels krijgt (Ability Score Improvement op
+   4, 8, 12 en 16) is één kaartje met een pil per trede, onder elkaar in de
+   hoek waar er eerst één stond. */
+.vaardig-card-nivs {
+  position: absolute; top: 8px; right: 8px; z-index: 5;
+  display: flex; flex-direction: column; gap: 3px; align-items: flex-end;
+}
+.vaardig-card-nivs .vaardig-card-niv { position: static; }
+/* Wat er op een hogere trede ánders staat, in het detailvenster onder de
+   beschrijving: met zijn level ervoor, dezelfde bol als in de featurelijst. */
+.vd-trede { display: flex; gap: 10px; align-items: flex-start; margin-top: 10px; }
+.vd-trede-lvl {
+  flex: 0 0 26px; height: 26px; display: flex; align-items: center; justify-content: center;
+  border-radius: 50%; background: rgba(138,109,63,.14); color: #6a5430;
+  font-family: 'Cinzel', serif; font-size: .8em;
+}
+.vd-trede .prog-detail-desc { margin: 0; }
 .vd-subfeature-naam { font-family: 'Cinzel', serif; font-size: .92em; color: #3a2410; }
+/* De overige treden van een feature die je meerdere keren krijgt. Rechts in de
+   rij, zodat de namen links op één lijn blijven beginnen. */
+.vd-subfeature-ook {
+  margin-left: auto; font-family: 'Cinzel', serif; font-size: .78em; color: #9a8468;
+  letter-spacing: .04em; white-space: nowrap;
+}
 /* Een feature die niet in de app staat: alleen zijn naam en de weg naar het
    boek. Gestippeld, net als de subclasses in de kolom die hier ook niet in
    staan — dat is hetzelfde signaal, dus hetzelfde randje. */

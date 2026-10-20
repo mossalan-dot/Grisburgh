@@ -232,6 +232,46 @@ export async function zoekVaardigheden(query, eigen = {}, limiet = 12) {
     .slice(0, limiet);
 }
 
+// **Eén kaartje per feature, met al zijn levels erop.** Ability Score
+// Improvement staat vijf keer onder de Fighter — zo staat het in de brontekst,
+// en zo hoort het in de tijdlijn te staan, want op 4, 8, 12, 14 én 16 krijg je
+// echt iets. In het Heldenboek is het vijf keer hetzelfde antwoord op dezelfde
+// vraag. Dus: in de progressie blijven het vijf regels, hier wordt het één
+// kaartje met vijf pillen.
+//
+// **Geen tekst kwijt.** De laagste trede draagt meestal de volledige tekst
+// ("You gain this feature again at Barbarian levels 8, 12, and 16" — precies
+// wat de pillen nu zeggen), maar niet altijd: het Mystic Arcanum van de
+// Warlock geeft op 11 een level 6-spreuk en op 13 een level 7. Wat afwijkt
+// gaat mee als `extra` en staat in het venster onder de beschrijving, met zijn
+// level ervoor. Samenvoegen mag nooit iets laten verdwijnen — dat is in dit
+// bestand al twee keer misgegaan.
+const _kaleTekst = (t) => String(t || '').toLowerCase().replace(/\s+/g, ' ')
+  .replace(/[^a-z0-9 ]/g, '').trim();
+
+function _voegLevelsSamen(lijst) {
+  const bak = new Map();
+  for (const it of lijst) {
+    if (!['class', 'subclass', 'species', 'variant'].includes(it.soort)) continue;
+    const k = `${it.soort}|${it.bron}|${it.sub || ''}|${it.naam.toLowerCase()}`;
+    if (!bak.has(k)) bak.set(k, []);
+    bak.get(k).push(it);
+  }
+  for (const groep of bak.values()) {
+    if (groep.length < 2) continue;
+    groep.sort((a, b) => (a.level || 0) - (b.level || 0));
+    const [eerste, ...rest] = groep;
+    eerste.levels = groep.map(x => x.level);
+    const basis = _kaleTekst(eerste.desc);
+    eerste.extra = rest
+      .filter(x => x.desc && _kaleTekst(x.desc) !== basis && !basis.includes(_kaleTekst(x.desc)))
+      .map(x => ({ level: x.level, desc: x.desc }));
+    for (const x of rest) x._samengevoegd = true;
+  }
+  // Pas achteraf weghalen: hierboven wordt er nog doorheen gelopen.
+  for (let i = lijst.length - 1; i >= 0; i--) if (lijst[i]._samengevoegd) lijst.splice(i, 1);
+}
+
 async function _load() {
   if (_all) return _all;
   _bron = await naslagBron();
@@ -267,6 +307,7 @@ async function _load() {
       }
     }
   }
+  _voegLevelsSamen(uit);
   for (const f of (_bron.feats?.general || [])) zet({ soort: 'feat', bron: 'Feats',      level: 0, naam: f.name, desc: f.desc || '', img: f.img || '', imgFocus: f.imgFocus || '', herkomst: f.herkomst || '', bronTekst: f.bron || '', sluitAan: f.sluitAan || [], vereist: f.vereist || '', geeftSpreuk: f.geeftSpreuk || [] });
   for (const f of (_bron.feats?.epic    || [])) zet({ soort: 'boon', bron: 'Epic Boons', level: 0, naam: f.name, desc: f.desc || '', img: f.img || '', imgFocus: f.imgFocus || '', herkomst: f.herkomst || '', bronTekst: f.bron || '', sluitAan: f.sluitAan || [], vereist: f.vereist || '', geeftSpreuk: f.geeftSpreuk || [] });
   // Een background is één ding met vijf onderdelen (Ability Scores, Feat,
@@ -452,7 +493,7 @@ function _filtered() {
     // aangevinkt betekent alleen de class — niet "alle subclasses door elkaar",
     // want dat is precies de brij waar dit tabblad vanaf moest.
     if ((it.soort === 'subclass' || it.soort === 'variant') && !_subAan.has(it.sub)) return false;
-    if (_filters.level !== null && Number(it.level) !== Number(_filters.level)) return false;
+    if (_filters.level !== null && !(it.levels || [it.level]).some(l => Number(l) === Number(_filters.level))) return false;
     return true;
   });
   // Zolang je zoekt is relevantie de volgorde; daarna soort → bron → level → naam.
@@ -565,7 +606,8 @@ function _card(it) {
       style="--soort-c1:${eigenKleur ? esc(eigenKleur) : s.c1};--soort-c2:${eigenKleur ? esc(eigenKleur) : s.c2}">
       <div class="card-accent vaardig-accent"></div>
       ${dmRij}${dmPen}
-      ${_toontLevel(it.soort, it.level) ? `<span class="vaardig-card-niv">${it.level}</span>` : ''}
+      ${_toontLevel(it.soort, it.level) ? `<span class="vaardig-card-nivs">${(it.levels || [it.level])
+        .map(l => `<span class="vaardig-card-niv">${l}</span>`).join('')}</span>` : ''}
       <div class="card-img-wrap vaardig-card-img-wrap">
         <div class="vaardig-card-silhouet">${icon(_itemIcoon(it))}</div>
         ${(() => {
@@ -581,7 +623,8 @@ function _card(it) {
         ${(() => {
           // Deze regel zegt waar het bij hoort en op welk level. Is er niets te
           // zeggen (een feat hoort nergens bij), dan ook geen lege regel.
-          const meta = [esc(bronRegel), _toontLevel(it.soort, it.level) ? `level ${it.level}` : ''].filter(Boolean).join(' · ');
+          const niveaus = (it.levels || [it.level]).join(' · ');
+          const meta = [esc(bronRegel), _toontLevel(it.soort, it.level) ? `level ${niveaus}` : ''].filter(Boolean).join(' · ');
           return meta ? `<div class="vaardig-card-meta">${meta}</div>` : '';
         })()}
         <!-- **Geen chips voor soort en herkomst meer.** Ze stonden onder elke
@@ -2096,8 +2139,16 @@ function _houderFeaturesHtml(soort, naam, bron) {
   if (!eigen) return { ..._eldersFeaturesHtml(soort, naam, aanvul), eigen: 0 };
   const zoek = (f) => (_all || []).find(x => x.naam === f.name && x.soort === soort
     && ((soort === 'subclass' || soort === 'variant') ? x.bron === bron && x.sub === naam : x.bron === naam));
+  // Dezelfde feature op vier levels is hier ook één regel — net als in het
+  // raster. De treden erboven staan rechts in de rij; `_all` heeft ze al
+  // samengevoegd, dus we lezen ze daar af.
+  const gezien = new Set();
   const rijen = levels.map(l => (data.levels[l] || []).map(f => {
+    const sleutel = String(f.name || '').toLowerCase();
+    if (gezien.has(sleutel)) return '';
+    gezien.add(sleutel);
     const it = zoek(f);
+    const ook = (it?.levels || []).filter(x => x !== l);
     const klik = it
       ? ` onclick="window.vaardigheden.uitKaartVenster('${escA(it.key)}','${escA(soort)}','${escA(naam)}','${escA(bron || '')}')"`
       : '';
@@ -2108,6 +2159,7 @@ function _houderFeaturesHtml(soort, naam, bron) {
            (Geen backticks in commentaar hierbinnen: template literal.) -->
       <span class="vd-subfeature-lvl${_toontLevel(soort, l) ? '' : ' is-leeg'}">${_toontLevel(soort, l) ? l : ''}</span>
       <span class="vd-subfeature-naam">${esc(f.name)}</span>
+      ${ook.length ? `<span class="vd-subfeature-ook">${ook.join(' · ')}</span>` : ''}
     </button>`;
   }).join('')).join('');
   const bij = _eldersFeaturesHtml(soort, naam, aanvul);
@@ -2701,10 +2753,19 @@ function _open(key, vanWaar = null) {
   // deze platgeslagen vorm niet, en een merkteken overleeft hem ongeschonden.
   const stuk = _tabellenUit(tekst);
   _tabelBak = stuk.tabellen;
-  const body = tekst
+  const body = (tekst
     ? `<div class="prog-detail-desc">${_verwijzingen(_bron?.md?.(stuk.tekst) ?? esc(stuk.tekst))
         .replace(/@@tafel(\d+)@@/g, (m, n) => _tabelHtml(stuk.tabellen[n], Number(n)))}</div>`
-    : (_bron?.geenTekstBlok?.(it.naam) ?? '');
+    : (_bron?.geenTekstBlok?.(it.naam) ?? ''))
+    // Wat er op een hógere trede anders staat. Het Mystic Arcanum van de
+    // Warlock geeft op 11 een level 6-spreuk en op 13 een level 7; die vier
+    // regels zijn één feature met vier pillen, maar ze zeggen niet hetzelfde.
+    // Wat wél hetzelfde zegt (de meeste) staat hier niet nog een keer.
+    + (it.extra || []).map(x => `
+      <div class="vd-trede">
+        <span class="vd-trede-lvl">${x.level}</span>
+        <div class="prog-detail-desc">${_verwijzingen(_bron?.md?.(x.desc) ?? esc(x.desc))}</div>
+      </div>`).join('');
   // Kwam je ergens vandaan, dan hoort er een weg terug te zijn. Zonder dit
   // opende een background zijn feat en stond je vast: het featkaartje weet
   // niets van de background die ernaar wees.
@@ -2781,7 +2842,7 @@ function _open(key, vanWaar = null) {
         <div class="prog-detail-chips">
           <span class="prog-detail-chip">${icon(_itemIcoon(it))} ${esc(s.label)}</span>
           ${_bronRegel(it) ? `<span class="prog-detail-chip">${esc(_bronRegel(it))}</span>` : ''}
-          ${_toontLevel(it.soort, it.level) ? `<span class="prog-detail-chip">Level ${it.level}</span>` : ''}
+          ${_toontLevel(it.soort, it.level) ? `<span class="prog-detail-chip">Level ${(it.levels || [it.level]).join(' · ')}</span>` : ''}
         </div>
         ${beeldBlok}
         ${dmBeeld}
