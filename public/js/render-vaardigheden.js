@@ -93,10 +93,10 @@ const SPECIES_ICOON = {
   Aasimar: 'sparkles',        Aarakocra: 'wind',          Tabaxi: 'paw-print',
   'Half-Elf': 'users',        'Half-Orc': 'biceps-flexed',
   // Dier en halfdier
-  Leonin: 'cat',              Lupin: 'dog',               Harengon: 'rabbit',
-  Owlin: 'bird',              Tortle: 'turtle',           Loxodon: 'ear',
-  Minotaur: 'beef',           Centaur: 'horse-head',      'Yuan-ti': 'worm',
-  Lizardfolk: 'bone',         Giff: 'snout',          Kenku: 'megaphone',
+  Leonin: 'lion',             Lupin: 'wolf-howl',         Harengon: 'rabbit',
+  Owlin: 'barn-owl',          Tortle: 'turtle',           Loxodon: 'elephant',
+  Minotaur: 'bull',           Centaur: 'horse-head',      'Yuan-ti': 'worm',
+  Lizardfolk: 'gecko',        Giff: 'snout',              Kenku: 'raven',
   // Goblinoïden en wat daarbij hoort
   Goblin: 'rat',              Hobgoblin: 'flag',          Bugbear: 'bear-head',
   Kobold: 'egg',              Verdan: 'flower-2',

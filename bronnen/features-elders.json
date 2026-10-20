@@ -3289,17 +3289,52 @@
       }
     ],
     "Loxodon": [
-      "Powerful Build",
-      "Loxodon Serenity",
-      "Natural Armor",
-      "Trunk",
-      "Keen Smell"
+      {
+        "naam": "Keen Smell",
+        "level": 1
+      },
+      {
+        "naam": "Languages",
+        "level": 1
+      },
+      {
+        "naam": "Loxodon Serenity",
+        "level": 1
+      },
+      {
+        "naam": "Natural Armor",
+        "level": 1
+      },
+      {
+        "naam": "Powerful Build",
+        "level": 1
+      },
+      {
+        "naam": "Trunk",
+        "level": 1
+      }
     ],
     "Minotaur": [
-      "Horns",
-      "Goring Rush",
-      "Hammering Horns",
-      "Imposing Presence"
+      {
+        "naam": "Goring Rush",
+        "level": 1
+      },
+      {
+        "naam": "Hammering Horns",
+        "level": 1
+      },
+      {
+        "naam": "Horns",
+        "level": 1
+      },
+      {
+        "naam": "Labyrinthine Recall",
+        "level": 1
+      },
+      {
+        "naam": "Languages",
+        "level": 1
+      }
     ],
     "Owlin": [
       "Darkvision",
