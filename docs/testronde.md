@@ -1720,6 +1720,13 @@ Grisburghs **data** te staan — niet in de code.
       Improvement*. De tijdlijn prikt die twee zelf bij omdat ze voor elke
       class gelden; sinds jij ze in de classes hebt ingetikt stonden ze dubbel
       — één keer van jou en één keer leeg.
+- [ ] **Het speciesvenster leest als het klassevenster** (ALL) — open *Species*
+      → *Elf* en klik het kaartje open: bovenaan staat **Origin · PHB'24** (het
+      boek stond er niet, terwijl de app de druk gewoon weet), en de rijen zijn
+      *Creature Type · Size · Speed · Elven Lineage*. Géén "Traits 7", "Op
+      level 1 · 3 · 5" of "Vanaf 1: …" meer: die staan tien pixels lager als
+      echte lijst, mét hun levels. Een klassevenster had dat probleem niet,
+      want daar zijn de rijen zijn kerngegevens.
 - [ ] **Zoeken gaat dwars door de deuren** (ALL) — typ *battle master* terwijl
       je in Classes staat: je krijgt treffers uit alles, met een regel
       *Resultaten voor…* en een knop terug. Veeg het veld leeg en je staat weer

@@ -1254,7 +1254,7 @@ function _volkBasisVan(volk) {
 // (Traits 3 · op level 1 · vanaf 1: …) zijn getallen óver de lijst eronder, en
 // die staat er al — die vallen weg zodra er een omschrijving is. Creature Type,
 // Size en Speed zijn geen afgeleide getallen maar inhoud, en horen er altijd.
-function _volkRijen(volk, { kern = false } = {}) {
+function _volkRijen(volk, { kern = false, metOpties = false } = {}) {
   const data = _bron?.prog?.species?.[volk];
   if (!data) return [];
   const levels = Object.keys(data.levels || {}).map(Number)
@@ -1272,7 +1272,7 @@ function _volkRijen(volk, { kern = false } = {}) {
     b.creatureType ? ['Creature Type', b.creatureType] : null,
     b.size ? ['Size', b.size] : null,
     b.speed ? ['Speed', b.speed] : null,
-    kern ? null : (opties.length ? [laag.label, opties.join(' · ')] : null),
+    (kern && !metOpties) ? null : (opties.length ? [laag.label, opties.join(' · ')] : null),
     kern ? null : (n ? ['Traits', String(n)] : null),
     kern ? null : (levels.length ? ['Op level', levels.join(' · ')] : null),
     kern ? null : (vroeg.length ? ['Vanaf 1', vroeg.join(', ')] : null),
@@ -2062,7 +2062,13 @@ function _eldersFeaturesHtml(soort, naam, lijst) {
 // elkaar kunnen lopen.
 function _houderRijen(soort, naam, bron, { metBoek = true } = {}) {
   if (soort === 'class')   return _klasseRijen(naam);
-  if (soort === 'species') return _volkRijen(naam);
+  // In het **venster** zijn "Traits 7", "Op level 1 · 3 · 5" en "Vanaf 1: …"
+  // een samenvatting van de lijst die er tien pixels onder staat, mét de
+  // levels erbij. Een class heeft dat probleem niet — daar zijn de rijen zijn
+  // kerngegevens. Dus hier hetzelfde: alleen wat een species ís, plus de
+  // keuze die erbij hoort (Elven Lineage), en niet wat je er zelf uit kunt
+  // tellen.
+  if (soort === 'species') return _volkRijen(naam, { kern: true, metOpties: true });
   if (soort === 'background') return _achtergrondRijen(naam);
   const data = _houderVan(soort, naam, bron);
   const veld = window._subSignatureVoor?.(naam);
@@ -2094,7 +2100,13 @@ function _kaartVenster(soort, naam, bron = '') {
   const soortLabel = (soort === 'subclass' || soort === 'variant')
     ? (_tweedeLaag(bron)?.label || (soort === 'variant' ? 'Variant' : 'Subclass'))
     : { class: 'Class', species: 'Origin', background: 'Background' }[soort] || soort;
-  const meta = [soortLabel, (soort === 'subclass' || soort === 'variant') ? bron : '', data.boek || '']
+  // Het boek: dat van de houder zelf, en anders dat van de meegeleverde lijst
+  // — zo staat er bij een species niet alleen "Origin" terwijl we de druk
+  // gewoon weten. Zelfde terugval als op het kaartje.
+  const boek = data.boek
+    || ((soort === 'species' || soort === 'variant')
+        ? _boekKort(_volkBasis?.[soort === 'variant' ? bron : naam]?._boek) : '');
+  const meta = [soortLabel, (soort === 'subclass' || soort === 'variant') ? bron : '', boek || '']
     .filter(Boolean).map(esc).join(' · ');
   const rijen = _houderRijen(soort, naam, bron, { metBoek: false });
   // De knop naar de spreukenlijst stond op het kaartje zelf en viel daar weg
