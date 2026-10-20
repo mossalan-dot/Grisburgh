@@ -9901,10 +9901,16 @@ router.put('/progression/houder', requireDM, (req, res) => {
   // bron" en niet "er staat niets".
   if (soort === 'species' && b.basis !== undefined) {
     const inv = b.basis || {};
+    const uitBron = bronnen.lees('species-basis')?.species?.[naam] || {};
     const basis = {};
     for (const sleutel of ['creatureType', 'size', 'speed']) {
       const t = String(inv[sleutel] || '').trim().slice(0, 80);
-      if (t) basis[sleutel] = t;
+      // Staat er precies wat de app zelf al weet, dan slaan we het niet op.
+      // Het venster toont die waarden sinds kort ingevuld in plaats van als
+      // grijze hint — handig om te lezen, maar zonder deze regel maakt elke
+      // bewerkronde er een eigen kopie van, en dan komt een verbetering aan
+      // `bronnen/species-basis.json` nooit meer door.
+      if (t && t !== String(uitBron[sleutel] || '').trim()) basis[sleutel] = t;
     }
     if (Object.keys(basis).length) houder.basis = basis; else delete houder.basis;
   }

@@ -95,10 +95,10 @@ const SPECIES_ICOON = {
   // Dier en halfdier
   Leonin: 'cat',              Lupin: 'dog',               Harengon: 'rabbit',
   Owlin: 'bird',              Tortle: 'turtle',           Loxodon: 'ear',
-  Minotaur: 'beef',           Centaur: 'footprints',      'Yuan-ti': 'worm',
+  Minotaur: 'beef',           Centaur: 'horse-head',      'Yuan-ti': 'worm',
   Lizardfolk: 'bone',         Giff: 'crosshair',          Kenku: 'megaphone',
   // Goblinoïden en wat daarbij hoort
-  Goblin: 'rat',              Hobgoblin: 'flag',          Bugbear: 'axe',
+  Goblin: 'rat',              Hobgoblin: 'flag',          Bugbear: 'bear-head',
   Kobold: 'egg',              Verdan: 'flower-2',
   // Onder de grond
   'Deep Gnome': 'gem',        Duergar: 'hard-hat',
@@ -2224,14 +2224,22 @@ function _basisMulti(klasse, welk) {
 // species staan. Leeg laten betekent "neem wat de app weet"; wat je invult
 // geldt hier. Zo profiteer je van latere verbeteringen aan de bron zolang je
 // niets eigens hebt gezet.
-function _volkBasisVeldenHtml(volk) {
-  const eigen = _bron?.prog?.species?.[volk]?.basis || {};
-  const bron = _volkBasis?.[volk] || {};
+function _volkBasisVeldenHtml(volk, nu = null) {
+  // **Wat de app al weet staat erin, niet erachter.** Dit stond hier als grijze
+  // hint: het veld was leeg en "Humanoid" stond er als voorbeeld in. Op het
+  // kaartje zie je dan Humanoid staan en in het bewerkvenster niets, en dat
+  // leest als "de app is het kwijt". De klassevelden hiernaast deden het al
+  // goed — die tonen wat `_basisVan` weet — dus nu deze ook.
+  //
+  // Wat je ongewijzigd laat gaat als dezelfde waarde terug naar de server, en
+  // die gooit weg wat gelijk is aan de bron. Zo blijft "leeg = neem de bron"
+  // onder water waar, ook al zie je hem hier ingevuld staan.
+  const b = nu || _volkBasisVan(volk);
   const veld = (id, label, sleutel, hint) => `
     <div class="vd-basis-veld">
       <label class="dm-form-label" for="${id}">${esc(label)}</label>
-      <input class="dm-input" id="${id}" maxlength="80" value="${esc(eigen[sleutel] || '')}"
-        placeholder="${esc(bron[sleutel] || hint)}">
+      <input class="dm-input" id="${id}" maxlength="80" value="${esc(b[sleutel] || '')}"
+        placeholder="${esc(hint)}">
     </div>`;
   return `
     <details class="dm-uitklap vd-basis">
@@ -2246,8 +2254,8 @@ function _volkBasisVeldenHtml(volk) {
     </details>`;
 }
 
-function _basisVeldenHtml(klasse) {
-  const b = _basisVan(klasse);
+function _basisVeldenHtml(klasse, nu = null) {
+  const b = nu || _basisVan(klasse);
   const lijst = (v) => Array.isArray(v) ? v.join(', ') : String(v || '');
   const abKeuze = (nu) => ['', 'str', 'dex', 'con', 'int', 'wis', 'cha']
     .map(k => `<option value="${k}"${String(nu || '') === k ? ' selected' : ''}>${k ? esc(_AB_NAAM[k]) : '—'}</option>`).join('');
@@ -2288,6 +2296,52 @@ function _basisVeldenHtml(klasse) {
     </details>`;
 }
 
+// De kerngegevens zoals ze nú in het formulier staan. **Eén lezer voor allebei
+// de vensters:** maken en bewerken tonen dezelfde velden, dus ze horen ze ook
+// op dezelfde manier te lezen. Stond er twee keer, en dat is hoe een nieuw
+// veld in het ene venster wel en in het andere niet wordt opgeslagen.
+//
+// Welke van de twee het is leest hij aan het formulier af: een species heeft
+// er drie, een class dertien. Staat er geen van beide, dan undefined — de
+// server laat wat hij heeft dan met rust.
+function _basisUitFormulier() {
+  const v = (id) => document.getElementById(id)?.value?.trim() || '';
+  if (document.getElementById('vd-volk-type')) return {
+    creatureType: v('vd-volk-type'),
+    size:         v('vd-volk-size'),
+    speed:        v('vd-volk-speed'),
+  };
+  if (!document.getElementById('vd-basis-primary')) return undefined;
+  return {
+    aard:        v('vd-basis-aard'),
+    primary:     v('vd-basis-primary'),
+    // `d8` en `8` allebei goed — een hit die schrijf je nu eenmaal met een d.
+    hitDie:      v('vd-basis-hitdie').replace(/^d/i, ''),
+    saves:       v('vd-basis-saves'),
+    castAbility: v('vd-basis-cast'),
+    skillAantal: v('vd-basis-skillaantal'),
+    skills:      v('vd-basis-skills'),
+    weapons:     v('vd-basis-weapons'),
+    armor:       v('vd-basis-armor'),
+    tools:       v('vd-basis-tools'),
+    multiEis:      v('vd-basis-multi'),
+    multiTraining: v('vd-basis-multitr'),
+  };
+}
+
+// Het boek dat de app zelf al van dit species weet. Staat per species in
+// `bronnen/species-basis.json` als code ("MPMM"), en de boekenlijst maakt er
+// de titel van die ook in de keuzelijst staat.
+//
+// Alleen voor een species, niet voor een variant of een subclass: die erven
+// het boek van hun moeder, en dat erven hoort te blijven erven — vul je het
+// hier in, dan staat het straks vijf keer apart en loopt het uit elkaar.
+function _eigenBoekUitBron(soort, naam) {
+  const code = soort === 'species' ? _volkBasis?.[naam]?._boek : '';
+  if (!code) return '';
+  return _boeken.find(b => b.code === code)?.naam || code;
+}
+
 function _uitlegVenster(soort, naam, bron) {
   const h = _houderVan(soort, naam, bron);
   if (!h) { alert(`${naam} staat niet in deze campagne.`); return; }
@@ -2312,6 +2366,25 @@ function _uitlegVenster(soort, naam, bron) {
         <input class="dm-input" id="vd-houder-onder" maxlength="120" value="${esc(h.ondertitel || '')}"
           placeholder="Eén regel onder de soort — bijv. &quot;Woede als wapen&quot;">
       </div>
+      <!-- Herkomst en boek stonden alleen in het maakvenster, en het boek
+           daar ook nog eens onder een andere naam ("Waaruit?") en alleen als
+           je op overgenomen stond. Je kon een kaartje dus wel met een
+           herkomst beginnen en hem daarna nooit meer veranderen.
+           (Geen backticks in commentaar hierbinnen: template literal.) -->
+      <div class="dm-form-row">
+        <label class="dm-form-label" for="vd-houder-herkomst">Herkomst</label>
+        <select class="dm-input" id="vd-houder-herkomst"
+          title="Wat je later met een andere campagne mag delen: zelf verzonnen mag mee, overgenomen materiaal niet.">
+          ${HERKOMST.map(x => `<option value="${esc(x.value)}"${(h.herkomst || '') === x.value ? ' selected' : ''}>${esc(x.label)}</option>`).join('')}
+        </select>
+      </div>
+      <div class="dm-form-row">
+        <label class="dm-form-label" for="vd-houder-boek">Uit welk boek?</label>
+        <input class="dm-input" id="vd-houder-boek" maxlength="120" value="${esc(h.boek || _eigenBoekUitBron(soort, naam))}"
+          list="vd-boeken-houder" autocomplete="off"
+          placeholder="Bijv. Xanathar's Guide to Everything — of leeg als je het zelf verzon">
+        ${_boekenLijstHtml('vd-boeken-houder')}
+      </div>
       <div class="dm-form-row">
         <label class="dm-form-label">Beschrijving</label>
         ${window._fmtToolbarHtml?.('vd-houder-desc', { tabel: true }) ?? ''}
@@ -2334,13 +2407,6 @@ function _uitlegVenster(soort, naam, bron) {
       </div>` : ''}
       ${soort === 'class' ? _basisVeldenHtml(naam) : ''}
       ${soort === 'species' ? _volkBasisVeldenHtml(naam) : ''}
-      <div class="dm-form-row">
-        <label class="dm-form-label">Uit welk boek?</label>
-        <input class="dm-input" id="vd-houder-boek" maxlength="120" value="${esc(h.boek || '')}"
-          list="vd-boeken-houder" autocomplete="off"
-          placeholder="Bijv. Xanathar's Guide to Everything — of leeg als je het zelf verzon">
-        ${_boekenLijstHtml('vd-boeken-houder')}
-      </div>
       <!-- De afbeelding hoort hier, niet achter een eigen knopje op de kaart:
            dan staat de focuskiezer er meteen bij en is er één plek waar je dit
            kaartje bijwerkt. -->
@@ -2828,9 +2894,14 @@ function _editorHtml() {
       <!-- Wáár het vandaan komt, in woorden. De keuzelijst hierboven zegt
            alleen óf het overgenomen is; bij "ja" wil je weten waaruit, anders
            is over een jaar niet meer na te gaan wat er gedeeld mag worden. -->
-      ${e.herkomst && e.herkomst !== 'zelfbedacht' ? `
+      <!-- Het stond hier alleen als je op "overgenomen" stond, en heette dan
+           "Waaruit?". Dat is hetzelfde veld als "Uit welk boek?" in het
+           bewerkvenster, dus het heet nu overal zo en staat er overal — een
+           veld dat verdwijnt als je de keuzelijst erboven verzet is lastiger
+           te volgen dan een veld dat je leeg laat.
+           (Geen backticks in commentaar hierbinnen: template literal.) -->
       <div class="dm-form-row">
-        <label class="dm-form-label" for="vd-bronnaam">Waaruit?</label>
+        <label class="dm-form-label" for="vd-bronnaam">Uit welk boek?</label>
         <!-- Dit toont bronTekst en niet bron: dat laatste is de class of het
              species waar dit onder hangt. Het veld stond dus altijd op
              "Barbarian" in plaats van op het boek, en het lezen van het
@@ -2839,15 +2910,22 @@ function _editorHtml() {
              (Geen backticks in commentaar hierbinnen: template literal.) -->
         <input class="dm-input" id="vd-bronnaam" maxlength="120" value="${esc(e.bronTekst || '')}"
           list="vd-boeken-feature" autocomplete="off"
-          placeholder="Bijv. Xanathar's Guide to Everything, of: van een tafelgenoot">
+          placeholder="Bijv. Xanathar's Guide to Everything — of leeg als je het zelf verzon">
         ${_boekenLijstHtml('vd-boeken-feature')}
-      </div>` : ''}
+      </div>
       <div class="dm-form-row">
         <label class="dm-form-label">Beschrijving</label>
         ${window._fmtToolbarHtml?.('vd-desc', { tabel: true }) ?? ''}
         <textarea class="dm-input" id="vd-desc" rows="${houder ? 6 : 9}" onkeydown="window._fmtKey(event)"
           placeholder="${houder ? 'Wat is dit? Dit staat bovenaan het kaartje, vóór de features.' : 'Wat doet het? Een lege regel begint een nieuwe alinea.'}">${esc(e.desc || '')}</textarea>
       </div>
+      <!-- Dezelfde kerngegevens als in het bewerkvenster. Ze stonden daar
+           alleen, dus een nieuwe class of een nieuw species moest je eerst
+           aanmaken en daarna nog eens openen om te zeggen wat hij is —
+           terwijl je het op dit moment precies weet.
+           (Geen backticks in commentaar hierbinnen: template literal.) -->
+      ${houder && maaksel.soort === 'class'   ? _basisVeldenHtml(e.naam || '', e.basis || null) : ''}
+      ${houder && maaksel.soort === 'species' ? _volkBasisVeldenHtml(e.naam || '', e.basis || null) : ''}
 
       ${toonKoppeling ? `
       <div class="dm-form-row" style="flex-direction:column;align-items:stretch;gap:5px">
@@ -2993,6 +3071,11 @@ function _editorLees() {
   if (v('vd-vereist') !== undefined) _edit.vereist = v('vd-vereist');
   if (v('vd-bronnaam') !== undefined) _edit.bronTekst = v('vd-bronnaam');
   if (v('vd-kleur') !== undefined) _edit.kleur = v('vd-kleur');
+  // De kerngegevens horen bij de rest van het formulier: het venster tekent
+  // zichzelf opnieuw zodra je van soort wisselt, en zonder deze regel was wat
+  // je net intikte dan weg.
+  const basis = _basisUitFormulier();
+  if (basis) _edit.basis = basis;
   if (v('vd-geeft') !== undefined) {
     _edit.geeftSpreuk = v('vd-geeft').split(',').map(x => x.trim()).filter(Boolean);
   }
@@ -3097,6 +3180,16 @@ window.vaardigheden = {
           desc: _edit.desc || '', boek: _edit.bronTekst || '', herkomst: _edit.herkomst || '',
           ondertitel: _edit.ondertitel || '',
           ...((maaksel.soort === 'subclass' || maaksel.soort === 'variant') && _edit.kleur ? { kleur: _edit.kleur } : {}) });
+        // En de kerngegevens, langs de route die ze nakijkt. Dat is dezelfde
+        // route als waar het bewerkvenster ze heen stuurt — één plek die
+        // beslist wat een geldige hit die of een geldige Size is, in plaats
+        // van dezelfde regels nog eens bij het aanmaken.
+        if (_edit.basis && Object.values(_edit.basis).some(Boolean)) {
+          try {
+            await api.put('/progression/houder', { soort: maaksel.soort, naam: houderNaam,
+              bron: _edit.bron || '', basis: _edit.basis });
+          } catch { /* het kaartje staat er; de kerngegevens vul je dan bij het bewerken aan */ }
+        }
         // De gekozen plaat ging hier verloren. Het beeld van een class, subclass
         // of species staat niet in de progressie maar in `meta.heldenboek`
         // (daar kijkt het kaartje), en dit formulier stuurde hem nergens heen:
@@ -3457,28 +3550,9 @@ window.vaardigheden = {
     // De kerngegevens gaan als geheel mee: wat je leegmaakt valt terug op de
     // bron, wat je invult geldt hier. `d8` en `8` allebei goed — een hit die
     // schrijf je nu eenmaal met een d ervoor.
-    const v = (id) => document.getElementById(id)?.value?.trim() || '';
-    // Een species heeft zijn eigen drie kerngegevens.
-    const volkBasis = document.getElementById('vd-volk-type') ? {
-      creatureType: v('vd-volk-type'),
-      size:         v('vd-volk-size'),
-      speed:        v('vd-volk-speed'),
-    } : undefined;
-    const basis = document.getElementById('vd-basis-primary') ? {
-      aard:        v('vd-basis-aard'),
-      primary:     v('vd-basis-primary'),
-      hitDie:      v('vd-basis-hitdie').replace(/^d/i, ''),
-      saves:       v('vd-basis-saves'),
-      castAbility: v('vd-basis-cast'),
-      skillAantal: v('vd-basis-skillaantal'),
-      skills:      v('vd-basis-skills'),
-      weapons:     v('vd-basis-weapons'),
-      armor:       v('vd-basis-armor'),
-      tools:       v('vd-basis-tools'),
-      multiEis:      v('vd-basis-multi'),
-      multiTraining: v('vd-basis-multitr'),
-    } : undefined;
+    const basis = _basisUitFormulier();
     const boek = document.getElementById('vd-houder-boek')?.value || '';
+    const herkomst = document.getElementById('vd-houder-herkomst')?.value || '';
     const ondertitel = document.getElementById('vd-houder-onder')?.value || '';
     const kleur = document.getElementById('vd-houder-kleur')?.value || '';
     // Het focuspunt staat in hetzelfde venster, dus het gaat in dezelfde klik
@@ -3490,7 +3564,7 @@ window.vaardigheden = {
     }
     try {
       await api.put('/progression/houder', { soort, naam, bron, desc, boek, ondertitel, kleur,
-        basis: basis ?? volkBasis });
+        herkomst, basis });
       window.app.closeModal();
       _all = null; await _load(); await _klasseExtra();
       _bandHerteken(); _refreshFilterBar(); _paint();

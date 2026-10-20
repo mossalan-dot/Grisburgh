@@ -177,6 +177,28 @@ describe('Eigen class, species of background', () => {
     assert.equal(basis.multiTraining, 'Light Armor, Shields');
   });
 
+  // Het bewerkvenster toont de kerngegevens van een species sinds kort
+  // ingevuld in plaats van als grijze hint — anders leest een leeg veld onder
+  // een kaartje waar "Humanoid" op staat als "de app is het kwijt". Maar dan
+  // stuurt elke bewerkronde dus de bronwaarden mee terug, en zonder deze regel
+  // maakt de campagne er een eigen kopie van: een latere verbetering aan
+  // `bronnen/species-basis.json` komt er dan nooit meer doorheen.
+  it('slaat van een species alleen op wat van de bron afwijkt', async () => {
+    const uitBron = require('../bronnen/species-basis.json').species.Dwarf;
+    assert.ok(uitBron?.creatureType, 'de bron kent Dwarf');
+
+    await req(server, 'POST', '/api/progression/houder', { soort: 'species', naam: 'Dwarf' }, dm);
+    const r = await req(server, 'PUT', '/api/progression/houder',
+      { soort: 'species', naam: 'Dwarf', basis: { ...uitBron } }, dm);
+    assert.equal(r.status, 200, JSON.stringify(r.body));
+    assert.equal(prog().species.Dwarf.basis, undefined, 'niets eigens, dus niets opgeslagen');
+
+    await req(server, 'PUT', '/api/progression/houder',
+      { soort: 'species', naam: 'Dwarf', basis: { ...uitBron, speed: '35 feet' } }, dm);
+    assert.deepEqual(prog().species.Dwarf.basis, { speed: '35 feet' },
+      'alleen de regel die bij ons anders is');
+  });
+
   // ── En weer weg ───────────────────────────────────────────────────────────
   // Aanmaken kon, weghalen niet: een class die je per ongeluk begon bleef staan
   // tot je de hele progressie reset.
