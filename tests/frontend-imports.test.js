@@ -317,6 +317,20 @@ describe('Iconen', () => {
     assert.deepEqual(mis, [], 'deze iconen staan niet in de sprite: ' + mis.join(', '));
   });
 
+  // game-icons.net levert elk icoon op een zwart vlak: een eerste pad dat het
+  // hele doek vult. Blijft dat staan, dan is het icoon een gevuld vierkant en
+  // zie je van het paard niets. Dat is één keer gebeurd, en je ziet het pas
+  // in de app — dus hier.
+  it('zet geen zwart vlak achter een icoon', () => {
+    const sprite = fs.readFileSync(path.join(__dirname, '..', 'public', 'img', 'icons.svg'), 'utf8');
+    const vlak = /^M\s*0\s*0\s*h\s*512\s*v\s*512\s*H\s*0\s*z$/i;
+    const stout = [];
+    for (const m of sprite.matchAll(/<symbol id="icon-([a-z0-9-]+)"[\s\S]*?<\/symbol>/g)) {
+      for (const pad of m[0].matchAll(/d="([^"]+)"/g)) if (vlak.test(pad[1].trim())) stout.push(m[1]);
+    }
+    assert.deepEqual([...new Set(stout)], [], 'deze iconen staan nog op hun achtergrondvlak');
+  });
+
   it('verwijst ook vanuit index.html naar bestaande symbolen', () => {
     const sprite = fs.readFileSync(path.join(__dirname, '..', 'public', 'img', 'icons.svg'), 'utf8');
     const bestaat = new Set([...sprite.matchAll(/id="icon-([a-z0-9-]+)"/g)].map(m => m[1]));

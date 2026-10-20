@@ -46,10 +46,17 @@ const BRON_GI = (pad) => `https://raw.githubusercontent.com/game-icons/icons/mas
     if (gi) {
       // game-icons levert een zwarte achtergrondrechthoek mee; die hoort niet
       // in een icoon dat de kleur van zijn tekst aanneemt.
+      // Het eerste pad is bij game-icons het zwarte vlak waar het icoon op
+      // staat. Dat hoort niet in een icoon dat de kleur van zijn tekst
+      // aanneemt — laat je het staan, dan is het een gevuld vierkant.
+      const vlak = /^M\s*0\s*0\s*h\s*512\s*v\s*512\s*H\s*0\s*z$/i;
       const paden = [...svg.matchAll(/<path[^>]*d="([^"]+)"[^>]*>/g)].map(m => m[1])
-        .filter(d => !/^M0 0h512v512H0z$/i.test(d.replace(/\s+/g, '')));
+        .filter(d => !vlak.test(d.trim()));
       if (!paden.length) { console.log(`  ! ${naam} — geen pad`); continue; }
-      nieuw.push(`  <symbol id="icon-${naam}" viewBox="0 0 512 512">\n`
+      // `stroke="none"` op het symbool zelf, zodat de aanroeper er niet aan
+      // hoeft te denken: deze iconen zijn gevuld, de rest van de sprite is
+      // getekend met een lijn, en de `.icon`-stijl zet die lijn overal aan.
+      nieuw.push(`  <symbol id="icon-${naam}" viewBox="0 0 512 512" stroke="none">\n`
         + paden.map(d => `    <path fill="currentColor" d="${d}"/>`).join('\n') + `\n  </symbol>`);
       console.log(`  + ${naam} (game-icons)`);
       await new Promise(r_ => setTimeout(r_, 60));
