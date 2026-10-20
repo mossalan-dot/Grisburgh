@@ -484,9 +484,18 @@ function _bronRegel(it) {
 // De eigen kleur van een subclass, als de DM er een koos. Hij kleurt zowel het
 // kaartje van de subclass als zijn features — anders zie je aan tafel niet
 // welke regel bij welke hoort zodra je er twee naast elkaar legt.
+// De eigen kleur van de subclass of variant waar dit kaartje onder hangt, zodat
+// je aan tafel in één oogopslag ziet wat van de Berserker is en wat van de
+// Zealot — juist als je er twee hebt aangevinkt.
+//
+// **Hij keek alleen in `classes[...].subclasses`.** De tweede laag van een
+// species kwam later: een trait van een subspecies kreeg dus de standaardkleur
+// van de soort, terwijl zijn kaartje en zijn rij in de kolom de kleur van de
+// variant dragen. Via `_houderVan`, die het verschil kent.
 function _subKleur(it) {
-  if (it.soort !== 'subclass' || !it.sub) return null;
-  return _bron?.prog?.classes?.[it.bron]?.subclasses?.[it.sub]?.kleur || null;
+  if ((it.soort !== 'subclass' && it.soort !== 'variant') || !it.sub) return null;
+  return _houderVan(it.soort, it.sub, it.bron)?.kleur
+    || window._subSignatureVoor?.(it.sub)?.kleur || null;
 }
 
 function _card(it) {

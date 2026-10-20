@@ -29855,6 +29855,15 @@ body.wizard-open { overflow: hidden; }
   border-color: rgba(120, 60, 200, .4);
 }
 .entity-card[data-soort="subclass"] .card-name { color: #2c1050; }
+/* Hetzelfde onderscheid onder een species: de traits van een aangevinkte
+   variant staan tussen die van het species zelf, en dan wil je zien welke van
+   wie is. Groen, want dat is de kleur van de deur Species — paars zou hier
+   naar een subclass wijzen. */
+.entity-card[data-soort="variant"] {
+  background: linear-gradient(165deg, #ecf6f0 0%, #dfeee6 100%);
+  border-color: rgba(26, 106, 80, .4);
+}
+.entity-card[data-soort="variant"] .card-name { color: #0a3020; }
 
 /* ══════════════════════════════════════════════════════════════════
    HET HOUDINGSCHUIFJE
