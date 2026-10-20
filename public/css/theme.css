@@ -29501,6 +29501,10 @@ body.wizard-open { overflow: hidden; }
   border-radius: 50%; background: rgba(90,46,138,.12); color: #5a2e8a;
   font-family: 'Cinzel', serif; font-size: .78em;
 }
+/* Een trait van een species hoort bij wát je bent, niet bij een level — dan
+   staat er geen getal. De bol blijft wel zijn plek innemen, zodat de namen
+   eronder op één lijn blijven staan als er ook traits op 3 of 5 zijn. */
+.vd-subfeature-lvl.is-leeg { visibility: hidden; }
 .vd-subfeature-naam { font-family: 'Cinzel', serif; font-size: .92em; color: #3a2410; }
 /* Een feature die niet in de app staat: alleen zijn naam en de weg naar het
    boek. Gestippeld, net als de subclasses in de kolom die hier ook niet in

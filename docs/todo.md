@@ -896,3 +896,12 @@ daar dan in. (Het eerste punt — diensten die de gedeelde beurs omzeilden — i
       Zelfde familie als [`voorstel-feature-keuzes.md`](voorstel-feature-
       keuzes.md): dat gaat over features die de speler iets laten kiezen, dit
       over de laag erboven. Als er één keuzemechaniek komt, hoort deze erin.
+
+- [ ] **Features die meegroeien met je level.** Gevraagd op 20 okt 2026.
+      Bardic Inspiration wordt een d8 op 5, een Breath Weapon doet meer schade
+      op 5, 11 en 17 — maar een feature heeft in de app één level, en wat er
+      later verandert staat midden in de lopende tekst. 79 van de 1158
+      features in Grisburgh noemen een hoger level dan hun eigen. Voorstel
+      (een veld `groei` met level + tekst, één kaartje in plaats van drie)
+      staat in [`voorstel-feature-groei.md`](voorstel-feature-groei.md), met
+      wat het kost en waar het opduikt.

@@ -398,7 +398,7 @@ function _hooibergen(it) {
   if (!it._h) {
     it._h = {
       name: (it.naam || '').toLowerCase(),
-      meta: [it.bron, it.sub, SOORTEN[it.soort]?.label, it.level ? `level ${it.level}` : ''].filter(Boolean).join(' ').toLowerCase(),
+      meta: [it.bron, it.sub, SOORTEN[it.soort]?.label, _toontLevel(it.soort, it.level) ? `level ${it.level}` : ''].filter(Boolean).join(' ').toLowerCase(),
       rest: _tekst(it).toLowerCase(),
     };
   }
@@ -475,6 +475,19 @@ function _filtered() {
 // Waar iets bij hoort. Bij een feat, een Epic Boon of een background zegt de
 // bron hetzelfde als de soort ("Feat · Feats") — dan laten we hem weg.
 const _EIGEN_BRON = new Set(['Feats', 'Epic Boons', 'Backgrounds', 'Gunsten', 'Zegeningen']);
+// **Een trait van een species is niet iets wat je op level 1 krijgt.** Je bént
+// een Dragonborn; Darkvision hoort erbij vanaf het moment dat het personage
+// bestaat. Bij een class klopt het level wél — een Barbarian krijgt Rage op 1
+// en Danger Sense op 2, en dat verschil is precies wat de tijdlijn vertelt.
+//
+// Boven 1 blijft hij staan: Gift of the Svirfneblin op 3 en de Lineage-spreuk
+// op 5 zijn wél iets wat je later krijgt, en dan is het level de pointe.
+function _toontLevel(soort, level) {
+  const n = Number(level) || 0;
+  if (!n) return false;
+  return !((soort === 'species' || soort === 'variant') && n === 1);
+}
+
 function _bronRegel(it) {
   if (it.soort === 'subclass' || it.soort === 'variant') return `${it.sub} · ${it.bron}`;
   return _EIGEN_BRON.has(it.bron) ? '' : it.bron;
@@ -552,7 +565,7 @@ function _card(it) {
       style="--soort-c1:${eigenKleur ? esc(eigenKleur) : s.c1};--soort-c2:${eigenKleur ? esc(eigenKleur) : s.c2}">
       <div class="card-accent vaardig-accent"></div>
       ${dmRij}${dmPen}
-      ${it.level ? `<span class="vaardig-card-niv">${it.level}</span>` : ''}
+      ${_toontLevel(it.soort, it.level) ? `<span class="vaardig-card-niv">${it.level}</span>` : ''}
       <div class="card-img-wrap vaardig-card-img-wrap">
         <div class="vaardig-card-silhouet">${icon(_itemIcoon(it))}</div>
         ${(() => {
@@ -568,7 +581,7 @@ function _card(it) {
         ${(() => {
           // Deze regel zegt waar het bij hoort en op welk level. Is er niets te
           // zeggen (een feat hoort nergens bij), dan ook geen lege regel.
-          const meta = [esc(bronRegel), it.level ? `level ${it.level}` : ''].filter(Boolean).join(' · ');
+          const meta = [esc(bronRegel), _toontLevel(it.soort, it.level) ? `level ${it.level}` : ''].filter(Boolean).join(' · ');
           return meta ? `<div class="vaardig-card-meta">${meta}</div>` : '';
         })()}
         <!-- **Geen chips voor soort en herkomst meer.** Ze stonden onder elke
@@ -2089,7 +2102,11 @@ function _houderFeaturesHtml(soort, naam, bron) {
       ? ` onclick="window.vaardigheden.uitKaartVenster('${escA(it.key)}','${escA(soort)}','${escA(naam)}','${escA(bron || '')}')"`
       : '';
     return `<button class="vd-subfeature"${klik}${it ? '' : ' disabled'}>
-      <span class="vd-subfeature-lvl">${l}</span>
+      <!-- De bol blijft staan, leeg: in dezelfde lijst kan Darkvision
+           (inherent) naast Gift of the Svirfneblin (op 3) staan, en dan horen
+           hun namen nog steeds onder elkaar te beginnen.
+           (Geen backticks in commentaar hierbinnen: template literal.) -->
+      <span class="vd-subfeature-lvl${_toontLevel(soort, l) ? '' : ' is-leeg'}">${_toontLevel(soort, l) ? l : ''}</span>
       <span class="vd-subfeature-naam">${esc(f.name)}</span>
     </button>`;
   }).join('')).join('');
@@ -2764,7 +2781,7 @@ function _open(key, vanWaar = null) {
         <div class="prog-detail-chips">
           <span class="prog-detail-chip">${icon(_itemIcoon(it))} ${esc(s.label)}</span>
           ${_bronRegel(it) ? `<span class="prog-detail-chip">${esc(_bronRegel(it))}</span>` : ''}
-          ${it.level ? `<span class="prog-detail-chip">Level ${it.level}</span>` : ''}
+          ${_toontLevel(it.soort, it.level) ? `<span class="prog-detail-chip">Level ${it.level}</span>` : ''}
         </div>
         ${beeldBlok}
         ${dmBeeld}

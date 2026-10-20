@@ -317,6 +317,22 @@ describe('Iconen', () => {
     assert.deepEqual(mis, [], 'deze iconen staan niet in de sprite: ' + mis.join(', '));
   });
 
+  // Een trait van een species is inherent: je bent een Dragonborn, je krijgt
+  // Darkvision niet op level 1. Bij een class klopt het level wél, en boven 1
+  // klopt het ook bij een species (Gift of the Svirfneblin op 3).
+  it('toont geen level 1 bij een species-trait', () => {
+    const src = fs.readFileSync(path.join(__dirname, '..', 'public', 'js', 'render-vaardigheden.js'), 'utf8');
+    const blok = src.match(/function _toontLevel\(soort, level\) \{[\s\S]*?\n\}/);
+    assert.ok(blok, '_toontLevel niet gevonden');
+    const f = new Function('return ' + blok[0].replace('function _toontLevel', 'function'))();
+    assert.equal(f('species', 1), false, 'een trait op 1 draagt geen getal');
+    assert.equal(f('variant', 1), false, 'ook niet bij een variant');
+    assert.equal(f('species', 3), true, 'op 3 wél');
+    assert.equal(f('class', 1), true, 'een class krijgt zijn features op een level');
+    assert.equal(f('subclass', 3), true);
+    assert.equal(f('feat', 0), false, 'een feat hangt aan geen level');
+  });
+
   // Een deur filtert op soort, en alles wat er niet in staat valt weg vóór
   // enig ander filter. De tweede laag kwam later dan die regel: `variant`
   // ontbrak bij Species, en dus kon je traits van een subspecies wel maken en
