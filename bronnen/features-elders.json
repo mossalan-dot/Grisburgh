@@ -3337,35 +3337,126 @@
       }
     ],
     "Owlin": [
-      "Darkvision",
-      "Flight",
-      "Silent Feathers"
+      {
+        "naam": "Darkvision",
+        "level": 1
+      },
+      {
+        "naam": "Flight",
+        "level": 1
+      },
+      {
+        "naam": "Languages",
+        "level": 1
+      },
+      {
+        "naam": "Silent Feathers",
+        "level": 1
+      }
     ],
     "Satyr": [
-      "Ram",
-      "Magic Resistance",
-      "Mirthful Leaps"
+      {
+        "naam": "Languages",
+        "level": 1
+      },
+      {
+        "naam": "Magic Resistance",
+        "level": 1
+      },
+      {
+        "naam": "Mirthful Leaps",
+        "level": 1
+      },
+      {
+        "naam": "Ram",
+        "level": 1
+      },
+      {
+        "naam": "Reveler",
+        "level": 1
+      }
     ],
     "Sea Elf": [
-      "Darkvision",
-      "Child of the Sea",
-      "Friend of the Sea",
-      "Fey Ancestry",
-      "Keen Senses",
-      "Trance"
+      {
+        "naam": "Child of the Sea",
+        "level": 1
+      },
+      {
+        "naam": "Creature Type",
+        "level": 1
+      },
+      {
+        "naam": "Darkvision",
+        "level": 1
+      },
+      {
+        "naam": "Fey Ancestry",
+        "level": 1
+      },
+      {
+        "naam": "Friend of the Sea",
+        "level": 1
+      },
+      {
+        "naam": "Keen Senses",
+        "level": 1
+      },
+      {
+        "naam": "Languages",
+        "level": 1
+      },
+      {
+        "naam": "Trance",
+        "level": 1
+      }
     ],
     "Shadar-kai": [
-      "Darkvision",
-      "Blessing of the Raven Queen",
-      "Necrotic Resistance",
-      "Fey Ancestry",
-      "Keen Senses",
-      "Trance"
+      {
+        "naam": "Blessing of the Raven Queen",
+        "level": 1
+      },
+      {
+        "naam": "Creature Type",
+        "level": 1
+      },
+      {
+        "naam": "Darkvision",
+        "level": 1
+      },
+      {
+        "naam": "Fey Ancestry",
+        "level": 1
+      },
+      {
+        "naam": "Keen Senses",
+        "level": 1
+      },
+      {
+        "naam": "Languages",
+        "level": 1
+      },
+      {
+        "naam": "Necrotic Resistance",
+        "level": 1
+      },
+      {
+        "naam": "Trance",
+        "level": 1
+      }
     ],
     "Shifter": [
-      "Darkvision",
-      "Shifting",
-      "Shifting Feature"
+      {
+        "naam": "Bestial Instincts",
+        "level": 1
+      },
+      {
+        "naam": "Darkvision",
+        "level": 1
+      },
+      {
+        "naam": "Shifting",
+        "level": 1
+      }
     ],
     "Simic Hybrid": [
       "Darkvision",
@@ -3432,10 +3523,22 @@
       "Werewolf Instincts"
     ],
     "Reborn": [
-      "Escaped Death",
-      "Everlasting",
-      "Knowledge from a Past Life",
-      "Strange Endurance"
+      {
+        "naam": "Escaped Death",
+        "level": 1
+      },
+      {
+        "naam": "Everlasting",
+        "level": 1
+      },
+      {
+        "naam": "Knowledge from a Past Life",
+        "level": 1
+      },
+      {
+        "naam": "Strange Endurance",
+        "level": 1
+      }
     ],
     "Duskling": [
       {
@@ -3622,11 +3725,30 @@
       }
     ],
     "Plasmoid": [
-      "Amorphous",
-      "Darkvision",
-      "Hold Breath",
-      "Natural Resilience",
-      "Shape Self"
+      {
+        "naam": "Amorphous",
+        "level": 1
+      },
+      {
+        "naam": "Darkvision",
+        "level": 1
+      },
+      {
+        "naam": "Hold Breath",
+        "level": 1
+      },
+      {
+        "naam": "Languages",
+        "level": 1
+      },
+      {
+        "naam": "Natural Resilience",
+        "level": 1
+      },
+      {
+        "naam": "Shape Self",
+        "level": 1
+      }
     ],
     "Thri-kreen": [
       "Chameleon Carapace",

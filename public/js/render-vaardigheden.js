@@ -652,8 +652,22 @@ function _card(it) {
       style="--soort-c1:${eigenKleur ? esc(eigenKleur) : s.c1};--soort-c2:${eigenKleur ? esc(eigenKleur) : s.c2}">
       <div class="card-accent vaardig-accent"></div>
       ${dmRij}${dmPen}
-      ${_toontLevel(it.soort, it.level) ? `<span class="vaardig-card-nivs">${(it.levels || [it.level])
-        .map(l => `<span class="vaardig-card-niv">${l}</span>`).join('')}</span>` : ''}
+      <!-- De levels in de hoek van de plaat: gevuld waar je hem krijgt, open
+           waar hij verandert. **Eén plek**, want ze beantwoorden dezelfde
+           vraag — de open pillen stonden eerst onder de bronregel, en dan
+           staat hetzelfde soort gegeven bij een class ergens anders dan bij
+           een species.
+           (Geen backticks in commentaar hierbinnen: template literal.) -->
+      ${(() => {
+        const vast = _toontLevel(it.soort, it.level) ? (it.levels || [it.level]) : [];
+        const groei = it.groei || [];
+        if (!vast.length && !groei.length) return '';
+        return `<span class="vaardig-card-nivs"${groei.length
+          ? ` title="Verandert op level ${groei.join(', ')}"` : ''}>
+          ${vast.map(l => `<span class="vaardig-card-niv">${l}</span>`).join('')}
+          ${groei.map(l => `<span class="vaardig-card-niv vaardig-card-niv--groei">${l}</span>`).join('')}
+        </span>`;
+      })()}
       <div class="card-img-wrap vaardig-card-img-wrap">
         <div class="vaardig-card-silhouet">${icon(_itemIcoon(it))}</div>
         ${(() => {
@@ -671,15 +685,7 @@ function _card(it) {
           // zeggen (een feat hoort nergens bij), dan ook geen lege regel.
           const niveaus = (it.levels || [it.level]).join(' · ');
           const meta = [esc(bronRegel), _toontLevel(it.soort, it.level) ? `level ${niveaus}` : ''].filter(Boolean).join(' · ');
-          // En de levels waarop hij verandert, uit zijn eigen tekst gelezen.
-          // Open pillen, want dit is iets anders dan "hier krijg je hem": hier
-          // wordt hij sterker. Een eigen regel, zodat een feature met zes
-          // treden de plaat niet opeet.
-          const groei = (it.groei || []).length
-            ? `<div class="vaardig-card-groei" title="Deze feature verandert op ${it.groei.join(', ')}">
-                 ${it.groei.map(l => `<span class="vaardig-card-groeipil">${l}</span>`).join('')}
-               </div>` : '';
-          return (meta || groei) ? `${meta ? `<div class="vaardig-card-meta">${meta}</div>` : ''}${groei}` : '';
+          return meta ? `<div class="vaardig-card-meta">${meta}</div>` : '';
         })()}
         <!-- **Geen chips voor soort en herkomst meer.** Ze stonden onder elke
              kaart als een tweede regel pillen, en ze zeiden allebei iets wat je
