@@ -102,7 +102,10 @@ function uitrusting(blokken) {
 
 function rijenOud(b) {
   const rij = (naam, tekst) => tekst ? { name: naam, desc: tekst } : null;
-  // De Feature draagt alleen zijn naam; zijn tekst komt uit het boek.
+  // De Feature draagt alleen zijn naam; zijn tekst komt uit het boek. Die naam
+  // wordt **de kop van de rij** en niet zijn waarde: dan is er een leeg veld
+  // waar de DM de tekst zelf in kan zetten. Stond het andersom ("Feature:
+  // Safe Haven"), dan was er geen plek voor wat die feature dóet.
   const feature = (b.entries || []).map(e => kaal(e?.name || ''))
     .find(n => /^feature:/i.test(n))?.replace(/^feature:\s*/i, '') || '';
   // `feats` is een lijst blokken; een blok noemt óf een feat bij naam, óf een
@@ -116,7 +119,7 @@ function rijenOud(b) {
     rij('Languages', profTekst(b.languageProficiencies, 'languages')),
     rij('Feat', lijstTekst(feats)),
     rij('Equipment', uitrusting(b.startingEquipment)),
-    rij('Feature', feature),
+    feature ? { name: feature, desc: '' } : null,
   ].filter(Boolean);
 }
 

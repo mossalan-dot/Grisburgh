@@ -199,6 +199,37 @@ describe('Eigen class, species of background', () => {
       'alleen de regel die bij ons anders is');
   });
 
+  // De onderdelen van een background (Ability Scores, Feat, Equipment) zijn
+  // features onder die houder, maar je bewerkt ze als één formulier — zoals de
+  // Core Traits van een class. Ze komen dus als lijst binnen bij de houder.
+  it('bewaart de onderdelen van een background als één geheel', async () => {
+    await req(server, 'POST', '/api/progression/houder', { soort: 'background', naam: 'Veerman' }, dm);
+    const r = await req(server, 'PUT', '/api/progression/houder', {
+      soort: 'background', naam: 'Veerman',
+      onderdelen: [
+        { name: 'Skill Proficiencies', desc: 'Athletics, Insight' },
+        { name: 'Equipment', desc: 'Vaarboom, touw, 10 GP' },
+        // Aangeboden maar niet ingevuld, en hij had hem nog niet: dan hoort
+        // hij niet als lege regel in het kaartje te belanden.
+        { name: 'Languages', desc: '' },
+      ],
+    }, dm);
+    assert.equal(r.status, 200, JSON.stringify(r.body));
+    const rijen = prog().backgrounds.Veerman.levels['1'];
+    assert.deepEqual(rijen.map(x => x.name), ['Skill Proficiencies', 'Equipment']);
+    assert.equal(rijen[1].desc, 'Vaarboom, touw, 10 GP');
+
+    // Een onderdeel dat er wél al stond blijft staan als je het leegmaakt: dat
+    // is de Feature van een oudere background, een naam waar de tekst nog bij
+    // moet.
+    await req(server, 'PUT', '/api/progression/houder', {
+      soort: 'background', naam: 'Veerman',
+      onderdelen: [{ name: 'Skill Proficiencies', desc: '' }, { name: 'Equipment', desc: 'Vaarboom' }],
+    }, dm);
+    assert.deepEqual(prog().backgrounds.Veerman.levels['1'].map(x => x.name),
+      ['Skill Proficiencies', 'Equipment'], 'leeggemaakt maar bekend blijft staan');
+  });
+
   // ── En weer weg ───────────────────────────────────────────────────────────
   // Aanmaken kon, weghalen niet: een class die je per ongeluk begon bleef staan
   // tot je de hele progressie reset.

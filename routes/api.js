@@ -9915,6 +9915,30 @@ router.put('/progression/houder', requireDM, (req, res) => {
     if (Object.keys(basis).length) houder.basis = basis; else delete houder.basis;
   }
 
+  // ── De onderdelen van een background ──────────────────────────────────────
+  // Ability Scores, Feat, Skill Proficiencies, Equipment: dat zijn features
+  // onder deze houder, maar je bewerkt ze als één formulier — zoals de Core
+  // Traits van een class. Ze komen hier dus als lijst binnen.
+  if (soort === 'background' && Array.isArray(b.onderdelen)) {
+    const was = houder.levels?.['1'] || [];
+    const kende = new Set(was.map(x => String(x?.name || '').trim().toLowerCase()));
+    const uit = [];
+    for (const o of b.onderdelen) {
+      const naam_ = String(o?.name || '').trim().slice(0, 80);
+      if (!naam_) continue;
+      const tekst = String(o?.desc ?? '').trim().slice(0, 4000);
+      // Een leeg veld dat er nog niet was, was een aanbod: Languages erbij bij
+      // een background die er geen heeft. Niet ingevuld is dan "nee, dank je".
+      // Een leeg veld dat er wél al was blijft staan — dat is de Feature van
+      // een oudere background, een naam waar de tekst nog bij moet.
+      if (!tekst && !kende.has(naam_.toLowerCase())) continue;
+      const oud_ = was.find(x => String(x?.name || '').trim().toLowerCase() === naam_.toLowerCase());
+      uit.push({ ...(oud_ || {}), name: naam_, desc: tekst });
+    }
+    houder.levels = houder.levels || {};
+    houder.levels['1'] = uit;
+  }
+
   storage.writeJSON('progression.json', { ...prog, bron: prog.bron || 'Aangepast door de DM' });
   req.app.get('io').to(_campagneRoom(req)).emit('progression:updated', {});
   res.json({ ok: true });

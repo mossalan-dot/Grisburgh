@@ -1526,7 +1526,12 @@ function _achtergrondRijen(naam) {
     if (!n || gezien.has(n.toLowerCase())) return;
     gezien.add(n.toLowerCase());
     const tekst = String(d.desc || '').trim();
-    if (!tekst) return;
+    // **Een leeg onderdeel blijft staan voor de DM.** De Feature van een
+    // oudere background draagt alleen een naam — "Safe Haven" — en zijn tekst
+    // staat in het boek. Die rij hoort dus leeg te beginnen en zichtbaar te
+    // zijn, anders is er niets om op te klikken om hem te vullen. Een speler
+    // ziet geen lege rijen.
+    if (!tekst) { if (isDM()) uit.push([n, '—']); return; }
     if (n === 'Feat' && featKaart) {
       uit.push(['Feat', tekst, `<button class="vd-rij-knop" title="Bekijk ${esc(featKaart.naam)}"
         onclick="window.vaardigheden.open('${escA(featKaart.key)}')">${esc(tekst)} ${icon('arrow-up-right')}</button>`]);
@@ -2362,21 +2367,9 @@ function _kaartVenster(soort, naam, bron = '') {
       ${uitleg
         ? `<div class="prog-detail-desc">${window._vaardigTekstHtml?.(uitleg) ?? _bron?.md?.(uitleg) ?? esc(uitleg)}</div>`
         : `<p class="dm-hint">Er staat nog geen uitleg bij deze ${esc(soortLabel.toLowerCase())}. ${isDM() ? 'Schrijf hem erbij — dan leest iedereen aan tafel hetzelfde.' : 'Vraag je DM of hij hem invult.'}</p>`}
-      <!-- Bij een background is elke rij een **onderdeel** dat je kunt
-           bewerken: het potlood ernaast opent hetzelfde formulier als bij een
-           feature. Bij een class of species zijn de rijen kerngegevens; die
-           bewerk je in het venster hiernaast, en daar hoort dus geen potlood.
-           (Geen backticks in commentaar hierbinnen: template literal.) -->
       ${rijen.length ? `<dl class="vk-training vd-kv-training">
-        ${rijen.map(([k, v, html]) => `<dt>${esc(k)}</dt><dd>${html ?? esc(v)}${
-          (soort === 'background' && isDM())
-            ? `<button class="vd-rij-pen" title="${esc(k)} bewerken"
-                 onclick="window.vaardigheden.bewerkOnderdeel('${veilig}','${escA(k)}')">${icon('pencil')}</button>`
-            : ''}</dd>`).join('')}
+        ${rijen.map(([k, v, html]) => `<dt>${esc(k)}</dt><dd>${html ?? esc(v)}</dd>`).join('')}
       </dl>` : ''}
-      ${(soort === 'background' && isDM()) ? `<div class="spreuk-dm-knoppen">
-        <button class="spreuk-detail-imgbtn" onclick="window.vaardigheden.nieuwOnderdeel('${veilig}')">${icon('plus')} Onderdeel erbij</button>
-      </div>` : ''}
       ${naarSpreuken || isDM() ? `<div class="spreuk-dm-knoppen">
         ${naarSpreuken ? `<button class="spreuk-detail-imgbtn" onclick="window.vaardigheden.naarSpreuken('${veilig}')">${icon('book-open')} Spreukenlijst</button>` : ''}
         ${isDM() ? `<button class="spreuk-detail-imgbtn" onclick="window.vaardigheden.kaartBewerken('${esc(soort)}','${veilig}','${veiligB}')">${icon('pencil')} Kaartje bewerken</button>` : ''}
@@ -2495,6 +2488,56 @@ function _volkBasisVeldenHtml(volk, nu = null) {
     </details>`;
 }
 
+// De onderdelen van een background als velden: Ability Scores, Feat, Skill
+// Proficiencies, Equipment en wat er verder in zit. Zelfde gedachte als de
+// Core Traits van een class — **wat een kaartje ís, bewerk je in het
+// bewerkvenster** en niet met een potlood in het leesvenster.
+//
+// Wat hij nog niet heeft staat er als leeg veld bij, zodat je Languages kunt
+// toevoegen aan een background die er geen heeft zonder eerst ergens een
+// onderdeel te moeten aanmaken.
+const _BG_VAST = ['Ability Scores', 'Feat', 'Skill Proficiencies',
+                  'Tool Proficiencies', 'Languages', 'Equipment'];
+
+function _bgOnderdelen(naam) {
+  const delen = Object.values(_bron?.backgrounds?.[naam]?.levels || {}).flat().filter(Boolean);
+  const uit = delen.map(d => ({ naam: String(d.name || '').trim(), tekst: String(d.desc || '') }))
+    .filter(d => d.naam);
+  const heeft = new Set(uit.map(d => d.naam.toLowerCase()));
+  // "Tool Proficiency" en "Tool Proficiencies" zijn hetzelfde veld met twee
+  // namen; staat de ene er, dan hoeft de andere er niet leeg bij.
+  if (heeft.has('tool proficiency')) heeft.add('tool proficiencies');
+  for (const vast of _BG_VAST) if (!heeft.has(vast.toLowerCase())) uit.push({ naam: vast, tekst: '' });
+  return uit;
+}
+
+function _bgVeldenHtml(naam) {
+  const delen = _bgOnderdelen(naam);
+  if (!delen.length) return '';
+  return `
+    <details class="dm-uitklap vd-basis" open>
+      <summary>${icon('scroll-text')} Wat het geeft</summary>
+      <div class="dm-uitklap-body">
+        ${delen.map((d, i) => {
+          // Een vast onderdeel is een kort feit ("Insight, Religion") en past
+          // op één regel. De Feature van een oudere background is proza — die
+          // krijgt ruimte, want daar schrijft de DM uit wat hij doet.
+          const kort = _BG_VAST.some(v => v.toLowerCase() === d.naam.toLowerCase())
+            || d.naam.toLowerCase() === 'tool proficiency';
+          return `
+          <div class="dm-form-row">
+            <label class="dm-form-label" for="vd-bg-${i}">${esc(d.naam)}</label>
+            ${kort
+              ? `<input class="dm-input" id="vd-bg-${i}" data-onderdeel="${esc(d.naam)}"
+                   maxlength="400" value="${esc(d.tekst)}">`
+              : `<textarea class="dm-input" id="vd-bg-${i}" data-onderdeel="${esc(d.naam)}"
+                   rows="3" placeholder="Wat deze feature doet — die tekst staat in het boek, dus die tik je zelf.">${esc(d.tekst)}</textarea>`}
+          </div>`;
+        }).join('')}
+      </div>
+    </details>`;
+}
+
 function _basisVeldenHtml(klasse, nu = null) {
   const b = nu || _basisVan(klasse);
   const lijst = (v) => Array.isArray(v) ? v.join(', ') : String(v || '');
@@ -2535,6 +2578,14 @@ function _basisVeldenHtml(klasse, nu = null) {
         </div>
       </div>
     </details>`;
+}
+
+// De onderdelen van een background zoals ze nú in het formulier staan. Eén
+// lezer voor allebei de vensters, net als bij de kerngegevens hieronder.
+function _bgUitFormulier() {
+  const velden = document.querySelectorAll('[data-onderdeel]');
+  if (!velden.length) return undefined;
+  return [...velden].map(el => ({ name: el.dataset.onderdeel, desc: el.value }));
 }
 
 // De kerngegevens zoals ze nú in het formulier staan. **Eén lezer voor allebei
@@ -2657,6 +2708,7 @@ function _uitlegVenster(soort, naam, bron) {
       </div>` : ''}
       ${soort === 'class' ? _basisVeldenHtml(naam) : ''}
       ${soort === 'species' ? _volkBasisVeldenHtml(naam) : ''}
+      ${soort === 'background' ? _bgVeldenHtml(naam) : ''}
       <!-- De afbeelding hoort hier, niet achter een eigen knopje op de kaart:
            dan staat de focuskiezer er meteen bij en is er één plek waar je dit
            kaartje bijwerkt. -->
@@ -3181,6 +3233,7 @@ function _editorHtml() {
            (Geen backticks in commentaar hierbinnen: template literal.) -->
       ${houder && maaksel.soort === 'class'   ? _basisVeldenHtml(e.naam || '', e.basis || null) : ''}
       ${houder && maaksel.soort === 'species' ? _volkBasisVeldenHtml(e.naam || '', e.basis || null) : ''}
+      ${houder && maaksel.soort === 'background' ? _bgVeldenHtml(e.naam || '') : ''}
 
       ${toonKoppeling ? `
       <div class="dm-form-row" style="flex-direction:column;align-items:stretch;gap:5px">
@@ -3331,6 +3384,8 @@ function _editorLees() {
   // je net intikte dan weg.
   const basis = _basisUitFormulier();
   if (basis) _edit.basis = basis;
+  const onderdelen = _bgUitFormulier();
+  if (onderdelen) _edit.onderdelen = onderdelen;
   if (v('vd-geeft') !== undefined) {
     _edit.geeftSpreuk = v('vd-geeft').split(',').map(x => x.trim()).filter(Boolean);
   }
@@ -3371,26 +3426,6 @@ window.vaardigheden = {
     }, 60);
   },
   bewerk(key) { _editorOpen((_all || []).find(x => x.key === key)); },
-  // Een onderdeel van een background bewerken. Die staan niet los in `_all` —
-  // een background is daar één kaartje dat zijn onderdelen samenvat, anders
-  // staat "Ability Scores" honderdendertig keer in de lijst. Maar bewerken wil
-  // je ze wél, en dan is dit de weg erheen: het gewone featureformulier, met
-  // de background als bron.
-  bewerkOnderdeel(bg, naam) {
-    const deel = Object.values(_bron?.backgrounds?.[bg]?.levels || {}).flat()
-      .find(d => String(d?.name || '') === naam);
-    if (!deel) { window._showToast?.(`${naam} staat niet in ${bg}.`); return; }
-    _editorOpen({ soort: 'background', bron: bg, sub: '', level: 1, naam,
-                  desc: deel.desc || '', herkomst: deel.herkomst || '', bronTekst: deel.bron || '' });
-  },
-  // En er eentje bij verzinnen dat er nog niet is (Languages bij een
-  // background die er geen heeft).
-  nieuwOnderdeel(bg) {
-    _editorOpen();
-    _edit.maaksel = 'f-background'; _edit.soort = 'background';
-    _edit.bron = bg; _edit.level = 1; _edit.herkomst = 'zelfbedacht';
-    _editorHerteken();
-  },
   // Kiezen gaat via dezelfde mediabibliotheek als in de bewerkmodal; het
   // detailvenster tekent zichzelf daarna opnieuw, zodat het beeld er staat.
   veld(naam, waarde) {
@@ -3459,11 +3494,14 @@ window.vaardigheden = {
         // route als waar het bewerkvenster ze heen stuurt — één plek die
         // beslist wat een geldige hit die of een geldige Size is, in plaats
         // van dezelfde regels nog eens bij het aanmaken.
-        if (_edit.basis && Object.values(_edit.basis).some(Boolean)) {
+        const extra = {};
+        if (_edit.basis && Object.values(_edit.basis).some(Boolean)) extra.basis = _edit.basis;
+        if (_edit.onderdelen?.some(o => o.desc?.trim())) extra.onderdelen = _edit.onderdelen;
+        if (Object.keys(extra).length) {
           try {
             await api.put('/progression/houder', { soort: maaksel.soort, naam: houderNaam,
-              bron: _edit.bron || '', basis: _edit.basis });
-          } catch { /* het kaartje staat er; de kerngegevens vul je dan bij het bewerken aan */ }
+              bron: _edit.bron || '', ...extra });
+          } catch { /* het kaartje staat er; de rest vul je dan bij het bewerken aan */ }
         }
         // De gekozen plaat ging hier verloren. Het beeld van een class, subclass
         // of species staat niet in de progressie maar in `meta.heldenboek`
@@ -3853,6 +3891,7 @@ window.vaardigheden = {
     // bron, wat je invult geldt hier. `d8` en `8` allebei goed — een hit die
     // schrijf je nu eenmaal met een d ervoor.
     const basis = _basisUitFormulier();
+    const onderdelen = _bgUitFormulier();
     const herkomst = document.getElementById('vd-houder-herkomst')?.value || '';
     // Zelf verzonnen heeft geen boek. Stond er een omdat je hem eerst
     // overgenomen noemde, dan hoort die weg te gaan en niet onzichtbaar te
@@ -3869,7 +3908,7 @@ window.vaardigheden = {
     }
     try {
       await api.put('/progression/houder', { soort, naam, bron, desc, boek, ondertitel, kleur,
-        herkomst, basis });
+        herkomst, basis, onderdelen });
       window.app.closeModal();
       _all = null; await _load(); await _klasseExtra();
       _bandHerteken(); _refreshFilterBar(); _paint();

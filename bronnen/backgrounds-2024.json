@@ -96,8 +96,8 @@
           "desc": "Leather-bound diary, Ink (1-ounce bottle), Ink pen, Traveler's clothes, Trinket of special significance, Pouch containing 10 GP"
         },
         {
-          "name": "Feature",
-          "desc": "Adept Linguist"
+          "name": "Adept Linguist",
+          "desc": ""
         }
       ]
     },
@@ -177,8 +177,8 @@
           "desc": "Traveler's clothes, Diary, Ink pen, Ink (1-ounce bottle), Pouch containing 10 GP"
         },
         {
-          "name": "Feature",
-          "desc": "Divine Contact"
+          "name": "Divine Contact",
+          "desc": ""
         }
       ]
     },
@@ -204,8 +204,8 @@
           "desc": "Bronze discus, Leather ball, Lucky charm, Past trophy, Traveler's clothes, Pouch containing 10 GP"
         },
         {
-          "name": "Feature",
-          "desc": "Echoes of Victory"
+          "name": "Echoes of Victory",
+          "desc": ""
         }
       ]
     },
@@ -227,8 +227,8 @@
           "desc": "Azorius insignia, Scroll containing the text of a law important to you, Ink (1-ounce bottle), Ink pen, Fine clothes, Pouch containing 10 GP"
         },
         {
-          "name": "Feature",
-          "desc": "Legal Authority"
+          "name": "Legal Authority",
+          "desc": ""
         }
       ]
     },
@@ -277,8 +277,8 @@
           "desc": "Boros insignia, Feather from an angel's wing, Tattered piece of a Boros banner (a souvenir from a famous battle), Common clothes, Pouch containing 2 GP"
         },
         {
-          "name": "Feature",
-          "desc": "Legion Station"
+          "name": "Legion Station",
+          "desc": ""
         }
       ]
     },
@@ -331,8 +331,8 @@
           "desc": "Disguise kit, Fine clothes, Pouch containing 30 GP"
         },
         {
-          "name": "Feature",
-          "desc": "Name Dropping"
+          "name": "Name Dropping",
+          "desc": ""
         }
       ]
     },
@@ -408,8 +408,8 @@
           "desc": "Uniform in the style of your unit and indicative of your rank, Horn with which to summon help, Set of manacles, Pouch containing 10 GP"
         },
         {
-          "name": "Feature",
-          "desc": "Watcher's Eye"
+          "name": "Watcher's Eye",
+          "desc": ""
         }
       ]
     },
@@ -435,8 +435,8 @@
           "desc": "Artisan's Tools, Maker's mark chisel used to mark your handiwork with the symbol of the clan of crafters you learned your skill from, Traveler's clothes, Pouch containing 15 GP"
         },
         {
-          "name": "Feature",
-          "desc": "Respect of the Stout Folk"
+          "name": "Respect of the Stout Folk",
+          "desc": ""
         }
       ]
     },
@@ -458,8 +458,8 @@
           "desc": "The scholar's robes of your cloister, Pouch, Quill, Ink, Folded parchment, Small penknife, Borrowed book on the subject of your current study, Pouch containing 10 GP"
         },
         {
-          "name": "Feature",
-          "desc": "Library Access"
+          "name": "Library Access",
+          "desc": ""
         }
       ]
     },
@@ -508,8 +508,8 @@
           "desc": "Fine clothes, Pouch containing 5 GP"
         },
         {
-          "name": "Feature",
-          "desc": "Court Functionary"
+          "name": "Court Functionary",
+          "desc": ""
         }
       ]
     },
@@ -643,8 +643,8 @@
           "desc": "Dimir insignia, Small knives (3), Dark-colored common clothes, The starting equipment of the background described in this chapter for your secondary guild"
         },
         {
-          "name": "Feature",
-          "desc": "False Identity"
+          "name": "False Identity",
+          "desc": ""
         }
       ]
     },
@@ -805,8 +805,8 @@
           "desc": "Disguise kit, Costume clothes, Pouch containing 10 GP"
         },
         {
-          "name": "Feature",
-          "desc": "Dual Personalities"
+          "name": "Dual Personalities",
+          "desc": ""
         }
       ]
     },
@@ -828,8 +828,8 @@
           "desc": "Badge or emblem of your faction, Copy of a seminal faction text (or code-book for a covert faction), Common clothes, Pouch containing 15 GP"
         },
         {
-          "name": "Feature",
-          "desc": "Safe Haven"
+          "name": "Safe Haven",
+          "desc": ""
         }
       ]
     },
@@ -855,8 +855,8 @@
           "desc": "Artisan's Tools, Merchant's scale, Fine clothes, Pouch containing 10 GP"
         },
         {
-          "name": "Feature",
-          "desc": "Supply Chain"
+          "name": "Supply Chain",
+          "desc": ""
         }
       ]
     },
@@ -909,8 +909,8 @@
           "desc": "Traveler's clothes, Poorly wrought maps from your homeland that depict where you are in Faerûn, Small piece of jewelry in the style of your homeland's craftsmanship, Pouch containing 5 GP, Musical Instrument, Gaming Set"
         },
         {
-          "name": "Feature",
-          "desc": "All Eyes on You"
+          "name": "All Eyes on You",
+          "desc": ""
         }
       ]
     },
@@ -959,8 +959,8 @@
           "desc": "Musical Instrument, Traveler's clothes, Feywild trinket (3), Pouch containing 8 GP"
         },
         {
-          "name": "Feature",
-          "desc": "Feywild Connection"
+          "name": "Feywild Connection",
+          "desc": ""
         }
       ]
     },
@@ -982,8 +982,8 @@
           "desc": "Fishing tackle, Net, Traveler's clothes, Pouch containing 10 GP, Favorite fishing lure, Oiled leather wading boots"
         },
         {
-          "name": "Feature",
-          "desc": "Harvest the Water"
+          "name": "Harvest the Water",
+          "desc": ""
         }
       ]
     },
@@ -1032,8 +1032,8 @@
           "desc": "Artisan's Tools, Shovel, Iron pot, Common clothes, Pouch containing 10 GP"
         },
         {
-          "name": "Feature",
-          "desc": "Rustic Hospitality"
+          "name": "Rustic Hospitality",
+          "desc": ""
         }
       ]
     },
@@ -1055,8 +1055,8 @@
           "desc": "Gaming Set, Lucky charm, Fine clothes, Pouch containing 15 GP"
         },
         {
-          "name": "Feature",
-          "desc": "Never Tell Me the Odds"
+          "name": "Never Tell Me the Odds",
+          "desc": ""
         }
       ]
     },
@@ -1082,8 +1082,8 @@
           "desc": "Ring of keys to unknown locks, Blank book, Bottle of black ink, Traveler's clothes, Pouch containing 10 GP, Ink pen, Quill"
         },
         {
-          "name": "Feature",
-          "desc": "Planar Infusion"
+          "name": "Planar Infusion",
+          "desc": ""
         }
       ]
     },
@@ -1136,8 +1136,8 @@
           "desc": "Backpack, Traveler's clothes, Pouch containing 10 GP, Small stone that reminds you of home, Sprig that reminds you of home"
         },
         {
-          "name": "Feature",
-          "desc": "Strike of the Giants"
+          "name": "Strike of the Giants",
+          "desc": ""
         }
       ]
     },
@@ -1163,8 +1163,8 @@
           "desc": "Golgari insignia, Poisoner's kit, Common clothes, Pouch containing 10 GP, Pet beetle, Pet spider"
         },
         {
-          "name": "Feature",
-          "desc": "Undercity Paths"
+          "name": "Undercity Paths",
+          "desc": ""
         }
       ]
     },
@@ -1186,8 +1186,8 @@
           "desc": "Fine clothes, Disguise kit, Musical Instrument, Gold-plated ring depicting a smiling face, Pouch containing 15 GP"
         },
         {
-          "name": "Feature",
-          "desc": "Ballad of the Grinning Fool"
+          "name": "Ballad of the Grinning Fool",
+          "desc": ""
         }
       ]
     },
@@ -1213,8 +1213,8 @@
           "desc": "Gruul insignia, Hunting trap, Herbalism kit, The skull of a boar, Beast-hide cloak, Traveler's clothes, Pouch containing 10 GP"
         },
         {
-          "name": "Feature",
-          "desc": "Rubblebelt Refuge"
+          "name": "Rubblebelt Refuge",
+          "desc": ""
         }
       ]
     },
@@ -1294,8 +1294,8 @@
           "desc": "Artisan's Tools, Letter of introduction from your guild, Traveler's clothes, Pouch containing 15 GP"
         },
         {
-          "name": "Feature",
-          "desc": "Guild Membership"
+          "name": "Guild Membership",
+          "desc": ""
         }
       ]
     },
@@ -1834,8 +1834,8 @@
           "desc": "Your inheritance, Traveler's clothes, Pouch containing 15 GP, Gaming Set, Musical Instrument"
         },
         {
-          "name": "Feature",
-          "desc": "Inheritance"
+          "name": "Inheritance",
+          "desc": ""
         }
       ]
     },
@@ -1857,8 +1857,8 @@
           "desc": "Simple puzzle box, Scroll containing the basic teachings of the five gods, Gaming Set, Common clothes, Pouch containing 15 GP, Any cartouches you have earned"
         },
         {
-          "name": "Feature",
-          "desc": "Trials of the Five Gods"
+          "name": "Trials of the Five Gods",
+          "desc": ""
         }
       ]
     },
@@ -1907,8 +1907,8 @@
           "desc": "Holy symbol, Traveler's clothes, Pouch containing 15 GP"
         },
         {
-          "name": "Feature",
-          "desc": "Legal Authority"
+          "name": "Legal Authority",
+          "desc": ""
         }
       ]
     },
@@ -1961,8 +1961,8 @@
           "desc": "Izzet insignia, Artisan's Tools, The charred and twisted remains of a failed experiment, Hammer, Block and tackle, Common clothes, Pouch containing 5 GP"
         },
         {
-          "name": "Feature",
-          "desc": "Urban Infrastructure"
+          "name": "Urban Infrastructure",
+          "desc": ""
         }
       ]
     },
@@ -1988,8 +1988,8 @@
           "desc": "Insignia of rank, Playing card set, Common clothes, Pouch containing 10 GP"
         },
         {
-          "name": "Feature",
-          "desc": "Squire of Solamnia"
+          "name": "Squire of Solamnia",
+          "desc": ""
         }
       ]
     },
@@ -2042,8 +2042,8 @@
           "desc": "Traveler's clothes, Signet, banner, or seal representing your place or rank in the order, Pouch containing 10 GP"
         },
         {
-          "name": "Feature",
-          "desc": "Knightly Regard"
+          "name": "Knightly Regard",
+          "desc": ""
         }
       ]
     },
@@ -2096,8 +2096,8 @@
           "desc": "Ink (1-ounce bottle), Ink pen, Hammer, Hooded lantern, Tinderbox, Tome of history, School uniform, Pouch containing 15 GP"
         },
         {
-          "name": "Feature",
-          "desc": "Lorehold Initiate"
+          "name": "Lorehold Initiate",
+          "desc": ""
         }
       ]
     },
@@ -2123,8 +2123,8 @@
           "desc": "Ink (1-ounce bottle), Ink pen, Common clothes, Pouch containing 10 GP"
         },
         {
-          "name": "Feature",
-          "desc": "Initiate of High Sorcery"
+          "name": "Initiate of High Sorcery",
+          "desc": ""
         }
       ]
     },
@@ -2146,8 +2146,8 @@
           "desc": "Dagger that belonged to a fallen comrade, Folded flag emblazoned with the symbol of your ship or company, Traveler's clothes, Pouch containing 10 GP"
         },
         {
-          "name": "Feature",
-          "desc": "Steady"
+          "name": "Steady",
+          "desc": ""
         }
       ]
     },
@@ -2169,8 +2169,8 @@
           "desc": "Uniform of your company, Insignia of your rank, Gaming Set, Pouch containing 10 GP"
         },
         {
-          "name": "Feature",
-          "desc": "Mercenary Life"
+          "name": "Mercenary Life",
+          "desc": ""
         }
       ]
     },
@@ -2381,8 +2381,8 @@
           "desc": "Orzhov insignia, Foot-long chain made of ten gold coins, Vestments, Fine clothes, Pouch containing 10 GP"
         },
         {
-          "name": "Feature",
-          "desc": "Leverage"
+          "name": "Leverage",
+          "desc": ""
         }
       ]
     },
@@ -2404,8 +2404,8 @@
           "desc": "Staff, Hunting trap, Trophy from an animal you killed, Traveler's clothes, Pouch containing 10 GP"
         },
         {
-          "name": "Feature",
-          "desc": "Wanderer"
+          "name": "Wanderer",
+          "desc": ""
         }
       ]
     },
@@ -2458,8 +2458,8 @@
           "desc": "Artisan's Tools, Fine clothes"
         },
         {
-          "name": "Feature",
-          "desc": "Legalese"
+          "name": "Legalese",
+          "desc": ""
         }
       ]
     },
@@ -2485,8 +2485,8 @@
           "desc": "Portal key (such as a bag of golden tea leaves or the tooth of a planar beast), Manifesto of your guiding philosophy, Common clothes in your faction's style, Pouch containing 10 GP"
         },
         {
-          "name": "Feature",
-          "desc": "Conviction"
+          "name": "Conviction",
+          "desc": ""
         }
       ]
     },
@@ -2516,8 +2516,8 @@
           "desc": "Ink (1-ounce bottle), Ink pen, Artisan's Tools, Musical Instrument, School uniform, Pouch containing 10 GP"
         },
         {
-          "name": "Feature",
-          "desc": "Prismari Initiate"
+          "name": "Prismari Initiate",
+          "desc": ""
         }
       ]
     },
@@ -2574,8 +2574,8 @@
           "desc": "Ink (1-ounce bottle), Ink pen, Abacus, Book of arcane theory, School uniform, Pouch containing 15 GP"
         },
         {
-          "name": "Feature",
-          "desc": "Quandrix Initiate"
+          "name": "Quandrix Initiate",
+          "desc": ""
         }
       ]
     },
@@ -2597,8 +2597,8 @@
           "desc": "Rakdos insignia, Musical Instrument, Costume clothes, Hooded lantern made of wrought iron, 10-foot length of chain with sharply spiked links, Tinderbox, Torch (10), Common clothes, Pouch containing 10 GP, Bottle of sweet, red juice"
         },
         {
-          "name": "Feature",
-          "desc": "Fearsome Reputation"
+          "name": "Fearsome Reputation",
+          "desc": ""
         }
       ]
     },
@@ -2701,8 +2701,8 @@
           "desc": "Artisan's Tools, Ledger from your previous employer containing a small piece of useful information, Fine clothes, Pouch containing 10 GP"
         },
         {
-          "name": "Feature",
-          "desc": "Inside Informant"
+          "name": "Inside Informant",
+          "desc": ""
         }
       ]
     },
@@ -2755,8 +2755,8 @@
           "desc": "Artisan's Tools, Small knife, Whetstone, Common clothes, Pouch containing 10 GP"
         },
         {
-          "name": "Feature",
-          "desc": "Rune Shaper"
+          "name": "Rune Shaper",
+          "desc": ""
         }
       ]
     },
@@ -2890,8 +2890,8 @@
           "desc": "Selesnya insignia, Healer's kit, Robes, Common clothes, Pouch containing 5 GP"
         },
         {
-          "name": "Feature",
-          "desc": "Conclave's Shelter"
+          "name": "Conclave's Shelter",
+          "desc": ""
         }
       ]
     },
@@ -2940,8 +2940,8 @@
           "desc": "Set of well-loved carpenter's tools, Blank book, Ink (1-ounce bottle), Ink pen, Traveler's clothes, Pouch containing 10 GP"
         },
         {
-          "name": "Feature",
-          "desc": "I'll Patch It!"
+          "name": "I'll Patch It!",
+          "desc": ""
         }
       ]
     },
@@ -2967,8 +2967,8 @@
           "desc": "Ink (1-ounce bottle), Ink pen, Book of poetry, School uniform, Pouch containing 15 GP"
         },
         {
-          "name": "Feature",
-          "desc": "Silverquill Initiate"
+          "name": "Silverquill Initiate",
+          "desc": ""
         }
       ]
     },
@@ -2990,8 +2990,8 @@
           "desc": "Simic insignia, Common clothes, Book of research notes, Ink pen, Ink (1-ounce bottle), Flask of oil (made from blubber), Vial of acid (derived from digestive juices), Vial of fish scales, Vial of seaweed, Vial of jellyfish stingers, Glass bottle of unidentified slime, Pouch containing 10 GP"
         },
         {
-          "name": "Feature",
-          "desc": "Researcher"
+          "name": "Researcher",
+          "desc": ""
         }
       ]
     },
@@ -3013,8 +3013,8 @@
           "desc": "Fancy leather vest, Pair of leather boots, Common clothes, Pouch containing 15 GP"
         },
         {
-          "name": "Feature",
-          "desc": "Down Low"
+          "name": "Down Low",
+          "desc": ""
         }
       ]
     },
@@ -3117,8 +3117,8 @@
           "desc": "Pouch containing 20 GP"
         },
         {
-          "name": "Feature",
-          "desc": "Ear to the Ground"
+          "name": "Ear to the Ground",
+          "desc": ""
         }
       ]
     },
@@ -3140,8 +3140,8 @@
           "desc": "Small knife, Map of the city you grew up in, Pet mouse, Token to remember your parents by, Common clothes, Pouch containing 10 GP"
         },
         {
-          "name": "Feature",
-          "desc": "City Secrets"
+          "name": "City Secrets",
+          "desc": ""
         }
       ]
     },
@@ -3167,8 +3167,8 @@
           "desc": "Hunting trap, Traveler's clothes, Pouch containing 10 GP, Totemic token, Set of tattoos marking your loyalty to Uthgar and your tribal totem"
         },
         {
-          "name": "Feature",
-          "desc": "Uthgardt Heritage"
+          "name": "Uthgardt Heritage",
+          "desc": ""
         }
       ]
     },
@@ -3244,8 +3244,8 @@
           "desc": "Uniform in the style of your unit and indicative of your rank, Horn with which to summon help, Set of manacles, Pouch containing 10 GP"
         },
         {
-          "name": "Feature",
-          "desc": "Watcher's Eye"
+          "name": "Watcher's Eye",
+          "desc": ""
         }
       ]
     },
@@ -3267,8 +3267,8 @@
           "desc": "Artisan's Tools, Musical Instrument, Scroll of your god's teachings, Vizier's cartouche, Fine clothes, Pouch containing 25 GP"
         },
         {
-          "name": "Feature",
-          "desc": "Voice of Authority"
+          "name": "Voice of Authority",
+          "desc": ""
         }
       ]
     },
@@ -3294,8 +3294,8 @@
           "desc": "Common clothes, Black cloak with a hood, Poisoner's kit, Pouch containing 10 GP"
         },
         {
-          "name": "Feature",
-          "desc": "Shadow Network"
+          "name": "Shadow Network",
+          "desc": ""
         }
       ]
     },
@@ -3348,8 +3348,8 @@
           "desc": "Fine clothes, Scroll of pedigree, Skin of fine zzar or wine, Purse containing 20 GP, Signet ring, Brooch"
         },
         {
-          "name": "Feature",
-          "desc": "Kept in Style"
+          "name": "Kept in Style",
+          "desc": ""
         }
       ]
     },
@@ -3402,8 +3402,8 @@
           "desc": "Belaying pin, Traveler's clothes, Grappling hook, Hempen rope (50 feet), Pouch containing 10 GP"
         },
         {
-          "name": "Feature",
-          "desc": "Wildspace Adaptation"
+          "name": "Wildspace Adaptation",
+          "desc": ""
         }
       ]
     },
@@ -3429,8 +3429,8 @@
           "desc": "Disguise kit, Musical Instrument, Deck of cards, Costume clothes, Feywild trinket, Pouch containing 8 GP"
         },
         {
-          "name": "Feature",
-          "desc": "Carnival Fixture"
+          "name": "Carnival Fixture",
+          "desc": ""
         }
       ]
     },
@@ -3460,8 +3460,8 @@
           "desc": "Ink (1-ounce bottle), Ink pen, Book about plant identification, Iron pot, Herbalism kit, School uniform, Pouch containing 15 GP"
         },
         {
-          "name": "Feature",
-          "desc": "Witherbloom Initiate"
+          "name": "Witherbloom Initiate",
+          "desc": ""
         }
       ]
     },
