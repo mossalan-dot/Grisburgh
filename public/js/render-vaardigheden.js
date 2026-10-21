@@ -1556,7 +1556,7 @@ function _achtergrondKaartHtml(naam) {
     soort: 'background', naam, kleur: '#962058', icoon: 'scroll-text',
     bijschrift: 'Background', onder: String(data.ondertitel || '').trim(),
     uitleg,
-    kern: { kop: 'Wat het geeft', rijen: [...vaste, ...(data.boek ? [['Uit', data.boek]] : [])] },
+    kern: { kop: 'Eigenschappen', rijen: [...vaste, ...(data.boek ? [['Uit', data.boek]] : [])] },
     extra: `
       ${vaste.length ? '' : '<p class="vk-noot">Van deze background staat er niets in de app.</p>'}
 `,
@@ -2516,7 +2516,7 @@ function _bgVeldenHtml(naam) {
   if (!delen.length) return '';
   return `
     <details class="dm-uitklap vd-basis" open>
-      <summary>${icon('scroll-text')} Wat het geeft</summary>
+      <summary>${icon('scroll-text')} Eigenschappen</summary>
       <div class="dm-uitklap-body">
         ${delen.map((d, i) => {
           // Een vast onderdeel is een kort feit ("Insight, Religion") en past
@@ -3565,6 +3565,16 @@ window.vaardigheden = {
     _filters.q = q || '';
     const heeft = !!(_filters.q || '').trim();
     if (had !== heeft) { _bandHerteken(); _refreshFilterBar(); }
+    // **De kruimel moet meelopen met wat er staat.** De band wordt alleen
+    // opnieuw getekend als zoeken begint of ophoudt, en dus bleef er
+    // "Resultaten voor “s”" staan terwijl je "save haven" had getypt. Hem
+    // helemaal hertekenen bij elke toetsaanslag kan niet: dan raakt het
+    // zoekveld zijn focus kwijt en typ je in het niets. Dus alleen dit ene
+    // woord bijwerken.
+    else if (heeft) {
+      const nu = document.querySelector('.vd-kruimel-nu');
+      if (nu) nu.textContent = `Resultaten voor \u201C${_filters.q}\u201D`;
+    }
     _paint();
   },
   setSoort(k) { _filters.soort = k || null; _filters.bron = null; _filters.level = null; _refreshFilterBar(); _paint(); },
