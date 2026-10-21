@@ -1,4 +1,31 @@
 {
+  "Aberrant Heir": {
+    "levels": {
+      "1": [
+        {
+          "name": "Ability Scores",
+          "desc": "Strength, Constitution, Charisma"
+        },
+        {
+          "name": "Feat",
+          "desc": "Aberrant Dragonmark"
+        },
+        {
+          "name": "Skill Proficiencies",
+          "desc": "History and Intimidation"
+        },
+        {
+          "name": "Tool Proficiencies",
+          "desc": "Disguise Kit"
+        },
+        {
+          "name": "Equipment",
+          "desc": "Choose A or B: (A) Dagger, Disguise Kit, Costume, Traveler's Clothes, 16 GP; or (B) 50 GP"
+        }
+      ]
+    },
+    "boek": "Eberron: Forge of the Artificer"
+  },
   "Acolyte": {
     "levels": {
       "1": [
@@ -23,7 +50,85 @@
           "desc": "Choose A or B: (A) Calligrapher's Supplies, Book (prayers), Holy Symbol, Parchment (10 sheets), Robe, 8 GP; or (B) 50 GP"
         }
       ]
-    }
+    },
+    "boek": "Player's Handbook (2024)"
+  },
+  "Agent of the Ninth Quill": {
+    "levels": {
+      "1": [
+        {
+          "name": "Ability Scores",
+          "desc": "Dexterity, Intelligence, Charisma"
+        },
+        {
+          "name": "Feat",
+          "desc": "Arcane Infiltrator"
+        },
+        {
+          "name": "Skill Proficiencies",
+          "desc": "Arcana and Sleight of Hand"
+        },
+        {
+          "name": "Tool Proficiencies",
+          "desc": "Thieves' Tools"
+        },
+        {
+          "name": "Equipment",
+          "desc": "Choose A or B: (A) Dagger, Light Hammer, Thieves' Tools, Iron Spikes, Rope, Traveler's Clothes, 17 GP; or (B) 50 GP"
+        }
+      ]
+    },
+    "boek": "Arcana Unleashed"
+  },
+  "Anthropologist": {
+    "levels": {
+      "1": [
+        {
+          "name": "Skill Proficiencies",
+          "desc": "Insight, Religion"
+        },
+        {
+          "name": "Languages",
+          "desc": "any 2 languages"
+        },
+        {
+          "name": "Equipment",
+          "desc": "Leather-bound diary, Ink (1-ounce bottle), Ink pen, Traveler's clothes, Trinket of special significance, Pouch containing 10 GP"
+        },
+        {
+          "name": "Feature",
+          "desc": "Adept Linguist"
+        }
+      ]
+    },
+    "boek": "Tomb of Annihilation"
+  },
+  "Archaeologist": {
+    "levels": {
+      "1": [
+        {
+          "name": "Ability Scores",
+          "desc": "Dexterity, Intelligence, Wisdom"
+        },
+        {
+          "name": "Feat",
+          "desc": "Skilled"
+        },
+        {
+          "name": "Skill Proficiencies",
+          "desc": "History and Survival"
+        },
+        {
+          "name": "Tool Proficiencies",
+          "desc": "Cartographer's Tools"
+        },
+        {
+          "name": "Equipment",
+          "desc": "Choose A or B: (A) Cartographer's Tools, Bullseye Lantern, Map, Map or Scroll Case, Shovel, Tent, Traveler's Clothes, 17 GP; or (B) 50 GP"
+        }
+      ]
+    },
+    "boek": "Eberron: Forge of the Artificer"
   },
   "Artisan": {
     "levels": {
@@ -49,7 +154,189 @@
           "desc": "Choose A or B: (A) Artisan's Tools (same as above), 2 Pouches, Traveler's Clothes, 32 GP; or (B) 50 GP"
         }
       ]
-    }
+    },
+    "boek": "Player's Handbook (2024)"
+  },
+  "Astral Drifter": {
+    "levels": {
+      "1": [
+        {
+          "name": "Skill Proficiencies",
+          "desc": "Insight, Religion"
+        },
+        {
+          "name": "Languages",
+          "desc": "any 2 languages"
+        },
+        {
+          "name": "Feat",
+          "desc": "Magic Initiate"
+        },
+        {
+          "name": "Equipment",
+          "desc": "Traveler's clothes, Diary, Ink pen, Ink (1-ounce bottle), Pouch containing 10 GP"
+        },
+        {
+          "name": "Feature",
+          "desc": "Divine Contact"
+        }
+      ]
+    },
+    "boek": "Astral Adventurer's Guide"
+  },
+  "Athlete": {
+    "levels": {
+      "1": [
+        {
+          "name": "Skill Proficiencies",
+          "desc": "Acrobatics, Athletics"
+        },
+        {
+          "name": "Tool Proficiencies",
+          "desc": "Vehicles (Land)"
+        },
+        {
+          "name": "Languages",
+          "desc": "any 1 languages"
+        },
+        {
+          "name": "Equipment",
+          "desc": "Bronze discus, Leather ball, Lucky charm, Past trophy, Traveler's clothes, Pouch containing 10 GP"
+        },
+        {
+          "name": "Feature",
+          "desc": "Echoes of Victory"
+        }
+      ]
+    },
+    "boek": "Mythic Odysseys of Theros"
+  },
+  "Azorius Functionary": {
+    "levels": {
+      "1": [
+        {
+          "name": "Skill Proficiencies",
+          "desc": "Insight, Intimidation"
+        },
+        {
+          "name": "Languages",
+          "desc": "any 2 languages"
+        },
+        {
+          "name": "Equipment",
+          "desc": "Azorius insignia, Scroll containing the text of a law important to you, Ink (1-ounce bottle), Ink pen, Fine clothes, Pouch containing 10 GP"
+        },
+        {
+          "name": "Feature",
+          "desc": "Legal Authority"
+        }
+      ]
+    },
+    "boek": "Guildmasters' Guide to Ravnica"
+  },
+  "Bejeweled Conclave Spy": {
+    "levels": {
+      "1": [
+        {
+          "name": "Ability Scores",
+          "desc": "Dexterity, Wisdom, Charisma"
+        },
+        {
+          "name": "Feat",
+          "desc": "Arcane Eloquence"
+        },
+        {
+          "name": "Skill Proficiencies",
+          "desc": "Deception and Perception"
+        },
+        {
+          "name": "Tool Proficiencies",
+          "desc": "Disguise Kit"
+        },
+        {
+          "name": "Equipment",
+          "desc": "Choose A or B: (A) Disguise Kit, Fine Clothes, Perfume, 5 GP; or (B) 50 GP"
+        }
+      ]
+    },
+    "boek": "Arcana Unleashed"
+  },
+  "Boros Legionnaire": {
+    "levels": {
+      "1": [
+        {
+          "name": "Skill Proficiencies",
+          "desc": "Athletics, Intimidation"
+        },
+        {
+          "name": "Languages",
+          "desc": "choose one: Celestial, Draconic, Goblin, Other"
+        },
+        {
+          "name": "Equipment",
+          "desc": "Boros insignia, Feather from an angel's wing, Tattered piece of a Boros banner (a souvenir from a famous battle), Common clothes, Pouch containing 2 GP"
+        },
+        {
+          "name": "Feature",
+          "desc": "Legion Station"
+        }
+      ]
+    },
+    "boek": "Guildmasters' Guide to Ravnica"
+  },
+  "Carouser": {
+    "levels": {
+      "1": [
+        {
+          "name": "Ability Scores",
+          "desc": "Dexterity, Intelligence, Charisma"
+        },
+        {
+          "name": "Feat",
+          "desc": "Tireless Reveler"
+        },
+        {
+          "name": "Skill Proficiencies",
+          "desc": "Deception and Persuasion"
+        },
+        {
+          "name": "Tool Proficiency",
+          "desc": "Choose one kind of Gaming Set"
+        },
+        {
+          "name": "Equipment",
+          "desc": "Choose A or B: (A) Dagger, Gaming Set (same as above), Fine Clothes, Glass Bottle, Mirror, Perfume, Pouch, Tinderbox, 19 GP; or (B) 50 GP"
+        }
+      ]
+    },
+    "boek": "Astarion's Book of Hungers"
+  },
+  "Celebrity Adventurer's Scion": {
+    "levels": {
+      "1": [
+        {
+          "name": "Skill Proficiencies",
+          "desc": "Perception, Performance"
+        },
+        {
+          "name": "Tool Proficiencies",
+          "desc": "Disguise Kit"
+        },
+        {
+          "name": "Languages",
+          "desc": "any 2 languages"
+        },
+        {
+          "name": "Equipment",
+          "desc": "Disguise kit, Fine clothes, Pouch containing 30 GP"
+        },
+        {
+          "name": "Feature",
+          "desc": "Name Dropping"
+        }
+      ]
+    },
+    "boek": "Acquisitions Incorporated"
   },
   "Charlatan": {
     "levels": {
@@ -75,7 +362,185 @@
           "desc": "Choose A or B: (A) Forgery Kit, Costume, Fine Clothes, 15 GP; or (B) 50 GP"
         }
       ]
-    }
+    },
+    "boek": "Player's Handbook (2024)"
+  },
+  "Chondathan Freebooter": {
+    "levels": {
+      "1": [
+        {
+          "name": "Ability Scores",
+          "desc": "Strength, Dexterity, Wisdom"
+        },
+        {
+          "name": "Feat",
+          "desc": "Skilled"
+        },
+        {
+          "name": "Skill Proficiencies",
+          "desc": "Athletics and Sleight of Hand"
+        },
+        {
+          "name": "Tool Proficiencies",
+          "desc": "Weaver's Tools"
+        },
+        {
+          "name": "Equipment",
+          "desc": "Choose A or B: (A) Dagger, Weaver's Tools, Backpack, Ball Bearings, Basket, Bedroll, Bucket, Rations (3 days' worth), Rope, Signal Whistle, Traveler's Clothes, 38 GP; or (B) 50 GP"
+        }
+      ]
+    },
+    "boek": "Forgotten Realms: Heroes of Faerûn"
+  },
+  "City Watch": {
+    "levels": {
+      "1": [
+        {
+          "name": "Skill Proficiencies",
+          "desc": "Athletics, Insight"
+        },
+        {
+          "name": "Languages",
+          "desc": "any 2 languages"
+        },
+        {
+          "name": "Equipment",
+          "desc": "Uniform in the style of your unit and indicative of your rank, Horn with which to summon help, Set of manacles, Pouch containing 10 GP"
+        },
+        {
+          "name": "Feature",
+          "desc": "Watcher's Eye"
+        }
+      ]
+    },
+    "boek": "Sword Coast Adventurer's Guide"
+  },
+  "Clan Crafter": {
+    "levels": {
+      "1": [
+        {
+          "name": "Skill Proficiencies",
+          "desc": "History, Insight"
+        },
+        {
+          "name": "Tool Proficiencies",
+          "desc": "any 1 artisan's tools"
+        },
+        {
+          "name": "Languages",
+          "desc": "Dwarvish, any 1 languages"
+        },
+        {
+          "name": "Equipment",
+          "desc": "Artisan's Tools, Maker's mark chisel used to mark your handiwork with the symbol of the clan of crafters you learned your skill from, Traveler's clothes, Pouch containing 15 GP"
+        },
+        {
+          "name": "Feature",
+          "desc": "Respect of the Stout Folk"
+        }
+      ]
+    },
+    "boek": "Sword Coast Adventurer's Guide"
+  },
+  "Cloistered Scholar": {
+    "levels": {
+      "1": [
+        {
+          "name": "Skill Proficiencies",
+          "desc": "History, choose one: Arcana, Nature, Religion"
+        },
+        {
+          "name": "Languages",
+          "desc": "any 2 languages"
+        },
+        {
+          "name": "Equipment",
+          "desc": "The scholar's robes of your cloister, Pouch, Quill, Ink, Folded parchment, Small penknife, Borrowed book on the subject of your current study, Pouch containing 10 GP"
+        },
+        {
+          "name": "Feature",
+          "desc": "Library Access"
+        }
+      ]
+    },
+    "boek": "Sword Coast Adventurer's Guide"
+  },
+  "Cosmic Dawn Experiment": {
+    "levels": {
+      "1": [
+        {
+          "name": "Ability Scores",
+          "desc": "Strength, Dexterity, Constitution"
+        },
+        {
+          "name": "Feat",
+          "desc": "Transmuted Anatomy"
+        },
+        {
+          "name": "Skill Proficiencies",
+          "desc": "Athletics and Survival"
+        },
+        {
+          "name": "Tool Proficiencies",
+          "desc": "Choose one kind of Artisan's Tools"
+        },
+        {
+          "name": "Equipment",
+          "desc": "Choose A or B: (A) Artisan's Tools (same as above), Backpack, Robe, Traveler's Clothes, 30 GP; or (B) 50 GP"
+        }
+      ]
+    },
+    "boek": "Arcana Unleashed"
+  },
+  "Courtier": {
+    "levels": {
+      "1": [
+        {
+          "name": "Skill Proficiencies",
+          "desc": "Insight, Persuasion"
+        },
+        {
+          "name": "Languages",
+          "desc": "any 2 languages"
+        },
+        {
+          "name": "Equipment",
+          "desc": "Fine clothes, Pouch containing 5 GP"
+        },
+        {
+          "name": "Feature",
+          "desc": "Court Functionary"
+        }
+      ]
+    },
+    "boek": "Sword Coast Adventurer's Guide"
+  },
+  "Covenant of the Grave Recruit": {
+    "levels": {
+      "1": [
+        {
+          "name": "Ability Scores",
+          "desc": "Strength, Intelligence, Wisdom"
+        },
+        {
+          "name": "Feat",
+          "desc": "Arcane Undertaker"
+        },
+        {
+          "name": "Skill Proficiencies",
+          "desc": "History and Medicine"
+        },
+        {
+          "name": "Tool Proficiencies",
+          "desc": "Herbalism Kit"
+        },
+        {
+          "name": "Equipment",
+          "desc": "Choose A or B: (A) Dagger, Herbalism Kit, Book (anatomy), Shovel, 16 GP; or (B) 50 GP"
+        }
+      ]
+    },
+    "boek": "Arcana Unleashed"
   },
   "Criminal": {
     "levels": {
@@ -101,7 +566,170 @@
           "desc": "Choose A or B: (A) 2 Daggers, Thieves' Tools, Crowbar, 2 Pouches, Traveler's Clothes, 16 GP; or (B) 50 GP"
         }
       ]
-    }
+    },
+    "boek": "Player's Handbook (2024)"
+  },
+  "Crucible Storm Chaser": {
+    "levels": {
+      "1": [
+        {
+          "name": "Ability Scores",
+          "desc": "Strength, Constitution, Intelligence"
+        },
+        {
+          "name": "Feat",
+          "desc": "Arcane Overload"
+        },
+        {
+          "name": "Skill Proficiencies",
+          "desc": "Athletics and Nature"
+        },
+        {
+          "name": "Tool Proficiencies",
+          "desc": "Glassblower's Tools"
+        },
+        {
+          "name": "Equipment",
+          "desc": "Choose A or B: (A) Glassblower's Tools, Backpack, Rope, Traveler's Clothes, 15 GP; or (B) 50 GP"
+        }
+      ]
+    },
+    "boek": "Arcana Unleashed"
+  },
+  "Dead Magic Dweller": {
+    "levels": {
+      "1": [
+        {
+          "name": "Ability Scores",
+          "desc": "Strength, Constitution, Wisdom"
+        },
+        {
+          "name": "Feat",
+          "desc": "Healer"
+        },
+        {
+          "name": "Skill Proficiencies",
+          "desc": "Medicine and Survival"
+        },
+        {
+          "name": "Tool Proficiencies",
+          "desc": "Leatherworker's Tools"
+        },
+        {
+          "name": "Equipment",
+          "desc": "Choose A or B: (A) Greatclub, Leatherworker's Tools, Bedroll, Blanket, Healer's Kit, Pole, Rations (3 days' worth), Tent, Tinderbox, 5 Torches, Traveler's Clothes, Waterskin, 32 GP; or (B) 50 GP"
+        }
+      ]
+    },
+    "boek": "Forgotten Realms: Heroes of Faerûn"
+  },
+  "Dimir Operative": {
+    "levels": {
+      "1": [
+        {
+          "name": "Skill Proficiencies",
+          "desc": "Deception, Stealth"
+        },
+        {
+          "name": "Tool Proficiencies",
+          "desc": "Disguise Kit"
+        },
+        {
+          "name": "Languages",
+          "desc": "any 1 languages"
+        },
+        {
+          "name": "Equipment",
+          "desc": "Dimir insignia, Small knives (3), Dark-colored common clothes, The starting equipment of the background described in this chapter for your secondary guild"
+        },
+        {
+          "name": "Feature",
+          "desc": "False Identity"
+        }
+      ]
+    },
+    "boek": "Guildmasters' Guide to Ravnica"
+  },
+  "Discredited Neural Tuner": {
+    "levels": {
+      "1": [
+        {
+          "name": "Ability Scores",
+          "desc": "Strength, Dexterity, Intelligence"
+        },
+        {
+          "name": "Feat",
+          "desc": "Gathered Whispers or a Dark Gift feat of your choice"
+        },
+        {
+          "name": "Skill Proficiencies",
+          "desc": "Medicine and Nature"
+        },
+        {
+          "name": "Tool Proficiencies",
+          "desc": "Tinker's Tools (as engineer's toolkit)"
+        },
+        {
+          "name": "Equipment",
+          "desc": "Choose A or B: (A) Tinker's Tools (as engineer's toolkit); or (B) 50 GP (as 50 dollars)"
+        }
+      ]
+    },
+    "boek": "Project Lamordia"
+  },
+  "Dragon Cultist": {
+    "levels": {
+      "1": [
+        {
+          "name": "Ability Scores",
+          "desc": "Dexterity, Constitution, Intelligence"
+        },
+        {
+          "name": "Feat",
+          "desc": "Cult of the Dragon Initiate"
+        },
+        {
+          "name": "Skill Proficiencies",
+          "desc": "Deception and Stealth"
+        },
+        {
+          "name": "Tool Proficiencies",
+          "desc": "Calligrapher's Supplies"
+        },
+        {
+          "name": "Equipment",
+          "desc": "Choose A or B: (A) Calligrapher's Supplies, Dagger, Glass Bottle, Lamp, Manacles, Oil (5 flasks), 2 Pouches, Robe, Rope, 30 GP; or (B) 50 GP"
+        }
+      ]
+    },
+    "boek": "Forgotten Realms: Heroes of Faerûn"
+  },
+  "Emerald Enclave Caretaker": {
+    "levels": {
+      "1": [
+        {
+          "name": "Ability Scores",
+          "desc": "Constitution, Intelligence, Wisdom"
+        },
+        {
+          "name": "Feat",
+          "desc": "Emerald Enclave Fledgling"
+        },
+        {
+          "name": "Skill Proficiencies",
+          "desc": "Nature and Survival"
+        },
+        {
+          "name": "Tool Proficiencies",
+          "desc": "Herbalism Kit"
+        },
+        {
+          "name": "Equipment",
+          "desc": "Choose A or B: (A) Shortbow, 20 Arrows, Herbalism Kit, Bedroll, Blanket, Pouch, Tent, Traveler's Clothes, 13 GP; or (B) 50 GP"
+        }
+      ]
+    },
+    "boek": "Forgotten Realms: Heroes of Faerûn"
   },
   "Entertainer": {
     "levels": {
@@ -127,7 +755,166 @@
           "desc": "Choose A or B: (A) Musical Instrument (same as above), 2 Costumes, Mirror, Perfume, Traveler's Clothes, 11 GP; or (B) 50 GP"
         }
       ]
-    }
+    },
+    "boek": "Player's Handbook (2024)"
+  },
+  "Fabricated Mind": {
+    "levels": {
+      "1": [
+        {
+          "name": "Ability Scores",
+          "desc": "Dexterity, Intelligence, Charisma"
+        },
+        {
+          "name": "Feat",
+          "desc": "Echoing Soul or a Dark Gift feat of your choice"
+        },
+        {
+          "name": "Skill Proficiencies",
+          "desc": "Deception and Insight"
+        },
+        {
+          "name": "Tool Proficiencies",
+          "desc": "Forgery Kit"
+        },
+        {
+          "name": "Equipment",
+          "desc": "Choose A or B: (A) Forgery Kit, Fine Clothes, Ink, 2 Ink Pens, 3 Iron Spikes, 7 GP (as 7 dollars); or (B) 50 GP (as 50 dollars)"
+        }
+      ]
+    },
+    "boek": "Project Lamordia"
+  },
+  "Faceless": {
+    "levels": {
+      "1": [
+        {
+          "name": "Skill Proficiencies",
+          "desc": "Deception, Intimidation"
+        },
+        {
+          "name": "Tool Proficiencies",
+          "desc": "Disguise Kit"
+        },
+        {
+          "name": "Languages",
+          "desc": "any 1 languages"
+        },
+        {
+          "name": "Equipment",
+          "desc": "Disguise kit, Costume clothes, Pouch containing 10 GP"
+        },
+        {
+          "name": "Feature",
+          "desc": "Dual Personalities"
+        }
+      ]
+    },
+    "boek": "Baldur's Gate: Descent Into Avernus"
+  },
+  "Faction Agent": {
+    "levels": {
+      "1": [
+        {
+          "name": "Skill Proficiencies",
+          "desc": "Insight, choose one: Arcana, Animal Handling, Deception, History, Intimidation, Investigation, Medicine, Nature, Perception, Performance, Persuasion, Religion, Survival"
+        },
+        {
+          "name": "Languages",
+          "desc": "any 2 languages"
+        },
+        {
+          "name": "Equipment",
+          "desc": "Badge or emblem of your faction, Copy of a seminal faction text (or code-book for a covert faction), Common clothes, Pouch containing 15 GP"
+        },
+        {
+          "name": "Feature",
+          "desc": "Safe Haven"
+        }
+      ]
+    },
+    "boek": "Sword Coast Adventurer's Guide"
+  },
+  "Failed Merchant": {
+    "levels": {
+      "1": [
+        {
+          "name": "Skill Proficiencies",
+          "desc": "Investigation, Persuasion"
+        },
+        {
+          "name": "Tool Proficiencies",
+          "desc": "any 1 artisan's tools"
+        },
+        {
+          "name": "Languages",
+          "desc": "any 1 languages"
+        },
+        {
+          "name": "Equipment",
+          "desc": "Artisan's Tools, Merchant's scale, Fine clothes, Pouch containing 10 GP"
+        },
+        {
+          "name": "Feature",
+          "desc": "Supply Chain"
+        }
+      ]
+    },
+    "boek": "Acquisitions Incorporated"
+  },
+  "Familiar Trainer": {
+    "levels": {
+      "1": [
+        {
+          "name": "Ability Scores",
+          "desc": "Constitution, Intelligence, Wisdom"
+        },
+        {
+          "name": "Feat",
+          "desc": "Familiar Friend"
+        },
+        {
+          "name": "Skill Proficiencies",
+          "desc": "Animal Handling and Arcana"
+        },
+        {
+          "name": "Tool Proficiencies",
+          "desc": "Choose one kind of Gaming Set"
+        },
+        {
+          "name": "Equipment",
+          "desc": "Choose A or B: (A) Quarterstaff, Gaming Set (same as above), Bedroll, Bell, String, Tinderbox, Traveler's Clothes, Waterskin, 44 GP; or (B) 50 GP"
+        }
+      ]
+    },
+    "boek": "Arcana Unleashed"
+  },
+  "Far Traveler": {
+    "levels": {
+      "1": [
+        {
+          "name": "Skill Proficiencies",
+          "desc": "Insight, Perception"
+        },
+        {
+          "name": "Tool Proficiencies",
+          "desc": "choose one: Musical Instrument, Gaming Set"
+        },
+        {
+          "name": "Languages",
+          "desc": "any 1 languages"
+        },
+        {
+          "name": "Equipment",
+          "desc": "Traveler's clothes, Poorly wrought maps from your homeland that depict where you are in Faerûn, Small piece of jewelry in the style of your homeland's craftsmanship, Pouch containing 5 GP, Musical Instrument, Gaming Set"
+        },
+        {
+          "name": "Feature",
+          "desc": "All Eyes on You"
+        }
+      ]
+    },
+    "boek": "Sword Coast Adventurer's Guide"
   },
   "Farmer": {
     "levels": {
@@ -150,10 +937,288 @@
         },
         {
           "name": "Equipment",
-          "desc": "Choose A or B: (A) Sickle, Carpenter's Tools, Healer's Kit, Iron Pot, Shovel, 30 GP; or (B) 50 GP"
+          "desc": "Choose A or B: (A) Sickle, Carpenter's Tools, Healer's Kit, Iron Pot, Shovel, Traveler's Clothes, 30 GP; or (B) 50 GP"
         }
       ]
-    }
+    },
+    "boek": "Player's Handbook (2024)"
+  },
+  "Feylost": {
+    "levels": {
+      "1": [
+        {
+          "name": "Skill Proficiencies",
+          "desc": "Deception, Survival"
+        },
+        {
+          "name": "Languages",
+          "desc": "any 1 languages, choose one: Elvish, Gnomish, Goblin, Sylvan"
+        },
+        {
+          "name": "Equipment",
+          "desc": "Musical Instrument, Traveler's clothes, Feywild trinket (3), Pouch containing 8 GP"
+        },
+        {
+          "name": "Feature",
+          "desc": "Feywild Connection"
+        }
+      ]
+    },
+    "boek": "The Wild Beyond the Witchlight"
+  },
+  "Fisher": {
+    "levels": {
+      "1": [
+        {
+          "name": "Skill Proficiencies",
+          "desc": "History, Survival"
+        },
+        {
+          "name": "Languages",
+          "desc": "any 1 languages"
+        },
+        {
+          "name": "Equipment",
+          "desc": "Fishing tackle, Net, Traveler's clothes, Pouch containing 10 GP, Favorite fishing lure, Oiled leather wading boots"
+        },
+        {
+          "name": "Feature",
+          "desc": "Harvest the Water"
+        }
+      ]
+    },
+    "boek": "Ghosts of Saltmarsh"
+  },
+  "Flaming Fist Mercenary": {
+    "levels": {
+      "1": [
+        {
+          "name": "Ability Scores",
+          "desc": "Strength, Constitution, Charisma"
+        },
+        {
+          "name": "Feat",
+          "desc": "Tough"
+        },
+        {
+          "name": "Skill Proficiencies",
+          "desc": "Intimidation and Perception"
+        },
+        {
+          "name": "Tool Proficiencies",
+          "desc": "Smith's Tools"
+        },
+        {
+          "name": "Equipment",
+          "desc": "Choose A or B: (A) Mace, Smith's Tools, Fine Clothes, Manacles, Portable Ram, 4 GP; or (B) 50 GP"
+        }
+      ]
+    },
+    "boek": "Forgotten Realms: Heroes of Faerûn"
+  },
+  "Folk Hero": {
+    "levels": {
+      "1": [
+        {
+          "name": "Skill Proficiencies",
+          "desc": "Animal Handling, Survival"
+        },
+        {
+          "name": "Tool Proficiencies",
+          "desc": "Vehicles (Land), any 1 artisan's tools"
+        },
+        {
+          "name": "Equipment",
+          "desc": "Artisan's Tools, Shovel, Iron pot, Common clothes, Pouch containing 10 GP"
+        },
+        {
+          "name": "Feature",
+          "desc": "Rustic Hospitality"
+        }
+      ]
+    },
+    "boek": "Player's Handbook (2014)"
+  },
+  "Gambler": {
+    "levels": {
+      "1": [
+        {
+          "name": "Skill Proficiencies",
+          "desc": "Deception, Insight"
+        },
+        {
+          "name": "Languages",
+          "desc": "any 1 languages"
+        },
+        {
+          "name": "Equipment",
+          "desc": "Gaming Set, Lucky charm, Fine clothes, Pouch containing 15 GP"
+        },
+        {
+          "name": "Feature",
+          "desc": "Never Tell Me the Odds"
+        }
+      ]
+    },
+    "boek": "Acquisitions Incorporated"
+  },
+  "Gate Warden": {
+    "levels": {
+      "1": [
+        {
+          "name": "Skill Proficiencies",
+          "desc": "Persuasion, Survival"
+        },
+        {
+          "name": "Languages",
+          "desc": "any 2 languages"
+        },
+        {
+          "name": "Feat",
+          "desc": "Scion Of The Outer Planes"
+        },
+        {
+          "name": "Equipment",
+          "desc": "Ring of keys to unknown locks, Blank book, Bottle of black ink, Traveler's clothes, Pouch containing 10 GP, Ink pen, Quill"
+        },
+        {
+          "name": "Feature",
+          "desc": "Planar Infusion"
+        }
+      ]
+    },
+    "boek": "Sigil and the Outlands"
+  },
+  "Genie Touched": {
+    "levels": {
+      "1": [
+        {
+          "name": "Ability Scores",
+          "desc": "Dexterity, Wisdom, Charisma"
+        },
+        {
+          "name": "Feat",
+          "desc": "Magic Initiate (Wizard)"
+        },
+        {
+          "name": "Skill Proficiencies",
+          "desc": "Perception and Persuasion"
+        },
+        {
+          "name": "Tool Proficiencies",
+          "desc": "Glassblower's Tools"
+        },
+        {
+          "name": "Equipment",
+          "desc": "Choose A or B: (A) Light Hammer, Glassblower's Tools, Fine Clothes, Lamp, Oil (3 flasks), Waterskin, 2 GP; or (B) 50 GP"
+        }
+      ]
+    },
+    "boek": "Forgotten Realms: Heroes of Faerûn"
+  },
+  "Giant Foundling": {
+    "levels": {
+      "1": [
+        {
+          "name": "Skill Proficiencies",
+          "desc": "Intimidation, Survival"
+        },
+        {
+          "name": "Languages",
+          "desc": "Giant, any 1 languages"
+        },
+        {
+          "name": "Feat",
+          "desc": "Strike Of The Giants"
+        },
+        {
+          "name": "Equipment",
+          "desc": "Backpack, Traveler's clothes, Pouch containing 10 GP, Small stone that reminds you of home, Sprig that reminds you of home"
+        },
+        {
+          "name": "Feature",
+          "desc": "Strike of the Giants"
+        }
+      ]
+    },
+    "boek": "Bigby Presents: Glory of the Giants"
+  },
+  "Golgari Agent": {
+    "levels": {
+      "1": [
+        {
+          "name": "Skill Proficiencies",
+          "desc": "Nature, Survival"
+        },
+        {
+          "name": "Tool Proficiencies",
+          "desc": "Poisoner'S Kit"
+        },
+        {
+          "name": "Languages",
+          "desc": "choose one: Elvish, Giant, Other"
+        },
+        {
+          "name": "Equipment",
+          "desc": "Golgari insignia, Poisoner's kit, Common clothes, Pouch containing 10 GP, Pet beetle, Pet spider"
+        },
+        {
+          "name": "Feature",
+          "desc": "Undercity Paths"
+        }
+      ]
+    },
+    "boek": "Guildmasters' Guide to Ravnica"
+  },
+  "Grinner": {
+    "levels": {
+      "1": [
+        {
+          "name": "Skill Proficiencies",
+          "desc": "Deception, Performance"
+        },
+        {
+          "name": "Tool Proficiencies",
+          "desc": "Thieves' Tools"
+        },
+        {
+          "name": "Equipment",
+          "desc": "Fine clothes, Disguise kit, Musical Instrument, Gold-plated ring depicting a smiling face, Pouch containing 15 GP"
+        },
+        {
+          "name": "Feature",
+          "desc": "Ballad of the Grinning Fool"
+        }
+      ]
+    },
+    "boek": "Explorer's Guide to Wildemount"
+  },
+  "Gruul Anarch": {
+    "levels": {
+      "1": [
+        {
+          "name": "Skill Proficiencies",
+          "desc": "Animal Handling, Athletics"
+        },
+        {
+          "name": "Tool Proficiencies",
+          "desc": "Herbalism Kit"
+        },
+        {
+          "name": "Languages",
+          "desc": "choose one: Draconic, Giant, Goblin, Sylvan"
+        },
+        {
+          "name": "Equipment",
+          "desc": "Gruul insignia, Hunting trap, Herbalism kit, The skull of a boar, Beast-hide cloak, Traveler's clothes, Pouch containing 10 GP"
+        },
+        {
+          "name": "Feature",
+          "desc": "Rubblebelt Refuge"
+        }
+      ]
+    },
+    "boek": "Guildmasters' Guide to Ravnica"
   },
   "Guard": {
     "levels": {
@@ -179,7 +1244,8 @@
           "desc": "Choose A or B: (A) Spear, Light Crossbow, 20 Bolts, Gaming Set (same as above), Hooded Lantern, Manacles, Quiver, Traveler's Clothes, 12 GP; or (B) 50 GP"
         }
       ]
-    }
+    },
+    "boek": "Player's Handbook (2024)"
   },
   "Guide": {
     "levels": {
@@ -205,7 +1271,89 @@
           "desc": "Choose A or B: (A) Shortbow, 20 Arrows, Cartographer's Tools, Bedroll, Quiver, Tent, Traveler's Clothes, 3 GP; or (B) 50 GP"
         }
       ]
-    }
+    },
+    "boek": "Player's Handbook (2024)"
+  },
+  "Guild Artisan": {
+    "levels": {
+      "1": [
+        {
+          "name": "Skill Proficiencies",
+          "desc": "Insight, Persuasion"
+        },
+        {
+          "name": "Tool Proficiencies",
+          "desc": "any 1 artisan's tools"
+        },
+        {
+          "name": "Languages",
+          "desc": "any 1 languages"
+        },
+        {
+          "name": "Equipment",
+          "desc": "Artisan's Tools, Letter of introduction from your guild, Traveler's clothes, Pouch containing 15 GP"
+        },
+        {
+          "name": "Feature",
+          "desc": "Guild Membership"
+        }
+      ]
+    },
+    "boek": "Player's Handbook (2014)"
+  },
+  "Harper": {
+    "levels": {
+      "1": [
+        {
+          "name": "Ability Scores",
+          "desc": "Dexterity, Intelligence, Charisma"
+        },
+        {
+          "name": "Feat",
+          "desc": "Harper Agent"
+        },
+        {
+          "name": "Skill Proficiencies",
+          "desc": "Performance and Sleight of Hand"
+        },
+        {
+          "name": "Tool Proficiencies",
+          "desc": "Disguise Kit"
+        },
+        {
+          "name": "Equipment",
+          "desc": "Choose A or B: (A) Disguise Kit, Bedroll, Costume, Grappling Hook, Rope, Traveler's Clothes, 14 GP; or (B) 50 GP"
+        }
+      ]
+    },
+    "boek": "Forgotten Realms: Heroes of Faerûn"
+  },
+  "Haunted One": {
+    "levels": {
+      "1": [
+        {
+          "name": "Ability Scores",
+          "desc": "Constitution, Wisdom, Charisma"
+        },
+        {
+          "name": "Feat",
+          "desc": "Survivor or a Dark Gift feat of your choice"
+        },
+        {
+          "name": "Skill Proficiencies",
+          "desc": "Arcana and Survival"
+        },
+        {
+          "name": "Tool Proficiencies",
+          "desc": "Choose one kind of Gaming Set"
+        },
+        {
+          "name": "Equipment",
+          "desc": "Choose A or B: (A) Gaming Set (same as above), Crowbar, Holy Water (1 flask), Mirror, Oil(2 flasks), Signal Whistle, Tinderbox, Traveler's Clothes, 5 Torches, Waterskin, and 14 GP; or (B) 50 GP"
+        }
+      ]
+    },
+    "boek": "Ravenloft: The Horrors Within"
   },
   "Hermit": {
     "levels": {
@@ -231,7 +1379,802 @@
           "desc": "Choose A or B: (A) Quarterstaff, Herbalism Kit, Bedroll, Book (philosophy), Lamp, Oil (3 flasks), Traveler's Clothes, 16 GP; or (B) 50 GP"
         }
       ]
-    }
+    },
+    "boek": "Player's Handbook (2024)"
+  },
+  "Horizon Weaver Initiate": {
+    "levels": {
+      "1": [
+        {
+          "name": "Ability Scores",
+          "desc": "Dexterity, Constitution, Wisdom"
+        },
+        {
+          "name": "Feat",
+          "desc": "Portal Jumper"
+        },
+        {
+          "name": "Skill Proficiencies",
+          "desc": "Acrobatics and Survival"
+        },
+        {
+          "name": "Tool Proficiencies",
+          "desc": "Weaver's Tools"
+        },
+        {
+          "name": "Equipment",
+          "desc": "Choose A or B: (A) Shortbow, 20 Arrows, Weaver's Tools, Map, Quiver, Rope, Traveler's Clothes, 18 GP; or (B) 50 GP"
+        }
+      ]
+    },
+    "boek": "Arcana Unleashed"
+  },
+  "House Agent": {
+    "levels": {
+      "1": [
+        {
+          "name": "Ability Scores",
+          "desc": "Strength, Intelligence, Charisma"
+        },
+        {
+          "name": "Feat",
+          "desc": "Lucky"
+        },
+        {
+          "name": "Skill Proficiencies",
+          "desc": "Investigation and Persuasion"
+        },
+        {
+          "name": "Tool Proficiencies",
+          "desc": "Choose one kind of Artisan's Tools"
+        },
+        {
+          "name": "Equipment",
+          "desc": "Choose A or B: (A) Artisan's Tools (same as above), Fine Clothes, 20 GP; or (B) 50 GP"
+        }
+      ]
+    },
+    "boek": "Eberron: Forge of the Artificer"
+  },
+  "House Cannith Heir": {
+    "levels": {
+      "1": [
+        {
+          "name": "Ability Scores",
+          "desc": "Strength, Dexterity, Intelligence"
+        },
+        {
+          "name": "Feat",
+          "desc": "Mark of Making"
+        },
+        {
+          "name": "Skill Proficiencies",
+          "desc": "Investigation and Sleight of Hand"
+        },
+        {
+          "name": "Tool Proficiencies",
+          "desc": "Choose one kind of Artisan's Tools"
+        },
+        {
+          "name": "Equipment",
+          "desc": "Choose A or B: (A) Artisan's Tools (same as above), Crowbar, Fine Clothes, 2 Pouches, 17 GP; or (B) 50 GP"
+        }
+      ]
+    },
+    "boek": "Eberron: Forge of the Artificer"
+  },
+  "House Deneith Heir": {
+    "levels": {
+      "1": [
+        {
+          "name": "Ability Scores",
+          "desc": "Strength, Constitution, Wisdom"
+        },
+        {
+          "name": "Feat",
+          "desc": "Mark of Sentinel"
+        },
+        {
+          "name": "Skill Proficiencies",
+          "desc": "Insight and Perception"
+        },
+        {
+          "name": "Tool Proficiencies",
+          "desc": "Choose one kind of Gaming Set"
+        },
+        {
+          "name": "Equipment",
+          "desc": "Choose A or B: (A) Spear, Shortbow, 20 Arrows, Gaming Set (same as above), Fine Clothes, Healer's Kit, Quiver, 1 GP; or (B) 50 GP"
+        }
+      ]
+    },
+    "boek": "Eberron: Forge of the Artificer"
+  },
+  "House Ghallanda Heir": {
+    "levels": {
+      "1": [
+        {
+          "name": "Ability Scores",
+          "desc": "Dexterity, Wisdom, Charisma"
+        },
+        {
+          "name": "Feat",
+          "desc": "Mark of Hospitality"
+        },
+        {
+          "name": "Skill Proficiencies",
+          "desc": "Insight and Persuasion"
+        },
+        {
+          "name": "Tool Proficiencies",
+          "desc": "Cook's Utensils"
+        },
+        {
+          "name": "Equipment",
+          "desc": "Choose A or B: (A) Cook's Utensils, Fine Clothes, Iron Pot, Lamp, Oil (5 flasks), Perfume, 26 GP; or (B) 50 GP"
+        }
+      ]
+    },
+    "boek": "Eberron: Forge of the Artificer"
+  },
+  "House Jorasco Heir": {
+    "levels": {
+      "1": [
+        {
+          "name": "Ability Scores",
+          "desc": "Dexterity, Constitution, Wisdom"
+        },
+        {
+          "name": "Feat",
+          "desc": "Mark of Healing"
+        },
+        {
+          "name": "Skill Proficiencies",
+          "desc": "Medicine and Stealth"
+        },
+        {
+          "name": "Tool Proficiencies",
+          "desc": "Herbalism Kit"
+        },
+        {
+          "name": "Equipment",
+          "desc": "Choose A or B: (A) Herbalism Kit, Fine Clothes, Healer's Kit, 25 GP; or (B) 50 GP"
+        }
+      ]
+    },
+    "boek": "Eberron: Forge of the Artificer"
+  },
+  "House Kundarak Heir": {
+    "levels": {
+      "1": [
+        {
+          "name": "Ability Scores",
+          "desc": "Strength, Constitution, Intelligence"
+        },
+        {
+          "name": "Feat",
+          "desc": "Mark of Warding"
+        },
+        {
+          "name": "Skill Proficiencies",
+          "desc": "Arcana and Investigation"
+        },
+        {
+          "name": "Tool Proficiencies",
+          "desc": "Thieves' Tools"
+        },
+        {
+          "name": "Equipment",
+          "desc": "Choose A or B: (A) Thieves' Tools, Fine Clothes, 10 GP; or (B) 50 GP"
+        }
+      ]
+    },
+    "boek": "Eberron: Forge of the Artificer"
+  },
+  "House Lyrandar Heir": {
+    "levels": {
+      "1": [
+        {
+          "name": "Ability Scores",
+          "desc": "Strength, Dexterity, Charisma"
+        },
+        {
+          "name": "Feat",
+          "desc": "Mark of Storm"
+        },
+        {
+          "name": "Skill Proficiencies",
+          "desc": "Acrobatics and Nature"
+        },
+        {
+          "name": "Tool Proficiencies",
+          "desc": "Navigator's Tools"
+        },
+        {
+          "name": "Equipment",
+          "desc": "Choose A or B: (A) Navigator's Tools, Fine Clothes, 10 GP; or (B) 50 GP"
+        }
+      ]
+    },
+    "boek": "Eberron: Forge of the Artificer"
+  },
+  "House Medani Heir": {
+    "levels": {
+      "1": [
+        {
+          "name": "Ability Scores",
+          "desc": "Dexterity, Intelligence, Wisdom"
+        },
+        {
+          "name": "Feat",
+          "desc": "Mark of Detection"
+        },
+        {
+          "name": "Skill Proficiencies",
+          "desc": "Insight and Investigation"
+        },
+        {
+          "name": "Tool Proficiencies",
+          "desc": "Disguise Kit"
+        },
+        {
+          "name": "Equipment",
+          "desc": "Choose A or B: (A) Disguise Kit, Fine Clothes, 10 GP; or (B) 50 GP"
+        }
+      ]
+    },
+    "boek": "Eberron: Forge of the Artificer"
+  },
+  "House Orien Heir": {
+    "levels": {
+      "1": [
+        {
+          "name": "Ability Scores",
+          "desc": "Dexterity, Constitution, Intelligence"
+        },
+        {
+          "name": "Feat",
+          "desc": "Mark of Passage"
+        },
+        {
+          "name": "Skill Proficiencies",
+          "desc": "Acrobatics and Athletics"
+        },
+        {
+          "name": "Tool Proficiencies",
+          "desc": "Cartographer's Tools"
+        },
+        {
+          "name": "Equipment",
+          "desc": "Choose A or B: (A) Cartographer's Tools, Fine Clothes, Map, Map or Scroll Case, 18 GP; or (B) 50 GP"
+        }
+      ]
+    },
+    "boek": "Eberron: Forge of the Artificer"
+  },
+  "House Phiarlan Heir": {
+    "levels": {
+      "1": [
+        {
+          "name": "Ability Scores",
+          "desc": "Dexterity, Wisdom, Charisma"
+        },
+        {
+          "name": "Feat",
+          "desc": "Mark of Shadow"
+        },
+        {
+          "name": "Skill Proficiencies",
+          "desc": "Deception and Stealth"
+        },
+        {
+          "name": "Tool Proficiencies",
+          "desc": "Disguise Kit"
+        },
+        {
+          "name": "Equipment",
+          "desc": "Choose A or B: (A) Disguise Kit, Fine Clothes, 10 GP; or (B) 50 GP"
+        }
+      ]
+    },
+    "boek": "Eberron: Forge of the Artificer"
+  },
+  "House Sivis Heir": {
+    "levels": {
+      "1": [
+        {
+          "name": "Ability Scores",
+          "desc": "Intelligence, Wisdom, Charisma"
+        },
+        {
+          "name": "Feat",
+          "desc": "Mark of Scribing"
+        },
+        {
+          "name": "Skill Proficiencies",
+          "desc": "History and Perception"
+        },
+        {
+          "name": "Tool Proficiencies",
+          "desc": "Calligrapher's Supplies"
+        },
+        {
+          "name": "Equipment",
+          "desc": "Choose A or B: (A) Calligrapher's Supplies, Fine Clothes, Ink, 5 Ink Pens, Paper (30 sheets), Parchment (9 sheets), 8 GP; or (B) 50 GP"
+        }
+      ]
+    },
+    "boek": "Eberron: Forge of the Artificer"
+  },
+  "House Tharashk Heir": {
+    "levels": {
+      "1": [
+        {
+          "name": "Ability Scores",
+          "desc": "Constitution, Intelligence, Wisdom"
+        },
+        {
+          "name": "Feat",
+          "desc": "Mark of Finding"
+        },
+        {
+          "name": "Skill Proficiencies",
+          "desc": "Perception and Survival"
+        },
+        {
+          "name": "Tool Proficiencies",
+          "desc": "Choose one kind of Gaming Set"
+        },
+        {
+          "name": "Equipment",
+          "desc": "Choose A or B: (A) Gaming Set (same as above), Climber's Kit, Fine Clothes, Hunting Trap, Manacles, 2 GP; or (B) 50 GP"
+        }
+      ]
+    },
+    "boek": "Eberron: Forge of the Artificer"
+  },
+  "House Thuranni Heir": {
+    "levels": {
+      "1": [
+        {
+          "name": "Ability Scores",
+          "desc": "Dexterity, Intelligence, Charisma"
+        },
+        {
+          "name": "Feat",
+          "desc": "Mark of Shadow"
+        },
+        {
+          "name": "Skill Proficiencies",
+          "desc": "Performance and Stealth"
+        },
+        {
+          "name": "Tool Proficiencies",
+          "desc": "Choose one kind of Musical Instrument"
+        },
+        {
+          "name": "Equipment",
+          "desc": "Choose A or B: (A) Musical Instrument (same as above), Costume, Fine Clothes, 13 GP; or (B) 50 GP"
+        }
+      ]
+    },
+    "boek": "Eberron: Forge of the Artificer"
+  },
+  "House Vadalis Heir": {
+    "levels": {
+      "1": [
+        {
+          "name": "Ability Scores",
+          "desc": "Constitution, Wisdom, Charisma"
+        },
+        {
+          "name": "Feat",
+          "desc": "Mark of Handling"
+        },
+        {
+          "name": "Skill Proficiencies",
+          "desc": "Animal Handling and Nature"
+        },
+        {
+          "name": "Tool Proficiencies",
+          "desc": "Herbalism Kit"
+        },
+        {
+          "name": "Equipment",
+          "desc": "Choose A or B: (A) Herbalism Kit, Fine Clothes, Net, 29 GP; or (B) 50 GP"
+        }
+      ]
+    },
+    "boek": "Eberron: Forge of the Artificer"
+  },
+  "Ice Fisher": {
+    "levels": {
+      "1": [
+        {
+          "name": "Ability Scores",
+          "desc": "Strength, Dexterity, Constitution"
+        },
+        {
+          "name": "Feat",
+          "desc": "Alert"
+        },
+        {
+          "name": "Skill Proficiencies",
+          "desc": "Animal Handling and Athletics"
+        },
+        {
+          "name": "Tool Proficiencies",
+          "desc": "Woodcarver's Tools"
+        },
+        {
+          "name": "Equipment",
+          "desc": "Choose A or B: (A) Woodcarver's Tools, Basket, Block and Tackle, Chain, Hunting Trap, Net, Pole, Rations (3 days' worth), Traveler's Clothes, 32 GP; or (B) 50 GP"
+        }
+      ]
+    },
+    "boek": "Forgotten Realms: Heroes of Faerûn"
+  },
+  "Inheritor": {
+    "levels": {
+      "1": [
+        {
+          "name": "Skill Proficiencies",
+          "desc": "Survival, choose one: Arcana, History, Religion"
+        },
+        {
+          "name": "Tool Proficiencies",
+          "desc": "choose one: Musical Instrument, Gaming Set"
+        },
+        {
+          "name": "Languages",
+          "desc": "any 1 languages"
+        },
+        {
+          "name": "Equipment",
+          "desc": "Your inheritance, Traveler's clothes, Pouch containing 15 GP, Gaming Set, Musical Instrument"
+        },
+        {
+          "name": "Feature",
+          "desc": "Inheritance"
+        }
+      ]
+    },
+    "boek": "Sword Coast Adventurer's Guide"
+  },
+  "Initiate": {
+    "levels": {
+      "1": [
+        {
+          "name": "Skill Proficiencies",
+          "desc": "Athletics, Intimidation"
+        },
+        {
+          "name": "Tool Proficiencies",
+          "desc": "Vehicles (Land)"
+        },
+        {
+          "name": "Equipment",
+          "desc": "Simple puzzle box, Scroll containing the basic teachings of the five gods, Gaming Set, Common clothes, Pouch containing 15 GP, Any cartouches you have earned"
+        },
+        {
+          "name": "Feature",
+          "desc": "Trials of the Five Gods"
+        }
+      ]
+    },
+    "boek": "Plane Shift: Amonkhet"
+  },
+  "Inquisitive": {
+    "levels": {
+      "1": [
+        {
+          "name": "Ability Scores",
+          "desc": "Constitution, Intelligence, Charisma"
+        },
+        {
+          "name": "Feat",
+          "desc": "Alert"
+        },
+        {
+          "name": "Skill Proficiencies",
+          "desc": "Insight and Investigation"
+        },
+        {
+          "name": "Tool Proficiencies",
+          "desc": "Thieves' Tools"
+        },
+        {
+          "name": "Equipment",
+          "desc": "Choose A or B: (A) Thieves' Tools, Bullseye Lantern, Crowbar, Oil (10 flasks), Traveler's Clothes, 10 GP; or (B) 50 GP"
+        }
+      ]
+    },
+    "boek": "Eberron: Forge of the Artificer"
+  },
+  "Inquisitor": {
+    "levels": {
+      "1": [
+        {
+          "name": "Skill Proficiencies",
+          "desc": "Investigation, Religion"
+        },
+        {
+          "name": "Tool Proficiencies",
+          "desc": "Thieves' Tools, any 1 artisan's tools"
+        },
+        {
+          "name": "Equipment",
+          "desc": "Holy symbol, Traveler's clothes, Pouch containing 15 GP"
+        },
+        {
+          "name": "Feature",
+          "desc": "Legal Authority"
+        }
+      ]
+    },
+    "boek": "Plane Shift: Innistrad"
+  },
+  "Investigator": {
+    "levels": {
+      "1": [
+        {
+          "name": "Ability Scores",
+          "desc": "Intelligence, Wisdom, Charisma"
+        },
+        {
+          "name": "Feat",
+          "desc": "Sharp Eye or a Dark Gift feat of your choice"
+        },
+        {
+          "name": "Skill Proficiencies",
+          "desc": "Insight and Investigation"
+        },
+        {
+          "name": "Tool Proficiencies",
+          "desc": "Disguise Kit"
+        },
+        {
+          "name": "Equipment",
+          "desc": "Choose A or B: (A) Disguise Kit, Manacles, Shovel, Traveler's Clothes, 3 Vials, and 16 GP; or (B) 50 GP"
+        }
+      ]
+    },
+    "boek": "Ravenloft: The Horrors Within"
+  },
+  "Izzet Engineer": {
+    "levels": {
+      "1": [
+        {
+          "name": "Skill Proficiencies",
+          "desc": "Arcana, Investigation"
+        },
+        {
+          "name": "Tool Proficiencies",
+          "desc": "any 1 artisan's tools"
+        },
+        {
+          "name": "Languages",
+          "desc": "choose one: Draconic, Goblin, Other"
+        },
+        {
+          "name": "Equipment",
+          "desc": "Izzet insignia, Artisan's Tools, The charred and twisted remains of a failed experiment, Hammer, Block and tackle, Common clothes, Pouch containing 5 GP"
+        },
+        {
+          "name": "Feature",
+          "desc": "Urban Infrastructure"
+        }
+      ]
+    },
+    "boek": "Guildmasters' Guide to Ravnica"
+  },
+  "Knight of Solamnia": {
+    "levels": {
+      "1": [
+        {
+          "name": "Skill Proficiencies",
+          "desc": "Athletics, Survival"
+        },
+        {
+          "name": "Languages",
+          "desc": "any 2 languages"
+        },
+        {
+          "name": "Feat",
+          "desc": "Squire Of Solamnia"
+        },
+        {
+          "name": "Equipment",
+          "desc": "Insignia of rank, Playing card set, Common clothes, Pouch containing 10 GP"
+        },
+        {
+          "name": "Feature",
+          "desc": "Squire of Solamnia"
+        }
+      ]
+    },
+    "boek": "Dragonlance: Shadow of the Dragon Queen"
+  },
+  "Knight of the Gauntlet": {
+    "levels": {
+      "1": [
+        {
+          "name": "Ability Scores",
+          "desc": "Strength, Intelligence, Wisdom"
+        },
+        {
+          "name": "Feat",
+          "desc": "Tyro of the Gauntlet"
+        },
+        {
+          "name": "Skill Proficiencies",
+          "desc": "Athletics and Medicine"
+        },
+        {
+          "name": "Tool Proficiencies",
+          "desc": "Smith's Tools"
+        },
+        {
+          "name": "Equipment",
+          "desc": "Choose A or B: (A) Spear, Smith's Tools, Bullseye Lantern, Holy Symbol, Manacles, Oil (5 flasks), Tinderbox, Traveler's Clothes, 9 GP; or (B) 50 GP"
+        }
+      ]
+    },
+    "boek": "Forgotten Realms: Heroes of Faerûn"
+  },
+  "Knight of the Order": {
+    "levels": {
+      "1": [
+        {
+          "name": "Skill Proficiencies",
+          "desc": "Persuasion, choose one: Arcana, History, Nature, Religion"
+        },
+        {
+          "name": "Tool Proficiencies",
+          "desc": "choose one: Musical Instrument, Gaming Set"
+        },
+        {
+          "name": "Languages",
+          "desc": "any 1 languages"
+        },
+        {
+          "name": "Equipment",
+          "desc": "Traveler's clothes, Signet, banner, or seal representing your place or rank in the order, Pouch containing 10 GP"
+        },
+        {
+          "name": "Feature",
+          "desc": "Knightly Regard"
+        }
+      ]
+    },
+    "boek": "Sword Coast Adventurer's Guide"
+  },
+  "Lords' Alliance Vassal": {
+    "levels": {
+      "1": [
+        {
+          "name": "Ability Scores",
+          "desc": "Strength, Intelligence, Charisma"
+        },
+        {
+          "name": "Feat",
+          "desc": "Lords' Alliance Agent"
+        },
+        {
+          "name": "Skill Proficiencies",
+          "desc": "Insight and Persuasion"
+        },
+        {
+          "name": "Tool Proficiencies",
+          "desc": "Calligrapher's Supplies"
+        },
+        {
+          "name": "Equipment",
+          "desc": "Choose A or B: (A) 2 Javelins, Calligrapher's Supplies, Fine Clothes, Ink, 5 Ink Pens, Parchment (9 sheets), 13 GP; or (B) 50 GP"
+        }
+      ]
+    },
+    "boek": "Forgotten Realms: Heroes of Faerûn"
+  },
+  "Lorehold Student": {
+    "levels": {
+      "1": [
+        {
+          "name": "Skill Proficiencies",
+          "desc": "History, Religion"
+        },
+        {
+          "name": "Languages",
+          "desc": "any 2 languages"
+        },
+        {
+          "name": "Feat",
+          "desc": "Strixhaven Initiate"
+        },
+        {
+          "name": "Equipment",
+          "desc": "Ink (1-ounce bottle), Ink pen, Hammer, Hooded lantern, Tinderbox, Tome of history, School uniform, Pouch containing 15 GP"
+        },
+        {
+          "name": "Feature",
+          "desc": "Lorehold Initiate"
+        }
+      ]
+    },
+    "boek": "Strixhaven: A Curriculum of Chaos"
+  },
+  "Mage of High Sorcery": {
+    "levels": {
+      "1": [
+        {
+          "name": "Skill Proficiencies",
+          "desc": "Arcana, History"
+        },
+        {
+          "name": "Languages",
+          "desc": "any 2 languages"
+        },
+        {
+          "name": "Feat",
+          "desc": "Initiate Of High Sorcery"
+        },
+        {
+          "name": "Equipment",
+          "desc": "Ink (1-ounce bottle), Ink pen, Common clothes, Pouch containing 10 GP"
+        },
+        {
+          "name": "Feature",
+          "desc": "Initiate of High Sorcery"
+        }
+      ]
+    },
+    "boek": "Dragonlance: Shadow of the Dragon Queen"
+  },
+  "Marine": {
+    "levels": {
+      "1": [
+        {
+          "name": "Skill Proficiencies",
+          "desc": "Athletics, Survival"
+        },
+        {
+          "name": "Tool Proficiencies",
+          "desc": "Vehicles (Water), Vehicles (Land)"
+        },
+        {
+          "name": "Equipment",
+          "desc": "Dagger that belonged to a fallen comrade, Folded flag emblazoned with the symbol of your ship or company, Traveler's clothes, Pouch containing 10 GP"
+        },
+        {
+          "name": "Feature",
+          "desc": "Steady"
+        }
+      ]
+    },
+    "boek": "Ghosts of Saltmarsh"
+  },
+  "Mercenary Veteran": {
+    "levels": {
+      "1": [
+        {
+          "name": "Skill Proficiencies",
+          "desc": "Athletics, Persuasion"
+        },
+        {
+          "name": "Tool Proficiencies",
+          "desc": "Vehicles (Land)"
+        },
+        {
+          "name": "Equipment",
+          "desc": "Uniform of your company, Insignia of your rank, Gaming Set, Pouch containing 10 GP"
+        },
+        {
+          "name": "Feature",
+          "desc": "Mercenary Life"
+        }
+      ]
+    },
+    "boek": "Sword Coast Adventurer's Guide"
   },
   "Merchant": {
     "levels": {
@@ -257,7 +2200,143 @@
           "desc": "Choose A or B: (A) Navigator's Tools, 2 Pouches, Traveler's Clothes, 22 GP; or (B) 50 GP"
         }
       ]
-    }
+    },
+    "boek": "Player's Handbook (2024)"
+  },
+  "Mist Wanderer": {
+    "levels": {
+      "1": [
+        {
+          "name": "Ability Scores",
+          "desc": "Dexterity, Constitution, Wisdom"
+        },
+        {
+          "name": "Feat",
+          "desc": "A Dark Gift feat of your choice (Mist Walker is recommended)"
+        },
+        {
+          "name": "Skill Proficiencies",
+          "desc": "Survival and Stealth"
+        },
+        {
+          "name": "Tool Proficiencies",
+          "desc": "Choose one kind of Artisan's Tools"
+        },
+        {
+          "name": "Equipment",
+          "desc": "Choose A or B: (A) Artisan's Tools (same as above), Lamp, Oil (5 flasks), Pouch, Rope, Tinderbox, Traveler's Clothes, and 30 GP; or (B) 50 GP"
+        }
+      ]
+    },
+    "boek": "Ravenloft: The Horrors Within"
+  },
+  "Moonwell Pilgrim": {
+    "levels": {
+      "1": [
+        {
+          "name": "Ability Scores",
+          "desc": "Constitution, Wisdom, Charisma"
+        },
+        {
+          "name": "Feat",
+          "desc": "Magic Initiate (Druid)"
+        },
+        {
+          "name": "Skill Proficiencies",
+          "desc": "Nature and Performance"
+        },
+        {
+          "name": "Tool Proficiencies",
+          "desc": "Painter's Supplies"
+        },
+        {
+          "name": "Equipment",
+          "desc": "Choose A or B: (A) Quarterstaff, Painter's Supplies, Bedroll, Bell, Pouch, Robe, String, Traveler's Clothes, Waterskin, 38 GP; or (B) 50 GP"
+        }
+      ]
+    },
+    "boek": "Forgotten Realms: Heroes of Faerûn"
+  },
+  "Mulhorandi Tomb Raider": {
+    "levels": {
+      "1": [
+        {
+          "name": "Ability Scores",
+          "desc": "Dexterity, Constitution, Intelligence"
+        },
+        {
+          "name": "Feat",
+          "desc": "Lucky"
+        },
+        {
+          "name": "Skill Proficiencies",
+          "desc": "Investigation and Religion"
+        },
+        {
+          "name": "Tool Proficiencies",
+          "desc": "Mason's Tools"
+        },
+        {
+          "name": "Equipment",
+          "desc": "Choose A or B: (A) Dagger, Light Hammer, Mason's Tools, Backpack, Bedroll, Crowbar, Ladder, Pole, 2 Pouches, Rope, String, Tinderbox, 5 Torches, Traveler's Clothes, Waterskin 26 GP; or (B) 50 GP"
+        }
+      ]
+    },
+    "boek": "Forgotten Realms: Heroes of Faerûn"
+  },
+  "Mutated Commuter": {
+    "levels": {
+      "1": [
+        {
+          "name": "Ability Scores",
+          "desc": "Constitution, Wisdom, Charisma"
+        },
+        {
+          "name": "Feat",
+          "desc": "Aberrant Anatomy or a Dark Gift feat of your choice"
+        },
+        {
+          "name": "Skill Proficiencies",
+          "desc": "Arcana and Investigation"
+        },
+        {
+          "name": "Tool Proficiencies",
+          "desc": "Choose one kind of Gaming Set"
+        },
+        {
+          "name": "Equipment",
+          "desc": "Choose A or B: (A) Gaming Set (same as above), Book (horror novel), Flask, Lock, Signal Whistle, Traveler's Clothes, and 11 GP (as 11 dollars); or (B) 50 GP (as 50 dollars)"
+        }
+      ]
+    },
+    "boek": "Project Lamordia"
+  },
+  "Mythalkeeper": {
+    "levels": {
+      "1": [
+        {
+          "name": "Ability Scores",
+          "desc": "Intelligence, Wisdom, Charisma"
+        },
+        {
+          "name": "Feat",
+          "desc": "Crafter"
+        },
+        {
+          "name": "Skill Proficiencies",
+          "desc": "Arcana and History"
+        },
+        {
+          "name": "Tool Proficiencies",
+          "desc": "Jeweler's Tools"
+        },
+        {
+          "name": "Equipment",
+          "desc": "Choose A or B: (A) Quarterstaff, Jeweler's Tools, Perfume, Pouch, Robe, Shovel, String, Waterskin, 16 GP; or (B) 50 GP"
+        }
+      ]
+    },
+    "boek": "Forgotten Realms: Heroes of Faerûn"
   },
   "Noble": {
     "levels": {
@@ -283,7 +2362,405 @@
           "desc": "Choose A or B: (A) Gaming Set (same as above), Fine Clothes, Perfume, 29 GP; or (B) 50 GP"
         }
       ]
-    }
+    },
+    "boek": "Player's Handbook (2024)"
+  },
+  "Orzhov Representative": {
+    "levels": {
+      "1": [
+        {
+          "name": "Skill Proficiencies",
+          "desc": "Intimidation, Religion"
+        },
+        {
+          "name": "Languages",
+          "desc": "any 2 languages"
+        },
+        {
+          "name": "Equipment",
+          "desc": "Orzhov insignia, Foot-long chain made of ten gold coins, Vestments, Fine clothes, Pouch containing 10 GP"
+        },
+        {
+          "name": "Feature",
+          "desc": "Leverage"
+        }
+      ]
+    },
+    "boek": "Guildmasters' Guide to Ravnica"
+  },
+  "Outlander": {
+    "levels": {
+      "1": [
+        {
+          "name": "Skill Proficiencies",
+          "desc": "Athletics, Survival"
+        },
+        {
+          "name": "Languages",
+          "desc": "any 1 languages"
+        },
+        {
+          "name": "Equipment",
+          "desc": "Staff, Hunting trap, Trophy from an animal you killed, Traveler's clothes, Pouch containing 10 GP"
+        },
+        {
+          "name": "Feature",
+          "desc": "Wanderer"
+        }
+      ]
+    },
+    "boek": "Player's Handbook (2014)"
+  },
+  "Phantasmic Circus Trouper": {
+    "levels": {
+      "1": [
+        {
+          "name": "Ability Scores",
+          "desc": "Dexterity, Constitution, Charisma"
+        },
+        {
+          "name": "Feat",
+          "desc": "Arcane Artist"
+        },
+        {
+          "name": "Skill Proficiencies",
+          "desc": "Deception and Performance"
+        },
+        {
+          "name": "Tool Proficiencies",
+          "desc": "Disguise Kit"
+        },
+        {
+          "name": "Equipment",
+          "desc": "Choose A or B: (A) Disguise Kit, Gaming Set (any), Costume, Mirror, Traveler's Clothes, 12 GP; or (B) 50 GP"
+        }
+      ]
+    },
+    "boek": "Arcana Unleashed"
+  },
+  "Plaintiff": {
+    "levels": {
+      "1": [
+        {
+          "name": "Skill Proficiencies",
+          "desc": "Medicine, Persuasion"
+        },
+        {
+          "name": "Tool Proficiencies",
+          "desc": "any 1 artisan's tools"
+        },
+        {
+          "name": "Languages",
+          "desc": "any 1 languages"
+        },
+        {
+          "name": "Equipment",
+          "desc": "Artisan's Tools, Fine clothes"
+        },
+        {
+          "name": "Feature",
+          "desc": "Legalese"
+        }
+      ]
+    },
+    "boek": "Acquisitions Incorporated"
+  },
+  "Planar Philosopher": {
+    "levels": {
+      "1": [
+        {
+          "name": "Skill Proficiencies",
+          "desc": "Arcana, choose one: Religion, Insight, Nature, Intimidation, History, Stealth, Perception, Medicine, Survival, Persuasion, Performance, Athletics"
+        },
+        {
+          "name": "Languages",
+          "desc": "any 2 languages"
+        },
+        {
+          "name": "Feat",
+          "desc": "Scion Of The Outer Planes"
+        },
+        {
+          "name": "Equipment",
+          "desc": "Portal key (such as a bag of golden tea leaves or the tooth of a planar beast), Manifesto of your guiding philosophy, Common clothes in your faction's style, Pouch containing 10 GP"
+        },
+        {
+          "name": "Feature",
+          "desc": "Conviction"
+        }
+      ]
+    },
+    "boek": "Sigil and the Outlands"
+  },
+  "Prismari Student": {
+    "levels": {
+      "1": [
+        {
+          "name": "Skill Proficiencies",
+          "desc": "Acrobatics, Performance"
+        },
+        {
+          "name": "Tool Proficiencies",
+          "desc": "choose one: Any Artisans Tool, Musical Instrument"
+        },
+        {
+          "name": "Languages",
+          "desc": "any 1 languages"
+        },
+        {
+          "name": "Feat",
+          "desc": "Strixhaven Initiate"
+        },
+        {
+          "name": "Equipment",
+          "desc": "Ink (1-ounce bottle), Ink pen, Artisan's Tools, Musical Instrument, School uniform, Pouch containing 10 GP"
+        },
+        {
+          "name": "Feature",
+          "desc": "Prismari Initiate"
+        }
+      ]
+    },
+    "boek": "Strixhaven: A Curriculum of Chaos"
+  },
+  "Purple Dragon Squire": {
+    "levels": {
+      "1": [
+        {
+          "name": "Ability Scores",
+          "desc": "Strength, Wisdom, Charisma"
+        },
+        {
+          "name": "Feat",
+          "desc": "Purple Dragon Rook"
+        },
+        {
+          "name": "Skill Proficiencies",
+          "desc": "Animal Handling and Insight"
+        },
+        {
+          "name": "Tool Proficiencies",
+          "desc": "Navigator's Tools"
+        },
+        {
+          "name": "Equipment",
+          "desc": "Choose A or B: (A) Spear, Navigator's Tools, Fine Clothes, 9 GP; or (B) 50 GP"
+        }
+      ]
+    },
+    "boek": "Forgotten Realms: Heroes of Faerûn"
+  },
+  "Quandrix Student": {
+    "levels": {
+      "1": [
+        {
+          "name": "Skill Proficiencies",
+          "desc": "Arcana, Nature"
+        },
+        {
+          "name": "Tool Proficiencies",
+          "desc": "any 1 artisan's tools"
+        },
+        {
+          "name": "Languages",
+          "desc": "any 1 languages"
+        },
+        {
+          "name": "Feat",
+          "desc": "Strixhaven Initiate"
+        },
+        {
+          "name": "Equipment",
+          "desc": "Ink (1-ounce bottle), Ink pen, Abacus, Book of arcane theory, School uniform, Pouch containing 15 GP"
+        },
+        {
+          "name": "Feature",
+          "desc": "Quandrix Initiate"
+        }
+      ]
+    },
+    "boek": "Strixhaven: A Curriculum of Chaos"
+  },
+  "Rakdos Cultist": {
+    "levels": {
+      "1": [
+        {
+          "name": "Skill Proficiencies",
+          "desc": "Acrobatics, Performance"
+        },
+        {
+          "name": "Languages",
+          "desc": "choose one: Abyssal, Giant"
+        },
+        {
+          "name": "Equipment",
+          "desc": "Rakdos insignia, Musical Instrument, Costume clothes, Hooded lantern made of wrought iron, 10-foot length of chain with sharply spiked links, Tinderbox, Torch (10), Common clothes, Pouch containing 10 GP, Bottle of sweet, red juice"
+        },
+        {
+          "name": "Feature",
+          "desc": "Fearsome Reputation"
+        }
+      ]
+    },
+    "boek": "Guildmasters' Guide to Ravnica"
+  },
+  "Rashemi Wanderer": {
+    "levels": {
+      "1": [
+        {
+          "name": "Ability Scores",
+          "desc": "Strength, Constitution, Charisma"
+        },
+        {
+          "name": "Feat",
+          "desc": "Tough"
+        },
+        {
+          "name": "Skill Proficiencies",
+          "desc": "Intimidation and Perception"
+        },
+        {
+          "name": "Tool Proficiencies",
+          "desc": "Cartographer's Tools"
+        },
+        {
+          "name": "Equipment",
+          "desc": "Choose A or B: (A) Cartographer's Tools, Backpack, Bedroll, Hooded Lantern, Oil (3 flasks), Rope, Tinderbox, Traveler's Clothes, Waterskin, 23 GP; or (B) 50 GP"
+        }
+      ]
+    },
+    "boek": "Forgotten Realms: Heroes of Faerûn"
+  },
+  "Reconstructed Runaway": {
+    "levels": {
+      "1": [
+        {
+          "name": "Ability Scores",
+          "desc": "Strength, Constitution, Wisdom"
+        },
+        {
+          "name": "Feat",
+          "desc": "Symbiotic Being or a Dark Gift feat of your choice"
+        },
+        {
+          "name": "Skill Proficiencies",
+          "desc": "Athletics and Medicine"
+        },
+        {
+          "name": "Tool Proficiencies",
+          "desc": "Smith's Tools (as welding tools)"
+        },
+        {
+          "name": "Equipment",
+          "desc": "Choose A or B: (A) Smith's Tools (as welding tools), Bullseye Lantern (as flashlight), Caltrops, Chain, Crowbar, Grappling Hook, Oil (3 flasks; as 3 flashlight batteries), 9 GP (as 9 dollars); or (B) 50 GP (as 50 dollars)"
+        }
+      ]
+    },
+    "boek": "Project Lamordia"
+  },
+  "Rewarded": {
+    "levels": {
+      "1": [
+        {
+          "name": "Skill Proficiencies",
+          "desc": "Insight, Persuasion"
+        },
+        {
+          "name": "Languages",
+          "desc": "One of your choice"
+        },
+        {
+          "name": "Equipment",
+          "desc": "A bottle of black ink, an ink pen, five sheets of paper, a gaming set (matching your chosen proficiency), a signet ring, a set of fine clothes, and a pouch containing 18 gp"
+        },
+        {
+          "name": "Tool Proficiencies",
+          "desc": "One gaming set of your choice (such as playing cards or three-dragon ante cards)"
+        }
+      ]
+    },
+    "boek": "The Book of Many Things"
+  },
+  "Rival Intern": {
+    "levels": {
+      "1": [
+        {
+          "name": "Skill Proficiencies",
+          "desc": "History, Investigation"
+        },
+        {
+          "name": "Tool Proficiencies",
+          "desc": "any 1 artisan's tools"
+        },
+        {
+          "name": "Languages",
+          "desc": "any 1 languages"
+        },
+        {
+          "name": "Equipment",
+          "desc": "Artisan's Tools, Ledger from your previous employer containing a small piece of useful information, Fine clothes, Pouch containing 10 GP"
+        },
+        {
+          "name": "Feature",
+          "desc": "Inside Informant"
+        }
+      ]
+    },
+    "boek": "Acquisitions Incorporated"
+  },
+  "Ruined": {
+    "levels": {
+      "1": [
+        {
+          "name": "Skill Proficiencies",
+          "desc": "Stealth, Survival"
+        },
+        {
+          "name": "Languages",
+          "desc": "One of your choice"
+        },
+        {
+          "name": "Equipment",
+          "desc": "A cracked hourglass, a set of rusty manacles, a half-empty bottle, a hunting trap, a gaming set (matching your chosen proficiency), a set of traveler's clothes, and a pouch containing 13 gp"
+        },
+        {
+          "name": "Tool Proficiencies",
+          "desc": "One gaming set of your choice (such as playing cards or three-dragon ante cards)"
+        }
+      ]
+    },
+    "boek": "The Book of Many Things"
+  },
+  "Rune Carver": {
+    "levels": {
+      "1": [
+        {
+          "name": "Skill Proficiencies",
+          "desc": "History, Perception"
+        },
+        {
+          "name": "Tool Proficiencies",
+          "desc": "any 1 artisan's tools"
+        },
+        {
+          "name": "Languages",
+          "desc": "Giant"
+        },
+        {
+          "name": "Feat",
+          "desc": "Rune Shaper"
+        },
+        {
+          "name": "Equipment",
+          "desc": "Artisan's Tools, Small knife, Whetstone, Common clothes, Pouch containing 10 GP"
+        },
+        {
+          "name": "Feature",
+          "desc": "Rune Shaper"
+        }
+      ]
+    },
+    "boek": "Bigby Presents: Glory of the Giants"
   },
   "Sage": {
     "levels": {
@@ -309,7 +2786,8 @@
           "desc": "Choose A or B: (A) Quarterstaff, Calligrapher's Supplies, Book (history), Parchment (8 sheets), Robe, 8 GP; or (B) 50 GP"
         }
       ]
-    }
+    },
+    "boek": "Player's Handbook (2024)"
   },
   "Sailor": {
     "levels": {
@@ -335,7 +2813,8 @@
           "desc": "Choose A or B: (A) Dagger, Navigator's Tools, Rope, Traveler's Clothes, 20 GP; or (B) 50 GP"
         }
       ]
-    }
+    },
+    "boek": "Player's Handbook (2024)"
   },
   "Scribe": {
     "levels": {
@@ -361,7 +2840,185 @@
           "desc": "Choose A or B: (A) Calligrapher's Supplies, Fine Clothes, Lamp, Oil (3 flasks), Parchment (12 sheets), 23 GP; or (B) 50 GP"
         }
       ]
-    }
+    },
+    "boek": "Player's Handbook (2024)"
+  },
+  "Seer Apprentice": {
+    "levels": {
+      "1": [
+        {
+          "name": "Ability Scores",
+          "desc": "Intelligence, Wisdom, Charisma"
+        },
+        {
+          "name": "Feat",
+          "desc": "Arcane Omens"
+        },
+        {
+          "name": "Skill Proficiencies",
+          "desc": "History and Insight"
+        },
+        {
+          "name": "Tool Proficiencies",
+          "desc": "Navigator's Tools"
+        },
+        {
+          "name": "Equipment",
+          "desc": "Choose A or B: (A) Navigator's Tools, 8 Candles, Ink, Ink Pen, Parchment (9 sheets), Pouch, Tinderbox, Traveler's Clothes, 11 GP; or (B) 50 GP"
+        }
+      ]
+    },
+    "boek": "Arcana Unleashed"
+  },
+  "Selesnya Initiate": {
+    "levels": {
+      "1": [
+        {
+          "name": "Skill Proficiencies",
+          "desc": "Nature, Persuasion"
+        },
+        {
+          "name": "Tool Proficiencies",
+          "desc": "choose one: Any Artisans Tool, Musical Instrument"
+        },
+        {
+          "name": "Languages",
+          "desc": "choose one: Elvish, Other, Sylvan"
+        },
+        {
+          "name": "Equipment",
+          "desc": "Selesnya insignia, Healer's kit, Robes, Common clothes, Pouch containing 5 GP"
+        },
+        {
+          "name": "Feature",
+          "desc": "Conclave's Shelter"
+        }
+      ]
+    },
+    "boek": "Guildmasters' Guide to Ravnica"
+  },
+  "Shadowmasters Exile": {
+    "levels": {
+      "1": [
+        {
+          "name": "Ability Scores",
+          "desc": "Dexterity, Intelligence, Charisma"
+        },
+        {
+          "name": "Feat",
+          "desc": "Savage Attacker"
+        },
+        {
+          "name": "Skill Proficiencies",
+          "desc": "Acrobatics and Stealth"
+        },
+        {
+          "name": "Tool Proficiencies",
+          "desc": "Thieves' Tools"
+        },
+        {
+          "name": "Equipment",
+          "desc": "Choose A or B: (A) 2 Daggers, Thieves' Tools, Caltrops, Costume, Grappling Hook, Iron Spikes, Mirror, 2 Pouches, Rope, Traveler's Clothes, 3 GP; or (B) 50 GP"
+        }
+      ]
+    },
+    "boek": "Forgotten Realms: Heroes of Faerûn"
+  },
+  "Shipwright": {
+    "levels": {
+      "1": [
+        {
+          "name": "Skill Proficiencies",
+          "desc": "History, Perception"
+        },
+        {
+          "name": "Tool Proficiencies",
+          "desc": "Carpenter'S Tools, Vehicles (Water)"
+        },
+        {
+          "name": "Equipment",
+          "desc": "Set of well-loved carpenter's tools, Blank book, Ink (1-ounce bottle), Ink pen, Traveler's clothes, Pouch containing 10 GP"
+        },
+        {
+          "name": "Feature",
+          "desc": "I'll Patch It!"
+        }
+      ]
+    },
+    "boek": "Ghosts of Saltmarsh"
+  },
+  "Silverquill Student": {
+    "levels": {
+      "1": [
+        {
+          "name": "Skill Proficiencies",
+          "desc": "Intimidation, Persuasion"
+        },
+        {
+          "name": "Languages",
+          "desc": "any 2 languages"
+        },
+        {
+          "name": "Feat",
+          "desc": "Strixhaven Initiate"
+        },
+        {
+          "name": "Equipment",
+          "desc": "Ink (1-ounce bottle), Ink pen, Book of poetry, School uniform, Pouch containing 15 GP"
+        },
+        {
+          "name": "Feature",
+          "desc": "Silverquill Initiate"
+        }
+      ]
+    },
+    "boek": "Strixhaven: A Curriculum of Chaos"
+  },
+  "Simic Scientist": {
+    "levels": {
+      "1": [
+        {
+          "name": "Skill Proficiencies",
+          "desc": "Arcana, Medicine"
+        },
+        {
+          "name": "Languages",
+          "desc": "any 2 languages"
+        },
+        {
+          "name": "Equipment",
+          "desc": "Simic insignia, Common clothes, Book of research notes, Ink pen, Ink (1-ounce bottle), Flask of oil (made from blubber), Vial of acid (derived from digestive juices), Vial of fish scales, Vial of seaweed, Vial of jellyfish stingers, Glass bottle of unidentified slime, Pouch containing 10 GP"
+        },
+        {
+          "name": "Feature",
+          "desc": "Researcher"
+        }
+      ]
+    },
+    "boek": "Guildmasters' Guide to Ravnica"
+  },
+  "Smuggler": {
+    "levels": {
+      "1": [
+        {
+          "name": "Skill Proficiencies",
+          "desc": "Athletics, Deception"
+        },
+        {
+          "name": "Tool Proficiencies",
+          "desc": "Vehicles (Water)"
+        },
+        {
+          "name": "Equipment",
+          "desc": "Fancy leather vest, Pair of leather boots, Common clothes, Pouch containing 15 GP"
+        },
+        {
+          "name": "Feature",
+          "desc": "Down Low"
+        }
+      ]
+    },
+    "boek": "Ghosts of Saltmarsh"
   },
   "Soldier": {
     "levels": {
@@ -387,7 +3044,316 @@
           "desc": "Choose A or B: (A) Spear, Shortbow, 20 Arrows, Gaming Set (same as above), Healer's Kit, Quiver, Traveler's Clothes, 14 GP; or (B) 50 GP"
         }
       ]
-    }
+    },
+    "boek": "Player's Handbook (2024)"
+  },
+  "Spellfire Initiate": {
+    "levels": {
+      "1": [
+        {
+          "name": "Ability Scores",
+          "desc": "Constitution, Intelligence, Charisma"
+        },
+        {
+          "name": "Feat",
+          "desc": "Spellfire Spark"
+        },
+        {
+          "name": "Skill Proficiencies",
+          "desc": "Arcana and Perception"
+        },
+        {
+          "name": "Tool Proficiencies",
+          "desc": "Choose one kind of Gaming Set"
+        },
+        {
+          "name": "Equipment",
+          "desc": "Choose A or B: (A) Gaming Set (same as above), Arcane Focus (Crystal or Wand), 2 Pouches, Traveler's Clothes, 36 GP; or (B) 50 GP"
+        }
+      ]
+    },
+    "boek": "Forgotten Realms: Heroes of Faerûn"
+  },
+  "Spirit Medium": {
+    "levels": {
+      "1": [
+        {
+          "name": "Ability Scores",
+          "desc": "Constitution, Intelligence, Wisdom"
+        },
+        {
+          "name": "Feat",
+          "desc": "A Dark Gift feat of your choice (Gathered Whispers is recommended)"
+        },
+        {
+          "name": "Skill Proficiencies",
+          "desc": "Insight and Religion"
+        },
+        {
+          "name": "Tool Proficiencies",
+          "desc": "Choose one kind of Gaming Set"
+        },
+        {
+          "name": "Equipment",
+          "desc": "Choose A or B: (A) Dagger, Gaming Set (same as above), Basket, Bell, 8 Candles, Ink, Ink Pen, Paper (5 sheets), Tinderbox, Traveler's Clothes, and 32 GP; or (B) 50 GP"
+        }
+      ]
+    },
+    "boek": "Ravenloft: The Horrors Within"
+  },
+  "Urban Bounty Hunter": {
+    "levels": {
+      "1": [
+        {
+          "name": "Skill Proficiencies",
+          "desc": "choose one: Deception, Insight, Persuasion, Stealth"
+        },
+        {
+          "name": "Tool Proficiencies",
+          "desc": "choose one: Gaming Set, Musical Instrument, Thieves' Tools"
+        },
+        {
+          "name": "Equipment",
+          "desc": "Pouch containing 20 GP"
+        },
+        {
+          "name": "Feature",
+          "desc": "Ear to the Ground"
+        }
+      ]
+    },
+    "boek": "Sword Coast Adventurer's Guide"
+  },
+  "Urchin": {
+    "levels": {
+      "1": [
+        {
+          "name": "Skill Proficiencies",
+          "desc": "Sleight Of Hand, Stealth"
+        },
+        {
+          "name": "Tool Proficiencies",
+          "desc": "Disguise Kit, Thieves' Tools"
+        },
+        {
+          "name": "Equipment",
+          "desc": "Small knife, Map of the city you grew up in, Pet mouse, Token to remember your parents by, Common clothes, Pouch containing 10 GP"
+        },
+        {
+          "name": "Feature",
+          "desc": "City Secrets"
+        }
+      ]
+    },
+    "boek": "Player's Handbook (2014)"
+  },
+  "Uthgardt Tribe Member": {
+    "levels": {
+      "1": [
+        {
+          "name": "Skill Proficiencies",
+          "desc": "Athletics, Survival"
+        },
+        {
+          "name": "Tool Proficiencies",
+          "desc": "choose one: Musical Instrument, Any Artisans Tool"
+        },
+        {
+          "name": "Languages",
+          "desc": "any 1 languages"
+        },
+        {
+          "name": "Equipment",
+          "desc": "Hunting trap, Traveler's clothes, Pouch containing 10 GP, Totemic token, Set of tattoos marking your loyalty to Uthgar and your tribal totem"
+        },
+        {
+          "name": "Feature",
+          "desc": "Uthgardt Heritage"
+        }
+      ]
+    },
+    "boek": "Sword Coast Adventurer's Guide"
+  },
+  "Vampire Devotee": {
+    "levels": {
+      "1": [
+        {
+          "name": "Ability Scores",
+          "desc": "Strength, Constitution, Charisma"
+        },
+        {
+          "name": "Feat",
+          "desc": "Vampire's Plaything"
+        },
+        {
+          "name": "Skill Proficiencies",
+          "desc": "Persuasion and Stealth"
+        },
+        {
+          "name": "Tool Proficiency",
+          "desc": "Cook's Utensils"
+        },
+        {
+          "name": "Equipment",
+          "desc": "Choose A or B: (A) Cook's Utensils, Fine Clothes, 2 Glass Bottles, Healer's Kit, Perfume, Lamp, Oil (3 flasks), Waterskin, 19 GP; or (B) 50 GP"
+        }
+      ]
+    },
+    "boek": "Astarion's Book of Hungers"
+  },
+  "Vampire Survivor": {
+    "levels": {
+      "1": [
+        {
+          "name": "Ability Scores",
+          "desc": "Dexterity, Constitution, Wisdom"
+        },
+        {
+          "name": "Feat",
+          "desc": "Vampire Hunter"
+        },
+        {
+          "name": "Skill Proficiencies",
+          "desc": "Insight and Religion"
+        },
+        {
+          "name": "Tool Proficiency",
+          "desc": "Woodcarver's Tools"
+        },
+        {
+          "name": "Equipment",
+          "desc": "Choose A or B: (A) Woodcarver's Tools, Crowbar, Hooded Lantern, Holy Symbol (reliquary), Holy Water, Mirror, Oil (3 flasks), Tinderbox, Traveler's Clothes, Waterskin, 4 GP; or (B) 50 GP"
+        }
+      ]
+    },
+    "boek": "Astarion's Book of Hungers"
+  },
+  "Variant City Watch (Investigator)": {
+    "levels": {
+      "1": [
+        {
+          "name": "Skill Proficiencies",
+          "desc": "Insight, Investigation"
+        },
+        {
+          "name": "Languages",
+          "desc": "any 2 languages"
+        },
+        {
+          "name": "Equipment",
+          "desc": "Uniform in the style of your unit and indicative of your rank, Horn with which to summon help, Set of manacles, Pouch containing 10 GP"
+        },
+        {
+          "name": "Feature",
+          "desc": "Watcher's Eye"
+        }
+      ]
+    },
+    "boek": "Sword Coast Adventurer's Guide"
+  },
+  "Vizier": {
+    "levels": {
+      "1": [
+        {
+          "name": "Skill Proficiencies",
+          "desc": "History, Religion"
+        },
+        {
+          "name": "Tool Proficiencies",
+          "desc": "any 1 artisan's tools"
+        },
+        {
+          "name": "Equipment",
+          "desc": "Artisan's Tools, Musical Instrument, Scroll of your god's teachings, Vizier's cartouche, Fine clothes, Pouch containing 25 GP"
+        },
+        {
+          "name": "Feature",
+          "desc": "Voice of Authority"
+        }
+      ]
+    },
+    "boek": "Plane Shift: Amonkhet"
+  },
+  "Volstrucker Agent": {
+    "levels": {
+      "1": [
+        {
+          "name": "Skill Proficiencies",
+          "desc": "Deception, Stealth"
+        },
+        {
+          "name": "Tool Proficiencies",
+          "desc": "Poisoner'S Kit"
+        },
+        {
+          "name": "Languages",
+          "desc": "any 1 languages"
+        },
+        {
+          "name": "Equipment",
+          "desc": "Common clothes, Black cloak with a hood, Poisoner's kit, Pouch containing 10 GP"
+        },
+        {
+          "name": "Feature",
+          "desc": "Shadow Network"
+        }
+      ]
+    },
+    "boek": "Explorer's Guide to Wildemount"
+  },
+  "Ward of the Sheltering Hands": {
+    "levels": {
+      "1": [
+        {
+          "name": "Ability Scores",
+          "desc": "Constitution, Wisdom, Charisma"
+        },
+        {
+          "name": "Feat",
+          "desc": "Arcane Safeguard"
+        },
+        {
+          "name": "Skill Proficiencies",
+          "desc": "Insight and Medicine"
+        },
+        {
+          "name": "Tool Proficiencies",
+          "desc": "Cook's Utensils"
+        },
+        {
+          "name": "Equipment",
+          "desc": "Choose A or B: (A) Cook's Utensils, Blanket, Healer's Kit, Lamp, Oil (3 flasks), Tinderbox, Traveler's Clothes, Waterskin, 40 GP; or (B) 50 GP"
+        }
+      ]
+    },
+    "boek": "Arcana Unleashed"
+  },
+  "Waterdhavian Noble": {
+    "levels": {
+      "1": [
+        {
+          "name": "Skill Proficiencies",
+          "desc": "History, Persuasion"
+        },
+        {
+          "name": "Tool Proficiencies",
+          "desc": "choose one: Gaming Set, Musical Instrument"
+        },
+        {
+          "name": "Languages",
+          "desc": "any 1 languages"
+        },
+        {
+          "name": "Equipment",
+          "desc": "Fine clothes, Scroll of pedigree, Skin of fine zzar or wine, Purse containing 20 GP, Signet ring, Brooch"
+        },
+        {
+          "name": "Feature",
+          "desc": "Kept in Style"
+        }
+      ]
+    },
+    "boek": "Sword Coast Adventurer's Guide"
   },
   "Wayfarer": {
     "levels": {
@@ -413,6 +3379,119 @@
           "desc": "Choose A or B: (A) 2 Daggers, Thieves' Tools, Gaming Set (any), Bedroll, 2 Pouches, Traveler's Clothes, 16 GP; or (B) 50 GP"
         }
       ]
-    }
+    },
+    "boek": "Player's Handbook (2024)"
+  },
+  "Wildspacer": {
+    "levels": {
+      "1": [
+        {
+          "name": "Skill Proficiencies",
+          "desc": "Athletics, Survival"
+        },
+        {
+          "name": "Tool Proficiencies",
+          "desc": "Navigator'S Tools, Vehicles (Space)"
+        },
+        {
+          "name": "Feat",
+          "desc": "Tough"
+        },
+        {
+          "name": "Equipment",
+          "desc": "Belaying pin, Traveler's clothes, Grappling hook, Hempen rope (50 feet), Pouch containing 10 GP"
+        },
+        {
+          "name": "Feature",
+          "desc": "Wildspace Adaptation"
+        }
+      ]
+    },
+    "boek": "Astral Adventurer's Guide"
+  },
+  "Witchlight Hand": {
+    "levels": {
+      "1": [
+        {
+          "name": "Skill Proficiencies",
+          "desc": "Performance, Sleight Of Hand"
+        },
+        {
+          "name": "Tool Proficiencies",
+          "desc": "choose one: Disguise Kit, Musical Instrument"
+        },
+        {
+          "name": "Languages",
+          "desc": "any 1 languages"
+        },
+        {
+          "name": "Equipment",
+          "desc": "Disguise kit, Musical Instrument, Deck of cards, Costume clothes, Feywild trinket, Pouch containing 8 GP"
+        },
+        {
+          "name": "Feature",
+          "desc": "Carnival Fixture"
+        }
+      ]
+    },
+    "boek": "The Wild Beyond the Witchlight"
+  },
+  "Witherbloom Student": {
+    "levels": {
+      "1": [
+        {
+          "name": "Skill Proficiencies",
+          "desc": "Nature, Survival"
+        },
+        {
+          "name": "Tool Proficiencies",
+          "desc": "Herbalism Kit"
+        },
+        {
+          "name": "Languages",
+          "desc": "any 1 languages"
+        },
+        {
+          "name": "Feat",
+          "desc": "Strixhaven Initiate"
+        },
+        {
+          "name": "Equipment",
+          "desc": "Ink (1-ounce bottle), Ink pen, Book about plant identification, Iron pot, Herbalism kit, School uniform, Pouch containing 15 GP"
+        },
+        {
+          "name": "Feature",
+          "desc": "Witherbloom Initiate"
+        }
+      ]
+    },
+    "boek": "Strixhaven: A Curriculum of Chaos"
+  },
+  "Zhentarim Mercenary": {
+    "levels": {
+      "1": [
+        {
+          "name": "Ability Scores",
+          "desc": "Strength, Dexterity, Charisma"
+        },
+        {
+          "name": "Feat",
+          "desc": "Zhentarim Ruffian"
+        },
+        {
+          "name": "Skill Proficiencies",
+          "desc": "Intimidation and Perception"
+        },
+        {
+          "name": "Tool Proficiencies",
+          "desc": "Forgery Kit"
+        },
+        {
+          "name": "Equipment",
+          "desc": "Choose A or B: (A) Club, Dagger, Forgery Kit, Fine Clothes, Hooded Lantern, Oil (3 flasks), 2 Pouches, String, Tinderbox, 11 GP; or (B) 50 GP"
+        }
+      ]
+    },
+    "boek": "Forgotten Realms: Heroes of Faerûn"
   }
 }
