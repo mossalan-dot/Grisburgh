@@ -22,6 +22,13 @@ URL="https://grisburgh.nl/grisburgh"
 PADEN=(public/js public/css public/index.html public/img/icons.svg
        routes lib bronnen server.js config.js package.json)
 
+# Zelfde afweging als in `uitrollen.sh`: ligt de doelmap hier op schijf, dan
+# draaien we al óp de server (een shell vanaf de iPad) en hoeft er geen ssh aan
+# te pas te komen. Juist dit script moet het dáár doen — een misgelopen uitrol
+# terugdraaien is precies wat je onderweg nodig hebt.
+if [ -d "$DOEL" ]; then OP_DE_SERVER=1; else OP_DE_SERVER=0; fi
+draai() { if [ "$OP_DE_SERVER" = 1 ]; then bash -c "$1"; else ssh -n "$SERVER" "$1"; fi; }
+
 zeg() { printf '\n\033[1m%s\033[0m\n' "$*"; }
 ok()  { printf '  \033[32m✓\033[0m %s\n' "$*"; }
 fout(){ printf '  \033[31m✗\033[0m %s\n' "$*"; }
@@ -31,7 +38,7 @@ if [ "${1:-}" = "--ja" ]; then JA=1; shift; fi
 
 if [ "${1:-}" = "--lijst" ]; then
   zeg "Momentopnamen op de server"
-  ssh -n "$SERVER" "cd $DOEL/releases 2>/dev/null && for d in */; do
+  draai "cd $DOEL/releases 2>/dev/null && for d in */; do
     printf '  %-24s %6s  %s\n' \"\${d%/}\" \"\$(du -sh \$d | cut -f1)\" \"\$(head -1 \$d/MANIFEST 2>/dev/null)\"
   done" || echo "  (nog geen)"
   exit 0
@@ -45,21 +52,21 @@ if [ -z "$WELKE" ]; then
   # oefenen: de tweede terugdraai haalde de kapotte app.js van de eerste terug,
   # en de app gaf gewoon 200 — want de server serveert dat bestand prima, het is
   # de bróswer die erop stukloopt.
-  WELKE=$(ssh -n "$SERVER" "ls -1d $DOEL/releases/*/ 2>/dev/null | grep -v -- '-voor-terugdraai/' | sort | tail -1 | xargs -r basename" || true)
+  WELKE=$(draai "ls -1d $DOEL/releases/*/ 2>/dev/null | grep -v -- '-voor-terugdraai/' | sort | tail -1 | xargs -r basename" || true)
 fi
 if [ -z "$WELKE" ]; then
   fout "er staan geen momentopnamen. Rol eerst een keer uit met scripts/uitrollen.sh."
   exit 1
 fi
 
-if ! ssh -n "$SERVER" "[ -d $DOEL/releases/$WELKE ]"; then
+if ! draai "[ -d $DOEL/releases/$WELKE ]"; then
   fout "onbekende momentopname: $WELKE"
   echo "  Welke er zijn:  scripts/terugdraaien.sh --lijst"
   exit 1
 fi
 
 zeg "Terugdraaien naar $WELKE"
-ssh -n "$SERVER" "cat $DOEL/releases/$WELKE/MANIFEST 2>/dev/null" | sed 's/^/  /'
+draai "cat $DOEL/releases/$WELKE/MANIFEST 2>/dev/null" | sed 's/^/  /'
 # `ssh` leest standaard stdin leeg. Zonder `-n` hierboven slikt hij het antwoord
 # op deze vraag op, krijgt `read` een EOF, en stopt het script onder `set -e`
 # zónder iets te zeggen — je denkt dat je teruggedraaid hebt en dat is niet zo.
@@ -73,7 +80,7 @@ fi
 # terugdraai niet terugdraaien, en dat is precies het moment waarop je merkt
 # dat het probleem ergens anders zat.
 NU=$(date +%Y-%m-%dT%H-%M-%S)-voor-terugdraai
-ssh -n "$SERVER" "
+draai "
   set -e
   mkdir -p $DOEL/releases/$NU
   cd $DOEL
@@ -91,7 +98,7 @@ ssh -n "$SERVER" "
 "
 ok "huidige stand bewaard als $NU"
 
-ssh -n "$SERVER" "
+draai "
   set -e
   cd $DOEL/releases/$WELKE
   for p in ${PADEN[*]}; do
