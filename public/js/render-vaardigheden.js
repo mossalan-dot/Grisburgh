@@ -1506,15 +1506,37 @@ function _achtergrondRijen(naam) {
   // zeggen wélke spreuklijst, niet welke feat.
   const feat = rij('Feat');
   const featKaart = feat ? _featKaartVoor(feat) : null;
-  return [
-    ['Ability Scores', rij('Ability Scores')],
-    ['Feat', feat, featKaart
-      ? `<button class="vd-rij-knop" title="Bekijk ${esc(featKaart.naam)}"
-          onclick="window.vaardigheden.open('${escA(featKaart.key)}')">${esc(feat)} ${icon('arrow-up-right')}</button>`
-      : null],
-    ['Skills', rij('Skill Proficiencies')],
-    ['Tools', rij('Tool Proficiency')],
-  ].filter(([, v]) => v);
+  // **Alles wat erin zit, onder zijn eigen naam.** Dit waren vier vaste rijen
+  // met een eigen etiket erop ("Skills" boven Skill Proficiencies), en dat
+  // ging twee keer mis zodra er meer dan de zestien van 2024 in kwamen: het
+  // zocht naar "Tool Proficiency" terwijl 91 van de 133 "Tool Proficiencies"
+  // heten — die rij viel dus weg — en Languages (49), Equipment (133) en
+  // Feature (59) stonden er helemaal niet bij.
+  //
+  // Nu leidt de volgorde en niet de lijst: wat hieronder staat komt eerst en
+  // in deze volgorde, en wat een background verder nog draagt komt erachteraan.
+  // Zo kan de DM er een onderdeel bij verzinnen zonder dat deze functie het
+  // hoeft te weten.
+  const VOLGORDE = ['Ability Scores', 'Feat', 'Skill Proficiencies', 'Tool Proficiency',
+                    'Tool Proficiencies', 'Languages', 'Equipment', 'Feature'];
+  const gezien = new Set();
+  const uit = [];
+  const zet = (d) => {
+    const n = String(d?.name || '').trim();
+    if (!n || gezien.has(n.toLowerCase())) return;
+    gezien.add(n.toLowerCase());
+    const tekst = String(d.desc || '').trim();
+    if (!tekst) return;
+    if (n === 'Feat' && featKaart) {
+      uit.push(['Feat', tekst, `<button class="vd-rij-knop" title="Bekijk ${esc(featKaart.naam)}"
+        onclick="window.vaardigheden.open('${escA(featKaart.key)}')">${esc(tekst)} ${icon('arrow-up-right')}</button>`]);
+      return;
+    }
+    uit.push([n, tekst]);
+  };
+  for (const kop of VOLGORDE) zet(delen.find(d => String(d.name || '').toLowerCase() === kop.toLowerCase()));
+  for (const d of delen) zet(d);
+  return uit;
 }
 
 // Dezelfde kaart als een class, een species en een subclass. Hij was als enige
@@ -2340,9 +2362,21 @@ function _kaartVenster(soort, naam, bron = '') {
       ${uitleg
         ? `<div class="prog-detail-desc">${window._vaardigTekstHtml?.(uitleg) ?? _bron?.md?.(uitleg) ?? esc(uitleg)}</div>`
         : `<p class="dm-hint">Er staat nog geen uitleg bij deze ${esc(soortLabel.toLowerCase())}. ${isDM() ? 'Schrijf hem erbij — dan leest iedereen aan tafel hetzelfde.' : 'Vraag je DM of hij hem invult.'}</p>`}
+      <!-- Bij een background is elke rij een **onderdeel** dat je kunt
+           bewerken: het potlood ernaast opent hetzelfde formulier als bij een
+           feature. Bij een class of species zijn de rijen kerngegevens; die
+           bewerk je in het venster hiernaast, en daar hoort dus geen potlood.
+           (Geen backticks in commentaar hierbinnen: template literal.) -->
       ${rijen.length ? `<dl class="vk-training vd-kv-training">
-        ${rijen.map(([k, v, html]) => `<dt>${esc(k)}</dt><dd>${html ?? esc(v)}</dd>`).join('')}
+        ${rijen.map(([k, v, html]) => `<dt>${esc(k)}</dt><dd>${html ?? esc(v)}${
+          (soort === 'background' && isDM())
+            ? `<button class="vd-rij-pen" title="${esc(k)} bewerken"
+                 onclick="window.vaardigheden.bewerkOnderdeel('${veilig}','${escA(k)}')">${icon('pencil')}</button>`
+            : ''}</dd>`).join('')}
       </dl>` : ''}
+      ${(soort === 'background' && isDM()) ? `<div class="spreuk-dm-knoppen">
+        <button class="spreuk-detail-imgbtn" onclick="window.vaardigheden.nieuwOnderdeel('${veilig}')">${icon('plus')} Onderdeel erbij</button>
+      </div>` : ''}
       ${naarSpreuken || isDM() ? `<div class="spreuk-dm-knoppen">
         ${naarSpreuken ? `<button class="spreuk-detail-imgbtn" onclick="window.vaardigheden.naarSpreuken('${veilig}')">${icon('book-open')} Spreukenlijst</button>` : ''}
         ${isDM() ? `<button class="spreuk-detail-imgbtn" onclick="window.vaardigheden.kaartBewerken('${esc(soort)}','${veilig}','${veiligB}')">${icon('pencil')} Kaartje bewerken</button>` : ''}
@@ -3337,6 +3371,26 @@ window.vaardigheden = {
     }, 60);
   },
   bewerk(key) { _editorOpen((_all || []).find(x => x.key === key)); },
+  // Een onderdeel van een background bewerken. Die staan niet los in `_all` —
+  // een background is daar één kaartje dat zijn onderdelen samenvat, anders
+  // staat "Ability Scores" honderdendertig keer in de lijst. Maar bewerken wil
+  // je ze wél, en dan is dit de weg erheen: het gewone featureformulier, met
+  // de background als bron.
+  bewerkOnderdeel(bg, naam) {
+    const deel = Object.values(_bron?.backgrounds?.[bg]?.levels || {}).flat()
+      .find(d => String(d?.name || '') === naam);
+    if (!deel) { window._showToast?.(`${naam} staat niet in ${bg}.`); return; }
+    _editorOpen({ soort: 'background', bron: bg, sub: '', level: 1, naam,
+                  desc: deel.desc || '', herkomst: deel.herkomst || '', bronTekst: deel.bron || '' });
+  },
+  // En er eentje bij verzinnen dat er nog niet is (Languages bij een
+  // background die er geen heeft).
+  nieuwOnderdeel(bg) {
+    _editorOpen();
+    _edit.maaksel = 'f-background'; _edit.soort = 'background';
+    _edit.bron = bg; _edit.level = 1; _edit.herkomst = 'zelfbedacht';
+    _editorHerteken();
+  },
   // Kiezen gaat via dezelfde mediabibliotheek als in de bewerkmodal; het
   // detailvenster tekent zichzelf daarna opnieuw, zodat het beeld er staat.
   veld(naam, waarde) {

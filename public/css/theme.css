@@ -28806,6 +28806,16 @@ body.akte-schrijf-open .mp-overlay { z-index: 1320; }
   padding-top: 3px; white-space: nowrap;
 }
 .vk-training dd { margin: 0; color: var(--color-ink-soft, #5a4832); }
+/* Het potlood achter een onderdeel van een background. Pas zichtbaar als je
+   over de rij gaat — anders staat er een rij knoppen in iets dat je leest. */
+.vd-rij-pen {
+  margin-left: 6px; padding: 0; border: 0; background: none; cursor: pointer;
+  color: #9a8468; opacity: 0; transition: opacity .15s;
+  vertical-align: -2px;
+}
+.vk-training dd:hover .vd-rij-pen, .vd-rij-pen:focus-visible { opacity: 1; }
+.vd-rij-pen svg { width: 13px; height: 13px; }
+.vd-rij-pen:hover { color: #5a4030; }
 @media (max-width: 520px) {
   .vk-training { grid-template-columns: 1fr; gap: 1px; }
   .vk-training dd { margin-bottom: 6px; }
