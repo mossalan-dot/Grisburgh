@@ -650,33 +650,6 @@
     },
     "boek": "Guildmasters' Guide to Ravnica"
   },
-  "Discredited Neural Tuner": {
-    "levels": {
-      "1": [
-        {
-          "name": "Ability Scores",
-          "desc": "Strength, Dexterity, Intelligence"
-        },
-        {
-          "name": "Feat",
-          "desc": "Gathered Whispers or a Dark Gift feat of your choice"
-        },
-        {
-          "name": "Skill Proficiencies",
-          "desc": "Medicine and Nature"
-        },
-        {
-          "name": "Tool Proficiencies",
-          "desc": "Tinker's Tools (as engineer's toolkit)"
-        },
-        {
-          "name": "Equipment",
-          "desc": "Choose A or B: (A) Tinker's Tools (as engineer's toolkit); or (B) 50 GP (as 50 dollars)"
-        }
-      ]
-    },
-    "boek": "Project Lamordia"
-  },
   "Dragon Cultist": {
     "levels": {
       "1": [
@@ -757,33 +730,6 @@
       ]
     },
     "boek": "Player's Handbook (2024)"
-  },
-  "Fabricated Mind": {
-    "levels": {
-      "1": [
-        {
-          "name": "Ability Scores",
-          "desc": "Dexterity, Intelligence, Charisma"
-        },
-        {
-          "name": "Feat",
-          "desc": "Echoing Soul or a Dark Gift feat of your choice"
-        },
-        {
-          "name": "Skill Proficiencies",
-          "desc": "Deception and Insight"
-        },
-        {
-          "name": "Tool Proficiencies",
-          "desc": "Forgery Kit"
-        },
-        {
-          "name": "Equipment",
-          "desc": "Choose A or B: (A) Forgery Kit, Fine Clothes, Ink, 2 Ink Pens, 3 Iron Spikes, 7 GP (as 7 dollars); or (B) 50 GP (as 50 dollars)"
-        }
-      ]
-    },
-    "boek": "Project Lamordia"
   },
   "Faceless": {
     "levels": {
@@ -1841,29 +1787,6 @@
     },
     "boek": "Sword Coast Adventurer's Guide"
   },
-  "Initiate": {
-    "levels": {
-      "1": [
-        {
-          "name": "Skill Proficiencies",
-          "desc": "Athletics, Intimidation"
-        },
-        {
-          "name": "Tool Proficiencies",
-          "desc": "Vehicles (Land)"
-        },
-        {
-          "name": "Equipment",
-          "desc": "Simple puzzle box, Scroll containing the basic teachings of the five gods, Gaming Set, Common clothes, Pouch containing 15 GP, Any cartouches you have earned"
-        },
-        {
-          "name": "Trials of the Five Gods",
-          "desc": ""
-        }
-      ]
-    },
-    "boek": "Plane Shift: Amonkhet"
-  },
   "Inquisitive": {
     "levels": {
       "1": [
@@ -1890,29 +1813,6 @@
       ]
     },
     "boek": "Eberron: Forge of the Artificer"
-  },
-  "Inquisitor": {
-    "levels": {
-      "1": [
-        {
-          "name": "Skill Proficiencies",
-          "desc": "Investigation, Religion"
-        },
-        {
-          "name": "Tool Proficiencies",
-          "desc": "Thieves' Tools, any 1 artisan's tools"
-        },
-        {
-          "name": "Equipment",
-          "desc": "Holy symbol, Traveler's clothes, Pouch containing 15 GP"
-        },
-        {
-          "name": "Legal Authority",
-          "desc": ""
-        }
-      ]
-    },
-    "boek": "Plane Shift: Innistrad"
   },
   "Investigator": {
     "levels": {
@@ -1967,33 +1867,6 @@
       ]
     },
     "boek": "Guildmasters' Guide to Ravnica"
-  },
-  "Knight of Solamnia": {
-    "levels": {
-      "1": [
-        {
-          "name": "Skill Proficiencies",
-          "desc": "Athletics, Survival"
-        },
-        {
-          "name": "Languages",
-          "desc": "any 2 languages"
-        },
-        {
-          "name": "Feat",
-          "desc": "Squire Of Solamnia"
-        },
-        {
-          "name": "Equipment",
-          "desc": "Insignia of rank, Playing card set, Common clothes, Pouch containing 10 GP"
-        },
-        {
-          "name": "Squire of Solamnia",
-          "desc": ""
-        }
-      ]
-    },
-    "boek": "Dragonlance: Shadow of the Dragon Queen"
   },
   "Knight of the Gauntlet": {
     "levels": {
@@ -2102,33 +1975,6 @@
       ]
     },
     "boek": "Strixhaven: A Curriculum of Chaos"
-  },
-  "Mage of High Sorcery": {
-    "levels": {
-      "1": [
-        {
-          "name": "Skill Proficiencies",
-          "desc": "Arcana, History"
-        },
-        {
-          "name": "Languages",
-          "desc": "any 2 languages"
-        },
-        {
-          "name": "Feat",
-          "desc": "Initiate Of High Sorcery"
-        },
-        {
-          "name": "Equipment",
-          "desc": "Ink (1-ounce bottle), Ink pen, Common clothes, Pouch containing 10 GP"
-        },
-        {
-          "name": "Initiate of High Sorcery",
-          "desc": ""
-        }
-      ]
-    },
-    "boek": "Dragonlance: Shadow of the Dragon Queen"
   },
   "Marine": {
     "levels": {
@@ -2283,33 +2129,6 @@
       ]
     },
     "boek": "Forgotten Realms: Heroes of Faerûn"
-  },
-  "Mutated Commuter": {
-    "levels": {
-      "1": [
-        {
-          "name": "Ability Scores",
-          "desc": "Constitution, Wisdom, Charisma"
-        },
-        {
-          "name": "Feat",
-          "desc": "Aberrant Anatomy or a Dark Gift feat of your choice"
-        },
-        {
-          "name": "Skill Proficiencies",
-          "desc": "Arcana and Investigation"
-        },
-        {
-          "name": "Tool Proficiencies",
-          "desc": "Choose one kind of Gaming Set"
-        },
-        {
-          "name": "Equipment",
-          "desc": "Choose A or B: (A) Gaming Set (same as above), Book (horror novel), Flask, Lock, Signal Whistle, Traveler's Clothes, and 11 GP (as 11 dollars); or (B) 50 GP (as 50 dollars)"
-        }
-      ]
-    },
-    "boek": "Project Lamordia"
   },
   "Mythalkeeper": {
     "levels": {
@@ -2630,33 +2449,6 @@
       ]
     },
     "boek": "Forgotten Realms: Heroes of Faerûn"
-  },
-  "Reconstructed Runaway": {
-    "levels": {
-      "1": [
-        {
-          "name": "Ability Scores",
-          "desc": "Strength, Constitution, Wisdom"
-        },
-        {
-          "name": "Feat",
-          "desc": "Symbiotic Being or a Dark Gift feat of your choice"
-        },
-        {
-          "name": "Skill Proficiencies",
-          "desc": "Athletics and Medicine"
-        },
-        {
-          "name": "Tool Proficiencies",
-          "desc": "Smith's Tools (as welding tools)"
-        },
-        {
-          "name": "Equipment",
-          "desc": "Choose A or B: (A) Smith's Tools (as welding tools), Bullseye Lantern (as flashlight), Caltrops, Chain, Crowbar, Grappling Hook, Oil (3 flasks; as 3 flashlight batteries), 9 GP (as 9 dollars); or (B) 50 GP (as 50 dollars)"
-        }
-      ]
-    },
-    "boek": "Project Lamordia"
   },
   "Rewarded": {
     "levels": {
@@ -3250,29 +3042,6 @@
       ]
     },
     "boek": "Sword Coast Adventurer's Guide"
-  },
-  "Vizier": {
-    "levels": {
-      "1": [
-        {
-          "name": "Skill Proficiencies",
-          "desc": "History, Religion"
-        },
-        {
-          "name": "Tool Proficiencies",
-          "desc": "any 1 artisan's tools"
-        },
-        {
-          "name": "Equipment",
-          "desc": "Artisan's Tools, Musical Instrument, Scroll of your god's teachings, Vizier's cartouche, Fine clothes, Pouch containing 25 GP"
-        },
-        {
-          "name": "Voice of Authority",
-          "desc": ""
-        }
-      ]
-    },
-    "boek": "Plane Shift: Amonkhet"
   },
   "Volstrucker Agent": {
     "levels": {

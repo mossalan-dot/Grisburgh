@@ -30,8 +30,17 @@ const BOEKEN = path.join(__dirname, '..', '..', 'bronnen', 'boeken.json');
 const AVONTUREN = 'https://raw.githubusercontent.com/5etools-mirror-3/5etools-src/main/data/adventures.json';
 const WEB = { PSA: 'Plane Shift: Amonkhet', PSI: 'Plane Shift: Innistrad', PL: 'Project Lamordia' };
 
-// Lorwyn rekenen we niet mee — zelfde afspraak als bij de species.
-const GEEN_BRON = new Set(['LFL']);
+// Wat deze tafel niet meerekent. Lorwyn ging er bij de species ook al uit; de
+// rest zijn uitgaven die geen boek zijn (de Plane Shift-artikelen en Project
+// Lamordia staan niet voor niets in geen enkele boeken- of avonturenlijst) en
+// Dragonlance, dat hier niet gespeeld wordt. Haal je er een weg, dan komt hij
+// bij een volgende campagne ook niet meer terug.
+const GEEN_BRON = new Set([
+  'LFL',                    // Lorwyn: First Light
+  'PL',                     // Project Lamordia
+  'PSA', 'PSI',             // Plane Shift: Amonkhet, Innistrad
+  'DSotDQ',                 // Dragonlance: Shadow of the Dragon Queen
+]);
 
 // Hoe jonger, hoe hoger. Wat hier niet staat telt als oudst, dus een onbekende
 // druk verdringt nooit een bekende nieuwere.
