@@ -2046,8 +2046,15 @@ function _paint() {
   // Het kaartje van de aangevinkte subclass stond hier bovenaan het raster.
   // Dat staat nu naast de class in de band, waar het hoort — twee keer
   // hetzelfde kaartje op één scherm leest als een fout.
+  // **Een background is een bladerkaart, net als een class.** Hij was als enige
+  // nog een plat kaartje: een plaat, een naam en een afgekapte regel. Terwijl
+  // het dezelfde vraag is — wat ís dit — en het antwoord uit dezelfde drie
+  // delen bestaat: de plaat, het verhaal, en wat hij geeft. Zijn eigen
+  // kaartfunctie bestond al en werd nergens aangeroepen: de deur Backgrounds
+  // slaat de bandlaag over (ze hebben geen tussenlaag zoals subclasses), en
+  // daardoor kwam hij nooit in beeld.
   grid.innerHTML = (lijst.length
-      ? lijst.map(_card).join('')
+      ? lijst.map(it => it.soort === 'background' ? _achtergrondKaartHtml(it.naam) : _card(it)).join('')
       : `<p class="spreuk-empty">Niets gevonden.</p>`);
   const tel = document.getElementById('vaardig-telling');
   if (tel) tel.textContent = `${lijst.length} van ${(_all || []).length}`;

@@ -28806,6 +28806,22 @@ body.akte-schrijf-open .mp-overlay { z-index: 1320; }
   padding-top: 3px; white-space: nowrap;
 }
 .vk-training dd { margin: 0; color: var(--color-ink-soft, #5a4832); }
+
+/* ── Een bladerkaart in het raster ──────────────────────────────────────────
+   Een class staat in de band en heeft daar bijna vierhonderd pixels; een
+   background staat tussen honderdvijfentwintig andere in het raster, en dan
+   is een kaartje nog geen kwart zo breed. Twee dingen moeten daar anders.
+
+   Eén: de kaarten houden allemaal dezelfde hoogte. Anders rekt de hele rij
+   mee met die ene background met een lange uitrustingsregel, en staan er vijf
+   halflege kaarten naast. Wat niet past valt weg achter de vervaging die er
+   toch al onder ligt. */
+#vaardig-grid .vk-kaart { height: 330px; min-height: 0; }
+/* Twee: label bóven waarde in plaats van ernaast. Naast elkaar bleef er voor
+   "Strength, Constitution, Charisma" een kolom van zeventig pixels over. */
+#vaardig-grid .vk-training { grid-template-columns: 1fr; gap: 0; }
+#vaardig-grid .vk-training dt { padding-top: 6px; white-space: normal; }
+#vaardig-grid .vk-training dt:first-child { padding-top: 0; }
 /* Het potlood achter een onderdeel van een background. Pas zichtbaar als je
    over de rij gaat — anders staat er een rij knoppen in iets dat je leest. */
 .vd-rij-pen {
