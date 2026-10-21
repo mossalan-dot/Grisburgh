@@ -562,17 +562,18 @@ function _filtered() {
 // Waar iets bij hoort. Bij een feat, een Epic Boon of een background zegt de
 // bron hetzelfde als de soort ("Feat · Feats") — dan laten we hem weg.
 const _EIGEN_BRON = new Set(['Feats', 'Epic Boons', 'Backgrounds', 'Gunsten', 'Zegeningen']);
-// **Een trait van een species is niet iets wat je op level 1 krijgt.** Je bént
-// een Dragonborn; Darkvision hoort erbij vanaf het moment dat het personage
-// bestaat. Bij een class klopt het level wél — een Barbarian krijgt Rage op 1
-// en Danger Sense op 2, en dat verschil is precies wat de tijdlijn vertelt.
+// Een trait van een species is strikt genomen niet iets wat je op level 1
+// krijgt — je bént een Dragonborn, Darkvision hoort erbij vanaf het moment dat
+// het personage bestaat. Die 1 stond hier daarom even niet.
 //
-// Boven 1 blijft hij staan: Gift of the Svirfneblin op 3 en de Lineage-spreuk
-// op 5 zijn wél iets wat je later krijgt, en dan is het level de pointe.
+// **Hij staat er weer**, en om een goede reden: een kaartje draagt sinds kort
+// ook de levels waarop een trait verándert. Zonder de 1 leest het Blessing of
+// the Raven Queen als een losse open pil "3", en dan is niet te zien of je hem
+// op 3 krijgt of dat er op 3 iets aan verandert. De gevulde 1 ernaast maakt
+// dat verschil zichtbaar. Een beetje overbodig tegenover een beetje
+// onleesbaar, en dan wint leesbaar.
 function _toontLevel(soort, level) {
-  const n = Number(level) || 0;
-  if (!n) return false;
-  return !((soort === 'species' || soort === 'variant') && n === 1);
+  return (Number(level) || 0) > 0;
 }
 
 function _bronRegel(it) {

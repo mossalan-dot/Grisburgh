@@ -3459,8 +3459,18 @@
       }
     ],
     "Simic Hybrid": [
-      "Darkvision",
-      "Animal Enhancement"
+      {
+        "naam": "Animal Enhancement",
+        "level": 1
+      },
+      {
+        "naam": "Darkvision",
+        "level": 1
+      },
+      {
+        "naam": "Languages",
+        "level": 1
+      }
     ],
     "Tortle": [
       "Claws",

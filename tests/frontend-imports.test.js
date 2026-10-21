@@ -346,19 +346,18 @@ describe('Iconen', () => {
     assert.deepEqual(f('', 1), []);
   });
 
-  // Een trait van een species is inherent: je bent een Dragonborn, je krijgt
-  // Darkvision niet op level 1. Bij een class klopt het level wél, en boven 1
-  // klopt het ook bij een species (Gift of the Svirfneblin op 3).
-  it('toont geen level 1 bij een species-trait', () => {
+  // De 1 van een species-trait stond er even niet — je bént tenslotte een
+  // Dragonborn — maar hij is terug: naast de open pillen van een trait die
+  // verandert is een losse "3" niet te lezen zonder de gevulde 1 ernaast.
+  it('toont een level zodra er een is, en anders niets', () => {
     const src = fs.readFileSync(path.join(__dirname, '..', 'public', 'js', 'render-vaardigheden.js'), 'utf8');
     const blok = src.match(/function _toontLevel\(soort, level\) \{[\s\S]*?\n\}/);
     assert.ok(blok, '_toontLevel niet gevonden');
     const f = new Function('return ' + blok[0].replace('function _toontLevel', 'function'))();
-    assert.equal(f('species', 1), false, 'een trait op 1 draagt geen getal');
-    assert.equal(f('variant', 1), false, 'ook niet bij een variant');
-    assert.equal(f('species', 3), true, 'op 3 wél');
-    assert.equal(f('class', 1), true, 'een class krijgt zijn features op een level');
-    assert.equal(f('subclass', 3), true);
+    assert.equal(f('species', 1), true, 'de 1 hoort erbij, anders is een open pil niet te duiden');
+    assert.equal(f('variant', 1), true);
+    assert.equal(f('species', 3), true);
+    assert.equal(f('class', 1), true);
     assert.equal(f('feat', 0), false, 'een feat hangt aan geen level');
   });
 
