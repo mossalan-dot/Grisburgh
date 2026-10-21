@@ -3966,78 +3966,18 @@
         "level": 1
       }
     ],
-    "Tiefling|Asmodeus": [
-      {
-        "naam": "Infernal Legacy",
-        "level": 1
-      }
-    ],
-    "Tiefling|Baalzebul": [
-      {
-        "naam": "Legacy of Maladomini",
-        "level": 1
-      }
-    ],
-    "Tiefling|Dispater": [
-      {
-        "naam": "Legacy of Dis",
-        "level": 1
-      }
-    ],
-    "Tiefling|Fierna": [
-      {
-        "naam": "Legacy of Phlegethos",
-        "level": 1
-      }
-    ],
-    "Tiefling|Glasya": [
-      {
-        "naam": "Legacy of Malbolge",
-        "level": 1
-      }
-    ],
-    "Tiefling|Levistus": [
-      {
-        "naam": "Legacy of Stygia",
-        "level": 1
-      }
-    ],
-    "Tiefling|Mammon": [
-      {
-        "naam": "Legacy of Minauros",
-        "level": 1
-      }
-    ],
-    "Tiefling|Mephistopheles": [
-      {
-        "naam": "Legacy of Cania",
-        "level": 1
-      }
-    ],
-    "Tiefling|Zariel": [
-      {
-        "naam": "Legacy of Avernus",
-        "level": 1
-      }
-    ],
-    "Tiefling|Devil's Tongue": [
-      {
-        "naam": "Devil's Tongue",
-        "level": 1
-      }
-    ],
-    "Tiefling|Hellfire": [
-      {
-        "naam": "Hellfire",
-        "level": 1
-      }
-    ],
-    "Tiefling|Winged": [
-      {
-        "naam": "Winged",
-        "level": 1
-      }
-    ]
+    "Tiefling|Asmodeus": [],
+    "Tiefling|Baalzebul": [],
+    "Tiefling|Dispater": [],
+    "Tiefling|Fierna": [],
+    "Tiefling|Glasya": [],
+    "Tiefling|Levistus": [],
+    "Tiefling|Mammon": [],
+    "Tiefling|Mephistopheles": [],
+    "Tiefling|Zariel": [],
+    "Tiefling|Devil's Tongue": [],
+    "Tiefling|Hellfire": [],
+    "Tiefling|Winged": []
   },
   "_varianten": "De varianten van een species, met de sleutel \"Species|Variant\". Alleen waar de nieuwste druk van dat species zijn inhoud nog ín zijn varianten heeft — bij Genasi is dat zo (Monsters of the Multiverse), bij Tiefling en Elf niet: daar zijn de lineages van 2024 en geeft de lineage spreuken per level, en dat is tekst uit het boek.",
   "_oude_namen": "Een subclass die onder een nieuwere naam is heruitgegeven (School of Conjuration → Conjurer) blijft hier ook onder zijn oude naam staan, met de features van díé druk. De lijst \"bestaat elders\" wijst alleen naar de nieuwste, maar een campagne die de oude al had overgenomen houdt zo zijn featurenamen in plaats van op \"geen tekst\" te vallen."
