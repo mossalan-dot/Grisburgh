@@ -1636,6 +1636,17 @@ function _deurenHtml() {
         <span class="vd-deur-icoon">${icon(d.icoon)}</span>
         <span class="vd-deur-telling">${_deurTelling(d)}</span>
         <span class="vd-deur-naam">${esc(d.label)}</span>
+        <!-- De laag eronder, kleiner. Alleen bij de classes: daar is het de
+             tweede helft van het antwoord ("veertien classes, en honderd
+             subclasses om uit te kiezen"). Bij de species niet — vijf van de
+             negenenvijftig hebben varianten, dus dat getal zegt vooral iets
+             over die vijf.
+             (Geen backticks in commentaar hierbinnen: template literal.) -->
+        ${d.id === 'class' ? (() => {
+          const n = Object.keys(_bron?.prog?.classes || {})
+            .reduce((t, k) => t + _bandSubklassen(k).length, 0);
+          return n ? `<span class="vd-deur-onder">${n} subclasses</span>` : '';
+        })() : ''}
       </button>
       ${isDM() ? `<button class="vd-deur-beeldknop" title="Een afbeelding bij deze kaart kiezen"
         onclick="event.stopPropagation();window.vaardigheden.deurBeeld('${d.id}')">${icon('image')}</button>` : ''}

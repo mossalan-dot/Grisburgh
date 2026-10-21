@@ -3499,29 +3499,84 @@
       }
     ],
     "Triton": [
-      "Amphibious",
-      "Control Air and Water",
-      "Darkvision",
-      "Emissary of the Sea",
-      "Guardians of the Depths"
+      {
+        "naam": "Amphibious",
+        "level": 1
+      },
+      {
+        "naam": "Control Air and Water",
+        "level": 1
+      },
+      {
+        "naam": "Darkvision",
+        "level": 1
+      },
+      {
+        "naam": "Emissary of the Sea",
+        "level": 1
+      },
+      {
+        "naam": "Guardians of the Depths",
+        "level": 1
+      },
+      {
+        "naam": "Languages",
+        "level": 1
+      }
     ],
     "Vedalken": [
-      "Vedalken Dispassion",
-      "Tireless Precision",
-      "Partially Amphibious"
+      {
+        "naam": "Languages",
+        "level": 1
+      },
+      {
+        "naam": "Partially Amphibious",
+        "level": 1
+      },
+      {
+        "naam": "Tireless Precision",
+        "level": 1
+      },
+      {
+        "naam": "Vedalken Dispassion",
+        "level": 1
+      }
     ],
     "Warforged": [
-      "Constructed Resilience",
-      "Sentry's Rest",
-      "Integrated Protection",
-      "Specialized Design"
+      {
+        "naam": "Constructed Resilience",
+        "level": 1
+      },
+      {
+        "naam": "Integrated Protection",
+        "level": 1
+      },
+      {
+        "naam": "Sentry's Rest",
+        "level": 1
+      },
+      {
+        "naam": "Specialized Design",
+        "level": 1
+      },
+      {
+        "naam": "Tireless",
+        "level": 1
+      }
     ],
     "Khoravar": [
-      "Darkvision",
-      "Fey Ancestry",
-      "Fey Gift",
-      "Lethargy Resilience",
-      "Skill Versatility"
+      {
+        "naam": "Fey Gift",
+        "level": 1
+      },
+      {
+        "naam": "Lethargy Resilience",
+        "level": 1
+      },
+      {
+        "naam": "Skill Versatility",
+        "level": 1
+      }
     ],
     "Dhampir": [
       {
@@ -3542,14 +3597,24 @@
       }
     ],
     "Hexblood": [
-      "Darkvision",
-      "Eerie Token"
+      {
+        "naam": "Eerie Token",
+        "level": 1
+      }
     ],
     "Lupin": [
-      "Darkvision",
-      "Feral Pounce",
-      "Howl",
-      "Werewolf Instincts"
+      {
+        "naam": "Feral Pounce",
+        "level": 1
+      },
+      {
+        "naam": "Howl",
+        "level": 1
+      },
+      {
+        "naam": "Werewolf Instincts",
+        "level": 1
+      }
     ],
     "Reborn": [
       {
@@ -3642,16 +3707,52 @@
       }
     ],
     "Verdan": [
-      "Black Blood Healing",
-      "Limited Telepathy",
-      "Persuasive",
-      "Telepathic Insight"
+      {
+        "naam": "Black Blood Healing",
+        "level": 1
+      },
+      {
+        "naam": "Languages",
+        "level": 1
+      },
+      {
+        "naam": "Limited Telepathy",
+        "level": 1
+      },
+      {
+        "naam": "Persuasive",
+        "level": 1
+      },
+      {
+        "naam": "Size",
+        "level": 1
+      },
+      {
+        "naam": "Telepathic Insight",
+        "level": 1
+      }
     ],
     "Yuan-ti": [
-      "Darkvision",
-      "Magic Resistance",
-      "Poison Resilience",
-      "Serpentine Spellcasting"
+      {
+        "naam": "Darkvision",
+        "level": 1
+      },
+      {
+        "naam": "Languages",
+        "level": 1
+      },
+      {
+        "naam": "Magic Resistance",
+        "level": 1
+      },
+      {
+        "naam": "Poison Resilience",
+        "level": 1
+      },
+      {
+        "naam": "Serpentine Spellcasting",
+        "level": 1
+      }
     ],
     "Half-Orc": [
       {
@@ -3966,18 +4067,316 @@
         "level": 1
       }
     ],
-    "Tiefling|Asmodeus": [],
-    "Tiefling|Baalzebul": [],
-    "Tiefling|Dispater": [],
-    "Tiefling|Fierna": [],
-    "Tiefling|Glasya": [],
-    "Tiefling|Levistus": [],
-    "Tiefling|Mammon": [],
-    "Tiefling|Mephistopheles": [],
-    "Tiefling|Zariel": [],
-    "Tiefling|Devil's Tongue": [],
-    "Tiefling|Hellfire": [],
-    "Tiefling|Winged": []
+    "Tiefling|Asmodeus": [
+      {
+        "naam": "Hellish Resistance",
+        "level": 1
+      },
+      {
+        "naam": "Infernal Legacy",
+        "level": 1
+      },
+      {
+        "naam": "Languages",
+        "level": 1
+      }
+    ],
+    "Tiefling|Baalzebul": [
+      {
+        "naam": "Hellish Resistance",
+        "level": 1
+      },
+      {
+        "naam": "Languages",
+        "level": 1
+      },
+      {
+        "naam": "Legacy of Maladomini",
+        "level": 1
+      }
+    ],
+    "Tiefling|Dispater": [
+      {
+        "naam": "Hellish Resistance",
+        "level": 1
+      },
+      {
+        "naam": "Languages",
+        "level": 1
+      },
+      {
+        "naam": "Legacy of Dis",
+        "level": 1
+      }
+    ],
+    "Tiefling|Fierna": [
+      {
+        "naam": "Hellish Resistance",
+        "level": 1
+      },
+      {
+        "naam": "Languages",
+        "level": 1
+      },
+      {
+        "naam": "Legacy of Phlegetos",
+        "level": 1
+      }
+    ],
+    "Tiefling|Glasya": [
+      {
+        "naam": "Hellish Resistance",
+        "level": 1
+      },
+      {
+        "naam": "Languages",
+        "level": 1
+      },
+      {
+        "naam": "Legacy of Malbolge",
+        "level": 1
+      }
+    ],
+    "Tiefling|Levistus": [
+      {
+        "naam": "Hellish Resistance",
+        "level": 1
+      },
+      {
+        "naam": "Languages",
+        "level": 1
+      },
+      {
+        "naam": "Legacy of Stygia",
+        "level": 1
+      }
+    ],
+    "Tiefling|Mammon": [
+      {
+        "naam": "Hellish Resistance",
+        "level": 1
+      },
+      {
+        "naam": "Languages",
+        "level": 1
+      },
+      {
+        "naam": "Legacy of Minauros",
+        "level": 1
+      }
+    ],
+    "Tiefling|Mephistopheles": [
+      {
+        "naam": "Hellish Resistance",
+        "level": 1
+      },
+      {
+        "naam": "Languages",
+        "level": 1
+      },
+      {
+        "naam": "Legacy of Cania",
+        "level": 1
+      }
+    ],
+    "Tiefling|Zariel": [
+      {
+        "naam": "Hellish Resistance",
+        "level": 1
+      },
+      {
+        "naam": "Languages",
+        "level": 1
+      },
+      {
+        "naam": "Legacy of Avernus",
+        "level": 1
+      }
+    ],
+    "Tiefling|Devil's Tongue": [
+      {
+        "naam": "Appearance",
+        "level": 1
+      },
+      {
+        "naam": "Devil's Tongue",
+        "level": 1
+      },
+      {
+        "naam": "Hellish Resistance",
+        "level": 1
+      },
+      {
+        "naam": "Languages",
+        "level": 1
+      }
+    ],
+    "Tiefling|Hellfire": [
+      {
+        "naam": "Appearance",
+        "level": 1
+      },
+      {
+        "naam": "Hellfire",
+        "level": 1
+      },
+      {
+        "naam": "Hellish Resistance",
+        "level": 1
+      },
+      {
+        "naam": "Languages",
+        "level": 1
+      }
+    ],
+    "Tiefling|Winged": [
+      {
+        "naam": "Appearance",
+        "level": 1
+      },
+      {
+        "naam": "Hellish Resistance",
+        "level": 1
+      },
+      {
+        "naam": "Languages",
+        "level": 1
+      },
+      {
+        "naam": "Winged",
+        "level": 1
+      }
+    ],
+    "Dragonborn|Black": [
+      {
+        "naam": "Acid Damage Resistance",
+        "level": 1
+      },
+      {
+        "naam": "Black Breath Weapon",
+        "level": 1
+      }
+    ],
+    "Dragonborn|Blue": [
+      {
+        "naam": "Blue Breath Weapon",
+        "level": 1
+      },
+      {
+        "naam": "Lightning Damage Resistance",
+        "level": 1
+      }
+    ],
+    "Dragonborn|Brass": [
+      {
+        "naam": "Brass Breath Weapon",
+        "level": 1
+      },
+      {
+        "naam": "Fire Damage Resistance",
+        "level": 1
+      }
+    ],
+    "Dragonborn|Bronze": [
+      {
+        "naam": "Bronze Breath Weapon",
+        "level": 1
+      },
+      {
+        "naam": "Lightning Damage Resistance",
+        "level": 1
+      }
+    ],
+    "Dragonborn|Copper": [
+      {
+        "naam": "Acid Damage Resistance",
+        "level": 1
+      },
+      {
+        "naam": "Copper Breath Weapon",
+        "level": 1
+      }
+    ],
+    "Dragonborn|Gold": [
+      {
+        "naam": "Fire Damage Resistance",
+        "level": 1
+      },
+      {
+        "naam": "Gold Breath Weapon",
+        "level": 1
+      }
+    ],
+    "Dragonborn|Green": [
+      {
+        "naam": "Green Breath Weapon",
+        "level": 1
+      },
+      {
+        "naam": "Poison Damage Resistance",
+        "level": 1
+      }
+    ],
+    "Dragonborn|Red": [
+      {
+        "naam": "Fire Damage Resistance",
+        "level": 1
+      },
+      {
+        "naam": "Red Breath Weapon",
+        "level": 1
+      }
+    ],
+    "Dragonborn|Silver": [
+      {
+        "naam": "Cold Damage Resistance",
+        "level": 1
+      },
+      {
+        "naam": "Silver Breath Weapon",
+        "level": 1
+      }
+    ],
+    "Dragonborn|White": [
+      {
+        "naam": "Cold Damage Resistance",
+        "level": 1
+      },
+      {
+        "naam": "White Breath Weapon",
+        "level": 1
+      }
+    ],
+    "Tiefling|Abyssal": [
+      {
+        "naam": "Fiendish Legacy",
+        "level": 1
+      },
+      {
+        "naam": "Otherworldly Presence",
+        "level": 1
+      }
+    ],
+    "Tiefling|Chthonic": [
+      {
+        "naam": "Fiendish Legacy",
+        "level": 1
+      },
+      {
+        "naam": "Otherworldly Presence",
+        "level": 1
+      }
+    ],
+    "Tiefling|Infernal": [
+      {
+        "naam": "Fiendish Legacy",
+        "level": 1
+      },
+      {
+        "naam": "Otherworldly Presence",
+        "level": 1
+      }
+    ]
   },
   "_varianten": "De varianten van een species, met de sleutel \"Species|Variant\". Alleen waar de nieuwste druk van dat species zijn inhoud nog ín zijn varianten heeft — bij Genasi is dat zo (Monsters of the Multiverse), bij Tiefling en Elf niet: daar zijn de lineages van 2024 en geeft de lineage spreuken per level, en dat is tekst uit het boek.",
   "_oude_namen": "Een subclass die onder een nieuwere naam is heruitgegeven (School of Conjuration → Conjurer) blijft hier ook onder zijn oude naam staan, met de features van díé druk. De lijst \"bestaat elders\" wijst alleen naar de nieuwste, maar een campagne die de oude al had overgenomen houdt zo zijn featurenamen in plaats van op \"geen tekst\" te vallen."

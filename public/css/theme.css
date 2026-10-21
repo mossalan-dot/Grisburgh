@@ -29318,6 +29318,12 @@ body.wizard-open { overflow: hidden; }
   font-family: 'Cinzel', serif; font-size: 1.04em; font-weight: 700;
   letter-spacing: .02em; color: #3a2410;
 }
+/* De tweede laag onder de naam, kleiner: "14 Classes · 118 subclasses". */
+.vd-deur-onder {
+  margin-top: 3px;
+  font-family: 'Crimson Text', serif; font-size: .82em; font-style: italic;
+  color: #8a7050;
+}
 .vd-deur-beeldknop {
   position: absolute; top: 9px; right: 9px; z-index: 2;
   width: 28px; height: 28px; display: flex; align-items: center; justify-content: center;
