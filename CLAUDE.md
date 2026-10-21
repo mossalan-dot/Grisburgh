@@ -174,6 +174,36 @@ Gebruik tab 1 voor DM, open een incognito-venster of ander apparaat voor de spel
 > bestanden worden eenmalig bij het opstarten opgeruimd (TTL 30 dagen).
 > Bij een deploy van `package.json` hoort een `npm install --omit=dev` op de server.
 
+### Werken vanaf een iPad of telefoon
+
+Er staat een **tweede werkkopie op de server zelf**: `/root/grisburgh-dev`, een
+gewone clone van GitHub. Daar draait Claude Code als Alan onderweg is en zijn
+laptop niet bij zich heeft. Vanaf een SSH-app (Blink, Termius) is het:
+
+```bash
+ssh root@46.224.156.154
+tmux new -s grisburgh      # of: tmux a     — zodat de sessie een wegvallende
+cd ~/grisburgh-dev         #                  verbinding overleeft
+claude
+```
+
+Alles werkt daar hetzelfde als op de laptop: `npm test`, `scripts/uitrollen.sh`,
+`scripts/terugdraaien.sh` en `scripts/kijkfout.js`. Twee dingen zijn geregeld
+zodat dat kan:
+
+- **`uitrollen.sh` en `terugdraaien.sh` merken zelf waar ze draaien.** Ligt
+  `/var/www/grisburgh` gewoon op schijf, dan is kopiëren `cp` en draait een
+  commando in een lokale shell; anders gaat alles over `ssh`. Zonder dat liep
+  een uitrol vanaf de server stuk op `ssh root@<eigen ip>` — een host key die
+  er niet is.
+- **Chromium staat erop**, dus `scripts/kijkfout.js` kan ook daar de echte
+  pagina openen en nakijken of het scherm klopt.
+
+Let op: `/root/grisburgh-dev` is de werkkopie en `/var/www/grisburgh` is de
+live map. Nooit in die tweede zitten typen — daar kopieert de uitrol naartoe,
+en hij is een vervuilde checkout (de uitrol legt er bestanden overheen).
+Na het werk: committen en pushen, zodat de laptop het later gewoon ophaalt.
+
 ### Deploy-workflow (standaard)
 
 ```bash
