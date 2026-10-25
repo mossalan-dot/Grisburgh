@@ -733,6 +733,12 @@ const _BOEK_EIGEN = [
   [/mcdm/i, 'MCDM'],
   [/\bd\s*&?\s*n?\s*d\s*beyond\b|dndbeyond/i, 'DDB'],
   [/unearthed arcana|\bua\b/i, 'UA'],
+  // Drie bronnen van feats die niet in de boekenlijst van 5e.tools staan: een
+  // avontuur (dat staat daar in een ándere lijst) en twee Plane Shifts, die
+  // gratis pdf's waren en geen boek.
+  [/shadow of the dragon queen/i, 'DSotDQ'],
+  [/plane shift:?\s*kaladesh/i, 'PSK'],
+  [/plane shift:?\s*ixalan/i, 'PSX'],
 ];
 let _boekIndex = null;
 function _boekKort(titel) {
