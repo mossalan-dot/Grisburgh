@@ -154,6 +154,16 @@ describe('Tabellen in een vaardigheidstekst', () => {
     assert.deepEqual(uit.tabellen[0].rijen[0], ['1st', 'heroism, sanctuary']);
   });
 
+  it('houdt een kopregel met tabs bij de pijp-rijen eronder', () => {
+    // Zo stond hij in Dimir Operative (False Identity): de kop half
+    // overgetypt met een tab, de rijen met pijpen. Zonder deze regel viel hij
+    // in twee tabellen en stonden de pijpen als tekst in de background.
+    const uit = _tabellenUit('Roll on the following table.\n\n| d8\tReason\n| 1 | My parents |\n| 2 |\tAssigned |');
+    assert.equal(uit.tabellen.length, 1);
+    assert.deepEqual(uit.tabellen[0].kop, ['d8', 'Reason']);
+    assert.deepEqual(uit.tabellen[0].rijen, [['1', 'My parents'], ['2', 'Assigned']]);
+  });
+
   it('laat een tekst zonder tabel met rust', () => {
     const uit = _tabellenUit('Gewone tekst.\nNog een regel.');
     assert.deepEqual(uit.tabellen, []);

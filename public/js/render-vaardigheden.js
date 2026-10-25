@@ -1193,7 +1193,7 @@ function _bladerKaartHtml({ soort, naam, kleur, icoon, bijschrift = '', onder = 
   const veilig = esc(naam).replace(/'/g, "\\'");
   const veiligB = esc(bron || '').replace(/'/g, "\\'");
   const dlHtml = (lijst) => lijst.length ? `<dl class="vk-training">
-    ${lijst.map(([k, v, html]) => `<dt>${esc(k)}</dt><dd>${html ?? esc(v)}</dd>`).join('')}
+    ${lijst.map(([k, v, html]) => `<dt>${esc(k)}</dt><dd>${html ?? _rijWaardeHtml(v)}</dd>`).join('')}
   </dl>` : '';
 
   const bladen = [];
@@ -2375,7 +2375,7 @@ function _kaartVenster(soort, naam, bron = '') {
         ? `<div class="prog-detail-desc">${window._vaardigTekstHtml?.(uitleg) ?? _bron?.md?.(uitleg) ?? esc(uitleg)}</div>`
         : `<p class="dm-hint">Er staat nog geen uitleg bij deze ${esc(soortLabel.toLowerCase())}. ${isDM() ? 'Schrijf hem erbij — dan leest iedereen aan tafel hetzelfde.' : 'Vraag je DM of hij hem invult.'}</p>`}
       ${rijen.length ? `<dl class="vk-training vd-kv-training">
-        ${rijen.map(([k, v, html]) => `<dt>${esc(k)}</dt><dd>${html ?? esc(v)}</dd>`).join('')}
+        ${rijen.map(([k, v, html]) => `<dt>${esc(k)}</dt><dd>${html ?? _rijWaardeHtml(v)}</dd>`).join('')}
       </dl>` : ''}
       ${naarSpreuken || isDM() ? `<div class="spreuk-dm-knoppen">
         ${naarSpreuken ? `<button class="spreuk-detail-imgbtn" onclick="window.vaardigheden.naarSpreuken('${veilig}')">${icon('book-open')} Spreukenlijst</button>` : ''}
@@ -2792,7 +2792,13 @@ function _tabellenUit(tekst) {
   if (!bron.includes('|') && !bron.includes('\t')) return { tekst: bron, tabellen: [] };
   // Alleen de pijpen aan de rand weghalen; een tab aan het begin van een regel
   // is inspringing en geen lege cel.
-  const regels = bron.split('\n').map(r => r.replace(/\s+$/, '').replace(/^[ ]+/, ''));
+  // Een kopregel die met een pijp begint maar zijn kolommen met een **tab**
+  // scheidt ("| d8⇥Reason for Infiltration") hoort bij de pijp-rijen eronder:
+  // zo komt een half overgetypte tabel binnen. Zonder dit verschilt zijn
+  // scheidingsteken van dat van de rijen en valt de tabel in tweeën.
+  const regels = bron.split('\n').map(r => r.replace(/\s+$/, '').replace(/^[ ]+/, ''))
+    .map(r => (r.startsWith('|') && !_kaal(r).includes('|') && r.includes('\t'))
+      ? r.replace(/\t+/g, ' | ') : r);
 
   const uit = [], tabellen = [];
   for (let i = 0; i < regels.length; i++) {
@@ -2874,6 +2880,18 @@ function _celHtml(tekst) {
   if (!kaal.trim()) return '';
   const html = _bron?.md?.(kaal) ?? esc(kaal);
   return _verwijzingen(html.replace(/^\s*<p>([\s\S]*?)<\/p>\s*$/, '$1'));
+}
+
+// De waarde naast een etiket ("Equipment", "Feature", "Azorius Guild Spells").
+// Die ging kaal door `esc()`, en zo stonden er sterretjes, pijpen en
+// [[haken]] letterlijk op het kaartje — terwijl de uitleg erboven wél opgemaakt
+// was. Een korte waarde is een cel (geen <p> eromheen, anders staat hij een
+// regel lager dan zijn etiket); een waarde met regels of een tabel is een
+// stukje tekst als elk ander en gaat door dezelfde renderer als de uitleg.
+function _rijWaardeHtml(v) {
+  const t = String(v ?? '');
+  if (!/[\n|\t]/.test(t)) return _celHtml(t);
+  return `<div class="vd-rij-tekst">${_verwijzingen(window._vaardigTekstHtml(t))}</div>`;
 }
 
 function _tabelHtml(t, nr) {

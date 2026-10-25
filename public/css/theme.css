@@ -30721,3 +30721,23 @@ body:has(#sb-overlay.sb-open) .dm-dice-fab { display: none !important; }
 }
 /* De naam mag niet onder de penning door lopen. */
 .vd-subkaart-open { padding-right: 46px; }
+
+/* ── Heldenboek: de naam op de plaat past op de kaart (25 okt 2026) ─────────
+   Op 1.5em sneed de rand van een smalle kaart (231px op een telefoon) de
+   laatste letter van "Anthropologist" af — overflow: hidden op het kaartje.
+   Nu meet de naam zich aan de kaart in plaats van aan het scherm: cqi is een
+   honderdste van de breedte van de dichtstbijzijnde container. Op een brede
+   kaart blijft hij 1.5em; alleen waar het niet past krimpt hij. Een woord dat
+   zelfs zo nog te lang is mag als laatste redmiddel breken in plaats van te
+   verdwijnen. */
+.vk-kaart { container-type: inline-size; }
+.vk-voor-naam { font-size: min(1.5em, 8.5cqi); overflow-wrap: break-word; }
+
+/* Een onderdeel met regels of een tabel ("Azorius Guild Spells") staat onder
+   zijn etiket over de volle breedte: in de tweede kolom van een kaart van
+   230px is een tabel van twee kolommen onleesbaar. */
+.vk-training dd:has(> .vd-rij-tekst) { grid-column: 1 / -1; }
+.vd-rij-tekst > :first-child { margin-top: 0; }
+.vd-rij-tekst > :last-child { margin-bottom: 0; }
+.vd-rij-tekst p { margin: 0 0 6px; }
+.vd-rij-tekst .vd-tabelblok { margin: 6px 0; }

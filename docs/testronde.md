@@ -389,6 +389,9 @@ een speler ziet, **TAB** = het tafelscherm (`?display=1`), **ALL** = alle drie.
 - [ ] Een kaartje met eigen afbeelding toont die in plaats van het silhouet; de herkomst-tag staat erbij (rood bij *Overgenomen*)
 - [ ] Vaardigheden: alle vier de subklassen van een klasse staan erin (bijv. Ranger → Hunter, Beast Master, Fey Wanderer, Gloom Stalker); die zonder SRD-tekst dragen de chip *Naslag*
 - [ ] Vaardigheden: een background toont zijn feat als klikbare verwijzing ("Feat. **Magic Initiate** (Cleric)") die dat feat-kaartje opent
+- [ ] Heldenboek → Backgrounds → Azorius Functionary, op de kaart naar *Eigenschappen* en in het venster: *Azorius Guild Spells* toont een cursieve Prerequisite-regel en een echte tabel met klikbare spreuknamen, onder het etiket over de volle breedte — geen sterretjes, pijpen of [[haken]]
+- [ ] Heldenboek → Backgrounds → Dimir Operative → *False Identity*: de d8-tabel is één tabel met kop "d8 / Reason for Infiltration", geen losse regels met pijpen
+- [ ] Heldenboek → Backgrounds op telefoonbreedte (twee kaarten naast elkaar): "Anthropologist" en "Archaeologist" staan helemaal op de plaat, de laatste letter wordt niet afgesneden; op een breed scherm is de naam even groot als voorheen
 - [ ] Klik op *Naslag* of *Lees hem elders* → er opent een zoekpagina met "D&D 2024 <soort> <naam>" (niet de zoekpagina van D&D Beyond, die weigert een koude bezoeker)
 - [ ] Progressie-tijdlijn: bij een Ability Score Improvement staat de volledige featlijst in de keuzelijst (67 + 12 Epic Boons), ook nadat de DM in Vaardigheden een eigen feat heeft opgeslagen
 - [ ] Iconen: een moeras toont een plantje (geen vis), een eiland een palm, een werkplaats een aambeeld, een ziekenhuis een hartslag — op het kaartje én als kaartspeld
