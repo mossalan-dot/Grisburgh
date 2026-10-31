@@ -1,0 +1,740 @@
+<title>Grisburgh rondleiding</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700;900&family=Crimson+Text:ital,wght@0,400;0,600;1,400&family=IM+Fell+English:ital@0;1&family=Kalam:wght@400;700&family=UnifrakturMaguntia&display=swap">
+<style>
+/* ── Een rondleiding door Grisburgh ─────────────────────────────────────────
+   Een showcase van de campagne-app: je loopt bij kaarslicht door de stad en
+   elke "kamer" is een feature. Eén visuele wereld (warm licht op donker),
+   bewust single-theme — perkament, verguldsel, lakzegels.                    */
+:root{
+  --inkt:#2a1a08; --inkt-mid:#5a4030; --inkt-dim:#8a7050; --inkt-faint:#b09870;
+  --goud:#b8860b; --goud-diep:#9a7008;
+  --lak:#8d2a24; --lak-diep:#6a1d19;
+  --perk:#efe3c7; --perk-warm:#e6d4ad; --perk-diep:#d8c29a; --rand:#c9ab74;
+  color-scheme: light;
+  --f-kop:'Cinzel', Georgia, serif;
+  --f-tekst:'Crimson Text', Georgia, serif;
+  --f-fluister:'IM Fell English', Georgia, serif;
+  --f-brief:'Kalam','Comic Sans MS', cursive;
+  --f-gotisch:'UnifrakturMaguntia', 'Cinzel', serif;
+}
+*{ box-sizing:border-box; }
+html,body{ height:100%; }
+body{ margin:0; font-family:var(--f-tekst); font-size:17px; line-height:1.55; color:var(--inkt-mid);
+  background: radial-gradient(130% 100% at 50% -10%, #3a2d18 0%, #241a0e 46%, #110a04 100%);
+  overflow-x:hidden; }
+body::after{ content:""; position:fixed; inset:0; pointer-events:none; z-index:80;
+  background: radial-gradient(75% 60% at 50% 42%, transparent 52%, rgba(8,5,2,.6) 100%); mix-blend-mode:multiply; }
+
+.app{ min-height:100%; display:flex; flex-direction:column;
+  padding-left:max(16px, env(safe-area-inset-left,0px)); padding-right:max(16px, env(safe-area-inset-right,0px)); }
+
+/* ── topbalk ── */
+.topbar{ position:sticky; top:env(safe-area-inset-top,0px); z-index:30;
+  display:flex; align-items:center; gap:12px; padding:12px 2px; margin-bottom:6px; }
+.merk{ display:flex; align-items:center; gap:10px; cursor:pointer; background:none; border:0; font-family:inherit; color:inherit; padding:4px; border-radius:6px; }
+.merk-penning{ width:34px; height:34px; border-radius:50%; display:grid; place-items:center; color:#5a4015; flex-shrink:0;
+  background:radial-gradient(circle at 38% 32%, #f6ecd0, #d8bd87 72%, #b2924f); border:1px solid var(--goud);
+  box-shadow:0 0 0 3px rgba(184,134,11,.15), 0 0 14px rgba(184,134,11,.35); }
+.merk-penning svg{ width:19px; height:19px; }
+.merk-naam{ font-family:var(--f-kop); font-weight:700; letter-spacing:.06em; color:#f0e3c4; font-size:1.05rem; }
+.merk-naam small{ display:block; font-family:var(--f-fluister); font-style:italic; font-weight:400; color:var(--inkt-faint); font-size:.72rem; letter-spacing:.08em; }
+.topbar-mid{ flex:1; text-align:center; font-family:var(--f-fluister); font-style:italic; color:var(--inkt-faint); font-size:.9rem; }
+.topbar-knop{ font-family:var(--f-kop); font-size:.8rem; letter-spacing:.04em; color:#d8c49a; cursor:pointer;
+  background:transparent; border:1px solid rgba(201,171,116,.4); border-radius:20px; padding:7px 15px; display:inline-flex; align-items:center; gap:7px; transition:.2s; }
+.topbar-knop:hover{ border-color:var(--goud); color:#f6ecd2; background:rgba(184,134,11,.12); }
+.topbar-knop svg{ width:14px; height:14px; }
+body::before{ content:""; position:fixed; inset:0 0 auto; height:env(safe-area-inset-top,0px); z-index:31;
+  background:#241a0e; }
+
+.scene{ flex:1; width:100%; max-width:1080px; margin:0 auto; padding-bottom:40px; animation:intro .5s ease both; }
+@keyframes intro{ from{opacity:0; transform:translateY(12px);} to{opacity:1; transform:none;} }
+
+/* ══ HUB ══════════════════════════════════════════════════════════════════ */
+.hub-hero{ text-align:center; padding:clamp(14px,5vh,44px) 10px 26px; }
+.hub-embleem{ width:104px; height:104px; margin:0 auto 18px; border-radius:50%; display:grid; place-items:center; position:relative; color:#5a4015;
+  background:radial-gradient(circle at 38% 32%, #f6ecd0, #d8bd87 70%, #b2924f); border:2px solid var(--goud);
+  box-shadow:0 0 0 7px rgba(184,134,11,.15), 0 0 44px 6px rgba(184,134,11,.4), inset 0 2px 8px rgba(255,255,255,.6), inset 0 -8px 16px rgba(120,86,20,.35); }
+.hub-embleem svg{ width:50px; height:50px; }
+.hub-embleem::before{ content:""; position:absolute; inset:-20px; border-radius:50%; background:radial-gradient(circle, rgba(184,134,11,.26), transparent 68%); animation:adem 5s ease-in-out infinite; }
+.hub-hero .boven{ font-family:var(--f-fluister); font-style:italic; color:var(--inkt-faint); letter-spacing:.16em; }
+.hub-hero h1{ font-family:var(--f-kop); font-weight:900; color:#f3e6c6; margin:.12em 0; font-size:clamp(2.3rem,8vw,3.6rem); line-height:1.02;
+  text-wrap:balance; text-shadow:0 2px 18px rgba(0,0,0,.6), 0 0 34px rgba(184,134,11,.3); }
+.hub-hero p{ font-family:var(--f-fluister); font-style:italic; color:#cdb98e; font-size:1.18rem; max-width:48ch; margin:6px auto 0; }
+.sierlijn{ display:flex; align-items:center; justify-content:center; gap:12px; color:var(--goud); opacity:.85; margin:16px 0 0; }
+.sierlijn svg{ width:18px; height:18px; }
+.sierlijn span{ height:1px; width:64px; background:linear-gradient(90deg,transparent,var(--goud)); }
+.sierlijn span:last-child{ background:linear-gradient(90deg,var(--goud),transparent); }
+
+.hub-grid{ display:grid; grid-template-columns:repeat(auto-fill,minmax(236px,1fr)); gap:16px; margin-top:12px; }
+.hub-kaart{ position:relative; text-align:left; cursor:pointer; font-family:inherit; border:0; border-radius:8px; overflow:hidden; padding:0;
+  background:linear-gradient(170deg, var(--perk), var(--perk-warm)); box-shadow:0 8px 24px rgba(0,0,0,.4);
+  transition:transform .28s cubic-bezier(.2,.9,.3,1.3), box-shadow .28s; }
+.hub-kaart:hover{ transform:translateY(-5px); box-shadow:0 16px 34px rgba(0,0,0,.5); }
+.hub-kaart:focus-visible{ outline:2px solid var(--goud); outline-offset:3px; }
+.hub-kaart-inner{ position:relative; padding:20px 18px 18px; display:flex; flex-direction:column; gap:7px; min-height:150px; }
+.hub-kaart-inner::before{ content:""; position:absolute; inset:7px; border:1px solid rgba(154,112,8,.3); border-radius:4px; pointer-events:none; }
+.hub-nr{ position:absolute; top:14px; right:16px; font-family:var(--f-kop); font-weight:900; font-size:2.1rem; color:rgba(154,112,8,.22); line-height:1; }
+.hub-ico{ width:48px; height:48px; border-radius:50%; display:grid; place-items:center; color:#6f5115; margin-bottom:2px;
+  background:radial-gradient(circle at 40% 34%, #f6eccf, #cdae72 72%, #a9873f); border:1px solid var(--goud-diep);
+  box-shadow:inset 0 2px 5px rgba(255,255,255,.6), inset 0 -4px 8px rgba(120,86,20,.3); }
+.hub-ico svg{ width:24px; height:24px; }
+.hub-titel{ font-family:var(--f-kop); font-weight:700; color:var(--inkt); font-size:1.18rem; }
+.hub-onder{ font-family:var(--f-fluister); font-style:italic; color:var(--inkt-dim); font-size:.95rem; line-height:1.35; }
+.hub-voet{ text-align:center; margin-top:30px; font-family:var(--f-fluister); font-style:italic; color:var(--inkt-faint); font-size:.95rem; }
+
+/* ── scene-kop + paneel ── */
+.scene-kop{ text-align:center; margin:clamp(6px,3vh,22px) 0 20px; }
+.scene-kop .boven{ font-family:var(--f-fluister); font-style:italic; color:var(--goud); letter-spacing:.12em; }
+.scene-kop h2{ font-family:var(--f-kop); font-weight:900; color:#f3e6c6; margin:.1em 0 0; font-size:clamp(1.9rem,5.5vw,2.8rem);
+  text-wrap:balance; text-shadow:0 2px 16px rgba(0,0,0,.5); }
+.scene-kop .lead{ font-family:var(--f-fluister); font-style:italic; color:#cbb68c; font-size:1.1rem; max-width:62ch; margin:10px auto 0; }
+.paneel{ position:relative; border-radius:8px; padding:clamp(18px,3vw,30px); background:linear-gradient(175deg, var(--perk), var(--perk-warm));
+  box-shadow:0 16px 46px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,255,255,.5); }
+.paneel::before{ content:""; position:absolute; inset:8px; border:1px solid rgba(154,112,8,.3); border-radius:4px; pointer-events:none; }
+.paneel-kop{ font-family:var(--f-kop); font-size:.72rem; letter-spacing:.14em; text-transform:uppercase; color:var(--goud-diep); margin:0 0 4px; }
+.uitleg{ font-family:var(--f-tekst); color:var(--inkt-mid); max-width:64ch; }
+.uitleg strong{ color:var(--inkt); }
+.wenk{ font-family:var(--f-fluister); font-style:italic; color:var(--inkt-dim); }
+
+/* ── ondernavigatie ── */
+.scene-nav{ display:flex; justify-content:space-between; align-items:center; gap:12px; margin-top:28px; }
+.navknop{ font-family:var(--f-kop); font-weight:600; font-size:.92rem; letter-spacing:.03em; cursor:pointer; border-radius:4px; padding:11px 20px;
+  transition:.2s; display:inline-flex; align-items:center; gap:8px; border:1px solid transparent; }
+.navknop svg{ width:16px; height:16px; }
+.navknop-spook{ background:transparent; border-color:rgba(201,171,116,.4); color:#d8c49a; }
+.navknop-spook:hover{ border-color:var(--goud); color:#f6ecd2; background:rgba(184,134,11,.12); }
+.navknop-goud{ background:linear-gradient(170deg,#d9a92a,#b8860b 60%,#9a7008); color:#2a1a08; border-color:#8a6305;
+  box-shadow:0 4px 14px rgba(184,134,11,.4), inset 0 1px 0 rgba(255,255,255,.4); }
+.navknop-goud:hover{ transform:translateY(-1px); box-shadow:0 7px 20px rgba(184,134,11,.5), inset 0 1px 0 rgba(255,255,255,.4); }
+.navknop--leeg{ visibility:hidden; }
+
+/* ══ DIENSTEN ═════════════════════════════════════════════════════════════ */
+.dienst-indeling{ display:grid; grid-template-columns:1fr 1fr; gap:22px; align-items:start; }
+@media(max-width:800px){ .dienst-indeling{ grid-template-columns:1fr; } }
+.dienst-tegels{ display:grid; grid-template-columns:repeat(3,1fr); gap:10px; }
+@media(max-width:420px){ .dienst-tegels{ grid-template-columns:repeat(2,1fr); } }
+.dienst-tegel{ cursor:pointer; font-family:inherit; border:1px solid var(--rand); border-radius:8px; padding:14px 8px 11px; text-align:center;
+  background:linear-gradient(170deg,#f3ead2,#e4d1a8); transition:.2s; display:flex; flex-direction:column; align-items:center; gap:7px; }
+.dienst-tegel:hover{ transform:translateY(-3px); border-color:var(--goud-diep); box-shadow:0 6px 16px rgba(0,0,0,.25); }
+.dienst-tegel.aan{ border:2px solid var(--goud); box-shadow:inset 0 0 0 1px rgba(246,236,210,.6), 0 0 18px rgba(184,134,11,.35); }
+.dienst-tegel .di-ico{ width:44px; height:44px; border-radius:50%; display:grid; place-items:center; color:#6f5115;
+  background:radial-gradient(circle at 40% 34%, #f6eccf, #cdae72 72%, #a9873f); border:1px solid var(--goud-diep);
+  box-shadow:inset 0 2px 4px rgba(255,255,255,.55), inset 0 -3px 7px rgba(120,86,20,.3); }
+.dienst-tegel .di-ico svg{ width:22px; height:22px; }
+.dienst-tegel .di-naam{ font-family:var(--f-kop); font-weight:600; color:var(--inkt); font-size:.84rem; line-height:1.1; }
+.dienst-info{ position:relative; }
+.di-kaart{ background:rgba(255,250,238,.6); border:1px solid var(--rand); border-radius:8px; padding:20px 20px 18px; min-height:220px; animation:introkaart .35s ease both; }
+@keyframes introkaart{ from{opacity:0; transform:translateX(10px);} to{opacity:1; transform:none;} }
+.di-kaart-kop{ display:flex; align-items:center; gap:12px; margin-bottom:10px; }
+.di-kaart-ico{ width:50px; height:50px; border-radius:50%; display:grid; place-items:center; color:#6f5115; flex-shrink:0;
+  background:radial-gradient(circle at 40% 34%, #f6eccf, #cdae72 72%, #a9873f); border:1px solid var(--goud-diep); box-shadow:inset 0 2px 5px rgba(255,255,255,.6); }
+.di-kaart-ico svg{ width:26px; height:26px; }
+.di-kaart h3{ font-family:var(--f-kop); font-weight:700; color:var(--inkt); margin:0; font-size:1.3rem; }
+.di-kaart .di-plaats{ font-family:var(--f-fluister); font-style:italic; color:var(--inkt-dim); font-size:.9rem; }
+.di-kaart p{ color:var(--inkt-mid); margin:0 0 10px; }
+.di-merk{ display:inline-flex; align-items:center; gap:6px; font-family:var(--f-kop); font-size:.68rem; letter-spacing:.08em; text-transform:uppercase;
+  color:var(--goud-diep); background:rgba(184,134,11,.12); border:1px solid rgba(184,134,11,.3); border-radius:14px; padding:4px 10px; }
+.woeker{ margin-top:14px; padding-top:14px; border-top:1px dotted rgba(154,112,8,.4); }
+.woeker-rij{ display:flex; align-items:center; gap:12px; margin-top:8px; }
+.woeker input[type=range]{ flex:1; accent-color:var(--goud-diep); }
+.woeker-bedrag{ font-family:var(--f-kop); font-weight:900; color:var(--lak); font-size:1.4rem; }
+.woeker-bedrag.vast{ color:var(--goud-diep); }
+.woeker-sub{ font-family:var(--f-fluister); font-style:italic; color:var(--inkt-dim); font-size:.9rem; }
+
+/* ══ BRIEF ════════════════════════════════════════════════════════════════ */
+.brief-toneel{ display:flex; flex-direction:column; align-items:center; gap:14px; }
+.envelop{ position:relative; width:min(420px,92%); aspect-ratio:3/2; cursor:pointer; border:0; background:none; font-family:inherit; perspective:1000px; }
+.envelop-vel{ position:absolute; inset:0; border-radius:6px; background:linear-gradient(160deg,#3a2f1c,#241b0e);
+  box-shadow:0 14px 36px rgba(0,0,0,.55), inset 0 1px 0 rgba(255,255,255,.08); border:1px solid rgba(201,171,116,.3); overflow:hidden; }
+.envelop-vel::before{ content:""; position:absolute; inset:0; background:
+  linear-gradient(135deg, transparent 49.6%, rgba(201,171,116,.25) 49.7%, rgba(201,171,116,.25) 50.3%, transparent 50.4%),
+  linear-gradient(-135deg, transparent 49.6%, rgba(201,171,116,.25) 49.7%, rgba(201,171,116,.25) 50.3%, transparent 50.4%); }
+.envelop-adres{ position:absolute; left:0; right:0; bottom:16px; text-align:center; font-family:var(--f-brief); color:#d8c49a; font-size:1.05rem; }
+.lakzegel{ position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); width:72px; height:72px; border-radius:50%;
+  background:radial-gradient(circle at 38% 32%, #a8322b, var(--lak) 55%, var(--lak-diep)); display:grid; place-items:center; color:#f0d9bd;
+  box-shadow:0 5px 16px rgba(0,0,0,.5), inset 0 2px 5px rgba(255,255,255,.3), inset 0 -7px 13px rgba(60,12,10,.6); transition:transform .3s; }
+.lakzegel svg{ width:30px; height:30px; }
+.envelop:hover .lakzegel{ transform:translate(-50%,-50%) scale(1.06); }
+.envelop-hint{ font-family:var(--f-fluister); font-style:italic; color:var(--inkt-faint); }
+
+.brief-open{ width:min(480px,96%); border-radius:4px; position:relative; padding:34px 34px 30px; animation:briefopen .6s cubic-bezier(.2,.8,.3,1) both;
+  background-image:repeating-linear-gradient(0deg,transparent,transparent 29px, rgba(150,110,50,.09) 30px), linear-gradient(170deg,#efe3c7,#e2cfa6);
+  box-shadow:0 18px 50px rgba(0,0,0,.6), inset 0 1px 0 rgba(255,255,255,.5); }
+@keyframes briefopen{ from{opacity:0; transform:translateY(16px) scale(.96);} to{opacity:1; transform:none;} }
+.brief-open::before{ content:""; position:absolute; inset:9px; border:1px double rgba(154,112,8,.4); border-radius:3px; pointer-events:none; }
+.brief-kop{ text-align:center; font-family:var(--f-gotisch); color:var(--lak); font-size:2rem; line-height:1.1; margin-bottom:4px; }
+.brief-embleem{ width:46px; height:46px; margin:0 auto 10px; border-radius:50%; display:grid; place-items:center; color:#f0d9bd;
+  background:radial-gradient(circle at 38% 32%, #a8322b, var(--lak) 60%, var(--lak-diep)); box-shadow:0 2px 8px rgba(0,0,0,.4); }
+.brief-embleem svg{ width:22px; height:22px; }
+.brief-tekst{ font-family:var(--f-brief); color:var(--inkt); font-size:1.12rem; line-height:1.9; }
+.brief-tekst p{ margin:0 0 10px; }
+.brief-onder{ text-align:right; font-family:var(--f-brief); color:var(--inkt-mid); margin-top:10px; }
+.brief-herstel{ margin-top:6px; }
+
+/* ══ GEVECHT ══════════════════════════════════════════════════════════════ */
+.arena{ position:relative; border-radius:8px; padding:16px; background:
+  radial-gradient(120% 90% at 50% 0%, #4a3a22 0%, #2c2012 70%); border:1px solid rgba(201,171,116,.3);
+  box-shadow:inset 0 2px 20px rgba(0,0,0,.5); }
+.initiatief{ display:flex; align-items:center; gap:6px; margin-bottom:14px; overflow-x:auto; padding-bottom:4px; }
+.init-pion{ flex-shrink:0; display:flex; flex-direction:column; align-items:center; gap:3px; padding:4px 9px; border-radius:7px; min-width:52px;
+  background:rgba(255,250,238,.08); border:1px solid rgba(201,171,116,.25); }
+.init-pion.nu{ background:rgba(184,134,11,.25); border-color:var(--goud); box-shadow:0 0 12px rgba(184,134,11,.5); }
+.init-pion .ip-nr{ font-family:var(--f-kop); font-weight:700; color:#f6ecd2; font-size:.78rem; }
+.init-pion .ip-naam{ font-family:var(--f-tekst); color:#d8c49a; font-size:.68rem; white-space:nowrap; }
+.strijdveld{ display:grid; grid-template-columns:1fr auto 1fr; gap:10px; align-items:center; }
+@media(max-width:560px){ .strijdveld{ grid-template-columns:1fr; } }
+.kamp{ display:flex; flex-wrap:wrap; gap:14px; justify-content:center; }
+.vs{ font-family:var(--f-kop); font-weight:900; color:rgba(201,171,116,.5); font-size:1.4rem; text-align:center; }
+.token{ position:relative; display:flex; flex-direction:column; align-items:center; gap:5px; }
+.token-rond{ border-radius:50%; display:grid; place-items:center; position:relative; transition:.2s;
+  box-shadow:0 4px 12px rgba(0,0,0,.5), inset 0 2px 5px rgba(255,255,255,.2); }
+.token-held .token-rond{ background:radial-gradient(circle at 38% 32%,#5a7a9a,#2a3f55); border:2px solid #9ab4cc; color:#eaf2fa; }
+.token-vijand .token-rond{ background:radial-gradient(circle at 38% 32%,#8a3a30,#4a1a14); border:2px solid #c87a6a; color:#f6d9cf; }
+.token-rond svg{ width:46%; height:46%; }
+.token-naam{ font-family:var(--f-tekst); font-size:.74rem; color:#e6d7b4; white-space:nowrap; }
+.token-ac{ position:absolute; top:-4px; right:-4px; width:22px; height:22px; border-radius:50%; background:#2a1a08; color:#f0e3c4;
+  display:grid; place-items:center; font-family:var(--f-kop); font-weight:700; font-size:.62rem; border:1px solid var(--goud); }
+.token-hp{ font-family:var(--f-tekst); font-size:.68rem; color:#cbb68c; }
+.token-hp.vaag{ font-style:italic; color:#b09870; }
+.token-cond{ position:absolute; top:-4px; left:-4px; display:flex; gap:2px; }
+.cond-badge{ width:19px; height:19px; border-radius:50%; display:grid; place-items:center; border:1px solid rgba(0,0,0,.3); }
+.cond-badge svg{ width:11px; height:11px; }
+.gevecht-balk{ display:flex; flex-wrap:wrap; gap:10px; align-items:center; margin-top:16px; }
+.d20{ width:64px; height:64px; position:relative; cursor:pointer; background:none; border:0; flex-shrink:0; }
+.d20 svg{ width:100%; height:100%; filter:drop-shadow(0 3px 6px rgba(0,0,0,.5)); transition:transform .2s; }
+.d20:hover svg{ transform:scale(1.06) rotate(-4deg); }
+.d20-getal{ position:absolute; inset:0; display:grid; place-items:center; font-family:var(--f-kop); font-weight:900; color:#2a1a08; font-size:1.3rem; }
+.d20.rollend .d20-getal{ animation:knipper .1s steps(2) infinite; }
+.worp-uit{ font-family:var(--f-tekst); color:#e6d7b4; }
+.worp-uit b{ font-family:var(--f-kop); }
+.worp-raak{ color:#9fd89a; } .worp-mis{ color:#d89a9a; }
+.ken-toggle{ margin-left:auto; }
+
+/* ══ DUNGEON ══════════════════════════════════════════════════════════════ */
+.dng-balk{ display:flex; gap:8px; align-items:center; margin-bottom:12px; flex-wrap:wrap; }
+.dng-verdieping{ display:flex; gap:4px; }
+.vdp{ font-family:var(--f-kop); font-size:.8rem; cursor:pointer; background:rgba(154,112,8,.1); border:1px solid var(--rand); color:var(--inkt-mid); padding:6px 13px; border-radius:6px; transition:.15s; }
+.vdp.aan{ background:rgba(184,134,11,.26); border-color:var(--goud-diep); color:var(--inkt); }
+.dng-kaart{ position:relative; aspect-ratio:16/10; border-radius:8px; overflow:hidden; border:1px solid rgba(201,171,116,.3);
+  background:#20160a url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='40'%3E%3Cpath d='M0 20h40M20 0v40' stroke='%23000' stroke-opacity='.15' stroke-width='1'/%3E%3C/svg%3E"); box-shadow:inset 0 0 30px rgba(0,0,0,.6); }
+.kamer{ position:absolute; border-radius:4px; cursor:pointer; display:grid; place-items:center; text-align:center; transition:.2s;
+  background:linear-gradient(160deg, rgba(233,215,176,.92), rgba(205,178,120,.92)); border:1px solid #8a6a2a;
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.3); }
+.kamer .k-naam{ font-family:var(--f-kop); font-weight:600; color:var(--inkt); font-size:.74rem; padding:2px; line-height:1.05; }
+.kamer .k-ico{ color:var(--inkt-mid); }
+.kamer .k-ico svg{ width:16px; height:16px; }
+.corridor{ position:absolute; background:rgba(205,178,120,.55); }
+.mist{ position:absolute; inset:0; border-radius:4px; background:radial-gradient(circle at 50% 40%, #3a2c16, #160e04); transition:opacity .6s, transform .6s;
+  display:grid; place-items:center; color:rgba(201,171,116,.3); cursor:pointer; box-shadow:inset 0 0 14px rgba(0,0,0,.6); border:1px solid rgba(0,0,0,.3); }
+.mist svg{ width:40%; height:40%; max-width:26px; max-height:26px; }
+.kamer.onthuld .mist{ opacity:0; transform:scale(1.15); pointer-events:none; }
+.dng-teller{ margin-top:10px; font-family:var(--f-fluister); font-style:italic; color:var(--inkt-dim); }
+
+/* ══ BUIT ═════════════════════════════════════════════════════════════════ */
+.buit-toneel{ display:flex; flex-direction:column; align-items:center; gap:16px; }
+.kist{ width:200px; height:150px; position:relative; cursor:pointer; background:none; border:0; transform-style:preserve-3d; }
+.kist-body{ position:absolute; left:10px; right:10px; bottom:0; height:92px; border-radius:6px 6px 8px 8px;
+  background:linear-gradient(170deg,#6a4a24,#43300f); border:2px solid #2e2008; box-shadow:0 10px 24px rgba(0,0,0,.5), inset 0 2px 6px rgba(255,220,150,.2); }
+.kist-band{ position:absolute; left:50%; transform:translateX(-50%); bottom:0; width:26px; height:92px; background:linear-gradient(90deg,#8a6a2a,#b8860b,#8a6a2a); border-left:1px solid #5a4015; border-right:1px solid #5a4015; }
+.kist-slot{ position:absolute; left:50%; transform:translateX(-50%); bottom:34px; width:22px; height:24px; border-radius:3px; background:radial-gradient(circle at 40% 35%,#e9c766,#9a7008); border:1px solid #5a4015; z-index:2; }
+.kist-lid{ position:absolute; left:6px; right:6px; top:18px; height:52px; border-radius:10px 10px 4px 4px; transform-origin:bottom center; transition:transform .6s cubic-bezier(.3,1.2,.4,1);
+  background:linear-gradient(170deg,#7a5a2e,#4a3512); border:2px solid #2e2008; box-shadow:inset 0 2px 6px rgba(255,220,150,.25); }
+.kist.open .kist-lid{ transform:rotateX(-115deg); }
+.kist-gloed{ position:absolute; left:50%; top:40px; transform:translateX(-50%); width:120px; height:80px; border-radius:50%;
+  background:radial-gradient(circle, rgba(255,230,150,.85), transparent 70%); opacity:0; transition:opacity .5s; pointer-events:none; }
+.kist.open .kist-gloed{ opacity:1; animation:gloei 2.5s ease-in-out infinite; }
+.kist-hint{ font-family:var(--f-fluister); font-style:italic; color:var(--inkt-faint); }
+.buit-uit{ width:100%; max-width:440px; animation:briefopen .5s ease both; }
+.buit-munt{ display:flex; justify-content:center; gap:18px; margin-bottom:14px; }
+.munt{ text-align:center; }
+.munt-schijf{ width:52px; height:52px; margin:0 auto 4px; border-radius:50%; display:grid; place-items:center; font-family:var(--f-kop); font-weight:900; font-size:1.2rem;
+  box-shadow:0 3px 8px rgba(0,0,0,.4), inset 0 2px 4px rgba(255,255,255,.4); }
+.munt-fl .munt-schijf{ background:radial-gradient(circle at 38% 32%,#f0d472,#b8860b); color:#5a4015; }
+.munt-kn .munt-schijf{ background:radial-gradient(circle at 38% 32%,#dcdce2,#9a9aa2); color:#44444a; }
+.munt-cl .munt-schijf{ background:radial-gradient(circle at 38% 32%,#d8a574,#9a6030); color:#4a2a10; }
+.munt-naam{ font-family:var(--f-fluister); font-style:italic; color:var(--inkt-dim); font-size:.84rem; }
+.buit-item{ display:flex; align-items:center; gap:12px; padding:12px 14px; border-radius:7px; background:rgba(154,112,8,.1); border:1px solid var(--rand); }
+.buit-item .bi-ico{ width:42px; height:42px; border-radius:7px; display:grid; place-items:center; color:#f6ecd2;
+  background:radial-gradient(circle at 38% 32%,#6a4fa0,#2e1a4a); border:1px solid #8a6ac0; flex-shrink:0; }
+.buit-item .bi-ico svg{ width:22px; height:22px; }
+.buit-item .bi-naam{ font-family:var(--f-kop); font-weight:700; color:var(--inkt); }
+.buit-item .bi-rar{ font-family:var(--f-fluister); font-style:italic; color:#6a4fa0; font-size:.86rem; }
+.mimic-knop{ margin-top:4px; }
+.mimic-uit{ text-align:center; animation:briefopen .4s ease both; }
+.mimic-uit .mi-kop{ font-family:var(--f-gotisch); color:var(--lak); font-size:1.8rem; }
+
+/* ══ HELDEN ═══════════════════════════════════════════════════════════════ */
+.helden-indeling{ display:grid; grid-template-columns:260px 1fr; gap:22px; align-items:start; }
+@media(max-width:760px){ .helden-indeling{ grid-template-columns:1fr; } }
+.mini-blad{ border-radius:5px; padding:18px 16px 20px; position:relative;
+  background-image:repeating-linear-gradient(0deg,transparent,transparent 27px,rgba(150,110,50,.09) 28px), linear-gradient(175deg,var(--perk),var(--perk-warm));
+  box-shadow:0 10px 30px rgba(0,0,0,.45), inset 0 1px 0 rgba(255,255,255,.5); }
+.mini-blad::before{ content:""; position:absolute; inset:6px; border:1px solid rgba(154,112,8,.4); border-radius:2px; pointer-events:none; }
+.mini-portret{ width:76px; height:76px; margin:0 auto 8px; border-radius:50%; display:grid; place-items:center; color:#8a6a2a;
+  background:radial-gradient(circle at 40% 35%,#e9d7ad,#c9ab74); border:2px solid var(--goud-diep); box-shadow:0 0 18px rgba(184,134,11,.4); }
+.mini-portret svg{ width:34px; height:34px; opacity:.65; }
+.mini-naam{ text-align:center; font-family:var(--f-kop); font-weight:700; color:var(--inkt); font-size:1.2rem; }
+.mini-sub{ text-align:center; font-family:var(--f-fluister); font-style:italic; color:var(--inkt-dim); font-size:.88rem; margin-bottom:12px; }
+.mini-zes{ display:grid; grid-template-columns:repeat(3,1fr); gap:6px; }
+.mini-pip{ text-align:center; padding:6px 0 5px; border-radius:3px; background:rgba(154,112,8,.1); border:1px solid rgba(154,112,8,.28); }
+.mini-pip .ab{ display:block; font-family:var(--f-kop); font-size:.52rem; letter-spacing:.06em; text-transform:uppercase; color:var(--inkt-dim); }
+.mini-pip .nr{ display:block; font-family:var(--f-kop); font-weight:700; color:var(--inkt); }
+.mini-pip .md{ display:block; font-size:.64rem; color:var(--goud-diep); }
+.held-tegels{ display:grid; grid-template-columns:repeat(auto-fill,minmax(92px,1fr)); gap:9px; margin-top:8px; }
+.held-tegel{ text-align:center; padding:12px 6px 9px; border-radius:7px; background:linear-gradient(170deg,#f3ead2,#e4d1a8); border:1px solid var(--rand); }
+.held-tegel .ht-ico{ width:38px; height:38px; margin:0 auto 5px; border-radius:50%; display:grid; place-items:center; color:#6f5115;
+  background:radial-gradient(circle at 40% 34%,#f6eccf,#cdae72 72%,#a9873f); border:1px solid var(--goud-diep); }
+.held-tegel .ht-ico svg{ width:19px; height:19px; }
+.held-tegel .ht-naam{ font-family:var(--f-kop); font-weight:600; color:var(--inkt); font-size:.78rem; }
+
+/* ══ MOTOR ════════════════════════════════════════════════════════════════ */
+.motor-grid{ display:grid; grid-template-columns:repeat(auto-fill,minmax(230px,1fr)); gap:14px; }
+.motor-kaart{ border-radius:8px; padding:16px 16px 14px; background:rgba(255,250,238,.55); border:1px solid var(--rand); }
+.motor-kop{ display:flex; align-items:center; gap:10px; margin-bottom:7px; }
+.motor-kop .mk-ico{ width:38px; height:38px; border-radius:8px; display:grid; place-items:center; color:#6f5115; flex-shrink:0;
+  background:radial-gradient(circle at 40% 34%,#f6eccf,#cdae72 72%,#a9873f); border:1px solid var(--goud-diep); }
+.motor-kop .mk-ico svg{ width:20px; height:20px; }
+.motor-kop h3{ font-family:var(--f-kop); font-weight:700; color:var(--inkt); margin:0; font-size:1.05rem; }
+.motor-kaart p{ margin:0; font-size:.95rem; color:var(--inkt-mid); }
+.schakel{ display:inline-flex; align-items:center; gap:7px; margin-top:9px; font-family:var(--f-kop); font-size:.72rem; letter-spacing:.06em; text-transform:uppercase; color:var(--goud-diep); }
+.schakel-dot{ width:30px; height:16px; border-radius:9px; background:var(--goud-diep); position:relative; box-shadow:inset 0 1px 2px rgba(0,0,0,.3); }
+.schakel-dot::after{ content:""; position:absolute; top:2px; right:2px; width:12px; height:12px; border-radius:50%; background:#f6ecd2; }
+
+/* ══ BEGIN ════════════════════════════════════════════════════════════════ */
+.begin{ text-align:center; max-width:560px; margin:auto; display:flex; flex-direction:column; align-items:center; gap:16px; padding-top:clamp(10px,5vh,40px); }
+.begin h2{ font-family:var(--f-kop); font-weight:900; color:#f3e6c6; margin:0; font-size:clamp(2rem,6vw,3rem); text-wrap:balance; text-shadow:0 2px 16px rgba(0,0,0,.5); }
+.begin p{ font-family:var(--f-fluister); font-style:italic; color:#cdb98e; font-size:1.18rem; }
+
+@keyframes adem{ 0%,100%{opacity:.5; transform:scale(1);} 50%{opacity:.9; transform:scale(1.08);} }
+@keyframes knipper{ 0%,100%{opacity:1;} 50%{opacity:.25;} }
+@keyframes gloei{ 0%,100%{opacity:.75; transform:translateX(-50%) scale(1);} 50%{opacity:1; transform:translateX(-50%) scale(1.12);} }
+@media (prefers-reduced-motion: reduce){ *{ animation-duration:.001s !important; transition-duration:.08s !important; } }
+</style>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-castle" viewBox="0 0 512 512"><path fill="currentColor" d="M254.25 15.344c-132.537 0-240.188 107.62-240.188 240.156 0 132.537 107.65 240.188 240.188 240.188 132.537 0 240.156-107.65 240.156-240.188 0-132.537-107.62-240.156-240.156-240.156zm0 18.687c122.436 0 221.47 99.034 221.47 221.47 0 65.65-28.465 124.583-73.75 165.125V238.75l14-22.78h-7.595L364 101.5l-43.813 114.47h-8.156l14.595 22.78v33.875h-36.813v-88.188l14.625-22.78h-7.593l-44.406-114.47-44.375 114.47h-7.594l14.03 22.78v123.22h-37.375v-18.094l14.594-22.782h-8.19l-43.78-114.467L95.344 266.78H87.75l14.03 22.783V416.25C59.25 375.9 32.75 318.83 32.75 255.5c0-122.436 99.064-221.47 221.5-221.47z"/></symbol>
+  <symbol id="i-crossed-swords" viewBox="0 0 512 512"><path fill="currentColor" d="M19.75 14.438c59.538 112.29 142.51 202.35 232.28 292.718l3.626 3.75.063-.062c21.827 21.93 44.04 43.923 66.405 66.25-18.856 14.813-38.974 28.2-59.938 40.312l28.532 28.53 68.717-68.717c42.337 27.636 76.286 63.646 104.094 105.81l28.064-28.06c-42.47-27.493-79.74-60.206-106.03-103.876l68.936-68.938-28.53-28.53c-11.115 21.853-24.413 42.015-39.47 60.593-43.852-43.8-86.462-85.842-130.125-125.47-.224-.203-.432-.422-.656-.625C183.624 122.75 108.515 63.91 19.75 14.437zm471.875 0c-83.038 46.28-154.122 100.78-221.97 161.156l22.814 21.562 56.81-56.812 13.22 13.187-56.438 56.44 24.594 23.186c61.802-66.92 117.6-136.92 160.97-218.72zM84.78 253.53l-28.5 28.532 68.907 68.906c-26.29 43.673-63.53 76.414-106 103.907l28.063 28.06c27.807-42.164 61.758-78.174 104.094-105.81l68.718 68.717 28.53-28.53c-20.962-12.113-41.08-25.5-59.937-40.313 17.865-17.83 35.61-35.433 53.157-52.97l-24.843-25.655-55.47 55.467c-4.565-4.238-9.014-8.62-13.374-13.062l55.844-55.844-24.53-25.374z"/></symbol>
+  <symbol id="i-compass" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="m16.24 7.76-1.804 5.411a2 2 0 0 1-1.265 1.265L7.76 16.24l1.804-5.411a2 2 0 0 1 1.265-1.265z"/></symbol>
+  <symbol id="i-beer" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 11h1a3 3 0 0 1 0 6h-1"/><path d="M9 12v6"/><path d="M13 12v6"/><path d="M14 7.5c-1 0-1.44.5-3 .5s-2-.5-3-.5-1.72.5-2.5.5a2.5 2.5 0 0 1 0-5c.78 0 1.57.5 2.5.5S9.44 2 11 2s2 1.5 3 1.5 1.72-.5 2.5-.5a2.5 2.5 0 0 1 0 5c-.78 0-1.5-.5-2.5-.5Z"/><path d="M5 8v12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V8"/></symbol>
+  <symbol id="i-dice" viewBox="0 0 512 512"><path fill="currentColor" d="M74.5 36A38.5 38.5 0 0 0 36 74.5v363A38.5 38.5 0 0 0 74.5 476h363a38.5 38.5 0 0 0 38.5-38.5v-363A38.5 38.5 0 0 0 437.5 36h-363zm48.97 36.03A50 50 0 0 1 172 122a50 50 0 0 1-100 0 50 50 0 0 1 51.47-49.97zm268 0A50 50 0 0 1 440 122a50 50 0 0 1-100 0 50 50 0 0 1 51.47-49.97zM256 206a50 50 0 0 1 0 100 50 50 0 0 1 0-100zM123.47 340.03A50 50 0 0 1 172 390a50 50 0 0 1-100 0 50 50 0 0 1 51.47-49.97zm268 0A50 50 0 0 1 440 390a50 50 0 0 1-100 0 50 50 0 0 1 51.47-49.97z"/></symbol>
+  <symbol id="i-dices" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="12" height="12" x="2" y="10" rx="2"/><path d="m17.92 14 3.5-3.5a2.24 2.24 0 0 0 0-3l-5-4.92a2.24 2.24 0 0 0-3 0L10 6"/><path d="M6 18h.01"/><path d="M10 14h.01"/><path d="M15 6h.01"/><path d="M18 9h.01"/></symbol>
+  <symbol id="i-search" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21 21-4.34-4.34"/><circle cx="11" cy="11" r="8"/></symbol>
+  <symbol id="i-store" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 21v-5a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v5"/><path d="M17.774 10.31a1.12 1.12 0 0 0-1.549 0 2.5 2.5 0 0 1-3.451 0 1.12 1.12 0 0 0-1.548 0 2.5 2.5 0 0 1-3.452 0 1.12 1.12 0 0 0-1.549 0 2.5 2.5 0 0 1-3.77-3.248l2.889-4.184A2 2 0 0 1 7 2h10a2 2 0 0 1 1.653.873l2.895 4.192a2.5 2.5 0 0 1-3.774 3.244"/><path d="M4 10.95V19a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8.05"/></symbol>
+  <symbol id="i-church" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 9h4"/><path d="M12 7v5"/><path d="M14 21v-3a2 2 0 0 0-4 0v3"/><path d="m18 9 3.52 2.147a1 1 0 0 1 .48.854V19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2v-6.999a1 1 0 0 1 .48-.854L6 9"/><path d="M6 21V7a1 1 0 0 1 .376-.782l5-3.999a1 1 0 0 1 1.249.001l5 4A1 1 0 0 1 18 7v14"/></symbol>
+  <symbol id="i-sparkles" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11.017 2.814a1 1 0 0 1 1.966 0l1.051 5.558a2 2 0 0 0 1.594 1.594l5.558 1.051a1 1 0 0 1 0 1.966l-5.558 1.051a2 2 0 0 0-1.594 1.594l-1.051 5.558a1 1 0 0 1-1.966 0l-1.051-5.558a2 2 0 0 0-1.594-1.594l-5.558-1.051a1 1 0 0 1 0-1.966l5.558-1.051a2 2 0 0 0 1.594-1.594z"/><path d="M20 2v4"/><path d="M22 4h-4"/><circle cx="4" cy="20" r="2"/></symbol>
+  <symbol id="i-paw" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="4" r="2"/><circle cx="18" cy="8" r="2"/><circle cx="20" cy="16" r="2"/><path d="M9 10a5 5 0 0 1 5 5v3.5a3.5 3.5 0 0 1-6.84 1.045Q6.52 17.48 4.46 16.84A3.5 3.5 0 0 1 5.5 10Z"/></symbol>
+  <symbol id="i-coins" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="8" r="6"/><path d="M18.09 10.37A6 6 0 1 1 10.34 18"/><path d="M7 6h1v4"/><path d="m16.71 13.88.7.71-2.82 2.82"/></symbol>
+  <symbol id="i-crown" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11.562 3.266a.5.5 0 0 1 .876 0L15.39 8.87a1 1 0 0 0 1.516.294L21.183 5.5a.5.5 0 0 1 .798.519l-2.834 10.246a1 1 0 0 1-.956.734H5.81a1 1 0 0 1-.957-.734L2.02 6.02a.5.5 0 0 1 .798-.519l4.276 3.664a1 1 0 0 0 1.516-.294z"/><path d="M5 21h14"/></symbol>
+  <symbol id="i-scroll" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 12h-5"/><path d="M15 8h-5"/><path d="M19 17V5a2 2 0 0 0-2-2H4"/><path d="M8 21h12a2 2 0 0 0 2-2v-1a1 1 0 0 0-1-1H11a1 1 0 0 0-1 1v1a2 2 0 1 1-4 0V5a2 2 0 1 0-4 0v2a1 1 0 0 0 1 1h3"/></symbol>
+  <symbol id="i-mail" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.991 5.727a2 2 0 0 1-2.009 0L2 7"/></symbol>
+  <symbol id="i-swords" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="14.5 17.5 3 6 3 3 6 3 17.5 14.5"/><line x1="13" x2="19" y1="19" y2="13"/><line x1="16" x2="20" y1="16" y2="20"/><line x1="19" x2="21" y1="21" y2="19"/><polyline points="14.5 6.5 18 3 21 3 21 6 17.5 9.5"/><line x1="5" x2="9" y1="14" y2="18"/><line x1="7" x2="4" y1="17" y2="20"/><line x1="3" x2="5" y1="19" y2="21"/></symbol>
+  <symbol id="i-skull" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12.5 17-.5-1-.5 1h1z"/><path d="M15 22a1 1 0 0 0 1-1v-1a2 2 0 0 0 1.56-3.25 8 8 0 1 0-11.12 0A2 2 0 0 0 8 20v1a1 1 0 0 0 1 1z"/><circle cx="15" cy="12" r="1"/><circle cx="9" cy="12" r="1"/></symbol>
+  <symbol id="i-shield" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/></symbol>
+  <symbol id="i-heart" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 9.5a5.5 5.5 0 0 1 9.591-3.676.56.56 0 0 0 .818 0A5.49 5.49 0 0 1 22 9.5c0 2.29-1.5 4-3 5.5l-5.492 5.313a2 2 0 0 1-3 .019L5 15c-1.5-1.5-3-3.2-3-5.5"/></symbol>
+  <symbol id="i-user" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></symbol>
+  <symbol id="i-users" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></symbol>
+  <symbol id="i-sword" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9.5 17.5 21 6V3h-3L6.5 14.5"/><path d="m11 19-6-6"/><path d="m5 21-2-2"/><path d="m8 16-4 4"/></symbol>
+  <symbol id="i-flame" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3q1 4 4 6.5t3 5.5a1 1 0 0 1-14 0 5 5 0 0 1 1-3 1 1 0 0 0 5 0c0-2-1.5-3-1.5-5q0-2 2.5-4"/></symbol>
+  <symbol id="i-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></symbol>
+  <symbol id="i-music" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></symbol>
+  <symbol id="i-book" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 7v14"/><path d="M3 18a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h5a4 4 0 0 1 4 4 4 4 0 0 1 4-4h5a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1h-6a3 3 0 0 0-3 3 3 3 0 0 0-3-3z"/></symbol>
+  <symbol id="i-flask" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2v6a2 2 0 0 0 .245.96l5.51 10.08A2 2 0 0 1 18 22H6a2 2 0 0 1-1.755-2.96l5.51-10.08A2 2 0 0 0 10 8V2"/><path d="M6.453 15h11.094"/><path d="M8.5 2h7"/></symbol>
+  <symbol id="i-feather" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.086 18.412A2 2 0 0112.67 19H5v-7.672a2 2 0 01.586-1.414L11.75 3.75a6 6 0 118.49 8.49z"/><path d="M16 8 2 22"/><path d="M17.488 15H9"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></symbol>
+  <symbol id="i-x" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></symbol>
+  <symbol id="i-links" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></symbol>
+  <symbol id="i-rechts" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></symbol>
+  <symbol id="i-eye" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0"/><circle cx="12" cy="12" r="3"/></symbol>
+  <symbol id="i-eye-off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.733 5.076a10.744 10.744 0 0 1 11.205 6.575 1 1 0 0 1 0 .696 10.747 10.747 0 0 1-1.444 2.49"/><path d="M14.084 14.158a3 3 0 0 1-4.242-4.242"/><path d="M17.479 17.499a10.75 10.75 0 0 1-15.417-5.151 1 1 0 0 1 0-.696 10.75 10.75 0 0 1 4.446-5.143"/><path d="m2 2 20 20"/></symbol>
+  <symbol id="i-map" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.106 5.553a2 2 0 0 0 1.788 0l3.659-1.83A1 1 0 0 1 21 4.619v12.764a1 1 0 0 1-.553.894l-4.553 2.277a2 2 0 0 1-1.788 0l-4.212-2.106a2 2 0 0 0-1.788 0l-3.659 1.83A1 1 0 0 1 3 19.381V6.618a1 1 0 0 1 .553-.894l4.553-2.277a2 2 0 0 1 1.788 0z"/><path d="M15 5.764v15"/><path d="M9 3.236v15"/></symbol>
+  <symbol id="i-package" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 21.73a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73z"/><path d="M12 22V12"/><polyline points="3.29 7 12 12 20.71 7"/><path d="m7.5 4.27 9 5.15"/></symbol>
+  <symbol id="i-settings" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></symbol>
+</svg>
+
+<div class="app">
+  <div class="topbar">
+    <button class="merk" onclick="ga('hub')" aria-label="Naar het overzicht">
+      <span class="merk-penning"><svg><use href="#i-castle"/></svg></span>
+      <span class="merk-naam">Grisburgh<small>een rondleiding</small></span>
+    </button>
+    <div class="topbar-mid" id="topbar-mid"></div>
+    <button class="topbar-knop" id="hub-knop" onclick="ga('hub')"><svg><use href="#i-compass"/></svg> Overzicht</button>
+  </div>
+  <div class="scene" id="scene"></div>
+</div>
+
+<script>
+const ico = (n) => `<svg aria-hidden="true"><use href="#i-${n}"/></svg>`;
+const esc = (s) => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+// Munten van Grisburgh: 1 Florinde = 10 Knaker = 100 Centeling.
+function clNaar(cl){ cl=Math.round(cl); const fl=Math.floor(cl/100); const r=cl%100; const kn=Math.floor(r/10); const c=r%10; return {fl,kn,c}; }
+function clTekst(cl){ const {fl,kn,c}=clNaar(cl); return [fl&&`${fl} fl`,kn&&`${kn} kn`,c&&`${c} cl`].filter(Boolean).join(' ') || '0 cl'; }
+
+const HOOFDSTUKKEN = [
+  { id:'diensten', ico:'store',  titel:'De negen diensten', onder:'Een stad vol winkeliers, waarzeggers en woekeraars — elk een eigen scherm.' },
+  { id:'brief',    ico:'mail',   titel:'Een verzegelde brief', onder:'Hoe een factie zich voorstelt: een cinematische brief op het tafelscherm.' },
+  { id:'gevecht',  ico:'swords', titel:'Aan de tafel',        onder:'Tokens, initiative en condities — en wat de spelers wél en niet zien.' },
+  { id:'dungeon',  ico:'map',    titel:'De dungeon',          onder:'Fog-of-war, verdiepingen en doorgangen, onthuld per party.' },
+  { id:'buit',     ico:'package',titel:'De buit',             onder:'Een kist die opengaat, munten die rollen — en soms een mimic.' },
+  { id:'helden',   ico:'user',   titel:'De helden',           onder:'Het Heldenboek, printbare bladen en de personage-maker.' },
+  { id:'motor',    ico:'settings',titel:'Onder de motorkap',  onder:'Modules, meerdere DMs, nachtelijke backups en muziek uit Spotify.' },
+];
+const VOLGORDE = ['hub', ...HOOFDSTUKKEN.map(h=>h.id), 'begin'];
+
+const RESERVED = new Set(['settings','sidebar','customize','upgrade','downloads']);
+let scene = 'hub';
+
+function ga(id){ scene=id; try{ if(!RESERVED.has(id)) location.hash=id; }catch(e){} render(); window.scrollTo({top:0,behavior:'smooth'}); }
+function volgende(){ const i=VOLGORDE.indexOf(scene); if(i<VOLGORDE.length-1) ga(VOLGORDE[i+1]); }
+function vorige(){ const i=VOLGORDE.indexOf(scene); if(i>0) ga(VOLGORDE[i-1]); }
+
+function render(){
+  const el=document.getElementById('scene');
+  const mid=document.getElementById('topbar-mid');
+  const hubKnop=document.getElementById('hub-knop');
+  const hidx=HOOFDSTUKKEN.findIndex(h=>h.id===scene);
+  mid.textContent = hidx>=0 ? `Kamer ${hidx+1} van ${HOOFDSTUKKEN.length}` : '';
+  hubKnop.style.visibility = scene==='hub' ? 'hidden' : 'visible';
+  el.innerHTML = ({ hub:hubHtml, diensten:dienstenHtml, brief:briefHtml, gevecht:gevechtHtml,
+    dungeon:dungeonHtml, buit:buitHtml, helden:heldenHtml, motor:motorHtml, begin:beginHtml }[scene] || hubHtml)();
+  if (scene==='gevecht') tekenInit();
+}
+
+function navHtml(){
+  const i=VOLGORDE.indexOf(scene); const laatste=i===VOLGORDE.length-1;
+  return `<div class="scene-nav">
+    <button class="navknop navknop-spook ${i<=0?'navknop--leeg':''}" onclick="vorige()">${ico('links')} Vorige</button>
+    <button class="navknop navknop-goud" onclick="${laatste?"ga('hub')":'volgende()'}">${laatste?`${ico('compass')} Terug naar het overzicht`:`Volgende ${ico('rechts')}`}</button>
+  </div>`;
+}
+function kopHtml(boven,titel,lead){ return `<div class="scene-kop"><div class="boven">${esc(boven)}</div><h2>${esc(titel)}</h2>${lead?`<p class="lead">${lead}</p>`:''}</div>`; }
+
+/* ══ HUB ══ */
+function hubHtml(){
+  return `<div class="hub-hero">
+      <div class="hub-embleem">${ico('castle')}</div>
+      <div class="boven">de meesterkamer, bij kaarslicht</div>
+      <h1>Welkom in Grisburgh</h1>
+      <p>Geen regelboek en geen spreadsheet, maar een stad waar je doorheen loopt. Dit is een rondleiding langs
+        wat de app voor je tafel doet — klik een kamer binnen.</p>
+      <div class="sierlijn"><span></span>${ico('sparkles')}<span></span></div>
+    </div>
+    <div class="hub-grid">
+      ${HOOFDSTUKKEN.map((h,i)=>`<button class="hub-kaart" onclick="ga('${h.id}')">
+        <div class="hub-kaart-inner"><span class="hub-nr">${i+1}</span>
+          <span class="hub-ico">${ico(h.ico)}</span>
+          <span class="hub-titel">${esc(h.titel)}</span>
+          <span class="hub-onder">${esc(h.onder)}</span></div></button>`).join('')}
+    </div>
+    <p class="hub-voet">Alles wat je hier ziet is echt wat de app kan. De inhoud — Taevin, Ursula, de Tweespalt —
+      is van de campagne Grisburgh zelf.</p>`;
+}
+
+/* ══ DIENSTEN ══ */
+const DIENSTEN = [
+  { id:'herberg', ico:'beer', naam:'De herberg', plaats:'De Gouden Gans · Oosterkwartier',
+    merk:'Module: herberg', tekst:`Hier slaapt en eet de party. Aan de tap koop je maaltijden en drankjes die <strong>tijdelijke HP</strong> en buffs geven; een overnachting schrijft de prijs per persoon af en bij een lange rust fluistert de waard een <strong>roddel</strong> die je nog niet kende.` },
+  { id:'tweespalt', ico:'dice', naam:'De Tweespalt', plaats:'Het gokhuis · aan de haven',
+    merk:'Module: arena', tekst:`Wedden op het <strong>Strijdperk</strong>: een speler betreedt de arena, de DM stelt de tegenstand op, en de inzet staat op het spel. De uitkomst is onomkeerbaar, dus elke knop vraagt eerst een bevestiging.` },
+  { id:'gock', ico:'search', naam:'De Gock', plaats:'De detective · Luimpoort',
+    merk:'Module: detective', tekst:`Een vraag die de party zelf niet beantwoord krijgt, besteedt ze hier uit. De Gock speurt tussen sessies door en levert een antwoord — of een nieuw raadsel.` },
+  { id:'markt', ico:'store', naam:'De markt', plaats:'Alle winkels op één plek',
+    merk:'Module: markt', tekst:`Negen winkels, één scherm. Zoek over alle kramen tegelijk en zet de prijzen naast elkaar — een <strong>Potion of Healing</strong> kost bij Bobo 40 fl waar hij elders 20 is. Een roterende winkel rolt zijn schappen pas als je 'm bezoekt.` },
+  { id:'tempel', ico:'church', naam:'De tempel', plaats:'Zegeningen, eden en vloeken',
+    merk:'Module: tempel', tekst:`Een pantheon dat ontstaat uit de goden die de DM zelf maakt. Een speler zweert een <strong>eed</strong> in een zwart overlay met typemachine-tekst, koopt een zegening, of draagt een vloek — en andere eden gaan daarna voor hem op slot.` },
+  { id:'ursula', ico:'sparkles', naam:'Ursula', plaats:'De waarzegger',
+    merk:'Module: waarzegger', tekst:`Vier zintuigen kies je, en Ursula geeft een blik vooruit — die als cinematische, verzegelde <strong>brief</strong> in je berichten belandt. Een blik, geen garantie.` },
+  { id:'magizoo', ico:'paw', naam:'De magizoöloog', plaats:'Onderzoek & adoptie',
+    merk:'Module: magizoo', tekst:`Adopteer een metgezel die meegroeit met zijn baasje, of laat een wezen <strong>onderzoeken</strong> — dan onthult de magizoöloog deels wat het verbergt: "breng hem in de zon en hij mist".` },
+  { id:'woekeraar', ico:'coins', naam:'Taevin', plaats:'De woekeraar · achter de Tweespalt',
+    merk:'Module: woekeraar', tekst:`Lenen kan altijd. Terugbetalen is het probleem. Taevin rekent <strong>rente per lange rust</strong> — niet per kalenderdag — met een plafond, want een schuld die niemand kan uitspreken is geen verhaallijn meer.`, demo:'woeker' },
+  { id:'facties', ico:'crown', naam:'Facties & Aanzien', plaats:'De Eendragt, de Roodzwaarden…',
+    merk:'Module: facties', tekst:`Rangen, titels en <strong>renown</strong>. Een factie stelt zich voor met een uitnodigingsbrief aan de hele party, deelt missies uit via quest givers, en bepaalt wie welke titel draagt. (De Heeren van de Nacht zijn inmiddels opgeheven — maar hun schaduwbrief bestaat nog.)` },
+];
+let dienstGekozen = 'woekeraar';
+function dienstenHtml(){
+  const d = DIENSTEN.find(x=>x.id===dienstGekozen) || DIENSTEN[0];
+  return kopHtml('kamer 1 — de stad','De negen diensten',
+    'Elke dienst is een eigen scherm met zijn eigen sfeer: dezelfde romp (achtergrond, een rond portret, een groet), maar een eigen gezicht. De DM zet per party aan wat open is.')
+    + `<div class="paneel"><div class="dienst-indeling">
+      <div class="dienst-tegels">
+        ${DIENSTEN.map(x=>`<button class="dienst-tegel ${x.id===dienstGekozen?'aan':''}" onclick="kiesDienst('${x.id}')">
+          <span class="di-ico">${ico(x.ico)}</span><span class="di-naam">${esc(x.naam)}</span></button>`).join('')}
+      </div>
+      <div class="dienst-info" id="dienst-info">${dienstKaart(d)}</div>
+    </div></div>` + navHtml();
+}
+function dienstKaart(d){
+  return `<div class="di-kaart">
+    <div class="di-kaart-kop"><span class="di-kaart-ico">${ico(d.ico)}</span>
+      <div><h3>${esc(d.naam)}</h3><div class="di-plaats">${esc(d.plaats)}</div></div></div>
+    <p>${d.tekst}</p>
+    <span class="di-merk">${ico('settings')} ${esc(d.merk)}</span>
+    ${d.demo==='woeker'?woekerHtml():''}</div>`;
+}
+function kiesDienst(id){ dienstGekozen=id; const info=document.getElementById('dienst-info'); if(info)info.innerHTML=dienstKaart(DIENSTEN.find(x=>x.id===id));
+  document.querySelectorAll('.dienst-tegel').forEach(t=>t.classList.remove('aan')); event.currentTarget.classList.add('aan'); }
+const WOEKER_HOOFDSOM = 2880; // centelingen
+function woekerHtml(){ return `<div class="woeker">
+    <div class="paneel-kop">Reken Taevins rente voor</div>
+    <p class="woeker-sub" style="margin:0 0 4px">Lening: <b>${clTekst(WOEKER_HOOFDSOM)}</b> · 30% per nacht dat de party rust · plafond 5× de hoofdsom.</p>
+    <div class="woeker-rij">
+      <span class="woeker-sub">Nachten</span>
+      <input type="range" min="0" max="25" value="6" oninput="woekerUit(this.value)">
+      <span class="woeker-sub" id="woeker-n">6</span>
+    </div>
+    <div id="woeker-out">${woekerBedrag(6)}</div>
+  </div>`; }
+function woekerBedrag(n){
+  const ruw = WOEKER_HOOFDSOM * Math.pow(1.3, n);
+  const plafond = WOEKER_HOOFDSOM * 5;
+  const af = ruw >= plafond;
+  const bedrag = Math.min(ruw, plafond);
+  return `<div class="woeker-bedrag ${af?'vast':''}">${clTekst(bedrag)}</div>
+    <div class="woeker-sub">${af?'Plafond bereikt — nu komt Taevin het halen. Dat is een scène, geen som.':`na ${n} ${n===1?'nacht':'nachten'} rust`}</div>`;
+}
+function woekerUit(n){ n=parseInt(n)||0; const l=document.getElementById('woeker-n'); if(l)l.textContent=n; const o=document.getElementById('woeker-out'); if(o)o.innerHTML=woekerBedrag(n); }
+
+/* ══ BRIEF ══ */
+let briefOpen=false;
+function briefHtml(){
+  return kopHtml('kamer 2 — het verhaal','Een verzegelde brief',
+    'Een factie, een waarzegger of een akte stelt zich voor met een brief. Op het tafelscherm breekt het lakzegel in twee stappen: eerst de verzegelde envelop, dan — op een klik — vouwt de brief open. Zo lúísteren de spelers in plaats van mee te lezen op hun telefoon.')
+    + `<div class="paneel"><div class="brief-toneel" id="brief-toneel">${briefInner()}</div></div>` + navHtml();
+}
+function briefInner(){
+  if (!briefOpen){
+    return `<button class="envelop" onclick="briefOpen=true; document.getElementById('brief-toneel').innerHTML=briefInner();" aria-label="Breek het zegel">
+        <div class="envelop-vel"></div>
+        <div class="lakzegel">${ico('crown')}</div>
+        <div class="envelop-adres">Aan de dappere reizigers, p/a De Gouden Gans</div>
+      </button>
+      <div class="envelop-hint">Klik op het lakzegel</div>`;
+  }
+  return `<div class="brief-open">
+      <div class="brief-embleem">${ico('crown')}</div>
+      <div class="brief-kop">De Eendragt</div>
+      <div class="brief-tekst">
+        <p>Geachte reizigers,</p>
+        <p>Uw naam wordt gefluisterd in het Oosterkwartier — en niet alleen door vrienden. De Eendragt verkiest
+          daden boven geruchten, en de uwe hebben onze aandacht getrokken.</p>
+        <p>Kom bij valavond naar het Oude Glasblazershuis. Breng dit zegel, en de deur gaat open. Breng het niet,
+          en u hebt daar nooit gestaan.</p>
+      </div>
+      <div class="brief-onder">— bij hoogachting,<br>Vrouwe Kwartel, voor de Raad</div>
+      <div class="brief-herstel"><button class="navknop navknop-spook" onclick="briefOpen=false; document.getElementById('brief-toneel').innerHTML=briefInner();">${ico('mail')} Verzegel opnieuw</button></div>
+    </div>`;
+}
+
+/* ══ GEVECHT ══ */
+let kenWezen=false, d20bezig=false;
+const HELDEN = [ {n:'Wilmer', ico:'sword', ac:16, hp:'31/31'}, {n:'Rozemarijn', ico:'sparkles', ac:12, hp:'22/22'}, {n:'Johannes', ico:'shield', ac:18, hp:'28/28'} ];
+const VIJANDEN = [ {n:'Wervelingpiraat', ico:'skull', ac:13, maxHp:26, groot:1, cond:['flame']}, {n:'Maenfortmatroos', ico:'skull', ac:12, maxHp:16, groot:.82, cond:[]}, {n:'Maenfortmatroos', ico:'skull', ac:12, maxHp:16, groot:.82, cond:['moon']} ];
+const INIT = [ {n:'Wervelingpiraat',nr:19,v:true},{n:'Wilmer',nr:17},{n:'Rozemarijn',nr:14},{n:'Matroos',nr:11,v:true},{n:'Johannes',nr:8},{n:'Matroos',nr:5,v:true} ];
+const COND_KLEUR = { flame:'#b5452f', moon:'#3b6ea5' };
+function gevechtHtml(){
+  return kopHtml('kamer 3 — aan tafel','Het gevecht',
+    'Het tafelscherm toont de tokens: de party links, de tegenstand rechts, en hoe zwaarder het monster hoe groter het staat. De spelers zien geen exacte cijfers van een vijand — alleen een vaag label — tótdat hun party het wezen in het bestiarium heeft ontdekt.')
+    + `<div class="paneel">
+      <div class="paneel-kop">Gevecht · Een hinderlaag aan de kade</div>
+      <div class="arena">
+        <div class="initiatief">${INIT.map(p=>`<div class="init-pion ${p.nr===19?'nu':''}">
+          <span class="ip-nr">${p.nr}</span><span class="ip-naam">${esc(p.n)}</span></div>`).join('')}</div>
+        <div class="strijdveld">
+          <div class="kamp">${HELDEN.map(h=>tokenHtml(h,false)).join('')}</div>
+          <div class="vs">vs</div>
+          <div class="kamp" id="vijand-kamp">${VIJANDEN.map(v=>tokenHtml(v,true)).join('')}</div>
+        </div>
+        <div class="gevecht-balk">
+          <button class="d20" id="d20" onclick="rolD20()"><svg viewBox="0 0 100 100"><polygon points="50,4 92,28 92,72 50,96 8,72 8,28" fill="#d9a92a" stroke="#8a6305" stroke-width="3"/><polygon points="50,4 50,50 92,28" fill="#e9c766" opacity=".6"/><polygon points="50,4 50,50 8,28" fill="#c9992a" opacity=".6"/></svg><span class="d20-getal" id="d20-getal">d20</span></button>
+          <div class="worp-uit" id="worp-uit">Klik de d20 — Wilmer valt de Wervelingpiraat aan (AC ${kenWezen?13:'?'}).</div>
+          <label class="ken-toggle di-merk" style="cursor:pointer"><input type="checkbox" ${kenWezen?'checked':''} onchange="kenWezen=this.checked; render()" style="margin-right:6px">Ken dit wezen (bestiarium)</label>
+        </div>
+      </div>
+      <p class="wenk" style="margin:12px 0 0">${ico('eye')} Zet "ken dit wezen" aan en de exacte HP en AC verschijnen — precies hoe het bestiarium per party kennis vrijgeeft: eerst de naam, dan <em>deels</em>, dan het hele statblok.</p>
+    </div>` + navHtml();
+}
+function tokenHtml(c, vijand){
+  const maat = vijand ? 46 + (c.groot||1)*26 : 60;
+  const hp = vijand ? (kenWezen ? `${c.maxHp}/${c.maxHp}` : 'gezond') : c.hp;
+  const conds = (c.cond||[]).map(k=>`<span class="cond-badge" style="background:${COND_KLEUR[k]};color:#fff">${ico(k==='flame'?'flame':'moon')}</span>`).join('');
+  return `<div class="token ${vijand?'token-vijand':'token-held'}">
+    <div class="token-rond" style="width:${maat}px;height:${maat}px">
+      ${ico(c.ico)}
+      ${(!vijand||kenWezen)?`<span class="token-ac">${c.ac}</span>`:''}
+      ${conds?`<span class="token-cond">${conds}</span>`:''}
+    </div>
+    <span class="token-naam">${esc(c.n)}</span>
+    <span class="token-hp ${vijand&&!kenWezen?'vaag':''}">${esc(hp)}</span>
+  </div>`;
+}
+function tekenInit(){ /* niets extra's nodig; inline handlers */ }
+function rolD20(){
+  if(d20bezig)return; d20bezig=true;
+  const knop=document.getElementById('d20'), getal=document.getElementById('d20-getal'), uit=document.getElementById('worp-uit');
+  knop.classList.add('rollend');
+  const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const doel=1+Math.floor(Math.random()*20);
+  const klaar=()=>{ knop.classList.remove('rollend'); getal.textContent=doel;
+    const totaal=doel+5; const raak=totaal>=13;
+    uit.innerHTML=`Wilmer gooit <b>${doel}</b> +5 = <b>${totaal}</b> tegen AC ${kenWezen?13:'?'} — <span class="${raak?'worp-raak':'worp-mis'}">${raak?'raak!':'mis.'}</span>`;
+    d20bezig=false; };
+  if(reduce){ getal.textContent=doel; klaar(); return; }
+  let t=0; const iv=setInterval(()=>{ getal.textContent=1+Math.floor(Math.random()*20); if(++t>10){ clearInterval(iv); klaar(); } },60);
+}
+
+/* ══ DUNGEON ══ */
+let verdieping='bg';
+const KAMERS = {
+  bg: [
+    {naam:'Ingang', ico:'map-pin', x:6, y:62, w:20, h:26},
+    {naam:'Wachtzaal', ico:'swords', x:34, y:54, w:26, h:34},
+    {naam:'Kapel', ico:'church', x:68, y:58, w:24, h:30},
+    {naam:'Trap omlaag', ico:'rechts', x:40, y:14, w:20, h:26, trap:true},
+  ],
+  kelder: [
+    {naam:'Trap omhoog', ico:'links', x:40, y:14, w:20, h:26, trap:true},
+    {naam:'Kerker', ico:'skull', x:8, y:52, w:26, h:34},
+    {naam:'Schatkelder', ico:'package', x:62, y:50, w:30, h:36},
+  ],
+};
+let onthuld = { bg:new Set(), kelder:new Set() };
+function dungeonHtml(){
+  return kopHtml('kamer 4 — de kaart','De dungeon',
+    'Een dungeon leeft achter mist. De DM onthult kamer voor kamer, en wat een speler ziet hangt af van zijn eigen party — in de netwerktab staat niet eens de náám van een kamer die nog dicht is. Verdiepingen hangen aan elkaar met doorgangen (een trap, een luik, een teleportcirkel).')
+    + `<div class="paneel">
+      <div class="dng-balk">
+        <span class="paneel-kop" style="margin:0">Het Oude Glasblazershuis</span>
+        <span class="dng-verdieping" style="margin-left:auto">
+          <button class="vdp ${verdieping==='kelder'?'aan':''}" onclick="zetVerdieping('kelder')">−1 Kelder</button>
+          <button class="vdp ${verdieping==='bg'?'aan':''}" onclick="zetVerdieping('bg')">BG</button>
+        </span>
+      </div>
+      <div class="dng-kaart" id="dng-kaart">${kamersHtml()}</div>
+      <div class="dng-teller" id="dng-teller">${teller()}</div>
+      <div style="margin-top:10px"><button class="navknop navknop-spook" onclick="resetMist()">${ico('eye-off')} Alles weer in mist</button></div>
+    </div>` + navHtml();
+}
+function kamersHtml(){
+  const lijst = KAMERS[verdieping]; const set = onthuld[verdieping];
+  return lijst.map((k,i)=>`<div class="kamer ${set.has(i)?'onthuld':''}" style="left:${k.x}%;top:${k.y}%;width:${k.w}%;height:${k.h}%" onclick="onthul(${i})">
+    <div><span class="k-ico">${ico(k.ico)}</span><div class="k-naam">${set.has(i)?esc(k.naam):''}</div></div>
+    <div class="mist">${ico('eye-off')}</div>
+  </div>`).join('');
+}
+function teller(){ const lijst=KAMERS[verdieping].filter(k=>!k.trap); const n=[...onthuld[verdieping]].filter(i=>!KAMERS[verdieping][i].trap).length;
+  return `${n} van ${lijst.length} kamers onthuld op deze verdieping. ${ico('eye')} Klik een kamer om de mist op te lichten.`; }
+function onthul(i){ onthuld[verdieping].add(i); const kaart=document.getElementById('dng-kaart'); if(kaart)kaart.innerHTML=kamersHtml();
+  const t=document.getElementById('dng-teller'); if(t)t.innerHTML=teller(); }
+function zetVerdieping(v){ verdieping=v; render(); }
+function resetMist(){ onthuld[verdieping]=new Set(); const kaart=document.getElementById('dng-kaart'); if(kaart)kaart.innerHTML=kamersHtml(); const t=document.getElementById('dng-teller'); if(t)t.innerHTML=teller(); }
+
+/* ══ BUIT ══ */
+let kistOpen=false, mimicOnthuld=false;
+function buitHtml(){
+  return kopHtml('kamer 5 — de beloning','De buit',
+    'Een vondst ligt ergens — in de haard, onder de plavuizen. De DM bouwt de verdeling en onthult hem; op het tafelscherm staat een gesloten kist waar iemand op tikt. De munten rekenen zichzelf om naar Florinde, Knaker en Centeling. En soms is het geen kist.')
+    + `<div class="paneel"><div class="buit-toneel" id="buit-toneel">${buitInner()}</div></div>` + navHtml();
+}
+function buitInner(){
+  if(!kistOpen){
+    return `<button class="kist" onclick="kistOpen=true; document.getElementById('buit-toneel').innerHTML=buitInner();" aria-label="Open de kist">
+        <div class="kist-gloed"></div>
+        <div class="kist-body"></div><div class="kist-band"></div>
+        <div class="kist-lid"></div><div class="kist-slot"></div>
+      </button>
+      <div class="kist-hint">Klik de kist</div>`;
+  }
+  if(mimicOnthuld){
+    return `<div class="mimic-uit"><div class="mi-kop">Het is geen kist.</div>
+      <p class="uitleg" style="margin:8px auto 14px">Een mimic. De verdeling valt weg en de DM krijgt de vraag of het gevecht meteen moet beginnen —
+        de kist bleef tot het laatste moment een kist. Dat is de hele grap.</p>
+      <button class="navknop navknop-spook" onclick="mimicOnthuld=false; kistOpen=false; document.getElementById('buit-toneel').innerHTML=buitInner();">${ico('links')} Opnieuw</button></div>`;
+  }
+  return `<div class="buit-uit">
+      <div class="buit-munt">
+        <div class="munt munt-fl"><div class="munt-schijf">12</div><div class="munt-naam">Florinde</div></div>
+        <div class="munt munt-kn"><div class="munt-schijf">6</div><div class="munt-naam">Knaker</div></div>
+        <div class="munt munt-cl"><div class="munt-schijf">4</div><div class="munt-naam">Centeling</div></div>
+      </div>
+      <div class="buit-item"><span class="bi-ico">${ico('flask')}</span>
+        <div><div class="bi-naam">Potion of Greater Healing</div><div class="bi-rar">Uncommon · geclaimd door Rozemarijn</div></div></div>
+      <p class="wenk" style="text-align:center; margin:14px 0 0">Waaronder 3 Lion d'or — oud geld dat je víndt. Het staat al omgerekend in de beurs.</p>
+      <div style="text-align:center; margin-top:14px; display:flex; gap:10px; justify-content:center; flex-wrap:wrap">
+        <button class="navknop navknop-spook" onclick="kistOpen=false; document.getElementById('buit-toneel').innerHTML=buitInner();">${ico('links')} Sluit</button>
+        <button class="navknop navknop-spook mimic-knop" onclick="mimicOnthuld=true; document.getElementById('buit-toneel').innerHTML=buitInner();">${ico('skull')} …of was het een mimic?</button>
+      </div>
+    </div>`;
+}
+
+/* ══ HELDEN ══ */
+const HB = [ {n:'Fighter',ico:'sword'},{n:'Wizard',ico:'sparkles'},{n:'Cleric',ico:'crown'},{n:'Rogue',ico:'swords'},{n:'Elf',ico:'feather'},{n:'Tiefling',ico:'flame'} ];
+function heldenHtml(){
+  return kopHtml('kamer 6 — de spelers','De helden',
+    'De spelerskant: een Heldenboek met elke class, species, background en feat; printbare character sheets die de DM met één druk op papier zet; en een personage-maker die aanvoelt als een ritueel in plaats van een rekentool.')
+    + `<div class="paneel"><div class="helden-indeling">
+      <div class="mini-blad">
+        <div class="mini-portret">${ico('user')}</div>
+        <div class="mini-naam">Wilmer Vlasbaard</div>
+        <div class="mini-sub">High Elf · Fighter · level 7</div>
+        <div class="mini-zes">
+          ${[['STR',16,'+3'],['DEX',14,'+2'],['CON',15,'+2'],['INT',10,'+0'],['WIS',12,'+1'],['CHA',8,'−1']].map(([a,n,m])=>`<div class="mini-pip"><span class="ab">${a}</span><span class="nr">${n}</span><span class="md">${m}</span></div>`).join('')}
+        </div>
+      </div>
+      <div>
+        <div class="paneel-kop">Het Heldenboek — vier deuren, dan één laag</div>
+        <p class="uitleg" style="margin:0 0 10px">Classes, Species, Backgrounds, Feats & Epic Boons. Alles wat er in deze wereld bestáát,
+          met de teksten die mogen (SRD) en een verwijzing naar buiten voor wat niet overgenomen mag worden.</p>
+        <div class="held-tegels">
+          ${HB.map(h=>`<div class="held-tegel"><div class="ht-ico">${ico(h.ico)}</div><div class="ht-naam">${esc(h.n)}</div></div>`).join('')}
+        </div>
+        <p class="wenk" style="margin:14px 0 0">${ico('feather')} En de maker zelf — "Schep een personage" — staat als apart, klikbaar prototype klaar:
+          een drempel bij kaarslicht, kaarten die je kiest, dobbelstenen die tuimelen, en een blad dat zichzelf vult.</p>
+      </div>
+    </div></div>` + navHtml();
+}
+
+/* ══ MOTOR ══ */
+const MOTOR = [
+  { ico:'settings', naam:'Modules per campagne', tekst:'Niet elke campagne heeft alles nodig. De beheerder zet per campagne aan welke diensten, tabs en schermen bestaan — uit is écht weg, geen grijze "binnenkort"-knop.', aan:true },
+  { ico:'users', naam:'Meerdere DMs', tekst:'Elke campagne heeft haar eigen pad en wachtwoord. Twee DMs, twee werelden, één app — en niemand verzet per ongeluk andermans actieve campagne.', aan:true },
+  { ico:'moon', naam:'Nachtelijke backups', tekst:'Elke nacht om 05:15 een snapshot van alle campagnes, dertig dagen historie, plus de character sheets als los te printen HTML. Je laptop haalt ze ’s avonds op.', aan:true },
+  { ico:'music', naam:'Muziek uit Spotify', tekst:'De app speelt zelf niets af, maar drukt op play bij Spotify — op het apparaat van de DM of op het tafelscherm. De lange muziek onder de scène.', aan:false },
+  { ico:'eye', naam:'Het tafelscherm', tekst:'Een gedeeld scherm op tafel met een eigen room: brieven, voorleestekst, de kist en level-ups komen dáár — zodat spelers luisteren in plaats van meelezen.', aan:true },
+  { ico:'map', naam:'Kaart & relatienet', tekst:'Een wereldkaart met perkamenten spelden, en een relatienetwerk dat tekent wie wie kent — uit dezelfde verbindingen die op de kaartjes staan.', aan:true },
+];
+function motorHtml(){
+  return kopHtml('kamer 7 — de machinekamer','Onder de motorkap',
+    'Wat een nieuwe DM niet ziet maar wel draagt: de app is gebouwd om meerdere campagnes, meerdere DMs en een avond aan tafel te overleven — inclusief een herstart midden in een sessie.')
+    + `<div class="paneel"><div class="motor-grid">
+      ${MOTOR.map(m=>`<div class="motor-kaart">
+        <div class="motor-kop"><span class="mk-ico">${ico(m.ico)}</span><h3>${esc(m.naam)}</h3></div>
+        <p>${esc(m.tekst)}</p>
+        ${m.aan?`<span class="schakel"><span class="schakel-dot"></span> aan</span>`:`<span class="schakel" style="color:var(--inkt-faint)"><span class="schakel-dot" style="background:var(--inkt-faint)"></span> optioneel</span>`}
+      </div>`).join('')}
+    </div></div>` + navHtml();
+}
+
+/* ══ BEGIN ══ */
+function beginHtml(){
+  return `<div class="begin">
+    <div class="hub-embleem">${ico('compass')}</div>
+    <div class="boven" style="font-family:var(--f-fluister); font-style:italic; color:var(--goud); letter-spacing:.14em">het einde van de rondleiding</div>
+    <h2>De Meesterkamer wacht</h2>
+    <p>Dit was een wandeling langs wat de app doet. Een échte campagne begint met de opstartwizard —
+      zes stappen, en je tafel staat klaar. De rest ontdek je al spelend, zoals het hoort.</p>
+    <div style="display:flex; gap:12px; flex-wrap:wrap; justify-content:center; margin-top:4px">
+      <button class="navknop navknop-spook" onclick="ga('hub')">${ico('compass')} Terug naar het overzicht</button>
+      <button class="navknop navknop-goud" onclick="ga('diensten')">${ico('rechts')} Nog eens rondlopen</button>
+    </div>
+  </div>`;
+}
+
+// hash-routing (één naam), met herstel bij laden
+function uitHash(){ try{ const h=(location.hash||'').replace(/^#/,''); if(VOLGORDE.includes(h)) scene=h; }catch(e){} }
+window.addEventListener('hashchange', ()=>{ const h=(location.hash||'').replace(/^#/,'')||'hub'; if(VOLGORDE.includes(h)&&h!==scene){ scene=h; render(); } });
+uitHash();
+render();
+</script>
