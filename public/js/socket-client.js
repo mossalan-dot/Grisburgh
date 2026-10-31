@@ -311,6 +311,11 @@ function _ververOpenKaartje(id) {
   // Rage: wie raast is geen geheim, dus het gaat naar de hele campagne. Het
   // tafelscherm krijgt daarnaast zijn eigen bericht met naam en portret.
   socket.on('rage:updated', (data = {}) => { window._rageOntvang?.(data); });
+  // Klassekrachten van de andere klassen: zelfde verdeling als bij Rage.
+  socket.on('klasse:updated', (data = {}) => { window._krachtOntvang?.(data); });
+  socket.on('klasse:display', (data = {}) => {
+    if (window._isDisplayMode) window._krachtDisplay?.(data);
+  });
   socket.on('rage:display', (data = {}) => {
     if (window._isDisplayMode) window._rageDisplay?.(data);
   });

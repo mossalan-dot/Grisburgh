@@ -348,13 +348,13 @@ De app gebruikt querystring cache-busting (`?v=N`). **Vergeten = browser haalt o
 **Huidige versies (bij te houden):**
 
 ```
-index.html  : theme.css?v=912   app.js?v=1177   sound-manager.js?v=12
-app.js      : api.js?v=317  dm-panel.js?v=412  media-picker.js?v=11  tafels.js?v=2  terugblik.js?v=1  rage.js?v=1
+index.html  : theme.css?v=913   app.js?v=1178   sound-manager.js?v=13
+app.js      : api.js?v=317  dm-panel.js?v=413  media-picker.js?v=11  tafels.js?v=2  terugblik.js?v=1  rage.js?v=1  klassekracht.js?v=1
               render-archief.js?v=143  render-bestiarium.js?v=32  render-campagne.js?v=351
               render-dungeon.js?v=68  render-kaart.js?v=32  render-progressie.js?v=64
               render-relatiemap.js?v=32  render-spreuken.js?v=51  render-vaardigheden.js?v=133
-              render-statblock.js?v=9  socket-client.js?v=91  wizard.js?v=6
-dm-panel.js : akte-schrijven.js?v=35  combat-canvas.js?v=34  render-statblock.js?v=9
+              render-statblock.js?v=9  socket-client.js?v=92  wizard.js?v=6  conditions.js?v=3
+dm-panel.js : akte-schrijven.js?v=35  combat-canvas.js?v=35  render-statblock.js?v=9
 ```
 
 > **Een importeur moet zelf ook opschuiven.** `index.html` vraagt om `app.js?v=N`.
@@ -416,6 +416,43 @@ dm-panel.js : akte-schrijven.js?v=35  combat-canvas.js?v=34  render-statblock.js
 > `tbl_rust_wildernis` + `tbl_rust_herberg` (conversiescript-patroon: md-rij `| 01-02 | **Naam** | Beschrijving | \`+6 knakers\` |`
 > → `1-2: Naam — Beschrijving {+6kn}`; munt-namen florinde/knaker/centeling → fl/kn/cl). (4) **Tabletmodus**: op het gedeelde scherm (`_isDisplayMode`, geen `characterId`) toont de overlay
 > een party-brede variant zonder per-speler-knoppen.
+
+> **Klassekrachten — de andere klassen** (31 okt 2026). Na Rage kreeg elke klasse
+> zijn eigen kracht, maar niet als twaalf losse systemen: **`lib/klassekrachten.js`**
+> is één catalogus waarin elke klasse zijn **bronnen** (`max(lvl, profiel)`,
+> `kort(lvl)` → wat een Short Rest teruggeeft) en **acties** beschrijft. Een actie
+> heeft een `soort`, en die soort bepaalt wat de server doet: `flits` (verbruiken
+> en tonen), `genees` (rollen of een bedrag, afgetopt op het maximum, op de token
+> én het blad), `worp` (schade die vaststaat zodra je hem aankondigt: Sneak
+> Attack, Eldritch Blast per straal, Divine Smite op een gekozen slot), `actief`
+> (een toestand met conditie op je token of die van het doelwit: Wild Shape,
+> Hunter's Mark, Innate Sorcery), `inspiratie` (Bardic Inspiration bij een
+> ander), `slots` (Arcane Recovery binnen een budget, Magical Cunning de helft
+> van je pact-slots), `herstel` (Uncanny Metabolism, één keer per lange rust) en
+> Font of Magic (`slot-maken`/`slot-smelten`). **Een nieuwe klassekracht is een
+> regel in de catalogus**, geen route.
+> Server: `GET/POST /characters/:id/klassekracht` (`{klasse, actie, doel, bedrag,
+> tekst, keuze, slot, slots}`), `/klassekracht/einde`, `/inspiratie/gebruik`;
+> opslag in `dmState.playerKracht[charId]` (`bronnen`, `eenmalig`, `actief`) en
+> `dmState.inspiratieDie[charId]`. Slots gaan via `_slotsVoorSpeler` en alleen
+> `used` wordt geschreven. Rusten: `_kkRust()`. Einde gevecht beëindigt wat aan
+> het gevecht hing (`eindeBijGevecht`, of een doel dat een vijand was); Wild Shape
+> blijft.
+> Client: **`public/js/klassekracht.js`** tekent het blok (`#kracht-blok`) puur uit
+> wat de server stuurt — welke knoppen, wat het kost, waarom iets grijs staat — en
+> opent een klein paneel onder de knoppen voor wat een kracht nodig heeft.
+> Tafelscherm: `klasse:display` (alleen de display-room) → een moment per thema,
+> met `THEMA` (twee kleuren, een deeltje uit de sprite, een figuur:
+> stralen/golven/snelheid/cirkel/haal/penseel/vizier/bundels) en een klank per
+> thema (`soundManager.klasseKlank`). Merktekens delen de hoek met Rage
+> (`#rage-merken`). Drie nieuwe condities: `wild-shape`, `hunters-mark`,
+> `innate-sorcery`. Bewaakt door `tests/klassekracht.test.js`.
+> **Niet gedaan:** de Blood Hunter (eigen materiaal, geen SRD) en de subklassen —
+> een Battle Master of Psi Warrior heeft zijn eigen voorraad die nog op de
+> signatuurkaart-catalogus in `app.js` staat. Die passen in dezelfde catalogus.
+> **Valkuil bij lokaal testen:** `pkill -f "node server.js"` in dezelfde
+> shell-opdracht als de rest doodt die shell zelf — de tekst staat ook in zijn
+> eigen opdrachtregel.
 
 > **Rage — de Barbarian** (31 okt 2026). Er stond al een signatuurkaart met
 > bolletjes; die is eerder van het blad gehaald omdat een kenmerk met een teller

@@ -31351,3 +31351,275 @@ body:has(#sb-overlay.sb-open) .dm-dice-fab { display: none !important; }
   .rage-portret-ring, .rage-relentless { animation: none; }
   .is-aan .rage-woord { opacity: 1; }
 }
+
+/* ══════════════════════════════════════════════════════════════════════════
+   Klassekrachten (klassekracht.js) — elke klasse behalve de Barbarian.
+   Eén blok, één moment; de klasse zit in --kk-a (licht) en --kk-b (diep),
+   gezet via data-thema op het blok en inline op het moment.
+   ══════════════════════════════════════════════════════════════════════════ */
+[data-thema="bard"]      { --kk-a: #e9b8ff; --kk-b: #5a2a7a; }
+[data-thema="cleric"]    { --kk-a: #fff2b8; --kk-b: #8a6a10; }
+[data-thema="druid"]     { --kk-a: #c8f0a0; --kk-b: #2f5a24; }
+[data-thema="fighter"]   { --kk-a: #ffe0a8; --kk-b: #6a4a1c; }
+[data-thema="monk"]      { --kk-a: #e8e2d0; --kk-b: #2a3a36; }
+[data-thema="paladin"]   { --kk-a: #fff6d0; --kk-b: #8a6a1a; }
+[data-thema="ranger"]    { --kk-a: #e2f0b8; --kk-b: #3a4a1c; }
+[data-thema="rogue"]     { --kk-a: #d8dce8; --kk-b: #2a2c3a; }
+[data-thema="sorcerer"]  { --kk-a: #ffc89a; --kk-b: #7a2a14; }
+[data-thema="warlock"]   { --kk-a: #c8ffb0; --kk-b: #3a1a4a; }
+[data-thema="wizard"]    { --kk-a: #c8dcff; --kk-b: #24306a; }
+[data-thema="artificer"] { --kk-a: #ffd8a0; --kk-b: #5a4020; }
+
+.kk-blok.kk-blok { border-color: color-mix(in srgb, var(--kk-b) 55%, #c4a87a); }
+.kk-blok .player-dash-section-title { color: var(--kk-b); }
+.kk-hulp { margin-left: auto; }
+.kk-klasse + .kk-klasse { margin-top: 16px; padding-top: 14px; border-top: 1px dashed #c4a87a; }
+
+.kk-bron { margin-bottom: 10px; }
+.kk-bron-kop { display: flex; justify-content: space-between; align-items: baseline; font-family: 'Cinzel', serif; font-size: 12px; font-weight: 700; color: #3a2410; }
+.kk-bron-getal { font-size: 15px; color: var(--kk-b); }
+.kk-bron-getal i { font-style: normal; font-size: 11px; color: #7a6040; }
+.kk-bron-herstel { font-family: 'Crimson Text', serif; font-size: 12px; color: #7a6040; margin-top: 3px; }
+.kk-tekens { display: flex; gap: 5px; flex-wrap: wrap; margin-top: 5px; }
+.kk-teken {
+  width: 18px; height: 18px; border-radius: 50%;
+  border: 1.5px solid color-mix(in srgb, var(--kk-b) 45%, transparent);
+  background: rgba(255,255,255,.3);
+}
+.kk-teken.is-over {
+  background: radial-gradient(circle at 35% 30%, var(--kk-a), var(--kk-b));
+  border-color: var(--kk-b); box-shadow: 0 1px 4px color-mix(in srgb, var(--kk-b) 50%, transparent);
+}
+.kk-balk { height: 10px; border-radius: 6px; margin-top: 6px; background: rgba(0,0,0,.08); border: 1px solid #c4a87a; overflow: hidden; }
+.kk-balk span { display: block; height: 100%; background: linear-gradient(90deg, var(--kk-b), var(--kk-a)); transition: width .5s ease; }
+.kk-info { display: flex; flex-wrap: wrap; gap: 6px; margin: 4px 0 10px; }
+.kk-chip {
+  font-family: 'Cinzel', serif; font-size: 11px; font-weight: 700; padding: 3px 9px; border-radius: 999px;
+  color: var(--kk-b); background: color-mix(in srgb, var(--kk-a) 35%, transparent);
+  border: 1px solid color-mix(in srgb, var(--kk-b) 40%, transparent);
+}
+.kk-acties { display: grid; grid-template-columns: repeat(auto-fill, minmax(132px, 1fr)); gap: 8px; }
+.kk-actie {
+  position: relative; display: flex; flex-direction: column; align-items: flex-start; gap: 3px;
+  padding: 10px 10px 9px; border-radius: 8px; cursor: pointer; text-align: left;
+  background: linear-gradient(160deg, #f8efdc, #eadbb8);
+  border: 1px solid color-mix(in srgb, var(--kk-b) 50%, #c4a87a);
+  transition: transform .12s ease, box-shadow .2s ease;
+}
+.kk-actie:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 6px 16px color-mix(in srgb, var(--kk-b) 30%, transparent); }
+.kk-actie:disabled { opacity: .45; cursor: not-allowed; filter: grayscale(.6); }
+.kk-actie.is-open { box-shadow: 0 0 0 2px var(--kk-b); }
+.kk-actie-icoon {
+  width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center;
+  color: #fff; background: radial-gradient(circle at 35% 30%, color-mix(in srgb, var(--kk-a) 50%, var(--kk-b)), var(--kk-b));
+}
+.kk-actie-icoon .icon { width: 16px; height: 16px; }
+.kk-actie-label { font-family: 'Cinzel', serif; font-size: 12px; font-weight: 700; color: #2a1a08; line-height: 1.2; }
+.kk-actie-kost {
+  position: absolute; top: 8px; right: 8px; min-width: 20px; height: 20px; border-radius: 10px; padding: 0 5px;
+  display: grid; place-items: center; font-family: 'Cinzel', serif; font-size: 11px; font-weight: 700;
+  color: var(--kk-b); border: 1px solid var(--kk-b); background: #fbf4e2;
+}
+.kk-actie-formule { font-family: 'Crimson Text', serif; font-size: 13px; color: #7a6040; }
+
+.kk-paneel {
+  margin-top: 10px; padding: 12px; border-radius: 8px;
+  background: #fbf4e2; border: 1px solid var(--kk-b);
+  animation: rage-regel-in .25s both;
+}
+.kk-paneel-kop { font-family: 'Cinzel', serif; font-size: 13px; font-weight: 700; color: var(--kk-b); display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.kk-paneel-kop span { font-family: 'Crimson Text', serif; font-weight: 400; font-size: 14px; color: #5a4020; flex-basis: 100%; }
+.kk-velden { display: grid; gap: 8px; margin: 10px 0; }
+.kk-velden label { display: grid; gap: 3px; font-family: 'Cinzel', serif; font-size: 11px; color: #7a6040; }
+.kk-velden select, .kk-velden input {
+  font-family: 'Crimson Text', serif; font-size: 15px; color: #3a2410;
+  padding: 6px 8px; border-radius: 6px; border: 1px solid #c4a87a; background: #fffaf0;
+}
+.kk-leeg { margin: 0; font-family: 'Crimson Text', serif; font-style: italic; color: #7a6040; }
+.kk-slotkeus-kop { font-family: 'Cinzel', serif; font-size: 11px; color: #7a6040; display: flex; justify-content: space-between; }
+.kk-slotrij { display: flex; align-items: center; gap: 8px; margin-top: 6px; font-family: 'Crimson Text', serif; font-size: 15px; color: #3a2410; }
+.kk-slotrij span { min-width: 70px; }
+.kk-slotrij button { width: 26px; height: 26px; border-radius: 50%; border: 1px solid #c4a87a; background: #fffaf0; cursor: pointer; }
+.kk-slotrij b { min-width: 16px; text-align: center; }
+.kk-slotrij i { font-size: 12px; color: #7a6040; }
+.kk-paneel-knoppen { display: flex; gap: 8px; }
+.kk-mini {
+  font-family: 'Cinzel', serif; font-size: 12px; font-weight: 700; padding: 5px 11px; border-radius: 6px; cursor: pointer;
+  color: #3a2410; background: rgba(255,255,255,.5); border: 1px solid #c4a87a;
+  display: inline-flex; align-items: center; gap: 5px;
+}
+.kk-mini--goud { background: linear-gradient(#e8c27a, #c4a87a); border-color: #9a7a3a; color: #2a1a08; }
+.kk-mini .icon { width: 13px; height: 13px; }
+
+.kk-actief {
+  margin: 0 0 10px; padding: 10px 12px; border-radius: 8px;
+  background: linear-gradient(120deg, color-mix(in srgb, var(--kk-b) 88%, #000), color-mix(in srgb, var(--kk-b) 70%, #000));
+  color: #fbf4e2; box-shadow: 0 0 18px color-mix(in srgb, var(--kk-a) 35%, transparent);
+  animation: kk-actief 2.6s ease-in-out infinite;
+}
+@keyframes kk-actief { 50% { box-shadow: 0 0 30px color-mix(in srgb, var(--kk-a) 55%, transparent); } }
+.kk-actief-kop { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; font-family: 'Crimson Text', serif; font-size: 15px; }
+.kk-actief-kop b { font-family: 'Cinzel', serif; }
+.kk-actief-kop span { opacity: .8; }
+.kk-actief-kop .kk-mini { margin-left: auto; }
+.kk-actief ul { margin: 8px 0 0; padding-left: 18px; font-family: 'Crimson Text', serif; font-size: 14px; opacity: .92; }
+
+.kk-ontvangen {
+  display: flex; align-items: center; gap: 12px; margin-bottom: 14px; padding: 12px 14px; border-radius: 10px;
+  background: linear-gradient(120deg, #3a1a4e, #5a2a7a); color: #f8ecff;
+  box-shadow: 0 6px 22px rgba(90,42,122,.35); animation: kk-actief 2.6s ease-in-out infinite;
+}
+.kk-ontvangen-die {
+  width: 46px; height: 46px; flex: 0 0 auto; display: grid; place-items: center;
+  font-family: 'Cinzel', serif; font-weight: 700; font-size: 17px; color: #2a0e3a;
+  background: radial-gradient(circle at 35% 30%, #fff, #e9b8ff); border-radius: 10px; transform: rotate(45deg);
+}
+.kk-ontvangen-die { line-height: 1; }
+.kk-ontvangen-tekst { flex: 1; font-family: 'Crimson Text', serif; font-size: 15px; }
+.kk-ontvangen-tekst b { font-family: 'Cinzel', serif; }
+
+/* ── De flits op je eigen scherm ── */
+.kk-flits { position: fixed; inset: 0; z-index: 10045; pointer-events: none; display: grid; place-items: center; align-content: center; transition: opacity .5s ease; }
+.kk-flits.is-weg { opacity: 0; }
+.kk-gloed {
+  position: absolute; inset: 0; pointer-events: none; opacity: 0;
+  background: radial-gradient(ellipse at center, color-mix(in srgb, var(--kk-a) 70%, transparent) 0%,
+              color-mix(in srgb, var(--kk-b) 80%, transparent) 50%, rgba(5,3,2,.92) 100%);
+}
+.is-aan .kk-gloed { animation: kk-gloed 1s ease-out forwards; }
+@keyframes kk-gloed { 0% { opacity: 0; } 12% { opacity: 1; filter: brightness(1.8); } 100% { opacity: .92; } }
+.kk-woord {
+  position: relative; font-family: 'Cinzel', serif; font-weight: 700; text-align: center;
+  color: #fffaf0; line-height: 1.05; padding: 0 5vw;
+  text-shadow: 0 0 30px var(--kk-a), 0 4px 24px #000; opacity: 0;
+}
+.kk-flits .kk-woord { font-size: clamp(2.2rem, 11vw, 5rem); }
+.is-aan .kk-woord { animation: kk-woord .8s .15s cubic-bezier(.2,1.3,.3,1) forwards; }
+@keyframes kk-woord { from { opacity: 0; transform: scale(1.6); filter: blur(12px); letter-spacing: .3em; } to { opacity: 1; transform: none; filter: none; } }
+.kk-getal {
+  position: relative; font-family: 'Cinzel', serif; font-weight: 700; color: #fff;
+  text-shadow: 0 0 40px var(--kk-a), 0 6px 30px #000; line-height: 1;
+}
+.kk-flits .kk-getal { font-size: clamp(3rem, 18vw, 7rem); animation: kk-woord .7s .4s both; }
+
+/* ── Het moment op het tafelscherm ── */
+.kk-moment { position: fixed; inset: 0; z-index: 10045; pointer-events: none; overflow: hidden; transition: opacity .9s ease; }
+.kk-moment.is-weg { opacity: 0; }
+.kk-moment .kk-gloed { background: radial-gradient(ellipse at center, color-mix(in srgb, var(--kk-a) 40%, transparent) 0%,
+  color-mix(in srgb, var(--kk-b) 85%, #000) 50%, rgba(4,2,1,.96) 100%); }
+.kk-moment.is-aan .kk-gloed { animation: kk-gloed 1.2s ease-out forwards; }
+.kk-midden { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1.6vh; text-align: center; }
+.kk-moment .kk-woord { font-size: clamp(3rem, 9vw, 8rem); }
+.kk-moment .kk-getal { font-size: clamp(4rem, 13vw, 11rem); opacity: 0; }
+.kk-moment.is-aan .kk-getal { animation: kk-woord .7s .85s cubic-bezier(.2,1.5,.3,1) forwards; }
+.kk-regel, .kk-worpen { position: relative; opacity: 0; color: #fbf4e2; text-shadow: 0 2px 12px #000; }
+.kk-regel { font-family: 'IM Fell English', serif; font-style: italic; font-size: clamp(1.2rem, 2.6vw, 2.2rem); max-width: 80vw; }
+.kk-worpen { font-family: 'Cinzel', serif; letter-spacing: .14em; font-size: clamp(.8rem, 1.3vw, 1.05rem); color: color-mix(in srgb, var(--kk-a) 80%, #fff); }
+.kk-moment.is-aan .kk-regel  { animation: rage-op .8s 1.1s both; }
+.kk-moment.is-aan .kk-worpen { animation: rage-op .8s 1.5s both; }
+.kk-stralen { display: flex; gap: 2vw; position: relative; }
+.kk-stralen span {
+  font-family: 'Cinzel', serif; font-weight: 700; font-size: clamp(1.4rem, 3vw, 2.4rem); color: #fff;
+  padding: .2em .6em; border-radius: 999px; border: 1px solid var(--kk-a);
+  background: color-mix(in srgb, var(--kk-b) 70%, #000); box-shadow: 0 0 20px var(--kk-a);
+  animation: rage-op .5s both;
+}
+.kk-stralen span:nth-child(2) { animation-delay: .15s; } .kk-stralen span:nth-child(3) { animation-delay: .3s; } .kk-stralen span:nth-child(4) { animation-delay: .45s; }
+
+.kk-portretten { position: relative; display: flex; align-items: center; gap: 4vw; opacity: 0; }
+.kk-moment.is-aan .kk-portretten { animation: rage-portret .8s .1s cubic-bezier(.2,1.4,.3,1) forwards; }
+.kk-portret {
+  position: relative; width: clamp(110px, 14vw, 210px); aspect-ratio: 1; border-radius: 50%; overflow: hidden;
+  display: grid; place-items: center; background: radial-gradient(circle at 50% 35%, var(--kk-b), #0a0604);
+  box-shadow: 0 0 0 3px var(--kk-a), 0 0 0 8px rgba(5,3,2,.8), 0 0 60px color-mix(in srgb, var(--kk-a) 70%, transparent);
+}
+.kk-portret span { font-family: 'Cinzel', serif; font-size: 3.4rem; color: var(--kk-a); }
+.kk-portret img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.kk-portretten--twee .kk-portret { width: clamp(90px, 11vw, 170px); }
+.kk-straal {
+  width: clamp(80px, 14vw, 240px); height: 4px; border-radius: 2px;
+  background: linear-gradient(90deg, transparent, var(--kk-a), #fff, var(--kk-a), transparent);
+  box-shadow: 0 0 20px var(--kk-a); transform-origin: left;
+  transform: scaleX(0); animation: tb-lijn .6s .6s cubic-bezier(.6,0,.2,1) forwards;
+}
+
+.kk-deeltjes { position: absolute; inset: 0; }
+.kk-deeltje {
+  position: absolute; bottom: -40px; left: var(--x); color: var(--kk-a); opacity: 0;
+  filter: drop-shadow(0 0 8px var(--kk-a));
+}
+.kk-deeltje .icon { width: var(--s); height: var(--s); }
+.kk-moment.is-aan .kk-deeltje { animation: kk-deeltje var(--d) calc(.3s + var(--v)) ease-out infinite; }
+@keyframes kk-deeltje {
+  0% { opacity: 0; transform: translate(0, 0) rotate(0deg); } 15% { opacity: .9; }
+  100% { opacity: 0; transform: translate(var(--dx), -110vh) rotate(var(--r)); }
+}
+
+/* De figuren — elk thema zijn eigen beweging. */
+.kk-fig { position: absolute; pointer-events: none; }
+.kk-fig--stralen {
+  inset: -50%; opacity: 0;
+  background: repeating-conic-gradient(from 0deg, color-mix(in srgb, var(--kk-a) 45%, transparent) 0deg 4deg, transparent 4deg 18deg);
+  -webkit-mask: radial-gradient(circle, #000 0%, transparent 60%); mask: radial-gradient(circle, #000 0%, transparent 60%);
+}
+.kk-moment.is-aan .kk-fig--stralen { animation: kk-op 1s .1s forwards, rage-draai 30s linear infinite; }
+@keyframes kk-op { to { opacity: 1; } }
+.kk-fig--golven { inset: 0; display: grid; place-items: center; }
+.kk-fig--golven i {
+  position: absolute; width: 20vmin; height: 20vmin; border-radius: 50%;
+  border: 2px solid var(--kk-a); box-shadow: 0 0 24px var(--kk-a); opacity: 0;
+}
+.kk-moment.is-aan .kk-fig--golven i { animation: kk-golf 3s ease-out infinite; }
+.kk-fig--golven i:nth-child(2) { animation-delay: .75s !important; } .kk-fig--golven i:nth-child(3) { animation-delay: 1.5s !important; } .kk-fig--golven i:nth-child(4) { animation-delay: 2.25s !important; }
+@keyframes kk-golf { 0% { opacity: .9; transform: scale(.4); } 100% { opacity: 0; transform: scale(5); } }
+.kk-fig--snelheid {
+  inset: 0; opacity: 0;
+  background: repeating-linear-gradient(0deg, transparent 0 22px, color-mix(in srgb, var(--kk-a) 55%, transparent) 22px 24px, transparent 24px 61px);
+  -webkit-mask: linear-gradient(90deg, #000, transparent 30%, transparent 70%, #000); mask: linear-gradient(90deg, #000, transparent 30%, transparent 70%, #000);
+  background-size: 400px 100%;
+}
+.kk-moment.is-aan .kk-fig--snelheid { animation: kk-op .3s forwards, kk-snel .25s linear infinite; }
+@keyframes kk-snel { to { background-position: 400px 0; } }
+.kk-fig--cirkel { left: 50%; top: 50%; width: min(86vh, 86vw); height: min(86vh, 86vw); transform: translate(-50%, -50%); overflow: visible; }
+.kk-fig--cirkel * { fill: none; stroke: var(--kk-a); stroke-width: .8; stroke-dasharray: 1 1; stroke-dashoffset: 1; filter: drop-shadow(0 0 4px var(--kk-a)); }
+.kk-fig--cirkel .kk-c2 { stroke-dasharray: .02 .015; stroke-dashoffset: 0; opacity: 0; }
+.kk-moment.is-aan .kk-fig--cirkel { animation: rage-draai 40s linear infinite; }
+.kk-moment.is-aan .kk-fig--cirkel * { animation: rage-haal 1.4s .2s cubic-bezier(.6,0,.2,1) forwards; }
+.kk-moment.is-aan .kk-fig--cirkel .kk-c2 { animation: kk-op .8s 1s forwards; }
+.kk-fig--haal, .kk-fig--penseel { inset: 5% 5%; width: 90%; height: 90%; overflow: visible; }
+.kk-fig--haal path { fill: none; stroke: #f4f6ff; stroke-width: 1.2; stroke-linecap: round; stroke-dasharray: 1 1; stroke-dashoffset: 1;
+  filter: drop-shadow(0 0 6px var(--kk-a)) drop-shadow(0 0 22px #000); }
+.kk-moment.is-aan .kk-fig--haal path { animation: rage-haal .18s .25s cubic-bezier(.7,0,.2,1) forwards; }
+.kk-fig--penseel path { fill: none; stroke: #0c0a08; stroke-width: 5; stroke-linecap: round; stroke-dasharray: 1 1; stroke-dashoffset: 1; opacity: .85;
+  filter: drop-shadow(0 0 2px var(--kk-a)); }
+.kk-fig--penseel .kk-p2 { stroke-width: 2.6; }
+.kk-moment.is-aan .kk-fig--penseel path { animation: rage-haal .7s .2s cubic-bezier(.5,0,.2,1) forwards; }
+.kk-moment.is-aan .kk-fig--penseel .kk-p2 { animation-delay: .6s; }
+.kk-fig--vizier { left: 50%; top: 42%; width: min(60vh, 60vw); aspect-ratio: 1; transform: translate(-50%, -50%); }
+.kk-fig--vizier b { position: absolute; inset: 0; border-radius: 50%; border: 2px solid var(--kk-a); box-shadow: 0 0 20px var(--kk-a); opacity: 0; }
+.kk-fig--vizier i { position: absolute; background: var(--kk-a); box-shadow: 0 0 10px var(--kk-a); opacity: 0; }
+.kk-fig--vizier i:nth-child(1), .kk-fig--vizier i:nth-child(2) { left: 50%; width: 2px; height: 22%; margin-left: -1px; }
+.kk-fig--vizier i:nth-child(1) { top: -6%; } .kk-fig--vizier i:nth-child(2) { bottom: -6%; }
+.kk-fig--vizier i:nth-child(3), .kk-fig--vizier i:nth-child(4) { top: 50%; height: 2px; width: 22%; margin-top: -1px; }
+.kk-fig--vizier i:nth-child(3) { left: -6%; } .kk-fig--vizier i:nth-child(4) { right: -6%; }
+.kk-moment.is-aan .kk-fig--vizier b { animation: kk-vizier 1s .1s cubic-bezier(.2,1.2,.3,1) forwards; }
+.kk-moment.is-aan .kk-fig--vizier i { animation: kk-op .4s .7s forwards; }
+@keyframes kk-vizier { from { opacity: 0; transform: scale(2.4); } to { opacity: 1; transform: scale(1); } }
+.kk-fig--bundels { inset: 0; }
+.kk-fig--bundels i {
+  position: absolute; left: 0; top: var(--y); width: 100%; height: 6px; margin-top: -3px; border-radius: 3px;
+  background: linear-gradient(90deg, transparent, var(--kk-a) 30%, #fff 50%, var(--kk-a) 70%, transparent);
+  box-shadow: 0 0 24px var(--kk-a), 0 0 60px color-mix(in srgb, var(--kk-a) 60%, transparent);
+  transform: scaleX(0); transform-origin: left; opacity: 0;
+}
+.kk-moment.is-aan .kk-fig--bundels i { animation: kk-bundel 1.2s calc(.3s + var(--i) * .18s) cubic-bezier(.7,0,.2,1) forwards; }
+@keyframes kk-bundel { 0% { opacity: 1; transform: scaleX(0); } 40% { opacity: 1; transform: scaleX(1); } 100% { opacity: .25; transform: scaleX(1); } }
+
+.kk-merk { border-color: color-mix(in srgb, var(--kk-a) 60%, transparent); background: linear-gradient(90deg, color-mix(in srgb, var(--kk-b) 85%, #000), rgba(10,6,4,.8)); box-shadow: 0 0 24px color-mix(in srgb, var(--kk-a) 40%, transparent); }
+.kk-merk.is-aan { animation: kk-actief 2.6s ease-in-out infinite; }
+.kk-merk .rage-merk-portret { box-shadow: 0 0 0 2px var(--kk-a); background: var(--kk-b); }
+.kk-merk .rage-merk-tekst span { color: var(--kk-a); }
+
+@media (prefers-reduced-motion: reduce) {
+  .kk-actief, .kk-ontvangen, .kk-merk.is-aan, .kk-fig { animation: none !important; }
+}

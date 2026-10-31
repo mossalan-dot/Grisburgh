@@ -230,6 +230,39 @@ function _rageBrul(ctx) {
   });
 }
 
+// ── Klanken bij de klassekrachten ────────────────────────────────────────────
+// Eén korte klank per thema, gemaakt uit dezelfde twee bouwstenen als de rest:
+// een toon en een vlaag ruis. Niet bedoeld als muziek — als een accent dat
+// zegt wíé er iets deed, zodat je met je ogen dicht weet of het de Cleric of de
+// Rogue was.
+const _KLASSE_KLANKEN = {
+  bard:      (c) => [523.25, 659.25, 783.99, 1046.5].forEach((f, i) =>
+                 _toon(c, { type: 'triangle', van: f, vol: 0.14, start: i * 0.09, duur: 1.1 })),
+  cleric:    (c) => { [392, 493.88, 587.33, 783.99].forEach((f) => _toon(c, { type: 'sine', van: f, vol: 0.1, duur: 2.2 }));
+                      _FX_KLANKEN.tinkel(c); },
+  paladin:   (c) => { _toon(c, { type: 'sine', van: 110, naar: 60, vol: 0.32, duur: 0.5 });
+                      [440, 554.37, 659.25].forEach((f, i) => _toon(c, { type: 'sine', van: f, vol: 0.11, start: 0.1 + i * 0.05, duur: 1.8 })); },
+  druid:     (c) => { _ruisvlaag(c, { filter: 'bandpass', freq: 900, q: 0.8, vol: 0.14, duur: 1.6 });
+                      _toon(c, { type: 'sine', van: 90, naar: 55, vol: 0.28, duur: 0.6 });
+                      _toon(c, { type: 'triangle', van: 330, naar: 495, vol: 0.08, start: 0.3, duur: 1.2 }); },
+  fighter:   (c) => { _FX_KLANKEN.klap(c); _FX_KLANKEN.zwiep(c); },
+  monk:      (c) => [0, 0.11, 0.22].forEach((s) => {
+                 _toon(c, { type: 'square', van: 180, naar: 70, vol: 0.18, start: s, duur: 0.1 });
+                 _ruisvlaag(c, { filter: 'highpass', freq: 2200, vol: 0.1, start: s, duur: 0.12 }); }),
+  ranger:    (c) => { _toon(c, { type: 'sawtooth', van: 1800, naar: 600, vol: 0.06, duur: 0.35 });
+                      _toon(c, { type: 'sine', van: 140, naar: 70, vol: 0.3, start: 0.32, duur: 0.2 }); },
+  rogue:     (c) => { _ruisvlaag(c, { filter: 'highpass', freq: 3000, vol: 0.16, duur: 0.18 });
+                      _toon(c, { type: 'sine', van: 70, naar: 40, vol: 0.26, start: 0.15, duur: 0.35 }); },
+  sorcerer:  (c) => { _toon(c, { type: 'sawtooth', van: 120, naar: 880, vol: 0.09, duur: 0.6 });
+                      _FX_KLANKEN.dreun(c); _ruisvlaag(c, { filter: 'bandpass', freq: 1200, vol: 0.12, start: 0.3, duur: 1.0 }); },
+  warlock:   (c) => { _toon(c, { type: 'sawtooth', van: 110, vol: 0.08, duur: 1.6 });
+                      _toon(c, { type: 'sawtooth', van: 155.56, vol: 0.07, duur: 1.6 });        // een tritonus: het klinkt fout, en dat is de bedoeling
+                      _ruisvlaag(c, { filter: 'bandpass', freq: 2400, q: 4, vol: 0.06, duur: 1.8 }); },
+  wizard:    (c) => { _FX_KLANKEN.tinkel(c); _FX_KLANKEN.gloed(c); },
+  artificer: (c) => [0, 0.14, 0.32].forEach((s, i) =>
+                 _toon(c, { type: 'square', van: 600 - i * 120, naar: 300, vol: 0.08, start: s, duur: 0.12 })),
+};
+
 // ── Ambiance (feature #2) ──────────────────────────────────────────────────────
 // Twee blijvende loop-Audio's:
 //  • broadcast-scène — de DM zet 'm voor iedereen (per-campagne via socket).
@@ -522,6 +555,13 @@ window.soundManager = {
     const ctx = _audioCtx();
     if (!ctx) return;
     try { maak(ctx); } catch { /* een stil effect is beter dan een fout */ }
+  },
+  // Het accent bij een klassekracht op het tafelscherm.
+  klasseKlank(thema) {
+    const maak = _KLASSE_KLANKEN[thema];
+    const ctx = maak && _audioCtx();
+    if (!ctx) return;
+    try { maak(ctx); } catch { /* stil is ook een uitkomst */ }
   },
   // Rage: 'brul' als hij erin gaat, 'doof' (een uitademing) als hij dooft.
   rageKlank(soort) {

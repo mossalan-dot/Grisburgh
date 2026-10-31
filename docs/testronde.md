@@ -545,6 +545,12 @@ een speler ziet, **TAB** = het tafelscherm (`?display=1`), **ALL** = alle drie.
 - [ ] **Rage en rust** (DM) — verbruik alle uses: de knop gaat grijs; een korte rust geeft er één terug, een lange rust alles en dooft een lopende Rage
 - [ ] **Relentless Rage** (SP) — een Barbarian van level 11 in Rage op 0 HP: het blok toont *DC 10 Constitution Saving Throw*; *Gelukt* zet je op 2× je level aan HP en de volgende keer staat er DC 15; *Mislukt* dooft de Rage
 - [ ] **Persistent Rage** (SP) — level 15, in een gevecht, met een verbruikte use: de knop *Persistent Rage* geeft alles terug en is daarna weg tot de volgende lange rust
+- [ ] **Klassekracht: alleen wat je klasse heeft** (SP) — log in als een Wizard, een Fighter en een Rogue; elk ziet bovenaan Personage zijn eigen blok (Arcane Recovery, Second Wind/Action Surge, Sneak Attack), en een klasse zonder kracht op dit level (een Artificer onder 7) ziet niets
+- [ ] **Genezen** (SP) — Fighter: *Second Wind* rolt 1d10 + level en je HP gaat omhoog (afgetopt op je maximum); Paladin: *Lay on Hands* op een partylid met een gekozen bedrag haalt dat van de voorraad af en weigert meer dan er is
+- [ ] **Bardic Inspiration** (SP) — de Bard inspireert iemand: bij díé speler staat bovenaan een paars kaartje met de die; *Gebruiken* rolt hem, het kaartje verdwijnt, en een tweede inspiratie op dezelfde persoon wordt geweigerd zolang hij er een heeft
+- [ ] **Slots terug** (SP) — Wizard: *Arcane Recovery*, kies met de plus- en minknoppen niet meer dan het budget en zie de slots terugkomen; een tweede keer kan pas na een lange rust. Warlock: *Magical Cunning* haalt de helft van je Pact Magic-slots terug
+- [ ] **Toestanden** (SP/DM) — Druid *Wild Shape* vraagt een Beast en geeft Temporary HP; Ranger *Hunter's Mark* in een gevecht zet het merk op de token van de vijand; Sorcerer *Innate Sorcery* eindigt vanzelf met het gevecht, Wild Shape niet
+- [ ] **Rust** (DM) — een korte rust: Monk heeft weer al zijn Focus, Cleric één Channel Divinity terug; een lange rust zet alles terug en beëindigt lopende toestanden
 
 ## Blok 5 — Diensten
 
@@ -763,6 +769,7 @@ fout-uitvoert.
 - [ ] **Effecten** (DM/TAB) — bliksem, windvlaag en duister; let erop dat ze tijdens een gevecht (nog) niet zichtbaar zijn — zie `docs/tafelscherm-effecten.md`
 - [ ] **Tablet na herstart** (TAB) — server herstarten en kijken of de tablet ingelogd blijft en zijn kamer terugvindt
 - [ ] **Rage op de tablet** (TAB) — een speler gaat in Rage: het tafelscherm wordt rood, drie klauwsporen trekken over het beeld, het portret en *RAGE* slaan in, en daarna blijft linksonder een merkteken staan tot de Rage dooft; de andere spelers krijgen een melding, niet de brul zelf
+- [ ] **Klassekrachten op de tablet** (TAB) — elke kracht heeft een eigen moment: stralen bij Cleric en Paladin, golven bij Bard en Druid, snelheidslijnen bij Action Surge, inkt bij de Monk, een vizier bij de Ranger, een haal bij de Rogue, een tovercirkel bij Wizard/Sorcerer/Artificer en stralen eldritch-licht bij de Warlock; een gerolde uitkomst telt op in beeld, en een toestand laat linksonder een merkteken achter
 - [ ] **Wat voorafging** (DM/TAB) — open een akte, druk in de regie-balk op *Terugblik* en kies *Op het tafelscherm*; de tablet speelt het laatste zichtbare verslag af als trailer (titel, akte, tekst woord voor woord over de beelden, citaat, wie je ontmoette, "gaat het verder") en gaat daarna vanzelf terug naar sfeer
 - [ ] **Wat voorafging: alleen wat de party kent** (DM) — zet het nieuwste verslag op verborgen en een personage uit dat verslag op verborgen; de terugblik pakt het verslag dáárvoor, en het verborgen personage staat niet bij *Wie u ontmoette* — ook niet als zijn naam in de tekst staat
 - [ ] **Wat voorafging: bediening** (TAB) — tikken springt naar het volgende shot, Escape sluit, en de monitorknop in de regie-balk breekt een lopende terugblik af; *Zelf bekijken* speelt hem alleen op het DM-scherm, met *Voorbeeld* linksboven

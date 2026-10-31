@@ -1,5 +1,5 @@
 import { api, huidigeCampagne } from './api.js?v=317';
-import { init as canvasInit, update as canvasUpdate, stop as canvasStop, acGetal } from './combat-canvas.js?v=34';
+import { init as canvasInit, update as canvasUpdate, stop as canvasStop, acGetal } from './combat-canvas.js?v=35';
 import { renderStatblock } from './render-statblock.js?v=9';
 
 // ── DM Panel ──
@@ -15,13 +15,14 @@ function _redenVragen(vraag) {
 }
 
 // De condities staan op één plek; het spelerstabblad leest dezelfde lijst.
-import { CONDITIONS, COND_ICON } from './conditions.js?v=2';
+import { CONDITIONS, COND_ICON } from './conditions.js?v=3';
 
 
 // Groepen voor de conditie-weergave. Op modulescope zodat de rij in het
 // gevechtspaneel en het detailvenster dezelfde bron gebruiken.
 const _CC_SET  = new Set(['bardic-inspiration','tides-of-chaos','twilight-sanctuary',
-  'patient-defense','steady-aim','vigilant-blessing','blessed','raging','haste']);
+  'patient-defense','steady-aim','vigilant-blessing','blessed','raging','haste',
+  'wild-shape','hunters-mark','innate-sorcery']);
 const _SIT_SET = new Set(['dodging','hidden','readied','cover-half','cover-three-quarters',
   'grappling','mounted','underwater','flying']);
 const _condGroepCls = (cid) =>

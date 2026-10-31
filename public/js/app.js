@@ -11,14 +11,15 @@ import './render-handleiding.js?v=2';
 import './render-melding.js?v=4';
 import { renderVaardigheden, zoekVaardigheden, heldenboekTekst } from './render-vaardigheden.js?v=133';
 import { renderStatblock } from './render-statblock.js?v=9';
-import { initSocket } from "./socket-client.js?v=91";
-import { initDmPanel } from "./dm-panel.js?v=412";
-import { COND_INFO, COND_LABEL, COND_MET_PLAATJE, COND_ICON } from './conditions.js?v=2';
+import { initSocket } from "./socket-client.js?v=92";
+import { initDmPanel } from "./dm-panel.js?v=413";
+import { COND_INFO, COND_LABEL, COND_MET_PLAATJE, COND_ICON } from './conditions.js?v=3';
 import './media-picker.js?v=11';
 import './wizard.js?v=6';
 import './tafels.js?v=2';
 import './terugblik.js?v=1';
 import './rage.js?v=1';
+import './klassekracht.js?v=1';
 
 // ── Icon helper ──
 // Renders an inline SVG <use> reference from /img/icons.svg.
@@ -8489,6 +8490,7 @@ async function renderMijnKarakter(opts = {}) {
 
         <div id="levelup-balk"></div>
         <div id="rage-blok"></div>
+        <div id="kracht-blok"></div>
 
         ${_dominantKlasse.toLowerCase().includes('sorcerer') ? `
         <div class="player-dash-section wild-magic-section">
@@ -9317,6 +9319,7 @@ async function renderMijnKarakter(opts = {}) {
   _pdsInklapToepassen();
   _levelUpBalk();
   window._rageBlok?.();
+  window._krachtBlok?.();
   _partyGevallenen();
   // De portretten staan er nu; hang de badges eraan.
   window._badgesLaden?.();
@@ -15250,6 +15253,17 @@ const HELP_CONFIG = {
     { titel: 'Ze maken zichzelf', tekst: 'Deze klanken worden in de browser gemaakt met een paar tonen en wat ruis — er staat geen bestand tegenover. Dat scheelt laadtijd en licentiegedoe, en bij een nieuwe campagne klinkt het meteen zonder dat jij iets hoeft te vullen. Voor een dreun of een tik is dat prima; een overtuigende donderslag krijg je er niet mee.', afbeelding: null },
     { titel: 'Een eigen klank wint', tekst: 'Kies je hier een bestand uit de bibliotheek, dan vervangt dat de gemaakte klank. Doe dat vooral bij **donder**, **regen** en de **aardbeving** — daar hoor je het verschil. Het kruisje zet hem terug op de gemaakte klank; er blijft dus nooit iets stils achter.', afbeelding: null },
     { titel: 'Niet elk effect klinkt', tekst: 'Mist, gif en vuur staan er niet bij: die hóren stil te zijn, want ze blijven staan. Een klank die blijft doorlopen is een sfeerloop, en die stel je in bij Diensten of bij de akte.', afbeelding: null },
+  ] }),
+  klassekracht: () => ({ titel: 'Klassekrachten', stappen: [
+    { titel: 'Wat dit blok is', tekst: 'Het ding waar je klasse aan tafel over gaat, met de teller erbij. Druk op een kracht en de app streept af wat het kost, doet wat er vast te doen valt (genezen, een slot terugzetten, een toestand op je token) en laat het op het tafelscherm zien. Aanvallen en saves gooi je nog steeds zelf: de app zegt de DC, de tafel rolt.', afbeelding: null },
+    { titel: 'Wat er vanzelf terugkomt', tekst: 'Onder elke teller staat wat een **Short Rest** teruggeeft; een **Long Rest** zet alles terug, haalt lopende toestanden weg en laat een geschonken Bardic Inspiration vervallen.', afbeelding: null },
+    { titel: 'Bard', tekst: '**Inspireer** geeft iemand uit je party een Bardic Inspiration. Die staat dan bovenaan zíjn blad met een knop **Gebruiken**: na zijn worp tikt hij erop, de die rolt, en iedereen ziet wat erbij kwam. Eén tegelijk per persoon.', afbeelding: null },
+    { titel: 'Cleric en Paladin', tekst: '**Divine Spark** geneest (de app rolt en telt het bij) of doet schade (de app rolt; het doelwit mag nog een save). **Turn Undead** en **Divine Sense** tonen de DC en het bereik. **Lay on Hands**: kies wie en hoeveel uit je voorraad. **Divine Smite** kost een spell slot naar keuze en rolt de Radiant damage.', afbeelding: null },
+    { titel: 'Druid', tekst: '**Wild Shape**: vul in welke Beast je wordt. Je krijgt je Temporary HP, je token draagt de toestand, en hij blijft staan tot je hem beëindigt — een gevecht dat afloopt laat je gedaante ongemoeid.', afbeelding: null },
+    { titel: 'Fighter en Monk', tekst: '**Second Wind** rolt je genezing. **Action Surge** en **Indomitable** tellen af en laten de tafel zien wat er gebeurt. Een Monk geeft zijn Focus Points uit aan Flurry of Blows, Patient Defense, Step of the Wind en Stunning Strike; **Uncanny Metabolism** vult ze één keer per Long Rest weer aan, met genezing erbij.', afbeelding: null },
+    { titel: 'Ranger en Rogue', tekst: "**Hunter's Mark** kies je op een vijand uit het lopende gevecht (of je typt een naam). Het merk staat op zijn token en jouw Concentration op de jouwe; als het gevecht afloopt vervalt het. **Sneak Attack** rolt je extra dice in één keer.", afbeelding: null },
+    { titel: 'Sorcerer', tekst: '**Innate Sorcery** loopt één minuut en eindigt vanzelf met het gevecht. **Metamagic** vraagt welke optie en rekent de kosten af. Met Font of Magic smelt je een slot om tot punten, of maak je van punten een verbruikte slot weer bruikbaar.', afbeelding: null },
+    { titel: 'Warlock, Wizard en Artificer', tekst: '**Eldritch Blast** rolt elke straal apart. **Magical Cunning** haalt de helft van je Pact Magic-slots terug. **Arcane Recovery**: kies zelf welke slots, samen niet meer dan het budget. **Flash of Genius** (vanaf level 7) geef je aan wie de check of save doet.', afbeelding: null },
   ] }),
   rage: () => ({ titel: 'Rage', stappen: [
     { titel: 'De knop', tekst: 'Een Bonus Action: druk op **Rage** en je bent erin. De app streept een use af, zet *Raging* op je token als er gevochten wordt, en op het tafelscherm brult het. Zolang je raast staat er een rode rand om je scherm en zie je onder de knop wat er nu voor je geldt.', afbeelding: null },
