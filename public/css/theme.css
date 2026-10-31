@@ -31067,3 +31067,287 @@ body:has(#sb-overlay.sb-open) .dm-dice-fab { display: none !important; }
 }
 .logboek-terugblik-btn:not(.logboek-terugblik-btn--zelf) { margin-left: auto; }
 .logboek-terugblik-btn:hover { background: rgba(196,168,122,.32); }
+
+/* ══════════════════════════════════════════════════════════════════════════
+   Rage — de Barbarian (rage.js)
+   Op het blad: een lakzegel van een knop in bloedrood, tekens als klauwen.
+   Op de telefoon: een flits en een rand die ademt. Op het tafelscherm: de brul.
+   ══════════════════════════════════════════════════════════════════════════ */
+.rage-blok.rage-blok {
+  position: relative; overflow: hidden;
+  background: linear-gradient(160deg, #f2e4c4 0%, #ecd6b0 100%);
+  border-color: #a8573a;
+}
+.rage-blok.is-actief {
+  background: radial-gradient(ellipse at 20% 0%, #f6d9b8 0%, #e8b994 55%, #d99a78 100%);
+  border-color: #8b1e12;
+  box-shadow: 0 0 0 1px rgba(139,30,18,.25), 0 6px 28px rgba(139,30,18,.28);
+  animation: rage-blok-adem 2.4s ease-in-out infinite;
+}
+@keyframes rage-blok-adem {
+  50% { box-shadow: 0 0 0 1px rgba(139,30,18,.4), 0 6px 40px rgba(170,30,18,.45); }
+}
+.rage-blok .player-dash-section-title { color: #8b2a18; }
+.rage-titel-hulp { margin-left: auto; }
+
+.rage-kern { display: flex; align-items: center; gap: 18px; }
+.rage-knop {
+  position: relative; flex: 0 0 auto;
+  width: 96px; height: 96px; border-radius: 50%; border: 0; cursor: pointer;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
+  color: #fbe9d4;
+  background: radial-gradient(circle at 35% 30%, #c8402a 0%, #8b1e12 55%, #5a0f08 100%);
+  box-shadow: inset 0 -6px 14px rgba(0,0,0,.35), inset 0 3px 6px rgba(255,200,170,.35),
+              0 4px 14px rgba(90,15,8,.45);
+  transition: transform .15s ease, filter .2s ease;
+}
+.rage-knop:hover:not(:disabled) { transform: scale(1.05); filter: brightness(1.08); }
+.rage-knop:active:not(:disabled) { transform: scale(.94); }
+.rage-knop:disabled { cursor: not-allowed; filter: grayscale(.85) brightness(.85); opacity: .7; }
+.rage-knop-ring {
+  position: absolute; inset: -5px; border-radius: 50%; pointer-events: none;
+  border: 2px dashed rgba(139,30,18,.45);
+}
+.rage-blok.is-actief .rage-knop-ring {
+  border: 3px solid transparent;
+  background: conic-gradient(from 0deg, #ff7a3a, #8b1e12, #ffb066, #5a0f08, #ff7a3a) border-box;
+  -webkit-mask: linear-gradient(#000 0 0) padding-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor; mask-composite: exclude;
+  animation: rage-draai 2.2s linear infinite;
+}
+@keyframes rage-draai { to { transform: rotate(360deg); } }
+.rage-knop-icoon .icon { width: 34px; height: 34px; }
+.rage-knop-tekst { font-family: 'Cinzel', serif; font-weight: 700; font-size: 13px; letter-spacing: .14em; text-transform: uppercase; }
+.rage-blok.is-actief .rage-knop-icoon { animation: rage-tril .18s steps(2) infinite; }
+@keyframes rage-tril { 50% { transform: translate(1px, -1px) rotate(-3deg); } }
+
+.rage-info { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.rage-tekens { display: flex; gap: 6px; flex-wrap: wrap; }
+.rage-teken {
+  width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center;
+  border: 1.5px solid rgba(139,30,18,.35); color: rgba(139,30,18,.3);
+  background: rgba(255,255,255,.25);
+}
+.rage-teken .icon { width: 16px; height: 16px; }
+.rage-teken.is-over {
+  color: #fbe9d4; border-color: #8b1e12;
+  background: radial-gradient(circle at 35% 30%, #c8402a, #7a1a0e);
+  box-shadow: 0 2px 6px rgba(90,15,8,.35);
+}
+.rage-teller { font-family: 'Crimson Text', serif; font-size: 15px; color: #5a2a18; }
+.rage-chips { display: flex; gap: 6px; flex-wrap: wrap; }
+.rage-chip {
+  font-family: 'Cinzel', serif; font-size: 11px; font-weight: 700; letter-spacing: .05em;
+  padding: 3px 9px; border-radius: 999px;
+  color: #6a1a0e; background: rgba(139,30,18,.1); border: 1px solid rgba(139,30,18,.35);
+  display: inline-flex; align-items: center; gap: 4px;
+}
+.rage-chip--uit { cursor: pointer; }
+.rage-chip--uit:hover { background: rgba(139,30,18,.2); }
+.rage-chip .icon { width: 12px; height: 12px; }
+
+.rage-effecten {
+  list-style: none; margin: 14px 0 0; padding: 12px 0 0;
+  border-top: 1px solid rgba(139,30,18,.25);
+  display: grid; gap: 6px;
+  font-family: 'Crimson Text', serif; font-size: 15px; color: #3a160a;
+}
+.rage-effecten li { display: flex; align-items: center; gap: 8px; animation: rage-regel-in .5s both; }
+.rage-effecten li:nth-child(2) { animation-delay: .08s; }
+.rage-effecten li:nth-child(3) { animation-delay: .16s; }
+.rage-effecten li:nth-child(4) { animation-delay: .24s; }
+.rage-effecten .icon { width: 16px; height: 16px; color: #8b1e12; flex: 0 0 auto; }
+.rage-effect--niet { color: #6a4a3a; font-style: italic; }
+@keyframes rage-regel-in { from { opacity: 0; transform: translateX(-8px); } }
+
+.rage-mini {
+  font-family: 'Cinzel', serif; font-size: 12px; font-weight: 700;
+  padding: 6px 12px; border-radius: 6px; cursor: pointer;
+  color: #5a2a18; background: rgba(255,255,255,.4); border: 1px solid rgba(139,30,18,.45);
+  display: inline-flex; align-items: center; gap: 6px;
+}
+.rage-mini--goud { color: #2a1a08; background: linear-gradient(#e8c27a, #c4a87a); border-color: #9a7a3a; }
+.rage-persistent { margin-top: 12px; }
+.rage-relentless {
+  margin-top: 12px; padding: 12px; border-radius: 8px;
+  background: rgba(60,8,4,.88); color: #fbe9d4;
+  border: 1px solid #c8402a; animation: rage-alarm 1.1s ease-in-out infinite;
+}
+@keyframes rage-alarm { 50% { box-shadow: 0 0 22px rgba(255,90,40,.55); } }
+.rage-relentless-kop { font-family: 'Cinzel', serif; font-size: 12px; letter-spacing: .12em; text-transform: uppercase; color: #ffb59a; display: flex; align-items: center; gap: 6px; }
+.rage-relentless-dc { font-family: 'Cinzel', serif; font-size: 26px; font-weight: 700; margin: 4px 0 10px; }
+.rage-relentless-dc span { font-family: 'Crimson Text', serif; font-size: 15px; font-weight: 400; opacity: .8; margin-left: 6px; }
+.rage-relentless-knoppen { display: flex; gap: 8px; flex-wrap: wrap; }
+
+/* De rand om je eigen scherm zolang je raast. */
+.rage-rand {
+  position: fixed; inset: 0; z-index: 9000; pointer-events: none;
+  box-shadow: inset 0 0 0 3px rgba(160,24,12,.55), inset 0 0 60px rgba(160,24,12,.4);
+  animation: rage-rand 1.6s ease-in-out infinite;
+  transition: opacity .8s ease;
+}
+.rage-rand.is-weg { opacity: 0; }
+@keyframes rage-rand {
+  50% { box-shadow: inset 0 0 0 4px rgba(200,40,16,.7), inset 0 0 110px rgba(180,30,12,.55); }
+}
+
+/* ── Klauwsporen (gedeeld) ── */
+.rage-klauw { position: absolute; inset: 6% 18%; width: 64%; height: 88%; pointer-events: none; overflow: visible; }
+.rage-klauw path {
+  /* Geen vector-effect: non-scaling-stroke — dan rekent de browser de streepjes
+     in schermpixels en valt pathLength="1" in stukjes uiteen. */
+  fill: none; stroke: #ffd2b0; stroke-width: 1.8; stroke-linecap: round;
+  stroke-dasharray: 1 1; stroke-dashoffset: 1;
+  filter: drop-shadow(0 0 3px #ff5a1e) drop-shadow(0 0 10px #b3140a);
+}
+.is-aan .rage-klauw path { animation: rage-haal .22s calc(.12s + var(--k) * .09s) cubic-bezier(.6,0,.2,1) forwards, rage-litteken 2.4s calc(.5s + var(--k) * .09s) ease-out forwards; }
+@keyframes rage-haal { to { stroke-dashoffset: 0; } }
+@keyframes rage-litteken { to { stroke: #7a0e06; filter: drop-shadow(0 0 2px #3a0402); stroke-width: 1.1; } }
+
+.rage-gloed {
+  position: absolute; inset: 0; pointer-events: none;
+  background: radial-gradient(ellipse at center, rgba(255,90,30,.55) 0%, rgba(140,14,6,.75) 45%, rgba(20,0,0,.92) 100%);
+  opacity: 0;
+}
+.is-aan .rage-gloed { animation: rage-gloed 4.4s ease-out forwards; }
+@keyframes rage-gloed {
+  0% { opacity: 0; } 6% { opacity: 1; background-color: rgba(255,220,200,.6); }
+  14% { opacity: .95; } 80% { opacity: .9; } 100% { opacity: .85; }
+}
+
+.rage-woord {
+  position: relative; font-family: 'Cinzel', serif; font-weight: 700; text-transform: uppercase;
+  color: #fff1e4; letter-spacing: .08em; line-height: 1;
+  text-shadow: -3px 0 0 rgba(255,40,20,.75), 3px 0 0 rgba(255,170,60,.6), 0 0 40px rgba(255,80,30,.9), 0 6px 30px #000;
+  opacity: 0;
+}
+.is-aan .rage-woord { animation: rage-woord 0.7s .32s cubic-bezier(.2,1.4,.3,1) forwards, rage-glitch .12s 1.1s steps(2) infinite; }
+@keyframes rage-woord {
+  from { opacity: 0; transform: scale(2.6); filter: blur(14px); letter-spacing: .6em; }
+  to   { opacity: 1; transform: none; filter: none; letter-spacing: .08em; }
+}
+@keyframes rage-glitch {
+  50% { text-shadow: 3px 0 0 rgba(255,40,20,.75), -3px 0 0 rgba(255,170,60,.6), 0 0 50px rgba(255,80,30,1), 0 6px 30px #000; transform: translate(1px, -1px); }
+}
+
+/* ── De flits op je eigen telefoon ── */
+.rage-flits {
+  position: fixed; inset: 0; z-index: 10045; pointer-events: none;
+  display: grid; place-items: center; overflow: hidden;
+  transition: opacity .6s ease;
+}
+.rage-flits.is-aan { animation: rage-schud .5s .3s; }
+.rage-flits.is-weg { opacity: 0; }
+.rage-flits .rage-woord { font-size: clamp(4rem, 22vw, 9rem); }
+@keyframes rage-schud {
+  0%,100% { transform: none; } 10% { transform: translate(-10px, 6px) rotate(-1deg); }
+  25% { transform: translate(9px, -8px) rotate(1deg); } 40% { transform: translate(-7px, -4px); }
+  55% { transform: translate(6px, 7px); } 70% { transform: translate(-4px, 2px); } 85% { transform: translate(2px, -2px); }
+}
+
+/* ── De brul op het tafelscherm ── */
+.rage-brul {
+  position: fixed; inset: 0; z-index: 10045; pointer-events: none; overflow: hidden;
+  transition: opacity .9s ease;
+}
+.rage-brul.is-weg { opacity: 0; }
+.rage-schok {
+  position: absolute; inset: 0;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2vh;
+}
+.rage-brul.is-aan .rage-schok { animation: rage-schud .7s .32s, rage-adem 2.2s 1.2s ease-in-out infinite; }
+@keyframes rage-adem { 50% { transform: scale(1.015); } }
+.rage-brul .rage-klauw { inset: 0 8%; width: 84%; height: 100%; }
+.rage-brul .rage-woord { font-size: clamp(5rem, 17vw, 15rem); margin-top: 1vh; }
+.rage-portret {
+  position: relative; width: clamp(140px, 19vw, 280px); aspect-ratio: 1;
+  opacity: 0;
+}
+.rage-brul.is-aan .rage-portret { animation: rage-portret .8s .15s cubic-bezier(.2,1.5,.3,1) forwards; }
+@keyframes rage-portret { from { opacity: 0; transform: scale(.4) rotate(-8deg); } to { opacity: 1; transform: none; } }
+.rage-portret-ring {
+  position: absolute; inset: -12px; border-radius: 50%;
+  background: conic-gradient(from 0deg, #ff7a3a, #5a0f08, #ffb066, #8b1e12, #ff3a1a, #5a0f08, #ff7a3a);
+  filter: blur(1px) drop-shadow(0 0 30px rgba(255,60,20,.8));
+  animation: rage-draai 1.6s linear infinite;
+}
+.rage-portret-beeld {
+  position: absolute; inset: 0; border-radius: 50%; overflow: hidden;
+  background: radial-gradient(circle at 50% 35%, #5a1a0e, #1a0402);
+  box-shadow: 0 0 0 4px #1a0402, inset 0 0 40px rgba(160,20,8,.7);
+  display: grid; place-items: center;
+}
+.rage-portret-beeld span { font-family: 'Cinzel', serif; font-size: 5rem; color: #ffb59a; }
+.rage-portret-beeld img {
+  position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover;
+  filter: contrast(1.15) saturate(1.2) sepia(.3) hue-rotate(-12deg);
+}
+.rage-portret-beeld::after {
+  content: ''; position: absolute; inset: 0;
+  background: radial-gradient(circle, transparent 45%, rgba(140,14,6,.65) 100%);
+  mix-blend-mode: multiply;
+}
+.rage-naam {
+  font-family: 'IM Fell English', serif; font-style: italic; font-size: clamp(1.4rem, 3vw, 2.6rem);
+  color: #ffe6d2; text-shadow: 0 2px 18px #000, 0 0 20px rgba(255,60,20,.5);
+  opacity: 0;
+}
+.rage-regel {
+  font-family: 'Cinzel', serif; font-size: clamp(.8rem, 1.4vw, 1.15rem); letter-spacing: .14em; text-transform: uppercase;
+  color: rgba(255,200,170,.85); text-shadow: 0 2px 10px #000; opacity: 0;
+}
+.rage-brul.is-aan .rage-naam  { animation: rage-op .8s 1.05s both; }
+.rage-brul.is-aan .rage-regel { animation: rage-op .8s 1.45s both; }
+@keyframes rage-op { from { opacity: 0; transform: translateY(14px); filter: blur(6px); } to { opacity: 1; transform: none; filter: none; } }
+.rage-brul--opstaan .rage-portret-ring { background: conic-gradient(from 0deg, #ffe08a, #8b1e12, #fff2c8, #c4501a, #ffe08a); }
+
+.rage-vonken { position: absolute; inset: 0; }
+.rage-vonk {
+  position: absolute; bottom: -10px; left: var(--x);
+  width: var(--s); height: var(--s); border-radius: 50%;
+  background: radial-gradient(circle, #fff1c0, #ff7a2a 50%, transparent 70%);
+  box-shadow: 0 0 10px #ff5a1e;
+  opacity: 0;
+}
+.rage-brul.is-aan .rage-vonk { animation: rage-vonk var(--d) calc(.3s + var(--v)) ease-out infinite; }
+@keyframes rage-vonk {
+  0% { opacity: 0; transform: translate(0, 0) scale(1); }
+  10% { opacity: 1; }
+  100% { opacity: 0; transform: translate(var(--dx), -105vh) scale(.3); }
+}
+
+/* Het merkteken in de hoek zolang iemand raast. */
+.rage-merken {
+  position: fixed; left: 2vw; bottom: 3vh; z-index: 10030; pointer-events: none;
+  display: flex; flex-direction: column; gap: 10px;
+}
+.rage-merk {
+  display: flex; align-items: center; gap: 10px;
+  padding: 6px 16px 6px 6px; border-radius: 999px;
+  background: linear-gradient(90deg, rgba(60,6,2,.92), rgba(30,4,2,.75));
+  border: 1px solid rgba(255,90,40,.55);
+  box-shadow: 0 0 24px rgba(200,30,10,.45);
+  opacity: 0; transform: translateX(-30px);
+  transition: opacity .6s ease, transform .6s cubic-bezier(.2,1.3,.3,1), filter 1.1s ease;
+}
+.rage-merk.is-aan { opacity: 1; transform: none; animation: rage-merk-adem 1.8s ease-in-out infinite; }
+.rage-merk.is-weg { opacity: 0; filter: blur(8px) grayscale(1); transform: translateY(-20px); }
+@keyframes rage-merk-adem { 50% { box-shadow: 0 0 40px rgba(255,50,20,.7); } }
+.rage-merk-portret {
+  position: relative; width: 46px; height: 46px; border-radius: 50%; overflow: hidden;
+  background: #3a0804; display: grid; place-items: center;
+  box-shadow: 0 0 0 2px #c8402a;
+}
+.rage-merk-portret span { font-family: 'Cinzel', serif; color: #ffb59a; }
+.rage-merk-portret img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.rage-merk-tekst { display: flex; flex-direction: column; line-height: 1.15; }
+.rage-merk-tekst b { font-family: 'Cinzel', serif; font-size: 15px; color: #ffe6d2; }
+.rage-merk-tekst span { font-family: 'Cinzel', serif; font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: #ff9a6a; display: inline-flex; align-items: center; gap: 4px; }
+.rage-merk-tekst .icon { width: 12px; height: 12px; }
+
+@media (prefers-reduced-motion: reduce) {
+  .rage-flits.is-aan, .rage-brul.is-aan .rage-schok, .is-aan .rage-woord,
+  .rage-blok.is-actief, .rage-blok.is-actief .rage-knop-icoon, .rage-rand,
+  .rage-portret-ring, .rage-relentless { animation: none; }
+  .is-aan .rage-woord { opacity: 1; }
+}

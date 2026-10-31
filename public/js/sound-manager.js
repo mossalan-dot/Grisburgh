@@ -183,6 +183,53 @@ function _tbDrone(ctx) {
   };
 }
 
+// ── De brul van een Barbarian ────────────────────────────────────────────────
+// Een stem is ruis door een filter dat open- en dichtgaat (de klinker), met een
+// lage zaagtand eronder voor de borstkas. Het grommen zit in de modulatie: een
+// LFO van ~32 Hz op het volume, zo snel dat je hem niet als ritme hoort maar
+// als ruwheid. Eronder een trommelslag als inzet en daarna een hartslag die
+// nog even nadreunt.
+function _rageBrul(ctx) {
+  const t = ctx.currentTime + 0.02;
+  _toon(ctx, { type: 'sine', van: 130, naar: 38, vol: 0.5, duur: 0.55 });          // inzet
+  _ruisvlaag(ctx, { filter: 'lowpass', freq: 600, vol: 0.2, duur: 0.25 });
+
+  const duur = 1.7;
+  const uit = ctx.createGain();
+  uit.gain.setValueAtTime(0.0001, t);
+  uit.gain.exponentialRampToValueAtTime(0.34, t + 0.12);
+  uit.gain.exponentialRampToValueAtTime(0.22, t + 1.0);
+  uit.gain.exponentialRampToValueAtTime(0.0001, t + duur);
+  // de ruwheid
+  const grom = ctx.createGain(); grom.gain.value = 0.6;
+  const lfo = ctx.createOscillator(); lfo.frequency.value = 32;
+  const diepte = ctx.createGain(); diepte.gain.value = 0.4;
+  lfo.connect(diepte).connect(grom.gain);
+  grom.connect(uit).connect(ctx.destination);
+  // de klinker: een bandfilter dat van "oo" naar "aa" en terug zwaait
+  const klinker = ctx.createBiquadFilter();
+  klinker.type = 'bandpass'; klinker.Q.value = 2.2;
+  klinker.frequency.setValueAtTime(320, t);
+  klinker.frequency.exponentialRampToValueAtTime(1050, t + 0.35);
+  klinker.frequency.exponentialRampToValueAtTime(420, t + duur);
+  klinker.connect(grom);
+  const ruis = ctx.createBufferSource(); ruis.buffer = _ruis(ctx); ruis.loop = true;
+  ruis.connect(klinker);
+  // de borstkas
+  const borst = ctx.createOscillator(); borst.type = 'sawtooth';
+  borst.frequency.setValueAtTime(96, t);
+  borst.frequency.exponentialRampToValueAtTime(64, t + duur);
+  const bf = ctx.createBiquadFilter(); bf.type = 'lowpass'; bf.frequency.value = 650;
+  const bg = ctx.createGain(); bg.gain.value = 0.5;
+  borst.connect(bf).connect(bg).connect(grom);
+  for (const n of [ruis, borst, lfo]) { n.start(t); n.stop(t + duur + 0.1); }
+  // en dan het hart
+  [1.9, 2.75, 3.6].forEach((s, i) => {
+    _toon(ctx, { type: 'sine', van: 70, naar: 42, vol: 0.28 - i * 0.07, start: s, duur: 0.22 });
+    _toon(ctx, { type: 'sine', van: 64, naar: 40, vol: 0.2 - i * 0.05, start: s + 0.3, duur: 0.24 });
+  });
+}
+
 // ── Ambiance (feature #2) ──────────────────────────────────────────────────────
 // Twee blijvende loop-Audio's:
 //  • broadcast-scène — de DM zet 'm voor iedereen (per-campagne via socket).
@@ -475,6 +522,15 @@ window.soundManager = {
     const ctx = _audioCtx();
     if (!ctx) return;
     try { maak(ctx); } catch { /* een stil effect is beter dan een fout */ }
+  },
+  // Rage: 'brul' als hij erin gaat, 'doof' (een uitademing) als hij dooft.
+  rageKlank(soort) {
+    const ctx = _audioCtx();
+    if (!ctx) return;
+    try {
+      if (soort === 'brul') _rageBrul(ctx);
+      else if (soort === 'doof') _ruisvlaag(ctx, { filter: 'lowpass', freq: 420, vol: 0.12, duur: 1.4 });
+    } catch { /* stil is ook een uitkomst */ }
   },
   // De terugblik: 'dreun', 'dreunZacht', 'tik' klinken één keer; 'drone' blijft
   // klinken en geeft een stopfunctie terug (die hem in 2,5 s laat wegsterven).

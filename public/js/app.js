@@ -11,13 +11,14 @@ import './render-handleiding.js?v=2';
 import './render-melding.js?v=4';
 import { renderVaardigheden, zoekVaardigheden, heldenboekTekst } from './render-vaardigheden.js?v=133';
 import { renderStatblock } from './render-statblock.js?v=9';
-import { initSocket } from "./socket-client.js?v=90";
-import { initDmPanel } from "./dm-panel.js?v=411";
+import { initSocket } from "./socket-client.js?v=91";
+import { initDmPanel } from "./dm-panel.js?v=412";
 import { COND_INFO, COND_LABEL, COND_MET_PLAATJE, COND_ICON } from './conditions.js?v=2';
 import './media-picker.js?v=11';
 import './wizard.js?v=6';
 import './tafels.js?v=2';
 import './terugblik.js?v=1';
+import './rage.js?v=1';
 
 // ── Icon helper ──
 // Renders an inline SVG <use> reference from /img/icons.svg.
@@ -7132,7 +7133,7 @@ const _SIGNATURE = {
     feature: 'Rage', icon: 'hand-fist', key: 'rage', kleur: '#b3402a', vorm: 'uses',
     activeOff: 'Activeer Rage', activeOn: 'Raging',
     naslag: 'Resistance tegen Bludgeoning, Piercing & Slashing damage; Advantage op Strength checks & saves.',
-    uses: { 1: 2, 3: 3, 6: 4, 10: 5, 17: 6 },
+    uses: { 1: 2, 3: 3, 6: 4, 12: 5, 17: 6 },   // PHB 2024: vijf pas op 12
     extra: lvl => `Rage Damage +${_sigThresh({ 1: 2, 9: 3, 16: 4 }, lvl)}`,
   },
   bard: {
@@ -8487,6 +8488,7 @@ async function renderMijnKarakter(opts = {}) {
         <div style="display:flex;justify-content:flex-end;padding:4px 0 0">${_helpBtn('personage')}</div>
 
         <div id="levelup-balk"></div>
+        <div id="rage-blok"></div>
 
         ${_dominantKlasse.toLowerCase().includes('sorcerer') ? `
         <div class="player-dash-section wild-magic-section">
@@ -9314,6 +9316,7 @@ async function renderMijnKarakter(opts = {}) {
   // helemaal opnieuw wordt getekend; in een variabele zou hij telkens weg zijn.
   _pdsInklapToepassen();
   _levelUpBalk();
+  window._rageBlok?.();
   _partyGevallenen();
   // De portretten staan er nu; hang de badges eraan.
   window._badgesLaden?.();
@@ -15247,6 +15250,15 @@ const HELP_CONFIG = {
     { titel: 'Ze maken zichzelf', tekst: 'Deze klanken worden in de browser gemaakt met een paar tonen en wat ruis — er staat geen bestand tegenover. Dat scheelt laadtijd en licentiegedoe, en bij een nieuwe campagne klinkt het meteen zonder dat jij iets hoeft te vullen. Voor een dreun of een tik is dat prima; een overtuigende donderslag krijg je er niet mee.', afbeelding: null },
     { titel: 'Een eigen klank wint', tekst: 'Kies je hier een bestand uit de bibliotheek, dan vervangt dat de gemaakte klank. Doe dat vooral bij **donder**, **regen** en de **aardbeving** — daar hoor je het verschil. Het kruisje zet hem terug op de gemaakte klank; er blijft dus nooit iets stils achter.', afbeelding: null },
     { titel: 'Niet elk effect klinkt', tekst: 'Mist, gif en vuur staan er niet bij: die hóren stil te zijn, want ze blijven staan. Een klank die blijft doorlopen is een sfeerloop, en die stel je in bij Diensten of bij de akte.', afbeelding: null },
+  ] }),
+  rage: () => ({ titel: 'Rage', stappen: [
+    { titel: 'De knop', tekst: 'Een Bonus Action: druk op **Rage** en je bent erin. De app streept een use af, zet *Raging* op je token als er gevochten wordt, en op het tafelscherm brult het. Zolang je raast staat er een rode rand om je scherm en zie je onder de knop wat er nu voor je geldt.', afbeelding: null },
+    { titel: 'Wat de app niet doet', tekst: 'Rekenen aan je worpen. Rage Damage, Advantage op Strength en de Resistance staan in beeld; optellen doe je aan tafel. En de duur loopt niet op een klok — in de 2024-regels verleng je Rage door te blijven aanvallen, en dat ziet de app niet. Je beëindigt hem dus zelf. Een Long Rest en het einde van een gevecht doen het voor je.', afbeelding: null },
+    { titel: 'Terugkrijgen', tekst: 'Na een **Short Rest** krijg je één use terug, na een **Long Rest** alles. Hoeveel je er hebt groeit met je level: 2, dan 3 op level 3, 4 op 6, 5 op 12 en 6 op 17.', afbeelding: null },
+    { titel: 'Concentration', tekst: 'Wie in Rage gaat verliest zijn Concentration. Stond die op je token, dan haalt de app hem weg en zegt het je.', afbeelding: null },
+    { titel: 'Relentless Rage (level 11)', tekst: 'Val je op 0 HP terwijl je raast, dan verschijnt de DC van je Constitution save. Gooi aan tafel. Gelukt: je staat op met twee keer je Barbarian-level aan HP. Mislukt: je gaat neer en de Rage dooft. Elke poging maakt de volgende 5 moeilijker; een rust zet hem terug op 10.', afbeelding: null },
+    { titel: 'Persistent Rage (level 15)', tekst: 'Eén keer per Long Rest, tijdens een gevecht: alle Rage terug. Druk erop als je initiative gooit.', afbeelding: null },
+    { titel: 'Had je al een tellertje?', tekst: 'Wie Rage eerder als kenmerk met bolletjes bijhield, kan dat kenmerk weghalen: dit blok telt nu zelf.', afbeelding: null },
   ] }),
   dm_terugblik: () => ({ titel: 'Wat voorafging', stappen: [
     { titel: 'Waar het voor is', tekst: 'Aan het begin van een avond weet de helft van de tafel niet meer waar ze gebleven waren. De terugblik maakt van je vorige sessieverslag een korte trailer op het tafelscherm: een titelkaart, de akte, je samenvatting woord voor woord over trage beelden, het citaat, wie ze ontmoetten, en dan *gaat het verder*.', afbeelding: null },

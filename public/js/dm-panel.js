@@ -9022,7 +9022,8 @@ async function _renderGeluiden() {
   const momentRijen = `
     ${momentRow('lootReveal', 'Loot onthullen', 'klinkt zodra de spelers de buit te zien krijgen')}
     ${momentRow('levelUp', 'Level omhoog', 'klinkt bij de speler die een level omhoog gaat, en op het tafelscherm')}
-    ${momentRow('terugblik', 'Terugblik', 'speelt onder de terugblik op het tafelscherm')}`;
+    ${momentRow('terugblik', 'Terugblik', 'speelt onder de terugblik op het tafelscherm')}
+    ${momentRow('rage', 'Rage', 'de brul als een Barbarian in Rage gaat')}`;
 
   // De klanken bij een tafelscherm-effect. Ze maken zichzelf in de browser, dus
   // hier staat niets leeg te wachten: wat je kiest vervángt de gemaakte klank.

@@ -348,12 +348,12 @@ De app gebruikt querystring cache-busting (`?v=N`). **Vergeten = browser haalt o
 **Huidige versies (bij te houden):**
 
 ```
-index.html  : theme.css?v=911   app.js?v=1176   sound-manager.js?v=11
-app.js      : api.js?v=317  dm-panel.js?v=411  media-picker.js?v=11  tafels.js?v=2  terugblik.js?v=1
+index.html  : theme.css?v=912   app.js?v=1177   sound-manager.js?v=12
+app.js      : api.js?v=317  dm-panel.js?v=412  media-picker.js?v=11  tafels.js?v=2  terugblik.js?v=1  rage.js?v=1
               render-archief.js?v=143  render-bestiarium.js?v=32  render-campagne.js?v=351
               render-dungeon.js?v=68  render-kaart.js?v=32  render-progressie.js?v=64
               render-relatiemap.js?v=32  render-spreuken.js?v=51  render-vaardigheden.js?v=133
-              render-statblock.js?v=9  socket-client.js?v=90  wizard.js?v=6
+              render-statblock.js?v=9  socket-client.js?v=91  wizard.js?v=6
 dm-panel.js : akte-schrijven.js?v=35  combat-canvas.js?v=34  render-statblock.js?v=9
 ```
 
@@ -416,6 +416,36 @@ dm-panel.js : akte-schrijven.js?v=35  combat-canvas.js?v=34  render-statblock.js
 > `tbl_rust_wildernis` + `tbl_rust_herberg` (conversiescript-patroon: md-rij `| 01-02 | **Naam** | Beschrijving | \`+6 knakers\` |`
 > → `1-2: Naam — Beschrijving {+6kn}`; munt-namen florinde/knaker/centeling → fl/kn/cl). (4) **Tabletmodus**: op het gedeelde scherm (`_isDisplayMode`, geen `characterId`) toont de overlay
 > een party-brede variant zonder per-speler-knoppen.
+
+> **Rage — de Barbarian** (31 okt 2026). Er stond al een signatuurkaart met
+> bolletjes; die is eerder van het blad gehaald omdat een kenmerk met een teller
+> hetzelfde deed. Rage verdient meer dan een teller, want hij *doet* iets: de app
+> houdt nu de uses bij volgens de PHB 2024 (`RAGE_USES` 2/3/4/5/6 op 1/3/6/12/17,
+> `RAGE_SCHADE` +2/+3/+4 op 1/9/16 — let op, de oude `_SIGNATURE` had 5 uses al op
+> level 10), zet **Raging** op de token en haalt een Concentration eraf (dat is
+> regel), en een **korte rust geeft één use terug, een lange alles**. Het
+> einde van een gevecht dooft een lopende Rage: wie niet meer vecht verlengt hem
+> niet. De duur loopt verder níét op een klok en Rage Damage wordt nergens
+> opgeteld — de tafel rekent, de app laat zien.
+> Vanaf 11 verschijnt **Relentless Rage** als iemand in Rage op 0 HP ligt (een DC
+> die per poging 5 oploopt, een rust zet hem op 10), vanaf 15 **Persistent Rage**
+> (alles terug, één keer per lange rust, alleen in een gevecht).
+> Server: `_rageStand()` (afgeleid uit het profiel, ook bij multiclass via
+> `_barbarianLevel`), `dmState.playerRage[charId]`, routes
+> `GET/POST /characters/:id/rage` en `/rage/einde`, `/rage/relentless`,
+> `/rage/persistent` (speler zelf of DM). Rusten via `_rageRust()`.
+> Client: **`public/js/rage.js`** (side-effect import). Het blok `#rage-blok` staat
+> bovenaan Personage naast de Wild Magic van de Sorcerer en verdwijnt helemaal voor
+> wie geen Barbarian is. De speler flitst op zijn eigen telefoon bij de klik; de
+> klank komt van de socket-echo, want alleen die weet of de DM er een eigen bestand
+> aan hing (`momenten.rage`, anders `soundManager.rageKlank('brul')`: ruis door een
+> zwaaiend bandfilter met een 32 Hz-grom). `rage:updated` gaat naar de hele
+> campagne (wie raast is geen geheim, de rest krijgt een melding); `rage:display`
+> alleen naar het tafelscherm, dat brult en daarna linksonder een merkteken
+> houdt (`#rage-merken`). Bewaakt door `tests/rage.test.js`.
+> **Valkuil bij de klauwsporen:** `pathLength="1"` plus
+> `vector-effect: non-scaling-stroke` breekt elke haal in stukjes — de browser
+> rekent de streepjes dan in schermpixels.
 
 > **Wat voorafging — de terugblik op het tafelscherm** (31 okt 2026). Aan het begin
 > van een avond speelt het tafelscherm het vorige sessieverslag af als trailer:

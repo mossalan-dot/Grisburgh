@@ -539,6 +539,12 @@ een speler ziet, **TAB** = het tafelscherm (`?display=1`), **ALL** = alle drie.
 - [ ] **Loot claimen** (SP) — tijdens een verdeling claimen, en zien wat je krijgt na het afrollen
 - [ ] **Brief openen** (SP) — verzegelde brief in Berichten, zegel aanklikken, tekst lezen en teruggaan
 - [ ] **Level omhoog** (SP/DM) — de DM verhoogt het level; nieuwe features verschijnen in Progressie en de sheet klopt
+- [ ] **Rage: alleen voor een Barbarian** (SP) — log in als een Barbarian en als een Wizard; alleen de Barbarian heeft bovenaan Personage een Rage-blok, de Wizard ziet er niets van (ook geen lege regel)
+- [ ] **Rage aan en uit** (SP) — druk op *Rage*: je telefoon flitst rood met klauwsporen, er komt een rode rand om je scherm, één teken dooft, en onder de knop staat wat er nu geldt; *Beëindigen* haalt rand en lijst weg zonder de use terug te geven
+- [ ] **Rage in een gevecht** (SP/DM) — zet een Concentration op je token en ga in Rage; de token draagt *Raging*, de Concentration is weg (met een melding), en de gevechtslog zegt het; stop het gevecht en de Rage is uit
+- [ ] **Rage en rust** (DM) — verbruik alle uses: de knop gaat grijs; een korte rust geeft er één terug, een lange rust alles en dooft een lopende Rage
+- [ ] **Relentless Rage** (SP) — een Barbarian van level 11 in Rage op 0 HP: het blok toont *DC 10 Constitution Saving Throw*; *Gelukt* zet je op 2× je level aan HP en de volgende keer staat er DC 15; *Mislukt* dooft de Rage
+- [ ] **Persistent Rage** (SP) — level 15, in een gevecht, met een verbruikte use: de knop *Persistent Rage* geeft alles terug en is daarna weg tot de volgende lange rust
 
 ## Blok 5 — Diensten
 
@@ -756,6 +762,7 @@ fout-uitvoert.
 - [ ] **Sfeer wisselen** (DM/TAB) — sfeerkeuze verandert de embers en de achtergrond
 - [ ] **Effecten** (DM/TAB) — bliksem, windvlaag en duister; let erop dat ze tijdens een gevecht (nog) niet zichtbaar zijn — zie `docs/tafelscherm-effecten.md`
 - [ ] **Tablet na herstart** (TAB) — server herstarten en kijken of de tablet ingelogd blijft en zijn kamer terugvindt
+- [ ] **Rage op de tablet** (TAB) — een speler gaat in Rage: het tafelscherm wordt rood, drie klauwsporen trekken over het beeld, het portret en *RAGE* slaan in, en daarna blijft linksonder een merkteken staan tot de Rage dooft; de andere spelers krijgen een melding, niet de brul zelf
 - [ ] **Wat voorafging** (DM/TAB) — open een akte, druk in de regie-balk op *Terugblik* en kies *Op het tafelscherm*; de tablet speelt het laatste zichtbare verslag af als trailer (titel, akte, tekst woord voor woord over de beelden, citaat, wie je ontmoette, "gaat het verder") en gaat daarna vanzelf terug naar sfeer
 - [ ] **Wat voorafging: alleen wat de party kent** (DM) — zet het nieuwste verslag op verborgen en een personage uit dat verslag op verborgen; de terugblik pakt het verslag dáárvoor, en het verborgen personage staat niet bij *Wie u ontmoette* — ook niet als zijn naam in de tekst staat
 - [ ] **Wat voorafging: bediening** (TAB) — tikken springt naar het volgende shot, Escape sluit, en de monitorknop in de regie-balk breekt een lopende terugblik af; *Zelf bekijken* speelt hem alleen op het DM-scherm, met *Voorbeeld* linksboven

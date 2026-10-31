@@ -308,6 +308,13 @@ function _ververOpenKaartje(id) {
   // Wat voorafging: de terugblik op het vorige verslag. Alleen het tafelscherm
   // (de server stuurt hem ook alleen naar die room); de DM kijkt zijn eigen
   // voorbeeld via het antwoord van de route.
+  // Rage: wie raast is geen geheim, dus het gaat naar de hele campagne. Het
+  // tafelscherm krijgt daarnaast zijn eigen bericht met naam en portret.
+  socket.on('rage:updated', (data = {}) => { window._rageOntvang?.(data); });
+  socket.on('rage:display', (data = {}) => {
+    if (window._isDisplayMode) window._rageDisplay?.(data);
+  });
+
   socket.on('terugblik:display', (data = {}) => {
     if (window._isDisplayMode) window._terugblikCinematic?.(data);
   });

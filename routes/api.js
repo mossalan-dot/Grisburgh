@@ -4532,6 +4532,225 @@ router.post('/display/terugblik', requireDM, (req, res) => {
   res.json(tb);
 });
 
+// ── Rage (Barbarian) ────────────────────────────────────────────────────────
+// De ene feature waar een Barbarian aan tafel over gaat, en tot nu toe een
+// tellertje met bolletjes dat je zelf afstreepte. Nu doet de app wat erbij
+// hoort: de uses tellen volgens de tabel van de PHB 2024, *Raging* komt op je
+// token, Concentration breekt, en een rust geeft terug wat terug hoort.
+//
+// Wat de app níét doet: de worp. Rage Damage, de Advantage, de Resistance —
+// dat staat in beeld, de tafel rekent. Zelfde regel als bij de loot-DC.
+// Ook de duur loopt niet op een klok: in 2024 verleng je Rage door te blijven
+// vechten, en dat ziet de app niet. Je beëindigt hem zelf, en een lange rust of
+// het einde van een gevecht doet het voor je.
+const RAGE_USES   = { 1: 2, 3: 3, 6: 4, 12: 5, 17: 6 };
+const RAGE_SCHADE = { 1: 2, 9: 3, 16: 4 };
+const _drempelWaarde = (tabel, lvl) => {
+  let v = 0;
+  for (const t of Object.keys(tabel).map(Number).sort((a, b) => a - b)) if (lvl >= t) v = tabel[t];
+  return v;
+};
+
+// Barbarian-levels, ook als het de tweede klasse is.
+function _barbarianLevel(profiel) {
+  const p = profiel || {};
+  let n = 0;
+  if (/barbar/i.test(p.klasse || '')) n += parseInt(p.klasseLevel ?? p.level) || 0;
+  if ((p.multiclass === true || p.multiclass === 'true') && /barbar/i.test(p.multiKlasse || '')) {
+    n += parseInt(p.multiKlasseLevel) || 0;
+  }
+  return n;
+}
+
+function _rageStand(dmState, charId) {
+  const lvl = _barbarianLevel((dmState.playerProfiles || {})[charId]);
+  if (!lvl) return null;
+  const st  = (dmState.playerRage || {})[charId] || {};
+  const max = _drempelWaarde(RAGE_USES, lvl);
+  const verbruikt = Math.min(max, Math.max(0, st.verbruikt || 0));
+  // Ligt hij op 0? In een gevecht staat zijn HP op de token, daarbuiten op het blad.
+  let combat = null;
+  try { combat = storage.readJSON('combat.json'); } catch { /* geen gevecht */ }
+  const token = combat?.active ? (combat.combatants || []).find(c => c.type === 'player' && c.entityId === charId) : null;
+  const hp = token ? token.hp : dmState.playerHp?.[charId]?.current;
+  return {
+    level: lvl, max, verbruikt, over: max - verbruikt,
+    actief: !!st.actief, sinds: st.sinds || null,
+    schade: _drempelWaarde(RAGE_SCHADE, lvl),
+    inGevecht: !!token,
+    // Level 11: Relentless Rage. Op 0 HP terwijl je raast: een Constitution
+    // save, en elke poging maakt de volgende 5 moeilijker.
+    relentless: lvl >= 11 ? { dc: st.relentlessDc || 10, nodig: !!st.actief && hp != null && hp <= 0 } : null,
+    // Level 15: Persistent Rage. Bij initiative alle uses terug, één keer per lange rust.
+    persistent: lvl >= 15 ? { beschikbaar: !st.persistentGebruikt } : null,
+  };
+}
+
+function _rageNaarToken(combat, charId, aan) {
+  const token = combat?.active ? (combat.combatants || []).find(c => c.type === 'player' && c.entityId === charId) : null;
+  if (!token) return { token: null, concentratieWeg: false };
+  const conds = Array.isArray(token.conditions) ? token.conditions : [];
+  let concentratieWeg = false;
+  if (aan) {
+    // Rage breekt Concentration — dat is regel, geen smaak.
+    concentratieWeg = conds.includes('concentration');
+    token.conditions = [...conds.filter(c => c !== 'concentration' && c !== 'raging'), 'raging'];
+  } else {
+    token.conditions = conds.filter(c => c !== 'raging');
+  }
+  return { token, concentratieWeg };
+}
+
+function _rageMeld(req, dmState, charId, aan, extra = {}) {
+  const io = req.app.get('io');
+  if (!io) return;
+  let p = null;
+  try { p = (storage.readJSON('entities.json').personages || []).find(x => x.id === charId); } catch { /* ok */ }
+  const stand = _rageStand(dmState, charId);
+  const geluid = aan ? (storage.readJSON('sounds.json') || {}).momenten?.rage : null;
+  const bericht = { characterId: charId, naam: p?.name || 'Iemand', actief: aan, geluid: geluid ? String(geluid) : null, ...extra };
+  io.to(_campagneRoom(req)).emit('rage:updated', bericht);
+  // Het tafelscherm kan naam en portret niet zelf afleiden — zelfde patroon
+  // als `levelup:display`.
+  io.to(_displayRoom(req)).emit('rage:display', {
+    ...bericht, thumb: p?.data?.imageId || charId, focus: p?.data?.imgFocus || '',
+    schade: stand?.schade || 2, level: stand?.level || 1,
+  });
+}
+
+// Eén plek die Rage beëindigt; gebruikt door de knop, de rust en het einde van
+// een gevecht. Geeft true terug als er iets veranderde.
+function _rageUit(dmState, charId, combat) {
+  const st = dmState.playerRage?.[charId];
+  if (!st?.actief) return false;
+  st.actief = false; st.sinds = null;
+  if (combat) _rageNaarToken(combat, charId, false);
+  return true;
+}
+
+function _magRage(req, charId) {
+  return req.role === 'dm' || req.session?.characterId === charId;
+}
+
+router.get('/characters/:characterId/rage', attachRole, (req, res) => {
+  const { characterId } = req.params;
+  if (!_magRage(req, characterId)) return res.status(403).json({ error: 'Geen toegang' });
+  res.json({ rage: _rageStand(readDmState(), characterId) });
+});
+
+// Rage aan. Speler zelf of de DM namens hem.
+router.post('/characters/:characterId/rage', attachRole, (req, res) => {
+  const { characterId } = req.params;
+  if (!_magRage(req, characterId)) return res.status(403).json({ error: 'Geen toegang' });
+  const dmState = readDmState();
+  const stand = _rageStand(dmState, characterId);
+  if (!stand) return res.status(409).json({ error: 'Alleen een Barbarian kan in Rage gaan' });
+  if (stand.actief) return res.status(409).json({ error: 'Je bent al in Rage' });
+  if (stand.over <= 0) return res.status(409).json({ error: 'Geen Rage meer over — eerst rusten' });
+
+  if (!dmState.playerRage) dmState.playerRage = {};
+  const st = (dmState.playerRage[characterId] = dmState.playerRage[characterId] || {});
+  st.verbruikt = stand.verbruikt + 1;
+  st.actief = true;
+  st.sinds = Date.now();
+
+  const combat = storage.readJSON('combat.json');
+  const { token, concentratieWeg } = _rageNaarToken(combat, characterId, true);
+  if (token) {
+    _combatLog(combat, `${token.name} gaat in Rage (${stand.over - 1} over)`);
+    if (concentratieWeg) _combatLog(combat, `${token.name} verliest zijn Concentration`);
+    storage.writeJSON('combat.json', combat);
+  }
+  storage.writeJSON('dm-state.json', dmState);
+  if (token) _zendCombat(req, combat);
+  _rageMeld(req, dmState, characterId, true, { concentratieWeg });
+  res.json({ ok: true, rage: _rageStand(dmState, characterId), concentratieWeg });
+});
+
+router.post('/characters/:characterId/rage/einde', attachRole, (req, res) => {
+  const { characterId } = req.params;
+  if (!_magRage(req, characterId)) return res.status(403).json({ error: 'Geen toegang' });
+  const dmState = readDmState();
+  const combat = storage.readJSON('combat.json');
+  if (!_rageUit(dmState, characterId, combat)) return res.json({ ok: true, rage: _rageStand(dmState, characterId) });
+  storage.writeJSON('dm-state.json', dmState);
+  if (combat?.active) { storage.writeJSON('combat.json', combat); _zendCombat(req, combat); }
+  _rageMeld(req, dmState, characterId, false);
+  res.json({ ok: true, rage: _rageStand(dmState, characterId) });
+});
+
+// Relentless Rage: de save is gegooid, aan tafel. Gelukt → je staat op met
+// twee keer je Barbarian-level aan HP. Hoe dan ook wordt de volgende DC 5 hoger.
+router.post('/characters/:characterId/rage/relentless', attachRole, (req, res) => {
+  const { characterId } = req.params;
+  if (!_magRage(req, characterId)) return res.status(403).json({ error: 'Geen toegang' });
+  const dmState = readDmState();
+  const stand = _rageStand(dmState, characterId);
+  if (!stand?.relentless) return res.status(409).json({ error: 'Relentless Rage krijg je pas op level 11' });
+  if (!stand.actief) return res.status(409).json({ error: 'Alleen terwijl je raast' });
+  const gelukt = req.body?.gelukt === true;
+  const st = dmState.playerRage[characterId];
+  st.relentlessDc = (st.relentlessDc || 10) + 5;
+
+  const combat = storage.readJSON('combat.json');
+  const token = combat?.active ? (combat.combatants || []).find(c => c.type === 'player' && c.entityId === characterId) : null;
+  const io = req.app.get('io');
+  if (gelukt) {
+    const hp = stand.level * 2;
+    if (!dmState.playerHp) dmState.playerHp = {};
+    dmState.playerHp[characterId] = { ...(dmState.playerHp[characterId] || {}), current: hp };
+    if (token) {
+      token.hp = hp;
+      token.conditions = (token.conditions || []).filter(c => c !== 'unconscious' && c !== 'dying');
+      _combatLog(combat, `${token.name} weigert te vallen — Relentless Rage (${hp} HP)`);
+    }
+    io?.to(_campagneRoom(req)).emit('player:hp-updated', { characterId, ...dmState.playerHp[characterId] });
+  } else {
+    // Mislukt: dan ligt hij er echt, en wie Incapacitated is raast niet meer.
+    _rageUit(dmState, characterId, combat);
+    if (token) _combatLog(combat, `${token.name} zakt neer — de Rage dooft`);
+  }
+  storage.writeJSON('dm-state.json', dmState);
+  if (token) { storage.writeJSON('combat.json', combat); _zendCombat(req, combat); }
+  _rageMeld(req, dmState, characterId, gelukt, { relentless: gelukt ? 'gelukt' : 'mislukt' });
+  res.json({ ok: true, rage: _rageStand(dmState, characterId) });
+});
+
+// Persistent Rage: bij initiative alles terug, één keer per lange rust.
+router.post('/characters/:characterId/rage/persistent', attachRole, (req, res) => {
+  const { characterId } = req.params;
+  if (!_magRage(req, characterId)) return res.status(403).json({ error: 'Geen toegang' });
+  const dmState = readDmState();
+  const stand = _rageStand(dmState, characterId);
+  if (!stand?.persistent) return res.status(409).json({ error: 'Persistent Rage krijg je pas op level 15' });
+  if (!stand.persistent.beschikbaar) return res.status(409).json({ error: 'Al gebruikt sinds je laatste Long Rest' });
+  if (!dmState.playerRage) dmState.playerRage = {};
+  const st = (dmState.playerRage[characterId] = dmState.playerRage[characterId] || {});
+  st.verbruikt = 0;
+  st.persistentGebruikt = true;
+  storage.writeJSON('dm-state.json', dmState);
+  req.app.get('io')?.to(_campagneRoom(req)).emit('rage:updated', { characterId, actief: !!st.actief, stil: true });
+  res.json({ ok: true, rage: _rageStand(dmState, characterId) });
+});
+
+// Voor de rusten. Lang: alles terug, Rage uit, Persistent weer beschikbaar.
+// Kort: één use terug (PHB 2024). Allebei: de Relentless-DC terug op 10.
+function _rageRust(dmState, spelers, soort) {
+  const uit = [];
+  for (const s of spelers) {
+    const st = dmState.playerRage?.[s.id];
+    if (!st) continue;
+    if (soort === 'long') {
+      if (st.actief) uit.push(s.id);
+      Object.assign(st, { verbruikt: 0, actief: false, sinds: null, persistentGebruikt: false });
+    } else {
+      st.verbruikt = Math.max(0, (st.verbruikt || 0) - 1);
+    }
+    st.relentlessDc = 10;
+  }
+  return uit;
+}
+
 // Party-brede lange rust (DM-actie)
 router.post('/party/long-rest', requireDM, (req, res) => {
   const locatie = req.body?.locatie === 'herberg' ? 'herberg' : 'veld';
@@ -4769,6 +4988,8 @@ router.post('/party/long-rest', requireDM, (req, res) => {
   // Winkels met een wisselend assortiment verversen na een rust; een lange rust
   // telt ook als korte, want er is een nacht voorbij.
   _bumpRustTellers(g, ['long', 'short']);
+  // Rage: alles terug en uit. Wie nog raasde krijgt straks zijn einde gemeld.
+  const _rageGedoofd = _rageRust(dmState, spelers, 'long');
   // Staat er een afspraak, dan schuift de beginstand van elke lopende schuld
   // mee met de nacht: er komt dus geen rente bij. Dit gebeurt híér en niet bij
   // het uitrekenen, want dan zou de rente met terugwerkende kracht alsnog
@@ -4813,6 +5034,7 @@ router.post('/party/long-rest', requireDM, (req, res) => {
     roddels, perPlayer, gebeurtenissen,
   });
 
+  for (const cid of _rageGedoofd) _rageMeld(req, dmState, cid, false, { stil: true });
   res.json({ ok: true, spelers: spelers.length, resetCount, rollLog, kosten, roddelsOnthuld: roddels.length, gebeurtenissen });
 });
 
@@ -4879,6 +5101,7 @@ router.post('/party/short-rest', requireDM, (req, res) => {
 
   // Winkels die op "na een korte rust" staan, verversen nu hun schappen.
   _bumpRustTellers(g, ['short']);
+  _rageRust(dmState, spelers, 'short');
 
   storage.writeJSON('dm-state.json', dmState);
 
@@ -9347,7 +9570,7 @@ const _DIENST_SVC_KEYS = ['herberg', 'tweespalt', 'gock', 'ursula', 'tempel', 'm
 // Elk tafelscherm-effect mag een eigen klank krijgen (`fx-<id>`), en die lijst
 // komt uit de catalogus — anders is er een tweede plek waar een effect bestaat.
 const _MOMENT_SOUND_KEYS = new Set([
-  'lootReveal', 'levelUp', 'terugblik',
+  'lootReveal', 'levelUp', 'terugblik', 'rage',
   ...DISPLAY_FX.filter(f => f.klank).map(f => 'fx-' + f.id),
 ]);
 const _REST_SVC_KEYS = ['rust-veld', 'rust-herberg', 'rust-kort'];
@@ -12430,6 +12653,14 @@ router.delete('/combat', requireDM, (req, res) => {
   const prevCombat = storage.readJSON('combat.json');
   _flushPlayerHpToDmState(prevCombat, req.app.get('io'), _campagneRoom(req));
   _gevechtVerslag(prevCombat, req);
+  // Het gevecht is voorbij, en wie niet meer vecht verlengt zijn Rage niet.
+  const _rageDm = readDmState();
+  const _rageWeg = (prevCombat?.combatants || [])
+    .filter(c => c.type === 'player' && _rageUit(_rageDm, c.entityId, null)).map(c => c.entityId);
+  if (_rageWeg.length) {
+    storage.writeJSON('dm-state.json', _rageDm);
+    for (const cid of _rageWeg) _rageMeld(req, _rageDm, cid, false, { stil: true });
+  }
   const combat = { active: false, round: 1, currentTurn: 0, combatants: [] };
   storage.writeJSON('combat.json', combat);
   _zendCombat(req, combat);
