@@ -348,8 +348,8 @@ De app gebruikt querystring cache-busting (`?v=N`). **Vergeten = browser haalt o
 **Huidige versies (bij te houden):**
 
 ```
-index.html  : theme.css?v=913   app.js?v=1178   sound-manager.js?v=13
-app.js      : api.js?v=317  dm-panel.js?v=413  media-picker.js?v=11  tafels.js?v=2  terugblik.js?v=1  rage.js?v=1  klassekracht.js?v=1
+index.html  : theme.css?v=914   app.js?v=1179   sound-manager.js?v=13
+app.js      : api.js?v=317  dm-panel.js?v=413  media-picker.js?v=11  tafels.js?v=2  terugblik.js?v=1  rage.js?v=2  klassekracht.js?v=2  personage-maken.js?v=7
               render-archief.js?v=143  render-bestiarium.js?v=32  render-campagne.js?v=351
               render-dungeon.js?v=68  render-kaart.js?v=32  render-progressie.js?v=64
               render-relatiemap.js?v=32  render-spreuken.js?v=51  render-vaardigheden.js?v=133
@@ -450,6 +450,32 @@ dm-panel.js : akte-schrijven.js?v=35  combat-canvas.js?v=35  render-statblock.js
 > **Niet gedaan:** de Blood Hunter (eigen materiaal, geen SRD) en de subklassen —
 > een Battle Master of Psi Warrior heeft zijn eigen voorraad die nog op de
 > signatuurkaart-catalogus in `app.js` staat. Die passen in dezelfde catalogus.
+> **Tweede ronde** (31 okt 2026). **Bardic Inspiration is een badge** op het
+> partyportret (`_badgesVoor` → soort `bardic`), met *Gebruiken* in het
+> badgekaartje (`window._bardicGebruik`) dat de die écht gooit;
+> `badges:updated` gaat uit bij geven en gebruiken.
+> **Wild Shape volgt de PHB 2024**: bekende gedaantes (`playerKracht[c].vormen`,
+> `PUT /characters/:id/klassekracht/vormen`) — 4/6/8 op level 2/4/8, max CR
+> 1/4·1/2·1, vliegers pas op 8, Circle of the Moon tot level÷3 (`_wildShapeRegels`).
+> Het aanbod is `_beesten()`: de SRD-beesten plus wat de campagne zelf als Beast in
+> `monsters.json` heeft. De **omgeving** per beest komt uit
+> `bronnen/beest-omgevingen.json` (`scripts/srd-2024/beest-omgevingen.js`, de elf
+> omgevingen van de Monster Manual, nieuwste druk wint — labels, geen tekst). Bij het
+> veranderen kies je de omgeving zelf (standaard waar het dier leeft); die gaat mee
+> naar het tafelscherm, dat er kleur en deeltje van overneemt (`OMGEVING` in
+> `klassekracht.js`).
+> **Een emote bij een kracht**: `playerKracht[c].klank['<klasse>.<actie>']` (ook
+> `barbarian.rage`), `PUT /characters/:id/klassekracht/klank`; de display-payload
+> draagt dan `emote` (een fileId) en het tafelscherm speelt hem na de flits. Emotes
+> zijn wat er in `sounds.json → emotes[charId].library` staat.
+> **Personage maken kreeg *Hoe klink je?***: tot vier geluiden (alleen audio, 3 MB),
+> `POST|DELETE /personage-concept/:id/emote`, namen via de gewone PATCH; bij het gunnen
+> worden ze `sounds.json → emotes[entityId]`. `_magBestandZien` laat een conceptsessie
+> haar eigen portret en emotes ophalen (`<conceptId>` en `<conceptId>_emote_*`).
+> **Valkuil, nog een keer:** ook `ps aux | grep "[s]erver.js" | xargs kill` in een
+> opdracht die zelf "server.js" bevat, raakt de eigen shell. Stop de testserver in
+> een aparte opdracht.
+
 > **Valkuil bij lokaal testen:** `pkill -f "node server.js"` in dezelfde
 > shell-opdracht als de rest doodt die shell zelf — de tekst staat ook in zijn
 > eigen opdrachtregel.

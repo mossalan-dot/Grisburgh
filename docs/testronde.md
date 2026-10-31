@@ -551,6 +551,11 @@ een speler ziet, **TAB** = het tafelscherm (`?display=1`), **ALL** = alle drie.
 - [ ] **Slots terug** (SP) — Wizard: *Arcane Recovery*, kies met de plus- en minknoppen niet meer dan het budget en zie de slots terugkomen; een tweede keer kan pas na een lange rust. Warlock: *Magical Cunning* haalt de helft van je Pact Magic-slots terug
 - [ ] **Toestanden** (SP/DM) — Druid *Wild Shape* vraagt een Beast en geeft Temporary HP; Ranger *Hunter's Mark* in een gevecht zet het merk op de token van de vijand; Sorcerer *Innate Sorcery* eindigt vanzelf met het gevecht, Wild Shape niet
 - [ ] **Rust** (DM) — een korte rust: Monk heeft weer al zijn Focus, Cleric één Channel Divinity terug; een lange rust zet alles terug en beëindigt lopende toestanden
+- [ ] **Bardic Inspiration als badge** (SP) — de Bard inspireert een medespeler: op diens portret in de partybalk verschijnt een muzieknoot; tik erop en kies *Gebruiken* — de die rolt, er komt een melding met de uitkomst en de badge is weg
+- [ ] **Bekende gedaantes** (SP) — Druid level 2: kies onder *Bekende gedaantes* vier beesten; een vijfde, een CR 1/2 of een vliegend beest kun je niet aanvinken. Filter op *Arctic* en alleen beesten die daar leven blijven over. Op level 8 mag er wél een vlieger bij
+- [ ] **Wild Shape met omgeving** (SP/TAB) — kies een gedaante: de omgeving springt naar waar hij leeft; zet hem om en speel af. Het tafelscherm kleurt mee (sneeuwvlokken bij Arctic, vissen bij Underwater), en op je blad staat de AC, snelheid en aanvallen van je gedaante
+- [ ] **Klank bij een kracht** (SP/TAB) — met emotes: kies onder *Klanken* een emote bij Action Surge (of bij Rage); gebruik de kracht en die emote klinkt op het tafelscherm na de flits. Zonder emotes staat er geen *Klanken*
+- [ ] **Emotes bij een nieuw personage** (SP/DM) — in *Personage maken* bij *Hoe klink je?* twee geluiden met een naam uploaden, er één terugluisteren, één weghalen; een plaatje wordt geweigerd en een vijfde ook. Na het gunnen staan ze bij Geluiden onder dat personage
 
 ## Blok 5 — Diensten
 

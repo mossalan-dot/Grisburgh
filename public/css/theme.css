@@ -31623,3 +31623,74 @@ body:has(#sb-overlay.sb-open) .dm-dice-fab { display: none !important; }
 @media (prefers-reduced-motion: reduce) {
   .kk-actief, .kk-ontvangen, .kk-merk.is-aan, .kk-fig { animation: none !important; }
 }
+
+/* ── Klassekrachten, tweede ronde: gedaantes, omgevingen, klanken ──────────── */
+.kk-vormen { margin: 0 0 12px; }
+.kk-vormen-lijst { display: flex; flex-wrap: wrap; gap: 6px; margin: 6px 0 4px; }
+.kk-vorm {
+  display: inline-flex; align-items: center; gap: 5px; padding: 4px 9px; border-radius: 999px;
+  background: color-mix(in srgb, var(--kk-a) 30%, #fbf4e2); border: 1px solid color-mix(in srgb, var(--kk-b) 40%, #c4a87a);
+  font-family: 'Crimson Text', serif; font-size: 14px; color: #2a1a08;
+}
+.kk-vorm b { font-family: 'Cinzel', serif; font-size: 12px; }
+.kk-vorm i { font-style: normal; font-size: 12px; color: #7a6040; }
+.kk-vorm .icon, .kk-beest-omg .icon { width: 13px; height: 13px; color: var(--kk-b); }
+.kk-bron-herstel .kk-mini--klein { margin-left: 8px; }
+.kk-mini.kk-mini--klein { padding: 2px 8px; font-size: 11px; }
+
+.kk-omgevingen { display: flex; flex-wrap: wrap; gap: 5px; margin: 8px 0; }
+.kk-omg {
+  display: inline-flex; align-items: center; gap: 4px; cursor: pointer;
+  padding: 3px 9px; border-radius: 999px; border: 1px solid #c4a87a; background: #fffaf0;
+  font-family: 'Cinzel', serif; font-size: 11px; color: #3a2410;
+}
+.kk-omg .icon { width: 13px; height: 13px; }
+.kk-omg input { display: none; }
+.kk-omg.is-aan, .kk-omg:has(input:checked) {
+  background: var(--kk-b); border-color: var(--kk-b); color: #fbf4e2;
+}
+.kk-beesten { max-height: 300px; overflow-y: auto; display: grid; gap: 4px; padding-right: 4px; }
+.kk-beest {
+  display: grid; grid-template-columns: auto 1fr auto; grid-template-areas: "vink naam cr" "vink info omg";
+  column-gap: 8px; align-items: center; cursor: pointer;
+  padding: 6px 8px; border-radius: 6px; border: 1px solid transparent; background: rgba(255,255,255,.5);
+}
+.kk-beest.is-aan { border-color: var(--kk-b); background: color-mix(in srgb, var(--kk-a) 30%, #fffaf0); }
+.kk-beest input { grid-area: vink; }
+.kk-beest-naam { grid-area: naam; font-family: 'Cinzel', serif; font-size: 13px; font-weight: 700; color: #2a1a08; }
+.kk-beest-cr { grid-area: cr; font-family: 'Cinzel', serif; font-size: 11px; color: var(--kk-b); }
+.kk-beest-info { grid-area: info; font-family: 'Crimson Text', serif; font-size: 13px; color: #7a6040; }
+.kk-beest-omg { grid-area: omg; display: inline-flex; gap: 3px; }
+
+.kk-keus-kop { font-family: 'Cinzel', serif; font-size: 11px; color: #7a6040; margin-top: 4px; }
+.kk-tegels { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 6px; }
+.kk-tegel {
+  display: flex; gap: 6px; align-items: flex-start; cursor: pointer;
+  padding: 7px 9px; border-radius: 7px; border: 1px solid #c4a87a; background: #fffaf0;
+}
+.kk-tegel input { margin-top: 3px; accent-color: var(--kk-b); }
+.kk-tegel:has(input:checked) { border-color: var(--kk-b); box-shadow: 0 0 0 1px var(--kk-b); background: color-mix(in srgb, var(--kk-a) 25%, #fffaf0); }
+.kk-tegel span { display: flex; flex-direction: column; }
+.kk-tegel b { font-family: 'Cinzel', serif; font-size: 12px; color: #2a1a08; }
+.kk-tegel i { font-style: normal; font-family: 'Crimson Text', serif; font-size: 13px; color: #7a6040; }
+
+.kk-klanken { margin-top: 12px; border-top: 1px dashed #c4a87a; padding-top: 8px; }
+.kk-klanken summary {
+  cursor: pointer; font-family: 'Cinzel', serif; font-size: 11px; font-weight: 700; color: #7a6040;
+  display: inline-flex; align-items: center; gap: 5px; list-style: none;
+}
+.kk-klanken summary::-webkit-details-marker { display: none; }
+.kk-klanken summary .icon { width: 13px; height: 13px; }
+.kk-klank { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 6px;
+  font-family: 'Crimson Text', serif; font-size: 14px; color: #3a2410; }
+.kk-klank span { display: inline-flex; align-items: center; gap: 5px; }
+.kk-klank .icon { width: 14px; height: 14px; color: #7a6040; }
+.kk-klank select { font-family: 'Crimson Text', serif; font-size: 14px; padding: 3px 6px; border-radius: 5px; border: 1px solid #c4a87a; background: #fffaf0; color: #3a2410; max-width: 50%; }
+
+.pm-emotes { display: grid; gap: 8px; }
+.pm-emote { display: flex; gap: 8px; align-items: center; }
+.pm-emote .dm-input { flex: 1; }
+/* In het paneel erven labels display:grid van .kk-velden — deze twee niet. */
+.kk-velden label.kk-omg { display: inline-flex; font-size: 11px; color: #3a2410; }
+.kk-velden label.kk-tegel { display: flex; font-size: inherit; }
+.kk-velden .kk-tegel input { display: inline-block; }

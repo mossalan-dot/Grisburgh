@@ -18,8 +18,8 @@ import './media-picker.js?v=11';
 import './wizard.js?v=6';
 import './tafels.js?v=2';
 import './terugblik.js?v=1';
-import './rage.js?v=1';
-import './klassekracht.js?v=1';
+import './rage.js?v=2';
+import './klassekracht.js?v=2';
 
 // ── Icon helper ──
 // Renders an inline SVG <use> reference from /img/icons.svg.
@@ -1571,7 +1571,7 @@ async function _landingNieuwTegel() {
   if (!host || !_groepsWachtwoord || document.getElementById('landing-nieuw')) return;
   let stand = null;
   try {
-    await import('./personage-maken.js?v=6');
+    await import('./personage-maken.js?v=7');
     stand = await window.personageMaken.stand();
   } catch { return; }
   if (stand?.instellingen && stand.instellingen.aan === false) return;
@@ -1593,7 +1593,7 @@ async function _landingNieuwTegel() {
 
 async function _landingNieuw() {
   try {
-    await import('./personage-maken.js?v=6');
+    await import('./personage-maken.js?v=7');
     const stand = await window.personageMaken.stand();
     if (stand?.concept && stand.concept.status !== 'gegund') {
       if (stand.concept.status === 'wacht') {
@@ -3010,12 +3010,13 @@ function _setPartyPresence(s) {
 const _BADGE_STIJL = {
   levelup:    { icoon: 'star',         beweeg: 'badge--stijgt' },
   inspiratie: { icoon: 'sparkles',     beweeg: 'badge--pulst' },
+  bardic:     { icoon: 'music',        beweeg: 'badge--pulst' },
   vloek:      { icoon: 'skull',        beweeg: 'badge--doemt' },
   buff:       { icoon: 'beer',         beweeg: '' },
   exhaustion: { icoon: 'hourglass',    beweeg: '' },
 };
 // Dezelfde volgorde als op de server; hier bepaalt hij welke beweging wint.
-const _BADGE_RANG = ['levelup', 'inspiratie', 'vloek', 'buff', 'exhaustion'];
+const _BADGE_RANG = ['levelup', 'inspiratie', 'bardic', 'vloek', 'buff', 'exhaustion'];
 
 let _badgeData = {};        // { characterId: [badge] }
 let _badgeBeurt = {};       // { characterId: index } — waar de cyclus staat
@@ -3097,7 +3098,11 @@ window._badgeKaartje = function (ev, charId) {
     <div class="badge-kaart" onclick="event.stopPropagation()">
       ${lijst.map(b => {
         const st = _BADGE_STIJL[b.soort] || {};
-        const knop = b.eigen
+        // Een Bardic Inspiration haal je niet weg, die gooi je: de die rolt en
+        // de tafel ziet wat erbij kwam.
+        const knop = b.soort === 'bardic'
+          ? `<button class="badge-kaart-knop" onclick="window._bardicGebruik('${esc(charId)}')">Gebruiken</button>`
+          : b.eigen
           ? `<button class="badge-kaart-knop" onclick="window._badgeWeg('${esc(charId)}','${esc(b.soort)}','${esc(b.id || '')}')">${
               b.soort === 'inspiratie' ? 'Gebruiken' : 'Weghalen'}</button>`
           : `<span class="badge-kaart-dm">${icon('lock')} vraag je DM</span>`;
@@ -3120,6 +3125,15 @@ window._badgeKaartje = function (ev, charId) {
     }, { once: true });
   }, 0);
   return true;
+};
+
+window._bardicGebruik = async function (charId) {
+  try {
+    const r = await api.post(`/characters/${charId}/inspiratie/gebruik`, {});
+    document.querySelector('.badge-kaart')?.remove();
+    window._showToast?.(`${icon('music')} Bardic Inspiration: +${r.worp.totaal}`);
+    window._badgesLaden?.();
+  } catch (e) { window._showToast?.(e.message || 'Lukt niet'); }
 };
 
 window._badgeWeg = async function (charId, soort, id) {
@@ -15259,7 +15273,10 @@ const HELP_CONFIG = {
     { titel: 'Wat er vanzelf terugkomt', tekst: 'Onder elke teller staat wat een **Short Rest** teruggeeft; een **Long Rest** zet alles terug, haalt lopende toestanden weg en laat een geschonken Bardic Inspiration vervallen.', afbeelding: null },
     { titel: 'Bard', tekst: '**Inspireer** geeft iemand uit je party een Bardic Inspiration. Die staat dan bovenaan zíjn blad met een knop **Gebruiken**: na zijn worp tikt hij erop, de die rolt, en iedereen ziet wat erbij kwam. Eén tegelijk per persoon.', afbeelding: null },
     { titel: 'Cleric en Paladin', tekst: '**Divine Spark** geneest (de app rolt en telt het bij) of doet schade (de app rolt; het doelwit mag nog een save). **Turn Undead** en **Divine Sense** tonen de DC en het bereik. **Lay on Hands**: kies wie en hoeveel uit je voorraad. **Divine Smite** kost een spell slot naar keuze en rolt de Radiant damage.', afbeelding: null },
-    { titel: 'Druid', tekst: '**Wild Shape**: vul in welke Beast je wordt. Je krijgt je Temporary HP, je token draagt de toestand, en hij blijft staan tot je hem beëindigt — een gevecht dat afloopt laat je gedaante ongemoeid.', afbeelding: null },
+    { titel: 'Bardic Inspiration ontvangen', tekst: 'Wie geïnspireerd is, draagt een muzieknoot op zijn portret in de partybalk én een paars kaartje bovenaan zijn blad. Tik op het portret of op het kaartje en kies **Gebruiken**: de die rolt, en iedereen ziet wat erbij kwam.', afbeelding: null },
+    { titel: 'Druid: bekende gedaantes', tekst: 'Een Druid kent een beperkt aantal Beast-gedaantes (4, dan 6 op level 4, 8 op level 8), tot een maximale CR (1/4, 1/2, 1) — en een vliegend beest pas vanaf level 8. Circle of the Moon mag tot een derde van zijn level. Kies ze onder **Bekende gedaantes**; filter daar op de omgeving waar een beest leeft (Arctic, Forest, Underwater…). Na een Long Rest mag je er een wisselen.', afbeelding: null },
+    { titel: 'Druid: Wild Shape', tekst: 'Kies een van je bekende gedaantes en de **omgeving** waarin je verandert. Die staat al op waar het dier leeft, maar je mag hem omzetten: een wolf in een sneeuwstorm is een Arctic-wolf. De omgeving kleurt het moment op het tafelscherm. Je krijgt je Temporary HP, je token draagt Wild Shape, en het blijft staan tot je het beëindigt — een gevecht dat afloopt laat je gedaante ongemoeid.', afbeelding: null },
+    { titel: 'Klanken', tekst: 'Heb je emotes (die zet je DM klaar, of je kiest ze bij het maken van je personage), dan kun je onder **Klanken** per kracht een emote kiezen. Die klinkt op het tafelscherm zodra je de kracht gebruikt: je strijdkreet bij Action Surge, je lied bij Bardic Inspiration.', afbeelding: null },
     { titel: 'Fighter en Monk', tekst: '**Second Wind** rolt je genezing. **Action Surge** en **Indomitable** tellen af en laten de tafel zien wat er gebeurt. Een Monk geeft zijn Focus Points uit aan Flurry of Blows, Patient Defense, Step of the Wind en Stunning Strike; **Uncanny Metabolism** vult ze één keer per Long Rest weer aan, met genezing erbij.', afbeelding: null },
     { titel: 'Ranger en Rogue', tekst: "**Hunter's Mark** kies je op een vijand uit het lopende gevecht (of je typt een naam). Het merk staat op zijn token en jouw Concentration op de jouwe; als het gevecht afloopt vervalt het. **Sneak Attack** rolt je extra dice in één keer.", afbeelding: null },
     { titel: 'Sorcerer', tekst: '**Innate Sorcery** loopt één minuut en eindigt vanzelf met het gevecht. **Metamagic** vraagt welke optie en rekent de kosten af. Met Font of Magic smelt je een slot om tot punten, of maak je van punten een verbruikte slot weer bruikbaar.', afbeelding: null },

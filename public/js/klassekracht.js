@@ -35,10 +35,29 @@ const THEMA = {
   artificer: { a: '#ffd8a0', b: '#3a2a14', deeltje: 'cog',            figuur: 'cirkel' },
 };
 
+// De elf omgevingen uit de Monster Manual. Bij Wild Shape kleurt de omgeving
+// het moment op tafel: een ijsbeer brengt sneeuw mee, een haai water.
+const OMGEVING = {
+  arctic:     { label: 'Arctic',     icoon: 'snowflake', a: '#eaf6ff', b: '#21405e' },
+  coastal:    { label: 'Coastal',    icoon: 'waves',     a: '#c6eef0', b: '#164a58' },
+  desert:     { label: 'Desert',     icoon: 'sunset',    a: '#ffe0a0', b: '#7a4a14' },
+  forest:     { label: 'Forest',     icoon: 'leaf',      a: '#c8f0a0', b: '#1f4a1a' },
+  grassland:  { label: 'Grassland',  icoon: 'wheat',     a: '#f2eaa0', b: '#585818' },
+  hill:       { label: 'Hill',       icoon: 'mountain',  a: '#dde6b4', b: '#48522c' },
+  mountain:   { label: 'Mountain',   icoon: 'mountain',  a: '#e2e4ee', b: '#363a4c' },
+  swamp:      { label: 'Swamp',      icoon: 'sprout',    a: '#bcd894', b: '#283a14' },
+  underdark:  { label: 'Underdark',  icoon: 'gem',       a: '#d4b4ff', b: '#1a0a2e' },
+  underwater: { label: 'Underwater', icoon: 'fish',      a: '#a6dcff', b: '#0a2a4c' },
+  urban:      { label: 'Urban',      icoon: 'castle',    a: '#e4d4bc', b: '#3a2a1a' },
+};
+
 // ── Het blok ─────────────────────────────────────────────────────────────────
 
 let _stand = null;
 let _open = null;          // welke actie heeft haar paneel open: 'klasse.actie'
+let _vormenOpen = false;   // het venster om bekende gedaantes te kiezen
+let _vormFilter = '';      // omgeving waarop dat venster filtert
+let _vormKeus = null;      // de gedaantes die je daar aanvinkt (Set)
 let _bezig = false;
 let _eigenKlik = 0;
 
@@ -65,6 +84,7 @@ function _klasseHtml(k) {
           <div class="kk-bron-herstel">${_herstelTekst(b.kort)}</div>
         </div>`).join('')}
       ${k.info.length ? `<div class="kk-info">${k.info.map(t => `<span class="kk-chip">${esc(t)}</span>`).join('')}</div>` : ''}
+      ${k.wildshape ? _vormenHtml(k.wildshape) : ''}
       ${k.actief.map(a => `
         <div class="kk-actief">
           <div class="kk-actief-kop">${ic(a.icoon)} <b>${esc(a.label)}</b>${a.tekst ? ` — ${esc(a.tekst)}` : ''}${a.doelNaam && a.doelNaam !== a.tekst ? ` <span>op ${esc(a.doelNaam)}</span>` : ''}
@@ -82,7 +102,74 @@ function _klasseHtml(k) {
           </button>`).join('')}
       </div>
       <div class="kk-paneel-plek" data-kk-paneel="${esc(k.id)}"></div>
+      ${_klankenHtml(k)}
     </div>`;
+}
+
+const _omgIcoon = (o) => ic(OMGEVING[o]?.icoon || 'map-pin', { title: OMGEVING[o]?.label || o });
+
+// Bekende gedaantes: wat de druid kan worden. Het kiezen gebeurt in een eigen
+// venstertje, want het aanbod is lang en de keuze is iets voor na een lange rust.
+function _vormenHtml(w) {
+  const vol = w.vormen.length >= w.bekend;
+  const lijst = w.vormen.length
+    ? w.vormen.map(b => `<span class="kk-vorm" title="AC ${esc(b.ac)} · ${esc(b.speed)}">
+        <b>${esc(b.naam)}</b><i>CR ${esc(b.cr)}</i>${b.omgevingen.slice(0, 3).map(_omgIcoon).join('')}</span>`).join('')
+    : '<span class="kk-leeg">Nog geen gedaantes gekozen.</span>';
+  return `
+    <div class="kk-vormen">
+      <div class="kk-bron-kop"><span>Bekende gedaantes</span>
+        <span class="kk-bron-getal">${w.vormen.length} <i>/ ${w.bekend}</i></span></div>
+      <div class="kk-vormen-lijst">${lijst}</div>
+      <div class="kk-bron-herstel">Max CR ${esc(w.maxCrTekst)}${w.vliegen ? '' : ' · geen vliegers'}${w.moon ? ' · Circle of the Moon' : ''}
+        <button class="kk-mini kk-mini--klein" data-kk-vormen>${ic('pencil')} ${vol ? 'Wisselen' : 'Kiezen'}</button></div>
+      ${_vormenOpen ? _vormKiezerHtml(w) : ''}
+    </div>`;
+}
+
+function _vormKiezerHtml(w) {
+  if (!_vormKeus) _vormKeus = new Set(w.vormen.map(b => b.naam));
+  const zichtbaar = w.aanbod.filter(b => !_vormFilter || b.omgevingen.includes(_vormFilter));
+  return `
+    <div class="kk-paneel kk-vormkiezer">
+      <div class="kk-paneel-kop">${ic('paw-print')} Welke gedaantes ken je?
+        <span>${_vormKeus.size} van ${w.bekend} gekozen</span></div>
+      <div class="kk-omgevingen">
+        <button class="kk-omg${_vormFilter ? '' : ' is-aan'}" data-kk-omgfilter="">Alles</button>
+        ${w.omgevingen.map(o => `<button class="kk-omg${_vormFilter === o ? ' is-aan' : ''}" data-kk-omgfilter="${o}">${_omgIcoon(o)} ${esc(OMGEVING[o]?.label || o)}</button>`).join('')}
+      </div>
+      <div class="kk-beesten">
+        ${zichtbaar.map(b => `
+          <label class="kk-beest${_vormKeus.has(b.naam) ? ' is-aan' : ''}">
+            <input type="checkbox" data-kk-beest="${esc(b.naam)}"${_vormKeus.has(b.naam) ? ' checked' : ''}
+              ${!_vormKeus.has(b.naam) && _vormKeus.size >= w.bekend ? 'disabled' : ''}>
+            <span class="kk-beest-naam">${esc(b.naam)}</span>
+            <span class="kk-beest-cr">CR ${esc(b.cr)}</span>
+            <span class="kk-beest-info">AC ${esc(b.ac)} · ${esc(b.speed)}</span>
+            <span class="kk-beest-omg">${b.omgevingen.map(_omgIcoon).join('')}</span>
+          </label>`).join('') || '<p class="kk-leeg">Geen Beast in deze omgeving binnen jouw CR.</p>'}
+      </div>
+      <div class="kk-paneel-knoppen">
+        <button class="kk-mini kk-mini--goud" data-kk-vormen-bewaar>${ic('check')} Bewaren</button>
+        <button class="kk-mini" data-kk-vormen-dicht>Annuleren</button>
+      </div>
+    </div>`;
+}
+
+// Welke emote er bij een kracht klinkt. Alleen als je emotes hebt; anders
+// bestaat dit stuk niet.
+function _klankenHtml(k) {
+  if (!_stand?.emotes?.length) return '';
+  const rijen = k.acties.map(a => {
+    const sleutel = `${k.id}.${a.id}`;
+    const nu = _stand.klank?.[sleutel] || '';
+    return `<label class="kk-klank"><span>${ic(a.icoon)} ${esc(a.label)}</span>
+      <select data-kk-klank="${esc(sleutel)}">
+        <option value="">Geen</option>
+        ${_stand.emotes.map(e => `<option value="${esc(e.id)}"${e.id === nu ? ' selected' : ''}>${esc(e.label)}</option>`).join('')}
+      </select></label>`;
+  }).join('');
+  return `<details class="kk-klanken"><summary>${ic('volume-2')} Klanken</summary>${rijen}</details>`;
 }
 
 function _paneelHtml(k, a) {
@@ -98,7 +185,24 @@ function _paneelHtml(k, a) {
       ? `<label>Doelwit<select data-v="doel">${s.vijanden.map(v => `<option value="${esc(v.id)}">${esc(v.naam)}</option>`).join('')}</select></label>`
       : `<label>Doelwit<input data-v="tekst" maxlength="60" placeholder="Naam"></label>`);
   }
-  if (a.tekst) velden.push(`<label>${esc(a.tekst)}<input data-v="tekst" maxlength="60"></label>`);
+  if (a.vormen) {
+    const w = k.wildshape || { vormen: [], omgevingen: [] };
+    if (!w.vormen.length) {
+      velden.push('<p class="kk-leeg">Kies eerst je bekende gedaantes, hierboven.</p>');
+    } else {
+      const eerste = w.vormen[0];
+      velden.push(`
+        <div class="kk-keus-kop">Gedaante</div>
+        <div class="kk-tegels">${w.vormen.map((b, i) => `
+          <label class="kk-tegel"><input type="radio" name="kk-vorm" data-v-radio="tekst" value="${esc(b.naam)}"
+            data-omg="${esc(b.omgevingen[0] || 'forest')}"${i === 0 ? ' checked' : ''}>
+            <span><b>${esc(b.naam)}</b><i>AC ${esc(b.ac)} · ${esc(b.speed)}</i></span></label>`).join('')}</div>
+        <div class="kk-keus-kop">Omgeving</div>
+        <div class="kk-omgevingen" data-kk-omgkeus>${w.omgevingen.map(o => `
+          <label class="kk-omg"><input type="radio" name="kk-omg" data-v-radio="omgeving" value="${o}"
+            ${o === (eerste.omgevingen[0] || 'forest') ? 'checked' : ''}>${_omgIcoon(o)} ${esc(OMGEVING[o]?.label || o)}</label>`).join('')}</div>`);
+    }
+  } else if (a.tekst) velden.push(`<label>${esc(a.tekst)}<input data-v="tekst" maxlength="60"></label>`);
   if (a.bedrag) {
     const b = k.bronnen.find(x => x.key === a.bron);
     velden.push(`<label>Hoeveel ${esc(b?.eenheid || '')}<input type="number" data-v="bedrag" min="1" max="${b?.over || 1}" value="${Math.min(5, b?.over || 1)}"></label>`);
@@ -176,8 +280,11 @@ async function krachtBlok() {
     if (k && a && a.beschikbaar && plek) { plek.innerHTML = _paneelHtml(k, a); _slotkeusBinden(plek); }
     else _open = null;
   }
+  if (_klankenOpen) el.querySelectorAll('.kk-klanken').forEach(d => { d.open = true; });
+  el.querySelectorAll('.kk-klanken').forEach(d => d.addEventListener('toggle', () => { _klankenOpen = d.open; }));
   _binden(el, id);
 }
+let _klankenOpen = false;
 
 function _slotkeusBinden(plek) {
   const keus = plek.querySelector('.kk-slotkeus');
@@ -205,11 +312,38 @@ function _binden(el, id) {
     _doe(id, kid, aid, {});
   }));
   el.querySelectorAll('[data-kk-dicht]').forEach(b => b.addEventListener('click', () => { _open = null; krachtBlok(); }));
+  // Kies je een andere gedaante, dan springt de omgeving naar waar die leeft —
+  // je mag hem daarna nog omzetten.
+  el.querySelectorAll('input[name="kk-vorm"]').forEach(r => r.addEventListener('change', () => {
+    const doel = el.querySelector(`input[name="kk-omg"][value="${r.dataset.omg}"]`);
+    if (doel) doel.checked = true;
+  }));
+  el.querySelector('[data-kk-vormen]')?.addEventListener('click', () => {
+    _vormenOpen = !_vormenOpen; _vormKeus = null; _vormFilter = ''; krachtBlok();
+  });
+  el.querySelector('[data-kk-vormen-dicht]')?.addEventListener('click', () => { _vormenOpen = false; _vormKeus = null; krachtBlok(); });
+  el.querySelectorAll('[data-kk-omgfilter]').forEach(b => b.addEventListener('click', () => { _vormFilter = b.dataset.kkOmgfilter; krachtBlok(); }));
+  el.querySelectorAll('[data-kk-beest]').forEach(c => c.addEventListener('change', () => {
+    if (c.checked) _vormKeus.add(c.dataset.kkBeest); else _vormKeus.delete(c.dataset.kkBeest);
+    krachtBlok();
+  }));
+  el.querySelector('[data-kk-vormen-bewaar]')?.addEventListener('click', async () => {
+    try {
+      await api.put(`/characters/${id}/klassekracht/vormen`, { vormen: [..._vormKeus] });
+      _vormenOpen = false; _vormKeus = null;
+    } catch (e) { window._showToast?.(e?.message || 'Dat lukte niet'); }
+    krachtBlok();
+  });
+  el.querySelectorAll('[data-kk-klank]').forEach(sel => sel.addEventListener('change', async () => {
+    try { await api.put(`/characters/${id}/klassekracht/klank`, { sleutel: sel.dataset.kkKlank, emoteId: sel.value || null }); }
+    catch (e) { window._showToast?.(e?.message || 'Dat lukte niet'); }
+  }));
   el.querySelectorAll('[data-kk-doe]').forEach(b => b.addEventListener('click', () => {
     const [kid, aid] = b.dataset.kkDoe.split('.');
     const paneel = b.closest('.kk-paneel');
     const body = {};
     paneel.querySelectorAll('[data-v]').forEach(v => { body[v.dataset.v] = v.value; });
+    paneel.querySelectorAll('[data-v-radio]:checked').forEach(v => { body[v.dataset.vRadio] = v.value; });
     const rijen = [...paneel.querySelectorAll('.kk-slotrij')];
     if (rijen.length) body.slots = rijen.flatMap(r => Array(+r.querySelector('[data-aantal]').textContent).fill(+r.dataset.niveau));
     _doe(id, kid, aid, body);
@@ -328,7 +462,7 @@ function _merk(d, aan) {
   const oud = [...m.querySelectorAll('.kk-merk')].find(x => x.dataset.sleutel === sleutel);
   if (!aan) { if (oud) { oud.classList.add('is-weg'); setTimeout(() => oud.remove(), 1200); } return; }
   if (oud) return;
-  const t = THEMA[d.thema] || THEMA.wizard;
+  const t = _themaVan(d);
   const el = document.createElement('div');
   el.className = 'rage-merk kk-merk';
   el.dataset.sleutel = sleutel;
@@ -346,8 +480,21 @@ function _merk(d, aan) {
   el.classList.add('is-aan');
 }
 
-function _moment(d) {
+// Een gedaante neemt zijn omgeving mee; de rest houdt het thema van zijn klasse.
+const _themaVan = (d) => {
   const t = THEMA[d.thema] || THEMA.wizard;
+  const o = d.omgeving && OMGEVING[d.omgeving];
+  return o ? { ...t, a: o.a, b: o.b, deeltje: o.icoon } : t;
+};
+
+function _emote(d) {
+  if (!d?.emote) return;
+  // Iets later dan de flits: eerst het beeld, dan de stem.
+  setTimeout(() => { try { new Audio(api.fileUrl(d.emote)).play().catch(() => {}); } catch { /* stil */ } }, 450);
+}
+
+function _moment(d) {
+  const t = _themaVan(d);
   document.getElementById('kk-moment')?.remove();
   const ov = document.createElement('div');
   ov.id = 'kk-moment';
@@ -368,7 +515,8 @@ function _moment(d) {
       <div class="kk-woord">${esc(d.woord || d.label || '')}</div>
       ${d.getal != null ? `<div class="kk-getal" data-getal="${d.getal}">0</div>` : ''}
       ${d.stralen ? `<div class="kk-stralen">${d.stralen.map(s => `<span>${s}</span>`).join('')}</div>` : ''}
-      <div class="kk-regel">${esc(d.naam)}${metDoel ? ` → ${esc(d.doel.naam)}` : ''}${d.tekst ? ` · ${esc(d.tekst)}` : ''}</div>
+      <div class="kk-regel">${esc(d.naam)}${metDoel ? ` → ${esc(d.doel.naam)}` : ''}${d.tekst ? ` ${d.vorm ? '' : '· '}${esc(d.tekst)}` : ''}${d.omgeving && OMGEVING[d.omgeving] ? ` · ${esc(OMGEVING[d.omgeving].label)}` : ''}</div>
+      ${d.vorm ? `<div class="kk-worpen">AC ${esc(d.vorm.ac)} · ${esc(d.vorm.speed)} · CR ${esc(d.vorm.cr)}</div>` : ''}
       ${d.formule && d.worpen?.length ? `<div class="kk-worpen">${esc(d.formule)} · ${d.worpen.join(' + ')}</div>` : ''}
     </div>`;
   document.body.appendChild(ov);
@@ -376,6 +524,7 @@ function _moment(d) {
   ov.classList.add('is-aan');
   setTimeout(() => _telOp(ov.querySelector('.kk-getal'), d.getal), 900);
   window.soundManager?.klasseKlank?.(d.thema);
+  _emote(d);
   setTimeout(() => {
     ov.classList.add('is-weg');
     setTimeout(() => ov.remove(), 900);

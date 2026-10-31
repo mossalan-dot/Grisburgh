@@ -163,6 +163,10 @@ function _magBestandZien(req, id) {
   const sessie = req.session || {};
   const ingelogd = sessie.role === 'dm' || !!sessie.characterId;
   if (ingelogd) return true;                 // scoping op de campagne doet de middleware
+  // Wie een personage aan het maken is, mag zijn eigen portret en emotes horen
+  // en zien — anders kan hij niet nagaan wat hij net uploadde.
+  const c = sessie.conceptId;
+  if (c && (id === c || String(id).startsWith(c + '_emote_'))) return true;
   return _isLandingsPortret(id);
 }
 
@@ -4608,7 +4612,8 @@ function _rageMeld(req, dmState, charId, aan, extra = {}) {
   try { p = (storage.readJSON('entities.json').personages || []).find(x => x.id === charId); } catch { /* ok */ }
   const stand = _rageStand(dmState, charId);
   const geluid = aan ? (storage.readJSON('sounds.json') || {}).momenten?.rage : null;
-  const bericht = { characterId: charId, naam: p?.name || 'Iemand', actief: aan, geluid: geluid ? String(geluid) : null, ...extra };
+  const bericht = { characterId: charId, naam: p?.name || 'Iemand', actief: aan, geluid: geluid ? String(geluid) : null,
+    emote: aan ? _kkEmoteVoor(dmState, charId, 'barbarian.rage') : null, ...extra };
   io.to(_campagneRoom(req)).emit('rage:updated', bericht);
   // Het tafelscherm kan naam en portret niet zelf afleiden — zelfde patroon
   // als `levelup:display`.
@@ -4635,7 +4640,10 @@ function _magRage(req, charId) {
 router.get('/characters/:characterId/rage', attachRole, (req, res) => {
   const { characterId } = req.params;
   if (!_magRage(req, characterId)) return res.status(403).json({ error: 'Geen toegang' });
-  res.json({ rage: _rageStand(readDmState(), characterId) });
+  const dmState = readDmState();
+  res.json({ rage: _rageStand(dmState, characterId),
+    emotes: _kkEmotes(characterId).map(e => ({ id: e.id, label: e.label })),
+    klank: (dmState.playerKracht || {})[characterId]?.klank?.['barbarian.rage'] || null });
 });
 
 // Rage aan. Speler zelf of de DM namens hem.
@@ -4763,6 +4771,54 @@ function _rageRust(dmState, spelers, soort) {
 //   dmState.inspiratieDie[charId] = { die, vanId, vanNaam }  // wat een Bard je gaf
 const KK = require('../lib/klassekrachten');
 
+// ── Wild Shape: wat een druid kan worden ────────────────────────────────────
+// De beesten komen uit de SRD (`bronnen/srd-monsters.json`) plus wat de
+// campagne zelf als Beast in `monsters.json` heeft; de omgeving per beest uit
+// `bronnen/beest-omgevingen.json` (Monster Manual-indeling, zie het script).
+// De regels zijn die van de PHB 2024: Known Forms 4/6/8 op level 2/4/8, max CR
+// 1/4, 1/2, 1, en een vliegsnelheid pas vanaf 8. Circle of the Moon mag tot
+// een derde van zijn level (afgerond naar beneden).
+const OMGEVINGEN = ['arctic', 'coastal', 'desert', 'forest', 'grassland', 'hill',
+  'mountain', 'swamp', 'underdark', 'underwater', 'urban'];
+let _beestOmgeving = null;
+const _crGetal = (cr) => {
+  const t = String(cr ?? '').trim();
+  if (t.includes('/')) { const [a, b] = t.split('/').map(Number); return b ? a / b : 0; }
+  return parseFloat(t) || 0;
+};
+function _beesten() {
+  if (!_beestOmgeving) { try { _beestOmgeving = require('../bronnen/beest-omgevingen.json'); } catch { _beestOmgeving = {}; } }
+  const uit = new Map();
+  const kort = (naam, sb, eigen) => ({
+    naam, cr: String(sb.cr ?? ''), crGetal: _crGetal(sb.cr),
+    ac: String(sb.ac ?? '').replace(/\s*\(.*\)$/, ''), hp: String(sb.hp ?? sb.maxHp ?? ''),
+    speed: String(sb.speed ?? ''), vliegt: /\bfly\b/i.test(String(sb.speed ?? '')),
+    aanvallen: String(sb.actions || '').match(/\*\*\*([^.*]+)\.\*\*\*/g)?.map(x => x.replace(/\*|\./g, '').trim()).slice(0, 4) || [],
+    omgevingen: _beestOmgeving[naam] || [], eigen: !!eigen,
+  });
+  try {
+    for (const m of bronnen.lees('srd-monsters') || require('../bronnen/srd-monsters.json')) {
+      if (/beast/i.test(m.statblock?.type || '')) uit.set(m.name.toLowerCase(), kort(m.name, { ...m.statblock, cr: m.cr }));
+    }
+  } catch { /* geen SRD */ }
+  try {
+    for (const m of (storage.readJSON('monsters.json')?.monsters || [])) {
+      if (/beast/i.test(m.type || '') && m.name) uit.set(m.name.toLowerCase(), kort(m.name, m, true));
+    }
+  } catch { /* geen eigen monsters */ }
+  return [...uit.values()].sort((a, b) => a.crGetal - b.crGetal || a.naam.localeCompare(b.naam));
+}
+function _wildShapeRegels(lvl, profiel) {
+  const moon = [profiel?.subclass, profiel?.multiSubclass].some(x => /moon/i.test(String(x || '')));
+  const basis = KK.drempel({ 2: 0.25, 4: 0.5, 8: 1 }, lvl);
+  return {
+    bekend: KK.drempel({ 2: 4, 4: 6, 8: 8 }, lvl),
+    maxCr: moon && lvl >= 3 ? Math.max(basis, Math.floor(lvl / 3)) : basis,
+    vliegen: lvl >= 8, moon,
+  };
+}
+const _crTekst = (n) => ({ 0.125: '1/8', 0.25: '1/4', 0.5: '1/2' }[n] || String(n));
+
 function _kkProfiel(dmState, charId) {
   const p = { ...((dmState.playerProfiles || {})[charId] || {}) };
   p._totaalLevel = (parseInt(p.klasseLevel ?? p.level) || 0)
@@ -4819,7 +4875,7 @@ function _kkStand(dmState, charId, entities) {
       if (a.slot && !Object.values(slots).some(s => s.max - s.used > 0)) { beschikbaar = false; waarom = 'Geen spell slot over'; }
       return {
         id: a.id, label: a.label, icoon: a.icoon, bron: a.bron || null, kost: a.kost || null,
-        soort: a.soort, doel: a.doel || null, bedrag: !!a.bedrag, slot: !!a.slot, tekst: a.tekst || null,
+        soort: a.soort, doel: a.doel || null, bedrag: !!a.bedrag, slot: !!a.slot, tekst: a.tekst || null, vormen: !!a.vormen,
         keuze: a.keuze || null, kosten: a.kosten || null,
         budget: a.budget ? a.budget(level) : null, maxNiveau: a.maxNiveau || null,
         formule: a.formule ? (a.stralen ? `${a.stralen(level)}× ${a.formule(level, profiel)}` : (a.slot ? null : a.formule(level, profiel))) : null,
@@ -4831,17 +4887,34 @@ function _kkStand(dmState, charId, entities) {
       .filter(([s]) => s.startsWith(id + '.'))
       .map(([s, v]) => {
         const a = def.acties.find(x => `${id}.${x.id}` === s);
-        return a ? { actie: a.id, label: a.label, icoon: a.icoon, tekst: v.tekst || '', doelNaam: v.doelNaam || '',
-          effecten: a.effecten ? a.effecten(level, profiel) : [] } : null;
+        if (!a) return null;
+        // Een gedaante zegt meer dan "Wolf": zijn AC, snelheid en aanvallen.
+        const beest = a.vormen ? _beesten().find(b => b.naam === v.tekst) : null;
+        const vormRegel = beest ? [`AC ${beest.ac} · ${beest.speed}${beest.aanvallen.length ? ' · ' + beest.aanvallen.join(', ') : ''}`] : [];
+        return { actie: a.id, label: a.label, icoon: a.icoon, tekst: v.tekst || '', doelNaam: v.doelNaam || '',
+          omgeving: v.omgeving || '', effecten: [...vormRegel, ...(a.effecten ? a.effecten(level, profiel) : [])] };
       }).filter(Boolean);
+    let wildshape = null;
+    if (def.acties.some(a => a.vormen) && level >= 2) {
+      const regels = _wildShapeRegels(level, profiel);
+      const alle = _beesten();
+      const mag = (b) => b.crGetal <= regels.maxCr && (regels.vliegen || !b.vliegt);
+      const bekend = (opslag.vormen || []).map(n => alle.find(b => b.naam === n)).filter(Boolean);
+      wildshape = { ...regels, maxCrTekst: _crTekst(regels.maxCr), vormen: bekend,
+        aanbod: alle.filter(mag), omgevingen: OMGEVINGEN };
+    }
     return { id, naam: def.naam, thema: def.thema, icoon: def.icoon, level,
-      bronnen, info: def.info ? def.info(level, profiel) : [], acties, actief };
+      bronnen, info: def.info ? def.info(level, profiel) : [], acties, actief, wildshape };
   });
   const ins = (dmState.inspiratieDie || {})[charId] || null;
   if (!klassen.length && !ins) return null;
   const combat = _kkCombat();
   return {
     klassen,
+    // De emotes van deze speler (alleen die met een geluid), en welke bij
+    // welke kracht klinkt.
+    emotes: _kkEmotes(charId).map(e => ({ id: e.id, label: e.label })),
+    klank: opslag.klank || {},
     ontvangen: ins ? { die: ins.die, vanNaam: ins.vanNaam } : null,
     slots,
     party: _kkParty(entities, charId),
@@ -4862,6 +4935,19 @@ function _kkGenees(req, dmState, combat, doelId, n) {
   dmState.playerHp[doelId] = { ...hp, current: naar };
   req.app.get('io')?.to(_campagneRoom(req)).emit('player:hp-updated', { characterId: doelId, ...dmState.playerHp[doelId] });
   return naar - van;
+}
+
+// De emotes die de DM (of de speler bij het maken) voor dit personage
+// klaarzette: `sounds.json → emotes[charId].library`.
+function _kkEmotes(charId) {
+  let raw = null;
+  try { raw = (storage.readJSON('sounds.json') || {}).emotes?.[charId]; } catch { /* geen geluiden */ }
+  const lib = Array.isArray(raw) ? raw : (raw?.library || []);
+  return lib.filter(e => e && e.id && e.fileId);
+}
+function _kkEmoteVoor(dmState, charId, sleutel) {
+  const id = (dmState.playerKracht || {})[charId]?.klank?.[sleutel];
+  return id ? (_kkEmotes(charId).find(e => e.id === id)?.fileId || null) : null;
 }
 
 function _kkRol(formule) {
@@ -4981,11 +5067,21 @@ router.post('/characters/:characterId/klassekracht', attachRole, (req, res) => {
     case 'actief': {
       const tekst = String(b.tekst || '').trim().slice(0, 60);
       if (a.tekst && !tekst) return res.status(400).json({ error: a.tekst });
-      opslag.actief[sleutel] = { sinds: Date.now(), tekst, doelNaam, doelToken: doelToken?.id || null };
+      let omgeving = '';
+      if (a.vormen) {
+        // Alleen een gedaante die je kent. De omgeving kies je zelf; staat er
+        // niets, dan de eerste waar dat beest leeft.
+        if (!(opslag.vormen || []).includes(tekst)) return res.status(409).json({ error: 'Die gedaante ken je niet — kies hem eerst bij je bekende gedaantes' });
+        const beest = _beesten().find(x => x.naam === tekst);
+        omgeving = OMGEVINGEN.includes(b.omgeving) ? b.omgeving : (beest?.omgevingen?.[0] || 'forest');
+        uitkomst.omgeving = omgeving;
+        uitkomst.vorm = beest ? { naam: beest.naam, ac: beest.ac, speed: beest.speed, cr: beest.cr } : null;
+      }
+      opslag.actief[sleutel] = { sinds: Date.now(), tekst, doelNaam, doelToken: doelToken?.id || null, omgeving };
       if (a.tempHp) _tempHpGeven(dmState, characterId, String(a.tempHp(lvl)));
       _kkConditie(myToken, a.conditie, true);
       _kkConditie(doelToken, a.doelConditie, true);
-      uitkomst.tekst = tekst || doelNaam || a.label;
+      uitkomst.tekst = a.vormen ? `wordt een ${tekst}` : (tekst || doelNaam || a.label);
       break;
     }
     case 'inspiratie': {
@@ -5073,8 +5169,55 @@ router.post('/characters/:characterId/klassekracht', attachRole, (req, res) => {
     actief: a.soort === 'actief', doelId, doelNaam,
     tekst: uitkomst.tekst, getal: uitkomst.getal, worpen: uitkomst.worpen, formule: uitkomst.formule,
     stralen: uitkomst.stralen || null, die: uitkomst.die || null,
+    omgeving: uitkomst.omgeving || null, vorm: uitkomst.vorm || null,
+    emote: _kkEmoteVoor(dmState, characterId, sleutel),
   });
+  // Een Bardic Inspiration hoort als badge op het portret van wie hem kreeg.
+  if (a.soort === 'inspiratie') req.app.get('io')?.to(_campagneRoom(req)).emit('badges:updated', { characterId: doelId });
   res.json({ ok: true, uitkomst, kracht: _kkStand(dmState, characterId, entities) });
+});
+
+// Welke gedaantes de druid kent. Gecontroleerd tegen de regels van zijn level:
+// niet te veel, niet te sterk, niet vliegend vóór 8.
+router.put('/characters/:characterId/klassekracht/vormen', attachRole, (req, res) => {
+  const { characterId } = req.params;
+  if (req.role !== 'dm' && req.session?.characterId !== characterId) return res.status(403).json({ error: 'Geen toegang' });
+  const dmState = readDmState();
+  const profiel = _kkProfiel(dmState, characterId);
+  const druid = KK.klassenVan(profiel).find(k => k.id === 'druid');
+  if (!druid || druid.level < 2) return res.status(409).json({ error: 'Wild Shape krijg je als Druid op level 2' });
+  const regels = _wildShapeRegels(druid.level, profiel);
+  const alle = _beesten();
+  const namen = [...new Set((Array.isArray(req.body?.vormen) ? req.body.vormen : []).map(String))];
+  if (namen.length > regels.bekend) return res.status(400).json({ error: `Je kent er hooguit ${regels.bekend}` });
+  for (const n of namen) {
+    const b = alle.find(x => x.naam === n);
+    if (!b) return res.status(400).json({ error: `${n} is geen Beast die we kennen` });
+    if (b.crGetal > regels.maxCr) return res.status(400).json({ error: `${n} is te sterk (max CR ${_crTekst(regels.maxCr)})` });
+    if (b.vliegt && !regels.vliegen) return res.status(400).json({ error: `${n} vliegt — dat kan pas vanaf level 8` });
+  }
+  _kkOpslag(dmState, characterId).vormen = namen;
+  storage.writeJSON('dm-state.json', dmState);
+  res.json({ ok: true, kracht: _kkStand(dmState, characterId, storage.readJSON('entities.json')) });
+});
+
+// Welke emote er klinkt bij een kracht. `sleutel` is '<klasse>.<actie>' —
+// ook 'barbarian.rage', want die heeft zijn eigen route maar dezelfde vraag.
+router.put('/characters/:characterId/klassekracht/klank', attachRole, (req, res) => {
+  const { characterId } = req.params;
+  if (req.role !== 'dm' && req.session?.characterId !== characterId) return res.status(403).json({ error: 'Geen toegang' });
+  const sleutel = String(req.body?.sleutel || '');
+  const [kid, aid] = sleutel.split('.');
+  const bestaat = sleutel === 'barbarian.rage' || KK.KLASSEN[kid]?.acties.some(a => a.id === aid);
+  if (!bestaat) return res.status(400).json({ error: 'Onbekende kracht' });
+  const emoteId = req.body?.emoteId ? String(req.body.emoteId) : null;
+  if (emoteId && !_kkEmotes(characterId).some(e => e.id === emoteId)) return res.status(400).json({ error: 'Die emote heb je niet' });
+  const dmState = readDmState();
+  const o = _kkOpslag(dmState, characterId);
+  o.klank = o.klank || {};
+  if (emoteId) o.klank[sleutel] = emoteId; else delete o.klank[sleutel];
+  storage.writeJSON('dm-state.json', dmState);
+  res.json({ ok: true, klank: o.klank });
 });
 
 // Een toestand beëindigen: Wild Shape, Hunter's Mark, Innate Sorcery.
@@ -5125,6 +5268,7 @@ router.post('/characters/:characterId/inspiratie/gebruik', attachRole, (req, res
     klasse: 'bard', thema: 'bard', actie: 'inspiratie-gebruik', woord: 'Inspiratie',
     tekst: `+${worp.totaal} dankzij ${ins.vanNaam}`, getal: worp.totaal, worpen: worp.worpen, formule: worp.formule,
   });
+  req.app.get('io')?.to(_campagneRoom(req)).emit('badges:updated', { characterId });
   res.json({ ok: true, worp, kracht: _kkStand(dmState, characterId, entities) });
 });
 
@@ -6244,6 +6388,13 @@ router.patch('/personage-concept/:id', (req, res) => {
     c.multiKlasseLevel = Math.max(0, Math.min((parseInt(c.level) || 1) - 1, parseInt(b.multiKlasseLevel) || 0));
   }
   if (b.multiSubclass !== undefined) c.multiSubclass = tekst(b.multiSubclass, 60);
+  // Alleen de namen van de emotes; bestanden gaan via hun eigen route.
+  if (Array.isArray(b.emotes) && Array.isArray(c.emotes)) {
+    for (const e of c.emotes) {
+      const nieuw = b.emotes.find(x => x?.id === e.id);
+      if (nieuw?.label !== undefined) e.label = tekst(nieuw.label, 30) || e.label;
+    }
+  }
   // Terugsturen gaf een reden; zodra hij er weer aan werkt is die van de baan.
   if (c.status === 'terug') { c.status = 'bezig'; }
   c.bijgewerkt = new Date().toISOString();
@@ -6291,6 +6442,44 @@ router.post('/personage-concept/:id/portret', metUpload(uploadMedia.single('file
   c.bijgewerkt = new Date().toISOString();
   storage.writeJSON('dm-state.json', dmState);
   res.json({ ok: true, fileId: c.id });
+});
+
+// Hoe hij klinkt: tot vier korte geluiden met een naam, die na het gunnen zijn
+// emotes worden (`sounds.json → emotes[entityId]`). Alleen geluid, en kort:
+// een strijdkreet, geen hoorspel.
+const _EMOTE_MAX = 4, _EMOTE_BYTES = 3 * 1024 * 1024;
+router.post('/personage-concept/:id/emote', metUpload(uploadMedia.single('file')), (req, res) => {
+  const dmState = readDmState();
+  const c = _concepten(dmState)[req.params.id];
+  if (!c) return res.status(404).json({ error: 'Niet gevonden' });
+  if (req.session?.conceptId !== c.id && req.session?.role !== 'dm') return res.status(403).json({ error: 'Geen toegang' });
+  if (c.status === 'gegund') return res.status(409).json({ error: 'Dit personage is al gemaakt' });
+  if (!req.file || !/^audio\//.test(req.file.mimetype)) return res.status(400).json({ error: 'Alleen een geluidsbestand' });
+  if (!_sniffMedia(req.file.buffer)) return res.status(415).json({ error: 'Dat bestand is geen geluid' });
+  if (req.file.size > _EMOTE_BYTES) return res.status(413).json({ error: 'Te groot — hooguit 3 MB' });
+  c.emotes = c.emotes || [];
+  if (c.emotes.length >= _EMOTE_MAX) return res.status(409).json({ error: `Hooguit ${_EMOTE_MAX} geluiden` });
+  const sleutel = Math.random().toString(36).slice(2, 8);
+  const fileId = `${c.id}_emote_${sleutel}`;
+  storage.saveFile(fileId, req.file.buffer, req.file.mimetype);
+  c.emotes.push({ id: `em_${sleutel}`, label: String(req.body?.label || '').trim().slice(0, 30) || 'Emote', fileId });
+  c.bijgewerkt = new Date().toISOString();
+  storage.writeJSON('dm-state.json', dmState);
+  res.json({ ok: true, emotes: c.emotes });
+});
+
+router.delete('/personage-concept/:id/emote/:emoteId', (req, res) => {
+  const dmState = readDmState();
+  const c = _concepten(dmState)[req.params.id];
+  if (!c) return res.status(404).json({ error: 'Niet gevonden' });
+  if (req.session?.conceptId !== c.id && req.session?.role !== 'dm') return res.status(403).json({ error: 'Geen toegang' });
+  if (c.status === 'gegund') return res.status(409).json({ error: 'Dit personage is al gemaakt' });
+  const weg = (c.emotes || []).find(e => e.id === req.params.emoteId);
+  if (!weg) return res.status(404).json({ error: 'Niet gevonden' });
+  c.emotes = c.emotes.filter(e => e !== weg);
+  try { storage.deleteFile?.(weg.fileId); } catch { /* het bestand mag al weg zijn */ }
+  storage.writeJSON('dm-state.json', dmState);
+  res.json({ ok: true, emotes: c.emotes });
 });
 
 // Eén worp op de tafel die de DM aanwees. De app verzint geen trinkets: wat
@@ -6411,6 +6600,17 @@ router.post('/personage-concept/:id/:besluit', requireDM, (req, res) => {
   if (goud) {
     if (!dmState.playerCurrency) dmState.playerCurrency = {};
     dmState.playerCurrency[ent.id] = { fl: goud, kn: 0, cl: 0 };
+  }
+  // Zijn emotes: de bestanden blijven op het id van het concept staan (een id
+  // is maar een naam), de bibliotheek hangt aan het kaartje.
+  if ((c.emotes || []).length) {
+    try {
+      const sounds = storage.readJSON('sounds.json') || {};
+      if (!sounds.emotes) sounds.emotes = {};
+      const lib = c.emotes.map(e => ({ id: e.id, label: e.label, fileId: e.fileId }));
+      sounds.emotes[ent.id] = { library: lib, selected: lib.map(e => e.id) };
+      storage.writeJSON('sounds.json', sounds);
+    } catch (e) { fouten.meld('personage-emotes', e); }
   }
   c.status = 'gegund';
   c.entityId = ent.id;
@@ -8122,7 +8322,7 @@ router.patch('/player-profile/:characterId', attachRole, (req, res) => {
 // Bewust níét hierin: condities en concentratie (die leven in een gevecht en
 // veranderen per beurt), tijdelijke HP en een eed (die staan al op het
 // spelersblad), en afwezigheid (dat is het stipje).
-const _BADGE_VOLGORDE = ['levelup', 'inspiratie', 'vloek', 'buff', 'exhaustion'];
+const _BADGE_VOLGORDE = ['levelup', 'inspiratie', 'bardic', 'vloek', 'buff', 'exhaustion'];
 
 function _badgesVoor(dmState, characterId) {
   const uit = [];
@@ -8138,6 +8338,15 @@ function _badgesVoor(dmState, characterId) {
   if ((dmState.playerInspiration || {})[characterId]) uit.push({
     soort: 'inspiratie', label: 'Inspiration',
     uitleg: 'Gooi een worp opnieuw, of geef jezelf voordeel. Op is op.',
+    getal: null, eigen: true,
+  });
+
+  // Bardic Inspiration van een medespeler: zelfde plek als Inspiration, want
+  // het is net zo goed iets dat je kunt opmaken.
+  const bi = (dmState.inspiratieDie || {})[characterId];
+  if (bi) uit.push({
+    soort: 'bardic', label: `Bardic Inspiration ${bi.die}`,
+    uitleg: `Van ${bi.vanNaam}. Tel hem op bij een d20 Test, nadat je gegooid hebt. Op is op.`,
     getal: null, eigen: true,
   });
 

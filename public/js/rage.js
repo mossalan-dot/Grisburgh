@@ -56,8 +56,11 @@ async function rageBlok() {
   const el = document.getElementById('rage-blok');
   const id = window._lastCharId;
   if (!el || !id) return;
-  let stand = null;
-  try { stand = (await api.get(`/characters/${id}/rage`))?.rage; } catch { /* geen blok */ }
+  let stand = null, emotes = [], klank = null;
+  try {
+    const r = await api.get(`/characters/${id}/rage`);
+    stand = r?.rage; emotes = r?.emotes || []; klank = r?.klank || null;
+  } catch { /* geen blok */ }
   // Geen Barbarian: dan bestaat dit blok niet. Geen grijze regel die vertelt wat je mist.
   if (!stand) { el.innerHTML = ''; _rand(false); return; }
   const isIk = mijnId() === id;
@@ -112,9 +115,21 @@ async function rageBlok() {
         </ul>` : ''}
       ${relentless}
       ${persistent}
+      ${emotes.length ? `
+        <details class="kk-klanken"><summary>${ic('volume-2')} Klank</summary>
+          <label class="kk-klank"><span>${ic('angry')} Rage</span>
+            <select data-rage-klank>
+              <option value="">Geen</option>
+              ${emotes.map(e => `<option value="${esc(e.id)}"${e.id === klank ? ' selected' : ''}>${esc(e.label)}</option>`).join('')}
+            </select></label>
+        </details>` : ''}
     </div>`;
 
   el.querySelectorAll('[data-rage]').forEach(b => b.addEventListener('click', () => _actie(b.dataset.rage, id)));
+  el.querySelector('[data-rage-klank]')?.addEventListener('change', async (ev) => {
+    try { await api.put(`/characters/${id}/klassekracht/klank`, { sleutel: 'barbarian.rage', emoteId: ev.target.value || null }); }
+    catch (e) { window._showToast?.(e?.message || 'Dat lukte niet'); }
+  });
 }
 
 async function _actie(wat, id) {
@@ -242,7 +257,12 @@ function _brul(d) {
 // `rage:display` — alleen het tafelscherm krijgt hem (eigen room).
 function rageDisplay(d) {
   if (!d?.characterId) return;
-  if (d.actief && !d.stil) { _brul(d); _klank(d, 'brul'); return; }
+  if (d.actief && !d.stil) {
+    _brul(d); _klank(d, 'brul');
+    // Zijn eigen strijdkreet, als hij er een koos — net na de brul.
+    if (d.emote) setTimeout(() => { try { new Audio(api.fileUrl(d.emote)).play().catch(() => {}); } catch { /* stil */ } }, 700);
+    return;
+  }
   if (!d.actief) {
     _merk(d, false);
     if (!d.stil) _klank(d, 'doof');

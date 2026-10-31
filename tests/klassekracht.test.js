@@ -148,16 +148,83 @@ describe('Klassekrachten', () => {
     assert.strictEqual((await doe('paladin', { klasse: 'paladin', actie: 'handen', doel: id.fighter, bedrag: 20 })).status, 409);
   });
 
-  it('Wild Shape: vraagt een gedaante, geeft Temporary HP, en een lange rust beëindigt hem', async () => {
-    assert.strictEqual((await doe('druid', { klasse: 'druid', actie: 'wildshape' })).status, 400);
-    const r = await doe('druid', { klasse: 'druid', actie: 'wildshape', tekst: 'Wolf' });
+  it('Wild Shape: bekende gedaantes volgens de PHB — aantal, CR en geen vliegers vóór 8', async () => {
+    const put = (vormen) => req(server, 'PUT', `/api/characters/${id.druid}/klassekracht/vormen`, { vormen }, dm);
+    assert.strictEqual((await put(['Wolf', 'Cat', 'Boar', 'Badger', 'Rat'])).status, 400, 'level 2 kent er vier');
+    assert.strictEqual((await put(['Ape'])).status, 400, 'CR 1/2 is te sterk op level 2');
+    assert.strictEqual((await put(['Eagle'])).status, 400, 'een vlieger pas vanaf level 8');
+    assert.strictEqual((await put(['Geen Beest'])).status, 400);
+    const r = await put(['Wolf', 'Cat', 'Polar Bear'].slice(0, 2));
     assert.strictEqual(r.status, 200);
-    assert.strictEqual(r.body.kracht.klassen[0].actief[0].tekst, 'Wolf');
-    assert.strictEqual((await doe('druid', { klasse: 'druid', actie: 'wildshape', tekst: 'Beer' })).status, 409, 'loopt al');
+    const w = r.body.kracht.klassen[0].wildshape;
+    assert.deepStrictEqual(w.vormen.map(b => b.naam), ['Wolf', 'Cat']);
+    assert.strictEqual(w.bekend, 4);
+    assert.strictEqual(w.maxCrTekst, '1/4');
+    assert.ok(w.aanbod.every(b => !b.vliegt && b.crGetal <= 0.25), 'het aanbod houdt zich aan de regels');
+    assert.ok(w.vormen[0].omgevingen.includes('forest'), 'de Wolf leeft in het bos');
+    assert.ok(w.omgevingen.includes('arctic') && w.omgevingen.length === 11);
+  });
+
+  it('Wild Shape: alleen een bekende gedaante, met een omgeving naar keuze, en een lange rust beëindigt hem', async () => {
+    assert.strictEqual((await doe('druid', { klasse: 'druid', actie: 'wildshape', tekst: 'Polar Bear' })).status, 409);
+    const tafel = await connect(port, dm);
+    tafel.emit('display:register');
+    await new Promise(r => setTimeout(r, 150));
+    const opTafel = waitFor(tafel, 'klasse:display', 900);
+    const r = await doe('druid', { klasse: 'druid', actie: 'wildshape', tekst: 'Wolf', omgeving: 'arctic' });
+    const t = await opTafel;
+    tafel.close();
+    assert.strictEqual(r.status, 200, JSON.stringify(r.body));
+    const actief = r.body.kracht.klassen[0].actief[0];
+    assert.strictEqual(actief.tekst, 'Wolf');
+    assert.strictEqual(actief.omgeving, 'arctic');
+    assert.match(actief.effecten[0], /^AC 12 · 40 ft\./, 'de gedaante zegt wat hij kan');
+    assert.strictEqual(t.omgeving, 'arctic');
+    assert.strictEqual(t.vorm.naam, 'Wolf');
+    assert.strictEqual((await doe('druid', { klasse: 'druid', actie: 'wildshape', tekst: 'Cat' })).status, 409, 'loopt al');
+    // Geen omgeving opgegeven: dan de eerste waar het beest leeft.
     await req(server, 'POST', '/api/party/long-rest', {}, dm);
     const na = await stand('druid');
     assert.deepStrictEqual(na.klassen[0].actief, []);
     assert.strictEqual(bron(na, 'druid', 'wildshape').over, 2);
+    const kat = await doe('druid', { klasse: 'druid', actie: 'wildshape', tekst: 'Cat' });
+    assert.ok(kat.body.kracht.klassen[0].actief[0].omgeving, 'zonder keuze toch een omgeving');
+  });
+
+  it('Bardic Inspiration staat als badge op het portret van wie hem kreeg', async () => {
+    await req(server, 'POST', '/api/party/long-rest', {}, dm);
+    await doe('bard', { klasse: 'bard', actie: 'inspireer', doel: id.paladin }, cookie.bard);
+    const badges = (await req(server, 'GET', '/api/badges', null, dm)).body;
+    const b = (badges[id.paladin] || []).find(x => x.soort === 'bardic');
+    assert.ok(b, JSON.stringify(badges));
+    assert.strictEqual(b.label, 'Bardic Inspiration d8');
+    assert.match(b.uitleg, /Lyra Snaarzang/);
+    await req(server, 'POST', `/api/characters/${id.paladin}/inspiratie/gebruik`, {}, dm);
+    const na = (await req(server, 'GET', '/api/badges', null, dm)).body;
+    assert.ok(!(na[id.paladin] || []).some(x => x.soort === 'bardic'), 'gebruikt is weg');
+  });
+
+  it('een emote bij een kracht klinkt mee op het tafelscherm', async () => {
+    const zet = (body, als = cookie.fighter) => req(server, 'PUT', `/api/characters/${id.fighter}/klassekracht/klank`, body, als);
+    assert.strictEqual((await zet({ sleutel: 'fighter.surge', emoteId: 'em_bestaat_niet' })).status, 400);
+    assert.strictEqual((await zet({ sleutel: 'fighter.vliegen', emoteId: null })).status, 400);
+    await req(server, 'PUT', '/api/sounds', { emotes: { [id.fighter]: {
+      library: [{ id: 'em_kreet', label: 'Strijdkreet', fileId: 'f_kreet' }], selected: ['em_kreet'] } } }, dm);
+    assert.strictEqual((await zet({ sleutel: 'fighter.surge', emoteId: 'em_kreet' })).status, 200);
+    assert.strictEqual((await zet({ sleutel: 'barbarian.rage', emoteId: 'em_kreet' })).status, 200, 'ook Rage heeft een klank');
+    const k = await stand('fighter');
+    assert.deepStrictEqual(k.emotes, [{ id: 'em_kreet', label: 'Strijdkreet' }]);
+    assert.strictEqual(k.klank['fighter.surge'], 'em_kreet');
+
+    await req(server, 'POST', '/api/party/long-rest', {}, dm);
+    const tafel = await connect(port, dm);
+    tafel.emit('display:register');
+    await new Promise(r => setTimeout(r, 150));
+    const opTafel = waitFor(tafel, 'klasse:display', 900);
+    await doe('fighter', { klasse: 'fighter', actie: 'surge' }, cookie.fighter);
+    const t = await opTafel;
+    tafel.close();
+    assert.strictEqual(t.emote, 'f_kreet');
   });
 
   it('Sneak Attack en Eldritch Blast rollen, de Warlock per straal', async () => {

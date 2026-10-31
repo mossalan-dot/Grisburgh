@@ -374,6 +374,40 @@ const STAPPEN = [
   },
 
   {
+    id: 'klank',
+    titel: 'Hoe klink je?',
+    lead: 'Tot vier korte geluiden: een strijdkreet, een lach, een vloek. Ze worden je emotes, en je kunt ze straks aan je klassekrachten hangen.',
+    html() {
+      const lijst = P.c.emotes || [];
+      const camp = encodeURIComponent(huidigeCampagne() || '');
+      return `
+        <div class="pm-emotes">
+          ${lijst.map(e => `
+            <div class="pm-emote">
+              <button class="dm-btn dm-btn-ghost dm-btn-sm" title="Luisteren"
+                onclick="new Audio('/api/files/${esc(e.fileId)}?campagne=${camp}').play().catch(()=>{})">${ico('play')}</button>
+              <input class="dm-input pm-emote-label" data-emote="${esc(e.id)}" value="${esc(e.label)}" maxlength="30">
+              <button class="dm-btn dm-btn-ghost dm-btn-sm" title="Weghalen"
+                onclick="window.personageMaken.emoteWeg('${esc(e.id)}')">${ico('trash')}</button>
+            </div>`).join('')}
+          ${lijst.length < 4 ? `
+            <label class="dm-form-label" for="pm-emote-naam">Nieuwe emote</label>
+            <div class="pm-emote pm-emote--nieuw">
+              <input class="dm-input" id="pm-emote-naam" maxlength="30">
+              <label class="dm-btn dm-btn-ghost dm-btn-sm">
+                ${ico('upload')} Geluid kiezen
+                <input type="file" accept="audio/*" style="display:none"
+                  onchange="window.personageMaken.emote(this.files[0], this)">
+              </label>
+            </div>` : ''}
+        </div>`;
+    },
+    waarden() {
+      return { emotes: [...document.querySelectorAll('.pm-emote-label')].map(i => ({ id: i.dataset.emote, label: i.value })) };
+    },
+  },
+
+  {
     id: 'nakijken',
     titel: 'Zo komt hij eruit te zien',
     lead: 'Klopt het? Dan gaat hij naar je DM. Die zet hem klaar en dan kun je inloggen.',
@@ -714,6 +748,32 @@ window.personageMaken = {
       if (vak) vak.innerHTML = `<img src="/api/files/${esc(P.c.id)}?t=${Date.now()}" alt="">`;
     } catch (e) { window._showToast?.(e.message || 'Uploaden mislukt'); }
     finally { if (invoer) invoer.value = ''; }
+  },
+
+  // Een emote: geluid plus naam. Zelfde weg als het portret — met de hand,
+  // want een bestand gaat niet als JSON.
+  async emote(file, invoer) {
+    if (!file) return;
+    const fd = new FormData();
+    fd.append('label', document.getElementById('pm-emote-naam')?.value || '');
+    fd.append('file', file);
+    try {
+      const r = await fetch(`/api/personage-concept/${P.c.id}/emote?campagne=${encodeURIComponent(huidigeCampagne() || '')}`,
+        { method: 'POST', body: fd, credentials: 'same-origin' });
+      const j = await r.json().catch(() => ({}));
+      if (!r.ok) throw new Error(j.error || 'Uploaden mislukt');
+      P.c.emotes = j.emotes || [];
+      document.getElementById('pm-inhoud').innerHTML = _actief()[P.stap].html();
+    } catch (e) { window._showToast?.(e.message || 'Uploaden mislukt'); }
+    finally { if (invoer) invoer.value = ''; }
+  },
+
+  async emoteWeg(emoteId) {
+    try {
+      const r = await api.delete(`/personage-concept/${P.c.id}/emote/${encodeURIComponent(emoteId)}`);
+      P.c.emotes = r.emotes || [];
+      document.getElementById('pm-inhoud').innerHTML = _actief()[P.stap].html();
+    } catch (e) { window._showToast?.(e.message || 'Lukt niet'); }
   },
 
   methode(m) {
