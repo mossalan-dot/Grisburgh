@@ -556,6 +556,10 @@ een speler ziet, **TAB** = het tafelscherm (`?display=1`), **ALL** = alle drie.
 - [ ] **Wild Shape met omgeving** (SP/TAB) — kies een gedaante: de omgeving springt naar waar hij leeft; zet hem om en speel af. Het tafelscherm kleurt mee (sneeuwvlokken bij Arctic, vissen bij Underwater), en op je blad staat de AC, snelheid en aanvallen van je gedaante
 - [ ] **Klank bij een kracht** (SP/TAB) — met emotes: kies onder *Klanken* een emote bij Action Surge (of bij Rage); gebruik de kracht en die emote klinkt op het tafelscherm na de flits. Zonder emotes staat er geen *Klanken*
 - [ ] **Emotes bij een nieuw personage** (SP/DM) — in *Personage maken* bij *Hoe klink je?* twee geluiden met een naam uploaden, er één terugluisteren, één weghalen; een plaatje wordt geweigerd en een vijfde ook. Na het gunnen staan ze bij Geluiden onder dat personage
+- [ ] **Subclasses** (SP) — een Fighter met Battle Master ziet onder een kopje *Battle Master* zijn Superiority Dice en een knop *Maneuver*; kies Trip Attack, de die rolt en er gaat er één af; een korte rust zet ze terug. Een Champion ziet geen subclass-kopje
+- [ ] **Portent** (SP) — een Diviner rolt na een lange rust twee d20's (de chip toont ze); *Portent inzetten* biedt precies die getallen aan en haalt de gekozen weg; een tweede keer rollen kan pas na de volgende lange rust
+- [ ] **Arcane Ward** (SP) — een Abjurer vangt 5 HP op met de ward en laadt hem weer bij met een spell van niveau 3; hij komt nooit boven zijn maximum (2× level + INT)
+- [ ] **Pool dobbelstenen** (SP) — Zealot: *Warrior of the Gods* vraagt hoeveel d12, weigert meer dan de pool toelaat, en geneest de gerolde som; Celestial Patron: *Healing Light* idem met d6 tot je CHA-mod
 
 ## Blok 5 — Diensten
 

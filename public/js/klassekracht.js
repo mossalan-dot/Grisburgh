@@ -21,6 +21,7 @@ const mijnId = () => window.app?.state?.characterId || null;
 
 // Per thema: twee kleuren, een deeltje uit de sprite en een figuur (CSS).
 const THEMA = {
+  barbarian: { a: '#ffc4a8', b: '#7a1a0e', deeltje: 'angry',          figuur: 'haal' },
   bard:      { a: '#e9b8ff', b: '#5a2a7a', deeltje: 'music',          figuur: 'golven' },
   cleric:    { a: '#fff2b8', b: '#8a6a10', deeltje: 'sparkle',        figuur: 'stralen' },
   druid:     { a: '#c8f0a0', b: '#1f4a1a', deeltje: 'leaf',           figuur: 'golven' },
@@ -91,8 +92,18 @@ function _klasseHtml(k) {
             <button class="kk-mini" data-kk-einde="${esc(k.id)}.${esc(a.actie)}">${ic('x')} Beëindigen</button></div>
           ${a.effecten.length ? `<ul>${a.effecten.map(e => `<li>${esc(e)}</li>`).join('')}</ul>` : ''}
         </div>`).join('')}
+      ${_actiesHtml(k, k.acties.filter(a => !a.sub))}
+      ${k.sub && k.acties.some(a => a.sub) ? `<div class="kk-sub-kop">${esc(k.sub)}</div>${_actiesHtml(k, k.acties.filter(a => a.sub))}` : ''}
+      <div class="kk-paneel-plek" data-kk-paneel="${esc(k.id)}"></div>
+      ${_klankenHtml(k)}
+    </div>`;
+}
+
+function _actiesHtml(k, lijst) {
+  if (!lijst.length) return '';
+  return `
       <div class="kk-acties">
-        ${k.acties.map(a => `
+        ${lijst.map(a => `
           <button class="kk-actie${_open === `${k.id}.${a.id}` ? ' is-open' : ''}" data-kk="${esc(k.id)}.${esc(a.id)}"
             ${a.beschikbaar ? '' : 'disabled'} title="${esc(a.beschikbaar ? (a.regel || a.label) : a.waarom)}">
             <span class="kk-actie-icoon">${ic(a.icoon)}</span>
@@ -100,10 +111,7 @@ function _klasseHtml(k) {
             ${a.kost ? `<span class="kk-actie-kost">${a.kost}</span>` : ''}
             ${a.formule ? `<span class="kk-actie-formule">${esc(a.formule)}</span>` : ''}
           </button>`).join('')}
-      </div>
-      <div class="kk-paneel-plek" data-kk-paneel="${esc(k.id)}"></div>
-      ${_klankenHtml(k)}
-    </div>`;
+      </div>`;
 }
 
 const _omgIcoon = (o) => ic(OMGEVING[o]?.icoon || 'map-pin', { title: OMGEVING[o]?.label || o });
@@ -207,10 +215,26 @@ function _paneelHtml(k, a) {
     const b = k.bronnen.find(x => x.key === a.bron);
     velden.push(`<label>Hoeveel ${esc(b?.eenheid || '')}<input type="number" data-v="bedrag" min="1" max="${b?.over || 1}" value="${Math.min(5, b?.over || 1)}"></label>`);
   }
+  if (a.dobbels) {
+    velden.push(`<label>Hoeveel ${esc(a.dobbels.die)}<input type="number" data-v="bedrag" min="1" max="${a.dobbels.max}" value="1"></label>`);
+  }
+  if (a.limiet) {
+    velden.push(`<label>Hoeveel HP<input type="number" data-v="bedrag" min="1" max="${a.limiet}" value="${a.limiet}"></label>`);
+  }
+  if (a.bedragVerbruik) {
+    const b = k.bronnen.find(x => x.key === a.bron);
+    velden.push(`<label>Hoeveel ${esc(b?.eenheid || '')}<input type="number" data-v="bedrag" min="1" max="${b?.over || 1}" value="${Math.min(5, b?.over || 1)}"></label>`);
+  }
+  if (a.opties && a.soort === 'portent-gebruik') {
+    velden.push(`<div class="kk-keus-kop">Welke worp</div><div class="kk-omgevingen">${a.opties.map((o, i) => `
+      <label class="kk-omg kk-portent"><input type="radio" name="kk-portent" data-v-radio="keuze" value="${esc(o)}"${i === 0 ? ' checked' : ''}>${esc(o)}</label>`).join('')}</div>`);
+  } else if (a.opties) {
+    velden.push(`<label>Welke<select data-v="keuze">${a.opties.map(o => `<option value="${esc(o)}">${esc(o)}</option>`).join('')}</select></label>`);
+  }
   if (a.keuze) {
     const over = k.bronnen.find(x => x.key === a.bron)?.over || 0;
     velden.push(`<label>Welke<select data-v="keuze">${Object.entries(a.keuze).map(([n, c]) =>
-      `<option value="${esc(n)}"${c > over ? ' disabled' : ''}>${esc(n)} (${c})</option>`).join('')}</select></label>`);
+      `<option value="${esc(n)}"${c > over && a.soort !== 'bijvullen' ? ' disabled' : ''}>${esc(n)} (${a.soort === 'bijvullen' ? '+' : ''}${c})</option>`).join('')}</select></label>`);
   }
   const slotOpties = (filter) => Object.entries(s.slots).filter(filter).map(([n]) => `<option value="${n}">Niveau ${n}</option>`).join('');
   if (a.slot || a.soort === 'slot-smelten') {
@@ -248,6 +272,7 @@ function _paneelHtml(k, a) {
 }
 
 const _heeftPaneel = (a) => a.doel === 'bondgenoot' || a.doel === 'vijand' || a.tekst || a.bedrag || a.keuze
+  || a.opties || a.dobbels || a.limiet || a.bedragVerbruik
   || a.slot || a.soort === 'slot-maken' || a.soort === 'slot-smelten' || (a.soort === 'slots' && a.budget);
 
 async function krachtBlok() {
@@ -257,7 +282,7 @@ async function krachtBlok() {
   try { _stand = (await api.get(`/characters/${id}/klassekracht`))?.kracht; } catch { _stand = null; }
   // Geen klassekracht en geen inspiratie gekregen: dan bestaat dit blok niet.
   if (!_stand) { el.innerHTML = ''; return; }
-  const titel = _stand.klassen.map(k => k.naam).join(' · ');
+  const titel = _stand.klassen.map(k => k.sub ? `${k.naam} · ${k.sub}` : k.naam).join(' — ');
   el.innerHTML = `
     ${_stand.ontvangen ? `
       <div class="kk-ontvangen" data-thema="bard">

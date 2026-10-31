@@ -31694,3 +31694,13 @@ body:has(#sb-overlay.sb-open) .dm-dice-fab { display: none !important; }
 .kk-velden label.kk-omg { display: inline-flex; font-size: 11px; color: #3a2410; }
 .kk-velden label.kk-tegel { display: flex; font-size: inherit; }
 .kk-velden .kk-tegel input { display: inline-block; }
+/* Klassekrachten: subclasses */
+[data-thema="barbarian"] { --kk-a: #ffc4a8; --kk-b: #7a1a0e; }
+.kk-sub-kop {
+  margin: 14px 0 8px; font-family: 'Cinzel', serif; font-size: 11px; font-weight: 700;
+  letter-spacing: .08em; text-transform: uppercase; color: var(--kk-b);
+  display: flex; align-items: center; gap: 8px;
+}
+.kk-sub-kop::after { content: ''; flex: 1; height: 1px; background: color-mix(in srgb, var(--kk-b) 35%, transparent); }
+.kk-velden label.kk-portent { font-size: 16px; font-weight: 700; min-width: 44px; justify-content: center; }
+.kk-velden label.kk-omg:has(input:checked) { color: #fbf4e2; }

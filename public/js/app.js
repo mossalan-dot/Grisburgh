@@ -19,7 +19,7 @@ import './wizard.js?v=6';
 import './tafels.js?v=2';
 import './terugblik.js?v=1';
 import './rage.js?v=2';
-import './klassekracht.js?v=2';
+import './klassekracht.js?v=3';
 
 // ── Icon helper ──
 // Renders an inline SVG <use> reference from /img/icons.svg.
@@ -15276,7 +15276,8 @@ const HELP_CONFIG = {
     { titel: 'Bardic Inspiration ontvangen', tekst: 'Wie geïnspireerd is, draagt een muzieknoot op zijn portret in de partybalk én een paars kaartje bovenaan zijn blad. Tik op het portret of op het kaartje en kies **Gebruiken**: de die rolt, en iedereen ziet wat erbij kwam.', afbeelding: null },
     { titel: 'Druid: bekende gedaantes', tekst: 'Een Druid kent een beperkt aantal Beast-gedaantes (4, dan 6 op level 4, 8 op level 8), tot een maximale CR (1/4, 1/2, 1) — en een vliegend beest pas vanaf level 8. Circle of the Moon mag tot een derde van zijn level. Kies ze onder **Bekende gedaantes**; filter daar op de omgeving waar een beest leeft (Arctic, Forest, Underwater…). Na een Long Rest mag je er een wisselen.', afbeelding: null },
     { titel: 'Druid: Wild Shape', tekst: 'Kies een van je bekende gedaantes en de **omgeving** waarin je verandert. Die staat al op waar het dier leeft, maar je mag hem omzetten: een wolf in een sneeuwstorm is een Arctic-wolf. De omgeving kleurt het moment op het tafelscherm. Je krijgt je Temporary HP, je token draagt Wild Shape, en het blijft staan tot je het beëindigt — een gevecht dat afloopt laat je gedaante ongemoeid.', afbeelding: null },
-    { titel: 'Klanken', tekst: 'Heb je emotes (die zet je DM klaar, of je kiest ze bij het maken van je personage), dan kun je onder **Klanken** per kracht een emote kiezen. Die klinkt op het tafelscherm zodra je de kracht gebruikt: je strijdkreet bij Action Surge, je lied bij Bardic Inspiration.', afbeelding: null },
+    { titel: 'Subclasses', tekst: 'Heeft je subclass iets dat aan tafel telt, dan staat het onder een eigen kopje met zijn naam: de Superiority Dice en maneuvers van een Battle Master, de Psionic Energy Dice van een Psi Warrior of Soulknife, Portent van een Diviner (na een Long Rest rollen, daarna één voor één inzetten), de Arcane Ward van een Abjurer, Warrior of the Gods van een Zealot, en de Channel Divinity-opties van elk domein en elke eed. Een subclass die alleen een vaste bonus geeft — een Champion die op 19 crit — heeft geen knop nodig en staat er dus niet.', afbeelding: null },
+        { titel: 'Klanken', tekst: 'Heb je emotes (die zet je DM klaar, of je kiest ze bij het maken van je personage), dan kun je onder **Klanken** per kracht een emote kiezen. Die klinkt op het tafelscherm zodra je de kracht gebruikt: je strijdkreet bij Action Surge, je lied bij Bardic Inspiration.', afbeelding: null },
     { titel: 'Fighter en Monk', tekst: '**Second Wind** rolt je genezing. **Action Surge** en **Indomitable** tellen af en laten de tafel zien wat er gebeurt. Een Monk geeft zijn Focus Points uit aan Flurry of Blows, Patient Defense, Step of the Wind en Stunning Strike; **Uncanny Metabolism** vult ze één keer per Long Rest weer aan, met genezing erbij.', afbeelding: null },
     { titel: 'Ranger en Rogue', tekst: "**Hunter's Mark** kies je op een vijand uit het lopende gevecht (of je typt een naam). Het merk staat op zijn token en jouw Concentration op de jouwe; als het gevecht afloopt vervalt het. **Sneak Attack** rolt je extra dice in één keer.", afbeelding: null },
     { titel: 'Sorcerer', tekst: '**Innate Sorcery** loopt één minuut en eindigt vanzelf met het gevecht. **Metamagic** vraagt welke optie en rekent de kosten af. Met Font of Magic smelt je een slot om tot punten, of maak je van punten een verbruikte slot weer bruikbaar.', afbeelding: null },

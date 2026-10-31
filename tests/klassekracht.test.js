@@ -259,3 +259,103 @@ describe('Klassekrachten', () => {
     assert.ok(t && t.thema === 'fighter' && t.bron?.naam === 'Hendrik Staal');
   });
 });
+
+describe('Klassekrachten: subclasses uit de PHB', () => {
+  let server, io, dm;
+  const id = {};
+  const doe = (wie, body) => req(server, 'POST', `/api/characters/${id[wie]}/klassekracht`, body, dm);
+  const stand = async (wie) => (await req(server, 'GET', `/api/characters/${id[wie]}/klassekracht`, null, dm)).body.kracht;
+  const DIR = DATA_DIR + '-sub';
+
+  before(async () => {
+    process.env.GRISBURGH_DATA_DIR = DIR;
+    if (fs.existsSync(DIR)) fs.rmSync(DIR, { recursive: true, force: true });
+    for (const m of ['../server', '../lib/storage', '../routes/api', '../routes/auth']) delete require.cache[require.resolve(m)];
+    const mod = require('../server');
+    server = mod.server; io = mod.io;
+    await new Promise(r => server.listen(0, r));
+    dm = (await req(server, 'POST', '/api/auth/login', { campagne: 'grisburgh', password: 'grisburgh-dm' })).cookie;
+    const maak = async (k, profiel) => {
+      id[k] = (await req(server, 'POST', '/api/entities/personages', { name: k, subtype: 'speler', data: { groep: 'groep1' } }, dm)).body.id;
+      await req(server, 'PATCH', `/api/player-profile/${id[k]}`, profiel, dm);
+    };
+    await maak('bm',      { klasse: 'Fighter',   level: 3, subclass: 'Battle Master' });
+    await maak('champ',   { klasse: 'Fighter',   level: 3, subclass: 'Champion' });
+    await maak('diviner', { klasse: 'Wizard',    level: 2, subclass: 'Diviner' });
+    await maak('abjurer', { klasse: 'Wizard',    level: 3, subclass: 'Abjurer', int: 16 });
+    await maak('zealot',  { klasse: 'Barbarian', level: 3, subclass: 'Path of the Zealot' });
+    await maak('kaal',    { klasse: 'Barbarian', level: 3 });
+    await maak('fiend',   { klasse: 'Warlock',   level: 3, subclass: 'The Fiend Patron', cha: 16 });
+  });
+  after(async () => {
+    await io.close();
+    await new Promise(r => server.close(r));
+    fs.rmSync(DIR, { recursive: true, force: true });
+  });
+
+  it('Battle Master: Superiority Dice en een maneuver naar keuze, alles terug na een korte rust', async () => {
+    const k = (await stand('bm')).klassen[0];
+    assert.strictEqual(k.sub, 'Battle Master');
+    assert.strictEqual(k.bronnen.find(b => b.key === 'superiority').max, 4);
+    assert.ok(k.acties.find(a => a.id === 'maneuver').opties.includes('Trip Attack'));
+    assert.strictEqual((await doe('bm', { klasse: 'fighter', actie: 'maneuver', keuze: 'Vliegende Schop' })).status, 400);
+    const r = await doe('bm', { klasse: 'fighter', actie: 'maneuver', keuze: 'Trip Attack' });
+    assert.strictEqual(r.status, 200);
+    assert.ok(r.body.uitkomst.getal >= 1 && r.body.uitkomst.getal <= 8);
+    assert.match(r.body.uitkomst.tekst, /^Trip Attack/);
+    await doe('bm', { klasse: 'fighter', actie: 'maneuver', keuze: 'Parry' });
+    await req(server, 'POST', '/api/party/short-rest', {}, dm);
+    const na = (await stand('bm')).klassen[0].bronnen.find(b => b.key === 'superiority');
+    assert.strictEqual(na.over, 4);
+  });
+
+  it('een subclass zonder iets om bij te houden voegt niets toe', async () => {
+    const k = (await stand('champ')).klassen[0];
+    assert.strictEqual(k.sub, null);
+    assert.ok(!k.acties.some(a => a.sub));
+    // Een Barbarian zonder passende subclass: zijn Rage staat elders, hier niets.
+    const kaal = await stand('kaal');
+    assert.ok(!kaal || kaal.klassen.length === 0);
+  });
+
+  it('Diviner: Portent één keer per lange rust, en elke worp maar één keer in te zetten', async () => {
+    const r = await doe('diviner', { klasse: 'wizard', actie: 'portent' });
+    assert.strictEqual(r.status, 200);
+    const worpen = r.body.uitkomst.worpen;
+    assert.strictEqual(worpen.length, 2);
+    assert.ok(worpen.every(w => w >= 1 && w <= 20));
+    assert.strictEqual((await doe('diviner', { klasse: 'wizard', actie: 'portent' })).status, 409);
+    const inzet = await doe('diviner', { klasse: 'wizard', actie: 'voorteken', keuze: String(worpen[0]) });
+    assert.strictEqual(inzet.body.uitkomst.getal, worpen[0]);
+    const nog = (await stand('diviner')).klassen[0].acties.find(a => a.id === 'voorteken').opties;
+    assert.strictEqual(nog.length, 1);
+    await req(server, 'POST', '/api/party/long-rest', {}, dm);
+    assert.strictEqual((await doe('diviner', { klasse: 'wizard', actie: 'portent' })).status, 200, 'na een lange rust weer');
+  });
+
+  it('Warrior of the Gods: kies hoeveel d12, binnen de pool', async () => {
+    await req(server, 'PATCH', `/api/player-hp/${id.zealot}`, { current: 1, max: 60 }, dm);
+    assert.strictEqual((await doe('zealot', { klasse: 'barbarian', actie: 'goden', bedrag: 5 })).status, 400);
+    const r = await doe('zealot', { klasse: 'barbarian', actie: 'goden', bedrag: 2 });
+    assert.strictEqual(r.status, 200, JSON.stringify(r.body));
+    assert.strictEqual(r.body.uitkomst.worpen.length, 2);
+    assert.strictEqual(r.body.kracht.klassen[0].bronnen.find(b => b.key === 'goden').over, 2);
+  });
+
+  it('Arcane Ward: vangt op en laadt weer bij, nooit boven het maximum', async () => {
+    const max = (await stand('abjurer')).klassen[0].bronnen.find(b => b.key === 'ward').max;
+    assert.strictEqual(max, 2 * 3 + 3);
+    await doe('abjurer', { klasse: 'wizard', actie: 'ward', bedrag: 5 });
+    let ward = (await stand('abjurer')).klassen[0].bronnen.find(b => b.key === 'ward');
+    assert.strictEqual(ward.over, max - 5);
+    await doe('abjurer', { klasse: 'wizard', actie: 'laden', keuze: 'Niveau 3' });
+    ward = (await stand('abjurer')).klassen[0].bronnen.find(b => b.key === 'ward');
+    assert.strictEqual(ward.over, max, '+6 maar afgetopt');
+  });
+
+  it("Dark One's Blessing: Temporary HP op jezelf", async () => {
+    const r = await doe('fiend', { klasse: 'warlock', actie: 'blessing' });
+    assert.strictEqual(r.status, 200);
+    assert.strictEqual(r.body.uitkomst.getal, 3 + 3);
+  });
+});

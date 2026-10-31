@@ -348,8 +348,8 @@ De app gebruikt querystring cache-busting (`?v=N`). **Vergeten = browser haalt o
 **Huidige versies (bij te houden):**
 
 ```
-index.html  : theme.css?v=914   app.js?v=1179   sound-manager.js?v=13
-app.js      : api.js?v=317  dm-panel.js?v=413  media-picker.js?v=11  tafels.js?v=2  terugblik.js?v=1  rage.js?v=2  klassekracht.js?v=2  personage-maken.js?v=7
+index.html  : theme.css?v=915   app.js?v=1180   sound-manager.js?v=13
+app.js      : api.js?v=317  dm-panel.js?v=413  media-picker.js?v=11  tafels.js?v=2  terugblik.js?v=1  rage.js?v=2  klassekracht.js?v=3  personage-maken.js?v=7
               render-archief.js?v=143  render-bestiarium.js?v=32  render-campagne.js?v=351
               render-dungeon.js?v=68  render-kaart.js?v=32  render-progressie.js?v=64
               render-relatiemap.js?v=32  render-spreuken.js?v=51  render-vaardigheden.js?v=133
@@ -472,6 +472,25 @@ dm-panel.js : akte-schrijven.js?v=35  combat-canvas.js?v=35  render-statblock.js
 > `POST|DELETE /personage-concept/:id/emote`, namen via de gewone PATCH; bij het gunnen
 > worden ze `sounds.json → emotes[entityId]`. `_magBestandZien` laat een conceptsessie
 > haar eigen portret en emotes ophalen (`<conceptId>` en `<conceptId>_emote_*`).
+> **Derde ronde: de subclasses uit de PHB 2024** (31 okt 2026). `SUBKLASSEN` in
+> `lib/klassekrachten.js`: 39 van de 48, elk herkend op een regex over
+> `profiel.subclass` (of `multiSubclass` bij de tweede class). De maat is dezelfde als
+> bij de oude subklassekaarten: een getal, stand of worp die aan tafel telt. Negen
+> hebben niets (Dance, Valor, Champion, Eldritch Knight, Beast Master, Thief, Arcane
+> Trickster, Aberrant, en Moon — die zit al in de CR van Wild Shape). Een subclass
+> mag de bronnen van zijn class gebruiken; `definitie(id, profiel, tweede)` voegt
+> class en subclass samen en elke subclass-actie draagt `sub`, zodat het blad ze onder
+> een eigen kopje zet. `actieOp()` vindt een actie zonder het profiel (bij het
+> opruimen na een gevecht). De Barbarian staat nu ook in `KLASSEN`, zonder eigen
+> bronnen: alleen om zijn subclasses een plek te geven — Rage blijft op zijn eigen route.
+> Nieuwe vormen: `soort: 'temp'` (Temporary HP), `dobbels` (genezen uit een pool,
+> je kiest het aantal), `limiet` (Preserve Life), `opties` (keuze zonder prijs:
+> maneuvers, Bear/Eagle/Wolf, Starry Form), `soort: 'portent'`/`'portent-gebruik'`
+> (opgeslagen in `playerKracht[c].portent`, weg na een lange rust), `soort: 'bijvullen'`
+> met een negatieve kost (Arcane Ward laden), `conditie` op een flits (Tides of Chaos)
+> en `thema` per actie voor de kleur op tafel. Bewaakt door het tweede `describe`-blok
+> in `tests/klassekracht.test.js`.
+
 > **Valkuil, nog een keer:** ook `ps aux | grep "[s]erver.js" | xargs kill` in een
 > opdracht die zelf "server.js" bevat, raakt de eigen shell. Stop de testserver in
 > een aparte opdracht.

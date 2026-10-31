@@ -4857,8 +4857,8 @@ function _kkStand(dmState, charId, entities) {
   const profiel = _kkProfiel(dmState, charId);
   const opslag  = (dmState.playerKracht || {})[charId] || {};
   const slots   = _slotsVoorSpeler(dmState, charId);
-  const klassen = KK.klassenVan(profiel).map(({ id, level }) => {
-    const def = KK.KLASSEN[id];
+  const klassen = KK.klassenVan(profiel).map(({ id, level, tweede }) => {
+    const def = KK.definitie(id, profiel, tweede);
     const bronnen = Object.entries(def.bronnen).map(([k, b]) => {
       const max = b.max(level, profiel);
       const verbruikt = Math.min(max, Math.max(0, opslag.bronnen?.[`${id}.${k}`] || 0));
@@ -4868,8 +4868,12 @@ function _kkStand(dmState, charId, entities) {
     const acties = def.acties.filter(a => !a.vanaf || level >= a.vanaf).map(a => {
       const sleutel = `${id}.${a.id}`;
       let beschikbaar = true, waarom = '';
-      if (a.bron && !a.keuze && !a.bedrag && !a.kosten && over(a.bron) < (a.kost || 1)) { beschikbaar = false; waarom = 'Niets meer over'; }
-      if ((a.keuze || a.bedrag || a.kosten) && over(a.bron) < 1 && a.soort !== 'slot-smelten') { beschikbaar = false; waarom = 'Niets meer over'; }
+      const variabel = a.keuze || a.bedrag || a.bedragVerbruik || a.kosten || a.dobbels;
+      if (a.bron && !variabel && over(a.bron) < (a.kost || 1)) { beschikbaar = false; waarom = 'Niets meer over'; }
+      if (variabel && a.bron && over(a.bron) < 1 && !['slot-smelten', 'bijvullen'].includes(a.soort)) { beschikbaar = false; waarom = 'Niets meer over'; }
+      if (a.soort === 'bijvullen' && bronnen.find(b => b.key === a.bron)?.verbruikt === 0) { beschikbaar = false; waarom = 'Al vol'; }
+      if (a.soort === 'portent' && (opslag.portent?.length || opslag.eenmalig?.[sleutel])) { beschikbaar = false; waarom = 'Al gerold sinds je laatste Long Rest'; }
+      if (a.soort === 'portent-gebruik' && !opslag.portent?.length) { beschikbaar = false; waarom = 'Geen Portent over'; }
       if (a.soort === 'herstel' && opslag.eenmalig?.[sleutel]) { beschikbaar = false; waarom = 'Al gebruikt sinds je laatste Long Rest'; }
       if (a.soort === 'actief' && opslag.actief?.[sleutel]) { beschikbaar = false; waarom = 'Loopt al'; }
       if (a.slot && !Object.values(slots).some(s => s.max - s.used > 0)) { beschikbaar = false; waarom = 'Geen spell slot over'; }
@@ -4877,6 +4881,11 @@ function _kkStand(dmState, charId, entities) {
         id: a.id, label: a.label, icoon: a.icoon, bron: a.bron || null, kost: a.kost || null,
         soort: a.soort, doel: a.doel || null, bedrag: !!a.bedrag, slot: !!a.slot, tekst: a.tekst || null, vormen: !!a.vormen,
         keuze: a.keuze || null, kosten: a.kosten || null,
+        opties: a.soort === 'portent-gebruik' ? (opslag.portent || []).map(String) : (a.opties || null),
+        bedragVerbruik: !!a.bedragVerbruik,
+        dobbels: a.dobbels ? { die: a.dobbels.die, max: a.dobbels.max(level, profiel) } : null,
+        limiet: a.limiet ? a.limiet(level, profiel) : null,
+        sub: a.sub || null,
         budget: a.budget ? a.budget(level) : null, maxNiveau: a.maxNiveau || null,
         formule: a.formule ? (a.stralen ? `${a.stralen(level)}× ${a.formule(level, profiel)}` : (a.slot ? null : a.formule(level, profiel))) : null,
         regel: a.regel ? a.regel(level, profiel) : null,
@@ -4888,6 +4897,7 @@ function _kkStand(dmState, charId, entities) {
       .map(([s, v]) => {
         const a = def.acties.find(x => `${id}.${x.id}` === s);
         if (!a) return null;
+        // Een subclass die weg is (verwisseld) laat geen spook achter.
         // Een gedaante zegt meer dan "Wolf": zijn AC, snelheid en aanvallen.
         const beest = a.vormen ? _beesten().find(b => b.naam === v.tekst) : null;
         const vormRegel = beest ? [`AC ${beest.ac} · ${beest.speed}${beest.aanvallen.length ? ' · ' + beest.aanvallen.join(', ') : ''}`] : [];
@@ -4903,9 +4913,14 @@ function _kkStand(dmState, charId, entities) {
       wildshape = { ...regels, maxCrTekst: _crTekst(regels.maxCr), vormen: bekend,
         aanbod: alle.filter(mag), omgevingen: OMGEVINGEN };
     }
-    return { id, naam: def.naam, thema: def.thema, icoon: def.icoon, level,
-      bronnen, info: def.info ? def.info(level, profiel) : [], acties, actief, wildshape };
-  });
+    const info = def.info ? def.info(level, profiel) : [];
+    if (opslag.portent?.length) info.push(`Portent: ${opslag.portent.join(' · ')}`);
+    return { id, naam: def.naam, sub: def.sub, thema: def.thema, icoon: def.icoon, level,
+      bronnen, info, acties, actief, wildshape };
+  })
+    // Een class zonder iets om te doen (een Barbarian zonder passende subclass:
+    // zijn Rage staat in een eigen blok) laat geen lege sectie achter.
+    .filter(k => k.bronnen.length || k.acties.length || k.actief.length);
   const ins = (dmState.inspiratieDie || {})[charId] || null;
   if (!klassen.length && !ins) return null;
   const combat = _kkCombat();
@@ -4980,7 +4995,7 @@ router.post('/characters/:characterId/klassekracht', attachRole, (req, res) => {
   const profiel  = _kkProfiel(dmState, characterId);
   const klasse   = KK.klassenVan(profiel).find(k => k.id === b.klasse);
   if (!klasse) return res.status(409).json({ error: 'Dat is niet jouw klasse' });
-  const def = KK.KLASSEN[klasse.id];
+  const def = KK.definitie(klasse.id, profiel, klasse.tweede);
   const lvl = klasse.level;
   const a = def.acties.find(x => x.id === b.actie);
   if (!a || (a.vanaf && lvl < a.vanaf)) return res.status(409).json({ error: 'Die kracht heb je (nog) niet' });
@@ -4996,25 +5011,37 @@ router.post('/characters/:characterId/klassekracht', attachRole, (req, res) => {
     kost = a.keuze[b.keuze];
     if (!kost) return res.status(400).json({ error: 'Kies een optie' });
   }
-  if (a.bedrag) {
+  if (a.bedrag || a.bedragVerbruik) {
     kost = parseInt(b.bedrag) || 0;
     if (kost < 1) return res.status(400).json({ error: 'Hoeveel?' });
+  }
+  if (a.dobbels) {
+    // Uit een pool dobbelstenen: je kiest hoeveel, binnen wat de feature toestaat.
+    kost = parseInt(b.bedrag) || 0;
+    const max = a.dobbels.max(lvl, profiel);
+    if (kost < 1 || kost > max) return res.status(400).json({ error: `Kies 1 tot ${max} dobbelstenen` });
+  }
+  if (a.opties && a.soort !== 'portent-gebruik' && !a.opties.includes(b.keuze)) {
+    return res.status(400).json({ error: 'Kies een optie' });
   }
   if (a.soort === 'slot-maken') {
     kost = a.kosten[parseInt(b.slot)];
     const minLvl = { 1: 2, 2: 3, 3: 5, 4: 7, 5: 9 }[parseInt(b.slot)];
     if (!kost || lvl < minLvl) return res.status(400).json({ error: 'Dat slotniveau kun je nog niet maken' });
   }
-  if (a.soort !== 'slot-smelten' && kost > over) return res.status(409).json({ error: 'Niet genoeg ' + def.bronnen[a.bron].label });
+  if (!['slot-smelten', 'bijvullen'].includes(a.soort) && kost > over) return res.status(409).json({ error: 'Niet genoeg ' + def.bronnen[a.bron].label });
   if (a.soort === 'herstel' && opslag.eenmalig[sleutel]) return res.status(409).json({ error: 'Al gebruikt sinds je laatste Long Rest' });
   if (a.soort === 'actief' && opslag.actief[sleutel]) return res.status(409).json({ error: 'Loopt al' });
+  if (a.soort === 'portent' && (opslag.portent?.length || opslag.eenmalig[sleutel])) {
+    return res.status(409).json({ error: 'Al gerold sinds je laatste Long Rest' });
+  }
 
   // Op wie?
   const party = _kkParty(entities, characterId);
   let doelId = null, doelNaam = '';
   if (a.doel === 'zelf') doelId = characterId;
   if (a.doel === 'bondgenoot') {
-    doelId = b.doel || (a.soort === 'genees' ? characterId : null);
+    doelId = b.doel || (['genees', 'temp'].includes(a.soort) ? characterId : null);
     const lid = party.find(p => p.id === doelId);
     if (!lid) return res.status(400).json({ error: 'Kies iemand uit je party' });
     doelNaam = lid.naam;
@@ -5038,11 +5065,49 @@ router.post('/characters/:characterId/klassekracht', attachRole, (req, res) => {
 
   switch (a.soort) {
     case 'flits':
-      uitkomst.tekst = a.keuze ? b.keuze : (a.regel ? a.regel(lvl, profiel) : a.label);
+      uitkomst.tekst = a.keuze ? b.keuze
+        : a.bedragVerbruik ? `${kost} ${def.bronnen[a.bron].eenheid || ''} opgevangen`.replace('  ', ' ')
+        : (a.regel ? a.regel(lvl, profiel) : a.label);
       if (a.keuze) uitkomst.woord = b.keuze;
+      // Tides of Chaos e.d.: de conditie hoort op je token.
+      _kkConditie(myToken, a.conditie, true);
       break;
+    case 'temp': {
+      const worp = _kkRol(a.formule(lvl, profiel));
+      const doel = doelId || characterId;
+      _tempHpGeven(dmState, doel, String(worp.totaal));
+      req.app.get('io')?.to(_campagneRoom(req)).emit('player:hp-updated', { characterId: doel, ...dmState.playerHp[doel] });
+      Object.assign(uitkomst, { getal: worp.totaal, worpen: worp.worpen?.length ? worp.worpen : null, formule: worp.formule,
+        tekst: `${doel === characterId ? 'Jij krijgt' : doelNaam + ' krijgt'} ${worp.totaal} Temporary HP` });
+      break;
+    }
+    case 'portent': {
+      const n = a.aantal(lvl);
+      opslag.portent = Array.from({ length: n }, () => Math.floor(Math.random() * 20) + 1);
+      opslag.eenmalig[sleutel] = true;
+      Object.assign(uitkomst, { worpen: opslag.portent, formule: `${n}d20`, tekst: `Je ziet ${opslag.portent.join(' en ')}` });
+      break;
+    }
+    case 'portent-gebruik': {
+      const waarde = parseInt(b.keuze);
+      const i = (opslag.portent || []).indexOf(waarde);
+      if (i < 0) return res.status(409).json({ error: 'Die Portent heb je niet' });
+      opslag.portent.splice(i, 1);
+      Object.assign(uitkomst, { getal: waarde, tekst: `Een worp wordt ${waarde}` });
+      break;
+    }
+    case 'bijvullen': {
+      const erbij = a.keuze[b.keuze];
+      if ((opslag.bronnen[bronKey] || 0) <= 0) return res.status(409).json({ error: 'Al vol' });
+      kost = -erbij;   // negatief: de bron loopt weer vol, afgetopt op het maximum
+      Object.assign(uitkomst, { getal: Math.min(erbij, opslag.bronnen[bronKey]), tekst: `+${Math.min(erbij, opslag.bronnen[bronKey])} ${def.bronnen[a.bron].eenheid || ''}`.trim() });
+      break;
+    }
     case 'genees': {
-      const worp = a.bedrag ? { totaal: kost } : _kkRol(a.formule(lvl, profiel));
+      const worp = a.bedrag ? { totaal: kost }
+        : a.dobbels ? _kkRol(`${kost}${a.dobbels.die}`)
+        : a.limiet ? { totaal: Math.max(1, Math.min(parseInt(b.bedrag) || a.limiet(lvl, profiel), a.limiet(lvl, profiel))) }
+        : _kkRol(a.formule(lvl, profiel));
       const erbij = _kkGenees(req, dmState, combat, doelId, worp.totaal);
       Object.assign(uitkomst, { getal: erbij, worpen: worp.worpen || null, formule: worp.formule || null,
         tekst: `${doelId === characterId ? 'Jij krijgt' : doelNaam + ' krijgt'} ${erbij} HP` });
@@ -5061,7 +5126,10 @@ router.post('/characters/:characterId/klassekracht', attachRole, (req, res) => {
       uitkomst.formule = (n > 1 ? `${n}× ` : '') + rollen[0].formule;
       uitkomst.getal = rollen.reduce((s, r) => s + r.totaal, 0);
       uitkomst.stralen = n > 1 ? rollen.map(r => r.totaal) : null;
-      uitkomst.tekst = `${uitkomst.getal} ${a.soortSchade ? a.soortSchade + ' ' : ''}damage${a.regel ? ' · ' + a.regel(lvl, profiel) : ''}`;
+      uitkomst.tekst = a.opties ? `${b.keuze} · ${uitkomst.getal}`
+        : a.soortSchade || !a.regel ? `${uitkomst.getal} ${a.soortSchade ? a.soortSchade + ' ' : ''}damage${a.regel ? ' · ' + a.regel(lvl, profiel) : ''}`
+        : `${uitkomst.getal} · ${a.regel(lvl, profiel)}`;
+      if (a.opties) uitkomst.woord = b.keuze;
       break;
     }
     case 'actief': {
@@ -5077,11 +5145,11 @@ router.post('/characters/:characterId/klassekracht', attachRole, (req, res) => {
         uitkomst.omgeving = omgeving;
         uitkomst.vorm = beest ? { naam: beest.naam, ac: beest.ac, speed: beest.speed, cr: beest.cr } : null;
       }
-      opslag.actief[sleutel] = { sinds: Date.now(), tekst, doelNaam, doelToken: doelToken?.id || null, omgeving };
+      opslag.actief[sleutel] = { sinds: Date.now(), tekst: a.opties ? b.keuze : tekst, doelNaam, doelToken: doelToken?.id || null, omgeving };
       if (a.tempHp) _tempHpGeven(dmState, characterId, String(a.tempHp(lvl)));
       _kkConditie(myToken, a.conditie, true);
       _kkConditie(doelToken, a.doelConditie, true);
-      uitkomst.tekst = a.vormen ? `wordt een ${tekst}` : (tekst || doelNaam || a.label);
+      uitkomst.tekst = a.vormen ? `wordt een ${tekst}` : a.opties ? b.keuze : (tekst || doelNaam || a.label);
       break;
     }
     case 'inspiratie': {
@@ -5164,7 +5232,7 @@ router.post('/characters/:characterId/klassekracht', attachRole, (req, res) => {
   storage.writeJSON('dm-state.json', dmState);
   if (combat) _zendCombat(req, combat);
   _kkMeld(req, characterId, entities, {
-    klasse: klasse.id, thema: def.thema, actie: a.id, label: a.label,
+    klasse: klasse.id, thema: a.thema || def.thema, actie: a.id, label: a.label, sub: a.sub || null,
     woord: uitkomst.woord || a.woord || a.label, soort: a.soort,
     actief: a.soort === 'actief', doelId, doelNaam,
     tekst: uitkomst.tekst, getal: uitkomst.getal, worpen: uitkomst.worpen, formule: uitkomst.formule,
@@ -5208,7 +5276,7 @@ router.put('/characters/:characterId/klassekracht/klank', attachRole, (req, res)
   if (req.role !== 'dm' && req.session?.characterId !== characterId) return res.status(403).json({ error: 'Geen toegang' });
   const sleutel = String(req.body?.sleutel || '');
   const [kid, aid] = sleutel.split('.');
-  const bestaat = sleutel === 'barbarian.rage' || KK.KLASSEN[kid]?.acties.some(a => a.id === aid);
+  const bestaat = sleutel === 'barbarian.rage' || !!KK.actieOp(kid, aid);
   if (!bestaat) return res.status(400).json({ error: 'Onbekende kracht' });
   const emoteId = req.body?.emoteId ? String(req.body.emoteId) : null;
   if (emoteId && !_kkEmotes(characterId).some(e => e.id === emoteId)) return res.status(400).json({ error: 'Die emote heb je niet' });
@@ -5226,7 +5294,7 @@ function _kkEinde(dmState, combat, charId, sleutel) {
   const st = opslag?.actief?.[sleutel];
   if (!st) return false;
   const [kid, aid] = sleutel.split('.');
-  const a = KK.KLASSEN[kid]?.acties.find(x => x.id === aid);
+  const a = KK.actieOp(kid, aid);
   delete opslag.actief[sleutel];
   if (combat && a) {
     _kkConditie(_kkToken(combat, charId), a.conditie, false);
@@ -5281,8 +5349,8 @@ function _kkRust(dmState, spelers, soort) {
     const opslag = (dmState.playerKracht || {})[s.id];
     if (soort === 'long' && dmState.inspiratieDie?.[s.id]) delete dmState.inspiratieDie[s.id];
     if (!opslag) continue;
-    for (const { id, level } of KK.klassenVan(profiel)) {
-      for (const [k, b] of Object.entries(KK.KLASSEN[id].bronnen)) {
+    for (const { id, level, tweede } of KK.klassenVan(profiel)) {
+      for (const [k, b] of Object.entries(KK.definitie(id, profiel, tweede).bronnen)) {
         const key = `${id}.${k}`;
         if (!opslag.bronnen?.[key]) continue;
         const wat = soort === 'long' ? 'alles' : b.kort(level);
@@ -5293,6 +5361,7 @@ function _kkRust(dmState, spelers, soort) {
     if (soort === 'long') {
       if (Object.keys(opslag.actief || {}).length) opgeruimd.push(s.id);
       opslag.actief = {}; opslag.eenmalig = {};
+      delete opslag.portent;   // een nieuwe dag, nieuwe voortekens
     }
   }
   return opgeruimd;
@@ -13280,7 +13349,7 @@ router.delete('/combat', requireDM, (req, res) => {
   for (const [cid, o] of Object.entries(_rageDm.playerKracht || {})) {
     for (const sleutel of Object.keys(o.actief || {})) {
       const [kid, aid] = sleutel.split('.');
-      const a = KK.KLASSEN[kid]?.acties.find(x => x.id === aid);
+      const a = KK.actieOp(kid, aid);
       if (a && (a.eindeBijGevecht || a.doel === 'vijand')) { delete o.actief[sleutel]; _krachtWeg.push(cid); }
     }
   }
