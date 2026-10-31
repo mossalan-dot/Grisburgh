@@ -756,6 +756,10 @@ fout-uitvoert.
 - [ ] **Sfeer wisselen** (DM/TAB) — sfeerkeuze verandert de embers en de achtergrond
 - [ ] **Effecten** (DM/TAB) — bliksem, windvlaag en duister; let erop dat ze tijdens een gevecht (nog) niet zichtbaar zijn — zie `docs/tafelscherm-effecten.md`
 - [ ] **Tablet na herstart** (TAB) — server herstarten en kijken of de tablet ingelogd blijft en zijn kamer terugvindt
+- [ ] **Wat voorafging** (DM/TAB) — open een akte, druk in de regie-balk op *Terugblik* en kies *Op het tafelscherm*; de tablet speelt het laatste zichtbare verslag af als trailer (titel, akte, tekst woord voor woord over de beelden, citaat, wie je ontmoette, "gaat het verder") en gaat daarna vanzelf terug naar sfeer
+- [ ] **Wat voorafging: alleen wat de party kent** (DM) — zet het nieuwste verslag op verborgen en een personage uit dat verslag op verborgen; de terugblik pakt het verslag dáárvoor, en het verborgen personage staat niet bij *Wie u ontmoette* — ook niet als zijn naam in de tekst staat
+- [ ] **Wat voorafging: bediening** (TAB) — tikken springt naar het volgende shot, Escape sluit, en de monitorknop in de regie-balk breekt een lopende terugblik af; *Zelf bekijken* speelt hem alleen op het DM-scherm, met *Voorbeeld* linksboven
+- [ ] **Wat voorafging: muziek** (TAB) — zonder instelling een lage drone met een dreun bij de titel; hang je bij Geluiden → Momenten → *Terugblik* een bestand, dan zwelt dát aan en sterft het weg aan het eind
 
 ## Blok 9 — Uitvoer en onderhoud
 

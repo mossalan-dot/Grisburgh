@@ -348,14 +348,13 @@ De app gebruikt querystring cache-busting (`?v=N`). **Vergeten = browser haalt o
 **Huidige versies (bij te houden):**
 
 ```
-index.html  : theme.css?v=710   app.js?v=943   sound-manager.js?v=8
-app.js      : api.js?v=296  dm-panel.js?v=312  media-picker.js?v=8  tafels.js?v=1
-              render-archief.js?v=92  render-bestiarium.js?v=29  render-campagne.js?v=315
-              render-dashboard.js?v=9  render-dungeon.js?v=53  render-kaart.js?v=31
-              render-progressie.js?v=46  render-relatiemap.js?v=25  render-spreuken.js?v=39
-              render-vaardigheden.js?v=1
-              render-statblock.js?v=9  socket-client.js?v=71
-dm-panel.js : combat-canvas.js?v=29   render-statblock.js?v=9
+index.html  : theme.css?v=911   app.js?v=1176   sound-manager.js?v=11
+app.js      : api.js?v=317  dm-panel.js?v=411  media-picker.js?v=11  tafels.js?v=2  terugblik.js?v=1
+              render-archief.js?v=143  render-bestiarium.js?v=32  render-campagne.js?v=351
+              render-dungeon.js?v=68  render-kaart.js?v=32  render-progressie.js?v=64
+              render-relatiemap.js?v=32  render-spreuken.js?v=51  render-vaardigheden.js?v=133
+              render-statblock.js?v=9  socket-client.js?v=90  wizard.js?v=6
+dm-panel.js : akte-schrijven.js?v=35  combat-canvas.js?v=34  render-statblock.js?v=9
 ```
 
 > **Een importeur moet zelf ook opschuiven.** `index.html` vraagt om `app.js?v=N`.
@@ -417,6 +416,33 @@ dm-panel.js : combat-canvas.js?v=29   render-statblock.js?v=9
 > `tbl_rust_wildernis` + `tbl_rust_herberg` (conversiescript-patroon: md-rij `| 01-02 | **Naam** | Beschrijving | \`+6 knakers\` |`
 > → `1-2: Naam — Beschrijving {+6kn}`; munt-namen florinde/knaker/centeling → fl/kn/cl). (4) **Tabletmodus**: op het gedeelde scherm (`_isDisplayMode`, geen `characterId`) toont de overlay
 > een party-brede variant zonder per-speler-knoppen.
+
+> **Wat voorafging — de terugblik op het tafelscherm** (31 okt 2026). Aan het begin
+> van een avond speelt het tafelscherm het vorige sessieverslag af als trailer:
+> letterbox, filmkorrel, stof in het licht, *Wat voorafging* letter voor letter,
+> de akte met haar banner, de samenvatting **woord voor woord** als ondertitels over
+> Ken Burns-beelden, het citaat, *Wie u ontmoette* (portretten in gouden ringen,
+> "Nieuw" erbij) en tot slot de spelers en "gaat het verder". Knop **Terugblik**
+> in de regie-balk (`_terugblikMenu` in `dm-panel.js`: kies een verslag, speel af
+> of bekijk zelf), en een knop in elk verslag in het Logboek.
+> **De server stelt hem samen, uit alleen wat de actieve party kent**
+> (`_terugblikVoor()` in `routes/api.js`): het verslag moet voor die groep
+> zichtbaar zijn (dezelfde drie eisen als `GET /archief`), beelden moeten voor die
+> groep onthuld zijn (die van het verslag plus de beelddrager van die akte), en
+> een personage of plek komt er alleen in als zijn kaartje op `visible` staat — een
+> naam in de tekst krijgt dus geen gezicht als de party hem niet kent.
+> Spelerspersonages staan niet bij *Wie u ontmoette* maar komen in het slotshot.
+> Routes: `GET /display/terugblik` (de kiezer) en `POST /display/terugblik`
+> (`{sessieId?, voorbeeld?}` — zonder `voorbeeld` gaat hij naar de **display-room**,
+> nooit naar de spelers). Socket `terugblik:display`; `display:idle` breekt hem af.
+> De regie zit in **`public/js/terugblik.js`** (side-effect import, net als
+> `tafels.js`): eerst een lijst shots, dan één lus; tikken springt, Escape sluit,
+> en elke wacht hangt aan een run-nummer zodat sluiten midden in een shot geen
+> achtergebleven timer laat tekenen. Geluid: `sounds.json → momenten.terugblik`
+> wint; anders synthetiseert `soundManager.terugblikKlank()` een drone en een
+> trailerdreun. CSS onderaan `theme.css` (`.tb-*`), z-index 10040 — boven de
+> wizard en het detailvenster, onder de effectlaag zodat een bliksem er nog
+> overheen mag. Bewaakt door `tests/terugblik.test.js`.
 
 > **Brief vanuit de akteregie (regie-stap, cinematisch).** Naast image/entity/encounter/dungeon/rust
 > kent het regie-script een **6e staptype `brief`**. De DM stelt 'm op via het mail-icoon in de

@@ -14,7 +14,7 @@
 //
 // Hij leent de opmaak van de opstartwizard (`wz-*`): twee wizards die er
 // anders uitzien zijn twee wizards om te onderhouden.
-import { api, huidigeCampagne } from './api.js?v=316';
+import { api, huidigeCampagne } from './api.js?v=317';
 
 const esc = s => window.app?.esc?.(s) ?? String(s ?? '')
   .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');

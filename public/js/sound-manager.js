@@ -119,6 +119,70 @@ const _FX_KLANKEN = {
   ruis:     (c) => { _ruisvlaag(c, { filter: 'highpass', freq: 1100, vol: 0.14, duur: 2.4 }); },
 };
 
+// ── Klanken bij de terugblik ("Wat voorafging") ─────────────────────────────
+// Een trailer heeft twee dingen: een dreun bij de titel en een toon eronder die
+// de stilte vult. De dreun is twee licht ontstemde zaagtanden door een
+// laagdoorlaatfilter dat dichtknijpt, met een sub-sinus eronder en een
+// ruiszwelling ervoor — de "BRAAAM". De drone is een open kwint (A en E) die
+// traag ademt. Allebei te vervangen door een eigen bestand in de Geluiden-tab.
+function _tbDreun(ctx, zacht) {
+  const t = ctx.currentTime + 0.05;
+  const vol = zacht ? 0.16 : 0.30;
+  const duur = zacht ? 2.6 : 3.6;
+  const f = ctx.createBiquadFilter();
+  f.type = 'lowpass'; f.Q.value = 6;
+  f.frequency.setValueAtTime(zacht ? 900 : 2200, t);
+  f.frequency.exponentialRampToValueAtTime(140, t + duur * 0.8);
+  const g = ctx.createGain();
+  g.gain.setValueAtTime(0.0001, t);
+  g.gain.exponentialRampToValueAtTime(vol, t + 0.06);
+  g.gain.exponentialRampToValueAtTime(vol * 0.5, t + 0.9);
+  g.gain.exponentialRampToValueAtTime(0.0001, t + duur);
+  f.connect(g).connect(ctx.destination);
+  for (const [hz, type] of [[55, 'sawtooth'], [55.6, 'sawtooth'], [110.3, 'square']]) {
+    const o = ctx.createOscillator();
+    o.type = type; o.frequency.setValueAtTime(hz, t);
+    o.frequency.exponentialRampToValueAtTime(hz * 0.94, t + duur);
+    o.connect(f); o.start(t); o.stop(t + duur + 0.1);
+  }
+  _toon(ctx, { type: 'sine', van: 46, naar: 33, vol: zacht ? 0.22 : 0.4, start: 0.05, duur: duur * 0.9 });
+  if (!zacht) _ruisvlaag(ctx, { filter: 'bandpass', freq: 500, q: 0.6, vol: 0.12, duur: 1.4 });
+}
+
+function _tbDrone(ctx) {
+  const t = ctx.currentTime;
+  const uit = ctx.createGain();
+  uit.gain.setValueAtTime(0.0001, t);
+  uit.gain.exponentialRampToValueAtTime(0.09, t + 4);
+  const f = ctx.createBiquadFilter();
+  f.type = 'lowpass'; f.frequency.value = 520; f.Q.value = 0.8;
+  f.connect(uit).connect(ctx.destination);
+  const bronnen = [];
+  for (const [hz, v] of [[55, 0.5], [82.41, 0.35], [110, 0.3], [164.8, 0.12]]) {
+    const o = ctx.createOscillator(); o.type = 'triangle'; o.frequency.value = hz;
+    const og = ctx.createGain(); og.gain.value = v;
+    // Elke toon ademt in zijn eigen tempo; daardoor golft het geheel.
+    const lfo = ctx.createOscillator(); lfo.frequency.value = 0.05 + Math.random() * 0.08;
+    const lg = ctx.createGain(); lg.gain.value = v * 0.45;
+    lfo.connect(lg).connect(og.gain);
+    o.connect(og).connect(f);
+    o.start(t); lfo.start(t);
+    bronnen.push(o, lfo);
+  }
+  // Wind erachter, heel zacht.
+  const wind = _ruisvlaag(ctx, { filter: 'bandpass', freq: 380, q: 0.4, vol: 0.05, duur: 600, loop: true });
+  bronnen.push(wind);
+  let gestopt = false;
+  return () => {
+    if (gestopt) return; gestopt = true;
+    const n = ctx.currentTime;
+    uit.gain.cancelScheduledValues(n);
+    uit.gain.setValueAtTime(Math.max(0.0001, uit.gain.value), n);
+    uit.gain.exponentialRampToValueAtTime(0.0001, n + 2.5);
+    bronnen.forEach(b => { try { b.stop(n + 2.6); } catch { /* al gestopt */ } });
+  };
+}
+
 // ── Ambiance (feature #2) ──────────────────────────────────────────────────────
 // Twee blijvende loop-Audio's:
 //  • broadcast-scène — de DM zet 'm voor iedereen (per-campagne via socket).
@@ -411,6 +475,18 @@ window.soundManager = {
     const ctx = _audioCtx();
     if (!ctx) return;
     try { maak(ctx); } catch { /* een stil effect is beter dan een fout */ }
+  },
+  // De terugblik: 'dreun', 'dreunZacht', 'tik' klinken één keer; 'drone' blijft
+  // klinken en geeft een stopfunctie terug (die hem in 2,5 s laat wegsterven).
+  terugblikKlank(soort) {
+    const ctx = _audioCtx();
+    if (!ctx) return () => {};
+    try {
+      if (soort === 'drone') return _tbDrone(ctx);
+      if (soort === 'dreun' || soort === 'dreunZacht') _tbDreun(ctx, soort === 'dreunZacht');
+      else if (soort === 'tik') _toon(ctx, { type: 'triangle', van: 1318.5, naar: 1240, vol: 0.07, duur: 0.9 });
+    } catch { /* stil is ook een uitkomst */ }
+    return () => {};
   },
   // Rust-sfeerloop tijdens de rust-overlay (party-breed, transient). Eigen audio,
   // los van broadcast/dienst-loop; respecteert dezelfde dempvoorkeur als de dienst-loop.

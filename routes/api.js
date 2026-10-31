@@ -4385,6 +4385,153 @@ router.post('/display/idle', requireDM, (req, res) => {
   res.json({ ok: true });
 });
 
+// ── Wat voorafging: de terugblik op het tafelscherm ─────────────────────────
+// Aan het begin van een avond: een filmische terugblik op het vorige
+// sessieverslag. Opgebouwd uit **alleen wat de party al kent** — het verslag
+// moet voor die groep zichtbaar zijn (zelfde drie eisen als `GET /archief`),
+// de beelden moeten voor die groep onthuld zijn, en een personage krijgt pas
+// een portret als zijn kaartje voor die groep op `visible` staat. Een vaag of
+// verborgen kaartje valt weg, ook als zijn naam in de tekst staat: de
+// terugblik is een samenvatting, geen onthulling.
+// De groep is de **actieve** groep van de DM, of `body.groep`.
+const _TB_MAX_BEELDEN = 10;
+const _TB_MAX_GEZICHTEN = 8;
+
+function _tbIsDrager(e) {
+  return /sc[eè]ne-afbeeldingen/i.test(e.korteSamenvatting || '')
+    && !String(e.samenvatting || '').trim() && !String(e.citaat || '').trim();
+}
+
+// Welke verslagen kan deze groep terugzien? Nieuwste eerst; een gevechtsverslag
+// en de verborgen beelddrager van een akte zijn geen verhaal en tellen niet.
+function _tbVerslagen(archief, gid) {
+  const cv = _readChapterVisibility();
+  return (archief.sessieLog || [])
+    .filter(e => e.visible && e.soort !== 'gevecht' && !_tbIsDrager(e)
+      && (!e.groep || e.groep === gid)
+      && _chapterVisible(cv, gid, e.hoofdstuk || '_'))
+    .reverse();
+}
+
+function _terugblikVoor(sessieId, gid) {
+  const archief  = storage.readJSON('archief.json') || {};
+  const dmState  = readDmState();
+  const meta     = storage.readJSON('meta.json') || {};
+  const entities = storage.readJSON('entities.json') || {};
+  const g = getGroup(dmState, gid) || {};
+  const vis = g.visibility || {};
+  const kent = (id) => (vis[id] || 'hidden') === 'visible';
+
+  const kandidaten = _tbVerslagen(archief, gid);
+  const e = sessieId ? kandidaten.find(x => x.id === sessieId) : kandidaten[0];
+  if (!e) return null;
+
+  const ch = meta.hoofdstukken?.[e.hoofdstuk] || {};
+
+  // Beelden: eerst die van het verslag zelf, dan wat er tijdens die akte op
+  // tafel kwam (de beelddrager). Ontdubbeld, en alleen wat deze groep zag.
+  const beelden = [];
+  const gezien = new Set();
+  const neem = (img) => {
+    const id = typeof img === 'string' ? img : img?.id;
+    if (!id || gezien.has(id) || !_imgZichtbaar(dmState, gid, img)) return;
+    if (!storage.bestandIsBeeld?.(id)) return;
+    gezien.add(id);
+    beelden.push({ id, caption: String((typeof img === 'object' && img.caption) || '').slice(0, 140) });
+  };
+  (e.images || []).forEach(neem);
+  for (const d of (archief.sessieLog || [])) {
+    if (d.hoofdstuk === e.hoofdstuk && _tbIsDrager(d)) (d.images || []).forEach(neem);
+  }
+
+  // Wie er langskwam. Namen uit het verslag, gekoppeld aan een kaartje dat de
+  // groep kent; nieuw gaat vóór terugkerend, want dát is wat je wil zien.
+  const perNaam = new Map((entities.personages || []).map(p => [_impNorm(p.name), p]));
+  const gezichten = [];
+  const wieGezien = new Set();
+  const voegToe = (naam, nieuw) => {
+    const p = perNaam.get(_impNorm(naam));
+    if (!p || wieGezien.has(p.id) || !kent(p.id) || gezichten.length >= _TB_MAX_GEZICHTEN) return;
+    if (p.subtype === 'speler') return;            // de spelers zitten aan tafel
+    wieGezien.add(p.id);
+    gezichten.push({
+      id: p.id, naam: p.name, nieuw,
+      thumb: p.data?.imageId || p.id,
+      focus: p.data?.imgFocus || '',
+      titel: String(p.data?.titel || p.data?.rol || '').slice(0, 60),
+    });
+  };
+  (e.nieuwPersonages || []).forEach(n => voegToe(n, true));
+  (e.terugkerendPersonages || []).forEach(n => voegToe(n, false));
+  (e.nieuw || []).forEach(n => voegToe(n, true));
+  (e.terugkerend || []).forEach(n => voegToe(n, false));
+
+  // Waar het speelde: alleen namen, en alleen gekende plekken.
+  const perLoc = new Map((entities.locaties || []).map(l => [_impNorm(l.name), l]));
+  const plekken = [...(e.nieuwLocaties || []), ...(e.terugkerendLocaties || [])]
+    .map(n => perLoc.get(_impNorm(n)))
+    .filter((l, i, a) => l && kent(l.id) && a.indexOf(l) === i)
+    .slice(0, 4)
+    .map(l => l.name);
+
+  // De partij zelf, voor de aftiteling: de spelers die vanavond meedoen.
+  const afwezig = new Set(g.afwezig || []);
+  const gid2 = Object.keys(dmState.groups || {}).find(k => dmState.groups[k] === g);
+  const helden = (entities.personages || [])
+    .filter(p => p.subtype === 'speler' && p.data?.groep === gid2 && !afwezig.has(p.id))
+    .slice(0, 8)
+    .map(p => ({ id: p.id, naam: p.name, thumb: p.data?.imageId || p.id, focus: p.data?.imgFocus || '' }));
+
+  const geluid = (storage.readJSON('sounds.json') || {}).momenten?.terugblik;
+  return {
+    sessieId:  e.id,
+    campagne:  String(meta.appTitle || ''),
+    akte: {
+      num:    ch.num ?? null,
+      titel:  String(ch.title || ''),
+      kort:   String(ch.short || ''),
+      banner: ch.bannerImg && storage.bestandIsBeeld?.(ch.bannerImg) ? ch.bannerImg : null,
+      bannerFocus: ch.bannerFocus || '',
+    },
+    titel:     String(e.korteSamenvatting || ''),
+    datum:     String(e.datum || ''),
+    tekst:     String(e.samenvatting || '').slice(0, 6000),
+    citaat:    String(e.citaat || '').slice(0, 400),
+    beelden:   beelden.slice(0, _TB_MAX_BEELDEN),
+    gezichten, plekken, helden,
+    geluid:    geluid ? String(geluid) : null,
+  };
+}
+
+// Welke verslagen er te kiezen zijn — voor de kiezer in de regie-balk.
+router.get('/display/terugblik', requireDM, (req, res) => {
+  const dmState = readDmState();
+  const gid = String(req.query.groep || dmState.activeGroup || '');
+  const archief = storage.readJSON('archief.json') || {};
+  const meta = storage.readJSON('meta.json') || {};
+  const lijst = _tbVerslagen(archief, gid).slice(0, 30).map(e => ({
+    id: e.id,
+    titel: e.korteSamenvatting || 'Naamloos',
+    datum: e.datum || '',
+    akte: meta.hoofdstukken?.[e.hoofdstuk]?.title || '',
+  }));
+  res.json({ groep: gid, verslagen: lijst });
+});
+
+// Afspelen. `voorbeeld: true` geeft de terugblik alleen terug (de DM kijkt hem
+// eerst zelf), anders gaat hij ook naar het tafelscherm.
+router.post('/display/terugblik', requireDM, (req, res) => {
+  const dmState = readDmState();
+  const gid = String(req.body?.groep || dmState.activeGroup || '');
+  const sessieId = req.body?.sessieId ? String(req.body.sessieId) : null;
+  const tb = _terugblikVoor(sessieId, gid);
+  if (!tb) return res.status(404).json({ error: 'Er is nog geen verslag dat deze party kan terugzien' });
+  if (!req.body?.voorbeeld) {
+    req.app.get('io')?.to(_displayRoom(req)).emit('terugblik:display', tb);
+  }
+  res.json(tb);
+});
+
 // Party-brede lange rust (DM-actie)
 router.post('/party/long-rest', requireDM, (req, res) => {
   const locatie = req.body?.locatie === 'herberg' ? 'herberg' : 'veld';
@@ -9200,7 +9347,7 @@ const _DIENST_SVC_KEYS = ['herberg', 'tweespalt', 'gock', 'ursula', 'tempel', 'm
 // Elk tafelscherm-effect mag een eigen klank krijgen (`fx-<id>`), en die lijst
 // komt uit de catalogus — anders is er een tweede plek waar een effect bestaat.
 const _MOMENT_SOUND_KEYS = new Set([
-  'lootReveal', 'levelUp',
+  'lootReveal', 'levelUp', 'terugblik',
   ...DISPLAY_FX.filter(f => f.klank).map(f => 'fx-' + f.id),
 ]);
 const _REST_SVC_KEYS = ['rust-veld', 'rust-herberg', 'rust-kort'];

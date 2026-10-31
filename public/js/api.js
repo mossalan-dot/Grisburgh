@@ -515,6 +515,9 @@ export const api = {
   setAkteSfeer:        (key, sfeer) => request(`/akte/${encodeURIComponent(key)}/sfeer`, { method: 'PUT', body: JSON.stringify({ sfeer }) }),
   displayEffect:       (effect) => request('/display/effect', { method: 'POST', body: JSON.stringify({ effect }) }),
   displayFxLijst:      ()       => request('/display/fx'),
+  // Wat voorafging: welke verslagen de actieve party kan terugzien, en afspelen.
+  terugblikLijst:      (groep)  => request(`/display/terugblik${groep ? `?groep=${encodeURIComponent(groep)}` : ''}`),
+  terugblik:           (body)   => request('/display/terugblik', { method: 'POST', body: JSON.stringify(body || {}) }),
   // Aflossen: zonder bedrag is het alles.
   tsAflossen:          (bedrag)  => request('/tweespalt/aflossen', { method: 'POST', body: JSON.stringify(bedrag ? { bedrag } : {}) }),
   onthulAfbeelding:    (sessieId, fileId, caption, groupId) =>

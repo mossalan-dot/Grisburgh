@@ -1,4 +1,4 @@
-import { api, huidigeCampagne } from './api.js?v=316';
+import { api, huidigeCampagne } from './api.js?v=317';
 import { init as canvasInit, update as canvasUpdate, stop as canvasStop, acGetal } from './combat-canvas.js?v=34';
 import { renderStatblock } from './render-statblock.js?v=9';
 
@@ -683,6 +683,7 @@ export function initDmPanel() {
     sheetsPrint:             (groep) => _sheetsPrint(groep),
     rustMenu:                (ev) => _rustMenu(ev),
     sfeerMenu:               (ev) => _sfeerMenu(ev),
+    terugblikMenu:           (ev) => _terugblikMenu(ev),
     akteHervatToepassen:     () => _akteHervatToepassen(),
     // Zet alle tablets/displays terug naar het sfeerscherm (leeg het gepresenteerde beeld).
     async tabletNaarSfeer(btn) {
@@ -2753,6 +2754,7 @@ function _renderRegieBalk() {
             title="XP uitdelen aan wie vanavond meedoet">${icon('star')} <span class="dm-rb-btn-label">XP</span></button>` : ''}
           <span class="dm-rb-sep"></span>
           <button class="dm-regie-balk-btn" onclick="window.dmPanel.regieBalkBrief()" title="Stuur een verzegelde uitnodiging (factie of dienst)">${icon('mail')} <span class="dm-rb-btn-label">Uitnodiging</span></button>
+          <button class="dm-regie-balk-btn" onclick="window.dmPanel.terugblikMenu(event)" title="Wat voorafging — een terugblik op de vorige sessie, op het tafelscherm">${icon('hourglass')} <span class="dm-rb-btn-label">Terugblik</span></button>
           <button class="dm-regie-balk-btn" onclick="window.dmPanel.sfeerMenu(event)" title="Sfeer van het tafelscherm kiezen">${icon('sparkles')} <span class="dm-rb-btn-label">Sfeer</span></button>
           <button class="dm-regie-balk-btn" onclick="window.dmPanel.tabletNaarSfeer(this)" title="Tablet → sfeerscherm (leeg het gepresenteerde beeld)">${icon('monitor')}</button>
           <span class="dm-rb-sep"></span>
@@ -2891,7 +2893,7 @@ async function _ladeToggle() {
   _ladeIdx = _bwIdx >= 0 ? _bwIdx : Math.min(_ladePlekLees(), Math.max(0, _ladeSecties.length - 1));
   // De akte-module levert de renderer én de knoppen; die moet weten welke akte
   // er speelt, anders belandt een getoond beeld in de sessielog van niemand.
-  const mod = await import('./akte-schrijven.js?v=34');
+  const mod = await import('./akte-schrijven.js?v=35');
   mod.zetAkte(_rbChapter, _ladeTekst);
   window._akteRegieRender = mod.regieNaarHtml;
   let lade = document.getElementById('regie-lade');
@@ -2917,7 +2919,7 @@ window._ladeHerlaad = async () => {
     _ladeTekst = regie?.tekst || '';
     _ladeSecties = _splitsSecties(_ladeTekst);
     _ladeIdx = Math.min(_ladeIdx, Math.max(0, _ladeSecties.length - 1));
-    const mod = await import('./akte-schrijven.js?v=34');
+    const mod = await import('./akte-schrijven.js?v=35');
     mod.zetAkte(_rbChapter, _ladeTekst);
     _ladeRender();
   } catch { /* de lade blijft staan zoals hij stond */ }
@@ -3174,6 +3176,69 @@ function _sfeerMenu(ev) {
     document.addEventListener('click', sluit);
   }, 0);
 }
+
+// Wat voorafging. Eén knop, één klein menu: welk verslag (standaard het
+// laatste dat deze party kan terugzien), en dan afspelen op het tafelscherm of
+// eerst zelf bekijken. De server bepaalt wat erin mag; dit menu kiest alleen.
+async function _terugblikMenu(ev) {
+  document.getElementById('dm-terugblik-menu')?.remove();
+  const knop = ev?.currentTarget;
+  if (!knop) return;
+  const menu = document.createElement('div');
+  menu.id = 'dm-terugblik-menu';
+  menu.className = 'dm-rust-menu dm-terugblik-menu';
+  menu.innerHTML = `
+    <div class="dm-rust-menu-kop">Wat voorafging<span class="dm-sectie-hulp">${helpBtn('dm_terugblik')}</span></div>
+    <div class="dm-terugblik-body"><p class="dm-hint" style="margin:0">Laden…</p></div>`;
+  document.body.appendChild(menu);
+  const plaats = () => {
+    const r = knop.getBoundingClientRect();
+    menu.style.left = `${Math.max(8, Math.min(r.left - 80, window.innerWidth - menu.offsetWidth - 8))}px`;
+    menu.style.bottom = `${window.innerHeight - r.top + 6}px`;
+  };
+  plaats();
+  setTimeout(() => {
+    const sluit = (e) => {
+      if (!menu.contains(e.target)) { menu.remove(); document.removeEventListener('click', sluit); }
+    };
+    document.addEventListener('click', sluit);
+  }, 0);
+
+  let lijst = [];
+  try { lijst = (await api.terugblikLijst()).verslagen || []; } catch { /* hieronder */ }
+  const body = menu.querySelector('.dm-terugblik-body');
+  if (!body) return;
+  if (!lijst.length) {
+    body.innerHTML = `<p class="dm-hint" style="margin:0">Deze party heeft nog geen zichtbaar sessieverslag om op terug te kijken.</p>`;
+    plaats();
+    return;
+  }
+  body.innerHTML = `
+    <select class="dm-input dm-input-sm dm-terugblik-keuze">
+      ${lijst.map((v, i) => `<option value="${esc(v.id)}"${i === 0 ? ' selected' : ''}>${esc(v.titel)}${v.akte ? ` — ${esc(v.akte)}` : ''}${v.datum ? ` (${esc(v.datum)})` : ''}</option>`).join('')}
+    </select>
+    <div class="dm-terugblik-knoppen">
+      <button class="dm-btn dm-btn-primary dm-btn-sm" data-tb="tafel">${icon('monitor')} Op het tafelscherm</button>
+      <button class="dm-btn dm-btn-ghost dm-btn-sm" data-tb="zelf">${icon('eye')} Zelf bekijken</button>
+    </div>`;
+  plaats();
+  body.querySelectorAll('[data-tb]').forEach(b => b.addEventListener('click', () => {
+    const sessieId = body.querySelector('.dm-terugblik-keuze').value;
+    menu.remove();
+    _terugblikSpeel(sessieId, b.dataset.tb === 'zelf');
+  }));
+}
+
+async function _terugblikSpeel(sessieId, zelf) {
+  try {
+    const tb = await api.terugblik({ sessieId, voorbeeld: !!zelf });
+    if (zelf) window._terugblikCinematic?.(tb, { voorbeeld: true });
+    else _showToast(`${icon('hourglass')} De terugblik speelt op het tafelscherm`);
+  } catch (e) {
+    _showToast(e?.message || 'De terugblik kon niet worden gestart');
+  }
+}
+window._terugblikSpeel = _terugblikSpeel;
 
 // Rustmenu. Vier losse icoontjes naast elkaar (boom, bierpul, maan, bliksem)
 // lieten zich niet raden: welke is nu de locatie en welke de duur? Eén knop die
@@ -8956,7 +9021,8 @@ async function _renderGeluiden() {
   // standaardgeluiden: ook die speelt de app zelf, zonder dat jij iets doet.
   const momentRijen = `
     ${momentRow('lootReveal', 'Loot onthullen', 'klinkt zodra de spelers de buit te zien krijgen')}
-    ${momentRow('levelUp', 'Level omhoog', 'klinkt bij de speler die een level omhoog gaat, en op het tafelscherm')}`;
+    ${momentRow('levelUp', 'Level omhoog', 'klinkt bij de speler die een level omhoog gaat, en op het tafelscherm')}
+    ${momentRow('terugblik', 'Terugblik', 'speelt onder de terugblik op het tafelscherm')}`;
 
   // De klanken bij een tafelscherm-effect. Ze maken zichzelf in de browser, dus
   // hier staat niets leeg te wachten: wat je kiest vervángt de gemaakte klank.

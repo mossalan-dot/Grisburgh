@@ -1,4 +1,4 @@
-import { api } from './api.js?v=316';
+import { api } from './api.js?v=317';
 
 // icon() helper is defined globally in app.js; grab a local alias for template use.
 const icon = (...a) => window.icon(...a);
@@ -246,7 +246,7 @@ export async function renderLogboek() {
   if (_logboekActiveTab === 'prikbord') {
     tabContent.style.cssText = 'flex:1; min-height:0; overflow:hidden; display:flex; flex-direction:column;';
     tabContent.innerHTML = `<div id="pb-relatiemap-container" style="flex:1;display:flex;flex-direction:column;overflow:hidden;min-height:0;"></div>`;
-    const { renderRelatiemap } = await import('./render-relatiemap.js?v=31');
+    const { renderRelatiemap } = await import('./render-relatiemap.js?v=32');
     await renderRelatiemap(document.getElementById('pb-relatiemap-container'));
     return;
   }
@@ -1428,6 +1428,10 @@ window._openSessieDetail = async (id) => {
           onclick="window.app.closeModal();window._openSessieEditor('${e.id}')" title="Bewerken">${icon('pencil')}</button>
         <button class="px-3 py-1.5 text-sm rounded bg-seal/20 text-seal hover:bg-seal/40 transition"
           onclick="window._deleteSessie('${e.id}')" title="Verwijderen">${icon('trash')}</button>
+        ${e.soort !== 'gevecht' ? `<button class="logboek-terugblik-btn"
+          onclick="window._terugblikSpeel?.('${e.id}', false)" title="Als terugblik op het tafelscherm">${icon('hourglass')} Terugblik</button>
+        <button class="logboek-terugblik-btn logboek-terugblik-btn--zelf"
+          onclick="window.app.closeModal();window._terugblikSpeel?.('${e.id}', true)" title="Zelf bekijken">${icon('eye')}</button>` : ''}
       </div>` : ''}
   `;
   const subtitle = [chapter.short, e.datum].filter(Boolean).join(' \u00b7 ');
@@ -1698,7 +1702,7 @@ window._nakijkKlaar = async (ch, type, id, btn) => {
 
 window._akteSchrijf = async (ch) => {
   const info = meta?.hoofdstukken?.[ch] || {};
-  const { openAkteSchrijven } = await import('./akte-schrijven.js?v=34');
+  const { openAkteSchrijven } = await import('./akte-schrijven.js?v=35');
   openAkteSchrijven(ch, info.short || info.title || ch);
 };
 window._logboekVerversen = () => renderLogboek();

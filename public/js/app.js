@@ -1,22 +1,23 @@
-import { api, campagneUitUrl, zetCampagne } from './api.js?v=316';
-import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, renderDocumenten, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=350";
-import { initArchief, renderLogboek, openLogboekEditor } from "./render-archief.js?v=142";
-import { renderKaart, queueFlyTo, verversPins, nieuweKaart } from './render-kaart.js?v=31';
-import { renderDungeon } from './render-dungeon.js?v=67';
-import { renderRelatiemap } from './render-relatiemap.js?v=31';
-import { renderProgressie, levelupFeatures } from './render-progressie.js?v=63';
-import { renderBestiarium } from './render-bestiarium.js?v=31';
-import { renderSpreuken } from './render-spreuken.js?v=50';
+import { api, campagneUitUrl, zetCampagne } from './api.js?v=317';
+import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, renderDocumenten, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=351";
+import { initArchief, renderLogboek, openLogboekEditor } from "./render-archief.js?v=143";
+import { renderKaart, queueFlyTo, verversPins, nieuweKaart } from './render-kaart.js?v=32';
+import { renderDungeon } from './render-dungeon.js?v=68';
+import { renderRelatiemap } from './render-relatiemap.js?v=32';
+import { renderProgressie, levelupFeatures } from './render-progressie.js?v=64';
+import { renderBestiarium } from './render-bestiarium.js?v=32';
+import { renderSpreuken } from './render-spreuken.js?v=51';
 import './render-handleiding.js?v=2';
 import './render-melding.js?v=4';
-import { renderVaardigheden, zoekVaardigheden, heldenboekTekst } from './render-vaardigheden.js?v=132';
+import { renderVaardigheden, zoekVaardigheden, heldenboekTekst } from './render-vaardigheden.js?v=133';
 import { renderStatblock } from './render-statblock.js?v=9';
-import { initSocket } from "./socket-client.js?v=89";
-import { initDmPanel } from "./dm-panel.js?v=410";
+import { initSocket } from "./socket-client.js?v=90";
+import { initDmPanel } from "./dm-panel.js?v=411";
 import { COND_INFO, COND_LABEL, COND_MET_PLAATJE, COND_ICON } from './conditions.js?v=2';
-import './media-picker.js?v=10';
-import './wizard.js?v=5';
+import './media-picker.js?v=11';
+import './wizard.js?v=6';
 import './tafels.js?v=2';
+import './terugblik.js?v=1';
 
 // ── Icon helper ──
 // Renders an inline SVG <use> reference from /img/icons.svg.
@@ -1568,7 +1569,7 @@ async function _landingNieuwTegel() {
   if (!host || !_groepsWachtwoord || document.getElementById('landing-nieuw')) return;
   let stand = null;
   try {
-    await import('./personage-maken.js?v=5');
+    await import('./personage-maken.js?v=6');
     stand = await window.personageMaken.stand();
   } catch { return; }
   if (stand?.instellingen && stand.instellingen.aan === false) return;
@@ -1590,7 +1591,7 @@ async function _landingNieuwTegel() {
 
 async function _landingNieuw() {
   try {
-    await import('./personage-maken.js?v=5');
+    await import('./personage-maken.js?v=6');
     const stand = await window.personageMaken.stand();
     if (stand?.concept && stand.concept.status !== 'gegund') {
       if (stand.concept.status === 'wacht') {
@@ -3560,7 +3561,7 @@ function _kaartCard(type, m, dm, verdiepingen = null) {
 // eerste bestaande kaart: je drukte op + en keek naar Dreghaven.
 window._kaartNieuw = async function (type) {
   if (type === 'wereld') return nieuweKaart();
-  const { nieuweDungeon } = await import('./render-dungeon.js?v=67');
+  const { nieuweDungeon } = await import('./render-dungeon.js?v=68');
   nieuweDungeon();
 };
 
@@ -15246,6 +15247,13 @@ const HELP_CONFIG = {
     { titel: 'Ze maken zichzelf', tekst: 'Deze klanken worden in de browser gemaakt met een paar tonen en wat ruis — er staat geen bestand tegenover. Dat scheelt laadtijd en licentiegedoe, en bij een nieuwe campagne klinkt het meteen zonder dat jij iets hoeft te vullen. Voor een dreun of een tik is dat prima; een overtuigende donderslag krijg je er niet mee.', afbeelding: null },
     { titel: 'Een eigen klank wint', tekst: 'Kies je hier een bestand uit de bibliotheek, dan vervangt dat de gemaakte klank. Doe dat vooral bij **donder**, **regen** en de **aardbeving** — daar hoor je het verschil. Het kruisje zet hem terug op de gemaakte klank; er blijft dus nooit iets stils achter.', afbeelding: null },
     { titel: 'Niet elk effect klinkt', tekst: 'Mist, gif en vuur staan er niet bij: die hóren stil te zijn, want ze blijven staan. Een klank die blijft doorlopen is een sfeerloop, en die stel je in bij Diensten of bij de akte.', afbeelding: null },
+  ] }),
+  dm_terugblik: () => ({ titel: 'Wat voorafging', stappen: [
+    { titel: 'Waar het voor is', tekst: 'Aan het begin van een avond weet de helft van de tafel niet meer waar ze gebleven waren. De terugblik maakt van je vorige sessieverslag een korte trailer op het tafelscherm: een titelkaart, de akte, je samenvatting woord voor woord over trage beelden, het citaat, wie ze ontmoetten, en dan *gaat het verder*.', afbeelding: null },
+    { titel: 'Wat erin komt', tekst: 'Alleen wat de **actieve party** al kent. Het verslag moet voor hen zichtbaar zijn, de beelden moeten voor hen onthuld zijn (die van het verslag zelf, plus wat er tijdens die akte op tafel kwam), en een personage krijgt pas een portret als zijn kaartje voor hen op zichtbaar staat. Een naam uit de tekst die ze nog niet kennen staat er dus wel als woord, maar zonder gezicht. Spelerspersonages staan niet bij *Wie u ontmoette* — die zitten aan tafel — maar komen aan het eind wel langs.', afbeelding: null },
+    { titel: 'Kiezen en afspelen', tekst: 'Standaard staat het laatste verslag klaar. **Op het tafelscherm** speelt hem daar af; **Zelf bekijken** speelt hem alleen op jouw scherm, zodat je eerst ziet hoe je tekst zich laat lezen. Hetzelfde kan vanuit een verslag in het Logboek.', afbeelding: null },
+    { titel: 'Tijdens het afspelen', tekst: 'Tikken of de pijl naar rechts springt naar het volgende shot, Escape sluit. Vanaf de regie-balk zet de monitor-knop het tafelscherm terug op sfeer, en dat breekt ook een lopende terugblik af. Een lang verslag houdt op na achttien zinsbrokken; schrijf de terugblik dus vooral in je **samenvatting**, kort en in de verleden tijd.', afbeelding: null },
+    { titel: 'Muziek', tekst: 'Zonder instelling zingt de app zelf: een lage drone met een dreun bij de titel. Wil je echte muziek, hang dan bij **Geluiden → Momenten → Terugblik** een bestand; dat zwelt aan bij het begin en sterft weg bij het eind.', afbeelding: null },
   ] }),
   dm_tafelscherm_fx: () => ({ titel: 'Effecten op het tafelscherm', stappen: [
     { titel: 'Twee soorten', tekst: 'Een effect onder **Eenmalig** flitst en ruimt zichzelf op — een wond, bliksem, een schokgolf. Een effect onder **Blijft staan** blijft op het scherm tot jij hem uitzet: mist, gif, vuur, duister. Dat verschil is er omdat een toestand een uitknop nodig heeft; zonder dat zou je scherm groen blijven omdat je tweemaal drukte.', afbeelding: null },
