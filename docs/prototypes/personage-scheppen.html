@@ -1,0 +1,1106 @@
+<title>Personage scheppen</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700;900&family=Crimson+Text:ital,wght@0,400;0,600;1,400&family=IM+Fell+English:ital@0;1&family=Kalam:wght@400;700&display=swap">
+<style>
+/* ── Ontwerp ──────────────────────────────────────────────────────────────
+   Een werkbank bij kaarslicht: het tóneel is donker en flakkert, maar alles
+   waar je mee werkt ligt op licht perkament — het blad links, de panelen
+   rechts. Eén visuele wereld, bewust single-theme (warm licht op donker).   */
+:root{
+  --inkt:#2a1a08; --inkt-mid:#5a4030; --inkt-dim:#8a7050; --inkt-faint:#b09870;
+  --goud:#b8860b; --goud-diep:#9a7008;
+  --lak:#8d2a24; --lak-diep:#6a1d19;
+  --perk:#efe3c7; --perk-warm:#e6d4ad; --perk-diep:#d8c29a; --rand:#c9ab74;
+  color-scheme: light;
+  --f-kop:'Cinzel', Georgia, serif;
+  --f-tekst:'Crimson Text', Georgia, serif;
+  --f-fluister:'IM Fell English', Georgia, serif;
+  --f-brief:'Kalam','Comic Sans MS', cursive;
+}
+*{ box-sizing:border-box; }
+html,body{ height:100%; }
+body{
+  margin:0; font-family:var(--f-tekst); font-size:17px; line-height:1.5; color:var(--inkt-mid);
+  background: radial-gradient(120% 90% at 50% -8%, #3a2d18 0%, #241a0e 46%, #120b05 100%);
+  overflow-x:hidden;
+}
+body::after{ content:""; position:fixed; inset:0; pointer-events:none; z-index:60;
+  background: radial-gradient(72% 56% at 50% 40%, transparent 54%, rgba(8,5,2,.6) 100%);
+  mix-blend-mode:multiply; }
+.stage{ min-height:100%;
+  padding-left:max(18px, env(safe-area-inset-left,0px));
+  padding-right:max(18px, env(safe-area-inset-right,0px));
+  padding-block:clamp(20px,5vh,52px);
+  display:flex; flex-direction:column; align-items:center; }
+
+/* ══ DREMPEL ══════════════════════════════════════════════════════════════ */
+.drempel{ max-width:560px; margin:auto; text-align:center; display:flex; flex-direction:column;
+  align-items:center; gap:22px; animation:opkomen 1.1s ease both; }
+.embleem{ width:112px; height:112px; border-radius:50%; display:grid; place-items:center; position:relative;
+  background: radial-gradient(circle at 38% 32%, #f6ecd0, #d8bd87 70%, #b2924f);
+  border:2px solid var(--goud); color:#5a4015;
+  box-shadow:0 0 0 7px rgba(184,134,11,.16), 0 0 46px 6px rgba(184,134,11,.4),
+    inset 0 2px 8px rgba(255,255,255,.6), inset 0 -8px 16px rgba(120,86,20,.35); }
+.embleem svg{ width:52px; height:52px; filter:drop-shadow(0 1px 1px rgba(255,255,255,.5)); }
+.embleem::before{ content:""; position:absolute; inset:-22px; border-radius:50%;
+  background:radial-gradient(circle, rgba(184,134,11,.28), transparent 68%); animation:adem 4.5s ease-in-out infinite; }
+.boven{ font-family:var(--f-fluister); font-style:italic; color:var(--inkt-faint);
+  letter-spacing:.14em; font-size:1.05rem; }
+.drempel h1{ font-family:var(--f-kop); font-weight:900; color:#f3e6c6; margin:0;
+  font-size:clamp(2.2rem,7.5vw,3.4rem); line-height:1.02; letter-spacing:.02em; text-wrap:balance;
+  text-shadow:0 2px 18px rgba(0,0,0,.6), 0 0 34px rgba(184,134,11,.3); }
+.drempel .lead{ font-family:var(--f-fluister); font-style:italic; color:#cdb98e; font-size:1.2rem;
+  max-width:40ch; line-height:1.5; }
+.sierlijn{ display:flex; align-items:center; gap:12px; color:var(--goud); opacity:.85; }
+.sierlijn svg{ width:20px; height:20px; }
+.sierlijn span{ height:1px; width:70px; background:linear-gradient(90deg,transparent,var(--goud)); }
+.sierlijn span:last-child{ background:linear-gradient(90deg,var(--goud),transparent); }
+
+/* ══ WERKBANK ═════════════════════════════════════════════════════════════ */
+.werkbank{ width:100%; max-width:1120px; margin:auto;
+  display:grid; grid-template-columns:320px 1fr; gap:26px; align-items:start; }
+@media (max-width:860px){ .werkbank{ grid-template-columns:1fr; gap:16px; } }
+
+/* het meegroeiende blad */
+.blad-wrap{ position:sticky; top:max(14px, env(safe-area-inset-top,0px)); }
+@media (max-width:860px){ .blad-wrap{ position:static; } }
+.blad{ position:relative; border-radius:5px; padding:22px 20px 26px;
+  background-image:
+    repeating-linear-gradient(0deg, transparent, transparent 31px, rgba(150,110,50,.09) 32px),
+    linear-gradient(175deg, var(--perk) 0%, var(--perk-warm) 100%);
+  box-shadow:0 12px 36px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,255,255,.5); }
+.blad::before{ content:""; position:absolute; inset:7px; border:1px solid rgba(154,112,8,.4);
+  border-radius:2px; pointer-events:none; }
+.blad-portret{ width:92px; height:92px; margin:0 auto 10px; border-radius:50%; display:grid; place-items:center;
+  overflow:hidden; color:#8a6a2a; transition:box-shadow .4s; position:relative;
+  background:radial-gradient(circle at 40% 35%, #e9d7ad, #c9ab74); border:2px solid var(--goud-diep);
+  box-shadow:inset 0 2px 7px rgba(255,255,255,.5), inset 0 -6px 12px rgba(120,86,20,.3), 0 3px 10px rgba(0,0,0,.25); }
+.blad-portret svg{ width:40px; height:40px; opacity:.6; }
+.blad-portret img, .blad-portret video{ width:100%; height:100%; object-fit:cover; }
+.blad-portret.vol{ box-shadow:inset 0 2px 7px rgba(255,255,255,.5), 0 0 22px rgba(184,134,11,.5), 0 3px 10px rgba(0,0,0,.25); }
+.film-badge{ position:absolute; bottom:2px; right:2px; width:22px; height:22px; border-radius:50%;
+  background:rgba(42,26,8,.8); color:#f3e6c6; display:grid; place-items:center; border:1px solid var(--goud); }
+.film-badge svg{ width:11px; height:11px; opacity:1; }
+.blad-naam{ font-family:var(--f-kop); font-weight:700; text-align:center; color:var(--inkt);
+  font-size:1.32rem; min-height:1.4em; }
+.blad-naam.leeg{ font-family:var(--f-fluister); font-style:italic; font-weight:400; color:var(--inkt-faint); font-size:1rem; }
+.blad-onder{ text-align:center; font-family:var(--f-fluister); font-style:italic; color:var(--inkt-dim);
+  min-height:1.3em; margin-top:2px; }
+.blad-regels{ margin:16px 0 0; display:flex; flex-direction:column; }
+.blad-regel{ display:flex; justify-content:space-between; align-items:baseline; gap:10px; padding:7px 2px;
+  border-bottom:1px dotted rgba(154,112,8,.4); opacity:0; transform:translateY(4px); transition:opacity .5s, transform .5s; }
+.blad-regel.in{ opacity:1; transform:none; }
+.blad-regel dt{ font-family:var(--f-kop); font-size:.62rem; letter-spacing:.1em; text-transform:uppercase; color:var(--inkt-dim); }
+.blad-regel dd{ margin:0; font-family:var(--f-brief); color:var(--inkt); font-size:1.08rem; text-align:right; }
+.blad-regel dd.wacht{ font-family:var(--f-fluister); font-style:italic; color:var(--inkt-faint); font-size:.9rem; }
+.blad-zes{ margin-top:16px; display:grid; grid-template-columns:repeat(6,1fr); gap:5px; }
+.zegel-pip{ text-align:center; padding:6px 0 5px; border-radius:3px;
+  background:rgba(154,112,8,.09); border:1px solid rgba(154,112,8,.28); }
+.zegel-pip .ab{ display:block; font-family:var(--f-kop); font-size:.52rem; letter-spacing:.06em; color:var(--inkt-dim); text-transform:uppercase; }
+.zegel-pip .nr{ display:block; font-family:var(--f-kop); font-weight:700; font-size:1.02rem; color:var(--inkt); line-height:1.1; }
+.zegel-pip .md{ display:block; font-size:.66rem; color:var(--goud-diep); }
+.zegel-pip.leeg .nr{ color:var(--inkt-faint); }
+
+/* ── het keuzepaneel ── */
+.paneel{ position:relative; border-radius:6px; padding:clamp(18px,3vw,30px);
+  background:linear-gradient(175deg, var(--perk), var(--perk-warm));
+  box-shadow:0 16px 46px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,255,255,.5); }
+.paneel::before{ content:""; position:absolute; inset:8px; border:1px solid rgba(154,112,8,.35);
+  border-radius:3px; pointer-events:none; }
+
+/* voortgangsbalk */
+.voortgang{ margin-bottom:16px; }
+.vg-rij{ display:flex; justify-content:space-between; align-items:baseline; margin-bottom:7px; gap:10px; }
+.vg-label{ font-family:var(--f-kop); font-size:.66rem; letter-spacing:.12em; text-transform:uppercase; color:var(--inkt-dim); }
+.vg-stap{ font-family:var(--f-fluister); font-style:italic; color:var(--goud-diep); font-size:.98rem; }
+.vg-bar{ position:relative; height:7px; border-radius:4px; background:rgba(120,86,20,.18);
+  box-shadow:inset 0 1px 2px rgba(120,86,20,.3); }
+.vg-vul{ position:absolute; inset:0 auto 0 0; border-radius:4px; overflow:hidden;
+  background:linear-gradient(90deg,#c9992a,#b8860b); box-shadow:0 0 10px rgba(184,134,11,.5);
+  transition:width .55s cubic-bezier(.3,.9,.3,1); }
+.vg-vul::after{ content:""; position:absolute; inset:0;
+  background:linear-gradient(90deg,transparent,rgba(255,245,210,.65),transparent); animation:schuif 2.4s linear infinite; }
+.vg-knoop{ position:absolute; top:50%; width:11px; height:11px; margin:-6px 0 0 -6px; border-radius:50%;
+  background:var(--perk); border:2px solid rgba(120,86,20,.4); transition:.35s; }
+.vg-knoop.gehad{ background:var(--goud); border-color:var(--goud-diep); }
+.vg-knoop.nu{ background:var(--goud); border-color:var(--goud-diep); box-shadow:0 0 9px 2px rgba(184,134,11,.6); transform:scale(1.25); }
+
+.keuze-boven{ font-family:var(--f-fluister); font-style:italic; color:var(--goud-diep); letter-spacing:.1em; font-size:.95rem; }
+.paneel h2{ font-family:var(--f-kop); font-weight:700; color:var(--inkt); margin:.1em 0 .1em;
+  font-size:clamp(1.6rem,4.4vw,2.2rem); text-wrap:balance; }
+.keuze-lead{ font-family:var(--f-fluister); font-style:italic; color:var(--inkt-dim);
+  max-width:56ch; margin:0 0 20px; font-size:1.08rem; }
+.keuze-lead em{ color:var(--inkt-faint); }
+
+/* kaartenraster */
+.kaarten{ display:grid; grid-template-columns:repeat(auto-fill, minmax(158px,1fr)); gap:14px; }
+.kaart{ position:relative; text-align:left; cursor:pointer; border:0; padding:0; border-radius:6px; overflow:hidden;
+  aspect-ratio:3/3.5; background:transparent; font-family:inherit;
+  transition:transform .28s cubic-bezier(.2,.9,.3,1.3), box-shadow .28s; box-shadow:0 4px 14px rgba(0,0,0,.28); }
+.kaart:hover{ transform:translateY(-5px) scale(1.015); box-shadow:0 12px 28px rgba(0,0,0,.4); }
+.kaart:focus-visible{ outline:2px solid var(--goud); outline-offset:3px; }
+.kaart-rand{ position:absolute; inset:0; border-radius:6px; pointer-events:none; border:1px solid rgba(154,112,8,.28); transition:.3s; }
+.kaart:hover .kaart-rand{ border-color:rgba(184,134,11,.6); }
+.kaart.aan{ transform:translateY(-3px); }
+.kaart.aan .kaart-rand{ border:2px solid var(--goud);
+  box-shadow:inset 0 0 0 1px rgba(246,236,210,.5), 0 0 24px 2px rgba(184,134,11,.55); }
+.kaart-zegel{ position:absolute; top:9px; right:9px; width:30px; height:30px; border-radius:50%;
+  background:radial-gradient(circle at 38% 32%, #a8322b, var(--lak) 60%, var(--lak-diep)); display:grid; place-items:center;
+  color:#f3dcc0; box-shadow:0 2px 7px rgba(0,0,0,.5), inset 0 1px 2px rgba(255,255,255,.3);
+  transform:scale(0) rotate(-40deg); transition:transform .4s cubic-bezier(.3,1.4,.4,1); z-index:2; }
+.kaart-zegel svg{ width:16px; height:16px; }
+.kaart.aan .kaart-zegel{ transform:scale(1) rotate(0); }
+
+.kaart--beeld .kaart-beeld{ position:absolute; inset:0; display:grid; place-items:center; color:rgba(255,255,255,.92); }
+.kaart--beeld .kaart-beeld svg{ width:46px; height:46px; opacity:.85; filter:drop-shadow(0 2px 5px rgba(0,0,0,.5)); transition:transform .3s; }
+.kaart--beeld:hover .kaart-beeld svg{ transform:scale(1.1) rotate(-3deg); }
+.kaart--beeld .kaart-waas{ position:absolute; inset:0;
+  background:linear-gradient(to top, rgba(16,10,3,.94) 0%, rgba(16,10,3,.5) 42%, rgba(16,10,3,.1) 100%); }
+.kaart--beeld .kaart-tekst{ position:absolute; left:0; right:0; bottom:0; padding:12px 13px 13px; z-index:1; }
+.kaart--beeld .kaart-naam{ font-family:var(--f-kop); font-weight:700; color:#f6ecd2; font-size:1.04rem; line-height:1.1;
+  text-shadow:0 1px 3px rgba(0,0,0,.8); }
+.kaart--beeld .kaart-flavour{ font-family:var(--f-fluister); font-style:italic; color:#d8c49a; font-size:.84rem; line-height:1.3; margin-top:3px; }
+
+.kaart--medaillon{ background:linear-gradient(170deg,#f3ead2,#e4d1a8); display:flex; flex-direction:column;
+  align-items:center; justify-content:flex-start; gap:8px; padding:20px 12px 14px; }
+.kaart--medaillon .medaillon{ width:60px; height:60px; border-radius:50%; display:grid; place-items:center; color:#6f5115;
+  background:radial-gradient(circle at 40% 34%, #f6eccf, #cdae72 72%, #a9873f); border:1px solid var(--goud-diep);
+  box-shadow:inset 0 2px 5px rgba(255,255,255,.6), inset 0 -4px 8px rgba(120,86,20,.3), 0 2px 6px rgba(0,0,0,.2); transition:transform .3s; }
+.kaart--medaillon .medaillon svg{ width:28px; height:28px; }
+.kaart--medaillon:hover .medaillon{ transform:scale(1.07) rotate(-3deg); }
+.kaart--medaillon .kaart-naam{ font-family:var(--f-kop); font-weight:700; color:var(--inkt); font-size:1.02rem; text-align:center; line-height:1.1; }
+.kaart--medaillon .kaart-flavour{ font-family:var(--f-fluister); font-style:italic; color:var(--inkt-dim); font-size:.82rem; text-align:center; line-height:1.3; }
+
+.b-rood{ background:linear-gradient(145deg,#6d1f1a,#3a1310); }
+.b-blauw{ background:linear-gradient(145deg,#1f3a55,#122436); }
+.b-groen{ background:linear-gradient(145deg,#2f4a28,#162712); }
+.b-paars{ background:linear-gradient(145deg,#45285a,#241233); }
+.b-oker{ background:linear-gradient(145deg,#7a5620,#43300f); }
+.b-grijs{ background:linear-gradient(145deg,#3f3a33,#201d18); }
+.b-staal{ background:linear-gradient(145deg,#394a52,#1d272c); }
+.b-wijn{ background:linear-gradient(145deg,#5a2436,#2e101c); }
+
+.subkeuze{ margin-top:18px; }
+.subkeuze-kop{ font-family:var(--f-kop); font-size:.7rem; letter-spacing:.12em; text-transform:uppercase; color:var(--goud-diep); margin-bottom:8px; }
+.pil-rij{ display:flex; flex-wrap:wrap; gap:8px; }
+.pil{ font-family:var(--f-kop); font-size:.82rem; color:var(--inkt-mid); cursor:pointer;
+  background:rgba(154,112,8,.08); border:1px solid var(--rand); padding:7px 14px; border-radius:20px; transition:.2s;
+  display:inline-flex; align-items:center; }
+.pil svg{ width:14px; height:14px; }
+.pil:hover{ border-color:var(--goud-diep); background:rgba(184,134,11,.14); }
+.pil.aan{ background:rgba(184,134,11,.26); border-color:var(--goud-diep); color:var(--inkt);
+  box-shadow:0 0 10px rgba(184,134,11,.3); }
+
+/* naam + portret */
+.naam-veld{ max-width:460px; }
+.naam-invoer{ width:100%; font-family:var(--f-kop); font-weight:700; font-size:1.6rem; color:var(--inkt);
+  background:transparent; border:0; border-bottom:2px solid var(--rand); padding:8px 2px; outline:none; transition:.3s; }
+.naam-invoer::placeholder{ font-family:var(--f-fluister); font-style:italic; font-weight:400; color:rgba(138,112,80,.55); font-size:1.2rem; }
+.naam-invoer:focus{ border-color:var(--goud-diep); box-shadow:0 2px 14px -6px rgba(184,134,11,.8); }
+.portret-rij{ display:flex; gap:18px; align-items:center; flex-wrap:wrap; margin-top:20px; }
+.portret-vak{ width:104px; height:104px; border-radius:50%; overflow:hidden; display:grid; place-items:center; color:#8a6a2a; position:relative;
+  background:radial-gradient(circle at 40% 35%, #e9d7ad,#c9ab74); border:2px solid var(--goud-diep);
+  box-shadow:inset 0 2px 7px rgba(255,255,255,.5), inset 0 -6px 12px rgba(120,86,20,.3); }
+.portret-vak svg{ width:40px; height:40px; opacity:.55; }
+.portret-vak img, .portret-vak video{ width:100%; height:100%; object-fit:cover; }
+.portret-knoppen{ display:flex; flex-direction:column; gap:8px; }
+.upload-knop{ font-family:var(--f-kop); font-weight:600; font-size:.86rem; cursor:pointer; border-radius:4px; padding:9px 16px;
+  border:1px solid var(--rand); color:var(--inkt-mid); background:transparent; transition:.2s; display:inline-flex; align-items:center; gap:8px; }
+.upload-knop:hover{ border-color:var(--goud-diep); color:var(--inkt); background:rgba(184,134,11,.1); }
+.upload-knop svg{ width:15px; height:15px; }
+.upload-knop input{ display:none; }
+.level-rij{ display:flex; align-items:center; gap:12px; margin-top:22px; flex-wrap:wrap; }
+.level-rij label{ font-family:var(--f-kop); font-size:.7rem; letter-spacing:.1em; text-transform:uppercase; color:var(--inkt-dim); }
+.level-invoer{ width:72px; font-family:var(--f-kop); font-weight:700; font-size:1.1rem; color:var(--inkt); text-align:center;
+  padding:7px; border:1px solid var(--rand); border-radius:5px; background:#fff8ea; }
+
+/* ability scores */
+.methode-rij{ display:flex; flex-wrap:wrap; gap:8px; margin-bottom:4px; }
+.methode-acties{ display:flex; flex-wrap:wrap; gap:10px; align-items:center; margin-top:4px; }
+.worpen{ display:flex; gap:6px; margin:14px 0 2px; min-height:0; flex-wrap:wrap; }
+.worpen:empty{ margin:0; }
+.worp{ width:30px; height:30px; display:grid; place-items:center; border-radius:5px; font-family:var(--f-kop);
+  font-weight:700; color:#f6ecd2; font-size:.95rem; background:linear-gradient(145deg,#4a3a22,#2a2012);
+  border:1px solid rgba(201,171,116,.4); box-shadow:inset 0 1px 2px rgba(255,255,255,.1); transition:.2s; }
+.worp.weg{ opacity:.3; }
+.worp.rollend{ animation:tuimel .5s ease infinite; }
+.stenen{ display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin-top:12px; }
+@media(max-width:480px){ .stenen{ grid-template-columns:repeat(2,1fr); } }
+.steen{ position:relative; border-radius:7px; padding:11px 10px 11px; text-align:center;
+  background:linear-gradient(170deg, rgba(255,250,238,.95), rgba(233,215,176,.95));
+  border:1px solid var(--rand); box-shadow:0 3px 10px rgba(0,0,0,.2); transition:transform .2s, box-shadow .2s; }
+.steen .ab{ font-family:var(--f-kop); font-size:.62rem; letter-spacing:.1em; text-transform:uppercase; color:var(--inkt-dim); }
+.steen .getal{ font-family:var(--f-kop); font-weight:900; font-size:1.9rem; color:var(--inkt); line-height:1; margin:3px 0; }
+.steen .totaal{ font-size:.66rem; color:var(--goud-diep); min-height:.9em; }
+.steen .mod{ display:inline-block; font-family:var(--f-kop); font-weight:700; font-size:.8rem; color:#fff;
+  background:var(--goud-diep); border-radius:11px; padding:1px 9px; margin-top:3px; }
+.steen.leeg .getal{ color:var(--inkt-faint); }
+.steen.net .getal{ animation:landen .5s cubic-bezier(.3,1.5,.4,1); }
+.steen-step{ display:flex; align-items:center; justify-content:center; gap:8px; margin-top:4px; }
+.step-knop{ width:24px; height:24px; border-radius:50%; border:1px solid var(--rand); background:rgba(154,112,8,.1);
+  color:var(--inkt); font-family:var(--f-kop); font-weight:700; cursor:pointer; line-height:1; transition:.15s; }
+.step-knop:hover:not(:disabled){ background:var(--goud); color:#2a1a08; border-color:var(--goud-diep); }
+.step-knop:disabled{ opacity:.3; cursor:not-allowed; }
+.steen select, .steen input[type=number]{ width:100%; margin-top:6px; font-family:var(--f-tekst); font-size:.9rem;
+  padding:4px; border:1px solid var(--rand); border-radius:4px; background:#fff8ea; color:var(--inkt); }
+.vonken{ font-family:var(--f-fluister); font-style:italic; color:var(--inkt-dim); margin:12px 0 0; }
+.vonken strong{ color:var(--goud-diep); font-style:normal; }
+.vonken.op strong{ color:var(--lak); }
+.bg-bonus{ margin-top:18px; padding-top:14px; border-top:1px dotted rgba(154,112,8,.4); }
+.bg-bonus-rij{ display:flex; flex-wrap:wrap; gap:10px; margin-top:8px; }
+.bonus-keuze{ display:flex; align-items:center; gap:7px; font-family:var(--f-kop); font-size:.85rem; color:var(--inkt); }
+.bonus-keuze select{ font-family:var(--f-tekst); padding:3px 6px; border:1px solid var(--rand); border-radius:4px; background:#fff8ea; color:var(--inkt); }
+
+/* multiclass */
+.mc{ margin-top:16px; border:1px solid var(--rand); border-radius:6px; background:rgba(255,250,238,.5); overflow:hidden; }
+.mc summary{ font-family:var(--f-kop); font-size:.9rem; color:var(--inkt); cursor:pointer; padding:11px 14px; list-style:none;
+  display:flex; align-items:center; gap:8px; }
+.mc summary::-webkit-details-marker{ display:none; }
+.mc summary svg{ width:15px; height:15px; color:var(--goud-diep); }
+.mc-body{ padding:0 14px 14px; display:flex; gap:12px; flex-wrap:wrap; align-items:flex-end; }
+.mc-veld label{ font-family:var(--f-kop); font-size:.66rem; letter-spacing:.08em; text-transform:uppercase; color:var(--inkt-dim); display:block; margin-bottom:5px; }
+.mc-veld select, .mc-veld input{ font-family:var(--f-tekst); font-size:.95rem; padding:7px 9px; border:1px solid var(--rand); border-radius:5px; background:#fff8ea; color:var(--inkt); }
+.mc-uit{ flex-basis:100%; font-family:var(--f-fluister); font-style:italic; color:var(--inkt-dim); margin:4px 0 0; font-size:.92rem; }
+
+/* skills */
+.skills-grid{ display:grid; grid-template-columns:repeat(auto-fill,minmax(176px,1fr)); gap:8px; }
+.skill-knop{ display:flex; align-items:center; gap:8px; text-align:left; font-family:var(--f-tekst); font-size:.98rem; color:var(--inkt);
+  cursor:pointer; border:1px solid var(--rand); border-radius:6px; padding:9px 12px; background:linear-gradient(170deg,#f6efda,#ece0c0); transition:.18s; }
+.skill-knop:hover{ border-color:var(--goud-diep); }
+.skill-knop svg{ width:14px; height:14px; opacity:0; color:var(--goud-diep); flex-shrink:0; }
+.skill-knop.aan{ background:linear-gradient(170deg,#fbeec6,#f1dca0); box-shadow:inset 0 0 0 1px var(--goud); }
+.skill-knop.aan svg{ opacity:1; }
+.skill-knop.vast{ opacity:.7; cursor:default; }
+.skill-knop.vast svg{ opacity:1; }
+.skill-ab{ margin-left:auto; font-family:var(--f-kop); font-size:.66rem; letter-spacing:.05em; color:var(--inkt-dim); }
+
+/* grimoire */
+.grim-teller{ font-family:var(--f-fluister); font-style:italic; color:var(--inkt-dim); margin:0 0 14px; font-size:1.05rem; }
+.grim-teller b{ font-family:var(--f-kop); font-style:normal; color:var(--goud-diep); }
+.grim-groep{ margin-bottom:16px; }
+.grim-groep-kop{ font-family:var(--f-kop); font-size:.72rem; letter-spacing:.12em; text-transform:uppercase; color:var(--inkt-dim);
+  margin:0 0 9px; display:flex; align-items:center; gap:8px; }
+.grim-groep-kop::after{ content:""; flex:1; height:1px; background:rgba(154,112,8,.3); }
+.grim-kaarten{ display:grid; grid-template-columns:repeat(auto-fill, minmax(150px,1fr)); gap:9px; }
+.spreuk{ position:relative; text-align:left; cursor:pointer; font-family:inherit; border:1px solid var(--rand);
+  border-left-width:5px; border-radius:5px; padding:9px 11px 9px 12px; background:linear-gradient(170deg,#f6efda,#ece0c0);
+  transition:transform .18s, box-shadow .18s; box-shadow:0 2px 6px rgba(0,0,0,.12); }
+.spreuk:hover{ transform:translateY(-2px); box-shadow:0 5px 14px rgba(0,0,0,.2); }
+.spreuk:focus-visible{ outline:2px solid var(--goud); outline-offset:2px; }
+.spreuk-naam{ font-family:var(--f-kop); font-weight:600; color:var(--inkt); font-size:.95rem; line-height:1.15; display:block; }
+.spreuk-school{ font-family:var(--f-fluister); font-style:italic; font-size:.78rem; margin-top:2px; display:block; }
+.spreuk.aan{ background:linear-gradient(170deg,#fbeec6,#f1dca0); box-shadow:inset 0 0 0 1px var(--goud), 0 3px 12px rgba(184,134,11,.35); }
+.spreuk-vink{ position:absolute; top:7px; right:7px; width:20px; height:20px; border-radius:50%; display:grid; place-items:center;
+  background:var(--goud-diep); color:#fff; transform:scale(0); transition:transform .25s cubic-bezier(.3,1.5,.4,1); }
+.spreuk-vink svg{ width:12px; height:12px; }
+.spreuk.aan .spreuk-vink{ transform:scale(1); }
+
+/* groei (ASI/feat) */
+.groei-slot{ border:1px solid var(--rand); border-radius:7px; padding:14px 15px; margin-bottom:12px;
+  background:linear-gradient(170deg,#f6efda,#ece0c0); }
+.groei-kop{ font-family:var(--f-kop); font-weight:700; color:var(--inkt); font-size:1rem; margin-bottom:9px; display:flex; align-items:center; gap:8px; }
+.groei-kop svg{ width:16px; height:16px; color:var(--goud-diep); }
+.groei-feats{ display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:7px; margin-top:10px; }
+.groei-asi{ display:flex; flex-wrap:wrap; gap:10px; margin-top:10px; align-items:center; }
+.groei-asi select{ font-family:var(--f-tekst); padding:5px 8px; border:1px solid var(--rand); border-radius:5px; background:#fff8ea; color:var(--inkt); }
+
+/* uitrusting */
+.uit-rij{ display:grid; grid-template-columns:1fr 1fr; gap:18px; margin-bottom:6px; }
+@media(max-width:560px){ .uit-rij{ grid-template-columns:1fr; } }
+.uit-veld label{ font-family:var(--f-kop); font-size:.7rem; letter-spacing:.1em; text-transform:uppercase; color:var(--inkt-dim); display:block; margin-bottom:6px; }
+.uit-veld select{ width:100%; font-family:var(--f-tekst); font-size:1rem; padding:9px 10px; border:1px solid var(--rand);
+  border-radius:5px; background:#fff8ea; color:var(--inkt); }
+.uit-hint{ font-family:var(--f-fluister); font-style:italic; color:var(--inkt-faint); font-size:.86rem; margin:5px 0 0; }
+.keuze-paar{ display:flex; gap:10px; flex-wrap:wrap; margin-bottom:6px; }
+.paar-knop{ flex:1; min-width:160px; text-align:left; cursor:pointer; font-family:inherit; border:1px solid var(--rand);
+  border-radius:6px; padding:12px 14px; background:linear-gradient(170deg,#f3ead2,#e6d4ad); transition:.2s; }
+.paar-knop:hover{ border-color:var(--goud-diep); }
+.paar-knop.aan{ border:2px solid var(--goud); box-shadow:inset 0 0 0 1px rgba(246,236,210,.6), 0 0 16px rgba(184,134,11,.3); }
+.paar-titel{ font-family:var(--f-kop); font-weight:700; color:var(--inkt); font-size:.98rem; }
+.paar-onder{ font-family:var(--f-fluister); font-style:italic; color:var(--inkt-dim); font-size:.86rem; margin-top:3px; }
+.vink-regel{ display:flex; align-items:center; gap:8px; margin-top:10px; font-family:var(--f-tekst); color:var(--inkt); cursor:pointer; }
+.vink-regel input{ width:17px; height:17px; accent-color:var(--goud-diep); }
+.knapzak{ margin-top:20px; padding-top:14px; border-top:1px dotted rgba(154,112,8,.4); }
+.knapzak-kop{ font-family:var(--f-kop); font-size:.7rem; letter-spacing:.12em; text-transform:uppercase; color:var(--inkt-dim); margin-bottom:9px;
+  display:flex; align-items:center; gap:7px; }
+.knapzak-kop svg{ width:15px; height:15px; color:var(--goud-diep); }
+.knapzak-chips{ display:flex; flex-wrap:wrap; gap:8px; min-height:34px; }
+.chip{ display:inline-flex; align-items:center; gap:6px; font-family:var(--f-tekst); font-size:.92rem; color:var(--inkt);
+  background:rgba(154,112,8,.1); border:1px solid var(--rand); padding:5px 12px; border-radius:16px; animation:valt .35s ease both; }
+.chip svg{ width:13px; height:13px; color:var(--goud-diep); }
+.chip-leeg{ font-family:var(--f-fluister); font-style:italic; color:var(--inkt-faint); }
+.trinket-knop{ margin-top:14px; }
+
+/* verhaal + geheimen */
+.verhaal-area{ width:100%; min-height:150px; font-family:var(--f-tekst); font-size:1.05rem; line-height:1.55; color:var(--inkt);
+  background:rgba(255,250,238,.65); border:1px solid var(--rand); border-radius:6px; padding:14px 16px; resize:vertical; outline:none;
+  background-image:repeating-linear-gradient(0deg, transparent, transparent 30px, rgba(150,110,50,.12) 31px); line-height:31px; }
+.verhaal-area:focus{ border-color:var(--goud-diep); box-shadow:0 2px 14px -6px rgba(184,134,11,.7); }
+.verhaal-area::placeholder{ font-family:var(--f-fluister); font-style:italic; color:rgba(138,112,80,.6); }
+.geheim-blok{ margin-top:22px; padding-top:16px; border-top:1px dotted rgba(154,112,8,.4); }
+.geheim-kop{ display:flex; align-items:center; gap:8px; font-family:var(--f-kop); font-size:.72rem; letter-spacing:.12em; text-transform:uppercase; color:var(--goud-diep); }
+.geheim-kop svg{ width:15px; height:15px; }
+.geheim-lijst{ display:flex; flex-direction:column; gap:8px; margin:12px 0; }
+.geheim-item{ display:flex; align-items:flex-start; gap:10px; padding:10px 12px; border-radius:6px; animation:valt .3s ease both;
+  background:rgba(141,42,36,.07); border:1px solid rgba(141,42,36,.3); }
+.geheim-item .zegeltje{ width:26px; height:26px; flex-shrink:0; border-radius:50%; display:grid; place-items:center; color:#f0d9bd;
+  background:radial-gradient(circle at 38% 32%, #a8322b, var(--lak) 60%, var(--lak-diep)); box-shadow:0 1px 3px rgba(0,0,0,.4); }
+.geheim-item .zegeltje svg{ width:13px; height:13px; }
+.geheim-item p{ margin:0; flex:1; font-family:var(--f-tekst); color:var(--inkt); font-style:italic; }
+.geheim-item button{ background:none; border:0; color:var(--inkt-dim); cursor:pointer; padding:2px; }
+.geheim-item button:hover{ color:var(--lak); }
+.geheim-item button svg{ width:15px; height:15px; }
+.geheim-invoer{ display:flex; gap:8px; }
+.geheim-invoer input{ flex:1; min-width:0; font-family:var(--f-tekst); font-size:1rem; padding:9px 12px; border:1px solid var(--rand);
+  border-radius:6px; background:#fff8ea; color:var(--inkt); outline:none; }
+.geheim-invoer input:focus{ border-color:var(--goud-diep); }
+
+/* stem */
+.stem-blok{ margin-top:18px; padding-top:14px; border-top:1px dotted rgba(154,112,8,.4); }
+.stem-blok:first-of-type{ border-top:0; padding-top:0; margin-top:4px; }
+.stem-rij{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-top:8px; }
+.stem-select{ font-family:var(--f-tekst); font-size:.95rem; padding:8px 10px; border:1px solid var(--rand); border-radius:5px; background:#fff8ea; color:var(--inkt); }
+.stem-chips{ display:flex; flex-wrap:wrap; gap:8px; margin-top:10px; }
+.stem-clip{ display:inline-flex; align-items:center; gap:7px; font-family:var(--f-tekst); color:var(--inkt);
+  background:rgba(154,112,8,.1); border:1px solid var(--rand); padding:5px 8px 5px 13px; border-radius:18px; animation:valt .35s ease both; }
+.stem-clip > svg{ width:14px; height:14px; color:var(--goud-diep); }
+.stem-mini{ width:25px; height:25px; border-radius:50%; border:1px solid var(--rand); background:#fff8ea; color:var(--inkt-mid);
+  cursor:pointer; display:grid; place-items:center; transition:.15s; }
+.stem-mini:hover{ background:var(--goud); color:#2a1a08; border-color:var(--goud-diep); }
+.stem-mini svg{ width:11px; height:11px; }
+.opname{ display:inline-flex; align-items:center; gap:11px; padding:9px 15px; border-radius:22px;
+  background:rgba(141,42,36,.12); border:1px solid rgba(141,42,36,.4); color:var(--lak); font-family:var(--f-kop); font-size:.82rem; letter-spacing:.04em; }
+.opname .punt{ width:10px; height:10px; border-radius:50%; background:var(--lak); animation:knipper 1s ease-in-out infinite; }
+.golf{ display:inline-flex; align-items:center; gap:2px; height:20px; }
+.golf i{ width:3px; min-height:4px; background:var(--lak); border-radius:2px; animation:golven .7s ease-in-out infinite; }
+
+/* voet */
+.voet{ display:flex; justify-content:space-between; align-items:center; margin-top:26px; gap:12px; flex-wrap:wrap; }
+.knop{ font-family:var(--f-kop); font-weight:600; font-size:.92rem; letter-spacing:.03em; cursor:pointer; border-radius:4px;
+  padding:11px 20px; transition:.2s; display:inline-flex; align-items:center; gap:8px; border:1px solid transparent; }
+.knop svg{ width:16px; height:16px; }
+.knop-spook{ background:transparent; border-color:var(--rand); color:var(--inkt-mid); }
+.knop-spook:hover{ border-color:var(--goud-diep); color:var(--inkt); background:rgba(184,134,11,.1); }
+.knop-goud{ background:linear-gradient(170deg,#d9a92a,#b8860b 60%,#9a7008); color:#2a1a08; border-color:#8a6305;
+  box-shadow:0 4px 14px rgba(184,134,11,.4), inset 0 1px 0 rgba(255,255,255,.4); }
+.knop-goud:hover:not(:disabled){ transform:translateY(-1px); box-shadow:0 7px 20px rgba(184,134,11,.55), inset 0 1px 0 rgba(255,255,255,.4); }
+.knop-goud:disabled{ opacity:.45; cursor:not-allowed; }
+.voet-rechts{ display:flex; align-items:center; gap:10px; }
+
+/* ══ ONTHULLING ══════════════════════════════════════════════════════════ */
+.onthul{ max-width:470px; margin:auto; text-align:center; display:flex; flex-direction:column; align-items:center; gap:4px;
+  animation:opkomen .8s ease both; }
+.onthul .boven{ color:var(--goud); }
+.onthul-blad{ width:100%; margin-top:14px; padding:30px 26px 26px; border-radius:5px; position:relative; overflow:hidden;
+  background-image:
+    repeating-linear-gradient(0deg, transparent, transparent 31px, rgba(150,110,50,.08) 32px),
+    linear-gradient(175deg, var(--perk), var(--perk-warm));
+  box-shadow:0 18px 50px rgba(0,0,0,.6), inset 0 1px 0 rgba(255,255,255,.5); }
+.onthul-blad::before{ content:""; position:absolute; inset:8px; border:1px double rgba(154,112,8,.45); border-radius:3px; pointer-events:none; }
+.onthul-blad.flits::after{ content:""; position:absolute; inset:0; background:radial-gradient(circle at 50% 30%, rgba(255,240,200,.9), transparent 60%);
+  animation:flits .7s ease both; pointer-events:none; }
+.onthul-portret{ width:116px; height:116px; margin:0 auto 12px; border-radius:50%; display:grid; place-items:center; overflow:hidden;
+  background:radial-gradient(circle at 40% 35%, #e9d7ad,#c9ab74); border:3px solid var(--goud-diep); color:#8a6a2a;
+  box-shadow:0 0 30px rgba(184,134,11,.5), inset 0 2px 8px rgba(255,255,255,.5); }
+.onthul-portret svg{ width:52px; height:52px; opacity:.6; }
+.onthul-portret img, .onthul-portret video{ width:100%; height:100%; object-fit:cover; }
+.onthul-naam{ font-family:var(--f-kop); font-weight:900; font-size:2rem; color:var(--inkt); line-height:1.05; text-wrap:balance; }
+.onthul-sub{ font-family:var(--f-fluister); font-style:italic; color:var(--inkt-dim); font-size:1.05rem; }
+.onthul-zes{ display:grid; grid-template-columns:repeat(6,1fr); gap:6px; margin:18px 0; }
+.onthul-regels{ text-align:left; margin:0; display:flex; flex-direction:column; }
+.lak-kop{ font-family:var(--f-kop); font-size:.78rem; letter-spacing:.1em; text-transform:uppercase; color:var(--goud); margin-top:12px; }
+.lak-zegel{ width:92px; height:92px; margin:8px auto 0; border-radius:50%; cursor:pointer; position:relative; font-family:inherit; border:0;
+  background:radial-gradient(circle at 38% 32%, #a8322b, var(--lak) 55%, var(--lak-diep)); display:grid; place-items:center; color:#f0d9bd;
+  box-shadow:0 6px 18px rgba(0,0,0,.45), inset 0 2px 5px rgba(255,255,255,.3), inset 0 -8px 14px rgba(60,12,10,.6); transition:transform .25s; }
+.lak-zegel svg{ width:36px; height:36px; }
+.lak-zegel:hover{ transform:scale(1.05); }
+.lak-zegel.gezet{ animation:stempel .5s cubic-bezier(.3,1.5,.4,1); cursor:default; }
+
+.verstuurd{ margin:auto; text-align:center; max-width:420px; display:flex; flex-direction:column; align-items:center; gap:14px;
+  animation:opkomen .7s ease both; color:#ede0c2; }
+.verstuurd h2{ font-family:var(--f-kop); color:#f4e8ca; font-size:1.8rem; margin:0; text-wrap:balance; }
+.verstuurd p{ font-family:var(--f-fluister); font-style:italic; color:#cbb68c; }
+
+/* animaties */
+@keyframes opkomen{ from{opacity:0; transform:translateY(16px);} to{opacity:1; transform:none;} }
+@keyframes adem{ 0%,100%{opacity:.5; transform:scale(1);} 50%{opacity:.9; transform:scale(1.08);} }
+@keyframes tuimel{ 0%{transform:rotate(0);} 50%{transform:rotate(180deg) scale(1.1);} 100%{transform:rotate(360deg);} }
+@keyframes landen{ 0%{transform:scale(1.6); opacity:.3;} 60%{transform:scale(.9);} 100%{transform:scale(1);} }
+@keyframes stempel{ 0%{transform:scale(2.4) rotate(-18deg); opacity:.2;} 55%{transform:scale(.9);} 100%{transform:scale(1) rotate(0);} }
+@keyframes flits{ 0%{opacity:0;} 25%{opacity:1;} 100%{opacity:0;} }
+@keyframes valt{ from{opacity:0; transform:translateY(-6px) scale(.9);} to{opacity:1; transform:none;} }
+@keyframes schuif{ from{transform:translateX(-100%);} to{transform:translateX(100%);} }
+@keyframes knipper{ 0%,100%{opacity:1;} 50%{opacity:.3;} }
+@keyframes golven{ 0%,100%{height:5px;} 50%{height:20px;} }
+@media (prefers-reduced-motion: reduce){ *{ animation-duration:.001s !important; transition-duration:.08s !important; } }
+</style>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-sword" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9.5 17.5 21 6V3h-3L6.5 14.5"/><path d="m11 19-6-6"/><path d="m5 21-2-2"/><path d="m8 16-4 4"/></symbol>
+  <symbol id="i-swords" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="14.5 17.5 3 6 3 3 6 3 17.5 14.5"/><line x1="13" x2="19" y1="19" y2="13"/><line x1="16" x2="20" y1="16" y2="20"/><line x1="19" x2="21" y1="21" y2="19"/><polyline points="14.5 6.5 18 3 21 3 21 6 17.5 9.5"/><line x1="5" x2="9" y1="14" y2="18"/><line x1="7" x2="4" y1="17" y2="20"/><line x1="3" x2="5" y1="19" y2="21"/></symbol>
+  <symbol id="i-sparkles" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11.017 2.814a1 1 0 0 1 1.966 0l1.051 5.558a2 2 0 0 0 1.594 1.594l5.558 1.051a1 1 0 0 1 0 1.966l-5.558 1.051a2 2 0 0 0-1.594 1.594l-1.051 5.558a1 1 0 0 1-1.966 0l-1.051-5.558a2 2 0 0 0-1.594-1.594l-5.558-1.051a1 1 0 0 1 0-1.966l5.558-1.051a2 2 0 0 0 1.594-1.594z"/><path d="M20 2v4"/><path d="M22 4h-4"/><circle cx="4" cy="20" r="2"/></symbol>
+  <symbol id="i-dice" viewBox="0 0 512 512"><path fill="currentColor" d="M74.5 36A38.5 38.5 0 0 0 36 74.5v363A38.5 38.5 0 0 0 74.5 476h363a38.5 38.5 0 0 0 38.5-38.5v-363A38.5 38.5 0 0 0 437.5 36h-363zm48.97 36.03A50 50 0 0 1 172 122a50 50 0 0 1-100 0 50 50 0 0 1 51.47-49.97zm268 0A50 50 0 0 1 440 122a50 50 0 0 1-100 0 50 50 0 0 1 51.47-49.97zM256 206a50 50 0 0 1 0 100 50 50 0 0 1 0-100zM123.47 340.03A50 50 0 0 1 172 390a50 50 0 0 1-100 0 50 50 0 0 1 51.47-49.97zm268 0A50 50 0 0 1 440 390a50 50 0 0 1-100 0 50 50 0 0 1 51.47-49.97z"/></symbol>
+  <symbol id="i-user" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></symbol>
+  <symbol id="i-scroll" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 12h-5"/><path d="M15 8h-5"/><path d="M19 17V5a2 2 0 0 0-2-2H4"/><path d="M8 21h12a2 2 0 0 0 2-2v-1a1 1 0 0 0-1-1H11a1 1 0 0 0-1 1v1a2 2 0 1 1-4 0V5a2 2 0 1 0-4 0v2a1 1 0 0 0 1 1h3"/></symbol>
+  <symbol id="i-shield" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/></symbol>
+  <symbol id="i-heart" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 9.5a5.5 5.5 0 0 1 9.591-3.676.56.56 0 0 0 .818 0A5.49 5.49 0 0 1 22 9.5c0 2.29-1.5 4-3 5.5l-5.492 5.313a2 2 0 0 1-3 .019L5 15c-1.5-1.5-3-3.2-3-5.5"/></symbol>
+  <symbol id="i-feather" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.086 18.412A2 2 0 0112.67 19H5v-7.672a2 2 0 01.586-1.414L11.75 3.75a6 6 0 118.49 8.49z"/><path d="M16 8 2 22"/><path d="M17.488 15H9"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></symbol>
+  <symbol id="i-links" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></symbol>
+  <symbol id="i-rechts" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></symbol>
+  <symbol id="i-crown" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11.562 3.266a.5.5 0 0 1 .876 0L15.39 8.87a1 1 0 0 0 1.516.294L21.183 5.5a.5.5 0 0 1 .798.519l-2.834 10.246a1 1 0 0 1-.956.734H5.81a1 1 0 0 1-.957-.734L2.02 6.02a.5.5 0 0 1 .798-.519l4.276 3.664a1 1 0 0 0 1.516-.294z"/><path d="M5 21h14"/></symbol>
+  <symbol id="i-flame" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3q1 4 4 6.5t3 5.5a1 1 0 0 1-14 0 5 5 0 0 1 1-3 1 1 0 0 0 5 0c0-2-1.5-3-1.5-5q0-2 2.5-4"/></symbol>
+  <symbol id="i-book" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 7v14"/><path d="M3 18a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h5a4 4 0 0 1 4 4 4 4 0 0 1 4-4h5a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1h-6a3 3 0 0 0-3 3 3 3 0 0 0-3-3z"/></symbol>
+  <symbol id="i-paw" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="4" r="2"/><circle cx="18" cy="8" r="2"/><circle cx="20" cy="16" r="2"/><path d="M9 10a5 5 0 0 1 5 5v3.5a3.5 3.5 0 0 1-6.84 1.045Q6.52 17.48 4.46 16.84A3.5 3.5 0 0 1 5.5 10Z"/></symbol>
+  <symbol id="i-star" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.123 2.123 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.123 2.123 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.122 2.122 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.122 2.122 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.122 2.122 0 0 0 1.597-1.16z"/></symbol>
+  <symbol id="i-backpack" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 10a4 4 0 0 1 4-4h8a4 4 0 0 1 4 4v8a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z"/><path d="M8 10h8"/><path d="M8 18h8"/><path d="M8 22v-6a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v6"/><path d="M9 6V5a3 3 0 0 1 6 0v1"/></symbol>
+  <symbol id="i-coins" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="8" r="6"/><path d="M18.09 10.37A6 6 0 1 1 10.34 18"/><path d="M7 6h1v4"/><path d="m16.71 13.88.7.71-2.82 2.82"/></symbol>
+  <symbol id="i-volume" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4.702a.705.705 0 0 0-1.203-.498L6.413 7.587A1.4 1.4 0 0 1 5.416 8H3a1 1 0 0 0-1 1v6a1 1 0 0 0 1 1h2.416a1.4 1.4 0 0 1 .997.413l3.383 3.384A.705.705 0 0 0 11 19.298z"/><path d="M16 9a5 5 0 0 1 0 6"/><path d="M19.364 18.364a9 9 0 0 0 0-12.728"/></symbol>
+  <symbol id="i-play" viewBox="0 0 24 24" fill="currentColor" stroke="none"><polygon points="6 3 20 12 6 21 6 3"/></symbol>
+  <symbol id="i-mic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19v3"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><rect x="9" y="2" width="6" height="13" rx="3"/></symbol>
+  <symbol id="i-x" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></symbol>
+  <symbol id="i-image" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></symbol>
+  <symbol id="i-film" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M7 3v18"/><path d="M3 7.5h4"/><path d="M3 12h18"/><path d="M3 16.5h4"/><path d="M17 3v18"/><path d="M17 7.5h4"/><path d="M17 16.5h4"/></symbol>
+  <symbol id="i-lock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></symbol>
+  <symbol id="i-plus" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></symbol>
+  <symbol id="i-users" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></symbol>
+  <symbol id="i-zap" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 14a1 1 0 0 1-.78-1.63l9.9-10.2a.5.5 0 0 1 .86.46l-1.92 6.02A1 1 0 0 0 13 10h7a1 1 0 0 1 .78 1.63l-9.9 10.2a.5.5 0 0 1-.86-.46l1.92-6.02A1 1 0 0 0 11 14z"/></symbol>
+</svg>
+
+<div class="stage" id="stage"></div>
+
+<script>
+const $ = (id) => document.getElementById(id);
+const ico = (n) => `<svg aria-hidden="true"><use href="#i-${n}"/></svg>`;
+const esc = (s) => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const mod = (s) => Math.floor((s - 10) / 2);
+const teken = (n) => n >= 0 ? `+${n}` : `${n}`;
+
+// ── Zaaidata (in de echte app: Heldenboek + bronnen/*.json, mét DM-portretten) ──
+const ABILITIES = ['str','dex','con','int','wis','cha'];
+const AB = { str:'Strength', dex:'Dexterity', con:'Constitution', int:'Intelligence', wis:'Wisdom', cha:'Charisma' };
+const STANDAARD = [15,14,13,12,10,8];
+const PB_KOST = {8:0,9:1,10:2,11:3,12:4,13:5,14:7,15:9};
+const PB_BUDGET = 27;
+const ASI_LEVELS = [4,8,12,16,19];
+
+// Wat de DM instelt (hier gesimuleerd). rerollsMaken/rerollsLevelup: hoeveel keer
+// een speler mag herwerpen bij het maken, resp. bij een level-up (die laatste
+// hoort bij het level-up-scherm dat de app al heeft).
+const INST = { methodes:['rollen','pointbuy','array','vrij'], rerollsMaken:2, rerollsLevelup:1, maxLevel:5 };
+
+const SPECIES = [
+  { naam:'Human',    ico:'user',    beeld:'b-oker',  flav:'Overal thuis, nergens lang.', varianten:null },
+  { naam:'Elf',      ico:'feather', beeld:'b-groen', flav:'Eeuwen in de ogen.', variantLabel:'Lineage', varianten:['High Elf','Wood Elf','Drow'] },
+  { naam:'Dwarf',    ico:'shield',  beeld:false,     flav:'Steen onthoudt alles.', varianten:null },
+  { naam:'Tiefling', ico:'flame',   beeld:'b-wijn',  flav:'Een afkomst die fluistert.', variantLabel:'Fiendish Legacy', varianten:['Abyssal','Chthonic','Infernal'] },
+  { naam:'Tabaxi',   ico:'paw',     beeld:false,     flav:'Nieuwsgierigheid met klauwen.', varianten:null },
+  { naam:'Halfling', ico:'heart',   beeld:false,     flav:'Klein, onverwoestbaar vrolijk.', varianten:null },
+];
+const KLASSEN = [
+  { naam:'Fighter',   ico:'sword',    beeld:'b-staal', aard:'Martial',     hd:10, prim:'Strength',     caster:false, sub:'Martial Archetype', subLvl:3, subs:['Champion','Battle Master','Eldritch Knight'], mag:'Longsword, Shortsword, Chain Mail',
+    vaardAantal:2, vaardUit:['Acrobatics','Animal Handling','Athletics','History','Insight','Intimidation','Perception','Survival'] },
+  { naam:'Wizard',    ico:'sparkles', beeld:'b-blauw', aard:'Full caster', hd:6,  prim:'Intelligence', caster:true,  sub:'Arcane Tradition', subLvl:3, subs:['Evoker','Abjurer','Diviner'], mag:'Quarterstaff, Dagger',
+    vaardAantal:2, vaardUit:['Arcana','History','Insight','Investigation','Medicine','Religion'] },
+  { naam:'Rogue',     ico:'swords',   beeld:false,     aard:'Martial',     hd:8,  prim:'Dexterity',    caster:false, sub:'Roguish Archetype', subLvl:3, subs:['Thief','Assassin','Arcane Trickster'], mag:'Shortsword, Dagger, Leather',
+    vaardAantal:4, vaardUit:['Acrobatics','Athletics','Deception','Insight','Intimidation','Investigation','Perception','Performance','Persuasion','Sleight of Hand','Stealth'] },
+  { naam:'Cleric',    ico:'crown',    beeld:'b-oker',  aard:'Full caster', hd:8,  prim:'Wisdom',       caster:true,  sub:'Divine Domain', subLvl:3, subs:['Life','Light','Trickery'], mag:'Mace, Chain Shirt',
+    vaardAantal:2, vaardUit:['History','Insight','Medicine','Persuasion','Religion'] },
+  { naam:'Barbarian', ico:'flame',    beeld:'b-rood',  aard:'Martial',     hd:12, prim:'Strength',     caster:false, sub:null, subLvl:3, subs:null, mag:'Greataxe',
+    vaardAantal:2, vaardUit:['Animal Handling','Athletics','Intimidation','Nature','Perception','Survival'] },
+  { naam:'Bard',      ico:'star',     beeld:false,     aard:'Full caster', hd:8,  prim:'Charisma',     caster:true,  sub:'Bard College', subLvl:3, subs:['Lore','Valor','Glamour'], mag:'Rapier, Leather',
+    vaardAantal:3, vaardUit:['Acrobatics','Arcana','Athletics','Deception','History','Insight','Intimidation','Investigation','Medicine','Nature','Perception','Performance','Persuasion','Religion','Sleight of Hand','Stealth','Survival','Animal Handling'] },
+];
+const SKILL_AB = { Acrobatics:'dex','Animal Handling':'wis',Arcana:'int',Athletics:'str',Deception:'cha',History:'int',Insight:'wis',Intimidation:'cha',Investigation:'int',Medicine:'wis',Nature:'int',Perception:'wis',Performance:'cha',Persuasion:'cha',Religion:'int','Sleight of Hand':'dex',Stealth:'dex',Survival:'wis' };
+const BACKGROUNDS = [
+  { naam:'Acolyte',   skills:['Insight','Religion'],         feat:'Magic Initiate (Cleric)', abil:['int','wis','cha'], flav:'Grootgebracht in wierook.', spullen:['Holy Symbol','Prayer book','5 Incense'], goud:8 },
+  { naam:'Soldier',   skills:['Athletics','Intimidation'],   feat:'Savage Attacker',         abil:['str','dex','con'], flav:'Bevel is een tweede taal.', spullen:['Spear','Gaming set','Deck of cards'], goud:14 },
+  { naam:'Criminal',  skills:['Deception','Stealth'],        feat:'Alert',                   abil:['dex','con','int'], flav:'Elke stad heeft een achterdeur.', spullen:["Thieves' Tools",'Crowbar','2 Daggers'], goud:16 },
+  { naam:'Sage',      skills:['Arcana','History'],           feat:'Magic Initiate (Wizard)', abil:['con','int','wis'], flav:'Antwoorden kosten tijd.', spullen:['Quarterstaff','Calligrapher\u2019s Supplies','Book'], goud:8 },
+  { naam:'Folk Hero', skills:['Animal Handling','Survival'], feat:'Tough',                   abil:['str','con','wis'], flav:'Het dorp kent je naam.', spullen:["Smith's Tools",'Shovel','Iron pot'], goud:10 },
+  { naam:'Charlatan', skills:['Deception','Sleight of Hand'],feat:'Skilled',                 abil:['dex','con','cha'], flav:'Vertrouwen is te koop.', spullen:['Forgery Kit','Fine clothes','Signet ring'], goud:15 },
+];
+const FEATS = ['Alert','Tough','Lucky','Mobile','Resilient (Con)','War Caster','Great Weapon Master','Sharpshooter','Sentinel','Magic Initiate','Fey Touched','Skill Expert'];
+
+const SCHOOL_KLEUR = { Abjuration:'#3b6ea5', Conjuration:'#8a6d3b', Divination:'#6a6a6a', Enchantment:'#a4508b',
+  Evocation:'#b5452f', Illusion:'#6a4fa0', Necromancy:'#3f6b3f', Transmutation:'#b8860b' };
+const SPREUKEN = {
+  Wizard: [ {n:'Fire Bolt',l:0,s:'Evocation'},{n:'Mage Hand',l:0,s:'Conjuration'},{n:'Prestidigitation',l:0,s:'Transmutation'},{n:'Ray of Frost',l:0,s:'Evocation'},{n:'Light',l:0,s:'Evocation'},
+    {n:'Magic Missile',l:1,s:'Evocation'},{n:'Shield',l:1,s:'Abjuration'},{n:'Mage Armor',l:1,s:'Abjuration'},{n:'Detect Magic',l:1,s:'Divination'},{n:'Sleep',l:1,s:'Enchantment'},{n:'Burning Hands',l:1,s:'Evocation'},{n:'Charm Person',l:1,s:'Enchantment'} ],
+  Cleric: [ {n:'Sacred Flame',l:0,s:'Evocation'},{n:'Guidance',l:0,s:'Divination'},{n:'Light',l:0,s:'Evocation'},{n:'Thaumaturgy',l:0,s:'Transmutation'},
+    {n:'Cure Wounds',l:1,s:'Abjuration'},{n:'Bless',l:1,s:'Enchantment'},{n:'Guiding Bolt',l:1,s:'Evocation'},{n:'Shield of Faith',l:1,s:'Abjuration'},{n:'Healing Word',l:1,s:'Abjuration'} ],
+  Bard: [ {n:'Vicious Mockery',l:0,s:'Enchantment'},{n:'Prestidigitation',l:0,s:'Transmutation'},{n:'Mage Hand',l:0,s:'Conjuration'},{n:'Light',l:0,s:'Evocation'},
+    {n:'Healing Word',l:1,s:'Abjuration'},{n:'Dissonant Whispers',l:1,s:'Enchantment'},{n:'Charm Person',l:1,s:'Enchantment'},{n:'Faerie Fire',l:1,s:'Evocation'},{n:'Tasha\u2019s Hideous Laughter',l:1,s:'Enchantment'} ],
+};
+const TELLERS = { Wizard:{cantrips:3, spreuken:4}, Cleric:{cantrips:3, spreuken:4}, Bard:{cantrips:2, spreuken:4} };
+const WAPENS = [ {k:'longsword',n:'Longsword',sch:'1d8'},{k:'shortsword',n:'Shortsword',sch:'1d6'},{k:'dagger',n:'Dagger',sch:'1d4'},
+  {k:'greataxe',n:'Greataxe',sch:'1d12'},{k:'mace',n:'Mace',sch:'1d6'},{k:'quarterstaff',n:'Quarterstaff',sch:'1d6'},
+  {k:'rapier',n:'Rapier',sch:'1d8'},{k:'shortbow',n:'Shortbow',sch:'1d6'} ];
+const HARNAS = [ {k:'leather',n:'Leather',ac:11},{k:'studded',n:'Studded Leather',ac:12},{k:'chainshirt',n:'Chain Shirt',ac:13},
+  {k:'scalemail',n:'Scale Mail',ac:14},{k:'chainmail',n:'Chain Mail',ac:16} ];
+const TRINKETS = ['een gebarsten knikker die soms gloeit','een sleutel voor een slot dat je nooit vond',
+  'een gedroogde bloem die niet verwelkt','een munt uit een land dat niet bestaat','een vingerhoed van bot','een brief die je nooit durfde te lezen'];
+const STEM_BIB = ['Strijdkreet','Triomfkreet','Gegrom','Gelach','Een diepe zucht','Gefluister'];
+
+const STAP_BOVEN = { naam:'Het eerste woord', afkomst:'Wat je bent', roeping:'Wat je doet', herkomst:'Waar je vandaan komt',
+  dezes:'De zes getallen', skills:'Waar je in uitblinkt', spreuken:'Je grimoire', groei:'Wat je werd', uitrusting:'Je knapzak', verhaal:'Je verhaal', stem:'Je stem' };
+const STAP_KOP = { naam:'Hoe heet je?', afkomst:'Wat je bent', roeping:'Wat doe je?', herkomst:'Waar kom je vandaan?',
+  dezes:'De zes getallen', skills:'Waar ben je goed in?', spreuken:'Wat kun je oproepen?', groei:'Wat heb je geleerd?',
+  uitrusting:'Waar ga je mee op pad?', verhaal:'Vertel je verhaal', stem:'Geef je held een stem' };
+
+// ── Staat ──
+const S = {
+  scherm:'drempel', stap:0,
+  naam:'', portretURL:null, videoURL:null, level:1,
+  species:null, speciesVar:null, klasse:null, subclass:null, multiKlasse:null, multiLevel:0, background:null,
+  methode:'rollen', scores:{str:10,dex:10,con:10,int:10,wis:10,cha:10}, bgBonus:{}, groei:[],
+  pool:[], toewijzing:{}, gerold:false, rerollsOver:INST.rerollsMaken, netAb:null,
+  skills:[], spreuken:[], bgOptie:'A', wapen:'', harnas:'', schild:false, trinket:'',
+  backstory:'', geheimen:[], turnSound:null, emotes:[], zegelGezet:false,
+};
+let _opname = false;
+
+function aantalGroei(){ return ASI_LEVELS.filter(l=>l<=S.level).length; }
+function stappen(){
+  const l = ['naam','afkomst','roeping','herkomst','dezes','skills'];
+  if (S.klasse?.caster) l.push('spreuken');
+  if (aantalGroei()>0) l.push('groei');
+  l.push('uitrusting','verhaal','stem');
+  return l;
+}
+function groeiBonus(a){ return S.groei.reduce((t,g)=>t+(g&&g.type==='asi'?(g.plus?.[a]||0):0),0); }
+const totaal = (a) => (S.scores[a]||10) + (S.bgBonus[a]||0) + groeiBonus(a);
+
+// ── Render ──
+function render(){
+  const st = $('stage');
+  if (S.scherm==='drempel') st.innerHTML = drempelHtml();
+  else if (S.scherm==='maken') st.innerHTML = werkbankHtml();
+  else if (S.scherm==='onthul') st.innerHTML = onthulHtml();
+  else if (S.scherm==='klaar') st.innerHTML = klaarHtml();
+  if (S.scherm==='maken'){ setTimeout(animeerBlad,30); $('naam-invoer')?.focus(); }
+}
+
+function drempelHtml(){
+  return `<div class="drempel">
+    <div class="embleem">${ico('swords')}</div>
+    <div class="boven">Grisburgh verwacht je</div>
+    <h1>Schep een personage</h1>
+    <div class="sierlijn"><span></span>${ico('sparkles')}<span></span></div>
+    <p class="lead">Een paar keuzes scheiden je van een naam op het bord. Neem er de tijd voor — dit wordt iemand.</p>
+    <button class="knop knop-goud" style="font-size:1.05rem; padding:14px 30px" onclick="begin()">${ico('feather')} Begin</button>
+  </div>`;
+}
+
+function voortgangHtml(lijst, i){
+  const pct = lijst.length>1 ? (i/(lijst.length-1))*100 : 0;
+  return `<div class="voortgang">
+    <div class="vg-rij"><span class="vg-label">Stap ${i+1} van ${lijst.length}</span>
+      <span class="vg-stap">${esc(STAP_BOVEN[lijst[i]])}</span></div>
+    <div class="vg-bar"><div class="vg-vul" style="width:${pct}%"></div>
+      ${lijst.map((_,k)=>`<span class="vg-knoop ${k<i?'gehad':''} ${k===i?'nu':''}" style="left:${lijst.length>1?(k/(lijst.length-1))*100:0}%"></span>`).join('')}</div>
+  </div>`;
+}
+
+function portretInner(){
+  if (S.videoURL) return `<video src="${S.videoURL}" muted autoplay loop playsinline></video><span class="film-badge">${ico('film')}</span>`;
+  if (S.portretURL) return `<img src="${S.portretURL}" alt="">`;
+  return ico('user');
+}
+function bladHtml(){
+  const sp = S.species ? (S.speciesVar ? `${S.speciesVar} ${S.species.naam}` : S.species.naam) : '';
+  const kl = S.klasse ? S.klasse.naam : '';
+  const onder = [sp, kl, S.klasse?`level ${S.level}`:''].filter(Boolean).join(' · ');
+  const regel = (dt,v,klaar)=>`<div class="blad-regel${klaar?' in':''}"><dt>${dt}</dt><dd class="${v?'':'wacht'}">${v?esc(v):'…'}</dd></div>`;
+  const nu = stappen()[S.stap];
+  const zes = ['dezes','skills','spreuken','groei','uitrusting','verhaal','stem'].includes(nu);
+  const stem = stemSamenvatting();
+  return `<div class="blad">
+    <div class="blad-portret ${(S.species||S.portretURL||S.videoURL)?'vol':''}">${portretInner()}</div>
+    <div class="blad-naam ${S.naam?'':'leeg'}">${S.naam?esc(S.naam):'nog naamloos'}</div>
+    <div class="blad-onder">${onder?esc(onder):'&nbsp;'}</div>
+    <dl class="blad-regels">
+      ${regel('Afkomst',sp,!!S.species)}
+      ${regel('Roeping',kl,!!S.klasse)}
+      ${S.multiKlasse?regel('Tweede class',`${S.multiKlasse} ${S.multiLevel}`,true):''}
+      ${regel('Subclass',S.subclass||'',!!S.subclass)}
+      ${regel('Herkomst',S.background?.naam||'',!!S.background)}
+      ${S.skills.length?regel('Skills',S.skills.join(', '),true):''}
+      ${(S.backstory||S.geheimen.length)?regel('Verhaal', verhaalSamenvatting(), true):''}
+      ${stem?regel('Stem',stem,true):''}
+    </dl>
+    ${zes?`<div class="blad-zes">${ABILITIES.map(a=>`<div class="zegel-pip"><span class="ab">${a}</span><span class="nr">${totaal(a)}</span><span class="md">${teken(mod(totaal(a)))}</span></div>`).join('')}</div>`:''}
+  </div>`;
+}
+
+function werkbankHtml(){
+  const stap = stappen()[S.stap];
+  return `<div class="werkbank">
+    <div class="blad-wrap">${bladHtml()}</div>
+    <div class="paneel">${paneelBinnen(stap)}</div>
+  </div>`;
+}
+function paneelBinnen(stap){
+  const lijst = stappen();
+  const kan = {
+    naam:()=>S.naam.trim().length>0, afkomst:()=>!!S.species, roeping:()=>!!S.klasse, herkomst:()=>!!S.background,
+    dezes:()=> S.methode!=='rollen' || S.gerold, skills:()=>true, spreuken:()=>true, groei:()=>true,
+    uitrusting:()=>true, verhaal:()=>true, stem:()=>true,
+  }[stap]();
+  const laatste = S.stap===lijst.length-1;
+  const optioneel = stap==='verhaal' || stap==='stem';
+  return `${voortgangHtml(lijst, S.stap)}
+    <div class="keuze-boven">${STAP_BOVEN[stap]}</div>
+    <h2>${STAP_KOP[stap]}</h2>
+    ${stapInhoud(stap)}
+    <div class="voet">
+      <button class="knop knop-spook" onclick="terug()">${ico('links')} ${S.stap===0?'Sluiten':'Terug'}</button>
+      <div class="voet-rechts">
+        ${optioneel && !laatste ? `<button class="knop knop-spook" onclick="verder()">Overslaan</button>` : ''}
+        <button class="knop knop-goud" ${kan?'':'disabled'} onclick="verder()">${laatste?`${ico('check')} Mijn personage is af`:`Verder ${ico('rechts')}`}</button>
+      </div>
+    </div>`;
+}
+function herteken(stap){ const p=document.querySelector('.paneel'); if(p) p.innerHTML=paneelBinnen(stap); }
+
+function kaartHtml(r, aan, kies){
+  if (r.beeld){
+    return `<button class="kaart kaart--beeld ${aan?'aan':''}" onclick="${kies}('${esc(r.naam).replace(/'/g,"\\'")}')">
+      <div class="kaart-beeld ${r.beeld}">${ico(r.ico)}</div><div class="kaart-waas"></div>
+      <div class="kaart-zegel">${ico('check')}</div>
+      <div class="kaart-tekst"><div class="kaart-naam">${esc(r.naam)}</div><div class="kaart-flavour">${esc(r.flav||'')}</div></div>
+      <div class="kaart-rand"></div></button>`;
+  }
+  return `<button class="kaart kaart--medaillon ${aan?'aan':''}" onclick="${kies}('${esc(r.naam).replace(/'/g,"\\'")}')">
+    <div class="medaillon">${ico(r.ico)}</div>
+    <div class="kaart-naam">${esc(r.naam)}</div><div class="kaart-flavour">${esc(r.flav||'')}</div>
+    <div class="kaart-zegel">${ico('check')}</div><div class="kaart-rand"></div></button>`;
+}
+
+function stapInhoud(stap){
+  return ({ naam:naamHtml, afkomst:afkomstHtml, roeping:roepingHtml, herkomst:herkomstHtml, dezes:dezesHtml,
+    skills:skillsHtml, spreuken:spreukenHtml, groei:groeiHtml, uitrusting:uitrustingHtml, verhaal:verhaalHtml, stem:stemHtml }[stap] || (()=>''))();
+}
+
+function naamHtml(){
+  return `<p class="keuze-lead">Eén naam is genoeg om te beginnen. Een gezicht erbij maakt het al iemand.</p>
+    <div class="naam-veld"><input id="naam-invoer" class="naam-invoer" maxlength="60" value="${esc(S.naam)}"
+      placeholder="Zoals hij aan tafel heet" oninput="naamIn(this.value)"></div>
+    <div class="portret-rij">
+      <div class="portret-vak" id="portret-vak">${portretInner()}</div>
+      <div class="portret-knoppen">
+        <label class="upload-knop">${ico('image')} ${S.portretURL?'Andere afbeelding':'Kies een afbeelding'}
+          <input type="file" accept="image/*" onchange="leesPortret(this)"></label>
+        <label class="upload-knop">${ico('film')} ${S.videoURL?'Ander filmpje':'Of een kort filmpje'}
+          <input type="file" accept="video/*" onchange="leesVideo(this)"></label>
+      </div>
+    </div>
+    <p class="uit-hint">Het filmpje zoomt op de landingspagina in op je gezicht. Houd het kort — ongeveer 6 seconden, en niet groter dan 8 MB.</p>
+    ${INST.maxLevel>1?`<div class="level-rij"><label for="lvl">Beginlevel</label>
+      <input id="lvl" class="level-invoer" type="number" min="1" max="${INST.maxLevel}" value="${S.level}" onchange="zetLevel(this.value)">
+      <span class="uit-hint" style="margin:0">De DM staat tot level ${INST.maxLevel} toe.</span></div>`:''}`;
+}
+function afkomstHtml(){
+  const v = S.species?.varianten;
+  return `<p class="keuze-lead">Je afkomst bepaalt waar je vandaan komt en wat je van huis uit meekrijgt.</p>
+    <div class="kaarten">${SPECIES.map(s=>kaartHtml(s, s.naam===S.species?.naam, 'kiesSpecies')).join('')}</div>
+    ${v?`<div class="subkeuze"><div class="subkeuze-kop">${esc(S.species.variantLabel)}</div>
+      <div class="pil-rij">${v.map(x=>`<button class="pil ${x===S.speciesVar?'aan':''}" onclick="kiesVar('${esc(x)}')">${esc(x)}</button>`).join('')}</div></div>`:''}`;
+}
+function roepingHtml(){
+  const k = S.klasse;
+  const subNu = k && S.level >= (k.subLvl||3) && k.subs;
+  const multi = S.level>1 ? `
+    <details class="mc"${S.multiKlasse?' open':''}>
+      <summary>${ico('users')} Twee classes (multiclass)</summary>
+      <div class="mc-body">
+        <div class="mc-veld"><label>Tweede class</label>
+          <select onchange="zetMulti('klasse',this.value)"><option value="">— geen —</option>
+            ${KLASSEN.filter(x=>x.naam!==k?.naam).map(x=>`<option ${x.naam===S.multiKlasse?'selected':''}>${esc(x.naam)}</option>`).join('')}</select></div>
+        <div class="mc-veld"><label>Levels daarin</label>
+          <input type="number" min="0" max="${S.level-1}" value="${S.multiLevel}" onchange="zetMulti('level',this.value)" style="width:72px"></div>
+        <p class="mc-uit">${multiTekst()}</p>
+      </div>
+    </details>` : '';
+  return `<p class="keuze-lead">Je class bepaalt je hit die, je saving throws en waar je in uitblinkt.</p>
+    <div class="kaarten">${KLASSEN.map(x=>kaartHtml({...x, flav:`${x.aard} · d${x.hd} · ${x.prim}`}, x.naam===k?.naam, 'kiesKlasse')).join('')}</div>
+    ${subNu?`<div class="subkeuze"><div class="subkeuze-kop">${esc(k.sub)}</div>
+      <div class="pil-rij">${k.subs.map(x=>`<button class="pil ${x===S.subclass?'aan':''}" onclick="kiesSub('${esc(x)}')">${esc(x)}</button>`).join('')}</div></div>`
+      :(k?`<p class="keuze-lead" style="margin-top:14px">Je kiest je ${esc((k.sub||'subclass').toLowerCase())} vanaf level ${k.subLvl||3}.</p>`:'')}
+    ${multi}`;
+}
+function multiTekst(){
+  if (!S.multiKlasse || !S.multiLevel) return 'Laat dit leeg als je één class speelt.';
+  const n = Math.max(0, Math.min(S.level-1, S.multiLevel));
+  return `${S.level-n} level${S.level-n===1?'':'s'} ${S.klasse?.naam} en ${n} ${S.multiKlasse}. De DM ziet of je aan de ability-eisen voldoet voordat hij gunt.`;
+}
+function herkomstHtml(){
+  return `<p class="keuze-lead">Je herkomst geeft twee skills, een feat en een verhoging op drie abilities.</p>
+    <div class="kaarten">${BACKGROUNDS.map(b=>kaartHtml({...b, ico:'scroll', beeld:false, flav:`${b.skills.join(', ')} · ${b.feat}`}, b.naam===S.background?.naam, 'kiesBg')).join('')}</div>`;
+}
+
+function dezesHtml(){
+  const m = S.methode;
+  const kiezer = `<div class="methode-rij">
+    ${INST.methodes.map(x=>`<button class="pil ${x===m?'aan':''}" onclick="kiesMethode('${x}')">${x==='rollen'?ico('dice')+' ':''}${({rollen:'Rollen',pointbuy:'Point buy',array:'Standaardreeks',vrij:'Vrij intikken'})[x]}</button>`).join('')}</div>`;
+  const lead = {
+    rollen:'Gooi zes keer 4d6, de laagste valt af — en koppel daarna elke worp aan de ability die jij wilt.',
+    pointbuy:'Alles begint op 8. Je hebt 27 vonken; boven de 13 kost elke stap er meer.',
+    array:'Verdeel 15, 14, 13, 12, 10 en 8 over je abilities.',
+    vrij:'Zes vakjes, zelf invullen. De DM ziet je keuze voordat hij gunt.',
+  }[m];
+  let rolBlok = '';
+  if (m==='rollen'){
+    const used = new Set(Object.values(S.toewijzing).filter(x=>x!=null));
+    rolBlok = `<div class="worpen" id="worpen">${S.gerold?S.pool.map((v,idx)=>`<span class="worp ${used.has(idx)?'weg':''}">${v}</span>`).join(''):''}</div>
+      <div class="methode-acties">
+        ${!S.gerold
+          ? `<button class="knop knop-goud" onclick="rolAlles(false)">${ico('dice')} Werp de dobbelstenen</button>`
+          : (S.rerollsOver>0
+              ? `<button class="knop knop-spook" onclick="rolAlles(true)">${ico('dice')} Opnieuw werpen (nog ${S.rerollsOver})</button>`
+              : `<span class="uit-hint" style="margin:0">Geen herkansingen meer — de DM gaf er ${INST.rerollsMaken}.</span>`)}
+      </div>
+      ${S.gerold?`<p class="keuze-lead" style="margin:12px 0 0; font-size:1rem">Koppel elke worp aan een ability.</p>`:''}`;
+  }
+  return `<p class="keuze-lead">${lead} <em>Je DM staat deze manieren toe.</em></p>
+    ${kiezer}
+    ${rolBlok}
+    ${m==='pointbuy'?`<p class="vonken" id="vonken">Nog <strong>${PB_BUDGET-pbKosten()}</strong> van de ${PB_BUDGET} vonken.</p>`:''}
+    <div class="stenen" id="stenen">${ABILITIES.map(stenHtml).join('')}</div>
+    ${bgBonusHtml()}`;
+}
+function pbKosten(){ return ABILITIES.reduce((t,a)=>t+(PB_KOST[S.scores[a]]??0),0); }
+function stenHtml(a){
+  const bon = (S.bgBonus[a]||0)+groeiBonus(a), m = S.methode;
+  let v = S.scores[a]||10, onder = '';
+  if (m==='rollen'){
+    if (!S.gerold){ v=10; onder=''; }
+    else {
+      const mijn = S.toewijzing[a];
+      v = mijn!=null ? S.pool[mijn] : 10;
+      onder = `<select onchange="zetWorp('${a}',this.value)">
+        ${S.pool.map((pv,idx)=>`<option value="${idx}" ${idx===mijn?'selected':''}>${pv}</option>`).join('')}</select>`;
+    }
+  } else if (m==='pointbuy'){
+    const omhoog = v<15 && (pbKosten()-(PB_KOST[v]||0)+(PB_KOST[v+1]||0))<=PB_BUDGET;
+    onder = `<div class="steen-step"><button class="step-knop" onclick="pbStap('${a}',-1)" ${v<=8?'disabled':''}>−</button>
+      <button class="step-knop" onclick="pbStap('${a}',1)" ${omhoog?'':'disabled'}>+</button></div>`;
+  } else if (m==='array'){
+    onder = `<select onchange="zetScore('${a}',this.value,true)">${STANDAARD.map(o=>`<option value="${o}" ${o===v?'selected':''}>${o}</option>`).join('')}</select>`;
+  } else {
+    onder = `<input type="number" min="1" max="30" value="${v}" oninput="zetScore('${a}',this.value)">`;
+  }
+  const leeg = m==='rollen' && !S.gerold;
+  return `<div class="steen ${S.netAb===a?'net':''} ${leeg?'leeg':''}" data-ab="${a}">
+    <div class="ab">${AB[a]}</div>
+    <div class="getal">${leeg?'—':v}</div>
+    <div class="totaal">${bon?`+${bon} → ${v+bon}`:'&nbsp;'}</div>
+    <div class="mod">${teken(mod((leeg?10:v)+bon))}</div>
+    ${onder}</div>`;
+}
+function bgBonusHtml(){
+  if (!S.background) return `<p class="keuze-lead" style="margin-top:14px">Kies eerst een herkomst als je zijn verhoging wilt verdelen.</p>`;
+  const ab = S.background.abil;
+  return `<div class="bg-bonus">
+    <div class="subkeuze-kop">Verhoging van ${esc(S.background.naam)}</div>
+    <p class="keuze-lead" style="margin:2px 0 0">Geef er één +2 en één +1, of alle drie +1.</p>
+    <div class="bg-bonus-rij">${ab.map(a=>`<label class="bonus-keuze">${AB[a]}
+      <select onchange="zetBonus('${a}',this.value)">
+        <option value="0" ${!S.bgBonus[a]?'selected':''}>+0</option>
+        <option value="1" ${S.bgBonus[a]===1?'selected':''}>+1</option>
+        <option value="2" ${S.bgBonus[a]===2?'selected':''}>+2</option></select></label>`).join('')}</div>
+  </div>`;
+}
+
+function skillsHtml(){
+  const k = S.klasse, bg = S.background;
+  const vast = new Set(bg?.skills||[]);
+  const aantal = k?.vaardAantal||0;
+  const uit = (k?.vaardUit?.length? k.vaardUit : Object.keys(SKILL_AB));
+  const gek = new Set(S.skills);
+  const over = aantal - [...gek].filter(s=>!vast.has(s)).length;
+  return `${vast.size?`<p class="keuze-lead">Van <strong>${esc(bg.naam)}</strong> krijg je ${[...vast].map(esc).join(' en ')}.</p>`:''}
+    <p class="grim-teller">Nog <b>${Math.max(0,over)}</b> te kiezen uit de lijst van je class.</p>
+    <div class="skills-grid">
+      ${uit.map(s=>{ const isVast=vast.has(s), aan=isVast||gek.has(s);
+        return `<button class="skill-knop ${aan?'aan':''} ${isVast?'vast':''}" ${isVast?'disabled':''} onclick="kiesSkill('${esc(s).replace(/'/g,"\\'")}')">
+          ${ico('check')} ${esc(s)} <span class="skill-ab">${esc((AB[SKILL_AB[s]]||'').slice(0,3))}</span></button>`;}).join('')}
+    </div>`;
+}
+
+function spreukenHtml(){
+  const kl = S.klasse.naam, t = TELLERS[kl]||{cantrips:0,spreuken:0}, lijst = SPREUKEN[kl]||[];
+  const gek = new Set(S.spreuken);
+  const cantrips = lijst.filter(s=>s.l===0), eerste = lijst.filter(s=>s.l===1);
+  const nCant = [...gek].filter(n=>cantrips.find(s=>s.n===n)).length;
+  const nSpr = [...gek].filter(n=>eerste.find(s=>s.n===n)).length;
+  const kaart = (s)=>`<button class="spreuk ${gek.has(s.n)?'aan':''}" style="border-left-color:${SCHOOL_KLEUR[s.s]}"
+      onclick="kiesSpreuk('${esc(s.n).replace(/'/g,"\\'")}',${s.l})">
+      <span class="spreuk-naam">${esc(s.n)}</span>
+      <span class="spreuk-school" style="color:${SCHOOL_KLEUR[s.s]}">${esc(s.s)}</span>
+      <span class="spreuk-vink">${ico('check')}</span></button>`;
+  return `<p class="grim-teller">Nog <b>${Math.max(0,t.cantrips-nCant)}</b> cantrips en <b>${Math.max(0,t.spreuken-nSpr)}</b> spreuken te kiezen.
+    <span style="display:block; font-size:.9em">Je kiest hier wát; wannéér je ze voorbereidt doe je aan tafel.</span></p>
+    <div class="grim-groep"><div class="grim-groep-kop">Cantrips</div><div class="grim-kaarten">${cantrips.map(kaart).join('')}</div></div>
+    <div class="grim-groep"><div class="grim-groep-kop">Niveau 1</div><div class="grim-kaarten">${eerste.map(kaart).join('')}</div></div>`;
+}
+
+function groeiHtml(){
+  const slots = ASI_LEVELS.filter(l=>l<=S.level);
+  return `<p class="keuze-lead">Omdat je boven level 4 begint, maak je nu de keuzes die je onderweg zou hebben gemaakt:
+      op elk van deze niveaus krijg je een <em>Ability Score Improvement</em> óf een feat.</p>
+    ${slots.map((lvl,i)=>{
+      const g = S.groei[i] || {};
+      const asiRij = g.type==='asi'?`<div class="groei-asi">
+        <span class="subkeuze-kop" style="margin:0">+2 op</span>
+        <select onchange="zetAsi(${i},'a',this.value)">${ABILITIES.map(a=>`<option value="${a}" ${g.aa===a?'selected':''}>${AB[a]}</option>`).join('')}</select>
+        <span class="subkeuze-kop" style="margin:0">of verdeel +1/+1 — DM ziet het</span></div>`:'';
+      const featRij = g.type==='feat'?`<div class="groei-feats">${FEATS.map(f=>`<button class="pil ${g.feat===f?'aan':''}" onclick="zetFeat(${i},'${esc(f).replace(/'/g,"\\'")}')">${esc(f)}</button>`).join('')}</div>`:'';
+      return `<div class="groei-slot">
+        <div class="groei-kop">${ico('zap')} Level ${lvl}</div>
+        <div class="pil-rij">
+          <button class="pil ${g.type==='asi'?'aan':''}" onclick="zetGroeiType(${i},'asi')">Ability Score Improvement</button>
+          <button class="pil ${g.type==='feat'?'aan':''}" onclick="zetGroeiType(${i},'feat')">Een feat</button></div>
+        ${asiRij}${featRij}</div>`;
+    }).join('')}`;
+}
+
+function uitrustingHtml(){
+  const bg = S.background, k = S.klasse;
+  const chips = knapzakChips();
+  return `<p class="keuze-lead">Wat je herkomst meegeeft, en wat je zelf uitzoekt uit de uitrusting die de app kent.</p>
+    ${bg?`<div class="keuze-paar">
+      <button class="paar-knop ${S.bgOptie==='A'?'aan':''}" onclick="kiesOptie('A')">
+        <div class="paar-titel">De spullen</div><div class="paar-onder">${esc(bg.spullen.join(', '))}</div></button>
+      <button class="paar-knop ${S.bgOptie==='B'?'aan':''}" onclick="kiesOptie('B')">
+        <div class="paar-titel">Alleen het geld</div><div class="paar-onder">${bg.goud} goud op zak</div></button>
+    </div>`:''}
+    <div class="uit-rij">
+      <div class="uit-veld"><label>Een wapen</label>
+        <select onchange="kiesWapen(this.value)"><option value="">— geen —</option>
+          ${WAPENS.map(w=>`<option value="${w.k}" ${w.k===S.wapen?'selected':''}>${esc(w.n)} (${w.sch})</option>`).join('')}</select>
+        <p class="uit-hint">Je class mag ${esc(k?.mag||'wat je DM goedvindt')}.</p></div>
+      <div class="uit-veld"><label>Een harnas</label>
+        <select onchange="kiesHarnas(this.value)"><option value="">— geen —</option>
+          ${HARNAS.map(h=>`<option value="${h.k}" ${h.k===S.harnas?'selected':''}>${esc(h.n)} (AC ${h.ac})</option>`).join('')}</select>
+        <label class="vink-regel"><input type="checkbox" ${S.schild?'checked':''} onchange="kiesSchild(this.checked)"> En een schild (+2)</label></div>
+    </div>
+    <div>${S.trinket?`<p class="uit-hint" style="color:var(--inkt-mid)">${ico('backpack')} In je zak vond je: <strong>${esc(S.trinket)}</strong>.</p>`
+      :`<button class="knop knop-spook trinket-knop" onclick="rolTrinket()">${ico('dice')} Rol op de rommeltafel</button>
+        <p class="uit-hint">Eén worp. Wat eruit komt, hou je.</p>`}</div>
+    <div class="knapzak"><div class="knapzak-kop">${ico('backpack')} In je knapzak</div>
+      <div class="knapzak-chips">${chips.length?chips.map(c=>`<span class="chip">${ico('coins')}${esc(c)}</span>`).join(''):'<span class="chip-leeg">nog leeg</span>'}</div></div>`;
+}
+function knapzakChips(){
+  const out = [];
+  if (S.background){ if (S.bgOptie==='A') out.push(...S.background.spullen); else out.push(`${S.background.goud} goud`); }
+  const w = WAPENS.find(x=>x.k===S.wapen); if (w) out.push(w.n);
+  const h = HARNAS.find(x=>x.k===S.harnas); if (h) out.push(h.n);
+  if (S.schild) out.push('Shield');
+  if (S.trinket) out.push(S.trinket);
+  return out;
+}
+
+function verhaalSamenvatting(){ const p=[]; if(S.backstory.trim())p.push('verhaal'); if(S.geheimen.length)p.push(`${S.geheimen.length} geheim${S.geheimen.length>1?'en':''}`); return p.join(' · '); }
+function verhaalHtml(){
+  return `<p class="keuze-lead">Wie was je voordat dit begon? Dit is <em>optioneel</em>, maar het is waar je personage
+      iemand wordt in plaats van een stapel getallen.</p>
+    <textarea class="verhaal-area" placeholder="Waar kom je vandaan, wat jaagt je op, wie mis je…" oninput="zetBackstory(this.value)">${esc(S.backstory)}</textarea>
+    <div class="geheim-blok">
+      <div class="geheim-kop">${ico('lock')} Geheimen — alleen voor de DM</div>
+      <p class="keuze-lead" style="margin:8px 0 0">Iets wat (nog) niemand aan tafel weet. De DM ziet het meteen en kiest zélf wanneer het eruit komt —
+        vaak op jouw teken, als het moment daar is.</p>
+      <div class="geheim-lijst">${S.geheimen.map((g,i)=>`<div class="geheim-item"><span class="zegeltje">${ico('lock')}</span>
+        <p>${esc(g)}</p><button onclick="wisGeheim(${i})" title="Weghalen">${ico('x')}</button></div>`).join('')}</div>
+      <div class="geheim-invoer">
+        <input id="geheim-in" placeholder="Een geheim dat je meedraagt…" onkeydown="if(event.key==='Enter')voegGeheim()">
+        <button class="knop knop-spook" onclick="voegGeheim()">${ico('plus')} Toevoegen</button>
+      </div>
+    </div>`;
+}
+
+// ── stem ──
+function golfBars(){ return Array.from({length:10},(_,i)=>`<i style="animation-delay:${(i*0.07).toFixed(2)}s"></i>`).join(''); }
+function stemSamenvatting(){ const p=[]; if(S.turnSound)p.push('beurt'); if(S.emotes.length)p.push(`${S.emotes.length} emote${S.emotes.length>1?'s':''}`); return p.join(' · '); }
+function stemHtml(){
+  const clip = (c,i)=>`<span class="stem-clip">${ico('volume')}<span>${esc(c.naam)}</span>
+    <button class="stem-mini" title="Afspelen" onclick="speelClip(${i})">${ico('play')}</button>
+    <button class="stem-mini" title="Weghalen" onclick="wisEmote(${i})">${ico('x')}</button></span>`;
+  const beurtBlok = _opname==='beurt'
+    ? `<span class="opname"><span class="punt"></span><span class="golf">${golfBars()}</span> opnemen…</span>`
+    : `<button class="knop knop-spook" onclick="neemBeurt()">${ico('mic')} Neem op</button>
+       <span class="uit-hint">of kies uit de bibliotheek:</span>
+       <select class="stem-select" onchange="kiesBeurt(this.value)">
+         <option value="">— geen —</option>${STEM_BIB.map(b=>`<option ${S.turnSound===b?'selected':''}>${esc(b)}</option>`).join('')}</select>`;
+  const emoteBlok = _opname==='emote'
+    ? `<span class="opname"><span class="punt"></span><span class="golf">${golfBars()}</span> opnemen…</span>`
+    : `<button class="knop knop-spook" onclick="neemEmote()">${ico('mic')} Spreek een emote in</button>
+       <span class="uit-hint">of</span>
+       <select class="stem-select" onchange="voegEmoteBib(this.value)">
+         <option value="">— uit de bibliotheek —</option>${STEM_BIB.map(b=>`<option>${esc(b)}</option>`).join('')}</select>`;
+  return `<p class="keuze-lead">Geef je personage een stem. Dit is <em>optioneel</em> — je kunt het ook later doen.
+      De tafel hoort deze klanken tijdens het spel.</p>
+    <div class="stem-blok">
+      <div class="subkeuze-kop">Als jij aan zet bent</div>
+      <p class="uit-hint" style="margin-top:0">Eén klank die klinkt zodra het jouw beurt is in een gevecht.</p>
+      <div class="stem-rij">${beurtBlok}</div>
+      ${S.turnSound?`<div class="stem-chips"><span class="stem-clip">${ico('volume')}<span>${esc(S.turnSound)}</span>
+        <button class="stem-mini" title="Afspelen" onclick="speelTurn()">${ico('play')}</button>
+        <button class="stem-mini" title="Weghalen" onclick="kiesBeurt('')">${ico('x')}</button></span></div>`:''}
+    </div>
+    <div class="stem-blok">
+      <div class="subkeuze-kop">Emotes <span class="uit-hint" style="text-transform:none; letter-spacing:0">(max 3)</span></div>
+      <p class="uit-hint" style="margin-top:0">Korte kreten die je zelf afvuurt — een strijdkreet, een juich, een spot.</p>
+      <div class="stem-chips">${S.emotes.length?S.emotes.map(clip).join(''):'<span class="chip-leeg">nog geen</span>'}</div>
+      ${S.emotes.length<3?`<div class="stem-rij" style="margin-top:10px">${emoteBlok}</div>`:''}
+    </div>
+    <p class="uit-hint">In de echte app gebruikt het opnemen de microfoon en belandt de opname als emote bij je kaartje.
+      Hier in het prototype is de opname nagespeeld.</p>`;
+}
+
+function onthulHtml(){
+  const sp = S.species ? (S.speciesVar?`${S.speciesVar} ${S.species.naam}`:S.species.naam) : '';
+  const regel=(dt,v)=>v?`<div class="blad-regel in"><dt>${dt}</dt><dd>${esc(v)}</dd></div>`:'';
+  const hp = S.klasse ? S.klasse.hd + mod(totaal('con')) : 0;
+  const h = HARNAS.find(x=>x.k===S.harnas);
+  const ac = (h?h.ac:10+mod(totaal('dex'))) + (S.schild?2:0);
+  const klasseregel = S.multiKlasse ? `${S.klasse?.naam} ${S.level-S.multiLevel} / ${S.multiKlasse} ${S.multiLevel}` : S.klasse?.naam;
+  const feats = S.groei.filter(g=>g&&g.type==='feat'&&g.feat).map(g=>g.feat);
+  if (S.background?.feat) feats.unshift(S.background.feat);
+  return `<div class="onthul">
+    <div class="boven">zo komt hij ter wereld</div>
+    <div class="onthul-blad ${S.zegelGezet?'flits':''}">
+      <div class="onthul-portret">${portretInner()}</div>
+      <div class="onthul-naam">${esc(S.naam||'Naamloos')}</div>
+      <div class="onthul-sub">${esc([sp,klasseregel,S.multiKlasse?'':S.subclass].filter(Boolean).join(' · '))} · level ${S.level}</div>
+      <div class="onthul-zes">${ABILITIES.map(a=>`<div class="zegel-pip"><span class="ab">${a}</span><span class="nr">${totaal(a)}</span><span class="md">${teken(mod(totaal(a)))}</span></div>`).join('')}</div>
+      <dl class="onthul-regels">
+        ${regel('Hit Points',String(hp))}${regel('Armor Class',String(ac))}${regel('Hit Die','d'+(S.klasse?.hd||''))}
+        ${regel('Herkomst',S.background?.naam)}${regel('Skills',S.skills.length?S.skills.join(', '):(S.background?.skills.join(', ')||''))}
+        ${feats.length?regel('Feats',feats.join(', ')):''}
+        ${S.spreuken.length?regel('Spreuken',S.spreuken.join(', ')):''}${knapzakChips().length?regel('Knapzak',knapzakChips().join(', ')):''}
+        ${S.geheimen.length?regel('Geheimen',`${S.geheimen.length} — alleen de DM ziet ze`):''}${stemSamenvatting()?regel('Stem',stemSamenvatting()):''}
+      </dl>
+    </div>
+    <div class="lak-kop">${S.zegelGezet?'Verzegeld':'Druk het zegel om hem naar je DM te sturen'}</div>
+    <button class="lak-zegel ${S.zegelGezet?'gezet':''}" onclick="zetZegel()">${ico(S.zegelGezet?'check':'crown')}</button>
+    <div class="voet" style="justify-content:center; width:100%; margin-top:16px">
+      <button class="knop knop-spook" onclick="naarStap('stem')">${ico('links')} Nog iets wijzigen</button>
+    </div>
+  </div>`;
+}
+function klaarHtml(){
+  return `<div class="verstuurd">
+    <div class="embleem" style="width:92px;height:92px">${ico('check')}</div>
+    <h2>${esc(S.naam)} ligt bij je Spelleider</h2>
+    <p>Zodra hij hem gunt, staat je personage tussen de portretten en kun je met het partywachtwoord inloggen.
+      Tot die tijd ziet niemand aan tafel hem — behalve de DM, die ook je geheimen al kent.</p>
+    <button class="knop knop-goud" onclick="herbegin()">${ico('feather')} Nog een personage scheppen</button>
+  </div>`;
+}
+
+function animeerBlad(){
+  document.querySelectorAll('.blad-regel:not(.in)').forEach((el,i)=>{
+    const dd = el.querySelector('dd');
+    if (dd && !dd.classList.contains('wacht')) setTimeout(()=>el.classList.add('in'), 60+i*80);
+  });
+}
+function pipUpdate(){
+  document.querySelectorAll('.blad-zes .zegel-pip').forEach((pip,i)=>{
+    const a = ABILITIES[i];
+    pip.querySelector('.nr').textContent = totaal(a);
+    pip.querySelector('.md').textContent = teken(mod(totaal(a)));
+  });
+}
+
+let _ac;
+function blip(){ try{
+  _ac = _ac || new (window.AudioContext||window.webkitAudioContext)();
+  const o=_ac.createOscillator(), g=_ac.createGain(); o.connect(g); g.connect(_ac.destination);
+  o.type='triangle'; o.frequency.setValueAtTime(200+Math.random()*220,_ac.currentTime);
+  g.gain.setValueAtTime(.0001,_ac.currentTime); g.gain.exponentialRampToValueAtTime(.18,_ac.currentTime+.03);
+  g.gain.exponentialRampToValueAtTime(.0001,_ac.currentTime+.4); o.start(); o.stop(_ac.currentTime+.42);
+}catch(e){} }
+
+// ── acties ──
+function begin(){ S.scherm='maken'; S.stap=0; render(); }
+function herbegin(){ Object.assign(S,{scherm:'drempel',stap:0,naam:'',portretURL:null,videoURL:null,level:1,species:null,speciesVar:null,klasse:null,subclass:null,multiKlasse:null,multiLevel:0,background:null,methode:'rollen',scores:{str:10,dex:10,con:10,int:10,wis:10,cha:10},bgBonus:{},groei:[],pool:[],toewijzing:{},gerold:false,rerollsOver:INST.rerollsMaken,skills:[],spreuken:[],bgOptie:'A',wapen:'',harnas:'',schild:false,trinket:'',backstory:'',geheimen:[],turnSound:null,emotes:[],zegelGezet:false}); _opname=false; render(); }
+function naamIn(v){ S.naam=v; const el=document.querySelector('.blad-naam'); if(el){ el.textContent=v||'nog naamloos'; el.classList.toggle('leeg',!v);} const kn=document.querySelector('.voet .knop-goud'); if(kn)kn.disabled=!v.trim(); }
+function leesPortret(inp){ const f=inp.files?.[0]; if(!f)return; const r=new FileReader(); r.onload=e=>{ S.portretURL=e.target.result; S.videoURL=null; vernieuwPortret(); }; r.readAsDataURL(f); }
+function leesVideo(inp){ const f=inp.files?.[0]; if(!f)return; S.videoURL=URL.createObjectURL(f); vernieuwPortret(); }
+function vernieuwPortret(){ const v=$('portret-vak'); if(v)v.innerHTML=portretInner(); const b=document.querySelector('.blad-portret'); if(b){ b.innerHTML=portretInner(); b.classList.add('vol'); }
+  document.querySelectorAll('.upload-knop').forEach((l,i)=>{ /* labels laten we staan */ }); }
+function zetLevel(v){ S.level=Math.max(1,Math.min(INST.maxLevel,parseInt(v)||1)); if(S.multiLevel>S.level-1)S.multiLevel=0; render(); }
+function kiesSpecies(n){ const was=S.species?.naam; S.species=SPECIES.find(s=>s.naam===n); if(was!==n)S.speciesVar=null; render(); }
+function kiesVar(v){ S.speciesVar=v; render(); }
+function kiesKlasse(n){ const was=S.klasse?.naam; S.klasse=KLASSEN.find(k=>k.naam===n); if(was!==n){ S.subclass=null; S.spreuken=[]; S.skills=[]; } render(); }
+function kiesSub(v){ S.subclass=v; render(); }
+function zetMulti(veld,val){ if(veld==='klasse'){ S.multiKlasse=val||null; if(!val)S.multiLevel=0; } else { S.multiLevel=Math.max(0,Math.min(S.level-1,parseInt(val)||0)); } herteken('roeping'); }
+function kiesBg(n){ S.background=BACKGROUNDS.find(b=>b.naam===n); S.bgBonus={}; render(); }
+function kiesMethode(m){ S.methode=m; if(m==='array')ABILITIES.forEach((a,i)=>S.scores[a]=STANDAARD[i]); if(m==='pointbuy')ABILITIES.forEach(a=>S.scores[a]=8); if(m!=='rollen'){S.gerold=false;} render(); }
+function syncScores(){ if(S.methode==='rollen'&&S.gerold)ABILITIES.forEach(a=>{ const idx=S.toewijzing[a]; S.scores[a]=idx!=null?S.pool[idx]:10; }); }
+function zetScore(a,v,swap){
+  v=parseInt(v)||10;
+  if(swap && S.methode==='array'){ const ander=ABILITIES.find(x=>x!==a && S.scores[x]===v); if(ander)S.scores[ander]=S.scores[a]; }
+  S.scores[a]=v;
+  if(S.methode==='array'){ herteken('dezes'); return; }
+  const st=document.querySelector(`.steen[data-ab="${a}"]`);
+  if(st){ const bon=(S.bgBonus[a]||0)+groeiBonus(a); st.querySelector('.getal').textContent=v;
+    st.querySelector('.totaal').innerHTML=bon?`+${bon} → ${v+bon}`:'&nbsp;'; st.querySelector('.mod').textContent=teken(mod(v+bon)); }
+  pipUpdate();
+}
+function zetWorp(a, idx){ idx=parseInt(idx); const ander=ABILITIES.find(x=>x!==a && S.toewijzing[x]===idx);
+  if(ander!=null && ander!==undefined) S.toewijzing[ander]=S.toewijzing[a]; S.toewijzing[a]=idx; syncScores(); herteken('dezes'); }
+function pbStap(a,d){ const v=(S.scores[a]||8)+d; if(v<8||v>15)return; const na=ABILITIES.reduce((t,x)=>t+(PB_KOST[x===a?v:S.scores[x]]??0),0); if(na>PB_BUDGET)return; S.scores[a]=v;
+  const vk=$('vonken'); if(vk){ const over=PB_BUDGET-pbKosten(); vk.innerHTML=`Nog <strong>${over}</strong> van de ${PB_BUDGET} vonken.`; vk.classList.toggle('op',over===0); }
+  const stn=$('stenen'); if(stn) stn.innerHTML=ABILITIES.map(stenHtml).join(''); pipUpdate();
+}
+function zetBonus(a,v){ v=parseInt(v)||0; if(v)S.bgBonus[a]=v; else delete S.bgBonus[a]; const st=document.querySelector(`.steen[data-ab="${a}"]`);
+  if(st){ const sc=S.scores[a], bon=v+groeiBonus(a); st.querySelector('.totaal').innerHTML=bon?`+${bon} → ${sc+bon}`:'&nbsp;'; st.querySelector('.mod').textContent=teken(mod(sc+bon)); } pipUpdate(); }
+function rolAlles(isReroll){
+  if(isReroll && S.rerollsOver<=0) return;
+  const worp=()=>{ const d=[0,0,0,0].map(()=>1+Math.floor(Math.random()*6)).sort((a,b)=>b-a); return d[0]+d[1]+d[2]; };
+  const doel=[worp(),worp(),worp(),worp(),worp(),worp()].sort((a,b)=>b-a);
+  if(isReroll) S.rerollsOver--;
+  const box=$('worpen');
+  const voltooi=()=>{ S.pool=doel; S.toewijzing={}; ABILITIES.forEach((a,i)=>S.toewijzing[a]=i); S.gerold=true; syncScores(); herteken('dezes'); };
+  if(!box || matchMedia('(prefers-reduced-motion: reduce)').matches){ voltooi(); return; }
+  box.innerHTML=doel.map(()=>`<span class="worp rollend">?</span>`).join('');
+  const spans=[...box.children]; let tik=0;
+  const iv=setInterval(()=>{ spans.forEach(s=>s.textContent=3+Math.floor(Math.random()*16)); if(++tik>8){ clearInterval(iv); spans.forEach((s,i)=>{ s.classList.remove('rollend'); s.textContent=doel[i]; }); setTimeout(voltooi,250); } },70);
+}
+function kiesSkill(naam){ const k=S.klasse, vast=new Set(S.background?.skills||[]); const aantal=k?.vaardAantal||0;
+  const nu=new Set(S.skills);
+  if(nu.has(naam))nu.delete(naam);
+  else if([...nu].filter(s=>!vast.has(s)).length<aantal) nu.add(naam);
+  else { return; }
+  S.skills=[...nu]; herteken('skills'); const b=document.querySelector('.blad'); if(b)b.outerHTML=bladHtml(); }
+function kiesSpreuk(n,l){ const t=TELLERS[S.klasse.naam]||{}; const gek=new Set(S.spreuken);
+  if(gek.has(n))gek.delete(n); else { const lijst=SPREUKEN[S.klasse.naam]||[]; const isC=(x)=>lijst.find(s=>s.n===x)?.l===0;
+    const aant=[...gek].filter(x=>isC(x)===(l===0)).length; const max=l===0?t.cantrips:t.spreuken; if(aant>=max)return; gek.add(n); }
+  S.spreuken=[...gek]; herteken('spreuken'); }
+function zetGroeiType(i,type){ S.groei[i]={type}; if(type==='asi')S.groei[i].aa=null; herteken('groei'); }
+function zetAsi(i,slot,ab){ const g=S.groei[i]||{type:'asi'}; g.type='asi'; g.aa=ab; g.plus={[ab]:2}; S.groei[i]=g; syncScores(); herteken('groei'); const b=document.querySelector('.blad'); if(b)b.outerHTML=bladHtml(); }
+function zetFeat(i,f){ S.groei[i]={type:'feat',feat:f}; herteken('groei'); }
+function kiesOptie(o){ S.bgOptie=o; herteken('uitrusting'); }
+function kiesWapen(v){ S.wapen=v; herteken('uitrusting'); }
+function kiesHarnas(v){ S.harnas=v; herteken('uitrusting'); }
+function kiesSchild(c){ S.schild=c; herteken('uitrusting'); }
+function rolTrinket(){ S.trinket=TRINKETS[Math.floor(Math.random()*TRINKETS.length)]; herteken('uitrusting'); }
+function zetBackstory(v){ S.backstory=v; }
+function voegGeheim(){ const inp=$('geheim-in'); const t=(inp?.value||'').trim(); if(!t)return; S.geheimen.push(t); herteken('verhaal'); const b=document.querySelector('.blad'); if(b)b.outerHTML=bladHtml(); $('geheim-in')?.focus(); }
+function wisGeheim(i){ S.geheimen.splice(i,1); herteken('verhaal'); const b=document.querySelector('.blad'); if(b)b.outerHTML=bladHtml(); }
+function kiesBeurt(v){ S.turnSound=v||null; herteken('stem'); }
+function neemBeurt(){ if(_opname)return; _opname='beurt'; herteken('stem'); setTimeout(()=>{ _opname=false; S.turnSound='Jouw opname'; herteken('stem'); blip(); }, 1700); }
+function neemEmote(){ if(_opname||S.emotes.length>=3)return; _opname='emote'; herteken('stem'); setTimeout(()=>{ _opname=false; S.emotes.push({naam:`Opname ${S.emotes.length+1}`}); herteken('stem'); blip(); }, 1700); }
+function voegEmoteBib(v){ if(!v||S.emotes.length>=3)return; S.emotes.push({naam:v}); herteken('stem'); }
+function wisEmote(i){ S.emotes.splice(i,1); herteken('stem'); }
+function speelClip(){ blip(); }
+function speelTurn(){ blip(); }
+function zetZegel(){ if(S.zegelGezet)return; S.zegelGezet=true; render(); setTimeout(()=>{ S.scherm='klaar'; render(); },1200); }
+function naarStap(id){ S.scherm='maken'; S.stap=stappen().indexOf(id); if(S.stap<0)S.stap=stappen().length-1; render(); }
+function verder(){ const lijst=stappen(); if(S.stap===lijst.length-1){ S.scherm='onthul'; S.zegelGezet=false; render(); return; } S.stap++; render(); }
+function terug(){ if(S.stap===0){ S.scherm='drempel'; render(); return; } S.stap--; render(); }
+
+render();
+</script>
