@@ -31704,3 +31704,222 @@ body:has(#sb-overlay.sb-open) .dm-dice-fab { display: none !important; }
 .kk-sub-kop::after { content: ''; flex: 1; height: 1px; background: color-mix(in srgb, var(--kk-b) 35%, transparent); }
 .kk-velden label.kk-portent { font-size: 16px; font-weight: 700; min-width: 44px; justify-content: center; }
 .kk-velden label.kk-omg:has(input:checked) { color: #fbf4e2; }
+
+/* ── Gevechtsregie (gevecht-regie.js) ────────────────────────────────────────
+   Opening, Lair Action, death saves, "How do you want to do this?" en de
+   afloop op het tafelscherm; daarnaast het regiepaneel van de DM en het venster
+   van de speler. z-index 10046–10052: boven het gevechtsscherm en de
+   klassekrachten (10045), onder niets dat nog over een gevecht heen hoort. */
+.dm-form-row.dm-form-row--top { align-items: flex-start; }
+.co-ds-btn.co-ds-nat { font: 700 11px 'Cinzel', serif; min-width: 24px; color: #8a6418; }
+.co-ds-btn.co-ds-nat1 { color: #8a2a1a; }
+
+.gr-opening, .gr-genade, .gr-afloop {
+  position: fixed; inset: 0; z-index: 10048; overflow: hidden;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  color: #f2e8d2; transition: opacity 1.1s ease; cursor: pointer;
+}
+.gr-opening.is-weg, .gr-genade.is-weg, .gr-afloop.is-weg,
+.gr-lair.is-weg, .gr-strijd.is-weg, .gr-vignet.is-weg, .gr-vraag.is-weg { opacity: 0; pointer-events: none; }
+
+/* letterbox */
+.gr-balk { position: absolute; left: 0; right: 0; height: 11vh; background: #050302; z-index: 2;
+  animation: gr-balk-in .9s cubic-bezier(.2,.8,.2,1) both; }
+.gr-balk--boven { top: 0; transform-origin: top; }
+.gr-balk--onder { bottom: 0; transform-origin: bottom; }
+@keyframes gr-balk-in { from { transform: scaleY(0); } to { transform: scaleY(1); } }
+
+.gr-letter { display: inline-block; opacity: 0; animation: gr-letter .5s ease-out both;
+  animation-delay: calc(.25s + var(--i) * 45ms); }
+@keyframes gr-letter { from { opacity: 0; transform: translateY(.35em); filter: blur(6px); }
+                       to   { opacity: 1; transform: none; filter: none; } }
+
+/* een portret in een ring */
+.gr-portret { position: relative; display: inline-grid; place-items: center; flex-shrink: 0;
+  width: 96px; height: 96px; border-radius: 50%; overflow: hidden;
+  background: radial-gradient(circle at 50% 35%, #4a3218, #1a0e05);
+  border: 3px solid #c4a87a; box-shadow: 0 0 0 2px rgba(0,0,0,.6), 0 6px 22px rgba(0,0,0,.6); }
+.gr-portret-ic { position: absolute; inset: 0; display: grid; place-items: center; color: #c4a87a; opacity: .6; }
+.gr-portret-ic svg { width: 40%; height: 40%; min-width: 26px; min-height: 26px; }
+.gr-portret-img { position: absolute; inset: 0; background-size: cover; background-position: center 25%; }
+.gr-portret--vijand { border-color: #a8472e; box-shadow: 0 0 0 2px rgba(0,0,0,.6), 0 0 26px rgba(170,50,30,.5); }
+.gr-portret--groot { width: min(26vh, 220px); height: min(26vh, 220px); }
+.gr-portret--klein { width: 54px; height: 54px; border-width: 2px; }
+.gr-portret--strijd { width: min(22vh, 170px); height: min(22vh, 170px); }
+
+/* ── 1. de opening ── */
+.gr-opening { background: radial-gradient(ellipse at 50% 55%, rgba(48,22,6,.94), rgba(4,2,1,.98));
+  animation: gr-in .5s ease both; }
+@keyframes gr-in { from { opacity: 0; } }
+.gr-op-titel { position: relative; z-index: 3; font: 700 clamp(30px, 6.4vw, 86px) 'Cinzel', serif;
+  letter-spacing: .08em; color: #f5d27a; text-shadow: 0 0 30px rgba(240,180,60,.55), 0 4px 0 #2a1a08;
+  margin-bottom: 4vh; text-transform: uppercase; }
+.gr-op-veld { position: relative; z-index: 3; display: flex; align-items: center; justify-content: center;
+  gap: 4vw; width: 92vw; }
+.gr-op-kant { flex: 1; display: flex; flex-wrap: wrap; gap: 18px 22px; align-items: flex-start; }
+.gr-op-kant--party  { justify-content: flex-end; }
+.gr-op-kant--vijand { justify-content: flex-start; }
+.gr-op-figuur { position: relative; display: flex; flex-direction: column; align-items: center; gap: 8px;
+  width: 112px; opacity: 0; animation: gr-van-links .7s cubic-bezier(.2,.9,.25,1.1) both;
+  animation-delay: calc(1.1s + var(--i) * 120ms); }
+.gr-op-kant--vijand .gr-op-figuur { animation-name: gr-van-rechts; animation-delay: calc(1.6s + var(--i) * 120ms); }
+@keyframes gr-van-links  { from { opacity: 0; transform: translateX(-12vw) scale(.8); } to { opacity: 1; transform: none; } }
+@keyframes gr-van-rechts { from { opacity: 0; transform: translateX(12vw) scale(.8); }  to { opacity: 1; transform: none; } }
+.gr-op-naam { font: 600 15px 'Cinzel', serif; text-align: center; line-height: 1.15; color: #f2e8d2;
+  text-shadow: 0 2px 6px #000; max-width: 120px; overflow-wrap: anywhere; }
+.gr-op-aantal { position: absolute; top: 70px; right: 0; font: 700 16px 'Cinzel', serif;
+  background: #6a1e10; color: #f5d27a; border: 2px solid #c4a87a; border-radius: 14px; padding: 1px 8px; }
+.gr-op-meer { justify-content: center; width: 96px; height: 96px; border-radius: 50%; border: 2px dashed #a8472e;
+  font: 700 24px 'Cinzel', serif; color: #e8b4a0; }
+.gr-op-vs { position: relative; width: 120px; height: 160px; display: grid; place-items: center; flex-shrink: 0; }
+.gr-op-vs-slash { position: absolute; width: 4px; height: 0; background: linear-gradient(#fff6d8, #c8940a);
+  transform: rotate(18deg); box-shadow: 0 0 22px #f0b800;
+  animation: gr-slash .32s ease-out 2.25s both; }
+@keyframes gr-slash { to { height: 180px; } }
+.gr-op-vs-tekst { font: italic 26px 'IM Fell English', serif; color: #c4a87a; opacity: 0;
+  animation: gr-in-op .8s ease 2.4s forwards; }
+@keyframes gr-in-op { to { opacity: 1; } }
+.gr-op-lair { position: relative; z-index: 3; margin-top: 5vh; font: italic 22px 'IM Fell English', serif;
+  color: #d8c498; opacity: 0; animation: gr-in-op 1.2s ease 3.2s forwards; display: flex; gap: 8px; align-items: center; }
+
+/* ── 2. Lair Action ── */
+.gr-lair { position: fixed; inset: 0; z-index: 10047; display: flex; align-items: flex-start; justify-content: center;
+  padding-top: 14vh; pointer-events: auto; transition: opacity .8s ease;
+  background: radial-gradient(ellipse at 50% 30%, rgba(30,18,6,.55), rgba(0,0,0,.25) 70%); }
+.gr-lair-kaart { max-width: min(760px, 86vw); padding: 22px 34px 26px; text-align: center;
+  background: linear-gradient(#f2e8d2, #e3d2ae); color: #2a1a08; border: 2px solid #8a6a3a;
+  box-shadow: 0 0 0 6px rgba(42,26,8,.55), 0 20px 60px rgba(0,0,0,.7);
+  animation: gr-lair-in .9s cubic-bezier(.2,.9,.3,1.2) both; }
+@keyframes gr-lair-in { from { opacity: 0; transform: translateY(-40px) rotate(-1.5deg); } }
+.gr-lair-kop { font: 700 20px 'Cinzel', serif; letter-spacing: .12em; text-transform: uppercase; color: #6a3a10;
+  display: flex; align-items: center; justify-content: center; gap: 10px; }
+.gr-lair-init { font: italic 15px 'IM Fell English', serif; letter-spacing: 0; text-transform: none; color: #8a6a3a; }
+.gr-lair-tekst { margin-top: 12px; font: 26px/1.35 'Crimson Text', serif; }
+body.gr-beving .combat-overlay, body.gr-beving .co-disp { animation: gr-beef .11s linear 9; }
+@keyframes gr-beef { 0%,100% { transform: translate(0,0); } 25% { transform: translate(-6px,3px); }
+                     50% { transform: translate(5px,-4px); } 75% { transform: translate(-3px,-2px); } }
+
+/* ── 3. death saves ── */
+.gr-vignet { position: fixed; inset: 0; z-index: 10046; pointer-events: none; transition: opacity 1.2s ease;
+  box-shadow: inset 0 0 18vmin 4vmin rgba(150,10,10,.55);
+  animation: gr-hart var(--gr-hart, 1100ms) ease-out infinite; }
+.gr-vignet[data-ernst="2"] { box-shadow: inset 0 0 26vmin 8vmin rgba(120,0,0,.7); }
+@keyframes gr-hart { 0% { opacity: .55; } 8% { opacity: 1; } 22% { opacity: .7; } 30% { opacity: .95; } 100% { opacity: .5; } }
+
+.gr-strijd { position: fixed; inset: 0; z-index: 10049; display: grid; place-items: center;
+  background: radial-gradient(ellipse at 50% 50%, rgba(20,4,2,.72), rgba(0,0,0,.88)); transition: opacity .8s ease;
+  animation: gr-in .45s ease both; }
+.gr-strijd-kaart { display: flex; flex-direction: column; align-items: center; gap: 12px; text-align: center; }
+.gr-strijd .gr-portret { animation: gr-portret-in .8s cubic-bezier(.2,.9,.3,1.15) both; }
+@keyframes gr-portret-in { from { transform: scale(.6); opacity: 0; } }
+.gr-strijd-kop { font: 700 clamp(30px, 5vw, 64px) 'Cinzel', serif; color: #f2e8d2; text-shadow: 0 0 24px rgba(0,0,0,.9);
+  animation: gr-letter .7s ease .2s both; }
+.gr-strijd-sub { font: italic 24px 'IM Fell English', serif; color: #d8c498; animation: gr-letter .7s ease .45s both; }
+.gr-strijd--faal .gr-strijd-kop, .gr-strijd--neer .gr-strijd-kop { color: #e07a5a; }
+.gr-strijd--succes .gr-strijd-kop, .gr-strijd--stabiel .gr-strijd-kop { color: #f5d27a; }
+.gr-strijd--op .gr-strijd-kop { color: #fff3c4; text-shadow: 0 0 40px #f0c040; }
+.gr-strijd--op .gr-portret { border-color: #f5d27a; box-shadow: 0 0 60px #f0c040; }
+.gr-strijd--dood { background: rgba(0,0,0,.93); }
+.gr-strijd--dood .gr-portret { filter: grayscale(1) brightness(.7); border-color: #555; transition: filter 3s; }
+.gr-strijd--dood .gr-strijd-kop { color: #bdb6aa; font-weight: 400; letter-spacing: .06em; animation-duration: 2.4s; }
+.gr-ds { display: flex; align-items: center; gap: 22px; margin-top: 8px; }
+.gr-ds-rij { display: flex; gap: 12px; }
+.gr-ds-scheid { width: 2px; height: 26px; background: #6a5030; }
+.gr-ds-bol { width: 24px; height: 24px; border-radius: 50%; border: 2px solid #8a6a3a; background: rgba(0,0,0,.4); }
+.gr-ds-bol--s.is-vol { background: radial-gradient(circle at 35% 35%, #fff2b0, #c8940a); border-color: #f5d27a; box-shadow: 0 0 14px #f0b800; }
+.gr-ds-bol--f.is-vol { background: radial-gradient(circle at 35% 35%, #d05030, #3a0804); border-color: #a8472e; box-shadow: 0 0 14px #a01810; }
+.gr-ds-bol.is-nieuw { animation: gr-bol 1s cubic-bezier(.2,.9,.3,1.4) .7s both; }
+@keyframes gr-bol { 0% { transform: scale(2.4); opacity: 0; } 60% { transform: scale(.9); opacity: 1; } 100% { transform: none; } }
+body.gr-grauw .combat-overlay { filter: grayscale(1) brightness(.6); transition: filter 2.5s ease; }
+
+.gr-flits { position: fixed; inset: 0; z-index: 10051; pointer-events: none; animation: gr-flits 1.3s ease-out both; }
+.gr-flits--licht { background: radial-gradient(circle, #fffbe6, rgba(255,230,150,.7) 40%, rgba(255,200,80,0) 75%); }
+.gr-flits--klap  { background: radial-gradient(circle, #ffffff, rgba(255,210,190,.85) 35%, rgba(150,20,10,.5) 70%, rgba(0,0,0,0)); }
+@keyframes gr-flits { 0% { opacity: 0; } 8% { opacity: 1; } 100% { opacity: 0; } }
+
+/* ── 4. How do you want to do this? ── */
+body.gr-slowmo .combat-overlay { filter: grayscale(.85) contrast(1.1) brightness(.55) blur(2px);
+  transition: filter 2.2s ease; }
+.gr-genade { background: radial-gradient(ellipse at 50% 50%, rgba(18,10,6,.5), rgba(0,0,0,.85));
+  animation: gr-in 1.6s ease both; cursor: default; }
+.gr-gn-veld { position: relative; z-index: 3; display: flex; align-items: center; justify-content: center;
+  gap: 12vw; margin-bottom: 4vh; }
+.gr-gn-held, .gr-gn-doel { display: flex; flex-direction: column; align-items: center; gap: 12px;
+  animation: gr-van-links 2.4s cubic-bezier(.15,.8,.25,1) both; }
+.gr-gn-doel { animation-name: gr-van-rechts; }
+.gr-gn-naam { font: 600 20px 'Cinzel', serif; text-shadow: 0 2px 8px #000; }
+.gr-portret--doel { border-color: #a8472e; }
+.gr-gn-vraag { position: relative; z-index: 3; font: italic clamp(30px, 5vw, 70px) 'IM Fell English', serif;
+  color: #f5d27a; text-shadow: 0 0 30px rgba(240,180,60,.45); text-align: center; padding: 0 6vw; }
+.gr-gn-vraag .gr-letter { animation-duration: .9s; animation-delay: calc(1.3s + var(--i) * 70ms); }
+.gr-gn-antwoord { position: relative; z-index: 3; max-width: min(1000px, 84vw); margin-top: 3vh; text-align: center;
+  font: clamp(22px, 2.6vw, 36px)/1.4 'IM Fell English', serif; color: #f2e8d2; min-height: 2em; }
+.gr-genade--antwoord .gr-gn-vraag { font-size: clamp(20px, 2.4vw, 32px); opacity: .55; transition: font-size 1.2s ease, opacity 1.2s ease; }
+.gr-woord { display: inline-block; opacity: 0; animation: gr-woord .6s ease-out both; animation-delay: calc(var(--i) * 260ms); }
+@keyframes gr-woord { from { opacity: 0; filter: blur(8px); transform: translateY(8px); } to { opacity: 1; filter: none; transform: none; } }
+.gr-gn-quote { color: #c4a87a; font-size: 1.3em; }
+.gr-genade--klap .gr-portret--doel { animation: gr-breek 1.2s cubic-bezier(.3,0,.2,1) forwards; }
+@keyframes gr-breek { 0% { transform: scale(1); } 12% { transform: scale(1.18) rotate(-4deg); filter: brightness(2.5); }
+                      100% { transform: scale(.7) rotate(14deg) translateY(30px); opacity: 0; filter: grayscale(1) brightness(.3); } }
+.gr-genade--klap .gr-portret--groot:not(.gr-portret--doel) { box-shadow: 0 0 70px rgba(240,180,60,.75); border-color: #f5d27a; transition: all .4s ease; }
+
+/* ── 5. de afloop ── */
+.gr-afloop { background: radial-gradient(ellipse at 50% 40%, rgba(40,22,8,.95), rgba(3,2,1,.98));
+  animation: gr-in 1.4s ease both; }
+.gr-af-inhoud { position: relative; z-index: 3; display: flex; flex-direction: column; align-items: center; gap: 2.2vh;
+  max-width: min(980px, 88vw); max-height: 76vh; overflow: hidden; text-align: center; }
+.gr-af-blok { opacity: 0; animation: gr-letter 1.1s ease both; animation-delay: calc(.6s + var(--i) * 1.1s); }
+.gr-af-kop { font: 700 clamp(36px, 6vw, 84px) 'Cinzel', serif; letter-spacing: .08em; text-transform: uppercase;
+  color: #f5d27a; text-shadow: 0 0 34px rgba(240,180,60,.5); }
+.gr-afloop--nederlaag .gr-af-kop { color: #c8bfb0; text-shadow: 0 0 30px rgba(150,20,10,.6); }
+.gr-af-feiten { font: 20px 'Cinzel', serif; color: #d8c498; letter-spacing: .06em; }
+.gr-af-lbl { font: 600 13px 'Cinzel', serif; letter-spacing: .2em; text-transform: uppercase; color: #8a7050; }
+.gr-af-tegen { font: 24px 'Crimson Text', serif; color: #f2e8d2; }
+.gr-af-quote { margin: 0; font: italic clamp(20px, 2.2vw, 30px)/1.4 'IM Fell English', serif; color: #f2e8d2; }
+.gr-af-quote cite { display: block; margin-top: 6px; font: 15px 'Cinzel', serif; font-style: normal; color: #c4a87a; }
+.gr-af-regel { font: italic 20px 'IM Fell English', serif; color: #d8c498; }
+.gr-af-party { display: flex; flex-wrap: wrap; justify-content: center; gap: 18px; }
+.gr-af-lid { display: flex; flex-direction: column; align-items: center; gap: 6px; font: 13px 'Cinzel', serif; color: #d8c498; }
+.gr-af-lid.is-uit .gr-portret { filter: grayscale(1) brightness(.6); }
+
+/* ── het regiepaneel van de DM ── */
+.gr-dm { position: fixed; top: 64px; left: 50%; transform: translateX(-50%); z-index: 1400;
+  width: min(440px, 92vw); display: flex; flex-direction: column; gap: 10px; pointer-events: auto;
+  animation: gr-dm-in .35s ease both; }
+@keyframes gr-dm-in { from { opacity: 0; transform: translate(-50%, -12px); } }
+.gr-dm-deel { background: linear-gradient(#f2e8d2, #e8dbbd); color: #3a2410; border: 1px solid #c4a87a;
+  border-left: 4px solid #8a2a1a; border-radius: 6px; padding: 10px 12px; box-shadow: 0 8px 26px rgba(0,0,0,.45); }
+.gr-dm-kop { font: 700 14px 'Cinzel', serif; display: flex; align-items: center; gap: 6px; color: #2a1a08; }
+.gr-dm-regel { font: 15px 'Crimson Text', serif; margin: 2px 0 6px; }
+.gr-dm-lbl { display: block; font: 13px 'Crimson Text', serif; color: #7a6040; margin-bottom: 2px; }
+.gr-dm-deel textarea { width: 100%; resize: vertical; }
+.gr-dm-knoppen { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; margin-top: 6px; }
+.gr-dm-knoppen select { flex: 1; min-width: 120px; }
+.gr-dm-lair { display: flex; flex-direction: column; gap: 4px; margin-top: 6px; }
+.gr-dm-lair-knop { text-align: left; font: 15px/1.3 'Crimson Text', serif; color: #3a2410; cursor: pointer;
+  background: rgba(196,168,122,.18); border: 1px solid #c4a87a; border-radius: 4px; padding: 6px 8px; }
+.gr-dm-lair-knop:hover { background: rgba(196,168,122,.42); }
+.gr-dm-tag { margin-left: 8px; font: italic 12px 'IM Fell English', serif; color: #8a2a1a; }
+
+/* ── het venster van de speler ── */
+.gr-vraag { position: fixed; inset: 0; z-index: 10052; display: grid; place-items: center; padding: 16px;
+  background: rgba(8,4,2,.82); transition: opacity .4s ease; animation: gr-in .5s ease both; }
+.gr-vraag-kaart { width: min(480px, 100%); padding: 22px 20px 18px; text-align: center;
+  background: linear-gradient(#f2e8d2, #e3d2ae); color: #2a1a08; border: 2px solid #8a6a3a; border-radius: 6px;
+  box-shadow: 0 0 0 5px rgba(42,26,8,.6), 0 20px 50px rgba(0,0,0,.7); }
+.gr-vraag-kop { font: italic 30px/1.15 'IM Fell English', serif; color: #6a1e10; }
+.gr-vraag-sub { font: 17px 'Crimson Text', serif; margin: 6px 0 14px; }
+.gr-vraag-lbl { display: block; text-align: left; font: 600 13px 'Cinzel', serif; color: #6a4a20; margin-bottom: 4px; }
+.gr-vraag textarea { width: 100%; font: 18px/1.4 'Crimson Text', serif; color: #2a1a08; background: #fbf5e6;
+  border: 1px solid #c4a87a; border-radius: 4px; padding: 8px 10px; resize: vertical; }
+.gr-vraag-knoppen { display: flex; gap: 8px; justify-content: center; margin-top: 12px; flex-wrap: wrap; }
+
+@media (prefers-reduced-motion: reduce) {
+  .gr-letter, .gr-woord, .gr-op-figuur, .gr-af-blok, .gr-balk, .gr-strijd-kop, .gr-strijd-sub { animation-duration: .01s !important; animation-delay: 0s !important; }
+  .gr-vignet { animation: none; }
+  body.gr-beving .combat-overlay, body.gr-beving .co-disp { animation: none; }
+}
+/* Een "How do you want to do this?" in het gevechtsverslag van het Logboek. */
+.gv-quote { margin: 8px 0 4px; padding: 6px 12px; border-left: 3px solid #c4a87a;
+  font: italic 17px/1.4 'IM Fell English', serif; color: #3a2410; }
+.gv-quote cite { display: block; margin-top: 2px; font: 12px 'Cinzel', serif; font-style: normal; color: #7a6040; }

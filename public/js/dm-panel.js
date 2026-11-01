@@ -1,5 +1,5 @@
-import { api, huidigeCampagne } from './api.js?v=317';
-import { init as canvasInit, update as canvasUpdate, stop as canvasStop, acGetal } from './combat-canvas.js?v=35';
+import { api, huidigeCampagne } from './api.js?v=318';
+import { init as canvasInit, update as canvasUpdate, stop as canvasStop, acGetal } from './combat-canvas.js?v=36';
 import { renderStatblock } from './render-statblock.js?v=9';
 
 // ── DM Panel ──
@@ -325,6 +325,7 @@ export function initDmPanel() {
     encLootItemField:   _encLootItemField,
     encLootPick:        _encLootPick,
     encLootKies:        (veld) => _encLootKies(veld),
+    encLairInput:       (v) => _encLairInput(v),
     encLootNieuw:       () => _encLootNieuw(),
     encRowMonsterChange: _encRowMonsterChange,
     encRowChange:       _encRowChange,
@@ -2894,7 +2895,7 @@ async function _ladeToggle() {
   _ladeIdx = _bwIdx >= 0 ? _bwIdx : Math.min(_ladePlekLees(), Math.max(0, _ladeSecties.length - 1));
   // De akte-module levert de renderer én de knoppen; die moet weten welke akte
   // er speelt, anders belandt een getoond beeld in de sessielog van niemand.
-  const mod = await import('./akte-schrijven.js?v=35');
+  const mod = await import('./akte-schrijven.js?v=36');
   mod.zetAkte(_rbChapter, _ladeTekst);
   window._akteRegieRender = mod.regieNaarHtml;
   let lade = document.getElementById('regie-lade');
@@ -2920,7 +2921,7 @@ window._ladeHerlaad = async () => {
     _ladeTekst = regie?.tekst || '';
     _ladeSecties = _splitsSecties(_ladeTekst);
     _ladeIdx = Math.min(_ladeIdx, Math.max(0, _ladeSecties.length - 1));
-    const mod = await import('./akte-schrijven.js?v=35');
+    const mod = await import('./akte-schrijven.js?v=36');
     mod.zetAkte(_rbChapter, _ladeTekst);
     _ladeRender();
   } catch { /* de lade blijft staan zoals hij stond */ }
@@ -4610,6 +4611,7 @@ let _encMonsterRows     = [];     // [{monsterId,name,count,initiative,hp}]
 let _encLoot            = { goud: { fl: 0, kn: 0, cl: 0 }, items: [] };  // oude vorm, blijft gelezen
 let _encLootId          = null;   // id van de gekoppelde vondst (loot.json)
 let _encLootOud         = false;  // heeft dit gevecht nog buit van de oude soort?
+let _encLair           = '';     // Lair Actions, één per regel (tekst in de editor)
 let _encLootLijst       = [];     // vondsten, voor de kiezer in de editor
 let _encBackdropId      = null;
 let _encCanvasPreset    = null;   // id van het gekozen canvas-kleurpreset
@@ -4942,6 +4944,15 @@ function _renderEncounterEditor(el) {
         <datalist id="dm-enc-loot-dl">${_encLootLijst.filter(e => !e.sjabloon).map(e => `<option value="${esc(e.naam || '')}"></option>`).join('')}</datalist>
         <button class="dm-btn dm-btn-sm dm-btn-ghost" onclick="window.dmPanel.encLootNieuw()" title="Een nieuwe vondst maken in de Loot-tab">${icon('plus')} Nieuwe vondst</button>
       </div>
+      <!-- Lair Actions: één effect per regel. Op initiative 20 krijgt de DM ze
+           als knoppen; hij kiest, en pas dan verschijnt het op tafel. -->
+      <div class="dm-form-row dm-form-row--top">
+        <label class="dm-form-label">${icon('mountain')} Lair Actions</label>
+        <textarea id="dm-enc-lair" class="dm-input" rows="3"
+          title="Eén Lair Action per regel"
+          oninput="window.dmPanel.encLairInput(this.value)">${esc(_encLair)}</textarea>
+      </div>
+
       ${_encLootOud ? `<p class="dm-hint" style="margin:0 0 10px">Dit gevecht heeft nog buit van de oude soort (los ingevuld goud en items). Die werkt gewoon, maar koppel je hier een vondst, dan telt alleen die.</p>` : ''}
 
       <div class="dm-form-actions">
@@ -4963,6 +4974,7 @@ function _encNew() {
   _encLootId       = null;
   _encLootOud      = false;
   _encLootLijst    = [];
+  _encLair         = '';
   api.lootEvents().then(d => { _encLootLijst = d.events || d || []; _renderEncounterEditor(); }).catch(() => {});
   _encVensterOpen();
 };
@@ -4981,10 +4993,13 @@ function _encEdit(id) {
   _encLootLijst    = [];
   api.lootEvents().then(d => { _encLootLijst = d.events || d || []; _renderEncounterEditor(); }).catch(() => {});
   _encCanvasPreset = enc.canvasPreset || null;
+  _encLair         = (enc.lair?.regels || []).join('\n');
   _encName         = enc.name    || '';
   _encAkteId       = enc.akteId  || '';
   _encVensterOpen();
 };
+
+function _encLairInput(v) { _encLair = String(v || ''); }
 
 function _encCancel() {
   _editingEncId = null;
@@ -5058,6 +5073,7 @@ async function _encSave() {
     // De oude, losse buit blijft bewaard zolang er geen vondst gekoppeld is;
     // zo raakt een bestaand gevecht niets kwijt door één keer op te slaan.
     loot:         _encLootId ? null : _encLoot,
+    lair:         { regels: _encLair.split('\n').map(r => r.trim()).filter(Boolean) },
   };
   try {
     if (_encIsNew) {
@@ -5781,10 +5797,19 @@ async function _combatDeathSave(id, type) {
     catch (e) { _combatFout(e); }
     return;
   }
+  // Een natuurlijke 20: je staat op met 1 HP. Het tafelscherm maakt er een
+  // moment van (zie `gevecht:doodsstrijd` → 'op').
+  if (type === 'nat20') {
+    const conditions = (c.conditions || []).filter(x => x !== 'unconscious');
+    try { await api.updateCombatant(id, { hp: 1, deathSaves: { successes: 0, failures: 0 }, conditions, nat20: true }); }
+    catch (e) { _combatFout(e); }
+    return;
+  }
 
   const ds = { successes: c.deathSaves?.successes || 0, failures: c.deathSaves?.failures || 0 };
-  if (type === 'success') ds.successes = Math.min(3, ds.successes + 1);
-  else                    ds.failures  = Math.min(3, ds.failures  + 1);
+  if (type === 'success')   ds.successes = Math.min(3, ds.successes + 1);
+  else if (type === 'nat1') ds.failures  = Math.min(3, ds.failures  + 2);   // een 1 telt dubbel
+  else                      ds.failures  = Math.min(3, ds.failures  + 1);
 
   const updates = { deathSaves: ds };
 
@@ -9024,7 +9049,9 @@ async function _renderGeluiden() {
     ${momentRow('lootReveal', 'Loot onthullen', 'klinkt zodra de spelers de buit te zien krijgen')}
     ${momentRow('levelUp', 'Level omhoog', 'klinkt bij de speler die een level omhoog gaat, en op het tafelscherm')}
     ${momentRow('terugblik', 'Terugblik', 'speelt onder de terugblik op het tafelscherm')}
-    ${momentRow('rage', 'Rage', 'de brul als een Barbarian in Rage gaat')}`;
+    ${momentRow('rage', 'Rage', 'de brul als een Barbarian in Rage gaat')}
+    ${momentRow('gevechtOpening', 'Roll Initiative', 'de opening van een gevecht op het tafelscherm')}
+    ${momentRow('genadeslag', 'How do you want to do this?', 'onder de beschrijving van de laatste klap, op het tafelscherm')}`;
 
   // De klanken bij een tafelscherm-effect. Ze maken zichzelf in de browser, dus
   // hier staat niets leeg te wachten: wat je kiest vervángt de gemaakte klank.
@@ -10365,6 +10392,8 @@ function _combatSelectCombatant(id) {
       </div>
       <button class="co-ds-btn co-ds-yes" onclick="window.dmPanel.combatDeathSave('${esc(c.id)}','success')">${icon('check')}</button>
       <button class="co-ds-btn co-ds-no"  onclick="window.dmPanel.combatDeathSave('${esc(c.id)}','failure')">${icon('x')}</button>
+      <button class="co-ds-btn co-ds-nat" title="Natuurlijke 20: staat op met 1 HP" onclick="window.dmPanel.combatDeathSave('${esc(c.id)}','nat20')">20</button>
+      <button class="co-ds-btn co-ds-nat co-ds-nat1" title="Natuurlijke 1: telt als twee failures" onclick="window.dmPanel.combatDeathSave('${esc(c.id)}','nat1')">1</button>
       <button class="co-ds-btn co-ds-rst" onclick="window.dmPanel.combatDeathSave('${esc(c.id)}','reset')">↺</button>
     </div>` : '';
 

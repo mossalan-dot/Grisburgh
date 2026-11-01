@@ -348,13 +348,13 @@ De app gebruikt querystring cache-busting (`?v=N`). **Vergeten = browser haalt o
 **Huidige versies (bij te houden):**
 
 ```
-index.html  : theme.css?v=915   app.js?v=1180   sound-manager.js?v=13
-app.js      : api.js?v=317  dm-panel.js?v=413  media-picker.js?v=11  tafels.js?v=2  terugblik.js?v=1  rage.js?v=2  klassekracht.js?v=3  personage-maken.js?v=7
-              render-archief.js?v=143  render-bestiarium.js?v=32  render-campagne.js?v=351
-              render-dungeon.js?v=68  render-kaart.js?v=32  render-progressie.js?v=64
-              render-relatiemap.js?v=32  render-spreuken.js?v=51  render-vaardigheden.js?v=133
-              render-statblock.js?v=9  socket-client.js?v=92  wizard.js?v=6  conditions.js?v=3
-dm-panel.js : akte-schrijven.js?v=35  combat-canvas.js?v=35  render-statblock.js?v=9
+index.html  : theme.css?v=916   app.js?v=1181   sound-manager.js?v=14
+app.js      : api.js?v=318  dm-panel.js?v=414  media-picker.js?v=12  tafels.js?v=2  terugblik.js?v=2  rage.js?v=3  klassekracht.js?v=4  personage-maken.js?v=8  gevecht-regie.js?v=1
+              render-archief.js?v=144  render-bestiarium.js?v=33  render-campagne.js?v=352
+              render-dungeon.js?v=69  render-kaart.js?v=33  render-progressie.js?v=65
+              render-relatiemap.js?v=33  render-spreuken.js?v=52  render-vaardigheden.js?v=134
+              render-statblock.js?v=9  socket-client.js?v=93  wizard.js?v=7  conditions.js?v=3
+dm-panel.js : akte-schrijven.js?v=36  combat-canvas.js?v=36  render-statblock.js?v=9
 ```
 
 > **Een importeur moet zelf ook opschuiven.** `index.html` vraagt om `app.js?v=N`.
@@ -416,6 +416,58 @@ dm-panel.js : akte-schrijven.js?v=35  combat-canvas.js?v=35  render-statblock.js
 > `tbl_rust_wildernis` + `tbl_rust_herberg` (conversiescript-patroon: md-rij `| 01-02 | **Naam** | Beschrijving | \`+6 knakers\` |`
 > → `1-2: Naam — Beschrijving {+6kn}`; munt-namen florinde/knaker/centeling → fl/kn/cl). (4) **Tabletmodus**: op het gedeelde scherm (`_isDisplayMode`, geen `characterId`) toont de overlay
 > een party-brede variant zonder per-speler-knoppen.
+
+> **Gevechtsregie: een begin, een midden en een einde** (1 nov 2026). Vijf
+> momenten op het tafelscherm, getekend door **`public/js/gevecht-regie.js`**
+> (side-effect import) en bepaald door de server (`routes/api.js`, zoek op
+> *Gevechtsregie*). Alles wat bijgehouden moet worden staat in `combat.regie`
+> (`start`, `momenten`, `doodsstrijd`, `voorstel`, `vraag`, `lairNu`,
+> `lairVorige`) — en `_combatVoorSpeler` haalt `regie` en `lair` eraf, want daar
+> staan Lair Actions in die de DM nog niet koos. Een speler krijgt alleen
+> `lairAan: true`.
+> - **Opening** — `POST /combat/start` stuurt `gevecht:opening` naar de
+>   display-room (`_openingVoor`: party, vijanden gegroepeerd op naam zonder
+>   volgnummer, nooit de encounternaam — dat is een werktitel).
+> - **Lair Actions** — `encounter.lair.regels` (één per regel, `_lairUit`),
+>   meegenomen bij het laden van de encounter. `_lairCheck(combat, vorige)` zet
+>   `regie.lairNu` op initiative 20 *verliest gelijke stand*: een beurtwissel
+>   van ≥20 naar <20, of het begin van een ronde waarin niemand 20 haalde; één
+>   keer per ronde. De DM kiest (`POST /combat/lair` `{index|tekst|overslaan}`),
+>   pas dan gaat `gevecht:lair` naar tafel. Dezelfde regel twee rondes achter
+>   elkaar wordt gemarkeerd, niet geweigerd.
+> - **Death saves** — `_doodsstrijdUit(prev, cur, body)` leidt uit het verschil
+>   af: `neer`, `succes`, `faal`, `stabiel` (2 successen → 0/0 mét Unconscious,
+>   zo schrijft het DM-paneel het weg), `dood`, `op`. Dat gaat als
+>   `gevecht:doodsstrijd` naar tafel; `stabiel` zet `c.stabiel` (weg bij `op`,
+>   `neer` of `faal`). De DM-knoppen **20** (1 HP, `nat20: true` — een vlag voor
+>   dat ene moment, de server gooit hem er meteen af) en **1** (twee failures).
+>   Het tafelscherm leidt de blijvende rode rand + hartslag af uit het gevecht
+>   zelf (`_stervenden`), dus ook na een herladen.
+> - **How do you want to do this?** — valt een monster op 0 terwijl een speler
+>   aan zet is, dan zet de server `regie.voorstel`; de DM drukt *Vraag het*
+>   (`POST /combat/hwywtdt` `{doelId, characterId}`), en `gevecht:hwywtdt` gaat
+>   via `_naarSpeler()` naar **alleen de sockets van dat personage** (alle
+>   tabbladen, niet `playerSockets`). Antwoorden: `POST
+>   /combat/hwywtdt/antwoord` `{id, tekst}` door die speler of door de DM (die
+>   typt wat er hardop gezegd werd); leeg = zonder woorden, `annuleer` = intrekken.
+>   Tafel krijgt `gevecht:hwywtdt:display` met `fase` vraag/antwoord/stil/weg.
+> - **Afloop** — `DELETE /combat` stuurt eerst `gevecht:afloop` (`_afloopVan`)
+>   en dan pas het lege gevecht. Alleen wat de app weet: rondes, minuten, wie er
+>   tegenover stond, wie viel of opstond, de beschrijvingen en het aantal Lair
+>   Actions. **Geen schadetotalen of crits**: er wordt aan tafel gedobbeld. Het
+>   verslag in het Logboek (`_gevechtVerslag`) krijgt `duurMin`, `momenten` en
+>   `doodsstrijd` erbij.
+> - **Canvas** (`combat-canvas.js`): bij een nieuwe ronde dimt het beeld en zegt
+>   `_verteller()` hoe het ervoor staat, afgeleid uit `_hpFrac` (dus ook met vage
+>   HP); en `_cameraTransform()` zoomt bij een beurtwissel 2,5 s in op de actieve
+>   token — **alleen op het tafelscherm**, want bij DM en speler wordt er op het
+>   canvas geklikt. Niet naar het midden trekken: dan schuift de kale rand in beeld.
+> Klanken: `soundManager.regieKlank(soort)`; eigen bestanden via Momenten →
+> `gevechtOpening` en `genadeslag`. Bewaakt door `tests/gevecht-regie.test.js`.
+> **Valkuil:** een laag die met `_laag(id)` hergebruikt wordt mag bij het
+> weghalen zijn id niet houden — anders pakt het volgende moment het stervende
+> element en haalt de verwijdertimer het nieuwe weg (`_weg` haalt het id er
+> meteen af; flitsen zijn altijd een nieuw element).
 
 > **Klassekrachten — de andere klassen** (31 okt 2026). Na Rage kreeg elke klasse
 > zijn eigen kracht, maar niet als twaalf losse systemen: **`lib/klassekrachten.js`**

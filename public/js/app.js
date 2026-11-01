@@ -1,25 +1,26 @@
-import { api, campagneUitUrl, zetCampagne } from './api.js?v=317';
-import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, renderDocumenten, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=351";
-import { initArchief, renderLogboek, openLogboekEditor } from "./render-archief.js?v=143";
-import { renderKaart, queueFlyTo, verversPins, nieuweKaart } from './render-kaart.js?v=32';
-import { renderDungeon } from './render-dungeon.js?v=68';
-import { renderRelatiemap } from './render-relatiemap.js?v=32';
-import { renderProgressie, levelupFeatures } from './render-progressie.js?v=64';
-import { renderBestiarium } from './render-bestiarium.js?v=32';
-import { renderSpreuken } from './render-spreuken.js?v=51';
+import { api, campagneUitUrl, zetCampagne } from './api.js?v=318';
+import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, renderDocumenten, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=352";
+import { initArchief, renderLogboek, openLogboekEditor } from "./render-archief.js?v=144";
+import { renderKaart, queueFlyTo, verversPins, nieuweKaart } from './render-kaart.js?v=33';
+import { renderDungeon } from './render-dungeon.js?v=69';
+import { renderRelatiemap } from './render-relatiemap.js?v=33';
+import { renderProgressie, levelupFeatures } from './render-progressie.js?v=65';
+import { renderBestiarium } from './render-bestiarium.js?v=33';
+import { renderSpreuken } from './render-spreuken.js?v=52';
 import './render-handleiding.js?v=2';
 import './render-melding.js?v=4';
-import { renderVaardigheden, zoekVaardigheden, heldenboekTekst } from './render-vaardigheden.js?v=133';
+import { renderVaardigheden, zoekVaardigheden, heldenboekTekst } from './render-vaardigheden.js?v=134';
 import { renderStatblock } from './render-statblock.js?v=9';
-import { initSocket } from "./socket-client.js?v=92";
-import { initDmPanel } from "./dm-panel.js?v=413";
+import { initSocket } from "./socket-client.js?v=93";
+import { initDmPanel } from "./dm-panel.js?v=414";
 import { COND_INFO, COND_LABEL, COND_MET_PLAATJE, COND_ICON } from './conditions.js?v=3';
-import './media-picker.js?v=11';
-import './wizard.js?v=6';
+import './media-picker.js?v=12';
+import './wizard.js?v=7';
 import './tafels.js?v=2';
-import './terugblik.js?v=1';
-import './rage.js?v=2';
-import './klassekracht.js?v=3';
+import './terugblik.js?v=2';
+import './rage.js?v=3';
+import './klassekracht.js?v=4';
+import './gevecht-regie.js?v=1';
 
 // ── Icon helper ──
 // Renders an inline SVG <use> reference from /img/icons.svg.
@@ -1571,7 +1572,7 @@ async function _landingNieuwTegel() {
   if (!host || !_groepsWachtwoord || document.getElementById('landing-nieuw')) return;
   let stand = null;
   try {
-    await import('./personage-maken.js?v=7');
+    await import('./personage-maken.js?v=8');
     stand = await window.personageMaken.stand();
   } catch { return; }
   if (stand?.instellingen && stand.instellingen.aan === false) return;
@@ -1593,7 +1594,7 @@ async function _landingNieuwTegel() {
 
 async function _landingNieuw() {
   try {
-    await import('./personage-maken.js?v=7');
+    await import('./personage-maken.js?v=8');
     const stand = await window.personageMaken.stand();
     if (stand?.concept && stand.concept.status !== 'gegund') {
       if (stand.concept.status === 'wacht') {
@@ -3577,7 +3578,7 @@ function _kaartCard(type, m, dm, verdiepingen = null) {
 // eerste bestaande kaart: je drukte op + en keek naar Dreghaven.
 window._kaartNieuw = async function (type) {
   if (type === 'wereld') return nieuweKaart();
-  const { nieuweDungeon } = await import('./render-dungeon.js?v=68');
+  const { nieuweDungeon } = await import('./render-dungeon.js?v=69');
   nieuweDungeon();
 };
 
@@ -14968,6 +14969,7 @@ const HELP_CONFIG = {
     { titel: 'Thema', tekst: 'De twee kleuren die straks onder het gevecht liggen — jouw kant en de overkant. Je ziet ze in de lijst al op het kaartje, zodat je weet welke sfeer eraan hangt voor je hem opent.', afbeelding: null },
     { titel: 'Buit', tekst: 'Koppel een **vondst** die je bij Loot gemaakt hebt; die verdeel je na afloop met de lootverdeler. Een gevecht dat nog losse buit had van vroeger houdt die zolang je geen vondst koppelt — zo raakt een oud gevecht niets kwijt door één keer op te slaan.', afbeelding: null },
     { titel: 'Waar hoort het bij', tekst: 'Een **akte** groepeert je gevechten in de lijst en in het logboek. Een gevecht kan ook aan een dungeonkamer of aan een partij in het strijdperk hangen; die koppeling leg je daar, niet hier.', afbeelding: null },
+    { titel: 'Lair Actions', tekst: 'Eén effect per regel. Vecht de party in het hol van iets dat een lair heeft, dan is de lair op **initiative 20** aan de beurt (na wie 20 of hoger gooide). Op dat moment krijg je bovenin je regels als knoppen: jij kiest, en pas dan verschijnt het op het tafelscherm, met een beving eronder. Dezelfde regel twee rondes achter elkaar mag niet; de app zet "vorige ronde" erbij, maar houdt je niet tegen. Laat je het veld leeg, dan heeft dit gevecht geen lair.', afbeelding: null },
   ] }),
 
   dm_verzoeken_lening: () => ({ titel: 'Wil lenen', stappen: [
@@ -16009,6 +16011,9 @@ Object.assign(HELP_CONFIG, {
       { titel: 'Initiative tracker', tekst: 'Voeg spelers en monsters toe aan het gevecht. Klik op "Start gevecht" om de initiative-ronde te beginnen. Het combat-scherm is zichtbaar voor alle spelers.', afbeelding: null },
       { titel: 'HP beheren', tekst: 'Klik op het HP-getal van een combatant om schade of genezing toe te passen. Gebruik het schildicoon voor tijdelijke HP.', afbeelding: null },
       { titel: 'Monsters toevoegen', tekst: 'Ga naar het subtabblad "Monsters" om monsters uit het bestiarium toe te voegen. Kies een encounter of voeg individuele monsters toe.', afbeelding: null },
+      { titel: 'Wat het tafelscherm ervan maakt', tekst: 'Bij **Start** speelt het tafelscherm een opening: *Roll Initiative*, de party links en de vijand rechts. Elke nieuwe ronde dimt het beeld even en zegt een verteller hoe het ervoor staat (afgeleid uit de HP-balken, geen getallen), en bij elke beurtwissel zoomt het beeld kort in op wie aan zet is. Bij **Gevecht beëindigen** volgt een aftiteling: rondes, minuten, wie er tegenover stond, wie er opstond of viel, en wat er beschreven werd. Dezelfde dingen komen in het verslag in het Logboek. Schadetotalen staan er niet in: er wordt aan tafel gedobbeld, en wat de app niet weet zet hij er niet bij.', afbeelding: null },
+      { titel: 'How do you want to do this?', tekst: 'Valt een vijand terwijl een speler aan zet is, dan verschijnt bovenin de vraag met die speler al gekozen — je kunt een ander kiezen, of wegklikken. Druk je op **Vraag het**, dan vertraagt het tafelscherm en loopt grijs weg, en krijgt alleen die speler een venster om te beschrijven hoe. Hij mag ook *Laat maar* zeggen. Zegt hij het liever hardop, typ het dan zelf in en druk op **Op tafel**. De beschrijving komt woord voor woord in beeld, daarna valt de klap. Het geluid daarvan stel je in bij Geluiden → Momenten.', afbeelding: null },
+      { titel: 'Death saves', tekst: 'Ligt een speler op 0, dan kleurt de rand van het tafelscherm rood en klopt er een hart — trager bij elke mislukte worp. Elke worp die je bij het personage aanvinkt wordt een moment op tafel. **20** zet hem met 1 HP overeind (een Natural 20), **1** telt als twee failures. Drie successen maakt hem stabiel, drie failures is het einde.', afbeelding: null },
     ],
   }),
   dm_loot: () => ({

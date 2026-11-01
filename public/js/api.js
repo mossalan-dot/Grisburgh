@@ -440,6 +440,11 @@ export const api = {
   getCombat:        ()        => request('/combat'),
   startCombat:      ()        => request('/combat/start',              { method: 'POST' }),
   endCombat:        ()        => request('/combat',                    { method: 'DELETE' }),
+  // Gevechtsregie: de vraag na de laatste klap, het antwoord, en de Lair Action.
+  hwywtdtVraag:     (doelId, characterId) => request('/combat/hwywtdt', { method: 'POST', body: JSON.stringify({ doelId, characterId }) }),
+  hwywtdtAntwoord:  (data)    => request('/combat/hwywtdt/antwoord',   { method: 'POST', body: JSON.stringify(data || {}) }),
+  hwywtdtVoorstelWeg: ()      => request('/combat/hwywtdt/voorstel',   { method: 'DELETE' }),
+  lairKies:         (data)    => request('/combat/lair',               { method: 'POST', body: JSON.stringify(data || {}) }),
   // Sluit het rust-cinematic bij iedereen (DM-actie; de tablet kan zichzelf niet sluiten).
   closeRest:        ()        => request('/party/rest/close',          { method: 'POST', body: '{}' }),
   updateCombat:     (data)    => request('/combat',                    { method: 'PUT',    body: JSON.stringify(data) }),

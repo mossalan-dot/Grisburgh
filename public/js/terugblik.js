@@ -18,7 +18,7 @@
 // Side-effect module, net als `tafels.js`: zet `window._terugblikCinematic`
 // en `window._terugblikSluit`.
 
-import { api } from './api.js?v=317';
+import { api } from './api.js?v=318';
 
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, c =>
   ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));

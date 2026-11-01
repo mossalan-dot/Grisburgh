@@ -1,4 +1,4 @@
-import { api } from './api.js?v=317';
+import { api } from './api.js?v=318';
 
 // icon() helper is defined globally in app.js; grab a local alias for template use.
 const icon = (...a) => window.icon(...a);
@@ -246,7 +246,7 @@ export async function renderLogboek() {
   if (_logboekActiveTab === 'prikbord') {
     tabContent.style.cssText = 'flex:1; min-height:0; overflow:hidden; display:flex; flex-direction:column;';
     tabContent.innerHTML = `<div id="pb-relatiemap-container" style="flex:1;display:flex;flex-direction:column;overflow:hidden;min-height:0;"></div>`;
-    const { renderRelatiemap } = await import('./render-relatiemap.js?v=32');
+    const { renderRelatiemap } = await import('./render-relatiemap.js?v=33');
     await renderRelatiemap(document.getElementById('pb-relatiemap-container'));
     return;
   }
@@ -1328,11 +1328,19 @@ function _renderGevechtEntry(e) {
       </div>
       ${tegen ? `<div class="gv-rij"><span class="gv-rij-lbl">Tegenover je</span><div class="gv-tegens">${tegen}</div></div>` : ''}
       <div class="gv-rij gv-rij--feiten">
-        <span class="gv-feit">${icon('hourglass')} ${g.ronden || 1} ronde${(g.ronden || 1) === 1 ? '' : 'n'}</span>
+        <span class="gv-feit">${icon('hourglass')} ${g.ronden || 1} ronde${(g.ronden || 1) === 1 ? '' : 'n'}${g.duurMin ? ` · ${g.duurMin} min` : ''}</span>
         ${(g.gevallen || []).length
           ? `<span class="gv-feit gv-feit--val">${icon('skull')} ${(g.gevallen || []).map(esc).join(', ')} ging${(g.gevallen || []).length > 1 ? 'en' : ''} neer</span>`
           : `<span class="gv-feit">${icon('check')} Niemand ging neer</span>`}
       </div>
+      ${(g.momenten || []).map(m => `<blockquote class="gv-quote">&ldquo;${esc(m.tekst)}&rdquo;
+        <cite>${esc(m.speler)}, over ${esc(m.doel)}</cite></blockquote>`).join('')}
+      ${(g.doodsstrijd || []).filter(d => ['op', 'stabiel', 'dood'].includes(d.uitkomst)).length ? `<div class="gv-rij gv-rij--feiten">
+        ${(g.doodsstrijd || []).map(d => d.uitkomst === 'op'
+            ? `<span class="gv-feit">${icon('heart-pulse')} ${esc(d.naam)} stond op${d.nat20 ? ' met een Natural 20' : ''}</span>`
+          : d.uitkomst === 'stabiel' ? `<span class="gv-feit">${icon('heart')} ${esc(d.naam)} werd stabiel</span>`
+          : d.uitkomst === 'dood' ? `<span class="gv-feit gv-feit--val">${icon('skull')} ${esc(d.naam)} is gevallen</span>` : '').join('')}
+      </div>` : ''}
       ${log.length ? `<details class="gv-log dm-only">
         <summary>${icon('scroll-text')} Ronde voor ronde (${log.length})</summary>
         <div class="gv-log-body">${log.map(r => `<div class="gv-log-regel"><span class="gv-log-ronde">R${r.ronde ?? '?'}</span>${esc(r.tekst)}</div>`).join('')}</div>
@@ -1702,7 +1710,7 @@ window._nakijkKlaar = async (ch, type, id, btn) => {
 
 window._akteSchrijf = async (ch) => {
   const info = meta?.hoofdstukken?.[ch] || {};
-  const { openAkteSchrijven } = await import('./akte-schrijven.js?v=35');
+  const { openAkteSchrijven } = await import('./akte-schrijven.js?v=36');
   openAkteSchrijven(ch, info.short || info.title || ch);
 };
 window._logboekVerversen = () => renderLogboek();

@@ -171,6 +171,8 @@ let _preset    = null;     // 'forest' | 'fire' | 'snow' | ... | null
 let _particles = [];       // actieve particles
 let _prevDrawT = -1;       // vorige frame-tijd (voor delta-time)
 let _turnPulse = null;     // { ids:[id,...], t0, color:[r,g,b] } — puls bij beurtwissel
+let _camera    = null;     // { ids:[id,...], t0 } — het tafelscherm zoomt even in op wie aan zet is
+let _vorigePos = {};       // _positions van het vorige frame: daar richt de camera op
 
 // Particle-config per thema: gedrag, max aantal per kant, grootte [min,max], snelheid [min,max], wob(ble)
 const _PCFG = {
@@ -267,7 +269,10 @@ function _updateState(combat) {
       const names = group.map(i => cs[i]?.name).filter(Boolean);
       const turnSub = names.length ? _beurtTitel(names) + ' is aan de beurt' : 'BEGINT';
       _announcement = { t0: performance.now(), type: 'round',
-        title: `RONDE ${newRound}`, subtitle: turnSub, color: null };
+        title: `RONDE ${newRound}`, subtitle: turnSub, color: null,
+        verteller: _verteller(combat, newRound) };
+      const rid = group.map(i => cs[i]?.id).filter(Boolean);
+      if (rid.length) _camera = { ids: rid, t0: performance.now() + 900 };
     } else if (newTurn !== _prevTurn) {
       const cs  = combat.combatants || [];
       const cur = cs[newTurn];
@@ -285,6 +290,7 @@ function _updateState(combat) {
       const pulseColor = ctype === 'monster' ? _mc : _pc;
       const pulseIds   = group.map(i => cs[i]?.id).filter(Boolean);
       _turnPulse = { ids: pulseIds, t0: performance.now(), color: pulseColor };
+      _camera = { ids: pulseIds, t0: performance.now() };
     }
   }
   _prevRound = combat?.active ? (combat.round || 1) : -1;
@@ -304,6 +310,57 @@ function _updateState(combat) {
     const id = c.imageId || c.entityId;
     if (id) _loadImage(id);
   });
+}
+
+// ── De verteller bij een nieuwe ronde ─────────────────────────────────────────
+// Eén regel onder "RONDE 3" die zegt hoe het ervoor staat — afgeleid uit wat
+// het canvas toch al tekent (de verhouding van de HP-balken, niet de getallen;
+// die heeft een speler niet). Geen oordeel, een stemming.
+function _verteller(combat, ronde) {
+  if (ronde < 2) return '';
+  const cs = combat.combatants || [];
+  const eigen = cs.filter(c => c.type !== 'monster');
+  const vijand = cs.filter(c => c.type === 'monster');
+  if (!eigen.length || !vijand.length) return '';
+  const gem = (l) => l.reduce((t, c) => t + _hpFrac(c), 0) / l.length;
+  const p = gem(eigen), m = gem(vijand);
+  const ligt = eigen.some(c => c.type === 'player' && _isUit(c));
+  if (ligt && p < 0.45)  return 'Er ligt iemand op de grond, en de rest staat er niet best voor';
+  if (ligt)              return 'Er ligt iemand op de grond';
+  if (p < 0.35 && m > 0.6) return 'De vijand heeft de overhand';
+  if (p < 0.35)          return 'De party wankelt';
+  if (m < 0.3)           return 'De vijand wankelt';
+  if (m < 0.5 && p > 0.7) return 'Het tij keert';
+  if (ronde >= 6)        return 'Het gevecht sleept zich voort';
+  const rustig = ['Niemand geeft een duimbreed toe', 'Staal op staal', 'Het pleit is nog niet beslecht'];
+  return rustig[ronde % rustig.length];
+}
+
+// ── De camera ─────────────────────────────────────────────────────────────────
+// Alleen op het tafelscherm: bij een beurtwissel zoomt het beeld even in op wie
+// aan zet is, en daarna weer uit. Niet bij de DM of de speler — daar wordt op
+// het canvas geklikt, en een beeld dat onder je vinger verschuift is een fout.
+function _cameraTransform(ctx, W, H, now) {
+  if (!_camera || !window._isDisplayMode) return false;
+  if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) { _camera = null; return false; }
+  const e = (now - _camera.t0) / 1000;
+  const IN = 0.7, HOUD = 1.6, UIT = 2.5;
+  if (e < 0) return false;
+  if (e >= UIT) { _camera = null; return false; }
+  const pts = _camera.ids.map(id => _vorigePos[id]).filter(Boolean);
+  if (!pts.length) return false;
+  const fx = pts.reduce((t, q) => t + q.cx, 0) / pts.length;
+  const fy = pts.reduce((t, q) => t + q.cy, 0) / pts.length;
+  const glad = (x) => x * x * (3 - 2 * x);
+  const k = e < IN ? glad(e / IN) : e < HOUD ? 1 : 1 - glad((e - HOUD) / (UIT - HOUD));
+  const zoom = 1 + 0.16 * k;
+  // Inzoomen rond de token zelf. Niet ook nog naar het midden trekken: dan
+  // schuift de rand van het veld in beeld en zie je de kale ondergrond.
+  ctx.save();
+  ctx.translate(fx, fy);
+  ctx.scale(zoom, zoom);
+  ctx.translate(-fx, -fy);
+  return true;
 }
 
 function _loadImage(id) {
@@ -388,6 +445,7 @@ function _draw() {
 
   const isWide = W >= 480;
   const hasBoth = players.length > 0 && monsters.length > 0;
+  const camera = _cameraTransform(ctx, W, H, now);
 
   if (isWide) {
     // Zij aan zij: spelers links, monsters rechts
@@ -423,6 +481,8 @@ function _draw() {
   _prevDrawT = t;
   _updateAndDrawParticles(ctx, W, H, t, dt, hasBoth, isWide);
   _drawTurnPulse(ctx);
+  if (camera) ctx.restore();
+  _vorigePos = { ..._positions };
 
   // ── Win / lose overlay ──
   if (_combat.winner) {
@@ -660,6 +720,30 @@ function _drawAnnouncement(ctx, W, H, nowMs) {
     // ── Ronde-aankondiging: horizontale baan over het midden ──
     const bh = Math.min(H * 0.20, 100);
     const by = H / 2 - bh / 2;
+    // Het beeld dimt even: een nieuwe ronde is een adempauze.
+    ctx.fillStyle = 'rgba(0,0,0,0.32)';
+    ctx.fillRect(0, 0, W, H);
+    // De verteller staat onder de baan en schuift niet mee: hij komt later op.
+    if (_announcement.verteller) {
+      ctx.save();
+      let vSz = Math.min(bh * 0.26, 22);
+      ctx.font = `italic ${vSz}px 'IM Fell English', serif`;
+      while (ctx.measureText(_announcement.verteller).width > W * 0.9 && vSz > 12) {
+        vSz -= 1; ctx.font = `italic ${vSz}px 'IM Fell English', serif`;
+      }
+      ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+      ctx.globalAlpha = Math.max(0, Math.min(1, alpha * Math.min(1, Math.max(0, (elapsed - 0.6) / 0.6))));
+      const vb = ctx.measureText(_announcement.verteller).width + 60;
+      const vg = ctx.createLinearGradient(W / 2 - vb / 2, 0, W / 2 + vb / 2, 0);
+      vg.addColorStop(0, 'rgba(8,6,18,0)'); vg.addColorStop(0.15, 'rgba(8,6,18,0.78)');
+      vg.addColorStop(0.85, 'rgba(8,6,18,0.78)'); vg.addColorStop(1, 'rgba(8,6,18,0)');
+      ctx.fillStyle = vg;
+      ctx.fillRect(W / 2 - vb / 2, by + bh + 6, vb, vSz + 16);
+      ctx.shadowColor = 'rgba(0,0,0,0.9)'; ctx.shadowBlur = 10;
+      ctx.fillStyle = 'rgba(240,226,196,0.95)';
+      ctx.fillText(_announcement.verteller, W / 2, by + bh + 14);
+      ctx.restore();
+    }
     const offsetX = (1 - eased) * -W;
     ctx.translate(offsetX, 0);
 

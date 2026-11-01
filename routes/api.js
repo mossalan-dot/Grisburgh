@@ -6065,8 +6065,13 @@ function _combatVoorSpeler(combat, characterId, kennis = {}) {
     .map(_sleutel))];
   const _rang = (c) => (c.type === 'monster' ? _tiers.indexOf(_sleutel(c)) : -1);
 
+  // De regie is van de DM: daar staan de Lair Actions in die hij nog niet
+  // koos, en wie er volgens de app de laatste klap gaf. Wat een speler daarvan
+  // moet weten krijgt hij via zijn eigen socket (`gevecht:hwywtdt`).
+  const { regie: _r, lair: _l, ...openbaar } = combat;
   return {
-    ...combat,
+    ...openbaar,
+    ...(_l?.regels?.length ? { lairAan: true } : {}),
     combatants: (combat.combatants || []).map(c => {
       if (characterId && c.entityId && c.entityId === characterId) return c;
       // **En wat van jou is, zie je ook.** Een geadopteerd dier komt als summon
@@ -10255,7 +10260,7 @@ const _DIENST_SVC_KEYS = ['herberg', 'tweespalt', 'gock', 'ursula', 'tempel', 'm
 // Elk tafelscherm-effect mag een eigen klank krijgen (`fx-<id>`), en die lijst
 // komt uit de catalogus — anders is er een tweede plek waar een effect bestaat.
 const _MOMENT_SOUND_KEYS = new Set([
-  'lootReveal', 'levelUp', 'terugblik', 'rage',
+  'lootReveal', 'levelUp', 'terugblik', 'rage', 'gevechtOpening', 'genadeslag',
   ...DISPLAY_FX.filter(f => f.klank).map(f => 'fx-' + f.id),
 ]);
 const _REST_SVC_KEYS = ['rust-veld', 'rust-herberg', 'rust-kort'];
@@ -13219,13 +13224,120 @@ function _flushPlayerHpToDmState(combat, io, room) {
   storage.writeJSON('dm-state.json', dmState);
 }
 
+// ── Gevechtsregie ──────────────────────────────────────────────────────────
+// Het gevecht kreeg een begin, een middenstuk en een einde: een opening op het
+// tafelscherm (Roll Initiative, de twee kanten tegenover elkaar), Lair Actions
+// op initiative 20, death saves als scène, de laatste klap als "How do you
+// want to do this?" en een afloop met wat er gebeurde. Alles wat daarvoor
+// bijgehouden moet worden staat in `combat.regie` — het gaat niet naar de
+// speler (zie `_combatVoorSpeler`), want daar staan ook de Lair Actions in die
+// de DM nog niet gebruikte.
+
+// Lair Actions zijn tekst van de DM, één effect per regel.
+function _lairUit(v) {
+  const bron = Array.isArray(v?.regels) ? v.regels : Array.isArray(v) ? v
+             : typeof v === 'string' ? v.split('\n') : [];
+  const regels = bron.map(r => String(r || '').trim().slice(0, 400)).filter(Boolean).slice(0, 12);
+  return regels.length ? { regels } : null;
+}
+
+function _regie(combat) {
+  if (!combat.regie || typeof combat.regie !== 'object') combat.regie = {};
+  const r = combat.regie;
+  if (!Array.isArray(r.momenten))    r.momenten = [];
+  if (!Array.isArray(r.doodsstrijd)) r.doodsstrijd = [];
+  if (!r.start) r.start = Date.now();
+  return r;
+}
+
+// Een naam zonder volgnummer: "Goblin 3" → Goblin.
+const _basisNaam = (n) => String(n || '').replace(/\s+\d+$/, '').trim() || String(n || '');
+
+function _portretVan(c, monsters) {
+  if (c.imageId) return c.imageId;
+  if (c.entityId) return c.entityId;
+  const m = c.presetId ? (monsters || []).find(x => x.id === c.presetId) : null;
+  return m?.imageId || null;
+}
+
+// Wat het tafelscherm bij de opening toont: de party links, de tegenstanders
+// rechts. De naam van de encounter komt er níét in — dat is een werktitel van
+// de DM (zie het gevechtsscherm van de speler); de namen van de wezens staan
+// al op het canvas.
+function _openingVoor(combat) {
+  const monsters = storage.readJSON('monsters.json').monsters || [];
+  const cs = combat.combatants || [];
+  const party = cs.filter(c => c.type !== 'monster')
+    .map(c => ({ naam: c.name, imageId: _portretVan(c, monsters), type: c.type }));
+  const groep = new Map();
+  for (const c of cs.filter(c => c.type === 'monster')) {
+    const naam = _basisNaam(c.name);
+    const g = groep.get(naam) || { naam, aantal: 0, imageId: _portretVan(c, monsters) };
+    g.aantal++;
+    groep.set(naam, g);
+  }
+  const geluid = (storage.readJSON('sounds.json') || {}).momenten?.gevechtOpening || null;
+  return { party, vijanden: [...groep.values()], lair: !!combat.lair?.regels?.length, geluid, ts: Date.now() };
+}
+
+// Is het nu de beurt van de lair? Initiative 20, en de lair verliest een
+// gelijke stand: hij komt ná wie 20 of hoger gooide. Twee momenten dus: een
+// beurtwissel van ≥20 naar <20 binnen een ronde, of het begin van een ronde
+// waarin niemand 20 haalde. `vorige` is het gevecht van vóór de wijziging.
+function _lairCheck(combat, vorige) {
+  if (!combat.active || !combat.lair?.regels?.length) return false;
+  const r = _regie(combat);
+  const ronde = combat.round || 1;
+  if (r.lairNu?.ronde === ronde) return false;          // al geweest deze ronde
+  const cs = combat.combatants || [];
+  const init = (i) => parseInt(cs[i]?.initiative) || 0;
+  const nu = combat.currentTurn ?? 0;
+  let beurt = false;
+  if (!vorige || ronde > (vorige.round || 1)) beurt = nu === 0 && init(0) < 20;
+  else if (nu !== vorige.currentTurn) {
+    const was = (vorige.combatants || [])[vorige.currentTurn];
+    beurt = (parseInt(was?.initiative) || 0) >= 20 && init(nu) < 20;
+  }
+  if (!beurt) return false;
+  r.lairNu = { ronde, ts: Date.now(), gekozen: null };
+  _combatLog(combat, 'Lair Action — initiative 20');
+  return true;
+}
+
+// Death saves, afgeleid uit het verschil tussen twee standen van één deelnemer.
+// Geeft de uitkomst terug ('neer', 'succes', 'faal', 'stabiel', 'dood', 'op')
+// of null. Alleen spelers: een monster op 0 is gewoon weg.
+function _doodsstrijdUit(prev, cur, body) {
+  if (!prev || !cur || cur.type !== 'player') return null;
+  const ph = prev.hp || 0, ch = cur.hp || 0;
+  const pds = prev.deathSaves || {}, cds = cur.deathSaves || {};
+  if (ph > 0 && ch <= 0) return 'neer';
+  if (ph <= 0 && ch > 0) return 'op';
+  if (ch > 0 || !body.deathSaves) return null;
+  const ps = pds.successes || 0, pf = pds.failures || 0;
+  const cs = cds.successes || 0, cf = cds.failures || 0;
+  if (cf >= 3 && pf < 3) return 'dood';
+  if (cf > pf) return 'faal';
+  if (cs > ps) return 'succes';
+  // Drie successen zet de DM terug op 0/0 met Unconscious erbij: stabiel.
+  if (ps === 2 && cs === 0 && cf === 0 && (cur.conditions || []).includes('unconscious')) return 'stabiel';
+  return null;
+}
+
+const _DOODSSTRIJD_LOG = {
+  neer: 'gaat neer', op: 'staat weer op', stabiel: 'is stabiel', dood: 'is gestorven',
+};
+
 router.post('/combat/start', requireDM, (req, res) => {
   const existing = storage.readJSON('combat.json');
   const combatants = [...(existing.combatants || [])].sort((a, b) => b.initiative - a.initiative);
-  const combat = { active: true, round: 1, currentTurn: 0, combatants, encounterId: existing.encounterId || null, backdropId: existing.backdropId || null, canvasPreset: existing.canvasPreset || null, canvasColors: existing.canvasColors || null, log: [] };
+  const combat = { active: true, round: 1, currentTurn: 0, combatants, encounterId: existing.encounterId || null, backdropId: existing.backdropId || null, canvasPreset: existing.canvasPreset || null, canvasColors: existing.canvasColors || null, lair: _lairUit(existing.lair), log: [],
+    regie: { start: Date.now(), momenten: [], doodsstrijd: [] } };
   _combatLog(combat, 'Gevecht begonnen');
   if (combatants[0]) _combatLog(combat, `Beurt van ${combatants[0].name}`);
+  _lairCheck(combat, null);
   storage.writeJSON('combat.json', combat);
+  req.app.get('io')?.to(_displayRoom(req)).emit('gevecht:opening', _openingVoor(combat));
 
   // #3: Bestiarium-auto-onthulling op 'naam' voor de groepen van de speler-
   // combatants. Alleen bibliotheek-monsters (presetId); antagonisten (entityId
@@ -13325,6 +13437,10 @@ function _gevechtVerslag(combat, req) {
       naam, uitkomst, ronden: combat.round || 1,
       encounterId: combat.encounterId || null,
       tegenstanders, gevallen,
+      ...(() => {
+        const a = _afloopVan(combat);
+        return { duurMin: a.duurMin, momenten: a.momenten, doodsstrijd: a.doodsstrijd };
+      })(),
     },
     logDm: regels.map(r => ({ ronde: r.round, tekst: r.text })),
     images: [], nieuwPersonages: [], terugkerendPersonages: [], nieuwLocaties: [],
@@ -13339,6 +13455,11 @@ router.delete('/combat', requireDM, (req, res) => {
   const prevCombat = storage.readJSON('combat.json');
   _flushPlayerHpToDmState(prevCombat, req.app.get('io'), _campagneRoom(req));
   _gevechtVerslag(prevCombat, req);
+  // Eerst de afloop naar het tafelscherm, dan pas het lege gevecht: zo ligt de
+  // aftiteling al klaar als het canvas verdwijnt.
+  if (prevCombat?.active && req.body?.afloop !== false) {
+    req.app.get('io')?.to(_displayRoom(req)).emit('gevecht:afloop', _afloopVan(prevCombat));
+  }
   // Het gevecht is voorbij, en wie niet meer vecht verlengt zijn Rage niet.
   const _rageDm = readDmState();
   const _rageWeg = (prevCombat?.combatants || [])
@@ -13380,6 +13501,7 @@ router.put('/combat', requireDM, (req, res) => {
     const next = updated.combatants[req.body.currentTurn];
     if (next) _combatLog(updated, `Beurt van ${next.name}`);
   }
+  _lairCheck(updated, combat);
   storage.writeJSON('combat.json', updated);
   _zendCombat(req, updated);
   res.json(updated);
@@ -13469,6 +13591,29 @@ router.put('/combat/combatant/:id', requireDM, (req, res) => {
     else          _combatLog(combat, `${prev.name} geneest ${diff} HP (${req.body.hp}/${prev.maxHp || '?'} HP)`);
     if (diff < 0) _maybeConcentrationPrompt(combat, combat.combatants[idx], -diff, readDmState()); // #1
   }
+  // Gevechtsregie: death saves als scène, en een vijand die valt kan de
+  // vraag krijgen. Wat het tafelscherm moet zien gaat ná het wegschrijven uit.
+  const _nu = combat.combatants[idx];
+  const _strijd = _doodsstrijdUit(prev, _nu, req.body);
+  delete _nu.nat20;   // een vlag voor dit moment, geen eigenschap van de deelnemer
+  if (_strijd) {
+    if (_strijd === 'stabiel') _nu.stabiel = true;
+    if (_strijd === 'op' || _strijd === 'neer' || _strijd === 'faal') delete _nu.stabiel;
+    if (_DOODSSTRIJD_LOG[_strijd]) {
+      _regie(combat).doodsstrijd.push({ naam: _nu.name, uitkomst: _strijd, ronde: combat.round || 1, nat20: !!req.body.nat20 });
+      _combatLog(combat, `${_nu.name} ${_DOODSSTRIJD_LOG[_strijd]}`);
+    }
+  }
+  let _valt = null;
+  if (_nu.type === 'monster' && (prev.hp || 0) > 0 && (_nu.hp || 0) <= 0 && combat.active) {
+    // Wie is aan zet? Dat is meestal wie hem raakte; de DM kan het omzetten.
+    const aanZet = (combat.combatants || [])[combat.currentTurn ?? 0];
+    const speler = aanZet?.type === 'player' && aanZet.entityId ? aanZet : null;
+    const laatste = (combat.combatants || []).filter(c => c.type === 'monster').every(c => (c.hp || 0) <= 0);
+    _valt = { doelId: _nu.id, doelNaam: _nu.name, characterId: speler?.entityId || null,
+              spelerNaam: speler?.name || null, laatste, ts: Date.now() };
+    _regie(combat).voorstel = _valt;
+  }
   // Auto-detect: all monsters at 0 HP → players win
   if (!combat.winner && req.body.hp !== undefined) {
     const monsters = combat.combatants.filter(c => c.type === 'monster');
@@ -13496,6 +13641,13 @@ router.put('/combat/combatant/:id', requireDM, (req, res) => {
         for (const gid of groups) io.to(room).emit('companion:unlink', { npcId: cur.entityId, name: cur.name, groupId: gid });
       }
     }
+  }
+  if (_strijd) {
+    const ds = cur.deathSaves || {};
+    io.to(_displayRoom(req)).emit('gevecht:doodsstrijd', {
+      id: cur.id, naam: cur.name, imageId: cur.imageId || cur.entityId || null,
+      uitkomst: _strijd, successes: ds.successes || 0, failures: ds.failures || 0, nat20: !!req.body.nat20,
+    });
   }
   _zendCombat(req, combat);
   res.json(combat.combatants.find(c => c.id === req.params.id));
@@ -13540,6 +13692,130 @@ router.put('/combat/winner', requireDM, (req, res) => {
   _zendCombat(req, combat);
   res.json({ ok: true });
 });
+
+// Naar de sockets van één personage. `playerSockets` houdt er één per
+// personage bij; een speler met twee tabbladen open hoort de vraag in allebei.
+function _naarSpeler(req, characterId, ev, data) {
+  const io = req.app.get('io');
+  if (!io || !characterId) return;
+  const cid = _campagneRoom(req);
+  for (const sock of io.sockets.sockets.values()) {
+    if (sock.rooms.has(cid) && sock.request?.session?.characterId === characterId) sock.emit(ev, data);
+  }
+}
+
+// "How do you want to do this?" — de DM stelt de vraag aan de speler die de
+// laatste klap gaf. De speler mág iets beschrijven, maar hoeft niet: leeg
+// laten is ook een antwoord, en dan gaat het tafelscherm gewoon door.
+router.post('/combat/hwywtdt', requireDM, (req, res) => {
+  const combat = storage.readJSON('combat.json');
+  if (!combat.active) return res.status(409).json({ error: 'Geen actief gevecht' });
+  const doel = (combat.combatants || []).find(c => c.id === req.body?.doelId);
+  if (!doel) return res.status(404).json({ error: 'Tegenstander niet gevonden' });
+  const speler = (combat.combatants || []).find(c => c.type === 'player' && c.entityId === req.body?.characterId);
+  if (!speler) return res.status(400).json({ error: 'Kies de speler die de klap gaf' });
+  const r = _regie(combat);
+  const monsters = storage.readJSON('monsters.json').monsters || [];
+  r.vraag = {
+    id: 'hw_' + Date.now().toString(36), doelId: doel.id, doelNaam: doel.name,
+    doelBeeld: _portretVan(doel, monsters), characterId: speler.entityId, spelerNaam: speler.name,
+    spelerBeeld: speler.imageId || speler.entityId, ts: Date.now(),
+  };
+  delete r.voorstel;
+  storage.writeJSON('combat.json', combat);
+  const io = req.app.get('io');
+  _naarSpeler(req, speler.entityId, 'gevecht:hwywtdt', { id: r.vraag.id, doelNaam: doel.name });
+  io?.to(_displayRoom(req)).emit('gevecht:hwywtdt:display', { fase: 'vraag', ...r.vraag });
+  _zendCombat(req, combat);
+  res.json({ ok: true, vraag: r.vraag });
+});
+
+// Het antwoord. Van de speler zelf, of van de DM die opschrijft wat er aan
+// tafel gezegd werd. `tekst` leeg = overslaan; `annuleer` haalt de vraag weg
+// zonder dat het tafelscherm iets toont.
+router.post('/combat/hwywtdt/antwoord', attachRole, (req, res) => {
+  const combat = storage.readJSON('combat.json');
+  const r = _regie(combat);
+  const v = r.vraag;
+  if (!v || (req.body?.id && req.body.id !== v.id)) return res.status(409).json({ error: 'Er staat geen vraag open' });
+  const isDM = req.role === 'dm';
+  if (!isDM && req.session?.characterId !== v.characterId) return res.status(403).json({ error: 'Deze vraag is niet aan jou' });
+  const tekst = String(req.body?.tekst || '').trim().slice(0, 600);
+  const annuleer = isDM && !!req.body?.annuleer;
+  delete r.vraag;
+  if (tekst) {
+    r.momenten.push({ soort: 'hwywtdt', speler: v.spelerNaam, doel: v.doelNaam, tekst, ronde: combat.round || 1 });
+    _combatLog(combat, `${v.spelerNaam} geeft ${v.doelNaam} de genadeslag: ${tekst}`);
+  }
+  storage.writeJSON('combat.json', combat);
+  const io = req.app.get('io');
+  const geluid = tekst ? ((storage.readJSON('sounds.json') || {}).momenten?.genadeslag || null) : null;
+  if (!annuleer) io?.to(_displayRoom(req)).emit('gevecht:hwywtdt:display', { fase: tekst ? 'antwoord' : 'stil', ...v, tekst, geluid });
+  else io?.to(_displayRoom(req)).emit('gevecht:hwywtdt:display', { fase: 'weg', id: v.id });
+  _naarSpeler(req, v.characterId, 'gevecht:hwywtdt:klaar', { id: v.id });
+  _zendCombat(req, combat);
+  res.json({ ok: true });
+});
+
+// De DM kiest welke Lair Action er gebeurt (of slaat hem over). Pas dan gaat
+// hij naar tafel. Dezelfde twee rondes achter elkaar mag niet volgens de
+// regels; de app zet het er alleen bij, de DM beslist.
+router.post('/combat/lair', requireDM, (req, res) => {
+  const combat = storage.readJSON('combat.json');
+  const r = _regie(combat);
+  if (!r.lairNu) return res.status(409).json({ error: 'Het is niet de beurt van de lair' });
+  const regels = combat.lair?.regels || [];
+  if (req.body?.overslaan) {
+    r.lairNu.gekozen = -1;
+  } else {
+    const i = parseInt(req.body?.index);
+    const eigen = String(req.body?.tekst || '').trim().slice(0, 400);
+    const tekst = eigen || regels[i];
+    if (!tekst) return res.status(400).json({ error: 'Kies een Lair Action' });
+    r.lairNu.gekozen = eigen ? -2 : i;
+    if (!eigen) r.lairVorige = i;
+    r.momenten.push({ soort: 'lair', tekst, ronde: combat.round || 1 });
+    _combatLog(combat, `Lair Action: ${tekst}`);
+    req.app.get('io')?.to(_displayRoom(req)).emit('gevecht:lair', { tekst, ronde: combat.round || 1 });
+  }
+  storage.writeJSON('combat.json', combat);
+  _zendCombat(req, combat);
+  res.json({ ok: true });
+});
+
+// Het voorstel ("Goblin valt — vraag het Wilmer?") wegklikken.
+router.delete('/combat/hwywtdt/voorstel', requireDM, (req, res) => {
+  const combat = storage.readJSON('combat.json');
+  if (combat.regie) delete combat.regie.voorstel;
+  storage.writeJSON('combat.json', combat);
+  _zendCombat(req, combat);
+  res.json({ ok: true });
+});
+
+// De afloop, voor het tafelscherm en voor het verslag in het Logboek. Alleen
+// wat de app echt weet: er wordt aan tafel gedobbeld, dus er is geen
+// schadetotaal en geen "meeste crits" — wel wie er tegenover stond, hoe lang
+// het duurde, wie er neerging of weer opstond, en wat er beschreven werd.
+function _afloopVan(combat) {
+  const r = combat.regie || {};
+  const vijanden = new Map();
+  for (const c of (combat.combatants || []).filter(c => c.type === 'monster')) {
+    const n = _basisNaam(c.name);
+    vijanden.set(n, (vijanden.get(n) || 0) + 1);
+  }
+  const duurMin = r.start ? Math.max(1, Math.round((Date.now() - r.start) / 60000)) : null;
+  return {
+    uitkomst: combat.winner === 'players' ? 'overwinning' : combat.winner === 'monsters' ? 'nederlaag' : 'onbeslist',
+    ronden: combat.round || 1, duurMin,
+    tegenstanders: [...vijanden].map(([naam, aantal]) => ({ naam, aantal })),
+    gevallen: (combat.combatants || []).filter(c => c.type !== 'monster' && (c.hp ?? 1) <= 0).map(c => c.name),
+    doodsstrijd: (r.doodsstrijd || []).filter(d => d.uitkomst !== 'neer'),
+    momenten: (r.momenten || []).filter(m => m.soort === 'hwywtdt'),
+    lair: (r.momenten || []).filter(m => m.soort === 'lair').length,
+    party: (combat.combatants || []).filter(c => c.type === 'player')
+      .map(c => ({ naam: c.name, imageId: c.imageId || c.entityId, uit: (c.hp ?? 1) <= 0 })),
+  };
+}
 
 // ── Lootverdeler ─────────────────────────────────────────────────────────────
 // Eén actieve lootfase tegelijk (dmState.lootPhase). Loot komt uit de encounter
@@ -19429,6 +19705,7 @@ router.post('/encounters', requireDM, (req, res) => {
     // los starten.
     dungeonId:    req.body.dungeonId    || null,
     roomId:       req.body.roomId       || null,
+    lair:         _lairUit(req.body.lair),
   };
   data.encounters.push(enc);
   storage.writeJSON('encounters.json', data);
@@ -19440,6 +19717,7 @@ router.put('/encounters/:id', requireDM, (req, res) => {
   const idx = (data.encounters || []).findIndex(e => e.id === req.params.id);
   if (idx === -1) return res.status(404).json({ error: 'Niet gevonden' });
   data.encounters[idx] = { ...data.encounters[idx], ...req.body, id: req.params.id };
+  if (req.body.lair !== undefined) data.encounters[idx].lair = _lairUit(req.body.lair);
   storage.writeJSON('encounters.json', data);
   res.json(data.encounters[idx]);
 });
@@ -19556,6 +19834,7 @@ router.post('/encounters/:id/start', requireDM, (req, res) => {
     backdropId:   enc.backdropId   || null,
     canvasPreset: enc.canvasPreset || null,
     canvasColors: enc.canvasColors || null,
+    lair:         _lairUit(enc.lair),
     log:          [`Encounter geladen: ${enc.name}`,
                    ...(uitgerold.length ? [`HP uitgerold — ${uitgerold.join(', ')}`] : [])],
   };

@@ -263,6 +263,71 @@ const _KLASSE_KLANKEN = {
                  _toon(c, { type: 'square', van: 600 - i * 120, naar: 300, vol: 0.08, start: s, duur: 0.12 })),
 };
 
+// ── Klanken bij de gevechtsregie ─────────────────────────────────────────────
+// De opening is drie trommelslagen die naar elkaar toe lopen en een koperachtige
+// kwint erboven; de lair een rommeling uit de grond; de death saves hebben een
+// hartslag (die trager wordt naarmate het slechter gaat), een gong bij een
+// mislukte worp, een klokje bij een geslaagde en een zwelling bij opstaan. De
+// genadeslag zuigt eerst alle klank weg — slow motion begint met stilte — en
+// slaat dan.
+function _koper(ctx, hz, start, duur, vol) {
+  const t = ctx.currentTime + start;
+  const f = ctx.createBiquadFilter();
+  f.type = 'lowpass'; f.Q.value = 3;
+  f.frequency.setValueAtTime(300, t);
+  f.frequency.exponentialRampToValueAtTime(1800, t + duur * 0.35);
+  f.frequency.exponentialRampToValueAtTime(400, t + duur);
+  const g = ctx.createGain();
+  g.gain.setValueAtTime(0.0001, t);
+  g.gain.exponentialRampToValueAtTime(vol, t + 0.18);
+  g.gain.exponentialRampToValueAtTime(0.0001, t + duur);
+  f.connect(g).connect(ctx.destination);
+  for (const d of [0, 0.7]) {
+    const o = ctx.createOscillator(); o.type = 'sawtooth';
+    o.frequency.value = hz + d;
+    o.connect(f); o.start(t); o.stop(t + duur + 0.05);
+  }
+}
+
+const _REGIE_KLANKEN = {
+  opening: (c) => {
+    [0, 0.42, 0.72, 0.9].forEach((s, i) => {
+      _toon(c, { type: 'sine', van: 150, naar: 40, vol: 0.42 - i * 0.03, start: s, duur: 0.5 });
+      _ruisvlaag(c, { filter: 'lowpass', freq: 500, vol: 0.16, start: s, duur: 0.22 });
+    });
+    _koper(c, 110, 1.05, 2.6, 0.13);
+    _koper(c, 164.81, 1.15, 2.5, 0.09);
+    _ruisvlaag(c, { filter: 'highpass', freq: 3000, vol: 0.08, start: 1.05, duur: 1.6 });
+  },
+  vs:      (c) => { _toon(c, { type: 'square', van: 260, naar: 50, vol: 0.22, duur: 0.3 });
+                    _ruisvlaag(c, { filter: 'bandpass', freq: 2400, q: 0.8, vol: 0.2, duur: 0.35 }); },
+  lair:    (c) => { _ruisvlaag(c, { freq: 140, vol: 0.34, duur: 2.6 });
+                    _toon(c, { type: 'sine', van: 42, naar: 26, vol: 0.34, duur: 2.4 });
+                    _ruisvlaag(c, { filter: 'bandpass', freq: 900, q: 0.6, vol: 0.08, start: 0.6, duur: 1.6 }); },
+  ronde:   (c) => { _toon(c, { type: 'sine', van: 120, naar: 46, vol: 0.3, duur: 0.6 });
+                    _toon(c, { type: 'triangle', van: 220, vol: 0.05, start: 0.05, duur: 1.4 }); },
+  hart:    (c) => { _toon(c, { type: 'sine', van: 64, naar: 40, vol: 0.32, duur: 0.2 });
+                    _toon(c, { type: 'sine', van: 58, naar: 38, vol: 0.24, start: 0.26, duur: 0.22 }); },
+  faal:    (c) => { _toon(c, { type: 'sine', van: 98, naar: 92, vol: 0.3, duur: 3.2 });
+                    _toon(c, { type: 'sine', van: 147.3, naar: 140, vol: 0.12, duur: 2.6 });
+                    _toon(c, { type: 'sine', van: 233.1, vol: 0.05, duur: 1.8 }); },
+  succes:  (c) => [659.25, 987.77].forEach((f, i) => _toon(c, { type: 'triangle', van: f, vol: 0.1, start: i * 0.12, duur: 1.4 })),
+  stabiel: (c) => [523.25, 659.25, 783.99].forEach((f, i) => _toon(c, { type: 'sine', van: f, vol: 0.08, start: i * 0.1, duur: 2 })),
+  op:      (c) => { _toon(c, { type: 'sawtooth', van: 110, naar: 440, vol: 0.06, duur: 1.2 });
+                    [440, 554.37, 659.25, 880].forEach((f, i) => _toon(c, { type: 'sine', van: f, vol: 0.12, start: 0.9 + i * 0.06, duur: 2.4 }));
+                    _toon(c, { type: 'sine', van: 130, naar: 50, vol: 0.4, start: 0.9, duur: 0.5 }); },
+  dood:    (c) => { _toon(c, { type: 'sine', van: 65.4, naar: 60, vol: 0.4, duur: 5 });
+                    _toon(c, { type: 'sine', van: 130.8, vol: 0.1, duur: 4 });
+                    _toon(c, { type: 'sine', van: 196.6, vol: 0.05, start: 0.02, duur: 3.4 }); },
+  vraag:   (c) => { _toon(c, { type: 'sawtooth', van: 900, naar: 60, vol: 0.06, duur: 1.4 });
+                    _ruisvlaag(c, { filter: 'lowpass', freq: 2400, vol: 0.12, duur: 1.2 });
+                    _toon(c, { type: 'sine', van: 55, vol: 0.1, start: 1.2, duur: 6 }); },
+  slag:    (c) => { _toon(c, { type: 'sine', van: 180, naar: 30, vol: 0.55, duur: 0.9 });
+                    _ruisvlaag(c, { filter: 'lowpass', freq: 900, vol: 0.32, duur: 0.5 });
+                    _ruisvlaag(c, { filter: 'highpass', freq: 2600, vol: 0.12, start: 0.05, duur: 1.6 }); },
+  afloop:  (c) => [220, 277.18, 329.63, 440].forEach((f, i) => _toon(c, { type: 'triangle', van: f, vol: 0.08, start: i * 0.35, duur: 3.4 })),
+};
+
 // ── Ambiance (feature #2) ──────────────────────────────────────────────────────
 // Twee blijvende loop-Audio's:
 //  • broadcast-scène — de DM zet 'm voor iedereen (per-campagne via socket).
@@ -564,6 +629,11 @@ window.soundManager = {
     try { maak(ctx); } catch { /* stil is ook een uitkomst */ }
   },
   // Rage: 'brul' als hij erin gaat, 'doof' (een uitademing) als hij dooft.
+  regieKlank(soort) {
+    const ctx = _audioCtx();
+    if (!ctx) return;
+    try { _REGIE_KLANKEN[soort]?.(ctx); } catch { /* stil is ook een uitkomst */ }
+  },
   rageKlank(soort) {
     const ctx = _audioCtx();
     if (!ctx) return;

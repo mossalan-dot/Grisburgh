@@ -660,6 +660,12 @@ fout-uitvoert.
 - [ ] **Akte-afbeeldingen uploaden** (DM) — vanuit de picker én bij *Nieuwe akte*; ze verschijnen als thumbnails en zijn daarna te onthullen
 - [ ] **Regie-balk** (DM) — akte spelen, stap voor stap onthullen, pauzeren, en de sheets-herinnering na afloop
 - [ ] **Verhaalpaneel** (DM) — schuift open naast de regie, duwt de app opzij; klikken in de tekst schuift de balk mee en andersom
+- [ ] **Lair Actions in een encounter** (DM) — vul in de encounter-editor twee regels in bij *Lair Actions* en sla op; open hem opnieuw en de twee regels staan er, een lege regel is weggevallen
+- [ ] **Lair Action op initiative 20** (DM/TAB) — geef één speler initiative 21 en start; zodra de beurt naar iemand onder de 20 gaat staat bovenin *Lair Action — initiative 20* met je regels als knoppen; kies er een en het tafelscherm beeft en toont hem; de ronde erna staat *vorige ronde* bij die regel
+- [ ] **How do you want to do this? — voorstel** (DM) — breng tijdens de beurt van een speler een vijand op 0 HP; bovenin staat *<vijand> valt* met die speler al gekozen; het kruisje laat het voorstel verdwijnen zonder dat er iets op tafel komt
+- [ ] **How do you want to do this? — de speler** (DM/SP/TAB) — druk *Vraag het*: alleen die speler krijgt het venster (een andere speler niets), het tafelscherm vertraagt en loopt grijs weg; de speler schrijft een zin en drukt *Zo gaat het*: op tafel komt de zin woord voor woord, dan de klap, en het venster bij de speler gaat dicht
+- [ ] **How do you want to do this? — zonder speler** (DM/TAB) — de speler zegt het hardop: typ het zelf in en druk *Op tafel*; of *Zonder woorden*: de klap valt meteen; het kruisje trekt de vraag in en het tafelscherm keert terug zonder klap
+- [ ] **Death saves: 20 en 1** (DM) — een speler op 0: de knop *20* zet hem op 1 HP zonder Unconscious, de knop *1* zet er twee failures bij
 - [ ] **Gevecht** (DM/TAB) — initiatief, beurten, HP, condities met iconen; op de tablet de volledige weergave
 - [ ] **Monsters & Encounters** (DM) — statblokken beheren, encounter bouwen, automatisch vullen met de aanwezige spelers
 - [ ] **Loot** (DM/SP/TAB) — vondsten aanmaken, DC als aantekening, onthullen, claimen, afrollen, uitdelen; op de tablet de kist-animatie; een mimic start het gevecht
@@ -782,6 +788,12 @@ fout-uitvoert.
 - [ ] **Wat voorafging** (DM/TAB) — open een akte, druk in de regie-balk op *Terugblik* en kies *Op het tafelscherm*; de tablet speelt het laatste zichtbare verslag af als trailer (titel, akte, tekst woord voor woord over de beelden, citaat, wie je ontmoette, "gaat het verder") en gaat daarna vanzelf terug naar sfeer
 - [ ] **Wat voorafging: alleen wat de party kent** (DM) — zet het nieuwste verslag op verborgen en een personage uit dat verslag op verborgen; de terugblik pakt het verslag dáárvoor, en het verborgen personage staat niet bij *Wie u ontmoette* — ook niet als zijn naam in de tekst staat
 - [ ] **Wat voorafging: bediening** (TAB) — tikken springt naar het volgende shot, Escape sluit, en de monitorknop in de regie-balk breekt een lopende terugblik af; *Zelf bekijken* speelt hem alleen op het DM-scherm, met *Voorbeeld* linksboven
+- [ ] **Gevecht: de opening** (TAB) — start een gevecht: het tafelscherm toont *Roll Initiative* met balken boven en onder, de party komt van links, de vijanden van rechts (gelijke namen samen als ×3), een streep met *tegen* ertussen; de naam van de encounter staat er nergens; tikken sluit hem; heeft het gevecht Lair Actions, dan staat er *De plek zelf vecht mee*
+- [ ] **Gevecht: een nieuwe ronde** (TAB) — ga naar ronde 2: het beeld dimt, *RONDE 2* schuift in, en eronder staat een regel van de verteller; breng de party op lage HP en de regel van de volgende ronde zegt *De party wankelt*
+- [ ] **Gevecht: de camera** (TAB/DM) — bij een beurtwissel zoomt het tafelscherm kort in op wie aan zet is en daarna weer uit, zonder kale rand; op het DM-scherm beweegt er niets
+- [ ] **Gevecht: death saves als scène** (TAB) — breng een speler op 0: *<naam> valt* met zes lege bolletjes, en de rand van het scherm wordt rood met een hartslag; een mislukte worp vult een rood bolletje en het hart gaat trager; *20* geeft een lichtflits en *Natural 20*; drie failures maakt het beeld grijs met *<naam> is gevallen*; zodra niemand meer op 0 ligt verdwijnt de rode rand
+- [ ] **Gevecht: de afloop** (TAB/DM) — beëindig een gevecht met een beschrijving en een Natural 20 erin: het tafelscherm toont *Overwinning*, rondes en minuten, wie er tegenover stond, de beschrijving als citaat en *stond op met een Natural 20*; tikken sluit hem; het verslag in het Logboek heeft dezelfde citaat en regel
+- [ ] **Gevecht: eigen klanken** (TAB) — hang bij Geluiden → Momenten een bestand aan *Roll Initiative* en aan *How do you want to do this?*; de opening en de klap spelen dat bestand in plaats van de gemaakte klank
 - [ ] **Wat voorafging: muziek** (TAB) — zonder instelling een lage drone met een dreun bij de titel; hang je bij Geluiden → Momenten → *Terugblik* een bestand, dan zwelt dát aan en sterft het weg aan het eind
 
 ## Blok 9 — Uitvoer en onderhoud
