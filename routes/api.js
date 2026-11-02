@@ -4940,12 +4940,18 @@ function _kkStand(dmState, charId, entities) {
 }
 
 // HP erbij, afgetopt op het maximum — in het gevecht op de token, en altijd op het blad.
+// Waar de HP van een speler staat: op zijn token als er een gevecht loopt,
+// anders op zijn blad. Eén plek, want genezen en de waarschuwing bij volle HP
+// moeten hetzelfde getal zien.
+function _kkHp(dmState, combat, doelId) {
+  const hp = (dmState.playerHp || {})[doelId] || { current: 0, max: null };
+  const token = _kkToken(combat, doelId);
+  return { hp, token, max: token?.maxHp ?? hp.max, van: token ? (token.hp || 0) : (hp.current || 0) };
+}
+
 function _kkGenees(req, dmState, combat, doelId, n) {
   if (!dmState.playerHp) dmState.playerHp = {};
-  const hp = dmState.playerHp[doelId] || { current: 0, max: null };
-  const token = _kkToken(combat, doelId);
-  const max = token?.maxHp ?? hp.max;
-  const van = token ? (token.hp || 0) : (hp.current || 0);
+  const { hp, token, max, van } = _kkHp(dmState, combat, doelId);
   const naar = max != null ? Math.min(max, van + n) : van + n;
   if (token) token.hp = naar;
   dmState.playerHp[doelId] = { ...hp, current: naar };
@@ -5054,6 +5060,17 @@ router.post('/characters/:characterId/klassekracht', attachRole, (req, res) => {
     doelToken = combat ? (combat.combatants || []).find(c => c.id === b.doel) : null;
     doelNaam = doelToken?.name || String(b.tekst || '').trim().slice(0, 60);
     if (!doelNaam) return res.status(400).json({ error: 'Op wie?' });
+  }
+
+  // Genezen op volle HP kost wel een use en levert niets op. Niet weigeren —
+  // aan tafel kan daar een reden voor zijn — maar eerst vragen; de client
+  // stuurt `toch: true` mee als de speler doorzet.
+  if (a.soort === 'genees' && !b.toch) {
+    const { max, van } = _kkHp(dmState, combat, doelId || characterId);
+    if (max != null && van >= max) {
+      const wie = (doelId || characterId) === characterId ? 'Je hebt' : `${doelNaam} heeft`;
+      return res.status(409).json({ error: `${wie} al volle HP`, vol: true });
+    }
   }
 
   const slots = _slotsVoorSpeler(dmState, characterId);

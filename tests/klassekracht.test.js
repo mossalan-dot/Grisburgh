@@ -148,6 +148,23 @@ describe('Klassekrachten', () => {
     assert.strictEqual((await doe('paladin', { klasse: 'paladin', actie: 'handen', doel: id.fighter, bedrag: 20 })).status, 409);
   });
 
+  it('genezen op volle HP vraagt eerst, en kost pas iets als je doorzet', async () => {
+    await req(server, 'PATCH', `/api/player-hp/${id.fighter}`, { current: 40, max: 40 }, dm);
+    const voor = bron(await stand('paladin'), 'paladin', 'handen').over;
+    const r = await doe('paladin', { klasse: 'paladin', actie: 'handen', doel: id.fighter, bedrag: 2 });
+    assert.strictEqual(r.status, 409);
+    assert.strictEqual(r.body.vol, true);
+    assert.match(r.body.error, /Hendrik Staal heeft al volle HP/);
+    assert.strictEqual(bron(await stand('paladin'), 'paladin', 'handen').over, voor, 'de vraag zelf kost niets');
+    const sw = await doe('fighter', { klasse: 'fighter', actie: 'secondwind' }, cookie.fighter);
+    assert.strictEqual(sw.status, 409);
+    assert.match(sw.body.error, /^Je hebt al volle HP/);
+    const toch = await doe('paladin', { klasse: 'paladin', actie: 'handen', doel: id.fighter, bedrag: 2, toch: true });
+    assert.strictEqual(toch.status, 200);
+    assert.strictEqual(bron(toch.body.kracht, 'paladin', 'handen').over, voor - 2);
+    await req(server, 'PATCH', `/api/player-hp/${id.fighter}`, { current: 5, max: 40 }, dm);
+  });
+
   it('Wild Shape: bekende gedaantes volgens de PHB — aantal, CR en geen vliegers vóór 8', async () => {
     const put = (vormen) => req(server, 'PUT', `/api/characters/${id.druid}/klassekracht/vormen`, { vormen }, dm);
     assert.strictEqual((await put(['Wolf', 'Cat', 'Boar', 'Badger', 'Rat'])).status, 400, 'level 2 kent er vier');

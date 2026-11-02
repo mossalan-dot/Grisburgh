@@ -398,6 +398,16 @@ async function _doe(id, klasse, actie, body) {
     if (mijnId() === id) { _eigenKlik = Date.now(); _flits(k?.thema, u.woord || k?.acties.find(x => x.id === actie)?.label, u.getal); }
     window._showToast?.(`${ic(k?.acties.find(x => x.id === actie)?.icoon || 'sparkles')} ${esc(u.tekst || 'Gedaan')}`);
   } catch (e) {
+    // Genezen op volle HP: de server vraagt eerst. Ja → hetzelfde verzoek met
+    // `toch`, zodat het nog altijd één bewuste klik is.
+    if (e?.data?.vol && !body?.toch) {
+      const label = _stand?.klassen.find(x => x.id === klasse)?.acties.find(x => x.id === actie)?.label || 'deze kracht';
+      _bezig = false;
+      if (confirm(`${e.message}. ${label} toch gebruiken? Het kost je wel wat, en geneest niets.`)) {
+        return await _doe(id, klasse, actie, { ...body, toch: true });
+      }
+      return;
+    }
     window._showToast?.(e?.message || 'Dat lukte niet');
   } finally {
     _bezig = false;

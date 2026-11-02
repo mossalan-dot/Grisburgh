@@ -19,7 +19,7 @@ import './wizard.js?v=8';
 import './tafels.js?v=2';
 import './terugblik.js?v=3';
 import './rage.js?v=4';
-import './klassekracht.js?v=5';
+import './klassekracht.js?v=6';
 import './gevecht-regie.js?v=2';
 
 // ── Icon helper ──
