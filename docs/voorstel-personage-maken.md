@@ -112,9 +112,10 @@ Elke fase ging apart naar productie, zoals altijd.
 
 ## Wat er bewust niet in zit
 
-- **Ability score improvements en feats vanaf level 4.** Die horen bij de
-  level-up die er al is, en het zijn keuzes die je aan tafel maakt. De
-  nakijker zegt het erbij in plaats van ze stilzwijgend over te slaan.
+- ~~**Ability score improvements en feats vanaf level 4.**~~ Sinds 2 nov 2026
+  wél: de stap *Groei* in het herontwerp (zie
+  `docs/voorstel-personage-scheppen.md`). Wie hoger begint maakt die keuzes
+  meteen, met dezelfde sleutels als de Progressie-tijdlijn.
 - **Wapens filteren op simple/martial.** Dat veld staat niet in
   `srd-items.json`; er staat wél bij wat zijn class mag dragen, en de DM ziet
   de keuze voordat hij gunt.

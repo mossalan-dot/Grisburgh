@@ -3438,6 +3438,10 @@ function _editorHerteken() {
 window.vaardigheden = {
   open: _open,
   beeldMis: _beeldMis,
+  // Het icoon van een class of species, voor wie ze elders tekent (de
+  // personagemaker): zelfde tekening als op de tegel hier, anders lijkt het
+  // twee verschillende dingen.
+  iconen: { klasse: KLASSE_ICOON, species: SPECIES_ICOON },
   // Eén plusknop voor het hele Heldenboek, in de kopbalk naast de hulpknop.
   // Hij hoeft niet dom te zijn: sta je in Barbarian, dan is een feature van
   // deze class het waarschijnlijkste, en staat de class al ingevuld. Sta je op

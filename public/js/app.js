@@ -9,10 +9,10 @@ import { renderBestiarium } from './render-bestiarium.js?v=34';
 import { renderSpreuken } from './render-spreuken.js?v=53';
 import './render-handleiding.js?v=2';
 import './render-melding.js?v=4';
-import { renderVaardigheden, zoekVaardigheden, heldenboekTekst } from './render-vaardigheden.js?v=136';
+import { renderVaardigheden, zoekVaardigheden, heldenboekTekst } from './render-vaardigheden.js?v=137';
 import { renderStatblock } from './render-statblock.js?v=9';
 import { initSocket } from "./socket-client.js?v=94";
-import { initDmPanel } from "./dm-panel.js?v=415";
+import { initDmPanel } from "./dm-panel.js?v=416";
 import { COND_INFO, COND_LABEL, COND_MET_PLAATJE, COND_ICON } from './conditions.js?v=4';
 import './media-picker.js?v=13';
 import './wizard.js?v=8';
@@ -28,7 +28,7 @@ import './gevecht-regie.js?v=2';
 window.icon = function icon(name, { cls = '', title = '' } = {}) {
   const t   = title ? `<title>${title.replace(/[<>&"]/g, c => ({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[c]))}</title>` : '';
   const aria = title ? ' role="img"' : ' aria-hidden="true"';
-  return `<svg class="icon${cls ? ' '+cls : ''}"${aria} focusable="false"><use href="/img/icons.svg?v=27#icon-${name}"/>${t}</svg>`;
+  return `<svg class="icon${cls ? ' '+cls : ''}"${aria} focusable="false"><use href="/img/icons.svg?v=28#icon-${name}"/>${t}</svg>`;
 };
 const icon = (...a) => window.icon(...a);
 
@@ -1572,7 +1572,7 @@ async function _landingNieuwTegel() {
   if (!host || !_groepsWachtwoord || document.getElementById('landing-nieuw')) return;
   let stand = null;
   try {
-    await import('./personage-maken.js?v=9');
+    await import('./personage-maken.js?v=10');
     stand = await window.personageMaken.stand();
   } catch { return; }
   if (stand?.instellingen && stand.instellingen.aan === false) return;
@@ -1594,13 +1594,11 @@ async function _landingNieuwTegel() {
 
 async function _landingNieuw() {
   try {
-    await import('./personage-maken.js?v=9');
+    await import('./personage-maken.js?v=10');
     const stand = await window.personageMaken.stand();
+    // Ook als hij al bij de DM ligt: dan zie je dat, en kun je hem nog
+    // terughalen om iets te veranderen.
     if (stand?.concept && stand.concept.status !== 'gegund') {
-      if (stand.concept.status === 'wacht') {
-        _showToast('Hij ligt bij je DM. Zodra hij hem goedkeurt staat hij hier tussen.');
-        return;
-      }
       await window.personageMaken.hervat();
       return;
     }
@@ -15392,13 +15390,15 @@ const HELP_CONFIG = {
     { titel: 'Waarom dit er is', tekst: 'Een speler kon zijn blad altijd al bijwerken, maar het **kaartje** aanmaken kon alleen jij. Een nieuwe speler stond daardoor niet tussen de portretten en kwam nergens binnen — en jij moest midden in een sessie een leeg kaartje maken terwijl de rest wachtte.\n\nNu maakt hij er zelf een. De drempel is het **partywachtwoord**: wie dat heeft zit aan tafel, dezelfde afspraak als bij het inloggen.', afbeelding: null },
     { titel: 'Het bestaat pas als jij het gunt', tekst: 'Wat hij maakt is een **concept** en geen kaartje. Het staat nergens in je wereld: niet in de partylijst, niet in een gevecht, niet op het tafelscherm. Je vindt het op één plek — **Vragen → Nieuw personage** — met zijn hele blad erbij: wat hij koos, wat daaruit volgt, en wat de app erover op te merken heeft.\n\nGun je het, dan ontstaan het kaartje, het profiel en zijn HP in één keer, in de party waar hij het wachtwoord van had. Stuur je het terug, dan hoort daar een reden bij; die leest hij zodra hij verder gaat.', afbeelding: null },
     { titel: 'De scores', tekst: 'Vier manieren, en jij zegt welke er aan jouw tafel mogen: de **standaardreeks**, **point buy**, **rollen** (zes keer 4d6, de laagste eraf, in de app) en **vrij intikken** voor een personage dat elders gemaakt is.\n\nDe app rekent voor maar houdt niets tegen. Kiest iemand scores die niet kunnen, dan staat dat als opmerking op jouw scherm en beslis jij.', afbeelding: null },
-    { titel: 'Beginnen boven level 1', tekst: 'Standaard begint iedereen op 1. Zet je het hoger, dan mag een speler erom **vragen** — hij vult het in, jij ziet het staan voordat je gunt. Zijn HP, proficiency, hit dice en het aantal spreuken rekenen mee, en zijn subclass vraagt de wizard zodra zijn beginlevel hoog genoeg is.\n\nWat de wizard **niet** vraagt zijn de ability score improvements en feats vanaf level 4: dat zijn keuzes die je aan tafel maakt en die de level-up al kent. Je krijgt het als opmerking te zien bij het gunnen.', afbeelding: null },
+    { titel: 'Herkansingen bij rollen', tekst: 'Rollen gebeurt op de server, dus herladen is geen gratis nieuwe worp. Standaard geldt **wat je rolt, dat is het**. Wil je een speler een slechte set laten overdoen, zet hier hoe vaak — een herkansing werpt altijd de **hele set** opnieuw, niet één score.\n\nNa het rollen koppelt de speler elke worp zelf aan de ability die hij wil.', afbeelding: null },
+    { titel: 'Beginnen boven level 1', tekst: 'Standaard begint iedereen op 1. Zet je het hoger, dan mag een speler erom **vragen** — hij vult het in, jij ziet het staan voordat je gunt. Zijn HP, proficiency, hit dice en het aantal spreuken rekenen mee, en zijn subclass vraagt de maker zodra zijn beginlevel hoog genoeg is.\n\nDe **Ability Score Improvements en feats** die hij onderweg had gekregen kiest hij ook meteen, op dezelfde levels als op zijn Progressie-tijdlijn — daar staan ze na het gunnen gewoon als gekozen. Een feat met een voorwaarde (Level 4+, een andere feat, een species) houdt de maker niet tegen; dat zie jij.', afbeelding: null },
+    { titel: 'Verhaal en geheimen', tekst: 'Een speler kan zijn achtergrondverhaal schrijven en **geheimen** meegeven die niemand aan tafel kent. Het verhaal wordt de beschrijving op zijn kaartje; de geheimen worden gewone geheimregels, die jij per regel onthult wanneer het moment daar is — net als bij elk ander kaartje. Hij ziet ze zelf ook pas terug als jij ze onthult.', afbeelding: null },
     { titel: 'Twee classes tegelijk beginnen', tekst: 'Staat het beginlevel op 2 of hoger, dan kan een speler zijn levels over **twee classes** verdelen — Fighter 3 / Rogue 2 bijvoorbeeld. Het staat achter een uitklapper bij de class: het is de uitzondering, en wie het niet zoekt hoort er geen last van te hebben.\n\nZijn hit dice tellen dan per class (3d10 + 2d8) en de **eisen** staan erbij zoals overal in deze app: voorrekenen, niet blokkeren. Haalt hij de Strength 13 voor Paladin niet, dan lees jij dat bij het gunnen en beslis jij.', afbeelding: null },
     { titel: 'Rommel in zijn zak', tekst: 'De app verzint geen trinkets — wat er in je zak zit hoort bij jouw wereld. Wijs hier een **tafel van je eigen campagne** aan, dan rolt elke nieuwe speler daar één keer op en gaat de uitkomst als voorwerp mee in zijn boedel.\n\nEén keer: opnieuw rollen tot er iets leuks staat is geen worp meer.', afbeelding: null },
   ] }),
 
   dm_verzoeken_personage: () => ({ titel: 'Een nieuw personage', stappen: [
-    { titel: 'Wat je hier ziet', tekst: 'Iemand heeft met het partywachtwoord van een van je partys een personage gemaakt. Je ziet zijn naam, zijn species, class en background, zijn zes scores, zijn HP en zijn AC — en met welke manier hij die scores bepaalde.\n\nWat er niet klopt staat eronder als opmerking. Die blokkeren niets: het is jouw tafel, en soms is de uitzondering juist de bedoeling.', afbeelding: null },
+    { titel: 'Wat je hier ziet', tekst: 'Iemand heeft met het partywachtwoord van een van je partys een personage gemaakt. Je ziet zijn naam, zijn species, class en background, zijn zes scores, zijn HP en zijn AC — en met welke manier hij die scores bepaalde. Daaronder wat hij onderweg koos (ASI of feat per level), hoeveel spreuken hij koos, het begin van zijn verhaal en zijn **geheimen voluit**: die zijn juist voor jou.\n\nWat er niet klopt staat eronder als opmerking. Die blokkeren niets: het is jouw tafel, en soms is de uitzondering juist de bedoeling.\n\nWerkt de speler intussen verder, dan haalt hij hem bij je terug — dan verdwijnt hij hier tot hij hem opnieuw verzegelt. Zo gun je nooit iets anders dan wat je las.', afbeelding: null },
     { titel: 'Gunnen of terugsturen', tekst: '**Gunnen** maakt het personage echt: het kaartje met zijn portret, het profiel, zijn hit points, zijn spreukenboek, zijn boedel, zijn beurs en zijn plek in de party. Daarna kan hij met hetzelfde partywachtwoord inloggen en staat hij tussen de portretten.\n\n**Terugsturen** vraagt om een reden. Die leest hij zodra hij zijn concept weer opent, en hij kan er meteen aan verder werken — er gaat niets verloren.', afbeelding: null },
   ] }),
 

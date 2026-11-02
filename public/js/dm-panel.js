@@ -12052,6 +12052,31 @@ async function _renderVerzoeken() {
       </span>
     </div>`).join('');
 
+  // Wat hij verder koos: background, de keuzes van onderweg, zijn spreuken,
+  // zijn verhaal en zijn geheimen. De geheimen voluit — die zijn juist voor
+  // jou, en je wilt weten wat je gunt.
+  const _conceptDetails = (c) => {
+    const rij = (k, v) => v ? `<div class="dm-concept-rij"><em>${esc(k)}</em> ${v}</div>` : '';
+    const groei = Object.entries(c.groei || {}).map(([sleutel, g]) => {
+      const [klasse, lvl] = sleutel.split('|');
+      const wat = g.keuze === 'feat' ? esc(g.feat || '—') + (g.plus ? ` (+1 ${esc(g.plus.toUpperCase())})` : '')
+        : Object.entries(g.asi || {}).map(([a, n]) => `+${n} ${esc(a.toUpperCase())}`).join(', ') || '—';
+      return `${esc(klasse)} ${esc(lvl)}: ${wat}`;
+    }).join(' · ');
+    const nSpreuken = (c.spreuken || []).length;
+    const verhaal = String(c.verhaal || '').trim();
+    return `
+      <div class="dm-concept-details">
+        ${rij('Background', esc(c.background || ''))}
+        ${rij('Onderweg', groei)}
+        ${rij('Spreuken', nSpreuken ? `${nSpreuken}` : '')}
+        ${rij('Verhaal', verhaal ? esc(verhaal.length > 220 ? verhaal.slice(0, 220) + '…' : verhaal) : '')}
+        ${(c.geheimen || []).length ? rij('Geheimen', c.geheimen.map(g => `${icon('lock')} ${esc(g.tekst)}`).join('<br>')) : ''}
+        ${rij('Media', [c.portret ? 'portret' : '', c.video ? 'filmpje' : '', c.beurt ? 'beurtklank' : '',
+          (c.emotes || []).length ? `${c.emotes.length} emote${c.emotes.length > 1 ? 's' : ''}` : ''].filter(Boolean).join(', '))}
+      </div>`;
+  };
+
   // Een nieuw personage is het enige verzoek van iemand die nog niet bestaat.
   // Het hele blad staat erbij, want je gunt hier geen regel maar een speler:
   // wat hij koos, wat eruit volgt, en wat de app erover op te merken heeft.
@@ -12068,6 +12093,7 @@ async function _renderVerzoeken() {
         <span class="dm-concept-score"><em>HP</em> ${esc(String(profiel._hp ?? ''))}</span>
         <span class="dm-concept-score"><em>AC</em> ${esc(String(profiel.ac ?? ''))}</span>
       </div>
+      ${_conceptDetails(c)}
       ${(nakijk?.opmerkingen || []).length
         ? `<p class="dm-hint" style="margin:4px 0 0">${icon('alert-triangle')} ${nakijk.opmerkingen.map(esc).join(' ')}</p>` : ''}
       <span class="dm-verzoek-acties">
@@ -13489,6 +13515,10 @@ async function _renderInstellingen() {
         <label class="dm-form-label" for="inst-pm-max">Hoogste beginlevel dat ze mogen vragen</label>
         <input id="inst-pm-max" class="dm-input" type="number" min="1" max="20" value="${pm.maxLevel || 1}">
       </div>
+      <div class="dm-form-row">
+        <label class="dm-form-label" for="inst-pm-rerolls">Herkansingen bij rollen</label>
+        <input id="inst-pm-rerolls" class="dm-input" type="number" min="0" max="10" value="${parseInt(pm.rerolls) || 0}">
+      </div>
       <!-- Een trinket is wat er onderin je zak zit als je begint. De app
            verzint er geen: je wijst een tafel van je eigen campagne aan, en
            dan rolt elke nieuwe speler daar één keer op. -->
@@ -13850,6 +13880,7 @@ window._instOpslaan = async () => {
       methodes: pmMethodes.length ? pmMethodes : ['array', 'pointbuy', 'rollen', 'vrij'],
       maxLevel: parseInt(document.getElementById('inst-pm-max')?.value) || 1,
       trinketTafel: document.getElementById('inst-pm-trinket')?.value || '',
+      rerolls: parseInt(document.getElementById('inst-pm-rerolls')?.value) || 0,
     });
 
     const nieuweMeta = await api.meta();

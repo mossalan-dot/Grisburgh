@@ -32064,3 +32064,390 @@ body.gr-slowmo .combat-overlay { filter: grayscale(.85) contrast(1.1) brightness
 .gs-quote { margin: 0; font: italic 18px/1.4 'IM Fell English', serif; color: #2a1a08; }
 .gs-cite { margin-top: 8px; font: 13px 'Crimson Text', serif; color: #5a4024; }
 .gs-waar { display: block; font: italic 12px 'IM Fell English', serif; color: #7a6040; }
+
+/* ══════════════════════════════════════════════════════════════════════════
+   Personage scheppen (personage-maken.js) — 2 nov 2026
+   Een werkbank bij kaarslicht: het tóneel is donker en flakkert, maar alles
+   waar je mee werkt ligt op licht perkament — het blad links, het paneel
+   rechts. Zie docs/voorstel-personage-scheppen.md. Alles onder `.ps-`, en de
+   kleuren als variabelen op de overlay zodat ze op één plek staan.
+   ══════════════════════════════════════════════════════════════════════════ */
+.ps-overlay {
+  --ps-inkt: #2a1a08; --ps-inkt-mid: #5a4030; --ps-inkt-dim: #7a6040; --ps-inkt-vaag: #a08860;
+  --ps-goud: #b8860b; --ps-goud-diep: #9a7008;
+  --ps-lak: #8d2a24; --ps-lak-diep: #6a1d19;
+  --ps-perk: #efe3c7; --ps-perk-warm: #e6d4ad; --ps-rand: #c9ab74;
+  position: fixed; inset: 0; z-index: 2000; overflow-y: auto; overscroll-behavior: contain;
+  font-family: 'Crimson Text', Georgia, serif; font-size: 17px; line-height: 1.5; color: var(--ps-inkt-mid);
+  background: radial-gradient(120% 90% at 50% -8%, #3a2d18 0%, #241a0e 46%, #120b05 100%);
+}
+.ps-overlay::after {
+  content: ""; position: fixed; inset: 0; pointer-events: none;
+  background: radial-gradient(72% 56% at 50% 40%, transparent 54%, rgba(8, 5, 2, .6) 100%);
+}
+.ps-podium {
+  position: relative; z-index: 1; min-height: 100%;
+  padding: clamp(18px, 4vh, 44px) max(16px, env(safe-area-inset-right, 0px)) clamp(24px, 5vh, 52px) max(16px, env(safe-area-inset-left, 0px));
+  display: flex; flex-direction: column; align-items: center;
+}
+.ps-overlay svg.icon { width: 1em; height: 1em; }
+
+/* ── drempel ── */
+.ps-drempel, .ps-klaar {
+  max-width: 560px; margin: auto; text-align: center;
+  display: flex; flex-direction: column; align-items: center; gap: 20px; animation: ps-op 1s ease both;
+}
+.ps-embleem {
+  width: 112px; height: 112px; border-radius: 50%; display: grid; place-items: center; position: relative;
+  background: radial-gradient(circle at 38% 32%, #f6ecd0, #d8bd87 70%, #b2924f);
+  border: 2px solid var(--ps-goud); color: #5a4015; overflow: hidden;
+  box-shadow: 0 0 0 7px rgba(184, 134, 11, .16), 0 0 46px 6px rgba(184, 134, 11, .4), inset 0 -8px 16px rgba(120, 86, 20, .35);
+}
+.ps-embleem svg.icon { width: 52px; height: 52px; }
+.ps-embleem img { width: 78%; height: 78%; object-fit: contain; }
+.ps-embleem--klein { width: 88px; height: 88px; }
+.ps-embleem--klein svg.icon { width: 40px; height: 40px; }
+.ps-fluister { font-family: 'IM Fell English', Georgia, serif; font-style: italic; color: var(--ps-inkt-vaag); letter-spacing: .14em; }
+.ps-drempel h1, .ps-klaar h2 {
+  font-family: 'Cinzel', Georgia, serif; font-weight: 900; color: #f3e6c6; margin: 0; line-height: 1.05;
+  font-size: clamp(2rem, 7vw, 3.2rem); text-wrap: balance;
+  text-shadow: 0 2px 18px rgba(0, 0, 0, .6), 0 0 34px rgba(184, 134, 11, .3);
+}
+.ps-klaar h2 { font-size: clamp(1.5rem, 5vw, 2rem); }
+.ps-drempel-lead, .ps-klaar p { font-family: 'IM Fell English', Georgia, serif; font-style: italic; color: #cdb98e; font-size: 1.15rem; max-width: 40ch; margin: 0; }
+.ps-sierlijn { display: flex; align-items: center; gap: 12px; color: var(--ps-goud); }
+.ps-sierlijn span { height: 1px; width: 70px; background: linear-gradient(90deg, transparent, var(--ps-goud)); }
+.ps-sierlijn span:last-child { background: linear-gradient(90deg, var(--ps-goud), transparent); }
+
+/* ── werkbank ── */
+.ps-werkbank { width: 100%; max-width: 1140px; margin: auto; display: grid; grid-template-columns: 300px minmax(0, 1fr); gap: 24px; align-items: start; }
+@media (max-width: 860px) { .ps-werkbank { grid-template-columns: 1fr; gap: 14px; } }
+.ps-blad-wrap { position: sticky; top: 0; }
+@media (max-width: 860px) { .ps-blad-wrap { position: static; } }
+.ps-blad, .ps-onthul-blad {
+  position: relative; border-radius: 5px; padding: 22px 20px 24px;
+  background-image: repeating-linear-gradient(0deg, transparent, transparent 31px, rgba(150, 110, 50, .09) 32px),
+    linear-gradient(175deg, var(--ps-perk) 0%, var(--ps-perk-warm) 100%);
+  box-shadow: 0 12px 36px rgba(0, 0, 0, .5), inset 0 1px 0 rgba(255, 255, 255, .5);
+}
+.ps-blad::before, .ps-onthul-blad::before, .ps-paneel::before {
+  content: ""; position: absolute; inset: 7px; border: 1px solid rgba(154, 112, 8, .4); border-radius: 2px; pointer-events: none;
+}
+.ps-blad-portret, .ps-portret-vak, .ps-onthul-portret {
+  width: 92px; height: 92px; margin: 0 auto 10px; border-radius: 50%; display: grid; place-items: center; overflow: hidden; position: relative;
+  color: #8a6a2a; background: radial-gradient(circle at 40% 35%, #e9d7ad, #c9ab74); border: 2px solid var(--ps-goud-diep);
+  box-shadow: inset 0 2px 7px rgba(255, 255, 255, .5), inset 0 -6px 12px rgba(120, 86, 20, .3), 0 3px 10px rgba(0, 0, 0, .25);
+}
+.ps-blad-portret svg.icon, .ps-portret-vak svg.icon, .ps-onthul-portret svg.icon { width: 40px; height: 40px; opacity: .6; }
+.ps-blad-portret img, .ps-blad-portret video, .ps-portret-vak img, .ps-portret-vak video,
+.ps-onthul-portret img, .ps-onthul-portret video { width: 100%; height: 100%; object-fit: cover; }
+.ps-blad-portret.is-vol { box-shadow: 0 0 22px rgba(184, 134, 11, .5), 0 3px 10px rgba(0, 0, 0, .25); }
+.ps-film-badge { position: absolute; bottom: 4px; right: 4px; width: 22px; height: 22px; border-radius: 50%;
+  background: rgba(42, 26, 8, .8); color: #f3e6c6; display: grid; place-items: center; border: 1px solid var(--ps-goud); }
+.ps-film-badge svg.icon { width: 11px !important; height: 11px !important; opacity: 1 !important; }
+.ps-blad-naam { font-family: 'Cinzel', Georgia, serif; font-weight: 700; text-align: center; color: var(--ps-inkt); font-size: 1.3rem; overflow-wrap: anywhere; }
+.ps-blad-naam.is-leeg { font-family: 'IM Fell English', Georgia, serif; font-style: italic; font-weight: 400; color: var(--ps-inkt-vaag); font-size: 1rem; }
+.ps-blad-onder { text-align: center; font-family: 'IM Fell English', Georgia, serif; font-style: italic; color: var(--ps-inkt-dim); margin-top: 2px; }
+.ps-blad-regels { margin: 14px 0 0; display: flex; flex-direction: column; }
+.ps-blad-regel { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; padding: 6px 2px; border-bottom: 1px dotted rgba(154, 112, 8, .4); }
+.ps-blad-regel.is-in { animation: ps-op .45s ease both; }
+.ps-blad-regel dt { font-family: 'Cinzel', Georgia, serif; font-size: .62rem; letter-spacing: .1em; text-transform: uppercase; color: var(--ps-inkt-dim); flex-shrink: 0; }
+.ps-blad-regel dd { margin: 0; font-family: 'Kalam', cursive; color: var(--ps-inkt); font-size: 1.02rem; text-align: right; overflow-wrap: anywhere; }
+.ps-blad-regel dd.is-wacht { font-family: 'IM Fell English', Georgia, serif; font-style: italic; color: var(--ps-inkt-vaag); }
+.ps-blad-zes { margin-top: 14px; display: grid; grid-template-columns: repeat(6, 1fr); gap: 5px; }
+.ps-pip { text-align: center; padding: 6px 0 5px; border-radius: 3px; background: rgba(154, 112, 8, .09); border: 1px solid rgba(154, 112, 8, .28); }
+.ps-pip-ab { display: block; font-family: 'Cinzel', Georgia, serif; font-size: .52rem; letter-spacing: .06em; color: var(--ps-inkt-dim); text-transform: uppercase; }
+.ps-pip-nr { display: block; font-family: 'Cinzel', Georgia, serif; font-weight: 700; font-size: 1rem; color: var(--ps-inkt); line-height: 1.1; }
+.ps-pip-md { display: block; font-size: .66rem; color: var(--ps-goud-diep); }
+
+/* ── paneel ── */
+.ps-paneel { position: relative; border-radius: 6px; padding: clamp(18px, 3vw, 30px);
+  background: linear-gradient(175deg, var(--ps-perk), var(--ps-perk-warm)); box-shadow: 0 16px 46px rgba(0, 0, 0, .5); min-width: 0; }
+.ps-voortgang { margin-bottom: 14px; }
+.ps-vg-rij { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; margin-bottom: 7px; }
+.ps-vg-label { font-family: 'Cinzel', Georgia, serif; font-size: .66rem; letter-spacing: .12em; text-transform: uppercase; color: var(--ps-inkt-dim); }
+.ps-vg-stap { font-family: 'IM Fell English', Georgia, serif; font-style: italic; color: var(--ps-goud-diep); }
+.ps-vg-balk { position: relative; height: 7px; border-radius: 4px; background: rgba(120, 86, 20, .18); margin: 0 6px; }
+.ps-vg-vul { position: absolute; inset: 0 auto 0 0; border-radius: 4px; overflow: hidden; background: linear-gradient(90deg, #c9992a, #b8860b);
+  box-shadow: 0 0 10px rgba(184, 134, 11, .5); transition: width .55s cubic-bezier(.3, .9, .3, 1); }
+.ps-vg-vul::after { content: ""; position: absolute; inset: 0; background: linear-gradient(90deg, transparent, rgba(255, 245, 210, .65), transparent); animation: ps-schuif 2.4s linear infinite; }
+.ps-vg-knoop { position: absolute; top: 50%; width: 12px; height: 12px; margin: -6px 0 0 -6px; padding: 0; border-radius: 50%;
+  background: var(--ps-perk); border: 2px solid rgba(120, 86, 20, .4); cursor: default; }
+.ps-vg-knoop.is-gehad { background: var(--ps-goud); border-color: var(--ps-goud-diep); cursor: pointer; }
+.ps-vg-knoop.is-nu { background: var(--ps-goud); border-color: var(--ps-goud-diep); box-shadow: 0 0 9px 2px rgba(184, 134, 11, .6); transform: scale(1.25); }
+.ps-boven { font-family: 'IM Fell English', Georgia, serif; font-style: italic; color: var(--ps-goud-diep); letter-spacing: .1em; }
+.ps-kop { font-family: 'Cinzel', Georgia, serif; font-weight: 700; color: var(--ps-inkt); margin: .1em 0 .3em; font-size: clamp(1.5rem, 4.2vw, 2.1rem); text-wrap: balance; }
+.ps-lead { font-family: 'IM Fell English', Georgia, serif; font-style: italic; color: var(--ps-inkt-dim); max-width: 60ch; margin: 0 0 16px; font-size: 1.05rem; }
+.ps-lead em { color: var(--ps-inkt-vaag); }
+.ps-hint { font-family: 'IM Fell English', Georgia, serif; font-style: italic; color: var(--ps-inkt-dim); font-size: .9rem; margin: 4px 0; }
+.ps-hint--ruim { margin-top: 14px; }
+.ps-subkop { font-family: 'Cinzel', Georgia, serif; font-size: .7rem; letter-spacing: .12em; text-transform: uppercase; color: var(--ps-goud-diep); margin-bottom: 8px;
+  display: flex; align-items: center; gap: 7px; }
+.ps-subkeuze { margin-top: 18px; }
+.ps-subkeuze--eerst { margin: 0 0 16px; }
+.ps-rij { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-top: 10px; }
+.ps-rij--midden { justify-content: center; }
+.ps-let-op { margin: 12px 0; padding: 10px 14px; border-radius: 6px; background: rgba(184, 134, 11, .1); border: 1px solid rgba(154, 112, 8, .35); color: var(--ps-inkt); text-align: left; }
+.ps-let-op--fout { background: rgba(141, 42, 36, .08); border-color: rgba(141, 42, 36, .35); }
+.ps-let-op ul { margin: 6px 0 0; padding-left: 20px; }
+.ps-let-op p { margin: 4px 0 0; }
+
+/* ── knoppen ── */
+.ps-knop { font-family: 'Cinzel', Georgia, serif; font-weight: 600; font-size: .9rem; letter-spacing: .03em; cursor: pointer; border-radius: 4px;
+  padding: 10px 18px; display: inline-flex; align-items: center; gap: 8px; border: 1px solid transparent; transition: .2s; }
+.ps-knop--spook { background: transparent; border-color: var(--ps-rand); color: var(--ps-inkt-mid); }
+.ps-knop--spook:hover:not(:disabled) { border-color: var(--ps-goud-diep); color: var(--ps-inkt); background: rgba(184, 134, 11, .1); }
+.ps-knop--donker { background: transparent; border-color: rgba(201, 171, 116, .45); color: #e6d4ad; }
+.ps-knop--donker:hover { border-color: var(--ps-goud); color: #f3e6c6; }
+.ps-knop--goud { background: linear-gradient(170deg, #d9a92a, #b8860b 60%, #9a7008); color: #2a1a08; border-color: #8a6305;
+  box-shadow: 0 4px 14px rgba(184, 134, 11, .4), inset 0 1px 0 rgba(255, 255, 255, .4); }
+.ps-knop--goud:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 7px 20px rgba(184, 134, 11, .55); }
+.ps-knop--groot { font-size: 1.05rem; padding: 14px 30px; }
+.ps-knop:disabled { opacity: .45; cursor: not-allowed; }
+.ps-link { background: none; border: 0; padding: 0; color: var(--ps-inkt-dim); font-family: inherit; cursor: pointer; display: inline-flex; gap: 5px; align-items: center; }
+.ps-link:hover { color: var(--ps-lak); }
+.ps-mini { width: 25px; height: 25px; border-radius: 50%; border: 1px solid var(--ps-rand); background: #fff8ea; color: var(--ps-inkt-mid);
+  cursor: pointer; display: grid; place-items: center; padding: 0; flex-shrink: 0; }
+.ps-mini:hover { background: var(--ps-goud); color: #2a1a08; }
+.ps-mini svg.icon { width: 12px; height: 12px; }
+.ps-voet { display: flex; justify-content: space-between; align-items: center; margin-top: 24px; gap: 12px; flex-wrap: wrap; }
+.ps-voet-rechts { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.ps-pillen { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 6px; }
+.ps-pil { font-family: 'Cinzel', Georgia, serif; font-size: .82rem; color: var(--ps-inkt-mid); cursor: pointer; display: inline-flex; align-items: center; gap: 6px;
+  background: rgba(154, 112, 8, .08); border: 1px solid var(--ps-rand); padding: 7px 14px; border-radius: 20px; }
+.ps-pil:hover { border-color: var(--ps-goud-diep); }
+.ps-pil.is-aan { background: rgba(184, 134, 11, .26); border-color: var(--ps-goud-diep); color: var(--ps-inkt); box-shadow: 0 0 10px rgba(184, 134, 11, .3); }
+
+/* ── kaarten ── */
+.ps-kaarten { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; }
+.ps-kaarten--klein { grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 10px; }
+.ps-kaart { position: relative; text-align: center; cursor: pointer; border: 0; padding: 18px 10px 12px; border-radius: 6px; overflow: hidden;
+  aspect-ratio: 3 / 3.6; font-family: inherit; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; gap: 8px;
+  background: linear-gradient(170deg, #f3ead2, #e4d1a8); box-shadow: 0 4px 14px rgba(0, 0, 0, .28);
+  transition: transform .28s cubic-bezier(.2, .9, .3, 1.3), box-shadow .28s; }
+.ps-kaarten--klein .ps-kaart { aspect-ratio: 3 / 3.4; padding-top: 12px; }
+.ps-kaart:hover { transform: translateY(-4px); box-shadow: 0 12px 28px rgba(0, 0, 0, .4); }
+.ps-kaart:focus-visible { outline: 2px solid var(--ps-goud); outline-offset: 3px; }
+.ps-kaart-rand { position: absolute; inset: 0; border-radius: 6px; pointer-events: none; border: 1px solid rgba(154, 112, 8, .28); }
+.ps-kaart.is-aan { transform: translateY(-3px); }
+.ps-kaart.is-aan .ps-kaart-rand { border: 2px solid var(--ps-goud); box-shadow: inset 0 0 0 1px rgba(246, 236, 210, .5), 0 0 24px 2px rgba(184, 134, 11, .55); }
+.ps-kaart-zegel { position: absolute; top: 8px; right: 8px; width: 28px; height: 28px; border-radius: 50%; z-index: 3; color: #f3dcc0;
+  background: radial-gradient(circle at 38% 32%, #a8322b, var(--ps-lak) 60%, var(--ps-lak-diep)); display: grid; place-items: center;
+  box-shadow: 0 2px 7px rgba(0, 0, 0, .5); transform: scale(0) rotate(-40deg); transition: transform .4s cubic-bezier(.3, 1.4, .4, 1); }
+.ps-kaart-zegel svg.icon { width: 15px; height: 15px; }
+.ps-kaart.is-aan .ps-kaart-zegel { transform: scale(1) rotate(0); }
+.ps-kaart-medaillon { width: 56px; height: 56px; border-radius: 50%; display: grid; place-items: center; color: #6f5115; flex-shrink: 0;
+  background: radial-gradient(circle at 40% 34%, #f6eccf, #cdae72 72%, #a9873f); border: 1px solid var(--ps-goud-diep);
+  box-shadow: inset 0 2px 5px rgba(255, 255, 255, .6), 0 2px 6px rgba(0, 0, 0, .2); transition: transform .3s; }
+.ps-kaarten--klein .ps-kaart-medaillon { width: 44px; height: 44px; }
+.ps-kaart-medaillon svg.icon { width: 26px; height: 26px; }
+.ps-kaart:hover .ps-kaart-medaillon { transform: scale(1.07) rotate(-3deg); }
+.ps-kaart-tekst { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.ps-kaart-naam { font-family: 'Cinzel', Georgia, serif; font-weight: 700; color: var(--ps-inkt); font-size: .98rem; line-height: 1.12; overflow-wrap: anywhere; }
+.ps-kaarten--klein .ps-kaart-naam { font-size: .82rem; }
+.ps-kaart-onder { font-family: 'IM Fell English', Georgia, serif; font-style: italic; color: var(--ps-inkt-dim); font-size: .8rem; line-height: 1.25;
+  display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+/* Met het portret uit het Heldenboek: de plaat vult de kaart, de naam ligt eronder op een donkere waas. */
+.ps-kaart--beeld { justify-content: flex-end; padding: 0; background: #2a1a08; }
+.ps-kaart--beeld .ps-kaart-medaillon { display: none; }
+.ps-kaart-plaat { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; transition: transform .5s; }
+.ps-kaart--beeld:hover .ps-kaart-plaat { transform: scale(1.05); }
+.ps-kaart-waas { position: absolute; inset: 0; background: linear-gradient(to top, rgba(16, 10, 3, .94) 0%, rgba(16, 10, 3, .45) 42%, rgba(16, 10, 3, 0) 70%); }
+.ps-kaart--beeld .ps-kaart-tekst { position: relative; z-index: 2; padding: 10px 11px 11px; text-align: left; width: 100%; }
+.ps-kaart--beeld .ps-kaart-naam { color: #f6ecd2; text-shadow: 0 1px 3px rgba(0, 0, 0, .8); }
+.ps-kaart--beeld .ps-kaart-onder { color: #d8c49a; }
+
+.ps-zoek { position: relative; max-width: 320px; margin: 0 0 14px; }
+.ps-zoek svg.icon { position: absolute; left: 11px; top: 50%; transform: translateY(-50%); color: var(--ps-inkt-dim); }
+.ps-zoek-veld { width: 100%; font-family: inherit; font-size: 1rem; padding: 8px 12px 8px 34px; border: 1px solid var(--ps-rand); border-radius: 20px;
+  background: #fff8ea; color: var(--ps-inkt); }
+.ps-zoek-veld:focus { outline: none; border-color: var(--ps-goud-diep); }
+
+/* ── velden ── */
+.ps-naam-invoer { width: 100%; max-width: 460px; font-family: 'Cinzel', Georgia, serif; font-weight: 700; font-size: 1.55rem; color: var(--ps-inkt);
+  background: transparent; border: 0; border-bottom: 2px solid var(--ps-rand); padding: 8px 2px; outline: none; }
+.ps-naam-invoer::placeholder { font-family: 'IM Fell English', Georgia, serif; font-style: italic; font-weight: 400; color: rgba(122, 96, 64, .6); font-size: 1.15rem; }
+.ps-naam-invoer:focus { border-color: var(--ps-goud-diep); }
+.ps-portret-rij { display: flex; gap: 18px; align-items: center; flex-wrap: wrap; margin-top: 20px; }
+.ps-portret-vak { width: 104px; height: 104px; margin: 0; }
+.ps-portret-knoppen { display: flex; flex-direction: column; gap: 8px; align-items: flex-start; }
+.ps-level-rij { display: flex; align-items: center; gap: 12px; margin-top: 22px; flex-wrap: wrap; }
+.ps-level-rij label { font-family: 'Cinzel', Georgia, serif; font-size: .7rem; letter-spacing: .1em; text-transform: uppercase; color: var(--ps-inkt-dim); }
+.ps-level-invoer { width: 72px; font-family: 'Cinzel', Georgia, serif; font-weight: 700; font-size: 1.1rem; color: var(--ps-inkt); text-align: center;
+  padding: 7px; border: 1px solid var(--ps-rand); border-radius: 5px; background: #fff8ea; }
+.ps-veld { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
+.ps-veld > span:first-child { font-family: 'Cinzel', Georgia, serif; font-size: .68rem; letter-spacing: .1em; text-transform: uppercase; color: var(--ps-inkt-dim); }
+.ps-veld--breed { margin-bottom: 14px; max-width: 420px; }
+.ps-overlay select, .ps-veld input, .ps-groei input, .ps-emote-naam, .ps-geheim-invoer input {
+  font-family: inherit; font-size: .98rem; padding: 7px 9px; border: 1px solid var(--ps-rand); border-radius: 5px; background: #fff8ea; color: var(--ps-inkt); min-width: 0;
+}
+.ps-overlay select:focus, .ps-overlay input:focus, .ps-verhaal:focus { outline: none; border-color: var(--ps-goud-diep); }
+.ps-vink { display: flex; align-items: center; gap: 8px; margin-top: 6px; color: var(--ps-inkt); }
+.ps-vink input { width: 17px; height: 17px; accent-color: var(--ps-goud-diep); }
+
+/* ── multiclass ── */
+.ps-multi { margin-top: 18px; border: 1px solid var(--ps-rand); border-radius: 6px; background: rgba(255, 250, 238, .5); }
+.ps-multi summary { font-family: 'Cinzel', Georgia, serif; font-size: .9rem; color: var(--ps-inkt); cursor: pointer; padding: 11px 14px; display: flex; align-items: center; gap: 8px; }
+.ps-multi-body { padding: 0 14px 14px; }
+.ps-multi-rij { display: flex; gap: 12px; flex-wrap: wrap; align-items: flex-end; }
+.ps-multi-rij input { width: 80px; }
+
+/* ── ability scores ── */
+.ps-teller { font-family: 'IM Fell English', Georgia, serif; font-style: italic; color: var(--ps-inkt-dim); margin: 8px 0 10px; }
+.ps-teller strong, .ps-teller b { font-family: 'Cinzel', Georgia, serif; font-style: normal; color: var(--ps-goud-diep); }
+.ps-teller.is-op strong { color: var(--ps-lak); }
+.ps-worpen { display: flex; gap: 8px; margin: 12px 0 2px; flex-wrap: wrap; }
+.ps-worpen:empty { margin: 0; }
+.ps-worp { min-width: 40px; padding: 4px 6px 3px; display: inline-flex; flex-direction: column; align-items: center; border-radius: 6px;
+  font-family: 'Cinzel', Georgia, serif; font-weight: 700; color: #f6ecd2; font-size: 1.05rem; line-height: 1.1;
+  background: linear-gradient(145deg, #4a3a22, #2a2012); border: 1px solid rgba(201, 171, 116, .4); }
+.ps-worp.is-gebruikt { box-shadow: 0 0 0 1px var(--ps-goud), 0 0 8px rgba(184, 134, 11, .45); }
+.ps-worp.is-rollend { animation: ps-tuimel .5s ease infinite; }
+.ps-stenen-mini { display: flex; gap: 2px; margin-top: 2px; }
+.ps-stenen-mini i { font-style: normal; font-size: .6rem; font-family: 'Crimson Text', serif; color: #d8c49a; }
+.ps-stenen-mini i.is-weg { opacity: .3; }
+.ps-stenen { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 12px; }
+@media (max-width: 480px) { .ps-stenen { grid-template-columns: repeat(2, 1fr); } }
+.ps-steen { border-radius: 7px; padding: 10px 10px 11px; text-align: center; background: linear-gradient(170deg, rgba(255, 250, 238, .95), rgba(233, 215, 176, .95));
+  border: 1px solid var(--ps-rand); box-shadow: 0 3px 10px rgba(0, 0, 0, .2); display: flex; flex-direction: column; align-items: center; gap: 2px; }
+.ps-steen-ab { font-family: 'Cinzel', Georgia, serif; font-size: .62rem; letter-spacing: .1em; text-transform: uppercase; color: var(--ps-inkt-dim); }
+.ps-steen-getal { font-family: 'Cinzel', Georgia, serif; font-weight: 900; font-size: 1.85rem; color: var(--ps-inkt); line-height: 1; }
+.ps-steen.is-leeg .ps-steen-getal { color: var(--ps-inkt-vaag); }
+.ps-steen-totaal { font-size: .72rem; color: var(--ps-goud-diep); min-height: 1em; }
+.ps-steen-mod { font-family: 'Cinzel', Georgia, serif; font-weight: 700; font-size: .8rem; color: #fff; background: var(--ps-goud-diep); border-radius: 11px; padding: 1px 9px; }
+.ps-steen select, .ps-steen input { width: 100%; margin-top: 6px; }
+.ps-stap-rij { display: flex; gap: 8px; margin-top: 6px; }
+.ps-stapknop { width: 28px; height: 28px; border-radius: 50%; border: 1px solid var(--ps-rand); background: rgba(154, 112, 8, .1); color: var(--ps-inkt);
+  font-family: 'Cinzel', Georgia, serif; font-weight: 700; cursor: pointer; line-height: 1; padding: 0; }
+.ps-stapknop:hover:not(:disabled) { background: var(--ps-goud); }
+.ps-stapknop:disabled { opacity: .3; cursor: not-allowed; }
+.ps-bonus { margin-top: 18px; padding-top: 14px; border-top: 1px dotted rgba(154, 112, 8, .4); }
+.ps-bonus-rij { display: flex; flex-wrap: wrap; gap: 10px 16px; margin-top: 8px; }
+.ps-bonus-keuze { display: flex; align-items: center; gap: 7px; font-family: 'Cinzel', Georgia, serif; font-size: .85rem; color: var(--ps-inkt); }
+
+/* ── skills ── */
+.ps-skills { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 8px; }
+.ps-skill { display: flex; align-items: center; gap: 8px; text-align: left; font-family: inherit; font-size: .98rem; color: var(--ps-inkt); cursor: pointer;
+  border: 1px solid var(--ps-rand); border-radius: 6px; padding: 8px 12px; background: linear-gradient(170deg, #f6efda, #ece0c0); }
+.ps-skill:hover:not(:disabled) { border-color: var(--ps-goud-diep); }
+.ps-skill svg.icon { width: 14px; height: 14px; opacity: 0; color: var(--ps-goud-diep); flex-shrink: 0; }
+.ps-skill.is-aan { background: linear-gradient(170deg, #fbeec6, #f1dca0); box-shadow: inset 0 0 0 1px var(--ps-goud); }
+.ps-skill.is-aan svg.icon { opacity: 1; }
+.ps-skill.is-vast { opacity: .7; cursor: default; }
+.ps-skill-ab { margin-left: auto; font-family: 'Cinzel', Georgia, serif; font-size: .66rem; color: var(--ps-inkt-dim); }
+
+/* ── grimoire ── */
+.ps-grimoire { margin-bottom: 20px; }
+.ps-grim-kop { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; flex-wrap: wrap;
+  font-family: 'Cinzel', Georgia, serif; font-weight: 700; color: var(--ps-inkt); border-bottom: 1px solid rgba(154, 112, 8, .3); padding-bottom: 5px; margin-bottom: 8px; }
+.ps-grim-kop span { font-family: 'IM Fell English', Georgia, serif; font-style: italic; font-weight: 400; color: var(--ps-inkt-dim); font-size: .95rem; }
+.ps-grim-kop b { font-family: 'Cinzel', Georgia, serif; font-style: normal; color: var(--ps-goud-diep); }
+.ps-grim-groep { font-family: 'Cinzel', Georgia, serif; font-size: .68rem; letter-spacing: .12em; text-transform: uppercase; color: var(--ps-inkt-dim); margin: 10px 0 7px; }
+.ps-spreuken { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; }
+.ps-spreuk { position: relative; text-align: left; cursor: pointer; font-family: inherit; border: 1px solid var(--ps-rand); border-left: 5px solid var(--school);
+  border-radius: 5px; padding: 8px 30px 8px 11px; background: linear-gradient(170deg, #f6efda, #ece0c0); box-shadow: 0 2px 6px rgba(0, 0, 0, .12); }
+.ps-spreuk:hover { transform: translateY(-2px); box-shadow: 0 5px 14px rgba(0, 0, 0, .2); }
+.ps-spreuk.is-aan { background: linear-gradient(170deg, #fbeec6, #f1dca0); box-shadow: inset 0 0 0 1px var(--ps-goud), 0 3px 12px rgba(184, 134, 11, .35); }
+.ps-spreuk-naam { display: block; font-family: 'Cinzel', Georgia, serif; font-weight: 600; color: var(--ps-inkt); font-size: .9rem; line-height: 1.15; }
+.ps-spreuk-school { display: block; font-family: 'IM Fell English', Georgia, serif; font-style: italic; font-size: .78rem; color: var(--school); }
+.ps-spreuk-vink { position: absolute; top: 7px; right: 7px; width: 19px; height: 19px; border-radius: 50%; display: grid; place-items: center;
+  background: var(--ps-goud-diep); color: #fff; transform: scale(0); transition: transform .25s cubic-bezier(.3, 1.5, .4, 1); }
+.ps-spreuk-vink svg.icon { width: 11px; height: 11px; }
+.ps-spreuk.is-aan .ps-spreuk-vink { transform: scale(1); }
+
+/* ── groei ── */
+.ps-groei { border: 1px solid var(--ps-rand); border-radius: 7px; padding: 13px 15px; margin-bottom: 12px; background: linear-gradient(170deg, #f6efda, #ece0c0); }
+.ps-groei-kop { font-family: 'Cinzel', Georgia, serif; font-weight: 700; color: var(--ps-inkt); margin-bottom: 9px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.ps-groei-kop span { font-family: 'IM Fell English', Georgia, serif; font-style: italic; font-weight: 400; color: var(--ps-inkt-dim); }
+.ps-groei-kop svg.icon { color: var(--ps-goud-diep); }
+.ps-groei-rij { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 8px; }
+.ps-groei-rij > span { font-family: 'Cinzel', Georgia, serif; font-size: .8rem; color: var(--ps-goud-diep); }
+.ps-feat-invoer { flex: 1 1 220px; }
+.ps-feat-invoer.is-fout { border-color: var(--ps-lak) !important; box-shadow: 0 0 0 2px rgba(141, 42, 36, .25); }
+
+/* ── uitrusting ── */
+.ps-paar { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 14px; }
+.ps-paar-knop { flex: 1 1 200px; text-align: left; cursor: pointer; font-family: inherit; border: 1px solid var(--ps-rand); border-radius: 6px; padding: 11px 14px;
+  background: linear-gradient(170deg, #f3ead2, #e6d4ad); display: flex; flex-direction: column; gap: 3px; }
+.ps-paar-knop:hover { border-color: var(--ps-goud-diep); }
+.ps-paar-knop.is-aan { border: 2px solid var(--ps-goud); box-shadow: 0 0 16px rgba(184, 134, 11, .3); }
+.ps-paar-titel { font-family: 'Cinzel', Georgia, serif; font-weight: 700; color: var(--ps-inkt); }
+.ps-paar-onder { font-family: 'IM Fell English', Georgia, serif; font-style: italic; color: var(--ps-inkt-dim); font-size: .86rem; }
+.ps-uit-rij { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+@media (max-width: 560px) { .ps-uit-rij { grid-template-columns: 1fr; } }
+.ps-trinket { margin-top: 14px; }
+.ps-knapzak { margin-top: 18px; padding-top: 12px; border-top: 1px dotted rgba(154, 112, 8, .4); }
+.ps-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.ps-chip, .ps-clip { display: inline-flex; align-items: center; gap: 6px; color: var(--ps-inkt); background: rgba(154, 112, 8, .1);
+  border: 1px solid var(--ps-rand); padding: 4px 12px; border-radius: 16px; animation: ps-valt .35s ease both; }
+.ps-clip { padding: 4px 6px 4px 12px; }
+.ps-clip > svg.icon { color: var(--ps-goud-diep); }
+
+/* ── verhaal en geheimen ── */
+.ps-verhaal { width: 100%; min-height: 160px; font-family: 'Crimson Text', Georgia, serif; font-size: 1.05rem; line-height: 31px; color: var(--ps-inkt);
+  border: 1px solid var(--ps-rand); border-radius: 6px; padding: 12px 16px; resize: vertical;
+  background: rgba(255, 250, 238, .65) repeating-linear-gradient(0deg, transparent, transparent 30px, rgba(150, 110, 50, .12) 31px); }
+.ps-verhaal::placeholder { font-family: 'IM Fell English', Georgia, serif; font-style: italic; color: rgba(122, 96, 64, .6); }
+.ps-geheim-blok { margin-top: 20px; padding-top: 14px; border-top: 1px dotted rgba(154, 112, 8, .4); }
+.ps-geheimen { display: flex; flex-direction: column; gap: 8px; margin: 10px 0; }
+.ps-geheim { display: flex; align-items: flex-start; gap: 10px; padding: 9px 12px; border-radius: 6px; background: rgba(141, 42, 36, .07); border: 1px solid rgba(141, 42, 36, .3); animation: ps-valt .3s ease both; }
+.ps-geheim p { margin: 0; flex: 1; font-style: italic; color: var(--ps-inkt); overflow-wrap: anywhere; }
+.ps-zegeltje { width: 26px; height: 26px; flex-shrink: 0; border-radius: 50%; display: grid; place-items: center; color: #f0d9bd;
+  background: radial-gradient(circle at 38% 32%, #a8322b, var(--ps-lak) 60%, var(--ps-lak-diep)); }
+.ps-zegeltje svg.icon { width: 13px; height: 13px; }
+.ps-geheim-invoer { display: flex; gap: 8px; flex-wrap: wrap; }
+.ps-geheim-invoer input { flex: 1 1 220px; }
+
+/* ── stem ── */
+.ps-stem-blok { margin-top: 16px; padding-top: 12px; border-top: 1px dotted rgba(154, 112, 8, .4); }
+.ps-stem-blok:first-of-type { border-top: 0; margin-top: 0; padding-top: 0; }
+.ps-emote-naam { flex: 1 1 180px; }
+.ps-opname { display: inline-flex; align-items: center; gap: 10px; padding: 8px 15px; border-radius: 22px; cursor: pointer;
+  background: rgba(141, 42, 36, .12); border: 1px solid rgba(141, 42, 36, .4); color: var(--ps-lak); font-family: 'Cinzel', Georgia, serif; font-size: .82rem; }
+.ps-opname-punt { width: 10px; height: 10px; border-radius: 50%; background: var(--ps-lak); animation: ps-knipper 1s ease-in-out infinite; }
+.ps-golf { display: inline-flex; align-items: center; gap: 2px; height: 20px; }
+.ps-golf i { width: 3px; min-height: 4px; background: var(--ps-lak); border-radius: 2px; animation: ps-golven .7s ease-in-out infinite; }
+.ps-golf i:nth-child(2n) { animation-delay: .14s; } .ps-golf i:nth-child(3n) { animation-delay: .28s; }
+
+/* ── onthulling ── */
+.ps-onthul { width: 100%; max-width: 480px; margin: auto; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 4px; animation: ps-op .8s ease both; }
+.ps-onthul .ps-fluister { color: var(--ps-goud); }
+.ps-onthul-blad { width: 100%; margin-top: 12px; padding: 28px 24px 22px; overflow: hidden; text-align: left; }
+.ps-onthul-blad.is-flits::after { content: ""; position: absolute; inset: 0; pointer-events: none; animation: ps-flits .7s ease both;
+  background: radial-gradient(circle at 50% 30%, rgba(255, 240, 200, .9), transparent 60%); }
+.ps-onthul-portret { width: 112px; height: 112px; border-width: 3px; box-shadow: 0 0 30px rgba(184, 134, 11, .5); }
+.ps-onthul-naam { font-family: 'Cinzel', Georgia, serif; font-weight: 900; font-size: 1.9rem; color: var(--ps-inkt); line-height: 1.05; text-align: center; overflow-wrap: anywhere; }
+.ps-onthul-sub { font-family: 'IM Fell English', Georgia, serif; font-style: italic; color: var(--ps-inkt-dim); text-align: center; }
+.ps-onthul .ps-let-op { width: 100%; }
+.ps-lak-kop { font-family: 'Cinzel', Georgia, serif; font-size: .78rem; letter-spacing: .1em; text-transform: uppercase; color: var(--ps-goud); margin-top: 14px; }
+.ps-lakzegel { width: 90px; height: 90px; margin: 8px auto 4px; border-radius: 50%; cursor: pointer; border: 0; color: #f0d9bd; display: grid; place-items: center;
+  background: radial-gradient(circle at 38% 32%, #a8322b, var(--ps-lak) 55%, var(--ps-lak-diep));
+  box-shadow: 0 6px 18px rgba(0, 0, 0, .45), inset 0 2px 5px rgba(255, 255, 255, .3), inset 0 -8px 14px rgba(60, 12, 10, .6); transition: transform .25s; }
+.ps-lakzegel svg.icon { width: 36px; height: 36px; }
+.ps-lakzegel:hover:not(:disabled) { transform: scale(1.05); }
+.ps-lakzegel:disabled { cursor: not-allowed; filter: grayscale(.6); opacity: .6; }
+.ps-lakzegel.is-gezet { animation: ps-stempel .5s cubic-bezier(.3, 1.5, .4, 1); filter: none; opacity: 1; }
+
+@keyframes ps-op { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+@keyframes ps-tuimel { 0% { transform: rotate(0); } 50% { transform: rotate(180deg) scale(1.1); } 100% { transform: rotate(360deg); } }
+@keyframes ps-stempel { 0% { transform: scale(2.4) rotate(-18deg); opacity: .2; } 55% { transform: scale(.9); } 100% { transform: scale(1) rotate(0); } }
+@keyframes ps-flits { 0% { opacity: 0; } 25% { opacity: 1; } 100% { opacity: 0; } }
+@keyframes ps-valt { from { opacity: 0; transform: translateY(-6px) scale(.9); } to { opacity: 1; transform: none; } }
+@keyframes ps-schuif { from { transform: translateX(-100%); } to { transform: translateX(100%); } }
+@keyframes ps-knipper { 0%, 100% { opacity: 1; } 50% { opacity: .3; } }
+@keyframes ps-golven { 0%, 100% { height: 5px; } 50% { height: 20px; } }
+@media (prefers-reduced-motion: reduce) {
+  .ps-overlay *, .ps-overlay *::after { animation-duration: .001s !important; transition-duration: .08s !important; }
+}
+
+/* De rest van een nieuw personage op de Vragen-kaart (dm-panel.js, _conceptDetails). */
+.dm-concept-details { display: flex; flex-direction: column; gap: 3px; margin: 6px 0 2px; font-size: 13px; color: #3a2410; }
+.dm-concept-rij em { font-style: normal; color: #7a6040; font-family: 'Cinzel', serif; font-size: 11px; letter-spacing: .04em; margin-right: 4px; }
+.dm-concept-rij svg.icon { width: 12px; height: 12px; color: #8d2a24; vertical-align: -1px; }
+/* Op het donkere toneel van de onthulling ligt het vak met opmerkingen niet op
+   perkament, en dan valt donkere inkt weg. Het krijgt zijn eigen vel. */
+.ps-onthul .ps-let-op { background: linear-gradient(175deg, var(--ps-perk), var(--ps-perk-warm)); border-color: var(--ps-rand); box-shadow: 0 8px 24px rgba(0, 0, 0, .4); }
+.ps-onthul .ps-let-op--fout { background: linear-gradient(175deg, #f3e1d6, #e8cbb8); border-color: rgba(141, 42, 36, .45); }
+/* Het embleem van de campagne is getekend voor de donkere landingspagina
+   (logo-emblem-light): op een lichte penning viel het weg. */
+.ps-embleem.ps-embleem--beeld { background: radial-gradient(circle at 38% 32%, #4a3a22, #2a1a08 72%, #1a1005); }

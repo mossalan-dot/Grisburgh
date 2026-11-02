@@ -2584,6 +2584,24 @@ opgeslagen als JSON-string. Alles eromheen is afgeleid:
 
 ---
 
+## Een personage scheppen
+
+> **De maker van de speler** (`public/js/personage-maken.js`, opmaak onder `.ps-`
+> onderaan `theme.css`) is op 2 nov 2026 herontworpen naar het prototype uit
+> `docs/voorstel-personage-scheppen.md`: drempel → werkbank (blad links, één
+> keuze rechts) → onthulling met lakzegel. **De server rekent, de maker toont**:
+> elke regel staat in `lib/personage-concept.js` (`profielVan`, `nakijken`,
+> `groeiSlots`, `backgroundDelen`, `featLijst`, `rolSet`), en wat een keuze
+> zinloos maakt ruimt `_conceptOpruimen` in `routes/api.js` op.
+> Valkuilen die bij het bouwen boven kwamen staan onderaan dat voorstel; de
+> belangrijkste: backgrounds komen uit de **campagne** en staan in vier vormen
+> in de data, **groei** volgt de sleutels van de Progressie-tijdlijn, **rollen**
+> gebeurt op de server (herkansingen in `meta.personageMaken.rerolls`), en de
+> overlay moet `#pm-overlay` heten — `body.landing-open` verbergt alles behalve
+> die id.
+
+---
+
 ## Projectstructuur
 
 ```
@@ -2686,6 +2704,9 @@ factie — `star` betekent in de app al *favoriet*), `award` (factie-boon), `bac
 
 **Toegevoegd voor de zes species uit Spelljammer en Lorwyn** (Lucide, ISC, 20 okt 2026,
 sprite v=22): `orbit` `cog` `squirrel` `bug` `puzzle` `droplets`
+
+**Toegevoegd voor de personagemaker** (Lucide, ISC, 2 nov 2026, sprite v=28): `mic`
+(opnemen), `film` (portretfilmpje), `circle-stop` (opname stoppen)
 
 **Toegevoegd voor de omgevingseffecten** (Lucide, ISC, 2 nov 2026, sprite v=27):
 `shield-check` (Resistance) `cloud-lightning` (storm)

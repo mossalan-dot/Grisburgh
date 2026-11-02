@@ -242,15 +242,31 @@ describe('Een personage maken', () => {
     await req(server, 'PUT', '/api/meta/personage-maken', { aan: true, maxLevel: 1 }, dm);
   });
 
-  it('zegt dat een ability score improvement er niet in zit', async () => {
+  it('vraagt de ability score improvement die hij onderweg had gekregen, met de sleutel van de tijdlijn', async () => {
+    await req(server, 'PUT', '/api/meta/personage-maken', { aan: true, maxLevel: 5 }, dm);
     const start = await req(server, 'POST', '/api/personage-concept',
       { wachtwoord: 'rinkeldekink', naam: 'Boudewijn' });
-    const r = await req(server, 'PATCH', `/api/personage-concept/${start.body.concept.id}`,
-      { species: 'Human', klasse: 'Fighter', level: 5,
+    const id = start.body.concept.id;
+    const r = await req(server, 'PATCH', `/api/personage-concept/${id}`,
+      { species: 'Human', klasse: 'Fighter', level: 5, methode: 'array',
         scores: { str: 15, dex: 14, con: 13, int: 12, wis: 10, cha: 8 } }, start.cookie);
-    assert.ok(r.body.nakijk.opmerkingen.some(o => /improvement|feat/i.test(o)));
+    assert.deepEqual(r.body.groeiSlots.map(s => s.sleutel), ['Fighter|4|Ability Score Improvement']);
+    assert.ok(r.body.nakijk.opmerkingen.some(o => /Fighter 4/.test(o)), 'een lege keuze staat erbij');
     assert.equal(r.body.profiel.profBonus, '+3', 'level 5 rekent mee');
     assert.equal(r.body.profiel.hitDie, '5d10');
+
+    const gekozen = await req(server, 'PATCH', `/api/personage-concept/${id}`,
+      { groei: { 'Fighter|4|Ability Score Improvement': { keuze: 'asi', asi: { str: 2, dex: 5 } } } }, start.cookie);
+    assert.equal(gekozen.body.profiel.str, 17, '+2 op Strength');
+    assert.equal(gekozen.body.profiel.dex, 14, 'en niet meer dan twee punten in totaal');
+    assert.deepEqual(JSON.parse(gekozen.body.profiel.featChoices),
+      { 'Fighter|4|Ability Score Improvement': 'Ability Score Improvement' });
+    assert.ok(!gekozen.body.nakijk.opmerkingen.some(o => /Fighter 4/.test(o)));
+
+    // Terug naar level 3: dan bestaat dat vakje niet meer, en de keuze ook niet.
+    const lager = await req(server, 'PATCH', `/api/personage-concept/${id}`, { level: 3 }, start.cookie);
+    assert.deepEqual(lager.body.concept.groei, {});
+    assert.equal(lager.body.profiel.str, 15);
   });
 
   // ── Fase 3: twee classes, een portret en papier ───────────────────────────
@@ -422,5 +438,203 @@ describe('Een personage maken', () => {
     assert.equal(emotes.library.length, 3);
     assert.deepEqual(emotes.library.map(e => e.label), ['Hoorn', 'Lach', 'Emote']);
     assert.deepEqual(emotes.selected, emotes.library.map(e => e.id));
+  });
+});
+
+// ── Scheppen: de randen van de maker ─────────────────────────────────────────
+// Elke test hier hoort bij een randgeval dat bij het herontwerp boven kwam:
+// data die de oude maker verkeerd las, een keuze die na een andere keuze bleef
+// liggen, of iets dat bij het gunnen stil wegviel.
+describe('Een personage scheppen: de randgevallen', () => {
+  let server, io, dm;
+  const camp = (...p) => path.join(DATA_DIR + '-s', 'campaigns', 'grisburgh', ...p);
+  const lees = (n) => JSON.parse(fs.readFileSync(camp(n), 'utf8'));
+  const nieuw = async (naam, extra = {}) => {
+    const s = await req(server, 'POST', '/api/personage-concept', { wachtwoord: 'kiekeboe', naam });
+    assert.equal(s.status, 200, JSON.stringify(s.body));
+    const id = s.body.concept.id, speler = s.cookie;
+    const patch = async (b) => req(server, 'PATCH', `/api/personage-concept/${id}`, b, speler);
+    if (Object.keys(extra).length) await patch(extra);
+    return { id, speler, patch, start: s.body };
+  };
+  const basis = { species: 'Human', klasse: 'Fighter', level: 1, methode: 'array',
+    scores: { str: 15, dex: 14, con: 13, int: 12, wis: 10, cha: 8 } };
+  const wav = Buffer.concat([Buffer.from('RIFF'), Buffer.alloc(4), Buffer.from('WAVEfmt '), Buffer.alloc(64)]);
+  const mp4 = Buffer.concat([Buffer.from([0, 0, 0, 0x18]), Buffer.from('ftypisom'), Buffer.alloc(64)]);
+
+  before(async () => {
+    process.env.GRISBURGH_DATA_DIR = DATA_DIR + '-s';
+    if (fs.existsSync(DATA_DIR + '-s')) fs.rmSync(DATA_DIR + '-s', { recursive: true, force: true });
+    for (const m of ['../server', '../lib/storage', '../routes/api', '../routes/auth']) delete require.cache[require.resolve(m)];
+    const mod = require('../server');
+    server = mod.server; io = mod.io;
+    await new Promise(r => server.listen(0, r));
+    dm = (await req(server, 'POST', '/api/auth/login', { campagne: 'grisburgh', password: 'grisburgh-dm' })).cookie;
+    const groepen = await req(server, 'GET', '/api/groups', null, dm);
+    const gid = (groepen.body.groups || groepen.body)[0].id;
+    await req(server, 'PUT', `/api/groups/${gid}/password`, { password: 'kiekeboe' }, dm);
+    await req(server, 'PUT', '/api/meta/personage-maken', { aan: true, maxLevel: 20 }, dm);
+  });
+
+  after(async () => {
+    await io.close();
+    await new Promise(r => server.close(r));
+    fs.rmSync(DATA_DIR + '-s', { recursive: true, force: true });
+  });
+
+  it('leest een background met "and" en met "choose one" als echte skills', async () => {
+    const { start, patch } = await nieuw('Saskia');
+    const bg = (n) => start.bronnen.backgrounds.find(b => b.naam === n);
+    assert.deepEqual(bg('Aberrant Heir').skills, ['History', 'Intimidation'], 'niet één skill "History and Intimidation"');
+    assert.ok(bg('Urban Bounty Hunter').skillKeuze?.uit.includes('Stealth'));
+    assert.equal(bg('Artisan').toolKeuze, true);
+    assert.equal(bg('Anthropologist').opties[0].goud, 10, 'het geld uit het buideltje');
+
+    // Een "choose one" telt pas als hij gekozen is, en op het blad staat de
+    // keuze — niet de zin uit het boek.
+    const r = await patch({ ...basis, background: 'Urban Bounty Hunter', bgKeuze: { skills: ['Stealth'], tool: "Thieves' Tools" } });
+    assert.match(r.body.profiel.skillProfs, /stealth/);
+    assert.ok(!r.body.nakijk.opmerkingen.some(o => /laat nog een skill kiezen/.test(o)));
+  });
+
+  it('laat een oudere background zonder vaste abilities vrij verdelen, en zegt dat erbij', async () => {
+    const { patch } = await nieuw('Teun');
+    const r = await patch({ ...basis, background: 'Anthropologist', bgBonus: { str: 2, con: 1 } });
+    assert.equal(r.body.profiel.str, 17);
+    assert.ok(r.body.nakijk.opmerkingen.some(o => /oudere background/.test(o)));
+    const fout = await patch({ bgBonus: { str: 2, dex: 2 } });
+    assert.ok(fout.body.nakijk.opmerkingen.some(o => /\+2 en \+1/.test(o)), 'twee keer +2 kan niet');
+  });
+
+  it('ruimt op wat door een andere keuze zinloos werd', async () => {
+    const { patch } = await nieuw('Willemijn');
+    await patch({ ...basis, level: 4, subclass: 'Champion', background: 'Soldier',
+      skills: ['Perception', 'Survival'],
+      groei: { 'Fighter|4|Ability Score Improvement': { keuze: 'asi', asi: { str: 2 } } } });
+    // Een background die Athletics geeft haalt die uit de class-skills.
+    let r = await patch({ skills: ['Athletics', 'Perception'] });
+    assert.deepEqual(r.body.concept.skills, ['Perception'], 'Soldier geeft Athletics al');
+    // Een andere class: weg met de subclass, de skills en de groei van de Fighter.
+    r = await patch({ klasse: 'Wizard' });
+    assert.equal(r.body.concept.subclass, '');
+    assert.deepEqual(r.body.concept.skills, []);
+    assert.deepEqual(Object.keys(r.body.concept.groei), []);
+    // Dezelfde class twee keer is geen multiclass.
+    r = await patch({ multiKlasse: 'Wizard', multiKlasseLevel: 2 });
+    assert.equal(r.body.concept.multiKlasse, '');
+  });
+
+  it('rolt op de server, en een herkansing is er alleen als de DM hem gaf', async () => {
+    const { id, speler, patch } = await nieuw('Gijs');
+    const eerste = await req(server, 'POST', `/api/personage-concept/${id}/rol`, {}, speler);
+    assert.equal(eerste.status, 200, JSON.stringify(eerste.body));
+    assert.equal(eerste.body.concept.worpen.length, 6);
+    for (const w of eerste.body.concept.worpen) {
+      assert.equal(w.stenen.length, 4);
+      assert.equal(w.totaal, w.stenen.reduce((a, b) => a + b) - Math.min(...w.stenen), 'de laagste valt af');
+    }
+    const nog = await req(server, 'POST', `/api/personage-concept/${id}/rol`, {}, speler);
+    assert.equal(nog.status, 409, 'standaard: wat je rolt, dat is het');
+    // Zelf worpen meesturen telt niet.
+    const vals = await patch({ worpen: [18, 18, 18, 18, 18, 18], scores: { str: 18, dex: 18, con: 18, int: 18, wis: 18, cha: 18 } });
+    assert.notDeepEqual(vals.body.concept.worpen.map(w => w.totaal), [18, 18, 18, 18, 18, 18]);
+    assert.ok(vals.body.nakijk.opmerkingen.some(o => /niet de zes worpen/.test(o)));
+
+    await req(server, 'PUT', '/api/meta/personage-maken', { aan: true, maxLevel: 20, rerolls: 1 }, dm);
+    assert.equal((await req(server, 'POST', `/api/personage-concept/${id}/rol`, {}, speler)).status, 200);
+    assert.equal((await req(server, 'POST', `/api/personage-concept/${id}/rol`, {}, speler)).status, 409);
+    await req(server, 'PUT', '/api/meta/personage-maken', { aan: true, maxLevel: 20 }, dm);
+  });
+
+  it('biedt niet aan wat de DM in het Heldenboek verborg, en weigert het bij het insturen', async () => {
+    const { patch, id, speler } = await nieuw('Otto', basis);
+    await req(server, 'PUT', '/api/meta/heldenboek/verborgen', { classes: ['Fighter'], subclasses: [] }, dm);
+    const s = await req(server, 'GET', '/api/personage-concept', null, speler);
+    assert.equal(s.body.bronnen.klassen.some(k => k.naam === 'Fighter'), false);
+    const r = await patch({ naam: 'Otto' });
+    assert.ok(r.body.nakijk.fouten.some(f => /Fighter staat aan deze tafel niet open/.test(f)));
+    assert.equal((await req(server, 'POST', `/api/personage-concept/${id}/indienen`, null, speler)).status, 400);
+    await req(server, 'PUT', '/api/meta/heldenboek/verborgen', { classes: [], subclasses: [] }, dm);
+  });
+
+  it('gunt maar één keer, en niet terwijl de speler er weer mee bezig is', async () => {
+    const { id, speler, patch } = await nieuw('Dirk', basis);
+    await patch({ skills: ['Perception', 'Survival'] });
+    assert.equal((await req(server, 'POST', `/api/personage-concept/${id}/indienen`, null, speler)).status, 200);
+    // Hij werkt toch nog even verder: dan haalt hij hem terug.
+    const bezig = await patch({ naam: 'Dirk de Tweede' });
+    assert.equal(bezig.body.concept.status, 'bezig');
+    assert.equal((await req(server, 'POST', `/api/personage-concept/${id}/gunnen`, null, dm)).status, 409);
+    await req(server, 'POST', `/api/personage-concept/${id}/indienen`, null, speler);
+    assert.equal((await req(server, 'POST', `/api/personage-concept/${id}/gunnen`, null, dm)).status, 200);
+    assert.equal((await req(server, 'POST', `/api/personage-concept/${id}/gunnen`, null, dm)).status, 409, 'geen tweede kaartje');
+    assert.equal(lees('entities.json').personages.filter(e => e.name === 'Dirk de Tweede').length, 1);
+  });
+
+  it('neemt alles mee bij het gunnen: verhaal, geheimen, feats, spreuken, filmpje en beurtklank', async () => {
+    // Een eigen spreuk van deze campagne hoort in het boek te belanden.
+    const eigen = await req(server, 'POST', '/api/spreuken/eigen', { name: 'Knaagvuur', level: 1, school: 'Evocation', classes: ['Wizard'] }, dm);
+    assert.ok([200, 201].includes(eigen.status), JSON.stringify(eigen.body));
+    const { id, speler, patch, start } = await nieuw('Rozalie');
+    assert.ok(start.bronnen.spreuken.some(sp => sp.index === eigen.body.index), 'de maker kent de eigen spreuk');
+    const cantrips = start.bronnen.spreuken.filter(sp => sp.niveau === 0 && sp.klassen.includes('Wizard')).slice(0, 3).map(sp => sp.index);
+    const cleric = start.bronnen.spreuken.filter(sp => sp.niveau === 0 && sp.klassen.includes('Cleric')).slice(0, 2).map(sp => sp.index);
+    let r = await patch({
+      species: 'Aarakocra', klasse: 'Wizard', level: 4, methode: 'array', background: 'Acolyte',
+      scores: { str: 8, dex: 14, con: 13, int: 15, wis: 12, cha: 10 }, bgBonus: { int: 2, wis: 1 },
+      skills: ['Arcana', 'History'],
+      groei: { 'Wizard|4|Ability Score Improvement': { keuze: 'feat', feat: 'Alert', plus: 'dex' } },
+      verhaal: 'Ze groeide op tussen de duiven op de kerktoren.',
+      geheimen: [{ tekst: 'Ze heeft het klooster in brand gestoken.' }],
+    });
+    assert.equal(r.body.profiel.flySpeed, '30 ft', 'Aarakocra vliegt — uit species-basis');
+    assert.equal(r.body.profiel.dex, 15, 'de +1 van de feat');
+    assert.deepEqual(r.body.spreukFeats.map(f => f.naam), ['Magic Initiate (Cleric)'], 'de feat van Acolyte geeft spreuken');
+    r = await patch({ spreukenPer: { Wizard: [...cantrips, eigen.body.index], 'feat:Magic Initiate (Cleric)': cleric } });
+    assert.ok(r.body.concept.spreuken.includes(eigen.body.index));
+
+    await upload(server, `/api/personage-concept/${id}/video`, speler, { naam: 'v.mp4', type: 'video/mp4', inhoud: mp4 });
+    const beurt = await upload(server, `/api/personage-concept/${id}/emote`, speler,
+      { velden: { soort: 'beurt', label: 'Kraai' }, naam: 'b.wav', type: 'audio/wav', inhoud: wav });
+    assert.equal(beurt.status, 200, JSON.stringify(beurt.body));
+    assert.equal((beurt.body.emotes || []).length, 0, 'een beurtklank is geen emote');
+    assert.equal((await req(server, 'GET', `/api/files/${id}_video`, null, speler)).status, 200, 'hij ziet zijn eigen filmpje');
+
+    await req(server, 'POST', `/api/personage-concept/${id}/indienen`, null, speler);
+    const g = await req(server, 'POST', `/api/personage-concept/${id}/gunnen`, null, dm);
+    assert.equal(g.status, 200, JSON.stringify(g.body));
+    const eid = g.body.entityId;
+    const kaartje = lees('entities.json').personages.find(e => e.id === eid);
+    assert.equal(kaartje.data.desc, 'Ze groeide op tussen de duiven op de kerktoren.');
+    const geheimen = JSON.parse(kaartje.data.geheimen);
+    assert.equal(geheimen[0].tekst, 'Ze heeft het klooster in brand gestoken.');
+    assert.ok(geheimen[0].id, 'met een eigen id, om per regel te onthullen');
+
+    const st = lees('dm-state.json');
+    assert.deepEqual(JSON.parse(st.playerProfiles[eid].featChoices), { 'Wizard|4|Ability Score Improvement': 'Alert' });
+    const traits = st.playerTraits[eid].map(t => t.name);
+    assert.ok(traits.includes('Alert') && traits.includes('Magic Initiate (Cleric)'));
+    assert.ok(st.playerTraits[eid].some(t => t.index === 'progression-Wizard|4|Ability Score Improvement'),
+      'zelfde index als de tijdlijn, zodat die hem niet nog eens toevoegt');
+    const boek = st.playerSpells[eid].map(s => s.index);
+    assert.ok(boek.includes(eigen.body.index), 'de eigen spreuk staat in zijn boek');
+    for (const i of cleric) assert.ok(boek.includes(i), 'en de spreuken van Magic Initiate');
+
+    assert.ok(fs.readdirSync(camp('files')).some(f => f.startsWith(`${eid}_video`)), 'het filmpje staat onder het kaartje');
+    assert.equal(lees('sounds.json').playerTurn[eid], `${id}_beurt`);
+  });
+
+  it('laat wie een personage maakt de kaartplaten uit het Heldenboek zien, en verder niets', async () => {
+    const png = Buffer.concat([Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]), Buffer.alloc(64)]);
+    for (const fid of ['hb_plaat', 'geheime_kaart']) {
+      await upload(server, `/api/files/${fid}`, dm, { naam: 'p.png', type: 'image/png', inhoud: png });
+    }
+    const meta = lees('meta.json');
+    meta.heldenboek = { ...(meta.heldenboek || {}), klassen: { Wizard: { id: 'hb_plaat', focus: '50% 20%' } } };
+    fs.writeFileSync(camp('meta.json'), JSON.stringify(meta));
+    const { speler, start } = await nieuw('Pieter');
+    assert.deepEqual(start.bronnen.klassen.find(k => k.naam === 'Wizard').beeld, { id: 'hb_plaat', focus: '50% 20%' });
+    assert.equal((await req(server, 'GET', '/api/files/hb_plaat', null, speler)).status, 200);
+    assert.notEqual((await req(server, 'GET', '/api/files/geheime_kaart', null, speler)).status, 200);
   });
 });

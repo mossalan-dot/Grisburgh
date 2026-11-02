@@ -167,7 +167,10 @@ function _magBestandZien(req, id) {
   // Wie een personage aan het maken is, mag zijn eigen portret en emotes horen
   // en zien — anders kan hij niet nagaan wat hij net uploadde.
   const c = sessie.conceptId;
-  if (c && (id === c || String(id).startsWith(c + '_emote_'))) return true;
+  if (c && (id === c || String(id).startsWith(c + '_emote_') || id === c + '_video' || id === c + '_beurt')) return true;
+  // En de kaartplaten in de maker: de portretten die de DM in het Heldenboek
+  // hing. Alleen díé bestanden, niet de rest van de bibliotheek.
+  if (c && _hbBeeldIds().has(String(id))) return true;
   return _isLandingsPortret(id);
 }
 
@@ -6330,42 +6333,129 @@ function _groepBijWachtwoord(dmState, wachtwoord) {
 // moet wel: wie een personage maakt is nog niet ingelogd, en `/api/bron/:naam`
 // vraagt om een sessie met een rol. Dit is dezelfde data, maar alleen wat je
 // voor het maken nodig hebt — namen, getallen en lijstjes, geen teksten.
+// Het portret dat de DM in het Heldenboek bij een class, species, subclass,
+// variant of background hing — dezelfde bakken als `_HB_BAK` in
+// render-vaardigheden.js. Hangt er niets, dan het eerste beeld van een van zijn
+// features, zoals de tegel in het Heldenboek dat doet. En alleen een bestand
+// dat er nog is: een kapotte plaat is erger dan het medaillon dat de maker
+// anders tekent.
+const _HB_BAK = { class: 'klassen', species: 'species', subclass: 'subclassen', variant: 'varianten', background: 'backgrounds' };
+function _hbBeeldVoor(meta, soort, naam, houder) {
+  const ruw = meta?.heldenboek?.[_HB_BAK[soort]]?.[naam];
+  const kandidaten = [];
+  if (ruw) kandidaten.push(typeof ruw === 'string' ? { id: ruw, focus: '' } : { id: ruw.id || '', focus: ruw.focus || '' });
+  for (const fs of Object.values(houder?.levels || {})) {
+    for (const f of (fs || [])) if (f?.img) kandidaten.push({ id: f.img, focus: f.imgFocus || '' });
+  }
+  return kandidaten.find(k => k.id && storage.bestandBestaat?.(k.id)) || null;
+}
+
+// De ids van die beelden, voor `_magBestandZien`: iemand die een personage
+// maakt is nog niet ingelogd, en zonder dit liet `/api/thumb` hem geen enkele
+// kaartplaat zien. Alleen déze bestanden — niet de hele mediabibliotheek.
+// Gecachet op de stand van meta.json en progression.json.
+const _hbBeeldCache = new Map();
+function _hbBeeldIds() {
+  const dir = storage.DATA_DIR;
+  const stempel = ['meta.json', 'progression.json'].map(n => {
+    try { return fs.statSync(path.join(dir, n)).mtimeMs; } catch { return 0; }
+  }).join('|');
+  const c = _hbBeeldCache.get(dir);
+  if (c && c.stempel === stempel) return c.ids;
+  const ids = new Set();
+  const meta = storage.readJSON('meta.json') || {};
+  for (const bak of Object.values(_HB_BAK)) {
+    for (const v of Object.values(meta.heldenboek?.[bak] || {})) ids.add(typeof v === 'string' ? v : v?.id);
+  }
+  const prog = _progHuidig();
+  const loop = (houder) => { for (const fs of Object.values(houder?.levels || {})) for (const f of (fs || [])) if (f?.img) ids.add(f.img); };
+  for (const k of Object.values(prog.classes || {})) { loop(k); for (const s of Object.values(k.subclasses || {})) loop(s); }
+  for (const s of Object.values(prog.species || {})) { loop(s); for (const v of Object.values(s.varianten || {})) loop(v); }
+  for (const b of Object.values(prog.backgrounds || {})) loop(b);
+  ids.delete(undefined); ids.delete('');
+  _hbBeeldCache.set(dir, { stempel, ids });
+  return ids;
+}
+
+// Alle spreuken die in déze wereld bestaan: het hoofdboek van de campagne
+// (Wands & Wizards heeft een eigen), de meegeleverde aanvullingen en wat de
+// campagne zelf verzon. Zelfde drie bronnen als de bibliotheek in
+// render-spreuken.js, ontdubbeld op index. Bij het gunnen stond hier alleen
+// `spells-2024`, dus verdween een eigen spreuk stil uit het nieuwe boek.
+function _maakSpreuken() {
+  const meta = storage.readJSON('meta.json');
+  const hoofd = meta.spellSource === 'hp' ? 'hp-spells' : 'spells-2024';
+  const uit = new Map();
+  const lijst = (d) => (Array.isArray(d) ? d : (d?.results || d?.spells || []));
+  for (const sp of [...lijst(bronnen.lees(hoofd)), ...lijst(bronnen.lees('extra-spells')), ..._eigenSpreukLijst()]) {
+    if (!sp?.index || uit.has(sp.index)) continue;
+    // Een regel zonder school is in de bron een magisch voorwerp, geen spreuk —
+    // dezelfde zeef als `_load()` in render-spreuken.js, maar niet voor wat de
+    // campagne zelf schreef: daar is alleen de naam verplicht.
+    const eigen = String(sp.index).startsWith('eigen-');
+    if (!eigen && !(sp.school?.name || sp.school)) continue;
+    uit.set(sp.index, {
+      index: sp.index, naam: sp.name, niveau: parseInt(sp.level) || 0,
+      school: sp.school?.name || sp.school || '',
+      klassen: (sp.classes || []).map(c => c?.name || c).filter(Boolean),
+    });
+  }
+  return [...uit.values()];
+}
+
 function _maakBronnen() {
   const prog = _progHuidig();
-  const basis = bronnen.lees('klasse-basis')?.klassen || {};
-  const bgSeed = bronnen.lees('backgrounds-2024') || {};
-  const klassen = Object.keys(prog.classes || {}).sort().map(naam => ({
-    naam,
-    basis: personageConcept.klasseBasis(naam, prog),
-    subclassLabel: prog.classes[naam].subclassLabel || 'Subclass',
-    subclassLevel: parseInt(prog.classes[naam].subclassLevel) || 3,
-    subclasses: Object.keys(prog.classes[naam].subclasses || {}).sort(),
-  }));
-  const species = Object.keys(prog.species || {}).sort().map(naam => ({
-    naam,
-    traits: Object.values(prog.species[naam].levels || {})
-      .flat().map(f => f?.name).filter(Boolean),
-    // De keuze binnen een species — een Tiefling kiest zijn Fiendish Legacy.
-    // Zelfde vorm als de subclasses bij een class hieronder.
-    variantLabel: prog.species[naam].variantLabel || '',
-    varianten: Object.keys(prog.species[naam].varianten || {}).sort(),
-  }));
-  const backgrounds = Object.keys(bgSeed).filter(k => !k.startsWith('_')).sort()
+  const meta = storage.readJSON('meta.json');
+  // Wat de DM in het Heldenboek uitzette bestaat aan deze tafel niet — dan
+  // hoort het hier ook niet tussen de kaarten te staan.
+  const verborgen = _verborgenUit(meta);
+  const wegK = new Set(verborgen.classes.map(n => String(n).toLowerCase()));
+  const wegS = new Set(verborgen.subclasses.map(n => String(n).toLowerCase()));
+  const klassen = Object.keys(prog.classes || {}).filter(n => !wegK.has(n.toLowerCase())).sort().map(naam => {
+    const data = prog.classes[naam];
+    return {
+      naam,
+      basis: personageConcept.klasseBasis(naam, prog),
+      subclassLabel: data.subclassLabel || 'Subclass',
+      subclassLevel: parseInt(data.subclassLevel) || 3,
+      subclasses: Object.keys(data.subclasses || {}).filter(s => !wegS.has(s.toLowerCase())).sort(),
+      beeld: _hbBeeldVoor(meta, 'class', naam, data),
+      subBeelden: Object.fromEntries(Object.entries(data.subclasses || {})
+        .map(([s, sd]) => [s, _hbBeeldVoor(meta, 'subclass', s, sd)]).filter(([, b]) => b)),
+    };
+  });
+  const speciesBron = bronnen.lees('species-basis')?.species || {};
+  const species = Object.keys(prog.species || {}).sort().map(naam => {
+    const data = prog.species[naam];
+    return {
+      naam,
+      traits: Object.values(data.levels || {}).flat().map(f => f?.name).filter(Boolean),
+      // De keuze binnen een species — een Tiefling kiest zijn Fiendish Legacy.
+      // Zelfde vorm als de subclasses bij een class hieronder.
+      variantLabel: data.variantLabel || '',
+      varianten: Object.keys(data.varianten || {}).sort(),
+      // Creature Type, Size en Speed: wat de campagne zette, anders de bron.
+      basis: { ...(speciesBron[naam] || {}), ...(data.basis || {}) },
+      beeld: _hbBeeldVoor(meta, 'species', naam, data),
+      variantBeelden: Object.fromEntries(Object.entries(data.varianten || {})
+        .map(([v, vd]) => [v, _hbBeeldVoor(meta, 'variant', v, vd)]).filter(([, b]) => b)),
+    };
+  });
+  // De backgrounds van de campagne zelf (de seed valt daar al onder als ze
+  // niets eigens heeft — zie `_progHuidig`).
+  const backgrounds = Object.keys(prog.backgrounds || {}).filter(k => !k.startsWith('_')).sort()
     .map(naam => ({
-      naam, ...personageConcept.backgroundDelen(naam),
-      opties: personageConcept.uitrustingOpties(naam),
+      naam, ...personageConcept.backgroundDelen(naam, prog),
+      opties: personageConcept.uitrustingOpties(naam, prog),
+      boek: prog.backgrounds[naam]?.boek || '',
+      beeld: _hbBeeldVoor(meta, 'background', naam, prog.backgrounds[naam]),
     }));
   // De spreuken kaal: naam, niveau, school en voor wie hij is. De teksten
   // blijven waar ze horen — de wizard laat je kiezen, niet lezen.
-  const alleSpreuken = (bronnen.lees('spells-2024')?.results || []).map(sp => ({
-    index: sp.index, naam: sp.name, niveau: sp.level,
-    school: sp.school?.name || '',
-    klassen: (sp.classes || []).map(c => c.name),
-  }));
+  const alleSpreuken = _maakSpreuken();
   const kaal = (i) => ({ key: i.key, naam: i.name, prijs: i.prijs, gewicht: i.gewicht,
                          soort: i.itemType, schade: i.damage || '', eigenschappen: i.weaponProperties || '',
                          ac: i.armorBaseAC || null, harnasSoort: i.armorType || '' });
-  const meta = storage.readJSON('meta.json');
   const inst = personageConcept.instellingen(meta);
   const tafel = inst.trinketTafel
     ? (storage.readJSON('tables.json').tables || []).find(t => t.id === inst.trinketTafel || t.name === inst.trinketTafel)
@@ -6378,6 +6468,11 @@ function _maakBronnen() {
     harnassen: personageConcept.srdItems()
       .filter(i => i.itemType === 'Armor' || i.itemType === 'Shield').map(kaal),
     trinketTafel: tafel ? tafel.name : '',
+    feats: personageConcept.featLijst(prog),
+    // Het embleem van de campagne, voor de drempel. Dat staat al op de
+    // landingspagina, dus het is geen geheim.
+    embleem: meta.embleem || '',
+    campagneNaam: meta.appTitle || '',
   };
 }
 
@@ -6387,6 +6482,7 @@ function _conceptAntwoord(c, dmState) {
   const prog = _progHuidig();
   const meta = storage.readJSON('meta.json');
   const profiel = personageConcept.profielVan(c, { prog });
+  const inst = personageConcept.instellingen(meta);
   return {
     concept: c,
     profiel,
@@ -6394,9 +6490,119 @@ function _conceptAntwoord(c, dmState) {
     // spelersblad, zodat een level-3 Cleric hier geen niveau-2 spreuk kiest
     // die hij nog niet kan lanceren.
     slots: _slotsAfgeleid(profiel),
-    nakijk: personageConcept.nakijken(c, { meta, prog }),
+    // En per class apart, voor een multiclass: een Wizard 3 / Cleric 2 kiest
+    // zijn Wizard-spreuken als Wizard van level 3, niet als caster van 5.
+    slotsPer: _conceptSlotsPer(c),
+    groeiSlots: personageConcept.groeiSlots(c, prog),
+    spreukFeats: _conceptSpreukFeats(c, prog),
+    rerollsOver: Math.max(0, inst.rerolls - (parseInt(c.rerollsGebruikt) || 0)),
+    nakijk: personageConcept.nakijken(c, { meta, prog, spreuken: _maakSpreuken() }),
     groepNaam: dmState.groups?.[c.groep]?.name || '',
   };
+}
+
+// De twee classes van een concept, elk met zijn eigen level.
+function _conceptDelen(c) {
+  const level = Math.max(1, Math.min(20, parseInt(c.level) || 1));
+  const tweede = String(c.multiKlasse || '').trim();
+  const tweedeLevel = tweede ? Math.max(0, Math.min(level - 1, parseInt(c.multiKlasseLevel) || 0)) : 0;
+  return [[c.klasse, level - tweedeLevel], [tweede, tweedeLevel]].filter(([k, l]) => k && l > 0);
+}
+function _conceptSlotsPer(c) {
+  const uit = {};
+  for (const [k, l] of _conceptDelen(c)) uit[k] = _slotsAfgeleid({ klasse: k, level: String(l) });
+  return uit;
+}
+
+// Een keuze die door een andere keuze zinloos werd. De maker laat je vrij
+// heen en weer lopen, en dan moet "ik word toch een Cleric" niet een Wizard-
+// subclass, drie Wizard-spreuken en een ASI op Wizard 4 laten liggen die
+// niemand meer ziet maar die bij het gunnen wél op het blad belanden.
+// `b` is wat de client stuurde: wat hij expliciet meegaf wordt niet gewist.
+function _conceptOpruimen(c, oud, b = {}) {
+  const prog = _progHuidig();
+  const level = Math.max(1, Math.min(20, parseInt(c.level) || 1));
+
+  // Twee keer dezelfde class is geen multiclass.
+  if (c.multiKlasse && c.multiKlasse === c.klasse) c.multiKlasse = '';
+  if (!c.multiKlasse) c.multiKlasseLevel = 0;
+  c.multiKlasseLevel = Math.max(0, Math.min(level - 1, parseInt(c.multiKlasseLevel) || 0));
+
+  if (oud.klasse !== c.klasse) {
+    if (b.subclass === undefined) c.subclass = '';
+    if (!Array.isArray(b.skills)) c.skills = [];
+    if (c.spreukenPer && oud.klasse) delete c.spreukenPer[oud.klasse];
+  }
+  if (oud.multiKlasse !== c.multiKlasse) {
+    if (b.multiSubclass === undefined) c.multiSubclass = '';
+    if (c.spreukenPer && oud.multiKlasse) delete c.spreukenPer[oud.multiKlasse];
+  }
+  if (oud.species !== c.species && b.speciesVariant === undefined) c.speciesVariant = '';
+  if (oud.background !== c.background) {
+    if (b.bgBonus === undefined) c.bgBonus = {};
+    if (!b.bgKeuze) c.bgKeuze = {};
+    if (b.bgOptie === undefined) c.bgOptie = 'A';
+  }
+  // Wat de background vast geeft, kies je niet ook nog bij je class: dan
+  // telde hij dubbel en kwam je er een tekort.
+  if (c.background) {
+    const vast = new Set(personageConcept.backgroundDelen(c.background, prog).skills);
+    c.skills = (c.skills || []).filter(s => !vast.has(s));
+    if (c.bgKeuze?.skills) c.bgKeuze.skills = c.bgKeuze.skills.filter(s => !vast.has(s));
+  }
+
+  // Een subclass die je op dit level nog niet hebt, of een die aan deze tafel
+  // niet (meer) bestaat.
+  const delen = _conceptDelen(c);
+  for (const [veld, klasse] of [['subclass', c.klasse], ['multiSubclass', c.multiKlasse]]) {
+    if (!c[veld]) continue;
+    const data = prog.classes?.[klasse];
+    const lv = delen.find(([k]) => k === klasse)?.[1] || 0;
+    if (!data || !data.subclasses?.[c[veld]] || lv < (parseInt(data.subclassLevel) || 3)) c[veld] = '';
+  }
+
+  // Groei: alleen de vakjes die er op dit level en met deze classes zijn.
+  if (c.groei) {
+    const bestaat = new Set(personageConcept.groeiSlots(c, prog).map(s => s.sleutel));
+    for (const k of Object.keys(c.groei)) if (!bestaat.has(k)) delete c.groei[k];
+  }
+
+  // Spreuken: per class alleen wat hij op zijn eigen level kan lanceren, en
+  // alleen classes die hij nog heeft. Wat een feat geeft ("Magic Initiate
+  // (Cleric)") staat onder `feat:<naam>` en blijft zolang die feat er is.
+  if (c.spreukenPer) {
+    const spreuken = new Map(_maakSpreuken().map(sp => [sp.index, sp]));
+    const feats = _conceptSpreukFeats(c, prog);
+    for (const [sleutel, lijst] of Object.entries(c.spreukenPer)) {
+      const lv = delen.find(([k]) => k === sleutel)?.[1];
+      const feat = feats.find(f => f.sleutel === sleutel);
+      if (!lv && !feat) { delete c.spreukenPer[sleutel]; continue; }
+      const maxNiv = feat ? 1 : Math.max(0, ...Object.keys(_slotsAfgeleid({ klasse: sleutel, level: String(lv) })).map(Number));
+      c.spreukenPer[sleutel] = lijst.filter(i => {
+        const sp = spreuken.get(i);
+        return sp && sp.niveau <= maxNiv;
+      });
+    }
+    c.spreuken = [...new Set(Object.values(c.spreukenPer).flat())];
+  }
+}
+
+// Feats die spreuken geven en die de maker kan uitschrijven: Magic Initiate
+// met zijn spreukenlijst tussen haakjes. Uit de background én uit de groei.
+// Andere spellfeats (Fey Touched, Ritual Caster) laten we aan tafel — hun
+// keuzes zijn te verschillend om hier na te bootsen.
+function _conceptSpreukFeats(c, prog) {
+  const namen = [];
+  if (c.background) namen.push(personageConcept.backgroundDelen(c.background, prog).feat);
+  for (const g of Object.values(c.groei || {})) if (g?.keuze === 'feat') namen.push(g.feat);
+  const uit = [];
+  for (const naam of namen) {
+    const m = String(naam || '').match(/^Magic Initiate\s*\((\w+)\)/i);
+    if (m && !uit.some(f => f.naam === naam)) {
+      uit.push({ sleutel: `feat:${naam}`, naam, klasse: m[1][0].toUpperCase() + m[1].slice(1).toLowerCase(), cantrips: 2, spreuken: 1 });
+    }
+  }
+  return uit;
 }
 
 // Een nieuw concept beginnen. Het partywachtwoord is de drempel — wie dat
@@ -6416,7 +6622,7 @@ router.post('/personage-concept', (req, res) => {
     species: '', klasse: '', subclass: '', background: '',
     level: 1, methode: inst.methodes[0] || 'array',
     scores: { str: 10, dex: 10, con: 10, int: 10, wis: 10, cha: 10 },
-    bgBonus: {}, skills: [], worpen: [],
+    bgBonus: {}, skills: [], worpen: [], rerollsGebruikt: 0,
     gemaakt: new Date().toISOString(), bijgewerkt: new Date().toISOString(),
   };
   _concepten(dmState)[id] = c;
@@ -6448,6 +6654,7 @@ router.patch('/personage-concept/:id', (req, res) => {
 
   const b = req.body || {};
   const tekst = (v, max) => String(v ?? '').trim().slice(0, max);
+  const oud = { klasse: c.klasse, multiKlasse: c.multiKlasse, background: c.background, species: c.species };
   if (b.naam       !== undefined) c.naam = tekst(b.naam, 60);
   if (b.species    !== undefined) c.species = tekst(b.species, 60);
   if (b.speciesVariant !== undefined) c.speciesVariant = tekst(b.speciesVariant, 60);
@@ -6466,9 +6673,14 @@ router.patch('/personage-concept/:id', (req, res) => {
       .filter(([, v]) => v > 0));
   }
   if (Array.isArray(b.skills)) c.skills = b.skills.map(x => tekst(x, 40)).filter(Boolean).slice(0, 12);
-  if (Array.isArray(b.worpen)) c.worpen = b.worpen.map(x => parseInt(x) || 0).slice(0, 6);
+  // `worpen` schrijft alleen de server (POST …/rol). Anders is een limiet op
+  // herkansingen een verzoek in plaats van een regel.
   // Fase 2: wat hij kent en wat hij draagt.
   if (Array.isArray(b.spreuken)) c.spreuken = b.spreuken.map(x => tekst(x, 60)).filter(Boolean).slice(0, 40);
+  if (b.spreukenPer && typeof b.spreukenPer === 'object') {
+    c.spreukenPer = Object.fromEntries(Object.entries(b.spreukenPer).slice(0, 4)
+      .map(([k, l]) => [tekst(k, 80), (Array.isArray(l) ? l : []).map(x => tekst(x, 60)).filter(Boolean).slice(0, 30)]));
+  }
   if (b.bgOptie !== undefined) c.bgOptie = ['A', 'B'].includes(b.bgOptie) ? b.bgOptie : '';
   if (b.wapen   !== undefined) c.wapen   = tekst(b.wapen, 60);
   if (b.harnas  !== undefined) c.harnas  = tekst(b.harnas, 60);
@@ -6476,10 +6688,48 @@ router.patch('/personage-concept/:id', (req, res) => {
   // Fase 3: een tweede class. Zijn level is dan de som van de twee; de wizard
   // rekent het voor en de server kapt het af op wat er past.
   if (b.multiKlasse      !== undefined) c.multiKlasse = tekst(b.multiKlasse, 60);
-  if (b.multiKlasseLevel !== undefined) {
-    c.multiKlasseLevel = Math.max(0, Math.min((parseInt(c.level) || 1) - 1, parseInt(b.multiKlasseLevel) || 0));
-  }
+  if (b.multiKlasseLevel !== undefined) c.multiKlasseLevel = parseInt(b.multiKlasseLevel) || 0;
   if (b.multiSubclass !== undefined) c.multiSubclass = tekst(b.multiSubclass, 60);
+  // Een "choose one" van de background: welke skill, en welk gereedschap.
+  if (b.bgKeuze && typeof b.bgKeuze === 'object') {
+    c.bgKeuze = {
+      skills: (Array.isArray(b.bgKeuze.skills) ? b.bgKeuze.skills : []).map(x => tekst(x, 40)).filter(Boolean).slice(0, 2),
+      tool: tekst(b.bgKeuze.tool, 60),
+    };
+  }
+  // Wat hij onderweg koos. De sleutels zijn die van de tijdlijn; welke er
+  // bestaan beslist `groeiSlots` hieronder, bij het opruimen.
+  if (b.groei && typeof b.groei === 'object') {
+    const AB = personageConcept.ABILITIES;
+    c.groei = {};
+    for (const [sleutel, g] of Object.entries(b.groei).slice(0, 12)) {
+      if (!g || !['asi', 'feat'].includes(g.keuze)) continue;
+      const nieuw = { keuze: g.keuze };
+      if (g.keuze === 'asi') {
+        // +2 op één, of +1 op twee: nooit meer dan twee punten in totaal.
+        let over = 2;
+        nieuw.asi = {};
+        for (const [a, n] of Object.entries(g.asi || {})) {
+          const v = Math.max(0, Math.min(over, parseInt(n) || 0));
+          if (AB.includes(a) && v > 0) { nieuw.asi[a] = v; over -= v; }
+        }
+      } else {
+        nieuw.feat = tekst(g.feat, 80);
+        if (AB.includes(g.plus)) nieuw.plus = g.plus;
+      }
+      c.groei[tekst(sleutel, 120)] = nieuw;
+    }
+  }
+  // Zijn verhaal en zijn geheimen. Een geheim krijgt meteen een eigen id, in
+  // de vorm die `data.geheimen` op het kaartje heeft: dan kan de DM het later
+  // per regel onthullen zonder dat er iets omgezet hoeft te worden.
+  if (b.verhaal !== undefined) c.verhaal = String(b.verhaal ?? '').slice(0, 6000);
+  if (Array.isArray(b.geheimen)) {
+    c.geheimen = b.geheimen.slice(0, 10)
+      .map(g => ({ id: tekst(g?.id, 40) || `g_${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`,
+                   tekst: tekst(g?.tekst ?? g, 600) }))
+      .filter(g => g.tekst);
+  }
   // Alleen de namen van de emotes; bestanden gaan via hun eigen route.
   if (Array.isArray(b.emotes) && Array.isArray(c.emotes)) {
     for (const e of c.emotes) {
@@ -6487,8 +6737,11 @@ router.patch('/personage-concept/:id', (req, res) => {
       if (nieuw?.label !== undefined) e.label = tekst(nieuw.label, 30) || e.label;
     }
   }
+  _conceptOpruimen(c, oud, b);
   // Terugsturen gaf een reden; zodra hij er weer aan werkt is die van de baan.
-  if (c.status === 'terug') { c.status = 'bezig'; }
+  // En lag hij al bij de DM, dan trekt doorwerken hem terug: anders gunt de DM
+  // iets anders dan wat hij las.
+  if (c.status === 'terug' || c.status === 'wacht') { c.status = 'bezig'; }
   c.bijgewerkt = new Date().toISOString();
   storage.writeJSON('dm-state.json', dmState);
   res.json(_conceptAntwoord(c, dmState));
@@ -6502,7 +6755,11 @@ router.post('/personage-concept/:id/indienen', (req, res) => {
   if (req.session?.conceptId !== c.id && req.session?.role !== 'dm') {
     return res.status(403).json({ error: 'Geen toegang' });
   }
-  const nakijk = personageConcept.nakijken(c, { meta: storage.readJSON('meta.json'), prog: _progHuidig() });
+  if (c.status === 'gegund') return res.status(409).json({ error: 'Dit personage is al gemaakt' });
+  // Twee keer op het zegel drukken (of een tweede tabblad) hoort niet twee
+  // meldingen bij de DM te geven.
+  if (c.status === 'wacht') return res.json(_conceptAntwoord(c, dmState));
+  const nakijk = personageConcept.nakijken(c, { meta: storage.readJSON('meta.json'), prog: _progHuidig(), spreuken: _maakSpreuken() });
   if (!nakijk.kanWeg) return res.status(400).json({ error: nakijk.fouten[0], fouten: nakijk.fouten });
   c.status = 'wacht';
   c.reden = '';
@@ -6510,6 +6767,69 @@ router.post('/personage-concept/:id/indienen', (req, res) => {
   storage.writeJSON('dm-state.json', dmState);
   _meldVerzoek(req, 'personage', c.naam, `${c.species || ''} ${c.klasse || ''}`.trim());
   res.json(_conceptAntwoord(c, dmState));
+});
+
+// Zes keer 4d6, op de server. De eerste worp is gratis; daarna telt elke
+// nieuwe set als herkansing, tot het aantal dat de DM gaf. Een reroll werpt de
+// héle set opnieuw — één score bijwerpen tot hij goed is, is geen worp meer.
+// De scores krijgen de worpen meteen in volgorde; koppelen aan de ability die
+// je wilt doe je daarna zelf.
+router.post('/personage-concept/:id/rol', (req, res) => {
+  const dmState = readDmState();
+  const c = _concepten(dmState)[req.params.id];
+  if (!c) return res.status(404).json({ error: 'Niet gevonden' });
+  if (req.session?.conceptId !== c.id && req.session?.role !== 'dm') return res.status(403).json({ error: 'Geen toegang' });
+  if (c.status === 'gegund') return res.status(409).json({ error: 'Dit personage is al gemaakt' });
+  const inst = personageConcept.instellingen(storage.readJSON('meta.json'));
+  if (!inst.methodes.includes('rollen')) return res.status(409).json({ error: 'Rollen staat aan deze tafel niet aan' });
+  const alGerold = Array.isArray(c.worpen) && c.worpen.length === 6;
+  if (alGerold) {
+    if ((parseInt(c.rerollsGebruikt) || 0) >= inst.rerolls) {
+      return res.status(409).json({ error: inst.rerolls ? 'Je herkansingen zijn op' : 'Wat je rolt, dat is het' });
+    }
+    c.rerollsGebruikt = (parseInt(c.rerollsGebruikt) || 0) + 1;
+  }
+  const set = personageConcept.rolSet();
+  c.worpen = set;
+  c.methode = 'rollen';
+  c.scores = Object.fromEntries(personageConcept.ABILITIES.map((a, i) => [a, set[i].totaal]));
+  c.bijgewerkt = new Date().toISOString();
+  storage.writeJSON('dm-state.json', dmState);
+  res.json(_conceptAntwoord(c, dmState));
+});
+
+// Het filmpje bij zijn portret: dat speelt op de landingspagina als je
+// inlogt. Zelfde grenzen als in de personage-editor — hooguit 8 MB; de duur
+// meet de browser vóór het uploaden, want ffmpeg is er niet. Het bestand krijgt
+// `<concept>_video` en verhuist bij het gunnen naar `<kaartje>_video`, waar
+// routes/auth.js het zoekt.
+const _VIDEO_BYTES = 8 * 1024 * 1024;
+router.post('/personage-concept/:id/video', metUpload(uploadMedia.single('file')), (req, res) => {
+  const dmState = readDmState();
+  const c = _concepten(dmState)[req.params.id];
+  if (!c) return res.status(404).json({ error: 'Niet gevonden' });
+  if (req.session?.conceptId !== c.id && req.session?.role !== 'dm') return res.status(403).json({ error: 'Geen toegang' });
+  if (c.status === 'gegund') return res.status(409).json({ error: 'Dit personage is al gemaakt' });
+  if (!req.file || !/^video\//.test(req.file.mimetype)) return res.status(400).json({ error: 'Alleen een filmpje (mp4 of webm)' });
+  if (!_sniffMedia(req.file.buffer)) return res.status(415).json({ error: 'Dat bestand is geen filmpje' });
+  if (req.file.size > _VIDEO_BYTES) return res.status(413).json({ error: 'Te groot — hooguit 8 MB' });
+  storage.saveFile(`${c.id}_video`, req.file.buffer, req.file.mimetype);
+  c.video = true;
+  c.bijgewerkt = new Date().toISOString();
+  storage.writeJSON('dm-state.json', dmState);
+  res.json({ ok: true, fileId: `${c.id}_video` });
+});
+
+router.delete('/personage-concept/:id/video', (req, res) => {
+  const dmState = readDmState();
+  const c = _concepten(dmState)[req.params.id];
+  if (!c) return res.status(404).json({ error: 'Niet gevonden' });
+  if (req.session?.conceptId !== c.id && req.session?.role !== 'dm') return res.status(403).json({ error: 'Geen toegang' });
+  if (c.status === 'gegund') return res.status(409).json({ error: 'Dit personage is al gemaakt' });
+  try { storage.deleteFile?.(`${c.id}_video`); } catch { /* mag al weg zijn */ }
+  c.video = false;
+  storage.writeJSON('dm-state.json', dmState);
+  res.json({ ok: true });
 });
 
 // Zijn portret. Het kaartje bestaat nog niet, dus het bestand krijgt het id van
@@ -6549,6 +6869,16 @@ router.post('/personage-concept/:id/emote', metUpload(uploadMedia.single('file')
   if (!req.file || !/^audio\//.test(req.file.mimetype)) return res.status(400).json({ error: 'Alleen een geluidsbestand' });
   if (!_sniffMedia(req.file.buffer)) return res.status(415).json({ error: 'Dat bestand is geen geluid' });
   if (req.file.size > _EMOTE_BYTES) return res.status(413).json({ error: 'Te groot — hooguit 3 MB' });
+  // Eén klank voor als hij aan zet is: hetzelfde soort bestand, maar hij hoort
+  // straks in `sounds.json → playerTurn` en niet tussen de emotes. Eén vak; een
+  // nieuwe vervangt de oude.
+  if (req.body?.soort === 'beurt') {
+    storage.saveFile(`${c.id}_beurt`, req.file.buffer, req.file.mimetype);
+    c.beurt = { label: String(req.body?.label || '').trim().slice(0, 30) || 'Mijn beurt' };
+    c.bijgewerkt = new Date().toISOString();
+    storage.writeJSON('dm-state.json', dmState);
+    return res.json({ ok: true, beurt: c.beurt, emotes: c.emotes || [] });
+  }
   c.emotes = c.emotes || [];
   if (c.emotes.length >= _EMOTE_MAX) return res.status(409).json({ error: `Hooguit ${_EMOTE_MAX} geluiden` });
   const sleutel = Math.random().toString(36).slice(2, 8);
@@ -6566,6 +6896,12 @@ router.delete('/personage-concept/:id/emote/:emoteId', (req, res) => {
   if (!c) return res.status(404).json({ error: 'Niet gevonden' });
   if (req.session?.conceptId !== c.id && req.session?.role !== 'dm') return res.status(403).json({ error: 'Geen toegang' });
   if (c.status === 'gegund') return res.status(409).json({ error: 'Dit personage is al gemaakt' });
+  if (req.params.emoteId === 'beurt') {
+    try { storage.deleteFile?.(`${c.id}_beurt`); } catch { /* mag al weg zijn */ }
+    c.beurt = null;
+    storage.writeJSON('dm-state.json', dmState);
+    return res.json({ ok: true, beurt: null, emotes: c.emotes || [] });
+  }
   const weg = (c.emotes || []).find(e => e.id === req.params.emoteId);
   if (!weg) return res.status(404).json({ error: 'Niet gevonden' });
   c.emotes = c.emotes.filter(e => e !== weg);
@@ -6615,6 +6951,13 @@ router.post('/personage-concept/:id/:besluit', requireDM, (req, res) => {
   const dmState = readDmState();
   const c = _concepten(dmState)[req.params.id];
   if (!c) return res.status(404).json({ error: 'Niet gevonden' });
+  // Gunnen is onomkeerbaar en maakt een kaartje. Een dubbele klik (of een
+  // tweede tabblad) maakte er twee; en een concept dat de speler intussen
+  // terugtrok is niet meer wat de DM las.
+  if (c.status === 'gegund') return res.status(409).json({ error: `${c.naam || 'Dit personage'} is al gemaakt` });
+  if (besluit === 'gunnen' && c.status !== 'wacht') {
+    return res.status(409).json({ error: `${c.naam || 'De speler'} is er weer mee bezig — wacht tot hij hem opnieuw instuurt` });
+  }
 
   if (besluit === 'terug') {
     c.status = 'terug';
@@ -6636,7 +6979,15 @@ router.post('/personage-concept/:id/:besluit', requireDM, (req, res) => {
   const ent = {
     id: `e_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
     name: c.naam, icon: '', subtype: 'speler',
-    data: { ras: c.species || '', klasse: c.klasse || '', groep: c.groep || '', desc: '' },
+    // Zijn verhaal wordt de beschrijving op zijn kaartje, en zijn geheimen de
+    // geheimregels — mét hun id, dus de DM kan ze per regel onthullen zoals
+    // bij elk ander kaartje. Een speler ziet een geheim pas als het onthuld
+    // is; ook zijn eigen.
+    data: {
+      ras: c.species || '', klasse: c.klasse || '', groep: c.groep || '',
+      desc: String(c.verhaal || '').trim(),
+      ...((c.geheimen || []).length ? { geheimen: JSON.stringify(c.geheimen.map(g => ({ id: g.id, tekst: g.tekst }))) } : {}),
+    },
     links: { personages: [], locaties: [], organisaties: [], voorwerpen: [], archief: [] },
     stats: null,
   };
@@ -6648,6 +6999,38 @@ router.post('/personage-concept/:id/:besluit', requireDM, (req, res) => {
   if (!dmState.playerHp) dmState.playerHp = {};
   dmState.playerHp[ent.id] = { current: hp, max: hp };
 
+  // Wat hij koos aan feats komt ook in zijn Kenmerken & Eigenschappen, zoals
+  // de tijdlijn dat doet bij een feat die je daar bevestigt — met dezelfde
+  // `index`, zodat de tijdlijn hem later niet nog eens toevoegt. De feat van
+  // zijn background erbij: die heeft hij vanaf level 1.
+  const featTekst = (naam) => [...(prog.feats?.general || []), ...(prog.feats?.epic || [])]
+    .find(f => (f?.name || f) === naam)?.desc || '';
+  const traits = [];
+  const bgFeat = c.background ? personageConcept.backgroundDelen(c.background, prog).feat : '';
+  if (bgFeat) traits.push({ index: `background-feat-${c.background}`, name: bgFeat, meta: `Feat · ${c.background}`, desc: featTekst(bgFeat) });
+  const bgFeature = c.background ? personageConcept.backgroundDelen(c.background, prog).feature : '';
+  if (bgFeature) traits.push({ index: `background-feature-${c.background}`, name: bgFeature, meta: `Background · ${c.background}`, desc: '' });
+  for (const slot of personageConcept.groeiSlots(c, prog)) {
+    const g = (c.groei || {})[slot.sleutel];
+    if (!g) continue;
+    if (g.keuze === 'feat' && g.feat) {
+      traits.push({ index: `progression-${slot.sleutel}`, name: g.feat,
+        meta: `${slot.soort === 'boon' ? 'Epic Boon' : 'Feat'} · Lv. ${slot.level}${g.plus ? ` · +1 ${personageConcept.AB_NAAM[g.plus]}` : ''}`,
+        desc: featTekst(g.feat) });
+    } else if (g.keuze === 'asi' && Object.keys(g.asi || {}).length) {
+      traits.push({ index: `progression-${slot.sleutel}`, name: 'Ability Score Improvement',
+        meta: `${slot.klasse} ${slot.level} · ${Object.entries(g.asi).map(([a, n]) => `+${n} ${personageConcept.AB_NAAM[a]}`).join(', ')}`,
+        desc: '' });
+    }
+  }
+  if (traits.length) {
+    if (!dmState.playerTraits) dmState.playerTraits = {};
+    dmState.playerTraits[ent.id] = traits.map((t, i) => ({
+      id: `trait_${Date.now()}_${i}_${Math.random().toString(36).slice(2, 6)}`,
+      index: t.index, name: t.name, source: 'progression', meta: t.meta, desc: String(t.desc || '').slice(0, 5000),
+    }));
+  }
+
   // Zijn portret stond op het id van het concept; het kaartje kijkt naar het
   // zijne. Kopiëren in plaats van verplaatsen: het concept blijft leesbaar in
   // de geschiedenis van wat er gegund is.
@@ -6658,11 +7041,22 @@ router.post('/personage-concept/:id/:besluit', requireDM, (req, res) => {
     } catch (e) { fouten.meld('personage-portret', e); }
   }
 
+  // Zijn filmpje: routes/auth.js zoekt `<kaartje>_video`, dus daar moet het
+  // staan. Kopiëren, net als het portret.
+  if (c.video) {
+    try {
+      const bron = storage.getFile(`${c.id}_video`);
+      if (bron) storage.saveFile(`${ent.id}_video`, fs.readFileSync(bron.path), bron.mimetype);
+    } catch (e) { fouten.meld('personage-video', e); }
+  }
+
   // Zijn spreuken, langs dezelfde deur als elke andere spreuk die in een boek
-  // belandt — die dedupliceert en vult de velden aan uit de bron.
-  const alleSpreuken = bronnen.lees('spells-2024')?.results || [];
+  // belandt — die dedupliceert en vult de velden aan uit de bron. Uit de
+  // bronnen van déze campagne (`_spreukBron`): het hoofdboek, de aanvullingen
+  // en wat de campagne zelf verzon. Alleen `spells-2024` liet een eigen spreuk
+  // en een heel Wands & Wizards-boek stil wegvallen.
   for (const index of (c.spreuken || [])) {
-    const sp = alleSpreuken.find(x => x.index === index);
+    const sp = _spreukBron(index);
     if (sp) _spreukInBoek(dmState, ent.id, sp);
   }
 
@@ -6670,7 +7064,7 @@ router.post('/personage-concept/:id/:besluit', requireDM, (req, res) => {
   // zak haalde. Allemaal als gewone regels in de boedel, zoals alles wat een
   // speler bij zich draagt.
   const spullen = [];
-  const bgOpties = c.background ? personageConcept.uitrustingOpties(c.background) : [];
+  const bgOpties = c.background ? personageConcept.uitrustingOpties(c.background, prog) : [];
   const gekozenOptie = bgOpties.find(o => o.sleutel === (c.bgOptie || 'A'));
   for (const naam of (gekozenOptie?.spullen || [])) spullen.push(naam);
   for (const sleutel of [c.wapen, c.harnas].filter(Boolean)) {
@@ -6695,12 +7089,20 @@ router.post('/personage-concept/:id/:besluit', requireDM, (req, res) => {
   }
   // Zijn emotes: de bestanden blijven op het id van het concept staan (een id
   // is maar een naam), de bibliotheek hangt aan het kaartje.
-  if ((c.emotes || []).length) {
+  // En zijn beurtklank: `playerTurn` wijst naar een bestand, net als in de
+  // Geluiden-tab. Het bestand blijft op het concept-id staan.
+  if ((c.emotes || []).length || c.beurt) {
     try {
       const sounds = storage.readJSON('sounds.json') || {};
-      if (!sounds.emotes) sounds.emotes = {};
-      const lib = c.emotes.map(e => ({ id: e.id, label: e.label, fileId: e.fileId }));
-      sounds.emotes[ent.id] = { library: lib, selected: lib.map(e => e.id) };
+      if ((c.emotes || []).length) {
+        if (!sounds.emotes) sounds.emotes = {};
+        const lib = c.emotes.map(e => ({ id: e.id, label: e.label, fileId: e.fileId }));
+        sounds.emotes[ent.id] = { library: lib, selected: lib.map(e => e.id) };
+      }
+      if (c.beurt && storage.bestandBestaat(`${c.id}_beurt`)) {
+        if (!sounds.playerTurn) sounds.playerTurn = {};
+        sounds.playerTurn[ent.id] = `${c.id}_beurt`;
+      }
       storage.writeJSON('sounds.json', sounds);
     } catch (e) { fouten.meld('personage-emotes', e); }
   }
@@ -6727,6 +7129,7 @@ router.put('/meta/personage-maken', requireDM, (req, res) => {
       ? b.methodes.filter(m => personageConcept.METHODES[m]) : Object.keys(personageConcept.METHODES),
     maxLevel: Math.max(1, Math.min(20, parseInt(b.maxLevel) || 1)),
     trinketTafel: String(b.trinketTafel || '').slice(0, 80),
+    rerolls: Math.max(0, Math.min(10, parseInt(b.rerolls) || 0)),
   };
   storage.writeJSON('meta.json', meta);
   req.app.get('io').to(_campagneRoom(req)).emit('meta:updated');
