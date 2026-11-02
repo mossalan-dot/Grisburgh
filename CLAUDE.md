@@ -348,13 +348,13 @@ De app gebruikt querystring cache-busting (`?v=N`). **Vergeten = browser haalt o
 **Huidige versies (bij te houden):**
 
 ```
-index.html  : theme.css?v=916   app.js?v=1181   sound-manager.js?v=14
-app.js      : api.js?v=318  dm-panel.js?v=414  media-picker.js?v=12  tafels.js?v=2  terugblik.js?v=2  rage.js?v=3  klassekracht.js?v=4  personage-maken.js?v=8  gevecht-regie.js?v=1
-              render-archief.js?v=144  render-bestiarium.js?v=33  render-campagne.js?v=352
-              render-dungeon.js?v=69  render-kaart.js?v=33  render-progressie.js?v=65
-              render-relatiemap.js?v=33  render-spreuken.js?v=52  render-vaardigheden.js?v=134
-              render-statblock.js?v=9  socket-client.js?v=93  wizard.js?v=7  conditions.js?v=3
-dm-panel.js : akte-schrijven.js?v=36  combat-canvas.js?v=36  render-statblock.js?v=9
+index.html  : theme.css?v=917   app.js?v=1182   sound-manager.js?v=15
+app.js      : api.js?v=319  dm-panel.js?v=415  media-picker.js?v=13  tafels.js?v=2  terugblik.js?v=3  rage.js?v=4  klassekracht.js?v=5  personage-maken.js?v=9  gevecht-regie.js?v=2
+              render-archief.js?v=145  render-bestiarium.js?v=34  render-campagne.js?v=353
+              render-dungeon.js?v=70  render-kaart.js?v=34  render-progressie.js?v=66
+              render-relatiemap.js?v=34  render-spreuken.js?v=53  render-vaardigheden.js?v=135
+              render-statblock.js?v=9  socket-client.js?v=94  wizard.js?v=8  conditions.js?v=4
+dm-panel.js : akte-schrijven.js?v=37  combat-canvas.js?v=37  render-statblock.js?v=9
 ```
 
 > **Een importeur moet zelf ook opschuiven.** `index.html` vraagt om `app.js?v=N`.
@@ -464,6 +464,41 @@ dm-panel.js : akte-schrijven.js?v=36  combat-canvas.js?v=36  render-statblock.js
 >   canvas geklikt. Niet naar het midden trekken: dan schuift de kale rand in beeld.
 > Klanken: `soundManager.regieKlank(soort)`; eigen bestanden via Momenten →
 > `gevechtOpening` en `genadeslag`. Bewaakt door `tests/gevecht-regie.test.js`.
+> **Ronde 2 (2 nov 2026): overgang, omgevingseffecten, genadeslagen.**
+> - **Overgang** vóór de opening: drie witte flitsen en een raster tegels
+>   (16×9) dat in een patroon zwart wordt. Elk patroon is alleen een
+>   volgorde (`_PATRONEN` in `gevecht-regie.js`: spiraal, balken, cirkel,
+>   scherven, vegen) die per tegel een `--d` oplevert. Per encounter
+>   `overgang` (`_OVERGANGEN` op de server; leeg = willekeurig, `geen` = uit).
+> - **Omgevingseffecten** — **`lib/omgeving.js`** is de catalogus: elf vijandige
+>   presets (aardbeving, storm, stijgend water, aftellen, vlammen, giftige nevel,
+>   vallende stenen, ijzige wind, fluisterstemmen, duisternis) en vier gunstige
+>   (heilig licht, helende bron, beschermend altaar, zegen) plus `eigen`. Een
+>   regel = `{preset, tekst, soort, save:{ab,dc}, schade:{worp,type,half},
+>   conditie}` of bij gunstig `{gunst:{thp,heal,conditie,resistance}}`, en
+>   `rondes` bij een aftelling. `regelUit()` normaliseert (een kale tekst wordt
+>   `eigen`, dus oude Lair Actions blijven werken); de editor vult bij het
+>   kiezen van een preset alles in, dus wat opgeslagen staat is volledig.
+>   Een Lair Action of het regieblok **`[!omgeving]`** in een akte gaat via
+>   `_omgevingStart()`: tafel krijgt `gevecht:lair` (met `samenvatting` en een
+>   `fx` uit `lib/display-fx.js`), en heeft de regel mechaniek dan staat er een
+>   **effect** in `dmState.omgevingEffect` met vooraf gerolde getallen en de
+>   doelen. Dat gaat alleen naar DM-sessies (`_naarDM`, event
+>   `omgeving:effect`). De DM tikt per doel aan wat er gebeurde en
+>   `POST /omgeving/effect/uitslag` past het toe: in een gevecht op de tokens
+>   (Temporary HP eerst, death saves bij 0, conditie bij mislukt, een
+>   Concentration-prompt), daarbuiten op `playerHp` (condities niet: die hebben
+>   daar geen token). De uitslag gaat als `omgeving:uitslag` naar tafel.
+>   **Aftellen**: `combat.regie.aftellen` gaat elke nieuwe ronde één omlaag
+>   (`_aftellenTik` in `PUT /combat`), tafel krijgt `omgeving:aftellen`, en op
+>   nul start het effect alsnog. Routes: `GET /omgeving/presets`,
+>   `GET|POST /omgeving/effect`, `POST /omgeving/effect/uitslag` (alle DM).
+>   Nieuwe conditie **`resistance`** (icoon `shield-check`).
+> - **Genadeslagen** bovenin het Logboek (`_genadeslagenHtml` in
+>   `render-archief.js`): afgeleid uit `gevecht.momenten` van de zichtbare
+>   verslagen, geen tweede opslag. Momenten dragen sindsdien `spelerBeeld` en
+>   `doelBeeld`.
+> Bewaakt door het tweede `describe`-blok in `tests/gevecht-regie.test.js`.
 > **Valkuil:** een laag die met `_laag(id)` hergebruikt wordt mag bij het
 > weghalen zijn id niet houden — anders pakt het volgende moment het stervende
 > element en haalt de verwijdertimer het nieuwe weg (`_weg` haalt het id er
@@ -2651,6 +2686,9 @@ factie — `star` betekent in de app al *favoriet*), `award` (factie-boon), `bac
 
 **Toegevoegd voor de zes species uit Spelljammer en Lorwyn** (Lucide, ISC, 20 okt 2026,
 sprite v=22): `orbit` `cog` `squirrel` `bug` `puzzle` `droplets`
+
+**Toegevoegd voor de omgevingseffecten** (Lucide, ISC, 2 nov 2026, sprite v=27):
+`shield-check` (Resistance) `cloud-lightning` (storm)
 
 **Toegevoegd voor de species-iconen** (Lucide, ISC, 18 okt 2026, sprite v=20): `clover`
 `axe` `footprints` `scan-face` `gem` `hard-hat` `sunset` `leaf` `flower` `flower-2`

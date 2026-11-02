@@ -11,7 +11,7 @@
 // die een tweede actie pakt, inkt voor een Monk, stralen eldritch-licht voor
 // een Warlock. Zelfde opbouw als de brul van de Barbarian, andere kleur.
 
-import { api } from './api.js?v=318';
+import { api } from './api.js?v=319';
 
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, c =>
   ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));

@@ -18,7 +18,7 @@
  * docs/voorstel-akteregie.md.
  */
 
-import { api } from './api.js?v=318';
+import { api } from './api.js?v=319';
 
 const esc  = s => window.app?.esc?.(s) ?? String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 const icon = (...a) => window.icon(...a);
@@ -49,6 +49,10 @@ export const REGIE_BLOKKEN = {
   // Muziek is Spotify; dit is de bibliotheek van de campagne zelf — een
   // donderslag, een lied, het gekraak van een deur.
   geluid:    { label: 'Geluid',    icon: 'volume-2',       hint: 'Een geluid uit de bibliotheek — zet "loop" erachter om te blijven herhalen' },
+  // Wat de plek zelf doet: de grond beeft, het water stijgt, een altaar zegent.
+  // Dezelfde effecten als de Lair Actions van een encounter (lib/omgeving.js),
+  // maar dan op een plek in het verhaal — ook buiten een gevecht.
+  omgeving:  { label: 'Omgeving',  icon: 'mountain',       hint: 'Een omgevingseffect — "aardbeving" of "aardbeving · eigen tekst"' },
 };
 
 // ── De mediabibliotheek ──────────────────────────────────────────────────────
@@ -504,6 +508,7 @@ function _blokActie(soort, kop, body) {
   if (soort === 'levelup')   return knop('geefLevelUp', 'Klaarzetten', 'sparkles');
   if (soort === 'kamer')     return knop('onthulKamer', 'Onthullen', 'eye');
   if (soort === 'geluid')    return knop('laatHoren', 'Laat horen', 'volume-2');
+  if (soort === 'omgeving')  return knop('startOmgeving', 'Op tafel', 'mountain');
   if (soort === 'quest') {
     // De knop zegt waar hij hem heen zet: "Naar Voltooid" is wat je doet, en
     // zonder status is het "Beschikbaar maken".
@@ -804,6 +809,7 @@ const INVOEG_MENU = [
     { id: 'levelup',   label: 'Level omhoog',  icon: 'sparkles',    toets: 'O', hint: 'Zet voor de hele party een level-up klaar' },
     { id: 'quest',     label: 'Missie',        icon: 'pin',         toets: 'I', hint: 'Een missie op het bord zetten of verderzetten' },
     { id: 'geluid',    label: 'Geluid',        icon: 'volume-2',    toets: 'Z', hint: 'Een geluid uit de bibliotheek, hier laten horen' },
+    { id: 'omgeving',  label: 'Omgeving',      icon: 'mountain',    toets: 'F', hint: 'De grond beeft, het water stijgt — met Saving Throw' },
   ]},
 ];
 const _INVOEG_OP_TOETS = {};
@@ -1201,6 +1207,12 @@ window.akteSchrijven = {
       return _kiezer('Dungeonkaart invoegen', rijen, (r) => _voegIn(_blokTekst('kaart', r.naam), { blok: true }),
         'Nog geen dungeonkaarten.');
     }
+    if (soort === 'omgeving') {
+      const cat = await api.omgevingPresets().catch(() => null);
+      const rijen = (cat?.presets || []).filter(p => p.id !== 'eigen').map(p => ({ naam: p.label, icoon: p.icoon, id: p.id }));
+      return _kiezer('Omgevingseffect invoegen', rijen, (r) => _voegIn(_blokTekst('omgeving', r.id), { blok: true }),
+        'De catalogus kon niet geladen worden.');
+    }
     if (soort === 'geluid') {
       const rijen = (await _mediaLaden()).filter(m => m.type === 'audio')
         .map(m => ({ naam: m.naam || m.id, icoon: 'volume-2' }));
@@ -1579,6 +1591,26 @@ window.akteSchrijven = {
   // Geluiden-tab en de regie-balk: een `sound:reveal` naar de hele campagne.
   // In de kop staat de naam uit de bibliotheek; "loop" of "herhaal" erachter
   // laat hem doorlopen — dezelfde afspraak als bij een muziekblok.
+  // `aardbeving` of `aardbeving · De grond scheurt open`: de preset (op id of op
+  // naam) en eventueel een eigen tekst. Wat het effect doet staat in de
+  // catalogus; de Saving Throw en de uitslag handel je af in het paneel dat dan
+  // bovenin verschijnt.
+  async startOmgeving(kop, btn) {
+    const [eerste, ...rest] = String(kop || '').split(/\s*[·|]\s*/);
+    const cat = await api.omgevingPresets().catch(() => null);
+    const norm = (t) => String(t || '').toLowerCase().trim();
+    const p = (cat?.presets || []).find(x => norm(x.id) === norm(eerste) || norm(x.label) === norm(eerste));
+    const tekst = rest.join(' · ').trim();
+    if (!p && !kop) return _geenTreffer(btn, 'Geen effect genoemd');
+    btn.disabled = true;
+    try {
+      await api.omgevingStart(p ? { preset: p.id, ...(tekst ? { tekst } : {}) } : { preset: 'eigen', tekst: kop });
+      btn.innerHTML = `${icon('check')} Op tafel`;
+      btn.classList.add('is-klaar');
+      btn.disabled = false;
+    } catch (e) { btn.disabled = false; _melding(btn, 'Mislukt: ' + e.message); }
+  },
+
   async laatHoren(kop, btn) {
     const herhaal = /\b(loop|herhaal)\b/i.test(kop);
     const naam = String(kop || '').replace(/\s*[·:|]?\s*\b(loop|herhaal)\b\s*/i, '').trim();
@@ -1630,7 +1662,7 @@ window.akteSchrijven = {
   // gebeurt is één regel vervangen — de rest blijft letterlijk staan.
   blokBewerk(soort, kop, regel = null) {
     const blok = REGIE_BLOKKEN[soort] || {};
-    const metKiezer = ['gevecht', 'tabel', 'buit', 'kaart', 'kamer', 'quest', 'geluid'].includes(soort);
+    const metKiezer = ['gevecht', 'tabel', 'buit', 'kaart', 'kamer', 'quest', 'geluid', 'omgeving'].includes(soort);
     window.app.openModal(`${blok.label || soort} bijstellen`, '', `
       <div class="dm-feature-section" style="margin:0">
         <div class="dm-form-row">
@@ -1672,6 +1704,11 @@ window.akteSchrijven = {
       const lijst = (await api.lootEvents().catch(() => ({})))?.events || [];
       return _kiezer('Vondst kiezen', lijst.map(v => ({ naam: v.naam || 'Vondst', icoon: 'vault' })),
         (r) => { window.app.openModal('Buit bijstellen', '', bewaarModal); vul(r.naam); });
+    }
+    if (soort === 'omgeving') {
+      const cat = await api.omgevingPresets().catch(() => null);
+      return _kiezer('Effect kiezen', (cat?.presets || []).filter(p => p.id !== 'eigen').map(p => ({ naam: p.label, icoon: p.icoon, id: p.id })),
+        (r) => { window.app.openModal('Omgeving bijstellen', '', bewaarModal); vul(r.id); });
     }
     if (soort === 'geluid') {
       const lijst = (await _mediaLaden()).filter(m => m.type === 'audio');

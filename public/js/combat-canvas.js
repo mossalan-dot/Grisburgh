@@ -1,4 +1,4 @@
-import { COND_ICON } from './conditions.js?v=3';
+import { COND_ICON } from './conditions.js?v=4';
 
 // ── Combat Canvas ──
 // Renders the battle scene on a <canvas> element.
@@ -25,7 +25,7 @@ const _spriteCache = {};   // "icoon|kleur" → Image, of null zolang hij laadt
 function _ensureSprite() {
   if (_spriteDoc || _spriteBezig) return;
   _spriteBezig = true;
-  fetch('/img/icons.svg?v=26')
+  fetch('/img/icons.svg?v=27')
     .then(r => r.text())
     .then(txt => { _spriteDoc = new DOMParser().parseFromString(txt, 'image/svg+xml'); })
     .catch(() => { _spriteBezig = false; });

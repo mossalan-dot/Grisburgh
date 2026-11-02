@@ -325,6 +325,14 @@ const _REGIE_KLANKEN = {
   slag:    (c) => { _toon(c, { type: 'sine', van: 180, naar: 30, vol: 0.55, duur: 0.9 });
                     _ruisvlaag(c, { filter: 'lowpass', freq: 900, vol: 0.32, duur: 0.5 });
                     _ruisvlaag(c, { filter: 'highpass', freq: 2600, vol: 0.12, start: 0.05, duur: 1.6 }); },
+  // De overgang: drie korte piepjes bij de flitsen, dan een zaagtand die
+  // omhoog jaagt terwijl de tegels dichtgaan, en een dreun als het zwart is.
+  overgang:(c) => { [0, 0.13, 0.26].forEach(s => _toon(c, { type: 'square', van: 1320, naar: 1180, vol: 0.07, start: s, duur: 0.08 }));
+                    _toon(c, { type: 'sawtooth', van: 180, naar: 1600, vol: 0.07, start: 0.42, duur: 0.95 });
+                    _ruisvlaag(c, { filter: 'highpass', freq: 1800, vol: 0.08, start: 0.42, duur: 0.9 });
+                    _toon(c, { type: 'sine', van: 140, naar: 40, vol: 0.4, start: 1.35, duur: 0.5 }); },
+  tik:     (c) => { _toon(c, { type: 'square', van: 1900, naar: 1700, vol: 0.06, duur: 0.05 });
+                    _toon(c, { type: 'sine', van: 90, naar: 55, vol: 0.26, start: 0.02, duur: 0.35 }); },
   afloop:  (c) => [220, 277.18, 329.63, 440].forEach((f, i) => _toon(c, { type: 'triangle', van: f, vol: 0.08, start: i * 0.35, duur: 3.4 })),
 };
 

@@ -1,5 +1,5 @@
-import { api, huidigeCampagne } from './api.js?v=318';
-import { init as canvasInit, update as canvasUpdate, stop as canvasStop, acGetal } from './combat-canvas.js?v=36';
+import { api, huidigeCampagne } from './api.js?v=319';
+import { init as canvasInit, update as canvasUpdate, stop as canvasStop, acGetal } from './combat-canvas.js?v=37';
 import { renderStatblock } from './render-statblock.js?v=9';
 
 // ── DM Panel ──
@@ -15,7 +15,7 @@ function _redenVragen(vraag) {
 }
 
 // De condities staan op één plek; het spelerstabblad leest dezelfde lijst.
-import { CONDITIONS, COND_ICON } from './conditions.js?v=3';
+import { CONDITIONS, COND_ICON } from './conditions.js?v=4';
 
 
 // Groepen voor de conditie-weergave. Op modulescope zodat de rij in het
@@ -325,7 +325,11 @@ export function initDmPanel() {
     encLootItemField:   _encLootItemField,
     encLootPick:        _encLootPick,
     encLootKies:        (veld) => _encLootKies(veld),
-    encLairInput:       (v) => _encLairInput(v),
+    encLairErbij:       () => _encLairErbij(),
+    encLairPreset:      (i, v) => _encLairPreset(i, v),
+    encLairVeld:        (i, p, v) => _encLairVeld(i, p, v),
+    encLairWeg:         (i) => _encLairWeg(i),
+    encOvergang:        (v) => _encOvergangKies(v),
     encLootNieuw:       () => _encLootNieuw(),
     encRowMonsterChange: _encRowMonsterChange,
     encRowChange:       _encRowChange,
@@ -2895,7 +2899,7 @@ async function _ladeToggle() {
   _ladeIdx = _bwIdx >= 0 ? _bwIdx : Math.min(_ladePlekLees(), Math.max(0, _ladeSecties.length - 1));
   // De akte-module levert de renderer én de knoppen; die moet weten welke akte
   // er speelt, anders belandt een getoond beeld in de sessielog van niemand.
-  const mod = await import('./akte-schrijven.js?v=36');
+  const mod = await import('./akte-schrijven.js?v=37');
   mod.zetAkte(_rbChapter, _ladeTekst);
   window._akteRegieRender = mod.regieNaarHtml;
   let lade = document.getElementById('regie-lade');
@@ -2921,7 +2925,7 @@ window._ladeHerlaad = async () => {
     _ladeTekst = regie?.tekst || '';
     _ladeSecties = _splitsSecties(_ladeTekst);
     _ladeIdx = Math.min(_ladeIdx, Math.max(0, _ladeSecties.length - 1));
-    const mod = await import('./akte-schrijven.js?v=36');
+    const mod = await import('./akte-schrijven.js?v=37');
     mod.zetAkte(_rbChapter, _ladeTekst);
     _ladeRender();
   } catch { /* de lade blijft staan zoals hij stond */ }
@@ -4611,7 +4615,13 @@ let _encMonsterRows     = [];     // [{monsterId,name,count,initiative,hp}]
 let _encLoot            = { goud: { fl: 0, kn: 0, cl: 0 }, items: [] };  // oude vorm, blijft gelezen
 let _encLootId          = null;   // id van de gekoppelde vondst (loot.json)
 let _encLootOud         = false;  // heeft dit gevecht nog buit van de oude soort?
-let _encLair           = '';     // Lair Actions, één per regel (tekst in de editor)
+let _encLair           = [];     // Lair Actions: regels met een preset (lib/omgeving.js)
+let _encOvergang        = '';     // hoe het tafelscherm het gevecht inluidt ('' = willekeurig)
+let _omgCat             = null;   // de catalogus met omgevingseffecten, één keer opgehaald
+const _ENC_OVERGANGEN = [
+  ['', 'Willekeurig'], ['spiraal', 'Spiraal'], ['balken', 'Balken'], ['cirkel', 'Cirkel'],
+  ['scherven', 'Scherven'], ['vegen', 'Veeg'], ['geen', 'Geen overgang'],
+];
 let _encLootLijst       = [];     // vondsten, voor de kiezer in de editor
 let _encBackdropId      = null;
 let _encCanvasPreset    = null;   // id van het gekozen canvas-kleurpreset
@@ -4944,14 +4954,14 @@ function _renderEncounterEditor(el) {
         <datalist id="dm-enc-loot-dl">${_encLootLijst.filter(e => !e.sjabloon).map(e => `<option value="${esc(e.naam || '')}"></option>`).join('')}</datalist>
         <button class="dm-btn dm-btn-sm dm-btn-ghost" onclick="window.dmPanel.encLootNieuw()" title="Een nieuwe vondst maken in de Loot-tab">${icon('plus')} Nieuwe vondst</button>
       </div>
-      <!-- Lair Actions: één effect per regel. Op initiative 20 krijgt de DM ze
-           als knoppen; hij kiest, en pas dan verschijnt het op tafel. -->
-      <div class="dm-form-row dm-form-row--top">
-        <label class="dm-form-label">${icon('mountain')} Lair Actions</label>
-        <textarea id="dm-enc-lair" class="dm-input" rows="3"
-          title="Eén Lair Action per regel"
-          oninput="window.dmPanel.encLairInput(this.value)">${esc(_encLair)}</textarea>
+      <div class="dm-form-row">
+        <label class="dm-form-label">${icon('zap')} Overgang</label>
+        <select class="dm-input" onchange="window.dmPanel.encOvergang(this.value)" title="Hoe het tafelscherm het gevecht inluidt">
+          ${_ENC_OVERGANGEN.map(([v, l]) => `<option value="${v}"${(_encOvergang || '') === v ? ' selected' : ''}>${l}</option>`).join('')}
+        </select>
       </div>
+
+      ${_encLairHtml()}
 
       ${_encLootOud ? `<p class="dm-hint" style="margin:0 0 10px">Dit gevecht heeft nog buit van de oude soort (los ingevuld goud en items). Die werkt gewoon, maar koppel je hier een vondst, dan telt alleen die.</p>` : ''}
 
@@ -4974,7 +4984,9 @@ function _encNew() {
   _encLootId       = null;
   _encLootOud      = false;
   _encLootLijst    = [];
-  _encLair         = '';
+  _encLair         = [];
+  _encOvergang     = '';
+  _omgLaden();
   api.lootEvents().then(d => { _encLootLijst = d.events || d || []; _renderEncounterEditor(); }).catch(() => {});
   _encVensterOpen();
 };
@@ -4993,13 +5005,126 @@ function _encEdit(id) {
   _encLootLijst    = [];
   api.lootEvents().then(d => { _encLootLijst = d.events || d || []; _renderEncounterEditor(); }).catch(() => {});
   _encCanvasPreset = enc.canvasPreset || null;
-  _encLair         = (enc.lair?.regels || []).join('\n');
+  _encLair         = (enc.lair?.regels || []).map(r => typeof r === 'string' ? { preset: 'eigen', tekst: r } : JSON.parse(JSON.stringify(r)));
+  _encOvergang     = enc.overgang || '';
+  _omgLaden();
   _encName         = enc.name    || '';
   _encAkteId       = enc.akteId  || '';
   _encVensterOpen();
 };
 
-function _encLairInput(v) { _encLair = String(v || ''); }
+// ── Lair Actions in de editor ────────────────────────────────────────────────
+// Elke regel is een preset (aardbeving, stijgend water, een helende bron…) met
+// een tekst en de mechaniek eronder. Een preset kiezen vult alles in; daarna
+// mag elk veld anders. Wat het doet staat in het boekje (dm_gevecht_editor).
+async function _omgLaden() {
+  if (_omgCat) return _omgCat;
+  try { _omgCat = await api.omgevingPresets(); _renderEncounterEditor(); } catch { _omgCat = null; }
+  return _omgCat;
+}
+const _omgPreset = (id) => (_omgCat?.presets || []).find(p => p.id === id) || { id: 'eigen', label: 'Eigen', icoon: 'hexagon', soort: 'vijandig' };
+const _kopie = (o) => (o == null ? o : JSON.parse(JSON.stringify(o)));
+
+function _encLairHtml() {
+  const cat = _omgCat;
+  const opt = (lijst, waarde, leeg = '—') => `<option value="">${leeg}</option>` +
+    lijst.map(v => `<option value="${esc(v)}"${v === waarde ? ' selected' : ''}>${esc(v)}</option>`).join('');
+  const presetOpts = (gekozen) => ['vijandig', 'gunstig'].map(soort => `
+    <optgroup label="${soort === 'vijandig' ? 'Tegen de party' : 'Voor de party'}">
+      ${(cat?.presets || []).filter(p => p.soort === soort).map(p =>
+        `<option value="${esc(p.id)}"${p.id === gekozen ? ' selected' : ''}>${esc(p.label)}</option>`).join('')}
+    </optgroup>`).join('');
+  const abs = Object.keys(cat?.abilities || {});
+  const rij = (r, i) => {
+    const p = _omgPreset(r.preset);
+    const gunstig = (r.soort || p.soort) === 'gunstig';
+    const veld = (pad, waarde, attrs = '') =>
+      `<input class="dm-input dm-input-sm" value="${esc(waarde ?? '')}" ${attrs}
+         oninput="window.dmPanel.encLairVeld(${i},'${pad}',this.value)">`;
+    const kies = (pad, html) => `<select class="dm-input dm-input-sm" onchange="window.dmPanel.encLairVeld(${i},'${pad}',this.value)">${html}</select>`;
+    const mech = gunstig ? `
+        <label>Temporary HP ${veld('gunst.thp', r.gunst?.thp, 'size="6" title="Een getal of een worp"')}</label>
+        <label>Genezing ${veld('gunst.heal', r.gunst?.heal, 'size="6" title="Een getal of een worp"')}</label>
+        <label>Conditie ${kies('gunst.conditie', opt(cat?.conditiesGunstig || [], r.gunst?.conditie))}</label>
+        ${r.gunst?.conditie === 'resistance' ? `<label>Tegen ${kies('gunst.resistance', opt(cat?.schadetypes || [], r.gunst?.resistance))}</label>` : ''}`
+      : `
+        <label>Saving Throw ${kies('save.ab', opt(abs, r.save?.ab))}</label>
+        ${r.save ? `<label>DC ${veld('save.dc', r.save?.dc, 'type="number" min="1" max="30" style="width:56px"')}</label>` : ''}
+        <label>Schade ${veld('schade.worp', r.schade?.worp, 'size="6" title="Een getal of een worp, zoals 2d6"')}</label>
+        ${r.schade ? `<label>${kies('schade.type', opt(cat?.schadetypes || [], r.schade?.type))}</label>
+          <label class="enc-lair-chk"><input type="checkbox" ${r.schade?.half ? 'checked' : ''}
+            onchange="window.dmPanel.encLairVeld(${i},'schade.half',this.checked)"> Half bij succes</label>` : ''}
+        <label>Conditie ${kies('conditie', opt(cat?.conditiesVijandig || [], r.conditie))}</label>`;
+    return `
+      <div class="enc-lair-regel enc-lair-regel--${gunstig ? 'gunstig' : 'vijandig'}">
+        <div class="enc-lair-top">
+          <span class="enc-lair-ic">${icon(p.icoon || 'hexagon')}</span>
+          <select class="dm-input dm-input-sm" onchange="window.dmPanel.encLairPreset(${i},this.value)">${presetOpts(r.preset)}</select>
+          <input class="dm-input dm-input-sm enc-lair-tekst" value="${esc(r.tekst || '')}" title="Wat er gebeurt — dit staat op tafel"
+            oninput="window.dmPanel.encLairVeld(${i},'tekst',this.value)">
+          <button class="dm-btn dm-btn-sm dm-btn-ghost dm-btn-icon" onclick="window.dmPanel.encLairWeg(${i})" title="Deze Lair Action weghalen">${icon('x')}</button>
+        </div>
+        <div class="enc-lair-mech">
+          ${mech}
+          ${r.preset === 'aftellen' ? `<label>Rondes ${veld('rondes', r.rondes, 'type="number" min="1" max="10" style="width:56px"')}</label>` : ''}
+        </div>
+      </div>`;
+  };
+  return `
+    <div class="dm-form-label enc-lair-kop">${icon('mountain')} Lair Actions</div>
+    <div class="enc-lair-lijst">${_encLair.map(rij).join('')}</div>
+    <button class="dm-btn dm-btn-sm dm-btn-ghost" style="margin-bottom:10px" onclick="window.dmPanel.encLairErbij()"
+      ${cat ? '' : 'disabled'}>${icon('plus')} Lair Action</button>`;
+}
+
+function _encLairErbij() {
+  const p = _omgPreset('aardbeving');
+  _encLair.push(_regelVanPreset(p));
+  _renderEncounterEditor();
+}
+function _regelVanPreset(p, tekst) {
+  const r = { preset: p.id, tekst: tekst ?? p.tekst ?? '', soort: p.soort };
+  if (p.soort === 'gunstig') r.gunst = _kopie(p.gunst || { thp: '', heal: '', conditie: null });
+  else Object.assign(r, { save: _kopie(p.save || null), schade: _kopie(p.schade || null), conditie: p.conditie || null });
+  if (p.rondes) r.rondes = p.rondes;
+  return r;
+}
+function _encLairPreset(i, id) {
+  const oud = _encLair[i]; if (!oud) return;
+  const was = _omgPreset(oud.preset), p = _omgPreset(id);
+  // Een tekst die je zelf schreef blijft staan; die van de vorige preset niet.
+  const eigenTekst = oud.tekst && oud.tekst !== was.tekst ? oud.tekst : undefined;
+  _encLair[i] = _regelVanPreset(p, eigenTekst);
+  _renderEncounterEditor();
+}
+function _encLairVeld(i, pad, v) {
+  const r = _encLair[i]; if (!r) return;
+  const [a, b] = pad.split('.');
+  if (!b) { r[a] = a === 'rondes' ? (parseInt(v) || 1) : v; return; }
+  if (a === 'save') {
+    if (b === 'ab' && !v) { r.save = null; return _renderEncounterEditor(); }
+    const nieuw = !r.save;
+    r.save = r.save || { ab: 'DEX', dc: 13 };
+    r.save[b] = b === 'dc' ? (parseInt(v) || 10) : v;
+    if (nieuw) _renderEncounterEditor();
+    return;
+  }
+  if (a === 'schade') {
+    if (b === 'worp' && !String(v).trim()) { r.schade = null; return; }
+    const nieuw = !r.schade;
+    r.schade = r.schade || { worp: '', type: 'bludgeoning', half: true };
+    r.schade[b] = b === 'half' ? !!v : v;
+    if (nieuw) _renderEncounterEditor();
+    return;
+  }
+  if (a === 'gunst') {
+    r.gunst = r.gunst || { thp: '', heal: '', conditie: null };
+    r.gunst[b] = v || (b === 'conditie' || b === 'resistance' ? null : '');
+    if (b === 'conditie') _renderEncounterEditor();
+  }
+}
+function _encLairWeg(i) { _encLair.splice(i, 1); _renderEncounterEditor(); }
+function _encOvergangKies(v) { _encOvergang = v || ''; }
 
 function _encCancel() {
   _editingEncId = null;
@@ -5073,7 +5198,8 @@ async function _encSave() {
     // De oude, losse buit blijft bewaard zolang er geen vondst gekoppeld is;
     // zo raakt een bestaand gevecht niets kwijt door één keer op te slaan.
     loot:         _encLootId ? null : _encLoot,
-    lair:         { regels: _encLair.split('\n').map(r => r.trim()).filter(Boolean) },
+    lair:         { regels: _encLair.filter(r => r.preset !== 'eigen' || (r.tekst || '').trim()) },
+    overgang:     _encOvergang || null,
   };
   try {
     if (_encIsNew) {

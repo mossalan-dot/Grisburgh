@@ -16,6 +16,7 @@ const briefCode = require('../lib/brief-code');
 const personageConcept = require('../lib/personage-concept');
 const crypto = require('crypto');
 const { DISPLAY_FX, fxVoor, fxBericht } = require('../lib/display-fx');
+const OMG = require('../lib/omgeving');
 const spotify = require('../lib/spotify');
 const config  = require('../config');
 
@@ -13234,12 +13235,18 @@ function _flushPlayerHpToDmState(combat, io, room) {
 // de DM nog niet gebruikte.
 
 // Lair Actions zijn tekst van de DM, één effect per regel.
+// Lair Actions: een lijst regels, elk een omgevingseffect (lib/omgeving.js).
+// Een kale tekst — de vorm van vóór de presets — wordt een `eigen` regel.
 function _lairUit(v) {
   const bron = Array.isArray(v?.regels) ? v.regels : Array.isArray(v) ? v
              : typeof v === 'string' ? v.split('\n') : [];
-  const regels = bron.map(r => String(r || '').trim().slice(0, 400)).filter(Boolean).slice(0, 12);
+  const regels = bron.map(OMG.regelUit).filter(Boolean).slice(0, 12);
   return regels.length ? { regels } : null;
 }
+
+// Hoe het tafelscherm een gevecht inluidt: een flits en dan een patroon dat
+// het beeld dichtzet. Leeg = willekeurig.
+const _OVERGANGEN = ['spiraal', 'balken', 'cirkel', 'scherven', 'vegen', 'geen'];
 
 function _regie(combat) {
   if (!combat.regie || typeof combat.regie !== 'object') combat.regie = {};
@@ -13277,7 +13284,8 @@ function _openingVoor(combat) {
     groep.set(naam, g);
   }
   const geluid = (storage.readJSON('sounds.json') || {}).momenten?.gevechtOpening || null;
-  return { party, vijanden: [...groep.values()], lair: !!combat.lair?.regels?.length, geluid, ts: Date.now() };
+  return { party, vijanden: [...groep.values()], lair: !!combat.lair?.regels?.length, geluid,
+    overgang: combat.overgang || null, ts: Date.now() };
 }
 
 // Is het nu de beurt van de lair? Initiative 20, en de lair verliest een
@@ -13331,7 +13339,7 @@ const _DOODSSTRIJD_LOG = {
 router.post('/combat/start', requireDM, (req, res) => {
   const existing = storage.readJSON('combat.json');
   const combatants = [...(existing.combatants || [])].sort((a, b) => b.initiative - a.initiative);
-  const combat = { active: true, round: 1, currentTurn: 0, combatants, encounterId: existing.encounterId || null, backdropId: existing.backdropId || null, canvasPreset: existing.canvasPreset || null, canvasColors: existing.canvasColors || null, lair: _lairUit(existing.lair), log: [],
+  const combat = { active: true, round: 1, currentTurn: 0, combatants, encounterId: existing.encounterId || null, backdropId: existing.backdropId || null, canvasPreset: existing.canvasPreset || null, canvasColors: existing.canvasColors || null, lair: _lairUit(existing.lair), overgang: existing.overgang || null, log: [],
     regie: { start: Date.now(), momenten: [], doodsstrijd: [] } };
   _combatLog(combat, 'Gevecht begonnen');
   if (combatants[0]) _combatLog(combat, `Beurt van ${combatants[0].name}`);
@@ -13502,7 +13510,9 @@ router.put('/combat', requireDM, (req, res) => {
     if (next) _combatLog(updated, `Beurt van ${next.name}`);
   }
   _lairCheck(updated, combat);
+  const _tik = _aftellenTik(updated, combat);
   storage.writeJSON('combat.json', updated);
+  if (_tik) _aftellenMeld(req, updated, _tik);
   _zendCombat(req, updated);
   res.json(updated);
 });
@@ -13744,7 +13754,8 @@ router.post('/combat/hwywtdt/antwoord', attachRole, (req, res) => {
   const annuleer = isDM && !!req.body?.annuleer;
   delete r.vraag;
   if (tekst) {
-    r.momenten.push({ soort: 'hwywtdt', speler: v.spelerNaam, doel: v.doelNaam, tekst, ronde: combat.round || 1 });
+    r.momenten.push({ soort: 'hwywtdt', speler: v.spelerNaam, doel: v.doelNaam, tekst, ronde: combat.round || 1,
+      spelerBeeld: v.spelerBeeld || null, doelBeeld: v.doelBeeld || null });
     _combatLog(combat, `${v.spelerNaam} geeft ${v.doelNaam} de genadeslag: ${tekst}`);
   }
   storage.writeJSON('combat.json', combat);
@@ -13760,6 +13771,9 @@ router.post('/combat/hwywtdt/antwoord', attachRole, (req, res) => {
 // De DM kiest welke Lair Action er gebeurt (of slaat hem over). Pas dan gaat
 // hij naar tafel. Dezelfde twee rondes achter elkaar mag niet volgens de
 // regels; de app zet het er alleen bij, de DM beslist.
+// Een regel met een Saving Throw, schade of iets gunstigs wordt een **effect**
+// dat de DM daarna afhandelt (zie "Omgevingseffecten" hieronder); een regel
+// met `rondes` begint een aftelling in plaats van meteen te gebeuren.
 router.post('/combat/lair', requireDM, (req, res) => {
   const combat = storage.readJSON('combat.json');
   const r = _regie(combat);
@@ -13767,20 +13781,264 @@ router.post('/combat/lair', requireDM, (req, res) => {
   const regels = combat.lair?.regels || [];
   if (req.body?.overslaan) {
     r.lairNu.gekozen = -1;
-  } else {
-    const i = parseInt(req.body?.index);
-    const eigen = String(req.body?.tekst || '').trim().slice(0, 400);
-    const tekst = eigen || regels[i];
-    if (!tekst) return res.status(400).json({ error: 'Kies een Lair Action' });
-    r.lairNu.gekozen = eigen ? -2 : i;
-    if (!eigen) r.lairVorige = i;
-    r.momenten.push({ soort: 'lair', tekst, ronde: combat.round || 1 });
-    _combatLog(combat, `Lair Action: ${tekst}`);
-    req.app.get('io')?.to(_displayRoom(req)).emit('gevecht:lair', { tekst, ronde: combat.round || 1 });
+    storage.writeJSON('combat.json', combat);
+    _zendCombat(req, combat);
+    return res.json({ ok: true });
   }
+  const i = parseInt(req.body?.index);
+  const eigen = String(req.body?.tekst || '').trim().slice(0, 400);
+  const regel = eigen ? OMG.regelUit(eigen) : regels[i] ? OMG.regelUit(regels[i]) : null;
+  if (!regel) return res.status(400).json({ error: 'Kies een Lair Action' });
+  r.lairNu.gekozen = eigen ? -2 : i;
+  if (!eigen) r.lairVorige = i;
   storage.writeJSON('combat.json', combat);
-  _zendCombat(req, combat);
-  res.json({ ok: true });
+  const uit = _omgevingStart(req, regel, 'lair');
+  res.json({ ok: true, ...uit });
+});
+
+// ── Omgevingseffecten ──────────────────────────────────────────────────────
+// Wat er gebeurt als een Lair Action (of een regieblok `[!omgeving]` in een
+// akte) iets dóét. Drie stappen:
+//  1. starten  — het tafelscherm toont het effect met de Saving Throw erbij,
+//                en de DM krijgt een lijstje doelen en een vooraf gerolde
+//                uitkomst (`dmState.omgevingEffect`);
+//  2. de tafel gooit; de DM tikt per doel aan wie slaagde;
+//  3. toepassen — schade (heel of half), condities, Temporary HP of genezing,
+//                op de tokens in een gevecht of op de HP van het blad
+//                daarbuiten; de uitslag komt op tafel.
+// Een regel met `rondes` begint eerst een aftelling (`combat.regie.aftellen`)
+// die elke nieuwe ronde één omlaag gaat; op nul start het effect alsnog.
+
+// Alleen naar de DM (en de tafelschermen: die zijn ook als DM ingelogd, en
+// negeren het). Een speler hoeft de gerolde schade niet vooraf te kennen.
+function _naarDM(req, ev, data) {
+  const io = req.app.get('io');
+  if (!io) return;
+  const cid = _campagneRoom(req);
+  for (const sock of io.sockets.sockets.values()) {
+    if (sock.rooms.has(cid) && sock.request?.session?.role === 'dm') sock.emit(ev, data);
+  }
+}
+
+// Wie het effect kan treffen. In een gevecht: alle deelnemers, met de eigen
+// kant aan en de monsters uit (bij een vijandig effect); daarbuiten de spelers
+// die vanavond aan tafel zitten.
+function _omgevingDoelen(regel) {
+  const combat = storage.readJSON('combat.json');
+  if (combat?.active) {
+    const monsters = storage.readJSON('monsters.json').monsters || [];
+    return { inGevecht: true, doelen: (combat.combatants || []).map(c => ({
+      id: c.id, naam: c.name, imageId: _portretVan(c, monsters), kant: c.type === 'monster' ? 'vijand' : 'eigen',
+      // Wie al neerligt staat bij een vijandig effect uit: schade op 0 HP is
+      // een death save, en die zet de DM met de hand.
+      aan: c.type !== 'monster' && !(regel.soort === 'vijandig' && (c.hp ?? 1) <= 0),
+    })) };
+  }
+  const dmState = readDmState();
+  const entities = storage.readJSON('entities.json');
+  const spelers = _aanwezigeSpelers(dmState, dmState.activeGroup, entities.personages);
+  return { inGevecht: false, doelen: spelers.map(p => ({ id: p.id, naam: p.name, imageId: p.id, kant: 'eigen', aan: true })) };
+}
+
+function _rolOf(formule) {
+  const r = formule ? _rolGenezing(formule) : null;
+  return r ? r.totaal : 0;
+}
+
+function _omgevingStart(req, regel, bron) {
+  const io = req.app.get('io');
+  const p = OMG.presetVoor(regel.preset);
+  const combat = storage.readJSON('combat.json');
+
+  // Een aftelling begint pas te tellen in een gevecht; daarbuiten gebeurt het meteen.
+  if (regel.rondes && combat?.active) {
+    const r = _regie(combat);
+    r.aftellen = { regel, over: regel.rondes, totaal: regel.rondes, bron };
+    _combatLog(combat, `${regel.tekst || p.label} — nog ${regel.rondes} ronde${regel.rondes === 1 ? '' : 'n'}`);
+    storage.writeJSON('combat.json', combat);
+    io?.to(_displayRoom(req)).emit('omgeving:aftellen', {
+      tekst: regel.tekst, preset: p.id, icoon: p.icoon, over: regel.rondes, totaal: regel.rondes, start: true,
+    });
+    _zendCombat(req, combat);
+    return { aftellen: regel.rondes };
+  }
+
+  const fx = p.fx ? fxBericht(p.fx) : null;
+  const toon = {
+    tekst: regel.tekst || p.label, preset: p.id, label: p.label, icoon: p.icoon, beeld: p.beeld || null,
+    soort: regel.soort, samenvatting: OMG.regelSamenvatting(regel), bron, fx,
+    ronde: combat?.active ? (combat.round || 1) : null,
+  };
+  io?.to(_displayRoom(req)).emit('gevecht:lair', toon);
+
+  if (combat?.active) {
+    _regie(combat).momenten.push({ soort: 'lair', tekst: regel.tekst || p.label, ronde: combat.round || 1 });
+    _combatLog(combat, `${bron === 'lair' ? 'Lair Action' : 'Omgeving'}: ${regel.tekst || p.label}`);
+    storage.writeJSON('combat.json', combat);
+    _zendCombat(req, combat);
+  }
+
+  if (!OMG.heeftMechaniek(regel)) return { effect: null };
+  const { inGevecht, doelen } = _omgevingDoelen(regel);
+  const g = regel.gunst || {};
+  const effect = {
+    id: 'om_' + Date.now().toString(36), regel, bron, inGevecht, ts: Date.now(),
+    label: p.label, icoon: p.icoon, samenvatting: toon.samenvatting,
+    doelen,
+    // Vooraf gerold, als voorstel: de DM mag het overtypen.
+    schade: regel.schade ? _rolOf(regel.schade.worp) : 0,
+    thp:    g.thp ? _rolOf(g.thp) : 0,
+    heal:   g.heal ? _rolOf(g.heal) : 0,
+  };
+  const dmState = readDmState();
+  dmState.omgevingEffect = effect;
+  storage.writeJSON('dm-state.json', dmState);
+  _naarDM(req, 'omgeving:effect', effect);
+  return { effect };
+}
+
+// Elke nieuwe ronde gaat een lopende aftelling één omlaag. Geeft terug wat er
+// gemeld moet worden, of null.
+function _aftellenTik(combat, vorige) {
+  const a = combat.regie?.aftellen;
+  if (!a || !combat.active) return null;
+  if (!((combat.round || 1) > (vorige?.round || 1))) return null;
+  a.over = Math.max(0, a.over - 1);
+  _combatLog(combat, a.over ? `${a.regel.tekst} — nog ${a.over}` : `${a.regel.tekst} — nu!`);
+  if (!a.over) delete combat.regie.aftellen;
+  return { ...a };
+}
+function _aftellenMeld(req, combat, a) {
+  const p = OMG.presetVoor(a.regel.preset);
+  req.app.get('io')?.to(_displayRoom(req)).emit('omgeving:aftellen', {
+    tekst: a.regel.tekst, preset: p.id, icoon: p.icoon, over: a.over, totaal: a.totaal,
+  });
+  if (!a.over) _omgevingStart(req, { ...a.regel, rondes: null }, a.bron);
+}
+
+router.get('/omgeving/presets', requireDM, (req, res) => {
+  res.json({
+    presets: OMG.PRESETS, abilities: OMG.ABILITIES, schadetypes: OMG.SCHADETYPES,
+    conditiesVijandig: OMG.CONDITIES_VIJANDIG, conditiesGunstig: OMG.CONDITIES_GUNSTIG,
+  });
+});
+
+router.get('/omgeving/effect', requireDM, (req, res) => {
+  res.json({ effect: readDmState().omgevingEffect || null });
+});
+
+// Een effect los starten: vanuit een regieblok in een akte, in of buiten een
+// gevecht. `{preset, tekst}` of een volledige regel.
+router.post('/omgeving/effect', requireDM, (req, res) => {
+  const regel = OMG.regelUit(req.body?.regel || { preset: req.body?.preset, ...(req.body?.tekst ? { tekst: req.body.tekst } : {}) });
+  if (!regel) return res.status(400).json({ error: 'Onbekend effect' });
+  res.json({ ok: true, ..._omgevingStart(req, regel, 'akte') });
+});
+
+// Het effect afhandelen. `uitslagen` = { doelId: 'mislukt' | 'geslaagd' | 'uit' }
+// (bij gunstig: 'aan' | 'uit'); `schade`, `thp`, `heal` zijn de getallen die
+// de DM overhield. `niets: true` sluit het af zonder iets toe te passen.
+router.post('/omgeving/effect/uitslag', requireDM, (req, res) => {
+  const dmState = readDmState();
+  const eff = dmState.omgevingEffect;
+  if (!eff || (req.body?.id && req.body.id !== eff.id)) return res.status(409).json({ error: 'Er staat geen effect open' });
+  delete dmState.omgevingEffect;
+  const io = req.app.get('io');
+  if (req.body?.niets) {
+    storage.writeJSON('dm-state.json', dmState);
+    _naarDM(req, 'omgeving:effect', null);
+    return res.json({ ok: true });
+  }
+  const regel = eff.regel;
+  const uitslagen = req.body?.uitslagen || {};
+  const getal = (v, standaard) => Math.max(0, Math.min(999, parseInt(v ?? standaard) || 0));
+  const schade = getal(req.body?.schade, eff.schade);
+  const thp = getal(req.body?.thp, eff.thp);
+  const heal = getal(req.body?.heal, eff.heal);
+  const g = regel.gunst || {};
+  const regels = [];
+
+  // Op wat is het toe te passen: een combatant of het blad van een speler.
+  const combat = storage.readJSON('combat.json');
+  const inGevecht = eff.inGevecht && combat?.active;
+  const strijd = [];
+  for (const d of eff.doelen) {
+    const u = uitslagen[d.id] || (d.aan ? (regel.soort === 'gunstig' ? 'aan' : 'mislukt') : 'uit');
+    if (u === 'uit') continue;
+    const regelUit = { naam: d.naam, imageId: d.imageId, uitkomst: u };
+    if (inGevecht) {
+      const c = (combat.combatants || []).find(x => x.id === d.id);
+      if (!c) continue;
+      const prev = { ...c, deathSaves: c.deathSaves ? { ...c.deathSaves } : undefined };
+      if (regel.soort === 'gunstig') {
+        if (thp) c.tempHp = Math.max(c.tempHp || 0, thp);
+        if (heal) c.hp = Math.min(c.maxHp || 999, (c.hp || 0) + heal);
+        if (g.conditie) c.conditions = [...new Set([...(c.conditions || []), g.conditie])];
+        if ((prev.hp || 0) <= 0 && (c.hp || 0) > 0) { c.deathSaves = { successes: 0, failures: 0 }; delete c.stabiel; }
+        Object.assign(regelUit, { thp, heal, conditie: g.conditie || null });
+      } else {
+        const geslaagd = u === 'geslaagd';
+        const dmg = !regel.schade ? 0 : geslaagd ? (regel.schade.half ? Math.floor(schade / 2) : 0) : schade;
+        if (dmg > 0) {
+          const temp = c.tempHp || 0, weg = Math.min(temp, dmg);
+          c.tempHp = temp - weg;
+          c.hp = Math.max(0, (c.hp || 0) - (dmg - weg));
+          if (c.type === 'player' && (prev.hp || 0) > 0 && c.hp <= 0) c.deathSaves = { successes: 0, failures: 0 };
+          _maybeConcentrationPrompt(combat, c, dmg - weg, dmState);
+        }
+        if (!geslaagd && regel.conditie) c.conditions = [...new Set([...(c.conditions || []), regel.conditie])];
+        Object.assign(regelUit, { schade: dmg, conditie: !geslaagd ? regel.conditie : null });
+      }
+      const s = _doodsstrijdUit(prev, c, { deathSaves: c.deathSaves });
+      if (s) {
+        _regie(combat).doodsstrijd.push({ naam: c.name, uitkomst: s, ronde: combat.round || 1 });
+        strijd.push({ id: c.id, naam: c.name, imageId: c.imageId || c.entityId || null, uitkomst: s,
+          successes: c.deathSaves?.successes || 0, failures: c.deathSaves?.failures || 0 });
+      }
+    } else {
+      // Buiten een gevecht: het blad. Condities hebben daar geen plek; die
+      // staan in de uitslag op tafel en de DM zet ze aan tafel.
+      if (!dmState.playerHp) dmState.playerHp = {};
+      const hp = dmState.playerHp[d.id] || { current: null, max: null, temp: 0 };
+      if (regel.soort === 'gunstig') {
+        if (thp) hp.temp = Math.max(hp.temp || 0, thp);
+        if (heal && hp.current != null) hp.current = Math.min(hp.max ?? 999, hp.current + heal);
+        Object.assign(regelUit, { thp, heal, conditie: g.conditie || null });
+      } else {
+        const geslaagd = u === 'geslaagd';
+        const dmg = !regel.schade ? 0 : geslaagd ? (regel.schade.half ? Math.floor(schade / 2) : 0) : schade;
+        if (dmg > 0) {
+          const weg = Math.min(hp.temp || 0, dmg);
+          hp.temp = (hp.temp || 0) - weg;
+          if (hp.current != null) hp.current = Math.max(0, hp.current - (dmg - weg));
+        }
+        Object.assign(regelUit, { schade: dmg, conditie: !geslaagd ? regel.conditie : null });
+      }
+      dmState.playerHp[d.id] = hp;
+      io?.to(_campagneRoom(req)).emit('player:hp-updated', { characterId: d.id, ...hp });
+    }
+    regels.push(regelUit);
+  }
+
+  if (inGevecht) {
+    _combatLog(combat, `${regel.tekst || eff.label}: ` + regels.map(r =>
+      `${r.naam} ${r.schade ? '−' + r.schade : r.thp ? '+' + r.thp + ' THP' : r.heal ? '+' + r.heal : r.uitkomst}`).join(', '));
+    // Raakt het effect het laatste monster, dan is het gevecht gewonnen.
+    const mon = combat.combatants.filter(c => c.type === 'monster');
+    if (!combat.winner && mon.length && mon.every(c => (c.hp || 0) <= 0)) combat.winner = 'players';
+    storage.writeJSON('combat.json', combat);
+    storage.writeJSON('dm-state.json', dmState);
+    _flushPlayerHpToDmState(combat, io, _campagneRoom(req));
+    _zendCombat(req, combat);
+  } else {
+    storage.writeJSON('dm-state.json', dmState);
+  }
+  io?.to(_displayRoom(req)).emit('omgeving:uitslag', {
+    tekst: regel.tekst || eff.label, icoon: eff.icoon, soort: regel.soort, regels,
+  });
+  for (const s of strijd) io?.to(_displayRoom(req)).emit('gevecht:doodsstrijd', s);
+  _naarDM(req, 'omgeving:effect', null);
+  res.json({ ok: true, regels });
 });
 
 // Het voorstel ("Goblin valt — vraag het Wilmer?") wegklikken.
@@ -19706,6 +19964,7 @@ router.post('/encounters', requireDM, (req, res) => {
     dungeonId:    req.body.dungeonId    || null,
     roomId:       req.body.roomId       || null,
     lair:         _lairUit(req.body.lair),
+    overgang:     _OVERGANGEN.includes(req.body.overgang) ? req.body.overgang : null,
   };
   data.encounters.push(enc);
   storage.writeJSON('encounters.json', data);
@@ -19718,6 +19977,7 @@ router.put('/encounters/:id', requireDM, (req, res) => {
   if (idx === -1) return res.status(404).json({ error: 'Niet gevonden' });
   data.encounters[idx] = { ...data.encounters[idx], ...req.body, id: req.params.id };
   if (req.body.lair !== undefined) data.encounters[idx].lair = _lairUit(req.body.lair);
+  if (req.body.overgang !== undefined) data.encounters[idx].overgang = _OVERGANGEN.includes(req.body.overgang) ? req.body.overgang : null;
   storage.writeJSON('encounters.json', data);
   res.json(data.encounters[idx]);
 });
@@ -19835,6 +20095,7 @@ router.post('/encounters/:id/start', requireDM, (req, res) => {
     canvasPreset: enc.canvasPreset || null,
     canvasColors: enc.canvasColors || null,
     lair:         _lairUit(enc.lair),
+    overgang:     enc.overgang || null,
     log:          [`Encounter geladen: ${enc.name}`,
                    ...(uitgerold.length ? [`HP uitgerold — ${uitgerold.join(', ')}`] : [])],
   };

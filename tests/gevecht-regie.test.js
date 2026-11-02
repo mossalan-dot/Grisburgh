@@ -93,8 +93,9 @@ describe('Gevechtsregie', () => {
 
   it('bewaart Lair Actions als regels, zonder lege', async () => {
     const lijst = (await req(server, 'GET', '/api/encounters', null, dm)).body;
-    assert.deepStrictEqual(lijst.find(e => e.id === encId).lair.regels,
-      ['Het water stijgt tot de knieën', 'Stenen vallen van het plafond']);
+    // Een kale tekst (de vorm van vóór de presets) wordt een `eigen` regel.
+    assert.deepStrictEqual(lijst.find(e => e.id === encId).lair.regels.map(r => [r.preset, r.tekst]),
+      [['eigen', 'Het water stijgt tot de knieën'], ['eigen', 'Stenen vallen van het plafond']]);
   });
 
   it('de opening gaat naar het tafelscherm, met beide kanten en zonder de encounternaam', async () => {
@@ -134,7 +135,9 @@ describe('Gevechtsregie', () => {
     const tafelWacht = waitFor(tafel, 'gevecht:lair');
     const r = await req(server, 'POST', '/api/combat/lair', { index: 1 }, dm);
     assert.strictEqual(r.status, 200);
-    assert.strictEqual((await tafelWacht)?.tekst, 'Stenen vallen van het plafond');
+    const kaart = await tafelWacht;
+    assert.strictEqual(kaart?.tekst, 'Stenen vallen van het plafond');
+    assert.strictEqual(kaart?.bron, 'lair');
     // nog een beurtwissel in dezelfde ronde: geen tweede lair
     await req(server, 'PUT', '/api/combat', { currentTurn: 2, round: 1 }, dm);
     combat = (await req(server, 'GET', '/api/combat', null, dm)).body;
@@ -231,5 +234,161 @@ describe('Gevechtsregie', () => {
     assert.match(a.momenten[0].tekst, /schild/);
     assert.ok(a.doodsstrijd.some(d => d.uitkomst === 'op' && d.nat20));
     assert.strictEqual(a.lair, 1);
+  });
+});
+
+describe('Omgevingseffecten', () => {
+  let server, io, port, dm, a, b, aCookie, tafel, dmSock, encId;
+  const cid = {};
+
+  before(async () => {
+    const DIR = DATA_DIR + '-omg';
+    process.env.GRISBURGH_DATA_DIR = DIR;
+    if (fs.existsSync(DIR)) fs.rmSync(DIR, { recursive: true, force: true });
+    for (const m of ['../server', '../lib/storage', '../routes/api', '../routes/auth']) delete require.cache[require.resolve(m)];
+    const mod = require('../server');
+    server = mod.server; io = mod.io;
+    await new Promise(r => server.listen(0, r));
+    port = server.address().port;
+    dm = (await req(server, 'POST', '/api/auth/login', { campagne: 'grisburgh', password: 'grisburgh-dm' })).cookie;
+    const maak = async (name) => (await req(server, 'POST', '/api/entities/personages',
+      { name, subtype: 'speler', data: { groep: 'groep1' }, stats: { hp: 30 } }, dm)).body.id;
+    a = await maak('Wilmer Vlasbaard');
+    b = await maak('Rozemarijn Doorn');
+    const groups = (await req(server, 'GET', '/api/groups', null, dm)).body.groups || [];
+    const pw = groups.find(g => g.id === 'groep1')?.password;
+    aCookie = (await req(server, 'POST', '/api/auth/player-login', { campagne: 'grisburgh', characterId: a, password: pw })).cookie;
+    tafel = await connect(port, dm);
+    tafel.emit('display:register');
+    dmSock = await connect(port, dm);
+    await new Promise(r => setTimeout(r, 150));
+    const enc = await req(server, 'POST', '/api/encounters', {
+      name: 'De tempel', overgang: 'spiraal',
+      monsters: [{ name: 'Wight', count: 1, initiative: 5, hp: 40 }],
+      lair: { regels: [
+        { preset: 'aardbeving' },
+        { preset: 'heilig-licht', gunst: { thp: '6', heal: '', conditie: null } },
+        { preset: 'aftellen', rondes: 2, schade: { worp: '10', type: 'fire', half: true } },
+      ] },
+    }, dm);
+    encId = enc.body.id;
+  });
+
+  after(async () => {
+    for (const s of [tafel, dmSock]) s?.close();
+    await io.close();
+    await new Promise(r => server.close(r));
+    fs.rmSync(DATA_DIR + '-omg', { recursive: true, force: true });
+  });
+
+  it('een preset wordt bij het opslaan volledig ingevuld', async () => {
+    const enc = (await req(server, 'GET', '/api/encounters', null, dm)).body.find(e => e.id === encId);
+    const [beving, licht, lont] = enc.lair.regels;
+    assert.deepStrictEqual(beving.save, { ab: 'DEX', dc: 15 });
+    assert.strictEqual(beving.conditie, 'prone');
+    assert.strictEqual(licht.soort, 'gunstig');
+    assert.strictEqual(licht.gunst.thp, '6');
+    assert.strictEqual(lont.rondes, 2);
+    assert.strictEqual(enc.overgang, 'spiraal');
+  });
+
+  it('de opening draagt de overgang mee', async () => {
+    await req(server, 'POST', `/api/encounters/${encId}/start`, {}, dm);
+    const combat = (await req(server, 'GET', '/api/combat', null, dm)).body;
+    for (const c of combat.combatants) cid[c.entityId || c.name] = c.id;
+    // iedereen boven de 20, zodat de lair aan het eind van de ronde komt
+    await req(server, 'PUT', `/api/combat/combatant/${cid[a]}`, { initiative: 22, hp: 30, maxHp: 30 }, dm);
+    await req(server, 'PUT', `/api/combat/combatant/${cid[b]}`, { initiative: 21, hp: 30, maxHp: 30 }, dm);
+    const w = waitFor(tafel, 'gevecht:opening');
+    await req(server, 'POST', '/api/combat/start', {}, dm);
+    assert.strictEqual((await w)?.overgang, 'spiraal');
+  });
+
+  it('een Lair Action met een Saving Throw opent een effect bij de DM, niet bij de speler', async () => {
+    const spelerSock = await connect(port, aCookie);
+    const bijSpeler = waitFor(spelerSock, 'omgeving:effect', 500);
+    await req(server, 'PUT', '/api/combat', { currentTurn: 2, round: 1 }, dm);
+    const bijDm = waitFor(dmSock, 'omgeving:effect');
+    const kaart = waitFor(tafel, 'gevecht:lair');
+    await req(server, 'POST', '/api/combat/lair', { index: 0 }, dm);
+    const k = await kaart;
+    assert.match(k.samenvatting, /DC 15 Dexterity Saving Throw/);
+    assert.strictEqual(k.fx?.effect, 'aardbeving');
+    const eff = await bijDm;
+    assert.ok(eff?.id);
+    assert.ok(eff.schade >= 2 && eff.schade <= 12, 'de schade is vooraf gerold');
+    assert.deepStrictEqual(eff.doelen.filter(d => d.aan).map(d => d.naam).sort(), ['Rozemarijn Doorn', 'Wilmer Vlasbaard']);
+    assert.strictEqual(await bijSpeler, null);
+    spelerSock.close();
+  });
+
+  it('afhandelen: wie faalt krijgt de schade en de conditie, wie slaagt niets', async () => {
+    const eff = (await req(server, 'GET', '/api/omgeving/effect', null, dm)).body.effect;
+    const w = waitFor(tafel, 'omgeving:uitslag');
+    const r = await req(server, 'POST', '/api/omgeving/effect/uitslag', {
+      id: eff.id, schade: 8, uitslagen: { [cid[a]]: 'mislukt', [cid[b]]: 'geslaagd' },
+    }, dm);
+    assert.strictEqual(r.status, 200);
+    const combat = (await req(server, 'GET', '/api/combat', null, dm)).body;
+    const ca = combat.combatants.find(c => c.id === cid[a]);
+    const cb = combat.combatants.find(c => c.id === cid[b]);
+    assert.strictEqual(ca.hp, 22);
+    assert.ok(ca.conditions.includes('prone'));
+    assert.strictEqual(cb.hp, 30, 'aardbeving doet niets bij een geslaagde worp (geen half)');
+    assert.ok(!(cb.conditions || []).includes('prone'));
+    const u = await w;
+    assert.strictEqual(u.regels.find(x => x.naam === 'Wilmer Vlasbaard').schade, 8);
+    assert.strictEqual((await req(server, 'GET', '/api/omgeving/effect', null, dm)).body.effect, null);
+  });
+
+  it('een gunstig effect geeft Temporary HP aan wie erin staat', async () => {
+    await req(server, 'PUT', '/api/combat', { currentTurn: 0, round: 2 }, dm);
+    await req(server, 'PUT', '/api/combat', { currentTurn: 2, round: 2 }, dm);
+    await req(server, 'POST', '/api/combat/lair', { index: 1 }, dm);
+    const eff = (await req(server, 'GET', '/api/omgeving/effect', null, dm)).body.effect;
+    assert.strictEqual(eff.thp, 6);
+    await req(server, 'POST', '/api/omgeving/effect/uitslag', { id: eff.id, uitslagen: { [cid[b]]: 'uit' } }, dm);
+    const combat = (await req(server, 'GET', '/api/combat', null, dm)).body;
+    assert.strictEqual(combat.combatants.find(c => c.id === cid[a]).tempHp, 6);
+    assert.ok(!combat.combatants.find(c => c.id === cid[b]).tempHp);
+  });
+
+  it('een aftelling telt per ronde af en gaat op nul af', async () => {
+    await req(server, 'PUT', '/api/combat', { currentTurn: 0, round: 3 }, dm);
+    await req(server, 'PUT', '/api/combat', { currentTurn: 2, round: 3 }, dm);
+    const start = waitFor(tafel, 'omgeving:aftellen');
+    await req(server, 'POST', '/api/combat/lair', { index: 2 }, dm);
+    assert.strictEqual((await start)?.over, 2);
+    assert.strictEqual((await req(server, 'GET', '/api/omgeving/effect', null, dm)).body.effect, null, 'nog geen effect');
+    let tik = waitFor(tafel, 'omgeving:aftellen');
+    await req(server, 'PUT', '/api/combat', { currentTurn: 0, round: 4 }, dm);
+    assert.strictEqual((await tik)?.over, 1);
+    tik = waitFor(tafel, 'omgeving:aftellen');
+    const boem = waitFor(tafel, 'gevecht:lair');
+    await req(server, 'PUT', '/api/combat', { currentTurn: 0, round: 5 }, dm);
+    assert.strictEqual((await tik)?.over, 0);
+    assert.ok(await boem, 'op nul gaat het effect af');
+    const eff = (await req(server, 'GET', '/api/omgeving/effect', null, dm)).body.effect;
+    assert.strictEqual(eff.schade, 10);
+    await req(server, 'POST', '/api/omgeving/effect/uitslag', { id: eff.id, niets: true }, dm);
+  });
+
+  it('buiten een gevecht treft een effect uit een akte het blad van de spelers', async () => {
+    await req(server, 'DELETE', '/api/combat', null, dm);
+    const r = await req(server, 'POST', '/api/omgeving/effect', { preset: 'vuur' }, dm);
+    assert.strictEqual(r.status, 200);
+    const eff = r.body.effect;
+    assert.strictEqual(eff.inGevecht, false);
+    assert.deepStrictEqual(eff.doelen.map(d => d.id).sort(), [a, b].sort());
+    await req(server, 'POST', '/api/omgeving/effect/uitslag', { id: eff.id, schade: 6, uitslagen: { [a]: 'mislukt', [b]: 'geslaagd' } }, dm);
+    const hp = (await req(server, 'GET', `/api/player-hp/${a}`, null, dm)).body;
+    const hpB = (await req(server, 'GET', `/api/player-hp/${b}`, null, dm)).body;
+    assert.strictEqual((hp.current ?? hp.hp?.current), 16, 'vol mislukt: 22 − 6');
+    assert.strictEqual((hpB.current ?? hpB.hp?.current), 27, 'half bij succes: 30 − 3');
+  });
+
+  it('een speler kan geen effect starten of afhandelen', async () => {
+    assert.strictEqual((await req(server, 'POST', '/api/omgeving/effect', { preset: 'vuur' }, aCookie)).status, 403);
+    assert.strictEqual((await req(server, 'POST', '/api/omgeving/effect/uitslag', { niets: true }, aCookie)).status, 403);
   });
 });

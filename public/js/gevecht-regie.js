@@ -14,7 +14,7 @@
 // Wat er gebeurt beslist de server (routes/api.js, zoek op "Gevechtsregie");
 // dit bestand tekent alleen. Side-effect import in app.js, net als rage.js.
 
-import { api } from './api.js?v=318';
+import { api } from './api.js?v=319';
 
 const ic = (n, o) => window.icon?.(n, o) || '';
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, c =>
@@ -84,8 +84,55 @@ let _rij = Promise.resolve();
 function _inRij(fn) { _rij = _rij.then(fn).catch(() => {}); return _rij; }
 
 // ── 1. De opening ────────────────────────────────────────────────────────────
+// ── 0. De overgang ───────────────────────────────────────────────────────────
+// Voordat het gevecht er staat: drie witte flitsen en dan een patroon dat het
+// beeld dichtzet — de klassieke sprong van rondlopen naar vechten. Het beeld is
+// een raster van tegels; elk patroon is niets anders dan een volgorde waarin ze
+// zwart worden (`--d` per tegel). Zo kost een nieuw patroon één functie.
+const _PATRONEN = {
+  spiraal: (K, R) => {            // van de rand naar binnen, met de klok mee
+    const volg = new Array(K * R); let n = 0;
+    let t = 0, b = R - 1, l = 0, r = K - 1;
+    while (t <= b && l <= r) {
+      for (let c = l; c <= r; c++) volg[t * K + c] = n++;
+      for (let y = t + 1; y <= b; y++) volg[y * K + r] = n++;
+      if (t < b) for (let c = r - 1; c >= l; c--) volg[b * K + c] = n++;
+      if (l < r) for (let y = b - 1; y > t; y--) volg[y * K + l] = n++;
+      t++; b--; l++; r--;
+    }
+    return volg.map(v => v / n);
+  },
+  balken: (K, R) => Array.from({ length: K * R }, (_, i) => {
+    const y = Math.floor(i / K), x = i % K;            // om en om van links en rechts
+    return ((y % 2 ? K - 1 - x : x) / K) * 0.85 + (y / R) * 0.15;
+  }),
+  cirkel: (K, R) => {
+    const cx = (K - 1) / 2, cy = (R - 1) / 2, max = Math.hypot(cx, cy);
+    return Array.from({ length: K * R }, (_, i) => 1 - Math.hypot(i % K - cx, Math.floor(i / K) - cy) / max);
+  },
+  scherven: (K, R) => Array.from({ length: K * R }, () => Math.random()),
+  vegen: (K, R) => Array.from({ length: K * R }, (_, i) => ((i % K) + Math.floor(i / K)) / (K + R - 2)),
+};
+
+async function _overgang(soort) {
+  if (soort === 'geen' || RUSTIG()) return null;
+  const namen = Object.keys(_PATRONEN);
+  const patroon = _PATRONEN[soort] ? soort : namen[Math.floor(Math.random() * namen.length)];
+  const K = 16, R = 9;
+  const volg = _PATRONEN[patroon](K, R);
+  const el = _laag('gr-overgang', `gr-overgang gr-overgang--${patroon}`);
+  el.innerHTML = `<div class="gr-ov-flits"></div>
+    <div class="gr-ov-raster" style="--k:${K};--r:${R}">
+      ${volg.map(v => `<i style="--d:${Math.round(v * 900)}ms"></i>`).join('')}
+    </div>`;
+  klank('overgang');
+  await wacht(1700);
+  return el;
+}
+
 async function opening(d = {}) {
   if (!isTafel()) return;
+  const dicht = await _overgang(d.overgang);
   const party = (d.party || []).slice(0, 8);
   const vijanden = d.vijanden || [];
   const zicht = vijanden.slice(0, 6);
@@ -114,6 +161,8 @@ async function opening(d = {}) {
   let klaar = false;
   const sluit = () => { if (klaar) return; klaar = true; _weg(el, 1100); };
   el.addEventListener('click', sluit);
+  // De zwarte tegels blijven liggen tot de opening eroverheen ligt.
+  if (dicht) setTimeout(() => _weg(dicht, 600), 700);
   if (!_bestand(d.geluid)) klank('opening');
   await wacht(2300);
   if (!klaar) klank('vs');
@@ -121,23 +170,91 @@ async function opening(d = {}) {
   sluit();
 }
 
-// ── 2. Lair Action ───────────────────────────────────────────────────────────
+// ── 2. Lair Action en omgeving ───────────────────────────────────────────────
+// Een kaart met wat er gebeurt, de Saving Throw die de tafel moet gooien, en
+// het beeld erbij: een effect uit de tafelscherm-catalogus (bliksem, vuur,
+// gif…) of iets eigens (stijgend water). Een gunstig effect beeft niet.
+let _fxAan = false;
 function lair(d = {}) {
   if (!isTafel() || !d.tekst) return;
   _inRij(async () => {
-    const el = _laag('gr-lair', 'gr-lair');
+    const gunstig = d.soort === 'gunstig';
+    const kop = d.bron === 'akte' ? (d.label || 'Omgeving') : 'Lair Action';
+    const el = _laag('gr-lair', `gr-lair${gunstig ? ' gr-lair--gunstig' : ''}`);
     el.innerHTML = `
+      ${d.beeld === 'water' ? '<div class="gr-water"><i></i><i></i></div>' : ''}
       <div class="gr-lair-kaart">
-        <div class="gr-lair-kop">${ic('mountain')} Lair Action <span class="gr-lair-init">initiative 20</span></div>
+        <div class="gr-lair-kop">${ic(d.icoon || 'mountain')} ${esc(kop)}
+          ${d.bron === 'lair' || !d.bron ? '<span class="gr-lair-init">initiative 20</span>' : ''}</div>
         <div class="gr-lair-tekst">${esc(d.tekst)}</div>
+        ${d.samenvatting ? `<div class="gr-lair-save">${esc(d.samenvatting)}</div>` : ''}
       </div>`;
-    document.body.classList.add('gr-beving');
-    klank('lair');
-    setTimeout(() => document.body.classList.remove('gr-beving'), 1300);
+    if (d.fx && window._displayEffect) { window._displayEffect(d.fx); _fxAan = d.fx.soort === 'toestand'; }
+    if (!gunstig) {
+      document.body.classList.add('gr-beving');
+      setTimeout(() => document.body.classList.remove('gr-beving'), 1300);
+    }
+    klank(gunstig ? 'stabiel' : 'lair');
     el.addEventListener('click', () => _weg(el));
-    await wacht(5200 + Math.min(4000, d.tekst.length * 40));
+    await wacht((d.samenvatting ? 7800 : 5200) + Math.min(4000, d.tekst.length * 40));
     _weg(el, 800);
     await wacht(500);
+  });
+}
+
+// De uitslag van een effect: per doel wat het hem deed. Wie geraakt is schudt,
+// wie ontsnapte staat er rustig bij.
+function uitslag(d = {}) {
+  if (!isTafel()) return;
+  _inRij(async () => {
+    const gunstig = d.soort === 'gunstig';
+    const label = (r) => {
+      const c = r.conditie ? ' · ' + r.conditie[0].toUpperCase() + r.conditie.slice(1) : '';
+      if (gunstig) return [r.thp ? `+${r.thp} Temporary HP` : '', r.heal ? `+${r.heal} HP` : '', c.slice(3)].filter(Boolean).join(' · ') || 'gesterkt';
+      if (r.schade) return `−${r.schade}${r.uitkomst === 'geslaagd' ? ' (half)' : ''}${c}`;
+      return r.uitkomst === 'geslaagd' ? 'ontsnapt' : (c.slice(3) || 'geraakt');
+    };
+    const el = _laag('gr-uitslag', `gr-uitslag${gunstig ? ' gr-uitslag--gunstig' : ''}`);
+    el.innerHTML = `
+      <div class="gr-uitslag-kaart">
+        <div class="gr-uitslag-kop">${ic(d.icoon || 'mountain')} ${esc(d.tekst || '')}</div>
+        <div class="gr-uitslag-rij">
+          ${(d.regels || []).map((r, i) => {
+            const geraakt = !gunstig && (r.schade || r.conditie);
+            return `<div class="gr-uitslag-lid${geraakt ? ' is-geraakt' : ''}${gunstig ? ' is-gesterkt' : ''}" style="--i:${i}">
+              ${_portret(r.imageId, 'gr-portret--klein')}
+              <span class="gr-uitslag-naam">${esc(r.naam)}</span>
+              <span class="gr-uitslag-wat">${esc(label(r))}</span></div>`;
+          }).join('')}
+        </div>
+      </div>`;
+    if (_fxAan && window._displayEffect) { window._displayEffect({ effect: 'uit', soort: 'uit' }); _fxAan = false; }
+    klank(gunstig ? 'succes' : 'slag');
+    el.addEventListener('click', () => _weg(el));
+    await wacht(5200 + (d.regels || []).length * 300);
+    _weg(el, 800);
+    await wacht(400);
+  });
+}
+
+// Een aftelling: een penning rechtsboven die blijft staan, en bij elke nieuwe
+// ronde een groot getal in het midden.
+function aftellen(d = {}) {
+  if (!isTafel()) return;
+  const weg = () => _weg(document.getElementById('gr-aftellen'), 600);
+  if (!d.over) { weg(); return; }
+  const el = document.getElementById('gr-aftellen') || _laag('gr-aftellen', 'gr-aftellen');
+  el.innerHTML = `
+    <span class="gr-af-ring" style="--deel:${(d.over / (d.totaal || d.over)) * 100}%">
+      <span class="gr-af-getal">${d.over}</span></span>
+    <span class="gr-af-label">${ic(d.icoon || 'hourglass')} ${esc(d.tekst || '')}</span>`;
+  _inRij(async () => {
+    const groot = _laag('gr-aftel-groot', 'gr-aftel-groot');
+    groot.innerHTML = `<span>${d.over}</span><small>${esc(d.start ? d.tekst || '' : d.over === 1 ? 'nog één ronde' : `nog ${d.over} rondes`)}</small>`;
+    klank('tik');
+    await wacht(2400);
+    _weg(groot, 600);
+    await wacht(300);
   });
 }
 
@@ -331,14 +448,18 @@ async function afloop(d = {}) {
 // Hertekend uit `combat.regie` (die alleen de DM krijgt) — maar alleen als er
 // iets verandert, anders wist een gevechtsupdate wat hij aan het typen is.
 let _dmSig = '';
+let _laatsteCombat = null;
+let _effect = null;              // het omgevingseffect dat nog afgehandeld moet worden
+let _effUit = {};                // per doel de keuze van de DM
 function _dmPaneel(combat) {
   if (!isDM() || isTafel()) return;
+  _laatsteCombat = combat;
   const r = combat?.active ? (combat.regie || {}) : {};
   const ronde = combat?.round || 1;
   const spelers = (combat?.combatants || []).filter(c => c.type === 'player' && c.entityId);
   const voorstel = !r.vraag && r.voorstel && (Date.now() - r.voorstel.ts) < 180000 ? r.voorstel : null;
   const lairNu = r.lairNu && r.lairNu.ronde === ronde && r.lairNu.gekozen == null ? r.lairNu : null;
-  const sig = JSON.stringify([voorstel?.ts, r.vraag?.id, lairNu?.ts, spelers.map(s => s.entityId)]);
+  const sig = JSON.stringify([voorstel?.ts, r.vraag?.id, lairNu?.ts, spelers.map(s => s.entityId), _effect?.id]);
   if (sig === _dmSig) return;
   _dmSig = sig;
   const delen = [];
@@ -365,13 +486,19 @@ function _dmPaneel(combat) {
         <button class="dm-btn dm-btn-ghost dm-btn-sm" onclick="window._gevechtRegie.dmVoorstelWeg()" title="Niet nu">${ic('x')}</button>
       </div></div>`);
   }
-  if (lairNu) {
+  if (_effect) delen.push(_effectDeel(_effect));
+  if (lairNu && !_effect) {
     const regels = combat.lair?.regels || [];
     delen.push(`<div class="gr-dm-deel">
       <div class="gr-dm-kop">${ic('mountain')} Lair Action — initiative 20</div>
       <div class="gr-dm-lair">
-        ${regels.map((t, i) => `<button class="gr-dm-lair-knop" onclick="window._gevechtRegie.dmLair(${i})">
-          ${esc(t)}${i === r.lairVorige ? `<span class="gr-dm-tag" title="Dezelfde Lair Action mag niet twee rondes achter elkaar">vorige ronde</span>` : ''}</button>`).join('')}
+        ${regels.map((t, i) => {
+          const regel = typeof t === 'string' ? { tekst: t } : t;
+          return `<button class="gr-dm-lair-knop${regel.soort === 'gunstig' ? ' is-gunstig' : ''}" onclick="window._gevechtRegie.dmLair(${i})">
+            ${ic(_PRESET_ICOON[regel.preset] || 'mountain')} <span>${esc(regel.tekst || regel.preset || '')}</span>
+            ${regel.rondes ? `<span class="gr-dm-tag">aftellen: ${regel.rondes}</span>` : ''}
+            ${i === r.lairVorige ? `<span class="gr-dm-tag" title="Dezelfde Lair Action mag niet twee rondes achter elkaar">vorige ronde</span>` : ''}</button>`;
+        }).join('')}
       </div>
       <div class="gr-dm-knoppen">
         <button class="dm-btn dm-btn-ghost dm-btn-sm" onclick="window._gevechtRegie.dmLair(-1)">Overslaan</button>
@@ -381,6 +508,68 @@ function _dmPaneel(combat) {
   if (!delen.length) { el?.remove(); return; }
   const paneel = el || _laag('gr-dm', 'gr-dm');
   paneel.innerHTML = delen.join('');
+}
+
+// Het icoon per preset, voor de knoppen; de catalogus zelf staat op de server.
+const _PRESET_ICOON = {
+  aardbeving: 'mountain', storm: 'cloud-lightning', water: 'waves', aftellen: 'hourglass', vuur: 'flame',
+  gifnevel: 'biohazard', stenen: 'brick-wall', vrieskou: 'snowflake', fluistering: 'ear', duisternis: 'moon',
+  'heilig-licht': 'sparkles', bron: 'droplets', altaar: 'shield-check', zegen: 'sparkle', eigen: 'hexagon',
+};
+
+// Een effect afhandelen. De tafel gooit; jij tikt per doel aan wat er gebeurde.
+// De getallen zijn vooraf gerold en mag je overtypen.
+function _effectDeel(e) {
+  const gunstig = e.regel?.soort === 'gunstig';
+  const keuzes = gunstig ? [['aan', 'Wel'], ['uit', 'Niet']]
+    : e.regel?.save ? [['mislukt', 'Mislukt'], ['geslaagd', 'Geslaagd'], ['uit', 'Niet geraakt']]
+    : [['mislukt', 'Geraakt'], ['uit', 'Niet geraakt']];
+  const standaard = (d) => d.aan ? (gunstig ? 'aan' : 'mislukt') : 'uit';
+  for (const d of e.doelen) if (!_effUit[d.id]) _effUit[d.id] = standaard(d);
+  const g = e.regel?.gunst || {};
+  const veld = (id, lbl, waarde) => `<label class="gr-dm-getal">${lbl}
+    <input id="${id}" class="dm-input dm-input-sm" type="number" min="0" value="${waarde}"></label>`;
+  return `<div class="gr-dm-deel gr-dm-deel--effect${gunstig ? ' is-gunstig' : ''}">
+    <div class="gr-dm-kop">${ic(e.icoon || 'mountain')} ${esc(e.regel?.tekst || e.label)}</div>
+    ${e.samenvatting ? `<div class="gr-dm-regel">${esc(e.samenvatting)}</div>` : ''}
+    <div class="gr-dm-doelen">
+      ${e.doelen.map(d => `<div class="gr-dm-doel${d.kant === 'vijand' ? ' is-vijand' : ''}" data-doel="${esc(d.id)}">
+        <span class="gr-dm-doel-naam">${esc(d.naam)}</span>
+        <span class="gr-dm-seg">${keuzes.map(([v, l]) => `<button class="${_effUit[d.id] === v ? 'is-aan' : ''}"
+          onclick="window._gevechtRegie.dmEffKies('${esc(d.id)}','${v}',this)">${l}</button>`).join('')}</span>
+      </div>`).join('')}
+    </div>
+    <div class="gr-dm-knoppen">
+      ${e.regel?.schade ? veld('gr-eff-schade', `Schade (${esc(e.regel.schade.worp)})`, e.schade) : ''}
+      ${g.thp ? veld('gr-eff-thp', `Temporary HP (${esc(g.thp)})`, e.thp) : ''}
+      ${g.heal ? veld('gr-eff-heal', `Genezing (${esc(g.heal)})`, e.heal) : ''}
+    </div>
+    <div class="gr-dm-knoppen">
+      <button class="dm-btn dm-btn-primary dm-btn-sm" onclick="window._gevechtRegie.dmEffToepassen()">${ic('check')} Toepassen</button>
+      <button class="dm-btn dm-btn-ghost dm-btn-sm" onclick="window._gevechtRegie.dmEffNiets()" title="Sluiten zonder iets aan HP of condities te doen">Niets toepassen</button>
+    </div></div>`;
+}
+function dmEffKies(id, v, knop) {
+  _effUit[id] = v;
+  knop?.parentElement?.querySelectorAll('button').forEach(b => b.classList.toggle('is-aan', b === knop));
+}
+async function dmEffToepassen() {
+  if (!_effect) return;
+  const getal = (id) => { const el = document.getElementById(id); return el ? el.value : undefined; };
+  try {
+    await api.omgevingUitslag({ id: _effect.id, uitslagen: _effUit,
+      schade: getal('gr-eff-schade'), thp: getal('gr-eff-thp'), heal: getal('gr-eff-heal') });
+  } catch (e) { _fout(e); }
+}
+async function dmEffNiets() {
+  if (!_effect) return;
+  try { await api.omgevingUitslag({ id: _effect.id, niets: true }); } catch (e) { _fout(e); }
+}
+function effect(e) {
+  _effect = e || null;
+  _effUit = {};
+  _dmSig = '';
+  _dmPaneel(_laatsteCombat);
 }
 
 const _fout = (e) => window._showToast?.(`${ic('x')} ${esc(e?.message || 'Mislukt')}`);
@@ -444,12 +633,19 @@ function onCombat(combat) {
   if (isTafel()) {
     _hartslag(combat);
     if (!combat?.active && _genadeId) _genadeSluit();
+    if (!combat?.active) _weg(document.getElementById('gr-aftellen'), 600);
   }
   _dmPaneel(combat);
 }
 
 window._gevechtRegie = {
-  opening, lair, doodsstrijd, genade, afloop, onCombat,
+  opening, lair, uitslag, aftellen, doodsstrijd, genade, afloop, onCombat, effect,
   vraag, vraagKlaar, antwoord,
-  dmVraag, dmAntwoord, dmIntrekken, dmVoorstelWeg, dmLair,
+  dmVraag, dmAntwoord, dmIntrekken, dmVoorstelWeg, dmLair, dmEffKies, dmEffToepassen, dmEffNiets,
 };
+
+// Een effect dat nog openstond toen de DM de pagina herlaadde, staat er weer.
+setTimeout(async () => {
+  if (!isDM() || isTafel()) return;
+  try { const r = await api.omgevingEffect(); if (r?.effect) effect(r.effect); } catch { /* niets open */ }
+}, 2500);

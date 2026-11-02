@@ -31923,3 +31923,124 @@ body.gr-slowmo .combat-overlay { filter: grayscale(.85) contrast(1.1) brightness
 .gv-quote { margin: 8px 0 4px; padding: 6px 12px; border-left: 3px solid #c4a87a;
   font: italic 17px/1.4 'IM Fell English', serif; color: #3a2410; }
 .gv-quote cite { display: block; margin-top: 2px; font: 12px 'Cinzel', serif; font-style: normal; color: #7a6040; }
+
+/* ── Gevechtsregie, ronde 2: overgang, omgevingseffecten, aftellen ──────────── */
+/* De overgang: drie witte flitsen, dan een raster tegels dat in een patroon
+   zwart wordt. Elke tegel draagt zijn eigen vertraging (--d). */
+.gr-overgang { position: fixed; inset: 0; z-index: 10047; pointer-events: none; transition: opacity .6s ease; }
+.gr-overgang.is-weg { opacity: 0; }
+.gr-ov-flits { position: absolute; inset: 0; background: #fffdf4; opacity: 0;
+  animation: gr-ov-flits .13s steps(1) 0s 3 both; }
+@keyframes gr-ov-flits { 0% { opacity: .95; } 50% { opacity: 0; } 100% { opacity: 0; } }
+.gr-ov-raster { position: absolute; inset: 0; display: grid;
+  grid-template-columns: repeat(var(--k), 1fr); grid-template-rows: repeat(var(--r), 1fr); }
+.gr-ov-raster i { background: #050302; transform: scale(0); opacity: 0;
+  animation: gr-ov-tegel .22s cubic-bezier(.3,.8,.3,1) both; animation-delay: calc(.42s + var(--d)); }
+@keyframes gr-ov-tegel { to { transform: scale(1.04); opacity: 1; } }
+.gr-overgang--scherven .gr-ov-raster i { animation-name: gr-ov-scherf; }
+@keyframes gr-ov-scherf { from { transform: scale(0) rotate(35deg); opacity: 0; } to { transform: scale(1.04) rotate(0); opacity: 1; } }
+.gr-overgang--balken .gr-ov-raster i { transform: scaleX(0); animation-name: gr-ov-balk; }
+@keyframes gr-ov-balk { to { transform: scaleX(1.04); opacity: 1; } }
+.gr-overgang--cirkel .gr-ov-raster i { border-radius: 50%; animation-name: gr-ov-rond; }
+@keyframes gr-ov-rond { to { transform: scale(1.5); opacity: 1; border-radius: 0; } }
+
+/* De lair-kaart, uitgebreid: de Saving Throw eronder, en gunstig in goud. */
+.gr-lair-save { margin-top: 12px; padding-top: 10px; border-top: 1px solid rgba(138,106,58,.45);
+  font: 600 16px 'Cinzel', serif; letter-spacing: .04em; color: #6a1e10; }
+.gr-lair--gunstig .gr-lair-kaart { border-color: #c8940a; box-shadow: 0 0 0 6px rgba(200,148,10,.35), 0 0 60px rgba(240,190,60,.55); }
+.gr-lair--gunstig .gr-lair-kop, .gr-lair--gunstig .gr-lair-save { color: #7a5a08; }
+.gr-lair--gunstig { background: radial-gradient(ellipse at 50% 20%, rgba(255,220,130,.32), rgba(0,0,0,.15) 70%); }
+
+/* Stijgend water: twee golven die van onder komen en blijven deinen. */
+.gr-water { position: fixed; inset: 0; pointer-events: none; overflow: hidden; }
+.gr-water i { position: absolute; left: -10%; right: -10%; bottom: -60%; height: 60%;
+  background: linear-gradient(rgba(40,90,130,.55), rgba(10,30,60,.85));
+  border-radius: 45% 55% 0 0 / 22% 18% 0 0;
+  animation: gr-water-op 3.2s cubic-bezier(.3,.6,.3,1) forwards, gr-water-dein 2.6s ease-in-out infinite alternate; }
+.gr-water i + i { opacity: .55; animation-delay: .3s, 1s; border-radius: 55% 45% 0 0 / 18% 24% 0 0; }
+@keyframes gr-water-op { to { bottom: 0; } }
+@keyframes gr-water-dein { from { transform: translateX(-3%); } to { transform: translateX(3%); } }
+
+/* De uitslag: per doel een penning, en wie geraakt is schudt. */
+.gr-uitslag { position: fixed; inset: 0; z-index: 10049; display: grid; place-items: center; transition: opacity .8s ease;
+  background: radial-gradient(ellipse at 50% 50%, rgba(20,8,4,.55), rgba(0,0,0,.8)); animation: gr-in .4s ease both; }
+.gr-uitslag-kaart { max-width: min(980px, 92vw); text-align: center; }
+.gr-uitslag-kop { font: 700 clamp(22px, 3vw, 36px) 'Cinzel', serif; color: #f2e8d2; display: flex; gap: 10px;
+  justify-content: center; align-items: center; margin-bottom: 26px; text-shadow: 0 2px 10px #000; }
+.gr-uitslag-rij { display: flex; flex-wrap: wrap; justify-content: center; gap: 22px; }
+.gr-uitslag-lid { display: flex; flex-direction: column; align-items: center; gap: 6px; width: 120px;
+  opacity: 0; animation: gr-letter .6s ease both; animation-delay: calc(.2s + var(--i) * 220ms); }
+.gr-uitslag-lid .gr-portret { width: 84px; height: 84px; }
+.gr-uitslag-lid.is-geraakt .gr-portret { border-color: #c0392b; animation: gr-geraakt .5s ease calc(.5s + var(--i) * 220ms) 2; }
+@keyframes gr-geraakt { 0%,100% { transform: none; } 25% { transform: translateX(-6px) rotate(-3deg); } 75% { transform: translateX(6px) rotate(3deg); } }
+.gr-uitslag-lid.is-gesterkt .gr-portret { border-color: #f5d27a; box-shadow: 0 0 30px rgba(240,190,60,.7); }
+.gr-uitslag-naam { font: 600 14px 'Cinzel', serif; color: #f2e8d2; text-align: center; }
+.gr-uitslag-wat { font: italic 17px 'IM Fell English', serif; color: #e8b4a0; text-align: center; }
+.gr-uitslag--gunstig .gr-uitslag-wat { color: #f5d27a; }
+
+/* Het aftellen: een penning rechtsboven, en een groot getal per ronde. */
+.gr-aftellen { position: fixed; top: 96px; right: 28px; z-index: 10046; display: flex; align-items: center; gap: 12px;
+  padding: 8px 16px 8px 8px; border-radius: 40px; background: rgba(10,6,4,.82); border: 1px solid #a8472e;
+  box-shadow: 0 0 24px rgba(200,60,20,.45); transition: opacity .6s ease; pointer-events: none; }
+.gr-af-ring { width: 54px; height: 54px; border-radius: 50%; display: grid; place-items: center;
+  background: conic-gradient(#e0522a var(--deel), rgba(255,255,255,.08) 0); animation: gr-af-puls 1.2s ease-in-out infinite; }
+.gr-af-getal { width: 42px; height: 42px; border-radius: 50%; display: grid; place-items: center;
+  background: #1a0c06; font: 700 22px 'Cinzel', serif; color: #f5d27a; }
+@keyframes gr-af-puls { 50% { box-shadow: 0 0 22px rgba(240,90,30,.8); } }
+.gr-af-label { font: italic 17px 'IM Fell English', serif; color: #f2e8d2; max-width: 280px; display: flex; gap: 6px; align-items: center; }
+.gr-aftel-groot { position: fixed; inset: 0; z-index: 10049; display: flex; flex-direction: column; align-items: center;
+  justify-content: center; pointer-events: none; background: rgba(0,0,0,.55); transition: opacity .6s ease; animation: gr-in .3s ease both; }
+.gr-aftel-groot span { font: 700 min(38vh, 300px)/1 'Cinzel', serif; color: #f5d27a;
+  text-shadow: 0 0 60px rgba(240,90,30,.9); animation: gr-aftel-in .7s cubic-bezier(.2,.9,.3,1.3) both; }
+.gr-aftel-groot small { font: italic 26px 'IM Fell English', serif; color: #f2e8d2; }
+@keyframes gr-aftel-in { from { transform: scale(2.2); opacity: 0; } }
+.gr-aftellen.is-weg, .gr-aftel-groot.is-weg, .gr-uitslag.is-weg { opacity: 0; }
+
+/* Het afhandelpaneel van de DM. */
+.gr-dm-deel--effect { border-left-color: #a8472e; }
+.gr-dm-deel--effect.is-gunstig { border-left-color: #c8940a; }
+.gr-dm-doelen { display: flex; flex-direction: column; gap: 4px; margin: 6px 0; max-height: 220px; overflow: auto; }
+.gr-dm-doel { display: flex; align-items: center; justify-content: space-between; gap: 8px; font: 15px 'Crimson Text', serif; }
+.gr-dm-doel.is-vijand .gr-dm-doel-naam { color: #8a2a1a; }
+.gr-dm-seg { display: inline-flex; border: 1px solid #c4a87a; border-radius: 4px; overflow: hidden; flex-shrink: 0; }
+.gr-dm-seg button { font: 12px 'Cinzel', serif; color: #3a2410; background: transparent; border: 0; padding: 3px 8px; cursor: pointer; }
+.gr-dm-seg button + button { border-left: 1px solid #c4a87a; }
+.gr-dm-seg button.is-aan { background: #8a6418; color: #f8eed6; }
+.gr-dm-getal { display: flex; flex-direction: column; font: 12px 'Crimson Text', serif; color: #7a6040; }
+.gr-dm-getal input { width: 92px; }
+.gr-dm-lair-knop { display: flex; align-items: center; gap: 6px; }
+.gr-dm-lair-knop.is-gunstig { border-color: #c8940a; background: rgba(240,200,90,.18); }
+
+/* De Lair Actions in de encounter-editor. */
+.enc-lair-kop { display: flex; align-items: center; gap: 6px; margin-bottom: 4px; }
+.enc-lair-lijst { display: flex; flex-direction: column; gap: 8px; margin-bottom: 6px; }
+.enc-lair-regel { border: 1px solid #d8c49a; border-left: 3px solid #a8472e; border-radius: 4px; padding: 6px 8px;
+  background: rgba(255,250,236,.6); }
+.enc-lair-regel--gunstig { border-left-color: #c8940a; }
+.enc-lair-top { display: flex; gap: 6px; align-items: center; }
+.enc-lair-top select { flex: 0 0 auto; max-width: 180px; }
+.enc-lair-tekst { flex: 1; min-width: 0; }
+.enc-lair-ic { color: #7a5a30; display: inline-flex; }
+.enc-lair-mech { display: flex; flex-wrap: wrap; gap: 6px 12px; margin-top: 6px; font: 13px 'Crimson Text', serif; color: #5a4024; }
+.enc-lair-mech label { display: inline-flex; align-items: center; gap: 4px; }
+.enc-lair-mech .dm-input-sm { padding: 2px 6px; }
+
+/* Genadeslagen in het Logboek: elke "How do you want to do this?" bij elkaar. */
+.gs-sectie { margin: 4px 0 12px; }
+.gs-kop { cursor: pointer; list-style: none; display: flex; align-items: center; gap: 8px;
+  font: 700 15px 'Cinzel', serif; color: #3a2410; padding: 8px 12px; border: 1px solid #c4a87a; border-radius: 6px;
+  background: linear-gradient(90deg, rgba(42,26,8,.9), rgba(42,26,8,.55)); color: #f2e8d2; }
+.gs-kop::-webkit-details-marker { display: none; }
+.gs-aantal { margin-left: auto; font: 600 12px 'Cinzel', serif; background: #8a2a1a; color: #f5d27a;
+  border-radius: 10px; padding: 1px 8px; }
+.gs-lijst { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px; margin-top: 10px; }
+.gs-kaart { margin: 0; padding: 12px 14px; background: linear-gradient(#f6eedb, #ecdfc0); border: 1px solid #c4a87a;
+  border-radius: 6px; box-shadow: 0 2px 8px rgba(42,26,8,.15); }
+.gs-duo { display: flex; align-items: center; gap: 4px; margin-bottom: 8px; }
+.gs-portret { width: 38px; height: 38px; border-radius: 50%; background: #2a1a08 center 25%/cover;
+  border: 2px solid #c4a87a; display: grid; place-items: center; color: #c4a87a; }
+.gs-duo .gs-portret + .gs-slash + .gs-portret { border-color: #a8472e; filter: grayscale(.6); }
+.gs-slash { width: 20px; height: 2px; background: #8a2a1a; transform: rotate(-24deg); }
+.gs-quote { margin: 0; font: italic 18px/1.4 'IM Fell English', serif; color: #2a1a08; }
+.gs-cite { margin-top: 8px; font: 13px 'Crimson Text', serif; color: #5a4024; }
+.gs-waar { display: block; font: italic 12px 'IM Fell English', serif; color: #7a6040; }

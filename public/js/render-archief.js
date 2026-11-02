@@ -1,4 +1,4 @@
-import { api } from './api.js?v=318';
+import { api } from './api.js?v=319';
 
 // icon() helper is defined globally in app.js; grab a local alias for template use.
 const icon = (...a) => window.icon(...a);
@@ -246,7 +246,7 @@ export async function renderLogboek() {
   if (_logboekActiveTab === 'prikbord') {
     tabContent.style.cssText = 'flex:1; min-height:0; overflow:hidden; display:flex; flex-direction:column;';
     tabContent.innerHTML = `<div id="pb-relatiemap-container" style="flex:1;display:flex;flex-direction:column;overflow:hidden;min-height:0;"></div>`;
-    const { renderRelatiemap } = await import('./render-relatiemap.js?v=33');
+    const { renderRelatiemap } = await import('./render-relatiemap.js?v=34');
     await renderRelatiemap(document.getElementById('pb-relatiemap-container'));
     return;
   }
@@ -261,6 +261,7 @@ export async function renderLogboek() {
         oninput="window._logboekSearch(this.value)"${isDM() ? ' style="padding-right:46px"' : ''}>
     </div>
     <div id="logboek-ontdek-slot"></div>
+    ${_genadeslagenHtml(visibleEntries, hk)}
     <div class="flex-1 overflow-y-auto px-6 pb-6" id="logboek-body">
       ${_buildLogboekBody(visibleEntries, hk)}
     </div>
@@ -297,6 +298,45 @@ export async function renderLogboek() {
     }
   };
 }
+
+// ── Genadeslagen ────────────────────────────────────────────────────────────
+// Elke "How do you want to do this?" die iemand beschreef, bij elkaar: de zaal
+// van de laatste klappen. Ze staan ook in hun eigen gevechtsverslag, maar daar
+// lees je ze één voor één; hier lees je ze als de verhalen die de party na
+// afloop aan elkaar vertelt. Afgeleid uit de verslagen, dus geen tweede opslag
+// — en wat een party niet mag zien (een verslag van een andere groep) staat er
+// ook hier niet in. Zonder een enkele beschrijving staat er niets.
+function _genadeslagenHtml(entries, hk) {
+  const slagen = [];
+  for (const e of entries) {
+    if (e?.soort !== 'gevecht') continue;
+    for (const m of (e.gevecht?.momenten || [])) {
+      if (m?.soort === 'hwywtdt' && m.tekst) slagen.push({ ...m, datum: e.datum || '', akte: hk[e.hoofdstuk]?.title || '', gevecht: e.gevecht?.naam || '' });
+    }
+  }
+  if (!slagen.length) return '';
+  slagen.reverse();                                         // de nieuwste eerst
+  const portret = (id, ic) => id
+    ? `<span class="gs-portret" style="background-image:url('${api.thumbUrl(id)}')"></span>`
+    : `<span class="gs-portret gs-portret--leeg">${icon(ic)}</span>`;
+  return `
+    <details class="gs-sectie px-6"${_genadeslagenOpen ? ' open' : ''} ontoggle="window._genadeslagenToggle(this.open)">
+      <summary class="gs-kop">${icon('swords')} Genadeslagen <span class="gs-aantal">${slagen.length}</span></summary>
+      <div class="gs-lijst">
+        ${slagen.map(m => `
+          <figure class="gs-kaart">
+            <div class="gs-duo">${portret(m.spelerBeeld, 'user')}<span class="gs-slash"></span>${portret(m.doelBeeld, 'skull')}</div>
+            <blockquote class="gs-quote">&ldquo;${esc(m.tekst)}&rdquo;</blockquote>
+            <figcaption class="gs-cite">
+              <b>${esc(m.speler || '')}</b> over ${esc(m.doel || '')}
+              <span class="gs-waar">${esc([m.akte, m.datum].filter(Boolean).join(' · '))}</span>
+            </figcaption>
+          </figure>`).join('')}
+      </div>
+    </details>`;
+}
+let _genadeslagenOpen = false;
+window._genadeslagenToggle = (open) => { _genadeslagenOpen = !!open; };
 
 // Deterministische rotatie op basis van quest-id (consistent over renders)
 function _questRot(id) {
@@ -1710,7 +1750,7 @@ window._nakijkKlaar = async (ch, type, id, btn) => {
 
 window._akteSchrijf = async (ch) => {
   const info = meta?.hoofdstukken?.[ch] || {};
-  const { openAkteSchrijven } = await import('./akte-schrijven.js?v=36');
+  const { openAkteSchrijven } = await import('./akte-schrijven.js?v=37');
   openAkteSchrijven(ch, info.short || info.title || ch);
 };
 window._logboekVerversen = () => renderLogboek();
