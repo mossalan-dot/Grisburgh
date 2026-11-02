@@ -59,7 +59,7 @@ function _ververOpenKaartje(id) {
     if (ENTITY_SECTIONS.includes(section)) {
       _refreshEntitySection(section);
     } else if (section === 'dashboard') {
-      import('./render-dashboard.js?v=10').then(m => m.renderDashboard());
+      import('./render-dashboard.js?v=13').then(m => m.renderDashboard());
     } else if (section === 'mijn-karakter') {
       _refreshSectionDebounced('mijn-karakter'); // #5: ontdekkings-teller bijwerken
     } else if (section === 'logboek') {
@@ -67,7 +67,7 @@ function _ververOpenKaartje(id) {
       // verborgen" staan nadat je er zelf een kaartje in onthuld had. Pas na
       // herladen klopte het. De ontdekkingsmeters hangen aan dezelfde stand,
       // dus die liepen even hard achter.
-      import('./render-archief.js?v=142').then(m => m.renderLogboek());
+      import('./render-archief.js?v=145').then(m => m.renderLogboek());
     }
     window._updateDiscoveryChip?.(true); // #5: header-meter verversen
   });
@@ -81,7 +81,7 @@ function _ververOpenKaartje(id) {
     if (ENTITY_SECTIONS.includes(section)) {
       _refreshEntitySection(section);
     } else if (section === 'dashboard') {
-      import('./render-dashboard.js?v=10').then(m => m.renderDashboard());
+      import('./render-dashboard.js?v=13').then(m => m.renderDashboard());
     } else if (section === 'mijn-karakter') {
       _refreshSectionDebounced('mijn-karakter'); // #5: ontdekkings-teller bijwerken
     }
@@ -135,7 +135,7 @@ function _ververOpenKaartje(id) {
     const section = window.app.state.activeSection;
     if (section === 'logboek' && window._logboekActiveTab === 'prikbord') {
       // Herlaad alleen de relatiemap, niet het hele logboek
-      import('./render-relatiemap.js?v=31').then(m => {
+      import('./render-relatiemap.js?v=34').then(m => {
         const el = document.getElementById('pb-relatiemap-container');
         if (el) m.renderRelatiemap(el);
       });
@@ -146,20 +146,20 @@ function _ververOpenKaartje(id) {
   // het logboek — daar landt de regel die bij een onthulling geschreven wordt.
   socket.on('archief:updated', () => {
     if (window.app.state.activeSection === 'logboek') {
-      import('./render-archief.js?v=142').then(m => m.renderLogboek());
+      import('./render-archief.js?v=145').then(m => m.renderLogboek());
     }
   });
 
   socket.on('logboek:updated', () => {
     if (window.app.state.activeSection === 'logboek') {
-      import('./render-archief.js?v=142').then(m => m.renderLogboek());
+      import('./render-archief.js?v=145').then(m => m.renderLogboek());
     }
   });
 
   socket.on('quests:updated', () => {
     const section = window.app?.state?.activeSection;
     if (section === 'logboek') {
-      import('./render-archief.js?v=142').then(m => m.renderLogboek());
+      import('./render-archief.js?v=145').then(m => m.renderLogboek());
     }
     // Factie-interieur herlaadt ook (missies zijn quests met factieId)
     if (section === 'facties') _refreshSectionDebounced('facties');
@@ -173,7 +173,7 @@ function _ververOpenKaartje(id) {
     if (section === 'facties') _refreshSectionDebounced('facties');
     if (section === 'mijn-karakter') _refreshSectionDebounced('mijn-karakter');
     if (section === 'logboek' && window._logboekActiveTab === 'prikbord') {
-      import('./render-archief.js?v=142').then(m => m.renderLogboek());
+      import('./render-archief.js?v=145').then(m => m.renderLogboek());
     }
     window._updateDienstenMenuFromSocket?.();
   });
@@ -233,7 +233,7 @@ function _ververOpenKaartje(id) {
 
   socket.on('chapter-visibility:updated', () => {
     if (window.app.state.activeSection === 'logboek') {
-      import('./render-archief.js?v=142').then(m => m.renderLogboek());
+      import('./render-archief.js?v=145').then(m => m.renderLogboek());
     }
   });
 
@@ -271,7 +271,7 @@ function _ververOpenKaartje(id) {
     // betreft. Zonder groupId (oudere events) tonen we het aan iedereen.
     if (groupId && !window._isDisplayMode && window._myGroupId && window._myGroupId !== groupId) return;
     if (window.app.state.activeSection === 'logboek') {
-      import('./render-archief.js?v=142').then(m => m.renderLogboek());
+      import('./render-archief.js?v=145').then(m => m.renderLogboek());
     }
     if (!window.app.isDM()) {
       if (window._isDisplayMode) {
@@ -300,7 +300,44 @@ function _ververOpenKaartje(id) {
   });
 
   socket.on('display:idle', () => {
-    if (window._isDisplayMode) window._displayIdle?.();
+    if (!window._isDisplayMode) return;
+    window._terugblikSluit?.();
+    window._displayIdle?.();
+  });
+
+  // Wat voorafging: de terugblik op het vorige verslag. Alleen het tafelscherm
+  // (de server stuurt hem ook alleen naar die room); de DM kijkt zijn eigen
+  // voorbeeld via het antwoord van de route.
+  // Rage: wie raast is geen geheim, dus het gaat naar de hele campagne. Het
+  // tafelscherm krijgt daarnaast zijn eigen bericht met naam en portret.
+  socket.on('rage:updated', (data = {}) => { window._rageOntvang?.(data); });
+  // Klassekrachten van de andere klassen: zelfde verdeling als bij Rage.
+  socket.on('klasse:updated', (data = {}) => { window._krachtOntvang?.(data); });
+  socket.on('klasse:display', (data = {}) => {
+    if (window._isDisplayMode) window._krachtDisplay?.(data);
+  });
+  socket.on('rage:display', (data = {}) => {
+    if (window._isDisplayMode) window._rageDisplay?.(data);
+  });
+
+  // Gevechtsregie (gevecht-regie.js). Opening, Lair Action, death saves, de
+  // genadeslag en de afloop gaan alleen naar het tafelscherm; de vraag "How do
+  // you want to do this?" alleen naar de speler die de klap gaf.
+  socket.on('gevecht:opening',          (d = {}) => { if (window._isDisplayMode) window._gevechtRegie?.opening(d); });
+  socket.on('gevecht:lair',             (d = {}) => { if (window._isDisplayMode) window._gevechtRegie?.lair(d); });
+  socket.on('gevecht:doodsstrijd',      (d = {}) => { if (window._isDisplayMode) window._gevechtRegie?.doodsstrijd(d); });
+  socket.on('gevecht:hwywtdt:display',  (d = {}) => { if (window._isDisplayMode) window._gevechtRegie?.genade(d); });
+  socket.on('gevecht:afloop',           (d = {}) => { if (window._isDisplayMode) window._gevechtRegie?.afloop(d); });
+  socket.on('omgeving:aftellen',        (d = {}) => { if (window._isDisplayMode) window._gevechtRegie?.aftellen(d); });
+  socket.on('omgeving:uitslag',         (d = {}) => { if (window._isDisplayMode) window._gevechtRegie?.uitslag(d); });
+  // Alleen de DM krijgt dit (de server stuurt het naar DM-sessies): het effect
+  // dat nog afgehandeld moet worden, of null als het klaar is.
+  socket.on('omgeving:effect',          (e) => { if (!window._isDisplayMode) window._gevechtRegie?.effect(e); });
+  socket.on('gevecht:hwywtdt',          (d = {}) => { window._gevechtRegie?.vraag(d); });
+  socket.on('gevecht:hwywtdt:klaar',    (d = {}) => { window._gevechtRegie?.vraagKlaar(d); });
+
+  socket.on('terugblik:display', (data = {}) => {
+    if (window._isDisplayMode) window._terugblikCinematic?.(data);
   });
 
   // Voorleestekst uit een akte. Alleen het tafelscherm toont hem: de spelers
@@ -322,7 +359,7 @@ function _ververOpenKaartje(id) {
     }
     if (window.app.state.activeSection !== 'kaart') return;
     if (window.app.state.role === 'dm') return; // DM al bijgewerkt via _renderSvg()
-    import('./render-dungeon.js?v=67').then(m => {
+    import('./render-dungeon.js?v=70').then(m => {
       const content = document.getElementById('kaart-mode-content');
       if (content) m.renderDungeon(content);
     });
@@ -330,7 +367,7 @@ function _ververOpenKaartje(id) {
   // Dungeon meta bijgewerkt (nieuwe map, party-access) → iedereen herlaadt
   socket.on('dungeon:updated', () => {
     if (window.app.state.activeSection !== 'kaart') return;
-    import('./render-dungeon.js?v=67').then(m => {
+    import('./render-dungeon.js?v=70').then(m => {
       const content = document.getElementById('kaart-mode-content');
       if (content) m.renderDungeon(content);
     });
@@ -339,7 +376,7 @@ function _ververOpenKaartje(id) {
   socket.on('map:pinRevealed', () => {
     // Herlaad kaart als de speler daar is (toast wordt al getoond via entity:visibility)
     if (window.app.state.activeSection === 'kaart') {
-      import('./render-kaart.js?v=31').then(m => m.renderKaart());
+      import('./render-kaart.js?v=34').then(m => m.renderKaart());
     }
   });
 
@@ -352,7 +389,7 @@ function _ververOpenKaartje(id) {
       8000
     );
     if (window.app.state.activeSection === 'kaart') {
-      import('./render-kaart.js?v=31').then(m => m.renderKaart());
+      import('./render-kaart.js?v=34').then(m => m.renderKaart());
     }
   });
 
@@ -363,7 +400,7 @@ function _ververOpenKaartje(id) {
       6000
     );
     if (window.app.state.activeSection === 'kaart') {
-      import('./render-kaart.js?v=31').then(m => m.renderKaart());
+      import('./render-kaart.js?v=34').then(m => m.renderKaart());
     }
   });
 
@@ -374,12 +411,12 @@ function _ververOpenKaartje(id) {
       5000
     );
     if (window.app.state.activeSection === 'kaart') {
-      import('./render-kaart.js?v=31').then(m => m.renderKaart());
+      import('./render-kaart.js?v=34').then(m => m.renderKaart());
     }
   });
 
   socket.on('meta:updated', () => {
-    import('./api.js?v=316').then(({ api }) => api.meta().then(m => {
+    import('./api.js?v=319').then(({ api }) => api.meta().then(m => {
       const prev = window.app?.state?.meta;
       const buitenChanged = prev?.buitenGrisburgh !== m.buitenGrisburgh;
       if (window.app?.state) window.app.state.meta = m;
@@ -436,6 +473,7 @@ function _ververOpenKaartje(id) {
   socket.on('combat:updated', (combat) => {
     if (window.dmPanel) window.dmPanel.onCombatUpdated(combat);
     window.soundManager?.onCombatUpdated(combat);
+    window._gevechtRegie?.onCombat(combat);
     // #1: Concentration-save-waarschuwing voor de betrokken speler.
     // Recency-guard zodat een oude prompt niet popt bij herladen mid-combat.
     const cp = combat?.concentratiePrompt;
@@ -892,13 +930,13 @@ function _ververOpenKaartje(id) {
 
   socket.on('relations:updated', () => {
     if (window.app.state.activeSection === 'relatiemap') {
-      import('./render-relatiemap.js?v=31').then(m => m.renderRelatiemap());
+      import('./render-relatiemap.js?v=34').then(m => m.renderRelatiemap());
     }
   });
 
   socket.on('relations:revealed', ({ id } = {}) => {
     if (window.app.state.activeSection === 'relatiemap') {
-      import('./render-relatiemap.js?v=31').then(m => m.renderRelatiemap());
+      import('./render-relatiemap.js?v=34').then(m => m.renderRelatiemap());
     }
     if (!window.app.isDM()) {
       _showToast(`${window.icon('link')} <strong>Nieuwe verbinding onthuld!</strong>`, () => {

@@ -1,5 +1,5 @@
-import { api, huidigeCampagne } from './api.js?v=316';
-import { init as canvasInit, update as canvasUpdate, stop as canvasStop, acGetal } from './combat-canvas.js?v=34';
+import { api, huidigeCampagne } from './api.js?v=319';
+import { init as canvasInit, update as canvasUpdate, stop as canvasStop, acGetal } from './combat-canvas.js?v=37';
 import { renderStatblock } from './render-statblock.js?v=9';
 
 // ── DM Panel ──
@@ -15,13 +15,14 @@ function _redenVragen(vraag) {
 }
 
 // De condities staan op één plek; het spelerstabblad leest dezelfde lijst.
-import { CONDITIONS, COND_ICON } from './conditions.js?v=2';
+import { CONDITIONS, COND_ICON } from './conditions.js?v=4';
 
 
 // Groepen voor de conditie-weergave. Op modulescope zodat de rij in het
 // gevechtspaneel en het detailvenster dezelfde bron gebruiken.
 const _CC_SET  = new Set(['bardic-inspiration','tides-of-chaos','twilight-sanctuary',
-  'patient-defense','steady-aim','vigilant-blessing','blessed','raging','haste']);
+  'patient-defense','steady-aim','vigilant-blessing','blessed','raging','haste',
+  'wild-shape','hunters-mark','innate-sorcery']);
 const _SIT_SET = new Set(['dodging','hidden','readied','cover-half','cover-three-quarters',
   'grappling','mounted','underwater','flying']);
 const _condGroepCls = (cid) =>
@@ -324,6 +325,11 @@ export function initDmPanel() {
     encLootItemField:   _encLootItemField,
     encLootPick:        _encLootPick,
     encLootKies:        (veld) => _encLootKies(veld),
+    encLairErbij:       () => _encLairErbij(),
+    encLairPreset:      (i, v) => _encLairPreset(i, v),
+    encLairVeld:        (i, p, v) => _encLairVeld(i, p, v),
+    encLairWeg:         (i) => _encLairWeg(i),
+    encOvergang:        (v) => _encOvergangKies(v),
     encLootNieuw:       () => _encLootNieuw(),
     encRowMonsterChange: _encRowMonsterChange,
     encRowChange:       _encRowChange,
@@ -683,6 +689,7 @@ export function initDmPanel() {
     sheetsPrint:             (groep) => _sheetsPrint(groep),
     rustMenu:                (ev) => _rustMenu(ev),
     sfeerMenu:               (ev) => _sfeerMenu(ev),
+    terugblikMenu:           (ev) => _terugblikMenu(ev),
     akteHervatToepassen:     () => _akteHervatToepassen(),
     // Zet alle tablets/displays terug naar het sfeerscherm (leeg het gepresenteerde beeld).
     async tabletNaarSfeer(btn) {
@@ -2753,6 +2760,7 @@ function _renderRegieBalk() {
             title="XP uitdelen aan wie vanavond meedoet">${icon('star')} <span class="dm-rb-btn-label">XP</span></button>` : ''}
           <span class="dm-rb-sep"></span>
           <button class="dm-regie-balk-btn" onclick="window.dmPanel.regieBalkBrief()" title="Stuur een verzegelde uitnodiging (factie of dienst)">${icon('mail')} <span class="dm-rb-btn-label">Uitnodiging</span></button>
+          <button class="dm-regie-balk-btn" onclick="window.dmPanel.terugblikMenu(event)" title="Wat voorafging — een terugblik op de vorige sessie, op het tafelscherm">${icon('hourglass')} <span class="dm-rb-btn-label">Terugblik</span></button>
           <button class="dm-regie-balk-btn" onclick="window.dmPanel.sfeerMenu(event)" title="Sfeer van het tafelscherm kiezen">${icon('sparkles')} <span class="dm-rb-btn-label">Sfeer</span></button>
           <button class="dm-regie-balk-btn" onclick="window.dmPanel.tabletNaarSfeer(this)" title="Tablet → sfeerscherm (leeg het gepresenteerde beeld)">${icon('monitor')}</button>
           <span class="dm-rb-sep"></span>
@@ -2891,7 +2899,7 @@ async function _ladeToggle() {
   _ladeIdx = _bwIdx >= 0 ? _bwIdx : Math.min(_ladePlekLees(), Math.max(0, _ladeSecties.length - 1));
   // De akte-module levert de renderer én de knoppen; die moet weten welke akte
   // er speelt, anders belandt een getoond beeld in de sessielog van niemand.
-  const mod = await import('./akte-schrijven.js?v=34');
+  const mod = await import('./akte-schrijven.js?v=37');
   mod.zetAkte(_rbChapter, _ladeTekst);
   window._akteRegieRender = mod.regieNaarHtml;
   let lade = document.getElementById('regie-lade');
@@ -2917,7 +2925,7 @@ window._ladeHerlaad = async () => {
     _ladeTekst = regie?.tekst || '';
     _ladeSecties = _splitsSecties(_ladeTekst);
     _ladeIdx = Math.min(_ladeIdx, Math.max(0, _ladeSecties.length - 1));
-    const mod = await import('./akte-schrijven.js?v=34');
+    const mod = await import('./akte-schrijven.js?v=37');
     mod.zetAkte(_rbChapter, _ladeTekst);
     _ladeRender();
   } catch { /* de lade blijft staan zoals hij stond */ }
@@ -3174,6 +3182,69 @@ function _sfeerMenu(ev) {
     document.addEventListener('click', sluit);
   }, 0);
 }
+
+// Wat voorafging. Eén knop, één klein menu: welk verslag (standaard het
+// laatste dat deze party kan terugzien), en dan afspelen op het tafelscherm of
+// eerst zelf bekijken. De server bepaalt wat erin mag; dit menu kiest alleen.
+async function _terugblikMenu(ev) {
+  document.getElementById('dm-terugblik-menu')?.remove();
+  const knop = ev?.currentTarget;
+  if (!knop) return;
+  const menu = document.createElement('div');
+  menu.id = 'dm-terugblik-menu';
+  menu.className = 'dm-rust-menu dm-terugblik-menu';
+  menu.innerHTML = `
+    <div class="dm-rust-menu-kop">Wat voorafging<span class="dm-sectie-hulp">${helpBtn('dm_terugblik')}</span></div>
+    <div class="dm-terugblik-body"><p class="dm-hint" style="margin:0">Laden…</p></div>`;
+  document.body.appendChild(menu);
+  const plaats = () => {
+    const r = knop.getBoundingClientRect();
+    menu.style.left = `${Math.max(8, Math.min(r.left - 80, window.innerWidth - menu.offsetWidth - 8))}px`;
+    menu.style.bottom = `${window.innerHeight - r.top + 6}px`;
+  };
+  plaats();
+  setTimeout(() => {
+    const sluit = (e) => {
+      if (!menu.contains(e.target)) { menu.remove(); document.removeEventListener('click', sluit); }
+    };
+    document.addEventListener('click', sluit);
+  }, 0);
+
+  let lijst = [];
+  try { lijst = (await api.terugblikLijst()).verslagen || []; } catch { /* hieronder */ }
+  const body = menu.querySelector('.dm-terugblik-body');
+  if (!body) return;
+  if (!lijst.length) {
+    body.innerHTML = `<p class="dm-hint" style="margin:0">Deze party heeft nog geen zichtbaar sessieverslag om op terug te kijken.</p>`;
+    plaats();
+    return;
+  }
+  body.innerHTML = `
+    <select class="dm-input dm-input-sm dm-terugblik-keuze">
+      ${lijst.map((v, i) => `<option value="${esc(v.id)}"${i === 0 ? ' selected' : ''}>${esc(v.titel)}${v.akte ? ` — ${esc(v.akte)}` : ''}${v.datum ? ` (${esc(v.datum)})` : ''}</option>`).join('')}
+    </select>
+    <div class="dm-terugblik-knoppen">
+      <button class="dm-btn dm-btn-primary dm-btn-sm" data-tb="tafel">${icon('monitor')} Op het tafelscherm</button>
+      <button class="dm-btn dm-btn-ghost dm-btn-sm" data-tb="zelf">${icon('eye')} Zelf bekijken</button>
+    </div>`;
+  plaats();
+  body.querySelectorAll('[data-tb]').forEach(b => b.addEventListener('click', () => {
+    const sessieId = body.querySelector('.dm-terugblik-keuze').value;
+    menu.remove();
+    _terugblikSpeel(sessieId, b.dataset.tb === 'zelf');
+  }));
+}
+
+async function _terugblikSpeel(sessieId, zelf) {
+  try {
+    const tb = await api.terugblik({ sessieId, voorbeeld: !!zelf });
+    if (zelf) window._terugblikCinematic?.(tb, { voorbeeld: true });
+    else _showToast(`${icon('hourglass')} De terugblik speelt op het tafelscherm`);
+  } catch (e) {
+    _showToast(e?.message || 'De terugblik kon niet worden gestart');
+  }
+}
+window._terugblikSpeel = _terugblikSpeel;
 
 // Rustmenu. Vier losse icoontjes naast elkaar (boom, bierpul, maan, bliksem)
 // lieten zich niet raden: welke is nu de locatie en welke de duur? Eén knop die
@@ -4544,6 +4615,13 @@ let _encMonsterRows     = [];     // [{monsterId,name,count,initiative,hp}]
 let _encLoot            = { goud: { fl: 0, kn: 0, cl: 0 }, items: [] };  // oude vorm, blijft gelezen
 let _encLootId          = null;   // id van de gekoppelde vondst (loot.json)
 let _encLootOud         = false;  // heeft dit gevecht nog buit van de oude soort?
+let _encLair           = [];     // Lair Actions: regels met een preset (lib/omgeving.js)
+let _encOvergang        = '';     // hoe het tafelscherm het gevecht inluidt ('' = willekeurig)
+let _omgCat             = null;   // de catalogus met omgevingseffecten, één keer opgehaald
+const _ENC_OVERGANGEN = [
+  ['', 'Willekeurig'], ['spiraal', 'Spiraal'], ['balken', 'Balken'], ['cirkel', 'Cirkel'],
+  ['scherven', 'Scherven'], ['vegen', 'Veeg'], ['geen', 'Geen overgang'],
+];
 let _encLootLijst       = [];     // vondsten, voor de kiezer in de editor
 let _encBackdropId      = null;
 let _encCanvasPreset    = null;   // id van het gekozen canvas-kleurpreset
@@ -4876,6 +4954,15 @@ function _renderEncounterEditor(el) {
         <datalist id="dm-enc-loot-dl">${_encLootLijst.filter(e => !e.sjabloon).map(e => `<option value="${esc(e.naam || '')}"></option>`).join('')}</datalist>
         <button class="dm-btn dm-btn-sm dm-btn-ghost" onclick="window.dmPanel.encLootNieuw()" title="Een nieuwe vondst maken in de Loot-tab">${icon('plus')} Nieuwe vondst</button>
       </div>
+      <div class="dm-form-row">
+        <label class="dm-form-label">${icon('zap')} Overgang</label>
+        <select class="dm-input" onchange="window.dmPanel.encOvergang(this.value)" title="Hoe het tafelscherm het gevecht inluidt">
+          ${_ENC_OVERGANGEN.map(([v, l]) => `<option value="${v}"${(_encOvergang || '') === v ? ' selected' : ''}>${l}</option>`).join('')}
+        </select>
+      </div>
+
+      ${_encLairHtml()}
+
       ${_encLootOud ? `<p class="dm-hint" style="margin:0 0 10px">Dit gevecht heeft nog buit van de oude soort (los ingevuld goud en items). Die werkt gewoon, maar koppel je hier een vondst, dan telt alleen die.</p>` : ''}
 
       <div class="dm-form-actions">
@@ -4897,6 +4984,9 @@ function _encNew() {
   _encLootId       = null;
   _encLootOud      = false;
   _encLootLijst    = [];
+  _encLair         = [];
+  _encOvergang     = '';
+  _omgLaden();
   api.lootEvents().then(d => { _encLootLijst = d.events || d || []; _renderEncounterEditor(); }).catch(() => {});
   _encVensterOpen();
 };
@@ -4915,10 +5005,126 @@ function _encEdit(id) {
   _encLootLijst    = [];
   api.lootEvents().then(d => { _encLootLijst = d.events || d || []; _renderEncounterEditor(); }).catch(() => {});
   _encCanvasPreset = enc.canvasPreset || null;
+  _encLair         = (enc.lair?.regels || []).map(r => typeof r === 'string' ? { preset: 'eigen', tekst: r } : JSON.parse(JSON.stringify(r)));
+  _encOvergang     = enc.overgang || '';
+  _omgLaden();
   _encName         = enc.name    || '';
   _encAkteId       = enc.akteId  || '';
   _encVensterOpen();
 };
+
+// ── Lair Actions in de editor ────────────────────────────────────────────────
+// Elke regel is een preset (aardbeving, stijgend water, een helende bron…) met
+// een tekst en de mechaniek eronder. Een preset kiezen vult alles in; daarna
+// mag elk veld anders. Wat het doet staat in het boekje (dm_gevecht_editor).
+async function _omgLaden() {
+  if (_omgCat) return _omgCat;
+  try { _omgCat = await api.omgevingPresets(); _renderEncounterEditor(); } catch { _omgCat = null; }
+  return _omgCat;
+}
+const _omgPreset = (id) => (_omgCat?.presets || []).find(p => p.id === id) || { id: 'eigen', label: 'Eigen', icoon: 'hexagon', soort: 'vijandig' };
+const _kopie = (o) => (o == null ? o : JSON.parse(JSON.stringify(o)));
+
+function _encLairHtml() {
+  const cat = _omgCat;
+  const opt = (lijst, waarde, leeg = '—') => `<option value="">${leeg}</option>` +
+    lijst.map(v => `<option value="${esc(v)}"${v === waarde ? ' selected' : ''}>${esc(v)}</option>`).join('');
+  const presetOpts = (gekozen) => ['vijandig', 'gunstig'].map(soort => `
+    <optgroup label="${soort === 'vijandig' ? 'Tegen de party' : 'Voor de party'}">
+      ${(cat?.presets || []).filter(p => p.soort === soort).map(p =>
+        `<option value="${esc(p.id)}"${p.id === gekozen ? ' selected' : ''}>${esc(p.label)}</option>`).join('')}
+    </optgroup>`).join('');
+  const abs = Object.keys(cat?.abilities || {});
+  const rij = (r, i) => {
+    const p = _omgPreset(r.preset);
+    const gunstig = (r.soort || p.soort) === 'gunstig';
+    const veld = (pad, waarde, attrs = '') =>
+      `<input class="dm-input dm-input-sm" value="${esc(waarde ?? '')}" ${attrs}
+         oninput="window.dmPanel.encLairVeld(${i},'${pad}',this.value)">`;
+    const kies = (pad, html) => `<select class="dm-input dm-input-sm" onchange="window.dmPanel.encLairVeld(${i},'${pad}',this.value)">${html}</select>`;
+    const mech = gunstig ? `
+        <label>Temporary HP ${veld('gunst.thp', r.gunst?.thp, 'size="6" title="Een getal of een worp"')}</label>
+        <label>Genezing ${veld('gunst.heal', r.gunst?.heal, 'size="6" title="Een getal of een worp"')}</label>
+        <label>Conditie ${kies('gunst.conditie', opt(cat?.conditiesGunstig || [], r.gunst?.conditie))}</label>
+        ${r.gunst?.conditie === 'resistance' ? `<label>Tegen ${kies('gunst.resistance', opt(cat?.schadetypes || [], r.gunst?.resistance))}</label>` : ''}`
+      : `
+        <label>Saving Throw ${kies('save.ab', opt(abs, r.save?.ab))}</label>
+        ${r.save ? `<label>DC ${veld('save.dc', r.save?.dc, 'type="number" min="1" max="30" style="width:56px"')}</label>` : ''}
+        <label>Schade ${veld('schade.worp', r.schade?.worp, 'size="6" title="Een getal of een worp, zoals 2d6"')}</label>
+        ${r.schade ? `<label>${kies('schade.type', opt(cat?.schadetypes || [], r.schade?.type))}</label>
+          <label class="enc-lair-chk"><input type="checkbox" ${r.schade?.half ? 'checked' : ''}
+            onchange="window.dmPanel.encLairVeld(${i},'schade.half',this.checked)"> Half bij succes</label>` : ''}
+        <label>Conditie ${kies('conditie', opt(cat?.conditiesVijandig || [], r.conditie))}</label>`;
+    return `
+      <div class="enc-lair-regel enc-lair-regel--${gunstig ? 'gunstig' : 'vijandig'}">
+        <div class="enc-lair-top">
+          <span class="enc-lair-ic">${icon(p.icoon || 'hexagon')}</span>
+          <select class="dm-input dm-input-sm" onchange="window.dmPanel.encLairPreset(${i},this.value)">${presetOpts(r.preset)}</select>
+          <input class="dm-input dm-input-sm enc-lair-tekst" value="${esc(r.tekst || '')}" title="Wat er gebeurt — dit staat op tafel"
+            oninput="window.dmPanel.encLairVeld(${i},'tekst',this.value)">
+          <button class="dm-btn dm-btn-sm dm-btn-ghost dm-btn-icon" onclick="window.dmPanel.encLairWeg(${i})" title="Deze Lair Action weghalen">${icon('x')}</button>
+        </div>
+        <div class="enc-lair-mech">
+          ${mech}
+          ${r.preset === 'aftellen' ? `<label>Rondes ${veld('rondes', r.rondes, 'type="number" min="1" max="10" style="width:56px"')}</label>` : ''}
+        </div>
+      </div>`;
+  };
+  return `
+    <div class="dm-form-label enc-lair-kop">${icon('mountain')} Lair Actions</div>
+    <div class="enc-lair-lijst">${_encLair.map(rij).join('')}</div>
+    <button class="dm-btn dm-btn-sm dm-btn-ghost" style="margin-bottom:10px" onclick="window.dmPanel.encLairErbij()"
+      ${cat ? '' : 'disabled'}>${icon('plus')} Lair Action</button>`;
+}
+
+function _encLairErbij() {
+  const p = _omgPreset('aardbeving');
+  _encLair.push(_regelVanPreset(p));
+  _renderEncounterEditor();
+}
+function _regelVanPreset(p, tekst) {
+  const r = { preset: p.id, tekst: tekst ?? p.tekst ?? '', soort: p.soort };
+  if (p.soort === 'gunstig') r.gunst = _kopie(p.gunst || { thp: '', heal: '', conditie: null });
+  else Object.assign(r, { save: _kopie(p.save || null), schade: _kopie(p.schade || null), conditie: p.conditie || null });
+  if (p.rondes) r.rondes = p.rondes;
+  return r;
+}
+function _encLairPreset(i, id) {
+  const oud = _encLair[i]; if (!oud) return;
+  const was = _omgPreset(oud.preset), p = _omgPreset(id);
+  // Een tekst die je zelf schreef blijft staan; die van de vorige preset niet.
+  const eigenTekst = oud.tekst && oud.tekst !== was.tekst ? oud.tekst : undefined;
+  _encLair[i] = _regelVanPreset(p, eigenTekst);
+  _renderEncounterEditor();
+}
+function _encLairVeld(i, pad, v) {
+  const r = _encLair[i]; if (!r) return;
+  const [a, b] = pad.split('.');
+  if (!b) { r[a] = a === 'rondes' ? (parseInt(v) || 1) : v; return; }
+  if (a === 'save') {
+    if (b === 'ab' && !v) { r.save = null; return _renderEncounterEditor(); }
+    const nieuw = !r.save;
+    r.save = r.save || { ab: 'DEX', dc: 13 };
+    r.save[b] = b === 'dc' ? (parseInt(v) || 10) : v;
+    if (nieuw) _renderEncounterEditor();
+    return;
+  }
+  if (a === 'schade') {
+    if (b === 'worp' && !String(v).trim()) { r.schade = null; return; }
+    const nieuw = !r.schade;
+    r.schade = r.schade || { worp: '', type: 'bludgeoning', half: true };
+    r.schade[b] = b === 'half' ? !!v : v;
+    if (nieuw) _renderEncounterEditor();
+    return;
+  }
+  if (a === 'gunst') {
+    r.gunst = r.gunst || { thp: '', heal: '', conditie: null };
+    r.gunst[b] = v || (b === 'conditie' || b === 'resistance' ? null : '');
+    if (b === 'conditie') _renderEncounterEditor();
+  }
+}
+function _encLairWeg(i) { _encLair.splice(i, 1); _renderEncounterEditor(); }
+function _encOvergangKies(v) { _encOvergang = v || ''; }
 
 function _encCancel() {
   _editingEncId = null;
@@ -4992,6 +5198,8 @@ async function _encSave() {
     // De oude, losse buit blijft bewaard zolang er geen vondst gekoppeld is;
     // zo raakt een bestaand gevecht niets kwijt door één keer op te slaan.
     loot:         _encLootId ? null : _encLoot,
+    lair:         { regels: _encLair.filter(r => r.preset !== 'eigen' || (r.tekst || '').trim()) },
+    overgang:     _encOvergang || null,
   };
   try {
     if (_encIsNew) {
@@ -5715,10 +5923,19 @@ async function _combatDeathSave(id, type) {
     catch (e) { _combatFout(e); }
     return;
   }
+  // Een natuurlijke 20: je staat op met 1 HP. Het tafelscherm maakt er een
+  // moment van (zie `gevecht:doodsstrijd` → 'op').
+  if (type === 'nat20') {
+    const conditions = (c.conditions || []).filter(x => x !== 'unconscious');
+    try { await api.updateCombatant(id, { hp: 1, deathSaves: { successes: 0, failures: 0 }, conditions, nat20: true }); }
+    catch (e) { _combatFout(e); }
+    return;
+  }
 
   const ds = { successes: c.deathSaves?.successes || 0, failures: c.deathSaves?.failures || 0 };
-  if (type === 'success') ds.successes = Math.min(3, ds.successes + 1);
-  else                    ds.failures  = Math.min(3, ds.failures  + 1);
+  if (type === 'success')   ds.successes = Math.min(3, ds.successes + 1);
+  else if (type === 'nat1') ds.failures  = Math.min(3, ds.failures  + 2);   // een 1 telt dubbel
+  else                      ds.failures  = Math.min(3, ds.failures  + 1);
 
   const updates = { deathSaves: ds };
 
@@ -8956,7 +9173,11 @@ async function _renderGeluiden() {
   // standaardgeluiden: ook die speelt de app zelf, zonder dat jij iets doet.
   const momentRijen = `
     ${momentRow('lootReveal', 'Loot onthullen', 'klinkt zodra de spelers de buit te zien krijgen')}
-    ${momentRow('levelUp', 'Level omhoog', 'klinkt bij de speler die een level omhoog gaat, en op het tafelscherm')}`;
+    ${momentRow('levelUp', 'Level omhoog', 'klinkt bij de speler die een level omhoog gaat, en op het tafelscherm')}
+    ${momentRow('terugblik', 'Terugblik', 'speelt onder de terugblik op het tafelscherm')}
+    ${momentRow('rage', 'Rage', 'de brul als een Barbarian in Rage gaat')}
+    ${momentRow('gevechtOpening', 'Roll Initiative', 'de opening van een gevecht op het tafelscherm')}
+    ${momentRow('genadeslag', 'How do you want to do this?', 'onder de beschrijving van de laatste klap, op het tafelscherm')}`;
 
   // De klanken bij een tafelscherm-effect. Ze maken zichzelf in de browser, dus
   // hier staat niets leeg te wachten: wat je kiest vervángt de gemaakte klank.
@@ -10297,6 +10518,8 @@ function _combatSelectCombatant(id) {
       </div>
       <button class="co-ds-btn co-ds-yes" onclick="window.dmPanel.combatDeathSave('${esc(c.id)}','success')">${icon('check')}</button>
       <button class="co-ds-btn co-ds-no"  onclick="window.dmPanel.combatDeathSave('${esc(c.id)}','failure')">${icon('x')}</button>
+      <button class="co-ds-btn co-ds-nat" title="Natuurlijke 20: staat op met 1 HP" onclick="window.dmPanel.combatDeathSave('${esc(c.id)}','nat20')">20</button>
+      <button class="co-ds-btn co-ds-nat co-ds-nat1" title="Natuurlijke 1: telt als twee failures" onclick="window.dmPanel.combatDeathSave('${esc(c.id)}','nat1')">1</button>
       <button class="co-ds-btn co-ds-rst" onclick="window.dmPanel.combatDeathSave('${esc(c.id)}','reset')">↺</button>
     </div>` : '';
 

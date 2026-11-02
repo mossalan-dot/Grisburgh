@@ -348,14 +348,13 @@ De app gebruikt querystring cache-busting (`?v=N`). **Vergeten = browser haalt o
 **Huidige versies (bij te houden):**
 
 ```
-index.html  : theme.css?v=710   app.js?v=943   sound-manager.js?v=8
-app.js      : api.js?v=296  dm-panel.js?v=312  media-picker.js?v=8  tafels.js?v=1
-              render-archief.js?v=92  render-bestiarium.js?v=29  render-campagne.js?v=315
-              render-dashboard.js?v=9  render-dungeon.js?v=53  render-kaart.js?v=31
-              render-progressie.js?v=46  render-relatiemap.js?v=25  render-spreuken.js?v=39
-              render-vaardigheden.js?v=1
-              render-statblock.js?v=9  socket-client.js?v=71
-dm-panel.js : combat-canvas.js?v=29   render-statblock.js?v=9
+index.html  : theme.css?v=917   app.js?v=1182   sound-manager.js?v=15
+app.js      : api.js?v=319  dm-panel.js?v=415  media-picker.js?v=13  tafels.js?v=2  terugblik.js?v=3  rage.js?v=4  klassekracht.js?v=5  personage-maken.js?v=9  gevecht-regie.js?v=2
+              render-archief.js?v=145  render-bestiarium.js?v=34  render-campagne.js?v=353
+              render-dungeon.js?v=70  render-kaart.js?v=34  render-progressie.js?v=66
+              render-relatiemap.js?v=34  render-spreuken.js?v=53  render-vaardigheden.js?v=135
+              render-statblock.js?v=9  socket-client.js?v=94  wizard.js?v=8  conditions.js?v=4
+dm-panel.js : akte-schrijven.js?v=37  combat-canvas.js?v=37  render-statblock.js?v=9
 ```
 
 > **Een importeur moet zelf ook opschuiven.** `index.html` vraagt om `app.js?v=N`.
@@ -417,6 +416,232 @@ dm-panel.js : combat-canvas.js?v=29   render-statblock.js?v=9
 > `tbl_rust_wildernis` + `tbl_rust_herberg` (conversiescript-patroon: md-rij `| 01-02 | **Naam** | Beschrijving | \`+6 knakers\` |`
 > → `1-2: Naam — Beschrijving {+6kn}`; munt-namen florinde/knaker/centeling → fl/kn/cl). (4) **Tabletmodus**: op het gedeelde scherm (`_isDisplayMode`, geen `characterId`) toont de overlay
 > een party-brede variant zonder per-speler-knoppen.
+
+> **Gevechtsregie: een begin, een midden en een einde** (1 nov 2026). Vijf
+> momenten op het tafelscherm, getekend door **`public/js/gevecht-regie.js`**
+> (side-effect import) en bepaald door de server (`routes/api.js`, zoek op
+> *Gevechtsregie*). Alles wat bijgehouden moet worden staat in `combat.regie`
+> (`start`, `momenten`, `doodsstrijd`, `voorstel`, `vraag`, `lairNu`,
+> `lairVorige`) — en `_combatVoorSpeler` haalt `regie` en `lair` eraf, want daar
+> staan Lair Actions in die de DM nog niet koos. Een speler krijgt alleen
+> `lairAan: true`.
+> - **Opening** — `POST /combat/start` stuurt `gevecht:opening` naar de
+>   display-room (`_openingVoor`: party, vijanden gegroepeerd op naam zonder
+>   volgnummer, nooit de encounternaam — dat is een werktitel).
+> - **Lair Actions** — `encounter.lair.regels` (één per regel, `_lairUit`),
+>   meegenomen bij het laden van de encounter. `_lairCheck(combat, vorige)` zet
+>   `regie.lairNu` op initiative 20 *verliest gelijke stand*: een beurtwissel
+>   van ≥20 naar <20, of het begin van een ronde waarin niemand 20 haalde; één
+>   keer per ronde. De DM kiest (`POST /combat/lair` `{index|tekst|overslaan}`),
+>   pas dan gaat `gevecht:lair` naar tafel. Dezelfde regel twee rondes achter
+>   elkaar wordt gemarkeerd, niet geweigerd.
+> - **Death saves** — `_doodsstrijdUit(prev, cur, body)` leidt uit het verschil
+>   af: `neer`, `succes`, `faal`, `stabiel` (2 successen → 0/0 mét Unconscious,
+>   zo schrijft het DM-paneel het weg), `dood`, `op`. Dat gaat als
+>   `gevecht:doodsstrijd` naar tafel; `stabiel` zet `c.stabiel` (weg bij `op`,
+>   `neer` of `faal`). De DM-knoppen **20** (1 HP, `nat20: true` — een vlag voor
+>   dat ene moment, de server gooit hem er meteen af) en **1** (twee failures).
+>   Het tafelscherm leidt de blijvende rode rand + hartslag af uit het gevecht
+>   zelf (`_stervenden`), dus ook na een herladen.
+> - **How do you want to do this?** — valt een monster op 0 terwijl een speler
+>   aan zet is, dan zet de server `regie.voorstel`; de DM drukt *Vraag het*
+>   (`POST /combat/hwywtdt` `{doelId, characterId}`), en `gevecht:hwywtdt` gaat
+>   via `_naarSpeler()` naar **alleen de sockets van dat personage** (alle
+>   tabbladen, niet `playerSockets`). Antwoorden: `POST
+>   /combat/hwywtdt/antwoord` `{id, tekst}` door die speler of door de DM (die
+>   typt wat er hardop gezegd werd); leeg = zonder woorden, `annuleer` = intrekken.
+>   Tafel krijgt `gevecht:hwywtdt:display` met `fase` vraag/antwoord/stil/weg.
+> - **Afloop** — `DELETE /combat` stuurt eerst `gevecht:afloop` (`_afloopVan`)
+>   en dan pas het lege gevecht. Alleen wat de app weet: rondes, minuten, wie er
+>   tegenover stond, wie viel of opstond, de beschrijvingen en het aantal Lair
+>   Actions. **Geen schadetotalen of crits**: er wordt aan tafel gedobbeld. Het
+>   verslag in het Logboek (`_gevechtVerslag`) krijgt `duurMin`, `momenten` en
+>   `doodsstrijd` erbij.
+> - **Canvas** (`combat-canvas.js`): bij een nieuwe ronde dimt het beeld en zegt
+>   `_verteller()` hoe het ervoor staat, afgeleid uit `_hpFrac` (dus ook met vage
+>   HP); en `_cameraTransform()` zoomt bij een beurtwissel 2,5 s in op de actieve
+>   token — **alleen op het tafelscherm**, want bij DM en speler wordt er op het
+>   canvas geklikt. Niet naar het midden trekken: dan schuift de kale rand in beeld.
+> Klanken: `soundManager.regieKlank(soort)`; eigen bestanden via Momenten →
+> `gevechtOpening` en `genadeslag`. Bewaakt door `tests/gevecht-regie.test.js`.
+> **Ronde 2 (2 nov 2026): overgang, omgevingseffecten, genadeslagen.**
+> - **Overgang** vóór de opening: drie witte flitsen en een raster tegels
+>   (16×9) dat in een patroon zwart wordt. Elk patroon is alleen een
+>   volgorde (`_PATRONEN` in `gevecht-regie.js`: spiraal, balken, cirkel,
+>   scherven, vegen) die per tegel een `--d` oplevert. Per encounter
+>   `overgang` (`_OVERGANGEN` op de server; leeg = willekeurig, `geen` = uit).
+> - **Omgevingseffecten** — **`lib/omgeving.js`** is de catalogus: elf vijandige
+>   presets (aardbeving, storm, stijgend water, aftellen, vlammen, giftige nevel,
+>   vallende stenen, ijzige wind, fluisterstemmen, duisternis) en vier gunstige
+>   (heilig licht, helende bron, beschermend altaar, zegen) plus `eigen`. Een
+>   regel = `{preset, tekst, soort, save:{ab,dc}, schade:{worp,type,half},
+>   conditie}` of bij gunstig `{gunst:{thp,heal,conditie,resistance}}`, en
+>   `rondes` bij een aftelling. `regelUit()` normaliseert (een kale tekst wordt
+>   `eigen`, dus oude Lair Actions blijven werken); de editor vult bij het
+>   kiezen van een preset alles in, dus wat opgeslagen staat is volledig.
+>   Een Lair Action of het regieblok **`[!omgeving]`** in een akte gaat via
+>   `_omgevingStart()`: tafel krijgt `gevecht:lair` (met `samenvatting` en een
+>   `fx` uit `lib/display-fx.js`), en heeft de regel mechaniek dan staat er een
+>   **effect** in `dmState.omgevingEffect` met vooraf gerolde getallen en de
+>   doelen. Dat gaat alleen naar DM-sessies (`_naarDM`, event
+>   `omgeving:effect`). De DM tikt per doel aan wat er gebeurde en
+>   `POST /omgeving/effect/uitslag` past het toe: in een gevecht op de tokens
+>   (Temporary HP eerst, death saves bij 0, conditie bij mislukt, een
+>   Concentration-prompt), daarbuiten op `playerHp` (condities niet: die hebben
+>   daar geen token). De uitslag gaat als `omgeving:uitslag` naar tafel.
+>   **Aftellen**: `combat.regie.aftellen` gaat elke nieuwe ronde één omlaag
+>   (`_aftellenTik` in `PUT /combat`), tafel krijgt `omgeving:aftellen`, en op
+>   nul start het effect alsnog. Routes: `GET /omgeving/presets`,
+>   `GET|POST /omgeving/effect`, `POST /omgeving/effect/uitslag` (alle DM).
+>   Nieuwe conditie **`resistance`** (icoon `shield-check`).
+> - **Genadeslagen** bovenin het Logboek (`_genadeslagenHtml` in
+>   `render-archief.js`): afgeleid uit `gevecht.momenten` van de zichtbare
+>   verslagen, geen tweede opslag. Momenten dragen sindsdien `spelerBeeld` en
+>   `doelBeeld`.
+> Bewaakt door het tweede `describe`-blok in `tests/gevecht-regie.test.js`.
+> **Valkuil:** een laag die met `_laag(id)` hergebruikt wordt mag bij het
+> weghalen zijn id niet houden — anders pakt het volgende moment het stervende
+> element en haalt de verwijdertimer het nieuwe weg (`_weg` haalt het id er
+> meteen af; flitsen zijn altijd een nieuw element).
+
+> **Klassekrachten — de andere klassen** (31 okt 2026). Na Rage kreeg elke klasse
+> zijn eigen kracht, maar niet als twaalf losse systemen: **`lib/klassekrachten.js`**
+> is één catalogus waarin elke klasse zijn **bronnen** (`max(lvl, profiel)`,
+> `kort(lvl)` → wat een Short Rest teruggeeft) en **acties** beschrijft. Een actie
+> heeft een `soort`, en die soort bepaalt wat de server doet: `flits` (verbruiken
+> en tonen), `genees` (rollen of een bedrag, afgetopt op het maximum, op de token
+> én het blad), `worp` (schade die vaststaat zodra je hem aankondigt: Sneak
+> Attack, Eldritch Blast per straal, Divine Smite op een gekozen slot), `actief`
+> (een toestand met conditie op je token of die van het doelwit: Wild Shape,
+> Hunter's Mark, Innate Sorcery), `inspiratie` (Bardic Inspiration bij een
+> ander), `slots` (Arcane Recovery binnen een budget, Magical Cunning de helft
+> van je pact-slots), `herstel` (Uncanny Metabolism, één keer per lange rust) en
+> Font of Magic (`slot-maken`/`slot-smelten`). **Een nieuwe klassekracht is een
+> regel in de catalogus**, geen route.
+> Server: `GET/POST /characters/:id/klassekracht` (`{klasse, actie, doel, bedrag,
+> tekst, keuze, slot, slots}`), `/klassekracht/einde`, `/inspiratie/gebruik`;
+> opslag in `dmState.playerKracht[charId]` (`bronnen`, `eenmalig`, `actief`) en
+> `dmState.inspiratieDie[charId]`. Slots gaan via `_slotsVoorSpeler` en alleen
+> `used` wordt geschreven. Rusten: `_kkRust()`. Einde gevecht beëindigt wat aan
+> het gevecht hing (`eindeBijGevecht`, of een doel dat een vijand was); Wild Shape
+> blijft.
+> Client: **`public/js/klassekracht.js`** tekent het blok (`#kracht-blok`) puur uit
+> wat de server stuurt — welke knoppen, wat het kost, waarom iets grijs staat — en
+> opent een klein paneel onder de knoppen voor wat een kracht nodig heeft.
+> Tafelscherm: `klasse:display` (alleen de display-room) → een moment per thema,
+> met `THEMA` (twee kleuren, een deeltje uit de sprite, een figuur:
+> stralen/golven/snelheid/cirkel/haal/penseel/vizier/bundels) en een klank per
+> thema (`soundManager.klasseKlank`). Merktekens delen de hoek met Rage
+> (`#rage-merken`). Drie nieuwe condities: `wild-shape`, `hunters-mark`,
+> `innate-sorcery`. Bewaakt door `tests/klassekracht.test.js`.
+> **Niet gedaan:** de Blood Hunter (eigen materiaal, geen SRD) en de subklassen —
+> een Battle Master of Psi Warrior heeft zijn eigen voorraad die nog op de
+> signatuurkaart-catalogus in `app.js` staat. Die passen in dezelfde catalogus.
+> **Tweede ronde** (31 okt 2026). **Bardic Inspiration is een badge** op het
+> partyportret (`_badgesVoor` → soort `bardic`), met *Gebruiken* in het
+> badgekaartje (`window._bardicGebruik`) dat de die écht gooit;
+> `badges:updated` gaat uit bij geven en gebruiken.
+> **Wild Shape volgt de PHB 2024**: bekende gedaantes (`playerKracht[c].vormen`,
+> `PUT /characters/:id/klassekracht/vormen`) — 4/6/8 op level 2/4/8, max CR
+> 1/4·1/2·1, vliegers pas op 8, Circle of the Moon tot level÷3 (`_wildShapeRegels`).
+> Het aanbod is `_beesten()`: de SRD-beesten plus wat de campagne zelf als Beast in
+> `monsters.json` heeft. De **omgeving** per beest komt uit
+> `bronnen/beest-omgevingen.json` (`scripts/srd-2024/beest-omgevingen.js`, de elf
+> omgevingen van de Monster Manual, nieuwste druk wint — labels, geen tekst). Bij het
+> veranderen kies je de omgeving zelf (standaard waar het dier leeft); die gaat mee
+> naar het tafelscherm, dat er kleur en deeltje van overneemt (`OMGEVING` in
+> `klassekracht.js`).
+> **Een emote bij een kracht**: `playerKracht[c].klank['<klasse>.<actie>']` (ook
+> `barbarian.rage`), `PUT /characters/:id/klassekracht/klank`; de display-payload
+> draagt dan `emote` (een fileId) en het tafelscherm speelt hem na de flits. Emotes
+> zijn wat er in `sounds.json → emotes[charId].library` staat.
+> **Personage maken kreeg *Hoe klink je?***: tot vier geluiden (alleen audio, 3 MB),
+> `POST|DELETE /personage-concept/:id/emote`, namen via de gewone PATCH; bij het gunnen
+> worden ze `sounds.json → emotes[entityId]`. `_magBestandZien` laat een conceptsessie
+> haar eigen portret en emotes ophalen (`<conceptId>` en `<conceptId>_emote_*`).
+> **Derde ronde: de subclasses uit de PHB 2024** (31 okt 2026). `SUBKLASSEN` in
+> `lib/klassekrachten.js`: 39 van de 48, elk herkend op een regex over
+> `profiel.subclass` (of `multiSubclass` bij de tweede class). De maat is dezelfde als
+> bij de oude subklassekaarten: een getal, stand of worp die aan tafel telt. Negen
+> hebben niets (Dance, Valor, Champion, Eldritch Knight, Beast Master, Thief, Arcane
+> Trickster, Aberrant, en Moon — die zit al in de CR van Wild Shape). Een subclass
+> mag de bronnen van zijn class gebruiken; `definitie(id, profiel, tweede)` voegt
+> class en subclass samen en elke subclass-actie draagt `sub`, zodat het blad ze onder
+> een eigen kopje zet. `actieOp()` vindt een actie zonder het profiel (bij het
+> opruimen na een gevecht). De Barbarian staat nu ook in `KLASSEN`, zonder eigen
+> bronnen: alleen om zijn subclasses een plek te geven — Rage blijft op zijn eigen route.
+> Nieuwe vormen: `soort: 'temp'` (Temporary HP), `dobbels` (genezen uit een pool,
+> je kiest het aantal), `limiet` (Preserve Life), `opties` (keuze zonder prijs:
+> maneuvers, Bear/Eagle/Wolf, Starry Form), `soort: 'portent'`/`'portent-gebruik'`
+> (opgeslagen in `playerKracht[c].portent`, weg na een lange rust), `soort: 'bijvullen'`
+> met een negatieve kost (Arcane Ward laden), `conditie` op een flits (Tides of Chaos)
+> en `thema` per actie voor de kleur op tafel. Bewaakt door het tweede `describe`-blok
+> in `tests/klassekracht.test.js`.
+
+> **Valkuil, nog een keer:** ook `ps aux | grep "[s]erver.js" | xargs kill` in een
+> opdracht die zelf "server.js" bevat, raakt de eigen shell. Stop de testserver in
+> een aparte opdracht.
+
+> **Valkuil bij lokaal testen:** `pkill -f "node server.js"` in dezelfde
+> shell-opdracht als de rest doodt die shell zelf — de tekst staat ook in zijn
+> eigen opdrachtregel.
+
+> **Rage — de Barbarian** (31 okt 2026). Er stond al een signatuurkaart met
+> bolletjes; die is eerder van het blad gehaald omdat een kenmerk met een teller
+> hetzelfde deed. Rage verdient meer dan een teller, want hij *doet* iets: de app
+> houdt nu de uses bij volgens de PHB 2024 (`RAGE_USES` 2/3/4/5/6 op 1/3/6/12/17,
+> `RAGE_SCHADE` +2/+3/+4 op 1/9/16 — let op, de oude `_SIGNATURE` had 5 uses al op
+> level 10), zet **Raging** op de token en haalt een Concentration eraf (dat is
+> regel), en een **korte rust geeft één use terug, een lange alles**. Het
+> einde van een gevecht dooft een lopende Rage: wie niet meer vecht verlengt hem
+> niet. De duur loopt verder níét op een klok en Rage Damage wordt nergens
+> opgeteld — de tafel rekent, de app laat zien.
+> Vanaf 11 verschijnt **Relentless Rage** als iemand in Rage op 0 HP ligt (een DC
+> die per poging 5 oploopt, een rust zet hem op 10), vanaf 15 **Persistent Rage**
+> (alles terug, één keer per lange rust, alleen in een gevecht).
+> Server: `_rageStand()` (afgeleid uit het profiel, ook bij multiclass via
+> `_barbarianLevel`), `dmState.playerRage[charId]`, routes
+> `GET/POST /characters/:id/rage` en `/rage/einde`, `/rage/relentless`,
+> `/rage/persistent` (speler zelf of DM). Rusten via `_rageRust()`.
+> Client: **`public/js/rage.js`** (side-effect import). Het blok `#rage-blok` staat
+> bovenaan Personage naast de Wild Magic van de Sorcerer en verdwijnt helemaal voor
+> wie geen Barbarian is. De speler flitst op zijn eigen telefoon bij de klik; de
+> klank komt van de socket-echo, want alleen die weet of de DM er een eigen bestand
+> aan hing (`momenten.rage`, anders `soundManager.rageKlank('brul')`: ruis door een
+> zwaaiend bandfilter met een 32 Hz-grom). `rage:updated` gaat naar de hele
+> campagne (wie raast is geen geheim, de rest krijgt een melding); `rage:display`
+> alleen naar het tafelscherm, dat brult en daarna linksonder een merkteken
+> houdt (`#rage-merken`). Bewaakt door `tests/rage.test.js`.
+> **Valkuil bij de klauwsporen:** `pathLength="1"` plus
+> `vector-effect: non-scaling-stroke` breekt elke haal in stukjes — de browser
+> rekent de streepjes dan in schermpixels.
+
+> **Wat voorafging — de terugblik op het tafelscherm** (31 okt 2026). Aan het begin
+> van een avond speelt het tafelscherm het vorige sessieverslag af als trailer:
+> letterbox, filmkorrel, stof in het licht, *Wat voorafging* letter voor letter,
+> de akte met haar banner, de samenvatting **woord voor woord** als ondertitels over
+> Ken Burns-beelden, het citaat, *Wie u ontmoette* (portretten in gouden ringen,
+> "Nieuw" erbij) en tot slot de spelers en "gaat het verder". Knop **Terugblik**
+> in de regie-balk (`_terugblikMenu` in `dm-panel.js`: kies een verslag, speel af
+> of bekijk zelf), en een knop in elk verslag in het Logboek.
+> **De server stelt hem samen, uit alleen wat de actieve party kent**
+> (`_terugblikVoor()` in `routes/api.js`): het verslag moet voor die groep
+> zichtbaar zijn (dezelfde drie eisen als `GET /archief`), beelden moeten voor die
+> groep onthuld zijn (die van het verslag plus de beelddrager van die akte), en
+> een personage of plek komt er alleen in als zijn kaartje op `visible` staat — een
+> naam in de tekst krijgt dus geen gezicht als de party hem niet kent.
+> Spelerspersonages staan niet bij *Wie u ontmoette* maar komen in het slotshot.
+> Routes: `GET /display/terugblik` (de kiezer) en `POST /display/terugblik`
+> (`{sessieId?, voorbeeld?}` — zonder `voorbeeld` gaat hij naar de **display-room**,
+> nooit naar de spelers). Socket `terugblik:display`; `display:idle` breekt hem af.
+> De regie zit in **`public/js/terugblik.js`** (side-effect import, net als
+> `tafels.js`): eerst een lijst shots, dan één lus; tikken springt, Escape sluit,
+> en elke wacht hangt aan een run-nummer zodat sluiten midden in een shot geen
+> achtergebleven timer laat tekenen. Geluid: `sounds.json → momenten.terugblik`
+> wint; anders synthetiseert `soundManager.terugblikKlank()` een drone en een
+> trailerdreun. CSS onderaan `theme.css` (`.tb-*`), z-index 10040 — boven de
+> wizard en het detailvenster, onder de effectlaag zodat een bliksem er nog
+> overheen mag. Bewaakt door `tests/terugblik.test.js`.
 
 > **Brief vanuit de akteregie (regie-stap, cinematisch).** Naast image/entity/encounter/dungeon/rust
 > kent het regie-script een **6e staptype `brief`**. De DM stelt 'm op via het mail-icoon in de
@@ -2461,6 +2686,9 @@ factie — `star` betekent in de app al *favoriet*), `award` (factie-boon), `bac
 
 **Toegevoegd voor de zes species uit Spelljammer en Lorwyn** (Lucide, ISC, 20 okt 2026,
 sprite v=22): `orbit` `cog` `squirrel` `bug` `puzzle` `droplets`
+
+**Toegevoegd voor de omgevingseffecten** (Lucide, ISC, 2 nov 2026, sprite v=27):
+`shield-check` (Resistance) `cloud-lightning` (storm)
 
 **Toegevoegd voor de species-iconen** (Lucide, ISC, 18 okt 2026, sprite v=20): `clover`
 `axe` `footprints` `scan-face` `gem` `hard-hat` `sunset` `leaf` `flower` `flower-2`

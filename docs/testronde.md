@@ -400,6 +400,7 @@ een speler ziet, **TAB** = het tafelscherm (`?display=1`), **ALL** = alle drie.
 - [ ] Spelerstab Boedel draagt een rugzak, de Loot-tab in de Meesterkamer een kluis
 
 ### Akte schrijven
+- [ ] **Regieblok Omgeving** (DM/TAB) — Invoegen → *Omgeving* (Alt+F) en kies *Stijgend water*: er komt `> [!omgeving] water` te staan; zet er `· Het kanaal loopt onder` achter en speel de akte: *Op tafel* in de lade toont die tekst met *DC 13 Strength Saving Throw*, het water komt van onder in beeld, en bovenin verschijnt het afhandelpaneel — ook zonder lopend gevecht; daar gaat schade van het blad van de spelers af
 - [ ] Meesterkamer → Aktes → *Verhaal*: het ganzenveer-knopje opent een schrijfscherm over de volle hoogte
 - [ ] Typ een regel → na een seconde staat er *bewaard*; sluit en heropen → de tekst staat er nog
 - [ ] `##` op een regel → de sectie verschijnt links; klikken zet de cursor op die kop
@@ -543,6 +544,27 @@ een speler ziet, **TAB** = het tafelscherm (`?display=1`), **ALL** = alle drie.
 - [ ] **Loot claimen** (SP) — tijdens een verdeling claimen, en zien wat je krijgt na het afrollen
 - [ ] **Brief openen** (SP) — verzegelde brief in Berichten, zegel aanklikken, tekst lezen en teruggaan
 - [ ] **Level omhoog** (SP/DM) — de DM verhoogt het level; nieuwe features verschijnen in Progressie en de sheet klopt
+- [ ] **Rage: alleen voor een Barbarian** (SP) — log in als een Barbarian en als een Wizard; alleen de Barbarian heeft bovenaan Personage een Rage-blok, de Wizard ziet er niets van (ook geen lege regel)
+- [ ] **Rage aan en uit** (SP) — druk op *Rage*: je telefoon flitst rood met klauwsporen, er komt een rode rand om je scherm, één teken dooft, en onder de knop staat wat er nu geldt; *Beëindigen* haalt rand en lijst weg zonder de use terug te geven
+- [ ] **Rage in een gevecht** (SP/DM) — zet een Concentration op je token en ga in Rage; de token draagt *Raging*, de Concentration is weg (met een melding), en de gevechtslog zegt het; stop het gevecht en de Rage is uit
+- [ ] **Rage en rust** (DM) — verbruik alle uses: de knop gaat grijs; een korte rust geeft er één terug, een lange rust alles en dooft een lopende Rage
+- [ ] **Relentless Rage** (SP) — een Barbarian van level 11 in Rage op 0 HP: het blok toont *DC 10 Constitution Saving Throw*; *Gelukt* zet je op 2× je level aan HP en de volgende keer staat er DC 15; *Mislukt* dooft de Rage
+- [ ] **Persistent Rage** (SP) — level 15, in een gevecht, met een verbruikte use: de knop *Persistent Rage* geeft alles terug en is daarna weg tot de volgende lange rust
+- [ ] **Klassekracht: alleen wat je klasse heeft** (SP) — log in als een Wizard, een Fighter en een Rogue; elk ziet bovenaan Personage zijn eigen blok (Arcane Recovery, Second Wind/Action Surge, Sneak Attack), en een klasse zonder kracht op dit level (een Artificer onder 7) ziet niets
+- [ ] **Genezen** (SP) — Fighter: *Second Wind* rolt 1d10 + level en je HP gaat omhoog (afgetopt op je maximum); Paladin: *Lay on Hands* op een partylid met een gekozen bedrag haalt dat van de voorraad af en weigert meer dan er is
+- [ ] **Bardic Inspiration** (SP) — de Bard inspireert iemand: bij díé speler staat bovenaan een paars kaartje met de die; *Gebruiken* rolt hem, het kaartje verdwijnt, en een tweede inspiratie op dezelfde persoon wordt geweigerd zolang hij er een heeft
+- [ ] **Slots terug** (SP) — Wizard: *Arcane Recovery*, kies met de plus- en minknoppen niet meer dan het budget en zie de slots terugkomen; een tweede keer kan pas na een lange rust. Warlock: *Magical Cunning* haalt de helft van je Pact Magic-slots terug
+- [ ] **Toestanden** (SP/DM) — Druid *Wild Shape* vraagt een Beast en geeft Temporary HP; Ranger *Hunter's Mark* in een gevecht zet het merk op de token van de vijand; Sorcerer *Innate Sorcery* eindigt vanzelf met het gevecht, Wild Shape niet
+- [ ] **Rust** (DM) — een korte rust: Monk heeft weer al zijn Focus, Cleric één Channel Divinity terug; een lange rust zet alles terug en beëindigt lopende toestanden
+- [ ] **Bardic Inspiration als badge** (SP) — de Bard inspireert een medespeler: op diens portret in de partybalk verschijnt een muzieknoot; tik erop en kies *Gebruiken* — de die rolt, er komt een melding met de uitkomst en de badge is weg
+- [ ] **Bekende gedaantes** (SP) — Druid level 2: kies onder *Bekende gedaantes* vier beesten; een vijfde, een CR 1/2 of een vliegend beest kun je niet aanvinken. Filter op *Arctic* en alleen beesten die daar leven blijven over. Op level 8 mag er wél een vlieger bij
+- [ ] **Wild Shape met omgeving** (SP/TAB) — kies een gedaante: de omgeving springt naar waar hij leeft; zet hem om en speel af. Het tafelscherm kleurt mee (sneeuwvlokken bij Arctic, vissen bij Underwater), en op je blad staat de AC, snelheid en aanvallen van je gedaante
+- [ ] **Klank bij een kracht** (SP/TAB) — met emotes: kies onder *Klanken* een emote bij Action Surge (of bij Rage); gebruik de kracht en die emote klinkt op het tafelscherm na de flits. Zonder emotes staat er geen *Klanken*
+- [ ] **Emotes bij een nieuw personage** (SP/DM) — in *Personage maken* bij *Hoe klink je?* twee geluiden met een naam uploaden, er één terugluisteren, één weghalen; een plaatje wordt geweigerd en een vijfde ook. Na het gunnen staan ze bij Geluiden onder dat personage
+- [ ] **Subclasses** (SP) — een Fighter met Battle Master ziet onder een kopje *Battle Master* zijn Superiority Dice en een knop *Maneuver*; kies Trip Attack, de die rolt en er gaat er één af; een korte rust zet ze terug. Een Champion ziet geen subclass-kopje
+- [ ] **Portent** (SP) — een Diviner rolt na een lange rust twee d20's (de chip toont ze); *Portent inzetten* biedt precies die getallen aan en haalt de gekozen weg; een tweede keer rollen kan pas na de volgende lange rust
+- [ ] **Arcane Ward** (SP) — een Abjurer vangt 5 HP op met de ward en laadt hem weer bij met een spell van niveau 3; hij komt nooit boven zijn maximum (2× level + INT)
+- [ ] **Pool dobbelstenen** (SP) — Zealot: *Warrior of the Gods* vraagt hoeveel d12, weigert meer dan de pool toelaat, en geneest de gerolde som; Celestial Patron: *Healing Light* idem met d6 tot je CHA-mod
 
 ## Blok 5 — Diensten
 
@@ -643,6 +665,19 @@ fout-uitvoert.
 - [ ] **Akte-afbeeldingen uploaden** (DM) — vanuit de picker én bij *Nieuwe akte*; ze verschijnen als thumbnails en zijn daarna te onthullen
 - [ ] **Regie-balk** (DM) — akte spelen, stap voor stap onthullen, pauzeren, en de sheets-herinnering na afloop
 - [ ] **Verhaalpaneel** (DM) — schuift open naast de regie, duwt de app opzij; klikken in de tekst schuift de balk mee en andersom
+- [ ] **Lair Actions in een encounter** (DM) — voeg in de encounter-editor een *Aardbeving* toe: Saving Throw DEX, DC 15, 2d6 bludgeoning en Prone staan meteen ingevuld; kies daarna *Heilig licht* en de velden worden Temporary HP 1d10; een eigen tekst blijft bij het wisselen van preset staan; opslaan en heropenen geeft precies hetzelfde terug
+- [ ] **Een oude Lair Action** (DM) — een encounter met Lair Actions van vóór de presets (kale tekst) opent met elke regel als *Eigen*, tekst intact
+- [ ] **Overgang kiezen** (DM/TAB) — zet de overgang van een encounter op *Balken* en start: drie witte flitsen, dan schuiven zwarte balken om en om van links en rechts dicht, daarna *Roll Initiative*; op *Geen overgang* begint het meteen met *Roll Initiative*; *Willekeurig* geeft per keer een ander patroon
+- [ ] **Lair Action afhandelen** (DM/TAB) — kies op initiative 20 *Aardbeving*: het tafelscherm beeft en toont *DC 15 Dexterity Saving Throw · 2d6 bludgeoning · Prone*; bovenin staat per deelnemer *Mislukt / Geslaagd / Niet geraakt* (spelers op Mislukt, monsters op Niet geraakt) en de schade al gerold; zet één speler op Geslaagd, overtyp de schade en druk *Toepassen*: de anderen verliezen dat getal en liggen Prone, de geslaagde niets; op tafel staat per speler wat het deed
+- [ ] **Half bij succes** (DM) — doe hetzelfde met *Vlammen* (half bij succes): wie slaagt verliest de helft, naar beneden afgerond; Temporary HP gaat er eerst af
+- [ ] **Een gunstige Lair Action** (DM/TAB) — kies *Heilig licht*: geen beving, een gouden kaart; zet één speler op *Niet* en pas toe: de rest heeft Temporary HP (de hoogste wint, het telt niet op), op tafel staat *+N Temporary HP*; *Beschermend altaar* zet Resistance op de tokens
+- [ ] **Aftellen** (DM/TAB) — kies *Aftellen tot een explosie* (3 rondes): op tafel een groot getal 3 en rechtsboven een penning; elke nieuwe ronde telt hij af, op nul komt de explosie met zijn Saving Throw en het afhandelpaneel; beëindig je het gevecht eerder, dan verdwijnt de penning
+- [ ] **Niets toepassen** (DM) — open een effect en druk *Niets toepassen*: het paneel verdwijnt, niemand verliest HP, en een herladen toont het niet opnieuw
+- [ ] **Lair Action op initiative 20** (DM/TAB) — geef één speler initiative 21 en start; zodra de beurt naar iemand onder de 20 gaat staat bovenin *Lair Action — initiative 20* met je regels als knoppen; kies er een en het tafelscherm beeft en toont hem; de ronde erna staat *vorige ronde* bij die regel
+- [ ] **How do you want to do this? — voorstel** (DM) — breng tijdens de beurt van een speler een vijand op 0 HP; bovenin staat *<vijand> valt* met die speler al gekozen; het kruisje laat het voorstel verdwijnen zonder dat er iets op tafel komt
+- [ ] **How do you want to do this? — de speler** (DM/SP/TAB) — druk *Vraag het*: alleen die speler krijgt het venster (een andere speler niets), het tafelscherm vertraagt en loopt grijs weg; de speler schrijft een zin en drukt *Zo gaat het*: op tafel komt de zin woord voor woord, dan de klap, en het venster bij de speler gaat dicht
+- [ ] **How do you want to do this? — zonder speler** (DM/TAB) — de speler zegt het hardop: typ het zelf in en druk *Op tafel*; of *Zonder woorden*: de klap valt meteen; het kruisje trekt de vraag in en het tafelscherm keert terug zonder klap
+- [ ] **Death saves: 20 en 1** (DM) — een speler op 0: de knop *20* zet hem op 1 HP zonder Unconscious, de knop *1* zet er twee failures bij
 - [ ] **Gevecht** (DM/TAB) — initiatief, beurten, HP, condities met iconen; op de tablet de volledige weergave
 - [ ] **Monsters & Encounters** (DM) — statblokken beheren, encounter bouwen, automatisch vullen met de aanwezige spelers
 - [ ] **Loot** (DM/SP/TAB) — vondsten aanmaken, DC als aantekening, onthullen, claimen, afrollen, uitdelen; op de tablet de kist-animatie; een mimic start het gevecht
@@ -760,6 +795,19 @@ fout-uitvoert.
 - [ ] **Sfeer wisselen** (DM/TAB) — sfeerkeuze verandert de embers en de achtergrond
 - [ ] **Effecten** (DM/TAB) — bliksem, windvlaag en duister; let erop dat ze tijdens een gevecht (nog) niet zichtbaar zijn — zie `docs/tafelscherm-effecten.md`
 - [ ] **Tablet na herstart** (TAB) — server herstarten en kijken of de tablet ingelogd blijft en zijn kamer terugvindt
+- [ ] **Rage op de tablet** (TAB) — een speler gaat in Rage: het tafelscherm wordt rood, drie klauwsporen trekken over het beeld, het portret en *RAGE* slaan in, en daarna blijft linksonder een merkteken staan tot de Rage dooft; de andere spelers krijgen een melding, niet de brul zelf
+- [ ] **Klassekrachten op de tablet** (TAB) — elke kracht heeft een eigen moment: stralen bij Cleric en Paladin, golven bij Bard en Druid, snelheidslijnen bij Action Surge, inkt bij de Monk, een vizier bij de Ranger, een haal bij de Rogue, een tovercirkel bij Wizard/Sorcerer/Artificer en stralen eldritch-licht bij de Warlock; een gerolde uitkomst telt op in beeld, en een toestand laat linksonder een merkteken achter
+- [ ] **Wat voorafging** (DM/TAB) — open een akte, druk in de regie-balk op *Terugblik* en kies *Op het tafelscherm*; de tablet speelt het laatste zichtbare verslag af als trailer (titel, akte, tekst woord voor woord over de beelden, citaat, wie je ontmoette, "gaat het verder") en gaat daarna vanzelf terug naar sfeer
+- [ ] **Wat voorafging: alleen wat de party kent** (DM) — zet het nieuwste verslag op verborgen en een personage uit dat verslag op verborgen; de terugblik pakt het verslag dáárvoor, en het verborgen personage staat niet bij *Wie u ontmoette* — ook niet als zijn naam in de tekst staat
+- [ ] **Wat voorafging: bediening** (TAB) — tikken springt naar het volgende shot, Escape sluit, en de monitorknop in de regie-balk breekt een lopende terugblik af; *Zelf bekijken* speelt hem alleen op het DM-scherm, met *Voorbeeld* linksboven
+- [ ] **Gevecht: de opening** (TAB) — start een gevecht: het tafelscherm toont *Roll Initiative* met balken boven en onder, de party komt van links, de vijanden van rechts (gelijke namen samen als ×3), een streep met *tegen* ertussen; de naam van de encounter staat er nergens; tikken sluit hem; heeft het gevecht Lair Actions, dan staat er *De plek zelf vecht mee*
+- [ ] **Gevecht: een nieuwe ronde** (TAB) — ga naar ronde 2: het beeld dimt, *RONDE 2* schuift in, en eronder staat een regel van de verteller; breng de party op lage HP en de regel van de volgende ronde zegt *De party wankelt*
+- [ ] **Gevecht: de camera** (TAB/DM) — bij een beurtwissel zoomt het tafelscherm kort in op wie aan zet is en daarna weer uit, zonder kale rand; op het DM-scherm beweegt er niets
+- [ ] **Gevecht: death saves als scène** (TAB) — breng een speler op 0: *<naam> valt* met zes lege bolletjes, en de rand van het scherm wordt rood met een hartslag; een mislukte worp vult een rood bolletje en het hart gaat trager; *20* geeft een lichtflits en *Natural 20*; drie failures maakt het beeld grijs met *<naam> is gevallen*; zodra niemand meer op 0 ligt verdwijnt de rode rand
+- [ ] **Genadeslagen in het Logboek** (SP/DM) — na een gevecht met twee beschrijvingen staat bovenin het Logboek *Genadeslagen 2*; openklappen toont ze als kaartjes, de nieuwste eerst, met wie het deed en tegen wie; een speler van een andere party ziet ze niet; zonder een enkele beschrijving staat het blok er niet
+- [ ] **Gevecht: de afloop** (TAB/DM) — beëindig een gevecht met een beschrijving en een Natural 20 erin: het tafelscherm toont *Overwinning*, rondes en minuten, wie er tegenover stond, de beschrijving als citaat en *stond op met een Natural 20*; tikken sluit hem; het verslag in het Logboek heeft dezelfde citaat en regel
+- [ ] **Gevecht: eigen klanken** (TAB) — hang bij Geluiden → Momenten een bestand aan *Roll Initiative* en aan *How do you want to do this?*; de opening en de klap spelen dat bestand in plaats van de gemaakte klank
+- [ ] **Wat voorafging: muziek** (TAB) — zonder instelling een lage drone met een dreun bij de titel; hang je bij Geluiden → Momenten → *Terugblik* een bestand, dan zwelt dát aan en sterft het weg aan het eind
 
 ## Blok 9 — Uitvoer en onderhoud
 

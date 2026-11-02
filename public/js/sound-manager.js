@@ -119,6 +119,223 @@ const _FX_KLANKEN = {
   ruis:     (c) => { _ruisvlaag(c, { filter: 'highpass', freq: 1100, vol: 0.14, duur: 2.4 }); },
 };
 
+// ── Klanken bij de terugblik ("Wat voorafging") ─────────────────────────────
+// Een trailer heeft twee dingen: een dreun bij de titel en een toon eronder die
+// de stilte vult. De dreun is twee licht ontstemde zaagtanden door een
+// laagdoorlaatfilter dat dichtknijpt, met een sub-sinus eronder en een
+// ruiszwelling ervoor — de "BRAAAM". De drone is een open kwint (A en E) die
+// traag ademt. Allebei te vervangen door een eigen bestand in de Geluiden-tab.
+function _tbDreun(ctx, zacht) {
+  const t = ctx.currentTime + 0.05;
+  const vol = zacht ? 0.16 : 0.30;
+  const duur = zacht ? 2.6 : 3.6;
+  const f = ctx.createBiquadFilter();
+  f.type = 'lowpass'; f.Q.value = 6;
+  f.frequency.setValueAtTime(zacht ? 900 : 2200, t);
+  f.frequency.exponentialRampToValueAtTime(140, t + duur * 0.8);
+  const g = ctx.createGain();
+  g.gain.setValueAtTime(0.0001, t);
+  g.gain.exponentialRampToValueAtTime(vol, t + 0.06);
+  g.gain.exponentialRampToValueAtTime(vol * 0.5, t + 0.9);
+  g.gain.exponentialRampToValueAtTime(0.0001, t + duur);
+  f.connect(g).connect(ctx.destination);
+  for (const [hz, type] of [[55, 'sawtooth'], [55.6, 'sawtooth'], [110.3, 'square']]) {
+    const o = ctx.createOscillator();
+    o.type = type; o.frequency.setValueAtTime(hz, t);
+    o.frequency.exponentialRampToValueAtTime(hz * 0.94, t + duur);
+    o.connect(f); o.start(t); o.stop(t + duur + 0.1);
+  }
+  _toon(ctx, { type: 'sine', van: 46, naar: 33, vol: zacht ? 0.22 : 0.4, start: 0.05, duur: duur * 0.9 });
+  if (!zacht) _ruisvlaag(ctx, { filter: 'bandpass', freq: 500, q: 0.6, vol: 0.12, duur: 1.4 });
+}
+
+function _tbDrone(ctx) {
+  const t = ctx.currentTime;
+  const uit = ctx.createGain();
+  uit.gain.setValueAtTime(0.0001, t);
+  uit.gain.exponentialRampToValueAtTime(0.09, t + 4);
+  const f = ctx.createBiquadFilter();
+  f.type = 'lowpass'; f.frequency.value = 520; f.Q.value = 0.8;
+  f.connect(uit).connect(ctx.destination);
+  const bronnen = [];
+  for (const [hz, v] of [[55, 0.5], [82.41, 0.35], [110, 0.3], [164.8, 0.12]]) {
+    const o = ctx.createOscillator(); o.type = 'triangle'; o.frequency.value = hz;
+    const og = ctx.createGain(); og.gain.value = v;
+    // Elke toon ademt in zijn eigen tempo; daardoor golft het geheel.
+    const lfo = ctx.createOscillator(); lfo.frequency.value = 0.05 + Math.random() * 0.08;
+    const lg = ctx.createGain(); lg.gain.value = v * 0.45;
+    lfo.connect(lg).connect(og.gain);
+    o.connect(og).connect(f);
+    o.start(t); lfo.start(t);
+    bronnen.push(o, lfo);
+  }
+  // Wind erachter, heel zacht.
+  const wind = _ruisvlaag(ctx, { filter: 'bandpass', freq: 380, q: 0.4, vol: 0.05, duur: 600, loop: true });
+  bronnen.push(wind);
+  let gestopt = false;
+  return () => {
+    if (gestopt) return; gestopt = true;
+    const n = ctx.currentTime;
+    uit.gain.cancelScheduledValues(n);
+    uit.gain.setValueAtTime(Math.max(0.0001, uit.gain.value), n);
+    uit.gain.exponentialRampToValueAtTime(0.0001, n + 2.5);
+    bronnen.forEach(b => { try { b.stop(n + 2.6); } catch { /* al gestopt */ } });
+  };
+}
+
+// ── De brul van een Barbarian ────────────────────────────────────────────────
+// Een stem is ruis door een filter dat open- en dichtgaat (de klinker), met een
+// lage zaagtand eronder voor de borstkas. Het grommen zit in de modulatie: een
+// LFO van ~32 Hz op het volume, zo snel dat je hem niet als ritme hoort maar
+// als ruwheid. Eronder een trommelslag als inzet en daarna een hartslag die
+// nog even nadreunt.
+function _rageBrul(ctx) {
+  const t = ctx.currentTime + 0.02;
+  _toon(ctx, { type: 'sine', van: 130, naar: 38, vol: 0.5, duur: 0.55 });          // inzet
+  _ruisvlaag(ctx, { filter: 'lowpass', freq: 600, vol: 0.2, duur: 0.25 });
+
+  const duur = 1.7;
+  const uit = ctx.createGain();
+  uit.gain.setValueAtTime(0.0001, t);
+  uit.gain.exponentialRampToValueAtTime(0.34, t + 0.12);
+  uit.gain.exponentialRampToValueAtTime(0.22, t + 1.0);
+  uit.gain.exponentialRampToValueAtTime(0.0001, t + duur);
+  // de ruwheid
+  const grom = ctx.createGain(); grom.gain.value = 0.6;
+  const lfo = ctx.createOscillator(); lfo.frequency.value = 32;
+  const diepte = ctx.createGain(); diepte.gain.value = 0.4;
+  lfo.connect(diepte).connect(grom.gain);
+  grom.connect(uit).connect(ctx.destination);
+  // de klinker: een bandfilter dat van "oo" naar "aa" en terug zwaait
+  const klinker = ctx.createBiquadFilter();
+  klinker.type = 'bandpass'; klinker.Q.value = 2.2;
+  klinker.frequency.setValueAtTime(320, t);
+  klinker.frequency.exponentialRampToValueAtTime(1050, t + 0.35);
+  klinker.frequency.exponentialRampToValueAtTime(420, t + duur);
+  klinker.connect(grom);
+  const ruis = ctx.createBufferSource(); ruis.buffer = _ruis(ctx); ruis.loop = true;
+  ruis.connect(klinker);
+  // de borstkas
+  const borst = ctx.createOscillator(); borst.type = 'sawtooth';
+  borst.frequency.setValueAtTime(96, t);
+  borst.frequency.exponentialRampToValueAtTime(64, t + duur);
+  const bf = ctx.createBiquadFilter(); bf.type = 'lowpass'; bf.frequency.value = 650;
+  const bg = ctx.createGain(); bg.gain.value = 0.5;
+  borst.connect(bf).connect(bg).connect(grom);
+  for (const n of [ruis, borst, lfo]) { n.start(t); n.stop(t + duur + 0.1); }
+  // en dan het hart
+  [1.9, 2.75, 3.6].forEach((s, i) => {
+    _toon(ctx, { type: 'sine', van: 70, naar: 42, vol: 0.28 - i * 0.07, start: s, duur: 0.22 });
+    _toon(ctx, { type: 'sine', van: 64, naar: 40, vol: 0.2 - i * 0.05, start: s + 0.3, duur: 0.24 });
+  });
+}
+
+// ── Klanken bij de klassekrachten ────────────────────────────────────────────
+// Eén korte klank per thema, gemaakt uit dezelfde twee bouwstenen als de rest:
+// een toon en een vlaag ruis. Niet bedoeld als muziek — als een accent dat
+// zegt wíé er iets deed, zodat je met je ogen dicht weet of het de Cleric of de
+// Rogue was.
+const _KLASSE_KLANKEN = {
+  bard:      (c) => [523.25, 659.25, 783.99, 1046.5].forEach((f, i) =>
+                 _toon(c, { type: 'triangle', van: f, vol: 0.14, start: i * 0.09, duur: 1.1 })),
+  cleric:    (c) => { [392, 493.88, 587.33, 783.99].forEach((f) => _toon(c, { type: 'sine', van: f, vol: 0.1, duur: 2.2 }));
+                      _FX_KLANKEN.tinkel(c); },
+  paladin:   (c) => { _toon(c, { type: 'sine', van: 110, naar: 60, vol: 0.32, duur: 0.5 });
+                      [440, 554.37, 659.25].forEach((f, i) => _toon(c, { type: 'sine', van: f, vol: 0.11, start: 0.1 + i * 0.05, duur: 1.8 })); },
+  druid:     (c) => { _ruisvlaag(c, { filter: 'bandpass', freq: 900, q: 0.8, vol: 0.14, duur: 1.6 });
+                      _toon(c, { type: 'sine', van: 90, naar: 55, vol: 0.28, duur: 0.6 });
+                      _toon(c, { type: 'triangle', van: 330, naar: 495, vol: 0.08, start: 0.3, duur: 1.2 }); },
+  fighter:   (c) => { _FX_KLANKEN.klap(c); _FX_KLANKEN.zwiep(c); },
+  monk:      (c) => [0, 0.11, 0.22].forEach((s) => {
+                 _toon(c, { type: 'square', van: 180, naar: 70, vol: 0.18, start: s, duur: 0.1 });
+                 _ruisvlaag(c, { filter: 'highpass', freq: 2200, vol: 0.1, start: s, duur: 0.12 }); }),
+  ranger:    (c) => { _toon(c, { type: 'sawtooth', van: 1800, naar: 600, vol: 0.06, duur: 0.35 });
+                      _toon(c, { type: 'sine', van: 140, naar: 70, vol: 0.3, start: 0.32, duur: 0.2 }); },
+  rogue:     (c) => { _ruisvlaag(c, { filter: 'highpass', freq: 3000, vol: 0.16, duur: 0.18 });
+                      _toon(c, { type: 'sine', van: 70, naar: 40, vol: 0.26, start: 0.15, duur: 0.35 }); },
+  sorcerer:  (c) => { _toon(c, { type: 'sawtooth', van: 120, naar: 880, vol: 0.09, duur: 0.6 });
+                      _FX_KLANKEN.dreun(c); _ruisvlaag(c, { filter: 'bandpass', freq: 1200, vol: 0.12, start: 0.3, duur: 1.0 }); },
+  warlock:   (c) => { _toon(c, { type: 'sawtooth', van: 110, vol: 0.08, duur: 1.6 });
+                      _toon(c, { type: 'sawtooth', van: 155.56, vol: 0.07, duur: 1.6 });        // een tritonus: het klinkt fout, en dat is de bedoeling
+                      _ruisvlaag(c, { filter: 'bandpass', freq: 2400, q: 4, vol: 0.06, duur: 1.8 }); },
+  wizard:    (c) => { _FX_KLANKEN.tinkel(c); _FX_KLANKEN.gloed(c); },
+  artificer: (c) => [0, 0.14, 0.32].forEach((s, i) =>
+                 _toon(c, { type: 'square', van: 600 - i * 120, naar: 300, vol: 0.08, start: s, duur: 0.12 })),
+};
+
+// ── Klanken bij de gevechtsregie ─────────────────────────────────────────────
+// De opening is drie trommelslagen die naar elkaar toe lopen en een koperachtige
+// kwint erboven; de lair een rommeling uit de grond; de death saves hebben een
+// hartslag (die trager wordt naarmate het slechter gaat), een gong bij een
+// mislukte worp, een klokje bij een geslaagde en een zwelling bij opstaan. De
+// genadeslag zuigt eerst alle klank weg — slow motion begint met stilte — en
+// slaat dan.
+function _koper(ctx, hz, start, duur, vol) {
+  const t = ctx.currentTime + start;
+  const f = ctx.createBiquadFilter();
+  f.type = 'lowpass'; f.Q.value = 3;
+  f.frequency.setValueAtTime(300, t);
+  f.frequency.exponentialRampToValueAtTime(1800, t + duur * 0.35);
+  f.frequency.exponentialRampToValueAtTime(400, t + duur);
+  const g = ctx.createGain();
+  g.gain.setValueAtTime(0.0001, t);
+  g.gain.exponentialRampToValueAtTime(vol, t + 0.18);
+  g.gain.exponentialRampToValueAtTime(0.0001, t + duur);
+  f.connect(g).connect(ctx.destination);
+  for (const d of [0, 0.7]) {
+    const o = ctx.createOscillator(); o.type = 'sawtooth';
+    o.frequency.value = hz + d;
+    o.connect(f); o.start(t); o.stop(t + duur + 0.05);
+  }
+}
+
+const _REGIE_KLANKEN = {
+  opening: (c) => {
+    [0, 0.42, 0.72, 0.9].forEach((s, i) => {
+      _toon(c, { type: 'sine', van: 150, naar: 40, vol: 0.42 - i * 0.03, start: s, duur: 0.5 });
+      _ruisvlaag(c, { filter: 'lowpass', freq: 500, vol: 0.16, start: s, duur: 0.22 });
+    });
+    _koper(c, 110, 1.05, 2.6, 0.13);
+    _koper(c, 164.81, 1.15, 2.5, 0.09);
+    _ruisvlaag(c, { filter: 'highpass', freq: 3000, vol: 0.08, start: 1.05, duur: 1.6 });
+  },
+  vs:      (c) => { _toon(c, { type: 'square', van: 260, naar: 50, vol: 0.22, duur: 0.3 });
+                    _ruisvlaag(c, { filter: 'bandpass', freq: 2400, q: 0.8, vol: 0.2, duur: 0.35 }); },
+  lair:    (c) => { _ruisvlaag(c, { freq: 140, vol: 0.34, duur: 2.6 });
+                    _toon(c, { type: 'sine', van: 42, naar: 26, vol: 0.34, duur: 2.4 });
+                    _ruisvlaag(c, { filter: 'bandpass', freq: 900, q: 0.6, vol: 0.08, start: 0.6, duur: 1.6 }); },
+  ronde:   (c) => { _toon(c, { type: 'sine', van: 120, naar: 46, vol: 0.3, duur: 0.6 });
+                    _toon(c, { type: 'triangle', van: 220, vol: 0.05, start: 0.05, duur: 1.4 }); },
+  hart:    (c) => { _toon(c, { type: 'sine', van: 64, naar: 40, vol: 0.32, duur: 0.2 });
+                    _toon(c, { type: 'sine', van: 58, naar: 38, vol: 0.24, start: 0.26, duur: 0.22 }); },
+  faal:    (c) => { _toon(c, { type: 'sine', van: 98, naar: 92, vol: 0.3, duur: 3.2 });
+                    _toon(c, { type: 'sine', van: 147.3, naar: 140, vol: 0.12, duur: 2.6 });
+                    _toon(c, { type: 'sine', van: 233.1, vol: 0.05, duur: 1.8 }); },
+  succes:  (c) => [659.25, 987.77].forEach((f, i) => _toon(c, { type: 'triangle', van: f, vol: 0.1, start: i * 0.12, duur: 1.4 })),
+  stabiel: (c) => [523.25, 659.25, 783.99].forEach((f, i) => _toon(c, { type: 'sine', van: f, vol: 0.08, start: i * 0.1, duur: 2 })),
+  op:      (c) => { _toon(c, { type: 'sawtooth', van: 110, naar: 440, vol: 0.06, duur: 1.2 });
+                    [440, 554.37, 659.25, 880].forEach((f, i) => _toon(c, { type: 'sine', van: f, vol: 0.12, start: 0.9 + i * 0.06, duur: 2.4 }));
+                    _toon(c, { type: 'sine', van: 130, naar: 50, vol: 0.4, start: 0.9, duur: 0.5 }); },
+  dood:    (c) => { _toon(c, { type: 'sine', van: 65.4, naar: 60, vol: 0.4, duur: 5 });
+                    _toon(c, { type: 'sine', van: 130.8, vol: 0.1, duur: 4 });
+                    _toon(c, { type: 'sine', van: 196.6, vol: 0.05, start: 0.02, duur: 3.4 }); },
+  vraag:   (c) => { _toon(c, { type: 'sawtooth', van: 900, naar: 60, vol: 0.06, duur: 1.4 });
+                    _ruisvlaag(c, { filter: 'lowpass', freq: 2400, vol: 0.12, duur: 1.2 });
+                    _toon(c, { type: 'sine', van: 55, vol: 0.1, start: 1.2, duur: 6 }); },
+  slag:    (c) => { _toon(c, { type: 'sine', van: 180, naar: 30, vol: 0.55, duur: 0.9 });
+                    _ruisvlaag(c, { filter: 'lowpass', freq: 900, vol: 0.32, duur: 0.5 });
+                    _ruisvlaag(c, { filter: 'highpass', freq: 2600, vol: 0.12, start: 0.05, duur: 1.6 }); },
+  // De overgang: drie korte piepjes bij de flitsen, dan een zaagtand die
+  // omhoog jaagt terwijl de tegels dichtgaan, en een dreun als het zwart is.
+  overgang:(c) => { [0, 0.13, 0.26].forEach(s => _toon(c, { type: 'square', van: 1320, naar: 1180, vol: 0.07, start: s, duur: 0.08 }));
+                    _toon(c, { type: 'sawtooth', van: 180, naar: 1600, vol: 0.07, start: 0.42, duur: 0.95 });
+                    _ruisvlaag(c, { filter: 'highpass', freq: 1800, vol: 0.08, start: 0.42, duur: 0.9 });
+                    _toon(c, { type: 'sine', van: 140, naar: 40, vol: 0.4, start: 1.35, duur: 0.5 }); },
+  tik:     (c) => { _toon(c, { type: 'square', van: 1900, naar: 1700, vol: 0.06, duur: 0.05 });
+                    _toon(c, { type: 'sine', van: 90, naar: 55, vol: 0.26, start: 0.02, duur: 0.35 }); },
+  afloop:  (c) => [220, 277.18, 329.63, 440].forEach((f, i) => _toon(c, { type: 'triangle', van: f, vol: 0.08, start: i * 0.35, duur: 3.4 })),
+};
+
 // ── Ambiance (feature #2) ──────────────────────────────────────────────────────
 // Twee blijvende loop-Audio's:
 //  • broadcast-scène — de DM zet 'm voor iedereen (per-campagne via socket).
@@ -411,6 +628,39 @@ window.soundManager = {
     const ctx = _audioCtx();
     if (!ctx) return;
     try { maak(ctx); } catch { /* een stil effect is beter dan een fout */ }
+  },
+  // Het accent bij een klassekracht op het tafelscherm.
+  klasseKlank(thema) {
+    const maak = _KLASSE_KLANKEN[thema];
+    const ctx = maak && _audioCtx();
+    if (!ctx) return;
+    try { maak(ctx); } catch { /* stil is ook een uitkomst */ }
+  },
+  // Rage: 'brul' als hij erin gaat, 'doof' (een uitademing) als hij dooft.
+  regieKlank(soort) {
+    const ctx = _audioCtx();
+    if (!ctx) return;
+    try { _REGIE_KLANKEN[soort]?.(ctx); } catch { /* stil is ook een uitkomst */ }
+  },
+  rageKlank(soort) {
+    const ctx = _audioCtx();
+    if (!ctx) return;
+    try {
+      if (soort === 'brul') _rageBrul(ctx);
+      else if (soort === 'doof') _ruisvlaag(ctx, { filter: 'lowpass', freq: 420, vol: 0.12, duur: 1.4 });
+    } catch { /* stil is ook een uitkomst */ }
+  },
+  // De terugblik: 'dreun', 'dreunZacht', 'tik' klinken één keer; 'drone' blijft
+  // klinken en geeft een stopfunctie terug (die hem in 2,5 s laat wegsterven).
+  terugblikKlank(soort) {
+    const ctx = _audioCtx();
+    if (!ctx) return () => {};
+    try {
+      if (soort === 'drone') return _tbDrone(ctx);
+      if (soort === 'dreun' || soort === 'dreunZacht') _tbDreun(ctx, soort === 'dreunZacht');
+      else if (soort === 'tik') _toon(ctx, { type: 'triangle', van: 1318.5, naar: 1240, vol: 0.07, duur: 0.9 });
+    } catch { /* stil is ook een uitkomst */ }
+    return () => {};
   },
   // Rust-sfeerloop tijdens de rust-overlay (party-breed, transient). Eigen audio,
   // los van broadcast/dienst-loop; respecteert dezelfde dempvoorkeur als de dienst-loop.

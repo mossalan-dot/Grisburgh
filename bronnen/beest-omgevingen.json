@@ -1,0 +1,421 @@
+{
+ "Allosaurus": [
+  "grassland"
+ ],
+ "Ankylosaurus": [
+  "grassland"
+ ],
+ "Ape": [
+  "forest"
+ ],
+ "Archelon": [
+  "underwater"
+ ],
+ "Baboon": [
+  "forest",
+  "hill"
+ ],
+ "Badger": [
+  "forest"
+ ],
+ "Bat": [
+  "forest",
+  "mountain",
+  "underdark",
+  "urban"
+ ],
+ "Black Bear": [
+  "forest"
+ ],
+ "Blood Hawk": [
+  "arctic",
+  "coastal",
+  "forest",
+  "grassland",
+  "hill",
+  "mountain"
+ ],
+ "Boar": [
+  "forest",
+  "grassland",
+  "hill"
+ ],
+ "Brown Bear": [
+  "arctic",
+  "forest",
+  "hill"
+ ],
+ "Camel": [
+  "desert"
+ ],
+ "Cat": [
+  "desert",
+  "forest",
+  "grassland",
+  "urban"
+ ],
+ "Constrictor Snake": [
+  "desert",
+  "forest",
+  "swamp",
+  "underwater"
+ ],
+ "Crab": [
+  "coastal",
+  "underwater"
+ ],
+ "Crocodile": [
+  "coastal",
+  "swamp",
+  "urban"
+ ],
+ "Deer": [
+  "forest",
+  "grassland"
+ ],
+ "Dire Wolf": [
+  "forest",
+  "hill"
+ ],
+ "Draft Horse": [
+  "urban"
+ ],
+ "Eagle": [
+  "coastal",
+  "grassland",
+  "hill",
+  "mountain"
+ ],
+ "Elephant": [
+  "grassland"
+ ],
+ "Elk": [
+  "forest",
+  "grassland",
+  "hill"
+ ],
+ "Frog": [
+  "forest",
+  "swamp"
+ ],
+ "Giant Ape": [
+  "forest"
+ ],
+ "Giant Badger": [
+  "forest"
+ ],
+ "Giant Bat": [
+  "forest",
+  "mountain",
+  "underdark"
+ ],
+ "Giant Boar": [
+  "forest",
+  "grassland",
+  "hill"
+ ],
+ "Giant Centipede": [
+  "underdark",
+  "urban"
+ ],
+ "Giant Constrictor Snake": [
+  "desert",
+  "forest",
+  "swamp",
+  "underwater"
+ ],
+ "Giant Crab": [
+  "coastal",
+  "underwater"
+ ],
+ "Giant Crocodile": [
+  "coastal",
+  "swamp"
+ ],
+ "Giant Fire Beetle": [
+  "underdark"
+ ],
+ "Giant Frog": [
+  "forest",
+  "swamp"
+ ],
+ "Giant Goat": [
+  "grassland",
+  "hill",
+  "mountain"
+ ],
+ "Giant Hyena": [
+  "desert",
+  "forest",
+  "grassland",
+  "hill"
+ ],
+ "Giant Lizard": [
+  "coastal",
+  "desert",
+  "forest",
+  "swamp",
+  "underdark"
+ ],
+ "Giant Octopus": [
+  "underwater"
+ ],
+ "Giant Rat": [
+  "forest",
+  "swamp",
+  "underdark",
+  "urban"
+ ],
+ "Giant Scorpion": [
+  "desert"
+ ],
+ "Giant Seahorse": [
+  "underwater"
+ ],
+ "Giant Shark": [
+  "underwater"
+ ],
+ "Giant Spider": [
+  "desert",
+  "forest",
+  "swamp",
+  "underdark",
+  "urban"
+ ],
+ "Giant Toad": [
+  "coastal",
+  "forest",
+  "swamp",
+  "underdark"
+ ],
+ "Giant Venomous Snake": [
+  "coastal",
+  "desert",
+  "forest",
+  "grassland",
+  "hill",
+  "swamp"
+ ],
+ "Giant Wasp": [
+  "forest",
+  "grassland",
+  "urban"
+ ],
+ "Giant Weasel": [
+  "forest",
+  "grassland",
+  "hill"
+ ],
+ "Giant Wolf Spider": [
+  "coastal",
+  "desert",
+  "forest",
+  "grassland",
+  "hill"
+ ],
+ "Goat": [
+  "grassland",
+  "hill",
+  "mountain",
+  "urban"
+ ],
+ "Hawk": [
+  "arctic",
+  "coastal",
+  "forest",
+  "grassland",
+  "hill",
+  "mountain"
+ ],
+ "Hippopotamus": [
+  "forest",
+  "grassland",
+  "swamp"
+ ],
+ "Hunter Shark": [
+  "underwater"
+ ],
+ "Hyena": [
+  "desert",
+  "forest",
+  "grassland",
+  "hill"
+ ],
+ "Jackal": [
+  "desert",
+  "grassland"
+ ],
+ "Killer Whale": [
+  "underwater"
+ ],
+ "Lion": [
+  "desert",
+  "grassland",
+  "hill",
+  "mountain"
+ ],
+ "Lizard": [
+  "coastal",
+  "desert",
+  "forest",
+  "swamp",
+  "underdark"
+ ],
+ "Mammoth": [
+  "arctic"
+ ],
+ "Mastiff": [
+  "forest",
+  "hill",
+  "urban"
+ ],
+ "Mule": [
+  "desert",
+  "hill",
+  "urban"
+ ],
+ "Octopus": [
+  "underwater"
+ ],
+ "Owl": [
+  "arctic",
+  "forest",
+  "hill"
+ ],
+ "Panther": [
+  "forest",
+  "grassland",
+  "hill"
+ ],
+ "Piranha": [
+  "underwater"
+ ],
+ "Plesiosaurus": [
+  "arctic",
+  "underwater"
+ ],
+ "Polar Bear": [
+  "arctic"
+ ],
+ "Pony": [
+  "grassland",
+  "urban"
+ ],
+ "Pteranodon": [
+  "coastal",
+  "grassland",
+  "mountain"
+ ],
+ "Rat": [
+  "forest",
+  "swamp",
+  "underdark",
+  "urban"
+ ],
+ "Raven": [
+  "hill",
+  "swamp",
+  "urban"
+ ],
+ "Reef Shark": [
+  "underwater"
+ ],
+ "Rhinoceros": [
+  "grassland"
+ ],
+ "Riding Horse": [
+  "grassland",
+  "urban"
+ ],
+ "Saber-Toothed Tiger": [
+  "arctic",
+  "hill",
+  "mountain"
+ ],
+ "Scorpion": [
+  "desert"
+ ],
+ "Seahorse": [
+  "underwater"
+ ],
+ "Spider": [
+  "desert",
+  "forest",
+  "swamp",
+  "underdark",
+  "urban"
+ ],
+ "Swarm of Bats": [
+  "forest",
+  "mountain",
+  "underdark",
+  "urban"
+ ],
+ "Swarm of Insects": [
+  "desert",
+  "forest",
+  "grassland",
+  "hill",
+  "swamp",
+  "underdark",
+  "urban"
+ ],
+ "Swarm of Piranhas": [
+  "underwater"
+ ],
+ "Swarm of Rats": [
+  "forest",
+  "swamp",
+  "underdark",
+  "urban"
+ ],
+ "Swarm of Ravens": [
+  "hill",
+  "swamp",
+  "urban"
+ ],
+ "Swarm of Venomous Snakes": [
+  "coastal",
+  "desert",
+  "forest",
+  "grassland",
+  "hill",
+  "swamp"
+ ],
+ "Tiger": [
+  "forest",
+  "grassland"
+ ],
+ "Triceratops": [
+  "grassland"
+ ],
+ "Tyrannosaurus Rex": [
+  "grassland"
+ ],
+ "Venomous Snake": [
+  "coastal",
+  "desert",
+  "forest",
+  "grassland",
+  "hill",
+  "swamp"
+ ],
+ "Vulture": [
+  "desert",
+  "grassland",
+  "hill"
+ ],
+ "Warhorse": [
+  "urban"
+ ],
+ "Weasel": [
+  "forest",
+  "grassland",
+  "hill"
+ ],
+ "Wolf": [
+  "forest",
+  "grassland",
+  "hill"
+ ]
+}

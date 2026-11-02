@@ -38,6 +38,23 @@ function req(server, method, p, body, cookie) {
   });
 }
 
+// Een bestand meesturen zoals de wizard dat doet: multipart, met een naam erbij.
+function upload(server, p, cookie, { velden = {}, naam, type, inhoud }) {
+  const grens = '----pm' + Math.random().toString(36).slice(2);
+  const delen = Object.entries(velden).map(([k, v]) =>
+    Buffer.from(`--${grens}\r\nContent-Disposition: form-data; name="${k}"\r\n\r\n${v}\r\n`));
+  const kop = Buffer.from(`--${grens}\r\nContent-Disposition: form-data; name="file"; filename="${naam}"\r\nContent-Type: ${type}\r\n\r\n`);
+  const payload = Buffer.concat([...delen, kop, inhoud, Buffer.from(`\r\n--${grens}--\r\n`)]);
+  return new Promise((resolve, reject) => {
+    const url = new URL(p, `http://localhost:${server.address().port}`);
+    const r = http.request({ method: 'POST', hostname: url.hostname, port: url.port, path: url.pathname + url.search,
+      headers: { 'Content-Type': `multipart/form-data; boundary=${grens}`, 'Content-Length': payload.length, Cookie: cookie } },
+      (res) => { let d = ''; res.on('data', c => d += c); res.on('end', () => {
+        let body; try { body = JSON.parse(d); } catch { body = d; } resolve({ status: res.statusCode, body }); }); });
+    r.on('error', reject); r.write(payload); r.end();
+  });
+}
+
 describe('Een personage maken', () => {
   let server, io, dm, groepId;
   const dmState = () => JSON.parse(fs.readFileSync(
@@ -357,5 +374,53 @@ describe('Een personage maken', () => {
     const nee = await req(server, 'POST', '/api/personage-concept', { wachtwoord: 'rinkeldekink' });
     assert.equal(nee.status, 403);
     await req(server, 'PUT', '/api/meta/personage-maken', { aan: true, maxLevel: 1 }, dm);
+  });
+
+  it('neemt emotes mee: tot vier geluiden, die bij het gunnen zijn emotes worden', async () => {
+    const start = await req(server, 'POST', '/api/personage-concept', { wachtwoord: 'rinkeldekink', naam: 'Hilde Hoornblazer' });
+    const speler = start.cookie;
+    const id = start.body.concept.id;
+    // Een WAV-kop is genoeg om als geluid door te gaan.
+    const wav = Buffer.concat([Buffer.from('RIFF'), Buffer.alloc(4), Buffer.from('WAVEfmt '), Buffer.alloc(32)]);
+    const png = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0, 0, 0, 13]);
+    const nietGeluid = await upload(server, `/api/personage-concept/${id}/emote`, speler,
+      { naam: 'a.png', type: 'image/png', inhoud: png });
+    assert.equal(nietGeluid.status, 400, 'een plaatje is geen emote');
+
+    const een = await upload(server, `/api/personage-concept/${id}/emote`, speler,
+      { velden: { label: 'Hoorn' }, naam: 'hoorn.wav', type: 'audio/wav', inhoud: wav });
+    assert.equal(een.status, 200, JSON.stringify(een.body));
+    assert.equal(een.body.emotes[0].label, 'Hoorn');
+    for (let i = 0; i < 3; i++) {
+      await upload(server, `/api/personage-concept/${id}/emote`, speler, { naam: 'x.wav', type: 'audio/wav', inhoud: wav });
+    }
+    const vijfde = await upload(server, `/api/personage-concept/${id}/emote`, speler, { naam: 'x.wav', type: 'audio/wav', inhoud: wav });
+    assert.equal(vijfde.status, 409, 'hooguit vier');
+
+    // Zijn eigen geluid mag hij terugluisteren, ook al is hij nog niet ingelogd.
+    const fileId = een.body.emotes[0].fileId;
+    const luister = await req(server, 'GET', `/api/files/${fileId}`, null, speler);
+    assert.equal(luister.status, 200);
+    const vreemde = await req(server, 'GET', `/api/files/${fileId}`, null, null);
+    assert.notEqual(vreemde.status, 200, 'een bezoeker zonder dat concept niet');
+
+    // Eén weg, de naam van een andere bijgeschaafd.
+    const lijst = (await req(server, 'GET', '/api/personage-concept', null, speler)).body.concept.emotes;
+    await req(server, 'DELETE', `/api/personage-concept/${id}/emote/${lijst[3].id}`, null, speler);
+    await req(server, 'PATCH', `/api/personage-concept/${id}`, {
+      species: 'Dwarf', klasse: 'Cleric', background: 'Acolyte', level: 1, methode: 'array',
+      scores: { str: 13, dex: 12, con: 14, int: 10, wis: 15, cha: 8 },
+      bgBonus: { wis: 2, con: 1 }, skills: ['Medicine', 'History'],
+      emotes: [{ id: lijst[1].id, label: 'Lach' }],
+    }, speler);
+    await req(server, 'POST', `/api/personage-concept/${id}/indienen`, null, speler);
+    const gegund = await req(server, 'POST', `/api/personage-concept/${id}/gunnen`, null, dm);
+    assert.equal(gegund.status, 200, JSON.stringify(gegund.body));
+
+    const sounds = JSON.parse(fs.readFileSync(path.join(DATA_DIR, 'campaigns', 'grisburgh', 'sounds.json'), 'utf8'));
+    const emotes = sounds.emotes[gegund.body.entityId];
+    assert.equal(emotes.library.length, 3);
+    assert.deepEqual(emotes.library.map(e => e.label), ['Hoorn', 'Lach', 'Emote']);
+    assert.deepEqual(emotes.selected, emotes.library.map(e => e.id));
   });
 });

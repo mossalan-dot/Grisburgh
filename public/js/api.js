@@ -440,6 +440,16 @@ export const api = {
   getCombat:        ()        => request('/combat'),
   startCombat:      ()        => request('/combat/start',              { method: 'POST' }),
   endCombat:        ()        => request('/combat',                    { method: 'DELETE' }),
+  // Gevechtsregie: de vraag na de laatste klap, het antwoord, en de Lair Action.
+  hwywtdtVraag:     (doelId, characterId) => request('/combat/hwywtdt', { method: 'POST', body: JSON.stringify({ doelId, characterId }) }),
+  hwywtdtAntwoord:  (data)    => request('/combat/hwywtdt/antwoord',   { method: 'POST', body: JSON.stringify(data || {}) }),
+  hwywtdtVoorstelWeg: ()      => request('/combat/hwywtdt/voorstel',   { method: 'DELETE' }),
+  lairKies:         (data)    => request('/combat/lair',               { method: 'POST', body: JSON.stringify(data || {}) }),
+  // Omgevingseffecten (lib/omgeving.js): de catalogus, een los effect starten, en afhandelen.
+  omgevingPresets:  ()        => request('/omgeving/presets'),
+  omgevingEffect:   ()        => request('/omgeving/effect'),
+  omgevingStart:    (data)    => request('/omgeving/effect',           { method: 'POST', body: JSON.stringify(data || {}) }),
+  omgevingUitslag:  (data)    => request('/omgeving/effect/uitslag',   { method: 'POST', body: JSON.stringify(data || {}) }),
   // Sluit het rust-cinematic bij iedereen (DM-actie; de tablet kan zichzelf niet sluiten).
   closeRest:        ()        => request('/party/rest/close',          { method: 'POST', body: '{}' }),
   updateCombat:     (data)    => request('/combat',                    { method: 'PUT',    body: JSON.stringify(data) }),
@@ -515,6 +525,9 @@ export const api = {
   setAkteSfeer:        (key, sfeer) => request(`/akte/${encodeURIComponent(key)}/sfeer`, { method: 'PUT', body: JSON.stringify({ sfeer }) }),
   displayEffect:       (effect) => request('/display/effect', { method: 'POST', body: JSON.stringify({ effect }) }),
   displayFxLijst:      ()       => request('/display/fx'),
+  // Wat voorafging: welke verslagen de actieve party kan terugzien, en afspelen.
+  terugblikLijst:      (groep)  => request(`/display/terugblik${groep ? `?groep=${encodeURIComponent(groep)}` : ''}`),
+  terugblik:           (body)   => request('/display/terugblik', { method: 'POST', body: JSON.stringify(body || {}) }),
   // Aflossen: zonder bedrag is het alles.
   tsAflossen:          (bedrag)  => request('/tweespalt/aflossen', { method: 'POST', body: JSON.stringify(bedrag ? { bedrag } : {}) }),
   onthulAfbeelding:    (sessieId, fileId, caption, groupId) =>

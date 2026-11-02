@@ -1,4 +1,4 @@
-import { api } from './api.js?v=316';
+import { api } from './api.js?v=319';
 
 // icon() helper is defined globally in app.js; grab a local alias for template use.
 const icon = (...a) => window.icon(...a);
@@ -246,7 +246,7 @@ export async function renderLogboek() {
   if (_logboekActiveTab === 'prikbord') {
     tabContent.style.cssText = 'flex:1; min-height:0; overflow:hidden; display:flex; flex-direction:column;';
     tabContent.innerHTML = `<div id="pb-relatiemap-container" style="flex:1;display:flex;flex-direction:column;overflow:hidden;min-height:0;"></div>`;
-    const { renderRelatiemap } = await import('./render-relatiemap.js?v=31');
+    const { renderRelatiemap } = await import('./render-relatiemap.js?v=34');
     await renderRelatiemap(document.getElementById('pb-relatiemap-container'));
     return;
   }
@@ -261,6 +261,7 @@ export async function renderLogboek() {
         oninput="window._logboekSearch(this.value)"${isDM() ? ' style="padding-right:46px"' : ''}>
     </div>
     <div id="logboek-ontdek-slot"></div>
+    ${_genadeslagenHtml(visibleEntries, hk)}
     <div class="flex-1 overflow-y-auto px-6 pb-6" id="logboek-body">
       ${_buildLogboekBody(visibleEntries, hk)}
     </div>
@@ -297,6 +298,45 @@ export async function renderLogboek() {
     }
   };
 }
+
+// ── Genadeslagen ────────────────────────────────────────────────────────────
+// Elke "How do you want to do this?" die iemand beschreef, bij elkaar: de zaal
+// van de laatste klappen. Ze staan ook in hun eigen gevechtsverslag, maar daar
+// lees je ze één voor één; hier lees je ze als de verhalen die de party na
+// afloop aan elkaar vertelt. Afgeleid uit de verslagen, dus geen tweede opslag
+// — en wat een party niet mag zien (een verslag van een andere groep) staat er
+// ook hier niet in. Zonder een enkele beschrijving staat er niets.
+function _genadeslagenHtml(entries, hk) {
+  const slagen = [];
+  for (const e of entries) {
+    if (e?.soort !== 'gevecht') continue;
+    for (const m of (e.gevecht?.momenten || [])) {
+      if (m?.soort === 'hwywtdt' && m.tekst) slagen.push({ ...m, datum: e.datum || '', akte: hk[e.hoofdstuk]?.title || '', gevecht: e.gevecht?.naam || '' });
+    }
+  }
+  if (!slagen.length) return '';
+  slagen.reverse();                                         // de nieuwste eerst
+  const portret = (id, ic) => id
+    ? `<span class="gs-portret" style="background-image:url('${api.thumbUrl(id)}')"></span>`
+    : `<span class="gs-portret gs-portret--leeg">${icon(ic)}</span>`;
+  return `
+    <details class="gs-sectie px-6"${_genadeslagenOpen ? ' open' : ''} ontoggle="window._genadeslagenToggle(this.open)">
+      <summary class="gs-kop">${icon('swords')} Genadeslagen <span class="gs-aantal">${slagen.length}</span></summary>
+      <div class="gs-lijst">
+        ${slagen.map(m => `
+          <figure class="gs-kaart">
+            <div class="gs-duo">${portret(m.spelerBeeld, 'user')}<span class="gs-slash"></span>${portret(m.doelBeeld, 'skull')}</div>
+            <blockquote class="gs-quote">&ldquo;${esc(m.tekst)}&rdquo;</blockquote>
+            <figcaption class="gs-cite">
+              <b>${esc(m.speler || '')}</b> over ${esc(m.doel || '')}
+              <span class="gs-waar">${esc([m.akte, m.datum].filter(Boolean).join(' · '))}</span>
+            </figcaption>
+          </figure>`).join('')}
+      </div>
+    </details>`;
+}
+let _genadeslagenOpen = false;
+window._genadeslagenToggle = (open) => { _genadeslagenOpen = !!open; };
 
 // Deterministische rotatie op basis van quest-id (consistent over renders)
 function _questRot(id) {
@@ -1328,11 +1368,19 @@ function _renderGevechtEntry(e) {
       </div>
       ${tegen ? `<div class="gv-rij"><span class="gv-rij-lbl">Tegenover je</span><div class="gv-tegens">${tegen}</div></div>` : ''}
       <div class="gv-rij gv-rij--feiten">
-        <span class="gv-feit">${icon('hourglass')} ${g.ronden || 1} ronde${(g.ronden || 1) === 1 ? '' : 'n'}</span>
+        <span class="gv-feit">${icon('hourglass')} ${g.ronden || 1} ronde${(g.ronden || 1) === 1 ? '' : 'n'}${g.duurMin ? ` · ${g.duurMin} min` : ''}</span>
         ${(g.gevallen || []).length
           ? `<span class="gv-feit gv-feit--val">${icon('skull')} ${(g.gevallen || []).map(esc).join(', ')} ging${(g.gevallen || []).length > 1 ? 'en' : ''} neer</span>`
           : `<span class="gv-feit">${icon('check')} Niemand ging neer</span>`}
       </div>
+      ${(g.momenten || []).map(m => `<blockquote class="gv-quote">&ldquo;${esc(m.tekst)}&rdquo;
+        <cite>${esc(m.speler)}, over ${esc(m.doel)}</cite></blockquote>`).join('')}
+      ${(g.doodsstrijd || []).filter(d => ['op', 'stabiel', 'dood'].includes(d.uitkomst)).length ? `<div class="gv-rij gv-rij--feiten">
+        ${(g.doodsstrijd || []).map(d => d.uitkomst === 'op'
+            ? `<span class="gv-feit">${icon('heart-pulse')} ${esc(d.naam)} stond op${d.nat20 ? ' met een Natural 20' : ''}</span>`
+          : d.uitkomst === 'stabiel' ? `<span class="gv-feit">${icon('heart')} ${esc(d.naam)} werd stabiel</span>`
+          : d.uitkomst === 'dood' ? `<span class="gv-feit gv-feit--val">${icon('skull')} ${esc(d.naam)} is gevallen</span>` : '').join('')}
+      </div>` : ''}
       ${log.length ? `<details class="gv-log dm-only">
         <summary>${icon('scroll-text')} Ronde voor ronde (${log.length})</summary>
         <div class="gv-log-body">${log.map(r => `<div class="gv-log-regel"><span class="gv-log-ronde">R${r.ronde ?? '?'}</span>${esc(r.tekst)}</div>`).join('')}</div>
@@ -1428,6 +1476,10 @@ window._openSessieDetail = async (id) => {
           onclick="window.app.closeModal();window._openSessieEditor('${e.id}')" title="Bewerken">${icon('pencil')}</button>
         <button class="px-3 py-1.5 text-sm rounded bg-seal/20 text-seal hover:bg-seal/40 transition"
           onclick="window._deleteSessie('${e.id}')" title="Verwijderen">${icon('trash')}</button>
+        ${e.soort !== 'gevecht' ? `<button class="logboek-terugblik-btn"
+          onclick="window._terugblikSpeel?.('${e.id}', false)" title="Als terugblik op het tafelscherm">${icon('hourglass')} Terugblik</button>
+        <button class="logboek-terugblik-btn logboek-terugblik-btn--zelf"
+          onclick="window.app.closeModal();window._terugblikSpeel?.('${e.id}', true)" title="Zelf bekijken">${icon('eye')}</button>` : ''}
       </div>` : ''}
   `;
   const subtitle = [chapter.short, e.datum].filter(Boolean).join(' \u00b7 ');
@@ -1698,7 +1750,7 @@ window._nakijkKlaar = async (ch, type, id, btn) => {
 
 window._akteSchrijf = async (ch) => {
   const info = meta?.hoofdstukken?.[ch] || {};
-  const { openAkteSchrijven } = await import('./akte-schrijven.js?v=34');
+  const { openAkteSchrijven } = await import('./akte-schrijven.js?v=37');
   openAkteSchrijven(ch, info.short || info.title || ch);
 };
 window._logboekVerversen = () => renderLogboek();

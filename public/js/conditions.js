@@ -48,6 +48,11 @@ export const CONDITIONS = [
   { id: 'vigilant-blessing',  label: 'Vigilant Blessing',  desc: '(Cleric) Has advantage on the next initiative roll. Expended when rolled.' },
   { id: 'blessed',            label: 'Blessed',            desc: '(Bless spell) Adds 1d4 to attack rolls and saving throws. Concentration, up to 1 minute.' },
   { id: 'haste',              label: 'Haste',              desc: '(Haste spell) +2 bonus to AC, advantage on Dexterity saving throws, doubled Speed and one extra action each turn (Attack, Dash, Disengage, Hide or Use an Object). When the spell ends the target cannot move or take actions until after its next turn.' },
+  { id: 'wild-shape',         label: 'Wild Shape',         desc: '(Druid) In the form of a Beast: uses its game statistics but keeps its own HP, Hit Dice and mental scores. Cannot cast spells.' },
+  { id: 'hunters-mark',       label: "Hunter's Mark",      desc: "(Ranger) Marked as the Ranger's quarry: takes extra Force damage from their hits and is easier to track." },
+  { id: 'innate-sorcery',     label: 'Innate Sorcery',     desc: '(Sorcerer) Spell save DC +1 and advantage on spell attack rolls with Sorcerer spells, for one minute.' },
+  // Uit een omgevingseffect (een beschermend altaar): de bron zegt tegen welk type.
+  { id: 'resistance',         label: 'Resistance',         desc: 'Takes half damage from the damage type named by its source (an altar, a ward, a blessing).' },
   { id: 'raging',             label: 'Raging',             desc: '(Barbarian) Advantage on Strength checks and saves, bonus damage on Strength-based melee attacks, and resistance to bludgeoning, piercing and slashing damage.' },
   // ── Situationeel/positioneel ──
   // Geen PHB-condition en geen klassefeature, maar wel iets dat de worp verandert
@@ -120,6 +125,10 @@ export const COND_ICON = {
   'vigilant-blessing':  ['eye',        _CLASS_GOLD],
   blessed:              ['sparkle',    _CLASS_GOLD],
   raging:               ['angry',      _CLASS_GOLD],
+  resistance:           ['shield-check', _CLASS_GOLD],
+  'wild-shape':         ['paw-print',  _CLASS_GOLD],
+  'hunters-mark':       ['crosshair',  _CLASS_GOLD],
+  'innate-sorcery':     ['wand-sparkles', _CLASS_GOLD],
   haste:                ['fast-forward', _CLASS_GOLD],
   // Situationeel/positioneel: geen PHB-condition en geen klassefeature, maar wel
   // iets dat de worp verandert. Eigen tint zodat je de drie groepen uit elkaar houdt.

@@ -1,22 +1,26 @@
-import { api, campagneUitUrl, zetCampagne } from './api.js?v=316';
-import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, renderDocumenten, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=350";
-import { initArchief, renderLogboek, openLogboekEditor } from "./render-archief.js?v=142";
-import { renderKaart, queueFlyTo, verversPins, nieuweKaart } from './render-kaart.js?v=31';
-import { renderDungeon } from './render-dungeon.js?v=67';
-import { renderRelatiemap } from './render-relatiemap.js?v=31';
-import { renderProgressie, levelupFeatures } from './render-progressie.js?v=63';
-import { renderBestiarium } from './render-bestiarium.js?v=31';
-import { renderSpreuken } from './render-spreuken.js?v=50';
+import { api, campagneUitUrl, zetCampagne } from './api.js?v=319';
+import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, renderDocumenten, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=353";
+import { initArchief, renderLogboek, openLogboekEditor } from "./render-archief.js?v=145";
+import { renderKaart, queueFlyTo, verversPins, nieuweKaart } from './render-kaart.js?v=34';
+import { renderDungeon } from './render-dungeon.js?v=70';
+import { renderRelatiemap } from './render-relatiemap.js?v=34';
+import { renderProgressie, levelupFeatures } from './render-progressie.js?v=66';
+import { renderBestiarium } from './render-bestiarium.js?v=34';
+import { renderSpreuken } from './render-spreuken.js?v=53';
 import './render-handleiding.js?v=2';
 import './render-melding.js?v=4';
-import { renderVaardigheden, zoekVaardigheden, heldenboekTekst } from './render-vaardigheden.js?v=134';
+import { renderVaardigheden, zoekVaardigheden, heldenboekTekst } from './render-vaardigheden.js?v=136';
 import { renderStatblock } from './render-statblock.js?v=9';
-import { initSocket } from "./socket-client.js?v=89";
-import { initDmPanel } from "./dm-panel.js?v=410";
-import { COND_INFO, COND_LABEL, COND_MET_PLAATJE, COND_ICON } from './conditions.js?v=2';
-import './media-picker.js?v=10';
-import './wizard.js?v=5';
+import { initSocket } from "./socket-client.js?v=94";
+import { initDmPanel } from "./dm-panel.js?v=415";
+import { COND_INFO, COND_LABEL, COND_MET_PLAATJE, COND_ICON } from './conditions.js?v=4';
+import './media-picker.js?v=13';
+import './wizard.js?v=8';
 import './tafels.js?v=2';
+import './terugblik.js?v=3';
+import './rage.js?v=4';
+import './klassekracht.js?v=5';
+import './gevecht-regie.js?v=2';
 
 // ── Icon helper ──
 // Renders an inline SVG <use> reference from /img/icons.svg.
@@ -24,7 +28,7 @@ import './tafels.js?v=2';
 window.icon = function icon(name, { cls = '', title = '' } = {}) {
   const t   = title ? `<title>${title.replace(/[<>&"]/g, c => ({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[c]))}</title>` : '';
   const aria = title ? ' role="img"' : ' aria-hidden="true"';
-  return `<svg class="icon${cls ? ' '+cls : ''}"${aria} focusable="false"><use href="/img/icons.svg?v=26#icon-${name}"/>${t}</svg>`;
+  return `<svg class="icon${cls ? ' '+cls : ''}"${aria} focusable="false"><use href="/img/icons.svg?v=27#icon-${name}"/>${t}</svg>`;
 };
 const icon = (...a) => window.icon(...a);
 
@@ -1568,7 +1572,7 @@ async function _landingNieuwTegel() {
   if (!host || !_groepsWachtwoord || document.getElementById('landing-nieuw')) return;
   let stand = null;
   try {
-    await import('./personage-maken.js?v=5');
+    await import('./personage-maken.js?v=9');
     stand = await window.personageMaken.stand();
   } catch { return; }
   if (stand?.instellingen && stand.instellingen.aan === false) return;
@@ -1590,7 +1594,7 @@ async function _landingNieuwTegel() {
 
 async function _landingNieuw() {
   try {
-    await import('./personage-maken.js?v=5');
+    await import('./personage-maken.js?v=9');
     const stand = await window.personageMaken.stand();
     if (stand?.concept && stand.concept.status !== 'gegund') {
       if (stand.concept.status === 'wacht') {
@@ -3007,12 +3011,13 @@ function _setPartyPresence(s) {
 const _BADGE_STIJL = {
   levelup:    { icoon: 'star',         beweeg: 'badge--stijgt' },
   inspiratie: { icoon: 'sparkles',     beweeg: 'badge--pulst' },
+  bardic:     { icoon: 'music',        beweeg: 'badge--pulst' },
   vloek:      { icoon: 'skull',        beweeg: 'badge--doemt' },
   buff:       { icoon: 'beer',         beweeg: '' },
   exhaustion: { icoon: 'hourglass',    beweeg: '' },
 };
 // Dezelfde volgorde als op de server; hier bepaalt hij welke beweging wint.
-const _BADGE_RANG = ['levelup', 'inspiratie', 'vloek', 'buff', 'exhaustion'];
+const _BADGE_RANG = ['levelup', 'inspiratie', 'bardic', 'vloek', 'buff', 'exhaustion'];
 
 let _badgeData = {};        // { characterId: [badge] }
 let _badgeBeurt = {};       // { characterId: index } — waar de cyclus staat
@@ -3094,7 +3099,11 @@ window._badgeKaartje = function (ev, charId) {
     <div class="badge-kaart" onclick="event.stopPropagation()">
       ${lijst.map(b => {
         const st = _BADGE_STIJL[b.soort] || {};
-        const knop = b.eigen
+        // Een Bardic Inspiration haal je niet weg, die gooi je: de die rolt en
+        // de tafel ziet wat erbij kwam.
+        const knop = b.soort === 'bardic'
+          ? `<button class="badge-kaart-knop" onclick="window._bardicGebruik('${esc(charId)}')">Gebruiken</button>`
+          : b.eigen
           ? `<button class="badge-kaart-knop" onclick="window._badgeWeg('${esc(charId)}','${esc(b.soort)}','${esc(b.id || '')}')">${
               b.soort === 'inspiratie' ? 'Gebruiken' : 'Weghalen'}</button>`
           : `<span class="badge-kaart-dm">${icon('lock')} vraag je DM</span>`;
@@ -3117,6 +3126,15 @@ window._badgeKaartje = function (ev, charId) {
     }, { once: true });
   }, 0);
   return true;
+};
+
+window._bardicGebruik = async function (charId) {
+  try {
+    const r = await api.post(`/characters/${charId}/inspiratie/gebruik`, {});
+    document.querySelector('.badge-kaart')?.remove();
+    window._showToast?.(`${icon('music')} Bardic Inspiration: +${r.worp.totaal}`);
+    window._badgesLaden?.();
+  } catch (e) { window._showToast?.(e.message || 'Lukt niet'); }
 };
 
 window._badgeWeg = async function (charId, soort, id) {
@@ -3560,7 +3578,7 @@ function _kaartCard(type, m, dm, verdiepingen = null) {
 // eerste bestaande kaart: je drukte op + en keek naar Dreghaven.
 window._kaartNieuw = async function (type) {
   if (type === 'wereld') return nieuweKaart();
-  const { nieuweDungeon } = await import('./render-dungeon.js?v=67');
+  const { nieuweDungeon } = await import('./render-dungeon.js?v=70');
   nieuweDungeon();
 };
 
@@ -7131,7 +7149,7 @@ const _SIGNATURE = {
     feature: 'Rage', icon: 'hand-fist', key: 'rage', kleur: '#b3402a', vorm: 'uses',
     activeOff: 'Activeer Rage', activeOn: 'Raging',
     naslag: 'Resistance tegen Bludgeoning, Piercing & Slashing damage; Advantage op Strength checks & saves.',
-    uses: { 1: 2, 3: 3, 6: 4, 10: 5, 17: 6 },
+    uses: { 1: 2, 3: 3, 6: 4, 12: 5, 17: 6 },   // PHB 2024: vijf pas op 12
     extra: lvl => `Rage Damage +${_sigThresh({ 1: 2, 9: 3, 16: 4 }, lvl)}`,
   },
   bard: {
@@ -8486,6 +8504,8 @@ async function renderMijnKarakter(opts = {}) {
         <div style="display:flex;justify-content:flex-end;padding:4px 0 0">${_helpBtn('personage')}</div>
 
         <div id="levelup-balk"></div>
+        <div id="rage-blok"></div>
+        <div id="kracht-blok"></div>
 
         ${_dominantKlasse.toLowerCase().includes('sorcerer') ? `
         <div class="player-dash-section wild-magic-section">
@@ -9313,6 +9333,8 @@ async function renderMijnKarakter(opts = {}) {
   // helemaal opnieuw wordt getekend; in een variabele zou hij telkens weg zijn.
   _pdsInklapToepassen();
   _levelUpBalk();
+  window._rageBlok?.();
+  window._krachtBlok?.();
   _partyGevallenen();
   // De portretten staan er nu; hang de badges eraan.
   window._badgesLaden?.();
@@ -14947,6 +14969,9 @@ const HELP_CONFIG = {
     { titel: 'Thema', tekst: 'De twee kleuren die straks onder het gevecht liggen — jouw kant en de overkant. Je ziet ze in de lijst al op het kaartje, zodat je weet welke sfeer eraan hangt voor je hem opent.', afbeelding: null },
     { titel: 'Buit', tekst: 'Koppel een **vondst** die je bij Loot gemaakt hebt; die verdeel je na afloop met de lootverdeler. Een gevecht dat nog losse buit had van vroeger houdt die zolang je geen vondst koppelt — zo raakt een oud gevecht niets kwijt door één keer op te slaan.', afbeelding: null },
     { titel: 'Waar hoort het bij', tekst: 'Een **akte** groepeert je gevechten in de lijst en in het logboek. Een gevecht kan ook aan een dungeonkamer of aan een partij in het strijdperk hangen; die koppeling leg je daar, niet hier.', afbeelding: null },
+    { titel: 'Overgang', tekst: 'Hoe het tafelscherm het gevecht inluidt: drie witte flitsen en dan zet een patroon het beeld dicht — een spiraal, balken, een cirkel, scherven of een veeg. **Willekeurig** kiest er elke keer een; **Geen overgang** gaat meteen naar *Roll Initiative*.', afbeelding: null },
+    { titel: 'Lair Actions', tekst: 'Vecht de party in het hol van iets dat een lair heeft, dan is de lair op **initiative 20** aan de beurt (na wie 20 of hoger gooide). Elke regel is een **effect**: kies er een uit de catalogus — een aardbeving, een storm, stijgend water, vlammen, giftige nevel, een aftelling tot een explosie, of juist iets gunstigs zoals heilig licht, een helende bron of een beschermend altaar. Het effect vult de Saving Throw, de schade en de conditie in; elk veld mag je daarna aanpassen, en de tekst is wat er op tafel staat. **Eigen** is alleen tekst, zonder mechaniek.', afbeelding: null },
+    { titel: 'Tijdens het gevecht', tekst: 'Op initiative 20 krijg je bovenin je regels als knoppen; jij kiest. Het tafelscherm toont het effect met de Saving Throw eronder, en jij krijgt per doelwit drie knoppen: **Mislukt**, **Geslaagd** of **Niet geraakt**. De schade is al gerold — overtyp hem als de tafel anders gooide — en **Toepassen** zet hem op de tokens: heel bij mislukt, half of niets bij geslaagd, plus de conditie. Bij een gunstig effect kies je wie erin stond. Een **aftelling** gaat niet meteen af: rechtsboven op tafel tikt een penning elke nieuwe ronde één omlaag, en op nul gaat het effect alsnog af. Dezelfde regel twee rondes achter elkaar mag niet; de app zet *vorige ronde* erbij, maar houdt je niet tegen.', afbeelding: null },
   ] }),
 
   dm_verzoeken_lening: () => ({ titel: 'Wil lenen', stappen: [
@@ -15246,6 +15271,37 @@ const HELP_CONFIG = {
     { titel: 'Ze maken zichzelf', tekst: 'Deze klanken worden in de browser gemaakt met een paar tonen en wat ruis — er staat geen bestand tegenover. Dat scheelt laadtijd en licentiegedoe, en bij een nieuwe campagne klinkt het meteen zonder dat jij iets hoeft te vullen. Voor een dreun of een tik is dat prima; een overtuigende donderslag krijg je er niet mee.', afbeelding: null },
     { titel: 'Een eigen klank wint', tekst: 'Kies je hier een bestand uit de bibliotheek, dan vervangt dat de gemaakte klank. Doe dat vooral bij **donder**, **regen** en de **aardbeving** — daar hoor je het verschil. Het kruisje zet hem terug op de gemaakte klank; er blijft dus nooit iets stils achter.', afbeelding: null },
     { titel: 'Niet elk effect klinkt', tekst: 'Mist, gif en vuur staan er niet bij: die hóren stil te zijn, want ze blijven staan. Een klank die blijft doorlopen is een sfeerloop, en die stel je in bij Diensten of bij de akte.', afbeelding: null },
+  ] }),
+  klassekracht: () => ({ titel: 'Klassekrachten', stappen: [
+    { titel: 'Wat dit blok is', tekst: 'Het ding waar je klasse aan tafel over gaat, met de teller erbij. Druk op een kracht en de app streept af wat het kost, doet wat er vast te doen valt (genezen, een slot terugzetten, een toestand op je token) en laat het op het tafelscherm zien. Aanvallen en saves gooi je nog steeds zelf: de app zegt de DC, de tafel rolt.', afbeelding: null },
+    { titel: 'Wat er vanzelf terugkomt', tekst: 'Onder elke teller staat wat een **Short Rest** teruggeeft; een **Long Rest** zet alles terug, haalt lopende toestanden weg en laat een geschonken Bardic Inspiration vervallen.', afbeelding: null },
+    { titel: 'Bard', tekst: '**Inspireer** geeft iemand uit je party een Bardic Inspiration. Die staat dan bovenaan zíjn blad met een knop **Gebruiken**: na zijn worp tikt hij erop, de die rolt, en iedereen ziet wat erbij kwam. Eén tegelijk per persoon.', afbeelding: null },
+    { titel: 'Cleric en Paladin', tekst: '**Divine Spark** geneest (de app rolt en telt het bij) of doet schade (de app rolt; het doelwit mag nog een save). **Turn Undead** en **Divine Sense** tonen de DC en het bereik. **Lay on Hands**: kies wie en hoeveel uit je voorraad. **Divine Smite** kost een spell slot naar keuze en rolt de Radiant damage.', afbeelding: null },
+    { titel: 'Bardic Inspiration ontvangen', tekst: 'Wie geïnspireerd is, draagt een muzieknoot op zijn portret in de partybalk én een paars kaartje bovenaan zijn blad. Tik op het portret of op het kaartje en kies **Gebruiken**: de die rolt, en iedereen ziet wat erbij kwam.', afbeelding: null },
+    { titel: 'Druid: bekende gedaantes', tekst: 'Een Druid kent een beperkt aantal Beast-gedaantes (4, dan 6 op level 4, 8 op level 8), tot een maximale CR (1/4, 1/2, 1) — en een vliegend beest pas vanaf level 8. Circle of the Moon mag tot een derde van zijn level. Kies ze onder **Bekende gedaantes**; filter daar op de omgeving waar een beest leeft (Arctic, Forest, Underwater…). Na een Long Rest mag je er een wisselen.', afbeelding: null },
+    { titel: 'Druid: Wild Shape', tekst: 'Kies een van je bekende gedaantes en de **omgeving** waarin je verandert. Die staat al op waar het dier leeft, maar je mag hem omzetten: een wolf in een sneeuwstorm is een Arctic-wolf. De omgeving kleurt het moment op het tafelscherm. Je krijgt je Temporary HP, je token draagt Wild Shape, en het blijft staan tot je het beëindigt — een gevecht dat afloopt laat je gedaante ongemoeid.', afbeelding: null },
+    { titel: 'Subclasses', tekst: 'Heeft je subclass iets dat aan tafel telt, dan staat het onder een eigen kopje met zijn naam: de Superiority Dice en maneuvers van een Battle Master, de Psionic Energy Dice van een Psi Warrior of Soulknife, Portent van een Diviner (na een Long Rest rollen, daarna één voor één inzetten), de Arcane Ward van een Abjurer, Warrior of the Gods van een Zealot, en de Channel Divinity-opties van elk domein en elke eed. Een subclass die alleen een vaste bonus geeft — een Champion die op 19 crit — heeft geen knop nodig en staat er dus niet.', afbeelding: null },
+        { titel: 'Klanken', tekst: 'Heb je emotes (die zet je DM klaar, of je kiest ze bij het maken van je personage), dan kun je onder **Klanken** per kracht een emote kiezen. Die klinkt op het tafelscherm zodra je de kracht gebruikt: je strijdkreet bij Action Surge, je lied bij Bardic Inspiration.', afbeelding: null },
+    { titel: 'Fighter en Monk', tekst: '**Second Wind** rolt je genezing. **Action Surge** en **Indomitable** tellen af en laten de tafel zien wat er gebeurt. Een Monk geeft zijn Focus Points uit aan Flurry of Blows, Patient Defense, Step of the Wind en Stunning Strike; **Uncanny Metabolism** vult ze één keer per Long Rest weer aan, met genezing erbij.', afbeelding: null },
+    { titel: 'Ranger en Rogue', tekst: "**Hunter's Mark** kies je op een vijand uit het lopende gevecht (of je typt een naam). Het merk staat op zijn token en jouw Concentration op de jouwe; als het gevecht afloopt vervalt het. **Sneak Attack** rolt je extra dice in één keer.", afbeelding: null },
+    { titel: 'Sorcerer', tekst: '**Innate Sorcery** loopt één minuut en eindigt vanzelf met het gevecht. **Metamagic** vraagt welke optie en rekent de kosten af. Met Font of Magic smelt je een slot om tot punten, of maak je van punten een verbruikte slot weer bruikbaar.', afbeelding: null },
+    { titel: 'Warlock, Wizard en Artificer', tekst: '**Eldritch Blast** rolt elke straal apart. **Magical Cunning** haalt de helft van je Pact Magic-slots terug. **Arcane Recovery**: kies zelf welke slots, samen niet meer dan het budget. **Flash of Genius** (vanaf level 7) geef je aan wie de check of save doet.', afbeelding: null },
+  ] }),
+  rage: () => ({ titel: 'Rage', stappen: [
+    { titel: 'De knop', tekst: 'Een Bonus Action: druk op **Rage** en je bent erin. De app streept een use af, zet *Raging* op je token als er gevochten wordt, en op het tafelscherm brult het. Zolang je raast staat er een rode rand om je scherm en zie je onder de knop wat er nu voor je geldt.', afbeelding: null },
+    { titel: 'Wat de app niet doet', tekst: 'Rekenen aan je worpen. Rage Damage, Advantage op Strength en de Resistance staan in beeld; optellen doe je aan tafel. En de duur loopt niet op een klok — in de 2024-regels verleng je Rage door te blijven aanvallen, en dat ziet de app niet. Je beëindigt hem dus zelf. Een Long Rest en het einde van een gevecht doen het voor je.', afbeelding: null },
+    { titel: 'Terugkrijgen', tekst: 'Na een **Short Rest** krijg je één use terug, na een **Long Rest** alles. Hoeveel je er hebt groeit met je level: 2, dan 3 op level 3, 4 op 6, 5 op 12 en 6 op 17.', afbeelding: null },
+    { titel: 'Concentration', tekst: 'Wie in Rage gaat verliest zijn Concentration. Stond die op je token, dan haalt de app hem weg en zegt het je.', afbeelding: null },
+    { titel: 'Relentless Rage (level 11)', tekst: 'Val je op 0 HP terwijl je raast, dan verschijnt de DC van je Constitution save. Gooi aan tafel. Gelukt: je staat op met twee keer je Barbarian-level aan HP. Mislukt: je gaat neer en de Rage dooft. Elke poging maakt de volgende 5 moeilijker; een rust zet hem terug op 10.', afbeelding: null },
+    { titel: 'Persistent Rage (level 15)', tekst: 'Eén keer per Long Rest, tijdens een gevecht: alle Rage terug. Druk erop als je initiative gooit.', afbeelding: null },
+    { titel: 'Had je al een tellertje?', tekst: 'Wie Rage eerder als kenmerk met bolletjes bijhield, kan dat kenmerk weghalen: dit blok telt nu zelf.', afbeelding: null },
+  ] }),
+  dm_terugblik: () => ({ titel: 'Wat voorafging', stappen: [
+    { titel: 'Waar het voor is', tekst: 'Aan het begin van een avond weet de helft van de tafel niet meer waar ze gebleven waren. De terugblik maakt van je vorige sessieverslag een korte trailer op het tafelscherm: een titelkaart, de akte, je samenvatting woord voor woord over trage beelden, het citaat, wie ze ontmoetten, en dan *gaat het verder*.', afbeelding: null },
+    { titel: 'Wat erin komt', tekst: 'Alleen wat de **actieve party** al kent. Het verslag moet voor hen zichtbaar zijn, de beelden moeten voor hen onthuld zijn (die van het verslag zelf, plus wat er tijdens die akte op tafel kwam), en een personage krijgt pas een portret als zijn kaartje voor hen op zichtbaar staat. Een naam uit de tekst die ze nog niet kennen staat er dus wel als woord, maar zonder gezicht. Spelerspersonages staan niet bij *Wie u ontmoette* — die zitten aan tafel — maar komen aan het eind wel langs.', afbeelding: null },
+    { titel: 'Kiezen en afspelen', tekst: 'Standaard staat het laatste verslag klaar. **Op het tafelscherm** speelt hem daar af; **Zelf bekijken** speelt hem alleen op jouw scherm, zodat je eerst ziet hoe je tekst zich laat lezen. Hetzelfde kan vanuit een verslag in het Logboek.', afbeelding: null },
+    { titel: 'Tijdens het afspelen', tekst: 'Tikken of de pijl naar rechts springt naar het volgende shot, Escape sluit. Vanaf de regie-balk zet de monitor-knop het tafelscherm terug op sfeer, en dat breekt ook een lopende terugblik af. Een lang verslag houdt op na achttien zinsbrokken; schrijf de terugblik dus vooral in je **samenvatting**, kort en in de verleden tijd.', afbeelding: null },
+    { titel: 'Muziek', tekst: 'Zonder instelling zingt de app zelf: een lage drone met een dreun bij de titel. Wil je echte muziek, hang dan bij **Geluiden → Momenten → Terugblik** een bestand; dat zwelt aan bij het begin en sterft weg bij het eind.', afbeelding: null },
   ] }),
   dm_tafelscherm_fx: () => ({ titel: 'Effecten op het tafelscherm', stappen: [
     { titel: 'Twee soorten', tekst: 'Een effect onder **Eenmalig** flitst en ruimt zichzelf op — een wond, bliksem, een schokgolf. Een effect onder **Blijft staan** blijft op het scherm tot jij hem uitzet: mist, gif, vuur, duister. Dat verschil is er omdat een toestand een uitknop nodig heeft; zonder dat zou je scherm groen blijven omdat je tweemaal drukte.', afbeelding: null },
@@ -15640,6 +15696,11 @@ const HELP_CONFIG = {
         afbeelding: null,
       },
       {
+        titel: 'Omgeving',
+        tekst: 'Het blok **Omgeving** laat de plek zelf iets doen: de grond beeft, het water stijgt, een altaar zegent. Je kiest een effect uit de catalogus (`aardbeving`, `storm`, `heilig-licht`…) en zet er desgewenst met een puntje een eigen tekst achter: `aardbeving · De mijngang stort in`. Tijdens het spelen zet **Op tafel** het op het tafelscherm met de Saving Throw erbij, en bovenin krijg je het afhandelpaneel: tik per speler aan wie slaagde en druk op **Toepassen**. Buiten een gevecht gaat de schade van het blad af; een conditie zet je dan zelf, want die heeft buiten een gevecht geen token om op te staan.',
+        afbeelding: null,
+      },
+      {
         titel: 'Tekst en beeld, en Spelen',
         tekst: '**Tekst en beeld** zet je tekst links en het perkament rechts, zodat je ziet wat je maakt. Het perkament **loopt mee**: scroll je in de tekst, dan schuift het mee, en de alinea waar je cursor staat krijgt een streepje in de kantlijn. Klik je in het perkament, dan springt de cursor naar diezelfde regel in de tekst. **Spelen** toont alleen het perkament, met de knoppen erbij: onthullen bij een naam, *Toon aan spelers* bij een beeld, *Start gevecht* bij een gevechtsblok. Die knoppen doen het écht — het is dezelfde weergave als de lade onderin tijdens het spelen.',
         afbeelding: null,
@@ -15941,6 +16002,11 @@ const HELP_CONFIG = {
         afbeelding: null,
       },
       {
+        titel: 'Genadeslagen',
+        tekst: 'Elke keer dat iemand bij **How do you want to do this?** beschreef hoe hij een tegenstander velde, staat dat bovenin onder **Genadeslagen** — de nieuwste eerst, met wie het deed en tegen wie. Ze staan ook in het verslag van hun eigen gevecht; hier lees je ze bij elkaar. Zolang er nog niemand een beschreef, staat de knop er niet.',
+        afbeelding: null,
+      },
+      {
         titel: 'Missies (prikbord)',
         tekst: 'Op het prikbord staan alle missies van de campagne, ingedeeld op status: Beschikbaar, In uitvoering, Voltooid en Mislukt. Klik op een missiekaartje voor de details.',
         afbeelding: null,
@@ -15957,6 +16023,9 @@ Object.assign(HELP_CONFIG, {
       { titel: 'Initiative tracker', tekst: 'Voeg spelers en monsters toe aan het gevecht. Klik op "Start gevecht" om de initiative-ronde te beginnen. Het combat-scherm is zichtbaar voor alle spelers.', afbeelding: null },
       { titel: 'HP beheren', tekst: 'Klik op het HP-getal van een combatant om schade of genezing toe te passen. Gebruik het schildicoon voor tijdelijke HP.', afbeelding: null },
       { titel: 'Monsters toevoegen', tekst: 'Ga naar het subtabblad "Monsters" om monsters uit het bestiarium toe te voegen. Kies een encounter of voeg individuele monsters toe.', afbeelding: null },
+      { titel: 'Wat het tafelscherm ervan maakt', tekst: 'Bij **Start** speelt het tafelscherm een opening: *Roll Initiative*, de party links en de vijand rechts. Elke nieuwe ronde dimt het beeld even en zegt een verteller hoe het ervoor staat (afgeleid uit de HP-balken, geen getallen), en bij elke beurtwissel zoomt het beeld kort in op wie aan zet is. Bij **Gevecht beëindigen** volgt een aftiteling: rondes, minuten, wie er tegenover stond, wie er opstond of viel, en wat er beschreven werd. Dezelfde dingen komen in het verslag in het Logboek. Schadetotalen staan er niet in: er wordt aan tafel gedobbeld, en wat de app niet weet zet hij er niet bij.', afbeelding: null },
+      { titel: 'How do you want to do this?', tekst: 'Valt een vijand terwijl een speler aan zet is, dan verschijnt bovenin de vraag met die speler al gekozen — je kunt een ander kiezen, of wegklikken. Druk je op **Vraag het**, dan vertraagt het tafelscherm en loopt grijs weg, en krijgt alleen die speler een venster om te beschrijven hoe. Hij mag ook *Laat maar* zeggen. Zegt hij het liever hardop, typ het dan zelf in en druk op **Op tafel**. De beschrijving komt woord voor woord in beeld, daarna valt de klap. Het geluid daarvan stel je in bij Geluiden → Momenten.', afbeelding: null },
+      { titel: 'Death saves', tekst: 'Ligt een speler op 0, dan kleurt de rand van het tafelscherm rood en klopt er een hart — trager bij elke mislukte worp. Elke worp die je bij het personage aanvinkt wordt een moment op tafel. **20** zet hem met 1 HP overeind (een Natural 20), **1** telt als twee failures. Drie successen maakt hem stabiel, drie failures is het einde.', afbeelding: null },
     ],
   }),
   dm_loot: () => ({
