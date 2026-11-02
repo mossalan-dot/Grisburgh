@@ -348,12 +348,12 @@ De app gebruikt querystring cache-busting (`?v=N`). **Vergeten = browser haalt o
 **Huidige versies (bij te houden):**
 
 ```
-index.html  : theme.css?v=917   app.js?v=1182   sound-manager.js?v=15
-app.js      : api.js?v=319  dm-panel.js?v=415  media-picker.js?v=13  tafels.js?v=2  terugblik.js?v=3  rage.js?v=4  klassekracht.js?v=5  personage-maken.js?v=9  gevecht-regie.js?v=2
+index.html  : theme.css?v=920   app.js?v=1186   sound-manager.js?v=15
+app.js      : api.js?v=319  dm-panel.js?v=417  media-picker.js?v=13  tafels.js?v=2  terugblik.js?v=3  rage.js?v=4  klassekracht.js?v=6  personage-maken.js?v=10  gevecht-regie.js?v=2  bastion.js?v=1
               render-archief.js?v=145  render-bestiarium.js?v=34  render-campagne.js?v=353
               render-dungeon.js?v=70  render-kaart.js?v=34  render-progressie.js?v=66
-              render-relatiemap.js?v=34  render-spreuken.js?v=53  render-vaardigheden.js?v=135
-              render-statblock.js?v=9  socket-client.js?v=94  wizard.js?v=8  conditions.js?v=4
+              render-relatiemap.js?v=34  render-spreuken.js?v=53  render-vaardigheden.js?v=137
+              render-statblock.js?v=9  socket-client.js?v=95  wizard.js?v=8  conditions.js?v=4
 dm-panel.js : akte-schrijven.js?v=37  combat-canvas.js?v=37  render-statblock.js?v=9
 ```
 
@@ -2599,6 +2599,22 @@ opgeslagen als JSON-string. Alles eromheen is afgeleid:
 > gebeurt op de server (herkansingen in `meta.personageMaken.rerolls`), en de
 > overlay moet `#pm-overlay` heten — `body.landing-open` verbergt alles behalve
 > die id.
+
+---
+
+## Bastion
+
+> **Een thuisbasis per party, fase 1** (2 nov 2026). Module `bastion`
+> (`startset: false`), sectie in het menu *Avontuur*. Facilities en de Bastion
+> Turn met orders; events, defenders en goud zijn fase 2 en 3. Catalogus in
+> `bronnen/bastion-facilities.json` (namen en getallen, eigen samenvatting —
+> geen DMG-tekst), rekenregels in `lib/bastion.js`, routes onder `/bastion` in
+> `routes/api.js`, opslag in `bastion.json` per groep, client
+> `public/js/bastion.js`. **Voorrekenen, niet blokkeren**: level, slots en
+> prerequisites geven een opmerking. De turn telt **lange rusten**
+> (`g.rustTellers.long` − `turnStand`), zoals de woekeraar. Een speler stelt een
+> order voor, de DM legt vast. Alles staat in `docs/voorstel-bastion.md`.
+> **Valkuil:** `requireDM` zet `req.role` niet — alleen `attachRole` doet dat.
 
 ---
 

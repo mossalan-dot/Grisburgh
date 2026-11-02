@@ -32451,3 +32451,122 @@ body.gr-slowmo .combat-overlay { filter: grayscale(.85) contrast(1.1) brightness
 /* Het embleem van de campagne is getekend voor de donkere landingspagina
    (logo-emblem-light): op een lichte penning viel het weg. */
 .ps-embleem.ps-embleem--beeld { background: radial-gradient(circle at 38% 32%, #4a3a22, #2a1a08 72%, #1a1005); }
+
+/* ══ Bastion (DMG 2024) — de thuisbasis van de party ═════════════════════════
+   Een kop als een banier (donker, met het beeld van het bastion erachter),
+   daaronder perkamenten kaarten per special facility. Eigen klassen en niet de
+   dienstromp: dit is geen bezoek aan iemand achter een toonbank, en de kaarten
+   hebben meer breedte nodig dan het dienstpaneel van 460 px. */
+.bs-scene { max-width: 1080px; margin: 0 auto; padding: 18px 16px 48px; color: #3a2410; }
+.bs-leeg { padding: 40px 16px; text-align: center; color: #7a6040; font-style: italic; }
+.bs-kop {
+  position: relative; display: flex; align-items: flex-end; gap: 14px; flex-wrap: wrap;
+  min-height: 150px; padding: 22px 22px 18px; border-radius: 10px; overflow: hidden;
+  background: linear-gradient(160deg, #3a2a16, #1e140a); color: #f2e8d2;
+  border: 1px solid #8a6a3a; box-shadow: 0 8px 22px rgba(30, 18, 6, .35);
+}
+.bs-scene--beeld .bs-kop {
+  background: linear-gradient(90deg, rgba(20, 12, 4, .88) 0%, rgba(20, 12, 4, .55) 55%, rgba(20, 12, 4, .2) 100%),
+              var(--bs-bg) center / cover no-repeat, #1e140a;
+  min-height: 210px;
+}
+.bs-kop-tekst { flex: 1; min-width: 220px; }
+.bs-boven { font-family: 'IM Fell English', serif; font-style: italic; color: #d8c49a; letter-spacing: .06em; }
+.bs-titel { font-family: 'Cinzel', serif; font-weight: 700; font-size: clamp(1.5rem, 4vw, 2.2rem); margin: 2px 0 10px; color: #f6ecd2; text-shadow: 0 2px 10px rgba(0, 0, 0, .6); }
+.bs-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.bs-chip { display: inline-flex; align-items: center; gap: 5px; font-family: 'Cinzel', serif; font-size: .74rem; letter-spacing: .03em;
+  padding: 4px 10px; border-radius: 14px; background: rgba(242, 232, 210, .14); border: 1px solid rgba(196, 168, 122, .5); color: #f2e8d2; }
+.bs-chip .icon { width: 13px; height: 13px; }
+.bs-chip.bs-chip--over { border-color: #e0906a; color: #ffd2bc; }
+.bs-chip.bs-chip--klaar { background: rgba(196, 150, 40, .35); border-color: #e2c06a; }
+.bs-kop-acties { display: flex; align-items: center; gap: 8px; }
+.bs-groep { max-width: 200px; font-family: 'Crimson Text', serif; font-size: .95rem; padding: 4px 8px; border-radius: 6px;
+  background: rgba(242, 232, 210, .92); color: #3a2410; border: 1px solid #c4a87a; }
+.bs-icoonknop { display: inline-grid; place-items: center; width: 34px; height: 34px; border-radius: 50%; cursor: pointer;
+  background: rgba(242, 232, 210, .14); border: 1px solid rgba(196, 168, 122, .6); color: #f2e8d2; }
+.bs-icoonknop:hover { background: rgba(242, 232, 210, .26); }
+
+.bs-banier { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin: 14px 0 0; padding: 10px 14px;
+  border-radius: 8px; background: #f6e7bd; border: 1px solid #c49a3a; color: #4a3010; font-family: 'Crimson Text', serif; font-size: 1.05rem; }
+.bs-banier > span { flex: 1; min-width: 180px; }
+.bs-banier .icon { color: #9a7008; }
+
+.bs-blok { margin-top: 22px; }
+.bs-blok-kop { display: flex; align-items: center; justify-content: space-between; gap: 10px; border-bottom: 1px solid #c4a87a; padding-bottom: 4px; margin-bottom: 12px; }
+.bs-blok-kop h3 { font-family: 'Cinzel', serif; font-size: 1.05rem; margin: 0; color: #3a2410; letter-spacing: .04em; }
+.bs-stil { color: #7a6040; font-family: 'IM Fell English', serif; font-style: italic; margin: 6px 0; }
+
+.bs-raster { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 14px; }
+.bs-fac { position: relative; display: flex; flex-direction: column; gap: 8px; padding: 14px 14px 12px; border-radius: 8px;
+  background: linear-gradient(170deg, #f6eedb, #ead9b4); border: 1px solid #c9ab74; box-shadow: 0 3px 10px rgba(60, 40, 10, .12); }
+.bs-fac.bs-fac--order { border-color: #9a7008; box-shadow: 0 0 0 1px rgba(154, 112, 8, .35), 0 3px 10px rgba(60, 40, 10, .14); }
+.bs-fac-kop { display: flex; align-items: flex-start; gap: 10px; }
+.bs-fac-ico { flex-shrink: 0; display: grid; place-items: center; width: 40px; height: 40px; border-radius: 50%; color: #5a4015;
+  background: radial-gradient(circle at 38% 32%, #f6ecd0, #d8bd87 72%, #b2924f); border: 1px solid #9a7008; }
+.bs-fac-ico .icon { width: 20px; height: 20px; }
+.bs-fac-naam { font-family: 'Cinzel', serif; font-weight: 700; font-size: 1rem; color: #2a1a08; line-height: 1.2; }
+.bs-fac-type { font-size: .85rem; color: #7a6040; }
+.bs-fac-beheer { margin-left: auto; display: flex; gap: 2px; }
+.bs-fac-werking { margin: 0; font-size: .95rem; line-height: 1.4; color: #4a3420; }
+.bs-fac-notitie { margin: 0; font-family: 'IM Fell English', serif; font-style: italic; color: #5a4030; font-size: .92rem; }
+.bs-orders { display: flex; flex-wrap: wrap; gap: 6px; margin-top: auto; }
+.bs-order { font-family: 'Cinzel', serif; font-size: .74rem; letter-spacing: .03em; padding: 5px 11px; border-radius: 14px; cursor: pointer;
+  background: transparent; border: 1px solid #b09060; color: #5a4030; }
+.bs-order:hover:not(:disabled) { background: rgba(196, 168, 122, .25); }
+.bs-order.bs-order--aan { background: #3a2410; border-color: #3a2410; color: #f2e8d2; }
+.bs-order:disabled { opacity: .55; cursor: default; }
+.bs-order-stand { display: flex; align-items: center; gap: 6px; font-size: .85rem; color: #7a6040; }
+.bs-order-stand .icon { width: 13px; height: 13px; }
+.bs-mini { display: inline-grid; place-items: center; width: 26px; height: 26px; border-radius: 50%; cursor: pointer;
+  background: transparent; border: 0; color: #7a6040; }
+.bs-mini:hover { background: rgba(122, 96, 64, .14); color: #3a2410; }
+.bs-mini .icon { width: 14px; height: 14px; }
+
+.bs-basic { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 6px 14px; }
+.bs-basic li { display: flex; align-items: center; gap: 8px; padding: 6px 4px; border-bottom: 1px dotted #c9ab74; }
+.bs-basic li > span { color: #7a6040; font-size: .88rem; margin-right: auto; }
+.bs-basic li .icon { color: #7a5a20; }
+
+.bs-turnrij { margin-top: 18px; display: flex; justify-content: flex-end; }
+.bs-log { border-bottom: 1px solid rgba(196, 168, 122, .6); padding: 8px 2px; }
+.bs-log summary { cursor: pointer; font-family: 'Cinzel', serif; font-size: .92rem; color: #3a2410; }
+.bs-log summary span { font-family: 'Crimson Text', serif; color: #7a6040; margin-left: 6px; }
+.bs-log ul { margin: 8px 0 2px; padding-left: 18px; }
+.bs-log li { margin-bottom: 6px; }
+.bs-log-door { color: #7a6040; font-size: .88rem; }
+.bs-log-uitslag { font-family: 'IM Fell English', serif; font-style: italic; color: #4a3420; }
+
+.bs-knop { display: inline-flex; align-items: center; gap: 6px; font-family: 'Cinzel', serif; font-size: .8rem; letter-spacing: .03em;
+  padding: 7px 14px; border-radius: 6px; cursor: pointer; background: #f2e8d2; border: 1px solid #b09060; color: #3a2410; }
+.bs-knop:hover { background: #ead9b4; }
+.bs-knop.bs-knop--goud { background: linear-gradient(180deg, #d8b45a, #b8902e); border-color: #8a6a10; color: #2a1a08; }
+.bs-knop.bs-knop--goud:hover { background: linear-gradient(180deg, #e2c06a, #c49a3a); }
+.bs-knop.bs-knop--rood { color: #8d2a24; border-color: #c08070; }
+.bs-knop .icon { width: 14px; height: 14px; }
+.bs-veld { font-family: 'Crimson Text', serif; font-size: 1rem; padding: 7px 10px; border-radius: 6px; border: 1px solid #c4a87a;
+  background: #fbf5e6; color: #3a2410; width: 100%; box-sizing: border-box; }
+.bs-veld.bs-veld--klein { font-size: .92rem; padding: 5px 8px; }
+.bs-stichten { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 16px; }
+.bs-stichten .bs-veld { flex: 1; min-width: 200px; width: auto; }
+
+.bs-venster { display: flex; flex-direction: column; gap: 10px; }
+.bs-venster-kop { font-family: 'Cinzel', serif; font-size: .9rem; color: #7a6040; margin: 8px 0 0; border-bottom: 1px solid #c4a87a; }
+.bs-kiezer { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 8px; }
+.bs-kies { display: flex; align-items: flex-start; gap: 10px; text-align: left; padding: 10px; border-radius: 8px; cursor: pointer;
+  background: #f6eedb; border: 1px solid #c9ab74; color: #3a2410; font-family: 'Crimson Text', serif; }
+.bs-kies:hover { background: #efe0bd; border-color: #9a7008; }
+.bs-kies.bs-kies--let { border-style: dashed; }
+.bs-kies-tekst { display: flex; flex-direction: column; gap: 2px; }
+.bs-kies-tekst b { font-family: 'Cinzel', serif; font-size: .92rem; }
+.bs-kies-tekst small { color: #7a6040; font-size: .82rem; line-height: 1.3; }
+.bs-kies-tekst small.bs-let { color: #8d4a24; }
+.bs-label { font-family: 'Cinzel', serif; font-size: .78rem; color: #7a6040; letter-spacing: .04em; margin-bottom: -4px; }
+.bs-formrij { display: flex; gap: 8px; flex-wrap: wrap; }
+.bs-formrij .bs-veld { flex: 1; width: auto; }
+.bs-turn-regel { display: flex; flex-direction: column; gap: 6px; padding: 8px 0; border-bottom: 1px dotted #c9ab74; }
+
+@media (max-width: 560px) {
+  .bs-scene { padding: 12px 12px 40px; }
+  .bs-kop { padding: 16px; min-height: 130px; }
+  .bs-raster, .bs-kiezer { grid-template-columns: 1fr; }
+}

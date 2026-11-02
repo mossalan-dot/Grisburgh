@@ -313,6 +313,8 @@ function _ververOpenKaartje(id) {
   socket.on('rage:updated', (data = {}) => { window._rageOntvang?.(data); });
   // Klassekrachten van de andere klassen: zelfde verdeling als bij Rage.
   socket.on('klasse:updated', (data = {}) => { window._krachtOntvang?.(data); });
+  socket.on('bastion:updated', (data = {}) => { window._bastionOntvang?.(data); });
+  socket.on('bastion:turn', (data = {}) => { window._bastionTurnKlaar?.(data); });
   socket.on('klasse:display', (data = {}) => {
     if (window._isDisplayMode) window._krachtDisplay?.(data);
   });

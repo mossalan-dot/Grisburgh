@@ -13531,6 +13531,34 @@ async function _renderInstellingen() {
       </div>
     `, window._helpBtn?.('inst_personage') ?? '')}
 
+    <!-- Bastion: alleen als de module aanstaat. Een schakelaar die uitstaat
+         laat niets achter, ook hier niet. -->
+    ${window._moduleAan?.('bastion') ? (() => {
+      const bs = { vanafLevel: 5, cadans: 7, aanbieden: true, spelersVastleggen: false, ...(meta.bastion || {}) };
+      return _instSectie('bastion', 'Bastion', `
+      <div class="dm-form-row">
+        <label class="dm-form-label" for="inst-bs-level">Vanaf welk level</label>
+        <input id="inst-bs-level" class="dm-input" type="number" min="1" max="20" value="${parseInt(bs.vanafLevel) || 5}">
+      </div>
+      <div class="dm-form-row">
+        <label class="dm-form-label" for="inst-bs-cadans">Nachten per Bastion Turn</label>
+        <input id="inst-bs-cadans" class="dm-input" type="number" min="1" max="60" value="${parseInt(bs.cadans) || 7}">
+      </div>
+      <div class="dm-form-row">
+        <label class="dm-form-checkbox">
+          <input type="checkbox" id="inst-bs-aanbieden"${bs.aanbieden !== false ? ' checked' : ''}>
+          <span>Meld het als een turn klaarstaat</span>
+        </label>
+      </div>
+      <div class="dm-form-row">
+        <label class="dm-form-checkbox">
+          <input type="checkbox" id="inst-bs-spelers"${bs.spelersVastleggen === true ? ' checked' : ''}>
+          <span>Spelers leggen orders zelf vast</span>
+        </label>
+      </div>
+    `, window._helpBtn?.('inst_bastion') ?? '');
+    })() : ''}
+
     <!-- Wat een speler van andermans HP ziet is smaak, geen regel: de ene DM
          houdt alles verborgen, de andere legt de cijfers op tafel. Wat er níét
          bij hoort — AC en het statblock — staat in het boekje; die lopen altijd
@@ -13882,6 +13910,15 @@ window._instOpslaan = async () => {
       trinketTafel: document.getElementById('inst-pm-trinket')?.value || '',
       rerolls: parseInt(document.getElementById('inst-pm-rerolls')?.value) || 0,
     });
+
+    if (document.getElementById('inst-bs-level')) {
+      await api.put('/meta/bastion', {
+        vanafLevel: parseInt(document.getElementById('inst-bs-level').value) || 5,
+        cadans: parseInt(document.getElementById('inst-bs-cadans')?.value) || 7,
+        aanbieden: !!document.getElementById('inst-bs-aanbieden')?.checked,
+        spelersVastleggen: !!document.getElementById('inst-bs-spelers')?.checked,
+      });
+    }
 
     const nieuweMeta = await api.meta();
     if (window.app?.state) window.app.state.meta = nieuweMeta;

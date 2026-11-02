@@ -368,6 +368,18 @@ een speler ziet, **TAB** = het tafelscherm (`?display=1`), **ALL** = alle drie.
 - [ ] Een kaartje zonder portret toont een silhouet van zijn soort (poppetje / gebouw / speld), geen vraagteken of gebroken plaatje
 - [ ] Lexicon op een telefoon: één tik op een onderstreept woord opent de uitleg meteen (niet pas bij de tweede tik); tikken naast het woord sluit hem
 
+### Bastion (module, standaard uit)
+
+- [ ] **Bastion: uit is weg** (DM) — zolang de module uit staat is er in *Avontuur* geen *Bastion* en bij Instellingen geen blok Bastion; zet hem aan bij Instellingen → Campagnes en beide verschijnen
+- [ ] **Bastion: stichten** (DM) — kies Testgroep in de kiezer, typ een naam en sticht: de kop toont de naam, *Special facilities 0/N* (N = 2 per lid vanaf level 5, 4 vanaf 9) en twee basic facilities, Bedroom (Cramped) en Kitchen (Roomy)
+- [ ] **Bastion: voorrekenen** (DM) — *+ Special facility* toont alle 29 per level; een facility boven het hoogste level van de party, met een prerequisite of die er al staat draagt een rode regel en een gestippelde rand, en kiezen kan toch (de melding zegt wat er opviel)
+- [ ] **Bastion: override** (DM) — potlood → vul bij *Special facilities* 1 in: de chip wordt rood bij 2 facilities; maak het veld leeg en het getal wordt weer uitgerekend
+- [ ] **Bastion: voorstellen** (SP) — log in als Test McTestface, open Avontuur → Bastion: geen plusknoppen of potloden; tik *Research* bij een Library: er staat een zandloper met *Voorgesteld door Test McTestface* en een vak *Wat precies?*
+- [ ] **Bastion: vastgelegd blijft vast** (SP) — leg als DM *Craft* vast op de Smithy; bij de speler staan de orders van die kaart grijs met een slotje, en via de API geeft een poging 409
+- [ ] **Bastion: de turn meldt zich** (DM) — doe zeven lange rusten met Testgroep: de DM krijgt een melding *N nachten sinds de vorige Bastion Turn* en bovenaan staat een gouden banier, ook bij de speler (zonder knop)
+- [ ] **Bastion: turn afronden** (DM) — *Turn afronden*, schrijf een uitslag bij de Smithy: de turn staat in het Logboek met order, notitie, wie hem gaf en de uitslag; de orders zijn weg en de teller staat op 0/7; de speler leest dezelfde regel
+- [ ] **Bastion: opheffen** (DM) — potlood → *Bastion opheffen* vraagt eerst bevestiging met het aantal turns dat verdwijnt; annuleren laat alles staan
+
 ### Vaardigheden (archieftab)
 - [ ] Archief → Vaardigheden toont kaartjes voor class features, subclass features, species traits, feats, Epic Boons en backgrounds; de tellers boven kloppen met wat je ziet
 - [ ] Klik op een soort-chip → alleen die soort, en de bronnen- en levellijst eronder loopt mee (bij Feats is er geen level)

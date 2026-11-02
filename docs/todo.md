@@ -6,6 +6,28 @@ groot het is. Bijgewerkt 15 sep 2026.
 
 ## Nu aan de beurt
 
+- [ ] **Drie dingen in de data van Grisburgh** (gevonden 2 nov 2026 bij het
+      herontwerp van de personagemaker; data, geen code — dus voor de DM):
+      · **Fighter heeft geen Ability Score Improvement op level 6.** De PHB 2024
+        geeft een Fighter er een extra op 6 (en op 14). De maker en de
+        Progressie-tijdlijn volgen de campagne, dus een Fighter die hoger begint
+        mist nu een keuze. Bijzetten in het Heldenboek (Fighter, level 6).
+      · **Urban Bounty Hunter zegt "choose one"** bij de skills, terwijl het boek
+        er twee laat kiezen. De maker leest de tekst letterlijk en vraagt er één.
+      · **Agent of the Ninth Quill is een lege houder** (geen onderdelen). De
+        maker valt daarvoor terug op de meegeleverde versie, maar het Heldenboek
+        toont hem leeg; vul hem daar in of haal hem weg.
+
+- [ ] **Bastion, fase 2 en 3** → `docs/voorstel-bastion.md`. Fase 1
+      (facilities, orders, de turn, gebouwd 2 nov 2026) staat. Nog: **Bastion
+      Events** via een gewogen tafel bij Maintain, met een onthulling op het
+      tafelscherm; **Defenders** en een aanval (6d6, Defensive Walls 4d6);
+      **Empower**; en fase 3 — opbrengst van Trade/Storehouse/Gaming Hall als
+      voorgevuld bedrag via de partybeurs, Craft dat echt in de boedel belandt,
+      Recruit, en uitbreiden/vergroten met goud en tijd. Kijk vóór fase 2 de
+      catalogus (`bronnen/bastion-facilities.json`) na tegen de DMG: die is uit
+      het hoofd samengesteld.
+
 - [x] **De tekst ís het script** — gedaan 14-15 sep 2026. Schrijfscherm
       (`akte-schrijven.js`) met elf regieblokken, de lade onderin met dezelfde
       renderer en dezelfde knoppen, secties verslepen, een potlood per blok,

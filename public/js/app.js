@@ -11,8 +11,8 @@ import './render-handleiding.js?v=2';
 import './render-melding.js?v=4';
 import { renderVaardigheden, zoekVaardigheden, heldenboekTekst } from './render-vaardigheden.js?v=137';
 import { renderStatblock } from './render-statblock.js?v=9';
-import { initSocket } from "./socket-client.js?v=94";
-import { initDmPanel } from "./dm-panel.js?v=416";
+import { initSocket } from "./socket-client.js?v=95";
+import { initDmPanel } from "./dm-panel.js?v=417";
 import { COND_INFO, COND_LABEL, COND_MET_PLAATJE, COND_ICON } from './conditions.js?v=4';
 import './media-picker.js?v=13';
 import './wizard.js?v=8';
@@ -20,6 +20,7 @@ import './tafels.js?v=2';
 import './terugblik.js?v=3';
 import './rage.js?v=4';
 import './klassekracht.js?v=6';
+import './bastion.js?v=1';
 import './gevecht-regie.js?v=2';
 
 // ── Icon helper ──
@@ -535,17 +536,20 @@ function switchSection(section) {
   const logboekLabel = $('#logboek-nav-label');
   const isLogboek    = section === 'logboek';
   const isKaart      = section === 'kaart';
-  if (logboekBtn) logboekBtn.classList.toggle('active', isLogboek || isKaart);
+  const isBastion    = section === 'bastion';
+  if (logboekBtn) logboekBtn.classList.toggle('active', isLogboek || isKaart || isBastion);
   if (logboekLabel) {
     const activeTab = window._logboekActiveTab || 'verslagen';
     logboekLabel.innerHTML = isKaart
       ? `${icon('map')} Kaarten`
+      : isBastion ? `${icon('castle')} Bastion`
       : (isLogboek ? (LOGBOEK_LABELS[activeTab] || AVONTUUR_LABEL) : AVONTUUR_LABEL);
   }
   // Logboek dropdown-items
   $$('#logboek-menu .archief-menu-item').forEach(b =>
     b.classList.toggle('active',
       (isKaart && b.dataset.section === 'kaart') ||
+      (isBastion && b.dataset.section === 'bastion') ||
       (isLogboek && b.dataset.logtab === (window._logboekActiveTab || 'verslagen'))));
 
   // Diensten-knop: actief als een diensten-sectie actief is
@@ -3387,6 +3391,7 @@ async function refreshSection(section) {
   else if (section === 'vaardigheden') await renderVaardigheden();
   else if (section === 'logboek') await renderLogboek();
   else if (section === 'kaart') await _renderKaartSection();
+  else if (section === 'bastion') await window.bastion?.render();
   else if (section === 'relatiemap') await renderRelatiemap();
   else if (section === 'markt') await renderMarkt();
   else if (section === 'herberg') await _dienstPoort('herberg', state.meta?.herberg?.naam || 'De Herberg', renderHerberg);
@@ -11865,7 +11870,7 @@ async function init() {
   // Alles wat een eigen tabblad heeft mag ook een adres hebben. Spreuken,
   // bestiarium en relatiemap ontbraken: wie #spreuken opende (of de pagina daar
   // herlaadde) belandde op Personages.
-  const validSections = [...ARCHIEF_SECTIONS, 'logboek', 'kaart', 'mijn-karakter'];
+  const validSections = [...ARCHIEF_SECTIONS, 'logboek', 'kaart', 'bastion', 'mijn-karakter'];
   const startSection  = validSections.includes(hashSection) ? hashSection : 'personages';
   // Wacht op de entity-index zodat wikilinks al bij de eerste render werken
   await (window._entityIndexReady || Promise.resolve());
@@ -15395,6 +15400,21 @@ const HELP_CONFIG = {
     { titel: 'Verhaal en geheimen', tekst: 'Een speler kan zijn achtergrondverhaal schrijven en **geheimen** meegeven die niemand aan tafel kent. Het verhaal wordt de beschrijving op zijn kaartje; de geheimen worden gewone geheimregels, die jij per regel onthult wanneer het moment daar is — net als bij elk ander kaartje. Hij ziet ze zelf ook pas terug als jij ze onthult.', afbeelding: null },
     { titel: 'Twee classes tegelijk beginnen', tekst: 'Staat het beginlevel op 2 of hoger, dan kan een speler zijn levels over **twee classes** verdelen — Fighter 3 / Rogue 2 bijvoorbeeld. Het staat achter een uitklapper bij de class: het is de uitzondering, en wie het niet zoekt hoort er geen last van te hebben.\n\nZijn hit dice tellen dan per class (3d10 + 2d8) en de **eisen** staan erbij zoals overal in deze app: voorrekenen, niet blokkeren. Haalt hij de Strength 13 voor Paladin niet, dan lees jij dat bij het gunnen en beslis jij.', afbeelding: null },
     { titel: 'Rommel in zijn zak', tekst: 'De app verzint geen trinkets — wat er in je zak zit hoort bij jouw wereld. Wijs hier een **tafel van je eigen campagne** aan, dan rolt elke nieuwe speler daar één keer op en gaat de uitkomst als voorwerp mee in zijn boedel.\n\nEén keer: opnieuw rollen tot er iets leuks staat is geen worp meer.', afbeelding: null },
+  ] }),
+
+  bastion: () => ({ titel: 'Het bastion', stappen: [
+    { titel: 'Wat het is', tekst: 'Een **Bastion** is de thuisbasis van jullie party: een plek met **facilities** die tussen de avonturen door voor je werken. Het komt uit de *Dungeon Master\'s Guide* van 2024, met één verschil: hier heeft de **party** één bastion samen, niet elk personage een eigen.\n\nEr zijn twee soorten facilities. **Basic Facilities** (een slaapkamer, een keuken) zijn sfeer. **Special Facilities** (een Smithy, een Library, een Garden) krijgen elke turn een **order**: Craft, Empower, Harvest, Recruit, Research, Trade of Maintain.', afbeelding: null },
+    { titel: 'Een order geven', rol: 'speler', tekst: 'Tik op een order onder een facility om hem voor te stellen, en schrijf erbij wat je precies wilt — "een longsword", "alles over de Vergeten Kapel". Een ander mag je voorstel vervangen; wat de DM **vastlegde** (het slotje) niet.\n\nDe DM rondt de turn af en schrijft erbij wat het opleverde. Dat lees je terug in het logboek onderaan.', afbeelding: null },
+    { titel: 'Een order geven', rol: 'dm', tekst: 'Spelers stellen orders **voor** (een zandloper); wat jij kiest ligt **vast** (een slotje) en kan een speler niet overschrijven. Wil je dat zij het zelf vastleggen, dan zet je dat bij Instellingen → *Bastion*.\n\n**Turn afronden** zet elke order in het logboek, met een vak waarin je schrijft wat hij opleverde. Daarna zijn de orders weg en begint de telling opnieuw.', afbeelding: null },
+    { titel: 'Hoeveel facilities', rol: 'dm', tekst: 'Elk personage geeft het bastion **2** special facilities op level 5, **4** op 9, **5** op 13 en **6** op 17 — bij elkaar opgeteld voor de hele party. Vind je dat te veel of te weinig, vul dan bij het potlood een eigen getal in; leeg laten betekent weer "reken het uit".\n\nKies je een facility boven het level van de party, één met een prerequisite die niemand haalt, of één te veel: de app zegt het, maar **houdt niets tegen**. Het is jouw tafel.', afbeelding: null },
+    { titel: 'Wanneer is het een turn?', tekst: 'Een **Bastion Turn** valt ongeveer elke zeven dagen. De app telt dat in **lange rusten** van de party — dezelfde klok als de winkels die verversen. Na zeven nachten staat er een banier bovenaan, en hoort de DM het meteen na de lange rust.', afbeelding: null },
+    { titel: 'Wat er nog niet is', rol: 'dm', tekst: 'Dit is de eerste ronde: facilities en orders. **Bastion Events** (de d100-tabel bij Maintain), **Defenders** en aanvallen, en **goud** dat binnenkomt of uitgegeven wordt komen later. Tot die tijd schrijf je de uitslag van een order zelf op, en verreken je geld of voorwerpen zoals je dat altijd doet.', afbeelding: null },
+  ] }),
+
+  inst_bastion: () => ({ titel: 'Bastion', stappen: [
+    { titel: 'Vanaf welk level', tekst: 'In de DMG krijg je een bastion op **level 5**. Zet je dit lager, dan telt een personage op dat level al voor twee special facilities. Stichten kun je altijd; dit getal bepaalt alleen wat de app voorrekent.', afbeelding: null },
+    { titel: 'Nachten per Bastion Turn', tekst: 'Hoeveel **lange rusten** van de party er tussen twee turns zitten. De DMG zegt zeven dagen. Zet je de melding uit, dan telt de app niet mee en rond jij de turn af wanneer het jou uitkomt.', afbeelding: null },
+    { titel: 'Spelers leggen orders zelf vast', tekst: 'Standaard **stellen spelers voor** en leg jij vast — zo kunnen twee spelers niet elkaars order omgooien zonder dat jij het ziet. Zet je dit aan, dan ligt wat een speler kiest meteen vast. Afronden blijft altijd bij jou.', afbeelding: null },
   ] }),
 
   dm_verzoeken_personage: () => ({ titel: 'Een nieuw personage', stappen: [

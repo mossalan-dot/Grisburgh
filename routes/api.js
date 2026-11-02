@@ -14,6 +14,7 @@ const bronnen = require('../lib/bronnen');
 const houdingen = require('../lib/houding');
 const briefCode = require('../lib/brief-code');
 const personageConcept = require('../lib/personage-concept');
+const bastionRegels = require('../lib/bastion');
 const crypto = require('crypto');
 const { DISPLAY_FX, fxVoor, fxBericht } = require('../lib/display-fx');
 const OMG = require('../lib/omgeving');
@@ -5675,6 +5676,10 @@ router.post('/party/long-rest', requireDM, (req, res) => {
   for (const cid of _rageGedoofd) _rageMeld(req, dmState, cid, false, { stil: true });
   if (_krachtUit.length) req.app.get('io')?.to(_displayRoom(req)).emit('klasse:display', { opruimen: _krachtUit });
   for (const cid of _krachtUit) req.app.get('io')?.to(_campagneRoom(req)).emit('klasse:updated', { characterId: cid, stil: true });
+  // Een nacht verder kan een Bastion Turn opleveren. Alleen de DM hoort het:
+  // hij beslist wanneer de turn gespeeld wordt.
+  const _bt = _bastionTurnKlaar(dmState, _groupIdVan(g, dmState));
+  if (_bt) _naarDM(req, 'bastion:turn', _bt);
   res.json({ ok: true, spelers: spelers.length, resetCount, rollLog, kosten, roddelsOnthuld: roddels.length, gebeurtenissen });
 });
 
@@ -20522,6 +20527,309 @@ router.post('/encounters/:id/start', requireDM, (req, res) => {
   storage.writeJSON('combat.json', combat);
   _zendCombat(req, combat);
   res.json(combat);
+});
+
+// ── Bastion (DMG 2024) — één per party ──────────────────────────────────────
+// Fase 1 van `docs/voorstel-bastion.md`: facilities en de Bastion Turn met
+// orders. Events, defenders en goud zijn fase 2 en 3. De rekenregels staan in
+// `lib/bastion.js`; hier staat alleen lezen, schrijven en wie wat mag.
+//
+// Opslag in `bastion.json`, per groep — net als `loot.json` een eigen bestand,
+// zodat dm-state er niet nog een bak bij krijgt. Een speler ziet het bastion
+// van zijn eigen party, de DM dat van de actieve party of van `?groep=`.
+
+function _bastionAan() {
+  try { return modulesVoor(storage.readJSON('meta.json')).bastion === true; } catch { return false; }
+}
+function _bastionPoort(req, res, next) {
+  if (!_bastionAan()) return res.status(409).json({ error: 'Bastions staan uit voor deze campagne' });
+  // `requireDM` laat de DM door zonder `req.role` te zetten (dat doet alleen
+  // `attachRole`); de helpers hieronder vragen ernaar.
+  if (!req.role && req.session?.role === 'dm') req.role = 'dm';
+  next();
+}
+
+// Welke party het betreft. De DM mag elke party kiezen; een speler alleen de
+// zijne (of die van wie de DM namens speelt).
+function _bastionGid(req, dmState) {
+  if (req.role === 'dm') {
+    const namens = _handelendKarakter(req, dmState);
+    if (namens) return _playerGroupId(dmState, namens);
+    const gevraagd = String(req.query?.groep || req.body?.groep || '');
+    if (gevraagd && dmState.groups?.[gevraagd]) return gevraagd;
+    return dmState.groups?.[dmState.activeGroup] ? dmState.activeGroup : Object.keys(dmState.groups || {})[0];
+  }
+  return _playerGroupId(dmState, req.session?.characterId);
+}
+
+function _bastionLeden(dmState, gid) {
+  let entities = {};
+  try { entities = storage.readJSON('entities.json'); } catch { /* leeg */ }
+  return (entities.personages || [])
+    .filter(e => e.subtype === 'speler' && e.data?.groep === gid)
+    .map(e => {
+      const p = dmState.playerProfiles?.[e.id] || {};
+      const level = parseInt(p.level) || _klasseLevels(p).reduce((s, [, n]) => s + n, 0) || 0;
+      return { id: e.id, naam: e.name, level };
+    });
+}
+
+function _bastionTurnKlaar(dmState, gid) {
+  if (!gid || !_bastionAan()) return null;
+  const b = storage.readJSON('bastion.json')[gid];
+  if (!b) return null;
+  const inst = bastionRegels.instellingen(storage.readJSON('meta.json'));
+  const stand = bastionRegels.turnStand(b, _rustStand(getGroup(dmState, gid), 'long'), inst);
+  return stand.klaar ? { groep: gid, naam: b.naam, ...stand } : null;
+}
+
+function _bastionAntwoord(req, dmState, gid) {
+  const meta = storage.readJSON('meta.json');
+  const inst = bastionRegels.instellingen(meta);
+  const cat  = bastionRegels.catalogus();
+  const b    = storage.readJSON('bastion.json')[gid] || null;
+  const leden = _bastionLeden(dmState, gid);
+  const levels = leden.map(l => l.level);
+  // Kijkt de DM mee als een speler, dan ziet hij wat die speler ziet.
+  const isDM = req.role === 'dm' && !_handelendKarakter(req, dmState);
+  const uit = {
+    groep: { id: gid, naam: dmState.groups?.[gid]?.name || '' },
+    groepen: isDM ? Object.entries(dmState.groups || {}).map(([id, g]) => ({ id, naam: g.name })) : undefined,
+    instellingen: inst,
+    catalogus: { orders: cat.orders, orderNamen: cat.orderNamen, groottes: cat.groottes, basic: cat.basic, special: cat.special },
+    leden,
+    isDM,
+    magVastleggen: isDM || inst.spelersVastleggen,
+    bastion: null,
+  };
+  if (!b) return uit;
+  const slots = bastionRegels.slots(levels, inst, b.slotsOverride);
+  const aantalSpecial = (b.facilities || []).filter(f => f.special).length;
+  const naamVan = (id) => id === 'dm' ? 'de DM' : (leden.find(l => l.id === id)?.naam || 'iemand');
+  uit.bastion = {
+    naam: b.naam, beeldId: b.beeldId || null,
+    slots, aantalSpecial,
+    turnNummer: b.turnNummer || 0,
+    turn: bastionRegels.turnStand(b, _rustStand(getGroup(dmState, gid), 'long'), inst),
+    facilities: (b.facilities || []).map(f => {
+      const def = f.special ? bastionRegels.specialOp(f.key) : bastionRegels.basicOp(f.key);
+      const o = b.orders?.[f.id];
+      return {
+        ...f, def,
+        orders: bastionRegels.ordersVan(f),
+        order: o ? { ...o, doorNaam: naamVan(o.door) } : null,
+      };
+    }),
+    log: (b.log || []).slice().reverse(),
+  };
+  // Alleen de DM kiest facilities, dus alleen hij krijgt wat er bij elke keuze
+  // zou opvallen.
+  if (isDM) {
+    uit.kandidaten = Object.fromEntries(cat.special.map(f => [f.key,
+      bastionRegels.opmerkingenBijNieuw(f.key, { levels, aantalSpecial, slotsTotaal: slots.totaal, bestaand: b.facilities || [] })]));
+  }
+  return uit;
+}
+
+function _bastionSchrijf(req, gid, fn) {
+  const alles = storage.readJSON('bastion.json');
+  const b = alles[gid];
+  if (!b) return { fout: [404, 'Deze party heeft nog geen bastion'] };
+  const r = fn(b);
+  if (r?.fout) return r;
+  storage.writeJSON('bastion.json', alles);
+  req.app.get('io')?.to(_campagneRoom(req)).emit('bastion:updated', { groep: gid });
+  return r || {};
+}
+
+function _bastionKlaar(req, res, gid, r) {
+  if (r?.fout) return res.status(r.fout[0]).json({ error: r.fout[1] });
+  res.json({ ok: true, ...(r?.extra || {}), ..._bastionAntwoord(req, readDmState(), gid) });
+}
+
+const _BASTION_ID = () => 'fac_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+const _schoneNaam = (v, max = 80) => String(v ?? '').replace(/\s+/g, ' ').trim().slice(0, max);
+
+router.get('/bastion', attachRole, _bastionPoort, (req, res) => {
+  const dmState = readDmState();
+  const gid = _bastionGid(req, dmState);
+  if (!gid) return res.status(404).json({ error: 'Geen party gevonden' });
+  res.json(_bastionAntwoord(req, dmState, gid));
+});
+
+// Stichten: met de twee basic facilities waar de DMG mee begint (één Cramped,
+// één Roomy). Weggooien of hernoemen mag daarna gewoon.
+router.post('/bastion', requireDM, _bastionPoort, (req, res) => {
+  const dmState = readDmState();
+  const gid = _bastionGid(req, dmState);
+  if (!gid) return res.status(404).json({ error: 'Geen party gevonden' });
+  const alles = storage.readJSON('bastion.json');
+  if (alles[gid]) return res.status(409).json({ error: 'Deze party heeft al een bastion' });
+  alles[gid] = {
+    naam: _schoneNaam(req.body?.naam) || 'Het bastion',
+    beeldId: null, slotsOverride: null,
+    facilities: [
+      { id: _BASTION_ID() + 'a', key: 'bedroom', naam: 'Bedroom', special: false, grootte: 'cramped' },
+      { id: _BASTION_ID() + 'b', key: 'kitchen', naam: 'Kitchen', special: false, grootte: 'roomy' },
+    ],
+    orders: {}, turnNummer: 0,
+    // Tellen begint vanaf nu: nachten van vóór het bastion bestond tellen niet.
+    turnStand: _rustStand(getGroup(dmState, gid), 'long'),
+    log: [],
+  };
+  storage.writeJSON('bastion.json', alles);
+  req.app.get('io')?.to(_campagneRoom(req)).emit('bastion:updated', { groep: gid });
+  res.json({ ok: true, ..._bastionAntwoord(req, dmState, gid) });
+});
+
+router.put('/bastion', requireDM, _bastionPoort, (req, res) => {
+  const gid = _bastionGid(req, readDmState());
+  const r = _bastionSchrijf(req, gid, (b) => {
+    const body = req.body || {};
+    if ('naam' in body) b.naam = _schoneNaam(body.naam) || b.naam;
+    if ('beeldId' in body) b.beeldId = body.beeldId ? String(body.beeldId).slice(0, 120) : null;
+    if ('slotsOverride' in body) {
+      const n = parseInt(body.slotsOverride);
+      b.slotsOverride = body.slotsOverride === null || body.slotsOverride === '' || !Number.isFinite(n) ? null : Math.min(60, Math.max(0, n));
+    }
+  });
+  _bastionKlaar(req, res, gid, r);
+});
+
+// Opheffen gooit het bastion en zijn hele logboek weg. De client vraagt eerst
+// om bevestiging; de server wil het daarbij nog eens uitdrukkelijk horen.
+router.delete('/bastion', requireDM, _bastionPoort, (req, res) => {
+  if (req.query?.zeker !== '1') return res.status(400).json({ error: 'Bevestig het opheffen' });
+  const dmState = readDmState();
+  const gid = _bastionGid(req, dmState);
+  const alles = storage.readJSON('bastion.json');
+  if (!alles[gid]) return res.status(404).json({ error: 'Deze party heeft geen bastion' });
+  delete alles[gid];
+  storage.writeJSON('bastion.json', alles);
+  req.app.get('io')?.to(_campagneRoom(req)).emit('bastion:updated', { groep: gid });
+  res.json({ ok: true, ..._bastionAntwoord(req, dmState, gid) });
+});
+
+router.post('/bastion/facilities', requireDM, _bastionPoort, (req, res) => {
+  const dmState = readDmState();
+  const gid = _bastionGid(req, dmState);
+  const body = req.body || {};
+  const special = body.soort === 'special';
+  const def = special ? bastionRegels.specialOp(body.key) : bastionRegels.basicOp(body.key);
+  if (!def) return res.status(400).json({ error: 'Onbekende facility' });
+  const groottes = Object.keys(bastionRegels.catalogus().groottes);
+  // Een special facility heeft een vaste grootte (een Barrack of Garden mag
+  // naar Vast, maar dat is uitbreiden — fase 3). Een basic kies je zelf.
+  const grootte = special ? def.grootte : (groottes.includes(body.grootte) ? body.grootte : 'roomy');
+  let opmerkingen = [];
+  const r = _bastionSchrijf(req, gid, (b) => {
+    if (special) {
+      const levels = _bastionLeden(dmState, gid).map(l => l.level);
+      const slots = bastionRegels.slots(levels, bastionRegels.instellingen(storage.readJSON('meta.json')), b.slotsOverride);
+      opmerkingen = bastionRegels.opmerkingenBijNieuw(def.key, {
+        levels, aantalSpecial: (b.facilities || []).filter(f => f.special).length,
+        slotsTotaal: slots.totaal, bestaand: b.facilities || [],
+      });
+    }
+    b.facilities = b.facilities || [];
+    if (b.facilities.length >= 60) return { fout: [409, 'Dit bastion is vol'] };
+    b.facilities.push({ id: _BASTION_ID(), key: def.key, naam: _schoneNaam(body.naam) || def.naam, special, grootte });
+    return { extra: { opmerkingen } };
+  });
+  _bastionKlaar(req, res, gid, r);
+});
+
+router.put('/bastion/facilities/:fid', requireDM, _bastionPoort, (req, res) => {
+  const gid = _bastionGid(req, readDmState());
+  const r = _bastionSchrijf(req, gid, (b) => {
+    const f = (b.facilities || []).find(x => x.id === req.params.fid);
+    if (!f) return { fout: [404, 'Die facility bestaat niet'] };
+    const body = req.body || {};
+    if ('naam' in body) f.naam = _schoneNaam(body.naam) || f.naam;
+    if ('notitie' in body) f.notitie = String(body.notitie || '').slice(0, 1000);
+    if (!f.special && 'grootte' in body && bastionRegels.catalogus().groottes[body.grootte]) f.grootte = body.grootte;
+  });
+  _bastionKlaar(req, res, gid, r);
+});
+
+router.delete('/bastion/facilities/:fid', requireDM, _bastionPoort, (req, res) => {
+  const gid = _bastionGid(req, readDmState());
+  const r = _bastionSchrijf(req, gid, (b) => {
+    const voor = (b.facilities || []).length;
+    b.facilities = (b.facilities || []).filter(x => x.id !== req.params.fid);
+    if (b.facilities.length === voor) return { fout: [404, 'Die facility bestaat niet'] };
+    if (b.orders) delete b.orders[req.params.fid];
+  });
+  _bastionKlaar(req, res, gid, r);
+});
+
+// Een order geven. Een speler stelt voor; de DM (of een speler, als de DM dat
+// toestaat) legt vast. Een voorstel mag een ander voorstel vervangen, maar niet
+// iets wat al vastligt — dan spreekt de één de ander stil tegen.
+router.put('/bastion/orders/:fid', attachRole, _bastionPoort, (req, res) => {
+  const dmState = readDmState();
+  const isDM = req.role === 'dm' && !_handelendKarakter(req, dmState);
+  if (req.role !== 'dm' && !req.session?.characterId) return res.status(401).json({ error: 'Niet ingelogd' });
+  const gid = _bastionGid(req, dmState);
+  if (!gid) return res.status(404).json({ error: 'Geen party gevonden' });
+  const inst = bastionRegels.instellingen(storage.readJSON('meta.json'));
+  const door = isDM ? 'dm' : (_handelendKarakter(req, dmState) || req.session.characterId);
+  const r = _bastionSchrijf(req, gid, (b) => {
+    const f = (b.facilities || []).find(x => x.id === req.params.fid);
+    if (!f) return { fout: [404, 'Die facility bestaat niet'] };
+    b.orders = b.orders || {};
+    const huidig = b.orders[f.id];
+    const vast = isDM || inst.spelersVastleggen;
+    if (huidig?.vast && !vast) return { fout: [409, 'Hier ligt al een order vast van de DM'] };
+    const order = req.body?.order;
+    if (order === null || order === '') { delete b.orders[f.id]; return; }
+    if (!bastionRegels.ordersVan(f).includes(order)) return { fout: [400, 'Deze facility kent die order niet'] };
+    b.orders[f.id] = { order, notitie: String(req.body?.notitie || '').slice(0, 500), door, vast };
+  });
+  _bastionKlaar(req, res, gid, r);
+});
+
+// De turn afronden: elke order wordt een regel in het logboek, met de uitslag
+// die de DM erbij schreef. De orders gaan eraf en de nachtteller begint opnieuw.
+router.post('/bastion/turn', requireDM, _bastionPoort, (req, res) => {
+  const dmState = readDmState();
+  const gid = _bastionGid(req, dmState);
+  const resultaten = (req.body && typeof req.body.resultaten === 'object' && req.body.resultaten) || {};
+  const leden = _bastionLeden(dmState, gid);
+  const cat = bastionRegels.catalogus();
+  const r = _bastionSchrijf(req, gid, (b) => {
+    const regels = [];
+    for (const f of (b.facilities || [])) {
+      const o = b.orders?.[f.id];
+      if (!o) continue;
+      regels.push({
+        facId: f.id, naam: f.naam, key: f.key, order: o.order, orderNaam: cat.orderNamen[o.order] || o.order,
+        notitie: o.notitie || '', door: o.door === 'dm' ? 'de DM' : (leden.find(l => l.id === o.door)?.naam || ''),
+        resultaat: String(resultaten[f.id] || '').slice(0, 2000),
+      });
+    }
+    b.turnNummer = (b.turnNummer || 0) + 1;
+    b.log = b.log || [];
+    b.log.push({ nummer: b.turnNummer, op: new Date().toISOString(), nachten: _rustStand(getGroup(dmState, gid), 'long') - (b.turnStand || 0), regels });
+    if (b.log.length > 200) b.log = b.log.slice(-200);
+    b.orders = {};
+    b.turnStand = _rustStand(getGroup(dmState, gid), 'long');
+    return { extra: { turn: b.turnNummer } };
+  });
+  _bastionKlaar(req, res, gid, r);
+});
+
+// Campagnebrede keuzes. Alleen wat afwijkt van de standaard wordt bewaard.
+router.put('/meta/bastion', requireDM, (req, res) => {
+  const meta = storage.readJSON('meta.json');
+  const inst = bastionRegels.instellingen({ bastion: { ...(meta.bastion || {}), ...(req.body || {}) } });
+  const S = bastionRegels.STANDAARD;
+  const bewaar = {};
+  for (const k of Object.keys(S)) if (inst[k] !== S[k]) bewaar[k] = inst[k];
+  if (Object.keys(bewaar).length) meta.bastion = bewaar; else delete meta.bastion;
+  storage.writeJSON('meta.json', meta);
+  req.app.get('io')?.to(_campagneRoom(req)).emit('bastion:updated', {});
+  res.json({ ok: true, instellingen: inst });
 });
 
 // De backup schrijft de sheets ook als HTML weg (scripts/sheets-bewaren.js);
