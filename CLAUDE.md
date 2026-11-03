@@ -2697,6 +2697,21 @@ sprite v=22): `orbit` `cog` `squirrel` `bug` `puzzle` `droplets`
 `ear` `dog` `beef` `bird` `bandage` `snowflake` `wine` `fish-symbol` `cloud-moon`
 `moon-star` `dna` `turtle` `waves-vertical` `glasses` `bot` `worm`
 
+> **Midjourney-prompts voor wat nog geen plaat heeft.**
+> `node scripts/midjourney-prompts.js <campagne>` schrijft `docs/midjourney-prompts.md`:
+> per class, subclass, species, background, feat, Epic Boon en spreuk zonder afbeelding
+> één prompt in een codeblok, allemaal met dezelfde stijlstaart (`STIJL`, staand 2:3,
+> perkamentpalet, geen tekst in beeld) zodat de platen één reeks vormen. Wat "heeft een
+> plaat" betekent: `files/spell-img-<index>.*` bij een spreuk, `img` op de regel bij een
+> feat of boon, `meta.heldenboek.{klassen,subclassen,species,backgrounds}` bij een kaart;
+> verborgen classes en subclasses slaat hij over. `--alles` werkt zonder campagnedata (alles
+> uit `bronnen/`, ongefilterd). Onderwerpen staan met de hand in
+> `scripts/midjourney/onderwerpen.js`; een spreuk krijgt het zijne uit zijn eigen tekst — de
+> zin met de meeste beeldwoorden en zonder regeltaal (`_score`), met "you" omgezet naar een
+> beschrijving ("a spellcaster hurling…") plus een beeldtaal per school en een kleur per
+> schadesoort. Op de server tegen de live data:
+> `GRISBURGH_DATA_DIR=/var/www/grisburgh/data node scripts/midjourney-prompts.js grisburgh`.
+
 > **Iconen bijzetten gaat met een script.** `node scripts/sprite-aanvullen.js <naam…>
 > --schrijf` haalt ze bij lucide-static en zet ze in dezelfde vorm als de rest; wat er al
 > in staat wordt overgeslagen, dus twee keer draaien kan geen kwaad. Met de hand paden
