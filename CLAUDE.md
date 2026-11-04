@@ -348,7 +348,7 @@ De app gebruikt querystring cache-busting (`?v=N`). **Vergeten = browser haalt o
 **Huidige versies (bij te houden):**
 
 ```
-index.html  : theme.css?v=917   app.js?v=1182   sound-manager.js?v=15
+index.html  : theme.css?v=918   app.js?v=1183   sound-manager.js?v=15
 app.js      : api.js?v=319  dm-panel.js?v=415  media-picker.js?v=13  tafels.js?v=2  terugblik.js?v=3  rage.js?v=4  klassekracht.js?v=5  personage-maken.js?v=9  gevecht-regie.js?v=2
               render-archief.js?v=145  render-bestiarium.js?v=34  render-campagne.js?v=353
               render-dungeon.js?v=70  render-kaart.js?v=34  render-progressie.js?v=66
@@ -2209,6 +2209,18 @@ Monsters; het tabblad linkt erheen.
 ---
 
 ## Voorwerpen
+
+> **De Boedel is een raster van archiefkaartjes** (4 nov 2026). De carrousel
+> (één groot kaartje, pijltjes, bolletjes) is weg: `_boedelKaartHtml()` in
+> `app.js` tekent kleine `.entity-card`s (zeldzaamheidsring, glans, ×N, AC,
+> ⚡ charges) in `.boedel-raster` (2 kolommen, 3 vanaf 560 px), en een klik
+> opent `window._boedelOpen(id)`, een venster met beschrijving, charges, aantal,
+> gebruiken en geven — bladeren via `window._bladerBron`. De namen
+> `_knapzakCarouselItems` en `_knapzakCarouselRender` zijn bewust gebleven:
+> elke handler die een charge of aantal bijstelt roept ze al aan, en de render
+> ververst nu raster én open venster (`_boedelVensterVernieuw`, dat het venster
+> sluit als het voorwerp weg is). Zegeningen & Vloeken staan in hetzelfde
+> raster (`_goddelijkOpen`).
 
 - **Types staan in groepen** (`ITEM_TYPE_GROEPEN` in `render-campagne.js`), zelfde
   vorm als bij locaties en organisaties: waarden blijven exact zoals ze
