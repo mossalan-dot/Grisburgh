@@ -348,13 +348,13 @@ De app gebruikt querystring cache-busting (`?v=N`). **Vergeten = browser haalt o
 **Huidige versies (bij te houden):**
 
 ```
-index.html  : theme.css?v=918   app.js?v=1183   sound-manager.js?v=15
-app.js      : api.js?v=319  dm-panel.js?v=415  media-picker.js?v=13  tafels.js?v=2  terugblik.js?v=3  rage.js?v=4  klassekracht.js?v=5  personage-maken.js?v=9  gevecht-regie.js?v=2
-              render-archief.js?v=145  render-bestiarium.js?v=34  render-campagne.js?v=353
-              render-dungeon.js?v=70  render-kaart.js?v=34  render-progressie.js?v=66
-              render-relatiemap.js?v=34  render-spreuken.js?v=53  render-vaardigheden.js?v=135
+index.html  : theme.css?v=919   app.js?v=1184   sound-manager.js?v=15
+app.js      : api.js?v=319  dm-panel.js?v=416  media-picker.js?v=13  tafels.js?v=2  terugblik.js?v=3  rage.js?v=4  klassekracht.js?v=5  personage-maken.js?v=9  gevecht-regie.js?v=2
+              render-archief.js?v=145  render-bestiarium.js?v=34  render-campagne.js?v=354
+              render-dungeon.js?v=71  render-kaart.js?v=34  render-progressie.js?v=66
+              render-relatiemap.js?v=35  render-spreuken.js?v=53  render-vaardigheden.js?v=135
               render-statblock.js?v=9  socket-client.js?v=94  wizard.js?v=8  conditions.js?v=4
-dm-panel.js : akte-schrijven.js?v=37  combat-canvas.js?v=37  render-statblock.js?v=9
+dm-panel.js : akte-schrijven.js?v=37  combat-canvas.js?v=38  render-statblock.js?v=9
 ```
 
 > **Een importeur moet zelf ook opschuiven.** `index.html` vraagt om `app.js?v=N`.
@@ -2702,6 +2702,8 @@ sprite v=22): `orbit` `cog` `squirrel` `bug` `puzzle` `droplets`
 **Toegevoegd voor de omgevingseffecten** (Lucide, ISC, 2 nov 2026, sprite v=27):
 `shield-check` (Resistance) `cloud-lightning` (storm)
 
+**Toegevoegd voor de tegels** (Lucide, ISC, 4 nov 2026, sprite v=28): `minimize-2`
+
 **Toegevoegd voor de species-iconen** (Lucide, ISC, 18 okt 2026, sprite v=20): `clover`
 `axe` `footprints` `scan-face` `gem` `hard-hat` `sunset` `leaf` `flower` `flower-2`
 `wand-sparkles` `wand` `flame-kindling` `tornado` `crosshair` `atom` `infinity` `rat`
@@ -3836,6 +3838,30 @@ zichtbaar werd. Ook de melding terug (`player:currency-updated` en het
 antwoord van de route) hoort `_effectiveCurrency` te gebruiken.
 
 ---
+
+## Tegels: het archief als raster dat je openklapt
+
+> **Personages zijn tegels** (4 nov 2026), de andere tabbladen volgen. Drie
+> standen: **dicht** (beeld + naam, raster van 150 px), **open** (2×2, met
+> bladen — portret, gegevens, beschrijving, roddels, geheimen — die je met een
+> tik omdraait) en **venster** (het vergrootknopje laat het detailvenster uit
+> de tegel groeien). `TEGEL_TYPES` in `render-campagne.js` zegt welke tabbladen
+> meedoen; `_tegelBladen(type, e)` bepaalt de bladen, en **een leeg blad
+> bestaat niet** — een speler ziet dus niet dát er nog iets dicht zit. De
+> regels voor wat een speler van roddels en geheimen ziet zijn dezelfde als in
+> het venster.
+> **Beweging is FLIP met de Web Animations API** (`_flip`): meten, het raster
+> opnieuw opbouwen, op `data-sleutel` terugvinden en het verschil terugspelen.
+> Omdraaien is twee kwartslagen `rotateY` met het nieuwe blad ertussen.
+> **Het venster krimpt terug** via `window._modalSluitAnimatie`: `closeModal()`
+> in `app.js` wacht op die belofte als hij gezet is, en `openModal()` wist hem
+> zodra er iets anders in het venster komt (een ander kaartje, de editor).
+> **Favorieten** (alleen spelers, `playerProfile.bookmarks`) liggen als stapel
+> linksboven (`_stapelHtml`) en waaieren uit tot een eigen rij met een rood
+> lint; uitgewaaierd of niet staat in `localStorage` (`stapelUit:<type>`).
+> Bij zoeken of filteren ligt de stapel weg. De DM heeft geen favorieten.
+> De houdingsbalk van het oude kaartje staat niet op de tegel; de houding stel
+> je in de editor in.
 
 ## Kaartjes zijn agnostisch
 

@@ -1,9 +1,9 @@
 import { api, campagneUitUrl, zetCampagne } from './api.js?v=319';
-import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, renderDocumenten, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=353";
+import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, renderDocumenten, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=354";
 import { initArchief, renderLogboek, openLogboekEditor } from "./render-archief.js?v=145";
 import { renderKaart, queueFlyTo, verversPins, nieuweKaart } from './render-kaart.js?v=34';
-import { renderDungeon } from './render-dungeon.js?v=70';
-import { renderRelatiemap } from './render-relatiemap.js?v=34';
+import { renderDungeon } from './render-dungeon.js?v=71';
+import { renderRelatiemap } from './render-relatiemap.js?v=35';
 import { renderProgressie, levelupFeatures } from './render-progressie.js?v=66';
 import { renderBestiarium } from './render-bestiarium.js?v=34';
 import { renderSpreuken } from './render-spreuken.js?v=53';
@@ -12,7 +12,7 @@ import './render-melding.js?v=4';
 import { renderVaardigheden, zoekVaardigheden, heldenboekTekst } from './render-vaardigheden.js?v=135';
 import { renderStatblock } from './render-statblock.js?v=9';
 import { initSocket } from "./socket-client.js?v=94";
-import { initDmPanel } from "./dm-panel.js?v=415";
+import { initDmPanel } from "./dm-panel.js?v=416";
 import { COND_INFO, COND_LABEL, COND_MET_PLAATJE, COND_ICON } from './conditions.js?v=4';
 import './media-picker.js?v=13';
 import './wizard.js?v=8';
@@ -28,7 +28,7 @@ import './gevecht-regie.js?v=2';
 window.icon = function icon(name, { cls = '', title = '' } = {}) {
   const t   = title ? `<title>${title.replace(/[<>&"]/g, c => ({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[c]))}</title>` : '';
   const aria = title ? ' role="img"' : ' aria-hidden="true"';
-  return `<svg class="icon${cls ? ' '+cls : ''}"${aria} focusable="false"><use href="/img/icons.svg?v=27#icon-${name}"/>${t}</svg>`;
+  return `<svg class="icon${cls ? ' '+cls : ''}"${aria} focusable="false"><use href="/img/icons.svg?v=28#icon-${name}"/>${t}</svg>`;
 };
 const icon = (...a) => window.icon(...a);
 
@@ -1977,6 +1977,9 @@ async function playerLogout() {
 
 // ── Modal ──
 function openModal(title, subtitle, bodyHtml, hulp = '') {
+  // Iets anders in het venster (een ander kaartje, een editor) heeft niets
+  // meer met de tegel te maken waaruit het groeide.
+  window._modalSluitAnimatie = null;
   // Bladeren met vegen en ← / → hangt aan het venster zelf, niet aan wie het
   // vult: élk venster komt hier langs (kaartje, statblok, formulier). Wat "de
   // volgende" is, bepaalt `window._modalBlader`.
@@ -2050,7 +2053,24 @@ function sluitBijKlikBuiten(el, sluit) {
   });
 }
 
+// Een venster mag een weg terug hebben: de tegel waaruit het groeide zet
+// `window._modalSluitAnimatie`, en dan krimpt het eerst terug naar die tegel
+// voordat het dichtgaat. Eén keer — wie twee keer klikt, sluit meteen.
 function closeModal() {
+  const terug = window._modalSluitAnimatie;
+  window._modalSluitAnimatie = null;
+  if (typeof terug === 'function') {
+    let p = null;
+    try { p = terug(); } catch { p = null; }
+    if (p && typeof p.then === 'function') {
+      p.catch(() => {}).then(() => _closeModalNu());
+      return;
+    }
+  }
+  _closeModalNu();
+}
+
+function _closeModalNu() {
   const modal = document.querySelector('#modal-overlay .modal');
   if (modal) modal.style.minHeight = '';   // vrijgeven na sluiten
   $('#modal-overlay').classList.remove('active');
@@ -3578,7 +3598,7 @@ function _kaartCard(type, m, dm, verdiepingen = null) {
 // eerste bestaande kaart: je drukte op + en keek naar Dreghaven.
 window._kaartNieuw = async function (type) {
   if (type === 'wereld') return nieuweKaart();
-  const { nieuweDungeon } = await import('./render-dungeon.js?v=70');
+  const { nieuweDungeon } = await import('./render-dungeon.js?v=71');
   nieuweDungeon();
 };
 
@@ -14811,7 +14831,12 @@ window._dmMissieGoedkeuren = async (id, titel, toastEl) => {
 // ── Help-systeem ─────────────────────────────────────────────────────────────
 
 const HELP_CONFIG = {
-  personages: () => ({ titel: 'Personages', stappen: [{ titel: 'Personages', tekst: 'Hier vind je de **personages** die je hebt ontmoet — NPC’s én de avonturiers van het gezelschap. Klik een kaart voor details, geheimen en relaties. De DM bepaalt wie zichtbaar is.', afbeelding: null }] }),
+  personages: () => ({ titel: 'Personages', stappen: [
+    { titel: 'Personages', tekst: 'Hier vind je de **personages** die je hebt ontmoet — NPC’s én de avonturiers van het gezelschap. De DM bepaalt wie zichtbaar is.', afbeelding: null },
+    { titel: 'Tik om te openen', tekst: 'Elk kaartje toont alleen een gezicht en een naam. **Tik erop** en het wordt groot; **tik nog eens** en het draait om naar het volgende blad: gegevens, beschrijving, roddels en geheimen. Met de icoontjes onderaan spring je meteen naar een blad. Een blad dat er niet is, staat er ook niet: wie nog geen roddels heeft, heeft geen roddelblad.', afbeelding: null },
+    { titel: 'Het hele kaartje', tekst: 'Het pijltjesknopje rechtsonder vergroot het kaartje tot het volledige venster, met o.a. het statblok en de kaart. Het andere knopje (of Escape) maakt het weer klein.', afbeelding: null },
+    { titel: 'Favorieten', rol: 'speler', tekst: 'Met de **ster** bewaar je een personage bij je favorieten. Die liggen als een stapeltje linksboven; tik erop en ze waaieren uit tot een eigen rij, met een rood lint. Zodra je zoekt of filtert, ligt de stapel even weg.', afbeelding: null },
+  ] }),
   locaties:   () => ({ titel: 'Locaties', stappen: [{ titel: 'Locaties', tekst: `De **plekken** van ${window._campagneNaam()} en daarbuiten. Een locatie met het type *Winkel* heeft een voorraad waar je kunt kopen en verkopen. Filter via de trechter op o.a. *Winkel*. Klik een kaart voor meer.`, afbeelding: null }] }),
   organisaties: () => ({ titel: 'Organisaties', stappen: [{ titel: 'Organisaties', tekst: 'Gilden, ordes en groeperingen in de wereld. Klik een kaart voor hun doel, leden en banden met andere partijen.', afbeelding: null }] }),
   voorwerpen: () => ({ titel: 'Voorwerpen', stappen: [{ titel: 'Voorwerpen', tekst: 'Wapens, uitrusting en magische items. Je kunt voorwerpen claimen, ruilen en in winkels kopen/verkopen. **Zegeningen & Gunsten** (tempel- en factie-beloningen) staan onder een eigen filter, los van de gewone spullen.', afbeelding: null }] }),

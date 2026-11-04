@@ -3106,7 +3106,7 @@ async function renderEntitySection(type) {
     </div>` : ''}
 
     <!-- Card grid -->
-    <div class="cards-grid grid grid-cols-[repeat(auto-fill,minmax(280px,1fr))] gap-4 p-6 overflow-y-auto flex-1">
+    <div class="cards-grid${_isTegelType(type) ? ' tegel-raster' : ''} grid grid-cols-[repeat(auto-fill,minmax(280px,1fr))] gap-4 p-6 overflow-y-auto flex-1">
     </div>
   `;
   // Onthoud met welke DM-status deze balk gebouwd is (zie de guard bovenaan): wisselt de
@@ -3210,7 +3210,7 @@ function _refreshGrid(type, list, container) {
         ? `<div class="text-xs font-fell italic mt-1">Gebruik de <span class="font-mono px-1 py-0.5 bg-room-elevated rounded">+</span> knop om iets toe te voegen</div>`
         : ''}
     </div>
-  ` : list.map(e => renderCard(type, e)).join('');
+  ` : _isTegelType(type) ? _tegelRasterHtml(type, list) : list.map(e => renderCard(type, e)).join('');
   grid.scrollTop = savedGridScroll; // meteen herstellen (layout is al berekend)
   if (type === 'locaties') _kaartKnoppenBijwerken(grid);
   requestAnimationFrame(() => {
@@ -3912,6 +3912,398 @@ function renderCard(type, e) {
     </div>
   `;
 }
+
+// ── Tegels: een raster van postzegels dat je openklapt ──────────────────────
+// Het archief toonde per kaartje beeld, badges, vier regels beschrijving,
+// roddels en wapenlabels tegelijk — alles stond er, en daarom zag je niets.
+// Een tegel heeft drie standen:
+//   1. dicht   — beeld en naam, in een raster van kleine kaartjes;
+//   2. open    — tik erop en hij wordt 2×2 groot, en elke volgende tik draait
+//                hem om naar het volgende blad (gegevens, beschrijving,
+//                roddels, geheimen);
+//   3. venster — het knopje onderaan vergroot hem tot het hele detailvenster,
+//                en bij het sluiten krimpt dat weer terug naar de tegel.
+// Een blad zonder inhoud bestaat niet: wie geen roddels heeft, heeft geen
+// roddelblad, en een speler ziet dus ook niet dát er nog iets dicht zit.
+//
+// Spelers houden hun favorieten op een **stapel** linksboven, die uitwaaiert
+// tot een eigen rij. De DM heeft geen favorieten.
+//
+// Begonnen bij de personages; de andere tabbladen volgen dit patroon
+// (`TEGEL_TYPES`).
+const TEGEL_TYPES = new Set(['personages']);
+const _tegelOpen = {};          // type → id van de tegel die open staat
+const _tegelBlad = {};          // id → bladindex
+const _stapelUit = {};          // type → favorieten uitgewaaierd?
+
+const _isTegelType = (type) => TEGEL_TYPES.has(type);
+window._isTegelType = _isTegelType;
+
+function _stapelStandLees(type) {
+  if (type in _stapelUit) return _stapelUit[type];
+  try { _stapelUit[type] = localStorage.getItem('stapelUit:' + type) === '1'; } catch { _stapelUit[type] = false; }
+  return _stapelUit[type];
+}
+function _stapelStandZet(type, uit) {
+  _stapelUit[type] = uit;
+  try { localStorage.setItem('stapelUit:' + type, uit ? '1' : '0'); } catch { /* geen opslag, dan maar deze sessie */ }
+}
+
+const _favIds = (type) => new Set((window.app?.state?.bookmarks || []).filter(b => b.type === type).map(b => b.id));
+
+// De bladen van één kaartje, in de vaste volgorde. Elk blad heeft een soort
+// (voor de opmaak en het bolletje) en de html die erin komt.
+function _tegelBladen(type, e) {
+  const d = e.data || {};
+  const bladen = [{ soort: 'portret', label: 'Portret' }];
+
+  // Blad 2: wie is dit? Dezelfde velden als in de editor, met de PHB-termen.
+  const isGod = String(e.subtype || '').toLowerCase().startsWith('god');
+  const isDier = String(e.subtype || '').toLowerCase() === 'dier';
+  const rijen = [];
+  if (d.rol) rijen.push(['', d.rol, 'tegel-gegeven--rol']);
+  if (isDier && d.soortLabel) rijen.push(['Ras', d.soortLabel]);
+  if (!isGod && !isDier && d.ras) rijen.push(['Origin', d.ras]);
+  if (!isGod && !isDier && d.klasse) rijen.push(['Class', d.klasse]);
+  if (isGod && d.domein) rijen.push(['Domein', d.domein]);
+  if (isGod && d.symbool) rijen.push(['Heilig symbool', d.symbool]);
+  if (d.alignment) rijen.push(['Alignment', d.alignment]);
+  const badges = getCardBadges(type, e);
+  const hoort = (Array.isArray(e._hoortBij) ? e._hoortBij : []).slice(0, 4);
+  if (rijen.length || badges.length || hoort.length) {
+    bladen.push({ soort: 'gegevens', label: 'Gegevens', html: `
+      ${badges.length ? `<div class="tegel-badges">${badges.map(b => `<span class="card-subtype-badge ${b.cls}">${esc(b.label)}</span>`).join('')}</div>` : ''}
+      ${rijen.length ? `<dl class="tegel-gegevens">${rijen.map(([k, v, cls]) => k
+        ? `<div class="tegel-gegeven"><dt>${esc(k)}</dt><dd>${esc(v)}</dd></div>`
+        : `<div class="tegel-gegeven ${cls || ''}"><dd>${esc(v)}</dd></div>`).join('')}</dl>` : ''}
+      ${hoort.length ? `<div class="tegel-kopje">${esc(_hoortBijKop(type))}</div>
+        <ul class="tegel-hoort">${hoort.map(r => `<li><span class="tegel-hoort-rol">${esc(r.rol || '')}</span> ${esc(r.name || r.naam || '')}</li>`).join('')}</ul>` : ''}` });
+  }
+
+  if (d.desc) bladen.push({ soort: 'beschrijving', label: 'Beschrijving', tekst: d.desc,
+    html: `<div class="tegel-tekst">${mdToHtml(d.desc)}</div>` });
+
+  // Roddels: de speler krijgt alleen wat verteld is, de DM alles — wat nog
+  // niet verteld is gedimd, zoals in het venster.
+  const rRegels = _tekstLijstUit(d, 'flavours', 'flavour');
+  const rGezegd = _roddelStand(e, rRegels);
+  const roddels = rRegels.map((t, i) => ({ t, aan: !!rGezegd[i] })).filter(r => r.t && (isDM() || r.aan));
+  if (roddels.length) bladen.push({ soort: 'roddels', label: 'Roddels', tekst: roddels.map(r => r.t).join(' '),
+    html: `<ul class="tegel-regels">${roddels.map(r => `<li class="tegel-regel${r.aan ? '' : ' tegel-regel--dicht'}"
+      ${r.aan ? '' : 'title="Nog niet verteld"'}>„${esc(r.t)}“</li>`).join('')}</ul>` });
+
+  // Geheimen: dezelfde regels als het venster (zie de toelichting daar).
+  const gObj = _geheimRegelsUit(d);
+  const gOpen = !isDM() ? gObj.map(() => true)
+    : Array.isArray(e._onthuld) ? gObj.map((_, i) => !!e._onthuld[i])
+    : gObj.map((_, i) => !!e._secretReveal && i === 0);
+  const geheimen = gObj.map((r, i) => ({ t: r.tekst, aan: gOpen[i] })).filter(r => r.t && (isDM() || r.aan));
+  if (geheimen.length) bladen.push({ soort: 'geheimen', label: 'Geheimen', tekst: geheimen.map(r => r.t).join(' '),
+    html: `<ul class="tegel-regels">${geheimen.map(r => `<li class="tegel-regel${r.aan ? '' : ' tegel-regel--dicht'}">
+      ${r.aan ? '' : `<span class="tegel-slot" title="Nog dicht voor deze party">${icon('lock')}</span>`}${mdToHtml(r.t)}</li>`).join('')}</ul>` });
+  return bladen;
+}
+
+const _BLAD_ICOON = { portret: 'image', gegevens: 'user', beschrijving: 'scroll-text', roddels: 'beer', geheimen: 'lock' };
+
+function _tegelKlassen(type, e, extra = '') {
+  const vis = e._visibility || 'visible';
+  return ['entity-card', 'tegel', extra,
+    vis === 'hidden' && isDM() ? 'card-hidden' : '',
+    vis === 'vague' && isDM() ? 'card-vague-dm' : '',
+    e._deceased ? 'card-deceased' : '',
+    type === 'personages' && e.subtype === 'speler' ? 'card-protagonist' : '',
+    isDM() && _isConcept(e) ? 'card-concept' : '',
+  ].filter(Boolean).join(' ');
+}
+
+function _tegelDmKnoppen(type, e, { voet = false } = {}) {
+  if (!isDM()) return '';
+  const vis = e._visibility || 'visible';
+  const ico = vis === 'visible' ? icon('eye') : vis === 'vague' ? icon('eye-off') : icon('lock');
+  return `<div class="tegel-dm" onclick="event.stopPropagation()">
+    <button onclick="window._toggleVis('${type}','${esc(e.id)}',event)" title="Zichtbaarheid  ·  Shift: vaag">${ico}</button>
+    <button onclick="window._openEditor('${type}','${esc(e.id)}')" title="Bewerken">${icon('pencil')}</button>
+    ${voet ? '' : `<button class="tegel-dm-weg" onclick="window._deleteEntity('${type}','${esc(e.id)}')" title="Verwijderen">${icon('x')}</button>`}
+  </div>`;
+}
+
+function _tegelSter(type, e, fav) {
+  if (isDM() || !window.app?.state?.characterId) return '';
+  return `<button class="tegel-ster${fav ? ' is-aan' : ''}" title="${fav ? 'Uit je favorieten' : 'Bij je favorieten'}"
+    onclick="event.stopPropagation();window._tegelFavoriet('${type}','${esc(e.id)}')">${fav ? '★' : '☆'}</button>`;
+}
+
+function _tegelBeeld(e, cls = 'tegel-img') {
+  return `<img class="${cls}" loading="lazy" src="${api.thumbForEntity(e)}" alt=""
+    style="${e.data?.imgFocus ? `object-position:${esc(e.data.imgFocus)}` : ''}"
+    onerror="this.closest('.tegel')?.classList.add('no-img');this.remove()">`;
+}
+
+// Eén tegel, dicht of open. Een vaag kaartje (speler) blijft altijd dicht:
+// daar valt niets om te draaien.
+function _tegelHtml(type, e, { fav = false } = {}) {
+  const sleutel = `data-sleutel="${esc(e.id)}" data-id="${esc(e.id)}" data-type="${type}"`;
+  if (!isDM() && (e._visibility || 'visible') === 'vague') {
+    return `<div class="entity-card tegel card-vague" ${sleutel}>
+      <div class="card-accent bar-${type}"></div>
+      ${_tegelBeeld(e)}<div class="card-vague-overlay">?</div>
+      <div class="tegel-naamband"><span class="card-name" data-fittext>${esc(e.name)}</span></div>
+    </div>`;
+  }
+  const open = _tegelOpen[type] === e.id;
+  const klik = `onclick="window._tegelKlik('${type}','${esc(e.id)}')"
+    onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();window._tegelKlik('${type}','${esc(e.id)}')}"`;
+  const rol = e.data?.rol || '';
+  if (!open) {
+    return `<div class="${_tegelKlassen(type, e, fav ? 'tegel--favoriet' : '')}" ${sleutel} role="button" tabindex="0" ${klik}
+      title="${esc(e.name)}">
+      ${_glansHtml(type, e, '')}
+      <div class="card-accent bar-${type}"></div>
+      <span class="tegel-icoon" aria-hidden="true">${TYPE_META[type].svgIcon}</span>
+      ${_tegelBeeld(e)}
+      ${fav ? '<span class="tegel-lint" aria-hidden="true"></span>' : ''}
+      <div class="tegel-naamband"><span class="card-name" data-fittext>${esc(e.name)}${e._deceased ? '<span class="card-name-dagger">†</span>' : ''}</span></div>
+      ${_tegelSter(type, e, fav)}
+      ${_tegelDmKnoppen(type, e)}
+    </div>`;
+  }
+  const bladen = _tegelBladen(type, e);
+  const i = Math.min(_tegelBlad[e.id] || 0, bladen.length - 1);
+  return `<div class="${_tegelKlassen(type, e, 'tegel--open' + (fav ? ' tegel--favoriet' : ''))}" ${sleutel} role="button" tabindex="0" ${klik}
+    aria-label="${esc(e.name)}, blad ${i + 1} van ${bladen.length}">
+    <div class="card-accent bar-${type}"></div>
+    <span class="tegel-icoon" aria-hidden="true">${TYPE_META[type].svgIcon}</span>
+    ${_tegelBeeld(e)}
+    ${fav ? '<span class="tegel-lint" aria-hidden="true"></span>' : ''}
+    <div class="tegel-blad" data-soort="${bladen[i].soort}">${_tegelBladInhoud(e, bladen[i], rol)}</div>
+    <div class="tegel-voet" onclick="event.stopPropagation()">
+      <div class="tegel-punten">${bladen.map((b, j) => `<button class="tegel-punt${j === i ? ' is-aan' : ''}"
+        title="${esc(b.label)}" onclick="window._tegelNaar('${type}','${esc(e.id)}',${j})">${icon(_BLAD_ICOON[b.soort] || 'square')}</button>`).join('')}</div>
+      ${_tegelSter(type, e, fav)}
+      ${_tegelDmKnoppen(type, e, { voet: true })}
+      <button class="tegel-knop" title="Het hele kaartje" onclick="window._tegelVergroot('${type}','${esc(e.id)}')">${icon('maximize-2')}</button>
+      <button class="tegel-knop" title="Kleiner" onclick="window._tegelDicht('${type}')">${icon('minimize-2')}</button>
+    </div>
+  </div>`;
+}
+
+function _tegelBladInhoud(e, blad, rol) {
+  if (blad.soort === 'portret') {
+    return `<div class="tegel-naamband tegel-naamband--groot">
+      <span class="card-name">${esc(e.name)}${e._deceased ? '<span class="card-name-dagger">†</span>' : ''}</span>
+      ${rol ? `<span class="tegel-ondertitel">${esc(rol)}</span>` : ''}</div>`;
+  }
+  return `<div class="tegel-vel">
+    <div class="tegel-vel-kop">${icon(_BLAD_ICOON[blad.soort] || 'square')} ${esc(blad.label)}<span class="tegel-vel-naam">${esc(e.name)}</span></div>
+    <div class="tegel-vel-tekst">${blad.html}</div>
+  </div>`;
+}
+
+// De stapel favorieten: drie kaartjes schuin over elkaar, met het aantal.
+function _stapelHtml(type, favs, uit) {
+  const boven = favs.slice(0, 3);
+  return `<div class="tegel-stapel${uit ? ' is-uit' : ''}" data-sleutel="__stapel__" role="button" tabindex="0"
+    title="${uit ? 'Favorieten terug op de stapel' : 'Favorieten uitwaaieren'}"
+    onclick="window._stapelKlik('${type}')"
+    onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();window._stapelKlik('${type}')}">
+    <div class="tegel-stapel-kaarten">
+      ${boven.map((e, i) => `<div class="tegel-stapel-kaart" style="--n:${i}">${_tegelBeeld(e, 'tegel-stapel-img')}</div>`).reverse().join('')}
+    </div>
+    <div class="tegel-stapel-label">
+      <span class="tegel-stapel-aantal">${favs.length}</span>
+      <span>Favorieten</span>
+      <span class="tegel-stapel-pijl">${icon(uit ? 'chevron-left' : 'chevron-right')}</span>
+    </div>
+  </div>`;
+}
+
+// Wat er in het raster komt, in volgorde. De stapel staat er alleen als er
+// favorieten zijn en er niet gezocht of gefilterd wordt: een filter is een
+// vraag, en dan wil je het antwoord in zijn gewone volgorde.
+function _tegelRasterHtml(type, list) {
+  const favs = _favIds(type);
+  const stapelMag = !isDM() && favs.size && !searchQueries[type] && !subtypeFilters[type];
+  if (!stapelMag) return list.map(e => _tegelHtml(type, e, { fav: favs.has(e.id) })).join('');
+  const fav = list.filter(e => favs.has(e.id));
+  if (!fav.length) return list.map(e => _tegelHtml(type, e)).join('');
+  const rest = list.filter(e => !favs.has(e.id));
+  const uit = _stapelStandLees(type);
+  return _stapelHtml(type, fav, uit)
+    + (uit ? fav.map(e => _tegelHtml(type, e, { fav: true })).join('') : '')
+    + rest.map(e => _tegelHtml(type, e)).join('');
+}
+
+// ── FLIP: meten, veranderen, terugrekenen ──────────────────────────────────
+// Het raster springt bij elke verandering in één keer naar zijn nieuwe vorm.
+// FLIP (First, Last, Invert, Play) maakt daar een beweging van: meet waar
+// elke tegel stond, teken het nieuwe raster, meet waar hij nu staat, en speel
+// het verschil terug met de Web Animations API. Tegels worden op hun
+// `data-sleutel` herkend, want het raster wordt opnieuw opgebouwd en dan is
+// elk element nieuw. Wat er eerst niet was, vliegt in vanaf `vanaf` (de stapel).
+function _flip(grid, mutate, { vanaf = null } = {}) {
+  const voor = new Map();
+  grid.querySelectorAll(':scope > [data-sleutel]').forEach(el => voor.set(el.dataset.sleutel, el.getBoundingClientRect()));
+  mutate();
+  const rustig = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+  if (rustig) return;
+  let n = 0;
+  grid.querySelectorAll(':scope > [data-sleutel]').forEach(el => {
+    let a = voor.get(el.dataset.sleutel);
+    const nieuw = !a;
+    if (nieuw) { if (!vanaf) return; a = vanaf; }
+    const b = el.getBoundingClientRect();
+    if (!b.width || !b.height) return;
+    const dx = a.left - b.left, dy = a.top - b.top, sx = a.width / b.width, sy = a.height / b.height;
+    if (!nieuw && Math.abs(dx) < 1 && Math.abs(dy) < 1 && Math.abs(sx - 1) < 0.01 && Math.abs(sy - 1) < 0.01) return;
+    el.animate([
+      { transformOrigin: 'top left', transform: `translate(${dx}px,${dy}px) scale(${sx},${sy})`, opacity: nieuw ? 0.2 : 1 },
+      { transformOrigin: 'top left', transform: 'none', opacity: 1 },
+    ], { duration: nieuw ? 420 : 340, delay: nieuw ? 45 * n++ : 0, easing: 'cubic-bezier(.2,.75,.25,1)', fill: 'backwards' });
+  });
+}
+
+function _tegelHerteken(type, opts) {
+  const c = $(`#section-${type}`);
+  const grid = c?.querySelector('.cards-grid');
+  if (!grid) return;
+  const list = filterEntities(type, entities[type] || []);
+  _flip(grid, () => _refreshGrid(type, list, c), opts);
+}
+
+// Welk blad hoort bij een zoekterm? Staat het woord in een roddel, dan open
+// je op het roddelblad — dat is waar je naar zocht.
+function _bladVoorZoekterm(type, bladen) {
+  const q = window._normSearch?.(searchQueries[type] || '') || '';
+  if (!q) return 0;
+  const i = bladen.findIndex(b => b.tekst && window._normSearch(b.tekst).includes(q));
+  return i > 0 ? i : 0;
+}
+
+window._tegelKlik = (type, id) => {
+  if (_tegelOpen[type] !== id) {
+    const e = (entities[type] || []).find(x => x.id === id);
+    _tegelOpen[type] = id;
+    _tegelBlad[id] = e ? _bladVoorZoekterm(type, _tegelBladen(type, e)) : 0;
+    _tegelHerteken(type);
+    // Breng hem in beeld als hij onderaan uitklapt.
+    setTimeout(() => document.querySelector(`#section-${type} .tegel[data-sleutel="${CSS.escape(id)}"]`)
+      ?.scrollIntoView({ block: 'nearest', behavior: 'smooth' }), 360);
+    return;
+  }
+  const e = (entities[type] || []).find(x => x.id === id);
+  if (!e) return;
+  const n = _tegelBladen(type, e).length;
+  window._tegelNaar(type, id, ((_tegelBlad[id] || 0) + 1) % n);
+};
+
+// Omdraaien: een kwartslag weg, het nieuwe blad erin, een kwartslag terug.
+window._tegelNaar = async (type, id, i) => {
+  const el = document.querySelector(`#section-${type} .tegel--open[data-sleutel="${CSS.escape(id)}"]`);
+  const e = (entities[type] || []).find(x => x.id === id);
+  if (!el || !e) return;
+  const bladen = _tegelBladen(type, e);
+  const vorige = _tegelBlad[id] || 0;
+  _tegelBlad[id] = Math.max(0, Math.min(bladen.length - 1, i));
+  if (_tegelBlad[id] === vorige) return;
+  const rustig = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+  const kant = _tegelBlad[id] > vorige ? 1 : -1;
+  if (!rustig) await el.animate([{ transform: 'perspective(1100px) rotateY(0deg)' },
+    { transform: `perspective(1100px) rotateY(${-88 * kant}deg)` }], { duration: 150, easing: 'ease-in' }).finished.catch(() => {});
+  const blad = el.querySelector('.tegel-blad');
+  const b = bladen[_tegelBlad[id]];
+  blad.dataset.soort = b.soort;
+  blad.innerHTML = _tegelBladInhoud(e, b, e.data?.rol || '');
+  el.querySelectorAll('.tegel-punt').forEach((p, j) => p.classList.toggle('is-aan', j === _tegelBlad[id]));
+  el.setAttribute('aria-label', `${e.name}, blad ${_tegelBlad[id] + 1} van ${bladen.length}`);
+  if (!rustig) el.animate([{ transform: `perspective(1100px) rotateY(${88 * kant}deg)` },
+    { transform: 'perspective(1100px) rotateY(0deg)' }], { duration: 190, easing: 'ease-out' });
+};
+
+window._tegelDicht = (type) => {
+  if (!_tegelOpen[type]) return;
+  _tegelOpen[type] = null;
+  _tegelHerteken(type);
+};
+
+// Het venster groeit uit de tegel en krimpt er bij het sluiten weer in. Dat
+// doet `.modal` zelf, met een transform van de rechthoek van de tegel naar
+// zijn eigen rechthoek; `closeModal` in app.js wacht op de weg terug als
+// `window._modalSluitAnimatie` gezet is.
+function _naarRect(el, r) {
+  const m = el.getBoundingClientRect();
+  if (!m.width || !r.width) return null;
+  const dx = (r.left + r.width / 2) - (m.left + m.width / 2);
+  const dy = (r.top + r.height / 2) - (m.top + m.height / 2);
+  return `translate(${dx}px,${dy}px) scale(${r.width / m.width},${r.height / m.height})`;
+}
+window._tegelVergroot = async (type, id) => {
+  const tegel = () => document.querySelector(`#section-${type} .tegel[data-sleutel="${CSS.escape(id)}"]`);
+  const r0 = tegel()?.getBoundingClientRect();
+  await window._openDetail(type, id);
+  const modal = document.querySelector('#modal-overlay .modal');
+  const rustig = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+  if (!modal || !r0 || rustig) return;
+  const van = _naarRect(modal, r0);
+  const waas = document.getElementById('modal-overlay');
+  if (van) {
+    modal.animate([{ transform: van, opacity: 0.4 }, { transform: 'none', opacity: 1 }],
+      { duration: 380, easing: 'cubic-bezier(.2,.8,.2,1)' });
+    waas?.animate([{ backgroundColor: 'rgba(60,40,10,0)' }, {}], { duration: 380 });
+  }
+  window._modalSluitAnimatie = () => {
+    if (window._currentDetailId !== id) return null;
+    const r1 = tegel()?.getBoundingClientRect();
+    const naar = r1 && _naarRect(modal, r1);
+    if (!naar) return null;
+    // `fill: forwards` houdt hem klein tot het venster echt dicht is; anders
+    // staat hij één beeldje lang weer op volle grootte.
+    const a = modal.animate([{ transform: 'none', opacity: 1 }, { transform: naar, opacity: 0.3 }],
+      { duration: 300, easing: 'cubic-bezier(.5,0,.75,.4)', fill: 'forwards' });
+    const w = waas?.animate([{}, { backgroundColor: 'rgba(60,40,10,0)', backdropFilter: 'blur(0px)' }],
+      { duration: 300, fill: 'forwards' });
+    return a.finished.then(() => setTimeout(() => { a.cancel(); w?.cancel(); }, 400));
+  };
+};
+
+window._stapelKlik = async (type) => {
+  const c = $(`#section-${type}`);
+  const grid = c?.querySelector('.cards-grid');
+  const stapel = grid?.querySelector('.tegel-stapel');
+  if (!grid || !stapel) return;
+  const uit = !_stapelStandLees(type);
+  const vanaf = stapel.getBoundingClientRect();
+  if (!uit) {
+    // Terug op de stapel: eerst vliegen ze erin, dan schuift de rest omhoog.
+    const favs = [...grid.querySelectorAll('.tegel--favoriet')];
+    const rustig = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+    if (!rustig) await Promise.all(favs.map((el, i) => {
+      const b = el.getBoundingClientRect();
+      return el.animate([{ transform: 'none', opacity: 1 },
+        { transformOrigin: 'top left', transform: `translate(${vanaf.left - b.left}px,${vanaf.top - b.top}px) scale(${vanaf.width / b.width},${vanaf.height / b.height})`, opacity: 0.2 }],
+        { duration: 300, delay: 30 * (favs.length - 1 - i), easing: 'cubic-bezier(.5,0,.75,.4)', fill: 'forwards' }).finished.catch(() => {});
+    }));
+    if (favs.some(el => el.dataset.sleutel === _tegelOpen[type])) _tegelOpen[type] = null;
+  }
+  _stapelStandZet(type, uit);
+  _tegelHerteken(type, { vanaf: uit ? vanaf : null });
+};
+
+// Favoriet maken of weghalen hertekent het raster: de tegel verhuist naar de
+// stapel of terug in de rij.
+window._tegelFavoriet = async (type, id) => {
+  const e = (entities[type] || []).find(x => x.id === id);
+  await window._toggleBookmark?.(type, id, e?.name || '');
+  _tegelHerteken(type);
+};
+
+// Escape klapt een open tegel weer dicht — tenzij er een venster openstaat,
+// dan is dát wat Escape sluit.
+document.addEventListener('keydown', (ev) => {
+  if (ev.key !== 'Escape') return;
+  if (document.getElementById('modal-overlay')?.classList.contains('active')) return;
+  for (const type of TEGEL_TYPES) if (_tegelOpen[type]) window._tegelDicht(type);
+});
 
 // Roddels op een kaartje: welke regels er staan en waar we zijn. Module-state,
 // net als bij de afbeelding-carousel — het kaartje is een string, dus de tekst

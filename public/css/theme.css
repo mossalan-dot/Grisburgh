@@ -32130,3 +32130,222 @@ body.gr-slowmo .combat-overlay { filter: grayscale(.85) contrast(1.1) brightness
 /* De oude carrouselslide in het venster van een zegen of vloek: geen kaart in
    een kaart. */
 .boedel-detail--goddelijk .item-carousel-slide { box-shadow: none; border: none; background: none; padding: 0; transform: none; }
+
+/* ══════════════════════════════════════════════════════════════════
+   Tegels: het archief als raster van postzegels (personages)
+   ══════════════════════════════════════════════════════════════════
+   Dicht: beeld en naam. Open: 2×2 groot, met bladen die je omdraait. De
+   tegel leent .entity-card voor rand, schaduw en de bekende klassen
+   (verborgen, vaag, overleden, protagonist, onaf). */
+.cards-grid.tegel-raster {
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  grid-auto-flow: row dense;
+  align-items: start;
+  gap: 14px;
+}
+@media (max-width: 520px) {
+  .cards-grid.tegel-raster { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; padding: 12px; }
+}
+.tegel.entity-card {
+  aspect-ratio: 3 / 4;
+  border-radius: 10px;
+  display: block;
+  background: radial-gradient(ellipse at 50% 38%, #fbf6ea, #ead9b4);
+}
+.tegel.entity-card:hover { transform: translateY(-3px); }
+.tegel:focus-visible { outline: 2px solid #c4a87a; outline-offset: 3px; }
+.tegel > .card-accent { position: absolute; top: 0; left: 0; right: 0; z-index: 4; }
+.tegel-img {
+  position: absolute; inset: 0; width: 100%; height: 100%;
+  object-fit: cover; z-index: 1;
+}
+.tegel-icoon {
+  position: absolute; inset: 0; z-index: 0;
+  display: flex; align-items: center; justify-content: center;
+  color: rgba(122,96,64,0.4);
+}
+.tegel-icoon .icon { width: 38px; height: 38px; }
+.tegel-naamband {
+  position: absolute; left: 0; right: 0; bottom: 0; z-index: 3;
+  padding: 26px 9px 8px;
+  background: linear-gradient(to top, rgba(250,244,230,0.97) 0%, rgba(250,244,230,0.92) 55%, rgba(250,244,230,0) 100%);
+  text-align: center;
+}
+.tegel .card-name {
+  font-size: 0.78rem; line-height: 1.2;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+.tegel.no-img .tegel-naamband { background: none; }
+.tegel.card-vague .tegel-img { filter: blur(6px) saturate(.4); }
+
+/* Ster (speler) en DM-knoppen: pas bij hover of focus, behalve een ster die aan staat. */
+.tegel-ster {
+  position: absolute; top: 6px; left: 6px; z-index: 6;
+  width: 26px; height: 26px; border-radius: 50%;
+  background: rgba(42,26,8,0.55); color: #f2e8d2; font-size: 14px; line-height: 1;
+  border: 1px solid rgba(196,168,122,0.5);
+  opacity: 0; transition: opacity .15s;
+}
+.tegel:hover .tegel-ster, .tegel:focus-within .tegel-ster, .tegel-ster.is-aan { opacity: 1; }
+.tegel-ster.is-aan { color: #f0c860; }
+.tegel-dm {
+  position: absolute; top: 6px; right: 6px; z-index: 6;
+  display: flex; flex-direction: column; gap: 4px;
+  opacity: 0; transform: translateY(-3px); transition: opacity .15s, transform .15s;
+}
+.tegel:hover .tegel-dm, .tegel:focus-within .tegel-dm { opacity: 1; transform: none; }
+.tegel-dm button {
+  width: 26px; height: 26px; border-radius: 6px;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(40,26,8,0.6); color: #f2e8d2;
+  -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px);
+}
+.tegel-dm button:hover { background: rgba(40,26,8,0.88); }
+.tegel-dm .tegel-dm-weg:hover { background: rgba(140,30,30,0.9); }
+.tegel-dm .icon { width: 13px; height: 13px; }
+
+/* ── Open: 2×2, met bladen ── */
+.tegel.tegel--open {
+  grid-column: span 2; grid-row: span 2;
+  cursor: pointer;
+  box-shadow: 0 6px 18px rgba(60,40,10,0.18), 0 22px 48px rgba(60,40,10,0.16);
+}
+.tegel.tegel--open:hover { transform: none; }
+.tegel-blad { position: absolute; inset: 0; z-index: 3; }
+.tegel-naamband--groot { padding: 48px 16px 52px; }
+.tegel-naamband--groot .card-name { font-size: 1.15rem; -webkit-line-clamp: 3; }
+.tegel-ondertitel {
+  display: block; margin-top: 3px;
+  font-family: 'IM Fell English', serif; font-style: italic; font-size: 0.86rem; color: #6a5030;
+}
+/* Op de tekstbladen wordt het beeld een gedimde achtergrond achter perkament. */
+.tegel--open .tegel-blad:not([data-soort="portret"]) {
+  background: linear-gradient(rgba(250,244,230,0.9), rgba(246,236,212,0.95));
+}
+.tegel-vel { position: absolute; inset: 0; display: flex; flex-direction: column; padding: 16px 16px 50px; }
+.tegel-vel-kop {
+  display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
+  font-family: 'Cinzel', serif; font-size: 0.72rem; letter-spacing: 0.08em; text-transform: uppercase;
+  color: #7a6040; padding-bottom: 7px; margin-bottom: 9px;
+  border-bottom: 1px solid rgba(180,140,60,0.35);
+}
+.tegel-vel-kop .icon { width: 13px; height: 13px; }
+.tegel-vel-naam {
+  margin-left: auto; text-transform: none; letter-spacing: 0.02em;
+  font-weight: 700; color: #2a1a08; font-size: 0.78rem;
+}
+.tegel-vel-tekst {
+  flex: 1; min-height: 0; overflow: hidden;
+  font-family: 'Crimson Text', serif; font-size: 0.95rem; line-height: 1.45; color: #2a1a08;
+  -webkit-mask-image: linear-gradient(to bottom, #000 82%, transparent);
+          mask-image: linear-gradient(to bottom, #000 82%, transparent);
+}
+.tegel-vel-tekst p { margin: 0 0 0.5em; }
+.tegel-badges { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 10px; }
+.tegel-gegevens { margin: 0; display: grid; gap: 6px; }
+.tegel-gegeven { display: grid; grid-template-columns: 7.5em 1fr; gap: 8px; align-items: baseline; }
+.tegel-gegeven dt { font-family: 'Cinzel', serif; font-size: 0.66rem; letter-spacing: 0.06em; color: #7a6040; text-transform: uppercase; }
+.tegel-gegeven dd { margin: 0; }
+.tegel-gegeven--rol { grid-template-columns: 1fr; }
+.tegel-gegeven--rol dd { font-family: 'IM Fell English', serif; font-style: italic; font-size: 1.02rem; color: #4a3218; }
+.tegel-kopje {
+  margin: 12px 0 4px; font-family: 'Cinzel', serif; font-size: 0.66rem;
+  letter-spacing: 0.06em; color: #7a6040; text-transform: uppercase;
+}
+.tegel-hoort { list-style: none; margin: 0; padding: 0; }
+.tegel-hoort li { margin: 2px 0; }
+.tegel-hoort-rol { font-style: italic; color: #6a5030; }
+.tegel-regels { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.tegel-regel {
+  font-family: 'IM Fell English', serif; font-style: italic;
+  padding-left: 10px; border-left: 2px solid rgba(196,168,122,0.7);
+}
+.tegel-regel p { margin: 0; display: inline; }
+.tegel-regel--dicht { opacity: 0.5; }
+.tegel-slot { display: inline-flex; vertical-align: -2px; margin-right: 4px; color: #7a6040; }
+.tegel-slot .icon { width: 12px; height: 12px; }
+
+.tegel-voet {
+  position: absolute; left: 0; right: 0; bottom: 0; z-index: 5;
+  display: flex; align-items: center; gap: 6px;
+  padding: 8px 10px;
+  background: linear-gradient(to top, rgba(242,232,210,0.98), rgba(242,232,210,0.85));
+  border-top: 1px solid rgba(196,168,122,0.45);
+  cursor: default;
+}
+.tegel-punten { display: flex; gap: 4px; flex: 1; }
+.tegel-punt, .tegel-knop {
+  width: 28px; height: 28px; border-radius: 50%;
+  display: inline-flex; align-items: center; justify-content: center;
+  color: #7a6040; background: transparent; border: 1px solid transparent;
+  transition: background .15s, color .15s, border-color .15s;
+}
+.tegel-punt .icon, .tegel-knop .icon { width: 13px; height: 13px; }
+.tegel-punt:hover, .tegel-knop:hover { background: rgba(196,168,122,0.22); color: #2a1a08; }
+.tegel-punt.is-aan { background: #2a1a08; color: #f2e8d2; }
+.tegel-knop { border-color: rgba(196,168,122,0.55); }
+
+/* ── Favorieten: het lint en de stapel ── */
+.tegel-lint {
+  position: absolute; top: -2px; right: 18px; z-index: 5;
+  width: 15px; height: 34px;
+  background: linear-gradient(90deg, #7a1a1a, #b32f2a 45%, #8c2020);
+  clip-path: polygon(0 0, 100% 0, 100% 100%, 50% 78%, 0 100%);
+  box-shadow: 0 2px 4px rgba(0,0,0,0.25);
+}
+.tegel--open .tegel-lint { right: 48px; }
+.tegel--favoriet.entity-card:hover { box-shadow: 0 6px 16px rgba(150,40,30,0.22), 0 0 0 1px rgba(179,47,42,0.25); }
+
+.tegel-stapel {
+  aspect-ratio: 3 / 4; position: relative; cursor: pointer;
+  border-radius: 10px;
+}
+.tegel-stapel:focus-visible { outline: 2px solid #c4a87a; outline-offset: 3px; }
+.tegel-stapel-kaarten { position: absolute; inset: 8px 10px 40px; }
+.tegel-stapel-kaart {
+  position: absolute; inset: 0;
+  border-radius: 9px; overflow: hidden;
+  background: radial-gradient(ellipse at 50% 38%, #fbf6ea, #ead9b4);
+  border: 1px solid rgba(196,168,122,0.7);
+  box-shadow: 0 3px 8px rgba(60,40,10,0.22);
+  transform: rotate(calc((var(--n) - 1) * -5deg)) translate(calc(var(--n) * 3px), calc(var(--n) * -3px));
+  transition: transform .25s cubic-bezier(.2,.75,.25,1);
+}
+.tegel-stapel:hover .tegel-stapel-kaart {
+  transform: rotate(calc((var(--n) - 1) * -9deg)) translate(calc(var(--n) * 7px), calc(var(--n) * -6px));
+}
+.tegel-stapel-img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.tegel-stapel-label {
+  position: absolute; left: 0; right: 0; bottom: 6px;
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+  font-family: 'Cinzel', serif; font-size: 0.72rem; letter-spacing: 0.05em; color: #4a3218;
+}
+.tegel-stapel-aantal {
+  min-width: 20px; height: 20px; padding: 0 5px; border-radius: 10px;
+  display: inline-flex; align-items: center; justify-content: center;
+  background: linear-gradient(90deg, #7a1a1a, #b32f2a); color: #fbeee0; font-size: 0.68rem;
+}
+.tegel-stapel-pijl .icon { width: 13px; height: 13px; }
+.tegel-stapel.is-uit .tegel-stapel-kaart { opacity: 0.45; }
+@media (prefers-reduced-motion: reduce) {
+  .tegel-stapel-kaart { transition: none; }
+}
+/* Op een open tegel staan ster en DM-knoppen in de voetbalk: bovenin vielen
+   ze over de kop van het blad. Het type-icoon is alleen voor een tegel zonder
+   beeld — door een doorzichtige plaat heen schemerde het anders mee. */
+.tegel:not(.no-img) .tegel-icoon { display: none; }
+.tegel-voet .tegel-ster, .tegel-voet .tegel-dm {
+  position: static; opacity: 1; transform: none;
+}
+.tegel-voet .tegel-dm { flex-direction: row; gap: 4px; margin-right: 4px; }
+.tegel-voet .tegel-dm button { background: transparent; color: #7a6040; width: 28px; height: 28px; border-radius: 50%; }
+.tegel-voet .tegel-dm button:hover { background: rgba(196,168,122,0.22); color: #2a1a08; }
+.tegel-voet .tegel-dm .tegel-dm-weg:hover { background: rgba(140,30,30,0.15); color: #8c2020; }
+.tegel-voet .tegel-ster { background: transparent; border-color: rgba(196,168,122,0.55); color: #7a6040; width: 28px; height: 28px; }
+.tegel-voet .tegel-ster.is-aan { color: #b32f2a; }
+@media (max-width: 520px) {
+  .tegel.tegel--open { aspect-ratio: 4 / 5; }
+}
+.tegel-voet .tegel-punt { width: 24px; height: 24px; }
+.tegel-voet > * { flex-shrink: 0; }
+.tegel-voet .tegel-punten { flex: 1 1 auto; flex-shrink: 1; min-width: 0; gap: 2px; }
