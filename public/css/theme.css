@@ -32349,3 +32349,48 @@ body.gr-slowmo .combat-overlay { filter: grayscale(.85) contrast(1.1) brightness
 .tegel-voet .tegel-punt { width: 24px; height: 24px; }
 .tegel-voet > * { flex-shrink: 0; }
 .tegel-voet .tegel-punten { flex: 1 1 auto; flex-shrink: 1; min-width: 0; gap: 2px; }
+
+/* Tekstbladen zijn dicht perkament: de plaat schemerde erdoor en vocht met de
+   tekst. Het gezicht staat nu als klein portret in de kop. */
+.tegel--open .tegel-blad:not([data-soort="portret"]) {
+  background: linear-gradient(#fbf6ea, #f3e7ca);
+}
+.tegel-vel-portret {
+  width: 26px; height: 26px; border-radius: 50%; object-fit: cover;
+  border: 1px solid rgba(196,168,122,0.8); box-shadow: 0 1px 3px rgba(60,40,10,0.25);
+  margin-left: 6px; flex-shrink: 0;
+}
+
+/* De houding in de voetbalk: knop met een paneeltje erboven. */
+.tegel-houding { position: relative; }
+.tegel-houding-knop .icon { color: var(--houding-kleur); }
+.tegel-houding-paneel {
+  display: none;
+  position: absolute; bottom: calc(100% + 10px); left: 50%; transform: translateX(-50%);
+  z-index: 20; padding: 10px 12px 12px;
+  background: #fbf6ea; border: 1px solid rgba(196,168,122,0.8); border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(60,40,10,0.28);
+}
+.tegel-houding.is-open .tegel-houding-paneel { display: block; }
+.tegel-houding-kop {
+  font-family: 'Cinzel', serif; font-size: 0.66rem; letter-spacing: 0.08em;
+  text-transform: uppercase; color: #7a6040; margin-bottom: 8px; text-align: center;
+}
+.tegel-houding-rij { display: flex; gap: 10px; align-items: stretch; }
+.tegel-houding .houding-balk {
+  position: static; opacity: 1; width: 30px; height: 150px; gap: 5px;
+}
+.tegel-houding-namen {
+  list-style: none; margin: 0; padding: 3px 0;
+  display: flex; flex-direction: column; justify-content: space-between;
+  font-family: 'Crimson Text', serif; font-size: 0.86rem; color: #3a2410; white-space: nowrap;
+}
+.tegel-houding-paneel { left: auto; right: -8px; transform: none; }
+/* De tegel die groeit ligt boven de rest, ook tijdens de beweging. */
+.tegel.tegel--open { z-index: 4; }
+/* In het houdingspaneel staan de kleuren van de treden altijd in beeld. */
+.tegel-houding .houding-balk { background: rgba(42,26,8,0.12); box-shadow: none; }
+.tegel-houding .houding-stap { background: var(--houding-kleur); opacity: .35; border-color: transparent; }
+.tegel-houding .houding-stap:hover { opacity: .75; }
+.tegel-houding .houding-stap.is-aan { opacity: 1; box-shadow: 0 0 0 2px #2a1a08; }
+.tegel-houding .houding-balk.is-standaard .houding-stap.is-aan { background: var(--houding-kleur); box-shadow: 0 0 0 2px #2a1a08, inset 0 0 0 3px #fbf6ea; }

@@ -4028,6 +4028,28 @@ function _tegelDmKnoppen(type, e, { voet = false } = {}) {
   </div>`;
 }
 
+// De houding (DM): een knop in de voetbalk die een verticaal schuifje opent —
+// hetzelfde balkje als op het oude kaartje, met de namen van de treden ernaast.
+// `_houdingZet` doet de rest (direct zien, na een korte stilte opslaan).
+function _tegelHoudingKnop(type, e) {
+  const balk = _houdingBalkHtml(type, e);
+  if (!balk) return '';
+  const h = _HOUDING_TABEL.get(Number(e._houding));
+  const treden = [..._HOUDING_TABEL.values()].slice().reverse();
+  return `<div class="tegel-houding">
+    <button class="tegel-knop tegel-houding-knop" title="Houding${h ? ': ' + esc(h.naam) : ''}"
+      style="--houding-kleur:${h?.glans?.kleur || '#c4a87a'}"
+      onclick="event.stopPropagation();this.parentElement.classList.toggle('is-open')">${icon('heart')}</button>
+    <div class="tegel-houding-paneel" onclick="event.stopPropagation()">
+      <div class="tegel-houding-kop">Houding</div>
+      <div class="tegel-houding-rij">
+        ${balk}
+        <ol class="tegel-houding-namen">${treden.map(t => `<li>${esc(t.naam)}</li>`).join('')}</ol>
+      </div>
+    </div>
+  </div>`;
+}
+
 function _tegelSter(type, e, fav) {
   if (isDM() || !window.app?.state?.characterId) return '';
   return `<button class="tegel-ster${fav ? ' is-aan' : ''}" title="${fav ? 'Uit je favorieten' : 'Bij je favorieten'}"
@@ -4081,6 +4103,7 @@ function _tegelHtml(type, e, { fav = false } = {}) {
       <div class="tegel-punten">${bladen.map((b, j) => `<button class="tegel-punt${j === i ? ' is-aan' : ''}"
         title="${esc(b.label)}" onclick="window._tegelNaar('${type}','${esc(e.id)}',${j})">${icon(_BLAD_ICOON[b.soort] || 'square')}</button>`).join('')}</div>
       ${_tegelSter(type, e, fav)}
+      ${_tegelHoudingKnop(type, e)}
       ${_tegelDmKnoppen(type, e, { voet: true })}
       <button class="tegel-knop" title="Het hele kaartje" onclick="window._tegelVergroot('${type}','${esc(e.id)}')">${icon('maximize-2')}</button>
       <button class="tegel-knop" title="Kleiner" onclick="window._tegelDicht('${type}')">${icon('minimize-2')}</button>
@@ -4095,7 +4118,8 @@ function _tegelBladInhoud(e, blad, rol) {
       ${rol ? `<span class="tegel-ondertitel">${esc(rol)}</span>` : ''}</div>`;
   }
   return `<div class="tegel-vel">
-    <div class="tegel-vel-kop">${icon(_BLAD_ICOON[blad.soort] || 'square')} ${esc(blad.label)}<span class="tegel-vel-naam">${esc(e.name)}</span></div>
+    <div class="tegel-vel-kop">${icon(_BLAD_ICOON[blad.soort] || 'square')} ${esc(blad.label)}<span class="tegel-vel-naam">${esc(e.name)}</span>
+      <img class="tegel-vel-portret" src="${api.thumbForEntity(e)}" alt="" style="${e.data?.imgFocus ? `object-position:${esc(e.data.imgFocus)}` : ''}" onerror="this.remove()"></div>
     <div class="tegel-vel-tekst">${blad.html}</div>
   </div>`;
 }
@@ -4156,6 +4180,18 @@ function _flip(grid, mutate, { vanaf = null } = {}) {
     if (!b.width || !b.height) return;
     const dx = a.left - b.left, dy = a.top - b.top, sx = a.width / b.width, sy = a.height / b.height;
     if (!nieuw && Math.abs(dx) < 1 && Math.abs(dy) < 1 && Math.abs(sx - 1) < 0.01 && Math.abs(sy - 1) < 0.01) return;
+    // Een tegel die naar een andere rij overspringt, zou schuin over het hele
+    // raster vliegen — dwars door de rest heen. Die vervaagt ter plekke en
+    // verschijnt op zijn nieuwe plek, met een klein duwtje uit de richting
+    // waar hij vandaan kwam. Alleen wat binnen zijn rij schuift, schuift.
+    const overstap = !nieuw && Math.abs(dy) > 4 && Math.abs(dx) > b.width * 1.5 && Math.abs(sx - 1) < 0.01;
+    if (overstap) {
+      el.animate([
+        { transform: `translateX(${dx > 0 ? 24 : -24}px) scale(.92)`, opacity: 0 },
+        { transform: 'none', opacity: 1 },
+      ], { duration: 300, delay: 90, easing: 'cubic-bezier(.2,.75,.25,1)', fill: 'backwards' });
+      return;
+    }
     el.animate([
       { transformOrigin: 'top left', transform: `translate(${dx}px,${dy}px) scale(${sx},${sy})`, opacity: nieuw ? 0.2 : 1 },
       { transformOrigin: 'top left', transform: 'none', opacity: 1 },

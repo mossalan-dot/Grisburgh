@@ -348,9 +348,9 @@ De app gebruikt querystring cache-busting (`?v=N`). **Vergeten = browser haalt o
 **Huidige versies (bij te houden):**
 
 ```
-index.html  : theme.css?v=919   app.js?v=1184   sound-manager.js?v=15
+index.html  : theme.css?v=920   app.js?v=1185   sound-manager.js?v=15
 app.js      : api.js?v=319  dm-panel.js?v=416  media-picker.js?v=13  tafels.js?v=2  terugblik.js?v=3  rage.js?v=4  klassekracht.js?v=5  personage-maken.js?v=9  gevecht-regie.js?v=2
-              render-archief.js?v=145  render-bestiarium.js?v=34  render-campagne.js?v=354
+              render-archief.js?v=145  render-bestiarium.js?v=34  render-campagne.js?v=355
               render-dungeon.js?v=71  render-kaart.js?v=34  render-progressie.js?v=66
               render-relatiemap.js?v=35  render-spreuken.js?v=53  render-vaardigheden.js?v=135
               render-statblock.js?v=9  socket-client.js?v=94  wizard.js?v=8  conditions.js?v=4
@@ -3860,8 +3860,17 @@ antwoord van de route) hoort `_effectiveCurrency` te gebruiken.
 > linksboven (`_stapelHtml`) en waaieren uit tot een eigen rij met een rood
 > lint; uitgewaaierd of niet staat in `localStorage` (`stapelUit:<type>`).
 > Bij zoeken of filteren ligt de stapel weg. De DM heeft geen favorieten.
-> De houdingsbalk van het oude kaartje staat niet op de tegel; de houding stel
-> je in de editor in.
+> **Tekstbladen zijn dicht perkament**, met het gezicht als klein portret in de
+> kop: een gedimde plaat erachter vocht met de tekst.
+> **De houding (DM)** zit als knop in de voetbalk van een open tegel
+> (`_tegelHoudingKnop`) en opent een verticaal schuifje met de namen van de
+> treden — het balkje uit `_houdingBalkHtml`, dus `_houdingZet` werkt
+> ongewijzigd (direct zien, na 1,6 s opslaan; de tegel blijft daarna open).
+> **Een andere tegel openen sluit de vorige in dezelfde beweging.** Daarbij
+> schuift de rest één keer op; een tegel die daardoor naar een andere rij
+> overspringt zou schuin over het hele raster vliegen, dus die vervaagt ter
+> plekke en verschijnt op zijn nieuwe plek (`overstap` in `_flip`). Nagekeken
+> op een tiende van de snelheid (CDP `Animation.setPlaybackRate`).
 
 ## Kaartjes zijn agnostisch
 
