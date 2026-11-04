@@ -348,9 +348,9 @@ De app gebruikt querystring cache-busting (`?v=N`). **Vergeten = browser haalt o
 **Huidige versies (bij te houden):**
 
 ```
-index.html  : theme.css?v=920   app.js?v=1185   sound-manager.js?v=15
+index.html  : theme.css?v=921   app.js?v=1186   sound-manager.js?v=15
 app.js      : api.js?v=319  dm-panel.js?v=416  media-picker.js?v=13  tafels.js?v=2  terugblik.js?v=3  rage.js?v=4  klassekracht.js?v=5  personage-maken.js?v=9  gevecht-regie.js?v=2
-              render-archief.js?v=145  render-bestiarium.js?v=34  render-campagne.js?v=355
+              render-archief.js?v=145  render-bestiarium.js?v=35  render-campagne.js?v=356
               render-dungeon.js?v=71  render-kaart.js?v=34  render-progressie.js?v=66
               render-relatiemap.js?v=35  render-spreuken.js?v=53  render-vaardigheden.js?v=135
               render-statblock.js?v=9  socket-client.js?v=94  wizard.js?v=8  conditions.js?v=4
@@ -3841,7 +3841,8 @@ antwoord van de route) hoort `_effectiveCurrency` te gebruiken.
 
 ## Tegels: het archief als raster dat je openklapt
 
-> **Personages zijn tegels** (4 nov 2026), de andere tabbladen volgen. Drie
+> **Alle archief-tabbladen zijn tegels** (4 nov 2026): personages, locaties,
+> organisaties, voorwerpen, documenten én het bestiarium. Drie
 > standen: **dicht** (beeld + naam, raster van 150 px), **open** (2×2, met
 > bladen — portret, gegevens, beschrijving, roddels, geheimen — die je met een
 > tik omdraait) en **venster** (het vergrootknopje laat het detailvenster uit
@@ -3871,6 +3872,21 @@ antwoord van de route) hoort `_effectiveCurrency` te gebruiken.
 > overspringt zou schuin over het hele raster vliegen, dus die vervaagt ter
 > plekke en verschijnt op zijn nieuwe plek (`overstap` in `_flip`). Nagekeken
 > op een tiende van de snelheid (CDP `Animation.setPlaybackRate`).
+> **Per kaartsoort** verschilt alleen het gegevensblad (`_tegelGegevens`), de
+> ondertitel (`_tegelOndertitel`) en het icoon (`_tegelIcoon`: een locatie
+> krijgt dat van haar type, ook als merkje boven de naam). Voorwerpen dragen
+> `data-rarity` en de glans, documenten zonder beeld een mini-perkament in hun
+> briefstijl (`_tegelPerkament`, met `_knipselLetters` bij knipsel) en een
+> extra blad *Tekst* met het perkament zelf — gecodeerd zolang de party hem
+> niet kraakte. Badges staan alleen bij personages; elders herhaalden ze een rij.
+> **Het bestiarium** heeft een eigen bestand en een eigen venster (het
+> statblok), dus de beweging staat op `window`: `_tegelFlip`, `_tegelDraai`
+> en `_tegelVensterUit(tegel, open, nogHier)`. Zijn bladen (`_bladen` in
+> `render-bestiarium.js`): gegevens (met het kennisniveau voor de DM),
+> beschrijving en roddel; de niveauletter hertekent het raster.
+> **Valkuil bij het testen:** een verborgen sectie blijft in de DOM staan, dus
+> `.tegel--open` vindt ook de open tegel van het vorige tabblad — zoek binnen
+> `#section-<type>`.
 
 ## Kaartjes zijn agnostisch
 

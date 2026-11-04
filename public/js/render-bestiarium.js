@@ -140,7 +140,7 @@ function _renderGrid() {
     : `<p class="best-empty">Geen wezens gevonden.</p>`;
   _container.innerHTML = `${head}<div class="best-wrap">
     ${chips}
-    <div class="cards-grid grid grid-cols-[repeat(auto-fill,minmax(260px,1fr))] gap-4">${cards}</div>
+    <div class="cards-grid tegel-raster grid grid-cols-[repeat(auto-fill,minmax(260px,1fr))] gap-4">${cards}</div>
   </div>`;
 }
 
@@ -158,63 +158,114 @@ function _tekenKaarten() {
     : `<p class="best-empty">Geen wezens gevonden.</p>`;
 }
 
-function _card(m, i, dm) {
-  const sb  = m.statblock || {};
-  const niv = m._niveau || null;
-  const typePill = [sb.size, sb.type].filter(Boolean).map(esc).join(' ');
-  const metaBits = [sb.alignment, (sb.cr != null && sb.cr !== '') ? `CR ${sb.cr}` : '']
-    .filter(Boolean).map(esc).join(' · ');
-  const hasImg = !!m.imageId;
-  const nivKey = niv || 'onbekend';
-  const viaMagizoo = m._bron === 'magizoo';
-  // Roddel: speler ziet _roddel (alleen als gehoord); DM ziet de eigen roddel + status.
-  const roddelTekst = dm ? (m.roddel || '') : (m._roddel || '');
-  const roddelGehoord = dm ? !!m._roddelGehoord : !!m._roddel;
+// ── Tegels ────────────────────────────────────────────────────────────────
+// Dezelfde drie standen als de andere archief-tabbladen (zie de toelichting bij
+// TEGEL_TYPES in render-campagne.js): dicht (beeld + naam), open (2×2 met
+// bladen) en het venster — hier het statblok, op het kennisniveau van de party.
+// De beweging leent de hulpjes van daar: `_tegelFlip`, `_tegelDraai` en
+// `_tegelVensterUit`.
+let _openId = null;
+const _blad = {};
+const _BLAD_ICOON = { portret: 'image', gegevens: 'clipboard-list', beschrijving: 'book-open', roddel: 'beer' };
 
-  return `
-    <div class="entity-card best-entity-card${dm && !niv ? ' card-hidden' : ''}" onclick="window.bestiarium.open(${i})">
-      ${dm ? `
-        <div class="dm-only absolute top-7 right-2 z-30 flex flex-col gap-1">
-          <button class="best-card-ctrl" title="Bewerken"
-            onclick="event.stopPropagation();window.bestiarium.edit('${esc(m.id)}')">${icon('pencil')}</button>
-          <button class="best-card-ctrl best-card-ctrl--danger" title="Verwijderen"
-            onclick="event.stopPropagation();window.bestiarium.del('${esc(m.id)}','${esc(m.name).replace(/'/g, "\\'")}')">${icon('x')}</button>
-          <button class="best-card-ctrl best-card-niv best-card-niv--${nivKey}"
-            title="Kennisniveau: ${_NIV_LABEL[niv || '']} — klik om te wisselen"
-            onclick="event.stopPropagation();window.bestiarium.cycleNiveau('${esc(m.id)}', this)">${_NIV_LETTER[niv || '']}</button>
-        </div>` : ''}
-      <div class="card-accent bar-bestiarium"></div>
-      <div class="card-img-wrap best-card-img-wrap">
-        <div class="best-silhouet-fill">${icon('skull')}</div>
-        ${hasImg ? `<img class="card-img best-card-img" loading="lazy" src="${api.thumbUrl(m.imageId)}"
-          onerror="this.style.display='none'">` : ''}
-        <div class="card-img-fade"></div>
-        ${typePill ? `<span class="best-type-pill" title="${typePill}">${typePill}</span>` : ''}
-        ${viaMagizoo ? `<span class="best-bron-badge" title="Onderzocht door de Magizoöloog">${icon('paw-print')}</span>` : ''}
-      </div>
-      <div class="card-body px-3 pt-2 pb-2">
-        <div class="mb-1.5">
-          <span class="card-name block" data-fittext>${esc(m.name)}</span>
-          ${metaBits ? `<span class="card-name-sep"></span>
-          <div class="card-meta"><span class="card-meta-sub">${metaBits}</span></div>` : ''}
-        </div>
-        ${m.description ? `<p class="best-card-desc">${esc(m.description)}</p>` : ''}
-      </div>
-      ${(() => {
-        // De roddel staat als strook onder het kaartje, net als op een personage
-        // of locatie (`.flavour-preview`). Hij stond hier eerder als groene regel
-        // middenin de tekst — daarmee las het bestiarium als een ander archief.
-        // Nog niet gehoord: gedimd, zelfde afspraak als een nog niet uitgesproken
-        // roddel op een kaartje.
-        const tekst = roddelGehoord ? roddelTekst : (dm ? (m.roddel || '') : '');
-        if (!tekst) return '';
-        return `<div class="flavour-preview${roddelGehoord ? '' : ' flavour-preview--ongespoken'}"${
-          roddelGehoord ? '' : ' title="Nog niet gehoord door de party"'}>
-          <span class="flavour-preview-text">\u201e${esc(tekst)}\u201c</span>
-        </div>`;
-      })()}
-    </div>`;
+function _bladen(m, dm) {
+  const sb = m.statblock || {};
+  const niv = m._niveau || null;
+  const bladen = [{ soort: 'portret', label: 'Portret' }];
+  const rijen = [];
+  if (sb.type) rijen.push(['Creature Type', sb.type]);
+  if (sb.size) rijen.push(['Size', sb.size]);
+  if (sb.alignment) rijen.push(['Alignment', sb.alignment]);
+  if (sb.cr != null && sb.cr !== '') rijen.push(['Challenge', `CR ${sb.cr}`]);
+  if (dm) rijen.push(['Kennis', _NIV_LABEL[niv || '']]);
+  if (rijen.length) bladen.push({ soort: 'gegevens', label: 'Gegevens', html: `
+    ${m._bron === 'magizoo' ? `<div class="tegel-badges"><span class="card-subtype-badge">${icon('paw-print')} Magizoöloog</span></div>` : ''}
+    <dl class="tegel-gegevens">${rijen.map(([k, v]) => `<div class="tegel-gegeven"><dt>${esc(k)}</dt><dd>${esc(v)}</dd></div>`).join('')}</dl>` });
+  if (m.description) bladen.push({ soort: 'beschrijving', label: 'Beschrijving', tekst: m.description,
+    html: `<div class="tegel-tekst"><p>${esc(m.description).replace(/\n{2,}/g, '</p><p>').replace(/\n/g, '<br>')}</p></div>` });
+  // De roddel: de speler alleen als de party hem gehoord heeft, de DM altijd
+  // (gedimd zolang hij nog niet gehoord is).
+  const gehoord = dm ? !!m._roddelGehoord : !!m._roddel;
+  const tekst = dm ? (m.roddel || '') : (m._roddel || '');
+  if (tekst) bladen.push({ soort: 'roddel', label: 'Roddel', tekst,
+    html: `<ul class="tegel-regels"><li class="tegel-regel${gehoord ? '' : ' tegel-regel--dicht'}"${gehoord ? '' : ' title="Nog niet gehoord door de party"'}>\u201e${esc(tekst)}\u201c</li></ul>` });
+  return bladen;
 }
+
+function _bladInhoud(m, b) {
+  const sb = m.statblock || {};
+  if (b.soort === 'portret') {
+    const sub = [sb.size, sb.type].filter(Boolean).join(' ');
+    return `<div class="tegel-naamband tegel-naamband--groot">
+      <span class="card-name">${esc(m.name)}</span>
+      ${sub ? `<span class="tegel-ondertitel">${esc(sub)}</span>` : ''}</div>`;
+  }
+  return `<div class="tegel-vel">
+    <div class="tegel-vel-kop">${icon(_BLAD_ICOON[b.soort] || 'square')} ${esc(b.label)}<span class="tegel-vel-naam">${esc(m.name)}</span>
+      ${m.imageId ? `<img class="tegel-vel-portret" src="${api.thumbUrl(m.imageId)}" alt="" onerror="this.remove()">` : ''}</div>
+    <div class="tegel-vel-tekst">${b.html}</div>
+  </div>`;
+}
+
+function _dmKnoppen(m, { voet = false } = {}) {
+  const niv = m._niveau || null;
+  const nivKey = niv || 'onbekend';
+  return `<div class="tegel-dm" onclick="event.stopPropagation()">
+    <button class="best-card-niv best-card-niv--${nivKey}" title="Kennisniveau: ${_NIV_LABEL[niv || '']} — klik om te wisselen"
+      onclick="window.bestiarium.cycleNiveau('${esc(m.id)}', this)">${_NIV_LETTER[niv || '']}</button>
+    <button title="Bewerken" onclick="window.bestiarium.edit('${esc(m.id)}')">${icon('pencil')}</button>
+    ${voet ? '' : `<button class="tegel-dm-weg" title="Verwijderen"
+      onclick="window.bestiarium.del('${esc(m.id)}','${esc(m.name).replace(/'/g, "\\'")}')">${icon('x')}</button>`}
+  </div>`;
+}
+
+function _card(m, i, dm) {
+  const niv = m._niveau || null;
+  const id = esc(m.id);
+  const klassen = `entity-card tegel best-tegel${dm && !niv ? ' card-hidden' : ''}`;
+  const beeld = `<span class="tegel-icoon" aria-hidden="true">${icon('skull')}</span>
+    ${m.imageId ? `<img class="tegel-img" loading="lazy" src="${api.thumbUrl(m.imageId)}" alt=""
+      onerror="this.closest('.tegel')?.classList.add('no-img');this.remove()">` : ''}`;
+  const klik = `onclick="window.bestiarium.tegel('${id}')"
+    onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();window.bestiarium.tegel('${id}')}"`;
+  if (_openId !== m.id) {
+    return `<div class="${klassen}${m.imageId ? '' : ' no-img'}" data-sleutel="${id}" role="button" tabindex="0" title="${esc(m.name)}" ${klik}>
+      <div class="card-accent bar-bestiarium"></div>
+      ${beeld}
+      ${m._bron === 'magizoo' ? `<span class="best-bron-badge" title="Onderzocht door de Magizoöloog">${icon('paw-print')}</span>` : ''}
+      <div class="tegel-naamband"><span class="card-name">${esc(m.name)}</span></div>
+      ${dm ? _dmKnoppen(m) : ''}
+    </div>`;
+  }
+  const bladen = _bladen(m, dm);
+  const j = Math.min(_blad[m.id] || 0, bladen.length - 1);
+  return `<div class="${klassen} tegel--open${m.imageId ? '' : ' no-img'}" data-sleutel="${id}" role="button" tabindex="0" ${klik}
+    aria-label="${esc(m.name)}, blad ${j + 1} van ${bladen.length}">
+    <div class="card-accent bar-bestiarium"></div>
+    ${beeld}
+    <div class="tegel-blad" data-soort="${bladen[j].soort}">${_bladInhoud(m, bladen[j])}</div>
+    <div class="tegel-voet" onclick="event.stopPropagation()">
+      <div class="tegel-punten">${bladen.map((b, k) => `<button class="tegel-punt${k === j ? ' is-aan' : ''}"
+        title="${esc(b.label)}" onclick="window.bestiarium.naar('${id}',${k})">${icon(_BLAD_ICOON[b.soort] || 'square')}</button>`).join('')}</div>
+      ${dm ? _dmKnoppen(m, { voet: true }) : ''}
+      <button class="tegel-knop" title="Het statblok" onclick="window.bestiarium.vergroot('${id}')">${icon('maximize-2')}</button>
+      <button class="tegel-knop" title="Kleiner" onclick="window.bestiarium.dicht()">${icon('minimize-2')}</button>
+    </div>
+  </div>`;
+}
+
+// Het raster opnieuw tekenen, met beweging.
+function _herteken(opts) {
+  const grid = _container?.querySelector('.cards-grid');
+  if (!grid || !window._tegelFlip) return _tekenKaarten();
+  window._tegelFlip(grid, () => _tekenKaarten(), opts);
+}
+
+document.addEventListener('keydown', (ev) => {
+  if (ev.key !== 'Escape' || !_openId) return;
+  if (document.getElementById('modal-overlay')?.classList.contains('active')) return;
+  window.bestiarium.dicht();
+});
 
 window.bestiarium = {
   // Wat deze kijker van het bestiarium mag zien (server filtert al), zodat het
@@ -227,6 +278,50 @@ window.bestiarium = {
   openId(id) {
     const i = (_data?.monsters || []).findIndex(m => m.id === id);
     if (i >= 0) this.open(i);
+  },
+  // Tik op een tegel: dicht → open (op het blad waar je zoekterm staat),
+  // open → het volgende blad.
+  tegel(id) {
+    const m = (_data.monsters || []).find(x => x.id === id);
+    if (!m) return;
+    const dm = _data.role === 'dm';
+    if (_openId !== id) {
+      _openId = id;
+      const q = (window._normSearch || (x => String(x || '').toLowerCase()))(_zoek || '');
+      const bladen = _bladen(m, dm);
+      const k = q ? bladen.findIndex(b => b.tekst && window._normSearch(b.tekst).includes(q)) : -1;
+      _blad[id] = k > 0 ? k : 0;
+      _herteken();
+      setTimeout(() => _container?.querySelector(`.tegel[data-sleutel="${CSS.escape(id)}"]`)
+        ?.scrollIntoView({ block: 'nearest', behavior: 'smooth' }), 360);
+      return;
+    }
+    this.naar(id, ((_blad[id] || 0) + 1) % _bladen(m, dm).length);
+  },
+  async naar(id, k) {
+    const el = _container?.querySelector(`.tegel--open[data-sleutel="${CSS.escape(id)}"]`);
+    const m = (_data.monsters || []).find(x => x.id === id);
+    if (!el || !m) return;
+    const bladen = _bladen(m, _data.role === 'dm');
+    const vorige = _blad[id] || 0;
+    _blad[id] = Math.max(0, Math.min(bladen.length - 1, k));
+    if (_blad[id] === vorige) return;
+    const wissel = () => {
+      const blad = el.querySelector('.tegel-blad');
+      blad.dataset.soort = bladen[_blad[id]].soort;
+      blad.innerHTML = _bladInhoud(m, bladen[_blad[id]]);
+      el.querySelectorAll('.tegel-punt').forEach((p, j) => p.classList.toggle('is-aan', j === _blad[id]));
+    };
+    if (window._tegelDraai) await window._tegelDraai(el, _blad[id] > vorige ? 1 : -1, wissel);
+    else wissel();
+  },
+  dicht() { if (_openId) { _openId = null; _herteken(); } },
+  vergroot(id) {
+    const i = (_data.monsters || []).findIndex(x => x.id === id);
+    if (i < 0) return;
+    const tegel = () => _container?.querySelector(`.tegel[data-sleutel="${CSS.escape(id)}"]`);
+    if (window._tegelVensterUit) window._tegelVensterUit(tegel, () => this.open(i));
+    else this.open(i);
   },
   open(i) {
     const m = _data.monsters?.[i];
@@ -259,12 +354,9 @@ window.bestiarium = {
     try { await api.setBestiarium(monsterId, next || null); }
     catch { /* socket-event ververst alsnog */ }
     if (m) m._niveau = next || null;
-    if (btnEl) {
-      btnEl.textContent = _NIV_LETTER[next];
-      btnEl.className = 'best-card-ctrl best-card-niv best-card-niv--' + (next || 'onbekend');
-      btnEl.title = `Kennisniveau: ${_NIV_LABEL[next]} — klik om te wisselen`;
-      btnEl.closest('.entity-card')?.classList.toggle('card-hidden', !next);
-    }
+    // Het raster opnieuw: de letter, de gedimde stand en het gegevensblad
+    // (daar staat het kennisniveau) lopen dan allemaal mee.
+    _tekenKaarten();
   },
   // Bewerken gebeurt hier, in een venster met dezelfde editor als in de
   // Meesterkamer — je hoeft het tabblad niet meer te verlaten om een wezen bij

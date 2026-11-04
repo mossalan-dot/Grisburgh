@@ -1,11 +1,11 @@
 import { api, campagneUitUrl, zetCampagne } from './api.js?v=319';
-import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, renderDocumenten, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=355";
+import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, renderDocumenten, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=356";
 import { initArchief, renderLogboek, openLogboekEditor } from "./render-archief.js?v=145";
 import { renderKaart, queueFlyTo, verversPins, nieuweKaart } from './render-kaart.js?v=34';
 import { renderDungeon } from './render-dungeon.js?v=71';
 import { renderRelatiemap } from './render-relatiemap.js?v=35';
 import { renderProgressie, levelupFeatures } from './render-progressie.js?v=66';
-import { renderBestiarium } from './render-bestiarium.js?v=34';
+import { renderBestiarium } from './render-bestiarium.js?v=35';
 import { renderSpreuken } from './render-spreuken.js?v=53';
 import './render-handleiding.js?v=2';
 import './render-melding.js?v=4';
@@ -14837,10 +14837,10 @@ const HELP_CONFIG = {
     { titel: 'Het hele kaartje', tekst: 'Het pijltjesknopje rechtsonder vergroot het kaartje tot het volledige venster, met o.a. het statblok en de kaart. Het andere knopje (of Escape) maakt het weer klein.', afbeelding: null },
     { titel: 'Favorieten', rol: 'speler', tekst: 'Met de **ster** bewaar je een personage bij je favorieten. Die liggen als een stapeltje linksboven; tik erop en ze waaieren uit tot een eigen rij, met een rood lint. Zodra je zoekt of filtert, ligt de stapel even weg.', afbeelding: null },
   ] }),
-  locaties:   () => ({ titel: 'Locaties', stappen: [{ titel: 'Locaties', tekst: `De **plekken** van ${window._campagneNaam()} en daarbuiten. Een locatie met het type *Winkel* heeft een voorraad waar je kunt kopen en verkopen. Filter via de trechter op o.a. *Winkel*. Klik een kaart voor meer.`, afbeelding: null }] }),
-  organisaties: () => ({ titel: 'Organisaties', stappen: [{ titel: 'Organisaties', tekst: 'Gilden, ordes en groeperingen in de wereld. Klik een kaart voor hun doel, leden en banden met andere partijen.', afbeelding: null }] }),
-  voorwerpen: () => ({ titel: 'Voorwerpen', stappen: [{ titel: 'Voorwerpen', tekst: 'Wapens, uitrusting en magische items. Je kunt voorwerpen claimen, ruilen en in winkels kopen/verkopen. **Zegeningen & Gunsten** (tempel- en factie-beloningen) staan onder een eigen filter, los van de gewone spullen.', afbeelding: null }] }),
-  documenten: () => ({ titel: 'Documenten', stappen: [{ titel: 'Documenten', tekst: 'Het **archief**: brieven, aktes, kaarten en aantekeningen die je onderweg verzamelt. De DM onthult documenten wanneer ze relevant worden.', afbeelding: null }] }),
+  locaties:   () => ({ titel: 'Locaties', stappen: [{ titel: 'Locaties', tekst: `De **plekken** van ${window._campagneNaam()} en daarbuiten. Een locatie met het type *Winkel* heeft een voorraad waar je kunt kopen en verkopen. Filter via de trechter op o.a. *Winkel*.`, afbeelding: null }, { titel: 'Tik om te openen', tekst: 'Elk kaartje toont alleen een beeld en een naam. **Tik erop** en het wordt groot; **tik nog eens** en het draait om naar het volgende blad: gegevens, beschrijving, roddels en geheimen. Met de icoontjes onderaan spring je meteen naar een blad, het pijltjesknopje rechtsonder opent het hele kaartje, en Escape maakt het weer klein.', afbeelding: null }] }),
+  organisaties: () => ({ titel: 'Organisaties', stappen: [{ titel: 'Organisaties', tekst: 'Gilden, ordes en groeperingen in de wereld. Hun motto, type en leden staan op het gegevensblad van het kaartje.', afbeelding: null }, { titel: 'Tik om te openen', tekst: 'Elk kaartje toont alleen een beeld en een naam. **Tik erop** en het wordt groot; **tik nog eens** en het draait om naar het volgende blad: gegevens, beschrijving, roddels en geheimen. Met de icoontjes onderaan spring je meteen naar een blad, het pijltjesknopje rechtsonder opent het hele kaartje, en Escape maakt het weer klein.', afbeelding: null }] }),
+  voorwerpen: () => ({ titel: 'Voorwerpen', stappen: [{ titel: 'Voorwerpen', tekst: 'Wapens, uitrusting en magische items. Je kunt voorwerpen claimen, ruilen en in winkels kopen/verkopen. **Zegeningen & Gunsten** (tempel- en factie-beloningen) staan onder een eigen filter, los van de gewone spullen. De rand van een kaartje zegt hoe zeldzaam iets is.', afbeelding: null }, { titel: 'Tik om te openen', tekst: 'Elk kaartje toont alleen een beeld en een naam. **Tik erop** en het wordt groot; **tik nog eens** en het draait om naar het volgende blad: gegevens, beschrijving, roddels en geheimen. Met de icoontjes onderaan spring je meteen naar een blad, het pijltjesknopje rechtsonder opent het hele kaartje, en Escape maakt het weer klein.', afbeelding: null }] }),
+  documenten: () => ({ titel: 'Documenten', stappen: [{ titel: 'Documenten', tekst: 'Het **archief**: brieven, aktes, kaarten en aantekeningen die je onderweg verzamelt. De DM onthult documenten wanneer ze relevant worden. Een document zonder plaatje ligt er als klein vel in zijn eigen handschrift of drukletter.', afbeelding: null }, { titel: 'Tik om te openen', tekst: 'Elk kaartje toont alleen een beeld en een naam. **Tik erop** en het wordt groot; **tik nog eens** en het draait om naar het volgende blad: gegevens, beschrijving, de tekst zelf, roddels en geheimen. Met de icoontjes onderaan spring je meteen naar een blad, het pijltjesknopje rechtsonder opent het hele kaartje, en Escape maakt het weer klein.', afbeelding: null }] }),
   kaart:      () => ({ titel: 'De kaart', stappen: [{ titel: 'Wereld- en stadskaart', tekst: 'Wissel tussen de **wereldkaart** en de **stadskaart**. Pins markeren ontdekte locaties — klik een pin om het bijbehorende kaartje te openen. Zoom met de knoppen of scroll.', afbeelding: null }] }),
 
   // ── Uitleg per tabblad van een kaartje ──
@@ -15629,6 +15629,11 @@ const HELP_CONFIG = {
       {
         titel: 'Bestiarium',
         tekst: 'Het bestiarium toont alle wezens die de party heeft ontmoet. Hoe meer je van een wezen weet, hoe meer info je ziet. De DM onthult wezens automatisch bij eerste contact — verdere kennis moet je verdienen.',
+        afbeelding: null,
+      },
+      {
+        titel: 'Tik om te openen',
+        tekst: 'Elk wezen staat er als beeld en naam. **Tik erop** en het kaartje wordt groot; **tik nog eens** en het draait om naar het volgende blad: gegevens, beschrijving en de roddel. Het pijltjesknopje rechtsonder opent het statblok, en Escape maakt het kaartje weer klein.',
         afbeelding: null,
       },
       {

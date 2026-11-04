@@ -32394,3 +32394,38 @@ body.gr-slowmo .combat-overlay { filter: grayscale(.85) contrast(1.1) brightness
 .tegel-houding .houding-stap:hover { opacity: .75; }
 .tegel-houding .houding-stap.is-aan { opacity: 1; box-shadow: 0 0 0 2px #2a1a08; }
 .tegel-houding .houding-balk.is-standaard .houding-stap.is-aan { background: var(--houding-kleur); box-shadow: 0 0 0 2px #2a1a08, inset 0 0 0 3px #fbf6ea; }
+
+/* ── Tegels voor de andere archief-tabbladen ── */
+/* Een document zonder plaatje: een klein vel in zijn eigen briefstijl, licht
+   schuin neergelegd, met de titel erop. Het lettertype komt van
+   .parchment-block[data-stijl], dus elke briefstijl ziet er hier al uit zoals
+   in het venster. */
+.tegel-perkament.parchment-block {
+  position: absolute; inset: 16px 14px 46px; z-index: 1;
+  display: flex; align-items: center; justify-content: center; text-align: center;
+  padding: 12px; overflow: hidden;
+  transform: rotate(-2deg);
+  box-shadow: 0 3px 8px rgba(60,40,10,0.22);
+  font-size: 15px; line-height: 1.25;
+}
+.tegel-perkament > span { display: -webkit-box; -webkit-line-clamp: 5; -webkit-box-orient: vertical; overflow: hidden; }
+.tegel:has(.tegel-perkament) .tegel-icoon { display: none; }
+.tegel:has(.tegel-perkament) .tegel-naamband { background: none; }
+.tegel--open .tegel-perkament { display: none; }
+/* Het tekstblad van een document: het perkament zelf, iets kleiner gezet. */
+.tegel-vel-tekst .tegel-perkament-tekst.parchment-block {
+  padding: 12px 14px; font-size: 14px; line-height: 1.55; border: none; box-shadow: none;
+}
+/* Locatiemerkje boven de naam: een haven ziet er anders uit dan een woud. */
+.tegel-merk {
+  display: flex; justify-content: center; margin-bottom: 3px;
+  color: #7a6040;
+}
+.tegel-merk .icon, .tegel-merk svg { width: 15px; height: 15px; }
+/* AC-pil op een voorwerp: rechtsboven, onder waar de DM-knoppen opkomen. */
+.tegel .tegel-ac { top: auto; bottom: 46px; right: 8px; }
+/* Zonder beeld staat het type-icoon al groot in de tegel; het merkje boven de
+   naam zou het dan dubbel zeggen. */
+.tegel.no-img .tegel-merk { display: none; }
+.tegel-perkament p { margin: 0; }
+.tegel-perkament[data-stijl="knipsel"] { font-size: 10px; }

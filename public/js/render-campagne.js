@@ -3931,7 +3931,7 @@ function renderCard(type, e) {
 //
 // Begonnen bij de personages; de andere tabbladen volgen dit patroon
 // (`TEGEL_TYPES`).
-const TEGEL_TYPES = new Set(['personages']);
+const TEGEL_TYPES = new Set(['personages', 'locaties', 'organisaties', 'voorwerpen', 'documenten']);
 const _tegelOpen = {};          // type → id van de tegel die open staat
 const _tegelBlad = {};          // id → bladindex
 const _stapelUit = {};          // type → favorieten uitgewaaierd?
@@ -3957,31 +3957,24 @@ function _tegelBladen(type, e) {
   const d = e.data || {};
   const bladen = [{ soort: 'portret', label: 'Portret' }];
 
-  // Blad 2: wie is dit? Dezelfde velden als in de editor, met de PHB-termen.
-  const isGod = String(e.subtype || '').toLowerCase().startsWith('god');
-  const isDier = String(e.subtype || '').toLowerCase() === 'dier';
-  const rijen = [];
-  if (d.rol) rijen.push(['', d.rol, 'tegel-gegeven--rol']);
-  if (isDier && d.soortLabel) rijen.push(['Ras', d.soortLabel]);
-  if (!isGod && !isDier && d.ras) rijen.push(['Origin', d.ras]);
-  if (!isGod && !isDier && d.klasse) rijen.push(['Class', d.klasse]);
-  if (isGod && d.domein) rijen.push(['Domein', d.domein]);
-  if (isGod && d.symbool) rijen.push(['Heilig symbool', d.symbool]);
-  if (d.alignment) rijen.push(['Alignment', d.alignment]);
-  const badges = getCardBadges(type, e);
-  const hoort = (Array.isArray(e._hoortBij) ? e._hoortBij : []).slice(0, 4);
-  if (rijen.length || badges.length || hoort.length) {
-    bladen.push({ soort: 'gegevens', label: 'Gegevens', html: `
-      ${badges.length ? `<div class="tegel-badges">${badges.map(b => `<span class="card-subtype-badge ${b.cls}">${esc(b.label)}</span>`).join('')}</div>` : ''}
-      ${rijen.length ? `<dl class="tegel-gegevens">${rijen.map(([k, v, cls]) => k
-        ? `<div class="tegel-gegeven"><dt>${esc(k)}</dt><dd>${esc(v)}</dd></div>`
-        : `<div class="tegel-gegeven ${cls || ''}"><dd>${esc(v)}</dd></div>`).join('')}</dl>` : ''}
-      ${hoort.length ? `<div class="tegel-kopje">${esc(_hoortBijKop(type))}</div>
-        <ul class="tegel-hoort">${hoort.map(r => `<li><span class="tegel-hoort-rol">${esc(r.rol || '')}</span> ${esc(r.name || r.naam || '')}</li>`).join('')}</ul>` : ''}` });
-  }
+  // Blad 2: de gegevens — per kaartsoort andere velden, zie `_tegelGegevens`.
+  const gegevens = _tegelGegevens(type, e);
+  if (gegevens) bladen.push({ soort: 'gegevens', label: 'Gegevens', html: gegevens });
 
   if (d.desc) bladen.push({ soort: 'beschrijving', label: 'Beschrijving', tekst: d.desc,
     html: `<div class="tegel-tekst">${mdToHtml(d.desc)}</div>` });
+
+  // Een document heeft daarnaast zijn eigen tekst, in zijn eigen briefstijl.
+  // Gecodeerd en nog niet gekraakt: de tekens door elkaar, net als in het venster.
+  if (type === 'documenten' && d.tekst) {
+    const stijl = _docStijl(e);
+    let binnen = renderParchment(d.tekst);
+    if (stijl === 'knipsel') binnen = _knipselLetters(binnen);
+    const codeAan = !!d.gecodeerd && !isDM() && e._gecodeerd;
+    if (codeAan) binnen = _codeLetters(binnen);
+    bladen.push({ soort: 'tekst', label: 'Tekst', tekst: codeAan ? '' : d.tekst,
+      html: `<div class="parchment-block tegel-perkament-tekst${codeAan ? ' brief-gecodeerd' : ''}" data-stijl="${esc(stijl)}">${binnen}</div>` });
+  }
 
   // Roddels: de speler krijgt alleen wat verteld is, de DM alles — wat nog
   // niet verteld is gedimd, zoals in het venster.
@@ -4004,7 +3997,103 @@ function _tegelBladen(type, e) {
   return bladen;
 }
 
-const _BLAD_ICOON = { portret: 'image', gegevens: 'user', beschrijving: 'scroll-text', roddels: 'beer', geheimen: 'lock' };
+const _BLAD_ICOON = { portret: 'image', gegevens: 'clipboard-list', beschrijving: 'book-open', tekst: 'scroll-text', roddels: 'beer', geheimen: 'lock' };
+
+// Wat er op het gegevensblad staat, per kaartsoort. Labels zijn D&D-termen waar
+// die bestaan (Origin, Class, Alignment, Requires Attunement). Zonder rijen geen
+// blad: een locatie zonder type, gebied en betrokkenen heeft niets te melden.
+function _tegelGegevens(type, e) {
+  const d = e.data || {};
+  const rijen = [];                       // [label, waarde, extra klasse]
+  let lijst = [], lijstKop = '';
+  // Badges alleen bij personages (NPC, Antagonist, Verkoper): bij de andere
+  // soorten herhaalt de badge het type of het gebied, en dat staat al als rij.
+  const badges = type === 'personages' ? getCardBadges(type, e) : [];
+  if (type === 'personages') {
+    const isGod = String(e.subtype || '').toLowerCase().startsWith('god');
+    const isDier = String(e.subtype || '').toLowerCase() === 'dier';
+    if (d.rol) rijen.push(['', d.rol, 'tegel-gegeven--rol']);
+    if (isDier && d.soortLabel) rijen.push(['Ras', d.soortLabel]);
+    if (!isGod && !isDier && d.ras) rijen.push(['Origin', d.ras]);
+    if (!isGod && !isDier && d.klasse) rijen.push(['Class', d.klasse]);
+    if (isGod && d.domein) rijen.push(['Domein', d.domein]);
+    if (isGod && d.symbool) rijen.push(['Heilig symbool', d.symbool]);
+    if (d.alignment) rijen.push(['Alignment', d.alignment]);
+  } else if (type === 'locaties') {
+    if (d.locType) rijen.push(['Type', d.locType]);
+    if (d.wijk) rijen.push(['Gebied', d.wijk]);
+  } else if (type === 'organisaties') {
+    if (d.motto) rijen.push(['', `\u201e${d.motto}\u201c`, 'tegel-gegeven--rol']);
+    if (d.orgType) rijen.push(['Type', d.orgType]);
+    if (d.wijk) rijen.push(['Gebied', d.wijk]);
+  } else if (type === 'voorwerpen') {
+    if (d.itemType) rijen.push(['Type', d.itemType]);
+    if (d.rariteit) rijen.push(['Rarity', _rarityLabel(d.rariteit)]);
+    if (d.attunement === true || d.attunement === 'true')
+      rijen.push(['Attunement', d.attunementEis ? `Requires Attunement by ${d.attunementEis}` : 'Requires Attunement']);
+    const dmg = String(d.damage || '').trim();
+    const heal = String(d.healing || '').trim() || (/heal|genez/i.test(dmg) ? dmg : '');
+    if (dmg && !/heal|genez/i.test(dmg)) rijen.push(['Damage', dmg]);
+    if (heal) rijen.push(['Healing', heal]);
+    const acr = _calcArmorAC(d, null);
+    if (acr) rijen.push(['Armor Class', acr.pill]);
+    if (parseInt(d.maxCharges) > 0) rijen.push(['Charges', String(parseInt(d.maxCharges))]);
+    const props = (() => { try { return JSON.parse(d.weaponProperties || '[]'); } catch { return []; } })();
+    if (props.length) rijen.push(['Properties', props.join(', ')]);
+    if (d.stealthDisadvantage === true || d.stealthDisadvantage === 'true') rijen.push(['Stealth', 'Disadvantage']);
+    if (parseInt(d.strengthRequirement)) rijen.push(['Strength', String(parseInt(d.strengthRequirement))]);
+  } else if (type === 'documenten') {
+    if (d.docType) rijen.push(['Type', d.docType]);
+  }
+  // Wie hier bij hoort (locatie, organisatie) — wat de speler niet kent komt
+  // van de server zonder naam, dus dat staat er als "onbekend".
+  if (type === 'locaties' || type === 'organisaties') {
+    lijst = _betrokkenenUit(d).slice(0, 5).map(r => ({ rol: r.rol, naam: r.onbekend ? 'onbekend' : (r.naam || '') }));
+    lijstKop = type === 'locaties' ? 'Wie hoort hier bij?' : 'Leden';
+  }
+  const hoort = (Array.isArray(e._hoortBij) ? e._hoortBij : []).slice(0, 4);
+  if (!rijen.length && !badges.length && !hoort.length && !lijst.length) return '';
+  const regels = (kop, items) => items.length ? `<div class="tegel-kopje">${esc(kop)}</div>
+    <ul class="tegel-hoort">${items.map(r => `<li><span class="tegel-hoort-rol">${esc(r.rol || '')}</span> ${esc(r.naam || r.name || '')}</li>`).join('')}</ul>` : '';
+  return `
+    ${badges.length ? `<div class="tegel-badges">${badges.map(b => `<span class="card-subtype-badge ${b.cls}">${esc(b.label)}</span>`).join('')}</div>` : ''}
+    ${rijen.length ? `<dl class="tegel-gegevens">${rijen.map(([k, v, cls]) => k
+      ? `<div class="tegel-gegeven"><dt>${esc(k)}</dt><dd>${esc(v)}</dd></div>`
+      : `<div class="tegel-gegeven ${cls || ''}"><dd>${esc(v)}</dd></div>`).join('')}</dl>` : ''}
+    ${regels(lijstKop, lijst)}
+    ${regels(_hoortBijKop(type), hoort)}`;
+}
+
+// Het icoon dat een tegel zonder beeld draagt, en dat bij een locatie ook als
+// merkje boven de naam staat: een haven ziet er anders uit dan een woud.
+function _tegelIcoon(type, e) {
+  // Een locatie zonder eigen teken krijgt het icoon van zijn type uit
+  // LOC_TYPE_ICOON — hetzelfde als de speld op de kaart.
+  if (type === 'locaties' && !e.data?.icoon && !e.data?.icon) return window._locIcoon(e.data?.locType);
+  return getAutoIconSvg(type, e) || TYPE_META[type].svgIcon;
+}
+
+// De ondertitel op het portretblad.
+function _tegelOndertitel(type, e) {
+  const d = e.data || {};
+  if (type === 'personages') return d.rol || '';
+  if (type === 'locaties') return [d.locType, d.wijk].filter(Boolean).join(' · ');
+  if (type === 'organisaties') return d.motto ? `\u201e${d.motto}\u201c` : (d.orgType || '');
+  if (type === 'voorwerpen') return [d.itemType, d.rariteit ? _rarityLabel(d.rariteit) : ''].filter(Boolean).join(' · ');
+  if (type === 'documenten') return d.docType || '';
+  return '';
+}
+
+// Een document zonder plaatje krijgt een mini-perkamentje in zijn eigen
+// briefstijl, met de titel erop: dan zie je al aan de tegel of het een brief,
+// een krantenknipsel of een getypt verslag is.
+function _tegelPerkament(type, e) {
+  if (type !== 'documenten' || e._beeld !== false) return '';
+  const stijl = _docStijl(e);
+  const titel = stijl === 'knipsel' ? _knipselLetters(`<p>${esc(e.name)}</p>`) : `<p>${esc(e.name)}</p>`;
+  return `<div class="tegel-perkament parchment-block" data-stijl="${esc(stijl)}" aria-hidden="true">
+    <span>${titel}</span></div>`;
+}
 
 function _tegelKlassen(type, e, extra = '') {
   const vis = e._visibility || 'visible';
@@ -4076,16 +4165,20 @@ function _tegelHtml(type, e, { fav = false } = {}) {
   const open = _tegelOpen[type] === e.id;
   const klik = `onclick="window._tegelKlik('${type}','${esc(e.id)}')"
     onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();window._tegelKlik('${type}','${esc(e.id)}')}"`;
-  const rol = e.data?.rol || '';
+  const rol = _tegelOndertitel(type, e);
+  const rar = type === 'voorwerpen' ? _rarityKey(e.data?.rariteit) : '';
+  const acr = type === 'voorwerpen' ? _calcArmorAC(e.data, null) : null;
+  const perk = _tegelPerkament(type, e);
   if (!open) {
     return `<div class="${_tegelKlassen(type, e, fav ? 'tegel--favoriet' : '')}" ${sleutel} role="button" tabindex="0" ${klik}
-      title="${esc(e.name)}">
-      ${_glansHtml(type, e, '')}
+      title="${esc(e.name)}"${rar ? ` data-rarity="${rar}"` : ''}>
+      ${_glansHtml(type, e, rar)}
       <div class="card-accent bar-${type}"></div>
-      <span class="tegel-icoon" aria-hidden="true">${TYPE_META[type].svgIcon}</span>
-      ${_tegelBeeld(e)}
+      <span class="tegel-icoon" aria-hidden="true">${_tegelIcoon(type, e)}</span>
+      ${perk || _tegelBeeld(e)}
       ${fav ? '<span class="tegel-lint" aria-hidden="true"></span>' : ''}
-      <div class="tegel-naamband"><span class="card-name" data-fittext>${esc(e.name)}${e._deceased ? '<span class="card-name-dagger">†</span>' : ''}</span></div>
+      ${acr ? `<span class="card-armor-ac-pill tegel-ac" title="${esc(acr.tooltip)}">${esc(acr.pill)}</span>` : ''}
+      <div class="tegel-naamband">${type === 'locaties' ? `<span class="tegel-merk" title="${esc(e.data?.locType || '')}">${_tegelIcoon(type, e)}</span>` : ''}<span class="card-name" data-fittext>${esc(e.name)}${e._deceased && type === 'personages' ? '<span class="card-name-dagger">†</span>' : ''}</span></div>
       ${_tegelSter(type, e, fav)}
       ${_tegelDmKnoppen(type, e)}
     </div>`;
@@ -4093,10 +4186,10 @@ function _tegelHtml(type, e, { fav = false } = {}) {
   const bladen = _tegelBladen(type, e);
   const i = Math.min(_tegelBlad[e.id] || 0, bladen.length - 1);
   return `<div class="${_tegelKlassen(type, e, 'tegel--open' + (fav ? ' tegel--favoriet' : ''))}" ${sleutel} role="button" tabindex="0" ${klik}
-    aria-label="${esc(e.name)}, blad ${i + 1} van ${bladen.length}">
+    aria-label="${esc(e.name)}, blad ${i + 1} van ${bladen.length}"${rar ? ` data-rarity="${rar}"` : ''}>
     <div class="card-accent bar-${type}"></div>
-    <span class="tegel-icoon" aria-hidden="true">${TYPE_META[type].svgIcon}</span>
-    ${_tegelBeeld(e)}
+    <span class="tegel-icoon" aria-hidden="true">${_tegelIcoon(type, e)}</span>
+    ${perk || _tegelBeeld(e)}
     ${fav ? '<span class="tegel-lint" aria-hidden="true"></span>' : ''}
     <div class="tegel-blad" data-soort="${bladen[i].soort}">${_tegelBladInhoud(e, bladen[i], rol)}</div>
     <div class="tegel-voet" onclick="event.stopPropagation()">
@@ -4119,7 +4212,7 @@ function _tegelBladInhoud(e, blad, rol) {
   }
   return `<div class="tegel-vel">
     <div class="tegel-vel-kop">${icon(_BLAD_ICOON[blad.soort] || 'square')} ${esc(blad.label)}<span class="tegel-vel-naam">${esc(e.name)}</span>
-      <img class="tegel-vel-portret" src="${api.thumbForEntity(e)}" alt="" style="${e.data?.imgFocus ? `object-position:${esc(e.data.imgFocus)}` : ''}" onerror="this.remove()"></div>
+      ${e._beeld === false ? '' : `<img class="tegel-vel-portret" src="${api.thumbForEntity(e)}" alt="" style="${e.data?.imgFocus ? `object-position:${esc(e.data.imgFocus)}` : ''}" onerror="this.remove()">`}</div>
     <div class="tegel-vel-tekst">${blad.html}</div>
   </div>`;
 }
@@ -4242,18 +4335,14 @@ window._tegelNaar = async (type, id, i) => {
   const vorige = _tegelBlad[id] || 0;
   _tegelBlad[id] = Math.max(0, Math.min(bladen.length - 1, i));
   if (_tegelBlad[id] === vorige) return;
-  const rustig = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
-  const kant = _tegelBlad[id] > vorige ? 1 : -1;
-  if (!rustig) await el.animate([{ transform: 'perspective(1100px) rotateY(0deg)' },
-    { transform: `perspective(1100px) rotateY(${-88 * kant}deg)` }], { duration: 150, easing: 'ease-in' }).finished.catch(() => {});
-  const blad = el.querySelector('.tegel-blad');
-  const b = bladen[_tegelBlad[id]];
-  blad.dataset.soort = b.soort;
-  blad.innerHTML = _tegelBladInhoud(e, b, e.data?.rol || '');
-  el.querySelectorAll('.tegel-punt').forEach((p, j) => p.classList.toggle('is-aan', j === _tegelBlad[id]));
-  el.setAttribute('aria-label', `${e.name}, blad ${_tegelBlad[id] + 1} van ${bladen.length}`);
-  if (!rustig) el.animate([{ transform: `perspective(1100px) rotateY(${88 * kant}deg)` },
-    { transform: 'perspective(1100px) rotateY(0deg)' }], { duration: 190, easing: 'ease-out' });
+  await _draai(el, _tegelBlad[id] > vorige ? 1 : -1, () => {
+    const blad = el.querySelector('.tegel-blad');
+    const b = bladen[_tegelBlad[id]];
+    blad.dataset.soort = b.soort;
+    blad.innerHTML = _tegelBladInhoud(e, b, _tegelOndertitel(type, e));
+    el.querySelectorAll('.tegel-punt').forEach((p, j) => p.classList.toggle('is-aan', j === _tegelBlad[id]));
+    el.setAttribute('aria-label', `${e.name}, blad ${_tegelBlad[id] + 1} van ${bladen.length}`);
+  });
 };
 
 window._tegelDicht = (type) => {
@@ -4273,10 +4362,12 @@ function _naarRect(el, r) {
   const dy = (r.top + r.height / 2) - (m.top + m.height / 2);
   return `translate(${dx}px,${dy}px) scale(${r.width / m.width},${r.height / m.height})`;
 }
-window._tegelVergroot = async (type, id) => {
-  const tegel = () => document.querySelector(`#section-${type} .tegel[data-sleutel="${CSS.escape(id)}"]`);
+// Algemeen, zodat het bestiarium (een eigen bestand met een eigen venster) het
+// ook kan: `tegel()` geeft het element terug, `open()` opent het venster, en
+// `nogHier()` zegt bij het sluiten of het venster nog over déze tegel gaat.
+async function _vensterUitTegel(tegel, open, nogHier = () => true) {
   const r0 = tegel()?.getBoundingClientRect();
-  await window._openDetail(type, id);
+  await open();
   const modal = document.querySelector('#modal-overlay .modal');
   const rustig = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
   if (!modal || !r0 || rustig) return;
@@ -4288,7 +4379,7 @@ window._tegelVergroot = async (type, id) => {
     waas?.animate([{ backgroundColor: 'rgba(60,40,10,0)' }, {}], { duration: 380 });
   }
   window._modalSluitAnimatie = () => {
-    if (window._currentDetailId !== id) return null;
+    if (!nogHier()) return null;
     const r1 = tegel()?.getBoundingClientRect();
     const naar = r1 && _naarRect(modal, r1);
     if (!naar) return null;
@@ -4300,7 +4391,26 @@ window._tegelVergroot = async (type, id) => {
       { duration: 300, fill: 'forwards' });
     return a.finished.then(() => setTimeout(() => { a.cancel(); w?.cancel(); }, 400));
   };
-};
+}
+window._tegelVensterUit = _vensterUitTegel;
+
+window._tegelVergroot = (type, id) => _vensterUitTegel(
+  () => document.querySelector(`#section-${type} .tegel[data-sleutel="${CSS.escape(id)}"]`),
+  () => window._openDetail(type, id),
+  () => window._currentDetailId === id);
+
+// Omdraaien: een kwartslag weg, `wissel()` zet het nieuwe blad erin, een
+// kwartslag terug. `kant` is de draairichting (1 = vooruit).
+async function _draai(el, kant, wissel) {
+  const rustig = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+  if (!rustig) await el.animate([{ transform: 'perspective(1100px) rotateY(0deg)' },
+    { transform: `perspective(1100px) rotateY(${-88 * kant}deg)` }], { duration: 150, easing: 'ease-in' }).finished.catch(() => {});
+  wissel();
+  if (!rustig) el.animate([{ transform: `perspective(1100px) rotateY(${88 * kant}deg)` },
+    { transform: 'perspective(1100px) rotateY(0deg)' }], { duration: 190, easing: 'ease-out' });
+}
+window._tegelDraai = _draai;
+window._tegelFlip = (grid, mutate, opts) => _flip(grid, mutate, opts);
 
 window._stapelKlik = async (type) => {
   const c = $(`#section-${type}`);
