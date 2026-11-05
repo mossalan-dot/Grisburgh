@@ -348,8 +348,8 @@ De app gebruikt querystring cache-busting (`?v=N`). **Vergeten = browser haalt o
 **Huidige versies (bij te houden):**
 
 ```
-index.html  : theme.css?v=922   app.js?v=1187   sound-manager.js?v=15
-app.js      : api.js?v=319  dm-panel.js?v=417  media-picker.js?v=13  tafels.js?v=2  terugblik.js?v=3  rage.js?v=4  klassekracht.js?v=5  personage-maken.js?v=9  gevecht-regie.js?v=2
+index.html  : theme.css?v=923   app.js?v=1188   sound-manager.js?v=15
+app.js      : api.js?v=319  dm-panel.js?v=418  media-picker.js?v=13  tafels.js?v=2  terugblik.js?v=3  rage.js?v=4  klassekracht.js?v=5  personage-maken.js?v=9  gevecht-regie.js?v=2
               render-archief.js?v=146  render-bestiarium.js?v=35  render-campagne.js?v=357
               render-dungeon.js?v=72  render-kaart.js?v=34  render-progressie.js?v=66
               render-relatiemap.js?v=36  render-spreuken.js?v=54  render-vaardigheden.js?v=135
@@ -1924,6 +1924,32 @@ in `_load()` (`render-spreuken.js`), ontdubbeld op `index`:
 > D&D Beyond bevat een nummer dat nergens uit af te leiden is; een diepe link zou
 > een koppeltabel vragen die geschraapt en eeuwig bijgehouden moet worden, en die
 > stil 404't zodra zij hun adressen wijzigen. Een zoekpagina verlept niet.
+
+> **Material components: altijd bij de hand, of een voorraad** (5 nov 2026).
+> Wat de M-component kost en of de spreuk hem verbruikt staat in de tekst ("a
+> diamond worth 300+ GP, which the spell consumes"); **`lib/materiaal.js`**
+> leidt dat af (`materiaalUit`: `waardeCl`, `verbruikt` — bij "all of which"
+> alles samen, anders het eerste bedrag, zodat bij Clone alleen de diamant
+> telt) en `GET /player-spells` stuurt het mee als `_materiaal`, samen met de
+> stand van de speler. Die stand is `spell.materiaal = {modus, aantal}`:
+> `altijd` (pouch, focus, of je bezit het ding) of `voorraad`. Zonder eigen
+> keuze telt verbruikt materiaal met een prijs af vanaf nul en is de rest
+> altijd bij de hand — de PHB-regel. Bewaren via de gewone `PATCH
+> /player-spells/:c/:idx` (`materiaal: null` zet hem terug).
+> **Een slot afvinken ís casten**: `_sbToggleSlot` vraagt eerst
+> `POST /player-spells/:c/:idx/materiaal`. Voorraad > 0 → één omlaag. Op → 409
+> met `op`, en het boek houdt de cast vast in een paneeltje: *toch casten*
+> (de app weigert geen spreuk), *niet casten*, of — alleen als de DM
+> **`meta.materiaal.kasboek`** aanzette (Instellingen → Campagne, `PUT
+> /meta/materiaal`, standaard uit) — *afrekenen*: een voorgevuld bedrag dat de
+> speler mag overtypen (een spreuk per target), `{betaalCl}`, via
+> `_deductCurrency` en nooit onder nul. Staat de schakelaar uit, dan weigert
+> de route het ook (409). Een slot loslaten geeft niets terug: dat gebeurt ook
+> bij een rust. Cantrips en rituals gaan niet langs een slot en dus niet
+> langs deze telling. Bewaakt door `tests/materiaal.test.js`.
+> De client roept `api.post(...)` aan in plaats van een nieuwe methode in
+> `api.js`: dat bestand heeft twintig importeurs die allemaal mee hadden
+> gemoeten in versie.
 
 > **Wie kent deze spreuk?** `GET /spells/:index/wie` (DM-only) loopt
 > `dmState.playerSpells` langs en geeft per speler naam, party, prepared en of

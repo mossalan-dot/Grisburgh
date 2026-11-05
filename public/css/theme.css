@@ -32480,3 +32480,58 @@ body.gr-slowmo .combat-overlay { filter: grayscale(.85) contrast(1.1) brightness
 .spreuk-tegel .tegel-badges .spreuk-tag { font-size: 0.7rem; }
 /* Op een tekstblad staat het level al in de kop van het vel; het bolletje viel erover. */
 .spreuk-tegel.tegel--open:has(.tegel-blad:not([data-soort="portret"])) .spreuk-tegel-niv { display: none; }
+
+/* ══════════════════════════════════════════════════════════════════
+   Spreukenboek: de M-component (altijd bij de hand of een voorraad)
+   ══════════════════════════════════════════════════════════════════
+   Staat op de perkamenten rechterpagina, dus inkt op papier: dezelfde
+   bruintinten als de gegevenstabel erboven. */
+.sb-materiaal {
+  margin: 10px 0 4px; padding: 8px 10px;
+  border: 1px solid rgba(154,104,48,0.32); border-radius: 6px;
+  background: rgba(196,168,122,0.10);
+  font-family: 'Crimson Text', serif; color: #3a2410;
+}
+.sb-mat-kop { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-bottom: 7px; }
+.sb-mat-chip {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-size: 12px; padding: 1px 7px; border-radius: 10px;
+  border: 1px solid rgba(154,104,48,0.4); color: #6a4418; background: #f6ecd6;
+}
+.sb-mat-chip .icon { width: 11px; height: 11px; }
+.sb-mat-chip--op { color: #8a2a18; border-color: rgba(138,42,24,0.35); }
+.sb-mat-stand { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.sb-mat-keuze { display: inline-flex; border: 1px solid #9a6830; border-radius: 6px; overflow: hidden; }
+.sb-mat-keuze button {
+  font-family: 'Cinzel', serif; font-size: 11px; letter-spacing: .03em;
+  padding: 4px 10px; color: #6a4418; background: transparent; border: 0;
+}
+.sb-mat-keuze button + button { border-left: 1px solid #9a6830; }
+.sb-mat-keuze button.is-aan { background: #6a4418; color: #f6ecd6; }
+.sb-mat-teller { display: inline-flex; align-items: center; gap: 6px; }
+.sb-mat-teller button {
+  width: 24px; height: 24px; border-radius: 50%;
+  border: 1px solid #9a6830; color: #6a4418; background: #f6ecd6; line-height: 1;
+}
+.sb-mat-teller button:disabled { opacity: .35; }
+.sb-mat-aantal { font-family: 'Cinzel', serif; font-weight: 700; min-width: 2.2em; text-align: center; }
+.sb-mat-aantal.is-leeg { color: #8a2a18; }
+.sb-mat-op {
+  margin-top: 9px; padding-top: 8px; border-top: 1px dashed rgba(138,42,24,0.4);
+  display: flex; flex-direction: column; gap: 7px;
+}
+.sb-mat-op-tekst { color: #8a2a18; font-style: italic; display: flex; align-items: center; gap: 6px; }
+.sb-mat-op-tekst .icon { width: 14px; height: 14px; }
+.sb-mat-op-rij { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.sb-mat-op-lbl { font-size: 12px; color: #7a6040; }
+.sb-mat-bedrag {
+  width: 6.5em; padding: 3px 6px; border-radius: 4px;
+  border: 1px solid #9a6830; background: #fffaf0; color: #3a2410; font-family: inherit;
+}
+.sb-mat-knop {
+  display: inline-flex; align-items: center; gap: 5px;
+  font-family: 'Cinzel', serif; font-size: 11px; padding: 4px 10px; border-radius: 5px;
+  border: 1px solid #9a6830; color: #6a4418; background: #f6ecd6;
+}
+.sb-mat-knop .icon { width: 12px; height: 12px; }
+.sb-mat-knop--goud { background: linear-gradient(to bottom, #b8860b, #8a6206); border-color: #d9b24a; color: #fff8ea; }

@@ -17,6 +17,7 @@ const personageConcept = require('../lib/personage-concept');
 const crypto = require('crypto');
 const { DISPLAY_FX, fxVoor, fxBericht } = require('../lib/display-fx');
 const OMG = require('../lib/omgeving');
+const MAT = require('../lib/materiaal');
 const spotify = require('../lib/spotify');
 const config  = require('../config');
 
@@ -7176,6 +7177,17 @@ router.post('/party/level-up-tegoed', requireDM, (req, res) => {
   res.json({ ok: true, tegoed: g.levelUpTegoed, spelers: ids });
 });
 
+// Mag een speler kostbaar materiaal uit de beurs afrekenen als zijn voorraad op
+// is? Een smaak, geen regel — dus een schakelaar, en standaard uit: zo deed de
+// app het altijd (er werd niets afgeschreven).
+router.put('/meta/materiaal', requireDM, (req, res) => {
+  const meta = storage.readJSON('meta.json');
+  meta.materiaal = { ...(meta.materiaal || {}), kasboek: !!req.body?.kasboek };
+  storage.writeJSON('meta.json', meta);
+  req.app.get('io').to(_campagneRoom(req)).emit('meta:updated');
+  res.json({ ok: true, materiaal: meta.materiaal });
+});
+
 // De DM kiest welke manieren van HP bepalen er aan zijn tafel gelden.
 router.put('/meta/levelup', requireDM, (req, res) => {
   const meta = storage.readJSON('meta.json');
@@ -8604,7 +8616,13 @@ router.get('/player-spells/:characterId', attachRole, (req, res) => {
   if (req.role !== 'dm' && req.session.characterId !== characterId)
     return res.status(403).json({ error: 'Geen toegang' });
   const dmState = readDmState();
-  res.json((dmState.playerSpells || {})[characterId] || []);
+  // `_materiaal` is afgeleid (wat de M-component kost en of hij opgaat) plus
+  // de stand van de speler — zie lib/materiaal.js. Niet opgeslagen: de tekst
+  // van de spreuk is de bron.
+  res.json(((dmState.playerSpells || {})[characterId] || []).map(sp => {
+    const m = MAT.voorClient(sp);
+    return m ? { ...sp, _materiaal: m } : sp;
+  }));
 });
 
 // Wie kent deze spreuk? Dezelfde vraag als "wie heeft dit voorwerp" bij een
@@ -8863,6 +8881,16 @@ router.patch('/player-spells/:characterId/:spellIndex', attachRole, (req, res) =
       spell.incPos = { x: klem(incPos.x), y: klem(incPos.y) };
     }
   }
+  // De M-component: altijd bij de hand, of een voorraad die per cast afloopt.
+  // `null` zet hem terug op wat de spreuk zelf suggereert.
+  if (req.body.materiaal !== undefined) {
+    if (req.body.materiaal === null) delete spell.materiaal;
+    else {
+      const st = MAT.schoneStand(req.body.materiaal);
+      if (!st) return res.status(400).json({ error: 'Ongeldige materiaalstand' });
+      spell.materiaal = st;
+    }
+  }
   // #1: concentratie-vlag (gebruikt door de Concentration-save-waarschuwing in combat).
   // Exclusief: maar één spreuk tegelijk actief.
   if (concentrationActive !== undefined) {
@@ -8871,6 +8899,48 @@ router.patch('/player-spells/:characterId/:spellIndex', attachRole, (req, res) =
   }
   storage.writeJSON('dm-state.json', dmState);
   res.json({ ok: true });
+});
+
+// ── Material components: een cast verbruikt materiaal ──────────────────────
+// Het spreukenboek roept dit aan op het moment dat een slot wordt afgevinkt.
+// Drie uitkomsten: "altijd bij de hand" (er gebeurt niets), een voorraad die
+// één omlaag gaat, of — als de voorraad op is en de DM het toestaat — het
+// bedrag uit de beurs. Op en geen afrekening: 409 met `op`, en de speler
+// beslist zelf of hij toch cast (de app weigert geen spreuk, hij rekent voor).
+router.post('/player-spells/:characterId/:spellIndex/materiaal', attachRole, (req, res) => {
+  const { characterId, spellIndex } = req.params;
+  if (req.role !== 'dm' && req.session.characterId !== characterId)
+    return res.status(403).json({ error: 'Geen toegang' });
+  const dmState = readDmState();
+  const spell = ((dmState.playerSpells || {})[characterId] || []).find(s => s.index === spellIndex);
+  if (!spell) return res.status(404).json({ error: 'Spreuk niet gevonden' });
+  const info = MAT.materiaalUit(spell.components, spell.material);
+  if (!info) return res.status(400).json({ error: 'Deze spreuk heeft geen M-component' });
+
+  if (req.body?.betaalCl !== undefined) {
+    // De schakelaar van de DM. Staat hij uit, dan bestaat deze weg niet —
+    // ook niet voor wie langs de knop heen gaat.
+    const meta = storage.readJSON('meta.json');
+    if (!meta.materiaal?.kasboek)
+      return res.status(409).json({ error: 'De DM staat afrekenen uit de beurs niet toe' });
+    const cl = Math.round(Number(req.body.betaalCl));
+    if (!(cl > 0)) return res.status(400).json({ error: 'Ongeldig bedrag' });
+    if (toCl(_effectiveCurrency(dmState, characterId) || {}) < cl)
+      return res.status(400).json({ error: 'Niet genoeg geld in de beurs' });
+    _deductCurrency(dmState, characterId, cl);
+    storage.writeJSON('dm-state.json', dmState);
+    const currency = _effectiveCurrency(dmState, characterId);
+    req.app.get('io')?.to(_campagneRoom(req)).emit('player:currency-updated', { characterId, currency });
+    return res.json({ ok: true, betaaldCl: cl, currency, materiaal: MAT.voorClient(spell) });
+  }
+
+  const stand = MAT.standVan(spell, info);
+  if (stand.modus === 'altijd') return res.json({ ok: true, materiaal: MAT.voorClient(spell) });
+  if (stand.aantal <= 0)
+    return res.status(409).json({ error: 'Je materiaal is op', op: true, materiaal: MAT.voorClient(spell) });
+  spell.materiaal = { modus: 'voorraad', aantal: stand.aantal - 1 };
+  storage.writeJSON('dm-state.json', dmState);
+  res.json({ ok: true, materiaal: MAT.voorClient(spell) });
 });
 
 router.delete('/player-spells/:characterId/:spellIndex', attachRole, (req, res) => {

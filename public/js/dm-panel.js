@@ -13463,6 +13463,17 @@ async function _renderInstellingen() {
          dus stond een nieuwe speler niet in de inloglijst. Nu maakt hij een
          concept met het partywachtwoord en gun jij het. Wat hier staat is wat
          je hem toestaat — niet of de app het kan. -->
+    <!-- Material components: mag een speler wiens voorraad op is het
+         materiaal meteen uit de beurs betalen? Uitleg in inst_materiaal. -->
+    ${_instSectie('materiaal', 'Material components', `
+      <div class="dm-form-row">
+        <label class="dm-form-checkbox">
+          <input type="checkbox" id="inst-mat-kasboek"${window.app?.state?.meta?.materiaal?.kasboek ? ' checked' : ''}>
+          <span>Kostbaar materiaal mag uit de beurs worden afgerekend</span>
+        </label>
+      </div>
+    `, window._helpBtn?.('inst_materiaal') ?? '')}
+
     ${_instSectie('personage', 'Zelf een personage maken', `
       <div class="dm-form-row">
         <label class="dm-form-checkbox">
@@ -13840,6 +13851,11 @@ window._instOpslaan = async () => {
       maxLevel: parseInt(document.getElementById('inst-lu-max')?.value) || 20,
       systeem: document.getElementById('inst-lu-systeem')?.value || 'milestone',
     });
+
+    // Material components: alleen meesturen als het vinkje er staat — een
+    // paneel dat niet getekend is mag de stand niet stil op "uit" zetten.
+    const matVink = document.getElementById('inst-mat-kasboek');
+    if (matVink) await api.put('/meta/materiaal', { kasboek: !!matVink.checked });
 
     // Zelf een personage maken: eigen route, net als de level-upinstellingen.
     // Geen enkele manier aangevinkt zou betekenen dat de wizard geen scherm

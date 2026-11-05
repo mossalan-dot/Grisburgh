@@ -12,7 +12,7 @@ import './render-melding.js?v=4';
 import { renderVaardigheden, zoekVaardigheden, heldenboekTekst } from './render-vaardigheden.js?v=135';
 import { renderStatblock } from './render-statblock.js?v=9';
 import { initSocket } from "./socket-client.js?v=95";
-import { initDmPanel } from "./dm-panel.js?v=417";
+import { initDmPanel } from "./dm-panel.js?v=418";
 import { COND_INFO, COND_LABEL, COND_MET_PLAATJE, COND_ICON } from './conditions.js?v=4';
 import './media-picker.js?v=13';
 import './wizard.js?v=8';
@@ -5688,10 +5688,140 @@ function _sbRenderSlots() {
 window._sbToggleSlot = async function(lvl, i) {
   const slot = _sbState.slots[lvl] || { max: 0, used: 0 };
   const newUsed = i < slot.used ? i : i + 1;
+  // Een bolletje afvinken ís casten, dus daar gaat het materiaal op. Loslaten
+  // geeft niets terug: een slot komt ook vrij door een rust.
+  if (newUsed > slot.used && !(await _sbMateriaalBijCast(lvl, i))) return;
+  return _sbSlotZet(lvl, i);
+};
+
+async function _sbSlotZet(lvl, i) {
+  const slot = _sbState.slots[lvl] || { max: 0, used: 0 };
+  const newUsed = i < slot.used ? i : i + 1;
   _sbState.slots[lvl] = { ...slot, used: Math.min(Math.max(0, newUsed), slot.max) };
   _sbRenderSlots();
   if (_sbState.charId) {
     try { await api.setPlayerSpellSlots(_sbState.charId, _sbState.slots); } catch {}
+  }
+}
+
+// ── Material components ─────────────────────────────────────────────────────
+// Wat de M-component kost en of hij opgaat leidt de server af uit de tekst van
+// de spreuk (lib/materiaal.js) en stuurt hij mee als `_materiaal`; de speler
+// kiest alleen of hij het altijd bij de hand heeft of een voorraad bijhoudt.
+// Standaard: verbruikt materiaal met een prijs telt af, de rest is altijd bij
+// de hand (een component pouch dekt alles zonder prijs).
+function _sbMatChips(m) {
+  return [
+    m.waardeCl > 0 ? `<span class="sb-mat-chip" title="Wat het materiaal waard is">${icon('coins')} ${esc(window.formatCl(m.waardeCl))}</span>` : '',
+    m.verbruikt ? `<span class="sb-mat-chip sb-mat-chip--op" title="De spreuk verbruikt het materiaal">${icon('flame')} Verbruikt</span>` : '',
+  ].join('');
+}
+
+function _sbRenderMateriaal() {
+  const zone = document.getElementById('sb-materiaal-zone');
+  const spell = _sbState.spells[_sbState.idx];
+  const m = spell?._materiaal;
+  if (!zone || !m) return;
+  const wacht = _sbState.matWacht;
+  const magKasboek = !!window.app?.state?.meta?.materiaal?.kasboek && m.waardeCl > 0;
+  const munt = (window._muntNamen?.() || {}).fl || 'gp';
+  // Het paneel als de voorraad op is en er net een slot werd afgevinkt.
+  const opPaneel = wacht ? `
+    <div class="sb-mat-op">
+      <div class="sb-mat-op-tekst">${icon('package')} Je materiaal is op.</div>
+      ${magKasboek ? `<div class="sb-mat-op-rij">
+        <label class="sb-mat-op-lbl" for="sb-mat-bedrag">${esc(munt)}</label>
+        <input id="sb-mat-bedrag" class="sb-mat-bedrag" inputmode="decimal"
+          value="${String(m.waardeCl / 100).replace('.', ',')}" title="Wat je uit de beurs afrekent">
+        <button class="sb-mat-knop sb-mat-knop--goud" onclick="window._sbMatAfrekenen()">${icon('coins')} Afrekenen en casten</button>
+      </div>` : ''}
+      <div class="sb-mat-op-rij">
+        <button class="sb-mat-knop" onclick="window._sbMatTochCasten()" title="Je hebt het toch, of de DM gaf het je">Toch casten</button>
+        <button class="sb-mat-knop" onclick="window._sbMatNiet()">Niet casten</button>
+      </div>
+    </div>` : '';
+  zone.innerHTML = `
+    <div class="sb-mat-kop">
+      <span class="sb-meta-key">Material</span>
+      ${_sbMatChips(m)}
+    </div>
+    <div class="sb-mat-stand">
+      <div class="sb-mat-keuze" role="group" aria-label="Materiaal">
+        <button class="${m.modus === 'altijd' ? 'is-aan' : ''}" onclick="window._sbMatModus('altijd')"
+          title="Een component pouch of focus dekt het, of je bezit het al">Altijd bij de hand</button>
+        <button class="${m.modus === 'voorraad' ? 'is-aan' : ''}" onclick="window._sbMatModus('voorraad')"
+          title="Elke cast kost één keer materiaal">Voorraad</button>
+      </div>
+      ${m.modus === 'voorraad' ? `<div class="sb-mat-teller">
+        <button onclick="window._sbMatAantal(-1)" ${m.aantal > 0 ? '' : 'disabled'} title="Eén minder">−</button>
+        <span class="sb-mat-aantal${m.aantal ? '' : ' is-leeg'}" title="Zo vaak kun je hem nog casten">${m.aantal}×</span>
+        <button onclick="window._sbMatAantal(1)" title="Eén meer">+</button>
+      </div>` : ''}
+    </div>
+    ${opPaneel}`;
+}
+
+async function _sbMatOpslaan(nieuw) {
+  const spell = _sbState.spells[_sbState.idx];
+  const m = spell?._materiaal;
+  if (!m || !_sbState.charId) return;
+  const vorig = { ...m };
+  Object.assign(m, nieuw, { eigen: true });
+  _sbRenderMateriaal();
+  try { await api.updatePlayerSpell(_sbState.charId, spell.index, { materiaal: { modus: m.modus, aantal: m.aantal } }); }
+  catch (e) { Object.assign(m, vorig); _sbRenderMateriaal(); window._showToast?.(`${icon('x')} ${esc(e.message)}`, null, 3000); }
+}
+window._sbMatModus  = (modus) => _sbMatOpslaan({ modus });
+window._sbMatAantal = (d) => {
+  const m = _sbState.spells[_sbState.idx]?._materiaal;
+  if (m) _sbMatOpslaan({ aantal: Math.max(0, (m.aantal || 0) + d) });
+};
+
+// Geeft true als de cast door mag. Op en nog niets besloten: het paneel gaat
+// open en de cast wacht (het bolletje blijft vrij).
+async function _sbMateriaalBijCast(lvl, i) {
+  const spell = _sbState.spells[_sbState.idx];
+  const m = spell?._materiaal;
+  if (!m || m.modus !== 'voorraad' || !_sbState.charId) return true;
+  try {
+    const r = await api.post(`/player-spells/${_sbState.charId}/${spell.index}/materiaal`, {});
+    if (r?.materiaal) spell._materiaal = r.materiaal;
+    _sbRenderMateriaal();
+    return true;
+  } catch (e) {
+    if (!e.data?.op) return true;            // een storing houdt de cast niet tegen
+    if (e.data.materiaal) spell._materiaal = e.data.materiaal;
+    _sbState.matWacht = { lvl, i };
+    // Geen scrollIntoView: het boek ligt in een schuifbak met de
+    // inhoudsopgave ernaast, en dan schuift het hele boek opzij.
+    _sbRenderMateriaal();
+    return false;
+  }
+}
+
+window._sbMatNiet = () => { _sbState.matWacht = null; _sbRenderMateriaal(); };
+window._sbMatTochCasten = async () => {
+  const w = _sbState.matWacht;
+  _sbState.matWacht = null;
+  _sbRenderMateriaal();
+  if (w) await _sbSlotZet(w.lvl, w.i);
+};
+window._sbMatAfrekenen = async () => {
+  const w = _sbState.matWacht;
+  const spell = _sbState.spells[_sbState.idx];
+  if (!w || !spell) return;
+  const ruw = String(document.getElementById('sb-mat-bedrag')?.value || '').replace(',', '.');
+  const betaalCl = Math.round((parseFloat(ruw) || 0) * 100);
+  if (betaalCl <= 0) return;
+  try {
+    const r = await api.post(`/player-spells/${_sbState.charId}/${spell.index}/materiaal`, { betaalCl });
+    _sbState.matWacht = null;
+    if (r?.materiaal) spell._materiaal = r.materiaal;
+    _sbRenderMateriaal();
+    window._showToast?.(`${icon('coins')} ${esc(window.formatCl(r.betaaldCl))} afgerekend voor ${esc(spell.name)}`, null, 3500);
+    await _sbSlotZet(w.lvl, w.i);
+  } catch (e) {
+    window._showToast?.(`${icon('x')} ${esc(e.message)}`, null, 3500);
   }
 };
 
@@ -5963,6 +6093,7 @@ function _sbRender() {
           }</div>` : '<div></div>'}
           ${statsBlok}
         </div>` : ''}
+        ${spell._materiaal ? '<div class="sb-materiaal" id="sb-materiaal-zone"></div>' : ''}
         ${hasHigher ? `<label class="sb-higher-toggle">
           <input type="checkbox" id="sb-higher-check" onchange="window._sbToggleHigher(this.checked)">
           <span>Op een hoger Spell Slot level</span>
@@ -5971,6 +6102,8 @@ function _sbRender() {
         ${(badges || metaRows.length) ? '<div class="sb-divider"></div>' : ''}
         <div class="sb-desc">${desc || '<em>Geen beschrijving beschikbaar.</em>'}</div>`;
       contentEl.scrollTop = 0;
+      _sbState.matWacht = null;
+      _sbRenderMateriaal();
       // Apply glossary tooltips to the rendered content (text nodes only)
       _sbApplyGlossary_DOM(contentEl);
     }
@@ -15406,6 +15539,10 @@ const HELP_CONFIG = {
     { titel: 'Visuele effecten bij schade', tekst: 'Zet je dit aan, dan praat het **tafelscherm** mee zodra er HP verandert: een rode flits als iemand een klap krijgt, een feller beeld bij zware schade, en een donkerrode schemer zolang er iemand op 0 ligt.\n\nAlleen schade doet iets. Genezing uit een rust of een level-up laat het scherm met rust — anders flitste het bij elke lange rust, en dan betekent een flits niets meer. Het volgt dus wat je aan tafel als klap opschrijft.', afbeelding: null },
   ] }),
 
+  inst_materiaal: () => ({ titel: 'Material components', stappen: [
+    { titel: 'Wat de spelers bijhouden', tekst: 'In hun spreukenboek kiezen spelers per spreuk met een M-component of ze het materiaal **altijd bij de hand** hebben (een component pouch of focus dekt alles zonder prijs) of een **voorraad** bijhouden die bij elke cast één omlaag gaat. Verbruikt materiaal met een prijs (*a diamond worth 300+ GP, which the spell consumes*) begint vanzelf als voorraad van nul.', afbeelding: null },
+    { titel: 'Afrekenen uit de beurs', tekst: 'Zet je dit aan, dan krijgt een speler wiens voorraad op is de keuze om het materiaal meteen uit de beurs te betalen — de gedeelde partybeurs als die aanstaat, anders zijn eigen. Het bedrag komt uit de tekst van de spreuk en staat in een veld dat hij mag overtypen; is er te weinig geld, dan weigert de server.\n\nStaat het uit, dan is die knop er niet en weigert de server het ook. De speler kan dan nog steeds *toch casten*: de app houdt geen spreuk tegen, hij rekent alleen voor.', afbeelding: null },
+  ] }),
   inst_levelup: () => ({ titel: 'Level omhoog', stappen: [
     { titel: 'XP of Milestone', tekst: 'Bij **Milestone** gun jij het level: je zet een level-up klaar wanneer het verhaal daar is. Bij **XP** wordt hij verdiend — je deelt punten uit met de XP-knop in de regie-balk (die het bedrag van het lopende gevecht al voorstelt) en de level-up staat vanzelf klaar zodra iemand over de drempel komt. Omzetten kan altijd.', afbeelding: null },
     { titel: 'De nullijn bij XP', tekst: 'Speelde je eerst op Milestone, dan heeft iedereen wel een level maar nog geen XP en staat elke balk op nul. De knop **Ieders XP op de nullijn zetten** geeft ieder het minimum dat bij zijn huidige level hoort; wie al meer had houdt dat, en niemand krijgt er een level-up van. Twee keer drukken kan dus geen kwaad.', afbeelding: null },
@@ -15821,6 +15958,11 @@ const HELP_CONFIG = {
       {
         titel: 'Deze spreuk',
         tekst: 'Alles wat je aan de spreuk kunt hangen die openligt. **Incantatie** — de spreukformule die jij uitspreekt; die verschijnt als een briefje op de linkerpagina. **Level verkregen** — op welk level je hem leerde; hoe lager, hoe geler het papier. **Concentration** — de concentratie-teller starten of stoppen. **Marginalia** — kleine symbolen in de kantlijn (schade, healing, utility…): kies een icoon, typ eventueel een toelichting en klik +.',
+        afbeelding: null,
+      },
+      {
+        titel: 'Material',
+        tekst: 'Heeft een spreuk een M-component, dan staat onder de gegevens wat het materiaal waard is en of de spreuk het **verbruikt**. Kies **Altijd bij de hand** als een component pouch of focus het dekt, of als je het (dure) ding gewoon bezit. Kies **Voorraad** als je het telt: elke keer dat je voor deze spreuk een slot afvinkt gaat er één af, en met − en + stel je bij wat je hebt. Verbruikt materiaal met een prijs staat vanzelf op Voorraad, beginnend bij nul.\n\nIs je voorraad op, dan houdt het boek je cast even vast. Je kunt **toch casten** (je hebt het wél, of de DM gaf het je), **niet casten**, of — als je DM dat toestaat — het bedrag **uit de beurs afrekenen**. Dat bedrag is een voorstel: staat er "per target" in de tekst, tik dan zelf het juiste getal in.',
         afbeelding: null,
       },
       {
