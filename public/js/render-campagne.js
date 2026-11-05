@@ -4365,20 +4365,25 @@ function _naarRect(el, r) {
 // Algemeen, zodat het bestiarium (een eigen bestand met een eigen venster) het
 // ook kan: `tegel()` geeft het element terug, `open()` opent het venster, en
 // `nogHier()` zegt bij het sluiten of het venster nog over déze tegel gaat.
-async function _vensterUitTegel(tegel, open, nogHier = () => true) {
+// Een eigen venster (het spreukdetail) geeft `venster` en `waas` mee en krijgt
+// de sluitanimatie via `haak` terug, in plaats van via de haak van closeModal.
+async function _vensterUitTegel(tegel, open, nogHier = () => true, {
+  venster = '#modal-overlay .modal', waasSel = '#modal-overlay',
+  haak = (fn) => { window._modalSluitAnimatie = fn; },
+} = {}) {
   const r0 = tegel()?.getBoundingClientRect();
   await open();
-  const modal = document.querySelector('#modal-overlay .modal');
+  const modal = document.querySelector(venster);
   const rustig = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
   if (!modal || !r0 || rustig) return;
   const van = _naarRect(modal, r0);
-  const waas = document.getElementById('modal-overlay');
+  const waas = document.querySelector(waasSel);
   if (van) {
     modal.animate([{ transform: van, opacity: 0.4 }, { transform: 'none', opacity: 1 }],
       { duration: 380, easing: 'cubic-bezier(.2,.8,.2,1)' });
     waas?.animate([{ backgroundColor: 'rgba(60,40,10,0)' }, {}], { duration: 380 });
   }
-  window._modalSluitAnimatie = () => {
+  haak(() => {
     if (!nogHier()) return null;
     const r1 = tegel()?.getBoundingClientRect();
     const naar = r1 && _naarRect(modal, r1);
@@ -4390,7 +4395,7 @@ async function _vensterUitTegel(tegel, open, nogHier = () => true) {
     const w = waas?.animate([{}, { backgroundColor: 'rgba(60,40,10,0)', backdropFilter: 'blur(0px)' }],
       { duration: 300, fill: 'forwards' });
     return a.finished.then(() => setTimeout(() => { a.cancel(); w?.cancel(); }, 400));
-  };
+  });
 }
 window._tegelVensterUit = _vensterUitTegel;
 

@@ -348,13 +348,13 @@ De app gebruikt querystring cache-busting (`?v=N`). **Vergeten = browser haalt o
 **Huidige versies (bij te houden):**
 
 ```
-index.html  : theme.css?v=921   app.js?v=1186   sound-manager.js?v=15
-app.js      : api.js?v=319  dm-panel.js?v=416  media-picker.js?v=13  tafels.js?v=2  terugblik.js?v=3  rage.js?v=4  klassekracht.js?v=5  personage-maken.js?v=9  gevecht-regie.js?v=2
-              render-archief.js?v=145  render-bestiarium.js?v=35  render-campagne.js?v=356
-              render-dungeon.js?v=71  render-kaart.js?v=34  render-progressie.js?v=66
-              render-relatiemap.js?v=35  render-spreuken.js?v=53  render-vaardigheden.js?v=135
-              render-statblock.js?v=9  socket-client.js?v=94  wizard.js?v=8  conditions.js?v=4
-dm-panel.js : akte-schrijven.js?v=37  combat-canvas.js?v=38  render-statblock.js?v=9
+index.html  : theme.css?v=922   app.js?v=1187   sound-manager.js?v=15
+app.js      : api.js?v=319  dm-panel.js?v=417  media-picker.js?v=13  tafels.js?v=2  terugblik.js?v=3  rage.js?v=4  klassekracht.js?v=5  personage-maken.js?v=9  gevecht-regie.js?v=2
+              render-archief.js?v=146  render-bestiarium.js?v=35  render-campagne.js?v=357
+              render-dungeon.js?v=72  render-kaart.js?v=34  render-progressie.js?v=66
+              render-relatiemap.js?v=36  render-spreuken.js?v=54  render-vaardigheden.js?v=135
+              render-statblock.js?v=9  socket-client.js?v=95  wizard.js?v=8  conditions.js?v=4
+dm-panel.js : akte-schrijven.js?v=37  combat-canvas.js?v=39  render-statblock.js?v=9
 ```
 
 > **Een importeur moet zelf ook opschuiven.** `index.html` vraagt om `app.js?v=N`.
@@ -2703,6 +2703,7 @@ sprite v=22): `orbit` `cog` `squirrel` `bug` `puzzle` `droplets`
 `shield-check` (Resistance) `cloud-lightning` (storm)
 
 **Toegevoegd voor de tegels** (Lucide, ISC, 4 nov 2026, sprite v=28): `minimize-2`
+**Toegevoegd voor de spreuktegels** (Lucide, ISC, 5 nov 2026, sprite v=29): `chevrons-up` (At Higher Levels)
 
 **Toegevoegd voor de species-iconen** (Lucide, ISC, 18 okt 2026, sprite v=20): `clover`
 `axe` `footprints` `scan-face` `gem` `hard-hat` `sunset` `leaf` `flower` `flower-2`
@@ -3884,6 +3885,17 @@ antwoord van de route) hoort `_effectiveCurrency` te gebruiken.
 > en `_tegelVensterUit(tegel, open, nogHier)`. Zijn bladen (`_bladen` in
 > `render-bestiarium.js`): gegevens (met het kennisniveau voor de DM),
 > beschrijving en roddel; de niveauletter hertekent het raster.
+> **De spreukenbibliotheek** (5 nov 2026) doet hetzelfde in
+> `render-spreuken.js` (`_tegel`, `_bladen`: plaat, gegevens, beschrijving,
+> At Higher Levels). Zonder plaat staat de tegel op de **schoolkleur** met het
+> schoolteken, en `onload` haalt `no-img` er pas af als de thumbnail er is —
+> anders knippert een raster van 500 spreuken zonder plaat. Het venster is
+> hier een eigen overlay, dus `_tegelVensterUit` kreeg een vierde argument
+> `{venster, waasSel, haak}`: de krimpbeweging komt via `haak` terug en
+> `spreuken.close()` wacht erop. De aanvraagknop van de speler zit in de
+> voetbalk en houdt klasse en `data-idx` van het oude kaartje, zodat
+> `_markAdded`/`_markWachtend` hem gewoon bijwerken. Het oude `_card` blijft
+> als terugval zolang `window._tegelFlip` er nog niet is.
 > **Valkuil bij het testen:** een verborgen sectie blijft in de DOM staan, dus
 > `.tegel--open` vindt ook de open tegel van het vorige tabblad — zoek binnen
 > `#section-<type>`.

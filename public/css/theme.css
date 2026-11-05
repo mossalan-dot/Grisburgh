@@ -32429,3 +32429,54 @@ body.gr-slowmo .combat-overlay { filter: grayscale(.85) contrast(1.1) brightness
 .tegel.no-img .tegel-merk { display: none; }
 .tegel-perkament p { margin: 0; }
 .tegel-perkament[data-stijl="knipsel"] { font-size: 10px; }
+
+/* ══════════════════════════════════════════════════════════════════
+   Spreuken als tegels
+   ══════════════════════════════════════════════════════════════════
+   Dezelfde tegel als de archief-tabbladen. Zonder plaat staat het
+   schoolteken op de schoolkleur (--school-c1/c2 op de tegel), zodat een
+   rij spreuken zonder platen nog altijd leest als acht scholen. */
+.spreuk-tegel.no-img {
+  background: radial-gradient(ellipse at 50% 36%, var(--school-c2), var(--school-c1));
+}
+.spreuk-tegel.no-img .spreuk-tegel-icoon { color: rgba(242,232,210,0.55); }
+.spreuk-tegel.no-img .spreuk-tegel-icoon .icon { width: 44px; height: 44px; }
+.spreuk-tegel.no-img .tegel-naamband {
+  background: linear-gradient(to top, rgba(20,12,4,0.55), rgba(20,12,4,0));
+}
+.spreuk-tegel.no-img .tegel-naamband .card-name,
+.spreuk-tegel.no-img .tegel-naamband .tegel-ondertitel { color: #f2e8d2; text-shadow: 0 1px 2px rgba(0,0,0,0.6); }
+.spreuk-tegel-niv {
+  position: absolute; top: 8px; left: 8px; z-index: 5;
+  min-width: 22px; height: 22px; padding: 0 5px; border-radius: 11px;
+  display: inline-flex; align-items: center; justify-content: center;
+  font-family: 'Cinzel', serif; font-size: 0.7rem; font-weight: 700;
+  color: #f2e8d2; background: linear-gradient(135deg, var(--school-c1), var(--school-c2));
+  border: 1px solid rgba(242,232,210,0.55); box-shadow: 0 1px 3px rgba(0,0,0,0.35);
+}
+.spreuk-tegel-merk {
+  position: absolute; top: 8px; right: 8px; z-index: 5;
+  width: 20px; height: 20px; border-radius: 50%;
+  display: inline-flex; align-items: center; justify-content: center;
+  color: #fff; background: rgba(42,122,58,0.92); border: 1px solid rgba(255,255,255,0.6);
+}
+.spreuk-tegel-merk .icon { width: 11px; height: 11px; }
+.spreuk-tegel--inboek.spreuk-tegel--inboek { box-shadow: 0 0 0 2px rgba(42,122,58,0.55), 0 2px 8px rgba(42,26,8,0.18); }
+/* Het schoolzegel in de kop van een tekstblad: geen portret, wel een gezicht. */
+.spreuk-tegel-zegel.spreuk-tegel-zegel {
+  display: inline-flex; align-items: center; justify-content: center;
+  color: #f2e8d2; background: radial-gradient(circle at 40% 35%, var(--school-c2), var(--school-c1));
+}
+.spreuk-tegel-zegel .icon { width: 13px; height: 13px; }
+/* De boek-knop staat in de voetbalk, niet meer in de hoek van het kaartje. */
+.tegel-voet .spreuk-tegel-add.spreuk-tegel-add {
+  position: static; width: 28px; height: 28px;
+  -webkit-backdrop-filter: none; backdrop-filter: none; box-shadow: none;
+  color: #f2e8d2; background: #7a5a20; border: 1px solid rgba(196,168,122,0.7);
+}
+.tegel-voet .spreuk-tegel-add.is-added { background: rgba(42,122,58,0.92); }
+.tegel-voet .spreuk-tegel-add.is-wachtend { background: rgba(58,70,96,0.9); }
+.spreuk-tegel-tekst { font-size: 0.86rem; }
+.spreuk-tegel .tegel-badges .spreuk-tag { font-size: 0.7rem; }
+/* Op een tekstblad staat het level al in de kop van het vel; het bolletje viel erover. */
+.spreuk-tegel.tegel--open:has(.tegel-blad:not([data-soort="portret"])) .spreuk-tegel-niv { display: none; }

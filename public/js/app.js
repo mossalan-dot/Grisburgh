@@ -1,18 +1,18 @@
 import { api, campagneUitUrl, zetCampagne } from './api.js?v=319';
-import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, renderDocumenten, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=356";
-import { initArchief, renderLogboek, openLogboekEditor } from "./render-archief.js?v=145";
+import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, renderDocumenten, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=357";
+import { initArchief, renderLogboek, openLogboekEditor } from "./render-archief.js?v=146";
 import { renderKaart, queueFlyTo, verversPins, nieuweKaart } from './render-kaart.js?v=34';
-import { renderDungeon } from './render-dungeon.js?v=71';
-import { renderRelatiemap } from './render-relatiemap.js?v=35';
+import { renderDungeon } from './render-dungeon.js?v=72';
+import { renderRelatiemap } from './render-relatiemap.js?v=36';
 import { renderProgressie, levelupFeatures } from './render-progressie.js?v=66';
 import { renderBestiarium } from './render-bestiarium.js?v=35';
-import { renderSpreuken } from './render-spreuken.js?v=53';
+import { renderSpreuken } from './render-spreuken.js?v=54';
 import './render-handleiding.js?v=2';
 import './render-melding.js?v=4';
 import { renderVaardigheden, zoekVaardigheden, heldenboekTekst } from './render-vaardigheden.js?v=135';
 import { renderStatblock } from './render-statblock.js?v=9';
-import { initSocket } from "./socket-client.js?v=94";
-import { initDmPanel } from "./dm-panel.js?v=416";
+import { initSocket } from "./socket-client.js?v=95";
+import { initDmPanel } from "./dm-panel.js?v=417";
 import { COND_INFO, COND_LABEL, COND_MET_PLAATJE, COND_ICON } from './conditions.js?v=4';
 import './media-picker.js?v=13';
 import './wizard.js?v=8';
@@ -28,7 +28,7 @@ import './gevecht-regie.js?v=2';
 window.icon = function icon(name, { cls = '', title = '' } = {}) {
   const t   = title ? `<title>${title.replace(/[<>&"]/g, c => ({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[c]))}</title>` : '';
   const aria = title ? ' role="img"' : ' aria-hidden="true"';
-  return `<svg class="icon${cls ? ' '+cls : ''}"${aria} focusable="false"><use href="/img/icons.svg?v=28#icon-${name}"/>${t}</svg>`;
+  return `<svg class="icon${cls ? ' '+cls : ''}"${aria} focusable="false"><use href="/img/icons.svg?v=29#icon-${name}"/>${t}</svg>`;
 };
 const icon = (...a) => window.icon(...a);
 
@@ -3598,7 +3598,7 @@ function _kaartCard(type, m, dm, verdiepingen = null) {
 // eerste bestaande kaart: je drukte op + en keek naar Dreghaven.
 window._kaartNieuw = async function (type) {
   if (type === 'wereld') return nieuweKaart();
-  const { nieuweDungeon } = await import('./render-dungeon.js?v=71');
+  const { nieuweDungeon } = await import('./render-dungeon.js?v=72');
   nieuweDungeon();
 };
 
@@ -15755,6 +15755,17 @@ const HELP_CONFIG = {
       {
         titel: 'Dit zijn niet jouw spreuken',
         tekst: 'Deze bibliotheek bevat álle spreuken die in deze wereld bestaan — honderden, van elke klasse en elk niveau, en daarnaast wat de DM voor deze campagne zelf verzon. Je kunt er alles in opzoeken, maar je kent het niet uit je hoofd: wat jouw personage daadwerkelijk kan, staat in je eigen Spreukenboek onder je personage.',
+        afbeelding: null,
+      },
+      {
+        titel: 'Tik om te openen',
+        tekst: 'Elke spreuk is een kaartje met een plaat (of het teken van zijn school) en een naam; het getal linksboven is het level, een C is een cantrip. **Tik erop** en het wordt groot; **tik nog eens** en het draait om naar het volgende blad: gegevens, beschrijving en At Higher Levels. Zoek je op een woord uit de tekst, dan opent hij meteen op dat blad. Het pijltjesknopje rechtsonder opent de hele spreuk, en Escape maakt het kaartje weer klein.',
+        afbeelding: null,
+      },
+      {
+        titel: 'Een spreuk aanvragen',
+        rol: 'speler',
+        tekst: 'In een open kaartje staat onderaan een **plus**: daarmee vraag je de DM om die spreuk in je boek. Een zandloper betekent dat hij nog moet beslissen, een vinkje dat hij erin staat — dat vinkje zie je ook op het dichte kaartje.',
         afbeelding: null,
       },
       {
