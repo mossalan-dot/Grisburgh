@@ -2758,6 +2758,8 @@ function _renderRegieBalk() {
           ${window.app?.state?.meta?.levelup?.systeem === 'xp' ? `
           <button class="dm-regie-balk-btn" onclick="window.dmPanel.regieBalkXp(this)"
             title="XP uitdelen aan wie vanavond meedoet">${icon('star')} <span class="dm-rb-btn-label">XP</span></button>` : ''}
+          <button class="dm-regie-balk-btn" onclick="window.stemronde?.dm()"
+            title="Het mooiste moment van de avond — iedereen stemt, de winnaar krijgt Heroic Inspiration">${icon('vote')} <span class="dm-rb-btn-label">Stemmen</span></button>
           <span class="dm-rb-sep"></span>
           <button class="dm-regie-balk-btn" onclick="window.dmPanel.regieBalkBrief()" title="Stuur een verzegelde uitnodiging (factie of dienst)">${icon('mail')} <span class="dm-rb-btn-label">Uitnodiging</span></button>
           <button class="dm-regie-balk-btn" onclick="window.dmPanel.terugblikMenu(event)" title="Wat voorafging — een terugblik op de vorige sessie, op het tafelscherm">${icon('hourglass')} <span class="dm-rb-btn-label">Terugblik</span></button>

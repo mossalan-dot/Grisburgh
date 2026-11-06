@@ -1,5 +1,5 @@
 import { api, campagneUitUrl, zetCampagne } from './api.js?v=319';
-import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, renderDocumenten, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=358";
+import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, renderDocumenten, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=359";
 import { initArchief, renderLogboek, openLogboekEditor } from "./render-archief.js?v=147";
 import { renderKaart, queueFlyTo, verversPins, nieuweKaart } from './render-kaart.js?v=34';
 import { renderDungeon } from './render-dungeon.js?v=73';
@@ -11,8 +11,8 @@ import './render-handleiding.js?v=2';
 import './render-melding.js?v=4';
 import { renderVaardigheden, zoekVaardigheden, heldenboekTekst } from './render-vaardigheden.js?v=135';
 import { renderStatblock } from './render-statblock.js?v=9';
-import { initSocket } from "./socket-client.js?v=96";
-import { initDmPanel } from "./dm-panel.js?v=419";
+import { initSocket } from "./socket-client.js?v=97";
+import { initDmPanel } from "./dm-panel.js?v=420";
 import { COND_INFO, COND_LABEL, COND_MET_PLAATJE, COND_ICON } from './conditions.js?v=4';
 import './media-picker.js?v=13';
 import './wizard.js?v=8';
@@ -21,6 +21,7 @@ import './terugblik.js?v=3';
 import './rage.js?v=4';
 import './klassekracht.js?v=5';
 import './gevecht-regie.js?v=2';
+import './stemronde.js?v=1';
 
 // ── Icon helper ──
 // Renders an inline SVG <use> reference from /img/icons.svg.
@@ -28,7 +29,7 @@ import './gevecht-regie.js?v=2';
 window.icon = function icon(name, { cls = '', title = '' } = {}) {
   const t   = title ? `<title>${title.replace(/[<>&"]/g, c => ({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[c]))}</title>` : '';
   const aria = title ? ' role="img"' : ' aria-hidden="true"';
-  return `<svg class="icon${cls ? ' '+cls : ''}"${aria} focusable="false"><use href="/img/icons.svg?v=30#icon-${name}"/>${t}</svg>`;
+  return `<svg class="icon${cls ? ' '+cls : ''}"${aria} focusable="false"><use href="/img/icons.svg?v=31#icon-${name}"/>${t}</svg>`;
 };
 const icon = (...a) => window.icon(...a);
 
@@ -7704,6 +7705,7 @@ function _partyMetgezelHtml(lijst) {
               const pImgUrl   = api.thumbForEntity(e);
               const firstName = esc(_roepnaam(e.name));
               const isDier    = e.soort === 'dier' || e.subtype === 'dier';
+              const h         = e.huurling || null;
               const psub      = [e.data?.ras, e.data?.klasse].filter(Boolean).join(' · ');
               // Een metgezel kreeg geen HP-ring terwijl iedereen eromheen er wel
               // een heeft — terwijl juist een dier in een gevecht doodgaat.
@@ -7727,10 +7729,15 @@ function _partyMetgezelHtml(lijst) {
                       onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
                     <div class="party-portrait-fallback" style="display:none">${icon(isDier ? 'paw-print' : 'shield')}</div>
                   </div>
-                  <span class="party-portrait-soort" title="${isDier ? 'Huisdier' : 'Bondgenoot'}">${icon(isDier ? 'paw-print' : 'shield')}</span>
+                  <span class="party-portrait-soort" title="${h ? 'Huurling' : isDier ? 'Huisdier' : 'Bondgenoot'}">${icon(h ? 'coins' : isDier ? 'paw-print' : 'shield')}</span>
                 </div>
                 <div class="party-portrait-name">${firstName}</div>
-                ${e.baasje ? `<div class="party-portrait-sub">van ${esc(e.baasje.split(' ')[0])}</div>`
+                ${h ? `<div class="party-portrait-sub party-huurling-loon${h.achterstand ? ' party-huurling-loon--achter' : ''}"
+                        title="${h.betalerNaam ? `Betaald door ${esc(h.betalerNaam)}` : ''}">${
+                        h.wilWeg ? `${icon('door-open')} wil vertrekken`
+                        : h.achterstand ? `${h.achterstand} ${h.achterstand === 1 ? 'dag' : 'dagen'} achterstallig`
+                        : `${esc(window.formatCl(h.loon))} per dag`}</div>`
+                    : e.baasje ? `<div class="party-portrait-sub">van ${esc(e.baasje.split(' ')[0])}</div>`
                            : (psub ? `<div class="party-portrait-sub">${esc(psub)}</div>` : '')}
               </div>`;
   }).join('');
@@ -8728,6 +8735,7 @@ async function renderMijnKarakter(opts = {}) {
       <!-- ═══ TAB: Party ═══ -->
       <div id="pst-party" class="player-subtab-panel${_playerSubTab !== 'party' ? ' hidden' : ''}">
         <div style="display:flex;justify-content:flex-end;padding:4px 0 0">${_helpBtn('party')}</div>
+        <div id="party-stemronde"></div>
 
         ${inspired ? `
         <div class="player-dash-section player-inspiration-section">
@@ -8814,12 +8822,16 @@ async function renderMijnKarakter(opts = {}) {
             }).join('')}
           ${partyMembers.length ? '</div>' : ''}
           ${(() => {
+            // Een huurling is een medestander met een loonstrookje: eigen rij,
+            // want "wie betalen we?" is een andere vraag dan "wie loopt mee?".
             const groepen = [
               { soort: 'bondgenoot', kop: 'Medestanders', ic: 'shield' },
+              { soort: 'huurling',   kop: 'Huurlingen',   ic: 'coins' },
               { soort: 'dier',       kop: 'Huisdieren',   ic: 'paw-print' },
             ];
+            const soortVan = c => c.huurling ? 'huurling' : (c.soort || (c.subtype === 'dier' ? 'dier' : 'bondgenoot'));
             return groepen.map(g => {
-              const lijst = companions.filter(c => (c.soort || (c.subtype === 'dier' ? 'dier' : 'bondgenoot')) === g.soort);
+              const lijst = companions.filter(c => soortVan(c) === g.soort);
               if (!lijst.length) return '';
               return `<div class="party-groep-kop">${icon(g.ic)} ${g.kop}</div>
                 <div class="player-dash-party-row">${_partyMetgezelHtml(lijst)}</div>`;
@@ -9629,6 +9641,7 @@ async function renderMijnKarakter(opts = {}) {
   window._krachtBlok?.();
   _partyGevallenen();
   _partyGevangenen();
+  window.stemronde?.partyKaart();
   // De portretten staan er nu; hang de badges eraan.
   window._badgesLaden?.();
 
@@ -15038,6 +15051,7 @@ const HELP_CONFIG = {
     { titel: 'Wie is dit', tekst: 'Onder de naam staan zijn rol, volk en klasse. De beschrijving vertelt wat je van hem weet; namen die je al kent zijn klikbaar. Een badge op de kaart laat zien of hij een verkoper is of je in de weg staat.', afbeelding: null },
     { titel: 'Roddels en geheimen', tekst: 'De **roddel** is wat er over hem verteld wordt — bij meerdere blader je met de pijltjes. Een **geheim** zie je pas als je het ontdekt hebt; onthulde geheimen kunnen alles veranderen wat je van iemand dacht te weten.', afbeelding: null },
     { titel: 'Waar hoort hij bij', tekst: 'Onder **Waar hoort dit personage bij?** staat waaraan hij verbonden is: eigenaar van een herberg, lid van een gilde, verkoper in een winkel. Klik erop om daarheen te gaan.', afbeelding: null },
+    { titel: 'Huurling', rol: 'dm', tekst: 'Met **Huurling** neem je hem in dienst bij de **actieve party**, voor een loon per dag. De app stelt 2 gouden munten voor (de PHB-prijs voor een geschoolde kracht; een ongeschoolde kost er 2 zilveren) — tik in wat er aan tafel is afgesproken. Hij wordt meteen medestander.\n\nEen dag is een **lange rust**: dan gaat het loon uit de beurs van wie betaalt (of de gedeelde beurs). Is daar te weinig, dan krijgt hij niets en telt hij dat. Na **twee dagen** zonder loon wil hij vertrekken — je ziet het op zijn knop en krijgt een melding — maar hij gaat pas als jij op *Laat hem gaan* drukt. Betalen kan ook achteraf: *Achterstand betalen* doet het in één keer.', afbeelding: null },
     { titel: 'Gevangen nemen', rol: 'dm', tekst: 'Met **Gevangen** in de knoppenrij zet je hem vast bij de **actieve party**; je mag erbij zetten waar ze hem houden. Hij komt dan bij de spelers in het partytabblad te staan, naast de medestanders, en zijn kaartje krijgt tralies over het portret. Dezelfde knop laat hem weer vrij.\n\nTwee dingen gebeuren erbij. Liep hij als **medestander** mee, dan gaat hij daar af (je krijgt eerst de vraag). En stond zijn kaartje voor deze party op **verborgen**, dan wordt het **vaag**: ze hebben hem in handen, dus ze weten dát hij er is — maar zijn naam en gegevens onthul je zelf. Het geldt per party: bij een andere party kan hij gewoon vrij rondlopen.', afbeelding: null },
   ] }),
   hulp_kijk_personages_sheet: () => ({ titel: 'Het blad', stappen: [
@@ -15582,6 +15596,12 @@ const HELP_CONFIG = {
     { titel: 'Wat de spelers bijhouden', tekst: 'In hun spreukenboek kiezen spelers per spreuk met een M-component of ze het materiaal **altijd bij de hand** hebben (een component pouch of focus dekt alles zonder prijs) of een **voorraad** bijhouden die bij elke cast één omlaag gaat. Verbruikt materiaal met een prijs (*a diamond worth 300+ GP, which the spell consumes*) begint vanzelf als voorraad van nul.', afbeelding: null },
     { titel: 'Afrekenen uit de beurs', tekst: 'Zet je dit aan, dan krijgt een speler wiens voorraad op is de keuze om het materiaal meteen uit de beurs te betalen — de gedeelde partybeurs als die aanstaat, anders zijn eigen. Het bedrag komt uit de tekst van de spreuk en staat in een veld dat hij mag overtypen; is er te weinig geld, dan weigert de server.\n\nStaat het uit, dan is die knop er niet en weigert de server het ook. De speler kan dan nog steeds *toch casten*: de app houdt geen spreuk tegen, hij rekent alleen voor.', afbeelding: null },
   ] }),
+  stemronde: () => ({ titel: 'Het mooiste moment van de avond', stappen: [
+    { titel: 'Wat het is', tekst: 'Aan het eind van een sessie stemt iedereen die meedeed op wiens moment het mooiste was: een vondst, een grap, een sprong van het dak. Op jezelf stemmen kan niet. De winnaar krijgt **Heroic Inspiration**, en het tafelscherm laat hem zien met de redenen die de anderen erbij schreven.', afbeelding: null },
+    { titel: 'Geheim, ook voor jou', tekst: 'Je ziet hoeveel er gestemd hebben, niet wie op wie — de server bewaart dat wel (je mag je stem wijzigen zolang de ronde open is) maar geeft het nooit terug. De redenen komen bij de uitslag naamloos en door elkaar op tafel.', rol: 'dm', afbeelding: null },
+    { titel: 'Sluiten', tekst: 'Je sluit de ronde wanneer je wilt; wie dan nog niet stemde, telt niet mee. Bij een **gelijke stand** kies jij uit wie er gelijk staan — de app trekt geen lot. Had de winnaar al Heroic Inspiration, dan zegt de melding dat: hij mag hem volgens de PHB dan doorgeven aan iemand anders. **Afbreken** sluit zonder winnaar.', rol: 'dm', afbeelding: null },
+    { titel: 'Geheugensteun', tekst: 'Wie vanavond een genadeslag beschreef ("How do you want to do this?"), staat onder de kandidaten nog even terug — om te helpen herinneren, niet als voorstel.', afbeelding: null },
+  ] }),
   inst_levelup: () => ({ titel: 'Level omhoog', stappen: [
     { titel: 'XP of Milestone', tekst: 'Bij **Milestone** gun jij het level: je zet een level-up klaar wanneer het verhaal daar is. Bij **XP** wordt hij verdiend — je deelt punten uit met de XP-knop in de regie-balk (die het bedrag van het lopende gevecht al voorstelt) en de level-up staat vanzelf klaar zodra iemand over de drempel komt. Omzetten kan altijd.', afbeelding: null },
     { titel: 'De nullijn bij XP', tekst: 'Speelde je eerst op Milestone, dan heeft iedereen wel een level maar nog geen XP en staat elke balk op nul. De knop **Ieders XP op de nullijn zetten** geeft ieder het minimum dat bij zijn huidige level hoort; wie al meer had houdt dat, en niemand krijgt er een level-up van. Twee keer drukken kan dus geen kwaad.', afbeelding: null },
@@ -16042,8 +16062,13 @@ const HELP_CONFIG = {
         afbeelding: null,
       },
       {
-        titel: 'Medestanders, huisdieren en gevangenen',
-        tekst: 'Onder de party staan wie er met jullie meeloopt: **medestanders** (een NPC die met jullie optrekt) en **huisdieren** (met het baasje erbij). Daaronder de **gevangenen**: wie jullie hebben vastgezet of meeslepen, achter tralies, met eronder waar jullie hem vasthouden. Een gevangene die jullie nog niet echt kennen staat er vaag: je ziet dát hij er is, niet wie hij is. Tik op een portret om zijn kaartje te openen.',
+        titel: 'Medestanders, huurlingen en gevangenen',
+        tekst: 'Onder de party staan wie er met jullie meeloopt: **medestanders** (een NPC die met jullie optrekt), **huurlingen** (met hun loon per dag — dat gaat bij elke lange rust uit de beurs, en wie te lang niets krijgt wil vertrekken) en **huisdieren** (met het baasje erbij). Daaronder de **gevangenen**: wie jullie hebben vastgezet of meeslepen, achter tralies, met eronder waar jullie hem vasthouden. Een gevangene die jullie nog niet echt kennen staat er vaag: je ziet dát hij er is, niet wie hij is. Tik op een portret om zijn kaartje te openen.',
+        afbeelding: null,
+      },
+      {
+        titel: 'Het mooiste moment van de avond',
+        tekst: 'Aan het eind van de avond kan de DM een stemronde openen. Bovenaan dit tabblad verschijnt dan een kaart met de anderen: tik op wiens moment het mooiste was, en schrijf er als je wilt in één zin bij waarom. Je stem is geheim, ook voor de DM; je reden komt naamloos op tafel als de uitslag er is. De winnaar krijgt Heroic Inspiration.',
         afbeelding: null,
       },
       {

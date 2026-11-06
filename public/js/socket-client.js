@@ -443,6 +443,32 @@ function _ververOpenKaartje(id) {
   // kaartje zelf ververst al via entity:updated.
   socket.on('party:gevangenen', () => { window._partyGevangenen?.(); });
 
+  // Een medestander erbij, eraf, of zijn loon veranderde: het partytabblad
+  // tekent dat uit /companions. Werd al overal uitgestuurd, alleen luisterde
+  // niemand ernaar.
+  socket.on('companions:updated', () => {
+    if (window.app?.state?.activeSection === 'mijn-karakter') _refreshSectionDebounced('mijn-karakter');
+  });
+
+  // Loon na een lange rust. De DM hoort wie er niet betaald werd; de party
+  // zelf ook — zij hebben hem in dienst.
+  socket.on('huurlingen:loon', ({ groep, regels = [] } = {}) => {
+    const mijn = window.app?.isDM?.() || groep === window._myGroupId;
+    if (!mijn || window._isDisplayMode) return;
+    for (const r of regels.filter(x => !x.betaald)) {
+      _showToast(`${window.icon(r.wilWeg ? 'door-open' : 'coins')} <strong>${r.naam}</strong> ${r.wilWeg
+        ? `wil vertrekken — al ${r.achterstand} dagen geen loon`
+        : 'kreeg vannacht geen loon'}`, null, 7000);
+    }
+  });
+
+  // Het mooiste moment van de avond — de module zelf weet wat ermee moet.
+  socket.on('stemronde:open',    d => window.stemronde?.opSocket('open', d));
+  socket.on('stemronde:stand',   d => window.stemronde?.opSocket('stand', d));
+  socket.on('stemronde:dicht',   d => window.stemronde?.opSocket('dicht', d));
+  socket.on('stemronde:uitslag', d => window.stemronde?.opSocket('uitslag', d));
+  socket.on('stemronde:display', d => window.stemronde?.opSocket('display', d));
+
   socket.on('entity:deceased', ({ id, type, name } = {}) => {
     // Herlaad de huidige sectie zodat het kaartje meteen grijs wordt
     const section = window.app.state.activeSection;

@@ -2896,6 +2896,86 @@ window._toggleGevangen = async (entityId) => {
   renderEntitySection('personages');
 };
 
+// ── Huurling: een medestander met een dagloon ──
+// Eigen venster in plaats van een prompt, want het zijn drie dingen samen: hoeveel,
+// wie betaalt, en wat er openstaat. Het loon is een voorgevuld veld (2 gouden
+// munten, de PHB-prijs voor een geschoolde kracht) dat de DM overtypt met wat
+// er aan tafel is afgesproken. Vertrekken gaat nooit vanzelf: de knop daarvoor
+// staat hier, met een bevestiging ervoor.
+async function _vulHuurling(entityId) {
+  const btn = document.getElementById(`detail-huurling-${entityId}`);
+  if (!btn) return;
+  let st;
+  try { st = await api.get(`/entities/personages/${entityId}/huurling`); } catch { return; }
+  const h = st.huurling;
+  btn.classList.toggle('dm-actie--aan', !!h);
+  btn.classList.toggle('dm-actie--let-op', !!h?.wilWeg);
+  btn.title = !h ? 'Huurling: in dienst van de actieve party, met een dagloon'
+    : h.wilWeg ? `Wil vertrekken — ${h.achterstand} dagen niet betaald`
+    : `In dienst voor ${window.formatCl(h.loon)} per dag`;
+}
+
+window._huurlingOpen = async (entityId) => {
+  const e = (entities.personages || []).find(x => x.id === entityId);
+  let st;
+  try { st = await api.get(`/entities/personages/${entityId}/huurling`); }
+  catch (err) { alert('Ophalen mislukt: ' + err.message); return; }
+  const h = st.huurling;
+  const loonCl = h ? h.loon : st.loonSuggestie;
+  const munten = { fl: Math.floor(loonCl / 100), kn: Math.floor((loonCl % 100) / 10), cl: loonCl % 10 };
+  const veld = window._bedragVeldHtml?.('huur-loon', munten, { label: 'Loon per dag' })
+    ?? `<div class="dm-form-row"><label class="dm-form-label" for="huur-loon">Loon per dag</label>
+        <input id="huur-loon" class="dm-input" value="${loonCl}"></div>`;
+  const spelers = st.spelers || [];
+  const terug = () => window._openDetail?.('personages', entityId);
+  const html = `<div class="huur-venster">
+    ${h?.achterstand ? `<div class="huur-achterstand${h.wilWeg ? ' huur-achterstand--weg' : ''}">
+      ${icon(h.wilWeg ? 'door-open' : 'hourglass')}
+      <span>${h.wilWeg ? 'Wil vertrekken' : 'Achterstallig'}: ${h.achterstand} ${h.achterstand === 1 ? 'dag' : 'dagen'},
+        samen ${esc(window.formatCl(h.achterstand * h.loon))}</span>
+    </div>` : ''}
+    ${veld}
+    ${st.gedeeldeBeurs ? `<div class="dm-form-row"><span class="dm-form-label">Betaald uit</span>
+        <span class="huur-beurs">${icon('coins')} de gedeelde beurs</span></div>`
+      : `<div class="dm-form-row"><label class="dm-form-label" for="huur-betaler">Betaald door</label>
+        <select id="huur-betaler" class="dm-input">
+          ${spelers.map(p => `<option value="${esc(p.id)}"${h?.betaler === p.id ? ' selected' : ''}>${esc(p.naam)}</option>`).join('')}
+        </select></div>`}
+    <div class="huur-knoppen">
+      <button class="dm-btn dm-btn-primary" id="huur-opslaan">${icon('save')} ${h ? 'Opslaan' : 'In dienst nemen'}</button>
+      ${h?.achterstand ? `<button class="dm-btn dm-btn-ghost" id="huur-betaal">${icon('coins')} Achterstand betalen</button>` : ''}
+      ${h ? `<button class="dm-btn dm-btn-ghost" id="huur-gratis" title="Hij blijft medestander, maar kost niets meer">Geen loon meer</button>
+             <button class="dm-btn dm-btn-danger" id="huur-weg">${icon('door-open')} Laat hem gaan</button>` : ''}
+    </div>
+  </div>`;
+  window.app.openModal(`${icon('coins')} ${h ? 'Huurling' : 'In dienst nemen'}`,
+    `${esc(e?.name || '')} · ${esc(st.groepNaam)}`, html);
+  const q = id => document.getElementById(id);
+  const leesLoon = () => {
+    const m = window._bedragLeesMunten?.('huur-loon');
+    return m ? (m.fl || 0) * 100 + (m.kn || 0) * 10 + (m.cl || 0) : parseInt(q('huur-loon')?.value, 10) || 0;
+  };
+  const doe = async (fn, melding) => {
+    try { const r = await fn(); if (melding) window._showToast?.(melding(r), null, 3500); terug(); }
+    catch (err) { alert(err.message); }
+  };
+  q('huur-opslaan').onclick = () => doe(
+    () => api.put(`/entities/personages/${entityId}/huurling`, { loon: leesLoon(), betaler: q('huur-betaler')?.value || '', groep: st.groep }),
+    () => `${icon('coins')} ${esc(e?.name || '')} is in dienst voor ${esc(window.formatCl(leesLoon()))} per dag`);
+  q('huur-betaal')?.addEventListener('click', () => doe(
+    () => api.post(`/entities/personages/${entityId}/huurling/betaal`, { groep: st.groep }),
+    r => `${icon('coins')} Achterstand betaald: ${esc(window.formatCl(r.betaald))}`));
+  q('huur-gratis')?.addEventListener('click', () => {
+    if (!confirm(`${e?.name || 'Hij'} loopt dan voortaan voor niets mee. Een openstaande achterstand vervalt.`)) return;
+    doe(() => api.delete(`/entities/personages/${entityId}/huurling?groep=${encodeURIComponent(st.groep)}`));
+  });
+  q('huur-weg')?.addEventListener('click', () => {
+    if (!confirm(`${e?.name || 'De huurling'} vertrekt en is niet langer medestander van ${st.groepNaam}. Doorgaan?`)) return;
+    doe(() => api.post(`/entities/personages/${entityId}/huurling/vertrek`, { groep: st.groep }),
+        () => `${icon('door-open')} ${esc(e?.name || '')} is vertrokken`);
+  });
+};
+
 async function _vulMissies(entityId, tab) {
   const host = () => document.getElementById(`detail-missies-${entityId}`);
   let missies = [];
@@ -6086,7 +6166,7 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
     infoHtml += `<div id="detail-missies-${e.id}"></div>`;
     _vulMissies(e.id, tab);
   }
-  if (isPersonage && isDM() && String(e.subtype || '').toLowerCase() === 'npc') _vulMedestander(e.id);
+  if (isPersonage && isDM() && String(e.subtype || '').toLowerCase() === 'npc') { _vulMedestander(e.id); _vulHuurling(e.id); }
 
   // DM controls
   if (isDM()) {
@@ -6138,6 +6218,13 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
               title="${e._gevangen ? 'Gevangene van de actieve party — klik om vrij te laten' : 'Gevangen nemen door de actieve party'}"
               onclick="window._toggleGevangen('${e.id}')">
               ${icon('columns-4', {cls:'icon-gi'})}<span>Gevangen</span>
+            </button>
+          ` : ''}
+          ${isPersonage && String(e.subtype || '').toLowerCase() === 'npc' && !e._gevangen ? `
+            <button class="dm-actie" id="detail-huurling-${e.id}"
+              title="Huurling: in dienst van de actieve party, met een dagloon"
+              onclick="window._huurlingOpen('${e.id}')">
+              ${icon('coins', {cls:'icon-gi'})}<span>Huurling</span>
             </button>
           ` : ''}
           ${isPersonage && String(e.subtype || '').toLowerCase() === 'npc' ? `

@@ -348,12 +348,12 @@ De app gebruikt querystring cache-busting (`?v=N`). **Vergeten = browser haalt o
 **Huidige versies (bij te houden):**
 
 ```
-index.html  : theme.css?v=924   app.js?v=1189   sound-manager.js?v=15
-app.js      : api.js?v=319  dm-panel.js?v=419  media-picker.js?v=13  tafels.js?v=2  terugblik.js?v=3  rage.js?v=4  klassekracht.js?v=5  personage-maken.js?v=9  gevecht-regie.js?v=2
-              render-archief.js?v=147  render-bestiarium.js?v=35  render-campagne.js?v=358
+index.html  : theme.css?v=925   app.js?v=1190   sound-manager.js?v=15
+app.js      : api.js?v=319  dm-panel.js?v=420  media-picker.js?v=13  tafels.js?v=2  terugblik.js?v=3  rage.js?v=4  klassekracht.js?v=5  personage-maken.js?v=9  gevecht-regie.js?v=2  stemronde.js?v=1
+              render-archief.js?v=147  render-bestiarium.js?v=35  render-campagne.js?v=359
               render-dungeon.js?v=73  render-kaart.js?v=34  render-progressie.js?v=66
               render-relatiemap.js?v=37  render-spreuken.js?v=54  render-vaardigheden.js?v=135
-              render-statblock.js?v=9  socket-client.js?v=96  wizard.js?v=8  conditions.js?v=4
+              render-statblock.js?v=9  socket-client.js?v=97  wizard.js?v=8  conditions.js?v=4
 dm-panel.js : akte-schrijven.js?v=37  combat-canvas.js?v=40  render-statblock.js?v=9
 ```
 
@@ -2731,6 +2731,7 @@ sprite v=22): `orbit` `cog` `squirrel` `bug` `puzzle` `droplets`
 **Toegevoegd voor de tegels** (Lucide, ISC, 4 nov 2026, sprite v=28): `minimize-2`
 **Toegevoegd voor de spreuktegels** (Lucide, ISC, 5 nov 2026, sprite v=29): `chevrons-up` (At Higher Levels)
 **Toegevoegd voor de gevangenen** (Lucide, ISC, 6 nov 2026, sprite v=30): `columns-4` (tralies)
+**Toegevoegd voor de stemronde** (Lucide, ISC, 6 nov 2026, sprite v=31): `vote` `trophy`
 
 **Toegevoegd voor de species-iconen** (Lucide, ISC, 18 okt 2026, sprite v=20): `clover`
 `axe` `footprints` `scan-face` `gem` `hard-hat` `sunset` `leaf` `flower` `flower-2`
@@ -3958,6 +3959,50 @@ antwoord van de route) hoort `_effectiveCurrency` te gebruiken.
 > nemen de stand mee. Icoon `columns-4` (Lucide noemt het zelf *prison, jail,
 > bars*; `lock` betekent hier al een vergrendeld level). Bewaakt door
 > `tests/gevangenen.test.js`.
+
+## Huurlingen: een medestander met een dagloon
+
+> **Wie de party inhuurt, kost geld per nacht** (6 nov 2026).
+> `groups[gid].huurlingen[npcId] = { loon, betaler, achterstand, sinds }` — per
+> party, `loon` in centelingen. Een **dag is een lange rust** (zelfde klok als de
+> rente van de Tweespalt): `_huurlingenLoon()` in `POST /party/long-rest` betaalt
+> uit `_effectiveCurrency` van de betaler (of de gedeelde beurs) via
+> `_deductCurrency`, nooit onder nul. Te weinig → `achterstand++`; vanaf
+> `HUURLING_WIL_WEG` (2) staat `wilWeg`. **Vertrekken gebeurt nooit vanzelf** —
+> dat zou een impliciet destructief pad zijn; de DM krijgt een melding
+> (`huurlingen:loon`) en een rode rand op de knop, en beslist. De regels komen in
+> het rustoverzicht (`gebeurtenissen`).
+> Routes (DM): `GET|PUT|DELETE /entities/personages/:id/huurling`,
+> `POST …/huurling/betaal` (de hele achterstand of niets) en `…/vertrek` (van de
+> party af). Inhuren maakt hem medestander. Het loon is een voorgevuld veld
+> (`HUURLING_LOON_STANDAARD` = 2 gouden munten, de PHB-prijs voor een geschoolde
+> kracht). `GET /companions` draagt `huurling: {loon, achterstand, wilWeg,
+> betalerNaam}`, en het partytabblad zet huurlingen in een eigen rij.
+> Client: `window._huurlingOpen` / `_vulHuurling` in `render-campagne.js`.
+> `companions:updated` werd al overal uitgestuurd maar niemand luisterde; het
+> partytabblad ververst er nu op. Bewaakt door `tests/huurlingen.test.js`.
+
+## Het mooiste moment van de avond
+
+> **Een stemronde aan het eind van de sessie** (6 nov 2026). De DM opent hem in
+> de regie-balk (*Stemmen*); elke aanwezige speler stemt op een ander (niet op
+> zichzelf), met optioneel één zin waarom. De winnaar krijgt **Heroic
+> Inspiration** (`dmState.playerInspiration`, plus `player:inspiration` en
+> `badges:updated`), het tafelscherm toont hem (`stemronde:display`, alleen de
+> display-room).
+> **Anoniem, ook voor de DM.** `groups[gid].stemronde.stemmen[kiezer] = {op,
+> reden}` staat op de server — je mag je stem wijzigen — maar geen enkele route
+> geeft hem terug: `GET /stemronde` levert alleen het aantal, en de uitslag de
+> redenen **geschud** en zonder naam. Een gelijke stand geeft een 409 met de
+> gelijken; de DM kiest (`{winnaar}`), de app trekt geen lot. `{annuleer:true}`
+> breekt af. Als geheugensteun staan de genadeslagen van vandaag erbij
+> (`_stemSuggesties`, uit de gevechtsverslagen).
+> Routes: `GET /stemronde`, `POST /stemronde` (DM), `/stemronde/stem` (speler),
+> `/stemronde/sluit` (DM). Client: **`public/js/stemronde.js`** (side-effect
+> import): venster bij openen, kaart bovenaan het partytabblad
+> (`#party-stemronde`), DM-venster en de uitslag op tafel. Valkuil: `requireDM`
+> zet `req.role` niet — `_stemGroep` kijkt daarom naar `req.session.role`.
+> Iconen `vote` en `trophy` (sprite v=31). Bewaakt door `tests/stemronde.test.js`.
 
 ## Kaartjes zijn agnostisch
 
