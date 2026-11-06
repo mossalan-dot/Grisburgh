@@ -782,6 +782,7 @@ fout-uitvoert.
 - [ ] **Bronteksten van een tweede campagne** (BEHEER) — spreuken en features komen kaal binnen; de eigen tekst van die DM blijft
 - [ ] **Wachtwoord van een andere campagne** (BEHEER) — zetten vanaf het campagnekaartje en er daarna mee inloggen
 - [ ] **Twintig keer mis** (ALL) — tik twintig keer een fout wachtwoord op de landingspagina: de volgende poging (ook een goede) zegt "Te veel mislukte pogingen"; een ander apparaat aan tafel kan gewoon inloggen. Draai je zonder Caddy ervoor, dan geldt het voor iedereen op hetzelfde adres
+- [ ] **Verborgen bestanden** (SP) — zet een document met een pdf-scan op verborgen, kopieer als DM het adres van het bestand en open het als speler: *Niet gevonden*. Onthul het document en het opent. Een portret dat óók aan een gekend kaartje hangt blijft gewoon zichtbaar, en aktebanners en logboekbeelden verdwijnen niet
 - [ ] **Privéberichten blijven privé** (SP) — open de landingspagina in een incognitovenster zonder in te loggen, en stuur als DM een bericht aan een speler: het komt aan bij die speler en nergens anders (`tests/review-lekken.test.js` doet hetzelfde met een kale socket)
 - [ ] **Spotify-token** (SP) — open als speler `/api/spotify/token?campagne=<id>` in de adresbalk: 403, ook als Spotify gekoppeld is; het tafelscherm (DM-login) speelt gewoon af
 - [ ] **Verborgen verbindingen** (SP) — koppel als DM een verborgen NPC aan een zichtbare locatie via *Verbindingen*, en open als speler de netwerktab bij die locatie: zijn naam staat nergens in `links`
@@ -848,6 +849,8 @@ Per bevinding: waar, wat, en of het opgelost is. Nieuwe regels onderaan.
 | 32 | alle | `esc()` in een inline handler (`onclick="f('${esc(x)}')"`) escapet voor HTML, niet voor een JS-string: "Bigby's Hand" gaf een knop die niets deed, en een personagenaam als `x');…;('` werd code in het scherm van de DM (review 6 nov) | opgelost — 615 plekken naar `escArg` (`scripts/onclick-escapen.js`); `tests/onclick-escapen.test.js` bewaakt het |
 | 33 | 1 | Wachtwoordvelden (`/login`, `/toegang`, `/player-login`) waren onbeperkt te proberen, en elke poging kost een synchrone scrypt (review 6 nov) | opgelost — na 20 mislukte pogingen per adres en campagne tien minuten 429; `trust proxy` op loopback zodat het adres achter Caddy klopt |
 | 34 | 1 | `/auth/sandbox-login` maakte zonder `SANDBOX_PASSWORD` van elke bezoeker een DM (sandbox, maar met uploads op de productieschijf) | opgelost — zonder wachtwoord in de omgeving staat hij uit, net als de tabletlogin |
+| 35 | 2 | Een ingelogde speler kon het bestand van elk verborgen kaartje ophalen als hij het id kende: portret, pdf-scan, geluidsfragment (review 6 nov) | opgelost — `_verborgenBestanden()`: 404 voor wat alléén aan verborgen kaartjes hangt; een gedeeld of elders gebruikt bestand blijft open |
+| 36 | 1 | Het portret uit de personage-wizard las `dm-state.json` vóór de beeldconversie en schreef hem daarna terug: wat de DM in die seconden deed ging verloren. Zelfde vorm bij de encounters in de akte-import | opgelost — pas lezen ná de await |
 
 ### Spell slots, multiclass en de signatuurkaart (17 sep 2026)
 

@@ -183,11 +183,18 @@ const _WAAS_KLEIN = 40;
 // dezelfde 800 kB opnieuw op.
 const _waasCache = new Map();   // datadir → { stempel, dmState, perGroep: Map(gid → Set) }
 
+// De bestanden waar de zichtbaarheid van een bestand uit volgt. Naast de drie
+// van de waas ook de plekken die een bestand buiten een kaartje gebruiken
+// (aktebanners, kaarten, dungeons, tafels, geluiden, buit, missies): staat een
+// id daar, dan is het geen geheim van één kaartje meer.
+const _WAAS_BRONNEN = ['entities.json', 'archief.json', 'dm-state.json', 'meta.json',
+  'map.json', 'dungeon-maps.json', 'tables.json', 'sounds.json', 'loot.json', 'quests.json'];
+
 // Eén stand van de drie bestanden = één cache. Zo wordt dm-state.json (een kwart
 // megabyte) niet veertig keer per kaartjespagina opnieuw geparsed.
 function _waasStand() {
   const dir = storage.DATA_DIR;
-  const stempel = ['entities.json', 'archief.json', 'dm-state.json'].map(n => {
+  const stempel = _WAAS_BRONNEN.map(n => {
     try { return fs.statSync(path.join(dir, n)).mtimeMs; } catch { return 0; }
   }).join('|');
   let c = _waasCache.get(dir);
@@ -220,6 +227,62 @@ function _waasBestanden(groupId) {
   return set;
 }
 
+// ── Bestanden van kaartjes die de party niet kent ────────────────────────────
+// Een ingelogde speler mocht élk bestand ophalen: het portret van een verborgen
+// NPC, de pdf-scan van een verborgen document, het geluidsfragment van een brief
+// die nog moet komen. Het id is niet te raden, maar één verwijzing die ooit
+// lekt is genoeg. Dus: wat alléén aan verborgen kaartjes hangt, gaat er niet uit.
+//
+// Bewust aan de voorzichtige kant. Een bestand dat ook bij een kaartje hoort dat
+// de party wél (vaag) kent, of dat ergens buiten de kaartjes genoemd wordt —
+// een aktebanner, een logboekbeeld, een kaart — blijft bereikbaar: dezelfde
+// plaat kan in de mediabibliotheek op twee plekken hangen, en een banner die
+// ineens leeg blijft is erger dan een plaatje dat je met een id kunt ophalen.
+// Spelerspersonages vallen er altijd buiten; die staan op de landingspagina.
+function _bestandenVan(e) {
+  const ids = [e.id, `${e.id}_video`];
+  if (e.data?.imageId) ids.push(e.data.imageId);
+  if (e.data?.audioId) ids.push(e.data.audioId);
+  try {
+    for (const x of JSON.parse(e.data?.extraImages || '[]')) if (x?.id) ids.push(x.id);
+  } catch { /* geen extra beelden */ }
+  return ids.map(String);
+}
+
+function _verborgenBestanden(groupId) {
+  const c = _waasStand();
+  if (!c.verborgen) c.verborgen = new Map();
+  if (c.verborgen.has(groupId)) return c.verborgen.get(groupId);
+
+  const g = getGroup(c.dmState, groupId);
+  const entities = storage.readJSON('entities.json');
+  const dicht = new Set(), open = new Set();
+  for (const t of ENTITY_TYPES) {
+    for (const e of (entities[t] || [])) {
+      const speler = (e.subtype || '').toLowerCase() === 'speler';
+      const vis = g?.visibility?.[e.id] || 'hidden';
+      for (const id of _bestandenVan(e)) (vis === 'hidden' && !speler ? dicht : open).add(id);
+    }
+  }
+  // Wat buiten de kaartjes genoemd wordt, telt als open. Ruwe tekst doorzoeken
+  // is grof, maar faalt naar de veilige kant: liever een id te veel open.
+  const elders = _WAAS_BRONNEN.filter(n => n !== 'entities.json' && n !== 'dm-state.json').map(n => {
+    try { return fs.readFileSync(path.join(storage.DATA_DIR, n), 'utf8'); } catch { return ''; }
+  }).join('\n')
+    // dm-state draagt ook bestand-ids (losse boedelregels, profielen), maar zijn
+    // party-mappen zijn op entiteit-id geïndexeerd — die zouden alles openzetten.
+    + '\n' + JSON.stringify({ ...c.dmState, groups: undefined });
+  const set = new Set([...dicht].filter(id => !open.has(id) && !elders.includes(id)));
+  c.verborgen.set(groupId, set);
+  return set;
+}
+
+function _bestandVerborgenVoor(req, id) {
+  if (req.role === 'dm' || !req.session?.characterId) return false;
+  const gid = _playerGroupId(_waasStand().dmState, req.session.characterId);
+  return _verborgenBestanden(gid).has(String(id));
+}
+
 // De DM ziet alles scherp; een tafelscherm is de DM, dus die ook.
 function _waasVoor(req, id) {
   if (req.role === 'dm' || !req.session?.characterId) return false;
@@ -249,6 +312,9 @@ async function _waasBestand(id, bronPad) {
 // data/campaigns/<id>/thumbs/. Daarna wordt de gecachte versie direct geserveerd.
 router.get('/thumb/:id', attachRole, async (req, res) => {
   if (!_magBestandZien(req, req.params.id)) return res.status(401).json({ error: 'Niet ingelogd' });
+  // Zelfde 404 als een bestand dat er niet is: anders verklapt het antwoord
+  // dát er achter dit id iets ligt.
+  if (_bestandVerborgenVoor(req, req.params.id)) return res.status(404).end();
   const file = storage.getFile(req.params.id);
   if (!file) return res.status(404).end();
 
@@ -5545,9 +5611,15 @@ router.post('/personage-concept/:id/portret', metUpload(uploadMedia.single('file
   const klein = await _beeldVerkleinen(req.file.buffer, req.file.mimetype);
   storage.saveFile(c.id, klein.buffer, klein.mimetype);
   storage.deleteThumb?.(c.id);
-  c.portret = true;
-  c.bijgewerkt = new Date().toISOString();
-  storage.writeJSON('dm-state.json', dmState);
+  // Opnieuw lezen ná de await. De stand van hierboven is een seconde of twee
+  // oud — sharp is niet snel — en het hele bestand terugschrijven zou wissen
+  // wat de DM in die tijd deed: een HP-tik, een onthulling, een rust.
+  const vers = readDmState();
+  const cv = _concepten(vers)[c.id];
+  if (!cv) return res.status(404).json({ error: 'Niet gevonden' });
+  cv.portret = true;
+  cv.bijgewerkt = new Date().toISOString();
+  storage.writeJSON('dm-state.json', vers);
   res.json({ ok: true, fileId: c.id });
 });
 
@@ -8246,8 +8318,10 @@ router.post('/import/akte/apply', requireDM, metUpload(uploadMedia.array('images
   const script = [];
   const sessieImages = [];
   const imageScriptRefs = [];   // script-items die nog een sessieId nodig hebben
-  const encounters = storage.readJSON('encounters.json');
-  if (!Array.isArray(encounters.encounters)) encounters.encounters = [];
+  // Nieuwe encounters eerst verzamelen en pas na de lus wegschrijven, op een
+  // vers gelezen bestand: tussendoor wordt er per beeld op sharp gewacht, en wat
+  // er in die tijd aan encounters veranderde ging anders verloren.
+  const nieuweEncounters = [];
   let imagesUploaded = 0, encountersCreated = 0;
   const newId = (p) => `${p}_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
 
@@ -8272,7 +8346,7 @@ router.post('/import/akte/apply', requireDM, metUpload(uploadMedia.array('images
         name: r.name, count: Math.max(1, parseInt(r.count) || 1), initiative: 10, hp: parseInt(r.hp) || 10,
       }));
       const eid = newId('enc');
-      encounters.encounters.push({
+      nieuweEncounters.push({
         id: eid, name: step.name || 'Encounter', akteId: chapterKey,
         backdropId: 'enc-backdrop-' + eid, canvasPreset: 'plain', canvasColors: null, monsters: mons,
       });
@@ -8307,7 +8381,12 @@ router.post('/import/akte/apply', requireDM, metUpload(uploadMedia.array('images
     for (const ref of imageScriptRefs) ref.sessieId = sessieId;
   }
 
-  if (encountersCreated) storage.writeJSON('encounters.json', encounters);
+  if (encountersCreated) {
+    const encounters = storage.readJSON('encounters.json');
+    if (!Array.isArray(encounters.encounters)) encounters.encounters = [];
+    encounters.encounters.push(...nieuweEncounters);
+    storage.writeJSON('encounters.json', encounters);
+  }
 
   const meta = storage.readJSON('meta.json');
   if (!meta.hoofdstukken) meta.hoofdstukken = {};
@@ -9033,6 +9112,7 @@ router.post('/files/:id', requireDM, metUpload(uploadMedia.single('file')), asyn
 
 router.get('/files/:id', attachRole, async (req, res) => {
   if (!_magBestandZien(req, req.params.id)) return res.status(401).json({ error: 'Niet ingelogd' });
+  if (_bestandVerborgenVoor(req, req.params.id)) return res.status(404).json({ error: 'Niet gevonden' });
   const file = storage.getFile(req.params.id);
   if (!file) return res.status(404).json({ error: 'Niet gevonden' });
   // Hoort het bij een vaag kaartje of document, dan gaat het origineel er niet

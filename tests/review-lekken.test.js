@@ -9,6 +9,7 @@
 //     keek, terwijl de speler zijn eigen party las.
 //  5. Wachtwoordvelden waren onbeperkt te proberen, en de sandbox maakte
 //     zonder wachtwoord van elke bezoeker een DM.
+//  6. Een ingelogde speler kon het bestand van elk verborgen kaartje ophalen.
 const { describe, it, before, after } = require('node:test');
 const assert = require('node:assert');
 const http = require('http');
@@ -41,6 +42,20 @@ function req(server, method, p, body, cookie) {
     r.on('error', reject);
     if (json) r.write(json);
     r.end();
+  });
+}
+
+function upload(server, id, cookie) {
+  const png = Buffer.from('89504e470d0a1a0a0000000d49484452000000010000000108060000001f15c4890000000d49444154789c6360000002000154a24f5d0000000049454e44ae426082', 'hex');
+  const grens = '----grens';
+  const lijf = Buffer.concat([
+    Buffer.from(`--${grens}\r\nContent-Disposition: form-data; name="file"; filename="a.png"\r\nContent-Type: image/png\r\n\r\n`),
+    png, Buffer.from(`\r\n--${grens}--\r\n`)]);
+  return new Promise((resolve, reject) => {
+    const r = http.request({ method: 'POST', hostname: 'localhost', port: server.address().port, path: `/api/files/${id}`,
+      headers: { Cookie: cookie, 'Content-Type': `multipart/form-data; boundary=${grens}`, 'Content-Length': lijf.length } },
+      res => { res.resume(); res.on('end', () => resolve(res.statusCode)); });
+    r.on('error', reject); r.end(lijf);
   });
 }
 
@@ -154,5 +169,26 @@ describe('Review 6 nov: lekken en verkeerde party', () => {
     assert.strictEqual(geremd.status, 429, 'ook het goede wachtwoord wacht even');
     const elders = await req(server, 'POST', '/api/auth/login', { campagne: 'sandbox', password: 'x' });
     assert.notStrictEqual(elders.status, 429, 'een andere campagne telt apart');
+  });
+
+  it('geeft het bestand van een verborgen kaartje niet aan een speler', async () => {
+    const geheim = (await req(server, 'POST', '/api/entities/documenten', { name: 'Het Testament', data: {} }, dm)).body;
+    assert.strictEqual(await upload(server, geheim.id, dm), 200);
+    assert.strictEqual((await req(server, 'GET', `/api/files/${geheim.id}`, null, speler)).status, 404);
+    assert.strictEqual((await req(server, 'GET', `/api/thumb/${geheim.id}`, null, speler)).status, 404);
+    assert.strictEqual((await req(server, 'GET', `/api/files/${geheim.id}`, null, dm)).status, 200, 'de DM wel');
+    // Onthullen = bereikbaar.
+    await req(server, 'PUT', `/api/entities/documenten/${geheim.id}/visibility`, null, dm);
+    assert.strictEqual((await req(server, 'GET', `/api/files/${geheim.id}`, null, speler)).status, 200);
+  });
+
+  it('houdt een gedeeld beeld bereikbaar als een gekend kaartje het ook draagt', async () => {
+    const beeld = 'img_gedeeld_1';
+    assert.strictEqual(await upload(server, beeld, dm), 200);
+    await req(server, 'POST', '/api/entities/personages', { name: 'Verborgen Tweeling', data: { imageId: beeld } }, dm);
+    const zus = (await req(server, 'POST', '/api/entities/personages', { name: 'Gekende Tweeling', data: { imageId: beeld } }, dm)).body;
+    assert.strictEqual((await req(server, 'GET', `/api/files/${beeld}`, null, speler)).status, 404, 'eerst alleen verborgen');
+    await req(server, 'PUT', `/api/entities/personages/${zus.id}/visibility`, null, dm);
+    assert.strictEqual((await req(server, 'GET', `/api/files/${beeld}`, null, speler)).status, 200);
   });
 });
