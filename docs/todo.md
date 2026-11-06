@@ -453,6 +453,9 @@ Gevraagd op 14 sep 2026, gebouwd op 14 sep 2026.
 ## Stijlen per campagne
 
 - [ ] **Een echte reeks stijlen bedenken** → `docs/stijlen-per-campagne.md`
+      **Keuzes gemaakt op 6 nov 2026** (DM kiest per campagne, breed incl.
+      iconen en blad, `hp` vervalt, geen eigen kleuren). Bouwen als één eigen
+      ronde zodra al het andere live staat; de meting van 6 nov staat erin.
       (gemeten 1 okt 2026, bewust voor later). Denkrichting: **steampunk,
       sci-fi, noir/detective, gothic horror, mythisch Grieks, wildwest,
       post-apocalyptisch**.
