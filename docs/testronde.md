@@ -534,6 +534,7 @@ een speler ziet, **TAB** = het tafelscherm (`?display=1`), **ALL** = alle drie.
 - [ ] **Personage** (SP) — stats en modifiers, saves, skills met proficiency, AC, snelheid, conditions met iconen, inspiration, buffs en vloek
 - [ ] **HP en Hit Dice** (SP/DM) — DM past HP aan → speler ziet het meteen; Hit Dice afgeleid uit klasse en level (ook multiklasse), getoond als bolletjes
 - [ ] **Medestanders** (SP) — een gekoppeld dier of NPC verschijnt bij de party met een melding, en verdwijnt bij ontkoppelen
+- [ ] **Gevangenen** (ALL) — open als DM een verborgen NPC en klik *Gevangen*, vul in waar de party hem vasthoudt: het kaartje krijgt tralies over het portret en een badge *Gevangen*, en staat voor deze party op **vaag** (niet zichtbaar). De speler ziet hem meteen, zonder herladen, onder *Gevangenen* in het partytabblad: naam, maar geen volk of class, en de plek eronder. Neem een medestander gevangen: eerst een vraag, daarna staat hij niet meer bij de medestanders. Wissel naar een andere party: daar staat hij er niet. *Gevangen* nogmaals: vrijgelaten, de rij is weg
 - [ ] **Boedel** (SP) — voorwerp-kaartjes en losse regels, stapelbare items met aantal, notitie per regel, bladeren met de pijltjes
 - [ ] **Beurs** (SP) — eigen munten of de gedeelde partybeurs (dan telt eigen geld niet mee); bedragen kloppen na kopen, verkopen en loot
 - [ ] **Geven aan…** (SP) — knop onder een voorwerp, medespeler kiezen met portret; de hele stapel verhuist en telt op bij de ontvanger. Niet aan jezelf, niet buiten je party, geld gaat niet mee

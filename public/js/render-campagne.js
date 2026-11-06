@@ -971,12 +971,15 @@ function getCardBadges(type, e) {
     const b = getSubtypeBadge(type, e);
     return b ? [b] : [];
   }
+  // Gevangen is een toestand van deze party, geen rol — maar wel het eerste
+  // wat je over hem wilt weten, dus hij staat vooraan.
+  const toestand = e._gevangen ? [{ label: 'Gevangen', cls: 'badge-gevangen' }] : [];
   const rollen = [];
   if (window._heeftRol?.(e, 'antagonist')) rollen.push({ label: 'Antagonist', cls: 'badge-antagonist' });
   if (window._heeftRol?.(e, 'verkoper'))   rollen.push({ label: 'Verkoper',   cls: 'badge-verkoper' });
-  if (rollen.length) return rollen;
+  if (rollen.length) return [...toestand, ...rollen];
   const b = getSubtypeBadge(type, e);
-  return b ? [b] : [];
+  return b ? [...toestand, b] : toestand;
 }
 
 function getSubtypeBadge(type, e) {
@@ -2863,6 +2866,36 @@ window._toggleMedestander = async (entityId) => {
   _vulMedestander(entityId);
 };
 
+// Gevangen nemen of vrijlaten — voor de actieve party, net als de
+// medestander. Expliciet aan of uit naar de server (geen wisselknop), en het
+// antwoord zegt wat er nog meer gebeurde: van medestander af, of van verborgen
+// naar vaag (de party heeft hem in handen, dus ze weten dát hij er is).
+window._toggleGevangen = async (entityId) => {
+  const e = (entities.personages || []).find(x => x.id === entityId);
+  const nu = !!e?._gevangen;
+  let waar;
+  if (!nu) {
+    let medestander = false;
+    try { medestander = ((await api.getCompanionStatus(entityId)).linked || []).includes(window._activeGroupId); } catch { /* ok */ }
+    if (medestander && !confirm(`${e?.name || 'Dit personage'} loopt nu als medestander met de party mee.\nGevangen nemen haalt hem daar weg. Doorgaan?`)) return;
+    waar = prompt('Waar houdt de party hem vast? (mag leeg blijven)', '');
+    if (waar === null) return;
+  }
+  let r;
+  try { r = await api.put(`/entities/personages/${entityId}/gevangen`, { gevangen: !nu, ...(waar !== undefined ? { waar } : {}) }); }
+  catch (err) { alert('Gevangen nemen mislukt: ' + err.message); return; }
+  if (e) e._gevangen = !nu;
+  const extra = [r.wasMedestander ? 'niet langer medestander' : '', r.zichtbaarGemaakt ? 'nu vaag zichtbaar voor de party' : ''].filter(Boolean);
+  window._showToast?.(`${icon('columns-4')} ${esc(e?.name || '')} ${nu ? 'is vrijgelaten' : 'is gevangen genomen'}${extra.length ? ` — ${extra.join(', ')}` : ''}`, null, 4000);
+  const btn = document.getElementById(`detail-gevangen-${entityId}`);
+  if (btn) {
+    btn.classList.toggle('dm-actie--aan', !nu);
+    btn.title = !nu ? 'Gevangene van de actieve party — klik om vrij te laten' : 'Gevangen nemen door de actieve party';
+  }
+  if (r.wasMedestander) _vulMedestander(entityId);
+  renderEntitySection('personages');
+};
+
 async function _vulMissies(entityId, tab) {
   const host = () => document.getElementById(`detail-missies-${entityId}`);
   let missies = [];
@@ -4176,6 +4209,7 @@ function _tegelHtml(type, e, { fav = false } = {}) {
       <div class="card-accent bar-${type}"></div>
       <span class="tegel-icoon" aria-hidden="true">${_tegelIcoon(type, e)}</span>
       ${perk || _tegelBeeld(e)}
+      ${e._gevangen ? `<span class="tegel-tralies" title="Gevangene van de party" aria-hidden="true"></span>` : ''}
       ${fav ? '<span class="tegel-lint" aria-hidden="true"></span>' : ''}
       ${acr ? `<span class="card-armor-ac-pill tegel-ac" title="${esc(acr.tooltip)}">${esc(acr.pill)}</span>` : ''}
       <div class="tegel-naamband">${type === 'locaties' ? `<span class="tegel-merk" title="${esc(e.data?.locType || '')}">${_tegelIcoon(type, e)}</span>` : ''}<span class="card-name" data-fittext>${esc(e.name)}${e._deceased && type === 'personages' ? '<span class="card-name-dagger">†</span>' : ''}</span></div>
@@ -6099,6 +6133,13 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
             onclick="window._toggleDeceased('${tab}','${e.id}')">
             ${icon('skull', {cls:'icon-gi'})}<span>${_wegLabel}</span>
           </button>`}
+          ${isPersonage && !['speler', 'god', 'godheid'].includes(String(e.subtype || '').toLowerCase()) ? `
+            <button class="dm-actie${e._gevangen ? ' dm-actie--aan' : ''}" id="detail-gevangen-${e.id}"
+              title="${e._gevangen ? 'Gevangene van de actieve party — klik om vrij te laten' : 'Gevangen nemen door de actieve party'}"
+              onclick="window._toggleGevangen('${e.id}')">
+              ${icon('columns-4', {cls:'icon-gi'})}<span>Gevangen</span>
+            </button>
+          ` : ''}
           ${isPersonage && String(e.subtype || '').toLowerCase() === 'npc' ? `
             <button class="dm-actie" id="detail-medestander-${e.id}"
               title="Medestander: laat dit personage met de party meelopen"

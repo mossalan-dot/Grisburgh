@@ -348,13 +348,13 @@ De app gebruikt querystring cache-busting (`?v=N`). **Vergeten = browser haalt o
 **Huidige versies (bij te houden):**
 
 ```
-index.html  : theme.css?v=923   app.js?v=1188   sound-manager.js?v=15
-app.js      : api.js?v=319  dm-panel.js?v=418  media-picker.js?v=13  tafels.js?v=2  terugblik.js?v=3  rage.js?v=4  klassekracht.js?v=5  personage-maken.js?v=9  gevecht-regie.js?v=2
-              render-archief.js?v=146  render-bestiarium.js?v=35  render-campagne.js?v=357
-              render-dungeon.js?v=72  render-kaart.js?v=34  render-progressie.js?v=66
-              render-relatiemap.js?v=36  render-spreuken.js?v=54  render-vaardigheden.js?v=135
-              render-statblock.js?v=9  socket-client.js?v=95  wizard.js?v=8  conditions.js?v=4
-dm-panel.js : akte-schrijven.js?v=37  combat-canvas.js?v=39  render-statblock.js?v=9
+index.html  : theme.css?v=924   app.js?v=1189   sound-manager.js?v=15
+app.js      : api.js?v=319  dm-panel.js?v=419  media-picker.js?v=13  tafels.js?v=2  terugblik.js?v=3  rage.js?v=4  klassekracht.js?v=5  personage-maken.js?v=9  gevecht-regie.js?v=2
+              render-archief.js?v=147  render-bestiarium.js?v=35  render-campagne.js?v=358
+              render-dungeon.js?v=73  render-kaart.js?v=34  render-progressie.js?v=66
+              render-relatiemap.js?v=37  render-spreuken.js?v=54  render-vaardigheden.js?v=135
+              render-statblock.js?v=9  socket-client.js?v=96  wizard.js?v=8  conditions.js?v=4
+dm-panel.js : akte-schrijven.js?v=37  combat-canvas.js?v=40  render-statblock.js?v=9
 ```
 
 > **Een importeur moet zelf ook opschuiven.** `index.html` vraagt om `app.js?v=N`.
@@ -2730,6 +2730,7 @@ sprite v=22): `orbit` `cog` `squirrel` `bug` `puzzle` `droplets`
 
 **Toegevoegd voor de tegels** (Lucide, ISC, 4 nov 2026, sprite v=28): `minimize-2`
 **Toegevoegd voor de spreuktegels** (Lucide, ISC, 5 nov 2026, sprite v=29): `chevrons-up` (At Higher Levels)
+**Toegevoegd voor de gevangenen** (Lucide, ISC, 6 nov 2026, sprite v=30): `columns-4` (tralies)
 
 **Toegevoegd voor de species-iconen** (Lucide, ISC, 18 okt 2026, sprite v=20): `clover`
 `axe` `footprints` `scan-face` `gem` `hard-hat` `sunset` `leaf` `flower` `flower-2`
@@ -3925,6 +3926,38 @@ antwoord van de route) hoort `_effectiveCurrency` te gebruiken.
 > **Valkuil bij het testen:** een verborgen sectie blijft in de DOM staan, dus
 > `.tegel--open` vindt ook de open tegel van het vorige tabblad — zoek binnen
 > `#section-<type>`.
+
+## Gevangenen: een toestand per party
+
+> **Wie de party vastzet of meesleept** (6 nov 2026).
+> `groups[gid].gevangenen[entityId] = { sinds, waar }` — per party, net als
+> `deceased`: dezelfde smokkelaar kan bij de ene party in de kelder zitten en
+> voor de andere vrij rondlopen. `waar` is een korte aantekening die de spelers
+> ook lezen, want het is hún gevangene.
+> **DM:** knop *Gevangen* in de DM-rij van het detailvenster (niet bij spelers
+> en goden), `window._toggleGevangen` in `render-campagne.js` →
+> `PUT /entities/personages/:id/gevangen` met `{gevangen: true|false, waar?,
+> groep?}` (standaard de actieve party). **Expliciet aan of uit**, geen
+> wisselknop: een dubbele klik of een tweede DM-scherm mag de stand niet
+> terugdraaien. Twee gevolgen, die het antwoord meldt: een **medestander** gaat
+> van de party af (`wasMedestander`, de client vraagt het eerst), en een
+> **verborgen** kaartje wordt **vaag** (`zichtbaarGemaakt`): de party heeft hem
+> in handen, dus ze weten dát hij er is, maar naam en gegevens onthult de DM
+> zelf. `GET /entities/personages/:id/gevangen` zegt bij welke party's hij zit.
+> **Speler:** `GET /party/gevangenen` → de rij *Gevangenen* onder de
+> medestanders (`_partyGevangenen` in `app.js`, lui geladen zoals de
+> gevallenen). Zelfde zichtbaarheid als elders: verborgen bestaat niet, vaag
+> houdt zijn naam maar verliest volk, class en focuspunt (het portret krijgt de
+> waas van `_waasVoor`). Een gevangene die intussen dood is staat hier niet.
+> Socket `party:gevangenen` ververst alleen die rij; het kaartje gaat via
+> `entity:updated`.
+> **Op het kaartje:** `_gevangen` (op de drie plekken waar ook `_deceased`
+> wordt gezet), een badge *Gevangen* vooraan in `getCardBadges`, en tralies
+> over het portret (`.tegel-tralies` / `.party-portrait-tralies`: een
+> `repeating-linear-gradient`, geen plaatje). Verwijderen en de prullenbak
+> nemen de stand mee. Icoon `columns-4` (Lucide noemt het zelf *prison, jail,
+> bars*; `lock` betekent hier al een vergrendeld level). Bewaakt door
+> `tests/gevangenen.test.js`.
 
 ## Kaartjes zijn agnostisch
 

@@ -1,9 +1,9 @@
 import { api, campagneUitUrl, zetCampagne } from './api.js?v=319';
-import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, renderDocumenten, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=357";
-import { initArchief, renderLogboek, openLogboekEditor } from "./render-archief.js?v=146";
+import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, renderDocumenten, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=358";
+import { initArchief, renderLogboek, openLogboekEditor } from "./render-archief.js?v=147";
 import { renderKaart, queueFlyTo, verversPins, nieuweKaart } from './render-kaart.js?v=34';
-import { renderDungeon } from './render-dungeon.js?v=72';
-import { renderRelatiemap } from './render-relatiemap.js?v=36';
+import { renderDungeon } from './render-dungeon.js?v=73';
+import { renderRelatiemap } from './render-relatiemap.js?v=37';
 import { renderProgressie, levelupFeatures } from './render-progressie.js?v=66';
 import { renderBestiarium } from './render-bestiarium.js?v=35';
 import { renderSpreuken } from './render-spreuken.js?v=54';
@@ -11,8 +11,8 @@ import './render-handleiding.js?v=2';
 import './render-melding.js?v=4';
 import { renderVaardigheden, zoekVaardigheden, heldenboekTekst } from './render-vaardigheden.js?v=135';
 import { renderStatblock } from './render-statblock.js?v=9';
-import { initSocket } from "./socket-client.js?v=95";
-import { initDmPanel } from "./dm-panel.js?v=418";
+import { initSocket } from "./socket-client.js?v=96";
+import { initDmPanel } from "./dm-panel.js?v=419";
 import { COND_INFO, COND_LABEL, COND_MET_PLAATJE, COND_ICON } from './conditions.js?v=4';
 import './media-picker.js?v=13';
 import './wizard.js?v=8';
@@ -28,7 +28,7 @@ import './gevecht-regie.js?v=2';
 window.icon = function icon(name, { cls = '', title = '' } = {}) {
   const t   = title ? `<title>${title.replace(/[<>&"]/g, c => ({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[c]))}</title>` : '';
   const aria = title ? ' role="img"' : ' aria-hidden="true"';
-  return `<svg class="icon${cls ? ' '+cls : ''}"${aria} focusable="false"><use href="/img/icons.svg?v=29#icon-${name}"/>${t}</svg>`;
+  return `<svg class="icon${cls ? ' '+cls : ''}"${aria} focusable="false"><use href="/img/icons.svg?v=30#icon-${name}"/>${t}</svg>`;
 };
 const icon = (...a) => window.icon(...a);
 
@@ -3598,7 +3598,7 @@ function _kaartCard(type, m, dm, verdiepingen = null) {
 // eerste bestaande kaart: je drukte op + en keek naar Dreghaven.
 window._kaartNieuw = async function (type) {
   if (type === 'wereld') return nieuweKaart();
-  const { nieuweDungeon } = await import('./render-dungeon.js?v=72');
+  const { nieuweDungeon } = await import('./render-dungeon.js?v=73');
   nieuweDungeon();
 };
 
@@ -7643,6 +7643,42 @@ async function _partyGevallenen() {
   _pdsInklapToepassen();
 }
 
+// De gevangenen: wie de party vastzet of meesleept. Staat in hetzelfde blok
+// als de medestanders, want het is dezelfde vraag — wie is er bij ons — met
+// een ander antwoord. Lui geladen, net als de gevallenen; de server zegt al wat
+// een speler mag zien (een vaag kaartje houdt zijn naam, zijn portret krijgt de
+// waas van de server). Leeg = er staat niets, ook geen kop.
+async function _partyGevangenen() {
+  const el = document.getElementById('party-gevangenen');
+  if (!el) return;
+  let lijst;
+  try { lijst = await api.get('/party/gevangenen'); } catch { return; }
+  if (!lijst?.length) { el.innerHTML = ''; return; }
+  const datum = (iso) => { try { return new Date(iso).toLocaleDateString('nl-NL', { day: 'numeric', month: 'short' }); } catch { return ''; } };
+  el.innerHTML = `<div class="party-groep-kop">${icon('columns-4')} Gevangenen</div>
+    <div class="player-dash-party-row">
+      ${lijst.map(g => `
+        <div class="party-portrait party-portrait--companion party-portrait--gevangen"
+          onclick="window._openDetail('personages','${esc(g.id)}')"
+          title="${esc(g.name)}${g.waar ? ` — ${esc(g.waar)}` : ''}${g.sinds ? ` (sinds ${datum(g.sinds)})` : ''}">
+          <div class="party-portrait-ring-wrap">
+            <div class="party-portrait-avatar-wrap">
+              <img src="${api.thumbUrl(g.imageId)}" class="party-portrait-img" alt=""
+                ${g.imgFocus ? `style="object-position:${esc(g.imgFocus)}"` : ''}
+                onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+              <div class="party-portrait-fallback" style="display:none">${icon('user')}</div>
+              <span class="party-portrait-tralies" aria-hidden="true"></span>
+            </div>
+            <span class="party-portrait-soort" title="Gevangene">${icon('columns-4')}</span>
+          </div>
+          <div class="party-portrait-name">${esc(_roepnaam(g.name))}</div>
+          ${g.waar ? `<div class="party-portrait-sub">${esc(g.waar)}</div>`
+                   : (g.rol ? `<div class="party-portrait-sub">${esc(g.rol)}</div>` : '')}
+        </div>`).join('')}
+    </div>`;
+}
+window._partyGevangenen = _partyGevangenen;
+
 // De naam onder een portret was `name.split(' ')[0]`, en dat leest prima bij
 // "Wilmer Vlasbaard" maar niet bij "Zuster Marelle", "Jonkvrouw Elsje" of
 // "Xerxes en Sarabi" — daar staat dan alleen de aanspreektitel. Een lijst met
@@ -8789,6 +8825,7 @@ async function renderMijnKarakter(opts = {}) {
                 <div class="player-dash-party-row">${_partyMetgezelHtml(lijst)}</div>`;
             }).join('');
           })()}
+          <div id="party-gevangenen"></div>
         </div>
 
         <div id="party-gevallenen"></div>
@@ -9591,6 +9628,7 @@ async function renderMijnKarakter(opts = {}) {
   window._rageBlok?.();
   window._krachtBlok?.();
   _partyGevallenen();
+  _partyGevangenen();
   // De portretten staan er nu; hang de badges eraan.
   window._badgesLaden?.();
 
@@ -15000,6 +15038,7 @@ const HELP_CONFIG = {
     { titel: 'Wie is dit', tekst: 'Onder de naam staan zijn rol, volk en klasse. De beschrijving vertelt wat je van hem weet; namen die je al kent zijn klikbaar. Een badge op de kaart laat zien of hij een verkoper is of je in de weg staat.', afbeelding: null },
     { titel: 'Roddels en geheimen', tekst: 'De **roddel** is wat er over hem verteld wordt — bij meerdere blader je met de pijltjes. Een **geheim** zie je pas als je het ontdekt hebt; onthulde geheimen kunnen alles veranderen wat je van iemand dacht te weten.', afbeelding: null },
     { titel: 'Waar hoort hij bij', tekst: 'Onder **Waar hoort dit personage bij?** staat waaraan hij verbonden is: eigenaar van een herberg, lid van een gilde, verkoper in een winkel. Klik erop om daarheen te gaan.', afbeelding: null },
+    { titel: 'Gevangen nemen', rol: 'dm', tekst: 'Met **Gevangen** in de knoppenrij zet je hem vast bij de **actieve party**; je mag erbij zetten waar ze hem houden. Hij komt dan bij de spelers in het partytabblad te staan, naast de medestanders, en zijn kaartje krijgt tralies over het portret. Dezelfde knop laat hem weer vrij.\n\nTwee dingen gebeuren erbij. Liep hij als **medestander** mee, dan gaat hij daar af (je krijgt eerst de vraag). En stond zijn kaartje voor deze party op **verborgen**, dan wordt het **vaag**: ze hebben hem in handen, dus ze weten dát hij er is — maar zijn naam en gegevens onthul je zelf. Het geldt per party: bij een andere party kan hij gewoon vrij rondlopen.', afbeelding: null },
   ] }),
   hulp_kijk_personages_sheet: () => ({ titel: 'Het blad', stappen: [
     { titel: 'Statblock', tekst: 'De gevechtsgegevens: **AC** (hoe moeilijk hij te raken is), **HP**, speed, de zes ability scores met hun modifier, en zijn traits en actions. Bij een huisdier hoort het blok dat past bij het level van zijn baasje — hij groeit met je mee.', afbeelding: null },
@@ -16000,6 +16039,11 @@ const HELP_CONFIG = {
       {
         titel: 'Party-overzicht',
         tekst: 'Dit tabblad toont de andere leden van jouw groep. Je kunt zien wie aanwezig is voor de sessie. Bovenaan staan eventuele ontdekkingen, inspiratie en de initiatiefvolgorde als er een gevecht actief is.',
+        afbeelding: null,
+      },
+      {
+        titel: 'Medestanders, huisdieren en gevangenen',
+        tekst: 'Onder de party staan wie er met jullie meeloopt: **medestanders** (een NPC die met jullie optrekt) en **huisdieren** (met het baasje erbij). Daaronder de **gevangenen**: wie jullie hebben vastgezet of meeslepen, achter tralies, met eronder waar jullie hem vasthouden. Een gevangene die jullie nog niet echt kennen staat er vaag: je ziet dát hij er is, niet wie hij is. Tik op een portret om zijn kaartje te openen.',
         afbeelding: null,
       },
       {

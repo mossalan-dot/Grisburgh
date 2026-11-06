@@ -32535,3 +32535,23 @@ body.gr-slowmo .combat-overlay { filter: grayscale(.85) contrast(1.1) brightness
 }
 .sb-mat-knop .icon { width: 12px; height: 12px; }
 .sb-mat-knop--goud { background: linear-gradient(to bottom, #b8860b, #8a6206); border-color: #d9b24a; color: #fff8ea; }
+
+/* ══════════════════════════════════════════════════════════════════
+   Gevangenen: tralies over het portret
+   ══════════════════════════════════════════════════════════════════
+   Geen plaatje maar een herhaald verloop: smalle donkere spijlen met een
+   vleugje licht aan één kant, zodat ze ijzer lijken en geen streepjescode.
+   Op de tegel tussen het beeld (z 1) en de naamband (z 3). */
+.tegel-tralies, .party-portrait-tralies {
+  position: absolute; inset: 0; pointer-events: none;
+  background: repeating-linear-gradient(90deg,
+    transparent 0, transparent 15%,
+    rgba(28,20,12,0.82) 15%, rgba(70,56,40,0.9) 17%, rgba(28,20,12,0.82) 19%,
+    transparent 19%, transparent 25%);
+}
+.tegel-tralies { z-index: 2; opacity: .55; }
+.tegel--open .tegel-tralies { opacity: .28; }
+.party-portrait-tralies { border-radius: 50%; opacity: .6; }
+.party-portrait--gevangen .party-portrait-img { filter: saturate(.55) brightness(.92); }
+.party-portrait--gevangen .party-portrait-soort { color: #3a2410; background: #c4a87a; }
+.badge-gevangen.badge-gevangen { background: #3a2a1a; color: #f2e8d2; border-color: #6a5236; }

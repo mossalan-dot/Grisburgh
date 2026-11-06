@@ -695,6 +695,7 @@ function filterEntityForPlayer(entity, dmState, groupId, ctx) {
   e._geheimTotaal = geheimen.length;
   e._geheimOnthuld = zichtbareGeheimen.length;
   e._deceased     = !!(g.deceased?.[entity.id]);
+  e._gevangen     = !!(g.gevangenen?.[entity.id]);
   // Waar dit kaartje bij hoort — maar alleen de kaartjes die deze party mag
   // zien, anders verklapt de omgekeerde verwijzing dat er iets verborgens is.
   e._hoortBij     = _betrokkenBij(entity.id)
@@ -1265,6 +1266,7 @@ router.get('/entities/:type', attachRole, (req, res) => {
       _geheimTotaal: _geheimRegels(e.data).length,
       _geheimOnthuld: _onthuldeIds(g.secretReveals[e.id], _geheimRegels(e.data)).size,
       _deceased:     !!(g.deceased?.[e.id]),
+      _gevangen:     !!(g.gevangenen?.[e.id]),
       _dmNote:       dmState.dmNotes[e.id]  || '',
       _gockOnderzocht: !!g.gockOnderzocht?.[e.id],
       _beeld:        storage.bestandIsBeeld(e.data?.imageId || e.id),
@@ -1424,6 +1426,7 @@ router.get('/entities/:type/:id', attachRole, (req, res) => {
       geplantDoor: r.geplantDoor || null, geplantVoor: r.geplantVoor || null,
     })),
     _deceased:     !!(g.deceased?.[entity.id]),
+    _gevangen:     !!(g.gevangenen?.[entity.id]),
     _dmNote:       dmState.dmNotes[entity.id]  || '',
     _tierActief:   _tierStand(g, entity)?.id || null,
   });
@@ -1734,6 +1737,7 @@ router.delete('/entities/:type/:id', requireDM, (req, res) => {
       visibility:   g.visibility?.[id],
       secretReveal: g.secretReveals?.[id],
       deceased:     g.deceased?.[id],
+      gevangen:     g.gevangenen?.[id],
     };
   }
   if (!dmState.trash) dmState.trash = [];
@@ -1795,6 +1799,7 @@ router.delete('/entities/:type/:id', requireDM, (req, res) => {
     delete dmState.groups[gid].visibility[id];
     delete dmState.groups[gid].secretReveals[id];
     if (dmState.groups[gid].deceased) delete dmState.groups[gid].deceased[id];
+    if (dmState.groups[gid].gevangenen) delete dmState.groups[gid].gevangenen[id];
   }
   delete dmState.dmNotes[id];
   storage.writeJSON('entities.json', entities);
@@ -1829,6 +1834,10 @@ router.post('/entities/restore/:id', requireDM, (req, res) => {
     if (s.deceased !== undefined) {
       if (!dmState.groups[gid].deceased) dmState.groups[gid].deceased = {};
       dmState.groups[gid].deceased[entity.id] = s.deceased;
+    }
+    if (s.gevangen) {
+      if (!dmState.groups[gid].gevangenen) dmState.groups[gid].gevangenen = {};
+      dmState.groups[gid].gevangenen[entity.id] = s.gevangen;
     }
   }
   if (dmNote !== null && dmNote !== undefined) {
@@ -2054,6 +2063,70 @@ router.put('/entities/:type/:id/deceased', requireDM, (req, res) => {
     req.app.get('io').to(_campagneRoom(req)).emit('entity:deceased', { id, type, name: entity.name });
   }
   res.json({ deceased: g.deceased[id] });
+});
+
+// ── Gevangene: een toestand per party ──────────────────────────────────────
+// Wie de party heeft vastgezet of meesleept. Net als het doodsvinkje hangt het
+// aan de groep en niet aan het kaartje: dezelfde smokkelaar kan bij de ene
+// party in de kelder zitten en voor de andere nog vrij rondlopen.
+// Opslag: `groups[gid].gevangenen[entityId] = { sinds, waar }` — `waar` is een
+// korte aantekening ("in de kelder van De Gouden Gans") die de spelers ook
+// lezen; het is hún gevangene.
+// Expliciet aan of uit (`{gevangen: true|false}`), geen wisselknop: een
+// dubbele klik of een tweede DM-scherm mag de stand niet terugdraaien.
+// Twee dingen gebeuren erbij, en het antwoord zegt welke:
+//  - liep hij als **medestander** mee, dan gaat hij daar af — je bent niet
+//    tegelijk bondgenoot en gevangene (`wasMedestander`);
+//  - stond zijn kaartje voor deze party op **verborgen**, dan wordt het
+//    **vaag**: de party heeft hem in handen, dus ze weten dát hij er is, maar
+//    niet meer dan dat. Een gevangene met een kap over zijn hoofd blijft zo
+//    een gevangene met een kap (`zichtbaarGemaakt`).
+router.put('/entities/personages/:id/gevangen', requireDM, (req, res) => {
+  const { id } = req.params;
+  const entities = storage.readJSON('entities.json');
+  const entity   = (entities.personages || []).find(e => e.id === id);
+  if (!entity) return res.status(404).json({ error: 'Personage niet gevonden' });
+  if (entity.subtype === 'speler')
+    return res.status(400).json({ error: 'Een speler kan niet de gevangene van zijn eigen party zijn' });
+  if (typeof req.body?.gevangen !== 'boolean')
+    return res.status(400).json({ error: 'Zeg of hij gevangen is (true of false)' });
+  const dmState = readDmState();
+  const gid = req.body.groep && dmState.groups[req.body.groep] ? req.body.groep : dmState.activeGroup;
+  const g   = getGroup(dmState, gid);
+  if (!g.gevangenen) g.gevangenen = {};
+  let wasMedestander = false, zichtbaarGemaakt = false;
+  if (req.body.gevangen) {
+    const oud = g.gevangenen[id] || {};
+    const waar = req.body.waar !== undefined ? String(req.body.waar || '').trim().slice(0, 140) : (oud.waar || '');
+    g.gevangenen[id] = { sinds: oud.sinds || new Date().toISOString(), ...(waar ? { waar } : {}) };
+    if ((g.companions || []).includes(id)) {
+      g.companions = g.companions.filter(x => x !== id);
+      wasMedestander = true;
+    }
+    if (!g.visibility) g.visibility = {};
+    if (!g.visibility[id] || g.visibility[id] === 'hidden') {
+      g.visibility[id] = 'vague';
+      zichtbaarGemaakt = true;
+    }
+  } else {
+    delete g.gevangenen[id];
+  }
+  storage.writeJSON('dm-state.json', dmState);
+  const io = req.app.get('io');
+  io.to(_campagneRoom(req)).emit('entity:updated', { id, gevangen: !!req.body.gevangen });
+  io.to(_campagneRoom(req)).emit('party:gevangenen', { groep: gid });
+  if (wasMedestander) io.to(_campagneRoom(req)).emit('companions:updated', {});
+  res.json({ ok: true, gevangen: g.gevangenen[id] || null, groep: gid, wasMedestander, zichtbaarGemaakt });
+});
+
+// Bij welke party zit hij gevangen? Voor de knop op het kaartje, die over de
+// actieve party gaat maar wil kunnen zeggen "zit bij Groep 2".
+router.get('/entities/personages/:id/gevangen', requireDM, (req, res) => {
+  const dmState = readDmState();
+  const bij = Object.entries(dmState.groups || {})
+    .filter(([, g]) => g.gevangenen?.[req.params.id])
+    .map(([gid, g]) => ({ groep: gid, naam: g.name || gid, ...g.gevangenen[req.params.id] }));
+  res.json({ bij, actief: dmState.activeGroup });
 });
 
 // ── Welke gedaante kent deze party? ──
@@ -8350,6 +8423,38 @@ router.get('/party/gevallenen', attachRole, (req, res) => {
       rol: [e.data?.ras, e.data?.klasse].filter(Boolean).join(' · '),
     });
   }
+  res.json(uit);
+});
+
+// Wie deze party gevangen houdt — de rij naast de medestanders op het
+// partytabblad. Zelfde zichtbaarheidsregel als elders: een verborgen kaartje
+// bestaat voor de speler niet, een vaag kaartje houdt zijn naam maar verliest
+// zijn gegevens (zijn portret krijgt de waas van `_waasVoor`). Een gevangene die
+// intussen dood is, staat hier niet meer: dat is een andere rij.
+router.get('/party/gevangenen', attachRole, (req, res) => {
+  const myId = req.session?.characterId;
+  if (!myId && req.role !== 'dm') return res.status(403).json({ error: 'Geen karakter geselecteerd' });
+  const entities = storage.readJSON('entities.json');
+  const dmState  = readDmState();
+  const gid = myId ? _playerGroupId(dmState, myId) : dmState.activeGroup;
+  const g   = (dmState.groups || {})[gid] || {};
+  const uit = [];
+  for (const [id, stand] of Object.entries(g.gevangenen || {})) {
+    if (g.deceased?.[id]) continue;
+    const e = (entities.personages || []).find(x => x.id === id);
+    if (!e) continue;
+    const vis = (g.visibility || {})[id] || 'hidden';
+    if (req.role !== 'dm' && vis === 'hidden') continue;
+    const vaag = req.role !== 'dm' && vis === 'vague';
+    uit.push({
+      id: e.id, name: e.name, subtype: e.subtype,
+      imageId: e.data?.imageId || e.id,
+      imgFocus: vaag ? '' : (e.data?.imgFocus || ''),
+      rol: vaag ? '' : [e.data?.ras, e.data?.klasse].filter(Boolean).join(' · '),
+      vaag, sinds: stand?.sinds || null, waar: stand?.waar || '',
+    });
+  }
+  uit.sort((a, b) => String(a.sinds || '').localeCompare(String(b.sinds || '')));
   res.json(uit);
 });
 
