@@ -16,6 +16,10 @@ const icon = (...a) => window.icon(...a);
 
 const isDM  = () => window.app?.isDM?.();
 const esc   = s => String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+// In een inline handler (`onclick="f('…')"`) decodeert de browser eerst het
+// attribuut en voert dan de JavaScript uit: `esc()` alleen laat een apostrof
+// de string sluiten. Eerst JS-escapen, dan HTML. Zie scripts/onclick-escapen.js.
+const escArg = s => esc(typeof s === 'string' ? s.replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/\r?\n/g, '\\n') : s);
 const uid   = () => 'r_' + Date.now().toString(36) + Math.random().toString(36).slice(2,6);
 
 // Eén icoonnaam per conditie. Er stond hier ook een emoji-veld, en dát werd op
@@ -240,7 +244,7 @@ function _verdiepingStripHtml() {
   return `<div class="dng-verdiepingen" title="Verdiepingen van dit gebouw">
     ${verdiepingen.map(m => `
       <button class="dng-verdieping${m.id === huidig.id ? ' dng-verdieping--actief' : ''}"
-        onclick="window._dngNaarVerdieping('${esc(m.id)}')" title="${esc(m.name || '')}">
+        onclick="window._dngNaarVerdieping('${escArg(m.id)}')" title="${esc(m.name || '')}">
         ${esc(_verdiepingLabel(m.verdieping))}</button>`).join('')}
   </div>`;
 }
@@ -263,7 +267,7 @@ window._dngNaarVerdieping = (mapId, roomId) => {
 // Een kaartje aanmaken vanuit een kameraantekening. Leent de plaatshouder-
 // kiezer van het schrijfscherm: een plaatshouder ontstaat op een plek.
 window._dngMaakKaartje = async (naam) => {
-  await import('./akte-schrijven.js?v=34');
+  await import('./akte-schrijven.js?v=35');
   window.akteSchrijven?.maakPlaceholder?.(naam);
 };
 
@@ -626,7 +630,7 @@ function _renderSvg() {
     return `<text class="dng-trap-icon" x="${cx}" y="${cy}" font-size="${size}"
       text-anchor="middle" dominant-baseline="middle"
       transform="rotate(${omhoog ? 180 : 0} ${cx} ${cy})"
-      onclick="window._dngNaarVerdieping('${esc(r.trapNaar.mapId)}','${esc(r.trapNaar.roomId || '')}')"
+      onclick="window._dngNaarVerdieping('${escArg(r.trapNaar.mapId)}','${escArg(r.trapNaar.roomId || '')}')"
       style="cursor:pointer">&#8595;</text>`;
   }).join('');
 
@@ -665,7 +669,7 @@ function _renderSvg() {
       // verdeling. Anders zou je het icoon zien liggen en er niets mee kunnen —
       // en de vondst apart moeten opzoeken in de zijbalk.
       const klik = (c.afgeleid && c.type === 'loot')
-        ? `onclick="window._dngVondstOnthul('${esc(r.id)}')" style="cursor:pointer"`
+        ? `onclick="window._dngVondstOnthul('${escArg(r.id)}')" style="cursor:pointer"`
         : '';
       return _condSpriteSvg(ct?.svgName || 'square', startX + i * step, iconY, size, cls, klik);
     }).join('');

@@ -781,6 +781,11 @@ fout-uitvoert.
 - [ ] **Nieuwe campagne opzetten** (BEHEER) — aanmaken met wachtwoord, openen, inloggen, en de eerste party en personage maken
 - [ ] **Bronteksten van een tweede campagne** (BEHEER) — spreuken en features komen kaal binnen; de eigen tekst van die DM blijft
 - [ ] **Wachtwoord van een andere campagne** (BEHEER) — zetten vanaf het campagnekaartje en er daarna mee inloggen
+- [ ] **Privéberichten blijven privé** (SP) — open de landingspagina in een incognitovenster zonder in te loggen, en stuur als DM een bericht aan een speler: het komt aan bij die speler en nergens anders (`tests/review-lekken.test.js` doet hetzelfde met een kale socket)
+- [ ] **Spotify-token** (SP) — open als speler `/api/spotify/token?campagne=<id>` in de adresbalk: 403, ook als Spotify gekoppeld is; het tafelscherm (DM-login) speelt gewoon af
+- [ ] **Verborgen verbindingen** (SP) — koppel als DM een verborgen NPC aan een zichtbare locatie via *Verbindingen*, en open als speler de netwerktab bij die locatie: zijn naam staat nergens in `links`
+- [ ] **Charges in de eigen party** (SP) — zet als DM een andere party actief en laat een speler een charge van een staf gebruiken: na verversen staat het bolletje nog steeds verbruikt
+- [ ] **Apostrof in een knop** (DM) — maak een monster `Ma'ar de "Wolf"` en klik in het Bestiarium op het kruisje: de vraag noemt hem met apostrof en aanhalingstekens; idem het plusje bij *Bigby's Hand* in het spreukenboek
 - [ ] **Helpteksten afschermen** (BEHEER) — nog te bouwen: een tweede DM hoort de uitleg niet te kunnen herschrijven (`docs/todo.md`)
 
 ---
@@ -835,6 +840,11 @@ Per bevinding: waar, wat, en of het opgelost is. Nieuwe regels onderaan.
 | 25 | 7 | Een nieuwe campagne "activeren" veranderde niets: je bleef in Grisburgh | opgelost — knop *Openen* (naar `/naam`), en "Als standaard" heet nu wat het is: waar het kale domein landt. Aanmaken vraagt meteen een DM-wachtwoord, anders kun je er niet in |
 | 26 | 10 | Ook via *Openen* bleef je in Grisburgh: je sessie won van het pad | opgelost — het pad (`?campagne=`) bepaalt de campagne, de sessie alleen je rol. In een vreemde campagne ben je bezoeker en log je opnieuw in (`sessieHoortHier()`, zestiende isolatietest) |
 | 27 | 1 | Een andere campagne standaard maken sloot je buiten Grisburgh: het serverwachtwoord hing aan de *actieve* campagne | opgelost — het hangt nu aan `config.beheerCampagne`, die vastligt. Zelfde fout zat in de regel die leegmaken toestond |
+| 28 | 8 | Een socket zonder sessie kon zich met `player:register` als elk personage melden en ontving daarna zijn privéberichten en brieven — en de echte speler niet meer (review 6 nov) | opgelost — alleen het personage van je eigen sessie, na een `session.reload()`; `tests/review-lekken.test.js` |
+| 29 | 7 | `GET /spotify/token` gaf het toegangstoken van de DM aan elke ingelogde speler, met e-mail- en accountscope erin (review 6 nov) | opgelost — token en tafelapparaat alleen voor de DM; het tafelscherm is een DM-login |
+| 30 | 2 | `links` van een zichtbaar kaartje noemde verborgen kaartjes bij naam; een handmatige verbinding wordt vanzelf tweezijdig, dus koppel je een verborgen NPC aan de herberg, dan staat hij in de netwerktab van elke speler (review 6 nov) | opgelost — `_linksVoorSpeler()` in `filterEntityForPlayer`; een naam zonder kaartje blijft staan |
+| 31 | 4 | Charges, `maxCharges`, de lange rust per personage, multiclass- en leenverzoeken schreven in de party waar de DM naar keek, terwijl de speler zijn eigen party leest: een charge "sprong terug", een verzoek was voor de speler onzichtbaar en kon dubbel (review 6 nov) | opgelost — de party van het personage zelf |
+| 32 | alle | `esc()` in een inline handler (`onclick="f('${esc(x)}')"`) escapet voor HTML, niet voor een JS-string: "Bigby's Hand" gaf een knop die niets deed, en een personagenaam als `x');…;('` werd code in het scherm van de DM (review 6 nov) | opgelost — 615 plekken naar `escArg` (`scripts/onclick-escapen.js`); `tests/onclick-escapen.test.js` bewaakt het |
 
 ### Spell slots, multiclass en de signatuurkaart (17 sep 2026)
 

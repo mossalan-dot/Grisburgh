@@ -362,11 +362,28 @@ io.on('connection', (socket) => {
   socket.join(campaignId);
   console.log(`Client connected: ${socket.id} (room: ${campaignId})`);
 
-  // Player registers their characterId so DM can send direct messages
+  // Een speler meldt zijn characterId, zodat de DM hem rechtstreeks kan bereiken
+  // (berichten, brieven, beursmeldingen).
+  //
+  // Alleen voor het personage van je **eigen sessie**. Dit nam elk id aan, ook
+  // van een socket zonder sessie: wie op de landingspagina een id zag staan kon
+  // zich als die speler melden en kreeg daarna zijn privéberichten — en de echte
+  // speler kreeg ze niet meer, want de map houdt één socket per personage bij.
+  //
+  // Eerst de sessie verversen: die is bij de handshake gelezen, en de client
+  // logt in zónder te herladen. Zonder reload kent deze socket het net
+  // gekozen personage nog niet.
   socket.on('player:register', (characterId) => {
-    if (characterId) {
+    if (!characterId) return;
+    const controleer = () => {
+      // `reload` vervangt het sessie-object, dus pas hier opnieuw ophalen.
+      const sess = socket.request.session;
+      if (sess?.characterId !== characterId) return;
       playerSockets.set(characterId, socket.id);
-    }
+    };
+    const sess = socket.request.session;
+    if (typeof sess?.reload === 'function') sess.reload(() => controleer());
+    else controleer();
   });
 
   // Het scherm op tafel meldt zich als tafelscherm.

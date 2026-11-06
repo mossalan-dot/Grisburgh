@@ -1,20 +1,20 @@
 import { api, campagneUitUrl, zetCampagne } from './api.js?v=316';
-import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, renderDocumenten, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=350";
-import { initArchief, renderLogboek, openLogboekEditor } from "./render-archief.js?v=142";
+import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, renderDocumenten, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=351";
+import { initArchief, renderLogboek, openLogboekEditor } from "./render-archief.js?v=143";
 import { renderKaart, queueFlyTo, verversPins, nieuweKaart } from './render-kaart.js?v=31';
-import { renderDungeon } from './render-dungeon.js?v=67';
-import { renderRelatiemap } from './render-relatiemap.js?v=31';
-import { renderProgressie, levelupFeatures } from './render-progressie.js?v=63';
-import { renderBestiarium } from './render-bestiarium.js?v=31';
-import { renderSpreuken } from './render-spreuken.js?v=50';
+import { renderDungeon } from './render-dungeon.js?v=68';
+import { renderRelatiemap } from './render-relatiemap.js?v=32';
+import { renderProgressie, levelupFeatures } from './render-progressie.js?v=64';
+import { renderBestiarium } from './render-bestiarium.js?v=32';
+import { renderSpreuken } from './render-spreuken.js?v=51';
 import './render-handleiding.js?v=2';
 import './render-melding.js?v=4';
-import { renderVaardigheden, zoekVaardigheden, heldenboekTekst } from './render-vaardigheden.js?v=132';
+import { renderVaardigheden, zoekVaardigheden, heldenboekTekst } from './render-vaardigheden.js?v=133';
 import { renderStatblock } from './render-statblock.js?v=9';
-import { initSocket } from "./socket-client.js?v=89";
-import { initDmPanel } from "./dm-panel.js?v=410";
+import { initSocket } from "./socket-client.js?v=90";
+import { initDmPanel } from "./dm-panel.js?v=411";
 import { COND_INFO, COND_LABEL, COND_MET_PLAATJE, COND_ICON } from './conditions.js?v=2';
-import './media-picker.js?v=10';
+import './media-picker.js?v=11';
 import './wizard.js?v=5';
 import './tafels.js?v=2';
 
@@ -1504,7 +1504,7 @@ async function showLanding({ alleenGroep = null } = {}) {
           data-has-password="${c.groepHasPassword ? '1' : ''}"
           data-groep-naam="${esc(c.groepNaam || '')}"
           data-portrait-video="${c.portraitVideoId ? '1' : ''}"
-          onclick="window.app._landingPortraitClick('${esc(c.id)}', this)">
+          onclick="window.app._landingPortraitClick('${escArg(c.id)}', this)">
           <div class="landing-portrait-ring">
             <img src="${api.thumbUrl(esc(c.id))}" class="landing-portrait-img"
               onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
@@ -1568,7 +1568,7 @@ async function _landingNieuwTegel() {
   if (!host || !_groepsWachtwoord || document.getElementById('landing-nieuw')) return;
   let stand = null;
   try {
-    await import('./personage-maken.js?v=5');
+    await import('./personage-maken.js?v=6');
     stand = await window.personageMaken.stand();
   } catch { return; }
   if (stand?.instellingen && stand.instellingen.aan === false) return;
@@ -1590,7 +1590,7 @@ async function _landingNieuwTegel() {
 
 async function _landingNieuw() {
   try {
-    await import('./personage-maken.js?v=5');
+    await import('./personage-maken.js?v=6');
     const stand = await window.personageMaken.stand();
     if (stand?.concept && stand.concept.status !== 'gegund') {
       if (stand.concept.status === 'wacht') {
@@ -2299,6 +2299,13 @@ function esc(s) {
 }
 
 // ── JS string escape (voor names in single-quoted onclick handlers) ──
+// In een inline handler (`onclick="f('…')"`) decodeert de browser eerst het
+// attribuut en voert dan de JavaScript uit: `esc()` alleen laat een apostrof
+// de string sluiten. Eerst JS-escapen, dan HTML. Zie scripts/onclick-escapen.js.
+function escArg(s) {
+  return esc(typeof s === 'string' ? s.replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/\r?\n/g, '\\n') : s);
+}
+
 function escJS(s) {
   return String(s || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'");
 }
@@ -2323,7 +2330,7 @@ function _weaponPropsPickerHtml(w, i) {
     // Finesse ook alweer is" dat je hem kwijtraakte.
     return `<span class="weapon-prop-chip" data-wptip="${esc(tip)}" title="${esc(tip)}">${esc(s)}<button
       type="button" class="weapon-prop-chip-x" title="Verwijder ${esc(s)}"
-      onclick="event.stopPropagation();window._toggleWeaponProp(${i},'${escJS(base)}')">×</button></span>`;
+      onclick="event.stopPropagation();window._toggleWeaponProp(${i},'${escArg(base)}')">×</button></span>`;
   }).join('');
 
 
@@ -2339,12 +2346,12 @@ function _weaponPropsPickerHtml(w, i) {
       const safeId   = 'wpp-' + i + '-' + prop.replace(/[^a-zA-Z0-9]/g, '_');
       const btn = `<button type="button"
           class="weapon-tag-pick${isOn ? ' weapon-tag-pick--on' : ''}" data-wptip="${esc(tip)}"
-          onclick="window._toggleWeaponProp(${i},'${escJS(prop)}')">${esc(prop)}</button>`;
+          onclick="window._toggleWeaponProp(${i},'${escArg(prop)}')">${esc(prop)}</button>`;
       if (isParam) {
         const ph = prop === 'Versatile' ? '1d10' : prop === 'Ammunition' ? '80/320' : '20/60';
         return `<span class="weapon-tag-pick-group">${btn}<input type="text" id="${safeId}"
           class="weapon-tag-param-inp${isOn ? '' : ' hidden'}" placeholder="${ph}" value="${esc(paramVal)}"
-          onchange="window._updateWeaponPropParam(${i},'${escJS(prop)}',this.value)"
+          onchange="window._updateWeaponPropParam(${i},'${escArg(prop)}',this.value)"
           onclick="event.stopPropagation()"></span>`;
       }
       return btn;
@@ -3095,7 +3102,7 @@ window._badgeKaartje = function (ev, charId) {
       ${lijst.map(b => {
         const st = _BADGE_STIJL[b.soort] || {};
         const knop = b.eigen
-          ? `<button class="badge-kaart-knop" onclick="window._badgeWeg('${esc(charId)}','${esc(b.soort)}','${esc(b.id || '')}')">${
+          ? `<button class="badge-kaart-knop" onclick="window._badgeWeg('${escArg(charId)}','${escArg(b.soort)}','${escArg(b.id || '')}')">${
               b.soort === 'inspiratie' ? 'Gebruiken' : 'Weghalen'}</button>`
           : `<span class="badge-kaart-dm">${icon('lock')} vraag je DM</span>`;
         return `<div class="badge-kaart-rij badge--${esc(b.soort)}">
@@ -3153,11 +3160,11 @@ async function renderParty() {
       const dotTitle = isAbsent ? 'Afwezig — klik om aanwezig te maken' : 'Aanwezig — klik om af te melden';
       return `
         <div class="party-chip${isAbsent ? ' party-chip--absent' : ''}${hasInsp ? ' party-chip--insp' : ''}"
-          onclick="window._openDetail('personages','${esc(e.id)}')"
-          oncontextmenu="event.preventDefault();event.stopPropagation();window._toggleInspiration('${esc(e.id)}')"
+          onclick="window._openDetail('personages','${escArg(e.id)}')"
+          oncontextmenu="event.preventDefault();event.stopPropagation();window._toggleInspiration('${escArg(e.id)}')"
           title="${esc(e.name)}${hasInsp ? ' · Heeft inspiratie' : ''}">
           <button class="party-presence-dot ${isAbsent ? 'absent' : 'present'}"
-            onclick="event.stopPropagation();window._togglePartyPresence('${esc(e.id)}')"
+            onclick="event.stopPropagation();window._togglePartyPresence('${escArg(e.id)}')"
             title="${dotTitle}"></button>
           <span class="party-chip-name">${esc(e.name.split(' ')[0])}</span>
           ${hasInsp ? '<span class="party-chip-insp">✨</span>' : ''}
@@ -3243,17 +3250,17 @@ window.renderGroupSwitcher = async function(groups, activeGroupId) {
     const absent = presence[e.id] === false;
     return `<div class="group-dd-player${absent ? ' is-absent' : ''}">
       <button class="group-dd-dot ${absent ? 'absent' : 'present'}"
-        onclick="event.stopPropagation();window._togglePartyPresence('${esc(e.id)}')"
+        onclick="event.stopPropagation();window._togglePartyPresence('${escArg(e.id)}')"
         title="${absent ? 'Afwezig — klik om aanwezig te maken' : 'Aanwezig — klik om af te melden'}"></button>
       <span class="group-dd-player-name"
-        onclick="event.stopPropagation();window._openDetail('personages','${esc(e.id)}')">${esc(e.name)}</span>
+        onclick="event.stopPropagation();window._openDetail('personages','${escArg(e.id)}')">${esc(e.name)}</span>
     </div>`;
   };
 
   dd.innerHTML = groups.map(g => {
     const players = byGroup[g.id] || [];
     return `<div class="group-dd-group${g.id === active.id ? ' is-active' : ''}" style="--grp-c:${_groupColor(idxOf(g.id))}">
-      <button class="group-dd-row" onclick="window.app.switchGroup('${esc(g.id)}')" title="Wissel naar deze groep">
+      <button class="group-dd-row" onclick="window.app.switchGroup('${escArg(g.id)}')" title="Wissel naar deze groep">
         <span class="group-dd-rowdot"></span>
         <span class="group-dd-rowname">${esc(g.name)}</span>
         ${g.id === active.id ? `<span class="group-dd-check">${icon('check')}</span>` : ''}
@@ -3520,7 +3527,7 @@ function _kaartCard(type, m, dm, verdiepingen = null) {
     ? `<img class="kg-card-thumb" loading="lazy" src="${thumbSrc}"${m.thumbFocus ? ` style="object-position:${esc(m.thumbFocus)}"` : ''} onerror="this.style.display='none';this.closest('.kg-card').classList.add('kg-card--noimg')">`
     : '';
   return `
-    <div class="kg-card kg-card--${type}${!thumbSrc ? ' kg-card--noimg' : ''}" onclick="window._openKaartFullscreen('${type}','${esc(id)}')">
+    <div class="kg-card kg-card--${type}${!thumbSrc ? ' kg-card--noimg' : ''}" onclick="window._openKaartFullscreen('${type}','${escArg(id)}')">
       <div class="kg-card-thumbwrap">
         ${thumb}
         <div class="kg-card-fallback">${icon(type === 'wereld' ? 'map' : 'swords')}</div>
@@ -3536,16 +3543,16 @@ function _kaartCard(type, m, dm, verdiepingen = null) {
                       active: 'Zichtbaar met fog-of-war — klik om op uitgespeeld te zetten',
                       completed: 'Uitgespeeld: de hele plattegrond ligt open — klik om te verbergen' }[st];
           return `<button class="kg-card-vis kg-card-vis--${st}" title="${t}"
-            onclick="event.stopPropagation();window._dngToegangCycle('${esc(id)}')">
+            onclick="event.stopPropagation();window._dngToegangCycle('${escArg(id)}')">
             ${icon(st === 'none' ? 'eye-off' : st === 'active' ? 'eye' : 'check-circle')}</button>`;
         })() : ''}
-        ${dm ? `<button class="kg-card-edit" onclick="event.stopPropagation();window._kaartEdit('${type}','${esc(id)}')" title="Naam/beschrijving${type === 'dungeon' ? '/thumbnail' : ''} bewerken">${icon('pencil')}</button>` : ''}
+        ${dm ? `<button class="kg-card-edit" onclick="event.stopPropagation();window._kaartEdit('${type}','${escArg(id)}')" title="Naam/beschrijving${type === 'dungeon' ? '/thumbnail' : ''} bewerken">${icon('pencil')}</button>` : ''}
       </div>
       <div class="kg-card-body">
         <div class="kg-card-name">${esc(name)}</div>
         ${verdiepingen ? `<div class="kg-verdiepingen" onclick="event.stopPropagation()">
           ${verdiepingen.map(v => `<button class="kg-verdieping" title="${esc(v.name || '')}"
-            onclick="window._openKaartFullscreen('dungeon','${esc(v.id)}')">${
+            onclick="window._openKaartFullscreen('dungeon','${escArg(v.id)}')">${
               v.verdieping === 0 ? 'BG' : esc(String(v.verdieping ?? '?'))}</button>`).join('')}
         </div>` : ''}
         ${desc
@@ -3560,7 +3567,7 @@ function _kaartCard(type, m, dm, verdiepingen = null) {
 // eerste bestaande kaart: je drukte op + en keek naar Dreghaven.
 window._kaartNieuw = async function (type) {
   if (type === 'wereld') return nieuweKaart();
-  const { nieuweDungeon } = await import('./render-dungeon.js?v=67');
+  const { nieuweDungeon } = await import('./render-dungeon.js?v=68');
   nieuweDungeon();
 };
 
@@ -3687,12 +3694,12 @@ window._kaartEdit = async function(type, id) {
         }) : ''}</div>
       </div>` : ''}
       <div class="dm-feature-row" style="margin-top:6px">
-        <button class="dm-btn dm-btn-primary" onclick="window._kaartEditSave('${type}','${esc(id)}')">${icon('save')} Opslaan</button>
+        <button class="dm-btn dm-btn-primary" onclick="window._kaartEditSave('${type}','${escArg(id)}')">${icon('save')} Opslaan</button>
         <button class="dm-btn dm-btn-ghost" onclick="window.app.closeModal()">${icon('x')} Annuleren</button>
         <!-- Verwijderen kon nergens meer: bij een hoofdkaart zat die knop in de
              oude werkbalk boven de kaart, en die is met de galerij verdwenen. -->
         <button class="dm-btn dm-btn-ghost dm-btn-danger" style="margin-left:auto"
-          onclick="window._kaartVerwijder('${type}','${esc(id)}','${escJS(naam)}')">${icon('trash')} Verwijderen</button>
+          onclick="window._kaartVerwijder('${type}','${escArg(id)}','${escArg(naam)}')">${icon('trash')} Verwijderen</button>
       </div>
     </div>`;
   window.app.openModal('Kaart bewerken', naam, body);
@@ -5228,7 +5235,7 @@ function _sbAddSpRenderList() {
       const lvl = (s.level || 0) === 0 ? 'Cantrip' : 'Level ' + s.level;
       const preview = (s.desc || []).join(' ').replace(/\s+/g, ' ').slice(0, 130);
       return `<div class="sb-addsp-card${has ? ' sb-addsp-card--has' : ''}${sel ? ' sb-addsp-card--sel' : ''}"
-          ${has ? '' : `onclick="window._sbAddSpToggleSelect('${esc(s.index)}')"`}>
+          ${has ? '' : `onclick="window._sbAddSpToggleSelect('${escArg(s.index)}')"`}>
         <div class="sb-addsp-check">${has ? icon('check') : (sel ? icon('check') : '')}</div>
         <div class="sb-addsp-main">
           <div class="sb-addsp-cardtop"><span class="sb-addsp-name">${esc(s.name)}</span>
@@ -5480,7 +5487,7 @@ function _sbRenderTocList(q) {
               ${k === 0 ? '' : `<button class="sb-toc-ibtn${paraat ? ' is-aan' : ''}" onclick="window._sbCyclePrepared(${i})"
                 title="${s.alwaysPrepared ? 'Altijd paraat — klik om op te heffen' : s.prepared ? 'Paraat — klik voor altijd paraat' : 'Zet gereed'}">${icon('check')}</button>`}
               ${spreekt ? `<button class="sb-toc-ibtn${bewerkt ? ' is-aan' : ''}" onclick="window._sbTocBewerk(${i})" title="${bewerkt ? 'Klaar' : 'Incantatie schrijven'}">${icon('pencil')}</button>` : ''}
-              <button class="sb-toc-ibtn sb-toc-ibtn--weg" onclick="window._sbTocUnpin('${esc(s.index)}')" title="Verwijderen">${icon('trash')}</button>
+              <button class="sb-toc-ibtn sb-toc-ibtn--weg" onclick="window._sbTocUnpin('${escArg(s.index)}')" title="Verwijderen">${icon('trash')}</button>
             </span>
           </div>`;
         }
@@ -5506,7 +5513,7 @@ function _sbRenderTocList(q) {
         html += `<div class="sb-toc-item${active ? ' sb-toc-active' : ''}">
           <span class="sb-toc-item-name" onclick="window._sbGoTo(${navIdx}, true)">${esc(s.name)}</span>
           ${school ? `<span class="sb-toc-item-school">${esc(school)}</span>` : ''}
-          <button class="sb-toc-item-del" onclick="window._sbTocUnpin('${esc(s.index)}')" title="Verwijderen">×</button>
+          <button class="sb-toc-item-del" onclick="window._sbTocUnpin('${escArg(s.index)}')" title="Verwijderen">×</button>
         </div>`;
       }
     }
@@ -5517,7 +5524,7 @@ function _sbRenderTocList(q) {
         html += `<div class="sb-toc-item">
           <span class="sb-toc-item-name">${esc(s.name)}</span>
           ${school ? `<span class="sb-toc-item-school">${esc(school)}</span>` : ''}
-          <button class="sb-toc-item-add" onclick="window._sbTocPin('${esc(s.index)}','${esc(s.name)}',this)" title="Toevoegen aan boek">+</button>
+          <button class="sb-toc-item-add" onclick="window._sbTocPin('${escArg(s.index)}','${escArg(s.name)}',this)" title="Toevoegen aan boek">+</button>
         </div>`;
       }
     }
@@ -6469,7 +6476,7 @@ window._geefItemMenu = async (itemId, knop) => {
   menu.className = 'geef-menu';
   menu.innerHTML = leden.length
     ? `<div class="geef-menu-kop">Geven aan…</div>${leden.map(p => `
-        <button class="geef-menu-rij" onclick="window._geefItem('${esc(itemId)}','${esc(p.id)}')">
+        <button class="geef-menu-rij" onclick="window._geefItem('${escArg(itemId)}','${escArg(p.id)}')">
           <img class="geef-menu-portret" src="/api/thumb/${esc(p.id)}" alt="" onerror="this.remove()">
           <span>${esc(p.name)}</span>
         </button>`).join('')}`
@@ -6517,7 +6524,7 @@ function _muntRegel(goud) {
 function _lootCinPortret(p) {
   return `<img class="loot-cin-portret" src="/api/thumb/${esc(p.thumb)}" alt=""
     title="${esc(p.naam)}" onerror="this.replaceWith(Object.assign(document.createElement('span'),
-    {className:'loot-cin-portret loot-cin-portret--leeg', textContent:'${esc((p.naam || '?')[0])}'}))">`;
+    {className:'loot-cin-portret loot-cin-portret--leeg', textContent:'${escArg((p.naam || '?')[0])}'}))">`;
 }
 
 function _lootCinClaimRegel(it) {
@@ -6767,7 +6774,7 @@ window._itemWorpPillen = (item) => {
   const isHeal = heal && (!dmg || /heal|genez/i.test(dmg));
   const pillen = [];
   if (dmg && !isHeal) pillen.push(`<button class="item-damage-pill item-damage-pill--sm"
-    onclick="window.dice?.rollFlash('${escJS(dmg)}','${escJS(item.name || '')}')"
+    onclick="window.dice?.rollFlash('${escArg(dmg)}','${escArg(item.name || '')}')"
     title="Gooi ${escJS(dmg)}">${icon('dice', { cls: 'icon-gi' })} ${esc(dmg)}</button>`);
   // De knop draagt zelf wat er straks in de vraag moet staan: hoeveel charges er
   // nog zijn, hoeveel er van de stapel over is, en of het exemplaar verdwijnt.
@@ -6895,7 +6902,7 @@ function _rustHitDicePaneel(charId, hd) {
     return `<div class="rust-hd-rij" data-sides="${s}">
       <span class="rust-hd-type">d${s}</span>
       <span class="rust-hd-dots">${dots}</span>
-      <button class="rust-hd-besteed" ${vrij <= 0 ? 'disabled' : ''} onclick="window._rustSpendHitDie('${esc(charId)}',${s})">${icon('dice')} Besteed</button>
+      <button class="rust-hd-besteed" ${vrij <= 0 ? 'disabled' : ''} onclick="window._rustSpendHitDie('${escArg(charId)}',${s})">${icon('dice')} Besteed</button>
     </div>`;
   }).join('');
   return `<div class="rust-hd-paneel">
@@ -7286,7 +7293,7 @@ async function _partyGevallenen() {
       <div class="player-dash-section-title">${icon('skull')} Gevallenen</div>
       <div class="party-gevallen-rij">
         ${lijst.map(g => `
-          <div class="party-gevallen" onclick="window._openDetail('personages','${esc(g.id)}')" title="${esc(g.name)}">
+          <div class="party-gevallen" onclick="window._openDetail('personages','${escArg(g.id)}')" title="${esc(g.name)}">
             <div class="party-gevallen-portret">
               <img src="${api.thumbUrl(g.imageId)}" alt=""
                 onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
@@ -7335,7 +7342,7 @@ function _partyMetgezelHtml(lijst) {
               const cR = 38, cC = +(2 * Math.PI * 38).toFixed(1);
               const cFill = cPct > 0 ? +(cC * cPct / 100).toFixed(1) : 0;
               return `<div class="party-portrait party-portrait--companion party-portrait--${isDier ? 'dier' : 'bondgenoot'}"
-                onclick="window._openDetail('personages','${esc(e.id)}')"
+                onclick="window._openDetail('personages','${escArg(e.id)}')"
                 title="${esc(e.name)}${e.baasje ? ` — van ${e.baasje}` : ''}">
                 <div class="party-portrait-ring-wrap">
                   ${cPct !== null ? `<svg class="party-hp-ring" viewBox="0 0 100 100" style="position:absolute;inset:0;width:100%;height:100%;pointer-events:none">
@@ -7488,7 +7495,7 @@ async function _levelUpBalk() {
         ? `window._luNaarProgressie(${k.klasseLevel || 0})`
         : `window._luNaarBibliotheek(${k.niveau}, '${esc(k.klasse)}')`}">Kiezen</button>
       <button class="levelup-herinnering-weg" title="Deze herinnering wegklikken"
-        onclick="window._luKeuzeKlaar('${esc(k.levelUpId)}', ${isFeat ? -1 : k.niveau})">${icon('x')}</button>
+        onclick="window._luKeuzeKlaar('${escArg(k.levelUpId)}', ${isFeat ? -1 : k.niveau})">${icon('x')}</button>
     </div>`;
   }).join('');
 
@@ -7535,7 +7542,7 @@ function _levelUpTeken() {
       <div class="lu-keuzes">
         ${st.klassen.map(x => `
           <button class="lu-keuze${x.klasse === klasse.klasse ? ' is-aan' : ''}"
-            onclick="window._luKies('klasse', '${esc(x.klasse)}')">
+            onclick="window._luKies('klasse', '${escArg(x.klasse)}')">
             <strong>${esc(x.klasse)}</strong>
             <span>${x.level} → ${x.level + 1} · d${x.die}</span>
           </button>`).join('')}
@@ -7637,7 +7644,7 @@ window._luMulticlassOpen = function () {
   const rest = opties.filter(o => !o.voldoet);
   const rij = (o) => `
     <button class="lu-mc-rij${o.voldoet ? '' : ' lu-mc-rij--krap'}"
-      onclick="window._luMulticlassVraag('${esc(o.klasse)}')">
+      onclick="window._luMulticlassVraag('${escArg(o.klasse)}')">
       <span class="lu-mc-naam">${esc(o.klasse)}</span>
       <span class="lu-mc-eis">${esc(o.tekst)}</span>
     </button>`;
@@ -7698,9 +7705,9 @@ function _levelUpCinematic(lu, kiezen = []) {
     ? `<button class="dm-btn dm-btn-primary dm-btn-sm" onclick="window._luNaarProgressie(${k.klasseLevel || 0})">
         ${icon('star')} Kies je feat of verhoging</button>`
     : k.soort === 'cantrip'
-      ? `<button class="dm-btn dm-btn-primary dm-btn-sm" onclick="window._luNaarBibliotheek(0, '${esc(k.klasse)}')">
+      ? `<button class="dm-btn dm-btn-primary dm-btn-sm" onclick="window._luNaarBibliotheek(0, '${escArg(k.klasse)}')">
           ${icon('sparkles')} Kies ${k.aantal === 1 ? 'je cantrip' : `${k.aantal} cantrips`}</button>`
-      : `<button class="dm-btn dm-btn-primary dm-btn-sm" onclick="window._luNaarBibliotheek(${k.niveau}, '${esc(k.klasse)}')">
+      : `<button class="dm-btn dm-btn-primary dm-btn-sm" onclick="window._luNaarBibliotheek(${k.niveau}, '${escArg(k.klasse)}')">
           ${icon('open-book')} Spreuken van niveau ${k.niveau}</button>`).join('');
   // Een feat gaat niet langs de DM, een spreuk wel: dan hoort die zin er ook
   // alleen te staan als er iets is dat langs hem gaat.
@@ -8374,7 +8381,7 @@ async function renderMijnKarakter(opts = {}) {
               const _tmpR = 47, _tmpC = +(2 * Math.PI * 47).toFixed(1);
               const _tmpFill = (maxNum && tempNum > 0) ? +(_tmpC * Math.min(tempNum, maxNum) / maxNum).toFixed(1) : 0;
               return `<div class="party-portrait party-portrait--self"
-                onclick="window._badgeKaartje(event,'${esc(window.app?.state?.characterId || '')}')">
+                onclick="window._badgeKaartje(event,'${escArg(window.app?.state?.characterId || '')}')">
               <div class="party-portrait-ring-wrap">
                 <svg class="party-hp-ring" viewBox="0 0 100 100" style="position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:2">
                   <circle cx="50" cy="50" r="${_ringR}" class="party-hp-ring-bg"/>
@@ -8414,7 +8421,7 @@ async function renderMijnKarakter(opts = {}) {
                 return `<span class="party-portrait-cond" style="color:${kleur}" title="${esc(COND_LABEL[cid])}">${icon(icn)}</span>`;
               }).join('');
               return `<div class="party-portrait${e.afwezig ? ' party-portrait--afwezig' : ''}"
-                onclick="if(!window._badgeKaartje(event,'${esc(e.id)}'))window._openDetail('personages','${esc(e.id)}')"${e.afwezig ? ' title="Doet vanavond niet mee"' : ''}>
+                onclick="if(!window._badgeKaartje(event,'${escArg(e.id)}'))window._openDetail('personages','${escArg(e.id)}')"${e.afwezig ? ' title="Doet vanavond niet mee"' : ''}>
                 <div class="party-portrait-ring-wrap">
                   <svg class="party-hp-ring" viewBox="0 0 100 100" style="position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:2">
                     <circle cx="50" cy="50" r="${pRingR}" class="party-hp-ring-bg"/>
@@ -8469,7 +8476,7 @@ async function renderMijnKarakter(opts = {}) {
               }).join('');
               const isStudied = c.type === 'monster' && c._niveau && c._niveau !== 'naam';
               if (isStudied) _combatMonsterCache.set(c.id, c);
-              const clickAttr = isStudied ? `onclick="window.app.openCombatMonsterPanel(window._combatMonsterCache?.get('${esc(c.id)}'))" style="cursor:pointer"` : '';
+              const clickAttr = isStudied ? `onclick="window.app.openCombatMonsterPanel(window._combatMonsterCache?.get('${escArg(c.id)}'))" style="cursor:pointer"` : '';
               return `<div class="player-dash-init-row${isActive ? ' player-dash-init-active' : ''}${isMe ? ' player-dash-init-me' : ''}${isStudied ? ' player-dash-init-studied' : ''}" ${clickAttr}>
                 <span class="player-dash-init-num">${i + 1}</span>
                 <span class="player-dash-init-name">${esc(displayName)}</span>
@@ -8780,7 +8787,7 @@ async function renderMijnKarakter(opts = {}) {
               const info    = PLAYER_COND_INFO[cid] || { label: cid };
               const hasIcon = PLAYER_COND_ICONS.has(cid);
               return `<button class="player-dash-cond-chip" data-cid="${esc(cid)}"
-                onclick="window._condInfo('${escJS(cid)}')" title="${esc(info.desc || 'Tik voor uitleg')}">
+                onclick="window._condInfo('${escArg(cid)}')" title="${esc(info.desc || 'Tik voor uitleg')}">
                 ${hasIcon ? `<img src="/img/conditions/${esc(cid)}.png" class="player-dash-cond-icon" alt="">` : ''}
                 <span>${esc(info.label)}</span>
               </button>`;
@@ -8801,7 +8808,7 @@ async function renderMijnKarakter(opts = {}) {
           <div class="player-dash-section-title">${icon('sparkles')} Emotes${isMyTurn ? ' <span class="player-dash-emote-turn-hint">— jouw beurt!</span>' : ''}</div>
           <div class="player-dash-emote-btns">
             ${displayEmotes.map(e => `
-              <button class="player-dash-emote-btn" onclick="window._dashEmote('${esc(e.id)}')" title="${esc(e.label || '')}">
+              <button class="player-dash-emote-btn" onclick="window._dashEmote('${escArg(e.id)}')" title="${esc(e.label || '')}">
                 ${e.icon  ? `<span class="emote-btn-icon">${esc(e.icon)}</span>`  : ''}
                 ${e.label ? `<span class="emote-btn-text">${esc(e.label)}</span>` : ''}
               </button>`).join('')}
@@ -8829,7 +8836,7 @@ async function renderMijnKarakter(opts = {}) {
             ${f.rang?.voordelen ? `<div class="renown-voordelen">${esc(f.rang.voordelen)}</div>` : ''}
             ${verworven.length ? `<div class="factie-boons">${verworven.map(b => (b.entityId && b.entityType)
               ? `<button class="factie-boon factie-boon--klik" title="${esc(b.tekst || b.naam || '')}"
-                  onclick="window._openDetail('${esc(b.entityType)}','${esc(b.entityId)}')">${esc(b.naam || '')}${icon('arrow-up-right')}</button>`
+                  onclick="window._openDetail('${escArg(b.entityType)}','${escArg(b.entityId)}')">${esc(b.naam || '')}${icon('arrow-up-right')}</button>`
               : `<span class="factie-boon factie-boon--stil" title="${esc(b.tekst || b.naam || '')}">${esc(b.naam || '')}</span>`).join('')}</div>` : ''}
             ${next ? `<div class="renown-volgende">${icon('lock')} Volgende — <strong>${esc(next.naam)}</strong>${next.boons[0] ? `: ${esc(next.boons[0].naam || '')}` : ''}</div>`
                    : (f.rang?.volgende ? `<div class="renown-volgende">Volgende — <strong>${esc(f.rang.volgende.naam)}</strong></div>` : '')}
@@ -8915,7 +8922,7 @@ async function renderMijnKarakter(opts = {}) {
                   const canSwap = overflowIds.length > 0;
                   return `<div class="att-slot-wrap" id="att-wrap-${idx}">
                     <button class="att-slot${canSwap ? ' att-slot--swappable' : ''}"
-                      onclick="window._openDetail('voorwerpen','${esc(it.id)}')" title="${esc(it.name)}">
+                      onclick="window._openDetail('voorwerpen','${escArg(it.id)}')" title="${esc(it.name)}">
                       <span class="att-slot-icon">${typeIcon}</span>
                       <span class="att-slot-name">${esc(it.name)}</span>
                     </button>
@@ -8946,7 +8953,7 @@ async function renderMijnKarakter(opts = {}) {
               const it = window._attAllItems.find(i => i.id === id);
               if (!it) return '';
               const _attIcon = _ATT_TYPE_ICON[it.data?.itemType] || icon('sparkles');
-              return `<button class="att-swap-option" onclick="window._attDoSwap(${slotIdx},'${esc(id)}')">
+              return `<button class="att-swap-option" onclick="window._attDoSwap(${slotIdx},'${escArg(id)}')">
                 <span>${_attIcon}</span> ${esc(it.name)}
               </button>`;
             }).join('');
@@ -9025,32 +9032,32 @@ async function renderMijnKarakter(opts = {}) {
               const qtyHtml = item._stapelbaar ? `
                 <div class="item-carousel-qty-controls" onclick="event.stopPropagation()">
                   <button type="button" class="item-carousel-qty-btn"
-                    onclick="window._dashQtyAdj('${esc(item.id)}','${_charIdEsc}',-1,${qty})"
+                    onclick="window._dashQtyAdj('${escArg(item.id)}','${_charIdEsc}',-1,${qty})"
                     title="Verbruikt">−</button>
                   <span class="item-carousel-qty-label">×${qty}</span>
                   <button type="button" class="item-carousel-qty-btn"
-                    onclick="window._dashQtyAdj('${esc(item.id)}','${_charIdEsc}',1,${qty})"
+                    onclick="window._dashQtyAdj('${escArg(item.id)}','${_charIdEsc}',1,${qty})"
                     title="Nog een gevonden">+</button>
                 </div>` : '';
               const chargesHtml = item._maxCharges > 0 ? `
                 <div class="item-carousel-charges" onclick="event.stopPropagation()">
                   <div class="item-charge-label">${icon('zap')} Charges: ${item._charges}/${item._maxCharges}</div>
                   <div class="item-charge-dots-row">
-                    ${item._playerMaxAdjustable ? `<button type="button" class="item-carousel-qty-btn" onclick="window._dashMaxChargeAdj('${esc(item.id)}','${_charIdEsc}',-1,${item._maxCharges})" title="Max. charges verlagen">−</button>` : ''}
+                    ${item._playerMaxAdjustable ? `<button type="button" class="item-carousel-qty-btn" onclick="window._dashMaxChargeAdj('${escArg(item.id)}','${_charIdEsc}',-1,${item._maxCharges})" title="Max. charges verlagen">−</button>` : ''}
                     <div class="item-charge-dots">
                       ${Array.from({length: item._maxCharges}, (_, i) => `
                         <button type="button" class="spell-slot-dot ${i < item._charges ? 'free' : 'used'}"
                           title="${i < item._charges ? 'Vrij — klik om te verbruiken' : 'Verbruikt — klik om te herstellen'}"
-                          onclick="window._dashChargeToggle('${esc(item.id)}','${_charIdEsc}',${i},${item._charges},${item._maxCharges})"></button>`).join('')}
+                          onclick="window._dashChargeToggle('${escArg(item.id)}','${_charIdEsc}',${i},${item._charges},${item._maxCharges})"></button>`).join('')}
                     </div>
-                    ${item._playerMaxAdjustable ? `<button type="button" class="item-carousel-qty-btn" onclick="window._dashMaxChargeAdj('${esc(item.id)}','${_charIdEsc}',1,${item._maxCharges})" title="Max. charges verhogen">+</button>` : ''}
+                    ${item._playerMaxAdjustable ? `<button type="button" class="item-carousel-qty-btn" onclick="window._dashMaxChargeAdj('${escArg(item.id)}','${_charIdEsc}',1,${item._maxCharges})" title="Max. charges verhogen">+</button>` : ''}
                   </div>
                 </div>` : '';
               const _itemDmg = item.data?.damage;
               const _itemProps = (() => { try { return JSON.parse(item.data?.weaponProperties || '[]'); } catch { return []; } })();
               const _acPill = _calcArmorAC(item.data, _mod('dex'));
               return `<div class="item-carousel-slide">
-                <div class="item-carousel-img-wrap" onclick="window._openDetail('voorwerpen','${esc(item.id)}')" title="Bekijk kaartje" style="cursor:pointer">
+                <div class="item-carousel-img-wrap" onclick="window._openDetail('voorwerpen','${escArg(item.id)}')" title="Bekijk kaartje" style="cursor:pointer">
                   <img src="${iImgUrl}" class="item-carousel-img"
                     onerror="this.closest('.item-carousel-img-wrap').remove()">
                   ${_acPill ? `<span class="item-carousel-ac-pill" title="${esc(_acPill.tooltip)}">${esc(_acPill.pill)}</span>` : ''}
@@ -9076,7 +9083,7 @@ async function renderMijnKarakter(opts = {}) {
                 <div class="item-carousel-geef" onclick="event.stopPropagation()">
                   ${window._itemGebonden(item)
                     ? `<span class="item-geef-vast" title="Dit voorwerp hoort bij jou en gaat niet van hand tot hand">${icon('lock')} Blijft bij jou</span>`
-                    : `<button class="item-geef-btn" onclick="window._geefItemMenu('${esc(item.id)}', this)"
+                    : `<button class="item-geef-btn" onclick="window._geefItemMenu('${escArg(item.id)}', this)"
                     title="Dit voorwerp aan een medespeler geven">${icon('users')} Geven aan…</button>`}
                 </div>
               </div>`;
@@ -9102,8 +9109,8 @@ async function renderMijnKarakter(opts = {}) {
               <li class="player-dash-simple-item">
                 <span class="player-dash-simple-name">${esc(si.name)}</span>
                 ${si.note ? `<span class="player-dash-simple-note">${esc(si.note)}</span>` : ''}
-                ${si.entityId ? `<button class="herberg-bubble-card-btn" style="margin-left:4px;font-size:0.65rem;padding:1px 4px;line-height:1.3;" onclick="window._openDetail('${esc(si.entityType)}','${esc(si.entityId)}')" title="Open kaartje">${icon('arrow-up-right')}</button>` : ''}
-                <button class="player-dash-simple-del" onclick="window._dashRemoveItem('${esc(si.id)}')" title="Verwijder">×</button>
+                ${si.entityId ? `<button class="herberg-bubble-card-btn" style="margin-left:4px;font-size:0.65rem;padding:1px 4px;line-height:1.3;" onclick="window._openDetail('${escArg(si.entityType)}','${escArg(si.entityId)}')" title="Open kaartje">${icon('arrow-up-right')}</button>` : ''}
+                <button class="player-dash-simple-del" onclick="window._dashRemoveItem('${escArg(si.id)}')" title="Verwijder">×</button>
               </li>`).join('')}</ul>` : '';
           })()}
           ${myItems.length === 0 && simpleItems.filter(si => !si.eed && !si.zegen).length === 0 ? '<p class="player-dash-empty">Nog geen voorwerpen.</p>' : ''}
@@ -9138,14 +9145,14 @@ async function renderMijnKarakter(opts = {}) {
                 </div>
               </div>` : '';
             const linkHtml = si.entityId
-              ? `<button class="herberg-bubble-card-btn" style="margin-top:8px;font-size:0.72rem;padding:3px 8px" onclick="window._openDetail('${esc(si.entityType||'voorwerpen')}','${esc(si.entityId)}')" title="Open kaartje">${icon('arrow-up-right')} Bekijk kaartje</button>`
+              ? `<button class="herberg-bubble-card-btn" style="margin-top:8px;font-size:0.72rem;padding:3px 8px" onclick="window._openDetail('${escArg(si.entityType||'voorwerpen')}','${escArg(si.entityId)}')" title="Open kaartje">${icon('arrow-up-right')} Bekijk kaartje</button>`
               : '';
             const boeteHtml = isVloek ? `
               <div style="margin-top:8px">
                 <button class="ts-wedden-btn" onclick="window._tempelBoete()">${icon('sparkles')} Doe boete in de tempel</button>
               </div>` : '';
             const entityNaam = si.entityId ? (allVoorwerpen.find(v => v.id === si.entityId)?.name || si.name) : si.name;
-            const slideClick = si.entityId ? `onclick="window._openDetail('${esc(si.entityType||'voorwerpen')}','${esc(si.entityId)}')" style="cursor:pointer"` : '';
+            const slideClick = si.entityId ? `onclick="window._openDetail('${escArg(si.entityType||'voorwerpen')}','${escArg(si.entityId)}')" style="cursor:pointer"` : '';
             const imgId = si.entityId || null;
             const godLabel = isVloek ? `Vloek van ${si.godNaam || ''}` : isEed ? `Eed aan ${si.godNaam || ''}` : `Zegen van ${si.godNaam || ''}`;
             const descTekst = allVoorwerpen.find(v => v.id === si.entityId)?.data?.desc || '';
@@ -9254,7 +9261,7 @@ async function renderMijnKarakter(opts = {}) {
             out += `<div class="player-dash-section">
               <div class="player-dash-section-title">${icon('mail')} Brieven &amp; berichten</div>
               ${brieven.map(m => `
-                <div class="speler-brief-card${m.gelezen ? '' : ' speler-brief-card--nieuw'}${m.thema ? ` speler-brief-card--${esc(m.thema)}` : ''}${m.thema === 'factie' && !m.gelezen ? ' speler-brief-card--verzegeld' : ''}" data-mid="${esc(m.id)}"${m.thema === 'factie' ? ` style="--brief-kleur:${_factieKleurHex(m.kleur)}"` : ''} onclick="window._briefToggle('${esc(m.id)}')">
+                <div class="speler-brief-card${m.gelezen ? '' : ' speler-brief-card--nieuw'}${m.thema ? ` speler-brief-card--${esc(m.thema)}` : ''}${m.thema === 'factie' && !m.gelezen ? ' speler-brief-card--verzegeld' : ''}" data-mid="${esc(m.id)}"${m.thema === 'factie' ? ` style="--brief-kleur:${_factieKleurHex(m.kleur)}"` : ''} onclick="window._briefToggle('${escArg(m.id)}')">
                   ${m.thema ? `<div class="speler-brief-letterhead speler-brief-letterhead--${esc(m.thema)}">${_briefLetterhead(m)}</div>` : ''}
                   <div class="speler-brief-header">
                     <div class="speler-brief-header-main">
@@ -9263,11 +9270,11 @@ async function renderMijnKarakter(opts = {}) {
                       <div class="speler-brief-meta-inline">${m.datum ? m.datum : _fmtBerichtDate(m.timestamp)}${m.gelezen ? '' : ' · <strong>nieuw</strong>'}</div>
                     </div>
                     <span class="speler-brief-chevron">▾</span>
-                    <button class="bericht-del-btn speler-brief-trash" title="Weggooien" onclick="event.stopPropagation();window._briefPlayerDelete('${esc(m.id)}')">${icon('trash')}</button>
+                    <button class="bericht-del-btn speler-brief-trash" title="Weggooien" onclick="event.stopPropagation();window._briefPlayerDelete('${escArg(m.id)}')">${icon('trash')}</button>
                   </div>
                   <div class="speler-brief-body">
                     ${m.afzender ? `<div class="speler-brief-afzender">
-                      Van: <em>${esc(m.afzender)}</em>${m.entityId ? ` <button class="herberg-bubble-card-btn" style="font-size:0.65rem;padding:1px 4px;line-height:1.3;margin-left:3px" onclick="event.stopPropagation();window._openDetail('${esc(m.entityType)}','${esc(m.entityId)}')" title="Open kaartje">${icon('arrow-up-right')}</button>` : ''}
+                      Van: <em>${esc(m.afzender)}</em>${m.entityId ? ` <button class="herberg-bubble-card-btn" style="font-size:0.65rem;padding:1px 4px;line-height:1.3;margin-left:3px" onclick="event.stopPropagation();window._openDetail('${escArg(m.entityType)}','${escArg(m.entityId)}')" title="Open kaartje">${icon('arrow-up-right')}</button>` : ''}
                     </div>` : ''}
                     <div class="speler-brief-tekst parchment-block" data-stijl="${esc(m.briefstijl || 'oud')}">${mdToHtml(m.tekst).replace(/👁/g,icon('eye')).replace(/👂/g,icon('zap')).replace(/👃/g,icon('flask-conical')).replace(/👅/g,icon('potion')).replace(/✋/g,icon('heart'))}</div>
                   </div>
@@ -9281,10 +9288,10 @@ async function renderMijnKarakter(opts = {}) {
               <div class="player-dash-section-title">${icon('message-circle')} Geheime berichten</div>
               ${berichten.slice().reverse().map(m => `
                 <div class="speler-bericht-item${m.gelezen ? '' : ' speler-bericht-item--nieuw'}"
-                  data-mid="${esc(m.id)}" onclick="window._berichtMarkGelezen('${esc(m.id)}')">
+                  data-mid="${esc(m.id)}" onclick="window._berichtMarkGelezen('${escArg(m.id)}')">
                   <div class="speler-bericht-row">
                     <div class="speler-bericht-tekst">${esc(m.tekst)}</div>
-                    <button class="bericht-del-btn" title="Verwijder" onclick="event.stopPropagation();window._berichtPlayerDelete('${esc(m.id)}')">${icon('x')}</button>
+                    <button class="bericht-del-btn" title="Verwijder" onclick="event.stopPropagation();window._berichtPlayerDelete('${escArg(m.id)}')">${icon('x')}</button>
                   </div>
                   <div class="speler-bericht-meta">${_fmtBerichtDate(m.timestamp)}${m.gelezen ? '' : ' · <strong>nieuw</strong>'}</div>
                 </div>`).join('')}
@@ -9445,9 +9452,9 @@ async function renderMijnKarakter(opts = {}) {
     const row = document.createElement('div');
     row.className = 'trait-uses-config';
     row.innerHTML = `<span class="trait-uses-label">Aantal:</span>
-      <button class="skill-adj-btn" onclick="window._traitAdjUses('${esc(traitId)}', -1)" title="Minder">−</button>
+      <button class="skill-adj-btn" onclick="window._traitAdjUses('${escArg(traitId)}', -1)" title="Minder">−</button>
       <span class="trait-uses-count-cfg">${maxUses}</span>
-      <button class="skill-adj-btn" onclick="window._traitAdjUses('${esc(traitId)}', 1)" title="Meer">+</button>`;
+      <button class="skill-adj-btn" onclick="window._traitAdjUses('${escArg(traitId)}', 1)" title="Meer">+</button>`;
     body.appendChild(row);
   }
 
@@ -9467,17 +9474,17 @@ async function renderMijnKarakter(opts = {}) {
       ${note ? `<div class="trait-note-display">
         <p class="trait-note-text">${esc(note).replace(/\n/g, '<br>')}</p>
         <div class="trait-note-actions">
-          <button class="trait-note-icon-btn" onclick="window._traitNoteEdit('${esc(traitId)}')" title="Bewerken">${icon('pencil')}</button>
-          <button class="trait-note-icon-btn trait-note-icon-del" onclick="window._traitNoteDelete('${esc(traitId)}')" title="Verwijderen">${icon('trash')}</button>
+          <button class="trait-note-icon-btn" onclick="window._traitNoteEdit('${escArg(traitId)}')" title="Bewerken">${icon('pencil')}</button>
+          <button class="trait-note-icon-btn trait-note-icon-del" onclick="window._traitNoteDelete('${escArg(traitId)}')" title="Verwijderen">${icon('trash')}</button>
         </div>
       </div>` : `
-        <button class="trait-note-icon-btn" onclick="window._traitNoteEdit('${esc(traitId)}')" title="Opmerking toevoegen">${icon('pencil')}</button>
+        <button class="trait-note-icon-btn" onclick="window._traitNoteEdit('${escArg(traitId)}')" title="Opmerking toevoegen">${icon('pencil')}</button>
       `}
       <div class="trait-note-form hidden">
         <textarea class="trait-note-ta" placeholder="Jouw persoonlijke aantekening bij dit kenmerk…" rows="3">${esc(note)}</textarea>
         <div class="trait-note-form-btns">
-          <button class="trait-note-save" onclick="window._traitNoteSave('${esc(traitId)}')">Opslaan</button>
-          <button class="trait-note-cancel" onclick="window._traitNoteCancel('${esc(traitId)}')">Annuleer</button>
+          <button class="trait-note-save" onclick="window._traitNoteSave('${escArg(traitId)}')">Opslaan</button>
+          <button class="trait-note-cancel" onclick="window._traitNoteCancel('${escArg(traitId)}')">Annuleer</button>
         </div>
       </div>`;
   }
@@ -10327,11 +10334,11 @@ async function renderMijnKarakter(opts = {}) {
       const qtyHtml = item._stapelbaar ? `
         <div class="item-carousel-qty-controls" onclick="event.stopPropagation()">
           <button type="button" class="item-carousel-qty-btn"
-            onclick="window._dashQtyAdj('${esc(item.id)}','${charIdEsc}',-1,${qty})"
+            onclick="window._dashQtyAdj('${escArg(item.id)}','${charIdEsc}',-1,${qty})"
             title="Verbruikt">−</button>
           <span class="item-carousel-qty-label">×${qty}</span>
           <button type="button" class="item-carousel-qty-btn"
-            onclick="window._dashQtyAdj('${esc(item.id)}','${charIdEsc}',1,${qty})"
+            onclick="window._dashQtyAdj('${escArg(item.id)}','${charIdEsc}',1,${qty})"
             title="Nog een gevonden">+</button>
         </div>` : '';
 
@@ -10339,14 +10346,14 @@ async function renderMijnKarakter(opts = {}) {
         <div class="item-carousel-charges" onclick="event.stopPropagation()">
           <div class="item-charge-label">${icon('zap')} Charges: ${item._charges}/${item._maxCharges}</div>
           <div class="item-charge-dots-row">
-            ${item._playerMaxAdjustable ? `<button type="button" class="item-carousel-qty-btn" onclick="window._dashMaxChargeAdj('${esc(item.id)}','${charIdEsc}',-1,${item._maxCharges})" title="Max. charges verlagen">−</button>` : ''}
+            ${item._playerMaxAdjustable ? `<button type="button" class="item-carousel-qty-btn" onclick="window._dashMaxChargeAdj('${escArg(item.id)}','${charIdEsc}',-1,${item._maxCharges})" title="Max. charges verlagen">−</button>` : ''}
             <div class="item-charge-dots">
               ${Array.from({length: item._maxCharges}, (_, i) => `
                 <button type="button" class="spell-slot-dot ${i < item._charges ? 'free' : 'used'}"
                   title="${i < item._charges ? 'Vrij — klik om te verbruiken' : 'Verbruikt — klik om te herstellen'}"
-                  onclick="window._dashChargeToggle('${esc(item.id)}','${charIdEsc}',${i},${item._charges},${item._maxCharges})"></button>`).join('')}
+                  onclick="window._dashChargeToggle('${escArg(item.id)}','${charIdEsc}',${i},${item._charges},${item._maxCharges})"></button>`).join('')}
             </div>
-            ${item._playerMaxAdjustable ? `<button type="button" class="item-carousel-qty-btn" onclick="window._dashMaxChargeAdj('${esc(item.id)}','${charIdEsc}',1,${item._maxCharges})" title="Max. charges verhogen">+</button>` : ''}
+            ${item._playerMaxAdjustable ? `<button type="button" class="item-carousel-qty-btn" onclick="window._dashMaxChargeAdj('${escArg(item.id)}','${charIdEsc}',1,${item._maxCharges})" title="Max. charges verhogen">+</button>` : ''}
           </div>
         </div>` : '';
 
@@ -10363,7 +10370,7 @@ async function renderMijnKarakter(opts = {}) {
       const _srq       = parseInt(item.data?.strengthRequirement) || 0;
 
       track.innerHTML = `<div class="item-carousel-slide">
-        <div class="item-carousel-img-wrap" onclick="window._openDetail('voorwerpen','${esc(item.id)}')" title="Bekijk kaartje" style="cursor:pointer">
+        <div class="item-carousel-img-wrap" onclick="window._openDetail('voorwerpen','${escArg(item.id)}')" title="Bekijk kaartje" style="cursor:pointer">
           <img src="${iImgUrl}" class="item-carousel-img"
             onerror="this.closest('.item-carousel-img-wrap').remove()">
           ${_acPill ? `<span class="item-carousel-ac-pill" title="${esc(_acPill.tooltip)}">${esc(_acPill.pill)}</span>` : ''}
@@ -10384,7 +10391,7 @@ async function renderMijnKarakter(opts = {}) {
         <div class="item-carousel-geef" onclick="event.stopPropagation()">
           ${window._itemGebonden(item)
             ? `<span class="item-geef-vast" title="Dit voorwerp hoort bij jou en gaat niet van hand tot hand">${icon('lock')} Blijft bij jou</span>`
-            : `<button class="item-geef-btn" onclick="window._geefItemMenu('${esc(item.id)}', this)"
+            : `<button class="item-geef-btn" onclick="window._geefItemMenu('${escArg(item.id)}', this)"
             title="Dit voorwerp aan een medespeler geven">${icon('users')} Geven aan…</button>`}
         </div>
       </div>`;
@@ -10981,7 +10988,7 @@ async function renderSpelersTab(selectedCharId) {
         <div class="spelers-tab-selector">
           ${players.map(p => `
             <button class="spelers-tab-btn${p.id === activePl?.id ? ' spelers-tab-btn--active' : ''}"
-              onclick="window._switchSpelersTab('${esc(p.id)}')">
+              onclick="window._switchSpelersTab('${escArg(p.id)}')">
               ${esc(p.name)}
             </button>`).join('')}
         </div>
@@ -11424,7 +11431,7 @@ window.app._globalSearchRun = async function(q) {
         ${bm.map(b => {
           const idx = _gsResults.push({ type: b.type, id: b.id }) - 1;
           return `<button class="gs-result" data-gs-idx="${idx}"
-            onclick="window.app._globalSearchGo('${esc(b.type)}','${esc(b.id)}')">
+            onclick="window.app._globalSearchGo('${escArg(b.type)}','${escArg(b.id)}')">
             <span class="gs-result-kop">
               <span class="gs-result-name">${esc(b.name)}</span>
               <span class="gs-result-sub">${esc(_GS_TYPE_LABEL[b.type] || b.type)}</span>
@@ -11456,7 +11463,7 @@ window.app._globalSearchRun = async function(q) {
     for (const e of hits) {
       const idx = _gsResults.push({ type, id: e.id }) - 1;
       const fragment = _gsFragment(e, tokens);
-      html += `<button class="gs-result${fragment ? ' gs-result--met-fragment' : ''}" data-gs-idx="${idx}" onclick="window.app._globalSearchGo('${type}','${esc(e.id)}')">
+      html += `<button class="gs-result${fragment ? ' gs-result--met-fragment' : ''}" data-gs-idx="${idx}" onclick="window.app._globalSearchGo('${type}','${escArg(e.id)}')">
           <span class="gs-result-kop">
             <span class="gs-result-name">${_gsHighlight(e.name, tokens)}</span>
             ${e.subtype ? `<span class="gs-result-sub">${esc(e.subtype)}</span>` : ''}
@@ -11482,7 +11489,7 @@ window.app._globalSearchRun = async function(q) {
       for (const sp of treffers) {
         const idx = _gsResults.push({ type: 'spreuken', id: sp.index }) - 1;
         const niveau = Number(sp.level) === 0 ? 'Cantrip' : `Level ${sp.level}`;
-        html += `<button class="gs-result" data-gs-idx="${idx}" onclick="window.app._globalSearchGo('spreuken','${esc(sp.index)}')">
+        html += `<button class="gs-result" data-gs-idx="${idx}" onclick="window.app._globalSearchGo('spreuken','${escArg(sp.index)}')">
             <span class="gs-result-kop">
               <span class="gs-result-name">${_gsHighlight(sp.name, tokens)}</span>
               <span class="gs-result-sub">${esc(niveau)}${sp.school?.name ? ` · ${esc(sp.school.name)}` : ''}</span>
@@ -11508,7 +11515,7 @@ window.app._globalSearchRun = async function(q) {
                         boon: 'Epic Boon', background: 'Background', zegen: 'Zegening', gunst: 'Gunst' };
         const sub = [LABEL[t.soort] || t.soort, t.sub || (t.bron && t.bron !== t.naam ? t.bron : ''),
                      t.level ? `level ${t.level}` : ''].filter(Boolean).join(' · ');
-        html += `<button class="gs-result" data-gs-idx="${idx}" onclick="window.app._globalSearchGo('heldenboek','${esc(t.key)}')">
+        html += `<button class="gs-result" data-gs-idx="${idx}" onclick="window.app._globalSearchGo('heldenboek','${escArg(t.key)}')">
             <span class="gs-result-kop">
               <span class="gs-result-name">${_gsHighlight(t.naam, tokens)}</span>
               <span class="gs-result-sub">${esc(sub)}</span>
@@ -11533,7 +11540,7 @@ window.app._globalSearchRun = async function(q) {
       for (const m of treffers) {
         const idx = _gsResults.push({ type: 'bestiarium', id: m.id }) - 1;
         const sub = [m.statblock?.size, m.statblock?.creatureType || m.statblock?.type].filter(Boolean).join(' ');
-        html += `<button class="gs-result" data-gs-idx="${idx}" onclick="window.app._globalSearchGo('bestiarium','${esc(m.id)}')">
+        html += `<button class="gs-result" data-gs-idx="${idx}" onclick="window.app._globalSearchGo('bestiarium','${escArg(m.id)}')">
             <span class="gs-result-kop">
               <span class="gs-result-name">${_gsHighlight(m.name, tokens)}</span>
               ${sub ? `<span class="gs-result-sub">${esc(sub)}</span>` : ''}
@@ -12393,7 +12400,7 @@ function _marktFactieBalk() {
   const lijst = _marktData?.factieFilters || [];
   if (lijst.length < 1) return '';
   const chip = (id, label) => `<button class="markt-chip${_marktFactie === id ? ' markt-chip--aan' : ''}"
-    onclick="window._marktFactieKies('${escJS(id)}')">${icon('landmark')} ${esc(label)}</button>`;
+    onclick="window._marktFactieKies('${escArg(id)}')">${icon('landmark')} ${esc(label)}</button>`;
   return `<div class="markt-chips markt-chips--facties">
     ${chip('', 'Alle facties')}
     ${lijst.map(f => chip(f.id, f.naam)).join('')}
@@ -12439,7 +12446,7 @@ function _marktGebiedBalk(winkels) {
         .sort((a, b) => b.n - a.n || a.naam.localeCompare(b.naam, 'nl', { sensitivity: 'base' }));
   if (gebieden.length < 2) return '';
   const chip = (naam, label, n) => `<button class="markt-chip${_marktGebied === naam ? ' markt-chip--aan' : ''}"
-    onclick="window._marktGebiedKies('${escJS(naam)}')">${esc(label)}${n != null ? ` <span class="markt-chip-tel">${n}</span>` : ''}</button>`;
+    onclick="window._marktGebiedKies('${escArg(naam)}')">${esc(label)}${n != null ? ` <span class="markt-chip-tel">${n}</span>` : ''}</button>`;
   return `<div class="markt-chips">
     ${chip('', 'Overal', winkels.length)}
     ${gebieden.map(g => chip(g.naam, g.naam, g.n)).join('')}
@@ -12515,7 +12522,7 @@ function _marktWinkels(winkels) {
       const reden = w._verborgen ? 'Verborgen voor deze party' : w._onbereikbaar ? 'Niet bereikbaar in deze akte' : '';
       return `
       <button class="markt-kaart${dicht ? ' markt-kaart--dicht' : ''}"
-        onclick="window._marktOpen('${esc(w.soort)}','${esc(w.id)}')"
+        onclick="window._marktOpen('${escArg(w.soort)}','${escArg(w.id)}')"
         title="${esc(w.naam)} openen">
         <span class="markt-kaart-beeld">
           ${w.eigenaar ? `<img src="${api.thumbUrl(w.eigenaar.imageId)}" loading="lazy" alt=""
@@ -12582,14 +12589,14 @@ function _marktTreffers(winkels, q) {
           <div class="markt-treffer-kop">
             <span class="markt-treffer-naam"${t.rariteit ? ` data-rarity="${esc(window._rarityKey?.(t.rariteit) || '')}"` : ''}>${esc(t.naam)}</span>
             ${t.entityId ? `<button class="markt-treffer-kaart" title="Bekijk het kaartje"
-              onclick="window._openDetail('voorwerpen','${esc(t.entityId)}')">${icon('package')}</button>` : ''}
+              onclick="window._openDetail('voorwerpen','${escArg(t.entityId)}')">${icon('package')}</button>` : ''}
           </div>
           <div class="markt-aanbod">
             ${aanbod.map(a => {
               const best = meerdere && a.prijsCl != null && a.prijsCl === goedkoopste;
               const teduur = a.prijsCl != null && beursCl != null && a.prijsCl > beursCl;
               return `<button class="markt-aanbod-regel${best ? ' markt-aanbod-regel--best' : ''}${a.uitverkocht ? ' markt-aanbod-regel--op' : ''}"
-                onclick="window._marktOpen('${esc(a.winkel.soort)}','${esc(a.winkel.id)}')"
+                onclick="window._marktOpen('${escArg(a.winkel.soort)}','${escArg(a.winkel.id)}')"
                 title="Naar ${esc(a.winkel.naam)}">
                 <span class="markt-aanbod-winkel">${esc(a.winkel.naam)}</span>
                 <span class="markt-aanbod-prijs${teduur ? ' markt-aanbod-prijs--teduur' : ''}">${esc(a.prijs || '—')}</span>
@@ -12764,13 +12771,13 @@ async function renderHerberg() {
                     : _gesamplede.map(e => `
                         <div class="herberg-item-row">
                           <button class="herberg-item"
-                            onclick="window._herbergVraag('${esc(e.id)}')"
+                            onclick="window._herbergVraag('${escArg(e.id)}')"
                             data-name="${esc(e.name.toLowerCase())}">
                             <span class="herberg-item-naam">${esc(e.name)}</span>
                             <span class="herberg-item-type">${e.type === 'personages' ? 'persoon' : 'locatie'}</span>
                           </button>
                           <button class="herberg-item-card-btn"
-                            onclick="event.stopPropagation();window._openDetail('${esc(e.type)}','${esc(e.id)}')"
+                            onclick="event.stopPropagation();window._openDetail('${escArg(e.type)}','${escArg(e.id)}')"
                             title="Bekijk kaartje">${icon('arrow-up-right')}</button>
                         </div>`).join('')}
                   ${beschikbaar.length > 3 ? `
@@ -12866,7 +12873,7 @@ function _herbergMenuKaart(m) {
         ${m.beschrijving ? `<div class="dienst-menu-kaart-desc">${esc(m.beschrijving)}</div>` : ''}
         ${effecten.length ? `<div class="dienst-menu-effecten">${effecten.map(e => `<span class="dienst-menu-tag dienst-menu-tag--${e.soort}">${e.tekst}</span>`).join('')}</div>` : ''}
       </div>
-      <button class="dienst-bestel-balk" onclick="window._herbergBestel('${esc(m.id)}')">
+      <button class="dienst-bestel-balk" onclick="window._herbergBestel('${escArg(m.id)}')">
         ${icon('beer')} Bestel${m.prijs ? ` · ${esc(m.prijs)}` : ' · gratis'}
       </button>
     </div>`;
@@ -12966,11 +12973,11 @@ window._herbergVraag = async (entityId) => {
     const bubbleHtml = `
       <div class="herberg-bubble">
         <p class="herberg-bubble-text">\u201e${esc(res.flavour)}\u201c</p>
-        ${res.audioId ? `<button class="flavour-audio-btn" onclick="window._audioToggle('${esc(res.audioId)}')">▶</button>` : ''}
+        ${res.audioId ? `<button class="flavour-audio-btn" onclick="window._audioToggle('${escArg(res.audioId)}')">▶</button>` : ''}
         <div class="herberg-bubble-footer">
           <p class="herberg-bubble-naam">— over ${esc(res.entityName)}</p>
           <button class="herberg-bubble-card-btn"
-            onclick="window._openDetail('${esc(res.entityType)}','${esc(res.entityId)}')"
+            onclick="window._openDetail('${escArg(res.entityType)}','${escArg(res.entityId)}')"
             title="Bekijk kaartje van ${esc(res.entityName)}">${icon('arrow-up-right')}</button>
         </div>
       </div>`;
@@ -13063,7 +13070,7 @@ async function renderGock() {
             <p class="gock-dossier-tekst">${esc(geval.tekst)}</p>
             ${geval.isGeheim && geval.entityId
               ? `<button class="herberg-bubble-card-btn gock-kaartje-btn"
-                  onclick="window._openDetail('${esc(geval.entityType)}','${esc(geval.entityId)}')"
+                  onclick="window._openDetail('${escArg(geval.entityType)}','${escArg(geval.entityId)}')"
                   title="Open kaartje">${icon('arrow-up-right')} Bekijk kaartje</button>`
               : ''}
             <button class="ts-wedden-btn" style="margin-top:10px" onclick="window._gockOpgehaald()">Dossier ontvangen</button>
@@ -13090,7 +13097,7 @@ async function renderGock() {
                 ${beschikbaar.map(e => `
                   <button class="herberg-item" data-naam="${esc(e.name.toLowerCase())}"
                     style="display:none"
-                    onclick="window._gockKies('${esc(e.id)}','${esc(e.type)}','${esc(e.name)}')">
+                    onclick="window._gockKies('${escArg(e.id)}','${escArg(e.type)}','${escArg(e.name)}')">
                     <span class="herberg-item-naam">${esc(e.name)}</span>
                   </button>`).join('')}
               </div>
@@ -13552,12 +13559,12 @@ function _magizooItemBody(m, cooldownActief) {
             <!-- "Onderzoek → Deels" en "Volledig ineens" zeiden niet wat je
                  koopt. Het zijn twee soorten onderzoek, dus noemen we ze zo. -->
             <button class="ts-wedden-btn magizoo-btn" ${disabled ? 'disabled' : ''}
-              onclick="window._magizooOnderzoek('${esc(m.id)}','stap')"
+              onclick="window._magizooOnderzoek('${escArg(m.id)}','stap')"
               title="Eén trede verder: ${esc(volgendeLabel || '')}">
               Gedeeltelijk</button>
             ${m.niveau === 'naam'
               ? `<button class="ts-wedden-btn magizoo-btn magizoo-btn--premium" ${disabled ? 'disabled' : ''}
-                  onclick="window._magizooOnderzoek('${esc(m.id)}','volledig')"
+                  onclick="window._magizooOnderzoek('${escArg(m.id)}','volledig')"
                   title="In één keer alles">
                   Volledig</button>`
               : ''}
@@ -13579,7 +13586,7 @@ function _magizooAdoptKaart(p) {
         </label>
         <div class="magizoo-adopt-foot">
           <span class="ts-beurs">${_magizooPrijs(p.prijs)}</span>
-          <button class="ts-wedden-btn magizoo-btn" onclick="window._magizooAdopteer('${esc(p.id)}')">Adopteer</button>
+          <button class="ts-wedden-btn magizoo-btn" onclick="window._magizooAdopteer('${escArg(p.id)}')">Adopteer</button>
         </div>
       </div>
     </div>`;
@@ -13596,7 +13603,7 @@ function _playerLootPanelHtml(loot, charId) {
       const rk = _invRarityKey(it.rariteit);
       const others = it.claimCount - (it.ikClaim ? 1 : 0);
       const naamHtml = it.entityId
-        ? `<span class="player-loot-link" onclick="window._openDetail('voorwerpen','${esc(it.entityId)}')" title="Bekijk kaartje">${esc(it.naam)} <span class="player-loot-link-ico">${icon('arrow-up-right')}</span></span>`
+        ? `<span class="player-loot-link" onclick="window._openDetail('voorwerpen','${escArg(it.entityId)}')" title="Bekijk kaartje">${esc(it.naam)} <span class="player-loot-link-ico">${icon('arrow-up-right')}</span></span>`
         : esc(it.naam);
       return `<div class="player-loot-item${rk ? ' loot-rar-' + rk : ''}">
         ${it.bron ? `<div class="player-loot-bron">${esc(it.bron)}</div>` : ''}
@@ -13608,7 +13615,7 @@ function _playerLootPanelHtml(loot, charId) {
             ${others > 0 ? `<div class="player-loot-claimcount">${others} ander${others > 1 ? 'e spelers claimen' : ' speler claimt'} dit ook</div>` : ''}
           </div>
         </div>
-        <button class="player-loot-claim-btn${it.ikClaim ? ' is-claimed' : ''}" onclick="window._lootClaim('${esc(it.id)}')">${it.ikClaim ? icon('check') + ' Geclaimd' : 'Claim'}</button>
+        <button class="player-loot-claim-btn${it.ikClaim ? ' is-claimed' : ''}" onclick="window._lootClaim('${escArg(it.id)}')">${it.ikClaim ? icon('check') + ' Geclaimd' : 'Claim'}</button>
       </div>`;
     }).join('') : `<p class="player-loot-empty">Alle items zijn verdeeld.</p>`}
     ${goudTotaal ? `<div class="player-loot-goud">${icon('coins')} Goud: <strong>${_magizooPrijs(loot.goud)}</strong>${
@@ -13856,7 +13863,7 @@ function _renderTempelLijst(el, goden, config, huidigeEed, huidigeZegen, currenc
                   : godPortraitMap[(g.naam || '').trim().toLowerCase()];
                 return `
                   <button class="dienst-kaart${actiefEed ? ' dienst-kaart--actief' : ''}"
-                       onclick="window._tempelBinnenTreden('${esc(g.id)}')" title="${esc(g.naam)}">
+                       onclick="window._tempelBinnenTreden('${escArg(g.id)}')" title="${esc(g.naam)}">
                     <span class="dienst-kaart-beeld">
                       <!-- remove() en niet display:none: het icoon eronder is een
                            adjacent sibling van de img, dus zolang die in de DOM
@@ -13897,7 +13904,7 @@ function _renderTempelInterior(el, g, config, huidigeEed, huidigeZegen, currency
     ? (personages.find(p => p.id === priesterEntityId)?.name || '')
     : '';
   const portretClick = priesterEntityId
-    ? `onclick="window._openDetail('personages','${esc(priesterEntityId)}')" style="cursor:pointer" title="Bekijk kaartje"`
+    ? `onclick="window._openDetail('personages','${escArg(priesterEntityId)}')" style="cursor:pointer" title="Bekijk kaartje"`
     : '';
   const portret     = priestFileId
     ? `<img src="${api.thumbUrl(priestFileId)}" class="herberg-portrait-round" alt="Priester" onerror="this.style.display='none'" ${portretClick}>`
@@ -13924,7 +13931,7 @@ function _renderTempelInterior(el, g, config, huidigeEed, huidigeZegen, currency
           <div class="tempel-zegen-actief tempel-vloek-actief">
             ${icon('skull')} Vloek van <em>${esc(huidigeEed.godNaam || '')}</em>
             ${huidigeEed.entityId
-              ? ` · <button class="tempel-zegen-link" onclick="window._openDetail('${esc(huidigeEed.entityType||'voorwerpen')}','${esc(huidigeEed.entityId)}')">${icon('scroll-text')} bekijk vloek</button>`
+              ? ` · <button class="tempel-zegen-link" onclick="window._openDetail('${escArg(huidigeEed.entityType||'voorwerpen')}','${escArg(huidigeEed.entityId)}')">${icon('scroll-text')} bekijk vloek</button>`
               : ''}
           </div>
           <button class="ts-wedden-btn" style="margin-bottom:8px" onclick="window._tempelBoete()">${icon('sparkles')} Doe boete (${esc(prijsTekst(
@@ -13933,14 +13940,14 @@ function _renderTempelInterior(el, g, config, huidigeEed, huidigeZegen, currency
           <div class="tempel-zegen-actief">
             ${icon('scroll-text')} Eed aan <em>${esc(huidigeEed.godNaam || '')}</em> actief
             ${huidigeEed.entityId
-              ? ` · <button class="tempel-zegen-link" onclick="window._openDetail('${esc(huidigeEed.entityType||'voorwerpen')}','${esc(huidigeEed.entityId)}')">${icon('scroll-text')} bekijk eed</button>`
+              ? ` · <button class="tempel-zegen-link" onclick="window._openDetail('${escArg(huidigeEed.entityType||'voorwerpen')}','${escArg(huidigeEed.entityId)}')">${icon('scroll-text')} bekijk eed</button>`
               : ''}
           </div>` : ''}
         ${huidigeZegen ? `
           <div class="tempel-zegen-actief">
             ${icon('sparkles')} Zegening van <em>${esc(huidigeZegen.godNaam || '')}</em> actief
             ${huidigeZegen.entityId
-              ? ` · <button class="tempel-zegen-link" onclick="window._openDetail('voorwerpen','${esc(huidigeZegen.entityId)}')">${icon('sparkles')} bekijk zegening</button>`
+              ? ` · <button class="tempel-zegen-link" onclick="window._openDetail('voorwerpen','${escArg(huidigeZegen.entityId)}')">${icon('sparkles')} bekijk zegening</button>`
               : ''}
           </div>` : ''}
 
@@ -13950,7 +13957,7 @@ function _renderTempelInterior(el, g, config, huidigeEed, huidigeZegen, currency
             ${icon('scroll-text')} Eed afleggen · ${esc(prijsTekst(g.eedPrijs || config.eedPrijs))}
           </button>` : ''}
           ${eenmalig.length ? `
-          <button class="ts-wedden-btn" onclick="window._tempelKies('${esc(g.id)}','${esc(g.naam)}')">
+          <button class="ts-wedden-btn" onclick="window._tempelKies('${escArg(g.id)}','${escArg(g.naam)}')">
             ${icon('dice')} Zegening (d${eenmalig.length}) · ${esc(prijsTekst((g.prijs && g.prijs.fl) ? g.prijs : config.prijs))}
           </button>` : ''}
         </div>
@@ -14203,7 +14210,7 @@ async function renderTweespalt() {
               <input type="text" inputmode="decimal" placeholder="bijv. 1,28" class="ts-inzet-input" id="ts-fl-input-${esc(event.id)}-${esc(opt.id)}" style="width:100px">
               <span class="ts-inzet-label">fl</span>
             </div>
-            <button class="ts-wedden-btn" onclick="window._tsWedden('${esc(event.id)}','${esc(opt.id)}')">Inzetten</button>
+            <button class="ts-wedden-btn" onclick="window._tsWedden('${escArg(event.id)}','${escArg(opt.id)}')">Inzetten</button>
           </div>`}
       </div>`;
   }
@@ -14324,7 +14331,7 @@ function _arenaBoutKaart(b, signups, verslagenIds) {
     ? `<button class="dienst-bestel-balk" disabled>${icon('skull')} Al verslagen</button>`
     : ingeschreven
       ? `<button class="dienst-bestel-balk" disabled>${icon('check')} Ingeschreven</button>`
-      : `<button class="dienst-bestel-balk" onclick="window._arenaAanmeld('${esc(b.id)}')">
+      : `<button class="dienst-bestel-balk" onclick="window._arenaAanmeld('${escArg(b.id)}')">
           ${icon('crossed-swords',{cls:'icon-gi'})} Betreed het strijdperk${b.inzet ? ` · ${esc(b.inzet)}` : ''}
         </button>`;
   return `
@@ -14494,7 +14501,7 @@ function _renderFactieInterieur(el, f, missies) {
 
   const portret = portretUrl
     ? `<img src="${portretUrl}" class="herberg-portrait-round factie-portret-klikbaar" alt="${esc(f.naam)}"
-         onclick="window._openDetail('personages','${esc(actieveNpcId)}')"
+         onclick="window._openDetail('personages','${escArg(actieveNpcId)}')"
          title="Bekijk kaartje" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
        <div class="herberg-portrait-round herberg-portrait-fallback" style="display:none">${icon('users')}</div>`
     : `<div class="herberg-portrait-round herberg-portrait-fallback">${icon('users')}</div>`;
@@ -14522,7 +14529,7 @@ function _renderFactieInterieur(el, f, missies) {
     const actieHtml  = type === 'beschikbaar'
       ? heeftActief
         ? `<span class="factie-missie-status-chip" title="Rond eerst de actieve missie af">${icon('lock')} Al een missie actief</span>`
-        : `<button class="ts-wedden-btn factie-missie-btn" onclick="window._factieAccepteer('${esc(m.id)}','${esc(m.title||m.titel||'')}')">${icon('check')} Accepteer</button>`
+        : `<button class="ts-wedden-btn factie-missie-btn" onclick="window._factieAccepteer('${escArg(m.id)}','${escArg(m.title||m.titel||'')}')">${icon('check')} Accepteer</button>`
       : type === 'aangevraagd'
         ? `<span class="factie-missie-status-chip">${icon('hourglass')} Wacht op DM-goedkeuring</span>`
         : `<span class="factie-missie-status-chip factie-missie-status-chip--actief">${icon('swords')} Actief</span>`;
@@ -14554,7 +14561,7 @@ function _renderFactieInterieur(el, f, missies) {
     // De leiding bovenaan, ongeacht in welke volgorde ze op het kaartje staan.
     groepen.sort((a, b) => (a.rang === '__leiding__' ? 0 : 1) - (b.rang === '__leiding__' ? 0 : 1));
     const _lid = (l, isHoofd) => `
-      <button class="factie-lid${isHoofd ? ' factie-lid--hoofd' : ''}" onclick="window._openDetail('personages','${esc(l.entityId)}')" title="Bekijk ${esc(l.naam)}">
+      <button class="factie-lid${isHoofd ? ' factie-lid--hoofd' : ''}" onclick="window._openDetail('personages','${escArg(l.entityId)}')" title="Bekijk ${esc(l.naam)}">
         <span class="factie-lid-portret-wrap">
           <img class="factie-lid-portret" src="${api.thumbUrl(l.entityId)}" alt=""
             onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
@@ -14616,7 +14623,7 @@ function _renderFactieInterieur(el, f, missies) {
           <div class="factie-missies-label">${icon('store')} Hier kun je terecht</div>
           ${(f.verkopers || []).map(v => `
             <button class="factie-verkoper${v._dicht ? ' factie-verkoper--dicht' : ''}"
-              onclick="window._openDetail('${esc(v.winkelSoort || 'locaties')}','${esc(v.winkelId)}',false,'voorraad')"
+              onclick="window._openDetail('${escArg(v.winkelSoort || 'locaties')}','${escArg(v.winkelId)}',false,'voorraad')"
               title="${v._dicht ? 'Voor deze party nog dicht' : 'Naar de voorraad'}">
               <span class="factie-verkoper-naam">${esc(v.winkelNaam)}</span>
               ${v.verkoperNaam ? `<span class="factie-verkoper-wie">${esc(v.verkoperNaam)}</span>` : ''}
@@ -14696,7 +14703,7 @@ window._factieUnlockChips = function (unlocks, extraCls = '') {
     const tip = esc(u.tekst || (u.type === 'metgezel' ? 'Kan te hulp geroepen worden' : ''));
     return u.entityId
       ? `<button class="factie-boon-chip factie-boon-chip--link${extraCls}"
-           onclick="event.stopPropagation();window._openDetail('${esc(u.entityType || 'voorwerpen')}','${esc(u.entityId)}')"
+           onclick="event.stopPropagation();window._openDetail('${escArg(u.entityType || 'voorwerpen')}','${escArg(u.entityId)}')"
            title="${tip || 'Bekijk kaartje'}">${ic} ${label}</button>`
       : `<span class="factie-boon-chip${extraCls}" title="${tip}">${ic} ${label}</span>`;
   }).join('');
@@ -14721,14 +14728,14 @@ function _factieHulpHtml(f) {
   if (h.lopend) {
     return `<div class="factie-hulp factie-hulp--actief">
       <span class="factie-hulp-tekst">${icon('user')} <strong>${esc(h.lopend.naam || 'Iemand')}</strong> loopt met jullie mee${h.lopend.duur === 'blijvend' ? '' : ' tot de volgende lange rust'}.</span>
-      <button class="dm-btn dm-btn-sm dm-btn-ghost" onclick="window._factieHulpWeg('${esc(f.id)}')">Bedanken</button>
+      <button class="dm-btn dm-btn-sm dm-btn-ghost" onclick="window._factieHulpWeg('${escArg(f.id)}')">Bedanken</button>
     </div>`;
   }
   if (!h.beschikbaar) return '';
   const naam = h.beschikbaar.naam || 'iemand van de factie';
   return `<div class="factie-hulp">
     <span class="factie-hulp-tekst">${icon('user')} Jullie aanzien is genoeg om <strong>${esc(naam)}</strong> om hulp te vragen.</span>
-    <button class="dm-btn dm-btn-sm dm-btn-primary" onclick="window._factieHulpRoep('${esc(f.id)}')">Hulp inroepen</button>
+    <button class="dm-btn dm-btn-sm dm-btn-primary" onclick="window._factieHulpRoep('${escArg(f.id)}')">Hulp inroepen</button>
   </div>`;
 }
 
@@ -14777,9 +14784,9 @@ function _renderFactieKaart(f) {
   return `
   <span class="dienst-kaart-wrap">
   ${f.entityId ? `<button class="dienst-kaart-link" title="Bekijk het organisatiekaartje"
-    onclick="window._openDetail('organisaties','${esc(f.entityId)}')">${icon('arrow-up-right')}</button>` : ''}
+    onclick="window._openDetail('organisaties','${escArg(f.entityId)}')">${icon('arrow-up-right')}</button>` : ''}
   <button class="dienst-kaart${stijl ? ' dienst-kaart--' + stijl : ''}"
-    onclick="window._factieOpen('${esc(f.id)}')" title="${esc(f.naam)} openen">
+    onclick="window._factieOpen('${escArg(f.id)}')" title="${esc(f.naam)} openen">
     <span class="dienst-kaart-beeld">
       <span class="dienst-kaart-embleem">${embIcon}</span>
     </span>
@@ -14803,7 +14810,7 @@ function showMissieAanvraagToast({ missieId, titel, door, factieId }) {
   t.innerHTML = `
     <div style="margin-bottom:6px">${icon('scroll-text')} <strong>${esc(door)}</strong> vraagt missie aan:<br><em>${esc(titel)}</em></div>
     <div style="display:flex;gap:8px">
-      <button class="ts-wedden-btn" style="padding:3px 10px;font-size:0.8rem" onclick="window._dmMissieGoedkeuren('${esc(missieId)}','${esc(titel)}',this.closest('.missie-aanvraag-toast'))">${icon('check')} Goedkeuren</button>
+      <button class="ts-wedden-btn" style="padding:3px 10px;font-size:0.8rem" onclick="window._dmMissieGoedkeuren('${escArg(missieId)}','${escArg(titel)}',this.closest('.missie-aanvraag-toast'))">${icon('check')} Goedkeuren</button>
       <button class="ts-wedden-btn" style="padding:3px 10px;font-size:0.8rem;opacity:0.7" onclick="this.closest('.missie-aanvraag-toast').remove()">${icon('x')} Negeer</button>
     </div>`;
   document.body.appendChild(t);
@@ -16189,7 +16196,7 @@ function _renderHelpModal(config, idx) {
         <div class="help-modal-nav-info">
           ${totaal > 1 ? `<span class="help-modal-stap">${idx + 1} / ${totaal}</span>` : ''}
           ${window.app?.isDM?.() && window._helpModalKey
-            ? `<button class="help-modal-edit" onclick="event.stopPropagation();window._openHelpEditor('${esc(window._helpModalKey)}')" title="Deze uitleg aanpassen">${icon('pencil')} Bewerken</button>`
+            ? `<button class="help-modal-edit" onclick="event.stopPropagation();window._openHelpEditor('${escArg(window._helpModalKey)}')" title="Deze uitleg aanpassen">${icon('pencil')} Bewerken</button>`
             : ''}
           <button class="help-modal-close" onclick="window._sluitHelp()">${icon('x')}</button>
         </div>

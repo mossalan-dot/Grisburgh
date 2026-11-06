@@ -13,6 +13,10 @@ import { api } from './api.js?v=316';
 import { renderStatblock } from './render-statblock.js?v=9';
 
 const esc  = s => window.app?.esc?.(s) ?? String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+// In een inline handler (`onclick="f('…')"`) decodeert de browser eerst het
+// attribuut en voert dan de JavaScript uit: `esc()` alleen laat een apostrof
+// de string sluiten. Eerst JS-escapen, dan HTML. Zie scripts/onclick-escapen.js.
+const escArg = s => esc(typeof s === 'string' ? s.replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/\r?\n/g, '\\n') : s);
 const icon = (...a) => window.icon(...a);
 
 let _container = null;
@@ -131,7 +135,7 @@ function _renderGrid() {
     <div class="subtype-filter-bar${(_filterOpen || _type) ? '' : ' subtype-filter-bar--hidden'}">
       <button class="sf-chip${_type ? '' : ' sf-chip--active'}" onclick="window.bestiarium.filterType(null)">Alle</button>
       ${_typen.map(t => `<button class="sf-chip${_type === t ? ' sf-chip--active' : ''}"
-        onclick="window.bestiarium.filterType('${esc(t)}')">${esc(t)}</button>`).join('')}
+        onclick="window.bestiarium.filterType('${escArg(t)}')">${esc(t)}</button>`).join('')}
     </div>` : '';
 
   const zichtbaar = _gefilterd(monsters);
@@ -176,12 +180,12 @@ function _card(m, i, dm) {
       ${dm ? `
         <div class="dm-only absolute top-7 right-2 z-30 flex flex-col gap-1">
           <button class="best-card-ctrl" title="Bewerken"
-            onclick="event.stopPropagation();window.bestiarium.edit('${esc(m.id)}')">${icon('pencil')}</button>
+            onclick="event.stopPropagation();window.bestiarium.edit('${escArg(m.id)}')">${icon('pencil')}</button>
           <button class="best-card-ctrl best-card-ctrl--danger" title="Verwijderen"
-            onclick="event.stopPropagation();window.bestiarium.del('${esc(m.id)}','${esc(m.name).replace(/'/g, "\\'")}')">${icon('x')}</button>
+            onclick="event.stopPropagation();window.bestiarium.del('${escArg(m.id)}','${escArg(m.name)}')">${icon('x')}</button>
           <button class="best-card-ctrl best-card-niv best-card-niv--${nivKey}"
             title="Kennisniveau: ${_NIV_LABEL[niv || '']} — klik om te wisselen"
-            onclick="event.stopPropagation();window.bestiarium.cycleNiveau('${esc(m.id)}', this)">${_NIV_LETTER[niv || '']}</button>
+            onclick="event.stopPropagation();window.bestiarium.cycleNiveau('${escArg(m.id)}', this)">${_NIV_LETTER[niv || '']}</button>
         </div>` : ''}
       <div class="card-accent bar-bestiarium"></div>
       <div class="card-img-wrap best-card-img-wrap">

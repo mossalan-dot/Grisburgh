@@ -692,7 +692,7 @@ function _houdingBalkHtml(type, e) {
     ${treden.map(h => `<button type="button" class="houding-stap${h.waarde === geldt ? ' is-aan' : ''}"
       style="--houding-kleur:${h.glans?.kleur || '#c4a87a'}"
       title="${esc(h.naam)}${h.waarde === geldt ? (eigen === null ? ' · nu, uitgerekend' : ' · nu — tik nog eens voor standaard') : ''}"
-      onclick="event.stopPropagation();window._houdingZet('${esc(type)}','${esc(e.id)}',${h.waarde})"></button>`).join('')}
+      onclick="event.stopPropagation();window._houdingZet('${escArg(type)}','${escArg(e.id)}',${h.waarde})"></button>`).join('')}
   </div>`;
 }
 
@@ -1117,6 +1117,10 @@ const $ = (...a) => window.app.$(...a);
 const $$ = (...a) => window.app.$$(...a);
 const isDM = () => window.app.isDM();
 const esc = (...a) => window.app.esc(...a);
+// In een inline handler (`onclick="f('…')"`) decodeert de browser eerst het
+// attribuut en voert dan de JavaScript uit: `esc()` alleen laat een apostrof
+// de string sluiten. Eerst JS-escapen, dan HTML. Zie scripts/onclick-escapen.js.
+const escArg = s => esc(typeof s === 'string' ? s.replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/\r?\n/g, '\\n') : s);
 const escJS = (...a) => window.app.escJS(...a);
 const mdToHtml = (...a) => window.app.mdToHtml(...a);
 const openModal = (...a) => window.app.openModal(...a);
@@ -1675,7 +1679,7 @@ function _linkStatus(inp) {
     if (icoon) {
       icoon.innerHTML = `<button type="button" class="link-veld-knop"
         title="${esc(LINK_ENKELVOUD[match.type] || match.type)} — kaartje openen"
-        onclick="window._openDetail('${match.type}','${esc(match.id)}')">${getAutoIconSvg(match.type, {}) || icon('link')}</button>`;
+        onclick="window._openDetail('${match.type}','${escArg(match.id)}')">${getAutoIconSvg(match.type, {}) || icon('link')}</button>`;
     }
     return;
   }
@@ -1685,7 +1689,7 @@ function _linkStatus(inp) {
   // dat is precies wat je wilt bij "Alfira en Ramella Bleekhamer".
   host.innerHTML = `<span class="link-vraag">\u201c${esc(naam)}\u201d heeft nog geen kaartje. Aanmaken als</span>`
     + doel.map(t => `<button type="button" class="dm-btn dm-btn-ghost dm-btn-sm"
-      onclick="window._linkKaartjeMaken('${t}', '${esc(inp.id)}')"
+      onclick="window._linkKaartjeMaken('${t}', '${escArg(inp.id)}')"
       title="Maakt een leeg kaartje met deze naam; invullen kan later">
       ${icon('plus')} ${LINK_ENKELVOUD[t] || t}</button>`).join('')
     + `<span class="link-vraag">?</span>`;
@@ -1915,7 +1919,7 @@ window._betrokkenGeheim = async (btn) => {
   const isHuidig = (o) => !!huidig && huidig.id === o.id
     && (huidig.gid ? huidig.gid === o.gid : Number(huidig.i) === o.i);
   const kies = (o) => `<button type="button" class="betr-geheim-optie${isHuidig(o) ? ' betr-geheim-optie--aan' : ''}"
-      onclick="window._betrokkenGeheimKies(this,'${escJS(o.id)}','${escJS(o.gid)}')">
+      onclick="window._betrokkenGeheimKies(this,'${escArg(o.id)}','${escArg(o.gid)}')">
       <span class="bgo-kaart">${esc(o.kaart)}</span>
       <span class="bgo-tekst">${esc(o.tekst.length > 90 ? o.tekst.slice(0, 90) + '\u2026' : o.tekst)}</span>
     </button>`;
@@ -2037,7 +2041,7 @@ function _pinTeken() {
   }
   if (knoppen) {
     knoppen.innerHTML = pin
-      ? `<button type="button" class="dm-btn dm-btn-ghost dm-btn-sm" onclick="window._toonOpKaart('${esc(_koppelCtx.id)}','${esc(kaart.id)}')">${icon('map')} Op de grote kaart</button>
+      ? `<button type="button" class="dm-btn dm-btn-ghost dm-btn-sm" onclick="window._toonOpKaart('${escArg(_koppelCtx.id)}','${escArg(kaart.id)}')">${icon('map')} Op de grote kaart</button>
          <button type="button" class="dm-btn dm-btn-ghost dm-btn-sm dm-btn-danger" onclick="window._pinWeg()">${icon('trash')} Van de kaart halen</button>`
       : '';
   }
@@ -2210,12 +2214,12 @@ function _kaartTabHtml(locId, plek, alleen = true, locType = '', andere = []) {
         <div class="kaartuitsnede-speld">${window._locIcoon?.(locType) || ''}</div>
       </div>
       <div class="detail-map-link-wrap">
-        <button class="detail-map-link-btn" onclick="window._toonOpKaart('${esc(locId)}','${esc(kaart.id)}')">
+        <button class="detail-map-link-btn" onclick="window._toonOpKaart('${escArg(locId)}','${escArg(kaart.id)}')">
           ${icon('map')} Toon op de hele kaart
         </button>
         ${(andere || []).map(a => `
           <button class="detail-map-link-btn detail-map-link-btn--ook"
-            onclick="window._toonOpKaart('${esc(locId)}','${esc(a.kaart.id)}')"
+            onclick="window._toonOpKaart('${escArg(locId)}','${escArg(a.kaart.id)}')"
             title="Deze plek staat ook op ${esc(a.kaart.label || 'een andere kaart')}">
             ${icon('map-pin')} ${esc(a.kaart.label || 'Andere kaart')}
           </button>`).join('')}
@@ -2289,7 +2293,7 @@ function _orgKnoopHtml(r, kinderen, gezien = new Set(), beeld = null) {
     ? `<img class="org-portret" src="${esc(api.thumbUrl(beeldId))}" alt="" onerror="this.replaceWith(Object.assign(document.createElement('span'),{className:'org-portret org-portret--leeg'}))">`
     : `<span class="org-portret org-portret--leeg${r.onbekend ? ' org-portret--onbekend' : ''}">${icon(r.onbekend ? 'user' : 'user')}</span>`;
   const naam = r.id
-    ? `<button type="button" class="org-naam" onclick="window._openKaartjeOpId('${esc(r.id)}')">${esc(r.naam)}</button>`
+    ? `<button type="button" class="org-naam" onclick="window._openKaartjeOpId('${escArg(r.id)}')">${esc(r.naam)}</button>`
     : r.onbekend
       ? `<span class="org-naam org-naam--onbekend">Onbekend</span>`
       : `<span class="org-naam org-naam--los">${esc(r.naam)}</span>`;
@@ -2339,7 +2343,7 @@ function _dungeonTabHtml(kaart, kamer) {
       ${kamer ? `<p class="veld-uitleg">${icon('map-pin')} Kamer: ${esc(kamer.name || kamer.id)}</p>` : ''}
       ${kaart.description ? `<p class="detail-desc">${esc(kaart.description)}</p>` : ''}
       <div class="detail-map-link-wrap">
-        <button class="detail-map-link-btn" onclick="window.app.closeModal();window._openKaartFullscreen('dungeon','${esc(kaart.id)}')">
+        <button class="detail-map-link-btn" onclick="window.app.closeModal();window._openKaartFullscreen('dungeon','${escArg(kaart.id)}')">
           ${icon('map')} Toon op de hele kaart
         </button>
       </div>
@@ -2904,7 +2908,7 @@ function _csSpellChips() {
     const naam = sp?.name || idx;
     const niveau = sp ? (Number(sp.level) === 0 ? 'C' : sp.level) : '';
     return `<span class="cs-spell-chip">${niveau !== '' ? `<b>${esc(String(niveau))}</b>` : ''}${esc(naam)}
-      <button type="button" title="Loskoppelen" onclick="window._csSpellWeg('${esc(idx)}')">×</button></span>`;
+      <button type="button" title="Loskoppelen" onclick="window._csSpellWeg('${escArg(idx)}')">×</button></span>`;
   }).join('');
 }
 window._csSpellAdd = (input) => {
@@ -3177,8 +3181,8 @@ function _renderClaimRequests(container) {
           <em>${esc(r.itemName)}</em> ${r.type === 'trade' ? `ruilen met ${esc(r.targetName || '?')}` : 'claimen'}
         </span>
         <div class="claim-request-actions">
-          <button class="claim-btn-approve" onclick="window._itemApproveRequest('${esc(r.id)}')">${icon('check')} Goedkeuren</button>
-          <button class="claim-btn-reject"  onclick="window._itemRejectRequest('${esc(r.id)}')">${icon('x')} Weigeren</button>
+          <button class="claim-btn-approve" onclick="window._itemApproveRequest('${escArg(r.id)}')">${icon('check')} Goedkeuren</button>
+          <button class="claim-btn-reject"  onclick="window._itemRejectRequest('${escArg(r.id)}')">${icon('x')} Weigeren</button>
         </div>
       </div>
     `).join('')}
@@ -3829,7 +3833,7 @@ function renderCard(type, e) {
           ${badges.length ? `<div class="card-badges-rij">${badges.map(b => `<span class="card-subtype-badge ${b.cls}">${esc(b.label)}</span>`).join('')}</div>` : ''}
         </div>` : ''}
         ${type === 'locaties' ? `<button class="card-map-btn hidden" data-mapbtn="${esc(e.id)}"
-          onclick="event.stopPropagation();window._toonOpKaart('${esc(e.id)}', this.dataset.mapid || '')"
+          onclick="event.stopPropagation();window._toonOpKaart('${escArg(e.id)}', this.dataset.mapid || '')"
           title="Toon op kaart">${icon('map-pin')}</button>` : ''}
         ${type === 'voorwerpen' ? (() => {
           const _d = String(e.data?.damage || '').trim();
@@ -3837,10 +3841,10 @@ function renderCard(type, e) {
           const _h = String(e.data?.healing || '').trim() || (_isHeal ? _d : '');
           const _p = [];
           if (_d && !_isHeal) _p.push(`<button class="card-damage-pill"
-            onclick="event.stopPropagation();window.dice?.rollFlash('${escJS(_d)}','${escJS(e.name)}')"
+            onclick="event.stopPropagation();window.dice?.rollFlash('${escArg(_d)}','${escArg(e.name)}')"
             title="Gooi ${escJS(_d)}">${icon('dice',{cls:'icon-gi'})} ${esc(_d)}</button>`);
           if (_h) _p.push(`<button class="card-damage-pill card-damage-pill--heal"
-            onclick="event.stopPropagation();window.dice?.rollFlash('${escJS(_h)}','${escJS(e.name)}','heal')"
+            onclick="event.stopPropagation();window.dice?.rollFlash('${escArg(_h)}','${escArg(e.name)}','heal')"
             title="Gooi ${escJS(_h)}">${icon('heart',{cls:'icon-gi'})} ${esc(_h)}</button>`);
           return _p.join('');
         })() : ''}
@@ -3858,10 +3862,10 @@ function renderCard(type, e) {
             const _isHeal = _d && /heal|genez/i.test(_d);
             const _h = String(e.data?.healing || '').trim() || (_isHeal ? _d : '');
             if (_d && !_isHeal) _los.push(`<button class="card-damage-pill"
-              onclick="event.stopPropagation();window.dice?.rollFlash('${escJS(_d)}','${escJS(e.name)}')"
+              onclick="event.stopPropagation();window.dice?.rollFlash('${escArg(_d)}','${escArg(e.name)}')"
               title="Gooi ${escJS(_d)}">${icon('dice',{cls:'icon-gi'})} ${esc(_d)}</button>`);
             if (_h) _los.push(`<button class="card-damage-pill card-damage-pill--heal"
-              onclick="event.stopPropagation();window.dice?.rollFlash('${escJS(_h)}','${escJS(e.name)}','heal')"
+              onclick="event.stopPropagation();window.dice?.rollFlash('${escArg(_h)}','${escArg(e.name)}','heal')"
               title="Gooi ${escJS(_h)}">${icon('heart',{cls:'icon-gi'})} ${esc(_h)}</button>`);
           }
           if (_cardAcr) _los.push(`<span class="card-armor-ac-pill" title="${escJS(_cardAcr.tooltip)}">${esc(_cardAcr.pill)}</span>`);
@@ -3900,11 +3904,11 @@ function renderCard(type, e) {
         const eerste = _flavTonen[0];
         return `
         <div class="flavour-preview${isDM() && !eerste.gezegd ? ' flavour-preview--ongespoken' : ''}" id="flav-${esc(e.id)}">
-          ${e.data?.audioId ? `<button type="button" class="flavour-audio-btn" data-audio-btn data-audio-btn-id="${esc(e.data.audioId)}" onclick="event.stopPropagation();window._audioToggle('${esc(e.data.audioId)}')" title="Sfeer afspelen">▶</button>` : ''}
+          ${e.data?.audioId ? `<button type="button" class="flavour-audio-btn" data-audio-btn data-audio-btn-id="${esc(e.data.audioId)}" onclick="event.stopPropagation();window._audioToggle('${escArg(e.data.audioId)}')" title="Sfeer afspelen">▶</button>` : ''}
           <span class="flavour-preview-text">\u201e${esc(_flavKort(eerste.tekst))}\u201c</span>
           ${_flavTonen.length > 1 ? `
             <button type="button" class="flavour-preview-nav"
-              onclick="event.stopPropagation();window._flavStap('${esc(e.id)}')"
+              onclick="event.stopPropagation();window._flavStap('${escArg(e.id)}')"
               title="Volgende roddel">1/${_flavTonen.length} \u203a</button>` : ''}
         </div>`;
       })() : ''}
@@ -3971,9 +3975,9 @@ function _spelersNotitieInner(entityId) {
       <span class="spn-naam">${esc(naam)}</span>
       ${regels.length > 1 ? `
         <span class="flavour-nav">
-          <button type="button" onclick="window._spnStap('${esc(entityId)}',-1)" title="Vorige speler">\u2039</button>
+          <button type="button" onclick="window._spnStap('${escArg(entityId)}',-1)" title="Vorige speler">\u2039</button>
           <span>${idx + 1}/${regels.length}</span>
-          <button type="button" onclick="window._spnStap('${esc(entityId)}',1)" title="Volgende speler">\u203a</button>
+          <button type="button" onclick="window._spnStap('${escArg(entityId)}',1)" title="Volgende speler">\u203a</button>
         </span>` : ''}
     </div>
     <div class="spn-tekst">${esc(tekst)}</div>`;
@@ -4031,14 +4035,14 @@ function _detFlavInner(key) {
       ${isDM() && r.verraad ? `<span class="verraad-merk" title="Onthullen verandert dit kaartje: rol, kant en alignment">${icon('skull')} Maakt vijand</span>` : ''}
       ${isDM() ? `<button class="onthul-knop${r.gezegd ? ' onthul-knop--aan' : ''}${r.verraad ? ' onthul-knop--verraad' : ''}"
         title="${r.gezegd ? cfg.titelAan : cfg.titelUit}"
-        onclick="window.${r.verraad ? '_toggleVerraadGeheim' : cfg.fn}('${esc(ctx.tab)}','${esc(ctx.id)}',${r.i},'${escJS(r.gid || '')}'${r.verraad ? `,${r.gezegd},'${escJS(ctx.naam || '')}'` : ''})">${r.gezegd ? icon(cfg.iconAan) : icon(cfg.iconUit)}<span>${r.gezegd ? cfg.aan : cfg.uit}</span></button>` : ''}
+        onclick="window.${r.verraad ? '_toggleVerraadGeheim' : cfg.fn}('${escArg(ctx.tab)}','${escArg(ctx.id)}',${r.i},'${escArg(r.gid || '')}'${r.verraad ? `,${r.gezegd},'${escJS(ctx.naam || '')}'` : ''})">${r.gezegd ? icon(cfg.iconAan) : icon(cfg.iconUit)}<span>${r.gezegd ? cfg.aan : cfg.uit}</span></button>` : ''}
       ${ctx.audioId ? `<button type="button" class="flavour-audio-play" data-audio-btn data-audio-btn-id="${esc(ctx.audioId)}"
-        onclick="window._audioToggle('${esc(ctx.audioId)}')" title="Sfeer afspelen / pauzeren">▶</button>` : ''}
+        onclick="window._audioToggle('${escArg(ctx.audioId)}')" title="Sfeer afspelen / pauzeren">▶</button>` : ''}
       ${regels.length > 1 ? `
         <span class="flavour-nav">
-          <button type="button" onclick="window._detFlavStap('${esc(key)}',-1)" title="${cfg.vorige}">\u2039</button>
+          <button type="button" onclick="window._detFlavStap('${escArg(key)}',-1)" title="${cfg.vorige}">\u2039</button>
           <span>${idx + 1}/${regels.length}</span>
-          <button type="button" onclick="window._detFlavStap('${esc(key)}',1)" title="${cfg.volgende}">\u203a</button>
+          <button type="button" onclick="window._detFlavStap('${escArg(key)}',1)" title="${cfg.volgende}">\u203a</button>
         </span>` : ''}
     </div>`;
 }
@@ -4227,7 +4231,7 @@ function _bladHtml(profiel, hp, e) {
               <h3 class="bl-kop">Spells</h3>
               <div class="cs-spell-chips" id="detail-spell-chips">${idx.map(i =>
                 `<button type="button" class="cs-spell-chip cs-spell-chip--klik" data-spell="${esc(i)}"
-                   onclick="window.spreuken.open('${esc(i)}')">${esc(String(i).replace(/-/g, ' '))}</button>`).join('')}</div>`;
+                   onclick="window.spreuken.open('${escArg(i)}')">${esc(String(i).replace(/-/g, ' '))}</button>`).join('')}</div>`;
           })()}
         </section>
       </div>
@@ -4354,13 +4358,13 @@ function _itemOwnershipBadge(itemId) {
   // blijft aanklikbaar om uit te delen.
   const strook = (klas, wie, wegTitel, wegActie) => `
     <div class="item-owner-badge${klas ? ' ' + klas : ''}${isDm ? ' item-owner-badge--klik' : ''}"
-      ${isDm ? `onclick="event.stopPropagation();window._itemGiveToPlayer('${esc(itemId)}')" title="Geef aan speler"` : 'onclick="event.stopPropagation()"'}>
+      ${isDm ? `onclick="event.stopPropagation();window._itemGiveToPlayer('${escArg(itemId)}')" title="Geef aan speler"` : 'onclick="event.stopPropagation()"'}>
       <span class="iob-wie">${icon('package')}<span>${wie}</span></span>
       ${isDm ? `<span class="iob-acties">
         ${wegActie ? `<button class="iob-knop iob-knop--weg" title="${esc(wegTitel)}"
           onclick="event.stopPropagation();${wegActie}">${icon('x')}</button>` : ''}
         <button class="iob-knop" title="Geef aan speler"
-          onclick="event.stopPropagation();window._itemGiveToPlayer('${esc(itemId)}')">${icon('plus')}</button>
+          onclick="event.stopPropagation();window._itemGiveToPlayer('${escArg(itemId)}')">${icon('plus')}</button>
       </span>` : ''}
     </div>`;
 
@@ -4404,7 +4408,7 @@ function _itemOwnershipBadge(itemId) {
   // Claim-knop voor ingelogde speler (niet stapelbaar)
   if (myName && !isDm) {
     return `
-      <button class="item-claim-btn" onclick="event.stopPropagation();window._itemClaim('${esc(itemId)}')">
+      <button class="item-claim-btn" onclick="event.stopPropagation();window._itemClaim('${escArg(itemId)}')">
         Claim
       </button>`;
   }
@@ -4460,17 +4464,17 @@ async function _buildItemGivePicker(itemId, spelers, groupNames) {
               <!-- Eén te veel geklikt moet je hier kunnen rechtzetten; anders
                    moest je het venster uit naar het tabblad Bezit. -->
               ${hasIt ? `<button class="item-give-minus" title="Eén exemplaar terugnemen"
-                onclick="window._itemAfnemen('${esc(itemId)}','${esc(s.id)}','${escJS(s.data?.groep || '')}')">${icon('minus')}</button>` : ''}
+                onclick="window._itemAfnemen('${escArg(itemId)}','${escArg(s.id)}','${escArg(s.data?.groep || '')}')">${icon('minus')}</button>` : ''}
               <input type="number" min="1" value="1" id="igq-${esc(s.id)}"
                 class="item-give-qty-input" onclick="event.stopPropagation()">
               <button class="item-give-confirm-btn"
-                onclick="window._itemAssignToPlayer('${esc(itemId)}','${esc(s.id)}','${escJS(s.name)}','${escJS(s.data?.groep || '')}',+(document.getElementById('igq-${esc(s.id)}').value)||1)">
+                onclick="window._itemAssignToPlayer('${escArg(itemId)}','${escArg(s.id)}','${escArg(s.name)}','${escArg(s.data?.groep || '')}',+(document.getElementById('igq-${esc(s.id)}').value)||1)">
                 ${icon('package')}
               </button>
             </div>`;
           if (isGedeeld) return `
             <button class="item-give-player-btn${hasIt ? ' item-give-player-btn--has' : ''}"
-              onclick="window._itemAssignToPlayer('${esc(itemId)}','${esc(s.id)}','${escJS(s.name)}','${escJS(s.data?.groep || '')}',1)">
+              onclick="window._itemAssignToPlayer('${escArg(itemId)}','${escArg(s.id)}','${escArg(s.name)}','${escArg(s.data?.groep || '')}',1)">
               <img src="${api.thumbForEntity(s)}" class="item-give-avatar" onerror="this.style.display='none'">
               <span>${esc(s.name)}</span>
               ${qtyBadge}
@@ -4478,7 +4482,7 @@ async function _buildItemGivePicker(itemId, spelers, groupNames) {
           // Enkelvoudig eigendom
           return `
             <button class="item-give-player-btn${hasIt ? ' item-give-player-btn--has' : ''}"
-              onclick="window._itemAssignToPlayer('${esc(itemId)}','${esc(s.id)}','${escJS(s.name)}','${escJS(s.data?.groep || '')}')">
+              onclick="window._itemAssignToPlayer('${escArg(itemId)}','${escArg(s.id)}','${escArg(s.name)}','${escArg(s.data?.groep || '')}')">
               <img src="${api.thumbForEntity(s)}" class="item-give-avatar" onerror="this.style.display='none'">
               <span>${esc(s.name)}</span>
               ${qtyBadge}
@@ -4856,7 +4860,7 @@ window._winkelVoorraadHtml = function _winkelVoorraadHtml({ e, tab, beschikbaarD
         return `
           <div class="shop-verkoop-rij${v.verkoopbaar ? '' : ' shop-verkoop-rij--nee'}">
             <span class="shop-verkoop-naam" title="Open het kaartje"
-              onclick="window._openDetailFromShop('${esc(v.entityId)}')">${esc(v.naam)}</span>
+              onclick="window._openDetailFromShop('${escArg(v.entityId)}')">${esc(v.naam)}</span>
             <span class="shop-verkoop-aantal">${v.qty > 1 ? `${v.qty}×` : ''}</span>
             <span class="shop-verkoop-bod">${v.verkoopbaar ? esc(_aanbod) : `<em>${esc(v.reden || 'Niet verkoopbaar')}</em>`}</span>
             <span class="shop-verkoop-actie">
@@ -4864,7 +4868,7 @@ window._winkelVoorraadHtml = function _winkelVoorraadHtml({ e, tab, beschikbaarD
                 ? `<span class="shop-verkoop-wacht">${icon('hourglass')} Aangeboden</span>`
                 : v.verkoopbaar
                   ? `${v.stapelbaar && v.qty > 1 ? `<input type="number" id="shop-vk-qty-${i}" class="shop-qty-input" value="1" min="1" max="${v.qty}" onclick="event.stopPropagation()" oninput="this.value=Math.min(${v.qty},Math.max(1,parseInt(this.value)||1))">` : ''}
-                     <button class="shop-koop-btn" onclick="window._verkoopItem('${esc(_shopId)}','${esc(v.entityId)}',this,${v.stapelbaar && v.qty > 1 ? `parseInt(document.getElementById('shop-vk-qty-${i}')?.value)||1` : '1'})">Aanbieden</button>`
+                     <button class="shop-koop-btn" onclick="window._verkoopItem('${escArg(_shopId)}','${escArg(v.entityId)}',this,${v.stapelbaar && v.qty > 1 ? `parseInt(document.getElementById('shop-vk-qty-${i}')?.value)||1` : '1'})">Aanbieden</button>`
                   : ''}
             </span>
           </div>`;
@@ -4910,7 +4914,7 @@ window._winkelVoorraadHtml = function _winkelVoorraadHtml({ e, tab, beschikbaarD
                   : '';
                 const naamHtml = item.entityId
                   ? `<span class="cursor-pointer hover:text-gold transition underline decoration-dotted${uitverkocht ? ' winkel-uitverkocht-naam' : ''}"
-                       onclick="window._openDetailFromShop('${esc(item.entityId)}')"
+                       onclick="window._openDetailFromShop('${escArg(item.entityId)}')"
                        title="Open het kaartje">${esc(item.naam || '\u2014')}</span>`
                   : `<span class="${uitverkocht ? 'winkel-uitverkocht-naam' : ''}">${esc(item.naam || '\u2014')}</span>`;
                 return `
@@ -4928,11 +4932,11 @@ window._winkelVoorraadHtml = function _winkelVoorraadHtml({ e, tab, beschikbaarD
                   <td class="px-3 py-2.5 text-center">
                     <input type="checkbox" class="winkel-uitverkocht-cb" title="Uitverkocht voor deze party"
                       ${uitverkocht ? 'checked' : ''}
-                      onchange="window._toggleShopUitverkocht('${esc(_shopId)}','${esc(item.naam || '')}',this)">
+                      onchange="window._toggleShopUitverkocht('${escArg(_shopId)}','${escArg(item.naam || '')}',this)">
                   </td>
                   <td class="px-3 py-2.5 text-center">
                     <button class="dm-btn dm-btn-sm dm-btn-icon" title="Afrekenen met een speler"
-                      onclick="window._dmAfrekenen('${esc(_shopId)}','${escJS(item.naam || '')}','${esc(item.entityId || '')}','${escJS(item.prijs || '')}')">
+                      onclick="window._dmAfrekenen('${escArg(_shopId)}','${escArg(item.naam || '')}','${escArg(item.entityId || '')}','${escArg(item.prijs || '')}')">
                       ${icon('coins')}
                     </button>
                   </td>` : ''}
@@ -4946,7 +4950,7 @@ window._winkelVoorraadHtml = function _winkelVoorraadHtml({ e, tab, beschikbaarD
                             onclick="event.stopPropagation()" oninput="this.value=Math.max(1,parseInt(this.value)||1)">
                         ` : ''}
                         <button class="shop-koop-btn"
-                          onclick="window._koopItem('${esc(_shopId)}','${esc(item.naam || '')}','${esc(item.entityId || '')}',this,${item.stapelbaar ? `parseInt(document.getElementById('shop-qty-${i}')?.value)||1` : '1'})">
+                          onclick="window._koopItem('${escArg(_shopId)}','${escArg(item.naam || '')}','${escArg(item.entityId || '')}',this,${item.stapelbaar ? `parseInt(document.getElementById('shop-qty-${i}')?.value)||1` : '1'})">
                           Kopen
                         </button>
                       </div>
@@ -4965,7 +4969,7 @@ window._winkelVoorraadHtml = function _winkelVoorraadHtml({ e, tab, beschikbaarD
           <div id="dm-afreken-paneel" class="dm-winkel-paneel hidden"></div>
           <div class="dm-winkel-paneel">
             <div class="cs-sectiekop" style="border-top:0;margin-top:0;padding-top:0">Inkopen van de party</div>
-            <button class="ed-knop" onclick="window._dmInkoopOpen('${esc(_shopId)}')"><span id="dm-inkoop-chevron">▸</span>${icon('package')}<span>Inventory van de party</span></button>
+            <button class="ed-knop" onclick="window._dmInkoopOpen('${escArg(_shopId)}')"><span id="dm-inkoop-chevron">▸</span>${icon('package')}<span>Inventory van de party</span></button>
             <div id="dm-inkoop-lijst" class="mt-2"></div>
           </div>` : ''}
         `;
@@ -5103,7 +5107,7 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
     infoHtml += _entityCarouselHtml(e.id, _allImgs);
   } else {
     infoHtml += `
-      <div class="detail-hero detail-hero--portret mb-6" id="detail-img-wrap-${e.id}" onclick="window.app.openLightbox('${fileUrl}','${escJS(e.name)}')">
+      <div class="detail-hero detail-hero--portret mb-6" id="detail-img-wrap-${e.id}" onclick="window.app.openLightbox('${fileUrl}','${escArg(e.name)}')">
         <div class="detail-hero-bg" style="background-image:url('${beeldUrl}')"></div>
         <img src="${beeldUrl}" class="detail-hero-img"
           style="${_d.imgFocus ? `object-position:${_d.imgFocus}` : ''}"
@@ -5203,14 +5207,14 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
     const _worpen = [];
     if (_dmg && !_legacyHeal) {
       _worpen.push(`<button class="item-damage-pill"
-          onclick="window.dice?.rollFlash('${escJS(_dmg)}','${escJS(e.name)}')"
+          onclick="window.dice?.rollFlash('${escArg(_dmg)}','${escArg(e.name)}')"
           title="Klik om schade te gooien">
           ${icon('dice',{cls:'icon-gi'})} ${esc(_dmg)}
         </button>`);
     }
     if (_heal) {
       _worpen.push(`<button class="item-damage-pill item-damage-pill--heal"
-          onclick="window.dice?.rollFlash('${escJS(_heal)}','${escJS(e.name)}','heal')"
+          onclick="window.dice?.rollFlash('${escArg(_heal)}','${escArg(e.name)}','heal')"
           title="Klik om genezing te gooien">
           ${icon('heart',{cls:'icon-gi'})} ${esc(_heal)}
         </button>`);
@@ -5227,7 +5231,7 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
         <span class="item-spellrij-kop">${icon('sparkles')} ${_spellIdx.length === 1 ? 'Spreuk' : 'Spreuken'}</span>
         <span class="cs-spell-chips" id="detail-spell-chips" data-compact="1">${_spellIdx.map(i =>
           `<button type="button" class="cs-spell-chip cs-spell-chip--klik" data-spell="${esc(i)}"
-             onclick="window.spreuken.open('${escJS(i)}')">${esc(String(i).replace(/-/g, ' '))}</button>`).join('')}</span>
+             onclick="window.spreuken.open('${escArg(i)}')">${esc(String(i).replace(/-/g, ' '))}</button>`).join('')}</span>
       </div>`;
     }
 
@@ -5350,8 +5354,8 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
             <div class="parchment-block parchment-block--inkijk${_codeAan ? ' brief-gecodeerd' : ''}"
               id="perkament-${esc(e.id)}" data-stijl="${esc(_stijl)}"
               ${_codeAan ? 'aria-label="Gecodeerde brief, nog niet leesbaar"' : ''}
-              onclick="window._perkamentGroot('${esc(e.id)}')">${_binnen}</div>
-            <button type="button" class="parchment-groot-knop" onclick="window._perkamentGroot('${esc(e.id)}')">
+              onclick="window._perkamentGroot('${escArg(e.id)}')">${_binnen}</div>
+            <button type="button" class="parchment-groot-knop" onclick="window._perkamentGroot('${escArg(e.id)}')">
               ${icon('maximize-2')} Lees de hele tekst
             </button>
             ${isDM() ? `
@@ -5361,10 +5365,10 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
                 : `${icon('monitor')} Op tafel leggen voor de party.`}</span>
               <span class="brief-code-knoppen">
                 <button type="button" class="dm-btn dm-btn-sm"
-                  onclick="event.stopPropagation();window._briefNaarTafel('${esc(e.id)}')">
+                  onclick="event.stopPropagation();window._briefNaarTafel('${escArg(e.id)}')">
                   ${icon('monitor')} Op het tafelscherm</button>
                 ${e.data?.gecodeerd ? `<button type="button" class="dm-btn dm-btn-sm dm-btn-primary"
-                  onclick="event.stopPropagation();window._briefOntcijfer('${esc(e.id)}')">
+                  onclick="event.stopPropagation();window._briefOntcijfer('${escArg(e.id)}')">
                   ${icon('eye')} Ontcijferen</button>` : ''}
               </span>
             </div>` : ''}
@@ -5396,7 +5400,7 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
       rol: r.rol,
       geheim: isDM() ? r.geheim : null,
       knop: r.id
-        ? `<button type="button" class="link-chip link-chip--sm" onclick="window._openKaartjeOpId('${esc(r.id)}')">${esc(r.naam)}</button>`
+        ? `<button type="button" class="link-chip link-chip--sm" onclick="window._openKaartjeOpId('${escArg(r.id)}')">${esc(r.naam)}</button>`
         // De server heeft de naam weggehaald van iemand die deze party nog niet
         // kent; dát er iemand is mag je weten, wie het is niet.
         : r.onbekend
@@ -5428,9 +5432,9 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
       geheim: isDM() ? r.geheim : null,
       knop: r.factieId
         ? `<button type="button" class="link-chip link-chip--sm"
-             onclick="window.app.closeModal();window.app.switchSection('facties');window._factieOpen('${esc(r.factieId)}')">${icon('swords')}${esc(r.name)}</button>`
+             onclick="window.app.closeModal();window.app.switchSection('facties');window._factieOpen('${escArg(r.factieId)}')">${icon('swords')}${esc(r.name)}</button>`
         : `<button type="button" class="link-chip link-chip--sm"
-             onclick="window._openDetail('${esc(r.type)}','${esc(r.id)}'${r.tab ? `,false,'${esc(r.tab)}'` : ''})">${getAutoIconSvg(r.type, {}) || ''}${esc(r.name)}</button>`,
+             onclick="window._openDetail('${escArg(r.type)}','${escArg(r.id)}'${r.tab ? `,false,'${esc(r.tab)}'` : ''})">${getAutoIconSvg(r.type, {}) || ''}${esc(r.name)}</button>`,
     })));
   }
 
@@ -5600,7 +5604,7 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
       infoHtml += `
         <div class="mt-4 pt-4 border-t border-room-border">
           <div class="detail-label detail-label--gold mb-1">${icon(dienst.icoon)} Hier gevestigd</div>
-          <button class="dienst-deur" onclick="window.app.switchSection('${esc(dienst.sectie)}')">
+          <button class="dienst-deur" onclick="window.app.switchSection('${escArg(dienst.sectie)}')">
             ${icon(dienst.icoon)} ${esc(dienst.naam)}
           </button>
         </div>`;
@@ -5633,7 +5637,7 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
           ? `<a class="dm-actie" href="/api/characters/${esc(e.id)}/sheet" target="_blank" rel="noopener"
                title="Opent het blad in een nieuw tabblad; printen of bewaren als pdf doe je daar">
                ${icon('scroll-text')}<span>Blad afdrukken</span></a>`
-          : `<button type="button" class="dm-actie" onclick="window._printStatblock('${escJS(e.name)}')"
+          : `<button type="button" class="dm-actie" onclick="window._printStatblock('${escArg(e.name)}')"
                title="Opent een printvenster met alleen het statblock">
                ${icon('scroll-text')}<span>Statblock afdrukken</span></button>`}
       </div>`;
@@ -5658,7 +5662,7 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
     if (tiers.length) {
       const chip = (id, label, aan) =>
         `<button type="button" class="tier-chip${aan ? ' tier-chip--aan' : ''}"
-           onclick="window._tierKies('${escJS(e.id)}','${escJS(id)}','${escJS(e.name)}')">${esc(label)}</button>`;
+           onclick="window._tierKies('${escArg(e.id)}','${escArg(id)}','${escArg(e.name)}')">${esc(label)}</button>`;
       // `geenprint`: in een afdruk is kiezen zinloos — je hebt één blad in je
       // hand. De gekozen gedaante komt in plaats daarvan in de titel te staan.
       sheetHtml += `<div class="tier-strook geenprint">
@@ -6122,7 +6126,7 @@ window._dmAfrekenen = async (shopId, itemNaam, entityId, prijs) => {
         value="${esc((() => { const cl = _prijsNaarCl(prijs); return cl === null ? '' : _clNaarKomma(cl); })())}"
         placeholder="12,34" title="Eén bedrag met een komma; munten mogen ook: 5 gp 2 sp, 2 pp">
       <button class="dm-btn dm-btn-sm dm-btn-primary"
-        onclick="window._dmAfrekenenDoen('${esc(shopId)}','${escJS(itemNaam)}','${esc(entityId || '')}')">Afrekenen</button>
+        onclick="window._dmAfrekenenDoen('${escArg(shopId)}','${escArg(itemNaam)}','${escArg(entityId || '')}')">Afrekenen</button>
       <button class="dm-btn dm-btn-sm dm-btn-ghost" onclick="document.getElementById('dm-afreken-paneel').classList.add('hidden')">Annuleren</button>
     </div>
     <div id="dm-afreken-melding" class="dm-hint mt-1"></div>`;
@@ -6203,7 +6207,7 @@ window._dmInkoopOpen = async (shopId) => {
         </label>`).join('')}
     </div>
     <div class="dm-winkel-rij mt-2">
-      <button class="ed-knop ed-knop--opslaan" onclick="window._dmInkoopDoen('${esc(shopId)}')">${icon('coins')}<span>Inkopen</span></button>
+      <button class="ed-knop ed-knop--opslaan" onclick="window._dmInkoopDoen('${escArg(shopId)}')">${icon('coins')}<span>Inkopen</span></button>
       <span id="dm-inkoop-melding" class="dm-hint"></span>
     </div>`;
 };
@@ -6307,7 +6311,7 @@ window._bezitLaden = async (itemId) => {
   const stapelbaar = bezit.gebruik === 'stapelbaar';
   const groepen = bezit.groepen || [];
   const knop = `<button class="dm-btn dm-btn-ghost dm-btn-sm mt-2"
-      onclick="window._itemGiveToPlayer('${esc(itemId)}')">${icon('package')} Geef aan speler</button>`;
+      onclick="window._itemGiveToPlayer('${escArg(itemId)}')">${icon('package')} Geef aan speler</button>`;
   if (!groepen.length) {
     host.innerHTML = `<p class="bezit-leeg">Niemand heeft dit voorwerp.</p>${knop}`;
     return;
@@ -6324,14 +6328,14 @@ window._bezitLaden = async (itemId) => {
             : stapelbaar
               ? `<span class="bezit-aantal">
                    <button class="dm-btn dm-btn-icon dm-btn-sm" title="Eén minder"
-                     onclick="window._eigenaarQtyAdj('${esc(itemId)}','${esc(r.characterId)}',-1,'${esc(g.id)}')">${icon('minus')}</button>
+                     onclick="window._eigenaarQtyAdj('${escArg(itemId)}','${escArg(r.characterId)}',-1,'${escArg(g.id)}')">${icon('minus')}</button>
                    <b>${r.aantal}</b>
                    <button class="dm-btn dm-btn-icon dm-btn-sm" title="Eén meer"
-                     onclick="window._eigenaarQtyAdj('${esc(itemId)}','${esc(r.characterId)}',1,'${esc(g.id)}')">${icon('plus')}</button>
+                     onclick="window._eigenaarQtyAdj('${escArg(itemId)}','${escArg(r.characterId)}',1,'${escArg(g.id)}')">${icon('plus')}</button>
                  </span>`
               : ''}
           ${r.bron === 'boedel' ? '' : `<button class="dm-btn dm-btn-icon dm-btn-sm bezit-weg" title="Uit de inventaris van ${esc(r.naam || 'deze speler')} halen"
-             onclick="window._eigenaarVerwijder('${esc(itemId)}','${esc(r.characterId)}','${esc(g.id)}','${escJS(r.naam || '')}')">${icon('x')}</button>`}
+             onclick="window._eigenaarVerwijder('${escArg(itemId)}','${escArg(r.characterId)}','${escArg(g.id)}','${escArg(r.naam || '')}')">${icon('x')}</button>`}
         </div>`).join('')}
     </div>`).join('') + knop;
 };
@@ -7210,7 +7214,7 @@ window._itemSpellChipsTeken = () => {
     const lvl = sp ? (Number(sp.level) === 0 ? 'Cantrip' : `Level ${sp.level}`) : '';
     return `<span class="cs-spell-chip">${lvl ? `<b>${esc(lvl)}</b> ` : ''}${esc(naam)}
       <button type="button" class="cs-spell-chip-x" title="Loskoppelen"
-        onclick="window._itemSpellEraf('${escJS(idx)}')">\u00d7</button></span>`;
+        onclick="window._itemSpellEraf('${escArg(idx)}')">\u00d7</button></span>`;
   }).join('');
 };
 
@@ -7388,12 +7392,12 @@ window._openEditor = async (tab, editId) => {
         <div id="editor-video-status" class="text-xs text-ink-faint italic mb-1">${e?.id ? 'Controleren…' : ''}</div>
         <div class="flex items-center gap-2">
           <button type="button" class="dm-btn dm-btn-ghost dm-btn-sm"
-            onclick="window._editorPickVideo('${esc(e?.id || '')}')"
+            onclick="window._editorPickVideo('${escArg(e?.id || '')}')"
             title="Kies uit de mediabibliotheek of upload nieuw">
             ${icon('camera')} Filmpje kiezen
           </button>
           <button type="button" id="editor-video-del" class="dm-btn dm-btn-ghost dm-btn-sm hidden"
-            onclick="window._removeCharVideo('${esc(e?.id || '')}')" title="Filmpje verwijderen">${icon('trash')}</button>
+            onclick="window._removeCharVideo('${escArg(e?.id || '')}')" title="Filmpje verwijderen">${icon('trash')}</button>
         </div>
       </div>` : ''}
       ${tab === 'documenten' ? `
@@ -7406,7 +7410,7 @@ window._openEditor = async (tab, editId) => {
         <p class="text-[10px] text-ink-dim mb-1">Een pdf-scan of een geluidsfragment. Verschijnt onder de tekst in het detailvenster; een afbeelding hoort hierboven.</p>
         <div id="doc-bestand-status" class="text-xs text-ink-faint italic mb-1">${editId ? 'Controleren…' : ''}</div>
         <input type="file" id="doc-bestand-input" accept="application/pdf,audio/*" class="hidden"
-          onchange="window._docBestandUpload('${esc(editId || '')}', this.files[0])">
+          onchange="window._docBestandUpload('${escArg(editId || '')}', this.files[0])">
         <button type="button" class="dm-btn dm-btn-ghost dm-btn-sm"
           onclick="document.getElementById('doc-bestand-input').click()">
           ${icon('folder-open')} Bestand kiezen
@@ -7879,18 +7883,18 @@ window._openEditor = async (tab, editId) => {
                 return `<span class="weapon-tag-pick-group">
                   <button type="button"
                     class="weapon-tag-pick${_isOn ? ' weapon-tag-pick--on' : ''}" data-wptip="${esc(WEAPON_PROPERTIES[prop] || '')}"
-                    onclick="window._toggleWeaponTag('${escJS(field.key)}','${escJS(prop)}',this)">${esc(prop)}</button>
+                    onclick="window._toggleWeaponTag('${escArg(field.key)}','${escArg(prop)}',this)">${esc(prop)}</button>
                   <input type="text" id="${_safeId}"
                     class="weapon-tag-param-inp${_isOn ? '' : ' hidden'}"
                     placeholder="${_placeholder}"
                     value="${esc(_paramVal)}"
-                    oninput="window._updateWeaponTagParam('${escJS(field.key)}','${escJS(prop)}',this.value)"
+                    oninput="window._updateWeaponTagParam('${escArg(field.key)}','${escArg(prop)}',this.value)"
                     onclick="event.stopPropagation()">
                 </span>`;
               }
               return `<button type="button"
                 class="weapon-tag-pick${_isOn ? ' weapon-tag-pick--on' : ''}" data-wptip="${esc(WEAPON_PROPERTIES[prop] || '')}"
-                onclick="window._toggleWeaponTag('${escJS(field.key)}','${escJS(prop)}',this)">${esc(prop)}</button>`;
+                onclick="window._toggleWeaponTag('${escArg(field.key)}','${escArg(prop)}',this)">${esc(prop)}</button>`;
             }).join('')}
           </div>
         </div>
@@ -8086,7 +8090,7 @@ window._openEditor = async (tab, editId) => {
         ${_existingAudioId ? `
           <button type="button" id="editor-audio-preview" class="flavour-audio-btn editor-audio-preview"
             data-audio-btn data-audio-btn-id="${esc(_existingAudioId)}"
-            onclick="window._audioToggle('${esc(_existingAudioId)}')" title="Afspelen / pauzeren">▶</button>
+            onclick="window._audioToggle('${escArg(_existingAudioId)}')" title="Afspelen / pauzeren">▶</button>
           <button type="button" onclick="window._editorClearAudio()">${icon('x')} Verwijderen</button>
         ` : `<div id="editor-audio-preview" class="hidden"></div>`}
         <label>
@@ -8793,7 +8797,7 @@ window._openEditor = async (tab, editId) => {
       const w = _deelWinkels.find(x => x.name.toLowerCase() === naam.toLowerCase());
       host.innerHTML = w
         ? `Deelt één selectie met <button type="button" class="link-chip link-chip--sm"
-             onclick="window.app.closeModal();window._openDetail('locaties','${esc(w.id)}',false,'voorraad')">${esc(w.name)}</button> —
+             onclick="window.app.closeModal();window._openDetail('locaties','${escArg(w.id)}',false,'voorraad')">${esc(w.name)}</button> —
            de voorraadlijsten blijven van elkaar gescheiden.`
         : `Geen winkel met die naam; het blijft een los trefwoord (zo werkte het vroeger).`;
     };
@@ -8855,7 +8859,7 @@ window._openEditor = async (tab, editId) => {
         ? bruikbaar.map(g => `
             <div class="pet-baasje-rij">
               <span class="pet-baasje-groep">${esc(g.naam)}</span>
-              <select onchange="window._petBaasjeZet('${esc(editId)}', '${esc(g.id)}', this.value)"
+              <select onchange="window._petBaasjeZet('${escArg(editId)}', '${escArg(g.id)}', this.value)"
                 class="w-full px-2 py-1 bg-room-bg border border-room-border rounded text-ink-bright text-sm focus:border-gold-dim focus:outline-none">
                 <option value="">— nog niemand —</option>
                 ${g.spelers.map(p => `<option value="${esc(p.id)}"${p.id === g.baasje ? ' selected' : ''}>${esc(p.naam)}</option>`).join('')}
@@ -8966,7 +8970,7 @@ window._openEditor = async (tab, editId) => {
       const loc = _winkelLocs.find(l => l.id === id);
       host.innerHTML = loc
         ? `<button type="button" class="dm-btn dm-btn-ghost dm-btn-sm"
-             onclick="window._openDetail('locaties','${esc(loc.id)}')">
+             onclick="window._openDetail('locaties','${escArg(loc.id)}')">
              ${icon('package')} Voorraad van ${esc(loc.name)} bekijken
            </button>`
         : '';

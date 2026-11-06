@@ -13,6 +13,10 @@ import { api } from './api.js?v=316';
 
 const icon = (...a) => window.icon(...a);
 const esc  = (s) => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+// In een inline handler (`onclick="f('…')"`) decodeert de browser eerst het
+// attribuut en voert dan de JavaScript uit: `esc()` alleen laat een apostrof
+// de string sluiten. Eerst JS-escapen, dan HTML. Zie scripts/onclick-escapen.js.
+const escArg = s => esc(typeof s === 'string' ? s.replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/\r?\n/g, '\\n') : s);
 const escJS = (s) => String(s ?? '').replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/"/g, '\\"').replace(/\n/g, '\\n').replace(/\r/g, '');
 
 let _state = null;   // { type, onSelect, suggestedName, tab, files, query, pendingFile }
@@ -126,7 +130,7 @@ function _paintGrid() {
       : `<div class="media-picker-cell-img"><img src="${api.thumbUrl(f.id)}" loading="lazy" alt="${esc(f.naam)}"
            onerror="this.parentElement.classList.add('broken')"></div>`;
     return `
-      <button class="media-picker-cell" onclick="window.mediaPicker.pick('${escJS(f.id)}')" title="${esc(f.naam)}">
+      <button class="media-picker-cell" onclick="window.mediaPicker.pick('${escArg(f.id)}')" title="${esc(f.naam)}">
         ${preview}
         <div class="media-picker-cell-naam">${esc(f.naam)}</div>
         ${meta ? `<div class="media-picker-cell-meta">${esc(meta)}</div>` : ''}

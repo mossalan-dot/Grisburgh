@@ -3811,7 +3811,17 @@ plaats van twee — elke rust één te veel.
   waarzegger — en viel de woekeraar altijd terug op een kaal getal in
   centelingen omdat `_bedragVeldHtml` en `formatCl` niet aankwamen.
   Bewaakt door `tests/frontend-imports.test.js` (*Gedeelde window-helpers*).
+- **`esc()` in een inline handler is niet genoeg.** In `onclick="f('${esc(x)}')"`
+  decodeert de browser eerst het attribuut en voert dan de JavaScript uit, dus een
+  apostrof sluit de string: "Bigby's Hand" gaf een dode knop, en een personagenaam
+  als `x');…;('` werd code in het scherm van de DM. Gebruik **`escArg(x)`** (JS-string
+  eerst, dan HTML; elk bestand dat hem gebruikt definieert hem naast zijn `esc`).
+  `scripts/onclick-escapen.js` zet ze om, `tests/onclick-escapen.test.js` weigert een
+  nieuwe `'${esc(` in een on…-attribuut.
 - **Vergeten versie te bumpen** → browser toont oude JS/CSS. Check altijd index.html + app.js imports.
+  `node scripts/versies-ophogen.js $(git diff --name-only public/js) --schrijf` hoogt
+  de gewijzigde bestanden op én elke importeur die daardoor veranderde, tot en met
+  `index.html`.
 - **`api.getEntities()` bestaat niet** → gebruik `api.listEntities('personages')` etc.
 - **Verbindingen-tab bestaat niet meer.** Koppelingen leg je in de tekst met
   `[[Naam]]`; `mdToHtml()` in `app.js` maakt daar klikbare links van. Het veld

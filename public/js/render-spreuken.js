@@ -14,6 +14,10 @@
 import { api } from './api.js?v=316';
 
 const esc  = s => window.app?.esc?.(s) ?? String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+// In een inline handler (`onclick="f('…')"`) decodeert de browser eerst het
+// attribuut en voert dan de JavaScript uit: `esc()` alleen laat een apostrof
+// de string sluiten. Eerst JS-escapen, dan HTML. Zie scripts/onclick-escapen.js.
+const escArg = s => esc(typeof s === 'string' ? s.replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/\r?\n/g, '\\n') : s);
 const icon = (...a) => window.icon(...a);
 const isDM = () => !!window.app?.isDM?.();
 const isPlayer = () => window.app?.state?.role === 'player' && !!window.app?.state?.characterId;
@@ -230,12 +234,12 @@ function _card(s) {
     _statCell('Components', _components(s)), _statCell('Duration', duur),
   ].join('');
   return `
-    <div class="entity-card spreuk-card" onclick="window.spreuken.open('${esc(s.index)}')" title="${esc(s.name)}"
+    <div class="entity-card spreuk-card" onclick="window.spreuken.open('${escArg(s.index)}')" title="${esc(s.name)}"
       style="--school-c1:${col.c1};--school-c2:${col.c2}">
       <div class="card-accent bar-spreuken"></div>
       <span class="spreuk-card-niv">${_levelShort(s.level)}</span>
       ${isPlayer() ? `<button class="spreuk-card-add${_myBook.has(s.index) ? ' is-added' : (_wacht(s.index) ? ' is-wachtend' : '')}" data-idx="${esc(s.index)}"
-        onclick="event.stopPropagation();window.spreuken.addToBook('${esc(s.index)}',this)"
+        onclick="event.stopPropagation();window.spreuken.addToBook('${escArg(s.index)}',this)"
         title="${_myBook.has(s.index) ? 'Staat in je spreukenboek' : (_wacht(s.index) ? 'De DM moet dit nog goedkeuren' : 'Vraag de DM om deze spreuk')}">${icon(_myBook.has(s.index) ? 'check' : (_wacht(s.index) ? 'hourglass' : 'plus'))}</button>` : ''}
       <div class="card-img-wrap spreuk-card-img-wrap">
         <div class="spreuk-card-silhouet">${icon(col.icon)}</div>
@@ -302,7 +306,7 @@ function _filterBar() {
       ${scholen.map(sc => {
         const c = _schoolCol(sc);
         return `<button class="spreuk-school-btn${_filters.school === sc ? ' active' : ''}"
-          style="--school-c2:${c.c2}" onclick="window.spreuken.setSchool('${esc(sc)}')">${icon(c.icon)} ${esc(sc)}</button>`;
+          style="--school-c2:${c.c2}" onclick="window.spreuken.setSchool('${escArg(sc)}')">${icon(c.icon)} ${esc(sc)}</button>`;
       }).join('')}` : ''}
       ${eigenschappen}
     </div>`;
@@ -431,7 +435,7 @@ function _detailHtml(s) {
       const doel = (_all || []).find(x => (x.name || '').toLowerCase() === naam.trim().toLowerCase());
       const tekst = esc((alias || naam).trim());
       return doel
-        ? `<a class="spreuk-verwijzing" onclick="window.spreuken.open('${esc(doel.index)}')" title="Open ${tekst}">${tekst}</a>`
+        ? `<a class="spreuk-verwijzing" onclick="window.spreuken.open('${escArg(doel.index)}')" title="Open ${tekst}">${tekst}</a>`
         : tekst;
     });
   const fmt = (t) => spreukLinks(window.app?.renderSpellDesc
@@ -457,17 +461,17 @@ function _detailHtml(s) {
         })}</div>
       </details>` : ''}
       ${isDM() ? `<div class="spreuk-dm-knoppen">
-        <button class="spreuk-detail-imgbtn dm-only" onclick="window.spreuken.setImage('${esc(s.index)}','${esc((s.name||'').replace(/'/g,''))}')">
+        <button class="spreuk-detail-imgbtn dm-only" onclick="window.spreuken.setImage('${escArg(s.index)}','${esc((s.name||'').replace(/'/g,''))}')">
           ${icon('image')} Afbeelding kiezen of uploaden</button>
         ${s.source === 'eigen' ? `
-          <button class="spreuk-detail-imgbtn dm-only" onclick="window.spreuken.bewerk('${esc(s.index)}')">${icon('pencil')} Bewerken</button>
-          <button class="spreuk-detail-imgbtn dm-only spreuk-btn-weg" onclick="window.spreuken.verwijder('${esc(s.index)}')">${icon('trash')} Verwijderen</button>` : ''}
+          <button class="spreuk-detail-imgbtn dm-only" onclick="window.spreuken.bewerk('${escArg(s.index)}')">${icon('pencil')} Bewerken</button>
+          <button class="spreuk-detail-imgbtn dm-only spreuk-btn-weg" onclick="window.spreuken.verwijder('${escArg(s.index)}')">${icon('trash')} Verwijderen</button>` : ''}
       </div>
       <!-- Wie kent deze spreuk? Zelfde vraag als "wie heeft dit voorwerp" bij
            een kaartje; de administratie staat per speler, dus die halen we op. -->
       <div class="spreuk-wie" id="spreuk-wie-${esc(s.index)}"></div>` : ''}
       ${isPlayer() ? `<button class="spreuk-detail-addbtn${_myBook.has(s.index) ? ' is-added' : (_wacht(s.index) ? ' is-wachtend' : '')}" data-idx="${esc(s.index)}"
-        onclick="window.spreuken.addToBook('${esc(s.index)}',this)">${icon(_myBook.has(s.index) ? 'check' : (_wacht(s.index) ? 'hourglass' : 'plus'))} ${
+        onclick="window.spreuken.addToBook('${escArg(s.index)}',this)">${icon(_myBook.has(s.index) ? 'check' : (_wacht(s.index) ? 'hourglass' : 'plus'))} ${
           _myBook.has(s.index) ? 'In je spreukenboek'
             : _wacht(s.index) ? 'Aangevraagd — wacht op de DM'
             : 'Vraag de DM om deze spreuk'}</button>` : ''}
@@ -485,7 +489,7 @@ function _detailHtml(s) {
           <p class="spreuk-eigen-hint">Vervangt de tekst hierboven — jouw spelers zien alleen wat jij hier schrijft. Maak je het veld leeg, dan komt de oorspronkelijke tekst terug.</p>
           <textarea class="spreuk-eigen-tekst" id="spreuk-eigen-${esc(s.index)}" rows="6"
             placeholder="Wat doet deze spreuk aan jouw tafel?">${esc(s._eigen ? desc : '')}</textarea>
-          <button class="spreuk-detail-imgbtn" onclick="window.spreuken.saveTekst('${esc(s.index)}')">
+          <button class="spreuk-detail-imgbtn" onclick="window.spreuken.saveTekst('${escArg(s.index)}')">
             ${icon('save')} Beschrijving opslaan</button>
           <span class="spreuk-eigen-status" id="spreuk-eigen-status-${esc(s.index)}"></span>
         </details>` : ''}
@@ -603,7 +607,7 @@ function _eigFormHtml(s) {
         </label>
       </div>
       <div class="spreuk-eig-knoppen">
-        <button class="spreuk-detail-imgbtn" onclick="window.spreuken.eigenOpslaan('${esc(s?.index || '')}')">${icon('save')} Opslaan</button>
+        <button class="spreuk-detail-imgbtn" onclick="window.spreuken.eigenOpslaan('${escArg(s?.index || '')}')">${icon('save')} Opslaan</button>
         <button class="spreuk-detail-imgbtn" onclick="window.spreuken.close()">${icon('x')} Annuleren</button>
         <span class="spreuk-eigen-status" id="eig-status"></span>
       </div>
@@ -750,8 +754,8 @@ function _verzoekenBalkHtml() {
           ${r.context ? `<span class="claim-request-context">${esc(r.context)}</span>` : ''}
         </span>
         <div class="claim-request-actions">
-          <button class="claim-btn-approve" onclick="window.spreuken.verzoekAntwoord('${esc(r.id)}',true)">${icon('check')} Goedkeuren</button>
-          <button class="claim-btn-reject"  onclick="window.spreuken.verzoekAntwoord('${esc(r.id)}',false)">${icon('x')} Weigeren</button>
+          <button class="claim-btn-approve" onclick="window.spreuken.verzoekAntwoord('${escArg(r.id)}',true)">${icon('check')} Goedkeuren</button>
+          <button class="claim-btn-reject"  onclick="window.spreuken.verzoekAntwoord('${escArg(r.id)}',false)">${icon('x')} Weigeren</button>
         </div>
       </div>`).join('')}
   </div>`;

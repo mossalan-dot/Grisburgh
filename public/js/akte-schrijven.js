@@ -21,6 +21,10 @@
 import { api } from './api.js?v=316';
 
 const esc  = s => window.app?.esc?.(s) ?? String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+// In een inline handler (`onclick="f('…')"`) decodeert de browser eerst het
+// attribuut en voert dan de JavaScript uit: `esc()` alleen laat een apostrof
+// de string sluiten. Eerst JS-escapen, dan HTML. Zie scripts/onclick-escapen.js.
+const escArg = s => esc(typeof s === 'string' ? s.replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/\r?\n/g, '\\n') : s);
 const icon = (...a) => window.icon(...a);
 
 // ── De regieblokken ──────────────────────────────────────────────────────────
@@ -309,7 +313,7 @@ function _embedHtml(ruw) {
     // het logboek en de carrousel van de speler terechtkomt.
     const knop = _acties
       ? `<button class="dm-btn dm-btn-primary dm-btn-sm akte-beeld-knop"
-           onclick="window.akteSchrijven.toonBeeld('${esc(naam)}', this, '${esc(bijschrift).replace(/'/g, "\\'")}')">${icon('eye')} Toon aan spelers</button>`
+           onclick="window.akteSchrijven.toonBeeld('${escArg(naam)}', this, '${escArg(bijschrift)}')">${icon('eye')} Toon aan spelers</button>`
       : '';
     return `<figure class="akte-embed"><img src="/api/files/${esc(naam)}" alt="${esc(bijschrift)}" loading="lazy"
          onerror="this.closest('.akte-embed').classList.add('akte-embed--stuk')">${knop}
@@ -317,7 +321,7 @@ function _embedHtml(ruw) {
   }
   return `<div class="akte-embed akte-embed--slot">
     <span class="akte-embed-naam">${icon(isAudio ? 'volume-2' : 'image')} ${esc(naam)}</span>
-    <button class="dm-btn dm-btn-ghost dm-btn-sm" onclick="window.akteSchrijven.koppelBeeld('${esc(naam).replace(/'/g, "\\'")}')">
+    <button class="dm-btn dm-btn-ghost dm-btn-sm" onclick="window.akteSchrijven.koppelBeeld('${escArg(naam)}')">
       ${icon('folder-open')} Bestand kiezen</button>
   </div>`;
 }
@@ -350,7 +354,7 @@ function _linkKnoppen(html) {
   html = html.replace(_LINK_ONBEKEND, (heel, naam) => _potloden
     ? `<span class="akte-link akte-link--nieuw">${heel}<button class="akte-act akte-act--nieuw"
          title="Kaartje aanmaken voor “${esc(naam)}”"
-         onclick="window.akteSchrijven.maakPlaceholder('${esc(naam).replace(/'/g, "\\'")}')">${icon('plus')}</button></span>`
+         onclick="window.akteSchrijven.maakPlaceholder('${escArg(naam)}')">${icon('plus')}</button></span>`
     : heel);
   if (!_acties) return html;   // verder alleen knoppen tijdens het spelen
   return html.replace(_LINK, (heel, klassen, type, id, naam) => {
@@ -399,7 +403,7 @@ function _externeLinks(md) {
     const monster = _MONSTERBRON.test(url);
     const knop = (monster && _acties)
       ? `<button class="akte-act akte-act--statblok" title="Statblok openen"
-           onclick="window.akteSchrijven.statblok('${esc(naam).replace(/'/g, "\\'")}', this)">${icon('skull')}</button>`
+           onclick="window.akteSchrijven.statblok('${escArg(naam)}', this)">${icon('skull')}</button>`
       : '';
     return `<span class="akte-bron${monster ? ' akte-bron--monster' : ''}"><a href="${esc(url)}" target="_blank" rel="noopener"
       title="${esc(url)}">${esc(naam)}</a>${knop}</span>`;
@@ -555,7 +559,7 @@ export function regieNaarHtml(md, { acties } = {}) {
           ${icon(blok?.icon || 'hexagon')} ${esc(kop || blok?.label || soort)}
           ${_acties ? _blokActie(soort, kop, body) : ''}
           ${_potloden ? `<button class="akte-act akte-act--blokpen" title="Dit blok bijstellen"
-            onclick="window.akteSchrijven.blokBewerk('${soort}','${esc(kop).replace(/'/g, "\\'")}',${blokRegel})">${icon('pencil')}</button>` : ''}
+            onclick="window.akteSchrijven.blokBewerk('${soort}','${escArg(kop)}',${blokRegel})">${icon('pencil')}</button>` : ''}
         </div>
         ${body.length ? `<div class="regie-blok-body">${_gewoonHtml(body, bodyBegin)}</div>` : ''}
         <div class="regie-blok-uitslag" hidden></div>
@@ -1259,8 +1263,8 @@ window.akteSchrijven = {
               <span class="pb-entity-name">${esc(n.naam)}
                 <span class="dm-hint">· ${n.nieuw ? 'nieuw in deze akte' : 'komt terug'}</span></span>
               ${n.kaartje
-                ? `<button class="dm-btn dm-btn-ghost dm-btn-sm" onclick="window._openDetail('${esc(n.entityType)}','${esc(n.entityId)}')">Openen</button>`
-                : `<select class="dm-input dm-input-sm" onchange="window.akteSchrijven.maakKaartje('${esc(n.naam).replace(/'/g, "\\'")}', this.value)">
+                ? `<button class="dm-btn dm-btn-ghost dm-btn-sm" onclick="window._openDetail('${escArg(n.entityType)}','${escArg(n.entityId)}')">Openen</button>`
+                : `<select class="dm-input dm-input-sm" onchange="window.akteSchrijven.maakKaartje('${escArg(n.naam)}', this.value)">
                      <option value="">Kaartje maken…</option>
                      <option value="personages">Personage</option>
                      <option value="locaties">Locatie</option>
@@ -1370,7 +1374,7 @@ window.akteSchrijven = {
       <div class="dm-feature-section" style="margin:0">
         <div class="pb-entity-list">
           ${soorten.map(([type, label, ico]) => `
-            <button class="pb-entity-item" onclick="window.akteSchrijven.placeholderMaak('${type}','${esc(naam).replace(/'/g, "\\'")}')">
+            <button class="pb-entity-item" onclick="window.akteSchrijven.placeholderMaak('${type}','${escArg(naam)}')">
               <span class="pb-entity-icon">${icon(ico)}</span>
               <span class="pb-entity-name">${esc(label)}</span>
             </button>`).join('')}
@@ -1415,7 +1419,7 @@ window.akteSchrijven = {
               <span class="pb-entity-icon">${icon(aan ? 'lock-open' : 'lock')}</span>
               <span class="pb-entity-name" style="white-space:normal">${esc(r.tekst || '')}</span>
               <button class="dm-btn dm-btn-sm ${aan ? 'dm-btn-ghost' : 'dm-btn-primary'}"
-                onclick="window.akteSchrijven.geheimToggle('${type}','${id}',${i},'${esc(r.id || '')}')">
+                onclick="window.akteSchrijven.geheimToggle('${type}','${id}',${i},'${escArg(r.id || '')}')">
                 ${aan ? 'Weer sluiten' : 'Onthullen'}</button>
             </div>`;
           }).join('')}</div>`
@@ -1645,10 +1649,10 @@ window.akteSchrijven = {
         <p class="dm-hint">${esc(blok.hint || '')}</p>
       </div>
       <div class="dm-feature-row" style="justify-content:flex-end">
-        <button class="dm-btn dm-btn-danger" onclick="window.akteSchrijven.blokWeg('${soort}','${esc(kop).replace(/'/g, "\\'")}',${Number.isInteger(regel) ? regel : 'null'})">
+        <button class="dm-btn dm-btn-danger" onclick="window.akteSchrijven.blokWeg('${soort}','${escArg(kop)}',${Number.isInteger(regel) ? regel : 'null'})">
           ${icon('trash')} Blok verwijderen</button>
         <button class="dm-btn dm-btn-ghost" onclick="window.app.closeModal()">Annuleren</button>
-        <button class="dm-btn dm-btn-primary" onclick="window.akteSchrijven.blokBewaar('${soort}','${esc(kop).replace(/'/g, "\\'")}',${Number.isInteger(regel) ? regel : 'null'})">
+        <button class="dm-btn dm-btn-primary" onclick="window.akteSchrijven.blokBewaar('${soort}','${escArg(kop)}',${Number.isInteger(regel) ? regel : 'null'})">
           ${icon('save')} Opslaan</button>
       </div>`);
   },

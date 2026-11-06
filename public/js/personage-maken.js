@@ -18,6 +18,10 @@ import { api, huidigeCampagne } from './api.js?v=316';
 
 const esc = s => window.app?.esc?.(s) ?? String(s ?? '')
   .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+// In een inline handler (`onclick="f('…')"`) decodeert de browser eerst het
+// attribuut en voert dan de JavaScript uit: `esc()` alleen laat een apostrof
+// de string sluiten. Eerst JS-escapen, dan HTML. Zie scripts/onclick-escapen.js.
+const escArg = s => esc(typeof s === 'string' ? s.replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/\r?\n/g, '\\n') : s);
 const ico = (n, o) => window.icon?.(n, o) ?? '';
 
 const ABILITIES = ['str', 'dex', 'con', 'int', 'wis', 'cha'];
@@ -258,7 +262,7 @@ const STAPPEN = [
             const aan = isVast || gekozen.has(s);
             return `<button class="pm-skill${aan ? ' is-aan' : ''}${isVast ? ' is-vast' : ''}"
               ${isVast ? 'disabled title="Die heb je al van je background"' : ''}
-              onclick="window.personageMaken.skill('${esc(s).replace(/'/g, "\\'")}')">
+              onclick="window.personageMaken.skill('${escArg(s)}')">
               ${ico('check')} ${esc(s)} <span class="pm-skill-ab">${esc((AB_NAAM[SKILLS[s]] || '').slice(0, 3))}</span></button>`;
           }).join('')}
         </div>`;
@@ -295,7 +299,7 @@ const STAPPEN = [
             <div class="pm-skills">
               ${g.spreuken.map(sp => `
                 <button class="pm-skill${gekozen.has(sp.index) ? ' is-aan' : ''}"
-                  onclick="window.personageMaken.spreuk('${esc(sp.index)}',${g.niveau})">
+                  onclick="window.personageMaken.spreuk('${escArg(sp.index)}',${g.niveau})">
                   ${ico('check')} ${esc(sp.naam)} <span class="pm-skill-ab">${esc(sp.school.slice(0, 4))}</span></button>`).join('')}
             </div>
           </div>`).join('')}`;
@@ -471,7 +475,7 @@ function _tegels(rijen, gekozen, veld) {
   return `<div class="pm-tegels">
     ${rijen.map(r => `
       <button class="pm-tegel${r.waarde === gekozen ? ' is-aan' : ''}" data-veld="${esc(veld)}"
-        onclick="window.personageMaken.kies('${esc(veld)}','${esc(r.waarde).replace(/'/g, "\\'")}')">
+        onclick="window.personageMaken.kies('${escArg(veld)}','${escArg(r.waarde)}')">
         <span class="pm-tegel-naam">${esc(r.titel)}</span>
         ${r.onder ? `<span class="pm-tegel-onder">${esc(r.onder)}</span>` : ''}
       </button>`).join('')}

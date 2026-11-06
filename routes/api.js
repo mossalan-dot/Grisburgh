@@ -681,6 +681,14 @@ function filterEntityForPlayer(entity, dmState, groupId, ctx) {
   // niet ontmoet heeft, dus dat verklapt wat er nog komt.
   delete e.stats;
   delete e.statblockTiers;
+  // ── Koppelingen (`links`) ──
+  // Een lijst náMEN per soort kaartje, en die ging ongefilterd mee. Een
+  // handmatig gelegde verbinding wordt bovendien vanzelf tweezijdig: koppel je
+  // een verborgen moordenaar aan de herberg, dan staat zijn naam ook in de
+  // links van de herberg — en die herberg kent de speler wél. Precies het lek
+  // dat `betrokkenen` en `_hoortBij` hierboven en hieronder dichthouden. Een
+  // naam die bij geen enkel kaartje hoort blijft staan, net als daar.
+  if (e.links) e.links = _linksVoorSpeler(e.links, g, ctx?.entities);
   e._visibility   = 'visible';
   // Weet de kaartweergave vooraf of er een afbeelding is, dan reserveert hij
   // geen ruimte voor een plaatje dat er nooit komt.
@@ -699,6 +707,33 @@ function filterEntityForPlayer(entity, dmState, groupId, ctx) {
   const _gunst = _gunstBetrekkingen(entity.id, g, false);
   if (_gunst.length) e._hoortBij = [..._gunst, ...e._hoortBij];
   return e;
+}
+
+// Haalt uit `links` de namen van kaartjes die deze party niet kent. Vaag telt
+// als gekend: die naam staat al op zijn eigen kaartje in de lijst.
+const _linkNaamIndex = new WeakMap();   // entities-object → Map(type → Map(norm → id))
+function _linksVoorSpeler(links, g, entities) {
+  const ents = entities || storage.readJSON('entities.json');
+  let index = _linkNaamIndex.get(ents);
+  if (!index) {
+    index = new Map();
+    for (const t of ENTITY_TYPES) {
+      const m = new Map();
+      for (const x of (ents[t] || [])) if (x?.name) m.set(_impNorm(x.name), x.id);
+      index.set(t, m);
+    }
+    _linkNaamIndex.set(ents, index);
+  }
+  const uit = {};
+  for (const [t, namen] of Object.entries(links || {})) {
+    const m = index.get(t);
+    uit[t] = (Array.isArray(namen) ? namen : []).filter(naam => {
+      const id = m?.get(_impNorm(naam));
+      if (!id) return true;                          // geen kaartje: gewone tekst
+      return (g.visibility?.[id] || 'hidden') !== 'hidden';
+    });
+  }
+  return uit;
 }
 
 // ── Meerdere statblokken op één kaartje (tiers) ──────────────────────────────
@@ -4241,7 +4276,7 @@ router.patch('/items/:itemId/owner/:characterId/charges', attachRole, (req, res)
   if (req.role !== 'dm' && req.session?.characterId !== characterId)
     return res.status(403).json({ error: 'Geen toegang' });
   const dmState = readDmState();
-  const g = getGroup(dmState);
+  const g = getGroup(dmState, _playerGroupId(dmState, characterId));
   if (!g.itemCharges) g.itemCharges = {};
   if (!g.itemCharges[characterId]) g.itemCharges[characterId] = {};
   g.itemCharges[characterId][itemId] = Math.max(0, parseInt(charges) || 0);
@@ -4255,7 +4290,7 @@ router.patch('/items/:itemId/owner/:characterId/maxCharges', attachRole, (req, r
   if (req.role !== 'dm' && req.session?.characterId !== characterId)
     return res.status(403).json({ error: 'Geen toegang' });
   const dmState = readDmState();
-  const g = getGroup(dmState);
+  const g = getGroup(dmState, _playerGroupId(dmState, characterId));
   if (!g.itemMaxCharges) g.itemMaxCharges = {};
   if (!g.itemMaxCharges[characterId]) g.itemMaxCharges[characterId] = {};
   const newMax = Math.max(0, parseInt(maxCharges) || 0);
@@ -4276,7 +4311,7 @@ router.post('/characters/:characterId/long-rest', attachRole, (req, res) => {
   let entities = {};
   try { entities = storage.readJSON('entities.json'); } catch { /* ok */ }
   const dmState = readDmState();
-  const g = getGroup(dmState);
+  const g = getGroup(dmState, _playerGroupId(dmState, characterId));
   if (!g.itemCharges) g.itemCharges = {};
   if (!g.itemCharges[characterId]) g.itemCharges[characterId] = {};
   const ownedItemIds = Object.keys(g.itemOwners || {}).filter(itemId => {
@@ -5202,7 +5237,7 @@ router.post('/characters/:characterId/multiclass-verzoek', attachRole, (req, res
     return res.status(409).json({ error: 'Je hebt al twee klassen — een derde kan de app niet bijhouden' });
   }
 
-  const g = getGroup(dmState);
+  const g = getGroup(dmState, _playerGroupId(dmState, characterId));
   if (!g.multiclassVerzoeken) g.multiclassVerzoeken = [];
   if (g.multiclassVerzoeken.some(v => v.characterId === characterId && v.status === 'pending')) {
     return res.status(409).json({ error: 'Er staat al een verzoek open' });
@@ -11552,10 +11587,15 @@ router.post('/spotify/pauze', requireDM, async (req, res) => {
 });
 
 // Het tafelscherm haalt hier een kortlopend token op voor de Web Playback SDK,
-// en meldt daarna welk apparaat-id het geworden is. Geen DM-recht vereist: het
-// tafelscherm is geen DM, maar hoort wel bij deze campagne (sessie vereist).
-router.get('/spotify/token', attachRole, async (req, res) => {
-  if (!(req.session?.role === 'dm' || req.session?.characterId)) return res.status(401).json({ error: 'Niet ingelogd' });
+// en meldt daarna welk apparaat-id het geworden is.
+//
+// **Alleen de DM.** Dit stond open voor elke sessie, omdat het tafelscherm
+// vroeger een eigen login had. Maar wat hier uitgaat is het toegangstoken van
+// de Spotify-account van de DM, met `user-read-email` en `user-read-private`
+// erin: elke speler kon er een uur lang diens e-mailadres mee lezen en zijn
+// afspelen overnemen. Het tafelscherm is inmiddels een DM-login die op
+// tafelscherm is gezet (Instellingen → Tafelscherm), dus die komt er gewoon in.
+router.get('/spotify/token', requireDM, async (req, res) => {
   try {
     const token = await spotify.accessToken(_spotifyCampagne(req));
     if (!token) return res.status(400).json({ error: 'Niet gekoppeld aan Spotify' });
@@ -11563,8 +11603,8 @@ router.get('/spotify/token', attachRole, async (req, res) => {
   } catch (e) { res.status(400).json({ error: e.message }); }
 });
 
-router.post('/spotify/tafel-apparaat', attachRole, (req, res) => {
-  if (!(req.session?.role === 'dm' || req.session?.characterId)) return res.status(401).json({ error: 'Niet ingelogd' });
+// Zelfde grens: anders kan een speler de muziek naar zijn eigen telefoon halen.
+router.post('/spotify/tafel-apparaat', requireDM, (req, res) => {
   const id = String(req.body?.deviceId || '').slice(0, 120);
   const campagne = _spotifyCampagne(req);
   if (id) _tafelApparaat.set(campagne, id); else _tafelApparaat.delete(campagne);
@@ -17153,7 +17193,7 @@ router.post('/tweespalt/leen', attachRole, vereistDienst('tweespalt'), (req, res
   if (_schuldenVan(dmState, characterId).length) {
     return res.status(409).json({ error: 'Je hebt al een schuld openstaan. Los die eerst af.' });
   }
-  const g = getGroup(dmState);
+  const g = getGroup(dmState, _playerGroupId(dmState, characterId));
   if (!g.leenVerzoeken) g.leenVerzoeken = [];
   if (g.leenVerzoeken.some(v => v.characterId === characterId && v.status === 'pending')) {
     return res.status(409).json({ error: 'Er staat al een verzoek open' });
@@ -17308,7 +17348,7 @@ router.post('/woekeraar/verzoek', attachRole, vereistDienst('woekeraar'), (req, 
   if (_schuldenVan(dmState, characterId).length) {
     return res.status(409).json({ error: 'Je hebt al een schuld openstaan. Los die eerst af.' });
   }
-  const g = getGroup(dmState);
+  const g = getGroup(dmState, _playerGroupId(dmState, characterId));
   if (!g.leenVerzoeken) g.leenVerzoeken = [];
   if (g.leenVerzoeken.some(v => v.characterId === characterId && v.status === 'pending')) {
     return res.status(409).json({ error: 'Er staat al een verzoek open' });
