@@ -23,6 +23,12 @@ const io = new Server(server);
 // Make io accessible to routes
 app.set('io', io);
 
+// Achter Caddy komt elk verzoek van 127.0.0.1. Door de proxy op loopback te
+// vertrouwen wordt `req.ip` het adres uit X-Forwarded-For — nodig om mislukte
+// inlogpogingen per bezoeker te tellen in plaats van per tafel. Alleen
+// loopback: een bezoeker van buiten kan die kop dus niet zelf zetten.
+app.set('trust proxy', 'loopback');
+
 // Middleware
 app.use(compression()); // gzip alle responses — scheelt 75-80% op JS/CSS
 app.use(express.json({ limit: '5mb' }));
@@ -428,6 +434,13 @@ io.on('connection', (socket) => {
 
 // Only auto-listen when run directly (not when required by tests)
 if (require.main === module) {
+  // De standaardwaarden in config.js zijn voor op de laptop. Met het
+  // ingebouwde sessiegeheim kan iedereen die de broncode leest een DM-cookie
+  // ondertekenen; zeg het dus hardop als het hier draait zonder eigen waarde.
+  if (!config.devAutoDM) {
+    if (!process.env.SESSION_SECRET) console.warn('⚠️  SESSION_SECRET staat niet in de omgeving — sessiecookies zijn te vervalsen. Zet hem in PM2.');
+    if (!process.env.DM_PASSWORD)    console.warn('⚠️  DM_PASSWORD staat niet in de omgeving — de standaardcampagne valt terug op het ingebouwde wachtwoord.');
+  }
   server.listen(config.port, () => {
     console.log(`\n  \u2694  Grisburgh draait op http://localhost:${config.port}\n`);
   });

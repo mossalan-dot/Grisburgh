@@ -31,6 +31,40 @@ function _zelfdeGeheim(a, b) {
   return crypto.timingSafeEqual(A, B);
 }
 
+// ── Te veel mislukte pogingen ───────────────────────────────────────────────
+// Elk wachtwoordveld was onbeperkt te proberen. Een groepswachtwoord deel je
+// per appje en is dus meestal kort, en `/toegang` zegt bij een treffer welke
+// party het is — een script hoeft maar te blijven proberen. Elke poging kost
+// bovendien een synchrone scrypt, en die zet de hele server even stil.
+//
+// Alleen **mislukte** pogingen tellen, per adres en per campagne: wie aan tafel
+// een keer verkeerd tikt merkt er niets van. `req.ip` is het adres van de
+// bezoeker omdat server.js de proxy op loopback vertrouwt (Caddy zet
+// X-Forwarded-For); zonder die instelling deelde de hele tafel één adres.
+const _POGING_MAX     = 20;
+const _POGING_VENSTER = 10 * 60 * 1000;
+const _pogingen = new Map();   // "ip|campagne" → { n, sinds }
+
+function _pogingSleutel(req, campagne) { return `${req.ip || '?'}|${campagne || ''}`; }
+function _teVeelPogingen(req, campagne) {
+  const p = _pogingen.get(_pogingSleutel(req, campagne));
+  if (!p) return false;
+  if (Date.now() - p.sinds > _POGING_VENSTER) { _pogingen.delete(_pogingSleutel(req, campagne)); return false; }
+  return p.n >= _POGING_MAX;
+}
+function _pogingMislukt(req, campagne) {
+  const k = _pogingSleutel(req, campagne);
+  const p = _pogingen.get(k);
+  if (!p || Date.now() - p.sinds > _POGING_VENSTER) _pogingen.set(k, { n: 1, sinds: Date.now() });
+  else p.n++;
+  // Niet eindeloos groeien: oude regels opruimen zodra de map vol raakt.
+  if (_pogingen.size > 5000) {
+    for (const [sl, v] of _pogingen) if (Date.now() - v.sinds > _POGING_VENSTER) _pogingen.delete(sl);
+  }
+}
+function _pogingGelukt(req, campagne) { _pogingen.delete(_pogingSleutel(req, campagne)); }
+const _TE_VEEL = { error: 'Te veel mislukte pogingen. Wacht tien minuten en probeer het opnieuw.' };
+
 // ── DM-wachtwoord van een campagne ──────────────────────────────────────────
 // Het staat in haar eigen dm-state.json, **gehasht**. Dat is geen overdaad: de
 // dagelijkse backups nemen die bestanden mee naar een laptop, en daar hoort het
@@ -101,9 +135,12 @@ function _dmLoginKlopt(campagne, ingetikt) {
 router.post('/login', (req, res) => {
   const { naam, fout } = _campagneUitBody(req);
   if (fout) return res.status(400).json({ error: fout });
+  if (_teVeelPogingen(req, naam)) return res.status(429).json(_TE_VEEL);
   if (!_dmLoginKlopt(naam, req.body?.password)) {
+    _pogingMislukt(req, naam);
     return res.status(401).json({ error: 'Verkeerd wachtwoord' });
   }
+  _pogingGelukt(req, naam);
   req.session.role       = 'dm';
   req.session.campaignId = naam;
   delete req.session.playerName;
@@ -120,8 +157,10 @@ router.post('/toegang', (req, res) => {
   const { naam, fout } = _campagneUitBody(req);
   if (fout) return res.status(400).json({ error: fout });
   const wachtwoord = String(req.body?.wachtwoord ?? req.body?.password ?? '');
+  if (_teVeelPogingen(req, naam)) return res.status(429).json(_TE_VEEL);
 
   if (_dmLoginKlopt(naam, wachtwoord)) {
+    _pogingGelukt(req, naam);
     req.session.role       = 'dm';
     req.session.campaignId = naam;
     delete req.session.playerName;
@@ -148,7 +187,8 @@ router.post('/toegang', (req, res) => {
       }));
     antwoord = { rol: 'groep', campagne: naam, groep: { id: groepId, naam: groep.name || '' }, personages };
   });
-  if (antwoord) return res.json(antwoord);
+  if (antwoord) { _pogingGelukt(req, naam); return res.json(antwoord); }
+  _pogingMislukt(req, naam);
   res.status(401).json({ error: 'Verkeerd wachtwoord' });
 });
 
@@ -174,10 +214,17 @@ router.post('/tablet-login', (req, res) => {
 // Logs in as DM but scopes all data to the sandbox campaign directory.
 // Sandbox password is empty by default (no password required).
 
+// De knop ernaartoe is sinds juni 2026 weg, maar de route stond open: zonder
+// SANDBOX_PASSWORD werd élke bezoeker DM — van de sandbox, maar wel met
+// uploads tot 50 MB per stuk op de schijf van productie. Nu net als de
+// tabletlogin: zonder wachtwoord in de omgeving staat hij uit.
 router.post('/sandbox-login', (req, res) => {
   const { password } = req.body;
   const required = config.sandboxPassword;
-  if (required && password !== required) {
+  if (!required) return res.status(403).json({ error: 'De sandbox is niet geconfigureerd' });
+  if (_teVeelPogingen(req, 'sandbox')) return res.status(429).json(_TE_VEEL);
+  if (!_zelfdeGeheim(password, required)) {
+    _pogingMislukt(req, 'sandbox');
     return res.status(401).json({ error: 'Verkeerd wachtwoord' });
   }
   req.session.role       = 'dm';
@@ -265,7 +312,9 @@ router.post('/player-login', (req, res) => {
       if (!character) return res.status(404).json({ error: 'Karakter niet gevonden' });
       const groepId = character.data?.groep;
       const groepPw = groepId ? groups[groepId]?.password : null;
+      if (groepPw && _teVeelPogingen(req, campagne)) return res.status(429).json(_TE_VEEL);
       if (groepPw && !_zelfdeGeheim(password, groepPw)) {
+        _pogingMislukt(req, campagne);
         return res.status(401).json({ error: 'Verkeerd wachtwoord' });
       }
       req.session.campaignId  = campagne;

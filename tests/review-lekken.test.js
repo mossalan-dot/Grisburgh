@@ -7,6 +7,8 @@
 //  3. `links` van een zichtbaar kaartje noemde verborgen kaartjes bij naam.
 //  4. Charges en verzoeken van een speler landden in de party waar de DM naar
 //     keek, terwijl de speler zijn eigen party las.
+//  5. Wachtwoordvelden waren onbeperkt te proberen, en de sandbox maakte
+//     zonder wachtwoord van elke bezoeker een DM.
 const { describe, it, before, after } = require('node:test');
 const assert = require('node:assert');
 const http = require('http');
@@ -136,5 +138,21 @@ describe('Review 6 nov: lekken en verkeerde party', () => {
     } finally {
       await req(server, 'PUT', '/api/groups/active', { groupId: 'groep1' }, dm);
     }
+  });
+
+  it('maakt van een bezoeker geen sandbox-DM zonder SANDBOX_PASSWORD', async () => {
+    const r = await req(server, 'POST', '/api/auth/sandbox-login', { password: '' });
+    assert.strictEqual(r.status, 403);
+  });
+
+  it('remt na twintig mislukte pogingen, en alleen voor die campagne', async () => {
+    for (let i = 0; i < 20; i++) {
+      const r = await req(server, 'POST', '/api/auth/toegang', { campagne: 'grisburgh', wachtwoord: 'fout' + i });
+      assert.strictEqual(r.status, 401);
+    }
+    const geremd = await req(server, 'POST', '/api/auth/login', { campagne: 'grisburgh', password: 'grisburgh-dm' });
+    assert.strictEqual(geremd.status, 429, 'ook het goede wachtwoord wacht even');
+    const elders = await req(server, 'POST', '/api/auth/login', { campagne: 'sandbox', password: 'x' });
+    assert.notStrictEqual(elders.status, 429, 'een andere campagne telt apart');
   });
 });

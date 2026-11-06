@@ -781,6 +781,7 @@ fout-uitvoert.
 - [ ] **Nieuwe campagne opzetten** (BEHEER) — aanmaken met wachtwoord, openen, inloggen, en de eerste party en personage maken
 - [ ] **Bronteksten van een tweede campagne** (BEHEER) — spreuken en features komen kaal binnen; de eigen tekst van die DM blijft
 - [ ] **Wachtwoord van een andere campagne** (BEHEER) — zetten vanaf het campagnekaartje en er daarna mee inloggen
+- [ ] **Twintig keer mis** (ALL) — tik twintig keer een fout wachtwoord op de landingspagina: de volgende poging (ook een goede) zegt "Te veel mislukte pogingen"; een ander apparaat aan tafel kan gewoon inloggen. Draai je zonder Caddy ervoor, dan geldt het voor iedereen op hetzelfde adres
 - [ ] **Privéberichten blijven privé** (SP) — open de landingspagina in een incognitovenster zonder in te loggen, en stuur als DM een bericht aan een speler: het komt aan bij die speler en nergens anders (`tests/review-lekken.test.js` doet hetzelfde met een kale socket)
 - [ ] **Spotify-token** (SP) — open als speler `/api/spotify/token?campagne=<id>` in de adresbalk: 403, ook als Spotify gekoppeld is; het tafelscherm (DM-login) speelt gewoon af
 - [ ] **Verborgen verbindingen** (SP) — koppel als DM een verborgen NPC aan een zichtbare locatie via *Verbindingen*, en open als speler de netwerktab bij die locatie: zijn naam staat nergens in `links`
@@ -845,6 +846,8 @@ Per bevinding: waar, wat, en of het opgelost is. Nieuwe regels onderaan.
 | 30 | 2 | `links` van een zichtbaar kaartje noemde verborgen kaartjes bij naam; een handmatige verbinding wordt vanzelf tweezijdig, dus koppel je een verborgen NPC aan de herberg, dan staat hij in de netwerktab van elke speler (review 6 nov) | opgelost — `_linksVoorSpeler()` in `filterEntityForPlayer`; een naam zonder kaartje blijft staan |
 | 31 | 4 | Charges, `maxCharges`, de lange rust per personage, multiclass- en leenverzoeken schreven in de party waar de DM naar keek, terwijl de speler zijn eigen party leest: een charge "sprong terug", een verzoek was voor de speler onzichtbaar en kon dubbel (review 6 nov) | opgelost — de party van het personage zelf |
 | 32 | alle | `esc()` in een inline handler (`onclick="f('${esc(x)}')"`) escapet voor HTML, niet voor een JS-string: "Bigby's Hand" gaf een knop die niets deed, en een personagenaam als `x');…;('` werd code in het scherm van de DM (review 6 nov) | opgelost — 615 plekken naar `escArg` (`scripts/onclick-escapen.js`); `tests/onclick-escapen.test.js` bewaakt het |
+| 33 | 1 | Wachtwoordvelden (`/login`, `/toegang`, `/player-login`) waren onbeperkt te proberen, en elke poging kost een synchrone scrypt (review 6 nov) | opgelost — na 20 mislukte pogingen per adres en campagne tien minuten 429; `trust proxy` op loopback zodat het adres achter Caddy klopt |
+| 34 | 1 | `/auth/sandbox-login` maakte zonder `SANDBOX_PASSWORD` van elke bezoeker een DM (sandbox, maar met uploads op de productieschijf) | opgelost — zonder wachtwoord in de omgeving staat hij uit, net als de tabletlogin |
 
 ### Spell slots, multiclass en de signatuurkaart (17 sep 2026)
 
