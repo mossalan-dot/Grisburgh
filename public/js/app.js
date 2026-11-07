@@ -1,5 +1,5 @@
 import { api, campagneUitUrl, zetCampagne } from './api.js?v=316';
-import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, renderDocumenten, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=353";
+import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, renderDocumenten, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=354";
 import { initArchief, renderLogboek, openLogboekEditor } from "./render-archief.js?v=144";
 import { renderKaart, queueFlyTo, verversPins, nieuweKaart } from './render-kaart.js?v=31';
 import { renderDungeon } from './render-dungeon.js?v=70';
@@ -49,6 +49,26 @@ window.formatCl = (cl) => {
   const n = window._muntNamen();
   return [fl && `${fl} ${n.fl || 'fl'}`, kn && `${kn} ${n.kn || 'kn'}`, ce && `${ce} ${n.cl || 'cl'}`]
     .filter(Boolean).join(' · ') || `0 ${n.cl || 'cl'}`;
+};
+
+// De korte vorm, voor in een kop of een beurs-pil waar "99469 Florinde"
+// de knoppen ernaast van het scherm duwt. Dat waren de interne sleutels
+// (fl/kn/cl), en die zeggen alleen iets in Grisburgh: in een campagne met
+// Gold/Silver/Copper stond er "23 fl · 4 kn". Nu: de D&D-afkorting bij de
+// standaardnamen (gp/sp/cp), de sleutel als de naam ermee begint (Florinde →
+// fl), en anders de eerste twee letters van de naam (Daalder → da).
+const _MUNT_AFK_STD = { gold: 'gp', silver: 'sp', copper: 'cp', electrum: 'ep', platinum: 'pp' };
+window._muntAfk = (sleutel) => {
+  const naam = String(window._muntNamen()?.[sleutel] || '').trim();
+  if (!naam) return sleutel;
+  const l = naam.toLowerCase();
+  if (_MUNT_AFK_STD[l]) return _MUNT_AFK_STD[l];
+  if (l[0] === sleutel[0]) return sleutel;
+  return l.replace(/[^a-z\u00e0-\u024f]/g, '').slice(0, 2) || sleutel;
+};
+window._muntKort = (cur, sep = ' · ', leeg) => {
+  const d = ['fl', 'kn', 'cl'].filter(k => cur?.[k]).map(k => `${cur[k]} ${window._muntAfk(k)}`);
+  return d.join(sep) || (leeg ?? `0 ${window._muntAfk('cl')}`);
 };
 
 // Waar de tekst een plaatsnaam noemt, is dat de naam van de campagne — Grisburgh
@@ -511,6 +531,9 @@ function switchSection(section) {
   if (_invOv?.classList.contains('inv-open') && typeof window._closeInventaris === 'function') {
     window._closeInventaris();
   }
+  // Een bezoek aan de Markt begint op de markt; een verversing terwijl je er
+  // al bent (een beursmelding na een aankoop) laat je in de winkel staan.
+  if (section === 'markt' && state.activeSection !== 'markt') _marktNieuwBezoek = true;
   state.activeSection = section;
   location.hash = section;
   closeArchiefMenu();
@@ -6705,7 +6728,7 @@ window._briefCinematic = (msg) => {
             // kale tekst, dus er valt dan niets te wikkelen; een omhulsel
             // eromheen geeft het wel iets om te pakken.
             ? (window._codeLetters?.(`<span>${esc(msg.tekst || '')}</span>`) ?? esc(msg.tekst || ''))
-            : esc(msg.tekst || '')}</div>
+            : (window.renderParchment?.(msg.tekst || '') ?? esc(msg.tekst || ''))}</div>
         </div>
         ${!isDisplay ? `<button class="brief-cinematic-knop">${icon('mail')} Bewaar in Berichten</button>` : ''}
         <div class="brief-cinematic-hint">klik buiten de brief om te sluiten</div>
@@ -9314,7 +9337,7 @@ async function renderMijnKarakter(opts = {}) {
                     ${m.afzender ? `<div class="speler-brief-afzender">
                       Van: <em>${esc(m.afzender)}</em>${m.entityId ? ` <button class="herberg-bubble-card-btn" style="font-size:0.65rem;padding:1px 4px;line-height:1.3;margin-left:3px" onclick="event.stopPropagation();window._openDetail('${escArg(m.entityType)}','${escArg(m.entityId)}')" title="Open kaartje">${icon('arrow-up-right')}</button>` : ''}
                     </div>` : ''}
-                    <div class="speler-brief-tekst parchment-block" data-stijl="${esc(m.briefstijl || 'oud')}">${mdToHtml(m.tekst).replace(/👁/g,icon('eye')).replace(/👂/g,icon('zap')).replace(/👃/g,icon('flask-conical')).replace(/👅/g,icon('potion')).replace(/✋/g,icon('heart'))}</div>
+                    <div class="speler-brief-tekst parchment-block" data-stijl="${esc(m.briefstijl || 'oud')}">${(window.renderParchment || mdToHtml)(m.tekst || '').replace(/👁/g,icon('eye')).replace(/👂/g,icon('zap')).replace(/👃/g,icon('flask-conical')).replace(/👅/g,icon('potion')).replace(/✋/g,icon('heart'))}</div>
                   </div>
                 </div>`).join('')}
             </div>`;
@@ -12341,6 +12364,7 @@ let _marktGebied = '';   // '' = alles
 let _marktFactie = '';   // '' = alles — filteren op de facties die je kent
 let _marktGevel  = null; // welke winkelgevel er deze keer achter staat
 let _marktWinkel = null; // welke winkel je binnen bent ({ w, e, html, sfeerTekst })
+let _marktNieuwBezoek = true; // zet switchSection; een verversing houdt de winkel open
 
 async function renderMarkt() {
   const el = document.getElementById('section-markt');
@@ -12352,13 +12376,37 @@ async function renderMarkt() {
     _dienstNietBereikbaar(el, 'De Markt');
     return;
   }
-  _dienstLaden(el);
+  const verversing = !_marktNieuwBezoek && _marktWinkel;
+  if (!verversing) _dienstLaden(el);   // geen laadscherm onder je handen in de winkel
   try { _marktData = await api.markt(); }
   catch (e) { _dienstFout(el, e); return; }
-  _marktWinkel = null;                                   // een bezoek begint op de markt
-  _marktGevel = _marktKiesGevel(_marktData.winkels || []);
-  _marktTeken();
+  // Een bezoek begint op de markt. Was je al binnen en is dit een verversing
+  // (de beursmelding die op elke aankoop volgt), dan blijf je in de winkel en
+  // halen we zijn voorraad opnieuw op — anders stond je na elke koop weer
+  // buiten, met je aankoop nergens in beeld.
+  if (_marktNieuwBezoek || !_marktWinkel) {
+    _marktNieuwBezoek = false;
+    _marktWinkel = null;
+    _marktGevel = _marktKiesGevel(_marktData.winkels || []);
+    _marktTeken();
+    return;
+  }
+  await _marktWinkelVerversen();
 }
+
+// Haal de voorraad van de winkel waar je in staat opnieuw op en teken hem.
+// Ook door `_koopItem` gebruikt, zodat de bevestiging ná het hertekenen komt.
+async function _marktWinkelVerversen() {
+  if (!_marktWinkel) return false;
+  const { w, soort } = _marktWinkel;
+  const vers = (_marktData?.winkels || []).find(x => x.id === w.id) || w;
+  try { _marktWinkel = { w: vers, soort, ...(await window._winkelSceneData(soort, vers.id)) }; }
+  catch { /* oude stand laten staan */ }
+  _marktTeken();
+  return true;
+}
+window._marktWinkelOpenNu = () => !!_marktWinkel && state.activeSection === 'markt';
+window._marktWinkelVerversen = _marktWinkelVerversen;
 
 // De Markt heeft geen eigen gebouw — hij is de optelsom van de winkels die je
 // kent. Dus leent hij een achtergrond: de gevel van een willekeurige winkel die
@@ -12520,7 +12568,7 @@ function _marktWinkelTeken(el) {
       <div class="herberg-content markt-winkel">
         <div class="markt-winkel-balk">
           <button class="markt-terug" onclick="window._marktTerug()">
-            ${icon('chevron-left')} Terug naar de markt</button>
+            ${icon('chevron-left')} Markt</button>
           <!-- Een winkel toonde als enige plek waar je geld uitgeeft helemaal
                geen bedrag. -->
           ${window._beursPil?.(_marktData?.beurs) ?? ''}
@@ -12566,7 +12614,7 @@ function _marktWinkels(winkels) {
           ${w.eigenaar ? `<img src="${api.thumbUrl(w.eigenaar.imageId)}" loading="lazy" alt=""
              class="markt-kaart-portret"${w.eigenaar.imgFocus ? ` style="object-position:${esc(w.eigenaar.imgFocus)}"` : ''}
              onerror="this.remove()">` : ''}
-          <span class="markt-kaart-icoon">${icon(window._locIcoon?.(w.type) || 'store')}</span>
+          <span class="markt-kaart-icoon">${icon(w.type ? (window._locIcoonNaam?.(w.type) || 'store') : 'store')}</span>
         </span>
         <span class="markt-kaart-body">
           <span class="markt-kaart-naam">${esc(w.naam)}</span>
@@ -12674,8 +12722,7 @@ window._marktOpen = (soort, id) => window._marktWinkelOpen(soort, id);
 // bleef daar staan — en de hele dienst bleef hangen op "Laden…". Eén plek dus,
 // en "gratis" als uitkomst, want dat is wat er staat te gebeuren.
 function prijsTekst(p) {
-  return [p?.fl && `${p.fl} fl`, p?.kn && `${p.kn} kn`, p?.cl && `${p.cl} cl`]
-    .filter(Boolean).join(' ') || 'gratis';
+  return window._muntKort(p, ' ', 'gratis');
 }
 
 // Elk dienstscherm (herberg, tempel, Gock, Ursula, magizoo, Tweespalt,
@@ -12744,6 +12791,9 @@ async function renderHerberg() {
   catch { el.innerHTML = '<p class="p-8 text-ink-dim">Herberg niet beschikbaar.</p>'; return; }
 
   const { config, state: hState, entities, playerFirstName, currency, roddelStand } = data;
+  // Zonder ingevulde waard stond er "heeft niets nieuws te vertellen." — een zin
+  // zonder onderwerp. Een herberg heeft altijd iemand achter de tap.
+  const _waard = (config.waard || '').trim() || 'De waard';
   const remaining = config.maxVragen - hState.vragen;
   // De waard wacht op een nacht, niet op de klok — net als De Gock en de
   // Magizoöloog. `cooldownTot` kan nog binnenkomen van een klok die nog liep
@@ -12781,18 +12831,18 @@ async function renderHerberg() {
 
   const tellerTekst = !cooldownActief && hState.vragen > 0
     ? remaining === 1
-      ? `Het is druk in de herberg. ${esc(config.waard)} heeft nog tijd voor een vraag.`
+      ? `Het is druk in de herberg. ${esc(_waard)} heeft nog tijd voor een vraag.`
       : remaining === 2
-        ? `Het is druk in de herberg. ${esc(config.waard)} heeft nog tijd voor twee vragen.`
+        ? `Het is druk in de herberg. ${esc(_waard)} heeft nog tijd voor twee vragen.`
         : ''
     : '';
 
   // Paneel 1 — Roddels (de bestaande vraag-de-waard-functie)
   const roddelPaneel = `
         ${cooldownActief
-          ? `<p class="herberg-cooldown-tekst">${esc(config.waard)} helpt even een andere klant. Ze is zo bij je terug.</p>`
+          ? `<p class="herberg-cooldown-tekst">${esc(_waard)} helpt even een andere klant en is zo weer bij je.</p>`
           : remaining <= 0
-            ? `<p class="herberg-cooldown-tekst">${esc(config.waard)} heeft genoeg gesproken voor vandaag.</p>`
+            ? `<p class="herberg-cooldown-tekst">${esc(_waard)} heeft genoeg gesproken voor vandaag.</p>`
             : `<div class="herberg-zoek-wrap">
                 ${tellerTekst ? `<p class="herberg-teller">${tellerTekst}</p>` : ''}
                 ${roddelStand && roddelStand.totaal
@@ -12805,7 +12855,7 @@ async function renderHerberg() {
                   : ''}
                 <div id="herberg-lijst" class="herberg-lijst">
                   ${beschikbaar.length === 0
-                    ? `<p class="herberg-leeg">${esc(config.waard)} weet niets meer te vertellen.</p>`
+                    ? `<p class="herberg-leeg">${esc(_waard)} heeft niets nieuws te vertellen.</p>`
                     : _gesamplede.map(e => `
                         <div class="herberg-item-row">
                           <button class="herberg-item"
@@ -13069,7 +13119,7 @@ async function renderGock() {
   }
 
   function beursTekst(cur) {
-    return [cur?.fl && `${cur.fl} fl`, cur?.kn && `${cur.kn} kn`, cur?.cl && `${cur.cl} cl`].filter(Boolean).join(' · ') || '0 cl';
+    return window._muntKort(cur, ' · ');
   }
 
   let restTijdTekst = '';
@@ -13377,10 +13427,10 @@ window._magizooTab = (name) => {
 };
 
 function _magizooBeurs(cur) {
-  return [cur?.fl && `${cur.fl} fl`, cur?.kn && `${cur.kn} kn`, cur?.cl && `${cur.cl} cl`].filter(Boolean).join(' · ') || '0 cl';
+  return window._muntKort(cur, ' · ');
 }
 function _magizooPrijs(p) {
-  return [p?.fl && `${p.fl} fl`, p?.kn && `${p.kn} kn`, p?.cl && `${p.cl} cl`].filter(Boolean).join(' ') || 'gratis';
+  return window._muntKort(p, ' ', 'gratis');
 }
 const _MAGIZOO_NIV_LABEL = { naam: 'Naam', deels: 'Deels', volledig: 'Volledig' };
 
@@ -13766,7 +13816,7 @@ async function renderUrsula() {
   catch (e) { _dienstFout(el, e); return; }
 
   const { config, beschikbaar, geenSessie, geenAkte, alGeworpen, roll, doorNaam, onthuld, currency } = data;
-  const beursTekst = (cur) => [cur?.fl && `${cur.fl} fl`, cur?.kn && `${cur.kn} kn`, cur?.cl && `${cur.cl} cl`].filter(Boolean).join(' · ') || '0 cl';
+  const beursTekst = (cur) => window._muntKort(cur, ' · ');
 
   const weg = geenSessie; // Ursula is er niet wanneer er geen sessie/akte loopt
   const geruchtPrijs = prijsTekst(config.geruchtPrijs || config.prijs || {});
@@ -13836,7 +13886,7 @@ async function renderTempel() {
   const { config, huidigeZegen, huidigeEed, currency } = data;
   const goden = config.goden || [];
   const beursTekst = (cur) =>
-    [cur?.fl && `${cur.fl} fl`, cur?.kn && `${cur.kn} kn`, cur?.cl && `${cur.cl} cl`].filter(Boolean).join(' · ') || '0 cl';
+    window._muntKort(cur, ' · ');
 
   const activeGod = _tempelActiveGodId ? goden.find(g => g.id === _tempelActiveGodId) : null;
 
@@ -14208,8 +14258,7 @@ async function renderTweespalt() {
   const formatCl = window.formatCl;
   function beursTekst(cur) {
     if (!cur) return '';
-    const parts = [cur.fl && `${cur.fl} fl`, cur.kn && `${cur.kn} kn`, cur.cl && `${cur.cl} cl`].filter(Boolean);
-    return parts.join(' · ') || '0 cl';
+    return window._muntKort(cur, ' · ');
   }
 
   function npcBets(event) {
@@ -14552,7 +14601,7 @@ function _renderFactieInterieur(el, f, missies) {
   const pct = isMax ? 100 : Math.min(100, Math.round(((f.renown || 0) / f.drempelVolgende) * 100));
   const nextRang = ladder.find(r => !r.bereikt);
 
-  const beursTekst = (cur) => [cur?.fl && `${cur.fl} fl`, cur?.kn && `${cur.kn} kn`, cur?.cl && `${cur.cl} cl`].filter(Boolean).join(' · ') || '0 cl';
+  const beursTekst = (cur) => window._muntKort(cur, ' · ');
   const currency = window._lastCurrency;   // gevuld bij renderen spelerstabblad
 
   // Quest-statussen: 'actief' = beschikbaar voor spelers, 'aangevraagd' = wacht op DM, 'in-uitvoering' = actief

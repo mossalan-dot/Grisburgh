@@ -3415,11 +3415,22 @@ function renderParchment(text) {
       html += `<div class="parch-sig">${mdToHtml(lines[i + 1])}</div>`;
       i += 2; continue;
     }
+    // De korte vorm op één regel, `--De Havenmeester--`: zo schrijft iemand
+    // die de markeerregel niet kent een ondertekening ook, en dan stonden de
+    // streepjes er letterlijk onder de brief.
+    const sig = line.trim().match(/^--\s*([^-].*?[^-]|[^-])\s*--$/);
+    if (sig && sig[1] !== 'titel' && sig[1] !== 'handtekening') {
+      html += `<div class="parch-sig">${mdToHtml(sig[1])}</div>`;
+      i++; continue;
+    }
     html += `<span>${mdToHtml(line)}</span><br>`;
     i++;
   }
   return html;
 }
+
+// Brieven (berichten van de DM) gebruiken dezelfde weergave als documenten.
+window.renderParchment = renderParchment;
 
 // Een dreigbrief is geplakt uit krantenletters. Dat is geen lettertype maar een
 // opmaak per teken: elk letterteken krijgt zijn eigen vlakje, met een vaste
@@ -6003,8 +6014,15 @@ window._koopItem = async (shopId, itemNaam, entityId, btn, aantal = 1) => {
   const feedback = document.getElementById('shop-koop-feedback');
   try {
     await api.koopShopItem(shopId, { itemNaam, entityId: entityId || undefined, aantal });
-    // Herlaad de modal maar blijf op de voorraadtab
-    if (window._currentDetailTab && window._currentDetailId) {
+    // Herlaad waar je kocht: de winkel in de Markt, of de modal op zijn
+    // voorraadtab. De Markt eerst — daar kan `_currentDetailId` nog van een
+    // eerder geopend kaartje zijn, en dan sprong er een venster open.
+    if (window._marktWinkelOpenNu?.()) {
+      await window._marktWinkelVerversen();
+      // Een melding in de tabel overleeft de beursmelding niet die direct
+      // hierna de winkel nog eens tekent; een toast staat los van het scherm.
+      window._showToast?.(`${icon('check')} ${aantal > 1 ? `${aantal}× ` : ''}${esc(itemNaam)} gekocht.`);
+    } else if (window._currentDetailTab && window._currentDetailId) {
       await window._openDetail(window._currentDetailTab, window._currentDetailId, false, 'voorraad');
     }
     // Succesbericht in de voorraadtab

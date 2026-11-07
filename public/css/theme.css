@@ -30790,3 +30790,18 @@ body:has(#sb-overlay.sb-open) .dm-dice-fab { display: none !important; }
 }
 .landing-leeg .landing-leeg-dm:hover { background: rgba(196,168,122,.22); color: #f2e8d2; }
 .landing-leeg .landing-leeg-dm .icon { width: 15px; height: 15px; }
+
+/* ── Spelersronde 7 nov 2026 ─────────────────────────────────────────
+   De voorraadtabel is gemaakt voor een licht kaartje (`_winkelVoorraadHtml`),
+   maar in de Markt staat hij op het donkere paneel: de rijen zijn daar
+   doorzichtig en de Kopen-knoppen (donkerbruin) vielen weg in het zwart.
+   Hier krijgt hij dus zijn eigen vel perkament — dezelfde tabel, dezelfde
+   ondergrond als op het kaartje. */
+.markt-winkel .markt-winkel-waren {
+  background: #f2e8d2;
+  color: #2a1a08;
+  border-radius: 8px;
+  padding: 4px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, .35);
+}
+.markt-winkel-balk .markt-terug { white-space: nowrap; }

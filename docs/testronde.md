@@ -557,6 +557,11 @@ een speler ziet, **TAB** = het tafelscherm (`?display=1`), **ALL** = alle drie.
 - [ ] **Markt: achtergrond** (ALL) — achter de Markt staat de gevel van een van je winkels, met het bijschrift *Gevel van …*; verlaat de Markt en kom terug, dan is het een andere. Een winkel die deze party niet kent komt er nooit achter te staan
 - [ ] **Bekijk kaartje** (ALL) — overal waar je naar een kaartje kunt doorklikken staat hetzelfde pijltje (↗ als icoon), niet ergens een boekje en ergens een los teken
 - [ ] **Markt: een winkel binnenlopen** (ALL) — klik een winkel (of een regel in een zoekresultaat): je krijgt een scherm met de gevel als achtergrond, het portret van de winkelier en zijn voorraad, met een weg terug naar de markt. Kopen werkt daar net als op het kaartje
+- [ ] **Markt: kopen in de winkel** (ALL) — loop als speler een winkel in en koop iets: je blijft in de winkel staan, de beurs bovenin loopt af, er verschijnt "… gekocht." en de *Kopen*-knoppen zijn leesbaar op een licht vel
+- [ ] **Markt: winkel zonder winkelier** (ALL) — een winkel zonder bekende winkelier toont het icoon van zijn type (een kraampje), geen losse tekens
+- [ ] **Munten kort** (ALL) — in een campagne met Gold/Silver/Copper zegt de beurs bovenin een dienst "21 gp · 3 sp"; met eigen munten de eerste letters ("da · st"), en in Grisburgh nog steeds "fl · kn · cl"
+- [ ] **Herberg zonder waard** (ALL) — vul bij de herberg geen waard in en laat er geen roddels zijn: de speler leest "De waard heeft niets nieuws te vertellen.", geen zin zonder onderwerp
+- [ ] **Brief met ondertekening** (ALL) — stuur een brief die eindigt op `--De Havenmeester--`: de speler ziet de naam als ondertekening (zonder streepjes), in de lijst én in de verzegelde onthulling
 - [ ] **Markt: winkelier op het kaartje** (ALL) — op het overzicht staat het portret van de winkelier met zijn naam eronder; kent je party hem niet, dan staat er het icoon van het locatietype
 - [ ] **Markt: de winkels** (ALL) — Diensten → Markt toont de winkels die je party kent; klikken opent het kaartje meteen op het winkeltabblad
 - [ ] **Markt: zoeken** (ALL) — zoek "potion of healing": je ziet alle winkels die hem hebben met hun prijs, goedkoopste bovenaan. Vragen ze allemaal hetzelfde, dan staat er géén *goedkoopst*
@@ -889,6 +894,12 @@ Per bevinding: waar, wat, en of het opgelost is. Nieuwe regels onderaan.
 | 55 | 2 | Leeg voorraadtabblad zonder weg om iets toe te voegen; prijsvoorbeeld in "gp" | opgelost — *Voorraad aanvullen* opent de editor op *Winkel*, voorbeeld in de eigen munt |
 | 56 | 3 | Nieuwe getekende dungeon opende niet; "BG zelf tekenen" | opgelost — opent meteen, "Begane grond zelf tekenen" |
 | 57 | 10 | Nieuwe campagne: velden zonder label, zelf een id verzinnen; nieuwe akte vroeg een *Sleutel* | opgelost — labels, adres volgt de naam; sleutel verborgen |
+| 58 | 5 | Markt (speler, telefoon): een winkel zonder bekende winkelier toonde `"/>` op de plek van het portret — `icon()` kreeg de kant-en-klare svg van `_locIcoon` in plaats van een naam (spelersronde 7 nov) | opgelost — `_locIcoonNaam` |
+| 59 | 5 | Markt: na een aankoop stond je weer op het overzicht, want de beursmelding die erop volgt tekende de Markt opnieuw vanaf het begin; je aankoop was nergens in beeld | opgelost — een verversing houdt de winkel open (`_marktNieuwBezoek`), alleen een nieuw bezoek begint op de markt; bevestiging als melding |
+| 60 | 5 | Markt: de voorraadtabel (gemaakt voor een licht kaartje) stond op het donkere paneel — *Kopen* donkerbruin op bijna zwart | opgelost — de tabel krijgt daar zijn eigen vel perkament |
+| 61 | 5 | De beurs bovenin elke dienst zei "23 fl · 4 kn" in een campagne met Gold/Silver: de interne sleutels als afkorting | opgelost — `window._muntAfk`/`_muntKort`: gp/sp/cp, de sleutel als de naam ermee begint, anders de eerste twee letters |
+| 62 | 5 | Herberg zonder ingevulde waard: "weet niets meer te vertellen." — en "Ze is zo bij je terug" ging uit van een vrouw | opgelost — "De waard" als terugval, zin zonder voornaamwoord |
+| 63 | 4 | Een brief toonde `--De Havenmeester--` letterlijk: brieven gingen door `mdToHtml`, documenten door `renderParchment` — titel- en handtekeningregels werkten alleen bij documenten | opgelost — ook brieven (lijst én verzegelde onthulling) via `renderParchment`, dat nu ook de korte vorm `--Naam--` op één regel kent |
 
 ### Spell slots, multiclass en de signatuurkaart (17 sep 2026)
 
