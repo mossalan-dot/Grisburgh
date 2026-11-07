@@ -1304,6 +1304,19 @@ function _gunstBetrekkingen(entityId, g, isDM) {
   return uit;
 }
 
+// Wie verkoopt er hier? Een verkoper wijst met `data.winkelLocatieId` naar zijn
+// locatie, en de voorraad hoort bij die locatie (zie `_winkelVan`). Maar de
+// locatie zelf wist daar niets van: alleen een locatie van het type *Winkel*
+// kreeg een voorraadtabblad. Koppelde een DM de waardin aan zijn herberg, dan
+// kon hij nergens voorraad kwijt — en het type omzetten naar Winkel kostte hem
+// het type Herberg. Deze lijst gaat alleen naar de DM: de speler ziet een
+// winkel aan zijn waren, niet aan wie erachter staat.
+function _verkopersVan(entities, locId) {
+  return (entities.personages || [])
+    .filter(p => p.data?.winkelLocatieId === locId)
+    .map(p => ({ id: p.id, name: p.name }));
+}
+
 function _linksMetTekst(entity) {
   const tekst = _LINK_TEKSTVELDEN.map(v => entity.data?.[v] || '').join('\n');
   if (!tekst.includes('[[')) return entity.links;
@@ -1355,6 +1368,7 @@ router.get('/entities/:type', attachRole, (req, res) => {
       // De DM ziet de houding altijd: hij heeft hem zelf gezet, of hij ziet
       // wat de app ervan maakt.
       _houding:      _houdingVan(e, { meta: _meta, entities, dmState }),
+      ...(type === 'locaties' ? { _verkopers: _verkopersVan(entities, e.id) } : {}),
       _visibility:   g.visibility[e.id]    || 'hidden',
       _secretReveal: _onthuldeIds(g.secretReveals[e.id], _geheimRegels(e.data)).size > 0,
       _geheimTotaal: _geheimRegels(e.data).length,
@@ -1498,6 +1512,7 @@ router.get('/entities/:type/:id', attachRole, (req, res) => {
     // standaard dan de glans op het kaartje — en dan zet een DM iets vast
     // wat hij niet bedoelde.
     _houding:      _houdingVan(entity, { meta: storage.readJSON('meta.json'), entities, dmState }),
+    ...(type === 'locaties' ? { _verkopers: _verkopersVan(entities, entity.id) } : {}),
     _hoortBij:     (() => {
       const rijen = _betrokkenBij(entity.id);
       const fb = _factieBetrekking(entity.id, g, true);
@@ -2463,11 +2478,19 @@ function parsePrijs(str) {
   const result = { fl: 0, kn: 0, cl: 0 };
   // Ook gp/sp/cp en de twee muntjes zonder eigen plek in de beurs: electrum
   // (5 zilver) en platinum (10 goud) worden hier meteen omgerekend.
-  const re = /(\d+(?:[.,]\d+)?)\s*(fl|kn|cl|gp|sp|cp|ep|pp)\.?/gi;
+  //
+  // En de namen die de DM zelf gaf. Wie zijn munten Daalder, Stuiver en Duit
+  // noemt, tikt in zijn winkel "2 stuiver" — en dat leverde hier `null` op,
+  // waarna de koopregel niets afschreef: het voorwerp was gratis. In Grisburgh
+  // viel het niet op, daar staat overal "fl"; "3 florinde" had hetzelfde gedaan.
+  const woorden = _muntWoorden();
+  const namen = Object.keys(woorden).sort((a, b) => b.length - a.length)
+    .map(w => w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|');
+  const re = new RegExp(`(\\d+(?:[.,]\\d+)?)\\s*(${namen ? namen + '|' : ''}fl|kn|cl|gp|sp|cp|ep|pp)\\.?(?![a-z])`, 'gi');
   let match, any = false, extraCl = 0;
   while ((match = re.exec(String(str))) !== null) {
     const val  = parseFloat(match[1].replace(',', '.'));
-    const unit = match[2].toLowerCase();
+    const unit = woorden[match[2].toLowerCase()] || match[2].toLowerCase();
     if (unit === 'fl' || unit === 'gp')      result.fl += val;
     else if (unit === 'kn' || unit === 'sp') result.kn += val;
     else if (unit === 'cl' || unit === 'cp') result.cl += val;
@@ -2479,6 +2502,23 @@ function parsePrijs(str) {
     result.fl = totaal.fl; result.kn = totaal.kn; result.cl = totaal.cl;
   }
   return any ? result : null;
+}
+
+// De muntnamen van déze campagne als woord → sleutel, met een meervoud erbij
+// (stuiver/stuivers, daalder/daalders, florinde/florindes). Een naam die met
+// een standaardafkorting samenvalt, laat die afkorting staan.
+function _muntWoorden() {
+  let cur = {};
+  try { cur = storage.readJSON('meta.json').currency || {}; } catch { /* geen meta */ }
+  const uit = {};
+  for (const sleutel of ['fl', 'kn', 'cl', 'ep', 'pp']) {
+    const naam = String(cur[sleutel] || '').trim().toLowerCase();
+    if (!naam || /[^a-zà-ÿ' -]/i.test(naam)) continue;
+    for (const vorm of [naam, naam + 's', naam + 'en', naam + 'n']) {
+      if (!['fl', 'kn', 'cl', 'gp', 'sp', 'cp', 'ep', 'pp'].includes(vorm)) uit[vorm] = sleutel;
+    }
+  }
+  return uit;
 }
 
 // Valuta-hulpfuncties: 1 fl = 10 kn = 100 cl

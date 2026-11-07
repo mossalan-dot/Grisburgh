@@ -786,6 +786,13 @@ fout-uitvoert.
 - [ ] **De kist gaat open** (TAB) — onthul een vondst en tik op het tafelscherm op de kist: de video speelt, en na ruim vijf seconden staat de buit ernaast
 - [ ] **Uitloggen houdt de cijfers niet vast** (SP) — log als speler uit, laat het tabblad open, en start als DM een gevecht: in de netwerktab staat bij de monsters geen `hp` of `maxHp`
 - [ ] **Gelijke beurt op het tafelscherm** (TAB) — zet vier spelers op dezelfde initiative: de kop met hun namen past, "Ronde 1" staat op één regel
+- [ ] **Ingelogd blijven** (ALL) — log in, sluit de browser helemaal en open hem weer: je bent nog ingelogd (de cookie heeft een vervaldatum van 30 dagen)
+- [ ] **Wizard na het inloggen** (DM) — maak een nieuwe campagne, log in via de landingspagina zonder te herladen: de opstartwizard staat er meteen
+- [ ] **Class in de wizard** (DM) — tik in de wizard "rogue" als class; op het blad van dat personage staat de keuzelijst op *Rogue*
+- [ ] **Prijzen in je eigen munt** (SP) — noem je munten Daalder/Stuiver/Duit, zet in een winkel "2 stuiver" en koop het als speler: er gaan 2 Stuivers af, en heb je er te weinig, dan zegt de melding "2 Stuiver" en niet "2 kn"
+- [ ] **Verkoper in een herberg** (DM) — vink bij een personage *Verkoper* aan, bewaar, kies bij *Verkoopt bij* een herberg: die herberg heeft nu een tabblad *Voorraad* en in de editor een tabblad *Winkel*
+- [ ] **SRD-monster in een gevecht** (DM) — in een verse campagne: nieuw gevecht, *+ Monster*, typ "Guard": hij staat in de lijst met "SRD 5.2 · CR 1/8", en na kiezen staat hij in je monsterbibliotheek met AC 16
+- [ ] **Plus achter een onbekende naam** (DM) — schrijf `[[Iemand Nieuw]]` in een kaartje, open het: achter de naam staat een plusje dat het kaartje maakt
 - [ ] **Privéberichten blijven privé** (SP) — open de landingspagina in een incognitovenster zonder in te loggen, en stuur als DM een bericht aan een speler: het komt aan bij die speler en nergens anders (`tests/review-lekken.test.js` doet hetzelfde met een kale socket)
 - [ ] **Spotify-token** (SP) — open als speler `/api/spotify/token?campagne=<id>` in de adresbalk: 403, ook als Spotify gekoppeld is; het tafelscherm (DM-login) speelt gewoon af
 - [ ] **Verborgen verbindingen** (SP) — koppel als DM een verborgen NPC aan een zichtbare locatie via *Verbindingen*, en open als speler de netwerktab bij die locatie: zijn naam staat nergens in `links`
@@ -860,6 +867,16 @@ Per bevinding: waar, wat, en of het opgelost is. Nieuwe regels onderaan.
 | 40 | 2 | De dramatische onthulling op een telefoon: het beeld duwde *Bekijken* onder de rand van het scrollvak | opgelost — beeld begrensd op lage schermen, kaart strakker op smalle |
 | 41 | 5 | De woekeraar begon zijn groet met een kleine letter ("de geldschieter kijkt je aan…") | opgelost — hoofdletter aan het begin van de zin |
 | 42 | 9 | `scripts/stresstest-vullen.js` schreef drie voorwerpvelden anders dan de app (`rarity`, prijs als JSON, "Wonderous") en kamersymbolen als kale string: de stresstest zag nooit een zeldzaamheidsrand en tekende lege vierkantjes in de dungeon | opgelost — zelfde vorm als de editor |
+| 43 | 1 | De sessiecookie had geen vervaldatum: browser dicht (of de app weggeveegd) betekende opnieuw inloggen, ook op het tafelscherm (DM-ronde 7 nov) | opgelost — 30 dagen, schuift mee (`rolling`) |
+| 44 | 10 | De opstartwizard opende alleen na herladen, niet direct na het inloggen | opgelost — elke DM-inlogweg vraagt hem |
+| 45 | 10 | De wizard bewaarde de class als vrije tekst ("rogue"); het blad herkende hem niet | opgelost — suggestielijst + echte naam; het blad vergelijkt hoofdletterongevoelig |
+| 46 | 5 | Een prijs in de eigen muntnaam ("2 stuiver", "3 florinde") maakte het voorwerp gratis | opgelost — `parsePrijs` kent `meta.currency`, met meervoud; `tests/dm-ronde.test.js` |
+| 47 | 5 | Bedragen in de interne sleutels: "Je komt 2 kn tekort" | opgelost — `formatCl` gebruikt de muntnamen |
+| 48 | 2 | Een verkoper aan een herberg koppelen liep dood: geen plek voor voorraad | opgelost — `_verkopers` op de locatie; dan is er een voorraadtabblad |
+| 49 | 6 | De encounterbouwer vond in een verse campagne geen enkel statblok | opgelost — de SRD 5.2 staat ertussen en een keuze haalt hem binnen; "+ Regel" heet "+ Monster" |
+| 50 | 2 | Een onbekende `[[naam]]` in een kaartje had geen plus om het kaartje te maken | opgelost — zelfde plus als in de akte en de dungeon |
+| 51 | 6 | Teller *Namen* in het schrijfscherm bleef staan na het maken van een kaartje | opgelost |
+| 52 | 3 | Kamervenster dungeon: vloernamen en *Annuleren* onleesbaar op perkament | opgelost |
 
 ### Spell slots, multiclass en de signatuurkaart (17 sep 2026)
 

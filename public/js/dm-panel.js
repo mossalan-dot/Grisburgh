@@ -2898,7 +2898,7 @@ async function _ladeToggle() {
   _ladeIdx = _bwIdx >= 0 ? _bwIdx : Math.min(_ladePlekLees(), Math.max(0, _ladeSecties.length - 1));
   // De akte-module levert de renderer én de knoppen; die moet weten welke akte
   // er speelt, anders belandt een getoond beeld in de sessielog van niemand.
-  const mod = await import('./akte-schrijven.js?v=35');
+  const mod = await import('./akte-schrijven.js?v=36');
   mod.zetAkte(_rbChapter, _ladeTekst);
   window._akteRegieRender = mod.regieNaarHtml;
   let lade = document.getElementById('regie-lade');
@@ -2924,7 +2924,7 @@ window._ladeHerlaad = async () => {
     _ladeTekst = regie?.tekst || '';
     _ladeSecties = _splitsSecties(_ladeTekst);
     _ladeIdx = Math.min(_ladeIdx, Math.max(0, _ladeSecties.length - 1));
-    const mod = await import('./akte-schrijven.js?v=35');
+    const mod = await import('./akte-schrijven.js?v=36');
     mod.zetAkte(_rbChapter, _ladeTekst);
     _ladeRender();
   } catch { /* de lade blijft staan zoals hij stond */ }
@@ -4585,14 +4585,36 @@ const CANVAS_PRESETS = [
 // `_syncMonsterVanKaartje` zet die er server-side bij. Eén helper dus, met per
 // regel dezelfde toelichting — anders zegt dezelfde naam op twee schermen iets
 // anders.
+// De SRD 5.2-statblokken, één keer opgehaald. Een verse campagne heeft een lege
+// monsterbibliotheek, en dan vond deze kiezer niets: de DM moest eerst naar
+// Monsters, de uitklapper openen, zoeken, klikken en opslaan — per wezen — en
+// daarna terug naar zijn gevecht. Nu staan ze er gewoon tussen, en een keuze
+// haalt hem meteen binnen (`_encRowNameChange`).
+let _srdVoorEnc = null;
+function _srdVoorEncLaden() {
+  if (_srdVoorEnc) return;
+  _srdVoorEnc = [];
+  window._statblokPresets?.().then(l => {
+    _srdVoorEnc = l || [];
+    const dl = document.getElementById('dm-enc-monsters-dl');
+    if (dl) dl.innerHTML = _statblokOptiesHtml();
+  }).catch(() => {});
+}
+
 function _statblokOptiesHtml() {
-  return _monsters.map(m => {
+  _srdVoorEncLaden();
+  const eigen = _monsters.map(m => {
     const kaart = m.entityId ? _setupPersonages.find(e => e.id === m.entityId) : null;
     const merk = m.entityId
       ? `van kaartje${kaart?.data?.kant ? ' · ' + esc(kaart.data.kant) : ''}${m.maxHp ? ' · HP ' + m.maxHp : ''}`
       : `bibliotheek${m.maxHp ? ' · HP ' + m.maxHp : ''}`;
     return `<option value="${esc(m.name)}">${merk}</option>`;
-  }).join('');
+  });
+  // Wat de campagne al heeft wint: dezelfde naam twee keer is één keer te veel.
+  const al = new Set(_monsters.map(m => (m.name || '').toLowerCase()));
+  const srd = (_srdVoorEnc || []).filter(m => !al.has((m.name || '').toLowerCase()))
+    .map(m => `<option value="${esc(m.name)}">SRD 5.2 · CR ${esc(m.cr)}</option>`);
+  return [...eigen, ...srd].join('');
 }
 
 async function _loadEncounters() {
@@ -4868,7 +4890,7 @@ function _renderEncounterEditor(el) {
       ${datalistHtml}
       <div class="dm-form-label" style="margin-bottom:4px">Monsters</div>
       <div id="dm-enc-rows">${rowsHtml}</div>
-      <button class="dm-btn dm-btn-sm dm-btn-ghost" onclick="window.dmPanel.encAddRow()" title="Regel toevoegen" style="margin-bottom:10px">${icon('plus')} Regel</button>
+      <button class="dm-btn dm-btn-sm dm-btn-ghost" onclick="window.dmPanel.encAddRow()" title="Monster toevoegen" style="margin-bottom:10px">${icon('plus')} Monster</button>
 
       <!-- Loot is een **vondst** uit de Loot-tab, geen tweede lijstje hier. Zo
            is er één plek waar buit wordt bijgehouden (met sjablonen, relikwie-
@@ -5103,9 +5125,24 @@ window._encFieldChange = function(field, value) {
 };
 
 // Called when user picks/types a monster name in the datalist input
-window._encRowNameChange = function(idx, name) {
+window._encRowNameChange = async function(idx, name) {
   const m = _monsters.find(x => x.name === name);
-  if (m) _encRowMonsterChange(idx, m.id);
+  if (m) return _encRowMonsterChange(idx, m.id);
+  // Een SRD-statblok dat de campagne nog niet heeft: binnenhalen in de
+  // bibliotheek — dezelfde velden als de import in de monster-editor — en de
+  // regel daarna gewoon aan dat nieuwe monster hangen.
+  const p = (_srdVoorEnc || []).find(x => (x.name || '').toLowerCase() === String(name).toLowerCase());
+  if (!p) return;
+  try {
+    const nieuw = await api.createMonster({
+      name: p.name, maxHp: p.maxHp, initiative: p.initiative, statblock: p.statblock || {},
+      inBestiarium: true, description: '', roddel: p.roddel || '',
+    });
+    _monsters = ((await api.listMonsters()).monsters || []).sort((a, b) => (a.name || '').localeCompare(b.name || '', 'nl'));
+    const id = nieuw?.id || _monsters.find(x => x.name === p.name)?.id;
+    if (id) _encRowMonsterChange(idx, id);
+    window._showToast?.(`${p.name} staat nu in je monsterbibliotheek`);
+  } catch (e) { alert('Binnenhalen mislukt: ' + e.message); }
 };
 
 function _encRowChange(idx, field, value) {

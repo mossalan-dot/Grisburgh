@@ -1,8 +1,8 @@
 import { api, campagneUitUrl, zetCampagne } from './api.js?v=316';
-import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, renderDocumenten, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=351";
-import { initArchief, renderLogboek, openLogboekEditor } from "./render-archief.js?v=143";
+import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, renderDocumenten, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=352";
+import { initArchief, renderLogboek, openLogboekEditor } from "./render-archief.js?v=144";
 import { renderKaart, queueFlyTo, verversPins, nieuweKaart } from './render-kaart.js?v=31';
-import { renderDungeon } from './render-dungeon.js?v=68';
+import { renderDungeon } from './render-dungeon.js?v=69';
 import { renderRelatiemap } from './render-relatiemap.js?v=32';
 import { renderProgressie, levelupFeatures } from './render-progressie.js?v=64';
 import { renderBestiarium } from './render-bestiarium.js?v=32';
@@ -11,11 +11,11 @@ import './render-handleiding.js?v=2';
 import './render-melding.js?v=4';
 import { renderVaardigheden, zoekVaardigheden, heldenboekTekst } from './render-vaardigheden.js?v=133';
 import { renderStatblock } from './render-statblock.js?v=9';
-import { initSocket } from "./socket-client.js?v=90";
-import { initDmPanel } from "./dm-panel.js?v=412";
+import { initSocket } from "./socket-client.js?v=91";
+import { initDmPanel } from "./dm-panel.js?v=413";
 import { COND_INFO, COND_LABEL, COND_MET_PLAATJE, COND_ICON } from './conditions.js?v=2';
 import './media-picker.js?v=11';
-import './wizard.js?v=5';
+import './wizard.js?v=6';
 import './tafels.js?v=2';
 
 // ── Icon helper ──
@@ -39,10 +39,16 @@ window._muntNamen = () => window._currency || window.app?.state?.meta?.currency 
 // Tweespalt en in het DM-paneel) en werd op zes plekken als `window.formatCl`
 // aangeroepen — waar hij dus niet bestond. Met `?.()` ervoor faalt dat stil:
 // de woekeraar zei "10000 cl" in plaats van "100 fl". Eén plek nu.
+//
+// Met de namen van de campagne, niet de sleutels. "Je komt 2 kn tekort" stond
+// direct onder een beurs die "0 Daalder · 0 Stuiver · 0 Duit" zei: de speler
+// moest raden dat kn de Stuiver was.
 window.formatCl = (cl) => {
   const t = Math.round(Number(cl) || 0);
   const fl = Math.floor(t / 100), kn = Math.floor((t % 100) / 10), ce = t % 10;
-  return [fl && `${fl} fl`, kn && `${kn} kn`, ce && `${ce} cl`].filter(Boolean).join(' · ') || '0 cl';
+  const n = window._muntNamen();
+  return [fl && `${fl} ${n.fl || 'fl'}`, kn && `${kn} ${n.kn || 'kn'}`, ce && `${ce} ${n.cl || 'cl'}`]
+    .filter(Boolean).join(' · ') || `0 ${n.cl || 'cl'}`;
 };
 
 // Waar de tekst een plaatsnaam noemt, is dat de naam van de campagne — Grisburgh
@@ -1120,6 +1126,11 @@ async function landingToegang() {
       _rebuildEntityIndex();
       refreshAll();
       window.dmPanel?.refreshCombatOverlay();
+      // De opstartwizard werd alleen bij het laden van de pagina gevraagd. Een
+      // nieuwe DM logt in zonder te herladen en kreeg hem dus pas te zien als
+      // hij toevallig ververste — juist de eerste keer, waar hij voor is.
+      // Hij bewaakt zelf of hij moet (alleen DM, alleen zonder personages).
+      window.wizard?.misschienOpenen?.();
       return;
     }
     // Een party: laat alleen haar personages staan en onthoud het wachtwoord.
@@ -1204,6 +1215,11 @@ function _landingDmLogin() {
       _rebuildEntityIndex();
       refreshAll();
       window.dmPanel?.refreshCombatOverlay();
+      // De opstartwizard werd alleen bij het laden van de pagina gevraagd. Een
+      // nieuwe DM logt in zonder te herladen en kreeg hem dus pas te zien als
+      // hij toevallig ververste — juist de eerste keer, waar hij voor is.
+      // Hij bewaakt zelf of hij moet (alleen DM, alleen zonder personages).
+      window.wizard?.misschienOpenen?.();
     }
   });
 }
@@ -1226,6 +1242,11 @@ function _landingSandboxLogin() {
       _rebuildEntityIndex();
       refreshAll();
       window.dmPanel?.refreshCombatOverlay();
+      // De opstartwizard werd alleen bij het laden van de pagina gevraagd. Een
+      // nieuwe DM logt in zonder te herladen en kreeg hem dus pas te zien als
+      // hij toevallig ververste — juist de eerste keer, waar hij voor is.
+      // Hij bewaakt zelf of hij moet (alleen DM, alleen zonder personages).
+      window.wizard?.misschienOpenen?.();
     }
   });
 }
@@ -2575,7 +2596,13 @@ function _resolveWikilink(name, isFirst) {
     // zien): dan is het lopende tekst, geen dubbele haken. De haken blijven voor
     // de DM, want die zeggen hem "hier hoort nog een kaartje bij".
     if (!window.app?.isDM()) return safeName;
-    return `<span class="wikilink-unknown">[[${safeName}]]</span>`;
+    // Met een plus om het kaartje meteen te maken — zoals in het schrijfscherm
+    // van een akte en in de notities van een dungeon. Juist in een kaartje, waar
+    // een DM de meeste namen schrijft, ontbrak hij: daar moest je naar het
+    // juiste archieftabblad, op + drukken en de naam overtikken.
+    const arg = name.replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
+    return `<span class="wikilink-unknown">[[${safeName}]]<button type="button" class="wikilink-maak" title="Kaartje maken voor ${safeName}"
+      onclick="event.stopPropagation();window._dngMaakKaartje?.('${arg}')">${window.icon ? window.icon('plus') : '+'}</button></span>`;
   }
 
   const { id, type, vis } = entry;
@@ -3567,7 +3594,7 @@ function _kaartCard(type, m, dm, verdiepingen = null) {
 // eerste bestaande kaart: je drukte op + en keek naar Dreghaven.
 window._kaartNieuw = async function (type) {
   if (type === 'wereld') return nieuweKaart();
-  const { nieuweDungeon } = await import('./render-dungeon.js?v=68');
+  const { nieuweDungeon } = await import('./render-dungeon.js?v=69');
   nieuweDungeon();
 };
 
@@ -8258,7 +8285,9 @@ async function renderMijnKarakter(opts = {}) {
                 onchange="window._saveProfileField('klasse', this.value); window._updateMulticlassTheme()">
                 <option value="">—</option>
                 ${_getKlassen().map(k =>
-                  `<option value="${k}"${playerProfile.klasse === k ? ' selected' : ''}>${k}</option>`
+                  // Hoofdletterongevoelig: een class die als "rogue" binnenkwam
+                  // (uit de opstartwizard, of met de hand) stond hier op "—".
+                  `<option value="${k}"${String(playerProfile.klasse || '').toLowerCase() === k.toLowerCase() ? ' selected' : ''}>${k}</option>`
                 ).join('')}
               </select>
               ${_isMulticlass ? `<input class="ppf-input ppf-level" id="ppf-klasse-level" type="number" min="1" max="20"

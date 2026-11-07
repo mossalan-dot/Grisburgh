@@ -30749,3 +30749,23 @@ body:has(#sb-overlay.sb-open) .dm-dice-fab { display: none !important; }
    en de luisteraar zit op de knop eronder. Een video die alleen iets laat zien
    hoeft geen tik te ontvangen. */
 .loot-cin-kistwrap .loot-cin-video { pointer-events: none; }
+
+/* ── Plus achter een naam zonder kaartje (alleen de DM) ── */
+.wikilink-unknown .wikilink-maak {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 16px; height: 16px; margin-left: 3px; padding: 0; vertical-align: -2px;
+  border: 1px solid #c4a87a; border-radius: 50%; background: #f2e8d2; color: #7a6040; cursor: pointer;
+}
+.wikilink-unknown .wikilink-maak .icon { width: 11px; height: 11px; }
+.wikilink-unknown .wikilink-maak:hover { background: #c4a87a; color: #2a1a08; }
+
+
+/* ── Het kamervenster is licht perkament ──
+   De vloerkiezer en de spookknop zijn gemaakt voor de donkere ondergrond van
+   vroeger: lichtbeige letters (#c4a87a) op een beigegrijs hokje, en "Vlak" in
+   wit op licht goud. Onleesbaar, en dezelfde fout die bij de stijlkiezer van een
+   nieuwe dungeon al was opgelost. Op perkament hoort er inkt te staan. */
+.dng-dialog .dng-vloerkeus { color: #5a4020; background: rgba(42,26,8,.06); }
+.dng-dialog .dng-vloerkeus.is-aan { color: #2a1a08; font-weight: 600; background: rgba(184,134,11,.22); }
+.dng-dialog .dng-btn-ghost { color: #7a6040; border-color: rgba(122,96,64,.45); }
+.dng-dialog .dng-btn-ghost:hover { color: #3a2410; }

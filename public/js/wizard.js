@@ -284,6 +284,14 @@ const STAPPEN = [
     id: 'speler',
     titel: 'Je eerste personage',
     lead: 'Eén om mee te proeven. De rest maak je in het archief, of je spelers doen het aan tafel met je mee.',
+    // De classes die deze campagne kent, voor de suggestielijst en om een
+    // getypte naam op de echte te zetten. Dit was vrije tekst: wie "rogue"
+    // tikte kreeg "rogue" op zijn blad, en daar herkende de keuzelijst hem
+    // niet — die stond op "—", en één keer opslaan wiste de class.
+    async voor() {
+      try { W.classes = Object.keys((await api.progression())?.classes || {}); }
+      catch { W.classes = []; }
+    },
     html() {
       return `
         <div class="wz-veld">
@@ -293,7 +301,8 @@ const STAPPEN = [
         <div class="wz-rij">
           <div class="wz-veld">
             <label class="dm-form-label" for="wz-pc-klasse">Class</label>
-            <input id="wz-pc-klasse" class="dm-input" maxlength="40" placeholder="Fighter, Wizard, …">
+            <input id="wz-pc-klasse" class="dm-input" maxlength="40" list="wz-pc-klassen" placeholder="Fighter, Wizard, …">
+            <datalist id="wz-pc-klassen">${(W.classes || []).map(c => `<option value="${c.replace(/"/g, '&quot;')}">`).join('')}</datalist>
           </div>
           <div class="wz-veld wz-veld--smal">
             <label class="dm-form-label" for="wz-pc-level">Level</label>
@@ -304,7 +313,8 @@ const STAPPEN = [
     async bewaar() {
       const name = document.getElementById('wz-pc')?.value.trim() || '';
       if (!name) return;
-      const klasse = document.getElementById('wz-pc-klasse')?.value.trim() || '';
+      const getikt = document.getElementById('wz-pc-klasse')?.value.trim() || '';
+      const klasse = (W.classes || []).find(c => c.toLowerCase() === getikt.toLowerCase()) || getikt;
       const level  = Math.min(20, Math.max(1, parseInt(document.getElementById('wz-pc-level')?.value) || 1));
       if (!W.groepen.length) { try { W.groepen = (await api.listGroups())?.groups || []; } catch { /* leeg */ } }
       const gid    = W.data.groep?.id || window._activeGroupId || W.groepen[0]?.id || '';

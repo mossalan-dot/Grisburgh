@@ -5694,7 +5694,10 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
   // staat een doorklik naar de plek waar zijn waren liggen (zie hieronder).
   const isVerkoper   = window._heeftRol(e, 'verkoper');
   const isWinkel = tab === 'locaties'
-    && (e.data?.locType === 'Winkel' || (e.data?.voorraad && e.data.voorraad !== '[]'));
+    && (e.data?.locType === 'Winkel' || (e.data?.voorraad && e.data.voorraad !== '[]')
+        // Een herberg of tempel waar een verkoper staat is óók een winkel —
+        // anders kon de DM die voorraad nergens kwijt.
+        || (e._verkopers || []).length > 0);
   // Een verkoper heeft geen voorraadtab: de waren liggen bij de locatie. Alleen
   // een nog niet verhuisd kaartje met een eigen lijst houdt hem, anders zou die
   // voorraad onbereikbaar worden.
@@ -8416,7 +8419,7 @@ window._openEditor = async (tab, editId) => {
   // rest een statblock.
   const _sheetLabel = (tab === 'personages' && e?.subtype !== 'speler') ? 'Statblock' : null;
   body = _bouwEditorTabs(body, tab === 'locaties'
-    ? (e?.data?.locType === 'Winkel' || _heeftWaren)
+    ? (e?.data?.locType === 'Winkel' || _heeftWaren || (e?._verkopers || []).length > 0)
     : window._heeftRol(e, 'verkoper'), _sheetLabel, tab);
   const _tm = TYPE_META[tab];
   // De naam erbij in de kop: het blad is lang genoeg om onderin kwijt te raken

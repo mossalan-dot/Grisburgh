@@ -67,7 +67,14 @@ const sessionMiddleware = session({
   secret: config.sessionSecret,
   resave: false,
   saveUninitialized: false,
-  cookie: { httpOnly: true, sameSite: 'lax' },
+  // Met een vervaldatum. Zonder `maxAge` is het een sessiecookie, en die gooit
+  // de browser weg zodra hij sluit: de server bewaarde de sessie dertig dagen,
+  // maar wie zijn browser dichtdeed of de app op zijn telefoon wegveegde — of
+  // het tafelscherm opnieuw opstartte — moest elke keer opnieuw inloggen.
+  // `rolling` schuift de termijn op bij elk verzoek dat de sessie aanraakt,
+  // zodat een DM die elke week speelt nooit uitgelogd raakt.
+  cookie: { httpOnly: true, sameSite: 'lax', maxAge: SESSIE_TTL * 1000 },
+  rolling: true,
 });
 app.use(sessionMiddleware);
 

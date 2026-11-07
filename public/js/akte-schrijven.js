@@ -1279,7 +1279,10 @@ window.akteSchrijven = {
 
   async maakKaartje(naam, type) {
     if (!type) return;
-    try { await api.createEntity(type, { name: naam, data: { concept: 'true' } }); this.namen(); }
+    // Ook de teller op de knop: die telde alleen na een opslagbeurt van de
+    // tekst, dus hij bleef op "1" staan terwijl het venster "0 zonder kaartje"
+    // zei.
+    try { await api.createEntity(type, { name: naam, data: { concept: 'true' } }); this.namen(); _telNamen(); }
     catch (e) { alert('Aanmaken mislukt: ' + e.message); }
   },
 
