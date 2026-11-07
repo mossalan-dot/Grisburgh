@@ -30721,3 +30721,31 @@ body:has(#sb-overlay.sb-open) .dm-dice-fab { display: none !important; }
 }
 /* De naam mag niet onder de penning door lopen. */
 .vd-subkaart-open { padding-right: 46px; }
+
+/* ── Tafelscherm: een gelijke beurt van veel namen ──
+   Met zeven spelers op dezelfde initiative werd de kop twee regels van 30px
+   en brak "Ronde 1" over twee regels. De ronde houdt zijn regel, en vanaf drie
+   namen tegelijk krijgt de beurtgroep een kleinere letter. */
+.co-disp-head .co-disp-ronde { white-space: nowrap; flex-shrink: 0; }
+.co-disp-head .co-disp-beurt { min-width: 0; text-align: right; }
+.co-disp-head .co-disp-beurt--groep { font-size: 20px; line-height: 1.25; }
+
+/* ── Onthulling op een telefoon ──
+   Het beeld bepaalde de hoogte van de kaart, en op een telefoon viel de knop
+   *Bekijken* daardoor onder de rand van het scrollvak — wel bereikbaar, maar
+   niets zei dat er nog iets kwam. Op een laag scherm krijgt het beeld een
+   plafond, zodat titel, beeld, regel en knop samen in beeld staan. */
+@media (max-height: 820px) {
+  .dramatic-reveal-card .dramatic-reveal-img { max-height: 26vh; width: auto; max-width: 100%; object-fit: contain; }
+}
+@media (max-width: 480px) {
+  .dramatic-reveal-overlay .dramatic-reveal-card { padding: 22px 18px; gap: 8px; }
+}
+
+
+/* ── De kist op het tafelscherm ging niet open ──
+   De video ligt absoluut over de kist (inset 0) en staat op opacity 0 tot hij
+   speelt. Onzichtbaar is niet hetzelfde als doorklikbaar: hij ving elke tik op,
+   en de luisteraar zit op de knop eronder. Een video die alleen iets laat zien
+   hoeft geen tik te ontvangen. */
+.loot-cin-kistwrap .loot-cin-video { pointer-events: none; }

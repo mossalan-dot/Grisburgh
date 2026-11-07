@@ -783,6 +783,9 @@ fout-uitvoert.
 - [ ] **Wachtwoord van een andere campagne** (BEHEER) — zetten vanaf het campagnekaartje en er daarna mee inloggen
 - [ ] **Twintig keer mis** (ALL) — tik twintig keer een fout wachtwoord op de landingspagina: de volgende poging (ook een goede) zegt "Te veel mislukte pogingen"; een ander apparaat aan tafel kan gewoon inloggen. Draai je zonder Caddy ervoor, dan geldt het voor iedereen op hetzelfde adres
 - [ ] **Verborgen bestanden** (SP) — zet een document met een pdf-scan op verborgen, kopieer als DM het adres van het bestand en open het als speler: *Niet gevonden*. Onthul het document en het opent. Een portret dat óók aan een gekend kaartje hangt blijft gewoon zichtbaar, en aktebanners en logboekbeelden verdwijnen niet
+- [ ] **De kist gaat open** (TAB) — onthul een vondst en tik op het tafelscherm op de kist: de video speelt, en na ruim vijf seconden staat de buit ernaast
+- [ ] **Uitloggen houdt de cijfers niet vast** (SP) — log als speler uit, laat het tabblad open, en start als DM een gevecht: in de netwerktab staat bij de monsters geen `hp` of `maxHp`
+- [ ] **Gelijke beurt op het tafelscherm** (TAB) — zet vier spelers op dezelfde initiative: de kop met hun namen past, "Ronde 1" staat op één regel
 - [ ] **Privéberichten blijven privé** (SP) — open de landingspagina in een incognitovenster zonder in te loggen, en stuur als DM een bericht aan een speler: het komt aan bij die speler en nergens anders (`tests/review-lekken.test.js` doet hetzelfde met een kale socket)
 - [ ] **Spotify-token** (SP) — open als speler `/api/spotify/token?campagne=<id>` in de adresbalk: 403, ook als Spotify gekoppeld is; het tafelscherm (DM-login) speelt gewoon af
 - [ ] **Verborgen verbindingen** (SP) — koppel als DM een verborgen NPC aan een zichtbare locatie via *Verbindingen*, en open als speler de netwerktab bij die locatie: zijn naam staat nergens in `links`
@@ -851,6 +854,12 @@ Per bevinding: waar, wat, en of het opgelost is. Nieuwe regels onderaan.
 | 34 | 1 | `/auth/sandbox-login` maakte zonder `SANDBOX_PASSWORD` van elke bezoeker een DM (sandbox, maar met uploads op de productieschijf) | opgelost — zonder wachtwoord in de omgeving staat hij uit, net als de tabletlogin |
 | 35 | 2 | Een ingelogde speler kon het bestand van elk verborgen kaartje ophalen als hij het id kende: portret, pdf-scan, geluidsfragment (review 6 nov) | opgelost — `_verborgenBestanden()`: 404 voor wat alléén aan verborgen kaartjes hangt; een gedeeld of elders gebruikt bestand blijft open |
 | 36 | 1 | Het portret uit de personage-wizard las `dm-state.json` vóór de beeldconversie en schreef hem daarna terug: wat de DM in die seconden deed ging verloren. Zelfde vorm bij de encounters in de akte-import | opgelost — pas lezen ná de await |
+| 37 | 8 | `_zendCombat` stuurde het rauwe gevecht naar élke socket zonder personage — ook naar een speler die uitlogde (zijn sessie houdt de campagne vast): exacte HP en AC van elk monster (visuele ronde 7 nov) | opgelost — alleen een DM-sessie krijgt het rauw, de rest de spelersfilter |
+| 38 | 8 | De kist op het tafelscherm ging niet open: de onzichtbare video (opacity 0) lag eroverheen en ving elke tik | opgelost — `pointer-events: none` op de video |
+| 39 | 8 | Een gelijke beurt van zeven namen werd op het tafelscherm een kop van twee regels van 30px, en "Ronde 1" brak over twee regels | opgelost — ronde op één regel, vanaf drie namen een kleinere letter |
+| 40 | 2 | De dramatische onthulling op een telefoon: het beeld duwde *Bekijken* onder de rand van het scrollvak | opgelost — beeld begrensd op lage schermen, kaart strakker op smalle |
+| 41 | 5 | De woekeraar begon zijn groet met een kleine letter ("de geldschieter kijkt je aan…") | opgelost — hoofdletter aan het begin van de zin |
+| 42 | 9 | `scripts/stresstest-vullen.js` schreef drie voorwerpvelden anders dan de app (`rarity`, prijs als JSON, "Wonderous") en kamersymbolen als kale string: de stresstest zag nooit een zeldzaamheidsrand en tekende lege vierkantjes in de dungeon | opgelost — zelfde vorm als de editor |
 
 ### Spell slots, multiclass en de signatuurkaart (17 sep 2026)
 

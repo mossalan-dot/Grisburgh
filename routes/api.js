@@ -5260,10 +5260,16 @@ function _zendCombat(req, combat) {
   let dmState = null;
   for (const sock of io.sockets.sockets.values()) {
     if (!sock.rooms.has(cid)) continue;
-    const charId = sock.request?.session?.characterId;
-    if (!charId) { sock.emit('combat:updated', combat); continue; }
+    const sess   = sock.request?.session;
+    // Alleen de DM krijgt het rauwe gevecht. Dit stond als "geen personage =
+    // alles": maar zonder personage in deze room zit ook een speler die
+    // uitlogde (zijn sessie houdt de campagne vast) en een oude tabletlogin —
+    // die lazen de exacte HP en AC van elk monster. Zij krijgen nu wat een
+    // speler zonder kennis krijgt.
+    if (sess?.role === 'dm') { sock.emit('combat:updated', combat); continue; }
+    const charId = sess?.characterId || null;
     if (!dmState) { try { dmState = readDmState(); } catch { dmState = {}; } }
-    sock.emit('combat:updated', _combatVoorSpeler(combat, charId, _bestiariumKennis(dmState, charId)));
+    sock.emit('combat:updated', _combatVoorSpeler(combat, charId, charId ? _bestiariumKennis(dmState, charId) : {}));
   }
 }
 

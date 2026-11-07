@@ -10433,7 +10433,7 @@ function _coDisplayHtml(combat, currentLabel) {
     <div class="co-disp">
       <div class="co-disp-head">
         <span class="co-disp-ronde">Ronde ${combat.round || 1}</span>
-        <span class="co-disp-beurt">${icon('chevron-right')} ${esc(currentLabel || '—')}</span>
+        <span class="co-disp-beurt${(String(currentLabel || '').match(/ \+ /g) || []).length >= 2 ? ' co-disp-beurt--groep' : ''}">${icon('chevron-right')} <span>${esc(currentLabel || '—')}</span></span>
       </div>
       <canvas id="combat-canvas" class="co-canvas co-disp-canvas"></canvas>
       <div class="co-disp-strip">${strip || '<div class="co-disp-leeg">Nog geen combatants</div>'}</div>

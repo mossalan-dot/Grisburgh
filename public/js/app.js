@@ -12,7 +12,7 @@ import './render-melding.js?v=4';
 import { renderVaardigheden, zoekVaardigheden, heldenboekTekst } from './render-vaardigheden.js?v=133';
 import { renderStatblock } from './render-statblock.js?v=9';
 import { initSocket } from "./socket-client.js?v=90";
-import { initDmPanel } from "./dm-panel.js?v=411";
+import { initDmPanel } from "./dm-panel.js?v=412";
 import { COND_INFO, COND_LABEL, COND_MET_PLAATJE, COND_ICON } from './conditions.js?v=2';
 import './media-picker.js?v=11';
 import './wizard.js?v=5';
@@ -13426,7 +13426,9 @@ async function renderWoekeraar() {
         ${_dienstKop({
           sleutel: 'woekeraar', naam: cfg.naam || 'De geldschieter', currency, portret,
           groet: window._dienstGroet(cfg,
-            `${cfg.naam || 'De geldschieter'} kijkt je aan zonder te knipperen en schuift zijn boek opzij.`),
+            // De server levert de naam klein ("de geldschieter"), omdat hij
+            // meestal midden in een zin staat. Hier opent hij de zin.
+            `${(n => n.charAt(0).toUpperCase() + n.slice(1))(cfg.naam || 'De geldschieter')} kijkt je aan zonder te knipperen en schuift zijn boek opzij.`),
         })}
         ${schuldBlok}${wachtBlok}${formulier}
       </div>

@@ -10,6 +10,8 @@
 //  5. Wachtwoordvelden waren onbeperkt te proberen, en de sandbox maakte
 //     zonder wachtwoord van elke bezoeker een DM.
 //  6. Een ingelogde speler kon het bestand van elk verborgen kaartje ophalen.
+//  7. Een socket zonder personage (een speler die uitlogde) kreeg het
+//     ongefilterde gevecht, met de exacte HP van elk monster.
 const { describe, it, before, after } = require('node:test');
 const assert = require('node:assert');
 const http = require('http');
@@ -190,5 +192,24 @@ describe('Review 6 nov: lekken en verkeerde party', () => {
     assert.strictEqual((await req(server, 'GET', `/api/files/${beeld}`, null, speler)).status, 404, 'eerst alleen verborgen');
     await req(server, 'PUT', `/api/entities/personages/${zus.id}/visibility`, null, dm);
     assert.strictEqual((await req(server, 'GET', `/api/files/${beeld}`, null, speler)).status, 200);
+  });
+
+  it('stuurt het rauwe gevecht alleen naar de DM, niet naar een uitgelogde speler', async () => {
+    const tweede = (await req(server, 'POST', '/api/entities/personages', { name: 'Speler Twee', subtype: 'speler', data: { groep: 'groep1' } }, dm)).body;
+    let cookie = (await req(server, 'POST', '/api/auth/player-login', { campagne: 'grisburgh', characterId: tweede.id })).cookie;
+    cookie = (await req(server, 'POST', '/api/auth/player-logout', {}, cookie)).cookie;   // sessie houdt de campagne
+    const sock = await verbind(cookie);
+    let gekregen = null;
+    sock.on('combat:updated', c => { gekregen = c; });
+    const enc = (await req(server, 'POST', '/api/encounters', { name: 'Kroeggevecht', monsters: [{ name: 'Uitsmijter', count: 1, hp: 37, initiative: 12 }] }, dm)).body;
+    await req(server, 'POST', `/api/encounters/${enc.id}/start`, {}, dm);
+    await wacht(300);
+    sock.close();
+    assert.ok(gekregen, 'het gevecht komt wel aan');
+    const monster = gekregen.combatants.find(c => c.type === 'monster');
+    assert.ok(monster, 'met het monster erin');
+    assert.notStrictEqual(monster.hp, 37, 'maar niet zijn exacte HP');
+    assert.strictEqual(monster.maxHp, undefined);
+    await req(server, 'DELETE', '/api/combat', null, dm);
   });
 });
