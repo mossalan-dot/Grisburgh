@@ -7471,6 +7471,9 @@ router.get('/player-profile/:characterId', attachRole, (req, res) => {
   res.json((dmState.playerProfiles || {})[characterId] || {});
 });
 
+const _PROFIEL_DM_VELDEN = ['level', 'klasse', 'klasseLevel', 'multiclass', 'multiKlasse', 'multiKlasseLevel'];
+const _PROFIEL_EENMALIG  = ['subclass', 'multiSubclass'];
+
 router.patch('/player-profile/:characterId', attachRole, (req, res) => {
   const { characterId } = req.params;
   if (req.role !== 'dm' && req.session.characterId !== characterId)
@@ -7478,8 +7481,24 @@ router.patch('/player-profile/:characterId', attachRole, (req, res) => {
   const dmState = readDmState();
   if (!dmState.playerProfiles) dmState.playerProfiles = {};
   const existing = dmState.playerProfiles[characterId] || {};
+  // **Level en class zet de DM.** Ze lopen via `POST .../level-up` (dat het
+  // level zelf ophoogt) en het multiclassverzoek, allebei langs de DM. Hier
+  // mocht een speler ze vrij overschrijven en zichzelf level 20 geven. Een
+  // subclass kiest de speler wél zelf, maar één keer: zolang hij leeg is.
+  if (req.role !== 'dm') {
+    const leeg = v => v === undefined || v === null || String(v).trim() === '';
+    const anders = k => req.body[k] !== undefined && String(req.body[k] ?? '') !== String(existing[k] ?? '');
+    const dm = _PROFIEL_DM_VELDEN.filter(anders);
+    const sub = _PROFIEL_EENMALIG.filter(k => anders(k) && !leeg(existing[k]));
+    if (dm.length || sub.length) {
+      return res.status(403).json({
+        error: dm.length ? 'Level en class zet je DM.' : 'Je subclass is al gekozen; alleen je DM kan hem nog veranderen.',
+        velden: [...dm, ...sub],
+      });
+    }
+  }
   const allowed = [
-    'level', 'klasse', 'subclass', 'background', 'origin', 'originVariant', 'bloodStatus', 'spellSaveDC', 'spellAttackBonus',
+    'level', 'klasse', 'subclass', 'multiSubclass', 'background', 'origin', 'originVariant', 'bloodStatus', 'spellSaveDC', 'spellAttackBonus',
     'str', 'dex', 'con', 'int', 'wis', 'cha',
     'ac', 'speed', 'initiative', 'profBonus', 'hitDie',
     'deathSaveSuccesses', 'deathSaveFailures',

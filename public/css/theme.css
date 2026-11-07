@@ -30825,3 +30825,11 @@ body:has(#sb-overlay.sb-open) .dm-dice-fab { display: none !important; }
    lettertype van het systeem: .dm-btn krijgt zijn letter normaal van de
    Meesterkamer eromheen, en deze omslag hangt los aan <body>. */
 .levelup-cine .dm-btn, .levelup-cine button { font-family: 'Cinzel', serif; letter-spacing: .03em; }
+
+/* Level en class op het blad van een speler: geen invulveld meer (dat zet de
+   DM), maar dezelfde maat en plek, zodat de rij niet verspringt. */
+.ppf-input.ppf-vast {
+  display: inline-flex; align-items: center;
+  background: transparent; border-color: transparent;
+  color: #2a1a08; cursor: default;
+}

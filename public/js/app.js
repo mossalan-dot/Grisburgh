@@ -8240,9 +8240,18 @@ async function renderMijnKarakter(opts = {}) {
   // los van elkaar kwam de subklasse van de twééde klasse bóven die van de
   // eerste te staan, en heette de eerste alleen "Subclass" — wat niets zegt
   // zodra er twee zijn. Bij één klasse blijft dat gewoon "Subclass".
+  // **Level en class zet de DM.** Die lopen via *Level omhoog* (en een tweede
+  // class via een multiclassverzoek), allebei langs de DM. Een speler zag ze als
+  // vrij invulveld en kon zichzelf level 20 geven. Een subclass kiest hij wél
+  // zelf — één keer, op het level dat erom vraagt; daarna staat hij vast.
+  // De server weigert hetzelfde (`_PROFIEL_DM_VELDEN` in routes/api.js).
+  const _dmBlad = !!window.app?.isDM?.();
+  const _vast = (tekst) => `<span class="ppf-input ppf-vast" title="Dit zet je DM">${esc(tekst || '\u2014')}</span>`;
   const _subRij = (label, veld, waarde, opts) => `
             <div class="ppf-row"><label class="ppf-label">${label}</label>
-              ${opts
+              ${!_dmBlad && waarde
+                ? _vast(waarde)
+                : opts
                 ? _ppfSelectField(veld, waarde, opts, '\u2014')
                 : `<input class="ppf-input" type="text" value="${esc(waarde ?? '')}" placeholder="\u2014"
                 onblur="window._saveProfileField('${veld}', this.value)">`}</div>`;
@@ -8321,10 +8330,11 @@ async function renderMijnKarakter(opts = {}) {
                target="_blank" rel="noopener" title="Je blad op papier">${icon('scroll-text')} Blad afdrukken</a>` : ''}
           <div class="player-profile-fields">
             <div class="ppf-row"><label class="ppf-label">Level</label>
-              <input class="ppf-input ppf-level" type="number" min="1" max="20"
+              ${_dmBlad ? `<input class="ppf-input ppf-level" type="number" min="1" max="20"
                 value="${esc(playerProfile.level ?? '')}" placeholder="—"
-                onchange="window._saveProfileField('level', this.value)"></div>
+                onchange="window._saveProfileField('level', this.value)">` : _vast(playerProfile.level)}</div>
             <div class="ppf-row"><label class="ppf-label">Class</label>
+              ${_dmBlad ? `
               <select class="ppf-input ppf-select" id="ppf-klasse-select"
                 onchange="window._saveProfileField('klasse', this.value); window._updateMulticlassTheme()">
                 <option value="">—</option>
@@ -8340,12 +8350,17 @@ async function renderMijnKarakter(opts = {}) {
               <button class="ppf-multiclass-toggle${_isMulticlass ? ' ppf-multiclass-toggle--active' : ''}"
                 onclick="window._toggleMulticlass()"
                 title="${_isMulticlass ? 'Multiclass uitschakelen' : 'Multiclass inschakelen'}">⊕</button>
+              ` : _vast(_isMulticlass && playerProfile.klasseLevel ? `${playerProfile.klasse || '?'} ${playerProfile.klasseLevel}` : playerProfile.klasse)}
             </div>
             ${_subRij(
               isHp ? 'School of Magic'
                    : (_isMulticlass ? `Subclass ${esc(playerProfile.klasse || '1')}` : 'Subclass'),
               'subclass', playerProfile.subclass, _subclassOpts)}
-            ${_isMulticlass ? `<div class="ppf-row"><label class="ppf-label">Multiclass</label>
+            ${_isMulticlass && !_dmBlad ? `<div class="ppf-row"><label class="ppf-label">Multiclass</label>
+              ${_vast([playerProfile.multiKlasse, playerProfile.multiKlasseLevel].filter(Boolean).join(' '))}</div>
+            ${_subRij(`Subclass ${esc(playerProfile.multiKlasse || '2')}`,
+              'multiSubclass', playerProfile.multiSubclass, _subclassOpts2)}` : ''}
+            ${_isMulticlass && _dmBlad ? `<div class="ppf-row"><label class="ppf-label">Multiclass</label>
               <select class="ppf-input ppf-select" id="ppf-multi-select"
                 onchange="window._saveProfileField('multiKlasse', this.value); window._updateMulticlassTheme()">
                 <option value="">—</option>
@@ -9944,10 +9959,22 @@ async function renderMijnKarakter(opts = {}) {
 
   window._saveProfileField = async function(field, value) {
     if (!charId) return;
+    // Een speler kiest zijn subclass één keer; daarna zet alleen de DM hem om.
+    // Dus eerst zeggen dat het een keuze is, geen instelling.
+    const _subKeuze = !window.app?.isDM?.() && (field === 'subclass' || field === 'multiSubclass') && value;
+    if (_subKeuze && !confirm(`${value} als subclass kiezen?\n\nDaarna kan alleen je DM hem nog veranderen.`)) {
+      await renderMijnKarakter(opts);
+      return;
+    }
     try {
       await api.patchPlayerProfile(charId, { [field]: value });
       playerProfile[field] = value;
-    } catch (e) { console.warn('Profiel opslaan mislukt', e); return; }
+    } catch (e) {
+      console.warn('Profiel opslaan mislukt', e);
+      window._showToast?.(`${icon('x')} ${esc(e.message || 'Opslaan mislukt')}`);
+      return;
+    }
+    if (_subKeuze) setTimeout(() => renderMijnKarakter(opts), 0);
     // Na level- of klassewijziging: sync nieuwe features naar Kenmerken & Eigenschappen
     const syncFields = new Set(['level', 'klasseLevel', 'klasse', 'subclass', 'multiKlasseLevel', 'multiKlasse', 'multiSubclass']);
     if (syncFields.has(field) && window.progressie?.triggerSync) {

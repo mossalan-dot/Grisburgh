@@ -517,6 +517,7 @@ een speler ziet, **TAB** = het tafelscherm (`?display=1`), **ALL** = alle drie.
 
 `public/js/app.js` (subtabs Party · Personage · Facties · Boedel · Progressie · Spreukenboek · Berichten)
 
+- [ ] **Level en class zet de DM** (SP/DM) — als speler staan level, class en een gekozen subclass als tekst op je Personage-tab, zonder multiclassknop; is je subclass nog leeg, dan kies je hem één keer (met bevestiging) en daarna staat hij vast. De DM ziet op hetzelfde blad gewoon de keuzelijsten. Langs de UI om geeft de route 403
 - [ ] **Party** (SP) — medespelers met portret en HP-balk, ontdekkingsteller per categorie, en wie er vanavond meespeelt
 - [ ] **Personage** (SP) — stats en modifiers, saves, skills met proficiency, AC, snelheid, conditions met iconen, inspiration, buffs en vloek
 - [ ] **HP en Hit Dice** (SP/DM) — DM past HP aan → speler ziet het meteen; Hit Dice afgeleid uit klasse en level (ook multiklasse), getoond als bolletjes
@@ -914,6 +915,7 @@ Per bevinding: waar, wat, en of het opgelost is. Nieuwe regels onderaan.
 | 69 | 4 | Gevechtsbalk op de telefoon: *Jij bent aan zet* brak over drie regels | opgelost — op een smal scherm staat alleen het zwaardje, de tekst blijft op één regel |
 | 70 | 4 | Level-up: knoppen in het systeemlettertype; "klasse", "verhoging", "Spreuken van niveau 3", en in het spreukdetail "Tovervorm" en Nederlandse PHB-scholen ("Oproeping") | opgelost — Cinzel; Class, Ability Score Improvement, level, Cantrip, Evocation (alleen de Wands & Wizards-scholen blijven vertaald) |
 | 71 | 8 | Emoji in schermmeldingen (👤 bij een onthulling, ✅ ❌ ✉️ 💬 📁 🏆 🎲 📍), en "De Gock" hardgecodeerd in een melding van een andere campagne | opgelost — `icon()`, en de naam uit `meta.gock.naam` |
+| 72 | 4 | Een speler kon op zijn Personage-tab zijn eigen level en class omzetten (en zichzelf level 20 geven) | opgelost — alleen de DM (`_PROFIEL_DM_VELDEN` in `PATCH /player-profile`, 403 voor een speler); een subclass kiest de speler één keer zolang hij leeg is. `multiSubclass` werd bovendien nooit bewaard: hij stond niet in de lijst toegestane velden. `tests/profiel-dm.test.js` |
 
 ### Spell slots, multiclass en de signatuurkaart (17 sep 2026)
 

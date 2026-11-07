@@ -58,11 +58,10 @@ de oude code vallen er twee van de drie tafelschermtests om.
 
 ---
 
-## Gezien, nog niet aangepakt — vragen voor jou
+## Gezien — en wat je erover besloot
 
-- **Een speler kan zijn eigen level, class en subclass omzetten** op de
-  Personage-tab. Is dat bedoeld (spelers houden hun blad zelf bij), of hoort
-  dat sinds *Level omhoog* bij de DM?
+- ~~Een speler kan zijn eigen level, class en subclass omzetten~~ — hoort bij
+  de DM; opgelost als #72 (een subclass kiest de speler één keer zelf).
 - **De "+" bij een stapel in de boedel** ("Nog een gevonden") laat een speler
   zelf een exemplaar bijtellen. Handig aan tafel, maar het is een weg om een
   drankje erbij te zetten zonder dat de DM het weet.
@@ -71,6 +70,9 @@ de oude code vallen er twee van de drie tafelschermtests om.
   verklapt dat er nog iets is.
 - **Een dienst die aanstaat maar leeg is** (de tempel zonder goden: "Er zijn nog
   geen goden bekend in deze tempel.") staat gewoon in het menu van de speler.
+
+De stapel-"+", de ontdekkingsteller en de lege dienst zijn zo bedoeld en blijven
+staan.
 
 ## Kleine dingen
 
