@@ -525,6 +525,7 @@ export function initDmPanel() {
     instSubtab:              (id) => _instSubtabKies(id),
     partyActiefMaken:        (gid) => _partyActiefMaken(gid),
     regieBalkLoad:           (key, title) => _loadRegieBalk(key, title),
+    campagneAdresVolg:       _campagneAdresVolg,
     regieBalkReveal:         (id) => _revealRegieBalkItem(id),
     // De brief op het gedeelde scherm, en het moment dat de party hem gekraakt
     // heeft. Allebei blijven ze klikbaar: een brief mag twee keer op tafel, en
@@ -1686,10 +1687,8 @@ function _akteNieuw() {
           <label class="dm-form-label">Nummer</label>
           <input id="dm-akte-n-num" class="dm-input dm-input-sm" type="number" min="1" value="${nextNum}">
         </div>
-        <div class="dm-form-row" style="flex:2">
-          <label class="dm-form-label" title="Unieke interne sleutel, bv. h${nextNum}">Sleutel</label>
-          <input id="dm-akte-n-key" class="dm-input dm-input-sm" value="${esc(nextKey)}" placeholder="h${nextNum}">
-        </div>
+        <!-- De sleutel is een intern id; een DM hoeft er geen te verzinnen. -->
+        <input id="dm-akte-n-key" type="hidden" value="${esc(nextKey)}">
       </div>
       <div class="dm-form-row">
         <label class="dm-form-label">Titel</label>
@@ -5948,8 +5947,17 @@ window._instSpreukbeelden = async () => {
 
 function _campagneCreate() {
   const form = document.getElementById('campagne-create-form');
-  if (form) { form.style.display = 'block'; document.getElementById('campagne-new-id')?.focus(); }
+  if (form) { form.style.display = 'block'; document.getElementById('campagne-new-title')?.focus(); }
 };
+
+// Het adres volgt de naam tot je het zelf aanraakt: kleine letters, geen
+// accenten, spaties worden streepjes — de tekens die een campagne-id mag hebben.
+function _campagneAdresVolg(naam) {
+  const veld = document.getElementById('campagne-new-id');
+  if (!veld || veld.dataset.zelf) return;
+  veld.value = String(naam || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40);
+}
 
 async function _campagneSubmit() {
   const id       = document.getElementById('campagne-new-id')?.value.trim();
@@ -13371,13 +13379,27 @@ async function _renderInstellingen() {
         </div>
         ${_uitnodigingenHtml(uitnodigingenLijst)}
         <div id="campagne-create-form" style="display:none;margin-top:10px">
-          <div class="dm-feature-row dm-knoprij">
-            <input id="campagne-new-id"       class="dm-input" placeholder="ID (bijv. prewett)" style="flex:1;min-width:120px">
-            <input id="campagne-new-title"    class="dm-input" placeholder="Naam" style="flex:2;min-width:140px">
-            <input id="campagne-new-subtitle" class="dm-input" placeholder="Ondertitel (optioneel)" style="flex:2;min-width:140px">
-        <input id="campagne-new-pw" class="dm-input" type="password" autocomplete="new-password"
-          placeholder="DM-wachtwoord (min. 8 tekens)" style="flex:2;min-width:160px"
-          title="Zonder eigen wachtwoord komt niemand in die campagne: alleen de standaardcampagne valt terug op het serverwachtwoord.">
+          <!-- Eerst de naam: het adres volgt daaruit (Veerspoort -> /veerspoort),
+               zodat je geen technisch id hoeft te verzinnen. Wie een ander adres
+               wil, past het daarna aan. -->
+          <div class="dm-form-row">
+            <label class="dm-form-label" for="campagne-new-title">Naam</label>
+            <input id="campagne-new-title" class="dm-input" placeholder="Veerspoort"
+              oninput="window.dmPanel.campagneAdresVolg(this.value)">
+          </div>
+          <div class="dm-form-row">
+            <label class="dm-form-label" for="campagne-new-id">Adres</label>
+            <input id="campagne-new-id" class="dm-input" placeholder="veerspoort"
+              oninput="this.dataset.zelf = '1'">
+          </div>
+          <div class="dm-form-row">
+            <label class="dm-form-label" for="campagne-new-subtitle">Ondertitel</label>
+            <input id="campagne-new-subtitle" class="dm-input" placeholder="mag leeg">
+          </div>
+          <div class="dm-form-row">
+            <label class="dm-form-label" for="campagne-new-pw">DM-wachtwoord</label>
+            <input id="campagne-new-pw" class="dm-input" type="password" autocomplete="new-password"
+              placeholder="minstens 8 tekens">
           </div>
           <!-- Meteen vragen: hierna ligt het vast in hoe je speelt, en het is
                één keuze die de hele level-up-kant bepaalt. Later omzetten kan

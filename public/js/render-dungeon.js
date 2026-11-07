@@ -1873,7 +1873,7 @@ function _openNewDungeonDialog() {
       </button>`).join('');
     ov.innerHTML = `
       <div class="dng-dialog">
-        <h3 class="dng-dialog-title">${esc(_verdiepingLabel(l.verdieping))} zelf tekenen</h3>
+        <h3 class="dng-dialog-title">${l.verdieping === 0 ? 'Begane grond' : (l.verdieping > 0 ? `Verdieping ${l.verdieping}` : `Kelder ${l.verdieping}`)} zelf tekenen</h3>
         <label class="dng-label">Grootte</label>
         <div class="dng-maat-rij">
           <input id="dng-tk-kol" class="dm-input" type="number" min="4" max="120" value="${l.kolommen}" aria-label="Vakjes breed">
@@ -2029,20 +2029,27 @@ function _openNewDungeonDialog() {
       const gebouwId = meerdere ? 'geb_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5) : '';
       // Op volgorde aanmaken (laagste verdieping eerst), zodat de galerij en de
       // verdiepingenstrook dezelfde volgorde aanhouden als het gebouw zelf.
+      let eerste = null;
       for (const laag of [...lagen].sort((a, b) => a.verdieping - b.verdieping)) {
-        await api.createDungeon({
+        const gemaakt = await api.createDungeon({
           ...basis,
           ...(laag.bron === 'tekenen'
             ? { grid: { kolommen: laag.kolommen, rijen: laag.rijen, voetPerVak: VOET_PER_VAK }, stijl: laag.stijl }
             : { fileId: laag.fileId }),
           ...(meerdere ? { verdieping: laag.verdieping, gebouwId } : {}),
         });
+        // De begane grond als die er is, anders de eerste die aangemaakt werd.
+        const id = gemaakt?.id || gemaakt?.map?.id;
+        if (id && (!eerste || laag.verdieping === 0)) eerste = id;
       }
       window.app.closeModal();
       // Eindigen waar je begon: de galerij (of de open kaartweergave) bijwerken.
       // Dit riep `renderDungeon(#kaart-mode-content)` aan — een element dat sinds
       // de galerij niet meer bestaat, dus er gebeurde zichtbaar niets.
       await window._kaartVerversen?.();
+      // En dan meteen open. Wie op *Tekenen* koos, wil tekenen — niet de
+      // galerij doorzoeken naar wat hij net maakte.
+      if (eerste) window._openKaartFullscreen?.('dungeon', eerste);
     } catch (e) { alert('Aanmaken mislukt: ' + e.message); }
   });
 

@@ -4974,7 +4974,12 @@ window._winkelVoorraadHtml = function _winkelVoorraadHtml({ e, tab, beschikbaarD
           </div>` : ''}
         `;
     } else {
-      voorraadHtml = `${sfeerHtml}${beursHtml}${roterendHtml}<div class="text-center py-10 text-ink-faint font-fell italic">Geen voorraad beschikbaar</div>${verkoopHtml}`;
+      // Voor de DM een weg erheen: het bewerken zat op het tabblad Informatie,
+      // en hier stond alleen dat er niets lag.
+      const _aanvullen = isDM() ? `<div class="text-center" style="margin-top:-24px;margin-bottom:16px">
+          <button type="button" class="dm-btn dm-btn-sm dm-btn-ghost"
+            onclick="window._voorraadAanvullen('${escArg(tab)}','${escArg(e.id)}')">${icon('plus')} Voorraad aanvullen</button></div>` : '';
+      voorraadHtml = `${sfeerHtml}${beursHtml}${roterendHtml}<div class="text-center py-10 text-ink-faint font-fell italic">Geen voorraad beschikbaar</div>${_aanvullen}${verkoopHtml}`;
     }
     } // end else (niet buitenGrisburgh)
   }
@@ -7282,6 +7287,14 @@ window._scrollPickSpell = (naam) => {
   if (nameEl && !nameEl.value.trim()) nameEl.value = `Scroll of ${sp.name}`;
 };
 
+// De editor openen op het tabblad Winkel.
+window._voorraadAanvullen = async (tab, id) => {
+  window.app.closeModal?.();
+  await window._openEditor(tab, id);
+  window._edTab?.('winkel');
+  window._addVoorraadItem?.();   // meteen een lege regel om in te typen
+};
+
 window._openEditor = async (tab, editId) => {
   const schema = SCHEMA[tab];
   // Per kaartje opnieuw beginnen: wat de DM bij het vórige kaartje aanraakte,
@@ -8579,7 +8592,7 @@ window._openEditor = async (tab, editId) => {
             <input placeholder="Naam voorwerp" value="${esc(item.naam || '')}"
               oninput="window._updateVoorraadItem(${idx},'naam',this.value);window._voorraadAddKnop()"
               class="flex-1 min-w-24 px-2 py-1 bg-room-bg border border-room-border rounded text-ink-bright text-sm focus:border-gold-dim focus:outline-none">
-            <input placeholder="Prijs (bijv. 15 gp)" value="${esc(item.prijs || '')}"
+            <input placeholder="Prijs (bijv. 15 ${esc((window._muntNamen?.().fl || 'gp').toLowerCase())})" value="${esc(item.prijs || '')}"
               oninput="window._updateVoorraadItem(${idx},'prijs',this.value)"
               class="w-28 px-2 py-1 bg-room-bg border border-room-border rounded text-ink-bright text-sm focus:border-gold-dim focus:outline-none">
             <div class="relative flex items-center gap-1">

@@ -1,8 +1,8 @@
 import { api, campagneUitUrl, zetCampagne } from './api.js?v=316';
-import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, renderDocumenten, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=352";
+import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, renderDocumenten, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=353";
 import { initArchief, renderLogboek, openLogboekEditor } from "./render-archief.js?v=144";
 import { renderKaart, queueFlyTo, verversPins, nieuweKaart } from './render-kaart.js?v=31';
-import { renderDungeon } from './render-dungeon.js?v=69';
+import { renderDungeon } from './render-dungeon.js?v=70';
 import { renderRelatiemap } from './render-relatiemap.js?v=32';
 import { renderProgressie, levelupFeatures } from './render-progressie.js?v=64';
 import { renderBestiarium } from './render-bestiarium.js?v=32';
@@ -11,11 +11,11 @@ import './render-handleiding.js?v=2';
 import './render-melding.js?v=4';
 import { renderVaardigheden, zoekVaardigheden, heldenboekTekst } from './render-vaardigheden.js?v=133';
 import { renderStatblock } from './render-statblock.js?v=9';
-import { initSocket } from "./socket-client.js?v=91";
-import { initDmPanel } from "./dm-panel.js?v=413";
+import { initSocket } from "./socket-client.js?v=92";
+import { initDmPanel } from "./dm-panel.js?v=414";
 import { COND_INFO, COND_LABEL, COND_MET_PLAATJE, COND_ICON } from './conditions.js?v=2';
 import './media-picker.js?v=11';
-import './wizard.js?v=6';
+import './wizard.js?v=7';
 import './tafels.js?v=2';
 
 // ── Icon helper ──
@@ -1513,7 +1513,16 @@ async function showLanding({ alleenGroep = null } = {}) {
     // te tonen — je kiest niet uit een andere party.
     if (alleenGroep) chars = chars.filter(c => c.groep === alleenGroep);
     if (chars.length === 0) {
-      list.innerHTML = '<p class="landing-loading">Geen spelerskarakters gevonden.</p>';
+      // Een campagne zonder personages bezoekt alleen haar DM — de eerste keer
+      // altijd. De ingang stond dan als klein, vaag woord rechtsboven; hier hoort
+      // hij gewoon in beeld. Met een groepswachtwoord ingetikt is het een speler
+      // wiens party nog leeg is, en die heeft aan een DM-knop niets.
+      list.innerHTML = alleenGroep
+        ? '<p class="landing-loading">Deze party heeft nog geen personages.</p>'
+        : `<div class="landing-leeg">
+            <p class="landing-loading">Er staan nog geen personages in deze campagne.</p>
+            <button type="button" class="landing-leeg-dm" onclick="window.app.landingDmVeld()">${icon('crossed-swords')} Inloggen als Dungeon Master</button>
+          </div>`;
       return;
     }
 
@@ -3594,7 +3603,7 @@ function _kaartCard(type, m, dm, verdiepingen = null) {
 // eerste bestaande kaart: je drukte op + en keek naar Dreghaven.
 window._kaartNieuw = async function (type) {
   if (type === 'wereld') return nieuweKaart();
-  const { nieuweDungeon } = await import('./render-dungeon.js?v=69');
+  const { nieuweDungeon } = await import('./render-dungeon.js?v=70');
   nieuweDungeon();
 };
 
@@ -9009,7 +9018,7 @@ async function renderMijnKarakter(opts = {}) {
 
         <!-- Geclaimde & losse voorwerpen -->
         <div class="player-dash-section">
-          <div class="player-dash-section-title">${icon('package')} Jouw voorwerpen</div>
+          <div class="player-dash-section-title">${icon('package')} ${state.role === 'dm' ? 'Voorwerpen' : 'Jouw voorwerpen'}</div>
           ${myItems.length > 0 ? (() => {
             const _ITEM_CATS = [
               { key: 'Wapen',                 label: 'Wapens',      icon: icon('sword') },
@@ -14931,7 +14940,8 @@ const HELP_CONFIG = {
     { titel: 'Waarom hij er is', tekst: 'Een verse campagne is leeg, en de keuzes die ertoe doen staan verspreid over Instellingen en de dienstpanelen. Deze wizard loopt ze één keer langs, in de volgorde waarin je ze nodig hebt. Hij draait vanzelf de eerste keer dat je als DM binnenkomt in een campagne zonder personages.', afbeelding: null },
     { titel: 'Overslaan mag altijd', tekst: 'Geen enkele stap is verplicht. Wat je overslaat vind je terug bij **Instellingen** (naam, munten) en bij **Diensten** (hoe je plekken heten). De wizard zelf staat daar ook, onder *Opstartwizard doorlopen*, voor als je hem later nog eens wilt langslopen.', afbeelding: null },
     { titel: 'De party is de enige echte waarschuwing', tekst: 'Deel je tafels in zoals je ze gaat spelen. Een personage verhuizen kan later wel, maar alles wat de **party** over hem onthoudt blijft achter: welke voorwerpkaartjes van hem zijn, welke geheimen hij kent, wat er voor hem zichtbaar was, zijn metgezel, de gedeelde beurs. Twee party\'s samenvoegen kan helemaal niet.', afbeelding: null },
-    { titel: 'Wat de wizard níét doet', tekst: 'Welke **onderdelen** je campagne heeft — archief, aktes, tempel, facties — zet de beheerder aan, niet jij. Dat is met opzet: ze worden stapsgewijs vrijgegeven, met uitleg erbij. Mis je iets, vraag erom.', afbeelding: null },
+    { titel: 'Welke onderdelen je krijgt', tekst: 'De beheerder bepaalt wat er voor je campagne **vrij** is — archief, aktes, tempel, facties. Binnen die grens kies je zelf wat je gebruikt: in de wizard en later bij *Instellingen → Campagne*. Wat de beheerder dichtzette, zie je niet. Mis je iets, vraag erom.', afbeelding: null },
+    { titel: 'Sluiten', tekst: 'Het kruisje rechtsboven (of Escape) legt de wizard weg. Hij komt dan niet meer vanzelf terug; doorlopen kan altijd nog bij *Instellingen → Opstartwizard doorlopen*.', afbeelding: null },
   ] }),
 
   inst_campagne: () => ({ titel: 'De campagne', stappen: [

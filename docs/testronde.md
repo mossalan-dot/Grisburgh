@@ -793,6 +793,13 @@ fout-uitvoert.
 - [ ] **Verkoper in een herberg** (DM) — vink bij een personage *Verkoper* aan, bewaar, kies bij *Verkoopt bij* een herberg: die herberg heeft nu een tabblad *Voorraad* en in de editor een tabblad *Winkel*
 - [ ] **SRD-monster in een gevecht** (DM) — in een verse campagne: nieuw gevecht, *+ Monster*, typ "Guard": hij staat in de lijst met "SRD 5.2 · CR 1/8", en na kiezen staat hij in je monsterbibliotheek met AC 16
 - [ ] **Plus achter een onbekende naam** (DM) — schrijf `[[Iemand Nieuw]]` in een kaartje, open het: achter de naam staat een plusje dat het kaartje maakt
+- [ ] **Wizard dichtdoen** (DM) — open de wizard in een lege campagne en druk Escape (of het kruisje): hij is weg en komt bij de volgende inlog niet terug
+- [ ] **Wizardvolgorde** (DM) — zet bij *Wat heeft jouw campagne nodig?* de Tempels aan: de volgende stap vraagt ook hoe de tempel heet
+- [ ] **HP in de wizard** (DM) — vul bij het eerste personage Max HP 17 in: op zijn blad staat 17/17
+- [ ] **Lege campagne** (ALL) — open een campagne zonder personages: midden op de pagina staat *Inloggen als Dungeon Master*
+- [ ] **Voorraad aanvullen** (DM) — open een winkel zonder voorraad: onder "Geen voorraad beschikbaar" staat een knop die de editor op *Winkel* opent, met een lege regel klaar
+- [ ] **Nieuwe dungeon tekenen** (DM) — kies *Tekenen* en *Aanmaken*: de dungeon gaat meteen open
+- [ ] **Adres van een campagne** (BEHEER) — tik bij *Nieuwe campagne* als naam "Het Zoute Moeras": het adres wordt `het-zoute-moeras`
 - [ ] **Privéberichten blijven privé** (SP) — open de landingspagina in een incognitovenster zonder in te loggen, en stuur als DM een bericht aan een speler: het komt aan bij die speler en nergens anders (`tests/review-lekken.test.js` doet hetzelfde met een kale socket)
 - [ ] **Spotify-token** (SP) — open als speler `/api/spotify/token?campagne=<id>` in de adresbalk: 403, ook als Spotify gekoppeld is; het tafelscherm (DM-login) speelt gewoon af
 - [ ] **Verborgen verbindingen** (SP) — koppel als DM een verborgen NPC aan een zichtbare locatie via *Verbindingen*, en open als speler de netwerktab bij die locatie: zijn naam staat nergens in `links`
@@ -877,6 +884,11 @@ Per bevinding: waar, wat, en of het opgelost is. Nieuwe regels onderaan.
 | 50 | 2 | Een onbekende `[[naam]]` in een kaartje had geen plus om het kaartje te maken | opgelost — zelfde plus als in de akte en de dungeon |
 | 51 | 6 | Teller *Namen* in het schrijfscherm bleef staan na het maken van een kaartje | opgelost |
 | 52 | 3 | Kamervenster dungeon: vloernamen en *Annuleren* onleesbaar op perkament | opgelost |
+| 53 | 10 | Opstartwizard: geen sluitknop, Escape deed niets; diensten kregen hun naam vóór je ze aanzette; geen HP bij het eerste personage; waarschuwing als alinea in het formulier | opgelost — × en Escape (telt als klaar), *onderdelen* vóór *plekken heten*, veld Max HP, waarschuwing in één regel (de rest staat in het boekje) |
+| 54 | 1 | Lege campagne: alleen "Geen spelerskarakters gevonden" en een vage DM-ingang | opgelost — knop *Inloggen als Dungeon Master* |
+| 55 | 2 | Leeg voorraadtabblad zonder weg om iets toe te voegen; prijsvoorbeeld in "gp" | opgelost — *Voorraad aanvullen* opent de editor op *Winkel*, voorbeeld in de eigen munt |
+| 56 | 3 | Nieuwe getekende dungeon opende niet; "BG zelf tekenen" | opgelost — opent meteen, "Begane grond zelf tekenen" |
+| 57 | 10 | Nieuwe campagne: velden zonder label, zelf een id verzinnen; nieuwe akte vroeg een *Sleutel* | opgelost — labels, adres volgt de naam; sleutel verborgen |
 
 ### Spell slots, multiclass en de signatuurkaart (17 sep 2026)
 
