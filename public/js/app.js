@@ -1,21 +1,21 @@
-import { api, campagneUitUrl, zetCampagne } from './api.js?v=316';
-import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, renderDocumenten, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=354";
-import { initArchief, renderLogboek, openLogboekEditor } from "./render-archief.js?v=144";
-import { renderKaart, queueFlyTo, verversPins, nieuweKaart } from './render-kaart.js?v=31';
-import { renderDungeon } from './render-dungeon.js?v=70';
-import { renderRelatiemap } from './render-relatiemap.js?v=32';
-import { renderProgressie, levelupFeatures } from './render-progressie.js?v=64';
-import { renderBestiarium } from './render-bestiarium.js?v=32';
-import { renderSpreuken } from './render-spreuken.js?v=51';
+import { api, campagneUitUrl, zetCampagne } from './api.js?v=317';
+import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, renderDocumenten, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=355";
+import { initArchief, renderLogboek, openLogboekEditor } from "./render-archief.js?v=145";
+import { renderKaart, queueFlyTo, verversPins, nieuweKaart } from './render-kaart.js?v=32';
+import { renderDungeon } from './render-dungeon.js?v=71';
+import { renderRelatiemap } from './render-relatiemap.js?v=33';
+import { renderProgressie, levelupFeatures } from './render-progressie.js?v=65';
+import { renderBestiarium } from './render-bestiarium.js?v=33';
+import { renderSpreuken } from './render-spreuken.js?v=52';
 import './render-handleiding.js?v=2';
 import './render-melding.js?v=4';
-import { renderVaardigheden, zoekVaardigheden, heldenboekTekst } from './render-vaardigheden.js?v=133';
+import { renderVaardigheden, zoekVaardigheden, heldenboekTekst } from './render-vaardigheden.js?v=134';
 import { renderStatblock } from './render-statblock.js?v=9';
-import { initSocket } from "./socket-client.js?v=92";
-import { initDmPanel } from "./dm-panel.js?v=414";
+import { initSocket } from "./socket-client.js?v=93";
+import { initDmPanel } from "./dm-panel.js?v=415";
 import { COND_INFO, COND_LABEL, COND_MET_PLAATJE, COND_ICON } from './conditions.js?v=2';
-import './media-picker.js?v=11';
-import './wizard.js?v=7';
+import './media-picker.js?v=12';
+import './wizard.js?v=8';
 import './tafels.js?v=2';
 
 // ── Icon helper ──
@@ -240,6 +240,17 @@ function _displayModeAan() {
   // De socket staat er al als je dit vanuit de instellingen doet; bij het
   // opstarten meldt de connect-handler zichzelf (zie socket-client.js).
   window._socket?.emit('display:register');
+  // Het gevecht kan al geladen zijn vóórdat dit scherm wist dat het op tafel
+  // ligt (bij `?display=1` wordt de rol pas na het opstarten bekend) — en dan
+  // stond de DM-versie erop, met de HP en AC van elk monster. Opnieuw ophalen,
+  // nu als tafelscherm.
+  api.getCombat().then(c => { if (c) window.dmPanel?.onCombatUpdated?.(c); }).catch(() => {});
+  // En een kist die openstaat: die kwam alleen over de socket, dus na een
+  // herlaadbeurt halverwege het claimen was hij weg.
+  fetch('/api/combat/loot?tafel=1&campagne=' + encodeURIComponent(campagneUitUrl()))
+    .then(r => r.ok ? r.json() : null)
+    .then(d => { if (d && window._isDisplayMode) window._lootCinematic?.(d); })
+    .catch(() => {});
 }
 
 function _displayModeInlossen() {
@@ -1621,7 +1632,7 @@ async function _landingNieuwTegel() {
   if (!host || !_groepsWachtwoord || document.getElementById('landing-nieuw')) return;
   let stand = null;
   try {
-    await import('./personage-maken.js?v=6');
+    await import('./personage-maken.js?v=7');
     stand = await window.personageMaken.stand();
   } catch { return; }
   if (stand?.instellingen && stand.instellingen.aan === false) return;
@@ -1643,7 +1654,7 @@ async function _landingNieuwTegel() {
 
 async function _landingNieuw() {
   try {
-    await import('./personage-maken.js?v=6');
+    await import('./personage-maken.js?v=7');
     const stand = await window.personageMaken.stand();
     if (stand?.concept && stand.concept.status !== 'gegund') {
       if (stand.concept.status === 'wacht') {
@@ -3626,7 +3637,7 @@ function _kaartCard(type, m, dm, verdiepingen = null) {
 // eerste bestaande kaart: je drukte op + en keek naar Dreghaven.
 window._kaartNieuw = async function (type) {
   if (type === 'wereld') return nieuweKaart();
-  const { nieuweDungeon } = await import('./render-dungeon.js?v=70');
+  const { nieuweDungeon } = await import('./render-dungeon.js?v=71');
   nieuweDungeon();
 };
 
@@ -7048,9 +7059,9 @@ window._rustCinematic = (payload) => {
   if (mine && isLong) {
     const parts = [];
     if (mine.hpNaar != null) parts.push(`${icon('heart')} HP volledig hersteld`);
-    if (mine.slotsHersteld) parts.push(`${icon('sparkles')} ${mine.slotsHersteld} spell slot(s) terug`);
+    if (mine.slotsHersteld) parts.push(`${icon('sparkles')} ${mine.slotsHersteld} Spell Slot${mine.slotsHersteld === 1 ? '' : 's'} terug`);
     if (mine.hitDiceTerug) parts.push(`${icon('dice')} ${mine.hitDiceTerug} Hit Dice terug`);
-    if (mine.chargesHersteld) parts.push(`${icon('zap')} ${mine.chargesHersteld} voorwerp(en) herladen`);
+    if (mine.chargesHersteld) parts.push(`${icon('zap')} ${mine.chargesHersteld} ${mine.chargesHersteld === 1 ? 'voorwerp' : 'voorwerpen'} herladen`);
     // Wat de overnachting kostte: het verdween van je beurs zonder dat er
     // ergens stond waarom.
     if (kosten?.perSpeler) parts.push(`${icon('coins')} ${_muntRegel(kosten.perSpeler)} voor de overnachting`);
@@ -7492,6 +7503,7 @@ const _LU_METHODE_LABEL = {
   tafel:      'Zelf gooien',
 };
 
+window._levelUpBalkVers = () => _levelUpBalk();
 async function _levelUpBalk() {
   const el = document.getElementById('levelup-balk');
   if (!el || !window._lastCharId) return;
@@ -7547,7 +7559,7 @@ async function _levelUpBalk() {
           ? 'Je mag een feat kiezen of twee punten verdelen'
           : k.soort === 'cantrip'
             ? `Je mag nog ${k.aantal === 1 ? 'een cantrip' : `${k.aantal} cantrips`} kiezen`
-            : `Niveau ${k.niveau} staat voor je open`}
+            : `Spreuken van level ${k.niveau} staan voor je open`}
         <span>sinds je level ${k.naar} werd</span>
       </span>
       <button class="dm-btn dm-btn-sm dm-btn-ghost" onclick="${isFeat
@@ -7597,7 +7609,7 @@ function _levelUpTeken() {
   body.innerHTML = `
     ${(meer || st.kanMulticlassen) ? `
     <div class="lu-stap">
-      <div class="lu-stap-kop">Welke klasse krijgt dit level?</div>
+      <div class="lu-stap-kop">Welke class krijgt dit level?</div>
       <div class="lu-keuzes">
         ${st.klassen.map(x => `
           <button class="lu-keuze${x.klasse === klasse.klasse ? ' is-aan' : ''}"
@@ -7611,7 +7623,7 @@ function _levelUpTeken() {
                <span>gevraagd — wacht op de DM</span>
              </div>`
           : `<button class="lu-keuze lu-keuze--nieuw" onclick="window._luMulticlassOpen()">
-               <strong>${icon('plus')} Een klasse erbij</strong>
+               <strong>${icon('plus')} Een class erbij</strong>
                <span>multiclassen — gaat langs de DM</span>
              </button>`) : ''}
       </div>
@@ -7762,12 +7774,12 @@ function _levelUpCinematic(lu, kiezen = []) {
   // tussen 500 spreuken hoeft te zoeken welke van jouw klasse en niveau zijn.
   const keuzeKnoppen = (kiezen || []).map(k => k.soort === 'feat'
     ? `<button class="dm-btn dm-btn-primary dm-btn-sm" onclick="window._luNaarProgressie(${k.klasseLevel || 0})">
-        ${icon('star')} Kies je feat of verhoging</button>`
+        ${icon('star')} Kies je feat of Ability Score Improvement</button>`
     : k.soort === 'cantrip'
       ? `<button class="dm-btn dm-btn-primary dm-btn-sm" onclick="window._luNaarBibliotheek(0, '${escArg(k.klasse)}')">
           ${icon('sparkles')} Kies ${k.aantal === 1 ? 'je cantrip' : `${k.aantal} cantrips`}</button>`
       : `<button class="dm-btn dm-btn-primary dm-btn-sm" onclick="window._luNaarBibliotheek(${k.niveau}, '${escArg(k.klasse)}')">
-          ${icon('open-book')} Spreuken van niveau ${k.niveau}</button>`).join('');
+          ${icon('open-book')} Spreuken van level ${k.niveau}</button>`).join('');
   // Een feat gaat niet langs de DM, een spreuk wel: dan hoort die zin er ook
   // alleen te staan als er iets is dat langs hem gaat.
   const gaatLangsDm = (kiezen || []).some(k => k.soort !== 'feat');
@@ -8664,7 +8676,7 @@ async function renderMijnKarakter(opts = {}) {
                 <span class="player-exhaustion-kop">${icon('battery-low')} Exhaustion</span>
                 <div class="player-exhaustion-rij">
                   ${dm ? `<button class="player-hp-temp-btn" onclick="window._dashExhaustion(-1)" title="Eén niveau eraf">−</button>` : ''}
-                  <span class="exh-bollen" title="${n ? `Niveau ${n} van 6` : 'Geen exhaustion'}">${bolletjes}</span>
+                  <span class="exh-bollen" title="${n ? `Exhaustion level ${n} van 6` : 'Geen exhaustion'}">${bolletjes}</span>
                   ${dm ? `<button class="player-hp-temp-btn" onclick="window._dashExhaustion(1)" title="Eén niveau erbij">+</button>` : ''}
                 </div>
                 ${n ? `<span class="player-exhaustion-effect">${n >= 6
@@ -11009,7 +11021,7 @@ async function renderMijnKarakter(opts = {}) {
       }
       const schoolMap = { Charm: 'Bezwering', Curse: 'Vloek', Transfiguration: 'Gedaanteverandering', Healing: 'Genezing' };
       const schoolNl  = schoolMap[s.school?.name] || s.school?.name || '';
-      const levelStr  = s.level === 0 ? 'Tovervorm' : `Niveau ${s.level}`;
+      const levelStr  = s.level === 0 ? 'Cantrip' : `Level ${s.level}`;
       const _md2 = t => t
         .replace(/\*\*\*(.+?)\*\*\*/g, '<strong><em>$1</em></strong>')
         .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
@@ -13688,7 +13700,7 @@ function _playerLootPanelHtml(loot, charId) {
   const items = (loot.items || []).filter(it => it.status === 'open');
   const goudTotaal = (loot.goud?.fl || 0) + (loot.goud?.kn || 0) + (loot.goud?.cl || 0);
   return `<div class="player-loot-panel">
-    <div class="player-loot-head">${icon('coins')} Loot beschikbaar!</div>
+    <div class="player-loot-head">${icon('coins')} Er is buit!</div>
     ${items.length ? items.map(it => {
       const rk = _invRarityKey(it.rariteit);
       const others = it.claimCount - (it.ikClaim ? 1 : 0);
@@ -13707,8 +13719,13 @@ function _playerLootPanelHtml(loot, charId) {
         </div>
         <button class="player-loot-claim-btn${it.ikClaim ? ' is-claimed' : ''}" onclick="window._lootClaim('${escArg(it.id)}')">${it.ikClaim ? icon('check') + ' Geclaimd' : 'Claim'}</button>
       </div>`;
-    }).join('') : `<p class="player-loot-empty">Alle items zijn verdeeld.</p>`}
-    ${goudTotaal ? `<div class="player-loot-goud">${icon('coins')} Goud: <strong>${_magizooPrijs(loot.goud)}</strong>${
+    }).join('')
+      // "Alle items zijn verdeeld" stond er ook als er nooit een voorwerp in
+      // zat — een kist met alleen geld leek dan al leeggeroofd.
+      : (loot.items || []).length
+        ? `<p class="player-loot-empty">Alle voorwerpen zijn verdeeld.</p>`
+        : (goudTotaal ? '' : `<p class="player-loot-empty">Er zit niets in.</p>`)}
+    ${goudTotaal ? `<div class="player-loot-goud">${icon('coins')} Geld: <strong>${_magizooPrijs(loot.goud)}</strong>${
       window._relictRegel(loot.relicten) ? ` <span class="player-loot-relict">waaronder ${esc(window._relictRegel(loot.relicten))}</span>` : ''
     } <span class="player-loot-goud-note">(wordt bij afsluiting verdeeld)</span></div>` : ''}
   </div>`;

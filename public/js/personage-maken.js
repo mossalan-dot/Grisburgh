@@ -14,7 +14,7 @@
 //
 // Hij leent de opmaak van de opstartwizard (`wz-*`): twee wizards die er
 // anders uitzien zijn twee wizards om te onderhouden.
-import { api, huidigeCampagne } from './api.js?v=316';
+import { api, huidigeCampagne } from './api.js?v=317';
 
 const esc = s => window.app?.esc?.(s) ?? String(s ?? '')
   .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -295,7 +295,7 @@ const STAPPEN = [
           en <strong>${Math.max(0, (t.voorbereid || 0) - gekozenRest)}</strong> spreuken te kiezen.</p>
         ${perNiveau.map(g => `
           <div class="wz-veld">
-            <label class="dm-form-label">${g.niveau === 0 ? 'Cantrips' : `Niveau ${g.niveau}`}</label>
+            <label class="dm-form-label">${g.niveau === 0 ? 'Cantrips' : `Level ${g.niveau}`}</label>
             <div class="pm-skills">
               ${g.spreuken.map(sp => `
                 <button class="pm-skill${gekozen.has(sp.index) ? ' is-aan' : ''}"

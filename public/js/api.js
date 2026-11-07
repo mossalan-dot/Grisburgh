@@ -437,7 +437,8 @@ export const api = {
   getCampaignMeta:   ()          => request('/campaigns/meta'),
 
   // Gevecht
-  getCombat:        ()        => request('/combat'),
+  // Het tafelscherm krijgt de versie die de party mag zien (`?tafel=1`).
+  getCombat:        ()        => request(window._isDisplayMode ? '/combat?tafel=1' : '/combat'),
   startCombat:      ()        => request('/combat/start',              { method: 'POST' }),
   endCombat:        ()        => request('/combat',                    { method: 'DELETE' }),
   // Sluit het rust-cinematic bij iedereen (DM-actie; de tablet kan zichzelf niet sluiten).

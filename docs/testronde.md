@@ -760,6 +760,12 @@ fout-uitvoert.
 - [ ] **Tafelscherm aanzetten en terug** (DM/TAB) — knop in de balk zet dit scherm om; het kruisje brengt je terug zonder opnieuw inloggen
 - [ ] **Sfeer wisselen** (DM/TAB) — sfeerkeuze verandert de embers en de achtergrond
 - [ ] **Effecten** (DM/TAB) — bliksem, windvlaag en duister; let erop dat ze tijdens een gevecht (nog) niet zichtbaar zijn — zie `docs/tafelscherm-effecten.md`
+- [ ] **Gevecht op tafel zonder cijfers** (TAB) — start een gevecht en zet daarna pas `?display=1` aan: op de tokens staan geen HP-getallen en geen AC van monsters die de party niet bestudeerd heeft, ook niet direct na het aanzetten
+- [ ] **Kist na herladen** (TAB) — onthul een vondst, herlaad het tafelscherm halverwege het claimen: de kist staat er weer
+- [ ] **Onthulling en brief tegelijk** (DM→SP) — onthul een kaartje en stuur meteen een verzegelde brief: de brief ligt bovenop en het zegel is aan te tikken
+- [ ] **Level gegund** (DM→SP) — gun een speler een level terwijl hij zijn Personage-tab open heeft: de balk *Je mag een level omhoog* verschijnt zonder herladen, met een melding die het venster opent
+- [ ] **Buit bijgeschreven** (SP) — sluit een verdeling met alleen geld: de melding noemt het hele bedrag met de muntnamen ("4 Silver · 2 Copper"), en de speler las eerder *Er is buit!* — geen "Alle items zijn verdeeld" als er nooit een voorwerp in zat
+- [ ] **Gevechtsbalk op de telefoon** (SP) — met je beurt aan zet staat *Jij bent aan zet* op één regel naast de ronde
 - [ ] **Tablet na herstart** (TAB) — server herstarten en kijken of de tablet ingelogd blijft en zijn kamer terugvindt
 
 ## Blok 9 — Uitvoer en onderhoud
@@ -900,6 +906,14 @@ Per bevinding: waar, wat, en of het opgelost is. Nieuwe regels onderaan.
 | 61 | 5 | De beurs bovenin elke dienst zei "23 fl · 4 kn" in een campagne met Gold/Silver: de interne sleutels als afkorting | opgelost — `window._muntAfk`/`_muntKort`: gp/sp/cp, de sleutel als de naam ermee begint, anders de eerste twee letters |
 | 62 | 5 | Herberg zonder ingevulde waard: "weet niets meer te vertellen." — en "Ze is zo bij je terug" ging uit van een vrouw | opgelost — "De waard" als terugval, zin zonder voornaamwoord |
 | 63 | 4 | Een brief toonde `--De Havenmeester--` letterlijk: brieven gingen door `mdToHtml`, documenten door `renderParchment` — titel- en handtekeningregels werkten alleen bij documenten | opgelost — ook brieven (lijst én verzegelde onthulling) via `renderParchment`, dat nu ook de korte vorm `--Naam--` op één regel kent |
+| 64 | 8 | Tafelscherm (als DM ingelogd, maar midden op tafel) kreeg het rauwe gevecht: exacte HP en AC van elk monster op de tokens, terwijl de telefoons die getallen juist niet krijgen (sessieronde 7 nov) | opgelost — sockets in de tafelroom krijgen `_combatVoorTafel()` (de spelersversie met de bestiariumkennis van de actieve party), `GET /combat?tafel=1` idem; bij het aanzetten haalt het scherm het gevecht opnieuw op, want bij `?display=1` was het al geladen vóór de rol bekend was. `tests/tafelscherm-sessie.test.js` |
+| 65 | 8 | Een tafelscherm dat herlaadde tijdens het claimen stond leeg: de kist kwam alleen over de socket | opgelost — `GET /combat/loot?tafel=1`, gevraagd bij het aanzetten |
+| 66 | 8 | Onthulling vlak vóór een verzegelde brief: het "Onthuld"-venster (z 9999) lag over de brief (z 9998) en het zegel was niet aan te tikken | opgelost — beide op dezelfde hoogte; wat later binnenkomt ligt bovenop |
+| 67 | 4 | De DM gunde een level, maar de speler zag niets tot hij ververste: `party:level-up-tegoed` werd uitgezonden en niemand luisterde | opgelost — luisteraar in `socket-client.js`, balk meteen bij, melding opent het venster |
+| 68 | 4 | Buit: "0 fl 4 kn bijgeschreven" (de koperen munten vielen weg, sleutels als namen); "Loot beschikbaar! Alle items zijn verdeeld." bij een kist met alleen geld; "Er is loot te verdelen — open je Boedel" was een opdracht | opgelost — `formatCl` met muntnamen; *Er is buit!*; de melding brengt je met een tik naar je Boedel |
+| 69 | 4 | Gevechtsbalk op de telefoon: *Jij bent aan zet* brak over drie regels | opgelost — op een smal scherm staat alleen het zwaardje, de tekst blijft op één regel |
+| 70 | 4 | Level-up: knoppen in het systeemlettertype; "klasse", "verhoging", "Spreuken van niveau 3", en in het spreukdetail "Tovervorm" en Nederlandse PHB-scholen ("Oproeping") | opgelost — Cinzel; Class, Ability Score Improvement, level, Cantrip, Evocation (alleen de Wands & Wizards-scholen blijven vertaald) |
+| 71 | 8 | Emoji in schermmeldingen (👤 bij een onthulling, ✅ ❌ ✉️ 💬 📁 🏆 🎲 📍), en "De Gock" hardgecodeerd in een melding van een andere campagne | opgelost — `icon()`, en de naam uit `meta.gock.naam` |
 
 ### Spell slots, multiclass en de signatuurkaart (17 sep 2026)
 

@@ -1,4 +1,4 @@
-import { api, huidigeCampagne } from './api.js?v=316';
+import { api, huidigeCampagne } from './api.js?v=317';
 import { init as canvasInit, update as canvasUpdate, stop as canvasStop, acGetal } from './combat-canvas.js?v=34';
 import { renderStatblock } from './render-statblock.js?v=9';
 
@@ -2197,16 +2197,14 @@ function _updateSpellResults() {
 };
 
 function _spellDetailHtml(s) {
+  // De acht PHB-scholen blijven Engels (Evocation, niet "Oproeping") — net als
+  // overal in de app. Alleen de scholen van een Wands & Wizards-campagne, die
+  // geen PHB-term zijn, krijgen een Nederlandse naam.
   const schoolMap = {
-    // D&D scholen
-    Abjuration: 'Afwering', Conjuration: 'Bezwering', Divination: 'Waarzeggerij',
-    Enchantment: 'Betovering', Evocation: 'Oproeping', Illusion: 'Illusie',
-    Necromancy: 'Necromantie', Transmutation: 'Transmutatie',
-    // HP scholen
     Charm: 'Bezwering', Curse: 'Vloek', Transfiguration: 'Gedaanteverandering',
     Healing: 'Genezing',
   };
-  const levelStr = s.level === 0 ? 'Tovervorm' : `Niveau ${s.level}`;
+  const levelStr = s.level === 0 ? 'Cantrip' : `Level ${s.level}`;
   const school   = schoolMap[s.school?.name] || s.school?.name || '';
   const comps    = [
     s.components?.includes('V') ? 'V' : '',
@@ -2897,7 +2895,7 @@ async function _ladeToggle() {
   _ladeIdx = _bwIdx >= 0 ? _bwIdx : Math.min(_ladePlekLees(), Math.max(0, _ladeSecties.length - 1));
   // De akte-module levert de renderer én de knoppen; die moet weten welke akte
   // er speelt, anders belandt een getoond beeld in de sessielog van niemand.
-  const mod = await import('./akte-schrijven.js?v=36');
+  const mod = await import('./akte-schrijven.js?v=37');
   mod.zetAkte(_rbChapter, _ladeTekst);
   window._akteRegieRender = mod.regieNaarHtml;
   let lade = document.getElementById('regie-lade');
@@ -2923,7 +2921,7 @@ window._ladeHerlaad = async () => {
     _ladeTekst = regie?.tekst || '';
     _ladeSecties = _splitsSecties(_ladeTekst);
     _ladeIdx = Math.min(_ladeIdx, Math.max(0, _ladeSecties.length - 1));
-    const mod = await import('./akte-schrijven.js?v=36');
+    const mod = await import('./akte-schrijven.js?v=37');
     mod.zetAkte(_rbChapter, _ladeTekst);
     _ladeRender();
   } catch { /* de lade blijft staan zoals hij stond */ }
@@ -10592,7 +10590,7 @@ function _renderCombatOverlay(combat) {
            een balkje van één regel voegt hij niets toe. -->
       ${isDM
         ? (encNaam ? `<span class="co-title">${icon('swords')} ${esc(encNaam)}</span>` : '')
-        : `<span class="co-title">${icon('swords')} Gevecht</span>`}
+        : `<span class="co-title">${icon('swords')} <span class="co-title-woord">Gevecht</span></span>`}
       ${isDM ? '' : `
         <span class="co-round">Ronde ${combat.round}</span>
         <!-- Ben je zelf aan zet, dan is dát het bericht — niet de hele

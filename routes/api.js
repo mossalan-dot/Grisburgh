@@ -5296,6 +5296,7 @@ function _zendCombat(req, combat) {
   const io = req.app.get('io');
   if (!io) return;
   const cid = _campagneRoom(req);
+  const tafelRoom = _displayRoom(req);
   // dmState één keer lezen: dit draait per socket, en het bestiarium zit erin.
   let dmState = null;
   for (const sock of io.sockets.sockets.values()) {
@@ -5306,11 +5307,29 @@ function _zendCombat(req, combat) {
     // uitlogde (zijn sessie houdt de campagne vast) en een oude tabletlogin —
     // die lazen de exacte HP en AC van elk monster. Zij krijgen nu wat een
     // speler zonder kennis krijgt.
+    // Het tafelscherm is als DM ingelogd, maar ligt midden op tafel: wat daar
+    // staat leest de hele party. Het kreeg het rauwe gevecht, met de exacte HP
+    // en AC van elk monster op de tokens — precies wat de telefoons níét
+    // krijgen. Nu dezelfde versie als een speler, met de kennis van de party
+    // die speelt. Herkend aan de room, niet aan de rol.
+    if (sock.rooms.has(tafelRoom)) {
+      if (!dmState) { try { dmState = readDmState(); } catch { dmState = {}; } }
+      sock.emit('combat:updated', _combatVoorTafel(combat, dmState));
+      continue;
+    }
     if (sess?.role === 'dm') { sock.emit('combat:updated', combat); continue; }
     const charId = sess?.characterId || null;
     if (!dmState) { try { dmState = readDmState(); } catch { dmState = {}; } }
     sock.emit('combat:updated', _combatVoorSpeler(combat, charId, charId ? _bestiariumKennis(dmState, charId) : {}));
   }
+}
+
+// Wat het tafelscherm van een gevecht ziet: wat een speler zonder eigen
+// personage ziet, met wat de party die nu speelt in het bestiarium heeft.
+function _combatVoorTafel(combat, dmState) {
+  let kennis = {};
+  try { kennis = getGroup(dmState, dmState?.activeGroup || null)?.bestiarium || {}; } catch { /* leeg */ }
+  return _combatVoorSpeler(combat, null, kennis);
 }
 
 // De room van de tafelschermen.
@@ -12260,6 +12279,9 @@ function _emitCombat(req) {
 router.get('/combat', attachRole, (req, res) => {
   if (!req.role) return res.status(401).json({ error: 'Niet ingelogd' });
   const combat = storage.readJSON('combat.json');
+  // `?tafel=1` vraagt het tafelscherm (zie `_zendCombat`). Alleen een DM kan
+  // erom vragen, en het levert minder op, nooit meer.
+  if (req.role === 'dm' && req.query.tafel) return res.json(_combatVoorTafel(combat, readDmState()));
   if (req.role === 'dm') return res.json(combat);
 
   // Speler: voeg kennisniveau + gefilterd statblock toe aan monster-combatants
@@ -13068,6 +13090,14 @@ router.post('/combat/loot/start', requireDM, (req, res) => {
 
 router.get('/combat/loot', attachRole, (req, res) => {
   const dmState = readDmState();
+  // Het tafelscherm (`?tafel=1`, alleen een DM-login) vraagt bij het opstarten
+  // of er een kist openstaat. Die kwam alleen via `loot:display`, dus een
+  // scherm dat halverwege herlaadde stond leeg terwijl de party aan het
+  // claimen was. Zelfde payload als de socket.
+  if (req.role === 'dm' && req.query.tafel) {
+    const lp = dmState.lootPhase;
+    return res.json(lp?.actief ? _lootDisplay(lp) : null);
+  }
   res.json(_lootForClient(dmState.lootPhase, req.role, req.session.characterId, dmState));
 });
 

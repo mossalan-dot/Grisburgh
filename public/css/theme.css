@@ -30805,3 +30805,23 @@ body:has(#sb-overlay.sb-open) .dm-dice-fab { display: none !important; }
   box-shadow: 0 2px 10px rgba(0, 0, 0, .35);
 }
 .markt-winkel-balk .markt-terug { white-space: nowrap; }
+
+/* De verzegelde brief en het "Onthuld"-venster liggen op dezelfde hoogte, zodat
+   de volgorde van binnenkomen beslist: wat later kwam ligt bovenop (beide
+   worden aan het eind van <body> gehangen). De brief stond op 9998 en kwam dus
+   altijd ónder een onthulling die er al stond — met het zegel onbereikbaar. */
+.brief-cinematic-overlay { z-index: 9999; }
+
+/* Het gevechtsbalkje van een speler op een telefoon: "Jij bent aan zet" brak
+   over drie regels, want het woord "Gevecht", de ronde, het boekje en de pijl
+   namen de breedte. Op een smal scherm zegt het zwaardje al wat dit is. */
+.co-current-name { white-space: nowrap; min-width: 0; }
+@media (max-width: 480px) {
+  .co-header .co-title-woord { display: none; }
+  .co-header .co-round { padding: 3px 9px; }
+}
+
+/* De knoppen onder een level-up ("Kies je feat…", "Verder") stonden in het
+   lettertype van het systeem: .dm-btn krijgt zijn letter normaal van de
+   Meesterkamer eromheen, en deze omslag hangt los aan <body>. */
+.levelup-cine .dm-btn, .levelup-cine button { font-family: 'Cinzel', serif; letter-spacing: .03em; }
