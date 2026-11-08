@@ -9572,7 +9572,7 @@ function _renderGevecht() {
               ${_kantMerkHtml(c.type, _kantKleuren(_combat))}
               <span class="dm-setup-name">${esc(c.name)}</span>
               <span class="dm-setup-meta">
-                Initiative <input class="dm-setup-init-input" type="number" value="${c.initiative}"
+                Initiative <input class="dm-setup-init-input" type="number" value="${c.initiative}" aria-label="Initiative van ${esc(c.name)}"
                   onchange="window.dmPanel.setupInitChange('${escArg(c.id)}', this.value)"
                   style="width:44px">
                 · ${c.hp}/${c.maxHp} HP
@@ -9590,7 +9590,7 @@ function _renderGevecht() {
            leeg blijft is een vraag die je niet hoeft te stellen. -->
       <div class="dm-setup-form">
         <div class="dm-feature-row">
-          <select id="dm-setup-type" class="dm-select dm-select-sm"
+          <select id="dm-setup-type" class="dm-select dm-select-sm" aria-label="Soort deelnemer"
               onchange="window.dmPanel.setupTypeChange(this.value)">
             <option value="monster"   ${_setupSelectedType === 'monster'   ? 'selected' : ''}>Tegenstander</option>
             <option value="summon"    ${_setupSelectedType === 'summon'    ? 'selected' : ''}>Summon</option>

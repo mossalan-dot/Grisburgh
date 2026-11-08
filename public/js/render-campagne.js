@@ -3728,7 +3728,7 @@ function renderCard(type, e) {
       <div class="entity-card card-vague">
         <div class="card-accent bar-${type}" style="opacity:0.5"></div>
         <div class="card-img-wrap">
-          <img class="card-img w-full object-cover" loading="lazy" src="${api.thumbForEntity(e)}"
+          <img class="card-img w-full object-cover" loading="lazy" alt="" src="${api.thumbForEntity(e)}"
             style="${e.data?.imgFocus ? `object-position:${e.data.imgFocus}` : ''}"
             onerror="this.closest('.entity-card').classList.add('no-img')">
           <div class="card-vague-overlay">?</div>
@@ -3835,7 +3835,7 @@ function renderCard(type, e) {
            laadt nooit, en dan blijft élk kaartje beeldloos. De lege strook tot de
            404 binnen is nemen we voor lief. -->
       <div class="card-img-wrap">
-        <img class="card-img w-full object-cover" loading="lazy" src="${api.thumbForEntity(e)}"
+        <img class="card-img w-full object-cover" loading="lazy" alt="" src="${api.thumbForEntity(e)}"
           style="${e.data?.imgFocus ? `object-position:${e.data.imgFocus}` : ''}"
           onerror="this.style.display='none';this.closest('.entity-card').classList.add('no-img')">
         <div class="card-img-fade"></div>
@@ -5550,7 +5550,7 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
         <!-- Eerst je eigen aantekeningen, dan die van de spelers: dit is jouw
              venster, en wat je zelf typt hoort bovenaan. -->
         <div class="detail-label mb-1">Aantekeningen voor de DM</div>
-        <textarea id="dm-note-${e.id}" class="notitie-vak"
+        <textarea id="dm-note-${e.id}" class="notitie-vak" data-bewaart-zelf
           placeholder="Alleen jij ziet dit\u2026">${esc(e.data?.persoonlijkheid || '')}</textarea>
         <div id="note-save-${e.id}" class="text-xs text-green-wax opacity-0 transition-opacity mt-1 mb-3"></div>
         ${_spelersNotitiesHtml(e.id, playerNotesData)}
@@ -5634,7 +5634,7 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
     infoHtml += `
       <div class="mt-4 pt-4 border-t border-room-border">
         <div class="detail-label detail-label--gold mb-1">${icon('pencil')} Mijn aantekeningen</div>
-        <textarea id="player-note-${e.id}"
+        <textarea id="player-note-${e.id}" data-bewaart-zelf
           class="w-full min-h-[70px] px-3 py-2 bg-room-bg border border-room-border rounded text-sm text-ink-bright font-crimson focus:border-gold-dim focus:outline-none"
           placeholder="Notities voor jezelf...">${esc(myNote)}</textarea>
         <div id="player-note-save-${e.id}" class="text-xs text-green-wax opacity-0 transition-opacity mt-1"></div>

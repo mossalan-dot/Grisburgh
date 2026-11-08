@@ -17,6 +17,8 @@ een speler ziet, **TAB** = het tafelscherm (`?display=1`), **ALL** = alle drie.
 
 - [x] **Openingspagina** (ALL) — keuzepagina op het kale domein: alle campagnes die zich laten zien *(gebouwd 4 sep)*
 - [x] **Landingspagina** (ALL) — portretten van de party's, carousel, inzoomen op een portret *(titel, embleem en portretten per campagne: gefikst 4 sep)*
+- [ ] **Met alleen het toetsenbord** (ALL) — op de landingspagina brengt Tab je langs de portretten (met een gouden rand) en Enter kiest er een; open een kaartje: de focus staat op het kruisje, Escape sluit het en de focus staat weer op het kaartje. In een editor doet Escape niets — je verliest geen onbewaard werk
+- [ ] **axe-core** (ALL) — draai axe (WCAG 2.1 AA) over personage, boedel, berichten, archief, markt, herberg, spreuken, Meesterkamer, logboek, tafelscherm en de landingspagina: nul overtredingen
 - [ ] **Portretfilmpje bij inzoomen** (ALL) — speelt af, stopt na 6 seconden (`LANDING_VIDEO_MAX_SEC`)
 - [x] **Eén wachtwoordveld** — groepswachtwoord → alleen díé party in de kiezer; DM-wachtwoord → meteen DM
 - [x] **Personagekiezer** — de speler kiest zijn personage, wachtwoord wordt onthouden
@@ -921,6 +923,9 @@ Per bevinding: waar, wat, en of het opgelost is. Nieuwe regels onderaan.
 | 73 | 8 | Drukteproef (DM, vijf spelers en een tafelscherm tegelijk): een speler met een beurs onder nul verloor bij elke bijschrijving geld — `fromCl` rondde −297 af tot −3/−10/−7 (= −407); een buitverdeling liet 85 koper verdwijnen | opgelost — rekenen met het bedrag zonder teken; `formatCl` en `_muntKort` tonen één minteken |
 | 74 | 8 | Een telefoon die even geen verbinding had haalde niets in: wat er in die tijd gebeurde (onthulling, beurt, kist, gegund level) kwam pas na verversen | opgelost — bij een herverbinding wordt de stand opnieuw opgehaald (`_inhalenNaOnderbreking`) |
 | 75 | 7 | Meerdere beelden tegelijk uploaden (akte-importer, uploadknop in de regie) kon registraties in de mediabibliotheek wissen: `_registerMedia` las `media.json` vóór een `await` en schreef daarna terug; `_backfillMedia` idem | opgelost — eerst meten, dan lezen en schrijven; de backfill voegt alleen zijn nieuwe regels toe aan een verse stand |
+| 76 | alle | Toegankelijkheid (axe-core, 12 schermen): 375 overtredingen — 130 beelden zonder `alt`, 24 bolletjes zonder naam (Saving Throws, skills), velden zonder label, en contrast onder 4,5 (de inlogknop op de landingspagina 2,25, het dobbellabel, spreuklabels, een DM-tab) | opgelost — nul; `tests/toegankelijkheid.test.js` |
+| 77 | alle | Escape sloot **altijd** het venster, ook een editor waarin je typte (Escape om een suggestielijst weg te halen gooide onbewaard werk weg); een gewoon kaartje kreeg geen focus | opgelost — Escape sluit alleen een venster zonder invulvelden (velden die zichzelf bewaren tellen niet: `data-bewaart-zelf`), de focus gaat het venster in en daarna terug |
+| 78 | 1 | Op de landingspagina kon je zonder muis geen personage kiezen | opgelost — portretten zijn knoppen (Tab + Enter) |
 
 ### Spell slots, multiclass en de signatuurkaart (17 sep 2026)
 

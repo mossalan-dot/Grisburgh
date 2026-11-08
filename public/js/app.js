@@ -1,5 +1,5 @@
 import { api, campagneUitUrl, zetCampagne } from './api.js?v=317';
-import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, renderDocumenten, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=355";
+import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, renderDocumenten, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=362";
 import { initArchief, renderLogboek, openLogboekEditor } from "./render-archief.js?v=145";
 import { renderKaart, queueFlyTo, verversPins, nieuweKaart } from './render-kaart.js?v=32';
 import { renderDungeon } from './render-dungeon.js?v=71';
@@ -12,7 +12,7 @@ import './render-melding.js?v=4';
 import { renderVaardigheden, zoekVaardigheden, heldenboekTekst } from './render-vaardigheden.js?v=134';
 import { renderStatblock } from './render-statblock.js?v=9';
 import { initSocket } from "./socket-client.js?v=94";
-import { initDmPanel } from "./dm-panel.js?v=415";
+import { initDmPanel } from "./dm-panel.js?v=419";
 import { COND_INFO, COND_LABEL, COND_MET_PLAATJE, COND_ICON } from './conditions.js?v=2';
 import './media-picker.js?v=12';
 import './wizard.js?v=8';
@@ -1578,9 +1578,11 @@ async function showLanding({ alleenGroep = null } = {}) {
           data-has-password="${c.groepHasPassword ? '1' : ''}"
           data-groep-naam="${esc(c.groepNaam || '')}"
           data-portrait-video="${c.portraitVideoId ? '1' : ''}"
+          role="button" tabindex="0" aria-label="Spelen als ${esc(c.name)}"
+          onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click();}"
           onclick="window.app._landingPortraitClick('${escArg(c.id)}', this)">
           <div class="landing-portrait-ring">
-            <img src="${api.thumbUrl(esc(c.id))}" class="landing-portrait-img"
+            <img src="${api.thumbUrl(esc(c.id))}" class="landing-portrait-img" alt=""
               onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
             <div class="landing-portrait-fallback" style="display:none">${icon('user')}</div>
           </div>
@@ -2081,7 +2083,17 @@ function openModal(title, subtitle, bodyHtml, hulp = '') {
   // dan staat er niets.
   const _hulp = $('#m-hulp');
   if (_hulp) _hulp.innerHTML = (hulp && window._heeftHelp?.(hulp)) ? (window._helpBtn?.(hulp) ?? '') : '';
+  // Toetsenbord en schermlezer: de focus gaat het venster in (op het
+  // kruisje), en na het sluiten terug naar waar je was. Zonder dit tabde je
+  // achter het venster verder door de pagina die eronder lag.
+  const _wasOpen = $('#modal-overlay').classList.contains('active');
+  if (!_wasOpen) _modalVorigeFocus = document.activeElement;
   $('#modal-overlay').classList.add('active');
+  if (!_wasOpen) setTimeout(() => {
+    if (!$('#modal-overlay').classList.contains('active')) return;
+    if (document.activeElement?.closest?.('#modal-overlay')) return;   // de inhoud koos zelf een veld
+    document.querySelector('#modal-overlay .modal-close')?.focus({ preventScroll: true });
+  }, 50);
   // Vergrendel de minimale hoogte zodat tabwisseling de modal niet laat krimpen.
   // 300ms: genoeg voor layout + afbeelding eerste frame.
   setTimeout(() => {
@@ -2120,6 +2132,27 @@ function sluitBijKlikBuiten(el, sluit) {
   });
 }
 
+let _modalVorigeFocus = null;
+
+// Escape sluit een venster om naar te kijken — een kaartje, een statblok. Een
+// venster met invulvelden (de editor) niet: er is geen controle op onbewaarde
+// wijzigingen, en één toets te veel mag geen werk weggooien. Staat de focus in
+// een veld, dan doet Escape daar wat het daar doet (een suggestielijst sluiten).
+document.addEventListener('keydown', (e) => {
+  if (e.key !== 'Escape' || e.defaultPrevented) return;
+  const ov = document.getElementById('modal-overlay');
+  if (!ov?.classList.contains('active')) return;
+  if (document.querySelector('#lightbox:not(.hidden), .dramatic-reveal-overlay, #brief-cinematic, .levelup-cine')) return;
+  if (e.target?.closest?.('input, textarea, select, [contenteditable="true"]')) return;
+  const body = document.getElementById('m-body');
+  // Een veld dat zichzelf bewaart tijdens het typen (`data-bewaart-zelf`, zoals
+  // de notitie van de DM op een kaartje) maakt een venster geen editor.
+  const veld = ':not([data-bewaart-zelf])';
+  if (body?.querySelector(`textarea${veld}, select${veld}, input${veld}:not([type=hidden]):not([type=checkbox]):not([type=radio]):not([type=search])`)) return;
+  e.preventDefault();
+  closeModal();
+});
+
 function closeModal() {
   const modal = document.querySelector('#modal-overlay .modal');
   if (modal) modal.style.minHeight = '';   // vrijgeven na sluiten
@@ -2131,6 +2164,8 @@ function closeModal() {
   if (window._clearHistory) window._clearHistory();
   // Verberg shop-tooltip als die nog zichtbaar was
   document.getElementById('shop-item-tooltip')?.classList.add('hidden');
+  const terug = _modalVorigeFocus; _modalVorigeFocus = null;
+  if (terug && document.contains(terug) && terug !== document.body) { try { terug.focus({ preventScroll: true }); } catch {} }
 }
 
 // ── Lightbox ──
@@ -3904,11 +3939,15 @@ function _progClassKey(prog, klasse) {
 
 // Bouw een profiel-dropdown. Bestaande (mogelijk niet-canonieke) waarde blijft selecteerbaar
 // zodat er geen data verloren gaat; de speler kan zo overstappen op een canonieke optie.
+// Voor een schermlezer: het label staat ernaast als losse tekst, niet als
+// <label for>, dus de keuzelijst heeft een eigen naam nodig.
+const _PPF_NAAM = { subclass: 'Subclass', multiSubclass: 'Subclass', background: 'Background', origin: 'Origin',
+  originVariant: 'Origin', factieTitel: 'Factietitel' };
 function _ppfSelectField(field, current, options, placeholder, extraOnchange = '') {
   const cur = current ?? '';
   const opts = [...options];
   if (cur && !opts.includes(cur)) opts.unshift(cur);
-  return `<select class="ppf-input ppf-select"
+  return `<select class="ppf-input ppf-select" aria-label="${esc(_PPF_NAAM[field] || field)}"
     onchange="window._saveProfileField('${field}', this.value)${extraOnchange ? '; ' + extraOnchange : ''}">
     <option value="">${placeholder}</option>
     ${opts.map(o => `<option value="${esc(o)}"${o === cur ? ' selected' : ''}>${esc(o)}</option>`).join('')}
@@ -7950,10 +7989,15 @@ function _pdsInklapToepassen() {
     kop.dataset.pdsKlaar = '1';
     kop.dataset.pdsKey   = sleutel;
     kop.classList.add('pds-kop');
-    kop.setAttribute('role', 'button');
-    kop.setAttribute('tabindex', '0');
+    // Een kop met een eigen knop erin (+ wapen) wordt geen knop: een knop in
+    // een knop is voor een schermlezer één ding met twee betekenissen. Hij
+    // klapt met de muis nog steeds in en uit.
+    if (!kop.querySelector('button, a, input, select')) {
+      kop.setAttribute('role', 'button');
+      kop.setAttribute('tabindex', '0');
+    }
     if (localStorage.getItem(sleutel) === '0') sec.classList.add('pds-dicht');
-    kop.setAttribute('aria-expanded', sec.classList.contains('pds-dicht') ? 'false' : 'true');
+    if (kop.getAttribute('role') === 'button') kop.setAttribute('aria-expanded', sec.classList.contains('pds-dicht') ? 'false' : 'true');
   }
 }
 // Eén gedelegeerde handler op document i.p.v. één per kop — het paneel wordt
@@ -7964,7 +8008,7 @@ window._pdsKlik = function (ev) {
   const sec = kop.closest('.player-dash-section');
   if (!sec) return;
   const dicht = sec.classList.toggle('pds-dicht');
-  kop.setAttribute('aria-expanded', dicht ? 'false' : 'true');
+  if (kop.getAttribute('role') === 'button') kop.setAttribute('aria-expanded', dicht ? 'false' : 'true');
   try { localStorage.setItem(kop.dataset.pdsKey, dicht ? '0' : '1'); } catch {}
 };
 document.addEventListener('click', window._pdsKlik);
@@ -8322,7 +8366,7 @@ async function renderMijnKarakter(opts = {}) {
             </svg>`;
           })()}
           <div class="player-dash-avatar-wrap avatar-${hpCls}" onclick="window._dashOpenPortraitVideo()" style="cursor:pointer">
-            <img src="${imgUrl}" class="player-dash-avatar"
+            <img src="${imgUrl}" class="player-dash-avatar" alt=""
               onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
             <div class="player-dash-avatar-fallback" style="display:none">${icon('user')}</div>
           </div>
@@ -8330,7 +8374,7 @@ async function renderMijnKarakter(opts = {}) {
         <div class="player-dash-hero-info">
           <h2 class="player-dash-name">${esc(playerName)}</h2>
           <button class="player-hero-collapse-btn${localStorage.getItem('_heroCollapsed') === '1' ? ' collapsed' : ''}"
-            onclick="window._toggleHeroCollapse()" title="Verberg/toon karakterinfo">▲</button>
+            onclick="window._toggleHeroCollapse()" title="Verberg/toon karakterinfo" aria-label="Kop in- of uitklappen">▲</button>
           ${sub ? `<p class="player-dash-sub">${esc(sub)}</p>` : ''}
           <!-- De DM kon de hele party al printen; een speler kreeg zijn eigen
                blad nergens op papier. Juist bij een vers personage wil je dat.
@@ -8345,7 +8389,7 @@ async function renderMijnKarakter(opts = {}) {
                 onchange="window._saveProfileField('level', this.value)">` : _vast(playerProfile.level)}</div>
             <div class="ppf-row"><label class="ppf-label">Class</label>
               ${_dmBlad ? `
-              <select class="ppf-input ppf-select" id="ppf-klasse-select"
+              <select class="ppf-input ppf-select" id="ppf-klasse-select" aria-label="Class"
                 onchange="window._saveProfileField('klasse', this.value); window._updateMulticlassTheme()">
                 <option value="">—</option>
                 ${_getKlassen().map(k =>
@@ -8371,7 +8415,7 @@ async function renderMijnKarakter(opts = {}) {
             ${_subRij(`Subclass ${esc(playerProfile.multiKlasse || '2')}`,
               'multiSubclass', playerProfile.multiSubclass, _subclassOpts2)}` : ''}
             ${_isMulticlass && _dmBlad ? `<div class="ppf-row"><label class="ppf-label">Multiclass</label>
-              <select class="ppf-input ppf-select" id="ppf-multi-select"
+              <select class="ppf-input ppf-select" id="ppf-multi-select" aria-label="Multiclass"
                 onchange="window._saveProfileField('multiKlasse', this.value); window._updateMulticlassTheme()">
                 <option value="">—</option>
                 ${_getKlassen().map(k =>
@@ -8678,7 +8722,7 @@ async function renderMijnKarakter(opts = {}) {
               <div class="player-hp-temp-label">Temporary HP</div>
               <div class="player-hp-temp-row">
                 <button class="player-hp-temp-btn" onclick="window._dashTempHpChange(-1)" title="Verminder">−</button>
-                <input id="dash-hp-temp" type="number" class="player-hp-temp-inp" min="0"
+                <input id="dash-hp-temp" type="number" class="player-hp-temp-inp" min="0" aria-label="Temporary HP"
                   value="${tempNum}" onchange="window._dashTempHpSave()" onclick="event.stopPropagation()">
                 <button class="player-hp-temp-btn" onclick="window._dashTempHpChange(1)" title="Verhoog">+</button>
               </div>
@@ -8773,7 +8817,7 @@ async function renderMijnKarakter(opts = {}) {
               return `
                 <div class="player-ability-card" style="--ab-c:${_AB_KLEUR[ab]}">
                   <div class="player-ability-label">${_AB_LABELS[ab]}</div>
-                  <input class="player-ability-score" type="number" min="1" max="30"
+                  <input class="player-ability-score" type="number" min="1" max="30" aria-label="${_AB_LABELS[ab]}"
                     value="${_ab(ab)}"
                     onblur="window._saveAbilityScore('${ab}', this.value)">
                   <div class="player-ability-mod-wrap">
@@ -8785,6 +8829,7 @@ async function renderMijnKarakter(opts = {}) {
                   <div class="player-ability-save">
                     <span class="player-ability-save-kop">Save</span>
                     <button class="player-save-dot${isProf ? ' active' : ''}"
+                      aria-label="${_AB_LABELS[ab]} Saving Throw: ${isProf ? 'proficient' : 'niet proficient'}" aria-pressed="${isProf}"
                       onclick="window._toggleSaveProf('${ab}', ${!isProf})"
                       data-wptip="${isProf ? 'Proficient in deze saving throw — tik om uit te zetten' : 'Niet proficient — tik om proficiency aan te zetten'}">
                     </button>
@@ -8808,6 +8853,7 @@ async function renderMijnKarakter(opts = {}) {
               const bonusCls = adjVal > 0 ? ' skill-bonus--buff' : adjVal < 0 ? ' skill-bonus--nerf' : '';
               return `<div class="player-skill-row" style="--ab-c:${_AB_KLEUR[skill.ab] || '#8a7050'}">
                 <button class="player-skill-prof-btn${prof ? ' ' + prof : ''}"
+                  aria-label="${esc(skill.label)}: ${prof === 'expert' ? 'expertise' : prof === 'prof' ? 'proficient' : 'geen proficiency'}"
                   onclick="window._cycleSkillProf('${skill.key}')"
                   data-wptip="${prof === 'expert' ? 'Expertise — tik voor geen proficiency' : prof === 'prof' ? 'Proficient — tik voor expertise' : 'Geen proficiency — tik voor proficient'}"></button>
                 <span class="player-skill-bonus${bonusCls}">${bonusStr}</span>
@@ -8958,7 +9004,7 @@ async function renderMijnKarakter(opts = {}) {
               <span class="player-currency-coin" style="display:inline-flex;align-items:center;justify-content:center"><span style="display:inline-block;width:.9em;height:.9em;border-radius:50%;background:#c9a227;box-shadow:0 0 0 1px rgba(0,0,0,.2)"></span></span>
               <div class="player-currency-body">
                 <span class="player-currency-name">${esc(_cNames.fl || MUNT_STANDAARD.fl)}</span>
-                <input class="player-currency-input" type="number" min="0" id="dash-cur-fl"
+                <input class="player-currency-input" type="number" min="0" id="dash-cur-fl" aria-label="${esc(_cNames.fl || MUNT_STANDAARD.fl)}"
                   value="${partyCurrency.enabled ? partyCurrency.fl : currency.fl}"
                   oninput="window._dashCurrencySave()">
               </div>
@@ -8967,7 +9013,7 @@ async function renderMijnKarakter(opts = {}) {
               <span class="player-currency-coin" style="display:inline-flex;align-items:center;justify-content:center"><span style="display:inline-block;width:.9em;height:.9em;border-radius:50%;background:#9090a8;box-shadow:0 0 0 1px rgba(0,0,0,.2)"></span></span>
               <div class="player-currency-body">
                 <span class="player-currency-name">${esc(_cNames.kn || MUNT_STANDAARD.kn)}</span>
-                <input class="player-currency-input" type="number" min="0" id="dash-cur-kn"
+                <input class="player-currency-input" type="number" min="0" id="dash-cur-kn" aria-label="${esc(_cNames.kn || MUNT_STANDAARD.kn)}"
                   value="${partyCurrency.enabled ? partyCurrency.kn : currency.kn}"
                   oninput="window._dashCurrencySave()">
               </div>
@@ -8976,7 +9022,7 @@ async function renderMijnKarakter(opts = {}) {
               <span class="player-currency-coin" style="display:inline-flex;align-items:center;justify-content:center"><span style="display:inline-block;width:.9em;height:.9em;border-radius:50%;background:#9a5530;box-shadow:0 0 0 1px rgba(0,0,0,.2)"></span></span>
               <div class="player-currency-body">
                 <span class="player-currency-name">${esc(_cNames.cl || MUNT_STANDAARD.cl)}</span>
-                <input class="player-currency-input" type="number" min="0" id="dash-cur-cl"
+                <input class="player-currency-input" type="number" min="0" id="dash-cur-cl" aria-label="${esc(_cNames.cl || MUNT_STANDAARD.cl)}"
                   value="${partyCurrency.enabled ? partyCurrency.cl : currency.cl}"
                   oninput="window._dashCurrencySave()">
               </div>
@@ -11716,7 +11762,10 @@ document.addEventListener('keydown', (e) => {
   if (e.key === 'Escape') {
     document.getElementById('global-search-overlay')?.classList.add('hidden');
     closeLightbox();
-    closeModal();
+    // Het venster sluit hier níét meer: dat deed het altijd, ook een editor
+    // waarin je typte — Escape om een suggestielijst weg te halen gooide je
+    // onbewaarde werk weg. De handler bij `closeModal` beslist nu, en laat een
+    // venster met invulvelden staan.
     closeLoginModal();
     document.getElementById('dice-panel')?.classList.remove('open');
     document.getElementById('dm-panel')?.classList.remove('open');

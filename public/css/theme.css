@@ -30833,3 +30833,19 @@ body:has(#sb-overlay.sb-open) .dm-dice-fab { display: none !important; }
   background: transparent; border-color: transparent;
   color: #2a1a08; cursor: default;
 }
+
+/* ── Toegankelijkheid (axe-core, WCAG 2.1 AA — 8 nov 2026) ────────────────
+   Kleine tekst moet een contrast van 4,5 halen. Deze zaten eronder; dezelfde
+   tint, alleen donkerder (of op een donkere ondergrond lichter). */
+.dice-result-label           { color: #6b5236; }               /* was 3,8 */
+.spreuk-stat-lbl             { color: #7a5432; }               /* was 4,1 */
+.player-dash-section-title   { color: #6b5236; }               /* was 4,5 */
+.dm-tab-btn.active           { color: #6e4f05; border-left-color: #7d5a06; } /* was 3,2 */
+/* De inlogknop op de landingspagina stond op 40% dekking: 2,25. Hij mag
+   bescheiden blijven, maar je moet hem kunnen lezen. */
+.landing-toegang-knop        { color: rgba(196,168,122,0.82); }
+.landing-terug               { color: rgba(220,195,145,.8); }
+/* Een portret op de landingspagina is nu met Tab te bereiken; dan moet je
+   ook zien wélk portret de focus heeft. */
+.landing-portrait:focus-visible { outline: 2px solid #c4a840; outline-offset: 4px; border-radius: 12px; }
+.landing-terug:focus-visible    { outline: 2px solid #c4a840; outline-offset: 3px; }

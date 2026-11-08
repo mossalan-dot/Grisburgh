@@ -60,7 +60,7 @@
       },
     }
   </script>
-  <link rel="stylesheet" href="/css/theme.css?v=916">
+  <link rel="stylesheet" href="/css/theme.css?v=920">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
   <script>pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';</script>
   <script src="/socket.io/socket.io.js"></script>
@@ -412,7 +412,7 @@
        inline onclick kan niet zien waar de muisbeweging begón, en sloot het
        venster zodra je een zin selecteerde die net buiten het kaartje eindigde. -->
   <div class="modal-overlay" id="modal-overlay">
-    <div class="modal animate-modal-in">
+    <div class="modal animate-modal-in" role="dialog" aria-modal="true" aria-labelledby="m-title">
       <div id="m-accent" class="modal-accent"></div>
       <div class="modal-head" id="modal-head">
         <div class="flex items-center gap-2 min-w-0 flex-1">
@@ -431,7 +431,7 @@
           </div>
         </div>
         <span id="m-hulp" class="modal-hulp"></span>
-        <button class="modal-close" onclick="window.app.closeModal()">&times;</button>
+        <button class="modal-close" onclick="window.app.closeModal()" aria-label="Sluiten">&times;</button>
       </div>
       <div class="overflow-y-auto flex-1 min-h-0" id="m-body" style="padding:20px;overscroll-behavior:contain"></div>
     </div>
@@ -583,6 +583,6 @@
   <!-- DM Instellingen modal -->
 
   <script type="module" src="/js/sound-manager.js?v=10"></script>
-  <script type="module" src="/js/app.js?v=1183"></script>
+  <script type="module" src="/js/app.js?v=1191"></script>
 </body>
 </html>
