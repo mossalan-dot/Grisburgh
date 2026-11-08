@@ -767,6 +767,8 @@ fout-uitvoert.
 - [ ] **Level gegund** (DM→SP) — gun een speler een level terwijl hij zijn Personage-tab open heeft: de balk *Je mag een level omhoog* verschijnt zonder herladen, met een melding die het venster opent
 - [ ] **Buit bijgeschreven** (SP) — sluit een verdeling met alleen geld: de melding noemt het hele bedrag met de muntnamen ("4 Silver · 2 Copper"), en de speler las eerder *Er is buit!* — geen "Alle items zijn verdeeld" als er nooit een voorwerp in zat
 - [ ] **Gevechtsbalk op de telefoon** (SP) — met je beurt aan zet staat *Jij bent aan zet* op één regel naast de ronde
+- [ ] **Wifi even weg** (SP) — zet een telefoon even offline, onthul intussen een kaartje en gun een level; zodra hij terug is staat de naam erbij en de level-upbalk erop, zonder verversen
+- [ ] **Een beurs in de min** (DM/SP) — zet een speler op een negatieve beurs en verdeel buit: hij krijgt precies zijn aandeel erbij, en de beurs toont één minteken vooraan ("−3 gp · 6 sp")
 - [ ] **Tablet na herstart** (TAB) — server herstarten en kijken of de tablet ingelogd blijft en zijn kamer terugvindt
 
 ## Blok 9 — Uitvoer en onderhoud
@@ -916,6 +918,9 @@ Per bevinding: waar, wat, en of het opgelost is. Nieuwe regels onderaan.
 | 70 | 4 | Level-up: knoppen in het systeemlettertype; "klasse", "verhoging", "Spreuken van niveau 3", en in het spreukdetail "Tovervorm" en Nederlandse PHB-scholen ("Oproeping") | opgelost — Cinzel; Class, Ability Score Improvement, level, Cantrip, Evocation (alleen de Wands & Wizards-scholen blijven vertaald) |
 | 71 | 8 | Emoji in schermmeldingen (👤 bij een onthulling, ✅ ❌ ✉️ 💬 📁 🏆 🎲 📍), en "De Gock" hardgecodeerd in een melding van een andere campagne | opgelost — `icon()`, en de naam uit `meta.gock.naam` |
 | 72 | 4 | Een speler kon op zijn Personage-tab zijn eigen level en class omzetten (en zichzelf level 20 geven) | opgelost — alleen de DM (`_PROFIEL_DM_VELDEN` in `PATCH /player-profile`, 403 voor een speler); een subclass kiest de speler één keer zolang hij leeg is. `multiSubclass` werd bovendien nooit bewaard: hij stond niet in de lijst toegestane velden. `tests/profiel-dm.test.js` |
+| 73 | 8 | Drukteproef (DM, vijf spelers en een tafelscherm tegelijk): een speler met een beurs onder nul verloor bij elke bijschrijving geld — `fromCl` rondde −297 af tot −3/−10/−7 (= −407); een buitverdeling liet 85 koper verdwijnen | opgelost — rekenen met het bedrag zonder teken; `formatCl` en `_muntKort` tonen één minteken |
+| 74 | 8 | Een telefoon die even geen verbinding had haalde niets in: wat er in die tijd gebeurde (onthulling, beurt, kist, gegund level) kwam pas na verversen | opgelost — bij een herverbinding wordt de stand opnieuw opgehaald (`_inhalenNaOnderbreking`) |
+| 75 | 7 | Meerdere beelden tegelijk uploaden (akte-importer, uploadknop in de regie) kon registraties in de mediabibliotheek wissen: `_registerMedia` las `media.json` vóór een `await` en schreef daarna terug; `_backfillMedia` idem | opgelost — eerst meten, dan lezen en schrijven; de backfill voegt alleen zijn nieuwe regels toe aan een verse stand |
 
 ### Spell slots, multiclass en de signatuurkaart (17 sep 2026)
 

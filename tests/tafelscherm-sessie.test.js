@@ -93,3 +93,18 @@ describe('Tafelscherm in een lopende sessie', () => {
     assert.strictEqual(k.items[0]?.naam, 'Natte kaart');
   });
 });
+
+// Uit de drukteproef (8 nov 2026): een beurs in de min verloor bij elke
+// bijschrijving geld, omdat `fromCl` een negatief getal de verkeerde kant op
+// afrondde (−297 → −3/−10/−7 = −407).
+describe('Geld bij een beurs onder nul', () => {
+  it('fromCl en toCl gaan heen en terug zonder verlies, ook onder nul', () => {
+    const src = fs.readFileSync(path.join(__dirname, '..', 'routes', 'api.js'), 'utf8');
+    const stuk = src.slice(src.indexOf('function toCl('), src.indexOf('\n}\n', src.indexOf('function fromCl(')) + 2);
+    const ctx = {};
+    require('vm').runInNewContext(stuk + ';this.toCl=toCl;this.fromCl=fromCl;', ctx);
+    for (const n of [-297, -368, -1, -100, 0, 7, 999, 12345]) {
+      assert.strictEqual(ctx.toCl(ctx.fromCl(n)), n, `bedrag ${n}`);
+    }
+  });
+});

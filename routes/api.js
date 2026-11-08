@@ -2525,11 +2525,16 @@ function _muntWoorden() {
 function toCl(cur) {
   return Math.round(((cur.fl || 0) * 100) + ((cur.kn || 0) * 10) + (cur.cl || 0));
 }
+// Een beurs kan onder nul zakken (een DM die een schuld noteert, een betaling
+// die net niet past). `Math.floor` rondt een negatief getal dan de verkeerde
+// kant op: −297 werd −3 / −10 / −7, en dat is −407. Elke bijschrijving op een
+// beurs in de min kostte zo een paar munten (een buitverdeling liet 85 koper
+// verdwijnen). Dus: reken met het bedrag zonder teken en zet het er daarna weer
+// voor. `+ 0` maakt van een −0 een gewone 0.
 function fromCl(total) {
-  const fl = Math.floor(total / 100);
-  const kn = Math.floor((total % 100) / 10);
-  const cl = total % 10;
-  return { fl, kn, cl };
+  const t = Math.round(Number(total) || 0);
+  const s = t < 0 ? -1 : 1, a = Math.abs(t);
+  return { fl: s * Math.floor(a / 100) + 0, kn: s * Math.floor((a % 100) / 10) + 0, cl: s * (a % 10) + 0 };
 }
 
 // ── Winkels ───────────────────────────────────────────────────────────────────
@@ -9269,14 +9274,20 @@ const _MIME_TYPE_GROEP = (mime) =>
 // Registreer of werk een bestand bij in media.json. `buffer` optioneel — als het
 // een afbeelding is bepalen we breedte/hoogte via sharp.
 async function _registerMedia(id, { mime, grootte, origineleNaam, naam, buffer } = {}) {
+  const type = _MIME_TYPE_GROEP(mime);
+  // Eerst meten, dán lezen en schrijven. Andersom lagen er bij een upload van
+  // meerdere beelden tegelijk (de akte-importer, de uploadknop in de regie)
+  // meerdere aanroepen tussen hun lezen en hun schrijven, en de laatste wist
+  // de registraties van de andere.
+  let gemeten = null;
+  if (type === 'afbeelding' && _sharp && buffer && mime !== 'image/svg+xml') {
+    try { const m = await _sharp(buffer).metadata(); gemeten = { breedte: m.width || null, hoogte: m.height || null }; } catch {}
+  }
   const media = storage.readJSON('media.json');
   if (!media.files) media.files = {};
   const bestaand = media.files[id] || {};
-  const type = _MIME_TYPE_GROEP(mime);
-  let breedte = bestaand.breedte ?? null, hoogte = bestaand.hoogte ?? null;
-  if (type === 'afbeelding' && _sharp && buffer && mime !== 'image/svg+xml') {
-    try { const m = await _sharp(buffer).metadata(); breedte = m.width || null; hoogte = m.height || null; } catch {}
-  }
+  const breedte = gemeten ? gemeten.breedte : (bestaand.breedte ?? null);
+  const hoogte  = gemeten ? gemeten.hoogte  : (bestaand.hoogte  ?? null);
   media.files[id] = {
     naam:          naam || bestaand.naam || id,
     type,
@@ -9315,6 +9326,7 @@ async function _backfillMedia() {
   let dir;
   try { dir = fs.readdirSync(storage.FILES_DIR); } catch { return media; }
   let dirty = false;
+  const nieuw = {};
   for (const fname of dir) {
     const id = fname.replace(/\.[^.]+$/, '');
     if (media.files[id]) continue;
@@ -9329,10 +9341,18 @@ async function _backfillMedia() {
       try { const m = await _sharp(file.path).metadata(); breedte = m.width || null; hoogte = m.height || null; } catch {}
     }
     media.files[id] = { naam: id, type, mime: file.mimetype || '', grootte, breedte, hoogte, geupload, origineleNaam: '' };
+    nieuw[id] = media.files[id];
     dirty = true;
   }
-  if (dirty) storage.writeJSON('media.json', media);
-  return media;
+  if (!dirty) return media;
+  // Vers lezen en alleen de nieuwe regels erbij: tussen het lezen hierboven en
+  // nu liggen awaits (sharp per bestand), en wat er in die tijd geüpload of
+  // hernoemd werd stond anders niet meer in de bibliotheek.
+  const vers = storage.readJSON('media.json');
+  if (!vers.files) vers.files = {};
+  for (const [id, regel] of Object.entries(nieuw)) if (!vers.files[id]) vers.files[id] = regel;
+  storage.writeJSON('media.json', vers);
+  return vers;
 }
 
 // Lijst: metadata + live berekend gebruik per bestand.

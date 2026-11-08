@@ -931,8 +931,16 @@ function _ververOpenKaartje(id) {
     }
   });
 
+  let _eerderVerbonden = false;
   socket.on('connect', () => {
     console.log('Socket connected');
+    // **Na een onderbreking inhalen.** Een telefoon die even geen wifi had (of
+    // in de broekzak sliep) meldde zich netjes opnieuw aan, maar wat er in die
+    // tussentijd gebeurde — een onthulling, een beurt, een kist, een gegund
+    // level — kwam nooit meer: socket.io speelt gemiste events niet na. Dus bij
+    // een herverbinding (niet bij de eerste) halen we de stand zelf op.
+    if (_eerderVerbonden) setTimeout(_inhalenNaOnderbreking, 400);
+    _eerderVerbonden = true;
     // Herregistreer characterId na reconnect
     const cid = window.app?.state?.characterId;
     if (cid) socket.emit('player:register', cid);
@@ -943,6 +951,24 @@ function _ververOpenKaartje(id) {
     if (window._isDisplayMode) socket.emit('display:register');
   });
   socket.on('disconnect', () => console.log('Socket disconnected'));
+}
+
+function _inhalenNaOnderbreking() {
+  const app = window.app;
+  if (!app) return;
+  // Het scherm waar je naar kijkt, opnieuw getekend met de verse stand.
+  app.refreshSection?.(app.state?.activeSection);
+  // Het gevecht staat los van de sectie (de overlay en het tafelscherm).
+  const camp = encodeURIComponent(location.pathname.split('/').filter(Boolean)[0] || '');
+  fetch(`/api/combat?${window._isDisplayMode ? 'tafel=1&' : ''}campagne=${camp}`)
+    .then(r => r.ok ? r.json() : null)
+    .then(c => { if (c) window.dmPanel?.onCombatUpdated?.(c); })
+    .catch(() => {});
+  // En wat bovenop elk scherm hangt: de kist, de level-up, de badges.
+  window._renderPlayerLoot?.();
+  window._levelUpBalkVers?.();
+  window._badgesLaden?.();
+  window._updateDiscoveryChip?.(true);
 }
 
 function _showDramaticReveal(doc) {

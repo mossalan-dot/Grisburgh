@@ -20,7 +20,7 @@ const lees = f => fs.readFileSync(path.join(__dirname, '..', 'public/js', f), 'u
 function muntSandbox(namen) {
   const app = lees('app.js');
   const begin = app.indexOf('const _MUNT_AFK_STD');
-  const eind = app.indexOf('};', app.indexOf('window._muntKort')) + 2;
+  const eind = app.indexOf('\n};\n', app.indexOf('window._muntKort')) + 3;
   assert.ok(begin > 0 && eind > begin, 'muntblok gevonden in app.js');
   const window = { _muntNamen: () => namen };
   vm.runInNewContext(app.slice(begin, eind), { window });
@@ -36,6 +36,10 @@ describe('Korte muntnamen', () => {
   it('Grisburgh houdt fl/kn/cl', () => {
     const w = muntSandbox({ fl: 'Florinde', kn: 'Knaker', cl: 'Centeling' });
     assert.strictEqual(w._muntKort({ fl: 1, kn: 3, cl: 4 }, ' '), '1 fl 3 kn 4 cl');
+  });
+  it('een schuld krijgt één minteken vooraan', () => {
+    const w = muntSandbox({ fl: 'Gold', kn: 'Silver', cl: 'Copper' });
+    assert.strictEqual(w._muntKort({ fl: -3, kn: -6, cl: -8 }), '−3 gp · 6 sp · 8 cp');
   });
   it('eigen namen: de eerste twee letters', () => {
     const w = muntSandbox({ fl: 'Daalder', kn: 'Stuiver', cl: 'Duit' });

@@ -11,7 +11,7 @@ import './render-handleiding.js?v=2';
 import './render-melding.js?v=4';
 import { renderVaardigheden, zoekVaardigheden, heldenboekTekst } from './render-vaardigheden.js?v=134';
 import { renderStatblock } from './render-statblock.js?v=9';
-import { initSocket } from "./socket-client.js?v=93";
+import { initSocket } from "./socket-client.js?v=94";
 import { initDmPanel } from "./dm-panel.js?v=415";
 import { COND_INFO, COND_LABEL, COND_MET_PLAATJE, COND_ICON } from './conditions.js?v=2';
 import './media-picker.js?v=12';
@@ -45,10 +45,14 @@ window._muntNamen = () => window._currency || window.app?.state?.meta?.currency 
 // moest raden dat kn de Stuiver was.
 window.formatCl = (cl) => {
   const t = Math.round(Number(cl) || 0);
-  const fl = Math.floor(t / 100), kn = Math.floor((t % 100) / 10), ce = t % 10;
+  // Met het teken apart: een schuld van 297 is "−2 Gold · 9 Silver · 7 Copper",
+  // niet −3 / −10 / −7 (zelfde valkuil als `fromCl` op de server).
+  const a = Math.abs(t);
+  const fl = Math.floor(a / 100), kn = Math.floor((a % 100) / 10), ce = a % 10;
   const n = window._muntNamen();
-  return [fl && `${fl} ${n.fl || 'fl'}`, kn && `${kn} ${n.kn || 'kn'}`, ce && `${ce} ${n.cl || 'cl'}`]
+  const tekst = [fl && `${fl} ${n.fl || 'fl'}`, kn && `${kn} ${n.kn || 'kn'}`, ce && `${ce} ${n.cl || 'cl'}`]
     .filter(Boolean).join(' · ') || `0 ${n.cl || 'cl'}`;
+  return t < 0 ? `−${tekst}` : tekst;
 };
 
 // De korte vorm, voor in een kop of een beurs-pil waar "99469 Florinde"
@@ -67,8 +71,14 @@ window._muntAfk = (sleutel) => {
   return l.replace(/[^a-z\u00e0-\u024f]/g, '').slice(0, 2) || sleutel;
 };
 window._muntKort = (cur, sep = ' · ', leeg) => {
-  const d = ['fl', 'kn', 'cl'].filter(k => cur?.[k]).map(k => `${cur[k]} ${window._muntAfk(k)}`);
-  return d.join(sep) || (leeg ?? `0 ${window._muntAfk('cl')}`);
+  // Een beurs in de min staat als −3 / −6 / −8 opgeslagen; één minteken vooraan
+  // leest als een schuld, drie mintekens als een rekenfout.
+  const totaal = (cur?.fl || 0) * 100 + (cur?.kn || 0) * 10 + (cur?.cl || 0);
+  const a = Math.abs(totaal);
+  const delen = { fl: Math.floor(a / 100), kn: Math.floor((a % 100) / 10), cl: a % 10 };
+  const d = ['fl', 'kn', 'cl'].filter(k => delen[k]).map(k => `${delen[k]} ${window._muntAfk(k)}`);
+  if (!d.length) return leeg ?? `0 ${window._muntAfk('cl')}`;
+  return (totaal < 0 ? '−' : '') + d.join(sep);
 };
 
 // Waar de tekst een plaatsnaam noemt, is dat de naam van de campagne — Grisburgh
