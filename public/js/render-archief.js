@@ -1,4 +1,4 @@
-import { api } from './api.js?v=317';
+import { api } from './api.js?v=318';
 
 // icon() helper is defined globally in app.js; grab a local alias for template use.
 const icon = (...a) => window.icon(...a);
@@ -250,7 +250,7 @@ export async function renderLogboek() {
   if (_logboekActiveTab === 'prikbord') {
     tabContent.style.cssText = 'flex:1; min-height:0; overflow:hidden; display:flex; flex-direction:column;';
     tabContent.innerHTML = `<div id="pb-relatiemap-container" style="flex:1;display:flex;flex-direction:column;overflow:hidden;min-height:0;"></div>`;
-    const { renderRelatiemap } = await import('./render-relatiemap.js?v=33');
+    const { renderRelatiemap } = await import('./render-relatiemap.js?v=34');
     await renderRelatiemap(document.getElementById('pb-relatiemap-container'));
     return;
   }
@@ -1702,7 +1702,7 @@ window._nakijkKlaar = async (ch, type, id, btn) => {
 
 window._akteSchrijf = async (ch) => {
   const info = meta?.hoofdstukken?.[ch] || {};
-  const { openAkteSchrijven } = await import('./akte-schrijven.js?v=37');
+  const { openAkteSchrijven } = await import('./akte-schrijven.js?v=38');
   openAkteSchrijven(ch, info.short || info.title || ch);
 };
 window._logboekVerversen = () => renderLogboek();

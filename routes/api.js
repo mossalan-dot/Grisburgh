@@ -6690,7 +6690,7 @@ router.get('/player-currency/:characterId', attachRole, (req, res) => {
 });
 
 router.patch('/player-currency/:characterId', attachRole, (req, res) => {
-  if (req.role !== 'dm') return res.status(403).json({ error: 'Forbidden' });
+  if (req.role !== 'dm') return res.status(403).json({ error: 'Geen toegang' });
   const { characterId } = req.params;
   const dmState = readDmState();
   if (!dmState.playerCurrency) dmState.playerCurrency = {};
@@ -12206,7 +12206,7 @@ router.post('/monsters', requireDM, (req, res) => {
 router.put('/monsters/:id', requireDM, (req, res) => {
   const data = storage.readJSON('monsters.json');
   const idx = (data.monsters || []).findIndex(m => m.id === req.params.id);
-  if (idx === -1) return res.status(404).json({ error: 'Not found' });
+  if (idx === -1) return res.status(404).json({ error: 'Niet gevonden' });
   data.monsters[idx] = { ...data.monsters[idx], ...req.body, id: req.params.id };
   storage.writeJSON('monsters.json', data);
   req.app.get('io')?.to(_campagneRoom(req)).emit('bestiarium:updated');

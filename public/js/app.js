@@ -1,21 +1,21 @@
-import { api, campagneUitUrl, zetCampagne } from './api.js?v=317';
-import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, renderDocumenten, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=362";
-import { initArchief, renderLogboek, openLogboekEditor } from "./render-archief.js?v=145";
-import { renderKaart, queueFlyTo, verversPins, nieuweKaart } from './render-kaart.js?v=32';
-import { renderDungeon } from './render-dungeon.js?v=71';
-import { renderRelatiemap } from './render-relatiemap.js?v=33';
-import { renderProgressie, levelupFeatures } from './render-progressie.js?v=65';
-import { renderBestiarium } from './render-bestiarium.js?v=33';
-import { renderSpreuken } from './render-spreuken.js?v=52';
+import { api, campagneUitUrl, zetCampagne } from './api.js?v=318';
+import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, renderDocumenten, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=363";
+import { initArchief, renderLogboek, openLogboekEditor } from "./render-archief.js?v=146";
+import { renderKaart, queueFlyTo, verversPins, nieuweKaart } from './render-kaart.js?v=33';
+import { renderDungeon } from './render-dungeon.js?v=72';
+import { renderRelatiemap } from './render-relatiemap.js?v=34';
+import { renderProgressie, levelupFeatures } from './render-progressie.js?v=66';
+import { renderBestiarium } from './render-bestiarium.js?v=34';
+import { renderSpreuken } from './render-spreuken.js?v=53';
 import './render-handleiding.js?v=2';
 import './render-melding.js?v=4';
-import { renderVaardigheden, zoekVaardigheden, heldenboekTekst } from './render-vaardigheden.js?v=134';
+import { renderVaardigheden, zoekVaardigheden, heldenboekTekst } from './render-vaardigheden.js?v=135';
 import { renderStatblock } from './render-statblock.js?v=9';
-import { initSocket } from "./socket-client.js?v=94";
-import { initDmPanel } from "./dm-panel.js?v=419";
+import { initSocket } from "./socket-client.js?v=95";
+import { initDmPanel } from "./dm-panel.js?v=420";
 import { COND_INFO, COND_LABEL, COND_MET_PLAATJE, COND_ICON } from './conditions.js?v=2';
-import './media-picker.js?v=12';
-import './wizard.js?v=8';
+import './media-picker.js?v=13';
+import './wizard.js?v=9';
 import './tafels.js?v=2';
 
 // ── Icon helper ──
@@ -1644,7 +1644,7 @@ async function _landingNieuwTegel() {
   if (!host || !_groepsWachtwoord || document.getElementById('landing-nieuw')) return;
   let stand = null;
   try {
-    await import('./personage-maken.js?v=7');
+    await import('./personage-maken.js?v=8');
     stand = await window.personageMaken.stand();
   } catch { return; }
   if (stand?.instellingen && stand.instellingen.aan === false) return;
@@ -1666,7 +1666,7 @@ async function _landingNieuwTegel() {
 
 async function _landingNieuw() {
   try {
-    await import('./personage-maken.js?v=7');
+    await import('./personage-maken.js?v=8');
     const stand = await window.personageMaken.stand();
     if (stand?.concept && stand.concept.status !== 'gegund') {
       if (stand.concept.status === 'wacht') {
@@ -3682,7 +3682,7 @@ function _kaartCard(type, m, dm, verdiepingen = null) {
 // eerste bestaande kaart: je drukte op + en keek naar Dreghaven.
 window._kaartNieuw = async function (type) {
   if (type === 'wereld') return nieuweKaart();
-  const { nieuweDungeon } = await import('./render-dungeon.js?v=71');
+  const { nieuweDungeon } = await import('./render-dungeon.js?v=72');
   nieuweDungeon();
 };
 
@@ -15023,12 +15023,30 @@ window._dmMissieGoedkeuren = async (id, titel, toastEl) => {
 // ── Help-systeem ─────────────────────────────────────────────────────────────
 
 const HELP_CONFIG = {
-  personages: () => ({ titel: 'Personages', stappen: [{ titel: 'Personages', tekst: 'Hier vind je de **personages** die je hebt ontmoet — NPC’s én de avonturiers van het gezelschap. Klik een kaart voor details, geheimen en relaties. De DM bepaalt wie zichtbaar is.', afbeelding: null }] }),
-  locaties:   () => ({ titel: 'Locaties', stappen: [{ titel: 'Locaties', tekst: `De **plekken** van ${window._campagneNaam()} en daarbuiten. Een locatie met het type *Winkel* heeft een voorraad waar je kunt kopen en verkopen. Filter via de trechter op o.a. *Winkel*. Klik een kaart voor meer.`, afbeelding: null }] }),
-  organisaties: () => ({ titel: 'Organisaties', stappen: [{ titel: 'Organisaties', tekst: 'Gilden, ordes en groeperingen in de wereld. Klik een kaart voor hun doel, leden en banden met andere partijen.', afbeelding: null }] }),
-  voorwerpen: () => ({ titel: 'Voorwerpen', stappen: [{ titel: 'Voorwerpen', tekst: 'Wapens, uitrusting en magische items. Je kunt voorwerpen claimen, ruilen en in winkels kopen/verkopen. **Zegeningen & Gunsten** (tempel- en factie-beloningen) staan onder een eigen filter, los van de gewone spullen.', afbeelding: null }] }),
-  documenten: () => ({ titel: 'Documenten', stappen: [{ titel: 'Documenten', tekst: 'Het **archief**: brieven, aktes, kaarten en aantekeningen die je onderweg verzamelt. De DM onthult documenten wanneer ze relevant worden.', afbeelding: null }] }),
-  kaart:      () => ({ titel: 'De kaart', stappen: [{ titel: 'Wereld- en stadskaart', tekst: 'Wissel tussen de **wereldkaart** en de **stadskaart**. Pins markeren ontdekte locaties — klik een pin om het bijbehorende kaartje te openen. Zoom met de knoppen of scroll.', afbeelding: null }] }),
+  personages: () => ({ titel: 'Personages', stappen: [
+    { titel: 'Personages', tekst: 'Hier vind je de **personages** die je hebt ontmoet — NPC’s én de avonturiers van het gezelschap. Klik een kaart voor details, geheimen en relaties. De DM bepaalt wie zichtbaar is.' },
+    { titel: 'Zoeken en bladeren', tekst: 'Typ in het zoekveld een naam of een woord uit de beschrijving. In een geopend kaartje blader je met de pijltjes (of door te vegen) naar het volgende — in de volgorde zoals je de lijst nu gefilterd ziet.' },
+  ] }),
+  locaties:   () => ({ titel: 'Locaties', stappen: [
+    { titel: 'Locaties', tekst: `De **plekken** van ${window._campagneNaam()} en daarbuiten die je kent. Klik een kaart voor de beschrijving, wie er hoort en waar hij ligt.` },
+    { titel: 'Winkels', tekst: 'Een plek waar iets te koop is, heeft op zijn kaartje een tabblad met de voorraad. Alle winkels bij elkaar — met de prijzen naast elkaar — vind je op de **Markt**, onder Diensten.' },
+  ] }),
+  organisaties: () => ({ titel: 'Organisaties', stappen: [
+    { titel: 'Organisaties', tekst: 'Gilden, ordes en groeperingen in de wereld. Klik een kaart voor hun doel, leden en banden met andere partijen.', afbeelding: null },
+    { titel: 'Wie erin zit', tekst: 'Je ziet de leden die je party kent. Staat er alleen een rol zonder naam, dan weet je dát er iemand is, maar niet wie — dat is precies wat er nog te ontdekken valt.', afbeelding: null },
+  ] }),
+  voorwerpen: () => ({ titel: 'Voorwerpen', stappen: [
+    { titel: 'Voorwerpen', tekst: 'Wapens, uitrusting, magische items, zegeningen en gunsten: alles wat je party kent. Met de chips bovenaan filter je op soort. Wat van jou is, staat in je **Boedel**.' },
+    { titel: 'Geven en kopen', tekst: 'Een voorwerp uit je Boedel geef je aan een medespeler met *Geven aan…* — meteen, zoals je het over de tafel schuift. Kopen en verkopen doe je in een winkel; de Markt zegt waar iets ligt.' },
+  ] }),
+  documenten: () => ({ titel: 'Documenten', stappen: [
+    { titel: 'Documenten', tekst: 'Brieven, kasboeken, aanplakbiljetten, liederen: wat je onderweg op papier (of op een geluidsfragment) tegenkomt. De DM onthult ze wanneer ze ertoe doen — soms eerst vaag, dan lees je alleen wat er op afstand te zien is.' },
+    { titel: 'Lezen', tekst: 'Open een document en klik op het perkament voor de **ware grootte**: een lange brief blader je dan om als bladzijden. Brieven die aan jóú gericht zijn staan niet hier maar bij *Berichten* op je eigen tabblad.' },
+  ] }),
+  kaart:      () => ({ titel: 'De kaart', stappen: [
+    { titel: 'De kaarten', tekst: 'Alle kaarten die je party kent, van de wereld tot een enkele kelder. Klik een kaart om hem groot te openen.' },
+    { titel: 'Rondkijken', tekst: 'Sleep om te schuiven; **dubbelklik** om in te zoomen op die plek, en nog eens voor verder. De knop met de twee schuine pijltjes maakt hem weer passend. Een speld is een plek die je kent — klik erop voor zijn kaartje; sluit je dat, dan sta je weer op dezelfde plek op de kaart.' },
+  ] }),
 
   // ── Uitleg per tabblad van een kaartje ──
   // Twee smaken: `hulp_kijk_*` voor het detailvenster (lezen — dat is vooral
@@ -15064,7 +15082,7 @@ const HELP_CONFIG = {
   ] }),
   hulp_kijk_voorwerpen_info: () => ({ titel: 'Dit voorwerp', stappen: [
     { titel: 'Wat je ziet', tekst: 'De kleur van de rand is de **rarity**: grijs (Common) tot goud (Legendary). Staat er *Requires Attunement*, dan moet je je er tijdens een rust aan binden voordat het werkt. Een schadewaarde is een knop: klik erop om de dobbelsteen te gooien.', afbeelding: null },
-    { titel: 'Charges', tekst: 'Heeft het voorwerp ladingen, dan staan die als bolletjes in je boedel. Ze laden vanzelf weer op bij het soort rust dat erbij vermeld staat.', afbeelding: null },
+    { titel: 'Charges', tekst: 'Heeft het voorwerp **Charges**, dan staan die als bolletjes in je boedel. Ze laden vanzelf weer op bij het soort rust dat erbij vermeld staat.', afbeelding: null },
   ] }),
 
 
@@ -15185,7 +15203,7 @@ const HELP_CONFIG = {
       { titel: 'Wie hij stuurt', tekst: 'Bij de laatste trap komt er iemand langs. Vul je een naam in, dan noemt de brief hem; laat je het leeg, dan staat er *er komt iemand langs* — en dat leest aan tafel vaak dreigender dan een naam die niemand nog kent. Het gevecht zelf koppel je als encounter.', afbeelding: null },
   ] }),
   dm_woekeraar_brieven: () => ({ titel: 'Wat hij schrijft', stappen: [
-    { titel: 'Drie brieven', tekst: 'Elke trap heeft er een. De **herinnering** komt vanzelf, de nacht nadat een schuld opeisbaar werd. **Wat ik meenam** gaat naar de hele party op het moment dat jij aanwijst wat hij meeneemt. **De laatste** komt de nacht daarna, en noemt wie er langskomt.\n\nLaat je een veld leeg, dan staat er de tekst die de app meelevert. Die is van Grisburgh; schrijf hem gerust om naar jouw stad.', afbeelding: null },
+    { titel: 'Drie brieven', tekst: 'Elke trap heeft er een. De **herinnering** komt vanzelf, de nacht nadat een schuld opeisbaar werd. **Wat ik meenam** gaat naar de hele party op het moment dat jij aanwijst wat hij meeneemt. **De laatste** komt de nacht daarna, en noemt wie er langskomt.\n\nLaat je een veld leeg, dan staat er de tekst die de app meelevert: kort en dreigend, zonder namen. Schrijf hem gerust om naar de stem van jouw geldschieter.', afbeelding: null },
     { titel: 'De haakjes', tekst: 'Een brief noemt bedragen en namen die pas op het moment zelf bekend zijn. Die vul je niet in, die zet je tussen accolades:\n\n**Alle drie:** `{bedrag}` — wat er op dat moment openstaat.\n\n**De herinnering:** `{waarvoor}` — de zin "Je leende het voor …", of niets als de speler niets invulde.\n\n**Wat ik meenam:** `{voorwerp}`, `{van}` (van wie hij het pakte) en `{wie}` (de schuldenaar — of "iemand onder jullie" als je hem geheim houdt).\n\n**De laatste:** `{wie}` — de naam van wie je stuurt, of "iemand" als je het leeg liet.', afbeelding: null },
     { titel: 'Onderwerp en handschrift', tekst: 'Elke brief heeft een onderwerp — dat is wat er in de postlijst staat. Laat je het leeg, dan heet hij zoals de app hem noemt (Een herinnering, Wat ik meenam, De laatste).\n\nHet **handschrift** geldt voor alle drie: het is dezelfde hand. Dezelfde lijst als bij een factiebrief of een document, dus een brief van hem ziet er overal hetzelfde uit.\n\nDe knop **Sjabloon** zet de meegeleverde tekst in het veld, zodat je kunt bijschaven in plaats van met een leeg vel te beginnen.', afbeelding: null },
     { titel: 'Waar ze aankomen', tekst: 'In het berichtentabblad van de speler, als een verzegelde brief die openvouwt. De eerste en de laatste gaan naar de schuldenaar alleen; die over het onderpand gaat naar **iedereen** in de party — dat is het hele punt van die trap.\n\nOp het tafelscherm komen ze niet uit zichzelf. Wil je er een aan tafel tonen, dan zet je hem als briefstap in een akte; daar zit de knop *Op het tafelscherm leggen*.', afbeelding: null },
@@ -15241,13 +15259,13 @@ const HELP_CONFIG = {
   dm_gunnen: () => ({ titel: 'Gunnen', stappen: [
     { titel: 'Wat van jou naar een speler gaat', tekst: 'Een **level omhoog**, **inspiration** en **exhaustion**, per speler. Dit stond op drie plekken die je moest kennen om te vinden: inspiratie achter een rechtermuisklik, level omhoog onderaan de Rust-tab, en uitputting nergens.', afbeelding: null },
     { titel: 'Gunnen, niet uitvoeren', tekst: 'Een level zet je klaar; de speler kiest zelf zijn HP en wat hij met een ASI doet. Inspiration verzilvert hij zelf. Een klik op een knop die al aanstaat trekt het weer in.', afbeelding: null },
-    { titel: 'Op het portret', tekst: 'Alles wat je hier geeft verschijnt als **badge** op het portret van die speler: zijn portret draait om en toont wat er op hem zit. Uitputting en een vloek kan hij niet zelf wegklikken — die staan er tot jij ze weghaalt.', afbeelding: null },
+    { titel: 'Op het portret', tekst: 'Alles wat je hier geeft verschijnt als **badge** op het portret van die speler: zijn portret draait om en toont wat er op hem zit. Exhaustion en een vloek kan hij niet zelf wegklikken — die staan er tot jij ze weghaalt.', afbeelding: null },
     { titel: 'Milestone of XP', tekst: 'Speelt de campagne op **Milestone**, dan is dit de knop waarmee je een level gunt. Op **XP** staat een level-up vanzelf klaar zodra iemand over de drempel komt en hoef je hier niets te doen — punten uitdelen gaat met de XP-knop in de regie-balk. Welk van de twee geldt, stel je in bij Instellingen → Campagne → Level omhoog.', afbeelding: null },
     { titel: 'Terugdraaien kan', tekst: 'Een per ongeluk gegund level haal je met dezelfde knop weer weg zolang de speler hem nog niet verzilverd heeft. Daarna is het zijn blad, en draai je het terug op zijn personage.', afbeelding: null },
   ] }),
   dm_markt_gebieden: () => ({ titel: 'Gebieden', stappen: [
     { titel: 'Waarvoor dit is', tekst: 'Vink aan welke gebieden je spelers als **knop** op de Markt te zien krijgen. Vink je niets aan, dan kiest de app zelf een zinnige laag — daar is de knop *Alles uit* voor.', afbeelding: null },
-    { titel: 'Waar een winkel ligt is afgeleid', tekst: 'Uit het veld *Gebied* op het locatiekaartje van de winkel, dat naar een andere locatie wijst — Boekenwyrm › Luimpoort › Grisburgh › Continent. Een winkel valt onder élk lid van die keten.', afbeelding: null },
+    { titel: 'Waar een winkel ligt is afgeleid', tekst: 'Uit het veld *Gebied* op het locatiekaartje van de winkel, dat naar een andere locatie wijst — bijvoorbeeld *De Kruidenier › Havenwijk › De stad › Het continent*. Een winkel valt onder élk lid van die keten.', afbeelding: null },
     { titel: 'Jij kiest welke laag telt', tekst: 'Alle wijken als losse knop is zelden wat je wilt. Vink daarom aan welke gebieden als filter op de Markt verschijnen; jouw volgorde is de volgorde op het scherm. Staat er niets, dan leidt de app ze zelf af.', afbeelding: null },
   ] }),
   dm_markt_winkels: () => ({ titel: 'Winkels', stappen: [
@@ -15256,7 +15274,7 @@ const HELP_CONFIG = {
     { titel: 'Wat een speler ziet', tekst: 'De Markt toont alleen winkels die deze party kan zien, en een doorklik naar het voorwerpkaartje alleen als ze dat kaartje kennen. Naam, prijs en beeld gaan wel mee: dat ligt in de etalage.', afbeelding: null },
   ] }),
   dm_herberg_rust: () => ({ titel: 'Overnachten', stappen: [
-    { titel: 'Wat een nacht kost', tekst: 'De prijs geldt **per persoon** en gaat er bij een lange rust hier automatisch af — van de eigen beurs, of van de gedeelde beurs als die aanstaat. Eén bedrag, met een komma: *2,50* is 2 florinden en 5 knaken.', afbeelding: null },
+    { titel: 'Wat een nacht kost', tekst: 'De prijs geldt **per persoon** en gaat er bij een lange rust hier automatisch af — van de eigen beurs, of van de gedeelde beurs als die aanstaat. Eén bedrag, met een komma: *2,50* is 2 gold en 5 silver — of hoe jouw munten ook heten.', afbeelding: null },
     { titel: 'Wat je opvangt', tekst: 'Een nacht in de herberg onthult **roddels** van kaartjes die deze party al kent — je stelt hier in hoeveel per speler. Nul betekent: hier wordt niet gepraat. Op = op: de pot is eindig, dus een stille herberg spreidt hem uit over meer avonden.', afbeelding: null },
   ] }),
   dm_magizoo_adoptie: () => ({ titel: 'Adoptie', stappen: [
@@ -15349,7 +15367,7 @@ const HELP_CONFIG = {
 
   dm_rust_starten: () => ({ titel: 'Rust starten', stappen: [
     { titel: 'Waar en wat', tekst: 'Kies eerst de plek — **in het veld** of **in de herberg** — en dan lang of kort. De rust geldt voor de hele party en iedereen krijgt hetzelfde cinematische scherm te zien; het tafelscherm toont de partybrede variant.', afbeelding: null },
-    { titel: 'Wat er gebeurt', tekst: 'Een lange rust zet HP op maximum, herlaadt spell slots en item-charges, geeft de helft van de Hit Dice terug en haalt één niveau exhaustion weg. Een korte rust doet de shortRest-items en de pact-slots van een Warlock; Hit Dice besteden doet de speler daar zelf.', afbeelding: null },
+    { titel: 'Wat er gebeurt', tekst: 'Een lange rust zet HP op maximum, herlaadt spell slots en item-charges, geeft de helft van de Hit Dice terug en haalt één level Exhaustion weg. Een korte rust doet de shortRest-items en de pact-slots van een Warlock; Hit Dice besteden doet de speler daar zelf.', afbeelding: null },
     { titel: 'In de herberg kost het geld', tekst: 'Daar wordt de overnachtingsprijs per speler afgeschreven en worden er twee roddels per speler onthuld — die prijs stel je in bij Diensten → Herberg. Wie vanavond niet meespeelt (zie *Waarvan actief* bij de party) doet ook hier niet mee.', afbeelding: null },
   ] }),
   dm_rust_sfeer: () => ({ titel: 'Sfeer & gebeurtenissen', stappen: [
@@ -15393,7 +15411,7 @@ const HELP_CONFIG = {
 
   dm_verzoeken_spreuken: () => ({ titel: 'Spreukverzoeken', stappen: [
     { titel: 'Wat hier staat', tekst: 'Een speler die een spreuk uit de bibliotheek in zijn eigen boek wil, vraagt het eerst aan jou — net als bij een voorwerp. Keur je goed, dan schrijft de app hem in zijn boek; wijs je af, dan krijgt hij dat te horen.', afbeelding: null },
-    { titel: 'De regel wordt voorgerekend, niet afgedwongen', tekst: 'Bij het verzoek staat of de spreuk op de lijst van zijn klasse staat — maar de app weigert niets uit zichzelf. De uitzonderingen zijn in 5e eerder regel dan uitzondering: Magic Initiate, een feat, een scroll, multiclass, een uitgebreide subklasselijst. Jij beslist.', afbeelding: null },
+    { titel: 'De regel wordt voorgerekend, niet afgedwongen', tekst: 'Bij het verzoek staat of de spreuk op de lijst van zijn class staat — maar de app weigert niets uit zichzelf. De uitzonderingen zijn in 5e eerder regel dan uitzondering: Magic Initiate, een feat, een scroll, multiclass, een uitgebreide subklasselijst. Jij beslist.', afbeelding: null },
   ] }),
   dm_verzoeken_voorwerpen: () => ({ titel: 'Voorwerpverzoeken', stappen: [
     { titel: 'Wat hier staat', tekst: 'Een speler vraagt een voorwerp uit de bibliotheek aan, of wil er een van een ander overnemen. Keur je goed, dan komt het in zijn boedel te staan met het aantal dat je meegeeft.', afbeelding: null },
@@ -15474,7 +15492,7 @@ const HELP_CONFIG = {
   ] }),
 
   inst_valuta: () => ({ titel: 'Namen voor valuta', stappen: [
-    { titel: 'Drie munten, vaste verhouding', tekst: 'Je campagne mag haar munten noemen zoals je wilt — de verhouding blijft die van het boek: **1 gold = 10 silver = 100 copper**. De afkortingen gp/sp/cp staan erbij zodat een tabel uit een boek altijd klopt, ook als jouw munten Florinde, Knaker en Centeling heten.', afbeelding: null },
+    { titel: 'Drie munten, vaste verhouding', tekst: 'Je campagne mag haar munten noemen zoals je wilt — de verhouding blijft die van het boek: **1 gold = 10 silver = 100 copper**. De afkortingen gp/sp/cp staan erbij zodat een tabel uit een boek altijd klopt, ook als jouw munten Daalder, Stuiver en Duit heten.', afbeelding: null },
     { titel: 'Electrum en platinum', tekst: 'Die twee hebben géén eigen plek in de beurs: wat je erin typt wordt bij het invoeren omgerekend (ep = 5 silver, pp = 10 gold). Een vondst mag dus een platinum stuk bevatten; het staat daarna gewoon als goud in de beurs. Geef je ze een naam, dan wordt die alleen gebruikt om te tónen: *"waaronder 3 Lion d\'or"* bij een vondst.', afbeelding: null },
     { titel: 'Hernoemen kan altijd', tekst: 'De namen zijn opmaak, geen administratie — al het bezit staat als getal opgeslagen. Je kunt dus halverwege een campagne je munten omdopen zonder dat er iets kwijtraakt.', afbeelding: null },
   ] }),
@@ -15513,7 +15531,8 @@ const HELP_CONFIG = {
 
   hulp_heldenboek_kaart: () => ({ titel: 'Een kaart bewerken', stappen: [
     { titel: 'Wat je hier bewerkt', tekst: 'De **class, subclass of species zelf** — niet zijn features. Die hebben elk hun eigen kaartje in de lijst eronder, met een eigen potlood.\n\nDe beschrijving staat bovenaan het kaartje, vóór de features. Komt hij uit de SRD, dan staat die tekst er al in en mag je hem gewoon aanpassen: wat jij schrijft wint, en de meegeleverde tekst blijft eronder liggen voor campagnes die niets wijzigden.', afbeelding: null },
-    { titel: 'Core Traits', tekst: 'Alleen bij een class. Dit is wat op zijn kaartje staat én wat de app gebruikt om Hit Dice te rollen en spreukenslots af te leiden.\n\nDe velden staan vóór-ingevuld met wat de app zelf weet. **Laat je ze zo staan, dan verandert er niets** — en lift je mee op latere verbeteringen aan die gegevens. Typ je iets anders, dan geldt dat in jouw campagne.\n\nDat is er vooral voor een class die de app níét meebrengt: een eigen orde, of de Artificer, waarvan alleen de hit die bekend is. Zonder dit bleef zijn kaartje half leeg en was er geen knop om dat te verhelpen.\n\n**Class Type** doet er nog iets bij: martial, half-caster of full caster bepaalt het icoontje van een class die de app niet kent.\n\nOnderaan staan de twee regels over **multiclassen**: wat je nodig hebt om in deze class bij te beginnen, en wat je er dan aan training bij krijgt. Voor de twaalf uit de SRD vult de app ze zelf; voor een eigen class of een Blood Hunter is dit de enige plek waar ze vandaan kunnen komen.', afbeelding: null },
+    { titel: 'Core Traits', tekst: 'Alleen bij een class. Dit is wat op zijn kaartje staat én wat de app gebruikt om Hit Dice te rollen en Spell Slots af te leiden.\n\nDe velden staan vóór-ingevuld met wat de app zelf weet. **Laat je ze zo staan, dan verandert er niets** — en lift je mee op latere verbeteringen. Typ je iets anders, dan geldt dat in jouw campagne. Vooral nodig voor een class die de app níét meebrengt, zoals een eigen orde.\n\n**Class Type** (martial, half-caster, full caster) bepaalt het icoontje van een class die de app niet kent.', afbeelding: null },
+    { titel: 'Multiclassen', tekst: 'Onderaan staan twee regels: wat je nodig hebt om in deze class **bij te beginnen**, en wat je er dan aan **training** bij krijgt. Voor de twaalf classes uit de SRD vult de app ze zelf; voor een eigen class of een Blood Hunter is dit de enige plek waar ze vandaan komen.', afbeelding: null },
     { titel: 'Afbeelding en focuspunt', tekst: 'De kaart heeft twee kanten: een plaat met de naam erop, en de gegevens. Kies hier het beeld voor de voorkant.\n\nHet **focuspunt** bepaalt welk deel in beeld blijft. Een portret is hoog en de kaart is breed, dus zonder bijstellen valt er van alles af — meestal net het gezicht. Sleep het kruis naar wat er móét blijven staan; het voorbeeld ernaast toont de echte uitsnede.', afbeelding: null },
     { titel: 'Kleur van een subclass', tekst: 'Alleen bij een subclass. De kleur die je kiest kleurt zijn kaartje én al zijn features in de lijst eronder.\n\nDat is geen versiering: vink je er twee aan om ze te vergelijken, dan lopen hun features door elkaar in de volgorde waarin je ze krijgt. De kleur zegt dan in één oogopslag welke regel van wie is.', afbeelding: null },
   ] }),
@@ -15528,7 +15547,8 @@ const HELP_CONFIG = {
     { titel: 'Eerst: wát maak je?', tekst: 'De lijst bovenaan is de vraag waar de rest uit volgt. **Een regel binnen iets** is een feature: iets wat je op een bepaald level krijgt van je class, subclass, species of background. **Iets nieuws beginnen** is de houder zelf — een eigen class, subclass, species of background, nog zonder features.\n\nDaarom vraagt een houder niet om een level: hij ís geen regel op een ladder. De features hang je er daarna aan, met *Feature van een…*.', afbeelding: null },
     { titel: 'Herkomst en waaruit', tekst: '**Herkomst** zegt alleen óf het overgenomen is. Zet je iets anders dan *zelf verzonnen*, dan komt er een veld **Waaruit?** bij: de naam van het boek, of van de tafelgenoot die het bedacht.\n\nDat is geen boekhouding om de boekhouding. Het bepaalt wat je later mag meenemen naar een andere campagne: zelf verzonnen mag mee, overgenomen tekst niet. Over een jaar weet je het niet meer.', afbeelding: null },
     { titel: 'Beschrijving', tekst: 'Bij een feature: wat het doet. Bij een houder: wat het **is** — dat staat bovenaan het kaartje, vóór de features. Een lege regel begint een nieuwe alinea, en met de knoppen erboven maak je vet, cursief of gekleurd.\n\nNeem geen tekst over uit een boek dat niet van jou is. Vat het samen in je eigen woorden; dan mag het mee en leest het bovendien korter.', afbeelding: null },
-    { titel: 'Een tabel erbij', tekst: 'Sommige features zijn een tabel: wat je op welk level krijgt, of waar je op rolt. De knop met de twee kolommen zet er een neer, en de regel **boven** de tabel wordt zijn kop — die verdwijnt dan uit de lopende tekst en komt erboven te staan. Wil je geen kop, laat die regel dan weg of eindig hem op een leesteken; dan leest de app hem als een gewone zin.\n\nIn een cel werkt dezelfde opmaak als in de rest van de tekst: vet, cursief en `[[verwijzingen]]`. **Spreuknamen hoef je niet te linken** — staat er *Spells* of *Spreuken* boven die kolom, dan maakt de app er vanzelf knoppen van.\n\n**Meer kolommen?** Elke extra pijp is een kolom erbij; de kopregel bepaalt hoeveel het er zijn, en een rij die er te weinig heeft wordt vanzelf aangevuld. De pijpen hoef je niet netjes uit te lijnen en de streepjesregel mag weg. Met het **oogje** rechts zie je precies wat er op het kaartje komt te staan.', afbeelding: null },
+    { titel: 'Een tabel erbij', tekst: 'Sommige features zijn een tabel: wat je op welk level krijgt, of waar je op rolt. De knop met de twee kolommen zet er een neer, en de regel **boven** de tabel wordt zijn kop — die verdwijnt dan uit de lopende tekst en komt erboven te staan. Wil je geen kop, laat die regel dan weg of eindig hem op een leesteken; dan leest de app hem als een gewone zin.\n\nIn een cel werkt dezelfde opmaak als in de rest van de tekst: vet, cursief en `[[verwijzingen]]`. **Spreuknamen hoef je niet te linken** — staat er *Spells* of *Spreuken* boven die kolom, dan maakt de app er vanzelf knoppen van.', afbeelding: null },
+    { titel: 'Meer kolommen', tekst: 'Elke extra pijp is een kolom erbij; de kopregel bepaalt hoeveel het er zijn, en een rij die er te weinig heeft wordt vanzelf aangevuld. De pijpen hoef je niet netjes uit te lijnen en de streepjesregel mag weg. Met het **oogje** rechts zie je precies wat er op het kaartje komt te staan.', afbeelding: null },
     { titel: 'Een worptabel wordt een tafel', tekst: 'Noemt de eerste kolomkop een steen — **d6**, **d100** — dan staat er onder de tabel een knop *Bewaren als tafel*. Eén klik en hij staat in de Tafels-tab, waar je hem kunt rollen en hergebruiken.\n\nHet is een **kopie**: de tekst van de feature blijft staan zoals hij is. En het werkt alleen bij een worptabel: een overzicht van wat je per level krijgt is geen tafel om op te rollen, en die hoort niet tussen je dobbeltabellen te belanden.', afbeelding: null },
   ] }),
 
@@ -15658,7 +15678,7 @@ const HELP_CONFIG = {
         tekst: 'Typ een voorwerp en je ziet **waar het ligt en wat het kost**, goedkoopste bovenaan. Scheelt prijs per winkel, dan staat er *goedkoopst* bij; zijn ze allemaal gelijk, dan staat er niets — dat is dan geen keuze. Een prijs die je met de beurs van de party niet kunt betalen kleurt rood.',
         afbeelding: null },
       { titel: 'Kopen doe je in de winkel',
-        tekst: 'Klikken opent het kaartje van die winkel op zijn **winkeltabblad**. Daar reken je af. De Markt zegt alleen waar je heen kunt.',
+        tekst: 'Klik een winkel (of een regel in de zoekresultaten) en je **loopt naar binnen**: de gevel, de winkelier, en zijn schappen. Daar koop je, en na een aankoop blijf je gewoon in de winkel staan. *Markt* linksboven brengt je terug.',
         afbeelding: null },
       { titel: 'Wat je niet ziet',
         tekst: 'Alleen winkels die je party **ontdekt heeft** en die tijdens deze akte bereikbaar zijn. Een winkel met een **wisselend assortiment** die je nog niet bezocht hebt, geeft zijn voorraad niet prijs — daar moet je langs. De DM ziet alles, met erbij waarom iets voor de party dicht zit.',
@@ -15759,7 +15779,7 @@ const HELP_CONFIG = {
         },
         {
           titel: 'De zintuigen',
-          tekst: 'Je kiest vijf zintuigen die je wilt bevragen: Zien, Horen, Ruiken, Proeven, Voelen. Ursula rolt een d6: op een 1–5 onthult ze één zintuig, op een 6 alle vijf. Welk zintuig ze kiest is aan het lot.',
+          tekst: `Je kiest vijf zintuigen die je wilt bevragen: Zien, Horen, Ruiken, Proeven, Voelen. ${naam} rolt een d6: een 1–5 onthult één zintuig, een 6 alle vijf. Wélk zintuig het wordt, is aan het lot.`,
           afbeelding: null,
         },
       ],
@@ -15769,7 +15789,7 @@ const HELP_CONFIG = {
   progressie: () => ({
     titel: 'Features & Traits',
     stappen: [
-      { titel: 'Alles wat je kunt', tekst: 'Elke class feature, elke eigenschap van je volk en elke keuze die daarbij hoort, geordend per level. Wat boven je huidige level ligt staat grijs — dat komt nog. Met het sterretje filter je op je favorieten; met **+** voeg je iets toe dat nergens vandaan komt maar wel op je blad hoort.', afbeelding: null },
+      { titel: 'Alles wat je kunt', tekst: 'Elke class feature, elke species trait en elke keuze die daarbij hoort, geordend per level. Wat boven je huidige level ligt staat grijs — dat komt nog. Met het sterretje filter je op je favorieten; met **+** voeg je iets toe dat nergens vandaan komt maar wel op je blad hoort.', afbeelding: null },
       { titel: 'Eén plek, niet twee', tekst: 'Dit stond ook als lijst op je personageblad, met precies dezelfde namen — één keer als kaart met een plaatje en één keer als uitklapregel. Die tweede lijst is weg; wat hem de moeite waard maakte zit nu op de kaart zelf.', afbeelding: null },
       { titel: 'Bijhouden en aantekenen', tekst: 'Open een feature en je ziet hoeveel ladingen hij heeft (klik een bolletje om er een te verbruiken), hoeveel dat er zijn (− en +), en een veld voor je eigen aantekening. Bij een lange rust lopen ze weer vol.', afbeelding: null },
       { titel: 'Keuzes', tekst: 'Waar je iets moet kiezen — een feat, een subclass, een Ability Score Improvement — staat dat bij de trede waar het hoort. **Change** naast een gemaakte keuze zet hem open om te wijzigen.', afbeelding: null },
@@ -15898,7 +15918,7 @@ const HELP_CONFIG = {
     stappen: [
       {
         titel: 'Dit zijn niet jouw spreuken',
-        tekst: 'Deze bibliotheek bevat álle spreuken die in deze wereld bestaan — honderden, van elke klasse en elk niveau, en daarnaast wat de DM voor deze campagne zelf verzon. Je kunt er alles in opzoeken, maar je kent het niet uit je hoofd: wat jouw personage daadwerkelijk kan, staat in je eigen Spreukenboek onder je personage.',
+        tekst: 'Deze bibliotheek bevat álle spreuken die in deze wereld bestaan — honderden, van elke class en elk level, en daarnaast wat de DM voor deze campagne zelf verzon. Je kunt er alles in opzoeken, maar je kent het niet uit je hoofd: wat jouw personage daadwerkelijk kan, staat in je eigen Spreukenboek onder je personage.',
         afbeelding: null,
       },
       {
@@ -15913,7 +15933,7 @@ const HELP_CONFIG = {
       },
       {
         titel: 'Nieuwe spreuken leren',
-        tekst: 'Spreuken komen in je eigen boek terecht via je klasse (bij een levelup), via een scroll of via de DM. Rondkijken in de bibliotheek voegt niets toe aan je boek — vraag het je DM als je denkt dat er iets ontbreekt.',
+        tekst: 'Spreuken komen in je eigen boek terecht via je class (bij een level-up), via een scroll of via de DM. Rondkijken in de bibliotheek voegt niets toe aan je boek — vraag het je DM als je denkt dat er iets ontbreekt.',
         afbeelding: null,
       },
     ],
@@ -15953,7 +15973,7 @@ const HELP_CONFIG = {
       },
       {
         titel: 'Deze spreuk',
-        tekst: 'Alles wat je aan de spreuk kunt hangen die openligt. **Incantatie** — de spreukformule die jij uitspreekt; die verschijnt als een briefje op de linkerpagina. **Level verkregen** — op welk level je hem leerde; hoe lager, hoe geler het papier. **Concentration** — de concentratie-teller starten of stoppen. **Marginalia** — kleine symbolen in de kantlijn (schade, healing, utility…): kies een icoon, typ eventueel een toelichting en klik +.',
+        tekst: 'Alles wat je aan de spreuk kunt hangen die openligt. **Incantatie** — de spreukformule die jij uitspreekt; die verschijnt als een briefje op de linkerpagina. **Level verkregen** — op welk level je hem leerde; hoe lager, hoe geler het papier. **Concentration** — de Concentration-teller starten of stoppen. **Marginalia** — kleine symbolen in de kantlijn (schade, healing, utility…): kies een icoon, typ eventueel een toelichting en klik +.',
         afbeelding: null,
       },
       {
@@ -15982,6 +16002,11 @@ const HELP_CONFIG = {
         tekst: 'Je actieve zegening en eventuele vloek van een factie of tempel staan apart vermeld. Klik op "bekijk zegening" of "bekijk eed" om het bijbehorende voorwerpkaartje te openen.',
         afbeelding: null,
       },
+      {
+        titel: 'Buit',
+        tekst: 'Onthult je DM een vondst, dan staat hier bovenaan **Er is buit!** met wat erin zat. Wil je een voorwerp, tik dan **Claim**; claimen meer spelers hetzelfde, dan beslist een worp. Het geld wordt bij het afsluiten verdeeld en staat daarna vanzelf in je beurs.',
+        afbeelding: null,
+      },
     ],
   }),
 
@@ -15990,7 +16015,7 @@ const HELP_CONFIG = {
     stappen: [
       {
         titel: 'Party-overzicht',
-        tekst: 'Dit tabblad toont de andere leden van jouw groep. Je kunt zien wie aanwezig is voor de sessie. Bovenaan staan eventuele ontdekkingen, inspiratie en de initiatiefvolgorde als er een gevecht actief is.',
+        tekst: 'Dit tabblad toont de andere leden van jouw groep. Je kunt zien wie aanwezig is voor de sessie. Bovenaan staan eventuele ontdekkingen, Inspiration en de volgorde op initiative als er een gevecht loopt.',
         afbeelding: null,
       },
       {
@@ -16006,7 +16031,12 @@ const HELP_CONFIG = {
     stappen: [
       {
         titel: 'Combat stats',
-        tekst: 'Hier stel je je gevechtswaarden in: AC, snelheid, initiative, proficiency bonus en hit die. Deze worden niet automatisch berekend — vul ze in vanuit je character sheet. Passive Perception wordt automatisch berekend vanuit je Wisdom modifier en proficiency.',
+        tekst: 'Hier stel je je gevechtswaarden in: AC, speed, initiative en proficiency bonus. Die worden niet automatisch berekend — vul ze in vanuit je character sheet. Passive Perception en je Hit Dice rekent de app zelf uit, uit je Wisdom en je class en level.',
+        afbeelding: null,
+      },
+      {
+        titel: 'Level en class',
+        tekst: 'Je **level** en je **class** zet je DM: een level komt erbij via *Level omhoog*, een tweede class via een verzoek bij die level-up. Je **subclass** kies je zelf, één keer, op het level dat erom vraagt — daarna staat hij vast en kan alleen je DM hem nog omzetten.',
         afbeelding: null,
       },
       {
@@ -16128,7 +16158,7 @@ const HELP_CONFIG = {
       { titel: 'Vondsten in een kamer', rol: 'dm', afbeelding: null,
         tekst: 'Onder *Vondsten* hangt de buit die hier te halen valt. Typ wat er te vinden is en druk op plus, of koppel een vondst die je al in het Loot-tabblad gemaakt hebt. De DC ernaast is een aantekening voor jou — de spelers gooien aan tafel en jij beslist. Met het muntje maak je er een verdeling van; het kruisje koppelt de vondst los zonder hem weg te gooien.' },
       { titel: 'Party-toegang', rol: 'dm', afbeelding: null,
-        tekst: 'Per party stel je in of een dungeon nog niet, nu of al uitgespeeld is. Zo gebruik je dezelfde kaart voor meerdere groepen zonder dat hun voortgang door elkaar loopt.' },
+        tekst: 'Het **oogje** op het kaartje in de galerij zet de stand voor de party die nu speelt: verborgen → zichtbaar met mist → uitgespeeld. Andere party\'s houden hun eigen stand, dus dezelfde kaart dient meerdere groepen zonder dat hun voortgang door elkaar loopt.' },
     ],
   }),
 

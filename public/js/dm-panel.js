@@ -1,4 +1,4 @@
-import { api, huidigeCampagne } from './api.js?v=317';
+import { api, huidigeCampagne } from './api.js?v=318';
 import { init as canvasInit, update as canvasUpdate, stop as canvasStop, acGetal } from './combat-canvas.js?v=34';
 import { renderStatblock } from './render-statblock.js?v=9';
 
@@ -1481,6 +1481,7 @@ function _dmLoading(text = 'Laden…') {
 
 // ── Diensten (Herberg + Tweespalt + Gock gecombineerd) ──
 
+const _DIENST_HULP = { tweespalt: 'dm_gokhuis', gock: 'dm_detective', ursula: 'dm_waarzegger' };
 let _dienstenSubTab = 'herberg'; // 'herberg' | 'tweespalt' | 'gock'
 
 async function _renderDiensten(subTab) {
@@ -1526,7 +1527,10 @@ async function _renderDiensten(subTab) {
     items: _dienstNav,
     actief: _dienstenSubTab,
     klik: (id) => `window.dmPanel.switchTab('${id}')`,
-    hulp: `dm_${_dienstenSubTab}`,
+    // Drie subtabs heten naar hun dienst in de code (tweespalt, gock, ursula),
+    // maar hun boekje naar wat het ís. Zonder deze vertaling vroeg de balk om
+    // `dm_tweespalt` — dat niet bestaat — en stond er bij die drie geen knop.
+    hulp: _DIENST_HULP[_dienstenSubTab] || `dm_${_dienstenSubTab}`,
   });
 
   // Gooi de legacy tab-content divs om naar sub-divs binnen #diensten
@@ -2895,7 +2899,7 @@ async function _ladeToggle() {
   _ladeIdx = _bwIdx >= 0 ? _bwIdx : Math.min(_ladePlekLees(), Math.max(0, _ladeSecties.length - 1));
   // De akte-module levert de renderer én de knoppen; die moet weten welke akte
   // er speelt, anders belandt een getoond beeld in de sessielog van niemand.
-  const mod = await import('./akte-schrijven.js?v=37');
+  const mod = await import('./akte-schrijven.js?v=38');
   mod.zetAkte(_rbChapter, _ladeTekst);
   window._akteRegieRender = mod.regieNaarHtml;
   let lade = document.getElementById('regie-lade');
@@ -2921,7 +2925,7 @@ window._ladeHerlaad = async () => {
     _ladeTekst = regie?.tekst || '';
     _ladeSecties = _splitsSecties(_ladeTekst);
     _ladeIdx = Math.min(_ladeIdx, Math.max(0, _ladeSecties.length - 1));
-    const mod = await import('./akte-schrijven.js?v=37');
+    const mod = await import('./akte-schrijven.js?v=38');
     mod.zetAkte(_rbChapter, _ladeTekst);
     _ladeRender();
   } catch { /* de lade blijft staan zoals hij stond */ }

@@ -30,13 +30,36 @@ function metAlsSpeler(pad) {
   return pad + (pad.includes('?') ? '&' : '?') + 'alsSpeler=' + encodeURIComponent(wie);
 }
 
+// Wat er in een foutmelding komt als de server zelf niets zei. Dat waren de
+// Engelse woorden van de browser of van de proxy ervoor: "Failed to fetch" bij
+// wegvallende wifi, "Bad Gateway" tijdens een herstart, "Payload Too Large" bij
+// een te groot bestand — en elke `alert('Fout: ' + e.message)` gaf dat door.
+const _FOUT_BIJ_STATUS = {
+  401: 'Je bent niet (meer) ingelogd. Ververs de pagina en log opnieuw in.',
+  403: 'Dat mag hier niet met deze login.',
+  404: 'Dat bestaat niet (meer).',
+  413: 'Dat bestand is te groot.',
+  429: 'Te veel pogingen achter elkaar. Wacht even en probeer het opnieuw.',
+  502: 'De server start net opnieuw op. Probeer het over een paar seconden nog eens.',
+  503: 'De server start net opnieuw op. Probeer het over een paar seconden nog eens.',
+  504: 'De server reageert niet op tijd. Probeer het zo nog eens.',
+};
+const _GEEN_VERBINDING = 'Geen verbinding met de server. Kijk of je wifi het doet en probeer het zo nog eens.';
+
 async function request(path, opts = {}) {
-  const res = await fetch(BASE + metAlsSpeler(metCampagne(path)), {
-    headers: { 'Content-Type': 'application/json', ...opts.headers },
-    ...opts,
-  });
+  let res;
+  try {
+    res = await fetch(BASE + metAlsSpeler(metCampagne(path)), {
+      headers: { 'Content-Type': 'application/json', ...opts.headers },
+      ...opts,
+    });
+  } catch {
+    const fout = new Error(_GEEN_VERBINDING);
+    fout.status = 0;
+    throw fout;
+  }
   if (!res.ok) {
-    const err = await res.json().catch(() => ({ error: res.statusText }));
+    const err = await res.json().catch(() => ({ error: _FOUT_BIJ_STATUS[res.status] || `Er ging iets mis op de server (${res.status}).` }));
     // Meer dan de tekst alleen: routes sturen soms bruikbare cijfers mee (wat
     // een aankoop kost, hoeveel er tekort is). Die gingen hier verloren.
     const fout = new Error(err.error || res.statusText);
@@ -45,7 +68,12 @@ async function request(path, opts = {}) {
     throw fout;
   }
   return res.json().catch(() => {
-    throw new Error(`Route ${path} bestaat niet op deze server (geen JSON antwoord)`);
+    // Gebeurt vooral net na een uitrol: een browser met een oude app vraagt om
+    // iets wat de server niet meer (of nog niet) kent, en krijgt een pagina
+    // terug in plaats van gegevens. Voor de ontwikkelaar staat het pad in de
+    // console; de gebruiker heeft daar niets aan.
+    console.warn(`Geen JSON van ${path}`);
+    throw new Error('De app en de server lopen niet gelijk. Ververs de pagina.');
   });
 }
 

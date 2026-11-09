@@ -156,9 +156,9 @@ const DYNAMISCH = {
     },
     {
       // De dienstenbalk doet hetzelfde met de naam van de dienst.
-      regel: /hulp: `dm_\$\{_dienstenSubTab\}`/,
+      regel: /hulp: _DIENST_HULP\[_dienstenSubTab\]/,
       sleutels: ['dm_herberg', 'dm_gokhuis', 'dm_detective', 'dm_waarzegger',
-                 'dm_tempel', 'dm_facties', 'dm_magizoo', 'dm_markt', 'dm_toegang'],
+                 'dm_tempel', 'dm_facties', 'dm_magizoo', 'dm_markt', 'dm_toegang', 'dm_woekeraar'],
       hoe: 'de dienstenbalk stelt de sleutel samen uit de actieve dienst',
     },
   ],
@@ -176,6 +176,17 @@ function vindplaatsen() {
       // en een subtabbalk krijgen hun sleutel als argument mee; zonder deze
       // twee patronen meldde het script zeventien knoppen als ontbrekend die er
       // wel degelijk zijn — en dan verdrinkt de enige die het écht is.
+      // Een dienstscherm geeft zijn sleutel door aan `_dienstKop({ sleutel: 'x' })`,
+      // en een venster krijgt hem als laatste argument van `openModal(…, 'hulp_x')`.
+      // Zonder deze twee stonden acht boekjes als "zonder knop" in de lijst
+      // terwijl ze rechtsboven in hun scherm zitten.
+      for (const m of r.matchAll(/\bsleutel:\s*'([a-z_0-9]+)'/gi)) {
+        if (bestand === 'app.js' && /sectie:/.test(r)) continue;   // de tabel met dienstnamen, geen knop
+        (per[m[1]] ||= []).push(`${bestand}:${n + 1} (dienstkop)`);
+      }
+      for (const m of r.matchAll(/,\s*'((?:hulp|dm|inst)_[a-z_0-9]+)'\s*\)/gi)) {
+        (per[m[1]] ||= []).push(`${bestand}:${n + 1} (venster)`);
+      }
       for (const m of r.matchAll(/_dienstSectieKop\([^,]*,[^,]*,\s*'([a-z_0-9]+)'/gi)) {
         (per[m[1]] ||= []).push(`${bestand}:${n + 1} (sectiekop)`);
       }
