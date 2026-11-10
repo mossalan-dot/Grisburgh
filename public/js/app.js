@@ -511,7 +511,13 @@ function _zetAppHoogte() {
   // in elkaar zodra iemand in een veld tikt.
   const actief = document.activeElement;
   if (actief && /^(INPUT|TEXTAREA)$/.test(actief.tagName)) return;
-  const h = vv ? vv.height : window.innerHeight;
+  // **Niet meekrimpen bij inzoomen.** Knijp je in om iets te lezen, dan wordt
+  // `vv.height` kleiner (×2 ingezoomd = de helft), en de app werd dan in elkaar
+  // gedrukt tot het stukje dat je zag — terwijl iOS het beeld eroverheen
+  // schuift. Op een iPhone liep de kop daarna niet meer goed. `height × scale`
+  // is de hoogte zónder zoom: dezelfde maat als altijd bij scale 1, en hij
+  // volgt de balken van Safari nog steeds.
+  const h = vv ? vv.height * (vv.scale || 1) : window.innerHeight;
   if (h > 200) document.documentElement.style.setProperty('--app-h', `${Math.round(h)}px`);
 }
 _zetAppHoogte();

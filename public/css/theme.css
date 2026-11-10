@@ -30849,3 +30849,8 @@ body:has(#sb-overlay.sb-open) .dm-dice-fab { display: none !important; }
    ook zien wélk portret de focus heeft. */
 .landing-portrait:focus-visible { outline: 2px solid #c4a840; outline-offset: 4px; border-radius: 12px; }
 .landing-terug:focus-visible    { outline: 2px solid #c4a840; outline-offset: 3px; }
+
+/* Twee keer snel tikken op een knop in de kop zoomde op iOS in — en wie in de
+   navigatie op de verkeerde plek dubbeltikt, stond ineens ingezoomd. Alleen
+   het dubbeltikgebaar gaat uit; knijpen om te zoomen blijft gewoon werken. */
+.app-header, .app-nav, .section-tab { touch-action: manipulation; }
