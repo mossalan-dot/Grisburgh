@@ -289,7 +289,10 @@ dungeons.maps.push({
   rooms: KELDER_KAMERS.map(([naam, x1, y1, x2, y2], i) => ({
     id: PRE + 'k' + i, name: naam, shape: i === 5 ? 'ovaal' : 'rect',
     points: [vak(x1, y1, KOL, RIJ), vak(x2, y2, KOL, RIJ)],
-    conditions: i % 3 === 0 ? ['enemies'] : i % 3 === 1 ? ['loot'] : [],
+    // Zelfde vorm als de kamerzijbalk wegschrijft: `{ type, visible }`. Als
+    // kale string kreeg elke kamer een leeg terugvalicoon in plaats van zijn
+    // schedel of muntje.
+    conditions: i % 3 === 0 ? [{ type: 'enemies', visible: false }] : i % 3 === 1 ? [{ type: 'loot', visible: false }] : [],
     dmNotes: `Aantekening bij ${naam}. Drie regels tekst om de zijbalk te vullen.`,
   })),
   connections: KELDER_KAMERS.slice(0, -1).map((_, i) => ({ from: PRE + 'k' + i, to: PRE + 'k' + (i + 1) })),
@@ -393,21 +396,25 @@ for (let i = 0; i < 20 * SCHAAL; i++) {
 //  VOORWERPEN, MISSIES, DOCUMENTEN
 // ════════════════════════════════════════════════════════════════════════════
 const VW = [
-  ['Zoutzegel van het gilde', 'Wonderous Item', 'uncommon', 'Een loden zegel aan een koord. Deuren die dicht waren, zijn dat niet meer.'],
-  ['Peilstok van de loods',   'Wonderous Item', 'common',   'Hij wijst de diepte aan, ook waar geen water staat.'],
+  ['Zoutzegel van het gilde', 'Wondrous item', 'uncommon', 'Een loden zegel aan een koord. Deuren die dicht waren, zijn dat niet meer.'],
+  ['Peilstok van de loods',   'Wondrous item', 'common',   'Hij wijst de diepte aan, ook waar geen water staat.'],
   ['Netboetersnaald',         'Weapon',         'common',   'Scherp genoeg om een zeil te hechten of een mouw vast te spelden.'],
-  ['Bakenlantaarn',           'Wonderous Item', 'rare',     'Zolang hij brandt, verdwaalt niemand die hem kan zien.'],
+  ['Bakenlantaarn',           'Wondrous item', 'rare',     'Zolang hij brandt, verdwaalt niemand die hem kan zien.'],
   ['Kwelderlaars',            'Armor',          'uncommon', 'Je zakt niet weg, hoe drassig de grond ook is.'],
-  ['Wisselbrief op naam',     'Wonderous Item', 'common',   'Honderd florijn, inbaar bij Huis Droogendijk. Eén keer.'],
-  ['Sleutel van de Onderwal', 'Wonderous Item', 'rare',     'Past op geen enkel slot dat je kent, en op elk slot dat zij kennen.'],
-  ['Stormglas',               'Wonderous Item', 'uncommon', 'De kristallen erin veranderen een etmaal voor het weer dat doet.'],
+  ['Wisselbrief op naam',     'Wondrous item', 'common',   'Honderd florijn, inbaar bij Huis Droogendijk. Eén keer.'],
+  ['Sleutel van de Onderwal', 'Wondrous item', 'rare',     'Past op geen enkel slot dat je kent, en op elk slot dat zij kennen.'],
+  ['Stormglas',               'Wondrous item', 'uncommon', 'De kristallen erin veranderen een etmaal voor het weer dat doet.'],
 ];
 for (let i = 0; i < 8 * SCHAAL; i++) {
   const [naam, itemType, rarity, desc] = VW[i % VW.length];
   zet('voorwerpen', {
     id: PRE + 'vw' + i, name: i < VW.length ? naam : `${naam} (${Math.floor(i / VW.length) + 1})`,
     subtype: '', icon: '',
-    data: { itemType, rarity, desc, prijs: JSON.stringify({ fl: 5 + i * 3, kn: 0, cl: 0 }) },
+    // Dezelfde vorm als de editor wegschrijft: `rariteit` (niet `rarity`), een
+    // prijs in de kommanotatie van het huis, en het type zoals in de keuzelijst
+    // ('Wondrous item'). Met de oude vorm kreeg de stresstest nooit een
+    // zeldzaamheidsrand en stond de prijs als JSON op het kaartje.
+    data: { itemType, rariteit: rarity, desc, prijs: `${5 + i * 3},00` },
   });
 }
 

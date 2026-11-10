@@ -14,11 +14,13 @@
 // Wat er gebeurt beslist de server (routes/api.js, zoek op "Gevechtsregie");
 // dit bestand tekent alleen. Side-effect import in app.js, net als rage.js.
 
-import { api } from './api.js?v=319';
+import { api } from './api.js?v=320';
 
 const ic = (n, o) => window.icon?.(n, o) || '';
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, c =>
   ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+// In een inline handler eerst JS-escapen, dan HTML (zie scripts/onclick-escapen.js).
+const escArg = s => esc(typeof s === 'string' ? s.replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/\r?\n/g, '\\n') : s);
 const RUSTIG = () => window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
 const isDM    = () => !!window.app?.isDM?.();
 const isTafel = () => !!window._isDisplayMode;
@@ -482,7 +484,7 @@ function _dmPaneel(combat) {
         <select id="gr-dm-speler" class="dm-input dm-input-sm">
           ${spelers.map(s => `<option value="${esc(s.entityId)}"${s.entityId === voorstel.characterId ? ' selected' : ''}>${esc(s.name)}</option>`).join('')}
         </select>
-        <button class="dm-btn dm-btn-primary dm-btn-sm" onclick="window._gevechtRegie.dmVraag('${esc(voorstel.doelId)}')">${ic('mail')} Vraag het</button>
+        <button class="dm-btn dm-btn-primary dm-btn-sm" onclick="window._gevechtRegie.dmVraag('${escArg(voorstel.doelId)}')">${ic('mail')} Vraag het</button>
         <button class="dm-btn dm-btn-ghost dm-btn-sm" onclick="window._gevechtRegie.dmVoorstelWeg()" title="Niet nu">${ic('x')}</button>
       </div></div>`);
   }
@@ -536,7 +538,7 @@ function _effectDeel(e) {
       ${e.doelen.map(d => `<div class="gr-dm-doel${d.kant === 'vijand' ? ' is-vijand' : ''}" data-doel="${esc(d.id)}">
         <span class="gr-dm-doel-naam">${esc(d.naam)}</span>
         <span class="gr-dm-seg">${keuzes.map(([v, l]) => `<button class="${_effUit[d.id] === v ? 'is-aan' : ''}"
-          onclick="window._gevechtRegie.dmEffKies('${esc(d.id)}','${v}',this)">${l}</button>`).join('')}</span>
+          onclick="window._gevechtRegie.dmEffKies('${escArg(d.id)}','${v}',this)">${l}</button>`).join('')}</span>
       </div>`).join('')}
     </div>
     <div class="gr-dm-knoppen">

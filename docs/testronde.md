@@ -17,6 +17,8 @@ een speler ziet, **TAB** = het tafelscherm (`?display=1`), **ALL** = alle drie.
 
 - [x] **Openingspagina** (ALL) — keuzepagina op het kale domein: alle campagnes die zich laten zien *(gebouwd 4 sep)*
 - [x] **Landingspagina** (ALL) — portretten van de party's, carousel, inzoomen op een portret *(titel, embleem en portretten per campagne: gefikst 4 sep)*
+- [ ] **Met alleen het toetsenbord** (ALL) — op de landingspagina brengt Tab je langs de portretten (met een gouden rand) en Enter kiest er een; open een kaartje: de focus staat op het kruisje, Escape sluit het en de focus staat weer op het kaartje. In een editor doet Escape niets — je verliest geen onbewaard werk
+- [ ] **axe-core** (ALL) — draai axe (WCAG 2.1 AA) over personage, boedel, berichten, archief, markt, herberg, spreuken, Meesterkamer, logboek, tafelscherm en de landingspagina: nul overtredingen
 - [ ] **Portretfilmpje bij inzoomen** (ALL) — speelt af, stopt na 6 seconden (`LANDING_VIDEO_MAX_SEC`)
 - [x] **Eén wachtwoordveld** — groepswachtwoord → alleen díé party in de kiezer; DM-wachtwoord → meteen DM
 - [x] **Personagekiezer** — de speler kiest zijn personage, wachtwoord wordt onthouden
@@ -534,6 +536,7 @@ een speler ziet, **TAB** = het tafelscherm (`?display=1`), **ALL** = alle drie.
 
 `public/js/app.js` (subtabs Party · Personage · Facties · Boedel · Progressie · Spreukenboek · Berichten)
 
+- [ ] **Level en class zet de DM** (SP/DM) — als speler staan level, class en een gekozen subclass als tekst op je Personage-tab, zonder multiclassknop; is je subclass nog leeg, dan kies je hem één keer (met bevestiging) en daarna staat hij vast. De DM ziet op hetzelfde blad gewoon de keuzelijsten. Langs de UI om geeft de route 403
 - [ ] **Party** (SP) — medespelers met portret en HP-balk, ontdekkingsteller per categorie, en wie er vanavond meespeelt
 - [ ] **Personage** (SP) — stats en modifiers, saves, skills met proficiency, AC, snelheid, conditions met iconen, inspiration, buffs en vloek
 - [ ] **HP en Hit Dice** (SP/DM) — DM past HP aan → speler ziet het meteen; Hit Dice afgeleid uit klasse en level (ook multiklasse), getoond als bolletjes
@@ -608,6 +611,11 @@ een speler ziet, **TAB** = het tafelscherm (`?display=1`), **ALL** = alle drie.
 - [ ] **Markt: achtergrond** (ALL) — achter de Markt staat de gevel van een van je winkels, met het bijschrift *Gevel van …*; verlaat de Markt en kom terug, dan is het een andere. Een winkel die deze party niet kent komt er nooit achter te staan
 - [ ] **Bekijk kaartje** (ALL) — overal waar je naar een kaartje kunt doorklikken staat hetzelfde pijltje (↗ als icoon), niet ergens een boekje en ergens een los teken
 - [ ] **Markt: een winkel binnenlopen** (ALL) — klik een winkel (of een regel in een zoekresultaat): je krijgt een scherm met de gevel als achtergrond, het portret van de winkelier en zijn voorraad, met een weg terug naar de markt. Kopen werkt daar net als op het kaartje
+- [ ] **Markt: kopen in de winkel** (ALL) — loop als speler een winkel in en koop iets: je blijft in de winkel staan, de beurs bovenin loopt af, er verschijnt "… gekocht." en de *Kopen*-knoppen zijn leesbaar op een licht vel
+- [ ] **Markt: winkel zonder winkelier** (ALL) — een winkel zonder bekende winkelier toont het icoon van zijn type (een kraampje), geen losse tekens
+- [ ] **Munten kort** (ALL) — in een campagne met Gold/Silver/Copper zegt de beurs bovenin een dienst "21 gp · 3 sp"; met eigen munten de eerste letters ("da · st"), en in Grisburgh nog steeds "fl · kn · cl"
+- [ ] **Herberg zonder waard** (ALL) — vul bij de herberg geen waard in en laat er geen roddels zijn: de speler leest "De waard heeft niets nieuws te vertellen.", geen zin zonder onderwerp
+- [ ] **Brief met ondertekening** (ALL) — stuur een brief die eindigt op `--De Havenmeester--`: de speler ziet de naam als ondertekening (zonder streepjes), in de lijst én in de verzegelde onthulling
 - [ ] **Markt: winkelier op het kaartje** (ALL) — op het overzicht staat het portret van de winkelier met zijn naam eronder; kent je party hem niet, dan staat er het icoon van het locatietype
 - [ ] **Markt: de winkels** (ALL) — Diensten → Markt toont de winkels die je party kent; klikken opent het kaartje meteen op het winkeltabblad
 - [ ] **Markt: zoeken** (ALL) — zoek "potion of healing": je ziet alle winkels die hem hebben met hun prijs, goedkoopste bovenaan. Vragen ze allemaal hetzelfde, dan staat er géén *goedkoopst*
@@ -819,6 +827,14 @@ fout-uitvoert.
 - [ ] **Tafelscherm aanzetten en terug** (DM/TAB) — knop in de balk zet dit scherm om; het kruisje brengt je terug zonder opnieuw inloggen
 - [ ] **Sfeer wisselen** (DM/TAB) — sfeerkeuze verandert de embers en de achtergrond
 - [ ] **Effecten** (DM/TAB) — bliksem, windvlaag en duister; let erop dat ze tijdens een gevecht (nog) niet zichtbaar zijn — zie `docs/tafelscherm-effecten.md`
+- [ ] **Gevecht op tafel zonder cijfers** (TAB) — start een gevecht en zet daarna pas `?display=1` aan: op de tokens staan geen HP-getallen en geen AC van monsters die de party niet bestudeerd heeft, ook niet direct na het aanzetten
+- [ ] **Kist na herladen** (TAB) — onthul een vondst, herlaad het tafelscherm halverwege het claimen: de kist staat er weer
+- [ ] **Onthulling en brief tegelijk** (DM→SP) — onthul een kaartje en stuur meteen een verzegelde brief: de brief ligt bovenop en het zegel is aan te tikken
+- [ ] **Level gegund** (DM→SP) — gun een speler een level terwijl hij zijn Personage-tab open heeft: de balk *Je mag een level omhoog* verschijnt zonder herladen, met een melding die het venster opent
+- [ ] **Buit bijgeschreven** (SP) — sluit een verdeling met alleen geld: de melding noemt het hele bedrag met de muntnamen ("4 Silver · 2 Copper"), en de speler las eerder *Er is buit!* — geen "Alle items zijn verdeeld" als er nooit een voorwerp in zat
+- [ ] **Gevechtsbalk op de telefoon** (SP) — met je beurt aan zet staat *Jij bent aan zet* op één regel naast de ronde
+- [ ] **Wifi even weg** (SP) — zet een telefoon even offline, onthul intussen een kaartje en gun een level; zodra hij terug is staat de naam erbij en de level-upbalk erop, zonder verversen
+- [ ] **Een beurs in de min** (DM/SP) — zet een speler op een negatieve beurs en verdeel buit: hij krijgt precies zijn aandeel erbij, en de beurs toont één minteken vooraan ("−3 gp · 6 sp")
 - [ ] **Tablet na herstart** (TAB) — server herstarten en kijken of de tablet ingelogd blijft en zijn kamer terugvindt
 - [ ] **Rage op de tablet** (TAB) — een speler gaat in Rage: het tafelscherm wordt rood, drie klauwsporen trekken over het beeld, het portret en *RAGE* slaan in, en daarna blijft linksonder een merkteken staan tot de Rage dooft; de andere spelers krijgen een melding, niet de brul zelf
 - [ ] **Klassekrachten op de tablet** (TAB) — elke kracht heeft een eigen moment: stralen bij Cleric en Paladin, golven bij Bard en Druid, snelheidslijnen bij Action Surge, inkt bij de Monk, een vizier bij de Ranger, een haal bij de Rogue, een tovercirkel bij Wizard/Sorcerer/Artificer en stralen eldritch-licht bij de Warlock; een gerolde uitkomst telt op in beeld, en een toestand laat linksonder een merkteken achter
@@ -858,6 +874,30 @@ fout-uitvoert.
 - [ ] **Nieuwe campagne opzetten** (BEHEER) — aanmaken met wachtwoord, openen, inloggen, en de eerste party en personage maken
 - [ ] **Bronteksten van een tweede campagne** (BEHEER) — spreuken en features komen kaal binnen; de eigen tekst van die DM blijft
 - [ ] **Wachtwoord van een andere campagne** (BEHEER) — zetten vanaf het campagnekaartje en er daarna mee inloggen
+- [ ] **Twintig keer mis** (ALL) — tik twintig keer een fout wachtwoord op de landingspagina: de volgende poging (ook een goede) zegt "Te veel mislukte pogingen"; een ander apparaat aan tafel kan gewoon inloggen. Draai je zonder Caddy ervoor, dan geldt het voor iedereen op hetzelfde adres
+- [ ] **Verborgen bestanden** (SP) — zet een document met een pdf-scan op verborgen, kopieer als DM het adres van het bestand en open het als speler: *Niet gevonden*. Onthul het document en het opent. Een portret dat óók aan een gekend kaartje hangt blijft gewoon zichtbaar, en aktebanners en logboekbeelden verdwijnen niet
+- [ ] **De kist gaat open** (TAB) — onthul een vondst en tik op het tafelscherm op de kist: de video speelt, en na ruim vijf seconden staat de buit ernaast
+- [ ] **Uitloggen houdt de cijfers niet vast** (SP) — log als speler uit, laat het tabblad open, en start als DM een gevecht: in de netwerktab staat bij de monsters geen `hp` of `maxHp`
+- [ ] **Gelijke beurt op het tafelscherm** (TAB) — zet vier spelers op dezelfde initiative: de kop met hun namen past, "Ronde 1" staat op één regel
+- [ ] **Ingelogd blijven** (ALL) — log in, sluit de browser helemaal en open hem weer: je bent nog ingelogd (de cookie heeft een vervaldatum van 30 dagen)
+- [ ] **Wizard na het inloggen** (DM) — maak een nieuwe campagne, log in via de landingspagina zonder te herladen: de opstartwizard staat er meteen
+- [ ] **Class in de wizard** (DM) — tik in de wizard "rogue" als class; op het blad van dat personage staat de keuzelijst op *Rogue*
+- [ ] **Prijzen in je eigen munt** (SP) — noem je munten Daalder/Stuiver/Duit, zet in een winkel "2 stuiver" en koop het als speler: er gaan 2 Stuivers af, en heb je er te weinig, dan zegt de melding "2 Stuiver" en niet "2 kn"
+- [ ] **Verkoper in een herberg** (DM) — vink bij een personage *Verkoper* aan, bewaar, kies bij *Verkoopt bij* een herberg: die herberg heeft nu een tabblad *Voorraad* en in de editor een tabblad *Winkel*
+- [ ] **SRD-monster in een gevecht** (DM) — in een verse campagne: nieuw gevecht, *+ Monster*, typ "Guard": hij staat in de lijst met "SRD 5.2 · CR 1/8", en na kiezen staat hij in je monsterbibliotheek met AC 16
+- [ ] **Plus achter een onbekende naam** (DM) — schrijf `[[Iemand Nieuw]]` in een kaartje, open het: achter de naam staat een plusje dat het kaartje maakt
+- [ ] **Wizard dichtdoen** (DM) — open de wizard in een lege campagne en druk Escape (of het kruisje): hij is weg en komt bij de volgende inlog niet terug
+- [ ] **Wizardvolgorde** (DM) — zet bij *Wat heeft jouw campagne nodig?* de Tempels aan: de volgende stap vraagt ook hoe de tempel heet
+- [ ] **HP in de wizard** (DM) — vul bij het eerste personage Max HP 17 in: op zijn blad staat 17/17
+- [ ] **Lege campagne** (ALL) — open een campagne zonder personages: midden op de pagina staat *Inloggen als Dungeon Master*
+- [ ] **Voorraad aanvullen** (DM) — open een winkel zonder voorraad: onder "Geen voorraad beschikbaar" staat een knop die de editor op *Winkel* opent, met een lege regel klaar
+- [ ] **Nieuwe dungeon tekenen** (DM) — kies *Tekenen* en *Aanmaken*: de dungeon gaat meteen open
+- [ ] **Adres van een campagne** (BEHEER) — tik bij *Nieuwe campagne* als naam "Het Zoute Moeras": het adres wordt `het-zoute-moeras`
+- [ ] **Privéberichten blijven privé** (SP) — open de landingspagina in een incognitovenster zonder in te loggen, en stuur als DM een bericht aan een speler: het komt aan bij die speler en nergens anders (`tests/review-lekken.test.js` doet hetzelfde met een kale socket)
+- [ ] **Spotify-token** (SP) — open als speler `/api/spotify/token?campagne=<id>` in de adresbalk: 403, ook als Spotify gekoppeld is; het tafelscherm (DM-login) speelt gewoon af
+- [ ] **Verborgen verbindingen** (SP) — koppel als DM een verborgen NPC aan een zichtbare locatie via *Verbindingen*, en open als speler de netwerktab bij die locatie: zijn naam staat nergens in `links`
+- [ ] **Charges in de eigen party** (SP) — zet als DM een andere party actief en laat een speler een charge van een staf gebruiken: na verversen staat het bolletje nog steeds verbruikt
+- [ ] **Apostrof in een knop** (DM) — maak een monster `Ma'ar de "Wolf"` en klik in het Bestiarium op het kruisje: de vraag noemt hem met apostrof en aanhalingstekens; idem het plusje bij *Bigby's Hand* in het spreukenboek
 - [ ] **Helpteksten afschermen** (BEHEER) — nog te bouwen: een tweede DM hoort de uitleg niet te kunnen herschrijven (`docs/todo.md`)
 
 ---
@@ -912,6 +952,60 @@ Per bevinding: waar, wat, en of het opgelost is. Nieuwe regels onderaan.
 | 25 | 7 | Een nieuwe campagne "activeren" veranderde niets: je bleef in Grisburgh | opgelost — knop *Openen* (naar `/naam`), en "Als standaard" heet nu wat het is: waar het kale domein landt. Aanmaken vraagt meteen een DM-wachtwoord, anders kun je er niet in |
 | 26 | 10 | Ook via *Openen* bleef je in Grisburgh: je sessie won van het pad | opgelost — het pad (`?campagne=`) bepaalt de campagne, de sessie alleen je rol. In een vreemde campagne ben je bezoeker en log je opnieuw in (`sessieHoortHier()`, zestiende isolatietest) |
 | 27 | 1 | Een andere campagne standaard maken sloot je buiten Grisburgh: het serverwachtwoord hing aan de *actieve* campagne | opgelost — het hangt nu aan `config.beheerCampagne`, die vastligt. Zelfde fout zat in de regel die leegmaken toestond |
+| 28 | 8 | Een socket zonder sessie kon zich met `player:register` als elk personage melden en ontving daarna zijn privéberichten en brieven — en de echte speler niet meer (review 6 nov) | opgelost — alleen het personage van je eigen sessie, na een `session.reload()`; `tests/review-lekken.test.js` |
+| 29 | 7 | `GET /spotify/token` gaf het toegangstoken van de DM aan elke ingelogde speler, met e-mail- en accountscope erin (review 6 nov) | opgelost — token en tafelapparaat alleen voor de DM; het tafelscherm is een DM-login |
+| 30 | 2 | `links` van een zichtbaar kaartje noemde verborgen kaartjes bij naam; een handmatige verbinding wordt vanzelf tweezijdig, dus koppel je een verborgen NPC aan de herberg, dan staat hij in de netwerktab van elke speler (review 6 nov) | opgelost — `_linksVoorSpeler()` in `filterEntityForPlayer`; een naam zonder kaartje blijft staan |
+| 31 | 4 | Charges, `maxCharges`, de lange rust per personage, multiclass- en leenverzoeken schreven in de party waar de DM naar keek, terwijl de speler zijn eigen party leest: een charge "sprong terug", een verzoek was voor de speler onzichtbaar en kon dubbel (review 6 nov) | opgelost — de party van het personage zelf |
+| 32 | alle | `esc()` in een inline handler (`onclick="f('${esc(x)}')"`) escapet voor HTML, niet voor een JS-string: "Bigby's Hand" gaf een knop die niets deed, en een personagenaam als `x');…;('` werd code in het scherm van de DM (review 6 nov) | opgelost — 615 plekken naar `escArg` (`scripts/onclick-escapen.js`); `tests/onclick-escapen.test.js` bewaakt het |
+| 33 | 1 | Wachtwoordvelden (`/login`, `/toegang`, `/player-login`) waren onbeperkt te proberen, en elke poging kost een synchrone scrypt (review 6 nov) | opgelost — na 20 mislukte pogingen per adres en campagne tien minuten 429; `trust proxy` op loopback zodat het adres achter Caddy klopt |
+| 34 | 1 | `/auth/sandbox-login` maakte zonder `SANDBOX_PASSWORD` van elke bezoeker een DM (sandbox, maar met uploads op de productieschijf) | opgelost — zonder wachtwoord in de omgeving staat hij uit, net als de tabletlogin |
+| 35 | 2 | Een ingelogde speler kon het bestand van elk verborgen kaartje ophalen als hij het id kende: portret, pdf-scan, geluidsfragment (review 6 nov) | opgelost — `_verborgenBestanden()`: 404 voor wat alléén aan verborgen kaartjes hangt; een gedeeld of elders gebruikt bestand blijft open |
+| 36 | 1 | Het portret uit de personage-wizard las `dm-state.json` vóór de beeldconversie en schreef hem daarna terug: wat de DM in die seconden deed ging verloren. Zelfde vorm bij de encounters in de akte-import | opgelost — pas lezen ná de await |
+| 37 | 8 | `_zendCombat` stuurde het rauwe gevecht naar élke socket zonder personage — ook naar een speler die uitlogde (zijn sessie houdt de campagne vast): exacte HP en AC van elk monster (visuele ronde 7 nov) | opgelost — alleen een DM-sessie krijgt het rauw, de rest de spelersfilter |
+| 38 | 8 | De kist op het tafelscherm ging niet open: de onzichtbare video (opacity 0) lag eroverheen en ving elke tik | opgelost — `pointer-events: none` op de video |
+| 39 | 8 | Een gelijke beurt van zeven namen werd op het tafelscherm een kop van twee regels van 30px, en "Ronde 1" brak over twee regels | opgelost — ronde op één regel, vanaf drie namen een kleinere letter |
+| 40 | 2 | De dramatische onthulling op een telefoon: het beeld duwde *Bekijken* onder de rand van het scrollvak | opgelost — beeld begrensd op lage schermen, kaart strakker op smalle |
+| 41 | 5 | De woekeraar begon zijn groet met een kleine letter ("de geldschieter kijkt je aan…") | opgelost — hoofdletter aan het begin van de zin |
+| 42 | 9 | `scripts/stresstest-vullen.js` schreef drie voorwerpvelden anders dan de app (`rarity`, prijs als JSON, "Wonderous") en kamersymbolen als kale string: de stresstest zag nooit een zeldzaamheidsrand en tekende lege vierkantjes in de dungeon | opgelost — zelfde vorm als de editor |
+| 43 | 1 | De sessiecookie had geen vervaldatum: browser dicht (of de app weggeveegd) betekende opnieuw inloggen, ook op het tafelscherm (DM-ronde 7 nov) | opgelost — 30 dagen, schuift mee (`rolling`) |
+| 44 | 10 | De opstartwizard opende alleen na herladen, niet direct na het inloggen | opgelost — elke DM-inlogweg vraagt hem |
+| 45 | 10 | De wizard bewaarde de class als vrije tekst ("rogue"); het blad herkende hem niet | opgelost — suggestielijst + echte naam; het blad vergelijkt hoofdletterongevoelig |
+| 46 | 5 | Een prijs in de eigen muntnaam ("2 stuiver", "3 florinde") maakte het voorwerp gratis | opgelost — `parsePrijs` kent `meta.currency`, met meervoud; `tests/dm-ronde.test.js` |
+| 47 | 5 | Bedragen in de interne sleutels: "Je komt 2 kn tekort" | opgelost — `formatCl` gebruikt de muntnamen |
+| 48 | 2 | Een verkoper aan een herberg koppelen liep dood: geen plek voor voorraad | opgelost — `_verkopers` op de locatie; dan is er een voorraadtabblad |
+| 49 | 6 | De encounterbouwer vond in een verse campagne geen enkel statblok | opgelost — de SRD 5.2 staat ertussen en een keuze haalt hem binnen; "+ Regel" heet "+ Monster" |
+| 50 | 2 | Een onbekende `[[naam]]` in een kaartje had geen plus om het kaartje te maken | opgelost — zelfde plus als in de akte en de dungeon |
+| 51 | 6 | Teller *Namen* in het schrijfscherm bleef staan na het maken van een kaartje | opgelost |
+| 52 | 3 | Kamervenster dungeon: vloernamen en *Annuleren* onleesbaar op perkament | opgelost |
+| 53 | 10 | Opstartwizard: geen sluitknop, Escape deed niets; diensten kregen hun naam vóór je ze aanzette; geen HP bij het eerste personage; waarschuwing als alinea in het formulier | opgelost — × en Escape (telt als klaar), *onderdelen* vóór *plekken heten*, veld Max HP, waarschuwing in één regel (de rest staat in het boekje) |
+| 54 | 1 | Lege campagne: alleen "Geen spelerskarakters gevonden" en een vage DM-ingang | opgelost — knop *Inloggen als Dungeon Master* |
+| 55 | 2 | Leeg voorraadtabblad zonder weg om iets toe te voegen; prijsvoorbeeld in "gp" | opgelost — *Voorraad aanvullen* opent de editor op *Winkel*, voorbeeld in de eigen munt |
+| 56 | 3 | Nieuwe getekende dungeon opende niet; "BG zelf tekenen" | opgelost — opent meteen, "Begane grond zelf tekenen" |
+| 57 | 10 | Nieuwe campagne: velden zonder label, zelf een id verzinnen; nieuwe akte vroeg een *Sleutel* | opgelost — labels, adres volgt de naam; sleutel verborgen |
+| 58 | 5 | Markt (speler, telefoon): een winkel zonder bekende winkelier toonde `"/>` op de plek van het portret — `icon()` kreeg de kant-en-klare svg van `_locIcoon` in plaats van een naam (spelersronde 7 nov) | opgelost — `_locIcoonNaam` |
+| 59 | 5 | Markt: na een aankoop stond je weer op het overzicht, want de beursmelding die erop volgt tekende de Markt opnieuw vanaf het begin; je aankoop was nergens in beeld | opgelost — een verversing houdt de winkel open (`_marktNieuwBezoek`), alleen een nieuw bezoek begint op de markt; bevestiging als melding |
+| 60 | 5 | Markt: de voorraadtabel (gemaakt voor een licht kaartje) stond op het donkere paneel — *Kopen* donkerbruin op bijna zwart | opgelost — de tabel krijgt daar zijn eigen vel perkament |
+| 61 | 5 | De beurs bovenin elke dienst zei "23 fl · 4 kn" in een campagne met Gold/Silver: de interne sleutels als afkorting | opgelost — `window._muntAfk`/`_muntKort`: gp/sp/cp, de sleutel als de naam ermee begint, anders de eerste twee letters |
+| 62 | 5 | Herberg zonder ingevulde waard: "weet niets meer te vertellen." — en "Ze is zo bij je terug" ging uit van een vrouw | opgelost — "De waard" als terugval, zin zonder voornaamwoord |
+| 63 | 4 | Een brief toonde `--De Havenmeester--` letterlijk: brieven gingen door `mdToHtml`, documenten door `renderParchment` — titel- en handtekeningregels werkten alleen bij documenten | opgelost — ook brieven (lijst én verzegelde onthulling) via `renderParchment`, dat nu ook de korte vorm `--Naam--` op één regel kent |
+| 64 | 8 | Tafelscherm (als DM ingelogd, maar midden op tafel) kreeg het rauwe gevecht: exacte HP en AC van elk monster op de tokens, terwijl de telefoons die getallen juist niet krijgen (sessieronde 7 nov) | opgelost — sockets in de tafelroom krijgen `_combatVoorTafel()` (de spelersversie met de bestiariumkennis van de actieve party), `GET /combat?tafel=1` idem; bij het aanzetten haalt het scherm het gevecht opnieuw op, want bij `?display=1` was het al geladen vóór de rol bekend was. `tests/tafelscherm-sessie.test.js` |
+| 65 | 8 | Een tafelscherm dat herlaadde tijdens het claimen stond leeg: de kist kwam alleen over de socket | opgelost — `GET /combat/loot?tafel=1`, gevraagd bij het aanzetten |
+| 66 | 8 | Onthulling vlak vóór een verzegelde brief: het "Onthuld"-venster (z 9999) lag over de brief (z 9998) en het zegel was niet aan te tikken | opgelost — beide op dezelfde hoogte; wat later binnenkomt ligt bovenop |
+| 67 | 4 | De DM gunde een level, maar de speler zag niets tot hij ververste: `party:level-up-tegoed` werd uitgezonden en niemand luisterde | opgelost — luisteraar in `socket-client.js`, balk meteen bij, melding opent het venster |
+| 68 | 4 | Buit: "0 fl 4 kn bijgeschreven" (de koperen munten vielen weg, sleutels als namen); "Loot beschikbaar! Alle items zijn verdeeld." bij een kist met alleen geld; "Er is loot te verdelen — open je Boedel" was een opdracht | opgelost — `formatCl` met muntnamen; *Er is buit!*; de melding brengt je met een tik naar je Boedel |
+| 69 | 4 | Gevechtsbalk op de telefoon: *Jij bent aan zet* brak over drie regels | opgelost — op een smal scherm staat alleen het zwaardje, de tekst blijft op één regel |
+| 70 | 4 | Level-up: knoppen in het systeemlettertype; "klasse", "verhoging", "Spreuken van niveau 3", en in het spreukdetail "Tovervorm" en Nederlandse PHB-scholen ("Oproeping") | opgelost — Cinzel; Class, Ability Score Improvement, level, Cantrip, Evocation (alleen de Wands & Wizards-scholen blijven vertaald) |
+| 71 | 8 | Emoji in schermmeldingen (👤 bij een onthulling, ✅ ❌ ✉️ 💬 📁 🏆 🎲 📍), en "De Gock" hardgecodeerd in een melding van een andere campagne | opgelost — `icon()`, en de naam uit `meta.gock.naam` |
+| 72 | 4 | Een speler kon op zijn Personage-tab zijn eigen level en class omzetten (en zichzelf level 20 geven) | opgelost — alleen de DM (`_PROFIEL_DM_VELDEN` in `PATCH /player-profile`, 403 voor een speler); een subclass kiest de speler één keer zolang hij leeg is. `multiSubclass` werd bovendien nooit bewaard: hij stond niet in de lijst toegestane velden. `tests/profiel-dm.test.js` |
+| 73 | 8 | Drukteproef (DM, vijf spelers en een tafelscherm tegelijk): een speler met een beurs onder nul verloor bij elke bijschrijving geld — `fromCl` rondde −297 af tot −3/−10/−7 (= −407); een buitverdeling liet 85 koper verdwijnen | opgelost — rekenen met het bedrag zonder teken; `formatCl` en `_muntKort` tonen één minteken |
+| 74 | 8 | Een telefoon die even geen verbinding had haalde niets in: wat er in die tijd gebeurde (onthulling, beurt, kist, gegund level) kwam pas na verversen | opgelost — bij een herverbinding wordt de stand opnieuw opgehaald (`_inhalenNaOnderbreking`) |
+| 75 | 7 | Meerdere beelden tegelijk uploaden (akte-importer, uploadknop in de regie) kon registraties in de mediabibliotheek wissen: `_registerMedia` las `media.json` vóór een `await` en schreef daarna terug; `_backfillMedia` idem | opgelost — eerst meten, dan lezen en schrijven; de backfill voegt alleen zijn nieuwe regels toe aan een verse stand |
+| 76 | alle | Toegankelijkheid (axe-core, 12 schermen): 375 overtredingen — 130 beelden zonder `alt`, 24 bolletjes zonder naam (Saving Throws, skills), velden zonder label, en contrast onder 4,5 (de inlogknop op de landingspagina 2,25, het dobbellabel, spreuklabels, een DM-tab) | opgelost — nul; `tests/toegankelijkheid.test.js` |
+| 77 | alle | Escape sloot **altijd** het venster, ook een editor waarin je typte (Escape om een suggestielijst weg te halen gooide onbewaard werk weg); een gewoon kaartje kreeg geen focus | opgelost — Escape sluit alleen een venster zonder invulvelden (velden die zichzelf bewaren tellen niet: `data-bewaart-zelf`), de focus gaat het venster in en daarna terug |
+| 78 | 1 | Op de landingspagina kon je zonder muis geen personage kiezen | opgelost — portretten zijn knoppen (Tab + Enter) |
+| 79 | 7 | Meesterkamer → Diensten: bij het gokhuis, de detective en de waarzegger stond geen boekje — de balk vroeg om `dm_tweespalt`/`dm_gock`/`dm_ursula`, de teksten heten `dm_gokhuis`/`dm_detective`/`dm_waarzegger` (redactieronde 9 nov) | opgelost — `_DIENST_HULP` |
+| 80 | alle | Foutmeldingen gaven de Engelse woorden van browser en proxy door ("Fout: Failed to fetch" bij wegvallende wifi, "Bad Gateway" tijdens een herstart, "Payload Too Large"), en "Route /x bestaat niet op deze server (geen JSON antwoord)" | opgelost — `request()` in `api.js` vertaalt geen verbinding en kale statuscodes naar een zin die zegt wat je kunt doen; twee Engelse serverteksten vertaald |
+| 81 | alle | Helpteksten: Grisburgh in de standaardtekst van elke campagne (florinden en knaken, Boekenwyrm › Luimpoort › Grisburgh, Ursula, "de brieven zijn van Grisburgh"), vertaalde PHB-termen (klasse, volk, uitputting, concentratie, inspiratie, spreukenslots, ladingen), en beweringen die niet meer klopten (Markt opent het winkeltabblad, kaart = wereld- of stadskaart, Zegeningen-filter, dungeontoegang per party, hit die invullen) | opgelost — herschreven; nieuwe stappen *Level en class*, *Buit*, *Multiclassen*, *Meer kolommen*; vijf boekjes van één zin kregen een tweede stap. `scripts/helpteksten.js` kent nu ook `_dienstKop({ sleutel })` en `openModal(…, 'hulp_x')` — acht boekjes stonden ten onrechte als "zonder knop" |
 
 ### Spell slots, multiclass en de signatuurkaart (17 sep 2026)
 

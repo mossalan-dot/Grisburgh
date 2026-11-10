@@ -23,6 +23,12 @@ const io = new Server(server);
 // Make io accessible to routes
 app.set('io', io);
 
+// Achter Caddy komt elk verzoek van 127.0.0.1. Door de proxy op loopback te
+// vertrouwen wordt `req.ip` het adres uit X-Forwarded-For — nodig om mislukte
+// inlogpogingen per bezoeker te tellen in plaats van per tafel. Alleen
+// loopback: een bezoeker van buiten kan die kop dus niet zelf zetten.
+app.set('trust proxy', 'loopback');
+
 // Middleware
 app.use(compression()); // gzip alle responses — scheelt 75-80% op JS/CSS
 app.use(express.json({ limit: '5mb' }));
@@ -61,7 +67,14 @@ const sessionMiddleware = session({
   secret: config.sessionSecret,
   resave: false,
   saveUninitialized: false,
-  cookie: { httpOnly: true, sameSite: 'lax' },
+  // Met een vervaldatum. Zonder `maxAge` is het een sessiecookie, en die gooit
+  // de browser weg zodra hij sluit: de server bewaarde de sessie dertig dagen,
+  // maar wie zijn browser dichtdeed of de app op zijn telefoon wegveegde — of
+  // het tafelscherm opnieuw opstartte — moest elke keer opnieuw inloggen.
+  // `rolling` schuift de termijn op bij elk verzoek dat de sessie aanraakt,
+  // zodat een DM die elke week speelt nooit uitgelogd raakt.
+  cookie: { httpOnly: true, sameSite: 'lax', maxAge: SESSIE_TTL * 1000 },
+  rolling: true,
 });
 app.use(sessionMiddleware);
 
@@ -362,11 +375,28 @@ io.on('connection', (socket) => {
   socket.join(campaignId);
   console.log(`Client connected: ${socket.id} (room: ${campaignId})`);
 
-  // Player registers their characterId so DM can send direct messages
+  // Een speler meldt zijn characterId, zodat de DM hem rechtstreeks kan bereiken
+  // (berichten, brieven, beursmeldingen).
+  //
+  // Alleen voor het personage van je **eigen sessie**. Dit nam elk id aan, ook
+  // van een socket zonder sessie: wie op de landingspagina een id zag staan kon
+  // zich als die speler melden en kreeg daarna zijn privéberichten — en de echte
+  // speler kreeg ze niet meer, want de map houdt één socket per personage bij.
+  //
+  // Eerst de sessie verversen: die is bij de handshake gelezen, en de client
+  // logt in zónder te herladen. Zonder reload kent deze socket het net
+  // gekozen personage nog niet.
   socket.on('player:register', (characterId) => {
-    if (characterId) {
+    if (!characterId) return;
+    const controleer = () => {
+      // `reload` vervangt het sessie-object, dus pas hier opnieuw ophalen.
+      const sess = socket.request.session;
+      if (sess?.characterId !== characterId) return;
       playerSockets.set(characterId, socket.id);
-    }
+    };
+    const sess = socket.request.session;
+    if (typeof sess?.reload === 'function') sess.reload(() => controleer());
+    else controleer();
   });
 
   // Het scherm op tafel meldt zich als tafelscherm.
@@ -411,6 +441,13 @@ io.on('connection', (socket) => {
 
 // Only auto-listen when run directly (not when required by tests)
 if (require.main === module) {
+  // De standaardwaarden in config.js zijn voor op de laptop. Met het
+  // ingebouwde sessiegeheim kan iedereen die de broncode leest een DM-cookie
+  // ondertekenen; zeg het dus hardop als het hier draait zonder eigen waarde.
+  if (!config.devAutoDM) {
+    if (!process.env.SESSION_SECRET) console.warn('⚠️  SESSION_SECRET staat niet in de omgeving — sessiecookies zijn te vervalsen. Zet hem in PM2.');
+    if (!process.env.DM_PASSWORD)    console.warn('⚠️  DM_PASSWORD staat niet in de omgeving — de standaardcampagne valt terug op het ingebouwde wachtwoord.');
+  }
   server.listen(config.port, () => {
     console.log(`\n  \u2694  Grisburgh draait op http://localhost:${config.port}\n`);
   });

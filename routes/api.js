@@ -192,11 +192,18 @@ const _WAAS_KLEIN = 40;
 // dezelfde 800 kB opnieuw op.
 const _waasCache = new Map();   // datadir → { stempel, dmState, perGroep: Map(gid → Set) }
 
+// De bestanden waar de zichtbaarheid van een bestand uit volgt. Naast de drie
+// van de waas ook de plekken die een bestand buiten een kaartje gebruiken
+// (aktebanners, kaarten, dungeons, tafels, geluiden, buit, missies): staat een
+// id daar, dan is het geen geheim van één kaartje meer.
+const _WAAS_BRONNEN = ['entities.json', 'archief.json', 'dm-state.json', 'meta.json',
+  'map.json', 'dungeon-maps.json', 'tables.json', 'sounds.json', 'loot.json', 'quests.json'];
+
 // Eén stand van de drie bestanden = één cache. Zo wordt dm-state.json (een kwart
 // megabyte) niet veertig keer per kaartjespagina opnieuw geparsed.
 function _waasStand() {
   const dir = storage.DATA_DIR;
-  const stempel = ['entities.json', 'archief.json', 'dm-state.json'].map(n => {
+  const stempel = _WAAS_BRONNEN.map(n => {
     try { return fs.statSync(path.join(dir, n)).mtimeMs; } catch { return 0; }
   }).join('|');
   let c = _waasCache.get(dir);
@@ -229,6 +236,62 @@ function _waasBestanden(groupId) {
   return set;
 }
 
+// ── Bestanden van kaartjes die de party niet kent ────────────────────────────
+// Een ingelogde speler mocht élk bestand ophalen: het portret van een verborgen
+// NPC, de pdf-scan van een verborgen document, het geluidsfragment van een brief
+// die nog moet komen. Het id is niet te raden, maar één verwijzing die ooit
+// lekt is genoeg. Dus: wat alléén aan verborgen kaartjes hangt, gaat er niet uit.
+//
+// Bewust aan de voorzichtige kant. Een bestand dat ook bij een kaartje hoort dat
+// de party wél (vaag) kent, of dat ergens buiten de kaartjes genoemd wordt —
+// een aktebanner, een logboekbeeld, een kaart — blijft bereikbaar: dezelfde
+// plaat kan in de mediabibliotheek op twee plekken hangen, en een banner die
+// ineens leeg blijft is erger dan een plaatje dat je met een id kunt ophalen.
+// Spelerspersonages vallen er altijd buiten; die staan op de landingspagina.
+function _bestandenVan(e) {
+  const ids = [e.id, `${e.id}_video`];
+  if (e.data?.imageId) ids.push(e.data.imageId);
+  if (e.data?.audioId) ids.push(e.data.audioId);
+  try {
+    for (const x of JSON.parse(e.data?.extraImages || '[]')) if (x?.id) ids.push(x.id);
+  } catch { /* geen extra beelden */ }
+  return ids.map(String);
+}
+
+function _verborgenBestanden(groupId) {
+  const c = _waasStand();
+  if (!c.verborgen) c.verborgen = new Map();
+  if (c.verborgen.has(groupId)) return c.verborgen.get(groupId);
+
+  const g = getGroup(c.dmState, groupId);
+  const entities = storage.readJSON('entities.json');
+  const dicht = new Set(), open = new Set();
+  for (const t of ENTITY_TYPES) {
+    for (const e of (entities[t] || [])) {
+      const speler = (e.subtype || '').toLowerCase() === 'speler';
+      const vis = g?.visibility?.[e.id] || 'hidden';
+      for (const id of _bestandenVan(e)) (vis === 'hidden' && !speler ? dicht : open).add(id);
+    }
+  }
+  // Wat buiten de kaartjes genoemd wordt, telt als open. Ruwe tekst doorzoeken
+  // is grof, maar faalt naar de veilige kant: liever een id te veel open.
+  const elders = _WAAS_BRONNEN.filter(n => n !== 'entities.json' && n !== 'dm-state.json').map(n => {
+    try { return fs.readFileSync(path.join(storage.DATA_DIR, n), 'utf8'); } catch { return ''; }
+  }).join('\n')
+    // dm-state draagt ook bestand-ids (losse boedelregels, profielen), maar zijn
+    // party-mappen zijn op entiteit-id geïndexeerd — die zouden alles openzetten.
+    + '\n' + JSON.stringify({ ...c.dmState, groups: undefined });
+  const set = new Set([...dicht].filter(id => !open.has(id) && !elders.includes(id)));
+  c.verborgen.set(groupId, set);
+  return set;
+}
+
+function _bestandVerborgenVoor(req, id) {
+  if (req.role === 'dm' || !req.session?.characterId) return false;
+  const gid = _playerGroupId(_waasStand().dmState, req.session.characterId);
+  return _verborgenBestanden(gid).has(String(id));
+}
+
 // De DM ziet alles scherp; een tafelscherm is de DM, dus die ook.
 function _waasVoor(req, id) {
   if (req.role === 'dm' || !req.session?.characterId) return false;
@@ -258,6 +321,9 @@ async function _waasBestand(id, bronPad) {
 // data/campaigns/<id>/thumbs/. Daarna wordt de gecachte versie direct geserveerd.
 router.get('/thumb/:id', attachRole, async (req, res) => {
   if (!_magBestandZien(req, req.params.id)) return res.status(401).json({ error: 'Niet ingelogd' });
+  // Zelfde 404 als een bestand dat er niet is: anders verklapt het antwoord
+  // dát er achter dit id iets ligt.
+  if (_bestandVerborgenVoor(req, req.params.id)) return res.status(404).end();
   const file = storage.getFile(req.params.id);
   if (!file) return res.status(404).end();
 
@@ -690,6 +756,14 @@ function filterEntityForPlayer(entity, dmState, groupId, ctx) {
   // niet ontmoet heeft, dus dat verklapt wat er nog komt.
   delete e.stats;
   delete e.statblockTiers;
+  // ── Koppelingen (`links`) ──
+  // Een lijst náMEN per soort kaartje, en die ging ongefilterd mee. Een
+  // handmatig gelegde verbinding wordt bovendien vanzelf tweezijdig: koppel je
+  // een verborgen moordenaar aan de herberg, dan staat zijn naam ook in de
+  // links van de herberg — en die herberg kent de speler wél. Precies het lek
+  // dat `betrokkenen` en `_hoortBij` hierboven en hieronder dichthouden. Een
+  // naam die bij geen enkel kaartje hoort blijft staan, net als daar.
+  if (e.links) e.links = _linksVoorSpeler(e.links, g, ctx?.entities);
   e._visibility   = 'visible';
   // Weet de kaartweergave vooraf of er een afbeelding is, dan reserveert hij
   // geen ruimte voor een plaatje dat er nooit komt.
@@ -708,6 +782,33 @@ function filterEntityForPlayer(entity, dmState, groupId, ctx) {
   const _gunst = _gunstBetrekkingen(entity.id, g, false);
   if (_gunst.length) e._hoortBij = [..._gunst, ...e._hoortBij];
   return e;
+}
+
+// Haalt uit `links` de namen van kaartjes die deze party niet kent. Vaag telt
+// als gekend: die naam staat al op zijn eigen kaartje in de lijst.
+const _linkNaamIndex = new WeakMap();   // entities-object → Map(type → Map(norm → id))
+function _linksVoorSpeler(links, g, entities) {
+  const ents = entities || storage.readJSON('entities.json');
+  let index = _linkNaamIndex.get(ents);
+  if (!index) {
+    index = new Map();
+    for (const t of ENTITY_TYPES) {
+      const m = new Map();
+      for (const x of (ents[t] || [])) if (x?.name) m.set(_impNorm(x.name), x.id);
+      index.set(t, m);
+    }
+    _linkNaamIndex.set(ents, index);
+  }
+  const uit = {};
+  for (const [t, namen] of Object.entries(links || {})) {
+    const m = index.get(t);
+    uit[t] = (Array.isArray(namen) ? namen : []).filter(naam => {
+      const id = m?.get(_impNorm(naam));
+      if (!id) return true;                          // geen kaartje: gewone tekst
+      return (g.visibility?.[id] || 'hidden') !== 'hidden';
+    });
+  }
+  return uit;
 }
 
 // ── Meerdere statblokken op één kaartje (tiers) ──────────────────────────────
@@ -1212,6 +1313,19 @@ function _gunstBetrekkingen(entityId, g, isDM) {
   return uit;
 }
 
+// Wie verkoopt er hier? Een verkoper wijst met `data.winkelLocatieId` naar zijn
+// locatie, en de voorraad hoort bij die locatie (zie `_winkelVan`). Maar de
+// locatie zelf wist daar niets van: alleen een locatie van het type *Winkel*
+// kreeg een voorraadtabblad. Koppelde een DM de waardin aan zijn herberg, dan
+// kon hij nergens voorraad kwijt — en het type omzetten naar Winkel kostte hem
+// het type Herberg. Deze lijst gaat alleen naar de DM: de speler ziet een
+// winkel aan zijn waren, niet aan wie erachter staat.
+function _verkopersVan(entities, locId) {
+  return (entities.personages || [])
+    .filter(p => p.data?.winkelLocatieId === locId)
+    .map(p => ({ id: p.id, name: p.name }));
+}
+
 function _linksMetTekst(entity) {
   const tekst = _LINK_TEKSTVELDEN.map(v => entity.data?.[v] || '').join('\n');
   if (!tekst.includes('[[')) return entity.links;
@@ -1263,6 +1377,7 @@ router.get('/entities/:type', attachRole, (req, res) => {
       // De DM ziet de houding altijd: hij heeft hem zelf gezet, of hij ziet
       // wat de app ervan maakt.
       _houding:      _houdingVan(e, { meta: _meta, entities, dmState }),
+      ...(type === 'locaties' ? { _verkopers: _verkopersVan(entities, e.id) } : {}),
       _visibility:   g.visibility[e.id]    || 'hidden',
       _secretReveal: _onthuldeIds(g.secretReveals[e.id], _geheimRegels(e.data)).size > 0,
       _geheimTotaal: _geheimRegels(e.data).length,
@@ -1406,6 +1521,7 @@ router.get('/entities/:type/:id', attachRole, (req, res) => {
     // standaard dan de glans op het kaartje — en dan zet een DM iets vast
     // wat hij niet bedoelde.
     _houding:      _houdingVan(entity, { meta: storage.readJSON('meta.json'), entities, dmState }),
+    ...(type === 'locaties' ? { _verkopers: _verkopersVan(entities, entity.id) } : {}),
     _hoortBij:     (() => {
       const rijen = _betrokkenBij(entity.id);
       const fb = _factieBetrekking(entity.id, g, true);
@@ -2371,11 +2487,19 @@ function parsePrijs(str) {
   const result = { fl: 0, kn: 0, cl: 0 };
   // Ook gp/sp/cp en de twee muntjes zonder eigen plek in de beurs: electrum
   // (5 zilver) en platinum (10 goud) worden hier meteen omgerekend.
-  const re = /(\d+(?:[.,]\d+)?)\s*(fl|kn|cl|gp|sp|cp|ep|pp)\.?/gi;
+  //
+  // En de namen die de DM zelf gaf. Wie zijn munten Daalder, Stuiver en Duit
+  // noemt, tikt in zijn winkel "2 stuiver" — en dat leverde hier `null` op,
+  // waarna de koopregel niets afschreef: het voorwerp was gratis. In Grisburgh
+  // viel het niet op, daar staat overal "fl"; "3 florinde" had hetzelfde gedaan.
+  const woorden = _muntWoorden();
+  const namen = Object.keys(woorden).sort((a, b) => b.length - a.length)
+    .map(w => w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|');
+  const re = new RegExp(`(\\d+(?:[.,]\\d+)?)\\s*(${namen ? namen + '|' : ''}fl|kn|cl|gp|sp|cp|ep|pp)\\.?(?![a-z])`, 'gi');
   let match, any = false, extraCl = 0;
   while ((match = re.exec(String(str))) !== null) {
     const val  = parseFloat(match[1].replace(',', '.'));
-    const unit = match[2].toLowerCase();
+    const unit = woorden[match[2].toLowerCase()] || match[2].toLowerCase();
     if (unit === 'fl' || unit === 'gp')      result.fl += val;
     else if (unit === 'kn' || unit === 'sp') result.kn += val;
     else if (unit === 'cl' || unit === 'cp') result.cl += val;
@@ -2389,15 +2513,37 @@ function parsePrijs(str) {
   return any ? result : null;
 }
 
+// De muntnamen van déze campagne als woord → sleutel, met een meervoud erbij
+// (stuiver/stuivers, daalder/daalders, florinde/florindes). Een naam die met
+// een standaardafkorting samenvalt, laat die afkorting staan.
+function _muntWoorden() {
+  let cur = {};
+  try { cur = storage.readJSON('meta.json').currency || {}; } catch { /* geen meta */ }
+  const uit = {};
+  for (const sleutel of ['fl', 'kn', 'cl', 'ep', 'pp']) {
+    const naam = String(cur[sleutel] || '').trim().toLowerCase();
+    if (!naam || /[^a-zà-ÿ' -]/i.test(naam)) continue;
+    for (const vorm of [naam, naam + 's', naam + 'en', naam + 'n']) {
+      if (!['fl', 'kn', 'cl', 'gp', 'sp', 'cp', 'ep', 'pp'].includes(vorm)) uit[vorm] = sleutel;
+    }
+  }
+  return uit;
+}
+
 // Valuta-hulpfuncties: 1 fl = 10 kn = 100 cl
 function toCl(cur) {
   return Math.round(((cur.fl || 0) * 100) + ((cur.kn || 0) * 10) + (cur.cl || 0));
 }
+// Een beurs kan onder nul zakken (een DM die een schuld noteert, een betaling
+// die net niet past). `Math.floor` rondt een negatief getal dan de verkeerde
+// kant op: −297 werd −3 / −10 / −7, en dat is −407. Elke bijschrijving op een
+// beurs in de min kostte zo een paar munten (een buitverdeling liet 85 koper
+// verdwijnen). Dus: reken met het bedrag zonder teken en zet het er daarna weer
+// voor. `+ 0` maakt van een −0 een gewone 0.
 function fromCl(total) {
-  const fl = Math.floor(total / 100);
-  const kn = Math.floor((total % 100) / 10);
-  const cl = total % 10;
-  return { fl, kn, cl };
+  const t = Math.round(Number(total) || 0);
+  const s = t < 0 ? -1 : 1, a = Math.abs(t);
+  return { fl: s * Math.floor(a / 100) + 0, kn: s * Math.floor((a % 100) / 10) + 0, cl: s * (a % 10) + 0 };
 }
 
 // ── Winkels ───────────────────────────────────────────────────────────────────
@@ -4250,7 +4396,7 @@ router.patch('/items/:itemId/owner/:characterId/charges', attachRole, (req, res)
   if (req.role !== 'dm' && req.session?.characterId !== characterId)
     return res.status(403).json({ error: 'Geen toegang' });
   const dmState = readDmState();
-  const g = getGroup(dmState);
+  const g = getGroup(dmState, _playerGroupId(dmState, characterId));
   if (!g.itemCharges) g.itemCharges = {};
   if (!g.itemCharges[characterId]) g.itemCharges[characterId] = {};
   g.itemCharges[characterId][itemId] = Math.max(0, parseInt(charges) || 0);
@@ -4264,7 +4410,7 @@ router.patch('/items/:itemId/owner/:characterId/maxCharges', attachRole, (req, r
   if (req.role !== 'dm' && req.session?.characterId !== characterId)
     return res.status(403).json({ error: 'Geen toegang' });
   const dmState = readDmState();
-  const g = getGroup(dmState);
+  const g = getGroup(dmState, _playerGroupId(dmState, characterId));
   if (!g.itemMaxCharges) g.itemMaxCharges = {};
   if (!g.itemMaxCharges[characterId]) g.itemMaxCharges[characterId] = {};
   const newMax = Math.max(0, parseInt(maxCharges) || 0);
@@ -4285,7 +4431,7 @@ router.post('/characters/:characterId/long-rest', attachRole, (req, res) => {
   let entities = {};
   try { entities = storage.readJSON('entities.json'); } catch { /* ok */ }
   const dmState = readDmState();
-  const g = getGroup(dmState);
+  const g = getGroup(dmState, _playerGroupId(dmState, characterId));
   if (!g.itemCharges) g.itemCharges = {};
   if (!g.itemCharges[characterId]) g.itemCharges[characterId] = {};
   const ownedItemIds = Object.keys(g.itemOwners || {}).filter(itemId => {
@@ -6176,15 +6322,40 @@ function _zendCombat(req, combat) {
   const io = req.app.get('io');
   if (!io) return;
   const cid = _campagneRoom(req);
+  const tafelRoom = _displayRoom(req);
   // dmState één keer lezen: dit draait per socket, en het bestiarium zit erin.
   let dmState = null;
   for (const sock of io.sockets.sockets.values()) {
     if (!sock.rooms.has(cid)) continue;
-    const charId = sock.request?.session?.characterId;
-    if (!charId) { sock.emit('combat:updated', combat); continue; }
+    const sess   = sock.request?.session;
+    // Alleen de DM krijgt het rauwe gevecht. Dit stond als "geen personage =
+    // alles": maar zonder personage in deze room zit ook een speler die
+    // uitlogde (zijn sessie houdt de campagne vast) en een oude tabletlogin —
+    // die lazen de exacte HP en AC van elk monster. Zij krijgen nu wat een
+    // speler zonder kennis krijgt.
+    // Het tafelscherm is als DM ingelogd, maar ligt midden op tafel: wat daar
+    // staat leest de hele party. Het kreeg het rauwe gevecht, met de exacte HP
+    // en AC van elk monster op de tokens — precies wat de telefoons níét
+    // krijgen. Nu dezelfde versie als een speler, met de kennis van de party
+    // die speelt. Herkend aan de room, niet aan de rol.
+    if (sock.rooms.has(tafelRoom)) {
+      if (!dmState) { try { dmState = readDmState(); } catch { dmState = {}; } }
+      sock.emit('combat:updated', _combatVoorTafel(combat, dmState));
+      continue;
+    }
+    if (sess?.role === 'dm') { sock.emit('combat:updated', combat); continue; }
+    const charId = sess?.characterId || null;
     if (!dmState) { try { dmState = readDmState(); } catch { dmState = {}; } }
-    sock.emit('combat:updated', _combatVoorSpeler(combat, charId, _bestiariumKennis(dmState, charId)));
+    sock.emit('combat:updated', _combatVoorSpeler(combat, charId, charId ? _bestiariumKennis(dmState, charId) : {}));
   }
+}
+
+// Wat het tafelscherm van een gevecht ziet: wat een speler zonder eigen
+// personage ziet, met wat de party die nu speelt in het bestiarium heeft.
+function _combatVoorTafel(combat, dmState) {
+  let kennis = {};
+  try { kennis = getGroup(dmState, dmState?.activeGroup || null)?.bestiarium || {}; } catch { /* leeg */ }
+  return _combatVoorSpeler(combat, null, kennis);
 }
 
 // De room van de tafelschermen.
@@ -6223,7 +6394,7 @@ router.post('/characters/:characterId/multiclass-verzoek', attachRole, (req, res
     return res.status(409).json({ error: 'Je hebt al twee klassen — een derde kan de app niet bijhouden' });
   }
 
-  const g = getGroup(dmState);
+  const g = getGroup(dmState, _playerGroupId(dmState, characterId));
   if (!g.multiclassVerzoeken) g.multiclassVerzoeken = [];
   if (g.multiclassVerzoeken.some(v => v.characterId === characterId && v.status === 'pending')) {
     return res.status(409).json({ error: 'Er staat al een verzoek open' });
@@ -6855,9 +7026,15 @@ router.post('/personage-concept/:id/portret', metUpload(uploadMedia.single('file
   const klein = await _beeldVerkleinen(req.file.buffer, req.file.mimetype);
   storage.saveFile(c.id, klein.buffer, klein.mimetype);
   storage.deleteThumb?.(c.id);
-  c.portret = true;
-  c.bijgewerkt = new Date().toISOString();
-  storage.writeJSON('dm-state.json', dmState);
+  // Opnieuw lezen ná de await. De stand van hierboven is een seconde of twee
+  // oud — sharp is niet snel — en het hele bestand terugschrijven zou wissen
+  // wat de DM in die tijd deed: een HP-tik, een onthulling, een rust.
+  const vers = readDmState();
+  const cv = _concepten(vers)[c.id];
+  if (!cv) return res.status(404).json({ error: 'Niet gevonden' });
+  cv.portret = true;
+  cv.bijgewerkt = new Date().toISOString();
+  storage.writeJSON('dm-state.json', vers);
   res.json({ ok: true, fileId: c.id });
 });
 
@@ -7990,7 +8167,7 @@ router.get('/player-currency/:characterId', attachRole, (req, res) => {
 });
 
 router.patch('/player-currency/:characterId', attachRole, (req, res) => {
-  if (req.role !== 'dm') return res.status(403).json({ error: 'Forbidden' });
+  if (req.role !== 'dm') return res.status(403).json({ error: 'Geen toegang' });
   const { characterId } = req.params;
   const dmState = readDmState();
   if (!dmState.playerCurrency) dmState.playerCurrency = {};
@@ -8776,6 +8953,9 @@ router.get('/player-profile/:characterId', attachRole, (req, res) => {
   res.json((dmState.playerProfiles || {})[characterId] || {});
 });
 
+const _PROFIEL_DM_VELDEN = ['level', 'klasse', 'klasseLevel', 'multiclass', 'multiKlasse', 'multiKlasseLevel'];
+const _PROFIEL_EENMALIG  = ['subclass', 'multiSubclass'];
+
 router.patch('/player-profile/:characterId', attachRole, (req, res) => {
   const { characterId } = req.params;
   if (req.role !== 'dm' && req.session.characterId !== characterId)
@@ -8783,8 +8963,24 @@ router.patch('/player-profile/:characterId', attachRole, (req, res) => {
   const dmState = readDmState();
   if (!dmState.playerProfiles) dmState.playerProfiles = {};
   const existing = dmState.playerProfiles[characterId] || {};
+  // **Level en class zet de DM.** Ze lopen via `POST .../level-up` (dat het
+  // level zelf ophoogt) en het multiclassverzoek, allebei langs de DM. Hier
+  // mocht een speler ze vrij overschrijven en zichzelf level 20 geven. Een
+  // subclass kiest de speler wél zelf, maar één keer: zolang hij leeg is.
+  if (req.role !== 'dm') {
+    const leeg = v => v === undefined || v === null || String(v).trim() === '';
+    const anders = k => req.body[k] !== undefined && String(req.body[k] ?? '') !== String(existing[k] ?? '');
+    const dm = _PROFIEL_DM_VELDEN.filter(anders);
+    const sub = _PROFIEL_EENMALIG.filter(k => anders(k) && !leeg(existing[k]));
+    if (dm.length || sub.length) {
+      return res.status(403).json({
+        error: dm.length ? 'Level en class zet je DM.' : 'Je subclass is al gekozen; alleen je DM kan hem nog veranderen.',
+        velden: [...dm, ...sub],
+      });
+    }
+  }
   const allowed = [
-    'level', 'klasse', 'subclass', 'background', 'origin', 'originVariant', 'bloodStatus', 'spellSaveDC', 'spellAttackBonus',
+    'level', 'klasse', 'subclass', 'multiSubclass', 'background', 'origin', 'originVariant', 'bloodStatus', 'spellSaveDC', 'spellAttackBonus',
     'str', 'dex', 'con', 'int', 'wis', 'cha',
     'ac', 'speed', 'initiative', 'profBonus', 'hitDie',
     'deathSaveSuccesses', 'deathSaveFailures',
@@ -9697,8 +9893,10 @@ router.post('/import/akte/apply', requireDM, metUpload(uploadMedia.array('images
   const script = [];
   const sessieImages = [];
   const imageScriptRefs = [];   // script-items die nog een sessieId nodig hebben
-  const encounters = storage.readJSON('encounters.json');
-  if (!Array.isArray(encounters.encounters)) encounters.encounters = [];
+  // Nieuwe encounters eerst verzamelen en pas na de lus wegschrijven, op een
+  // vers gelezen bestand: tussendoor wordt er per beeld op sharp gewacht, en wat
+  // er in die tijd aan encounters veranderde ging anders verloren.
+  const nieuweEncounters = [];
   let imagesUploaded = 0, encountersCreated = 0;
   const newId = (p) => `${p}_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
 
@@ -9723,7 +9921,7 @@ router.post('/import/akte/apply', requireDM, metUpload(uploadMedia.array('images
         name: r.name, count: Math.max(1, parseInt(r.count) || 1), initiative: 10, hp: parseInt(r.hp) || 10,
       }));
       const eid = newId('enc');
-      encounters.encounters.push({
+      nieuweEncounters.push({
         id: eid, name: step.name || 'Encounter', akteId: chapterKey,
         backdropId: 'enc-backdrop-' + eid, canvasPreset: 'plain', canvasColors: null, monsters: mons,
       });
@@ -9758,7 +9956,12 @@ router.post('/import/akte/apply', requireDM, metUpload(uploadMedia.array('images
     for (const ref of imageScriptRefs) ref.sessieId = sessieId;
   }
 
-  if (encountersCreated) storage.writeJSON('encounters.json', encounters);
+  if (encountersCreated) {
+    const encounters = storage.readJSON('encounters.json');
+    if (!Array.isArray(encounters.encounters)) encounters.encounters = [];
+    encounters.encounters.push(...nieuweEncounters);
+    storage.writeJSON('encounters.json', encounters);
+  }
 
   const meta = storage.readJSON('meta.json');
   if (!meta.hoofdstukken) meta.hoofdstukken = {};
@@ -10484,6 +10687,7 @@ router.post('/files/:id', requireDM, metUpload(uploadMedia.single('file')), asyn
 
 router.get('/files/:id', attachRole, async (req, res) => {
   if (!_magBestandZien(req, req.params.id)) return res.status(401).json({ error: 'Niet ingelogd' });
+  if (_bestandVerborgenVoor(req, req.params.id)) return res.status(404).json({ error: 'Niet gevonden' });
   const file = storage.getFile(req.params.id);
   if (!file) return res.status(404).json({ error: 'Niet gevonden' });
   // Hoort het bij een vaag kaartje of document, dan gaat het origineel er niet
@@ -10556,14 +10760,20 @@ const _MIME_TYPE_GROEP = (mime) =>
 // Registreer of werk een bestand bij in media.json. `buffer` optioneel — als het
 // een afbeelding is bepalen we breedte/hoogte via sharp.
 async function _registerMedia(id, { mime, grootte, origineleNaam, naam, buffer } = {}) {
+  const type = _MIME_TYPE_GROEP(mime);
+  // Eerst meten, dán lezen en schrijven. Andersom lagen er bij een upload van
+  // meerdere beelden tegelijk (de akte-importer, de uploadknop in de regie)
+  // meerdere aanroepen tussen hun lezen en hun schrijven, en de laatste wist
+  // de registraties van de andere.
+  let gemeten = null;
+  if (type === 'afbeelding' && _sharp && buffer && mime !== 'image/svg+xml') {
+    try { const m = await _sharp(buffer).metadata(); gemeten = { breedte: m.width || null, hoogte: m.height || null }; } catch {}
+  }
   const media = storage.readJSON('media.json');
   if (!media.files) media.files = {};
   const bestaand = media.files[id] || {};
-  const type = _MIME_TYPE_GROEP(mime);
-  let breedte = bestaand.breedte ?? null, hoogte = bestaand.hoogte ?? null;
-  if (type === 'afbeelding' && _sharp && buffer && mime !== 'image/svg+xml') {
-    try { const m = await _sharp(buffer).metadata(); breedte = m.width || null; hoogte = m.height || null; } catch {}
-  }
+  const breedte = gemeten ? gemeten.breedte : (bestaand.breedte ?? null);
+  const hoogte  = gemeten ? gemeten.hoogte  : (bestaand.hoogte  ?? null);
   media.files[id] = {
     naam:          naam || bestaand.naam || id,
     type,
@@ -10602,6 +10812,7 @@ async function _backfillMedia() {
   let dir;
   try { dir = fs.readdirSync(storage.FILES_DIR); } catch { return media; }
   let dirty = false;
+  const nieuw = {};
   for (const fname of dir) {
     const id = fname.replace(/\.[^.]+$/, '');
     if (media.files[id]) continue;
@@ -10616,10 +10827,18 @@ async function _backfillMedia() {
       try { const m = await _sharp(file.path).metadata(); breedte = m.width || null; hoogte = m.height || null; } catch {}
     }
     media.files[id] = { naam: id, type, mime: file.mimetype || '', grootte, breedte, hoogte, geupload, origineleNaam: '' };
+    nieuw[id] = media.files[id];
     dirty = true;
   }
-  if (dirty) storage.writeJSON('media.json', media);
-  return media;
+  if (!dirty) return media;
+  // Vers lezen en alleen de nieuwe regels erbij: tussen het lezen hierboven en
+  // nu liggen awaits (sharp per bestand), en wat er in die tijd geüpload of
+  // hernoemd werd stond anders niet meer in de bibliotheek.
+  const vers = storage.readJSON('media.json');
+  if (!vers.files) vers.files = {};
+  for (const [id, regel] of Object.entries(nieuw)) if (!vers.files[id]) vers.files[id] = regel;
+  storage.writeJSON('media.json', vers);
+  return vers;
 }
 
 // Lijst: metadata + live berekend gebruik per bestand.
@@ -13039,10 +13258,15 @@ router.post('/spotify/pauze', requireDM, async (req, res) => {
 });
 
 // Het tafelscherm haalt hier een kortlopend token op voor de Web Playback SDK,
-// en meldt daarna welk apparaat-id het geworden is. Geen DM-recht vereist: het
-// tafelscherm is geen DM, maar hoort wel bij deze campagne (sessie vereist).
-router.get('/spotify/token', attachRole, async (req, res) => {
-  if (!(req.session?.role === 'dm' || req.session?.characterId)) return res.status(401).json({ error: 'Niet ingelogd' });
+// en meldt daarna welk apparaat-id het geworden is.
+//
+// **Alleen de DM.** Dit stond open voor elke sessie, omdat het tafelscherm
+// vroeger een eigen login had. Maar wat hier uitgaat is het toegangstoken van
+// de Spotify-account van de DM, met `user-read-email` en `user-read-private`
+// erin: elke speler kon er een uur lang diens e-mailadres mee lezen en zijn
+// afspelen overnemen. Het tafelscherm is inmiddels een DM-login die op
+// tafelscherm is gezet (Instellingen → Tafelscherm), dus die komt er gewoon in.
+router.get('/spotify/token', requireDM, async (req, res) => {
   try {
     const token = await spotify.accessToken(_spotifyCampagne(req));
     if (!token) return res.status(400).json({ error: 'Niet gekoppeld aan Spotify' });
@@ -13050,8 +13274,8 @@ router.get('/spotify/token', attachRole, async (req, res) => {
   } catch (e) { res.status(400).json({ error: e.message }); }
 });
 
-router.post('/spotify/tafel-apparaat', attachRole, (req, res) => {
-  if (!(req.session?.role === 'dm' || req.session?.characterId)) return res.status(401).json({ error: 'Niet ingelogd' });
+// Zelfde grens: anders kan een speler de muziek naar zijn eigen telefoon halen.
+router.post('/spotify/tafel-apparaat', requireDM, (req, res) => {
   const id = String(req.body?.deviceId || '').slice(0, 120);
   const campagne = _spotifyCampagne(req);
   if (id) _tafelApparaat.set(campagne, id); else _tafelApparaat.delete(campagne);
@@ -13469,7 +13693,7 @@ router.post('/monsters', requireDM, (req, res) => {
 router.put('/monsters/:id', requireDM, (req, res) => {
   const data = storage.readJSON('monsters.json');
   const idx = (data.monsters || []).findIndex(m => m.id === req.params.id);
-  if (idx === -1) return res.status(404).json({ error: 'Not found' });
+  if (idx === -1) return res.status(404).json({ error: 'Niet gevonden' });
   data.monsters[idx] = { ...data.monsters[idx], ...req.body, id: req.params.id };
   storage.writeJSON('monsters.json', data);
   req.app.get('io')?.to(_campagneRoom(req)).emit('bestiarium:updated');
@@ -13581,6 +13805,9 @@ function _emitCombat(req) {
 router.get('/combat', attachRole, (req, res) => {
   if (!req.role) return res.status(401).json({ error: 'Niet ingelogd' });
   const combat = storage.readJSON('combat.json');
+  // `?tafel=1` vraagt het tafelscherm (zie `_zendCombat`). Alleen een DM kan
+  // erom vragen, en het levert minder op, nooit meer.
+  if (req.role === 'dm' && req.query.tafel) return res.json(_combatVoorTafel(combat, readDmState()));
   if (req.role === 'dm') return res.json(combat);
 
   // Speler: voeg kennisniveau + gefilterd statblock toe aan monster-combatants
@@ -14937,6 +15164,14 @@ router.post('/combat/loot/start', requireDM, (req, res) => {
 
 router.get('/combat/loot', attachRole, (req, res) => {
   const dmState = readDmState();
+  // Het tafelscherm (`?tafel=1`, alleen een DM-login) vraagt bij het opstarten
+  // of er een kist openstaat. Die kwam alleen via `loot:display`, dus een
+  // scherm dat halverwege herlaadde stond leeg terwijl de party aan het
+  // claimen was. Zelfde payload als de socket.
+  if (req.role === 'dm' && req.query.tafel) {
+    const lp = dmState.lootPhase;
+    return res.json(lp?.actief ? _lootDisplay(lp) : null);
+  }
   res.json(_lootForClient(dmState.lootPhase, req.role, req.session.characterId, dmState));
 });
 
@@ -19188,7 +19423,7 @@ router.post('/tweespalt/leen', attachRole, vereistDienst('tweespalt'), (req, res
   if (_schuldenVan(dmState, characterId).length) {
     return res.status(409).json({ error: 'Je hebt al een schuld openstaan. Los die eerst af.' });
   }
-  const g = getGroup(dmState);
+  const g = getGroup(dmState, _playerGroupId(dmState, characterId));
   if (!g.leenVerzoeken) g.leenVerzoeken = [];
   if (g.leenVerzoeken.some(v => v.characterId === characterId && v.status === 'pending')) {
     return res.status(409).json({ error: 'Er staat al een verzoek open' });
@@ -19343,7 +19578,7 @@ router.post('/woekeraar/verzoek', attachRole, vereistDienst('woekeraar'), (req, 
   if (_schuldenVan(dmState, characterId).length) {
     return res.status(409).json({ error: 'Je hebt al een schuld openstaan. Los die eerst af.' });
   }
-  const g = getGroup(dmState);
+  const g = getGroup(dmState, _playerGroupId(dmState, characterId));
   if (!g.leenVerzoeken) g.leenVerzoeken = [];
   if (g.leenVerzoeken.some(v => v.characterId === characterId && v.status === 'pending')) {
     return res.status(409).json({ error: 'Er staat al een verzoek open' });

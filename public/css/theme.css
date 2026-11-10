@@ -32570,3 +32570,130 @@ body.gr-slowmo .combat-overlay { filter: grayscale(.85) contrast(1.1) brightness
   .bs-kop { padding: 16px; min-height: 130px; }
   .bs-raster, .bs-kiezer { grid-template-columns: 1fr; }
 }
+/* ── Tafelscherm: een gelijke beurt van veel namen ──
+   Met zeven spelers op dezelfde initiative werd de kop twee regels van 30px
+   en brak "Ronde 1" over twee regels. De ronde houdt zijn regel, en vanaf drie
+   namen tegelijk krijgt de beurtgroep een kleinere letter. */
+.co-disp-head .co-disp-ronde { white-space: nowrap; flex-shrink: 0; }
+.co-disp-head .co-disp-beurt { min-width: 0; text-align: right; }
+.co-disp-head .co-disp-beurt--groep { font-size: 20px; line-height: 1.25; }
+
+/* ── Onthulling op een telefoon ──
+   Het beeld bepaalde de hoogte van de kaart, en op een telefoon viel de knop
+   *Bekijken* daardoor onder de rand van het scrollvak — wel bereikbaar, maar
+   niets zei dat er nog iets kwam. Op een laag scherm krijgt het beeld een
+   plafond, zodat titel, beeld, regel en knop samen in beeld staan. */
+@media (max-height: 820px) {
+  .dramatic-reveal-card .dramatic-reveal-img { max-height: 26vh; width: auto; max-width: 100%; object-fit: contain; }
+}
+@media (max-width: 480px) {
+  .dramatic-reveal-overlay .dramatic-reveal-card { padding: 22px 18px; gap: 8px; }
+}
+
+
+/* ── De kist op het tafelscherm ging niet open ──
+   De video ligt absoluut over de kist (inset 0) en staat op opacity 0 tot hij
+   speelt. Onzichtbaar is niet hetzelfde als doorklikbaar: hij ving elke tik op,
+   en de luisteraar zit op de knop eronder. Een video die alleen iets laat zien
+   hoeft geen tik te ontvangen. */
+.loot-cin-kistwrap .loot-cin-video { pointer-events: none; }
+
+/* ── Plus achter een naam zonder kaartje (alleen de DM) ── */
+.wikilink-unknown .wikilink-maak {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 16px; height: 16px; margin-left: 3px; padding: 0; vertical-align: -2px;
+  border: 1px solid #c4a87a; border-radius: 50%; background: #f2e8d2; color: #7a6040; cursor: pointer;
+}
+.wikilink-unknown .wikilink-maak .icon { width: 11px; height: 11px; }
+.wikilink-unknown .wikilink-maak:hover { background: #c4a87a; color: #2a1a08; }
+
+
+/* ── Het kamervenster is licht perkament ──
+   De vloerkiezer en de spookknop zijn gemaakt voor de donkere ondergrond van
+   vroeger: lichtbeige letters (#c4a87a) op een beigegrijs hokje, en "Vlak" in
+   wit op licht goud. Onleesbaar, en dezelfde fout die bij de stijlkiezer van een
+   nieuwe dungeon al was opgelost. Op perkament hoort er inkt te staan. */
+.dng-dialog .dng-vloerkeus { color: #5a4020; background: rgba(42,26,8,.06); }
+.dng-dialog .dng-vloerkeus.is-aan { color: #2a1a08; font-weight: 600; background: rgba(184,134,11,.22); }
+.dng-dialog .dng-btn-ghost { color: #7a6040; border-color: rgba(122,96,64,.45); }
+.dng-dialog .dng-btn-ghost:hover { color: #3a2410; }
+
+/* ── De wizard kan dicht ── */
+.wz-kaart { position: relative; }
+.wz-kaart .wz-sluit {
+  position: absolute; top: 14px; right: 14px;
+  width: 28px; height: 28px; display: inline-flex; align-items: center; justify-content: center;
+  border: 1px solid rgba(122,96,64,.4); border-radius: 50%; background: transparent; color: #7a6040; cursor: pointer;
+}
+.wz-kaart .wz-sluit:hover { color: #2a1a08; border-color: #7a6040; }
+.wz-kaart .wz-sluit .icon { width: 14px; height: 14px; }
+
+/* ── Lege campagne: de DM-ingang in beeld ── */
+.landing-leeg { display: flex; flex-direction: column; align-items: center; gap: 14px; }
+.landing-leeg .landing-leeg-dm {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 9px 18px; border: 1px solid rgba(196,168,122,.6); border-radius: 4px;
+  background: rgba(196,168,122,.1); color: #e8d6a8; cursor: pointer;
+  font-family: 'Cinzel', serif; letter-spacing: .06em; font-size: 13px;
+}
+.landing-leeg .landing-leeg-dm:hover { background: rgba(196,168,122,.22); color: #f2e8d2; }
+.landing-leeg .landing-leeg-dm .icon { width: 15px; height: 15px; }
+
+/* ── Spelersronde 7 nov 2026 ─────────────────────────────────────────
+   De voorraadtabel is gemaakt voor een licht kaartje (`_winkelVoorraadHtml`),
+   maar in de Markt staat hij op het donkere paneel: de rijen zijn daar
+   doorzichtig en de Kopen-knoppen (donkerbruin) vielen weg in het zwart.
+   Hier krijgt hij dus zijn eigen vel perkament — dezelfde tabel, dezelfde
+   ondergrond als op het kaartje. */
+.markt-winkel .markt-winkel-waren {
+  background: #f2e8d2;
+  color: #2a1a08;
+  border-radius: 8px;
+  padding: 4px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, .35);
+}
+.markt-winkel-balk .markt-terug { white-space: nowrap; }
+
+/* De verzegelde brief en het "Onthuld"-venster liggen op dezelfde hoogte, zodat
+   de volgorde van binnenkomen beslist: wat later kwam ligt bovenop (beide
+   worden aan het eind van <body> gehangen). De brief stond op 9998 en kwam dus
+   altijd ónder een onthulling die er al stond — met het zegel onbereikbaar. */
+.brief-cinematic-overlay { z-index: 9999; }
+
+/* Het gevechtsbalkje van een speler op een telefoon: "Jij bent aan zet" brak
+   over drie regels, want het woord "Gevecht", de ronde, het boekje en de pijl
+   namen de breedte. Op een smal scherm zegt het zwaardje al wat dit is. */
+.co-current-name { white-space: nowrap; min-width: 0; }
+@media (max-width: 480px) {
+  .co-header .co-title-woord { display: none; }
+  .co-header .co-round { padding: 3px 9px; }
+}
+
+/* De knoppen onder een level-up ("Kies je feat…", "Verder") stonden in het
+   lettertype van het systeem: .dm-btn krijgt zijn letter normaal van de
+   Meesterkamer eromheen, en deze omslag hangt los aan <body>. */
+.levelup-cine .dm-btn, .levelup-cine button { font-family: 'Cinzel', serif; letter-spacing: .03em; }
+
+/* Level en class op het blad van een speler: geen invulveld meer (dat zet de
+   DM), maar dezelfde maat en plek, zodat de rij niet verspringt. */
+.ppf-input.ppf-vast {
+  display: inline-flex; align-items: center;
+  background: transparent; border-color: transparent;
+  color: #2a1a08; cursor: default;
+}
+
+/* ── Toegankelijkheid (axe-core, WCAG 2.1 AA — 8 nov 2026) ────────────────
+   Kleine tekst moet een contrast van 4,5 halen. Deze zaten eronder; dezelfde
+   tint, alleen donkerder (of op een donkere ondergrond lichter). */
+.dice-result-label           { color: #6b5236; }               /* was 3,8 */
+.spreuk-stat-lbl             { color: #7a5432; }               /* was 4,1 */
+.player-dash-section-title   { color: #6b5236; }               /* was 4,5 */
+.dm-tab-btn.active           { color: #6e4f05; border-left-color: #7d5a06; } /* was 3,2 */
+/* De inlogknop op de landingspagina stond op 40% dekking: 2,25. Hij mag
+   bescheiden blijven, maar je moet hem kunnen lezen. */
+.landing-toegang-knop        { color: rgba(196,168,122,0.82); }
+.landing-terug               { color: rgba(220,195,145,.8); }
+/* Een portret op de landingspagina is nu met Tab te bereiken; dan moet je
+   ook zien wélk portret de focus heeft. */
+.landing-portrait:focus-visible { outline: 2px solid #c4a840; outline-offset: 4px; border-radius: 12px; }
+.landing-terug:focus-visible    { outline: 2px solid #c4a840; outline-offset: 3px; }

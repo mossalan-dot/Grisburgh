@@ -1,4 +1,6 @@
-const ENTITY_ICONS = { personages: '👤', locaties: '🏰', organisaties: '🏛️', voorwerpen: '⚔️' };
+// Sprite-namen, geen emoji: een onthulling is gerenderde HTML, en daar horen
+// de iconen van de app in (zie de afspraak in CLAUDE.md).
+const ENTITY_ICONS = { personages: 'user', locaties: 'castle', organisaties: 'landmark', voorwerpen: 'sword', documenten: 'scroll-text' };
 
 export function initSocket() {
   const socket = io();
@@ -59,7 +61,7 @@ function _ververOpenKaartje(id) {
     if (ENTITY_SECTIONS.includes(section)) {
       _refreshEntitySection(section);
     } else if (section === 'dashboard') {
-      import('./render-dashboard.js?v=13').then(m => m.renderDashboard());
+      import('./render-dashboard.js?v=14').then(m => m.renderDashboard());
     } else if (section === 'mijn-karakter') {
       _refreshSectionDebounced('mijn-karakter'); // #5: ontdekkings-teller bijwerken
     } else if (section === 'logboek') {
@@ -67,7 +69,7 @@ function _ververOpenKaartje(id) {
       // verborgen" staan nadat je er zelf een kaartje in onthuld had. Pas na
       // herladen klopte het. De ontdekkingsmeters hangen aan dezelfde stand,
       // dus die liepen even hard achter.
-      import('./render-archief.js?v=145').then(m => m.renderLogboek());
+      import('./render-archief.js?v=147').then(m => m.renderLogboek());
     }
     window._updateDiscoveryChip?.(true); // #5: header-meter verversen
   });
@@ -81,7 +83,7 @@ function _ververOpenKaartje(id) {
     if (ENTITY_SECTIONS.includes(section)) {
       _refreshEntitySection(section);
     } else if (section === 'dashboard') {
-      import('./render-dashboard.js?v=13').then(m => m.renderDashboard());
+      import('./render-dashboard.js?v=14').then(m => m.renderDashboard());
     } else if (section === 'mijn-karakter') {
       _refreshSectionDebounced('mijn-karakter'); // #5: ontdekkings-teller bijwerken
     }
@@ -91,7 +93,7 @@ function _ververOpenKaartje(id) {
     // overlays over elkaar heen is er één te veel.
     const _docVol = type === 'documenten' && visibility === 'visible';
     if (!window.app.isDM() && visibility && visibility !== 'hidden' && name && !_docVol) {
-      const icon  = ENTITY_ICONS[type] || '📜';
+      const icon  = window.icon?.(ENTITY_ICONS[type] || 'scroll-text') || '';
       const label = visibility === 'vague' ? 'ontdekt' : 'onthuld';
       if (window._isDisplayMode) {
         // iPad: alleen een toast, geen kaartje
@@ -135,7 +137,7 @@ function _ververOpenKaartje(id) {
     const section = window.app.state.activeSection;
     if (section === 'logboek' && window._logboekActiveTab === 'prikbord') {
       // Herlaad alleen de relatiemap, niet het hele logboek
-      import('./render-relatiemap.js?v=34').then(m => {
+      import('./render-relatiemap.js?v=35').then(m => {
         const el = document.getElementById('pb-relatiemap-container');
         if (el) m.renderRelatiemap(el);
       });
@@ -146,20 +148,20 @@ function _ververOpenKaartje(id) {
   // het logboek — daar landt de regel die bij een onthulling geschreven wordt.
   socket.on('archief:updated', () => {
     if (window.app.state.activeSection === 'logboek') {
-      import('./render-archief.js?v=145').then(m => m.renderLogboek());
+      import('./render-archief.js?v=147').then(m => m.renderLogboek());
     }
   });
 
   socket.on('logboek:updated', () => {
     if (window.app.state.activeSection === 'logboek') {
-      import('./render-archief.js?v=145').then(m => m.renderLogboek());
+      import('./render-archief.js?v=147').then(m => m.renderLogboek());
     }
   });
 
   socket.on('quests:updated', () => {
     const section = window.app?.state?.activeSection;
     if (section === 'logboek') {
-      import('./render-archief.js?v=145').then(m => m.renderLogboek());
+      import('./render-archief.js?v=147').then(m => m.renderLogboek());
     }
     // Factie-interieur herlaadt ook (missies zijn quests met factieId)
     if (section === 'facties') _refreshSectionDebounced('facties');
@@ -173,7 +175,7 @@ function _ververOpenKaartje(id) {
     if (section === 'facties') _refreshSectionDebounced('facties');
     if (section === 'mijn-karakter') _refreshSectionDebounced('mijn-karakter');
     if (section === 'logboek' && window._logboekActiveTab === 'prikbord') {
-      import('./render-archief.js?v=145').then(m => m.renderLogboek());
+      import('./render-archief.js?v=147').then(m => m.renderLogboek());
     }
     window._updateDienstenMenuFromSocket?.();
   });
@@ -233,7 +235,7 @@ function _ververOpenKaartje(id) {
 
   socket.on('chapter-visibility:updated', () => {
     if (window.app.state.activeSection === 'logboek') {
-      import('./render-archief.js?v=145').then(m => m.renderLogboek());
+      import('./render-archief.js?v=147').then(m => m.renderLogboek());
     }
   });
 
@@ -271,7 +273,7 @@ function _ververOpenKaartje(id) {
     // betreft. Zonder groupId (oudere events) tonen we het aan iedereen.
     if (groupId && !window._isDisplayMode && window._myGroupId && window._myGroupId !== groupId) return;
     if (window.app.state.activeSection === 'logboek') {
-      import('./render-archief.js?v=145').then(m => m.renderLogboek());
+      import('./render-archief.js?v=147').then(m => m.renderLogboek());
     }
     if (!window.app.isDM()) {
       if (window._isDisplayMode) {
@@ -361,7 +363,7 @@ function _ververOpenKaartje(id) {
     }
     if (window.app.state.activeSection !== 'kaart') return;
     if (window.app.state.role === 'dm') return; // DM al bijgewerkt via _renderSvg()
-    import('./render-dungeon.js?v=70').then(m => {
+    import('./render-dungeon.js?v=73').then(m => {
       const content = document.getElementById('kaart-mode-content');
       if (content) m.renderDungeon(content);
     });
@@ -369,7 +371,7 @@ function _ververOpenKaartje(id) {
   // Dungeon meta bijgewerkt (nieuwe map, party-access) → iedereen herlaadt
   socket.on('dungeon:updated', () => {
     if (window.app.state.activeSection !== 'kaart') return;
-    import('./render-dungeon.js?v=70').then(m => {
+    import('./render-dungeon.js?v=73').then(m => {
       const content = document.getElementById('kaart-mode-content');
       if (content) m.renderDungeon(content);
     });
@@ -378,7 +380,7 @@ function _ververOpenKaartje(id) {
   socket.on('map:pinRevealed', () => {
     // Herlaad kaart als de speler daar is (toast wordt al getoond via entity:visibility)
     if (window.app.state.activeSection === 'kaart') {
-      import('./render-kaart.js?v=34').then(m => m.renderKaart());
+      import('./render-kaart.js?v=35').then(m => m.renderKaart());
     }
   });
 
@@ -386,39 +388,39 @@ function _ververOpenKaartje(id) {
   socket.on('pin:pending', ({ id, locName, placedByName } = {}) => {
     if (!window.app?.isDM?.()) return;
     _showToast(
-      `📍 <strong>${placedByName || 'Speler'}</strong> stelt ${locName ? `<em>${locName}</em>` : 'een locatie'} voor op de kaart`,
+      `${window.icon?.('map-pin') || ''} <strong>${placedByName || 'Speler'}</strong> stelt ${locName ? `<em>${locName}</em>` : 'een locatie'} voor op de kaart`,
       () => { window.app.switchSection('kaart'); },
       8000
     );
     if (window.app.state.activeSection === 'kaart') {
-      import('./render-kaart.js?v=34').then(m => m.renderKaart());
+      import('./render-kaart.js?v=35').then(m => m.renderKaart());
     }
   });
 
   socket.on('pin:approved', ({ locName } = {}) => {
     _showToast(
-      `✅ Je pin voor <strong>${locName || 'de locatie'}</strong> is goedgekeurd`,
+      `${window.icon?.('check') || ''} Je pin voor <strong>${locName || 'de locatie'}</strong> is goedgekeurd`,
       () => { window.app.switchSection('kaart'); },
       6000
     );
     if (window.app.state.activeSection === 'kaart') {
-      import('./render-kaart.js?v=34').then(m => m.renderKaart());
+      import('./render-kaart.js?v=35').then(m => m.renderKaart());
     }
   });
 
   socket.on('pin:rejected', ({ locName } = {}) => {
     _showToast(
-      `❌ Je pin voor <strong>${locName || 'de locatie'}</strong> is niet goedgekeurd`,
+      `${window.icon?.('x') || ''} Je pin voor <strong>${locName || 'de locatie'}</strong> is niet goedgekeurd`,
       null,
       5000
     );
     if (window.app.state.activeSection === 'kaart') {
-      import('./render-kaart.js?v=34').then(m => m.renderKaart());
+      import('./render-kaart.js?v=35').then(m => m.renderKaart());
     }
   });
 
   socket.on('meta:updated', () => {
-    import('./api.js?v=319').then(({ api }) => api.meta().then(m => {
+    import('./api.js?v=320').then(({ api }) => api.meta().then(m => {
       const prev = window.app?.state?.meta;
       const buitenChanged = prev?.buitenGrisburgh !== m.buitenGrisburgh;
       if (window.app?.state) window.app.state.meta = m;
@@ -541,6 +543,20 @@ function _ververOpenKaartje(id) {
   // Eén signaal voor alle vijf de badges; de balk laadt ze opnieuw en tekent
   // ze op de portretten die in beeld staan.
   socket.on('badges:updated', () => { window._badgesLaden?.(); });
+
+  // ── De DM gunt een level ──
+  // De server riep dit al om, maar er luisterde niemand: de speler zag de balk
+  // pas als hij zijn scherm ververste. Nu meteen, met een melding die het
+  // venster opent — aan tafel zegt de DM "jullie gaan omhoog", en dan wil je
+  // niet eerst gaan zoeken.
+  socket.on('party:level-up-tegoed', ({ tegoed } = {}) => {
+    if (window.app?.isDM?.()) return;
+    const ik = window.app?.state?.characterId;
+    if (!ik || !tegoed?.[ik]) return;
+    window._levelUpBalkVers?.();
+    _showToast(`${window.icon?.('sparkles') || ''} Je mag een level omhoog — tik om te beginnen.`,
+      () => window._levelUpOpen?.(), 9000);
+  });
 
   // ── Herberg-buffs ("Aan de tap") gewijzigd of vervallen ──
   socket.on('player:buffs-updated', ({ characterId } = {}) => {
@@ -720,7 +736,7 @@ function _ververOpenKaartje(id) {
   socket.on('notes:created', ({ playerName, entityId, entityName } = {}) => {
     if (window.app.isDM() && playerName && entityName) {
       _showToast(
-        `✏️ <strong>${playerName}</strong> heeft een opmerking gemaakt over <strong>${entityName}</strong>`,
+        `${window.icon?.('feather') || ''} <strong>${playerName}</strong> heeft een opmerking gemaakt over <strong>${entityName}</strong>`,
         () => { /* optioneel: open kaartje */ },
         5000
       );
@@ -763,7 +779,12 @@ function _ververOpenKaartje(id) {
   socket.on('loot:aangeboden', () => {
     if (window.app?.isDM?.()) { window.dmPanel?.refreshLoot?.(); return; }
     window._renderPlayerLoot?.();
-    _showToast(`${window.icon?.('coins') || ''} Er is loot te verdelen — open je Boedel.`);
+    // Een klik op de melding brengt je er meteen heen; "open je Boedel" was een
+    // opdracht die je zelf moest uitvoeren, terwijl de melding wegging.
+    _showToast(`${window.icon?.('coins') || ''} Er is buit te verdelen — tik om je Boedel te openen.`, () => {
+      window.app?.switchSection?.('mijn-karakter');
+      setTimeout(() => window._setPlayerSubTab?.('knapzak'), 300);
+    }, 9000);
   });
   // Het tafelscherm is geen speler: die krijgt zijn eigen payload met namen en
   // portretten, zodat de tafel ziet wie wat claimt.
@@ -787,7 +808,10 @@ function _ververOpenKaartje(id) {
     (uitslag?.items || []).filter(i => i.winnaar === myId).forEach(i => _showToast(`${window.icon?.('sparkles') || ''} Je ontvangt: <strong>${i.naam}</strong>`));
     if (uitslag?.goud && !uitslag.goud.gedeeld && uitslag.goud[myId]) {
       const g = uitslag.goud[myId];
-      _showToast(`${window.icon?.('coins') || ''} ${g.fl||0} fl ${g.kn||0} kn bijgeschreven`);
+      // Stond als "0 fl 4 kn": de koperen munten vielen weg (je kreeg er 42,
+      // je las er 40) en de sleutels zijn geen muntnamen.
+      const cl = (g.fl || 0) * 100 + (g.kn || 0) * 10 + (g.cl || 0);
+      _showToast(`${window.icon?.('coins') || ''} ${window.formatCl ? window.formatCl(cl) : cl + ' cl'} bijgeschreven`);
     }
   });
 
@@ -838,8 +862,8 @@ function _ververOpenKaartje(id) {
       window._briefCinematic(msg);
     } else {
       const toastLabel = isBrief
-        ? `✉️ <strong>${msg.titel ? `Brief: ${msg.titel}` : 'Nieuwe brief ontvangen'}</strong>`
-        : `💬 <strong>Geheim bericht van de DM</strong>`;
+        ? `${window.icon?.('mail') || ''} <strong>${msg.titel ? `Brief: ${msg.titel}` : 'Nieuwe brief ontvangen'}</strong>`
+        : `${window.icon?.('message-circle') || ''} <strong>Geheim bericht van de DM</strong>`;
       _showToast(
         toastLabel,
         () => { window.app.switchSection('mijn-karakter'); window._setPlayerSubTab?.('berichten'); },
@@ -885,7 +909,7 @@ function _ververOpenKaartje(id) {
   // ── Gock rapport klaar ──
   socket.on('gock:rapport-klaar', ({ entityName } = {}) => {
     _showToast(
-      `📁 <strong>De Gock</strong> heeft zijn rapport over <em>${entityName}</em> klaargelegd`,
+      `${window.icon?.('folder-open') || ''} <strong>${String(window.app?.state?.meta?.gock?.naam || 'De detective').replace(/</g, '&lt;')}</strong> heeft zijn rapport over <em>${entityName}</em> klaargelegd`,
       () => { window.app.switchSection('gock'); },
       8000
     );
@@ -907,20 +931,20 @@ function _ververOpenKaartje(id) {
     if (mijnUitbetaling) {
       if (mijnUitbetaling.gewonnen) {
         _showToast(
-          `🏆 <strong>${eventNaam}</strong> — ${winnaarNaam} wint! Jij hebt gewonnen!`,
+          `${window.icon?.('award') || ''} <strong>${eventNaam}</strong> — ${winnaarNaam} wint! Jij hebt gewonnen!`,
           () => { window.app.switchSection('tweespalt'); },
           7000
         );
       } else {
         _showToast(
-          `🎲 <strong>${eventNaam}</strong> — ${winnaarNaam} wint. Jij had pech.`,
+          `${window.icon?.('dices') || ''} <strong>${eventNaam}</strong> — ${winnaarNaam} wint. Jij had pech.`,
           () => { window.app.switchSection('tweespalt'); },
           6000
         );
       }
     } else if (myCharId) {
       _showToast(
-        `🎲 <strong>${eventNaam}</strong> afgerond — winnaar: ${winnaarNaam}`,
+        `${window.icon?.('dices') || ''} <strong>${eventNaam}</strong> afgerond — winnaar: ${winnaarNaam}`,
         () => { window.app.switchSection('tweespalt'); },
         5000
       );
@@ -932,13 +956,13 @@ function _ververOpenKaartje(id) {
 
   socket.on('relations:updated', () => {
     if (window.app.state.activeSection === 'relatiemap') {
-      import('./render-relatiemap.js?v=34').then(m => m.renderRelatiemap());
+      import('./render-relatiemap.js?v=35').then(m => m.renderRelatiemap());
     }
   });
 
   socket.on('relations:revealed', ({ id } = {}) => {
     if (window.app.state.activeSection === 'relatiemap') {
-      import('./render-relatiemap.js?v=34').then(m => m.renderRelatiemap());
+      import('./render-relatiemap.js?v=35').then(m => m.renderRelatiemap());
     }
     if (!window.app.isDM()) {
       _showToast(`${window.icon('link')} <strong>Nieuwe verbinding onthuld!</strong>`, () => {
@@ -947,8 +971,16 @@ function _ververOpenKaartje(id) {
     }
   });
 
+  let _eerderVerbonden = false;
   socket.on('connect', () => {
     console.log('Socket connected');
+    // **Na een onderbreking inhalen.** Een telefoon die even geen wifi had (of
+    // in de broekzak sliep) meldde zich netjes opnieuw aan, maar wat er in die
+    // tussentijd gebeurde — een onthulling, een beurt, een kist, een gegund
+    // level — kwam nooit meer: socket.io speelt gemiste events niet na. Dus bij
+    // een herverbinding (niet bij de eerste) halen we de stand zelf op.
+    if (_eerderVerbonden) setTimeout(_inhalenNaOnderbreking, 400);
+    _eerderVerbonden = true;
     // Herregistreer characterId na reconnect
     const cid = window.app?.state?.characterId;
     if (cid) socket.emit('player:register', cid);
@@ -959,6 +991,24 @@ function _ververOpenKaartje(id) {
     if (window._isDisplayMode) socket.emit('display:register');
   });
   socket.on('disconnect', () => console.log('Socket disconnected'));
+}
+
+function _inhalenNaOnderbreking() {
+  const app = window.app;
+  if (!app) return;
+  // Het scherm waar je naar kijkt, opnieuw getekend met de verse stand.
+  app.refreshSection?.(app.state?.activeSection);
+  // Het gevecht staat los van de sectie (de overlay en het tafelscherm).
+  const camp = encodeURIComponent(location.pathname.split('/').filter(Boolean)[0] || '');
+  fetch(`/api/combat?${window._isDisplayMode ? 'tafel=1&' : ''}campagne=${camp}`)
+    .then(r => r.ok ? r.json() : null)
+    .then(c => { if (c) window.dmPanel?.onCombatUpdated?.(c); })
+    .catch(() => {});
+  // En wat bovenop elk scherm hangt: de kist, de level-up, de badges.
+  window._renderPlayerLoot?.();
+  window._levelUpBalkVers?.();
+  window._badgesLaden?.();
+  window._updateDiscoveryChip?.(true);
 }
 
 function _showDramaticReveal(doc) {

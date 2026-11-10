@@ -1,4 +1,4 @@
-import { api, huidigeCampagne } from './api.js?v=319';
+import { api, huidigeCampagne } from './api.js?v=320';
 import { init as canvasInit, update as canvasUpdate, stop as canvasStop, acGetal } from './combat-canvas.js?v=37';
 import { renderStatblock } from './render-statblock.js?v=9';
 
@@ -37,7 +37,7 @@ function _condChips(c, isDM) {
     if (!cond) return '';
     return `<span class="co-cond-chip${_condGroepCls(cid)}${isDM ? ' co-cond-dm' : ''}"
       title="${esc(cond.desc)}"
-      ${isDM ? `onclick="event.stopPropagation();window.dmPanel.combatCondToggle('${esc(c.id)}','${cid}')"` : ''}
+      ${isDM ? `onclick="event.stopPropagation();window.dmPanel.combatCondToggle('${escArg(c.id)}','${cid}')"` : ''}
       >${esc(cond.label)}${isDM ? ' ' + icon('x') : ''}</span>`;
   }).join('');
 }
@@ -50,7 +50,7 @@ function _condControl(c, isDM) {
   return `<div class="co-cond-compact">
       ${chips ? `<div class="co-active-conds">${chips}</div>` : ''}
       <input class="co-cond-add" list="co-cond-dl" placeholder="+ Condition…"
-        onchange="window.dmPanel.combatCondAdd('${esc(c.id)}', this)"
+        onchange="window.dmPanel.combatCondAdd('${escArg(c.id)}', this)"
         onclick="event.stopPropagation()">
     </div>`;
 }
@@ -185,6 +185,13 @@ function esc(s) {
   return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 };
 // JS-string-escape voor inline onclick-handlers (apostrof, quote, backslash, newline).
+// In een inline handler (`onclick="f('…')"`) decodeert de browser eerst het
+// attribuut en voert dan de JavaScript uit: `esc()` alleen laat een apostrof
+// de string sluiten. Eerst JS-escapen, dan HTML. Zie scripts/onclick-escapen.js.
+function escArg(s) {
+  return esc(typeof s === 'string' ? s.replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/\r?\n/g, '\\n') : s);
+}
+
 function escJS(s) {
   return String(s ?? '').replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/"/g, '\\"').replace(/\n/g, '\\n').replace(/\r/g, '');
 }
@@ -232,7 +239,7 @@ export function initDmPanel() {
         const g = lab(l);
         return g.id
           ? `<button class="dm-btn dm-btn-sm dm-btn-ghost" style="width:100%;justify-content:flex-start"
-               onclick="window.app.closeModal();window._openDetail('${esc(g.soort)}','${esc(g.id)}')">
+               onclick="window.app.closeModal();window._openDetail('${escArg(g.soort)}','${escArg(g.id)}')">
                ${icon('arrow-up-right')} ${esc(g.tekst)}</button>`
           : `<div class="dm-hint" style="padding:4px 2px">${esc(g.tekst)}</div>`;
       }).join('');
@@ -524,6 +531,7 @@ export function initDmPanel() {
     instSubtab:              (id) => _instSubtabKies(id),
     partyActiefMaken:        (gid) => _partyActiefMaken(gid),
     regieBalkLoad:           (key, title) => _loadRegieBalk(key, title),
+    campagneAdresVolg:       _campagneAdresVolg,
     regieBalkReveal:         (id) => _revealRegieBalkItem(id),
     // De brief op het gedeelde scherm, en het moment dat de party hem gekraakt
     // heeft. Allebei blijven ze klikbaar: een brief mag twee keer op tafel, en
@@ -1480,6 +1488,7 @@ function _dmLoading(text = 'Laden…') {
 
 // ── Diensten (Herberg + Tweespalt + Gock gecombineerd) ──
 
+const _DIENST_HULP = { tweespalt: 'dm_gokhuis', gock: 'dm_detective', ursula: 'dm_waarzegger' };
 let _dienstenSubTab = 'herberg'; // 'herberg' | 'tweespalt' | 'gock'
 
 async function _renderDiensten(subTab) {
@@ -1525,7 +1534,10 @@ async function _renderDiensten(subTab) {
     items: _dienstNav,
     actief: _dienstenSubTab,
     klik: (id) => `window.dmPanel.switchTab('${id}')`,
-    hulp: `dm_${_dienstenSubTab}`,
+    // Drie subtabs heten naar hun dienst in de code (tweespalt, gock, ursula),
+    // maar hun boekje naar wat het ís. Zonder deze vertaling vroeg de balk om
+    // `dm_tweespalt` — dat niet bestaat — en stond er bij die drie geen knop.
+    hulp: _DIENST_HULP[_dienstenSubTab] || `dm_${_dienstenSubTab}`,
   });
 
   // Gooi de legacy tab-content divs om naar sub-divs binnen #diensten
@@ -1602,24 +1614,24 @@ async function _renderAktes(preserveScroll = false) {
             const open   = _akteOpen.has(ch);
             return `
             <div class="dm-akte-card${hidden ? ' dm-akte-card--hidden' : ''}">
-              <div class="dm-akte-card-head" onclick="window.dmPanel.akteToggle('${esc(ch)}')">
+              <div class="dm-akte-card-head" onclick="window.dmPanel.akteToggle('${escArg(ch)}')">
                 <span class="dm-akte-num">Akte ${esc(String(info.num ?? '?'))}</span>
                 <span class="dm-akte-title">${esc(info.title || ch)}</span>
                 ${info.dag ? `<span class="dm-akte-dag">${esc(info.dag)}</span>` : ''}
                 <span class="dm-akte-toggle">${open ? '▾' : '▸'}</span>
               </div>
               <div class="dm-akte-actions">
-                <button class="dm-btn dm-btn-sm dm-btn-icon" onclick="window.dmPanel.akteSpeel('${esc(ch)}')" title="Speel akte — laad de regie-balk">${icon('play')}</button>
+                <button class="dm-btn dm-btn-sm dm-btn-icon" onclick="window.dmPanel.akteSpeel('${escArg(ch)}')" title="Speel akte — laad de regie-balk">${icon('play')}</button>
                 <!-- Schrijven is sinds de akte-tekst de meest gebruikte actie op
                      deze rij; hij zat twee niveaus diep (uitklappen, scrollen). -->
-                <button class="dm-btn dm-btn-sm dm-btn-icon" onclick="window._akteSchrijf('${esc(ch)}')" title="Schrijven — de tekst van deze akte">${icon('feather')}</button>
+                <button class="dm-btn dm-btn-sm dm-btn-icon" onclick="window._akteSchrijf('${escArg(ch)}')" title="Schrijven — de tekst van deze akte">${icon('feather')}</button>
                 <!-- Een veer én een potlood naast elkaar lazen allebei als
                      "bewerken". De veer is de tékst, dit zijn de eigenschappen
                      van de akte — dus een tandwiel, zoals overal in de app. -->
-                <button class="dm-btn dm-btn-sm dm-btn-icon" onclick="window.dmPanel.akteBewerk('${esc(ch)}')"
+                <button class="dm-btn dm-btn-sm dm-btn-icon" onclick="window.dmPanel.akteBewerk('${escArg(ch)}')"
                   title="Akte-instellingen — nummer, dag, titel, banner, spelerssamenvatting, documenten, monsters en bereikbaarheid">${icon('settings')}</button>
                 ${grp ? `<button class="dm-btn dm-btn-sm dm-btn-icon${hidden ? ' dm-btn-danger-sm' : ''}"
-                  onclick="window.dmPanel.akteVisToggle('${esc(ch)}',${hidden})"
+                  onclick="window.dmPanel.akteVisToggle('${escArg(ch)}',${hidden})"
                   title="${hidden ? 'Akte verborgen voor ' + esc(grpName) + ' — klik om te tonen' : 'Akte zichtbaar voor ' + esc(grpName) + ' — klik om te verbergen'}">
                   ${hidden ? icon('lock') : icon('eye')}</button>` : ''}
               </div>
@@ -1646,7 +1658,7 @@ function _akteVerslagenHtml(ch, archief) {
       <div class="dm-section-label" style="margin-top:2px">
         ${icon('scroll-text')} Sessieverslagen
         <button class="dm-btn dm-btn-sm dm-btn-primary" style="margin-left:auto"
-          onclick="event.stopPropagation();window.dmPanel.verslagNieuw('${esc(ch)}')"
+          onclick="event.stopPropagation();window.dmPanel.verslagNieuw('${escArg(ch)}')"
           title="Nieuw sessieverslag voor deze akte">${icon('plus')} Verslag</button>
       </div>
       ${entries.length === 0
@@ -1661,11 +1673,11 @@ function _akteVerslagenHtml(ch, archief) {
                 ${aantalImg ? `<span class="dm-hint">${icon('image')} ${aantalImg}</span>` : ''}
                 <span class="dm-verslag-acties">
                   <button class="dm-btn dm-btn-sm dm-btn-icon" title="${zichtbaar ? 'Zichtbaar voor spelers — klik om te verbergen' : 'Verborgen — klik om te tonen'}"
-                    onclick="event.stopPropagation();window.dmPanel.verslagVis('${esc(e.id)}',${zichtbaar})">${zichtbaar ? icon('eye') : icon('lock')}</button>
+                    onclick="event.stopPropagation();window.dmPanel.verslagVis('${escArg(e.id)}',${zichtbaar})">${zichtbaar ? icon('eye') : icon('lock')}</button>
                   <button class="dm-btn dm-btn-sm dm-btn-icon" title="Bewerken"
-                    onclick="event.stopPropagation();window.dmPanel.verslagBewerk('${esc(e.id)}')">${icon('pencil')}</button>
+                    onclick="event.stopPropagation();window.dmPanel.verslagBewerk('${escArg(e.id)}')">${icon('pencil')}</button>
                   <button class="dm-btn dm-btn-sm dm-btn-icon dm-btn-danger-sm" title="Verwijderen"
-                    onclick="event.stopPropagation();window.dmPanel.verslagVerwijder('${esc(e.id)}')">${icon('trash')}</button>
+                    onclick="event.stopPropagation();window.dmPanel.verslagVerwijder('${escArg(e.id)}')">${icon('trash')}</button>
                 </span>
               </div>`;
           }).join('')}</div>`}
@@ -1686,10 +1698,8 @@ function _akteNieuw() {
           <label class="dm-form-label">Nummer</label>
           <input id="dm-akte-n-num" class="dm-input dm-input-sm" type="number" min="1" value="${nextNum}">
         </div>
-        <div class="dm-form-row" style="flex:2">
-          <label class="dm-form-label" title="Unieke interne sleutel, bv. h${nextNum}">Sleutel</label>
-          <input id="dm-akte-n-key" class="dm-input dm-input-sm" value="${esc(nextKey)}" placeholder="h${nextNum}">
-        </div>
+        <!-- De sleutel is een intern id; een DM hoeft er geen te verzinnen. -->
+        <input id="dm-akte-n-key" type="hidden" value="${esc(nextKey)}">
       </div>
       <div class="dm-form-row">
         <label class="dm-form-label">Titel</label>
@@ -2003,7 +2013,7 @@ async function _renderDienstenToegang() {
       return `<td style="text-align:center;padding:3px">
         <button class="dm-btn dm-btn-ghost toegang-toggle ${s.cls}"
           style="min-width:100px;font-size:.78rem;padding:3px 7px"
-          onclick="window._toggleDienstToegang('${esc(g.id)}','${esc(d.key)}','${staat}')"
+          onclick="window._toggleDienstToegang('${escArg(g.id)}','${escArg(d.key)}','${staat}')"
           title="Klik om te wisselen">
           ${s.icoon()} ${s.label}
         </button></td>`;
@@ -2020,9 +2030,9 @@ async function _renderDienstenToegang() {
           <input class="dm-input dm-input-sm dm-toegang-naam" maxlength="40"
             value="${esc(naam)}" placeholder="${esc(d.label)}"
             title="Hoe deze dienst in jouw campagne heet"
-            onchange="window._dienstHernoem('${esc(d.key)}', this.value)">
+            onchange="window._dienstHernoem('${escArg(d.key)}', this.value)">
           <button class="dm-btn dm-btn-ghost dm-btn-sm" style="padding:2px 7px"
-            onclick="window._dienstUitnodigingEditor('${esc(d.key)}','${escJS(d.label)}')"
+            onclick="window._dienstUitnodigingEditor('${escArg(d.key)}','${escArg(d.label)}')"
             title="Uitnodigingsbrief schrijven en/of versturen naar de actieve groep">${icon('mail')}</button>
         </span>
       </td>
@@ -2082,13 +2092,13 @@ window._dienstUitnodigingEditor = async (dienst, label) => {
       <input id="du-titel" class="dm-input" style="width:100%;margin-bottom:8px" placeholder="Een uitnodiging" value="${esc(data.uitnodigingTitel || '')}">
       <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px">
         <label class="dm-form-label" style="margin:0">Brieftekst</label>
-        <button class="dm-btn dm-btn-ghost dm-btn-sm" style="margin-left:auto" onclick="window._duSjabloon('${escJS(naam)}')" title="Standaard-sjabloon invullen">${icon('refresh-cw')} Sjabloon</button>
+        <button class="dm-btn dm-btn-ghost dm-btn-sm" style="margin-left:auto" onclick="window._duSjabloon('${escArg(naam)}')" title="Standaard-sjabloon invullen">${icon('refresh-cw')} Sjabloon</button>
       </div>
       <p class="dm-hint" style="margin:0 0 4px">Opmaak met **vet**, *cursief*, {goud:kleur} kan. Leeg = standaard sjabloon.</p>
       <textarea id="du-tekst" class="dm-input" style="width:100%;min-height:150px;resize:vertical" placeholder="Schrijf hier de uitnodiging, of klik op Sjabloon…">${esc(data.uitnodiging || '')}</textarea>
       <div class="dm-form-row" style="margin-top:10px;justify-content:flex-end;gap:8px">
-        <button class="dm-btn dm-btn-ghost" onclick="window._duOpslaan('${esc(dienst)}',false)">${icon('save')} Opslaan</button>
-        <button class="dm-btn dm-btn-primary" onclick="window._duOpslaan('${esc(dienst)}',true,'${escJS(label)}')">${icon('mail')} Opslaan &amp; versturen</button>
+        <button class="dm-btn dm-btn-ghost" onclick="window._duOpslaan('${escArg(dienst)}',false)">${icon('save')} Opslaan</button>
+        <button class="dm-btn dm-btn-primary" onclick="window._duOpslaan('${escArg(dienst)}',true,'${escArg(label)}')">${icon('mail')} Opslaan &amp; versturen</button>
       </div>
     </div>`);
 };
@@ -2117,10 +2127,10 @@ async function _openRegieBriefPicker() {
   let facties = [];
   try { facties = (await api.getFacties()).facties || []; } catch {}
   const factieBtns = facties.length
-    ? facties.map(f => `<button class="dm-btn dm-btn-ghost dm-rb-brief-item" onclick="window._regieBriefVerstuur('factie','${esc(f.id)}','${escJS(f.naam)}')">${icon(f.embleem || 'landmark')} ${esc(f.naam)}</button>`).join('')
+    ? facties.map(f => `<button class="dm-btn dm-btn-ghost dm-rb-brief-item" onclick="window._regieBriefVerstuur('factie','${escArg(f.id)}','${escArg(f.naam)}')">${icon(f.embleem || 'landmark')} ${esc(f.naam)}</button>`).join('')
     : '<p class="dm-hint" style="opacity:.7">Nog geen facties ingesteld.</p>';
   const dienstBtns = _DIENSTEN_TOEGANG_INFO.map(d =>
-    `<button class="dm-btn dm-btn-ghost dm-rb-brief-item" onclick="window._regieBriefVerstuur('dienst','${esc(d.key)}','${escJS(d.label)}')">${icon(d.icon)} ${esc(d.label)}</button>`).join('');
+    `<button class="dm-btn dm-btn-ghost dm-rb-brief-item" onclick="window._regieBriefVerstuur('dienst','${escArg(d.key)}','${escArg(d.label)}')">${icon(d.icon)} ${esc(d.label)}</button>`).join('');
   window.app.openModal('Verzegelde uitnodiging sturen', 'Onthult het doel voor de actieve groep én bezorgt elke speler een cinematische brief', `
     <div class="dm-rb-brief-picker">
       <div class="dm-section-label">${icon('landmark')} Facties<span class="dm-sectie-hulp">${helpBtn('dm_toegang_facties')}</span></div>
@@ -2193,21 +2203,19 @@ function _updateSpellResults() {
 
   if (noresults) noresults.style.display = (q && filtered.length === 0 && _spellList !== null) ? 'block' : 'none';
   results.innerHTML = filtered.map(s =>
-    `<div class="dm-spell-row" onclick="window.dmPanel.spellOpen('${esc(s.index)}')">${esc(s.name)}</div>`
+    `<div class="dm-spell-row" onclick="window.dmPanel.spellOpen('${escArg(s.index)}')">${esc(s.name)}</div>`
   ).join('');
 };
 
 function _spellDetailHtml(s) {
+  // De acht PHB-scholen blijven Engels (Evocation, niet "Oproeping") — net als
+  // overal in de app. Alleen de scholen van een Wands & Wizards-campagne, die
+  // geen PHB-term zijn, krijgen een Nederlandse naam.
   const schoolMap = {
-    // D&D scholen
-    Abjuration: 'Afwering', Conjuration: 'Bezwering', Divination: 'Waarzeggerij',
-    Enchantment: 'Betovering', Evocation: 'Oproeping', Illusion: 'Illusie',
-    Necromancy: 'Necromantie', Transmutation: 'Transmutatie',
-    // HP scholen
     Charm: 'Bezwering', Curse: 'Vloek', Transfiguration: 'Gedaanteverandering',
     Healing: 'Genezing',
   };
-  const levelStr = s.level === 0 ? 'Tovervorm' : `Niveau ${s.level}`;
+  const levelStr = s.level === 0 ? 'Cantrip' : `Level ${s.level}`;
   const school   = schoolMap[s.school?.name] || s.school?.name || '';
   const comps    = [
     s.components?.includes('V') ? 'V' : '',
@@ -2251,7 +2259,7 @@ function _spellDetailHtml(s) {
           style="max-width:100%;max-height:110px;border-radius:6px;display:block;margin-bottom:8px"
           onerror="this.style.display='none'" alt="">
         <button type="button" class="dm-btn dm-btn-ghost dm-btn-sm" style="gap:5px"
-          onclick="window.dmPanel.pickSpellImage('${esc(s.index)}','${escJS(s.name || '')}')">
+          onclick="window.dmPanel.pickSpellImage('${escArg(s.index)}','${escArg(s.name || '')}')">
           ${icon('image')} Afbeelding kiezen of uploaden
         </button>
       </div>
@@ -2370,12 +2378,12 @@ function _renderRevealStrip() {
           : thumbs.map(item => `
               <div class="dm-reveal-thumb" id="dm-thumb-${esc(item.imgId)}">
                 <img class="dm-reveal-thumb-img" src="${esc(item.url)}" loading="lazy"
-                  onclick="window.dmPanel.revealImage('${esc(item.sessieId)}','${esc(item.imgId)}')"
+                  onclick="window.dmPanel.revealImage('${escArg(item.sessieId)}','${escArg(item.imgId)}')"
                   title="${esc(item.caption) || 'Klik om te onthullen'}">
                 <div class="dm-reveal-thumb-foot">
                   <span class="dm-reveal-thumb-caption">${esc(item.caption) || '—'}</span>
                   <button class="dm-btn dm-btn-sm" style="font-size:9px;padding:1px 6px;"
-                    onclick="window.dmPanel.revealImage('${esc(item.sessieId)}','${esc(item.imgId)}')">▶</button>
+                    onclick="window.dmPanel.revealImage('${escArg(item.sessieId)}','${escArg(item.imgId)}')">▶</button>
                 </div>
               </div>`).join('')
           + (more > 0 ? `<div style="font-size:9px;color:var(--color-ink-dim);text-align:center;padding:4px 0">+${more} meer verborgen</div>` : '')
@@ -2551,7 +2559,7 @@ function _renderRegieBalkItem(item) {
   // bent. Klikken springt naar dezelfde sectie in het verhaalpaneel.
   if (item.type === 'kop') {
     return `<div class="dm-rb-kop" data-kop="${esc(item.id)}" data-titel="${esc(item.titel || '')}"
-      onclick="window.dmPanel.ladeNaarSectie('${esc(item.titel || '')}')"
+      onclick="window.dmPanel.ladeNaarSectie('${escArg(item.titel || '')}')"
       title="Ga naar deze sectie in het verhaal">
       <span class="dm-rb-kop-lijn"></span>
       <span class="dm-rb-kop-titel">${esc(item.titel || 'Sectie')}</span>
@@ -2636,29 +2644,29 @@ function _renderRegieBalkItem(item) {
   if (item.type === 'rust') {
     // Rust-stap: party-brede rust starten (met de locatie van de stap). Blijft klikbaar
     // (opnieuw triggeren mag); de check-overlay markeert dat 'm gedraaid is.
-    actions = `<button class="dm-rb-reveal-btn" onclick="window.dmPanel.regieBalkRust('${esc(item.id)}')" title="${item.restType === 'long' ? 'Long' : 'Short'} Rest starten (${item.locatie === 'herberg' ? 'herberg' : 'veld'})">${icon('play')}</button>`;
+    actions = `<button class="dm-rb-reveal-btn" onclick="window.dmPanel.regieBalkRust('${escArg(item.id)}')" title="${item.restType === 'long' ? 'Long' : 'Short'} Rest starten (${item.locatie === 'herberg' ? 'herberg' : 'veld'})">${icon('play')}</button>`;
   } else if (item.type === 'loot') {
     // Vondst-stap: bouwt de verdeling en opent het lootvenster. Blijft klikbaar —
     // een kamer kan twee keer bezocht worden.
-    actions = `<button class="dm-rb-reveal-btn" onclick="window.dmPanel.regieBalkLoot('${esc(item.id)}')" title="Vondst onthullen">${icon('coins')}</button>`;
+    actions = `<button class="dm-rb-reveal-btn" onclick="window.dmPanel.regieBalkLoot('${escArg(item.id)}')" title="Vondst onthullen">${icon('coins')}</button>`;
   } else if (item.type === 'muziek') {
     // Muziek-stap: druk op play bij Spotify. Blijft klikbaar — dezelfde sfeer kan
     // later in de akte terugkomen, en na een pauze wil je 'm opnieuw starten.
-    actions = `<button class="dm-rb-reveal-btn" onclick="window.dmPanel.regieBalkMuziek('${esc(item.id)}')" title="Muziek starten${item.herhaal ? ' (blijft herhalen)' : ''}">${icon('play')}</button>`;
+    actions = `<button class="dm-rb-reveal-btn" onclick="window.dmPanel.regieBalkMuziek('${escArg(item.id)}')" title="Muziek starten${item.herhaal ? ' (blijft herhalen)' : ''}">${icon('play')}</button>`;
   } else if (item.type === 'brief') {
     // Brief-stap: verstuur naar de gekozen ontvanger(s) + grote reveal op de tablet.
     // Blijft klikbaar (opnieuw sturen mag); de check-overlay markeert dat 'm verstuurd is.
-    actions = `<button class="dm-rb-reveal-btn" onclick="window.dmPanel.regieBalkStuurBrief('${esc(item.id)}')" title="Brief versturen (${item.ontvangerType === 'groep' ? 'party' : 'speler'})">${icon('mail')}</button>`;
+    actions = `<button class="dm-rb-reveal-btn" onclick="window.dmPanel.regieBalkStuurBrief('${escArg(item.id)}')" title="Brief versturen (${item.ontvangerType === 'groep' ? 'party' : 'speler'})">${icon('mail')}</button>`;
   } else if (isEntity) {
     actions = `
-      ${canVague ? `<button class="dm-rb-reveal-btn dm-rb-reveal-btn--vaag" onclick="window.dmPanel.regieBalkRevealVague('${esc(item.id)}')" title="Vaag onthullen">${icon('eye-off')}</button>` : ''}
-      <button class="dm-rb-reveal-btn dm-rb-reveal-btn--vol" onclick="window.dmPanel.regieBalkReveal('${esc(item.id)}')" title="Volledig onthullen">${icon('eye')}</button>
-      ${hasSecret ? `<button class="dm-rb-reveal-btn dm-rb-reveal-btn--geheim" onclick="window.dmPanel.regieBalkRevealSecret('${esc(item.id)}')" title="Geheim onthullen">${icon('lock')}</button>` : ''}
-      ${isBrief ? `<button class="dm-rb-reveal-btn dm-rb-reveal-btn--tafel" onclick="window.dmPanel.regieBalkNaarTafel('${esc(item.id)}')" title="Op het tafelscherm leggen">${icon('monitor')}</button>` : ''}
-      ${isCode ? `<button class="dm-rb-reveal-btn dm-rb-reveal-btn--ontcijfer" onclick="window.dmPanel.regieBalkOntcijfer('${esc(item.id)}')" title="Ontcijferen — de letters vliegen naar hun plek">${icon('lock-open')}</button>` : ''}`;
+      ${canVague ? `<button class="dm-rb-reveal-btn dm-rb-reveal-btn--vaag" onclick="window.dmPanel.regieBalkRevealVague('${escArg(item.id)}')" title="Vaag onthullen">${icon('eye-off')}</button>` : ''}
+      <button class="dm-rb-reveal-btn dm-rb-reveal-btn--vol" onclick="window.dmPanel.regieBalkReveal('${escArg(item.id)}')" title="Volledig onthullen">${icon('eye')}</button>
+      ${hasSecret ? `<button class="dm-rb-reveal-btn dm-rb-reveal-btn--geheim" onclick="window.dmPanel.regieBalkRevealSecret('${escArg(item.id)}')" title="Geheim onthullen">${icon('lock')}</button>` : ''}
+      ${isBrief ? `<button class="dm-rb-reveal-btn dm-rb-reveal-btn--tafel" onclick="window.dmPanel.regieBalkNaarTafel('${escArg(item.id)}')" title="Op het tafelscherm leggen">${icon('monitor')}</button>` : ''}
+      ${isCode ? `<button class="dm-rb-reveal-btn dm-rb-reveal-btn--ontcijfer" onclick="window.dmPanel.regieBalkOntcijfer('${escArg(item.id)}')" title="Ontcijferen — de letters vliegen naar hun plek">${icon('lock-open')}</button>` : ''}`;
   } else {
     actions = !revealed
-      ? `<button class="dm-rb-reveal-btn" onclick="window.dmPanel.regieBalkReveal('${esc(item.id)}')" title="Onthul">${icon('play')}</button>`
+      ? `<button class="dm-rb-reveal-btn" onclick="window.dmPanel.regieBalkReveal('${escArg(item.id)}')" title="Onthul">${icon('play')}</button>`
       : '';
   }
 
@@ -2722,7 +2730,7 @@ function _renderRegieBalk() {
       <div class="dm-regie-balk-header">
         <div class="dm-regie-balk-header-left">
           <span class="dm-regie-balk-akte-label">${icon('clipboard-list')} ${esc(_rbTitle)}</span>
-          ${_rbNakijken ? `<button class="dm-rb-nakijken" onclick="window._akteNakijken('${esc(_rbChapter)}')"
+          ${_rbNakijken ? `<button class="dm-rb-nakijken" onclick="window._akteNakijken('${escArg(_rbChapter)}')"
             title="Wat er nog te doen is in deze akte">${icon('clipboard-list')} ${_rbNakijken} na te kijken</button>` : ''}
           ${totalCount > 0 ? `<button class="dm-rb-progress dm-rb-progress--btn" onclick="window.dmPanel.regieBalkRevealNext()" title="Volgende onthullen" ${revealedCount >= totalCount ? 'disabled' : ''}>${revealedCount}/${totalCount} ${icon('chevron-right')}</button>` : ''}
           <div class="dm-regie-balk-filters">
@@ -2899,7 +2907,7 @@ async function _ladeToggle() {
   _ladeIdx = _bwIdx >= 0 ? _bwIdx : Math.min(_ladePlekLees(), Math.max(0, _ladeSecties.length - 1));
   // De akte-module levert de renderer én de knoppen; die moet weten welke akte
   // er speelt, anders belandt een getoond beeld in de sessielog van niemand.
-  const mod = await import('./akte-schrijven.js?v=37');
+  const mod = await import('./akte-schrijven.js?v=39');
   mod.zetAkte(_rbChapter, _ladeTekst);
   window._akteRegieRender = mod.regieNaarHtml;
   let lade = document.getElementById('regie-lade');
@@ -2925,7 +2933,7 @@ window._ladeHerlaad = async () => {
     _ladeTekst = regie?.tekst || '';
     _ladeSecties = _splitsSecties(_ladeTekst);
     _ladeIdx = Math.min(_ladeIdx, Math.max(0, _ladeSecties.length - 1));
-    const mod = await import('./akte-schrijven.js?v=37');
+    const mod = await import('./akte-schrijven.js?v=39');
     mod.zetAkte(_rbChapter, _ladeTekst);
     _ladeRender();
   } catch { /* de lade blijft staan zoals hij stond */ }
@@ -4095,10 +4103,10 @@ function _monsterRow(m) {
         <span class="dm-monster-meta">HP ${m.maxHp}${(() => { const ac = parseInt(m.statblock?.ac); return Number.isFinite(ac) ? ` · AC ${ac}` : ''; })()}</span>
       </div>
       <div class="dm-monster-actions">
-        <button class="dm-btn dm-btn-sm dm-btn-primary" onclick="window.dmPanel.monsterAddToCombat('${esc(m.id)}')" title="Toevoegen aan gevecht">${icon('swords')}</button>
-        ${_hasStatblock(m) ? `<button class="dm-btn dm-btn-sm" onclick="window.dmPanel.monsterStatblock('${esc(m.id)}')" title="Statblock bekijken">${icon('clipboard-list')}</button>` : ''}
-        <button class="dm-btn dm-btn-sm" onclick="window.dmPanel.monsterEdit('${esc(m.id)}')" title="Bewerken">${icon('pencil')}</button>
-        <button class="dm-btn dm-btn-sm dm-btn-danger-sm" onclick="window.dmPanel.monsterDelete('${esc(m.id)}')" title="Verwijderen">${icon('x')}</button>
+        <button class="dm-btn dm-btn-sm dm-btn-primary" onclick="window.dmPanel.monsterAddToCombat('${escArg(m.id)}')" title="Toevoegen aan gevecht">${icon('swords')}</button>
+        ${_hasStatblock(m) ? `<button class="dm-btn dm-btn-sm" onclick="window.dmPanel.monsterStatblock('${escArg(m.id)}')" title="Statblock bekijken">${icon('clipboard-list')}</button>` : ''}
+        <button class="dm-btn dm-btn-sm" onclick="window.dmPanel.monsterEdit('${escArg(m.id)}')" title="Bewerken">${icon('pencil')}</button>
+        <button class="dm-btn dm-btn-sm dm-btn-danger-sm" onclick="window.dmPanel.monsterDelete('${escArg(m.id)}')" title="Verwijderen">${icon('x')}</button>
       </div>
     </div>`;
 };
@@ -4272,7 +4280,7 @@ function _renderMonsterEditor(el) {
           overschreven zodra dat kaartje wordt opgeslagen. De <strong>roddel</strong> hoort wél hier.
         </p>
         <button class="dm-btn dm-btn-sm dm-btn-ghost"
-          onclick="window._openDetail('personages','${esc(stored.entityId || '')}')"
+          onclick="window._openDetail('personages','${escArg(stored.entityId || '')}')"
           title="Het kaartje openen om het statblok aan te passen">${icon('arrow-up-right')} Open het kaartje</button>
       </div>` : ''}
       <details class="dm-srd-import-panel" id="dm-srd-panel"${vanKaartje ? ' hidden' : ''}>
@@ -4414,7 +4422,7 @@ async function _srdSearch() {
     : '<div class="dm-hint">Niets gevonden in de SRD 5.2.</div>';
 };
 
-const _srdKnop = (m) => `<button class="dm-srd-result-btn" onclick="window.dmPanel.srdImport('${esc(m.key)}')">${esc(m.name)} <span class="dm-srd-cr">CR ${esc(m.cr)}</span></button>`;
+const _srdKnop = (m) => `<button class="dm-srd-result-btn" onclick="window.dmPanel.srdImport('${escArg(m.key)}')">${esc(m.name)} <span class="dm-srd-cr">CR ${esc(m.cr)}</span></button>`;
 
 async function _srdImport(key) {
   const resultsEl = document.getElementById('dm-srd-results');
@@ -4656,14 +4664,36 @@ const CANVAS_PRESETS = [
 // `_syncMonsterVanKaartje` zet die er server-side bij. Eén helper dus, met per
 // regel dezelfde toelichting — anders zegt dezelfde naam op twee schermen iets
 // anders.
+// De SRD 5.2-statblokken, één keer opgehaald. Een verse campagne heeft een lege
+// monsterbibliotheek, en dan vond deze kiezer niets: de DM moest eerst naar
+// Monsters, de uitklapper openen, zoeken, klikken en opslaan — per wezen — en
+// daarna terug naar zijn gevecht. Nu staan ze er gewoon tussen, en een keuze
+// haalt hem meteen binnen (`_encRowNameChange`).
+let _srdVoorEnc = null;
+function _srdVoorEncLaden() {
+  if (_srdVoorEnc) return;
+  _srdVoorEnc = [];
+  window._statblokPresets?.().then(l => {
+    _srdVoorEnc = l || [];
+    const dl = document.getElementById('dm-enc-monsters-dl');
+    if (dl) dl.innerHTML = _statblokOptiesHtml();
+  }).catch(() => {});
+}
+
 function _statblokOptiesHtml() {
-  return _monsters.map(m => {
+  _srdVoorEncLaden();
+  const eigen = _monsters.map(m => {
     const kaart = m.entityId ? _setupPersonages.find(e => e.id === m.entityId) : null;
     const merk = m.entityId
       ? `van kaartje${kaart?.data?.kant ? ' · ' + esc(kaart.data.kant) : ''}${m.maxHp ? ' · HP ' + m.maxHp : ''}`
       : `bibliotheek${m.maxHp ? ' · HP ' + m.maxHp : ''}`;
     return `<option value="${esc(m.name)}">${merk}</option>`;
-  }).join('');
+  });
+  // Wat de campagne al heeft wint: dezelfde naam twee keer is één keer te veel.
+  const al = new Set(_monsters.map(m => (m.name || '').toLowerCase()));
+  const srd = (_srdVoorEnc || []).filter(m => !al.has((m.name || '').toLowerCase()))
+    .map(m => `<option value="${esc(m.name)}">SRD 5.2 · CR ${esc(m.cr)}</option>`);
+  return [...eigen, ...srd].join('');
 }
 
 async function _loadEncounters() {
@@ -4723,8 +4753,8 @@ function _encCard(enc) {
            één misklik van een gevecht dat je kwijt bent. Dat staat nu in het
            venster, bij de andere instellingen. -->
       <div class="dm-enc-card-actions">
-        <button class="dm-btn dm-btn-sm dm-btn-ghost" onclick="window.dmPanel.encEdit('${esc(enc.id)}')" title="Bewerken">${icon('pencil')} Bewerken</button>
-        <button class="dm-btn dm-btn-sm dm-btn-primary" onclick="window.dmPanel.encStart('${esc(enc.id)}')" title="Gevecht starten">${icon('play')} Vechten</button>
+        <button class="dm-btn dm-btn-sm dm-btn-ghost" onclick="window.dmPanel.encEdit('${escArg(enc.id)}')" title="Bewerken">${icon('pencil')} Bewerken</button>
+        <button class="dm-btn dm-btn-sm dm-btn-primary" onclick="window.dmPanel.encStart('${escArg(enc.id)}')" title="Gevecht starten">${icon('play')} Vechten</button>
       </div>
     </div>`;
 }
@@ -4898,7 +4928,7 @@ function _renderEncounterEditor(el) {
     <div class="dm-feature-section">
       <div class="dm-feature-row">
         <span class="dm-feature-title">${isNew ? 'Nieuwe encounter' : 'Encounter bewerken'}</span>
-        ${!isNew ? `<button class="dm-btn dm-btn-sm dm-btn-ghost dm-btn-danger" onclick="window.dmPanel.encDelete('${esc(_editingEncId)}')" title="Dit gevecht verwijderen">${icon('trash')}</button>` : ''}
+        ${!isNew ? `<button class="dm-btn dm-btn-sm dm-btn-ghost dm-btn-danger" onclick="window.dmPanel.encDelete('${escArg(_editingEncId)}')" title="Dit gevecht verwijderen">${icon('trash')}</button>` : ''}
       </div>
 
       <div class="dm-form-row">
@@ -4939,7 +4969,7 @@ function _renderEncounterEditor(el) {
       ${datalistHtml}
       <div class="dm-form-label" style="margin-bottom:4px">Monsters</div>
       <div id="dm-enc-rows">${rowsHtml}</div>
-      <button class="dm-btn dm-btn-sm dm-btn-ghost" onclick="window.dmPanel.encAddRow()" title="Regel toevoegen" style="margin-bottom:10px">${icon('plus')} Regel</button>
+      <button class="dm-btn dm-btn-sm dm-btn-ghost" onclick="window.dmPanel.encAddRow()" title="Monster toevoegen" style="margin-bottom:10px">${icon('plus')} Monster</button>
 
       <!-- Loot is een **vondst** uit de Loot-tab, geen tweede lijstje hier. Zo
            is er één plek waar buit wordt bijgehouden (met sjablonen, relikwie-
@@ -5304,9 +5334,24 @@ window._encFieldChange = function(field, value) {
 };
 
 // Called when user picks/types a monster name in the datalist input
-window._encRowNameChange = function(idx, name) {
+window._encRowNameChange = async function(idx, name) {
   const m = _monsters.find(x => x.name === name);
-  if (m) _encRowMonsterChange(idx, m.id);
+  if (m) return _encRowMonsterChange(idx, m.id);
+  // Een SRD-statblok dat de campagne nog niet heeft: binnenhalen in de
+  // bibliotheek — dezelfde velden als de import in de monster-editor — en de
+  // regel daarna gewoon aan dat nieuwe monster hangen.
+  const p = (_srdVoorEnc || []).find(x => (x.name || '').toLowerCase() === String(name).toLowerCase());
+  if (!p) return;
+  try {
+    const nieuw = await api.createMonster({
+      name: p.name, maxHp: p.maxHp, initiative: p.initiative, statblock: p.statblock || {},
+      inBestiarium: true, description: '', roddel: p.roddel || '',
+    });
+    _monsters = ((await api.listMonsters()).monsters || []).sort((a, b) => (a.name || '').localeCompare(b.name || '', 'nl'));
+    const id = nieuw?.id || _monsters.find(x => x.name === p.name)?.id;
+    if (id) _encRowMonsterChange(idx, id);
+    window._showToast?.(`${p.name} staat nu in je monsterbibliotheek`);
+  } catch (e) { alert('Binnenhalen mislukt: ' + e.message); }
 };
 
 function _encRowChange(idx, field, value) {
@@ -6121,8 +6166,17 @@ window._instSpreukbeelden = async () => {
 
 function _campagneCreate() {
   const form = document.getElementById('campagne-create-form');
-  if (form) { form.style.display = 'block'; document.getElementById('campagne-new-id')?.focus(); }
+  if (form) { form.style.display = 'block'; document.getElementById('campagne-new-title')?.focus(); }
 };
+
+// Het adres volgt de naam tot je het zelf aanraakt: kleine letters, geen
+// accenten, spaties worden streepjes — de tekens die een campagne-id mag hebben.
+function _campagneAdresVolg(naam) {
+  const veld = document.getElementById('campagne-new-id');
+  if (!veld || veld.dataset.zelf) return;
+  veld.value = String(naam || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40);
+}
 
 async function _campagneSubmit() {
   const id       = document.getElementById('campagne-new-id')?.value.trim();
@@ -6371,13 +6425,13 @@ function _beursRegelHtml(g, { kop = true } = {}) {
   // die stand krijgt dus zijn eigen sjabloon.
   return `<div class="dm-beurs-rij${aan ? ' dm-beurs-rij--aan' : ''}${kop ? '' : ' dm-beurs-rij--kaart'}">
     ${kop ? `<span class="dm-beurs-naam">${esc(g.naam)}${g.actief ? ` <span class="dm-beurs-actief" title="De party die nu actief is">actief</span>` : ''}</span>` : ''}
-    <button class="dm-btn dm-btn-sm dm-btn-ghost dm-beurs-schakel" onclick="window.dmPanel.beursToggle('${esc(g.id)}')"
+    <button class="dm-btn dm-btn-sm dm-btn-ghost dm-beurs-schakel" onclick="window.dmPanel.beursToggle('${escArg(g.id)}')"
       title="${aan ? 'Iedereen in deze party gebruikt daarna weer zijn eigen beurs' : 'Alle spelers van deze party delen daarna één saldo'}">
       ${aan ? `${icon('coins')} Aan` : `${icon('users')} Uit`}
     </button>
     ${aan ? `<span class="dm-munt-rij">
       ${veld('fl', 'gp')}${veld('kn', 'sp')}${veld('cl', 'cp')}
-      <button class="dm-btn dm-btn-sm dm-btn-ghost" onclick="window.dmPanel.beursOpslaan('${esc(g.id)}')" title="Nieuw saldo bewaren">${icon('save')} Bijwerken</button>
+      <button class="dm-btn dm-btn-sm dm-btn-ghost" onclick="window.dmPanel.beursOpslaan('${escArg(g.id)}')" title="Nieuw saldo bewaren">${icon('save')} Bijwerken</button>
       <span id="beurs-status-${esc(g.id)}" class="bericht-status hidden"></span>
     </span>` : `<span class="dm-hint dm-beurs-uit">ieder zijn eigen beurs</span>`}
   </div>`;
@@ -6512,12 +6566,12 @@ async function _renderSchulden() {
         ${st.afgetopt && !r.ontspannen ? `<p class="dm-hint dm-schuld-op">Het plafond is bereikt — hij telt niet verder en komt het halen.</p>` : ''}
         ${r.trap ? `<p class="dm-hint dm-schuld-trap">${icon('alert-triangle')} Trap ${r.trap} van 3 — ${['', 'de brief is bezorgd', 'er is onderpand gevraagd', 'hij staat voor de deur'][r.trap]}.${r.onderpand ? ` Hij nam <strong>${esc(r.onderpand.naam)}</strong> mee.` : ''}</p>` : ''}
         <div class="dm-schuld-knoppen">
-          ${r.wees ? '' : `<button class="dm-btn dm-btn-sm ${r.opgeeist ? 'dm-btn-primary' : 'dm-btn-ghost'}" onclick="window.dmPanel.schuldOpeisen('${esc(r.id)}')"
+          ${r.wees ? '' : `<button class="dm-btn dm-btn-sm ${r.opgeeist ? 'dm-btn-primary' : 'dm-btn-ghost'}" onclick="window.dmPanel.schuldOpeisen('${escArg(r.id)}')"
             title="Zonder dit wacht hij tot het plafond bereikt is">${icon('alert-triangle')} ${r.opgeeist ? 'Opgeëist' : 'Opeisen'}</button>`}
           ${r.trap === 3 && cfg.encounterId ? `<button class="dm-btn dm-btn-sm dm-btn-primary"
-            onclick="window.dmPanel.schuldGevecht('${esc(cfg.encounterId)}')"
+            onclick="window.dmPanel.schuldGevecht('${escArg(cfg.encounterId)}')"
             title="Start het gevecht dat je bij deze dienst koppelde">${icon('crossed-swords')} Hij staat voor de deur</button>` : ''}
-          <button class="dm-btn dm-btn-sm dm-btn-ghost" onclick="window.dmPanel.schuldWeg('${esc(r.id)}','${esc(r.spelerNaam || 'dit personage')}')">
+          <button class="dm-btn dm-btn-sm dm-btn-ghost" onclick="window.dmPanel.schuldWeg('${escArg(r.id)}','${escArg(r.spelerNaam || 'dit personage')}')">
             ${icon('x')} ${r.wees ? 'Opruimen' : 'Kwijtschelden'}</button>
         </div>
       </div>`;
@@ -6717,7 +6771,7 @@ async function _renderTweespaltDM() {
             <span style="margin-left:8px;font-size:11px;opacity:.6">${icon('dice')} ${esc(evt.soort || 'Weddenschap')}</span>
             ${isAfgerond ? '<span style="margin-left:6px;font-size:11px;color:var(--color-gold)">✓ Afgerond</span>' : ''}
           </div>
-          <button class="dm-btn dm-btn-sm dm-btn-danger-sm" onclick="window._tsDmVerwijder('${esc(evt.id)}')">${icon('x')}</button>
+          <button class="dm-btn dm-btn-sm dm-btn-danger-sm" onclick="window._tsDmVerwijder('${escArg(evt.id)}')">${icon('x')}</button>
         </div>
         <div style="font-size:11px;opacity:.65;margin:4px 0">
           Modus: ${evt.uitkomstModus === 'dm' ? 'DM bepaalt' : `Automatisch — sluit ${sluitLabel}`} ·
@@ -6731,12 +6785,12 @@ async function _renderTweespaltDM() {
               ${isAfgerond
                 ? (o.id === evt.uitkomst ? '<span style="color:var(--color-gold)">★ Winnaar</span>' : '')
                 : evt.uitkomstModus === 'dm'
-                  ? `<button class="dm-btn dm-btn-sm" onclick="window._tsDmUitslag('${esc(evt.id)}','${esc(o.id)}')" style="font-size:10px" title="Laat winnen">★</button>`
+                  ? `<button class="dm-btn dm-btn-sm" onclick="window._tsDmUitslag('${escArg(evt.id)}','${escArg(o.id)}')" style="font-size:10px" title="Laat winnen">★</button>`
                   : ''}
             </div>`).join('')}
         </div>
         ${!isAfgerond && evt.uitkomstModus === 'auto'
-          ? `<button class="dm-btn dm-btn-sm" onclick="window._tsDmUitslag('${esc(evt.id)}')" title="Nu afronden">${icon('zap')}</button>`
+          ? `<button class="dm-btn dm-btn-sm" onclick="window._tsDmUitslag('${escArg(evt.id)}')" title="Nu afronden">${icon('zap')}</button>`
           : ''}
         ${evt.inzetten && Object.keys(evt.inzetten).length
           ? `<div class="ts-inzetten">
@@ -6853,8 +6907,8 @@ async function _renderTweespaltDM() {
           <div><strong>${esc(s.doorNaam || s.doorId?.slice(0,8) || 'Speler')}</strong> → ${esc(s.boutNaam)}${s.tegenstander ? ` <span style="opacity:.65">tegen ${esc(s.tegenstander)}</span>` : ''}</div>
           <div style="font-size:11px;opacity:.7;margin:3px 0 8px">Prijs bij winst: ${esc(s.prijs || '—')}${s.inzet ? ` · inleg betaald: ${esc(s.inzet)}` : ''}</div>
           <div class="dm-feature-row" style="gap:6px">
-            <button class="dm-btn dm-btn-sm dm-btn-primary" onclick="window._tsArenaUitslag('${esc(s.id)}','overwinning')" title="Overwinning — betaal prijzengeld uit">${icon('coins')} Overwinning</button>
-            <button class="dm-btn dm-btn-sm dm-btn-ghost" onclick="window._tsArenaUitslag('${esc(s.id)}','nederlaag')" title="Nederlaag">Nederlaag</button>
+            <button class="dm-btn dm-btn-sm dm-btn-primary" onclick="window._tsArenaUitslag('${escArg(s.id)}','overwinning')" title="Overwinning — betaal prijzengeld uit">${icon('coins')} Overwinning</button>
+            <button class="dm-btn dm-btn-sm dm-btn-ghost" onclick="window._tsArenaUitslag('${escArg(s.id)}','nederlaag')" title="Nederlaag">Nederlaag</button>
           </div>
         </div>`).join('')}
     </div>` : ''}
@@ -6913,7 +6967,7 @@ function _tsRenderArenaLijst() {
             ${(_tsEncounters || []).map(e => `<option value="${esc(e.id)}"${b.encounterId === e.id ? ' selected' : ''}>${esc(e.name || e.id)}</option>`).join('')}
           </select>
           ${b.encounterId ? `<button class="dm-btn dm-btn-ghost dm-btn-sm" title="Nu starten"
-            onclick="window._tsArenaStart('${esc(b.encounterId)}')">${icon('swords')} Starten</button>` : ''}
+            onclick="window._tsArenaStart('${escArg(b.encounterId)}')">${icon('swords')} Starten</button>` : ''}
         </div>
         <label class="dm-hint" style="display:flex;align-items:center;gap:7px;margin-top:2px;cursor:pointer">
           <input type="checkbox" class="ts-arena-verborgen" ${b.verborgen ? 'checked' : ''}>
@@ -7228,7 +7282,7 @@ async function _renderMarktSettings() {
           ${(data.winkels || []).length ? (data.winkels || []).map(w => `
             <div class="dm-markt-winkel">
               <button class="dm-markt-winkel-naam" title="Open het kaartje van ${esc(w.naam)}"
-                onclick="window._openDetail('${esc(w.soort || 'locaties')}','${esc(w.id)}')">${esc(w.naam)}</button>
+                onclick="window._openDetail('${escArg(w.soort || 'locaties')}','${escArg(w.id)}')">${esc(w.naam)}</button>
               <span class="dm-markt-winkel-gebied">${(w.gebieden || []).join(' \u203a ') || 'geen gebied ingevuld'}</span>
             </div>`).join('')
             : '<p class="dm-hint">Nog geen winkels — een locatie of verkoper met een voorraad komt hier vanzelf te staan.</p>'}
@@ -7329,7 +7383,7 @@ async function _renderMagizooSettings() {
                 <img class="magizoo-dier-portret" src="${api.thumbUrl(d.id)}" alt=""
                   onerror="this.replaceWith(Object.assign(document.createElement('span'),{className:'magizoo-dier-portret magizoo-dier-portret--leeg'}))">
                 <button type="button" class="dm-factie-kaartlink magizoo-dier-naam"
-                  onclick="window._openDetail('personages','${esc(d.id)}')">${esc(d.naam)}</button>
+                  onclick="window._openDetail('personages','${escArg(d.id)}')">${esc(d.naam)}</button>
                 ${d.soort ? `<span class="magizoo-dier-soort">${esc(d.soort)}</span>` : ''}
                 <span class="magizoo-dier-prijs">${esc(_bedragTekst(d.prijs) || 'gratis')}</span>
                 <span class="magizoo-dier-stand">${
@@ -7609,9 +7663,9 @@ async function _renderTempelEden() {
         <span style="display:block;opacity:.7;font-size:11px">${esc(e.effect || '')}</span>
       </span>
       ${e.status === 'vloek'
-        ? `<button class="dm-btn dm-btn-ghost dm-btn-sm" onclick="window._tempelEedHef('${esc(e.characterId)}')" title="Hef de vloek op">Hef op</button>`
-        : `<button class="dm-btn dm-btn-ghost dm-btn-sm" onclick="window._tempelEedVerbreek('${esc(e.characterId)}')" title="Verbreek de eed → vloek">Verbreek</button>
-           <button class="dm-btn dm-btn-ghost dm-btn-sm" onclick="window._tempelEedHef('${esc(e.characterId)}')" title="Eed opheffen (correctie)">✕</button>`}
+        ? `<button class="dm-btn dm-btn-ghost dm-btn-sm" onclick="window._tempelEedHef('${escArg(e.characterId)}')" title="Hef de vloek op">Hef op</button>`
+        : `<button class="dm-btn dm-btn-ghost dm-btn-sm" onclick="window._tempelEedVerbreek('${escArg(e.characterId)}')" title="Verbreek de eed → vloek">Verbreek</button>
+           <button class="dm-btn dm-btn-ghost dm-btn-sm" onclick="window._tempelEedHef('${escArg(e.characterId)}')" title="Eed opheffen (correctie)">✕</button>`}
     </div>`).join('');
 };
 
@@ -7747,7 +7801,7 @@ function _godKaartjesHtml(g) {
       <span class="dm-god-kaartlbl">${icon(meta.ic)} ${meta.label}</span>
       <div class="dm-god-kaartchips">
         ${rij.map(v => `<button type="button" class="dm-god-kaart"
-          onclick="window._openDetail('voorwerpen','${esc(v.id)}')"
+          onclick="window._openDetail('voorwerpen','${escArg(v.id)}')"
           title="Open ${esc(v.name || '')}">${esc(v.name || '')}</button>`).join('')}
       </div>
     </div>`;
@@ -7757,7 +7811,7 @@ function _godKaartjesHtml(g) {
     html += `<div class="dm-god-kaartrij">
       <span class="dm-god-kaartlbl">${icon('package')} Overig</span>
       <div class="dm-god-kaartchips">${rest.map(v => `<button type="button" class="dm-god-kaart"
-        onclick="window._openDetail('voorwerpen','${esc(v.id)}')">${esc(v.name || '')}</button>`).join('')}</div>
+        onclick="window._openDetail('voorwerpen','${escArg(v.id)}')">${esc(v.name || '')}</button>`).join('')}</div>
     </div>`;
   }
   return `<div class="dm-god-kaarten">
@@ -8366,7 +8420,7 @@ function _renderFactiesDM() {
         return `
         <div class="factie-dm-kaart" id="factie-dm-kaart-${f.id}">
           <div class="factie-dm-kaart-header">
-            <button id="factie-dm-oog-${esc(f.id)}" class="factie-dm-oog${zichtbaar ? ' factie-dm-oog--aan' : ''}" onclick="window._factieReveal('${esc(f.id)}')" title="${zichtbaar ? 'Verberg factie' : 'Onthul factie voor spelers'}">
+            <button id="factie-dm-oog-${esc(f.id)}" class="factie-dm-oog${zichtbaar ? ' factie-dm-oog--aan' : ''}" onclick="window._factieReveal('${escArg(f.id)}')" title="${zichtbaar ? 'Verberg factie' : 'Onthul factie voor spelers'}">
               ${zichtbaar ? icon('eye') : icon('eye-off')}
             </button>
             <span class="factie-embleem-teken factie-dm-embleem">${icon(_factieEmbleemLokaal(f, _org))}</span>
@@ -8382,10 +8436,10 @@ function _renderFactiesDM() {
             <label class="dm-hint factie-renown-invoer">
               <input class="dm-input dm-input-sm" type="number" id="factie-renown-${esc(f.id)}"
                 placeholder="0" title="Hoeveel renown erbij? Een min-getal haalt eraf."
-                onkeydown="if(event.key==='Enter'){event.preventDefault();window._factieRenownVeld('${esc(f.id)}');}">
+                onkeydown="if(event.key==='Enter'){event.preventDefault();window._factieRenownVeld('${escArg(f.id)}');}">
               renown
             </label>
-            <button class="dm-btn dm-btn-ghost dm-btn-sm" onclick="window._factieRenownVeld('${esc(f.id)}')"
+            <button class="dm-btn dm-btn-ghost dm-btn-sm" onclick="window._factieRenownVeld('${escArg(f.id)}')"
               title="Toekennen">${icon('check')} Toekennen</button>
             ${boonGegeven.length ? `<span class="factie-dm-boon-label">${icon('check-circle')} ${boonGegeven.length} gunst${boonGegeven.length > 1 ? 'en' : ''} uitgedeeld</span>` : ''}
             <span style="margin-left:auto;display:inline-flex;gap:6px">
@@ -8396,7 +8450,7 @@ function _renderFactiesDM() {
               ${live.uitgenodigd || renown > 0
                 ? `<span class="dm-hint factie-dm-uitgenodigd" title="${live.uitgenodigd ? 'Deze party heeft de uitnodiging al gehad' : 'Deze party heeft al aanzien bij deze factie'}">${icon('mail')} ${live.uitgenodigd ? 'Uitgenodigd' : 'Kennen elkaar al'}</span>`
                 : `<button class="dm-btn dm-btn-primary dm-btn-sm factie-dm-uitnodiging"
-                     onclick="window._factieStuurUitnodiging('${esc(f.id)}')"
+                     onclick="window._factieStuurUitnodiging('${escArg(f.id)}')"
                      title="Onthul de factie voor de actieve groep én bezorg elke speler een verzegelde uitnodigingsbrief">
                      ${icon('mail')} Stuur uitnodiging</button>`}
               <button class="dm-btn dm-btn-ghost dm-btn-sm" onclick="window._factieBewerk(${fi})"
@@ -8615,7 +8669,7 @@ function _ledenUitKaartHtml(f, org) {
   // veranderen — verder geen uitleg, het plaatje spreekt.
   const naarKaartje = `<div class="dm-form-row" style="margin-top:8px">
     <button type="button" class="dm-btn dm-btn-ghost dm-btn-sm"
-      onclick="window._openDetail('organisaties','${esc(org.id)}')">${icon('pencil')} Bewerken op ${esc(org.name)}</button>
+      onclick="window._openDetail('organisaties','${escArg(org.id)}')">${icon('pencil')} Bewerken op ${esc(org.name)}</button>
   </div>`;
 
   if (!rijen.length) {
@@ -8996,7 +9050,7 @@ async function _renderGeluiden() {
           ${turnFileId
             ? `<button class="dm-btn dm-btn-sm dm-btn-ghost" title="Testplay" onclick="window._sndPlay('${turnFileId}', this)">▶</button>
                <span class="dm-sound-set">✓ Ingesteld</span>
-               <button class="dm-btn dm-btn-sm dm-btn-ghost" onclick="window._sndRemovePlayerTurn('${esc(p.id)}')">${icon('x')}</button>`
+               <button class="dm-btn dm-btn-sm dm-btn-ghost" onclick="window._sndRemovePlayerTurn('${escArg(p.id)}')">${icon('x')}</button>`
             : `<span class="dm-sound-empty">Geen geluid</span>`}
           ${_sndKiesKnop(`window._sndKiesBeurt('${esc(p.id)}')`, !!turnFileId)}
         </div>
@@ -9007,15 +9061,15 @@ async function _renderGeluiden() {
         <div class="dm-sound-emote-item">
           <input class="dm-input dm-sound-emote-label" type="text"
             placeholder="Naam…" value="${esc(item.label || '')}"
-            onchange="window._sndUpdateLabel('${esc(p.id)}','${esc(item.id)}',this.value)">
+            onchange="window._sndUpdateLabel('${escArg(p.id)}','${escArg(item.id)}',this.value)">
           <div class="dm-sound-controls">
             ${item.fileId
-              ? `<button class="dm-btn dm-btn-sm dm-btn-ghost" title="Testplay" onclick="window._sndPlay('${esc(item.fileId)}', this)">▶</button>
+              ? `<button class="dm-btn dm-btn-sm dm-btn-ghost" title="Testplay" onclick="window._sndPlay('${escArg(item.fileId)}', this)">▶</button>
                  <span class="dm-sound-set">✓</span>
-                 <button class="dm-btn dm-btn-sm dm-btn-ghost" onclick="window._sndClearFile('${esc(p.id)}','${esc(item.id)}')">${icon('x')}</button>`
+                 <button class="dm-btn dm-btn-sm dm-btn-ghost" onclick="window._sndClearFile('${escArg(p.id)}','${escArg(item.id)}')">${icon('x')}</button>`
               : `<span class="dm-sound-empty">Geen geluid</span>`}
             ${_sndKiesKnop(`window._sndKiesEmote('${esc(p.id)}','${esc(item.id)}')`, !!item.fileId)}
-            <button class="dm-btn dm-btn-sm dm-btn-ghost dm-btn-danger" onclick="window._sndDeleteEmote('${esc(p.id)}','${esc(item.id)}')" title="Deze emote verwijderen">${icon('trash')}</button>
+            <button class="dm-btn dm-btn-sm dm-btn-ghost dm-btn-danger" onclick="window._sndDeleteEmote('${escArg(p.id)}','${escArg(item.id)}')" title="Deze emote verwijderen">${icon('trash')}</button>
           </div>
         </div>`;
     }).join('');
@@ -9024,7 +9078,7 @@ async function _renderGeluiden() {
 
     return `
       <div class="dm-sound-player-dropdown" data-pid="${esc(p.id)}">
-        <button class="dm-sound-player-summary" onclick="window._sndTogglePlayer('${esc(p.id)}')">
+        <button class="dm-sound-player-summary" onclick="window._sndTogglePlayer('${escArg(p.id)}')">
           <span class="dm-sound-arrow">${isOpen ? '▼' : '▶'}</span>
           <span class="dm-sound-player-name">${esc(p.name)}</span>
           <span class="dm-sound-sel-badge">${library.length}/4 emotes</span>
@@ -9036,7 +9090,7 @@ async function _renderGeluiden() {
             : libraryRows}
           ${library.length < 4
             ? `<button class="dm-btn dm-btn-sm dm-btn-ghost" style="margin-top:6px"
-                 onclick="window._sndAddEmote('${esc(p.id)}')" title="Een emote toevoegen">${icon('plus')} Emote</button>`
+                 onclick="window._sndAddEmote('${escArg(p.id)}')" title="Een emote toevoegen">${icon('plus')} Emote</button>`
             : `<p class="dm-hint" style="margin:6px 0 0;opacity:.6">Maximaal 4 emotes.</p>`}
         </div>
       </div>`;
@@ -9078,13 +9132,13 @@ async function _renderGeluiden() {
   const ambScenes = (amb.scenes || []).map(s => `
     <div class="dm-amb-scene${amb.actief === s.id ? ' dm-amb-scene--actief' : ''}">
       <input class="dm-amb-label" value="${esc(s.label || '')}" placeholder="Scènenaam"
-        onchange="window._ambSetLabel('${esc(s.id)}', this.value)">
+        onchange="window._ambSetLabel('${escArg(s.id)}', this.value)">
       <div class="dm-amb-scene-actions">
-        <button class="dm-btn dm-btn-sm dm-btn-ghost" title="Testplay (alleen jij)" onclick="window._sndPlay('${esc(s.fileId)}', this)">▶</button>
+        <button class="dm-btn dm-btn-sm dm-btn-ghost" title="Testplay (alleen jij)" onclick="window._sndPlay('${escArg(s.fileId)}', this)">▶</button>
         ${amb.actief === s.id
           ? `<button class="dm-btn dm-btn-sm dm-btn-primary" onclick="window._ambStop()">${icon('square')} Stop</button>`
-          : `<button class="dm-btn dm-btn-sm dm-btn-ghost" onclick="window._ambPlay('${esc(s.id)}')">${icon('play')} Speel</button>`}
-        <button class="dm-btn dm-btn-sm dm-btn-ghost" onclick="window._ambDelete('${esc(s.id)}')" title="Verwijderen">${icon('trash')}</button>
+          : `<button class="dm-btn dm-btn-sm dm-btn-ghost" onclick="window._ambPlay('${escArg(s.id)}')">${icon('play')} Speel</button>`}
+        <button class="dm-btn dm-btn-sm dm-btn-ghost" onclick="window._ambDelete('${escArg(s.id)}')" title="Verwijderen">${icon('trash')}</button>
       </div>
     </div>`).join('');
   const ambSection = `
@@ -9115,7 +9169,7 @@ async function _renderGeluiden() {
           <span class="dm-sound-missing" title="Het bestand bestaat niet meer — deze dienst opent in stilte">
             ${icon('volume-2')} Bestand weg
           </span>
-          <button class="dm-btn dm-btn-sm dm-btn-ghost" onclick="window._svcAmbRemove('${esc(key)}')">${icon('x')}</button>
+          <button class="dm-btn dm-btn-sm dm-btn-ghost" onclick="window._svcAmbRemove('${escArg(key)}')">${icon('x')}</button>
           ${_sndKiesKnop(`window._sndKiesDienst('${esc(key)}','${escJS(label)}')`, true)}
         </div>
       </div>`;
@@ -9125,9 +9179,9 @@ async function _renderGeluiden() {
         <span class="dm-sound-slot-label">${esc(label)}</span>
         <div class="dm-sound-controls">
           ${fid
-            ? `<button class="dm-btn dm-btn-sm dm-btn-ghost" title="Testplay" onclick="window._sndPlay('${esc(fid)}', this)">▶</button>
+            ? `<button class="dm-btn dm-btn-sm dm-btn-ghost" title="Testplay" onclick="window._sndPlay('${escArg(fid)}', this)">▶</button>
                <span class="dm-sound-set">✓ Ingesteld</span>
-               <button class="dm-btn dm-btn-sm dm-btn-ghost" onclick="window._svcAmbRemove('${esc(key)}')">${icon('x')}</button>`
+               <button class="dm-btn dm-btn-sm dm-btn-ghost" onclick="window._svcAmbRemove('${escArg(key)}')">${icon('x')}</button>`
             : `<span class="dm-sound-empty">Geen loop</span>`}
           ${_sndKiesKnop(`window._sndKiesDienst('${esc(key)}','${escJS(label)}')`, false)}
         </div>
@@ -9161,9 +9215,9 @@ async function _renderGeluiden() {
         <span class="dm-sound-slot-label" title="${esc(uitleg)}">${esc(label)}</span>
         <div class="dm-sound-controls">
           ${fid
-            ? `<button class="dm-btn dm-btn-sm dm-btn-ghost" title="Testplay" onclick="window._sndPlay('${esc(fid)}', this)">▶</button>
+            ? `<button class="dm-btn dm-btn-sm dm-btn-ghost" title="Testplay" onclick="window._sndPlay('${escArg(fid)}', this)">▶</button>
                <span class="dm-sound-set">${icon('check')} Ingesteld</span>
-               <button class="dm-btn dm-btn-sm dm-btn-ghost" onclick="window._momentRemove('${esc(key)}')" title="Verwijderen">${icon('x')}</button>`
+               <button class="dm-btn dm-btn-sm dm-btn-ghost" onclick="window._momentRemove('${escArg(key)}')" title="Verwijderen">${icon('x')}</button>`
             : `<span class="dm-sound-empty">Geen geluid</span>`}
           ${_sndKiesKnop(`window._sndKiesMoment('${esc(key)}')`, !!fid)}
         </div>
@@ -9188,7 +9242,7 @@ async function _renderGeluiden() {
       <span class="dm-sound-slot-label" title="klinkt bij het effect ${esc(f.label)} op het tafelscherm">${icon(f.icoon)} ${esc(f.label)}</span>
       <div class="dm-sound-controls">
         ${(sounds.momenten || {})['fx-' + f.id]
-          ? `<button class="dm-btn dm-btn-sm dm-btn-ghost" title="Testplay" onclick="window._sndPlay('${esc((sounds.momenten || {})['fx-' + f.id])}', this)">▶</button>
+          ? `<button class="dm-btn dm-btn-sm dm-btn-ghost" title="Testplay" onclick="window._sndPlay('${escArg((sounds.momenten || {})['fx-' + f.id])}', this)">▶</button>
              <span class="dm-sound-set">${icon('check')} Eigen klank</span>
              <button class="dm-btn dm-btn-sm dm-btn-ghost" onclick="window._momentRemove('fx-${esc(f.id)}')" title="Terug naar de gemaakte klank">${icon('x')}</button>`
           : `<span class="dm-sound-empty">Gemaakt in de browser</span>`}
@@ -9548,12 +9602,12 @@ function _renderLootModalBody() {
           ${lp.items.map(it => `
             <div class="loot-edit-row">
               ${it.bron ? `<span class="loot-bron" title="Komt uit deze vondst">${esc(it.bron)}</span>` : ''}
-              <input class="dm-input dm-input-sm loot-edit-naam" value="${esc(it.naam)}" placeholder="Naam" onblur="window.dmPanel.lootItemField('${esc(it.id)}','naam',this.value)">
-              <input class="dm-input dm-input-sm" value="${esc(it.beschrijving || '')}" placeholder="Beschrijving" onblur="window.dmPanel.lootItemField('${esc(it.id)}','beschrijving',this.value)">
-              <select class="dm-select dm-select-sm" onchange="window.dmPanel.lootItemField('${esc(it.id)}','rariteit',this.value)">
+              <input class="dm-input dm-input-sm loot-edit-naam" value="${esc(it.naam)}" placeholder="Naam" onblur="window.dmPanel.lootItemField('${escArg(it.id)}','naam',this.value)">
+              <input class="dm-input dm-input-sm" value="${esc(it.beschrijving || '')}" placeholder="Beschrijving" onblur="window.dmPanel.lootItemField('${escArg(it.id)}','beschrijving',this.value)">
+              <select class="dm-select dm-select-sm" onchange="window.dmPanel.lootItemField('${escArg(it.id)}','rariteit',this.value)">
                 ${['', 'common', 'uncommon', 'rare', 'very-rare', 'legendary'].map(r => `<option value="${r}" ${(String(it.rariteit || '').toLowerCase() === r) ? 'selected' : ''}>${r || '—'}</option>`).join('')}
               </select>
-              <button class="dm-btn dm-btn-ghost dm-btn-sm" onclick="window.dmPanel.lootItemRemove('${esc(it.id)}')">${icon('x')}</button>
+              <button class="dm-btn dm-btn-ghost dm-btn-sm" onclick="window.dmPanel.lootItemRemove('${escArg(it.id)}')">${icon('x')}</button>
             </div>`).join('') || `<p class="dm-hint">Nog geen items — voeg er toe of laat leeg voor alleen goud.</p>`}
         </div>
         <p class="dm-hint" style="margin-top:8px">Deelnemers: ${esc(deelnemers)}${deelRegel ? ` · ${esc(deelRegel)}` : ''}</p>
@@ -9608,7 +9662,7 @@ function _renderLootModalBody() {
               <option value="">Toewijzen aan…</option>
               ${(lp.deelnemers || []).map(c => `<option value="${esc(c)}">${esc(_lootNaam(c))}</option>`).join('')}
             </select>
-            <button class="dm-btn dm-btn-ghost dm-btn-sm" onclick="window.dmPanel.lootToewijzen('${esc(it.id)}')">Geef</button>
+            <button class="dm-btn dm-btn-ghost dm-btn-sm" onclick="window.dmPanel.lootToewijzen('${escArg(it.id)}')">Geef</button>
           </div>`).join('')}` : ''}
       <div class="dm-feature-row" style="margin-top:10px">
         <button class="dm-btn dm-btn-primary" style="margin-left:auto" onclick="window.app.closeModal()">Klaar</button>
@@ -9743,12 +9797,12 @@ function _renderGevecht() {
               ${_kantMerkHtml(c.type, _kantKleuren(_combat))}
               <span class="dm-setup-name">${esc(c.name)}</span>
               <span class="dm-setup-meta">
-                Initiative <input class="dm-setup-init-input" type="number" value="${c.initiative}"
-                  onchange="window.dmPanel.setupInitChange('${esc(c.id)}', this.value)"
+                Initiative <input class="dm-setup-init-input" type="number" value="${c.initiative}" aria-label="Initiative van ${esc(c.name)}"
+                  onchange="window.dmPanel.setupInitChange('${escArg(c.id)}', this.value)"
                   style="width:44px">
                 · ${c.hp}/${c.maxHp} HP
               </span>
-              <button class="dm-combatant-remove" onclick="window.dmPanel.combatRemove('${esc(c.id)}')"
+              <button class="dm-combatant-remove" onclick="window.dmPanel.combatRemove('${escArg(c.id)}')"
                 title="${c.type === 'player'
                   ? 'Doet niet mee in dit gevecht — met de resetknop staat de party er weer'
                   : 'Uit dit gevecht halen'}">${icon('x')}</button>
@@ -9761,7 +9815,7 @@ function _renderGevecht() {
            leeg blijft is een vraag die je niet hoeft te stellen. -->
       <div class="dm-setup-form">
         <div class="dm-feature-row">
-          <select id="dm-setup-type" class="dm-select dm-select-sm"
+          <select id="dm-setup-type" class="dm-select dm-select-sm" aria-label="Soort deelnemer"
               onchange="window.dmPanel.setupTypeChange(this.value)">
             <option value="monster"   ${_setupSelectedType === 'monster'   ? 'selected' : ''}>Tegenstander</option>
             <option value="summon"    ${_setupSelectedType === 'summon'    ? 'selected' : ''}>Summon</option>
@@ -9960,7 +10014,7 @@ function _renderLootInner() {
       ${isSjabloon ? '<span class="dm-loot-kies"></span>' : `
       <label class="dm-loot-kies" title="Aanvinken om te onthullen">
         <input type="checkbox" ${_lootSelectie.has(ev.id) ? 'checked' : ''}
-          onchange="window.dmPanel.lootSelToggle('${esc(ev.id)}')">
+          onchange="window.dmPanel.lootSelToggle('${escArg(ev.id)}')">
       </label>`}
       <div class="dm-loot-info">
         <span class="dm-loot-naam">${esc(ev.naam)}</span>
@@ -9970,10 +10024,10 @@ function _renderLootInner() {
       ${ev.mimicEncounterId ? `<span class="dm-loot-badge dm-loot-badge--mimic" title="Geen buit maar een gevecht">mimic</span>` : ''}
       ${ev.onthuld && !isSjabloon ? `<span class="dm-loot-badge dm-loot-badge--op">onthuld</span>` : ''}
       ${isSjabloon
-        ? `<button class="dm-btn dm-btn-sm" onclick="window.dmPanel.lootEvKopie('${esc(ev.id)}')" title="Maak hier een vondst van">${icon('plus')} Gebruiken</button>`
-        : `<button class="dm-btn dm-btn-sm dm-btn-ghost" onclick="window.dmPanel.lootEvKopie('${esc(ev.id)}')" title="Kopie maken">${icon('plus')}</button>`}
-      <button class="dm-btn dm-btn-sm dm-btn-ghost" onclick="window.dmPanel.lootEvBewerk('${esc(ev.id)}')" title="Bewerken">${icon('pencil')}</button>
-      <button class="dm-btn dm-btn-sm dm-btn-ghost dm-btn-danger" onclick="window.dmPanel.lootEvVerwijder('${esc(ev.id)}')" title="Verwijderen">${icon('trash')}</button>
+        ? `<button class="dm-btn dm-btn-sm" onclick="window.dmPanel.lootEvKopie('${escArg(ev.id)}')" title="Maak hier een vondst van">${icon('plus')} Gebruiken</button>`
+        : `<button class="dm-btn dm-btn-sm dm-btn-ghost" onclick="window.dmPanel.lootEvKopie('${escArg(ev.id)}')" title="Kopie maken">${icon('plus')}</button>`}
+      <button class="dm-btn dm-btn-sm dm-btn-ghost" onclick="window.dmPanel.lootEvBewerk('${escArg(ev.id)}')" title="Bewerken">${icon('pencil')}</button>
+      <button class="dm-btn dm-btn-sm dm-btn-ghost dm-btn-danger" onclick="window.dmPanel.lootEvVerwijder('${escArg(ev.id)}')" title="Verwijderen">${icon('trash')}</button>
     </div>`;
 
   const rijen     = _lootEvents.filter(e => !e.sjabloon).map(e => _rij(e, false)).join('');
@@ -10516,11 +10570,11 @@ function _combatSelectCombatant(id) {
         <span class="co-ds-sep">·</span>
         ${[0,1,2].map(i => `<span class="co-ds-dot${i < ds.failures  ? ' co-ds-f' : ''}">●</span>`).join('')}
       </div>
-      <button class="co-ds-btn co-ds-yes" onclick="window.dmPanel.combatDeathSave('${esc(c.id)}','success')">${icon('check')}</button>
-      <button class="co-ds-btn co-ds-no"  onclick="window.dmPanel.combatDeathSave('${esc(c.id)}','failure')">${icon('x')}</button>
-      <button class="co-ds-btn co-ds-nat" title="Natuurlijke 20: staat op met 1 HP" onclick="window.dmPanel.combatDeathSave('${esc(c.id)}','nat20')">20</button>
-      <button class="co-ds-btn co-ds-nat co-ds-nat1" title="Natuurlijke 1: telt als twee failures" onclick="window.dmPanel.combatDeathSave('${esc(c.id)}','nat1')">1</button>
-      <button class="co-ds-btn co-ds-rst" onclick="window.dmPanel.combatDeathSave('${esc(c.id)}','reset')">↺</button>
+      <button class="co-ds-btn co-ds-yes" onclick="window.dmPanel.combatDeathSave('${escArg(c.id)}','success')">${icon('check')}</button>
+      <button class="co-ds-btn co-ds-no"  onclick="window.dmPanel.combatDeathSave('${escArg(c.id)}','failure')">${icon('x')}</button>
+      <button class="co-ds-btn co-ds-nat" title="Natuurlijke 20: staat op met 1 HP" onclick="window.dmPanel.combatDeathSave('${escArg(c.id)}','nat20')">20</button>
+      <button class="co-ds-btn co-ds-nat co-ds-nat1" title="Natuurlijke 1: telt als twee failures" onclick="window.dmPanel.combatDeathSave('${escArg(c.id)}','nat1')">1</button>
+      <button class="co-ds-btn co-ds-rst" onclick="window.dmPanel.combatDeathSave('${escArg(c.id)}','reset')">↺</button>
     </div>` : '';
 
   const presetMonster = c.presetId ? _monsters.find(x => x.id === c.presetId) : null;
@@ -10534,14 +10588,14 @@ function _combatSelectCombatant(id) {
         <label class="co-init-wrap" style="margin-left:8px;font-size:11px">AC
           <input class="co-init-input" type="number" value="${esc(acGetal(c.ac))}" placeholder="—"
             title="Armor Class — aanpasbaar, want Haste, Shield en Mage Armor veranderen 'm"
-            onchange="window.dmPanel.combatAcChange('${esc(c.id)}',this.value)" style="width:44px">
+            onchange="window.dmPanel.combatAcChange('${escArg(c.id)}',this.value)" style="width:44px">
         </label>
         <label class="co-init-wrap" style="font-size:11px">Initiative
           <input class="co-init-input" type="number" value="${c.initiative}"
-            onchange="window.dmPanel.combatInitChange('${esc(c.id)}',this.value)" style="width:44px">
+            onchange="window.dmPanel.combatInitChange('${escArg(c.id)}',this.value)" style="width:44px">
         </label>
-        ${hasStatblock ? `<button class="co-statblock-btn" onclick="window.dmPanel.combatStatblock('${esc(c.id)}')" title="Statblock">${icon('clipboard-list')}</button>` : ''}
-        <button class="co-remove-btn" onclick="window.dmPanel.combatRemove('${esc(c.id)}');window.dmPanel.combatSelectCombatant(null)" title="Verwijder">${icon('x')}</button>
+        ${hasStatblock ? `<button class="co-statblock-btn" onclick="window.dmPanel.combatStatblock('${escArg(c.id)}')" title="Statblock">${icon('clipboard-list')}</button>` : ''}
+        <button class="co-remove-btn" onclick="window.dmPanel.combatRemove('${escArg(c.id)}');window.dmPanel.combatSelectCombatant(null)" title="Verwijder">${icon('x')}</button>
       ` : ''}
       <button class="co-detail-close" onclick="window.dmPanel.combatSelectCombatant(null)">${icon('x')}</button>
     </div>
@@ -10550,21 +10604,21 @@ function _combatSelectCombatant(id) {
         <div class="co-hp-bar-wrap"><div class="co-hp-bar ${hp.cls}" id="co-hp-fill-${esc(c.id)}" style="width:${hpPct}%"></div></div>
         <input class="co-hp-slider" type="range" min="0" max="${c.maxHp}" value="${Math.max(0, Math.min(c.maxHp, c.hp))}"
           title="Sleep om HP te zetten"
-          oninput="window.dmPanel.combatHpSlide('${esc(c.id)}',this.value,false)"
-          onchange="window.dmPanel.combatHpSlide('${esc(c.id)}',this.value,true)"
+          oninput="window.dmPanel.combatHpSlide('${escArg(c.id)}',this.value,false)"
+          onchange="window.dmPanel.combatHpSlide('${escArg(c.id)}',this.value,true)"
           onclick="event.stopPropagation()">
       </div>
       <input class="co-hp-input" id="co-hp-num-${esc(c.id)}" type="number" value="${c.hp}"
-        onchange="window.dmPanel.${isDM ? 'combatHpInput' : 'playerHpInput'}('${esc(c.id)}',this.value)">
+        onchange="window.dmPanel.${isDM ? 'combatHpInput' : 'playerHpInput'}('${escArg(c.id)}',this.value)">
       <span class="co-hp-max">/${c.maxHp}</span>
     </div>
     ${isDM ? `
     <div class="co-dmg-row">
       <input id="co-dmg-input-${esc(c.id)}" class="co-dmg-input" type="number" min="0"
-        onkeydown="if(event.key==='Enter')window.dmPanel.combatApplyDamage('${esc(c.id)}')">
-      <button class="co-ctrl-btn co-ctrl-danger" onclick="window.dmPanel.combatApplyDamage('${esc(c.id)}')" title="Schade toepassen">${icon('sword')} Schade</button>
-      <button class="co-ctrl-btn co-ctrl-heal" onclick="window.dmPanel.combatApplyHeal('${esc(c.id)}')" title="Genezen">+ Genezen</button>
-      <button class="co-ctrl-btn co-ctrl-thp" onclick="window.dmPanel.combatApplyThp('${esc(c.id)}')"
+        onkeydown="if(event.key==='Enter')window.dmPanel.combatApplyDamage('${escArg(c.id)}')">
+      <button class="co-ctrl-btn co-ctrl-danger" onclick="window.dmPanel.combatApplyDamage('${escArg(c.id)}')" title="Schade toepassen">${icon('sword')} Schade</button>
+      <button class="co-ctrl-btn co-ctrl-heal" onclick="window.dmPanel.combatApplyHeal('${escArg(c.id)}')" title="Genezen">+ Genezen</button>
+      <button class="co-ctrl-btn co-ctrl-thp" onclick="window.dmPanel.combatApplyThp('${escArg(c.id)}')"
         title="Temporary HP — stapelen niet; het hoogste bedrag geldt">${icon('shield')} THP${c.tempHp ? ` (${c.tempHp})` : ''}</button>
     </div>
     ${_condControl(c, true)}
@@ -10649,7 +10703,7 @@ function _coDisplayHtml(combat, currentLabel) {
     <div class="co-disp">
       <div class="co-disp-head">
         <span class="co-disp-ronde">Ronde ${combat.round || 1}</span>
-        <span class="co-disp-beurt">${icon('chevron-right')} ${esc(currentLabel || '—')}</span>
+        <span class="co-disp-beurt${(String(currentLabel || '').match(/ \+ /g) || []).length >= 2 ? ' co-disp-beurt--groep' : ''}">${icon('chevron-right')} <span>${esc(currentLabel || '—')}</span></span>
       </div>
       <canvas id="combat-canvas" class="co-canvas co-disp-canvas"></canvas>
       <div class="co-disp-strip">${strip || '<div class="co-disp-leeg">Nog geen combatants</div>'}</div>
@@ -10763,7 +10817,7 @@ function _renderCombatOverlay(combat) {
            een balkje van één regel voegt hij niets toe. -->
       ${isDM
         ? (encNaam ? `<span class="co-title">${icon('swords')} ${esc(encNaam)}</span>` : '')
-        : `<span class="co-title">${icon('swords')} Gevecht</span>`}
+        : `<span class="co-title">${icon('swords')} <span class="co-title-woord">Gevecht</span></span>`}
       ${isDM ? '' : `
         <span class="co-round">Ronde ${combat.round}</span>
         <!-- Ben je zelf aan zet, dan is dát het bericht — niet de hele
@@ -11106,7 +11160,7 @@ function _buildCombatSpreukenPanel(slots, spells, charId, profile = {}) {
     const dots = Array.from({ length: slot.max }, (_, i) => {
       const used = i < slot.used;
       return `<button class="spell-slot-dot ${used ? 'used' : 'free'}"
-        onclick="window._coCombatToggleSlot(${lvl},${i},'${esc(charId)}')"
+        onclick="window._coCombatToggleSlot(${lvl},${i},'${escArg(charId)}')"
         title="${used ? 'Verbruikt — klik om vrij' : 'Vrij — klik om te verbruiken'}"></button>`;
     }).join('');
     return `<div class="player-dash-slot-row">
@@ -11542,7 +11596,7 @@ function _mediaCard(f) {
   if (f.type === 'audio') {
     preview = `<div class="media-card-audio">
          ${icon('volume-2', { cls: 'icon-lg' })}
-         <button class="dm-btn dm-btn-icon dm-btn-sm media-play" onclick="window.dmPanel.mediaPlay('${escJS(f.id)}', this)" title="Afspelen">${icon('play')}</button>
+         <button class="dm-btn dm-btn-icon dm-btn-sm media-play" onclick="window.dmPanel.mediaPlay('${escArg(f.id)}', this)" title="Afspelen">${icon('play')}</button>
        </div>`;
   } else if (f.type === 'video') {
     preview = `<div class="media-card-video">
@@ -11551,12 +11605,12 @@ function _mediaCard(f) {
          <div class="media-card-video-badge">${icon('play')}</div>
        </div>`;
   } else if (f.type === 'pdf') {
-    preview = `<div class="media-card-doc" onclick="window.open('${escJS(api.fileUrl(f.id))}','_blank')" title="PDF openen">
+    preview = `<div class="media-card-doc" onclick="window.open('${escArg(api.fileUrl(f.id))}','_blank')" title="PDF openen">
          ${icon('scroll-text', { cls: 'icon-lg' })}
          <span class="media-card-doc-ext">PDF</span>
        </div>`;
   } else {
-    preview = `<div class="media-card-img" onclick="window.app.openLightbox('${escJS(api.fileUrl(f.id))}','${escJS(f.naam)}')">
+    preview = `<div class="media-card-img" onclick="window.app.openLightbox('${escArg(api.fileUrl(f.id))}','${escArg(f.naam)}')">
          <img src="${api.thumbUrl(f.id)}" loading="lazy" alt="${esc(f.naam)}"
               onerror="this.closest('.media-card-img').classList.add('media-card-img--broken')">
        </div>`;
@@ -11565,10 +11619,10 @@ function _mediaCard(f) {
   return `
     <div class="media-card${isWees ? ' media-card--wees' : ''}${sel ? ' media-card--sel' : ''}" data-id="${esc(f.id)}">
       ${isWees ? `<label class="media-card-check" title="Selecteer voor bulk-verwijdering">
-        <input type="checkbox" ${sel ? 'checked' : ''} onchange="window.dmPanel.mediaToggleSel('${escJS(f.id)}')"></label>` : ''}
+        <input type="checkbox" ${sel ? 'checked' : ''} onchange="window.dmPanel.mediaToggleSel('${escArg(f.id)}')"></label>` : ''}
       ${preview}
       <div class="media-card-body">
-        <div class="media-card-naam" title="${esc(f.naam)} — klik om te hernoemen" onclick="window.dmPanel.mediaRename('${escJS(f.id)}')">
+        <div class="media-card-naam" title="${esc(f.naam)} — klik om te hernoemen" onclick="window.dmPanel.mediaRename('${escArg(f.id)}')">
           <span class="media-card-naam-text">${esc(f.naam)}</span>${icon('pencil', { cls: 'media-naam-pen' })}
         </div>
         <div class="media-card-meta">${esc(meta)}</div>
@@ -11578,18 +11632,18 @@ function _mediaCard(f) {
                ${gebruik.slice(0, 2).map(l => {
                  const g = _lab(l);
                  return g.id
-                   ? `<button class="media-gebruik-chip" onclick="window._openDetail('${esc(g.soort)}','${esc(g.id)}')"
+                   ? `<button class="media-gebruik-chip" onclick="window._openDetail('${escArg(g.soort)}','${escArg(g.id)}')"
                         title="Dit kaartje openen">${icon('arrow-up-right')} ${esc(g.tekst)}</button>`
                    : `<span class="media-gebruik-chip media-gebruik-chip--stil">${esc(g.tekst)}</span>`;
                }).join('')}
                ${gebruik.length > 2
-                 ? `<button class="media-gebruik-chip media-gebruik-meer" onclick="window.dmPanel.mediaGebruik('${escJS(f.id)}')"
+                 ? `<button class="media-gebruik-chip media-gebruik-meer" onclick="window.dmPanel.mediaGebruik('${escArg(f.id)}')"
                       title="Alle plekken tonen">+${gebruik.length - 2} meer</button>`
                  : ''}
              </div>`}
       </div>
       <button class="dm-btn dm-btn-icon dm-btn-sm dm-btn-danger media-card-del"
-        onclick="window.dmPanel.mediaDelete('${escJS(f.id)}')" title="Verwijderen">${icon('trash')}</button>
+        onclick="window.dmPanel.mediaDelete('${escArg(f.id)}')" title="Verwijderen">${icon('trash')}</button>
     </div>`;
 }
 
@@ -11832,10 +11886,10 @@ function _gunnenRijHtml(e, mijn) {
       <span class="dm-gunnen-naam">${esc(e.name)}</span>
       <div class="dm-gunnen-knoppen">
         <button class="dm-gunnen-knop${insp ? ' is-aan' : ''}"
-          onclick="window._gunInspiratie('${esc(e.id)}', ${insp ? 'false' : 'true'})"
+          onclick="window._gunInspiratie('${escArg(e.id)}', ${insp ? 'false' : 'true'})"
           title="${insp ? 'Heeft inspiratie — klik om weg te halen' : 'Geef inspiratie'}">${icon('sparkles')} Inspiration</button>
         <button class="dm-gunnen-knop${lvl ? ' is-aan' : ''}"
-          onclick="window._gunLevel('${esc(e.id)}', ${lvl ? 0 : 1})"
+          onclick="window._gunLevel('${escArg(e.id)}', ${lvl ? 0 : 1})"
           title="${lvl ? 'Staat klaar — klik om in te trekken' : 'Zet een level omhoog klaar'}">${icon('star')} Level${lvl?.getal > 1 ? ` ×${lvl.getal}` : ''}</button>
         <!-- Uitputting is geen knop maar een teller: hij had alleen een
              zandlopertje met een cijfer, en dan is niet te zien wat het is of
@@ -11843,10 +11897,10 @@ function _gunnenRijHtml(e, mijn) {
              rood zodra er werkelijk iets op staat. -->
         <span class="dm-gunnen-moe${niveau ? ' is-aan' : ''}">
           <span class="dm-gunnen-moe-lbl">${icon('hourglass')} Exhaustion</span>
-          <button class="dm-gunnen-stap" onclick="window._gunMoe('${esc(e.id)}', ${Math.max(0, niveau - 1)})"
+          <button class="dm-gunnen-stap" onclick="window._gunMoe('${escArg(e.id)}', ${Math.max(0, niveau - 1)})"
             title="Een trede minder"${niveau ? '' : ' disabled'}>−</button>
           <span class="dm-gunnen-moe-n">${niveau}</span>
-          <button class="dm-gunnen-stap" onclick="window._gunMoe('${esc(e.id)}', ${Math.min(6, niveau + 1)})"
+          <button class="dm-gunnen-stap" onclick="window._gunMoe('${escArg(e.id)}', ${Math.min(6, niveau + 1)})"
             title="Een trede meer"${niveau >= 6 ? ' disabled' : ''}>+</button>
         </span>
       </div>
@@ -11928,15 +11982,15 @@ async function _renderVerzoeken() {
     // De voorrekening stond al op het verzoek: dezelfde regel als in de
     // bibliotheek, berekend op het moment van vragen.
     + (r.context ? `<span class="dm-verzoek-context">${esc(r.context)}</span>` : ''),
-    `<button class="dm-btn dm-btn-sm dm-btn-primary" onclick="window.dmPanel.verzoekSpreuk('${esc(r.id)}', true)">${icon('check')} Goedkeuren</button>
-     <button class="dm-btn dm-btn-sm dm-btn-ghost" onclick="window.dmPanel.verzoekSpreuk('${esc(r.id)}', false)">${icon('x')} Weigeren</button>`
+    `<button class="dm-btn dm-btn-sm dm-btn-primary" onclick="window.dmPanel.verzoekSpreuk('${escArg(r.id)}', true)">${icon('check')} Goedkeuren</button>
+     <button class="dm-btn dm-btn-sm dm-btn-ghost" onclick="window.dmPanel.verzoekSpreuk('${escArg(r.id)}', false)">${icon('x')} Weigeren</button>`
   )).join('');
 
   const itemHtml = voorwerpen.map(r => rij(
     `<strong>${esc(r.requesterName)}</strong> wil <em>${esc(r.itemName)}</em> `
     + (r.type === 'trade' ? `ruilen met ${esc(r.targetName || '?')}` : 'claimen'),
-    `<button class="dm-btn dm-btn-sm dm-btn-primary" onclick="window.dmPanel.verzoekItem('${esc(r.id)}', true)">${icon('check')} Goedkeuren</button>
-     <button class="dm-btn dm-btn-sm dm-btn-ghost" onclick="window.dmPanel.verzoekItem('${esc(r.id)}', false)">${icon('x')} Weigeren</button>`
+    `<button class="dm-btn dm-btn-sm dm-btn-primary" onclick="window.dmPanel.verzoekItem('${escArg(r.id)}', true)">${icon('check')} Goedkeuren</button>
+     <button class="dm-btn dm-btn-sm dm-btn-ghost" onclick="window.dmPanel.verzoekItem('${escArg(r.id)}', false)">${icon('x')} Weigeren</button>`
   )).join('');
 
   // Een inschrijving voor het strijdperk wacht net zo goed op jou als een
@@ -11950,8 +12004,8 @@ async function _renderVerzoeken() {
   const geruchtHtml = geruchten.map(v => rij(
     `<strong>${esc(v.doorNaam)}</strong> wil dit laten rondgaan over <em>${esc(v.entityNaam)}</em>`
     + `<textarea class="dm-input dm-verzoek-gerucht" id="ger-${esc(v.id)}" rows="2">${esc(v.tekst)}</textarea>`,
-    `<button class="dm-btn dm-btn-sm dm-btn-primary" onclick="window._geruchtBesluit('${esc(v.id)}', true)" title="Laat het rondgaan">${icon('venetian-mask')} Rondlaten gaan</button>
-     <button class="dm-btn dm-btn-sm dm-btn-ghost" onclick="window._geruchtBesluit('${esc(v.id)}', false)" title="Weigeren — het geld gaat terug">${icon('x')} Weigeren</button>`
+    `<button class="dm-btn dm-btn-sm dm-btn-primary" onclick="window._geruchtBesluit('${escArg(v.id)}', true)" title="Laat het rondgaan">${icon('venetian-mask')} Rondlaten gaan</button>
+     <button class="dm-btn dm-btn-sm dm-btn-ghost" onclick="window._geruchtBesluit('${escArg(v.id)}', false)" title="Weigeren — het geld gaat terug">${icon('x')} Weigeren</button>`
   )).join('');
 
   const arenaInschrijvingen = ((tsData?.arenaSignups) || []).filter(s => s.status === 'aangemeld');
@@ -11959,8 +12013,8 @@ async function _renderVerzoeken() {
     `<strong>${esc(s.doorNaam || 'Een speler')}</strong> meldt zich voor <em>${esc(s.boutNaam)}</em>`
     + (s.tegenstander ? ` tegen ${esc(s.tegenstander)}` : '')
     + `<span class="dm-verzoek-context">Prijs bij winst: ${esc(s.prijs || '—')}${s.inzet ? ` · inleg betaald: ${esc(s.inzet)}` : ''}</span>`,
-    `<button class="dm-btn dm-btn-sm dm-btn-primary" onclick="window._tsArenaUitslag('${esc(s.id)}','overwinning')" title="Overwinning — betaal prijzengeld uit">${icon('coins')} Overwinning</button>
-     <button class="dm-btn dm-btn-sm dm-btn-ghost" onclick="window._tsArenaUitslag('${esc(s.id)}','nederlaag')" title="Nederlaag">${icon('x')} Nederlaag</button>`
+    `<button class="dm-btn dm-btn-sm dm-btn-primary" onclick="window._tsArenaUitslag('${escArg(s.id)}','overwinning')" title="Overwinning — betaal prijzengeld uit">${icon('coins')} Overwinning</button>
+     <button class="dm-btn dm-btn-sm dm-btn-ghost" onclick="window._tsArenaUitslag('${escArg(s.id)}','nederlaag')" title="Nederlaag">${icon('x')} Nederlaag</button>`
   )).join('');
 
   // Een speler biedt iets aan een winkel aan. Het bedrag is het percentage uit
@@ -11974,8 +12028,8 @@ async function _renderVerzoeken() {
     `<input id="dm-verk-${esc(r.id)}" class="dm-input dm-input-sm dm-verzoek-bedrag"
        value="${esc(_bedragTekst(_clNaarMunten(r.bedragCl || 0)))}" inputmode="decimal"
        title="Het bedrag dat hij krijgt \u2014 pas het aan als jullie iets anders afspraken">
-     <button class="dm-btn dm-btn-sm dm-btn-primary" onclick="window.dmPanel.verzoekVerkoop('${esc(r.id)}', true)">${icon('check')} Uitbetalen</button>
-     <button class="dm-btn dm-btn-sm dm-btn-ghost" onclick="window.dmPanel.verzoekVerkoop('${esc(r.id)}', false)">${icon('x')} Weigeren</button>`
+     <button class="dm-btn dm-btn-sm dm-btn-primary" onclick="window.dmPanel.verzoekVerkoop('${escArg(r.id)}', true)">${icon('check')} Uitbetalen</button>
+     <button class="dm-btn dm-btn-sm dm-btn-ghost" onclick="window.dmPanel.verzoekVerkoop('${escArg(r.id)}', false)">${icon('x')} Weigeren</button>`
   )).join('');
 
   // Een onderzoek naar iemand met meer dan één onbekend geheim vult zichzelf
@@ -11997,9 +12051,9 @@ async function _renderVerzoeken() {
       </div>
       <span class="dm-verzoek-acties">
         <button class="dm-btn dm-btn-sm dm-btn-primary"
-          onclick="window.dmPanel.gockKiezen('${esc(d.characterId)}')">${icon('check')} Dit vindt hij</button>
+          onclick="window.dmPanel.gockKiezen('${escArg(d.characterId)}')">${icon('check')} Dit vindt hij</button>
         <button class="dm-btn dm-btn-sm dm-btn-ghost"
-          onclick="window.dmPanel.gockKiezen('${esc(d.characterId)}', true)">${icon('x')} Niets — alleen een weetje</button>
+          onclick="window.dmPanel.gockKiezen('${escArg(d.characterId)}', true)">${icon('x')} Niets — alleen een weetje</button>
       </span>
     </div>`).join('');
 
@@ -12009,8 +12063,8 @@ async function _renderVerzoeken() {
     // De eisen zijn een aantekening, geen oordeel: ze staan erbij zodat je
     // weet wat je goedkeurt, maar ze blokkeren niets.
     + (v.context?.tekst ? `<span class="dm-verzoek-context">${esc(v.context.tekst)}</span>` : ''),
-    `<button class="dm-btn dm-btn-sm dm-btn-primary" onclick="window.dmPanel.verzoekMulticlass('${esc(v.id)}', true)">${icon('check')} Goedkeuren</button>
-     <button class="dm-btn dm-btn-sm dm-btn-ghost" onclick="window.dmPanel.verzoekMulticlass('${esc(v.id)}', false)">${icon('x')} Weigeren</button>`
+    `<button class="dm-btn dm-btn-sm dm-btn-primary" onclick="window.dmPanel.verzoekMulticlass('${escArg(v.id)}', true)">${icon('check')} Goedkeuren</button>
+     <button class="dm-btn dm-btn-sm dm-btn-ghost" onclick="window.dmPanel.verzoekMulticlass('${escArg(v.id)}', false)">${icon('x')} Weigeren</button>`
   )).join('');
 
   // Een leenverzoek: het bedrag staat erbij als veld, want afdingen hoort aan
@@ -12025,8 +12079,8 @@ async function _renderVerzoeken() {
     `<input id="dm-leen-${esc(v.id)}" class="dm-input dm-input-sm dm-verzoek-bedrag"
        value="${esc(_bedragTekst(_clNaarMunten(v.bedragCl || 0)))}" inputmode="decimal"
        title="Wat hij werkelijk krijgt — pas het aan als je er iets anders van maakt">
-     <button class="dm-btn dm-btn-sm dm-btn-primary" onclick="window.dmPanel.verzoekLening('${esc(v.id)}', true)">${icon('check')} Uitlenen</button>
-     <button class="dm-btn dm-btn-sm dm-btn-ghost" onclick="window.dmPanel.verzoekLening('${esc(v.id)}', false)">${icon('x')} Weigeren</button>`
+     <button class="dm-btn dm-btn-sm dm-btn-primary" onclick="window.dmPanel.verzoekLening('${escArg(v.id)}', true)">${icon('check')} Uitlenen</button>
+     <button class="dm-btn dm-btn-sm dm-btn-ghost" onclick="window.dmPanel.verzoekLening('${escArg(v.id)}', false)">${icon('x')} Weigeren</button>`
   )).join('');
 
   // Trap 2. De app wijst níéts aan, en hij pakt uit de spullen van de hele
@@ -12048,7 +12102,7 @@ async function _renderVerzoeken() {
       </label>
       <p class="dm-hint" style="margin:2px 0 0">De brief gaat naar <strong>iedereen</strong> en noemt de naam van de schuldenaar. Wie anoniem gokte heeft iets uit te leggen; vink hierboven aan als je dat nog even wilt bewaren.</p>
       <span class="dm-verzoek-acties">
-        <button class="dm-btn dm-btn-sm dm-btn-primary" onclick="window.dmPanel.onderpandKies('${esc(v.id)}')">${icon('check')} Zo is het</button>
+        <button class="dm-btn dm-btn-sm dm-btn-primary" onclick="window.dmPanel.onderpandKies('${escArg(v.id)}')">${icon('check')} Zo is het</button>
       </span>
     </div>`).join('');
 
@@ -12097,8 +12151,8 @@ async function _renderVerzoeken() {
       ${(nakijk?.opmerkingen || []).length
         ? `<p class="dm-hint" style="margin:4px 0 0">${icon('alert-triangle')} ${nakijk.opmerkingen.map(esc).join(' ')}</p>` : ''}
       <span class="dm-verzoek-acties">
-        <button class="dm-btn dm-btn-sm dm-btn-primary" onclick="window.dmPanel.conceptBesluit('${esc(c.id)}','gunnen')">${icon('check')} Gunnen</button>
-        <button class="dm-btn dm-btn-sm dm-btn-ghost" onclick="window.dmPanel.conceptBesluit('${esc(c.id)}','terug')">${icon('x')} Terugsturen</button>
+        <button class="dm-btn dm-btn-sm dm-btn-primary" onclick="window.dmPanel.conceptBesluit('${escArg(c.id)}','gunnen')">${icon('check')} Gunnen</button>
+        <button class="dm-btn dm-btn-sm dm-btn-ghost" onclick="window.dmPanel.conceptBesluit('${escArg(c.id)}','terug')">${icon('x')} Terugsturen</button>
       </span>
     </div>`).join('');
 
@@ -12243,7 +12297,7 @@ function _berichtenSpelerHtml(spelers) {
         const open = _berichtenOpenPid.has(p.id);
         return `
           <details class="bericht-history-group" ${open ? 'open' : ''}
-            ontoggle="window._berichtenGroupToggle && window._berichtenGroupToggle('${esc(p.id)}', this.open)">
+            ontoggle="window._berichtenGroupToggle && window._berichtenGroupToggle('${escArg(p.id)}', this.open)">
             <summary class="bericht-history-head">
               <span class="bericht-history-name">${esc(p.name)}</span>
               <span class="bericht-history-counts">
@@ -12260,11 +12314,11 @@ function _berichtenSpelerHtml(spelers) {
                       <div class="bericht-history-row">
                         <div style="flex:1;min-width:0">
                           ${m.titel ? `<div class="bericht-brief-titel">${esc(m.titel)}</div>` : ''}
-                          ${m.afzender ? `<div class="bericht-brief-afzender">Van: <em>${esc(m.afzender)}</em>${m.entityId ? ` <button class="herberg-bubble-card-btn" style="font-size:0.6rem;padding:1px 3px" onclick="window._openDetail('${esc(m.entityType)}','${esc(m.entityId)}')" title="Open kaartje">${icon('arrow-up-right')}</button>` : ''}</div>` : ''}
+                          ${m.afzender ? `<div class="bericht-brief-afzender">Van: <em>${esc(m.afzender)}</em>${m.entityId ? ` <button class="herberg-bubble-card-btn" style="font-size:0.6rem;padding:1px 3px" onclick="window._openDetail('${escArg(m.entityType)}','${escArg(m.entityId)}')" title="Open kaartje">${icon('arrow-up-right')}</button>` : ''}</div>` : ''}
                           <div class="bericht-brief-tekst-preview">${esc(m.tekst.substring(0, 120))}${m.tekst.length > 120 ? '…' : ''}</div>
                         </div>
                         <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex-shrink:0">
-                          <button class="dm-btn dm-btn-icon dm-btn-sm" onclick="window._berichtOpenFull('${esc(p.id)}','${esc(m.id)}')" title="Volledig bericht openen">${icon('maximize-2')}</button>
+                          <button class="dm-btn dm-btn-icon dm-btn-sm" onclick="window._berichtOpenFull('${escArg(p.id)}','${escArg(m.id)}')" title="Volledig bericht openen">${icon('maximize-2')}</button>
                           ${m.deletedAt ? `<span class="bericht-brief-deleted-badge" title="Weggegooid op ${_fmtDate(m.deletedAt)}">${icon('trash')} weggegooid</span>` : ''}
                         </div>
                       </div>
@@ -12276,15 +12330,15 @@ function _berichtenSpelerHtml(spelers) {
                   <div class="bericht-history-item${m.gelezen ? '' : ' bericht-history-unread'}">
                     <div class="bericht-history-row">
                       <span class="bericht-history-tekst">${esc(m.tekst)}</span>
-                      <button class="dm-btn dm-btn-icon dm-btn-sm" onclick="window._berichtOpenFull('${esc(p.id)}','${esc(m.id)}')" title="Volledig bericht openen">${icon('maximize-2')}</button>
-                      <button class="bericht-del-btn" title="Verwijder" onclick="window._berichtDmDelete('${esc(p.id)}','${esc(m.id)}')">${icon('x')}</button>
+                      <button class="dm-btn dm-btn-icon dm-btn-sm" onclick="window._berichtOpenFull('${escArg(p.id)}','${escArg(m.id)}')" title="Volledig bericht openen">${icon('maximize-2')}</button>
+                      <button class="bericht-del-btn" title="Verwijder" onclick="window._berichtDmDelete('${escArg(p.id)}','${escArg(m.id)}')">${icon('x')}</button>
                     </div>
                     <span class="bericht-history-meta">${_fmtDate(m.timestamp)}${m.gelezen ? ' · gelezen' : ' · ongelezen'}</span>
                   </div>`;
               }).join('')}
               ${resterend > 0 ? `
                 <button class="dm-btn dm-btn-sm dm-btn-ghost bericht-meer-btn" style="width:100%;margin-top:4px"
-                  onclick="window._berichtenMeer('${esc(p.id)}')">
+                  onclick="window._berichtenMeer('${escArg(p.id)}')">
                   ${icon('chevron-right')} Toon ${Math.min(_BERICHTEN_PAGINA, resterend)} oudere (nog ${resterend})
                 </button>` : ''}
             </div>
@@ -12433,7 +12487,7 @@ async function _renderBerichten() {
             n + (_berichtenData[p.id] || []).filter(m => !m.gelezen && !m.deletedAt).length, 0);
           return `
           <details class="bericht-history-groep" ${_berichtenOpenGroep.has(g.id) ? 'open' : ''}
-            ontoggle="window._berichtenGroepToggle('${esc(g.id)}', this.open)">
+            ontoggle="window._berichtenGroepToggle('${escArg(g.id)}', this.open)">
             <summary class="bericht-history-head">
               <span class="bericht-history-name">${esc(g.naam)}</span>
               <span class="bericht-history-counts">
@@ -12521,7 +12575,7 @@ window._postNpcSearch = (q) => {
   dd.innerHTML = [
     `<div class="post-npc-item post-npc-item--none" onmousedown="window._postNpcSelect('','')">— Geen NPC-link —</div>`,
     ...matches.map(n =>
-      `<div class="post-npc-item" onmousedown="window._postNpcSelect('${esc(n.id)}','${escJS(n.name)}')">${esc(n.name)}</div>`)
+      `<div class="post-npc-item" onmousedown="window._postNpcSelect('${escArg(n.id)}','${escArg(n.name)}')">${esc(n.name)}</div>`)
   ].join('');
   dd.classList.add('open');
 };
@@ -12827,7 +12881,7 @@ function _uitnodigingenHtml(lijst) {
       return `<div class="dm-uitnodiging">
         <span class="dm-uitnodiging-naam">${icon('mail')} ${esc(u.naam || u.campagne)}</span>
         <span class="dm-uitnodiging-meta">/${esc(u.campagne)} · nog ${dagen} dag${dagen === 1 ? '' : 'en'} geldig</span>
-        <button class="dm-btn dm-btn-sm dm-btn-ghost" onclick="window.dmPanel.uitnodigingIn('${esc(u.id)}')" title="Deze uitnodiging intrekken">${icon('x')}</button>
+        <button class="dm-btn dm-btn-sm dm-btn-ghost" onclick="window.dmPanel.uitnodigingIn('${escArg(u.id)}')" title="Deze uitnodiging intrekken">${icon('x')}</button>
       </div>`;
     }).join('')}
   </div>`;
@@ -12888,7 +12942,7 @@ function _foutenHtml(lijst) {
         <span class="dm-fout-soort">${icon(s.icoon)} ${esc(s.label)}</span>
         ${f.aantal > 1 ? `<span class="dm-fout-aantal">${f.aantal}×</span>` : ''}
         <span class="dm-fout-wanneer">${esc(_foutWanneer(f.laatst))}</span>
-        <button class="dm-fout-weg" onclick="window.dmPanel.foutWeg('${esc(f.id)}')" title="Afgehandeld — haal hem weg">${icon('x')}</button>
+        <button class="dm-fout-weg" onclick="window.dmPanel.foutWeg('${escArg(f.id)}')" title="Afgehandeld — haal hem weg">${icon('x')}</button>
       </div>
       <div class="dm-fout-tekst">${esc(melding)}</div>
       <div class="dm-fout-meta">${[f.campagne, f.rol, f.waar, f.versie].filter(Boolean).map(esc).join(' · ')}</div>
@@ -12995,7 +13049,7 @@ function _partyRegelHtml(g, spelers) {
   const leden = spelers.filter(e => e.data?.groep === g.id);
   const weg   = (g.afwezig || []).filter(id => leden.some(e => e.id === id)).length;
   return `<button type="button" class="dm-party-regel${g.active ? ' dm-party-regel--actief' : ''}"
-    onclick="window.dmPanel.partyOpen('${esc(g.id)}')" title="Deze party openen">
+    onclick="window.dmPanel.partyOpen('${escArg(g.id)}')" title="Deze party openen">
     <span class="dm-party-regel-naam">${esc(g.name)}</span>
     <span class="dm-party-regel-meta">${leden.length} ${leden.length === 1 ? 'personage' : 'personages'}${weg ? ` · ${weg} afwezig` : ''}</span>
     <span class="dm-party-regel-slot" title="${g.hasPassword ? 'Er is een groepswachtwoord' : 'Nog geen groepswachtwoord'}">${icon(g.hasPassword ? 'lock' : 'lock-open')}</span>
@@ -13015,13 +13069,13 @@ function _partyLedenHtml(g, spelers) {
         ? leden.map(e => `
           <span class="dm-lid-chip">${esc(e.name)}
             <button type="button" title="Losmaken van deze party"
-              onclick="window.dmPanel.partyLidWeg('${esc(e.id)}','${escJS(e.name)}','${escJS(g.name)}','${esc(g.id)}')">${icon('x')}</button>
+              onclick="window.dmPanel.partyLidWeg('${escArg(e.id)}','${escArg(e.name)}','${escArg(g.name)}','${escArg(g.id)}')">${icon('x')}</button>
           </span>`).join('')
         : '<span class="dm-hint" style="margin:0">Nog niemand.</span>'}
       ${vrij.length ? `
         <span class="dm-lid-toevoegen">
           <input list="dm-party-pc-dl-${esc(g.id)}" class="dm-input dm-input-sm" placeholder="Personage koppelen…"
-            onchange="window.dmPanel.partyLidErbij('${esc(g.id)}', this)">
+            onchange="window.dmPanel.partyLidErbij('${escArg(g.id)}', this)">
           <datalist id="dm-party-pc-dl-${esc(g.id)}">
             ${vrij.map(e => `<option value="${esc(e.name)}">${e.data?.groep ? 'nu in een andere party' : 'geen party'}</option>`).join('')}
           </datalist>
@@ -13040,7 +13094,7 @@ function _partyAanwezigHtml(g, spelers) {
     <div class="dm-inst-aanwezig">
       ${leden.map(e => `
         <button type="button" class="dm-aanwezig-chip${weg.has(e.id) ? ' dm-aanwezig-chip--weg' : ''}"
-          onclick="window.dmPanel.aanwezigheidToggle('${esc(g.id)}','${esc(e.id)}')"
+          onclick="window.dmPanel.aanwezigheidToggle('${escArg(g.id)}','${escArg(e.id)}')"
           title="${weg.has(e.id) ? 'Doet niet mee — klik om weer mee te laten doen' : 'Doet mee — klik om als afwezig te markeren'}">
           ${icon(weg.has(e.id) ? 'x' : 'check')} ${esc(e.name)}
         </button>`).join('')}
@@ -13053,7 +13107,7 @@ function _partyKaartHtml(g, spelers, beurs) {
     <div class="dm-form-row">
       <label class="dm-form-label" for="dm-party-naam-${esc(g.id)}">Naam</label>
       <input id="dm-party-naam-${esc(g.id)}" class="dm-input" value="${esc(g.name)}" placeholder="Naam party"
-        onchange="window._instGroepRename('${esc(g.id)}', this.value)">
+        onchange="window._instGroepRename('${escArg(g.id)}', this.value)">
     </div>
     <div class="dm-form-row">
       <label class="dm-form-label" for="dm-party-pw-${esc(g.id)}"
@@ -13061,7 +13115,7 @@ function _partyKaartHtml(g, spelers, beurs) {
         ${icon(g.hasPassword ? 'lock' : 'lock-open')} Groepswachtwoord</label>
       <input id="dm-party-pw-${esc(g.id)}" class="dm-input" type="password" autocomplete="new-password"
         placeholder="${g.hasPassword ? 'Wachtwoord wijzigen…' : 'Wachtwoord instellen…'}"
-        onchange="window._instGroepSetPw('${esc(g.id)}', this.value)">
+        onchange="window._instGroepSetPw('${escArg(g.id)}', this.value)">
     </div>
     ${_partyLedenHtml(g, spelers)}
     ${_partyAanwezigHtml(g, spelers)}
@@ -13069,10 +13123,10 @@ function _partyKaartHtml(g, spelers, beurs) {
     ${_beursRegelHtml({ ...beurs, id: g.id, naam: g.name }, { kop: false })}
     <div class="dm-party-kaart-voet">
       ${g.active ? '<span class="dm-hint" style="margin:0">Dit is de actieve party.</span>'
-                 : `<button class="dm-btn dm-btn-sm dm-btn-ghost" onclick="window.dmPanel.partyActiefMaken('${esc(g.id)}')"
+                 : `<button class="dm-btn dm-btn-sm dm-btn-ghost" onclick="window.dmPanel.partyActiefMaken('${escArg(g.id)}')"
                       title="Jouw scherm kijkt daarna naar deze party">${icon('users')} Deze party actief maken</button>`}
       <button class="dm-btn dm-btn-sm dm-btn-ghost dm-btn-danger"
-        onclick="window._instGroepDelete('${esc(g.id)}', '${escJS(g.name)}', ${leden.length})"
+        onclick="window._instGroepDelete('${escArg(g.id)}', '${escArg(g.name)}', ${leden.length})"
         title="Party verwijderen">${icon('trash')} Party verwijderen</button>
     </div>`;
 }
@@ -13266,7 +13320,7 @@ async function _renderInstellingen() {
             title="Ga naar deze campagne — je logt daar in met háár DM-wachtwoord">${icon('chevron-right')} Openen</a>
           ${isActive
             ? '<span class="campagne-active-badge" title="Hier landen het kale domein en verzoeken zonder sessie">Standaard</span>'
-            : `<button class="dm-btn dm-btn-sm dm-btn-ghost" onclick="window.dmPanel.campagneSwitchTo('${esc(c.id)}')"
+            : `<button class="dm-btn dm-btn-sm dm-btn-ghost" onclick="window.dmPanel.campagneSwitchTo('${escArg(c.id)}')"
                  title="Maak dit de standaardcampagne: waar grisburgh.nl naartoe stuurt">Als standaard</button>`}
         </div>
         <div class="dm-form-row campagne-card-pw">
@@ -13275,7 +13329,7 @@ async function _renderInstellingen() {
             <span id="cpw-slot-${esc(c.id)}">${wachtwoorden[c.id] ? icon('lock') : icon('lock-open')}</span> DM-wachtwoord</label>
           <input id="cpw-${esc(c.id)}" class="dm-input" type="password" autocomplete="new-password"
             placeholder="${wachtwoorden[c.id] ? 'Wachtwoord vervangen…' : 'Nog geen wachtwoord — instellen…'}"
-            onchange="window._instCampagnePw('${esc(c.id)}', this.value)">
+            onchange="window._instCampagnePw('${escArg(c.id)}', this.value)">
           <span id="cpw-status-${esc(c.id)}" class="bericht-status hidden"></span>
         </div>
         <details class="dm-modules">
@@ -13295,7 +13349,7 @@ async function _renderInstellingen() {
               </label>`; }).join('')}
           </div>
           <div class="dm-form-row">
-            <button class="dm-btn dm-btn-sm dm-btn-primary" onclick="window._instModulesSave('${esc(c.id)}')" title="Modules opslaan">${icon('save')} Modules opslaan</button>
+            <button class="dm-btn dm-btn-sm dm-btn-primary" onclick="window._instModulesSave('${escArg(c.id)}')" title="Modules opslaan">${icon('save')} Modules opslaan</button>
             <span class="bericht-status hidden" id="modules-status-${esc(c.id)}"></span>
           </div>
         </details>
@@ -13608,13 +13662,27 @@ async function _renderInstellingen() {
         </div>
         ${_uitnodigingenHtml(uitnodigingenLijst)}
         <div id="campagne-create-form" style="display:none;margin-top:10px">
-          <div class="dm-feature-row dm-knoprij">
-            <input id="campagne-new-id"       class="dm-input" placeholder="ID (bijv. prewett)" style="flex:1;min-width:120px">
-            <input id="campagne-new-title"    class="dm-input" placeholder="Naam" style="flex:2;min-width:140px">
-            <input id="campagne-new-subtitle" class="dm-input" placeholder="Ondertitel (optioneel)" style="flex:2;min-width:140px">
-        <input id="campagne-new-pw" class="dm-input" type="password" autocomplete="new-password"
-          placeholder="DM-wachtwoord (min. 8 tekens)" style="flex:2;min-width:160px"
-          title="Zonder eigen wachtwoord komt niemand in die campagne: alleen de standaardcampagne valt terug op het serverwachtwoord.">
+          <!-- Eerst de naam: het adres volgt daaruit (Veerspoort -> /veerspoort),
+               zodat je geen technisch id hoeft te verzinnen. Wie een ander adres
+               wil, past het daarna aan. -->
+          <div class="dm-form-row">
+            <label class="dm-form-label" for="campagne-new-title">Naam</label>
+            <input id="campagne-new-title" class="dm-input" placeholder="Veerspoort"
+              oninput="window.dmPanel.campagneAdresVolg(this.value)">
+          </div>
+          <div class="dm-form-row">
+            <label class="dm-form-label" for="campagne-new-id">Adres</label>
+            <input id="campagne-new-id" class="dm-input" placeholder="veerspoort"
+              oninput="this.dataset.zelf = '1'">
+          </div>
+          <div class="dm-form-row">
+            <label class="dm-form-label" for="campagne-new-subtitle">Ondertitel</label>
+            <input id="campagne-new-subtitle" class="dm-input" placeholder="mag leeg">
+          </div>
+          <div class="dm-form-row">
+            <label class="dm-form-label" for="campagne-new-pw">DM-wachtwoord</label>
+            <input id="campagne-new-pw" class="dm-input" type="password" autocomplete="new-password"
+              placeholder="minstens 8 tekens">
           </div>
           <!-- Meteen vragen: hierna ligt het vast in hoe je speelt, en het is
                één keuze die de hele level-up-kant bepaalt. Later omzetten kan

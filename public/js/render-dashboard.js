@@ -1,4 +1,4 @@
-import { api } from './api.js?v=319';
+import { api } from './api.js?v=320';
 
 const ENTITY_TYPES = ['personages', 'locaties', 'organisaties', 'voorwerpen'];
 const TYPE_META = {
@@ -16,6 +16,10 @@ let filterTag = '';
 // Lazy proxies — window.app isn't set yet when ES modules evaluate
 const $ = (...a) => window.app.$(...a);
 const esc = (...a) => window.app.esc(...a);
+// In een inline handler (`onclick="f('…')"`) decodeert de browser eerst het
+// attribuut en voert dan de JavaScript uit: `esc()` alleen laat een apostrof
+// de string sluiten. Eerst JS-escapen, dan HTML. Zie scripts/onclick-escapen.js.
+const escArg = s => esc(typeof s === 'string' ? s.replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/\r?\n/g, '\\n') : s);
 const openModal = (...a) => window.app.openModal(...a);
 
 function _sortKey(name) {
@@ -72,7 +76,7 @@ export async function renderDashboard() {
           ${tags.map(t => `
             <button class="px-2 py-0.5 text-[11px] rounded-full font-mono transition
               ${filterTag === t ? 'bg-gold-dim text-room-bg' : 'bg-room-elevated text-ink-dim hover:text-ink-medium border border-room-border'}"
-              onclick="window._dashFilter('${esc(t)}')">${esc(t)}</button>
+              onclick="window._dashFilter('${escArg(t)}')">${esc(t)}</button>
           `).join('')}
           ${filterTag ? `<button class="px-2 py-0.5 text-[11px] text-ink-faint hover:text-ink-medium" onclick="window._dashFilter('')">\u00d7</button>` : ''}
         </div>

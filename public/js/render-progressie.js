@@ -2,10 +2,14 @@
  * render-progressie.js — Skill trees / klasse-progressie op het personagetabblad
  */
 
-import { api } from './api.js?v=319';
+import { api } from './api.js?v=320';
 
 // ── Hulpfuncties ───────────────────────────────────────────────────
 const esc  = s => String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+// In een inline handler (`onclick="f('…')"`) decodeert de browser eerst het
+// attribuut en voert dan de JavaScript uit: `esc()` alleen laat een apostrof
+// de string sluiten. Eerst JS-escapen, dan HTML. Zie scripts/onclick-escapen.js.
+const escArg = s => esc(typeof s === 'string' ? s.replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/\r?\n/g, '\\n') : s);
 const icon = (...a) => window.icon(...a);
 const isDM = () => !!window.app?.isDM?.();
 
@@ -591,7 +595,7 @@ function _choiceField(key, unlocked, choices, charId, featName, lvl, clsName, ot
         placeholder="Noteer jouw keuze…"
         value="${esc(saved)}"
         ${!unlocked ? 'disabled' : ''}
-        onchange="event.stopPropagation();window.progressie.saveChoice('${esc(key)}',this.value)"
+        onchange="event.stopPropagation();window.progressie.saveChoice('${escArg(key)}',this.value)"
         onclick="event.stopPropagation()">
     </div>`;
   }
@@ -606,11 +610,11 @@ function _choiceField(key, unlocked, choices, charId, featName, lvl, clsName, ot
     return `<div class="prog-feat-confirmed" onclick="event.stopPropagation()">
       <span class="prog-feat-confirmed-label">${icon('check')} Gekozen feat:</span>
       <button type="button" class="prog-feat-confirmed-name"
-        onclick="event.stopPropagation();window.progressie.openFeatDetail('${esc(saved)}')"
+        onclick="event.stopPropagation();window.progressie.openFeatDetail('${escArg(saved)}')"
         title="Klik voor beschrijving">${esc(saved)} ${icon('eye', {cls:'prog-feat-eye'})}</button>
       ${featDesc ? `<div class="prog-feat-confirmed-desc">${_md(featDesc)}</div>` : ''}
       <button type="button" class="prog-feat-wijzigen"
-        onclick="event.stopPropagation();window.progressie.clearFeat('${esc(key)}')"
+        onclick="event.stopPropagation();window.progressie.clearFeat('${escArg(key)}')"
         title="Change choice">${icon('pencil')} Change</button>
     </div>`;
   }
@@ -624,7 +628,7 @@ function _choiceField(key, unlocked, choices, charId, featName, lvl, clsName, ot
     ${contextHtml}
     <select class="prog-feat-select" id="prog-feat-sel-${safeKey}"
       ${!unlocked ? 'disabled' : ''}
-      onchange="event.stopPropagation();window.progressie.previewFeat('${esc(key)}','${safeKey}',this.value,'${esc(clsName||'')}',${lvl||0})">
+      onchange="event.stopPropagation();window.progressie.previewFeat('${escArg(key)}','${safeKey}',this.value,'${escArg(clsName||'')}',${lvl||0})">
       <option value="">— Choose a feat —</option>
       <optgroup label="${isEpic ? 'Epic Boons' : 'General feats'}">
         ${featOptions.map(f => `<option value="${esc(f)}">${esc(f)}</option>`).join('')}
@@ -976,7 +980,7 @@ window.progressie = {
     const actionsHtml = (name) => `
       <div class="prog-feat-actions">
         <button type="button" class="prog-feat-confirm"
-          onclick="event.stopPropagation();window.progressie.confirmFeat('${esc(key)}','${safeKey}','${esc(name)}','${esc(clsName)}',${lvl})">
+          onclick="event.stopPropagation();window.progressie.confirmFeat('${escArg(key)}','${safeKey}','${escArg(name)}','${escArg(clsName)}',${lvl})">
           ${icon('check')} Bevestigen
         </button>
         <button type="button" class="prog-feat-cancel"
@@ -989,7 +993,7 @@ window.progressie = {
       prevEl.innerHTML = `<div class="prog-feat-preview-body">
         <input class="prog-choice-input" type="text" placeholder="Naam van de feat…"
           style="margin-top:6px"
-          onkeydown="if(event.key==='Enter'){event.preventDefault();window.progressie.confirmFeat('${esc(key)}','${safeKey}',this.value,'${esc(clsName)}',${lvl})}">
+          onkeydown="if(event.key==='Enter'){event.preventDefault();window.progressie.confirmFeat('${escArg(key)}','${safeKey}',this.value,'${escArg(clsName)}',${lvl})}">
         ${actionsHtml('__custom_input__')}
       </div>`;
       // Overschrijf confirm-knop met versie die input leest
@@ -1326,13 +1330,13 @@ function _scopeNode(scope, sub) {
 function _editorHtml() {
   const classList  = Object.keys(_edit.classes).sort().map(k =>
     `<button class="prog-ed-item${_editSel?.type==='class'&&_editSel.key===k?' active':''}"
-      onclick="window.progressie.selectEntry('class','${esc(k)}')">${esc(k)}</button>`).join('');
+      onclick="window.progressie.selectEntry('class','${escArg(k)}')">${esc(k)}</button>`).join('');
   const specList = Object.keys(_edit.species).sort().map(k =>
     `<button class="prog-ed-item${_editSel?.type==='species'&&_editSel.key===k?' active':''}"
-      onclick="window.progressie.selectEntry('species','${esc(k)}')">${esc(k)}</button>`).join('');
+      onclick="window.progressie.selectEntry('species','${escArg(k)}')">${esc(k)}</button>`).join('');
   const bgList = Object.keys(_edit.backgrounds || {}).sort().map(k =>
     `<button class="prog-ed-item${_editSel?.type==='background'&&_editSel.key===k?' active':''}"
-      onclick="window.progressie.selectEntry('background','${esc(k)}')">${esc(k)}</button>`).join('');
+      onclick="window.progressie.selectEntry('background','${escArg(k)}')">${esc(k)}</button>`).join('');
   return `
     <div class="prog-ed">
       <div class="prog-ed-side">
@@ -1454,11 +1458,11 @@ function _levelEditorSub(subName, levels) {
     const feats = levels?.[lvl] || [];
     if (!feats.length)
       return `<div class="prog-ed-lvl prog-ed-lvl--empty"><span class="prog-ed-lvlnum">${lvl}</span>
-        <button class="prog-ed-addfeat" onclick="window.progressie.addFeature('class','${esc(subName)}',${lvl})" title="Feature toevoegen">${icon('plus')}</button></div>`;
+        <button class="prog-ed-addfeat" onclick="window.progressie.addFeature('class','${escArg(subName)}',${lvl})" title="Feature toevoegen">${icon('plus')}</button></div>`;
     const rows = feats.map((f,i) => _featRow('class', subName, lvl, i, f)).join('');
     return `<div class="prog-ed-lvl"><span class="prog-ed-lvlnum">${lvl}</span>
       <div class="prog-ed-feats">${rows}
-        <button class="prog-ed-addfeat" onclick="window.progressie.addFeature('class','${esc(subName)}',${lvl})" title="Feature toevoegen">${icon('plus')}</button>
+        <button class="prog-ed-addfeat" onclick="window.progressie.addFeature('class','${escArg(subName)}',${lvl})" title="Feature toevoegen">${icon('plus')}</button>
       </div></div>`;
   }).join('');
 }
@@ -1511,7 +1515,7 @@ function _editorMain() {
   const subs = Object.keys(c.subclasses || {}).map(sn => `
     <div class="prog-ed-subblock">
       <div class="prog-ed-subhead">${esc(sn)}
-        <button class="prog-ed-del" onclick="window.progressie.removeSubclass('${esc(sn)}')" title="Subklasse verwijderen">${icon('trash')}</button></div>
+        <button class="prog-ed-del" onclick="window.progressie.removeSubclass('${escArg(sn)}')" title="Subklasse verwijderen">${icon('trash')}</button></div>
       ${_levelEditorSub(sn, c.subclasses[sn].levels)}
     </div>`).join('');
   return `

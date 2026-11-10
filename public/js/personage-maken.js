@@ -17,7 +17,7 @@
 // rechts één keuze per scherm — en tot slot de onthulling met het lakzegel.
 // Eén klikhandler op de hele overlay (`data-actie`), zodat een naam met een
 // apostrof ("Thieves' Tools") nergens in een onclick-string hoeft te passen.
-import { api, huidigeCampagne } from './api.js?v=319';
+import { api, huidigeCampagne } from './api.js?v=320';
 
 const esc = s => window.app?.esc?.(s) ?? String(s ?? '')
   .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -561,7 +561,7 @@ function _spreukenHtml() {
             const hier = lijst.filter(sp => sp.niveau === n).sort((a, b) => a.naam.localeCompare(b.naam));
             if (!hier.length) return '';
             return `
-              <div class="ps-grim-groep">${n === 0 ? 'Cantrips' : `Niveau ${n}`}</div>
+              <div class="ps-grim-groep">${n === 0 ? 'Cantrips' : `Level ${n}`}</div>
               <div class="ps-spreuken">${hier.map(sp => `
                 <button type="button" class="ps-spreuk${mijn.has(sp.index) ? ' is-aan' : ''}"
                   style="--school:${SCHOOL_KLEUR[sp.school] || '#8a7050'}"

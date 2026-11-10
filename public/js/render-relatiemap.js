@@ -1,6 +1,10 @@
-import { api } from './api.js?v=319';
+import { api } from './api.js?v=320';
 
 const esc  = s => window.app?.esc?.(s) ?? String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+// In een inline handler (`onclick="f('…')"`) decodeert de browser eerst het
+// attribuut en voert dan de JavaScript uit: `esc()` alleen laat een apostrof
+// de string sluiten. Eerst JS-escapen, dan HTML. Zie scripts/onclick-escapen.js.
+const escArg = s => esc(typeof s === 'string' ? s.replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/\r?\n/g, '\\n') : s);
 const icon = (...a) => window.icon(...a);
 
 // ── Afmetingen ──
@@ -162,7 +166,7 @@ function _renderGraph() {
     const col  = ed.color || '#cc2222';
     return `
       <g class="rel-edge" data-id="${esc(ed.id)}"
-         onclick="window._pbEdgeClick('${esc(ed.id)}',event)">
+         onclick="window._pbEdgeClick('${escArg(ed.id)}',event)">
         <path d="${d}" stroke="${col}" stroke-width="2" fill="none" class="rel-edge-line"/>
         <path d="${d}" stroke="transparent" stroke-width="16" fill="none" class="rel-edge-hit"/>
       </g>`;
@@ -215,7 +219,7 @@ function _renderGraph() {
       return `
         <g class="rel-node${sel ? ' rel-node--selected' : ''}" data-id="${esc(node.id)}"
            transform="${tf}" style="cursor:pointer"
-           onclick="window._pbNodeClick('${esc(node.id)}',event)">
+           onclick="window._pbNodeClick('${escArg(node.id)}',event)">
           <rect x="4" y="6" width="${NODE_W}" height="${NODE_H}" rx="2" fill="rgba(0,0,0,0.38)"/>
           <rect x="0" y="0" width="${NODE_W}" height="${NODE_H}" rx="2"
                 fill="#f4eed6" stroke="${border}" stroke-width="${bw}"/>
@@ -244,7 +248,7 @@ function _renderGraph() {
       return `
         <g class="rel-node${sel ? ' rel-node--selected' : ''}" data-id="${esc(node.id)}"
            transform="${tf}" style="cursor:pointer"
-           onclick="window._pbNodeClick('${esc(node.id)}',event)">
+           onclick="window._pbNodeClick('${escArg(node.id)}',event)">
           <rect x="3" y="${ofY + 5}" width="${NODE_W}" height="${PH}" fill="rgba(0,0,0,0.25)"/>
           <polygon points="0,${ofY} ${NODE_W - fold},${ofY} ${NODE_W},${ofY + fold} ${NODE_W},${ofY + PH} 0,${ofY + PH}"
                    fill="${bg}" stroke="rgba(0,0,0,0.1)" stroke-width="0.5" ${sel_stroke}/>
@@ -333,7 +337,7 @@ function _renderPanel() {
       <div class="pb-panel-name">${esc(name)}</div>
       ${node.entityId && node.entityType
         ? `<button class="pb-panel-meer-info"
-             onclick="window._openDetail('${esc(node.entityType)}','${esc(node.entityId)}')">
+             onclick="window._openDetail('${escArg(node.entityType)}','${escArg(node.entityId)}')">
              ${icon('clipboard-list')} Meer info
            </button>`
         : ''
@@ -351,7 +355,7 @@ function _renderPanel() {
         <textarea class="pb-panel-notes" id="pb-notes-ta"
           placeholder="Schrijf hier jullie notities…">${esc(node.notes || '')}</textarea>
       </div>
-      <button class="pb-panel-remove" onclick="window._pbRemoveNode('${esc(_selectedNode)}')">
+      <button class="pb-panel-remove" onclick="window._pbRemoveNode('${escArg(_selectedNode)}')">
         ${icon('trash')} Verwijder van bord
       </button>
     </div>
@@ -419,7 +423,7 @@ async function _openOrganogramDialog() {
       ${orgs.length ? `
         <div class="pb-entity-list">
           ${orgs.map(o => `
-            <button class="pb-entity-item" onclick="window._pbOrganogramKies('${esc(o.id)}')">
+            <button class="pb-entity-item" onclick="window._pbOrganogramKies('${escArg(o.id)}')">
               <span class="pb-entity-icon">${icon('landmark')}</span>
               <span class="pb-entity-name">${esc(o.name)}</span>
             </button>`).join('')}
@@ -456,7 +460,7 @@ async function _openAddCardDialog() {
           ? available.map(e => `
             <button class="pb-entity-item"
                     data-name="${esc(e.name.toLowerCase())}"
-                    onclick="window._pbSelectEntity('${esc(e.id)}','${esc(e.type)}')">
+                    onclick="window._pbSelectEntity('${escArg(e.id)}','${escArg(e.type)}')">
               <span class="pb-entity-icon">${kaartIcoon(e.type)}</span>
               <span class="pb-entity-name">${esc(e.name)}</span>
             </button>`).join('')
@@ -546,9 +550,9 @@ function _openAddEdgeDialog(existing) {
     </div>
     <div class="dm-feature-row" style="justify-content:flex-end">
       ${existing ? `<button class="dm-btn dm-btn-danger"
-        onclick="window._pbDeleteEdge('${esc(existing.id)}')">${icon('trash')} Verwijderen</button>` : ''}
+        onclick="window._pbDeleteEdge('${escArg(existing.id)}')">${icon('trash')} Verwijderen</button>` : ''}
       <button class="dm-btn dm-btn-ghost" onclick="window.app.closeModal()">Annuleren</button>
-      <button class="dm-btn dm-btn-primary" onclick="window._pbSaveEdge('${esc(existing?.id || '')}')">
+      <button class="dm-btn dm-btn-primary" onclick="window._pbSaveEdge('${escArg(existing?.id || '')}')">
         ${icon('save')} ${existing ? 'Opslaan' : 'Leggen'}</button>
     </div>`);
 

@@ -11,7 +11,7 @@
 //
 // Events, defenders en goud zijn fase 2 en 3 (`docs/voorstel-bastion.md`).
 
-import { api } from './api.js?v=319';
+import { api } from './api.js?v=320';
 
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, c =>
   ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));

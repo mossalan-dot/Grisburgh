@@ -14,10 +14,14 @@
  * zelf schreef, dan de SRD, en anders een verwijzing naar buiten.
  */
 
-import { api } from './api.js?v=319';
-import { naslagBron } from './render-progressie.js?v=66';
+import { api } from './api.js?v=320';
+import { naslagBron } from './render-progressie.js?v=67';
 
 const esc  = s => window.app?.esc?.(s) ?? String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+// In een inline handler (`onclick="f('…')"`) decodeert de browser eerst het
+// attribuut en voert dan de JavaScript uit: `esc()` alleen laat een apostrof
+// de string sluiten. Eerst JS-escapen, dan HTML. Zie scripts/onclick-escapen.js.
+const escArg = s => esc(typeof s === 'string' ? s.replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/\r?\n/g, '\\n') : s);
 // Hetzelfde, maar ook veilig tússen enkele quotes in een onclick. Een naam met
 // een apostrof — "Giant's Power" — sloot daar de JS-string af en dan deed de
 // klik niets: precies de kaartjes die een DM zelf bedenkt, want de meegeleverde
@@ -1234,7 +1238,7 @@ function _bladerKaartHtml({ soort, naam, kleur, icoon, bijschrift = '', onder = 
     <div class="vk-kaart" style="--vk-kleur:${kleur};--vk-i:0" data-blad="0" data-bladen="${bladen.length}"
       ${beeld ? 'data-beeld="1"' : ''}
       title="Lees meer over ${esc(naam)}"
-      onclick="window.vaardigheden.kaartOpen('${esc(soort)}','${veilig}','${veiligB}')">
+      onclick="window.vaardigheden.kaartOpen('${escArg(soort)}','${veilig}','${veiligB}')">
       <!-- **Het potlood staat buiten het spoor.** Het hing op de voorkant van
            de flipkaart, en een kaartje zonder afbeelding begon omgedraaid —
            dus juist bij de kaartjes die nog een plaat nodig hadden was de knop
@@ -1242,7 +1246,7 @@ function _bladerKaartHtml({ soort, naam, kleur, icoon, bijschrift = '', onder = 
            altijd boven.
            (Geen backticks in commentaar hierbinnen: template literal.) -->
       ${isDM() ? `<button class="vk-beeldknop" title="Dit kaartje bewerken"
-        onclick="event.stopPropagation();window.vaardigheden.kaartBewerken('${esc(soort)}','${veilig}','${veiligB}')">${icon('pencil')}</button>` : ''}
+        onclick="event.stopPropagation();window.vaardigheden.kaartBewerken('${escArg(soort)}','${veilig}','${veiligB}')">${icon('pencil')}</button>` : ''}
       <div class="vk-spoor">${bladen.join('')}</div>
       <!-- Het balkje onderaan, niet twee pijltjes midden op de kaart: daar
            lagen ze over de tekst heen. Dezelfde vorm als onder de kolom met
@@ -1370,7 +1374,7 @@ function _klasseKaartHtml(klasse) {
     extra: `
       ${heeftSpreuken ? `
         <button class="vk-naar-spreuken" title="De spreuken die deze class kan leren"
-          onclick="event.stopPropagation();window.vaardigheden.naarSpreuken('${esc(klasse).replace(/'/g, "\\'")}')">
+          onclick="event.stopPropagation();window.vaardigheden.naarSpreuken('${escArg(klasse)}')">
           ${icon('book-open')} Spell list</button>` : ''}`,
   });
 }
@@ -1732,7 +1736,7 @@ function _tegelsHtml(d) {
       : d.id === 'species' ? (varN ? `${varN} ${varN === 1 ? 'variant' : 'varianten'}` : '')
       : '';
     return `<button class="vd-tegel" style="--vd-kleur:${d.kleur};--vd-i:${i}"
-      onclick="window.vaardigheden.kies('${esc(naam).replace(/'/g, "\\'")}')">
+      onclick="window.vaardigheden.kies('${escArg(naam)}')">
       ${beeld ? `<span class="vd-tegel-beeld" style="background-image:url('${beeld}')"></span>` : ''}
       <span class="vd-tegel-icoon">${icon(icoonVan(naam))}</span>
       <span class="vd-tegel-naam">${esc(naam)}</span>
@@ -2176,7 +2180,7 @@ function _featKoppelingHtml(it) {
   const k = _klassenVoorFeat(it);
   if (!k) return '';
   const chips = (lijst) => lijst.sort().map(n =>
-    `<button class="vk-feat" onclick="window.vaardigheden.naarKlasse('${esc(n).replace(/'/g, "\\'")}')">${icon(_klasseIcoon(n))} ${esc(n)}</button>`).join('');
+    `<button class="vk-feat" onclick="window.vaardigheden.naarKlasse('${escArg(n)}')">${icon(_klasseIcoon(n))} ${esc(n)}</button>`).join('');
   const rij = (label, uitleg, lijst) => lijst.length ? `
     <div class="vk-featrij">
       <div class="vk-featrij-kop">${esc(label)} <span>${esc(uitleg)}</span></div>
@@ -2385,7 +2389,7 @@ function _kaartVenster(soort, naam, bron = '') {
       </dl>` : ''}
       ${naarSpreuken || isDM() ? `<div class="spreuk-dm-knoppen">
         ${naarSpreuken ? `<button class="spreuk-detail-imgbtn" onclick="window.vaardigheden.naarSpreuken('${veilig}')">${icon('book-open')} Spreukenlijst</button>` : ''}
-        ${isDM() ? `<button class="spreuk-detail-imgbtn" onclick="window.vaardigheden.kaartBewerken('${esc(soort)}','${veilig}','${veiligB}')">${icon('pencil')} Kaartje bewerken</button>` : ''}
+        ${isDM() ? `<button class="spreuk-detail-imgbtn" onclick="window.vaardigheden.kaartBewerken('${escArg(soort)}','${veilig}','${veiligB}')">${icon('pencil')} Kaartje bewerken</button>` : ''}
       </div>` : ''}
       ${soort === 'background' ? '' : `
         <div class="vd-subvenster-kop">${aantal ? `${aantal} ${aantal === 1 ? 'feature' : 'features'}${elders ? (eigen ? ` · ${elders} elders` : ' — elders') : ''}` : 'Nog geen features'}</div>
@@ -2426,9 +2430,9 @@ function _beeldBlokHtml(soort, veiligeNaam, beeld) {
   return `
     <div class="vaardig-img-rij">
       <button class="dm-btn dm-btn-ghost dm-btn-sm"
-        onclick="window.vaardigheden.kaartBeeld('${esc(soort)}','${veiligeNaam}')">${icon('image')} ${beeld?.id ? 'Andere kiezen' : 'Kiezen of uploaden'}</button>
+        onclick="window.vaardigheden.kaartBeeld('${escArg(soort)}','${veiligeNaam}')">${icon('image')} ${beeld?.id ? 'Andere kiezen' : 'Kiezen of uploaden'}</button>
       ${beeld?.id ? `<button class="dm-btn dm-btn-ghost dm-btn-sm"
-        onclick="window.vaardigheden.kaartBeeldWeg('${esc(soort)}','${veiligeNaam}')">${icon('x')} Weghalen</button>` : ''}
+        onclick="window.vaardigheden.kaartBeeldWeg('${escArg(soort)}','${veiligeNaam}')">${icon('x')} Weghalen</button>` : ''}
     </div>
     <div id="vd-kaart-fp">${beeld?.id ? (window._fpBlokHtml?.({
       src: `/api/files/${esc(beeld.id)}`,
@@ -2730,11 +2734,11 @@ function _uitlegVenster(soort, naam, bron) {
         <div id="vd-beeldblok">${_beeldBlokHtml(soort, veilig, beeld)}</div>
       </div>
       <div class="dm-feature-row" style="margin-top:8px">
-        <button class="dm-btn dm-btn-primary" onclick="window.vaardigheden.bewaarUitleg('${esc(soort)}','${veilig}','${veiligB}')">${icon('save')} Bewaren</button>
+        <button class="dm-btn dm-btn-primary" onclick="window.vaardigheden.bewaarUitleg('${escArg(soort)}','${veilig}','${veiligB}')">${icon('save')} Bewaren</button>
         <!-- Weghalen staat waar bewerken staat, net als bij een feature. Het
              zat nergens, dus een class die je per ongeluk aanmaakte bleef
              staan tot je de hele progressie reset. -->
-        <button class="dm-btn dm-btn-danger" onclick="window.vaardigheden.verwijderHouder('${esc(soort)}','${veilig}','${veiligB}')">${icon('trash')} Verwijderen</button>
+        <button class="dm-btn dm-btn-danger" onclick="window.vaardigheden.verwijderHouder('${escArg(soort)}','${veilig}','${veiligB}')">${icon('trash')} Verwijderen</button>
       </div>
     </div>`, 'hulp_heldenboek_kaart');
 }
@@ -3788,7 +3792,7 @@ window.vaardigheden = {
           previews: [{ cls: 'fp-prev--hoog', label: 'De kaart' }],
         }) || ''}
         <div class="dm-feature-row" style="margin-top:10px">
-          <button class="dm-btn dm-btn-primary" onclick="window.vaardigheden.bewaarKaartFocus('${esc(soort)}','${esc(naam).replace(/'/g, "\\'")}')">${icon('save')} Bewaren</button>
+          <button class="dm-btn dm-btn-primary" onclick="window.vaardigheden.bewaarKaartFocus('${escArg(soort)}','${escArg(naam)}')">${icon('save')} Bewaren</button>
         </div>
       </div>`);
   },

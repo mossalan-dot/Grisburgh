@@ -18,7 +18,7 @@
 // Hij blokkeert nooit. Overslaan mag bij elke stap; wat je overslaat vind je
 // terug bij Instellingen, en dat staat er ook bij.
 
-import { api } from './api.js?v=319';
+import { api } from './api.js?v=320';
 
 // Hoe de groepen uit `lib/modules.js` in beeld heten.
 const _GROEPNAAM = { wereld: 'Je wereld', spel: 'Het spel', sfeer: 'Sfeer', dienst: 'Diensten', overig: 'Overig' };
@@ -107,34 +107,6 @@ const STAPPEN = [
     },
   },
   {
-    id: 'diensten',
-    titel: 'Hoe je plekken heten',
-    lead: 'Alleen de diensten die voor jou aanstaan. Laat je iets leeg, dan staat er wát het is.',
-    // Een dienst die uit staat vraag je niet: dan is dit een lijst met dingen
-    // die je nergens terugvindt.
-    beschikbaar() { return DIENSTEN.some(d => window._moduleAan?.(d.module)); },
-    html() {
-      const m = window.app?.state?.meta || {};
-      const rijen = DIENSTEN.filter(d => window._moduleAan?.(d.module)).map(d => `
-        <div class="wz-veld">
-          <label class="dm-form-label" for="wz-d-${d.sleutel}">${esc(d.label)}
-            <span class="wz-hint">${esc(d.hint)}</span></label>
-          <input id="wz-d-${d.sleutel}" class="dm-input" maxlength="80"
-            value="${esc(m[d.sleutel]?.naam || '')}" placeholder="${esc(d.label)}">
-        </div>`).join('');
-      return `<div class="wz-diensten">${rijen}</div>`;
-    },
-    async bewaar() {
-      for (const d of DIENSTEN) {
-        if (!window._moduleAan?.(d.module)) continue;
-        const naam = document.getElementById(`wz-d-${d.sleutel}`)?.value.trim() || '';
-        if (!naam) continue;
-        try { await api.saveDienstNaam(d.sleutel, naam); }
-        catch { /* een dienst die geen naamveld blijkt te hebben slaan we over */ }
-      }
-    },
-  },
-  {
     id: 'onderdelen',
     titel: 'Wat heeft jouw campagne nodig?',
     lead: 'Vink uit wat je niet gebruikt — dan verdwijnt het helemaal, ook bij je spelers. Wat nog uit staat kun je hier gewoon aanzetten.',
@@ -179,6 +151,38 @@ const STAPPEN = [
       const uit = vinkjes.filter(i => !i.checked).map(i => i.dataset.module);
       const aan = vinkjes.filter(i =>  i.checked).map(i => i.dataset.module);
       await api.saveModulesUit(uit, aan);
+      // De volgende stap vraagt de namen van je diensten, en hoort te weten
+      // wat je net hebt aangezet. Die stap stond eerst vóór deze, en dan kreeg
+      // een dienst die je hier aanzette (een tempel, bijvoorbeeld) geen naam.
+      try { const m = await api.meta(); window._modules = m?.modules || window._modules; } catch { /* dan de oude stand */ }
+    },
+  },
+  {
+    id: 'diensten',
+    titel: 'Hoe je plekken heten',
+    lead: 'Alleen de diensten die voor jou aanstaan. Laat je iets leeg, dan staat er wát het is.',
+    // Een dienst die uit staat vraag je niet: dan is dit een lijst met dingen
+    // die je nergens terugvindt.
+    beschikbaar() { return DIENSTEN.some(d => window._moduleAan?.(d.module)); },
+    html() {
+      const m = window.app?.state?.meta || {};
+      const rijen = DIENSTEN.filter(d => window._moduleAan?.(d.module)).map(d => `
+        <div class="wz-veld">
+          <label class="dm-form-label" for="wz-d-${d.sleutel}">${esc(d.label)}
+            <span class="wz-hint">${esc(d.hint)}</span></label>
+          <input id="wz-d-${d.sleutel}" class="dm-input" maxlength="80"
+            value="${esc(m[d.sleutel]?.naam || '')}" placeholder="${esc(d.label)}">
+        </div>`).join('');
+      return `<div class="wz-diensten">${rijen}</div>`;
+    },
+    async bewaar() {
+      for (const d of DIENSTEN) {
+        if (!window._moduleAan?.(d.module)) continue;
+        const naam = document.getElementById(`wz-d-${d.sleutel}`)?.value.trim() || '';
+        if (!naam) continue;
+        try { await api.saveDienstNaam(d.sleutel, naam); }
+        catch { /* een dienst die geen naamveld blijkt te hebben slaan we over */ }
+      }
     },
   },
   {
@@ -256,14 +260,7 @@ const STAPPEN = [
         </div>
         <div class="wz-waarschuwing">
           ${ico('shield')}
-          <div>
-            <strong>Deel je tafels nu in zoals je ze gaat spelen.</strong>
-            Een personage verhuizen naar een andere party kan later wel, maar alles wat
-            de párty over hem onthoudt blijft achter: welke voorwerpkaartjes van hem zijn,
-            welke geheimen hij al kent, welke kaartjes zichtbaar waren, zijn metgezel en de
-            gedeelde beurs. Alleen losse boedelregels en geld reizen mee. Twee party's
-            samenvoegen kan helemaal niet.
-          </div>
+          <div><strong>Deel je tafels nu in zoals je ze gaat spelen:</strong> twee party's samenvoegen kan later niet.</div>
         </div>`;
     },
     async bewaar() {
@@ -284,6 +281,14 @@ const STAPPEN = [
     id: 'speler',
     titel: 'Je eerste personage',
     lead: 'Eén om mee te proeven. De rest maak je in het archief, of je spelers doen het aan tafel met je mee.',
+    // De classes die deze campagne kent, voor de suggestielijst en om een
+    // getypte naam op de echte te zetten. Dit was vrije tekst: wie "rogue"
+    // tikte kreeg "rogue" op zijn blad, en daar herkende de keuzelijst hem
+    // niet — die stond op "—", en één keer opslaan wiste de class.
+    async voor() {
+      try { W.classes = Object.keys((await api.progression())?.classes || {}); }
+      catch { W.classes = []; }
+    },
     html() {
       return `
         <div class="wz-veld">
@@ -293,18 +298,24 @@ const STAPPEN = [
         <div class="wz-rij">
           <div class="wz-veld">
             <label class="dm-form-label" for="wz-pc-klasse">Class</label>
-            <input id="wz-pc-klasse" class="dm-input" maxlength="40" placeholder="Fighter, Wizard, …">
+            <input id="wz-pc-klasse" class="dm-input" maxlength="40" list="wz-pc-klassen" placeholder="Fighter, Wizard, …">
+            <datalist id="wz-pc-klassen">${(W.classes || []).map(c => `<option value="${c.replace(/"/g, '&quot;')}">`).join('')}</datalist>
           </div>
           <div class="wz-veld wz-veld--smal">
             <label class="dm-form-label" for="wz-pc-level">Level</label>
             <input id="wz-pc-level" class="dm-input" type="number" min="1" max="20" value="1">
+          </div>
+          <div class="wz-veld wz-veld--smal">
+            <label class="dm-form-label" for="wz-pc-hp">Max HP</label>
+            <input id="wz-pc-hp" class="dm-input" type="number" min="1" max="999" placeholder="—">
           </div>
         </div>`;
     },
     async bewaar() {
       const name = document.getElementById('wz-pc')?.value.trim() || '';
       if (!name) return;
-      const klasse = document.getElementById('wz-pc-klasse')?.value.trim() || '';
+      const getikt = document.getElementById('wz-pc-klasse')?.value.trim() || '';
+      const klasse = (W.classes || []).find(c => c.toLowerCase() === getikt.toLowerCase()) || getikt;
       const level  = Math.min(20, Math.max(1, parseInt(document.getElementById('wz-pc-level')?.value) || 1));
       if (!W.groepen.length) { try { W.groepen = (await api.listGroups())?.groups || []; } catch { /* leeg */ } }
       const gid    = W.data.groep?.id || window._activeGroupId || W.groepen[0]?.id || '';
@@ -317,6 +328,12 @@ const STAPPEN = [
       if (id && (klasse || level)) {
         try { await api.patchPlayerProfile(id, { klasse, level }); }
         catch { /* het kaartje staat er; het profiel vul je op zijn blad */ }
+      }
+      // Zonder HP begon het personage zijn eerste gevecht op een verzonnen
+      // 10/10, en niets zei dat zijn blad nog leeg was.
+      const hp = parseInt(document.getElementById('wz-pc-hp')?.value);
+      if (id && hp > 0) {
+        try { await api.setPlayerHp(id, { current: hp, max: hp }); } catch { /* vul je op zijn blad */ }
       }
       W.data.pc = { id, name };
     },
@@ -357,7 +374,7 @@ const STAPPEN = [
       return `
         <ul class="wz-samenvatting">
           ${regel(!!m.appTitle, `Je campagne heet <strong>${esc(m.appTitle || '—')}</strong>`)}
-          ${regel(true, `Je rekent in <strong>${esc(c.fl)}</strong>, ${esc(c.kn)} en ${esc(c.cl)}`)}
+          ${regel(true, `Je rekent in <strong>${esc(c.fl)}</strong>,&nbsp;${esc(c.kn)} en ${esc(c.cl)}`)}
           ${regel(!!W.data.groep?.naam, W.data.groep?.naam
             ? `Je eerste party heet <strong>${esc(W.data.groep.naam)}</strong>${W.data.groep.pw ? ' en heeft een wachtwoord' : ' — nog zonder wachtwoord'}`
             : 'Je party heeft nog geen naam')}
@@ -400,7 +417,8 @@ async function _teken() {
     <div class="wz-kop">
       <div class="wz-stappen">${lijst.map((s, i) => `
         <span class="wz-bol${i === W.stap ? ' is-nu' : ''}${i < W.stap ? ' is-gehad' : ''}" title="${esc(s.titel)}"></span>`).join('')}</div>
-      <h2 class="wz-titel">${esc(stap.titel)}${window._helpBtn?.('wizard') ?? ''}</h2>
+      <button class="wz-sluit" onclick="window.wizard.sluit()" title="Sluiten — je vindt de wizard terug bij Instellingen">${ico('x')}</button>
+      <h2 class="wz-titel">${esc(stap.titel)} ${window._helpBtn?.('wizard') ?? ''}</h2>
       ${stap.lead ? `<p class="wz-lead">${esc(stap.lead)}</p>` : ''}
     </div>
     <div class="wz-inhoud">${stap.html()}</div>
@@ -455,7 +473,17 @@ async function _open(opnieuw = false) {
   ov.innerHTML = `<div class="wz-kaart"><div id="wz-body"></div></div>`;
   document.body.appendChild(ov);
   document.body.classList.add('wizard-open');
+  // Escape sluit hem, net als de knop. Er was geen weg eruit behalve negen
+  // keer "Sla over".
+  ov.addEventListener('keydown', e => { if (e.key === 'Escape') _wegleggen(); });
   _teken();
+}
+
+// Wegleggen telt als klaar: hij draait één keer, en wie hem zelf dichtdoet
+// hoeft hem niet bij elke inlog terug. Bij Instellingen staat hij nog.
+async function _wegleggen() {
+  try { await api.saveAppMeta({ wizardKlaar: true }); } catch { /* dan komt hij nog eens langs */ }
+  _sluit();
 }
 
 // Draait hij vanzelf? Alleen voor de DM, alleen als hij er nog nooit geweest
@@ -479,4 +507,5 @@ window.wizard = {
   sla: () => _verder(false),
   terug: () => { if (W.stap > 0) { W.stap--; _teken(); } },
   misschienOpenen: _misschienOpenen,
+  sluit: _wegleggen,
 };

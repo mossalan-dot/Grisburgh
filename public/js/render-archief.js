@@ -1,4 +1,4 @@
-import { api } from './api.js?v=319';
+import { api } from './api.js?v=320';
 
 // icon() helper is defined globally in app.js; grab a local alias for template use.
 const icon = (...a) => window.icon(...a);
@@ -35,6 +35,10 @@ let _scriptScenesCache = undefined;  // ambiance-scènes (lazy geladen)
 const $ = (...a) => window.app.$(...a);
 const isDM = () => window.app.isDM();
 const esc = (...a) => window.app.esc(...a);
+// In een inline handler (`onclick="f('…')"`) decodeert de browser eerst het
+// attribuut en voert dan de JavaScript uit: `esc()` alleen laat een apostrof
+// de string sluiten. Eerst JS-escapen, dan HTML. Zie scripts/onclick-escapen.js.
+const escArg = s => esc(typeof s === 'string' ? s.replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/\r?\n/g, '\\n') : s);
 const escJS = (...a) => window.app.escJS(...a);
 const mdToHtml = (...a) => window.app.mdToHtml(...a);
 const openModal = (...a) => window.app.openModal(...a);
@@ -246,7 +250,7 @@ export async function renderLogboek() {
   if (_logboekActiveTab === 'prikbord') {
     tabContent.style.cssText = 'flex:1; min-height:0; overflow:hidden; display:flex; flex-direction:column;';
     tabContent.innerHTML = `<div id="pb-relatiemap-container" style="flex:1;display:flex;flex-direction:column;overflow:hidden;min-height:0;"></div>`;
-    const { renderRelatiemap } = await import('./render-relatiemap.js?v=34');
+    const { renderRelatiemap } = await import('./render-relatiemap.js?v=35');
     await renderRelatiemap(document.getElementById('pb-relatiemap-container'));
     return;
   }
@@ -874,7 +878,7 @@ function _akteKaartjesHtml(info, docs = []) {
         ${rij.map(({ kaart }) => {
           const dim = isDM() && kaart._visibility && kaart._visibility !== 'visible';
           return `<button class="akte-kaartje${dim ? ' akte-kaartje--dim' : ''}"
-            onclick="window._openDetail('${esc(soort)}','${esc(kaart.id)}')"
+            onclick="window._openDetail('${escArg(soort)}','${escArg(kaart.id)}')"
             title="${esc(kaart.name || '')}">${esc(kaart.name || '')}</button>`;
         }).join('')}
       </div>
@@ -897,7 +901,7 @@ function _akteDungeonsHtml(ch) {
   const kaartjes = mijne.map(d => {
     const uit = gid ? (d.partyCompleted || []).includes(gid) : (d.partyCompleted || []).length > 0;
     return `<button class="akte-dungeon${uit ? ' akte-dungeon--uit' : ''}"
-      onclick="window._openKaartFullscreen('dungeon','${esc(d.id)}')">
+      onclick="window._openKaartFullscreen('dungeon','${escArg(d.id)}')">
       ${icon(uit ? 'check' : 'compass')}
       <span class="akte-dungeon-naam">${esc(d.name || 'Dungeon')}</span>
       <span class="akte-dungeon-stand">${uit ? 'Uitgespeeld' : 'Verkend'}</span>
@@ -1020,7 +1024,7 @@ function _buildLogboekBody(entries, hk, isSearchMode = false) {
       <div class="logboek-chapter${isCollapsed ? ' logboek-chapter--dicht' : ''}" id="logboek-ch-${esc(ch)}">
         <div class="logboek-chapter-banner${bannerImgSrc ? ' logboek-chapter-banner--img' : ''}"
           ${bannerImgSrc ? `style="background-image:url('${bannerImgSrc}');background-position:${esc(bannerFocusVal)}"` : ''}
-          onclick="window._toggleChapter('${esc(ch)}')">
+          onclick="window._toggleChapter('${escArg(ch)}')">
           <div class="logboek-chapter-banner-overlay"></div>
           <div class="logboek-chapter-banner-content">
             <div class="logboek-chapter-num">Akte ${info.num}</div>
@@ -1295,7 +1299,7 @@ function _renderAkteSamenvattingCard(ch, info) {
   const preview = tekst ? _truncateWords(tekst.replace(/\*\*/g, '').replace(/\*/g, '').replace(/\n+/g, ' ').trim(), 300) : '';
   return `
     <div class="logboek-tl-entry logboek-tl-entry--h logboek-tl-entry--samenvatting"
-      onclick="window._openAkteSamenvatting('${esc(ch)}')">
+      onclick="window._openAkteSamenvatting('${escArg(ch)}')">
       <div class="logboek-tl-card logboek-tl-card--h logboek-tl-card--samenvatting">
         <div class="logboek-card-thumb logboek-card-thumb--samenvatting">
           <span class="logboek-samenvatting-icon">${icon('book-open')}</span>
@@ -1467,7 +1471,7 @@ window._openSessieDetail = async (id) => {
         <div class="log-detail-note-label">${icon('pencil')} Mijn aantekening</div>
         <textarea id="log-note-ta-${id}" class="log-detail-note-ta"
           placeholder="Jouw persoonlijke notities bij deze sessie…"
-          onblur="window._saveLogNote('${esc(id)}', this.value)">${esc(playerNote)}</textarea>
+          onblur="window._saveLogNote('${escArg(id)}', this.value)">${esc(playerNote)}</textarea>
       </div>
     ` : ''}
     ${isDM() ? `
@@ -1639,7 +1643,7 @@ function _verhaalSectieHtml(ch, info) {
         <span class="logboek-script-title">${icon('book-open')} Verhaal</span>
         <div class="logboek-script-add-btns">
           <button class="script-add-btn" title="Schrijven — de tekst van deze akte"
-            onclick="window._akteSchrijf('${esc(ch)}')">${icon('feather')}</button>
+            onclick="window._akteSchrijf('${escArg(ch)}')">${icon('feather')}</button>
         </div>
       </div>
       ${tekst ? `
@@ -1648,7 +1652,7 @@ function _verhaalSectieHtml(ch, info) {
           <span>${icon('quote')} ${blokken} ${blokken === 1 ? 'regieblok' : 'regieblokken'}</span>
           <span>${icon('book-open')} ${woorden.toLocaleString('nl-NL')} woorden</span>
           ${(zonder || leeg || losseBeelden) ? `
-            <button class="verhaal-nakijken" onclick="window._akteNakijken('${esc(ch)}')"
+            <button class="verhaal-nakijken" onclick="window._akteNakijken('${escArg(ch)}')"
               title="Wat er nog te doen is voordat je deze akte speelt">
               ${icon('clipboard-list')} ${zonder + leeg + losseBeelden} na te kijken</button>` : ''}
         </div>`
@@ -1686,7 +1690,7 @@ window._akteNakijken = async (ch) => {
       <div class="pb-entity-list">
         ${zonder.map(n => rij(`
           <span class="pb-entity-name">${esc(n.naam)}</span>
-          <select class="dm-input dm-input-sm" onchange="window._nakijkMaak('${esc(ch)}','${escJS(n.naam)}', this.value)">
+          <select class="dm-input dm-input-sm" onchange="window._nakijkMaak('${escArg(ch)}','${escArg(n.naam)}', this.value)">
             <option value="">Kaartje maken…</option>
             <option value="personages">Personage</option>
             <option value="locaties">Locatie</option>
@@ -1702,9 +1706,9 @@ window._akteNakijken = async (ch) => {
         ${leeg.map(n => rij(`
           <span class="pb-entity-name">${esc(n.naam)} <span class="dm-hint">· ${esc(n.entityType || '')}</span></span>
           <button class="dm-btn dm-btn-sm dm-btn-primary"
-            onclick="window._openEditor('${esc(n.entityType)}','${esc(n.entityId)}')">${icon('pencil')} Invullen</button>
+            onclick="window._openEditor('${escArg(n.entityType)}','${escArg(n.entityId)}')">${icon('pencil')} Invullen</button>
           <button class="dm-btn dm-btn-sm dm-btn-ghost" title="Dit kaartje is zo goed — haal het uit de lijst"
-            onclick="window._nakijkKlaar('${esc(ch)}','${esc(n.entityType)}','${esc(n.entityId)}', this)">${icon('check')}</button>`)).join('')}
+            onclick="window._nakijkKlaar('${escArg(ch)}','${escArg(n.entityType)}','${escArg(n.entityId)}', this)">${icon('check')}</button>`)).join('')}
       </div></div>` : ''}
 
     ${beelden.length ? `<div class="dm-feature-section">
@@ -1715,7 +1719,7 @@ window._akteNakijken = async (ch) => {
         ${beelden.length > 12 ? `<p class="dm-hint">…en nog ${beelden.length - 12}.</p>` : ''}
       </div>
       <div class="dm-feature-row">
-        <button class="dm-btn dm-btn-primary dm-btn-sm" onclick="window.app.closeModal();window._akteSchrijf('${esc(ch)}')">
+        <button class="dm-btn dm-btn-primary dm-btn-sm" onclick="window.app.closeModal();window._akteSchrijf('${escArg(ch)}')">
           ${icon('feather')} Naar het schrijfscherm</button>
       </div></div>` : ''}
 
@@ -1750,7 +1754,7 @@ window._nakijkKlaar = async (ch, type, id, btn) => {
 
 window._akteSchrijf = async (ch) => {
   const info = meta?.hoofdstukken?.[ch] || {};
-  const { openAkteSchrijven } = await import('./akte-schrijven.js?v=37');
+  const { openAkteSchrijven } = await import('./akte-schrijven.js?v=39');
   openAkteSchrijven(ch, info.short || info.title || ch);
 };
 window._logboekVerversen = () => renderLogboek();
@@ -1839,11 +1843,11 @@ function _renderAkteScriptInner(ch, info, chEntries) {
           : '';
         const nameHtml = item.type === 'image'
           ? `<input class="script-item-name script-item-name--input" value="${esc(item.caption || '')}" placeholder="Onderschrift…"
-               onchange="window._scriptRename('${esc(ch)}','${esc(item.id)}',this.value)"
+               onchange="window._scriptRename('${escArg(ch)}','${escArg(item.id)}',this.value)"
                onkeydown="if(event.key==='Enter'){this.blur();}">`
           : item.type === 'kop'
             ? `<input class="script-item-name script-item-name--input script-item-name--kop" value="${esc(item.titel || '')}" placeholder="Naam van de sectie…"
-                 onchange="window._scriptKopHernoem('${esc(ch)}','${esc(item.id)}',this.value)"
+                 onchange="window._scriptKopHernoem('${escArg(ch)}','${escArg(item.id)}',this.value)"
                  onkeydown="if(event.key==='Enter'){this.blur();}">`
             : `<span class="script-item-name">${esc(item.type === 'rust' ? rustLabel
                 : item.type === 'brief' ? briefLabel
@@ -1858,11 +1862,11 @@ function _renderAkteScriptInner(ch, info, chEntries) {
         const hasSnd  = !!item.soundFileId;
         const sndOpen = _scriptSoundOpen.has(item.id);
         return `<div class="script-item-wrap"
-            ondragover="window._scriptDragOver(event,'${esc(item.id)}')"
-            ondrop="window._scriptDrop(event,'${esc(ch)}','${esc(item.id)}')">
+            ondragover="window._scriptDragOver(event,'${escArg(item.id)}')"
+            ondrop="window._scriptDrop(event,'${escArg(ch)}','${escArg(item.id)}')">
           <div class="script-item">
             <span class="script-item-grip" draggable="true" title="Sleep om te herordenen"
-              ondragstart="window._scriptDragStart(event,'${esc(ch)}','${esc(item.id)}')"
+              ondragstart="window._scriptDragStart(event,'${escArg(ch)}','${escArg(item.id)}')"
               ondragend="window._scriptDragEnd(event)">${GRIP_SVG}</span>
             ${thumb}
             <span class="script-item-icon">${itemIcon}</span>
@@ -1870,9 +1874,9 @@ function _renderAkteScriptInner(ch, info, chEntries) {
             ${hasSnd ? `<span class="script-item-snd-chip" title="Geluid ingesteld: ${esc(item.soundLabel || 'geluid')}${item.soundLoop ? ' (loop)' : ''}">${icon('music')}${item.soundLoop ? ' ⟳' : ''}</span>` : ''}
             <div class="script-item-actions">
               <button class="script-icon-btn${hasSnd ? ' script-icon-btn--snd-on' : ''}${sndOpen ? ' is-active' : ''}"
-                onclick="window._scriptToggleSoundEditor('${esc(ch)}','${esc(item.id)}')" title="Geluid bij reveal">${icon('volume-2')}</button>
+                onclick="window._scriptToggleSoundEditor('${escArg(ch)}','${escArg(item.id)}')" title="Geluid bij reveal">${icon('volume-2')}</button>
               <button class="script-icon-btn script-icon-btn--del"
-                onclick="window._scriptRemove('${esc(ch)}','${esc(item.id)}')" title="Verwijderen">${icon('x')}</button>
+                onclick="window._scriptRemove('${escArg(ch)}','${escArg(item.id)}')" title="Verwijderen">${icon('x')}</button>
             </div>
           </div>
           ${sndOpen ? `<div class="script-snd-editor">${_scriptSoundEditorHtml(ch, item)}</div>` : ''}
@@ -1890,7 +1894,7 @@ function _renderAkteScriptInner(ch, info, chEntries) {
       <label class="dm-btn dm-btn-sm dm-btn-primary" style="cursor:pointer;display:inline-flex;align-items:center;gap:5px;margin-bottom:8px">
         ${icon('image')} Upload afbeelding
         <input type="file" accept="image/*" multiple hidden
-          onchange="window._scriptUploadImages('${esc(ch)}', this.files); this.value=''">
+          onchange="window._scriptUploadImages('${escArg(ch)}', this.files); this.value=''">
       </label>`;
     const thumbs = allImages.length === 0
       ? `<p class="dm-hint" style="margin:0">Nog geen afbeeldingen in deze akte — upload er hierboven een.</p>`
@@ -1898,7 +1902,7 @@ function _renderAkteScriptInner(ch, info, chEntries) {
         ${allImages.map(img => {
           const added = addedFileIds.has(img.fileId);
           return `<div style="position:relative;cursor:${added ? 'default' : 'pointer'};opacity:${added ? '.55' : '1'}"
-            ${added ? '' : `onclick="window._scriptAddImage('${esc(ch)}','${esc(img.sessieId)}','${esc(img.fileId)}','${escJS(img.caption)}')"`}>
+            ${added ? '' : `onclick="window._scriptAddImage('${escArg(ch)}','${escArg(img.sessieId)}','${escArg(img.fileId)}','${escArg(img.caption)}')"`}>
             <img src="${api.fileUrl(img.fileId)}" style="width:72px;height:54px;object-fit:cover;border-radius:4px;
               border:2px solid ${added ? 'var(--color-gold-dim)' : 'var(--color-room-border)'}">
             ${added ? `<span style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
@@ -1919,7 +1923,7 @@ function _renderAkteScriptInner(ch, info, chEntries) {
         placeholder="${entityList === undefined ? 'Laden…' : 'Zoek en selecteer een kaartje…'}"
         ${entityList === undefined ? 'disabled' : ''}
         style="width:100%;font-size:12px"
-        onchange="window._scriptEntityPick('${esc(ch)}', this.value); this.value=''">
+        onchange="window._scriptEntityPick('${escArg(ch)}', this.value); this.value=''">
       <datalist id="script-entity-dl-${esc(ch)}">${dlOptions}</datalist>`;
   } else if (pickerState.mode === 'encounter') {
     const encounters = pickerState.encounters;
@@ -1933,7 +1937,7 @@ function _renderAkteScriptInner(ch, info, chEntries) {
         placeholder="${encounters === undefined ? 'Laden…' : encounters.length === 0 ? 'Geen gevechten — maak er eerst een aan.' : 'Zoek en selecteer een gevecht…'}"
         ${(encounters === undefined || encounters.length === 0) ? 'disabled' : ''}
         style="width:100%;font-size:12px"
-        onchange="window._scriptEncounterPick('${esc(ch)}', this.value); this.value=''">
+        onchange="window._scriptEncounterPick('${escArg(ch)}', this.value); this.value=''">
       <datalist id="script-enc-dl-${esc(ch)}">${dlEncOptions}</datalist>`;
   } else if (pickerState.mode === 'dungeon') {
     const dungeons = pickerState.dungeons;
@@ -1948,14 +1952,14 @@ function _renderAkteScriptInner(ch, info, chEntries) {
         return `<div class="script-dng-block">
           <button class="dm-btn dm-btn-sm${openAdded ? ' dm-btn-ghost' : ''}" ${openAdded ? 'disabled' : ''}
             style="text-align:left;${openAdded ? 'opacity:.5' : ''}"
-            onclick="window._scriptAddDungeon('${esc(ch)}','${esc(d.id)}','')">
+            onclick="window._scriptAddDungeon('${escArg(ch)}','${escArg(d.id)}','')">
             ${icon('castle')} ${openAdded ? '✓ ' : ''}Open “${esc(d.name || 'Dungeon')}”</button>
           ${rooms.length
             ? `<div class="script-dng-rooms">${rooms.map(r => {
                 const added = addedDungeonKeys.has(d.id + '|' + r.id);
                 return `<button class="dm-btn dm-btn-sm${added ? ' dm-btn-ghost' : ''}" ${added ? 'disabled' : ''}
                   style="text-align:left;${added ? 'opacity:.5' : ''}"
-                  onclick="window._scriptAddDungeon('${esc(ch)}','${esc(d.id)}','${esc(r.id)}')">
+                  onclick="window._scriptAddDungeon('${escArg(ch)}','${escArg(d.id)}','${escArg(r.id)}')">
                   ${icon('map-pin')} ${added ? '✓ ' : ''}${esc(r.name || 'Kamer')}</button>`;
               }).join('')}</div>`
             : `<p class="dm-hint" style="margin:2px 0 0 6px">Geen kamers ingetekend.</p>`}
@@ -1965,17 +1969,17 @@ function _renderAkteScriptInner(ch, info, chEntries) {
   } else if (pickerState.mode === 'rust') {
     pickerHtml = `<p class="dm-hint" style="margin:0 0 6px">Voeg een rust-moment toe — tijdens het spelen trigger je 'm vanuit de regie-balk:</p>
       <div style="display:flex;flex-wrap:wrap;gap:6px">
-        <button class="dm-btn dm-btn-sm" onclick="window._scriptAddRust('${esc(ch)}','long','veld')">${icon('moon')} Lange rust — Veld</button>
-        <button class="dm-btn dm-btn-sm" onclick="window._scriptAddRust('${esc(ch)}','long','herberg')">${icon('moon')} Lange rust — Herberg</button>
-        <button class="dm-btn dm-btn-sm" onclick="window._scriptAddRust('${esc(ch)}','short','veld')">${icon('zap')} Korte rust — Veld</button>
-        <button class="dm-btn dm-btn-sm" onclick="window._scriptAddRust('${esc(ch)}','short','herberg')">${icon('zap')} Korte rust — Herberg</button>
+        <button class="dm-btn dm-btn-sm" onclick="window._scriptAddRust('${escArg(ch)}','long','veld')">${icon('moon')} Lange rust — Veld</button>
+        <button class="dm-btn dm-btn-sm" onclick="window._scriptAddRust('${escArg(ch)}','long','herberg')">${icon('moon')} Lange rust — Herberg</button>
+        <button class="dm-btn dm-btn-sm" onclick="window._scriptAddRust('${escArg(ch)}','short','veld')">${icon('zap')} Korte rust — Veld</button>
+        <button class="dm-btn dm-btn-sm" onclick="window._scriptAddRust('${escArg(ch)}','short','herberg')">${icon('zap')} Korte rust — Herberg</button>
       </div>`;
   } else if (pickerState.mode === 'kop') {
     pickerHtml = `<p class="dm-hint" style="margin:0 0 6px">Een sectiekop deelt het script op. Onthult niets — hij zet er alleen een streep met een naam tussen, zodat je tijdens het spelen ziet waar je bent. Komt de tekst uit een .md, dan worden de <strong>##</strong>-koppen hier vanzelf ook secties.</p>
       <div style="display:flex;gap:6px">
         <input class="dm-input" id="script-kop-naam-${esc(ch)}" placeholder="Bijv. Aankomst in de haven"
-          style="flex:1;font-size:12px" onkeydown="if(event.key==='Enter')window._scriptAddKop('${esc(ch)}')">
-        <button class="dm-btn dm-btn-sm dm-btn-primary" onclick="window._scriptAddKop('${esc(ch)}')">${icon('plus')}</button>
+          style="flex:1;font-size:12px" onkeydown="if(event.key==='Enter')window._scriptAddKop('${escArg(ch)}')">
+        <button class="dm-btn dm-btn-sm dm-btn-primary" onclick="window._scriptAddKop('${escArg(ch)}')">${icon('plus')}</button>
       </div>`;
   } else if (pickerState.mode === 'missie') {
     // Een missie *aanbieden* is een regie-daad: op dit punt in het verhaal komt
@@ -1994,7 +1998,7 @@ function _renderAkteScriptInner(ch, info, chEntries) {
         <div class="script-picker-lijst">
           ${missies.map(m => `
             <button class="dm-btn dm-btn-sm script-picker-rij"
-              onclick="window._scriptAddMissie('${esc(ch)}','${esc(m.id)}','${escJS(m.title || 'Missie')}')">
+              onclick="window._scriptAddMissie('${escArg(ch)}','${escArg(m.id)}','${escArg(m.title || 'Missie')}')">
               ${icon('scroll-text')} <span>${esc(m.title || 'Naamloze missie')}${m.factieNaam ? ` — ${esc(m.factieNaam)}` : ''}</span>
             </button>`).join('')}
         </div>`;
@@ -2012,7 +2016,7 @@ function _renderAkteScriptInner(ch, info, chEntries) {
             const added = (script || []).some(x => x.type === 'loot' && x.lootId === v.id);
             return `<button class="dm-btn dm-btn-sm${added ? ' dm-btn-ghost' : ''}" ${added ? 'disabled' : ''}
               style="text-align:left;${added ? 'opacity:.5' : ''}"
-              onclick="window._scriptAddLoot('${esc(ch)}','${esc(v.id)}','${esc(v.naam)}')">
+              onclick="window._scriptAddLoot('${escArg(ch)}','${escArg(v.id)}','${escArg(v.naam)}')">
               ${icon('coins')} ${added ? '✓ ' : ''}${esc(v.naam)}${v.dc ? ` — DC ${v.dc}` : ''}</button>`;
           }).join('')}
         </div>`;
@@ -2022,7 +2026,7 @@ function _renderAkteScriptInner(ch, info, chEntries) {
     pickerHtml = `<p class="dm-hint" style="margin:0 0 6px">Zoek een nummer, album of afspeellijst. Tijdens het spelen start je 'm met de muzieknoot in de regie-balk.</p>
       <div style="display:flex;gap:6px;align-items:center;margin-bottom:6px">
         <input class="dm-input" id="script-muziek-q-${esc(ch)}" placeholder="Zoek in Spotify…"
-          style="flex:1;font-size:12px" oninput="window._scriptMuziekZoek('${esc(ch)}')">
+          style="flex:1;font-size:12px" oninput="window._scriptMuziekZoek('${escArg(ch)}')">
         <label class="script-muziek-herhaal" title="Blijven herhalen tot je iets anders start">
           <input type="checkbox" id="script-muziek-herhaal-${esc(ch)}"> herhalen
         </label>
@@ -2030,7 +2034,7 @@ function _renderAkteScriptInner(ch, info, chEntries) {
       <div id="script-muziek-uitslag-${esc(ch)}" class="script-muziek-uitslag"></div>`;
   } else if (pickerState.mode === 'brief') {
     pickerHtml = `<p class="dm-hint" style="margin:0 0 6px">Stel een brief op — tijdens het spelen verstuur je 'm vanuit de regie-balk (groot op de tablet + in Berichten):</p>
-      <button class="dm-btn dm-btn-sm dm-btn-primary" onclick="window._scriptBriefCompose('${esc(ch)}')">${icon('mail')} Nieuwe brief opstellen…</button>`;
+      <button class="dm-btn dm-btn-sm dm-btn-primary" onclick="window._scriptBriefCompose('${escArg(ch)}')">${icon('mail')} Nieuwe brief opstellen…</button>`;
   }
 
   return `
@@ -2039,34 +2043,34 @@ function _renderAkteScriptInner(ch, info, chEntries) {
       <div class="logboek-script-add-btns">
         <button class="script-add-btn${pickerState.mode === 'image'    ? ' is-active' : ''}"
           title="Afbeelding toevoegen"
-          onclick="window._scriptTogglePicker('${esc(ch)}','image')">${icon('image')}</button>
+          onclick="window._scriptTogglePicker('${escArg(ch)}','image')">${icon('image')}</button>
         <button class="script-add-btn${pickerState.mode === 'entity'   ? ' is-active' : ''}"
           title="Kaartje toevoegen"
-          onclick="window._scriptTogglePicker('${esc(ch)}','entity')">${icon('eye')}</button>
+          onclick="window._scriptTogglePicker('${escArg(ch)}','entity')">${icon('eye')}</button>
         <button class="script-add-btn${pickerState.mode === 'encounter'? ' is-active' : ''}"
           title="Gevecht toevoegen"
-          onclick="window._scriptTogglePicker('${esc(ch)}','encounter')">${icon('crossed-swords',{cls:'icon-gi'})}</button>
+          onclick="window._scriptTogglePicker('${escArg(ch)}','encounter')">${icon('crossed-swords',{cls:'icon-gi'})}</button>
         <button class="script-add-btn${pickerState.mode === 'dungeon'? ' is-active' : ''}"
           title="Dungeon of kamer toevoegen"
-          onclick="window._scriptTogglePicker('${esc(ch)}','dungeon')">${icon('castle')}</button>
+          onclick="window._scriptTogglePicker('${escArg(ch)}','dungeon')">${icon('castle')}</button>
         <button class="script-add-btn${pickerState.mode === 'rust'? ' is-active' : ''}"
           title="Rust toevoegen (lange/korte)"
-          onclick="window._scriptTogglePicker('${esc(ch)}','rust')">${icon('moon')}</button>
+          onclick="window._scriptTogglePicker('${escArg(ch)}','rust')">${icon('moon')}</button>
         <button class="script-add-btn${pickerState.mode === 'kop'? ' is-active' : ''}"
           title="Sectiekop toevoegen"
-          onclick="window._scriptTogglePicker('${esc(ch)}','kop')">${icon('minus')}</button>
+          onclick="window._scriptTogglePicker('${escArg(ch)}','kop')">${icon('minus')}</button>
         <button class="script-add-btn${pickerState.mode === 'loot'? ' is-active' : ''}"
           title="Vondst toevoegen"
-          onclick="window._scriptTogglePicker('${esc(ch)}','loot')">${icon('coins')}</button>
+          onclick="window._scriptTogglePicker('${escArg(ch)}','loot')">${icon('coins')}</button>
         <button class="script-add-btn${pickerState.mode === 'missie'? ' is-active' : ''}"
           title="Missie aanbieden"
-          onclick="window._scriptTogglePicker('${esc(ch)}','missie')">${icon('scroll-text')}</button>
+          onclick="window._scriptTogglePicker('${escArg(ch)}','missie')">${icon('scroll-text')}</button>
         <button class="script-add-btn${pickerState.mode === 'brief'? ' is-active' : ''}"
           title="Brief toevoegen"
-          onclick="window._scriptTogglePicker('${esc(ch)}','brief')">${icon('mail')}</button>
+          onclick="window._scriptTogglePicker('${escArg(ch)}','brief')">${icon('mail')}</button>
         <button class="script-add-btn${pickerState.mode === 'muziek'? ' is-active' : ''}"
           title="Muziek toevoegen (Spotify)"
-          onclick="window._scriptTogglePicker('${esc(ch)}','muziek')">${icon('music')}</button>
+          onclick="window._scriptTogglePicker('${escArg(ch)}','muziek')">${icon('music')}</button>
       </div>
     </div>
     <div class="logboek-script-items">${scriptHtml}</div>
@@ -2094,7 +2098,7 @@ function _scriptSoundEditorHtml(ch, item) {
   return `
     <div class="script-snd-row">
       <select class="dm-input dm-input-sm script-snd-select"
-        onchange="window._scriptSetSceneSound('${esc(ch)}','${esc(item.id)}', this.value)">
+        onchange="window._scriptSetSceneSound('${escArg(ch)}','${escArg(item.id)}', this.value)">
         <option value="">— kies een scène —</option>
         ${scenes === undefined
           ? '<option disabled>Laden…</option>'
@@ -2102,19 +2106,19 @@ function _scriptSoundEditorHtml(ch, item) {
       </select>
       <label class="script-snd-upload-btn" title="Eigen geluid uploaden">${icon('upload')}
         <input type="file" accept="audio/*" style="display:none"
-          onchange="window._scriptUploadSound('${esc(ch)}','${esc(item.id)}', this.files[0])"></label>
+          onchange="window._scriptUploadSound('${escArg(ch)}','${escArg(item.id)}', this.files[0])"></label>
     </div>
     <div class="script-snd-row2">
       <label class="script-snd-loop">
         <input type="checkbox"${item.soundLoop ? ' checked' : ''}
-          onchange="window._scriptToggleSoundLoop('${esc(ch)}','${esc(item.id)}')"> Loop
+          onchange="window._scriptToggleSoundLoop('${escArg(ch)}','${escArg(item.id)}')"> Loop
       </label>
       ${item.soundFileId ? `
         <button class="script-icon-btn" title="Voorbeeld afspelen"
-          onclick="window._scriptPreviewSound('${esc(item.soundFileId)}', this)">${icon('play')}</button>
+          onclick="window._scriptPreviewSound('${escArg(item.soundFileId)}', this)">${icon('play')}</button>
         <span class="script-snd-current" title="${esc(item.soundLabel || '')}">${esc(item.soundLabel || 'Geluid')}</span>
         <button class="script-icon-btn script-icon-btn--del" title="Geluid verwijderen"
-          onclick="window._scriptClearSound('${esc(ch)}','${esc(item.id)}')">${icon('x')}</button>
+          onclick="window._scriptClearSound('${escArg(ch)}','${escArg(item.id)}')">${icon('x')}</button>
       ` : '<span class="dm-hint" style="opacity:.6">Nog geen geluid gekozen.</span>'}
     </div>`;
 }
@@ -2244,7 +2248,7 @@ window._akteScriptHtml = (ch) => {
   if (info.tekst && script.length && !_scriptOpen.has(ch)) {
     return _verhaalSectieHtml(ch, info) + `
       <div class="logboek-script-oud">
-        <button class="dm-btn dm-btn-ghost dm-btn-sm" onclick="window._scriptOudToggle('${esc(ch)}')">
+        <button class="dm-btn dm-btn-ghost dm-btn-sm" onclick="window._scriptOudToggle('${escArg(ch)}')">
           ${icon('clipboard-list')} ${script.length} stappen uit de oude import — tonen</button>
       </div>`;
   }
@@ -2322,7 +2326,7 @@ function _renderEntityResults(ch, entities, addedEntityIds, query) {
     const added = addedEntityIds.has(e.id);
     return `<button class="dm-btn dm-btn-sm${added ? ' dm-btn-ghost' : ''}"
       style="text-align:left;padding:3px 8px;${added ? 'opacity:.5' : ''}"
-      ${added ? 'disabled' : `onclick="window._scriptAddEntity('${esc(ch)}','${esc(e._type)}','${esc(e.id)}','${escJS(e.name || '')}')"`}>
+      ${added ? 'disabled' : `onclick="window._scriptAddEntity('${escArg(ch)}','${escArg(e._type)}','${escArg(e.id)}','${escArg(e.name || '')}')"`}>
       ${e._icon || icon('eye')} ${added ? '✓ ' : ''}${esc(e.name)}</button>`;
   }).join('');
 }
@@ -2491,7 +2495,7 @@ window._scriptMuziekZoek = (ch) => {
       const r = await api.spotifyZoek(q);
       bak.innerHTML = r.length ? r.map(x => `
         <button class="dm-btn dm-btn-sm script-muziek-rij"
-          onclick="window._scriptAddMuziek('${esc(ch)}','${escJS(x.uri)}','${escJS(x.naam)}','${escJS(x.bij)}')">
+          onclick="window._scriptAddMuziek('${escArg(ch)}','${escArg(x.uri)}','${escArg(x.naam)}','${escArg(x.bij)}')">
           ${x.beeld ? `<img src="${esc(x.beeld)}" alt="">` : icon('music')}
           <span><b>${esc(x.naam)}</b>${x.bij ? ` — ${esc(x.bij)}` : ''}<br><small>${esc(x.soort)}</small></span>
         </button>`).join('') : '<p class="dm-hint">Niets gevonden.</p>';
@@ -2582,7 +2586,7 @@ window._scriptBriefCompose = async (ch) => {
       <div id="sbrief-status" class="bericht-status hidden"></div>
       <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:4px">
         <button class="dm-btn dm-btn-ghost" onclick="window.app.closeModal()">${icon('x')} Annuleren</button>
-        <button class="dm-btn dm-btn-primary" onclick="window._scriptBriefSave('${esc(ch)}')">${icon('mail')} Brief toevoegen</button>
+        <button class="dm-btn dm-btn-primary" onclick="window._scriptBriefSave('${escArg(ch)}')">${icon('mail')} Brief toevoegen</button>
       </div>
     </div>`;
   window.app.openModal('Brief opstellen', 'Verschijnt groot op de tablet + in Berichten bij de spelers', body);
@@ -2973,7 +2977,7 @@ function _akteDocChips() {
   return gekozen.map(id => {
     const d = alle.find(x => x.id === id);
     return `<span class="log-chip log-chip-purple">${esc(d?.name || id)}
-      <button type="button" class="log-chip-x" onclick="window._akteDocEraf('${esc(id)}')" title="Loskoppelen">\u00d7</button></span>`;
+      <button type="button" class="log-chip-x" onclick="window._akteDocEraf('${escArg(id)}')" title="Loskoppelen">\u00d7</button></span>`;
   }).join('');
 }
 
@@ -2983,7 +2987,7 @@ function _akteMonChips() {
   return gekozen.map(id => {
     const m = alle.find(x => x.id === id);
     return `<span class="log-chip log-chip-seal">${esc(m?.name || id)}
-      <button type="button" class="log-chip-x" onclick="window._akteMonEraf('${esc(id)}')" title="Loskoppelen">\u00d7</button></span>`;
+      <button type="button" class="log-chip-x" onclick="window._akteMonEraf('${escArg(id)}')" title="Loskoppelen">\u00d7</button></span>`;
   }).join('');
 }
 
@@ -3290,7 +3294,7 @@ window._showLogSuggestions = (field) => {
   );
   if (names.length === 0) { list.classList.remove('open'); return; }
   list.innerHTML = names.slice(0, 12).map(n =>
-    `<div class="autocomplete-item" onmousedown="window._addLogTag('${field}','${esc(n)}')">${esc(n)}</div>`
+    `<div class="autocomplete-item" onmousedown="window._addLogTag('${field}','${escArg(n)}')">${esc(n)}</div>`
   ).join('');
   list.classList.add('open');
 };

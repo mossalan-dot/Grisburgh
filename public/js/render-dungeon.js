@@ -10,12 +10,16 @@
  *   • Party-toegang (3-state: Geen / Actief / Uitgespeeld)
  */
 
-import { api } from './api.js?v=319';
+import { api } from './api.js?v=320';
 
 const icon = (...a) => window.icon(...a);
 
 const isDM  = () => window.app?.isDM?.();
 const esc   = s => String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+// In een inline handler (`onclick="f('…')"`) decodeert de browser eerst het
+// attribuut en voert dan de JavaScript uit: `esc()` alleen laat een apostrof
+// de string sluiten. Eerst JS-escapen, dan HTML. Zie scripts/onclick-escapen.js.
+const escArg = s => esc(typeof s === 'string' ? s.replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/\r?\n/g, '\\n') : s);
 const uid   = () => 'r_' + Date.now().toString(36) + Math.random().toString(36).slice(2,6);
 
 // Eén icoonnaam per conditie. Er stond hier ook een emoji-veld, en dát werd op
@@ -240,7 +244,7 @@ function _verdiepingStripHtml() {
   return `<div class="dng-verdiepingen" title="Verdiepingen van dit gebouw">
     ${verdiepingen.map(m => `
       <button class="dng-verdieping${m.id === huidig.id ? ' dng-verdieping--actief' : ''}"
-        onclick="window._dngNaarVerdieping('${esc(m.id)}')" title="${esc(m.name || '')}">
+        onclick="window._dngNaarVerdieping('${escArg(m.id)}')" title="${esc(m.name || '')}">
         ${esc(_verdiepingLabel(m.verdieping))}</button>`).join('')}
   </div>`;
 }
@@ -263,7 +267,7 @@ window._dngNaarVerdieping = (mapId, roomId) => {
 // Een kaartje aanmaken vanuit een kameraantekening. Leent de plaatshouder-
 // kiezer van het schrijfscherm: een plaatshouder ontstaat op een plek.
 window._dngMaakKaartje = async (naam) => {
-  await import('./akte-schrijven.js?v=37');
+  await import('./akte-schrijven.js?v=39');
   window.akteSchrijven?.maakPlaceholder?.(naam);
 };
 
@@ -626,7 +630,7 @@ function _renderSvg() {
     return `<text class="dng-trap-icon" x="${cx}" y="${cy}" font-size="${size}"
       text-anchor="middle" dominant-baseline="middle"
       transform="rotate(${omhoog ? 180 : 0} ${cx} ${cy})"
-      onclick="window._dngNaarVerdieping('${esc(r.trapNaar.mapId)}','${esc(r.trapNaar.roomId || '')}')"
+      onclick="window._dngNaarVerdieping('${escArg(r.trapNaar.mapId)}','${escArg(r.trapNaar.roomId || '')}')"
       style="cursor:pointer">&#8595;</text>`;
   }).join('');
 
@@ -665,7 +669,7 @@ function _renderSvg() {
       // verdeling. Anders zou je het icoon zien liggen en er niets mee kunnen —
       // en de vondst apart moeten opzoeken in de zijbalk.
       const klik = (c.afgeleid && c.type === 'loot')
-        ? `onclick="window._dngVondstOnthul('${esc(r.id)}')" style="cursor:pointer"`
+        ? `onclick="window._dngVondstOnthul('${escArg(r.id)}')" style="cursor:pointer"`
         : '';
       return _condSpriteSvg(ct?.svgName || 'square', startX + i * step, iconY, size, cls, klik);
     }).join('');
@@ -1869,7 +1873,7 @@ function _openNewDungeonDialog() {
       </button>`).join('');
     ov.innerHTML = `
       <div class="dng-dialog">
-        <h3 class="dng-dialog-title">${esc(_verdiepingLabel(l.verdieping))} zelf tekenen</h3>
+        <h3 class="dng-dialog-title">${l.verdieping === 0 ? 'Begane grond' : (l.verdieping > 0 ? `Verdieping ${l.verdieping}` : `Kelder ${l.verdieping}`)} zelf tekenen</h3>
         <label class="dng-label">Grootte</label>
         <div class="dng-maat-rij">
           <input id="dng-tk-kol" class="dm-input" type="number" min="4" max="120" value="${l.kolommen}" aria-label="Vakjes breed">
@@ -2025,20 +2029,27 @@ function _openNewDungeonDialog() {
       const gebouwId = meerdere ? 'geb_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5) : '';
       // Op volgorde aanmaken (laagste verdieping eerst), zodat de galerij en de
       // verdiepingenstrook dezelfde volgorde aanhouden als het gebouw zelf.
+      let eerste = null;
       for (const laag of [...lagen].sort((a, b) => a.verdieping - b.verdieping)) {
-        await api.createDungeon({
+        const gemaakt = await api.createDungeon({
           ...basis,
           ...(laag.bron === 'tekenen'
             ? { grid: { kolommen: laag.kolommen, rijen: laag.rijen, voetPerVak: VOET_PER_VAK }, stijl: laag.stijl }
             : { fileId: laag.fileId }),
           ...(meerdere ? { verdieping: laag.verdieping, gebouwId } : {}),
         });
+        // De begane grond als die er is, anders de eerste die aangemaakt werd.
+        const id = gemaakt?.id || gemaakt?.map?.id;
+        if (id && (!eerste || laag.verdieping === 0)) eerste = id;
       }
       window.app.closeModal();
       // Eindigen waar je begon: de galerij (of de open kaartweergave) bijwerken.
       // Dit riep `renderDungeon(#kaart-mode-content)` aan — een element dat sinds
       // de galerij niet meer bestaat, dus er gebeurde zichtbaar niets.
       await window._kaartVerversen?.();
+      // En dan meteen open. Wie op *Tekenen* koos, wil tekenen — niet de
+      // galerij doorzoeken naar wat hij net maakte.
+      if (eerste) window._openKaartFullscreen?.('dungeon', eerste);
     } catch (e) { alert('Aanmaken mislukt: ' + e.message); }
   });
 
