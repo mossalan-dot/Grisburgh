@@ -1,0 +1,151 @@
+diff -ru a/public/css/theme.css b/public/css/theme.css
+--- a/public/css/theme.css	2026-11-10 13:33:11.303133829 +0000
++++ b/public/css/theme.css	2026-11-10 13:34:32.368147736 +0000
+@@ -33322,3 +33322,36 @@
+ }
+ @keyframes stem-op { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+ .stem-uitslag.stem-uitslag--rustig *, .stem-uitslag.stem-uitslag--rustig { animation-duration: .01s !important; animation-delay: 0s !important; }
++
++/* ── Tegels: bladeren met pijltjes (10 nov 2026) ─────────────────────────────
++   Zoals de bladerkaart in het Heldenboek: ‹ en › om de blad-icoontjes heen,
++   in dezelfde vorm als .vk-pijl. Aan het eind van de rij staat de pijl uit. */
++.tegel-pijl {
++  width: 26px; height: 26px; flex: 0 0 auto;
++  display: flex; align-items: center; justify-content: center;
++  border: 1px solid rgba(196,168,122,.7); border-radius: 5px;
++  background: rgba(255,250,238,.6); color: #5a4030; cursor: pointer;
++}
++.tegel-pijl .icon { width: 14px; height: 14px; }
++.tegel-pijl:hover:not(:disabled) { background: rgba(196,168,122,.25); color: #2a1a08; }
++.tegel-pijl:disabled { opacity: .3; cursor: default; }
++.tegel-punten { align-items: center; }
++/* Het blad schuift; wat er buiten de tegel valt, hoort niet te zien te zijn. */
++.tegel--open { overflow: hidden; }
++/* Op het portretblad zou een crèmekleurige voet de foto afsnijden; het
++   Heldenboek laat zijn balkje daar doorzichtig over de plaat lopen. Hier
++   hetzelfde: de donkere voet van de naamband draagt de knoppen, en die worden
++   licht. Een tegel zonder beeld houdt zijn lichte voet. */
++.tegel--open:not(.no-img):has(.tegel-blad[data-soort="portret"]) .tegel-voet {
++  background: none; border-top-color: transparent;
++}
++.tegel--open:not(.no-img):has(.tegel-blad[data-soort="portret"]) :is(.tegel-punt, .tegel-knop, .tegel-voet .tegel-dm button, .tegel-voet .tegel-ster) {
++  color: rgba(255,248,234,.85);
++}
++.tegel--open:not(.no-img):has(.tegel-blad[data-soort="portret"]) .tegel-knop { border-color: rgba(255,248,234,.35); }
++.tegel--open:not(.no-img):has(.tegel-blad[data-soort="portret"]) .tegel-punt.is-aan { background: rgba(255,248,234,.9); color: #2a1a08; }
++.tegel--open:not(.no-img):has(.tegel-blad[data-soort="portret"]) .tegel-pijl {
++  border-color: rgba(255,248,234,.45); background: rgba(20,12,4,.4); color: #f3e7cf;
++}
++/* De naam staat dan boven de knoppen in plaats van erachter. */
++.tegel--open:not(.no-img) .tegel-naamband--groot { padding-bottom: 60px; }
+diff -ru a/public/js/render-bestiarium.js b/public/js/render-bestiarium.js
+--- a/public/js/render-bestiarium.js	2026-11-10 13:33:11.301484437 +0000
++++ b/public/js/render-bestiarium.js	2026-11-10 13:33:11.393878150 +0000
+@@ -249,8 +249,8 @@
+     ${beeld}
+     <div class="tegel-blad" data-soort="${bladen[j].soort}">${_bladInhoud(m, bladen[j])}</div>
+     <div class="tegel-voet" onclick="event.stopPropagation()">
+-      <div class="tegel-punten">${bladen.map((b, k) => `<button class="tegel-punt${k === j ? ' is-aan' : ''}"
+-        title="${esc(b.label)}" onclick="window.bestiarium.naar('${id}',${k})">${icon(_BLAD_ICOON[b.soort] || 'square')}</button>`).join('')}</div>
++      <div class="tegel-punten">${window._tegelPijl?.(-1, `window.bestiarium.stap('${id}',-1)`, j, bladen.length) ?? ''}${bladen.map((b, k) => `<button class="tegel-punt${k === j ? ' is-aan' : ''}"
++        title="${esc(b.label)}" onclick="window.bestiarium.naar('${id}',${k})">${icon(_BLAD_ICOON[b.soort] || 'square')}</button>`).join('')}${window._tegelPijl?.(1, `window.bestiarium.stap('${id}',1)`, j, bladen.length) ?? ''}</div>
+       ${dm ? _dmKnoppen(m, { voet: true }) : ''}
+       <button class="tegel-knop" title="Het statblok" onclick="window.bestiarium.vergroot('${id}')">${icon('maximize-2')}</button>
+       <button class="tegel-knop" title="Kleiner" onclick="window.bestiarium.dicht()">${icon('minimize-2')}</button>
+@@ -319,6 +319,7 @@
+     if (window._tegelDraai) await window._tegelDraai(el, _blad[id] > vorige ? 1 : -1, wissel);
+     else wissel();
+   },
++  stap(id, d) { return this.naar(id, (_blad[id] || 0) + d); },
+   dicht() { if (_openId) { _openId = null; _herteken(); } },
+   vergroot(id) {
+     const i = (_data.monsters || []).findIndex(x => x.id === id);
+diff -ru a/public/js/render-campagne.js b/public/js/render-campagne.js
+--- a/public/js/render-campagne.js	2026-11-10 13:33:11.301214738 +0000
++++ b/public/js/render-campagne.js	2026-11-10 13:33:11.393153073 +0000
+@@ -4322,8 +4322,8 @@
+     ${fav ? '<span class="tegel-lint" aria-hidden="true"></span>' : ''}
+     <div class="tegel-blad" data-soort="${bladen[i].soort}">${_tegelBladInhoud(e, bladen[i], rol)}</div>
+     <div class="tegel-voet" onclick="event.stopPropagation()">
+-      <div class="tegel-punten">${bladen.map((b, j) => `<button class="tegel-punt${j === i ? ' is-aan' : ''}"
+-        title="${esc(b.label)}" onclick="window._tegelNaar('${type}','${escArg(e.id)}',${j})">${icon(_BLAD_ICOON[b.soort] || 'square')}</button>`).join('')}</div>
++      <div class="tegel-punten">${_tegelPijl(-1, `window._tegelStap('${type}','${escArg(e.id)}',-1)`, i, bladen.length)}${bladen.map((b, j) => `<button class="tegel-punt${j === i ? ' is-aan' : ''}"
++        title="${esc(b.label)}" onclick="window._tegelNaar('${type}','${escArg(e.id)}',${j})">${icon(_BLAD_ICOON[b.soort] || 'square')}</button>`).join('')}${_tegelPijl(1, `window._tegelStap('${type}','${escArg(e.id)}',1)`, i, bladen.length)}</div>
+       ${_tegelSter(type, e, fav)}
+       ${_tegelHoudingKnop(type, e)}
+       ${_tegelDmKnoppen(type, e, { voet: true })}
+@@ -4474,6 +4474,21 @@
+   });
+ };
+ 
++// Bladeren met de pijltjes: één stap vanaf het blad dat nu open ligt. Een vast
++// nummer in de knop zou verouderen — de voet wordt bij het bladeren niet
++// opnieuw getekend, alleen het blad.
++window._tegelStap = (type, id, d) => window._tegelNaar(type, id, (_tegelBlad[id] || 0) + d);
++
++// ‹ en › links en rechts van de blad-icoontjes, zoals de bladerkaart in het
++// Heldenboek. Gedeeld met het bestiarium en de spreuken (window._tegelPijl).
++function _tegelPijl(kant, onclick, i, n) {
++  const uit = kant < 0 ? i <= 0 : i >= n - 1;
++  return `<button class="tegel-pijl" data-kant="${kant}" title="${kant < 0 ? 'Vorige' : 'Volgende'}"
++    aria-label="${kant < 0 ? 'Vorig blad' : 'Volgend blad'}"${uit ? ' disabled' : ''}
++    onclick="${onclick}">${icon(kant < 0 ? 'chevron-left' : 'chevron-right')}</button>`;
++}
++window._tegelPijl = _tegelPijl;
++
+ window._tegelDicht = (type) => {
+   if (!_tegelOpen[type]) return;
+   _tegelOpen[type] = null;
+@@ -4533,15 +4548,24 @@
+   () => window._openDetail(type, id),
+   () => window._currentDetailId === id);
+ 
+-// Omdraaien: een kwartslag weg, `wissel()` zet het nieuwe blad erin, een
+-// kwartslag terug. `kant` is de draairichting (1 = vooruit).
++// Bladeren: het blad schuift opzij en het volgende komt van de andere kant
++// binnen — zoals de bladerkaart in het Heldenboek. Het was een kwartslag
++// omdraaien van de hele tegel; schuiven leest rustiger en hoort bij pijltjes.
++// Alleen het blad beweegt, het beeld eronder blijft liggen. `kant` is de
++// richting (1 = vooruit). Daarna kloppen de pijltjes weer met waar je bent.
+ async function _draai(el, kant, wissel) {
+   const rustig = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+-  if (!rustig) await el.animate([{ transform: 'perspective(1100px) rotateY(0deg)' },
+-    { transform: `perspective(1100px) rotateY(${-88 * kant}deg)` }], { duration: 150, easing: 'ease-in' }).finished.catch(() => {});
++  const blad = () => el.querySelector('.tegel-blad');
++  if (!rustig) await blad()?.animate([{ transform: 'translateX(0)', opacity: 1 },
++    { transform: `translateX(${-35 * kant}%)`, opacity: 0 }], { duration: 160, easing: 'ease-in' }).finished.catch(() => {});
+   wissel();
+-  if (!rustig) el.animate([{ transform: `perspective(1100px) rotateY(${88 * kant}deg)` },
+-    { transform: 'perspective(1100px) rotateY(0deg)' }], { duration: 190, easing: 'ease-out' });
++  const punten = [...el.querySelectorAll('.tegel-punt')];
++  const i = punten.findIndex(p => p.classList.contains('is-aan'));
++  el.querySelectorAll('.tegel-pijl').forEach(p => {
++    p.disabled = p.dataset.kant === '-1' ? i <= 0 : i >= punten.length - 1;
++  });
++  if (!rustig) blad()?.animate([{ transform: `translateX(${35 * kant}%)`, opacity: 0 },
++    { transform: 'translateX(0)', opacity: 1 }], { duration: 260, easing: 'cubic-bezier(.3,.8,.3,1)' });
+ }
+ window._tegelDraai = _draai;
+ window._tegelFlip = (grid, mutate, opts) => _flip(grid, mutate, opts);
+diff -ru a/public/js/render-spreuken.js b/public/js/render-spreuken.js
+--- a/public/js/render-spreuken.js	2026-11-10 13:33:11.301506816 +0000
++++ b/public/js/render-spreuken.js	2026-11-10 13:33:11.394235301 +0000
+@@ -366,8 +366,8 @@
+     ${beeld}${niv}
+     <div class="tegel-blad" data-soort="${bladen[j].soort}">${_bladInhoud(s, bladen[j])}</div>
+     <div class="tegel-voet" onclick="event.stopPropagation()">
+-      <div class="tegel-punten">${bladen.map((b, k) => `<button class="tegel-punt${k === j ? ' is-aan' : ''}"
+-        title="${esc(b.label)}" onclick="window.spreuken.naar('${id}',${k})">${icon(_BLAD_ICOON[b.soort] || 'square')}</button>`).join('')}</div>
++      <div class="tegel-punten">${window._tegelPijl?.(-1, `window.spreuken.stap('${id}',-1)`, j, bladen.length) ?? ''}${bladen.map((b, k) => `<button class="tegel-punt${k === j ? ' is-aan' : ''}"
++        title="${esc(b.label)}" onclick="window.spreuken.naar('${id}',${k})">${icon(_BLAD_ICOON[b.soort] || 'square')}</button>`).join('')}${window._tegelPijl?.(1, `window.spreuken.stap('${id}',1)`, j, bladen.length) ?? ''}</div>
+       ${_boekKnop(s)}
+       <button class="tegel-knop" title="De hele spreuk" onclick="window.spreuken.vergroot('${id}')">${icon('maximize-2')}</button>
+       <button class="tegel-knop" title="Kleiner" onclick="window.spreuken.dicht()">${icon('minimize-2')}</button>
+@@ -1138,6 +1138,7 @@
+     if (window._tegelDraai) await window._tegelDraai(el, _blad[index] > vorige ? 1 : -1, wissel);
+     else wissel();
+   },
++  stap(index, d) { return this.naar(index, (_blad[index] || 0) + d); },
+   dicht() { if (_openId) { _openId = null; _herteken(); } },
+   // Het spreukvenster groeit uit de tegel en krimpt er bij het sluiten weer in
+   // — zolang het nog over déze spreuk gaat (je kunt erin doorbladeren).
