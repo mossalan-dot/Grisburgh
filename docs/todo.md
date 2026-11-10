@@ -384,10 +384,10 @@ kloppen niet meer met de app; die staan in het voorstel, met de volgorde.
 - [x] **Missiegever afleiden uit de missie** *(5 sep)* — `geverId` op de missie,
       zoekveld in de missie-editor, naam op het missiekaartje, en een blokje
       *Missies* op het personage- of organisatiekaartje.
-- [ ] **Gevangene als toestand** — `groups[gid].gevangenen[entityId]`, zichtbaar
-      in het partytabblad naast de medestanders, met een knop op het kaartje.
-      **Oppakken wanneer we de partytab doen**, want daar willen we toch al
-      portretjes van medestanders laten zien.
+- [x] **Gevangene als toestand** — gedaan 6 nov 2026.
+      `groups[gid].gevangenen[entityId] = {sinds, waar}`, knop *Gevangen* in de
+      DM-rij van het detailvenster, een rij *Gevangenen* onder de medestanders
+      in het partytabblad, tralies over het portret.
 - [x] **Tier-editor: tiers zijn optioneel** — gedaan 14 okt 2026. "Meegroeien met
       het baasje" klonk verplicht; er staat nu bij dat je het leeg mag laten, en
       waarom (een rijdier of een opgeroepen wezen groeit niet mee).
@@ -475,6 +475,9 @@ Gevraagd op 14 sep 2026, gebouwd op 14 sep 2026.
 ## Stijlen per campagne
 
 - [ ] **Een echte reeks stijlen bedenken** → `docs/stijlen-per-campagne.md`
+      **Keuzes gemaakt op 6 nov 2026** (DM kiest per campagne, breed incl.
+      iconen en blad, `hp` vervalt, geen eigen kleuren). Bouwen als één eigen
+      ronde zodra al het andere live staat; de meting van 6 nov staat erin.
       (gemeten 1 okt 2026, bewust voor later). Denkrichting: **steampunk,
       sci-fi, noir/detective, gothic horror, mythisch Grieks, wildwest,
       post-apocalyptisch**.

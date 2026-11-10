@@ -18,6 +18,7 @@ const bastionRegels = require('../lib/bastion');
 const crypto = require('crypto');
 const { DISPLAY_FX, fxVoor, fxBericht } = require('../lib/display-fx');
 const OMG = require('../lib/omgeving');
+const MAT = require('../lib/materiaal');
 const spotify = require('../lib/spotify');
 const config  = require('../config');
 
@@ -772,6 +773,7 @@ function filterEntityForPlayer(entity, dmState, groupId, ctx) {
   e._geheimTotaal = geheimen.length;
   e._geheimOnthuld = zichtbareGeheimen.length;
   e._deceased     = !!(g.deceased?.[entity.id]);
+  e._gevangen     = !!(g.gevangenen?.[entity.id]);
   // Waar dit kaartje bij hoort — maar alleen de kaartjes die deze party mag
   // zien, anders verklapt de omgekeerde verwijzing dat er iets verborgens is.
   e._hoortBij     = _betrokkenBij(entity.id)
@@ -1383,6 +1385,7 @@ router.get('/entities/:type', attachRole, (req, res) => {
       _geheimTotaal: _geheimRegels(e.data).length,
       _geheimOnthuld: _onthuldeIds(g.secretReveals[e.id], _geheimRegels(e.data)).size,
       _deceased:     !!(g.deceased?.[e.id]),
+      _gevangen:     !!(g.gevangenen?.[e.id]),
       _dmNote:       dmState.dmNotes[e.id]  || '',
       _gockOnderzocht: !!g.gockOnderzocht?.[e.id],
       _beeld:        storage.bestandIsBeeld(e.data?.imageId || e.id),
@@ -1543,6 +1546,7 @@ router.get('/entities/:type/:id', attachRole, (req, res) => {
       geplantDoor: r.geplantDoor || null, geplantVoor: r.geplantVoor || null,
     })),
     _deceased:     !!(g.deceased?.[entity.id]),
+    _gevangen:     !!(g.gevangenen?.[entity.id]),
     _dmNote:       dmState.dmNotes[entity.id]  || '',
     _tierActief:   _tierStand(g, entity)?.id || null,
   });
@@ -1853,6 +1857,7 @@ router.delete('/entities/:type/:id', requireDM, (req, res) => {
       visibility:   g.visibility?.[id],
       secretReveal: g.secretReveals?.[id],
       deceased:     g.deceased?.[id],
+      gevangen:     g.gevangenen?.[id],
     };
   }
   if (!dmState.trash) dmState.trash = [];
@@ -1914,6 +1919,8 @@ router.delete('/entities/:type/:id', requireDM, (req, res) => {
     delete dmState.groups[gid].visibility[id];
     delete dmState.groups[gid].secretReveals[id];
     if (dmState.groups[gid].deceased) delete dmState.groups[gid].deceased[id];
+    if (dmState.groups[gid].gevangenen) delete dmState.groups[gid].gevangenen[id];
+    if (dmState.groups[gid].huurlingen) delete dmState.groups[gid].huurlingen[id];
   }
   delete dmState.dmNotes[id];
   storage.writeJSON('entities.json', entities);
@@ -1948,6 +1955,10 @@ router.post('/entities/restore/:id', requireDM, (req, res) => {
     if (s.deceased !== undefined) {
       if (!dmState.groups[gid].deceased) dmState.groups[gid].deceased = {};
       dmState.groups[gid].deceased[entity.id] = s.deceased;
+    }
+    if (s.gevangen) {
+      if (!dmState.groups[gid].gevangenen) dmState.groups[gid].gevangenen = {};
+      dmState.groups[gid].gevangenen[entity.id] = s.gevangen;
     }
   }
   if (dmNote !== null && dmNote !== undefined) {
@@ -2173,6 +2184,234 @@ router.put('/entities/:type/:id/deceased', requireDM, (req, res) => {
     req.app.get('io').to(_campagneRoom(req)).emit('entity:deceased', { id, type, name: entity.name });
   }
   res.json({ deceased: g.deceased[id] });
+});
+
+// ── Gevangene: een toestand per party ──────────────────────────────────────
+// Wie de party heeft vastgezet of meesleept. Net als het doodsvinkje hangt het
+// aan de groep en niet aan het kaartje: dezelfde smokkelaar kan bij de ene
+// party in de kelder zitten en voor de andere nog vrij rondlopen.
+// Opslag: `groups[gid].gevangenen[entityId] = { sinds, waar }` — `waar` is een
+// korte aantekening ("in de kelder van De Gouden Gans") die de spelers ook
+// lezen; het is hún gevangene.
+// Expliciet aan of uit (`{gevangen: true|false}`), geen wisselknop: een
+// dubbele klik of een tweede DM-scherm mag de stand niet terugdraaien.
+// Twee dingen gebeuren erbij, en het antwoord zegt welke:
+//  - liep hij als **medestander** mee, dan gaat hij daar af — je bent niet
+//    tegelijk bondgenoot en gevangene (`wasMedestander`);
+//  - stond zijn kaartje voor deze party op **verborgen**, dan wordt het
+//    **vaag**: de party heeft hem in handen, dus ze weten dát hij er is, maar
+//    niet meer dan dat. Een gevangene met een kap over zijn hoofd blijft zo
+//    een gevangene met een kap (`zichtbaarGemaakt`).
+router.put('/entities/personages/:id/gevangen', requireDM, (req, res) => {
+  const { id } = req.params;
+  const entities = storage.readJSON('entities.json');
+  const entity   = (entities.personages || []).find(e => e.id === id);
+  if (!entity) return res.status(404).json({ error: 'Personage niet gevonden' });
+  if (entity.subtype === 'speler')
+    return res.status(400).json({ error: 'Een speler kan niet de gevangene van zijn eigen party zijn' });
+  if (typeof req.body?.gevangen !== 'boolean')
+    return res.status(400).json({ error: 'Zeg of hij gevangen is (true of false)' });
+  const dmState = readDmState();
+  const gid = req.body.groep && dmState.groups[req.body.groep] ? req.body.groep : dmState.activeGroup;
+  const g   = getGroup(dmState, gid);
+  if (!g.gevangenen) g.gevangenen = {};
+  let wasMedestander = false, zichtbaarGemaakt = false;
+  if (req.body.gevangen) {
+    const oud = g.gevangenen[id] || {};
+    const waar = req.body.waar !== undefined ? String(req.body.waar || '').trim().slice(0, 140) : (oud.waar || '');
+    g.gevangenen[id] = { sinds: oud.sinds || new Date().toISOString(), ...(waar ? { waar } : {}) };
+    if ((g.companions || []).includes(id)) {
+      g.companions = g.companions.filter(x => x !== id);
+      wasMedestander = true;
+    }
+    if (!g.visibility) g.visibility = {};
+    if (!g.visibility[id] || g.visibility[id] === 'hidden') {
+      g.visibility[id] = 'vague';
+      zichtbaarGemaakt = true;
+    }
+  } else {
+    delete g.gevangenen[id];
+  }
+  storage.writeJSON('dm-state.json', dmState);
+  const io = req.app.get('io');
+  io.to(_campagneRoom(req)).emit('entity:updated', { id, gevangen: !!req.body.gevangen });
+  io.to(_campagneRoom(req)).emit('party:gevangenen', { groep: gid });
+  if (wasMedestander) io.to(_campagneRoom(req)).emit('companions:updated', {});
+  res.json({ ok: true, gevangen: g.gevangenen[id] || null, groep: gid, wasMedestander, zichtbaarGemaakt });
+});
+
+// Bij welke party zit hij gevangen? Voor de knop op het kaartje, die over de
+// actieve party gaat maar wil kunnen zeggen "zit bij Groep 2".
+router.get('/entities/personages/:id/gevangen', requireDM, (req, res) => {
+  const dmState = readDmState();
+  const bij = Object.entries(dmState.groups || {})
+    .filter(([, g]) => g.gevangenen?.[req.params.id])
+    .map(([gid, g]) => ({ groep: gid, naam: g.name || gid, ...g.gevangenen[req.params.id] }));
+  res.json({ bij, actief: dmState.activeGroup });
+});
+
+// ── Huurlingen: een medestander met een dagloon ──
+// Opslag per party: `groups[gid].huurlingen[npcId] = { loon, betaler, achterstand, sinds }`.
+// `loon` is in centelingen per dag, en een dag is een lange rust — zelfde klok
+// als de rente van de Tweespalt: de party bepaalt het tempo, niet de kalender.
+// De app rekent het loon voor (PHB: 2 GP per dag voor een geschoolde kracht),
+// de DM tikt over wat er aan tafel is afgesproken.
+// Wie niet betaald wordt, telt dat (`achterstand`). Vanaf twee dagen wil hij
+// weg (`wilWeg`) — maar weggaan doet hij niet vanzelf: dat is een scène, en de
+// DM beslist hoe die loopt. Vandaar een aparte route om hem te laten gaan.
+const HUURLING_LOON_STANDAARD = 200;     // 2 gouden munten per dag
+const HUURLING_WIL_WEG = 2;
+
+function _huurlingStand(h) {
+  if (!h) return null;
+  const achterstand = Math.max(0, parseInt(h.achterstand, 10) || 0);
+  return { loon: Math.max(0, parseInt(h.loon, 10) || 0), betaler: h.betaler || '', achterstand,
+           wilWeg: achterstand >= HUURLING_WIL_WEG, sinds: h.sinds || null };
+}
+
+// Wie betaalt? Staat de gedeelde beurs aan, dan maakt het niet uit wie: het is
+// één zak. Anders de gekozen speler, en als die niet meer in de party zit de
+// eerste die er wél in zit — een loon dat nergens vandaan kan komen, telt als
+// niet betaald, en dat merk je pas als de huurling erover begint.
+function _huurlingBetaler(dmState, gid, h, personages) {
+  const leden = (personages || []).filter(e => e.subtype === 'speler' && e.data?.groep === gid);
+  if (h?.betaler && leden.some(e => e.id === h.betaler)) return h.betaler;
+  return leden[0]?.id || null;
+}
+
+// Eén nacht: elk loon dat verschuldigd is. Geeft de regels voor het
+// rustoverzicht terug en wie er geld kwijt raakte.
+function _huurlingenLoon(dmState, gid, personages) {
+  const g = dmState.groups?.[gid];
+  const regels = [], betalers = new Set();
+  if (!g?.huurlingen) return { regels, betalers };
+  for (const [id, h] of Object.entries(g.huurlingen)) {
+    const npc = (personages || []).find(e => e.id === id);
+    if (!npc || !(g.companions || []).includes(id) || g.deceased?.[id]) continue;
+    const loon = Math.max(0, parseInt(h.loon, 10) || 0);
+    if (!loon) continue;
+    const naam = (g.companionNames || {})[id] || npc.name;
+    const betaler = _huurlingBetaler(dmState, gid, h, personages);
+    const beurs = betaler ? toCl(_effectiveCurrency(dmState, betaler)) : 0;
+    if (betaler && beurs >= loon) {
+      _deductCurrency(dmState, betaler, loon);
+      betalers.add(betaler);
+      h.achterstand = 0;
+      regels.push({ id, naam, betaald: true, loon, betaler,
+                    tekst: `Kreeg zijn loon (${_muntTekst(fromCl(loon))}).` });
+    } else {
+      h.achterstand = (parseInt(h.achterstand, 10) || 0) + 1;
+      const weg = h.achterstand >= HUURLING_WIL_WEG;
+      regels.push({ id, naam, betaald: false, loon, betaler, achterstand: h.achterstand, wilWeg: weg,
+                    tekst: weg ? `Kreeg al ${h.achterstand} dagen niets en wil vertrekken.`
+                               : 'Kreeg vannacht geen loon — de beurs was te licht.' });
+    }
+  }
+  return { regels, betalers };
+}
+
+router.get('/entities/personages/:id/huurling', requireDM, (req, res) => {
+  const dmState  = readDmState();
+  const entities = storage.readJSON('entities.json');
+  const gid = req.query.groep && dmState.groups[req.query.groep] ? req.query.groep : (dmState.activeGroup || Object.keys(dmState.groups || {})[0]);
+  const g   = getGroup(dmState, gid);
+  const h   = g.huurlingen?.[req.params.id];
+  const spelers = (entities.personages || []).filter(e => e.subtype === 'speler' && e.data?.groep === gid)
+    .map(e => ({ id: e.id, naam: e.name }));
+  res.json({
+    groep: gid, groepNaam: g.name || gid,
+    huurling: _huurlingStand(h),
+    medestander: (g.companions || []).includes(req.params.id),
+    gedeeldeBeurs: !!g.sharedPurse?.enabled,
+    loonSuggestie: HUURLING_LOON_STANDAARD,
+    spelers,
+  });
+});
+
+// Inhuren of de afspraak bijstellen. Inhuren maakt hem ook medestander: een
+// huurling die niet meeloopt, kost geld voor niets.
+router.put('/entities/personages/:id/huurling', requireDM, (req, res) => {
+  const { id } = req.params;
+  const entities = storage.readJSON('entities.json');
+  const npc = (entities.personages || []).find(e => e.id === id);
+  if (!npc) return res.status(404).json({ error: 'Personage niet gevonden' });
+  if (npc.subtype === 'speler') return res.status(400).json({ error: 'Een speler huur je niet in' });
+  const loon = parseInt(req.body?.loon, 10);
+  if (!Number.isFinite(loon) || loon < 0 || loon > 1000000) return res.status(400).json({ error: 'Ongeldig loon' });
+  const dmState = readDmState();
+  const gid = req.body.groep && dmState.groups[req.body.groep] ? req.body.groep : (dmState.activeGroup || Object.keys(dmState.groups || {})[0]);
+  const g   = getGroup(dmState, gid);
+  if (g.gevangenen?.[id]) return res.status(409).json({ error: 'Een gevangene huur je niet in' });
+  const betaler = String(req.body.betaler || '');
+  if (betaler && _playerGroupId(dmState, betaler) !== gid) return res.status(400).json({ error: 'Die speler zit niet in deze party' });
+  if (!g.huurlingen) g.huurlingen = {};
+  const oud = g.huurlingen[id] || {};
+  g.huurlingen[id] = {
+    loon, betaler,
+    achterstand: req.body.achterstand !== undefined ? Math.max(0, parseInt(req.body.achterstand, 10) || 0) : (oud.achterstand || 0),
+    sinds: oud.sinds || new Date().toISOString(),
+  };
+  if (!g.companions) g.companions = [];
+  const nieuw = !g.companions.includes(id);
+  if (nieuw) g.companions.push(id);
+  if (!g.visibility) g.visibility = {};
+  if ((g.visibility[id] || 'hidden') === 'hidden') g.visibility[id] = 'visible';
+  storage.writeJSON('dm-state.json', dmState);
+  const io = req.app.get('io');
+  io.to(_campagneRoom(req)).emit('companions:updated', {});
+  io.to(_campagneRoom(req)).emit('entity:updated', { type: 'personages', id });
+  res.json({ ok: true, groep: gid, huurling: _huurlingStand(g.huurlingen[id]), nieuwMedestander: nieuw });
+});
+
+// De achterstand nu betalen — alles in één keer, of niets: een halve
+// achterstand betalen is een gesprek aan tafel, geen knop.
+router.post('/entities/personages/:id/huurling/betaal', requireDM, (req, res) => {
+  const { id } = req.params;
+  const dmState = readDmState();
+  const entities = storage.readJSON('entities.json');
+  const gid = req.body?.groep && dmState.groups[req.body.groep] ? req.body.groep : (dmState.activeGroup || Object.keys(dmState.groups || {})[0]);
+  const g = getGroup(dmState, gid);
+  const h = g.huurlingen?.[id];
+  if (!h) return res.status(404).json({ error: 'Geen huurling' });
+  const bedrag = (parseInt(h.achterstand, 10) || 0) * (parseInt(h.loon, 10) || 0);
+  if (!bedrag) return res.json({ ok: true, betaald: 0, huurling: _huurlingStand(h) });
+  const betaler = _huurlingBetaler(dmState, gid, h, entities.personages);
+  if (!betaler) return res.status(400).json({ error: 'Er is niemand in deze party die kan betalen' });
+  if (toCl(_effectiveCurrency(dmState, betaler)) < bedrag)
+    return res.status(400).json({ error: `Te weinig in de beurs: de achterstand is ${_muntTekst(fromCl(bedrag))}` });
+  _deductCurrency(dmState, betaler, bedrag);
+  h.achterstand = 0;
+  storage.writeJSON('dm-state.json', dmState);
+  const io = req.app.get('io');
+  io.to(_campagneRoom(req)).emit('player:currency-updated', { characterId: betaler, currency: _effectiveCurrency(dmState, betaler) });
+  io.to(_campagneRoom(req)).emit('companions:updated', {});
+  res.json({ ok: true, betaald: bedrag, betaler, huurling: _huurlingStand(h) });
+});
+
+// Hij gaat. Van de party af, en de afspraak vervalt. Het kaartje blijft wat het
+// is: de party kent hem nog, en misschien komen ze hem weer tegen.
+router.post('/entities/personages/:id/huurling/vertrek', requireDM, (req, res) => {
+  const { id } = req.params;
+  const dmState = readDmState();
+  const gid = req.body?.groep && dmState.groups[req.body.groep] ? req.body.groep : (dmState.activeGroup || Object.keys(dmState.groups || {})[0]);
+  const g = getGroup(dmState, gid);
+  if (!g.huurlingen?.[id]) return res.status(404).json({ error: 'Geen huurling' });
+  delete g.huurlingen[id];
+  g.companions = (g.companions || []).filter(x => x !== id);
+  storage.writeJSON('dm-state.json', dmState);
+  req.app.get('io').to(_campagneRoom(req)).emit('companions:updated', {});
+  res.json({ ok: true });
+});
+
+// Geen huurling meer, wel medestander: hij loopt voortaan voor niets mee.
+router.delete('/entities/personages/:id/huurling', requireDM, (req, res) => {
+  const dmState = readDmState();
+  const gid = req.query.groep && dmState.groups[req.query.groep] ? req.query.groep : (dmState.activeGroup || Object.keys(dmState.groups || {})[0]);
+  const g = getGroup(dmState, gid);
+  if (g.huurlingen) delete g.huurlingen[req.params.id];
+  storage.writeJSON('dm-state.json', dmState);
+  req.app.get('io').to(_campagneRoom(req)).emit('companions:updated', {});
+  res.json({ ok: true });
 });
 
 // ── Welke gedaante kent deze party? ──
@@ -5805,6 +6044,10 @@ router.post('/party/long-rest', requireDM, (req, res) => {
     }[e.trap] });
   }
 
+  // Huurlingen krijgen hun dagloon — of niet, en dan telt het.
+  const _loon = _huurlingenLoon(dmState, activeGroepId, entities.personages);
+  for (const r of _loon.regels) gebeurtenissen.push({ naam: r.naam, tekst: r.tekst });
+
   storage.writeJSON('dm-state.json', dmState);
 
   // Cinematic naar alle spelers in de campagne
@@ -5826,7 +6069,9 @@ router.post('/party/long-rest', requireDM, (req, res) => {
   // hij beslist wanneer de turn gespeeld wordt.
   const _bt = _bastionTurnKlaar(dmState, _groupIdVan(g, dmState));
   if (_bt) _naarDM(req, 'bastion:turn', _bt);
-  res.json({ ok: true, spelers: spelers.length, resetCount, rollLog, kosten, roddelsOnthuld: roddels.length, gebeurtenissen });
+  for (const cid of _loon.betalers) io?.to(_campagneRoom(req)).emit('player:currency-updated', { characterId: cid, currency: _effectiveCurrency(dmState, cid) });
+  if (_loon.regels.length) io?.to(_campagneRoom(req)).emit('huurlingen:loon', { groep: activeGroepId, regels: _loon.regels });
+  res.json({ ok: true, spelers: spelers.length, resetCount, rollLog, kosten, roddelsOnthuld: roddels.length, gebeurtenissen, huurlingen: _loon.regels });
 });
 
 // ── Party korte rust (DM-only) ──
@@ -7778,6 +8023,17 @@ router.post('/party/level-up-tegoed', requireDM, (req, res) => {
   res.json({ ok: true, tegoed: g.levelUpTegoed, spelers: ids });
 });
 
+// Mag een speler kostbaar materiaal uit de beurs afrekenen als zijn voorraad op
+// is? Een smaak, geen regel — dus een schakelaar, en standaard uit: zo deed de
+// app het altijd (er werd niets afgeschreven).
+router.put('/meta/materiaal', requireDM, (req, res) => {
+  const meta = storage.readJSON('meta.json');
+  meta.materiaal = { ...(meta.materiaal || {}), kasboek: !!req.body?.kasboek };
+  storage.writeJSON('meta.json', meta);
+  req.app.get('io').to(_campagneRoom(req)).emit('meta:updated');
+  res.json({ ok: true, materiaal: meta.materiaal });
+});
+
 // De DM kiest welke manieren van HP bepalen er aan zijn tafel gelden.
 router.put('/meta/levelup', requireDM, (req, res) => {
   const meta = storage.readJSON('meta.json');
@@ -8315,6 +8571,11 @@ router.get('/companions', attachRole, (req, res) => {
       baasje: baasId ? naamVan(baasId) : '',
       baasjeId: baasId || '',
       hp: hp.current ?? null, maxHp: hp.max ?? null,
+      // Een huurling is geen geheim voor zijn werkgevers: ze betalen hem.
+      huurling: (() => {
+        const h = _huurlingStand(g.huurlingen?.[e.id]);
+        return h ? { loon: h.loon, achterstand: h.achterstand, wilWeg: h.wilWeg, betalerNaam: h.betaler ? naamVan(h.betaler) : '' } : null;
+      })(),
     };
   }));
 });
@@ -8943,6 +9204,201 @@ router.get('/party/gevallenen', attachRole, (req, res) => {
   res.json(uit);
 });
 
+// Wie deze party gevangen houdt — de rij naast de medestanders op het
+// partytabblad. Zelfde zichtbaarheidsregel als elders: een verborgen kaartje
+// bestaat voor de speler niet, een vaag kaartje houdt zijn naam maar verliest
+// zijn gegevens (zijn portret krijgt de waas van `_waasVoor`). Een gevangene die
+// intussen dood is, staat hier niet meer: dat is een andere rij.
+router.get('/party/gevangenen', attachRole, (req, res) => {
+  const myId = req.session?.characterId;
+  if (!myId && req.role !== 'dm') return res.status(403).json({ error: 'Geen karakter geselecteerd' });
+  const entities = storage.readJSON('entities.json');
+  const dmState  = readDmState();
+  const gid = myId ? _playerGroupId(dmState, myId) : dmState.activeGroup;
+  const g   = (dmState.groups || {})[gid] || {};
+  const uit = [];
+  for (const [id, stand] of Object.entries(g.gevangenen || {})) {
+    if (g.deceased?.[id]) continue;
+    const e = (entities.personages || []).find(x => x.id === id);
+    if (!e) continue;
+    const vis = (g.visibility || {})[id] || 'hidden';
+    if (req.role !== 'dm' && vis === 'hidden') continue;
+    const vaag = req.role !== 'dm' && vis === 'vague';
+    uit.push({
+      id: e.id, name: e.name, subtype: e.subtype,
+      imageId: e.data?.imageId || e.id,
+      imgFocus: vaag ? '' : (e.data?.imgFocus || ''),
+      rol: vaag ? '' : [e.data?.ras, e.data?.klasse].filter(Boolean).join(' · '),
+      vaag, sinds: stand?.sinds || null, waar: stand?.waar || '',
+    });
+  }
+  uit.sort((a, b) => String(a.sinds || '').localeCompare(String(b.sinds || '')));
+  res.json(uit);
+});
+
+// ── Het mooiste moment van de avond ──
+// Aan het eind van een sessie stemt elke speler (niet op zichzelf) op wiens
+// moment het mooiste was. De winnaar krijgt Heroic Inspiration.
+// Opslag: `groups[gid].stemronde = { id, start, kandidaten, stemmen:{kiezer:{op,reden}} }`.
+// **Anoniem betekent: niemand ziet wie op wie stemde — ook de DM niet.** De
+// server moet het wel weten (je mag je stem wijzigen, en niet twee keer
+// stemmen), maar geen enkele route geeft het terug. Wat er naar buiten gaat is
+// het aantal stemmen per kandidaat en de redenen, zonder naam erbij, in
+// willekeurige volgorde.
+// Een gelijke stand beslist de DM: de app kiest geen winnaar bij toeval.
+const _STEM_REDEN_MAX = 160;
+
+// Let op: `requireDM` zet `req.role` niet, alleen `attachRole` doet dat —
+// vandaar de sessie zelf.
+function _stemGroep(req, dmState) {
+  const myId = req.session?.characterId;
+  if (req.session?.role !== 'dm') return myId ? _playerGroupId(dmState, myId) : null;
+  const g = req.body?.groep || req.query?.groep;
+  return g && dmState.groups[g] ? g : (dmState.activeGroup || Object.keys(dmState.groups || {})[0]);
+}
+
+function _stemKandidaten(entities, ids) {
+  return ids.map(id => {
+    const e = (entities.personages || []).find(x => x.id === id);
+    return e ? { id, naam: e.name, imageId: e.data?.imageId || e.id, imgFocus: e.data?.imgFocus || '' } : null;
+  }).filter(Boolean);
+}
+
+// Wat er vanavond gebeurde: de genadeslagen uit de gevechten van vandaag, als
+// geheugensteun. Geen voorstel van de app voor een winnaar — alleen wat je
+// misschien vergeten was.
+function _stemSuggesties(gid, kandidaten) {
+  const vandaag = new Date().toISOString().slice(0, 10);
+  let archief = {};
+  try { archief = storage.readJSON('archief.json'); } catch { /* ok */ }
+  const uit = [];
+  for (const v of (archief.sessieLog || [])) {
+    if (v.soort !== 'gevecht' || v.datum !== vandaag || (v.groep && v.groep !== gid)) continue;
+    for (const m of (v.gevecht?.momenten || [])) {
+      if (m.soort !== 'hwywtdt' || !m.tekst) continue;
+      const k = kandidaten.find(x => x.naam === m.speler);
+      if (k) uit.push({ id: k.id, naam: k.naam, tekst: m.tekst, doel: m.doel || '' });
+    }
+  }
+  return uit.slice(-6);
+}
+
+function _schudden(lijst) {
+  const a = lijst.slice();
+  for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; }
+  return a;
+}
+
+function _stemrondeVoor(req, dmState, entities) {
+  const gid = _stemGroep(req, dmState);
+  const r = gid ? dmState.groups[gid]?.stemronde : null;
+  if (!r) return { open: false, groep: gid };
+  const myId = req.session?.characterId;
+  const kandidaten = _stemKandidaten(entities, r.kandidaten);
+  const uit = {
+    open: true, groep: gid, id: r.id, start: r.start,
+    kandidaten, gestemd: Object.keys(r.stemmen || {}).length, totaal: r.kandidaten.length,
+    suggesties: r.suggesties || [],
+  };
+  if (req.session?.role !== 'dm' && myId) {
+    uit.magStemmen = r.kandidaten.includes(myId);
+    const mijn = r.stemmen?.[myId];
+    uit.mijnStem = mijn ? { op: mijn.op, reden: mijn.reden || '' } : null;
+  }
+  return uit;
+}
+
+router.get('/stemronde', attachRole, (req, res) => {
+  if (req.role !== 'dm' && !req.session?.characterId) return res.status(403).json({ error: 'Geen karakter geselecteerd' });
+  res.json(_stemrondeVoor(req, readDmState(), storage.readJSON('entities.json')));
+});
+
+router.post('/stemronde', requireDM, (req, res) => {
+  const dmState  = readDmState();
+  const entities = storage.readJSON('entities.json');
+  const gid = _stemGroep(req, dmState);
+  const g   = getGroup(dmState, gid);
+  if (g.stemronde) return res.status(409).json({ error: 'Er loopt al een stemronde' });
+  const ids = _aanwezigeSpelers(dmState, gid, entities.personages).map(e => e.id);
+  if (ids.length < 2) return res.status(400).json({ error: 'Om te stemmen zijn er minstens twee spelers nodig' });
+  const kandidaten = _stemKandidaten(entities, ids);
+  g.stemronde = {
+    id: 'st_' + Date.now().toString(36), start: new Date().toISOString(),
+    kandidaten: ids, stemmen: {}, suggesties: _stemSuggesties(gid, kandidaten),
+  };
+  storage.writeJSON('dm-state.json', dmState);
+  req.app.get('io').to(_campagneRoom(req)).emit('stemronde:open', { groep: gid, id: g.stemronde.id });
+  res.json(_stemrondeVoor(req, dmState, entities));
+});
+
+router.post('/stemronde/stem', attachRole, (req, res) => {
+  const myId = req.session?.characterId;
+  if (req.role === 'dm' || !myId) return res.status(403).json({ error: 'Alleen spelers stemmen' });
+  const dmState = readDmState();
+  const gid = _playerGroupId(dmState, myId);
+  const r = gid ? dmState.groups[gid]?.stemronde : null;
+  if (!r) return res.status(409).json({ error: 'Er loopt geen stemronde' });
+  if (!r.kandidaten.includes(myId)) return res.status(403).json({ error: 'Je doet vanavond niet mee' });
+  const op = String(req.body?.op || '');
+  if (op === myId) return res.status(400).json({ error: 'Op jezelf stemmen kan niet' });
+  if (!r.kandidaten.includes(op)) return res.status(400).json({ error: 'Onbekende kandidaat' });
+  const reden = String(req.body?.reden || '').replace(/\s+/g, ' ').trim().slice(0, _STEM_REDEN_MAX);
+  if (!r.stemmen) r.stemmen = {};
+  r.stemmen[myId] = { op, ...(reden ? { reden } : {}) };
+  storage.writeJSON('dm-state.json', dmState);
+  req.app.get('io').to(_campagneRoom(req)).emit('stemronde:stand', {
+    groep: gid, id: r.id, gestemd: Object.keys(r.stemmen).length, totaal: r.kandidaten.length,
+  });
+  res.json({ ok: true, gestemd: Object.keys(r.stemmen).length, totaal: r.kandidaten.length });
+});
+
+// Sluiten. `{annuleer:true}` breekt af zonder winnaar; bij een gelijke stand
+// komt er een 409 met de namen terug en kiest de DM (`{winnaar}`).
+router.post('/stemronde/sluit', requireDM, (req, res) => {
+  const dmState  = readDmState();
+  const entities = storage.readJSON('entities.json');
+  const gid = _stemGroep(req, dmState);
+  const g   = getGroup(dmState, gid);
+  const r   = g.stemronde;
+  if (!r) return res.status(409).json({ error: 'Er loopt geen stemronde' });
+  const io = req.app.get('io');
+  if (req.body?.annuleer) {
+    delete g.stemronde;
+    storage.writeJSON('dm-state.json', dmState);
+    io.to(_campagneRoom(req)).emit('stemronde:dicht', { groep: gid, id: r.id });
+    return res.json({ ok: true, geannuleerd: true });
+  }
+  const telling = {};
+  for (const s of Object.values(r.stemmen || {})) telling[s.op] = (telling[s.op] || 0) + 1;
+  const hoogste = Math.max(0, ...Object.values(telling));
+  if (!hoogste) return res.status(409).json({ error: 'Er is nog niet gestemd', geenStemmen: true });
+  const top = Object.keys(telling).filter(id => telling[id] === hoogste);
+  let winnaar = top[0];
+  if (top.length > 1) {
+    if (!top.includes(req.body?.winnaar))
+      return res.status(409).json({ error: 'Gelijke stand', gelijk: _stemKandidaten(entities, top), stemmen: hoogste });
+    winnaar = req.body.winnaar;
+  }
+  const [w] = _stemKandidaten(entities, [winnaar]);
+  // De redenen bij de winnaar, zonder naam en geschud: de volgorde van stemmen
+  // zou anders verraden wie wat schreef.
+  const redenen = _schudden(Object.values(r.stemmen).filter(s => s.op === winnaar && s.reden).map(s => s.reden));
+  if (!dmState.playerInspiration) dmState.playerInspiration = {};
+  const hadAl = !!dmState.playerInspiration[winnaar];
+  dmState.playerInspiration[winnaar] = true;
+  g.stemrondeVorige = { id: r.id, datum: new Date().toISOString(), winnaar, stemmen: hoogste,
+                        gestemd: Object.keys(r.stemmen).length, redenen };
+  delete g.stemronde;
+  storage.writeJSON('dm-state.json', dmState);
+  const uitslag = { groep: gid, id: r.id, winnaar: w, stemmen: hoogste,
+                    gestemd: Object.keys(r.stemmen).length, totaal: r.kandidaten.length, redenen };
+  io.to(_campagneRoom(req)).emit('stemronde:uitslag', uitslag);
+  io.to(_displayRoom(req)).emit('stemronde:display', uitslag);
+  io.to(_campagneRoom(req)).emit('player:inspiration', { characterId: winnaar, inspired: true, name: w?.naam || '' });
+  io.to(_campagneRoom(req)).emit('badges:updated', { characterId: winnaar });
+  res.json({ ok: true, ...uitslag, hadAl });
+});
+
 // ── Speler profiel (level, klasse, subclass, background, origin) ──
 
 router.get('/player-profile/:characterId', attachRole, (req, res) => {
@@ -9225,7 +9681,13 @@ router.get('/player-spells/:characterId', attachRole, (req, res) => {
   if (req.role !== 'dm' && req.session.characterId !== characterId)
     return res.status(403).json({ error: 'Geen toegang' });
   const dmState = readDmState();
-  res.json((dmState.playerSpells || {})[characterId] || []);
+  // `_materiaal` is afgeleid (wat de M-component kost en of hij opgaat) plus
+  // de stand van de speler — zie lib/materiaal.js. Niet opgeslagen: de tekst
+  // van de spreuk is de bron.
+  res.json(((dmState.playerSpells || {})[characterId] || []).map(sp => {
+    const m = MAT.voorClient(sp);
+    return m ? { ...sp, _materiaal: m } : sp;
+  }));
 });
 
 // Wie kent deze spreuk? Dezelfde vraag als "wie heeft dit voorwerp" bij een
@@ -9484,6 +9946,16 @@ router.patch('/player-spells/:characterId/:spellIndex', attachRole, (req, res) =
       spell.incPos = { x: klem(incPos.x), y: klem(incPos.y) };
     }
   }
+  // De M-component: altijd bij de hand, of een voorraad die per cast afloopt.
+  // `null` zet hem terug op wat de spreuk zelf suggereert.
+  if (req.body.materiaal !== undefined) {
+    if (req.body.materiaal === null) delete spell.materiaal;
+    else {
+      const st = MAT.schoneStand(req.body.materiaal);
+      if (!st) return res.status(400).json({ error: 'Ongeldige materiaalstand' });
+      spell.materiaal = st;
+    }
+  }
   // #1: concentratie-vlag (gebruikt door de Concentration-save-waarschuwing in combat).
   // Exclusief: maar één spreuk tegelijk actief.
   if (concentrationActive !== undefined) {
@@ -9492,6 +9964,48 @@ router.patch('/player-spells/:characterId/:spellIndex', attachRole, (req, res) =
   }
   storage.writeJSON('dm-state.json', dmState);
   res.json({ ok: true });
+});
+
+// ── Material components: een cast verbruikt materiaal ──────────────────────
+// Het spreukenboek roept dit aan op het moment dat een slot wordt afgevinkt.
+// Drie uitkomsten: "altijd bij de hand" (er gebeurt niets), een voorraad die
+// één omlaag gaat, of — als de voorraad op is en de DM het toestaat — het
+// bedrag uit de beurs. Op en geen afrekening: 409 met `op`, en de speler
+// beslist zelf of hij toch cast (de app weigert geen spreuk, hij rekent voor).
+router.post('/player-spells/:characterId/:spellIndex/materiaal', attachRole, (req, res) => {
+  const { characterId, spellIndex } = req.params;
+  if (req.role !== 'dm' && req.session.characterId !== characterId)
+    return res.status(403).json({ error: 'Geen toegang' });
+  const dmState = readDmState();
+  const spell = ((dmState.playerSpells || {})[characterId] || []).find(s => s.index === spellIndex);
+  if (!spell) return res.status(404).json({ error: 'Spreuk niet gevonden' });
+  const info = MAT.materiaalUit(spell.components, spell.material);
+  if (!info) return res.status(400).json({ error: 'Deze spreuk heeft geen M-component' });
+
+  if (req.body?.betaalCl !== undefined) {
+    // De schakelaar van de DM. Staat hij uit, dan bestaat deze weg niet —
+    // ook niet voor wie langs de knop heen gaat.
+    const meta = storage.readJSON('meta.json');
+    if (!meta.materiaal?.kasboek)
+      return res.status(409).json({ error: 'De DM staat afrekenen uit de beurs niet toe' });
+    const cl = Math.round(Number(req.body.betaalCl));
+    if (!(cl > 0)) return res.status(400).json({ error: 'Ongeldig bedrag' });
+    if (toCl(_effectiveCurrency(dmState, characterId) || {}) < cl)
+      return res.status(400).json({ error: 'Niet genoeg geld in de beurs' });
+    _deductCurrency(dmState, characterId, cl);
+    storage.writeJSON('dm-state.json', dmState);
+    const currency = _effectiveCurrency(dmState, characterId);
+    req.app.get('io')?.to(_campagneRoom(req)).emit('player:currency-updated', { characterId, currency });
+    return res.json({ ok: true, betaaldCl: cl, currency, materiaal: MAT.voorClient(spell) });
+  }
+
+  const stand = MAT.standVan(spell, info);
+  if (stand.modus === 'altijd') return res.json({ ok: true, materiaal: MAT.voorClient(spell) });
+  if (stand.aantal <= 0)
+    return res.status(409).json({ error: 'Je materiaal is op', op: true, materiaal: MAT.voorClient(spell) });
+  spell.materiaal = { modus: 'voorraad', aantal: stand.aantal - 1 };
+  storage.writeJSON('dm-state.json', dmState);
+  res.json({ ok: true, materiaal: MAT.voorClient(spell) });
 });
 
 router.delete('/player-spells/:characterId/:spellIndex', attachRole, (req, res) => {

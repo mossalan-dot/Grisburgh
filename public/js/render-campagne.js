@@ -971,12 +971,15 @@ function getCardBadges(type, e) {
     const b = getSubtypeBadge(type, e);
     return b ? [b] : [];
   }
+  // Gevangen is een toestand van deze party, geen rol — maar wel het eerste
+  // wat je over hem wilt weten, dus hij staat vooraan.
+  const toestand = e._gevangen ? [{ label: 'Gevangen', cls: 'badge-gevangen' }] : [];
   const rollen = [];
   if (window._heeftRol?.(e, 'antagonist')) rollen.push({ label: 'Antagonist', cls: 'badge-antagonist' });
   if (window._heeftRol?.(e, 'verkoper'))   rollen.push({ label: 'Verkoper',   cls: 'badge-verkoper' });
-  if (rollen.length) return rollen;
+  if (rollen.length) return [...toestand, ...rollen];
   const b = getSubtypeBadge(type, e);
-  return b ? [b] : [];
+  return b ? [...toestand, b] : toestand;
 }
 
 function getSubtypeBadge(type, e) {
@@ -2867,6 +2870,116 @@ window._toggleMedestander = async (entityId) => {
   _vulMedestander(entityId);
 };
 
+// Gevangen nemen of vrijlaten — voor de actieve party, net als de
+// medestander. Expliciet aan of uit naar de server (geen wisselknop), en het
+// antwoord zegt wat er nog meer gebeurde: van medestander af, of van verborgen
+// naar vaag (de party heeft hem in handen, dus ze weten dát hij er is).
+window._toggleGevangen = async (entityId) => {
+  const e = (entities.personages || []).find(x => x.id === entityId);
+  const nu = !!e?._gevangen;
+  let waar;
+  if (!nu) {
+    let medestander = false;
+    try { medestander = ((await api.getCompanionStatus(entityId)).linked || []).includes(window._activeGroupId); } catch { /* ok */ }
+    if (medestander && !confirm(`${e?.name || 'Dit personage'} loopt nu als medestander met de party mee.\nGevangen nemen haalt hem daar weg. Doorgaan?`)) return;
+    waar = prompt('Waar houdt de party hem vast? (mag leeg blijven)', '');
+    if (waar === null) return;
+  }
+  let r;
+  try { r = await api.put(`/entities/personages/${entityId}/gevangen`, { gevangen: !nu, ...(waar !== undefined ? { waar } : {}) }); }
+  catch (err) { alert('Gevangen nemen mislukt: ' + err.message); return; }
+  if (e) e._gevangen = !nu;
+  const extra = [r.wasMedestander ? 'niet langer medestander' : '', r.zichtbaarGemaakt ? 'nu vaag zichtbaar voor de party' : ''].filter(Boolean);
+  window._showToast?.(`${icon('columns-4')} ${esc(e?.name || '')} ${nu ? 'is vrijgelaten' : 'is gevangen genomen'}${extra.length ? ` — ${extra.join(', ')}` : ''}`, null, 4000);
+  const btn = document.getElementById(`detail-gevangen-${entityId}`);
+  if (btn) {
+    btn.classList.toggle('dm-actie--aan', !nu);
+    btn.title = !nu ? 'Gevangene van de actieve party — klik om vrij te laten' : 'Gevangen nemen door de actieve party';
+  }
+  if (r.wasMedestander) _vulMedestander(entityId);
+  renderEntitySection('personages');
+};
+
+// ── Huurling: een medestander met een dagloon ──
+// Eigen venster in plaats van een prompt, want het zijn drie dingen samen: hoeveel,
+// wie betaalt, en wat er openstaat. Het loon is een voorgevuld veld (2 gouden
+// munten, de PHB-prijs voor een geschoolde kracht) dat de DM overtypt met wat
+// er aan tafel is afgesproken. Vertrekken gaat nooit vanzelf: de knop daarvoor
+// staat hier, met een bevestiging ervoor.
+async function _vulHuurling(entityId) {
+  const btn = document.getElementById(`detail-huurling-${entityId}`);
+  if (!btn) return;
+  let st;
+  try { st = await api.get(`/entities/personages/${entityId}/huurling`); } catch { return; }
+  const h = st.huurling;
+  btn.classList.toggle('dm-actie--aan', !!h);
+  btn.classList.toggle('dm-actie--let-op', !!h?.wilWeg);
+  btn.title = !h ? 'Huurling: in dienst van de actieve party, met een dagloon'
+    : h.wilWeg ? `Wil vertrekken — ${h.achterstand} dagen niet betaald`
+    : `In dienst voor ${window.formatCl(h.loon)} per dag`;
+}
+
+window._huurlingOpen = async (entityId) => {
+  const e = (entities.personages || []).find(x => x.id === entityId);
+  let st;
+  try { st = await api.get(`/entities/personages/${entityId}/huurling`); }
+  catch (err) { alert('Ophalen mislukt: ' + err.message); return; }
+  const h = st.huurling;
+  const loonCl = h ? h.loon : st.loonSuggestie;
+  const munten = { fl: Math.floor(loonCl / 100), kn: Math.floor((loonCl % 100) / 10), cl: loonCl % 10 };
+  const veld = window._bedragVeldHtml?.('huur-loon', munten, { label: 'Loon per dag' })
+    ?? `<div class="dm-form-row"><label class="dm-form-label" for="huur-loon">Loon per dag</label>
+        <input id="huur-loon" class="dm-input" value="${loonCl}"></div>`;
+  const spelers = st.spelers || [];
+  const terug = () => window._openDetail?.('personages', entityId);
+  const html = `<div class="huur-venster">
+    ${h?.achterstand ? `<div class="huur-achterstand${h.wilWeg ? ' huur-achterstand--weg' : ''}">
+      ${icon(h.wilWeg ? 'door-open' : 'hourglass')}
+      <span>${h.wilWeg ? 'Wil vertrekken' : 'Achterstallig'}: ${h.achterstand} ${h.achterstand === 1 ? 'dag' : 'dagen'},
+        samen ${esc(window.formatCl(h.achterstand * h.loon))}</span>
+    </div>` : ''}
+    ${veld}
+    ${st.gedeeldeBeurs ? `<div class="dm-form-row"><span class="dm-form-label">Betaald uit</span>
+        <span class="huur-beurs">${icon('coins')} de gedeelde beurs</span></div>`
+      : `<div class="dm-form-row"><label class="dm-form-label" for="huur-betaler">Betaald door</label>
+        <select id="huur-betaler" class="dm-input">
+          ${spelers.map(p => `<option value="${esc(p.id)}"${h?.betaler === p.id ? ' selected' : ''}>${esc(p.naam)}</option>`).join('')}
+        </select></div>`}
+    <div class="huur-knoppen">
+      <button class="dm-btn dm-btn-primary" id="huur-opslaan">${icon('save')} ${h ? 'Opslaan' : 'In dienst nemen'}</button>
+      ${h?.achterstand ? `<button class="dm-btn dm-btn-ghost" id="huur-betaal">${icon('coins')} Achterstand betalen</button>` : ''}
+      ${h ? `<button class="dm-btn dm-btn-ghost" id="huur-gratis" title="Hij blijft medestander, maar kost niets meer">Geen loon meer</button>
+             <button class="dm-btn dm-btn-danger" id="huur-weg">${icon('door-open')} Laat hem gaan</button>` : ''}
+    </div>
+  </div>`;
+  window.app.openModal(`${icon('coins')} ${h ? 'Huurling' : 'In dienst nemen'}`,
+    `${esc(e?.name || '')} · ${esc(st.groepNaam)}`, html);
+  const q = id => document.getElementById(id);
+  const leesLoon = () => {
+    const m = window._bedragLeesMunten?.('huur-loon');
+    return m ? (m.fl || 0) * 100 + (m.kn || 0) * 10 + (m.cl || 0) : parseInt(q('huur-loon')?.value, 10) || 0;
+  };
+  const doe = async (fn, melding) => {
+    try { const r = await fn(); if (melding) window._showToast?.(melding(r), null, 3500); terug(); }
+    catch (err) { alert(err.message); }
+  };
+  q('huur-opslaan').onclick = () => doe(
+    () => api.put(`/entities/personages/${entityId}/huurling`, { loon: leesLoon(), betaler: q('huur-betaler')?.value || '', groep: st.groep }),
+    () => `${icon('coins')} ${esc(e?.name || '')} is in dienst voor ${esc(window.formatCl(leesLoon()))} per dag`);
+  q('huur-betaal')?.addEventListener('click', () => doe(
+    () => api.post(`/entities/personages/${entityId}/huurling/betaal`, { groep: st.groep }),
+    r => `${icon('coins')} Achterstand betaald: ${esc(window.formatCl(r.betaald))}`));
+  q('huur-gratis')?.addEventListener('click', () => {
+    if (!confirm(`${e?.name || 'Hij'} loopt dan voortaan voor niets mee. Een openstaande achterstand vervalt.`)) return;
+    doe(() => api.delete(`/entities/personages/${entityId}/huurling?groep=${encodeURIComponent(st.groep)}`));
+  });
+  q('huur-weg')?.addEventListener('click', () => {
+    if (!confirm(`${e?.name || 'De huurling'} vertrekt en is niet langer medestander van ${st.groepNaam}. Doorgaan?`)) return;
+    doe(() => api.post(`/entities/personages/${entityId}/huurling/vertrek`, { groep: st.groep }),
+        () => `${icon('door-open')} ${esc(e?.name || '')} is vertrokken`);
+  });
+};
+
 async function _vulMissies(entityId, tab) {
   const host = () => document.getElementById(`detail-missies-${entityId}`);
   let missies = [];
@@ -3110,7 +3223,7 @@ async function renderEntitySection(type) {
     </div>` : ''}
 
     <!-- Card grid -->
-    <div class="cards-grid grid grid-cols-[repeat(auto-fill,minmax(280px,1fr))] gap-4 p-6 overflow-y-auto flex-1">
+    <div class="cards-grid${_isTegelType(type) ? ' tegel-raster' : ''} grid grid-cols-[repeat(auto-fill,minmax(280px,1fr))] gap-4 p-6 overflow-y-auto flex-1">
     </div>
   `;
   // Onthoud met welke DM-status deze balk gebouwd is (zie de guard bovenaan): wisselt de
@@ -3214,7 +3327,7 @@ function _refreshGrid(type, list, container) {
         ? `<div class="text-xs font-fell italic mt-1">Gebruik de <span class="font-mono px-1 py-0.5 bg-room-elevated rounded">+</span> knop om iets toe te voegen</div>`
         : ''}
     </div>
-  ` : list.map(e => renderCard(type, e)).join('');
+  ` : _isTegelType(type) ? _tegelRasterHtml(type, list) : list.map(e => renderCard(type, e)).join('');
   grid.scrollTop = savedGridScroll; // meteen herstellen (layout is al berekend)
   if (type === 'locaties') _kaartKnoppenBijwerken(grid);
   requestAnimationFrame(() => {
@@ -3927,6 +4040,550 @@ function renderCard(type, e) {
     </div>
   `;
 }
+
+// ── Tegels: een raster van postzegels dat je openklapt ──────────────────────
+// Het archief toonde per kaartje beeld, badges, vier regels beschrijving,
+// roddels en wapenlabels tegelijk — alles stond er, en daarom zag je niets.
+// Een tegel heeft drie standen:
+//   1. dicht   — beeld en naam, in een raster van kleine kaartjes;
+//   2. open    — tik erop en hij wordt 2×2 groot, en elke volgende tik draait
+//                hem om naar het volgende blad (gegevens, beschrijving,
+//                roddels, geheimen);
+//   3. venster — het knopje onderaan vergroot hem tot het hele detailvenster,
+//                en bij het sluiten krimpt dat weer terug naar de tegel.
+// Een blad zonder inhoud bestaat niet: wie geen roddels heeft, heeft geen
+// roddelblad, en een speler ziet dus ook niet dát er nog iets dicht zit.
+//
+// Spelers houden hun favorieten op een **stapel** linksboven, die uitwaaiert
+// tot een eigen rij. De DM heeft geen favorieten.
+//
+// Begonnen bij de personages; de andere tabbladen volgen dit patroon
+// (`TEGEL_TYPES`).
+const TEGEL_TYPES = new Set(['personages', 'locaties', 'organisaties', 'voorwerpen', 'documenten']);
+const _tegelOpen = {};          // type → id van de tegel die open staat
+const _tegelBlad = {};          // id → bladindex
+const _stapelUit = {};          // type → favorieten uitgewaaierd?
+
+const _isTegelType = (type) => TEGEL_TYPES.has(type);
+window._isTegelType = _isTegelType;
+
+function _stapelStandLees(type) {
+  if (type in _stapelUit) return _stapelUit[type];
+  try { _stapelUit[type] = localStorage.getItem('stapelUit:' + type) === '1'; } catch { _stapelUit[type] = false; }
+  return _stapelUit[type];
+}
+function _stapelStandZet(type, uit) {
+  _stapelUit[type] = uit;
+  try { localStorage.setItem('stapelUit:' + type, uit ? '1' : '0'); } catch { /* geen opslag, dan maar deze sessie */ }
+}
+
+const _favIds = (type) => new Set((window.app?.state?.bookmarks || []).filter(b => b.type === type).map(b => b.id));
+
+// De bladen van één kaartje, in de vaste volgorde. Elk blad heeft een soort
+// (voor de opmaak en het bolletje) en de html die erin komt.
+function _tegelBladen(type, e) {
+  const d = e.data || {};
+  const bladen = [{ soort: 'portret', label: 'Portret' }];
+
+  // Blad 2: de gegevens — per kaartsoort andere velden, zie `_tegelGegevens`.
+  const gegevens = _tegelGegevens(type, e);
+  if (gegevens) bladen.push({ soort: 'gegevens', label: 'Gegevens', html: gegevens });
+
+  if (d.desc) bladen.push({ soort: 'beschrijving', label: 'Beschrijving', tekst: d.desc,
+    html: `<div class="tegel-tekst">${mdToHtml(d.desc)}</div>` });
+
+  // Een document heeft daarnaast zijn eigen tekst, in zijn eigen briefstijl.
+  // Gecodeerd en nog niet gekraakt: de tekens door elkaar, net als in het venster.
+  if (type === 'documenten' && d.tekst) {
+    const stijl = _docStijl(e);
+    let binnen = renderParchment(d.tekst);
+    if (stijl === 'knipsel') binnen = _knipselLetters(binnen);
+    const codeAan = !!d.gecodeerd && !isDM() && e._gecodeerd;
+    if (codeAan) binnen = _codeLetters(binnen);
+    bladen.push({ soort: 'tekst', label: 'Tekst', tekst: codeAan ? '' : d.tekst,
+      html: `<div class="parchment-block tegel-perkament-tekst${codeAan ? ' brief-gecodeerd' : ''}" data-stijl="${esc(stijl)}">${binnen}</div>` });
+  }
+
+  // Roddels: de speler krijgt alleen wat verteld is, de DM alles — wat nog
+  // niet verteld is gedimd, zoals in het venster.
+  const rRegels = _tekstLijstUit(d, 'flavours', 'flavour');
+  const rGezegd = _roddelStand(e, rRegels);
+  const roddels = rRegels.map((t, i) => ({ t, aan: !!rGezegd[i] })).filter(r => r.t && (isDM() || r.aan));
+  if (roddels.length) bladen.push({ soort: 'roddels', label: 'Roddels', tekst: roddels.map(r => r.t).join(' '),
+    html: `<ul class="tegel-regels">${roddels.map(r => `<li class="tegel-regel${r.aan ? '' : ' tegel-regel--dicht'}"
+      ${r.aan ? '' : 'title="Nog niet verteld"'}>„${esc(r.t)}“</li>`).join('')}</ul>` });
+
+  // Geheimen: dezelfde regels als het venster (zie de toelichting daar).
+  const gObj = _geheimRegelsUit(d);
+  const gOpen = !isDM() ? gObj.map(() => true)
+    : Array.isArray(e._onthuld) ? gObj.map((_, i) => !!e._onthuld[i])
+    : gObj.map((_, i) => !!e._secretReveal && i === 0);
+  const geheimen = gObj.map((r, i) => ({ t: r.tekst, aan: gOpen[i] })).filter(r => r.t && (isDM() || r.aan));
+  if (geheimen.length) bladen.push({ soort: 'geheimen', label: 'Geheimen', tekst: geheimen.map(r => r.t).join(' '),
+    html: `<ul class="tegel-regels">${geheimen.map(r => `<li class="tegel-regel${r.aan ? '' : ' tegel-regel--dicht'}">
+      ${r.aan ? '' : `<span class="tegel-slot" title="Nog dicht voor deze party">${icon('lock')}</span>`}${mdToHtml(r.t)}</li>`).join('')}</ul>` });
+  return bladen;
+}
+
+const _BLAD_ICOON = { portret: 'image', gegevens: 'clipboard-list', beschrijving: 'book-open', tekst: 'scroll-text', roddels: 'beer', geheimen: 'lock' };
+
+// Wat er op het gegevensblad staat, per kaartsoort. Labels zijn D&D-termen waar
+// die bestaan (Origin, Class, Alignment, Requires Attunement). Zonder rijen geen
+// blad: een locatie zonder type, gebied en betrokkenen heeft niets te melden.
+function _tegelGegevens(type, e) {
+  const d = e.data || {};
+  const rijen = [];                       // [label, waarde, extra klasse]
+  let lijst = [], lijstKop = '';
+  // Badges alleen bij personages (NPC, Antagonist, Verkoper): bij de andere
+  // soorten herhaalt de badge het type of het gebied, en dat staat al als rij.
+  const badges = type === 'personages' ? getCardBadges(type, e) : [];
+  if (type === 'personages') {
+    const isGod = String(e.subtype || '').toLowerCase().startsWith('god');
+    const isDier = String(e.subtype || '').toLowerCase() === 'dier';
+    if (d.rol) rijen.push(['', d.rol, 'tegel-gegeven--rol']);
+    if (isDier && d.soortLabel) rijen.push(['Ras', d.soortLabel]);
+    if (!isGod && !isDier && d.ras) rijen.push(['Origin', d.ras]);
+    if (!isGod && !isDier && d.klasse) rijen.push(['Class', d.klasse]);
+    if (isGod && d.domein) rijen.push(['Domein', d.domein]);
+    if (isGod && d.symbool) rijen.push(['Heilig symbool', d.symbool]);
+    if (d.alignment) rijen.push(['Alignment', d.alignment]);
+  } else if (type === 'locaties') {
+    if (d.locType) rijen.push(['Type', d.locType]);
+    if (d.wijk) rijen.push(['Gebied', d.wijk]);
+  } else if (type === 'organisaties') {
+    if (d.motto) rijen.push(['', `\u201e${d.motto}\u201c`, 'tegel-gegeven--rol']);
+    if (d.orgType) rijen.push(['Type', d.orgType]);
+    if (d.wijk) rijen.push(['Gebied', d.wijk]);
+  } else if (type === 'voorwerpen') {
+    if (d.itemType) rijen.push(['Type', d.itemType]);
+    if (d.rariteit) rijen.push(['Rarity', _rarityLabel(d.rariteit)]);
+    if (d.attunement === true || d.attunement === 'true')
+      rijen.push(['Attunement', d.attunementEis ? `Requires Attunement by ${d.attunementEis}` : 'Requires Attunement']);
+    const dmg = String(d.damage || '').trim();
+    const heal = String(d.healing || '').trim() || (/heal|genez/i.test(dmg) ? dmg : '');
+    if (dmg && !/heal|genez/i.test(dmg)) rijen.push(['Damage', dmg]);
+    if (heal) rijen.push(['Healing', heal]);
+    const acr = _calcArmorAC(d, null);
+    if (acr) rijen.push(['Armor Class', acr.pill]);
+    if (parseInt(d.maxCharges) > 0) rijen.push(['Charges', String(parseInt(d.maxCharges))]);
+    const props = (() => { try { return JSON.parse(d.weaponProperties || '[]'); } catch { return []; } })();
+    if (props.length) rijen.push(['Properties', props.join(', ')]);
+    if (d.stealthDisadvantage === true || d.stealthDisadvantage === 'true') rijen.push(['Stealth', 'Disadvantage']);
+    if (parseInt(d.strengthRequirement)) rijen.push(['Strength', String(parseInt(d.strengthRequirement))]);
+  } else if (type === 'documenten') {
+    if (d.docType) rijen.push(['Type', d.docType]);
+  }
+  // Wie hier bij hoort (locatie, organisatie) — wat de speler niet kent komt
+  // van de server zonder naam, dus dat staat er als "onbekend".
+  if (type === 'locaties' || type === 'organisaties') {
+    lijst = _betrokkenenUit(d).slice(0, 5).map(r => ({ rol: r.rol, naam: r.onbekend ? 'onbekend' : (r.naam || '') }));
+    lijstKop = type === 'locaties' ? 'Wie hoort hier bij?' : 'Leden';
+  }
+  const hoort = (Array.isArray(e._hoortBij) ? e._hoortBij : []).slice(0, 4);
+  if (!rijen.length && !badges.length && !hoort.length && !lijst.length) return '';
+  const regels = (kop, items) => items.length ? `<div class="tegel-kopje">${esc(kop)}</div>
+    <ul class="tegel-hoort">${items.map(r => `<li><span class="tegel-hoort-rol">${esc(r.rol || '')}</span> ${esc(r.naam || r.name || '')}</li>`).join('')}</ul>` : '';
+  return `
+    ${badges.length ? `<div class="tegel-badges">${badges.map(b => `<span class="card-subtype-badge ${b.cls}">${esc(b.label)}</span>`).join('')}</div>` : ''}
+    ${rijen.length ? `<dl class="tegel-gegevens">${rijen.map(([k, v, cls]) => k
+      ? `<div class="tegel-gegeven"><dt>${esc(k)}</dt><dd>${esc(v)}</dd></div>`
+      : `<div class="tegel-gegeven ${cls || ''}"><dd>${esc(v)}</dd></div>`).join('')}</dl>` : ''}
+    ${regels(lijstKop, lijst)}
+    ${regels(_hoortBijKop(type), hoort)}`;
+}
+
+// Het icoon dat een tegel zonder beeld draagt, en dat bij een locatie ook als
+// merkje boven de naam staat: een haven ziet er anders uit dan een woud.
+function _tegelIcoon(type, e) {
+  // Een locatie zonder eigen teken krijgt het icoon van zijn type uit
+  // LOC_TYPE_ICOON — hetzelfde als de speld op de kaart.
+  if (type === 'locaties' && !e.data?.icoon && !e.data?.icon) return window._locIcoon(e.data?.locType);
+  return getAutoIconSvg(type, e) || TYPE_META[type].svgIcon;
+}
+
+// De ondertitel op het portretblad.
+function _tegelOndertitel(type, e) {
+  const d = e.data || {};
+  if (type === 'personages') return d.rol || '';
+  if (type === 'locaties') return [d.locType, d.wijk].filter(Boolean).join(' · ');
+  if (type === 'organisaties') return d.motto ? `\u201e${d.motto}\u201c` : (d.orgType || '');
+  if (type === 'voorwerpen') return [d.itemType, d.rariteit ? _rarityLabel(d.rariteit) : ''].filter(Boolean).join(' · ');
+  if (type === 'documenten') return d.docType || '';
+  return '';
+}
+
+// Een document zonder plaatje krijgt een mini-perkamentje in zijn eigen
+// briefstijl, met de titel erop: dan zie je al aan de tegel of het een brief,
+// een krantenknipsel of een getypt verslag is.
+function _tegelPerkament(type, e) {
+  if (type !== 'documenten' || e._beeld !== false) return '';
+  const stijl = _docStijl(e);
+  const titel = stijl === 'knipsel' ? _knipselLetters(`<p>${esc(e.name)}</p>`) : `<p>${esc(e.name)}</p>`;
+  return `<div class="tegel-perkament parchment-block" data-stijl="${esc(stijl)}" aria-hidden="true">
+    <span>${titel}</span></div>`;
+}
+
+function _tegelKlassen(type, e, extra = '') {
+  const vis = e._visibility || 'visible';
+  return ['entity-card', 'tegel', extra,
+    vis === 'hidden' && isDM() ? 'card-hidden' : '',
+    vis === 'vague' && isDM() ? 'card-vague-dm' : '',
+    e._deceased ? 'card-deceased' : '',
+    type === 'personages' && e.subtype === 'speler' ? 'card-protagonist' : '',
+    isDM() && _isConcept(e) ? 'card-concept' : '',
+  ].filter(Boolean).join(' ');
+}
+
+function _tegelDmKnoppen(type, e, { voet = false } = {}) {
+  if (!isDM()) return '';
+  const vis = e._visibility || 'visible';
+  const ico = vis === 'visible' ? icon('eye') : vis === 'vague' ? icon('eye-off') : icon('lock');
+  return `<div class="tegel-dm" onclick="event.stopPropagation()">
+    <button onclick="window._toggleVis('${type}','${escArg(e.id)}',event)" title="Zichtbaarheid  ·  Shift: vaag">${ico}</button>
+    <button onclick="window._openEditor('${type}','${escArg(e.id)}')" title="Bewerken">${icon('pencil')}</button>
+    ${voet ? '' : `<button class="tegel-dm-weg" onclick="window._deleteEntity('${type}','${escArg(e.id)}')" title="Verwijderen">${icon('x')}</button>`}
+  </div>`;
+}
+
+// De houding (DM): een knop in de voetbalk die een verticaal schuifje opent —
+// hetzelfde balkje als op het oude kaartje, met de namen van de treden ernaast.
+// `_houdingZet` doet de rest (direct zien, na een korte stilte opslaan).
+function _tegelHoudingKnop(type, e) {
+  const balk = _houdingBalkHtml(type, e);
+  if (!balk) return '';
+  const h = _HOUDING_TABEL.get(Number(e._houding));
+  const treden = [..._HOUDING_TABEL.values()].slice().reverse();
+  return `<div class="tegel-houding">
+    <button class="tegel-knop tegel-houding-knop" title="Houding${h ? ': ' + esc(h.naam) : ''}"
+      style="--houding-kleur:${h?.glans?.kleur || '#c4a87a'}"
+      onclick="event.stopPropagation();this.parentElement.classList.toggle('is-open')">${icon('heart')}</button>
+    <div class="tegel-houding-paneel" onclick="event.stopPropagation()">
+      <div class="tegel-houding-kop">Houding</div>
+      <div class="tegel-houding-rij">
+        ${balk}
+        <ol class="tegel-houding-namen">${treden.map(t => `<li>${esc(t.naam)}</li>`).join('')}</ol>
+      </div>
+    </div>
+  </div>`;
+}
+
+function _tegelSter(type, e, fav) {
+  if (isDM() || !window.app?.state?.characterId) return '';
+  return `<button class="tegel-ster${fav ? ' is-aan' : ''}" title="${fav ? 'Uit je favorieten' : 'Bij je favorieten'}"
+    onclick="event.stopPropagation();window._tegelFavoriet('${type}','${escArg(e.id)}')">${fav ? '★' : '☆'}</button>`;
+}
+
+function _tegelBeeld(e, cls = 'tegel-img') {
+  return `<img class="${cls}" loading="lazy" src="${api.thumbForEntity(e)}" alt=""
+    style="${e.data?.imgFocus ? `object-position:${esc(e.data.imgFocus)}` : ''}"
+    onerror="this.closest('.tegel')?.classList.add('no-img');this.remove()">`;
+}
+
+// Eén tegel, dicht of open. Een vaag kaartje (speler) blijft altijd dicht:
+// daar valt niets om te draaien.
+function _tegelHtml(type, e, { fav = false } = {}) {
+  const sleutel = `data-sleutel="${esc(e.id)}" data-id="${esc(e.id)}" data-type="${type}"`;
+  if (!isDM() && (e._visibility || 'visible') === 'vague') {
+    return `<div class="entity-card tegel card-vague" ${sleutel}>
+      <div class="card-accent bar-${type}"></div>
+      ${_tegelBeeld(e)}<div class="card-vague-overlay">?</div>
+      <div class="tegel-naamband"><span class="card-name" data-fittext>${esc(e.name)}</span></div>
+    </div>`;
+  }
+  const open = _tegelOpen[type] === e.id;
+  const klik = `onclick="window._tegelKlik('${type}','${escArg(e.id)}')"
+    onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();window._tegelKlik('${type}','${escArg(e.id)}')}"`;
+  const rol = _tegelOndertitel(type, e);
+  const rar = type === 'voorwerpen' ? _rarityKey(e.data?.rariteit) : '';
+  const acr = type === 'voorwerpen' ? _calcArmorAC(e.data, null) : null;
+  const perk = _tegelPerkament(type, e);
+  if (!open) {
+    return `<div class="${_tegelKlassen(type, e, fav ? 'tegel--favoriet' : '')}" ${sleutel} role="button" tabindex="0" ${klik}
+      title="${esc(e.name)}"${rar ? ` data-rarity="${rar}"` : ''}>
+      ${_glansHtml(type, e, rar)}
+      <div class="card-accent bar-${type}"></div>
+      <span class="tegel-icoon" aria-hidden="true">${_tegelIcoon(type, e)}</span>
+      ${perk || _tegelBeeld(e)}
+      ${e._gevangen ? `<span class="tegel-tralies" title="Gevangene van de party" aria-hidden="true"></span>` : ''}
+      ${fav ? '<span class="tegel-lint" aria-hidden="true"></span>' : ''}
+      ${acr ? `<span class="card-armor-ac-pill tegel-ac" title="${esc(acr.tooltip)}">${esc(acr.pill)}</span>` : ''}
+      <div class="tegel-naamband">${type === 'locaties' ? `<span class="tegel-merk" title="${esc(e.data?.locType || '')}">${_tegelIcoon(type, e)}</span>` : ''}<span class="card-name" data-fittext>${esc(e.name)}${e._deceased && type === 'personages' ? '<span class="card-name-dagger">†</span>' : ''}</span></div>
+      ${_tegelSter(type, e, fav)}
+      ${_tegelDmKnoppen(type, e)}
+    </div>`;
+  }
+  const bladen = _tegelBladen(type, e);
+  const i = Math.min(_tegelBlad[e.id] || 0, bladen.length - 1);
+  return `<div class="${_tegelKlassen(type, e, 'tegel--open' + (fav ? ' tegel--favoriet' : ''))}" ${sleutel} role="button" tabindex="0" ${klik}
+    aria-label="${esc(e.name)}, blad ${i + 1} van ${bladen.length}"${rar ? ` data-rarity="${rar}"` : ''}>
+    <div class="card-accent bar-${type}"></div>
+    <span class="tegel-icoon" aria-hidden="true">${_tegelIcoon(type, e)}</span>
+    ${perk || _tegelBeeld(e)}
+    ${fav ? '<span class="tegel-lint" aria-hidden="true"></span>' : ''}
+    <div class="tegel-blad" data-soort="${bladen[i].soort}">${_tegelBladInhoud(e, bladen[i], rol)}</div>
+    <div class="tegel-voet" onclick="event.stopPropagation()">
+      <div class="tegel-punten">${bladen.map((b, j) => `<button class="tegel-punt${j === i ? ' is-aan' : ''}"
+        title="${esc(b.label)}" onclick="window._tegelNaar('${type}','${escArg(e.id)}',${j})">${icon(_BLAD_ICOON[b.soort] || 'square')}</button>`).join('')}</div>
+      ${_tegelSter(type, e, fav)}
+      ${_tegelHoudingKnop(type, e)}
+      ${_tegelDmKnoppen(type, e, { voet: true })}
+      <button class="tegel-knop" title="Het hele kaartje" onclick="window._tegelVergroot('${type}','${escArg(e.id)}')">${icon('maximize-2')}</button>
+      <button class="tegel-knop" title="Kleiner" onclick="window._tegelDicht('${type}')">${icon('minimize-2')}</button>
+    </div>
+  </div>`;
+}
+
+function _tegelBladInhoud(e, blad, rol) {
+  if (blad.soort === 'portret') {
+    return `<div class="tegel-naamband tegel-naamband--groot">
+      <span class="card-name">${esc(e.name)}${e._deceased ? '<span class="card-name-dagger">†</span>' : ''}</span>
+      ${rol ? `<span class="tegel-ondertitel">${esc(rol)}</span>` : ''}</div>`;
+  }
+  return `<div class="tegel-vel">
+    <div class="tegel-vel-kop">${icon(_BLAD_ICOON[blad.soort] || 'square')} ${esc(blad.label)}<span class="tegel-vel-naam">${esc(e.name)}</span>
+      ${e._beeld === false ? '' : `<img class="tegel-vel-portret" src="${api.thumbForEntity(e)}" alt="" style="${e.data?.imgFocus ? `object-position:${esc(e.data.imgFocus)}` : ''}" onerror="this.remove()">`}</div>
+    <div class="tegel-vel-tekst">${blad.html}</div>
+  </div>`;
+}
+
+// De stapel favorieten: drie kaartjes schuin over elkaar, met het aantal.
+function _stapelHtml(type, favs, uit) {
+  const boven = favs.slice(0, 3);
+  return `<div class="tegel-stapel${uit ? ' is-uit' : ''}" data-sleutel="__stapel__" role="button" tabindex="0"
+    title="${uit ? 'Favorieten terug op de stapel' : 'Favorieten uitwaaieren'}"
+    onclick="window._stapelKlik('${type}')"
+    onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();window._stapelKlik('${type}')}">
+    <div class="tegel-stapel-kaarten">
+      ${boven.map((e, i) => `<div class="tegel-stapel-kaart" style="--n:${i}">${_tegelBeeld(e, 'tegel-stapel-img')}</div>`).reverse().join('')}
+    </div>
+    <div class="tegel-stapel-label">
+      <span class="tegel-stapel-aantal">${favs.length}</span>
+      <span>Favorieten</span>
+      <span class="tegel-stapel-pijl">${icon(uit ? 'chevron-left' : 'chevron-right')}</span>
+    </div>
+  </div>`;
+}
+
+// Wat er in het raster komt, in volgorde. De stapel staat er alleen als er
+// favorieten zijn en er niet gezocht of gefilterd wordt: een filter is een
+// vraag, en dan wil je het antwoord in zijn gewone volgorde.
+function _tegelRasterHtml(type, list) {
+  const favs = _favIds(type);
+  const stapelMag = !isDM() && favs.size && !searchQueries[type] && !subtypeFilters[type];
+  if (!stapelMag) return list.map(e => _tegelHtml(type, e, { fav: favs.has(e.id) })).join('');
+  const fav = list.filter(e => favs.has(e.id));
+  if (!fav.length) return list.map(e => _tegelHtml(type, e)).join('');
+  const rest = list.filter(e => !favs.has(e.id));
+  const uit = _stapelStandLees(type);
+  return _stapelHtml(type, fav, uit)
+    + (uit ? fav.map(e => _tegelHtml(type, e, { fav: true })).join('') : '')
+    + rest.map(e => _tegelHtml(type, e)).join('');
+}
+
+// ── FLIP: meten, veranderen, terugrekenen ──────────────────────────────────
+// Het raster springt bij elke verandering in één keer naar zijn nieuwe vorm.
+// FLIP (First, Last, Invert, Play) maakt daar een beweging van: meet waar
+// elke tegel stond, teken het nieuwe raster, meet waar hij nu staat, en speel
+// het verschil terug met de Web Animations API. Tegels worden op hun
+// `data-sleutel` herkend, want het raster wordt opnieuw opgebouwd en dan is
+// elk element nieuw. Wat er eerst niet was, vliegt in vanaf `vanaf` (de stapel).
+function _flip(grid, mutate, { vanaf = null } = {}) {
+  const voor = new Map();
+  grid.querySelectorAll(':scope > [data-sleutel]').forEach(el => voor.set(el.dataset.sleutel, el.getBoundingClientRect()));
+  mutate();
+  const rustig = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+  if (rustig) return;
+  let n = 0;
+  grid.querySelectorAll(':scope > [data-sleutel]').forEach(el => {
+    let a = voor.get(el.dataset.sleutel);
+    const nieuw = !a;
+    if (nieuw) { if (!vanaf) return; a = vanaf; }
+    const b = el.getBoundingClientRect();
+    if (!b.width || !b.height) return;
+    const dx = a.left - b.left, dy = a.top - b.top, sx = a.width / b.width, sy = a.height / b.height;
+    if (!nieuw && Math.abs(dx) < 1 && Math.abs(dy) < 1 && Math.abs(sx - 1) < 0.01 && Math.abs(sy - 1) < 0.01) return;
+    // Een tegel die naar een andere rij overspringt, zou schuin over het hele
+    // raster vliegen — dwars door de rest heen. Die vervaagt ter plekke en
+    // verschijnt op zijn nieuwe plek, met een klein duwtje uit de richting
+    // waar hij vandaan kwam. Alleen wat binnen zijn rij schuift, schuift.
+    const overstap = !nieuw && Math.abs(dy) > 4 && Math.abs(dx) > b.width * 1.5 && Math.abs(sx - 1) < 0.01;
+    if (overstap) {
+      el.animate([
+        { transform: `translateX(${dx > 0 ? 24 : -24}px) scale(.92)`, opacity: 0 },
+        { transform: 'none', opacity: 1 },
+      ], { duration: 300, delay: 90, easing: 'cubic-bezier(.2,.75,.25,1)', fill: 'backwards' });
+      return;
+    }
+    el.animate([
+      { transformOrigin: 'top left', transform: `translate(${dx}px,${dy}px) scale(${sx},${sy})`, opacity: nieuw ? 0.2 : 1 },
+      { transformOrigin: 'top left', transform: 'none', opacity: 1 },
+    ], { duration: nieuw ? 420 : 340, delay: nieuw ? 45 * n++ : 0, easing: 'cubic-bezier(.2,.75,.25,1)', fill: 'backwards' });
+  });
+}
+
+function _tegelHerteken(type, opts) {
+  const c = $(`#section-${type}`);
+  const grid = c?.querySelector('.cards-grid');
+  if (!grid) return;
+  const list = filterEntities(type, entities[type] || []);
+  _flip(grid, () => _refreshGrid(type, list, c), opts);
+}
+
+// Welk blad hoort bij een zoekterm? Staat het woord in een roddel, dan open
+// je op het roddelblad — dat is waar je naar zocht.
+function _bladVoorZoekterm(type, bladen) {
+  const q = window._normSearch?.(searchQueries[type] || '') || '';
+  if (!q) return 0;
+  const i = bladen.findIndex(b => b.tekst && window._normSearch(b.tekst).includes(q));
+  return i > 0 ? i : 0;
+}
+
+window._tegelKlik = (type, id) => {
+  if (_tegelOpen[type] !== id) {
+    const e = (entities[type] || []).find(x => x.id === id);
+    _tegelOpen[type] = id;
+    _tegelBlad[id] = e ? _bladVoorZoekterm(type, _tegelBladen(type, e)) : 0;
+    _tegelHerteken(type);
+    // Breng hem in beeld als hij onderaan uitklapt.
+    setTimeout(() => document.querySelector(`#section-${type} .tegel[data-sleutel="${CSS.escape(id)}"]`)
+      ?.scrollIntoView({ block: 'nearest', behavior: 'smooth' }), 360);
+    return;
+  }
+  const e = (entities[type] || []).find(x => x.id === id);
+  if (!e) return;
+  const n = _tegelBladen(type, e).length;
+  window._tegelNaar(type, id, ((_tegelBlad[id] || 0) + 1) % n);
+};
+
+// Omdraaien: een kwartslag weg, het nieuwe blad erin, een kwartslag terug.
+window._tegelNaar = async (type, id, i) => {
+  const el = document.querySelector(`#section-${type} .tegel--open[data-sleutel="${CSS.escape(id)}"]`);
+  const e = (entities[type] || []).find(x => x.id === id);
+  if (!el || !e) return;
+  const bladen = _tegelBladen(type, e);
+  const vorige = _tegelBlad[id] || 0;
+  _tegelBlad[id] = Math.max(0, Math.min(bladen.length - 1, i));
+  if (_tegelBlad[id] === vorige) return;
+  await _draai(el, _tegelBlad[id] > vorige ? 1 : -1, () => {
+    const blad = el.querySelector('.tegel-blad');
+    const b = bladen[_tegelBlad[id]];
+    blad.dataset.soort = b.soort;
+    blad.innerHTML = _tegelBladInhoud(e, b, _tegelOndertitel(type, e));
+    el.querySelectorAll('.tegel-punt').forEach((p, j) => p.classList.toggle('is-aan', j === _tegelBlad[id]));
+    el.setAttribute('aria-label', `${e.name}, blad ${_tegelBlad[id] + 1} van ${bladen.length}`);
+  });
+};
+
+window._tegelDicht = (type) => {
+  if (!_tegelOpen[type]) return;
+  _tegelOpen[type] = null;
+  _tegelHerteken(type);
+};
+
+// Het venster groeit uit de tegel en krimpt er bij het sluiten weer in. Dat
+// doet `.modal` zelf, met een transform van de rechthoek van de tegel naar
+// zijn eigen rechthoek; `closeModal` in app.js wacht op de weg terug als
+// `window._modalSluitAnimatie` gezet is.
+function _naarRect(el, r) {
+  const m = el.getBoundingClientRect();
+  if (!m.width || !r.width) return null;
+  const dx = (r.left + r.width / 2) - (m.left + m.width / 2);
+  const dy = (r.top + r.height / 2) - (m.top + m.height / 2);
+  return `translate(${dx}px,${dy}px) scale(${r.width / m.width},${r.height / m.height})`;
+}
+// Algemeen, zodat het bestiarium (een eigen bestand met een eigen venster) het
+// ook kan: `tegel()` geeft het element terug, `open()` opent het venster, en
+// `nogHier()` zegt bij het sluiten of het venster nog over déze tegel gaat.
+// Een eigen venster (het spreukdetail) geeft `venster` en `waas` mee en krijgt
+// de sluitanimatie via `haak` terug, in plaats van via de haak van closeModal.
+async function _vensterUitTegel(tegel, open, nogHier = () => true, {
+  venster = '#modal-overlay .modal', waasSel = '#modal-overlay',
+  haak = (fn) => { window._modalSluitAnimatie = fn; },
+} = {}) {
+  const r0 = tegel()?.getBoundingClientRect();
+  await open();
+  const modal = document.querySelector(venster);
+  const rustig = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+  if (!modal || !r0 || rustig) return;
+  const van = _naarRect(modal, r0);
+  const waas = document.querySelector(waasSel);
+  if (van) {
+    modal.animate([{ transform: van, opacity: 0.4 }, { transform: 'none', opacity: 1 }],
+      { duration: 380, easing: 'cubic-bezier(.2,.8,.2,1)' });
+    waas?.animate([{ backgroundColor: 'rgba(60,40,10,0)' }, {}], { duration: 380 });
+  }
+  haak(() => {
+    if (!nogHier()) return null;
+    const r1 = tegel()?.getBoundingClientRect();
+    const naar = r1 && _naarRect(modal, r1);
+    if (!naar) return null;
+    // `fill: forwards` houdt hem klein tot het venster echt dicht is; anders
+    // staat hij één beeldje lang weer op volle grootte.
+    const a = modal.animate([{ transform: 'none', opacity: 1 }, { transform: naar, opacity: 0.3 }],
+      { duration: 300, easing: 'cubic-bezier(.5,0,.75,.4)', fill: 'forwards' });
+    const w = waas?.animate([{}, { backgroundColor: 'rgba(60,40,10,0)', backdropFilter: 'blur(0px)' }],
+      { duration: 300, fill: 'forwards' });
+    return a.finished.then(() => setTimeout(() => { a.cancel(); w?.cancel(); }, 400));
+  });
+}
+window._tegelVensterUit = _vensterUitTegel;
+
+window._tegelVergroot = (type, id) => _vensterUitTegel(
+  () => document.querySelector(`#section-${type} .tegel[data-sleutel="${CSS.escape(id)}"]`),
+  () => window._openDetail(type, id),
+  () => window._currentDetailId === id);
+
+// Omdraaien: een kwartslag weg, `wissel()` zet het nieuwe blad erin, een
+// kwartslag terug. `kant` is de draairichting (1 = vooruit).
+async function _draai(el, kant, wissel) {
+  const rustig = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+  if (!rustig) await el.animate([{ transform: 'perspective(1100px) rotateY(0deg)' },
+    { transform: `perspective(1100px) rotateY(${-88 * kant}deg)` }], { duration: 150, easing: 'ease-in' }).finished.catch(() => {});
+  wissel();
+  if (!rustig) el.animate([{ transform: `perspective(1100px) rotateY(${88 * kant}deg)` },
+    { transform: 'perspective(1100px) rotateY(0deg)' }], { duration: 190, easing: 'ease-out' });
+}
+window._tegelDraai = _draai;
+window._tegelFlip = (grid, mutate, opts) => _flip(grid, mutate, opts);
+
+window._stapelKlik = async (type) => {
+  const c = $(`#section-${type}`);
+  const grid = c?.querySelector('.cards-grid');
+  const stapel = grid?.querySelector('.tegel-stapel');
+  if (!grid || !stapel) return;
+  const uit = !_stapelStandLees(type);
+  const vanaf = stapel.getBoundingClientRect();
+  if (!uit) {
+    // Terug op de stapel: eerst vliegen ze erin, dan schuift de rest omhoog.
+    const favs = [...grid.querySelectorAll('.tegel--favoriet')];
+    const rustig = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+    if (!rustig) await Promise.all(favs.map((el, i) => {
+      const b = el.getBoundingClientRect();
+      return el.animate([{ transform: 'none', opacity: 1 },
+        { transformOrigin: 'top left', transform: `translate(${vanaf.left - b.left}px,${vanaf.top - b.top}px) scale(${vanaf.width / b.width},${vanaf.height / b.height})`, opacity: 0.2 }],
+        { duration: 300, delay: 30 * (favs.length - 1 - i), easing: 'cubic-bezier(.5,0,.75,.4)', fill: 'forwards' }).finished.catch(() => {});
+    }));
+    if (favs.some(el => el.dataset.sleutel === _tegelOpen[type])) _tegelOpen[type] = null;
+  }
+  _stapelStandZet(type, uit);
+  _tegelHerteken(type, { vanaf: uit ? vanaf : null });
+};
+
+// Favoriet maken of weghalen hertekent het raster: de tegel verhuist naar de
+// stapel of terug in de rij.
+window._tegelFavoriet = async (type, id) => {
+  const e = (entities[type] || []).find(x => x.id === id);
+  await window._toggleBookmark?.(type, id, e?.name || '');
+  _tegelHerteken(type);
+};
+
+// Escape klapt een open tegel weer dicht — tenzij er een venster openstaat,
+// dan is dát wat Escape sluit.
+document.addEventListener('keydown', (ev) => {
+  if (ev.key !== 'Escape') return;
+  if (document.getElementById('modal-overlay')?.classList.contains('active')) return;
+  for (const type of TEGEL_TYPES) if (_tegelOpen[type]) window._tegelDicht(type);
+});
 
 // Roddels op een kaartje: welke regels er staan en waar we zijn. Module-state,
 // net als bij de afbeelding-carousel — het kaartje is een string, dus de tekst
@@ -5529,7 +6186,7 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
     infoHtml += `<div id="detail-missies-${e.id}"></div>`;
     _vulMissies(e.id, tab);
   }
-  if (isPersonage && isDM() && String(e.subtype || '').toLowerCase() === 'npc') _vulMedestander(e.id);
+  if (isPersonage && isDM() && String(e.subtype || '').toLowerCase() === 'npc') { _vulMedestander(e.id); _vulHuurling(e.id); }
 
   // DM controls
   if (isDM()) {
@@ -5576,6 +6233,20 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
             onclick="window._toggleDeceased('${tab}','${e.id}')">
             ${icon('skull', {cls:'icon-gi'})}<span>${_wegLabel}</span>
           </button>`}
+          ${isPersonage && !['speler', 'god', 'godheid'].includes(String(e.subtype || '').toLowerCase()) ? `
+            <button class="dm-actie${e._gevangen ? ' dm-actie--aan' : ''}" id="detail-gevangen-${e.id}"
+              title="${e._gevangen ? 'Gevangene van de actieve party — klik om vrij te laten' : 'Gevangen nemen door de actieve party'}"
+              onclick="window._toggleGevangen('${e.id}')">
+              ${icon('columns-4', {cls:'icon-gi'})}<span>Gevangen</span>
+            </button>
+          ` : ''}
+          ${isPersonage && String(e.subtype || '').toLowerCase() === 'npc' && !e._gevangen ? `
+            <button class="dm-actie" id="detail-huurling-${e.id}"
+              title="Huurling: in dienst van de actieve party, met een dagloon"
+              onclick="window._huurlingOpen('${e.id}')">
+              ${icon('coins', {cls:'icon-gi'})}<span>Huurling</span>
+            </button>
+          ` : ''}
           ${isPersonage && String(e.subtype || '').toLowerCase() === 'npc' ? `
             <button class="dm-actie" id="detail-medestander-${e.id}"
               title="Medestander: laat dit personage met de party meelopen"

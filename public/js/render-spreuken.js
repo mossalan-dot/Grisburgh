@@ -256,6 +256,138 @@ function _card(s) {
     </div>`;
 }
 
+// ── Tegels ──────────────────────────────────────────────────────────────────
+// Dezelfde drie standen als de archief-tabbladen (zie TEGEL_TYPES in
+// render-campagne.js): dicht (plaat + naam), open (2×2 met bladen die je
+// omdraait) en het venster — hier het eigen spreukdetail. De beweging leent de
+// hulpjes van daar (`_tegelFlip`, `_tegelDraai`, `_tegelVensterUit`), dus er is
+// maar één soort beweging in de app. Het oude kaartje (`_card`) blijft staan
+// als terugval voor wanneer die hulpjes er nog niet zijn.
+let _openId = null;
+const _blad = {};
+let _sluitAnim = null;   // de krimpbeweging terug naar de tegel, gezet door vergroot()
+const _BLAD_ICOON = { portret: 'image', gegevens: 'clipboard-list', beschrijving: 'book-open', hoger: 'chevrons-up' };
+
+// Dezelfde opmaak als het detailvenster: damage-getinte dice, DC's, lijstjes.
+function _tekstHtml(s, t) {
+  const diceColor = window.app?.sbDiceColor?.(s.damage);
+  const html = window.app?.renderSpellDesc
+    ? window.app.renderSpellDesc(t, { diceColor })
+    : annot((window.app?.mdToHtml || (x => esc(x).replace(/\n/g, '<br>')))(t));
+  // [[Andere spreuk]] als gewone naam: op een tegel tik je om te bladeren,
+  // niet om weg te springen. Het venster maakt er wél een link van.
+  return String(html).replace(/\[\[([^\]|]+?)(?:\|([^\]]+?))?\]\]/g, (_, n, al) => esc((al || n).trim()));
+}
+
+// Een leeg blad bestaat niet. Staat de tekst er niet (geen SRD, geen eigen
+// tekst), dan is het beschrijvingsblad de verwijzing naar buiten — dat is wat
+// er over de spreuk te zeggen valt.
+function _bladen(s) {
+  const bladen = [{ soort: 'portret', label: 'Plaat' }];
+  const rijen = [
+    ['Casting Time', _str(s.casting_time)], ['Range', _str(s.range)],
+    ['Components', _components(s)], ['Duration', _str(s.duration)],
+    ['Classes', _classNames(s).join(', ')],
+  ].filter(([, v]) => String(v).trim());
+  const merken = [s.ritual ? 'Ritual' : '', s.concentration ? 'Concentration' : ''].filter(Boolean);
+  if (rijen.length || merken.length) bladen.push({ soort: 'gegevens', label: 'Gegevens', html: `
+    ${merken.length ? `<div class="tegel-badges">${merken.map(m => `<span class="spreuk-tag">${icon(m === 'Ritual' ? 'scroll-text' : 'eye')} ${m}</span>`).join('')}</div>` : ''}
+    <dl class="tegel-gegevens">${rijen.map(([k, v]) => `<div class="tegel-gegeven"><dt>${esc(k)}</dt><dd>${esc(v)}</dd></div>`).join('')}</dl>` });
+  const desc = _desc(s);
+  if (desc) bladen.push({ soort: 'beschrijving', label: 'Beschrijving', tekst: desc,
+    html: `<div class="tegel-tekst spreuk-tegel-tekst">${_tekstHtml(s, desc)}</div>` });
+  else if (s._geenTekst && _spreukLink(s.name)) bladen.push({ soort: 'beschrijving', label: 'Beschrijving',
+    html: `<div class="tegel-tekst"><p>De beschrijving staat niet in de vrij te gebruiken SRD, dus hij staat hier niet.</p>
+      <p><a class="spreuk-tag spreuk-tag--naslag" href="${esc(_spreukLink(s.name))}" target="_blank" rel="noopener"
+        onclick="event.stopPropagation()">${icon('book-open')} Lees hem elders</a></p></div>` });
+  const hoger = _higher(s);
+  if (hoger) bladen.push({ soort: 'hoger', label: 'At Higher Levels', tekst: hoger,
+    html: `<div class="tegel-tekst spreuk-tegel-tekst">${_tekstHtml(s, hoger)}</div>` });
+  return bladen;
+}
+
+function _bladInhoud(s, b) {
+  const school = _school(s);
+  if (b.soort === 'portret') {
+    return `<div class="tegel-naamband tegel-naamband--groot">
+      <span class="card-name">${esc(s.name)}</span>
+      <span class="tegel-ondertitel">${esc(_levelLabel(s.level))}${school ? ` · ${esc(school)}` : ''}</span></div>`;
+  }
+  const col = _schoolCol(school);
+  return `<div class="tegel-vel">
+    <div class="tegel-vel-kop">${icon(_BLAD_ICOON[b.soort] || 'square')} ${esc(b.label)}<span class="tegel-vel-naam">${esc(s.name)}</span>
+      <span class="tegel-vel-portret spreuk-tegel-zegel" style="--school-c1:${col.c1};--school-c2:${col.c2}">${icon(col.icon)}</span></div>
+    <div class="tegel-vel-tekst">${b.html}</div>
+  </div>`;
+}
+
+// De knop van de speler: vragen, aangevraagd (zandloper) of in je boek. Zelfde
+// klasse en data-idx als op het oude kaartje, dus _markAdded/_markWachtend
+// werken hem ook bij.
+function _boekKnop(s) {
+  if (!isPlayer()) return '';
+  const inBoek = _myBook.has(s.index), wacht = _wacht(s.index);
+  return `<button class="tegel-knop spreuk-card-add spreuk-tegel-add${inBoek ? ' is-added' : (wacht ? ' is-wachtend' : '')}" data-idx="${esc(s.index)}"
+    onclick="window.spreuken.addToBook('${escArg(s.index)}',this)"
+    title="${inBoek ? 'Staat in je spreukenboek' : (wacht ? 'De DM moet dit nog goedkeuren' : 'Vraag de DM om deze spreuk')}">${icon(inBoek ? 'check' : (wacht ? 'hourglass' : 'plus'))}</button>`;
+}
+
+function _tegel(s) {
+  const id = esc(s.index);
+  const school = _school(s);
+  const col = _schoolCol(school);
+  const focus = _focus(s);
+  const inBoek = isPlayer() && _myBook.has(s.index);
+  const klassen = `entity-card tegel spreuk-tegel no-img${inBoek ? ' spreuk-tegel--inboek' : ''}`;
+  // Zonder plaat staat het schoolteken op de schoolkleur; met plaat haalt
+  // `onload` de no-img eraf. Andersom (eerst aannemen dat er een plaat is) gaf
+  // bij 500 spreuken zonder plaat een raster vol knipperende lege vlakken.
+  const beeld = `<span class="tegel-icoon spreuk-tegel-icoon" aria-hidden="true">${icon(col.icon)}</span>
+    <img class="tegel-img spreuk-tegel-img" loading="lazy" src="${api.thumbUrl('spell-img-' + s.index)}" alt=""
+      style="${focus ? `object-position:${esc(focus)}` : ''}"
+      onload="this.closest('.tegel')?.classList.remove('no-img')" onerror="this.remove()">`;
+  const niv = `<span class="spreuk-tegel-niv" title="${esc(_levelLabel(s.level))}">${_levelShort(s.level)}</span>`;
+  const klik = `onclick="window.spreuken.tegel('${id}')"
+    onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();window.spreuken.tegel('${id}')}"`;
+  const stijl = `style="--school-c1:${col.c1};--school-c2:${col.c2}"`;
+  if (_openId !== s.index) {
+    return `<div class="${klassen}" data-sleutel="${id}" role="button" tabindex="0" title="${esc(s.name)}" ${stijl} ${klik}>
+      <div class="card-accent bar-spreuken"></div>
+      ${beeld}${niv}
+      ${inBoek ? `<span class="spreuk-tegel-merk" title="Staat in je spreukenboek">${icon('check')}</span>` : ''}
+      <div class="tegel-naamband"><span class="card-name">${esc(s.name)}</span></div>
+    </div>`;
+  }
+  const bladen = _bladen(s);
+  const j = Math.min(_blad[s.index] || 0, bladen.length - 1);
+  return `<div class="${klassen} tegel--open" data-sleutel="${id}" role="button" tabindex="0" ${stijl} ${klik}
+    aria-label="${esc(s.name)}, blad ${j + 1} van ${bladen.length}">
+    <div class="card-accent bar-spreuken"></div>
+    ${beeld}${niv}
+    <div class="tegel-blad" data-soort="${bladen[j].soort}">${_bladInhoud(s, bladen[j])}</div>
+    <div class="tegel-voet" onclick="event.stopPropagation()">
+      <div class="tegel-punten">${bladen.map((b, k) => `<button class="tegel-punt${k === j ? ' is-aan' : ''}"
+        title="${esc(b.label)}" onclick="window.spreuken.naar('${id}',${k})">${icon(_BLAD_ICOON[b.soort] || 'square')}</button>`).join('')}</div>
+      ${_boekKnop(s)}
+      <button class="tegel-knop" title="De hele spreuk" onclick="window.spreuken.vergroot('${id}')">${icon('maximize-2')}</button>
+      <button class="tegel-knop" title="Kleiner" onclick="window.spreuken.dicht()">${icon('minimize-2')}</button>
+    </div>
+  </div>`;
+}
+
+function _herteken() {
+  const grid = document.getElementById('spreuk-grid');
+  if (!grid || !window._tegelFlip) return _paintGrid();
+  window._tegelFlip(grid, () => _paintGrid());
+}
+
+document.addEventListener('keydown', (ev) => {
+  if (ev.key !== 'Escape' || !_openId) return;
+  if (document.getElementById('spreuk-detail-overlay')?.classList.contains('active')) return;
+  if (window.app?.state?.activeSection !== 'spreuken') return;
+  window.spreuken.dicht();
+});
+
 // ── Filterrij (niveau + klasse) ──
 function _filterBar() {
   // Dezelfde balk als bij "Spreuken toevoegen": elf knopjes (Alle, C, 1…9)
@@ -330,8 +462,10 @@ function _paintGrid() {
   const grid = document.getElementById('spreuk-grid');
   if (!grid) return;
   const list = _filtered();
+  const tegels = !!window._tegelFlip;
+  grid.classList.toggle('tegel-raster', tegels);
   grid.innerHTML = list.length
-    ? list.map(_card).join('')
+    ? list.map(tegels ? _tegel : _card).join('')
     : `<p class="spreuk-empty">Geen spreuken gevonden.</p>`;
 }
 
@@ -878,6 +1012,7 @@ window.spreuken = {
     const s = (_all || []).find(x => x.index === index);
     if (!s) return;
     const ov = _ensureOverlay();
+    _sluitAnim = null;   // vergroot() zet hem ná het openen opnieuw
     ov.innerHTML = _detailHtml(s);
     ov.classList.add('active');
     // De gedeelde kiezer schrijft in een hidden input; hier is geen formulier,
@@ -967,7 +1102,57 @@ window.spreuken = {
     const host = document.getElementById('spreuk-verzoeken');
     if (host) host.innerHTML = _verzoekenBalkHtml();
   },
-  close() {
+  // Tik op een tegel: dicht → open (op het blad waar je zoekterm staat),
+  // open → het volgende blad.
+  tegel(index) {
+    const s = (_all || []).find(x => x.index === index);
+    if (!s) return;
+    if (_openId !== index) {
+      _openId = index;
+      const q = (window._normSearch || (x => String(x || '').toLowerCase()))(_filters.q || '');
+      const bladen = _bladen(s);
+      const k = q ? bladen.findIndex(b => b.tekst && window._normSearch(b.tekst).includes(q)) : -1;
+      _blad[index] = k > 0 ? k : 0;
+      _herteken();
+      setTimeout(() => document.querySelector(`#spreuk-grid .tegel[data-sleutel="${CSS.escape(index)}"]`)
+        ?.scrollIntoView({ block: 'nearest', behavior: 'smooth' }), 360);
+      return;
+    }
+    this.naar(index, ((_blad[index] || 0) + 1) % _bladen(s).length);
+  },
+  async naar(index, k) {
+    const el = document.querySelector(`#spreuk-grid .tegel--open[data-sleutel="${CSS.escape(index)}"]`);
+    const s = (_all || []).find(x => x.index === index);
+    if (!el || !s) return;
+    const bladen = _bladen(s);
+    const vorige = _blad[index] || 0;
+    _blad[index] = Math.max(0, Math.min(bladen.length - 1, k));
+    if (_blad[index] === vorige) return;
+    const wissel = () => {
+      const blad = el.querySelector('.tegel-blad');
+      blad.dataset.soort = bladen[_blad[index]].soort;
+      blad.innerHTML = _bladInhoud(s, bladen[_blad[index]]);
+      el.querySelectorAll('.tegel-punt').forEach((p, j) => p.classList.toggle('is-aan', j === _blad[index]));
+      el.setAttribute('aria-label', `${s.name}, blad ${_blad[index] + 1} van ${bladen.length}`);
+    };
+    if (window._tegelDraai) await window._tegelDraai(el, _blad[index] > vorige ? 1 : -1, wissel);
+    else wissel();
+  },
+  dicht() { if (_openId) { _openId = null; _herteken(); } },
+  // Het spreukvenster groeit uit de tegel en krimpt er bij het sluiten weer in
+  // — zolang het nog over déze spreuk gaat (je kunt erin doorbladeren).
+  vergroot(index) {
+    const tegel = () => document.querySelector(`#spreuk-grid .tegel[data-sleutel="${CSS.escape(index)}"]`);
+    if (!window._tegelVensterUit) return this.open(index);
+    window._tegelVensterUit(tegel, () => this.open(index),
+      () => document.querySelector('#spreuk-detail-overlay [data-spreuk-index]')?.dataset.spreukIndex === index,
+      { venster: '#spreuk-detail-overlay .spreuk-detail-card', waasSel: '#spreuk-detail-overlay',
+        haak: (fn) => { _sluitAnim = fn; } });
+  },
+  async close() {
+    const anim = _sluitAnim; _sluitAnim = null;
+    const wacht = anim?.();
+    if (wacht) await wacht;
     const ov = document.getElementById('spreuk-detail-overlay');
     if (ov) { ov.classList.remove('active'); ov.innerHTML = ''; }
     window._fpOnChange = null;   // anders schrijft de volgende kiezer nog naar een spreuk

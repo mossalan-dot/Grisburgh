@@ -348,13 +348,13 @@ De app gebruikt querystring cache-busting (`?v=N`). **Vergeten = browser haalt o
 **Huidige versies (bij te houden):**
 
 ```
-index.html  : theme.css?v=920   app.js?v=1186   sound-manager.js?v=15
-app.js      : api.js?v=319  dm-panel.js?v=417  media-picker.js?v=13  tafels.js?v=2  terugblik.js?v=3  rage.js?v=4  klassekracht.js?v=6  personage-maken.js?v=10  gevecht-regie.js?v=2  bastion.js?v=1
-              render-archief.js?v=145  render-bestiarium.js?v=34  render-campagne.js?v=353
-              render-dungeon.js?v=70  render-kaart.js?v=34  render-progressie.js?v=66
-              render-relatiemap.js?v=34  render-spreuken.js?v=53  render-vaardigheden.js?v=137
-              render-statblock.js?v=9  socket-client.js?v=95  wizard.js?v=8  conditions.js?v=4
-dm-panel.js : akte-schrijven.js?v=37  combat-canvas.js?v=37  render-statblock.js?v=9
+index.html  : theme.css?v=926   app.js?v=1194   sound-manager.js?v=15
+app.js      : api.js?v=320  dm-panel.js?v=422  media-picker.js?v=14  tafels.js?v=2  terugblik.js?v=3  rage.js?v=4  klassekracht.js?v=6  personage-maken.js?v=11  gevecht-regie.js?v=3  bastion.js?v=1  stemronde.js?v=1
+              render-archief.js?v=148  render-bestiarium.js?v=36  render-campagne.js?v=365
+              render-dungeon.js?v=74  render-kaart.js?v=35  render-progressie.js?v=67
+              render-relatiemap.js?v=38  render-spreuken.js?v=55  render-vaardigheden.js?v=138
+              render-statblock.js?v=9  socket-client.js?v=98  wizard.js?v=10  conditions.js?v=4
+dm-panel.js : akte-schrijven.js?v=39  combat-canvas.js?v=41  render-statblock.js?v=9
 ```
 
 > **Een importeur moet zelf ook opschuiven.** `index.html` vraagt om `app.js?v=N`.
@@ -1925,6 +1925,32 @@ in `_load()` (`render-spreuken.js`), ontdubbeld op `index`:
 > een koppeltabel vragen die geschraapt en eeuwig bijgehouden moet worden, en die
 > stil 404't zodra zij hun adressen wijzigen. Een zoekpagina verlept niet.
 
+> **Material components: altijd bij de hand, of een voorraad** (5 nov 2026).
+> Wat de M-component kost en of de spreuk hem verbruikt staat in de tekst ("a
+> diamond worth 300+ GP, which the spell consumes"); **`lib/materiaal.js`**
+> leidt dat af (`materiaalUit`: `waardeCl`, `verbruikt` — bij "all of which"
+> alles samen, anders het eerste bedrag, zodat bij Clone alleen de diamant
+> telt) en `GET /player-spells` stuurt het mee als `_materiaal`, samen met de
+> stand van de speler. Die stand is `spell.materiaal = {modus, aantal}`:
+> `altijd` (pouch, focus, of je bezit het ding) of `voorraad`. Zonder eigen
+> keuze telt verbruikt materiaal met een prijs af vanaf nul en is de rest
+> altijd bij de hand — de PHB-regel. Bewaren via de gewone `PATCH
+> /player-spells/:c/:idx` (`materiaal: null` zet hem terug).
+> **Een slot afvinken ís casten**: `_sbToggleSlot` vraagt eerst
+> `POST /player-spells/:c/:idx/materiaal`. Voorraad > 0 → één omlaag. Op → 409
+> met `op`, en het boek houdt de cast vast in een paneeltje: *toch casten*
+> (de app weigert geen spreuk), *niet casten*, of — alleen als de DM
+> **`meta.materiaal.kasboek`** aanzette (Instellingen → Campagne, `PUT
+> /meta/materiaal`, standaard uit) — *afrekenen*: een voorgevuld bedrag dat de
+> speler mag overtypen (een spreuk per target), `{betaalCl}`, via
+> `_deductCurrency` en nooit onder nul. Staat de schakelaar uit, dan weigert
+> de route het ook (409). Een slot loslaten geeft niets terug: dat gebeurt ook
+> bij een rust. Cantrips en rituals gaan niet langs een slot en dus niet
+> langs deze telling. Bewaakt door `tests/materiaal.test.js`.
+> De client roept `api.post(...)` aan in plaats van een nieuwe methode in
+> `api.js`: dat bestand heeft twintig importeurs die allemaal mee hadden
+> gemoeten in versie.
+
 > **Wie kent deze spreuk?** `GET /spells/:index/wie` (DM-only) loopt
 > `dmState.playerSpells` langs en geeft per speler naam, party, prepared en of
 > er nú op geconcentreerd wordt. Zelfde vraag en zelfde reden als
@@ -2209,6 +2235,18 @@ Monsters; het tabblad linkt erheen.
 ---
 
 ## Voorwerpen
+
+> **De Boedel is een raster van archiefkaartjes** (4 nov 2026). De carrousel
+> (één groot kaartje, pijltjes, bolletjes) is weg: `_boedelKaartHtml()` in
+> `app.js` tekent kleine `.entity-card`s (zeldzaamheidsring, glans, ×N, AC,
+> ⚡ charges) in `.boedel-raster` (2 kolommen, 3 vanaf 560 px), en een klik
+> opent `window._boedelOpen(id)`, een venster met beschrijving, charges, aantal,
+> gebruiken en geven — bladeren via `window._bladerBron`. De namen
+> `_knapzakCarouselItems` en `_knapzakCarouselRender` zijn bewust gebleven:
+> elke handler die een charge of aantal bijstelt roept ze al aan, en de render
+> ververst nu raster én open venster (`_boedelVensterVernieuw`, dat het venster
+> sluit als het voorwerp weg is). Zegeningen & Vloeken staan in hetzelfde
+> raster (`_goddelijkOpen`).
 
 - **Types staan in groepen** (`ITEM_TYPE_GROEPEN` in `render-campagne.js`), zelfde
   vorm als bij locaties en organisaties: waarden blijven exact zoals ze
@@ -2727,12 +2765,32 @@ sprite v=22): `orbit` `cog` `squirrel` `bug` `puzzle` `droplets`
 **Toegevoegd voor de omgevingseffecten** (Lucide, ISC, 2 nov 2026, sprite v=27):
 `shield-check` (Resistance) `cloud-lightning` (storm)
 
+**Toegevoegd voor de tegels** (Lucide, ISC, 4 nov 2026, sprite v=28): `minimize-2`
+**Toegevoegd voor de spreuktegels** (Lucide, ISC, 5 nov 2026, sprite v=29): `chevrons-up` (At Higher Levels)
+**Toegevoegd voor de gevangenen** (Lucide, ISC, 6 nov 2026, sprite v=30): `columns-4` (tralies)
+**Toegevoegd voor de stemronde** (Lucide, ISC, 6 nov 2026, sprite v=31): `vote` `trophy`
+
 **Toegevoegd voor de species-iconen** (Lucide, ISC, 18 okt 2026, sprite v=20): `clover`
 `axe` `footprints` `scan-face` `gem` `hard-hat` `sunset` `leaf` `flower` `flower-2`
 `wand-sparkles` `wand` `flame-kindling` `tornado` `crosshair` `atom` `infinity` `rat`
 `rabbit` `flag` `brain-circuit` `megaphone` `users-round` `egg` `cat` `bone` `shapes`
 `ear` `dog` `beef` `bird` `bandage` `snowflake` `wine` `fish-symbol` `cloud-moon`
 `moon-star` `dna` `turtle` `waves-vertical` `glasses` `bot` `worm`
+
+> **Midjourney-prompts voor wat nog geen plaat heeft.**
+> `node scripts/midjourney-prompts.js <campagne>` schrijft `docs/midjourney-prompts.md`:
+> per class, subclass, species, background, feat, Epic Boon en spreuk zonder afbeelding
+> één prompt in een codeblok, allemaal met dezelfde stijlstaart (`STIJL`, staand 2:3,
+> perkamentpalet, geen tekst in beeld) zodat de platen één reeks vormen. Wat "heeft een
+> plaat" betekent: `files/spell-img-<index>.*` bij een spreuk, `img` op de regel bij een
+> feat of boon, `meta.heldenboek.{klassen,subclassen,species,backgrounds}` bij een kaart;
+> verborgen classes en subclasses slaat hij over. `--alles` werkt zonder campagnedata (alles
+> uit `bronnen/`, ongefilterd). Onderwerpen staan met de hand in
+> `scripts/midjourney/onderwerpen.js`; een spreuk krijgt het zijne uit zijn eigen tekst — de
+> zin met de meeste beeldwoorden en zonder regeltaal (`_score`), met "you" omgezet naar een
+> beschrijving ("a spellcaster hurling…") plus een beeldtaal per school en een kleur per
+> schadesoort. Op de server tegen de live data:
+> `GRISBURGH_DATA_DIR=/var/www/grisburgh/data node scripts/midjourney-prompts.js grisburgh`.
 
 > **Iconen bijzetten gaat met een script.** `node scripts/sprite-aanvullen.js <naam…>
 > --schrijf` haalt ze bij lucide-static en zet ze in dezelfde vorm als de rest; wat er al
@@ -3846,6 +3904,142 @@ zichtbaar werd. Ook de melding terug (`player:currency-updated` en het
 antwoord van de route) hoort `_effectiveCurrency` te gebruiken.
 
 ---
+
+## Tegels: het archief als raster dat je openklapt
+
+> **Alle archief-tabbladen zijn tegels** (4 nov 2026): personages, locaties,
+> organisaties, voorwerpen, documenten én het bestiarium. Drie
+> standen: **dicht** (beeld + naam, raster van 150 px), **open** (2×2, met
+> bladen — portret, gegevens, beschrijving, roddels, geheimen — die je met een
+> tik omdraait) en **venster** (het vergrootknopje laat het detailvenster uit
+> de tegel groeien). `TEGEL_TYPES` in `render-campagne.js` zegt welke tabbladen
+> meedoen; `_tegelBladen(type, e)` bepaalt de bladen, en **een leeg blad
+> bestaat niet** — een speler ziet dus niet dát er nog iets dicht zit. De
+> regels voor wat een speler van roddels en geheimen ziet zijn dezelfde als in
+> het venster.
+> **Beweging is FLIP met de Web Animations API** (`_flip`): meten, het raster
+> opnieuw opbouwen, op `data-sleutel` terugvinden en het verschil terugspelen.
+> Omdraaien is twee kwartslagen `rotateY` met het nieuwe blad ertussen.
+> **Het venster krimpt terug** via `window._modalSluitAnimatie`: `closeModal()`
+> in `app.js` wacht op die belofte als hij gezet is, en `openModal()` wist hem
+> zodra er iets anders in het venster komt (een ander kaartje, de editor).
+> **Favorieten** (alleen spelers, `playerProfile.bookmarks`) liggen als stapel
+> linksboven (`_stapelHtml`) en waaieren uit tot een eigen rij met een rood
+> lint; uitgewaaierd of niet staat in `localStorage` (`stapelUit:<type>`).
+> Bij zoeken of filteren ligt de stapel weg. De DM heeft geen favorieten.
+> **Tekstbladen zijn dicht perkament**, met het gezicht als klein portret in de
+> kop: een gedimde plaat erachter vocht met de tekst.
+> **De houding (DM)** zit als knop in de voetbalk van een open tegel
+> (`_tegelHoudingKnop`) en opent een verticaal schuifje met de namen van de
+> treden — het balkje uit `_houdingBalkHtml`, dus `_houdingZet` werkt
+> ongewijzigd (direct zien, na 1,6 s opslaan; de tegel blijft daarna open).
+> **Een andere tegel openen sluit de vorige in dezelfde beweging.** Daarbij
+> schuift de rest één keer op; een tegel die daardoor naar een andere rij
+> overspringt zou schuin over het hele raster vliegen, dus die vervaagt ter
+> plekke en verschijnt op zijn nieuwe plek (`overstap` in `_flip`). Nagekeken
+> op een tiende van de snelheid (CDP `Animation.setPlaybackRate`).
+> **Per kaartsoort** verschilt alleen het gegevensblad (`_tegelGegevens`), de
+> ondertitel (`_tegelOndertitel`) en het icoon (`_tegelIcoon`: een locatie
+> krijgt dat van haar type, ook als merkje boven de naam). Voorwerpen dragen
+> `data-rarity` en de glans, documenten zonder beeld een mini-perkament in hun
+> briefstijl (`_tegelPerkament`, met `_knipselLetters` bij knipsel) en een
+> extra blad *Tekst* met het perkament zelf — gecodeerd zolang de party hem
+> niet kraakte. Badges staan alleen bij personages; elders herhaalden ze een rij.
+> **Het bestiarium** heeft een eigen bestand en een eigen venster (het
+> statblok), dus de beweging staat op `window`: `_tegelFlip`, `_tegelDraai`
+> en `_tegelVensterUit(tegel, open, nogHier)`. Zijn bladen (`_bladen` in
+> `render-bestiarium.js`): gegevens (met het kennisniveau voor de DM),
+> beschrijving en roddel; de niveauletter hertekent het raster.
+> **De spreukenbibliotheek** (5 nov 2026) doet hetzelfde in
+> `render-spreuken.js` (`_tegel`, `_bladen`: plaat, gegevens, beschrijving,
+> At Higher Levels). Zonder plaat staat de tegel op de **schoolkleur** met het
+> schoolteken, en `onload` haalt `no-img` er pas af als de thumbnail er is —
+> anders knippert een raster van 500 spreuken zonder plaat. Het venster is
+> hier een eigen overlay, dus `_tegelVensterUit` kreeg een vierde argument
+> `{venster, waasSel, haak}`: de krimpbeweging komt via `haak` terug en
+> `spreuken.close()` wacht erop. De aanvraagknop van de speler zit in de
+> voetbalk en houdt klasse en `data-idx` van het oude kaartje, zodat
+> `_markAdded`/`_markWachtend` hem gewoon bijwerken. Het oude `_card` blijft
+> als terugval zolang `window._tegelFlip` er nog niet is.
+> **Valkuil bij het testen:** een verborgen sectie blijft in de DOM staan, dus
+> `.tegel--open` vindt ook de open tegel van het vorige tabblad — zoek binnen
+> `#section-<type>`.
+
+## Gevangenen: een toestand per party
+
+> **Wie de party vastzet of meesleept** (6 nov 2026).
+> `groups[gid].gevangenen[entityId] = { sinds, waar }` — per party, net als
+> `deceased`: dezelfde smokkelaar kan bij de ene party in de kelder zitten en
+> voor de andere vrij rondlopen. `waar` is een korte aantekening die de spelers
+> ook lezen, want het is hún gevangene.
+> **DM:** knop *Gevangen* in de DM-rij van het detailvenster (niet bij spelers
+> en goden), `window._toggleGevangen` in `render-campagne.js` →
+> `PUT /entities/personages/:id/gevangen` met `{gevangen: true|false, waar?,
+> groep?}` (standaard de actieve party). **Expliciet aan of uit**, geen
+> wisselknop: een dubbele klik of een tweede DM-scherm mag de stand niet
+> terugdraaien. Twee gevolgen, die het antwoord meldt: een **medestander** gaat
+> van de party af (`wasMedestander`, de client vraagt het eerst), en een
+> **verborgen** kaartje wordt **vaag** (`zichtbaarGemaakt`): de party heeft hem
+> in handen, dus ze weten dát hij er is, maar naam en gegevens onthult de DM
+> zelf. `GET /entities/personages/:id/gevangen` zegt bij welke party's hij zit.
+> **Speler:** `GET /party/gevangenen` → de rij *Gevangenen* onder de
+> medestanders (`_partyGevangenen` in `app.js`, lui geladen zoals de
+> gevallenen). Zelfde zichtbaarheid als elders: verborgen bestaat niet, vaag
+> houdt zijn naam maar verliest volk, class en focuspunt (het portret krijgt de
+> waas van `_waasVoor`). Een gevangene die intussen dood is staat hier niet.
+> Socket `party:gevangenen` ververst alleen die rij; het kaartje gaat via
+> `entity:updated`.
+> **Op het kaartje:** `_gevangen` (op de drie plekken waar ook `_deceased`
+> wordt gezet), een badge *Gevangen* vooraan in `getCardBadges`, en tralies
+> over het portret (`.tegel-tralies` / `.party-portrait-tralies`: een
+> `repeating-linear-gradient`, geen plaatje). Verwijderen en de prullenbak
+> nemen de stand mee. Icoon `columns-4` (Lucide noemt het zelf *prison, jail,
+> bars*; `lock` betekent hier al een vergrendeld level). Bewaakt door
+> `tests/gevangenen.test.js`.
+
+## Huurlingen: een medestander met een dagloon
+
+> **Wie de party inhuurt, kost geld per nacht** (6 nov 2026).
+> `groups[gid].huurlingen[npcId] = { loon, betaler, achterstand, sinds }` — per
+> party, `loon` in centelingen. Een **dag is een lange rust** (zelfde klok als de
+> rente van de Tweespalt): `_huurlingenLoon()` in `POST /party/long-rest` betaalt
+> uit `_effectiveCurrency` van de betaler (of de gedeelde beurs) via
+> `_deductCurrency`, nooit onder nul. Te weinig → `achterstand++`; vanaf
+> `HUURLING_WIL_WEG` (2) staat `wilWeg`. **Vertrekken gebeurt nooit vanzelf** —
+> dat zou een impliciet destructief pad zijn; de DM krijgt een melding
+> (`huurlingen:loon`) en een rode rand op de knop, en beslist. De regels komen in
+> het rustoverzicht (`gebeurtenissen`).
+> Routes (DM): `GET|PUT|DELETE /entities/personages/:id/huurling`,
+> `POST …/huurling/betaal` (de hele achterstand of niets) en `…/vertrek` (van de
+> party af). Inhuren maakt hem medestander. Het loon is een voorgevuld veld
+> (`HUURLING_LOON_STANDAARD` = 2 gouden munten, de PHB-prijs voor een geschoolde
+> kracht). `GET /companions` draagt `huurling: {loon, achterstand, wilWeg,
+> betalerNaam}`, en het partytabblad zet huurlingen in een eigen rij.
+> Client: `window._huurlingOpen` / `_vulHuurling` in `render-campagne.js`.
+> `companions:updated` werd al overal uitgestuurd maar niemand luisterde; het
+> partytabblad ververst er nu op. Bewaakt door `tests/huurlingen.test.js`.
+
+## Het mooiste moment van de avond
+
+> **Een stemronde aan het eind van de sessie** (6 nov 2026). De DM opent hem in
+> de regie-balk (*Stemmen*); elke aanwezige speler stemt op een ander (niet op
+> zichzelf), met optioneel één zin waarom. De winnaar krijgt **Heroic
+> Inspiration** (`dmState.playerInspiration`, plus `player:inspiration` en
+> `badges:updated`), het tafelscherm toont hem (`stemronde:display`, alleen de
+> display-room).
+> **Anoniem, ook voor de DM.** `groups[gid].stemronde.stemmen[kiezer] = {op,
+> reden}` staat op de server — je mag je stem wijzigen — maar geen enkele route
+> geeft hem terug: `GET /stemronde` levert alleen het aantal, en de uitslag de
+> redenen **geschud** en zonder naam. Een gelijke stand geeft een 409 met de
+> gelijken; de DM kiest (`{winnaar}`), de app trekt geen lot. `{annuleer:true}`
+> breekt af. Als geheugensteun staan de genadeslagen van vandaag erbij
+> (`_stemSuggesties`, uit de gevechtsverslagen).
+> Routes: `GET /stemronde`, `POST /stemronde` (DM), `/stemronde/stem` (speler),
+> `/stemronde/sluit` (DM). Client: **`public/js/stemronde.js`** (side-effect
+> import): venster bij openen, kaart bovenaan het partytabblad
+> (`#party-stemronde`), DM-venster en de uitslag op tafel. Valkuil: `requireDM`
+> zet `req.role` niet — `_stemGroep` kijkt daarom naar `req.session.role`.
+> Iconen `vote` en `trophy` (sprite v=31). Bewaakt door `tests/stemronde.test.js`.
 
 ## Kaartjes zijn agnostisch
 

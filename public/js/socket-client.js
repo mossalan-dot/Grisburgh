@@ -69,7 +69,7 @@ function _ververOpenKaartje(id) {
       // verborgen" staan nadat je er zelf een kaartje in onthuld had. Pas na
       // herladen klopte het. De ontdekkingsmeters hangen aan dezelfde stand,
       // dus die liepen even hard achter.
-      import('./render-archief.js?v=147').then(m => m.renderLogboek());
+      import('./render-archief.js?v=148').then(m => m.renderLogboek());
     }
     window._updateDiscoveryChip?.(true); // #5: header-meter verversen
   });
@@ -137,7 +137,7 @@ function _ververOpenKaartje(id) {
     const section = window.app.state.activeSection;
     if (section === 'logboek' && window._logboekActiveTab === 'prikbord') {
       // Herlaad alleen de relatiemap, niet het hele logboek
-      import('./render-relatiemap.js?v=35').then(m => {
+      import('./render-relatiemap.js?v=38').then(m => {
         const el = document.getElementById('pb-relatiemap-container');
         if (el) m.renderRelatiemap(el);
       });
@@ -148,20 +148,20 @@ function _ververOpenKaartje(id) {
   // het logboek — daar landt de regel die bij een onthulling geschreven wordt.
   socket.on('archief:updated', () => {
     if (window.app.state.activeSection === 'logboek') {
-      import('./render-archief.js?v=147').then(m => m.renderLogboek());
+      import('./render-archief.js?v=148').then(m => m.renderLogboek());
     }
   });
 
   socket.on('logboek:updated', () => {
     if (window.app.state.activeSection === 'logboek') {
-      import('./render-archief.js?v=147').then(m => m.renderLogboek());
+      import('./render-archief.js?v=148').then(m => m.renderLogboek());
     }
   });
 
   socket.on('quests:updated', () => {
     const section = window.app?.state?.activeSection;
     if (section === 'logboek') {
-      import('./render-archief.js?v=147').then(m => m.renderLogboek());
+      import('./render-archief.js?v=148').then(m => m.renderLogboek());
     }
     // Factie-interieur herlaadt ook (missies zijn quests met factieId)
     if (section === 'facties') _refreshSectionDebounced('facties');
@@ -175,7 +175,7 @@ function _ververOpenKaartje(id) {
     if (section === 'facties') _refreshSectionDebounced('facties');
     if (section === 'mijn-karakter') _refreshSectionDebounced('mijn-karakter');
     if (section === 'logboek' && window._logboekActiveTab === 'prikbord') {
-      import('./render-archief.js?v=147').then(m => m.renderLogboek());
+      import('./render-archief.js?v=148').then(m => m.renderLogboek());
     }
     window._updateDienstenMenuFromSocket?.();
   });
@@ -235,7 +235,7 @@ function _ververOpenKaartje(id) {
 
   socket.on('chapter-visibility:updated', () => {
     if (window.app.state.activeSection === 'logboek') {
-      import('./render-archief.js?v=147').then(m => m.renderLogboek());
+      import('./render-archief.js?v=148').then(m => m.renderLogboek());
     }
   });
 
@@ -273,7 +273,7 @@ function _ververOpenKaartje(id) {
     // betreft. Zonder groupId (oudere events) tonen we het aan iedereen.
     if (groupId && !window._isDisplayMode && window._myGroupId && window._myGroupId !== groupId) return;
     if (window.app.state.activeSection === 'logboek') {
-      import('./render-archief.js?v=147').then(m => m.renderLogboek());
+      import('./render-archief.js?v=148').then(m => m.renderLogboek());
     }
     if (!window.app.isDM()) {
       if (window._isDisplayMode) {
@@ -363,7 +363,7 @@ function _ververOpenKaartje(id) {
     }
     if (window.app.state.activeSection !== 'kaart') return;
     if (window.app.state.role === 'dm') return; // DM al bijgewerkt via _renderSvg()
-    import('./render-dungeon.js?v=73').then(m => {
+    import('./render-dungeon.js?v=74').then(m => {
       const content = document.getElementById('kaart-mode-content');
       if (content) m.renderDungeon(content);
     });
@@ -371,7 +371,7 @@ function _ververOpenKaartje(id) {
   // Dungeon meta bijgewerkt (nieuwe map, party-access) → iedereen herlaadt
   socket.on('dungeon:updated', () => {
     if (window.app.state.activeSection !== 'kaart') return;
-    import('./render-dungeon.js?v=73').then(m => {
+    import('./render-dungeon.js?v=74').then(m => {
       const content = document.getElementById('kaart-mode-content');
       if (content) m.renderDungeon(content);
     });
@@ -442,6 +442,36 @@ function _ververOpenKaartje(id) {
   socket.on('diensten:toegang:updated', () => {
     window.app?._loadDienstenToegang?.();
   });
+
+  // Gevangen genomen of vrijgelaten: alleen de rij in het partytabblad. Het
+  // kaartje zelf ververst al via entity:updated.
+  socket.on('party:gevangenen', () => { window._partyGevangenen?.(); });
+
+  // Een medestander erbij, eraf, of zijn loon veranderde: het partytabblad
+  // tekent dat uit /companions. Werd al overal uitgestuurd, alleen luisterde
+  // niemand ernaar.
+  socket.on('companions:updated', () => {
+    if (window.app?.state?.activeSection === 'mijn-karakter') _refreshSectionDebounced('mijn-karakter');
+  });
+
+  // Loon na een lange rust. De DM hoort wie er niet betaald werd; de party
+  // zelf ook — zij hebben hem in dienst.
+  socket.on('huurlingen:loon', ({ groep, regels = [] } = {}) => {
+    const mijn = window.app?.isDM?.() || groep === window._myGroupId;
+    if (!mijn || window._isDisplayMode) return;
+    for (const r of regels.filter(x => !x.betaald)) {
+      _showToast(`${window.icon(r.wilWeg ? 'door-open' : 'coins')} <strong>${r.naam}</strong> ${r.wilWeg
+        ? `wil vertrekken — al ${r.achterstand} dagen geen loon`
+        : 'kreeg vannacht geen loon'}`, null, 7000);
+    }
+  });
+
+  // Het mooiste moment van de avond — de module zelf weet wat ermee moet.
+  socket.on('stemronde:open',    d => window.stemronde?.opSocket('open', d));
+  socket.on('stemronde:stand',   d => window.stemronde?.opSocket('stand', d));
+  socket.on('stemronde:dicht',   d => window.stemronde?.opSocket('dicht', d));
+  socket.on('stemronde:uitslag', d => window.stemronde?.opSocket('uitslag', d));
+  socket.on('stemronde:display', d => window.stemronde?.opSocket('display', d));
 
   socket.on('entity:deceased', ({ id, type, name } = {}) => {
     // Herlaad de huidige sectie zodat het kaartje meteen grijs wordt
@@ -956,13 +986,13 @@ function _ververOpenKaartje(id) {
 
   socket.on('relations:updated', () => {
     if (window.app.state.activeSection === 'relatiemap') {
-      import('./render-relatiemap.js?v=35').then(m => m.renderRelatiemap());
+      import('./render-relatiemap.js?v=38').then(m => m.renderRelatiemap());
     }
   });
 
   socket.on('relations:revealed', ({ id } = {}) => {
     if (window.app.state.activeSection === 'relatiemap') {
-      import('./render-relatiemap.js?v=35').then(m => m.renderRelatiemap());
+      import('./render-relatiemap.js?v=38').then(m => m.renderRelatiemap());
     }
     if (!window.app.isDM()) {
       _showToast(`${window.icon('link')} <strong>Nieuwe verbinding onthuld!</strong>`, () => {

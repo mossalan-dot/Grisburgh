@@ -1,5 +1,5 @@
 import { api, huidigeCampagne } from './api.js?v=320';
-import { init as canvasInit, update as canvasUpdate, stop as canvasStop, acGetal } from './combat-canvas.js?v=37';
+import { init as canvasInit, update as canvasUpdate, stop as canvasStop, acGetal } from './combat-canvas.js?v=41';
 import { renderStatblock } from './render-statblock.js?v=9';
 
 // ── DM Panel ──
@@ -2766,6 +2766,8 @@ function _renderRegieBalk() {
           ${window.app?.state?.meta?.levelup?.systeem === 'xp' ? `
           <button class="dm-regie-balk-btn" onclick="window.dmPanel.regieBalkXp(this)"
             title="XP uitdelen aan wie vanavond meedoet">${icon('star')} <span class="dm-rb-btn-label">XP</span></button>` : ''}
+          <button class="dm-regie-balk-btn" onclick="window.stemronde?.dm()"
+            title="Het mooiste moment van de avond — iedereen stemt, de winnaar krijgt Heroic Inspiration">${icon('vote')} <span class="dm-rb-btn-label">Stemmen</span></button>
           <span class="dm-rb-sep"></span>
           <button class="dm-regie-balk-btn" onclick="window.dmPanel.regieBalkBrief()" title="Stuur een verzegelde uitnodiging (factie of dienst)">${icon('mail')} <span class="dm-rb-btn-label">Uitnodiging</span></button>
           <button class="dm-regie-balk-btn" onclick="window.dmPanel.terugblikMenu(event)" title="Wat voorafging — een terugblik op de vorige sessie, op het tafelscherm">${icon('hourglass')} <span class="dm-rb-btn-label">Terugblik</span></button>
@@ -13543,6 +13545,17 @@ async function _renderInstellingen() {
          dus stond een nieuwe speler niet in de inloglijst. Nu maakt hij een
          concept met het partywachtwoord en gun jij het. Wat hier staat is wat
          je hem toestaat — niet of de app het kan. -->
+    <!-- Material components: mag een speler wiens voorraad op is het
+         materiaal meteen uit de beurs betalen? Uitleg in inst_materiaal. -->
+    ${_instSectie('materiaal', 'Material components', `
+      <div class="dm-form-row">
+        <label class="dm-form-checkbox">
+          <input type="checkbox" id="inst-mat-kasboek"${window.app?.state?.meta?.materiaal?.kasboek ? ' checked' : ''}>
+          <span>Kostbaar materiaal mag uit de beurs worden afgerekend</span>
+        </label>
+      </div>
+    `, window._helpBtn?.('inst_materiaal') ?? '')}
+
     ${_instSectie('personage', 'Zelf een personage maken', `
       <div class="dm-form-row">
         <label class="dm-form-checkbox">
@@ -13966,6 +13979,11 @@ window._instOpslaan = async () => {
       maxLevel: parseInt(document.getElementById('inst-lu-max')?.value) || 20,
       systeem: document.getElementById('inst-lu-systeem')?.value || 'milestone',
     });
+
+    // Material components: alleen meesturen als het vinkje er staat — een
+    // paneel dat niet getekend is mag de stand niet stil op "uit" zetten.
+    const matVink = document.getElementById('inst-mat-kasboek');
+    if (matVink) await api.put('/meta/materiaal', { kasboek: !!matVink.checked });
 
     // Zelf een personage maken: eigen route, net als de level-upinstellingen.
     // Geen enkele manier aangevinkt zou betekenen dat de wizard geen scherm

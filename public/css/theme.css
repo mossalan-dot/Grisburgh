@@ -32697,3 +32697,628 @@ body.gr-slowmo .combat-overlay { filter: grayscale(.85) contrast(1.1) brightness
    ook zien wélk portret de focus heeft. */
 .landing-portrait:focus-visible { outline: 2px solid #c4a840; outline-offset: 4px; border-radius: 12px; }
 .landing-terug:focus-visible    { outline: 2px solid #c4a840; outline-offset: 3px; }
+/* ══════════════════════════════════════════════════════════════════
+   De Boedel: een raster van archiefkaartjes in plaats van een carrousel
+   ══════════════════════════════════════════════════════════════════
+   Twee kolommen op een telefoon, drie zodra er ruimte is. De kaartjes lenen
+   .entity-card (rand, schaduw, zeldzaamheidsring, glans) en zijn kleiner: een
+   vierkant beeld en alleen naam, soort en stand. Wat je ermee doet staat in het
+   venster dat een klik opent. */
+.boedel-raster {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 4px;
+}
+@media (min-width: 560px) {
+  .boedel-raster { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+}
+.boedel-kaart.entity-card { border-radius: 10px; }
+.boedel-kaart.entity-card:hover { transform: translateY(-2px); }
+.boedel-kaart:focus-visible { outline: 2px solid #c4a87a; outline-offset: 2px; }
+.boedel-kaart .boedel-kaart-beeld {
+  aspect-ratio: 4 / 3;
+  overflow: hidden;
+  background:
+    radial-gradient(ellipse at 50% 40%, rgba(255,250,236,0.9), rgba(232,214,176,0.85));
+  display: flex; align-items: center; justify-content: center;
+}
+.boedel-kaart .boedel-kaart-beeld .card-img {
+  position: absolute; inset: 0;
+  width: 100%; height: 100%;
+  min-height: 0; max-height: none;
+  object-fit: cover;
+}
+/* Zonder beeld blijft het vlak staan, met het icoon van het type erin: anders
+   staan er in één rij kaartjes van drie verschillende hoogtes. */
+.boedel-kaart-icoon { color: rgba(122,96,64,0.55); }
+.boedel-kaart-icoon .icon { width: 30px; height: 30px; }
+.boedel-kaart .card-img-fade { pointer-events: none; }
+.boedel-kaart-aantal {
+  position: absolute; top: 5px; left: 5px; z-index: 12;
+  font-family: 'Cinzel', serif; font-size: 10px; font-weight: 700;
+  color: #f2e8d2; background: rgba(42,26,8,0.78);
+  border: 1px solid rgba(196,168,122,0.55); border-radius: 10px;
+  padding: 2px 7px;
+}
+.boedel-kaart-tekst { padding: 7px 9px 8px; display: flex; flex-direction: column; flex: 1; }
+.boedel-kaart .card-name {
+  font-size: 0.74rem; line-height: 1.2;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+.boedel-kaart .card-meta { font-size: 9.5px; }
+.boedel-kaart-standen { display: flex; gap: 6px; margin-top: auto; padding-top: 5px; }
+.boedel-kaart-stand {
+  display: inline-flex; align-items: center; gap: 3px;
+  font-family: 'Cinzel', serif; font-size: 9.5px; color: #7a6040;
+}
+.boedel-kaart-stand .icon { width: 11px; height: 11px; }
+
+/* Het venster: dezelfde opbouw als een kaartje uit het Heldenboek. */
+.boedel-detail .boedel-detail-hero { cursor: zoom-in; margin: 4px 6px 14px; }
+.boedel-detail .boedel-detail-hero .detail-hero-img { max-height: 260px; }
+.boedel-detail .prog-detail-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+.boedel-detail[data-rarity] .boedel-detail-rar { font-weight: 700; }
+.boedel-detail[data-rarity="uncommon"]  .boedel-detail-rar { color: #3f9a4e; border-color: rgba(63,154,78,0.5); }
+.boedel-detail[data-rarity="rare"]      .boedel-detail-rar { color: #3a7bd5; border-color: rgba(58,123,213,0.5); }
+.boedel-detail[data-rarity="very-rare"] .boedel-detail-rar { color: #9b59b6; border-color: rgba(155,89,182,0.5); }
+.boedel-detail[data-rarity="legendary"] .boedel-detail-rar { color: #c07a1a; border-color: rgba(224,150,47,0.55); }
+.boedel-detail-desc {
+  font-family: 'Crimson Text', serif; font-size: 1rem; line-height: 1.55; color: #2a1a08;
+  margin-bottom: 10px;
+}
+.boedel-detail .item-carousel-props { margin: 0 0 10px; }
+.boedel-detail-stand {
+  display: flex; flex-direction: column; gap: 8px;
+  margin: 12px 0; padding: 10px 12px;
+  background: rgba(196,168,122,0.12); border: 1px solid rgba(196,168,122,0.35); border-radius: 8px;
+}
+.boedel-detail-rij { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+.boedel-detail-label {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-family: 'Cinzel', serif; font-size: 0.72rem; letter-spacing: 0.04em; color: #5a4030;
+}
+.boedel-detail-acties { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+/* De oude carrouselslide in het venster van een zegen of vloek: geen kaart in
+   een kaart. */
+.boedel-detail--goddelijk .item-carousel-slide { box-shadow: none; border: none; background: none; padding: 0; transform: none; }
+
+/* ══════════════════════════════════════════════════════════════════
+   Tegels: het archief als raster van postzegels (personages)
+   ══════════════════════════════════════════════════════════════════
+   Dicht: beeld en naam. Open: 2×2 groot, met bladen die je omdraait. De
+   tegel leent .entity-card voor rand, schaduw en de bekende klassen
+   (verborgen, vaag, overleden, protagonist, onaf). */
+.cards-grid.tegel-raster {
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  grid-auto-flow: row dense;
+  align-items: start;
+  gap: 14px;
+}
+@media (max-width: 520px) {
+  .cards-grid.tegel-raster { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; padding: 12px; }
+}
+.tegel.entity-card {
+  aspect-ratio: 3 / 4;
+  border-radius: 10px;
+  display: block;
+  background: radial-gradient(ellipse at 50% 38%, #fbf6ea, #ead9b4);
+}
+.tegel.entity-card:hover { transform: translateY(-3px); }
+.tegel:focus-visible { outline: 2px solid #c4a87a; outline-offset: 3px; }
+.tegel > .card-accent { position: absolute; top: 0; left: 0; right: 0; z-index: 4; }
+.tegel-img {
+  position: absolute; inset: 0; width: 100%; height: 100%;
+  object-fit: cover; z-index: 1;
+}
+.tegel-icoon {
+  position: absolute; inset: 0; z-index: 0;
+  display: flex; align-items: center; justify-content: center;
+  color: rgba(122,96,64,0.4);
+}
+.tegel-icoon .icon { width: 38px; height: 38px; }
+.tegel-naamband {
+  position: absolute; left: 0; right: 0; bottom: 0; z-index: 3;
+  padding: 26px 9px 8px;
+  background: linear-gradient(to top, rgba(250,244,230,0.97) 0%, rgba(250,244,230,0.92) 55%, rgba(250,244,230,0) 100%);
+  text-align: center;
+}
+.tegel .card-name {
+  font-size: 0.78rem; line-height: 1.2;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+.tegel.no-img .tegel-naamband { background: none; }
+.tegel.card-vague .tegel-img { filter: blur(6px) saturate(.4); }
+
+/* Ster (speler) en DM-knoppen: pas bij hover of focus, behalve een ster die aan staat. */
+.tegel-ster {
+  position: absolute; top: 6px; left: 6px; z-index: 6;
+  width: 26px; height: 26px; border-radius: 50%;
+  background: rgba(42,26,8,0.55); color: #f2e8d2; font-size: 14px; line-height: 1;
+  border: 1px solid rgba(196,168,122,0.5);
+  opacity: 0; transition: opacity .15s;
+}
+.tegel:hover .tegel-ster, .tegel:focus-within .tegel-ster, .tegel-ster.is-aan { opacity: 1; }
+.tegel-ster.is-aan { color: #f0c860; }
+.tegel-dm {
+  position: absolute; top: 6px; right: 6px; z-index: 6;
+  display: flex; flex-direction: column; gap: 4px;
+  opacity: 0; transform: translateY(-3px); transition: opacity .15s, transform .15s;
+}
+.tegel:hover .tegel-dm, .tegel:focus-within .tegel-dm { opacity: 1; transform: none; }
+.tegel-dm button {
+  width: 26px; height: 26px; border-radius: 6px;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(40,26,8,0.6); color: #f2e8d2;
+  -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px);
+}
+.tegel-dm button:hover { background: rgba(40,26,8,0.88); }
+.tegel-dm .tegel-dm-weg:hover { background: rgba(140,30,30,0.9); }
+.tegel-dm .icon { width: 13px; height: 13px; }
+
+/* ── Open: 2×2, met bladen ── */
+.tegel.tegel--open {
+  grid-column: span 2; grid-row: span 2;
+  cursor: pointer;
+  box-shadow: 0 6px 18px rgba(60,40,10,0.18), 0 22px 48px rgba(60,40,10,0.16);
+}
+.tegel.tegel--open:hover { transform: none; }
+.tegel-blad { position: absolute; inset: 0; z-index: 3; }
+.tegel-naamband--groot { padding: 48px 16px 52px; }
+.tegel-naamband--groot .card-name { font-size: 1.15rem; -webkit-line-clamp: 3; }
+.tegel-ondertitel {
+  display: block; margin-top: 3px;
+  font-family: 'IM Fell English', serif; font-style: italic; font-size: 0.86rem; color: #6a5030;
+}
+/* Op de tekstbladen wordt het beeld een gedimde achtergrond achter perkament. */
+.tegel--open .tegel-blad:not([data-soort="portret"]) {
+  background: linear-gradient(rgba(250,244,230,0.9), rgba(246,236,212,0.95));
+}
+.tegel-vel { position: absolute; inset: 0; display: flex; flex-direction: column; padding: 16px 16px 50px; }
+.tegel-vel-kop {
+  display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
+  font-family: 'Cinzel', serif; font-size: 0.72rem; letter-spacing: 0.08em; text-transform: uppercase;
+  color: #7a6040; padding-bottom: 7px; margin-bottom: 9px;
+  border-bottom: 1px solid rgba(180,140,60,0.35);
+}
+.tegel-vel-kop .icon { width: 13px; height: 13px; }
+.tegel-vel-naam {
+  margin-left: auto; text-transform: none; letter-spacing: 0.02em;
+  font-weight: 700; color: #2a1a08; font-size: 0.78rem;
+}
+.tegel-vel-tekst {
+  flex: 1; min-height: 0; overflow: hidden;
+  font-family: 'Crimson Text', serif; font-size: 0.95rem; line-height: 1.45; color: #2a1a08;
+  -webkit-mask-image: linear-gradient(to bottom, #000 82%, transparent);
+          mask-image: linear-gradient(to bottom, #000 82%, transparent);
+}
+.tegel-vel-tekst p { margin: 0 0 0.5em; }
+.tegel-badges { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 10px; }
+.tegel-gegevens { margin: 0; display: grid; gap: 6px; }
+.tegel-gegeven { display: grid; grid-template-columns: 7.5em 1fr; gap: 8px; align-items: baseline; }
+.tegel-gegeven dt { font-family: 'Cinzel', serif; font-size: 0.66rem; letter-spacing: 0.06em; color: #7a6040; text-transform: uppercase; }
+.tegel-gegeven dd { margin: 0; }
+.tegel-gegeven--rol { grid-template-columns: 1fr; }
+.tegel-gegeven--rol dd { font-family: 'IM Fell English', serif; font-style: italic; font-size: 1.02rem; color: #4a3218; }
+.tegel-kopje {
+  margin: 12px 0 4px; font-family: 'Cinzel', serif; font-size: 0.66rem;
+  letter-spacing: 0.06em; color: #7a6040; text-transform: uppercase;
+}
+.tegel-hoort { list-style: none; margin: 0; padding: 0; }
+.tegel-hoort li { margin: 2px 0; }
+.tegel-hoort-rol { font-style: italic; color: #6a5030; }
+.tegel-regels { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.tegel-regel {
+  font-family: 'IM Fell English', serif; font-style: italic;
+  padding-left: 10px; border-left: 2px solid rgba(196,168,122,0.7);
+}
+.tegel-regel p { margin: 0; display: inline; }
+.tegel-regel--dicht { opacity: 0.5; }
+.tegel-slot { display: inline-flex; vertical-align: -2px; margin-right: 4px; color: #7a6040; }
+.tegel-slot .icon { width: 12px; height: 12px; }
+
+.tegel-voet {
+  position: absolute; left: 0; right: 0; bottom: 0; z-index: 5;
+  display: flex; align-items: center; gap: 6px;
+  padding: 8px 10px;
+  background: linear-gradient(to top, rgba(242,232,210,0.98), rgba(242,232,210,0.85));
+  border-top: 1px solid rgba(196,168,122,0.45);
+  cursor: default;
+}
+.tegel-punten { display: flex; gap: 4px; flex: 1; }
+.tegel-punt, .tegel-knop {
+  width: 28px; height: 28px; border-radius: 50%;
+  display: inline-flex; align-items: center; justify-content: center;
+  color: #7a6040; background: transparent; border: 1px solid transparent;
+  transition: background .15s, color .15s, border-color .15s;
+}
+.tegel-punt .icon, .tegel-knop .icon { width: 13px; height: 13px; }
+.tegel-punt:hover, .tegel-knop:hover { background: rgba(196,168,122,0.22); color: #2a1a08; }
+.tegel-punt.is-aan { background: #2a1a08; color: #f2e8d2; }
+.tegel-knop { border-color: rgba(196,168,122,0.55); }
+
+/* ── Favorieten: het lint en de stapel ── */
+.tegel-lint {
+  position: absolute; top: -2px; right: 18px; z-index: 5;
+  width: 15px; height: 34px;
+  background: linear-gradient(90deg, #7a1a1a, #b32f2a 45%, #8c2020);
+  clip-path: polygon(0 0, 100% 0, 100% 100%, 50% 78%, 0 100%);
+  box-shadow: 0 2px 4px rgba(0,0,0,0.25);
+}
+.tegel--open .tegel-lint { right: 48px; }
+.tegel--favoriet.entity-card:hover { box-shadow: 0 6px 16px rgba(150,40,30,0.22), 0 0 0 1px rgba(179,47,42,0.25); }
+
+.tegel-stapel {
+  aspect-ratio: 3 / 4; position: relative; cursor: pointer;
+  border-radius: 10px;
+}
+.tegel-stapel:focus-visible { outline: 2px solid #c4a87a; outline-offset: 3px; }
+.tegel-stapel-kaarten { position: absolute; inset: 8px 10px 40px; }
+.tegel-stapel-kaart {
+  position: absolute; inset: 0;
+  border-radius: 9px; overflow: hidden;
+  background: radial-gradient(ellipse at 50% 38%, #fbf6ea, #ead9b4);
+  border: 1px solid rgba(196,168,122,0.7);
+  box-shadow: 0 3px 8px rgba(60,40,10,0.22);
+  transform: rotate(calc((var(--n) - 1) * -5deg)) translate(calc(var(--n) * 3px), calc(var(--n) * -3px));
+  transition: transform .25s cubic-bezier(.2,.75,.25,1);
+}
+.tegel-stapel:hover .tegel-stapel-kaart {
+  transform: rotate(calc((var(--n) - 1) * -9deg)) translate(calc(var(--n) * 7px), calc(var(--n) * -6px));
+}
+.tegel-stapel-img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.tegel-stapel-label {
+  position: absolute; left: 0; right: 0; bottom: 6px;
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+  font-family: 'Cinzel', serif; font-size: 0.72rem; letter-spacing: 0.05em; color: #4a3218;
+}
+.tegel-stapel-aantal {
+  min-width: 20px; height: 20px; padding: 0 5px; border-radius: 10px;
+  display: inline-flex; align-items: center; justify-content: center;
+  background: linear-gradient(90deg, #7a1a1a, #b32f2a); color: #fbeee0; font-size: 0.68rem;
+}
+.tegel-stapel-pijl .icon { width: 13px; height: 13px; }
+.tegel-stapel.is-uit .tegel-stapel-kaart { opacity: 0.45; }
+@media (prefers-reduced-motion: reduce) {
+  .tegel-stapel-kaart { transition: none; }
+}
+/* Op een open tegel staan ster en DM-knoppen in de voetbalk: bovenin vielen
+   ze over de kop van het blad. Het type-icoon is alleen voor een tegel zonder
+   beeld — door een doorzichtige plaat heen schemerde het anders mee. */
+.tegel:not(.no-img) .tegel-icoon { display: none; }
+.tegel-voet .tegel-ster, .tegel-voet .tegel-dm {
+  position: static; opacity: 1; transform: none;
+}
+.tegel-voet .tegel-dm { flex-direction: row; gap: 4px; margin-right: 4px; }
+.tegel-voet .tegel-dm button { background: transparent; color: #7a6040; width: 28px; height: 28px; border-radius: 50%; }
+.tegel-voet .tegel-dm button:hover { background: rgba(196,168,122,0.22); color: #2a1a08; }
+.tegel-voet .tegel-dm .tegel-dm-weg:hover { background: rgba(140,30,30,0.15); color: #8c2020; }
+.tegel-voet .tegel-ster { background: transparent; border-color: rgba(196,168,122,0.55); color: #7a6040; width: 28px; height: 28px; }
+.tegel-voet .tegel-ster.is-aan { color: #b32f2a; }
+@media (max-width: 520px) {
+  .tegel.tegel--open { aspect-ratio: 4 / 5; }
+}
+.tegel-voet .tegel-punt { width: 24px; height: 24px; }
+.tegel-voet > * { flex-shrink: 0; }
+.tegel-voet .tegel-punten { flex: 1 1 auto; flex-shrink: 1; min-width: 0; gap: 2px; }
+
+/* Tekstbladen zijn dicht perkament: de plaat schemerde erdoor en vocht met de
+   tekst. Het gezicht staat nu als klein portret in de kop. */
+.tegel--open .tegel-blad:not([data-soort="portret"]) {
+  background: linear-gradient(#fbf6ea, #f3e7ca);
+}
+.tegel-vel-portret {
+  width: 26px; height: 26px; border-radius: 50%; object-fit: cover;
+  border: 1px solid rgba(196,168,122,0.8); box-shadow: 0 1px 3px rgba(60,40,10,0.25);
+  margin-left: 6px; flex-shrink: 0;
+}
+
+/* De houding in de voetbalk: knop met een paneeltje erboven. */
+.tegel-houding { position: relative; }
+.tegel-houding-knop .icon { color: var(--houding-kleur); }
+.tegel-houding-paneel {
+  display: none;
+  position: absolute; bottom: calc(100% + 10px); left: 50%; transform: translateX(-50%);
+  z-index: 20; padding: 10px 12px 12px;
+  background: #fbf6ea; border: 1px solid rgba(196,168,122,0.8); border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(60,40,10,0.28);
+}
+.tegel-houding.is-open .tegel-houding-paneel { display: block; }
+.tegel-houding-kop {
+  font-family: 'Cinzel', serif; font-size: 0.66rem; letter-spacing: 0.08em;
+  text-transform: uppercase; color: #7a6040; margin-bottom: 8px; text-align: center;
+}
+.tegel-houding-rij { display: flex; gap: 10px; align-items: stretch; }
+.tegel-houding .houding-balk {
+  position: static; opacity: 1; width: 30px; height: 150px; gap: 5px;
+}
+.tegel-houding-namen {
+  list-style: none; margin: 0; padding: 3px 0;
+  display: flex; flex-direction: column; justify-content: space-between;
+  font-family: 'Crimson Text', serif; font-size: 0.86rem; color: #3a2410; white-space: nowrap;
+}
+.tegel-houding-paneel { left: auto; right: -8px; transform: none; }
+/* De tegel die groeit ligt boven de rest, ook tijdens de beweging. */
+.tegel.tegel--open { z-index: 4; }
+/* In het houdingspaneel staan de kleuren van de treden altijd in beeld. */
+.tegel-houding .houding-balk { background: rgba(42,26,8,0.12); box-shadow: none; }
+.tegel-houding .houding-stap { background: var(--houding-kleur); opacity: .35; border-color: transparent; }
+.tegel-houding .houding-stap:hover { opacity: .75; }
+.tegel-houding .houding-stap.is-aan { opacity: 1; box-shadow: 0 0 0 2px #2a1a08; }
+.tegel-houding .houding-balk.is-standaard .houding-stap.is-aan { background: var(--houding-kleur); box-shadow: 0 0 0 2px #2a1a08, inset 0 0 0 3px #fbf6ea; }
+
+/* ── Tegels voor de andere archief-tabbladen ── */
+/* Een document zonder plaatje: een klein vel in zijn eigen briefstijl, licht
+   schuin neergelegd, met de titel erop. Het lettertype komt van
+   .parchment-block[data-stijl], dus elke briefstijl ziet er hier al uit zoals
+   in het venster. */
+.tegel-perkament.parchment-block {
+  position: absolute; inset: 16px 14px 46px; z-index: 1;
+  display: flex; align-items: center; justify-content: center; text-align: center;
+  padding: 12px; overflow: hidden;
+  transform: rotate(-2deg);
+  box-shadow: 0 3px 8px rgba(60,40,10,0.22);
+  font-size: 15px; line-height: 1.25;
+}
+.tegel-perkament > span { display: -webkit-box; -webkit-line-clamp: 5; -webkit-box-orient: vertical; overflow: hidden; }
+.tegel:has(.tegel-perkament) .tegel-icoon { display: none; }
+.tegel:has(.tegel-perkament) .tegel-naamband { background: none; }
+.tegel--open .tegel-perkament { display: none; }
+/* Het tekstblad van een document: het perkament zelf, iets kleiner gezet. */
+.tegel-vel-tekst .tegel-perkament-tekst.parchment-block {
+  padding: 12px 14px; font-size: 14px; line-height: 1.55; border: none; box-shadow: none;
+}
+/* Locatiemerkje boven de naam: een haven ziet er anders uit dan een woud. */
+.tegel-merk {
+  display: flex; justify-content: center; margin-bottom: 3px;
+  color: #7a6040;
+}
+.tegel-merk .icon, .tegel-merk svg { width: 15px; height: 15px; }
+/* AC-pil op een voorwerp: rechtsboven, onder waar de DM-knoppen opkomen. */
+.tegel .tegel-ac { top: auto; bottom: 46px; right: 8px; }
+/* Zonder beeld staat het type-icoon al groot in de tegel; het merkje boven de
+   naam zou het dan dubbel zeggen. */
+.tegel.no-img .tegel-merk { display: none; }
+.tegel-perkament p { margin: 0; }
+.tegel-perkament[data-stijl="knipsel"] { font-size: 10px; }
+
+/* ══════════════════════════════════════════════════════════════════
+   Spreuken als tegels
+   ══════════════════════════════════════════════════════════════════
+   Dezelfde tegel als de archief-tabbladen. Zonder plaat staat het
+   schoolteken op de schoolkleur (--school-c1/c2 op de tegel), zodat een
+   rij spreuken zonder platen nog altijd leest als acht scholen. */
+.spreuk-tegel.no-img {
+  background: radial-gradient(ellipse at 50% 36%, var(--school-c2), var(--school-c1));
+}
+.spreuk-tegel.no-img .spreuk-tegel-icoon { color: rgba(242,232,210,0.55); }
+.spreuk-tegel.no-img .spreuk-tegel-icoon .icon { width: 44px; height: 44px; }
+.spreuk-tegel.no-img .tegel-naamband {
+  background: linear-gradient(to top, rgba(20,12,4,0.55), rgba(20,12,4,0));
+}
+.spreuk-tegel.no-img .tegel-naamband .card-name,
+.spreuk-tegel.no-img .tegel-naamband .tegel-ondertitel { color: #f2e8d2; text-shadow: 0 1px 2px rgba(0,0,0,0.6); }
+.spreuk-tegel-niv {
+  position: absolute; top: 8px; left: 8px; z-index: 5;
+  min-width: 22px; height: 22px; padding: 0 5px; border-radius: 11px;
+  display: inline-flex; align-items: center; justify-content: center;
+  font-family: 'Cinzel', serif; font-size: 0.7rem; font-weight: 700;
+  color: #f2e8d2; background: linear-gradient(135deg, var(--school-c1), var(--school-c2));
+  border: 1px solid rgba(242,232,210,0.55); box-shadow: 0 1px 3px rgba(0,0,0,0.35);
+}
+.spreuk-tegel-merk {
+  position: absolute; top: 8px; right: 8px; z-index: 5;
+  width: 20px; height: 20px; border-radius: 50%;
+  display: inline-flex; align-items: center; justify-content: center;
+  color: #fff; background: rgba(42,122,58,0.92); border: 1px solid rgba(255,255,255,0.6);
+}
+.spreuk-tegel-merk .icon { width: 11px; height: 11px; }
+.spreuk-tegel--inboek.spreuk-tegel--inboek { box-shadow: 0 0 0 2px rgba(42,122,58,0.55), 0 2px 8px rgba(42,26,8,0.18); }
+/* Het schoolzegel in de kop van een tekstblad: geen portret, wel een gezicht. */
+.spreuk-tegel-zegel.spreuk-tegel-zegel {
+  display: inline-flex; align-items: center; justify-content: center;
+  color: #f2e8d2; background: radial-gradient(circle at 40% 35%, var(--school-c2), var(--school-c1));
+}
+.spreuk-tegel-zegel .icon { width: 13px; height: 13px; }
+/* De boek-knop staat in de voetbalk, niet meer in de hoek van het kaartje. */
+.tegel-voet .spreuk-tegel-add.spreuk-tegel-add {
+  position: static; width: 28px; height: 28px;
+  -webkit-backdrop-filter: none; backdrop-filter: none; box-shadow: none;
+  color: #f2e8d2; background: #7a5a20; border: 1px solid rgba(196,168,122,0.7);
+}
+.tegel-voet .spreuk-tegel-add.is-added { background: rgba(42,122,58,0.92); }
+.tegel-voet .spreuk-tegel-add.is-wachtend { background: rgba(58,70,96,0.9); }
+.spreuk-tegel-tekst { font-size: 0.86rem; }
+.spreuk-tegel .tegel-badges .spreuk-tag { font-size: 0.7rem; }
+/* Op een tekstblad staat het level al in de kop van het vel; het bolletje viel erover. */
+.spreuk-tegel.tegel--open:has(.tegel-blad:not([data-soort="portret"])) .spreuk-tegel-niv { display: none; }
+
+/* ══════════════════════════════════════════════════════════════════
+   Spreukenboek: de M-component (altijd bij de hand of een voorraad)
+   ══════════════════════════════════════════════════════════════════
+   Staat op de perkamenten rechterpagina, dus inkt op papier: dezelfde
+   bruintinten als de gegevenstabel erboven. */
+.sb-materiaal {
+  margin: 10px 0 4px; padding: 8px 10px;
+  border: 1px solid rgba(154,104,48,0.32); border-radius: 6px;
+  background: rgba(196,168,122,0.10);
+  font-family: 'Crimson Text', serif; color: #3a2410;
+}
+.sb-mat-kop { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-bottom: 7px; }
+.sb-mat-chip {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-size: 12px; padding: 1px 7px; border-radius: 10px;
+  border: 1px solid rgba(154,104,48,0.4); color: #6a4418; background: #f6ecd6;
+}
+.sb-mat-chip .icon { width: 11px; height: 11px; }
+.sb-mat-chip--op { color: #8a2a18; border-color: rgba(138,42,24,0.35); }
+.sb-mat-stand { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.sb-mat-keuze { display: inline-flex; border: 1px solid #9a6830; border-radius: 6px; overflow: hidden; }
+.sb-mat-keuze button {
+  font-family: 'Cinzel', serif; font-size: 11px; letter-spacing: .03em;
+  padding: 4px 10px; color: #6a4418; background: transparent; border: 0;
+}
+.sb-mat-keuze button + button { border-left: 1px solid #9a6830; }
+.sb-mat-keuze button.is-aan { background: #6a4418; color: #f6ecd6; }
+.sb-mat-teller { display: inline-flex; align-items: center; gap: 6px; }
+.sb-mat-teller button {
+  width: 24px; height: 24px; border-radius: 50%;
+  border: 1px solid #9a6830; color: #6a4418; background: #f6ecd6; line-height: 1;
+}
+.sb-mat-teller button:disabled { opacity: .35; }
+.sb-mat-aantal { font-family: 'Cinzel', serif; font-weight: 700; min-width: 2.2em; text-align: center; }
+.sb-mat-aantal.is-leeg { color: #8a2a18; }
+.sb-mat-op {
+  margin-top: 9px; padding-top: 8px; border-top: 1px dashed rgba(138,42,24,0.4);
+  display: flex; flex-direction: column; gap: 7px;
+}
+.sb-mat-op-tekst { color: #8a2a18; font-style: italic; display: flex; align-items: center; gap: 6px; }
+.sb-mat-op-tekst .icon { width: 14px; height: 14px; }
+.sb-mat-op-rij { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.sb-mat-op-lbl { font-size: 12px; color: #7a6040; }
+.sb-mat-bedrag {
+  width: 6.5em; padding: 3px 6px; border-radius: 4px;
+  border: 1px solid #9a6830; background: #fffaf0; color: #3a2410; font-family: inherit;
+}
+.sb-mat-knop {
+  display: inline-flex; align-items: center; gap: 5px;
+  font-family: 'Cinzel', serif; font-size: 11px; padding: 4px 10px; border-radius: 5px;
+  border: 1px solid #9a6830; color: #6a4418; background: #f6ecd6;
+}
+.sb-mat-knop .icon { width: 12px; height: 12px; }
+.sb-mat-knop--goud { background: linear-gradient(to bottom, #b8860b, #8a6206); border-color: #d9b24a; color: #fff8ea; }
+
+/* ══════════════════════════════════════════════════════════════════
+   Gevangenen: tralies over het portret
+   ══════════════════════════════════════════════════════════════════
+   Geen plaatje maar een herhaald verloop: smalle donkere spijlen met een
+   vleugje licht aan één kant, zodat ze ijzer lijken en geen streepjescode.
+   Op de tegel tussen het beeld (z 1) en de naamband (z 3). */
+.tegel-tralies, .party-portrait-tralies {
+  position: absolute; inset: 0; pointer-events: none;
+  background: repeating-linear-gradient(90deg,
+    transparent 0, transparent 15%,
+    rgba(28,20,12,0.82) 15%, rgba(70,56,40,0.9) 17%, rgba(28,20,12,0.82) 19%,
+    transparent 19%, transparent 25%);
+}
+.tegel-tralies { z-index: 2; opacity: .55; }
+.tegel--open .tegel-tralies { opacity: .28; }
+.party-portrait-tralies { border-radius: 50%; opacity: .6; }
+.party-portrait--gevangen .party-portrait-img { filter: saturate(.55) brightness(.92); }
+.party-portrait--gevangen .party-portrait-soort { color: #3a2410; background: #c4a87a; }
+.badge-gevangen.badge-gevangen { background: #3a2a1a; color: #f2e8d2; border-color: #6a5236; }
+
+/* ── Huurlingen ─────────────────────────────────────────────────────────── */
+.party-huurling-loon { color: #7a6040; }
+.party-huurling-loon.party-huurling-loon--achter { color: #9a3a20; font-weight: 600; }
+.party-huurling-loon .icon { width: 12px; height: 12px; vertical-align: -2px; }
+.dm-actie.dm-actie--let-op { border-color: #b0553a; box-shadow: 0 0 0 2px rgba(176, 85, 58, .25); }
+.huur-venster { display: flex; flex-direction: column; gap: 12px; }
+.huur-achterstand {
+  display: flex; align-items: center; gap: 8px; padding: 8px 12px; border-radius: 6px;
+  background: rgba(192, 138, 58, .14); border: 1px solid rgba(192, 138, 58, .45); color: #5a3a10;
+}
+.huur-achterstand.huur-achterstand--weg { background: rgba(176, 85, 58, .12); border-color: rgba(176, 85, 58, .5); color: #7a2a10; }
+.huur-beurs { color: #3a2410; display: inline-flex; align-items: center; gap: 6px; }
+.huur-knoppen { display: flex; flex-wrap: wrap; gap: 8px; }
+
+/* ── Het mooiste moment van de avond ────────────────────────────────────── */
+.stem-kaart {
+  background: #f2e8d2; border: 1px solid #c4a87a; border-radius: 10px; padding: 14px 16px;
+  box-shadow: 0 6px 22px rgba(42, 26, 8, .18); color: #2a1a08; margin: 8px 0 14px;
+  font-family: 'Crimson Text', serif;
+}
+.stem-kop { display: flex; align-items: flex-start; gap: 10px; }
+.stem-kop > .icon { width: 26px; height: 26px; color: #a0782a; flex: none; margin-top: 2px; }
+.stem-kop > div { flex: 1; }
+.stem-titel { font-family: 'Cinzel', serif; font-size: 1.05rem; letter-spacing: .02em; }
+.stem-sub { font-family: 'IM Fell English', serif; font-style: italic; color: #7a6040; font-size: .92rem; }
+.stem-sluit { background: none; border: 0; color: #7a6040; cursor: pointer; padding: 2px; }
+.stem-sluit .icon { width: 16px; height: 16px; }
+.stem-kandidaten, .stem-dm-portretten { display: flex; flex-wrap: wrap; gap: 12px; margin: 14px 0 8px; justify-content: center; }
+.stem-kandidaat {
+  display: flex; flex-direction: column; align-items: center; gap: 4px; background: none; border: 0;
+  cursor: pointer; color: #3a2410; font-family: 'Cinzel', serif; font-size: .8rem; padding: 0;
+}
+.stem-kandidaat img {
+  width: 64px; height: 64px; border-radius: 50%; object-fit: cover; border: 2px solid #c4a87a;
+  transition: transform .2s, border-color .2s, box-shadow .2s; background: #e4d4b0;
+}
+.stem-kandidaat:hover img { transform: scale(1.05); }
+.stem-kandidaat.stem-kandidaat--gekozen img { border-color: #a0782a; box-shadow: 0 0 0 3px rgba(212, 170, 80, .55), 0 0 18px rgba(212, 170, 80, .6); transform: scale(1.08); }
+.stem-kandidaat.stem-kandidaat--gekozen span { color: #7a4a10; font-weight: 700; }
+.stem-suggesties { border-top: 1px dashed #c4a87a; padding-top: 8px; margin: 6px 0 10px; font-size: .9rem; }
+.stem-suggesties-kop { font-family: 'Cinzel', serif; font-size: .75rem; color: #7a6040; text-transform: uppercase; letter-spacing: .06em; margin-bottom: 4px; }
+.stem-suggesties-kop .icon { width: 12px; height: 12px; vertical-align: -1px; }
+.stem-suggestie em { font-family: 'IM Fell English', serif; }
+.stem-reden-label { display: block; font-size: .85rem; color: #7a6040; }
+.stem-reden-label .stem-reden { margin-top: 4px; display: block; }
+.stem-reden {
+  width: 100%; box-sizing: border-box; background: #fbf5e6; border: 1px solid #c4a87a; border-radius: 6px;
+  padding: 6px 8px; font-family: 'Crimson Text', serif; font-size: 1rem; color: #2a1a08; resize: vertical;
+}
+.stem-voet { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 10px; }
+.stem-teller { font-size: .85rem; color: #7a6040; }
+.stem-venster {
+  position: fixed; inset: 0; z-index: 10030; background: rgba(20, 12, 4, .55);
+  display: flex; align-items: center; justify-content: center; padding: 16px; animation: stem-in .3s ease;
+}
+.stem-venster .stem-kaart { width: min(440px, 100%); max-height: calc(100vh - 32px); overflow: auto; margin: 0; }
+@keyframes stem-in { from { opacity: 0; } to { opacity: 1; } }
+
+.stem-dm { display: flex; flex-direction: column; gap: 10px; color: #3a2410; }
+.stem-dm-uitleg { font-family: 'Crimson Text', serif; }
+.stem-dm-stand { font-family: 'Cinzel', serif; font-size: 1.1rem; text-align: center; }
+.stem-dm-stand span { font-size: 1.6rem; color: #a0782a; }
+.stem-dm-portretten img { width: 48px; height: 48px; border-radius: 50%; object-fit: cover; border: 2px solid #c4a87a; }
+.stem-dm-gelijk { background: rgba(192, 138, 58, .12); border: 1px solid rgba(192, 138, 58, .4); border-radius: 6px; padding: 8px 10px; }
+.stem-dm-knoppen { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
+.stem-dm-hulp { display: flex; justify-content: flex-end; }
+
+/* Tafelscherm: één portret in een gouden ring, de redenen als citaten. */
+.stem-uitslag {
+  position: fixed; inset: 0; z-index: 10045; display: flex; align-items: center; justify-content: center;
+  background: radial-gradient(ellipse at 50% 40%, #3a2410 0%, #140c04 70%, #000 100%);
+  color: #f2e8d2; cursor: pointer; animation: stem-in .8s ease; overflow: hidden;
+}
+.stem-uitslag.stem-uitslag--weg { opacity: 0; transition: opacity .9s ease; }
+.stem-uitslag-glans {
+  position: absolute; width: 140vmax; height: 140vmax; left: 50%; top: 42%; transform: translate(-50%, -50%);
+  background: repeating-conic-gradient(from 0deg, rgba(212, 170, 80, .10) 0 6deg, transparent 6deg 18deg);
+  animation: stem-draai 40s linear infinite; pointer-events: none;
+  -webkit-mask-image: radial-gradient(circle, #000 0%, transparent 55%); mask-image: radial-gradient(circle, #000 0%, transparent 55%);
+}
+@keyframes stem-draai { to { transform: translate(-50%, -50%) rotate(360deg); } }
+.stem-uitslag-inhoud { position: relative; text-align: center; padding: 24px; max-width: 900px; }
+.stem-uitslag-kop {
+  font-family: 'Cinzel', serif; letter-spacing: .18em; text-transform: uppercase; font-size: clamp(.9rem, 2vw, 1.3rem);
+  color: #c4a87a; opacity: 0; animation: stem-op .9s ease .3s forwards;
+}
+.stem-uitslag-ring {
+  width: clamp(160px, 26vmin, 280px); aspect-ratio: 1; margin: 28px auto 18px; border-radius: 50%; padding: 6px;
+  background: conic-gradient(#f0d488, #a0782a, #f0d488, #a0782a, #f0d488);
+  box-shadow: 0 0 60px rgba(240, 212, 136, .45); opacity: 0; transform: scale(.6);
+  animation: stem-ring 1.1s cubic-bezier(.2, 1.4, .4, 1) 1s forwards;
+}
+.stem-uitslag-ring img { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; display: block; background: #2a1a08; }
+@keyframes stem-ring { to { opacity: 1; transform: scale(1); } }
+.stem-uitslag-naam {
+  font-family: 'Cinzel', serif; font-size: clamp(2rem, 6vw, 4rem); color: #f0d488;
+  text-shadow: 0 0 24px rgba(240, 212, 136, .4); opacity: 0; animation: stem-op .9s ease 1.8s forwards;
+}
+.stem-uitslag-insp {
+  display: inline-flex; align-items: center; gap: 8px; margin-top: 6px; font-family: 'IM Fell English', serif;
+  font-style: italic; font-size: clamp(1rem, 2.4vw, 1.5rem); color: #e4d4b0; opacity: 0; animation: stem-op .9s ease 2.4s forwards;
+}
+.stem-uitslag-insp .icon { width: 1.1em; height: 1.1em; color: #f0d488; }
+.stem-uitslag-redenen { margin-top: 26px; display: flex; flex-direction: column; gap: 12px; }
+.stem-uitslag-reden {
+  font-family: 'IM Fell English', serif; font-style: italic; font-size: clamp(1.05rem, 2.6vw, 1.7rem); color: #f2e8d2;
+  opacity: 0; animation: stem-op 1s ease forwards; animation-delay: calc(3.4s + var(--i) * 2.2s);
+}
+.stem-uitslag-telling {
+  margin-top: 22px; font-family: 'Cinzel', serif; font-size: .85rem; letter-spacing: .1em; color: #a08860;
+  opacity: 0; animation: stem-op .8s ease 3s forwards;
+}
+@keyframes stem-op { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+.stem-uitslag.stem-uitslag--rustig *, .stem-uitslag.stem-uitslag--rustig { animation-duration: .01s !important; animation-delay: 0s !important; }

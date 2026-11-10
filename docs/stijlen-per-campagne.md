@@ -1,8 +1,89 @@
 # Stijlen per campagne
 
-Werkdocument, 1 oktober 2026. **Nog niets gebouwd** — dit is de meting en het
-voorstel. Afgesproken: voor later, maar de bevindingen moeten vastliggen zodat
-de volgende ronde niet opnieuw begint met schatten.
+Werkdocument, 1 oktober 2026, **bijgewerkt 6 november 2026** met een nieuwe
+meting en de keuzes van de DM (zie *Besloten* hieronder). **Nog niets
+gebouwd.** Afgesproken: dit wordt gebouwd en uitgerold als **één eigen ronde,
+pas als al het andere werk live staat** — de opruimronde raakt bijna elk
+bestand en mag niet tegelijk lopen met ander werk.
+
+## Besloten (6 nov 2026)
+
+1. **Waarvoor:** voor andere DM's die een andere sfeer willen — een sci-fi- of
+   noircampagne. Grisburgh zelf blijft perkament.
+2. **Hoe breed:** breed. Kleur, lettertypes, hoeken, oppervlakken, iconen
+   (een ganzenveer bij sci-fi is gek) en de effecten op het tafelscherm.
+3. **Geen wissel binnen een campagne.** Geen licht/donker-schakelaar, geen
+   dag/avond. Een thema is één vaste look.
+4. **De DM kiest**, per campagne (Instellingen → Campagne, en een stap in de
+   wizard). Spelers kiezen niets.
+5. **Het tafelscherm volgt het thema van de campagne**, geen eigen keuze.
+6. **`hp` verdwijnt.** Niet in gebruik en niet mooi genoeg om te bewaren.
+   Campagnes die `theme: 'hp'` dragen gaan naar het standaardthema. Let op:
+   `skillSet: 'hp'` en `spellSource: 'hp'` (de vaardigheden en spreuken van
+   Wands & Wizards) zijn **inhoud, geen stijl**, en blijven bestaan. De
+   onderdelen waar het hp-thema iets eigens deed dat niet gewoon kleur is
+   (volgens de DM de klasse-typen en de statblokken) bekijken we bij het
+   schrappen apart, voordat de regels weggaan.
+7. **Geen eigen kleuren** door de DM: alleen uit vaste thema's kiezen.
+8. **De opruimronde mag de huidige look minimaal verschuiven.** Bij twijfel
+   een voor-en-na van de grootste wijzigingen aan de DM laten zien vóór het
+   doorgaat.
+9. **Het printbare blad en de HTML-export volgen het thema.**
+10. **Woorden:** *akte* en *hoofdstuk* blijven overal. De rest gaat langs
+    (zie *Woorden* hieronder).
+11. **Tempo:** een eigen ronde waarin verder niets gebouwd wordt, en pas als
+    alle andere wijzigingen live staan.
+
+## Meting 6 nov 2026
+
+| | 1 okt | 6 nov |
+|---|---|---|
+| regels `theme.css` | 28.651 | 32.672 |
+| harde hex (uniek) | 3.180 (995) | 4.056 (1.161) |
+| harde `rgb()`/`rgba()` | 3.919 | 4.324 |
+| `var(--…)` | 609 | 756 |
+| variabelen | 31 | 31 |
+| `font-family` | — | 1.360 (Cinzel 772, Crimson 346, IM Fell 212) |
+| `border-radius` | — | 1.131 |
+| `box-shadow` | — | 451 |
+| gradiënten | 419 | 518 (345 linear, 173 radial) |
+| `[data-theme="hp"]`-regels | 120 | 116 |
+
+**De kloof groeit**: alles wat sinds oktober gebouwd is kwam met harde kleuren.
+Vandaar dat de bewaking (stap 6 hieronder) geen bijzaak is.
+
+**Buiten `theme.css`, en die stonden niet in de eerste meting:**
+
+- **De Tailwind-config in `index.html`** herhaalt het palet (`room`, `ink`,
+  `gold`, `seal`, `blue-ink`, `green-wax`, `purple-codex`, `parchment`) en
+  vier lettertypes. Die klassen worden **540 keer** gebruikt
+  (`text-ink-bright`, `bg-room-…`) en `font-cinzel` enz. 132 keer. Dat is een
+  tweede bron van waarheid; die config moet naar de variabelen gaan wijzen
+  (`ink: { bright: 'var(--inkt)' }`), niet hun waarden herhalen.
+- **Inline `style=""` in de JS**: dm-panel.js 379, app.js 146,
+  render-archief.js 78, render-campagne.js 58 — een deel zet een kleur.
+- **Kleur in JS-code**: app.js 153, combat-canvas.js 138 (het canvas tekent
+  zelf; daar komt geen CSS aan), klassekracht.js 48, render-relatiemap.js 42
+  (Cytoscape), render-spreuken.js en render-vaardigheden.js 31 elk,
+  conditions.js 20 (conditiekleuren), render-dungeon.js 23.
+- **`lib/character-sheet.js`**: 83 eigen kleuren — en dat blad gaat het thema
+  volgen (besluit 9), dus die horen bij de ronde.
+- **`lib/display-fx.js`**: 15 kleuren in de effectcatalogus.
+- **Twee polariteiten in één thema.** Het grootste deel is donkere inkt op
+  licht perkament, maar 148 plekken zijn een donker vlak (dienstpanelen op
+  0,76, overlays, tafelscherm, de cinematics). Een thema levert dus altijd
+  **beide** sets: tekst op licht en tekst op donker. Dat is geen wissel
+  (besluit 3), het is dat ene thema op twee soorten ondergrond.
+
+### De proef met het `hp`-thema (6 nov)
+
+Aangezet op vijf schermen. Waar iemand een overschrijving schreef klopt het
+(kop, detailvenster, spreukenraster); al het andere blijft perkament en wordt
+onleesbaar: de archieftegel blijft licht, de sectiekop wordt groen op paars,
+de partypil en de naamchip zijn donker op donker, de herberg-melding staat
+kaal op de achtergrond. Precies wat je verwacht van overschrijvingen: **elke
+nieuwe feature valt erbuiten**, want niemand schrijft er een hp-regel bij.
+Schermafdrukken: `data/screenshots/t-*-hp.png` (lokaal, niet in git).
 
 ## Waarom dit er ligt
 
@@ -15,7 +96,7 @@ De aanname in `docs/todo.md` was: *"een stijl is een blok CSS-variabelen — gee
 tweede set componenten."* **Die aanname klopt vandaag niet.** Hieronder waarom,
 en wat het wél kost.
 
-## De meting
+## De meting van 1 oktober (achtergrond)
 
 `public/css/theme.css`, 28.651 regels:
 
@@ -123,18 +204,105 @@ stijl, en het raakt aan de bestaande afspraak dat de app campagne-agnostisch
 hoort te zijn. Mogelijk deels op te lossen met de namen die de DM al kan
 instellen (diensten hernoemen kan al).
 
-## Voorgestelde volgorde
+## Het ontwerp
 
-1. **De opruimdag.** Top-30 kleurfamilies naar tokens, script-gestuurd met
-   handmatige controle per familie. Dekt 88 %. Hierna is een thema pas echt
-   "een blok variabelen". Schatting: een dag, misschien anderhalve.
-2. **De vier lettertyperollen** en de twee hoekmaten erbij. Een paar uur.
-3. **Het `hp`-thema omzetten** van 120 overschrijvingen naar tokens. Dat is
-   meteen de proef of stap 1 en 2 genoeg waren — als het niet lukt, weten we
-   wat er nog mist voordat we zeven stijlen bouwen.
-4. **Eén nieuwe stijl helemaal af** (noir of sci-fi), inclusief oppervlak,
-   iconafwijkingen en effecten. Dán weten we wat stijl nummer drie kost.
-5. Pas daarna de rest, en de keuze terug in de setup-wizard.
+### De lagen van een thema
+
+Eén blok per thema, `[data-theme="naam"] { … }`, met alleen variabelen. Geen
+selectors van componenten. Een component gebruikt nooit een harde kleur, maar
+een **rol**:
+
+| laag | ongeveer | voorbeeld |
+|---|---|---|
+| kleur, lichte ondergrond | ~14 | `--vlak`, `--vlak-hoog`, `--lijn`, `--inkt`, `--inkt-mid`, `--inkt-zacht`, `--accent` (goud), `--accent-dof`, `--gevaar` (zegelrood), `--goed`, `--magie` |
+| kleur, donkere ondergrond | ~8 | `--donker`, `--donker-vlak`, `--licht-inkt`, `--licht-inkt-zacht`, `--accent-op-donker` |
+| vaste betekenissen | ~10 | deelnemerstypen (bestaan al), rariteit (5), schoolkleuren (8), conditiegroepen (3) — per thema bij te stellen, maar ze blíjven onderscheidbaar |
+| lettertypes | 4 | `--letter-kop` (Cinzel), `--letter-tekst` (Crimson), `--letter-oud` (IM Fell), `--letter-hand` (Kalam); de briefstijlen houden hun eigen letters |
+| vorm | 3 | `--hoek-klein`, `--hoek`, `--hoek-groot` |
+| oppervlak | 3 | `--oppervlak` (de textuur van body::before), `--oppervlak-paneel`, `--schaduw` |
+| ornament | 2 | `--ornament` (✦), `--scheiding` |
+
+Rond de veertig variabelen. De staart van kleuren die één keer voorkomen in
+één component blijft hard staan — tokeniseren om het tokeniseren helpt niemand.
+
+**JS en canvas lezen de tokens**, in plaats van hun eigen hex:
+`getComputedStyle(document.documentElement).getPropertyValue('--inkt')`, één
+keer per thema opgehaald en gecachet (`window._themaKleur(rol)`). Zo blijven
+combat-canvas, Cytoscape en de conditiekleuren met het thema meelopen.
+
+### Iconen
+
+Geen 127 iconen per thema, maar **een afwijkingenlijst**: `THEMA_ICONEN` per
+thema (`{ feather: 'keyboard', church: 'radio-tower', … }`), en `icon()` zoekt
+daar eerst. De sprite krijgt de vervangers erbij via `scripts/sprite-aanvullen.js`.
+Kandidaten die genre dragen (gevonden in de code): `feather`, `scroll-text`,
+`castle`, `church`, `potion`, `flask-conical`, `beer`, `sword`, `swords`,
+`crossed-swords`, `stiletto`, `shield`, `landmark`, `crown`, `tree-pine`,
+`mountain`, `backpack`, `open-book`, `book-open`, `coins`, `skull`. Niet alles
+hoeft per thema anders; het zijn er per thema eerder tien dan twintig.
+D&D-iconen (classes, condities) blijven: een Fighter blijft een Fighter.
+
+### Tafelscherm-effecten
+
+`lib/display-fx.js` en de cinematics (rust, loot, brief, terugblik, regie,
+klassekracht, stemronde) lezen hun kleuren uit de tokens. Een thema mag per
+effect één regel afwijken (sci-fi: een scanline in plaats van vonken).
+`--deeltje-kern`/`--deeltje-rand` bestaan al.
+
+### Het printbare blad
+
+`lib/character-sheet.js` rendert op de server en kent het thema niet. Het
+krijgt `meta.theme` mee en zet dezelfde `data-theme` op zijn `<html>`; de
+variabelen komen uit een gedeeld bestand (`public/css/themas.css`) dat zowel
+de app als het blad laadt. Met één eis: **op papier blijft het leesbaar** —
+een donker thema wordt bij `@media print` zijn lichte set, want niemand print
+een zwart vel.
+
+### Woorden
+
+*Akte* en *hoofdstuk* blijven (besluit 10). Wat genregebonden is, per
+voorkomen in de JS:
+
+- **Al instelbaar**: de namen van de diensten (herberg, tempel, …), de munten,
+  de factie-sectie, de campagnenaam.
+- **Door te lopen**: *perkament* (47×, vooral intern en in de editor —
+  "brieftekst"), *boedel*/*knapzak* (108×), *archief* (120×), *logboek*
+  (192×), *meesterkamer* (69×), *heldenboek* (76×), *prikbord* (46×),
+  *waard* (40×), *lakzegel*/*zegel* (28×), *kasboek* (9×). Veel daarvan zijn
+  sleutels in de code, niet woorden in beeld — die blijven. Per woord dat wél
+  in beeld staat beslissen: vast laten, per thema een vertaling (zoals
+  `THEMA_ICONEN`), of instelbaar zoals de dienstnamen.
+- *Rust* (294×) is een D&D-term (Long Rest / Short Rest) en blijft.
+
+### De keuze
+
+`meta.theme` bestaat al, `applyAppMeta()` zet hem al op `<html>`. Erbij:
+een keuze bij Instellingen → Campagne (met een voorbeeldje per thema, geen
+uitleg eronder — die gaat in `inst_campagne`), een stap in de wizard, en het
+formulier voor een nieuwe campagne. Een onbekende waarde valt terug op het
+standaardthema.
+
+## Volgorde (als het zover is)
+
+1. **Tokenlaag neerzetten** met het standaardthema als waarden. Tailwind-config
+   naar de variabelen. Verandert niets aan de look.
+2. **Opruimronde kleur**: script per familie (RGB-afstand ≤ 28 → token), met
+   handmatige controle. Per familie een **schermafdrukvergelijking** van een
+   vaste set schermen (archief, detailvenster, spelerstab, Meesterkamer, een
+   dienst, het tafelscherm, het blad); wijkt een scherm zichtbaar af, dan gaat
+   die afdruk naar de DM vóór we verdergaan (besluit 8).
+3. **Lettertypes, hoeken, schaduwen** naar hun rollen.
+4. **JS, canvas, Cytoscape, conditions, display-fx, character-sheet** naar de
+   tokens.
+5. **`hp` schrappen** (en `theme: 'hp'` → `default`); eerst kijken wat het bij
+   de klasse-typen en de statblokken deed.
+6. **Bewaking**: een test die nieuwe harde kleuren en `font-family`'s weigert
+   buiten een lijst van toegestane plekken (zoals de briefstijlen). Zonder dat
+   loopt de kloof binnen een maand weer op.
+7. **Eén nieuw thema helemaal af** — noir of sci-fi — inclusief iconen,
+   oppervlak, effecten en het blad. Dán weten we wat thema nummer twee kost.
+8. **De keuze** in Instellingen en de wizard.
+9. Uitrollen, als één geheel.
 
 ## Waar het misgaat als we niet opletten
 
@@ -147,6 +315,11 @@ instellen (diensten hernoemen kan al).
 - **Niet elke stijl hoeft alles.** Een thema dat alleen kleuren en lettertypes
   omzet is een geldig thema. Oppervlakken, iconen en effecten zijn een trap
   waar je op kunt stoppen.
-- **Het `hp`-thema is de maatstaf, niet het voorbeeld.** Het werkt, maar op de
-  manier die we niet willen. Zolang het er is, is het de beste test die we
-  hebben.
+- **Het `hp`-thema gaat weg** (besluit 6). De proef dat de tokenlaag compleet
+  is wordt daarom het eerste nieuwe thema, niet een omgebouwd `hp`.
+- **Een donker thema op donkere vlakken.** De 148 plekken die nu al donker
+  zijn moeten in een donker thema nog steeds te onderscheiden zijn van de
+  ondergrond — vandaar twee sets tokens in elk thema.
+- **Contrast is meetbaar.** Bij elk nieuw thema de hoofdcombinaties door een
+  contrastcheck halen (WCAG AA, 4,5:1 voor tekst); de app heeft al twee keer
+  onzichtbare tekst gehad (contrast 1,19 en 1,6).
