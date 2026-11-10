@@ -30854,3 +30854,25 @@ body:has(#sb-overlay.sb-open) .dm-dice-fab { display: none !important; }
    navigatie op de verkeerde plek dubbeltikt, stond ineens ingezoomd. Alleen
    het dubbeltikgebaar gaat uit; knijpen om te zoomen blijft gewoon werken. */
 .app-header, .app-nav, .section-tab { touch-action: manipulation; }
+
+/* ── Tegels: de naam op de plaat, zoals in het Heldenboek (10 nov 2026) ──────
+   De naamband was een crèmekleurige gloed met donkere letters: het portret
+   vervaagde naar perkament en de naam stond in die vervaging. Het Heldenboek
+   doet het andersom en dat leest beter op een foto: het beeld loopt door tot
+   de rand, onderaan komt een donkere voet op, en de naam staat er licht op.
+   Alleen bij een tegel mét beeld — zonder beeld (het type-icoon op licht
+   perkament) en bij een document (zijn perkament) blijft de naam donker op
+   licht, want daar is geen foto om tegen af te zetten. */
+.tegel:not(.no-img):not(:has(.tegel-perkament)) .tegel-naamband {
+  padding-top: 52px;
+  background: linear-gradient(to top, rgba(20,12,4,.80) 0%, rgba(20,12,4,.52) 45%, rgba(20,12,4,0) 100%);
+}
+.tegel:not(.no-img):not(:has(.tegel-perkament)) .tegel-naamband .card-name {
+  font-family: 'Cinzel', serif; font-weight: 700; letter-spacing: .02em;
+  color: #fff8ea;
+  text-shadow: 0 1px 2px rgba(0,0,0,.65), 0 2px 10px rgba(0,0,0,.6);
+}
+.tegel:not(.no-img):not(:has(.tegel-perkament)) .tegel-naamband .tegel-ondertitel {
+  color: rgba(255,248,234,.82); text-shadow: 0 1px 2px rgba(0,0,0,.6);
+}
+.tegel:not(.no-img):not(:has(.tegel-perkament)) .tegel-merk { color: rgba(255,248,234,.8); }
