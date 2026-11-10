@@ -211,6 +211,10 @@ function uitslag(u) {
 // ── Sockets (aangeroepen vanuit socket-client.js) ───────────────────────────
 
 async function opSocket(soort, data = {}) {
+  // Een stemronde is van één party, maar het event gaat naar de hele campagne:
+  // de uitslag van Groep 2 hoort bij Groep 1 geen melding te geven, en hun
+  // stemvenster niet te sluiten. De DM en het tafelscherm horen alles.
+  if (!isDM() && !isTafel() && data.groep && data.groep !== window._myGroupId) return;
   if (soort === 'open') {
     if (isDM() || isTafel()) return;
     _kaartDicht = null;

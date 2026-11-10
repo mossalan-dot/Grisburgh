@@ -4,6 +4,7 @@ const http = require('http');
 const os   = require('os');
 const path = require('path');
 const fs   = require('fs');
+const { io: ioClient } = require('socket.io-client');
 
 // Huurlingen: een medestander met een dagloon. Het loon gaat bij een lange
 // rust uit de beurs; wie niet betaald wordt telt dat, en wil na twee dagen weg —
@@ -137,5 +138,40 @@ describe('Huurlingen', () => {
   it('is alleen voor de DM', async () => {
     const r = await req(c.server, 'PUT', `/api/entities/personages/${wacht}/huurling`, { loon: 1 }, c.spelers[0].cookie);
     assert.equal(r.status, 403);
+  });
+});
+
+// De melding over het loon gaat naar de DM en de party die hem in dienst heeft,
+// niet naar de hele campagne: een andere party heeft er niets mee te maken, en
+// een filter in de client houdt de netwerktab niet leeg.
+describe('Huurlingen: het loonbericht', () => {
+  const c = setup(['Werkgever']);
+  const api = (m, p, b) => req(c.server, m, p, b, c.dm);
+  const luister = (cookie) => new Promise((resolve) => {
+    const s = ioClient(`http://localhost:${c.server.address().port}`, { transports: ['polling'], forceNew: true, extraHeaders: { Cookie: cookie } });
+    const kreeg = [];
+    s.on('huurlingen:loon', d => kreeg.push(d));
+    s.on('connect', () => resolve({ s, kreeg }));
+  });
+
+  it('komt bij de DM en de eigen party aan, niet bij een andere party', async () => {
+    const wacht = (await api('POST', '/api/entities/personages', { name: 'Huurwacht <b>Joost</b>', subtype: 'NPC', data: {} })).body.id;
+    await api('PUT', `/api/entities/personages/${wacht}/huurling`, { loon: 150, betaler: c.spelers[0].id });
+    const ander = (await api('POST', '/api/groups', { name: 'Andere party' })).body.id;
+    await api('PUT', `/api/groups/${ander}/password`, { password: 'ander-ww' });
+    const vreemdeId = (await api('POST', '/api/entities/personages', { name: 'Buitenstaander', subtype: 'speler', data: { groep: ander } })).body.id;
+    const vreemd = (await req(c.server, 'POST', '/api/auth/player-login', { campagne: 'grisburgh', characterId: vreemdeId, password: 'ander-ww' })).cookie;
+
+    const [dm, eigen, anders] = await Promise.all([luister(c.dm), luister(c.spelers[0].cookie), luister(vreemd)]);
+    try {
+      const r = await api('POST', '/api/party/long-rest', { locatie: 'veld' });   // beurs is leeg: geen loon
+      assert.equal(r.body.huurlingen[0].betaald, false);
+      await new Promise(res => setTimeout(res, 300));
+      assert.equal(dm.kreeg.length, 1, 'de DM hoort het');
+      assert.equal(eigen.kreeg.length, 1, 'de werkgever hoort het');
+      assert.equal(anders.kreeg.length, 0, 'een andere party niet');
+    } finally {
+      for (const x of [dm, eigen, anders]) x.s.close();
+    }
   });
 });

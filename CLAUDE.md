@@ -348,12 +348,12 @@ De app gebruikt querystring cache-busting (`?v=N`). **Vergeten = browser haalt o
 **Huidige versies (bij te houden):**
 
 ```
-index.html  : theme.css?v=926   app.js?v=1194   sound-manager.js?v=15
-app.js      : api.js?v=320  dm-panel.js?v=422  media-picker.js?v=14  tafels.js?v=2  terugblik.js?v=3  rage.js?v=4  klassekracht.js?v=6  personage-maken.js?v=11  gevecht-regie.js?v=3  bastion.js?v=1  stemronde.js?v=1
+index.html  : theme.css?v=926   app.js?v=1195   sound-manager.js?v=15
+app.js      : api.js?v=320  dm-panel.js?v=422  media-picker.js?v=14  tafels.js?v=2  terugblik.js?v=3  rage.js?v=4  klassekracht.js?v=6  personage-maken.js?v=11  gevecht-regie.js?v=3  bastion.js?v=1  stemronde.js?v=2
               render-archief.js?v=148  render-bestiarium.js?v=36  render-campagne.js?v=365
               render-dungeon.js?v=74  render-kaart.js?v=35  render-progressie.js?v=67
               render-relatiemap.js?v=38  render-spreuken.js?v=55  render-vaardigheden.js?v=138
-              render-statblock.js?v=9  socket-client.js?v=98  wizard.js?v=10  conditions.js?v=4
+              render-statblock.js?v=9  socket-client.js?v=99  wizard.js?v=10  conditions.js?v=4
 dm-panel.js : akte-schrijven.js?v=39  combat-canvas.js?v=41  render-statblock.js?v=9
 ```
 

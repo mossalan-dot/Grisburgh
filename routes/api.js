@@ -6070,7 +6070,7 @@ router.post('/party/long-rest', requireDM, (req, res) => {
   const _bt = _bastionTurnKlaar(dmState, _groupIdVan(g, dmState));
   if (_bt) _naarDM(req, 'bastion:turn', _bt);
   for (const cid of _loon.betalers) io?.to(_campagneRoom(req)).emit('player:currency-updated', { characterId: cid, currency: _effectiveCurrency(dmState, cid) });
-  if (_loon.regels.length) io?.to(_campagneRoom(req)).emit('huurlingen:loon', { groep: activeGroepId, regels: _loon.regels });
+  if (_loon.regels.length) _naarParty(req, (entities.personages || []).filter(e => e.subtype === 'speler' && e.data?.groep === activeGroepId).map(e => e.id), 'huurlingen:loon', { groep: activeGroepId, regels: _loon.regels });
   res.json({ ok: true, spelers: spelers.length, resetCount, rollLog, kosten, roddelsOnthuld: roddels.length, gebeurtenissen, huurlingen: _loon.regels });
 });
 
@@ -14983,6 +14983,19 @@ function _naarDM(req, ev, data) {
   const cid = _campagneRoom(req);
   for (const sock of io.sockets.sockets.values()) {
     if (sock.rooms.has(cid) && sock.request?.session?.role === 'dm') sock.emit(ev, data);
+  }
+}
+
+// Naar de DM en de spelers van één party. Voor wat een party aangaat maar de
+// andere party's niet: hun huurlingen, bijvoorbeeld. Een filter in de client
+// is niet genoeg — wat er over de lijn gaat, staat in de netwerktab.
+function _naarParty(req, leden, ev, data) {
+  const io = req.app.get('io');
+  if (!io) return;
+  const cid = _campagneRoom(req), ids = new Set(leden);
+  for (const sock of io.sockets.sockets.values()) {
+    const s = sock.request?.session;
+    if (sock.rooms.has(cid) && (s?.role === 'dm' || ids.has(s?.characterId))) sock.emit(ev, data);
   }
 }
 

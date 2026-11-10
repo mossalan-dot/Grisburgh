@@ -460,7 +460,10 @@ function _ververOpenKaartje(id) {
     const mijn = window.app?.isDM?.() || groep === window._myGroupId;
     if (!mijn || window._isDisplayMode) return;
     for (const r of regels.filter(x => !x.betaald)) {
-      _showToast(`${window.icon(r.wilWeg ? 'door-open' : 'coins')} <strong>${r.naam}</strong> ${r.wilWeg
+      // De naam kan van een speler komen (een dier dat hij bij de Magizoöloog
+      // een naam gaf), dus escapen: de toast is HTML.
+      const naam = String(r.naam ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+      _showToast(`${window.icon(r.wilWeg ? 'door-open' : 'coins')} <strong>${naam}</strong> ${r.wilWeg
         ? `wil vertrekken — al ${r.achterstand} dagen geen loon`
         : 'kreeg vannacht geen loon'}`, null, 7000);
     }

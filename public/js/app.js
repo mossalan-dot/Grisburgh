@@ -11,7 +11,7 @@ import './render-handleiding.js?v=2';
 import './render-melding.js?v=4';
 import { renderVaardigheden, zoekVaardigheden, heldenboekTekst } from './render-vaardigheden.js?v=138';
 import { renderStatblock } from './render-statblock.js?v=9';
-import { initSocket } from "./socket-client.js?v=98";
+import { initSocket } from "./socket-client.js?v=99";
 import { initDmPanel } from "./dm-panel.js?v=422";
 import { COND_INFO, COND_LABEL, COND_MET_PLAATJE, COND_ICON } from './conditions.js?v=4';
 import './media-picker.js?v=14';
@@ -21,7 +21,7 @@ import './terugblik.js?v=3';
 import './rage.js?v=4';
 import './klassekracht.js?v=6';
 import './bastion.js?v=1';
-import './stemronde.js?v=1';
+import './stemronde.js?v=2';
 import './gevecht-regie.js?v=3';
 
 // ── Icon helper ──
