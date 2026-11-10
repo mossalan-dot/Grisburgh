@@ -1,0 +1,10083 @@
+import { api } from './api.js?v=320';
+import { renderStatblock } from './render-statblock.js?v=9';
+
+const icon = (...a) => window.icon(...a);
+
+const ENTITY_TYPES = ['personages', 'locaties', 'organisaties', 'voorwerpen'];
+
+// ── Wapeneigenschappen (2024 PHB) ──
+// Geëxporteerd zodat het spelerblad (app.js) dezelfde bron + tooltips hergebruikt.
+export const WEAPON_PROPERTIES = {
+  'Ammunition': 'You can make a ranged attack with this weapon only if you have ammunition to fire from it. Each attack expends one piece of ammunition. You can recover half your expended ammunition by taking a minute to search the battlefield.',
+  'Cleave':     'If you hit a creature with a melee attack using this weapon, you can make one extra melee attack against a second creature within 5 feet of the first that is also within your reach. On this extra attack, use the same ability modifier as the primary attack but don\'t add your ability modifier to the damage roll unless that modifier is negative.',
+  'Finesse':    'When making an attack with a Finesse weapon, you use your choice of your Strength or Dexterity modifier for the attack and damage rolls. You must use the same modifier for both rolls.',
+  'Graze':      'If your attack roll with this weapon misses a creature, you can deal damage to that creature equal to the ability modifier you used for the attack roll. This damage is the same type dealt by the weapon and can\'t be increased in any way.',
+  'Heavy':      'You have Disadvantage on attack rolls with a Heavy weapon if it\'s a Small or Tiny creature.',
+  'Light':      'When you take the Attack action and attack with a Light weapon, you can make one extra attack as a Bonus Action later on the same turn with a different Light weapon. You don\'t add your ability modifier to the extra attack\'s damage roll unless that modifier is negative.',
+  'Loading':    'You can fire only one piece of ammunition from a Loading weapon when you use an action, a Bonus Action, or a Reaction to fire it, regardless of the number of attacks you can normally make.',
+  'Nick':       'When you make the extra attack of the Light property, you can make it as part of the Attack action instead of as a Bonus Action. You can make this extra attack only once per turn.',
+  'Push':       'If you hit a creature with this weapon, you can push the creature up to 10 feet straight away from yourself if it is Large or smaller.',
+  'Range':      'A Range weapon can be used to make a ranged attack only if the target is within the weapon\'s normal range, or at Disadvantage if it is within the weapon\'s long range. Targets beyond long range can\'t be attacked.',
+  'Reach':      'This weapon adds 5 feet to your reach when you attack with it, as well as when determining your reach for Opportunity Attacks.',
+  'Sap':        'If you hit a creature with this weapon, that creature has Disadvantage on its next attack roll before the start of your next turn.',
+  'Slow':       'If you hit a creature with this weapon and deal damage to it, you can reduce that creature\'s Speed by 10 feet until the start of your next turn.',
+  'Special':    'A Special weapon has an unusual rule that is described in its entry in the weapons table.',
+  'Thrown':     'If a weapon has the Thrown property, you can throw the weapon to make a ranged attack, and you can draw that weapon as part of the attack. If the weapon is a melee weapon, use the same ability modifier for the attack and damage rolls that you\'d use for a melee attack with it.',
+  'Topple':     'If you hit a creature with this weapon, you can force the creature to make a Constitution saving throw (DC 8 plus the ability modifier used to make the attack roll and your Proficiency Bonus). On a failed save, the creature has the Prone condition.',
+  'Two-Handed': 'This weapon requires two hands when you attack with it. This property is relevant only when you attack with the weapon, not when you simply hold it.',
+  'Versatile':  'A Versatile weapon can be used with one or two hands. A damage value in parentheses appears with the property — the damage when the weapon is used with two hands to make a melee attack.',
+  'Vex':        'If you hit a creature with this weapon and deal damage to it, you have Advantage on your next attack roll against that creature before the end of your next turn.',
+};
+
+// Eigenschappen die optioneel extra tekst tussen haakjes krijgen (bijv. "Range (30/120)")
+export const PARAMETERIZABLE_PROPS = new Set(['Range', 'Versatile', 'Thrown', 'Ammunition']);
+
+// ── Armor AC berekening ──
+// dexMod = null → DM-formule weergave; getal → spelersweergave met echte modifier
+function _calcArmorAC(d, dexMod) {
+  const type = (d?.armorType || '').toLowerCase();
+  const base = parseInt(d?.armorBaseAC);
+  if (!type || isNaN(base)) return null;
+
+  if (type === 'shield') {
+    return {
+      pill: '+' + base + ' AC',
+      tooltip: 'Shield: adds +' + base + ' to your Armor Class. You must wield it in one hand to gain this benefit.'
+    };
+  }
+
+  let cap; // null = unlimited, 0 = none, number = max
+  if      (type === 'light')  cap = null;
+  else if (type === 'medium') cap = 2;
+  else if (type === 'heavy')  cap = 0;
+  else { const c = parseInt(d?.armorDexCap); cap = isNaN(c) ? null : c; }
+
+  if (dexMod !== null && dexMod !== undefined) {
+    const contrib = (cap === null) ? dexMod : Math.min(dexMod, cap);
+    const total   = base + contrib;
+    const parts   = [base + ' base'];
+    if (cap !== 0) {
+      const sign = contrib >= 0 ? '+' + contrib : '' + contrib;
+      parts.push(sign + ' Dex' + (cap !== null && dexMod > cap ? ' (max +' + cap + ')' : ''));
+    }
+    return { pill: 'AC ' + total, tooltip: 'Armor Class: ' + total + ' (' + parts.join(' ') + ').' };
+  } else {
+    if (cap === 0)    return { pill: 'AC ' + base,        tooltip: 'Armor Class: ' + base + '. Heavy armor — no Dexterity modifier applied.' };
+    if (cap === null) return { pill: 'AC ' + base + '+Dex', tooltip: 'Armor Class: ' + base + ' + your full Dexterity modifier.' };
+    return { pill: 'AC ' + base + '+Dex', tooltip: 'Armor Class: ' + base + ' + your Dexterity modifier (maximum +' + cap + ').' };
+  }
+}
+
+// ── Eigendomsstatus voorwerpen (module-level, bijgewerkt via socket) ──
+let _ownership = { owners: {}, requests: [], tradeAllowed: true, stapelbaar: new Set(), gedeeld: new Set() };
+
+// ── Subtype-filter per sectie ──
+const subtypeFilters = {};
+
+// Hier stond een hover-tooltip met de beschrijving van een voorwerp. Weg: je
+// kunt op de naam klikken en dan staat diezelfde tekst op het kaartje, met het
+// beeld en de rest erbij. Een zwevend blokje dat hetzelfde half vertelt is een
+// tweede weergave van dezelfde gegevens — en hij had ook nog een bijwerking:
+// `position: absolute` met viewport-coördinaten rekte het document op, zodat er
+// een scrollbalk verscheen en het hele blad een streep naar links schoof.
+
+
+export async function refreshOwnership() {
+  try {
+    const data = await api.getItemOwnership();
+    _ownership.owners      = data.owners      || {};
+    _ownership.requests    = data.requests    || [];
+    _ownership.tradeAllowed = data.tradeAllowed !== false;
+    _ownership.stapelbaar  = new Set(data.stapelbaar || []);
+    _ownership.gedeeld     = new Set(data.gedeeld    || []);
+  } catch { /* ok */ }
+}
+
+export function setOwnership(data) {
+  if (data.owners      !== undefined) _ownership.owners      = data.owners;
+  if (data.requests    !== undefined) _ownership.requests    = data.requests;
+  if (data.tradeAllowed !== undefined) _ownership.tradeAllowed = data.tradeAllowed;
+  if (data.stapelbaar  !== undefined) _ownership.stapelbaar  = new Set(data.stapelbaar || []);
+  if (data.gedeeld     !== undefined) _ownership.gedeeld     = new Set(data.gedeeld    || []);
+}
+// Expose op window zodat socket-client.js altijd de correcte module-instantie gebruikt
+window._setOwnership = setOwnership;
+// `hoortbij` staat hier voluit per type en wordt niet in elkaar gezet uit
+// "Waar hoort " + een woord: het Nederlands wil dit personage maar deze
+// locatie, en dat lijstje hoort op één plek te staan in plaats van in een regel
+// die het lidwoord moet raden.
+const TYPE_META = {
+  personages:   { icon: '\ud83d\udc64', get svgIcon() { return icon('user'); },                    label: 'Personages',   nieuw: 'Nieuw personage',    bewerk: 'Personage bewerken',   hoortbij: 'Waar hoort dit personage bij?',    color: 'green-wax', chip: 'chip-npc' },
+  locaties:     { icon: '\ud83c\udff0', get svgIcon() { return icon('castle', {cls:'icon-gi'}); }, label: 'Locaties',     nieuw: 'Nieuwe locatie',     bewerk: 'Locatie bewerken',     hoortbij: 'Waar hoort deze locatie bij?',     color: 'blue-ink',  chip: 'chip-loc' },
+  organisaties: { icon: '\ud83c\udfdb\ufe0f', get svgIcon() { return icon('landmark'); },         label: 'Organisaties', nieuw: 'Nieuwe organisatie', bewerk: 'Organisatie bewerken', hoortbij: 'Waar hoort deze organisatie bij?', color: 'seal',      chip: 'chip-org' },
+  voorwerpen:   { icon: '🎺',              get svgIcon() { return icon('package'); },                label: 'Voorwerpen',   nieuw: 'Nieuw voorwerp',     bewerk: 'Voorwerp bewerken',    hoortbij: 'Waar hoort dit voorwerp bij?',     color: 'orange',    chip: 'chip-item' },
+  documenten:   { icon: '📜',              get svgIcon() { return icon('scroll-text'); },            label: 'Documenten',   nieuw: 'Nieuw document',     bewerk: 'Document bewerken',    hoortbij: 'Waar hoort dit document bij?',     color: 'sepia',     chip: 'chip-doc' },
+};
+
+// Eén plek waar die kop vandaan komt; een onbekend type valt terug op de
+// algemene vraag in plaats van een lege regel.
+const _hoortBijKop = (tab) => TYPE_META[tab]?.hoortbij || 'Waar hoort dit bij?';
+
+// ── Documenttypes ───────────────────────────────────────────────────────────
+// Een document had twee indelingen naast elkaar: `cat` (vijf grove bakken) en
+// `type` (zestien soorten). Dat is één indeling met twee niveaus, en die vorm
+// kennen de andere tabs al: groepen in de keuzelijst, chips op de waarde. De
+// oude `cat` is dus opgegaan in de groepen hieronder.
+const DOC_TYPE_GROEPEN = [
+  { groep: 'Brieven en aantekeningen', opties: [
+    { value: 'Brief',          label: 'Brief' },
+    { value: 'Dreigbrief',     label: 'Dreigbrief' },
+    { value: 'Notities',       label: 'Notities' },
+    { value: 'Gedicht',        label: 'Gedicht' },
+    { value: 'Gebed',          label: 'Gebed' },
+    { value: 'Visitekaartje',  label: 'Visitekaartje' },
+  ]},
+  { groep: 'Drukwerk', opties: [
+    { value: 'Krant',          label: 'Krant' },
+    { value: 'Aanplakbiljet',  label: 'Aanplakbiljet' },
+    { value: 'Folder',         label: 'Folder' },
+    { value: 'Catalogus',      label: 'Catalogus' },
+    { value: 'Menu',           label: 'Menu' },
+    { value: 'Pamflet',        label: 'Pamflet' },
+  ]},
+  { groep: 'Boeken en registers', opties: [
+    { value: 'Manuscript',     label: 'Manuscript' },
+    { value: 'Kasboek',        label: 'Kasboek' },
+    { value: 'Register',       label: 'Register' },
+    { value: 'Contract',       label: 'Contract' },
+  ]},
+  { groep: 'Kaarten en tekeningen', opties: [
+    { value: 'Wereldkaart',    label: 'Wereldkaart' },
+    { value: 'Dungeon map',    label: 'Dungeon map' },
+    { value: 'Blauwdruk',      label: 'Blauwdruk' },
+    { value: 'Tekening',       label: 'Tekening' },
+  ]},
+  // Deze groep heette *Geluid* en had *Audiofragment* als type. Dat is een
+  // bestandsformaat, geen soort document: het zegt hoe het is opgeslagen, niet
+  // wat het is — en het kan dus ook geen briefstijl kiezen. Wat er wél in hoort
+  // is het verschil tussen gezongen en gesproken.
+  { groep: 'Gesproken en gezongen', opties: [
+    { value: 'Lied',           label: 'Lied' },
+    { value: 'Opname',         label: 'Opname' },
+  ]},
+];
+
+// ── Locatietypes ────────────────────────────────────────────────────────────
+// Gegroepeerd in plaats van alleen langer: een platte lijst van dertig regels
+// zoekt niet. De waarden zijn de sleutels die in de data staan — die veranderen
+// nooit, ook niet als het label anders komt te luiden ('Fort' → 'Fort of
+// kasteel'). Wat hier ontbrak bleek uit de kaartjes die op 'Overig' stonden:
+// een continent (Isfār), landstreken (Donderhei, Wrakland), een mijn
+// (Evermijn), een park (Ter Velde) en een schuilplek (Dreghaven).
+const LOC_TYPE_GROEPEN = [
+  // Winkel, Herberg en Tempel stonden hier ook in een eigen groep "Kan aan een
+  // dienst hangen". Dat is niet nodig: het type zegt alleen wat voor pand het
+  // is, en de melding onder de keuzelijst vertelt wat zo'n type extra kan.
+  // Koppelen aan een dienst blijft een aparte handeling, dus drie herbergen
+  // waarvan er één de dienst is kan gewoon.
+  { groep: 'Gebied', opties: [
+    { value: 'Rijk',      label: 'Rijk of continent' },
+    { value: 'Streek',    label: 'Streek' },
+    { value: 'Stad',      label: 'Stad' },
+    { value: 'Dorp',      label: 'Dorp' },
+    { value: 'Stadswijk', label: 'Stadswijk' },
+  ]},
+  { groep: 'Gebouw', opties: [
+    { value: 'Gebouw',     label: 'Gebouw' },
+    { value: 'Herberg',    label: 'Herberg' },
+    { value: 'Taveerne',   label: 'Taveerne' },
+    { value: 'Winkel',     label: 'Winkel' },
+    { value: 'Tempel',     label: 'Tempel' },
+    { value: 'Fort',       label: 'Fort of kasteel' },
+    { value: 'Academie',   label: 'Academie' },
+    { value: 'Ziekenhuis', label: 'Ziekenhuis' },
+    { value: 'Werkplaats', label: 'Werkplaats' },
+    { value: 'Gevangenis', label: 'Gevangenis' },
+    { value: 'Kamer',      label: 'Kamer' },
+  ]},
+  { groep: 'Landschap', opties: [
+    { value: 'Woud',    label: 'Woud' },
+    { value: 'Berg',    label: 'Berg' },
+    { value: 'Zee',     label: 'Zee' },
+    { value: 'Rivier',  label: 'Rivier of meer' },
+    { value: 'Moeras',  label: 'Moeras' },
+    { value: 'Vlakte',  label: 'Vlakte' },
+    { value: 'Eiland',  label: 'Eiland' },
+    { value: 'Grot',    label: 'Grot of mijn' },
+    { value: 'Ruine',   label: 'Ruïne' },
+  ]},
+  { groep: 'Overig', opties: [
+    { value: 'Schip',        label: 'Schip' },
+    { value: 'Schuilplaats', label: 'Schuilplaats' },
+    { value: 'Plein',        label: 'Plein of park' },
+    { value: 'Overig',       label: 'Overig' },
+  ]},
+];
+
+// Eén icoon per soort plek. De kaartpins toonden allemaal hetzelfde kasteeltje,
+// terwijl het type al bekend was — een haven, een woud en een gevangenis zien er
+// op een kaart nu uit als wat ze zijn. Eén map, want de pins, de kaartjes en de
+// kiezers horen hetzelfde te tekenen; lees hem met `window._locIcoon(type)`.
+const LOC_TYPE_ICOON = {
+  // Gebied
+  Rijk: 'globe', Streek: 'map', Stad: 'landmark', Dorp: 'house', Stadswijk: 'brick-wall',
+  // Gebouw
+  Gebouw: 'building', Herberg: 'bed', Taveerne: 'beer', Winkel: 'store', Tempel: 'church',
+  Fort: 'castle', Academie: 'graduation-cap', Ziekenhuis: 'heart-pulse', Werkplaats: 'anvil',
+  Gevangenis: 'lock', Kamer: 'door-open',
+  // Landschap
+  Woud: 'trees', Berg: 'mountain', Zee: 'waves', Rivier: 'droplet', Moeras: 'sprout',
+  Vlakte: 'wheat', Eiland: 'tree-palm', Grot: 'pickaxe', Ruine: 'skull',
+  // Overig
+  Schip: 'anchor', Schuilplaats: 'tent', Plein: 'users', Overig: 'map-pin',
+};
+// Onbekend of leeg type? Dan de speld — dat is eerlijker dan een kasteel.
+window._locIcoonNaam = (locType) => LOC_TYPE_ICOON[String(locType || '').trim()] || 'map-pin';
+window._locIcoon = (locType, opts) => icon(window._locIcoonNaam(locType), opts);
+
+// Wat een gekozen type extra oplevert. Alleen deze drie hebben iets; de rest
+// van de lijst zegt niets meer dan wat voor plek het is.
+const LOC_TYPE_MELDINGEN = {
+  Winkel:  'Krijgt een eigen tabblad <b>Winkel</b>, met voorraad, prijzen en een wisselend assortiment.',
+  Herberg: 'Kan <b>de herberg van de campagne</b> worden — aan te vinken bij @Koppelingen, onderaan dit tabblad.',
+  Tempel:  'Kan aan <b>een god uit de Tempel</b> gekoppeld worden — bij @Koppelingen, onderaan dit tabblad.',
+};
+
+// Zelfde aanpak als bij de locaties: groeperen in plaats van alleen verlengen,
+// en de opgeslagen waarden blijven wat ze zijn. Wat ontbrak bleek uit de data —
+// scholen, kloosters en adelhuizen stonden allemaal op 'Overig'.
+const ORG_TYPE_GROEPEN = [
+  { groep: 'Macht & bestuur', opties: [
+    { value: 'Politiek',  label: 'Politiek' },
+    { value: 'Adelhuis',  label: 'Adelhuis' },
+    { value: 'Militair',  label: 'Militair' },
+    { value: 'Wacht',     label: 'Wacht of garde' },
+    { value: 'Orde',      label: 'Orde' },
+  ]},
+  { groep: 'Handel & ambacht', opties: [
+    { value: 'Gilde',        label: 'Gilde' },
+    { value: 'Handelshuis',  label: 'Handelshuis' },
+    { value: 'Compagnie',    label: 'Compagnie' },
+  ]},
+  { groep: 'Geloof & kennis', opties: [
+    { value: 'Religieus',   label: 'Religieus' },
+    { value: 'Klooster',    label: 'Klooster' },
+    { value: 'Cultus',      label: 'Cultus' },
+    { value: 'Genootschap', label: 'Genootschap' },
+    { value: 'School',      label: 'School of academie' },
+  ]},
+  { groep: 'Onderwereld', opties: [
+    { value: 'Crimineel', label: 'Crimineel' },
+    { value: 'Bende',     label: 'Bende' },
+    { value: 'Huurlingen', label: 'Huurlingen' },
+  ]},
+  { groep: 'Overig', opties: [
+    { value: 'Factie',  label: 'Factie' },
+    { value: 'Volk',    label: 'Volk of stam' },
+    { value: 'Familie', label: 'Familie' },
+    { value: 'Overig',  label: 'Overig' },
+  ]},
+];
+
+// Zelfde vorm als bij locaties en organisaties: groeperen in plaats van één
+// lange rij. De waarden blijven exact wat er opgeslagen staat — alleen de
+// indeling verandert, dus geen enkel bestaand kaartje raakt zijn type kwijt.
+// Erbij gekomen: de DMG-categorieën die ontbraken (Rod, Staff, Wand) en de
+// gewone uitrusting waar 'Other' anders voor moest doorgaan.
+const ITEM_TYPE_GROEPEN = [
+  { groep: 'Wapens & harnas', opties: [
+    { value: 'Weapon',     label: 'Weapon' },
+    { value: 'Ammunition', label: 'Ammunition' },
+    { value: 'Armor',      label: 'Armor' },
+    { value: 'Shield',     label: 'Shield' },
+  ]},
+  { groep: 'Magische voorwerpen', opties: [
+    { value: 'Magic Item',    label: 'Magic Item' },
+    { value: 'Wondrous item', label: 'Wondrous Item' },
+    { value: 'Ring',          label: 'Ring' },
+    { value: 'Amulet',        label: 'Amulet' },
+    { value: 'Rod',           label: 'Rod' },
+    { value: 'Staff',         label: 'Staff' },
+    { value: 'Wand',          label: 'Wand' },
+  ]},
+  { groep: 'Verbruik', opties: [
+    { value: 'Potion',     label: 'Potion' },
+    { value: 'Scroll',     label: 'Scroll' },
+    { value: 'Poison',     label: 'Poison' },
+    { value: 'Consumable', label: 'Consumable' },
+  ]},
+  { groep: 'Uitrusting', opties: [
+    { value: 'Adventuring Gear',   label: 'Adventuring Gear' },
+    { value: 'Tools',              label: 'Tools' },
+    { value: 'Gaming Set',         label: 'Gaming Set' },
+    { value: 'Musical instrument', label: 'Musical Instrument' },
+    { value: 'Spellbook',          label: 'Spellbook' },
+    { value: 'Trade Good',         label: 'Trade Good' },
+    { value: 'Vehicle',            label: 'Mount or Vehicle' },
+  ]},
+  { groep: 'Goddelijk', opties: [
+    { value: 'Blessing', label: 'Blessing' },
+    { value: 'Boon',     label: 'Boon' },
+  ]},
+  { groep: 'Overig', opties: [
+    { value: 'Treasure', label: 'Treasure' },
+    { value: 'Feature',  label: 'Feature' },
+    { value: 'Other',    label: 'Other' },
+  ]},
+];
+
+// Welke types verderop extra velden opleveren. Zonder deze melding is na het
+// kiezen niet meer te zien dát dit een type met extra's is — dezelfde reden als
+// bij de locaties.
+// Wat een voorwerp dóét staat los van wat het ís. Een Staff kan een wapen zijn
+// én spreuken casten, een Ring kan AC geven, een Wondrous Item kan genezen. De
+// mechanische velden hingen aan het type en waren daardoor onbereikbaar voor
+// driekwart van de categorieën. Zelfde splitsing als bij personages: `subtype`
+// zegt wat het kaartje is, `data.tags` welke rol het speelt.
+const WERKINGEN = [
+  { key: 'attack',  label: 'Attack',  uitleg: 'Doet schade — schadeformule en wapeneigenschappen' },
+  { key: 'defense', label: 'Defense', uitleg: 'Verhoogt AC — harnastype, Base AC, Dex cap' },
+  { key: 'healing', label: 'Healing', uitleg: 'Geneest — genezingsformule' },
+  { key: 'spell',   label: 'Spell',   uitleg: 'Cast een spreuk — kies er een uit de bibliotheek' },
+];
+
+// Welke werking hoort er meestal bij welk type? Alleen als suggestie: bij het
+// kiezen van een type worden deze aangevinkt zolang er nog niets aanstaat.
+const ITEM_TYPE_WERKING = {
+  Weapon: ['attack'], Ammunition: ['attack'],
+  Armor: ['defense'], Shield: ['defense'],
+  Potion: ['healing'],
+  Scroll: ['spell'], Wand: ['spell'], Staff: ['spell'], Rod: ['spell'],
+};
+
+// Bestaande kaartjes hebben nog geen `werking`; die leiden we af uit wat er
+// ingevuld staat. Zo hoeft er niets gemigreerd te worden en verandert er niets
+// tot de DM het kaartje zelf een keer opslaat.
+function _werkingUit(data) {
+  const d = data || {};
+  if (d.werking) {
+    try { const a = JSON.parse(d.werking); if (Array.isArray(a)) return a.map(String); } catch { /* ok */ }
+  }
+  const uit = [];
+  const dmg = String(d.damage || '').trim();
+  if (dmg && !/heal|genez/i.test(dmg)) uit.push('attack');
+  if (dmg && /heal|genez/i.test(dmg)) uit.push('healing');
+  // Tijdelijke HP hoort bij dezelfde werking: het is iets dat het voorwerp
+  // bij gebruik met je doet. Zonder deze regel bleef het veld verborgen zodra
+  // er geen genezingsformule stond — en dan kon je een kroegdrankje niet
+  // instellen.
+  if (String(d.healing || '').trim() || String(d.tempHp || '').trim()) {
+    if (!uit.includes('healing')) uit.push('healing');
+  }
+  if (String(d.armorType || '').trim() || String(d.armorBaseAC || '').trim()) uit.push('defense');
+  let _gek = [];
+  try { _gek = JSON.parse(d.spellIndexes || '[]'); } catch { /* ok */ }
+  if (d.itemType === 'Scroll' || (Array.isArray(_gek) && _gek.length)) uit.push('spell');
+  return uit;
+}
+window._werkingUit = _werkingUit;
+const _heeftWerking = (data, key) => _werkingUit(data).includes(key);
+
+const ITEM_TYPE_MELDINGEN = {
+  Weapon:     'Krijgt <b>Attack</b> aangevinkt bij Werking — daar staan schade en wapeneigenschappen.',
+  Ammunition: 'Krijgt <b>Attack</b> aangevinkt bij Werking — daar staan schade en wapeneigenschappen.',
+  Armor:      'Krijgt <b>Defense</b> aangevinkt bij Werking — daar staan Base AC, Dex cap en Stealth.',
+  Shield:     'Krijgt <b>Defense</b> aangevinkt bij Werking; de AC-bonus telt op bij de drager.',
+  Potion:     'Krijgt <b>Healing</b> aangevinkt bij Werking. Doet het iets anders, vink dan gewoon iets anders aan.',
+  Scroll:     'Krijgt <b>Spell</b> aangevinkt bij Werking — daar kies je de spreuk.',
+  Wand:       'Krijgt <b>Spell</b> aangevinkt bij Werking; met <b>Charges</b> erbij heb je een wand zoals in de DMG.',
+  Staff:      'Krijgt <b>Spell</b> aangevinkt bij Werking. Slaat hij ook? Vink er dan <b>Attack</b> bij aan.',
+  Rod:        'Krijgt <b>Spell</b> aangevinkt bij Werking.',
+  Blessing:   'Hoort bij de <b>Tempel</b>: god, zegening/eed/vloek, eedtekst en permanente zegen.',
+  Boon:       'Verschijnt onder <b>Zegeningen &amp; Gunsten</b> in het voorwerpenarchief.',
+};
+
+// ── Briefstijlen ────────────────────────────────────────────────────────────
+// Een brief, een kasboek en een dreigbrief zagen er hetzelfde uit, terwijl het
+// type al bekend was. De stijl volgt dus uit `docType`; `data.briefstijl`
+// overschrijft dat als de DM iets anders wil (twee schrijvers, twee handen).
+// `stijl` zet het lettertype op de optie zelf: in de keuzelijst staat elke
+// stijl dus geschreven zoals hij eruitkomt. Dat scheelt zeven keer kiezen en
+// kijken. Knipsel is geen lettertype maar opmaak per teken; die leent de
+// krantenletter van een kop, wat er het dichtst bij komt.
+const BRIEF_STIJLEN = [
+  { value: '',          label: 'Automatisch (volgt het type)' },
+  { value: 'hand',      label: 'Handschrift — vlot',        stijl: "'Kalam', cursive" },
+  { value: 'hand2',     label: 'Handschrift — sierlijk',    stijl: "'Dancing Script', cursive" },
+  { value: 'machine',   label: 'Typemachine',               stijl: "'Special Elite', monospace" },
+  { value: 'drukwerk',  label: 'Gezet drukwerk',            stijl: "'Crimson Text', serif" },
+  { value: 'knipsel',   label: 'Uitgeknipte krantenletters', stijl: "'UnifrakturMaguntia', serif" },
+  { value: 'gotisch',   label: 'Gewijd — gotische letter',  stijl: "'UnifrakturMaguntia', serif" },
+  { value: 'aanplak',   label: 'Aanplakbiljet',             stijl: "'Cinzel', serif" },
+  { value: 'oud',       label: 'Oud handschrift (standaard)', stijl: "'IM Fell English', serif" },
+];
+
+// Ook de Meesterkamer schrijft brieven (de snelle post), en die hoort dezelfde
+// handschriften aan te bieden als een document. Eén lijst dus.
+window.BRIEF_STIJLEN = BRIEF_STIJLEN;
+
+const DOC_STIJL_BIJ_TYPE = {
+  'Brief': 'hand', 'Notities': 'hand', 'Visitekaartje': 'drukwerk',
+  // Een gebed is geen brief maar een gewijde tekst; die staat in de gotische
+  // letter die tot nu toe alleen als krantenkop gebruikt werd.
+  'Gedicht': 'hand2', 'Gebed': 'gotisch',
+  'Dreigbrief': 'knipsel',
+  'Kasboek': 'machine', 'Register': 'machine', 'Contract': 'machine',
+  'Krant': 'drukwerk', 'Folder': 'drukwerk', 'Catalogus': 'drukwerk',
+  'Menu': 'drukwerk', 'Pamflet': 'drukwerk',
+  // Een aanplakbiljet is geen krant: kort, gecentreerd en van een afstand
+  // leesbaar. Zeven types deelden één drukwerk-uiterlijk; dit is de enige
+  // waarbij dat echt de verkeerde vorm gaf.
+  'Aanplakbiljet': 'aanplak',
+  // Een lied staat uitgeschreven, meestal in een sierlijke hand. Een opname
+  // heeft zelden tekst; die valt terug op de standaard.
+  'Lied': 'hand2',
+  'Manuscript': 'oud',
+};
+
+const _docStijl = (e) => e?.data?.briefstijl || DOC_STIJL_BIJ_TYPE[e?.data?.docType] || 'oud';
+
+const SCHEMA = {
+  documenten: {
+    fields: [
+      { key: 'docType', label: 'Type', type: 'select', optionGroups: DOC_TYPE_GROEPEN },
+      { key: 'desc', label: 'Beschrijving', type: 'textarea',
+        hint: 'Wat is dit, en waar komt het vandaan? Dit staat op het kaartje.' },
+      // De inhoud zelf. Krijgt in het detailvenster de perkamentweergave, dus
+      // hoort in de editor bij elkaar te staan met zijn opmaakregels.
+      { key: 'tekst', label: 'De tekst zelf', type: 'perkament' },
+      { key: 'briefstijl', label: 'Hoe ziet de tekst eruit?', type: 'select', options: BRIEF_STIJLEN },
+      // ── Gecodeerd ──
+      // De tekens staan door elkaar tot de party hem ontcijferd heeft. Dat
+      // ontcijferen gebeurt aan tafel — met een check of met een puzzel in je
+      // handen — en de knop hier bevestigt alleen dat het gelukt is.
+      // De code staat los van het handschrift: een gecodeerde brief kan in
+      // elke hand geschreven zijn.
+      { key: 'gecodeerd', label: 'Gecodeerd — de tekens staan door elkaar', type: 'checkbox', dmOnly: true },
+      { key: 'flavours', label: 'Roddels', type: 'lijst-tekst', enkelvoud: 'flavour' },
+      { key: 'geheimen', label: 'Geheimen', type: 'lijst-tekst', enkelvoud: 'geheim' },
+      { key: 'persoonlijkheid', label: 'Aantekeningen voor de DM', type: 'textarea', dmOnly: true },
+    ],
+  },
+  personages: {
+    // Vier subtypes: wát voor kaartje is dit. Verkoper en antagonist zijn geen
+    // soorten maar rollen — die staan in data.tags. Summon, rijdier en familiar
+    // vallen onder 'dier'.
+    subtypes: ['NPC', 'speler', 'dier', 'god'],
+    fields: [
+      // De sleutels blijven zoals ze zijn (daar hangt opgeslagen data aan); alleen
+      // de labels zeggen nu wat het veld ís. 'rol' was zo vaag dat het van alles
+      // werd, 'persoonlijkheid' gaat in de praktijk over hoe jíj hem speelt.
+      { key: 'soortLabel', label: 'Ras', type: 'text', alleenBij: ['dier'], hint: 'Hond' },
+      { key: 'rol', label: 'Korte omschrijving', type: 'text' },
+      // Origin en Class zeggen niets over een god; domein en symbool wel.
+      // Een god heeft geen volk of klasse, een dier evenmin — dat is bij hem het
+      // ras, en dat staat bij de adoptie-instellingen.
+      { key: 'ras', label: 'Origin', type: 'lijst', lijst: 'volken', nietBij: ['god', 'dier'] },
+      { key: 'klasse', label: 'Class', type: 'lijst', lijst: 'klassen', nietBij: ['god', 'dier'] },
+      // De grijze voorbeeldtekst zegt genoeg; een uitleg erboven is dubbelop.
+      { key: 'domein', label: 'Domein', type: 'text', alleenBij: ['god'], hint: 'Kennis en uitvinding' },
+      { key: 'symbool', label: 'Heilig symbool', type: 'text', alleenBij: ['god'], hint: 'Een purperen waterrad' },
+      { key: 'alignment', label: 'Alignment', type: 'lijst', lijst: 'alignments' },
+      { key: 'tags', label: 'Rollen', type: 'rollen' },
+      // ── Houding ──
+      // Hoe staat hij tegenover de avonturiers? Eén waarde, en op het kaartje
+      // is er in rust niets van te zien: de houding verschijnt als een baan
+      // licht of schaduw zodra je erover gaat. Blijft het veld leeg, dan rekent
+      // de app hem uit — uit de renown van zijn factie, anders uit zijn rol.
+      { key: 'houding', label: 'Houding tegenover de groep', type: 'houding', dmOnly: true },
+      { key: 'insightDC', label: 'Insight-DC', type: 'text', dmOnly: true,
+        hint: '12' },
+      { key: 'desc', label: 'Beschrijving', type: 'textarea' },
+      { key: 'flavours', label: 'Roddels', type: 'lijst-tekst', enkelvoud: 'flavour' },
+      { key: 'geheimen', label: 'Geheimen', type: 'lijst-tekst', enkelvoud: 'geheim' },
+      { key: 'persoonlijkheid', label: 'Aantekeningen voor de DM', type: 'textarea', dmOnly: true },
+    ],
+  },
+  locaties: {
+    fields: [
+      // De opgeslagen waarden blijven staan; alleen de labels en de indeling
+      // veranderen, zodat geen enkel bestaand kaartje zijn type kwijtraakt.
+      // De eerste groep is meteen de markering uit vraag 2: dít zijn de types
+      // die verderop een eigen tabblad of een dienstkoppeling krijgen.
+      { key: 'locType', label: 'Type', type: 'select', optionGroups: LOC_TYPE_GROEPEN,
+        // Zodra je gekozen hebt toont de lijst alleen nog "Herberg", en dan is
+        // niet meer te zien dat dit een type met extra's is.
+        meldingen: LOC_TYPE_MELDINGEN },
+      // 'wijk' heet nu Gebied: het veld werd allang gebruikt voor een land, een
+      // streek of een bovenliggend gebouw ("Hogwarts, tweede verdieping"). De
+      // sleutel blijft `wijk` — daar hangt de sortering en de zoekindex aan.
+      { key: 'wijk', label: 'Gebied', type: 'entiteit', doel: ['locaties'],
+        hint: 'De stad, streek of het gebouw waar dit in ligt' },
+      { key: 'desc', label: 'Beschrijving', type: 'textarea' },
+      { key: 'flavours', label: 'Roddels', type: 'lijst-tekst', enkelvoud: 'flavour' },
+      { key: 'geheimen', label: 'Geheimen', type: 'lijst-tekst', enkelvoud: 'geheim' },
+      // Wie erbij hoort stond bóven de beschrijving, dus je vulde een ledenlijst
+      // in voordat je had opgeschreven wát dit is. Zelfde volgorde als bij een
+      // personage: eerst wat het is, dan de administratie eromheen, en de
+      // aantekeningen als laatste woord.
+      { key: 'betrokkenen', label: 'Wie hoort hier bij?', type: 'betrokkenen' },
+      // Zelfde veld en zelfde plek als bij een personage: het detailvenster
+      // toont dit vak voor élk kaartje, dus hoort het ook overal in de editor.
+      { key: 'persoonlijkheid', label: 'Aantekeningen voor de DM', type: 'textarea', dmOnly: true },
+    ],
+  },
+  organisaties: {
+    fields: [
+      { key: 'orgType', label: 'Type', type: 'select', optionGroups: ORG_TYPE_GROEPEN },
+      { key: 'icoon', label: 'Teken', type: 'icoon',
+        hint: 'Het teken van deze organisatie. Laat je het leeg, dan volgt het haar type. Hangt er een factie aan dit kaartje, dan is dit ook haar embleem.' },
+      { key: 'motto', label: 'Motto', type: 'text' },
+      // Zelfde koppelingen als bij een locatie: waar ze zitten en wie erbij hoort.
+      { key: 'wijk', label: 'Gebied', type: 'entiteit', doel: ['locaties'],
+        hint: 'De stad, streek of het gebouw waar dit in zit' },
+      { key: 'desc', label: 'Beschrijving', type: 'textarea' },
+      // ── Houding ──
+      // Hoe staat hij tegenover de avonturiers? Eén waarde, en op het kaartje
+      // is er in rust niets van te zien: de houding verschijnt als een baan
+      // licht of schaduw zodra je erover gaat. Blijft het veld leeg, dan rekent
+      // de app hem uit — uit de renown van zijn factie, anders uit zijn rol.
+      { key: 'houding', label: 'Houding tegenover de groep', type: 'houding', dmOnly: true },
+      { key: 'insightDC', label: 'Insight-DC', type: 'text', dmOnly: true,
+        hint: '12' },
+      // Waren één tekstvak; nu lijsten, zoals bij personages en locaties — de
+      // oude tekst blijft de eerste regel (_tekstLijstUit leest allebei).
+      { key: 'flavours', label: 'Roddels', type: 'lijst-tekst', enkelvoud: 'flavour' },
+      { key: 'geheimen', label: 'Geheimen', type: 'lijst-tekst', enkelvoud: 'geheim' },
+      // Staat in dezelfde volgorde als bij een locatie, al valt hij bij een
+      // organisatie toch op het Organogram-tabblad (zie de P:organogram-markers).
+      { key: 'betrokkenen', label: 'Wie hoort hier bij?', type: 'betrokkenen' },
+      { key: 'persoonlijkheid', label: 'Aantekeningen voor de DM', type: 'textarea', dmOnly: true },
+    ],
+  },
+  voorwerpen: {
+    fields: [
+      { key: 'itemType', label: 'Type', type: 'select', optionGroups: ITEM_TYPE_GROEPEN,
+        meldingen: ITEM_TYPE_MELDINGEN },
+      { key: 'rariteit', label: 'Rarity', type: 'select', options: ['Common','Uncommon','Rare','Very Rare','Legendary'] },
+      // Wat het type oplevert staat hier, direct onder de melding die het
+      // belooft. Stond eerst onder de beschrijving: je koos Weapon, las dat je
+      // velden voor schade kreeg, en zag ze nergens.
+      // Werking in plaats van type: een Staff kan slaan, een Ring kan AC geven.
+      { key: 'werking', label: 'Werking', type: 'werking' },
+      { key: 'damage', label: 'Schadeformule', type: 'text', showWerking: 'attack', hint: '1d8+1 Slashing' },
+      { key: 'weaponProperties', label: 'Wapeneigenschappen', type: 'weapon-tags', showWerking: 'attack' },
+      // Heet niet meer "Harnas type": sinds Defense los van het type staat kan
+      // ook een ring of een paar bracers hier terecht. De keuze zegt nu wat er
+      // met de Dex-modifier gebeurt, want dát is wat de app ermee rekent.
+      { key: 'armorType', label: 'Hoe telt de AC', type: 'select', showWerking: 'defense', options: [
+        { value: 'light',  label: 'Light — Base AC plus je volledige Dex-modifier' },
+        { value: 'medium', label: 'Medium — Base AC plus Dex, maar hoogstens +2' },
+        { value: 'heavy',  label: 'Heavy — alleen de Base AC, Dex telt niet mee' },
+        { value: 'shield', label: 'Shield — telt als bonus op bij de AC die je al hebt' },
+        { value: 'other',  label: 'Other — Base AC plus Dex tot de cap hieronder' },
+      ]},
+      { key: 'armorBaseAC', label: 'Base AC', type: 'text', showWerking: 'defense',
+        hint: '14 — bij Shield de bonus, dus 2' },
+      { key: 'armorDexCap', label: 'Dex cap', type: 'text', showWerking: 'defense',
+        hint: 'alleen bij Other', showWhen: { key: 'armorType', values: ['other'] } },
+      { key: 'stealthDisadvantage', label: 'Stealth Disadvantage', type: 'checkbox', showWerking: 'defense' },
+      { key: 'strengthRequirement', label: 'Strength Requirement', type: 'text', showWerking: 'defense' },
+      { key: 'healing', label: 'Genezingsformule', type: 'text', showWerking: 'healing', hint: '2d4+2' },
+      // Tijdelijke HP is iets anders dan genezing: het telt niet op bij je
+      // huidige HP, wordt niet afgetopt op je maximum, en de hoogste wint — je
+      // stapelt geen twee flessen kroegmoed. Vandaar een eigen veld naast de
+      // genezingsformule. Een drankje aan de tap dat aan dit kaartje hangt,
+      // gebruikt deze waarde ook: één definitie, twee ingangen.
+      { key: 'tempHp', label: 'Tijdelijke HP', type: 'text', showWerking: 'healing', hint: '5 of 1d6' },
+      { key: 'buffLabel', label: 'Status', type: 'text', showWerking: 'healing', hint: 'Kroegmoed' },
+      { key: 'buffDesc', label: 'Wat de status doet', type: 'text', showWerking: 'healing',
+        hint: 'voordeel op je eerste save — geldt tot de volgende lange rust' },
+      // Een Potion of Healing is na één slok leeg; een Staff of Healing raakt
+      // alleen een charge kwijt. Alleen dit vinkje laat het exemplaar zelf
+      // verdwijnen — en het doet niets zodra het voorwerp charges heeft.
+      { key: 'verbruikt', label: 'Verdwijnt bij gebruik', type: 'checkbox', showWerking: 'healing' },
+      { key: 'spellIndexes', label: 'Gekoppelde spreuken', type: 'spell-picker', showWerking: 'spell' },
+      { key: 'godNaam', label: 'God', type: 'text', showFor: ['Blessing'] },
+      { key: 'goddelijkType', label: 'Soort', type: 'select', showFor: ['Blessing'], options: [
+        { value: 'zegen', label: 'Zegening' },
+        { value: 'eed',   label: 'Eed' },
+        { value: 'vloek', label: 'Vloek' },
+      ]},
+      { key: 'effect', label: 'Effect (eedtitel of vloek-mechaniek — niet voor zegen)', type: 'textarea', showFor: ['Blessing'] },
+      { key: 'permanenteZegen', label: 'Permanente zegen (alleen op de eed-kaart)', type: 'text', showFor: ['Blessing'] },
+      { key: 'eedTekst', label: 'Eedtekst (volledige belofte, op de eed-kaart)', type: 'textarea', showFor: ['Blessing'] },
+      { key: 'prijs', label: 'Prijs', type: 'text' },
+      // Stond onder de twee vinkjes, maar hoort bij de prijs: allebei gaan ze
+      // over hoe dit voorwerp in de wereld rondgaat.
+      { key: 'gebruik', label: 'Exemplaren', type: 'select', options: [
+        { value: 'uniek',      label: 'Eén exemplaar — maar één speler kan het hebben' },
+        { value: 'gedeeld',    label: 'Meerdere spelers — ieder één exemplaar' },
+        { value: 'stapelbaar', label: 'Meerdere spelers — ieder een aantal, met teller' },
+      ]},
+      // "Heeft charges" als koptekst boven een vinkje was dubbelop: het vinkje
+      // zégt al dat het er wel of niet is.
+      { key: '_chargesToggle', label: 'Charges', type: 'reveal-toggle' },
+      { key: 'maxCharges', label: 'Maximum', type: 'getal', inReveal: '_chargesToggle', hint: '3' },
+      // 'Dageraad' is weg: de server behandelde het precies als een lange rust,
+      // en een dageraad-mechaniek bestaat niet in deze app. Wat opgeslagen staat
+      // blijft werken (zie de terugval in routes/api.js).
+      { key: 'rechargeOn', label: 'Herlaadt bij', type: 'select', inReveal: '_chargesToggle', options: [
+        { value: 'longRest',     label: 'Lange rust — weer helemaal vol' },
+        { value: 'shortRest',    label: 'Korte rust — weer helemaal vol' },
+        { value: 'longRestRoll', label: 'Lange rust — een deel terug, met een worp' },
+      ]},
+      // Alleen zichtbaar bij die derde keuze; los ernaast was niet te zien
+      // waar de worp bij hoorde.
+      { key: 'rechargeRoll', label: 'Hoeveel komt er terug', type: 'text', inReveal: '_chargesToggle',
+        hint: '1d3', showWhen: { key: 'rechargeOn', values: ['longRestRoll'] } },
+      { key: 'playerMaxAdjustable', label: 'Speler mag zijn eigen maximum bijstellen', type: 'checkbox', inReveal: '_chargesToggle' },
+      { key: '_naChargesStreep', type: 'scheiding' },
+      { key: 'attunement', label: 'Vereist attunement', type: 'checkbox' },
+      { key: 'attunementEis', label: 'Attunement alleen door', type: 'text',
+        hint: 'Wizard', showWhen: { key: 'attunement', values: ['true'] } },
+      // Twee vinkjes die elk iets anders zeggen. "Niet te verkopen" gaat over de
+      // winkel: waardeloos daar, of te belangrijk om weg te doen. "Niet te
+      // ruilen" gaat over de drager: een tatoeage zit in je huid, een pact in
+      // je ziel — dat schuif je niet over de tafel naar je buurman.
+      //
+      // Het eerste zet het tweede aan (`zetOokAan`), want wat een winkel niet
+      // mag hebben wil je meestal ook niet onderling zien verdwijnen; daarna
+      // mag je het los weer uitzetten.
+      { key: 'nietVerkoopbaar', label: 'Niet te verkopen aan winkels', type: 'checkbox', zetOokAan: 'nietRuilbaar' },
+      { key: 'nietRuilbaar', label: 'Niet te ruilen met andere spelers', type: 'checkbox' },
+      // Een Wand of Wonder, een Bag of Beans, een zak met bonen van eigen makelij:
+      // een voorwerp waarvan het effect uitgerold wordt. De tafel zelf blijft in
+      // de tafelbibliotheek staan — hier hangt alleen de verwijzing, zodat
+      // dezelfde tafel ook los te rollen is en bij te stellen op één plek.
+      { key: 'tafelId', label: 'Gekoppelde tafel', type: 'tafel-picker' },
+      // Naar boven gehaald: de beschrijving is de hoofdtekst, niet iets wat na
+      // vier blokken invulvelden komt.
+      { key: 'desc', label: 'Beschrijving', type: 'textarea' },
+      // Net als bij personages, locaties en organisaties: allebei lijsten, per
+      // regel te onthullen. De oude losse tekst blijft de eerste regel.
+      { key: 'flavours', label: 'Roddels', type: 'lijst-tekst', enkelvoud: 'flavour' },
+      { key: 'geheimen', label: 'Geheimen', type: 'lijst-tekst', enkelvoud: 'geheim' },
+      { key: 'persoonlijkheid', label: 'Aantekeningen voor de DM', type: 'textarea', dmOnly: true },
+    ],
+  },
+};
+
+const LINK_TYPES = ['personages', 'locaties', 'organisaties', 'voorwerpen', 'archief'];
+const LINK_LABELS = { personages: 'Personages', locaties: 'Locaties', organisaties: 'Organisaties', voorwerpen: 'Voorwerpen', archief: 'Documenten' };
+// Enkelvoud, voor zinnen als "aanmaken als Personage of Organisatie?"
+const LINK_ENKELVOUD = { personages: 'Personage', locaties: 'Locatie', organisaties: 'Organisatie', voorwerpen: 'Voorwerp', archief: 'Document' };
+
+// ── Het houdingbalkje op het kaartje ───────────────────────────────────────
+// Vijf treden onder elkaar, links op het kaartje, in dezelfde maat en op
+// dezelfde hoogte als de knoppenrij rechts. Vijandig onderaan, bondgenoot
+// bovenaan — omhoog is vriendelijker, en dat hoef je niemand uit te leggen.
+//
+// Alleen voor de DM: dit is een bediening, geen mededeling. Wat de spelers
+// ervan merken is de glans die over het kaartje trekt, en verder niets.
+//
+// De trede die al aanstaat nog eens aantikken zet hem terug op **standaard**.
+// Dat is de enige weg terug sinds de knop eronder weg is, en het is het
+// gebaar dat je toch al maakt als je je bedenkt.
+function _houdingBalkHtml(type, e) {
+  if (!isDM()) return '';
+  // Staat de module uit, dan stuurt de server geen houding mee en blijft de
+  // tabel leeg — beide volgende regels vangen dat al. Deze staat er voor wie
+  // hier leest: er is één schakelaar, en dit is wat hij doet.
+  if (!window._deelAan?.('houding')) return '';
+  if (type !== 'personages' && type !== 'organisaties') return '';
+  const geldt = Number(e?._houding);
+  if (!geldt) return '';                       // god, speler: geen houding
+  const eigen = e?.data?.houding ? Number(e.data.houding) : null;
+  const treden = [..._HOUDING_TABEL.values()].slice().reverse();   // 5 bovenaan
+  if (!treden.length) return '';
+  return `<div class="houding-balk${eigen === null ? ' is-standaard' : ''}"
+    data-id="${esc(e.id)}" data-type="${esc(type)}" data-nu="${geldt}"
+    onclick="event.stopPropagation()">
+    ${treden.map(h => `<button type="button" class="houding-stap${h.waarde === geldt ? ' is-aan' : ''}"
+      style="--houding-kleur:${h.glans?.kleur || '#c4a87a'}"
+      title="${esc(h.naam)}${h.waarde === geldt ? (eigen === null ? ' · nu, uitgerekend' : ' · nu — tik nog eens voor standaard') : ''}"
+      onclick="event.stopPropagation();window._houdingZet('${escArg(type)}','${escArg(e.id)}',${h.waarde})"></button>`).join('')}
+  </div>`;
+}
+
+// ── Schuiven zonder brokken ────────────────────────────────────────────────
+// Je gaat per ongeluk een tik te hoog en corrigeert een seconde later. Zou
+// elke tik meteen doorgaan, dan heeft de speler ondertussen al een toast
+// gehad over een houding die je niet bedoelde — en een toast kun je aan tafel
+// niet meer afpakken.
+//
+// Dus wacht de app tot je stil bent. Het kaartje volgt je direct (je ziet wat
+// je doet), maar wat er opgeslagen wordt — en dus wat de spelers merken —
+// gaat pas na `_HOUDING_WACHT` de deur uit. Tik je binnen die tijd nog eens,
+// dan begint de klok opnieuw en is er maar één verandering geweest.
+const _HOUDING_WACHT = 1600;
+const _houdingKlok = new Map();
+
+window._houdingZet = (type, id, waarde) => {
+  const balk = document.querySelector(`.houding-balk[data-id="${id}"]`);
+  if (!balk) return;
+  const stond = Number(balk.dataset.nu);
+  const wasStandaard = balk.classList.contains('is-standaard');
+  // Dezelfde trede nog eens: terug naar wat de app uitrekent. Stond hij al op
+  // standaard, dan valt er niets terug te zetten en gebeurt er niets.
+  const terug = waarde === stond && !wasStandaard;
+
+  // Het kaartje volgt meteen, zodat je ziet wat je doet.
+  balk.dataset.nu = String(waarde);
+  balk.classList.toggle('is-standaard', terug);
+  for (const knop of balk.querySelectorAll('.houding-stap')) knop.classList.remove('is-aan');
+  balk.querySelectorAll('.houding-stap')[[..._HOUDING_TABEL.values()].length - waarde]?.classList.add('is-aan');
+
+  clearTimeout(_houdingKlok.get(id));
+  _houdingKlok.set(id, setTimeout(async () => {
+    _houdingKlok.delete(id);
+    try {
+      await api.put(`/entities/${type}/${id}/houding`, { houding: terug ? null : waarde });
+      const h = _HOUDING_TABEL.get(Number(balk.dataset.nu));
+      window._showToast?.(terug
+        ? `Houding terug op standaard — ${h?.naam || ''}.`
+        : `Houding: ${h?.naam || ''}.`);
+      // Het kaartje opnieuw laten tekenen, zodat de glans meeverandert.
+      renderEntitySection(type);
+    } catch (err) { alert('Houding opslaan mislukt: ' + err.message); }
+  }, _HOUDING_WACHT));
+};
+
+// ── De glans op een kaartje ─────────────────────────────────────────────────
+// Eén baan die over het kaartje trekt, met alles wat eraan te draaien valt als
+// variabele erop (zie `.kaart-glans` in theme.css). Twee aanleidingen:
+//
+//   voorwerpen   de twee hoogste zeldzaamheden glanzen **doorlopend** — ze
+//                moeten opvallen in een raster vol kaartjes.
+//   personages   straks de houding, **één keer bij hover** — die ontdek je
+//                door even stil te staan, niet door ernaar te kijken.
+//
+// Wie er geen heeft krijgt niets in de DOM: een leeg element dat nergens op
+// staat is een val voor de volgende die hier kijkt.
+function _glansHtml(type, e, rarKey) {
+  if (type === 'voorwerpen' && (rarKey === 'legendary' || rarKey === 'very-rare'))
+    return '<span class="kaart-glans kaart-glans--altijd"></span>';
+
+  // De houding komt van de server als `_houding` — uitgerekend, en alleen
+  // meegestuurd aan wie hem mag zien. Staat hij er niet, dan is er niets te
+  // tonen; dat is óók het geval bij onverschillig, en dat is de bedoeling.
+  if (type === 'personages' || type === 'organisaties') {
+    const h = _HOUDING_TABEL.get(Number(e?._houding));
+    if (h?.glans) {
+      const g = h.glans;
+      return `<span class="kaart-glans kaart-glans--hover" title="${esc(h.naam)}"
+        style="--glans-kleur:${g.kleur};--glans-sterkte:${g.sterkte};--glans-duur:${g.duur};--glans-blend:${g.blend}"></span>`;
+    }
+  }
+  return '';
+}
+
+// De schaal komt één keer van de server (`GET /api/houdingen`), net als de
+// tafelschermeffecten. Tot hij er is tekent er niets — een kaartje zonder
+// glans is een geldige stand, dus dat valt niet op als een fout.
+const _HOUDING_TABEL = new Map();
+let _houdingDC = 12;
+export async function laadHoudingen() {
+  if (_HOUDING_TABEL.size) return;
+  try {
+    const d = await api.get('/houdingen');
+    for (const h of (d.houdingen || [])) _HOUDING_TABEL.set(h.waarde, h);
+    _houdingDC = d.dcStandaard || 12;
+  } catch { /* zonder tabel geen glans; de rest van het kaartje staat er wel */ }
+}
+window._houdingTabel = () => [..._HOUDING_TABEL.values()];
+// Ook na het inloggen op te halen: wie als bezoeker binnenkomt en daarna een
+// portret kiest, heeft `initCampagne` allang gehad. Hij haalt hem één keer op
+// en onthoudt hem, dus twee keer vragen kan geen kwaad.
+window._laadHoudingen = laadHoudingen;
+
+// ── Het schuifje ───────────────────────────────────────────────────────────
+// De namen en de kleuren komen uit dezelfde tabel als de glans, dus wat je
+// hier instelt en wat je op het kaartje ziet kunnen niet uit elkaar lopen.
+function _houdingVeldHtml(field, eigen, berekend) {
+  const nu = eigen === null ? berekend : eigen;
+  const h  = _HOUDING_TABEL.get(nu);
+  const kleur = h?.glans?.kleur || '#8a7050';
+  // Het schuifje draagt de waarde niet: een `range` kan niet leeg zijn, en leeg
+  // is hier een betekenis — "reken het zelf maar uit". De opgeslagen waarde zit
+  // dus in een verborgen veld dat wél leeg mag, en het schuifje schrijft erin.
+  //
+  // De uitleg eronder en de knop "Standaard" zijn weg. De naam naast het
+  // schuifje zegt al wat de trede is, en wie wil weten wat "Wantrouwig"
+  // betekent leest dat in de hulpknop, niet in het formulier. Terug naar
+  // standaard gaat via het balkje op het kaartje: de trede die aanstaat nog
+  // eens aantikken.
+  return `
+    <div class="houding-veld" id="houding-veld">
+      <label class="dm-form-label">${esc(field.label)}</label>
+      <input type="hidden" name="data_${esc(field.key)}" id="houding-waarde"
+        value="${eigen === null ? '' : eigen}">
+      <div class="houding-rij">
+        <input type="range" min="1" max="${_HOUDING_TABEL.size || 5}" step="1" value="${nu}"
+          id="houding-schuif" class="houding-schuif" style="--houding-kleur:${kleur}"
+          data-berekend="${berekend}"
+          oninput="window._houdingSchuif(this)">
+        <span class="houding-naam" id="houding-naam">${esc(h?.naam || '')}${eigen === null ? ' <em>· standaard</em>' : ''}</span>
+      </div>
+    </div>`;
+}
+
+// Het schuifje bewegen maakt de waarde van jou. Dat is met opzet: wie eraan
+// zit, bedoelt iets.
+window._houdingSchuif = (el) => {
+  const w = Number(el.value);
+  const waarde = document.getElementById('houding-waarde');
+  if (waarde) waarde.value = String(w);
+  const h = _HOUDING_TABEL.get(w);
+  el.style.setProperty('--houding-kleur', h?.glans?.kleur || '#8a7050');
+  const naam = document.getElementById('houding-naam');
+  if (naam) naam.textContent = h?.naam || '';
+};
+
+
+// ── Auto-icons per subtype / type-field (lazy SVG, avoids module-init timing issue) ──
+let _autoIconsCache = null;
+function _getAutoIconMap(type) {
+  if (!_autoIconsCache) {
+    _autoIconsCache = {
+      personages: {
+        'NPC':        icon('users'),
+        'speler':     icon('swords'),
+        'antagonist': icon('skull'),
+        'god':        icon('sparkles'),
+        'dier':       icon('paw-print'),
+        'verkoper':   icon('building'),
+      },
+      locaties: {
+        'Stadswijk':  icon('map'),
+        'Gebouw':     icon('landmark'),
+        'Herberg':    icon('beer'),
+        'Taveerne':   icon('beer'),
+        'Tempel':     icon('church'),
+        'Winkel':     icon('building'),
+        'Fort':       icon('castle', { cls: 'icon-gi' }),
+        'Schip':      icon('globe'),
+        'Dorp':       icon('house'),
+        'Stad':       icon('map'),
+        'Woud':       icon('tree-pine'),
+        'Berg':       icon('mountain'),
+        'Zee':        icon('waves'),
+        'Rijk':       icon('globe'),
+        'Streek':     icon('map'),
+        'Academie':   icon('book-open'),
+        'Ziekenhuis': icon('heart'),
+        'Werkplaats': icon('package'),
+        'Gevangenis': icon('lock'),
+        'Kamer':      icon('square'),
+        'Rivier':     icon('droplet'),
+        'Moeras':     icon('droplet'),
+        'Vlakte':     icon('wind'),
+        'Eiland':     icon('globe'),
+        'Grot':       icon('mountain'),
+        'Ruine':      icon('brick-wall'),
+        'Schuilplaats': icon('eye-off'),
+        'Plein':      icon('tree-pine'),
+        'Overig':     icon('map-pin'),
+      },
+      organisaties: {
+        'Politiek':    icon('landmark'),
+        'Adelhuis':    icon('castle', { cls: 'icon-gi' }),
+        'Militair':    icon('shield'),
+        'Wacht':       icon('shield-half'),
+        'Orde':        icon('star'),
+        'Gilde':       icon('package'),
+        'Handelshuis': icon('coins'),
+        'Compagnie':   icon('building'),
+        'Religieus':   icon('church'),
+        'Klooster':    icon('church'),
+        'Cultus':      icon('sparkles'),
+        'Genootschap': icon('book-open'),
+        'School':      icon('book-open'),
+        'Crimineel':   icon('stiletto', { cls: 'icon-gi' }),
+        'Bende':       icon('skull'),
+        'Huurlingen':  icon('swords'),
+        'Factie':      icon('swords'),
+        'Volk':        icon('users'),
+        'Familie':     icon('house'),
+        'Overig':      icon('landmark'),
+      },
+      voorwerpen: {
+        'Weapon':     icon('sword'),    'Wapen':      icon('sword'),
+        'Magic Item': icon('sparkles'), 'Toveritem':  icon('sparkles'),
+        'Blessing': icon('sparkles'),
+        'Potion':     icon('flask-conical'), 'Drank':  icon('flask-conical'),
+        'Armor':      icon('shield'),   'Uitrusting': icon('shield'),
+        'Shield':     icon('shield'),
+        'Scroll':     icon('scroll-text'),
+        'Ring':       icon('sparkles'),
+        'Amulet':     icon('stiletto', { cls: 'icon-gi' }),
+        'Other':      icon('package'),  'Overig':     icon('package'),
+        'Feature':    icon('star'),
+        'Consumable': icon('flask-conical'), 'Wondrous': icon('flask-conical'),
+        // Nieuw in de typenlijst; zonder eigen icoon valt zo'n kaartje terug op
+        // het algemene pakketje en zie je aan de kaart niet meer wat het is.
+        'Wondrous item':    icon('sparkles'),
+        'Ammunition':       icon('target'),
+        'Rod':              icon('stiletto', { cls: 'icon-gi' }),
+        'Staff':            icon('stiletto', { cls: 'icon-gi' }),
+        'Wand':             icon('sparkles'),
+        'Poison':           icon('flask-conical'),
+        'Adventuring Gear': icon('package'),
+        'Tools':            icon('settings'),
+        'Gaming Set':       icon('dice'),
+        'Musical instrument': icon('music'),
+        'Spellbook':        icon('book-open'),
+        'Trade Good':       icon('coins'),
+        'Vehicle':          icon('map'),
+        'Treasure':         icon('coins'),
+        'Boon':             icon('star'),
+      },
+    };
+  }
+  return _autoIconsCache[type] || {};
+}
+
+const _NL_ITEM_TYPE = {
+  'Wapen': 'Weapon', 'Toveritem': 'Magic Item', 'Drank': 'Potion',
+  'Uitrusting': 'Armor', 'Overig': 'Other',
+};
+function _normItemType(v) { return _NL_ITEM_TYPE[v] || v; }
+
+// De lijst waaruit een kaartje zijn eigen teken mag kiezen. Zelfde set als de
+// factie-emblemen had: genoeg om een gilde van een bende te onderscheiden,
+// weinig genoeg om in één rijtje te passen.
+const KAART_ICONEN = ['landmark','castle','shield','shield-half','star','package','coins','building',
+  'church','sparkles','book-open','skull','swords','sword','users','house','tree-pine','mountain',
+  'moon','globe','hexagon','crossed-swords','heart','scroll-text','zap','eye','stiletto'];
+
+function getAutoIconSvg(type, e) {
+  // Een eigen teken op het kaartje wint van het teken dat bij zijn type hoort.
+  // `icoon` is een naam uit KAART_ICONEN; het oudere `icon` was rauwe SVG.
+  if (e.data?.icoon && KAART_ICONEN.includes(e.data.icoon)) {
+    return icon(e.data.icoon, e.data.icoon === 'castle' || e.data.icoon === 'stiletto' || e.data.icoon === 'crossed-swords' ? { cls: 'icon-gi' } : undefined);
+  }
+  if (e.data?.icon) return e.data.icon;
+  const map = _getAutoIconMap(type);
+  const key =
+    e.subtype ||
+    e.data?.locType ||
+    e.data?.orgType ||
+    e.data?.itemType ||
+    '';
+  return map[key] || TYPE_META[type].svgIcon;
+}
+
+// Alle badges van een kaartje. Rollen zijn sinds kort meervoudig — een verkoper
+// kán ook antagonist zijn — dus geeft dit een lijst terug in plaats van de ene
+// die toevallig wint. Zonder rol valt hij terug op het subtype.
+function getCardBadges(type, e) {
+  if (type !== 'personages') {
+    const b = getSubtypeBadge(type, e);
+    return b ? [b] : [];
+  }
+  // Gevangen is een toestand van deze party, geen rol — maar wel het eerste
+  // wat je over hem wilt weten, dus hij staat vooraan.
+  const toestand = e._gevangen ? [{ label: 'Gevangen', cls: 'badge-gevangen' }] : [];
+  const rollen = [];
+  if (window._heeftRol?.(e, 'antagonist')) rollen.push({ label: 'Antagonist', cls: 'badge-antagonist' });
+  if (window._heeftRol?.(e, 'verkoper'))   rollen.push({ label: 'Verkoper',   cls: 'badge-verkoper' });
+  if (rollen.length) return [...toestand, ...rollen];
+  const b = getSubtypeBadge(type, e);
+  return b ? [...toestand, b] : toestand;
+}
+
+function getSubtypeBadge(type, e) {
+  if (type === 'personages') {
+    // Een rol zegt meer dan het subtype: "Antagonist" is interessanter dan
+    // "NPC", en een verkoper herken je liever meteen.
+    if (window._heeftRol?.(e, 'antagonist')) return { label: 'Antagonist', cls: 'badge-antagonist' };
+    if (window._heeftRol?.(e, 'verkoper'))   return { label: 'Verkoper',   cls: 'badge-verkoper' };
+    const sub = e.subtype || '';
+    if (!sub) return null;
+    const labels = { NPC: 'NPC', speler: 'Speler', antagonist: 'Antagonist', god: 'God', godheid: 'God', dier: 'Dier', monster: 'Monster', verkoper: 'Verkoper' };
+    const cls = sub === 'godheid' ? 'badge-god' : 'badge-' + sub.toLowerCase();
+    return { label: labels[sub] || sub, cls };
+  }
+  if (type === 'locaties') {
+    const w = e.data?.wijk;
+    return w ? { label: w, cls: 'badge-loc' } : null;
+  }
+  if (type === 'documenten') {
+    const t = e.data?.docType;
+    return t ? { label: t, cls: 'badge-doc' } : null;
+  }
+  if (type === 'organisaties') {
+    const t = e.data?.orgType;
+    return t ? { label: t, cls: 'badge-org' } : null;
+  }
+  if (type === 'voorwerpen') {
+    const t = e.data?.itemType;
+    if (!t) return null;
+    // Zegeningen & Gunsten: duidelijk onderscheiden — blessing per soort, boon apart.
+    if (t === 'Blessing') {
+      const g = e.data?.goddelijkType || 'zegen';
+      const gl = { zegen: 'Zegening', eed: 'Eed', vloek: 'Vloek' };
+      return { label: gl[g] || 'Zegening', cls: 'badge-goddelijk badge-goddelijk--' + g };
+    }
+    if (t === 'Boon') return { label: 'Boon', cls: 'badge-boon' };
+    const clsMap = {
+      'Weapon':     'badge-item-weapon',
+      'Armor':      'badge-item-armor',
+      'Potion':     'badge-item-potion',
+      'Magic Item': 'badge-item-magic',
+      'Scroll':     'badge-item-scroll',
+      'Ring':       'badge-item-ring',
+      'Amulet':     'badge-item-amulet',
+      'Other':      'badge-item-other',
+    };
+    return { label: t, cls: clsMap[t] || 'badge-item-other' };
+  }
+  return null;
+}
+
+const searchQueries = { personages: '', locaties: '', organisaties: '', voorwerpen: '' };
+let entities = {};
+let editorTags = {};
+let pendingAudioFile = null;
+let _editorOldAudioId = null;
+let entityEditorImages = [];
+let entityEditorImagesToDelete = [];
+
+// ── Audio playback singleton ──
+let _audioEl = null;
+let _currentAudioId = null;
+
+function _updateAudioBtns(activeId, playing) {
+  document.querySelectorAll('[data-audio-btn]').forEach(btn => {
+    const isActive = btn.dataset.audioBtnId === activeId;
+    btn.textContent = isActive && playing ? '⏸' : '▶';
+    btn.classList.toggle('audio-btn-playing', isActive && playing);
+  });
+}
+
+window._audioToggle = (audioId) => {
+  const url = api.fileUrl(audioId);
+  if (_audioEl && _currentAudioId === audioId) {
+    if (_audioEl.paused) { _audioEl.play(); _updateAudioBtns(audioId, true); }
+    else                 { _audioEl.pause(); _updateAudioBtns(audioId, false); }
+    return;
+  }
+  if (_audioEl) { _audioEl.pause(); _audioEl = null; }
+  _currentAudioId = audioId;
+  _audioEl = new Audio(url);
+  _audioEl.play().catch(() => {});
+  _audioEl.onended = () => { _currentAudioId = null; _updateAudioBtns(null, false); };
+  _audioEl.onerror = () => { _currentAudioId = null; _updateAudioBtns(null, false); };
+  _updateAudioBtns(audioId, true);
+};
+
+window._stopAudio = () => {
+  if (_audioEl) { _audioEl.pause(); _audioEl = null; }
+  _currentAudioId = null;
+  _updateAudioBtns(null, false);
+};
+
+// ── Audio upload helpers ──
+window._uploadAudio = async (tab, entityId, oldAudioId, file) => {
+  if (!file) return;
+  if (file.size > 30 * 1024 * 1024) { alert('Max 30MB'); return; }
+  const audioId = 'a_' + Date.now() + '_' + Math.random().toString(36).slice(2);
+  await api.uploadFile(audioId, file);
+  if (oldAudioId) await api.deleteFile(oldAudioId).catch(() => {});
+  const entity = await api.getEntity(tab, entityId);
+  await api.updateEntity(tab, entityId, { ...entity, data: { ...entity.data, audioId } });
+  window._openDetail(tab, entityId);
+};
+
+window._deleteAudio = async (tab, entityId, audioId) => {
+  if (!confirm('Geluidsfragment verwijderen?')) return;
+  window._stopAudio();
+  await api.deleteFile(audioId).catch(() => {});
+  const entity = await api.getEntity(tab, entityId);
+  await api.updateEntity(tab, entityId, { ...entity, data: { ...entity.data, audioId: '' } });
+  window._openDetail(tab, entityId);
+};
+
+window._editorAudioSelected = (file) => {
+  if (!file) return;
+  if (file.size > 30 * 1024 * 1024) { alert('Max 30MB'); return; }
+  const idInput = document.getElementById('editor-audio-id');
+  if (idInput && !idInput.value) {
+    idInput.value = 'a_' + Date.now() + '_' + Math.random().toString(36).slice(2);
+  }
+  pendingAudioFile = file;
+  const label = document.getElementById('editor-audio-name');
+  if (label) { label.textContent = file.name; label.classList.remove('hidden'); }
+};
+
+window._editorClearAudio = () => {
+  pendingAudioFile = null;
+  const idInput = document.getElementById('editor-audio-id');
+  if (idInput) idInput.value = '';
+  const label = document.getElementById('editor-audio-name');
+  if (label) { label.textContent = 'Audio wordt verwijderd bij opslaan'; label.classList.remove('hidden'); }
+  document.getElementById('editor-audio-preview')?.classList.add('hidden');
+};
+
+// Lazy proxies — window.app isn't set yet when ES modules evaluate
+const $ = (...a) => window.app.$(...a);
+const $$ = (...a) => window.app.$$(...a);
+const isDM = () => window.app.isDM();
+const esc = (...a) => window.app.esc(...a);
+// In een inline handler (`onclick="f('…')"`) decodeert de browser eerst het
+// attribuut en voert dan de JavaScript uit: `esc()` alleen laat een apostrof
+// de string sluiten. Eerst JS-escapen, dan HTML. Zie scripts/onclick-escapen.js.
+const escArg = s => esc(typeof s === 'string' ? s.replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/\r?\n/g, '\\n') : s);
+const escJS = (...a) => window.app.escJS(...a);
+const mdToHtml = (...a) => window.app.mdToHtml(...a);
+const openModal = (...a) => window.app.openModal(...a);
+const closeModal = (...a) => window.app.closeModal(...a);
+const openLightbox = (...a) => window.app.openLightbox(...a);
+
+// ── Modal navigatie-history ──
+const _modalHistory = window._modalHistory = [];   // stack van { tab, id } — ook toegankelijk vanuit render-archief.js
+
+function _pushHistory(tab, id) {
+  _modalHistory.push({ tab, id });
+  _updateBackButton();
+}
+
+function _clearHistory() {
+  _modalHistory.length = 0;
+  _updateBackButton();
+}
+
+function _updateBackButton() {
+  const btn = document.getElementById('m-back');
+  if (btn) btn.classList.toggle('hidden', _modalHistory.length === 0);
+}
+
+window._modalGoBack = async () => {
+  const prev = _modalHistory.pop();
+  if (!prev) return;
+  _updateBackButton();
+  if (prev.type === 'sessie') {
+    window._openSessieDetail?.(prev.id);
+  } else {
+    await window._openDetail(prev.tab, prev.id, true /* isBack */);
+  }
+};
+
+window._clearHistory = _clearHistory;
+
+// Kleine B/I toolbar boven een textarea
+// Dezelfde opmaakbalk als bij de aktes en de helpteksten: vet, cursief,
+// onderstreept, doorhalen, markeren, kleur en een scheidingslijn. Hij stond hier
+// op alleen vet en cursief, terwijl `mdToHtml` de rest allang aankan.
+// `perkament: true` voegt de drie structuurknoppen toe die alleen de
+// perkamentweergave kent. Ze stonden als uitleg onder het veld — daar moest je
+// ze overtikken, en op een knoppenbalk hoort te staan wat je kunt doen.
+// De Meesterkamer gebruikt dezelfde balk (dm-panel importeert render-campagne
+// niet, vandaar via window). Eén opmaakbalk in plaats van een derde kopie.
+window._fmtToolbarHtml = (id, opts) => fmtToolbar(id, opts);
+
+function fmtToolbar(id, { perkament = false, statblok = false, tabel = false } = {}) {
+  const hex = window._FMT_KLEUR_HEX || {};
+  // Elk trait en elke action begint met de naam vetgedrukt-cursief en een punt.
+  const sbKnop = !statblok ? '' : `
+    <button type="button" class="fmt-btn fmt-btn-struct" title="Naam van een trait of action (***Naam.***)"
+      onclick="window._fmtStatblokNaam('${id}')">Naam.</button>
+    <div class="fmt-toolbar-sep"></div>`;
+  const structuur = !perkament ? '' : `
+    <button type="button" class="fmt-btn fmt-btn-struct" title="Titel — maakt van de volgende regel een kop"
+      onclick="window._fmtStructuur('${id}','---titel---','Titel')">Titel</button>
+    <button type="button" class="fmt-btn fmt-btn-struct" title="Ondertekening — maakt van de volgende regel een handtekening"
+      onclick="window._fmtStructuur('${id}','--handtekening--','Naam')">Ondertekening</button>
+    <div class="fmt-toolbar-sep"></div>`;
+  return `<div class="fmt-toolbar">
+    ${sbKnop}${structuur}
+    <button type="button" class="fmt-btn fmt-btn-b" title="Vet (Ctrl+B)" onclick="window._fmt('${id}','**')">B</button>
+    <button type="button" class="fmt-btn fmt-btn-i" title="Cursief (Ctrl+I)" onclick="window._fmt('${id}','*')">I</button>
+    <button type="button" class="fmt-btn fmt-btn-u" title="Onderstreept" onclick="window._fmt('${id}','__')">U</button>
+    <button type="button" class="fmt-btn fmt-btn-s" title="Doorhalen" onclick="window._fmt('${id}','~~')">S</button>
+    <button type="button" class="fmt-btn fmt-btn-mark" title="Markeren" onclick="window._fmt('${id}','==')">A</button>
+    <button type="button" class="fmt-btn fmt-btn-hr" title="Scheidingslijn" onclick="window._fmtHr('${id}')">—</button>
+    <!-- Alleen waar een tabel ook echt getekend wordt (de vaardigheidsteksten).
+         Een knop die een tabel belooft in een veld dat hem als losse regels
+         toont, is erger dan geen knop. -->
+    ${tabel ? `<button type="button" class="fmt-btn fmt-btn-struct" title="Tabel invoegen"
+      onclick="window._fmtTabel('${id}')">${window.icon('columns-2')}</button>` : ''}
+    <div class="fmt-toolbar-sep"></div>
+    <div class="fmt-kleuren">
+      ${Object.entries(hex).map(([naam, kleur]) =>
+        `<button type="button" class="fmt-kleur-knop" style="--k:${kleur}" title="${naam}"
+          onclick="window._fmtKleur('${id}','${naam}')"></button>`).join('')}
+    </div>
+    <!-- Helemaal rechts, los van de rest: dit maakt niets op, het laat alleen
+         zien hoe het eruitkomt. -->
+    <button type="button" class="fmt-btn fmt-btn-oog" title="Voorbeeld — hoe het eruitkomt"
+      onclick="window._fmtVoorbeeld('${id}', this, '${statblok ? 'statblok' : tabel ? 'tabel' : ''}')">${window.icon('eye')}</button>
+  </div>`;
+}
+
+// Een ability score zegt weinig zonder zijn modifier; die rekent iedereen toch
+// in zijn hoofd uit. 10 en 11 geven +0, elke twee punten daarboven of daaronder
+// één stap.
+function _abilityMod(waarde) {
+  const n = parseInt(String(waarde ?? '').match(/-?\d+/)?.[0] ?? '', 10);
+  if (Number.isNaN(n)) return '';
+  const mod = Math.floor((n - 10) / 2);
+  return mod >= 0 ? `+${mod}` : String(mod);
+}
+window._sbModUpdate = (spanId, waarde) => {
+  const el = document.getElementById(spanId);
+  if (el) el.textContent = _abilityMod(waarde);
+};
+
+// ── Statblokvelden: één bron voor het blad én voor elk tier ──────────────────
+// Beide vroegen om dezelfde velden maar stonden in twee stukken HTML, en dus
+// liepen ze uit elkaar: op een tier stond Hit Dice waar het blad Prof. Bonus
+// heeft, de ability-modifiers werden niet uitgerekend en de Actions misten hun
+// opmaakbalk. De volgorde en de labels staan nu hier; `h` levert alleen de
+// bouwstenen — het blad schrijft `name="stat_…"`, een tier `class="pt-…"`.
+const _SB_SIZES = ['Tiny','Small','Medium','Large','Huge','Gargantuan'];
+const _SB_TYPES = ['Aberration','Beast','Celestial','Construct','Dragon','Elemental','Fey','Fiend',
+                   'Giant','Humanoid','Monstrosity','Ooze','Plant','Undead'];
+// De sleutels die een statblok kent, in de volgorde waarin ze hieronder staan.
+// `_petTiersCollect` leest hiermee een tier terug uit het DOM.
+const _SB_TEKSTVELDEN = ['size','creatureType','ac','hp','initiative','speed','cr','xp','profBonus',
+  'savingThrows','skills','gear','vulnerabilities','resistances','immunities','conditionImmunities',
+  'senses','languages','traits','actions','bonusActions','reactions','legendaryActions','lairActions'];
+const _SB_ABILITIES = ['str','dex','con','int','wis','cha'];
+
+// ── Standaard-statblokken (SRD 5.2) ─────────────────────────────────────────
+// Een herbergier die zich verweert is een *Guard*, een matroos een *Pirate*.
+// Dat hoef je niet elke keer over te tikken: `bronnen/srd-monsters.json` bevat
+// de 331 wezens uit de SRD 5.2 (CC BY 4.0, meegeleverd — geen netwerkoproep
+// tijdens het spelen), waarvan 26 generieke NPC's.
+//
+// De sleutels van de bron zijn die van een monsterkaartje; ons blad gebruikt
+// eigen namen. Deze tabel is de enige plek waar die twee elkaar raken.
+const _PRESET_VELD = {
+  size: 'size', type: 'creatureType', ac: 'ac', hp: 'hp', speed: 'speed',
+  str: 'str', dex: 'dex', con: 'con', int: 'int', wis: 'wis', cha: 'cha',
+  savingThrows: 'savingThrows', skills: 'skills',
+  damageVulnerabilities: 'vulnerabilities', damageResistances: 'resistances',
+  damageImmunities: 'immunities', conditionImmunities: 'conditionImmunities',
+  senses: 'senses', languages: 'languages', cr: 'cr', xp: 'xp',
+  profBonus: 'profBonus', initiative: 'initiative',
+  traits: 'traits', actions: 'actions', reactions: 'reactions',
+  legendaryActions: 'legendaryActions',
+};
+
+let _presets = null;
+// ── Standaard-uitrusting (SRD 5.2) ─────────────────────────────────────────
+// Zelfde idee als `_statblokPresets`: één keer ophalen, dan invullen. De bron
+// staat al in **onze** veldnamen (zie scripts/srd-2024/srd-items.js), dus hier
+// hoeft niets vertaald te worden — alleen in het formulier gezet.
+// Twee bronnen, één kiezer: de gewone uitrusting (333) en de magische
+// voorwerpen (757). Ze staan er als bron om uit te putten en níét als kaartjes
+// — een magisch voorwerp hoort pas in het archief als de DM het ergens heeft
+// neergelegd. Zevenhonderd voorgekookte kaartjes maken het archief onbruikbaar;
+// dit werkt zoals het statblok-preset bij een personage.
+let _srdItems = null;
+window._srdItemLijst = async () => {
+  if (!_srdItems) {
+    const haal = async (naam) => {
+      try {
+        const d = await fetch('/api/bron/' + naam).then(r => r.json());
+        return Array.isArray(d?.items) ? d.items : [];
+      } catch { return []; }
+    };
+    const [gewoon, magisch] = await Promise.all([haal('srd-items'), haal('srd-magic-items')]);
+    // Gewone uitrusting eerst: dat is waar je een winkel mee vult. De magische
+    // vind je door te typen, en dan zegt de rariteit meteen wat je krijgt.
+    _srdItems = [...gewoon, ...magisch];
+  }
+  return _srdItems;
+};
+
+window._srdItemDatalist = async () => {
+  const dl = document.getElementById('srd-item-dl');
+  if (!dl || dl.dataset.gevuld) return;
+  const lijst = await window._srdItemLijst();
+  dl.innerHTML = lijst.map(i => {
+    const bij = i.magisch
+      ? [i.rariteit, i.attunement ? 'attunement' : ''].filter(Boolean).join(' \u00b7 ')
+      : (i.prijs || '');
+    return `<option value="${esc(i.name)}">${esc(i.itemType)}${bij ? ' \u00b7 ' + esc(bij) : ''}</option>`;
+  }).join('');
+  dl.dataset.gevuld = '1';
+};
+
+// Welk bronveld in welk formulierveld. De namen zijn met opzet gelijk; dit is
+// de enige plek waar ze elkaar raken.
+const _SRD_ITEM_VELD = ['itemType', 'rariteit', 'prijs', 'desc', 'damage', 'weaponProperties',
+  'armorType', 'armorBaseAC', 'armorDexCap', 'stealthDisadvantage',
+  'strengthRequirement', 'attunement', 'attunementEis', 'gebruik'];
+
+window._srdItemVullen = async (invoer) => {
+  const naam = String(invoer?.value || '').trim();
+  if (!naam) return;
+  const lijst = await window._srdItemLijst();
+  const p = lijst.find(x => x.name.toLowerCase() === naam.toLowerCase());
+  if (!p) {
+    invoer.classList.add('dm-input--err');
+    setTimeout(() => invoer.classList.remove('dm-input--err'), 900);
+    window._showToast?.(`${icon('x')} Geen standaard voorwerp met de naam \u201c${esc(naam)}\u201d`);
+    return;
+  }
+  const veld = (k) => document.querySelector(`[name="${k}"]`);
+
+  // Alleen invullen wat leeg is — behalve de naam, die is de hele aanleiding.
+  // Zo kun je een half ingevuld kaartje aanvullen zonder je eigen tekst kwijt
+  // te raken. Wil je alles vervangen, maak de velden dan eerst leeg.
+  const naamEl = veld('name');
+  if (naamEl && !naamEl.value.trim()) naamEl.value = p.name;
+
+  for (const k of _SRD_ITEM_VELD) {
+    if (p[k] === undefined) continue;
+    const el = veld(k);
+    if (!el) continue;
+    if (el.type === 'checkbox') { if (!el.checked) el.checked = !!p[k]; continue; }
+    if (String(el.value || '').trim()) continue;
+    el.value = String(p[k]);
+    el.dispatchEvent(new Event('change', { bubbles: true }));
+  }
+
+  // De werking bepaalt welke velden zichtbaar zijn; die vinkjes staan los.
+  for (const w of (p.werking || [])) {
+    const vink = document.querySelector(`[name="werking"][value="${w}"]`);
+    if (vink && !vink.checked) { vink.checked = true; vink.dispatchEvent(new Event('change', { bubbles: true })); }
+  }
+  window._showWhenBijwerken?.();
+  window._werkingBij?.();
+  window._showToast?.(`${icon('check')} ${esc(p.name)} ingevuld \u2014 SRD 5.2`);
+};
+
+window._statblokPresets = async () => {
+  if (!_presets) {
+    try { _presets = await fetch('/api/bron/srd-monsters').then(r => r.json()); }
+    catch { _presets = []; }
+    if (!Array.isArray(_presets)) _presets = [];
+    // NPC's eerst: dat is waar een kaartje mee gevuld wordt. De rest blijft
+    // vindbaar door te typen.
+    _presets.sort((a, b) => (b.npc ? 1 : 0) - (a.npc ? 1 : 0) || a.name.localeCompare(b.name, 'en'));
+  }
+  return _presets;
+};
+
+// Eén datalist voor alle kiezers op het blad; de NPC's staan bovenaan met hun
+// CR erbij, zodat "Guard · CR 1/8" meteen zegt wat je krijgt.
+window._presetDatalist = async () => {
+  const host = document.getElementById('preset-dl');
+  if (!host || host.dataset.gevuld) return;
+  const lijst = await window._statblokPresets();
+  host.innerHTML = lijst.map(m =>
+    `<option value="${esc(m.name)}">${m.npc ? 'NPC · ' : ''}CR ${esc(m.cr)}</option>`).join('');
+  host.dataset.gevuld = '1';
+};
+
+// De kiezerregel. `tier` is de index van een tier-rij, of null voor het blad
+// zelf — dat bepaalt waar de velden staan (`name="stat_…"` tegen `.pt-…`).
+window._presetRijHtml = (tier = null) => `
+  <div class="preset-rij">
+    <label class="preset-label">${icon('skull')} Standaard statblok</label>
+    <input class="preset-zoek" list="preset-dl" placeholder="Guard, Pirate, Commoner…"
+      onfocus="window._presetDatalist()"
+      onkeydown="if(event.key==='Enter'){event.preventDefault();window._presetVullen(this,${tier === null ? 'null' : tier});}">
+    <button type="button" class="dm-btn dm-btn-ghost dm-btn-sm"
+      onclick="window._presetVullen(this.previousElementSibling,${tier === null ? 'null' : tier})">Invullen</button>
+    <span class="preset-bron" title="System Reference Document 5.2, Wizards of the Coast, CC BY 4.0">SRD 5.2</span>
+  </div>`;
+
+// Invullen overschrijft het hele statblok: "maak hem een Guard" is één keuze,
+// geen samenraapsel van oud en nieuw. Staat er al iets, dan vragen we het even.
+window._presetVullen = async (invoer, tier = null) => {
+  const naam = String(invoer?.value || '').trim();
+  if (!naam) return;
+  const lijst = await window._statblokPresets();
+  const p = lijst.find(x => x.name.toLowerCase() === naam.toLowerCase());
+  if (!p) {
+    invoer.classList.add('dm-input--err');
+    setTimeout(() => invoer.classList.remove('dm-input--err'), 900);
+    window.app?._tsToast?.(`${icon('x')} Geen standaard statblok met de naam \u201c${esc(naam)}\u201d`);
+    return;
+  }
+  const veld = (k) => tier === null
+    ? document.querySelector(`[name="stat_${k}"]`)
+    : document.querySelector(`.pet-tier-row[data-idx="${tier}"] .pt-${k}`);
+
+  const gevuld = Object.values(_PRESET_VELD).some(k => String(veld(k)?.value || '').trim());
+  if (gevuld && !confirm(`Het statblok hieronder wordt vervangen door dat van ${p.name}. Doorgaan?`)) return;
+
+  for (const [bronKey, onze] of Object.entries(_PRESET_VELD)) {
+    const el = veld(onze);
+    if (el) el.value = p.statblock[bronKey] ?? '';
+  }
+  // De modifier onder een ability wordt bij het typen bijgewerkt; nu er niet
+  // getypt is, moeten we hem zelf laten hertekenen.
+  for (const a of _SB_ABILITIES) {
+    const id = tier === null ? `cs-mod-${a}` : `pt${tier}-mod-${a}`;
+    window._sbModUpdate?.(id, veld(a)?.value);
+  }
+  if (tier !== null) window.app?._tsToast?.(`${icon('check')} Tier gevuld met <strong>${esc(p.name)}</strong>`);
+  else window.app?._tsToast?.(`${icon('check')} Statblok gevuld met <strong>${esc(p.name)}</strong> (SRD 5.2)`);
+};
+
+
+function _sbCombatHtml(h) {
+  return `
+    <div class="grid grid-cols-2 gap-2">
+      ${h.sel('size', 'Size', _SB_SIZES)}
+      ${h.sel('creatureType', 'Creature Type', _SB_TYPES)}
+    </div>
+    <div class="grid grid-cols-4 gap-2">
+      ${h.inp('ac', 'AC', { center: true })}
+      ${h.inp('hp', 'HP', { center: true, ph: '32 (5d8+10)' })}
+      ${h.inp('initiative', 'Initiative', { center: true })}
+      ${h.inp('speed', 'Speed', { center: true, ph: '40 ft.' })}
+    </div>
+    <div class="grid grid-cols-3 gap-2">
+      ${h.inp('cr', 'Challenge Rating', { center: true })}
+      ${h.inp('xp', 'XP', { center: true })}
+      ${h.inp('profBonus', 'Prof. Bonus', { center: true })}
+    </div>
+    <div class="cs-sectiekop">Ability Scores</div>
+    <div class="grid grid-cols-3 gap-2">
+      ${_SB_ABILITIES.map(k => h.abil(k)).join('')}
+    </div>
+    <div class="cs-sectiekop">Proficiencies &amp; Defenses</div>
+    <div class="space-y-2">
+      ${h.inp('savingThrows', 'Saving Throws')}
+      ${h.inp('skills', 'Skills', { ph: 'Perception +4' })}
+      ${h.ta('gear', 'Gear', 2)}
+      ${h.inp('vulnerabilities', 'Damage Vulnerabilities')}
+      ${h.inp('resistances', 'Damage Resistances')}
+      ${h.inp('immunities', 'Damage Immunities')}
+      ${h.inp('conditionImmunities', 'Condition Immunities')}
+    </div>
+    <div class="cs-sectiekop">Senses &amp; Languages</div>
+    <div class="space-y-2">
+      ${h.inp('senses', 'Senses', { ph: 'Passive Perception 14' })}
+      ${h.inp('languages', 'Languages')}
+    </div>
+    <!-- Traits horen bij het statblok en niet bij Actions: het zijn passieve
+         eigenschappen, geen dingen die je op je beurt doet. -->
+    <div class="cs-sectiekop">Traits</div>
+    ${h.ta('traits', '', 3)}`;
+}
+
+function _sbActiesHtml(h) {
+  return `
+    ${h.ta('actions', 'Actions', 4)}
+    ${h.ta('bonusActions', 'Bonus Actions', 2)}
+    ${h.ta('reactions', 'Reactions', 2)}
+    ${h.ta('legendaryActions', 'Legendary/Mythic Actions', 3)}
+    ${h.ta('lairActions', 'Lair Actions', 2)}`;
+}
+
+// Bouwstenen voor één tier: dezelfde velden, maar herkenbaar aan een class in
+// plaats van een name (een tier zit niet in het <form> van het kaartje).
+function _sbTierBouwstenen(sb, i) {
+  const veldCls = 'w-full mt-0.5 px-2 py-1 bg-room-bg border border-room-border rounded text-ink-bright text-sm focus:border-gold-dim focus:outline-none';
+  const kop = (label) => label ? `<label class="text-[10px] font-cinzel text-ink-dim uppercase">${label}</label>` : '';
+  return {
+    inp: (k, label, o = {}) => `
+      <div>${kop(label)}
+        <input class="pt-${k} ${veldCls}${o.center ? ' text-center' : ''}" value="${esc(sb[k] ?? '')}"${o.ph ? ` placeholder="${esc(o.ph)}"` : ''}>
+      </div>`,
+    sel: (k, label, opties) => `
+      <div>${kop(label)}
+        <select class="pt-${k} ${veldCls}">
+          <option value="">—</option>
+          ${opties.map(o => `<option value="${esc(o)}"${(sb[k] || '') === o ? ' selected' : ''}>${esc(o)}</option>`).join('')}
+        </select>
+      </div>`,
+    ta: (k, label, rows) => {
+      const id = `pt${i}-ta-${k}`;
+      return `<div>${kop(label)}
+        <div class="mt-0.5">
+          ${fmtToolbar(id, { statblok: true })}
+          <textarea id="${id}" class="pt-${k} ${veldCls}" rows="${rows}" onkeydown="window._fmtKey(event)">${esc(sb[k] || '')}</textarea>
+        </div>
+      </div>`;
+    },
+    abil: (k) => {
+      const modId = `pt${i}-mod-${k}`;
+      return `<div>
+        <label class="text-[10px] font-cinzel text-ink-dim uppercase">${k.toUpperCase()}
+          <span class="cs-mod" id="${modId}">${_abilityMod(sb[k])}</span></label>
+        <input class="pt-${k} ${veldCls} text-center" value="${esc(sb[k] ?? '')}" inputmode="numeric"
+          oninput="window._sbModUpdate('${modId}', this.value)">
+      </div>`;
+    },
+  };
+}
+
+// Geheimen en flavour zijn lijsten geworden. Wat er al stond (één tekstveld)
+// blijft de eerste regel; zo raakt niemand iets kwijt.
+function _tekstLijstUit(data, meervoud, enkelvoud) {
+  const rauw = data?.[meervoud];
+  if (rauw) {
+    try {
+      const arr = typeof rauw === 'string' ? JSON.parse(rauw) : rauw;
+      // Roddels dragen sinds 30 sep een id, dus een regel kan een object zijn
+      // ({ id, tekst, geplantDoor }) in plaats van een kale string. Zonder deze
+      // regel las de DM "[object Object]" op elk kaartje — de speler niet, want
+      // de server stuurt hém al platte teksten.
+      if (Array.isArray(arr)) return arr
+        .map(v => (v && typeof v === 'object') ? String(v.tekst ?? '') : String(v ?? ''))
+        .filter(v => v.trim());
+    } catch { /* val terug */ }
+  }
+  const los = String(data?.[enkelvoud] ?? '').trim();
+  return los ? [los] : [];
+}
+window._tekstLijstUit = _tekstLijstUit;
+
+// Zelfde vorm als op de server: een geheimregel is { id, tekst, antagonist }.
+// Een lijst losse teksten (oude kaartjes) krijgt i0, i1… als id — precies waar
+// de bestaande onthulstand al naar wees. Het oude `geheimenAntagonist` (een
+// lijst booleans ernaast) en het nog oudere `geheimeAntagonist` (gold voor het
+// hele kaartje) worden hier ingevouwen, zodat er verderop maar één vorm is.
+function _geheimRegelsUit(data) {
+  let arr = [];
+  const rauw = data?.geheimen;
+  if (Array.isArray(rauw)) arr = rauw;
+  else if (typeof rauw === 'string' && rauw.trim()) {
+    try { const j = JSON.parse(rauw); if (Array.isArray(j)) arr = j; } catch { arr = [rauw]; }
+  }
+  if (!arr.length && data?.geheim) arr = [data.geheim];
+  let antagOud = [];
+  try { const j = JSON.parse(data?.geheimenAntagonist || '[]'); if (Array.isArray(j)) antagOud = j.map(Boolean); } catch { /* ok */ }
+  if (!antagOud.length && (data?.geheimeAntagonist === true || data?.geheimeAntagonist === 'true')) {
+    antagOud = arr.map(() => true);
+  }
+  return arr.map((r, i) => (typeof r === 'string' || r == null)
+    ? { id: 'i' + i, tekst: String(r || ''), antagonist: !!antagOud[i] }
+    : { id: r.id || ('i' + i), tekst: String(r.tekst ?? ''), antagonist: !!(r.antagonist ?? antagOud[i]) });
+}
+window._geheimRegelsUit = _geheimRegelsUit;
+const _nieuwGeheimId = () => 'g_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+
+// Eén regel in de editor: tekstvak met opmaakbalk en een prullenbak.
+// Opties van een select: een platte lijst, of groepen (optionGroups). Een
+// waarde die in geen enkele groep meer voorkomt krijgt zijn eigen regel, zodat
+// opslaan hem niet stilletjes leegmaakt — daar zou een oud kaartje op stuklopen.
+// De melding onder een keuzelijst. `@Koppelingen` wordt een knopje dat naar die
+// sectie scrolt: erheen wijzen zonder de weg te tonen helpt niemand.
+function _veldMeldingHtml(meldingen, val) {
+  const tekst = meldingen[val];
+  if (!tekst) return '';
+  const metLink = tekst.replace(/@Koppelingen/g,
+    `<button type="button" class="veld-melding-link" onclick="window._naarKoppelingen()">Koppelingen</button>`);
+  return `${icon('sparkles')}<span>${metLink}</span>`;
+}
+
+window._naarKoppelingen = () => {
+  const sec = document.getElementById('koppel-sectie');
+  if (!sec) {
+    window.app?._tsToast?.(`${icon('x')} Koppelingen verschijnen zodra het kaartje bewaard is`);
+    return;
+  }
+  // scrollIntoView doet niets in dit venster (genest in #m-body); zelf de
+  // scrollbak zoeken en de afstand uitrekenen werkt wél.
+  let bak = sec.parentElement;
+  while (bak && !(/(auto|scroll)/.test(getComputedStyle(bak).overflowY) && bak.scrollHeight > bak.clientHeight)) {
+    bak = bak.parentElement;
+  }
+  if (bak) {
+    // Ronduit toekennen, niet scrollTo({behavior:'smooth'}): dat bleek in dit
+    // venster helemaal niets te doen (gemeten: scrollTop bleef 0). Het kort
+    // oplichten hieronder wijst de plek aan, dus de sprong mag hard zijn.
+    bak.scrollTop = bak.scrollTop + sec.getBoundingClientRect().top - bak.getBoundingClientRect().top - 40;
+  }
+  sec.classList.add('koppel-sectie--licht-op');
+  setTimeout(() => sec.classList.remove('koppel-sectie--licht-op'), 1400);
+};
+
+function _optieHtml(o, val, alGekozen) {
+  const v = typeof o === 'object' ? o.value : o;
+  const l = typeof o === 'object' ? o.label : o;
+  // Een waarde mag in twee groepen staan (Herberg hoort bij de diensten én bij
+  // de gebouwen). Alleen de eerste krijgt `selected`; met twee gemarkeerde
+  // opties wint in HTML de laatste, en dan lijkt de keuze verschoven.
+  const kies = val === v && !alGekozen.has(v);
+  if (kies) alGekozen.add(v);
+  // Een optie mag zichzelf laten zien: de briefstijlen staan in de keuzelijst
+  // in hun eigen letter.
+  const stijl = (typeof o === 'object' && o.stijl) ? ` style="font-family:${esc(o.stijl)}"` : '';
+  return `<option value="${esc(v)}"${kies ? ' selected' : ''}${stijl}>${esc(l)}</option>`;
+}
+function _optiesHtml(field, val) {
+  const gekozen = new Set();
+  if (!field.optionGroups) {
+    // Ook een platte lijst kan een waarde tegenkomen die er niet meer in staat
+    // (bv. het geschrapte 'dawn' bij Herlaadt bij). Die kreeg dan géén optie en
+    // stond dus op "—": één keer opslaan en de waarde was stil verdwenen.
+    const opties = (field.options || []);
+    const bekendPlat = opties.some(o => (typeof o === 'object' ? o.value : o) === val);
+    return opties.map(o => _optieHtml(o, val, gekozen)).join('')
+      + ((val && !bekendPlat) ? _optieHtml({ value: val, label: `${val} (oude waarde)` }, val, gekozen) : '');
+  }
+  const bekend = field.optionGroups.some(g => g.opties.some(o => (typeof o === 'object' ? o.value : o) === val));
+  return field.optionGroups.map(g =>
+    `<optgroup label="${esc(g.groep)}">${g.opties.map(o => _optieHtml(o, val, gekozen)).join('')}</optgroup>`
+  ).join('') + ((val && !bekend) ? `<optgroup label="Nog uit een oudere lijst">${_optieHtml(val, val, gekozen)}</optgroup>` : '');
+}
+
+// ── Koppelvelden: een kaartje aanwijzen in plaats van overtypen ─────────────
+// Een eigenaar, een gebied of een stamgast is bijna altijd al een kaartje. De
+// vrije tekst blijft staan (daar hangt de zoekindex en de export aan) en de
+// koppeling komt er als extra veld naast: `<key>` houdt de naam, `<key>Id` het
+// kaartje. Zo raakt een campagne die nooit koppelt niets kwijt, en wie wél
+// koppelt kan doorklikken.
+let _linkLijsten = { personages: [], locaties: [], organisaties: [] };
+let _linkGeladen = null;
+
+function _linkLaden() {
+  // Eén keer per editor-sessie; de datalists worden daarna gevuld.
+  _linkGeladen = Promise.all(['personages', 'locaties', 'organisaties'].map(t =>
+    api.listEntities(t).then(r => [t, (r || []).map(x => ({ id: x.id, name: x.name }))]).catch(() => [t, []])
+  )).then(paren => {
+    paren.forEach(([t, lijst]) => { _linkLijsten[t] = lijst; });
+    _linkDatalistsVullen();
+    return _linkLijsten;
+  });
+  return _linkGeladen;
+}
+
+function _linkOpties(doel) {
+  return (doel || []).flatMap(t => _linkLijsten[t].map(x => ({ ...x, type: t })));
+}
+
+function _linkDatalistsVullen() {
+  document.querySelectorAll('datalist[data-link-doel]').forEach(dl => {
+    const doel = dl.dataset.linkDoel.split(',');
+    // Namen kunnen in twee tabbladen voorkomen; dubbele regels helpen niemand.
+    const namen = [...new Set(_linkOpties(doel).map(o => o.name))];
+    dl.innerHTML = namen.map(n => `<option value="${esc(n)}">`).join('');
+  });
+  document.querySelectorAll('[data-link-veld]').forEach(inp => _linkStatus(inp));
+}
+
+// Naam → kaartje. Hoofdletterongevoelig, want zo tikt niemand het over.
+function _linkZoek(doel, naam) {
+  const schoon = (naam || '').trim().toLowerCase();
+  if (!schoon) return null;
+  return _linkOpties(doel).find(o => o.name.toLowerCase() === schoon) || null;
+}
+
+// Het regeltje onder een koppelveld: doorklikken als het kaartje bestaat,
+// aanmaken als het er nog niet is. Dat tweede is de vraag uit punt 5: een naam
+// mag alvast genoemd worden zonder dat het kaartje er al is.
+function _linkStatus(inp) {
+  const host   = document.getElementById(inp.dataset.linkStatus);
+  const icoon  = document.getElementById(inp.dataset.linkIcoon);
+  if (!host) return;
+  const doel = inp.dataset.linkDoel.split(',');
+  const hidden = document.getElementById(inp.dataset.linkId);
+  const naam = (inp.value || '').trim();
+  const match = _linkZoek(doel, naam);
+  if (hidden) hidden.value = match?.id || '';
+  if (icoon) icoon.innerHTML = '';
+  if (!naam) { host.innerHTML = ''; return; }
+  if (match) {
+    // Een chip die de naam herhaalt die je net intikte voegt niets toe. Wat je
+    // wél wilt weten is dát hij gevonden is en wát voor kaartje het is; dat
+    // past als pictogram in het veld zelf, met de kaartjesnaam als tooltip.
+    host.innerHTML = '';
+    if (icoon) {
+      icoon.innerHTML = `<button type="button" class="link-veld-knop"
+        title="${esc(LINK_ENKELVOUD[match.type] || match.type)} — kaartje openen"
+        onclick="window._openDetail('${match.type}','${escArg(match.id)}')">${getAutoIconSvg(match.type, {}) || icon('link')}</button>`;
+    }
+    return;
+  }
+  // Twee knoppen náást elkaar lazen als twee losse handelingen; het is één
+  // vraag met twee antwoorden — een naam kan net zo goed een organisatie zijn
+  // als een personage. Niets kiezen mag ook: dan blijft het gewoon tekst, en
+  // dat is precies wat je wilt bij "Alfira en Ramella Bleekhamer".
+  host.innerHTML = `<span class="link-vraag">\u201c${esc(naam)}\u201d heeft nog geen kaartje. Aanmaken als</span>`
+    + doel.map(t => `<button type="button" class="dm-btn dm-btn-ghost dm-btn-sm"
+      onclick="window._linkKaartjeMaken('${t}', '${escArg(inp.id)}')"
+      title="Maakt een leeg kaartje met deze naam; invullen kan later">
+      ${icon('plus')} ${LINK_ENKELVOUD[t] || t}</button>`).join('')
+    + `<span class="link-vraag">?</span>`;
+}
+
+window._linkVeldWijzig = (inp) => _linkStatus(inp);
+
+// Een betrokkene weet zijn id maar niet zijn tabblad. De naam-index van app.js
+// heeft allebei; daar zoeken we het type bij op. Lukt dat niet (index nog niet
+// gevuld), dan proberen we personages en organisaties op volgorde.
+window._openKaartjeOpId = async (id) => {
+  await window._entityIndexReady?.catch(() => {});
+
+  const treffer = Object.values(window._entityNameIndex || {}).find(x => x.id === id);
+  if (treffer) return window._openDetail(treffer.type, id);
+  for (const t of ['personages', 'organisaties', 'locaties']) {
+    const lijst = await api.listEntities(t).catch(() => []);
+    if ((lijst || []).some(x => x.id === id)) return window._openDetail(t, id);
+  }
+  window.app?._tsToast?.(`${icon('x')} Dat kaartje bestaat niet meer`);
+};
+
+// ── Betrokkenen: wie hoort er bij dit kaartje ───────────────────────────────
+// Rollen zijn suggesties, geen keurslijf: een campagne verzint zijn eigen
+// functies en die horen niet op een lijst van ons te wachten.
+// Op volgorde van hoe vaak je ze nodig hebt: een organisatie heeft vooral leden,
+// een pand vooral een eigenaar en personeel. Wat ontbrak: bewaker, verkoper,
+// oprichter, rivaal en bondgenoot. Het is een datalist, dus wie iets anders
+// bedenkt tikt het gewoon in.
+const BETROKKEN_ROLLEN = ['Eigenaar', 'Lid', 'Personeel', 'Leider', 'Bewoner',
+  'Stamgast', 'Bewaker', 'Verkoper', 'Waard', 'Priester', 'Oprichter',
+  'Beschermheer', 'Bondgenoot', 'Rivaal', 'Gevangene'];
+
+function _betrokkenenUit(data) {
+  const rauw = data?.betrokkenen;
+  let rijen = [];
+  if (Array.isArray(rauw)) rijen = rauw;
+  else if (typeof rauw === 'string' && rauw.trim()) {
+    try { const arr = JSON.parse(rauw); if (Array.isArray(arr)) rijen = arr; } catch { /* stuk? dan leeg */ }
+  }
+  rijen = rijen.filter(r => r && (r.naam || r.id));
+  // Wat er al stond als losse tekst wordt de eerste regel. Zo hoeft er niets
+  // gemigreerd te worden: het kaartje leest gewoon allebei.
+  if (!rijen.length && (data?.eigenaar || '').trim()) {
+    rijen = [{ naam: data.eigenaar.trim(), id: data.eigenaarId || '', rol: 'Eigenaar' }];
+  }
+  return rijen;
+}
+
+// `metChef`: bij een organisatie mag je per regel zeggen onder wie iemand valt.
+// Dat is de enige extra gegeven die een organogram nodig heeft — de rest (naam,
+// rol, portret) staat er al.
+// Wissel je het documenttype of de briefstijl terwijl het voorbeeld openstaat,
+// dan hoort het mee te veranderen — anders kijk je naar de vorige keuze.
+document.addEventListener('change', (e) => {
+  const naam = e.target?.name;
+  if (naam !== 'data_briefstijl' && naam !== 'data_docType') return;
+  const vak = document.querySelector('.perkament-voorbeeld:not(.hidden)');
+  if (vak) window._perkamentTab(vak.id.replace(/-voorbeeld$/, ''), 'voorbeeld');
+});
+
+// Schakelen tussen schrijven en kijken. Het voorbeeld gebruikt dezelfde
+// `renderParchment` als het detailvenster en leest de stijl uit de velden die
+// nú in het formulier staan — kies je een ander documenttype of een andere
+// briefstijl, dan verandert het voorbeeld mee zonder eerst op te slaan.
+window._perkamentTab = (taId, welke) => {
+  const ta   = document.getElementById(taId);
+  const vak  = document.getElementById(`${taId}-voorbeeld`);
+  const wrap = ta?.closest('.perkament-veld');
+  if (!ta || !vak || !wrap) return;
+  const kijken = welke === 'voorbeeld';
+  wrap.querySelectorAll('.perkament-tab').forEach(b =>
+    b.classList.toggle('is-actief', b.dataset.pkTab === welke));
+  wrap.querySelector('.fmt-toolbar')?.classList.toggle('hidden', kijken);
+  ta.classList.toggle('hidden', kijken);
+  vak.classList.toggle('hidden', !kijken);
+  if (!kijken) { ta.focus(); return; }
+
+  const form  = ta.closest('form') || document;
+  const stijl = _docStijl({ data: {
+    briefstijl: form.querySelector('[name="data_briefstijl"]')?.value || '',
+    docType:    form.querySelector('[name="data_docType"]')?.value || '',
+  } });
+  const tekst = ta.value.trim();
+  if (!tekst) {
+    vak.innerHTML = `<p class="perkament-voorbeeld-leeg">Nog geen tekst — schrijf eerst iets op het andere tabblad.</p>`;
+    return;
+  }
+  let binnen = renderParchment(ta.value);
+  if (stijl === 'knipsel') binnen = _knipselLetters(binnen);
+  vak.innerHTML = `<div class="parchment-block" data-stijl="${esc(stijl)}">${binnen}</div>`;
+};
+
+function _betrokkenRijHtml(r, i, metChef = false) {
+  const inId = `betr-naam-${i}`;
+  return `<div class="betrokken-rij${metChef ? ' betrokken-rij--chef' : ''}">
+    <span class="link-veld">
+      <input id="${inId}" class="betr-naam" value="${esc(r.naam || '')}" list="betrokken-dl"
+        data-link-veld="1" data-link-doel="personages,organisaties" data-link-id="betr-id-${i}"
+        data-link-status="betr-st-${i}" data-link-icoon="betr-ic-${i}" oninput="window._linkVeldWijzig(this)"
+        placeholder="Naam van een personage of organisatie">
+      <span class="link-veld-icoon" id="betr-ic-${i}"></span>
+    </span>
+    <input class="betr-rol" value="${esc(r.rol || '')}" list="betrokken-rol-dl" placeholder="Rol">
+    <input type="hidden" class="betr-id" id="betr-id-${i}" value="${esc(r.id || '')}">
+    <input type="hidden" class="betr-geheim" value="${esc(r.geheim ? JSON.stringify(r.geheim) : '')}">
+    <!-- Slot en prullenbak in één cel: het raster heeft drie kolommen, dus als
+         losse kinderen viel de tweede knop door naar de volgende regel en stond
+         de prullenbak onder de verbinding in plaats van ernaast. -->
+    <span class="betrokken-knoppen">
+      <!-- Een verbinding kan geheim zijn: dan hangt hij aan een geheimregel en
+           ziet de party hem pas als die onthuld is. -->
+      <button type="button" class="dm-btn dm-btn-sm dm-btn-ghost betr-slot${r.geheim ? ' betr-slot--aan' : ''}"
+        title="${r.geheim ? 'Geheim — klik om te wijzigen' : 'Deze verbinding geheim maken'}"
+        onclick="window._betrokkenGeheim(this)">${icon(r.geheim ? 'lock' : 'lock-open')}</button>
+      <button type="button" class="dm-btn dm-btn-sm dm-btn-ghost dm-btn-danger"
+        title="Regel verwijderen" onclick="window._betrokkenWeg(this)">${icon('trash')}</button>
+    </span>
+    ${metChef ? `<div class="betr-chef-rij">
+      <span class="betr-chef-label">Valt onder</span>
+      <input class="betr-chef" value="${esc(r.chef || '')}" list="chef-dl"
+        placeholder="niemand \u2014 staat bovenaan" title="Naam van iemand anders uit deze lijst">
+    </div>` : ''}
+    <div id="betr-st-${i}" class="link-status betrokken-status"></div>
+  </div>`;
+}
+
+// ── "Hoort bij" vanaf de andere kant ────────────────────────────────────────
+// Op het kaartje van een personage of organisatie zeggen waar hij bij hoort.
+// De koppeling zelf blijft in de betrokkenen-lijst van de locatie staan; de
+// server schrijft hem daar (PUT .../hoortbij), zodat er één waarheid blijft.
+function _hoortRijHtml(r, i) {
+  const inId = `hb-naam-${i}`;
+  return `<div class="betrokken-rij hoort-rij">
+    <span class="link-veld">
+      <input id="${inId}" class="hb-naam" value="${esc(r.name || '')}" list="hoortbij-dl"
+        data-link-veld="1" data-link-doel="locaties,organisaties" data-link-id="hb-id-${i}"
+        data-link-status="hb-st-${i}" data-link-icoon="hb-ic-${i}" oninput="window._linkVeldWijzig(this)"
+        placeholder="Naam van een locatie of organisatie">
+      <span class="link-veld-icoon" id="hb-ic-${i}"></span>
+    </span>
+    <input class="hb-rol" value="${esc(r.rol || '')}" list="hoortbij-rol-dl" placeholder="Rol">
+    <input type="hidden" class="hb-id" id="hb-id-${i}" value="${esc(r.id || '')}">
+    <span class="betrokken-knoppen">
+      <button type="button" class="dm-btn dm-btn-sm dm-btn-ghost dm-btn-danger"
+        title="Regel verwijderen" onclick="window._hoortWeg(this)">${icon('trash')}</button>
+    </span>
+    <div id="hb-st-${i}" class="link-status betrokken-status"></div>
+  </div>`;
+}
+
+window._hoortErbij = () => {
+  const host = document.getElementById('hoortbij-lijst');
+  if (!host) return;
+  const i = host.querySelectorAll('.hoort-rij').length + Date.now() % 1000;
+  host.insertAdjacentHTML('beforeend', _hoortRijHtml({}, i));
+  host.querySelector('.hoort-rij:last-child .hb-naam')?.focus();
+  _linkDatalistsVullen();
+};
+
+window._hoortWeg = (btn) => {
+  const rij = btn.closest('.hoort-rij');
+  const host = rij?.parentElement;
+  rij?.remove();
+  if (host && !host.querySelector('.hoort-rij')) window._hoortErbij();
+};
+
+function _hoortLees() {
+  return [...document.querySelectorAll('#hoortbij-lijst .hoort-rij')].map(rij => ({
+    id:  rij.querySelector('.hb-id')?.value || '',
+    rol: rij.querySelector('.hb-rol')?.value.trim() || '',
+  })).filter(r => r.id);
+}
+
+window._betrokkenErbij = () => {
+  const host = document.getElementById('betrokkenen-lijst');
+  if (!host) return;
+  const i = host.querySelectorAll('.betrokken-rij').length + Date.now() % 1000;
+  host.insertAdjacentHTML('beforeend', _betrokkenRijHtml({}, i, host.dataset.chef === '1'));
+  host.querySelector('.betrokken-rij:last-child .betr-naam')?.focus();
+  _linkDatalistsVullen();
+  window._orgVoorbeeldTeken?.();
+};
+
+// ── Een verbinding aan een geheim hangen ────────────────────────────────────
+// Het paneel klapt ín de rij open in plaats van in een venster: de editor staat
+// al in een modal, en een modal in een modal is niet te sluiten zonder de
+// bewerking kwijt te raken.
+//
+// De geheimen van het kaartje dat je bewerkt komen live uit het formulier — zo
+// kun je er eerst een tikken en hem meteen koppelen, zonder tussendoor op te
+// slaan. Die van de andere kant komen van de server.
+window._betrokkenGeheim = async (btn) => {
+  const rij = btn.closest('.betrokken-rij');
+  if (!rij) return;
+  const bestaand = rij.querySelector('.betr-geheim-paneel');
+  if (bestaand) { bestaand.remove(); return; }
+
+  const huidigRaw = rij.querySelector('.betr-geheim')?.value || '';
+  let huidig = null; try { huidig = JSON.parse(huidigRaw || 'null'); } catch { /* ok */ }
+
+  const ctx = window._edCtx || {};
+  const opties = [];
+  // Eigen kaartje: uit het formulier, dus ook wat je net getikt hebt.
+  document.querySelectorAll('#lijst-geheimen .lijst-regel').forEach((rgl, i) => {
+    const t = (rgl.querySelector('.lijst-regel-tekst')?.value || '').trim();
+    // Een regel die nog niet opgeslagen is heeft nog geen id; die krijgt hij nu,
+    // zodat de koppeling meteen aan het juiste geheim hangt en niet aan plek i.
+    let gid = rgl.dataset.gid;
+    if (!gid) { gid = _nieuwGeheimId(); rgl.dataset.gid = gid; }
+    if (t) opties.push({ id: ctx.id || '', i, gid, kaart: ctx.naam || 'dit kaartje', tekst: t });
+  });
+  // De andere kant.
+  const doelId = rij.querySelector('.betr-id')?.value || '';
+  const doelNaam = rij.querySelector('.betr-naam')?.value.trim() || 'het andere kaartje';
+  if (doelId) {
+    for (const t of ['personages', 'organisaties', 'locaties']) {
+      const ent = await api.getEntity(t, doelId).catch(() => null);
+      if (!ent) continue;
+      _geheimRegelsUit(ent.data).forEach((r, i) => {
+        if (r.tekst.trim()) opties.push({ id: doelId, i, gid: r.id, kaart: ent.name || doelNaam, tekst: r.tekst.trim() });
+      });
+      break;
+    }
+  }
+
+  const isHuidig = (o) => !!huidig && huidig.id === o.id
+    && (huidig.gid ? huidig.gid === o.gid : Number(huidig.i) === o.i);
+  const kies = (o) => `<button type="button" class="betr-geheim-optie${isHuidig(o) ? ' betr-geheim-optie--aan' : ''}"
+      onclick="window._betrokkenGeheimKies(this,'${escArg(o.id)}','${escArg(o.gid)}')">
+      <span class="bgo-kaart">${esc(o.kaart)}</span>
+      <span class="bgo-tekst">${esc(o.tekst.length > 90 ? o.tekst.slice(0, 90) + '\u2026' : o.tekst)}</span>
+    </button>`;
+
+  rij.insertAdjacentHTML('beforeend', `
+    <div class="betr-geheim-paneel">
+      <div class="betr-geheim-kop">${icon('lock')} Deze verbinding is pas zichtbaar als dit geheim onthuld is</div>
+      ${opties.length ? opties.map(kies).join('') : `<p class="veld-uitleg">
+        Nog geen geheim om aan te hangen. Schrijf er een bij <b>Geheimen</b> op dit kaartje
+        ${doelId ? `of op <b>${esc(doelNaam)}</b>` : ''}, dan kun je hem hier kiezen.</p>`}
+      <button type="button" class="betr-geheim-optie betr-geheim-optie--geen${huidig ? '' : ' betr-geheim-optie--aan'}"
+        onclick="window._betrokkenGeheimKies(this,'','')">Geen — de verbinding is gewoon zichtbaar</button>
+    </div>`);
+};
+
+window._betrokkenGeheimKies = (el, id, gid) => {
+  const rij = el.closest('.betrokken-rij');
+  const veld = rij?.querySelector('.betr-geheim');
+  if (veld) veld.value = id ? JSON.stringify({ id, gid }) : '';
+  const slot = rij?.querySelector('.betr-slot');
+  if (slot) {
+    slot.classList.toggle('betr-slot--aan', !!id);
+    slot.innerHTML = window.icon(id ? 'lock' : 'lock-open');
+    slot.title = id ? 'Geheim — klik om te wijzigen' : 'Deze verbinding geheim maken';
+  }
+  rij?.querySelector('.betr-geheim-paneel')?.remove();
+};
+
+window._betrokkenWeg = (btn) => {
+  const rij = btn.closest('.betrokken-rij');
+  const host = rij?.parentElement;
+  rij?.remove();
+  if (host && !host.querySelector('.betrokken-rij')) window._betrokkenErbij();
+  window._orgVoorbeeldTeken?.();
+};
+
+// Tekent het organogram opnieuw uit wat er nú in de velden staat.
+let _orgVoorbeeldBeeld = null;
+window._orgVoorbeeldTeken = () => {
+  const rijen = _betrokkenenLees();
+  _chefLijstVullen(rijen);
+  const host = document.getElementById('org-voorbeeld');
+  if (!host) return;
+  host.innerHTML = rijen.length ? _organogramHtml(rijen, _orgVoorbeeldBeeld) : '';
+};
+
+// De keuzelijst voor "Valt onder": alleen de namen die in deze lijst staan.
+function _chefLijstVullen(rijen) {
+  const dl = document.getElementById('chef-dl');
+  if (!dl) return;
+  const namen = [...new Set((rijen || _betrokkenenLees()).map(r => r.naam).filter(Boolean))];
+  dl.innerHTML = namen.map(n => `<option value="${esc(n)}">`).join('');
+}
+
+function _betrokkenenLees() {
+  return [...document.querySelectorAll('#betrokkenen-lijst .betrokken-rij')].map(rij => {
+    const chef = rij.querySelector('.betr-chef')?.value.trim() || '';
+    let geheim = null;
+    try { geheim = JSON.parse(rij.querySelector('.betr-geheim')?.value || 'null'); } catch { /* ok */ }
+    return {
+      naam: rij.querySelector('.betr-naam')?.value.trim() || '',
+      rol:  rij.querySelector('.betr-rol')?.value.trim()  || '',
+      id:   rij.querySelector('.betr-id')?.value          || '',
+      ...(chef ? { chef } : {}),
+      ...(geheim && geheim.id ? { geheim } : {}),
+    };
+  }).filter(r => r.naam);
+}
+
+// ── Koppelingen: herberg, tempel-god, factie, dungeon, kaartspeld ───────────
+let _koppelCtx = { tab: '', id: '', dungeons: [], kaarten: [], pins: [] };
+// Een speld die bij een nog niet bewaard kaartje hoort: pas plaatsen zodra er
+// een id is, net als het filmpje.
+let _pinWacht = null;
+
+// De beeldbron van een kaart. Dezelfde regel als in render-kaart.js: een
+// ingebouwde kaart heeft `src`, een geüploade een imageId (of het kaart-id).
+function _kaartSrc(k) {
+  return k?.src || api.fileUrl(k?.imageId || k?.id);
+}
+
+function _pinHuidig() {
+  const mapId = document.getElementById('koppel-mapid')?.value || '';
+  return _koppelCtx.pins.find(p => p.mapId === mapId) || null;
+}
+
+// Tekent de uitsnede, de speld en de knoppen bij de gekozen kaart.
+function _pinTeken() {
+  const doek   = document.getElementById('koppel-mapdoek');
+  const speld  = document.getElementById('koppel-mappin');
+  const knoppen = document.getElementById('koppel-mapknoppen');
+  const uitleg = document.getElementById('koppel-mapuitleg');
+  const sel    = document.getElementById('koppel-mapid');
+  if (!doek || !sel) return;
+  const kaart = _koppelCtx.kaarten.find(k => k.id === sel.value);
+  if (!kaart) {
+    doek.style.display = 'none';
+    const zb = document.getElementById('koppel-mapzoom');
+    if (zb) zb.style.display = 'none';
+    if (knoppen) knoppen.innerHTML = '';
+    if (uitleg) uitleg.textContent = _koppelCtx.kaarten.length
+      ? 'Kies een kaart om dit kaartje een plek te geven.'
+      : 'Er zijn nog geen kaarten in deze campagne.';
+    return;
+  }
+  doek.style.display = '';
+  const zoomBalk = document.getElementById('koppel-mapzoom');
+  if (zoomBalk) zoomBalk.style.display = '';
+  const img = document.getElementById('koppel-mapimg');
+  const bron = _kaartSrc(kaart);
+  if (img && img.getAttribute('src') !== bron) img.src = bron;
+  const pin = _pinHuidig() || (_pinWacht && _pinWacht.mapId === kaart.id ? _pinWacht : null);
+  if (pin) {
+    speld.style.display = '';
+    speld.style.left = pin.x + '%';
+    speld.style.top  = pin.y + '%';
+  } else {
+    speld.style.display = 'none';
+  }
+  if (knoppen) {
+    knoppen.innerHTML = pin
+      ? `<button type="button" class="dm-btn dm-btn-ghost dm-btn-sm" onclick="window._toonOpKaart('${escArg(_koppelCtx.id)}','${escArg(kaart.id)}')">${icon('map')} Op de grote kaart</button>
+         <button type="button" class="dm-btn dm-btn-ghost dm-btn-sm dm-btn-danger" onclick="window._pinWeg()">${icon('trash')} Van de kaart halen</button>`
+      : '';
+  }
+  // Alleen waar hij staat; hoe je hem zet staat in de uitleg bij het tabblad.
+  if (uitleg) uitleg.textContent = pin ? `Staat op ${kaart.label}.` : '';
+
+  // Openen op de plek waar de speld staat. Het doek toonde altijd de linkerbovenhoek,
+  // dus bij een stadskaart keek je naar een willekeurige wijk terwijl je eigen
+  // speld buiten beeld lag. Eén keer per kaartkeuze, niet bij elke hertekening:
+  // anders springt het doek terug zodra je een speld verzet.
+  if (pin && _pinGecentreerdOp !== kaart.id) {
+    _pinGecentreerdOp = kaart.id;
+    _pinNaarMidden(pin);
+  }
+}
+
+// Het doek scrollen tot de speld in het midden ligt. Wacht zo nodig op de
+// afbeelding: zonder maten is de berekening 0 en blijf je linksboven staan.
+let _pinGecentreerdOp = null;
+function _pinNaarMidden(pin, pogingen = 12) {
+  const doek  = document.getElementById('koppel-mapdoek');
+  const inner = document.getElementById('koppel-mapinner');
+  if (!doek || !inner) return;
+  // Het Kaart-paneel kan nog verborgen zijn (de editor tekent alle tabbladen,
+  // maar toont er één), en dan zijn alle maten 0. Even opnieuw proberen tot het
+  // doek breedte heeft — goedkoper dan een ResizeObserver voor dit ene geval.
+  if (!doek.clientWidth || !inner.offsetWidth) {
+    if (pogingen > 0) setTimeout(() => _pinNaarMidden(pin, pogingen - 1), 80);
+    return;
+  }
+  doek.scrollLeft = (pin.x / 100) * inner.offsetWidth  - doek.clientWidth  / 2;
+  doek.scrollTop  = (pin.y / 100) * inner.offsetHeight - doek.clientHeight / 2;
+}
+
+window._pinKaartWissel = () => { _pinGecentreerdOp = null; _pinTeken(); };
+
+// Inzoomen bij het plaatsen: op een stadskaart liggen panden soms een paar
+// pixels uit elkaar. De afbeelding groeit binnen een scrollbaar doek, dus de
+// procentcoördinaten blijven kloppen — we meten toch op de afbeelding zelf.
+let _pinZoomStand = 1;
+const _PIN_ZOOM = [1, 1.5, 2, 3, 4, 6];
+// Zoomen en daarna één punt in het midden zetten. `focus` in procenten van de
+// afbeelding; zonder focus houden we de speld (of het midden) vast.
+function _pinZoomZet(stand, focus) {
+  _pinZoomStand = stand;
+  const inner = document.getElementById('koppel-mapinner');
+  const doek  = document.getElementById('koppel-mapdoek');
+  const balk  = document.getElementById('koppel-mapzoomstand');
+  if (balk) balk.textContent = Math.round(_pinZoomStand * 100) + '%';
+  if (!inner || !doek) return;
+  inner.style.width = (_pinZoomStand * 100) + '%';
+  // Niet in een requestAnimationFrame: de afbeelding is dan nog niet opnieuw
+  // opgemeten en de berekening liep op de oude maten (en werd dus 0).
+  setTimeout(() => {
+    const pin = focus || _pinHuidig() || _pinWacht;
+    const px = (pin ? pin.x : 50) / 100, py = (pin ? pin.y : 50) / 100;
+    doek.scrollLeft = px * inner.offsetWidth  - doek.clientWidth  / 2;
+    doek.scrollTop  = py * inner.offsetHeight - doek.clientHeight / 2;
+  }, 60);
+}
+
+window._pinZoom = (richting) => {
+  const i = Math.max(0, Math.min(_PIN_ZOOM.length - 1, _PIN_ZOOM.indexOf(_pinZoomStand) + richting));
+  _pinZoomZet(_PIN_ZOOM[i]);
+};
+
+// Dubbelklikken zoomt in op de plek waar je klikt. Botst niet met het plaatsen:
+// de eerste klik van de dubbelklik zet de speld daar al neer, en het inzoomen
+// brengt je meteen dichtbij genoeg om hem precies te leggen. Op de hoogste
+// stand zoomt hij weer helemaal uit, zodat je met dezelfde handeling terugkomt.
+window._pinZoomDubbel = (ev) => {
+  const img = document.getElementById('koppel-mapimg');
+  if (!img) return;
+  const r = img.getBoundingClientRect();
+  const focus = {
+    x: Math.min(100, Math.max(0, ((ev.clientX - r.left) / r.width)  * 100)),
+    y: Math.min(100, Math.max(0, ((ev.clientY - r.top)  / r.height) * 100)),
+  };
+  const i = _PIN_ZOOM.indexOf(_pinZoomStand);
+  _pinZoomZet(i >= _PIN_ZOOM.length - 1 ? _PIN_ZOOM[0] : _PIN_ZOOM[i + 1], focus);
+};
+
+// De uitsnede in het detailvenster. `background-position: X% Y%` legt het punt
+// op X%/Y% van de áfbeelding op X%/Y% van het kader; de speld staat op dezelfde
+// percentages en valt er dus precies op — ongeacht hoever je inzoomt.
+// Kaarten en spelden komen via de gewone (ook voor spelers toegankelijke)
+// routes; de DM-koppelingenroute mag hier niet, anders zag een speler niets.
+// Kort gecachet: bij het doorklikken van kaartje naar kaartje is dit anders
+// twee verzoeken per opening.
+let _kaartCache = null;
+async function _kaartGegevens() {
+  if (_kaartCache && Date.now() - _kaartCache.tijd < 30000) return _kaartCache;
+  const maps = await api.listMaps().catch(() => []);
+  const pins = {};
+  await Promise.all((maps || []).map(m =>
+    api.mapPins(m.id).then(p => { pins[m.id] = p || []; }).catch(() => { pins[m.id] = []; })));
+  _kaartCache = { tijd: Date.now(), maps: maps || [], pins };
+  return _kaartCache;
+}
+window._kaartCacheLeeg = () => { _kaartCache = null; };
+
+// De speldknop op een kaartje. Hij hing aan window._pinnedLocIds, en die wordt
+// pas gevuld zodra je het Kaart-tabblad hebt geopend — en dan nog alleen voor
+// de kaart die daar toevallig openstond. Dus zag je hem meestal nergens. Nu
+// zoeken we de spelden zelf op (dezelfde korte cache als de uitsnede), over
+// álle kaarten, en zetten we meteen de juiste kaart op de knop.
+async function _kaartKnoppenBijwerken(host) {
+  const knoppen = [...(host || document).querySelectorAll('[data-mapbtn]')];
+  if (!knoppen.length) return;
+  const { maps, pins } = await _kaartGegevens();
+  // Zelfde keuze als in het detailvenster: de kleinste kaart wint, niet de
+  // eerste die toevallig in map.json staat.
+  const perLoc = new Map();
+  for (const m of [...maps].sort((a, b) => _kaartSchaal(a) - _kaartSchaal(b))) {
+    for (const p of (pins[m.id] || [])) {
+      if (!p.pending && !perLoc.has(p.locId)) perLoc.set(p.locId, m.id);
+    }
+  }
+  window._pinnedLocIds = new Set(perLoc.keys());
+  for (const knop of knoppen) {
+    const mapId = perLoc.get(knop.dataset.mapbtn);
+    knop.classList.toggle('hidden', !mapId);
+    if (mapId) knop.dataset.mapid = mapId;
+  }
+}
+
+// Eenzelfde plek kan op meerdere kaarten staan: Het Leemland ligt op de
+// streekkaart én op de continentkaart. Welke toont het kaartje dan? Dat was
+// "de eerste kaart in map.json" — de volgorde waarin ze ooit zijn aangemaakt,
+// en daar kan een DM niets aan aflezen. Nu telt de **soort**: hoe kleiner het
+// gebied, hoe dichterbij je kijkt, dus die wint. Een kaart zonder soort valt
+// tussen de bekende in, en bij gelijke stand beslist de volgorde alsnog.
+const _KAART_SCHAAL = {
+  Gebouw: 1, Dorp: 2, Stad: 3, Slagveld: 3, Zee: 5, Streek: 5, Continent: 6, Wereld: 7,
+};
+const _kaartSchaal = (m) => _KAART_SCHAAL[m?.soort] ?? 4;
+
+// Alle plekken van deze locatie, de meest gedetailleerde eerst.
+async function _kaartPlekkenVan(locId) {
+  const { maps, pins } = await _kaartGegevens();
+  const uit = [];
+  for (const m of maps) {
+    const p = (pins[m.id] || []).find(x => x.locId === locId && !x.pending);
+    if (p) uit.push({ kaart: m, pin: p });
+  }
+  return uit.sort((a, b) => _kaartSchaal(a.kaart) - _kaartSchaal(b.kaart));
+}
+
+// Waar ligt deze locatie? Geeft de kaart plus de speld terug, of null.
+async function _kaartPlekVan(locId) {
+  return (await _kaartPlekkenVan(locId))[0] || null;
+}
+
+// Het Kaart-tabblad van een locatie: een uitsnede rond de speld, plus de weg
+// naar de kaart zelf. background-position X% Y% legt het punt op X%/Y% van de
+// áfbeelding op X%/Y% van het kader, dus een speld op dezelfde percentages valt
+// er precies op — hoe ver je ook inzoomt.
+function _kaartTabHtml(locId, plek, alleen = true, locType = '', andere = []) {
+  const { kaart, pin } = plek;
+  // De speld in het midden zetten kan niet met background-position: dat lijnt
+  // punt X% van de áfbeelding uit op X% van het kader, niet op het midden. Met
+  // een <img> op left/top 50% en `translate(-X%, -Y%)` (percentages van de
+  // afbeelding zelf) belandt punt X%,Y% precies in het midden — bij elke zoom.
+  return `
+    <div class="detail-kaartblok">
+      <div class="detail-label">${icon('map-pin')} ${esc(kaart.label || 'Op de kaart')}</div>
+      <div class="detail-kaartuitsnede${alleen ? '' : ' detail-kaartuitsnede--kort'}">
+        <img class="kaartuitsnede-img" alt="" src="${esc(_kaartSrc(kaart))}"
+          style="transform:translate(-${pin.x}%, -${pin.y}%)">
+        <div class="kaartuitsnede-speld">${window._locIcoon?.(locType) || ''}</div>
+      </div>
+      <div class="detail-map-link-wrap">
+        <button class="detail-map-link-btn" onclick="window._toonOpKaart('${escArg(locId)}','${escArg(kaart.id)}')">
+          ${icon('map')} Toon op de hele kaart
+        </button>
+        ${(andere || []).map(a => `
+          <button class="detail-map-link-btn detail-map-link-btn--ook"
+            onclick="window._toonOpKaart('${escArg(locId)}','${escArg(a.kaart.id)}')"
+            title="Deze plek staat ook op ${esc(a.kaart.label || 'een andere kaart')}">
+            ${icon('map-pin')} ${esc(a.kaart.label || 'Andere kaart')}
+          </button>`).join('')}
+      </div>
+    </div>`;
+}
+
+// ── Organogram ──────────────────────────────────────────────────────────────
+// Wie staat er boven wie. De boom komt uit `chef` op de betrokkenen-regels; is
+// die nergens ingevuld, dan maken we er een tweelaags schema van op **rol**:
+// wie leidt bovenaan, de rest eronder. Zo is er meteen iets te zien zonder dat
+// de DM eerst overal "valt onder" moet invullen.
+const _ORG_TOP_ROLLEN = ['leider', 'oprichter', 'eigenaar', 'baas', 'meester', 'hoofd',
+  'kapitein', 'grootmeester', 'raadslid', 'bestuurder', 'hoofdman', 'aanvoerder', 'voorzitter'];
+
+// Het portret van een kaartje hangt aan `data.imageId`, niet aan het id zelf;
+// met alleen een id kom je er dus niet. Eén keer ophalen en kort bewaren — het
+// organogram vraagt er tien tegelijk.
+let _beeldIndex = null;
+async function _beeldIndexLaden() {
+  if (_beeldIndex && Date.now() - _beeldIndex.tijd < 30000) return _beeldIndex.map;
+  const map = new Map();
+  await Promise.all(['personages', 'organisaties'].map(t =>
+    api.listEntities(t).then(lijst => (lijst || []).forEach(x => map.set(x.id, x.data?.imageId || x.id)))
+      .catch(() => {})));
+  _beeldIndex = { tijd: Date.now(), map };
+  return map;
+}
+
+function _orgBoom(rijen) {
+  // Namen zijn de sleutel: `chef` verwijst naar een naam, niet naar een id —
+  // dat leest ook nog als het kaartje erachter (nog) niet bestaat.
+  const opNaam = new Map();
+  rijen.forEach(r => opNaam.set((r.naam || '').toLowerCase(), r));
+  const kinderen = new Map();
+  const top = [];
+
+  if (!rijen.some(r => (r.chef || '').trim())) {
+    // Niemand heeft een chef ingevuld: dan leiden we een tweelaags schema af uit
+    // de rol. Beter iets dan een leeg tabblad, en het wijst de DM de weg.
+    const leiders = rijen.filter(r => _ORG_TOP_ROLLEN.includes((r.rol || '').toLowerCase()));
+    const rest    = rijen.filter(r => !leiders.includes(r));
+    if (!leiders.length) return { top: rijen, kinderen, plat: true };
+    // Meer dan één leider is geen fout maar een raad: die delen de bovenste
+    // plek. De rest onder de éérste hangen zou een rangorde suggereren die er
+    // niet is, dus die komt onder de hele rij te staan.
+    if (leiders.length > 1) return { top: leiders, kinderen, rest, plat: true };
+    kinderen.set(leiders[0], rest);
+    return { top: leiders, kinderen, plat: true };
+  }
+
+  for (const r of rijen) {
+    const chef  = (r.chef || '').trim().toLowerCase();
+    const ouder = (chef && chef !== (r.naam || '').toLowerCase()) ? opNaam.get(chef) : null;
+    if (ouder) kinderen.set(ouder, [...(kinderen.get(ouder) || []), r]);
+    else top.push(r);
+  }
+  // Een kring (A onder B, B onder A) laat niemand bovenaan over; dan valt er
+  // geen boom te tekenen en zetten we iedereen naast elkaar.
+  if (!top.length) return { top: rijen, kinderen: new Map(), plat: true };
+  return { top, kinderen, plat: false };
+}
+
+function _orgKnoopHtml(r, kinderen, gezien = new Set(), beeld = null) {
+  // Een kring elders in de boom mag geen oneindige recursie geven.
+  if (gezien.has(r)) return '';
+  gezien.add(r);
+  const kids = kinderen.get(r) || [];
+  const beeldId = (r.id && !r.onbekend) ? (beeld?.get(r.id) || r.id) : '';
+  const portret = beeldId
+    ? `<img class="org-portret" src="${esc(api.thumbUrl(beeldId))}" alt="" onerror="this.replaceWith(Object.assign(document.createElement('span'),{className:'org-portret org-portret--leeg'}))">`
+    : `<span class="org-portret org-portret--leeg${r.onbekend ? ' org-portret--onbekend' : ''}">${icon(r.onbekend ? 'user' : 'user')}</span>`;
+  const naam = r.id
+    ? `<button type="button" class="org-naam" onclick="window._openKaartjeOpId('${escArg(r.id)}')">${esc(r.naam)}</button>`
+    : r.onbekend
+      ? `<span class="org-naam org-naam--onbekend">Onbekend</span>`
+      : `<span class="org-naam org-naam--los">${esc(r.naam)}</span>`;
+  return `<li class="org-knoop">
+    <div class="org-kaartje">${portret}<div class="org-tekst">${naam}${r.rol ? `<span class="org-rol">${esc(r.rol)}</span>` : ''}</div></div>
+    ${kids.length ? `<ul class="org-kinderen">${kids.map(k => _orgKnoopHtml(k, kinderen, gezien, beeld)).join('')}</ul>` : ''}
+  </li>`;
+}
+
+// Ook bruikbaar buiten het kaartje: het factiepaneel toont dezelfde boom, zodat
+// de DM daar ziet wie onder wie valt in plaats van een lijstje namen.
+window._organogramHtml = (rijen, beeld) => _organogramHtml(rijen, beeld);
+
+function _organogramHtml(rijen, beeld) {
+  const { top, kinderen, plat, rest } = _orgBoom(rijen);
+  return `
+    <div class="org-blok">
+      <div class="detail-label">${icon('users')} Organogram</div>
+      ${plat ? `<p class="veld-uitleg">Afgeleid uit de rollen. Vul bij <em>Wie hoort hier bij?</em> in wie onder wie valt voor een echte structuur.</p>` : ''}
+      <div class="org-doek">
+        <ul class="org-boom${(rest && rest.length) ? ' org-boom--gedeeld' : ''}">${top.map(r => _orgKnoopHtml(r, kinderen, new Set(), beeld)).join('')}</ul>
+        ${(rest && rest.length)
+          ? `<ul class="org-kinderen org-kinderen--gedeeld">${rest.map(r => _orgKnoopHtml(r, kinderen, new Set(), beeld)).join('')}</ul>`
+          : ''}
+      </div>
+    </div>`;
+}
+
+// Het Dungeon-tabblad: welke plattegrond hoort bij deze locatie, en welke kamer.
+function _dungeonTabHtml(kaart, kamer) {
+  // `fileId` is de plattegrond; `thumbId` is het sfeerbeeld dat de DM voor de
+  // kaartengalerij kiest — dat kan een tekening van de hal zijn en zegt niets
+  // over de indeling. Hier wil je de plattegrond, met het sfeerbeeld als
+  // vangnet voor een kaart zonder plaatje.
+  //
+  // Maar niet voor een speler: de kale plattegrond toont ook de kamers die zijn
+  // party nog niet ontdekt heeft. Hij krijgt de naam en de knop; de plattegrond
+  // zelf ziet hij in de dungeonweergave, mét mist.
+  const bron = !isDM() ? '' :
+               kaart.fileId ? api.fileUrl(kaart.fileId)
+             : kaart.thumbId ? api.thumbUrl(kaart.thumbId) : '';
+  const beeld = bron ? `<img class="detail-dungeonbeeld" src="${esc(bron)}" alt="">` : '';
+  return `
+    <div class="detail-kaartblok">
+      <div class="detail-label">${icon('map')} ${esc(kaart.name || 'Dungeon')}</div>
+      ${beeld}
+      ${kamer ? `<p class="veld-uitleg">${icon('map-pin')} Kamer: ${esc(kamer.name || kamer.id)}</p>` : ''}
+      ${kaart.description ? `<p class="detail-desc">${esc(kaart.description)}</p>` : ''}
+      <div class="detail-map-link-wrap">
+        <button class="detail-map-link-btn" onclick="window.app.closeModal();window._openKaartFullscreen('dungeon','${escArg(kaart.id)}')">
+          ${icon('map')} Toon op de hele kaart
+        </button>
+      </div>
+    </div>`;
+}
+
+
+// Slepen om te schuiven. Zonder dit pakte de browser zijn eigen beeld-sleep op
+// en opende hij de jpg in een nieuw tabblad — precies wat de uitleg beloofde
+// dat níét zou gebeuren. Een sleep telt niet als klik: pas onder de vier pixels
+// verplaatsing zetten we een speld.
+let _pinSleep = null;
+window._pinSleepStart = (ev) => {
+  const doek = document.getElementById('koppel-mapdoek');
+  if (!doek || ev.button !== 0) return;
+  _pinSleep = { x: ev.clientX, y: ev.clientY, sl: doek.scrollLeft, st: doek.scrollTop, ver: 0 };
+  const beweeg = (e) => {
+    if (!_pinSleep) return;
+    const dx = e.clientX - _pinSleep.x, dy = e.clientY - _pinSleep.y;
+    _pinSleep.ver = Math.max(_pinSleep.ver, Math.abs(dx) + Math.abs(dy));
+    if (_pinSleep.ver > 3) {
+      doek.classList.add('pin-doek--sleept');
+      doek.scrollLeft = _pinSleep.sl - dx;
+      doek.scrollTop  = _pinSleep.st - dy;
+    }
+  };
+  const los = () => {
+    window.removeEventListener('pointermove', beweeg);
+    window.removeEventListener('pointerup', los);
+    doek.classList.remove('pin-doek--sleept');
+    // Even laten staan: de click die hierna komt moet weten dat er gesleept is.
+    setTimeout(() => { _pinSleep = null; }, 0);
+  };
+  window.addEventListener('pointermove', beweeg);
+  window.addEventListener('pointerup', los);
+};
+
+window._pinPlaats = async (ev) => {
+  if (_pinSleep && _pinSleep.ver > 3) return;   // dit was schuiven, geen klik
+  const doek = document.getElementById('koppel-mapdoek');
+  const sel  = document.getElementById('koppel-mapid');
+  if (!doek || !sel?.value) return;
+  // Meten op de áfbeelding, niet op het doek: die scrollt en kan lucht boven of
+  // onder hebben; dan zou de speld verschoven op de grote kaart landen.
+  const r = (document.getElementById('koppel-mapimg') || doek).getBoundingClientRect();
+  // In procenten, want de kaart wordt overal op een andere breedte getoond.
+  const x = Math.min(100, Math.max(0, ((ev.clientX - r.left) / r.width)  * 100));
+  const y = Math.min(100, Math.max(0, ((ev.clientY - r.top)  / r.height) * 100));
+  if (!_koppelCtx.id) {
+    // Nog geen kaartje: onthouden en plaatsen zodra het bewaard is.
+    _pinWacht = { mapId: sel.value, x, y };
+    _pinTeken();
+    return;
+  }
+  try {
+    const oud = _pinHuidig();
+    if (oud) await api.deleteMapPin(oud.id);
+    const nieuw = await api.createMapPin({ locId: _koppelCtx.id, mapId: sel.value, x, y });
+    _koppelCtx.pins = _koppelCtx.pins.filter(p => p.mapId !== sel.value).concat([
+      { id: nieuw.id, mapId: sel.value, x, y },
+    ]);
+    // Geen melding: de speld verspringt voor je ogen, dat is het bewijs al.
+    // In de bewerkmodus klik je vaak achter elkaar, en dan stapelen de toasts.
+    _pinTeken();
+  } catch (err) {
+    alert('Speld plaatsen mislukt: ' + (err.message || err));
+  }
+};
+
+window._pinWeg = async () => {
+  const sel = document.getElementById('koppel-mapid');
+  const pin = _pinHuidig();
+  if (!pin) { _pinWacht = null; _pinTeken(); return; }
+  try {
+    await api.deleteMapPin(pin.id);
+    _koppelCtx.pins = _koppelCtx.pins.filter(p => p.id !== pin.id);
+    _pinTeken();
+  } catch (err) {
+    alert('Speld weghalen mislukt: ' + (err.message || err));
+  }
+};
+
+// De herberg- en tempelkoppeling horen alleen bij díé types; anders staat er een
+// keuzelijst die nergens over gaat.
+function _koppelLocTypeToon(val) {
+  const type = val ?? document.querySelector('select[name="data_locType"]')?.value ?? '';
+  const h = document.getElementById('koppel-herberg');
+  const t = document.getElementById('koppel-tempel');
+  if (h) h.style.display = type === 'Herberg' ? '' : 'none';
+  if (t) t.style.display = type === 'Tempel'  ? '' : 'none';
+  // Bij een locatie heeft alleen een herberg of een tempel iets te koppelen;
+  // bij de rest bleef er een kop over met niets eronder. (Een organisatie
+  // houdt de sectie altijd: daar staat de factiekeuze.)
+  const sec = document.getElementById('koppel-sectie');
+  if (sec && (h || t)) sec.style.display = ['Herberg', 'Tempel'].includes(type) ? '' : 'none';
+}
+
+function _koppelDungeonVullen() {
+  const sel  = document.getElementById('koppel-dungeon');
+  const hid  = document.getElementById('koppel-dungeon-id');
+  if (!sel) return;
+  sel.innerHTML = `<option value="">— geen dungeonkaart —</option>` +
+    _koppelCtx.dungeons.map(d => `<option value="${esc(d.id)}"${hid.value === d.id ? ' selected' : ''}>${esc(d.name || d.id)}</option>`).join('');
+  _koppelRoomsVullen();
+}
+
+function _koppelRoomsVullen() {
+  const sel = document.getElementById('koppel-room');
+  const dId = document.getElementById('koppel-dungeon-id')?.value || '';
+  const rId = document.getElementById('koppel-room-id')?.value || '';
+  if (!sel) return;
+  const kaart = _koppelCtx.dungeons.find(d => d.id === dId);
+  const kamers = kaart?.rooms || [];
+  // Zonder kaart (of zonder kamers erop) valt er niets te kiezen; dan is de
+  // lijst uitgeschakeld in plaats van misleidend leeg.
+  sel.disabled = !kamers.length;
+  sel.innerHTML = kamers.length
+    ? `<option value="">— hele kaart —</option>` +
+      kamers.map(r => `<option value="${esc(r.id)}"${rId === r.id ? ' selected' : ''}>${esc(r.name || r.id)}</option>`).join('')
+    : `<option value="">${dId ? 'geen kamers op deze kaart' : '— eerst een kaart —'}</option>`;
+}
+
+window._koppelDungeonWissel = () => {
+  const sel = document.getElementById('koppel-dungeon');
+  document.getElementById('koppel-dungeon-id').value = sel.value;
+  // Een kamer uit de vórige kaart slaat nergens op.
+  document.getElementById('koppel-room-id').value = '';
+  _koppelRoomsVullen();
+};
+
+window._koppelRoomWissel = () => {
+  document.getElementById('koppel-room-id').value = document.getElementById('koppel-room').value;
+};
+
+// Herberg, god en factie liggen in meta.json, niet in het kaartje: die bewaren
+// zichzelf meteen, net als het baasje van een huisdier. Wachten op Opslaan zou
+// betekenen dat het formulier meta moet meesturen, en dan zijn er twee wegen
+// naar dezelfde waarde.
+window._koppelZet = async (body) => {
+  try {
+    const k = await api.zetKoppelingen(_koppelCtx.tab, _koppelCtx.id, body);
+    const uitleg = document.getElementById('koppel-herberg-uitleg');
+    if (uitleg && body.herberg !== undefined) {
+      uitleg.textContent = k.herberg ? 'De herberg-dienst gebruikt dit kaartje.' : '';
+    }
+    // Ook hier geen melding: de keuzelijst (en bij de herberg de regel eronder)
+    // laat de nieuwe stand zelf zien.
+  } catch (err) {
+    alert('Koppelen mislukt: ' + (err.message || err));
+  }
+};
+
+// Factie en rang gaan samen de deur uit: de rang hoort bij het lidmaatschap,
+// dus hem los bewaren zou een rang kunnen achterlaten bij een factie waar hij
+// niet meer in zit.
+window._koppelLidZet = async () => {
+  const factieId = document.getElementById('koppel-lid')?.value || '';
+  const rang     = document.getElementById('koppel-lid-rang')?.value || '';
+  const rij      = document.getElementById('koppel-lid-rang-rij');
+  if (rij) rij.style.display = factieId ? '' : 'none';
+  await window._koppelZet({ factieId, factieRang: factieId ? rang : '' });
+};
+
+window._linkKaartjeMaken = async (type, inputId) => {
+  const inp = document.getElementById(inputId);
+  const naam = (inp?.value || '').trim();
+  if (!naam) return;
+  try {
+    // Een leeg personagekaartje krijgt meteen het standaard-subtype; zonder
+    // subtype staat het in een stand die je in de editor niet kunt kiezen.
+    const nieuw = await api.createEntity(type, {
+      name: naam, data: {}, ...(type === 'personages' ? { subtype: 'NPC' } : {}),
+    });
+    _linkLijsten[type].push({ id: nieuw.id, name: nieuw.name || naam });
+    _linkDatalistsVullen();
+    // Het kaartje bestaat, maar de lijst eronder wist er nog niets van: ging je
+    // erheen om het in te vullen, dan stond het er niet en drukte je op + —
+    // wat een tweede leeg kaartje opleverde. Lijst en naamindex dus meteen bij.
+    if (window.app?.state?.activeSection === type) renderEntitySection(type);
+    window._planEntityIndexHerbouw?.();
+    window.app?._tsToast?.(`${icon('check')} Leeg kaartje ${esc(naam)} aangemaakt — vul het later in bij ${LINK_LABELS[type] || type}`);
+  } catch (err) {
+    alert('Aanmaken mislukt: ' + (err.message || err));
+  }
+};
+
+function _lijstRegelHtml(veld, tekst, i, antag = false, metAntag = false, gid = '') {
+  const id = `lt-${veld}-${i}`;
+  // Alleen bij geheimen op een personage: per regel aan te vinken of juist díé
+  // onthulling hem antagonist maakt. Eerst was dat één schakelaar voor het hele
+  // kaartje, maar niet elk geheim is een verraad — en welk geheim het is, doet
+  // ertoe. Een locatie of organisatie heeft geen kant in een gevecht, dus daar
+  // hoort het vinkje niet te staan.
+  const antagRij = (veld === 'geheimen' && metAntag) ? `
+    <label class="lijst-regel-antag" title="Dit geheim onthullen geeft het personage de rol antagonist en zet de kant op vijand">
+      <input type="checkbox" class="lijst-antag-vink"${antag ? ' checked' : ''}>
+      ${icon('skull')} <span>Onthullen maakt het personage een vijand</span>
+    </label>` : '';
+  return `<div class="lijst-regel" data-veld="${veld}"${gid ? ` data-gid="${esc(gid)}"` : ''}>
+    ${fmtToolbar(id)}
+    <div class="lijst-regel-rij">
+      <textarea id="${id}" rows="2" class="lijst-regel-tekst" onkeydown="window._fmtKey(event)"
+        placeholder="Nog een regel\u2026">${esc(tekst)}</textarea>
+      <button type="button" class="dm-btn dm-btn-sm dm-btn-ghost dm-btn-danger"
+        title="Regel verwijderen" onclick="window._lijstRegelWeg(this)">${icon('trash')}</button>
+    </div>${antagRij}
+  </div>`;
+}
+
+window._lijstRegelWeg = (knop) => {
+  const regel = knop.closest('.lijst-regel');
+  const host  = regel?.parentElement;
+  regel?.remove();
+  // Nooit helemaal leeg: dan is er geen veld meer om in te typen.
+  if (host && !host.querySelector('.lijst-regel')) window._lijstRegelErbij(host.dataset.veld);
+};
+
+window._lijstRegelErbij = (veld) => {
+  const host = document.getElementById(`lijst-${veld}`);
+  if (!host) return;
+  const i = host.querySelectorAll('.lijst-regel').length + Date.now() % 1000;
+  host.insertAdjacentHTML('beforeend', _lijstRegelHtml(veld, '', i, false, host.dataset.antag === '1'));
+  host.querySelector('.lijst-regel:last-child textarea')?.focus();
+};
+
+// De chips staan eerst op hun index ("fire-bolt"); zodra de bibliotheek geladen
+// is vervangen we dat door naam en niveau.
+async function _vulSpellChips() {
+  const host = document.getElementById('detail-spell-chips');
+  if (!host || !window.spreuken?.info) return;
+  const knoppen = [...host.querySelectorAll('[data-spell]')];
+  if (!knoppen.length) return;
+  const info = await window.spreuken.info(knoppen.map(k => k.dataset.spell));
+
+  // Op een rij door elkaar heen zegt een spreukenlijst weinig; een caster denkt
+  // in niveaus. Dus een rijtje per niveau, cantrips eerst.
+  const perNiveau = new Map();
+  for (const knop of knoppen) {
+    const sp = info.find(x => x.index === knop.dataset.spell);
+    const lv = sp ? Number(sp.level) || 0 : -1;   // onbekend achteraan
+    if (sp) {
+      knop.innerHTML = esc(sp.name);
+      knop.title = `${sp.school || ''}`.trim();
+    }
+    if (!perNiveau.has(lv)) perNiveau.set(lv, []);
+    perNiveau.get(lv).push(knop);
+  }
+  // Bij een voorwerp is dit geen spreukenlijst maar een verwijzing: één of twee
+  // spreuken. Een kolom "Level 2" naast één chip leest als een tabel met één
+  // rij — en omdat de host daar een flex-item is, werd de chip zo smal geknepen
+  // dat de naam over twee regels brak. Compact dus: het niveau ín de chip.
+  if (host.dataset.compact) {
+    for (const knop of knoppen) {
+      const sp = info.find(x => x.index === knop.dataset.spell);
+      if (!sp) continue;
+      const lv = Number(sp.level) || 0;
+      knop.innerHTML = `<b>${lv === 0 ? 'Cantrip' : 'Lv ' + lv}</b>${esc(sp.name)}`;
+      knop.title = [sp.school, lv === 0 ? 'Cantrip' : `Level ${lv}`].filter(Boolean).join(' · ');
+    }
+    return;
+  }
+  const niveaus = [...perNiveau.keys()].sort((a, b) => a - b);
+  host.innerHTML = '';
+  // De host is normaal een flexrij met chips; met rijtjes per niveau moeten die
+  // rijen ónder elkaar staan, niet naast elkaar.
+  host.classList.add('cs-spell-chips--per-niveau');
+  for (const lv of niveaus) {
+    const rij = document.createElement('div');
+    rij.className = 'cs-spell-rij';
+    const label = document.createElement('span');
+    label.className = 'cs-spell-rij-lbl';
+    label.textContent = lv === 0 ? 'Cantrips' : lv < 0 ? 'Overig' : `Level ${lv}`;
+    rij.appendChild(label);
+    const vak = document.createElement('span');
+    vak.className = 'cs-spell-rij-chips';
+    perNiveau.get(lv).forEach(k => vak.appendChild(k));
+    rij.appendChild(vak);
+    host.appendChild(rij);
+  }
+}
+
+// ── Editor in tabbladen ──────────────────────────────────────────────────────
+// De editor werd één lange rol waarin je moest scrollen langs dingen die je op
+// dat moment niet nodig had. De blokken zetten een marker (`<!--P:naam-->`);
+// hier knippen we daarop en maken er panelen van. Een paneel zonder inhoud
+// krijgt geen tabblad.
+const ED_TABS = [
+  { key: 'info',    label: 'Informatie' },
+  { key: 'beeld',   label: 'Beeld' },
+  { key: 'sheet',   label: 'Character Sheet' },
+  // Een kaart en een dungeonplattegrond nemen allebei een half scherm in
+  // beslag; onderin Informatie maakten ze dat tabblad onhandelbaar lang. Ze
+  // gaan wél samen: het is allebei "waar ligt dit". En dat komt vóór de
+  // voorraad: eerst waar het pand staat, dan wat er in de schappen ligt.
+  { key: 'kaart', label: 'Kaart' },
+  { key: 'winkel',  label: 'Winkel' },
+  // Bij een organisatie is de ledenlijst het organogram: wie erbij hoort en wie
+  // boven wie staat. Samen op één tabblad, weg uit Informatie.
+  { key: 'organogram', label: 'Organogram' },
+];
+
+// Eén uitlegknop rechts in de tabbalk, die meeloopt met het open tabblad. Per
+// sectie een boekje werd een woud; per tabblad past de hele uitleg in één
+// venster met doorklikstappen.
+// `modus` is 'kijk' of 'bewerk': in het detailvenster lees je en onthul je, in
+// de editor vul je in. Dat zijn andere handelingen, dus ook andere uitleg — één
+// tekst voor allebei beloofde in de viewer dingen die daar niet kunnen.
+function _tabHulpHtml(tabType, modus) {
+  return `<span class="tab-hulp" data-tab-hulp="${esc(tabType)}" data-tab-modus="${esc(modus)}"></span>`;
+}
+function _tabHulpVul(tabType, paneel, modus) {
+  document.querySelectorAll(`[data-tab-hulp="${tabType}"][data-tab-modus="${modus}"]`).forEach(host => {
+    const sleutel = `hulp_${modus}_${tabType}_${paneel}`;
+    host.innerHTML = window._heeftHelp?.(sleutel) ? window._helpBtn(sleutel) : '';
+  });
+}
+
+function _bouwEditorTabs(html, toonWinkel, sheetLabel, tabType) {
+  // Het <form> staat om álles heen; zou hij in het eerste paneel blijven staan,
+  // dan sluit de browser hem daar en vallen de velden van de andere tabbladen
+  // buiten het formulier — die werden dan niet meegestuurd bij het opslaan.
+  const start = html.indexOf('>') + 1;
+  const formTag = html.slice(0, start);
+  let romp = html.slice(start).replace(/<\/form>\s*$/, '');
+
+  const delen = romp.split(/<!--P:(\w+)-->/);
+  const panelen = { info: delen[0] || '' };
+  for (let i = 1; i < delen.length; i += 2) {
+    const naam = delen[i];
+    panelen[naam] = (panelen[naam] || '') + (delen[i + 1] || '');
+  }
+  const knoppen = panelen.knoppen || '';
+  delete panelen.knoppen;
+
+  const heeftInhoud = (h) => /<(input|textarea|select|img|button|details)/.test(h || '');
+  // Het winkel-paneel doet altijd mee; alleen zijn knop is verborgen zolang het
+  // vinkje 'verkoper' (of locType 'Winkel') uit staat. Zat hij er helemaal niet
+  // in, dan viel er bij het aanvinken ook niets te tonen — je zag het tabblad
+  // pas na opnieuw openen.
+  const gevuld = ED_TABS.filter(t => heeftInhoud(panelen[t.key]));
+  if (gevuld.length <= 1) return formTag + romp.replace(/<!--P:\w+-->/g, '') + knoppen + '</form>';
+
+  const eerste = gevuld[0].key;
+  const rest = ED_TABS.filter(t => !gevuld.includes(t)).map(t => panelen[t.key] || '').join('');
+  return `${formTag}
+    <div class="ed-tabs">
+      ${gevuld.map(t => `<button type="button" class="ed-tab${t.key === eerste ? ' is-actief' : ''}${t.key === 'winkel' && !toonWinkel ? ' hidden' : ''}"
+        data-ed-tab="${t.key}" onclick="window._edTab('${t.key}')">${t.key === 'sheet' && sheetLabel ? sheetLabel : t.label}</button>`).join('')}
+      ${_tabHulpHtml(tabType, 'bewerk')}
+    </div>
+    ${gevuld.map(t => `<div class="ed-paneel${t.key === eerste ? ' is-actief' : ''}" data-ed-paneel="${t.key}">${panelen[t.key]}</div>`).join('')}
+    <div class="ed-paneel-verborgen">${rest}</div>
+    ${knoppen}
+  </form>`;
+}
+
+window._edTab = (naam) => {
+  document.querySelectorAll('[data-ed-tab]').forEach(b => b.classList.toggle('is-actief', b.dataset.edTab === naam));
+  document.querySelectorAll('[data-ed-paneel]').forEach(p => p.classList.toggle('is-actief', p.dataset.edPaneel === naam));
+  const host = document.querySelector('.ed-tabs [data-tab-hulp]');
+  if (host) _tabHulpVul(host.dataset.tabHulp, naam, 'bewerk');
+};
+
+// ── Rollen op een kaartje ────────────────────────────────────────────────────
+// `verkoper` en `antagonist` waren subtypes; nu zijn het rollen in `data.tags`,
+// zodat een verkoper óók antagonist kan zijn. Oude kaartjes hebben die waarde
+// nog als subtype staan, dus dat telt gewoon mee — geen migratie nodig om het
+// werkend te houden.
+const ROLLEN = [
+  { key: 'verkoper',   label: 'Verkoper',   uitleg: 'Heeft een voorraad om uit te kopen en aan te verkopen' },
+  { key: 'antagonist', label: 'Antagonist', uitleg: 'Staat de party in de weg — kleur en badge op de kaart' },
+];
+
+function _tagsUit(waarde) {
+  if (Array.isArray(waarde)) return waarde.map(String);
+  try {
+    const arr = JSON.parse(waarde || '[]');
+    return Array.isArray(arr) ? arr.map(String) : [];
+  } catch { return []; }
+}
+window._tagsUit = _tagsUit;
+
+// Vinkjes → verborgen veld, en de voorraad hangt aan de rol verkoper.
+// Kant is een keuze uit drie: aanvinken zet de andere twee uit, en nog eens
+// klikken maakt hem weer leeg (onbepaald).
+window._kantBij = (vak) => {
+  const rij = vak.closest('.rollen-rij');
+  rij?.querySelectorAll('.rol-keuze--kant input').forEach(i => { if (i !== vak) i.checked = false; });
+  const veld = document.getElementById('kant-veld');
+  if (veld) veld.value = vak.checked ? vak.value : '';
+};
+
+window._rollenBij = () => {
+  // Alleen de rol-vinkjes: de kant-vinkjes staan in dezelfde rij en belandden
+  // anders óók in data.tags ("vijand" als rol).
+  const gekozen = [...document.querySelectorAll('.rollen-rij .rol-keuze:not(.rol-keuze--kant) input:checked')]
+    .map(i => i.value);
+  const veld = document.getElementById('rollen-veld');
+  if (veld) veld.value = JSON.stringify(gekozen);
+  const isVerkoper = gekozen.includes('verkoper');
+  document.getElementById('voorraad-section')?.style.setProperty('display', isVerkoper ? '' : 'none');
+  document.getElementById('winkelconfig-section')?.style.setProperty('display', isVerkoper ? '' : 'none');
+  _winkelTabTonen(isVerkoper);
+};
+
+// Tabblad Winkel verschijnt zodra het vinkje aan gaat en verdwijnt weer; sta je
+// er op het moment van uitzetten, dan schuif je terug naar Informatie.
+function _winkelTabTonen(aan) {
+  const knop = document.querySelector('[data-ed-tab="winkel"]');
+  if (!knop) return;
+  knop.classList.toggle('hidden', !aan);
+  if (!aan && knop.classList.contains('is-actief')) window._edTab('info');
+}
+
+window._heeftRol = (e, rol) =>
+  _tagsUit(e?.data?.tags).includes(rol) || String(e?.subtype || '').toLowerCase() === rol;
+
+// ── Keuzelijst in perkament ─────────────────────────────────────────────────
+// Een <datalist> tekent de browser zelf: donkergrijze bak, systeemletters, en
+// er is geen CSS die daar iets aan verandert. Dus een eigen lijstje: een input
+// met een gefilterde lijst eronder, in dezelfde stijl als de andere menu's.
+const _keuzeLijsten = {};   // veldId → array met opties
+const _keuzeNa = {};        // veldId → wat er ná een keuze moet gebeuren
+
+function _keuzeVeldHtml(id, naam, waarde, opties, placeholder = '', naKeuze = null) {
+  _keuzeLijsten[id] = opties || [];
+  _keuzeNa[id] = naKeuze;
+  return `<div class="keuzeveld">
+    <input id="${id}" name="${naam}" value="${esc(waarde || '')}" autocomplete="off" placeholder="${esc(placeholder)}"
+      class="w-full mt-1 px-3 py-2 bg-room-bg border border-room-border rounded text-ink-bright focus:border-gold-dim focus:outline-none"
+      oninput="window._keuzeFilter('${id}')" onfocus="window._keuzeFilter('${id}')"
+      onkeydown="window._keuzeToets(event,'${id}')">
+    <div class="keuzeveld-lijst hidden" id="${id}-lijst"></div>
+  </div>`;
+}
+
+function _keuzeSluit(id) {
+  document.getElementById(`${id}-lijst`)?.classList.add('hidden');
+}
+
+window._keuzeFilter = (id) => {
+  const invoer = document.getElementById(id);
+  const lijst  = document.getElementById(`${id}-lijst`);
+  if (!invoer || !lijst) return;
+  const zoek = invoer.value.trim().toLowerCase();
+  const treffers = (_keuzeLijsten[id] || [])
+    .filter(o => !zoek || String(o).toLowerCase().includes(zoek))
+    .slice(0, 60);
+  if (!treffers.length) { lijst.classList.add('hidden'); return; }
+  lijst.innerHTML = treffers.map((o, i) =>
+    `<button type="button" class="keuzeveld-optie${i === 0 ? ' is-actief' : ''}"
+      onmousedown="event.preventDefault();window._keuzeKies('${id}', this.dataset.waarde)"
+      data-waarde="${esc(o)}">${esc(o)}</button>`).join('');
+  lijst.classList.remove('hidden');
+};
+
+window._keuzeKies = (id, waarde) => {
+  const invoer = document.getElementById(id);
+  if (invoer) { invoer.value = waarde; invoer.dispatchEvent(new Event('change', { bubbles: true })); }
+  _keuzeSluit(id);
+  if (typeof _keuzeNa[id] === 'function') _keuzeNa[id](invoer);
+};
+
+window._keuzeToets = (ev, id) => {
+  const lijst = document.getElementById(`${id}-lijst`);
+  if (!lijst || lijst.classList.contains('hidden')) return;
+  const opties = [...lijst.querySelectorAll('.keuzeveld-optie')];
+  const nu = opties.findIndex(o => o.classList.contains('is-actief'));
+  if (ev.key === 'ArrowDown' || ev.key === 'ArrowUp') {
+    ev.preventDefault();
+    const volgende = ev.key === 'ArrowDown'
+      ? Math.min(nu + 1, opties.length - 1)
+      : Math.max(nu - 1, 0);
+    opties.forEach((o, i) => o.classList.toggle('is-actief', i === volgende));
+    opties[volgende]?.scrollIntoView({ block: 'nearest' });
+  } else if (ev.key === 'Enter' && nu >= 0) {
+    ev.preventDefault();
+    window._keuzeKies(id, opties[nu].dataset.waarde);
+  } else if (ev.key === 'Escape') {
+    _keuzeSluit(id);
+  }
+};
+
+// Buiten de lijst klikken sluit hem.
+document.addEventListener('click', (ev) => {
+  if (ev.target.closest('.keuzeveld')) return;
+  document.querySelectorAll('.keuzeveld-lijst').forEach(l => l.classList.add('hidden'));
+});
+
+// Missies ophalen ná het tekenen: het detailvenster hoeft er niet op te wachten.
+// Medestander aan/uit. Stond als icoontje onderin de editor, maar het is geen
+// eigenschap van het kaartje — het is iets wat je nú doet, net als "markeer als
+// deceased". Vandaar de DM-rij van het detailvenster.
+async function _vulMedestander(entityId) {
+  let linked = [];
+  try { ({ linked } = await api.getCompanionStatus(entityId)); } catch { return; }
+  const btn = document.getElementById(`detail-medestander-${entityId}`);
+  if (!btn) return;
+  btn.classList.toggle('dm-actie--aan', linked.length > 0);
+  btn.title = linked.length > 0
+    ? 'Loopt met de party mee — klik om los te koppelen'
+    : 'Medestander: laat dit personage met de party meelopen';
+}
+
+window._toggleMedestander = async (entityId) => {
+  // De actieve party, niet zomaar de eerste: je koppelt hem aan de groep waar
+  // je op dat moment mee speelt.
+  let groepId = window._activeGroupId;
+  if (!groepId) {
+    try { groepId = (await api.listGroups()).groups?.[0]?.id; } catch { /* ok */ }
+  }
+  if (!groepId) return;
+  try {
+    const { linked } = await api.getCompanionStatus(entityId);
+    if (linked.length > 0) await Promise.all(linked.map(gid => api.unlinkCompanion(entityId, gid)));
+    else                   await api.linkCompanion(entityId, groepId);
+  } catch (err) {
+    alert('Medestander koppelen mislukt: ' + err.message);
+    return;
+  }
+  _vulMedestander(entityId);
+};
+
+// Gevangen nemen of vrijlaten — voor de actieve party, net als de
+// medestander. Expliciet aan of uit naar de server (geen wisselknop), en het
+// antwoord zegt wat er nog meer gebeurde: van medestander af, of van verborgen
+// naar vaag (de party heeft hem in handen, dus ze weten dát hij er is).
+window._toggleGevangen = async (entityId) => {
+  const e = (entities.personages || []).find(x => x.id === entityId);
+  const nu = !!e?._gevangen;
+  let waar;
+  if (!nu) {
+    let medestander = false;
+    try { medestander = ((await api.getCompanionStatus(entityId)).linked || []).includes(window._activeGroupId); } catch { /* ok */ }
+    if (medestander && !confirm(`${e?.name || 'Dit personage'} loopt nu als medestander met de party mee.\nGevangen nemen haalt hem daar weg. Doorgaan?`)) return;
+    waar = prompt('Waar houdt de party hem vast? (mag leeg blijven)', '');
+    if (waar === null) return;
+  }
+  let r;
+  try { r = await api.put(`/entities/personages/${entityId}/gevangen`, { gevangen: !nu, ...(waar !== undefined ? { waar } : {}) }); }
+  catch (err) { alert('Gevangen nemen mislukt: ' + err.message); return; }
+  if (e) e._gevangen = !nu;
+  const extra = [r.wasMedestander ? 'niet langer medestander' : '', r.zichtbaarGemaakt ? 'nu vaag zichtbaar voor de party' : ''].filter(Boolean);
+  window._showToast?.(`${icon('columns-4')} ${esc(e?.name || '')} ${nu ? 'is vrijgelaten' : 'is gevangen genomen'}${extra.length ? ` — ${extra.join(', ')}` : ''}`, null, 4000);
+  const btn = document.getElementById(`detail-gevangen-${entityId}`);
+  if (btn) {
+    btn.classList.toggle('dm-actie--aan', !nu);
+    btn.title = !nu ? 'Gevangene van de actieve party — klik om vrij te laten' : 'Gevangen nemen door de actieve party';
+  }
+  if (r.wasMedestander) _vulMedestander(entityId);
+  renderEntitySection('personages');
+};
+
+// ── Huurling: een medestander met een dagloon ──
+// Eigen venster in plaats van een prompt, want het zijn drie dingen samen: hoeveel,
+// wie betaalt, en wat er openstaat. Het loon is een voorgevuld veld (2 gouden
+// munten, de PHB-prijs voor een geschoolde kracht) dat de DM overtypt met wat
+// er aan tafel is afgesproken. Vertrekken gaat nooit vanzelf: de knop daarvoor
+// staat hier, met een bevestiging ervoor.
+async function _vulHuurling(entityId) {
+  const btn = document.getElementById(`detail-huurling-${entityId}`);
+  if (!btn) return;
+  let st;
+  try { st = await api.get(`/entities/personages/${entityId}/huurling`); } catch { return; }
+  const h = st.huurling;
+  btn.classList.toggle('dm-actie--aan', !!h);
+  btn.classList.toggle('dm-actie--let-op', !!h?.wilWeg);
+  btn.title = !h ? 'Huurling: in dienst van de actieve party, met een dagloon'
+    : h.wilWeg ? `Wil vertrekken — ${h.achterstand} dagen niet betaald`
+    : `In dienst voor ${window.formatCl(h.loon)} per dag`;
+}
+
+window._huurlingOpen = async (entityId) => {
+  const e = (entities.personages || []).find(x => x.id === entityId);
+  let st;
+  try { st = await api.get(`/entities/personages/${entityId}/huurling`); }
+  catch (err) { alert('Ophalen mislukt: ' + err.message); return; }
+  const h = st.huurling;
+  const loonCl = h ? h.loon : st.loonSuggestie;
+  const munten = { fl: Math.floor(loonCl / 100), kn: Math.floor((loonCl % 100) / 10), cl: loonCl % 10 };
+  const veld = window._bedragVeldHtml?.('huur-loon', munten, { label: 'Loon per dag' })
+    ?? `<div class="dm-form-row"><label class="dm-form-label" for="huur-loon">Loon per dag</label>
+        <input id="huur-loon" class="dm-input" value="${loonCl}"></div>`;
+  const spelers = st.spelers || [];
+  const terug = () => window._openDetail?.('personages', entityId);
+  const html = `<div class="huur-venster">
+    ${h?.achterstand ? `<div class="huur-achterstand${h.wilWeg ? ' huur-achterstand--weg' : ''}">
+      ${icon(h.wilWeg ? 'door-open' : 'hourglass')}
+      <span>${h.wilWeg ? 'Wil vertrekken' : 'Achterstallig'}: ${h.achterstand} ${h.achterstand === 1 ? 'dag' : 'dagen'},
+        samen ${esc(window.formatCl(h.achterstand * h.loon))}</span>
+    </div>` : ''}
+    ${veld}
+    ${st.gedeeldeBeurs ? `<div class="dm-form-row"><span class="dm-form-label">Betaald uit</span>
+        <span class="huur-beurs">${icon('coins')} de gedeelde beurs</span></div>`
+      : `<div class="dm-form-row"><label class="dm-form-label" for="huur-betaler">Betaald door</label>
+        <select id="huur-betaler" class="dm-input">
+          ${spelers.map(p => `<option value="${esc(p.id)}"${h?.betaler === p.id ? ' selected' : ''}>${esc(p.naam)}</option>`).join('')}
+        </select></div>`}
+    <div class="huur-knoppen">
+      <button class="dm-btn dm-btn-primary" id="huur-opslaan">${icon('save')} ${h ? 'Opslaan' : 'In dienst nemen'}</button>
+      ${h?.achterstand ? `<button class="dm-btn dm-btn-ghost" id="huur-betaal">${icon('coins')} Achterstand betalen</button>` : ''}
+      ${h ? `<button class="dm-btn dm-btn-ghost" id="huur-gratis" title="Hij blijft medestander, maar kost niets meer">Geen loon meer</button>
+             <button class="dm-btn dm-btn-danger" id="huur-weg">${icon('door-open')} Laat hem gaan</button>` : ''}
+    </div>
+  </div>`;
+  window.app.openModal(`${icon('coins')} ${h ? 'Huurling' : 'In dienst nemen'}`,
+    `${esc(e?.name || '')} · ${esc(st.groepNaam)}`, html);
+  const q = id => document.getElementById(id);
+  const leesLoon = () => {
+    const m = window._bedragLeesMunten?.('huur-loon');
+    return m ? (m.fl || 0) * 100 + (m.kn || 0) * 10 + (m.cl || 0) : parseInt(q('huur-loon')?.value, 10) || 0;
+  };
+  const doe = async (fn, melding) => {
+    try { const r = await fn(); if (melding) window._showToast?.(melding(r), null, 3500); terug(); }
+    catch (err) { alert(err.message); }
+  };
+  q('huur-opslaan').onclick = () => doe(
+    () => api.put(`/entities/personages/${entityId}/huurling`, { loon: leesLoon(), betaler: q('huur-betaler')?.value || '', groep: st.groep }),
+    () => `${icon('coins')} ${esc(e?.name || '')} is in dienst voor ${esc(window.formatCl(leesLoon()))} per dag`);
+  q('huur-betaal')?.addEventListener('click', () => doe(
+    () => api.post(`/entities/personages/${entityId}/huurling/betaal`, { groep: st.groep }),
+    r => `${icon('coins')} Achterstand betaald: ${esc(window.formatCl(r.betaald))}`));
+  q('huur-gratis')?.addEventListener('click', () => {
+    if (!confirm(`${e?.name || 'Hij'} loopt dan voortaan voor niets mee. Een openstaande achterstand vervalt.`)) return;
+    doe(() => api.delete(`/entities/personages/${entityId}/huurling?groep=${encodeURIComponent(st.groep)}`));
+  });
+  q('huur-weg')?.addEventListener('click', () => {
+    if (!confirm(`${e?.name || 'De huurling'} vertrekt en is niet langer medestander van ${st.groepNaam}. Doorgaan?`)) return;
+    doe(() => api.post(`/entities/personages/${entityId}/huurling/vertrek`, { groep: st.groep }),
+        () => `${icon('door-open')} ${esc(e?.name || '')} is vertrokken`);
+  });
+};
+
+async function _vulMissies(entityId, tab) {
+  const host = () => document.getElementById(`detail-missies-${entityId}`);
+  let missies = [];
+  try { missies = await api.listQuests(); } catch { return; }
+  const mijn = missies.filter(q => q.geverId === entityId);
+  const el = host();
+  if (!el || !mijn.length) return;
+  const label = { verborgen: 'Verborgen', actief: 'Beschikbaar', aangevraagd: 'Aangevraagd',
+                  'in-uitvoering': 'In uitvoering', voltooid: 'Voltooid', mislukt: 'Mislukt' };
+  el.innerHTML = `
+    <div class="mb-4">
+      <div class="detail-field-label">${icon('map-pin')} ${mijn.length > 1 ? 'Missies' : 'Missie'}</div>
+      <div class="detail-missies">
+        ${mijn.map(q => `
+          <div class="detail-missie detail-missie--${esc(q.status || 'verborgen')}">
+            <span class="detail-missie-titel">${esc(q.title || '')}</span>
+            <span class="detail-missie-status">${esc(label[q.status] || q.status || '')}</span>
+          </div>`).join('')}
+      </div>
+    </div>`;
+}
+
+// ── Gekoppelde spreuken op een kaartje ──
+function _csSpellLees() {
+  const veld = document.getElementById('cs-spell-indexes');
+  try { return JSON.parse(veld?.value || '[]'); } catch { return []; }
+}
+function _csSpellSchrijf(lijst) {
+  const veld = document.getElementById('cs-spell-indexes');
+  if (veld) veld.value = lijst.length ? JSON.stringify(lijst) : '';
+  _csSpellChips();
+}
+function _csSpellChips() {
+  const host = document.getElementById('cs-spell-chips');
+  if (!host) return;
+  const lijst = _csSpellLees();
+  host.innerHTML = lijst.map(idx => {
+    const sp = (_spreukLijst || []).find(x => x.index === idx);
+    const naam = sp?.name || idx;
+    const niveau = sp ? (Number(sp.level) === 0 ? 'C' : sp.level) : '';
+    return `<span class="cs-spell-chip">${niveau !== '' ? `<b>${esc(String(niveau))}</b>` : ''}${esc(naam)}
+      <button type="button" title="Loskoppelen" onclick="window._csSpellWeg('${escArg(idx)}')">×</button></span>`;
+  }).join('');
+}
+window._csSpellAdd = (input) => {
+  const naam = (input.value || '').trim().toLowerCase();
+  if (!naam) return;
+  const sp = (_spreukLijst || []).find(x => x.name.toLowerCase() === naam);
+  if (!sp) { input.classList.add('dm-input--err'); setTimeout(() => input.classList.remove('dm-input--err'), 900); return; }
+  const lijst = _csSpellLees();
+  if (!lijst.includes(sp.index)) lijst.push(sp.index);
+  input.value = '';
+  _csSpellSchrijf(lijst);
+};
+window._csSpellWeg = (idx) => _csSpellSchrijf(_csSpellLees().filter(x => x !== idx));
+
+export function initCampagne() {
+  // De houdingenschaal één keer ophalen. Het kaartje tekent er zijn glans
+  // mee en de bewerkmodus zijn schuifje; zonder de tabel blijft de glans
+  // gewoon weg, en dat is een geldige stand.
+  //
+  // Alleen voor wie binnen is: de route vraagt een sessie, dus op de
+  // landingspagina gaf dit een 401 in de console van elke bezoeker. Zodra er
+  // een kaartje te tekenen valt is die er wel.
+  if (window.app?.state?.role === 'dm' || window.app?.state?.characterId) laadHoudingen();
+}
+
+// Expose for global search
+window._entityTypeMeta = TYPE_META;
+// ── Genormaliseerd, gescoord zoeken (gedeeld door sectie- en globaal zoeken) ──
+// Diakriet- en hoofdletter-ongevoelig; meerdere woorden moeten allemaal
+// ergens matchen (AND); resultaten krijgen een relevantiescore.
+function _normSearch(s) {
+  return String(s ?? '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+}
+function _searchTokens(q) {
+  return _normSearch(q).split(/\s+/).filter(Boolean);
+}
+function _entityHaystacks(e) {
+  const d = e.data || {};
+  return {
+    name: _normSearch(e.name),
+    meta: _normSearch([e.subtype, d.rol, d.ras, d.klasse, d.locType, d.orgType, d.itemType, d.docType, d.wijk, d.rariteit, d.motto].filter(Boolean).join(' ')),
+    rest: _normSearch([...Object.values(d), ...Object.values(e.links || {}).flat()].join(' ')),
+  };
+}
+// Score voor één entiteit tegen reeds-getokeniseerde query. -1 = geen match.
+function _searchScore(e, tokens) {
+  if (!tokens || !tokens.length) return 0;
+  const h = _entityHaystacks(e);
+  let score = 0;
+  for (const t of tokens) {
+    // Hoe korter het woord, hoe strenger. Bij één letter zoeken in álle teksten
+    // levert bijna de hele campagne op — dat is geen zoekresultaat maar een
+    // lijst. Eén letter kijkt dus alleen naar het begin van een naam, twee
+    // letters naar de naam en de korte velden, en vanaf drie letters naar alles.
+    const kort = t.length;
+    let best = 0;
+    if (h.name === t) best = 1000;
+    else if (h.name.startsWith(t)) best = 600;
+    else if (new RegExp('\\b' + t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).test(h.name)) best = 400;
+    else if (kort >= 2 && h.name.includes(t)) best = 250;
+    else if (kort >= 2 && h.meta.includes(t)) best = 120;
+    else if (kort >= 3 && h.rest.includes(t)) best = 60;
+    if (best === 0) return -1;   // dit woord komt nergens voor → geen match
+    score += best;
+  }
+  return score;
+}
+window._normSearch  = _normSearch;
+window._searchTokens = _searchTokens;
+window._searchScore = _searchScore;
+
+window._entityFilter = (type, list, q) => {
+  const tokens = _searchTokens(q);
+  if (!tokens.length) return list;
+  return list
+    .map(e => ({ e, s: _searchScore(e, tokens) }))
+    .filter(x => x.s >= 0)
+    .sort((a, b) => b.s - a.s)
+    .map(x => x.e);
+};
+
+// Gedeelde skeleton-kaartjes voor laad-states (ook gebruikt door het Bestiarium).
+window._skelCards = (n = 6) => {
+  let s = '';
+  for (let i = 0; i < n; i++) {
+    s += `<div class="gb-skel-card">
+      <div class="gb-skel gb-skel-img"></div>
+      <div class="gb-skel-body">
+        <div class="gb-skel gb-skel-line" style="width:68%"></div>
+        <div class="gb-skel gb-skel-line" style="width:42%"></div>
+        <div class="gb-skel gb-skel-line gb-skel-line--sm" style="width:88%"></div>
+        <div class="gb-skel gb-skel-line gb-skel-line--sm" style="width:74%"></div>
+      </div>
+    </div>`;
+  }
+  return s;
+};
+
+async function renderEntitySection(type) {
+  const container = $(`#section-${type}`);
+
+  // Skeleton tijdens het laden (alleen eerste keer, vóór de fetch). Aparte klasse
+  // (gb-skel-grid) zodat de bestaande '.cards-grid'-check verderop niet matcht.
+  if (container && !container.querySelector('.cards-grid')) {
+    container.innerHTML = `<div class="gb-skel-grid grid grid-cols-[repeat(auto-fill,minmax(280px,1fr))] gap-4 p-6">${window._skelCards?.(8) || ''}</div>`;
+  }
+
+  try {
+    const [lijst] = await Promise.all([api.listEntities(type), _bladwijzersZorgen()]);
+    entities[type] = lijst;
+  } catch (e) {
+    entities[type] = [];
+  }
+  window._entityCache = entities;
+  // Naamindex bijwerken voor wikilink-resolving
+  window._buildEntityIndex?.(type, entities[type]);
+
+  const list = filterEntities(type, entities[type] || []);
+
+  // Only build the full toolbar+grid on first render; on subsequent calls just refresh the grid.
+  // Uitzondering: als de DM-status is gewisseld sinds de balk gebouwd werd (bv. inloggen ná
+  // een eerste render als gast), moet de balk volledig herbouwd worden — anders blijven de
+  // DM-only knoppen (+ en potlood) ontbreken op de default-tab. Zie dataset.dmBuilt hieronder.
+  const existingGrid = container.querySelector('.cards-grid');
+  if (existingGrid && container.dataset.dmBuilt === String(isDM())) {
+    _refreshGrid(type, list, container);
+    return;
+  }
+
+  const DESC = {
+    personages: 'Helden, vrienden en vijanden',
+    locaties: 'Plaatsen, wijken en gebouwen',
+    organisaties: 'Gilden, facties en genootschappen',
+    voorwerpen: 'Magische voorwerpen en uitrusting',
+    documenten: 'Brieven, kranten, kaarten en manuscripten',
+  };
+
+  // Unieke subtype-waarden — case-insensitief dedupliceren
+  const _sfSeen = new Map();
+  (entities[type] || []).forEach(e => {
+    const v = (_getEntitySubtypeVal(type, e) || '').trim();
+    if (v && !_sfSeen.has(v.toLowerCase())) _sfSeen.set(v.toLowerCase(), v);
+  });
+  // Blessing en Boon stonden hier samengeknepen onder één verzonnen chip
+  // "Zegeningen & Gunsten", en werden bovendien standaard uit de lijst gehouden.
+  // Dat is een Grisburgh-indeling: het zijn gewone PHB-termen en dus gewone
+  // chips, net als elk ander type.
+  const sfVals = [..._sfSeen.values()].sort((a, b) => a.localeCompare(b, 'nl'));
+  const sfActive = subtypeFilters[type] || '';
+  // Speciale chips per type (los van de auto-verzamelde subtype-waarden)
+  const _specialChips = type === 'locaties'   ? [{ val: '__winkel__', label: `${icon('building')} Winkel` }]
+                      : [];
+  // Alleen zinvol als je er zelf hebt: de speler filtert zijn tabblad terug tot
+  // wat hij gemarkeerd heeft.
+  const _mijnBm = (window.app?.state?.bookmarks || []).filter(b => b.type === type);
+  if (_mijnBm.length) _specialChips.unshift({ val: '__bladwijzer__', label: `★ Bladwijzers` });
+  // Kaartjes die als plaatshouder zijn aangemaakt — vanuit een akte, vanuit een
+  // dungeon — en waar nog niets in staat. Ze zijn er wel, maar ze wachten op
+  // jou; vandaar een eigen chip met de stand erbij. Alleen voor de DM: een
+  // speler ziet ze toch niet (ze staan verborgen).
+  const _concepten = isDM() ? (entities[type] || []).filter(_isConcept).length : 0;
+  if (_concepten) _specialChips.unshift({ val: '__concept__', label: `${icon('pencil')} Onaf ${_concepten}` });
+  // Filterbalk tonen als er een speciale chip is, of als er ≥2 gewone subtype-waarden zijn
+  const _showSf = _specialChips.length > 0 || sfVals.length >= 2;
+
+  container.innerHTML = `
+    <!-- Section banner -->
+    <div class="section-banner section-banner--entity section-banner--${type}">
+      <div class="section-banner-head">
+        <div class="section-banner-icon-wrap">${TYPE_META[type].svgIcon}</div>
+        <div class="section-banner-info">
+          <div class="section-banner-label">${TYPE_META[type].label}</div>
+          <div class="section-banner-desc-line">${DESC[type] || ''}</div>
+        </div>
+        <div class="section-banner-search">
+          <div class="sbs-input-wrap">
+            <span class="sbs-icon">\u2315</span>
+            <input type="text" class="sbs-input search-input"
+              placeholder="Zoek ${TYPE_META[type].label.toLowerCase()}..." value="${esc(searchQueries[type])}"
+              oninput="window._entitySearch('${type}',this.value)">
+          </div>
+          ${_showSf ? `<button class="sf-toggle-btn${sfActive ? ' sf-toggle-btn--active' : ''}" onclick="window._toggleSubtypeBar('${type}')" title="Filter op subtype"><svg width="13" height="11" viewBox="0 0 13 11" fill="currentColor"><polygon points="0,0 13,0 8,5.5 8,11 5,11 5,5.5"/></svg></button>` : ''}
+          <!-- De resultatenteller stond hier; hij telde iets anders dan de
+               ontdekkingsmeter in de kop (die laat zien hoeveel de party van de
+               wereld kent, zónder de spelers zelf) en dat las als een fout. -->
+          ${window._helpBtn?.(type) ?? ''}
+          ${isDM() ? `<button class="sbs-add-btn" onclick="window.app.onFabClick()" title="Nieuw: ${TYPE_META[type].label.toLowerCase()}">${window.icon('plus')}</button>` : ''}
+        </div>
+      </div>
+      <div class="section-banner-rule"><span class="section-banner-ornament">◆</span></div>
+    </div>
+
+    <!-- Subtype filter chips (standaard verborgen, toggle via knop) -->
+    ${_showSf ? `
+    <div class="subtype-filter-bar${sfActive ? '' : ' subtype-filter-bar--hidden'}">
+      <button class="sf-chip${sfActive === '' ? ' sf-chip--active' : ''}" data-sf-val="" onclick="window._entitySubtypeFilter('${type}', null)">Alle</button>
+      ${_specialChips.map(c => `<button class="sf-chip sf-chip--special${sfActive === c.val ? ' sf-chip--active' : ''}" data-sf-val="${esc(c.val)}" onclick="window._entitySubtypeFilter('${type}', this.classList.contains('sf-chip--active') ? null : this.dataset.sfVal)">${c.label}</button>`).join('')}
+      ${sfVals.map(v => `<button class="sf-chip${sfActive === v ? ' sf-chip--active' : ''}" data-sf-val="${esc(v)}" onclick="window._entitySubtypeFilter('${type}', this.classList.contains('sf-chip--active') ? null : this.dataset.sfVal)">${esc(v)}</button>`).join('')}
+    </div>` : ''}
+
+    <!-- Card grid -->
+    <div class="cards-grid${_isTegelType(type) ? ' tegel-raster' : ''} grid grid-cols-[repeat(auto-fill,minmax(280px,1fr))] gap-4 p-6 overflow-y-auto flex-1">
+    </div>
+  `;
+  // Onthoud met welke DM-status deze balk gebouwd is (zie de guard bovenaan): wisselt de
+  // status (inloggen/uitloggen), dan forceert dat een volledige herbouw i.p.v. enkel grid.
+  container.dataset.dmBuilt = String(isDM());
+
+  _refreshGrid(type, list, container);
+
+  // DM: openstaande claim-verzoeken tonen boven de grid
+  if (type === 'voorwerpen') _renderClaimRequests(container);
+
+  window._entitySearch = (t, q) => {
+    searchQueries[t] = q;
+    const filtered = filterEntities(t, entities[t] || []);
+    const c = $(`#section-${t}`);
+    _refreshGrid(t, filtered, c);
+  };
+
+  window._entitySubtypeFilter = (t, subtype) => {
+    subtypeFilters[t] = subtype || null;
+    const filtered = filterEntities(t, entities[t] || []);
+    const c = $(`#section-${t}`);
+    _refreshGrid(t, filtered, c);
+    c.querySelectorAll('.sf-chip').forEach(btn => {
+      btn.classList.toggle('sf-chip--active', btn.dataset.sfVal === (subtype || ''));
+    });
+    // Toon de filterbalk als een filter actief is; update knop
+    const bar = c.querySelector('.subtype-filter-bar');
+    if (bar && subtype) bar.classList.remove('subtype-filter-bar--hidden');
+    const toggleBtn = c.querySelector('.sf-toggle-btn');
+    if (toggleBtn) toggleBtn.classList.toggle('sf-toggle-btn--active', !!subtype);
+  };
+
+  window._toggleSubtypeBar = (type) => {
+    const c = $(`#section-${type}`);
+    c.querySelector('.subtype-filter-bar')?.classList.toggle('subtype-filter-bar--hidden');
+  };
+}
+
+function _sortKey(name) {
+  return (name || '').replace(/^(de|het|'t)\s+/i, '').trim();
+}
+
+function _fitText(el) {
+  el.style.fontSize = '';
+  if (el.scrollWidth <= el.clientWidth) return;
+  for (let size = 13; size >= 9; size--) {
+    el.style.fontSize = size + 'px';
+    if (el.scrollWidth <= el.clientWidth) break;
+  }
+}
+
+function _renderClaimRequests(container) {
+  // Verwijder eventuele bestaande balk
+  container.querySelector('.claim-requests-bar')?.remove();
+  if (!isDM()) return;
+  const pending = (_ownership.requests || []).filter(r => r.status === 'pending');
+  if (pending.length === 0) return;
+
+  const bar = document.createElement('div');
+  bar.className = 'claim-requests-bar';
+  bar.innerHTML = `
+    <div class="claim-requests-title">${icon('mail')} Openstaande claimverzoeken (${pending.length})</div>
+    ${pending.map(r => `
+      <div class="claim-request-row">
+        <span class="claim-request-info">
+          <strong>${esc(r.requesterName)}</strong> wil
+          <em>${esc(r.itemName)}</em> ${r.type === 'trade' ? `ruilen met ${esc(r.targetName || '?')}` : 'claimen'}
+        </span>
+        <div class="claim-request-actions">
+          <button class="claim-btn-approve" onclick="window._itemApproveRequest('${escArg(r.id)}')">${icon('check')} Goedkeuren</button>
+          <button class="claim-btn-reject"  onclick="window._itemRejectRequest('${escArg(r.id)}')">${icon('x')} Weigeren</button>
+        </div>
+      </div>
+    `).join('')}
+  `;
+  // Voeg in vóór de cards-grid
+  const grid = container.querySelector('.cards-grid');
+  if (grid) container.insertBefore(bar, grid);
+}
+
+function _refreshGrid(type, list, container) {
+  // Refresh ook de claim-balk bij grid-update
+  if (type === 'voorwerpen') _renderClaimRequests(container);
+  const grid = container.querySelector('.cards-grid');
+  if (!grid) return;
+  const savedScrollY = window.scrollY;
+  const savedGridScroll = grid.scrollTop; // de grid scrollt intern (overflow-y-auto); anders
+                                          // springt hij naar boven bij bv. een geheim togglen
+  const totalCount = (entities[type] || []).length;
+  const isSearch = !!(searchQueries[type]);
+  grid.innerHTML = list.length === 0 ? `
+    <div class="col-span-full text-center py-20 text-ink-faint">
+      <div class="text-5xl mb-4 opacity-40">${TYPE_META[type].svgIcon}</div>
+      <div class="font-cinzel text-sm font-semibold text-ink-dim mb-1">
+        ${isSearch || totalCount > 0
+          ? `Geen ${TYPE_META[type].label.toLowerCase()} gevonden`
+          : 'Het archief is nog leeg...'}
+      </div>
+      ${!isSearch && totalCount === 0 && isDM()
+        ? `<div class="text-xs font-fell italic mt-1">Gebruik de <span class="font-mono px-1 py-0.5 bg-room-elevated rounded">+</span> knop om iets toe te voegen</div>`
+        : ''}
+    </div>
+  ` : _isTegelType(type) ? _tegelRasterHtml(type, list) : list.map(e => renderCard(type, e)).join('');
+  grid.scrollTop = savedGridScroll; // meteen herstellen (layout is al berekend)
+  if (type === 'locaties') _kaartKnoppenBijwerken(grid);
+  requestAnimationFrame(() => {
+    window.scrollTo(0, savedScrollY);
+    grid.querySelectorAll('[data-fittext]').forEach(_fitText);
+    grid.scrollTop = savedGridScroll; // als láátste, ná fittext (dat celhoogtes kan wijzigen)
+  });
+}
+
+// De kaartjes tilden vroeger met de muis mee (3D-rotatie op mousemove). Het
+// optillen bij hover doet de CSS al (.entity-card:hover); het meekantelen gaf
+// vooral onrust, dus dat is eruit.
+
+export async function renderPersonages() { return renderEntitySection('personages'); }
+export async function renderLocaties() { return renderEntitySection('locaties'); }
+export async function renderOrganisaties() { return renderEntitySection('organisaties'); }
+export async function renderDocumenten()   { return renderEntitySection('documenten'); }
+export async function renderVoorwerpen() {
+  await refreshOwnership();
+  return renderEntitySection('voorwerpen');
+}
+
+// ── Gecodeerde brief ────────────────────────────────────────────────────────
+// Een brief waarvan de tekens door elkaar staan tot de party hem gekraakt
+// heeft. Het ontcijferen gebeurt aan tafel — met een check of met een puzzel
+// in je handen — en de DM bevestigt dat met een knop. Wat hier gebeurt is dus
+// geen puzzel maar een onthulling.
+//
+// De server stuurt tot die tijd alleen de gehusselde tekst; de klare tekst
+// komt pas bij het onthullen mee, samen met de volgorde waarin de tekens
+// stonden. Daarom staat hier nergens een husselfunctie: die zou de brief
+// verraden.
+//
+// **Elk teken in een eigen span.** Dezelfde techniek als bij `knipsel`, en om
+// dezelfde reden: je moet ze los kunnen aanspreken. Dat gebeurt op de
+// gerenderde HTML, alleen tussen de tags door, zodat vet en cursief heel
+// blijven.
+function _codeLetters(html) {
+  return html.replace(/>([^<]+)</g, (heel, tekst) => {
+    const uit = [...tekst].map(ch => /\s/u.test(ch)
+      ? ch
+      : `<span class="brief-teken">${ch === '&' ? '&amp;' : ch}</span>`).join('');
+    return '>' + uit + '<';
+  });
+}
+
+window._codeLetters = _codeLetters;
+
+// Welke tekens meedoen: alles behalve witruimte, precies zoals op de server
+// (`lib/brief-code.js`). Die twee moeten dezelfde regel aanhouden, anders
+// landen de letters naast hun plek.
+const _codeTekens = (wortel) => [...wortel.querySelectorAll('.brief-teken')];
+
+// ── Het ontcijferen ─────────────────────────────────────────────────────────
+// FLIP over twee opmaken heen. Het prototype kon de eerste meting overslaan
+// omdat zijn opmaak nooit veranderde: daar stond de échte tekst al in de DOM
+// en bewogen alleen de glyphs. Hier staat er eerst een andere tekst, en die
+// breekt zijn regels op zijn eigen plekken — in ongeveer een derde van de
+// gevallen anders dan de echte tekst.
+//
+// Dat is geen probleem maar precies waar FLIP voor is: meten waar alles
+// stáát, de tekst omwisselen, meten waar alles hóórt, en het verschil
+// weganimeren. Elke letter vliegt van zijn oude plek naar zijn eigen plek, en
+// de alinea vouwt zichzelf onderweg in de goede vorm.
+//
+// `traag` is het tafelscherm: daar mag het zes seconden duren en moet het van
+// achteren in de zaal te volgen zijn.
+async function _ontcijferBrief(wortel, klareTekst, volgorde, { traag = false } = {}) {
+  if (!wortel || !klareTekst) return;
+  const tempo = traag
+    ? { basis: 1600, reis: 1600, perPx: 2.2, spreiding: 2800, jitter: 600 }
+    : { basis: 700,  reis: 900,  perPx: 1.2, spreiding: 900,  jitter: 250 };
+
+  // 1. Waar staat alles nu?
+  const oud = _codeTekens(wortel);
+  if (!oud.length) return;
+  const doosVoor = wortel.getBoundingClientRect();
+  const posVoor = oud.map(el => {
+    const r = el.getBoundingClientRect();
+    return { x: r.left - doosVoor.left, y: r.top - doosVoor.top };
+  });
+
+  // 2. De echte tekst erin, met dezelfde opmaakregels als altijd.
+  const stijlKnipsel = wortel.dataset.stijl === 'knipsel';
+  let binnen = renderParchment(klareTekst);
+  if (stijlKnipsel) binnen = _knipselLetters(binnen);
+  wortel.innerHTML = _codeLetters(binnen);
+  const nieuw = _codeTekens(wortel);
+  // Zouden de aantallen niet kloppen, dan is er iets grondig mis en is een
+  // scheve animatie erger dan geen: dan staat de brief er gewoon ineens.
+  if (nieuw.length !== oud.length) { wortel.classList.remove('brief-gecodeerd'); return; }
+
+  // 3. Waar hoort alles?
+  const doosNa = wortel.getBoundingClientRect();
+  const posNa = nieuw.map(el => {
+    const r = el.getBoundingClientRect();
+    return { x: r.left - doosNa.left, y: r.top - doosNa.top };
+  });
+
+  // 4. Elke letter terugzetten op de plek waar hij stond, en naar huis laten
+  //    vliegen. `volgorde[k]` zegt op welke plek het k-de teken te zien was.
+  const minder = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const animaties = [];
+  nieuw.forEach((el, k) => {
+    const van = posVoor[volgorde[k]];
+    if (!van) return;
+    const dx = van.x - posNa[k].x, dy = van.y - posNa[k].y;
+    if (minder) {
+      animaties.push(el.animate([{ opacity: 1 }, { opacity: 0, offset: .5 }, { opacity: 1 }], { duration: 500 }));
+      return;
+    }
+    const afstand = Math.hypot(dx, dy);
+    // Een boogje: letters die ver moeten reizen komen hoger. Zonder dit is het
+    // een rechte schuif en ziet het eruit als een tabel die sorteert.
+    const lift = -(14 + Math.min(40, afstand * 0.08));
+    const rot  = ((k * 37) % 100 / 100 - 0.5) * 10;
+    const start = `translate(${dx}px, ${dy}px) rotate(${rot}deg)`;
+    const mid   = `translate(${dx / 2}px, ${dy / 2 + lift}px) rotate(${rot / 3}deg)`;
+    const duur  = tempo.basis + Math.min(tempo.reis, afstand * tempo.perPx);
+    const wacht = (k / nieuw.length) * tempo.spreiding + Math.random() * tempo.jitter;
+    el.style.transform = start;
+    animaties.push(el.animate(
+      [{ transform: start }, { transform: mid, offset: .55 }, { transform: 'translate(0,0) rotate(0deg)' }],
+      { duration: duur, delay: wacht, easing: 'cubic-bezier(.55,.05,.25,1)', fill: 'forwards' },
+    ));
+  });
+
+  await Promise.all(animaties.map(a => a.finished.catch(() => {})));
+  for (const el of nieuw) { el.getAnimations().forEach(a => a.cancel()); el.style.transform = ''; }
+  wortel.classList.remove('brief-gecodeerd');
+  wortel.setAttribute('aria-label', '');
+}
+
+// Het document op het gedeelde scherm leggen. Hetzelfde pad als de snelle
+// post, dus het zegel breekt en de opmaak klopt; is hij gecodeerd, dan komt
+// hij onleesbaar aan en vliegen de letters pas bij het ontcijferen.
+window._briefNaarTafel = async (id) => {
+  try {
+    const r = await api.post(`/entities/documenten/${id}/tafelscherm`, {});
+    window._showToast?.(`${icon('monitor')} Op het tafelscherm${r.gecodeerd ? ' — nog gecodeerd' : ''}.`);
+  } catch (e) { alert('Naar het tafelscherm sturen mislukt: ' + e.message); }
+};
+
+// De DM bevestigt dat de party hem gekraakt heeft. Pas hier komt de klare
+// tekst van de server, en vliegen de letters naar hun plek.
+window._briefOntcijfer = async (id) => {
+  try {
+    const r = await api.post(`/entities/documenten/${id}/ontcijfer`, {});
+    // De DM ziet de klare tekst al, dus bij hem valt er niets te animeren.
+    // Het effect is voor de spelers en voor het tafelscherm, en dat loopt via
+    // de socket.
+    window._showToast?.(`${icon('eye')} De brief is ontcijferd voor deze party.`);
+  } catch (e) { alert('Ontcijferen mislukt: ' + e.message); }
+};
+
+// Bij de spelers komt het binnen over de socket. Staat de brief open, dan
+// vliegen de letters voor hun neus; staat hij dicht, dan is hij gewoon
+// leesbaar als ze hem openen.
+window._briefOntcijferd = async ({ id, tekst, volgorde, tafel } = {}) => {
+  // Drie plekken waar dezelfde brief kan staan: het kaartje, het vergrote
+  // blad, en de brief op het tafelscherm. Alle drie dezelfde animatie.
+  const tafelBlad = document.getElementById('brief-cinematic-tekst');
+  const bladen = [
+    document.getElementById(`perkament-${id}`),
+    document.getElementById('perk-kolommen'),
+    (tafelBlad && (!tafelBlad.dataset.doc || tafelBlad.dataset.doc === id)) ? tafelBlad : null,
+  ].filter(Boolean);
+  for (const wortel of bladen) {
+    if (wortel.classList.contains('brief-gecodeerd')) {
+      await _ontcijferBrief(wortel, tekst, volgorde, { traag: !!tafel });
+    }
+  }
+};
+
+// Geeft de subtype-waarde terug die gebruikt wordt voor filteren per type
+// ── Perkamentweergave ───────────────────────────────────────────────────────
+// De reden dat een brief een brief is en geen tekstvak. Twee eigen regels boven
+// op markdown: `---titel---` maakt van de volgende regel een kop en
+// `--handtekening--` van de volgende regel een ondertekening; `---` alleen is
+// een scheidingslijn. Verhuisd uit render-archief.js toen documenten kaartjes
+// werden.
+function renderParchment(text) {
+  if (!text) return '';
+  const lines = text.split('\n');
+  let html = '';
+  let i = 0;
+  while (i < lines.length) {
+    const line = lines[i];
+    if (line.trim() === '---titel---' && i + 1 < lines.length) {
+      html += `<div class="parch-title">${mdToHtml(lines[i + 1])}</div>`;
+      i += 2; continue;
+    }
+    if (/^---\s*$/.test(line.trim())) {
+      html += '<hr class="parch-rule">';
+      i++; continue;
+    }
+    if (line.trim() === '--handtekening--' && i + 1 < lines.length) {
+      html += `<div class="parch-sig">${mdToHtml(lines[i + 1])}</div>`;
+      i += 2; continue;
+    }
+    // De korte vorm op één regel, `--De Havenmeester--`: zo schrijft iemand
+    // die de markeerregel niet kent een ondertekening ook, en dan stonden de
+    // streepjes er letterlijk onder de brief.
+    const sig = line.trim().match(/^--\s*([^-].*?[^-]|[^-])\s*--$/);
+    if (sig && sig[1] !== 'titel' && sig[1] !== 'handtekening') {
+      html += `<div class="parch-sig">${mdToHtml(sig[1])}</div>`;
+      i++; continue;
+    }
+    html += `<span>${mdToHtml(line)}</span><br>`;
+    i++;
+  }
+  return html;
+}
+
+// Brieven (berichten van de DM) gebruiken dezelfde weergave als documenten.
+window.renderParchment = renderParchment;
+
+// Een dreigbrief is geplakt uit krantenletters. Dat is geen lettertype maar een
+// opmaak per teken: elk letterteken krijgt zijn eigen vlakje, met een vaste
+// (niet-willekeurige) variatie op basis van de tekencode — anders springt de
+// brief bij elke hertekening alle kanten op.
+function _knipselLetters(html) {
+  let t = 0;
+  return html.replace(/>([^<]+)</g, (heel, tekst) => {
+    // Per woord een omhulsel dat niet mag afbreken: losse letters zijn
+    // inline-blokken, en zonder dit knipt de regelval midden in een woord.
+    const uit = tekst.split(/(\s+)/).map(deel => {
+      if (!deel.trim()) return deel;
+      const letters = [...deel].map((ch) => {
+        const n = (ch.charCodeAt(0) + (t++) * 7) % 6;
+        return `<span class="knip knip--${n}">${ch === '&' ? '&amp;' : ch}</span>`;
+      }).join('');
+      return `<span class="knip-woord">${letters}</span>`;
+    }).join('');
+    return `>${uit}<`;
+  });
+}
+
+// ── De brief op ware grootte ────────────────────────────────────────────────
+// Zelfde gebaar als bij een afbeelding: klikken maakt het groot. Beslaat de
+// tekst meer dan één vel, dan blader je erdoorheen. Het bladeren is gratis
+// meegekomen met CSS-kolommen: je geeft het vel een vaste hoogte en breedte,
+// `column-fill: auto` vult vel voor vel, en het aantal bladen is niets anders
+// dan de totale breedte gedeeld door één vel. Geen tekst opmeten, geen
+// handmatige afbreekpunten.
+let _perkPagina = 0;
+
+window._perkamentGroot = (id) => {
+  const e = (entities.documenten || []).find(x => x.id === id);
+  if (!e?.data?.tekst) return;
+  const stijl = _docStijl(e);
+  let binnen = renderParchment(e.data.tekst);
+  if (stijl === 'knipsel') binnen = _knipselLetters(binnen);
+  // Vergroot geldt dezelfde regel als in het venster: zolang deze party hem
+  // niet gekraakt heeft staan de tekens door elkaar.
+  const codeAan = !!e.data?.gecodeerd && !isDM() && e._gecodeerd;
+  if (codeAan) binnen = _codeLetters(binnen);
+
+  document.getElementById('perkament-overlay')?.remove();
+  const ov = document.createElement('div');
+  ov.id = 'perkament-overlay';
+  ov.className = 'perk-overlay';
+  ov.innerHTML = `
+    <div class="perk-achtergrond" onclick="window._perkamentSluit()"></div>
+    <button class="perk-sluit" onclick="window._perkamentSluit()" title="Sluiten (Esc)">${icon('x')}</button>
+    <div class="perk-podium">
+      <button class="perk-pijl perk-pijl--links" onclick="window._perkamentBlad(-1)" title="Vorig blad">\u2039</button>
+      <div class="perk-blad" data-stijl="${esc(stijl)}">
+        <div class="perk-viewport"><div class="perk-kolommen${codeAan ? ' brief-gecodeerd' : ''}"
+          id="perk-kolommen" data-stijl="${esc(stijl)}"
+          ${codeAan ? 'aria-label="Gecodeerde brief, nog niet leesbaar"' : ''}>${binnen}</div></div>
+      </div>
+      <button class="perk-pijl perk-pijl--rechts" onclick="window._perkamentBlad(1)" title="Volgend blad">\u203a</button>
+    </div>
+    <div class="perk-voet"><span class="perk-titel">${esc(e.name)}</span><span class="perk-teller" id="perk-teller"></span></div>`;
+  document.body.appendChild(ov);
+  // Bladeren met een veeg; de pijltjestoetsen deden dit al.
+  window._veegNavigatie?.(ov, {
+    vorige:   () => window._perkamentBlad(-1),
+    volgende: () => window._perkamentBlad(1),
+    toetsen:  false,
+  });
+  _perkPagina = 0;
+  // Bewust géén requestAnimationFrame: die staat stil in een tabblad dat niet
+  // op de voorgrond is, en dan blijft de brief onzichtbaar. Eén gedwongen
+  // layout is genoeg om de opacity-overgang te laten lopen.
+  void ov.offsetWidth;
+  ov.classList.add('perk-overlay--in');
+  _perkamentMeten();
+  document.addEventListener('keydown', _perkamentToets);
+};
+
+function _perkamentMeten() {
+  const kol = document.getElementById('perk-kolommen');
+  const vp  = kol?.parentElement;
+  if (!kol || !vp) return;
+  // `column-width` neemt geen percentage; met `100%` viel de kolomindeling stil
+  // en werd de tekst gewoon afgeknipt. Dus in pixels, na het meten van het vel.
+  kol.style.columnWidth = `${vp.clientWidth}px`;
+  const stap = vp.clientWidth + parseFloat(getComputedStyle(kol).columnGap || 0);
+  const totaal = Math.max(1, Math.round(kol.scrollWidth / stap));
+  kol.dataset.bladen = String(totaal);
+  kol.dataset.stap   = String(stap);
+  _perkamentToon();
+}
+
+function _perkamentToon(metOmslag = false) {
+  const kol = document.getElementById('perk-kolommen');
+  if (!kol) return;
+  const totaal = +kol.dataset.bladen || 1;
+  const stap   = +kol.dataset.stap   || 0;
+  _perkPagina = Math.min(Math.max(_perkPagina, 0), totaal - 1);
+  kol.style.transform = `translateX(${-_perkPagina * stap}px)`;
+  const teller = document.getElementById('perk-teller');
+  if (teller) teller.textContent = totaal > 1 ? `Blad ${_perkPagina + 1} van ${totaal}` : '';
+  document.querySelectorAll('.perk-pijl').forEach(b => b.classList.toggle('perk-pijl--uit', totaal < 2));
+  document.querySelector('.perk-pijl--links')?.toggleAttribute('disabled', _perkPagina === 0);
+  document.querySelector('.perk-pijl--rechts')?.toggleAttribute('disabled', _perkPagina >= totaal - 1);
+  // Het omslaan: het vel kantelt even weg en komt terug. Alleen bij een échte
+  // bladwissel — bij het openen stond de brief anders meteen scheef. Puur decor,
+  // dus uit zodra iemand bewegende beelden liever niet heeft.
+  const blad = metOmslag ? document.querySelector('.perk-blad') : null;
+  if (blad) { blad.classList.remove('perk-blad--om'); void blad.offsetWidth; blad.classList.add('perk-blad--om'); }
+}
+
+window._perkamentBlad = (richting) => {
+  const kol = document.getElementById('perk-kolommen');
+  const totaal = +(kol?.dataset.bladen) || 1;
+  const nieuw = Math.min(Math.max(_perkPagina + richting, 0), totaal - 1);
+  const wissel = nieuw !== _perkPagina;
+  _perkPagina = nieuw;
+  _perkamentToon(wissel);
+};
+
+window._perkamentSluit = () => {
+  const ov = document.getElementById('perkament-overlay');
+  document.removeEventListener('keydown', _perkamentToets);
+  if (!ov) return;
+  ov.classList.remove('perk-overlay--in');
+  setTimeout(() => ov.remove(), 220);
+};
+
+function _perkamentToets(ev) {
+  if (ev.key === 'Escape')     { ev.stopPropagation(); window._perkamentSluit(); }
+  if (ev.key === 'ArrowLeft')  window._perkamentBlad(-1);
+  if (ev.key === 'ArrowRight') window._perkamentBlad(1);
+}
+
+window.addEventListener('resize', () => { if (document.getElementById('perk-kolommen')) _perkamentMeten(); });
+
+// Een document kan een pdf-scan of een geluidsfragment als bestand hebben. Een
+// afbeelding staat al bovenaan als hero, dus die slaan we hier over. De HEAD
+// zegt of er überhaupt iets is: bij een vaag document geeft de server niets.
+async function _docBestandLaden(id) {
+  const host = document.getElementById(`doc-bestand-${id}`);
+  if (!host) return;
+  const url = `/api/files/${id}`;
+  try {
+    const head = await fetch(url, { method: 'HEAD' });
+    if (!head.ok) { host.style.display = 'none'; return; }
+    const ct = head.headers.get('content-type') || '';
+    if (ct.includes('audio')) {
+      host.innerHTML = `<div class="bg-room-elevated rounded-lg p-4">
+        <div class="detail-label mb-2">${icon('volume-2')} Geluidsfragment</div>
+        <audio controls class="w-full" src="${url}"></audio>
+      </div>`;
+    } else if (ct.includes('pdf')) {
+      await _pdfViewer(host, url);
+    } else {
+      host.style.display = 'none';   // afbeelding: de hero toont hem al
+    }
+  } catch { host.style.display = 'none'; }
+}
+
+async function _pdfViewer(container, url) {
+  const pdf = await window.pdfjsLib.getDocument(url).promise;
+  container.innerHTML = '<div class="flex flex-col gap-3"></div>';
+  const stack = container.firstElementChild;
+  for (let i = 1; i <= pdf.numPages; i++) {
+    const page = await pdf.getPage(i);
+    const scale = container.clientWidth / page.getViewport({ scale: 1 }).width;
+    const viewport = page.getViewport({ scale });
+    const canvas = document.createElement('canvas');
+    canvas.width = viewport.width;
+    canvas.height = viewport.height;
+    canvas.className = 'w-full rounded border border-room-border cursor-pointer hover:border-gold-dim transition';
+    await page.render({ canvasContext: canvas.getContext('2d'), viewport }).promise;
+    canvas.addEventListener('click', () => window.app.openLightbox(canvas.toDataURL(), `Pagina ${i}`));
+    stack.appendChild(canvas);
+  }
+}
+
+const _docGroep = (docType) => {
+  if (!docType) return '';
+  const g = DOC_TYPE_GROEPEN.find(gr => gr.opties.some(o => o.value === docType));
+  return g ? g.groep : 'Overig';
+};
+
+function _getEntitySubtypeVal(type, e) {
+  if (type === 'locaties')     return e.data?.wijk     || '';
+  if (type === 'organisaties') return e.data?.orgType  || '';
+  if (type === 'voorwerpen')   return e.data?.itemType || '';
+  // Documenten filteren op de gróép, niet op het exacte type: zestien chips
+  // waarvan de helft één kaartje dekt is geen filter maar een inhoudsopgave.
+  // Het exacte type staat als badge op het kaartje. Dit is dezelfde indeling die
+  // vroeger `cat` heette (brieven/pers/kaarten/codex/audio).
+  if (type === 'documenten')   return _docGroep(e.data?.docType);
+  return e.subtype || '';
+}
+
+// Een plaatshouder: aangemaakt vanuit een akte of een dungeon, nog niet
+// bewaard door de DM. De vlag verdwijnt zodra hij het kaartje opslaat. We
+// kijken ook naar "leeg en onaangeraakt", zodat kaartjes van vóór deze vlag
+// meetellen zolang er echt niets in staat.
+function _isConcept(e) {
+  if (e?.data?.concept === 'true' || e?.data?.concept === true) return true;
+  return false;
+}
+
+function filterEntities(type, list) {
+  const q  = searchQueries[type];
+  const sf = subtypeFilters[type] || null;
+  let filtered = list;
+  // ── Zegeningen en gunsten staan in het Heldenboek ──
+  // Ze zijn en blijven voorwerp-kaartjes: de tempel leidt zijn pantheon eruit
+  // af, een factie geeft ze als rangbeloning, ze staan in de boedel en ze
+  // blijven onverkoopbaar. Alleen de plek waar je ze zóékt is verhuisd — met
+  // 98 van de 249 waren ze hier de grootste groep terwijl niemand ze hier
+  // zocht.
+  //
+  // Alleen deze lijst: de winkel, de boedel, de tempel en elke doorklik gaan
+  // langs hun eigen weg en zien ze gewoon.
+  if (type === 'voorwerpen' && !q) {
+    filtered = filtered.filter(e => !['Blessing', 'Boon'].includes(e?.data?.itemType));
+  }
+  // Score per kaartje bewaren: die bepaalt straks de volgorde. Zonder dit werd
+  // er alleen gefilterd en bleef de alfabetische volgorde staan — dan stond een
+  // kaartje dat de naam in zijn beschrijving noemt vóór het kaartje zelf.
+  let scores = null;
+  if (q) {
+    const tokens = _searchTokens(q);
+    scores = new Map();
+    filtered = filtered.filter(e => {
+      const sc = _searchScore(e, tokens);
+      if (sc >= 0) scores.set(e.id, sc);
+      return sc >= 0;
+    });
+  }
+  if (sf === '__concept__') {
+    filtered = filtered.filter(_isConcept);
+  } else if (sf === '__bladwijzer__') {
+    const bmIds = new Set((window.app?.state?.bookmarks || []).map(b => b.id));
+    filtered = filtered.filter(e => bmIds.has(e.id));
+  } else if (sf === '__winkel__' && type === 'locaties') {
+    filtered = filtered.filter(e => e.data?.locType === 'Winkel');
+  } else if (sf) {
+    filtered = filtered.filter(e => _getEntitySubtypeVal(type, e) === sf);
+  }
+  return filtered.slice().sort((a, b) => {
+    // Tijdens het zoeken wint de treffer: naam vóór beschrijving. Bij gelijke
+    // score valt hij terug op de gewone volgorde hieronder.
+    if (scores) {
+      const verschil = (scores.get(b.id) || 0) - (scores.get(a.id) || 0);
+      if (verschil) return verschil;
+    }
+    if (type === 'locaties') {
+      const wa = a.data?.wijk || '';
+      const wb = b.data?.wijk || '';
+      // Locaties zonder wijk komen achteraan
+      if (wa !== wb) {
+        if (!wa) return 1;
+        if (!wb) return -1;
+        return wa.localeCompare(wb, 'nl', { sensitivity: 'base' });
+      }
+    }
+    return _sortKey(a.name).localeCompare(_sortKey(b.name), 'nl', { sensitivity: 'base' });
+  });
+}
+
+// Normaliseer een rariteit (NL/EN) naar een sleutel voor de visuele behandeling.
+function _rarityKey(r) {
+  if (!r) return '';
+  const map = {
+    'common': 'common', 'gewoon': 'common',
+    'uncommon': 'uncommon', 'ongewoon': 'uncommon',
+    'rare': 'rare', 'zeldzaam': 'rare',
+    'very rare': 'very-rare', 'zeer zeldzaam': 'very-rare',
+    'legendary': 'legendary', 'legendarisch': 'legendary',
+    'artifact': 'legendary', 'artefact': 'legendary',
+  };
+  return map[String(r).trim().toLowerCase()] || '';
+}
+// De Markt vraagt hem ook (de treffers kleuren op zeldzaamheid) en zat in een
+// ander bestand; zonder deze regel kwam daar stil een lege kleur uit.
+window._rarityKey = _rarityKey;
+
+// Toon-label voor rariteit altijd in het Engels (PHB-term); valt terug op de
+// opgeslagen waarde bij een onbekende/eigen rariteit.
+const _RARITY_EN = { common: 'Common', uncommon: 'Uncommon', rare: 'Rare', 'very-rare': 'Very Rare', legendary: 'Legendary' };
+function _rarityLabel(r) {
+  if (!r) return '';
+  return _RARITY_EN[_rarityKey(r)] || String(r);
+}
+
+function renderCard(type, e) {
+  const vis = e._visibility || 'visible';
+
+  // ── Player vague card: name visible, content hidden behind overlay ──
+  if (!isDM() && vis === 'vague') {
+    return `
+      <div class="entity-card card-vague">
+        <div class="card-accent bar-${type}" style="opacity:0.5"></div>
+        <div class="card-img-wrap">
+          <img class="card-img w-full object-cover" loading="lazy" alt="" src="${api.thumbForEntity(e)}"
+            style="${e.data?.imgFocus ? `object-position:${e.data.imgFocus}` : ''}"
+            onerror="this.closest('.entity-card').classList.add('no-img')">
+          <div class="card-vague-overlay">?</div>
+        </div>
+        <div class="card-body px-4 py-3">
+          <span class="card-name">${esc(e.name)}</span>
+          <span class="card-name-sep"></span>
+          <div class="text-[10px] text-ink-faint font-fell italic">— onbekend —</div>
+        </div>
+      </div>
+    `;
+  }
+
+  const rol     = e.data?.rol || '';
+  const _rarKey = type === 'voorwerpen' ? _rarityKey(e.data?.rariteit) : '';
+  const _itemMeta = type === 'voorwerpen'
+    ? [_rarityLabel(e.data?.rariteit), (e.data?.attunement === 'true' || e.data?.attunement === true) ? 'Attunement' : null].filter(Boolean).join(' · ')
+    : null;
+  // Het documenttype staat al als badge op het kaartje (zie getSubtypeBadge),
+  // net als bij een voorwerp; hier zou het een tweede keer staan.
+  const metaText = [e.data?.locType, e.data?.orgType, _itemMeta, e.data?.domein, e.data?.ras, e.data?.klasse].filter(Boolean).join(' \u00b7 ');
+  const badges  = getCardBadges(type, e);
+  const desc = e.data?.desc || '';
+  // Flavour is een lijst geworden; het kaartje toonde nog alleen het oude
+  // enkelvoudige veld. Nu alle regels die deze kijker mag zien, met pijltjes
+  // erdoorheen (de DM ziet ook wat nog niet verteld is, lichter).
+  const _flavRegels = _tekstLijstUit(e.data, 'flavours', 'flavour');
+  const _flavGezegd = _roddelStand(e, _flavRegels);
+  const _flavTonen = _flavRegels
+    .map((tekst, i) => ({ tekst, gezegd: _flavGezegd[i], geplantDoor: e._roddels?.[i]?.geplantDoor || null }))
+    .filter(r => r.tekst && (isDM() || r.gezegd));
+
+  const chips = [];
+  if (e.links) {
+    const npc = (e.links.personages || []).slice(0, 1);
+    const loc = (e.links.locaties   || []).slice(0, 1);
+    // Max 2 chips: eerst 1 personage + 1 locatie; ontbreekt één soort, pak 2 van de andere
+    const npcShow = npc.length ? npc : (e.links.personages || []).slice(0, 2 - loc.length);
+    const locShow = loc.length ? loc : (e.links.locaties   || []).slice(0, 2 - npcShow.length);
+    const combined = [
+      ...npcShow.map(n => `<span class="chip chip-npc" data-name="${esc(n)}" onclick="event.stopPropagation();window._navigateTo('personages',this.dataset.name)">\ud83d\udc64 ${esc(n)}</span>`),
+      ...locShow.map(n => `<span class="chip chip-loc" data-name="${esc(n)}" onclick="event.stopPropagation();window._navigateTo('locaties',this.dataset.name)">\ud83c\udff0 ${esc(n)}</span>`),
+    ];
+    chips.push(...combined.slice(0, 2));
+  }
+
+  // ── Armor AC — vooraf berekend zodat overlay én chips het resultaat kunnen gebruiken ──
+  const _cardAcr     = (type === 'voorwerpen') ? _calcArmorAC(e.data, null) : null;
+  const _cardStealth = e.data?.stealthDisadvantage === true || e.data?.stealthDisadvantage === 'true';
+  const _cardStrReq  = parseInt(e.data?.strengthRequirement) || 0;
+
+  // ── DM toggle icon / title — 3-state for personages + locaties ──
+  const _threeState = ['personages', 'locaties', 'organisaties', 'documenten'].includes(type);
+  const _visIcon  = vis === 'visible' ? icon('eye')
+                  : vis === 'vague'   ? icon('eye-off')
+                  :                    icon('lock');
+  const _visTitle = vis === 'visible' ? 'Verbergen  ·  Shift: vaag tonen'
+                  : vis === 'vague'   ? 'Volledig tonen  ·  Shift: vaag houden'
+                  : _threeState       ? 'Zichtbaar maken  ·  Shift: vaag tonen'
+                  :                    'Zichtbaar maken';
+
+  const _goddelijkType = (type === 'voorwerpen' && e.data?.itemType === 'Blessing') ? (e.data?.goddelijkType || '') : '';
+  const _isBoon = (type === 'voorwerpen' && e.data?.itemType === 'Boon');
+  // Spelerskaarten (protagonisten) krijgen een vergulde, beschermde uitstraling — hun
+  // portret/filmpje wordt overal hergebruikt, dus de kaart staat visueel boven NPC's.
+  const _isProtagonist = type === 'personages' && (e.subtype === 'speler');
+  return `
+    <div class="entity-card${e._beeld === false ? ' no-img' : ''}${vis === 'hidden' && isDM() ? ' card-hidden' : ''}${vis === 'vague' && isDM() ? ' card-vague-dm' : ''}${e._deceased ? ' card-deceased' : ''}${_goddelijkType ? ` card-goddelijk card-goddelijk--${_goddelijkType}` : ''}${_isBoon ? ' card-boon' : ''}${_isProtagonist ? ' card-protagonist' : ''}${isDM() && _isConcept(e) ? ' card-concept' : ''}"${_rarKey ? ` data-rarity="${_rarKey}"` : ''}${_isProtagonist ? ' data-protagonist="true"' : ''}
+      onclick="window._openDetail('${type}','${e.id}')">
+      ${_glansHtml(type, e, _rarKey)}
+      ${_houdingBalkHtml(type, e)}
+      ${isDM() ? `
+        <div class="dm-only absolute top-7 right-2 z-30 flex flex-col gap-1">
+          <button class="w-7 h-7 flex items-center justify-center rounded bg-black/75 hover:bg-black/95 backdrop-blur-sm transition text-xs text-white shadow ring-1 ring-white/20"
+            onclick="event.stopPropagation();window._toggleVis('${type}','${e.id}',event)"
+            title="${_visTitle}">
+            ${_visIcon}
+          </button>
+          <button class="w-7 h-7 flex items-center justify-center rounded bg-black/75 hover:bg-black/95 backdrop-blur-sm transition text-xs text-white shadow ring-1 ring-white/20"
+            onclick="event.stopPropagation();window._openEditor('${type}','${e.id}')"
+            title="Bewerken">${icon('pencil')}</button>
+          <button class="w-7 h-7 flex items-center justify-center rounded bg-black/75 hover:bg-red-700/90 backdrop-blur-sm transition text-xs text-white shadow ring-1 ring-white/20"
+            onclick="event.stopPropagation();window._deleteEntity('${type}','${e.id}')"
+            title="Verwijderen">${icon('x')}</button>
+        </div>
+      ` : ''}
+      <!-- Voor de DM stond hier een slotje dat vertelde of het geheim uit was.
+           Dat sloeg nergens meer op zodra een kaartje meerdere geheimen kan
+           hebben; onthullen gaat nu per geheim in het detailvenster. Voor de
+           speler is het gebleven, maar als pill bij de andere badges: linksboven
+           lag hij precies op de bladwijzerknop. -->
+      ${!isDM() && window.app?.state?.characterId ? (() => {
+        const _bms = window.app?.state?.bookmarks || [];
+        const _bmActive = _bms.some(b => b.id === e.id);
+        return `<button class="card-bookmark-btn${_bmActive ? ' card-bookmark-btn--active' : ''}"
+          onclick="event.stopPropagation();window._toggleBookmark(this.dataset.btype,this.dataset.bid,this.dataset.bname)"
+          data-btype="${esc(type)}" data-bid="${esc(e.id)}" data-bname="${esc(e.name)}"
+          title="${_bmActive ? 'Bladwijzer verwijderen' : 'Bladwijzer toevoegen'}">
+          ${_bmActive ? '★' : '☆'}
+        </button>`;
+      })() : ''}
+      <div class="card-accent bar-${type}"></div>
+      <!-- Niet vooraf op 'geen afbeelding' zetten: een verborgen <img loading=lazy>
+           laadt nooit, en dan blijft élk kaartje beeldloos. De lege strook tot de
+           404 binnen is nemen we voor lief. -->
+      <div class="card-img-wrap">
+        <img class="card-img w-full object-cover" loading="lazy" alt="" src="${api.thumbForEntity(e)}"
+          style="${e.data?.imgFocus ? `object-position:${e.data.imgFocus}` : ''}"
+          onerror="this.style.display='none';this.closest('.entity-card').classList.add('no-img')">
+        <div class="card-img-fade"></div>
+        ${(badges.length || (!isDM() && e._secretReveal)) ? `<div class="card-badges card-badges--beeld">
+          ${!isDM() && e._secretReveal ? `<span class="card-geheim-pill" title="Er is een geheim over dit kaartje onthuld">${icon('eye')} Geheim onthuld</span>` : ''}
+          ${badges.length ? `<div class="card-badges-rij">${badges.map(b => `<span class="card-subtype-badge ${b.cls}">${esc(b.label)}</span>`).join('')}</div>` : ''}
+        </div>` : ''}
+        ${type === 'locaties' ? `<button class="card-map-btn hidden" data-mapbtn="${esc(e.id)}"
+          onclick="event.stopPropagation();window._toonOpKaart('${escArg(e.id)}', this.dataset.mapid || '')"
+          title="Toon op kaart">${icon('map-pin')}</button>` : ''}
+        ${type === 'voorwerpen' ? (() => {
+          const _d = String(e.data?.damage || '').trim();
+          const _isHeal = _d && /heal|genez/i.test(_d);
+          const _h = String(e.data?.healing || '').trim() || (_isHeal ? _d : '');
+          const _p = [];
+          if (_d && !_isHeal) _p.push(`<button class="card-damage-pill"
+            onclick="event.stopPropagation();window.dice?.rollFlash('${escArg(_d)}','${escArg(e.name)}')"
+            title="Gooi ${escJS(_d)}">${icon('dice',{cls:'icon-gi'})} ${esc(_d)}</button>`);
+          if (_h) _p.push(`<button class="card-damage-pill card-damage-pill--heal"
+            onclick="event.stopPropagation();window.dice?.rollFlash('${escArg(_h)}','${escArg(e.name)}','heal')"
+            title="Gooi ${escJS(_h)}">${icon('heart',{cls:'icon-gi'})} ${esc(_h)}</button>`);
+          return _p.join('');
+        })() : ''}
+        ${_cardAcr ? `<span class="card-armor-ac-pill" title="${escJS(_cardAcr.tooltip)}">${esc(_cardAcr.pill)}</span>` : ''}
+        ${e._gockOnderzocht ? `<span class="card-gock-badge" title="Onderzocht door De Gock">${icon('search')}</span>` : ''}
+      </div>
+      <div class="card-body px-3 pt-2 pb-2">
+        ${badges.length ? `<div class="card-badges card-badges--los">${badges.map(b => `<span class="card-subtype-badge ${b.cls}">${esc(b.label)}</span>`).join('')}</div>` : ''}
+        ${(() => {
+          // Zonder afbeelding staan schade en AC hier; met afbeelding liggen ze
+          // erover en verbergt de CSS deze rij.
+          const _los = [];
+          if (type === 'voorwerpen') {
+            const _d = String(e.data?.damage || '').trim();
+            const _isHeal = _d && /heal|genez/i.test(_d);
+            const _h = String(e.data?.healing || '').trim() || (_isHeal ? _d : '');
+            if (_d && !_isHeal) _los.push(`<button class="card-damage-pill"
+              onclick="event.stopPropagation();window.dice?.rollFlash('${escArg(_d)}','${escArg(e.name)}')"
+              title="Gooi ${escJS(_d)}">${icon('dice',{cls:'icon-gi'})} ${esc(_d)}</button>`);
+            if (_h) _los.push(`<button class="card-damage-pill card-damage-pill--heal"
+              onclick="event.stopPropagation();window.dice?.rollFlash('${escArg(_h)}','${escArg(e.name)}','heal')"
+              title="Gooi ${escJS(_h)}">${icon('heart',{cls:'icon-gi'})} ${esc(_h)}</button>`);
+          }
+          if (_cardAcr) _los.push(`<span class="card-armor-ac-pill" title="${escJS(_cardAcr.tooltip)}">${esc(_cardAcr.pill)}</span>`);
+          return _los.length ? `<div class="card-doen--los">${_los.join('')}</div>` : '';
+        })()}
+        <div class="mb-1.5">
+          <!-- Het kruisje staat voor "overleden" en hoort dus bij een persoon.
+               Een organisatie kan ook weg zijn (opgeheven, verboden), en een
+               locatie verwoest — maar daar leest een dagger als een grafsteen
+               bij een gebouw. Die houden hun gedempte kaart en hun markering in
+               het detailvenster; alleen de dagger valt weg. -->
+          <span class="card-name block" data-fittext>${esc(e.name)}${e._deceased && type === 'personages' ? '<span class="card-name-dagger">†</span>' : ''}</span>
+          ${(rol || metaText) ? `<span class="card-name-sep"></span>
+          <div class="card-meta">
+            ${rol      ? `<span class="card-meta-rol">${esc(rol)}</span>` : ''}
+            ${rol && metaText ? `<span class="card-meta-dot"> · </span>` : ''}
+            ${metaText ? `<span class="card-meta-sub">${esc(metaText)}</span>` : ''}
+          </div>` : ''}
+        </div>
+        ${desc ? `<p class="text-xs text-ink-medium line-clamp-4 mb-1 font-crimson leading-relaxed">${mdToHtml(desc)}</p>` : ''}
+        ${(() => {
+          if (type !== 'voorwerpen') return '';
+          const _props = (() => { try { return JSON.parse(e.data?.weaponProperties || '[]'); } catch { return []; } })();
+          const _wpHtml = _props.length ? `<div class="card-weapon-props">${_props.map(p => { const _base = p.replace(/\s*\(.*\)$/, '').trim(); const _tip = WEAPON_PROPERTIES[p] || WEAPON_PROPERTIES[_base] || ''; return `<span class="card-weapon-tag"${_tip ? ` data-wptip="${escJS(_tip)}"` : ''}>${esc(p)}</span>`; }).join('')}</div>` : '';
+          const _arHtml = (_cardStealth || _cardStrReq) ? `<div class="card-weapon-props">
+            ${_cardStealth ? `<span class="card-armor-tag card-armor-tag--stealth" data-wptip="You have disadvantage on Dexterity (Stealth) checks while wearing this armor.">Stealth ↓</span>` : ''}
+            ${_cardStrReq  ? `<span class="card-armor-tag card-armor-tag--str" data-wptip="Your speed is reduced by 10 feet unless you have a Strength score of ${_cardStrReq} or higher.">Str ${_cardStrReq}</span>` : ''}
+          </div>` : '';
+          return _wpHtml + _arHtml;
+        })()}
+        <!-- relatie-chips verborgen (code bewaard); vervangen door wikilinks in beschrijving -->
+        <!-- ${chips.length ? `<div class="flex flex-wrap gap-1">${chips.join('')}</div>` : ''} -->
+      </div>
+      ${_flavTonen.length ? (() => {
+        _flavCache[e.id] = _flavTonen;
+        const eerste = _flavTonen[0];
+        return `
+        <div class="flavour-preview${isDM() && !eerste.gezegd ? ' flavour-preview--ongespoken' : ''}" id="flav-${esc(e.id)}">
+          ${e.data?.audioId ? `<button type="button" class="flavour-audio-btn" data-audio-btn data-audio-btn-id="${esc(e.data.audioId)}" onclick="event.stopPropagation();window._audioToggle('${escArg(e.data.audioId)}')" title="Sfeer afspelen">▶</button>` : ''}
+          <span class="flavour-preview-text">\u201e${esc(_flavKort(eerste.tekst))}\u201c</span>
+          ${_flavTonen.length > 1 ? `
+            <button type="button" class="flavour-preview-nav"
+              onclick="event.stopPropagation();window._flavStap('${escArg(e.id)}')"
+              title="Volgende roddel">1/${_flavTonen.length} \u203a</button>` : ''}
+        </div>`;
+      })() : ''}
+      ${type === 'voorwerpen' ? _itemOwnershipBadge(e.id) : ''}
+    </div>
+  `;
+}
+
+// ── Tegels: een raster van postzegels dat je openklapt ──────────────────────
+// Het archief toonde per kaartje beeld, badges, vier regels beschrijving,
+// roddels en wapenlabels tegelijk — alles stond er, en daarom zag je niets.
+// Een tegel heeft drie standen:
+//   1. dicht   — beeld en naam, in een raster van kleine kaartjes;
+//   2. open    — tik erop en hij wordt 2×2 groot, en elke volgende tik draait
+//                hem om naar het volgende blad (gegevens, beschrijving,
+//                roddels, geheimen);
+//   3. venster — het knopje onderaan vergroot hem tot het hele detailvenster,
+//                en bij het sluiten krimpt dat weer terug naar de tegel.
+// Een blad zonder inhoud bestaat niet: wie geen roddels heeft, heeft geen
+// roddelblad, en een speler ziet dus ook niet dát er nog iets dicht zit.
+//
+// Spelers houden hun favorieten op een **stapel** linksboven, die uitwaaiert
+// tot een eigen rij. De DM heeft geen favorieten.
+//
+// Begonnen bij de personages; de andere tabbladen volgen dit patroon
+// (`TEGEL_TYPES`).
+const TEGEL_TYPES = new Set(['personages', 'locaties', 'organisaties', 'voorwerpen', 'documenten']);
+const _tegelOpen = {};          // type → id van de tegel die open staat
+const _tegelBlad = {};          // id → bladindex
+const _stapelUit = {};          // type → favorieten uitgewaaierd?
+
+const _isTegelType = (type) => TEGEL_TYPES.has(type);
+window._isTegelType = _isTegelType;
+
+function _stapelStandLees(type) {
+  if (type in _stapelUit) return _stapelUit[type];
+  try { _stapelUit[type] = localStorage.getItem('stapelUit:' + type) === '1'; } catch { _stapelUit[type] = false; }
+  return _stapelUit[type];
+}
+function _stapelStandZet(type, uit) {
+  _stapelUit[type] = uit;
+  try { localStorage.setItem('stapelUit:' + type, uit ? '1' : '0'); } catch { /* geen opslag, dan maar deze sessie */ }
+}
+
+const _favIds = (type) => new Set((window.app?.state?.bookmarks || []).filter(b => b.type === type).map(b => b.id));
+
+// De bladen van één kaartje, in de vaste volgorde. Elk blad heeft een soort
+// (voor de opmaak en het bolletje) en de html die erin komt.
+function _tegelBladen(type, e) {
+  const d = e.data || {};
+  const bladen = [{ soort: 'portret', label: 'Portret' }];
+
+  // Blad 2: de gegevens — per kaartsoort andere velden, zie `_tegelGegevens`.
+  const gegevens = _tegelGegevens(type, e);
+  if (gegevens) bladen.push({ soort: 'gegevens', label: 'Gegevens', html: gegevens });
+
+  if (d.desc) bladen.push({ soort: 'beschrijving', label: 'Beschrijving', tekst: d.desc,
+    html: `<div class="tegel-tekst">${mdToHtml(d.desc)}</div>` });
+
+  // Een document heeft daarnaast zijn eigen tekst, in zijn eigen briefstijl.
+  // Gecodeerd en nog niet gekraakt: de tekens door elkaar, net als in het venster.
+  if (type === 'documenten' && d.tekst) {
+    const stijl = _docStijl(e);
+    let binnen = renderParchment(d.tekst);
+    if (stijl === 'knipsel') binnen = _knipselLetters(binnen);
+    const codeAan = !!d.gecodeerd && !isDM() && e._gecodeerd;
+    if (codeAan) binnen = _codeLetters(binnen);
+    bladen.push({ soort: 'tekst', label: 'Tekst', tekst: codeAan ? '' : d.tekst,
+      html: `<div class="parchment-block tegel-perkament-tekst${codeAan ? ' brief-gecodeerd' : ''}" data-stijl="${esc(stijl)}">${binnen}</div>` });
+  }
+
+  // Roddels: de speler krijgt alleen wat verteld is, de DM alles — wat nog
+  // niet verteld is gedimd, zoals in het venster.
+  const rRegels = _tekstLijstUit(d, 'flavours', 'flavour');
+  const rGezegd = _roddelStand(e, rRegels);
+  const roddels = rRegels.map((t, i) => ({ t, aan: !!rGezegd[i] })).filter(r => r.t && (isDM() || r.aan));
+  if (roddels.length) bladen.push({ soort: 'roddels', label: 'Roddels', tekst: roddels.map(r => r.t).join(' '),
+    html: `<ul class="tegel-regels">${roddels.map(r => `<li class="tegel-regel${r.aan ? '' : ' tegel-regel--dicht'}"
+      ${r.aan ? '' : 'title="Nog niet verteld"'}>„${esc(r.t)}“</li>`).join('')}</ul>` });
+
+  // Geheimen: dezelfde regels als het venster (zie de toelichting daar).
+  const gObj = _geheimRegelsUit(d);
+  const gOpen = !isDM() ? gObj.map(() => true)
+    : Array.isArray(e._onthuld) ? gObj.map((_, i) => !!e._onthuld[i])
+    : gObj.map((_, i) => !!e._secretReveal && i === 0);
+  const geheimen = gObj.map((r, i) => ({ t: r.tekst, aan: gOpen[i] })).filter(r => r.t && (isDM() || r.aan));
+  if (geheimen.length) bladen.push({ soort: 'geheimen', label: 'Geheimen', tekst: geheimen.map(r => r.t).join(' '),
+    html: `<ul class="tegel-regels">${geheimen.map(r => `<li class="tegel-regel${r.aan ? '' : ' tegel-regel--dicht'}">
+      ${r.aan ? '' : `<span class="tegel-slot" title="Nog dicht voor deze party">${icon('lock')}</span>`}${mdToHtml(r.t)}</li>`).join('')}</ul>` });
+  return bladen;
+}
+
+const _BLAD_ICOON = { portret: 'image', gegevens: 'clipboard-list', beschrijving: 'book-open', tekst: 'scroll-text', roddels: 'beer', geheimen: 'lock' };
+
+// Wat er op het gegevensblad staat, per kaartsoort. Labels zijn D&D-termen waar
+// die bestaan (Origin, Class, Alignment, Requires Attunement). Zonder rijen geen
+// blad: een locatie zonder type, gebied en betrokkenen heeft niets te melden.
+function _tegelGegevens(type, e) {
+  const d = e.data || {};
+  const rijen = [];                       // [label, waarde, extra klasse]
+  let lijst = [], lijstKop = '';
+  // Badges alleen bij personages (NPC, Antagonist, Verkoper): bij de andere
+  // soorten herhaalt de badge het type of het gebied, en dat staat al als rij.
+  const badges = type === 'personages' ? getCardBadges(type, e) : [];
+  if (type === 'personages') {
+    const isGod = String(e.subtype || '').toLowerCase().startsWith('god');
+    const isDier = String(e.subtype || '').toLowerCase() === 'dier';
+    if (d.rol) rijen.push(['', d.rol, 'tegel-gegeven--rol']);
+    if (isDier && d.soortLabel) rijen.push(['Ras', d.soortLabel]);
+    if (!isGod && !isDier && d.ras) rijen.push(['Origin', d.ras]);
+    if (!isGod && !isDier && d.klasse) rijen.push(['Class', d.klasse]);
+    if (isGod && d.domein) rijen.push(['Domein', d.domein]);
+    if (isGod && d.symbool) rijen.push(['Heilig symbool', d.symbool]);
+    if (d.alignment) rijen.push(['Alignment', d.alignment]);
+  } else if (type === 'locaties') {
+    if (d.locType) rijen.push(['Type', d.locType]);
+    if (d.wijk) rijen.push(['Gebied', d.wijk]);
+  } else if (type === 'organisaties') {
+    if (d.motto) rijen.push(['', `\u201e${d.motto}\u201c`, 'tegel-gegeven--rol']);
+    if (d.orgType) rijen.push(['Type', d.orgType]);
+    if (d.wijk) rijen.push(['Gebied', d.wijk]);
+  } else if (type === 'voorwerpen') {
+    if (d.itemType) rijen.push(['Type', d.itemType]);
+    if (d.rariteit) rijen.push(['Rarity', _rarityLabel(d.rariteit)]);
+    if (d.attunement === true || d.attunement === 'true')
+      rijen.push(['Attunement', d.attunementEis ? `Requires Attunement by ${d.attunementEis}` : 'Requires Attunement']);
+    const dmg = String(d.damage || '').trim();
+    const heal = String(d.healing || '').trim() || (/heal|genez/i.test(dmg) ? dmg : '');
+    if (dmg && !/heal|genez/i.test(dmg)) rijen.push(['Damage', dmg]);
+    if (heal) rijen.push(['Healing', heal]);
+    const acr = _calcArmorAC(d, null);
+    if (acr) rijen.push(['Armor Class', acr.pill]);
+    if (parseInt(d.maxCharges) > 0) rijen.push(['Charges', String(parseInt(d.maxCharges))]);
+    const props = (() => { try { return JSON.parse(d.weaponProperties || '[]'); } catch { return []; } })();
+    if (props.length) rijen.push(['Properties', props.join(', ')]);
+    if (d.stealthDisadvantage === true || d.stealthDisadvantage === 'true') rijen.push(['Stealth', 'Disadvantage']);
+    if (parseInt(d.strengthRequirement)) rijen.push(['Strength', String(parseInt(d.strengthRequirement))]);
+  } else if (type === 'documenten') {
+    if (d.docType) rijen.push(['Type', d.docType]);
+  }
+  // Wie hier bij hoort (locatie, organisatie) — wat de speler niet kent komt
+  // van de server zonder naam, dus dat staat er als "onbekend".
+  if (type === 'locaties' || type === 'organisaties') {
+    lijst = _betrokkenenUit(d).slice(0, 5).map(r => ({ rol: r.rol, naam: r.onbekend ? 'onbekend' : (r.naam || '') }));
+    lijstKop = type === 'locaties' ? 'Wie hoort hier bij?' : 'Leden';
+  }
+  const hoort = (Array.isArray(e._hoortBij) ? e._hoortBij : []).slice(0, 4);
+  if (!rijen.length && !badges.length && !hoort.length && !lijst.length) return '';
+  const regels = (kop, items) => items.length ? `<div class="tegel-kopje">${esc(kop)}</div>
+    <ul class="tegel-hoort">${items.map(r => `<li><span class="tegel-hoort-rol">${esc(r.rol || '')}</span> ${esc(r.naam || r.name || '')}</li>`).join('')}</ul>` : '';
+  return `
+    ${badges.length ? `<div class="tegel-badges">${badges.map(b => `<span class="card-subtype-badge ${b.cls}">${esc(b.label)}</span>`).join('')}</div>` : ''}
+    ${rijen.length ? `<dl class="tegel-gegevens">${rijen.map(([k, v, cls]) => k
+      ? `<div class="tegel-gegeven"><dt>${esc(k)}</dt><dd>${esc(v)}</dd></div>`
+      : `<div class="tegel-gegeven ${cls || ''}"><dd>${esc(v)}</dd></div>`).join('')}</dl>` : ''}
+    ${regels(lijstKop, lijst)}
+    ${regels(_hoortBijKop(type), hoort)}`;
+}
+
+// Het icoon dat een tegel zonder beeld draagt, en dat bij een locatie ook als
+// merkje boven de naam staat: een haven ziet er anders uit dan een woud.
+function _tegelIcoon(type, e) {
+  // Een locatie zonder eigen teken krijgt het icoon van zijn type uit
+  // LOC_TYPE_ICOON — hetzelfde als de speld op de kaart.
+  if (type === 'locaties' && !e.data?.icoon && !e.data?.icon) return window._locIcoon(e.data?.locType);
+  return getAutoIconSvg(type, e) || TYPE_META[type].svgIcon;
+}
+
+// De ondertitel op het portretblad.
+function _tegelOndertitel(type, e) {
+  const d = e.data || {};
+  if (type === 'personages') return d.rol || '';
+  if (type === 'locaties') return [d.locType, d.wijk].filter(Boolean).join(' · ');
+  if (type === 'organisaties') return d.motto ? `\u201e${d.motto}\u201c` : (d.orgType || '');
+  if (type === 'voorwerpen') return [d.itemType, d.rariteit ? _rarityLabel(d.rariteit) : ''].filter(Boolean).join(' · ');
+  if (type === 'documenten') return d.docType || '';
+  return '';
+}
+
+// Een document zonder plaatje krijgt een mini-perkamentje in zijn eigen
+// briefstijl, met de titel erop: dan zie je al aan de tegel of het een brief,
+// een krantenknipsel of een getypt verslag is.
+function _tegelPerkament(type, e) {
+  if (type !== 'documenten' || e._beeld !== false) return '';
+  const stijl = _docStijl(e);
+  const titel = stijl === 'knipsel' ? _knipselLetters(`<p>${esc(e.name)}</p>`) : `<p>${esc(e.name)}</p>`;
+  return `<div class="tegel-perkament parchment-block" data-stijl="${esc(stijl)}" aria-hidden="true">
+    <span>${titel}</span></div>`;
+}
+
+function _tegelKlassen(type, e, extra = '') {
+  const vis = e._visibility || 'visible';
+  return ['entity-card', 'tegel', extra,
+    vis === 'hidden' && isDM() ? 'card-hidden' : '',
+    vis === 'vague' && isDM() ? 'card-vague-dm' : '',
+    e._deceased ? 'card-deceased' : '',
+    type === 'personages' && e.subtype === 'speler' ? 'card-protagonist' : '',
+    isDM() && _isConcept(e) ? 'card-concept' : '',
+  ].filter(Boolean).join(' ');
+}
+
+function _tegelDmKnoppen(type, e, { voet = false } = {}) {
+  if (!isDM()) return '';
+  const vis = e._visibility || 'visible';
+  const ico = vis === 'visible' ? icon('eye') : vis === 'vague' ? icon('eye-off') : icon('lock');
+  return `<div class="tegel-dm" onclick="event.stopPropagation()">
+    <button onclick="window._toggleVis('${type}','${escArg(e.id)}',event)" title="Zichtbaarheid  ·  Shift: vaag">${ico}</button>
+    <button onclick="window._openEditor('${type}','${escArg(e.id)}')" title="Bewerken">${icon('pencil')}</button>
+    ${voet ? '' : `<button class="tegel-dm-weg" onclick="window._deleteEntity('${type}','${escArg(e.id)}')" title="Verwijderen">${icon('x')}</button>`}
+  </div>`;
+}
+
+// De houding (DM): een knop in de voetbalk die een verticaal schuifje opent —
+// hetzelfde balkje als op het oude kaartje, met de namen van de treden ernaast.
+// `_houdingZet` doet de rest (direct zien, na een korte stilte opslaan).
+function _tegelHoudingKnop(type, e) {
+  const balk = _houdingBalkHtml(type, e);
+  if (!balk) return '';
+  const h = _HOUDING_TABEL.get(Number(e._houding));
+  const treden = [..._HOUDING_TABEL.values()].slice().reverse();
+  return `<div class="tegel-houding">
+    <button class="tegel-knop tegel-houding-knop" title="Houding${h ? ': ' + esc(h.naam) : ''}"
+      style="--houding-kleur:${h?.glans?.kleur || '#c4a87a'}"
+      onclick="event.stopPropagation();this.parentElement.classList.toggle('is-open')">${icon('heart')}</button>
+    <div class="tegel-houding-paneel" onclick="event.stopPropagation()">
+      <div class="tegel-houding-kop">Houding</div>
+      <div class="tegel-houding-rij">
+        ${balk}
+        <ol class="tegel-houding-namen">${treden.map(t => `<li>${esc(t.naam)}</li>`).join('')}</ol>
+      </div>
+    </div>
+  </div>`;
+}
+
+function _tegelSter(type, e, fav) {
+  if (isDM() || !window.app?.state?.characterId) return '';
+  return `<button class="tegel-ster${fav ? ' is-aan' : ''}" title="${fav ? 'Uit je favorieten' : 'Bij je favorieten'}"
+    onclick="event.stopPropagation();window._tegelFavoriet('${type}','${escArg(e.id)}')">${fav ? '★' : '☆'}</button>`;
+}
+
+function _tegelBeeld(e, cls = 'tegel-img') {
+  return `<img class="${cls}" loading="lazy" src="${api.thumbForEntity(e)}" alt=""
+    style="${e.data?.imgFocus ? `object-position:${esc(e.data.imgFocus)}` : ''}"
+    onerror="this.closest('.tegel')?.classList.add('no-img');this.remove()">`;
+}
+
+// Eén tegel, dicht of open. Een vaag kaartje (speler) blijft altijd dicht:
+// daar valt niets om te draaien.
+function _tegelHtml(type, e, { fav = false } = {}) {
+  const sleutel = `data-sleutel="${esc(e.id)}" data-id="${esc(e.id)}" data-type="${type}"`;
+  if (!isDM() && (e._visibility || 'visible') === 'vague') {
+    return `<div class="entity-card tegel card-vague" ${sleutel}>
+      <div class="card-accent bar-${type}"></div>
+      ${_tegelBeeld(e)}<div class="card-vague-overlay">?</div>
+      <div class="tegel-naamband"><span class="card-name" data-fittext>${esc(e.name)}</span></div>
+    </div>`;
+  }
+  const open = _tegelOpen[type] === e.id;
+  const klik = `onclick="window._tegelKlik('${type}','${escArg(e.id)}')"
+    onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();window._tegelKlik('${type}','${escArg(e.id)}')}"`;
+  const rol = _tegelOndertitel(type, e);
+  const rar = type === 'voorwerpen' ? _rarityKey(e.data?.rariteit) : '';
+  const acr = type === 'voorwerpen' ? _calcArmorAC(e.data, null) : null;
+  const perk = _tegelPerkament(type, e);
+  if (!open) {
+    return `<div class="${_tegelKlassen(type, e, fav ? 'tegel--favoriet' : '')}" ${sleutel} role="button" tabindex="0" ${klik}
+      title="${esc(e.name)}"${rar ? ` data-rarity="${rar}"` : ''}>
+      ${_glansHtml(type, e, rar)}
+      <div class="card-accent bar-${type}"></div>
+      <span class="tegel-icoon" aria-hidden="true">${_tegelIcoon(type, e)}</span>
+      ${perk || _tegelBeeld(e)}
+      ${e._gevangen ? `<span class="tegel-tralies" title="Gevangene van de party" aria-hidden="true"></span>` : ''}
+      ${fav ? '<span class="tegel-lint" aria-hidden="true"></span>' : ''}
+      ${acr ? `<span class="card-armor-ac-pill tegel-ac" title="${esc(acr.tooltip)}">${esc(acr.pill)}</span>` : ''}
+      <div class="tegel-naamband">${type === 'locaties' ? `<span class="tegel-merk" title="${esc(e.data?.locType || '')}">${_tegelIcoon(type, e)}</span>` : ''}<span class="card-name" data-fittext>${esc(e.name)}${e._deceased && type === 'personages' ? '<span class="card-name-dagger">†</span>' : ''}</span></div>
+      ${_tegelSter(type, e, fav)}
+      ${_tegelDmKnoppen(type, e)}
+    </div>`;
+  }
+  const bladen = _tegelBladen(type, e);
+  const i = Math.min(_tegelBlad[e.id] || 0, bladen.length - 1);
+  return `<div class="${_tegelKlassen(type, e, 'tegel--open' + (fav ? ' tegel--favoriet' : ''))}" ${sleutel} role="button" tabindex="0" ${klik}
+    aria-label="${esc(e.name)}, blad ${i + 1} van ${bladen.length}"${rar ? ` data-rarity="${rar}"` : ''}>
+    <div class="card-accent bar-${type}"></div>
+    <span class="tegel-icoon" aria-hidden="true">${_tegelIcoon(type, e)}</span>
+    ${perk || _tegelBeeld(e)}
+    ${fav ? '<span class="tegel-lint" aria-hidden="true"></span>' : ''}
+    <div class="tegel-blad" data-soort="${bladen[i].soort}">${_tegelBladInhoud(e, bladen[i], rol)}</div>
+    <div class="tegel-voet" onclick="event.stopPropagation()">
+      <div class="tegel-punten">${_tegelPijl(-1, `window._tegelStap('${type}','${escArg(e.id)}',-1)`, i, bladen.length)}${bladen.map((b, j) => `<button class="tegel-punt${j === i ? ' is-aan' : ''}"
+        title="${esc(b.label)}" onclick="window._tegelNaar('${type}','${escArg(e.id)}',${j})">${icon(_BLAD_ICOON[b.soort] || 'square')}</button>`).join('')}${_tegelPijl(1, `window._tegelStap('${type}','${escArg(e.id)}',1)`, i, bladen.length)}</div>
+      ${_tegelSter(type, e, fav)}
+      ${_tegelHoudingKnop(type, e)}
+      ${_tegelDmKnoppen(type, e, { voet: true })}
+      <button class="tegel-knop" title="Het hele kaartje" onclick="window._tegelVergroot('${type}','${escArg(e.id)}')">${icon('maximize-2')}</button>
+      <button class="tegel-knop" title="Kleiner" onclick="window._tegelDicht('${type}')">${icon('minimize-2')}</button>
+    </div>
+  </div>`;
+}
+
+function _tegelBladInhoud(e, blad, rol) {
+  if (blad.soort === 'portret') {
+    return `<div class="tegel-naamband tegel-naamband--groot">
+      <span class="card-name">${esc(e.name)}${e._deceased ? '<span class="card-name-dagger">†</span>' : ''}</span>
+      ${rol ? `<span class="tegel-ondertitel">${esc(rol)}</span>` : ''}</div>`;
+  }
+  return `<div class="tegel-vel">
+    <div class="tegel-vel-kop">${icon(_BLAD_ICOON[blad.soort] || 'square')} ${esc(blad.label)}<span class="tegel-vel-naam">${esc(e.name)}</span>
+      ${e._beeld === false ? '' : `<img class="tegel-vel-portret" src="${api.thumbForEntity(e)}" alt="" style="${e.data?.imgFocus ? `object-position:${esc(e.data.imgFocus)}` : ''}" onerror="this.remove()">`}</div>
+    <div class="tegel-vel-tekst">${blad.html}</div>
+  </div>`;
+}
+
+// De stapel favorieten: drie kaartjes schuin over elkaar, met het aantal.
+function _stapelHtml(type, favs, uit) {
+  const boven = favs.slice(0, 3);
+  return `<div class="tegel-stapel${uit ? ' is-uit' : ''}" data-sleutel="__stapel__" role="button" tabindex="0"
+    title="${uit ? 'Favorieten terug op de stapel' : 'Favorieten uitwaaieren'}"
+    onclick="window._stapelKlik('${type}')"
+    onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();window._stapelKlik('${type}')}">
+    <div class="tegel-stapel-kaarten">
+      ${boven.map((e, i) => `<div class="tegel-stapel-kaart" style="--n:${i}">${_tegelBeeld(e, 'tegel-stapel-img')}</div>`).reverse().join('')}
+    </div>
+    <div class="tegel-stapel-label">
+      <span class="tegel-stapel-aantal">${favs.length}</span>
+      <span>Favorieten</span>
+      <span class="tegel-stapel-pijl">${icon(uit ? 'chevron-left' : 'chevron-right')}</span>
+    </div>
+  </div>`;
+}
+
+// Wat er in het raster komt, in volgorde. De stapel staat er alleen als er
+// favorieten zijn en er niet gezocht of gefilterd wordt: een filter is een
+// vraag, en dan wil je het antwoord in zijn gewone volgorde.
+function _tegelRasterHtml(type, list) {
+  const favs = _favIds(type);
+  const stapelMag = !isDM() && favs.size && !searchQueries[type] && !subtypeFilters[type];
+  if (!stapelMag) return list.map(e => _tegelHtml(type, e, { fav: favs.has(e.id) })).join('');
+  const fav = list.filter(e => favs.has(e.id));
+  if (!fav.length) return list.map(e => _tegelHtml(type, e)).join('');
+  const rest = list.filter(e => !favs.has(e.id));
+  const uit = _stapelStandLees(type);
+  return _stapelHtml(type, fav, uit)
+    + (uit ? fav.map(e => _tegelHtml(type, e, { fav: true })).join('') : '')
+    + rest.map(e => _tegelHtml(type, e)).join('');
+}
+
+// ── FLIP: meten, veranderen, terugrekenen ──────────────────────────────────
+// Het raster springt bij elke verandering in één keer naar zijn nieuwe vorm.
+// FLIP (First, Last, Invert, Play) maakt daar een beweging van: meet waar
+// elke tegel stond, teken het nieuwe raster, meet waar hij nu staat, en speel
+// het verschil terug met de Web Animations API. Tegels worden op hun
+// `data-sleutel` herkend, want het raster wordt opnieuw opgebouwd en dan is
+// elk element nieuw. Wat er eerst niet was, vliegt in vanaf `vanaf` (de stapel).
+function _flip(grid, mutate, { vanaf = null } = {}) {
+  const voor = new Map();
+  grid.querySelectorAll(':scope > [data-sleutel]').forEach(el => voor.set(el.dataset.sleutel, el.getBoundingClientRect()));
+  mutate();
+  const rustig = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+  if (rustig) return;
+  let n = 0;
+  grid.querySelectorAll(':scope > [data-sleutel]').forEach(el => {
+    let a = voor.get(el.dataset.sleutel);
+    const nieuw = !a;
+    if (nieuw) { if (!vanaf) return; a = vanaf; }
+    const b = el.getBoundingClientRect();
+    if (!b.width || !b.height) return;
+    const dx = a.left - b.left, dy = a.top - b.top, sx = a.width / b.width, sy = a.height / b.height;
+    if (!nieuw && Math.abs(dx) < 1 && Math.abs(dy) < 1 && Math.abs(sx - 1) < 0.01 && Math.abs(sy - 1) < 0.01) return;
+    // Een tegel die naar een andere rij overspringt, zou schuin over het hele
+    // raster vliegen — dwars door de rest heen. Die vervaagt ter plekke en
+    // verschijnt op zijn nieuwe plek, met een klein duwtje uit de richting
+    // waar hij vandaan kwam. Alleen wat binnen zijn rij schuift, schuift.
+    const overstap = !nieuw && Math.abs(dy) > 4 && Math.abs(dx) > b.width * 1.5 && Math.abs(sx - 1) < 0.01;
+    if (overstap) {
+      el.animate([
+        { transform: `translateX(${dx > 0 ? 24 : -24}px) scale(.92)`, opacity: 0 },
+        { transform: 'none', opacity: 1 },
+      ], { duration: 300, delay: 90, easing: 'cubic-bezier(.2,.75,.25,1)', fill: 'backwards' });
+      return;
+    }
+    el.animate([
+      { transformOrigin: 'top left', transform: `translate(${dx}px,${dy}px) scale(${sx},${sy})`, opacity: nieuw ? 0.2 : 1 },
+      { transformOrigin: 'top left', transform: 'none', opacity: 1 },
+    ], { duration: nieuw ? 420 : 340, delay: nieuw ? 45 * n++ : 0, easing: 'cubic-bezier(.2,.75,.25,1)', fill: 'backwards' });
+  });
+}
+
+function _tegelHerteken(type, opts) {
+  const c = $(`#section-${type}`);
+  const grid = c?.querySelector('.cards-grid');
+  if (!grid) return;
+  const list = filterEntities(type, entities[type] || []);
+  _flip(grid, () => _refreshGrid(type, list, c), opts);
+}
+
+// Welk blad hoort bij een zoekterm? Staat het woord in een roddel, dan open
+// je op het roddelblad — dat is waar je naar zocht.
+function _bladVoorZoekterm(type, bladen) {
+  const q = window._normSearch?.(searchQueries[type] || '') || '';
+  if (!q) return 0;
+  const i = bladen.findIndex(b => b.tekst && window._normSearch(b.tekst).includes(q));
+  return i > 0 ? i : 0;
+}
+
+window._tegelKlik = (type, id) => {
+  if (_tegelOpen[type] !== id) {
+    const e = (entities[type] || []).find(x => x.id === id);
+    _tegelOpen[type] = id;
+    _tegelBlad[id] = e ? _bladVoorZoekterm(type, _tegelBladen(type, e)) : 0;
+    _tegelHerteken(type);
+    // Breng hem in beeld als hij onderaan uitklapt.
+    setTimeout(() => document.querySelector(`#section-${type} .tegel[data-sleutel="${CSS.escape(id)}"]`)
+      ?.scrollIntoView({ block: 'nearest', behavior: 'smooth' }), 360);
+    return;
+  }
+  const e = (entities[type] || []).find(x => x.id === id);
+  if (!e) return;
+  const n = _tegelBladen(type, e).length;
+  window._tegelNaar(type, id, ((_tegelBlad[id] || 0) + 1) % n);
+};
+
+// Omdraaien: een kwartslag weg, het nieuwe blad erin, een kwartslag terug.
+window._tegelNaar = async (type, id, i) => {
+  const el = document.querySelector(`#section-${type} .tegel--open[data-sleutel="${CSS.escape(id)}"]`);
+  const e = (entities[type] || []).find(x => x.id === id);
+  if (!el || !e) return;
+  const bladen = _tegelBladen(type, e);
+  const vorige = _tegelBlad[id] || 0;
+  _tegelBlad[id] = Math.max(0, Math.min(bladen.length - 1, i));
+  if (_tegelBlad[id] === vorige) return;
+  await _draai(el, _tegelBlad[id] > vorige ? 1 : -1, () => {
+    const blad = el.querySelector('.tegel-blad');
+    const b = bladen[_tegelBlad[id]];
+    blad.dataset.soort = b.soort;
+    blad.innerHTML = _tegelBladInhoud(e, b, _tegelOndertitel(type, e));
+    el.querySelectorAll('.tegel-punt').forEach((p, j) => p.classList.toggle('is-aan', j === _tegelBlad[id]));
+    el.setAttribute('aria-label', `${e.name}, blad ${_tegelBlad[id] + 1} van ${bladen.length}`);
+  });
+};
+
+// Bladeren met de pijltjes: één stap vanaf het blad dat nu open ligt. Een vast
+// nummer in de knop zou verouderen — de voet wordt bij het bladeren niet
+// opnieuw getekend, alleen het blad.
+window._tegelStap = (type, id, d) => window._tegelNaar(type, id, (_tegelBlad[id] || 0) + d);
+
+// ‹ en › links en rechts van de blad-icoontjes, zoals de bladerkaart in het
+// Heldenboek. Gedeeld met het bestiarium en de spreuken (window._tegelPijl).
+function _tegelPijl(kant, onclick, i, n) {
+  const uit = kant < 0 ? i <= 0 : i >= n - 1;
+  return `<button class="tegel-pijl" data-kant="${kant}" title="${kant < 0 ? 'Vorige' : 'Volgende'}"
+    aria-label="${kant < 0 ? 'Vorig blad' : 'Volgend blad'}"${uit ? ' disabled' : ''}
+    onclick="${onclick}">${icon(kant < 0 ? 'chevron-left' : 'chevron-right')}</button>`;
+}
+window._tegelPijl = _tegelPijl;
+
+window._tegelDicht = (type) => {
+  if (!_tegelOpen[type]) return;
+  _tegelOpen[type] = null;
+  _tegelHerteken(type);
+};
+
+// Het venster groeit uit de tegel en krimpt er bij het sluiten weer in. Dat
+// doet `.modal` zelf, met een transform van de rechthoek van de tegel naar
+// zijn eigen rechthoek; `closeModal` in app.js wacht op de weg terug als
+// `window._modalSluitAnimatie` gezet is.
+function _naarRect(el, r) {
+  const m = el.getBoundingClientRect();
+  if (!m.width || !r.width) return null;
+  const dx = (r.left + r.width / 2) - (m.left + m.width / 2);
+  const dy = (r.top + r.height / 2) - (m.top + m.height / 2);
+  return `translate(${dx}px,${dy}px) scale(${r.width / m.width},${r.height / m.height})`;
+}
+// Algemeen, zodat het bestiarium (een eigen bestand met een eigen venster) het
+// ook kan: `tegel()` geeft het element terug, `open()` opent het venster, en
+// `nogHier()` zegt bij het sluiten of het venster nog over déze tegel gaat.
+// Een eigen venster (het spreukdetail) geeft `venster` en `waas` mee en krijgt
+// de sluitanimatie via `haak` terug, in plaats van via de haak van closeModal.
+async function _vensterUitTegel(tegel, open, nogHier = () => true, {
+  venster = '#modal-overlay .modal', waasSel = '#modal-overlay',
+  haak = (fn) => { window._modalSluitAnimatie = fn; },
+} = {}) {
+  const r0 = tegel()?.getBoundingClientRect();
+  await open();
+  const modal = document.querySelector(venster);
+  const rustig = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+  if (!modal || !r0 || rustig) return;
+  const van = _naarRect(modal, r0);
+  const waas = document.querySelector(waasSel);
+  if (van) {
+    modal.animate([{ transform: van, opacity: 0.4 }, { transform: 'none', opacity: 1 }],
+      { duration: 380, easing: 'cubic-bezier(.2,.8,.2,1)' });
+    waas?.animate([{ backgroundColor: 'rgba(60,40,10,0)' }, {}], { duration: 380 });
+  }
+  haak(() => {
+    if (!nogHier()) return null;
+    const r1 = tegel()?.getBoundingClientRect();
+    const naar = r1 && _naarRect(modal, r1);
+    if (!naar) return null;
+    // `fill: forwards` houdt hem klein tot het venster echt dicht is; anders
+    // staat hij één beeldje lang weer op volle grootte.
+    const a = modal.animate([{ transform: 'none', opacity: 1 }, { transform: naar, opacity: 0.3 }],
+      { duration: 300, easing: 'cubic-bezier(.5,0,.75,.4)', fill: 'forwards' });
+    const w = waas?.animate([{}, { backgroundColor: 'rgba(60,40,10,0)', backdropFilter: 'blur(0px)' }],
+      { duration: 300, fill: 'forwards' });
+    return a.finished.then(() => setTimeout(() => { a.cancel(); w?.cancel(); }, 400));
+  });
+}
+window._tegelVensterUit = _vensterUitTegel;
+
+window._tegelVergroot = (type, id) => _vensterUitTegel(
+  () => document.querySelector(`#section-${type} .tegel[data-sleutel="${CSS.escape(id)}"]`),
+  () => window._openDetail(type, id),
+  () => window._currentDetailId === id);
+
+// Bladeren: het blad schuift opzij en het volgende komt van de andere kant
+// binnen — zoals de bladerkaart in het Heldenboek. Het was een kwartslag
+// omdraaien van de hele tegel; schuiven leest rustiger en hoort bij pijltjes.
+// Alleen het blad beweegt, het beeld eronder blijft liggen. `kant` is de
+// richting (1 = vooruit). Daarna kloppen de pijltjes weer met waar je bent.
+async function _draai(el, kant, wissel) {
+  const rustig = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+  const blad = () => el.querySelector('.tegel-blad');
+  if (!rustig) await blad()?.animate([{ transform: 'translateX(0)', opacity: 1 },
+    { transform: `translateX(${-35 * kant}%)`, opacity: 0 }], { duration: 160, easing: 'ease-in' }).finished.catch(() => {});
+  wissel();
+  const punten = [...el.querySelectorAll('.tegel-punt')];
+  const i = punten.findIndex(p => p.classList.contains('is-aan'));
+  el.querySelectorAll('.tegel-pijl').forEach(p => {
+    p.disabled = p.dataset.kant === '-1' ? i <= 0 : i >= punten.length - 1;
+  });
+  if (!rustig) blad()?.animate([{ transform: `translateX(${35 * kant}%)`, opacity: 0 },
+    { transform: 'translateX(0)', opacity: 1 }], { duration: 260, easing: 'cubic-bezier(.3,.8,.3,1)' });
+}
+window._tegelDraai = _draai;
+window._tegelFlip = (grid, mutate, opts) => _flip(grid, mutate, opts);
+
+window._stapelKlik = async (type) => {
+  const c = $(`#section-${type}`);
+  const grid = c?.querySelector('.cards-grid');
+  const stapel = grid?.querySelector('.tegel-stapel');
+  if (!grid || !stapel) return;
+  const uit = !_stapelStandLees(type);
+  const vanaf = stapel.getBoundingClientRect();
+  if (!uit) {
+    // Terug op de stapel: eerst vliegen ze erin, dan schuift de rest omhoog.
+    const favs = [...grid.querySelectorAll('.tegel--favoriet')];
+    const rustig = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+    if (!rustig) await Promise.all(favs.map((el, i) => {
+      const b = el.getBoundingClientRect();
+      return el.animate([{ transform: 'none', opacity: 1 },
+        { transformOrigin: 'top left', transform: `translate(${vanaf.left - b.left}px,${vanaf.top - b.top}px) scale(${vanaf.width / b.width},${vanaf.height / b.height})`, opacity: 0.2 }],
+        { duration: 300, delay: 30 * (favs.length - 1 - i), easing: 'cubic-bezier(.5,0,.75,.4)', fill: 'forwards' }).finished.catch(() => {});
+    }));
+    if (favs.some(el => el.dataset.sleutel === _tegelOpen[type])) _tegelOpen[type] = null;
+  }
+  _stapelStandZet(type, uit);
+  _tegelHerteken(type, { vanaf: uit ? vanaf : null });
+};
+
+// Favoriet maken of weghalen hertekent het raster: de tegel verhuist naar de
+// stapel of terug in de rij.
+window._tegelFavoriet = async (type, id) => {
+  const e = (entities[type] || []).find(x => x.id === id);
+  await window._toggleBookmark?.(type, id, e?.name || '');
+  _tegelHerteken(type);
+};
+
+// Escape klapt een open tegel weer dicht — tenzij er een venster openstaat,
+// dan is dát wat Escape sluit.
+document.addEventListener('keydown', (ev) => {
+  if (ev.key !== 'Escape') return;
+  if (document.getElementById('modal-overlay')?.classList.contains('active')) return;
+  for (const type of TEGEL_TYPES) if (_tegelOpen[type]) window._tegelDicht(type);
+});
+
+// Roddels op een kaartje: welke regels er staan en waar we zijn. Module-state,
+// net als bij de afbeelding-carousel — het kaartje is een string, dus de tekst
+// van regel 2 moet ergens anders vandaan komen.
+// ── Welke roddels zijn er verteld? ──────────────────────────────────────────
+// Deze stand is ooit verhuisd van het kaartje (`data.flavoursUitgesproken`,
+// campagnebreed) naar de **party** (`g.flavourReveals`, meegestuurd als
+// `_roddels`). Het kaartje in het raster ging mee; het detailvenster niet, en
+// dat las dus eeuwig het oude veld — dat voor een party-stand altijd leeg is.
+// Gevolg: je klikte op *Onthullen*, de server sloeg het netjes op, het venster
+// tekende zichzelf opnieuw en de knop stond er nog precies zo.
+//
+// Twee plekken die hetzelfde moeten weten, dus één functie. De terugval op het
+// oude veld blijft staan voor kaartjes van vóór die verhuizing.
+function _roddelStand(e, regels) {
+  // Een speler krijgt alleen de vertelde regels binnen; alles wat hij ziet is
+  // per definitie verteld.
+  if (!isDM()) return regels.map(() => true);
+  const st = Array.isArray(e?._roddels) ? e._roddels : null;
+  if (st) return regels.map((_, i) => !!st[i]?.gehoord);
+  const rauw = e?.data?.flavoursUitgesproken;
+  if (Array.isArray(rauw)) return regels.map((_, i) => !!rauw[i]);
+  const alles = e?.data?.flavourUitgesproken === true || e?.data?.flavourUitgesproken === 'true';
+  return regels.map((_, i) => alles && i === 0);
+}
+
+const _flavCache = {};
+const _flavPos   = {};
+const _flavCtx   = {};   // extra gegevens voor de rol in het detailvenster
+const _flavKort  = (t) => (t.length > 300 ? t.slice(0, 300) + '\u2026' : t);
+
+// Wat de spelers zelf bij dit kaartje noteren. Ze stonden allemaal onder elkaar
+// onder de knoppenbalk; nu één tegelijk met pijltjes, boven de knoppen, zodat
+// je ziet van wie je leest en het venster niet uitdijt bij vier spelers.
+const _spnCache = {};
+const _spnPos   = {};
+
+function _spelersNotitiesHtml(entityId, data) {
+  const regels = Object.entries(data?.notes || {}).filter(([, t]) => String(t || '').trim());
+  if (!regels.length) return '';
+  _spnCache[entityId] = regels;
+  _spnPos[entityId]   = 0;
+  return `
+    <div class="dm-only mb-3" id="spn-${esc(entityId)}">
+      <div class="detail-label mb-1">Aantekeningen van de spelers</div>
+      <div class="spn-binnen">${_spelersNotitieInner(entityId)}</div>
+    </div>`;
+}
+
+function _spelersNotitieInner(entityId) {
+  const regels = _spnCache[entityId] || [];
+  const idx    = _spnPos[entityId] || 0;
+  const [naam, tekst] = regels[idx] || [];
+  if (!naam) return '';
+  return `
+    <div class="spn-kop">
+      <span class="spn-naam">${esc(naam)}</span>
+      ${regels.length > 1 ? `
+        <span class="flavour-nav">
+          <button type="button" onclick="window._spnStap('${escArg(entityId)}',-1)" title="Vorige speler">\u2039</button>
+          <span>${idx + 1}/${regels.length}</span>
+          <button type="button" onclick="window._spnStap('${escArg(entityId)}',1)" title="Volgende speler">\u203a</button>
+        </span>` : ''}
+    </div>
+    <div class="spn-tekst">${esc(tekst)}</div>`;
+}
+
+window._spnStap = (entityId, richting) => {
+  const regels = _spnCache[entityId] || [];
+  if (regels.length < 2) return;
+  _spnPos[entityId] = ((_spnPos[entityId] || 0) + richting + regels.length) % regels.length;
+  const vak = document.querySelector(`#spn-${CSS.escape(entityId)} .spn-binnen`);
+  if (vak) vak.innerHTML = _spelersNotitieInner(entityId);
+};
+
+// Roddels en geheimen delen één blok: de tekst links, en rechts een kolom met
+// de onthulknop bovenaan en de navigatie eronder. Eerder stonden geheimen
+// allemaal onder elkaar en had elk zijn eigen knop; dat duwde de rest van het
+// kaartje van het scherm en zag er anders uit dan de roddels.
+const _ONTHUL_SOORT = {
+  roddel: {
+    klasse: 'roddel', aan: 'Onthuld', uit: 'Onthullen', iconAan: 'eye', iconUit: 'lock',
+    titelAan: 'Toch niet verteld — terugdraaien',
+    titelUit: 'Vertel deze roddel; de spelers zien hem dan',
+    fn: '_toggleFlavour', vorige: 'Vorige roddel', volgende: 'Volgende roddel',
+  },
+  geheim: {
+    klasse: 'roddel roddel--geheim', aan: 'Onthuld', uit: 'Onthullen', iconAan: 'eye', iconUit: 'lock',
+    titelAan: 'Weer verbergen voor spelers',
+    titelUit: 'Aan de spelers onthullen',
+    fn: '_toggleSecret', vorige: 'Vorig geheim', volgende: 'Volgend geheim',
+  },
+};
+
+function _onthulBlok(key) {
+  const ctx = _flavCtx[key] || {};
+  const cfg = _ONTHUL_SOORT[ctx.soort] || _ONTHUL_SOORT.roddel;
+  const eerste = (_flavCache[key] || [])[0];
+  return `
+    <div class="${cfg.klasse}${isDM() && eerste && !eerste.gezegd ? ' roddel--ongespoken' : ''}" id="flav-${esc(key)}">
+      <div class="roddel-binnen">${_detFlavInner(key)}</div>
+    </div>`;
+}
+
+// De binnenkant: één regel met zijn eigen knop en, als er meer zijn, pijltjes.
+// Wordt bij elke stap opnieuw gezet — eenvoudiger dan losse stukjes bijwerken.
+function _detFlavInner(key) {
+  const regels = _flavCache[key] || [];
+  const ctx    = _flavCtx[key] || {};
+  const cfg    = _ONTHUL_SOORT[ctx.soort] || _ONTHUL_SOORT.roddel;
+  const idx    = _flavPos[key] || 0;
+  const r      = regels[idx];
+  if (!r) return '';
+  return `
+    <p class="roddel-tekst">${ctx.soort === 'geheim' ? mdToHtml(r.tekst) : esc(r.tekst)}</p>
+    <div class="roddel-zij">
+      ${isDM() && r.verraad ? `<span class="verraad-merk" title="Onthullen verandert dit kaartje: rol, kant en alignment">${icon('skull')} Maakt vijand</span>` : ''}
+      ${isDM() ? `<button class="onthul-knop${r.gezegd ? ' onthul-knop--aan' : ''}${r.verraad ? ' onthul-knop--verraad' : ''}"
+        title="${r.gezegd ? cfg.titelAan : cfg.titelUit}"
+        onclick="window.${r.verraad ? '_toggleVerraadGeheim' : cfg.fn}('${escArg(ctx.tab)}','${escArg(ctx.id)}',${r.i},'${escArg(r.gid || '')}'${r.verraad ? `,${r.gezegd},'${escJS(ctx.naam || '')}'` : ''})">${r.gezegd ? icon(cfg.iconAan) : icon(cfg.iconUit)}<span>${r.gezegd ? cfg.aan : cfg.uit}</span></button>` : ''}
+      ${ctx.audioId ? `<button type="button" class="flavour-audio-play" data-audio-btn data-audio-btn-id="${esc(ctx.audioId)}"
+        onclick="window._audioToggle('${escArg(ctx.audioId)}')" title="Sfeer afspelen / pauzeren">▶</button>` : ''}
+      ${regels.length > 1 ? `
+        <span class="flavour-nav">
+          <button type="button" onclick="window._detFlavStap('${escArg(key)}',-1)" title="${cfg.vorige}">\u2039</button>
+          <span>${idx + 1}/${regels.length}</span>
+          <button type="button" onclick="window._detFlavStap('${escArg(key)}',1)" title="${cfg.volgende}">\u203a</button>
+        </span>` : ''}
+    </div>`;
+}
+
+// Een geheim met het vinkje "maakt het personage een vijand" verandert méér dan
+// de tekst: rol, kant en alignment schuiven mee. Zoiets hoort niet per ongeluk
+// te gebeuren met één klik, dus eerst vragen — zie de afspraak over
+// onomkeerbare DM-acties in CLAUDE.md.
+window._toggleVerraadGeheim = (tab, id, index, gid, wasOnthuld, naam) => {
+  const wie = naam || 'dit personage';
+  const vraag = wasOnthuld
+    ? `Dit geheim terugdraaien?\n\n${wie} verliest de rol antagonist, en zijn kant en alignment gaan terug naar wat ze waren.`
+    : `Dit geheim onthullen?\n\n${wie} wordt daarmee antagonist, komt in een gevecht aan de kant van de vijand te staan en zijn alignment schuift naar Evil.`;
+  if (!confirm(vraag)) return;
+  window._toggleSecret(tab, id, index, gid);
+};
+
+window._detFlavStap = (key, richting) => {
+  const regels = _flavCache[key] || [];
+  if (regels.length < 2) return;
+  _flavPos[key] = ((_flavPos[key] || 0) + richting + regels.length) % regels.length;
+  const host = document.getElementById(`flav-${key}`);
+  const vak  = host?.querySelector('.roddel-binnen');
+  if (!vak) return;
+  vak.innerHTML = _detFlavInner(key);
+  host.classList.toggle('roddel--ongespoken', isDM() && !regels[_flavPos[key]].gezegd);
+};
+
+window._flavStap = (id) => {
+  const regels = _flavCache[id] || [];
+  if (regels.length < 2) return;
+  const i = ((_flavPos[id] || 0) + 1) % regels.length;
+  _flavPos[id] = i;
+  const host = document.getElementById(`flav-${id}`);
+  if (!host) return;
+  host.querySelector('.flavour-preview-text').textContent = `\u201e${_flavKort(regels[i].tekst)}\u201c`;
+  host.classList.toggle('flavour-preview--ongespoken', isDM() && !regels[i].gezegd);
+  const nav = host.querySelector('.flavour-preview-nav');
+  if (nav) nav.textContent = `${i + 1}/${regels.length} \u203a`;
+};
+
+// Statblock afdrukken. Geen tweede sjabloon op de server: we printen wat er al
+// staat. Dat scheelt een renderer die uit de pas gaat lopen én het klopt vanzelf
+// voor een huisdier, waar het statblok van het tier van het baasje afhangt.
+window._printStatblock = (titel) => {
+  const bron = document.getElementById('dtab-sheet');
+  if (!bron) return;
+  // Welke gedaante staat er? Zonder dat op papier weet je van twee uitdraaien
+  // van dezelfde man niet meer welke de gepantserde was.
+  const _aan = bron.querySelector('.tier-chip--aan')?.textContent.trim();
+  if (_aan && _aan !== 'Basis') titel = `${titel} — ${_aan}`;
+  const kopie = bron.cloneNode(true);
+  kopie.querySelectorAll('.geenprint').forEach(el => el.remove());
+  const css = document.querySelector('link[href*="theme.css"]')?.getAttribute('href') || '/css/theme.css';
+  const w = window.open('', '_blank', 'width=820,height=1000');
+  if (!w) { alert('Sta pop-ups toe om af te drukken.'); return; }
+  w.document.write(`<!doctype html><html lang="nl"><head><meta charset="utf-8">
+    <title>${esc(titel)}</title>
+    <link rel="stylesheet" href="${esc(css)}">
+    <style>
+      body { background: #f8f0de; margin: 0; padding: 24px; }
+      .print-kop { font-family: 'Cinzel', serif; font-size: 20px; color: #7a4a1a; margin: 0 0 12px; }
+      .print-knop {
+        font-family: 'Cinzel', serif; font-size: 12px; letter-spacing: .04em;
+        padding: 6px 14px; border-radius: 6px; cursor: pointer;
+        border: 1px solid #c4a87a; background: #f5edd8; color: #7a4a1a;
+        position: absolute; top: 20px; right: 24px;
+      }
+      .print-knop:hover { background: #efe3c4; }
+      @media print { body { padding: 0; } .print-kop { margin-bottom: 8px; } .geenprint { display: none !important; } }
+    </style>
+  </head><body>
+    <h1 class="print-kop">${esc(titel)}</h1>
+    <button type="button" class="print-knop geenprint" onclick="window.print()">Printen</button>
+    ${kopie.innerHTML}
+  </body></html>`);
+  w.document.close();
+  w.addEventListener('load', () => w.focus());
+};
+
+// ── Character sheet in het detailvenster ────────────────────────────────────
+// Nagebouwd naar het printbare blad (lib/character-sheet.js): links de abilities
+// met saving throws en skills, rechts de kerngetallen, HP en proficiencies. Zo
+// zie je op het scherm hetzelfde als op papier. Attacks, boedel en features
+// staan er bewust niet op — die maken het blad lang terwijl je ze tijdens het
+// spelen op de print of in de Boedel-tab hebt.
+const _BL_ABILITIES = [['str','Strength'],['dex','Dexterity'],['con','Constitution'],
+                       ['int','Intelligence'],['wis','Wisdom'],['cha','Charisma']];
+const _BL_SKILLS = [
+  ['str', [['athletics','Athletics']]],
+  ['dex', [['acrobatics','Acrobatics'],['sleight of hand','Sleight of Hand'],['stealth','Stealth']]],
+  ['int', [['arcana','Arcana'],['history','History'],['investigation','Investigation'],['nature','Nature'],['religion','Religion']]],
+  ['wis', [['animal handling','Animal Handling'],['insight','Insight'],['medicine','Medicine'],['perception','Perception'],['survival','Survival']]],
+  ['cha', [['deception','Deception'],['intimidation','Intimidation'],['performance','Performance'],['persuasion','Persuasion']]],
+];
+const _BL_PASSIEF = { perception: 'Passive Perception', insight: 'Passive Insight', investigation: 'Passive Investigation' };
+
+const _blMod   = (score) => Math.floor(((Number(score) || 10) - 10) / 2);
+const _blTeken = (n) => (n >= 0 ? '+' : '−') + Math.abs(n);
+const _blGetal = (v) => { const n = parseInt(String(v ?? '').replace(/[^\d-]/g, ''), 10); return Number.isFinite(n) ? n : 0; };
+const _blObject = (v) => {
+  if (v && typeof v === 'object' && !Array.isArray(v)) return v;
+  if (typeof v === 'string' && v.trim().startsWith('{')) { try { return JSON.parse(v); } catch { return {}; } }
+  return {};
+};
+
+function _bladHtml(profiel, hp, e) {
+  const prof = _blGetal(profiel.profBonus) || 2;
+  const saves = String(profiel.saveProfs || '').split(',').map(x => x.trim().toLowerCase()).filter(Boolean);
+  const skillProfs = _blObject(profiel.skillProfs);
+  const skillAdj   = _blObject(profiel.skillAdj);
+
+  const pip = (niveau) => `<span class="bl-pip bl-pip--${niveau}"></span>`;
+  const skillBonus = (sleutel, ability) => {
+    const niveau = String(skillProfs[sleutel] || '').toLowerCase();
+    const extra  = niveau === 'expert' || niveau === 'exp' ? prof * 2 : niveau === 'prof' ? prof : 0;
+    return { niveau, extra, bonus: _blMod(profiel[ability]) + extra + _blGetal(skillAdj[sleutel]) };
+  };
+
+  const abilities = _BL_ABILITIES.map(([k, label]) => `
+    <div class="bl-abil">
+      <span class="bl-abil-lbl">${label}</span>
+      <span class="bl-abil-score">${esc(profiel[k] ?? '—')}</span>
+      <span class="bl-abil-mod">${_blTeken(_blMod(profiel[k]))}</span>
+    </div>`).join('');
+
+  const savesHtml = _BL_ABILITIES.map(([k, label]) => {
+    const heeft = saves.includes(k);
+    return `<li>${pip(heeft ? 'prof' : 'geen')}<span class="bl-naam">${label}</span>
+      <span class="bl-waarde">${_blTeken(_blMod(profiel[k]) + (heeft ? prof : 0))}</span></li>`;
+  }).join('');
+
+  let skillsHtml = '';
+  for (const [ability, lijst] of _BL_SKILLS) {
+    for (const [sleutel, label] of lijst) {
+      const { niveau, extra, bonus } = skillBonus(sleutel, ability);
+      skillsHtml += `<li>${pip(niveau === 'expert' || niveau === 'exp' ? 'expert' : extra ? 'prof' : 'geen')}
+        <span class="bl-naam">${label} <em>${ability}</em></span>
+        <span class="bl-waarde">${_blTeken(bonus)}</span></li>`;
+    }
+  }
+
+  const passief = Object.entries(_BL_PASSIEF).map(([sleutel, label]) => {
+    const ability = _BL_SKILLS.find(([, l]) => l.some(([k]) => k === sleutel))[0];
+    return `<div class="bl-stat"><span class="bl-stat-lbl">${label}</span><b>${10 + skillBonus(sleutel, ability).bonus}</b></div>`;
+  }).join('');
+
+  const paren = [
+    ['Armor', profiel.armorProfs], ['Weapons', profiel.weaponProfs],
+    ['Tools', profiel.toolProfs], ['Languages', profiel.languages], ['Senses', profiel.senses],
+  ].filter(([, v]) => v && String(v).trim());
+
+  return `
+    <div class="bl-blad">
+      <div class="bl-kolommen">
+        <section class="bl-kol bl-kol--smal">
+          <div class="bl-abils">${abilities}</div>
+          <h3 class="bl-kop">Saving Throws</h3>
+          <ul class="bl-rijen">${savesHtml}</ul>
+          <h3 class="bl-kop">Skills</h3>
+          <ul class="bl-rijen bl-rijen--skills">${skillsHtml}</ul>
+        </section>
+        <section class="bl-kol">
+          <div class="bl-stats">
+            <div class="bl-stat"><span class="bl-stat-lbl">Armor Class</span><b>${esc(profiel.ac || '—')}</b></div>
+            <div class="bl-stat"><span class="bl-stat-lbl">Initiative</span><b>${esc(profiel.initiative || _blTeken(_blMod(profiel.dex)))}</b></div>
+            <div class="bl-stat"><span class="bl-stat-lbl">Speed</span><b>${esc(profiel.speed || '—')}</b></div>
+            <div class="bl-stat"><span class="bl-stat-lbl">Proficiency</span><b>${_blTeken(prof)}</b></div>
+          </div>
+          <div class="bl-stats bl-stats--passief">${passief}</div>
+          <div class="bl-stats bl-stats--hp">
+            <div class="bl-stat"><span class="bl-stat-lbl">Hit Points</span><b>${hp?.current ?? '—'} / ${hp?.max ?? '—'}</b></div>
+            <div class="bl-stat"><span class="bl-stat-lbl">Spell Save DC</span><b>${esc(profiel.spellSaveDC || '—')}</b></div>
+            <div class="bl-stat"><span class="bl-stat-lbl">Spell Attack</span><b>${profiel.spellAttackBonus ? _blTeken(_blGetal(profiel.spellAttackBonus)) : '—'}</b></div>
+          </div>
+          ${paren.length ? `
+            <h3 class="bl-kop">Proficiencies &amp; Languages</h3>
+            <dl class="bl-paren">${paren.map(([l, v]) => `<dt>${l}</dt><dd>${esc(v)}</dd>`).join('')}</dl>` : ''}
+          ${(() => {
+            // Gekoppelde spreuken: chips die het spreukdetail openen, gegroepeerd
+            // per niveau zodra de bibliotheek geladen is (_vulSpellChips).
+            let idx = [];
+            try { idx = JSON.parse(e.stats?.spellIndexes || '[]'); } catch { idx = []; }
+            if (!idx.length) return '';
+            return `
+              <h3 class="bl-kop">Spells</h3>
+              <div class="cs-spell-chips" id="detail-spell-chips">${idx.map(i =>
+                `<button type="button" class="cs-spell-chip cs-spell-chip--klik" data-spell="${esc(i)}"
+                   onclick="window.spreuken.open('${escArg(i)}')">${esc(String(i).replace(/-/g, ' '))}</button>`).join('')}</div>`;
+          })()}
+        </section>
+      </div>
+    </div>`;
+}
+
+// ── Bladwijzers ──
+// De bladwijzers van een speler stonden alleen in `state` zodra hij zijn eigen
+// tabblad had geopend. Ging hij meteen naar Personages, dan stond op elk kaartje
+// een lege ster — ook op kaartjes die hij wél gemarkeerd had. Eén keer ophalen,
+// vóór het eerste kaartje getekend wordt.
+let _bmGeladen = null;
+function _bladwijzersZorgen() {
+  const st = window.app?.state;
+  if (!st?.characterId || Array.isArray(st.bookmarks)) return Promise.resolve();
+  if (!_bmGeladen) {
+    _bmGeladen = api.getPlayerProfile(st.characterId)
+      .then(p => { st.bookmarks = Array.isArray(p?.bookmarks) ? p.bookmarks : []; })
+      .catch(() => { st.bookmarks = []; });
+  }
+  return _bmGeladen;
+}
+
+// Zet of haalt de chip in de filterbalk van één tabblad, zonder de hele balk
+// opnieuw op te bouwen (dat zou de scrollpositie en een actief filter wissen).
+function _bladwijzerChipBijwerken(type) {
+  const bar = document.querySelector(`#section-${type} .subtype-filter-bar`);
+  if (!bar) return;                       // geen filterbalk op dit tabblad
+  const heeft = (window.app?.state?.bookmarks || []).some(b => b.type === type);
+  const chip  = bar.querySelector('[data-sf-val="__bladwijzer__"]');
+  if (heeft && !chip) {
+    bar.querySelector('[data-sf-val=""]')?.insertAdjacentHTML('afterend',
+      `<button class="sf-chip sf-chip--special" data-sf-val="__bladwijzer__"
+        onclick="window._entitySubtypeFilter('${type}', this.classList.contains('sf-chip--active') ? null : this.dataset.sfVal)">\u2605 Bladwijzers</button>`);
+  } else if (!heeft && chip) {
+    // Stond het filter nog aan, dan zou je naar een lege lijst kijken.
+    if (chip.classList.contains('sf-chip--active')) window._entitySubtypeFilter(type, null);
+    chip.remove();
+  }
+}
+window._bladwijzerChipBijwerken = _bladwijzerChipBijwerken;
+
+window._toggleBookmark = async function(type, id, name) {
+  const charId = window.app?.state?.characterId;
+  if (!charId) return;
+  const profile = await api.getPlayerProfile(charId).catch(() => ({}));
+  let bms = Array.isArray(profile.bookmarks) ? [...profile.bookmarks] : [];
+  const idx = bms.findIndex(b => b.id === id);
+  if (idx >= 0) {
+    bms.splice(idx, 1);
+  } else {
+    bms.push({ id, type, name });
+  }
+  await api.patchPlayerProfile(charId, { bookmarks: bms });
+  // Update state cache
+  if (window.app?.state) window.app.state.bookmarks = bms;
+  // Update knop direct in-place
+  const active = bms.some(b => b.id === id);
+  const btn = document.querySelector(`.card-bookmark-btn[data-bid="${CSS.escape(id)}"]`);
+  if (btn) {
+    btn.classList.toggle('card-bookmark-btn--active', active);
+    btn.title = active ? 'Bladwijzer verwijderen' : 'Bladwijzer toevoegen';
+    btn.textContent = active ? '★' : '☆';
+  }
+  // Toast-melding
+  const toast = document.createElement('div');
+  toast.className = 'bookmark-toast';
+  toast.textContent = active ? '★ Bladwijzer toegevoegd' : '☆ Bladwijzer verwijderd';
+  document.body.appendChild(toast);
+  setTimeout(() => toast.classList.add('bookmark-toast--visible'), 10);
+  setTimeout(() => { toast.classList.remove('bookmark-toast--visible'); setTimeout(() => toast.remove(), 300); }, 2000);
+
+  // De chip "★ Bladwijzers" hoort meteen te verschijnen. Hij wordt gebouwd
+  // wanneer de filterbalk gebouwd wordt, en die wordt bij een volgende render
+  // juist overgeslagen (alleen de grid ververst) — dus zonder dit zag je hem
+  // pas na een herlaad.
+  _bladwijzerChipBijwerken(type);
+
+  // Als mijn-karakter actief is: herrender zodat de sectie direct zichtbaar is
+  if (window.app?.state?.activeSection === 'mijn-karakter') {
+    await window.app.refreshSection('mijn-karakter');
+  }
+};
+
+// Vaste kleurpalet per speler (op basis van characterId hash)
+const _PLAYER_COLORS = [
+  '#7b9e6b', // groen
+  '#6b8bbf', // blauw
+  '#b07a4e', // oranje-bruin
+  '#9b6bb5', // paars
+  '#b5836b', // terracotta
+  '#5e9e9e', // teal
+  '#b5a040', // goud
+  '#7e6e9e', // lavendel
+];
+function _playerColor(characterId) {
+  if (!characterId) return _PLAYER_COLORS[0];
+  let h = 0;
+  for (let i = 0; i < characterId.length; i++) h = (h * 31 + characterId.charCodeAt(i)) >>> 0;
+  return _PLAYER_COLORS[h % _PLAYER_COLORS.length];
+}
+
+// Geeft 'stapelbaar' | 'gedeeld' | 'uniek' terug, ook voor items met legacy vinkjes
+function _getGebruik(e) {
+  const d = e?.data || {};
+  if (d.gebruik) return d.gebruik;
+  if (d.stapelbaar === 'true' || d.stapelbaar === true) return 'stapelbaar';
+  if (d.gedeeld    === 'true' || d.gedeeld    === true) return 'gedeeld';
+  return 'uniek';
+}
+
+function _itemOwnershipBadge(itemId) {
+  const owner        = _ownership.owners[itemId];
+  const isStapelbaar = _ownership.stapelbaar.has(itemId);
+  const isGedeeld    = _ownership.gedeeld.has(itemId);
+  const myId         = window.app?.state?.characterId;
+  const myName       = window.app?.state?.playerName;
+  const isDm         = window.app?.isDM?.();
+
+  // Eén vorm voor alle gevallen. Er waren er drie: bij een eigenaar stond zijn
+  // naam links met twee icoontjes rechts, zonder eigenaar was de hele regel de
+  // knop "Geef aan speler", en een stapel had weer een andere tekst. Nu links
+  // altijd wát de stand is en rechts altijd dezelfde knoppen; de hele strook
+  // blijft aanklikbaar om uit te delen.
+  const strook = (klas, wie, wegTitel, wegActie) => `
+    <div class="item-owner-badge${klas ? ' ' + klas : ''}${isDm ? ' item-owner-badge--klik' : ''}"
+      ${isDm ? `onclick="event.stopPropagation();window._itemGiveToPlayer('${escArg(itemId)}')" title="Geef aan speler"` : 'onclick="event.stopPropagation()"'}>
+      <span class="iob-wie">${icon('package')}<span>${wie}</span></span>
+      ${isDm ? `<span class="iob-acties">
+        ${wegActie ? `<button class="iob-knop iob-knop--weg" title="${esc(wegTitel)}"
+          onclick="event.stopPropagation();${wegActie}">${icon('x')}</button>` : ''}
+        <button class="iob-knop" title="Geef aan speler"
+          onclick="event.stopPropagation();window._itemGiveToPlayer('${escArg(itemId)}')">${icon('plus')}</button>
+      </span>` : ''}
+    </div>`;
+
+  // ── Gedeeld en stapelbaar: array-eigendom ──
+  if (isGedeeld || isStapelbaar) {
+    const eigenaren = Array.isArray(owner) ? owner : [];
+    if (isDm) {
+      const total = eigenaren.reduce((s, o) => s + (o.qty || 1), 0);
+      const wie = eigenaren.length === 0
+        ? 'Niemand'
+        : `${eigenaren.length} speler${eigenaren.length !== 1 ? 's' : ''}${isStapelbaar ? ` · ${total}×` : ''}`;
+      return strook('', esc(wie), '', '');
+    }
+    const myEntry = myId ? eigenaren.find(o => o.characterId === myId) : null;
+    if (myEntry && (myEntry.qty || 1) > 0) {
+      return strook('item-owner-badge--mine',
+        isStapelbaar ? `Jouw exemplaren · ${myEntry.qty || 1}×` : 'Jouw exemplaar', '', '');
+    }
+    return '';
+  }
+
+  // ── Uniek eigendom ──
+  if (owner && !Array.isArray(owner)) {
+    const isMine = myId && owner.characterId === myId;
+    return strook(isMine ? 'item-owner-badge--mine' : 'item-owner-badge--other',
+      isMine ? 'Jouw eigendom' : esc(owner.playerName || 'Een speler'),
+      `Uit de inventaris van ${owner.playerName || 'deze speler'} halen`,
+      `window._itemRemoveOwner('${esc(itemId)}','${escJS(owner.playerName || '')}')`);
+  }
+
+  // Pending verzoek van deze speler
+  const pending = myId && _ownership.requests.find(
+    r => r.itemId === itemId && r.requesterId === myId && r.status === 'pending'
+  );
+  if (pending) {
+    return `<div class="item-claim-pending" onclick="event.stopPropagation()">${icon('hourglass')} Wacht op DM…</div>`;
+  }
+
+  if (isDm) return strook('', 'Niemand', '', '');
+
+  // Claim-knop voor ingelogde speler (niet stapelbaar)
+  if (myName && !isDm) {
+    return `
+      <button class="item-claim-btn" onclick="event.stopPropagation();window._itemClaim('${escArg(itemId)}')">
+        Claim
+      </button>`;
+  }
+
+  return '';
+}
+
+// ── DM: voorwerp geven aan speler ──
+
+// Bouw de picker-HTML op basis van huidige _ownership-staat
+async function _buildItemGivePicker(itemId, spelers, groupNames) {
+  const isStapelbaar = _ownership.stapelbaar.has(itemId);
+  const isGedeeld    = _ownership.gedeeld.has(itemId);
+  const owners       = _ownership.owners[itemId];
+
+  // Huidige eigendom per characterId. `_giveBezit` komt van de server en dekt
+  // alle party's; `owners` is de terugval voor de party waar de DM nu naar kijkt.
+  function currentQty(charId) {
+    if (_giveBezit.has(charId)) return _giveBezit.get(charId);
+    if (Array.isArray(owners)) {
+      const entry = owners.find(o => o.characterId === charId);
+      return entry ? (entry.qty || 1) : 0;
+    }
+    // enkelvoudig eigendom
+    return (owners?.characterId === charId) ? 1 : 0;
+  }
+
+  const byGroup = {};
+  for (const s of spelers) {
+    const gid = s.data?.groep || '_geen';
+    if (!byGroup[gid]) byGroup[gid] = [];
+    byGroup[gid].push(s);
+  }
+
+  const sections = Object.entries(byGroup).map(([gid, members]) => {
+    const label = groupNames[gid] || (gid === '_geen' ? 'Zonder groep' : gid);
+    return `
+      <div class="item-give-group">
+        <div class="item-give-group-label">${esc(label)}</div>
+        ${members.map(s => {
+          const qty = currentQty(s.id);
+          const hasIt = qty > 0;
+          const qtyBadge = hasIt
+            ? `<span class="item-give-qty-badge">${isStapelbaar ? `×${qty}` : '✓'}</span>`
+            : '';
+          if (isStapelbaar) return `
+            <div class="item-give-player-row">
+              <div class="item-give-player-info">
+                <img src="${api.thumbForEntity(s)}" class="item-give-avatar" onerror="this.style.display='none'">
+                <span>${esc(s.name)}</span>
+                ${qtyBadge}
+              </div>
+              <!-- Eén te veel geklikt moet je hier kunnen rechtzetten; anders
+                   moest je het venster uit naar het tabblad Bezit. -->
+              ${hasIt ? `<button class="item-give-minus" title="Eén exemplaar terugnemen"
+                onclick="window._itemAfnemen('${escArg(itemId)}','${escArg(s.id)}','${escArg(s.data?.groep || '')}')">${icon('minus')}</button>` : ''}
+              <input type="number" min="1" value="1" id="igq-${esc(s.id)}"
+                class="item-give-qty-input" onclick="event.stopPropagation()">
+              <button class="item-give-confirm-btn"
+                onclick="window._itemAssignToPlayer('${escArg(itemId)}','${escArg(s.id)}','${escArg(s.name)}','${escArg(s.data?.groep || '')}',+(document.getElementById('igq-${esc(s.id)}').value)||1)">
+                ${icon('package')}
+              </button>
+            </div>`;
+          if (isGedeeld) return `
+            <button class="item-give-player-btn${hasIt ? ' item-give-player-btn--has' : ''}"
+              onclick="window._itemAssignToPlayer('${escArg(itemId)}','${escArg(s.id)}','${escArg(s.name)}','${escArg(s.data?.groep || '')}',1)">
+              <img src="${api.thumbForEntity(s)}" class="item-give-avatar" onerror="this.style.display='none'">
+              <span>${esc(s.name)}</span>
+              ${qtyBadge}
+            </button>`;
+          // Enkelvoudig eigendom
+          return `
+            <button class="item-give-player-btn${hasIt ? ' item-give-player-btn--has' : ''}"
+              onclick="window._itemAssignToPlayer('${escArg(itemId)}','${escArg(s.id)}','${escArg(s.name)}','${escArg(s.data?.groep || '')}')">
+              <img src="${api.thumbForEntity(s)}" class="item-give-avatar" onerror="this.style.display='none'">
+              <span>${esc(s.name)}</span>
+              ${qtyBadge}
+            </button>`;
+        }).join('')}
+      </div>`;
+  }).join('');
+
+  const subtitle = isStapelbaar ? 'Kies een ontvanger en aantal' : isGedeeld ? 'Kies spelers (meerdere mogelijk)' : 'Kies een ontvanger';
+  return { html: `<div class="item-give-picker">${sections}</div>`, subtitle };
+}
+
+// Kleine bevestiging in beeld. Zonder dit was schenken een klik zonder gevolg:
+// de picker blijft open en de teller stond (over party's heen) toch al scheef.
+function _melding(tekst) {
+  const el = document.createElement('div');
+  el.className = 'bookmark-toast';
+  el.innerHTML = tekst;
+  document.body.appendChild(el);
+  setTimeout(() => el.classList.add('bookmark-toast--visible'), 10);
+  setTimeout(() => { el.classList.remove('bookmark-toast--visible'); setTimeout(() => el.remove(), 300); }, 2200);
+}
+window._melding = _melding;
+
+// Cache spelers/groepen zodat herrender na toewijzing snel is
+let _givePickerCache = null;
+// Wie het voorwerp heeft, over álle party's. `_ownership` kent alleen de party
+// waar de DM nu naar kijkt, dus daarmee bleef een speler uit een andere groep
+// eeuwig op nul staan — ook nadat je hem net iets gegeven had.
+let _giveBezit = new Map();   // characterId → aantal
+
+window._itemGiveToPlayer = async function(itemId) {
+  try {
+    const [allPersonages, allGroups] = await Promise.all([
+      api.listEntities('personages'),
+      api.getGroups().catch(() => []),
+    ]);
+    const spelers = allPersonages.filter(e => e.subtype?.toLowerCase() === 'speler');
+    if (!spelers.length) { alert('Geen spelerskarakters gevonden.'); return; }
+    const groupNames = Object.fromEntries((allGroups?.groups || allGroups || []).map(g => [g.id, g.name]));
+    await _giveBezitLaden(itemId);
+    _givePickerCache = { itemId, spelers, groupNames };
+
+    const { html, subtitle } = await _buildItemGivePicker(itemId, spelers, groupNames);
+    window.app.openModal(`${icon('package')} Geef voorwerp aan speler`, subtitle, html);
+  } catch (e) {
+    console.warn('_itemGiveToPlayer fout:', e);
+  }
+};
+
+// Haalt op wie het voorwerp heeft, over alle party's. Mislukt dat (of ben je
+// geen DM), dan valt de picker terug op de stand van de eigen party.
+async function _giveBezitLaden(itemId) {
+  _giveBezit = new Map();
+  if (!isDM()) return;
+  try {
+    const bezit = await api.getItemBezit(itemId);
+    for (const groep of (bezit?.groepen || [])) {
+      for (const r of (groep.rijen || [])) {
+        if (r.bron !== 'kaartje') continue;   // losse boedelregels zijn geen eigendom van dít kaartje
+        _giveBezit.set(r.characterId, (_giveBezit.get(r.characterId) || 0) + (r.aantal || 1));
+      }
+    }
+  } catch { /* terugval op de eigen party */ }
+}
+
+async function _givePickerHertekenen(itemId) {
+  await _giveBezitLaden(itemId);
+  if (_givePickerCache?.itemId !== itemId) return;
+  const { itemId: id, spelers, groupNames } = _givePickerCache;
+  const { html } = await _buildItemGivePicker(id, spelers, groupNames);
+  const body = document.getElementById('m-body');
+  if (body) body.innerHTML = html;
+}
+
+window._itemAssignToPlayer = async function(itemId, characterId, playerName, groupId, qty) {
+  try {
+    const aantal = qty || 1;
+    await api.assignItemOwner(itemId, { characterId, playerName, groupId: groupId || null, qty: aantal });
+    await refreshOwnership();
+    renderEntitySection('voorwerpen');
+    _melding(`${icon('package')} ${aantal > 1 ? `${aantal}× ` : ''}naar ${esc(playerName)}`);
+    await _givePickerHertekenen(itemId);   // picker blijft open
+  } catch (e) {
+    console.warn('_itemAssignToPlayer fout:', e);
+    _melding(`${icon('x')} Geven mislukt: ${esc(e.message || e)}`);
+  }
+};
+
+// Eén exemplaar terugnemen vanuit de geef-modal. Bij een aantal van 1 haalt de
+// server de speler er helemaal af — dat is precies wat je wilt na één klik te veel.
+window._itemAfnemen = async function(itemId, characterId, groupId) {
+  try {
+    await api.patchItemOwnerQty(itemId, characterId, -1, groupId || null);
+    await refreshOwnership();
+    renderEntitySection('voorwerpen');
+    _melding(`${icon('package')} Eén exemplaar teruggenomen`);
+    await _givePickerHertekenen(itemId);
+  } catch (e) {
+    _melding(`${icon('x')} Terugnemen mislukt: ${esc(e.message || e)}`);
+  }
+};
+
+// ── Entity carousel (multi-image with captions) ──
+const _ecp = {};   // entity carousel position
+const _ecc = {};   // entity carousel captions
+
+function _parseExtraImages(raw) {
+  if (!raw) return [];
+  try { return JSON.parse(raw); } catch { return []; }
+}
+
+function _entityCarouselHtml(key, items) {
+  if (!items.length) return '';
+  if (items.length === 1) {
+    const url = api.fileUrl(items[0].id);
+    return `
+      <div class="detail-hero mb-6" id="detail-img-wrap-${key}" onclick="window.app.openLightbox('${url}','')">
+        <div class="detail-hero-bg" style="background-image:url('${url}')"></div>
+        <img src="${url}" class="detail-hero-img"
+          onerror="this.closest('#detail-img-wrap-${key}').style.display='none'">
+        <div class="detail-hero-overlay"></div>
+      </div>
+      ${items[0].caption ? `<p class="text-center text-xs text-ink-dim font-crimson -mt-3 mb-3 italic">${esc(items[0].caption)}</p>` : ''}`;
+  }
+  _ecp[key] = 0;
+  _ecc[key] = items.map(i => i.caption || '');
+  // Vergroten moet dóór de reeks kunnen bladeren: de lightbox kent een variant
+  // met een lijst en pijltjes, maar kreeg hier steeds één losse afbeelding mee.
+  const lbKey = `_ecLb_${key.replace(/[^A-Za-z0-9_]/g, '')}`;
+  window[lbKey] = items.map(i => ({ src: api.fileUrl(i.id), title: i.caption || '' }));
+  return `
+    <div class="mb-4">
+      <div class="relative">
+        <div class="overflow-hidden rounded">
+          <div id="ec-track-${key}" class="flex" style="transition:transform 0.3s ease">
+            ${items.map(({id}, i) => {
+              const url = api.fileUrl(id);
+              return `<div class="flex-shrink-0 w-full relative overflow-hidden">
+                <div class="detail-hero-bg" style="background-image:url('${url}')"></div>
+                <img src="${url}" class="detail-portrait w-full max-h-80 object-contain cursor-pointer" style="position:relative;z-index:1"
+                  onclick="window.app.openLightboxAt(window['${lbKey}'],${i})">
+              </div>`;
+            }).join('')}
+          </div>
+        </div>
+        <button class="ec-pijl ec-pijl--links" title="Vorige afbeelding"
+          onclick="window._ecStep('${key}',-1,${items.length})">\u2039</button>
+        <button class="ec-pijl ec-pijl--rechts" title="Volgende afbeelding"
+          onclick="window._ecStep('${key}',1,${items.length})">\u203a</button>
+      </div>
+      <div class="flex justify-center gap-1.5 mt-2">
+        ${items.map((_, i) => `<span id="ec-dot-${key}-${i}" onclick="window._ecGo('${key}',${i},${items.length})"
+          class="block w-2 h-2 rounded-full cursor-pointer transition ${i === 0 ? 'bg-gold' : 'bg-room-border'}"></span>`).join('')}
+      </div>
+      <div id="ec-cap-${key}" class="text-center text-xs text-ink-dim font-crimson mt-1.5 italic min-h-[1.2em]">${esc(items[0].caption || '')}</div>
+    </div>`;
+}
+
+window._ecStep = (key, dir, total) => {
+  window._ecGo(key, ((_ecp[key] || 0) + dir + total) % total, total);
+};
+window._ecGo = (key, idx, total) => {
+  _ecp[key] = idx;
+  const track = document.getElementById(`ec-track-${key}`);
+  if (track) track.style.transform = `translateX(-${idx * 100}%)`;
+  for (let i = 0; i < total; i++) {
+    const dot = document.getElementById(`ec-dot-${key}-${i}`);
+    if (dot) dot.className = `block w-2 h-2 rounded-full cursor-pointer transition ${i === idx ? 'bg-gold' : 'bg-room-border'}`;
+  }
+  const capEl = document.getElementById(`ec-cap-${key}`);
+  if (capEl) capEl.textContent = (_ecc[key] || [])[idx] || '';
+};
+
+// ── Entity extra-image editor ──
+function _refreshEntityImages() {
+  const c = document.getElementById('entity-img-preview');
+  if (!c) return;
+  // Geen onderschriften meer, wel een ster: die maakt van deze afbeelding de
+  // banner (het beeld op de kaart en bovenaan het detailvenster).
+  c.innerHTML = entityEditorImages.map((img, i) => `
+        <div>
+          <div class="relative rounded overflow-hidden border border-room-border bg-room-elevated" style="height:56px">
+            <img src="${img.url}" class="w-full h-full object-cover">
+            <button type="button" onclick="window._maakBanner(${i})" title="Maak dit de banner"
+              class="absolute top-0.5 left-0.5 w-5 h-5 bg-black/60 hover:bg-black/85 text-white rounded-full text-[11px] flex items-center justify-center transition">\u2606</button>
+            <button type="button" onclick="window._removeEntityImage(${i})" title="Loskoppelen"
+              class="absolute top-0.5 right-0.5 w-5 h-5 bg-black/60 hover:bg-black/80 text-white rounded-full text-xs flex items-center justify-center transition">\u00d7</button>
+          </div>
+        </div>`).join('');
+}
+
+// De banner is `data.imageId`; wat je hier aanwijst wisselt van plek met wat er
+// stond. Een nieuw kaartje zonder banner krijgt hem gewoon.
+window._maakBanner = (idx) => {
+  const gekozen = entityEditorImages[idx];
+  if (!gekozen || gekozen.isNew) {
+    if (gekozen?.isNew) alert('Sla eerst op; een net toegevoegde afbeelding kan daarna banner worden.');
+    return;
+  }
+  const veld = document.getElementById('editor-image-id');
+  const oudeBanner = veld?.value || '';
+  if (veld) veld.value = gekozen.id;
+  entityEditorImages.splice(idx, 1);
+  if (oudeBanner) entityEditorImages.unshift({ id: oudeBanner, url: api.fileUrl(oudeBanner), isNew: false, caption: '' });
+  window._fpZetBron(gekozen.id);
+  window._beeldVerversen?.(gekozen.id);
+  _refreshEntityImages();
+};
+
+// ── Bladeren door de lijst waar je in zit ───────────────────────────────────
+// Het volgende kaartje is het volgende kaartje **zoals het raster het nu toont**:
+// met het zoekfilter en de sortering die aanstaan. Anders spring je naar iets
+// wat je op het scherm nergens ziet liggen.
+// Eén ingang voor bladeren in het gedeelde venster. Wie het venster vult mag
+// zeggen hoe "de volgende" eruitziet (`window._bladerBron`); staat dat er niet,
+// dan is het een kaartje uit het archief. In de editor bladert er niets — daar
+// staat een formulier.
+window._modalBlader = (richting) => {
+  const ov = document.getElementById('modal-overlay');
+  if (!ov?.classList.contains('active')) return;
+  if (document.querySelector('#m-body form')) return;
+  // Kwam je hier via een link in een tekst, dan staat er linksboven een
+  // terugknop — en die gaat naar het kaartje wáár je vandaan komt, niet naar het
+  // kaartje links in de rij. Twee betekenissen voor één pijl naar links is er
+  // één te veel, dus zolang die terugweg openstaat bladeren we niet. Ben je
+  // teruggegaan (of open je een kaartje vers uit het raster), dan mag het weer.
+  if (_modalHistory.length) return;
+  if (typeof window._bladerBron === 'function') return window._bladerBron(richting);
+  if (window._currentDetailId) return window._detailBuur(richting);
+};
+
+window._detailBuur = async (richting) => {
+  const tab = window._currentDetailTab, id = window._currentDetailId;
+  if (!tab || !id || !entities[tab]) return;
+  const lijst = filterEntities(tab, entities[tab] || []);
+  const i = lijst.findIndex(e => e.id === id);
+  if (i < 0) return;                       // dit kaartje staat niet in de lijst
+  const doel = lijst[i + richting];
+  if (!doel) return;                       // aan het begin of eind: niets doen
+  // Opzij bladeren is geen stap dieper: het mag geen terugweg opbouwen, anders
+  // wijst de terugknop straks naar een kaartje dat je alleen maar passeerde —
+  // en dan staat hij er ook nog terwijl je gewoon door de rij loopt.
+  await window._openDetail(tab, doel.id, true /* geen history */);
+};
+
+// Eén keer aanhangen, maar pas bij het eerste kaartje dat opengaat: dit bestand
+// wordt geïmporteerd *door* app.js, dus tijdens het laden bestaat
+// `window._veegNavigatie` nog niet. (Zelfde valkuil als bij een dangling import:
+// het faalt stil.)
+function _detailVegen() {
+  const ov = document.getElementById('modal-overlay');
+  if (!ov || ov.dataset.veegKlaar) return;
+  ov.dataset.veegKlaar = '1';
+  window._veegNavigatie?.(ov, {
+    vorige:   () => window._modalBlader(-1),
+    volgende: () => window._modalBlader(1),
+  });
+}
+
+// ── Detail view ──
+let _detailToken = 0;   // Annuleer concurrent _openDetail aanroepen
+
+// ── Het winkeltabblad, als losse renderer ───────────────────────────────────
+// Dit blok bouwde de voorraadtabel binnen `_openDetail`. De Markt wil dezelfde
+// tabel laten zien in zijn eigen winkelscène, en twee tabellen die hetzelfde
+// moeten zeggen lopen vroeg of laat uit elkaar — dezelfde reden waarom er maar
+// één monster-editor is. Dus staat hij hier, en roepen allebei hem aan.
+// Alles wat hij nodig heeft komt binnen: het kaartje, wat `/shops/:id/beschikbaar`
+// gaf, de uitverkocht-lijst en de beurs.
+// De Markt opent een winkel als eigen **scène** in plaats van als tabblad in een
+// venster: achtergrond, rond portret van de winkelier, groet, en daaronder
+// precies dezelfde voorraadtabel als op het kaartje (zie hierboven — één
+// renderer, twee ingangen). Het kaartje-tabblad blijft bestaan; dat is de
+// toonbank van de DM, met uitverkocht zetten en inkopen van de party.
+window._winkelSceneData = async function (soort, id) {
+  const e = await api.getEntity(soort, id);
+  const [besch, uitv, beurs] = await Promise.all([
+    api.getShopBeschikbaar(id).catch(() => null),
+    api.getShopUitverkocht(id).catch(() => null),
+    // Ook voor de DM, mits hij namens iemand handelt: dan hoort hij te zien
+    // wat díé speler te besteden heeft. Zonder dat stond er in een winkel
+    // helemaal geen bedrag, terwijl elke dienst er inmiddels een toont.
+    (() => {
+      const wie = window.app?.state?.characterId || window._alsSpeler || null;
+      return wie ? api.getPlayerCurrency(wie).catch(() => null) : Promise.resolve(null);
+    })(),
+  ]);
+  const uitverkochtSet = new Set((uitv?.uitverkocht || []).map(k => (k || '').toLowerCase().trim()));
+  return {
+    e,
+    sfeerTekst: besch?.sfeerTekst || '',
+    html: window._winkelVoorraadHtml({
+      e, tab: soort, beschikbaarData: besch, uitverkochtSet,
+      shopCurrencyData: beurs, heeftVoorraad: true,
+    }),
+  };
+};
+
+window._winkelVoorraadHtml = function _winkelVoorraadHtml({ e, tab, beschikbaarData, uitverkochtSet, shopCurrencyData, heeftVoorraad }) {
+  let voorraadHtml = '';
+  if (heeftVoorraad) {
+    const _appMeta = window.app?.state?.meta || {};
+    // Bereikbaarheid komt van de server (akte + de handmatige knop); hier alleen
+    // nog opzoeken of dit kaartje er nu bij hoort.
+    if (window._entiteitDicht?.(e.id)) {
+      voorraadHtml = `<div style="text-align:center;padding:2rem 1rem">
+        <div style="font-size:2rem;margin-bottom:.5rem">${icon('lock')}</div>
+        <p style="color:var(--color-ink-dim,.7rem)">${esc(e.name)} is momenteel niet bereikbaar.</p>
+        <p style="font-size:.8rem;opacity:.5">Niet bereikbaar vanaf waar de groep nu is.</p>
+      </div>`;
+    } else {
+    // Gebruik beschikbaarData als die beschikbaar is, anders val terug op ruwe voorraad
+    let voorraadItems;
+    const roterend = beschikbaarData?.roterend || false;
+    const geldigTot = beschikbaarData?.geldigTot || null;
+    if (beschikbaarData?.items) {
+      voorraadItems = beschikbaarData.items;
+    } else {
+      try { voorraadItems = e.data?.voorraad ? JSON.parse(e.data.voorraad) : []; } catch { voorraadItems = []; }
+      voorraadItems = voorraadItems.map(item => ({
+        ...item,
+        uitverkocht: uitverkochtSet.has((item.naam || '').toLowerCase().trim()),
+        actief: true,
+      }));
+    }
+
+    // De beurs van wie er koopt. Stond op "alleen spelers"; een DM die namens
+    // iemand handelt koopt óók, en zag dan geen bedrag.
+    let beursHtml = '';
+    if (shopCurrencyData) {
+      const cur = shopCurrencyData.player;
+      const _cN = window._currency || { fl: 'fl', kn: 'kn', cl: 'cl' };
+      if (cur) {
+        beursHtml = `<div class="shop-beurs">
+          <span class="shop-beurs-label">${icon('coins')} Jouw beurs</span>
+          <span class="shop-beurs-amount">${cur.fl ?? 0} ${esc(_cN.fl)} · ${cur.kn ?? 0} ${esc(_cN.kn)} · ${cur.cl ?? 0} ${esc(_cN.cl)}</span>
+        </div>`;
+      }
+    }
+
+    // Rotatie-timer
+    let roterendHtml = '';
+    if (roterend && geldigTot) {
+      const diff = new Date(geldigTot) - Date.now();
+      const h = Math.floor(diff / 3600000);
+      const m = Math.floor((diff % 3600000) / 60000);
+      roterendHtml = `<div class="shop-rotatie-info">${icon('refresh-cw')} Assortiment ververst over ${h > 0 ? h + 'u ' : ''}${m}m</div>`;
+    }
+    if (roterend && beschikbaarData?.verversBij && beschikbaarData.verversBij !== 'uren') {
+      const _wanneer = beschikbaarData.verversBij === 'short' ? 'korte rust' : 'lange rust';
+      roterendHtml = `<div class="shop-rotatie-info">${icon('refresh-cw')} Nieuwe schappen na de volgende ${_wanneer}</div>`;
+    }
+
+    const _shopId = e.id;
+
+    // Sfeer bovenaan
+    const _sfeerTekst = beschikbaarData?.sfeerTekst || '';
+    const _sfeerImageId = e.imageId || '';
+    const sfeerHtml = (_sfeerTekst || _sfeerImageId) ? `
+      <div class="shop-sfeer">
+        ${_sfeerImageId ? `<img src="${api.thumbUrl(_sfeerImageId)}" class="shop-sfeer-img" alt="">` : ''}
+        ${_sfeerTekst ? `<p class="shop-sfeer-tekst">${esc(_sfeerTekst)}</p>` : ''}
+      </div>` : '';
+
+    // Verkopen: alleen zichtbaar als deze winkel ook echt inkoopt. Staat het
+    // vinkje uit, dan is er geen blok, geen knop en geen uitleg — een winkel
+    // die niets koopt hoort er ook niet naar te laten raden. Het bod is het
+    // percentage uit de winkelinstelling; het laatste woord heeft de DM.
+    const _verkoop = beschikbaarData?.verkoop || null;
+    const verkoopHtml = (!isDM() && _verkoop?.koopt) ? (() => {
+      const rijen = (_verkoop.items || []);
+      const lijst = rijen.length ? rijen.map((v, i) => {
+        const _aanbod = v.aanbod ? _muntTekst(v.aanbod) : '';
+        return `
+          <div class="shop-verkoop-rij${v.verkoopbaar ? '' : ' shop-verkoop-rij--nee'}">
+            <span class="shop-verkoop-naam" title="Open het kaartje"
+              onclick="window._openDetailFromShop('${escArg(v.entityId)}')">${esc(v.naam)}</span>
+            <span class="shop-verkoop-aantal">${v.qty > 1 ? `${v.qty}×` : ''}</span>
+            <span class="shop-verkoop-bod">${v.verkoopbaar ? esc(_aanbod) : `<em>${esc(v.reden || 'Niet verkoopbaar')}</em>`}</span>
+            <span class="shop-verkoop-actie">
+              ${v.aangeboden
+                ? `<span class="shop-verkoop-wacht">${icon('hourglass')} Aangeboden</span>`
+                : v.verkoopbaar
+                  ? `${v.stapelbaar && v.qty > 1 ? `<input type="number" id="shop-vk-qty-${i}" class="shop-qty-input" value="1" min="1" max="${v.qty}" onclick="event.stopPropagation()" oninput="this.value=Math.min(${v.qty},Math.max(1,parseInt(this.value)||1))">` : ''}
+                     <button class="shop-koop-btn" onclick="window._verkoopItem('${escArg(_shopId)}','${escArg(v.entityId)}',this,${v.stapelbaar && v.qty > 1 ? `parseInt(document.getElementById('shop-vk-qty-${i}')?.value)||1` : '1'})">Aanbieden</button>`
+                  : ''}
+            </span>
+          </div>`;
+      }).join('') : `<p class="shop-verkoop-leeg">Je hebt niets in je boedel om aan te bieden.</p>`;
+      return `
+        <div class="shop-verkoop">
+          <div class="shop-verkoop-kop">
+            ${icon('coins')} Verkopen aan deze winkel
+            <span class="shop-verkoop-ratio">biedt ${_verkoop.ratio}% van de winkelprijs</span>
+          </div>
+          <div class="shop-verkoop-lijst">${lijst}</div>
+          <div id="shop-verkoop-feedback" class="shop-koop-feedback hidden"></div>
+        </div>`;
+    })() : '';
+
+    if (voorraadItems.length > 0) {
+      // De onderhandelknop met DC-worp is vervallen: afdingen gebeurt aan
+      // tafel en de DM tikt het afgesproken bedrag in.
+
+      voorraadHtml = `
+        ${sfeerHtml}
+        ${beursHtml}
+        ${roterendHtml}
+        <div class="rounded border border-room-border overflow-hidden winkel-voorraad">
+          <table class="w-full text-sm">
+            <thead>
+              <tr class="bg-room-elevated border-b border-room-border">
+                <th class="px-4 py-2.5 text-left font-cinzel text-ink-dim text-[10px] tracking-wide">Voorwerp</th>
+                <th class="px-4 py-2.5 text-right font-cinzel text-ink-dim text-[10px] tracking-wide">Prijs</th>
+                <!-- ✦, UV en — waren alleen te begrijpen met een tooltip. -->
+                ${isDM() && roterend ? `<th class="px-3 py-2.5 text-center font-cinzel text-ink-dim text-[10px] tracking-wide shop-kol" title="Ligt nu in de schappen">In schap</th>` : ''}
+                ${isDM() ? `<th class="px-3 py-2.5 text-center font-cinzel text-ink-dim text-[10px] tracking-wide shop-kol" title="Uitverkocht voor deze party">Uitverkocht</th>` : ''}
+                ${isDM() ? `<th class="px-3 py-2.5 text-center font-cinzel text-ink-dim text-[10px] tracking-wide shop-kol" title="Afrekenen aan tafel">Afrekenen</th>` : ''}
+                ${!isDM() ? `<th class="px-2 py-2.5"></th>` : ''}
+              </tr>
+            </thead>
+            <tbody>
+              ${voorraadItems.map((item, i) => {
+                const uitverkocht = item.uitverkocht;
+                const actief = item.actief;
+                const thumbHtml = item.imageId
+                  ? `<img src="${api.thumbUrl(item.imageId)}" class="shop-item-thumb" alt="">`
+                  : '';
+                const naamHtml = item.entityId
+                  ? `<span class="cursor-pointer hover:text-gold transition underline decoration-dotted${uitverkocht ? ' winkel-uitverkocht-naam' : ''}"
+                       onclick="window._openDetailFromShop('${escArg(item.entityId)}')"
+                       title="Open het kaartje">${esc(item.naam || '\u2014')}</span>`
+                  : `<span class="${uitverkocht ? 'winkel-uitverkocht-naam' : ''}">${esc(item.naam || '\u2014')}</span>`;
+                return `
+                <tr class="${i % 2 === 1 ? 'bg-room-elevated/40' : ''} border-b border-room-border/40 last:border-0${uitverkocht ? ' winkel-uitverkocht-rij' : ''}">
+                  <td class="px-4 py-2.5 font-crimson">
+                    <div class="flex items-center gap-2">
+                      ${thumbHtml}${naamHtml}
+                    </div>
+                  </td>
+                  <td class="px-4 py-2.5 text-right font-crimson ${uitverkocht ? 'text-ink-faint' : 'text-ink-medium'}">
+                    ${esc(item.prijs || '\u2014')}
+                  </td>
+                  ${isDM() && roterend ? `<td class="px-3 py-2.5 text-center">${actief ? '<span class="shop-actief-badge" title="Actief voor spelers">✦</span>' : ''}</td>` : ''}
+                  ${isDM() ? `
+                  <td class="px-3 py-2.5 text-center">
+                    <input type="checkbox" class="winkel-uitverkocht-cb" title="Uitverkocht voor deze party"
+                      ${uitverkocht ? 'checked' : ''}
+                      onchange="window._toggleShopUitverkocht('${escArg(_shopId)}','${escArg(item.naam || '')}',this)">
+                  </td>
+                  <td class="px-3 py-2.5 text-center">
+                    <button class="dm-btn dm-btn-sm dm-btn-icon" title="Afrekenen met een speler"
+                      onclick="window._dmAfrekenen('${escArg(_shopId)}','${escArg(item.naam || '')}','${escArg(item.entityId || '')}','${escArg(item.prijs || '')}')">
+                      ${icon('coins')}
+                    </button>
+                  </td>` : ''}
+                  ${!isDM() ? `
+                  <td class="px-2 py-2.5 text-right">
+                    ${uitverkocht ? `<span class="text-xs text-ink-faint italic">Uitverkocht</span>` : `
+                      <div class="flex items-center gap-1 justify-end">
+                        ${item.stapelbaar ? `
+                          <input type="number" min="1" max="99" value="1"
+                            class="shop-qty-input" id="shop-qty-${i}"
+                            onclick="event.stopPropagation()" oninput="this.value=Math.max(1,parseInt(this.value)||1)">
+                        ` : ''}
+                        <button class="shop-koop-btn"
+                          onclick="window._koopItem('${escArg(_shopId)}','${escArg(item.naam || '')}','${escArg(item.entityId || '')}',this,${item.stapelbaar ? `parseInt(document.getElementById('shop-qty-${i}')?.value)||1` : '1'})">
+                          Kopen
+                        </button>
+                      </div>
+                    `}
+                  </td>` : ''}
+                </tr>`;
+              }).join('')}
+            </tbody>
+          </table>
+        </div>
+        <!-- Afdingen gaat aan tafel: de DM tikt het afgesproken bedrag in
+             (muntknop per regel). Vandaar hier geen onderhandelknop meer. -->
+        <div id="shop-koop-feedback" class="shop-koop-feedback hidden"></div>
+        ${verkoopHtml}
+        ${isDM() ? `
+          <div id="dm-afreken-paneel" class="dm-winkel-paneel hidden"></div>
+          <div class="dm-winkel-paneel">
+            <div class="cs-sectiekop" style="border-top:0;margin-top:0;padding-top:0">Inkopen van de party</div>
+            <button class="ed-knop" onclick="window._dmInkoopOpen('${escArg(_shopId)}')"><span id="dm-inkoop-chevron">▸</span>${icon('package')}<span>Inventory van de party</span></button>
+            <div id="dm-inkoop-lijst" class="mt-2"></div>
+          </div>` : ''}
+        `;
+    } else {
+      // Voor de DM een weg erheen: het bewerken zat op het tabblad Informatie,
+      // en hier stond alleen dat er niets lag.
+      const _aanvullen = isDM() ? `<div class="text-center" style="margin-top:-24px;margin-bottom:16px">
+          <button type="button" class="dm-btn dm-btn-sm dm-btn-ghost"
+            onclick="window._voorraadAanvullen('${escArg(tab)}','${escArg(e.id)}')">${icon('plus')} Voorraad aanvullen</button></div>` : '';
+      voorraadHtml = `${sfeerHtml}${beursHtml}${roterendHtml}<div class="text-center py-10 text-ink-faint font-fell italic">Geen voorraad beschikbaar</div>${_aanvullen}${verkoopHtml}`;
+    }
+    } // end else (niet buitenGrisburgh)
+  }
+  return voorraadHtml;
+};
+
+window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
+  _detailVegen();                   // eerste keer: vegen en pijltjes aanhangen
+  window._bladerBron = null;        // dit venster toont een kaartje, geen statblok
+  const myToken = ++_detailToken;   // Uniek token voor deze aanroep
+
+  const prevTab = window._currentDetailTab;
+  const prevId  = window._currentDetailId;
+
+  if (!isBack) {
+    if (prevId && prevId !== id) {
+      _pushHistory(prevTab, prevId);
+    } else if (!prevId) {
+      _clearHistory();
+    }
+  }
+  window._currentDetailTab = tab;
+  window._currentDetailId  = id;
+
+  let e, playerNotesData, uitverkochtData, beschikbaarData, shopCurrencyData;
+  let _bladProfiel = null, _bladHp = null;
+  let shopLogData = null;
+  // Is dit organisatiekaartje een factie? De lijst is voor een speler al
+  // gefilterd op wat zijn party kent, dus een nog verborgen factie komt er
+  // vanzelf niet in.
+  let _factie = null;
+  const _isShopTab = (tab === 'locaties' || tab === 'personages');
+  try {
+    [e, playerNotesData, uitverkochtData, beschikbaarData, shopCurrencyData] = await Promise.all([
+      api.getEntity(tab, id),
+      api.getPlayerNotes(id).catch(() => null),
+      _isShopTab
+        ? api.getShopUitverkocht(id).catch(() => ({ uitverkocht: [] }))
+        : Promise.resolve({ uitverkocht: [] }),
+      _isShopTab
+        ? api.getShopBeschikbaar(id).catch(() => null)
+        : Promise.resolve(null),
+      (_isShopTab && !isDM())
+        ? Promise.all([
+            api.getPlayerCurrency(window.app?.state?.characterId).catch(() => ({ fl: 0, kn: 0, cl: 0 })),
+            api.getPartyCurrency().catch(() => ({ enabled: false, fl: 0, kn: 0, cl: 0 })),
+          ]).then(([player, party]) => ({ player, party }))
+        : Promise.resolve(null),
+    ]);
+    // Het blad van een speler komt uit hetzelfde profiel als de print, zodat
+    // scherm en papier hetzelfde laten zien.
+    if (tab === 'personages' && isDM() && e?.subtype === 'speler') {
+      [_bladProfiel, _bladHp] = await Promise.all([
+        api.getPlayerProfile(id).catch(() => null),
+        api.getPlayerHp(id).catch(() => null),
+      ]);
+    }
+  } catch {
+    // Lukt het laden niet (verwijderd, of voor deze party niet meer zichtbaar),
+    // dan bleef een al geopend venster staan met de vorige inhoud: het zag er
+    // normaal uit maar sloeg nergens meer op. Liever eerlijk zeggen dat het weg
+    // is dan een kaartje laten staan waar je niets mee kunt.
+    if (myToken === _detailToken && document.getElementById('modal-overlay')?.classList.contains('active')) {
+      const _body = document.getElementById('m-body');
+      if (_body) _body.innerHTML = `<div class="text-center py-12 text-ink-faint font-fell italic">
+        Dit kaartje is niet meer beschikbaar.<br><span class="text-xs">Het is verwijderd of niet langer zichtbaar voor deze party.</span>
+      </div>`;
+      const _sub = document.getElementById('m-sub');
+      if (_sub) _sub.classList.add('hidden');
+    }
+    return;
+  }
+  if (_isShopTab && isDM()) {
+    [shopLogData] = await Promise.all([
+      api.getShopLog(id).catch(() => null),
+    ]);
+  }
+  if (tab === 'organisaties') {
+    const _fl = await api.getFacties().catch(() => null);
+    _factie = (_fl?.facties || _fl || []).find(f => f.entityId === e.id) || null;
+  }
+  // Zorg dat de wikilink-naamindex volledig geladen is voor we de beschrijving renderen
+  await window._entityIndexReady?.catch(() => {});
+  const uitverkochtSet = new Set((uitverkochtData?.uitverkocht || []).map(k => k.toLowerCase().trim()));
+  if (myToken !== _detailToken) return;   // Nieuwere aanroep actief — stop
+  const meta = TYPE_META[tab];
+  const schema = SCHEMA[tab];
+  const vis = e._visibility || 'visible';
+  const isPersonage = tab === 'personages';
+  // Dezelfde markering heet niet overal hetzelfde: een gebouw gaat niet dood.
+  // Een document gaat niet dood en raakt niet verwoest; weg is weg, dus daar
+  // staat de knop niet (zelfde afspraak als bij een voorwerp).
+  const _wegLabel = { locaties: 'Verwoest', organisaties: 'Opgeheven', voorwerpen: 'Verloren', documenten: 'Vernietigd' }[tab] || 'Overleden';
+  // Een leeg blad is een lege tab: alleen tonen als er iets in staat. `hp` en
+  // `ac` tellen niet als "iets" wanneer de rest leeg is — dat is de minimale
+  // invulling voor de monsterlijst, geen character sheet.
+  const _sheetGevuld = Object.values(e.stats || {}).some(v => String(v ?? '').trim());
+  // Een huisdier heeft zijn statblok in tiers staan, niet in `stats`; het blad
+  // wordt gevuld met het tier dat bij het level van het baasje hoort.
+  const _isDier   = isPersonage && String(e.subtype || '').toLowerCase() === 'dier';
+  const _isSpeler = isPersonage && String(e.subtype || '').toLowerCase() === 'speler';
+  const showSheet = isPersonage && isDM() && (_sheetGevuld || _isDier);
+  // Het origineel is voor de lightbox; alles wat kleiner op het scherm staat
+  // (de hero in het venster, het portretje in de kop) krijgt de thumbnail.
+  const fileUrl  = api.fileForEntity(e);
+  const beeldUrl = api.thumbForEntity(e);
+
+  // ── Tab: Info ──
+  let infoHtml = '';
+
+  // Image(s) — carousel when extra images exist, else single portrait
+  const _extraImgs = _parseExtraImages(e.data?.extraImages);
+  // Het onderschrift bij het portret staat tijdelijk uit: in de praktijk botste
+  // het met de weergavenaam in de mediabibliotheek. Data en code blijven staan,
+  // dus terugzetten is deze regel terugdraaien. (Onderschriften bij de extra
+  // afbeeldingen in de carousel blijven wél gewoon werken.)
+  const _primaryCaption = '';   // was: e.data?.imgCaption || ''
+  const _heroBadges = getCardBadges(tab, e);
+  // Afbeelding — simpel gecentreerd met perkamentachtergrond
+  const _d = e.data || {};
+  // Armor AC pill — berekend voor hero-overlay en chips-sectie
+  const _detailDexMod = (typeof window._playerDexMod === 'number') ? window._playerDexMod : null;
+  const _detailAcResult = (tab === 'voorwerpen' && e.data?.armorType) ? _calcArmorAC(e.data, _detailDexMod) : null;
+  const _rolVal = e.data?.rol;
+  if (_extraImgs.length > 0) {
+    // De banner leeft sinds de mediabibliotheek in data.imageId; alleen oude
+    // kaartjes hebben hun portret nog onder het entity-id staan. Stond hier
+    // hard `e.id`, waardoor de eerste dia een gebroken plaatje was.
+    const _allImgs = [{ id: e.data?.imageId || e.id, caption: _primaryCaption }, ..._extraImgs];
+    infoHtml += _entityCarouselHtml(e.id, _allImgs);
+  } else {
+    infoHtml += `
+      <div class="detail-hero detail-hero--portret mb-6" id="detail-img-wrap-${e.id}" onclick="window.app.openLightbox('${fileUrl}','${escArg(e.name)}')">
+        <div class="detail-hero-bg" style="background-image:url('${beeldUrl}')"></div>
+        <img src="${beeldUrl}" class="detail-hero-img"
+          style="${_d.imgFocus ? `object-position:${_d.imgFocus}` : ''}"
+          onerror="this.closest('#detail-img-wrap-${e.id}').style.display='none'">
+        <div class="detail-hero-overlay"></div>
+        ${_detailAcResult
+          ? `<span class="detail-hero-ac-badge" data-wptip="${escJS(_detailAcResult.tooltip)}">${esc(_detailAcResult.pill)}</span>`
+          : `<div class="detail-hero-icon">${getAutoIconSvg(tab, e)}</div>`}
+        ${_heroBadges.length ? `<div class="detail-hero-badges">${_heroBadges.map(b => `<span class="detail-hero-badge badge ${b.cls}">${esc(b.label)}</span>`).join('')}</div>` : ''}
+        ${_rolVal ? `<div class="detail-hero-rol">${esc(_rolVal)}</div>` : ''}
+        ${_houdingBalkHtml(tab, e)}
+      </div>
+      ${_primaryCaption ? `<p class="text-center text-xs text-ink-dim font-crimson -mt-3 mb-3 italic">${esc(_primaryCaption)}</p>` : ''}
+    `;
+  }
+
+  // Upload en audio-beheer staan in de bewerkmodus (openEditor), niet in de detailview
+
+  // De korte omschrijving stond hier nog eens als losse badge onder het beeld.
+  // Sinds hij als eerste deel van de regel onder de naam staat (rol · origin ·
+  // class · alignment) is dat een herhaling.
+
+  // Wat na de beschrijving komt (attunement, charges, prijs) — daar gebouwd,
+  // hier ingevoegd, want de tekst zelf wordt pas verderop gerenderd.
+  let _naDesc = '';
+  // Voorwerpen: één kenmerkenstrook in plaats van vier losse rijen pillen.
+  // Er stonden er vier onder elkaar, elk met een eigen uitlijning (rariteit
+  // links, schade gecentreerd, prijs weer links) — dat las als een opsomming
+  // zonder kop. Alles staat nu in één omkaderd blok: wat het kost bovenaan,
+  // wat je ermee doet eronder. Rariteit en type staan al in de ondertitel onder
+  // de naam en worden hier dus niet herhaald.
+  if (tab === 'voorwerpen') {
+    const _att    = e.data?.attunement === true || e.data?.attunement === 'true';
+    const _attEis = String(e.data?.attunementEis || '').trim();
+    // Een streepje is hoe iemand "geen prijs" opschrijft, geen bedrag. Zonder
+    // deze regel kreeg zo'n kaartje een muntje met een liggend streepje ernaast.
+    const _prijsRuw = String(e.data?.prijs || '').trim();
+    const _prijs    = /^[-\u2010-\u2015]+$/.test(_prijsRuw) ? '' : _prijsRuw;
+    const _nietTeKoop = e.data?.nietVerkoopbaar === true || e.data?.nietVerkoopbaar === 'true';
+    const _nietTeRuilen = e.data?.nietRuilbaar === true || e.data?.nietRuilbaar === 'true';
+    const _maxCh  = parseInt(e.data?.maxCharges) || 0;
+    const _herlaad = { longRest: 'lange rust', shortRest: 'korte rust', dawn: 'lange rust',
+                       longRestRoll: `lange rust, ${e.data?.rechargeRoll || '1d3'}` }[e.data?.rechargeOn || ''] || '';
+
+    // Wat je ermee doet staat vóór de beschrijving, wat het van je vraagt en
+    // wat het kost erna: eerst het voorwerp, dan het verhaal, dan de kleine
+    // letters. `_naDesc` wordt verderop ingevoegd, direct onder de tekst.
+    const _vraagt = [];
+    // Attunement staat niet hier maar bij de eigenschappen: het zégt iets over
+    // wat het voorwerp is, net als Light of Finesse, en niet over de handel
+    // eromheen. Zie `_tags` verderop.
+    if (_maxCh > 0) _vraagt.push(`<span class="ik-chip">${icon('zap')} ${_maxCh} charge${_maxCh === 1 ? '' : 's'}${_herlaad ? ` — terug bij ${esc(_herlaad)}` : ''}</span>`);
+    const _kost = [];
+    if (_prijs) _kost.push(`<span class="ik-prijs">${icon('coins')} ${esc(_prijs)}</span>`);
+    if (_nietTeKoop) _kost.push(`<span class="ik-noot">winkels kopen dit niet in</span>`);
+    if (_nietTeRuilen) _kost.push(`<span class="ik-noot">blijft bij wie het heeft</span>`);
+    if (_vraagt.length || _kost.length) {
+      _naDesc = `<div class="item-navraag">
+        ${_vraagt.length ? `<div class="item-kenmerken-rij">${_vraagt.join('')}</div>` : ''}
+        ${_kost.length ? `<div class="item-kenmerken-rij item-kenmerken-rij--kost">${_kost.join('')}</div>` : ''}
+      </div>`;
+    }
+
+    // Onderregel: wat je ermee doet. De schadeknop is het enige wat je hier
+    // kunt aanklikken en blijft daarom als enige geaccentueerd.
+    const _dmg = e.data?.damage;
+    const _tags = [];
+    // Vooraan: een voorwerp dat attunement vraagt, vraagt dat vóór al het
+    // andere. Eigen kleur, want het is een voorwaarde en geen eigenschap die je
+    // "gratis" krijgt zoals Finesse.
+    // De uitleg komt uit het lexicon, net als bij de wapeneigenschappen ernaast:
+    // dat is Engelse PHB-tekst, en die zin hoort niet twee keer te bestaan. De
+    // eis (wie zich eraan mag afstemmen) staat al op de pil zelf.
+    if (_att) _tags.push(`<span class="detail-weapon-tag detail-weapon-tag--attune"
+      data-wptip="${escJS(window.glossary?.tip?.('Requires Attunement') || 'Requires Attunement: the item only works once you bond with it over a Short Rest.')}">${icon('lock')} Requires Attunement${_attEis ? ` · ${esc(_attEis)}` : ''}</span>`);
+    if (_detailAcResult && _extraImgs.length > 0) {
+      // Zonder hero-beeld is er geen plek voor de AC-overlay; dan hoort hij hier.
+      _tags.push(`<span class="detail-armor-tag detail-armor-tag--ac" data-wptip="${escJS(_detailAcResult.tooltip)}">${esc(_detailAcResult.pill)}</span>`);
+    }
+    if (_detailAcResult) {
+      const _stealth = e.data?.stealthDisadvantage === true || e.data?.stealthDisadvantage === 'true';
+      const _strReq  = parseInt(e.data?.strengthRequirement) || 0;
+      if (_stealth) _tags.push(`<span class="detail-armor-tag detail-armor-tag--stealth" data-wptip="You have disadvantage on Dexterity (Stealth) checks while wearing this armor.">Stealth ↓</span>`);
+      if (_strReq)  _tags.push(`<span class="detail-armor-tag detail-armor-tag--str" data-wptip="Your speed is reduced by 10 feet unless you have a Strength score of ${_strReq} or higher.">Str ${_strReq}</span>`);
+    }
+    const _wprops = (() => { try { return JSON.parse(e.data?.weaponProperties || '[]'); } catch { return []; } })();
+    for (const wp of _wprops) {
+      const _base = wp.replace(/\s*\(.*\)$/, '').trim();
+      const desc = WEAPON_PROPERTIES[wp] || WEAPON_PROPERTIES[_base] || '';
+      _tags.push(`<span class="detail-weapon-tag" data-wptip="${escJS(desc)}">${esc(wp)}</span>`);
+    }
+
+    // Genezing heeft een eigen veld gekregen; een oud kaartje met "2d4 healing"
+    // in het schadeveld blijft als genezing lezen.
+    const _legacyHeal = _dmg && /heal|genez/i.test(_dmg);
+    const _heal = String(e.data?.healing || '').trim() || (_legacyHeal ? _dmg : '');
+    const _worpen = [];
+    if (_dmg && !_legacyHeal) {
+      _worpen.push(`<button class="item-damage-pill"
+          onclick="window.dice?.rollFlash('${escArg(_dmg)}','${escArg(e.name)}')"
+          title="Klik om schade te gooien">
+          ${icon('dice',{cls:'icon-gi'})} ${esc(_dmg)}
+        </button>`);
+    }
+    if (_heal) {
+      _worpen.push(`<button class="item-damage-pill item-damage-pill--heal"
+          onclick="window.dice?.rollFlash('${escArg(_heal)}','${escArg(e.name)}','heal')"
+          title="Klik om genezing te gooien">
+          ${icon('heart',{cls:'icon-gi'})} ${esc(_heal)}
+        </button>`);
+    }
+    // Geen inline-resultaat meer naast de pil: de worp landt nu als kaart midden
+    // in beeld (window.dice.rollFlash).
+    const _worp = _worpen.join('');
+    // Gekoppelde spreuken: dezelfde chips als op een statblock, dus één klik
+    // naar de volledige spreuk in plaats van een verouderde kopie in de tekst.
+    let _spellIdx = [];
+    try { _spellIdx = JSON.parse(e.data?.spellIndexes || '[]'); } catch { /* ok */ }
+    if (Array.isArray(_spellIdx) && _spellIdx.length) {
+      infoHtml += `<div class="item-spellrij">
+        <span class="item-spellrij-kop">${icon('sparkles')} ${_spellIdx.length === 1 ? 'Spreuk' : 'Spreuken'}</span>
+        <span class="cs-spell-chips" id="detail-spell-chips" data-compact="1">${_spellIdx.map(i =>
+          `<button type="button" class="cs-spell-chip cs-spell-chip--klik" data-spell="${esc(i)}"
+             onclick="window.spreuken.open('${escArg(i)}')">${esc(String(i).replace(/-/g, ' '))}</button>`).join('')}</span>
+      </div>`;
+    }
+
+    if (_worp || _tags.length) {
+      infoHtml += `<div class="item-kenmerken">
+        ${_worp ? `<div class="item-kenmerken-rij item-kenmerken-rij--worp">${_worp}</div>` : ''}
+        ${_tags.length ? `<div class="item-kenmerken-rij item-kenmerken-rij--eigenschappen">${_tags.join('')}</div>` : ''}
+      </div>`;
+    }
+  }
+
+  // Scroll spell stats block
+  if (tab === 'voorwerpen' && e.data?.itemType === 'Scroll') {
+    const _ct = e.data?.spellCastingTime;
+    const _sr = e.data?.spellRange;
+    const _sc = e.data?.spellComponents;
+    const _sd = e.data?.spellDuration;
+    if (_ct || _sr || _sc || _sd) {
+      infoHtml += `<div class="detail-scroll-stats">
+        ${_ct ? `<span class="detail-scroll-stat"><span class="scroll-stat-lbl">Casting Time</span>${esc(_ct)}</span>` : ''}
+        ${_sr ? `<span class="detail-scroll-stat"><span class="scroll-stat-lbl">Range</span>${esc(_sr)}</span>` : ''}
+        ${_sc ? `<span class="detail-scroll-stat"><span class="scroll-stat-lbl">Components</span>${esc(_sc)}</span>` : ''}
+        ${_sd ? `<span class="detail-scroll-stat"><span class="scroll-stat-lbl">Duration</span>${esc(_sd)}</span>` : ''}
+      </div>`;
+    }
+  }
+
+  // Blessing block
+  if (tab === 'voorwerpen' && e.data?.itemType === 'Blessing') {
+    const _gType   = e.data?.goddelijkType || '';
+    const _gGod    = e.data?.godNaam || '';
+    const _gEffect = e.data?.effect || '';
+    const _eedTekst = e.data?.eedTekst || '';
+    const _permZegen = e.data?.permanenteZegen || '';
+    const _typeLabel = _gType === 'zegen' ? 'Zegening' : _gType === 'eed' ? 'Eed' : _gType === 'vloek' ? 'Vloek' : 'Blessing';
+    const _typeIcon  = _gType === 'vloek' ? icon('skull') : _gType === 'eed' ? icon('scroll-text') : icon('sparkles');
+    infoHtml += `<div class="detail-divine-block">
+      <div class="detail-divine-header">${_typeIcon} ${esc(_typeLabel)}${_gGod ? ` van ${esc(_gGod)}` : ''}</div>
+      ${_gEffect ? `<div class="detail-divine-effect detail-divine-effect--titel">${esc(_gEffect)}</div>` : ''}
+      ${(_gType === 'eed' && _permZegen) ? `<div class="detail-divine-effect" style="margin-top:8px"><strong>Permanente zegen:</strong> ${esc(_permZegen)}</div>` : ''}
+      ${_eedTekst ? `<div class="detail-divine-effect" style="margin-top:10px;font-style:italic">${esc(_eedTekst)}</div>` : ''}
+    </div>`;
+  }
+
+  // Short metadata → labeled pills; description → block
+  const _metaPills = [];
+  let _descVal = '';
+  for (const field of (schema.fields || [])) {
+    // Een veld dat alleen de DM aangaat hoort nergens als pil te staan. Dat
+    // ging tot nu toe op naam ('persoonlijkheid' stond in de lijst hieronder),
+    // en dus gleed het eerste nieuwe dmOnly-veld er zo doorheen: een speler
+    // zag "Gecodeerd — de tekens staan door elkaar: true" boven een brief die
+    // hij niet kon lezen.
+    if (field.dmOnly) continue;
+    if (['geheim', 'flavour', 'rol', 'stapelbaar', 'gedeeld', 'gebruik', 'attunement', 'persoonlijkheid', 'nietVerkoopbaar', 'nietRuilbaar'].includes(field.key)) continue;
+    // Wat al onder de naam staat (rol · origin · class · alignment · type)
+    // hoeft er niet nóg eens als pil onder: dat was de helft van de pillenrij.
+    if (['ras', 'klasse', 'alignment', 'domein', 'locType', 'wijk', 'orgType', 'itemType', 'rariteit'].includes(field.key)) continue;
+    // Geheimen, flavours en rollen hebben verderop hun eigen weergave (rollen
+    // een badge, de lijsten een perkamentrol per regel). Als pil toonden ze
+    // hun ruwe JSON: ["Groot hater van jam."].
+    if (['lijst-tekst', 'rollen'].includes(field.type)) continue;
+    // De perkamenttekst van een document krijgt verderop zijn eigen weergave;
+    // als pil werd een hele brief tot één regel platgeslagen.
+    if (field.type === 'perkament') continue;
+    // Het documenttype staat al in de ondertitel onder de naam.
+    if (tab === 'documenten' && field.key === 'docType') continue;
+    // Betrokkenen heeft zijn eigen rij chips hieronder; als pil kwam zijn ruwe
+    // JSON in beeld.
+    if (field.type === 'betrokkenen') continue;
+    if (tab === 'voorwerpen' && ['werking', 'healing', 'spellIndexes', 'prijs', 'attunementEis', 'maxCharges', 'rechargeOn', 'rechargeRoll', 'playerMaxAdjustable', 'itemType', 'rariteit', 'damage', 'weaponProperties', 'armorType', 'armorBaseAC', 'armorDexCap', 'stealthDisadvantage', 'strengthRequirement', 'spellPick', 'spellCastingTime', 'spellRange', 'spellComponents', 'spellDuration', 'godNaam', 'goddelijkType', 'effect', 'permanenteZegen', 'eedTekst'].includes(field.key)) continue;
+    const val = e.data?.[field.key];
+    if (!val) continue;
+    if (field.key === 'desc') {
+      _descVal = val;
+    } else {
+      _metaPills.push(`<span class="detail-meta-pill"><span class="pill-lbl">${esc(field.label)}</span>${esc(val)}</span>`);
+    }
+  }
+  if (_metaPills.length) {
+    infoHtml += `<div class="detail-meta-pills">${_metaPills.join('')}</div>`;
+  }
+  if (_descVal) {
+    // Voorwerpbeschrijvingen krijgen hover-uitleg bij D&D-begrippen
+    const _descHtml = mdToHtml(_descVal);
+    infoHtml += `<div class="detail-desc mb-4">${tab === 'voorwerpen' ? (window.glossary?.annotate?.(_descHtml) ?? _descHtml) : _descHtml}</div>`;
+  }
+  infoHtml += _naDesc;
+
+  // ── Een document toont zijn eigen inhoud ──
+  // Eerst de tekst op perkament, dan het bestand (een pdf-scan of een
+  // geluidsfragment). Een afbeelding staat al bovenaan als hero, dus die slaan
+  // we hier over. Bij een vaag document geeft de server niets mee; dan één slot.
+  if (tab === 'documenten') {
+    // Een vaag document geeft de server aan een speler leeg mee, dus daar rest
+    // een slot. De **DM** krijgt de tekst wél: hij ziet overal alles, en het is
+    // zijn eigen document — zonder dit moest hij het eerst onthullen om te
+    // kunnen lezen wat hij zelf geschreven had. Wat de party ziet staat als
+    // regel boven de tekst.
+    if (e._visibility === 'vague' && !isDM()) {
+      infoHtml += `<div class="doc-slot">${icon('lock')}<span>Nog niet volledig onthuld</span></div>`;
+    } else {
+      if (e._visibility === 'vague') {
+        infoHtml += `<div class="doc-vaagmelding">${icon('eye-off')} Staat op <strong>vaag</strong>: de party ziet hier een slot en geen tekst.</div>`;
+      }
+      if (e.data?.tekst) {
+        // In het venster staat een inkijk met een vervloeiende onderrand; de
+        // hele brief lees je vergroot, want een lange tekst duwde de rest van
+        // het kaartje van het scherm.
+        const _stijl = _docStijl(e);
+        let _binnen = renderParchment(e.data.tekst);
+        if (_stijl === 'knipsel') _binnen = _knipselLetters(_binnen);
+        // Gecodeerd: elk teken in een eigen span, zodat ze straks los kunnen
+        // vliegen. De DM ziet de klare tekst — hij heeft hem zelf geschreven —
+        // maar wél met de knop erbij.
+        const _codeAan = !!e.data?.gecodeerd && !isDM() && e._gecodeerd;
+        if (_codeAan) _binnen = _codeLetters(_binnen);
+        infoHtml += `
+          <div class="parchment-wrap mb-4">
+            <div class="parchment-block parchment-block--inkijk${_codeAan ? ' brief-gecodeerd' : ''}"
+              id="perkament-${esc(e.id)}" data-stijl="${esc(_stijl)}"
+              ${_codeAan ? 'aria-label="Gecodeerde brief, nog niet leesbaar"' : ''}
+              onclick="window._perkamentGroot('${escArg(e.id)}')">${_binnen}</div>
+            <button type="button" class="parchment-groot-knop" onclick="window._perkamentGroot('${escArg(e.id)}')">
+              ${icon('maximize-2')} Lees de hele tekst
+            </button>
+            ${isDM() ? `
+            <div class="brief-code-regel">
+              <span>${e.data?.gecodeerd
+                ? `${icon('lock')} Gecodeerd — de party ziet de tekens door elkaar.`
+                : `${icon('monitor')} Op tafel leggen voor de party.`}</span>
+              <span class="brief-code-knoppen">
+                <button type="button" class="dm-btn dm-btn-sm"
+                  onclick="event.stopPropagation();window._briefNaarTafel('${escArg(e.id)}')">
+                  ${icon('monitor')} Op het tafelscherm</button>
+                ${e.data?.gecodeerd ? `<button type="button" class="dm-btn dm-btn-sm dm-btn-primary"
+                  onclick="event.stopPropagation();window._briefOntcijfer('${escArg(e.id)}')">
+                  ${icon('eye')} Ontcijferen</button>` : ''}
+              </span>
+            </div>` : ''}
+          </div>`;
+      }
+      infoHtml += `<div class="mb-4" id="doc-bestand-${esc(e.id)}"></div>`;
+    }
+  }
+
+  // ── Betrekkingen, ná de beschrijving ──
+  // Eerst lezen wie of wat dit is, dan pas de administratie eromheen. Eén regel
+  // per rol: iemand kan eigenaar zijn van drie panden, en dan is "Eigenaar" op
+  // een hoop met drie namen erachter niet te lezen.
+  const _rolRegels = (kop, rijen) => `
+    <div class="detail-betrekking">
+      <div class="detail-label">${icon('link')} ${esc(kop)}</div>
+      <div class="detail-betrekking-rijen">
+        ${rijen.map(r => `<span class="detail-betrekking-rol">${r.geheim
+            ? `<span class="betrekking-slot" title="Geheim — deze party ziet deze verbinding nog niet">${icon('lock')}</span>` : ''}${esc(r.rol || '\u2014')}</span>
+          <span class="detail-betrekking-waarde">${r.knop}</span>`).join('')}
+      </div>
+    </div>`;
+
+  // Wie hoort hier bij: gekoppelde namen zijn knoppen naar hun eigen kaartje,
+  // losse namen blijven gewoon leesbaar staan.
+  const _betrokkenen = ['locaties', 'organisaties'].includes(tab) ? _betrokkenenUit(e.data) : [];
+  if (_betrokkenen.length) {
+    infoHtml += _rolRegels('Wie hoort hier bij?', _betrokkenen.map(r => ({
+      rol: r.rol,
+      geheim: isDM() ? r.geheim : null,
+      knop: r.id
+        ? `<button type="button" class="link-chip link-chip--sm" onclick="window._openKaartjeOpId('${escArg(r.id)}')">${esc(r.naam)}</button>`
+        // De server heeft de naam weggehaald van iemand die deze party nog niet
+        // kent; dát er iemand is mag je weten, wie het is niet.
+        : r.onbekend
+          ? `<span class="betrokken-naam betrokken-naam--onbekend">Onbekend</span>`
+          : `<span class="betrokken-naam">${esc(r.naam)}</span>`,
+    })));
+  }
+  // En de andere kant op: waar dít kaartje bij hoort. Afgeleid door de server
+  // uit de betrokkenen-lijsten van locaties en organisaties, dus er staat nooit
+  // iets anders dan daar ingevuld is.
+  const _hoortBij = [...(Array.isArray(e._hoortBij) ? e._hoortBij : [])];
+  // "Verkoopt bij" is óók een betrekking — rol Verkoper — en stond in een eigen
+  // blok met een eigen vorm. Eén lijst leest beter, en de doorklik blijft naar
+  // het voorraadtabblad gaan; dáár wil je heen als je op de verkoper klikt.
+  const _winkelLocId = tab === 'personages' ? (e.data?.winkelLocatieId || '') : '';
+  // Een factie is geen kaartje maar een dienst; als betrekking hoort hij wel
+  // in dit rijtje thuis — en de knop brengt je naar dat paneel.
+  if (_factie) {
+    _hoortBij.unshift({ rol: 'Factie', factieId: _factie.id, name: _factie.naam || '' });
+  }
+  if (_winkelLocId && !_hoortBij.some(r => r.id === _winkelLocId)) {
+    const _locNaam = Object.entries(window._entityNameIndex || {})
+      .find(([, v]) => v.id === _winkelLocId && v.type === 'locaties')?.[0];
+    if (_locNaam) _hoortBij.push({ id: _winkelLocId, name: _locNaam, type: 'locaties', rol: 'Verkoper', tab: 'voorraad' });
+  }
+  if (_hoortBij.length) {
+    infoHtml += _rolRegels(_hoortBijKop(tab), _hoortBij.map(r => ({
+      rol: r.rol,
+      geheim: isDM() ? r.geheim : null,
+      knop: r.factieId
+        ? `<button type="button" class="link-chip link-chip--sm"
+             onclick="window.app.closeModal();window.app.switchSection('facties');window._factieOpen('${escArg(r.factieId)}')">${icon('swords')}${esc(r.name)}</button>`
+        : `<button type="button" class="link-chip link-chip--sm"
+             onclick="window._openDetail('${escArg(r.type)}','${escArg(r.id)}'${r.tab ? `,false,'${esc(r.tab)}'` : ''})">${getAutoIconSvg(r.type, {}) || ''}${esc(r.name)}</button>`,
+    })));
+  }
+
+
+  // Flavour scroll (parchment scroll — zichtbaar voor spelers als uitgesproken, altijd voor DM)
+  const flavourRegels = _tekstLijstUit(e.data, 'flavours', 'flavour');
+  const _gezegd = (() => {
+    // Een speler krijgt van de server alléén de regels die al verteld zijn —
+    // de bijbehorende ja/nee-lijst hoort bij de volledige tekst en past er dus
+    // niet op. Voor hem is alles wat hij ziet per definitie verteld.
+    return _roddelStand(e, flavourRegels);
+  })();
+  const _audioId   = e.data?.audioId || '';
+  const zichtbareFlavours = flavourRegels.map((tekst, i) => ({ tekst, i, gezegd: _gezegd[i] }))
+    .filter(r => isDM() || r.gezegd);
+  if (zichtbareFlavours.length || (isDM() && !flavourRegels.length && _audioId)) {
+    infoHtml += `<div class="detail-divider">— ✦ —</div>`;
+    // Eén rol perkament met pijltjes erdoorheen, net als op het kaartje: drie
+    // roddels onder elkaar maakten van een terloopse opmerking een lijst.
+    _flavCache[`det-${e.id}`] = zichtbareFlavours;
+    // Je plek vasthouden. Het venster hertekent zichzelf na elke onthulling, en
+    // met een harde 0 sprong je dan terug naar de eerste roddel — precies op het
+    // moment dat je bij de derde was. Alleen terug naar 0 als die regel er niet
+    // meer is (bijvoorbeeld omdat er een roddel weg is).
+    if (!(_flavPos[`det-${e.id}`] < zichtbareFlavours.length)) _flavPos[`det-${e.id}`] = 0;
+    _flavCtx[`det-${e.id}`]   = { tab, id: e.id, audioId: _audioId, soort: 'roddel' };
+    const _verteld = _gezegd.filter(Boolean).length;
+    infoHtml += `
+      <div class="mb-4">
+        <div class="detail-field-label detail-field-label--roddel">
+          <span class="dfl-titel">${icon('beer')} Roddels</span>${
+          isDM() && flavourRegels.length ? `<span class="geheim-teller">${_verteld} van ${flavourRegels.length} onthuld</span>` : ''}</div>
+        ${_onthulBlok(`det-${e.id}`)}
+      </div>`;
+  }
+
+  // Geheimen: één blok per regel. De DM ziet ze allemaal met een oogje ernaast
+  // om die ene vrij te geven; de speler ziet alleen wat onthuld is.
+  // Bij de DM zijn dit objecten met een id, bij een speler kale teksten die
+  // _geheimRegelsUit een positie-id geeft — allebei goed.
+  const _geheimObj = _geheimRegelsUit(e.data);
+  const geheimRegels = _geheimObj.map(r => r.tekst);
+  // Idem voor geheimen: de speler krijgt alleen de onthulde regels binnen. De
+  // terugval "alleen de eerste telt" is er voor oude kaartjes bij de DM, maar
+  // liet een speler van twee onthulde geheimen er één zien.
+  const _geheimOnthuld = !isDM()
+    ? geheimRegels.map(() => true)
+    : Array.isArray(e._onthuld)
+      ? geheimRegels.map((_, i) => !!e._onthuld[i])
+      : geheimRegels.map((_, i) => !!e._secretReveal && i === 0);
+  const zichtbareGeheimen = _geheimObj.map((r, i) => ({ tekst: r.tekst, i, gid: r.id, onthuld: _geheimOnthuld[i] }))
+    .filter(r => isDM() || r.onthuld);
+  if (zichtbareGeheimen.length) {
+    // Zelfde blok als de roddels: doorbladeren in plaats van alles uitklappen.
+    // Drie geheimen onder elkaar duwden de rest van het kaartje van het scherm.
+    _flavCache[`geh-${e.id}`] = zichtbareGeheimen.map(g => ({
+      tekst: g.tekst, i: g.i, gid: g.gid, gezegd: g.onthuld,
+      verraad: isDM() ? !!_geheimObj[g.i]?.antagonist : false,
+    }));
+    // Zelfde reden als bij de roddels: na een onthulling blijf je staan waar je
+    // was in plaats van terug te springen naar het eerste geheim.
+    if (!(_flavPos[`geh-${e.id}`] < zichtbareGeheimen.length)) _flavPos[`geh-${e.id}`] = 0;
+    _flavCtx[`geh-${e.id}`]   = { tab, id: e.id, soort: 'geheim', naam: e.name };
+    infoHtml += `
+      <div class="mb-4">
+        <div class="detail-field-label detail-field-label--secret">
+          <span class="dfl-titel">${icon('lock')} Geheimen</span>${
+          isDM() && geheimRegels.length ? `<span class="geheim-teller">${_geheimOnthuld.filter(Boolean).length} van ${geheimRegels.length} onthuld</span>` : ''}</div>
+        ${_onthulBlok(`geh-${e.id}`)}
+      </div>`;
+  }
+
+  // Missies die aan dit kaartje hangen. Dat maakt "missiegever" een afgeleide:
+  // wie een missie gaf, is missiegever — niets om apart bij te houden.
+  if (['personages', 'organisaties'].includes(tab)) {
+    infoHtml += `<div id="detail-missies-${e.id}"></div>`;
+    _vulMissies(e.id, tab);
+  }
+  if (isPersonage && isDM() && String(e.subtype || '').toLowerCase() === 'npc') { _vulMedestander(e.id); _vulHuurling(e.id); }
+
+  // DM controls
+  if (isDM()) {
+    const _ts = ['personages', 'locaties', 'organisaties', 'documenten'].includes(tab);
+    const _mVisIcon  = vis === 'visible' ? icon('eye')
+                     : vis === 'vague'   ? icon('eye-off')
+                     :                    icon('lock');
+    const _mVisTitle = vis === 'visible' ? 'Verbergen  ·  Shift: vaag tonen'
+                     : vis === 'vague'   ? 'Volledig tonen  ·  Shift: vaag houden'
+                     : _ts              ? 'Zichtbaar maken  ·  Shift: vaag tonen'
+                     :                    'Zichtbaar maken';
+    infoHtml += `
+      <div class="dm-only mt-4 pt-4 border-t border-room-border">
+        <!-- Eén notitieveld: hetzelfde dat in de bewerkmodus "Aantekeningen voor
+             de DM" heet. Er stonden er twee op één kaartje (dit veld en een
+             losse dmNote), met verwarrend gelijke namen. Typen slaat direct op,
+             dus je hoeft de editor niet te openen. -->
+        <!-- Eerst je eigen aantekeningen, dan die van de spelers: dit is jouw
+             venster, en wat je zelf typt hoort bovenaan. -->
+        <div class="detail-label mb-1">Aantekeningen voor de DM</div>
+        <textarea id="dm-note-${e.id}" class="notitie-vak" data-bewaart-zelf
+          placeholder="Alleen jij ziet dit\u2026">${esc(e.data?.persoonlijkheid || '')}</textarea>
+        <div id="note-save-${e.id}" class="text-xs text-green-wax opacity-0 transition-opacity mt-1 mb-3"></div>
+        ${_spelersNotitiesHtml(e.id, playerNotesData)}
+        <!-- Vijf gelijke vierkantjes met een pictogram zeiden niet wát ze doen.
+             Nu icoon plus woord; de stand staat in het woord ("Zichtbaar" /
+             "Verborgen"), niet alleen in de kleur. -->
+        <div class="detail-dm-tools">
+          <button class="dm-actie${vis !== 'hidden' ? ' dm-actie--aan' : ''}"
+            title="${_mVisTitle}"
+            onclick="window._toggleVis('${tab}','${e.id}',event)">
+            ${_mVisIcon}<span>${vis === 'visible' ? 'Zichtbaar' : vis === 'vague' ? 'Vaag zichtbaar' : 'Verborgen'}</span>
+          </button>
+          <!-- Dezelfde markering (dagger + gedempte kaart), maar een gebouw gaat
+               niet dood: per tabblad het woord dat er hoort te staan.
+               Bij een voorwerp staat de knop er niet meer: een kaartje dat
+               "verloren" heet maar nog gewoon in de boedel staat leest als een
+               misverstand. Weg is weg — je haalt het voorwerp weg. Alleen een
+               kaartje dat de markering al draagt houdt de knop, anders viel hij
+               niet meer terug te draaien. -->
+          ${(['voorwerpen', 'documenten'].includes(tab)) && !e._deceased ? '' : `
+          <button class="dm-actie${e._deceased ? ' dm-actie--aan' : ''}"
+            title="${e._deceased ? 'Markering verwijderen' : `Markeer als ${_wegLabel.toLowerCase()}`}"
+            onclick="window._toggleDeceased('${tab}','${e.id}')">
+            ${icon('skull', {cls:'icon-gi'})}<span>${_wegLabel}</span>
+          </button>`}
+          ${isPersonage && !['speler', 'god', 'godheid'].includes(String(e.subtype || '').toLowerCase()) ? `
+            <button class="dm-actie${e._gevangen ? ' dm-actie--aan' : ''}" id="detail-gevangen-${e.id}"
+              title="${e._gevangen ? 'Gevangene van de actieve party — klik om vrij te laten' : 'Gevangen nemen door de actieve party'}"
+              onclick="window._toggleGevangen('${e.id}')">
+              ${icon('columns-4', {cls:'icon-gi'})}<span>Gevangen</span>
+            </button>
+          ` : ''}
+          ${isPersonage && String(e.subtype || '').toLowerCase() === 'npc' && !e._gevangen ? `
+            <button class="dm-actie" id="detail-huurling-${e.id}"
+              title="Huurling: in dienst van de actieve party, met een dagloon"
+              onclick="window._huurlingOpen('${e.id}')">
+              ${icon('coins', {cls:'icon-gi'})}<span>Huurling</span>
+            </button>
+          ` : ''}
+          ${isPersonage && String(e.subtype || '').toLowerCase() === 'npc' ? `
+            <button class="dm-actie" id="detail-medestander-${e.id}"
+              title="Medestander: laat dit personage met de party meelopen"
+              onclick="window._toggleMedestander('${e.id}')">
+              ${icon('crossed-swords', {cls:'icon-gi'})}<span>Medestander</span>
+            </button>
+          ` : ''}
+          <button class="dm-actie"
+            title="Bewerk dit kaartje (afbeelding, tekst, geluid)"
+            onclick="window._openEditor('${tab}','${e.id}')">
+            ${icon('pencil')}<span>Bewerken</span>
+          </button>
+        </div>
+      </div>
+    `;
+
+  }
+
+  // ── Huisvest deze locatie een dienst? ──────────────────────────────────────
+  // De koppeling liep één kant op: bij de dienst stond welk kaartje erbij
+  // hoorde, maar op het kaartje was daar niets van te zien. Nu staat hier de
+  // deur naar binnen — en omdat de dienst zijn achtergrond van dit kaartje
+  // haalt, klopt het beeld aan beide kanten.
+  // Een organisatiekaartje dat een factie is, hoort dat te zeggen — anders is
+  // de koppeling alleen van de andere kant te zien.
+  if (tab === 'organisaties' && e?.id) {
+    const factie = window._factieVanOrganisatie?.(e.id);
+    if (factie) {
+      infoHtml += `
+        <div class="mt-4 pt-4 border-t border-room-border">
+          <div class="detail-label detail-label--gold mb-1">${icon('landmark')} ${esc(window._factiesLabel?.() || 'Facties')}</div>
+          <button class="dienst-deur" onclick="window.app.switchSection('facties')">
+            ${icon(factie.embleem || 'landmark')} ${esc(factie.naam)}
+          </button>
+        </div>`;
+    }
+  }
+
+  if (tab === 'locaties' && e?.id) {
+    const dienst = window._dienstOpLocatie?.(e.id);
+    if (dienst) {
+      infoHtml += `
+        <div class="mt-4 pt-4 border-t border-room-border">
+          <div class="detail-label detail-label--gold mb-1">${icon(dienst.icoon)} Hier gevestigd</div>
+          <button class="dienst-deur" onclick="window.app.switchSection('${escArg(dienst.sectie)}')">
+            ${icon(dienst.icoon)} ${esc(dienst.naam)}
+          </button>
+        </div>`;
+    }
+  }
+
+  // Eigen spelersaantekening (zichtbaar voor ingelogde speler)
+  const playerName = window.app?.state?.playerName;
+  if (playerName && !isDM()) {
+    const myNote = playerNotesData?.note || '';
+    infoHtml += `
+      <div class="mt-4 pt-4 border-t border-room-border">
+        <div class="detail-label detail-label--gold mb-1">${icon('pencil')} Mijn aantekeningen</div>
+        <textarea id="player-note-${e.id}" data-bewaart-zelf
+          class="w-full min-h-[70px] px-3 py-2 bg-room-bg border border-room-border rounded text-sm text-ink-bright font-crimson focus:border-gold-dim focus:outline-none"
+          placeholder="Notities voor jezelf...">${esc(myNote)}</textarea>
+        <div id="player-note-save-${e.id}" class="text-xs text-green-wax opacity-0 transition-opacity mt-1"></div>
+      </div>
+    `;
+  }
+
+  // ── Tab: Character Sheet (DM + personages only) ──
+  let sheetHtml = '';
+  if (showSheet) {
+    // Een speler heeft een echt blad (server-route, inclusief boedel, spreuken en
+    // features); bij de rest is het statblok wat je naast je scherm legt.
+    sheetHtml += `
+      <div class="sheet-print-balk geenprint">
+        ${_isSpeler
+          ? `<a class="dm-actie" href="/api/characters/${esc(e.id)}/sheet" target="_blank" rel="noopener"
+               title="Opent het blad in een nieuw tabblad; printen of bewaren als pdf doe je daar">
+               ${icon('scroll-text')}<span>Blad afdrukken</span></a>`
+          : `<button type="button" class="dm-actie" onclick="window._printStatblock('${escArg(e.name)}')"
+               title="Opent een printvenster met alleen het statblock">
+               ${icon('scroll-text')}<span>Statblock afdrukken</span></button>`}
+      </div>`;
+  }
+  if (showSheet && _isDier) {
+    // Het blad van een huisdier is zijn tier-statblok; dat halen we na het
+    // openen op (zie _vulPetStatblock verderop).
+    sheetHtml += `<div id="pet-statblock-slot" class="pet-statblock-slot"><p class="text-center text-ink-faint font-fell italic py-4">Statblock laden…</p></div>`;
+  }
+  if (showSheet && _isSpeler && _bladProfiel) {
+    sheetHtml += _bladHtml(_bladProfiel, _bladHp, e);
+  }
+  // Een NPC of god is een wezen, geen personage met een sheet: dan het statblock
+  // in dezelfde vorm als in het bestiarium.
+  if (showSheet && !_isDier && !_isSpeler && Object.values(e.stats || {}).some(v => String(v ?? '').trim())) {
+    // Heeft dit kaartje meerdere gedaantes, dan kiest de DM hier welke deze
+    // party kent. Een speler krijgt zijn tiers al door de server toegepast en
+    // ziet dus alleen een statblok — vandaar dat de keuzestrook DM-only is.
+    const tiers = isDM() && Array.isArray(e.statblockTiers) ? e.statblockTiers : [];
+    const actief = tiers.find(t => t.id === e._tierActief) || null;
+    const st = { ...(e.stats || {}), ...(actief?.statblock || {}) };
+    if (tiers.length) {
+      const chip = (id, label, aan) =>
+        `<button type="button" class="tier-chip${aan ? ' tier-chip--aan' : ''}"
+           onclick="window._tierKies('${escArg(e.id)}','${escArg(id)}','${escArg(e.name)}')">${esc(label)}</button>`;
+      // `geenprint`: in een afdruk is kiezen zinloos — je hebt één blad in je
+      // hand. De gekozen gedaante komt in plaats daarvan in de titel te staan.
+      sheetHtml += `<div class="tier-strook geenprint">
+        <span class="tier-strook-label">${icon('users')} Deze party kent hem als</span>
+        ${chip('basis', 'Basis', !actief)}
+        ${tiers.map((t, i) => chip(t.id || `t${i}`, t.label || `Statblok ${i + 2}`, actief && actief.id === t.id)).join('')}
+      </div>`;
+    }
+    sheetHtml += renderStatblock(
+      { name: e.name, statblock: st, maxHp: parseInt(String(st.hp ?? '').match(/\d+/)?.[0] ?? '') || null, description: '' },
+      { niveau: 'volledig' });
+  }
+  // Staat er niets? Dan zeggen we dat, in plaats van een leeg blad.
+  if (showSheet && !sheetHtml.replace(/<div class="sheet-print-balk[\s\S]*?<\/div>/, '').trim()) {
+    sheetHtml += `<div class="text-center py-10 text-ink-faint font-fell italic">Nog geen gegevens ingevuld</div>`;
+  }
+
+  // ── Tab: Bezit (DM) ──
+  // Stond er alleen voor stapelbare en gedeelde voorwerpen, en liet bovendien
+  // maar één party zien — `itemOwners` staat per groep. De vraag "wie heeft dit"
+  // geldt voor élk voorwerp en over alle party's, dus haalt dit tabblad zijn
+  // gegevens bij de server op (zie GET /items/:id/bezit). Het venster wacht daar
+  // niet op: de inhoud schuift erin zodra hij binnen is.
+  const toonBezit = tab === 'voorwerpen' && isDM();
+  const bezitHtml = !toonBezit ? '' : `<div id="bezit-inhoud" class="bezit-blok"><p class="bezit-leeg">Bezit ophalen\u2026</p></div>`;
+
+  // ── Tab: Voorraad (winkels) ──
+  // Een verkoper die naar een locatie wijst heeft zelf geen voorraadtab: daar
+  // staat een doorklik naar de plek waar zijn waren liggen (zie hieronder).
+  const isVerkoper   = window._heeftRol(e, 'verkoper');
+  const isWinkel = tab === 'locaties'
+    && (e.data?.locType === 'Winkel' || (e.data?.voorraad && e.data.voorraad !== '[]')
+        // Een herberg of tempel waar een verkoper staat is óók een winkel —
+        // anders kon de DM die voorraad nergens kwijt.
+        || (e._verkopers || []).length > 0);
+  // Een verkoper heeft geen voorraadtab: de waren liggen bij de locatie. Alleen
+  // een nog niet verhuisd kaartje met een eigen lijst houdt hem, anders zou die
+  // voorraad onbereikbaar worden.
+  const _eigenWaren = tab === 'personages' && e.data?.voorraad && e.data.voorraad !== '[]';
+  const heeftVoorraad = _eigenWaren || isWinkel;
+
+  const voorraadHtml = heeftVoorraad
+    ? window._winkelVoorraadHtml({ e, tab, beschikbaarData, uitverkochtSet, shopCurrencyData, heeftVoorraad })
+    : '';
+
+  // ── Build log HTML for DM ──
+  let logHtml = '';
+  if (heeftVoorraad && isDM()) {
+    const entries = shopLogData?.entries || [];
+    if (entries.length > 0) {
+      logHtml = `
+        <div class="rounded border border-room-border overflow-hidden">
+          <table class="w-full text-sm">
+            <thead>
+              <tr class="bg-room-elevated border-b border-room-border">
+                <th class="px-4 py-2 text-left font-cinzel text-ink-dim text-[10px] uppercase">Tijdstip</th>
+                <th class="px-4 py-2 text-left font-cinzel text-ink-dim text-[10px] uppercase">Speler</th>
+                <th class="px-4 py-2 text-left font-cinzel text-ink-dim text-[10px] uppercase">Voorwerp</th>
+                <th class="px-4 py-2 text-right font-cinzel text-ink-dim text-[10px] uppercase">Prijs</th>
+                <th class="px-3 py-2 text-center font-cinzel text-ink-dim text-[10px] uppercase">#</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${entries.map((entry, i) => `
+                <tr class="${i % 2 === 1 ? 'bg-room-elevated/40' : ''} border-b border-room-border/40 last:border-0">
+                  <td class="px-4 py-2 text-ink-dim text-xs">${esc(new Date(entry.ts).toLocaleString('nl-NL', { dateStyle: 'short', timeStyle: 'short' }))}</td>
+                  <td class="px-4 py-2 text-ink-bright font-crimson">${esc(entry.playerName || '?')}</td>
+                  <td class="px-4 py-2 text-ink-medium font-crimson">${esc(entry.itemNaam || '?')}</td>
+                  <td class="px-4 py-2 text-right text-ink-dim">${esc(entry.prijs || '\u2014')}</td>
+                  <td class="px-3 py-2 text-center text-ink-dim">${entry.aantal > 1 ? entry.aantal : ''}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>`;
+    } else {
+      logHtml = `<div class="text-center py-10 text-ink-faint font-fell italic">Nog geen aankopen geregistreerd</div>`;
+    }
+
+  }
+
+
+  // Een organogram valt alleen te tekenen als er iemand bij hoort.
+  const _orgRijen = tab === 'organisaties' ? _betrokkenenUit(e.data) : [];
+  const _orgBeeld = _orgRijen.length ? await _beeldIndexLaden().catch(() => null) : null;
+
+  // ── Kaart en dungeon als eigen tabblad ──
+  // Allebei nemen ze een half venster in beslag; onder Informatie duwden ze de
+  // tekst weg. Vóór het bouwen ophalen, zodat er geen tabblad verschijnt dat
+  // even later leeg blijkt. De kaartgegevens zijn kort gecachet.
+  let _kaartPlek = null, _dungeonPlek = null, _kaartOok = [];
+  if (tab === 'locaties') {
+    const _plekken = await _kaartPlekkenVan(e.id).catch(() => []);
+    _kaartPlek   = _plekken[0] || null;
+    _kaartOok    = _plekken.slice(1);
+    if (e.data?.dungeonId) {
+      const lijst = await api.listDungeons().catch(() => []);
+      // Een speler krijgt alleen de dungeons waar zijn party bij mag; staat hij
+      // er niet tussen, dan komt er ook geen tabblad.
+      const kaart = (lijst || []).find(m => m.id === e.data.dungeonId);
+      if (kaart) {
+        const kamer = (kaart.rooms || []).find(r => r.id === e.data.roomId) || null;
+        _dungeonPlek = { kaart, kamer };
+      }
+    }
+  }
+
+  // ── Build tabbed modal body ──
+  const detailTabs = [
+    { key: 'info', label: 'Informatie' },
+    ...(showSheet ? [{ key: 'sheet', label: _isSpeler ? 'Character Sheet' : 'Statblock' }] : []),
+    ...(toonBezit ? [{ key: 'bezit', label: 'Bezit' }] : []),
+    ...((_kaartPlek || _dungeonPlek) ? [{ key: 'kaart', label: 'Kaart' }] : []),
+    ...(heeftVoorraad ? [{ key: 'voorraad', label: 'Voorraad' }] : []),
+    ...(heeftVoorraad && isDM() ? [{ key: 'log', label: 'Log' }] : []),
+    ...(_orgRijen.length ? [{ key: 'organogram', label: 'Organogram' }] : []),
+  ];
+
+  const tabNav = detailTabs.map((t, i) => `
+    <button class="detail-tab${i === 0 ? ' detail-tab--active' : ''}"
+      data-dtab="${t.key}">${t.label}</button>
+  `).join('');
+
+  const body = `
+    <div class="detail-tab-nav">${tabNav}${_tabHulpHtml(tab, 'kijk')}</div>
+    <div id="dtab-info">${infoHtml}</div>
+    ${showSheet ? `<div id="dtab-sheet" class="hidden">${sheetHtml}</div>` : ''}
+    ${toonBezit ? `<div id="dtab-bezit" class="hidden">${bezitHtml}</div>` : ''}
+    ${heeftVoorraad ? `<div id="dtab-voorraad" class="hidden">${voorraadHtml}</div>` : ''}
+    ${heeftVoorraad && isDM() ? `<div id="dtab-log" class="hidden">${logHtml}</div>` : ''}
+    ${_orgRijen.length ? `<div id="dtab-organogram" class="hidden">${_organogramHtml(_orgRijen, _orgBeeld)}</div>` : ''}
+    ${(_kaartPlek || _dungeonPlek) ? `<div id="dtab-kaart" class="hidden">
+      ${_kaartPlek   ? _kaartTabHtml(e.id, _kaartPlek, !_dungeonPlek, e.data?.locType, _kaartOok) : ''}
+      ${_dungeonPlek ? _dungeonTabHtml(_dungeonPlek.kaart, _dungeonPlek.kamer) : ''}
+    </div>` : ''}
+  `;
+
+  const _subParts = [
+    e.data?.rol,
+    e.data?.domein,
+    e.data?.ras,
+    e.data?.klasse,
+    e.data?.alignment,
+    e.data?.locType,
+    e.data?.wijk,
+    e.data?.orgType,
+    e.data?.docType,
+    e.data?.itemType ? _normItemType(e.data.itemType) : null,
+    e.data?.rariteit ? (({'Gewoon':'Common','Ongewoon':'Uncommon','Zeldzaam':'Rare','Zeer zeldzaam':'Very Rare','Legendarisch':'Legendary'})[e.data.rariteit] || e.data.rariteit) : null,
+  ].filter(Boolean);
+  // De rariteit staat hier én stond nog eens als gekleurde pil in de tekst.
+  // Eén plek is genoeg — de kleur verhuist mee naar de ondertitel, want dáár
+  // doet hij zijn werk (blauw = Rare, goud = Legendary).
+  const _subRarK = tab === 'voorwerpen' ? _rarityKey(e.data?.rariteit) : '';
+  const _subtitleHtml = _subParts.length
+    ? `${getAutoIconSvg(tab, e)}  ${_subParts.map((p, i) => (_subRarK && i === _subParts.length - 1)
+        ? `<span class="detail-item-rarity" data-rarity="${_subRarK}">${esc(p)}</span>`
+        : esc(p)).join(' · ')}`
+    : `${getAutoIconSvg(tab, e)}  ${esc(meta.label)}`;
+  openModal(e.name, '', body);
+  const _mSubEl = document.getElementById('m-sub');
+  // openModal krijgt hier een lege ondertitel en verbergt het vakje daarom;
+  // wij vullen het meteen daarna, dus moet het ook weer zichtbaar worden. Zonder
+  // dit verdween de regel "rol · origin · class · alignment" onder de naam.
+  if (_mSubEl) { _mSubEl.innerHTML = _subtitleHtml; _mSubEl.classList.remove('hidden'); }
+  _updateBackButton();
+  _vulSpellChips();   // van index naar nette naam, zodra de bibliotheek er is
+  window.spreuken?.linkInDom?.(document.getElementById('m-body'));  // spreuknamen in een statblok
+  if (toonBezit) window._bezitLaden(e.id);
+  if (tab === 'documenten' && e._visibility !== 'vague') _docBestandLaden(e.id);
+
+  // Huisdier: geschaalde statblock ophalen + renderen (tier o.b.v. level van het baasje)
+  if (tab === 'personages' && e.subtype === 'dier') {
+    api.getPetStatblock(e.id).then(info => {
+      const slot = document.getElementById('pet-statblock-slot');
+      if (!slot) return;
+      // Toon de door de speler gekozen naam (companion-naam) als titel
+      if (info.petName) { const tEl = document.getElementById('m-title'); if (tEl) tEl.textContent = info.petName; }
+      const tierBadge = info.tierCount > 1
+        ? `<div class="pet-tier-indicator">${icon('paw-print')} Tier ${info.tierIndex + 1}/${info.tierCount} — <strong>${esc(info.label)}</strong>${info.ownerName ? ` · baasje ${esc(info.ownerName)} (level ${info.ownerLevel})` : ''}${info.nextMinLevel ? ` · volgende tier op level ${info.nextMinLevel}` : ''}</div>`
+        : '';
+      slot.innerHTML = tierBadge + renderStatblock(
+        { name: info.label, statblock: info.statblock, maxHp: info.maxHp, description: info.description },
+        { niveau: 'volledig' });
+    }).catch(() => {
+      const slot = document.getElementById('pet-statblock-slot');
+      if (slot) slot.innerHTML = '';
+    });
+  }
+
+  // Set type accent bar
+  const _accentEl = document.getElementById('m-accent');
+  if (_accentEl) _accentEl.className = `modal-accent bar-${tab}`;
+
+  // Portrait in modal header
+  const _mPortraitWrap = document.getElementById('m-portrait-wrap');
+  const _mPortraitImg  = document.getElementById('m-portrait');
+  if (_mPortraitWrap && _mPortraitImg) {
+    _mPortraitWrap.classList.add('hidden');
+    _mPortraitImg.src = '';
+    _mPortraitImg.onerror = () => _mPortraitWrap.classList.add('hidden');
+    _mPortraitImg.onload  = () => _mPortraitWrap.classList.remove('hidden');
+    _mPortraitImg.src = beeldUrl;
+    // Beweegt dit portret? Het filmpje heet `<id>_video`, net als bij een
+    // speler op de landingspagina — hetzelfde bestand, dezelfde grens, alleen
+    // een andere plek waar het speelt. Het stilstaande beeld blijft eronder
+    // liggen: valt de video weg, dan is er niets aan de hand.
+    _portretFilm(tab, e.id);
+  }
+
+  // Modal header type-color tint
+  const _mHead = document.getElementById('modal-head');
+  if (_mHead) _mHead.className = `modal-head modal-head--${tab}`;
+
+  // Tab switching
+  const allTabKeys = detailTabs.map(t => t.key);
+  _tabHulpVul(tab, detailTabs[0]?.key || 'info', 'kijk');
+  document.querySelectorAll('.detail-tab').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const target = btn.dataset.dtab;
+      document.querySelectorAll('.detail-tab').forEach(b => {
+        b.classList.toggle('detail-tab--active', b === btn);
+      });
+      allTabKeys.forEach(k => {
+        const panel = document.getElementById(`dtab-${k}`);
+        if (panel) panel.classList.toggle('hidden', k !== target);
+      });
+      _tabHulpVul(tab, target, 'kijk');
+    });
+  });
+
+  // Activeer een specifieke tab als gevraagd (bijv. na aankoop terug naar voorraad)
+  if (openTabKey) {
+    const targetBtn = document.querySelector(`.detail-tab[data-dtab="${openTabKey}"]`);
+    if (targetBtn) targetBtn.click();
+  }
+
+  // DM note auto-save
+  if (isDM()) {
+    let noteTimer;
+    const ta = document.getElementById(`dm-note-${e.id}`);
+    if (ta) {
+      ta.addEventListener('input', () => {
+        clearTimeout(noteTimer);
+        noteTimer = setTimeout(async () => {
+          await api.saveAantekeningen(tab, e.id, ta.value);
+          const ind = document.getElementById(`note-save-${e.id}`);
+          if (ind) {
+            ind.textContent = '\u2713 Opgeslagen';
+            ind.style.opacity = '1';
+            setTimeout(() => { ind.style.opacity = '0'; }, 1200);
+          }
+        }, 400);
+      });
+    }
+  }
+
+  // Spelersnotitie auto-save
+  if (window.app?.state?.playerName && !isDM()) {
+    let playerNoteTimer;
+    const pta = document.getElementById(`player-note-${e.id}`);
+    if (pta) {
+      pta.addEventListener('input', () => {
+        clearTimeout(playerNoteTimer);
+        playerNoteTimer = setTimeout(async () => {
+          await api.savePlayerNote(e.id, pta.value);
+          const ind = document.getElementById(`player-note-save-${e.id}`);
+          if (ind) {
+            ind.textContent = '\u2713 Opgeslagen';
+            ind.style.opacity = '1';
+            setTimeout(() => { ind.style.opacity = '0'; }, 1200);
+          }
+        }, 600);
+      });
+    }
+  }
+};
+
+// Eén vinkje dat een ander aanzet. Het blijft een gewoon vinkje — je kunt het
+// daarna los weer uitzetten — maar de stand die je bijna altijd wilt staat er
+// meteen. Zie `zetOokAan` bij de veldbeschrijvingen.
+window._veldZetAan = (key) => {
+  const cb = document.getElementById('cb_' + key);
+  if (cb && !cb.checked) { cb.checked = true; cb.dispatchEvent(new Event('change')); }
+};
+
+// ── Voorwerpen: claimen & eigendom ──
+
+window._itemClaim = async (itemId) => {
+  try {
+    await api.requestItem(itemId, { type: 'claim' });
+    await refreshOwnership();
+    renderEntitySection('voorwerpen');
+  } catch (err) {
+    if (err.message?.includes('Al een')) alert('Je hebt al een openstaand verzoek voor dit voorwerp.');
+    else alert('Fout: ' + err.message);
+  }
+};
+
+window._itemRemoveOwner = async (itemId, spelerNaam) => {
+  // "Eigendom verwijderen van dit voorwerp?" zei niet wát er weggaat en bij wie.
+  const _naam = spelerNaam || 'deze speler';
+  const _item = (window._entityCache?.voorwerpen || []).find(e => e.id === itemId)?.name || 'Dit voorwerp';
+  if (!confirm(`${_item} verwijderen uit de inventaris van ${_naam}?`)) return;
+  try {
+    await api.removeItemOwner(itemId);
+    await refreshOwnership();
+    renderEntitySection('voorwerpen');
+  } catch (err) { alert('Fout: ' + err.message); }
+};
+
+// ── Stapelbaar eigendom: qty aanpassen / verwijderen (DM vanuit Eigenaren-tab) ──
+// ── Klik op gekoppeld voorwerp vanuit winkeldetail ──
+// Onthult het kaartje stil als het nog hidden was, dan opent de detailview.
+window._kaartIcoonKies = (veld, naam, btn) => {
+  const hid = document.getElementById(`kaart-icoon-${veld}`);
+  if (hid) hid.value = naam;
+  btn.closest('.kaart-icoon-picker')?.querySelectorAll('.kaart-icoon-btn')
+    .forEach(b => b.classList.remove('kaart-icoon-btn--actief'));
+  btn.classList.add('kaart-icoon-btn--actief');
+};
+
+window._openDetailFromShop = async (entityId) => {
+  try {
+    await api.shopRevealItem('voorwerpen', entityId);
+  } catch { /* stil falen — detail openen lukt altijd */ }
+  window._openDetail('voorwerpen', entityId);
+};
+
+// ── Speler koopt voorwerp uit winkel ──
+window._koopItem = async (shopId, itemNaam, entityId, btn, aantal = 1) => {
+  if (btn) { btn.disabled = true; btn.textContent = '…'; }
+  const feedback = document.getElementById('shop-koop-feedback');
+  try {
+    await api.koopShopItem(shopId, { itemNaam, entityId: entityId || undefined, aantal });
+    // Herlaad waar je kocht: de winkel in de Markt, of de modal op zijn
+    // voorraadtab. De Markt eerst — daar kan `_currentDetailId` nog van een
+    // eerder geopend kaartje zijn, en dan sprong er een venster open.
+    if (window._marktWinkelOpenNu?.()) {
+      await window._marktWinkelVerversen();
+      // Een melding in de tabel overleeft de beursmelding niet die direct
+      // hierna de winkel nog eens tekent; een toast staat los van het scherm.
+      window._showToast?.(`${icon('check')} ${aantal > 1 ? `${aantal}× ` : ''}${esc(itemNaam)} gekocht.`);
+    } else if (window._currentDetailTab && window._currentDetailId) {
+      await window._openDetail(window._currentDetailTab, window._currentDetailId, false, 'voorraad');
+    }
+    // Succesbericht in de voorraadtab
+    const fb = document.getElementById('shop-koop-feedback');
+    if (fb) {
+      fb.innerHTML = `✓ ${aantal > 1 ? `${aantal}× ` : ''}<strong>${itemNaam}</strong> gekocht!`;
+      fb.className = 'shop-koop-feedback shop-koop-feedback--ok';
+      fb.classList.remove('hidden');
+      setTimeout(() => fb.classList.add('hidden'), 4000);
+    }
+    // Refresh knapzak zodat het nieuwe item meteen zichtbaar is
+    window.app?.refreshSection?.('mijn-karakter');
+  } catch (err) {
+    // De server stuurt bij te weinig geld ook het tekort mee; dat is bruikbaarder
+    // dan "Niet genoeg geld" alleen.
+    const _tekort = err?.data?.tekort;
+    const _tekortCl = _tekort ? ((_tekort.fl || 0) * 100 + (_tekort.kn || 0) * 10 + (_tekort.cl || 0)) : 0;
+    if (feedback) {
+      if (_tekortCl > 0 && window._tekortHtml) {
+        // **De winkel leent niet.** Hier stond een knop die ter plekke een
+        // lening aanvroeg, met een `prompt()` waarin je het bedrag in de
+        // kleinste munt moest intikken — de winkel wist dus hoe lenen werkt, en
+        // de speler kreeg een schuld zonder ooit bij de schuldeiser te zijn
+        // geweest. Nu alleen de constatering en de weg ernaartoe; hetzelfde
+        // blok als bij het gokhuis.
+        feedback.innerHTML = window._tekortHtml(_tekortCl, '', true);
+        feedback.className = 'shop-koop-feedback';
+      } else {
+        feedback.innerHTML = '⚠ ' + esc(err.message || 'Kon niet kopen');
+        feedback.className = 'shop-koop-feedback shop-koop-feedback--fout';
+      }
+      feedback.classList.remove('hidden');
+      // Met een verwijzing erbij blijft het langer staan: je moet erover kunnen
+      // nadenken en de knop kunnen vinden.
+      setTimeout(() => feedback.classList.add('hidden'), _tekortCl > 0 ? 20000 : 5000);
+    }
+    if (btn) { btn.disabled = false; btn.textContent = 'Kopen'; }
+  }
+};
+
+// ── Winkel: voorwerp aanbieden aan de winkel ──
+// Geen directe afrekening: het bod gaat als verzoek naar de DM, die het bedrag
+// mag bijstellen. Aan tafel wordt immers gepingeld.
+window._verkoopItem = async (shopId, entityId, btn, aantal = 1) => {
+  if (btn) { btn.disabled = true; btn.textContent = '\u2026'; }
+  const feedback = document.getElementById('shop-verkoop-feedback');
+  try {
+    const res = await api.verkoopShopItem(shopId, { entityId, aantal });
+    const bod = res?.aanbod ? _muntTekst(res.aanbod) : '';
+    if (feedback) {
+      feedback.textContent = `\u2713 Aangeboden voor ${bod}. Je DM kijkt ernaar en mag het bedrag bijstellen.`;
+      feedback.className = 'shop-koop-feedback shop-koop-feedback--ok';
+      feedback.classList.remove('hidden');
+    }
+    if (window._currentDetailTab && window._currentDetailId) {
+      await window._openDetail(window._currentDetailTab, window._currentDetailId, false, 'voorraad');
+    }
+  } catch (err) {
+    if (feedback) {
+      feedback.textContent = '\u26a0 ' + (err.message || 'Kon niet aanbieden');
+      feedback.className = 'shop-koop-feedback shop-koop-feedback--fout';
+      feedback.classList.remove('hidden');
+      setTimeout(() => feedback.classList.add('hidden'), 5000);
+    }
+    if (btn) { btn.disabled = false; btn.textContent = 'Aanbieden'; }
+  }
+};
+
+// ── Winkel uitverkocht toggle ──
+// ── DM rekent af aan tafel ───────────────────────────────────────────────────
+// Aan tafel wordt gepingeld en komt er een bedrag uit dat de DM noemt. Eén veld
+// dus, voorgevuld met de vraagprijs: overtypen en afrekenen.
+let _dmPartySpelers = [];   // {id, name} van de actieve party
+
+// Bedragen kennen één notatie in de hele app: één getal met een komma, waarbij
+// de tweede munt een tiende is en de derde een honderdste (12,34 = 12 florinde,
+// 3 knakers, 4 centelingen). Wie in munten schrijft — "5 gp 2 sp", "2 pp" —
+// wordt ook begrepen; de server (parsePrijs) kent beide vormen.
+const _MUNT_CL_KAART = { fl: 100, gp: 100, kn: 10, sp: 10, cl: 1, cp: 1, ep: 50, pp: 1000 };
+function _prijsNaarCl(tekst) {
+  const t = String(tekst ?? '').trim().replace(/\s+/g, '');
+  if (!t) return null;
+  const komma = t.match(/^(\d+)[.,](\d{1,2})$/);
+  if (komma) return parseInt(komma[1]) * 100 + parseInt(komma[2].padEnd(2, '0'));
+  let cl = 0, iets = false;
+  for (const m of t.matchAll(/(\d+(?:[.,]\d+)?)(fl|kn|cl|gp|sp|cp|ep|pp)\.?/gi)) {
+    cl += parseFloat(m[1].replace(',', '.')) * (_MUNT_CL_KAART[m[2].toLowerCase()] || 0);
+    iets = true;
+  }
+  if (iets) return Math.round(cl);
+  return /^\d+$/.test(t) ? parseInt(t) * 100 : null;   // kaal getal = hele munten
+}
+const _clNaarKomma = (cl) => `${Math.floor(cl / 100)},${String(cl % 100).padStart(2, '0')}`;
+
+// {fl,kn,cl} → "1 Florinde 3 Knaker"; de muntnamen komen uit meta.
+function _muntTekst(cur) {
+  const n = window._muntNamen?.() || { fl: 'Gold', kn: 'Silver', cl: 'Copper' };
+  return [['fl', n.fl], ['kn', n.kn], ['cl', n.cl]]
+    .filter(([k]) => cur?.[k]).map(([k, naam]) => `${cur[k]} ${naam}`).join(' ') || '0';
+}
+
+async function _laadPartySpelers() {
+  if (_dmPartySpelers.length) return _dmPartySpelers;
+  try {
+    const lijst = await api.listEntities('personages');
+    const groep = window._activeGroupId;
+    _dmPartySpelers = lijst
+      .filter(p => p.subtype === 'speler' && (!groep || p.data?.groep === groep))
+      .map(p => ({ id: p.id, name: p.name }));
+  } catch { _dmPartySpelers = []; }
+  return _dmPartySpelers;
+}
+
+window._dmAfrekenen = async (shopId, itemNaam, entityId, prijs) => {
+  const host = document.getElementById('dm-afreken-paneel');
+  if (!host) return;
+  const spelers = await _laadPartySpelers();
+  if (!spelers.length) { host.classList.remove('hidden'); host.innerHTML = `<p class="dm-hint">Geen spelers in deze party.</p>`; return; }
+  host.classList.remove('hidden');
+  host.innerHTML = `
+    <div class="cs-sectiekop" style="border-top:0;margin-top:0;padding-top:0">Afrekenen \u2014 ${esc(itemNaam)}</div>
+    <div class="dm-winkel-rij">
+      <select id="dm-afreken-speler" class="dm-input dm-input-sm">
+        ${spelers.map(p => `<option value="${esc(p.id)}">${esc(p.name)}</option>`).join('')}
+      </select>
+      <input id="dm-afreken-bedrag" class="dm-input dm-input-sm" style="max-width:120px" inputmode="decimal"
+        value="${esc((() => { const cl = _prijsNaarCl(prijs); return cl === null ? '' : _clNaarKomma(cl); })())}"
+        placeholder="12,34" title="Eén bedrag met een komma; munten mogen ook: 5 gp 2 sp, 2 pp">
+      <button class="dm-btn dm-btn-sm dm-btn-primary"
+        onclick="window._dmAfrekenenDoen('${escArg(shopId)}','${escArg(itemNaam)}','${escArg(entityId || '')}')">Afrekenen</button>
+      <button class="dm-btn dm-btn-sm dm-btn-ghost" onclick="document.getElementById('dm-afreken-paneel').classList.add('hidden')">Annuleren</button>
+    </div>
+    <div id="dm-afreken-melding" class="dm-hint mt-1"></div>`;
+  document.getElementById('dm-afreken-bedrag')?.select();
+};
+
+window._dmAfrekenenDoen = async (shopId, itemNaam, entityId) => {
+  const characterId = document.getElementById('dm-afreken-speler')?.value;
+  const bedrag      = document.getElementById('dm-afreken-bedrag')?.value || '';
+  const melding     = document.getElementById('dm-afreken-melding');
+  try {
+    const r = await api.dmVerkoop(shopId, { characterId, itemNaam, entityId: entityId || undefined, bedrag });
+    // Het venster wordt zo herbouwd, dus een melding ín het paneel zag je nooit;
+    // een toast blijft staan.
+    const wie = document.querySelector('#dm-afreken-speler')?.selectedOptions?.[0]?.textContent || 'de speler';
+    window.app?._tsToast?.(`${icon('check')} ${esc(itemNaam)} afgerekend met ${esc(wie.trim())} voor ${esc(_muntTekst(r.betaald))}`);
+    if (melding) melding.textContent = '';
+    // Opnieuw openen zodat uitverkocht en voorraad kloppen; blijf op de tab.
+    if (window._currentDetailTab && window._currentDetailId) {
+      await window._openDetail(window._currentDetailTab, window._currentDetailId, false, 'voorraad');
+    }
+  } catch (err) {
+    const _tekort = err?.data?.tekort;
+    if (melding) melding.textContent = (err.message || 'Afrekenen mislukt')
+      + (_tekort ? ` — ${_muntTekst(_tekort)} te kort` : '');
+  }
+};
+
+// ── DM koopt spullen van de party ──
+window._dmInkoopOpen = async (shopId) => {
+  const host = document.getElementById('dm-inkoop-lijst');
+  if (!host) return;
+  // Tweede klik klapt hem weer dicht: zonder dat leek de knop niets te doen
+  // zodra de lijst er al stond.
+  if (host.dataset.open === '1') {
+    host.dataset.open = '';
+    host.innerHTML = '';
+    document.getElementById('dm-inkoop-chevron')?.replaceChildren(document.createTextNode('▸'));
+    return;
+  }
+  host.dataset.open = '1';
+  document.getElementById('dm-inkoop-chevron')?.replaceChildren(document.createTextNode('▾'));
+  host.innerHTML = `<p class="dm-hint">Laden\u2026</p>`;
+  let regels = [];
+  try { ({ regels } = await api.getPartyBoedel(shopId)); } catch (err) {
+    host.innerHTML = `<p class="dm-hint">Kon de boedel niet ophalen: ${esc(err.message)}</p>`; return;
+  }
+  if (!regels.length) { host.innerHTML = `<p class="dm-hint">De party heeft niets in de boedel.</p>`; return; }
+  window._dmInkoopRegels = regels;
+  host.innerHTML = `
+    <input id="dm-inkoop-zoek" class="dm-input dm-input-sm" placeholder="Zoeken\u2026"
+      oninput="window._dmInkoopFilter(this.value)">
+    <div class="dm-inkoop-kop">
+      <span></span><span>Voorwerp</span><span>Speler</span><span>Aantal</span><span>Prijs per stuk</span>
+    </div>
+    <div id="dm-inkoop-rijen" class="dm-inkoop-rijen">
+      ${regels.map((r, i) => `
+        <label class="dm-inkoop-rij" data-zoek="${esc((r.naam + ' ' + r.speler).toLowerCase())}">
+          <input type="checkbox" data-i="${i}">
+          <span class="dm-inkoop-naam">${esc(r.naam)}</span>
+          <span class="dm-inkoop-speler">${esc(r.speler)}</span>
+          <!-- Altijd dezelfde cel: een spinner op de ene rij en een los cijfer
+               op de andere zette de kolommen ernaast scheef. -->
+          <span class="dm-inkoop-aantal">
+            ${r.aantal > 1
+              ? `<input type="number" min="1" max="${r.aantal}" value="1" oninput="window._dmInkoopTotaal(this)" title="Hoeveel van de ${r.aantal}?" class="dm-input dm-input-sm">`
+              : `<span class="dm-inkoop-aantal-vast">1</span>`}
+          </span>
+          <span class="dm-inkoop-bedrag-cel">
+            <input class="dm-input dm-input-sm dm-inkoop-bedrag" inputmode="decimal"
+              oninput="window._dmInkoopTotaal(this)"
+              value="${esc((() => { const cl = _prijsNaarCl(r.prijs); return cl === null ? '' : _clNaarKomma(cl); })())}"
+              placeholder="12,34" title="Prijs per stuk; één bedrag met een komma, munten mogen ook">
+            <!-- Bij meerdere stuks was niet te zien of het bedrag per stuk of
+                 voor de hele stapel was. Het is per stuk; het totaal staat erbij. -->
+            <span class="dm-inkoop-totaal"></span>
+          </span>
+        </label>`).join('')}
+    </div>
+    <div class="dm-winkel-rij mt-2">
+      <button class="ed-knop ed-knop--opslaan" onclick="window._dmInkoopDoen('${escArg(shopId)}')">${icon('coins')}<span>Inkopen</span></button>
+      <span id="dm-inkoop-melding" class="dm-hint"></span>
+    </div>`;
+};
+
+// Toont naast het bedrag wat de hele stapel oplevert. Het ingevulde getal is de
+// prijs per stuk — het veld wordt ook met de stuksprijs voorgevuld.
+window._dmInkoopTotaal = (el) => {
+  const rij = el.closest('.dm-inkoop-rij');
+  if (!rij) return;
+  const aantal = parseInt(rij.querySelector('.dm-inkoop-aantal input')?.value) || 1;
+  const cl = _prijsNaarCl(rij.querySelector('.dm-inkoop-bedrag')?.value || '');
+  const uit = rij.querySelector('.dm-inkoop-totaal');
+  if (!uit) return;
+  uit.textContent = (aantal > 1 && cl) ? `= ${_clNaarKomma(cl * aantal)}` : '';
+};
+
+window._dmInkoopFilter = (term) => {
+  const t = (term || '').toLowerCase().trim();
+  const bak = document.getElementById('dm-inkoop-rijen');
+  // Filteren maakte de lijst korter, dus de pagina korter, dus klemde de
+  // browser de scrollpositie en sprong je naar boven terwijl je typte. De bak
+  // houdt daarom de hoogte vast die hij had bij de eerste toetsaanslag; leeg je
+  // het veld, dan mag hij weer meebewegen.
+  if (bak) {
+    if (t && !bak.style.minHeight) bak.style.minHeight = bak.getBoundingClientRect().height + 'px';
+    if (!t) bak.style.minHeight = '';
+  }
+  document.querySelectorAll('#dm-inkoop-rijen .dm-inkoop-rij').forEach(rij => {
+    rij.classList.toggle('hidden', !!t && !rij.dataset.zoek.includes(t));
+  });
+};
+
+window._dmInkoopDoen = async (shopId) => {
+  const melding = document.getElementById('dm-inkoop-melding');
+  const regels = [];
+  document.querySelectorAll('#dm-inkoop-rijen .dm-inkoop-rij').forEach(rij => {
+    const cb = rij.querySelector('input[type=checkbox]');
+    if (!cb?.checked) return;
+    const bron = window._dmInkoopRegels[parseInt(cb.dataset.i)];
+    if (!bron) return;
+    regels.push({
+      ...bron,
+      aantal: parseInt(rij.querySelector('.dm-inkoop-aantal input')?.value) || 1,
+      bedrag: rij.querySelector('.dm-inkoop-bedrag')?.value || '',
+    });
+  });
+  if (!regels.length) { if (melding) melding.textContent = 'Niets aangevinkt.'; return; }
+
+  // Eerst laten zien wat je koopt en voor hoeveel. Het ging tot nu toe direct
+  // door, sprong daarna naar boven en zei nergens dat er iets gebeurd was.
+  let totaalCl = 0;
+  const opsomming = regels.map(r => {
+    const perStukCl = _prijsNaarCl(r.bedrag) || 0;
+    const rijCl = perStukCl * (r.aantal || 1);
+    totaalCl += rijCl;
+    return `  ${r.aantal > 1 ? r.aantal + '× ' : ''}${r.naam} van ${r.speler} — ${perStukCl ? _clNaarKomma(rijCl) : 'geen bedrag'}`;
+  }).join('\n');
+  if (!confirm(`De winkel koopt in:\n\n${opsomming}\n\nTotaal ${_clNaarKomma(totaalCl)}. `
+    + `Dat bedrag gaat naar de spelers; de voorwerpen verdwijnen uit hun boedel.\n\nDoorgaan?`)) return;
+
+  try {
+    const r = await api.dmInkoop(shopId, { regels });
+    // r.gedaan telt regels; drie flessen op één regel zijn drie voorwerpen.
+    const _stuks = r.gedaan.reduce((n, g) => n + (g.aantal || 1), 0);
+    _melding(`${icon('coins')} ${_stuks} ${_stuks === 1 ? 'voorwerp' : 'voorwerpen'} ingekocht voor ${_clNaarKomma(totaalCl)}`);
+    if (melding) melding.textContent = '';
+    // Opnieuw vullen, niet dichtklappen: de knop is nu een schakelaar.
+    const _host = document.getElementById('dm-inkoop-lijst');
+    if (_host) _host.dataset.open = '';
+    await window._dmInkoopOpen(shopId);
+    // De lijst wordt korter, dus het venster schoot naar boven — terugbrengen
+    // naar waar de DM stond.
+    document.getElementById('dm-inkoop-lijst')?.scrollIntoView({ block: 'nearest' });
+  } catch (err) {
+    _melding(`${icon('x')} Inkopen mislukt: ${esc(err.message || err)}`);
+    if (melding) melding.textContent = err.message || 'Inkopen mislukt';
+  }
+};
+
+window._toggleShopUitverkocht = async (shopId, itemNaam, cbEl) => {
+  try {
+    await api.toggleShopUitverkocht(shopId, itemNaam);
+    // Her-open detail zodat de tabel opnieuw rendert met bijgewerkte state
+    window._openDetail(window._currentDetailTab, shopId);
+  } catch (err) {
+    if (cbEl) cbEl.checked = !cbEl.checked; // terugdraaien bij fout
+    alert('Fout: ' + err.message);
+  }
+};
+
+// Vult het tabblad Bezit. Aparte functie omdat elke knop erin (± en ×) hem
+// daarna opnieuw aanroept: alleen dit blok wordt hertekend, niet het hele venster.
+window._bezitLaden = async (itemId) => {
+  const host = document.getElementById('bezit-inhoud');
+  if (!host) return;
+  let bezit = null;
+  try { bezit = await api.getItemBezit(itemId); } catch {
+    host.innerHTML = `<p class="bezit-leeg">Kon het bezit niet ophalen.</p>`;
+    return;
+  }
+  const stapelbaar = bezit.gebruik === 'stapelbaar';
+  const groepen = bezit.groepen || [];
+  const knop = `<button class="dm-btn dm-btn-ghost dm-btn-sm mt-2"
+      onclick="window._itemGiveToPlayer('${escArg(itemId)}')">${icon('package')} Geef aan speler</button>`;
+  if (!groepen.length) {
+    host.innerHTML = `<p class="bezit-leeg">Niemand heeft dit voorwerp.</p>${knop}`;
+    return;
+  }
+  host.innerHTML = groepen.map(g => `
+    <div class="bezit-groep">
+      <div class="bezit-groep-kop">${icon('users')} ${esc(g.naam)}</div>
+      ${g.rijen.map(r => `
+        <div class="bezit-rij${r.bron === 'boedel' ? ' bezit-rij--los' : ''}">
+          <span class="bezit-naam">${esc(r.naam || 'Onbekend')}</span>
+          ${r.charges ? `<span class="bezit-charges">${icon('zap')} ${r.charges.nu}/${r.charges.max}</span>` : ''}
+          ${r.bron === 'boedel'
+            ? `<span class="bezit-los-label">los in de boedel${r.aantal > 1 ? ` (${r.aantal}×)` : ''}</span>`
+            : stapelbaar
+              ? `<span class="bezit-aantal">
+                   <button class="dm-btn dm-btn-icon dm-btn-sm" title="Eén minder"
+                     onclick="window._eigenaarQtyAdj('${escArg(itemId)}','${escArg(r.characterId)}',-1,'${escArg(g.id)}')">${icon('minus')}</button>
+                   <b>${r.aantal}</b>
+                   <button class="dm-btn dm-btn-icon dm-btn-sm" title="Eén meer"
+                     onclick="window._eigenaarQtyAdj('${escArg(itemId)}','${escArg(r.characterId)}',1,'${escArg(g.id)}')">${icon('plus')}</button>
+                 </span>`
+              : ''}
+          ${r.bron === 'boedel' ? '' : `<button class="dm-btn dm-btn-icon dm-btn-sm bezit-weg" title="Uit de inventaris van ${esc(r.naam || 'deze speler')} halen"
+             onclick="window._eigenaarVerwijder('${escArg(itemId)}','${escArg(r.characterId)}','${escArg(g.id)}','${escArg(r.naam || '')}')">${icon('x')}</button>`}
+        </div>`).join('')}
+    </div>`).join('') + knop;
+};
+
+window._eigenaarQtyAdj = async (itemId, characterId, delta, groupId) => {
+  try {
+    await api.patchItemOwnerQty(itemId, characterId, delta, groupId || null);
+    await refreshOwnership();
+    await window._bezitLaden(itemId);
+  } catch (err) { alert('Fout: ' + err.message); }
+};
+
+window._eigenaarVerwijder = async (itemId, characterId, groupId, spelerNaam) => {
+  const _naam = spelerNaam || 'deze speler';
+  const _item = (window._entityCache?.voorwerpen || []).find(e => e.id === itemId)?.name || 'Dit voorwerp';
+  if (!confirm(`${_item} verwijderen uit de inventaris van ${_naam}?`)) return;
+  try {
+    await api.removeStackOwner(itemId, characterId, groupId || null);
+    await refreshOwnership();
+    await window._bezitLaden(itemId);
+  } catch (err) { alert('Fout: ' + err.message); }
+};
+
+window._itemApproveRequest = async (reqId) => {
+  try {
+    await api.approveItemRequest(reqId);
+    await refreshOwnership();
+    renderEntitySection('voorwerpen');
+  } catch (err) { alert('Fout: ' + err.message); }
+};
+
+window._itemRejectRequest = async (reqId) => {
+  try {
+    await api.rejectItemRequest(reqId);
+    await refreshOwnership();
+    renderEntitySection('voorwerpen');
+  } catch (err) { alert('Fout: ' + err.message); }
+};
+
+// ── Visibility / Secret / Deceased toggles ──
+window._toggleVis = async (tab, id, event) => {
+  const toVague = event?.shiftKey && ['personages', 'locaties', 'organisaties'].includes(tab);
+  // Een voorwerp verbergen haalt het uit de boedel van wie het draagt: de
+  // spelerslijst wordt op zichtbaarheid gefilterd, dus het verdwijnt uit zijn
+  // knapzak. Dat gebeurt in de praktijk per ongeluk — vandaar de vraag. Het
+  // eigendom zelf blijft staan, dus zichtbaar maken zet alles terug.
+  if (tab === 'voorwerpen' && !toVague && isDM()) {
+    const nu = (window._entityCache?.voorwerpen || []).find(e => e.id === id)?._visibility;
+    if (nu && nu !== 'hidden') {
+      const bezit = await api.getItemBezit(id).catch(() => null);
+      const dragers = [...new Set((bezit?.groepen || [])
+        .flatMap(g => (g.rijen || []).filter(r => r.bron === 'kaartje').map(r => r.naam || 'een speler')))];
+      if (dragers.length) {
+        const wie = dragers.length === 1 ? dragers[0]
+          : dragers.slice(0, -1).join(', ') + ' en ' + dragers[dragers.length - 1];
+        const heeft = dragers.length === 1 ? 'heeft' : 'hebben';
+        // Geen "zijn/haar": we weten niet wie er achter een personage zit.
+        if (!confirm(`${wie} ${heeft} dit voorwerp. Verbergen haalt het daar weg.\n\nHet eigendom blijft bestaan: zichtbaar maken zet het terug.\n\nToch verbergen?`)) return;
+      }
+    }
+  }
+  await api.toggleVisibility(tab, id, toVague ? 'vague' : undefined);
+  renderEntitySection(tab);
+  // Staat het kaartje open, dan moet de knop zijn nieuwe stand tonen — anders
+  // lijkt er niets te gebeuren.
+  if (window._currentDetailId === id && document.getElementById('modal-overlay')?.classList.contains('active')) {
+    window._openDetail(tab, id);
+  }
+};
+
+function _secretToast(revealed) {
+  const toast = document.createElement('div');
+  toast.className = 'bookmark-toast';
+  toast.innerHTML = revealed ? `${icon('eye')} Geheim onthuld voor spelers` : `${icon('lock')} Geheim verborgen voor spelers`;
+  document.body.appendChild(toast);
+  setTimeout(() => toast.classList.add('bookmark-toast--visible'), 10);
+  setTimeout(() => { toast.classList.remove('bookmark-toast--visible'); setTimeout(() => toast.remove(), 300); }, 2500);
+}
+
+// Een roddel met de hand vertellen (of terugnemen). De herberg doet dit vanzelf
+// bij een lange rust; dit is voor als je hem gewoon aan tafel laat vallen.
+window._toggleFlavour = async (tab, id, index = 0) => {
+  try {
+    await api.toggleFlavour(tab, id, index);
+    window._openDetail(tab, id);
+  } catch (err) { alert('Mislukt: ' + (err.message || err)); }
+};
+
+window._toggleSecret = async (tab, id, index = 0, gid = '') => {
+  const res = await api.toggleSecret(tab, id, index, gid);
+  _secretToast(res.secretReveal);
+  window._openDetail(tab, id);
+};
+
+// Onthullen vanaf de kaart bestaat niet meer: sinds een kaartje meerdere
+// geheimen kan hebben, kies je in het detailvenster wélk geheim eruit gaat.
+// De functie blijft staan voor het geval er ergens nog een knop naar wijst.
+window._toggleSecretCard = async (type, id, index = 0) => {
+  const res = await api.toggleSecret(type, id, index);
+  _secretToast(res.secretReveal);
+};
+
+// Welke gedaante deze party kent. Het detailvenster wordt daarna opnieuw
+// opgehaald: het statblok eronder verandert mee, en de server heeft de
+// monsterbibliotheek al bijgewerkt zodat een gevecht dezelfde man opstelt.
+window._tierKies = async (id, tierId, naam = '') => {
+  try {
+    const res = await api.setTier('personages', id, tierId);
+    // De naam komt mee vanaf de knop: je klikt dit ook vanuit een lijst, en dan
+    // zegt "hem" niet wie er zojuist veranderde.
+    const wie = naam || 'Dit personage';
+    window.app?._tsToast?.(res.label
+      ? `${icon('users')} ${esc(wie)} gebruikt nu statblock <strong>${esc(res.label)}</strong>`
+      : `${icon('users')} ${esc(wie)} gebruikt nu het statblock van het kaartje zelf`);
+    window._openDetail('personages', id, false, 'sheet');   // blijf op het statblok staan
+  } catch (err) {
+    alert('Kon de gedaante niet omzetten: ' + err.message);
+  }
+};
+
+window._toggleDeceased = async (tab, id) => {
+  try {
+    await api.toggleDeceased(tab, id);
+    renderEntitySection(tab);
+  } catch (err) {
+    alert('Fout bij deceased toggle: ' + err.message);
+  }
+};
+
+// ── Focal point picker ──
+let _fpDragging = false;
+
+// ── De focuspunt-kiezer, één keer ──────────────────────────────────────────
+// Er waren er drie: deze (kaartjes), een eigen bouwsel voor de aktebanner en
+// een klik-op-de-afbeelding bij een spreuk. Twee daarvan rekenden met de
+// verkeerde aanname: `_fpApply` gaat uit van `object-fit: contain` (de hele
+// afbeelding in beeld, met banden ernaast), terwijl die twee de afbeelding
+// **cover** toonden. Een klik leverde daar dus een ander percentage op dan waar
+// je wees. Vandaar één blok, overal hetzelfde: de hele afbeelding zichtbaar,
+// een sleepbaar kruisje, en previews die de échte uitsnede tonen.
+//
+//   src      — url van de afbeelding (leeg = het blok staat verborgen)
+//   value    — huidige waarde, "50% 50%"
+//   previews — [{cls, label}] met de uitsnedes die hier van toepassing zijn
+//   naam     — name-attribuut van het hidden input (leeg bij een los venster)
+window._fpBlokHtml = ({ src = '', value = '50% 50%', previews = [], naam = '' } = {}) => `
+  <div class="fp-blok">
+  <div class="fp-rij${src ? '' : ' hidden'}" id="fp-rij">
+    <div id="fp-wrap" class="fp-wrap select-none"
+      onmousedown="window._fpDown(event)"
+      onmousemove="window._fpMove(event)"
+      ontouchstart="window._fpTouch(event)"
+      ontouchmove="window._fpTouch(event)">
+      <img id="editor-img-preview" src="${src}" class="fp-wrap-img pointer-events-none"
+        onload="window._fpTeken()"
+        onerror="document.getElementById('fp-rij')?.classList.add('hidden')">
+      <div id="fp-crosshair" class="fp-crosshair"></div>
+    </div>
+    ${previews.length ? `<div class="fp-previews">
+      ${previews.map((p, i) => `<div>
+        <div class="fp-prev ${p.cls}"><img id="fp-prev-${i}" src="${src}" style="object-position:${value}" alt=""></div>
+        <span class="fp-prev-label">${esc(p.label)}</span>
+      </div>`).join('')}
+    </div>` : ''}
+  </div>
+  <p class="text-[10px] text-ink-dim mb-1${src ? '' : ' hidden'}" id="fp-hint">Sleep het kruisje naar wat in beeld moet blijven</p>
+  <input type="hidden"${naam ? ` name="${naam}"` : ''} id="fp-input" value="${value}">
+  </div>`;
+
+// Wie het blok buiten een formulier gebruikt (het spreukdetail bewaart meteen)
+// hangt hier een functie in. Bij het openen van een nieuw blok weer leegmaken.
+window._fpOnChange = null;
+
+// De huidige waarde uitlezen, voor wie het blok buiten een formulier gebruikt.
+window._fpWaarde = () => _fpEl('fp-input')?.value || '50% 50%';
+
+// De kiezer gebruikt vaste id's, en er kan er meer dan één in de DOM staan: het
+// spreukdetail is een eigen overlay die bovenop een geopende editor kan liggen,
+// en een gesloten venster laat zijn markup gewoon staan. `getElementById` geeft
+// dan de eerste, en dat is net zo goed de verkeerde als de laatste — welke het
+// is hangt af van de volgorde waarin de vensters in de pagina staan.
+// Daarom: het laatste blok dat **zichtbaar** is (`offsetParent`), en de velden
+// worden dáárbinnen gezocht.
+function _fpBlok() {
+  const blokken = [...document.querySelectorAll('.fp-blok')].filter(b => b.offsetParent !== null);
+  return blokken[blokken.length - 1] || null;
+}
+const _fpEl = (id) => _fpBlok()?.querySelector('#' + id) || null;
+
+window._fpDown = (ev) => {
+  _fpDragging = true;
+  _fpApply(ev);
+};
+window._fpMove = (ev) => {
+  if (!_fpDragging) return;
+  _fpApply(ev);
+};
+document.addEventListener('mouseup', () => { _fpDragging = false; });
+// Op een telefoon zet je het punt met je vinger. preventDefault houdt de pagina
+// stil terwijl je sleept, anders scrollt het venster onder je vinger weg.
+window._fpTouch = (ev) => {
+  const t = ev.touches?.[0];
+  if (!t) return;
+  ev.preventDefault();
+  _fpApply(t);
+};
+
+// Eén plek waar de bron van picker én previews wordt gezet, anders raken ze
+// uit elkaar zodra je een andere banner kiest.
+// ── Een vervangen beeld ook écht opnieuw ophalen ────────────────────────────
+// Een afbeelding leeft onder een **vast id** (`spell-img-fireball`,
+// `feat-img-abc`, een kaartje-id). Vervang je hem, dan blijft de URL gelijk en
+// serveert de browser gewoon zijn kopie: je ziet het oude beeld. Op de plek waar
+// dat opvalt — de detailweergave — stond daarom al een `?t=`-stempel, maar de
+// **focuskiezer** en de voorbeelden eromheen kregen die niet. Gevolg: je
+// uploadde een nieuw beeld, klikte op *Focuspunt bijstellen*, en zat het oude
+// bij te stellen.
+//
+// Dit stempelt élke `<img>` die naar dat id wijst in één keer opnieuw, los van
+// wie hem getekend heeft. Eén aanroep na het vervangen en alles klopt.
+window._beeldVerversen = (fileId) => {
+  if (!fileId) return;
+  const stempel = '?t=' + Date.now();
+  const pad = `/api/files/${fileId}`;
+  const thumb = `/api/thumb/${fileId}`;
+  for (const img of document.querySelectorAll('img[src]')) {
+    const kaal = img.getAttribute('src').split('?')[0];
+    if (kaal === pad || kaal === thumb) img.setAttribute('src', kaal + stempel);
+  }
+  // De kiezer tekent zijn uitsnede op een canvas uit de geladen afbeelding; die
+  // moet opnieuw meten zodra het nieuwe beeld binnen is.
+  const hoofd = document.querySelector('.fp-blok:not([hidden]) #fp-wrap img, .fp-blok #fp-wrap img');
+  if (hoofd) hoofd.addEventListener('load', () => window._fpTeken?.(), { once: true });
+  else window._fpTeken?.();
+};
+
+window._fpZetBron = (fileId) => {
+  const url = api.fileUrl(fileId);
+  const el0 = _fpEl('editor-img-preview');
+  if (el0) el0.src = url;
+  _fpBlok()?.querySelectorAll('.fp-prev img').forEach(img => { img.src = url; });
+  _fpEl('fp-rij')?.classList.remove('hidden');
+  _fpEl('fp-hint')?.classList.remove('hidden');
+  window._fpTeken();
+};
+
+// Waar staat de afbeelding écht binnen het kader? Met object-fit:contain blijven
+// er banden over; een klik in zo'n band hoort geen 0% of 100% op te leveren.
+function _fpBeeldVak(img, wrap) {
+  const nw = img.naturalWidth || 1, nh = img.naturalHeight || 1;
+  const schaal = Math.min(wrap.clientWidth / nw, wrap.clientHeight / nh) || 1;
+  const w = nw * schaal, h = nh * schaal;
+  return { x: (wrap.clientWidth - w) / 2, y: (wrap.clientHeight - h) / 2, w, h };
+}
+
+function _fpApply(ev) {
+  const wrap = _fpEl('fp-wrap');
+  const img  = _fpEl('editor-img-preview');
+  if (!wrap || !img) return;
+  const rect = wrap.getBoundingClientRect();
+  const vak  = _fpBeeldVak(img, wrap);
+  const x = Math.max(0, Math.min(100, Math.round((ev.clientX - rect.left - vak.x) / vak.w * 100)));
+  const y = Math.max(0, Math.min(100, Math.round((ev.clientY - rect.top  - vak.y) / vak.h * 100)));
+  const input = _fpEl('fp-input');
+  if (input) input.value = `${x}% ${y}%`;
+  _fpTeken();
+  try { window._fpOnChange?.(`${x}% ${y}%`); } catch {}
+}
+
+// Kruisje neerzetten en de previews bijwerken vanuit het opgeslagen percentage.
+// Ook aangeroepen als de afbeelding klaar is met laden: pas dán weten we hoe
+// groot hij in het kader staat.
+window._fpTeken = () => {
+  const wrap = _fpEl('fp-wrap');
+  const img  = _fpEl('editor-img-preview');
+  const val  = _fpEl('fp-input')?.value || '50% 50%';
+  const [x, y] = (val.match(/(\d+)%\s*(\d+)%/) || [null, '50', '50']).slice(1).map(Number);
+  _fpBlok()?.querySelectorAll('.fp-prev img').forEach(i => { i.style.objectPosition = val; });
+  if (!wrap || !img) return;
+  const vak = _fpBeeldVak(img, wrap);
+  const ch = _fpEl('fp-crosshair');
+  if (ch) {
+    ch.style.left = (vak.x + vak.w * x / 100) + 'px';
+    ch.style.top  = (vak.y + vak.h * y / 100) + 'px';
+  }
+};
+
+// ── File upload ──
+// ── Wapeneigenschappen tag-picker (editor) ──
+window._toggleWeaponTag = (fieldKey, prop, btn) => {
+  const input = document.getElementById('wt_' + fieldKey);
+  if (!input) return;
+  let sel = (() => { try { return JSON.parse(input.value || '[]'); } catch { return []; } })();
+  // Parameterizable props may be stored as "Range (30/120)" — match on base name
+  const idx = sel.findIndex(s => s === prop || s.startsWith(prop + ' ('));
+  const paramInp = document.getElementById('wtp-' + fieldKey + '-' + prop.replace(/[^a-zA-Z0-9]/g, '_'));
+  if (idx >= 0) {
+    sel.splice(idx, 1);
+    btn.classList.remove('weapon-tag-pick--on');
+    if (paramInp) { paramInp.classList.add('hidden'); paramInp.value = ''; }
+  } else {
+    sel.push(prop);
+    btn.classList.add('weapon-tag-pick--on');
+    if (paramInp) { paramInp.classList.remove('hidden'); setTimeout(() => paramInp.focus(), 50); }
+  }
+  input.value = JSON.stringify(sel);
+};
+
+window._updateWeaponTagParam = (fieldKey, baseProp, paramVal) => {
+  const input = document.getElementById('wt_' + fieldKey);
+  if (!input) return;
+  let sel = (() => { try { return JSON.parse(input.value || '[]'); } catch { return []; } })();
+  const idx = sel.findIndex(s => s === baseProp || s.startsWith(baseProp + ' ('));
+  if (idx >= 0) {
+    sel[idx] = paramVal.trim() ? `${baseProp} (${paramVal.trim()})` : baseProp;
+    input.value = JSON.stringify(sel);
+  }
+};
+
+// Eén luisteraar op het venster in plaats van een handler per veld: welke
+// velden aan een ander veld hangen staat al in de HTML (data-show-when-*), dus
+// hoeft de editor daar bij het bouwen niets extra's voor te doen.
+document.addEventListener('change', ev => {
+  if (!ev.target?.closest?.('#m-body')) return;
+  window._showWhenBijwerken?.();
+  // Zodra de DM het vinkje "Verdwijnt bij gebruik" zelf aanraakt, houdt de
+  // typekeuze eraf (zie _onItemTypeChange) — dezelfde regel als bij de werking.
+  if (ev.target.name === 'data_verbruikt') window._verbruiktAangeraakt = true;
+});
+
+// ── Uitlegballon bij een eigenschap ──
+// Dit hing aan `mouseover`/`mouseout`. Op een telefoon stuurt een tik wél een
+// mouseover maar nooit een mouseout, dus bleef de ballon staan en was hij niet
+// weg te krijgen. Nu: tikken of hoveren opent hem, en hij gaat dicht bij de
+// volgende aanraking, bij scrollen, bij Escape, en anders vanzelf.
+let _wpTip = null, _wpTipTimer = null;
+
+function _wpTipDicht() {
+  clearTimeout(_wpTipTimer);
+  _wpTip?.classList.remove('weapon-prop-tooltip--visible');
+}
+
+function _wpTipToon(el) {
+  if (!el?.dataset?.wptip) return;
+  if (!_wpTip) {
+    _wpTip = document.createElement('div');
+    _wpTip.className = 'weapon-prop-tooltip';
+    document.body.appendChild(_wpTip);
+  }
+  _wpTip.textContent = el.dataset.wptip;
+  _wpTip.classList.add('weapon-prop-tooltip--visible');
+  // Binnen het scherm houden: hij hing er aan de rechterkant vanaf op een
+  // telefoon, en dan lees je de helft.
+  const r = el.getBoundingClientRect();
+  const marge = 8;
+  _wpTip.style.left = '0px';
+  _wpTip.style.top  = (r.bottom + 6) + 'px';
+  const b = _wpTip.getBoundingClientRect();
+  const links = Math.max(marge, Math.min(r.left, window.innerWidth - b.width - marge));
+  _wpTip.style.left = links + 'px';
+  if (r.bottom + 6 + b.height > window.innerHeight - marge) {
+    _wpTip.style.top = Math.max(marge, r.top - b.height - 6) + 'px';
+  }
+  clearTimeout(_wpTipTimer);
+  _wpTipTimer = setTimeout(_wpTipDicht, 6000);
+}
+
+document.addEventListener('mouseover', ev => {
+  const el = ev.target.closest?.('[data-wptip]');
+  if (el) _wpTipToon(el);
+});
+document.addEventListener('mouseout', ev => {
+  if (ev.target.closest?.('[data-wptip]')) _wpTipDicht();
+});
+// Eén tik opent hem; de volgende tik ergens anders sluit hem.
+document.addEventListener('pointerdown', ev => {
+  const el = ev.target.closest?.('[data-wptip]');
+  if (el) _wpTipToon(el); else _wpTipDicht();
+}, true);
+window.addEventListener('scroll', _wpTipDicht, true);
+document.addEventListener('keydown', ev => { if (ev.key === 'Escape') _wpTipDicht(); });
+
+// Eén doorloop over alles wat aan een ander veld hangt. Aangeroepen bij elke
+// wijziging in het formulier, want een vinkje en een keuzelijst melden zich
+// allebei via 'change' — geen aparte handler per veld.
+window._showWhenBijwerken = () => {
+  document.querySelectorAll('[data-show-when-key]').forEach(el => {
+    const veld = document.querySelector(`[name="data_${el.dataset.showWhenKey}"]`);
+    const nu = veld ? String(veld.value || '') : '';
+    el.style.display = el.dataset.showWhenVal.split('|').includes(nu) ? '' : 'none';
+  });
+};
+
+// De vinkjes schrijven naar één verborgen veld, net als bij de rollen van een
+// personage, en tonen of verbergen meteen de velden die eraan hangen.
+// Onthoudt wat we zelf hebben aangevinkt bij het kiezen van een type. Zolang de
+// DM daar niet aan gezeten heeft mag een volgende typekeuze het vervangen —
+// anders bleef "Attack" staan als je van Weapon naar Armor ging. Zodra hij zelf
+// een vinkje omzet is het een keuze en blijven we eraf.
+window._werkingAutoWaarde = null;
+
+window._werkingBij = (vanZelf) => {
+  const aan = [...document.querySelectorAll('.rollen-rij input[type=checkbox]')]
+    .filter(c => c.checked && WERKINGEN.some(w => w.key === c.value))
+    .map(c => c.value);
+  const veld = document.getElementById('werking-veld');
+  if (veld) veld.value = JSON.stringify(aan);
+  document.querySelectorAll('[data-werking]').forEach(el => {
+    el.style.display = aan.includes(el.dataset.werking) ? '' : 'none';
+  });
+  if (!vanZelf) window._werkingAutoWaarde = null;   // met de hand omgezet
+};
+
+window._onItemTypeChange = (val) => {
+  // Een gekozen type vinkt zijn gebruikelijke werking aan — maar alleen zolang
+  // er nog niets aanstaat, zodat een bewuste keuze nooit overschreven wordt.
+  const veld = document.getElementById('werking-veld');
+  if (veld) {
+    let nu = [];
+    try { nu = JSON.parse(veld.value || '[]'); } catch { /* ok */ }
+    const suggestie = ITEM_TYPE_WERKING[val] || [];
+    // Vervangen mag als er nog niets staat, of als wat er staat door een vorige
+    // typekeuze is neergezet en sindsdien niet is aangeraakt.
+    const magVervangen = !nu.length || JSON.stringify(nu) === window._werkingAutoWaarde;
+    if (magVervangen) {
+      document.querySelectorAll('.rollen-rij input[type=checkbox]').forEach(c => {
+        if (WERKINGEN.some(w => w.key === c.value)) c.checked = suggestie.includes(c.value);
+      });
+      window._werkingBij(true);
+      window._werkingAutoWaarde = suggestie.length ? JSON.stringify(suggestie) : null;
+    }
+  }
+  // Een drankje is na één slok op. Dat is geen charge — een speler heeft er
+  // simpelweg meerdere — dus het vinkje *Verdwijnt bij gebruik* hoort bij een
+  // Potion vanzelf aan te staan. Zelfde regel als bij de werking hierboven:
+  // alleen zolang de DM er zelf nog niet aan gezeten heeft.
+  const verbruiktVeld = document.querySelector('[name="data_verbruikt"]');
+  if (verbruiktVeld && !window._verbruiktAangeraakt) {
+    verbruiktVeld.checked = (val === 'Potion');
+  }
+  const melding = document.getElementById('veld-melding-itemType');
+  if (melding) melding.innerHTML = _veldMeldingHtml(ITEM_TYPE_MELDINGEN, val);
+  document.querySelectorAll('[data-show-for]').forEach(el => {
+    const types = el.dataset.showFor.split(',');
+    el.style.display = types.includes(val) ? '' : 'none';
+  });
+  document.querySelectorAll('[data-hide-for]').forEach(el => {
+    const types = el.dataset.hideFor.split(',');
+    el.style.display = types.includes(val) ? 'none' : '';
+  });
+};
+
+window._onRevealToggle = (groupId, checked) => {
+  const group = document.getElementById('reveal-group-' + groupId);
+  if (!group) return;
+  if (checked) {
+    group.style.display = 'contents';
+  } else {
+    group.style.display = 'none';
+    group.querySelectorAll('input[name], select[name], textarea[name]').forEach(el => { el.value = ''; });
+  }
+};
+
+// Portret kiezen/uploaden via de mediabibliotheek. Zet het verborgen
+// data_imageId-veld (gaat mee in de payload) en werkt de preview bij.
+// Eén knop voor alle afbeeldingen: is er nog geen banner, dan wordt dit 'm;
+// anders komt de nieuwe erbij en blijft de banner staan. Wisselen doe je met de
+// ster op een miniatuur.
+window._editorPickImage = () => {
+  const naamHint = (document.querySelector('[name="name"]')?.value || '').trim().toLowerCase().replace(/\s+/g, '-');
+  window.mediaPicker.open({
+    type: 'afbeelding',
+    suggestedName: naamHint || '',
+    onSelect: (fileId) => {
+      if (!fileId) return;
+      const hidden = document.getElementById('editor-image-id');
+      const heeftBanner = !!hidden?.value;
+      if (!heeftBanner) {
+        if (hidden) hidden.value = fileId;
+        window._fpZetBron(fileId);
+        return;
+      }
+      if (entityEditorImages.some(i => i.id === fileId)) return;
+      entityEditorImages.push({ id: fileId, url: api.fileUrl(fileId), isNew: false, caption: '' });
+      _refreshEntityImages();
+    },
+  });
+};
+
+// Een bewegend portret op het kaartje. We vragen het bestand niet vooraf op met
+// een HEAD: de video zegt zelf of hij er is (`error` → niets aan de hand), en
+// dat scheelt een verzoek bij elk kaartje dat er geen heeft.
+const _PORTRET_FILM_SEC = 6;
+function _portretFilm(tab, id) {
+  const vid = document.getElementById('m-portrait-video');
+  if (!vid) return;
+  vid.classList.add('hidden');
+  vid.removeAttribute('src');
+  vid.onerror = null; vid.oncanplay = null; vid.ontimeupdate = null;
+  if (tab !== 'personages' || !id) { try { vid.load(); } catch {} return; }
+
+  vid.onerror   = () => vid.classList.add('hidden');
+  vid.oncanplay = () => { vid.classList.remove('hidden'); vid.play().catch(() => vid.classList.add('hidden')); };
+  // Langer mag, maar hij stopt vanzelf — zelfde afspraak als op de
+  // landingspagina, zodat een lange clip geen eindeloze lus wordt.
+  vid.ontimeupdate = () => { if (vid.currentTime >= _PORTRET_FILM_SEC) vid.currentTime = 0; };
+  vid.src = `/api/files/${encodeURIComponent(id)}_video`;
+  vid.load();
+}
+
+// ── Filmpje bij een personage ───────────────────────────────────────────────
+// Het bestand heet <entityId>_video; daar kijkt de landingspagina rechtstreeks
+// naar (routes/auth.js). Er is geen ffmpeg op de server, dus we kunnen niet
+// knippen of hercoderen: te groot weigeren we, te lang laten we toe maar het
+// afspelen stopt vanzelf na MAX_VIDEO_SEC.
+const MAX_VIDEO_MB  = 8;
+const MAX_VIDEO_SEC = 6;
+
+// Duur uitlezen zonder te uploaden: de browser kan dat zelf.
+function _videoDuur(file) {
+  return new Promise((resolve) => {
+    const url = URL.createObjectURL(file);
+    const v = document.createElement('video');
+    v.preload = 'metadata';
+    v.onloadedmetadata = () => { URL.revokeObjectURL(url); resolve(v.duration || 0); };
+    v.onerror = () => { URL.revokeObjectURL(url); resolve(0); };
+    v.src = url;
+  });
+}
+
+// Het bestand van een document: een pdf-scan of een geluidsfragment, opgeslagen
+// onder het kaartje-id (zelfde afspraak als het portret). Een afbeelding gaat
+// via de mediabibliotheek hierboven; dit is voor wat je niet kunt bekijken maar
+// wel moet kunnen openen.
+window._docBestandStatus = async (id) => {
+  const el = document.getElementById('doc-bestand-status');
+  if (!el) return;
+  try {
+    const r = await fetch(`/api/files/${encodeURIComponent(id)}`, { method: 'HEAD' });
+    const ct = r.headers.get('content-type') || '';
+    if (r.ok && (ct.includes('pdf') || ct.includes('audio'))) {
+      const mb = (+r.headers.get('content-length') || 0) / 1048576;
+      el.textContent = `${ct.includes('pdf') ? 'Een pdf' : 'Een geluidsfragment'} staat klaar${mb ? ` (${mb.toFixed(1)} MB)` : ''}.`;
+    } else {
+      el.textContent = 'Nog geen bestand.';
+    }
+  } catch { el.textContent = 'Nog geen bestand.'; }
+};
+
+window._docBestandUpload = async (id, file) => {
+  if (!id || !file) return;
+  const el = document.getElementById('doc-bestand-status');
+  if (el) el.textContent = 'Uploaden\u2026';
+  try {
+    await api.uploadFile(id, file);
+    window._docBestandStatus(id);
+  } catch (err) {
+    if (el) el.textContent = 'Uploaden mislukt: ' + (err.message || 'onbekende fout');
+  }
+};
+
+window._charVideoStatus = async (entityId) => {
+  const el = document.getElementById('editor-video-status');
+  const del = document.getElementById('editor-video-del');
+  if (!el) return;
+  try {
+    const r = await fetch(`/api/files/${encodeURIComponent(entityId)}_video`, { method: 'HEAD' });
+    if (r.ok) {
+      const mb = (+r.headers.get('content-length') || 0) / 1048576;
+      el.textContent = `Er staat een filmpje klaar${mb ? ` (${mb.toFixed(1)} MB)` : ''}.`;
+      del?.classList.remove('hidden');
+    } else {
+      el.textContent = 'Nog geen filmpje.';
+      del?.classList.add('hidden');
+    }
+  } catch { el.textContent = 'Nog geen filmpje.'; }
+};
+
+// Bij een nieuw kaartje bestaat het id nog niet, en de upload heet
+// `<id>_video`. Dus bewaren we het bestand en uploaden we het zodra het
+// personage is aangemaakt.
+let _pendingVideoFile = null;
+
+// Filmpje kiezen gaat net als een afbeelding via de mediabibliotheek: daar
+// staat wat je eerder hebt geüpload en kun je nieuw materiaal toevoegen. De app
+// zoekt het filmpje op onder de vaste naam `<entityId>_video`, dus na het kiezen
+// maken we daar een kopie van — het origineel blijft gewoon in de bibliotheek.
+window._editorPickVideo = (entityId) => {
+  const naamHint = (document.querySelector('[name="name"]')?.value || '').trim().toLowerCase().replace(/\s+/g, '-');
+  window.mediaPicker.open({
+    type: 'video',
+    suggestedName: naamHint ? `${naamHint}-filmpje` : '',
+    onSelect: async (fileId) => {
+      if (!fileId) return;
+      const el = document.getElementById('editor-video-status');
+      if (!entityId) {
+        // Nieuw kaartje: het id bestaat nog niet, dus onthouden tot het opslaan.
+        _pendingVideoBron = fileId;
+        if (el) el.textContent = 'Klaar om te bewaren; wordt gekoppeld zodra je opslaat.';
+        return;
+      }
+      if (el) el.textContent = 'Koppelen\u2026';
+      try {
+        await api.copyFile(`${entityId}_video`, fileId);
+        if (el) el.textContent = 'Klaar — filmpje gekoppeld.';
+        document.getElementById('editor-video-del')?.classList.remove('hidden');
+      } catch (err) {
+        if (el) el.textContent = '';
+        alert('Koppelen mislukt: ' + (err.message || err));
+      }
+    },
+  });
+};
+let _pendingVideoBron = null;   // gekozen bibliotheek-id, nog te koppelen
+
+window._kiesCharVideo = async (entityId, file, invoer) => {
+  if (!file) return;
+  if (entityId) return window._uploadCharVideo(entityId, file, invoer);
+  if (file.size > MAX_VIDEO_MB * 1024 * 1024) {
+    alert(`Dit filmpje is ${(file.size / 1048576).toFixed(1)} MB. Maximaal ${MAX_VIDEO_MB} MB — maak het korter of exporteer het kleiner.`);
+    if (invoer) invoer.value = '';
+    return;
+  }
+  _pendingVideoFile = file;
+  const duur = await _videoDuur(file);
+  const el = document.getElementById('editor-video-status');
+  if (el) el.textContent = `Klaar om te bewaren${duur ? ` — ${duur.toFixed(1)} s` : ''}; wordt geüpload zodra je opslaat.`;
+};
+
+window._uploadCharVideo = async (entityId, file, invoer) => {
+  if (!file) return;
+  const el = document.getElementById('editor-video-status');
+  if (file.size > MAX_VIDEO_MB * 1024 * 1024) {
+    alert(`Dit filmpje is ${(file.size / 1048576).toFixed(1)} MB. Maximaal ${MAX_VIDEO_MB} MB — maak het korter of exporteer het kleiner.`);
+    if (invoer) invoer.value = '';
+    return;
+  }
+  const duur = await _videoDuur(file);
+  if (el) el.textContent = 'Uploaden…';
+  try {
+    await api.uploadFile(`${entityId}_video`, file);
+    if (el) {
+      el.textContent = duur > MAX_VIDEO_SEC + 0.2
+        ? `Klaar — het filmpje duurt ${duur.toFixed(1)} s en stopt vanzelf na ${MAX_VIDEO_SEC} s.`
+        : `Klaar — ${duur ? `${duur.toFixed(1)} s` : 'geüpload'}.`;
+    }
+    document.getElementById('editor-video-del')?.classList.remove('hidden');
+  } catch (err) {
+    if (el) el.textContent = '';
+    alert('Uploaden mislukt: ' + (err.message || err));
+  }
+  if (invoer) invoer.value = '';
+};
+
+window._removeCharVideo = async (entityId) => {
+  if (!confirm('Het filmpje van dit personage verwijderen?')) return;
+  try {
+    await api.deleteFile(`${entityId}_video`);
+    const el = document.getElementById('editor-video-status');
+    if (el) el.textContent = 'Nog geen filmpje.';
+    document.getElementById('editor-video-del')?.classList.add('hidden');
+  } catch (err) { alert('Verwijderen mislukt: ' + (err.message || err)); }
+};
+
+window._uploadFile = async (tab, id, file) => {
+  if (!file) return;
+  if (file.size > 10 * 1024 * 1024) return alert('Max 10MB');
+  await api.uploadFile(id, file);
+  window._openDetail(tab, id);
+};
+
+// ── Navigate to linked entity ──
+window._navigateTo = async (tab, name) => {
+  if (!ENTITY_TYPES.includes(tab)) return;
+  try {
+    const entities = await api.listEntities(tab);
+    const entity = entities.find(e => e.name === name);
+    if (entity) {
+      // Navigeer binnen de modal — history wordt bijgehouden door _openDetail
+      window._openDetail(tab, entity.id);
+    } else {
+      // Niet gevonden: sluit modal en zoek in grid
+      closeModal();
+      window.app.switchSection(tab);
+      searchQueries[tab] = name;
+      renderEntitySection(tab);
+    }
+  } catch {
+    closeModal();
+    window.app.switchSection(tab);
+    searchQueries[tab] = name;
+    renderEntitySection(tab);
+  }
+};
+
+// ── Editor ──
+export function openEditor(type) {
+  window._openEditor(type);
+}
+
+let allNames = {};
+let _scrollSpellList = null;  // volledige spell-lijst voor de Scroll-spell-picker (lazy)
+let _tafelLijst = null;       // tafels uit de campagne, voor de tafel-koppeling op een voorwerp (lazy)
+let _naamLijsten = null;      // volken, klassen en alignments voor de keuzevelden
+let _spreukLijst = null;      // spreukenbibliotheek voor de koppeling op een kaartje
+
+// ── Tier-editor: meerdere statblokken op één kaartje ──
+// _petTiers wordt in openEditor gevuld uit e.statblockTiers en bij submit weer uitgelezen.
+// Twee smaken, dezelfde data. Bij een **dier** schaalt de tier mee met het level
+// van het baasje (`minLevel`); bij een **NPC** is het dezelfde man in een andere
+// gedaante en kiest de DM per party welke geldt — daar is een level dus zinloos
+// en telt alleen het label. `_tierVoorDier` bepaalt welke van de twee het scherm
+// laat zien.
+// Het blok "Waar hoort dit … bij?" — op twee plekken nodig (in de veldenlus bij
+// een personage, en op het organogram-paneel bij een organisatie), dus één keer
+// opgeschreven.
+function _hoortbijHtml(tab, e) {
+  const _hb = Array.isArray(e?._hoortBij) ? e._hoortBij : [];
+  const _hbRijen = _hb.length ? _hb : [{}];
+  return `
+      <div class="hoortbij-sectie">
+        <label class="text-xs font-cinzel text-ink-dim font-bold tracking-wide">${esc(_hoortBijKop(tab))}</label>
+        <div id="hoortbij-lijst">${_hbRijen.map((r, i) => _hoortRijHtml(r, i)).join('')}</div>
+        <datalist id="hoortbij-dl" data-link-doel="locaties,organisaties"></datalist>
+        <!-- Eigen rollijst: die van het betrokkenen-veld hangt aan dát veld, en
+             een personage heeft er geen — daar vulde de rol dus niets aan. -->
+        <datalist id="hoortbij-rol-dl">
+          ${BETROKKEN_ROLLEN.map(r => `<option value="${esc(r)}">`).join('')}
+        </datalist>
+        <button type="button" class="dm-btn dm-btn-ghost dm-btn-sm mt-1"
+          onclick="window._hoortErbij()">${icon('plus')} Verbinding toevoegen</button>
+        ${tab !== 'personages' ? '' : `
+        <!-- Waar iemand verkoopt is net zo goed een verbinding; als eigen veld
+             elders op het blad las het als een tweede systeem. -->
+        <div id="voorraad-section" class="hoortbij-verkoop"${window._heeftRol(e, 'verkoper') ? '' : ' style="display:none"'}>
+          <label class="text-xs font-cinzel text-ink-dim font-bold tracking-wide">Verkoopt bij</label>
+          <input type="hidden" name="data_winkelLocatieId" id="winkel-loc-id" value="${esc(e?.data?.winkelLocatieId || '')}">
+          <input list="winkel-loc-dl" id="winkel-loc-naam" placeholder="Zoek een locatie\u2026" value=""
+            onchange="window._winkelLocKies(this.value)"
+            class="w-full mt-1 px-3 py-2 bg-room-bg border border-room-border rounded text-ink-bright focus:border-gold-dim focus:outline-none">
+          <datalist id="winkel-loc-dl"></datalist>
+          <div id="winkel-loc-link" class="mt-2"></div>
+        </div>`}
+      </div>
+    `;
+}
+
+let _petTiers = [];
+let _tierVoorDier = true;
+const _TIER_UITLEG = {
+  // "Meegroeien met het baasje" klinkt verplicht, en dat is het niet: een
+  // rijdier of een opgeroepen wezen blijft wat het is, hoe hoog zijn baasje ook
+  // komt. Zonder deze zin ging een DM tiers invullen omdat het veld er stond.
+  dier: 'Het statblok hierboven is het dier vanaf level&nbsp;1. Een tier neemt het over zodra het baasje dat level haalt, en zegt alleen wat er verandert.<br><strong>Hoeft niet:</strong> laat je dit leeg, dan blijft hij altijd het statblok hierboven — een rijdier of een opgeroepen wezen groeit nu eenmaal niet mee.',
+  npc:  'Dezelfde persoon, een andere ontmoeting. Het statblok hierboven is de basis; elk extra statblok zegt alleen wat er anders is. <strong>Welke versie geldt, kies je na het opslaan</strong> — op het kaartje zelf, in de strook boven het statblok, of onder de monsterregel in een encounter. Die keuze staat per party.',
+};
+
+// Een tier ís een statblok, dus hij gebruikt dezelfde velden en dezelfde
+// indeling als het blad zelf — eerder had de tier-editor een eigen, kleinere
+// set en zag hij er anders uit. Wat erbij komt is het level vanaf wanneer hij
+// geldt, en een label voor in het spel ("Guard Dog").
+function _petTierRowHtml(t, i) {
+  const sb = t.statblock || {};
+  const h  = _sbTierBouwstenen(sb, i);
+  const veldCls = 'w-full mt-0.5 px-2 py-1 bg-room-bg border border-room-border rounded text-ink-bright text-sm focus:border-gold-dim focus:outline-none';
+
+  // Alleen open wat de DM zelf openzette (of net toevoegde). Eerder stond het
+  // eerste tier altijd open; dichtklappen hield dan geen stand.
+  return `<details class="pet-tier-row" data-idx="${i}" data-tid="${esc(t.id || '')}"${t._open ? ' open' : ''}>
+    <summary class="pet-tier-row-head">
+      <span class="pet-tier-badge">${t.label ? esc(t.label) : `Tier ${i + 1}`}${(_tierVoorDier && t.minLevel) ? ` · vanaf level ${esc(t.minLevel)}` : ''}</span>
+      <button type="button" class="pet-tier-del" onclick="event.preventDefault();window._petTierRemove(${i})" title="Verwijder tier">${icon('trash')}</button>
+    </summary>
+
+    <p class="pet-tier-hint">Vul alleen in wat er verandert; wat je leeg laat blijft zoals in het statblok hierboven.</p>
+    ${window._presetRijHtml(i)}
+    <div class="${_tierVoorDier ? 'grid grid-cols-2 gap-2' : ''}">
+      ${_tierVoorDier ? `<div>
+        <label class="text-[10px] font-cinzel text-ink-dim uppercase">Vanaf level</label>
+        <input class="pt-minlevel ${veldCls}" type="number" min="2" value="${(t.minLevel === 0 || t.minLevel) ? esc(t.minLevel) : ''}"
+          onchange="window._petTierLevelCheck(this)">
+      </div>` : ''}
+      <div>
+        <label class="text-[10px] font-cinzel text-ink-dim uppercase">Label</label>
+        <input class="pt-label ${veldCls}" value="${esc(t.label ?? '')}" placeholder="${_tierVoorDier ? 'Guard Dog' : 'In Arcane Armor'}">
+      </div>
+    </div>
+
+    ${_sbCombatHtml(h)}
+
+    <div class="cs-sectiekop">Actions</div>
+    ${_sbActiesHtml(h)}
+  </details>`;
+}
+
+// Lees de tier-velden terug uit het DOM naar _petTiers (vóór add/remove en submit).
+// De sleutels komen uit _SB_TEKSTVELDEN, dezelfde lijst waar het formulier op
+// gebouwd is: een veld erbij hoeft dus maar op één plek.
+function _petTiersCollect() {
+  const out = [];
+  document.querySelectorAll('#pet-tiers-list .pet-tier-row').forEach(row => {
+    const g = cls => (row.querySelector('.' + cls)?.value ?? '');
+    const n = cls => { const v = parseInt(g(cls)); return isNaN(v) ? undefined : v; };
+    const sb = {};
+    _SB_TEKSTVELDEN.forEach(k => { const v = g('pt-' + k).trim(); if (v) sb[k] = v; });
+    _SB_ABILITIES.forEach(a => { const v = n('pt-' + a); if (v !== undefined) sb[a] = v; });
+    if (!sb.alignment) sb.alignment = 'Unaligned';
+    // Geen apart maxHp-veld meer: de HP staat als tekst in het statblok
+    // ("32 (5d8+10)"), net als op het blad, en de server leest daar het getal
+    // uit. Zo is er één plek waar de HP van een tier staat.
+    out.push({
+      id: row.dataset.tid || undefined,   // blijft staan, ook als de volgorde wisselt
+      minLevel: n('pt-minlevel'), label: g('pt-label').trim(),
+      statblock: sb, _open: row.hasAttribute('open'),
+    });
+  });
+  _petTiers = out;
+  return out;
+}
+
+// Twee tiers vanaf hetzelfde level kan niet: dan is niet te zeggen welke geldt.
+window._petTierLevelCheck = (veld) => {
+  const rij = veld.closest('.pet-tier-row');
+  const mijn = parseInt(veld.value);
+  if (isNaN(mijn)) return;
+  const bezet = [...document.querySelectorAll('#pet-tiers-list .pet-tier-row')]
+    .filter(r => r !== rij)
+    .map(r => parseInt(r.querySelector('.pt-minlevel')?.value))
+    .filter(v => !isNaN(v));
+  if (!bezet.includes(mijn)) return;
+  veld.classList.add('dm-input--err');
+  setTimeout(() => veld.classList.remove('dm-input--err'), 900);
+  const vrij = Math.max(0, ...bezet, mijn) + 1;
+  veld.value = vrij;
+  window.app?._tsToast?.(`${icon('x')} Er is al een tier vanaf level ${mijn}; deze staat nu op ${vrij}.`);
+};
+
+window._renderPetTiers = () => {
+  const list = document.getElementById('pet-tiers-list');
+  if (!list) return;
+  // De basis staat als eerste trede in de ladder, zodat te zien is dat het
+  // statblok hierboven meedoet — dat was de verwarring: een blok invullen en
+  // daaronder tiers zien die het leken te vervangen.
+  const basis = `<div class="pet-tier-basis">
+      <span class="pet-tier-badge">Basis${_tierVoorDier ? ' · vanaf level 1' : ''}</span>
+      <span class="pet-tier-basis-uitleg">het statblok hierboven</span>
+    </div>`;
+  const leeg = _tierVoorDier
+    ? 'Geen tiers: het dier houdt het statblok hierboven, hoe hoog het baasje ook komt.'
+    : 'Geen extra statblokken: iedereen ontmoet hem zoals hij hierboven staat.';
+  list.innerHTML = basis + (_petTiers.length
+    ? _petTiers.map((t, i) => _petTierRowHtml(t, i)).join('')
+    : `<p class="pet-tier-empty">${leeg}</p>`);
+};
+window._petTierAdd = () => {
+  _petTiersCollect();
+  // Een nieuw tier begint boven het hoogste dat er al is; twee keer hetzelfde
+  // level zou de vraag "welke geldt nu?" onbeantwoordbaar maken.
+  const hoogste = Math.max(1, ..._petTiers.map(t => parseInt(t.minLevel)).filter(v => !isNaN(v)));
+  _petTiers.forEach(t => { t._open = false; });
+  _petTiers.push({ minLevel: _tierVoorDier ? hoogste + 1 : undefined, label: '', statblock: {}, _open: true });
+  window._renderPetTiers();
+};
+window._petTierRemove = (idx) => { _petTiersCollect(); _petTiers.splice(idx, 1); window._renderPetTiers(); };
+
+// Scroll-spell-picker: vult bij keuze de scroll-statvelden + omschrijving (+ naam indien leeg).
+// De chips onder het zoekveld: wat er gekoppeld is, met een kruisje.
+window._itemSpellChipsTeken = () => {
+  const host = document.getElementById('item-spell-chips');
+  if (!host) return;
+  const lijst = window._itemSpells || [];
+  if (!lijst.length) { host.innerHTML = '<span class="veld-uitleg">Nog geen spreuk gekoppeld.</span>'; return; }
+  host.innerHTML = lijst.map(idx => {
+    const sp = (_scrollSpellList || []).find(x => x.index === idx);
+    const naam = sp ? sp.name : String(idx).replace(/-/g, ' ');
+    const lvl = sp ? (Number(sp.level) === 0 ? 'Cantrip' : `Level ${sp.level}`) : '';
+    return `<span class="cs-spell-chip">${lvl ? `<b>${esc(lvl)}</b> ` : ''}${esc(naam)}
+      <button type="button" class="cs-spell-chip-x" title="Loskoppelen"
+        onclick="window._itemSpellEraf('${escArg(idx)}')">\u00d7</button></span>`;
+  }).join('');
+};
+
+// Naam → id. De datalist geeft de naam terug, want dat is wat je typt; het
+// kaartje bewaart het id, want een tafel mag hernoemd worden zonder dat de
+// koppeling breekt. Leeg gemaakt = ontkoppeld.
+window._itemTafelKies = (naam) => {
+  const veld = document.getElementById('item-tafel-veld');
+  const hint = document.getElementById('item-tafel-hint');
+  const pick = document.getElementById('item-tafel-pick');
+  if (!veld) return;
+  const zoek = String(naam || '').trim().toLowerCase();
+  if (!zoek) { veld.value = ''; if (hint) hint.textContent = ''; pick?.classList.remove('dm-input--err'); return; }
+  const t = (_tafelLijst || []).find(x => (x.name || '').toLowerCase() === zoek);
+  if (!t) {
+    // Korte foutflits, zoals bij de entiteit-kiezers: niet stil laten staan met
+    // een naam die nergens heen wijst.
+    veld.value = '';
+    if (hint) hint.textContent = 'Geen tafel met die naam.';
+    pick?.classList.add('dm-input--err');
+    setTimeout(() => pick?.classList.remove('dm-input--err'), 1200);
+    return;
+  }
+  veld.value = t.id;
+  pick?.classList.remove('dm-input--err');
+  if (hint) hint.textContent = `${t.type === 'weighted' ? (t.dobbel || 'd100') : 'trekken'} · ${(t.entries || t.first || []).length} regels`;
+};
+
+window._itemSpellErbij = (naam) => {
+  const sp = (_scrollSpellList || []).find(x => (x.name || '').toLowerCase() === String(naam || '').trim().toLowerCase());
+  const inp = document.getElementById('scroll-spell-pick');
+  if (!sp) { if (inp) inp.value = ''; return; }
+  if (!window._itemSpells) window._itemSpells = [];
+  if (!window._itemSpells.includes(sp.index)) window._itemSpells.push(sp.index);
+  const veld = document.getElementById('item-spells-veld');
+  if (veld) veld.value = JSON.stringify(window._itemSpells);
+  window._itemSpellChipsTeken();
+  if (inp) inp.value = '';
+  // De eerste spreuk vult ook de losse velden en de naam — handig bij een
+  // scroll, en het blijft gewoon tekst die je daarna mag aanpassen.
+  if (window._itemSpells.length === 1) window._scrollPickSpell(sp.name);
+};
+
+window._itemSpellEraf = (idx) => {
+  window._itemSpells = (window._itemSpells || []).filter(x => x !== idx);
+  const veld = document.getElementById('item-spells-veld');
+  if (veld) veld.value = JSON.stringify(window._itemSpells);
+  window._itemSpellChipsTeken();
+};
+
+window._scrollPickSpell = (naam) => {
+  const sp = (_scrollSpellList || []).find(s => (s.name || '').toLowerCase() === String(naam || '').toLowerCase());
+  if (!sp) return;
+  const form = document.getElementById('entity-form');
+  if (!form) return;
+  // Casting time, range, components en duration werden hier ingevuld; die staan
+  // in de spreuk zelf en zijn één klik verderop. Wat blijft is het gemak: een
+  // lege naam en een lege beschrijving krijgen een voorzet.
+  const _descEl = form.querySelector('[name="data_desc"]');
+  if (_descEl && !_descEl.value.trim()) _descEl.value = (sp.desc || []).join('\n\n');
+  const nameEl = form.querySelector('[name="name"]');
+  if (nameEl && !nameEl.value.trim()) nameEl.value = `Scroll of ${sp.name}`;
+};
+
+// De editor openen op het tabblad Winkel.
+window._voorraadAanvullen = async (tab, id) => {
+  window.app.closeModal?.();
+  await window._openEditor(tab, id);
+  window._edTab?.('winkel');
+  window._addVoorraadItem?.();   // meteen een lege regel om in te typen
+};
+
+window._openEditor = async (tab, editId) => {
+  const schema = SCHEMA[tab];
+  // Per kaartje opnieuw beginnen: wat de DM bij het vórige kaartje aanraakte,
+  // zegt niets over dit kaartje.
+  window._verbruiktAangeraakt = !!editId;
+  let e = null;
+  if (editId) {
+    try { e = await api.getEntity(tab, editId); } catch { return; }
+  }
+  allNames = await api.allNames();
+  // Namenlijsten voor ras, klasse en alignment — één keer ophalen en bewaren.
+  if (tab === 'personages' && !_naamLijsten) {
+    try { _naamLijsten = await fetch('/api/bron/volken-klassen').then(r => r.json()); }
+    catch { _naamLijsten = { klassen: [], volkenGangbaar: [], volkenOverig: [], alignments: [] }; }
+  }
+  if (tab === 'personages' && !_spreukLijst) {
+    try {
+      const d = await fetch('/api/bron/spells-2024').then(r => r.json());
+      _spreukLijst = (d.results || []).filter(sp => sp.school?.name);
+    } catch { _spreukLijst = []; }
+  }
+  // Scroll-spell-picker: laad de spell-lijst één keer (voor de datalist + autofill).
+  if (tab === 'voorwerpen' && !_scrollSpellList) {
+    try { _scrollSpellList = (await fetch('/api/bron/spells-2024').then(r => r.json())).results || []; }
+    catch { _scrollSpellList = []; }
+  }
+  // De tafels, voor het veld 'Gekoppelde tafel'. Alleen de DM mag ze opvragen;
+  // een speler komt nooit in deze editor, maar de catch houdt het stil.
+  if (tab === 'voorwerpen' && !_tafelLijst) {
+    try { _tafelLijst = await api.listTables(); } catch { _tafelLijst = []; }
+  }
+  let _editorGroups = [];
+  try { const { groups } = await api.listGroups(); _editorGroups = groups; } catch { /* ok */ }
+
+  editorTags = {};
+  pendingAudioFile = null;
+  _pendingVideoFile = null;
+  _pendingVideoBron = null;
+  window._fpOnChange = null;   // dit blok zit in een formulier; opslaan gaat via de knop
+  _petTiers = Array.isArray(e?.statblockTiers) ? JSON.parse(JSON.stringify(e.statblockTiers)) : [];
+  _tierVoorDier = String(e?.subtype || '').toLowerCase() === 'dier';
+  _editorOldAudioId = e?.data?.audioId || null;
+  for (const lt of LINK_TYPES) {
+    editorTags[lt] = e?.links?.[lt]?.slice() || [];
+  }
+
+  let body = `<form id="entity-form" class="space-y-4">`;
+
+  // De datalists staan één keer bovenaan het formulier; de velden verwijzen
+  // ernaar met `list=`. Gangbare volken eerst, daarna de rest — anders scrol je
+  // door zevenenveertig namen voordat je bij Human bent.
+
+
+  // ── DM-toggle vars (vroeg berekend, gebruikt in rechterkolom én textarea-sectie) ──
+  const _valUitgesproken = e?.data?.flavourUitgesproken === true || e?.data?.flavourUitgesproken === 'true';
+  const _existingAudioId = e?.data?.audioId || '';
+  const _isNpcEditor     = e?.subtype === 'NPC';
+
+  // ── Tabbladen ──
+  // De editor is één lange kolom geworden; met markers knippen we hem daarna in
+  // panelen (zie _bouwEditorTabs). Zo hoeft elk blok hieronder niets te weten
+  // van waar het terechtkomt.
+
+  // ── Linker kolom: afbeelding ──
+  body += `<!--P:beeld-->`;
+  {
+    // Effectief portret-fileId: data.imageId (bibliotheek) of het entity-id zelf.
+    const curImgId = e?.data?.imageId || (editId || '');
+    const hasImg   = !!(e?.data?.imageId) || !!editId;
+    const fileUrl  = hasImg ? api.fileUrl(curImgId) : '';
+    const focusVal = e?.data?.imgFocus || '50% 50%';
+    body += `
+      <div>
+        <label class="text-xs font-cinzel text-ink-dim font-bold tracking-wide">Afbeelding</label>
+        <div class="mt-1">
+          <!-- De picker toont de héle afbeelding (object-contain): je zet het
+               kruisje op het gezicht, ook als dat in een hoek zit. Daarnaast
+               staan twee live previews met de echte uitsnedes — het kaartje
+               (breed) en het ronde portret op de sheet — want daar wordt wél
+               bijgesneden (object-cover) en dáár doet het focuspunt zijn werk. -->
+          ${window._fpBlokHtml({
+            src: fileUrl, value: focusVal, naam: 'data_imgFocus',
+            previews: [{ cls: 'fp-prev--kaart', label: 'Kaartje' }, { cls: 'fp-prev--rond', label: 'Portret' }],
+          })}
+          <input type="hidden" name="data_imageId" id="editor-image-id" value="${esc(e?.data?.imageId || '')}">
+          <button type="button" class="dm-btn dm-btn-ghost dm-btn-sm" onclick="window._editorPickImage()" title="Kies uit de bibliotheek of upload nieuw">
+            ${icon('image')} ${hasImg ? 'Afbeelding toevoegen' : 'Afbeelding kiezen'}
+          </button>
+        </div>
+      </div>
+      <div>
+        <!-- Onderschrift staat uit (zie _primaryCaption in _openDetail); het veld
+             gaat verborgen mee zodat bestaande teksten niet verdwijnen. -->
+        <input type="hidden" name="data_imgCaption" value="${esc(e?.data?.imgCaption || '')}">
+        <!-- De overige afbeeldingen staan onder dezelfde kop: één knop, en de
+             ster bepaalt welke de banner is. Twee aparte blokken met elk een
+             eigen knop leidde alleen maar tot de vraag welke je moest hebben. -->
+        <div id="entity-img-preview" class="editor-img-grid mt-2"></div>
+      </div>
+      ${tab === 'personages' ? `
+      <!-- Alleen bij een spelerspersonage: het filmpje speelt op de
+           landingspagina terwijl er op dát portret wordt ingezoomd. Bij een
+           nieuw kaartje bewaren we het bestand tot het personage bestaat, want
+           de upload heet naar zijn id. -->
+      <!-- Ook voor een NPC: hetzelfde bestand, dezelfde grens, alleen een andere
+           plek waar het speelt. Bij een speler is dat de landingspagina; bij
+           iedereen is het het portret op zijn kaartje. -->
+      <div id="video-section">
+        <div class="text-xs font-cinzel text-ink-dim font-bold tracking-wide mb-1">Filmpje</div>
+        <p class="text-[10px] text-ink-dim mb-1">Speelt op het portret van dit kaartje${e?.subtype === 'speler' ? ', en op de landingspagina terwijl er op hem wordt ingezoomd' : ''}. Maximaal 8 MB; langer dan 6 seconden mag, maar stopt dan vanzelf.</p>
+        <div id="editor-video-status" class="text-xs text-ink-faint italic mb-1">${e?.id ? 'Controleren…' : ''}</div>
+        <div class="flex items-center gap-2">
+          <button type="button" class="dm-btn dm-btn-ghost dm-btn-sm"
+            onclick="window._editorPickVideo('${escArg(e?.id || '')}')"
+            title="Kies uit de mediabibliotheek of upload nieuw">
+            ${icon('camera')} Filmpje kiezen
+          </button>
+          <button type="button" id="editor-video-del" class="dm-btn dm-btn-ghost dm-btn-sm hidden"
+            onclick="window._removeCharVideo('${escArg(e?.id || '')}')" title="Filmpje verwijderen">${icon('trash')}</button>
+        </div>
+      </div>` : ''}
+      ${tab === 'documenten' ? `
+      <!-- Een document kan behalve een afbeelding ook een scan (pdf) of een
+           geluidsfragment zijn. Dat bestand hangt aan het kaartje-id, net als
+           het portret van een personage — vandaar dat het pas kan zodra het
+           kaartje bestaat. -->
+      <div id="doc-bestand-sectie"${editId ? '' : ' style="display:none"'}>
+        <div class="text-xs font-cinzel text-ink-dim font-bold tracking-wide mb-1">Bestand</div>
+        <p class="text-[10px] text-ink-dim mb-1">Een pdf-scan of een geluidsfragment. Verschijnt onder de tekst in het detailvenster; een afbeelding hoort hierboven.</p>
+        <div id="doc-bestand-status" class="text-xs text-ink-faint italic mb-1">${editId ? 'Controleren…' : ''}</div>
+        <input type="file" id="doc-bestand-input" accept="application/pdf,audio/*" class="hidden"
+          onchange="window._docBestandUpload('${escArg(editId || '')}', this.files[0])">
+        <button type="button" class="dm-btn dm-btn-ghost dm-btn-sm"
+          onclick="document.getElementById('doc-bestand-input').click()">
+          ${icon('folder-open')} Bestand kiezen
+        </button>
+      </div>` : ''}
+    `;
+  }
+
+
+  // ── Rechter kolom: naam, type-velden ──
+  body += `<!--P:info-->`;
+  body += `
+    <div>
+      <label class="text-xs font-cinzel text-ink-dim font-bold tracking-wide">Naam</label>
+      <input name="name" value="${esc(e?.name || '')}" required
+        class="w-full mt-1 px-3 py-2 bg-room-bg border border-room-border rounded text-ink-bright focus:border-gold-dim focus:outline-none">
+    </div>
+  `;
+
+  // Subtype
+  if (schema.subtypes) {
+    body += `
+      <div>
+        <label class="text-xs font-cinzel text-ink-dim font-bold tracking-wide">Type</label>
+        <select name="subtype" id="subtype-select"
+          onchange="window._onSubtypeChange(this.value)"
+          class="w-full mt-1 px-3 py-2 bg-room-bg border border-room-border rounded text-ink-bright focus:border-gold-dim focus:outline-none">
+          <option value="">—</option>
+          ${schema.subtypes.map(s => `<option value="${s}" ${e?.subtype === s ? 'selected' : ''}>${s}</option>`).join('')}
+        </select>
+      </div>
+    `;
+  }
+
+  // Groep-selector voor personages met subtype speler. Stond er alleen bij twee
+  // of meer party's; met één party zag je dus niet aan welke hij hangt — en het
+  // veld werd helemaal niet meegestuurd, wat het opslaan las als "verhuist naar
+  // geen party". Nu altijd zichtbaar zodra er een party bestaat.
+  if (tab === 'personages' && _editorGroups.length) {
+    const isSpeler = e?.subtype === 'speler';
+    const currentGroep = e?.data?.groep || (isSpeler && _editorGroups.length === 1 ? _editorGroups[0].id : '');
+    body += `
+      <div id="groep-section"${isSpeler ? '' : ' style="display:none"'}>
+        <label class="text-xs font-cinzel text-ink-dim font-bold tracking-wide">Party</label>
+        <select name="data_groep"
+          class="w-full mt-1 px-3 py-2 bg-room-bg border border-room-border rounded text-ink-bright focus:border-gold-dim focus:outline-none">
+          <option value="">Geen party</option>
+          ${_editorGroups.map(g => `<option value="${esc(g.id)}"${currentGroep === g.id ? ' selected' : ''}>${esc(g.name)}</option>`).join('')}
+        </select>
+      </div>
+    `;
+  }
+
+  // De huisdier-instellingen (adoptie + tiers) stonden hier bij Informatie, maar
+  // het zijn statblok-zaken: ze horen bij Character Sheet. Zie daar.
+
+  // Korte velden (niet-textarea) in rechter kolom
+  let _revealGroupOpen = null;
+  let _werkingGroepOpen = null;
+  const _curItemType = e?.data?.itemType || '';
+  // "Waar hoort dit bij?" hoort bij de administratie van het kaartje, en die
+  // staat bóven de aantekeningen — die zijn altijd het laatste woord. Bij een
+  // organisatie verhuist het blok naar het organogram-paneel (daar staat de
+  // andere kant van dezelfde vraag); bij een personage bleef het achteraan
+  // hangen, ná het notitievak. Daarom plaatsen we het hieronder in de lus,
+  // net vóór dat vak, en valt het alleen terug op "achteraan" als dat veld er
+  // niet is.
+  let _hoortbijGeplaatst = false;
+
+  // Standaard-uitrusting invullen, naar het model van het statblok-preset bij
+  // een personage. 333 voorwerpen uit de SRD 5.2 (CC BY 4.0) worden meegeleverd
+  // — daarvoor begon elke campagne op nul en tikte je Club, Greatclub en
+  // Quarterstaff met de hand over.
+  if (tab === 'voorwerpen' && isDM()) {
+    body += `
+      <datalist id="srd-item-dl"></datalist>
+      <div class="preset-rij">
+        <label class="preset-label">${icon('package')} Uit de SRD halen</label>
+        <input class="preset-zoek" list="srd-item-dl" placeholder="Battleaxe, Bag of Holding, Plate Armor…"
+          onfocus="window._srdItemDatalist()"
+          onkeydown="if(event.key==='Enter'){event.preventDefault();window._srdItemVullen(this);}">
+        <button type="button" class="dm-btn dm-btn-ghost dm-btn-sm"
+          onclick="window._srdItemVullen(this.previousElementSibling)">Invullen</button>
+        <span class="preset-bron" title="System Reference Document 5.2, Wizards of the Coast, CC BY 4.0">SRD 5.2</span>
+      </div>`;
+  }
+
+  // Eén doorloop, in schemavolgorde. Tekstvakken hadden een eigen ronde ná deze
+  // lus, waardoor Beschrijving onder Flavour en Geheimen belandde — de volgorde
+  // in SCHEMA klopte al, de rendering niet.
+  for (const field of schema.fields) {
+    if ((field.key === 'geheim' || field.dmOnly) && !isDM()) continue;
+    if (tab === 'personages' && field.key === 'persoonlijkheid' && isDM() && e?.id && !_hoortbijGeplaatst) {
+      body += _hoortbijHtml(tab, e);
+      _hoortbijGeplaatst = true;
+    }
+    // Close open reveal group when leaving it
+    if (_revealGroupOpen && field.inReveal !== _revealGroupOpen) {
+      body += `</div>`; // end reveal-group div
+      _revealGroupOpen = null;
+    }
+    const val = e?.data?.[field.key] || '';
+    // Velden die bij één subtype horen (of er juist niet): dezelfde aanpak als
+    // showFor hieronder, maar dan op het type van het kaartje.
+    const _sub = String(e?.subtype || '').toLowerCase();
+    if (field.alleenBij || field.nietBij) {
+      const zichtbaar = field.alleenBij ? field.alleenBij.includes(_sub) : !field.nietBij.includes(_sub);
+      body += `<div data-voor-subtype="${(field.alleenBij || []).join(',')}" data-niet-subtype="${(field.nietBij || []).join(',')}"${zichtbaar ? '' : ' style="display:none"'}>`;
+    }
+    // showWhen: hangt aan de waarde van een ánder veld op hetzelfde blad (een
+    // keuzelijst of een vinkje). showFor kijkt alleen naar het itemType; dit
+    // werkt voor elk veld, en de waarde wordt uit het formulier zelf gelezen.
+    if (field.showWhen) {
+      const _nu = String(e?.data?.[field.showWhen.key] ?? '');
+      const _aan = field.showWhen.values.includes(_nu);
+      body += `<div data-show-when-key="${esc(field.showWhen.key)}" data-show-when-val="${esc(field.showWhen.values.join('|'))}"${_aan ? '' : ' style="display:none"'}>`;
+    }
+    // Alle velden van één werking in één omkaderd blok met een kopje: los onder
+    // elkaar was niet te zien welk veld bij welk vinkje hoorde.
+    if (_werkingGroepOpen && field.showWerking !== _werkingGroepOpen) {
+      body += `</div>`;
+      _werkingGroepOpen = null;
+    }
+    if (field.showWerking && field.showWerking !== _werkingGroepOpen) {
+      const _aan = _werkingUit(e?.data).includes(field.showWerking);
+      const _w = WERKINGEN.find(w => w.key === field.showWerking);
+      body += `<div class="werking-groep" data-werking="${esc(field.showWerking)}"${_aan ? '' : ' style="display:none"'}>
+        <div class="werking-groep-kop">${esc(_w ? _w.label : field.showWerking)}</div>`;
+      _werkingGroepOpen = field.showWerking;
+    }
+    // showFor: wrap in a togglable div, initially hidden if itemType doesn't match
+    if (field.showFor) {
+      const _vis = field.showFor.includes(_curItemType);
+      body += `<div data-show-for="${field.showFor.join(',')}" style="${_vis ? '' : 'display:none'}">`;
+    }
+    // hideFor: wrap in a togglable div, initially hidden if itemType matches
+    if (field.hideFor) {
+      const _hid = field.hideFor.includes(_curItemType);
+      body += `<div data-hide-for="${field.hideFor.join(',')}" style="${_hid ? 'display:none' : ''}">`;
+    }
+    if (field.type === 'werking') {
+      const _aan = _werkingUit(e?.data);
+      body += `
+        <div>
+          <label class="text-xs font-cinzel text-ink-dim font-bold tracking-wide">${esc(field.label)}</label>
+          <input type="hidden" name="data_werking" id="werking-veld" value="${esc(JSON.stringify(_aan))}">
+          <div class="rollen-rij mt-1">
+            ${WERKINGEN.map(w => `
+              <label class="rol-keuze" title="${esc(w.uitleg)}">
+                <input type="checkbox" value="${w.key}" ${_aan.includes(w.key) ? 'checked' : ''}
+                  onchange="window._werkingBij()">
+                <span>${esc(w.label)}</span>
+              </label>`).join('')}
+          </div>
+        </div>
+      `;
+      continue;
+    }
+    if (field.type === 'scheiding') {
+      body += `<hr class="veld-scheiding">`;
+      continue;
+    }
+    // ── Het houdingschuifje ──
+    // Eén schuifje van vijandig naar bondgenoot, met de naam van de trede
+    // ernaast. Is het veld leeg, dan staat het schuifje op wat de app uitrekent
+    // en zegt het "Standaard" — zo zie je meteen wat er geldt zonder dat je
+    // iets vastzet. Zodra je schuift is het van jou; de knop ernaast maakt het
+    // weer leeg.
+    if (field.type === 'houding') {
+      const berekend = Number(e?._houding) || 3;
+      const eigen = val === '' || val === null || val === undefined ? null : Number(val);
+      body += _houdingVeldHtml(field, eigen, berekend);
+      continue;
+    }
+    if (field.type === 'reveal-toggle') {
+      const hasData = schema.fields
+        .filter(f => f.inReveal === field.key)
+        .some(f => e?.data?.[f.key] && e?.data?.[f.key] !== '');
+      body += `
+        <div class="flex items-center gap-2">
+          <input type="checkbox" id="toggle-${field.key}" class="rounded"
+            ${hasData ? 'checked' : ''}
+            onchange="window._onRevealToggle('${field.key}', this.checked)">
+          <label for="toggle-${field.key}" class="text-xs font-cinzel text-ink-dim font-bold tracking-wide cursor-pointer">${esc(field.label)}</label>
+        </div>
+        <div id="reveal-group-${field.key}" style="${hasData ? 'display:contents' : 'display:none'}">
+      `;
+      _revealGroupOpen = field.key;
+      continue;
+    }
+    if (field.type === 'checkbox') {
+      const checked = val === 'true' || val === true;
+      body += `
+        <div class="flex items-center gap-2">
+          <input type="hidden" name="data_${field.key}" value="${checked ? 'true' : ''}">
+          <input type="checkbox" id="cb_${field.key}" class="rounded"
+            ${checked ? 'checked' : ''}
+            onchange="this.previousElementSibling.value=this.checked?'true':'';${field.zetOokAan ? `if(this.checked)window._veldZetAan('${esc(field.zetOokAan)}')` : ''}">
+          <label for="cb_${field.key}" class="text-xs font-cinzel text-ink-dim font-bold tracking-wide cursor-pointer">${esc(field.label)}</label>
+        </div>
+      `;
+    } else if (field.type === 'textarea') {
+      const taId   = `ta_${field.key}`;
+      const _rows  = field.key === 'desc' ? 6 : 4;
+      const _taHtml = `${fmtToolbar(taId)}<textarea id="${taId}" name="data_${field.key}" rows="${_rows}"
+            onkeydown="window._fmtKey(event)"
+            class="w-full px-3 py-2 bg-room-bg border border-room-border rounded text-ink-bright text-sm focus:border-gold-dim focus:outline-none">${esc(val)}</textarea>`;
+      // 'persoonlijkheid' zat hier ook in en kreeg dus een uitklapbalk met
+      // chevron, terwijl alle andere velden een gewoon labeltje hebben. Op één
+      // blad drie soorten koppen leest rommelig; hij doet nu mee met de rest.
+      if (['flavour', 'geheim'].includes(field.key)) {
+        body += `
+        <details class="cs-accordion${field.dmOnly ? ' veld-dmonly' : ''}"${val ? ' open' : ''}>
+          <summary class="cs-accordion-head">
+            <span>${esc(field.label)}</span>
+            <span class="cs-accordion-chevron">▾</span>
+          </summary>
+          <div class="cs-accordion-body">${_taHtml}</div>
+        </details>`;
+      } else {
+        body += `
+        <div${field.dmOnly ? ' class="veld-dmonly"' : ''}>
+          <label class="text-xs font-cinzel text-ink-dim font-bold tracking-wide">${esc(field.label)}</label>
+          <div class="mt-1">${_taHtml}</div>
+        </div>`;
+      }
+    } else if (field.type === 'perkament') {
+      // De inhoud van het document zelf. Krijgt in het detailvenster de
+      // perkamentweergave, dus staan de twee opmaakregels die die weergave kent
+      // hier onder het veld — nergens anders zou je ze tegenkomen.
+      const taId = `ta_${field.key}`;
+      body += `
+        <div class="perkament-veld">
+          <label class="text-xs font-cinzel text-ink-dim font-bold tracking-wide">${esc(field.label)}</label>
+          <div class="mt-1">
+            <!-- Twee tabbladen: schrijven en zien hoe het eruitkomt. De brief
+                 krijgt bij de speler een handschrift en een indeling, en die
+                 kun je niet uit de ruwe tekst aflezen. -->
+            <div class="perkament-tabs">
+              <button type="button" class="perkament-tab is-actief" data-pk-tab="schrijf"
+                onclick="window._perkamentTab('${taId}','schrijf')">${icon('pencil')} Schrijven</button>
+              <button type="button" class="perkament-tab" data-pk-tab="voorbeeld"
+                onclick="window._perkamentTab('${taId}','voorbeeld')">${icon('eye')} Zoals de speler het ziet</button>
+            </div>
+            ${fmtToolbar(taId, { perkament: true })}
+            <textarea id="${taId}" name="data_${field.key}" rows="12" onkeydown="window._fmtKey(event)"
+              class="w-full px-3 py-2 bg-room-bg border border-room-border rounded text-ink-bright text-sm font-crimson focus:border-gold-dim focus:outline-none"
+              placeholder="Beste C.,&#10;&#10;Ik schrijf je in haast\u2026">${esc(val)}</textarea>
+            <div class="perkament-voorbeeld hidden" id="${taId}-voorbeeld"></div>
+          </div>
+        </div>`;
+    } else if (field.type === 'select') {
+      const _selOnchange = (tab === 'locaties' && field.key === 'locType')
+        ? ' onchange="window._onLocTypeChange(this.value)"'
+        : (tab === 'voorwerpen' && field.key === 'itemType')
+        ? ' onchange="window._onItemTypeChange(this.value)"'
+        : '';
+      body += `
+        <div>
+          <label class="text-xs font-cinzel text-ink-dim font-bold tracking-wide">${esc(field.label)}</label>
+          <select name="data_${field.key}"${_selOnchange} class="w-full mt-1 px-3 py-2 bg-room-bg border border-room-border rounded text-ink-bright focus:border-gold-dim focus:outline-none">
+            <!-- Een lege regel bovenaan, tenzij de lijst er zelf al een heeft
+                 met een eigen woord erbij ("Automatisch (volgt het type)").
+                 Twee keer "geen keuze" onder elkaar leest als een fout. -->
+            ${(field.options || []).some(o => (typeof o === 'object' ? o.value : o) === '') ? '' : '<option value="">—</option>'}
+            ${_optiesHtml(field, val)}
+          </select>
+          ${field.meldingen ? `<div class="veld-melding" id="veld-melding-${field.key}">${_veldMeldingHtml(field.meldingen, val)}</div>` : ''}
+        </div>
+      `;
+    } else if (field.type === 'rollen') {
+      const _gekozen = _tagsUit(val);
+      // Oud subtype telt mee, zodat een bestaand kaartje meteen goed staat.
+      if (e?.subtype && ROLLEN.some(r => r.key === e.subtype) && !_gekozen.includes(e.subtype)) _gekozen.push(e.subtype);
+      body += `
+        <div>
+          <label class="text-xs font-cinzel text-ink-dim font-bold tracking-wide">${esc(field.label)}</label>
+          <input type="hidden" name="data_${field.key}" id="rollen-veld" value="${esc(JSON.stringify(_gekozen))}">
+          <div class="rollen-rij mt-1">
+            <span class="rollen-rollen"${String(e?.subtype || '').toLowerCase() === 'dier' ? ' style="display:none"' : ''}>
+              ${ROLLEN.map(r => `
+                <label class="rol-keuze" title="${esc(r.uitleg)}">
+                  <input type="checkbox" value="${r.key}" ${_gekozen.includes(r.key) ? 'checked' : ''}
+                    onchange="window._rollenBij()">
+                  <span>${esc(r.label)}</span>
+                </label>`).join('')}
+              <span class="rollen-scheiding" aria-hidden="true"></span>
+            </span>
+            <!-- Kant in gevecht staat in dezelfde rij, achter een streepje: het
+                 zijn ook vinkjes, maar er kan er maar één aan staan. Een
+                 dropdown ernaast oogde als iets van een andere orde. -->
+            ${(() => {
+              // Zonder keuze staat hij neutraal: de meeste kaartjes vechten niet mee,
+              // en een leeg vakje leest als "vergeten in te vullen".
+              const kantNu = e?.data?.kant || 'neutraal';
+              return [['bondgenoot', 'Bondgenoot'], ['neutraal', 'Neutraal'], ['vijand', 'Vijand']].map(([k, label]) => `
+              <label class="rol-keuze rol-keuze--kant" title="Aan welke kant dit personage staat als er gevochten wordt">
+                <input type="checkbox" value="${k}" ${kantNu === k ? 'checked' : ''}
+                  onchange="window._kantBij(this)">
+                <span>${label}</span>
+              </label>`).join('') + `
+            <input type="hidden" name="data_kant" id="kant-veld" value="${esc(kantNu)}">`;
+            })()}
+          </div>
+        </div>
+      `;
+      // ── Adoptie (type 'dier') ──
+      // Direct onder de rollen: het gaat over of en voor hoeveel de party dit
+      // dier kan krijgen. Zijn statblok (de tiers) staat op het sheet.
+      if (tab === 'personages' && isDM()) {
+        const _isDierNu = e?.subtype === 'dier';
+        const _adopt2   = e?.data?.adopteerbaar === true || e?.data?.adopteerbaar === 'true';
+        const _prijsCl2 = (() => {
+          const cl = parseInt(e?.data?.adoptiePrijsCl);
+          if (!isNaN(cl)) return cl;
+          const fl = parseInt(e?.data?.adoptiePrijs?.fl ?? e?.data?.adoptiePrijsFl);
+          return isNaN(fl) ? null : fl * 100;
+        })();
+        const _mn2 = window._muntNamen();
+        body += `
+          <div id="pet-adopt-section"${_isDierNu ? '' : ' style="display:none"'}>
+            <label class="text-xs font-cinzel text-ink-dim font-bold tracking-wide">Adoptie</label>
+            <label class="rol-keuze mt-1" style="display:flex">
+              <input type="checkbox" id="pet-adopt-cb" ${_adopt2 ? 'checked' : ''}
+                onchange="document.getElementById('pet-adopt-hidden').value=this.checked?'true':''">
+              <span>Te adopteren door een party</span>
+            </label>
+            <input type="hidden" name="data_adopteerbaar" id="pet-adopt-hidden" value="${_adopt2 ? 'true' : ''}">
+            <div class="grid grid-cols-2 gap-2 mt-2">
+              <div>
+                <label class="text-[10px] font-cinzel text-ink-dim uppercase">Prijs</label>
+                <input name="data_adoptiePrijs_tekst" value="${_prijsCl2 === null ? '' : `${Math.floor(_prijsCl2 / 100)},${String(_prijsCl2 % 100).padStart(2, '0')}`}"
+                  placeholder="12,34" inputmode="decimal"
+                  title="Eén bedrag met een komma: 12,34 is 12 ${esc(_mn2.fl)}, 3 ${esc(_mn2.kn)} en 4 ${esc(_mn2.cl)}. Munten mogen ook: 5 gp 2 sp, 2 pp."
+                  class="w-full mt-0.5 px-2 py-1 bg-room-bg border border-room-border rounded text-ink-bright text-sm focus:border-gold-dim focus:outline-none">
+              </div>
+            </div>
+            <!-- Eén eigenaar per party: hetzelfde dier kan in twee party's
+                 meelopen, elk met een eigen baasje. Wisselen van groep om dat in
+                 te stellen is een omweg die niemand onthoudt. -->
+            <div class="mt-2">
+              <label class="text-[10px] font-cinzel text-ink-dim uppercase">Eigenaar</label>
+              <div id="pet-baasjes"
+                title="Het dier loopt mee met de party van dit personage: het staat op het partytabblad, is te vullen in een gevecht, en zijn tier volgt diens level."></div>
+            </div>
+          </div>
+        `;
+      }
+
+    } else if (field.type === 'lijst-tekst') {
+      // Geheimen dragen een id; flavours zijn nog gewone teksten.
+      const _isGeheim = field.key === 'geheimen';
+      const _rijen = _isGeheim
+        ? (_geheimRegelsUit(e?.data).length ? _geheimRegelsUit(e?.data) : [{ id: '', tekst: '', antagonist: false }])
+        : (() => { const r = _tekstLijstUit(e?.data, field.key, field.enkelvoud); if (!r.length) r.push(''); 
+                   return r.map(t => ({ id: '', tekst: t, antagonist: false })); })();
+      const _metAntag = _isGeheim && tab === 'personages';
+      const _verborgenVeld = _isGeheim;
+      body += `
+        <div${_verborgenVeld ? ' class="veld-dmonly"' : ''}>
+          <label class="text-xs font-cinzel text-ink-dim font-bold tracking-wide">${esc(field.label)}</label>
+          <div id="lijst-${field.key}" class="lijst-veld" data-veld="${field.key}"${_metAntag ? ' data-antag="1"' : ''}>
+            ${_rijen.map((r, i) => _lijstRegelHtml(field.key, r.tekst, i, r.antagonist, _metAntag, r.id)).join('')}
+          </div>
+          <button type="button" class="dm-btn dm-btn-ghost dm-btn-sm mt-1"
+            onclick="window._lijstRegelErbij('${field.key}')">${icon('plus')} Regel toevoegen</button>
+        </div>
+      `;
+    } else if (field.type === 'lijst') {
+      // Zoekbaar invoerveld met een datalist: typen filtert, en wat er niet in
+      // staat mag je alsnog intikken — een campagne met eigen volken of klassen
+      // wordt zo niet klemgezet. De lijsten komen uit bronnen/volken-klassen.json.
+      const _opties = field.lijst === 'volken'
+        ? [...(_naamLijsten?.volkenGangbaar || []), ...(_naamLijsten?.volkenOverig || [])]
+        : (_naamLijsten?.[field.lijst] || []);
+      body += `
+        <div>
+          <label class="text-xs font-cinzel text-ink-dim font-bold tracking-wide">${esc(field.label)}</label>
+          ${_keuzeVeldHtml(`kv-${field.key}`, `data_${field.key}`, val, _opties, 'Typ of kies\u2026')}
+        </div>
+      `;
+    } else if (field.type === 'icoon') {
+      // Eén rij tekens om uit te kiezen, met "geen" als eerste: dan volgt het
+      // kaartje gewoon zijn type. Dit teken is de bron voor alles wat dit
+      // kaartje ergens anders vertegenwoordigt — de kaartenlijst, een wikilink,
+      // en het embleem van de factie die eraan hangt.
+      body += `
+        <div>
+          <label class="text-xs font-cinzel text-ink-dim font-bold tracking-wide">${esc(field.label)}</label>
+          <div class="kaart-icoon-picker">
+            <input type="hidden" name="data_${field.key}" id="kaart-icoon-${field.key}" value="${esc(val)}">
+            <button type="button" class="kaart-icoon-btn${!val ? ' kaart-icoon-btn--actief' : ''}"
+              title="Volg het type van dit kaartje" onclick="window._kaartIcoonKies('${field.key}','',this)">${icon('x')}</button>
+            ${KAART_ICONEN.map(n => `
+              <button type="button" class="kaart-icoon-btn${val === n ? ' kaart-icoon-btn--actief' : ''}"
+                title="${n}" onclick="window._kaartIcoonKies('${field.key}','${n}',this)">${icon(n)}</button>`).join('')}
+          </div>
+          ${field.hint ? `<p class="text-[11px] text-ink-faint mt-1">${esc(field.hint)}</p>` : ''}
+        </div>`;
+    } else if (field.type === 'entiteit') {
+      // Vrije tekst blijft het veld zelf (data_<key>); het kaartje komt er als
+      // data_<key>Id naast. Wie niets koppelt houdt dus gewoon zijn tekst.
+      const _dlId = `link-dl-${field.key}`;
+      const _inId = `link-in-${field.key}`;
+      body += `
+        <div>
+          <label class="text-xs font-cinzel text-ink-dim font-bold tracking-wide" for="${_inId}">${esc(field.label)}</label>
+          <span class="link-veld">
+            <input id="${_inId}" name="data_${field.key}" value="${esc(val)}" list="${_dlId}"
+              data-link-veld="1" data-link-doel="${field.doel.join(',')}" data-link-id="link-hid-${field.key}"
+              data-link-status="link-st-${field.key}" data-link-icoon="link-ic-${field.key}"
+              oninput="window._linkVeldWijzig(this)" placeholder="${esc(field.hint || 'Typ of kies\u2026')}"
+              class="w-full mt-1 px-3 py-2 bg-room-bg border border-room-border rounded text-ink-bright text-sm focus:border-gold-dim focus:outline-none">
+            <span class="link-veld-icoon" id="link-ic-${field.key}"></span>
+          </span>
+          <datalist id="${_dlId}" data-link-doel="${field.doel.join(',')}"></datalist>
+          <input type="hidden" id="link-hid-${field.key}" name="data_${field.key}Id" value="${esc(e?.data?.[field.key + 'Id'] || '')}">
+          <div id="link-st-${field.key}" class="link-status"></div>
+        </div>
+      `;
+    } else if (field.type === 'betrokkenen') {
+      // Bij een organisatie hoort deze lijst op het Organogram-tabblad; bij een
+      // locatie blijft hij gewoon bij Informatie staan.
+      if (tab === 'organisaties') body += `<!--P:organogram-->`;
+      // Eén lijst in plaats van losse velden voor eigenaar, personeel en
+      // stamgasten: in de praktijk staan daar allebei personages én
+      // organisaties in, en wie wát is verschilt per kaartje. Bestaande
+      // eigenaar-tekst wordt de eerste regel, zodat niets verdwijnt.
+      const rijen = _betrokkenenUit(e?.data);
+      if (!rijen.length) rijen.push({ naam: '', rol: '' });
+      body += `
+        <div>
+          <label class="text-xs font-cinzel text-ink-dim font-bold tracking-wide">${esc(field.label)}</label>
+          <div id="betrokkenen-lijst"${tab === 'organisaties' ? ' data-chef="1"' : ''}>
+            ${rijen.map((r, i) => _betrokkenRijHtml(r, i, tab === 'organisaties')).join('')}
+          </div>
+          <datalist id="betrokken-dl" data-link-doel="personages,organisaties"></datalist>
+          <!-- Onder wie iemand valt kan alleen iemand zijn die hier al staat;
+               de hele campagne aanbieden leverde een lijst op waarin het goede
+               antwoord niet te vinden was. Wordt bijgehouden bij elke wijziging. -->
+          <datalist id="chef-dl"></datalist>
+          <datalist id="betrokken-rol-dl">
+            ${BETROKKEN_ROLLEN.map(r => `<option value="${esc(r)}">`).join('')}
+          </datalist>
+          <button type="button" class="dm-btn dm-btn-ghost dm-btn-sm mt-1"
+            onclick="window._betrokkenErbij()">${icon('plus')} Verbinding toevoegen</button>
+          ${tab !== 'organisaties' ? '' : `
+          <!-- Meteen zien wat je bouwt: een tikfout in "Valt onder" is anders
+               pas te merken als je het kaartje weer opent. -->
+          <div id="org-voorbeeld" class="org-voorbeeld"></div>`}
+        </div>
+      `;
+      if (tab === 'organisaties') body += `<!--P:info-->`;
+    } else if (field.type === 'weapon-tags') {
+      const _sel = (() => { try { return JSON.parse(val || '[]'); } catch { return []; } })();
+      body += `
+        <div class="weapon-tags-editor-wrap">
+          <label class="text-xs font-cinzel text-ink-dim font-bold tracking-wide">${esc(field.label)}</label>
+          <input type="hidden" name="data_${field.key}" id="wt_${field.key}" value="${esc(val)}">
+          <div class="weapon-tags-picker">
+            ${Object.keys(WEAPON_PROPERTIES).map(prop => {
+              const _isParam = PARAMETERIZABLE_PROPS.has(prop);
+              const _curVal  = _sel.find(s => s === prop || s.startsWith(prop + ' (')) || null;
+              const _isOn    = !!_curVal;
+              const _paramVal = (_curVal && _curVal !== prop)
+                ? _curVal.slice(prop.length + 2, -1) : '';
+              const _placeholder = prop === 'Versatile' ? '1d8' : '30/120';
+              const _safeId = 'wtp-' + field.key + '-' + prop.replace(/[^a-zA-Z0-9]/g, '_');
+              if (_isParam) {
+                return `<span class="weapon-tag-pick-group">
+                  <button type="button"
+                    class="weapon-tag-pick${_isOn ? ' weapon-tag-pick--on' : ''}" data-wptip="${esc(WEAPON_PROPERTIES[prop] || '')}"
+                    onclick="window._toggleWeaponTag('${escArg(field.key)}','${escArg(prop)}',this)">${esc(prop)}</button>
+                  <input type="text" id="${_safeId}"
+                    class="weapon-tag-param-inp${_isOn ? '' : ' hidden'}"
+                    placeholder="${_placeholder}"
+                    value="${esc(_paramVal)}"
+                    oninput="window._updateWeaponTagParam('${escArg(field.key)}','${escArg(prop)}',this.value)"
+                    onclick="event.stopPropagation()">
+                </span>`;
+              }
+              return `<button type="button"
+                class="weapon-tag-pick${_isOn ? ' weapon-tag-pick--on' : ''}" data-wptip="${esc(WEAPON_PROPERTIES[prop] || '')}"
+                onclick="window._toggleWeaponTag('${escArg(field.key)}','${escArg(prop)}',this)">${esc(prop)}</button>`;
+            }).join('')}
+          </div>
+        </div>
+      `;
+    } else if (field.type === 'spell-picker') {
+      // Was één keuze die de spreuktekst in de beschrijving plakte — een kopie
+      // die veroudert. Nu een lijst koppelingen: een Wand of Staff kan er
+      // meerdere hebben en één klik brengt je naar de volledige spreuk.
+      const _spells = _scrollSpellList || [];
+      let _gekoppeld = [];
+      try { _gekoppeld = JSON.parse(e?.data?.spellIndexes || '[]'); } catch { /* ok */ }
+      window._itemSpells = Array.isArray(_gekoppeld) ? _gekoppeld.map(String) : [];
+      body += `
+        <div>
+          <label class="text-xs font-cinzel text-ink-dim font-bold tracking-wide">${esc(field.label)}</label>
+          <input type="hidden" name="data_spellIndexes" id="item-spells-veld" value="${esc(JSON.stringify(window._itemSpells))}">
+          <div id="item-spell-chips" class="cs-spell-chips mt-1"></div>
+          <input list="scroll-spell-dl" id="scroll-spell-pick" placeholder="Zoek een spreuk\u2026" autocomplete="off"
+            onchange="window._itemSpellErbij(this.value)"
+            class="w-full mt-1 px-3 py-2 bg-room-bg border border-room-border rounded text-ink-bright focus:border-gold-dim focus:outline-none">
+          <datalist id="scroll-spell-dl">${_spells.map(s => `<option value="${esc(s.name)}"></option>`).join('')}</datalist>
+        </div>
+      `;
+    } else if (field.type === 'tafel-picker') {
+      // Zoekbaar invoerveld met datalist, zoals de entiteit-kiezers in de
+      // Meesterkamer: bij twintig tafels is een volle <select> te lang, en de
+      // naam is wat je onthoudt — niet het id.
+      const _tafels = _tafelLijst || [];
+      const _huidig = _tafels.find(t => t.id === e?.data?.tafelId);
+      body += `
+        <div>
+          <label class="text-xs font-cinzel text-ink-dim font-bold tracking-wide">${esc(field.label)}</label>
+          <input type="hidden" name="data_tafelId" id="item-tafel-veld" value="${esc(e?.data?.tafelId || '')}">
+          <input list="item-tafel-dl" id="item-tafel-pick" autocomplete="off"
+            value="${esc(_huidig?.name || '')}"
+            placeholder="${_tafels.length ? 'Zoek een tafel\u2026' : 'Nog geen tafels \u2014 maak er een in de Meesterkamer'}"
+            onchange="window._itemTafelKies(this.value)"
+            class="w-full mt-1 px-3 py-2 bg-room-bg border border-room-border rounded text-ink-bright focus:border-gold-dim focus:outline-none">
+          <datalist id="item-tafel-dl">${_tafels.map(t => `<option value="${esc(t.name)}"></option>`).join('')}</datalist>
+          <p class="text-xs text-ink-dim mt-1" id="item-tafel-hint">${_huidig
+            ? esc(`${_huidig.type === 'weighted' ? (_huidig.dobbel || 'd100') : 'trekken'} \u00b7 ${(_huidig.entries || _huidig.first || []).length} regels`)
+            : ''}</p>
+        </div>
+      `;
+    } else if (field.type === 'getal') {
+      // Een aantal is een aantal: met type="number" krijg je de juiste
+      // toetsenbord op een tablet en weigert de browser letters. Er zit geen
+      // dobbelformule achter — die staat los, bij het herladen.
+      body += `
+        <div>
+          <label class="text-xs font-cinzel text-ink-dim font-bold tracking-wide">${esc(field.label)}</label>
+          <input type="number" min="0" step="1" inputmode="numeric" name="data_${field.key}" value="${esc(val)}"${field.hint ? ` placeholder="${esc(field.hint)}"` : ''}
+            onkeydown="if(['e','E','+','-','.',','].includes(event.key))event.preventDefault()"
+            onpaste="const t=(event.clipboardData||window.clipboardData).getData('text');if(!/^\\d*$/.test(t.trim()))event.preventDefault()"
+            class="w-full mt-1 px-3 py-2 bg-room-bg border border-room-border rounded text-ink-bright focus:border-gold-dim focus:outline-none">
+        </div>
+      `;
+    } else {
+      body += `
+        <div>
+          <label class="text-xs font-cinzel text-ink-dim font-bold tracking-wide">${esc(field.label)}</label>
+          <input name="data_${field.key}" value="${esc(val)}"${field.hint ? ` placeholder="${esc(field.hint)}"` : ''}
+            class="w-full mt-1 px-3 py-2 bg-room-bg border border-room-border rounded text-ink-bright focus:border-gold-dim focus:outline-none">
+        </div>
+      `;
+    }
+    if (field.showFor) body += `</div>`; // close showFor wrapper
+    if (field.hideFor) body += `</div>`; // close hideFor wrapper
+    if (field.showWhen) body += `</div>`; // close showWhen wrapper
+    if (field.alleenBij || field.nietBij) body += `</div>`;
+  }
+  if (_werkingGroepOpen) { body += `</div>`; _werkingGroepOpen = null; }
+  if (_revealGroupOpen) { body += `</div>`; _revealGroupOpen = null; }
+
+  // De toggles-rij is leeg: "roddel uitgesproken" hoort bij de herberg (de server
+  // houdt dat per flavourregel bij) en de medestander-knop staat nu in de DM-rij
+  // van het detailvenster, bij "markeer als deceased" — beide zijn handelingen,
+  // geen velden van het kaartje.
+
+  // ── Hoort bij ──
+  // De andere kant van "Wie hoort hier bij?": vanaf een personage of
+  // organisatie aangeven waar hij bij hoort. Alleen bij een bestaand kaartje,
+  // want de server schrijft in de dóélkaartjes en heeft dus een id nodig.
+  if (['personages', 'organisaties'].includes(tab) && isDM() && e?.id && !_hoortbijGeplaatst) {
+    // Een organisatie zet hem op het organogram-paneel; een personage heeft hem
+    // hierboven al in de lus gekregen, dus hier komt alleen de rest langs.
+    if (tab === 'organisaties') body += `<!--P:organogram-->`;
+    body += _hoortbijHtml(tab, e);
+    if (tab === 'organisaties') body += `<!--P:info-->`;
+  }
+
+  // ── Koppelingen ──
+  // Wat dit kaartje elders is: de herberg van de campagne, de tempel van een
+  // god, het kaartje achter een factie, of een dungeonkaart. De eerste drie
+  // liggen in meta.json (de dienst is de eigenaar van die koppeling) en worden
+  // meteen bij het wisselen bewaard; de dungeon hoort bij het kaartje zelf en
+  // gaat mee met Opslaan. Alleen bij een bestaand kaartje: zonder id valt er
+  // niets te koppelen.
+  // Een nieuw kaartje mag alvast een plek op de kaart krijgen — dat hoort bij
+  // het aanmaken. De koppelingen die in meta.json schrijven (herberg, god,
+  // factie) hebben een id nodig en verschijnen pas na het bewaren.
+  if (['locaties', 'organisaties', 'personages'].includes(tab) && isDM() && (e?.id || tab === 'locaties')) {
+    const _isLoc  = tab === 'locaties';
+    const _bestaat = !!e?.id;
+    body += !_bestaat ? '' : `
+      <div class="koppel-sectie" id="koppel-sectie">
+        <div class="cs-sectiekop">Koppelingen</div>
+        <div id="koppel-laden" class="veld-uitleg">Laden\u2026</div>
+        <div id="koppel-inhoud" class="hidden">
+          ${(_isLoc && _bestaat) ? `
+          <div class="koppel-rij" id="koppel-herberg" style="display:none">
+            <label class="koppel-vink">
+              <input type="checkbox" id="koppel-herberg-vink" onchange="window._koppelZet({ herberg: this.checked })">
+              <span>Dit is de herberg van de campagne</span>
+            </label>
+            <div class="veld-uitleg" id="koppel-herberg-uitleg"></div>
+          </div>
+          <div class="koppel-rij" id="koppel-tempel" style="display:none">
+            <label class="text-xs font-cinzel text-ink-dim font-bold tracking-wide" for="koppel-god">God van deze tempel</label>
+            <select id="koppel-god" class="koppel-select" onchange="window._koppelZet({ godNaam: this.value })"></select>
+          </div>` : (!_bestaat ? '' : (tab === 'personages' ? `
+          <!-- Bij een persoon gaat het om **lidmaatschap**: hij staat in de
+               ledenlijst van de factie, met de rang die hij daar heeft. Dat kon
+               alleen in het factiepaneel, terwijl je het meestal bedenkt
+               terwijl je het personage zit te schrijven. Eén plek waar het
+               staat (meta.facties[].leden), twee kanten om het te leggen. -->
+          <div class="koppel-rij">
+            <label class="text-xs font-cinzel text-ink-dim font-bold tracking-wide" for="koppel-lid">Lid van factie</label>
+            <select id="koppel-lid" class="koppel-select" onchange="window._koppelLidZet()"></select>
+          </div>
+          <div class="koppel-rij" id="koppel-lid-rang-rij" style="display:none">
+            <label class="text-xs font-cinzel text-ink-dim font-bold tracking-wide" for="koppel-lid-rang">Rang binnen de factie</label>
+            <input id="koppel-lid-rang" class="koppel-select" type="text" placeholder="Waard, luitenant, spion…"
+              onchange="window._koppelLidZet()">
+            <div class="veld-uitleg">Vrije tekst — dit is zijn plek in de factie, niet de rang die de party heeft.</div>
+          </div>` : `
+          <div class="koppel-rij">
+            <label class="text-xs font-cinzel text-ink-dim font-bold tracking-wide" for="koppel-factie">Factie</label>
+            <select id="koppel-factie" class="koppel-select" onchange="window._koppelZet({ factieId: this.value })"></select>
+          </div>`))}
+        </div>
+      </div>
+    `;
+
+    // ── Tabblad Kaart ── (de inhoud verhuist hierheen zodra hij geladen is)
+    if (_isLoc) {
+      body += `<!--P:kaart-->`;
+      body += `
+        <div class="koppel-rij" id="koppel-kaart">
+          <label class="text-xs font-cinzel text-ink-dim font-bold tracking-wide" for="koppel-mapid">Op welke kaart</label>
+          <select id="koppel-mapid" class="koppel-select" onchange="window._pinKaartWissel()"></select>
+          <!-- Coördinaten intikken is onwerkbaar; aanwijzen is de handeling.
+               De kaart staat er op ware verhouding en helemaal in beeld: met een
+               uitsnede zou een klik ergens anders uitkomen dan op de grote kaart. -->
+          <div class="pin-zoom" id="koppel-mapzoom" style="display:none">
+            <button type="button" class="dm-btn dm-btn-ghost dm-btn-sm" onclick="window._pinZoom(-1)" title="Uitzoomen">${icon('minus')}</button>
+            <span class="pin-zoom-stand" id="koppel-mapzoomstand">100%</span>
+            <button type="button" class="dm-btn dm-btn-ghost dm-btn-sm" onclick="window._pinZoom(1)" title="Inzoomen">${icon('plus')}</button>
+          </div>
+          <div id="koppel-mapdoek" class="pin-doek" style="display:none"
+            onpointerdown="window._pinSleepStart(event)">
+            <div id="koppel-mapinner" class="pin-doek-inner"
+              onclick="window._pinPlaats(event)" ondblclick="window._pinZoomDubbel(event)">
+              <img id="koppel-mapimg" class="pin-doek-img" alt="" draggable="false">
+              <div id="koppel-mappin" class="pin-doek-speld" style="display:none">${window._locIcoon?.(e?.data?.locType) || ''}</div>
+            </div>
+          </div>
+          <div class="dm-knoprij mt-1" id="koppel-mapknoppen"></div>
+          <p class="veld-uitleg" id="koppel-mapuitleg"></p>
+        </div>
+        <div class="koppel-rij koppel-rij--gescheiden">
+          <label class="text-xs font-cinzel text-ink-dim font-bold tracking-wide" for="koppel-dungeon">Dungeonkaart</label>
+          <div class="koppel-duo">
+            <select id="koppel-dungeon" class="koppel-select" onchange="window._koppelDungeonWissel()"></select>
+            <select id="koppel-room" class="koppel-select" onchange="window._koppelRoomWissel()"></select>
+          </div>
+          <input type="hidden" name="data_dungeonId" id="koppel-dungeon-id" value="${esc(e?.data?.dungeonId || '')}">
+          <input type="hidden" name="data_roomId"    id="koppel-room-id"    value="${esc(e?.data?.roomId || '')}">
+          <div class="dm-knoprij mt-1" id="koppel-dungeonknop"></div>
+        </div>`;
+      body += `<!--P:info-->`;
+    }
+  }
+
+
+
+  // ── Verborgen inputs + audio ── hoort bij het beeld-tabblad
+  body += `<!--P:beeld-->`;
+  if (tab === 'personages' && isDM()) {
+    body += `
+      <input type="hidden" name="data_flavourUitgesproken" id="inp-flavourUitgesproken" value="${_valUitgesproken ? 'true' : ''}">
+      <div style="display:none" aria-hidden="true">
+        ${_existingAudioId ? `
+          <button type="button" id="editor-audio-preview" class="flavour-audio-btn editor-audio-preview"
+            data-audio-btn data-audio-btn-id="${esc(_existingAudioId)}"
+            onclick="window._audioToggle('${escArg(_existingAudioId)}')" title="Afspelen / pauzeren">▶</button>
+          <button type="button" onclick="window._editorClearAudio()">${icon('x')} Verwijderen</button>
+        ` : `<div id="editor-audio-preview" class="hidden"></div>`}
+        <label>
+          <input type="file" accept="audio/*" class="hidden" onchange="window._editorAudioSelected(this.files[0])">
+        </label>
+        <div id="editor-audio-name" class="hidden"></div>
+      </div>
+      <input type="hidden" name="data_audioId" id="editor-audio-id" value="${esc(_existingAudioId)}">
+    `;
+  }
+
+  // ── Tabblad Winkel ──
+  // Alleen voor locaties: daar liggen de waren. Een verkoper heeft er maar één
+  // veld voor nodig ("Verkoopt bij"), en dat staat bij Informatie — een heel
+  // tabblad voor één keuzelijst is er een te veel.
+  body += `<!--P:winkel-->`;
+  if (tab === 'locaties') {
+    const _showVoorraad = true;
+    let winkelConfigEditor = {};
+    try { winkelConfigEditor = e?.data?.winkelConfig ? JSON.parse(e.data.winkelConfig) : {}; } catch {}
+    // De kas staat opgeslagen in centelingen; in beeld is het de komma-notatie
+    // die de hele app gebruikt, en de naam van de hoofdmunt staat ernaast.
+    const _kasCl = Math.max(0, parseInt(winkelConfigEditor.kasPerRust) || 0);
+    const _kasMunt = window._muntNamen?.().fl || 'Gold';
+    body += `
+      <div id="voorraad-section"${_showVoorraad ? '' : ' style="display:none"'}>
+        <div class="cs-sectiekop" style="border-top:0;margin-top:0;padding-top:0">Voorraad</div>
+        <div class="voorraad-inladen-wrap mb-3">
+          <button type="button" onclick="window._voorraadInladenToggle()"
+            class="text-xs text-ink-dim hover:text-gold transition flex items-center gap-1">
+            <span id="voorraad-inladen-chevron">▸</span> Inladen van bestaande winkel…
+          </button>
+          <div id="voorraad-inladen-panel" class="hidden mt-2 flex gap-2 items-center">
+            <select id="voorraad-inladen-select"
+              class="flex-1 px-2 py-1 bg-room-bg border border-room-border rounded text-ink-bright text-sm focus:border-gold-dim focus:outline-none">
+              <option value="">— laden… —</option>
+            </select>
+            <button type="button" onclick="window._voorraadInladen()"
+              class="px-3 py-1 bg-room-bg border border-room-border rounded text-ink-dim text-sm hover:text-ink-bright transition">
+              Inladen
+            </button>
+          </div>
+        </div>
+        <div id="voorraad-rows" class="space-y-2 mb-3"></div>
+        <button type="button" id="voorraad-add-btn" onclick="window._addVoorraadItem()"
+          class="px-3 py-1 bg-room-bg border border-room-border rounded text-ink-dim text-sm hover:text-ink-bright transition">
+          ${icon('plus')} Voorwerp toevoegen
+        </button>
+        <input type="hidden" name="data_winkelConfig" id="winkelconfig-hidden" value="${esc(e?.data?.winkelConfig || '')}">
+
+        <!-- Inkopen: de server kon dit allang (winkelConfig.koopt), maar er
+             was geen veld om het aan te zetten — dus kon een speler nergens
+             iets verkopen. Wat het dóét staat in het boekje bij dit tabblad,
+             niet als grijze regel onder het vinkje. -->
+        <div>
+          <div class="cs-sectiekop">Koopt in van spelers</div>
+          <div class="space-y-2">
+            <label class="flex items-center gap-2 text-sm text-ink-medium cursor-pointer">
+              <input type="checkbox" id="wc-koopt" ${winkelConfigEditor.koopt ? 'checked' : ''} onchange="window._wcUpdate()">
+              Deze winkel koopt voorwerpen van de party
+            </label>
+            <div id="wc-koop-extra" class="${winkelConfigEditor.koopt ? '' : 'hidden'} space-y-2 pl-4">
+              <div class="flex gap-2 items-center">
+                <label class="text-xs text-ink-dim w-32">Betaalt</label>
+                <input type="number" id="wc-koopratio" min="1" max="100"
+                  value="${parseInt(winkelConfigEditor.koopRatio) || 50}" oninput="window._wcUpdate()"
+                  class="w-16 px-2 py-1 bg-room-bg border border-room-border rounded text-ink-bright text-sm focus:border-gold-dim focus:outline-none">
+                <label class="text-xs text-ink-dim">% van de prijs</label>
+              </div>
+              <!-- Een winkel had geen kas: inkopen lukte altijd, hoe duur ook.
+                   Dat kwam uit het niets. Nu kan een handelaar blut raken, en
+                   dat is sinds de woekeraar een verhaal in plaats van een
+                   storing — dan kijk je verderop, of je leent.
+                   De stand is een vinkje en geen nul: "0 = onbeperkt" is een
+                   afspraak die je moet weten, en een leeg veld las als een
+                   winkel die niets kan betalen. Opgeslagen blijft het één
+                   getal (kasPerRust, 0 = geen grens), dus bestaande winkels
+                   veranderen niet. -->
+              <label class="flex items-center gap-2 text-sm text-ink-medium cursor-pointer">
+                <input type="checkbox" id="wc-kas-aan" ${_kasCl > 0 ? 'checked' : ''} onchange="window._wcUpdate()">
+                Deze winkel heeft een beperkte kas
+              </label>
+              <div id="wc-kas-rij" class="${_kasCl > 0 ? '' : 'hidden'} flex gap-2 items-center">
+                <label class="text-xs text-ink-dim w-32" for="wc-kas">Kan per nacht uitgeven</label>
+                <input type="text" id="wc-kas" inputmode="decimal" placeholder="12,34"
+                  value="${_kasCl > 0 ? _clNaarKomma(_kasCl) : ''}" oninput="window._wcUpdate()"
+                  class="w-24 px-2 py-1 bg-room-bg border border-room-border rounded text-ink-bright text-sm focus:border-gold-dim focus:outline-none">
+                <label class="text-xs text-ink-dim">${esc(_kasMunt)}</label>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Wisselend assortiment: niet alles ligt altijd in de schappen -->
+        <div>
+          <div class="cs-sectiekop">Wisselend assortiment</div>
+          <div class="space-y-2">
+            <label class="flex items-center gap-2 text-sm text-ink-medium cursor-pointer">
+              <input type="checkbox" id="wc-roterend" ${winkelConfigEditor.roterend ? 'checked' : ''} onchange="window._wcUpdate()">
+              Toon steeds maar een deel van de voorraad
+            </label>
+            <div id="wc-extra" class="${winkelConfigEditor.roterend ? '' : 'hidden'} space-y-2 pl-4">
+              <div class="flex gap-2 items-center">
+                <!-- Een bereik in plaats van een dobbelformule met een los
+                     plafond: de app loot elke keer een aantal hiertussen. -->
+                <label class="text-xs text-ink-dim w-32">Aantal in de schappen</label>
+                <input type="number" id="wc-min" min="1" max="50"
+                  value="${winkelConfigEditor.minItems || 1}" oninput="window._wcUpdate()"
+                  class="w-16 px-2 py-1 bg-room-bg border border-room-border rounded text-ink-bright text-sm focus:border-gold-dim focus:outline-none">
+                <label class="text-xs text-ink-dim">tot en met</label>
+                <input type="number" id="wc-max" min="1" max="50"
+                  value="${winkelConfigEditor.maxItems || parseInt(winkelConfigEditor.aantalItems) || 3}" oninput="window._wcUpdate()"
+                  class="w-16 px-2 py-1 bg-room-bg border border-room-border rounded text-ink-bright text-sm focus:border-gold-dim focus:outline-none">
+              </div>
+              <div class="flex gap-2 items-center">
+                <!-- De party speelt geen realtime uren; een winkel ververst
+                     zijn schappen als er gerust is. -->
+                <label class="text-xs text-ink-dim w-32">Ververst</label>
+                <select id="wc-ververs" onchange="window._wcUpdate()"
+                  class="flex-1 px-2 py-1 bg-room-bg border border-room-border rounded text-ink-bright text-sm focus:border-gold-dim focus:outline-none">
+                  <option value="long"${(winkelConfigEditor.verversBij || 'long') === 'long' ? ' selected' : ''}>na een lange rust</option>
+                  <option value="short"${winkelConfigEditor.verversBij === 'short' ? ' selected' : ''}>na een korte rust</option>
+                  <option value="uren"${winkelConfigEditor.verversBij === 'uren' ? ' selected' : ''}>na een aantal uur</option>
+                </select>
+              </div>
+              <div class="flex gap-2 items-center${winkelConfigEditor.verversBij === 'uren' ? '' : ' hidden'}" id="wc-uren-rij">
+                <label class="text-xs text-ink-dim w-32">Aantal uur</label>
+                <input type="number" id="wc-uren" min="1" value="${winkelConfigEditor.refreshUren || 24}"
+                  oninput="window._wcUpdate()"
+                  class="w-20 px-2 py-1 bg-room-bg border border-room-border rounded text-ink-bright text-sm focus:border-gold-dim focus:outline-none">
+              </div>
+              <div class="flex gap-2 items-center">
+                <label class="text-xs text-ink-dim w-32" title="Beide winkels tonen dezelfde selectie en verversen tegelijk">Deelt schappen met</label>
+                <input type="text" id="wc-deelgroep" list="wc-deel-dl" value="${esc(winkelConfigEditor.deelGroep || '')}"
+                  onchange="window._wcDeelKies()" oninput="window._wcUpdate()" placeholder="Zoek een winkel\u2026"
+                  class="flex-1 px-2 py-1 bg-room-bg border border-room-border rounded text-ink-bright text-sm focus:border-gold-dim focus:outline-none">
+                <datalist id="wc-deel-dl"></datalist>
+              </div>
+              <div id="wc-deel-uitleg" class="text-xs text-ink-dim pl-32"></div>
+            </div>
+          </div>
+        </div>
+        <!-- Sfeer -->
+        <div>
+          <div class="cs-sectiekop">Sfeer</div>
+          <div>
+            <label class="text-xs text-ink-dim block mb-1">Sfeertekst</label>
+            <textarea id="wc-sfeer" rows="2" oninput="window._wcUpdate()" placeholder="De schappen liggen vol met\u2026"
+              class="w-full px-2 py-1 bg-room-bg border border-room-border rounded text-ink-bright text-sm focus:border-gold-dim focus:outline-none">${esc(winkelConfigEditor.sfeerTekst || '')}</textarea>
+          </div>
+        </div>
+
+      </div>
+    `;
+  }
+
+  // Stats (personages) — eigen tabblad
+  body += `<!--P:sheet-->`;
+  if (tab === 'personages') {
+    const s = e?.stats || {};
+    const _veldCls = 'w-full mt-0.5 px-2 py-1 bg-room-bg border border-room-border rounded text-ink-bright text-sm focus:border-gold-dim focus:outline-none';
+    const _si = (k, label, o = {}) => `
+      <div>
+        <label class="text-[10px] font-cinzel text-ink-dim uppercase">${label}</label>
+        <input name="stat_${k}" value="${esc(s[k] || '')}"${o.ph ? ` placeholder="${esc(o.ph)}"` : ''}
+          class="${_veldCls}${o.center ? ' text-center' : ''}">
+      </div>`;
+    // Vaste lijstjes (Size, Creature Type) horen in een dropdown: er zijn maar
+    // een handvol geldige waarden en typefouten maken filteren onmogelijk.
+    const _sel = (k, label, opties) => `
+      <div>
+        <label class="text-[10px] font-cinzel text-ink-dim uppercase">${label}</label>
+        <select name="stat_${k}" class="${_veldCls}">
+          <option value="">\u2014</option>
+          ${opties.map(o => `<option value="${esc(o)}"${(s[k] || '') === o ? ' selected' : ''}>${esc(o)}</option>`).join('')}
+        </select>
+      </div>`;
+    const _ta = (k, label, rows = 3, waarde = null) => {
+      const taId = `stat_ta_${k}`;
+      return `<div>
+        ${label ? `<label class="text-[10px] font-cinzel text-ink-dim uppercase">${label}</label>` : ''}
+        <div class="mt-0.5">
+          ${fmtToolbar(taId, { statblok: true })}
+          <textarea id="${taId}" name="stat_${k}" rows="${rows}"
+            onkeydown="window._fmtKey(event)"
+            class="w-full px-2 py-1 bg-room-bg border border-room-border rounded text-ink-bright text-sm focus:border-gold-dim focus:outline-none">${esc(waarde ?? s[k] ?? '')}</textarea>
+        </div>
+      </div>`;
+    };
+    // Dezelfde bouwstenen als een tier, maar met name="stat_…" zodat het
+    // formulier van het kaartje ze meestuurt.
+    const _hBlad = {
+      inp: _si,
+      sel: _sel,
+      ta:  (k, label, rows) => _ta(k, label, rows),
+      abil: (k) => `
+        <div>
+          <label class="text-[10px] font-cinzel text-ink-dim uppercase">${k.toUpperCase()}
+            <span class="cs-mod" id="cs-mod-${k}">${_abilityMod(s[k])}</span></label>
+          <input name="stat_${k}" value="${esc(s[k] || '')}" inputmode="numeric"
+            oninput="window._sbModUpdate('cs-mod-${k}', this.value)"
+            class="${_veldCls} text-center">
+        </div>`,
+    };
+
+    const _hasStats = Object.values(s).some(v => v);
+    const _isDier   = e?.subtype === 'dier';
+    // Bij een dier is dit blok de basis waar de tiers onderaan op verder bouwen;
+    // zonder die regel las het als "een statblok dat toch niets doet".
+    body += `
+      <div class="cs-blok">
+        <datalist id="preset-dl"></datalist>
+        <div>
+          ${_isDier ? '<p class="cs-basis-uitleg">Dit is het dier vanaf level 1. Onderaan dit blad laat je het meegroeien met het baasje.</p>' : ''}
+          ${window._presetRijHtml(null)}
+          <!-- Een dier heeft geen spreukenlijst, en met alleen Combat + Actions
+               is een tabbalk een zoekplaatje voor twee panelen. Hij krijgt
+               daarom dezelfde platte vorm als een tier: alles onder elkaar met
+               Actions onderaan. NPC's houden de tabs — die hebben wél spells. -->
+          ${_isDier ? '' : `
+          <div class="cs-tabs-bar">
+            <button type="button" class="cs-tab-btn cs-tab-active" onclick="window._csTab('gevecht')">Combat</button>
+            <button type="button" class="cs-tab-btn" onclick="window._csTab('acties')">Actions</button>
+            <button type="button" class="cs-tab-btn" onclick="window._csTab('spreuken')">Spells</button>
+          </div>`}
+
+          <div id="cs-panel-gevecht" class="cs-sub-body space-y-2">
+            ${_sbCombatHtml(_hBlad)}
+            ${_isDier ? `<div class="cs-sectiekop">Actions</div>${_sbActiesHtml(_hBlad)}` : ''}
+          </div>
+
+          ${_isDier ? '' : `
+          <div id="cs-panel-acties" class="cs-sub-body space-y-2" style="display:none">
+            ${_sbActiesHtml(_hBlad)}
+          </div>
+
+          <div id="cs-panel-spreuken" class="cs-sub-body space-y-2" style="display:none">
+            <div class="grid grid-cols-2 gap-2">
+              ${_si('spellSaveDC','Spell Save DC',{center:true})}${_si('spellAttackMod','Spell Attack Mod',{center:true})}
+            </div>
+            <!-- Gekoppelde spreuken: overtypen levert een dood tekstveld op, een
+                 koppeling levert een kaartje op waar je doorheen klikt. De
+                 tekstvelden eronder blijven voor wat niet in de bibliotheek staat. -->
+            <div>
+              <label class="text-[10px] font-cinzel text-ink-dim uppercase">Spells</label>
+              <div id="cs-spell-chips" class="cs-spell-chips"></div>
+              ${_keuzeVeldHtml('cs-spell-add', '', '', (_spreukLijst || []).map(sp => sp.name), 'Zoek een spell\u2026',
+                (invoer) => window._csSpellAdd(invoer))}
+              <input type="hidden" name="stat_spellIndexes" id="cs-spell-indexes" value="${esc(s.spellIndexes || '')}">
+            </div>
+            <!-- Cantrips en spells die niet in de bibliotheek staan, in één vak.
+                 Een <details> houdt het dicht tot je het nodig hebt; de inhoud
+                 blijft in de DOM, dus hij wordt gewoon meegestuurd bij opslaan. -->
+            <details class="cs-vrij-spells"${(s.cantrips || s.spells) ? ' open' : ''}>
+              <summary>Niet in de bibliotheek</summary>
+              <div class="mt-2">
+                ${_ta('spells','Cantrips &amp; spells (vrij)', 3,
+                  [s.cantrips, s.spells].filter(Boolean).join('\n'))}
+                <input type="hidden" name="stat_cantrips" value="">
+              </div>
+            </details>
+            ${s.extra ? _ta('extra','Legacy', 2) : ''}
+          </div>`}
+        </div>
+      </div>
+    `;
+
+    // ── Adoptie (dier) + tiers (dier én NPC) ──
+    // Zelfde koppen en velden als de rest van het blad, want een tier ís een
+    // statblok. Bij een dier schaalt hij mee met het baasje, bij een NPC is het
+    // dezelfde man in een andere gedaante — één editor, twee teksten.
+    const isDier   = _isDier;
+    const _adopt   = e?.data?.adopteerbaar === true || e?.data?.adopteerbaar === 'true';
+    const _prijsCl = (() => {
+      const cl = parseInt(e?.data?.adoptiePrijsCl);
+      if (!isNaN(cl)) return cl;
+      const fl = parseInt(e?.data?.adoptiePrijs?.fl ?? e?.data?.adoptiePrijsFl);
+      return isNaN(fl) ? null : fl * 100;
+    })();
+    const _mn = window._muntNamen();
+    // Alleen de tiers horen op dit blad: dat zijn statblokken. De adoptie zelf
+    // (te koop, prijs, wat voor dier) staat bij Informatie.
+    // Een speler heeft geen tweede statblok — die groeit op zijn eigen blad.
+    const toonTiers = String(e?.subtype || 'NPC').toLowerCase() !== 'speler';
+    body += `
+      <div id="pet-tier-section"${toonTiers ? '' : ' style="display:none"'}>
+        <div class="cs-sectiekop" id="pet-tier-kop">${isDier ? 'Meegroeien met het baasje' : 'Meerdere statblokken'}</div>
+        <p class="text-[10px] text-ink-dim mb-2" id="pet-tier-uitleg">${isDier ? _TIER_UITLEG.dier : _TIER_UITLEG.npc}</p>
+        <div id="pet-tiers-list"></div>
+        <button type="button" class="dm-btn dm-btn-ghost dm-btn-sm mt-1" onclick="window._petTierAdd()">${icon('plus')} ${isDier ? 'Tier' : 'Statblok'} toevoegen</button>
+      </div>
+    `;
+  }
+
+  // De Verbindingen-editor is vervallen: koppelingen leg je in de tekst zelf met
+  // [[Naam]], en die worden overal als klikbare link gerenderd. Het veld
+  // `links` blijft bestaan (kaartjes, dashboard, zoeken en de export lezen het
+  // nog) maar wordt niet meer met de hand bijgehouden.
+
+  // Buttons — met een marker, zodat ze ná de panelen komen en op elk tabblad
+  // zichtbaar zijn. Zonder dat stond de opslaanknop in het laatste paneel.
+  body += `<!--P:knoppen-->`;
+  body += `
+    <div class="flex gap-2 pt-2 ed-knoppen">
+      <!-- Drie naamloze pictogrammen, waarvan de middelste onherstelbaar is:
+           opslaan en verwijderen stonden naast elkaar zonder één woord erbij.
+           Icoon plus woord, zoals de rest van de bewerkmodus. -->
+      <button type="submit" class="ed-knop ed-knop--opslaan">${icon('save')}<span>Opslaan</span></button>
+      ${editId ? `
+        <button type="button" onclick="window._deleteEntity('${tab}','${editId}')"
+          class="ed-knop ed-knop--weg">${icon('trash')}<span>Verwijderen</span></button>
+      ` : ''}
+      <button type="button" onclick="window.app.closeModal()"
+        class="ed-knop">${icon('x')}<span>Annuleren</span></button>
+    </div>
+  </form>`;
+
+  // De winkel krijgt alleen een tabblad als dit kaartje er een heeft.
+  // Een tempel die drankjes verkoopt is geen 'Winkel', maar hoort het tabblad
+  // wél te hebben zodra er waren liggen.
+  const _heeftWaren = !!(e?.data?.voorraad && e.data.voorraad !== '[]');
+  // Een blad heet naar wat erop staat: een speler heeft een character sheet, de
+  // rest een statblock.
+  const _sheetLabel = (tab === 'personages' && e?.subtype !== 'speler') ? 'Statblock' : null;
+  body = _bouwEditorTabs(body, tab === 'locaties'
+    ? (e?.data?.locType === 'Winkel' || _heeftWaren || (e?._verkopers || []).length > 0)
+    : window._heeftRol(e, 'verkoper'), _sheetLabel, tab);
+  const _tm = TYPE_META[tab];
+  // De naam erbij in de kop: het blad is lang genoeg om onderin kwijt te raken
+  // welk kaartje je onder handen hebt. Hij loopt mee terwijl je hem tikt — ook
+  // bij een nieuw kaartje, waar de kop anders "Nieuwe locatie" blijft heten
+  // terwijl je al drie tabbladen verder bent.
+  const _kopNaam = editId ? (e?.name || '') : '';
+  openModal(`${editId ? (_tm.bewerk || 'Bewerken') : (_tm.nieuw || 'Nieuw')}`
+    + `<span class="modal-titel-naam" id="ed-titel-wrap"${_kopNaam ? '' : ' hidden'}>`
+    + `${icon('chevron-right')}<span id="ed-titel-naam">${esc(_kopNaam)}</span></span>`, '', body);
+
+  // Welk kaartje er bewerkt wordt — nodig om een verbinding aan een geheim van
+  // dít kaartje te kunnen hangen.
+  window._edCtx = { tab, id: editId || '', naam: e?.name || '' };
+
+  // De chips van gekoppelde spreuken tekenen: pas nu staat het veld in de DOM.
+  window._itemSpellChipsTeken?.();
+
+  // Naam in de kop meelaten lopen met het naamveld.
+  const _naamVeld = document.querySelector('#entity-form [name="name"]');
+  const _titelNaam = document.getElementById('ed-titel-naam');
+  const _titelWrap = document.getElementById('ed-titel-wrap');
+  if (_naamVeld && _titelNaam) {
+    _naamVeld.addEventListener('input', () => {
+      const naam = _naamVeld.value.trim();
+      _titelNaam.textContent = naam;
+      // Zonder naam ook geen losse chevron in de kop.
+      if (_titelWrap) _titelWrap.hidden = !naam;
+    });
+  }
+
+  // Uitleg bij het tabblad dat open staat (het eerste met inhoud).
+  _tabHulpVul(tab, document.querySelector('[data-ed-paneel].is-actief')?.dataset.edPaneel || 'info', 'bewerk');
+
+  // Huisdier-tier-editor vullen (no-op als de sectie er niet is)
+  window._renderPetTiers();
+
+  // De lijst met standaard-statblokken alvast in de datalist zetten. Eerst hing
+  // dat aan `onfocus` van het zoekveld, maar een veld dat programmatisch focus
+  // krijgt (of een browser die de focus elders laat) sloeg dat over — en dan
+  // stelt het veld niets voor. Het is één verzoek dat daarna gecachet is.
+  window._presetDatalist();
+
+  // Staat er al een filmpje bij dit personage? (no-op zonder die sectie)
+  if (e?.id) window._charVideoStatus(e.id);
+  if (tab === 'documenten' && e?.id) window._docBestandStatus(e.id);
+
+  // ── CS tab switcher ──
+  window._csTab = (name) => {
+    ['gevecht','acties','spreuken'].forEach(t => {
+      const p = document.getElementById('cs-panel-' + t);
+      if (p) p.style.display = t === name ? '' : 'none';
+    });
+    document.querySelectorAll('.cs-tab-btn').forEach(b => {
+      b.classList.toggle('cs-tab-active', b.getAttribute('onclick').includes("'" + name + "'"));
+    });
+  };
+
+  // ── Ctrl+S sneltoets (#34: gescoped op het formulier i.p.v. een globale
+  // document-listener — sterft met de editor, geen collision tussen editors) ──
+  _csSpellChips();   // chips tekenen zodra het formulier in de DOM staat
+  const _editorForm = document.getElementById('entity-form');
+  if (_editorForm) {
+    _editorForm.addEventListener('keydown', (ev) => {
+      if ((ev.ctrlKey || ev.metaKey) && ev.key === 's') {
+        ev.preventDefault();
+        _editorForm.requestSubmit();
+      }
+    });
+  }
+
+  // ── Extra images editor state ──
+  entityEditorImagesToDelete = [];
+  entityEditorImages = _parseExtraImages(e?.data?.extraImages).map(item => ({
+    id: item.id,
+    url: api.fileUrl(item.id),
+    isNew: false,
+    caption: item.caption || '',
+  }));
+  // Extra afbeeldingen liepen langs de mediabibliotheek heen: een kaal
+  // bestandsveld dat rechtstreeks uploadde. Daardoor kreeg zo'n afbeelding geen
+  // naam in de bibliotheek en kon je een bestaande niet hergebruiken.
+  window._editorPickExtraImage = () => {   // zelfde als de knop hierboven; blijft voor oude aanroepen
+    const naamHint = (document.querySelector('#entity-form [name="name"]')?.value || '')
+      .trim().toLowerCase().replace(/\s+/g, '-');
+    window.mediaPicker.open({
+      type: 'afbeelding',
+      suggestedName: naamHint ? `${naamHint}-beeld` : 'beeld',
+      onSelect: (fileId) => {
+        if (!fileId || entityEditorImages.some(i => i.id === fileId)) return;
+        entityEditorImages.push({ id: fileId, url: api.fileUrl(fileId), isNew: false, caption: '' });
+        _refreshEntityImages();
+      },
+    });
+  };
+
+  window._addEntityImages = (files) => {
+    for (const file of files) {
+      const id = 'img_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4);
+      entityEditorImages.push({ id, url: URL.createObjectURL(file), isNew: true, file, caption: '' });
+    }
+    _refreshEntityImages();
+  };
+  window._removeEntityImage = (idx) => {
+    const img = entityEditorImages[idx];
+    // Loskoppelen is niet hetzelfde als weggooien: sinds afbeeldingen uit de
+    // mediabibliotheek komen, kan hetzelfde bestand ook elders in gebruik zijn.
+    // Het bestand zelf verwijder je in de Media-tab, die laat zien waar het
+    // gebruikt wordt.
+    if (img?.isNew) URL.revokeObjectURL(img.url);
+    entityEditorImages.splice(idx, 1);
+    _refreshEntityImages();
+  };
+  window._updateEntityImageCaption = (idx, val) => {
+    if (entityEditorImages[idx]) entityEditorImages[idx].caption = val;
+  };
+  setTimeout(() => _refreshEntityImages(), 0);
+
+  // ── Voorraad editor state ──
+  let _voorraadItems = [];
+  if (tab === 'personages' || tab === 'locaties') {
+    try { _voorraadItems = e?.data?.voorraad ? JSON.parse(e.data.voorraad) : []; } catch { _voorraadItems = []; }
+
+    let _voorraadEntityOptions = []; // { id, name } — geladen uit voorwerpen
+    // Async: laad voorwerpen voor koppeling + auto-link op naam
+    if (isDM()) {
+      api.listEntities('voorwerpen').then(items => {
+        _voorraadEntityOptions = items.map(i => ({ id: i.id, name: i.name }));
+        // Auto-link bestaande items op exacte naamovereenkomst
+        let changed = false;
+        _voorraadItems = _voorraadItems.map(item => {
+          if (!item.entityId && item.naam) {
+            const match = _voorraadEntityOptions.find(o => o.name.toLowerCase() === item.naam.toLowerCase());
+            if (match) { changed = true; return { ...item, entityId: match.id }; }
+          }
+          return item;
+        });
+        const dl = document.getElementById('voorraad-entity-dl');
+        if (dl) dl.innerHTML = _voorraadEntityOptions.map(o => `<option value="${esc(o.name)}">`).join('');
+        if (changed) window._refreshVoorraad();
+      }).catch(() => {});
+    }
+
+    window._refreshVoorraad = () => {
+      const rows = document.getElementById('voorraad-rows');
+      if (!rows) return;
+      setTimeout(() => window._voorraadAddKnop?.(), 0);
+      rows.innerHTML = _voorraadItems.length === 0
+        ? `<p class="text-xs text-ink-faint italic">Nog geen items toegevoegd</p>`
+        : _voorraadItems.map((item, idx) => {
+          const linked = !!item.entityId;
+          const entityDisplayName = item.entityId
+            ? (_voorraadEntityOptions.find(o => o.id === item.entityId)?.name || item.naam || '')
+            : '';
+          return `
+          <div class="flex gap-2 items-center flex-wrap voorraad-rij">
+            <input placeholder="Naam voorwerp" value="${esc(item.naam || '')}"
+              oninput="window._updateVoorraadItem(${idx},'naam',this.value);window._voorraadAddKnop()"
+              class="flex-1 min-w-24 px-2 py-1 bg-room-bg border border-room-border rounded text-ink-bright text-sm focus:border-gold-dim focus:outline-none">
+            <input placeholder="Prijs (bijv. 15 ${esc((window._muntNamen?.().fl || 'gp').toLowerCase())})" value="${esc(item.prijs || '')}"
+              oninput="window._updateVoorraadItem(${idx},'prijs',this.value)"
+              class="w-28 px-2 py-1 bg-room-bg border border-room-border rounded text-ink-bright text-sm focus:border-gold-dim focus:outline-none">
+            <div class="relative flex items-center gap-1">
+              <input list="voorraad-entity-dl" placeholder="Koppel aan kaartje…"
+                value="${esc(entityDisplayName)}"
+                onchange="window._updateVoorraadEntityLink(${idx}, this.value)"
+                title="Koppel aan een bestaand voorwerpkaartje"
+                class="w-36 px-2 py-1 bg-room-bg border rounded text-sm focus:border-gold-dim focus:outline-none ${linked ? 'border-green-wax/60 text-green-wax' : 'border-room-border text-ink-dim'}">
+              <span class="voorraad-vink${linked ? ' voorraad-vink--aan' : ''}" title="${linked ? 'Gekoppeld aan een voorwerpkaartje' : ''}">${icon('check')}</span>
+            </div>
+            <button type="button" onclick="window._removeVoorraadItem(${idx})"
+              class="w-7 h-7 flex items-center justify-center rounded text-seal hover:bg-seal/20 text-lg leading-none transition">&times;</button>
+          </div>`;
+        }).join('') + `<datalist id="voorraad-entity-dl">${_voorraadEntityOptions.map(o => `<option value="${esc(o.name)}">`).join('')}</datalist>`;
+    };
+    // Nog een lege regel erbij heeft geen zin: vul eerst de vorige.
+    window._addVoorraadItem = () => {
+      const laatste = _voorraadItems[_voorraadItems.length - 1];
+      if (laatste && !laatste.naam && !laatste.prijs && !laatste.entityId) {
+        document.querySelector('#voorraad-rows .voorraad-rij:last-child input')?.focus();
+        return;
+      }
+      _voorraadItems.push({ naam: '', prijs: '', entityId: '' });
+      window._refreshVoorraad();
+    };
+    window._removeVoorraadItem = (idx) => { _voorraadItems.splice(idx, 1); window._refreshVoorraad(); };
+    window._updateVoorraadItem = (idx, field, val) => { if (_voorraadItems[idx]) _voorraadItems[idx][field] = val; };
+    // Toevoegen staat uit zolang de onderste regel nog leeg is.
+    window._voorraadAddKnop = () => {
+      const knop = document.getElementById('voorraad-add-btn');
+      if (!knop) return;
+      const laatste = _voorraadItems[_voorraadItems.length - 1];
+      const leeg = !!laatste && !laatste.naam && !laatste.prijs && !laatste.entityId;
+      knop.disabled = leeg;
+      knop.classList.toggle('opacity-40', leeg);
+      knop.title = leeg ? 'Vul eerst de lege regel in' : '';
+    };
+    window._updateVoorraadEntityLink = (idx, naam) => {
+      if (!_voorraadItems[idx]) return;
+      const match = _voorraadEntityOptions.find(o => o.name.toLowerCase() === naam.toLowerCase());
+      // Eén kaartje hoort bij één regel: twee regels die naar hetzelfde
+      // voorwerp wijzen leveren twee prijzen voor hetzelfde ding, en bij het
+      // kopen wint er willekeurig één.
+      if (match) {
+        const alGekoppeld = _voorraadItems.findIndex((it, i) => i !== idx && it.entityId === match.id);
+        if (alGekoppeld !== -1) {
+          alert(`${match.name} hangt al aan de regel "${_voorraadItems[alGekoppeld].naam || 'zonder naam'}".\n\n`
+            + 'Eén voorwerpkaartje kan maar aan één regel hangen.');
+          window._refreshVoorraad();
+          return;
+        }
+      }
+      _voorraadItems[idx].entityId = match?.id || '';
+      // Re-render om het ✓ icoon en stijl bij te werken
+      window._refreshVoorraad();
+    };
+
+    // Subtype-wissel (personages)
+    window._onSubtypeChange = (val) => {
+      // De voorraad hangt sinds de rollen niet meer aan het subtype maar aan het
+      // vinkje 'verkoper' (zie _rollenBij).
+      const groepSec = document.getElementById('groep-section');
+      if (groepSec) groepSec.style.display = val === 'speler' ? '' : 'none';
+      const rollenRij = document.querySelector('.rollen-rij')?.closest('div')?.parentElement;
+      if (rollenRij) rollenRij.style.display = val === 'god' ? 'none' : '';
+      const adoptSec = document.getElementById('pet-adopt-section');
+      if (adoptSec) adoptSec.style.display = val === 'dier' ? '' : 'none';
+      // Tiers gelden voor elk wezen met een statblok, alleen niet voor een speler.
+      const tierSec = document.getElementById('pet-tier-section');
+      if (tierSec) {
+        tierSec.style.display = val === 'speler' ? 'none' : '';
+        _tierVoorDier = val === 'dier';
+        const kop = document.getElementById('pet-tier-kop');
+        if (kop) kop.textContent = _tierVoorDier ? 'Meegroeien met het baasje' : 'Meerdere statblokken';
+        const uit = document.getElementById('pet-tier-uitleg');
+        if (uit) uit.innerHTML = _tierVoorDier ? _TIER_UITLEG.dier : _TIER_UITLEG.npc;
+        const knop = tierSec.querySelector('button');
+        if (knop) knop.innerHTML = `${icon('plus')} ${_tierVoorDier ? 'Tier' : 'Statblok'} toevoegen`;
+        window._renderPetTiers();   // level-veld verschijnt of verdwijnt
+      }
+      // Verkoper/antagonist zeggen niets over een dier; de kant blijft wel.
+      const rolVak = document.querySelector('.rollen-rollen');
+      if (rolVak) rolVak.style.display = val === 'dier' ? 'none' : '';
+      // Velden die aan een subtype hangen (Domein bij een god, Origin/Class niet)
+      const sub = String(val || '').toLowerCase();
+      document.querySelectorAll('[data-voor-subtype], [data-niet-subtype]').forEach(el => {
+        const alleen = (el.dataset.voorSubtype || '').split(',').filter(Boolean);
+        const niet   = (el.dataset.nietSubtype || '').split(',').filter(Boolean);
+        const zichtbaar = alleen.length ? alleen.includes(sub) : !niet.includes(sub);
+        el.style.display = zichtbaar ? '' : 'none';
+      });
+      // Het filmpje blijft staan bij elk subtype: een NPC met een animatie is
+      // precies waarvoor dit veld nu ook bedoeld is.
+    };
+
+    // LocType-wissel (locaties)
+    window._onLocTypeChange = (val) => {
+      const isWinkel = val === 'Winkel';
+      const sec = document.getElementById('voorraad-section');
+      if (sec) sec.style.display = isWinkel ? '' : 'none';
+      const wcSec = document.getElementById('winkelconfig-section');
+      if (wcSec) wcSec.style.display = isWinkel ? '' : 'none';
+      _winkelTabTonen(isWinkel);
+      _koppelLocTypeToon(val);
+      const melding = document.getElementById('veld-melding-locType');
+      if (melding) melding.innerHTML = _veldMeldingHtml(LOC_TYPE_MELDINGEN, val);
+    };
+
+    // Inladen-paneel toggle
+    window._voorraadInladenToggle = async () => {
+      const panel = document.getElementById('voorraad-inladen-panel');
+      const chevron = document.getElementById('voorraad-inladen-chevron');
+      if (!panel) return;
+      const open = !panel.classList.contains('hidden');
+      panel.classList.toggle('hidden', open);
+      if (chevron) chevron.textContent = open ? '▸' : '▾';
+      if (!open) {
+        // Vul de select met winkels/verkopers die voorraad hebben
+        const sel = document.getElementById('voorraad-inladen-select');
+        if (!sel) return;
+        sel.innerHTML = '<option value="">— kies een winkel —</option>';
+        try {
+          // Alleen locaties: sinds de voorraad daar leeft is een verkoper geen
+          // bron meer om uit te kopiëren.
+          const locaties = await api.listEntities('locaties');
+          const bronnen = locaties
+            .filter(l => l.data?.voorraad && l.data.voorraad !== '[]')
+            .filter(b => b.id !== (e?.id || null)); // eigen kaartje niet aanbieden
+          bronnen.forEach(b => {
+            const opt = document.createElement('option');
+            opt.value = b.id;
+            opt.dataset.type = 'locaties';
+            opt.textContent = b.name;
+            sel.appendChild(opt);
+          });
+          if (bronnen.length === 0) sel.innerHTML = '<option value="">— geen winkels gevonden —</option>';
+        } catch { sel.innerHTML = '<option value="">— fout bij laden —</option>'; }
+      }
+    };
+
+    // Inladen: kopieer voorraad van geselecteerde bron
+    window._voorraadInladen = async () => {
+      const sel = document.getElementById('voorraad-inladen-select');
+      if (!sel || !sel.value) return;
+      const bronType = sel.options[sel.selectedIndex]?.dataset.type || 'personages';
+      try {
+        const bron = await api.getEntity(bronType, sel.value);
+        const bronItems = bron?.data?.voorraad ? JSON.parse(bron.data.voorraad) : [];
+        if (bronItems.length === 0) return;
+        // Vervangen was de enige mogelijkheid en dat is zelden wat je wilt als
+        // er al iets in de schappen ligt: twee kruideniers verkopen allebei
+        // touw én ieder hun eigen waar.
+        const heeftAl = _voorraadItems.some(i => i.naam || i.prijs || i.entityId);
+        let toevoegen = false;
+        if (heeftAl) {
+          const keuze = confirm(
+            `Deze winkel heeft al ${_voorraadItems.length} regel${_voorraadItems.length === 1 ? '' : 's'} in de schappen.\n\n` +
+            `OK = de waren van ${bron.name} eraan toevoegen\n` +
+            `Annuleren = de huidige lijst vervangen`);
+          toevoegen = keuze;
+        }
+        // entityId meenemen: die koppeling is met de hand gelegd en levert het
+        // klikbare voorwerpkaartje in de winkel op.
+        const nieuw = bronItems.map(i => ({ naam: i.naam || '', prijs: i.prijs || '', entityId: i.entityId || '' }));
+        if (toevoegen) {
+          // Wat er al ligt niet dubbel neerleggen.
+          const alDaar = new Set(_voorraadItems.map(i => (i.naam || '').toLowerCase().trim()).filter(Boolean));
+          _voorraadItems = [..._voorraadItems, ...nieuw.filter(i => !alDaar.has((i.naam || '').toLowerCase().trim()))];
+        } else {
+          _voorraadItems = nieuw;
+        }
+        window._refreshVoorraad();
+        // Sluit paneel
+        document.getElementById('voorraad-inladen-panel')?.classList.add('hidden');
+        const chevron = document.getElementById('voorraad-inladen-chevron');
+        if (chevron) chevron.textContent = '▸';
+      } catch { /* stil falen */ }
+    };
+
+    // Winkels om schappen mee te delen. Een opgeslagen waarde kan een id zijn
+    // (nieuw) of een los woord (zoals het vroeger werkte); allebei blijven werken.
+    let _deelWinkels = [];
+    if (isDM()) {
+      api.listEntities('locaties').then(locs => {
+        _deelWinkels = locs
+          .filter(l => l.id !== (e?.id || null))
+          .filter(l => l.data?.locType === 'Winkel' || (l.data?.voorraad && l.data.voorraad !== '[]'))
+          .map(l => ({ id: l.id, name: l.name }));
+        const dl = document.getElementById('wc-deel-dl');
+        if (dl) dl.innerHTML = _deelWinkels.map(w => `<option value="${esc(w.name)}">`).join('');
+        // Staat er een id opgeslagen, dan tonen we de naam in het veld.
+        const inp = document.getElementById('wc-deelgroep');
+        if (inp) {
+          const bij = _deelWinkels.find(w => w.id === inp.value);
+          if (bij) inp.value = bij.name;
+        }
+        window._wcDeelUitleg();
+      }).catch(() => {});
+    }
+
+    // Wat er bewaard wordt: leeg veld → niets, een aangewezen winkel → haar id,
+    // en anders de getypte tekst (zo werkte het vroeger, met een los trefwoord).
+    const _deelGroepWaarde = () => {
+      const tekst = (document.getElementById('wc-deelgroep')?.value || '').trim();
+      if (!tekst) return '';
+      const w = _deelWinkels.find(x => x.name.toLowerCase() === tekst.toLowerCase());
+      return w ? w.id : tekst;
+    };
+
+    window._wcDeelKies = () => { window._wcUpdate(); window._wcDeelUitleg(); };
+
+    window._wcDeelUitleg = () => {
+      const host = document.getElementById('wc-deel-uitleg');
+      if (!host) return;
+      const inp = document.getElementById('wc-deelgroep');
+      const naam = (inp?.value || '').trim();
+      if (!naam) { host.innerHTML = 'Leeg: deze winkel heeft zijn eigen schappen.'; return; }
+      const w = _deelWinkels.find(x => x.name.toLowerCase() === naam.toLowerCase());
+      host.innerHTML = w
+        ? `Deelt één selectie met <button type="button" class="link-chip link-chip--sm"
+             onclick="window.app.closeModal();window._openDetail('locaties','${escArg(w.id)}',false,'voorraad')">${esc(w.name)}</button> —
+           de voorraadlijsten blijven van elkaar gescheiden.`
+        : `Geen winkel met die naam; het blijft een los trefwoord (zo werkte het vroeger).`;
+    };
+
+    window._wcUpdate = () => {
+      const roterend = document.getElementById('wc-roterend')?.checked || false;
+      document.getElementById('wc-extra')?.classList.toggle('hidden', !roterend);
+      // Wat er niet meer in de editor staat (onderhandel-DC, inkooppercentage,
+      // categorieën) bewaren we wél: bestaande winkels raken hun instelling niet
+      // kwijt zolang we niet zeker weten dat niemand ze mist.
+      let oud = {};
+      try { oud = JSON.parse(document.getElementById('winkelconfig-hidden')?.value || '{}'); } catch {}
+      const _ververs = document.getElementById('wc-ververs')?.value || 'long';
+      document.getElementById('wc-uren-rij')?.classList.toggle('hidden', _ververs !== 'uren');
+      const _min = Math.max(1, parseInt(document.getElementById('wc-min')?.value) || 1);
+      const _max = Math.max(_min, parseInt(document.getElementById('wc-max')?.value) || _min);
+      const _koopt = document.getElementById('wc-koopt')?.checked || false;
+      document.getElementById('wc-koop-extra')?.classList.toggle('hidden', !_koopt);
+      // Het vinkje bepaalt óf er een grens is; het veld hoeveel. Staat het
+      // vinkje aan met een leeg veld, dan is er nog niets gekozen en blijft de
+      // kas onbeperkt — beter dan een winkel die stilletjes niets kan betalen.
+      const _kasAan = document.getElementById('wc-kas-aan')?.checked || false;
+      document.getElementById('wc-kas-rij')?.classList.toggle('hidden', !_kasAan);
+      const _kasCl = _kasAan ? Math.max(0, _prijsNaarCl(document.getElementById('wc-kas')?.value) || 0) : 0;
+      const config = {
+        ...oud,
+        koopt: _koopt,
+        koopRatio: Math.min(100, Math.max(1, parseInt(document.getElementById('wc-koopratio')?.value) || 50)),
+        kasPerRust: _kasCl,
+        roterend,
+        minItems: _min,
+        maxItems: _max,
+        // Terugval voor een winkel die nog met een formule bewaard was
+        aantalItems: _min,
+        verversBij: _ververs,
+        refreshUren: parseFloat(document.getElementById('wc-uren')?.value) || 24,
+        deelGroep: _deelGroepWaarde(),
+        sfeerTekst: (document.getElementById('wc-sfeer')?.value || '').trim(),
+      };
+      const hidden = document.getElementById('winkelconfig-hidden');
+      if (hidden) hidden.value = JSON.stringify(config);
+    };
+
+    window._refreshVoorraad();
+  }
+
+  // ── Baasje van een huisdier ──
+  // Vullen na het tekenen: de spelers komen uit de API en het huidige baasje uit
+  // de metgezellen van de party.
+  if (tab === 'personages' && isDM() && e?.subtype === 'dier' && editId) {
+    (async () => {
+      const host = document.getElementById('pet-baasjes');
+      if (!host) return;
+      let groepen = [];
+      try { groepen = (await api.getPetBaasje(editId))?.groepen || []; } catch { /* geen gegevens */ }
+      // Party's zonder spelerspersonages laten we weg: daar valt niets te kiezen.
+      const bruikbaar = groepen.filter(g => g.spelers.length);
+      host.innerHTML = bruikbaar.length
+        ? bruikbaar.map(g => `
+            <div class="pet-baasje-rij">
+              <span class="pet-baasje-groep">${esc(g.naam)}</span>
+              <select onchange="window._petBaasjeZet('${escArg(editId)}', '${escArg(g.id)}', this.value)"
+                class="w-full px-2 py-1 bg-room-bg border border-room-border rounded text-ink-bright text-sm focus:border-gold-dim focus:outline-none">
+                <option value="">— nog niemand —</option>
+                ${g.spelers.map(p => `<option value="${esc(p.id)}"${p.id === g.baasje ? ' selected' : ''}>${esc(p.naam)}</option>`).join('')}
+              </select>
+            </div>`).join('')
+        : `<p class="veld-uitleg">Nog geen party met spelerspersonages.</p>`;
+    })();
+  }
+
+  window._petBaasjeZet = async (petId, groepId, characterId) => {
+    if (!petId || !groepId) return;
+    try {
+      // De keuzelijst toont zelf wie het geworden is; een melding erbij is in
+      // de bewerkmodus alleen maar ruis.
+      await api.setPetBaasje(petId, { [groepId]: characterId });
+    } catch (err) {
+      alert('Koppelen mislukt: ' + (err.message || err));
+    }
+  };
+
+  // Kaartjeslijsten voor de koppelvelden (gebied, betrokkenen). Eén keer per
+  // geopende editor; de datalists vullen zichzelf zodra ze binnen zijn.
+  if (document.querySelector('[data-link-veld]')) _linkLaden();
+
+  // Live organogram onder de ledenlijst: één handler op de lijst in plaats van
+  // één per veld, want er komen rijen bij en af.
+  const _orgLijst = document.getElementById('betrokkenen-lijst');
+  if (document.getElementById('chef-dl')) _chefLijstVullen();
+  if (document.getElementById('org-voorbeeld') && _orgLijst) {
+    _orgLijst.addEventListener('input', () => window._orgVoorbeeldTeken());
+    _beeldIndexLaden().then(m => { _orgVoorbeeldBeeld = m; window._orgVoorbeeldTeken(); })
+      .catch(() => window._orgVoorbeeldTeken());
+  }
+
+  // ── Koppelingen vullen ──
+  if (document.getElementById('koppel-sectie') || document.getElementById('koppel-mapid')) {
+    _koppelCtx = { tab, id: e?.id || '', dungeons: [], kaarten: [], pins: [] };
+    _pinWacht = null;
+    api.getKoppelingen(tab, e?.id || '-').then(k => {
+      _koppelCtx.dungeons = k.dungeons || [];
+      const laden  = document.getElementById('koppel-laden');
+      const inhoud = document.getElementById('koppel-inhoud');
+      if (laden)  laden.classList.add('hidden');
+      if (inhoud) inhoud.classList.remove('hidden');
+
+      const vink = document.getElementById('koppel-herberg-vink');
+      if (vink) {
+        vink.checked = !!k.herberg;
+        const uitleg = document.getElementById('koppel-herberg-uitleg');
+        // De dienst heeft een eigen naam (meta.herberg.naam); die zegt nog niet
+        // aan wélk kaartje hij hangt. Alleen dat laatste is hier interessant.
+        // Alleen de stand; wat het vinkje dóét staat in de uitleg bij het tabblad.
+        if (uitleg) uitleg.textContent = k.herberg
+          ? 'De herberg-dienst gebruikt dit kaartje.'
+          : (k.herbergNaam ? `De herberg-dienst heet nu \u201c${k.herbergNaam}\u201d.` : '');
+      }
+      const god = document.getElementById('koppel-god');
+      if (god) {
+        god.innerHTML = `<option value="">\u2014 geen god \u2014</option>` + (k.goden || []).map(g => {
+          // Een god die al aan een ánder kaartje hangt mag je kiezen, maar dan
+          // hoort erbij te staan dat je hem daar weghaalt.
+          const elders = g.locatieEntityId && g.locatieEntityId !== e.id;
+          return `<option value="${esc(g.naam)}"${k.godNaam === g.naam ? ' selected' : ''}>${esc(g.naam)}${elders ? ' \u00b7 staat nu elders' : ''}</option>`;
+        }).join('');
+      }
+      const lid = document.getElementById('koppel-lid');
+      if (lid) {
+        lid.innerHTML = `<option value="">\u2014 geen factie \u2014</option>` + (k.facties || []).map(f =>
+          `<option value="${esc(f.id)}"${k.lidVan === f.id ? ' selected' : ''}>${esc(f.naam)}</option>`).join('');
+        const rangInp = document.getElementById('koppel-lid-rang');
+        const rangRij = document.getElementById('koppel-lid-rang-rij');
+        if (rangInp) rangInp.value = k.lidVanRang || '';
+        if (rangRij) rangRij.style.display = k.lidVan ? '' : 'none';
+      }
+      const factie = document.getElementById('koppel-factie');
+      if (factie) {
+        factie.innerHTML = `<option value="">\u2014 geen factie \u2014</option>` + (k.facties || []).map(f => {
+          const elders = f.entityId && f.entityId !== e.id;
+          return `<option value="${esc(f.id)}"${k.factieId === f.id ? ' selected' : ''}>${esc(f.naam)}${elders ? ' \u00b7 staat nu elders' : ''}</option>`;
+        }).join('');
+      }
+      _koppelDungeonVullen();
+      _koppelCtx.kaarten = k.kaarten || [];
+      _koppelCtx.pins    = k.pins    || [];
+      const mapSel = document.getElementById('koppel-mapid');
+      if (mapSel) {
+        // Staat hij al ergens, dan opent die kaart; anders de eerste.
+        const staat = _koppelCtx.pins[0]?.mapId;
+        mapSel.innerHTML = `<option value="">\u2014 geen kaart \u2014</option>` +
+          _koppelCtx.kaarten.map(m => `<option value="${esc(m.id)}"${staat === m.id ? ' selected' : ''}>${esc(m.label || m.id)}</option>`).join('');
+        if (!staat && _koppelCtx.kaarten.length === 1) mapSel.value = _koppelCtx.kaarten[0].id;
+        _pinTeken();
+      }
+      _koppelLocTypeToon();
+    }).catch(() => {
+      const laden = document.getElementById('koppel-laden');
+      if (laden) laden.textContent = 'Koppelingen konden niet geladen worden.';
+    });
+  }
+
+  // ── Verkoper wijst naar zijn winkel ──
+  if (tab === 'personages' && isDM()) {
+    let _winkelLocs = [];
+    const _vulWinkelLink = () => {
+      const id = document.getElementById('winkel-loc-id')?.value || '';
+      const host = document.getElementById('winkel-loc-link');
+      if (!host) return;
+      const loc = _winkelLocs.find(l => l.id === id);
+      host.innerHTML = loc
+        ? `<button type="button" class="dm-btn dm-btn-ghost dm-btn-sm"
+             onclick="window._openDetail('locaties','${escArg(loc.id)}')">
+             ${icon('package')} Voorraad van ${esc(loc.name)} bekijken
+           </button>`
+        : '';
+    };
+    api.listEntities('locaties').then(locs => {
+      _winkelLocs = locs.map(l => ({ id: l.id, name: l.name }));
+      const dl = document.getElementById('winkel-loc-dl');
+      if (dl) dl.innerHTML = _winkelLocs.map(l => `<option value="${esc(l.name)}">`).join('');
+      const veld = document.getElementById('winkel-loc-naam');
+      const id = document.getElementById('winkel-loc-id')?.value || '';
+      if (veld && id) veld.value = _winkelLocs.find(l => l.id === id)?.name || '';
+      _vulWinkelLink();
+    }).catch(() => {});
+
+    // Naam → id, met een korte rode flits als er niets matcht (zelfde patroon
+    // als de andere zoekbare kiezers in de Meesterkamer).
+    window._winkelLocKies = (naam) => {
+      const veld = document.getElementById('winkel-loc-naam');
+      const hidden = document.getElementById('winkel-loc-id');
+      if (!hidden) return;
+      const schoon = (naam || '').trim();
+      if (!schoon) { hidden.value = ''; _vulWinkelLink(); return; }
+      const match = _winkelLocs.find(l => l.name.toLowerCase() === schoon.toLowerCase());
+      hidden.value = match?.id || '';
+      if (!match && veld) {
+        veld.classList.add('dm-input--err');
+        setTimeout(() => veld.classList.remove('dm-input--err'), 900);
+      }
+      _vulWinkelLink();
+    };
+  }
+
+  // Form submit handler
+  document.getElementById('entity-form').addEventListener('submit', async (ev) => {
+    ev.preventDefault();
+    const form = new FormData(ev.target);
+    const data = {};
+    const stats = {};
+    for (const [key, val] of form.entries()) {
+      if (key.startsWith('data_')) data[key.slice(5)] = val;
+      else if (key.startsWith('stat_')) stats[key.slice(5)] = val;
+    }
+    // Betrokkenen serialiseren. `eigenaar` blijft meelopen als losse tekst:
+    // de campagneboek-export en de zoekindex lezen dat veld, en een kaartje dat
+    // nooit gekoppeld wordt hoort er niet op achteruit te gaan.
+    if (document.getElementById('betrokkenen-lijst')) {
+      const rijen = _betrokkenenLees();
+      data.betrokkenen = rijen.length ? JSON.stringify(rijen) : '';
+      const baas = rijen.find(r => /eigenaar/i.test(r.rol));
+      data.eigenaar   = baas ? baas.naam : (rijen.length ? '' : (data.eigenaar || ''));
+      data.eigenaarId = baas ? (baas.id || '') : '';
+    }
+    // "Hoort bij" schrijft in ándere kaartjes en gaat daarom via een eigen
+    // route, ná het opslaan hieronder (de naam kan net gewijzigd zijn).
+    const _hoortRijen = document.getElementById('hoortbij-lijst') ? _hoortLees() : null;
+
+    // Voorraad serialiseren voor verkopers & winkels
+    if (tab === 'personages' || tab === 'locaties') {
+      const validItems = _voorraadItems.filter(i => i.naam || i.prijs);
+      data.voorraad = validItems.length > 0 ? JSON.stringify(validItems) : '';
+    }
+    // Adoptieprijs: één bedrag met een komma (12,34) → centelingen, zoals bij
+    // loot en de diensten. Leeg = geen prijs.
+    if (tab === 'personages') {
+      const ruw = (data.adoptiePrijs_tekst ?? '').toString().trim();
+      delete data.adoptiePrijs_tekst;
+      if (ruw) {
+        // Zelfde lezer als de rest van de app: komma of munten (ook pp en ep).
+        const cl = _prijsNaarCl(ruw);
+        if (cl !== null) data.adoptiePrijsCl = String(cl);
+      } else {
+        data.adoptiePrijsCl = '';
+      }
+      data.adoptiePrijsFl = '';   // opgevolgd door het bedrag in centelingen
+    }
+    // Lijstvelden (geheimen, flavours) serialiseren. Het oude enkelvoudige veld
+    // houden we bij als eerste regel, want de Gock en oudere weergaven lezen dat.
+    for (const veld of (SCHEMA[tab]?.fields || []).filter(f => f.type === 'lijst-tekst')) {
+      const host = document.getElementById(`lijst-${veld.key}`);
+      if (!host) continue;
+      // Per regel lopen, zodat het antagonist-vinkje bij zijn eigen tekst blijft
+      // ook als er lege regels tussen staan.
+      const rijen = [...host.querySelectorAll('.lijst-regel')]
+        .map(r => ({
+          gid:   r.dataset.gid || '',
+          tekst: r.querySelector('textarea')?.value.trim() || '',
+          antag: !!r.querySelector('.lijst-antag-vink')?.checked,
+        }))
+        .filter(r => r.tekst);
+      if (veld.key === 'geheimen') {
+        // Een geheim is { id, tekst, antagonist }. Het id blijft van de regel,
+        // ook als je hem versleept of er een boven weghaalt — daar hing de
+        // onthulstand van elke party aan, en die schoof vroeger mee.
+        data.geheimen = rijen.length ? JSON.stringify(rijen.map(r => ({
+          id: r.gid || _nieuwGeheimId(), tekst: r.tekst, ...(r.antag ? { antagonist: true } : {}),
+        }))) : '';
+        data.geheim = rijen[0]?.tekst || '';
+        data.geheimenAntagonist = '';   // opgegaan in de regels zelf
+        data.geheimeAntagonist  = '';
+      } else {
+        data[veld.key] = rijen.length ? JSON.stringify(rijen.map(r => r.tekst)) : '';
+        data[veld.enkelvoud] = rijen[0]?.tekst || '';
+      }
+    }
+    // Extra afbeeldingen serialiseren
+    data.extraImages = entityEditorImages.length > 0
+      ? JSON.stringify(entityEditorImages.map(i => ({ id: i.id, caption: i.caption || '' })))
+      : '';
+    // Een kaartje dat als plaatshouder is aangemaakt (vanuit een akte, vanuit
+    // een dungeon) draagt `concept`. Zodra de DM het hier bewaart is het geen
+    // plaatshouder meer — dat is per slot van rekening precies wat "invullen"
+    // betekent.
+    delete data.concept;
+    const payload = {
+      name: form.get('name'),
+      subtype: form.get('subtype') || '',
+      data,
+      // links wordt niet meer meegestuurd: de Verbindingen-editor is vervallen en
+      // de server vult het veld bij het uitserveren aan met de [[ ]] uit de
+      // tekst. Zou de client het terugsturen, dan zouden die afgeleide
+      // verbindingen ongemerkt vastgelegd worden.
+      stats: tab === 'personages' ? stats : null,
+    };
+    // Tiers meesturen. Dit stond op `subtype === 'dier'` uit de tijd dat alleen
+    // een huisdier meerdere statblokken kon hebben. Sinds een NPC gedaantes
+    // heeft moet de voorwaarde dezelfde zijn als die van het blok in de editor
+    // (`toonTiers`): alles behalve een speler. Anders vult de DM de velden in,
+    // ziet hij ze op het scherm staan, en wordt er niets verstuurd.
+    if (tab === 'personages' && String(payload.subtype || 'NPC').toLowerCase() !== 'speler') {
+      // Een lege rij telt niet mee. Bij een NPC is er geen level, dus daar is
+      // het label of een ingevuld veld het enige bewijs dat de DM iets bedoelde.
+      payload.statblockTiers = _petTiersCollect()
+        .filter(t => t.label || t.minLevel != null || Object.keys(t.statblock || {}).some(k => k !== 'alignment'))
+        .map(t => { const { _open, ...rest } = t; return rest; });
+    }
+    // Verhuist een speler naar een andere party? Dan blijft daar meer achter dan
+    // het ene veld doet vermoeden: voorwerpkaartjes horen bij de party, niet bij
+    // het personage. Zie de valkuil in CLAUDE.md.
+    if (tab === 'personages' && editId && payload.subtype === 'speler') {
+      const oudeGroep = e?.data?.groep || '';
+      const nieuweGroep = data.groep || '';
+      if (oudeGroep && nieuweGroep !== oudeGroep) {
+        let info = { groepNaam: '', voorwerpen: 0 };
+        try { info = await api.verhuisInfo(editId); } catch { /* dan maar zonder aantallen */ }
+        const naar = _editorGroups.find(g => g.id === nieuweGroep)?.name || 'geen party';
+        const van  = info.groepNaam || _editorGroups.find(g => g.id === oudeGroep)?.name || 'de oude party';
+        const stuks = info.voorwerpen === 1 ? '1 voorwerpkaartje' : `${info.voorwerpen} voorwerpkaartjes`;
+        const regels = [
+          `${payload.name || 'Dit personage'} verhuist van ${van} naar ${naar}.`,
+          '',
+          info.voorwerpen
+            ? `${stuks} blijft bij ${van} achter — voorwerpbezit hoort bij de party, niet bij het personage.`
+            : `Voorwerpbezit hoort bij de party, niet bij het personage.`,
+          `Ook wat ${van} al ontdekt had (geheimen, documenten, facties, bestiarium) telt niet mee naar ${naar}.`,
+          '',
+          'Losse boedelregels en geld gaan wél mee.',
+          '',
+          'Doorgaan?',
+        ];
+        if (!confirm(regels.join('\n'))) return;
+      }
+    }
+    // Duplicaatdetectie voor voorwerpen (unieke naam vereist)
+    if (tab === 'voorwerpen') {
+      try {
+        const allVw = await api.listEntities('voorwerpen');
+        const dup = allVw.find(i => i.id !== editId && i.name.toLowerCase() === (payload.name || '').toLowerCase());
+        if (dup && !confirm(`Er bestaat al een voorwerp met de naam "${dup.name}". Toch opslaan?`)) return;
+      } catch { /* ok — niet blokkeren bij API-fout */ }
+    }
+    try {
+      // Portret loopt nu via data.imageId (mediabibliotheek) — geen losse
+      // upload-naar-entity-id meer; de picker heeft het bestand al opgeslagen.
+      let _nieuwId = editId;
+      if (editId) {
+        await api.updateEntity(tab, editId, payload);
+      } else {
+        const gemaakt = await api.createEntity(tab, payload);
+        _nieuwId = gemaakt?.id || null;
+      }
+      // Een speld die bij een nog niet bewaard kaartje geplaatst was: nu pas
+      // versturen, want nu pas is er een locId om hem aan te hangen.
+      if (_pinWacht && _nieuwId) {
+        await api.createMapPin({ locId: _nieuwId, ..._pinWacht }).catch(() => {});
+        _pinWacht = null;
+      }
+      // "Hoort bij": schrijft in de betrokkenen-lijst van de dóélkaartjes, dus
+      // pas nu — de naam die daar komt te staan is de zojuist bewaarde naam.
+      if (_hoortRijen && _nieuwId) {
+        await api.zetHoortBij(tab, _nieuwId, _hoortRijen).catch(err => {
+          alert('"Hoort bij" bewaren mislukt: ' + (err.message || err));
+        });
+      }
+      // Filmpje dat bij een nieuw kaartje gekozen is: nu pas uploaden, want nu
+      // pas is er een id om het naar te vernoemen.
+      if (_pendingVideoFile && _nieuwId) {
+        await api.uploadFile(`${_nieuwId}_video`, _pendingVideoFile).catch(() => {});
+        _pendingVideoFile = null;
+      }
+      // Idem voor een filmpje dat uit de bibliotheek gekozen is.
+      if (_pendingVideoBron && _nieuwId) {
+        await api.copyFile(`${_nieuwId}_video`, _pendingVideoBron).catch(() => {});
+        _pendingVideoBron = null;
+      }
+      // Upload/verwijder audio
+      if (pendingAudioFile && data.audioId) {
+        await api.uploadFile(data.audioId, pendingAudioFile);
+      }
+      if (!data.audioId && _editorOldAudioId) {
+        await api.deleteFile(_editorOldAudioId).catch(() => {});
+      }
+      // Upload nieuwe extra afbeeldingen
+      for (const img of entityEditorImages) {
+        if (img.isNew) await api.uploadFile(img.id, img.file);
+      }
+      // Verwijder verwijderde extra afbeeldingen
+      // (entityEditorImagesToDelete blijft leeg sinds losgekoppelde afbeeldingen
+      // niet meer verwijderd worden — zie _removeEntityImage.)
+      for (const id of entityEditorImagesToDelete) {
+        await api.deleteFile(id).catch(() => {});
+      }
+      closeModal();
+      renderEntitySection(tab);
+    } catch (err) {
+      alert('Fout: ' + err.message);
+    }
+  });
+};
+
+window._addTag = (lt, name) => {
+  const input = document.getElementById(`tag-input-${lt}`);
+  const val = (name || input.value).trim();
+  if (!val || editorTags[lt].includes(val)) return;
+  editorTags[lt].push(val);
+  input.value = '';
+  window._hideSuggestions(lt);
+  refreshTags(lt);
+};
+
+window._removeTag = (lt, name) => {
+  editorTags[lt] = editorTags[lt].filter(n => n !== name);
+  refreshTags(lt);
+};
+
+window._showSuggestions = (lt) => {
+  const input = document.getElementById(`tag-input-${lt}`);
+  const list = document.getElementById(`tag-suggestions-${lt}`);
+  const q = input.value.trim().toLowerCase();
+  const names = (allNames[lt] || []).filter(n =>
+    !editorTags[lt].includes(n) && (!q || n.toLowerCase().includes(q))
+  );
+  if (names.length === 0) { list.classList.remove('open'); return; }
+  list.innerHTML = names.map(n =>
+    `<div class="autocomplete-item" data-name="${esc(n)}" onmousedown="window._addTag('${lt}',this.dataset.name)">${esc(n)}</div>`
+  ).join('');
+  list.classList.add('open');
+};
+
+window._hideSuggestions = (lt) => {
+  const list = document.getElementById(`tag-suggestions-${lt}`);
+  if (list) list.classList.remove('open');
+};
+
+window._handleTagKey = (ev, lt) => {
+  if (ev.key === 'Enter') { ev.preventDefault(); window._addTag(lt); }
+  if (ev.key === 'Escape') { window._hideSuggestions(lt); }
+};
+
+// Close suggestions on blur (slight delay so mousedown on item fires first)
+document.addEventListener('focusout', (ev) => {
+  if (ev.target.id?.startsWith('tag-input-')) {
+    const lt = ev.target.id.replace('tag-input-', '');
+    setTimeout(() => window._hideSuggestions(lt), 150);
+  }
+});
+
+function refreshTags(lt) {
+  const lm = TYPE_META[lt] || { get svgIcon() { return icon('scroll-text'); }, icon: '\ud83d\udcdc', chip: 'chip-doc' };
+  const container = document.getElementById(`tags-${lt}`);
+  if (!container) return;
+  container.innerHTML = editorTags[lt].map(n =>
+    `<span class="chip ${lm.chip}">${esc(n)} <span class="cursor-pointer ml-1" data-name="${esc(n)}" onclick="window._removeTag('${lt}',this.dataset.name)">\u00d7</span></span>`
+  ).join('');
+}
+
+// ── Delete ──
+// Spelerskaarten (protagonisten) krijgen extra verwijdercontrole: hun portret/filmpje
+// wordt overal hergebruikt, dus we eisen het intypen van de naam i.p.v. een kale confirm().
+// Elke verwijdering toont daarna een "Ongedaan maken"-toast (herstel uit de prullenbak).
+window._deleteEntity = async (tab, id) => {
+  let ent = null;
+  try { ent = await api.getEntity(tab, id); } catch {}
+  const isProtagonist = tab === 'personages' && ent?.subtype === 'speler';
+  if (isProtagonist) { _openDeleteGuard(tab, id, ent); return; }
+  if (!confirm('Weet je zeker dat je dit wilt verwijderen?')) return;
+  await api.deleteEntity(tab, id);
+  window.app.closeModal();
+  renderEntitySection(tab);
+  _showUndoToast(tab, id, ent?.name || '');
+};
+
+// Rijke bevestigingsmodal voor spelerskaarten — vereist het typen van de naam.
+function _openDeleteGuard(tab, id, ent) {
+  document.getElementById('delete-guard-overlay')?.remove();
+  const naam = ent?.name || 'dit personage';
+  const groep = ent?.data?.groep ? `<li>Lid van groep <strong>${esc(ent.data.groep)}</strong></li>` : '';
+  const ov = document.createElement('div');
+  ov.id = 'delete-guard-overlay';
+  ov.className = 'delete-guard-overlay';
+  ov.innerHTML = `
+    <div class="delete-guard-modal" role="dialog" aria-modal="true">
+      <div class="delete-guard-head">
+        <img class="delete-guard-portret" src="${api.thumbUrl(id)}" alt="" onerror="this.style.display='none'">
+        <div>
+          <div class="delete-guard-title">${icon('skull')} Spelerskaart verwijderen</div>
+          <div class="delete-guard-name">${esc(naam)}</div>
+        </div>
+      </div>
+      <p class="delete-guard-warn">Het portret en filmpje van deze speler worden <strong>hergebruikt</strong> in de
+        party-weergave, berichten en de tempel. Verwijderen haalt het personage uit alle groepen.</p>
+      <ul class="delete-guard-list">
+        ${groep}
+        <li>De kaart belandt in de prullenbak — je kunt direct daarna <strong>Ongedaan maken</strong>.</li>
+      </ul>
+      <label class="delete-guard-label">Typ de naam <strong>${esc(naam)}</strong> om te bevestigen:</label>
+      <input type="text" id="delete-guard-input" class="delete-guard-input" autocomplete="off" placeholder="${esc(naam)}">
+      <div class="delete-guard-actions">
+        <button class="dm-btn dm-btn-ghost" id="delete-guard-cancel">Annuleren</button>
+        <button class="dm-btn dm-btn-danger" id="delete-guard-confirm" disabled>${icon('trash')} Verwijderen</button>
+      </div>
+    </div>`;
+  document.body.appendChild(ov);
+  const input = ov.querySelector('#delete-guard-input');
+  const confirmBtn = ov.querySelector('#delete-guard-confirm');
+  const close = () => ov.remove();
+  input.addEventListener('input', () => {
+    confirmBtn.disabled = input.value.trim().toLowerCase() !== (naam || '').trim().toLowerCase();
+  });
+  input.focus();
+  ov.querySelector('#delete-guard-cancel').addEventListener('click', close);
+  ov.addEventListener('click', (ev) => { if (ev.target === ov) close(); });
+  confirmBtn.addEventListener('click', async () => {
+    if (confirmBtn.disabled) return;
+    confirmBtn.disabled = true;
+    try {
+      await api.deleteEntity(tab, id);
+      close();
+      window.app.closeModal();
+      renderEntitySection(tab);
+      _showUndoToast(tab, id, naam);
+    } catch (err) {
+      confirmBtn.disabled = false;
+      alert('Verwijderen mislukt: ' + (err.message || 'onbekende fout'));
+    }
+  });
+}
+
+// Toast met "Ongedaan maken" — ontsluit de bestaande prullenbak/restore-backend.
+function _showUndoToast(tab, id, naam) {
+  document.getElementById('undo-toast')?.remove();
+  const t = document.createElement('div');
+  t.id = 'undo-toast';
+  t.className = 'undo-toast';
+  t.innerHTML = `
+    <span class="undo-toast-text">${icon('trash')} ${esc(naam || 'Item')} verwijderd</span>
+    <button class="undo-toast-btn" id="undo-toast-btn">${icon('refresh-cw')} Ongedaan maken</button>`;
+  document.body.appendChild(t);
+  setTimeout(() => t.classList.add('undo-toast--visible'), 10);
+  const dismiss = () => { t.classList.remove('undo-toast--visible'); setTimeout(() => t.remove(), 300); };
+  const timer = setTimeout(dismiss, 8000);
+  t.querySelector('#undo-toast-btn').addEventListener('click', async () => {
+    clearTimeout(timer);
+    try {
+      await api.restoreEntity(id);
+      renderEntitySection(tab);
+    } catch (err) {
+      alert('Herstellen mislukt: ' + (err.message || 'onbekende fout'));
+    }
+    dismiss();
+  });
+}

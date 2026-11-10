@@ -1,0 +1,590 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Campagne</title>
+  <!-- PWA: installeerbaar als app-icoon op het beginscherm -->
+  <link rel="manifest" href="/manifest.webmanifest">
+  <meta name="theme-color" content="#1c2a6b">
+  <link rel="icon" href="/img/favicon-32.png?v=2" sizes="32x32" type="image/png">
+  <link rel="icon" href="/img/app-icon-192.png?v=2" sizes="192x192" type="image/png">
+  <link rel="apple-touch-icon" href="/img/app-icon-180.png?v=2">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Campagne">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => navigator.serviceWorker.register('/sw.js').catch(() => {}));
+    }
+  </script>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700;900&family=Crimson+Text:ital,wght@0,400;0,600;0,700;1,400&family=Dancing+Script:wght@400;600;700&family=IM+Fell+English:ital@0;1&family=JetBrains+Mono:wght@400;500&family=Kalam:wght@300;400;700&family=Special+Elite&family=UnifrakturMaguntia&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            room:    { bg: '#f5edd8', surface: '#efe3c5', elevated: '#e6d5ad', border: '#c4a87a', 'border-light': '#d4bc92' },
+            ink:     { bright: '#2a1a08', medium: '#5a4030', dim: '#8a7050', faint: '#b09870' },
+            gold:    { DEFAULT: '#b8860b', dim: '#9a7008', glow: 'rgba(184,134,11,0.12)' },
+            seal:    { DEFAULT: '#8b2a2a', glow: 'rgba(139,42,42,0.15)' },
+            'blue-ink':  { DEFAULT: '#2a5a8a', glow: 'rgba(42,90,138,0.12)' },
+            'green-wax': { DEFAULT: '#2a6a3a', glow: 'rgba(42,106,58,0.12)' },
+            'purple-codex': { DEFAULT: '#5a3a7a', glow: 'rgba(90,58,122,0.12)' },
+            orange:  { DEFAULT: '#9a6a2a', glow: 'rgba(154,106,42,0.12)' },
+            parchment: { letter: '#f2e6c8', press: '#e8e2d8', map: '#e0d8c4', codex: '#1a1520', log: '#f5f0e5' },
+          },
+          fontFamily: {
+            cinzel:  ['Cinzel', 'serif'],
+            crimson: ['Crimson Text', 'Georgia', 'serif'],
+            fell:    ['IM Fell English', 'serif'],
+            mono:    ['JetBrains Mono', 'monospace'],
+          },
+          boxShadow: {
+            card: '0 2px 12px rgba(0,0,0,0.4)',
+            deep: '0 8px 32px rgba(0,0,0,0.6)',
+          },
+          animation: {
+            'modal-in': 'modalIn 0.25s ease',
+            'fade-in': 'fadeIn 0.2s ease',
+            'reveal-burst': 'revealBurst 0.6s ease',
+          },
+          keyframes: {
+            modalIn:  { from: { opacity: '0', transform: 'translateY(20px)' }, to: { opacity: '1', transform: 'translateY(0)' } },
+            fadeIn:   { from: { opacity: '0' }, to: { opacity: '1' } },
+            revealBurst: { '0%': { boxShadow: '0 0 0 0 rgba(212,168,67,0.6)' }, '100%': { boxShadow: '0 0 20px 10px rgba(212,168,67,0)' } },
+          },
+        },
+      },
+    }
+  </script>
+  <link rel="stylesheet" href="/css/theme.css?v=927">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <script>pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';</script>
+  <script src="/socket.io/socket.io.js"></script>
+<script>window.goatcounter={path:function(p){return location.host+p}}</script>
+<script data-goatcounter="https://stats.alanmoss.nl/count" async src="https://stats.alanmoss.nl/count.js"></script>
+</head>
+<body class="bg-room-bg text-ink-bright font-crimson min-h-screen boot">
+  <!-- `boot` houdt de app onzichtbaar tot bekend is wie er kijkt. Zonder die
+       klasse zag een uitgelogde bezoeker eerst een flits van de app voordat de
+       landingspagina eroverheen viel. De klasse gaat eraf in init(), en anders
+       na vier seconden — een blanco scherm is erger dan een flits. -->
+  <script>setTimeout(function () { document.body.classList.remove('boot'); }, 4000);</script>
+  <div class="app player-mode" id="app">
+    <!-- ══ App-header: één balk ══ -->
+    <header class="app-header" id="app-header">
+
+      <!-- Links: titel -->
+      <div class="app-header-title" id="header-display">
+        <div class="app-header-title-row">
+          <img class="app-header-crest hidden" id="app-crest" src="" alt="" width="30" height="30">
+          <h1 id="app-title" class="app-title"></h1>
+        </div>
+        <p id="app-subtitle" class="app-subtitle"></p>
+      </div>
+      <!-- Inline titel-editor -->
+      <div id="header-editor" class="app-header-editor hidden">
+        <input id="header-title-input" type="text" class="app-header-input app-header-input--title" placeholder="Campagnenaam">
+        <input id="header-subtitle-input" type="text" class="app-header-input app-header-input--sub" placeholder="Ondertitel">
+        <div class="flex gap-2 mt-1">
+          <button onclick="window.app.saveHeader()" class="app-header-save-btn">Opslaan</button>
+          <button onclick="window.app.cancelHeader()" class="app-header-cancel-btn">Annuleren</button>
+        </div>
+      </div>
+
+      <!-- Midden: navigatietabs -->
+      <nav class="app-nav" id="section-tabs">
+        <!-- Archief dropdown -->
+        <div class="relative flex-shrink-0" id="archief-nav-group">
+          <button class="section-tab archief-tab active" id="archief-nav-btn" title="Archief"
+            onclick="window.app.toggleArchiefMenu()">
+            <svg class="icon tab-mob-icon" aria-hidden="true" focusable="false"><use href="/img/icons.svg?v=32#icon-folder-open"/></svg><span id="archief-nav-label" class="tab-label">Archief</span><span class="archief-arrow tab-label">▾</span>
+          </button>
+          <div class="archief-menu hidden" id="archief-menu">
+            <button class="archief-menu-item active" data-section="personages"><svg class="icon" aria-hidden="true" focusable="false"><use href="/img/icons.svg?v=32#icon-user"/></svg> Personages</button>
+            <button class="archief-menu-item" data-section="locaties"><svg class="icon icon-gi" aria-hidden="true" focusable="false"><use href="/img/icons.svg?v=32#icon-castle"/></svg> Locaties</button>
+            <button class="archief-menu-item" data-section="organisaties"><svg class="icon" aria-hidden="true" focusable="false"><use href="/img/icons.svg?v=32#icon-landmark"/></svg> Organisaties</button>
+            <button class="archief-menu-item" data-section="voorwerpen"><svg class="icon" aria-hidden="true" focusable="false"><use href="/img/icons.svg?v=32#icon-package"/></svg> Voorwerpen</button>
+            <button class="archief-menu-item" data-section="documenten"><svg class="icon" aria-hidden="true" focusable="false"><use href="/img/icons.svg?v=32#icon-scroll-text"/></svg> Documenten</button>
+            <button class="archief-menu-item dm-only" data-section="bestiarium"><svg class="icon" aria-hidden="true" focusable="false"><use href="/img/icons.svg?v=32#icon-skull"/></svg> Bestiarium</button>
+            <button class="archief-menu-item" data-section="spreuken"><svg class="icon" aria-hidden="true" focusable="false"><use href="/img/icons.svg?v=32#icon-sparkles"/></svg> Spreuken</button>
+            <button class="archief-menu-item" data-section="vaardigheden"><svg class="icon" aria-hidden="true" focusable="false"><use href="/img/icons.svg?v=32#icon-award"/></svg> Heldenboek</button>
+          </div>
+        </div>
+        <!-- Logboek dropdown -->
+        <div class="relative flex-shrink-0" id="logboek-nav-group">
+          <button class="section-tab" id="logboek-nav-btn" title="Avontuur" onclick="window.app.toggleLogboekMenu()">
+            <svg class="icon tab-mob-icon" aria-hidden="true" focusable="false"><use href="/img/icons.svg?v=32#icon-compass"/></svg><span id="logboek-nav-label" class="tab-label">Avontuur</span><span class="archief-arrow tab-label">▾</span>
+          </button>
+          <div class="archief-menu hidden" id="logboek-menu">
+            <button class="archief-menu-item" data-logtab="verslagen"><svg class="icon" aria-hidden="true" focusable="false"><use href="/img/icons.svg?v=32#icon-book-open"/></svg> Logboek</button>
+            <button class="archief-menu-item" data-section="kaart"><svg class="icon" aria-hidden="true" focusable="false"><use href="/img/icons.svg?v=32#icon-map"/></svg> Kaarten</button>
+            <button class="archief-menu-item" data-logtab="quests"><svg class="icon" aria-hidden="true" focusable="false"><use href="/img/icons.svg?v=32#icon-target"/></svg> Missies</button>
+            <button class="archief-menu-item" data-logtab="prikbord"><svg class="icon" aria-hidden="true" focusable="false"><use href="/img/icons.svg?v=32#icon-pin"/></svg> Prikbord</button>
+            <button class="archief-menu-item" data-section="bastion"><svg class="icon" aria-hidden="true" focusable="false"><use href="/img/icons.svg?v=32#icon-castle"/></svg> Bastion</button>
+          </div>
+        </div>
+        <!-- Diensten dropdown -->
+        <div class="relative flex-shrink-0 hidden" id="diensten-nav-group">
+          <button class="section-tab diensten-tab" id="diensten-nav-btn" title="Diensten"
+            onclick="window.app.toggleDienstenMenu()">
+            <svg class="icon" aria-hidden="true" focusable="false"><use href="/img/icons.svg?v=32#icon-landmark"/></svg> <span id="diensten-nav-label" class="tab-label">Diensten</span><span class="diensten-arrow tab-label">▾</span>
+          </button>
+          <div class="archief-menu hidden" id="diensten-menu">
+            <button class="archief-menu-item" data-section="markt" id="diensten-markt-item"><svg class="icon" aria-hidden="true" focusable="false"><use href="/img/icons.svg?v=32#icon-store"/></svg><span id="diensten-markt-label">Markt</span></button>
+            <button class="archief-menu-item" data-section="herberg" id="diensten-herberg-item"><svg class="icon" aria-hidden="true" focusable="false"><use href="/img/icons.svg?v=32#icon-beer"/></svg><span id="diensten-herberg-label">Herberg</span></button>
+            <button class="archief-menu-item" data-section="tempel" id="diensten-tempel-item"><svg class="icon" aria-hidden="true" focusable="false"><use href="/img/icons.svg?v=32#icon-church"/></svg><span id="diensten-tempel-label">De Tempel</span></button>
+            <button class="archief-menu-item" data-section="facties" id="diensten-facties-item"><svg class="icon" aria-hidden="true" focusable="false"><use href="/img/icons.svg?v=32#icon-landmark"/></svg><span id="diensten-facties-label">Facties &amp; Aanzien</span></button>
+            <button class="archief-menu-item" data-section="tweespalt" id="diensten-tweespalt-item"><svg class="icon icon-gi" aria-hidden="true" focusable="false"><use href="/img/icons.svg?v=32#icon-dice"/></svg><span id="diensten-tweespalt-label">De Tweespalt</span></button>
+            <button class="archief-menu-item" data-section="gock" id="diensten-gock-item"><svg class="icon" aria-hidden="true" focusable="false"><use href="/img/icons.svg?v=32#icon-search"/></svg><span id="diensten-gock-label">De Gock</span></button>
+            <button class="archief-menu-item" data-section="ursula" id="diensten-ursula-item"><svg class="icon" aria-hidden="true" focusable="false"><use href="/img/icons.svg?v=32#icon-sparkles"/></svg><span id="diensten-ursula-label">Madame Ursula</span></button>
+            <button class="archief-menu-item" data-section="magizoo" id="diensten-magizoo-item"><svg class="icon" aria-hidden="true" focusable="false"><use href="/img/icons.svg?v=32#icon-paw-print"/></svg><span id="diensten-magizoo-label">De Magizoöloog</span></button>
+            <button class="archief-menu-item" data-section="woekeraar" id="diensten-woekeraar-item"><svg class="icon" aria-hidden="true" focusable="false"><use href="/img/icons.svg?v=32#icon-coins"/></svg><span id="diensten-woekeraar-label">De geldschieter</span></button>
+          </div>
+        </div>
+        <button class="section-tab hidden" data-section="mijn-karakter"><svg class="icon" aria-hidden="true" focusable="false"><use href="/img/icons.svg?v=32#icon-user"/></svg> <span class="tab-label">Mijn karakter</span></button>
+        <button class="section-tab hidden" data-section="spelers" id="spelers-tab" title="Spelers"><svg class="icon" aria-hidden="true" focusable="false"><use href="/img/icons.svg?v=32#icon-users"/></svg> <span class="tab-label">Spelers</span></button>
+        <button class="section-tab hidden" data-section="meesterkamer" id="dm-tab" title="Meesterkamer"><svg class="icon" aria-hidden="true" focusable="false"><use href="/img/icons.svg?v=32#icon-settings"/></svg><span class="tab-label"> Meesterkamer</span></button>
+      </nav>
+
+      <!-- Rechts: zoek + DM-zegel -->
+      <div class="app-header-actions">
+        <!-- DM: actieve akte chip -->
+        <div id="active-akte-chip" class="active-akte-chip dm-only hidden">
+          <span class="active-akte-dot">▶</span>
+          <span id="active-akte-label"></span>
+          <button class="active-akte-stop" onclick="window.app.stopAkte()" title="Stop akte">×</button>
+        </div>
+        <!-- Ambiance-dempknop (feature #2): zichtbaar als er een scène speelt -->
+        <button id="ambiance-toggle" class="ambiance-toggle hidden"
+          onclick="window.soundManager?.toggleAmbiance()" title="Ambiance">
+          <span class="ambiance-toggle-icon" id="ambiance-toggle-icon"></span>
+          <span class="ambiance-toggle-label" id="ambiance-toggle-label"></span>
+        </button>
+        <!-- Ontdekkings-meter voor de huidige archiefcategorie (feature #5) -->
+        <div id="discovery-chip" class="discovery-chip hidden" title="Ontdekt in deze categorie">
+          <span class="discovery-chip-icon" id="discovery-chip-icon"></span>
+          <span class="discovery-chip-count" id="discovery-chip-count"></span>
+          <span class="discovery-chip-bar"><span class="discovery-chip-fill" id="discovery-chip-fill"></span></span>
+        </div>
+        <!-- Zoekbalk (expandeert) -->
+        <div class="app-search-wrap" id="app-search-wrap">
+          <button class="app-search-btn" id="app-search-btn"
+            onclick="window.app.openGlobalSearch()" title="Zoeken (/)">
+            <span class="app-search-icon"><svg class="icon" aria-hidden="true" focusable="false"><use href="/img/icons.svg?v=32#icon-search"/></svg></span>
+            <span class="app-search-label">Zoeken</span>
+          </button>
+        </div>
+        <!-- Groep-selector (alleen DM): compacte pill + dropdown, vervangt de oude party-bar -->
+        <div class="group-pill-wrap dm-only hidden" id="group-pill-wrap">
+          <button class="group-pill" id="group-pill" onclick="window.app.toggleGroupDropdown()" title="Wissel van groep"></button>
+          <div class="group-dropdown hidden" id="group-dropdown"></div>
+        </div>
+        <!-- Het DM-zegel (spelerweergave-preview) is hier weggehaald, en op
+             14 okt 2026 ook de code eronder. Hij kon niet terugkomen zoals hij
+             was: de toggle zette alleen een vlag in de browser, terwijl de
+             server op tientallen plekken op `req.role` beslist wát hij
+             meestuurt. Je kreeg dus spelers-chrome om DM-data heen — inclusief
+             geheimen die de party niet kent. Wil je die stand echt, dan moet
+             het langs de server (een tweede sessie of een preview-rol). -->
+        <!-- Sandbox badge: getoond wanneer ingelogd als sandbox-DM -->
+        <div id="sandbox-badge" class="sandbox-badge hidden" title="Je werkt in de sandbox-omgeving. Echte campagnedata is niet zichtbaar."><svg class="icon" aria-hidden="true" focusable="false"><use href="/img/icons.svg?v=32#icon-flask-conical"/></svg> Sandbox</div>
+        <!-- Naar het tafelscherm: in de balk, waar je hem tijdens het spelen nodig
+             hebt, in plaats van weggestopt bij Instellingen. -->
+        <button id="dm-tafelscherm-btn" onclick="window.dmPanel.naarTabletmodus()"
+          title="Dit scherm wordt het tafelscherm: het toont dan alleen wat de party mag zien."
+          class="app-header-icon-btn hidden"><svg class="icon" aria-hidden="true" focusable="false"><use href="/img/icons.svg?v=32#icon-monitor"/></svg></button>
+        <button id="dm-logout-btn" onclick="window.app.dmLogout()" title="Uitloggen als DM"
+          class="app-header-icon-btn app-header-icon-btn--danger hidden"><svg class="icon" aria-hidden="true" focusable="false"><use href="/img/icons.svg?v=32#icon-x"/></svg></button>
+        <!-- Spelerwisselknop → terug naar landingspagina -->
+        <!-- Zelfde kruisje als bij de DM: één icoon voor uitloggen. Het
+             poppetje las als "mijn profiel" en niet als "eruit". -->
+        <button id="player-switch-btn" onclick="window.app.playerLogoutVraag()" title="Uitloggen / ander personage kiezen"
+          class="app-header-icon-btn app-header-icon-btn--danger hidden"><svg class="icon" aria-hidden="true" focusable="false"><use href="/img/icons.svg?v=32#icon-x"/></svg></button>
+      </div>
+    </header>
+
+
+    <!-- Contextueel sectie-accent -->
+    <div class="section-accent-bar" id="section-accent-bar"></div>
+
+  <!-- Globale zoekoverlay -->
+  <div id="global-search-overlay" class="global-search-overlay hidden" onclick="window.app.closeGlobalSearch(event)">
+    <div class="global-search-box" onclick="event.stopPropagation()">
+      <div class="global-search-input-wrap">
+        <span class="global-search-icon"><svg class="icon" aria-hidden="true" focusable="false"><use href="/img/icons.svg?v=32#icon-search"/></svg></span>
+        <input id="global-search-input" class="global-search-input" type="text"
+          placeholder="Zoeken in de campagne…"
+          autocomplete="off" spellcheck="false"
+          oninput="window.app._globalSearchRun(this.value)"
+          onkeydown="window.app._gsKey(event)">
+      </div>
+      <div id="gs-type-chips" class="gs-type-chips">
+        <button class="gs-type-chip gs-type-chip--active" data-gs-type="" onclick="window.app._gsSetTypeFilter(null)">Alles</button>
+        <button class="gs-type-chip" data-gs-type="personages"   onclick="window.app._gsSetTypeFilter('personages')"><svg class="icon" aria-hidden="true" focusable="false"><use href="/img/icons.svg?v=32#icon-user"/></svg> Personages</button>
+        <button class="gs-type-chip" data-gs-type="locaties"     onclick="window.app._gsSetTypeFilter('locaties')"><svg class="icon icon-gi" aria-hidden="true" focusable="false"><use href="/img/icons.svg?v=32#icon-castle"/></svg> Locaties</button>
+        <button class="gs-type-chip" data-gs-type="organisaties" onclick="window.app._gsSetTypeFilter('organisaties')"><svg class="icon" aria-hidden="true" focusable="false"><use href="/img/icons.svg?v=32#icon-landmark"/></svg> Organisaties</button>
+        <button class="gs-type-chip" data-gs-type="voorwerpen"   onclick="window.app._gsSetTypeFilter('voorwerpen')"><svg class="icon" aria-hidden="true" focusable="false"><use href="/img/icons.svg?v=32#icon-package"/></svg> Voorwerpen</button>
+        <button class="gs-type-chip" data-gs-type="documenten"   onclick="window.app._gsSetTypeFilter('documenten')"><svg class="icon" aria-hidden="true" focusable="false"><use href="/img/icons.svg?v=32#icon-scroll-text"/></svg> Documenten</button>
+        <button class="gs-type-chip" data-gs-type="spreuken"     onclick="window.app._gsSetTypeFilter('spreuken')"><svg class="icon" aria-hidden="true" focusable="false"><use href="/img/icons.svg?v=32#icon-sparkles"/></svg> Spreuken</button>
+        <button class="gs-type-chip" data-gs-type="bestiarium"   onclick="window.app._gsSetTypeFilter('bestiarium')"><svg class="icon" aria-hidden="true" focusable="false"><use href="/img/icons.svg?v=32#icon-paw-print"/></svg> Bestiarium</button>
+        <button class="gs-type-chip" data-gs-type="heldenboek"   onclick="window.app._gsSetTypeFilter('heldenboek')"><svg class="icon" aria-hidden="true" focusable="false"><use href="/img/icons.svg?v=32#icon-award"/></svg> Heldenboek</button>
+      </div>
+      <div id="global-search-results" class="global-search-results"></div>
+    </div>
+  </div>
+
+    <!-- Sections -->
+    <main class="flex-1 overflow-hidden">
+      <div class="section active" id="section-personages"></div>
+      <div class="section" id="section-locaties"></div>
+      <div class="section" id="section-organisaties"></div>
+      <div class="section" id="section-voorwerpen"></div>
+      <div class="section" id="section-documenten"></div>
+      <div class="section" id="section-bestiarium"></div>
+      <div class="section" id="section-spreuken"></div>
+      <div class="section" id="section-vaardigheden"></div>
+      <div class="section" id="section-logboek"></div>
+      <div class="section" id="section-markt"></div>
+      <div class="section" id="section-herberg"></div>
+      <div class="section" id="section-tweespalt"></div>
+      <div class="section" id="section-gock"></div>
+      <div class="section" id="section-magizoo"></div>
+      <div class="section" id="section-woekeraar"></div>
+   <div class="section" id="section-ursula"></div>
+      <div class="section" id="section-tempel"></div>
+      <div class="section" id="section-facties"></div>
+      <div class="section" id="section-kaart"></div>
+      <div class="section" id="section-bastion"></div>
+      <div class="section" id="section-relatiemap"></div>
+      <div class="section" id="section-mijn-karakter"></div>
+      <div class="section" id="section-spelers"></div>
+      <div class="section dm-section" id="section-meesterkamer">
+        <div class="dm-section-layout">
+        <div class="dm-section-tabs" id="dm-section-tabs"></div>
+        <div class="dm-section-body" id="dm-section-body">
+          <!-- Tafels tab -->
+          <div class="dm-tab-content" data-tab="tafels">
+            <div id="dm-tafels-content"></div>
+          </div>
+          <!-- Monsters tab -->
+          <div class="dm-tab-content" data-tab="monsters">
+            <div id="dm-monsters-content"></div>
+          </div>
+          <!-- Gevecht tab -->
+          <div class="dm-tab-content" data-tab="gevecht">
+            <div id="dm-gevecht-content"></div>
+          </div>
+          <!-- Loot tab -->
+          <div class="dm-tab-content" data-tab="loot"></div>
+          <!-- Rust tab -->
+          <div class="dm-tab-content" data-tab="rust"></div>
+          <!-- Aktes tab -->
+          <div class="dm-tab-content" data-tab="aktes"></div>
+          <!-- Geluiden tab -->
+          <div class="dm-tab-content" data-tab="geluiden">
+            <div id="dm-geluiden-content"></div>
+          </div>
+          <!-- Instellingen tab — was een modal; nu een tab als alle andere -->
+          <div class="dm-tab-content" data-tab="instellingen">
+            <div id="dm-instellingen-body" class="dm-instellingen-body"></div>
+          </div>
+          <!-- Wereld tab -->
+          <div class="dm-tab-content" data-tab="wereld"></div>
+          <!-- Herberg tab -->
+          <div class="dm-tab-content" data-tab="herberg"></div>
+          <!-- Tweespalt tab -->
+          <div class="dm-tab-content" data-tab="tweespalt"></div>
+          <!-- Gock tab -->
+          <div class="dm-tab-content" data-tab="gock"></div>
+       <!-- Ursula tab -->
+          <div class="dm-tab-content" data-tab="ursula"></div>
+          <!-- Tempel tab -->
+          <div class="dm-tab-content" data-tab="tempel"></div>
+          <!-- Facties & Aanzien tab -->
+          <div class="dm-tab-content" data-tab="facties"></div>
+          <!-- De Magizoöloog tab -->
+          <div class="dm-tab-content" data-tab="magizoo"></div>
+          <div class="dm-tab-content" data-tab="woekeraar"></div>
+          <div class="dm-tab-content" data-tab="markt"></div>
+          <div class="dm-tab-content" data-tab="toegang"></div>
+          <!-- Gedeelde beurs tab -->
+          <div class="dm-tab-content" data-tab="beurs"></div>
+          <!-- Mediabibliotheek tab -->
+          <div class="dm-tab-content" data-tab="media"></div>
+          <!-- Berichten tab -->
+          <div class="dm-tab-content" data-tab="berichten"></div>
+          <!-- Verzoeken tab: spreuken + voorwerpen die op de DM wachten -->
+          <div class="dm-tab-content" data-tab="verzoeken"></div>
+          <!-- Diensten tab (Herberg + Tweespalt + Gock) -->
+          <div class="dm-tab-content" data-tab="diensten"></div>
+        </div><!-- /.dm-section-body -->
+        </div><!-- /.dm-section-layout -->
+      </div>
+    </main>
+
+    <!-- Reveal strip (persistent DM overlay) -->
+    <div class="dm-reveal-strip" id="dm-reveal-strip"></div>
+
+    <!-- Regie-balk (horizontale DM-regiebalk onderaan) -->
+    <div id="dm-regie-balk" class="dm-regie-balk"></div>
+
+    <!-- FAB -->
+    <button id="fab" onclick="window.app.onFabClick()"
+      class="hidden fixed bottom-6 right-6 w-14 h-14 rounded-full bg-gold text-room-bg text-2xl font-bold shadow-deep hover:scale-110 transition z-40">+</button>
+  </div>
+
+  <!-- Login modal -->
+  <div class="modal-overlay" id="login-overlay">
+    <div class="modal max-w-sm animate-modal-in">
+      <div class="modal-head">
+        <div class="font-cinzel text-lg text-gold font-bold">DM Login</div>
+        <button class="modal-close" onclick="window.app.closeLoginModal()">&times;</button>
+      </div>
+      <div class="p-5">
+        <input type="password" id="dm-password" placeholder="Wachtwoord..."
+          class="w-full px-3 py-2 bg-room-bg border border-room-border rounded text-ink-bright font-crimson focus:border-gold-dim focus:outline-none"
+          onkeydown="if(event.key==='Enter')window.app.login()">
+        <div id="login-error" class="hidden text-seal text-sm mt-2">Verkeerd wachtwoord</div>
+        <button onclick="window.app.login()"
+          class="w-full mt-3 px-4 py-2 bg-gold-dim text-room-bg font-cinzel font-semibold rounded hover:bg-gold transition">Inloggen</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tablet login modal -->
+  <div class="modal-overlay" id="tablet-login-overlay">
+    <div class="modal max-w-sm animate-modal-in">
+      <div class="modal-head">
+        <div class="font-cinzel text-lg text-gold font-bold"><svg class="icon" aria-hidden="true" focusable="false"><use href="/img/icons.svg?v=32#icon-monitor"/></svg> Tablet</div>
+        <button class="modal-close" onclick="window.app.closeTabletModal()">&times;</button>
+      </div>
+      <div class="p-5">
+        <input type="password" id="tablet-password" placeholder="Wachtwoord…"
+          class="w-full px-3 py-2 bg-room-bg border border-room-border rounded text-ink-bright font-crimson focus:border-gold-dim focus:outline-none"
+          onkeydown="if(event.key==='Enter')window.app.tabletLoginSubmit()">
+        <div id="tablet-error" class="hidden text-seal text-sm mt-2">Verkeerd wachtwoord</div>
+        <button onclick="window.app.tabletLoginSubmit()"
+          class="w-full mt-3 px-4 py-2 bg-gold-dim text-room-bg font-cinzel font-semibold rounded hover:bg-gold transition">Activeren</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Speler karakter-kiezer — vervangen door landingspagina (panel niet meer in gebruik) -->
+
+  <!-- Landing page — paginavullend portretkiezer voor niet-ingelogde bezoekers -->
+  <div id="landing-overlay" class="landing-overlay hidden">
+    <a class="landing-terug" href="/">&lsaquo; Andere campagne</a>
+    <!-- De weg naar binnen voor de DM: rechtsboven, tegenover de weg terug. Een
+         speler klikt zijn portret en krijgt dán pas om het groepswachtwoord
+         gevraagd; stond dit veld midden onderaan, dan typte hij hier — een
+         invoerveld trekt nu eenmaal. Het accepteert nog steeds een
+         groepswachtwoord (dat filtert de kiezer op die party), maar nodigt er
+         niet meer toe uit. Geen knop: Enter is genoeg. -->
+    <div class="landing-toegang">
+      <button type="button" class="landing-toegang-knop" id="landing-toegang-knop"
+        onclick="window.app.landingDmVeld()">Dungeon Master</button>
+      <form class="landing-toegang-form hidden" id="landing-toegang-form"
+        onsubmit="event.preventDefault();window.app.landingToegang()">
+        <input id="landing-toegang-pw" type="password" class="landing-pw-input landing-pw-input--dm"
+          placeholder="Wachtwoord… &#8629;" autocomplete="current-password" aria-label="DM-wachtwoord">
+        <div id="landing-toegang-error" class="landing-pw-error hidden">Verkeerd wachtwoord</div>
+      </form>
+    </div>
+    <div class="landing-scrollhint hidden" id="landing-scrollhint" aria-hidden="true">&#8964;</div>
+    <div class="landing-inner">
+      <div class="landing-header">
+        <img class="landing-crest hidden" id="landing-crest" src="" alt="" aria-hidden="true">
+        <h1 class="landing-title" id="landing-title"></h1>
+        <p class="landing-subtitle" id="landing-subtitle"></p>
+      </div>
+      <div class="landing-portraits" id="landing-portraits">
+        <p class="landing-loading">Laden…</p>
+      </div>
+      <div class="landing-footer">
+      </div>
+    </div>
+  </div>
+
+  <!-- Detail / Editor modal -->
+  <!-- Het sluiten-bij-klikken-buiten zit in app.js (sluitBijKlikBuiten): een
+       inline onclick kan niet zien waar de muisbeweging begón, en sloot het
+       venster zodra je een zin selecteerde die net buiten het kaartje eindigde. -->
+  <div class="modal-overlay" id="modal-overlay">
+    <div class="modal animate-modal-in" role="dialog" aria-modal="true" aria-labelledby="m-title">
+      <div id="m-accent" class="modal-accent"></div>
+      <div class="modal-head" id="modal-head">
+        <div class="flex items-center gap-2 min-w-0 flex-1">
+          <button id="m-back" class="modal-back hidden" onclick="window._modalGoBack()" title="Terug">&#8592;</button>
+          <!-- Het portret kan ook bewegen: hetzelfde `<id>_video` dat een speler
+               op de landingspagina heeft. Het stilstaande beeld blijft eronder
+               liggen als eerste frame en als terugval. -->
+          <div id="m-portrait-wrap" class="modal-portrait-wrap hidden">
+            <img id="m-portrait" class="modal-portrait-img" alt="">
+            <video id="m-portrait-video" class="modal-portrait-video hidden"
+              muted loop playsinline preload="none"></video>
+          </div>
+          <div class="min-w-0 flex-1">
+            <div class="font-cinzel text-xl text-gold font-bold" id="m-title"></div>
+            <div class="text-ink-dim text-sm italic" id="m-sub"></div>
+          </div>
+        </div>
+        <span id="m-hulp" class="modal-hulp"></span>
+        <button class="modal-close" onclick="window.app.closeModal()" aria-label="Sluiten">&times;</button>
+      </div>
+      <div class="overflow-y-auto flex-1 min-h-0" id="m-body" style="padding:20px;overscroll-behavior:contain"></div>
+    </div>
+  </div>
+
+  <!-- Lightbox -->
+  <div id="lightbox" class="fixed inset-0 bg-black/90 z-50 hidden items-center justify-center" onclick="window.app.closeLightbox()">
+    <button onclick="event.stopPropagation();window.app.closeLightbox()" class="absolute top-3 right-4 text-white text-4xl z-10 leading-none" style="text-shadow:0 0 8px #000">&times;</button>
+    <!-- Navigatiepijlen -->
+    <button id="lb-nav-left" onclick="event.stopPropagation();window.app.lbNavigate(-1)"
+      class="hidden lb-pijl absolute left-3 top-1/2 -translate-y-1/2 text-5xl z-10 w-14 h-14 flex items-center justify-center select-none"
+      style="text-shadow:0 0 8px #000">&#8249;</button>
+    <button id="lb-nav-right" onclick="event.stopPropagation();window.app.lbNavigate(1)"
+      class="hidden lb-pijl absolute right-3 top-1/2 -translate-y-1/2 text-5xl z-10 w-14 h-14 flex items-center justify-center select-none"
+      style="text-shadow:0 0 8px #000">&#8250;</button>
+    <!-- Afbeelding -->
+    <img id="lb-img" class="max-w-[82vw] max-h-[88vh] object-contain rounded" src="" style="touch-action:none;will-change:transform" onclick="event.stopPropagation()" draggable="false">
+    <!-- Zoomknoppen (touch-vriendelijk) -->
+    <div class="absolute bottom-5 right-4 z-10 flex flex-col gap-2" onclick="event.stopPropagation()">
+      <button onclick="window.app.lbZoomIn()" title="Inzoomen (+)"
+        class="w-11 h-11 flex items-center justify-center rounded-full bg-black/45 hover:bg-black/75 text-white text-2xl leading-none select-none transition-colors">+</button>
+      <button id="lb-zoom-reset" onclick="window.app.lbZoomReset()" title="Standaardgrootte (0)"
+        class="w-11 h-11 flex items-center justify-center rounded-full bg-black/45 hover:bg-black/75 text-white text-lg leading-none select-none transition-colors opacity-40">&#8634;</button>
+      <button onclick="window.app.lbZoomOut()" title="Uitzoomen (&minus;)"
+        class="w-11 h-11 flex items-center justify-center rounded-full bg-black/45 hover:bg-black/75 text-white text-2xl leading-none select-none transition-colors">&minus;</button>
+    </div>
+    <!-- Teller bovenin -->
+    <div id="lb-counter" class="hidden absolute top-4 left-1/2 -translate-x-1/2 text-white/50 text-xs font-mono bg-black/30 px-3 py-1 rounded-full" onclick="event.stopPropagation()"></div>
+    <!-- Titel onderaan -->
+    <div id="lb-title" class="absolute bottom-5 left-1/2 -translate-x-1/2 text-white/70 bg-black/50 px-4 py-1 rounded text-sm font-fell italic" onclick="event.stopPropagation()"></div>
+  </div>
+
+  <!-- iPad kiosk display canvas — visible when ?display=1 -->
+  <div id="display-canvas" class="display-canvas hidden">
+    <button class="display-exit-btn" onclick="window._displayExit()" title="Verlaat iPad-modus">✕</button>
+    <div id="display-idle" class="display-screen display-screen--idle">
+      <div class="display-idle-glow" aria-hidden="true"></div>
+      <div id="display-idle-embers" class="display-idle-embers" aria-hidden="true"></div>
+      <div class="display-idle-inner">
+        <div class="display-idle-ornament" aria-hidden="true">&#10022;</div>
+        <div id="display-campaign-title" class="display-campaign-title"></div>
+        <div class="display-campaign-sub"></div>
+      </div>
+    </div>
+    <div id="display-image-screen" class="display-screen" style="display:none">
+      <img id="display-img" src="" alt="" class="display-img">
+      <div id="display-img-caption" class="display-img-caption"></div>
+    </div>
+    <div id="display-dungeon-screen" class="display-screen" style="display:none">
+      <div id="display-dungeon-content" class="display-dungeon-content"></div>
+    </div>
+    <!-- Voorleestekst uit een akte: de klassieke boxed text, groot genoeg om
+         vanaf de andere kant van de tafel mee te lezen. -->
+    <div id="display-tekst-screen" class="display-screen display-screen--tekst" style="display:none">
+      <div class="display-tekst-vel">
+        <div id="display-tekst-kop" class="display-tekst-kop"></div>
+        <div id="display-tekst-body" class="display-tekst-body"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Combat overlay — visible to everyone when combat is active -->
+  <div id="combat-overlay" class="combat-overlay hidden">
+    <div class="combat-modal">
+      <div id="combat-modal-inner"></div>
+    </div>
+  </div>
+
+  <!-- Dice roller trigger — players only, bottom-right -->
+  <button id="dice-fab" class="dice-fab" onclick="window.dice.toggle()" title="Dobbelstenen gooien">
+    <svg viewBox="0 0 24 22" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round" aria-hidden="true">
+      <polygon points="12,1.5 23,20.5 1,20.5"/>
+      <polygon points="6.5,11.5 17.5,11.5 12,20"/>
+    </svg>
+  </button>
+
+  <!-- Dice Roller Panel — players only -->
+  <div id="dice-panel" class="dice-panel">
+    <div class="dice-panel-head">
+      <span class="dice-panel-title"><svg class="icon" aria-hidden="true" focusable="false"><use href="/img/icons.svg?v=32#icon-dice"/></svg> Dobbelstenen</span>
+      <button class="dice-panel-close" onclick="window.dice.toggle()" title="Sluiten">&times;</button>
+    </div>
+    <div class="dice-panel-grid">
+      <button class="dice-btn" onclick="window.dice.roll(4)">d4</button>
+      <button class="dice-btn" onclick="window.dice.roll(6)">d6</button>
+      <button class="dice-btn" onclick="window.dice.roll(8)">d8</button>
+      <button class="dice-btn" onclick="window.dice.roll(12)">d12</button>
+      <button class="dice-btn dice-btn--featured" onclick="window.dice.roll(20)">d20</button>
+      <button class="dice-btn" onclick="window.dice.roll(100)">d%</button>
+      <button class="dice-adv-instant dice-adv-instant--adv" onclick="window.dice.rollAdv(1)" title="Roll d20 with Advantage">Advantage</button>
+      <button class="dice-adv-instant dice-adv-instant--dis" onclick="window.dice.rollAdv(-1)" title="Roll d20 with Disadvantage">Disadvantage</button>
+    </div>
+    <button class="dice-formula-toggle" onclick="window.dice.toggleFormula(this)" title="Formule-invoer in-/uitklappen">▶ Formula</button>
+    <div class="dice-formula">
+      <input id="dice-formula-input" class="dice-formula-input" type="text" autocomplete="off" spellcheck="false"
+        placeholder="bv. 1d20+5, 2d6+3 vuur, adv" onkeydown="if(event.key==='Enter')window.dice.rollText('dice-formula-input')">
+      <button class="dice-formula-btn" onclick="window.dice.rollText('dice-formula-input')">Rol</button>
+    </div>
+    <div class="dice-result" id="dice-result">
+      <div class="dice-result-num" id="dice-result-num">—</div>
+      <div class="dice-result-label" id="dice-result-label">Kies een dobbelsteen</div>
+    </div>
+    <div class="dice-history" id="dice-history"></div>
+  </div>
+
+  <!-- DM Dice FAB — rechteronderhoek, zichtbaar voor DM -->
+  <button id="dm-dice-fab" class="dm-dice-fab hidden" onclick="window.dice.toggleDm()" title="Dobbelstenen gooien">
+    <svg viewBox="0 0 24 22" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round" aria-hidden="true">
+      <polygon points="12,1.5 23,20.5 1,20.5"/>
+      <polygon points="6.5,11.5 17.5,11.5 12,20"/>
+    </svg>
+  </button>
+
+  <!-- DM Dice Panel -->
+  <div id="dm-dice-panel" class="dm-dice-panel">
+    <div class="dice-panel-head">
+      <span class="dice-panel-title"><svg class="icon" aria-hidden="true" focusable="false"><use href="/img/icons.svg?v=32#icon-dice"/></svg> Dobbelstenen</span>
+      <button class="dice-panel-close" onclick="window.dice.toggleDm()" title="Sluiten">&times;</button>
+    </div>
+    <div class="dm-dice-panel-count">
+      <span class="dm-form-label" style="flex:none;font-size:11px">Aantal</span>
+      <button class="dm-btn dm-btn-sm dm-btn-ghost" onclick="window.dice.adjustCount(-1)">−</button>
+      <span id="dm-dice-count-display" class="dm-dice-count">1</span>
+      <button class="dm-btn dm-btn-sm dm-btn-ghost" onclick="window.dice.adjustCount(1)">+</button>
+    </div>
+    <div class="dice-panel-grid">
+      <button class="dice-btn" onclick="window.dice.rollDm(4)">d4</button>
+      <button class="dice-btn" onclick="window.dice.rollDm(6)">d6</button>
+      <button class="dice-btn" onclick="window.dice.rollDm(8)">d8</button>
+      <button class="dice-btn" onclick="window.dice.rollDm(12)">d12</button>
+      <button class="dice-btn dice-btn--featured" onclick="window.dice.rollDm(20)">d20</button>
+      <button class="dice-btn" onclick="window.dice.rollDm(100)">d%</button>
+      <button class="dice-adv-instant dice-adv-instant--adv" onclick="window.dice.rollAdv(1)" title="Roll d20 with Advantage">Advantage</button>
+      <button class="dice-adv-instant dice-adv-instant--dis" onclick="window.dice.rollAdv(-1)" title="Roll d20 with Disadvantage">Disadvantage</button>
+    </div>
+    <button class="dice-formula-toggle" onclick="window.dice.toggleFormula(this)" title="Formule-invoer in-/uitklappen">▶ Formula</button>
+    <div class="dice-formula">
+      <input id="dm-dice-formula-input" class="dice-formula-input" type="text" autocomplete="off" spellcheck="false"
+        placeholder="bv. 1d20+7, 8d6 fire, 4d6kh3" onkeydown="if(event.key==='Enter')window.dice.rollText('dm-dice-formula-input')">
+      <button class="dice-formula-btn" onclick="window.dice.rollText('dm-dice-formula-input')">Rol</button>
+    </div>
+    <div class="dice-result" id="dm-dice-result">
+      <div class="dice-result-num" id="dm-dice-result-num">—</div>
+      <div class="dice-result-label" id="dm-dice-result-label">Kies een dobbelsteen</div>
+    </div>
+    <div class="dice-history" id="dm-dice-history"></div>
+  </div>
+
+  <!-- DM Instellingen modal -->
+
+  <script type="module" src="/js/sound-manager.js?v=15"></script>
+  <script type="module" src="/js/app.js?v=1195"></script>
+</body>
+</html>
