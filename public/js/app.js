@@ -4401,7 +4401,12 @@ const _GLOSS_SKIP = ['sb-gloss', 'sb-hl-dice', 'sb-hl-dmg', 'sb-hl-save', 'sb-hl
   // "SAVE". Dat is een kolomkop, geen zin waarin een term valt uit te leggen —
   // en dat geldt net zo voor het blokje met Save DC en Attack ernaast.
   'sb-meta-key', 'sb-spell-meta-row', 'sb-badge', 'sb-stat-label', 'sb-spell-stats'];
-const _GLOSS_SKIP_TAGS = new Set(['H1', 'H2', 'H3', 'H4', 'H5', 'H6', 'BUTTON', 'SUMMARY', 'LABEL']);
+// `DT` hoort in dit rijtje: in een definitielijst is dat per definitie het
+// label en niet de tekst. "ABILITY SCORES" kreeg een stippellijn omdat het
+// toevallig ook een term is — maar daar lees je welk veld het is, niet wat het
+// betekent. Dat is dezelfde reden als bij `sb-meta-key` hierboven, alleen
+// hangt het daar aan een klasse en hier aan de tag.
+const _GLOSS_SKIP_TAGS = new Set(['H1', 'H2', 'H3', 'H4', 'H5', 'H6', 'BUTTON', 'SUMMARY', 'LABEL', 'DT']);
 
 function _sbGlossWalk(node, seen) {
   if (node.nodeType === Node.TEXT_NODE) {
