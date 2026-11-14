@@ -12164,8 +12164,16 @@ router.put('/progression/houder', requireDM, (req, res) => {
   res.json({ ok: true });
 });
 
-// De vier soorten feats uit de Player's Handbook 2024. D&D-termen, dus Engels.
-const _FEAT_SOORTEN = ['Origin', 'General', 'Fighting Style', 'Epic Boon'];
+// Alle soorten feats die er zijn. De eerste vier komen uit de Player's
+// Handbook 2024; Dark Gift (Van Richten's Guide to Ravenloft) en Dragonmark
+// (Eberron) staan daarachter omdat ze uit een ander boek komen — maar ze horen
+// in de lijst, want een campagne die ze gebruikt heeft er anders geen woord
+// voor. Nageteld in de 5etools-spiegel: dit zijn ze alle zes, en er is niets
+// anders. De class-gebonden fighting styles (Druidic Warrior voor de Ranger,
+// Blessed Warrior voor de Paladin) staan daar als eigen code, maar dat is geen
+// zevende soort — die beperking hoort in Prerequisite.
+// D&D-termen, dus Engels.
+const _FEAT_SOORTEN = ['Origin', 'General', 'Fighting Style', 'Epic Boon', 'Dark Gift', 'Dragonmark'];
 
 router.post('/progression/feature', requireDM, (req, res) => {
   const b = req.body || {};
@@ -12224,6 +12232,10 @@ router.post('/progression/feature', requireDM, (req, res) => {
     if (aan.length) regel.sluitAan = aan; else delete regel.sluitAan;
     const eis = String(b.vereist || '').trim().slice(0, 160);
     if (eis) regel.vereist = eis; else delete regel.vereist;
+    // Het minimumlevel staat apart: Abjuration Adept vraagt een level én een
+    // school, en die twee in één tekstvak betekent dat niemand er iets mee kan.
+    const lvl = parseInt(b.vereistLevel, 10);
+    if (lvl >= 1 && lvl <= 20) regel.vereistLevel = lvl; else delete regel.vereistLevel;
     // Wat voor feat het is. De PHB 2024 deelt ze in vier soorten in, en die
     // indeling doet er aan tafel toe: een Origin-feat krijg je bij je
     // background, een General pas bij een Ability Score Improvement. De app

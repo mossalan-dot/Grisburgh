@@ -358,8 +358,8 @@ async function _load() {
     }
   }
   _voegLevelsSamen(uit);
-  for (const f of (_bron.feats?.general || [])) zet({ soort: 'feat', bron: 'Feats',      level: 0, naam: f.name, desc: f.desc || '', img: f.img || '', imgFocus: f.imgFocus || '', herkomst: f.herkomst || '', bronTekst: f.bron || '', sluitAan: f.sluitAan || [], vereist: f.vereist || '', geeftSpreuk: f.geeftSpreuk || [], categorie: f.categorie || '' });
-  for (const f of (_bron.feats?.epic    || [])) zet({ soort: 'boon', bron: 'Epic Boons', level: 0, naam: f.name, desc: f.desc || '', img: f.img || '', imgFocus: f.imgFocus || '', herkomst: f.herkomst || '', bronTekst: f.bron || '', sluitAan: f.sluitAan || [], vereist: f.vereist || '', geeftSpreuk: f.geeftSpreuk || [], categorie: f.categorie || '' });
+  for (const f of (_bron.feats?.general || [])) zet({ soort: 'feat', bron: 'Feats',      level: 0, naam: f.name, desc: f.desc || '', img: f.img || '', imgFocus: f.imgFocus || '', herkomst: f.herkomst || '', bronTekst: f.bron || '', sluitAan: f.sluitAan || [], vereist: f.vereist || '', vereistLevel: f.vereistLevel || 0, geeftSpreuk: f.geeftSpreuk || [], categorie: f.categorie || '' });
+  for (const f of (_bron.feats?.epic    || [])) zet({ soort: 'boon', bron: 'Epic Boons', level: 0, naam: f.name, desc: f.desc || '', img: f.img || '', imgFocus: f.imgFocus || '', herkomst: f.herkomst || '', bronTekst: f.bron || '', sluitAan: f.sluitAan || [], vereist: f.vereist || '', vereistLevel: f.vereistLevel || 0, geeftSpreuk: f.geeftSpreuk || [], categorie: f.categorie || '' });
   // Een background is één ding met vijf onderdelen (Ability Scores, Feat,
   // Skill Proficiencies, Tool Proficiency, Equipment). Als losse kaartjes krijg
   // je zestien keer "Ability Scores" in de lijst; als één kaartje per background
@@ -638,22 +638,40 @@ function _kaartBladen(it) {
       html: `<dl class="vk-training">${rijen.map(([k, v, html]) =>
         `<dt>${esc(k)}</dt><dd>${html ?? _rijWaardeHtml(v)}</dd>`).join('')}</dl>` });
   }
-  // Een feat of Epic Boon heeft hetzelfde soort blad: wat voor feat het is,
-  // wat hij vraagt, wat hij geeft en bij wie hij past. Dat stond alleen in het
-  // bewerkvenster — je kon het invullen en nergens teruglezen.
-  if (it.soort === 'feat' || it.soort === 'boon') {
-    const rijen = [
-      ['Soort', it.categorie || ''],
-      ['Prerequisite', it.vereist || ''],
-      ['Geeft spreuk', (it.geeftSpreuk || []).join(', ')],
-      ['Sluit aan op', (it.sluitAan || []).join(', ')],
-    ].filter(([, v]) => v);
-    if (rijen.length) bladen.push({ soort: 'eigenschappen', label: 'Eigenschappen',
-      tekst: rijen.map(([k, v]) => `${k} ${v}`).join(' '),
-      html: `<dl class="vk-training">${rijen.map(([k, v]) =>
-        `<dt>${esc(k)}</dt><dd>${_rijWaardeHtml(v)}</dd>`).join('')}</dl>` });
+  // Een feat of Epic Boon heeft geen eigen blad voor wat hij is. Dat kreeg hij
+  // eerst wel, maar de meeste feats hebben er twee regels staan — soort en
+  // prerequisite — en dan kijk je naar een vel perkament dat voor negentig
+  // procent leeg is. Ze staan nu als onderschrift op de plaat; bij een feat
+  // zonder plaat bovenaan de beschrijving, want dan is er niets om op te
+  // leggen.
+  const feiten = _featFeiten(it);
+  if (feiten.length && !bladen.some(b => b.soort === 'portret')) {
+    const blad = bladen.find(b => b.soort === 'beschrijving');
+    if (blad) blad.html = `${_featFeitenHtml(feiten, true)}${blad.html}`;
   }
   return bladen;
+}
+
+// Wat een feat is en vraagt, in regels. Leeg blijft weg: een lege regel zegt
+// niets, en vier koppen met drie streepjes lezen als een fout.
+function _featFeiten(it) {
+  if (it.soort !== 'feat' && it.soort !== 'boon') return [];
+  // Het level en de rest van de eis zijn twee velden en één regel: "Level 4+,
+  // Abjuration school" leest als één voorwaarde, want dat is het ook.
+  const lvl = Number(it.vereistLevel) || 0;
+  const eis = [lvl ? `Level ${lvl}+` : '', it.vereist || ''].filter(Boolean).join(', ');
+  return [
+    ['Soort', it.categorie || ''],
+    ['Prerequisite', eis],
+    ['Geeft spreuk', (it.geeftSpreuk || []).join(', ')],
+    ['Sluit aan op', (it.sluitAan || []).join(', ')],
+  ].filter(([, v]) => v);
+}
+
+function _featFeitenHtml(feiten, opPerkament = false) {
+  if (!feiten.length) return '';
+  return `<dl class="tegel-feiten${opPerkament ? ' tegel-feiten--vel' : ''}">${feiten.map(([k, v]) =>
+    `<dt>${esc(k)}</dt><dd>${esc(v)}</dd>`).join('')}</dl>`;
 }
 
 function _kaartBladInhoud(it, blad) {
@@ -662,7 +680,8 @@ function _kaartBladInhoud(it, blad) {
     const meta = [_bronRegel(it), _toontLevel(it.soort, it.level) ? `level ${niveaus}` : ''].filter(Boolean).join(' \u00b7 ');
     return `<div class="tegel-naamband tegel-naamband--groot">
       <span class="card-name">${esc(it.naam)}</span>
-      ${meta ? `<span class="tegel-ondertitel">${esc(meta)}</span>` : ''}</div>`;
+      ${meta ? `<span class="tegel-ondertitel">${esc(meta)}</span>` : ''}
+      ${_featFeitenHtml(_featFeiten(it))}</div>`;
   }
   return `<div class="tegel-vel">
     <div class="tegel-vel-kop">${icon(_KAART_BLAD_ICOON[blad.soort] || 'square')} ${esc(blad.label)}<span class="tegel-vel-naam">${esc(it.naam)}</span></div>
@@ -1053,17 +1072,22 @@ const _AB_NAAM = { str: 'Strength', dex: 'Dexterity', con: 'Constitution',
 function _koppelingVan(it) {
   const eigen = {
     vereist: it.vereist || '',
+    // Het minimumlevel staat apart van de rest van de eis. Abjuration Adept
+    // vraagt een level én een school; die twee in één tekstvak betekent dat de
+    // app er niets mee kan — en dat je ze per feat anders opschrijft.
+    vereistLevel: Number(it.vereistLevel) || 0,
     geeftSpreuk: it.geeftSpreuk || [],
     sluitAan: it.sluitAan || [],
   };
-  if (eigen.vereist || eigen.geeftSpreuk.length || eigen.sluitAan.length) return eigen;
+  if (eigen.vereist || eigen.vereistLevel || eigen.geeftSpreuk.length || eigen.sluitAan.length) return eigen;
   const mee = _featKoppel?.[it.naam];
   if (!mee) {
     // Elke Epic Boon vraagt level 19; dat staat niet twaalf keer in het bestand.
-    return it.soort === 'boon' ? { vereist: 'Level 19', geeftSpreuk: [], sluitAan: [] } : eigen;
+    return it.soort === 'boon' ? { vereist: '', vereistLevel: 19, geeftSpreuk: [], sluitAan: [] } : eigen;
   }
   return {
     vereist: mee.vereist || '',
+    vereistLevel: Number(mee.vereistLevel) || 0,
     geeftSpreuk: mee.geeftSpreuk || [],
     // `casters: true` betekent "iedereen die cast"; wie dat zijn staat in
     // klasse-basis.json, dus die lijst hoeft niet in het koppelbestand.
@@ -1187,9 +1211,11 @@ function _spreukRegel(klasse, basis) {
 // daarmee ook niets om aan zijn onderdelen door te geven. Hij heeft nu een
 // eigen bak, net als de rest — eigen bakken en niet één gedeelde, want een
 // class en een background mogen dezelfde naam hebben.
-// De vier soorten feats uit de Player's Handbook 2024 — D&D-termen, dus
-// Engels, en dezelfde lijst als de server bewaakt.
-const _FEAT_SOORTEN = ['Origin', 'General', 'Fighting Style', 'Epic Boon'];
+// Alle zes de soorten feats: vier uit de Player's Handbook 2024, plus Dark
+// Gift (Van Richten's Guide to Ravenloft — Aberrant Anatomy en de zijne) en
+// Dragonmark (Eberron — Aberrant Dragonmark, Mark of Detection). D&D-termen,
+// dus Engels, en dezelfde lijst als de server bewaakt.
+const _FEAT_SOORTEN = ['Origin', 'General', 'Fighting Style', 'Epic Boon', 'Dark Gift', 'Dragonmark'];
 
 const _HB_BAK = { class: 'klassen', species: 'species', subclass: 'subclassen', variant: 'varianten', background: 'backgrounds' };
 // Een beeld bij een kaart was alleen een bestand-id. Nu mag het ook een id mét
@@ -2342,11 +2368,12 @@ function _klassenVoorFeat(it) {
       if (klassen.includes(k) && !viaSpreuk.includes(k)) viaSpreuk.push(k);
     }
   }
-  if (!aangewezen.length && !viaEis.length && !viaSpreuk.length && !eis) return null;
+  const eisLevel = Number(kop.vereistLevel) || 0;
+  if (!aangewezen.length && !viaEis.length && !viaSpreuk.length && !eis && !eisLevel) return null;
   // `geeftSpreuk` gaat mee: de weergave noemt eronder wélke spreuk het is, en
   // die staat niet per se op het item zelf — hij kan uit de meegeleverde
   // koppelingen komen.
-  return { aangewezen, viaEis, viaSpreuk, eis, geeftSpreuk: kop.geeftSpreuk };
+  return { aangewezen, viaEis, viaSpreuk, eis, eisLevel, geeftSpreuk: kop.geeftSpreuk };
 }
 
 function _featKoppelingHtml(it) {
@@ -2361,7 +2388,7 @@ function _featKoppelingHtml(it) {
     </div>` : '';
   return `
     <div class="vk-feats vk-feats--omgekeerd">
-      ${k.eis ? `<div class="vk-eis">${icon('lock')} <strong>Prerequisite</strong> ${esc(k.eis)}</div>` : ''}
+      ${(k.eis || k.eisLevel) ? `<div class="vk-eis">${icon('lock')} <strong>Prerequisite</strong> ${esc([k.eisLevel ? `Level ${k.eisLevel}+` : '', k.eis].filter(Boolean).join(', '))}</div>` : ''}
       ${rij('Aangewezen', 'hier aan gehangen', k.aangewezen)}
       ${rij('Via de eis', 'deze klassen geven die training', k.viaEis)}
       ${rij('Geeft een spreuk', 'staat op hun lijst', k.viaSpreuk)}
@@ -3515,6 +3542,12 @@ function _editorHtml() {
           placeholder="bv. Medium armor training, of Strength 13">
       </div>
       <div class="dm-form-row">
+        <label class="dm-form-label" for="vd-vereistlvl">Prerequisite Level</label>
+        <input class="dm-input dm-input-sm" id="vd-vereistlvl" inputmode="numeric" maxlength="2"
+          style="max-width:90px" value="${e.vereistLevel ? esc(String(e.vereistLevel)) : ''}"
+          placeholder="4">
+      </div>
+      <div class="dm-form-row">
         <label class="dm-form-label">Geeft spreuk</label>
         <input class="dm-input" id="vd-geeft" value="${esc((e.geeftSpreuk || []).join(', '))}"
           placeholder="bv. Misty Step, Detect Thoughts">
@@ -3601,10 +3634,10 @@ function _editorOpen(it) {
         naam: it.naam, desc: _schoonVoorEditor(it.desc || ''), herkomst: it.herkomst || '',
         bronTekst: it.bronTekst || '', img: it.img || '', imgFocus: it.imgFocus || '',
         sluitAan: Array.isArray(it.sluitAan) ? [...it.sluitAan] : [], vereist: it.vereist || '',
-        categorie: it.categorie || '',
+        categorie: it.categorie || '', vereistLevel: it.vereistLevel || 0,
         geeftSpreuk: Array.isArray(it.geeftSpreuk) ? [...it.geeftSpreuk] : [] }
     : { oud: null, maaksel: 'feat', soort: 'feat', bron: 'Feats', sub: '', level: 1, naam: '', desc: '', herkomst: 'zelfbedacht', bron_: '', img: '', imgFocus: '',
-        sluitAan: [], vereist: '', geeftSpreuk: [], categorie: '' };
+        sluitAan: [], vereist: '', geeftSpreuk: [], categorie: '', vereistLevel: 0 };
   // Bij bewerken weten we welk soort het is; dat is altijd een regel binnen
   // iets, nooit een houder.
   if (it) _edit.maaksel = { class: 'f-class', subclass: 'f-subclass', species: 'f-species',
@@ -3652,6 +3685,7 @@ function _editorLees() {
   if (v('vd-bron') !== undefined) _edit.bron = v('vd-bron');
   if (v('vd-vereist') !== undefined) _edit.vereist = v('vd-vereist');
   if (v('vd-categorie') !== undefined) _edit.categorie = v('vd-categorie');
+  if (v('vd-vereistlvl') !== undefined) _edit.vereistLevel = parseInt(v('vd-vereistlvl'), 10) || 0;
   if (v('vd-bronnaam') !== undefined) _edit.bronTekst = v('vd-bronnaam');
   if (v('vd-kleur') !== undefined) _edit.kleur = v('vd-kleur');
   // De kerngegevens horen bij de rest van het formulier: het venster tekent
@@ -3872,7 +3906,7 @@ window.vaardigheden = {
         // Leeg betekent hier echt weg (de wisknop), vandaar `null` en niet ''.
         img: _edit.img || null, imgFocus: _edit.imgFocus || '',
         sluitAan: _edit.sluitAan || [], vereist: _edit.vereist || '', geeftSpreuk: _edit.geeftSpreuk || [],
-        categorie: _edit.categorie || '',
+        categorie: _edit.categorie || '', vereistLevel: _edit.vereistLevel || 0,
         // Bij een feat of Epic Boon: de bibliotheek mee, zodat de server hem
         // vastlegt als deze campagne er nog geen eigen had (zie de route).
         seedFeats: (_edit.soort === 'feat' || _edit.soort === 'boon') ? _bron?.feats : undefined,
