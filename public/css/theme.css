@@ -24177,6 +24177,25 @@ body.landing-open > *:not(#landing-overlay):not(#landing-zoom):not(#pm-overlay):
    gewoon meegestuurd worden. */
 .ed-paneel-verborgen { display: none; }
 .ed-knoppen { border-top: 1px solid var(--color-room-border); margin-top: 16px; padding-top: 12px; }
+/* **Opslaan blijft staan.** Op een blad met veel velden (het statblok, de
+   winkelvoorraad) stond de knop onderaan een scrollbare kolom: je typt iets,
+   kijkt op, en moet eerst een scherm terugrollen om te kunnen bewaren. Nu
+   plakt de balk onderaan het venster.
+
+   `position: sticky` werkt alleen als niets ertussen `overflow` afknipt; het
+   formulier staat rechtstreeks in `#m-body`, en dát is wat scrollt. De
+   negatieve marges trekken de balk tot aan de rand van het venster, zodat er
+   geen streepje perkament naast valt. */
+.ed-knoppen--vast {
+  position: sticky; bottom: -20px; z-index: 12;
+  margin-left: -20px; margin-right: -20px; margin-bottom: -20px;
+  padding: 12px 20px; background: #f8f0de;
+  box-shadow: 0 -6px 18px rgba(60,40,10,0.12);
+}
+@media (max-width: 640px) {
+  /* `#m-body` heeft daar 12px padding in plaats van 20. */
+  .ed-knoppen--vast { bottom: -12px; margin-left: -12px; margin-right: -12px; margin-bottom: -12px; padding: 10px 12px; }
+}
 
 /* Kant in gevecht begint op een eigen regel: als vervolg op dezelfde rij liep
    het bij smalle vensters door elkaar en leek "Antagonist" bij de kant te horen. */
@@ -33130,6 +33149,14 @@ body.gr-slowmo .combat-overlay { filter: grayscale(.85) contrast(1.1) brightness
   border: 1px solid rgba(60,40,10,0.25);
 }
 .dm-actie--weg:hover { border-color: rgba(140,30,30,0.5); color: #8c2020; }
+/* De vijf houdingknoppen in de bewerkmodal: hetzelfde rijtje als in het
+   detailvenster. Het was een schuifje met een kleurverloop — je zag niet
+   welke trede je koos tot je de naam ernaast las. */
+.houding-knoppen { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
+.houding-stand {
+  margin: 7px 0 0; font-family: 'Crimson Text', serif; font-size: 0.88rem; color: #6a5030;
+}
+.houding-keuze.dm-actie--aan .dm-actie-vlek { box-shadow: 0 0 0 2px rgba(255,252,244,0.85); }
 @media (max-width: 640px) {
   .detail-dm-rij { grid-template-columns: 1fr; gap: 3px; }
   .detail-dm-kop { padding-top: 0; }
@@ -33159,6 +33186,10 @@ body.gr-slowmo .combat-overlay { filter: grayscale(.85) contrast(1.1) brightness
 .tegel-dm .tegel-zicht-rij, .tegel-voet .tegel-dm .tegel-zicht-rij {
   width: 100%; height: auto; border-radius: 5px;
   background: none; color: #3a2410;
+  /* `.tegel-dm button` centreert elke knop eronder — dat hoort bij de ronde
+     knoppen in de balk, niet bij de regels in het paneel. Zonder dit stond
+     elke regel op zijn eigen inspringing en liep de kolom iconen schuin. */
+  justify-content: flex-start; text-align: left;
   -webkit-backdrop-filter: none; backdrop-filter: none;
 }
 .tegel-dm .tegel-zicht-rij:hover, .tegel-voet .tegel-dm .tegel-zicht-rij:hover { background: rgba(196,168,122,0.25); }

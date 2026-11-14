@@ -690,7 +690,7 @@ function _houdingBalkHtml(type, e) {
     data-id="${esc(e.id)}" data-type="${esc(type)}" data-nu="${geldt}"
     onclick="event.stopPropagation()">
     ${treden.map(h => `<button type="button" class="houding-stap${h.waarde === geldt ? ' is-aan' : ''}"
-      style="--houding-kleur:${h.glans?.kleur || '#c4a87a'}"
+      style="--houding-kleur:${h.pil || h.glans?.kleur || '#c4a87a'}"
       title="${esc(h.naam)}${h.waarde === geldt ? (eigen === null ? ' · nu, uitgerekend' : ' · nu — tik nog eens voor standaard') : ''}"
       onclick="event.stopPropagation();window._houdingZet('${escArg(type)}','${escArg(e.id)}',${h.waarde})"></button>`).join('')}
   </div>`;
@@ -800,7 +800,6 @@ window._laadHoudingen = laadHoudingen;
 function _houdingVeldHtml(field, eigen, berekend) {
   const nu = eigen === null ? berekend : eigen;
   const h  = _HOUDING_TABEL.get(nu);
-  const kleur = h?.glans?.kleur || '#8a7050';
   // Het schuifje draagt de waarde niet: een `range` kan niet leeg zijn, en leeg
   // is hier een betekenis — "reken het zelf maar uit". De opgeslagen waarde zit
   // dus in een verborgen veld dat wél leeg mag, en het schuifje schrijft erin.
@@ -815,26 +814,46 @@ function _houdingVeldHtml(field, eigen, berekend) {
       <label class="dm-form-label">${esc(field.label)}</label>
       <input type="hidden" name="data_${esc(field.key)}" id="houding-waarde"
         value="${eigen === null ? '' : eigen}">
-      <div class="houding-rij">
-        <input type="range" min="1" max="${_HOUDING_TABEL.size || 5}" step="1" value="${nu}"
-          id="houding-schuif" class="houding-schuif" style="--houding-kleur:${kleur}"
-          data-berekend="${berekend}"
-          oninput="window._houdingSchuif(this)">
-        <span class="houding-naam" id="houding-naam">${esc(h?.naam || '')}${eigen === null ? ' <em>· standaard</em>' : ''}</span>
+      <!-- **Dezelfde vijf knoppen als overal.** Dit was een schuifje met een
+           kleurverloop: je zag niet welke trede je koos tot je de naam ernaast
+           las, en de kleur onder je duim was een mengsel van twee treden.
+           (Geen backticks in commentaar hierbinnen: template literal.) -->
+      <div class="houding-knoppen" id="houding-knoppen" data-berekend="${berekend}">
+        ${[..._HOUDING_TABEL.values()].slice().reverse().map(t => `<button type="button"
+          class="dm-actie houding-keuze${t.waarde === nu ? ' dm-actie--aan' : ''}"
+          data-waarde="${t.waarde}" style="--houding-kleur:${t.pil || t.glans?.kleur || '#c4a87a'}"
+          title="${esc(t.uitleg || t.naam)}"
+          onclick="window._houdingKies(this)">
+          <span class="dm-actie-vlek"></span><span>${esc(t.naam)}</span></button>`).join('')}
       </div>
+      <p class="houding-stand" id="houding-naam">${eigen === null
+        ? `Standaard: <strong>${esc(h?.naam || '')}</strong> — wat de app uitrekent.`
+        : `Ingesteld op <strong>${esc(h?.naam || '')}</strong>. Klik hem nog eens aan voor standaard.`}</p>
     </div>`;
 }
 
 // Het schuifje bewegen maakt de waarde van jou. Dat is met opzet: wie eraan
 // zit, bedoelt iets.
-window._houdingSchuif = (el) => {
-  const w = Number(el.value);
-  const waarde = document.getElementById('houding-waarde');
-  if (waarde) waarde.value = String(w);
-  const h = _HOUDING_TABEL.get(w);
-  el.style.setProperty('--houding-kleur', h?.glans?.kleur || '#8a7050');
-  const naam = document.getElementById('houding-naam');
-  if (naam) naam.textContent = h?.naam || '';
+window._houdingKies = (el) => {
+  const bak = document.getElementById('houding-knoppen');
+  const veld = document.getElementById('houding-waarde');
+  if (!bak || !veld) return;
+  const w = Number(el.dataset.waarde);
+  // Dezelfde trede nog eens: terug naar wat de app uitrekent. Zelfde gebaar
+  // als op het kaartje, zodat je het maar één keer hoeft te leren.
+  const terug = String(w) === veld.value;
+  veld.value = terug ? '' : String(w);
+  const toon = terug ? Number(bak.dataset.berekend) : w;
+  for (const k of bak.querySelectorAll('.houding-keuze')) {
+    k.classList.toggle('dm-actie--aan', Number(k.dataset.waarde) === toon);
+  }
+  const h = _HOUDING_TABEL.get(toon);
+  const regel = document.getElementById('houding-naam');
+  if (regel) {
+    regel.innerHTML = terug
+      ? `Standaard: <strong>${esc(h?.naam || '')}</strong> — wat de app uitrekent.`
+      : `Ingesteld op <strong>${esc(h?.naam || '')}</strong>. Klik hem nog eens aan voor standaard.`;
+  }
 };
 
 
@@ -4358,7 +4377,7 @@ function _tegelHoudingKnop(type, e) {
   const treden = [..._HOUDING_TABEL.values()].slice().reverse();
   return `<div class="tegel-houding">
     <button class="tegel-knop tegel-houding-knop${h ? ' heeft-houding' : ''}" title="Houding${h ? ': ' + esc(h.naam) : ''}"
-      style="--houding-kleur:${h?.glans?.kleur || '#c4a87a'}"
+      style="--houding-kleur:${h?.pil || h?.glans?.kleur || '#c4a87a'}"
       onclick="event.stopPropagation();window._tegelUitklap(this)">${icon(h ? 'heart-vol' : 'heart')}</button>
     <div class="tegel-houding-paneel" onclick="event.stopPropagation()">
       <div class="tegel-houding-kop">Houding</div>
@@ -6394,7 +6413,7 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
           <div class="detail-dm-tools">
             ${[..._HOUDING_TABEL.values()].slice().reverse().map(h => `<button
               class="dm-actie${h.waarde === Number(e._houding) ? ' dm-actie--aan' : ''}"
-              style="--houding-kleur:${h.glans?.kleur || '#c4a87a'}"
+              style="--houding-kleur:${h.pil || h.glans?.kleur || '#c4a87a'}"
               title="${esc(h.uitleg || h.naam)}"
               onclick="window._houdingZet('${tab}','${e.id}',${h.waarde})">
               <span class="dm-actie-vlek"></span><span>${esc(h.naam)}</span></button>`).join('')}
@@ -8027,13 +8046,10 @@ function _hoortbijHtml(tab, e) {
 
 let _petTiers = [];
 let _tierVoorDier = true;
-const _TIER_UITLEG = {
-  // "Meegroeien met het baasje" klinkt verplicht, en dat is het niet: een
-  // rijdier of een opgeroepen wezen blijft wat het is, hoe hoog zijn baasje ook
-  // komt. Zonder deze zin ging een DM tiers invullen omdat het veld er stond.
-  dier: 'Het statblok hierboven is het dier vanaf level&nbsp;1. Een tier neemt het over zodra het baasje dat level haalt, en zegt alleen wat er verandert.<br><strong>Hoeft niet:</strong> laat je dit leeg, dan blijft hij altijd het statblok hierboven — een rijdier of een opgeroepen wezen groeit nu eenmaal niet mee.',
-  npc:  'Dezelfde persoon, een andere ontmoeting. Het statblok hierboven is de basis; elk extra statblok zegt alleen wat er anders is. <strong>Welke versie geldt, kies je na het opslaan</strong> — op het kaartje zelf, in de strook boven het statblok, of onder de monsterregel in een encounter. Die keuze staat per party.',
-};
+// De uitleg bij deze twee stond als alinea in het formulier. **Uitleg hoort in
+// het boekje**, niet tussen de velden: daar leest iedereen hem één keer en
+// daarna nooit meer, terwijl hij elke keer dat je een kaartje bewerkt ruimte
+// inneemt. Zie `hulp_bewerk_personages_sheet` en `hulp_bewerk_beeld`.
 
 // Een tier ís een statblok, dus hij gebruikt dezelfde velden en dezelfde
 // indeling als het blad zelf — eerder had de tier-editor een eigen, kleinere
@@ -8338,7 +8354,6 @@ window._openEditor = async (tab, editId) => {
            iedereen is het het portret op zijn kaartje. -->
       <div id="video-section">
         <div class="text-xs font-cinzel text-ink-dim font-bold tracking-wide mb-1">Filmpje</div>
-        <p class="text-[10px] text-ink-dim mb-1">Speelt op het portret van dit kaartje${e?.subtype === 'speler' ? ', en op de landingspagina terwijl er op hem wordt ingezoomd' : ''}. Maximaal 8 MB; langer dan 6 seconden mag, maar stopt dan vanzelf.</p>
         <div id="editor-video-status" class="text-xs text-ink-faint italic mb-1">${e?.id ? 'Controleren…' : ''}</div>
         <div class="flex items-center gap-2">
           <button type="button" class="dm-btn dm-btn-ghost dm-btn-sm"
@@ -9328,7 +9343,6 @@ window._openEditor = async (tab, editId) => {
     body += `
       <div id="pet-tier-section"${toonTiers ? '' : ' style="display:none"'}>
         <div class="cs-sectiekop" id="pet-tier-kop">${isDier ? 'Meegroeien met het baasje' : 'Meerdere statblokken'}</div>
-        <p class="text-[10px] text-ink-dim mb-2" id="pet-tier-uitleg">${isDier ? _TIER_UITLEG.dier : _TIER_UITLEG.npc}</p>
         <div id="pet-tiers-list"></div>
         <button type="button" class="dm-btn dm-btn-ghost dm-btn-sm mt-1" onclick="window._petTierAdd()">${icon('plus')} ${isDier ? 'Tier' : 'Statblok'} toevoegen</button>
       </div>
@@ -9344,7 +9358,7 @@ window._openEditor = async (tab, editId) => {
   // zichtbaar zijn. Zonder dat stond de opslaanknop in het laatste paneel.
   body += `<!--P:knoppen-->`;
   body += `
-    <div class="flex gap-2 pt-2 ed-knoppen">
+    <div class="flex gap-2 pt-2 ed-knoppen ed-knoppen--vast">
       <!-- Drie naamloze pictogrammen, waarvan de middelste onherstelbaar is:
            opslaan en verwijderen stonden naast elkaar zonder één woord erbij.
            Icoon plus woord, zoals de rest van de bewerkmodus. -->
@@ -9601,8 +9615,6 @@ window._openEditor = async (tab, editId) => {
         _tierVoorDier = val === 'dier';
         const kop = document.getElementById('pet-tier-kop');
         if (kop) kop.textContent = _tierVoorDier ? 'Meegroeien met het baasje' : 'Meerdere statblokken';
-        const uit = document.getElementById('pet-tier-uitleg');
-        if (uit) uit.innerHTML = _tierVoorDier ? _TIER_UITLEG.dier : _TIER_UITLEG.npc;
         const knop = tierSec.querySelector('button');
         if (knop) knop.innerHTML = `${icon('plus')} ${_tierVoorDier ? 'Tier' : 'Statblok'} toevoegen`;
         window._renderPetTiers();   // level-veld verschijnt of verdwijnt

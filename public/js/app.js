@@ -1,5 +1,5 @@
 import { api, campagneUitUrl, zetCampagne } from './api.js?v=320';
-import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, renderDocumenten, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=372";
+import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, renderDocumenten, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=374";
 import { initArchief, renderLogboek, openLogboekEditor } from "./render-archief.js?v=148";
 import { renderKaart, queueFlyTo, verversPins, nieuweKaart } from './render-kaart.js?v=35';
 import { renderDungeon } from './render-dungeon.js?v=74';
@@ -15343,7 +15343,8 @@ const HELP_CONFIG = {
   // de DM hem maar één keer hoeft aan te passen.
   hulp_bewerk_beeld: () => ({ titel: 'Beeld', stappen: [
     { titel: 'Afbeelding', tekst: 'Het portret of de gevel van dit kaartje. Met het **focuspunt** bepaal je welk deel in beeld blijft als de afbeelding bijgesneden wordt — handig bij een portret waar het hoofd niet in het midden staat. De twee voorbeelden ernaast tonen de echte uitsnedes: het kaartje (breed) en het ronde portret.', afbeelding: null },
-    { titel: 'Meer beelden', tekst: 'Extra afbeeldingen komen als carrousel in het detailvenster te staan. Bij een spelerspersonage kun je ook een kort **filmpje** meegeven: dat speelt op de landingspagina bij het inzoomen op het portret, en in het dashboard als de speler erop klikt.', afbeelding: null },
+    { titel: 'Meer beelden', tekst: 'Extra afbeeldingen komen als carrousel in het detailvenster te staan.', afbeelding: null },
+    { titel: 'Filmpje', tekst: 'Een kort **filmpje** speelt op het portret van dit kaartje; bij een spelerspersonage ook op de landingspagina terwijl erop wordt ingezoomd, en in het dashboard als de speler erop klikt. Maximaal 8 MB. Langer dan zes seconden mag, maar stopt dan vanzelf.', afbeelding: null },
   ] }),
 
   hulp_bewerk_locaties_info: () => ({ titel: 'Een locatie', stappen: [
@@ -15952,7 +15953,8 @@ const HELP_CONFIG = {
   ] }),
   hulp_bewerk_personages_sheet: () => ({ titel: 'Statblock', stappen: [
     { titel: 'Statblock', tekst: 'De gevechtsgegevens: AC, HP, speed, abilities, traits en actions. Vul je hier iets in, dan verschijnt het kaartje in de **monsterbibliotheek** en kun je hem in een gevecht zetten — hij komt níét in het bestiarium, want dat is wat de spelers aan beesten verzamelen. HP schrijf je zoals in een statblock: `32 (5d8+10)`.', afbeelding: null },
-    { titel: 'Meegroeien met het baasje', tekst: 'Bij een dier is het blok hierboven het dier vanaf level 1. Een **tier** neemt het over zodra zijn eigenaar dat level haalt, en zegt alleen wát er verandert — wat je leeg laat komt uit de basis. "Hetzelfde beest, maar taaier" is dus een AC en een HP, geen overgetypt blok. Twee tiers vanaf hetzelfde level kan niet.', afbeelding: null },
+    { titel: 'Meegroeien met het baasje', tekst: 'Bij een dier is het blok hierboven het dier vanaf level 1. Een **tier** neemt het over zodra zijn eigenaar dat level haalt, en zegt alleen wát er verandert — wat je leeg laat komt uit de basis. "Hetzelfde beest, maar taaier" is dus een AC en een HP, geen overgetypt blok. Twee tiers vanaf hetzelfde level kan niet. Laat je het leeg, dan blijft hij altijd het statblok hierboven: een rijdier of een opgeroepen wezen groeit nu eenmaal niet mee.', afbeelding: null },
+    { titel: 'Meerdere statblokken', tekst: 'Bij een NPC is het dezelfde persoon in een andere ontmoeting. Het blok hierboven is de **basis**; elk extra statblok zegt alleen wat er anders is. Welke versie geldt kies je ná het opslaan — op het kaartje zelf, in de strook boven het statblok, of onder de monsterregel in een encounter. Die keuze staat per party.', afbeelding: null },
     { titel: 'Afdrukken', tekst: 'Bij een spelerspersonage heet dit blad *Character Sheet* en kun je het afdrukken of als pdf bewaren; bij een NPC, dier of god drukt hij alleen het statblok af.', afbeelding: null },
   ] }),
 
