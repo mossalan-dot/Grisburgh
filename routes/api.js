@@ -12164,6 +12164,9 @@ router.put('/progression/houder', requireDM, (req, res) => {
   res.json({ ok: true });
 });
 
+// De vier soorten feats uit de Player's Handbook 2024. D&D-termen, dus Engels.
+const _FEAT_SOORTEN = ['Origin', 'General', 'Fighting Style', 'Epic Boon'];
+
 router.post('/progression/feature', requireDM, (req, res) => {
   const b = req.body || {};
   const soort = String(b.soort || '');
@@ -12221,6 +12224,14 @@ router.post('/progression/feature', requireDM, (req, res) => {
     if (aan.length) regel.sluitAan = aan; else delete regel.sluitAan;
     const eis = String(b.vereist || '').trim().slice(0, 160);
     if (eis) regel.vereist = eis; else delete regel.vereist;
+    // Wat voor feat het is. De PHB 2024 deelt ze in vier soorten in, en die
+    // indeling doet er aan tafel toe: een Origin-feat krijg je bij je
+    // background, een General pas bij een Ability Score Improvement. De app
+    // bewaarde alleen het onderscheid feat/boon — en dat is de grofste van de
+    // vier. Niets kiezen mag: dan staat er niets, en dat is eerlijker dan een
+    // soort die wij erbij verzinnen.
+    if (_FEAT_SOORTEN.includes(b.categorie)) regel.categorie = b.categorie;
+    else delete regel.categorie;
     const geeft = (Array.isArray(b.geeftSpreuk) ? b.geeftSpreuk : [])
       .map(x => String(x).trim().slice(0, 60)).filter(Boolean).slice(0, 12);
     if (geeft.length) regel.geeftSpreuk = geeft; else delete regel.geeftSpreuk;

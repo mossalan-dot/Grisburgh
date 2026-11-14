@@ -10,7 +10,7 @@
  */
 
 import { api } from './api.js?v=320';
-import { renderStatblock } from './render-statblock.js?v=9';
+import { renderStatblock } from './render-statblock.js?v=10';
 
 const esc  = s => window.app?.esc?.(s) ?? String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 // In een inline handler (`onclick="f('…')"`) decodeert de browser eerst het

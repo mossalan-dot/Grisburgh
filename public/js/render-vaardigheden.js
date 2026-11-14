@@ -358,8 +358,8 @@ async function _load() {
     }
   }
   _voegLevelsSamen(uit);
-  for (const f of (_bron.feats?.general || [])) zet({ soort: 'feat', bron: 'Feats',      level: 0, naam: f.name, desc: f.desc || '', img: f.img || '', imgFocus: f.imgFocus || '', herkomst: f.herkomst || '', bronTekst: f.bron || '', sluitAan: f.sluitAan || [], vereist: f.vereist || '', geeftSpreuk: f.geeftSpreuk || [] });
-  for (const f of (_bron.feats?.epic    || [])) zet({ soort: 'boon', bron: 'Epic Boons', level: 0, naam: f.name, desc: f.desc || '', img: f.img || '', imgFocus: f.imgFocus || '', herkomst: f.herkomst || '', bronTekst: f.bron || '', sluitAan: f.sluitAan || [], vereist: f.vereist || '', geeftSpreuk: f.geeftSpreuk || [] });
+  for (const f of (_bron.feats?.general || [])) zet({ soort: 'feat', bron: 'Feats',      level: 0, naam: f.name, desc: f.desc || '', img: f.img || '', imgFocus: f.imgFocus || '', herkomst: f.herkomst || '', bronTekst: f.bron || '', sluitAan: f.sluitAan || [], vereist: f.vereist || '', geeftSpreuk: f.geeftSpreuk || [], categorie: f.categorie || '' });
+  for (const f of (_bron.feats?.epic    || [])) zet({ soort: 'boon', bron: 'Epic Boons', level: 0, naam: f.name, desc: f.desc || '', img: f.img || '', imgFocus: f.imgFocus || '', herkomst: f.herkomst || '', bronTekst: f.bron || '', sluitAan: f.sluitAan || [], vereist: f.vereist || '', geeftSpreuk: f.geeftSpreuk || [], categorie: f.categorie || '' });
   // Een background is één ding met vijf onderdelen (Ability Scores, Feat,
   // Skill Proficiencies, Tool Proficiency, Equipment). Als losse kaartjes krijg
   // je zestien keer "Ability Scores" in de lijst; als één kaartje per background
@@ -638,6 +638,21 @@ function _kaartBladen(it) {
       html: `<dl class="vk-training">${rijen.map(([k, v, html]) =>
         `<dt>${esc(k)}</dt><dd>${html ?? _rijWaardeHtml(v)}</dd>`).join('')}</dl>` });
   }
+  // Een feat of Epic Boon heeft hetzelfde soort blad: wat voor feat het is,
+  // wat hij vraagt, wat hij geeft en bij wie hij past. Dat stond alleen in het
+  // bewerkvenster — je kon het invullen en nergens teruglezen.
+  if (it.soort === 'feat' || it.soort === 'boon') {
+    const rijen = [
+      ['Soort', it.categorie || ''],
+      ['Prerequisite', it.vereist || ''],
+      ['Geeft spreuk', (it.geeftSpreuk || []).join(', ')],
+      ['Sluit aan op', (it.sluitAan || []).join(', ')],
+    ].filter(([, v]) => v);
+    if (rijen.length) bladen.push({ soort: 'eigenschappen', label: 'Eigenschappen',
+      tekst: rijen.map(([k, v]) => `${k} ${v}`).join(' '),
+      html: `<dl class="vk-training">${rijen.map(([k, v]) =>
+        `<dt>${esc(k)}</dt><dd>${_rijWaardeHtml(v)}</dd>`).join('')}</dl>` });
+  }
   return bladen;
 }
 
@@ -717,6 +732,24 @@ function _card(it) {
         onclick="${klik}"
         style="--soort-c1:${eigenKleur ? esc(eigenKleur) : s.c1};--soort-c2:${eigenKleur ? esc(eigenKleur) : s.c2}">
         <div class="card-accent vaardig-accent"></div>
+        <!-- Waar het vandaan komt en op welk level: op het open kaartje juist
+             wél. Daar lees je wat het is, en dan is de bron het laatste wat je
+             wilt weten voordat je het gebruikt. -->
+        ${(() => {
+          const vast = _toontLevel(it.soort, it.level) ? (it.levels || [it.level]) : [];
+          const groei = it.groei || [];
+          if (!vast.length && !groei.length) return '';
+          return `<span class="vaardig-card-nivs"${groei.length
+            ? ` title="Verandert op level ${groei.join(', ')}"` : ''}>
+            ${vast.map(l => `<span class="vaardig-card-niv">${l}</span>`).join('')}
+            ${groei.map(l => `<span class="vaardig-card-niv vaardig-card-niv--groei">${l}</span>`).join('')}
+          </span>`;
+        })()}
+        ${(() => {
+          const boek = _boekVan(it);
+          const kort = _boekKort(boek);
+          return kort ? `<span class="vaardig-card-boek" title="${esc(boek)}">${esc(kort)}</span>` : '';
+        })()}
         ${(() => {
           // **Met de terugvalketen, net als op het dichte kaartje.** Het eerste
           // id is vaak dood (een feature draagt het beeld van zijn class, en dat
@@ -775,20 +808,13 @@ function _card(it) {
           ${groei.map(l => `<span class="vaardig-card-niv vaardig-card-niv--groei">${l}</span>`).join('')}
         </span>`;
       })()}
-      ${(() => {
-        const boek = _boekVan(it);
-        const kort = _boekKort(boek);
-        return kort ? `<span class="vaardig-card-boek" title="${esc(boek)}">${esc(kort)}</span>` : '';
-      })()}
       ${link ? `<a class="vaardig-tegel-naslag" href="${esc(link)}" target="_blank" rel="noopener"
         onclick="event.stopPropagation()" title="De beschrijving staat hier niet — zoek hem elders op">${icon('book-open')}</a>` : ''}
+      <!-- Alleen de naam, zoals op een archieftegel. De class en het level
+           stonden eronder, maar die weet je al: je staat ín die class, en het
+           level staat als penning op de plaat. -->
       <div class="tegel-naamband">
         <span class="card-name" data-fittext>${esc(it.naam)}</span>
-        ${(() => {
-          const niveaus = (it.levels || [it.level]).join(' \u00b7 ');
-          const meta = [bronRegel, _toontLevel(it.soort, it.level) ? `level ${niveaus}` : ''].filter(Boolean).join(' \u00b7 ');
-          return meta ? `<span class="tegel-ondertitel">${esc(meta)}</span>` : '';
-        })()}
       </div>
     </div>`;
 }
@@ -1161,6 +1187,10 @@ function _spreukRegel(klasse, basis) {
 // daarmee ook niets om aan zijn onderdelen door te geven. Hij heeft nu een
 // eigen bak, net als de rest — eigen bakken en niet één gedeelde, want een
 // class en een background mogen dezelfde naam hebben.
+// De vier soorten feats uit de Player's Handbook 2024 — D&D-termen, dus
+// Engels, en dezelfde lijst als de server bewaakt.
+const _FEAT_SOORTEN = ['Origin', 'General', 'Fighting Style', 'Epic Boon'];
+
 const _HB_BAK = { class: 'klassen', species: 'species', subclass: 'subclassen', variant: 'varianten', background: 'backgrounds' };
 // Een beeld bij een kaart was alleen een bestand-id. Nu mag het ook een id mét
 // een focuspunt zijn — dezelfde kiezer als bij een spreuk of een kaartje, want
@@ -1280,12 +1310,17 @@ function _bladerKaartHtml({ soort, naam, kleur, icoon, bijschrift = '', onder = 
     ${lijst.map(([k, v, html]) => `<dt>${esc(k)}</dt><dd>${html ?? _rijWaardeHtml(v)}</dd>`).join('')}
   </dl>` : '';
 
+  // Per bladzijde ook zijn soort en naam, zodat het balkje eronder dezelfde
+  // knopjes-met-icoon kan dragen als de voetbalk van een tegel — en niet drie
+  // naamloze bolletjes, waar je aan moet raden wat erachter zit.
+  const soorten = [];
   const bladen = [];
-  if (beeld) bladen.push(`
+  if (beeld) { soorten.push({ soort: 'portret', label: 'Portret' }); bladen.push(`
     <div class="vk-blad vk-blad--beeld">
       <span class="vk-voor-beeld" style="background-image:url('${beeld}')${focus ? `;background-position:${esc(focus)}` : ''}"></span>
       <span class="vk-voor-naam">${esc(naam)}</span>
-    </div>`);
+    </div>`); }
+  soorten.push({ soort: 'beschrijving', label: uitleg ? 'Beschrijving' : 'Wat het is' });
   bladen.push(`
     <div class="vk-blad vk-blad--tekst">
       <div class="vk-kop">
@@ -1300,11 +1335,11 @@ function _bladerKaartHtml({ soort, naam, kleur, icoon, bijschrift = '', onder = 
       ${dlHtml(rijen)}
       ${extra}
     </div>`);
-  if (kern?.rijen?.length) bladen.push(`
+  if (kern?.rijen?.length) { soorten.push({ soort: 'kern', label: kern.kop || 'Core Traits' }); bladen.push(`
     <div class="vk-blad vk-blad--kern">
       <div class="vk-kerntrekken">${esc(kern.kop || 'Core Traits')}</div>
       ${dlHtml(kern.rijen)}
-    </div>`);
+    </div>`); }
 
   // Klikken opent het venster met het hele verhaal, net als bij de features
   // eronder; de pijltjes houden hun klik bij zich.
@@ -1328,11 +1363,11 @@ function _bladerKaartHtml({ soort, naam, kleur, icoon, bijschrift = '', onder = 
            (Geen backticks in commentaar hierbinnen: template literal.) -->
       ${bladen.length > 1 ? `
       <div class="vk-blader">
-        <button class="vk-pijl" title="Terug" aria-label="Vorige bladzijde"
+        <button class="tegel-pijl" title="Terug" aria-label="Vorige bladzijde"
           onclick="event.stopPropagation();window.vaardigheden.blader(this,-1)">${icon('chevron-left')}</button>
-        <span class="vk-stippen">${bladen.map((_, i) =>
-          `<span class="vk-stip${i ? '' : ' is-aan'}"></span>`).join('')}</span>
-        <button class="vk-pijl" title="Verder" aria-label="Volgende bladzijde"
+        ${soorten.map((b, i) => `<button class="tegel-punt${i ? '' : ' is-aan'}" title="${esc(b.label)}"
+          onclick="event.stopPropagation();window.vaardigheden.bladNaar(this,${i})">${icon(_KAART_BLAD_ICOON[b.soort] || 'square')}</button>`).join('')}
+        <button class="tegel-pijl" title="Verder" aria-label="Volgende bladzijde"
           onclick="event.stopPropagation();window.vaardigheden.blader(this,1)">${icon('chevron-right')}</button>
       </div>` : ''}
     </div>`;
@@ -1831,10 +1866,23 @@ function _tegelsHtml(d) {
     const tweedeLaag = d.id === 'class' ? (subs ? `${subs} subclasses` : '')
       : d.id === 'species' ? (varN ? `${varN} ${varN === 1 ? 'variant' : 'varianten'}` : '')
       : '';
+    // **Hangen onder deze keuze eigen platen, dan laat de tegel ze zien.**
+    // Een class is zijn subclasses; wat een Bard is zie je sneller aan tien
+    // beelden dan aan het woord "Bard". Alleen bij hover, en alleen als er
+    // echt meer dan één is — anders beweegt er iets zonder dat het iets zegt.
+    const onder = d.id === 'class' ? _bandSubklassen(naam).map(([n]) => _hbBeeld('subclass', n))
+      : d.id === 'species' ? Object.keys(_houderVan('species', naam)?.varianten || {}).map(n => _hbBeeld('variant', n))
+      : [];
+    const reeks = [beeld, ...onder].filter(Boolean).filter((x, k, a) => a.indexOf(x) === k);
     return `<button class="vd-tegel" style="--vd-kleur:${d.kleur};--vd-i:${i}"
+      ${reeks.length > 1 ? `data-beelden="${esc(JSON.stringify(reeks))}"
+      onmouseenter="window.vaardigheden.tegelReeks(this,1)"
+      onmouseleave="window.vaardigheden.tegelReeks(this,0)"` : ''}
       onclick="window.vaardigheden.kies('${escArg(naam)}')">
       ${beeld ? `<span class="vd-tegel-beeld" style="background-image:url('${beeld}')"></span>` : ''}
-      <span class="vd-tegel-icoon">${icon(icoonVan(naam))}</span>
+      <!-- Het icoon is een vangnet, geen versiering: staat de plaat er, dan zegt
+           die al wat dit is en is een penning in de hoek alleen maar drukte. -->
+      ${beeld ? '' : `<span class="vd-tegel-icoon">${icon(icoonVan(naam))}</span>`}
       <span class="vd-tegel-naam">${esc(naam)}</span>
       <!-- **Alleen de naam, het icoon en de laag eronder.** Hoeveel features
            of traits er samen onder hangen zegt niets wat je op dit scherm
@@ -1843,7 +1891,7 @@ function _tegelsHtml(d) {
            staat. Heeft hij niets onder zich, dan staat er niets — een lege
            regel zegt genoeg.
            (Geen backticks in commentaar hierbinnen: template literal.) -->
-      ${tweedeLaag ? `<span class="vd-tegel-meta">${esc(tweedeLaag)}</span>` : ''}
+      <span class="vd-tegel-meta">${esc(tweedeLaag)}</span>
     </button>`;
   }).join('')}
   ${elders.map((naam, i) => {
@@ -1856,6 +1904,26 @@ function _tegelsHtml(d) {
       <span class="vd-tegel-meta">${varN ? `${varN} varianten · ` : ''}elders</span>
     </div>`;
   }).join('')}</div>`;
+}
+
+// Eén timer voor het hele scherm: er kan maar één tegel tegelijk onder de muis
+// liggen, en twee lopende intervallen zouden elkaars plaat overschrijven.
+let _reeksTimer = null;
+function _tegelReeks(el, aan) {
+  clearInterval(_reeksTimer);
+  const vlak = el.querySelector('.vd-tegel-beeld');
+  if (!vlak) return;
+  let lijst = [];
+  try { lijst = JSON.parse(el.dataset.beelden || '[]'); } catch { /* geen reeks */ }
+  if (!aan || lijst.length < 2) {
+    if (lijst[0]) vlak.style.backgroundImage = `url('${lijst[0]}')`;
+    return;
+  }
+  let i = 0;
+  _reeksTimer = setInterval(() => {
+    i = (i + 1) % lijst.length;
+    vlak.style.backgroundImage = `url('${lijst[i]}')`;
+  }, 850);
 }
 
 // Een portret achter een tegel: de eerste afbeelding die de DM aan iets uit die
@@ -2293,7 +2361,7 @@ function _featKoppelingHtml(it) {
     </div>` : '';
   return `
     <div class="vk-feats vk-feats--omgekeerd">
-      ${k.eis ? `<div class="vk-eis">${icon('lock')} <strong>Vereist</strong> ${esc(k.eis)}</div>` : ''}
+      ${k.eis ? `<div class="vk-eis">${icon('lock')} <strong>Prerequisite</strong> ${esc(k.eis)}</div>` : ''}
       ${rij('Aangewezen', 'hier aan gehangen', k.aangewezen)}
       ${rij('Via de eis', 'deze klassen geven die training', k.viaEis)}
       ${rij('Geeft een spreuk', 'staat op hun lijst', k.viaSpreuk)}
@@ -3428,20 +3496,21 @@ function _editorHtml() {
       ${houder && maaksel.soort === 'species' ? _volkBasisVeldenHtml(e.naam || '', e.basis || null) : ''}
       ${houder && maaksel.soort === 'background' ? _bgVeldenHtml(e.naam || '') : ''}
 
+      <!-- De drie grijze alinea's die hier stonden (wat "Sluit aan op" doet,
+           dat een armor training zichzelf uitrekent, en hoe "Geeft spreuk"
+           gelezen wordt) zijn naar het boekje verhuisd. Uitleg hoort in de
+           hulptekst, niet onder een veld.
+           (Geen backticks in commentaar hierbinnen: template literal.) -->
       ${toonKoppeling ? `
-      <div class="dm-form-row" style="flex-direction:column;align-items:stretch;gap:5px">
-        <label class="dm-form-label">Sluit aan op</label>
-        <p class="dm-hint" style="margin:0 0 3px">Welke klassen hebben hier iets aan? Dat kan zijn omdat de feat ze noemt (Magic Initiate geeft clericspreuken) of omdat hij bij hun manier van spelen hoort. Hij blijft voor iedereen te kiezen — dit is een wegwijzer, geen eis.</p>
-        <div class="vd-klassen">
-          ${klassen.map(k => `
-            <label class="vd-klasse${aan.has(k) ? ' is-aan' : ''}">
-              <input type="checkbox" class="vd-klasse-vink" value="${esc(k)}"${aan.has(k) ? ' checked' : ''}>
-              ${icon(_klasseIcoon(k))} ${esc(k)}
-            </label>`).join('')}
-        </div>
+      <div class="dm-form-row">
+        <label class="dm-form-label" for="vd-categorie">Soort</label>
+        <select class="dm-input" id="vd-categorie">
+          <option value="">—</option>
+          ${_FEAT_SOORTEN.map(k => `<option value="${esc(k)}"${e.categorie === k ? ' selected' : ''}>${esc(k)}</option>`).join('')}
+        </select>
       </div>
       <div class="dm-form-row">
-        <label class="dm-form-label">Vereist</label>
+        <label class="dm-form-label">Prerequisite</label>
         <input class="dm-input" id="vd-vereist" value="${esc(e.vereist || '')}"
           placeholder="bv. Medium armor training, of Strength 13">
       </div>
@@ -3450,8 +3519,19 @@ function _editorHtml() {
         <input class="dm-input" id="vd-geeft" value="${esc((e.geeftSpreuk || []).join(', '))}"
           placeholder="bv. Misty Step, Detect Thoughts">
       </div>
-      <p class="dm-hint" style="margin:-6px 0 10px">Namen met een komma ertussen. De app zoekt op welke klassenlijsten die spreuken staan, en zet de feat daar bij <em>Geeft een spreuk</em>.</p>
-      <p class="dm-hint" style="margin:-6px 0 10px">Staat hier een armor training in, dan rekent de app zelf uit welke klassen die geven — die hoef je niet aan te vinken.</p>` : ''}
+      <!-- Veertien vinkjes met klasse-iconen namen het halve formulier in
+           beslag terwijl je ze bij de meeste feats niet aanraakt. Dichtgevouwen
+           dus, met het aantal erbij zodat je ziet dat er iets aanstaat. -->
+      <details class="vd-uitklap"${aan.size ? ' open' : ''}>
+        <summary>Sluit aan op${aan.size ? ` · ${aan.size}` : ''}</summary>
+        <div class="vd-klassen">
+          ${klassen.map(k => `
+            <label class="vd-klasse${aan.has(k) ? ' is-aan' : ''}">
+              <input type="checkbox" class="vd-klasse-vink" value="${esc(k)}"${aan.has(k) ? ' checked' : ''}>
+              ${icon(_klasseIcoon(k))} ${esc(k)}
+            </label>`).join('')}
+        </div>
+      </details>` : ''}
       ${houder && (maaksel.soort === 'subclass' || maaksel.soort === 'variant') ? `
       <!-- Dezelfde vraag als in het bewerkvenster, en om dezelfde reden: vink
            je er twee aan om ze te vergelijken, dan lopen hun features door
@@ -3521,9 +3601,10 @@ function _editorOpen(it) {
         naam: it.naam, desc: _schoonVoorEditor(it.desc || ''), herkomst: it.herkomst || '',
         bronTekst: it.bronTekst || '', img: it.img || '', imgFocus: it.imgFocus || '',
         sluitAan: Array.isArray(it.sluitAan) ? [...it.sluitAan] : [], vereist: it.vereist || '',
+        categorie: it.categorie || '',
         geeftSpreuk: Array.isArray(it.geeftSpreuk) ? [...it.geeftSpreuk] : [] }
     : { oud: null, maaksel: 'feat', soort: 'feat', bron: 'Feats', sub: '', level: 1, naam: '', desc: '', herkomst: 'zelfbedacht', bron_: '', img: '', imgFocus: '',
-        sluitAan: [], vereist: '', geeftSpreuk: [] };
+        sluitAan: [], vereist: '', geeftSpreuk: [], categorie: '' };
   // Bij bewerken weten we welk soort het is; dat is altijd een regel binnen
   // iets, nooit een houder.
   if (it) _edit.maaksel = { class: 'f-class', subclass: 'f-subclass', species: 'f-species',
@@ -3570,6 +3651,7 @@ function _editorLees() {
   if (v('vd-sub') !== undefined) _edit.sub = v('vd-sub');
   if (v('vd-bron') !== undefined) _edit.bron = v('vd-bron');
   if (v('vd-vereist') !== undefined) _edit.vereist = v('vd-vereist');
+  if (v('vd-categorie') !== undefined) _edit.categorie = v('vd-categorie');
   if (v('vd-bronnaam') !== undefined) _edit.bronTekst = v('vd-bronnaam');
   if (v('vd-kleur') !== undefined) _edit.kleur = v('vd-kleur');
   // De kerngegevens horen bij de rest van het formulier: het venster tekent
@@ -3790,6 +3872,7 @@ window.vaardigheden = {
         // Leeg betekent hier echt weg (de wisknop), vandaar `null` en niet ''.
         img: _edit.img || null, imgFocus: _edit.imgFocus || '',
         sluitAan: _edit.sluitAan || [], vereist: _edit.vereist || '', geeftSpreuk: _edit.geeftSpreuk || [],
+        categorie: _edit.categorie || '',
         // Bij een feat of Epic Boon: de bibliotheek mee, zodat de server hem
         // vastlegt als deze campagne er nog geen eigen had (zie de route).
         seedFeats: (_edit.soort === 'feat' || _edit.soort === 'boon') ? _bron?.feats : undefined,
@@ -3909,6 +3992,17 @@ window.vaardigheden = {
   // lag er ook alweer open" precies het soort boekhouding dat scheef gaat.
   //
   // Hij loopt rond: voorbij de laatste bladzijde ben je weer bij de plaat.
+  // Rechtstreeks naar een bladzijde, via het knopje met zijn icoon.
+  bladNaar(knop, i) {
+    const kaart = knop.closest('.vk-kaart');
+    if (!kaart) return;
+    const n = Number(kaart.dataset.bladen) || 1;
+    const doel = Math.max(0, Math.min(n - 1, i));
+    kaart.dataset.blad = String(doel);
+    kaart.style.setProperty('--vk-i', String(doel));
+    kaart.querySelectorAll('.vk-blader .tegel-punt').forEach((s, j) => s.classList.toggle('is-aan', j === doel));
+  },
+  tegelReeks: (el, aan) => _tegelReeks(el, aan),
   blader(knop, richting) {
     const kaart = knop.closest('.vk-kaart');
     if (!kaart) return;
@@ -3916,7 +4010,7 @@ window.vaardigheden = {
     const i = ((Number(kaart.dataset.blad) || 0) + richting + n) % n;
     kaart.dataset.blad = String(i);
     kaart.style.setProperty('--vk-i', String(i));
-    kaart.querySelectorAll('.vk-stip').forEach((s, j) => s.classList.toggle('is-aan', j === i));
+    kaart.querySelectorAll('.vk-blader .tegel-punt').forEach((s, j) => s.classList.toggle('is-aan', j === i));
   },
   // Zelf verzonnen heeft geen boek, dus dan is de vraag er niet. Het
   // maakvenster tekent zichzelf opnieuw bij zo'n wissel; dit venster is één

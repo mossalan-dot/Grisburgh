@@ -1758,7 +1758,7 @@ window.akteSchrijven = {
     const lijst = Array.isArray(monsters) ? monsters : (monsters.monsters || []);
     const m = _vindOpNaam(lijst, naam);
     if (!m) { btn.title = `"${naam}" staat niet in de monsterbibliotheek`; btn.classList.add('is-leeg'); return; }
-    const { renderStatblock } = await import('./render-statblock.js?v=9');
+    const { renderStatblock } = await import('./render-statblock.js?v=10');
     window.app.openModal(m.name || naam, '', `<div class="sb-modal-body">${renderStatblock(m, { kop: false })}</div>`);
     window.glossary?.applyDom?.(document.querySelector('#modal-overlay .sb-modal-body'));
     window.spreuken?.linkInDom?.(document.querySelector('#modal-overlay .sb-modal-body'));

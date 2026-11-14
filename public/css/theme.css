@@ -33645,3 +33645,61 @@ body.gr-slowmo .combat-overlay { filter: grayscale(.85) contrast(1.1) brightness
 }
 @keyframes stem-op { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
 .stem-uitslag.stem-uitslag--rustig *, .stem-uitslag.stem-uitslag--rustig { animation-duration: .01s !important; animation-delay: 0s !important; }
+
+/* ── Heldenboek: de band en de keuzetegels ──────────────────────────────── */
+
+/* De class- en de subclasskaart zijn dezelfde soort kaart en horen er ook zo
+   uit te zien. De band staat op `align-items: start`, dus de kortste van de
+   twee (die zonder Core Traits-blad) kromp mee met zijn inhoud en stond naast
+   een kaart van anderhalf keer die hoogte. Strekken doet de rij; de kaart
+   erbinnen moet die hoogte dan ook echt overnemen. */
+.vd-klasvlak .vd-klaskaart { align-self: stretch; }
+.vd-klasvlak .vd-klaskaart > .vk-kaart { height: 100%; }
+
+/* Een lege regel onder de naam blijft staan. Zonder hoogte zakt de naam op een
+   tegel zónder tweede laag een regel lager dan op een tegel mét — en dan staat
+   Aarakocra net niet gelijk met Dragonborn ernaast. */
+.vd-tegel-meta { min-height: 1.25em; }
+
+/* Het balkje onder een bandkaart draagt dezelfde knopjes als de voet van een
+   tegel: een icoon per bladzijde, met de pijlen eromheen. */
+.vk-blader .tegel-punt,
+.vk-blader .tegel-pijl { position: static; transform: none; }
+
+/* Een uitklapveld in een formulier: zelfde perkamentlijn als een dm-input, en
+   de kop leest als een label. Gebruikt voor "Sluit aan op" — veertien vinkjes
+   die je bij de meeste feats niet aanraakt. */
+.vd-uitklap { border: 1px solid #d8c7a4; border-radius: 7px; background: rgba(255,252,245,.5); margin: 0 0 12px; }
+.vd-uitklap > summary {
+  cursor: pointer; padding: 8px 11px; list-style: none;
+  font-family: 'Cinzel', serif; font-size: .82em; letter-spacing: .04em;
+  color: #6b4f2a; text-transform: uppercase;
+}
+.vd-uitklap > summary::-webkit-details-marker { display: none; }
+.vd-uitklap > summary::before { content: '\25B8'; display: inline-block; margin-right: 7px; transition: transform .15s; }
+.vd-uitklap[open] > summary::before { transform: rotate(90deg); }
+.vd-uitklap > .vd-klassen { padding: 0 11px 11px; }
+
+/* Spell Slots op een statblok: negen smalle vakjes met hun level eronder. Eén
+   rij die meeloopt met de breedte, want op een telefoon passen er geen negen
+   naast elkaar. */
+.cs-slots { display: grid; grid-template-columns: repeat(9, minmax(0, 1fr)); gap: 4px; margin-top: 2px; }
+.cs-slot { display: flex; flex-direction: column; align-items: center; gap: 2px; }
+.cs-slot-lbl { font-family: 'Cinzel', serif; font-size: 9px; color: #8a7050; letter-spacing: .02em; }
+.cs-slot-veld {
+  width: 100%; text-align: center; padding: 3px 0;
+  background: var(--room-bg, #1b1410); border: 1px solid var(--room-border, #3a2e22);
+  border-radius: 4px; color: inherit; font-size: 13px;
+}
+.cs-slot-veld:focus { border-color: #c4a87a; outline: none; }
+@media (max-width: 420px) {
+  .cs-slots { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+}
+
+/* De monster-editor leent sinds 14 nov het statblok-formulier van een
+   personagekaartje. Twee dingen die daar uit de Tailwind-klassen komen en hier
+   niet: een gecentreerd veld, en de kolommen voor de ability scores. */
+.dm-sb-fields .dm-sb-mid { text-align: center; }
+.dm-sb-fields .dm-sb-score-col { display: flex; flex-direction: column; gap: 2px; }
+.dm-sb-fields .dm-form-row { margin-bottom: 8px; }
+.dm-sb-fields .cs-sectiekop { margin-top: 14px; }

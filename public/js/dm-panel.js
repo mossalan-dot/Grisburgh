@@ -1,6 +1,6 @@
 import { api, huidigeCampagne } from './api.js?v=320';
 import { init as canvasInit, update as canvasUpdate, stop as canvasStop, acGetal } from './combat-canvas.js?v=41';
-import { renderStatblock } from './render-statblock.js?v=9';
+import { renderStatblock } from './render-statblock.js?v=10';
 
 // ── DM Panel ──
 // icon() helper is defined globally in app.js; grab a local alias for template use.
@@ -2909,7 +2909,7 @@ async function _ladeToggle() {
   _ladeIdx = _bwIdx >= 0 ? _bwIdx : Math.min(_ladePlekLees(), Math.max(0, _ladeSecties.length - 1));
   // De akte-module levert de renderer én de knoppen; die moet weten welke akte
   // er speelt, anders belandt een getoond beeld in de sessielog van niemand.
-  const mod = await import('./akte-schrijven.js?v=39');
+  const mod = await import('./akte-schrijven.js?v=40');
   mod.zetAkte(_rbChapter, _ladeTekst);
   window._akteRegieRender = mod.regieNaarHtml;
   let lade = document.getElementById('regie-lade');
@@ -2935,7 +2935,7 @@ window._ladeHerlaad = async () => {
     _ladeTekst = regie?.tekst || '';
     _ladeSecties = _splitsSecties(_ladeTekst);
     _ladeIdx = Math.min(_ladeIdx, Math.max(0, _ladeSecties.length - 1));
-    const mod = await import('./akte-schrijven.js?v=39');
+    const mod = await import('./akte-schrijven.js?v=40');
     mod.zetAkte(_rbChapter, _ladeTekst);
     _ladeRender();
   } catch { /* de lade blijft staan zoals hij stond */ }
@@ -3939,116 +3939,53 @@ function _showStatblockForCombatant(cId) {
   window.spreuken?.linkInDom?.(document.getElementById('m-body'));
 };
 
+// **Hetzelfde formulier als op een personagekaartje.** Dit was een eigen,
+// plattere versie: geen sectiekoppen, geen Gear, geen Bonus Actions, geen Lair
+// Actions, en een los tekstveld voor Creature Type waar het kaartje een
+// keuzelijst heeft. Twee formulieren voor hetzelfde ding lopen uit elkaar, en
+// dat wás ook gebeurd — vandaar dat de velden nu uit `render-campagne.js`
+// komen. Alleen de bouwstenen zijn van hier: die geven elk veld zijn eigen id
+// (`dm-mon-sb-<sleutel>`), zodat `_readStatblockFromForm` ze terugvindt.
+function _sbMonsterBouwstenen(sb) {
+  const kop = (label) => label ? `<label class="dm-form-label">${label}</label>` : '';
+  return {
+    inp: (k, label, o = {}) => `
+      <div class="dm-form-row">${kop(label)}
+        <input id="dm-mon-sb-${k}" class="dm-input dm-input-sm${o.center ? ' dm-sb-mid' : ''}"
+          value="${esc(sb[k] ?? '')}"${o.ph ? ` placeholder="${esc(o.ph)}"` : ''}>
+      </div>`,
+    sel: (k, label, opties) => `
+      <div class="dm-form-row">${kop(label)}
+        <select id="dm-mon-sb-${k}" class="dm-select dm-select-sm" style="width:100%">
+          <option value="">—</option>
+          ${opties.map(o => `<option value="${esc(o)}"${(sb[k] || '') === o ? ' selected' : ''}>${esc(o)}</option>`).join('')}
+        </select>
+      </div>`,
+    ta: (k, label, rows) => `
+      <div class="dm-form-row">${kop(label)}
+        ${window._fmtToolbarHtml?.(`dm-mon-sb-${k}`, { statblok: true }) || ''}
+        <textarea id="dm-mon-sb-${k}" class="dm-input dm-sb-textarea" rows="${rows}"
+          onkeydown="window._fmtKey(event)">${esc(sb[k] || '')}</textarea>
+      </div>`,
+    abil: (k) => `
+      <div class="dm-sb-score-col">
+        <label class="dm-form-label" style="text-align:center">${k.toUpperCase()}
+          <span class="cs-mod" id="dm-mon-mod-${k}">${_sbMod(sb[k] ?? 10)}</span></label>
+        <input id="dm-mon-sb-${k}" class="dm-input dm-input-sm dm-sb-mid" inputmode="numeric"
+          value="${esc(sb[k] ?? 10)}" oninput="window._sbModUpdate('dm-mon-mod-${k}', this.value)">
+      </div>`,
+  };
+}
+
 function _statblockEditorHtml(sb) {
-  sb = sb || {};
-  const opt = (val, label) => `<option value="${esc(val)}"${sb.size === val ? ' selected' : ''}>${label}</option>`;
-  const v = (k, placeholder, type='text') => `<input id="dm-mon-sb-${k}" class="dm-input dm-input-sm" type="${type}" value="${esc(sb[k] ?? '')}" placeholder="${placeholder}">`;
-  // Traits en actions zijn markdown; ze hadden hier als enige geen opmaakbalk,
-  // dus tikte je `***Bite.***` met de hand. Dezelfde balk als op een kaartje.
-  const ta = (k, placeholder) => `${window._fmtToolbarHtml?.(`dm-mon-sb-${k}`, { statblok: true }) || ''}
-    <textarea id="dm-mon-sb-${k}" class="dm-input dm-sb-textarea" onkeydown="window._fmtKey(event)"
-      placeholder="${placeholder}">${esc(sb[k] || '')}</textarea>`;
+  const h = _sbMonsterBouwstenen(sb || {});
   return `
     <details class="dm-sb-editor" open>
       <summary class="dm-sb-summary">${icon('clipboard-list')} Statblock</summary>
       <div class="dm-sb-fields">
-        <div class="dm-feature-row dm-sb-rij" style="gap:6px;flex-wrap:wrap">
-          <div class="dm-form-row" style="flex:1;min-width:80px">
-            <label class="dm-form-label">Size</label>
-            <select id="dm-mon-sb-size" class="dm-select dm-select-sm" style="width:100%">
-              <option value="">—</option>
-              ${['Tiny','Small','Medium','Large','Huge','Gargantuan'].map(s => opt(s,s)).join('')}
-            </select>
-          </div>
-          <div class="dm-form-row" style="flex:2;min-width:100px">
-            <label class="dm-form-label">Type</label>
-            ${v('type','beast, undead…')}
-          </div>
-          <div class="dm-form-row" style="flex:2;min-width:100px">
-            <label class="dm-form-label">Alignment</label>
-            ${v('alignment','unaligned')}
-          </div>
-        </div>
-        <div class="dm-feature-row dm-sb-rij" style="gap:6px">
-          <div class="dm-form-row" style="flex:1">
-            <label class="dm-form-label">AC</label>
-            ${v('ac','13')}
-          </div>
-          <div class="dm-form-row" style="flex:2">
-            <label class="dm-form-label">HP formula</label>
-            ${v('hp','2d8+2')}
-          </div>
-          <div class="dm-form-row" style="flex:2">
-            <label class="dm-form-label">Speed</label>
-            ${v('speed','40 ft.')}
-          </div>
-        </div>
-        <div class="dm-sb-scores-grid">
-          ${['str','dex','con','int','wis','cha'].map(attr => `
-            <div class="dm-sb-score-col">
-              <label class="dm-form-label" style="text-align:center">${attr.toUpperCase()}</label>
-              <input id="dm-mon-sb-${attr}" class="dm-input dm-input-sm" type="number" min="1" max="30" value="${sb[attr] ?? 10}" style="text-align:center">
-              <div class="dm-sb-mod">${_sbMod(sb[attr] ?? 10)}</div>
-            </div>`).join('')}
-        </div>
-        <div class="dm-form-row">
-          <label class="dm-form-label">Saving Throws</label>
-          ${v('savingThrows','Wis +3, Cha +1')}
-        </div>
-        <div class="dm-form-row">
-          <label class="dm-form-label">Skills</label>
-          ${v('skills','Perception +3, Stealth +4')}
-        </div>
-        <div class="dm-form-row">
-          <label class="dm-form-label">Damage Vulnerabilities</label>
-          ${v('damageVulnerabilities','fire')}
-        </div>
-        <div class="dm-form-row">
-          <label class="dm-form-label">Damage Resistances</label>
-          ${v('damageResistances','bludgeoning')}
-        </div>
-        <div class="dm-form-row">
-          <label class="dm-form-label">Damage Immunities</label>
-          ${v('damageImmunities','poison, fire')}
-        </div>
-        <div class="dm-form-row">
-          <label class="dm-form-label">Condition Immunities</label>
-          ${v('conditionImmunities','charmed, frightened')}
-        </div>
-        <div class="dm-form-row">
-          <label class="dm-form-label">Senses</label>
-          ${v('senses','darkvision 60 ft., passive Perception 13')}
-        </div>
-        <div class="dm-form-row">
-          <label class="dm-form-label">Languages</label>
-          ${v('languages','Common, Elvish')}
-        </div>
-        <div class="dm-feature-row dm-sb-rij" style="gap:6px">
-          <div class="dm-form-row" style="flex:1">
-            <label class="dm-form-label">CR</label>
-            ${v('cr','1/4')}
-          </div>
-          <div class="dm-form-row" style="flex:1">
-            <label class="dm-form-label">XP</label>
-            <input id="dm-mon-sb-xp" class="dm-input dm-input-sm" type="number" value="${sb.xp || ''}" placeholder="50">
-          </div>
-        </div>
-        <div class="dm-form-row">
-          <label class="dm-form-label">Traits</label>
-          ${ta('traits','Pack Tactics. De wolf heeft voordeel op een aanval als een bondgenoot naast het doelwit staat…')}
-        </div>
-        <div class="dm-form-row">
-          <label class="dm-form-label">Actions</label>
-          ${ta('actions','Bite. Melee Weapon Attack: +4 to hit, reach 5 ft., one target. Hit: 7 (2d4+2) piercing damage…')}
-        </div>
-        <div class="dm-form-row">
-          <label class="dm-form-label">Reactions</label>
-          ${ta('reactions','Parry. Als reactie op een aanval verhoogt hij zijn AC met 2…')}
-        </div>
-        <div class="dm-form-row">
-          <label class="dm-form-label">Legendary/Mythic Actions</label>
-          ${ta('legendaryActions','Legendary Actions. Hij mag er drie per ronde gebruiken, buiten zijn eigen beurt om…')}
-        </div>
+        ${window._sbCombatHtml?.(h) || ''}
+        <div class="cs-sectiekop">Actions</div>
+        ${window._sbActiesHtml?.(h) || ''}
       </div>
     </details>`;
 };
@@ -4056,12 +3993,18 @@ function _statblockEditorHtml(sb) {
 function _readStatblockFromForm() {
   const v = k => document.getElementById('dm-mon-sb-' + k)?.value?.trim() || '';
   const n = k => parseInt(document.getElementById('dm-mon-sb-' + k)?.value) || 10;
-  return {
+  // `type` is hier de sleutel die `render-statblock.js` leest; het formulier
+  // noemt hem `creatureType`, zoals op een kaartje. Eén van de twee moet de
+  // vertaling doen en dat is deze regel — anders staat er op het ene scherm een
+  // keuzelijst en op het andere niets.
+  const sb = {
     size:                  v('size'),
-    type:                  v('type'),
+    type:                  v('creatureType'),
+    creatureType:          v('creatureType'),
     alignment:             v('alignment'),
     ac:                    v('ac'),
     hp:                    v('hp'),
+    initiative:            v('initiative'),
     speed:                 v('speed'),
     str:                   n('str'),
     dex:                   n('dex'),
@@ -4069,8 +4012,10 @@ function _readStatblockFromForm() {
     int:                   n('int'),
     wis:                   n('wis'),
     cha:                   n('cha'),
+    profBonus:             v('profBonus'),
     savingThrows:          v('savingThrows'),
     skills:                v('skills'),
+    gear:                  v('gear'),
     damageVulnerabilities: v('damageVulnerabilities'),
     damageResistances:     v('damageResistances'),
     damageImmunities:      v('damageImmunities'),
@@ -4081,9 +4026,12 @@ function _readStatblockFromForm() {
     xp:                    parseInt(document.getElementById('dm-mon-sb-xp')?.value) || 0,
     traits:                v('traits'),
     actions:               v('actions'),
+    bonusActions:          v('bonusActions'),
     reactions:             v('reactions'),
     legendaryActions:      v('legendaryActions'),
+    lairActions:           v('lairActions'),
   };
+  return sb;
 };
 
 async function _loadAndRenderMonsters() {

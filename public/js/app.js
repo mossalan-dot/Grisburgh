@@ -1,18 +1,18 @@
 import { api, campagneUitUrl, zetCampagne } from './api.js?v=320';
-import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, renderDocumenten, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=377";
-import { initArchief, renderLogboek, openLogboekEditor } from "./render-archief.js?v=148";
+import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, renderDocumenten, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=378";
+import { initArchief, renderLogboek, openLogboekEditor } from "./render-archief.js?v=149";
 import { renderKaart, queueFlyTo, verversPins, nieuweKaart } from './render-kaart.js?v=35';
-import { renderDungeon } from './render-dungeon.js?v=74';
+import { renderDungeon } from './render-dungeon.js?v=75';
 import { renderRelatiemap } from './render-relatiemap.js?v=38';
 import { renderProgressie, levelupFeatures } from './render-progressie.js?v=67';
-import { renderBestiarium } from './render-bestiarium.js?v=40';
+import { renderBestiarium } from './render-bestiarium.js?v=41';
 import { renderSpreuken } from './render-spreuken.js?v=56';
 import './render-handleiding.js?v=2';
 import './render-melding.js?v=4';
-import { renderVaardigheden, zoekVaardigheden, heldenboekTekst } from './render-vaardigheden.js?v=149';
-import { renderStatblock } from './render-statblock.js?v=9';
-import { initSocket } from "./socket-client.js?v=99";
-import { initDmPanel } from "./dm-panel.js?v=422";
+import { renderVaardigheden, zoekVaardigheden, heldenboekTekst } from './render-vaardigheden.js?v=151';
+import { renderStatblock } from './render-statblock.js?v=10';
+import { initSocket } from "./socket-client.js?v=100";
+import { initDmPanel } from "./dm-panel.js?v=423";
 import { COND_INFO, COND_LABEL, COND_MET_PLAATJE, COND_ICON } from './conditions.js?v=4';
 import './media-picker.js?v=14';
 import './wizard.js?v=10';
@@ -3724,7 +3724,7 @@ function _kaartCard(type, m, dm, verdiepingen = null) {
 // eerste bestaande kaart: je drukte op + en keek naar Dreghaven.
 window._kaartNieuw = async function (type) {
   if (type === 'wereld') return nieuweKaart();
-  const { nieuweDungeon } = await import('./render-dungeon.js?v=74');
+  const { nieuweDungeon } = await import('./render-dungeon.js?v=75');
   nieuweDungeon();
 };
 
@@ -15835,6 +15835,8 @@ const HELP_CONFIG = {
     { titel: 'Beschrijving', tekst: 'Bij een feature: wat het doet. Bij een houder: wat het **is** — dat staat bovenaan het kaartje, vóór de features. Een lege regel begint een nieuwe alinea, en met de knoppen erboven maak je vet, cursief of gekleurd.\n\nNeem geen tekst over uit een boek dat niet van jou is. Vat het samen in je eigen woorden; dan mag het mee en leest het bovendien korter.', afbeelding: null },
     { titel: 'Een tabel erbij', tekst: 'Sommige features zijn een tabel: wat je op welk level krijgt, of waar je op rolt. De knop met de twee kolommen zet er een neer, en de regel **boven** de tabel wordt zijn kop — die verdwijnt dan uit de lopende tekst en komt erboven te staan. Wil je geen kop, laat die regel dan weg of eindig hem op een leesteken; dan leest de app hem als een gewone zin.\n\nIn een cel werkt dezelfde opmaak als in de rest van de tekst: vet, cursief en `[[verwijzingen]]`. **Spreuknamen hoef je niet te linken** — staat er *Spells* of *Spreuken* boven die kolom, dan maakt de app er vanzelf knoppen van.', afbeelding: null },
     { titel: 'Meer kolommen', tekst: 'Elke extra pijp is een kolom erbij; de kopregel bepaalt hoeveel het er zijn, en een rij die er te weinig heeft wordt vanzelf aangevuld. De pijpen hoef je niet netjes uit te lijnen en de streepjesregel mag weg. Met het **oogje** rechts zie je precies wat er op het kaartje komt te staan.', afbeelding: null },
+    { titel: 'Alleen bij een feat: soort, prerequisite en spreuken', tekst: '**Soort** is de indeling van de Player\'s Handbook 2024: *Origin* (die krijg je bij je background), *General* (die kies je bij een Ability Score Improvement), *Fighting Style* en *Epic Boon*. Niets kiezen mag — beter leeg dan een soort die niet klopt.\n\n**Prerequisite** is wat de feat vraagt: *Strength 13*, *Level 4+*, of een training. Staat er een armor training in, dan rekent de app zelf uit welke classes die geven; die hoef je dus niet ook nog aan te vinken.\n\n**Geeft spreuk**: namen met een komma ertussen. De app zoekt op welke classlijsten die spreuken staan en zet de feat daar bij *Geeft een spreuk*.', afbeelding: null },
+    { titel: 'Sluit aan op', tekst: 'Welke classes hebben hier iets aan? Dat kan zijn omdat de feat ze noemt — Magic Initiate geeft clericspreuken — of omdat hij bij hun manier van spelen hoort.\n\nHet is een **wegwijzer en geen eis**: de feat blijft voor iedereen te kiezen. Hij staat dichtgevouwen omdat je hem bij de meeste feats niet aanraakt; het getal achter de kop zegt hoeveel er aanstaan.', afbeelding: null },
     { titel: 'Een worptabel wordt een tafel', tekst: 'Noemt de eerste kolomkop een steen — **d6**, **d100** — dan staat er onder de tabel een knop *Bewaren als tafel*. Eén klik en hij staat in de Tafels-tab, waar je hem kunt rollen en hergebruiken.\n\nHet is een **kopie**: de tekst van de feature blijft staan zoals hij is. En het werkt alleen bij een worptabel: een overzicht van wat je per level krijgt is geen tafel om op te rollen, en die hoort niet tussen je dobbeltabellen te belanden.', afbeelding: null },
   ] }),
 

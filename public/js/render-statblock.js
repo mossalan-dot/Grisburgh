@@ -39,6 +39,9 @@ const _sbMdLine = t => (t || '')
 // De `(?:<\/[a-z]+>)*` vangt een kop die vet gezet is: `**Cantrips**:` is op dit
 // punt al `<strong>Cantrips</strong>:` geworden, en zonder dat stukje glipt zo'n
 // lijst er ongemerkt doorheen.
+// De negen spreukniveaus zoals een statblok ze afdrukt.
+const _ORD = ['1st', '2nd', '3rd', '4th', '5th', '6th', '7th', '8th', '9th'];
+
 const _SPELLIJST = /((?:cantrips?|at[- ]will|innate|\d\s*\/\s*day(?:\s+each)?|\d(?:st|nd|rd|th)(?:\s+level)?(?:\s*\(\d+(?:\s*slots?)?\))?)(?:<\/[a-z]+>)*\s*:\s*)([^.;]+)/gi;
 const _sbMarkeerSpells = h => h.replace(_SPELLIJST, (_, kop, lijst) => `${kop}<span class="sb-spellijst">${lijst}</span>`);
 const _sbMdBlock = t => (t || '').split('\n').filter(l => l.trim())
@@ -104,23 +107,51 @@ export function renderStatblock(m, { niveau = 'volledig', kop = true } = {}) {
     </div>`;
   }
 
+  // **Eén waarde, twee schrijfwijzen.** De monster-editor schreef
+  // `damageResistances`, het blad van een personagekaartje `resistances` — en
+  // deze lezer kende alleen de eerste. Drie velden van een NPC-statblok
+  // verdwenen daardoor stilzwijgend: je vulde ze in, ze werden netjes bewaard,
+  // en er kwam nooit iets in beeld. Beide namen worden nu gelezen; de editors
+  // schrijven voortaan dezelfde.
+  const w = (...namen) => { for (const k of namen) if (sb[k]) return sb[k]; return ''; };
+  // Spellcasting stond helemaal niet in het statblok: de Save DC, de attack
+  // bonus en de spreuken waren alleen op het bewerkblad te zien. De slots
+  // worden als `4,3,3,1` bewaard — één regel per invulveld is hier onleesbaar,
+  // en dit is precies hoe een statblok ze afdrukt.
+  const _slotRegel = (rauw) => String(rauw || '').split(',').map(x => x.trim())
+    .map((n, i) => (n && Number(n) > 0) ? `${_ORD[i] || `${i + 1}e`} level (${n})` : '')
+    .filter(Boolean).join(' \u00b7 ');
+  const _spellBlok = (sb) => {
+    const dc    = sb.spellSaveDC ? `Spell Save DC ${esc(sb.spellSaveDC)}` : '';
+    const att   = sb.spellAttackMod ? `Spell Attack ${esc(sb.spellAttackMod)}` : '';
+    const slots = _slotRegel(sb.spellSlots);
+    const vrij  = [sb.cantrips, sb.spells].filter(Boolean).join('\n');
+    if (!dc && !att && !slots && !vrij) return '';
+    return `<div class="sb-rule"></div><div class="sb-section-label">Spellcasting</div>
+      ${(dc || att) ? `<div class="sb-prop">${[dc, att].filter(Boolean).join(', ')}</div>` : ''}
+      ${slots ? `<div class="sb-prop"><span class="sb-prop-label">Spell Slots</span>${slots}</div>` : ''}
+      ${vrij ? _sbMdBlock(vrij) : ''}`;
+  };
+
   const props = [
-    ['savingThrows',          'Saving Throws'],
-    ['skills',                'Skills'],
-    ['damageVulnerabilities', 'Damage Vulnerabilities'],
-    ['damageResistances',     'Damage Resistances'],
-    ['damageImmunities',      'Damage Immunities'],
-    ['conditionImmunities',   'Condition Immunities'],
-    ['senses',                'Senses'],
-    ['languages',             'Languages'],
-  ].filter(([k]) => sb[k]).map(([k, label]) =>
-    `<div class="sb-prop"><span class="sb-prop-label">${label}</span>${esc(sb[k])}</div>`
+    [['savingThrows'],                          'Saving Throws'],
+    [['skills'],                                'Skills'],
+    [['gear'],                                  'Gear'],
+    [['damageVulnerabilities', 'vulnerabilities'], 'Damage Vulnerabilities'],
+    [['damageResistances', 'resistances'],      'Damage Resistances'],
+    [['damageImmunities', 'immunities'],        'Damage Immunities'],
+    [['conditionImmunities'],                   'Condition Immunities'],
+    [['senses'],                                'Senses'],
+    [['languages'],                             'Languages'],
+  ].map(([ks, label]) => [w(...ks), label]).filter(([v]) => v).map(([v, label]) =>
+    `<div class="sb-prop"><span class="sb-prop-label">${label}</span>${esc(v)}</div>`
   ).join('');
 
   const defensive = `
     ${sb.ac    ? `<div class="sb-prop"><span class="sb-prop-label">Armor Class</span>${esc(sb.ac)}</div>` : ''}
     ${(sb.hp || m.maxHp) ? `<div class="sb-prop"><span class="sb-prop-label">Hit Points</span>${_sbHp(m.maxHp, sb.hp)}</div>` : ''}
-    ${sb.speed ? `<div class="sb-prop"><span class="sb-prop-label">Speed</span>${esc(sb.speed)}</div>` : ''}`;
+    ${sb.speed ? `<div class="sb-prop"><span class="sb-prop-label">Speed</span>${esc(sb.speed)}</div>` : ''}
+    ${sb.initiative ? `<div class="sb-prop"><span class="sb-prop-label">Initiative</span>${esc(sb.initiative)}</div>` : ''}`;
 
   const scores = `
     <div class="sb-scores">
@@ -139,9 +170,12 @@ export function renderStatblock(m, { niveau = 'volledig', kop = true } = {}) {
       : '';
     tail = `${props}${cr}
       ${sb.traits           ? `<div class="sb-rule"></div>${_sbMdBlock(sb.traits)}` : ''}
+      ${_spellBlok(sb)}
       ${sb.actions          ? `<div class="sb-rule"></div><div class="sb-section-label">Actions</div>${_sbMdBlock(sb.actions)}` : ''}
+      ${sb.bonusActions     ? `<div class="sb-rule"></div><div class="sb-section-label">Bonus Actions</div>${_sbMdBlock(sb.bonusActions)}` : ''}
       ${sb.reactions        ? `<div class="sb-rule"></div><div class="sb-section-label">Reactions</div>${_sbMdBlock(sb.reactions)}` : ''}
-      ${sb.legendaryActions ? `<div class="sb-rule"></div><div class="sb-section-label">Legendary/Mythic Actions</div>${_sbMdBlock(sb.legendaryActions)}` : ''}`;
+      ${sb.legendaryActions ? `<div class="sb-rule"></div><div class="sb-section-label">Legendary/Mythic Actions</div>${_sbMdBlock(sb.legendaryActions)}` : ''}
+      ${sb.lairActions      ? `<div class="sb-rule"></div><div class="sb-section-label">Lair Actions</div>${_sbMdBlock(sb.lairActions)}` : ''}`;
   } else {
     // ── Deels: verdedigende props tonen, traits/actions/CR vergrendeld ──
     tail = `${props}

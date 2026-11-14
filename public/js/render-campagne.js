@@ -1,5 +1,5 @@
 import { api } from './api.js?v=320';
-import { renderStatblock } from './render-statblock.js?v=9';
+import { renderStatblock } from './render-statblock.js?v=10';
 
 const icon = (...a) => window.icon(...a);
 
@@ -1258,10 +1258,28 @@ const _SB_TYPES = ['Aberration','Beast','Celestial','Construct','Dragon','Elemen
                    'Giant','Humanoid','Monstrosity','Ooze','Plant','Undead'];
 // De sleutels die een statblok kent, in de volgorde waarin ze hieronder staan.
 // `_petTiersCollect` leest hiermee een tier terug uit het DOM.
-const _SB_TEKSTVELDEN = ['size','creatureType','ac','hp','initiative','speed','cr','xp','profBonus',
-  'savingThrows','skills','gear','vulnerabilities','resistances','immunities','conditionImmunities',
+// **De sleutels zijn die van het bestiarium**, want de lezer
+// (`render-statblock.js`) is er één. Dit blad schreef `vulnerabilities`,
+// `resistances` en `immunities`; die las niemand, dus wat je daar invulde
+// verdween stilzwijgend. `render-statblock.js` leest de oude namen nog, zodat
+// wat er al staat blijft werken.
+const _SB_TEKSTVELDEN = ['size','creatureType','alignment','ac','hp','initiative','speed','cr','xp','profBonus',
+  'savingThrows','skills','gear','damageVulnerabilities','damageResistances','damageImmunities','conditionImmunities',
   'senses','languages','traits','actions','bonusActions','reactions','legendaryActions','lairActions'];
 const _SB_ABILITIES = ['str','dex','con','int','wis','cha'];
+// De negen spreukniveaus, zoals een statblok ze afdrukt.
+const _SB_SLOT_ORD = ['1st','2nd','3rd','4th','5th','6th','7th','8th','9th'];
+
+// De negen vakjes zijn één veld: bij elke toetsaanslag worden ze tot één rij
+// gevouwen. Lege staarten gaan eraf, zodat een caster van level 3 niet
+// "4,3,,,,,,," opslaat.
+window._csSlotsBij = () => {
+  const vakjes = [...document.querySelectorAll('#cs-slots .cs-slot-veld')];
+  const rij = vakjes.map(v => String(v.value || '').replace(/\D/g, ''));
+  while (rij.length && !rij[rij.length - 1]) rij.pop();
+  const veld = document.getElementById('cs-slots-veld');
+  if (veld) veld.value = rij.join(',');
+};
 
 // ── Standaard-statblokken (SRD 5.2) ─────────────────────────────────────────
 // Een herbergier die zich verweert is een *Guard*, een matroos een *Pirate*.
@@ -1441,9 +1459,10 @@ window._presetVullen = async (invoer, tier = null) => {
 
 function _sbCombatHtml(h) {
   return `
-    <div class="grid grid-cols-2 gap-2">
+    <div class="grid grid-cols-3 gap-2">
       ${h.sel('size', 'Size', _SB_SIZES)}
       ${h.sel('creatureType', 'Creature Type', _SB_TYPES)}
+      ${h.inp('alignment', 'Alignment', { ph: 'unaligned' })}
     </div>
     <div class="grid grid-cols-4 gap-2">
       ${h.inp('ac', 'AC', { center: true })}
@@ -1465,9 +1484,9 @@ function _sbCombatHtml(h) {
       ${h.inp('savingThrows', 'Saving Throws')}
       ${h.inp('skills', 'Skills', { ph: 'Perception +4' })}
       ${h.ta('gear', 'Gear', 2)}
-      ${h.inp('vulnerabilities', 'Damage Vulnerabilities')}
-      ${h.inp('resistances', 'Damage Resistances')}
-      ${h.inp('immunities', 'Damage Immunities')}
+      ${h.inp('damageVulnerabilities', 'Damage Vulnerabilities')}
+      ${h.inp('damageResistances', 'Damage Resistances')}
+      ${h.inp('damageImmunities', 'Damage Immunities')}
       ${h.inp('conditionImmunities', 'Condition Immunities')}
     </div>
     <div class="cs-sectiekop">Senses &amp; Languages</div>
@@ -1480,6 +1499,15 @@ function _sbCombatHtml(h) {
     <div class="cs-sectiekop">Traits</div>
     ${h.ta('traits', '', 3)}`;
 }
+
+// **Eén statblok-formulier voor de hele app.** De monster-editor in de
+// Meesterkamer had een eigen, plattere versie: geen sectiekoppen, geen Gear,
+// geen Bonus Actions of Lair Actions, en een losse `type`-tekstveld waar hier
+// een keuzelijst staat. Twee formulieren voor hetzelfde ding lopen uit elkaar —
+// en dat wás ook gebeurd. `dm-panel.js` roept deze twee nu aan met zijn eigen
+// bouwstenen (eigen ids), dus de velden blijven gelijk.
+window._sbCombatHtml = h => _sbCombatHtml(h);
+window._sbActiesHtml = h => _sbActiesHtml(h);
 
 function _sbActiesHtml(h) {
   return `
@@ -9299,6 +9327,24 @@ window._openEditor = async (tab, editId) => {
           <div id="cs-panel-spreuken" class="cs-sub-body space-y-2" style="display:none">
             <div class="grid grid-cols-2 gap-2">
               ${_si('spellSaveDC','Spell Save DC',{center:true})}${_si('spellAttackMod','Spell Attack Mod',{center:true})}
+            </div>
+            <!-- Je kon spreuken koppelen en nergens kwijt hoe vaak hij ze kan
+                 gooien. Negen vakjes, één per level; leeg of 0 telt niet mee.
+                 Bewaard als een komma-rij (4,3,3,1) in een enkel veld; negen losse
+                 (Geen backticks in commentaar hierbinnen: template literal.)
+                 sleutels op een statblok dat er verder geen heeft leest nergens
+                 naar, en dit is precies hoe een statblok ze afdrukt. -->
+            <div>
+              <label class="text-[10px] font-cinzel text-ink-dim uppercase">Spell Slots</label>
+              <div class="cs-slots" id="cs-slots">
+                ${_SB_SLOT_ORD.map((o, i) => `<div class="cs-slot">
+                  <span class="cs-slot-lbl">${o}</span>
+                  <input class="cs-slot-veld" inputmode="numeric" maxlength="2"
+                    value="${esc(String(s.spellSlots || '').split(',')[i]?.trim() || '')}"
+                    oninput="window._csSlotsBij()">
+                </div>`).join('')}
+              </div>
+              <input type="hidden" name="stat_spellSlots" id="cs-slots-veld" value="${esc(s.spellSlots || '')}">
             </div>
             <!-- Gekoppelde spreuken: overtypen levert een dood tekstveld op, een
                  koppeling levert een kaartje op waar je doorheen klikt. De
