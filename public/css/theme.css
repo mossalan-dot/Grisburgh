@@ -33717,6 +33717,27 @@ body.gr-slowmo .combat-overlay { filter: grayscale(.85) contrast(1.1) brightness
 /* Het level dat een feat vraagt is geen level dat hij geeft — zelfde penning,
    een slag koeler, zodat je ze uit elkaar houdt. */
 .vaardig-card-niv--eis { background: #2b4a6e; }
+/* En vraagt hij nóg iets (een andere feat, een training): een plusje in
+   dezelfde kleur, opener. De eis zelf staat in de tooltip en voluit in het
+   venster — onder de titel paste hij niet. */
+.vaardig-card-niv--meer {
+  background: transparent; border: 1px solid #2b4a6e; color: #2b4a6e; box-shadow: none;
+}
+.vaardig-card-niv--meer .icon { width: 13px; height: 13px; }
+/* Op een kaartje mét plaat staat de penning op het beeld; daar wint een lichte
+   rand het van een donkerblauwe. */
+.tegel--open .vaardig-card-niv--meer,
+.tegel:has(.tegel-img) .vaardig-card-niv--meer {
+  border-color: rgba(255,255,255,.75); color: #fff;
+  background: rgba(30,40,60,.45); backdrop-filter: blur(2px);
+}
+
+/* De kop en de tekst van een Prerequisite stonden niet op één lijn: de kop is
+   Cinzel op 10px en de tekst Crimson op 13px, en met `align-items: flex-start`
+   hangen twee verschillende regelhoogtes elk op hun eigen bovenkant. Ze lopen
+   nu over één basislijn. */
+.vk-eis { align-items: baseline; }
+.vk-eis .icon { align-self: center; margin-top: 0; }
 
 /* "Geeft een spreuk": de spreuk is het antwoord, de classes zijn de bijregel.
    Die stonden andersom — de naam als voetnoot onder een rij classes die

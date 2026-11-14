@@ -681,7 +681,6 @@ function _featOnderTitel(it) {
   if (it.soort !== 'feat' && it.soort !== 'boon') return '';
   return [
     it.categorie || '',
-    it.vereist || '',
     // De kale versie wordt alleen gebruikt om te toetsen óf er iets staat; de
     // zin zelf komt uit `_featOnderTitelHtml`.
     (it.geeftSpreuk || []).length ? `geeft ${(it.geeftSpreuk || []).join(', ')}` : '',
@@ -694,9 +693,11 @@ function _featOnderTitel(it) {
 // de feat je geeft; dat was eerder alleen in het venster zo.
 function _featOnderTitelHtml(it) {
   if (it.soort !== 'feat' && it.soort !== 'boon') return '';
+  // De eis staat hier níét meer: die werd een regel van een halve kaartbreedte
+  // ("Scion of the Outer Planes (Lawful Outer Plane) feat"), en hij heeft nu
+  // zijn eigen penning. Wat overblijft is kort genoeg om op één regel te lezen.
   return [
     it.categorie ? esc(it.categorie) : '',
-    it.vereist ? esc(it.vereist) : '',
     _geeftZin(it.geeftSpreuk || []),
   ].filter(Boolean).join(' \u00b7 ');
 }
@@ -744,11 +745,21 @@ function _nivPenningenHtml(it) {
   const vast  = _toontLevel(it.soort, it.level) ? (it.levels || [it.level]) : [];
   const groei = it.groei || [];
   const eis   = _eisLevel(it);
-  if (!vast.length && !groei.length && !eis) return '';
+  // Een feat kan naast een level nog iets anders vragen ("Scion of the Outer
+  // Planes feat", "Medium armor training"). Dat paste niet onder de titel —
+  // Agent of Order liep daar over de volle breedte — en het hoeft daar ook
+  // niet te staan: in het venster staat het voluit. Hier alleen een plusje
+  // naast de levelpenning, met de eis in de tooltip. Het teken zegt: er is
+  // meer, kijk even verder.
+  const meer = (it.soort === 'feat' || it.soort === 'boon')
+    ? String(it.vereist || _koppelingVan(it)?.vereist || '').trim() : '';
+  if (!vast.length && !groei.length && !eis && !meer) return '';
   const titel = eis ? `Vraagt level ${eis}`
     : groei.length ? `Verandert op level ${groei.join(', ')}` : '';
   return `<span class="vaardig-card-nivs"${titel ? ` title="${esc(titel)}"` : ''}>
     ${eis ? `<span class="vaardig-card-niv vaardig-card-niv--eis">${eis}</span>` : ''}
+    ${meer ? `<span class="vaardig-card-niv vaardig-card-niv--meer"
+      title="Prerequisite: ${esc(meer)}">${icon('plus')}</span>` : ''}
     ${vast.map(l => `<span class="vaardig-card-niv">${l}</span>`).join('')}
     ${groei.map(l => `<span class="vaardig-card-niv vaardig-card-niv--groei">${l}</span>`).join('')}
   </span>`;
