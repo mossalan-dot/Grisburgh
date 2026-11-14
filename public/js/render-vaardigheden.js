@@ -644,44 +644,63 @@ function _kaartBladen(it) {
   // procent leeg is. Ze staan nu als onderschrift op de plaat; bij een feat
   // zonder plaat bovenaan de beschrijving, want dan is er niets om op te
   // leggen.
-  const feiten = _featFeiten(it);
-  if (feiten.length && !bladen.some(b => b.soort === 'portret')) {
+  const regel = _featOnderTitel(it);
+  if (regel && !bladen.some(b => b.soort === 'portret')) {
     const blad = bladen.find(b => b.soort === 'beschrijving');
-    if (blad) blad.html = `${_featFeitenHtml(feiten, true)}${blad.html}`;
+    if (blad) blad.html = `<p class="tegel-feitregel">${esc(regel)}</p>${blad.html}`;
   }
   return bladen;
 }
 
-// Wat een feat is en vraagt, in regels. Leeg blijft weg: een lege regel zegt
-// niets, en vier koppen met drie streepjes lezen als een fout.
-function _featFeiten(it) {
-  if (it.soort !== 'feat' && it.soort !== 'boon') return [];
-  // Het level en de rest van de eis zijn twee velden en één regel: "Level 4+,
-  // Abjuration school" leest als één voorwaarde, want dat is het ook.
-  const lvl = Number(it.vereistLevel) || 0;
-  const eis = [lvl ? `Level ${lvl}+` : '', it.vereist || ''].filter(Boolean).join(', ');
+// Wat een feat is en vraagt, als één regel. Eerst stond het als tweekoloms
+// lijstje onder de naam, maar de naamband is gecentreerd: de koppen liepen naar
+// het midden en de waardes stonden er los naast. Elders in het Heldenboek
+// draagt een open kaartje één gecentreerde ondertitel ("Barbarian · level 11"),
+// en dit is dezelfde soort regel — dus zo hoort hij er ook uit te zien.
+// Het **minimumlevel** zit er niet in: dat is een penning geworden, net als het
+// level van een class feature.
+function _featOnderTitel(it) {
+  if (it.soort !== 'feat' && it.soort !== 'boon') return '';
   return [
-    ['Soort', it.categorie || ''],
-    ['Prerequisite', eis],
-    ['Geeft spreuk', (it.geeftSpreuk || []).join(', ')],
-    ['Sluit aan op', (it.sluitAan || []).join(', ')],
-  ].filter(([, v]) => v);
+    it.categorie || '',
+    it.vereist || '',
+    (it.geeftSpreuk || []).length ? `geeft ${(it.geeftSpreuk || []).join(', ')}` : '',
+  ].filter(Boolean).join(' \u00b7 ');
 }
 
-function _featFeitenHtml(feiten, opPerkament = false) {
-  if (!feiten.length) return '';
-  return `<dl class="tegel-feiten${opPerkament ? ' tegel-feiten--vel' : ''}">${feiten.map(([k, v]) =>
-    `<dt>${esc(k)}</dt><dd>${esc(v)}</dd>`).join('')}</dl>`;
+// Het level dat een feat vraagt. Staat het niet op de regel zelf, dan kent de
+// meegeleverde koppeling het misschien — daar zit onder meer de 19 van elke
+// Epic Boon in, die niet twaalf keer in het bestand staat.
+function _eisLevel(it) {
+  if (it.soort !== 'feat' && it.soort !== 'boon') return 0;
+  return Number(it.vereistLevel) || Number(_koppelingVan(it)?.vereistLevel) || 0;
+}
+
+// De penningenhoek: gevuld waar je iets krijgt, open waar het verandert, en bij
+// een feat het level dat hij vraagt. Stond in tweevoud (dicht en open kaartje),
+// en liep dus bij elke aanpassing het risico uit elkaar te lopen.
+function _nivPenningenHtml(it) {
+  const vast  = _toontLevel(it.soort, it.level) ? (it.levels || [it.level]) : [];
+  const groei = it.groei || [];
+  const eis   = _eisLevel(it);
+  if (!vast.length && !groei.length && !eis) return '';
+  const titel = eis ? `Vraagt level ${eis}`
+    : groei.length ? `Verandert op level ${groei.join(', ')}` : '';
+  return `<span class="vaardig-card-nivs"${titel ? ` title="${esc(titel)}"` : ''}>
+    ${eis ? `<span class="vaardig-card-niv vaardig-card-niv--eis">${eis}</span>` : ''}
+    ${vast.map(l => `<span class="vaardig-card-niv">${l}</span>`).join('')}
+    ${groei.map(l => `<span class="vaardig-card-niv vaardig-card-niv--groei">${l}</span>`).join('')}
+  </span>`;
 }
 
 function _kaartBladInhoud(it, blad) {
   if (blad.soort === 'portret') {
     const niveaus = (it.levels || [it.level]).join(' \u00b7 ');
     const meta = [_bronRegel(it), _toontLevel(it.soort, it.level) ? `level ${niveaus}` : ''].filter(Boolean).join(' \u00b7 ');
+    const regel = meta || _featOnderTitel(it);
     return `<div class="tegel-naamband tegel-naamband--groot">
       <span class="card-name">${esc(it.naam)}</span>
-      ${meta ? `<span class="tegel-ondertitel">${esc(meta)}</span>` : ''}
-      ${_featFeitenHtml(_featFeiten(it))}</div>`;
+      ${regel ? `<span class="tegel-ondertitel">${esc(regel)}</span>` : ''}</div>`;
   }
   return `<div class="tegel-vel">
     <div class="tegel-vel-kop">${icon(_KAART_BLAD_ICOON[blad.soort] || 'square')} ${esc(blad.label)}<span class="tegel-vel-naam">${esc(it.naam)}</span></div>
@@ -754,16 +773,7 @@ function _card(it) {
         <!-- Waar het vandaan komt en op welk level: op het open kaartje juist
              wél. Daar lees je wat het is, en dan is de bron het laatste wat je
              wilt weten voordat je het gebruikt. -->
-        ${(() => {
-          const vast = _toontLevel(it.soort, it.level) ? (it.levels || [it.level]) : [];
-          const groei = it.groei || [];
-          if (!vast.length && !groei.length) return '';
-          return `<span class="vaardig-card-nivs"${groei.length
-            ? ` title="Verandert op level ${groei.join(', ')}"` : ''}>
-            ${vast.map(l => `<span class="vaardig-card-niv">${l}</span>`).join('')}
-            ${groei.map(l => `<span class="vaardig-card-niv vaardig-card-niv--groei">${l}</span>`).join('')}
-          </span>`;
-        })()}
+        ${_nivPenningenHtml(it)}
         ${(() => {
           const boek = _boekVan(it);
           const kort = _boekKort(boek);
@@ -817,16 +827,7 @@ function _card(it) {
       })()}
       <!-- De levels in de hoek: gevuld waar je hem krijgt, open waar hij
            verandert. (Geen backticks in commentaar hierbinnen.) -->
-      ${(() => {
-        const vast = _toontLevel(it.soort, it.level) ? (it.levels || [it.level]) : [];
-        const groei = it.groei || [];
-        if (!vast.length && !groei.length) return '';
-        return `<span class="vaardig-card-nivs"${groei.length
-          ? ` title="Verandert op level ${groei.join(', ')}"` : ''}>
-          ${vast.map(l => `<span class="vaardig-card-niv">${l}</span>`).join('')}
-          ${groei.map(l => `<span class="vaardig-card-niv vaardig-card-niv--groei">${l}</span>`).join('')}
-        </span>`;
-      })()}
+      ${_nivPenningenHtml(it)}
       ${link ? `<a class="vaardig-tegel-naslag" href="${esc(link)}" target="_blank" rel="noopener"
         onclick="event.stopPropagation()" title="De beschrijving staat hier niet — zoek hem elders op">${icon('book-open')}</a>` : ''}
       <!-- Alleen de naam, zoals op een archieftegel. De class en het level

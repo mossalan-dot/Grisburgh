@@ -33704,20 +33704,16 @@ body.gr-slowmo .combat-overlay { filter: grayscale(.85) contrast(1.1) brightness
 .dm-sb-fields .dm-form-row { margin-bottom: 8px; }
 .dm-sb-fields .cs-sectiekop { margin-top: 14px; }
 
-/* Wat een feat is en vraagt, als onderschrift op zijn plaat. Een eigen blad
-   was het niet waard: de meeste feats hebben hier twee regels staan, en dan
-   kijk je naar een leeg vel. Label en waarde op één regel, zodat het als een
-   bijschrift leest en niet als een tabel. */
-.tegel-feiten {
-  display: grid; grid-template-columns: auto 1fr; gap: 1px 8px;
-  margin: 5px 0 0; font-family: 'Crimson Text', serif; font-size: .82em;
+/* Wat een feat is en vraagt, als onderschrift. Het was een tweekoloms lijstje,
+   maar de naamband is gecentreerd: de koppen liepen naar het midden en de
+   waardes stonden er los naast. Het is één regel geworden, in hetzelfde
+   idioom als de ondertitel van een class-kaartje; op een vel perkament (een
+   feat zonder plaat) staat dezelfde regel bovenaan de tekst. */
+.tegel-feitregel {
+  margin: 0 0 12px; padding-bottom: 10px; border-bottom: 1px dashed #d8c7a4;
+  font-family: 'IM Fell English', serif; font-style: italic; color: #6b4f2a;
 }
-.tegel-feiten dt {
-  font-family: 'Cinzel', serif; font-size: .76em; letter-spacing: .05em;
-  text-transform: uppercase; color: #cbb68c; align-self: baseline;
-}
-.tegel-feiten dd { margin: 0; color: #f0e6d2; }
-/* Op perkament in plaats van op een plaat: dezelfde regels, inktkleuren. */
-.tegel-feiten--vel { margin: 0 0 12px; padding-bottom: 10px; border-bottom: 1px dashed #d8c7a4; }
-.tegel-feiten--vel dt { color: #9c7f4e; }
-.tegel-feiten--vel dd { color: #3a2410; }
+
+/* Het level dat een feat vraagt is geen level dat hij geeft — zelfde penning,
+   een slag koeler, zodat je ze uit elkaar houdt. */
+.vaardig-card-niv--eis { background: #2b4a6e; }
