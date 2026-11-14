@@ -615,7 +615,8 @@ function _subKleur(it) {
 let _openKaart = null;        // key van het kaartje dat openstaat
 const _kaartBlad = {};        // key → welke bladzijde
 
-const _KAART_BLAD_ICOON = { portret: 'image', beschrijving: 'book-open', naslag: 'external-link' };
+const _KAART_BLAD_ICOON = { portret: 'image', beschrijving: 'book-open',
+                            eigenschappen: 'scroll-text', naslag: 'external-link' };
 
 // Welke bladzijden heeft dit kaartje? De plaat alleen als er een is — een
 // kaartje zonder beeld opent meteen op zijn tekst, want een leeg vlak is geen
@@ -627,6 +628,16 @@ function _kaartBladen(it) {
   bladen.push({ soort: 'beschrijving', label: 'Beschrijving', tekst,
     html: tekst ? `<div class="tegel-tekst">${_verwijzingen(window._vaardigTekstHtml?.(tekst) ?? esc(tekst))}</div>`
                 : `<p class="dm-hint">De beschrijving staat hier niet — hij valt buiten de vrij te gebruiken SRD.</p>` });
+  // Een background heeft daarnaast wát hij geeft: skills, uitrusting, zijn
+  // feat. Dat is dezelfde lijst als in zijn venster, en dezelfde bladzijde als
+  // "Eigenschappen" daar — één naam voor één ding.
+  if (it.soort === 'background') {
+    const rijen = _achtergrondRijen(it.naam);
+    if (rijen.length) bladen.push({ soort: 'eigenschappen', label: 'Eigenschappen',
+      tekst: rijen.map(([k, v]) => `${k} ${v}`).join(' '),
+      html: `<dl class="vk-training">${rijen.map(([k, v, html]) =>
+        `<dt>${esc(k)}</dt><dd>${html ?? _rijWaardeHtml(v)}</dd>`).join('')}</dl>` });
+  }
   return bladen;
 }
 
@@ -693,12 +704,10 @@ function _card(it) {
   // zoals een kaartje in het archief.
   const klik = it.entityId
     ? `window._openDetail('voorwerpen','${esc(it.entityId)}')`
-    : it.soort === 'background'
-      ? `window.vaardigheden.kaartOpen('background','${escA(it.naam)}')`
-      : `window.vaardigheden.tegel('${escA(it.key)}')`;
+    : `window.vaardigheden.tegel('${escA(it.key)}')`;
 
   // ── Open: 2×2, met bladen en een voetbalk ──
-  if (_openKaart === it.key && !it.entityId && it.soort !== 'background') {
+  if (_openKaart === it.key && !it.entityId) {
     const bladen = _kaartBladen(it);
     const j = Math.min(_kaartBlad[it.key] || 0, bladen.length - 1);
     return `
@@ -724,25 +733,38 @@ function _card(it) {
           <div class="tegel-punten">${window._tegelPijlHtml?.(-1, bladen.length) || ''}${bladen.map((b, k) => `<button class="tegel-punt${k === j ? ' is-aan' : ''}"
             title="${esc(b.label)}" onclick="window.vaardigheden.naar('${escA(it.key)}',${k})">${icon(_KAART_BLAD_ICOON[b.soort] || 'square')}</button>`).join('')}${window._tegelPijlHtml?.(1, bladen.length) || ''}</div>
           ${isDM() ? `<button class="tegel-knop" title="Dit kaartje bewerken"
-            onclick="window.vaardigheden.bewerk('${escA(it.key)}')">${icon('pencil')}</button>` : ''}
+            onclick="window.vaardigheden.${it.soort === 'background'
+              ? `kaartBewerken('background','${escA(it.naam)}')`
+              : `bewerk('${escA(it.key)}')`}">${icon('pencil')}</button>` : ''}
           <button class="tegel-knop" title="Het hele kaartje" onclick="window.vaardigheden.vergroot('${escA(it.key)}')">${icon('maximize-2')}</button>
           <button class="tegel-knop" title="Kleiner" onclick="window.vaardigheden.tegelDicht()">${icon('minimize-2')}</button>
         </div>
       </div>`;
   }
 
+  // ── Dicht: dezelfde tegel als in het archief ──
+  // Dit was een kaartje met een strook beeld van 96 pixels en daaronder een
+  // naam, een bronregel, een stukje tekst en een boekbadge. Naast de andere
+  // tabbladen — waar een tegel een plaat is met zijn naam erover, 3:4 — viel
+  // het op als iets anders, en het was anderhalf keer zo groot. De tekst die
+  // eraf valt staat één klik verder: de tegel gaat open waar hij staat.
   return `
     <div class="entity-card vaardig-card tegel" data-sleutel="${escA(it.key)}" data-soort="${esc(it.soort)}"
-      onclick="${klik}" title="${esc(it.naam)}"
+      role="button" tabindex="0" onclick="${klik}" title="${esc(it.naam)}"
+      onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();${klik}}"
       style="--soort-c1:${eigenKleur ? esc(eigenKleur) : s.c1};--soort-c2:${eigenKleur ? esc(eigenKleur) : s.c2}">
       <div class="card-accent vaardig-accent"></div>
       ${dmRij}${dmPen}
-      <!-- De levels in de hoek van de plaat: gevuld waar je hem krijgt, open
-           waar hij verandert. **Eén plek**, want ze beantwoorden dezelfde
-           vraag — de open pillen stonden eerst onder de bronregel, en dan
-           staat hetzelfde soort gegeven bij een class ergens anders dan bij
-           een species.
-           (Geen backticks in commentaar hierbinnen: template literal.) -->
+      <span class="tegel-icoon" aria-hidden="true">${icon(_itemIcoon(it))}</span>
+      ${(() => {
+        const [b, ...rest] = _beeldKeten(it);
+        return b ? `<img class="tegel-img" src="/api/files/${esc(b.id)}" alt="" loading="lazy"
+          style="${b.focus ? `object-position:${esc(b.focus)}` : ''}"
+          ${rest.length ? `data-terugval="${esc(JSON.stringify(rest))}"` : ''}
+          onerror="window.vaardigheden.beeldMis(this)">` : '';
+      })()}
+      <!-- De levels in de hoek: gevuld waar je hem krijgt, open waar hij
+           verandert. (Geen backticks in commentaar hierbinnen.) -->
       ${(() => {
         const vast = _toontLevel(it.soort, it.level) ? (it.levels || [it.level]) : [];
         const groei = it.groei || [];
@@ -753,48 +775,20 @@ function _card(it) {
           ${groei.map(l => `<span class="vaardig-card-niv vaardig-card-niv--groei">${l}</span>`).join('')}
         </span>`;
       })()}
-      <div class="card-img-wrap vaardig-card-img-wrap">
-        <div class="vaardig-card-silhouet">${icon(_itemIcoon(it))}</div>
+      ${(() => {
+        const boek = _boekVan(it);
+        const kort = _boekKort(boek);
+        return kort ? `<span class="vaardig-card-boek" title="${esc(boek)}">${esc(kort)}</span>` : '';
+      })()}
+      ${link ? `<a class="vaardig-tegel-naslag" href="${esc(link)}" target="_blank" rel="noopener"
+        onclick="event.stopPropagation()" title="De beschrijving staat hier niet — zoek hem elders op">${icon('book-open')}</a>` : ''}
+      <div class="tegel-naamband">
+        <span class="card-name" data-fittext>${esc(it.naam)}</span>
         ${(() => {
-          const [b, ...rest] = _beeldKeten(it);
-          return b ? `<img class="vaardig-card-img" src="/api/files/${esc(b.id)}" alt="" loading="lazy"
-          style="${b.focus ? `object-position:${esc(b.focus)}` : ''}"
-          ${rest.length ? `data-terugval="${esc(JSON.stringify(rest))}"` : ''}
-          onload="this.classList.add('is-on')" onerror="window.vaardigheden.beeldMis(this)">` : '';
+          const niveaus = (it.levels || [it.level]).join(' \u00b7 ');
+          const meta = [bronRegel, _toontLevel(it.soort, it.level) ? `level ${niveaus}` : ''].filter(Boolean).join(' \u00b7 ');
+          return meta ? `<span class="tegel-ondertitel">${esc(meta)}</span>` : '';
         })()}
-      </div>
-      <div class="entity-card-body vaardig-card-body">
-        <div class="vaardig-card-name">${esc(it.naam)}</div>
-        ${(() => {
-          // Deze regel zegt waar het bij hoort en op welk level. Is er niets te
-          // zeggen (een feat hoort nergens bij), dan ook geen lege regel.
-          const niveaus = (it.levels || [it.level]).join(' · ');
-          const meta = [esc(bronRegel), _toontLevel(it.soort, it.level) ? `level ${niveaus}` : ''].filter(Boolean).join(' · ');
-          return meta ? `<div class="vaardig-card-meta">${meta}</div>` : '';
-        })()}
-        <!-- **Geen chips voor soort en herkomst meer.** Ze stonden onder elke
-             kaart als een tweede regel pillen, en ze zeiden allebei iets wat je
-             al ziet: de soort staat in de kleur van het kaartje én in de regel
-             erboven ("Alchemist · Artificer · level 3"), en of iets overgenomen
-             is, is een aantekening voor de DM — niet wat je op een
-             dashboardkaartje zoekt. Wat blijft is de penning met het level op de
-             plaat, en *Naslag*: dat is geen label maar de enige weg naar het
-             boek bij een kaartje zonder tekst. -->
-        ${link ? `<div class="vaardig-card-tags">
-          <a class="spreuk-tag spreuk-tag--naslag" href="${esc(link)}" target="_blank" rel="noopener"
-            onclick="event.stopPropagation()" title="De beschrijving staat hier niet — zoek hem elders op">${icon('book-open')} Naslag</a>
-        </div>` : ''}
-        <!-- Waar het vandaan komt, in de rechteronderhoek: PHB'24, TCE, MCDM.
-             Nu elk kaartje zijn bron draagt is dat het laatste wat je wil
-             weten voordat je het gebruikt, en het past in drie tekens. -->
-        ${(() => {
-          const boek = _boekVan(it);
-          const kort = _boekKort(boek);
-          return kort ? `<span class="vaardig-card-boek" title="${esc(boek)}">${esc(kort)}</span>` : '';
-        })()}
-        ${tekst
-          ? `<div class="vaardig-card-desc">${_kort(tekst)}</div>`
-          : `<div class="vaardig-card-desc vaardig-card-desc--leeg">De beschrijving staat hier niet — hij valt buiten de vrij te gebruiken SRD.</div>`}
       </div>
     </div>`;
 }
@@ -1819,8 +1813,14 @@ function _tegelsHtml(d) {
   // zelf waar je staat. Een knop per onderdeel was hetzelfde gebaar op vier
   // plekken.
   return `<div class="vd-tegels">${rijen.map(([naam], i) => {
-    const beeld = _tegelBeeld(x => d.soorten.includes(x.soort)
-      && (d.id === 'background' ? x.naam === naam : x.bron === naam));
+    // **Eerst de plaat van de houder zelf** — die heeft de DM bij Barbarian of
+    // Dragonborn gezet, en dat is het portret dat bij die keuze hoort. Pas als
+    // die er niet is pakken we de eerste plaat die onder hem hangt; dat was
+    // eerst de enige weg, en omdat een feature zijn beeld van zijn class érft
+    // (en dus zelf geen `img` heeft) bleven de meeste tegels leeg.
+    const beeld = _hbBeeld(d.id === 'background' ? 'background' : d.id, naam)
+      || _tegelBeeld(x => d.soorten.includes(x.soort)
+        && (d.id === 'background' ? x.naam === naam : x.bron === naam));
     const subs = d.id === 'class' ? _bandSubklassen(naam).length : 0;
     // Een species met varianten: dát is wat je hier wilt weten, net als het
     // aantal subclasses bij een class. Maar 55 van de 62 hebben er geen, en
@@ -2169,7 +2169,7 @@ function _paint() {
   // slaat de bandlaag over (ze hebben geen tussenlaag zoals subclasses), en
   // daardoor kwam hij nooit in beeld.
   grid.innerHTML = (lijst.length
-      ? lijst.map(it => it.soort === 'background' ? _achtergrondKaartHtml(it.naam) : _card(it)).join('')
+      ? lijst.map(_card).join('')
       : `<p class="spreuk-empty">Niets gevonden.</p>`);
   const tel = document.getElementById('vaardig-telling');
   if (tel) tel.textContent = `${lijst.length} van ${(_all || []).length}`;
@@ -3653,9 +3653,15 @@ window.vaardigheden = {
   // Het venster groeit uit de tegel, zoals in het archief — zolang het nog
   // over dít kaartje gaat.
   vergroot(key) {
+    const it = (_all || []).find(x => x.key === key);
+    // Een background is een **houder**: zijn hele kaartje is het venster met
+    // Verhaal en Eigenschappen, niet het featurevenster.
+    const open = it?.soort === 'background'
+      ? () => this.kaartOpen('background', it.naam)
+      : () => _open(key);
     const tegel = () => document.querySelector(`#vaardig-grid .tegel[data-sleutel="${CSS.escape(key)}"]`);
-    if (!window._tegelVensterUit) return _open(key);
-    window._tegelVensterUit(tegel, () => _open(key), () => _vanWaarNu === key);
+    if (!window._tegelVensterUit) return open();
+    window._tegelVensterUit(tegel, open, () => _vanWaarNu === key || it?.soort === 'background');
   },
   beeldMis: _beeldMis,
   // Het icoon van een class of species, voor wie ze elders tekent (de
@@ -4372,7 +4378,11 @@ export async function renderVaardigheden(container) {
       ${_filterBar()}
       <div class="vaardig-onder">
         <aside id="vaardig-subkolom" hidden></aside>
-        <div class="cards-grid grid grid-cols-[repeat(auto-fill,minmax(230px,1fr))] gap-4" id="vaardig-grid"></div>
+        <!-- tegel-raster: dezelfde kolommen en dezelfde 3:4-tegels als in het
+             archief en het bestiarium. Zonder die klasse had het Heldenboek
+             eigen maten en waren zijn kaartjes anderhalf keer zo groot.
+             (Geen backticks in commentaar hierbinnen: template literal.) -->
+        <div class="cards-grid tegel-raster grid" id="vaardig-grid"></div>
       </div>
     </div>`;
   _paint();

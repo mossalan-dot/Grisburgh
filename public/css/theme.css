@@ -28876,9 +28876,26 @@ body.akte-schrijf-open .mp-overlay { z-index: 1320; }
    Dezelfde tegel als in het archief: 2×2, bladzijden, een voetbalk. De
    vaardigheidskaart heeft zijn eigen binnenwerk (`.vaardig-card-body`), dus
    dat valt weg zodra hij openstaat — het blad neemt het over. */
-.vaardig-card.tegel--open .vaardig-card-body,
-.vaardig-card.tegel--open .vaardig-card-img-wrap,
-.vaardig-card.tegel--open .vaardig-card-nivs { display: none; }
+.vaardig-card.tegel--open .vaardig-card-nivs,
+.vaardig-card.tegel--open .vaardig-card-boek,
+.vaardig-card.tegel--open .vaardig-tegel-naslag { display: none; }
+/* De penning met het level en de boekcode liggen op de plaat, net als in het
+   archief — niet meer onder de naam in een eigen tekstblok. De boekcode staat
+   linksboven en niet rechtsonder: daar botste hij met de bronregel in de
+   naamband ("Barbarian · level 1"). Rechtsboven liggen de levelpenningen. */
+.vaardig-card.tegel .vaardig-card-boek { position: absolute; left: 7px; top: 7px; right: auto; bottom: auto; z-index: 4; }
+.vaardig-tegel-naslag {
+  position: absolute; left: 7px; bottom: 7px; z-index: 4;
+  display: flex; color: #f2e8d2; opacity: .8;
+}
+.vaardig-tegel-naslag:hover { opacity: 1; }
+.vaardig-tegel-naslag .icon { width: 14px; height: 14px; }
+/* De ondertitel op een dichte tegel is één regel: "Barbarian · level 1". Meer
+   past er niet onder een naam van twee regels. */
+.vaardig-card.tegel .tegel-naamband .tegel-ondertitel {
+  font-size: 0.72rem; margin-top: 1px;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
 .vaardig-card.tegel--open .tegel-img {
   position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover;
 }
@@ -29496,17 +29513,23 @@ body.wizard-open { overflow: hidden; }
 .vd-gekozen-naam { font-family: 'Cinzel', serif; font-size: 1.18em; font-weight: 700; color: #3a2410; }
 
 /* Laag 1: de classes, species of backgrounds. Waaieren uit, één voor één. */
+/* **De keuze achter een deur is een plaatje met een naam**, geen regel tekst.
+   Het waren vlakjes met een icoontje en "11 subclasses" eronder; daarmee koos
+   je een class op een woord terwijl het Heldenboek vol staat met portretten.
+   Nu dezelfde vorm als een tegel in het archief: de plaat vult hem, de naam
+   staat er in een donkere voet overheen, en wat eronder ligt (het aantal
+   subclasses) staat er klein bij. */
 .vd-tegels {
-  display: grid; gap: 11px; margin: 14px 0 2px;
-  grid-template-columns: repeat(auto-fill, minmax(172px, 1fr));
+  display: grid; gap: 12px; margin: 14px 0 2px;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
 }
 .vd-tegel {
-  position: relative; overflow: hidden;
-  display: flex; flex-direction: column; align-items: flex-start; gap: 1px;
-  padding: 13px 14px 11px;
-  border: 1px solid #c4a87a; border-radius: 5px;
+  position: relative; overflow: hidden; aspect-ratio: 3 / 4;
+  display: flex; flex-direction: column; align-items: stretch; justify-content: flex-end; gap: 0;
+  padding: 0;
+  border: 1px solid #c4a87a; border-radius: 10px;
   background: linear-gradient(150deg, #f7f1e0 0%, #efe5cc 100%);
-  text-align: left; cursor: pointer;
+  text-align: center; cursor: pointer;
   transition: transform .14s, border-color .14s, box-shadow .14s;
 }
 .vd-waaier .vd-tegel {
@@ -29521,13 +29544,36 @@ body.wizard-open { overflow: hidden; }
   transform: translateY(-2px); border-color: var(--vd-kleur);
   box-shadow: 0 6px 16px rgba(42, 26, 8, .2);
 }
-.vd-tegel-beeld { position: absolute; inset: 0; background-size: cover; background-position: center; opacity: .17; }
-.vd-tegel:hover .vd-tegel-beeld { opacity: .3; }
+.vd-tegel-beeld { position: absolute; inset: 0; background-size: cover; background-position: center; opacity: 1; }
+/* Een donkere voet onder de plaat, zodat de naam leesbaar is waar het beeld
+   licht is — hetzelfde als op een archieftegel. */
+.vd-tegel-beeld::after {
+  content: ''; position: absolute; inset: 0;
+  background: linear-gradient(180deg, rgba(20,12,4,0) 42%, rgba(20,12,4,.8) 100%);
+}
 .vd-tegel > span:not(.vd-tegel-beeld) { position: relative; z-index: 1; }
-.vd-tegel-icoon { color: var(--vd-kleur); }
-.vd-tegel-icoon svg { width: 20px; height: 20px; }
-.vd-tegel-naam { font-family: 'Cinzel', serif; font-weight: 700; color: #3a2410; font-size: .98em; }
-.vd-tegel-meta { font-family: 'Crimson Text', serif; color: #8a7050; font-size: .82em; }
+/* Het icoon staat linksboven in plaats van boven de naam: op een plaat is het
+   een merkteken, geen kop. Zonder plaat is het het enige dat er staat. */
+/* `span.` ervoor, en dat is nodig: de regel hierboven zet élke span in de
+   tegel op `position: relative` en weegt met twee klassen plus een type
+   zwaarder dan een losse klasse. Zonder dit bleef het icoon in de tekststroom
+   staan, vlak boven de naam. */
+.vd-tegel > span.vd-tegel-icoon {
+  position: absolute; top: 8px; left: 8px; z-index: 1; color: var(--vd-kleur);
+  display: flex; align-items: center; justify-content: center;
+  width: 26px; height: 26px; border-radius: 50%;
+  background: rgba(250,244,230,.82); border: 1px solid rgba(196,168,122,.6);
+}
+.vd-tegel-icoon svg { width: 15px; height: 15px; }
+.vd-tegel-naam, .vd-tegel-meta { padding: 0 9px; }
+.vd-tegel-naam {
+  font-family: 'Cinzel', serif; font-weight: 700; font-size: .92em; line-height: 1.2;
+  color: #3a2410; padding-top: 24px;
+}
+.vd-tegel-meta { font-family: 'Crimson Text', serif; color: #8a7050; font-size: .78em; padding-bottom: 9px; }
+/* Mét plaat leest de naam licht; zonder plaat blijft hij donker op perkament. */
+.vd-tegel:has(.vd-tegel-beeld) .vd-tegel-naam { color: #fff8ea; text-shadow: 0 2px 10px rgba(0,0,0,.75); }
+.vd-tegel:has(.vd-tegel-beeld) .vd-tegel-meta { color: #e2d6bc; text-shadow: 0 1px 8px rgba(0,0,0,.8); }
 
 /* Laag 2: de subclasses als kolom links van het raster. */
 .vaardig-onder { display: block; }
