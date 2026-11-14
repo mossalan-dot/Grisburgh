@@ -216,13 +216,6 @@ function _bladInhoud(m, b) {
 // en raad je wat de volgende stand wordt. Zelfde uitklapvenstertje als bij de
 // zichtbaarheid van een kaartje; alleen zijn het hier vier standen met een
 // letter in plaats van drie met een oogje.
-const _NIV_UITLEG = {
-  '':        'Ze zijn het nog nooit tegengekomen.',
-  naam:      'Ze kennen de naam, meer niet.',
-  deels:     'Ze kennen het halve statblok.',
-  volledig:  'Ze kennen alles.',
-};
-
 function _dmKnoppen(m, { voet = false } = {}) {
   const niv = m._niveau || null;
   const nivKey = niv || 'onbekend';
@@ -241,13 +234,13 @@ function _dmKnoppen(m, { voet = false } = {}) {
     <div class="tegel-zicht">
       <button class="best-card-niv best-card-niv--${nivKey} tegel-zicht-knop tegel-zicht-knop--letter"
         title="Wat de groep weet: ${_NIV_LABEL[niv || '']}"
-        onclick="event.stopPropagation();this.parentElement.classList.toggle('is-open')">${_NIV_LETTER[niv || '']}</button>
+        onclick="event.stopPropagation();window._tegelUitklap(this)">${_NIV_LETTER[niv || '']}</button>
       <div class="tegel-zicht-paneel" onclick="event.stopPropagation()">
-        <div class="tegel-houding-kop">Wat de groep weet</div>
+        <div class="tegel-houding-kop">Kennisniveau</div>
         ${_NIV_ORDER.map(k => `<button type="button" class="tegel-zicht-rij${(niv || '') === k ? ' is-aan' : ''}"
           onclick="event.stopPropagation();window.bestiarium.zetNiveau('${escArg(m.id)}','${k}')">
           <span class="tegel-zicht-ico best-card-niv best-card-niv--${k || 'onbekend'}">${_NIV_LETTER[k]}</span>
-          <span><span class="tegel-zicht-naam">${esc(_NIV_LABEL[k])}</span><span class="tegel-zicht-uitleg">${esc(_NIV_UITLEG[k])}</span></span>
+          <span class="tegel-zicht-naam">${esc(_NIV_LABEL[k])}</span>
         </button>`).join('')}
       </div>
     </div>

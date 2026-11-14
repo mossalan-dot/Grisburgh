@@ -33011,7 +33011,11 @@ body.gr-slowmo .combat-overlay { filter: grayscale(.85) contrast(1.1) brightness
 .tegel-punt .icon, .tegel-knop .icon { width: 13px; height: 13px; }
 .tegel-punt:hover, .tegel-knop:hover { background: rgba(196,168,122,0.22); color: #2a1a08; }
 .tegel-punt.is-aan { background: #2a1a08; color: #f2e8d2; }
-.tegel-knop { border-color: rgba(196,168,122,0.55); }
+/* Geen ring om een knop in de voetbalk. Hij zat om het hartje, het vergroten
+   en het verkleinen, en daarmee droegen drie van de negen iconen een vorm die
+   de andere zes niet hadden — zonder dat er iets anders aan de hand was. Wat
+   de knop doet zegt zijn icoon; de hover zegt dat hij een knop is. */
+.tegel-knop { border-color: transparent; }
 
 /* ── Favorieten: het lint en de stapel ── */
 .tegel-lint {
@@ -33118,7 +33122,7 @@ body.gr-slowmo .combat-overlay { filter: grayscale(.85) contrast(1.1) brightness
 .tegel-zicht-paneel {
   display: none;
   position: absolute; bottom: calc(100% + 10px); left: 50%; transform: translateX(-50%);
-  z-index: 20; padding: 10px 10px 11px; width: 212px;
+  z-index: 20; padding: 9px 9px 10px; width: 152px;
   background: #fbf6ea; border: 1px solid rgba(196,168,122,0.8); border-radius: 8px;
   box-shadow: 0 8px 24px rgba(60,40,10,0.28);
 }
@@ -33135,13 +33139,13 @@ body.gr-slowmo .combat-overlay { filter: grayscale(.85) contrast(1.1) brightness
 .tegel-dm .tegel-zicht-rij:hover, .tegel-voet .tegel-dm .tegel-zicht-rij:hover { background: rgba(196,168,122,0.25); }
 .tegel-dm .tegel-zicht-rij.is-aan, .tegel-voet .tegel-dm .tegel-zicht-rij.is-aan { background: rgba(196,168,122,0.3); }
 .tegel-zicht-rij {
-  display: flex; align-items: flex-start; gap: 8px; width: 100%;
-  padding: 6px 7px; border: 0; border-radius: 5px;
+  display: flex; align-items: center; gap: 9px; width: 100%;
+  padding: 5px 7px; border: 0; border-radius: 5px;
   background: none; text-align: left; cursor: pointer; color: #3a2410;
 }
 .tegel-zicht-rij:hover { background: rgba(196,168,122,0.25); }
 .tegel-zicht-rij.is-aan { background: rgba(196,168,122,0.3); }
-.tegel-zicht-ico { flex: 0 0 auto; display: flex; padding-top: 2px; color: #7a6040; }
+.tegel-zicht-ico { flex: 0 0 auto; display: flex; color: #7a6040; }
 .tegel-zicht-ico .icon { width: 14px; height: 14px; }
 /* Het bestiarium heeft geen oogje maar een letter (O, N, D, V) in zijn eigen
    kleur — vier treden in plaats van drie, en de letter zegt er al welke. */
@@ -33155,10 +33159,7 @@ body.gr-slowmo .combat-overlay { filter: grayscale(.85) contrast(1.1) brightness
   display: block; font-family: 'Cinzel', serif; font-size: 0.78rem; letter-spacing: .03em;
 }
 .tegel-zicht-rij.is-aan .tegel-zicht-naam { font-weight: 700; }
-.tegel-zicht-uitleg {
-  display: block; margin-top: 1px;
-  font-family: 'Crimson Text', serif; font-size: 0.8rem; color: #7a6040;
-}
+
 /* De naam naast het kleurtje klikt mee. */
 .tegel-houding-naam {
   background: none; border: 0; padding: 1px 4px; width: 100%; text-align: left;

@@ -4278,6 +4278,24 @@ function _tegelKlassen(type, e, extra = '') {
   ].filter(Boolean).join(' ');
 }
 
+// **Eén uitklapper tegelijk.** De houding en de zichtbaarheid staan naast
+// elkaar in dezelfde voetbalk, en met allebei open lagen ze over elkaar heen.
+// Dit sluit wat er openstond voordat het volgende opengaat — en een klik
+// ergens anders sluit ze alle twee, want een paneel dat blijft hangen is een
+// paneel dat je per ongeluk bedient.
+window._tegelUitklap = (btn) => {
+  const mijn = btn.parentElement;
+  for (const el of document.querySelectorAll('.tegel-zicht.is-open, .tegel-houding.is-open')) {
+    if (el !== mijn) el.classList.remove('is-open');
+  }
+  mijn.classList.toggle('is-open');
+};
+document.addEventListener('click', () => {
+  for (const el of document.querySelectorAll('.tegel-zicht.is-open, .tegel-houding.is-open')) {
+    el.classList.remove('is-open');
+  }
+});
+
 // Wat een party van dit kaartje ziet. **Drie standen, drie regels** — eerder
 // was het één oogje dat rondging en een Shift-klik voor "vaag", en dat laatste
 // weet je alleen als je de tooltip leest of het ooit verteld is gekregen. Nu
@@ -4286,10 +4304,13 @@ function _tegelKlassen(type, e, extra = '') {
 //
 // Vaag bestaat niet overal: een voorwerp is er of is er niet (zie `threeState`
 // op de server), dus dan vallen er twee regels over.
+// Drie woorden, geen uitleg eronder: "Zichtbaar", "Vaag" en "Verborgen"
+// zeggen het zelf, en drie regels proza maakten van een keuzelijstje een
+// stuk tekst dat je elke keer opnieuw langsleest.
 const _ZICHT = [
-  { stand: 'visible', ico: 'eye',     naam: 'Zichtbaar',  uitleg: 'Staat gewoon in hun archief.' },
-  { stand: 'vague',   ico: 'eye-off', naam: 'Vaag',       uitleg: 'Ze weten dát het bestaat, meer niet.' },
-  { stand: 'hidden',  ico: 'lock',    naam: 'Verborgen',  uitleg: 'Bestaat voor hen niet.' },
+  { stand: 'visible', ico: 'eye',     naam: 'Zichtbaar' },
+  { stand: 'vague',   ico: 'eye-off', naam: 'Vaag' },
+  { stand: 'hidden',  ico: 'lock',    naam: 'Verborgen' },
 ];
 
 function _tegelDmKnoppen(type, e, { voet = false } = {}) {
@@ -4312,13 +4333,13 @@ function _tegelDmKnoppen(type, e, { voet = false } = {}) {
   return `<div class="tegel-dm" onclick="event.stopPropagation()">
     <div class="tegel-zicht">
       <button class="tegel-zicht-knop" title="Wat de party ziet"
-        onclick="event.stopPropagation();this.parentElement.classList.toggle('is-open')">${ico}</button>
+        onclick="event.stopPropagation();window._tegelUitklap(this)">${ico}</button>
       <div class="tegel-zicht-paneel" onclick="event.stopPropagation()">
-        <div class="tegel-houding-kop">Wat de party ziet</div>
+        <div class="tegel-houding-kop">Zichtbaarheid</div>
         ${standen.map(z => `<button type="button" class="tegel-zicht-rij${z.stand === vis ? ' is-aan' : ''}"
           onclick="event.stopPropagation();window._zichtZet('${type}','${escArg(e.id)}','${z.stand}')">
           <span class="tegel-zicht-ico">${icon(z.ico)}</span>
-          <span><span class="tegel-zicht-naam">${esc(z.naam)}</span><span class="tegel-zicht-uitleg">${esc(z.uitleg)}</span></span>
+          <span class="tegel-zicht-naam">${esc(z.naam)}</span>
         </button>`).join('')}
       </div>
     </div>
@@ -4338,7 +4359,7 @@ function _tegelHoudingKnop(type, e) {
   return `<div class="tegel-houding">
     <button class="tegel-knop tegel-houding-knop${h ? ' heeft-houding' : ''}" title="Houding${h ? ': ' + esc(h.naam) : ''}"
       style="--houding-kleur:${h?.glans?.kleur || '#c4a87a'}"
-      onclick="event.stopPropagation();this.parentElement.classList.toggle('is-open')">${icon(h ? 'heart-vol' : 'heart')}</button>
+      onclick="event.stopPropagation();window._tegelUitklap(this)">${icon(h ? 'heart-vol' : 'heart')}</button>
     <div class="tegel-houding-paneel" onclick="event.stopPropagation()">
       <div class="tegel-houding-kop">Houding</div>
       <!-- De naam klikt mee. Hij stond als dood lijstje naast de kleurtjes,
