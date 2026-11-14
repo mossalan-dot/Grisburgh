@@ -28872,6 +28872,19 @@ body.akte-schrijf-open .mp-overlay { z-index: 1320; }
    meer lucht dan in het archiefvenster, waar ze bovenaan beginnen. */
 .vd-subvenster .detail-tab-nav { margin: 14px 0 12px; }
 
+/* ── Een opengeslagen kaartje in het Heldenboek ─────────────────────────────
+   Dezelfde tegel als in het archief: 2×2, bladzijden, een voetbalk. De
+   vaardigheidskaart heeft zijn eigen binnenwerk (`.vaardig-card-body`), dus
+   dat valt weg zodra hij openstaat — het blad neemt het over. */
+.vaardig-card.tegel--open .vaardig-card-body,
+.vaardig-card.tegel--open .vaardig-card-img-wrap,
+.vaardig-card.tegel--open .vaardig-card-nivs { display: none; }
+.vaardig-card.tegel--open .tegel-img {
+  position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover;
+}
+/* De voetbalk ligt over de plaat, net als in het archief. */
+.vaardig-card.tegel--open { padding: 0; }
+
 /* ── Een bladerkaart in het raster ──────────────────────────────────────────
    Een class staat in de band en heeft daar bijna vierhonderd pixels; een
    background staat tussen honderdvijfentwintig andere in het raster, en dan

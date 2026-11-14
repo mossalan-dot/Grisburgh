@@ -603,6 +603,47 @@ function _subKleur(it) {
     || window._subSignatureVoor?.(it.sub)?.kleur || null;
 }
 
+// ── Een kaartje dat opengaat waar het staat ────────────────────────────────
+// **Zoals in het archief, het bestiarium en de spreuken.** Daar is een kaartje
+// twee stappen: je klikt en het groeit ter plekke open naar 2×2 met bladzijden
+// en een voetbalk, en pas de vergrootknop opent het hele venster. Hier sprong
+// één klik meteen naar een modal — dezelfde kaart, een ander gebaar.
+//
+// De mechaniek komt van `render-campagne.js` (`_tegelBlader`, `_tegelFlip`,
+// `_tegelVensterUit`, `_tegelPijlHtml`), net als bij die twee tabbladen: één
+// plek waar "een tegel bladert" is uitgeschreven.
+let _openKaart = null;        // key van het kaartje dat openstaat
+const _kaartBlad = {};        // key → welke bladzijde
+
+const _KAART_BLAD_ICOON = { portret: 'image', beschrijving: 'book-open', naslag: 'external-link' };
+
+// Welke bladzijden heeft dit kaartje? De plaat alleen als er een is — een
+// kaartje zonder beeld opent meteen op zijn tekst, want een leeg vlak is geen
+// bladzijde.
+function _kaartBladen(it) {
+  const bladen = [];
+  if (_beeldKeten(it).length) bladen.push({ soort: 'portret', label: 'Portret' });
+  const tekst = _tekst(it);
+  bladen.push({ soort: 'beschrijving', label: 'Beschrijving', tekst,
+    html: tekst ? `<div class="tegel-tekst">${_verwijzingen(window._vaardigTekstHtml?.(tekst) ?? esc(tekst))}</div>`
+                : `<p class="dm-hint">De beschrijving staat hier niet — hij valt buiten de vrij te gebruiken SRD.</p>` });
+  return bladen;
+}
+
+function _kaartBladInhoud(it, blad) {
+  if (blad.soort === 'portret') {
+    const niveaus = (it.levels || [it.level]).join(' \u00b7 ');
+    const meta = [_bronRegel(it), _toontLevel(it.soort, it.level) ? `level ${niveaus}` : ''].filter(Boolean).join(' \u00b7 ');
+    return `<div class="tegel-naamband tegel-naamband--groot">
+      <span class="card-name">${esc(it.naam)}</span>
+      ${meta ? `<span class="tegel-ondertitel">${esc(meta)}</span>` : ''}</div>`;
+  }
+  return `<div class="tegel-vel">
+    <div class="tegel-vel-kop">${icon(_KAART_BLAD_ICOON[blad.soort] || 'square')} ${esc(blad.label)}<span class="tegel-vel-naam">${esc(it.naam)}</span></div>
+    <div class="tegel-vel-tekst">${blad.html}</div>
+  </div>`;
+}
+
 function _card(it) {
   const s = SOORTEN[it.soort] || SOORTEN.class;
   const eigenKleur = _subKleur(it);
@@ -646,13 +687,52 @@ function _card(it) {
   // zijn vijf onderdelen samenvat. Hij hoort dus zijn eigen venster te openen,
   // met zijn plaat, zijn verhaal en het potlood erbij — hetzelfde venster als
   // een class. De andere kaartjes zijn features en openen hun featurevenster.
+  // Een zegening of gunst hoort bij de campagne en heeft daar zijn eigen
+  // venster; een background is een houder met zijn eigen kaart. Die twee
+  // springen dus meteen naar het venster. De rest gaat open waar hij staat,
+  // zoals een kaartje in het archief.
   const klik = it.entityId
     ? `window._openDetail('voorwerpen','${esc(it.entityId)}')`
     : it.soort === 'background'
       ? `window.vaardigheden.kaartOpen('background','${escA(it.naam)}')`
-      : `window.vaardigheden.open('${escA(it.key)}')`;
+      : `window.vaardigheden.tegel('${escA(it.key)}')`;
+
+  // ── Open: 2×2, met bladen en een voetbalk ──
+  if (_openKaart === it.key && !it.entityId && it.soort !== 'background') {
+    const bladen = _kaartBladen(it);
+    const j = Math.min(_kaartBlad[it.key] || 0, bladen.length - 1);
+    return `
+      <div class="entity-card vaardig-card tegel tegel--open" data-soort="${esc(it.soort)}"
+        data-sleutel="${escA(it.key)}" role="button" tabindex="0"
+        aria-label="${esc(it.naam)}, blad ${j + 1} van ${bladen.length}"
+        onclick="${klik}"
+        style="--soort-c1:${eigenKleur ? esc(eigenKleur) : s.c1};--soort-c2:${eigenKleur ? esc(eigenKleur) : s.c2}">
+        <div class="card-accent vaardig-accent"></div>
+        ${(() => {
+          // **Met de terugvalketen, net als op het dichte kaartje.** Het eerste
+          // id is vaak dood (een feature draagt het beeld van zijn class, en dat
+          // is een ander bestand); zonder `data-terugval` bleef het bij een
+          // gebroken plaatje.
+          const [b, ...rest] = _beeldKeten(it);
+          return b ? `<img class="tegel-img" src="/api/files/${esc(b.id)}" alt=""
+            style="${b.focus ? `object-position:${esc(b.focus)}` : ''}"
+            ${rest.length ? `data-terugval="${esc(JSON.stringify(rest))}"` : ''}
+            onerror="window.vaardigheden.beeldMis(this)">` : '';
+        })()}
+        <div class="tegel-blad" data-soort="${bladen[j].soort}">${_kaartBladInhoud(it, bladen[j])}</div>
+        <div class="tegel-voet" onclick="event.stopPropagation()">
+          <div class="tegel-punten">${window._tegelPijlHtml?.(-1, bladen.length) || ''}${bladen.map((b, k) => `<button class="tegel-punt${k === j ? ' is-aan' : ''}"
+            title="${esc(b.label)}" onclick="window.vaardigheden.naar('${escA(it.key)}',${k})">${icon(_KAART_BLAD_ICOON[b.soort] || 'square')}</button>`).join('')}${window._tegelPijlHtml?.(1, bladen.length) || ''}</div>
+          ${isDM() ? `<button class="tegel-knop" title="Dit kaartje bewerken"
+            onclick="window.vaardigheden.bewerk('${escA(it.key)}')">${icon('pencil')}</button>` : ''}
+          <button class="tegel-knop" title="Het hele kaartje" onclick="window.vaardigheden.vergroot('${escA(it.key)}')">${icon('maximize-2')}</button>
+          <button class="tegel-knop" title="Kleiner" onclick="window.vaardigheden.tegelDicht()">${icon('minimize-2')}</button>
+        </div>
+      </div>`;
+  }
+
   return `
-    <div class="entity-card vaardig-card" data-soort="${esc(it.soort)}"
+    <div class="entity-card vaardig-card tegel" data-sleutel="${escA(it.key)}" data-soort="${esc(it.soort)}"
       onclick="${klik}" title="${esc(it.naam)}"
       style="--soort-c1:${eigenKleur ? esc(eigenKleur) : s.c1};--soort-c2:${eigenKleur ? esc(eigenKleur) : s.c2}">
       <div class="card-accent vaardig-accent"></div>
@@ -2050,6 +2130,15 @@ function _toontRaster() {
   if (!_deur) return false;
   if (_deur === 'feats' || _deur === 'background') return true;
   return !!_filters.bron;
+}
+
+// Het raster opnieuw tekenen met de schuifbeweging van het archief: de tegels
+// die blijven staan verhuizen vloeiend naar hun nieuwe plek in plaats van te
+// verspringen.
+function _hertekenRaster() {
+  const grid = document.getElementById('vaardig-grid');
+  if (!grid || !window._tegelFlip) return _paint();
+  window._tegelFlip(grid, () => _paint());
 }
 
 function _paint() {
@@ -3495,9 +3584,67 @@ function _editorHerteken() {
   if (body) body.innerHTML = _editorHtml();
 }
 
+// Escape sluit een opengeslagen kaartje — zelfde afspraak als bij de spreuken
+// en het bestiarium. Staat er een venster open, dan is dat aan de beurt.
+document.addEventListener('keydown', (ev) => {
+  if (ev.key !== 'Escape' || !_openKaart) return;
+  if (document.querySelector('#modal-overlay.active')) return;
+  window.vaardigheden.tegelDicht();
+});
+
 // ── Publieke API ──────────────────────────────────────────────────
 window.vaardigheden = {
   open: _open,
+  // ── Een kaartje dat opengaat waar het staat ──────────────────────────────
+  // Eén klik vouwt hem open (2×2, met bladen); nog een klik bladert door, net
+  // als in het archief. De vergrootknop opent pas het hele venster.
+  tegel(key) {
+    const it = (_all || []).find(x => x.key === key);
+    if (!it) return;
+    if (_openKaart !== key) {
+      _openKaart = key;
+      // Zoek je iets, dan opent hij op de bladzijde waar dat woord staat —
+      // anders kijk je naar een portret terwijl je naar een zin zocht.
+      const q = window._normSearch?.(_filters.q || '') || '';
+      const bladen = _kaartBladen(it);
+      const i = q ? bladen.findIndex(b => b.tekst && window._normSearch(b.tekst).includes(q)) : -1;
+      _kaartBlad[key] = i > 0 ? i : 0;
+      _hertekenRaster();
+      setTimeout(() => document.querySelector(`#vaardig-grid .tegel[data-sleutel="${CSS.escape(key)}"]`)
+        ?.scrollIntoView({ block: 'nearest', behavior: 'smooth' }), 360);
+      return;
+    }
+    const n = _kaartBladen(it).length;
+    this.naar(key, ((_kaartBlad[key] || 0) + 1) % n);
+  },
+  async naar(key, i) {
+    const el = document.querySelector(`#vaardig-grid .tegel--open[data-sleutel="${CSS.escape(key)}"]`);
+    const it = (_all || []).find(x => x.key === key);
+    if (!el || !it) return;
+    const bladen = _kaartBladen(it);
+    const vorige = _kaartBlad[key] || 0;
+    _kaartBlad[key] = Math.max(0, Math.min(bladen.length - 1, i));
+    if (_kaartBlad[key] === vorige) return;
+    const wissel = () => {
+      const blad = el.querySelector('.tegel-blad');
+      blad.dataset.soort = bladen[_kaartBlad[key]].soort;
+      blad.innerHTML = _kaartBladInhoud(it, bladen[_kaartBlad[key]]);
+      el.querySelectorAll('.tegel-punt').forEach((p, j) => p.classList.toggle('is-aan', j === _kaartBlad[key]));
+      el.setAttribute('aria-label', `${it.naam}, blad ${_kaartBlad[key] + 1} van ${bladen.length}`);
+      window.glossary?.applyDom?.(blad);
+      window.spreuken?.linkInProza?.(blad.querySelector('.tegel-tekst'));
+    };
+    if (window._tegelBlader) await window._tegelBlader(el, _kaartBlad[key] > vorige ? 1 : -1, wissel);
+    else wissel();
+  },
+  tegelDicht() { if (_openKaart) { _openKaart = null; _hertekenRaster(); } },
+  // Het venster groeit uit de tegel, zoals in het archief — zolang het nog
+  // over dít kaartje gaat.
+  vergroot(key) {
+    const tegel = () => document.querySelector(`#vaardig-grid .tegel[data-sleutel="${CSS.escape(key)}"]`);
+    if (!window._tegelVensterUit) return _open(key);
+    window._tegelVensterUit(tegel, () => _open(key), () => _vanWaarNu === key);
+  },
   beeldMis: _beeldMis,
   // Het icoon van een class of species, voor wie ze elders tekent (de
   // personagemaker): zelfde tekening als op de tegel hier, anders lijkt het
