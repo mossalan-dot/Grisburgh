@@ -15,7 +15,7 @@ import { initSocket } from "./socket-client.js?v=100";
 import { initDmPanel } from "./dm-panel.js?v=423";
 import { COND_INFO, COND_LABEL, COND_MET_PLAATJE, COND_ICON } from './conditions.js?v=4';
 import './media-picker.js?v=14';
-import './wizard.js?v=10';
+import './wizard.js?v=11';
 import './tafels.js?v=2';
 import './terugblik.js?v=3';
 import './rage.js?v=4';
@@ -15363,6 +15363,11 @@ const HELP_CONFIG = {
     { titel: 'Overslaan mag altijd', tekst: 'Geen enkele stap is verplicht. Wat je overslaat vind je terug bij **Instellingen** (naam, munten) en bij **Diensten** (hoe je plekken heten). De wizard zelf staat daar ook, onder *Opstartwizard doorlopen*, voor als je hem later nog eens wilt langslopen.', afbeelding: null },
     { titel: 'De party is de enige echte waarschuwing', tekst: 'Deel je tafels in zoals je ze gaat spelen. Een personage verhuizen kan later wel, maar alles wat de **party** over hem onthoudt blijft achter: welke voorwerpkaartjes van hem zijn, welke geheimen hij kent, wat er voor hem zichtbaar was, zijn metgezel, de gedeelde beurs. Twee party\'s samenvoegen kan helemaal niet.', afbeelding: null },
     { titel: 'Welke onderdelen je krijgt', tekst: 'De beheerder bepaalt wat er voor je campagne **vrij** is — archief, aktes, tempel, facties. Binnen die grens kies je zelf wat je gebruikt: in de wizard en later bij *Instellingen → Campagne*. Wat de beheerder dichtzette, zie je niet. Mis je iets, vraag erom.', afbeelding: null },
+    { titel: 'Valuta', tekst: 'De verhouding ligt vast zoals in het boek: 1 gold = 10 silver = 100 copper. Alleen hoe ze bij jou héten kies je zelf — Florinde, Knaker, Centeling, of gewoon Gold Piece.\n\n**Electrum en platinum** hebben in de beurs geen eigen plek: de app rekent ze om bij het invoeren (1 EP = 5 SP, 1 PP = 10 GP). Een *vondst* noemt ze wél bij naam — "waaronder 3 Lion d\'or" — en die naam vul je hier in. Laat je het leeg, dan staat er niets extra\'s bij.', afbeelding: null },
+    { titel: 'Wat je spelers in een gevecht zien', tekst: 'Drie standen, van weinig naar veel. **Minimale informatie**: je ziet of hij nog staat, verder niets. **Omschrijvingen**: ongedeerd, geschramd, gehavend, zwaar gewond — je spelers voelen het verloop zonder te rekenen; dat is de standaard. **Exacte getallen**: de HP op elk token, handig als je open speelt.\n\nWat een party in het **bestiarium** ontdekt heeft, wint hier altijd van: verdiende kennis gaat niet verloren door een instelling.', afbeelding: null },
+    { titel: 'Beeld bij je spells', tekst: 'Wat je zelf al hebt neergezet blijft staan; dit vult alleen aan. Je kunt ze later alsnog halen bij *Instellingen → Campagne*, en een beeld dat niet bij jouw wereld past vervang je per spell.\n\nHet is eigen beeld en geen uitgeverijmateriaal, dus delen mag.', afbeelding: null },
+    { titel: 'Oefenmateriaal', tekst: 'Een lege campagne is eerlijk, maar je kunt er nergens op klikken — en dan zie je niet wat de app doet. Het oefenmateriaal is een herberg met een waard die een geheim heeft, een smid die inkoopt, iemand die te lang bij de deur zit, en een sleutel zonder label: genoeg om zichtbaarheid, geheimen, de winkel en de boedel uit te proberen.\n\nAlles heet overal **oefen_…**, dus je gooit het in één keer weg bij *Instellingen → Campagne* zodra je het niet meer nodig hebt. Het staat los van je eigen kaartjes.', afbeelding: null },
+    { titel: 'Waar je verder gaat', tekst: 'Alles uit de wizard staat bij **Instellingen**, en de namen van je diensten bij **Diensten**. Onderdelen aan- of uitzetten kan daar ook.\n\nWat ik zou doen voor je eerste sessie: een *locatie* aanmaken waar je begint, er een *personage* bij zetten dat ze ontmoeten, en dat kaartje zichtbaar maken voor je party.', afbeelding: null },
     { titel: 'Sluiten', tekst: 'Het kruisje rechtsboven (of Escape) legt de wizard weg. Hij komt dan niet meer vanzelf terug; doorlopen kan altijd nog bij *Instellingen → Opstartwizard doorlopen*.', afbeelding: null },
   ] }),
 

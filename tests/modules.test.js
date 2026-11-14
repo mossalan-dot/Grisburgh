@@ -67,13 +67,17 @@ describe('Modules per campagne', () => {
     assert.equal(m.modules.gevecht,   true);
     assert.equal(m.modules.tempel,    false, 'de tempel is te campagne-eigen');
     assert.equal(m.modules.facties,   false);
-    assert.equal(m.modules.aktes,     false);
+    // Aktes en het bestiarium horen er sinds 14 nov 2026 wél bij: ze zijn niet
+    // campagne-eigen (elke campagne heeft hoofdstukken en monsters) en een
+    // nieuwe DM die ze mist gaat ze niet zoeken.
+    assert.equal(m.modules.aktes,      true,  'aktes horen bij de startset');
+    assert.equal(m.modules.bestiarium, true,  'het bestiarium ook');
   });
 
   it('vertelt de client wélke knoppen weg moeten', async () => {
     const { verborgen } = await metaVan(andereDm);
     assert.ok(verborgen.secties.includes('tempel'), 'de zijbalkknop van de tempel');
-    assert.ok(verborgen.dmTabs.includes('aktes'),   'de Aktes-tab in de Meesterkamer');
+    assert.ok(verborgen.dmTabs.includes('woekeraar'), 'de Geldschieter-tab in de Meesterkamer');
     assert.ok(verborgen.spelerTabs.includes('facties'), 'de Facties-subtab van de speler');
     assert.ok(!verborgen.secties.includes('herberg'), 'maar de herberg blijft staan');
   });

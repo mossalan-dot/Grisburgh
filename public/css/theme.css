@@ -33775,3 +33775,24 @@ body.gr-slowmo .combat-overlay { filter: grayscale(.85) contrast(1.1) brightness
 }
 .vd-spreukchip button:hover { color: #a32f23; }
 .vd-spreukchip .icon { width: 12px; height: 12px; }
+
+/* Het boekje staat naast de sluitknop van de wizard en niet achter de titel:
+   het is een knop van het venster. Achter de titel schoof hij bovendien per
+   stap op, omdat de titels verschillen. */
+.wz-kaart .wz-kop-knoppen {
+  position: absolute; top: 14px; right: 14px;
+  display: flex; align-items: center; gap: 8px;
+}
+.wz-kaart .wz-kop-knoppen .wz-sluit { position: static; }
+/* De hulpknop is een eigen bouwsteen met zijn eigen maat; hier krijgt hij
+   dezelfde ronde vorm als het kruisje ernaast. */
+.wz-kaart .wz-kop-knoppen .help-btn {
+  width: 28px; height: 28px; border-radius: 50%; padding: 0;
+  display: inline-flex; align-items: center; justify-content: center;
+}
+.wz-titel { padding-right: 76px; }
+
+/* Oud geld staat onder een eigen kopje: het is geen vierde en vijfde munt in
+   de beurs maar een naam voor wat je in een kist vindt. */
+.wz-munten--twee { grid-template-columns: repeat(2, 1fr); }
+.wz-munten-kop { margin-top: 14px; }

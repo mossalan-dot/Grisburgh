@@ -31,7 +31,7 @@ const W = {
   stap: 0,
   groepen: [],
   vrij: {}, uit: new Set(), beelden: null,
-  data: { appTitle: '', appSubtitle: '', currency: null, diensten: {}, groep: null, pc: null },
+  data: { appTitle: '', appSubtitle: '', currency: null, diensten: {}, groep: null },
   bezig: false,
 };
 
@@ -82,25 +82,43 @@ const STAPPEN = [
   },
   {
     id: 'munten',
-    titel: 'Je munten',
-    lead: 'De verhouding blijft die van het boek — 1 goud = 10 zilver = 100 koper. Alleen hoe ze heten is aan jou.',
+    titel: 'Valuta',
+    lead: 'De verhouding blijft die van het boek — 1 gold = 10 silver = 100 copper. Alleen hoe ze heten is aan jou.',
     html() {
       const c = window._muntNamen();
+      // Electrum en platinum hebben geen eigen plek in de beurs: de app rekent
+      // ze om (1 EP = 5 SP, 1 PP = 10 GP). Maar een vondst noemt ze wél bij
+      // naam — "waaronder 3 Lion d'or" — en die naam komt hiervandaan. Daarom
+      // staan ze apart, onder een eigen kopje.
+      const rij = (k, rol, v, ph) => `
+        <div class="wz-veld">
+          <label class="dm-form-label" for="wz-munt-${k}">${rol}</label>
+          <input id="wz-munt-${k}" class="dm-input" maxlength="24" value="${esc(v || '')}"
+            placeholder="${esc(ph)}">
+        </div>`;
       return `
         <div class="wz-munten">
-          ${[['fl', 'Goud', c.fl], ['kn', 'Zilver', c.kn], ['cl', 'Koper', c.cl]].map(([k, rol, v]) => `
-            <div class="wz-veld">
-              <label class="dm-form-label" for="wz-munt-${k}">${rol}</label>
-              <input id="wz-munt-${k}" class="dm-input" maxlength="24" value="${esc(v)}">
-            </div>`).join('')}
+          ${rij('fl', 'Gold (GP)',   c.fl, 'Gold Piece')}
+          ${rij('kn', 'Silver (SP)', c.kn, 'Silver Piece')}
+          ${rij('cl', 'Copper (CP)', c.cl, 'Copper Piece')}
+        </div>
+        <div class="wz-ond-kop wz-munten-kop">Oud geld</div>
+        <div class="wz-munten wz-munten--twee">
+          ${rij('ep', 'Electrum (EP)', c.ep, 'Electrum Piece')}
+          ${rij('pp', 'Platinum (PP)', c.pp, 'Platinum Piece')}
         </div>`;
     },
     async bewaar() {
+      const lees = (k, terugval) => document.getElementById(`wz-munt-${k}`)?.value.trim() || terugval;
       const currency = {
-        fl: document.getElementById('wz-munt-fl')?.value.trim() || 'Gold',
-        kn: document.getElementById('wz-munt-kn')?.value.trim() || 'Silver',
-        cl: document.getElementById('wz-munt-cl')?.value.trim() || 'Copper',
+        fl: lees('fl', 'Gold Piece'),
+        kn: lees('kn', 'Silver Piece'),
+        cl: lees('cl', 'Copper Piece'),
       };
+      // Leeg laten betekent hier echt "geen naam": zonder naam zet een vondst
+      // er niets bij, en dat is beter dan een verzonnen munt noemen.
+      const ep = lees('ep', ''); if (ep) currency.ep = ep;
+      const pp = lees('pp', ''); if (pp) currency.pp = pp;
       await api.saveAppMeta({ currency });
       window._currency = currency;
       if (window.app?.state?.meta) window.app.state.meta.currency = currency;
@@ -109,7 +127,7 @@ const STAPPEN = [
   {
     id: 'onderdelen',
     titel: 'Wat heeft jouw campagne nodig?',
-    lead: 'Vink uit wat je niet gebruikt — dan verdwijnt het helemaal, ook bij je spelers. Wat nog uit staat kun je hier gewoon aanzetten.',
+    lead: 'Vink uit wat je niet gebruikt — dan verdwijnt het helemaal, ook bij je spelers. Wat nog uit staat kun je hier gewoon aanzetten, en later bijstellen kan altijd bij Instellingen → Campagne.',
     // Wat binnen bereik is. De beheerder die iets uitdrukkelijk dichtzette
     // houdt zijn slot; waar hij niets over gezegd heeft kies je zelf.
     async voor() {
@@ -143,8 +161,7 @@ const STAPPEN = [
         return `<div class="wz-ond-groep">
           <div class="wz-ond-kop">${esc(_GROEPNAAM[g] || g)}</div>${rijen}${wees.map(vink).join('')}
         </div>`;
-      }).join('')}</div>
-        <p class="wz-noot">Later bijstellen kan bij <em>Instellingen → Campagne</em>.</p>`;
+      }).join('')}</div>`;
     },
     async bewaar() {
       const vinkjes = [...document.querySelectorAll('[data-module]')];
@@ -159,7 +176,7 @@ const STAPPEN = [
   },
   {
     id: 'diensten',
-    titel: 'Hoe je plekken heten',
+    titel: 'Diensten',
     lead: 'Alleen de diensten die voor jou aanstaan. Laat je iets leeg, dan staat er wát het is.',
     // Een dienst die uit staat vraag je niet: dan is dit een lijst met dingen
     // die je nergens terugvindt.
@@ -168,8 +185,9 @@ const STAPPEN = [
       const m = window.app?.state?.meta || {};
       const rijen = DIENSTEN.filter(d => window._moduleAan?.(d.module)).map(d => `
         <div class="wz-veld">
-          <label class="dm-form-label" for="wz-d-${d.sleutel}">${esc(d.label)}
-            <span class="wz-hint">${esc(d.hint)}</span></label>
+          <!-- Zonder de regel eronder: acht diensten met elk een zinnetje
+               leest als een folder, en de naam zegt het al. -->
+          <label class="dm-form-label" for="wz-d-${d.sleutel}">${esc(d.label)}</label>
           <input id="wz-d-${d.sleutel}" class="dm-input" maxlength="80"
             value="${esc(m[d.sleutel]?.naam || '')}" placeholder="${esc(d.label)}">
         </div>`).join('');
@@ -188,21 +206,24 @@ const STAPPEN = [
   {
     id: 'gevecht',
     titel: 'Wat zien je spelers in een gevecht?',
-    lead: 'Hoeveel een tegenstander nog overheeft, is smaak — niet een regel. Kies wat bij jouw tafel past.',
+    lead: '',
     html() {
       const nu = window.app?.state?.meta?.combatHp || 'staat';
+      // Van weinig naar veel, want zo lees je een schaal. De namen zeggen nu
+      // wát je krijgt in plaats van hóé het eruitziet: "De cijfers" en "In
+      // woorden" beschrijven de vorm, en dan moet je de regel eronder lezen om
+      // te weten welke van de drie de meeste informatie geeft.
       const opties = [
-        ['staat',     'In woorden',  'Ongedeerd, geschramd, gehavend, zwaar gewond… Je spelers voelen het verloop zonder te rekenen. De standaard.'],
-        ['binair',    'Alleen leeft of niet', 'Je ziet of hij nog staat, verder niets. Het strakste, en het spannendst.'],
-        ['volledig',  'De cijfers',  'Exacte HP op elk token. Handig als je open speelt of veel uitlegt.'],
+        ['binair',   'Minimale informatie', 'Je ziet of hij nog staat, verder niets. Het strakste, en het spannendst.'],
+        ['staat',    'Omschrijvingen',      'Ongedeerd, geschramd, gehavend, zwaar gewond… Je spelers voelen het verloop zonder te rekenen. De standaard.'],
+        ['volledig', 'Exacte getallen',     'Exacte HP op elk token. Handig als je open speelt of veel uitlegt.'],
       ];
       return `<div class="wz-keuzes">${opties.map(([k, titel, uitleg]) => `
         <label class="wz-keuze${nu === k ? ' is-aan' : ''}">
           <input type="radio" name="wz-hp" value="${k}" ${nu === k ? 'checked' : ''}>
           <span class="wz-keuze-titel">${esc(titel)}</span>
           <span class="wz-keuze-uitleg">${esc(uitleg)}</span>
-        </label>`).join('')}</div>
-        <p class="wz-noot">Wat een party in het <strong>bestiarium</strong> ontdekt heeft, wint hier altijd van: verdiende kennis gaat niet verloren door een instelling.</p>`;
+        </label>`).join('')}</div>`;
     },
     async bewaar() {
       const k = document.querySelector('input[name="wz-hp"]:checked')?.value || 'staat';
@@ -225,12 +246,11 @@ const STAPPEN = [
       const b = W.beelden || {};
       const mb = b.bytes ? (b.bytes / 1048576).toFixed(0) : '?';
       return `
-        <p class="wz-lead">Er liggen <strong>${b.beschikbaar} afbeeldingen bij spells</strong> klaar (samen ongeveer ${mb} MB), met het uitsnijdpunt er al bij. Eigen beeld, geen uitgeverijmateriaal — delen mag dus.</p>
+        <p class="wz-lead">Er liggen <strong>${b.beschikbaar} afbeeldingen bij spells</strong> klaar, samen ongeveer ${mb} MB.</p>
         <label class="wz-vink wz-vink--groot">
           <input type="checkbox" id="wz-beelden" checked>
           <span>Neem ze over</span>
-        </label>
-        <p class="wz-noot">Wat je zelf al hebt neergezet blijft staan; dit vult alleen aan. Je kunt ze later alsnog halen bij <em>Instellingen → Campagne</em>, en een beeld dat niet bij jouw wereld past vervang je per spell.</p>`;
+        </label>`;
     },
     async bewaar() {
       if (!document.getElementById('wz-beelden')?.checked) return;
@@ -240,9 +260,11 @@ const STAPPEN = [
   },
   {
     id: 'party',
-    titel: 'Je eerste tafel',
-    // Dit is de enige stap met een echte waarschuwing, en die hoort hier en
-    // nergens anders: twee party's zijn later niet samen te voegen.
+    titel: 'Naam van de groep',
+    // De waarschuwing (twee party's zijn later niet samen te voegen) stond hier
+    // als een eigen gekaderd blok, en dat was het enige blok in zijn soort in
+    // de hele wizard — het las als een andere pagina. Hij staat nu in het
+    // boekje, net als de rest van de uitleg.
     lead: 'Een party is een tafel: wie samen spelen, delen wat ze gezien hebben.',
     async voor() { W.groepen = (await api.listGroups())?.groups || []; },
     html() {
@@ -258,10 +280,7 @@ const STAPPEN = [
           <input id="wz-groep-pw" class="dm-input" maxlength="60" autocomplete="off"
             placeholder="Dit deel je per appje">
         </div>
-        <div class="wz-waarschuwing">
-          ${ico('shield')}
-          <div><strong>Deel je tafels nu in zoals je ze gaat spelen:</strong> twee party's samenvoegen kan later niet.</div>
-        </div>`;
+`;
     },
     async bewaar() {
       const naam = document.getElementById('wz-groep')?.value.trim() || '';
@@ -277,67 +296,10 @@ const STAPPEN = [
       W.data.groep = { id: gid, naam, pw };
     },
   },
-  {
-    id: 'speler',
-    titel: 'Je eerste personage',
-    lead: 'Eén om mee te proeven. De rest maak je in het archief, of je spelers doen het aan tafel met je mee.',
-    // De classes die deze campagne kent, voor de suggestielijst en om een
-    // getypte naam op de echte te zetten. Dit was vrije tekst: wie "rogue"
-    // tikte kreeg "rogue" op zijn blad, en daar herkende de keuzelijst hem
-    // niet — die stond op "—", en één keer opslaan wiste de class.
-    async voor() {
-      try { W.classes = Object.keys((await api.progression())?.classes || {}); }
-      catch { W.classes = []; }
-    },
-    html() {
-      return `
-        <div class="wz-veld">
-          <label class="dm-form-label" for="wz-pc">Naam van het personage</label>
-          <input id="wz-pc" class="dm-input" maxlength="60" placeholder="Zoals je hem aan tafel noemt">
-        </div>
-        <div class="wz-rij">
-          <div class="wz-veld">
-            <label class="dm-form-label" for="wz-pc-klasse">Class</label>
-            <input id="wz-pc-klasse" class="dm-input" maxlength="40" list="wz-pc-klassen" placeholder="Fighter, Wizard, …">
-            <datalist id="wz-pc-klassen">${(W.classes || []).map(c => `<option value="${c.replace(/"/g, '&quot;')}">`).join('')}</datalist>
-          </div>
-          <div class="wz-veld wz-veld--smal">
-            <label class="dm-form-label" for="wz-pc-level">Level</label>
-            <input id="wz-pc-level" class="dm-input" type="number" min="1" max="20" value="1">
-          </div>
-          <div class="wz-veld wz-veld--smal">
-            <label class="dm-form-label" for="wz-pc-hp">Max HP</label>
-            <input id="wz-pc-hp" class="dm-input" type="number" min="1" max="999" placeholder="—">
-          </div>
-        </div>`;
-    },
-    async bewaar() {
-      const name = document.getElementById('wz-pc')?.value.trim() || '';
-      if (!name) return;
-      const getikt = document.getElementById('wz-pc-klasse')?.value.trim() || '';
-      const klasse = (W.classes || []).find(c => c.toLowerCase() === getikt.toLowerCase()) || getikt;
-      const level  = Math.min(20, Math.max(1, parseInt(document.getElementById('wz-pc-level')?.value) || 1));
-      if (!W.groepen.length) { try { W.groepen = (await api.listGroups())?.groups || []; } catch { /* leeg */ } }
-      const gid    = W.data.groep?.id || window._activeGroupId || W.groepen[0]?.id || '';
-      // Een speler is een personage-kaartje met `subtype: 'speler'` en een
-      // groep; het profiel eromheen (class, level) hangt aan hetzelfde id.
-      const e = await api.createEntity('personages', {
-        name, subtype: 'speler', data: { groep: gid },
-      });
-      const id = e?.id || e?.entity?.id;
-      if (id && (klasse || level)) {
-        try { await api.patchPlayerProfile(id, { klasse, level }); }
-        catch { /* het kaartje staat er; het profiel vul je op zijn blad */ }
-      }
-      // Zonder HP begon het personage zijn eerste gevecht op een verzonnen
-      // 10/10, en niets zei dat zijn blad nog leeg was.
-      const hp = parseInt(document.getElementById('wz-pc-hp')?.value);
-      if (id && hp > 0) {
-        try { await api.setPlayerHp(id, { current: hp, max: hp }); } catch { /* vul je op zijn blad */ }
-      }
-      W.data.pc = { id, name };
-    },
-  },
+  // **De stap "Je eerste personage" is eruit.** Een personage maak je in het
+  // archief of je speler maakt er zelf een met het partywachtwoord, en die
+  // twee wegen doen het beter: daar staat het hele blad. Hier was het een
+  // kaartje met drie velden dat je daarna alsnog moest openen.
   {
     id: 'oefenen',
     titel: 'Blanco, of iets om mee te oefenen?',
@@ -354,8 +316,7 @@ const STAPPEN = [
           <span class="wz-keuze-titel">Blanco beginnen</span>
           <span class="wz-keuze-uitleg">Niets erin. Je maakt zelf je eerste kaartje.</span>
         </label>
-      </div>
-      <p class="wz-noot">Het oefenmateriaal heet overal <em>oefen_…</em>, dus je gooit het in één keer weg bij <em>Instellingen → Campagne</em> zodra je het niet meer nodig hebt. Het staat los van je eigen kaartjes.</p>`;
+      </div>`;
     },
     async bewaar() {
       if (document.querySelector('input[name="wz-start"]:checked')?.value !== 'oefen') return;
@@ -374,23 +335,17 @@ const STAPPEN = [
       return `
         <ul class="wz-samenvatting">
           ${regel(!!m.appTitle, `Je campagne heet <strong>${esc(m.appTitle || '—')}</strong>`)}
-          ${regel(true, `Je rekent in <strong>${esc(c.fl)}</strong>,&nbsp;${esc(c.kn)} en ${esc(c.cl)}`)}
+          ${regel(true, `Je rekent in <strong>${esc(c.fl)}, ${esc(c.kn)} en ${esc(c.cl)}</strong>`)}
           ${regel(!!W.data.groep?.naam, W.data.groep?.naam
             ? `Je eerste party heet <strong>${esc(W.data.groep.naam)}</strong>${W.data.groep.pw ? ' en heeft een wachtwoord' : ' — nog zonder wachtwoord'}`
             : 'Je party heeft nog geen naam')}
-          ${regel(!!W.data.pc?.name, W.data.pc?.name
-            ? `<strong>${esc(W.data.pc.name)}</strong> staat erin`
-            : 'Nog geen personage')}
           ${W.data.oefen ? regel(true, `${W.data.oefen} kaartjes om mee te oefenen`) : ''}
         </ul>
         <div class="wz-verder">
-          <strong>Waar je verder gaat</strong>
-          <p>Alles hierboven staat bij <em>Instellingen</em>, en de namen van je plekken bij
-          <em>Diensten</em>. Onderdelen aan- of uitzetten kan daar ook.</p>
-          <p>Wat ik zou doen voor je eerste sessie: een <em>locatie</em> aanmaken waar je begint,
-          er een <em>personage</em> bij zetten dat ze ontmoeten, en dat kaartje zichtbaar maken voor je party.</p>
-          <!-- De handleiding hoort hier en niet pas bij Instellingen: dit is het
-               moment waarop je niet weet wat er allemaal is. -->
+          <!-- Wat je hierna doet en waar je het terugvindt staat in het boekje;
+               hier alleen de weg ernaartoe. De handleiding hoort wél op dit
+               scherm en niet pas bij Instellingen: dit is het moment waarop je
+               niet weet wat er allemaal is. -->
           <p><button class="dm-btn dm-btn-ghost" onclick="window._handleidingOpen?.()">Handleiding lezen of afdrukken</button></p>
         </div>`;
     },
@@ -417,8 +372,14 @@ async function _teken() {
     <div class="wz-kop">
       <div class="wz-stappen">${lijst.map((s, i) => `
         <span class="wz-bol${i === W.stap ? ' is-nu' : ''}${i < W.stap ? ' is-gehad' : ''}" title="${esc(s.titel)}"></span>`).join('')}</div>
-      <button class="wz-sluit" onclick="window.wizard.sluit()" title="Sluiten — je vindt de wizard terug bij Instellingen">${ico('x')}</button>
-      <h2 class="wz-titel">${esc(stap.titel)} ${window._helpBtn?.('wizard') ?? ''}</h2>
+      <!-- Het boekje hoort bij de sluitknop, niet achter de titel: het is een
+           knop van het venster en geen deel van de kop. Achter de titel
+           schoof hij bovendien per stap op, omdat de titels verschillen. -->
+      <div class="wz-kop-knoppen">
+        ${window._helpBtn?.('wizard') ?? ''}
+        <button class="wz-sluit" onclick="window.wizard.sluit()" title="Sluiten — je vindt de wizard terug bij Instellingen">${ico('x')}</button>
+      </div>
+      <h2 class="wz-titel">${esc(stap.titel)}</h2>
       ${stap.lead ? `<p class="wz-lead">${esc(stap.lead)}</p>` : ''}
     </div>
     <div class="wz-inhoud">${stap.html()}</div>
@@ -462,7 +423,7 @@ function _sluit() {
 async function _open(opnieuw = false) {
   if (document.getElementById('wz-overlay')) return;
   W.stap = 0;
-  if (opnieuw) W.data = { appTitle: '', appSubtitle: '', currency: null, diensten: {}, groep: null, pc: null };
+  if (opnieuw) W.data = { appTitle: '', appSubtitle: '', currency: null, diensten: {}, groep: null };
   // Wat `beschikbaar()` nodig heeft, moet er zijn vóór de stappenlijst gebouwd
   // wordt. Mislukt het, dan valt die stap gewoon weg — beter dan een wizard die
   // blijft hangen op een vraag die hij niet kan stellen.
