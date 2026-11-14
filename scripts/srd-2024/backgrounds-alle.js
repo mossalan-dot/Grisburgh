@@ -109,6 +109,19 @@ function uitrusting(blokken) {
   return lijstTekst(stuk);
 }
 
+// Een enkele background hoort bij één campagnewereld: de Gate Warden bestaat
+// alleen in Planescape. Dat staat los van zijn skills en zijn uitrusting, en
+// het is het eerste wat je wilt weten — dus staat het bovenaan.
+function voorwaarde(b) {
+  const uit = [];
+  for (const p of (b.prerequisite || [])) {
+    if (p.campaign) uit.push(`${lijstTekst(p.campaign)}-campagne`);
+    if (p.level) uit.push(`Level ${p.level}`);
+    if (p.race) uit.push(lijstTekst(p.race.map(r => naamHoofd(r.name || r))));
+  }
+  return lijstTekst(uit);
+}
+
 function rijenOud(b) {
   const rij = (naam, tekst) => tekst ? { name: naam, desc: tekst } : null;
   // De Feature draagt alleen zijn naam; zijn tekst komt uit het boek. Die naam
@@ -123,6 +136,7 @@ function rijenOud(b) {
   const feats = (b.feats || []).flatMap(blok =>
     Object.entries(blok).filter(([, v]) => v === true).map(([k]) => naamHoofd(k.split('|')[0])));
   return [
+    rij('Prerequisite', voorwaarde(b)),
     rij('Skill Proficiencies', profTekst(b.skillProficiencies, 'skills')),
     rij('Tool Proficiencies', profTekst(b.toolProficiencies, 'tools')),
     rij('Languages', profTekst(b.languageProficiencies, 'languages')),
@@ -135,6 +149,8 @@ function rijenOud(b) {
 // ── De druk van 2024: die staat al als lijst in de tekst ────────────────────
 function rijenNieuw(b) {
   const uit = [];
+  const voor = voorwaarde(b);
+  if (voor) uit.push({ name: 'Prerequisite', desc: voor });
   for (const blok of (b.entries || [])) {
     if (blok?.type !== 'list' || !Array.isArray(blok.items)) continue;
     for (const it of blok.items) {

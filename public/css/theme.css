@@ -24186,15 +24186,41 @@ body.landing-open > *:not(#landing-overlay):not(#landing-zoom):not(#pm-overlay):
    formulier staat rechtstreeks in `#m-body`, en dát is wat scrollt. De
    negatieve marges trekken de balk tot aan de rand van het venster, zodat er
    geen streepje perkament naast valt. */
-.ed-knoppen--vast {
-  position: sticky; bottom: -20px; z-index: 12;
-  margin-left: -20px; margin-right: -20px; margin-bottom: -20px;
-  padding: 12px 20px; background: #f8f0de;
+/* Het formulier vult de hoogte van het venster, ook als een tabblad maar half
+   vol staat. Zonder dit eindigt het formulier halverwege en zit de knoppenbalk
+   daar — midden in het kaartje in plaats van onderaan. `#m-body` is het vak
+   dat scrollt, dus 100% is precies wat er in beeld past. */
+/* Het formulier vult de hoogte van het venster, ook als een tabblad maar half
+   vol staat — anders eindigt het halverwege en zit de knoppenbalk daar, midden
+   in het kaartje. `min-height: 100%` deed dat niet: `#m-body` is zelf een
+   flex-kind en dan lost een percentage niet op. Met flex wél, en de balk met
+   `margin-top: auto` zakt naar de bodem. */
+#m-body:has(> #entity-form) { display: flex; flex-direction: column; }
+#m-body > #entity-form { flex: 1 0 auto; display: flex; flex-direction: column; min-height: 0; }
+/* De onderste twintig pixels lucht van `#m-body` horen niet ónder een balk die
+   tegen de rand plakt. Ze weghalen is eerlijker dan de balk met een negatieve
+   marge naar beneden trekken: `position: sticky` rekent met het margekader,
+   dus een negatieve ondermarge liet hem juist twintig pixels te hoog hangen. */
+/* `!important` omdat `#m-body` zijn padding als **inline stijl** draagt
+   (`index.html`), en die wint van elke selector. Die stijl daar weghalen zou
+   elk ander venster raken; dit raakt alleen het bewerkformulier. */
+#m-body:has(> #entity-form) { padding-bottom: 0 !important; }
+/* **Met het id ervoor, en dat is nodig.** Het formulier draagt Tailwinds
+   `space-y-4`, en die regel (`.space-y-4 > :not([hidden]) ~ :not([hidden])`)
+   zet een `margin-top` met een zwaardere selector dan een losse klasse. Zonder
+   `#entity-form` ervoor won die van `margin-top: auto` en bleef de balk
+   halverwege hangen op een kort tabblad.
+
+   `bottom: 0` en niet `-20px`: met een negatieve waarde plakt hij twintig
+   pixels té laag. De onderste padding van `#m-body` is daarvoor weggehaald. */
+#entity-form .ed-knoppen--vast {
+  position: sticky; bottom: 0; z-index: 12;
+  margin: auto -20px 0; padding: 12px 20px; background: #f8f0de;
   box-shadow: 0 -6px 18px rgba(60,40,10,0.12);
 }
 @media (max-width: 640px) {
   /* `#m-body` heeft daar 12px padding in plaats van 20. */
-  .ed-knoppen--vast { bottom: -12px; margin-left: -12px; margin-right: -12px; margin-bottom: -12px; padding: 10px 12px; }
+  #entity-form .ed-knoppen--vast { margin: auto -12px 0; padding: 10px 12px; }
 }
 
 /* Kant in gevecht begint op een eigen regel: als vervolg op dezelfde rij liep
@@ -33037,14 +33063,8 @@ body.gr-slowmo .combat-overlay { filter: grayscale(.85) contrast(1.1) brightness
 .tegel-knop { border-color: transparent; }
 
 /* ── Favorieten: het lint en de stapel ── */
-.tegel-lint {
-  position: absolute; top: -2px; right: 18px; z-index: 5;
-  width: 15px; height: 34px;
-  background: linear-gradient(90deg, #7a1a1a, #b32f2a 45%, #8c2020);
-  clip-path: polygon(0 0, 100% 0, 100% 100%, 50% 78%, 0 100%);
-  box-shadow: 0 2px 4px rgba(0,0,0,0.25);
-}
-.tegel--open .tegel-lint { right: 48px; }
+/* (Het rode lintje op een favoriet is weg: het sterretje linksboven zegt het
+   al, en twee merktekens voor hetzelfde feit vragen om uitleg.) */
 .tegel--favoriet.entity-card:hover { box-shadow: 0 6px 16px rgba(150,40,30,0.22), 0 0 0 1px rgba(179,47,42,0.25); }
 
 .tegel-stapel {
@@ -33077,7 +33097,28 @@ body.gr-slowmo .combat-overlay { filter: grayscale(.85) contrast(1.1) brightness
   background: linear-gradient(90deg, #7a1a1a, #b32f2a); color: #fbeee0; font-size: 0.68rem;
 }
 .tegel-stapel-pijl .icon { width: 13px; height: 13px; }
-.tegel-stapel.is-uit .tegel-stapel-kaart { opacity: 0.45; }
+/* Uitgewaaierd is de stapel een **leeg vel**: de plek waar alles naar terug
+   kan schieten. Hij stond doorschijnend, en een half zichtbaar portret leest
+   als een plaatje dat niet geladen is. */
+.tegel-stapel.is-uit .tegel-stapel-kaart {
+  background: repeating-linear-gradient(45deg, #f6eeda, #f6eeda 7px, #f1e6cc 7px, #f1e6cc 14px);
+  border-style: dashed; box-shadow: none;
+}
+
+/* De streep tussen de uitgewaaierde favorieten en de rest. Hij neemt een hele
+   rasterrij in (`grid-column: 1 / -1`), want halverwege een rij afbreken leest
+   als een gat in plaats van als een grens. */
+.tegel-scheiding {
+  grid-column: 1 / -1; display: flex; align-items: center; gap: 12px;
+  margin: 6px 2px 2px;
+  font-family: 'Cinzel', serif; font-size: 0.68rem; letter-spacing: 0.1em;
+  text-transform: uppercase; color: #9a8468;
+}
+.tegel-scheiding::before, .tegel-scheiding::after {
+  content: ''; height: 1px; background: rgba(196,168,122,0.65);
+}
+.tegel-scheiding::before { flex: 0 0 14px; }
+.tegel-scheiding::after { flex: 1; }
 @media (prefers-reduced-motion: reduce) {
   .tegel-stapel-kaart { transition: none; }
 }
@@ -33152,11 +33193,13 @@ body.gr-slowmo .combat-overlay { filter: grayscale(.85) contrast(1.1) brightness
 /* De vijf houdingknoppen in de bewerkmodal: hetzelfde rijtje als in het
    detailvenster. Het was een schuifje met een kleurverloop — je zag niet
    welke trede je koos tot je de naam ernaast las. */
-.houding-knoppen { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
-.houding-stand {
-  margin: 7px 0 0; font-family: 'Crimson Text', serif; font-size: 0.88rem; color: #6a5030;
-}
+/* Lucht eronder: zonder die marge plakte het volgende label ("Insight-DC")
+   tegen de knoppen aan en las het als een subkopje van de houding. */
+.houding-knoppen { display: flex; flex-wrap: wrap; gap: 6px; margin: 4px 0 18px; }
 .houding-keuze.dm-actie--aan .dm-actie-vlek { box-shadow: 0 0 0 2px rgba(255,252,244,0.85); }
+/* Staat hij op wat de app uitrekent, dan is de aangezette knop gestippeld:
+   "dit geldt, maar jij hebt het niet gekozen". */
+.houding-knoppen.is-standaard .houding-keuze.dm-actie--aan { border-style: dashed; }
 @media (max-width: 640px) {
   .detail-dm-rij { grid-template-columns: 1fr; gap: 3px; }
   .detail-dm-kop { padding-top: 0; }

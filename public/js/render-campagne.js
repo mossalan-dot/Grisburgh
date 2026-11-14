@@ -818,7 +818,7 @@ function _houdingVeldHtml(field, eigen, berekend) {
            kleurverloop: je zag niet welke trede je koos tot je de naam ernaast
            las, en de kleur onder je duim was een mengsel van twee treden.
            (Geen backticks in commentaar hierbinnen: template literal.) -->
-      <div class="houding-knoppen" id="houding-knoppen" data-berekend="${berekend}">
+      <div class="houding-knoppen${eigen === null ? ' is-standaard' : ''}" id="houding-knoppen" data-berekend="${berekend}">
         ${[..._HOUDING_TABEL.values()].slice().reverse().map(t => `<button type="button"
           class="dm-actie houding-keuze${t.waarde === nu ? ' dm-actie--aan' : ''}"
           data-waarde="${t.waarde}" style="--houding-kleur:${t.pil || t.glans?.kleur || '#c4a87a'}"
@@ -826,9 +826,7 @@ function _houdingVeldHtml(field, eigen, berekend) {
           onclick="window._houdingKies(this)">
           <span class="dm-actie-vlek"></span><span>${esc(t.naam)}</span></button>`).join('')}
       </div>
-      <p class="houding-stand" id="houding-naam">${eigen === null
-        ? `Standaard: <strong>${esc(h?.naam || '')}</strong> — wat de app uitrekent.`
-        : `Ingesteld op <strong>${esc(h?.naam || '')}</strong>. Klik hem nog eens aan voor standaard.`}</p>
+
     </div>`;
 }
 
@@ -847,13 +845,11 @@ window._houdingKies = (el) => {
   for (const k of bak.querySelectorAll('.houding-keuze')) {
     k.classList.toggle('dm-actie--aan', Number(k.dataset.waarde) === toon);
   }
-  const h = _HOUDING_TABEL.get(toon);
-  const regel = document.getElementById('houding-naam');
-  if (regel) {
-    regel.innerHTML = terug
-      ? `Standaard: <strong>${esc(h?.naam || '')}</strong> — wat de app uitrekent.`
-      : `Ingesteld op <strong>${esc(h?.naam || '')}</strong>. Klik hem nog eens aan voor standaard.`;
-  }
+  // Staat hij op standaard, dan krijgt de aangezette knop een stippellijn —
+  // **geen zin eronder**. Dat het verschil tussen "ingesteld" en "uitgerekend"
+  // bestaat, en dat je hem nog eens aantikt om terug te gaan, staat in het
+  // boekje; hier zou het elke keer opnieuw in de weg staan.
+  bak.classList.toggle('is-standaard', terug);
 };
 
 
@@ -4434,7 +4430,6 @@ function _tegelHtml(type, e, { fav = false } = {}) {
       <span class="tegel-icoon" aria-hidden="true">${_tegelIcoon(type, e)}</span>
       ${perk || _tegelBeeld(e)}
       ${e._gevangen ? `<span class="tegel-tralies" title="Gevangene van de party" aria-hidden="true"></span>` : ''}
-      ${fav ? '<span class="tegel-lint" aria-hidden="true"></span>' : ''}
       ${acr ? `<span class="card-armor-ac-pill tegel-ac" title="${esc(acr.tooltip)}">${esc(acr.pill)}</span>` : ''}
       <div class="tegel-naamband">${type === 'locaties' ? `<span class="tegel-merk" title="${esc(e.data?.locType || '')}">${_tegelIcoon(type, e)}</span>` : ''}<span class="card-name" data-fittext>${esc(e.name)}${e._deceased && type === 'personages' ? '<span class="card-name-dagger">†</span>' : ''}</span></div>
       ${_tegelSter(type, e, fav)}
@@ -4448,7 +4443,6 @@ function _tegelHtml(type, e, { fav = false } = {}) {
     <div class="card-accent bar-${type}"></div>
     <span class="tegel-icoon" aria-hidden="true">${_tegelIcoon(type, e)}</span>
     ${perk || _tegelBeeld(e)}
-    ${fav ? '<span class="tegel-lint" aria-hidden="true"></span>' : ''}
     <div class="tegel-blad" data-soort="${bladen[i].soort}">${_tegelBladInhoud(e, bladen[i], rol, type)}</div>
     <div class="tegel-voet" onclick="event.stopPropagation()">
       <div class="tegel-punten">${window._tegelPijlHtml(-1, bladen.length)}${bladen.map((b, j) => `<button class="tegel-punt${j === i ? ' is-aan' : ''}"
@@ -4488,8 +4482,12 @@ function _stapelHtml(type, favs, uit) {
     title="${uit ? 'Favorieten terug op de stapel' : 'Favorieten uitwaaieren'}"
     onclick="window._stapelKlik('${type}')"
     onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();window._stapelKlik('${type}')}">
+    <!-- Uitgewaaierd tonen de kaartjes geen portret meer: dan is het een leeg
+         vel waar alles naar terug kan schieten. Het stond doorschijnend, en
+         een half zichtbaar portret leest als een plaatje dat niet laadt.
+         (Geen backticks in commentaar hierbinnen: template literal.) -->
     <div class="tegel-stapel-kaarten">
-      ${boven.map((e, i) => `<div class="tegel-stapel-kaart" style="--n:${i}">${_tegelBeeld(e, 'tegel-stapel-img')}</div>`).reverse().join('')}
+      ${boven.map((e, i) => `<div class="tegel-stapel-kaart" style="--n:${i}">${uit ? '' : _tegelBeeld(e, 'tegel-stapel-img')}</div>`).reverse().join('')}
     </div>
     <div class="tegel-stapel-label">
       <span class="tegel-stapel-aantal">${favs.length}</span>
@@ -4510,8 +4508,14 @@ function _tegelRasterHtml(type, list) {
   if (!fav.length) return list.map(e => _tegelHtml(type, e)).join('');
   const rest = list.filter(e => !favs.has(e.id));
   const uit = _stapelStandLees(type);
+  // **Een streep tussen de twee.** Uitgewaaierd staan de favorieten gewoon
+  // vooraan in hetzelfde raster, en dan zie je niet waar ze ophouden — het
+  // sterretje is klein en de eerste niet-favoriet staat er naadloos achteraan.
+  // De streep neemt een hele rasterrij in en staat er alleen als er aan
+  // allebei de kanten iets staat.
   return _stapelHtml(type, fav, uit)
     + (uit ? fav.map(e => _tegelHtml(type, e, { fav: true })).join('') : '')
+    + (uit && rest.length ? `<div class="tegel-scheiding" aria-hidden="true"><span>Favorieten</span></div>` : '')
     + rest.map(e => _tegelHtml(type, e)).join('');
 }
 

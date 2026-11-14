@@ -1,5 +1,5 @@
 import { api, campagneUitUrl, zetCampagne } from './api.js?v=320';
-import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, renderDocumenten, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=374";
+import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, renderDocumenten, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=377";
 import { initArchief, renderLogboek, openLogboekEditor } from "./render-archief.js?v=148";
 import { renderKaart, queueFlyTo, verversPins, nieuweKaart } from './render-kaart.js?v=35';
 import { renderDungeon } from './render-dungeon.js?v=74';
@@ -9,7 +9,7 @@ import { renderBestiarium } from './render-bestiarium.js?v=40';
 import { renderSpreuken } from './render-spreuken.js?v=56';
 import './render-handleiding.js?v=2';
 import './render-melding.js?v=4';
-import { renderVaardigheden, zoekVaardigheden, heldenboekTekst } from './render-vaardigheden.js?v=139';
+import { renderVaardigheden, zoekVaardigheden, heldenboekTekst } from './render-vaardigheden.js?v=140';
 import { renderStatblock } from './render-statblock.js?v=9';
 import { initSocket } from "./socket-client.js?v=99";
 import { initDmPanel } from "./dm-panel.js?v=422";
@@ -15944,6 +15944,7 @@ const HELP_CONFIG = {
   ] }),
 
   hulp_bewerk_personages_info: () => ({ titel: 'Een personage', stappen: [
+    { titel: 'Houding tegenover de groep', tekst: 'Vijf treden van **bondgenoot** tot **vijandig**. Laat je hem met rust, dan rekent de app hem uit — de knop die aanstaat heeft dan een stippellijn. Klik je een trede aan, dan is hij van jou; dezelfde trede nog eens aantikken zet hem terug op uitgerekend. De **Insight-DC** eronder is wat een speler moet halen om die houding te doorzien.', afbeelding: null },
     { titel: 'Type, rollen en kant', tekst: 'Drie verschillende vragen. **Type** zegt wat voor kaartje dit is: NPC, speler, dier of god. **Rollen** zeggen welke functie hij vervult — *verkoper* zet een voorraad aan, *antagonist* geeft kleur en een badge, allebei tegelijk mag. **Kant** zegt aan welke kant hij in een gevecht staat.', afbeelding: null },
     { titel: 'Houding tegenover de groep', tekst: 'Eén waarde van **vijandig** tot **bondgenoot**. Op het kaartje is er in rust niets van te zien; de houding verschijnt pas als je erover gaat, als een baan licht (vriendelijk) of schaduw (vijandig) die overtrekt. *Wantrouwig* is iemand die je op afstand houdt maar wel praat; *welgezind* helpt als het hem niet te veel kost.\n\nLaat je het veld leeg, dan rekent de app hem uit: eerst de renown van zijn factie, anders de standaard van zijn rol (een antagonist begint vijandig, een huisdier welgezind). Zetten gaat het snelst met het **balkje links op het kaartje** zelf — en de trede die aanstaat nog eens aantikken zet hem terug op uitgerekend. Een god en een speler staan niet op deze schaal.', afbeelding: null },
     { titel: 'Flavour & geheimen', tekst: '**Flavour** zijn zinnetjes om voor te lezen; de app onthoudt per regel of hij al verteld is. **Geheimen** onthul je per regel en per party. Bij een personage kun je per geheim aanvinken dat het onthullen hem tot vijand maakt: hij krijgt dan de rol antagonist, komt aan de kant van de vijand te staan en zijn alignment schuift op naar Evil.', afbeelding: null },

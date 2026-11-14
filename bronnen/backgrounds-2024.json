@@ -1012,6 +1012,10 @@
     "levels": {
       "1": [
         {
+          "name": "Prerequisite",
+          "desc": "Planescape-campagne"
+        },
+        {
           "name": "Skill Proficiencies",
           "desc": "Persuasion, Survival"
         },
@@ -2287,6 +2291,10 @@
   "Planar Philosopher": {
     "levels": {
       "1": [
+        {
+          "name": "Prerequisite",
+          "desc": "Planescape-campagne"
+        },
         {
           "name": "Skill Proficiencies",
           "desc": "Arcana, choose one: Religion, Insight, Nature, Intimidation, History, Stealth, Perception, Medicine, Survival, Persuasion, Performance, Athletics"

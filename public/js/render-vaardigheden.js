@@ -1527,8 +1527,10 @@ function _achtergrondRijen(naam) {
   // in deze volgorde, en wat een background verder nog draagt komt erachteraan.
   // Zo kan de DM er een onderdeel bij verzinnen zonder dat deze functie het
   // hoeft te weten.
-  const VOLGORDE = ['Ability Scores', 'Feat', 'Skill Proficiencies', 'Tool Proficiency',
-                    'Tool Proficiencies', 'Languages', 'Equipment', 'Feature'];
+  // Een voorwaarde staat vooraan: "deze background bestaat alleen in
+  // Planescape" is het eerste wat je wilt weten, nog vóór wat hij geeft.
+  const VOLGORDE = ['Prerequisite', 'Ability Scores', 'Feat', 'Skill Proficiencies',
+                    'Tool Proficiency', 'Tool Proficiencies', 'Languages', 'Equipment', 'Feature'];
   const gezien = new Set();
   const uit = [];
   const zet = (d) => {
@@ -2554,7 +2556,7 @@ function _volkBasisVeldenHtml(volk, nu = null) {
 // Wat hij nog niet heeft staat er als leeg veld bij, zodat je Languages kunt
 // toevoegen aan een background die er geen heeft zonder eerst ergens een
 // onderdeel te moeten aanmaken.
-const _BG_VAST = ['Ability Scores', 'Feat', 'Skill Proficiencies',
+const _BG_VAST = ['Prerequisite', 'Ability Scores', 'Feat', 'Skill Proficiencies',
                   'Tool Proficiencies', 'Languages', 'Equipment'];
 
 function _bgOnderdelen(naam) {
