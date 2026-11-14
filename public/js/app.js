@@ -1,5 +1,5 @@
 import { api, campagneUitUrl, zetCampagne } from './api.js?v=321';
-import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, renderDocumenten, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=379";
+import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, renderDocumenten, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=382";
 import { initArchief, renderLogboek, openLogboekEditor } from "./render-archief.js?v=150";
 import { renderKaart, queueFlyTo, verversPins, nieuweKaart } from './render-kaart.js?v=36';
 import { renderDungeon } from './render-dungeon.js?v=76';
@@ -2087,7 +2087,14 @@ function openModal(title, subtitle, bodyHtml, hulp = '') {
   const _sub = $('#m-sub');
   _sub.textContent = subtitle || '';
   _sub.classList.toggle('hidden', !subtitle);
-  $('#m-body').innerHTML = bodyHtml;
+  // **Bovenaan beginnen.** Een scrollbare bak houdt zijn `scrollTop` als je de
+  // inhoud vervangt, dus wie een lang kaartje had doorgelezen en daarna de
+  // editor opende, landde halverwege het formulier — bij "Nieuw personage"
+  // zelfs onderin, bij de aantekeningen. Een hertekening van hetzelfde venster
+  // bewaart die stand juist wél; dat loopt via `window._detailHerteken`.
+  const _body = $('#m-body');
+  _body.innerHTML = bodyHtml;
+  _body.scrollTop = 0;
   // Het boekje van dit venster hoort naast het kruisje — dezelfde plek bij elk
   // venster, in plaats van ergens tussen de velden. Geen sleutel of geen tekst:
   // dan staat er niets.
@@ -15978,6 +15985,7 @@ const HELP_CONFIG = {
   hulp_bewerk_organisaties_info: () => ({ titel: 'Een organisatie', stappen: [
     { titel: 'Type en motto', tekst: 'Gilden, ordes, facties en bendes. Het **type** en het **motto** komen op het kaartje te staan; de beschrijving vertelt waar ze voor staan.', afbeelding: null },
     { titel: 'Gebied en leden', tekst: 'Bij **Gebied** koppel je waar ze zitten. Bij **Wie hoort hier bij?** zet je de leider en de leden neer, met per regel hun rang of rol — personages én andere organisaties. Die regels verschijnen ook op hun eigen kaartjes.', afbeelding: null },
+    { titel: 'Rollen', tekst: 'Een rol is een **functie binnen de organisatie** — kwartiermeester, archivaris, zwaardmeester. Bij *Rollen binnen deze organisatie* schrijf je één keer op wat zo\'n functie inhoudt; in de ledenlijst kies je hem daarna uit de keuzelijst, en dan is het woord daar een knop naar die uitleg. Je spelers lezen hem ook, zodra ze het kaartje kennen.\n\nEen rol die je maar één keer gebruikt hoef je niet eerst te beschrijven: het rolveld bij een lid blijft gewoon vrije tekst.\n\n**Een rang is geen rol.** De ladder van een factie is wat een *speler* beklimt met renown; een rol is wat iemand dóét. Hangt er een factie aan dit kaartje, dan blijven dat twee lijsten naast elkaar.', afbeelding: null },
     { titel: 'Het teken', tekst: 'Het **teken** is het merk van deze organisatie: het staat op haar kaartje en op de speld op de kaart. Laat je het leeg, dan volgt het vanzelf haar *type* — een gilde krijgt een ander teken dan een bende.\n\nHangt er een **factie** aan dit kaartje, dan is dit meteen haar embleem; je hoeft daar dus niets apart in te stellen.', afbeelding: null },
     { titel: 'Factie', tekst: 'Onderaan koppel je dit kaartje aan een **factie** uit het Facties-paneel. Dat is dezelfde koppeling die daar staat, dus je kunt hem van twee kanten leggen; renown, rangen en boons blijven in dat paneel.', afbeelding: null },
   ] }),

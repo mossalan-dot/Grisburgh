@@ -548,6 +548,14 @@ const SCHEMA = {
       // Staat in dezelfde volgorde als bij een locatie, al valt hij bij een
       // organisatie toch op het Organogram-tabblad (zie de P:organogram-markers).
       { key: 'betrokkenen', label: 'Wie hoort hier bij?', type: 'betrokkenen' },
+      // **Een rol is een ding van de organisatie, niet van de persoon.** Hij
+      // stond als vrije tekst op elke ledenregel: "Kwartiermeester" drie keer
+      // los ingetikt, en nergens wát een kwartiermeester doet. Nu staat hij
+      // hier één keer met zijn uitleg, en wijst elke ledenregel ernaar — zelfde
+      // patroon als de betrokkenen zelf: één plek, twee kanten.
+      // Het type heet `orgrollen` en niet `rollen`: dat laatste bestaat al en
+      // is iets anders — de chips verkoper/antagonist op een personage.
+      { key: 'rollen', label: 'Rollen binnen deze organisatie', type: 'orgrollen' },
       { key: 'persoonlijkheid', label: 'Aantekeningen voor de DM', type: 'textarea', dmOnly: true },
     ],
   },
@@ -1777,6 +1785,21 @@ const BETROKKEN_ROLLEN = ['Eigenaar', 'Lid', 'Personeel', 'Leider', 'Bewoner',
   'Stamgast', 'Bewaker', 'Verkoper', 'Waard', 'Priester', 'Oprichter',
   'Beschermheer', 'Bondgenoot', 'Rivaal', 'Gevangene'];
 
+// De rollen van een organisatie: `data.rollen`, opgeslagen als JSON-string net
+// als de betrokkenen. Een rol is `{naam, tekst}`; wat geen naam heeft telt niet
+// mee, want dan is er niets om naar te verwijzen.
+function _rollenUit(data) {
+  const rauw = data?.rollen;
+  let rijen = [];
+  if (Array.isArray(rauw)) rijen = rauw;
+  else if (typeof rauw === 'string' && rauw.trim()) {
+    try { const arr = JSON.parse(rauw); if (Array.isArray(arr)) rijen = arr; } catch { /* stuk? dan leeg */ }
+  }
+  return rijen.filter(r => r && String(r.naam || '').trim())
+    .map(r => ({ naam: String(r.naam).trim(), tekst: String(r.tekst || '') }));
+}
+window._rollenUit = _rollenUit;
+
 function _betrokkenenUit(data) {
   const rauw = data?.betrokkenen;
   let rijen = [];
@@ -1869,6 +1892,59 @@ function _betrokkenRijHtml(r, i, metChef = false) {
     </div>` : ''}
     <div id="betr-st-${i}" class="link-status betrokken-status"></div>
   </div>`;
+}
+
+// Eén rol: zijn naam en wat hij inhoudt. De naam is de sleutel waar een
+// ledenregel naar wijst, dus hernoemen raakt die verwijzing — vandaar dat de
+// lijst bij het typen meteen de keuzelijst van de ledenregels bijwerkt.
+function _rolRijHtml(r, i) {
+  return `<div class="rol-rij">
+    <input class="rol-naam dm-input" value="${esc(r.naam || '')}" maxlength="60"
+      placeholder="Kwartiermeester" oninput="window._rolLijstVullen()">
+    <button type="button" class="dm-btn dm-btn-sm dm-btn-ghost dm-btn-danger"
+      title="Rol verwijderen" onclick="window._rolWeg(this)">${icon('trash')}</button>
+    <textarea class="rol-tekst dm-input" rows="2"
+      placeholder="Wat houdt deze rol in?">${esc(r.tekst || '')}</textarea>
+  </div>`;
+}
+
+// Klikken op een rol in de ledenlijst opent zijn uitleg. Bewust een klein
+// venster en geen uitklap in de rij: de lijst is een tabel van twee kolommen,
+// en een regel die opengaat duwt alles eronder weg.
+window._rolToon = (naam, tekst) => {
+  window.app?.openModal?.(naam, `<div class="rol-venster">${window.app.mdToHtml(tekst || '')}</div>`);
+};
+
+window._rolErbij = () => {
+  const host = document.getElementById('rollen-lijst');
+  if (!host) return;
+  host.insertAdjacentHTML('beforeend', _rolRijHtml({}, host.children.length));
+  host.lastElementChild?.querySelector('.rol-naam')?.focus();
+};
+
+window._rolWeg = (knop) => {
+  knop.closest('.rol-rij')?.remove();
+  window._rolLijstVullen();
+};
+
+// De keuzelijst bij het rolveld van een ledenregel komt uit de rollen die deze
+// organisatie zelf heeft, aangevuld met de algemene lijst. Zo hoef je een rol
+// die je net bedacht niet over te tikken, en blijft vrije tekst toegestaan —
+// niet elke rol verdient een uitleg.
+window._rolLijstVullen = () => {
+  const dl = document.getElementById('betrokken-rol-dl');
+  if (!dl) return;
+  const eigen = [...document.querySelectorAll('#rollen-lijst .rol-naam')]
+    .map(i => i.value.trim()).filter(Boolean);
+  const alles = [...new Set([...eigen, ...BETROKKEN_ROLLEN])];
+  dl.innerHTML = alles.map(r => `<option value="${esc(r)}">`).join('');
+};
+
+function _rollenCollect() {
+  return [...document.querySelectorAll('#rollen-lijst .rol-rij')].map(rij => ({
+    naam: rij.querySelector('.rol-naam')?.value.trim() || '',
+    tekst: rij.querySelector('.rol-tekst')?.value.trim() || '',
+  })).filter(r => r.naam);
 }
 
 // ── "Hoort bij" vanaf de andere kant ────────────────────────────────────────
@@ -2823,13 +2899,18 @@ const _keuzeLijsten = {};   // veldId → array met opties
 const _keuzeNa = {};        // veldId → wat er ná een keuze moet gebeuren
 
 function _keuzeVeldHtml(id, naam, waarde, opties, placeholder = '', naKeuze = null) {
-  _keuzeLijsten[id] = opties || [];
+  // Ontdubbelen, hier en niet bij elke aanroeper: twee keer dezelfde naam in
+  // een keuzelijst is altijd een fout, en die kwam binnen omdat de lijst uit
+  // twee bronnen wordt samengevoegd (Half-Orc stond zowel bij de gangbare als
+  // bij de overige volken).
+  _keuzeLijsten[id] = [...new Set((opties || []).map(o => String(o)))];
   _keuzeNa[id] = naKeuze;
   return `<div class="keuzeveld">
     <input id="${id}" name="${naam}" value="${esc(waarde || '')}" autocomplete="off" placeholder="${esc(placeholder)}"
       class="w-full mt-1 px-3 py-2 bg-room-bg border border-room-border rounded text-ink-bright focus:border-gold-dim focus:outline-none"
       oninput="window._keuzeFilter('${id}')" onfocus="window._keuzeFilter('${id}')"
-      onkeydown="window._keuzeToets(event,'${id}')">
+      onkeydown="window._keuzeToets(event,'${id}')"
+      onblur="window._keuzeSluitNu('${id}')">
     <div class="keuzeveld-lijst hidden" id="${id}-lijst"></div>
   </div>`;
 }
@@ -2837,6 +2918,12 @@ function _keuzeVeldHtml(id, naam, waarde, opties, placeholder = '', naKeuze = nu
 function _keuzeSluit(id) {
   document.getElementById(`${id}-lijst`)?.classList.add('hidden');
 }
+
+// Het veld verlaten sluit zijn menu. Dat gebeurde niet, en met Tab naar het
+// volgende veld bleef de lijst van het vórige openstaan — twee menu's over
+// elkaar heen. Veilig bij een klik op een optie: die gebruikt `onmousedown`
+// met `preventDefault`, dus daar komt deze blur nooit tussen.
+window._keuzeSluitNu = (id) => _keuzeSluit(id);
 
 window._keuzeFilter = (id) => {
   const invoer = document.getElementById(id);
@@ -6178,7 +6265,7 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
     // Geheimen, flavours en rollen hebben verderop hun eigen weergave (rollen
     // een badge, de lijsten een perkamentrol per regel). Als pil toonden ze
     // hun ruwe JSON: ["Groot hater van jam."].
-    if (['lijst-tekst', 'rollen'].includes(field.type)) continue;
+    if (['lijst-tekst', 'rollen', 'orgrollen'].includes(field.type)) continue;
     // De perkamenttekst van een document krijgt verderop zijn eigen weergave;
     // als pil werd een hele brief tot één regel platgeslagen.
     if (field.type === 'perkament') continue;
@@ -6267,12 +6354,25 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
   // Eerst lezen wie of wat dit is, dan pas de administratie eromheen. Eén regel
   // per rol: iemand kan eigenaar zijn van drie panden, en dan is "Eigenaar" op
   // een hoop met drie namen erachter niet te lezen.
+  // Wat de rollen van deze organisatie inhouden, op naam. Leeg bij elk ander
+  // soort kaartje — daar is een rol nog gewoon een woord.
+  const _rolUitleg = {};
+  if (tab === 'organisaties') {
+    for (const r of _rollenUit(e.data)) if (r.tekst) _rolUitleg[r.naam.toLowerCase()] = r.tekst;
+  }
+
   const _rolRegels = (kop, rijen) => `
     <div class="detail-betrekking">
       <div class="detail-label">${icon('link')} ${esc(kop)}</div>
       <div class="detail-betrekking-rijen">
         ${rijen.map(r => `<span class="detail-betrekking-rol">${r.geheim
-            ? `<span class="betrekking-slot" title="Geheim — deze party ziet deze verbinding nog niet">${icon('lock')}</span>` : ''}${esc(r.rol || '\u2014')}</span>
+            ? `<span class="betrekking-slot" title="Geheim — deze party ziet deze verbinding nog niet">${icon('lock')}</span>` : ''}${
+            // Legt deze organisatie uit wat de rol inhoudt, dan is de naam een
+            // knop naar die uitleg in plaats van een kaal woord.
+            _rolUitleg[String(r.rol || '').toLowerCase()]
+              ? `<button type="button" class="rol-knop" title="${esc(_rolUitleg[String(r.rol).toLowerCase()])}"
+                  onclick="window._rolToon('${escArg(r.rol)}','${escArg(_rolUitleg[String(r.rol).toLowerCase()])}')">${esc(r.rol)}</button>`
+              : esc(r.rol || '\u2014')}</span>
           <span class="detail-betrekking-waarde">${r.knop}</span>`).join('')}
       </div>
     </div>`;
@@ -6293,6 +6393,21 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
           : `<span class="betrokken-naam">${esc(r.naam)}</span>`,
     })));
   }
+  // De rollen zelf, als eigen blok. Een organisatie kan een rol beschrijven die
+  // op dit moment door niemand bekleed wordt — een lege stoel is ook iets wat
+  // de party mag weten.
+  const _rollen = tab === 'organisaties' ? _rollenUit(e.data) : [];
+  if (_rollen.length) {
+    infoHtml += `
+      <div class="detail-betrekking">
+        <div class="detail-label">${icon('users')} Rollen</div>
+        <dl class="detail-rollen">${_rollen.map(r => `
+          <dt>${esc(r.naam)}</dt>
+          <dd>${r.tekst ? mdToHtml(r.tekst) : '<em>nog niet beschreven</em>'}</dd>`).join('')}
+        </dl>
+      </div>`;
+  }
+
   // En de andere kant op: waar dít kaartje bij hoort. Afgeleid door de server
   // uit de betrokkenen-lijsten van locaties en organisaties, dus er staat nooit
   // iets anders dan daar ingevuld is.
@@ -8862,6 +8977,17 @@ window._openEditor = async (tab, editId) => {
         </div>
       `;
       if (tab === 'organisaties') body += `<!--P:info-->`;
+    } else if (field.type === 'orgrollen') {
+      const rollen = _rollenUit(e?.data);
+      if (!rollen.length) rollen.push({ naam: '', tekst: '' });
+      body += `
+        <div>
+          <label class="text-xs font-cinzel text-ink-dim font-bold tracking-wide">${esc(field.label)}</label>
+          <div id="rollen-lijst">${rollen.map((r, i) => _rolRijHtml(r, i)).join('')}</div>
+          <button type="button" class="dm-btn dm-btn-ghost dm-btn-sm mt-1"
+            onclick="window._rolErbij()">${icon('plus')} Rol toevoegen</button>
+        </div>
+      `;
     } else if (field.type === 'weapon-tags') {
       const _sel = (() => { try { return JSON.parse(val || '[]'); } catch { return []; } })();
       body += `
@@ -10035,6 +10161,12 @@ window._openEditor = async (tab, editId) => {
       const baas = rijen.find(r => /eigenaar/i.test(r.rol));
       data.eigenaar   = baas ? baas.naam : (rijen.length ? '' : (data.eigenaar || ''));
       data.eigenaarId = baas ? (baas.id || '') : '';
+    }
+    // De rollen van een organisatie. Zelfde vorm als de betrokkenen: een
+    // JSON-string op het kaartje, leeg als er niets staat.
+    if (document.getElementById('rollen-lijst')) {
+      const rollen = _rollenCollect();
+      data.rollen = rollen.length ? JSON.stringify(rollen) : '';
     }
     // "Hoort bij" schrijft in ándere kaartjes en gaat daarom via een eigen
     // route, ná het opslaan hieronder (de naam kan net gewijzigd zijn).
