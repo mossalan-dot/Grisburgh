@@ -33110,6 +33110,31 @@ body.gr-slowmo .combat-overlay { filter: grayscale(.85) contrast(1.1) brightness
    Hetzelfde uitklapvenstertje als bij de houding. Het was één oogje dat
    rondging, met Shift voor "vaag" — en dat laatste weet je alleen als iemand
    het je verteld heeft. */
+/* ── De DM-balk in het detailvenster ───────────────────────────────────────
+   Eén bak met alles door elkaar werd drie rijen met een kopje: wat de party
+   ziet, wat ze van hem vindt, en wat er met hem aan de hand is. */
+.detail-dm-rij {
+  display: grid; grid-template-columns: 7.5em 1fr; gap: 10px;
+  align-items: start; margin-top: 8px;
+}
+.detail-dm-kop {
+  padding-top: 7px;
+  font-family: 'Cinzel', serif; font-size: 0.66rem; letter-spacing: 0.06em;
+  text-transform: uppercase; color: #7a6040;
+}
+/* Het kleurvlakje voor een houdingknop: dezelfde kleur als de glans die over
+   het kaartje trekt, zodat de knop en het gevolg bij elkaar horen. */
+.dm-actie-vlek {
+  width: 11px; height: 11px; border-radius: 3px; flex: 0 0 auto;
+  background: var(--houding-kleur, #c4a87a);
+  border: 1px solid rgba(60,40,10,0.25);
+}
+.dm-actie--weg:hover { border-color: rgba(140,30,30,0.5); color: #8c2020; }
+@media (max-width: 640px) {
+  .detail-dm-rij { grid-template-columns: 1fr; gap: 3px; }
+  .detail-dm-kop { padding-top: 0; }
+}
+
 .tegel-zicht { position: relative; display: inline-flex; }
 .tegel-zicht-knop {
   width: 28px; height: 28px; border-radius: 50%; border: 1px solid transparent;
@@ -33155,10 +33180,16 @@ body.gr-slowmo .combat-overlay { filter: grayscale(.85) contrast(1.1) brightness
   display: inline-flex; align-items: center; justify-content: center;
   font-family: 'Cinzel', serif; font-size: 10px; font-weight: 700;
 }
+/* Dezelfde letter als de houdingnamen ernaast (`.tegel-houding-namen`): die
+   staan in Crimson Text en links uitgelijnd. Dit stond in Cinzel met een
+   kapiteelachtige spatiëring, en dan lijken twee panelen die naast elkaar
+   openklappen uit twee verschillende apps te komen. */
 .tegel-zicht-naam {
-  display: block; font-family: 'Cinzel', serif; font-size: 0.78rem; letter-spacing: .03em;
+  display: block; font-family: 'Crimson Text', serif; font-size: 0.86rem;
+  color: #3a2410; white-space: nowrap;
 }
 .tegel-zicht-rij.is-aan .tegel-zicht-naam { font-weight: 700; }
+.tegel-zicht-ico { width: 16px; justify-content: center; }
 
 /* De naam naast het kleurtje klikt mee. */
 .tegel-houding-naam {

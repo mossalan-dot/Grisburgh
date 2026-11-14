@@ -5952,7 +5952,6 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
           : `<div class="detail-hero-icon">${getAutoIconSvg(tab, e)}</div>`}
         ${_heroBadges.length ? `<div class="detail-hero-badges">${_heroBadges.map(b => `<span class="detail-hero-badge badge ${b.cls}">${esc(b.label)}</span>`).join('')}</div>` : ''}
         ${_rolVal ? `<div class="detail-hero-rol">${esc(_rolVal)}</div>` : ''}
-        ${_houdingBalkHtml(tab, e)}
       </div>
       ${_primaryCaption ? `<p class="text-center text-xs text-ink-dim font-crimson -mt-3 mb-3 italic">${esc(_primaryCaption)}</p>` : ''}
     `;
@@ -6375,12 +6374,35 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
         <!-- Vijf gelijke vierkantjes met een pictogram zeiden niet wát ze doen.
              Nu icoon plus woord; de stand staat in het woord ("Zichtbaar" /
              "Verborgen"), niet alleen in de kleur. -->
-        <div class="detail-dm-tools">
-          <button class="dm-actie${vis !== 'hidden' ? ' dm-actie--aan' : ''}"
-            title="${_mVisTitle}"
-            onclick="window._toggleVis('${tab}','${e.id}',event)">
-            ${_mVisIcon}<span>${vis === 'visible' ? 'Zichtbaar' : vis === 'vague' ? 'Vaag zichtbaar' : 'Verborgen'}</span>
-          </button>
+        <!-- **Drie rijen, drie soorten.** Het was één bak met alles door
+             elkaar: zichtbaarheid, houding, toestand en bewerken. Nu staan
+             de keuzes bij elkaar die hetzelfde soort antwoord geven — wat de
+             party ziet, wat de party van hem vindt, en wat er met hem aan de
+             hand is. Verwijderen stond er helemaal niet in, terwijl het
+             vanaf een tegel wél kan. -->
+        <div class="detail-dm-rij">
+          <span class="detail-dm-kop">Zichtbaarheid</span>
+          <div class="detail-dm-tools">
+            ${_ZICHT.filter(z => ['personages', 'locaties', 'organisaties'].includes(tab) || z.stand !== 'vague')
+              .map(z => `<button class="dm-actie${z.stand === vis ? ' dm-actie--aan' : ''}"
+                title="${esc(z.naam)}" onclick="window._zichtZet('${tab}','${e.id}','${z.stand}')">
+                ${icon(z.ico)}<span>${esc(z.naam)}</span></button>`).join('')}
+          </div>
+        </div>
+        ${_houdingBalkHtml(tab, e) ? `<div class="detail-dm-rij">
+          <span class="detail-dm-kop">Houding</span>
+          <div class="detail-dm-tools">
+            ${[..._HOUDING_TABEL.values()].slice().reverse().map(h => `<button
+              class="dm-actie${h.waarde === Number(e._houding) ? ' dm-actie--aan' : ''}"
+              style="--houding-kleur:${h.glans?.kleur || '#c4a87a'}"
+              title="${esc(h.uitleg || h.naam)}"
+              onclick="window._houdingZet('${tab}','${e.id}',${h.waarde})">
+              <span class="dm-actie-vlek"></span><span>${esc(h.naam)}</span></button>`).join('')}
+          </div>
+        </div>` : ''}
+        <div class="detail-dm-rij">
+          <span class="detail-dm-kop">Toestand</span>
+          <div class="detail-dm-tools">
           <!-- Dezelfde markering (dagger + gedempte kaart), maar een gebouw gaat
                niet dood: per tabblad het woord dat er hoort te staan.
                Bij een voorwerp staat de knop er niet meer: een kaartje dat
@@ -6415,11 +6437,22 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
               ${icon('crossed-swords', {cls:'icon-gi'})}<span>Medestander</span>
             </button>
           ` : ''}
-          <button class="dm-actie"
-            title="Bewerk dit kaartje (afbeelding, tekst, geluid)"
-            onclick="window._openEditor('${tab}','${e.id}')">
-            ${icon('pencil')}<span>Bewerken</span>
-          </button>
+          </div>
+        </div>
+        <div class="detail-dm-rij">
+          <span class="detail-dm-kop">Kaartje</span>
+          <div class="detail-dm-tools">
+            <button class="dm-actie"
+              title="Bewerk dit kaartje (afbeelding, tekst, geluid)"
+              onclick="window._openEditor('${tab}','${e.id}')">
+              ${icon('pencil')}<span>Bewerken</span>
+            </button>
+            <button class="dm-actie dm-actie--weg"
+              title="Dit kaartje verwijderen"
+              onclick="window._deleteEntity('${tab}','${e.id}')">
+              ${icon('trash')}<span>Verwijderen</span>
+            </button>
+          </div>
         </div>
       </div>
     `;
@@ -7311,17 +7344,32 @@ function _secretToast(revealed) {
 
 // Een roddel met de hand vertellen (of terugnemen). De herberg doet dit vanzelf
 // bij een lange rust; dit is voor als je hem gewoon aan tafel laat vallen.
+// **Hertekenen zonder te verspringen.** Een roddel onthullen bouwde het hele
+// venster opnieuw op, en dan staat `#m-body` weer bovenaan — terwijl jij
+// halverwege bij de roddels zat te lezen. Dit onthoudt waar je stond en zet
+// het terug zodra het nieuwe venster er staat.
+//
+// Twee beeldjes wachten is nodig: `_openDetail` vult het venster in stappen
+// (het haalt onderweg nog data op), en de hoogte staat pas vast als alles
+// erin zit.
+window._detailHerteken = async (tab, id) => {
+  const hoogte = document.getElementById('m-body')?.scrollTop || 0;
+  await window._openDetail(tab, id);
+  const zet = () => { const b = document.getElementById('m-body'); if (b) b.scrollTop = hoogte; };
+  requestAnimationFrame(() => { zet(); requestAnimationFrame(zet); });
+};
+
 window._toggleFlavour = async (tab, id, index = 0) => {
   try {
     await api.toggleFlavour(tab, id, index);
-    window._openDetail(tab, id);
+    await window._detailHerteken(tab, id);
   } catch (err) { alert('Mislukt: ' + (err.message || err)); }
 };
 
 window._toggleSecret = async (tab, id, index = 0, gid = '') => {
   const res = await api.toggleSecret(tab, id, index, gid);
   _secretToast(res.secretReveal);
-  window._openDetail(tab, id);
+  await window._detailHerteken(tab, id);
 };
 
 // Onthullen vanaf de kaart bestaat niet meer: sinds een kaartje meerdere
