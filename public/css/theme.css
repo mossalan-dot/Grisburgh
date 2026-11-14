@@ -32817,11 +32817,23 @@ body.gr-slowmo .combat-overlay { filter: grayscale(.85) contrast(1.1) brightness
   color: rgba(122,96,64,0.4);
 }
 .tegel-icoon .icon { width: 38px; height: 38px; }
+/* **De naam staat óp de plaat, niet in een balk ervoor.** Dit was een
+   cremekleurig vlak met een vervaging erboven: bij een korte naam las dat als
+   een lege strook onder het portret, en het week af van het Heldenboek, waar
+   een kaart zijn naam over het beeld draagt met een donkere voet eronder.
+   Zelfde kaart, zelfde gebaar. Een tegel zonder beeld houdt zijn donkere
+   letters op het perkament — zie `.no-img` hieronder. */
 .tegel-naamband {
   position: absolute; left: 0; right: 0; bottom: 0; z-index: 3;
-  padding: 26px 9px 8px;
-  background: linear-gradient(to top, rgba(250,244,230,0.97) 0%, rgba(250,244,230,0.92) 55%, rgba(250,244,230,0) 100%);
+  padding: 34px 9px 10px;
+  background: linear-gradient(to top, rgba(20,12,4,0.82) 0%, rgba(20,12,4,0.62) 48%, rgba(20,12,4,0) 100%);
   text-align: center;
+}
+.tegel:not(.no-img) .tegel-naamband .card-name {
+  color: #fff8ea; text-shadow: 0 2px 10px rgba(0,0,0,.75);
+}
+.tegel:not(.no-img) .tegel-naamband .tegel-ondertitel {
+  color: #e8dcc2; text-shadow: 0 1px 8px rgba(0,0,0,.8);
 }
 .tegel .card-name {
   font-size: 0.78rem; line-height: 1.2;
@@ -32866,6 +32878,22 @@ body.gr-slowmo .combat-overlay { filter: grayscale(.85) contrast(1.1) brightness
 .tegel-blad { position: absolute; inset: 0; z-index: 3; }
 .tegel-naamband--groot { padding: 48px 16px 52px; }
 .tegel-naamband--groot .card-name { font-size: 1.15rem; -webkit-line-clamp: 3; }
+/* De badge en de korte rijen die sinds kort op het portret staan in plaats van
+   een blad verderop. Ze liggen op de donkere voet van de plaat, dus ze lezen
+   licht — en gecentreerd, zoals de naam erboven. */
+.tegel-naamband--groot .tegel-badges { justify-content: center; margin-bottom: 6px; }
+.tegel-naamband--groot .tegel-gegevens {
+  margin-top: 8px; padding-top: 7px; gap: 2px;
+  border-top: 1px solid rgba(255,248,234,0.22);
+}
+.tegel-naamband--groot .tegel-gegeven {
+  grid-template-columns: auto auto; gap: 7px;
+  justify-content: center; font-size: 0.82rem;
+}
+.tegel:not(.no-img) .tegel-naamband--groot .tegel-gegeven dt { color: rgba(255,248,234,0.6); }
+.tegel:not(.no-img) .tegel-naamband--groot .tegel-gegeven dd {
+  color: #f2e8d2; text-shadow: 0 1px 6px rgba(0,0,0,.7);
+}
 .tegel-ondertitel {
   display: block; margin-top: 3px;
   font-family: 'IM Fell English', serif; font-style: italic; font-size: 0.86rem; color: #6a5030;
@@ -32925,7 +32953,18 @@ body.gr-slowmo .combat-overlay { filter: grayscale(.85) contrast(1.1) brightness
   border-top: 1px solid rgba(196,168,122,0.45);
   cursor: default;
 }
-.tegel-punten { display: flex; gap: 4px; flex: 1; }
+.tegel-punten { display: flex; gap: 4px; flex: 1; align-items: center; }
+/* De pijlen naast de puntjes. Ze bladeren door op het juiste puntje te
+   klikken, dus ze kunnen er nooit uit lopen. Iets smaller dan een puntje: het
+   zijn hulpjes, de puntjes zeggen wáár je bent. */
+.tegel-pijl {
+  width: 22px; height: 28px; border-radius: 5px; flex: 0 0 auto;
+  display: inline-flex; align-items: center; justify-content: center;
+  color: #8a7050; background: transparent; border: 1px solid rgba(196,168,122,0.45);
+  cursor: pointer; transition: background .15s, color .15s, border-color .15s;
+}
+.tegel-pijl .icon { width: 13px; height: 13px; }
+.tegel-pijl:hover { background: rgba(196,168,122,0.22); color: #2a1a08; border-color: rgba(196,168,122,0.8); }
 .tegel-punt, .tegel-knop {
   width: 28px; height: 28px; border-radius: 50%;
   display: inline-flex; align-items: center; justify-content: center;

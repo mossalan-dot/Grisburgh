@@ -4130,7 +4130,13 @@ const _BLAD_ICOON = { portret: 'image', gegevens: 'clipboard-list', beschrijving
 // Wat er op het gegevensblad staat, per kaartsoort. Labels zijn D&D-termen waar
 // die bestaan (Origin, Class, Alignment, Requires Attunement). Zonder rijen geen
 // blad: een locatie zonder type, gebied en betrokkenen heeft niets te melden.
-function _tegelGegevens(type, e) {
+// De gegevens van een kaartje, **in losse delen**. Ze stonden alleen op het
+// gegevensblad, en daar kwam je pas na een keer bladeren — terwijl de
+// voorkant van een opengeslagen tegel alleen de naam en de rol droeg en de
+// halve plaat leeg was. Wie wil weten wát hij voor zich heeft, ziet dat nu
+// meteen: de badge en de korte rijen staan op het portret, de lijsten (wie
+// hoort hier bij, leden) blijven op hun eigen blad.
+function _tegelGegevensDelen(type, e) {
   const d = e.data || {};
   const rijen = [];                       // [label, waarde, extra klasse]
   let lijst = [], lijstKop = '';
@@ -4180,14 +4186,38 @@ function _tegelGegevens(type, e) {
     lijstKop = type === 'locaties' ? 'Wie hoort hier bij?' : 'Leden';
   }
   const hoort = (Array.isArray(e._hoortBij) ? e._hoortBij : []).slice(0, 4);
-  if (!rijen.length && !badges.length && !hoort.length && !lijst.length) return '';
+  return { badges, rijen, lijst, lijstKop, hoort };
+}
+
+const _badgesHtml = (badges) => badges.length
+  ? `<div class="tegel-badges">${badges.map(b => `<span class="card-subtype-badge ${b.cls}">${esc(b.label)}</span>`).join('')}</div>` : '';
+const _rijenHtml = (rijen) => rijen.length
+  ? `<dl class="tegel-gegevens">${rijen.map(([k, v, cls]) => k
+      ? `<div class="tegel-gegeven"><dt>${esc(k)}</dt><dd>${esc(v)}</dd></div>`
+      : `<div class="tegel-gegeven ${cls || ''}"><dd>${esc(v)}</dd></div>`).join('')}</dl>` : '';
+
+// Wat er naast de naam op het portret past: de badge en de rijen die een
+// **label** hebben. De naamloze rij is de rol of het motto, en die staat al
+// als ondertitel — twee keer dezelfde regel onder elkaar leest als een fout.
+// Hooguit vier, anders eet de tekst de plaat op; de rest blijft op het blad.
+const _VOORKANT_RIJEN = 4;
+function _tegelVoorkant(type, e) {
+  const { badges, rijen } = _tegelGegevensDelen(type, e);
+  return { badges, rijen: rijen.filter(([k]) => k).slice(0, _VOORKANT_RIJEN) };
+}
+
+// Blijft er ná de voorkant nog iets over? Dan heeft het gegevensblad bestaan;
+// anders zou het dezelfde regels nog eens tonen.
+function _tegelGegevens(type, e) {
+  const { badges, rijen, lijst, lijstKop, hoort } = _tegelGegevensDelen(type, e);
+  const voor = _tegelVoorkant(type, e);
+  const over = rijen.filter(([k]) => k).length - voor.rijen.length;
+  if (!over && !lijst.length && !hoort.length) return '';
   const regels = (kop, items) => items.length ? `<div class="tegel-kopje">${esc(kop)}</div>
     <ul class="tegel-hoort">${items.map(r => `<li><span class="tegel-hoort-rol">${esc(r.rol || '')}</span> ${esc(r.naam || r.name || '')}</li>`).join('')}</ul>` : '';
   return `
-    ${badges.length ? `<div class="tegel-badges">${badges.map(b => `<span class="card-subtype-badge ${b.cls}">${esc(b.label)}</span>`).join('')}</div>` : ''}
-    ${rijen.length ? `<dl class="tegel-gegevens">${rijen.map(([k, v, cls]) => k
-      ? `<div class="tegel-gegeven"><dt>${esc(k)}</dt><dd>${esc(v)}</dd></div>`
-      : `<div class="tegel-gegeven ${cls || ''}"><dd>${esc(v)}</dd></div>`).join('')}</dl>` : ''}
+    ${_badgesHtml(badges)}
+    ${_rijenHtml(rijen)}
     ${regels(lijstKop, lijst)}
     ${regels(_hoortBijKop(type), hoort)}`;
 }
@@ -4320,10 +4350,10 @@ function _tegelHtml(type, e, { fav = false } = {}) {
     <span class="tegel-icoon" aria-hidden="true">${_tegelIcoon(type, e)}</span>
     ${perk || _tegelBeeld(e)}
     ${fav ? '<span class="tegel-lint" aria-hidden="true"></span>' : ''}
-    <div class="tegel-blad" data-soort="${bladen[i].soort}">${_tegelBladInhoud(e, bladen[i], rol)}</div>
+    <div class="tegel-blad" data-soort="${bladen[i].soort}">${_tegelBladInhoud(e, bladen[i], rol, type)}</div>
     <div class="tegel-voet" onclick="event.stopPropagation()">
-      <div class="tegel-punten">${bladen.map((b, j) => `<button class="tegel-punt${j === i ? ' is-aan' : ''}"
-        title="${esc(b.label)}" onclick="window._tegelNaar('${type}','${escArg(e.id)}',${j})">${icon(_BLAD_ICOON[b.soort] || 'square')}</button>`).join('')}</div>
+      <div class="tegel-punten">${window._tegelPijlHtml(-1, bladen.length)}${bladen.map((b, j) => `<button class="tegel-punt${j === i ? ' is-aan' : ''}"
+        title="${esc(b.label)}" onclick="window._tegelNaar('${type}','${escArg(e.id)}',${j})">${icon(_BLAD_ICOON[b.soort] || 'square')}</button>`).join('')}${window._tegelPijlHtml(1, bladen.length)}</div>
       ${_tegelSter(type, e, fav)}
       ${_tegelHoudingKnop(type, e)}
       ${_tegelDmKnoppen(type, e, { voet: true })}
@@ -4333,11 +4363,14 @@ function _tegelHtml(type, e, { fav = false } = {}) {
   </div>`;
 }
 
-function _tegelBladInhoud(e, blad, rol) {
+function _tegelBladInhoud(e, blad, rol, type) {
   if (blad.soort === 'portret') {
+    const voor = type ? _tegelVoorkant(type, e) : { badges: [], rijen: [] };
     return `<div class="tegel-naamband tegel-naamband--groot">
+      ${_badgesHtml(voor.badges)}
       <span class="card-name">${esc(e.name)}${e._deceased ? '<span class="card-name-dagger">†</span>' : ''}</span>
-      ${rol ? `<span class="tegel-ondertitel">${esc(rol)}</span>` : ''}</div>`;
+      ${rol ? `<span class="tegel-ondertitel">${esc(rol)}</span>` : ''}
+      ${_rijenHtml(voor.rijen)}</div>`;
   }
   return `<div class="tegel-vel">
     <div class="tegel-vel-kop">${icon(_BLAD_ICOON[blad.soort] || 'square')} ${esc(blad.label)}<span class="tegel-vel-naam">${esc(e.name)}</span>
@@ -4464,11 +4497,11 @@ window._tegelNaar = async (type, id, i) => {
   const vorige = _tegelBlad[id] || 0;
   _tegelBlad[id] = Math.max(0, Math.min(bladen.length - 1, i));
   if (_tegelBlad[id] === vorige) return;
-  await _draai(el, _tegelBlad[id] > vorige ? 1 : -1, () => {
+  await _schuif(el, _tegelBlad[id] > vorige ? 1 : -1, () => {
     const blad = el.querySelector('.tegel-blad');
     const b = bladen[_tegelBlad[id]];
     blad.dataset.soort = b.soort;
-    blad.innerHTML = _tegelBladInhoud(e, b, _tegelOndertitel(type, e));
+    blad.innerHTML = _tegelBladInhoud(e, b, _tegelOndertitel(type, e), type);
     el.querySelectorAll('.tegel-punt').forEach((p, j) => p.classList.toggle('is-aan', j === _tegelBlad[id]));
     el.setAttribute('aria-label', `${e.name}, blad ${_tegelBlad[id] + 1} van ${bladen.length}`);
   });
@@ -4533,17 +4566,47 @@ window._tegelVergroot = (type, id) => _vensterUitTegel(
   () => window._openDetail(type, id),
   () => window._currentDetailId === id);
 
-// Omdraaien: een kwartslag weg, `wissel()` zet het nieuwe blad erin, een
-// kwartslag terug. `kant` is de draairichting (1 = vooruit).
-async function _draai(el, kant, wissel) {
+// Bladeren: het blad schuift opzij, `wissel()` zet het nieuwe erin, en dat
+// komt van de andere kant binnen. `kant` is de richting (1 = vooruit).
+//
+// **Dit klapte eerst om**, een kwartslag heen en terug met de hele tegel. Dat
+// zag er aardig uit en het week af van het Heldenboek, waar je met pijltjes
+// door een kaart bladert — en bij hetzelfde gebaar hoort dezelfde beweging.
+// Een kaart die kantelt leest bovendien als "er zit iets achter", terwijl het
+// gewoon de volgende bladzijde is.
+//
+// Alleen het blad beweegt, niet de tegel: de plaat, de voetbalk en de knoppen
+// blijven staan waar ze staan. Dat is wat een kaart van een draaiende kaart
+// onderscheidt.
+async function _schuif(el, kant, wissel) {
   const rustig = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
-  if (!rustig) await el.animate([{ transform: 'perspective(1100px) rotateY(0deg)' },
-    { transform: `perspective(1100px) rotateY(${-88 * kant}deg)` }], { duration: 150, easing: 'ease-in' }).finished.catch(() => {});
+  const blad = el.querySelector('.tegel-blad') || el;
+  if (!rustig) await blad.animate([{ transform: 'none', opacity: 1 },
+    { transform: `translateX(${-14 * kant}%)`, opacity: 0 }],
+    { duration: 130, easing: 'ease-in' }).finished.catch(() => {});
   wissel();
-  if (!rustig) el.animate([{ transform: `perspective(1100px) rotateY(${88 * kant}deg)` },
-    { transform: 'perspective(1100px) rotateY(0deg)' }], { duration: 190, easing: 'ease-out' });
+  if (!rustig) {
+    const na = el.querySelector('.tegel-blad') || el;
+    na.animate([{ transform: `translateX(${14 * kant}%)`, opacity: 0 }, { transform: 'none', opacity: 1 }],
+      { duration: 200, easing: 'cubic-bezier(.2,.8,.2,1)' });
+  }
 }
-window._tegelDraai = _draai;
+window._tegelBlader = _schuif;
+
+// Een pijl bladert door op de puntjes te klikken die er al staan: dan hoeft
+// elk tabblad (archief, bestiarium, spreuken) zijn eigen `naar()` niet nog
+// eens door te geven, en kan de pijl nooit uit de pas lopen met de puntjes.
+window._tegelPijlKlik = (btn, richting) => {
+  const punten = [...(btn.closest('.tegel-punten')?.querySelectorAll('.tegel-punt') || [])];
+  if (punten.length < 2) return;
+  const nu = Math.max(0, punten.findIndex(p => p.classList.contains('is-aan')));
+  punten[(nu + richting + punten.length) % punten.length].click();
+};
+// Het balkje zelf, zodat de drie tabbladen hem niet elk apart tikken.
+window._tegelPijlHtml = (kant, aantal) => aantal < 2 ? '' :
+  `<button class="tegel-pijl" title="${kant < 0 ? 'Terug' : 'Verder'}"
+     aria-label="${kant < 0 ? 'Vorige blad' : 'Volgende blad'}"
+     onclick="window._tegelPijlKlik(this,${kant})">${icon(kant < 0 ? 'chevron-left' : 'chevron-right')}</button>`;
 window._tegelFlip = (grid, mutate, opts) => _flip(grid, mutate, opts);
 
 window._stapelKlik = async (type) => {

@@ -260,7 +260,7 @@ function _card(s) {
 // Dezelfde drie standen als de archief-tabbladen (zie TEGEL_TYPES in
 // render-campagne.js): dicht (plaat + naam), open (2×2 met bladen die je
 // omdraait) en het venster — hier het eigen spreukdetail. De beweging leent de
-// hulpjes van daar (`_tegelFlip`, `_tegelDraai`, `_tegelVensterUit`), dus er is
+// hulpjes van daar (`_tegelFlip`, `_tegelBlader`, `_tegelVensterUit`), dus er is
 // maar één soort beweging in de app. Het oude kaartje (`_card`) blijft staan
 // als terugval voor wanneer die hulpjes er nog niet zijn.
 let _openId = null;
@@ -366,8 +366,8 @@ function _tegel(s) {
     ${beeld}${niv}
     <div class="tegel-blad" data-soort="${bladen[j].soort}">${_bladInhoud(s, bladen[j])}</div>
     <div class="tegel-voet" onclick="event.stopPropagation()">
-      <div class="tegel-punten">${bladen.map((b, k) => `<button class="tegel-punt${k === j ? ' is-aan' : ''}"
-        title="${esc(b.label)}" onclick="window.spreuken.naar('${id}',${k})">${icon(_BLAD_ICOON[b.soort] || 'square')}</button>`).join('')}</div>
+      <div class="tegel-punten">${window._tegelPijlHtml(-1, bladen.length)}${bladen.map((b, k) => `<button class="tegel-punt${k === j ? ' is-aan' : ''}"
+        title="${esc(b.label)}" onclick="window.spreuken.naar('${id}',${k})">${icon(_BLAD_ICOON[b.soort] || 'square')}</button>`).join('')}${window._tegelPijlHtml(1, bladen.length)}</div>
       ${_boekKnop(s)}
       <button class="tegel-knop" title="De hele spreuk" onclick="window.spreuken.vergroot('${id}')">${icon('maximize-2')}</button>
       <button class="tegel-knop" title="Kleiner" onclick="window.spreuken.dicht()">${icon('minimize-2')}</button>
@@ -1135,7 +1135,7 @@ window.spreuken = {
       el.querySelectorAll('.tegel-punt').forEach((p, j) => p.classList.toggle('is-aan', j === _blad[index]));
       el.setAttribute('aria-label', `${s.name}, blad ${_blad[index] + 1} van ${bladen.length}`);
     };
-    if (window._tegelDraai) await window._tegelDraai(el, _blad[index] > vorige ? 1 : -1, wissel);
+    if (window._tegelBlader) await window._tegelBlader(el, _blad[index] > vorige ? 1 : -1, wissel);
     else wissel();
   },
   dicht() { if (_openId) { _openId = null; _herteken(); } },

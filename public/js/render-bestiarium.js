@@ -166,7 +166,7 @@ function _tekenKaarten() {
 // Dezelfde drie standen als de andere archief-tabbladen (zie de toelichting bij
 // TEGEL_TYPES in render-campagne.js): dicht (beeld + naam), open (2×2 met
 // bladen) en het venster — hier het statblok, op het kennisniveau van de party.
-// De beweging leent de hulpjes van daar: `_tegelFlip`, `_tegelDraai` en
+// De beweging leent de hulpjes van daar: `_tegelFlip`, `_tegelBlader` en
 // `_tegelVensterUit`.
 let _openId = null;
 const _blad = {};
@@ -249,8 +249,8 @@ function _card(m, i, dm) {
     ${beeld}
     <div class="tegel-blad" data-soort="${bladen[j].soort}">${_bladInhoud(m, bladen[j])}</div>
     <div class="tegel-voet" onclick="event.stopPropagation()">
-      <div class="tegel-punten">${bladen.map((b, k) => `<button class="tegel-punt${k === j ? ' is-aan' : ''}"
-        title="${esc(b.label)}" onclick="window.bestiarium.naar('${id}',${k})">${icon(_BLAD_ICOON[b.soort] || 'square')}</button>`).join('')}</div>
+      <div class="tegel-punten">${window._tegelPijlHtml(-1, bladen.length)}${bladen.map((b, k) => `<button class="tegel-punt${k === j ? ' is-aan' : ''}"
+        title="${esc(b.label)}" onclick="window.bestiarium.naar('${id}',${k})">${icon(_BLAD_ICOON[b.soort] || 'square')}</button>`).join('')}${window._tegelPijlHtml(1, bladen.length)}</div>
       ${dm ? _dmKnoppen(m, { voet: true }) : ''}
       <button class="tegel-knop" title="Het statblok" onclick="window.bestiarium.vergroot('${id}')">${icon('maximize-2')}</button>
       <button class="tegel-knop" title="Kleiner" onclick="window.bestiarium.dicht()">${icon('minimize-2')}</button>
@@ -316,7 +316,7 @@ window.bestiarium = {
       blad.innerHTML = _bladInhoud(m, bladen[_blad[id]]);
       el.querySelectorAll('.tegel-punt').forEach((p, j) => p.classList.toggle('is-aan', j === _blad[id]));
     };
-    if (window._tegelDraai) await window._tegelDraai(el, _blad[id] > vorige ? 1 : -1, wissel);
+    if (window._tegelBlader) await window._tegelBlader(el, _blad[id] > vorige ? 1 : -1, wissel);
     else wissel();
   },
   dicht() { if (_openId) { _openId = null; _herteken(); } },
