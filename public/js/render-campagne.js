@@ -730,9 +730,13 @@ window._houdingZet = (type, id, waarde) => {
     try {
       await api.put(`/entities/${type}/${id}/houding`, { houding: terug ? null : waarde });
       const h = _HOUDING_TABEL.get(Number(balk.dataset.nu));
+      // **Wie het betreft hoort erbij.** De melding zei alleen "Houding:
+      // welgezind", en met twintig kaartjes op het scherm is dat de helft van
+      // het antwoord — je weet niet of je op de goede hebt geklikt.
+      const wie = (entities[type] || []).find(x => x.id === id)?.name || '';
       window._showToast?.(terug
-        ? `Houding terug op standaard — ${h?.naam || ''}.`
-        : `Houding: ${h?.naam || ''}.`);
+        ? `${wie ? wie + ': h' : 'H'}ouding terug op standaard — ${h?.naam || ''}.`
+        : `${wie ? wie + ' is nu ' : 'Houding: '}${(h?.naam || '').toLowerCase()}.`);
       // Het kaartje opnieuw laten tekenen, zodat de glans meeverandert.
       renderEntitySection(type);
     } catch (err) { alert('Houding opslaan mislukt: ' + err.message); }
@@ -4201,9 +4205,16 @@ const _rijenHtml = (rijen) => rijen.length
 // als ondertitel — twee keer dezelfde regel onder elkaar leest als een fout.
 // Hooguit vier, anders eet de tekst de plaat op; de rest blijft op het blad.
 const _VOORKANT_RIJEN = 4;
-function _tegelVoorkant(type, e) {
+function _tegelVoorkant(type, e, rol = _tegelOndertitel(type, e)) {
   const { badges, rijen } = _tegelGegevensDelen(type, e);
-  return { badges, rijen: rijen.filter(([k]) => k).slice(0, _VOORKANT_RIJEN) };
+  // **Niet wat de ondertitel al zegt.** Een locatie draagt "Woud · Amberwoud"
+  // als ondertitel en heeft dáárnaast de rijen Type en Gebied met diezelfde
+  // twee woorden; op een voorwerp gebeurt het met Type en Rarity. Twee keer
+  // hetzelfde onder elkaar leest als een fout, dus wat al boven staat valt
+  // hier weg.
+  const boven = String(rol || '').toLowerCase();
+  const dubbel = (v) => boven && boven.includes(String(v || '').trim().toLowerCase());
+  return { badges, rijen: rijen.filter(([k, v]) => k && !dubbel(v)).slice(0, _VOORKANT_RIJEN) };
 }
 
 // Blijft er ná de voorkant nog iets over? Dan heeft het gegevensblad bestaan;
@@ -4214,7 +4225,7 @@ function _tegelGegevens(type, e) {
   const over = rijen.filter(([k]) => k).length - voor.rijen.length;
   if (!over && !lijst.length && !hoort.length) return '';
   const regels = (kop, items) => items.length ? `<div class="tegel-kopje">${esc(kop)}</div>
-    <ul class="tegel-hoort">${items.map(r => `<li><span class="tegel-hoort-rol">${esc(r.rol || '')}</span> ${esc(r.naam || r.name || '')}</li>`).join('')}</ul>` : '';
+    <ul class="tegel-hoort">${items.map(r => `<li><span class="tegel-hoort-rol">${esc(r.rol || '')}</span><span class="tegel-hoort-naam">${esc(r.naam || r.name || '')}</span></li>`).join('')}</ul>` : '';
   return `
     ${_badgesHtml(badges)}
     ${_rijenHtml(rijen)}
@@ -4284,14 +4295,21 @@ function _tegelHoudingKnop(type, e) {
   const h = _HOUDING_TABEL.get(Number(e._houding));
   const treden = [..._HOUDING_TABEL.values()].slice().reverse();
   return `<div class="tegel-houding">
-    <button class="tegel-knop tegel-houding-knop" title="Houding${h ? ': ' + esc(h.naam) : ''}"
+    <button class="tegel-knop tegel-houding-knop${h ? ' heeft-houding' : ''}" title="Houding${h ? ': ' + esc(h.naam) : ''}"
       style="--houding-kleur:${h?.glans?.kleur || '#c4a87a'}"
       onclick="event.stopPropagation();this.parentElement.classList.toggle('is-open')">${icon('heart')}</button>
     <div class="tegel-houding-paneel" onclick="event.stopPropagation()">
       <div class="tegel-houding-kop">Houding</div>
+      <!-- De naam klikt mee. Hij stond als dood lijstje naast de kleurtjes,
+           dus je moest precies het vlakje van vijftien pixels raken terwijl
+           het woord ernaast het duidelijkst zegt wat je kiest.
+           (Geen backticks in commentaar hierbinnen: template literal.) -->
       <div class="tegel-houding-rij">
         ${balk}
-        <ol class="tegel-houding-namen">${treden.map(t => `<li>${esc(t.naam)}</li>`).join('')}</ol>
+        <ol class="tegel-houding-namen">${treden.map(t => `<li><button type="button"
+          class="tegel-houding-naam${t.waarde === Number(e._houding) ? ' is-aan' : ''}"
+          onclick="event.stopPropagation();window._houdingZet('${escArg(type)}','${escArg(e.id)}',${t.waarde})"
+          >${esc(t.naam)}</button></li>`).join('')}</ol>
       </div>
     </div>
   </div>`;
@@ -4365,7 +4383,7 @@ function _tegelHtml(type, e, { fav = false } = {}) {
 
 function _tegelBladInhoud(e, blad, rol, type) {
   if (blad.soort === 'portret') {
-    const voor = type ? _tegelVoorkant(type, e) : { badges: [], rijen: [] };
+    const voor = type ? _tegelVoorkant(type, e, rol) : { badges: [], rijen: [] };
     return `<div class="tegel-naamband tegel-naamband--groot">
       ${_badgesHtml(voor.badges)}
       <span class="card-name">${esc(e.name)}${e._deceased ? '<span class="card-name-dagger">†</span>' : ''}</span>
@@ -4580,16 +4598,31 @@ window._tegelVergroot = (type, id) => _vensterUitTegel(
 // onderscheidt.
 async function _schuif(el, kant, wissel) {
   const rustig = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+  // **Een tekstblad vervaagt niet, het schuift.** Eerst deed het allebei, en
+  // dan schijnt de plaat eronder er halverwege doorheen: een vel perkament is
+  // niet half doorzichtig. Tijdens de beweging ligt er een dicht vel achter,
+  // zodat de strook die het blad vrijmaakt ook perkament is en geen portret.
+  //
+  // Het portretblad is juist wél de plaat — dat is een naamband over het
+  // beeld — en vervaagt dus gewoon.
+  const vel = (b) => !!b?.dataset?.soort && b.dataset.soort !== 'portret';
+  const dek = (aan) => el.classList.toggle('tegel--bladert', !!aan);
   const blad = el.querySelector('.tegel-blad') || el;
-  if (!rustig) await blad.animate([{ transform: 'none', opacity: 1 },
-    { transform: `translateX(${-14 * kant}%)`, opacity: 0 }],
-    { duration: 130, easing: 'ease-in' }).finished.catch(() => {});
+  if (!rustig) {
+    dek(vel(blad));
+    await blad.animate([{ transform: 'none', opacity: 1 },
+      { transform: `translateX(${-14 * kant}%)`, opacity: vel(blad) ? 1 : 0 }],
+      { duration: 130, easing: 'ease-in' }).finished.catch(() => {});
+  }
   wissel();
   if (!rustig) {
     const na = el.querySelector('.tegel-blad') || el;
-    na.animate([{ transform: `translateX(${14 * kant}%)`, opacity: 0 }, { transform: 'none', opacity: 1 }],
-      { duration: 200, easing: 'cubic-bezier(.2,.8,.2,1)' });
-  }
+    dek(vel(na));
+    na.animate([{ transform: `translateX(${14 * kant}%)`, opacity: vel(na) ? 1 : 0 },
+      { transform: 'none', opacity: 1 }],
+      { duration: 200, easing: 'cubic-bezier(.2,.8,.2,1)' })
+      .finished.then(() => dek(false)).catch(() => dek(false));
+  } else dek(false);
 }
 window._tegelBlader = _schuif;
 

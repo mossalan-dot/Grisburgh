@@ -1,5 +1,5 @@
 import { api, campagneUitUrl, zetCampagne } from './api.js?v=320';
-import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, renderDocumenten, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=366";
+import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, renderDocumenten, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=368";
 import { initArchief, renderLogboek, openLogboekEditor } from "./render-archief.js?v=148";
 import { renderKaart, queueFlyTo, verversPins, nieuweKaart } from './render-kaart.js?v=35';
 import { renderDungeon } from './render-dungeon.js?v=74';
@@ -4238,6 +4238,45 @@ const _sbAudio = (() => {
 let   _sbFlipping  = false;    // prevent overlapping flip animations
 
 // Glossary: D&D terms → Dutch explanation (shown as hover tooltip)
+// De achttien skills. Ze stonden niet in het lexicon, terwijl ze bij elke
+// background in de rij Skill Proficiencies staan en op elk spelersblad —
+// precies de plek waar iemand zich afvraagt waar een skill eigenlijk voor is.
+//
+// Uit `_SKILLS` hierboven, dus de lijst staat op één plek: komt er ooit een
+// skill bij, dan komt zijn uitleg vanzelf mee.
+//
+// **Hoofdlettergevoelig, als enige in dit lexicon.** Een skill heet net als
+// een gewoon woord — nature, history, medicine, performance, survival — en
+// hoofdletterloos zou "the nature of the beast" een stippellijn krijgen. In
+// regeltekst staat een skill altijd met een hoofdletter, dus dat is het
+// onderscheid. Zelfde afweging als bij de spreukenkoppeling.
+const _SKILL_TIP = {
+  acrobatics:     'balanceren, een val breken, uit een greep draaien.',
+  animalHandling: 'een dier kalmeren, zijn bedoeling lezen, een rijdier mennen.',
+  arcana:         'wat je weet van magie, spreuken, magische voorwerpen en andere werelden.',
+  athletics:      'klimmen, springen, zwemmen, worstelen.',
+  deception:      'overtuigend liegen, een rol spelen, iets verzwijgen.',
+  history:        'wat je weet van gebeurtenissen, rijken, oorlogen en oude twisten.',
+  insight:        'aanvoelen wat iemand echt bedoelt of verzwijgt.',
+  intimidation:   'iets gedaan krijgen met dreiging — openlijk of bedekt.',
+  investigation:  'aanwijzingen lezen en er een gevolgtrekking uit maken.',
+  medicine:       'een ziekte herkennen, een wond verzorgen, een stervende stabiliseren.',
+  nature:         'wat je weet van landschap, planten, dieren en het weer.',
+  perception:     'opmerken wat er is — zien, horen, ruiken.',
+  performance:    'een publiek boeien met spel, zang, dans of verhaal.',
+  persuasion:     'iemand voor je winnen met tact, goede wil of een goed argument.',
+  religion:       'wat je weet van goden, riten, heilige tekens en cults.',
+  sleightOfHand:  'handigheid met je vingers: zakkenrollen, iets wegmoffelen, vals spelen.',
+  stealth:        'je verbergen en je ongemerkt verplaatsen.',
+  survival:       'sporen volgen, de weg vinden, jagen, het weer voorspellen.',
+};
+const _AB_VOLUIT = { str: 'Strength', dex: 'Dexterity', con: 'Constitution',
+                     int: 'Intelligence', wis: 'Wisdom', cha: 'Charisma' };
+const _SB_SKILL_GLOSSARY = _SKILLS.map(s => ({
+  t: new RegExp(`\\b${s.label.replace(/ /g, '\\s')}\\b`, 'g'),
+  tip: `${s.label} (${_AB_VOLUIT[s.ab]}): ${_SKILL_TIP[s.key]}`,
+}));
+
 const _SB_GLOSSARY = [
   // Casting time / actions — longest phrases first to avoid partial matches
   { t: /\bBonus Action\b/gi,    tip: 'Bonus Action: a special action you can take on your turn if a feature allows it. Only one per turn.' },
@@ -4374,6 +4413,10 @@ const _SB_GLOSSARY = [
   { t: /\bArcane Recovery\b/gi, tip: 'Arcane Recovery: once per day on a Short Rest, recover expended Spell Slots with a combined level up to half your Wizard level.' },
   { t: /\bHunter's Mark\b/gi,   tip: 'Hunter\'s Mark: a spell marking a target for bonus damage on your weapon hits; moves to a new target when the original drops.' },
 ];
+
+// De skills achteraan in dezelfde lijst, zodat ze dezelfde behandeling krijgen
+// als de rest: één uitleg per blok, en niet in een kop of een label.
+_SB_GLOSSARY.push(..._SB_SKILL_GLOSSARY);
 
 // Maak alle termen meervoud-tolerant: een afsluitende \b wordt s?\b zodat
 // "Spell Slots", "Cantrips", "Saving Throws" enz. ook matchen.

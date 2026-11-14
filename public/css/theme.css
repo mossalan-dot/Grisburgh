@@ -32952,8 +32952,22 @@ body.gr-slowmo .combat-overlay { filter: grayscale(.85) contrast(1.1) brightness
   margin: 12px 0 4px; font-family: 'Cinzel', serif; font-size: 0.66rem;
   letter-spacing: 0.06em; color: #7a6040; text-transform: uppercase;
 }
-.tegel-hoort { list-style: none; margin: 0; padding: 0; }
-.tegel-hoort li { margin: 2px 0; }
+/* Wie hier bij hoort: de rol links, de naam rechts, allebei in hun eigen
+   kolom. Ze liepen achter elkaar door op één regel ("Lobbyist voor
+   milieuwetgeving Camma Chosach"), en dan is niet te zien waar de rol ophoudt
+   en de naam begint — zeker niet als de rol zelf uit vier woorden bestaat.
+   De kolom is zo breed als de langste rol en niet breder. */
+/* **Het raster ligt op de lijst, niet op de regel.** Eerst was elke `li` zijn
+   eigen raster, en dan lijnen de kolommen alleen binnen één regel uit — niet
+   over de regels heen, wat juist de bedoeling was. `display: contents` zet de
+   rol en de naam rechtstreeks in het raster van de ul. */
+.tegel-hoort {
+  list-style: none; margin: 0; padding: 0;
+  display: grid; grid-template-columns: minmax(0, auto) 1fr; gap: 3px 10px;
+  align-items: baseline;
+}
+.tegel-hoort li { display: contents; }
+.tegel-hoort-naam { min-width: 0; }
 .tegel-hoort-rol { font-style: italic; color: #6a5030; }
 .tegel-regels { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
 .tegel-regel {
@@ -32977,14 +32991,17 @@ body.gr-slowmo .combat-overlay { filter: grayscale(.85) contrast(1.1) brightness
 /* De pijlen naast de puntjes. Ze bladeren door op het juiste puntje te
    klikken, dus ze kunnen er nooit uit lopen. Iets smaller dan een puntje: het
    zijn hulpjes, de puntjes zeggen wáár je bent. */
+/* Dezelfde vorm als de puntjes ernaast: rond, geen rand. Ze stonden eerst in
+   een afgerond vierkantje en waren daarmee de enige derde vorm in een balk
+   die al twee kende. */
 .tegel-pijl {
-  width: 22px; height: 28px; border-radius: 5px; flex: 0 0 auto;
+  width: 28px; height: 28px; border-radius: 50%; flex: 0 0 auto;
   display: inline-flex; align-items: center; justify-content: center;
-  color: #8a7050; background: transparent; border: 1px solid rgba(196,168,122,0.45);
-  cursor: pointer; transition: background .15s, color .15s, border-color .15s;
+  color: #7a6040; background: transparent; border: 1px solid transparent;
+  cursor: pointer; transition: background .15s, color .15s;
 }
 .tegel-pijl .icon { width: 13px; height: 13px; }
-.tegel-pijl:hover { background: rgba(196,168,122,0.22); color: #2a1a08; border-color: rgba(196,168,122,0.8); }
+.tegel-pijl:hover { background: rgba(196,168,122,0.22); color: #2a1a08; }
 .tegel-punt, .tegel-knop {
   width: 28px; height: 28px; border-radius: 50%;
   display: inline-flex; align-items: center; justify-content: center;
@@ -33052,7 +33069,11 @@ body.gr-slowmo .combat-overlay { filter: grayscale(.85) contrast(1.1) brightness
 .tegel-voet .tegel-dm button { background: transparent; color: #7a6040; width: 28px; height: 28px; border-radius: 50%; }
 .tegel-voet .tegel-dm button:hover { background: rgba(196,168,122,0.22); color: #2a1a08; }
 .tegel-voet .tegel-dm .tegel-dm-weg:hover { background: rgba(140,30,30,0.15); color: #8c2020; }
-.tegel-voet .tegel-ster { background: transparent; border-color: rgba(196,168,122,0.55); color: #7a6040; width: 28px; height: 28px; }
+/* Het hartje in de voetbalk hoort bij de iconen ernaast, niet bij de twee
+   vensterknoppen rechts: geen ring eromheen. Dat hij aanstaat zegt zijn kleur
+   al, en dat is een duidelijker signaal dan een cirkeltje. */
+.tegel-voet .tegel-ster { background: transparent; border-color: transparent; color: #7a6040; width: 28px; height: 28px; }
+.tegel-voet .tegel-ster:hover { background: rgba(196,168,122,0.22); color: #2a1a08; }
 .tegel-voet .tegel-ster.is-aan { color: #b32f2a; }
 @media (max-width: 520px) {
   .tegel.tegel--open { aspect-ratio: 4 / 5; }
@@ -33074,7 +33095,26 @@ body.gr-slowmo .combat-overlay { filter: grayscale(.85) contrast(1.1) brightness
 
 /* De houding in de voetbalk: knop met een paneeltje erboven. */
 .tegel-houding { position: relative; }
+/* Het hartje droeg zijn houdingkleur alleen in de lijn, en op dertien pixels
+   is dat nauwelijks te zien — je moest hem openklappen om te weten waar hij
+   op stond. Nu is het vlak gevuld. */
 .tegel-houding-knop .icon { color: var(--houding-kleur); }
+.tegel-houding-knop.heeft-houding .icon { fill: var(--houding-kleur); }
+/* De naam naast het kleurtje klikt mee. */
+.tegel-houding-naam {
+  background: none; border: 0; padding: 1px 4px; width: 100%; text-align: left;
+  font: inherit; color: inherit; cursor: pointer; border-radius: 4px;
+}
+.tegel-houding-naam:hover { background: rgba(196,168,122,0.25); }
+.tegel-houding-naam.is-aan { font-weight: 700; }
+
+/* Tijdens het bladeren ligt er een dicht vel achter het blad: anders schijnt
+   de plaat erdoorheen op het moment dat het oude blad opzij schuift. Onder het
+   blad (z-index 3), boven de afbeelding. */
+.tegel--bladert::after {
+  content: ''; position: absolute; inset: 0; z-index: 2; pointer-events: none;
+  background: linear-gradient(#fbf6ea, #f3e7ca);
+}
 .tegel-houding-paneel {
   display: none;
   position: absolute; bottom: calc(100% + 10px); left: 50%; transform: translateX(-50%);
