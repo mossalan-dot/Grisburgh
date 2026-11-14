@@ -1,4 +1,4 @@
-import { api, huidigeCampagne } from './api.js?v=320';
+import { api, huidigeCampagne } from './api.js?v=321';
 import { init as canvasInit, update as canvasUpdate, stop as canvasStop, acGetal } from './combat-canvas.js?v=41';
 import { renderStatblock } from './render-statblock.js?v=10';
 
@@ -2909,7 +2909,7 @@ async function _ladeToggle() {
   _ladeIdx = _bwIdx >= 0 ? _bwIdx : Math.min(_ladePlekLees(), Math.max(0, _ladeSecties.length - 1));
   // De akte-module levert de renderer én de knoppen; die moet weten welke akte
   // er speelt, anders belandt een getoond beeld in de sessielog van niemand.
-  const mod = await import('./akte-schrijven.js?v=40');
+  const mod = await import('./akte-schrijven.js?v=41');
   mod.zetAkte(_rbChapter, _ladeTekst);
   window._akteRegieRender = mod.regieNaarHtml;
   let lade = document.getElementById('regie-lade');
@@ -2935,7 +2935,7 @@ window._ladeHerlaad = async () => {
     _ladeTekst = regie?.tekst || '';
     _ladeSecties = _splitsSecties(_ladeTekst);
     _ladeIdx = Math.min(_ladeIdx, Math.max(0, _ladeSecties.length - 1));
-    const mod = await import('./akte-schrijven.js?v=40');
+    const mod = await import('./akte-schrijven.js?v=41');
     mod.zetAkte(_rbChapter, _ladeTekst);
     _ladeRender();
   } catch { /* de lade blijft staan zoals hij stond */ }
@@ -6104,6 +6104,35 @@ window._instSpreukbeeldenStand = async () => {
       : `Beeld bij ${st.beschikbaar} spells overnemen${mb}`;
     rij.hidden = st.hier >= st.beschikbaar;
   } catch { rij.hidden = true; }
+};
+
+// Hetzelfde als hierboven, maar voor het Heldenboek. Daar hangt het beeld aan
+// een **verwijzing** (`meta.heldenboek` en de `img` op een feature-regel) en
+// niet aan een bestandsnaam, dus de route schrijft die verwijzingen mee — zie
+// `/bron/heldenboekbeelden`. Hier is het verschil alleen de knop.
+window._instHbBeeldenStand = async () => {
+  const rij = document.getElementById('inst-hbbeelden');
+  if (!rij) return;
+  try {
+    const st = await api.heldenboekbeeldenStand();
+    if (!st || st.eigen || !st.beschikbaar) { rij.hidden = true; return; }
+    const lbl = document.getElementById('inst-hb-label');
+    const mb = st.bytes ? ` (~${(st.bytes / 1048576).toFixed(0)} MB)` : '';
+    if (lbl) lbl.textContent = st.hier
+      ? `Nog ${Math.max(0, st.beschikbaar - st.hier)} afbeeldingen in het Heldenboek ophalen${mb}`
+      : `Beeld bij ${st.beschikbaar} kaartjes in het Heldenboek overnemen${mb}`;
+    rij.hidden = st.hier >= st.beschikbaar;
+  } catch { rij.hidden = true; }
+};
+
+window._instHbBeelden = async () => {
+  try {
+    const r = await api.heldenboekbeeldenHalen();
+    const erbij = [r.kaarten ? `${r.kaarten} kaartjes` : '', r.features ? `${r.features} features` : '']
+      .filter(Boolean).join(' en ');
+    window._showToast?.(`${r.gekopieerd} afbeeldingen overgenomen${erbij ? `, bij ${erbij}` : ''}.`);
+    await window._instHbBeeldenStand();
+  } catch (e) { alert('Ophalen mislukt: ' + e.message); }
 };
 
 window._instSpreukbeelden = async () => {
@@ -13412,6 +13441,10 @@ async function _renderInstellingen() {
       <div class="dm-form-row" id="inst-spreukbeelden" hidden>
         <button class="dm-btn dm-btn-ghost" onclick="window._instSpreukbeelden()">${icon('image')}
           <span id="inst-sb-label">Beeld bij je spells overnemen</span></button>
+      </div>
+      <div class="dm-form-row" id="inst-hbbeelden" hidden>
+        <button class="dm-btn dm-btn-ghost" onclick="window._instHbBeelden()">${icon('image')}
+          <span id="inst-hb-label">Beeld in het Heldenboek overnemen</span></button>
       </div>`, window._helpBtn?.('inst_campagne') ?? '')}
 
     <!-- Namen voor valuta -->
@@ -13792,6 +13825,7 @@ async function _renderInstellingen() {
   // De knop voor de spreukafbeeldingen weet pas of hij nodig is als hij de
   // stand heeft opgehaald; tot dan staat hij verborgen.
   window._instSpreukbeeldenStand?.();
+  window._instHbBeeldenStand?.();
   _instHeldenboekVullen();
   window._instOefenStand?.();
 

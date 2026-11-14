@@ -224,6 +224,8 @@ export const api = {
   oefenmateriaalWeg:  ()  => request('/wizard/oefenen', { method: 'DELETE' }),
   spreukbeeldenStand: ()  => request('/bron/spreukbeelden'),
   spreukbeeldenHalen: ()  => request('/bron/spreukbeelden', { method: 'POST' }),
+  heldenboekbeeldenStand: () => request('/bron/heldenboekbeelden'),
+  heldenboekbeeldenHalen: () => request('/bron/heldenboekbeelden', { method: 'POST' }),
   saveHeldenboek: (data) => request('/meta/heldenboek', { method: 'PUT', body: JSON.stringify(data) }),
   // Welke classes en subclasses spelers te zien krijgen. We bewaren wat er
   // **uit** staat, zodat nieuw materiaal vanzelf zichtbaar is.

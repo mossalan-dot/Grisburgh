@@ -1,4 +1,4 @@
-import { api } from './api.js?v=320';
+import { api } from './api.js?v=321';
 import { renderStatblock } from './render-statblock.js?v=10';
 
 const icon = (...a) => window.icon(...a);
@@ -525,8 +525,9 @@ const SCHEMA = {
   organisaties: {
     fields: [
       { key: 'orgType', label: 'Type', type: 'select', optionGroups: ORG_TYPE_GROEPEN },
-      { key: 'icoon', label: 'Teken', type: 'icoon',
-        hint: 'Het teken van deze organisatie. Laat je het leeg, dan volgt het haar type. Hangt er een factie aan dit kaartje, dan is dit ook haar embleem.' },
+      // Wat een leeg teken doet en dat een factie hem overneemt staat in het
+      // boekje (`hulp_bewerk_organisaties_info`), niet onder het veld.
+      { key: 'icoon', label: 'Teken', type: 'icoon' },
       { key: 'motto', label: 'Motto', type: 'text' },
       // Zelfde koppelingen als bij een locatie: waar ze zitten en wie erbij hoort.
       { key: 'wijk', label: 'Gebied', type: 'entiteit', doel: ['locaties'],

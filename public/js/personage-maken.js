@@ -17,7 +17,7 @@
 // rechts één keuze per scherm — en tot slot de onthulling met het lakzegel.
 // Eén klikhandler op de hele overlay (`data-actie`), zodat een naam met een
 // apostrof ("Thieves' Tools") nergens in een onclick-string hoeft te passen.
-import { api, huidigeCampagne } from './api.js?v=320';
+import { api, huidigeCampagne } from './api.js?v=321';
 
 const esc = s => window.app?.esc?.(s) ?? String(s ?? '')
   .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');

@@ -18,7 +18,7 @@
 // Hij blokkeert nooit. Overslaan mag bij elke stap; wat je overslaat vind je
 // terug bij Instellingen, en dat staat er ook bij.
 
-import { api } from './api.js?v=320';
+import { api } from './api.js?v=321';
 
 // Hoe de groepen uit `lib/modules.js` in beeld heten.
 const _GROEPNAAM = { wereld: 'Je wereld', spel: 'Het spel', sfeer: 'Sfeer', dienst: 'Diensten', overig: 'Overig' };
@@ -233,7 +233,7 @@ const STAPPEN = [
   },
   {
     id: 'beelden',
-    titel: 'Beeld bij je spells',
+    titel: 'Beeld meenemen',
     lead: '',
     // Alleen tonen als er iets te halen valt: in de beheercampagne zelf, of als
     // er geen bronbeelden zijn, is deze stap een loze vraag.
@@ -241,21 +241,33 @@ const STAPPEN = [
     // dus vóórdat welke `voor()` dan ook gedraaid heeft. Data die hier nodig is
     // moet bij het openen al binnen zijn (zie `_open`) — anders staat de stap
     // op "niet beschikbaar" en komt hij nooit aan de beurt om zichzelf te laden.
-    beschikbaar() { return !!(W.beelden?.beschikbaar > 0 && !W.beelden?.eigen); },
+    beschikbaar() {
+      return !!((W.beelden?.beschikbaar > 0 && !W.beelden?.eigen)
+             || (W.hbBeelden?.beschikbaar > 0 && !W.hbBeelden?.eigen));
+    },
     html() {
-      const b = W.beelden || {};
-      const mb = b.bytes ? (b.bytes / 1048576).toFixed(0) : '?';
-      return `
-        <p class="wz-lead">Er liggen <strong>${b.beschikbaar} afbeeldingen bij spells</strong> klaar, samen ongeveer ${mb} MB.</p>
+      const mb = (b) => b?.bytes ? `${(b.bytes / 1048576).toFixed(0)} MB` : '';
+      const vink = (id, b, wat) => (b?.beschikbaar > 0 && !b.eigen) ? `
         <label class="wz-vink wz-vink--groot">
-          <input type="checkbox" id="wz-beelden" checked>
-          <span>Neem ze over</span>
-        </label>`;
+          <input type="checkbox" id="${id}" checked>
+          <span>${b.beschikbaar} ${wat}${mb(b) ? ` · ${mb(b)}` : ''}</span>
+        </label>` : '';
+      return `
+        <p class="wz-lead">Er ligt beeld klaar dat je mag overnemen. Eigen werk, geen uitgeverijmateriaal.</p>
+        ${vink('wz-beelden',   W.beelden,   'afbeeldingen bij spells')}
+        ${vink('wz-hbbeelden', W.hbBeelden, 'afbeeldingen in het Heldenboek')}`;
     },
     async bewaar() {
-      if (!document.getElementById('wz-beelden')?.checked) return;
-      const r = await api.spreukbeeldenHalen();
-      if (r?.gekopieerd) window._showToast?.(`${r.gekopieerd} afbeeldingen overgenomen.`);
+      const stukken = [];
+      if (document.getElementById('wz-beelden')?.checked) {
+        const r = await api.spreukbeeldenHalen();
+        if (r?.gekopieerd) stukken.push(`${r.gekopieerd} bij spells`);
+      }
+      if (document.getElementById('wz-hbbeelden')?.checked) {
+        const r = await api.heldenboekbeeldenHalen();
+        if (r?.gekopieerd) stukken.push(`${r.gekopieerd} in het Heldenboek`);
+      }
+      if (stukken.length) window._showToast?.(`Overgenomen: ${stukken.join(' en ')}.`);
     },
   },
   {
@@ -428,6 +440,7 @@ async function _open(opnieuw = false) {
   // wordt. Mislukt het, dan valt die stap gewoon weg — beter dan een wizard die
   // blijft hangen op een vraag die hij niet kan stellen.
   try { W.beelden = await api.spreukbeeldenStand(); } catch { W.beelden = null; }
+  try { W.hbBeelden = await api.heldenboekbeeldenStand(); } catch { W.hbBeelden = null; }
   const ov = document.createElement('div');
   ov.id = 'wz-overlay';
   ov.className = 'wz-overlay';

@@ -14,8 +14,8 @@
  * zelf schreef, dan de SRD, en anders een verwijzing naar buiten.
  */
 
-import { api } from './api.js?v=320';
-import { naslagBron } from './render-progressie.js?v=67';
+import { api } from './api.js?v=321';
+import { naslagBron } from './render-progressie.js?v=68';
 
 const esc  = s => window.app?.esc?.(s) ?? String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 // In een inline handler (`onclick="f('…')"`) decodeert de browser eerst het

@@ -1,28 +1,28 @@
-import { api, campagneUitUrl, zetCampagne } from './api.js?v=320';
-import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, renderDocumenten, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=378";
-import { initArchief, renderLogboek, openLogboekEditor } from "./render-archief.js?v=149";
-import { renderKaart, queueFlyTo, verversPins, nieuweKaart } from './render-kaart.js?v=35';
-import { renderDungeon } from './render-dungeon.js?v=75';
-import { renderRelatiemap } from './render-relatiemap.js?v=38';
-import { renderProgressie, levelupFeatures } from './render-progressie.js?v=67';
-import { renderBestiarium } from './render-bestiarium.js?v=41';
-import { renderSpreuken } from './render-spreuken.js?v=56';
+import { api, campagneUitUrl, zetCampagne } from './api.js?v=321';
+import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, renderDocumenten, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=379";
+import { initArchief, renderLogboek, openLogboekEditor } from "./render-archief.js?v=150";
+import { renderKaart, queueFlyTo, verversPins, nieuweKaart } from './render-kaart.js?v=36';
+import { renderDungeon } from './render-dungeon.js?v=76';
+import { renderRelatiemap } from './render-relatiemap.js?v=39';
+import { renderProgressie, levelupFeatures } from './render-progressie.js?v=68';
+import { renderBestiarium } from './render-bestiarium.js?v=42';
+import { renderSpreuken } from './render-spreuken.js?v=57';
 import './render-handleiding.js?v=2';
 import './render-melding.js?v=4';
-import { renderVaardigheden, zoekVaardigheden, heldenboekTekst } from './render-vaardigheden.js?v=161';
+import { renderVaardigheden, zoekVaardigheden, heldenboekTekst } from './render-vaardigheden.js?v=162';
 import { renderStatblock } from './render-statblock.js?v=10';
-import { initSocket } from "./socket-client.js?v=100";
-import { initDmPanel } from "./dm-panel.js?v=423";
+import { initSocket } from "./socket-client.js?v=101";
+import { initDmPanel } from "./dm-panel.js?v=424";
 import { COND_INFO, COND_LABEL, COND_MET_PLAATJE, COND_ICON } from './conditions.js?v=4';
-import './media-picker.js?v=14';
-import './wizard.js?v=11';
+import './media-picker.js?v=15';
+import './wizard.js?v=12';
 import './tafels.js?v=2';
-import './terugblik.js?v=3';
-import './rage.js?v=4';
-import './klassekracht.js?v=6';
-import './bastion.js?v=1';
-import './stemronde.js?v=2';
-import './gevecht-regie.js?v=3';
+import './terugblik.js?v=4';
+import './rage.js?v=5';
+import './klassekracht.js?v=7';
+import './bastion.js?v=2';
+import './stemronde.js?v=3';
+import './gevecht-regie.js?v=4';
 
 // ── Icon helper ──
 // Renders an inline SVG <use> reference from /img/icons.svg.
@@ -1653,7 +1653,7 @@ async function _landingNieuwTegel() {
   if (!host || !_groepsWachtwoord || document.getElementById('landing-nieuw')) return;
   let stand = null;
   try {
-    await import('./personage-maken.js?v=11');
+    await import('./personage-maken.js?v=12');
     stand = await window.personageMaken.stand();
   } catch { return; }
   if (stand?.instellingen && stand.instellingen.aan === false) return;
@@ -1675,7 +1675,7 @@ async function _landingNieuwTegel() {
 
 async function _landingNieuw() {
   try {
-    await import('./personage-maken.js?v=11');
+    await import('./personage-maken.js?v=12');
     const stand = await window.personageMaken.stand();
     // Ook als hij al bij de DM ligt: dan zie je dat, en kun je hem nog
     // terughalen om iets te veranderen.
@@ -3724,7 +3724,7 @@ function _kaartCard(type, m, dm, verdiepingen = null) {
 // eerste bestaande kaart: je drukte op + en keek naar Dreghaven.
 window._kaartNieuw = async function (type) {
   if (type === 'wereld') return nieuweKaart();
-  const { nieuweDungeon } = await import('./render-dungeon.js?v=75');
+  const { nieuweDungeon } = await import('./render-dungeon.js?v=76');
   nieuweDungeon();
 };
 
@@ -15365,7 +15365,7 @@ const HELP_CONFIG = {
     { titel: 'Welke onderdelen je krijgt', tekst: 'De beheerder bepaalt wat er voor je campagne **vrij** is — archief, aktes, tempel, facties. Binnen die grens kies je zelf wat je gebruikt: in de wizard en later bij *Instellingen → Campagne*. Wat de beheerder dichtzette, zie je niet. Mis je iets, vraag erom.', afbeelding: null },
     { titel: 'Valuta', tekst: 'De verhouding ligt vast zoals in het boek: 1 gold = 10 silver = 100 copper. Alleen hoe ze bij jou héten kies je zelf — Florinde, Knaker, Centeling, of gewoon Gold Piece.\n\n**Electrum en platinum** hebben in de beurs geen eigen plek: de app rekent ze om bij het invoeren (1 EP = 5 SP, 1 PP = 10 GP). Een *vondst* noemt ze wél bij naam — "waaronder 3 Lion d\'or" — en die naam vul je hier in. Laat je het leeg, dan staat er niets extra\'s bij.', afbeelding: null },
     { titel: 'Wat je spelers in een gevecht zien', tekst: 'Drie standen, van weinig naar veel. **Minimale informatie**: je ziet of hij nog staat, verder niets. **Omschrijvingen**: ongedeerd, geschramd, gehavend, zwaar gewond — je spelers voelen het verloop zonder te rekenen; dat is de standaard. **Exacte getallen**: de HP op elk token, handig als je open speelt.\n\nWat een party in het **bestiarium** ontdekt heeft, wint hier altijd van: verdiende kennis gaat niet verloren door een instelling.', afbeelding: null },
-    { titel: 'Beeld bij je spells', tekst: 'Wat je zelf al hebt neergezet blijft staan; dit vult alleen aan. Je kunt ze later alsnog halen bij *Instellingen → Campagne*, en een beeld dat niet bij jouw wereld past vervang je per spell.\n\nHet is eigen beeld en geen uitgeverijmateriaal, dus delen mag.', afbeelding: null },
+    { titel: 'Beeld meenemen', tekst: 'Twee stapels: de platen bij de **spells**, en die in het **Heldenboek** (bij een class, een subclass, een species, een background en een enkele feature). Het is eigen beeld en geen uitgeverijmateriaal, dus delen mag.\n\nWat je zelf al hebt neergezet blijft staan; dit vult alleen aan, en twee keer drukken verandert niets. Je kunt ze later alsnog halen bij *Instellingen → Campagne*, en een plaat die niet bij jouw wereld past vervang je per stuk.', afbeelding: null },
     { titel: 'Oefenmateriaal', tekst: 'Een lege campagne is eerlijk, maar je kunt er nergens op klikken — en dan zie je niet wat de app doet. Het oefenmateriaal is een herberg met een waard die een geheim heeft, een smid die inkoopt, iemand die te lang bij de deur zit, en een sleutel zonder label: genoeg om zichtbaarheid, geheimen, de winkel en de boedel uit te proberen.\n\nAlles heet overal **oefen_…**, dus je gooit het in één keer weg bij *Instellingen → Campagne* zodra je het niet meer nodig hebt. Het staat los van je eigen kaartjes.', afbeelding: null },
     { titel: 'Waar je verder gaat', tekst: 'Alles uit de wizard staat bij **Instellingen**, en de namen van je diensten bij **Diensten**. Onderdelen aan- of uitzetten kan daar ook.\n\nWat ik zou doen voor je eerste sessie: een *locatie* aanmaken waar je begint, er een *personage* bij zetten dat ze ontmoeten, en dat kaartje zichtbaar maken voor je party.', afbeelding: null },
     { titel: 'Sluiten', tekst: 'Het kruisje rechtsboven (of Escape) legt de wizard weg. Hij komt dan niet meer vanzelf terug; doorlopen kan altijd nog bij *Instellingen → Opstartwizard doorlopen*.', afbeelding: null },
@@ -15978,6 +15978,7 @@ const HELP_CONFIG = {
   hulp_bewerk_organisaties_info: () => ({ titel: 'Een organisatie', stappen: [
     { titel: 'Type en motto', tekst: 'Gilden, ordes, facties en bendes. Het **type** en het **motto** komen op het kaartje te staan; de beschrijving vertelt waar ze voor staan.', afbeelding: null },
     { titel: 'Gebied en leden', tekst: 'Bij **Gebied** koppel je waar ze zitten. Bij **Wie hoort hier bij?** zet je de leider en de leden neer, met per regel hun rang of rol — personages én andere organisaties. Die regels verschijnen ook op hun eigen kaartjes.', afbeelding: null },
+    { titel: 'Het teken', tekst: 'Het **teken** is het merk van deze organisatie: het staat op haar kaartje en op de speld op de kaart. Laat je het leeg, dan volgt het vanzelf haar *type* — een gilde krijgt een ander teken dan een bende.\n\nHangt er een **factie** aan dit kaartje, dan is dit meteen haar embleem; je hoeft daar dus niets apart in te stellen.', afbeelding: null },
     { titel: 'Factie', tekst: 'Onderaan koppel je dit kaartje aan een **factie** uit het Facties-paneel. Dat is dezelfde koppeling die daar staat, dus je kunt hem van twee kanten leggen; renown, rangen en boons blijven in dat paneel.', afbeelding: null },
   ] }),
 

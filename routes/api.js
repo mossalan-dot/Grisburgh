@@ -11664,6 +11664,157 @@ router.post('/bron/spreukbeelden', requireDM, (req, res) => {
   res.json({ gekopieerd, overgeslagen });
 });
 
+// ── Heldenboek-beelden meeleveren ──────────────────────────────────────────
+// Dezelfde afweging als bij de spreuken, maar met een verschil dat ertoe doet:
+// een spreukbeeld hangt aan een bestandsnaam (`spell-img-<index>`), en een
+// Heldenboek-beeld aan een **verwijzing**. De plaat bij Barbarian staat in
+// `meta.heldenboek.klassen['Barbarian']` en wijst naar een willekeurig
+// bestands-id uit de mediabibliotheek; de plaat bij een feat staat als `img`
+// op zijn regel in `progression.json`. Kopiëren we alleen de bestanden, dan
+// heeft de ontvangende campagne 375 platen die nergens aan hangen.
+//
+// Daarom loopt dit over de verwijzingen en niet over de map: we verzamelen
+// welke ids er genoemd worden, kopiëren precies díé, en schrijven de
+// verwijzingen mee.
+const _HB_BAKKEN = ['beelden', 'klassen', 'subclassen', 'species', 'varianten', 'backgrounds'];
+
+// Elke regel van een progressie met een sleutel die hem uniek maakt. Op naam
+// alleen kan niet: Bonus Proficiency bestaat bij vier Cleric-domeinen, en dan
+// krijgt de verkeerde de plaat van de andere.
+function* _progRegelsMetSleutel(prog) {
+  for (const [c, d] of Object.entries(prog?.classes || {})) {
+    for (const arr of Object.values(d?.levels || {}))
+      for (const r of (arr || [])) if (r?.name) yield [`class|${c}||${r.name}`, r];
+    for (const [sub, sd] of Object.entries(d?.subclasses || {}))
+      for (const arr of Object.values(sd?.levels || {}))
+        for (const r of (arr || [])) if (r?.name) yield [`subclass|${c}|${sub}|${r.name}`, r];
+  }
+  for (const [v, d] of Object.entries(prog?.species || {})) {
+    for (const arr of Object.values(d?.levels || {}))
+      for (const r of (arr || [])) if (r?.name) yield [`species|${v}||${r.name}`, r];
+    for (const [va, vd] of Object.entries(d?.varianten || {}))
+      for (const arr of Object.values(vd?.levels || {}))
+        for (const r of (arr || [])) if (r?.name) yield [`variant|${v}|${va}|${r.name}`, r];
+  }
+  for (const [b, d] of Object.entries(prog?.backgrounds || {}))
+    for (const arr of Object.values(d?.levels || {}))
+      for (const r of (arr || [])) if (r?.name) yield [`background|${b}||${r.name}`, r];
+  for (const r of (prog?.feats?.general || [])) if (r?.name) yield [`feat|||${r.name}`, r];
+  for (const r of (prog?.feats?.epic || []))    if (r?.name) yield [`boon|||${r.name}`, r];
+}
+
+// Een beeld in `meta.heldenboek` is een kaal id of `{id, focus}` — allebei
+// komen voor, en de oude vorm blijft gelezen worden.
+const _hbId = (w) => (typeof w === 'string' ? w : (w?.id || '')) || '';
+
+function _heldenboekBeeldenVan(campagne) {
+  return storage.runInCampaign(campagne, () => {
+    const meta = storage.readJSON('meta.json') || {};
+    const prog = storage.readJSON('progression.json') || {};
+    const kaarten = {};
+    const ids = new Set();
+    for (const bak of _HB_BAKKEN) {
+      const b = meta.heldenboek?.[bak];
+      if (!b || typeof b !== 'object') continue;
+      kaarten[bak] = b;
+      for (const w of Object.values(b)) { const id = _hbId(w); if (id) ids.add(id); }
+    }
+    const regels = new Map();
+    for (const [sleutel, r] of _progRegelsMetSleutel(prog)) {
+      if (!r.img) continue;
+      regels.set(sleutel, { img: r.img, imgFocus: r.imgFocus || '' });
+      ids.add(r.img);
+    }
+    return { kaarten, regels, ids };
+  });
+}
+
+// Welk bestand hoort bij een id? De map bewaart `<id>.<ext>`, en de ext
+// verschilt (webp sinds de omzetting, daarvoor png en jpg).
+function _bestandsIndex(dir) {
+  const index = new Map();
+  if (!fs.existsSync(dir)) return index;
+  for (const f of fs.readdirSync(dir)) {
+    const punt = f.lastIndexOf('.');
+    index.set(punt > 0 ? f.slice(0, punt) : f, f);
+  }
+  return index;
+}
+
+router.get('/bron/heldenboekbeelden', requireDM, (req, res) => {
+  const hier = storage.huidigeCampagne();
+  if (hier === config.beheerCampagne) return res.json({ beschikbaar: 0, hier: 0, eigen: true });
+  const bron = _heldenboekBeeldenVan(config.beheerCampagne);
+  const bronDir = path.join(storage.CAMPAIGNS_DIR, config.beheerCampagne, 'files');
+  const bronIndex = _bestandsIndex(bronDir);
+  let bytes = 0, beschikbaar = 0;
+  for (const id of bron.ids) {
+    const f = bronIndex.get(id);
+    if (!f) continue;                       // een verwijzing naar een bestand dat weg is
+    beschikbaar++;
+    try { bytes += fs.statSync(path.join(bronDir, f)).size; } catch { /* dan telt hij niet mee */ }
+  }
+  const eigen = _heldenboekBeeldenVan(hier);
+  res.json({ beschikbaar, hier: eigen.ids.size, bytes, eigen: false });
+});
+
+router.post('/bron/heldenboekbeelden', requireDM, (req, res) => {
+  const hier = storage.huidigeCampagne();
+  if (hier === config.beheerCampagne) return res.status(400).json({ error: 'Dit ís de bron' });
+  const bron = _heldenboekBeeldenVan(config.beheerCampagne);
+  const bronDir = path.join(storage.CAMPAIGNS_DIR, config.beheerCampagne, 'files');
+  const doelDir = path.join(storage.CAMPAIGNS_DIR, hier, 'files');
+  const bronIndex = _bestandsIndex(bronDir);
+  fs.mkdirSync(doelDir, { recursive: true });
+  const erAl = _bestandsIndex(doelDir);
+
+  let gekopieerd = 0, overgeslagen = 0;
+  for (const id of bron.ids) {
+    const f = bronIndex.get(id);
+    if (!f) { overgeslagen++; continue; }
+    if (erAl.has(id)) { overgeslagen++; continue; }
+    try { fs.copyFileSync(path.join(bronDir, f), path.join(doelDir, f)); gekopieerd++; }
+    catch { overgeslagen++; }
+  }
+
+  // **Aanvullen, nooit overschrijven** — zelfde regel als bij de spreuken. Wat
+  // deze campagne zelf bij een class of een feat heeft neergezet blijft staan.
+  const meta = storage.readJSON('meta.json') || {};
+  meta.heldenboek = meta.heldenboek || {};
+  let kaarten = 0;
+  for (const bak of _HB_BAKKEN) {
+    const van = bron.kaarten[bak];
+    if (!van) continue;
+    const naar = meta.heldenboek[bak] = meta.heldenboek[bak] || {};
+    for (const [naam, waarde] of Object.entries(van)) {
+      if (_hbId(naar[naam])) continue;
+      naar[naam] = waarde; kaarten++;
+    }
+  }
+  storage.writeJSON('meta.json', meta);
+
+  // En de platen die op een feature-regel zelf staan. Die matchen op
+  // houder + subhouder + naam, niet op naam alleen: Bonus Proficiency bestaat
+  // bij vier Cleric-domeinen.
+  let features = 0;
+  if (bron.regels.size) {
+    const prog = _progHuidig();
+    for (const [sleutel, r] of _progRegelsMetSleutel(prog)) {
+      if (r.img) continue;
+      const mee = bron.regels.get(sleutel);
+      if (!mee) continue;
+      r.img = mee.img;
+      if (mee.imgFocus) r.imgFocus = mee.imgFocus;
+      features++;
+    }
+    if (features) storage.writeJSON('progression.json', { ...prog, bron: prog.bron || 'Aangepast door de DM' });
+  }
+
+  req.app.get('io').to(_campagneRoom(req)).emit('meta:updated');
+  if (features) req.app.get('io').to(_campagneRoom(req)).emit('progression:updated', {});
+  res.json({ gekopieerd, overgeslagen, kaarten, features });
+});
+
 // Let op: deze parameterroute moet ná /bron/spreukbeelden staan — hij past op
 // elk pad, dus hierboven geregistreerde namen winnen en de rest valt hierheen.
 router.get('/bron/:naam', attachRole, (req, res) => {
