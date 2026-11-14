@@ -2413,6 +2413,10 @@ function _orgBoom(rijen) {
   return { top, kinderen, plat: false };
 }
 
+// Hoeveel kinderen er naast elkaar passen voordat de rij afbreekt. Vier is
+// wat er in de breedte van het detailvenster past zonder te schuiven.
+const _ORG_PER_RIJ = 4;
+
 function _orgKnoopHtml(r, kinderen, gezien = new Set(), beeld = null) {
   // Een kring elders in de boom mag geen oneindige recursie geven.
   if (gezien.has(r)) return '';
@@ -2429,7 +2433,19 @@ function _orgKnoopHtml(r, kinderen, gezien = new Set(), beeld = null) {
       : `<span class="org-naam org-naam--los">${esc(r.naam)}</span>`;
   return `<li class="org-knoop">
     <div class="org-kaartje">${portret}<div class="org-tekst">${naam}${r.rol ? `<span class="org-rol">${esc(r.rol)}</span>` : ''}</div></div>
-    ${kids.length ? `<ul class="org-kinderen">${kids.map(k => _orgKnoopHtml(k, kinderen, gezien, beeld)).join('')}</ul>` : ''}
+    ${kids.length ? (() => {
+      // **Meer dan vier kinderen gaan in rijen.** Acht Great Readers onder de
+      // First Reader waaierden in één rij uit tot ver buiten het venster, en
+      // dan is het organogram een horizontale schuifbalk. Vier per rij past
+      // in de breedte die een kaartje heeft; de rest zakt naar de volgende
+      // rij, met zijn eigen verbindingsbalk.
+      const breed = kids.length > _ORG_PER_RIJ;
+      // Het aantal per rij staat hard in de CSS (`nth-child(4n)`), want een
+      // `var()` kan daar niet in; deze constante en die selector horen bij
+      // elkaar.
+      return `<ul class="org-kinderen${breed ? ' org-kinderen--raster' : ''}">${
+        kids.map(k => _orgKnoopHtml(k, kinderen, gezien, beeld)).join('')}</ul>`;
+    })() : ''}
   </li>`;
 }
 

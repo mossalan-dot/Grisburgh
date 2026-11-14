@@ -33863,3 +33863,43 @@ body.gr-slowmo .combat-overlay { filter: grayscale(.85) contrast(1.1) brightness
 }
 .pb-soort-sluit:hover { color: #2a1a08; border-color: #7a6040; }
 .pb-soort-sluit .icon { width: 13px; height: 13px; }
+
+/* Een brede laag in het organogram: vier per rij, de rest eronder. In één rij
+   liep een gilde met acht Great Readers ver buiten het venster, en dan is het
+   organogram een schuifbalk geworden.
+
+   De verbindingsbalk loopt per rij, niet over het hele blok: met `nth-child`
+   weet de rij waar hij begint en eindigt, en de rijen eronder krijgen een
+   eigen balk met een streepje omhoog naar die van de rij erboven. */
+.org-kinderen--raster {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  justify-items: stretch; align-items: start;
+  row-gap: 24px;
+}
+/* **Vier staat hier hard, en in `_ORG_PER_RIJ` ook.** Een `var()` kan niet in
+   een `:nth-child()`: die selector wordt bij het parsen van de stylesheet
+   vastgelegd, lang voordat er een variabele te lezen valt. Verander je het
+   aantal, dan hoort het hier én daar te veranderen. */
+.org-kinderen--raster > .org-knoop:nth-child(4n + 1)::after { left: 50%; }
+.org-kinderen--raster > .org-knoop:nth-child(4n)::after { right: 50%; }
+.org-kinderen--raster > .org-knoop:last-child::after { right: 50%; }
+.org-kinderen--raster > .org-knoop { padding-left: 4px; padding-right: 4px; }
+/* De kaartjes in een raster zijn even breed; anders staat een korte naam als
+   een postzegel naast een lange en lijkt de rij scheef. En dan moet een lange
+   naam ook afbreken: "Fheminor Scrivenbark" liep anders dwars door het kaartje
+   ernaast heen. */
+.org-kinderen--raster > .org-knoop > .org-kaartje {
+  display: flex; width: 100%; min-width: 0; align-items: flex-start;
+}
+.org-kinderen--raster .org-tekst { min-width: 0; flex: 1; }
+.org-kinderen--raster .org-naam,
+.org-kinderen--raster .org-rol {
+  text-align: left; display: block; max-width: 100%;
+  white-space: normal; overflow-wrap: anywhere; line-height: 1.25;
+}
+/* De tweede rij hangt aan de eerste. Met de volle tussenruimte zweefde zijn
+   balk los onder de rij erboven; krap eronder leest het als één groep die
+   doorloopt, zoals de tweede regel van een alinea. */
+.org-kinderen--raster { row-gap: 2px; }
+.org-kinderen--raster > .org-knoop:nth-child(n + 5) { padding-top: 14px; }
