@@ -1497,12 +1497,23 @@ function _volkKaartHtml(volk) {
 // Welk featkaartje hoort bij deze tekst? Exact, en anders zonder het stukje
 // tussen haakjes — dat is in 2024 de variant en niet de naam.
 function _featKaartVoor(tekst) {
-  const kaal = String(tekst || '').replace(/\s*\([^)]*\)\s*$/, '').trim();
+  const heel = String(tekst || '').trim();
+  const kaal = heel.replace(/\s*\([^)]*\)\s*$/, '').trim();
   const norm = (x) => String(x || '').trim().toLowerCase();
   const feats = (_all || []).filter(x => x.soort === 'feat' || x.soort === 'boon');
-  return feats.find(f => norm(f.naam) === norm(tekst))
-      || feats.find(f => norm(f.naam) === norm(kaal))
-      || null;
+  const exact = feats.find(f => norm(f.naam) === norm(heel))
+             || feats.find(f => norm(f.naam) === norm(kaal));
+  if (exact) return exact;
+  // **Soms is het een zin.** De Haunted One geeft "Survivor or a Dark Gift feat
+  // of your choice": dat is geen featnaam, maar er staat er wel een in. We
+  // zoeken de langste featnaam die erin voorkomt — langste eerst, zodat
+  // "Magic Initiate" wint van "Magic" en niet andersom.
+  const zin = norm(heel);
+  if (!zin || zin.length > 160) return null;
+  return [...feats]
+    .filter(f => norm(f.naam).length >= 4)
+    .sort((a, b) => b.naam.length - a.naam.length)
+    .find(f => new RegExp(`\\b${norm(f.naam).replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`).test(zin)) || null;
 }
 
 function _achtergrondRijen(naam) {
@@ -1545,8 +1556,11 @@ function _achtergrondRijen(naam) {
     // ziet geen lege rijen.
     if (!tekst) { if (isDM()) uit.push([n, '—']); return; }
     if (n === 'Feat' && featKaart) {
+      // `stopPropagation`: op het kaartje zit de klik óók op de hele kaart (die
+      // opent de background), en zonder dit wonnen ze van elkaar — je klikte
+      // op de feat en kreeg de background.
       uit.push(['Feat', tekst, `<button class="vd-rij-knop" title="Bekijk ${esc(featKaart.naam)}"
-        onclick="window.vaardigheden.open('${escA(featKaart.key)}')">${esc(tekst)} ${icon('arrow-up-right')}</button>`]);
+        onclick="event.stopPropagation();window.vaardigheden.open('${escA(featKaart.key)}')">${esc(tekst)} ${icon('arrow-up-right')}</button>`]);
       return;
     }
     uit.push([n, tekst]);

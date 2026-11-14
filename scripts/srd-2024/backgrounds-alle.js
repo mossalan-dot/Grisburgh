@@ -70,7 +70,15 @@ const kaal = (s) => String(s ?? '').replace(/\{@(\w+)\s*([^}]*)\}/g, (_, tag, in
 // krantenkop.
 const beginHoofd = (s) => { const t = String(s ?? '').trim(); return t ? t[0].toUpperCase() + t.slice(1) : ''; };
 // Een skill of tool is wél een naam: "animal handling" → "Animal Handling".
-const naamHoofd = (s) => String(s).replace(/([A-Z])/g, ' $1').replace(/\b[a-z]/g, c => c.toUpperCase()).replace(/\s+/g, ' ').trim();
+// **Lidwoorden en voorzetsels blijven klein**, behalve als eerste woord: de
+// bron schrijft een featnaam als sleutel ("scion of the outer planes"), en elk
+// woord een hoofdletter gaf "Scion Of The Outer Planes" — dat is geen titel
+// maar een krantenkop, en het haalde de koppeling met het featkaartje stuk.
+const _KLEIN = new Set(['of', 'the', 'a', 'an', 'and', 'or', 'in', 'on', 'to', 'from', 'for', 'with']);
+const naamHoofd = (s) => String(s).replace(/([A-Z])/g, ' $1').replace(/\s+/g, ' ').trim()
+  .split(' ')
+  .map((w, i) => (i > 0 && _KLEIN.has(w.toLowerCase())) ? w.toLowerCase() : w.charAt(0).toUpperCase() + w.slice(1))
+  .join(' ');
 const lijstTekst = (arr) => arr.filter(Boolean).join(', ');
 // De uitrustingssoorten die de bron als code noteert.
 const SOORT = { toolArtisan: "Artisan's Tools", setGaming: 'Gaming Set', instrumentMusical: 'Musical Instrument' };
