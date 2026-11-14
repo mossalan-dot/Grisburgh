@@ -680,7 +680,7 @@ function _spreukChipsHtml(lijst) {
 function _featOnderTitel(it) {
   if (it.soort !== 'feat' && it.soort !== 'boon') return '';
   return [
-    it.categorie || '',
+    _featSoortLabel(it.categorie || ''),
     // De kale versie wordt alleen gebruikt om te toetsen óf er iets staat; de
     // zin zelf komt uit `_featOnderTitelHtml`.
     (it.geeftSpreuk || []).length ? `geeft ${(it.geeftSpreuk || []).join(', ')}` : '',
@@ -697,7 +697,7 @@ function _featOnderTitelHtml(it) {
   // ("Scion of the Outer Planes (Lawful Outer Plane) feat"), en hij heeft nu
   // zijn eigen penning. Wat overblijft is kort genoeg om op één regel te lezen.
   return [
-    it.categorie ? esc(it.categorie) : '',
+    it.categorie ? esc(_featSoortLabel(it.categorie)) : '',
     _geeftZin(it.geeftSpreuk || []),
   ].filter(Boolean).join(' \u00b7 ');
 }
@@ -1295,6 +1295,13 @@ function _spreukRegel(klasse, basis) {
 // Dragonmark (Eberron — Aberrant Dragonmark, Mark of Detection). D&D-termen,
 // dus Engels, en dezelfde lijst als de server bewaakt.
 const _FEAT_SOORTEN = ['Origin', 'General', 'Fighting Style', 'Epic Boon', 'Dark Gift', 'Dragonmark'];
+
+// Hoe hij in beeld heet. De Player's Handbook schrijft ze voluit — "Origin
+// Feat", "General Feat" — en los gelezen zegt "Origin" niets. **Dark Gift
+// niet**: Van Richten's Guide noemt ze Dark Gifts en nergens feats, en er een
+// woord bij verzinnen is er een woord bij verzinnen. De opgeslagen waarde
+// blijft de kale naam, dus dit is alleen een etiket.
+const _featSoortLabel = (c) => (c && c !== 'Dark Gift') ? `${c} Feat` : (c || '');
 
 const _HB_BAK = { class: 'klassen', species: 'species', subclass: 'subclassen', variant: 'varianten', background: 'backgrounds' };
 // Een beeld bij een kaart was alleen een bestand-id. Nu mag het ook een id mét
@@ -3629,7 +3636,7 @@ function _editorHtml() {
         <label class="dm-form-label" for="vd-categorie">Soort</label>
         <select class="dm-input" id="vd-categorie">
           <option value="">—</option>
-          ${_FEAT_SOORTEN.map(k => `<option value="${esc(k)}"${e.categorie === k ? ' selected' : ''}>${esc(k)}</option>`).join('')}
+          ${_FEAT_SOORTEN.map(k => `<option value="${esc(k)}"${e.categorie === k ? ' selected' : ''}>${esc(_featSoortLabel(k))}</option>`).join('')}
         </select>
       </div>
       <div class="dm-form-row">

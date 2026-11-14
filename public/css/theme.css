@@ -28875,9 +28875,13 @@ body.akte-schrijf-open .mp-overlay { z-index: 1320; }
 /* ── Een opengeslagen kaartje in het Heldenboek ─────────────────────────────
    Dezelfde tegel als in het archief: 2×2, bladzijden, een voetbalk. De
    vaardigheidskaart heeft zijn eigen binnenwerk (`.vaardig-card-body`), dus
-   dat valt weg zodra hij openstaat — het blad neemt het over. */
-.vaardig-card.tegel--open .vaardig-card-nivs,
-.vaardig-card.tegel--open .vaardig-card-boek,
+   dat valt weg zodra hij openstaat — het blad neemt het over.
+
+   **De penningen en de boekcode blijven staan.** Ze stonden hier verborgen uit
+   de tijd dat het open kaartje ze niet had; sinds hij ze wél tekent, betekende
+   die regel dat je ze invulde en nooit terugzag — precies het omgekeerde van
+   wat de bedoeling was. Alleen de naslaglink gaat weg: het open kaartje heeft
+   zijn eigen voetbalk, en daar staat hij al. */
 .vaardig-card.tegel--open .vaardig-tegel-naslag { display: none; }
 /* De penning met het level en de boekcode liggen op de plaat, net als in het
    archief — niet meer onder de naam in een eigen tekstblok. De boekcode staat
