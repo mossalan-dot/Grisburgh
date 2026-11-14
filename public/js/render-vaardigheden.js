@@ -2671,7 +2671,19 @@ function _bgOnderdelen(naam) {
   // namen; staat de ene er, dan hoeft de andere er niet leeg bij.
   if (heeft.has('tool proficiency')) heeft.add('tool proficiencies');
   for (const vast of _BG_VAST) if (!heeft.has(vast.toLowerCase())) uit.push({ naam: vast, tekst: '' });
-  return uit;
+  // **In de volgorde van het boek**, niet in die van het bestand. Een veld dat
+  // er nog niet was werd achteraan geplakt, en dan stond "Prerequisite" — het
+  // eerste wat je over een background wilt weten — onderaan het formulier,
+  // achter zijn uitrusting. Wat de app niet kent (de bijzondere feature) komt
+  // daarna, want die hoort onderaan.
+  const plek = (naam) => {
+    const i = _BG_VAST.findIndex(v => v.toLowerCase() === naam.toLowerCase());
+    if (i >= 0) return i;
+    // "Tool Proficiency" staat op de plek van zijn meervoud.
+    if (naam.toLowerCase() === 'tool proficiency') return _BG_VAST.indexOf('Tool Proficiencies');
+    return _BG_VAST.length;
+  };
+  return uit.sort((a, b) => plek(a.naam) - plek(b.naam));
 }
 
 function _bgVeldenHtml(naam) {
