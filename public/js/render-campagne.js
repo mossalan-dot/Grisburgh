@@ -10338,7 +10338,21 @@ window._openEditor = async (tab, editId) => {
         await api.deleteFile(id).catch(() => {});
       }
       closeModal();
+      // **Een nieuw kaartje staat open in het raster.** Anders sluit het
+      // venster en kijk je naar honderd tegels waartussen de jouwe ergens
+      // staat — terwijl je hem net gemaakt hebt en wilt zien wat eruit kwam.
+      // Alleen bij een nieuw kaartje: bij het bijwerken van een bestaand
+      // kaartje stond hij toch al open waar je hem openklapte.
+      if (_nieuwId) {
+        _tegelOpen[tab] = _nieuwId;
+        _tegelBlad[_nieuwId] = 0;
+      }
       renderEntitySection(tab);
+      if (_nieuwId) {
+        const _id = _nieuwId;
+        setTimeout(() => document.querySelector(`#section-${tab} .tegel[data-sleutel="${CSS.escape(_id)}"]`)
+          ?.scrollIntoView({ block: 'center', behavior: 'smooth' }), 360);
+      }
     } catch (err) {
       alert('Fout: ' + err.message);
     }

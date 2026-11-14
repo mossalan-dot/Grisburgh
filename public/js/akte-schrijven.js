@@ -1377,6 +1377,13 @@ window.akteSchrijven = {
   // noemt een naam die nog niet bestaat; dan wil je hem vastleggen, niet eerst
   // naar een ander tabblad. Wat voor kaartje het is, is de enige vraag — de
   // rest vul je later in.
+  // **Een eigen venstertje, niet het gedeelde venster.** Dit stond op
+  // `app.openModal`, en dat is er maar één: stond daar een bewerkformulier in
+  // (je typt `[[Vrouwe Kwartel]]` in de beschrijving van een kaartje en drukt
+  // op de plus), dan werd dat formulier vervangen door deze kiezer en na het
+  // aanmaken gesloten — met alles wat je nog niet bewaard had erin. Een kiezer
+  // die zijn gastheer opeet. Hij hangt nu boven wat er ook staat en laat dat
+  // met rust.
   maakPlaceholder(naam) {
     const soorten = [
       ['personages', 'Personage', 'user'],
@@ -1385,8 +1392,17 @@ window.akteSchrijven = {
       ['voorwerpen', 'Voorwerp', 'package'],
       ['documenten', 'Document', 'scroll-text'],
     ];
-    window.app.openModal(`Kaartje maken — ${naam}`, '', `
-      <div class="dm-feature-section" style="margin:0">
+    document.getElementById('pb-soort-overlay')?.remove();
+    const ov = document.createElement('div');
+    ov.id = 'pb-soort-overlay';
+    ov.className = 'pb-soort-overlay';
+    ov.innerHTML = `
+      <div class="pb-soort-kaart" role="dialog" aria-label="Kaartje maken">
+        <div class="pb-soort-kop">
+          <span>Kaartje maken — ${esc(naam)}</span>
+          <button type="button" class="pb-soort-sluit" title="Sluiten"
+            onclick="window.akteSchrijven.placeholderSluit()">${icon('x')}</button>
+        </div>
         <div class="pb-entity-list">
           ${soorten.map(([type, label, ico]) => `
             <button class="pb-entity-item" onclick="window.akteSchrijven.placeholderMaak('${type}','${escArg(naam)}')">
@@ -1394,8 +1410,14 @@ window.akteSchrijven = {
               <span class="pb-entity-name">${esc(label)}</span>
             </button>`).join('')}
         </div>
-      </div>`);
+      </div>`;
+    // Naast de kaart klikken sluit hem; op de kaart zelf niet.
+    ov.addEventListener('click', (e) => { if (e.target === ov) window.akteSchrijven.placeholderSluit(); });
+    document.body.appendChild(ov);
+    ov.querySelector('.pb-entity-item')?.focus();
   },
+
+  placeholderSluit() { document.getElementById('pb-soort-overlay')?.remove(); },
 
   async placeholderMaak(type, naam) {
     try {
@@ -1407,10 +1429,15 @@ window.akteSchrijven = {
       // de app herlaadt.
       window._entityNameIndex = window._entityNameIndex || {};
       window._entityNameIndex[naam] = { id: ent.id, type, vis: 'hidden', geheimTotaal: 0, geheimOnthuld: 0 };
-      window.app.closeModal();
+      this.placeholderSluit();
       if (_voorbeeld || _split) _tekenVoorbeeld();
       window._ladeHerlaad?.();
       _telNamen();
+      // De plus in de tekst wijst nu naar een kaartje dat bestaat. Waar die
+      // tekst gerenderd staat (een kaartje, de lade) wordt hij bij de volgende
+      // hertekening een gewone wikilink; in een tekstvak verandert er niets,
+      // want daar staat de kale `[[naam]]`.
+      window._showToast?.(`Kaartje voor ${naam} aangemaakt.`);
     } catch (e) { alert('Aanmaken mislukt: ' + e.message); }
   },
 

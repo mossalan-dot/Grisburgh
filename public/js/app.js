@@ -1,8 +1,8 @@
 import { api, campagneUitUrl, zetCampagne } from './api.js?v=321';
-import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, renderDocumenten, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=382";
-import { initArchief, renderLogboek, openLogboekEditor } from "./render-archief.js?v=150";
+import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, renderDocumenten, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=383";
+import { initArchief, renderLogboek, openLogboekEditor } from "./render-archief.js?v=151";
 import { renderKaart, queueFlyTo, verversPins, nieuweKaart } from './render-kaart.js?v=36';
-import { renderDungeon } from './render-dungeon.js?v=76';
+import { renderDungeon } from './render-dungeon.js?v=77';
 import { renderRelatiemap } from './render-relatiemap.js?v=39';
 import { renderProgressie, levelupFeatures } from './render-progressie.js?v=68';
 import { renderBestiarium } from './render-bestiarium.js?v=42';
@@ -11,8 +11,8 @@ import './render-handleiding.js?v=2';
 import './render-melding.js?v=4';
 import { renderVaardigheden, zoekVaardigheden, heldenboekTekst } from './render-vaardigheden.js?v=162';
 import { renderStatblock } from './render-statblock.js?v=10';
-import { initSocket } from "./socket-client.js?v=101";
-import { initDmPanel } from "./dm-panel.js?v=424";
+import { initSocket } from "./socket-client.js?v=102";
+import { initDmPanel } from "./dm-panel.js?v=425";
 import { COND_INFO, COND_LABEL, COND_MET_PLAATJE, COND_ICON } from './conditions.js?v=4';
 import './media-picker.js?v=15';
 import './wizard.js?v=12';
@@ -3731,7 +3731,7 @@ function _kaartCard(type, m, dm, verdiepingen = null) {
 // eerste bestaande kaart: je drukte op + en keek naar Dreghaven.
 window._kaartNieuw = async function (type) {
   if (type === 'wereld') return nieuweKaart();
-  const { nieuweDungeon } = await import('./render-dungeon.js?v=76');
+  const { nieuweDungeon } = await import('./render-dungeon.js?v=77');
   nieuweDungeon();
 };
 

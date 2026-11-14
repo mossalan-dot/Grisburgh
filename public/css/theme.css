@@ -33835,3 +33835,31 @@ body.gr-slowmo .combat-overlay { filter: grayscale(.85) contrast(1.1) brightness
 .detail-rollen dd { margin: 0; color: #3a2d1c; }
 .detail-rollen dd em { color: #9a8565; }
 .rol-venster { font-family: 'Crimson Text', serif; line-height: 1.6; }
+
+/* De soortkiezer bij een naam zonder kaartje. Een eigen laagje en niet het
+   gedeelde venster: hij kan opengaan terwijl daar een bewerkformulier staat,
+   en dat formulier moet blijven staan. Boven het venster (1200) en onder de
+   fullscreen-kaart. */
+.pb-soort-overlay {
+  position: fixed; inset: 0; z-index: 1400;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(20,12,4,.45); padding: 20px;
+}
+.pb-soort-kaart {
+  width: min(380px, 100%); max-height: 80vh; overflow-y: auto;
+  background: #f6eeda; border: 1px solid rgba(122,96,64,.45); border-radius: 8px;
+  box-shadow: 0 18px 50px rgba(20,12,4,.45); padding: 14px;
+}
+.pb-soort-kop {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  font-family: 'Cinzel', serif; font-size: 14px; color: #5a4030;
+  margin-bottom: 10px; padding-bottom: 8px; border-bottom: 1px solid rgba(122,96,64,.25);
+}
+.pb-soort-sluit {
+  width: 26px; height: 26px; flex: 0 0 auto;
+  display: inline-flex; align-items: center; justify-content: center;
+  border: 1px solid rgba(122,96,64,.4); border-radius: 50%;
+  background: transparent; color: #7a6040; cursor: pointer;
+}
+.pb-soort-sluit:hover { color: #2a1a08; border-color: #7a6040; }
+.pb-soort-sluit .icon { width: 13px; height: 13px; }
