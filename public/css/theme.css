@@ -28807,6 +28807,26 @@ body.akte-schrijf-open .mp-overlay { z-index: 1320; }
 }
 .vk-training dd { margin: 0; color: var(--color-ink-soft, #5a4832); }
 
+/* De bijzondere feature van een oudere background — "All Eyes on You",
+   "Safe Haven". Die heeft een naam en een eigen alinea, en als rij in een
+   tweekolommenlijst werd dat een prop tekst naast een label dat er nietig bij
+   stond. Nu een eigen blokje, met zijn naam als kop. */
+.vd-bgfeature {
+  margin-top: 14px; padding: 12px 14px;
+  border: 1px solid rgba(196,168,122,0.5); border-left: 3px solid #962058;
+  border-radius: 7px; background: rgba(255,252,244,0.55);
+}
+.vd-bgfeature-kop {
+  display: flex; align-items: center; gap: 7px; margin-bottom: 6px;
+  font-family: 'Cinzel', serif; font-size: .82em; letter-spacing: .06em;
+  text-transform: uppercase; color: #7a2045;
+}
+.vd-bgfeature-kop .icon { width: 14px; height: 14px; }
+.vd-bgfeature .prog-detail-desc { margin: 0; }
+/* De tabbladen in dit venster staan tussen de ondertitel en de inhoud; iets
+   meer lucht dan in het archiefvenster, waar ze bovenaan beginnen. */
+.vd-subvenster .detail-tab-nav { margin: 14px 0 12px; }
+
 /* ── Een bladerkaart in het raster ──────────────────────────────────────────
    Een class staat in de band en heeft daar bijna vierhonderd pixels; een
    background staat tussen honderdvijfentwintig andere in het raster, en dan

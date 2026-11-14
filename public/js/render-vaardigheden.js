@@ -2376,17 +2376,48 @@ function _kaartVenster(soort, naam, bron = '') {
   // een subclass uit een boek, dan is die eigen en blijven de andere wegwijzer.
   const { aantal, rijen: features, elders, eigen } = _houderFeaturesHtml(soort, naam, bron);
 
+  // **Een background krijgt twee tabbladen.** Zijn verhaal is vier alinea's
+  // lang (Far Traveler beschrijft vijf landstreken), en daaronder stonden de
+  // proficiencies, de uitrusting én zijn bijzondere feature achter elkaar op
+  // één rol. Wie wil weten wat hij krijgt, scrolt dan langs het hele verhaal.
+  // Nu ligt het naast elkaar: Verhaal en Eigenschappen.
+  //
+  // Alleen bij een background: een class of species heeft zijn features als
+  // kaartjes eronder, en dat is al een eigen laag.
+  const tabs = soort === 'background' && (uitleg || rijen.length);
+  // Wat een background geeft (skills, tools, uitrusting) tegenover zijn
+  // **bijzondere feature** — die heeft een eigen naam en een eigen alinea, en
+  // als rij in een tweekolommenlijst werd dat een prop tekst naast een label.
+  const vast = new Set([..._BG_VAST, 'Tool Proficiency'].map(x => x.toLowerCase()));
+  const bgVaste = tabs ? rijen.filter(([k]) => vast.has(String(k).toLowerCase())) : rijen;
+  const bgEigen = tabs ? rijen.filter(([k]) => !vast.has(String(k).toLowerCase())) : [];
+  const rijenHtml = (lijst) => lijst.length ? `<dl class="vk-training vd-kv-training">
+    ${lijst.map(([k, v, html]) => `<dt>${esc(k)}</dt><dd>${html ?? _rijWaardeHtml(v)}</dd>`).join('')}
+  </dl>` : '';
+  const verhaalHtml = uitleg
+    ? `<div class="prog-detail-desc">${window._vaardigTekstHtml?.(uitleg) ?? _bron?.md?.(uitleg) ?? esc(uitleg)}</div>`
+    : `<p class="dm-hint">Er staat nog geen uitleg bij deze ${esc(soortLabel.toLowerCase())}. ${isDM() ? 'Schrijf hem erbij — dan leest iedereen aan tafel hetzelfde.' : 'Vraag je DM of hij hem invult.'}</p>`;
+  const eigenHtml = `${rijenHtml(bgVaste)}
+    ${bgEigen.map(([k, v]) => `<div class="vd-bgfeature">
+      <div class="vd-bgfeature-kop">${icon('sparkle')} ${esc(k)}</div>
+      ${String(v || '').trim()
+        ? `<div class="prog-detail-desc">${window._vaardigTekstHtml?.(String(v)) ?? esc(v)}</div>`
+        : `<p class="dm-hint">Wat deze feature doet staat in het boek. ${isDM() ? 'Tik hem erbij via Kaartje bewerken.' : 'Vraag je DM of hij hem invult.'}</p>`}
+    </div>`).join('')}`;
+
   window.app.openModal(naam, '', `
     <div class="vd-subvenster">
       ${_heroHtml({ src: beeld, focus })}
       <p class="vd-subvenster-meta">${meta}</p>
       ${data.ondertitel ? `<p class="vd-kv-onder">${esc(String(data.ondertitel).trim())}</p>` : ''}
-      ${uitleg
-        ? `<div class="prog-detail-desc">${window._vaardigTekstHtml?.(uitleg) ?? _bron?.md?.(uitleg) ?? esc(uitleg)}</div>`
-        : `<p class="dm-hint">Er staat nog geen uitleg bij deze ${esc(soortLabel.toLowerCase())}. ${isDM() ? 'Schrijf hem erbij — dan leest iedereen aan tafel hetzelfde.' : 'Vraag je DM of hij hem invult.'}</p>`}
-      ${rijen.length ? `<dl class="vk-training vd-kv-training">
-        ${rijen.map(([k, v, html]) => `<dt>${esc(k)}</dt><dd>${html ?? _rijWaardeHtml(v)}</dd>`).join('')}
-      </dl>` : ''}
+      ${tabs ? `
+        <div class="detail-tab-nav">
+          <button class="detail-tab detail-tab--active" data-dtab="verhaal">Verhaal</button>
+          <button class="detail-tab" data-dtab="eigenschappen">Eigenschappen</button>
+        </div>
+        <div id="dtab-verhaal">${verhaalHtml}</div>
+        <div id="dtab-eigenschappen" class="hidden">${eigenHtml}</div>`
+      : `${verhaalHtml}${rijenHtml(rijen)}`}
       ${naarSpreuken || isDM() ? `<div class="spreuk-dm-knoppen">
         ${naarSpreuken ? `<button class="spreuk-detail-imgbtn" onclick="window.vaardigheden.naarSpreuken('${veilig}')">${icon('book-open')} Spreukenlijst</button>` : ''}
         ${isDM() ? `<button class="spreuk-detail-imgbtn" onclick="window.vaardigheden.kaartBewerken('${escArg(soort)}','${veilig}','${veiligB}')">${icon('pencil')} Kaartje bewerken</button>` : ''}
@@ -2400,7 +2431,17 @@ function _kaartVenster(soort, naam, bron = '') {
   if (vak) {
     window.glossary?.applyDom?.(vak);
     window.spreuken?.linkInDom?.(vak);
-    window.spreuken?.linkInProza?.(vak.querySelector('.prog-detail-desc'));
+    // Élke prozablok, niet alleen de eerste: sinds de tabbladen staat het
+    // verhaal in het ene paneel en de tekst van de feature in het andere.
+    vak.querySelectorAll('.prog-detail-desc').forEach(el => window.spreuken?.linkInProza?.(el));
+    // Wisselen van tabblad — zelfde patroon als het kaartvenster in het
+    // archief, zodat er één manier is waarop een tabblad in een venster werkt.
+    vak.querySelectorAll('.detail-tab').forEach(btn => btn.addEventListener('click', () => {
+      vak.querySelectorAll('.detail-tab').forEach(b => b.classList.toggle('detail-tab--active', b === btn));
+      for (const k of ['verhaal', 'eigenschappen']) {
+        vak.querySelector(`#dtab-${k}`)?.classList.toggle('hidden', k !== btn.dataset.dtab);
+      }
+    }));
   }
 }
 
