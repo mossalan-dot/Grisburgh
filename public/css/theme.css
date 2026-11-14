@@ -33099,7 +33099,66 @@ body.gr-slowmo .combat-overlay { filter: grayscale(.85) contrast(1.1) brightness
    is dat nauwelijks te zien — je moest hem openklappen om te weten waar hij
    op stond. Nu is het vlak gevuld. */
 .tegel-houding-knop .icon { color: var(--houding-kleur); }
-.tegel-houding-knop.heeft-houding .icon { fill: var(--houding-kleur); }
+/* Het gevulde hart komt uit een eigen symbool (`icon-heart-vol`): een CSS
+   `fill` komt niet door het `fill="none"` van het symbool heen. */
+
+/* ── Wat de party ziet ──────────────────────────────────────────────────────
+   Hetzelfde uitklapvenstertje als bij de houding. Het was één oogje dat
+   rondging, met Shift voor "vaag" — en dat laatste weet je alleen als iemand
+   het je verteld heeft. */
+.tegel-zicht { position: relative; display: inline-flex; }
+.tegel-zicht-knop {
+  width: 28px; height: 28px; border-radius: 50%; border: 1px solid transparent;
+  display: inline-flex; align-items: center; justify-content: center;
+  background: transparent; color: #7a6040; cursor: pointer;
+  transition: background .15s, color .15s;
+}
+.tegel-zicht-knop:hover { background: rgba(196,168,122,0.22); color: #2a1a08; }
+.tegel-zicht-knop .icon { width: 13px; height: 13px; }
+.tegel-zicht-paneel {
+  display: none;
+  position: absolute; bottom: calc(100% + 10px); left: 50%; transform: translateX(-50%);
+  z-index: 20; padding: 10px 10px 11px; width: 212px;
+  background: #fbf6ea; border: 1px solid rgba(196,168,122,0.8); border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(60,40,10,0.28);
+}
+.tegel-zicht.is-open .tegel-zicht-paneel { display: block; }
+/* `.tegel-dm button` maakt elke knop eronder 26×26 met een donkere ruit —
+   dat geldt voor de knoppen ín de balk, niet voor de regels in het paneel dat
+   eruit openklapt. Zonder deze regel werd elke regel een vierkantje van 26
+   pixels en lagen de vier treden over elkaar heen. */
+.tegel-dm .tegel-zicht-rij, .tegel-voet .tegel-dm .tegel-zicht-rij {
+  width: 100%; height: auto; border-radius: 5px;
+  background: none; color: #3a2410;
+  -webkit-backdrop-filter: none; backdrop-filter: none;
+}
+.tegel-dm .tegel-zicht-rij:hover, .tegel-voet .tegel-dm .tegel-zicht-rij:hover { background: rgba(196,168,122,0.25); }
+.tegel-dm .tegel-zicht-rij.is-aan, .tegel-voet .tegel-dm .tegel-zicht-rij.is-aan { background: rgba(196,168,122,0.3); }
+.tegel-zicht-rij {
+  display: flex; align-items: flex-start; gap: 8px; width: 100%;
+  padding: 6px 7px; border: 0; border-radius: 5px;
+  background: none; text-align: left; cursor: pointer; color: #3a2410;
+}
+.tegel-zicht-rij:hover { background: rgba(196,168,122,0.25); }
+.tegel-zicht-rij.is-aan { background: rgba(196,168,122,0.3); }
+.tegel-zicht-ico { flex: 0 0 auto; display: flex; padding-top: 2px; color: #7a6040; }
+.tegel-zicht-ico .icon { width: 14px; height: 14px; }
+/* Het bestiarium heeft geen oogje maar een letter (O, N, D, V) in zijn eigen
+   kleur — vier treden in plaats van drie, en de letter zegt er al welke. */
+.tegel-zicht-knop--letter { font-family: 'Cinzel', serif; font-size: 12px; font-weight: 700; }
+.tegel-zicht-ico.best-card-niv {
+  width: 18px; height: 18px; border-radius: 50%; padding: 0; margin-top: 1px;
+  display: inline-flex; align-items: center; justify-content: center;
+  font-family: 'Cinzel', serif; font-size: 10px; font-weight: 700;
+}
+.tegel-zicht-naam {
+  display: block; font-family: 'Cinzel', serif; font-size: 0.78rem; letter-spacing: .03em;
+}
+.tegel-zicht-rij.is-aan .tegel-zicht-naam { font-weight: 700; }
+.tegel-zicht-uitleg {
+  display: block; margin-top: 1px;
+  font-family: 'Crimson Text', serif; font-size: 0.8rem; color: #7a6040;
+}
 /* De naam naast het kleurtje klikt mee. */
 .tegel-houding-naam {
   background: none; border: 0; padding: 1px 4px; width: 100%; text-align: left;

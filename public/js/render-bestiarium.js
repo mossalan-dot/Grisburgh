@@ -211,12 +211,46 @@ function _bladInhoud(m, b) {
   </div>`;
 }
 
+// Wat de groep van dit wezen weet. **Vier treden, vier regels** — het was een
+// letterknop die rondging, en dan moet je drie keer klikken om terug te komen
+// en raad je wat de volgende stand wordt. Zelfde uitklapvenstertje als bij de
+// zichtbaarheid van een kaartje; alleen zijn het hier vier standen met een
+// letter in plaats van drie met een oogje.
+const _NIV_UITLEG = {
+  '':        'Ze zijn het nog nooit tegengekomen.',
+  naam:      'Ze kennen de naam, meer niet.',
+  deels:     'Ze kennen het halve statblok.',
+  volledig:  'Ze kennen alles.',
+};
+
 function _dmKnoppen(m, { voet = false } = {}) {
   const niv = m._niveau || null;
   const nivKey = niv || 'onbekend';
+  // Alleen in de voetbalk: een dichte tegel knipt zijn inhoud af, en dan valt
+  // het paneel half weg. Daar blijft de letterknop dus rondgaan.
+  if (!voet) {
+    return `<div class="tegel-dm" onclick="event.stopPropagation()">
+      <button class="best-card-niv best-card-niv--${nivKey}" title="Kennisniveau: ${_NIV_LABEL[niv || '']} — klik om te wisselen"
+        onclick="window.bestiarium.cycleNiveau('${escArg(m.id)}', this)">${_NIV_LETTER[niv || '']}</button>
+      <button title="Bewerken" onclick="window.bestiarium.edit('${escArg(m.id)}')">${icon('pencil')}</button>
+      <button class="tegel-dm-weg" title="Verwijderen"
+        onclick="window.bestiarium.del('${escArg(m.id)}','${escArg(m.name)}')">${icon('x')}</button>
+    </div>`;
+  }
   return `<div class="tegel-dm" onclick="event.stopPropagation()">
-    <button class="best-card-niv best-card-niv--${nivKey}" title="Kennisniveau: ${_NIV_LABEL[niv || '']} — klik om te wisselen"
-      onclick="window.bestiarium.cycleNiveau('${escArg(m.id)}', this)">${_NIV_LETTER[niv || '']}</button>
+    <div class="tegel-zicht">
+      <button class="best-card-niv best-card-niv--${nivKey} tegel-zicht-knop tegel-zicht-knop--letter"
+        title="Wat de groep weet: ${_NIV_LABEL[niv || '']}"
+        onclick="event.stopPropagation();this.parentElement.classList.toggle('is-open')">${_NIV_LETTER[niv || '']}</button>
+      <div class="tegel-zicht-paneel" onclick="event.stopPropagation()">
+        <div class="tegel-houding-kop">Wat de groep weet</div>
+        ${_NIV_ORDER.map(k => `<button type="button" class="tegel-zicht-rij${(niv || '') === k ? ' is-aan' : ''}"
+          onclick="event.stopPropagation();window.bestiarium.zetNiveau('${escArg(m.id)}','${k}')">
+          <span class="tegel-zicht-ico best-card-niv best-card-niv--${k || 'onbekend'}">${_NIV_LETTER[k]}</span>
+          <span><span class="tegel-zicht-naam">${esc(_NIV_LABEL[k])}</span><span class="tegel-zicht-uitleg">${esc(_NIV_UITLEG[k])}</span></span>
+        </button>`).join('')}
+      </div>
+    </div>
     <button title="Bewerken" onclick="window.bestiarium.edit('${escArg(m.id)}')">${icon('pencil')}</button>
     ${voet ? '' : `<button class="tegel-dm-weg" title="Verwijderen"
       onclick="window.bestiarium.del('${escArg(m.id)}','${escArg(m.name)}')">${icon('x')}</button>`}
@@ -351,6 +385,17 @@ window.bestiarium = {
     };
   },
   // Cycle het kennisniveau: Onbekend → Naam → Deels → Volledig → Onbekend.
+  // Rechtstreeks zetten, uit het uitklapvenstertje.
+  async zetNiveau(monsterId, niveau) {
+    const m = _data.monsters?.find(x => x.id === monsterId);
+    if ((m?._niveau || '') === niveau) { document.querySelector('.tegel-zicht.is-open')?.classList.remove('is-open'); return; }
+    try { await api.setBestiarium(monsterId, niveau || null); }
+    catch { /* socket-event ververst alsnog */ }
+    if (m) m._niveau = niveau || null;
+    _tekenKaarten();
+    window._showToast?.(`${m?.name || 'Dit wezen'}: de groep weet ${(_NIV_LABEL[niveau] || '').toLowerCase()}.`);
+  },
+  // De oude ronddraaiknop. Blijft bestaan voor wie hem nog aanroept.
   async cycleNiveau(monsterId, btnEl) {
     const m = _data.monsters?.find(x => x.id === monsterId);
     const cur = m?._niveau || '';

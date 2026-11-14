@@ -733,10 +733,13 @@ window._houdingZet = (type, id, waarde) => {
       // **Wie het betreft hoort erbij.** De melding zei alleen "Houding:
       // welgezind", en met twintig kaartjes op het scherm is dat de helft van
       // het antwoord — je weet niet of je op de goede hebt geklikt.
-      const wie = (entities[type] || []).find(x => x.id === id)?.name || '';
+      const wie = (entities[type] || []).find(x => x.id === id)?.name || 'Dit kaartje';
+      // De zin komt uit de schaal zelf (`lib/houding.js`), niet uit het etiket:
+      // "is bondgenoot" en "is welgezind" waren een label in een zin geplakt.
+      const zin = h?.zin || (h?.naam ? `staat op ${h.naam.toLowerCase()}` : '');
       window._showToast?.(terug
-        ? `${wie ? wie + ': h' : 'H'}ouding terug op standaard — ${h?.naam || ''}.`
-        : `${wie ? wie + ' is nu ' : 'Houding: '}${(h?.naam || '').toLowerCase()}.`);
+        ? `${wie} ${zin} — weer wat de app uitrekent.`
+        : `${wie} ${zin}.`);
       // Het kaartje opnieuw laten tekenen, zodat de glans meeverandert.
       renderEntitySection(type);
     } catch (err) { alert('Houding opslaan mislukt: ' + err.message); }
@@ -4275,12 +4278,50 @@ function _tegelKlassen(type, e, extra = '') {
   ].filter(Boolean).join(' ');
 }
 
+// Wat een party van dit kaartje ziet. **Drie standen, drie regels** — eerder
+// was het één oogje dat rondging en een Shift-klik voor "vaag", en dat laatste
+// weet je alleen als je de tooltip leest of het ooit verteld is gekregen. Nu
+// hetzelfde uitklapvenstertje als bij de houding: je ziet de drie standen
+// staan, met waar hij nu op staat vetgedrukt.
+//
+// Vaag bestaat niet overal: een voorwerp is er of is er niet (zie `threeState`
+// op de server), dus dan vallen er twee regels over.
+const _ZICHT = [
+  { stand: 'visible', ico: 'eye',     naam: 'Zichtbaar',  uitleg: 'Staat gewoon in hun archief.' },
+  { stand: 'vague',   ico: 'eye-off', naam: 'Vaag',       uitleg: 'Ze weten dát het bestaat, meer niet.' },
+  { stand: 'hidden',  ico: 'lock',    naam: 'Verborgen',  uitleg: 'Bestaat voor hen niet.' },
+];
+
 function _tegelDmKnoppen(type, e, { voet = false } = {}) {
   if (!isDM()) return '';
   const vis = e._visibility || 'visible';
   const ico = vis === 'visible' ? icon('eye') : vis === 'vague' ? icon('eye-off') : icon('lock');
+  const drie = ['personages', 'locaties', 'organisaties'].includes(type);
+  const standen = _ZICHT.filter(z => drie || z.stand !== 'vague');
+  // **Alleen in de voetbalk.** Een kaartje knipt zijn inhoud af
+  // (`overflow: hidden`), dus op een dichte tegel van 180 pixels zou het
+  // paneel half wegvallen. Daar blijft het oogje dus rondgaan; open je de
+  // tegel, dan staan de standen uitgeschreven.
+  if (!voet) {
+    return `<div class="tegel-dm" onclick="event.stopPropagation()">
+      <button onclick="window._toggleVis('${type}','${escArg(e.id)}',event)" title="Zichtbaarheid  ·  Shift: vaag">${ico}</button>
+      <button onclick="window._openEditor('${type}','${escArg(e.id)}')" title="Bewerken">${icon('pencil')}</button>
+      <button class="tegel-dm-weg" onclick="window._deleteEntity('${type}','${escArg(e.id)}')" title="Verwijderen">${icon('x')}</button>
+    </div>`;
+  }
   return `<div class="tegel-dm" onclick="event.stopPropagation()">
-    <button onclick="window._toggleVis('${type}','${escArg(e.id)}',event)" title="Zichtbaarheid  ·  Shift: vaag">${ico}</button>
+    <div class="tegel-zicht">
+      <button class="tegel-zicht-knop" title="Wat de party ziet"
+        onclick="event.stopPropagation();this.parentElement.classList.toggle('is-open')">${ico}</button>
+      <div class="tegel-zicht-paneel" onclick="event.stopPropagation()">
+        <div class="tegel-houding-kop">Wat de party ziet</div>
+        ${standen.map(z => `<button type="button" class="tegel-zicht-rij${z.stand === vis ? ' is-aan' : ''}"
+          onclick="event.stopPropagation();window._zichtZet('${type}','${escArg(e.id)}','${z.stand}')">
+          <span class="tegel-zicht-ico">${icon(z.ico)}</span>
+          <span><span class="tegel-zicht-naam">${esc(z.naam)}</span><span class="tegel-zicht-uitleg">${esc(z.uitleg)}</span></span>
+        </button>`).join('')}
+      </div>
+    </div>
     <button onclick="window._openEditor('${type}','${escArg(e.id)}')" title="Bewerken">${icon('pencil')}</button>
     ${voet ? '' : `<button class="tegel-dm-weg" onclick="window._deleteEntity('${type}','${escArg(e.id)}')" title="Verwijderen">${icon('x')}</button>`}
   </div>`;
@@ -4297,7 +4338,7 @@ function _tegelHoudingKnop(type, e) {
   return `<div class="tegel-houding">
     <button class="tegel-knop tegel-houding-knop${h ? ' heeft-houding' : ''}" title="Houding${h ? ': ' + esc(h.naam) : ''}"
       style="--houding-kleur:${h?.glans?.kleur || '#c4a87a'}"
-      onclick="event.stopPropagation();this.parentElement.classList.toggle('is-open')">${icon('heart')}</button>
+      onclick="event.stopPropagation();this.parentElement.classList.toggle('is-open')">${icon(h ? 'heart-vol' : 'heart')}</button>
     <div class="tegel-houding-paneel" onclick="event.stopPropagation()">
       <div class="tegel-houding-kop">Houding</div>
       <!-- De naam klikt mee. Hij stond als dood lijstje naast de kleurtjes,
@@ -4391,8 +4432,11 @@ function _tegelBladInhoud(e, blad, rol, type) {
       ${_rijenHtml(voor.rijen)}</div>`;
   }
   return `<div class="tegel-vel">
-    <div class="tegel-vel-kop">${icon(_BLAD_ICOON[blad.soort] || 'square')} ${esc(blad.label)}<span class="tegel-vel-naam">${esc(e.name)}</span>
-      ${e._beeld === false ? '' : `<img class="tegel-vel-portret" src="${api.thumbForEntity(e)}" alt="" style="${e.data?.imgFocus ? `object-position:${esc(e.data.imgFocus)}` : ''}" onerror="this.remove()">`}</div>
+    <!-- Geen miniportretje meer naast de kop: de naam staat er al, het grote
+         portret is één bladzijde terug, en het duwde de tekst een regel
+         omlaag voor iets wat je net zag.
+         (Geen backticks in commentaar hierbinnen: template literal.) -->
+    <div class="tegel-vel-kop">${icon(_BLAD_ICOON[blad.soort] || 'square')} ${esc(blad.label)}<span class="tegel-vel-naam">${esc(e.name)}</span></div>
     <div class="tegel-vel-tekst">${blad.html}</div>
   </div>`;
 }
@@ -7169,6 +7213,42 @@ window._itemRejectRequest = async (reqId) => {
 };
 
 // ── Visibility / Secret / Deceased toggles ──
+// Wat de party van dit kaartje ziet, rechtstreeks gezet in plaats van met een
+// oogje dat rondgaat. `_toggleVis` hieronder blijft bestaan voor de plekken
+// die hem nog aanroepen (het detailvenster, de lijsten) — die doen één klik,
+// en dat is daar genoeg.
+window._zichtZet = async (tab, id, stand) => {
+  const nu = (window._entityCache?.[tab] || []).find(e => e.id === id)?._visibility || 'visible';
+  if (nu === stand) { document.querySelector('.tegel-zicht.is-open')?.classList.remove('is-open'); return; }
+  // Een voorwerp verbergen haalt het uit de boedel van wie het draagt; die
+  // vraag staat in `_toggleVis` en hoort hier net zo goed gesteld te worden.
+  if (tab === 'voorwerpen' && stand === 'hidden' && !(await _magVoorwerpVerbergen(id))) return;
+  await api.toggleVisibility(tab, id, stand);
+  renderEntitySection(tab);
+  const naam = (window._entityCache?.[tab] || []).find(e => e.id === id)?.name || 'Dit kaartje';
+  const zin = { visible: 'staat nu gewoon in hun archief',
+                vague: 'is nu vaag: ze weten dát het bestaat',
+                hidden: 'is nu verborgen voor de party' }[stand];
+  window._showToast?.(`${naam} ${zin}.`);
+};
+
+// De vraag bij een voorwerp dat iemand draagt. Stond in `_toggleVis`; nu een
+// eigen hulpje, zodat de twee wegen naar dezelfde waarschuwing leiden.
+async function _magVoorwerpVerbergen(id) {
+  if (!isDM()) return true;
+  const nu = (window._entityCache?.voorwerpen || []).find(e => e.id === id)?._visibility;
+  if (!nu || nu === 'hidden') return true;
+  const bezit = await api.getItemBezit(id).catch(() => null);
+  const dragers = [...new Set((bezit?.groepen || [])
+    .flatMap(g => (g.rijen || []).filter(r => r.bron === 'kaartje').map(r => r.naam || 'een speler')))];
+  if (!dragers.length) return true;
+  const wie = dragers.length === 1 ? dragers[0]
+    : dragers.slice(0, -1).join(', ') + ' en ' + dragers[dragers.length - 1];
+  const heeft = dragers.length === 1 ? 'heeft' : 'hebben';
+  // Geen "zijn/haar": we weten niet wie er achter een personage zit.
+  return confirm(`${wie} ${heeft} dit voorwerp. Verbergen haalt het daar weg.\n\nHet eigendom blijft bestaan: zichtbaar maken zet het terug.\n\nToch verbergen?`);
+}
+
 window._toggleVis = async (tab, id, event) => {
   const toVague = event?.shiftKey && ['personages', 'locaties', 'organisaties'].includes(tab);
   // Een voorwerp verbergen haalt het uit de boedel van wie het draagt: de
