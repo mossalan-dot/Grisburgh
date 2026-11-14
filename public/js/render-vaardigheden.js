@@ -647,9 +647,27 @@ function _kaartBladen(it) {
   const regel = _featOnderTitel(it);
   if (regel && !bladen.some(b => b.soort === 'portret')) {
     const blad = bladen.find(b => b.soort === 'beschrijving');
-    if (blad) blad.html = `<p class="tegel-feitregel">${esc(regel)}</p>${blad.html}`;
+    if (blad) blad.html = `<p class="tegel-feitregel">${_featOnderTitelHtml(it)}</p>${blad.html}`;
   }
   return bladen;
+}
+
+// De namen van alle spreuken die de bibliotheek kent, voor de kiezer bij
+// "Geeft spreuk". Lui geladen: de lijst is 500+ regels en je hebt hem alleen
+// nodig als je een feat openslaat om te bewerken.
+let _spreukNamen = null;
+async function _spreukNamenLaden() {
+  if (_spreukNamen) return _spreukNamen;
+  try { _spreukNamen = (await window.spreuken?.alle?.() || []).map(sp => sp.name).sort(); }
+  catch { _spreukNamen = []; }
+  return _spreukNamen;
+}
+
+function _spreukChipsHtml(lijst) {
+  if (!lijst.length) return '';
+  return lijst.map((n, i) => `<span class="vd-spreukchip">${esc(n)}
+    <button type="button" title="Weghalen"
+      onclick="window.vaardigheden.spreukEraf(${i})">${icon('x')}</button></span>`).join('');
 }
 
 // Wat een feat is en vraagt, als één regel. Eerst stond het als tweekoloms
@@ -664,8 +682,51 @@ function _featOnderTitel(it) {
   return [
     it.categorie || '',
     it.vereist || '',
+    // De kale versie wordt alleen gebruikt om te toetsen óf er iets staat; de
+    // zin zelf komt uit `_featOnderTitelHtml`.
     (it.geeftSpreuk || []).length ? `geeft ${(it.geeftSpreuk || []).join(', ')}` : '',
   ].filter(Boolean).join(' \u00b7 ');
+}
+
+// Dezelfde regel, maar met de spreuknaam in een `sb-spellijst` — dan maakt
+// `window.spreuken.linkInDom()` er een knop naar het spreukenboek van, net als
+// in een statblok. Vanaf het kaartje kom je zo in één klik bij de spreuk die
+// de feat je geeft; dat was eerder alleen in het venster zo.
+function _featOnderTitelHtml(it) {
+  if (it.soort !== 'feat' && it.soort !== 'boon') return '';
+  return [
+    it.categorie ? esc(it.categorie) : '',
+    it.vereist ? esc(it.vereist) : '',
+    _geeftZin(it.geeftSpreuk || []),
+  ].filter(Boolean).join(' \u00b7 ');
+}
+
+// De negen niveaus zoals D&D ze noemt; een spreuk van niveau 0 heet een
+// cantrip en niets anders.
+const _SP_ORD = ['', '1st', '2nd', '3rd', '4th', '5th', '6th', '7th', '8th', '9th'];
+
+// "geeft de cantrip Friends", "geeft de 1st level spell Mage Armor". Het
+// niveau is het verschil tussen iets wat je onbeperkt doet en iets wat een
+// slot kost, dus het hoort erbij. Kennen we de spreuk niet (een eigen spreuk
+// van de campagne), dan staat er gewoon de naam — liever geen niveau dan een
+// verzonnen niveau.
+function _geeftZin(namen) {
+  if (!namen.length) return '';
+  const perNiveau = new Map();
+  for (const n of namen) {
+    const lvl = _spreukNiveau?.get(String(n).toLowerCase());
+    const sleutel = (lvl === undefined || lvl === null) ? '?' : lvl;
+    if (!perNiveau.has(sleutel)) perNiveau.set(sleutel, []);
+    perNiveau.get(sleutel).push(n);
+  }
+  const stukken = [...perNiveau.entries()].map(([lvl, lijst]) => {
+    const namenHtml = `<span class="sb-spellijst">${lijst.map(esc).join(', ')}</span>`;
+    if (lvl === '?') return namenHtml;
+    const meer = lijst.length > 1;
+    if (lvl === 0) return `de cantrip${meer ? 's' : ''} ${namenHtml}`;
+    return `de ${_SP_ORD[lvl] || `${lvl}e`} level spell${meer ? 's' : ''} ${namenHtml}`;
+  });
+  return `geeft ${stukken.join(' en ')}`;
 }
 
 // Het level dat een feat vraagt. Staat het niet op de regel zelf, dan kent de
@@ -697,10 +758,10 @@ function _kaartBladInhoud(it, blad) {
   if (blad.soort === 'portret') {
     const niveaus = (it.levels || [it.level]).join(' \u00b7 ');
     const meta = [_bronRegel(it), _toontLevel(it.soort, it.level) ? `level ${niveaus}` : ''].filter(Boolean).join(' \u00b7 ');
-    const regel = meta || _featOnderTitel(it);
+    const regel = meta ? esc(meta) : _featOnderTitelHtml(it);
     return `<div class="tegel-naamband tegel-naamband--groot">
       <span class="card-name">${esc(it.naam)}</span>
-      ${regel ? `<span class="tegel-ondertitel">${esc(regel)}</span>` : ''}</div>`;
+      ${regel ? `<span class="tegel-ondertitel">${regel}</span>` : ''}</div>`;
   }
   return `<div class="tegel-vel">
     <div class="tegel-vel-kop">${icon(_KAART_BLAD_ICOON[blad.soort] || 'square')} ${esc(blad.label)}<span class="tegel-vel-naam">${esc(it.naam)}</span></div>
@@ -952,6 +1013,7 @@ function _kort(tekst) {
 // uit komen. De Artificer staat niet in de SRD; daarvan tonen we alleen wat we
 // weten, in plaats van de rest te raden.
 let _klasseBasis = null, _spreukKlassen = null, _spreukAantal = null, _tellers = null, _featKoppel = null, _mcEisen = null;
+let _spreukNiveau = null;   // spreuknaam → niveau (0 = cantrip)
 // Creature Type, Size en Speed per species — de drie regels waar het boek mee
 // begint. Meegeleverd in `bronnen/species-basis.json`; wat de campagne zelf
 // invult gaat eroverheen. Zelfde afspraak als bij de kerngegevens van een class.
@@ -1053,9 +1115,14 @@ async function _klasseExtra() {
   // spreukenbron; zo weet een feat die Misty Step geeft vanzelf bij wie hij
   // hoort, zonder dat iemand dat ergens invult.
   _spreukKlassen = new Map();
+  // En op welk niveau staat hij? "Geeft Friends" zegt minder dan "geeft de
+  // cantrip Friends": het niveau bepaalt of het iets is wat je onbeperkt doet
+  // of een slot kost, en dat is precies wat je bij een feat wilt weten.
+  _spreukNiveau = new Map();
   for (const sp of (spreuken?.results || [])) {
     const klassen = (sp.classes || []).map(c => c.name).filter(Boolean);
     _spreukKlassen.set(String(sp.name || '').toLowerCase(), klassen);
+    _spreukNiveau.set(String(sp.name || '').toLowerCase(), Number(sp.level) || 0);
     for (const k of klassen) _spreukAantal.set(k, (_spreukAantal.get(k) || 0) + 1);
   }
   // De tellers (hoeveel cantrips en voorbereide spreuken per level) staan in
@@ -2266,6 +2333,10 @@ function _paint() {
   grid.innerHTML = (lijst.length
       ? lijst.map(_card).join('')
       : `<p class="spreuk-empty">Niets gevonden.</p>`);
+  // De spreuk die een feat geeft is een knop naar het spreukenboek — ook hier
+  // in het raster, niet alleen in het venster. De bibliotheek laadt lui, dus
+  // dit mag niets blokkeren; hij vult de knoppen in zodra hij binnen is.
+  window.spreuken?.linkInDom?.(grid);
   const tel = document.getElementById('vaardig-telling');
   if (tel) tel.textContent = `${lijst.length} van ${(_all || []).length}`;
 }
@@ -2382,18 +2453,31 @@ function _featKoppelingHtml(it) {
   if (!k) return '';
   const chips = (lijst) => lijst.sort().map(n =>
     `<button class="vk-feat" onclick="window.vaardigheden.naarKlasse('${escArg(n)}')">${icon(_klasseIcoon(n))} ${esc(n)}</button>`).join('');
-  const rij = (label, uitleg, lijst) => lijst.length ? `
+  // De uitleg achter elke kop ("hier aan gehangen", "staat op hun lijst") is
+  // eraf: een kop die zichzelf moet uitleggen is de verkeerde kop, en drie
+  // regels onderschrift onder een feat lezen als een handleiding.
+  const rij = (label, lijst) => lijst.length ? `
     <div class="vk-featrij">
-      <div class="vk-featrij-kop">${esc(label)} <span>${esc(uitleg)}</span></div>
+      <div class="vk-featrij-kop">${esc(label)}</div>
       <div class="vk-featchips">${chips(lijst)}</div>
     </div>` : '';
+  // **De spreuk is hier het antwoord, niet de klassen.** Hij stond als
+  // voetnoot onder een rij classes die groter was afgedrukt — terwijl je bij
+  // "geeft een spreuk" wilt weten wélke. De naam staat nu bovenaan en de
+  // classes eronder als bijregel; `sb-spellijst` maakt er een knop naar het
+  // spreukenboek van zodra de bibliotheek geladen is.
+  const spreukRij = !k.geeftSpreuk.length ? '' : `
+    <div class="vk-featrij">
+      <div class="vk-featrij-kop">Geeft een spreuk</div>
+      <div class="vk-spreuknaam sb-spellijst">${k.geeftSpreuk.map(esc).join(', ')}</div>
+      ${k.viaSpreuk.length ? `<div class="vk-featbijregel">Op de lijst van ${k.viaSpreuk.sort().map(esc).join(' \u00b7 ')}</div>` : ''}
+    </div>`;
   return `
     <div class="vk-feats vk-feats--omgekeerd">
       ${(k.eis || k.eisLevel) ? `<div class="vk-eis">${icon('lock')} <strong>Prerequisite</strong> ${esc([k.eisLevel ? `Level ${k.eisLevel}+` : '', k.eis].filter(Boolean).join(', '))}</div>` : ''}
-      ${rij('Aangewezen', 'hier aan gehangen', k.aangewezen)}
-      ${rij('Via de eis', 'deze klassen geven die training', k.viaEis)}
-      ${rij('Geeft een spreuk', 'staat op hun lijst', k.viaSpreuk)}
-      ${k.geeftSpreuk.length ? `<p class="vk-feats-noot">Geeft: <span class="sb-spellijst">${k.geeftSpreuk.map(esc).join(', ')}</span>.</p>` : ''}
+      ${rij('Aangewezen', k.aangewezen)}
+      ${rij('Via de eis', k.viaEis)}
+      ${spreukRij}
     </div>`;
 }
 
@@ -3548,10 +3632,22 @@ function _editorHtml() {
           style="max-width:90px" value="${e.vereistLevel ? esc(String(e.vereistLevel)) : ''}"
           placeholder="4">
       </div>
+      <!-- Een komma-tekstvak dus niet: een spreuk heet precies een ding, en
+           een typefout levert een naam op die nergens naar wijst. Zelfde
+           patroon als elke andere kiezer in de app: typen filtert, kiezen
+           voegt toe, en wat erin staat is een chip die je weer weg kunt halen.
+           (Geen backticks in commentaar hierbinnen: template literal.) -->
       <div class="dm-form-row">
-        <label class="dm-form-label">Geeft spreuk</label>
-        <input class="dm-input" id="vd-geeft" value="${esc((e.geeftSpreuk || []).join(', '))}"
-          placeholder="bv. Misty Step, Detect Thoughts">
+        <label class="dm-form-label" for="vd-geeft">Geeft spreuk</label>
+        <div class="vd-spreukkiezer">
+          <div class="vd-spreukchips" id="vd-geeft-chips">${_spreukChipsHtml(e.geeftSpreuk || [])}</div>
+          <input class="dm-input" id="vd-geeft" list="vd-spreuk-dl" autocomplete="off"
+            placeholder="Zoek een spreuk\u2026"
+            onchange="window.vaardigheden.spreukErbij()"
+            onkeydown="if(event.key==='Enter'){event.preventDefault();window.vaardigheden.spreukErbij();}">
+          <datalist id="vd-spreuk-dl">${(_spreukNamen || []).map(n =>
+            `<option value="${esc(n)}"></option>`).join('')}</datalist>
+        </div>
       </div>
       <!-- Veertien vinkjes met klasse-iconen namen het halve formulier in
            beslag terwijl je ze bij de meeste feats niet aanraakt. Dichtgevouwen
@@ -3696,9 +3792,9 @@ function _editorLees() {
   if (basis) _edit.basis = basis;
   const onderdelen = _bgUitFormulier();
   if (onderdelen) _edit.onderdelen = onderdelen;
-  if (v('vd-geeft') !== undefined) {
-    _edit.geeftSpreuk = v('vd-geeft').split(',').map(x => x.trim()).filter(Boolean);
-  }
+  // `geeftSpreuk` wordt niet uit een tekstvak gelezen: de chips erboven zijn
+  // de stand, en `spreukErbij`/`spreukEraf` houden `_edit` bij. Het veld
+  // `vd-geeft` is alleen de zoekingang en hoort hier dus niet thuis.
   const vinkjes = document.querySelectorAll('.vd-klasse-vink');
   if (vinkjes.length) _edit.sluitAan = [...vinkjes].filter(c => c.checked).map(c => c.value);
   // De focuskiezer staat buiten de gewone velden; zijn waarde leest hij zelf uit.
@@ -3761,6 +3857,7 @@ window.vaardigheden = {
       el.querySelectorAll('.tegel-punt').forEach((p, j) => p.classList.toggle('is-aan', j === _kaartBlad[key]));
       el.setAttribute('aria-label', `${it.naam}, blad ${_kaartBlad[key] + 1} van ${bladen.length}`);
       window.glossary?.applyDom?.(blad);
+      window.spreuken?.linkInDom?.(blad);
       window.spreuken?.linkInProza?.(blad.querySelector('.tegel-tekst'));
     };
     if (window._tegelBlader) await window._tegelBlader(el, _kaartBlad[key] > vorige ? 1 : -1, wissel);
@@ -3803,7 +3900,21 @@ window.vaardigheden = {
       if (_filters.bron && !maaksel.startsWith('h-')) { _edit.bron = _filters.bron; _editorHerteken(); }
     }, 60);
   },
-  bewerk(key) { _editorOpen((_all || []).find(x => x.key === key)); },
+  bewerk(key) {
+    const it = (_all || []).find(x => x.key === key);
+    _editorOpen(it);
+    // De spreukenbibliotheek laadt lui. Hem hier ophalen en het formulier
+    // daarna nog eens tekenen is de goedkoopste weg naar een gevulde
+    // keuzelijst: het venster staat er al, en je bent dan nog aan het lezen.
+    if (it?.soort === 'feat' || it?.soort === 'boon') {
+      _spreukNamenLaden().then(() => {
+        const dl = document.getElementById('vd-spreuk-dl');
+        if (dl && !dl.children.length) {
+          dl.innerHTML = (_spreukNamen || []).map(n => `<option value="${esc(n)}"></option>`).join('');
+        }
+      });
+    }
+  },
   // Kiezen gaat via dezelfde mediabibliotheek als in de bewerkmodal; het
   // detailvenster tekent zichzelf daarna opnieuw, zodat het beeld er staat.
   veld(naam, waarde) {
@@ -4038,6 +4149,30 @@ window.vaardigheden = {
     kaart.querySelectorAll('.vk-blader .tegel-punt').forEach((s, j) => s.classList.toggle('is-aan', j === doel));
   },
   tegelReeks: (el, aan) => _tegelReeks(el, aan),
+  // Een spreuk erbij of eraf bij "Geeft spreuk". De chips zijn de stand; het
+  // zoekveld is alleen de ingang. Een naam die de bibliotheek niet kent mag
+  // erin — een campagne mag eigen spreuken hebben — maar hij wordt wel
+  // rechtgetrokken naar onze schrijfwijze, zodat de koppeling naar het
+  // spreukenboek werkt.
+  spreukErbij() {
+    const veld = document.getElementById('vd-geeft');
+    const naam = String(veld?.value || '').trim();
+    if (!naam || !_edit) return;
+    const juist = (_spreukNamen || []).find(n => n.toLowerCase() === naam.toLowerCase()) || naam;
+    _edit.geeftSpreuk = _edit.geeftSpreuk || [];
+    if (!_edit.geeftSpreuk.some(n => n.toLowerCase() === juist.toLowerCase())) {
+      _edit.geeftSpreuk.push(juist);
+    }
+    veld.value = '';
+    const chips = document.getElementById('vd-geeft-chips');
+    if (chips) chips.innerHTML = _spreukChipsHtml(_edit.geeftSpreuk);
+  },
+  spreukEraf(i) {
+    if (!_edit?.geeftSpreuk) return;
+    _edit.geeftSpreuk.splice(i, 1);
+    const chips = document.getElementById('vd-geeft-chips');
+    if (chips) chips.innerHTML = _spreukChipsHtml(_edit.geeftSpreuk);
+  },
   blader(knop, richting) {
     const kaart = knop.closest('.vk-kaart');
     if (!kaart) return;
