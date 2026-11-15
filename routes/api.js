@@ -6832,16 +6832,37 @@ function _maakSpreuken() {
 // kleine letter ("Potter's tools").
 function _gereedschapLijst() {
   const kaal = (n) => String(n || '').replace(/\s*\(\d+[^)]*\)\s*$/, '').trim();
+  // Bij twee schrijfwijzen wint die met de hoofdletters: zo drukt de Player's
+  // Handbook hem af. Let op dat een kale `>`-vergelijking dat juist omkéért —
+  // in ASCII komt 'tools' ná 'Tools'.
+  const netjes = (n) => (/(^|\s)[a-z]\w*$/.test(n) ? 0 : 1);
+  // "Gaming Set, Dice" leest als een rij uit een tabel; op een blad en in de
+  // boedel heet het ding "Dice Set". Dezelfde namen als de kaartjes die
+  // `scripts/gereedschap-kaartjes.js` aanmaakt — anders staat er in de maker
+  // iets anders dan in het archief.
+  const toon = (n) => {
+    const m = n.match(/^(Gaming Set|Musical Instrument),\s*(.+)$/i);
+    if (!m) return n;
+    return /^gaming set$/i.test(m[1]) ? `${m[2]} Set` : m[2];
+  };
   const opNaam = new Map();
   for (const it of (bronnen.lees('srd-items')?.items || [])) {
     const n = kaal(it?.name);
     if (!/(tools|supplies|kit)$|^gaming set|^musical instrument/i.test(n)) continue;
-    // Bij twee schrijfwijzen wint die met de hoofdletters: dat is hoe de PHB
-    // hem afdrukt.
     const sleutel = n.toLowerCase();
-    if (!opNaam.has(sleutel) || n > opNaam.get(sleutel)) opNaam.set(sleutel, n);
+    if (!opNaam.has(sleutel) || netjes(n) > netjes(opNaam.get(sleutel))) opNaam.set(sleutel, n);
   }
-  return [...opNaam.values()].sort((a, b) => a.localeCompare(b));
+  // Mét zijn soort erbij. De client moet kunnen zeven op "choose one kind of
+  // Artisan's Tools", en dat kan niet meer aan de naam: "Dice Set" en "Lute"
+  // zeggen zelf niet meer wát ze zijn sinds de naam leesbaar is gemaakt.
+  return [...opNaam.values()]
+    .map(n => ({
+      naam: toon(n),
+      soort: /^gaming set/i.test(n) ? 'spel'
+        : /^musical instrument/i.test(n) ? 'instrument'
+        : /(tools|supplies)$/i.test(n) ? 'ambacht' : 'overig',
+    }))
+    .sort((a, b) => a.naam.localeCompare(b.naam));
 }
 
 function _maakBronnen() {

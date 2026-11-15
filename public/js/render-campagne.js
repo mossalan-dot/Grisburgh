@@ -5244,7 +5244,7 @@ window._makerVoorDm = async () => {
     gid = keuze;
   }
   try {
-    await import('./personage-maken.js?v=22');
+    await import('./personage-maken.js?v=23');
     // Zodra de maker dichtgaat staat het kaartje er; het raster erachter weet
     // dat nog niet. Hetzelfde als na het opslaan van een nieuw kaartje: open
     // en in beeld.
@@ -6130,7 +6130,14 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
   // wordt gevuld met het tier dat bij het level van het baasje hoort.
   const _isDier   = isPersonage && String(e.subtype || '').toLowerCase() === 'dier';
   const _isSpeler = isPersonage && String(e.subtype || '').toLowerCase() === 'speler';
-  const showSheet = isPersonage && isDM() && (_sheetGevuld || _isDier);
+  // **Een speler heeft geen statblok.** Zijn gegevens staan in zijn profiel
+  // (`playerProfiles`), en dáár tekent `_bladHtml` het blad uit — hetzelfde
+  // profiel als de afdruk. `_sheetGevuld` keek alleen naar `e.stats`, dat bij
+  // een speler per definitie leeg is, dus de tab verscheen nooit: het blad
+  // stond klaar en werd nergens getoond, terwijl "Blad afdrukken" het wel gaf.
+  const _bladGevuld = _isSpeler && !!_bladProfiel
+    && Object.entries(_bladProfiel).some(([k, v]) => k !== 'klasse' && String(v ?? '').trim());
+  const showSheet = isPersonage && isDM() && (_sheetGevuld || _isDier || _bladGevuld);
   // Het origineel is voor de lightbox; alles wat kleiner op het scherm staat
   // (de hero in het venster, het portretje in de kop) krijgt de thumbnail.
   const fileUrl  = api.fileForEntity(e);

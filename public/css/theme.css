@@ -33950,3 +33950,14 @@ body.gr-slowmo .combat-overlay { filter: grayscale(.85) contrast(1.1) brightness
   font-family: 'IM Fell English', serif; font-style: italic;
   font-size: .85rem; color: var(--ps-inkt-mid); align-self: center;
 }
+
+/* Een spreukverwijzing in de naamband van een kaartje. Daar ligt paars op een
+   donkere plaat en is het niet te lezen; neem gewoon de kleur van de regel
+   over en laat de onderstreping het werk doen. */
+.tegel-naamband .sb-spell,
+.tegel-ondertitel .sb-spell {
+  color: inherit;
+  text-decoration-color: rgba(255, 255, 255, .55);
+}
+.tegel-naamband .sb-spell:hover,
+.tegel-ondertitel .sb-spell:hover { color: inherit; text-decoration-color: currentColor; }

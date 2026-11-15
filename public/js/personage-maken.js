@@ -655,11 +655,11 @@ function _skillsHtml() {
       // staat in de zin zelf, dus die zeeft de lijst.
       const alles = P.bronnen.gereedschap || [];
       const zin = String(bg.tool || '').toLowerCase();
-      const soort = /gaming set/.test(zin) ? /^gaming set/i
-        : /instrument/.test(zin) ? /^musical instrument/i
-        : /artisan/.test(zin) ? /(tools|supplies)$/i
-        : null;
-      const uitLijst = soort ? alles.filter(n => soort.test(n)) : alles;
+      const soort = /gaming set/.test(zin) ? 'spel'
+        : /instrument/.test(zin) ? 'instrument'
+        : /artisan/.test(zin) ? 'ambacht'
+        : '';
+      const uitLijst = (soort ? alles.filter(g => g.soort === soort) : alles).map(g => g.naam);
       return `
       <div class="ps-subkeuze">
         <div class="ps-subkop">${esc(bg.tool)}</div>

@@ -713,21 +713,23 @@ const _SP_ORD = ['', '1st', '2nd', '3rd', '4th', '5th', '6th', '7th', '8th', '9t
 // verzonnen niveau.
 function _geeftZin(namen) {
   if (!namen.length) return '';
-  const perNiveau = new Map();
-  for (const n of namen) {
-    const lvl = _spreukNiveau?.get(String(n).toLowerCase());
-    const sleutel = (lvl === undefined || lvl === null) ? '?' : lvl;
-    if (!perNiveau.has(sleutel)) perNiveau.set(sleutel, []);
-    perNiveau.get(sleutel).push(n);
+  const niveauVan = (n) => _spreukNiveau?.get(String(n).toLowerCase());
+  // **Meer dan één: dan alleen hoevéél soort.** Conjuration Adept geeft er
+  // vier, en de hele rij paste niet op één regel — hij brak af op "en de 2nd
+  // level spell …". Wélke het zijn lees je in het venster; hier is het genoeg
+  // om te weten dát hij spreuken geeft, en of er cantrips bij zitten.
+  if (namen.length > 1) {
+    const cantrips = namen.some(n => niveauVan(n) === 0);
+    const spreuken = namen.some(n => (niveauVan(n) ?? 1) > 0);
+    if (cantrips && spreuken) return 'geeft meerdere cantrips en spreuken';
+    return cantrips ? 'geeft meerdere cantrips' : 'geeft meerdere spreuken';
   }
-  const stukken = [...perNiveau.entries()].map(([lvl, lijst]) => {
-    const namenHtml = `<span class="sb-spellijst">${lijst.map(esc).join(', ')}</span>`;
-    if (lvl === '?') return namenHtml;
-    const meer = lijst.length > 1;
-    if (lvl === 0) return `de cantrip${meer ? 's' : ''} ${namenHtml}`;
-    return `de ${_SP_ORD[lvl] || `${lvl}e`} level spell${meer ? 's' : ''} ${namenHtml}`;
-  });
-  return `geeft ${stukken.join(' en ')}`;
+  const naam = namen[0];
+  const lvl = niveauVan(naam);
+  const namenHtml = `<span class="sb-spellijst">${esc(naam)}</span>`;
+  if (lvl === undefined || lvl === null) return `geeft ${namenHtml}`;
+  if (lvl === 0) return `geeft de cantrip ${namenHtml}`;
+  return `geeft de ${_SP_ORD[lvl] || `${lvl}e`} level spell ${namenHtml}`;
 }
 
 // Het level dat een feat vraagt. Staat het niet op de regel zelf, dan kent de
