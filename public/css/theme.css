@@ -32380,7 +32380,16 @@ body.gr-slowmo .combat-overlay { filter: grayscale(.85) contrast(1.1) brightness
 .ps-kaart-medaillon svg.icon { width: 26px; height: 26px; }
 .ps-kaart:hover .ps-kaart-medaillon { transform: scale(1.07) rotate(-3deg); }
 .ps-kaart-tekst { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
-.ps-kaart-naam { font-family: 'Cinzel', Georgia, serif; font-weight: 700; color: var(--ps-inkt); font-size: .98rem; line-height: 1.12; overflow-wrap: anywhere; }
+/* `overflow-wrap: anywhere` brak midden in een woord af — "ANTHROPOLOG /
+   IST". Dat was er voor namen die breder zijn dan de kaart; nu krimpt de
+   letter een slag mee in plaats van te breken, en pas als dat niet genoeg is
+   mag hij alsnog ergens afbreken. */
+.ps-kaart-naam {
+  font-family: 'Cinzel', Georgia, serif; font-weight: 700; color: var(--ps-inkt);
+  font-size: clamp(.74rem, 2.1cqw + .42rem, .98rem); line-height: 1.12;
+  overflow-wrap: break-word; hyphens: auto;
+}
+.ps-kaart { container-type: inline-size; }
 .ps-kaarten--klein .ps-kaart-naam { font-size: .82rem; }
 .ps-kaart-onder { font-family: 'IM Fell English', Georgia, serif; font-style: italic; color: var(--ps-inkt-dim); font-size: .8rem; line-height: 1.25;
   display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
@@ -33933,4 +33942,11 @@ body.gr-slowmo .combat-overlay { filter: grayscale(.85) contrast(1.1) brightness
 }
 @media (max-width: 620px) {
   .ps-blader .ps-kaarten { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+/* Waarom de knop Verder uitstaat. Naast de knop en niet eronder: daar kijk je
+   als je hem indrukt en er niets gebeurt. */
+.ps-voet-reden {
+  font-family: 'IM Fell English', serif; font-style: italic;
+  font-size: .85rem; color: var(--ps-inkt-mid); align-self: center;
 }

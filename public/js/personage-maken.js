@@ -49,7 +49,7 @@ const METHODE = {
   rollen:   { label: 'Rollen',         lead: 'Zes keer 4d6, de laagste valt af. Daarna koppel je elke worp aan de ability die jij wilt.' },
   pointbuy: { label: 'Point buy',      lead: 'Alles begint op 8. Je hebt 27 punten; boven de 13 kost elke stap er meer.' },
   array:    { label: 'Standaardreeks', lead: 'Verdeel 15, 14, 13, 12, 10 en 8 over je abilities.' },
-  vrij:     { label: 'Vrij intikken',  lead: 'Zes vakjes, zelf invullen. Voor een personage dat elders is gemaakt.' },
+  vrij:     { label: 'Vrij invullen',  lead: 'Zes vakjes, zelf invullen. Voor een personage dat elders is gemaakt.' },
 };
 const EMOTE_MAX = 4;
 const OPNAME_MAX_SEC = 6;
@@ -59,7 +59,7 @@ const P = {
   c: null, bronnen: null, inst: null, profiel: null, nakijk: null,
   slotsPer: {}, groeiSlots: [], spreukFeats: [], rerollsOver: 0,
   scherm: 'drempel', stapId: 'naam', bezig: false,
-  zoek: {}, blad: {}, opname: null, rolt: false, zegel: false,
+  zoek: {}, blad: {}, greep: {}, opname: null, rolt: false, zegel: false,
 };
 
 const abMod = (s) => Math.floor(((parseInt(s) || 10) - 10) / 2);
@@ -133,11 +133,35 @@ function _zoekVeld(sleutel, aantal) {
 // dit is voor wie rondkijkt.
 const _PER_BLAD = 6;
 
-function _rasterHtml(sleutel, kaarten, klein = false) {
+// **Het eerste blad is een greep, geen begin van het alfabet.** Negenenvijftig
+// species op alfabet beginnen met Aarakocra, Aasimar, Astral Elf — en wie niet
+// weet wat hij zoekt, kiest dan uit de A. Een willekeurige zes nodigt uit om
+// te kijken; vanaf het tweede blad staat alles gewoon op volgorde. Bij de
+// classes niet: dat zijn er veertien en die kent iedereen.
+//
+// De greep ligt vast zolang de maker openstaat. Opnieuw trekken bij elke
+// hertekening zou de kaarten onder je muis laten verspringen.
+function _greep(sleutel, kaarten) {
+  if (!P.greep[sleutel] || P.greep[sleutel].aantal !== kaarten.length) {
+    const volgorde = kaarten.map((_, i) => i);
+    for (let i = volgorde.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [volgorde[i], volgorde[j]] = [volgorde[j], volgorde[i]];
+    }
+    P.greep[sleutel] = { aantal: kaarten.length, idx: volgorde.slice(0, _PER_BLAD) };
+  }
+  return P.greep[sleutel].idx.map(i => kaarten[i]).filter(Boolean);
+}
+
+function _rasterHtml(sleutel, kaarten, klein = false, metGreep = false) {
   if (!kaarten.length) return '<p class="ps-hint">Niets gevonden.</p>';
-  const bladen = Math.ceil(kaarten.length / _PER_BLAD);
+  // Zoek je, dan wil je je treffers zien en geen willekeurige greep.
+  const greep = metGreep && !String(P.zoek[sleutel] || '').trim() && kaarten.length > _PER_BLAD;
+  const bladen = Math.ceil(kaarten.length / _PER_BLAD) + (greep ? 1 : 0);
   const nu = Math.min(P.blad[sleutel] || 0, bladen - 1);
-  const zicht = kaarten.slice(nu * _PER_BLAD, (nu + 1) * _PER_BLAD);
+  const zicht = (greep && nu === 0)
+    ? _greep(sleutel, kaarten)
+    : kaarten.slice((nu - (greep ? 1 : 0)) * _PER_BLAD, (nu - (greep ? 1 : 0) + 1) * _PER_BLAD);
   const raster = `<div class="ps-kaarten${klein ? ' ps-kaarten--klein' : ''}">${zicht.join('')}</div>`;
   if (bladen < 2) return raster;
   const pijl = (richting, titel) => `<button type="button" class="ps-blader-pijl"
@@ -150,7 +174,9 @@ function _rasterHtml(sleutel, kaarten, klein = false) {
       <div class="ps-blader-vak">${raster}</div>
       ${pijl(1, 'Volgende')}
     </div>
-    <div class="ps-blader-stand">${nu + 1} van ${bladen}</div>`;
+    <div class="ps-blader-stand">${greep && nu === 0
+      ? 'Een greep uit alles — blader door voor de hele lijst'
+      : `${nu + 1} van ${bladen}`}</div>`;
 }
 
 function _gefilterd(sleutel, lijst, tekst, gekozen) {
@@ -175,6 +201,7 @@ const STAPPEN = [
     id: 'naam', boven: 'Naam', kop: 'Hoe heet je?',
     velden: ['naam', 'level'],
     kan: () => !!String(P.c.naam || '').trim(),
+    reden: () => 'Geef hem eerst een naam.',
     html() {
       const max = P.inst?.maxLevel || 1;
       return `
@@ -204,6 +231,7 @@ const STAPPEN = [
     id: 'afkomst', boven: 'Species', kop: 'Wat ben je?',
     velden: ['species', 'speciesVariant'],
     kan: () => !!P.c.species,
+    reden: () => 'Kies een species.',
     html() {
       const lijst = P.bronnen.species || [];
       const zicht = _gefilterd('species', lijst, s => `${s.naam} ${s.traits.join(' ')}`, P.c.species);
@@ -214,7 +242,7 @@ const STAPPEN = [
         ${_rasterHtml('species', zicht.map(s => _kaart({
           naam: s.naam, beeld: s.beeld, icoon: _icoonSpecies(s.naam), aan: s.naam === P.c.species, actie: 'species',
           onder: [s.basis?.size, s.basis?.speed].filter(Boolean).join(' · ') || s.traits.slice(0, 3).join(' · '),
-        })))}
+        })), false, true)}
         ${volk?.varianten?.length ? `
           <div class="ps-subkeuze">
             <div class="ps-subkop">${esc(volk.variantLabel || 'Variant')}</div>
@@ -230,6 +258,7 @@ const STAPPEN = [
     id: 'roeping', boven: 'Class', kop: 'Wat doe je?',
     velden: ['klasse', 'subclass', 'multiKlasse', 'multiKlasseLevel', 'multiSubclass'],
     kan: () => !!P.c.klasse,
+    reden: () => 'Kies een class.',
     html() {
       const level = parseInt(P.c.level) || 1;
       const k = klasseVan(P.c.klasse);
@@ -249,44 +278,55 @@ const STAPPEN = [
   {
     id: 'herkomst', boven: 'Background', kop: 'Waar kom je vandaan?',
     velden: ['background'],
+    // Een background is in 2024 geen smaakkwestie: hij geeft je twee skills,
+    // een tool, een feat en de verhoging op je abilities. Zonder is je blad
+    // niet af — vandaar dat je hier niet langs kunt zonder te kiezen.
+    kan: () => !!P.c.background,
+    reden: () => 'Kies een background.',
     html() {
       const lijst = P.bronnen.backgrounds || [];
       const zicht = _gefilterd('background', lijst, b => `${b.naam} ${b.skills.join(' ')} ${b.feat} ${b.feature}`, P.c.background);
       return `
-        <p class="ps-lead">Je background geeft skills, gereedschap, een feat en een verhoging op je abilities.
-          <em>Niets kiezen mag; dan mis je wat hij meegeeft.</em></p>
+        <p class="ps-lead">Je background geeft skills, gereedschap, een feat en een verhoging op je abilities.</p>
         ${_zoekVeld('background', lijst.length)}
         ${_rasterHtml('background', zicht.map(b => _kaart({
           naam: b.naam, beeld: b.beeld, icoon: 'scroll-text', aan: b.naam === P.c.background, actie: 'background',
           onder: [[...b.skills, ...(b.skillKeuze ? ['+ keuze'] : [])].join(', '), b.feat || b.feature].filter(Boolean).join(' · '),
-        })))}`;
+        })), false, true)}`;
     },
   },
 
   {
-    id: 'dezes', boven: 'De zes getallen', kop: 'Je ability scores',
+    id: 'dezes', boven: 'Ability scores', kop: 'Je ability scores',
     velden: ['methode', 'scores', 'bgBonus'],
     kan: () => P.c.methode !== 'rollen' || (P.c.worpen || []).length === 6,
+    reden: () => 'Werp eerst de dobbelstenen.',
     html() { return _dezesHtml(); },
   },
 
   {
-    id: 'skills', boven: 'Waar je in uitblinkt', kop: 'Waar ben je goed in?',
+    id: 'skills', boven: 'Proficiencies', kop: 'Waar ben je goed in?',
     velden: ['skills', 'bgKeuze'],
+    kan: () => _skillsOver() === 0,
+    reden: () => `Nog ${_skillsOver()} skill${_skillsOver() === 1 ? '' : 's'} te kiezen.`,
     html() { return _skillsHtml(); },
   },
 
   {
-    id: 'spreuken', boven: 'Je grimoire', kop: 'Wat kun je oproepen?',
+    id: 'spreuken', boven: 'Cantrips and spells', kop: 'Welke spreuken ken je?',
     velden: ['spreukenPer'],
     beschikbaar: () => _spreukSecties().length > 0,
+    kan: () => _spreukenOver() === 0,
+    reden: () => `Nog ${_spreukenOver()} spreuk${_spreukenOver() === 1 ? '' : 'en'} te kiezen.`,
     html() { return _spreukenHtml(); },
   },
 
   {
-    id: 'groei', boven: 'Wat je werd', kop: 'Wat heb je onderweg geleerd?',
+    id: 'groei', boven: 'Onderweg', kop: 'Wat heb je onderweg geleerd?',
     velden: ['groei'],
     beschikbaar: () => (P.groeiSlots || []).length > 0,
+    kan: () => _groeiOver() === 0,
+    reden: () => `Nog ${_groeiOver()} keuze${_groeiOver() === 1 ? '' : 's'} open.`,
     html() { return _groeiHtml(); },
   },
 
@@ -301,8 +341,7 @@ const STAPPEN = [
     velden: ['verhaal', 'geheimen'],
     html() {
       return `
-        <p class="ps-lead">Wie was je voordat dit begon? <em>Mag leeg blijven</em> — maar hier wordt een stapel
-          getallen iemand.</p>
+        <p class="ps-lead">Wie was je voordat dit begon?</p>
         <textarea class="ps-verhaal" data-veld="verhaal" maxlength="6000"
           placeholder="Waar kom je vandaan, wat jaagt je op, wie mis je…">${esc(P.c.verhaal || '')}</textarea>
         <div class="ps-geheim-blok">
@@ -431,9 +470,15 @@ function _rolBlok() {
     <div class="ps-rij">
       ${!gerold
         ? `<button type="button" class="ps-knop ps-knop--goud" data-actie="rol">${ico('dices')} Werp de dobbelstenen</button>`
+        : P.rerollsOver < 0
+          // Onbeperkt: dat is de DM met zijn eigen maker. Geen teller, want er
+          // valt niets af te tellen.
+          ? `<button type="button" class="ps-knop ps-knop--spook" data-actie="rol">${ico('dices')} Opnieuw werpen</button>`
         : P.rerollsOver > 0
           ? `<button type="button" class="ps-knop ps-knop--spook" data-actie="rol">${ico('dices')} Opnieuw werpen (nog ${P.rerollsOver})</button>`
-          : `<span class="ps-hint">Wat je rolt, dat is het.</span>`}
+          // "Wat je rolt, dat is het" klonk als een spreekwoord dat je zelf
+          // moet uitleggen. Zeg gewoon hoe het werkt.
+          : `<span class="ps-hint">Aan deze tafel werp je één keer; deze set is de jouwe.</span>`}
     </div>
     ${gerold ? '<p class="ps-hint">Koppel elke worp aan een ability: kies hem in het vakje eronder, dan ruilen ze.</p>' : ''}`;
 }
@@ -500,12 +545,62 @@ function _bgBonusHtml() {
     <div class="ps-bonus">
       <div class="ps-subkop">Verhoging van ${esc(bg.naam)}</div>
       <p class="ps-hint">Geef er één +2 en één +1, of drie keer +1${bg.abilities?.length ? '' : ' — op welke ability je wilt, want deze background noemt er geen'}.</p>
-      <div class="ps-bonus-rij">${mag.map(a => `
+      <!-- De keuzelijsten houden zich aan de regel in plaats van hem achteraf
+           op te merken: +2 en +1, of drie keer +1 — samen altijd drie. Stond
+           er al een +2, dan bood het volgende vakje er nog een aan en kwam je
+           op vier uit; dat viel pas op in het nakijkvenster van de DM. Wat
+           niet meer past staat uit, dus je ziet wat er nog kan. -->
+      <div class="ps-bonus-rij">${mag.map(a => {
+        const nu = parseInt(P.c.bgBonus?.[a]) || 0;
+        const rest = 3 - mag.reduce((n, b) => n + (b === a ? 0 : (parseInt(P.c.bgBonus?.[b]) || 0)), 0);
+        return `
         <label class="ps-bonus-keuze">${esc(AB_NAAM[a])}
           <select data-bonus="${a}">${[0, 1, 2].map(n => `
-            <option value="${n}"${(parseInt(P.c.bgBonus?.[a]) || 0) === n ? ' selected' : ''}>+${n}</option>`).join('')}</select>
-        </label>`).join('')}</div>
+            <option value="${n}"${n === nu ? ' selected' : ''}${n > rest ? ' disabled' : ''}>+${n}</option>`).join('')}</select>
+        </label>`; }).join('')}</div>
+      <p class="ps-hint">${(() => {
+        const som = mag.reduce((n, b) => n + (parseInt(P.c.bgBonus?.[b]) || 0), 0);
+        return som === 3 ? 'Verdeeld.' : `Nog ${3 - som} te verdelen.`;
+      })()}</p>
     </div>`;
+}
+
+// ── Is een stap af? ──────────────────────────────────────────────────────────
+// De knop Verder stond op de helft van de stappen altijd aan: je kon langs de
+// skills, de spreuken en de groeikeuzes lopen zonder iets te kiezen, en zag
+// het pas terug als een opmerking in het nakijkvenster. Deze drie tellen wat
+// er nog open staat, met dezelfde regels als het scherm eronder tekent —
+// anders zegt de knop iets anders dan wat je ziet.
+function _skillsOver() {
+  const k = klasseVan(P.c.klasse);
+  if (!k) return 0;
+  const bg = bgVan(P.c.background);
+  const vast = new Set(bg?.skills || []);
+  const nodigBg = bg?.skillKeuze?.aantal || 0;
+  const bgOver = nodigBg - (P.c.bgKeuze?.skills || []).length;
+  const aantal = parseInt(k.basis?.skillAantal) || 0;
+  const gekozen = new Set((P.c.skills || []).filter(x => !vast.has(x)));
+  return Math.max(0, aantal - gekozen.size) + Math.max(0, bgOver);
+}
+
+function _spreukenOver() {
+  let over = 0;
+  for (const sec of _spreukSecties()) {
+    const g = (P.c.spreukenPer || {})[sec.sleutel] || {};
+    over += Math.max(0, (sec.cantrips || 0) - (g.cantrips || []).length);
+    over += Math.max(0, (sec.spreuken || 0) - (g.spreuken || []).length);
+  }
+  return over;
+}
+
+function _groeiOver() {
+  return (P.groeiSlots || []).filter(slot => {
+    const g = (P.c.groei || {})[slot.sleutel] || {};
+    if (slot.soort === 'boon') return !String(g.feat || '').trim();
+    if (g.keuze === 'feat') return !String(g.feat || '').trim();
+    if (g.keuze === 'asi') return Object.values(g.asi || {}).reduce((n, x) => n + (parseInt(x) || 0), 0) !== 2;
+    return true;                       // nog niets gekozen
+  }).length;
 }
 
 // ── Skills ───────────────────────────────────────────────────────────────────
@@ -528,15 +623,33 @@ function _skillsHtml() {
       data-actie="${actie}" data-naam="${esc(s)}">${ico('check')} ${esc(s)}
       <span class="ps-skill-ab">${esc((AB_NAAM[SKILLS[s]] || '').slice(0, 3))}</span></button>`;
   return `
-    ${vast.size ? `<p class="ps-lead">Van <strong>${esc(bg.naam)}</strong> krijg je ${[...vast].map(esc).join(' en ')}.</p>` : ''}
+    ${vast.size ? `<p class="ps-lead">Van je background (<strong>${esc(bg.naam)}</strong>) krijg je proficiency in ${
+      [...vast].map(esc).join(' en ')}.</p>` : ''}
     ${bg?.skillKeuze ? `
       <div class="ps-subkeuze ps-subkeuze--eerst">
         <div class="ps-subkop">${esc(bg.naam)}: kies er ${bg.skillKeuze.aantal === 1 ? 'één' : bg.skillKeuze.aantal}</div>
         <div class="ps-skills">${bg.skillKeuze.uit.map(s => knop(s, { aan: bgGekozen.has(s), actie: 'bgSkill' })).join('')}</div>
       </div>` : ''}
-    ${bg?.toolKeuze ? `
-      <label class="ps-veld ps-veld--breed"><span>${esc(bg.tool)}</span>
-        <input data-veld="bgTool" maxlength="60" value="${esc(P.c.bgKeuze?.tool || '')}" placeholder="Welke wordt het?"></label>` : ''}
+    ${bg?.toolKeuze ? (() => {
+      // "Choose one kind of Artisan's Tools" was een leeg tekstvak, en dan
+      // staat er op het ene blad "smithing" en op het andere "Smith's Tools".
+      // De namen staan in de meegeleverde itemlijst; welke soort je mag kiezen
+      // staat in de zin zelf, dus die zeeft de lijst.
+      const alles = P.bronnen.gereedschap || [];
+      const zin = String(bg.tool || '').toLowerCase();
+      const soort = /gaming set/.test(zin) ? /^gaming set/i
+        : /instrument/.test(zin) ? /^musical instrument/i
+        : /artisan/.test(zin) ? /(tools|supplies)$/i
+        : null;
+      const uitLijst = soort ? alles.filter(n => soort.test(n)) : alles;
+      return `
+      <div class="ps-subkeuze">
+        <div class="ps-subkop">${esc(bg.tool)}</div>
+        <div class="ps-skills">${uitLijst.map(n => `
+          <button type="button" class="ps-skill${P.c.bgKeuze?.tool === n ? ' is-aan' : ''}"
+            data-actie="bgTool" data-naam="${esc(n)}">${ico('check')} ${esc(n)}</button>`).join('')}</div>
+      </div>`;
+    })() : ''}
     <p class="ps-teller">Nog <strong>${Math.max(0, over)}</strong> te kiezen uit de lijst van je class.</p>
     <div class="ps-skills">${uit.map(s => knop(s, { isVast: vast.has(s) || bgGekozen.has(s), aan: vast.has(s) || bgGekozen.has(s) || gekozen.has(s) })).join('')}</div>`;
 }
@@ -590,14 +703,18 @@ function _spreukenHtml() {
             if (!hier.length) return '';
             return `
               <div class="ps-grim-groep">${n === 0 ? 'Cantrips' : `Level ${n}`}</div>
-              <div class="ps-spreuken">${hier.map(sp => `
-                <button type="button" class="ps-spreuk${mijn.has(sp.index) ? ' is-aan' : ''}"
-                  style="--school:${SCHOOL_KLEUR[sp.school] || '#8a7050'}"
-                  data-actie="spreuk" data-sectie="${esc(sec.sleutel)}" data-index="${esc(sp.index)}" data-niveau="${sp.niveau}">
-                  <span class="ps-spreuk-naam">${esc(sp.naam)}</span>
-                  <span class="ps-spreuk-school">${esc(sp.school)}</span>
-                  <span class="ps-spreuk-vink">${ico('check')}</span>
-                </button>`).join('')}</div>`;
+              ${/* Dezelfde kaarten als bij species, class en background: met
+                    hun plaat, en per twee rijen. Een Cleric kiest uit meer dan
+                    honderd spreuken; die stonden hier allemaal onder elkaar
+                    als kale knopjes, terwijl de platen er al zijn.
+                    `spell-img-<index>` is de naam van het bestand, dus er
+                    hoeft niets extra's van de server te komen. */ ''}
+              ${_rasterHtml(`spreuk-${sec.sleutel}-${n}`, hier.map(sp => _kaart({
+                naam: sp.naam, onder: sp.school, icoon: 'sparkles',
+                beeld: { id: `spell-img-${sp.index}`, focus: P.bronnen.spreukFocus?.[sp.index] || '' },
+                aan: mijn.has(sp.index), actie: 'spreuk',
+                extra: ` data-sectie="${esc(sec.sleutel)}" data-index="${esc(sp.index)}" data-niveau="${sp.niveau}"`,
+              })), true)}`;
           }).join('')}
         </div>`;
     }).join('')}`;
@@ -649,6 +766,11 @@ function _groeiHtml() {
 }
 
 // ── Uitrusting ───────────────────────────────────────────────────────────────
+// Hoe de hele munt bij déze campagne heet. "50 goud" is de naam van het
+// metaal; op het blad en in de beurs staat Florinde, en twee woorden voor
+// hetzelfde geld leest als twee soorten geld.
+const _muntNaam = () => window._muntNamen?.().fl || 'Gold';
+
 function _uitrustingHtml() {
   const bg = bgVan(P.c.background);
   const k = klasseVan(P.c.klasse);
@@ -662,7 +784,7 @@ function _uitrustingHtml() {
     ${opties.length ? `<div class="ps-paar">${opties.map(o => `
       <button type="button" class="ps-paar-knop${o.sleutel === gekozen ? ' is-aan' : ''}" data-actie="bgOptie" data-o="${o.sleutel}">
         <span class="ps-paar-titel">${opties.length === 1 ? 'Wat je meekrijgt' : o.spullen.length ? 'De spullen' : 'Alleen het geld'}</span>
-        <span class="ps-paar-onder">${esc([o.spullen.join(', '), o.goud ? `${o.goud} goud` : ''].filter(Boolean).join(' · '))}</span>
+        <span class="ps-paar-onder">${esc([o.spullen.join(', '), o.goud ? `${o.goud} ${_muntNaam()}` : ''].filter(Boolean).join(' · '))}</span>
       </button>`).join('')}</div>` : '<p class="ps-hint">Zonder background krijg je hier niets mee.</p>'}
     <div class="ps-uit-rij">
       <label class="ps-veld"><span>Een wapen</span>
@@ -696,7 +818,7 @@ function _knapzak() {
   const o = (bg?.opties || []).find(x => x.sleutel === (P.c.bgOptie || 'A'));
   const item = (key) => [...(P.bronnen.wapens || []), ...(P.bronnen.harnassen || [])].find(i => i.key === key)?.naam;
   return [
-    ...(o?.spullen || []), ...(o?.goud ? [`${o.goud} goud`] : []),
+    ...(o?.spullen || []), ...(o?.goud ? [`${o.goud} ${_muntNaam()}`] : []),
     item(P.c.wapen), item(P.c.harnas), P.c.schild ? 'Shield' : '', P.c.trinket,
   ].filter(Boolean);
 }
@@ -824,6 +946,9 @@ function _paneelHtml() {
         ? '<span></span>'
         : `<button type="button" class="ps-knop ps-knop--spook" data-actie="terug">${ico('chevron-left')} ${i === 0 ? 'Later verder' : 'Terug'}</button>`}
       <div class="ps-voet-rechts">
+        <!-- Een knop die uitstaat en niet zegt waarom is een doodlopend pad:
+             je ziet wel dát je niet verder kunt en niet wát er nog mist. -->
+        ${!kan && stap.reden ? `<span class="ps-voet-reden">${esc(stap.reden())}</span>` : ''}
         ${stap.optioneel && !laatste ? '<button type="button" class="ps-knop ps-knop--spook" data-actie="verder">Overslaan</button>' : ''}
         <button type="button" class="ps-knop ps-knop--goud" data-actie="verder"${kan ? '' : ' disabled'}>
           ${laatste ? `${ico('check')} Mijn personage is af` : `Verder ${ico('chevron-right')}`}</button>
@@ -864,7 +989,10 @@ function _onthulHtml() {
   const opm = P.nakijk?.opmerkingen || [];
   return `
     <div class="ps-onthul">
-      <div class="ps-fluister">zo komt hij ter wereld</div>
+      <!-- "zo komt hij ter wereld" zei iets over het personage dat niemand
+           had ingevuld. Wat er onder staat is een samenvatting; dat is ook
+           precies wat je hier doet: nalezen voor je het vastlegt. -->
+      <div class="ps-fluister">samenvatting</div>
       <div class="ps-onthul-blad${P.zegel ? ' is-flits' : ''}">
         <div class="ps-onthul-portret">${_portretBinnen()}</div>
         <div class="ps-onthul-naam">${esc(c.naam || 'Naamloos')}</div>
@@ -906,9 +1034,7 @@ function _klaarHtml() {
     return `
       <div class="ps-klaar">
         <div class="ps-embleem ps-embleem--klein">${ico('check')}</div>
-        <h2>${esc(P.c.naam)} staat erin</h2>
-        <p>Het kaartje, het blad en de hit points staan klaar, in de party die je koos.
-          Alles wat je hier invulde vind je terug op zijn kaartje; de rest vul je daar aan.</p>
+        <h2>${esc(P.c.naam)} is klaar om te beginnen</h2>
         <div class="ps-rij ps-rij--midden">
           <button type="button" class="ps-knop ps-knop--goud" data-actie="sluit">${ico('check')} Sluiten</button>
         </div>
@@ -918,8 +1044,7 @@ function _klaarHtml() {
     <div class="ps-klaar">
       <div class="ps-embleem ps-embleem--klein">${ico('check')}</div>
       <h2>${esc(P.c.naam)} ligt bij je DM</h2>
-      <p>Zodra hij hem gunt, staat je personage tussen de portretten en kun je met het partywachtwoord inloggen.
-        Tot die tijd ziet niemand aan tafel hem — behalve je DM, die ook je geheimen al kent.</p>
+      <p>Je DM controleert je personage en keurt het vervolgens goed.</p>
       <div class="ps-rij ps-rij--midden">
         <button type="button" class="ps-knop ps-knop--goud" data-actie="sluit">${ico('check')} Sluiten</button>
         <button type="button" class="ps-knop ps-knop--donker" data-actie="intrekken">${ico('pencil')} Toch nog iets wijzigen</button>
@@ -1166,6 +1291,15 @@ const ACTIES = {
     P.c.bgKeuze = { ...(P.c.bgKeuze || {}), skills: nu };
     // Wat je background nu geeft, hoef je niet ook nog bij je class te kiezen.
     P.c.skills = (P.c.skills || []).filter(s => !nu.includes(s));
+    _herteken();
+  },
+
+  // Het gereedschap van je background: één uit de lijst, en nog eens drukken
+  // haalt hem er weer af.
+  bgTool(d) {
+    const nu = P.c.bgKeuze?.tool === d.naam ? '' : d.naam;
+    P.c.bgKeuze = { ...(P.c.bgKeuze || {}), tool: nu };
+    _bewaar(['bgKeuze']);
     _herteken();
   },
 

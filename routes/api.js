@@ -6824,6 +6824,26 @@ function _maakSpreuken() {
   return [...uit.values()];
 }
 
+// De gereedschappen bij naam, uit de meegeleverde itemlijst. Een background
+// die "choose one kind of Artisan's Tools" zegt liet de speler het zelf
+// intikken, en dan staat er op het ene blad "smithing" en op het andere
+// "Smith's Tools". De lijst staat er al; hij hoeft alleen ontdubbeld te
+// worden — de bron noemt dezelfde tools met en zonder prijs, en soms met een
+// kleine letter ("Potter's tools").
+function _gereedschapLijst() {
+  const kaal = (n) => String(n || '').replace(/\s*\(\d+[^)]*\)\s*$/, '').trim();
+  const opNaam = new Map();
+  for (const it of (bronnen.lees('srd-items')?.items || [])) {
+    const n = kaal(it?.name);
+    if (!/(tools|supplies|kit)$|^gaming set|^musical instrument/i.test(n)) continue;
+    // Bij twee schrijfwijzen wint die met de hoofdletters: dat is hoe de PHB
+    // hem afdrukt.
+    const sleutel = n.toLowerCase();
+    if (!opNaam.has(sleutel) || n > opNaam.get(sleutel)) opNaam.set(sleutel, n);
+  }
+  return [...opNaam.values()].sort((a, b) => a.localeCompare(b));
+}
+
 function _maakBronnen() {
   const prog = _progHuidig();
   const meta = storage.readJSON('meta.json');
@@ -6886,6 +6906,11 @@ function _maakBronnen() {
     tellers: bronnen.lees('srd-spreukentellers') || {},
     spreuken: alleSpreuken,
     wapens: personageConcept.wapensVoor().map(kaal),
+    gereedschap: _gereedschapLijst(),
+    // Het uitsnijdpunt per spreukplaat: de maker toont dezelfde kaarten als
+    // de rest van de app, en zonder focus snijdt een staand portret er net de
+    // helft af.
+    spreukFocus: meta.spellImageFocus || {},
     harnassen: personageConcept.srdItems()
       .filter(i => i.itemType === 'Armor' || i.itemType === 'Shield').map(kaal),
     trinketTafel: tafel ? tafel.name : '',
@@ -6916,7 +6941,10 @@ function _conceptAntwoord(c, dmState) {
     slotsPer: _conceptSlotsPer(c),
     groeiSlots: personageConcept.groeiSlots(c, prog),
     spreukFeats: _conceptSpreukFeats(c, prog),
-    rerollsOver: Math.max(0, inst.rerolls - (parseInt(c.rerollsGebruikt) || 0)),
+    // -1 = onbeperkt. De DM maakt een personage met zijn eigen maker; een
+    // herkansingenbudget is er voor spelers ("wat je rolt, dat is het" is een
+    // afspraak aan tafel), en die afspraak maakt hij juist zelf.
+    rerollsOver: c.doorDm ? -1 : Math.max(0, inst.rerolls - (parseInt(c.rerollsGebruikt) || 0)),
     nakijk: personageConcept.nakijken(c, { meta, prog, spreuken: _maakSpreuken() }),
     groepNaam: dmState.groups?.[c.groep]?.name || '',
   };
@@ -7222,9 +7250,11 @@ router.post('/personage-concept/:id/rol', (req, res) => {
   const inst = personageConcept.instellingen(storage.readJSON('meta.json'));
   if (!inst.methodes.includes('rollen')) return res.status(409).json({ error: 'Rollen staat aan deze tafel niet aan' });
   const alGerold = Array.isArray(c.worpen) && c.worpen.length === 6;
-  if (alGerold) {
+  if (alGerold && !c.doorDm) {
     if ((parseInt(c.rerollsGebruikt) || 0) >= inst.rerolls) {
-      return res.status(409).json({ error: inst.rerolls ? 'Je herkansingen zijn op' : 'Wat je rolt, dat is het' });
+      return res.status(409).json({
+        error: inst.rerolls ? 'Je herkansingen zijn op' : 'Aan deze tafel werp je één keer',
+      });
     }
     c.rerollsGebruikt = (parseInt(c.rerollsGebruikt) || 0) + 1;
   }
