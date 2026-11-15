@@ -59,7 +59,7 @@ const P = {
   c: null, bronnen: null, inst: null, profiel: null, nakijk: null,
   slotsPer: {}, groeiSlots: [], spreukFeats: [], rerollsOver: 0,
   scherm: 'drempel', stapId: 'naam', bezig: false,
-  zoek: {}, opname: null, rolt: false, zegel: false,
+  zoek: {}, blad: {}, opname: null, rolt: false, zegel: false,
 };
 
 const abMod = (s) => Math.floor(((parseInt(s) || 10) - 10) / 2);
@@ -126,6 +126,33 @@ function _zoekVeld(sleutel, aantal) {
     <input type="search" class="ps-zoek-veld" data-zoek="${esc(sleutel)}" value="${esc(P.zoek[sleutel] || '')}"
       placeholder="Zoeken" aria-label="Zoeken"></div>`;
 }
+// **Twee rijen tegelijk.** Negenenvijftig species onder elkaar is een pagina
+// van vijf schermen hoog: je scrollt langs je eigen keuze heen en de knop
+// Verder is nergens meer te zien. Zes kaarten (drie breed, twee hoog) passen
+// in beeld; de rest staat achter de pijltjes. Zoeken blijft de snelle weg —
+// dit is voor wie rondkijkt.
+const _PER_BLAD = 6;
+
+function _rasterHtml(sleutel, kaarten, klein = false) {
+  if (!kaarten.length) return '<p class="ps-hint">Niets gevonden.</p>';
+  const bladen = Math.ceil(kaarten.length / _PER_BLAD);
+  const nu = Math.min(P.blad[sleutel] || 0, bladen - 1);
+  const zicht = kaarten.slice(nu * _PER_BLAD, (nu + 1) * _PER_BLAD);
+  const raster = `<div class="ps-kaarten${klein ? ' ps-kaarten--klein' : ''}">${zicht.join('')}</div>`;
+  if (bladen < 2) return raster;
+  const pijl = (richting, titel) => `<button type="button" class="ps-blader-pijl"
+    data-actie="blad" data-sleutel="${esc(sleutel)}" data-richting="${richting}"
+    title="${titel}" aria-label="${titel}"${
+      (richting < 0 && nu === 0) || (richting > 0 && nu === bladen - 1) ? ' disabled' : ''
+    }>${ico(richting < 0 ? 'chevron-left' : 'chevron-right')}</button>`;
+  return `<div class="ps-blader">
+      ${pijl(-1, 'Vorige')}
+      <div class="ps-blader-vak">${raster}</div>
+      ${pijl(1, 'Volgende')}
+    </div>
+    <div class="ps-blader-stand">${nu + 1} van ${bladen}</div>`;
+}
+
 function _gefilterd(sleutel, lijst, tekst, gekozen) {
   const q = norm(P.zoek[sleutel] || '').trim();
   if (!q) return lijst;
@@ -143,13 +170,14 @@ const _aardLabel = (a) => ({ martial: 'Martial', half: 'Half-caster', caster: 'F
 // groeistap op level 1 zou een leeg scherm met "jij niet" zijn.
 const STAPPEN = [
   {
-    id: 'naam', boven: 'Het eerste woord', kop: 'Hoe heet je?',
+    // "Het eerste woord" was sfeer; in de stappenbalk en de kop erboven wil je
+    // zien wáár je bent, en dat is: de naam.
+    id: 'naam', boven: 'Naam', kop: 'Hoe heet je?',
     velden: ['naam', 'level'],
     kan: () => !!String(P.c.naam || '').trim(),
     html() {
       const max = P.inst?.maxLevel || 1;
       return `
-        <p class="ps-lead">Eén naam is genoeg om te beginnen. Een gezicht erbij maakt het al iemand.</p>
         <input id="ps-naam" class="ps-naam-invoer" maxlength="60" value="${esc(P.c.naam || '')}"
           placeholder="Zoals hij aan tafel heet" data-veld="naam" autocomplete="off">
         <div class="ps-portret-rij">
@@ -173,7 +201,7 @@ const STAPPEN = [
   },
 
   {
-    id: 'afkomst', boven: 'Wat je bent', kop: 'Wat ben je?',
+    id: 'afkomst', boven: 'Species', kop: 'Wat ben je?',
     velden: ['species', 'speciesVariant'],
     kan: () => !!P.c.species,
     html() {
@@ -183,10 +211,10 @@ const STAPPEN = [
       return `
         <p class="ps-lead">Je species bepaalt waar je vandaan komt en wat je van huis uit meekrijgt.</p>
         ${_zoekVeld('species', lijst.length)}
-        <div class="ps-kaarten">${zicht.map(s => _kaart({
+        ${_rasterHtml('species', zicht.map(s => _kaart({
           naam: s.naam, beeld: s.beeld, icoon: _icoonSpecies(s.naam), aan: s.naam === P.c.species, actie: 'species',
           onder: [s.basis?.size, s.basis?.speed].filter(Boolean).join(' · ') || s.traits.slice(0, 3).join(' · '),
-        })).join('') || '<p class="ps-hint">Niets gevonden.</p>'}</div>
+        })))}
         ${volk?.varianten?.length ? `
           <div class="ps-subkeuze">
             <div class="ps-subkop">${esc(volk.variantLabel || 'Variant')}</div>
@@ -199,7 +227,7 @@ const STAPPEN = [
   },
 
   {
-    id: 'roeping', boven: 'Wat je doet', kop: 'Wat doe je?',
+    id: 'roeping', boven: 'Class', kop: 'Wat doe je?',
     velden: ['klasse', 'subclass', 'multiKlasse', 'multiKlasseLevel', 'multiSubclass'],
     kan: () => !!P.c.klasse,
     html() {
@@ -208,18 +236,18 @@ const STAPPEN = [
       const kaarten = (P.bronnen.klassen || []).map(x => _kaart({
         naam: x.naam, beeld: x.beeld, icoon: _icoonKlasse(x.naam), aan: x.naam === P.c.klasse, actie: 'klasse',
         onder: [_aardLabel(x.basis?.aard), x.basis?.hitDie && `d${x.basis.hitDie}`, x.basis?.primary].filter(Boolean).join(' · '),
-      })).join('');
+      }));
       const eerste = _delen()[0]?.[1] || level;
       return `
         <p class="ps-lead">Je class bepaalt je hit die, je saving throws en waar je in uitblinkt.</p>
-        <div class="ps-kaarten">${kaarten}</div>
+        ${_rasterHtml('klasse', kaarten)}
         ${_subHtml(k, eerste, 'subclass', P.c.subclass)}
         ${level > 1 ? _multiHtml(level) : ''}`;
     },
   },
 
   {
-    id: 'herkomst', boven: 'Waar je vandaan komt', kop: 'Waar kom je vandaan?',
+    id: 'herkomst', boven: 'Background', kop: 'Waar kom je vandaan?',
     velden: ['background'],
     html() {
       const lijst = P.bronnen.backgrounds || [];
@@ -228,10 +256,10 @@ const STAPPEN = [
         <p class="ps-lead">Je background geeft skills, gereedschap, een feat en een verhoging op je abilities.
           <em>Niets kiezen mag; dan mis je wat hij meegeeft.</em></p>
         ${_zoekVeld('background', lijst.length)}
-        <div class="ps-kaarten">${zicht.map(b => _kaart({
+        ${_rasterHtml('background', zicht.map(b => _kaart({
           naam: b.naam, beeld: b.beeld, icoon: 'scroll-text', aan: b.naam === P.c.background, actie: 'background',
           onder: [[...b.skills, ...(b.skillKeuze ? ['+ keuze'] : [])].join(', '), b.feat || b.feature].filter(Boolean).join(' · '),
-        })).join('') || '<p class="ps-hint">Niets gevonden.</p>'}</div>`;
+        })))}`;
     },
   },
 
@@ -788,7 +816,13 @@ function _paneelHtml() {
       <div class="ps-let-op ps-let-op--fout"><strong>${ico('mail')} Je DM stuurde hem terug</strong><p>${esc(P.c.reden)}</p></div>` : ''}
     <div class="ps-inhoud" id="ps-inhoud">${stap.html()}</div>
     <div class="ps-voet">
-      <button type="button" class="ps-knop ps-knop--spook" data-actie="terug">${ico('chevron-left')} ${i === 0 ? 'Later verder' : 'Terug'}</button>
+      ${(i === 0 && _doorDm())
+        // De DM kan niet hervatten — hij heeft geen "verder met" zoals een
+        // speler — dus "Later verder" belooft iets wat niet bestaat. Op de
+        // eerste stap staat er bij hem niets; sluiten doet hij met het
+        // kruisje, en dat vraagt of de halve kaart weg mag.
+        ? '<span></span>'
+        : `<button type="button" class="ps-knop ps-knop--spook" data-actie="terug">${ico('chevron-left')} ${i === 0 ? 'Later verder' : 'Terug'}</button>`}
       <div class="ps-voet-rechts">
         ${stap.optioneel && !laatste ? '<button type="button" class="ps-knop ps-knop--spook" data-actie="verder">Overslaan</button>' : ''}
         <button type="button" class="ps-knop ps-knop--goud" data-actie="verder"${kan ? '' : ' disabled'}>
@@ -1194,6 +1228,11 @@ const ACTIES = {
     _herteken();
   },
 
+  blad({ sleutel, richting }) {
+    P.blad[sleutel] = Math.max(0, (P.blad[sleutel] || 0) + Number(richting));
+    _herteken();
+  },
+
   async zegel() {
     if (P.zegel || P.bezig) return;
     P.bezig = true;
@@ -1228,6 +1267,9 @@ function _invoer(e) {
   const el = e.target;
   if (el.dataset.zoek !== undefined) {
     P.zoek[el.dataset.zoek] = el.value;
+    // Een nieuwe zoekterm geeft een nieuwe lijst; op bladzijde drie blijven
+    // staan laat je dan naar niets kijken.
+    P.blad[el.dataset.zoek] = 0;
     const pos = el.selectionStart;
     _herteken();
     const nieuw = document.querySelector(`[data-zoek="${el.dataset.zoek}"]`);

@@ -32407,7 +32407,12 @@ body.gr-slowmo .combat-overlay { filter: grayscale(.85) contrast(1.1) brightness
 .ps-naam-invoer:focus { border-color: var(--ps-goud-diep); }
 .ps-portret-rij { display: flex; gap: 18px; align-items: center; flex-wrap: wrap; margin-top: 20px; }
 .ps-portret-vak { width: 104px; height: 104px; margin: 0; }
-.ps-portret-knoppen { display: flex; flex-direction: column; gap: 8px; align-items: flex-start; }
+/* De twee knoppen onder elkaar waren even hoog maar niet even breed: met
+   `align-items: flex-start` wordt elke knop zo breed als zijn eigen tekst, en
+   "Of een kort filmpje" is korter dan "Kies een afbeelding". Strekken dus, en
+   de inhoud links uitlijnen zodat de iconen onder elkaar staan. */
+.ps-portret-knoppen { display: flex; flex-direction: column; gap: 8px; align-items: stretch; }
+.ps-portret-knoppen > .ps-knop { justify-content: flex-start; }
 .ps-level-rij { display: flex; align-items: center; gap: 12px; margin-top: 22px; flex-wrap: wrap; }
 .ps-level-rij label { font-family: 'Cinzel', Georgia, serif; font-size: .7rem; letter-spacing: .1em; text-transform: uppercase; color: var(--ps-inkt-dim); }
 .ps-level-invoer { width: 72px; font-family: 'Cinzel', Georgia, serif; font-weight: 700; font-size: 1.1rem; color: var(--ps-inkt); text-align: center;
@@ -33903,3 +33908,29 @@ body.gr-slowmo .combat-overlay { filter: grayscale(.85) contrast(1.1) brightness
    doorloopt, zoals de tweede regel van een alinea. */
 .org-kinderen--raster { row-gap: 2px; }
 .org-kinderen--raster > .org-knoop:nth-child(n + 5) { padding-top: 14px; }
+
+/* ── Bladeren door de kaarten in de personagemaker ─────────────────────────
+   Negenenvijftig species onder elkaar is een pagina van vijf schermen hoog:
+   je scrollt langs je eigen keuze heen en de knop Verder is nergens meer te
+   zien. Zes kaarten in beeld, de rest achter de pijltjes. */
+.ps-blader { display: flex; align-items: center; gap: 10px; }
+.ps-blader-vak { flex: 1; min-width: 0; }
+/* Drie breed en twee hoog, vast: met `auto-fill` zou het aantal per rij met de
+   breedte meebewegen en klopt "zes per blad" niet meer met wat je ziet. */
+.ps-blader .ps-kaarten { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.ps-blader-pijl {
+  flex: 0 0 auto; width: 34px; height: 34px; cursor: pointer;
+  display: inline-flex; align-items: center; justify-content: center;
+  border: 1px solid var(--ps-rand); border-radius: 50%;
+  background: transparent; color: var(--ps-inkt-mid); transition: .2s;
+}
+.ps-blader-pijl:hover:not(:disabled) { border-color: var(--ps-goud-diep); color: var(--ps-inkt); background: rgba(184,134,11,.1); }
+.ps-blader-pijl:disabled { opacity: .3; cursor: default; }
+.ps-blader-stand {
+  margin-top: 8px; text-align: center;
+  font-family: 'IM Fell English', serif; font-style: italic; font-size: .85rem;
+  color: var(--ps-inkt-mid);
+}
+@media (max-width: 620px) {
+  .ps-blader .ps-kaarten { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
