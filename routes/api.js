@@ -21682,6 +21682,15 @@ function _bastionAntwoord(req, dmState, gid) {
       };
     }),
     log: (b.log || []).slice().reverse(),
+    // ── Fase 2: verdediging ──
+    // Het **aantal** verdedigers houdt de DM bij; de app telt het niet uit.
+    // Welke facilities er volgens hun eigen werking geven, staat er wél bij,
+    // zodat zichtbaar is waar ze vandaan zouden komen — de getallen daarvoor
+    // staan in de Dungeon Master's Guide en die leveren we niet mee.
+    defenders: Math.max(0, parseInt(b.defenders) || 0),
+    defenderBronnen: bastionRegels.defenderBronnen(b.facilities || []),
+    muren: !!b.muren,
+    aanvalStenen: bastionRegels.heeftMuren(b) ? inst.aanvalStenenMuren : inst.aanvalStenen,
   };
   // Alleen de DM kiest facilities, dus alleen hij krijgt wat er bij elke keuze
   // zou opvallen.
@@ -21753,6 +21762,46 @@ router.put('/bastion', requireDM, _bastionPoort, (req, res) => {
       const n = parseInt(body.slotsOverride);
       b.slotsOverride = body.slotsOverride === null || body.slotsOverride === '' || !Number.isFinite(n) ? null : Math.min(60, Math.max(0, n));
     }
+    if ('defenders' in body) b.defenders = Math.min(999, Math.max(0, parseInt(body.defenders) || 0));
+    if ('muren' in body) b.muren = body.muren === true || body.muren === 'true';
+  });
+  _bastionKlaar(req, res, gid, r);
+});
+
+// ── Een aanval op het bastion ───────────────────────────────────────────────
+// **De app gooit, de tafel beslist.** Hoeveel stenen er rollen staat in de
+// instellingen (zes, vier met muren — uit `docs/voorstel-bastion.md`); wat een
+// worp betekent staat in de Dungeon Master's Guide, en dat boek leveren we
+// niet mee. Je krijgt dus de stenen en een vak om op te schrijven wat het
+// werd; dat gaat als eigen regel het logboek in, net als een turn.
+router.post('/bastion/aanval', requireDM, _bastionPoort, (req, res) => {
+  const dmState = readDmState();
+  const gid = _bastionGid(req, dmState);
+  const r = _bastionSchrijf(req, gid, (b) => {
+    const inst = bastionRegels.instellingen(storage.readJSON('meta.json'));
+    const aantal = bastionRegels.heeftMuren(b) ? inst.aanvalStenenMuren : inst.aanvalStenen;
+    const stenen = Array.from({ length: aantal }, () => 1 + Math.floor(Math.random() * 6));
+    b.log = b.log || [];
+    b.log.push({
+      soort: 'aanval', op: new Date().toISOString(),
+      stenen, muren: bastionRegels.heeftMuren(b),
+      defenders: Math.max(0, parseInt(b.defenders) || 0),
+      uitslag: String(req.body?.uitslag || '').slice(0, 2000),
+    });
+    if (b.log.length > 200) b.log = b.log.slice(-200);
+    return { extra: { stenen } };
+  });
+  _bastionKlaar(req, res, gid, r);
+});
+
+// De uitslag van de laatste aanval alsnog opschrijven — je rolt eerst, en pas
+// daarna weet je aan tafel wat het werd.
+router.put('/bastion/aanval', requireDM, _bastionPoort, (req, res) => {
+  const gid = _bastionGid(req, readDmState());
+  const r = _bastionSchrijf(req, gid, (b) => {
+    const laatste = [...(b.log || [])].reverse().find(x => x.soort === 'aanval');
+    if (!laatste) return { fout: [404, 'Er is nog geen aanval om bij te schrijven'] };
+    laatste.uitslag = String(req.body?.uitslag || '').slice(0, 2000);
   });
   _bastionKlaar(req, res, gid, r);
 });
@@ -21869,14 +21918,39 @@ router.post('/bastion/turn', requireDM, _bastionPoort, (req, res) => {
         resultaat: String(resultaten[f.id] || '').slice(0, 2000),
       });
     }
+    // **Een voorval bij de turn.** De Bastion Events van de Dungeon Master's
+    // Guide staan niet onder CC BY, dus die leveren we niet mee; de DM wijst
+    // een tafel van zijn eigen campagne aan (Instellingen → Bastion), zoals
+    // bij de rust. Er rolt er één per turn, en alleen als er een facility op
+    // **Maintain** stond of er eentje zonder order bleef — dat is het moment
+    // waarop er niemand oplet.
+    const inst2 = bastionRegels.instellingen(storage.readJSON('meta.json'));
+    const onbewaakt = (b.facilities || []).some(f => f.special && (!b.orders?.[f.id] || b.orders[f.id].order === 'maintain'));
+    let voorval = null;
+    if (inst2.eventTableId && onbewaakt) {
+      const tafels = (storage.readJSON('tables.json').tables || []);
+      const tafel = tafels.find(t => t.id === inst2.eventTableId);
+      if (tafel && (tafel.entries || []).length) {
+        const { regel, worp } = _rolTafelRuw(tafel);
+        if (regel) voorval = { tekst: regel, worp, tafel: tafel.name || '' };
+      }
+    }
     b.turnNummer = (b.turnNummer || 0) + 1;
     b.log = b.log || [];
-    b.log.push({ nummer: b.turnNummer, op: new Date().toISOString(), nachten: _rustStand(getGroup(dmState, gid), 'long') - (b.turnStand || 0), regels });
+    b.log.push({ nummer: b.turnNummer, op: new Date().toISOString(), nachten: _rustStand(getGroup(dmState, gid), 'long') - (b.turnStand || 0), regels, voorval });
     if (b.log.length > 200) b.log = b.log.slice(-200);
     b.orders = {};
     b.turnStand = _rustStand(getGroup(dmState, gid), 'long');
-    return { extra: { turn: b.turnNummer } };
+    return { extra: { turn: b.turnNummer, voorval } };
   });
+  // Het voorval gaat naar het tafelscherm, niet naar de spelers: zij horen het
+  // van hun DM. Zelfde kamer en dezelfde regel als een brief of de buit.
+  if (r?.extra?.voorval) {
+    req.app.get('io')?.to(_displayRoom(req)).emit('bastion:voorval', {
+      naam: (storage.readJSON('bastion.json')[gid] || {}).naam || 'Het bastion',
+      tekst: r.extra.voorval.tekst,
+    });
+  }
   _bastionKlaar(req, res, gid, r);
 });
 

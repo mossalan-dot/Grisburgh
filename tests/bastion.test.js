@@ -13,6 +13,7 @@ const { io: ioClient } = require('socket.io-client');
 // (slots, level, prerequisite) en blokkeert niets; een speler stelt orders
 // voor, de DM legt vast en rondt de turn af. Zie `docs/voorstel-bastion.md`.
 const DATA_DIR = path.join(os.tmpdir(), `grisburgh-test-bastion-${Date.now()}-${Math.random().toString(36).slice(2)}`);
+const DATA_DIR2 = path.join(os.tmpdir(), `grisburgh-test-bastion2-${Date.now()}-${Math.random().toString(36).slice(2)}`);
 const regels = require('../lib/bastion');
 
 function req(server, method, p, body, cookie) {
@@ -216,5 +217,89 @@ describe('Bastion: de routes', () => {
     const op = await b(dm, 'DELETE', '/bastion?zeker=1');
     assert.strictEqual(op.status, 200);
     assert.strictEqual(op.body.bastion, null);
+  });
+});
+
+// ── Fase 2: voorvallen en verdediging ──────────────────────────────────────
+// De Bastion Events van de Dungeon Master's Guide leveren we niet mee: die
+// tekst staat niet onder CC BY. De DM wijst een tafel van zijn eigen campagne
+// aan, zoals bij de rust. En wat een aanvalsworp betekent staat ook in dat
+// boek — de app gooit de stenen en bewaart wat de DM erover opschreef.
+describe('Bastion: voorvallen en verdediging', () => {
+  let server, io, dm, groep;
+  const b = (cookie, method, p, body) => req(server, method, '/api' + p, body, cookie);
+
+  before(async () => {
+    process.env.GRISBURGH_DATA_DIR = DATA_DIR2;
+    if (fs.existsSync(DATA_DIR2)) fs.rmSync(DATA_DIR2, { recursive: true, force: true });
+    for (const m of ['../server', '../lib/storage', '../routes/api', '../routes/auth']) delete require.cache[require.resolve(m)];
+    const mod = require('../server');
+    server = mod.server; io = mod.io;
+    await new Promise(r => server.listen(0, r));
+    dm = (await req(server, 'POST', '/api/auth/login', { campagne: 'grisburgh', password: 'grisburgh-dm' })).cookie;
+    await b(dm, 'PUT', '/campaigns/grisburgh/modules', { modules: { bastion: true } });
+    const pc = (await b(dm, 'POST', '/entities/personages',
+      { name: 'Wacht', subtype: 'speler', data: { groep: 'groep1' } })).body.id;
+    await b(dm, 'PATCH', `/player-profile/${pc}`, { klasse: 'Fighter', level: 9 });
+    await b(dm, 'POST', '/bastion', { naam: 'De Wachttoren' });
+    groep = 'groep1';
+  });
+
+  after(async () => {
+    await io.close();
+    await new Promise(r => server.close(r));
+    fs.rmSync(DATA_DIR2, { recursive: true, force: true });
+  });
+
+  it('houdt de verdedigers bij en zet de muren aan', async () => {
+    const r = await b(dm, 'PUT', '/bastion', { defenders: 7, muren: true });
+    assert.strictEqual(r.status, 200);
+    assert.strictEqual(r.body.bastion.defenders, 7);
+    assert.strictEqual(r.body.bastion.muren, true);
+    assert.strictEqual(r.body.bastion.aanvalStenen, 4, 'met muren rolt hij er vier');
+    const uit = await b(dm, 'PUT', '/bastion', { muren: false });
+    assert.strictEqual(uit.body.bastion.aanvalStenen, 6, 'en zonder muren zes');
+    assert.strictEqual((await b(dm, 'PUT', '/bastion', { defenders: -3 })).body.bastion.defenders, 0,
+      'nooit onder nul');
+  });
+
+  it('wijst de facilities aan die verdedigers geven, zonder een aantal te verzinnen', async () => {
+    await b(dm, 'POST', '/bastion/facilities', { soort: 'special', key: 'barrack' });
+    const r = await b(dm, 'GET', '/bastion');
+    const bronnen = r.body.bastion.defenderBronnen;
+    assert.ok(bronnen.some(x => /barrack/i.test(x.naam)), 'de Barrack staat erbij');
+    assert.ok(!('aantal' in (bronnen[0] || {})), 'maar er staat geen getal bij');
+  });
+
+  it('rolt een aanval en bewaart de stenen; de uitslag schrijf je erbij', async () => {
+    const r = await b(dm, 'POST', '/bastion/aanval', {});
+    assert.strictEqual(r.status, 200);
+    assert.strictEqual(r.body.stenen.length, 6);
+    assert.ok(r.body.stenen.every(n => n >= 1 && n <= 6), 'zes stenen, elk 1 tot 6');
+    const log = r.body.bastion.log[0];
+    assert.strictEqual(log.soort, 'aanval');
+    assert.strictEqual(log.uitslag, '');
+    const na = await b(dm, 'PUT', '/bastion/aanval', { uitslag: 'Twee verdedigers gevallen.' });
+    assert.strictEqual(na.body.bastion.log[0].uitslag, 'Twee verdedigers gevallen.');
+  });
+
+  it('rolt geen voorval zonder tafel, en wél zodra de DM er een aanwijst', async () => {
+    const zonder = await b(dm, 'POST', '/bastion/turn', {});
+    assert.ok(!zonder.body.voorval, 'geen tafel, geen voorval');
+
+    const tafel = await b(dm, 'POST', '/tables', {
+      name: 'Voorvallen op de toren',
+      entries: ['Er klopt iemand aan', 'De put is droog', 'Een duif met een briefje'],
+    });
+    assert.strictEqual(tafel.status, 201, JSON.stringify(tafel.body));
+    await b(dm, 'PUT', '/meta/bastion', { eventTableId: tafel.body.id });
+
+    // Een facility zonder order telt als onbewaakt — dát is het moment waarop
+    // er een voorval rolt.
+    const met = await b(dm, 'POST', '/bastion/turn', {});
+    assert.ok(met.body.voorval, 'nu wel een voorval');
+    assert.ok(met.body.voorval.tekst, 'met tekst uit de tafel van de DM');
+    assert.strictEqual(met.body.bastion.log[0].voorval.tekst, met.body.voorval.tekst,
+      'en het staat in het logboek van die turn');
   });
 });

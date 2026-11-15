@@ -348,12 +348,12 @@ De app gebruikt querystring cache-busting (`?v=N`). **Vergeten = browser haalt o
 **Huidige versies (bij te houden):**
 
 ```
-index.html  : theme.css?v=946   app.js?v=1259   sound-manager.js?v=15
-app.js      : api.js?v=323  dm-panel.js?v=424  media-picker.js?v=14  tafels.js?v=2  terugblik.js?v=3  rage.js?v=4  klassekracht.js?v=6  personage-maken.js?v=27  gevecht-regie.js?v=3  bastion.js?v=1  stemronde.js?v=2
+index.html  : theme.css?v=947   app.js?v=1262   sound-manager.js?v=15
+app.js      : api.js?v=323  dm-panel.js?v=428  media-picker.js?v=14  tafels.js?v=2  terugblik.js?v=3  rage.js?v=4  klassekracht.js?v=6  personage-maken.js?v=27  gevecht-regie.js?v=3  bastion.js?v=2  stemronde.js?v=2
               render-archief.js?v=149  render-bestiarium.js?v=41  render-campagne.js?v=397
               render-dungeon.js?v=75  render-kaart.js?v=35  render-progressie.js?v=67
               render-relatiemap.js?v=38  render-spreuken.js?v=56  render-vaardigheden.js?v=166
-              render-statblock.js?v=10  socket-client.js?v=100  wizard.js?v=12  conditions.js?v=4
+              render-statblock.js?v=10  socket-client.js?v=105  wizard.js?v=12  conditions.js?v=4
 dm-panel.js : akte-schrijven.js?v=42  combat-canvas.js?v=41  render-statblock.js?v=10
 ```
 
@@ -534,6 +534,24 @@ dm-panel.js : akte-schrijven.js?v=42  combat-canvas.js?v=41  render-statblock.js
 > thema (`soundManager.klasseKlank`). Merktekens delen de hoek met Rage
 > (`#rage-merken`). Drie nieuwe condities: `wild-shape`, `hunters-mark`,
 > `innate-sorcery`. Bewaakt door `tests/klassekracht.test.js`.
+> **Bastion fase 2 — voorvallen en verdediging** (15 nov 2026). Twee dingen
+> erbij, en allebei met dezelfde grens: wat in de Dungeon Master's Guide staat
+> leveren we niet mee, dus de app bouwt de machinerie en de DM vult hem.
+> - **Een voorval bij een turn.** Stond een special facility op `maintain` of
+>   bleef er een zonder order, dan is er die week niemand die oplet en rolt er
+>   één voorval uit `meta.bastion.eventTableId` — een tafel van de campagne
+>   zelf, zoals bij de rust. Het komt in `log[].voorval` en gaat als
+>   `bastion:voorval` naar de **display-room** (niet naar de spelers), waar het
+>   dezelfde perkamentweergave krijgt als een voorleestekst.
+> - **Verdedigers en een aanval.** `bastion.defenders` houdt de DM zelf bij —
+>   hoeveel een Barrack geeft staat in de DMG en dat getal hebben we niet;
+>   `bastionRegels.defenderBronnen()` wijst wél aan wélke facilities er volgens
+>   hun eigen werking geven. `POST /bastion/aanval` rolt
+>   `instellingen.aanvalStenen` d6 (vier met `bastion.muren`, een vinkje en
+>   géén facility — de catalogus kent geen Defensive Walls) en bewaart ze als
+>   `log[] {soort:'aanval'}`; `PUT /bastion/aanval` schrijft er de uitslag bij.
+> Bewaakt door het derde `describe`-blok in `tests/bastion.test.js`.
+
 > **Niet gedaan:** de Blood Hunter (eigen materiaal, geen SRD) en de subklassen —
 > een Battle Master of Psi Warrior heeft zijn eigen voorraad die nog op de
 > signatuurkaart-catalogus in `app.js` staat. Die passen in dezelfde catalogus.

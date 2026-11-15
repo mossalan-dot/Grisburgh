@@ -13582,7 +13582,8 @@ async function _renderInstellingen() {
     <!-- Bastion: alleen als de module aanstaat. Een schakelaar die uitstaat
          laat niets achter, ook hier niet. -->
     ${window._moduleAan?.('bastion') ? (() => {
-      const bs = { vanafLevel: 5, cadans: 7, aanbieden: true, spelersVastleggen: false, ...(meta.bastion || {}) };
+      const bs = { vanafLevel: 5, cadans: 7, aanbieden: true, spelersVastleggen: false,
+                   eventTableId: '', aanvalStenen: 6, aanvalStenenMuren: 4, ...(meta.bastion || {}) };
       return _instSectie('bastion', 'Bastion', `
       <div class="dm-form-row">
         <label class="dm-form-label" for="inst-bs-level">Vanaf welk level</label>
@@ -13603,6 +13604,26 @@ async function _renderInstellingen() {
           <input type="checkbox" id="inst-bs-spelers"${bs.spelersVastleggen === true ? ' checked' : ''}>
           <span>Spelers leggen orders zelf vast</span>
         </label>
+      </div>
+      <!-- De Bastion Events van de Dungeon Master's Guide leveren we niet mee:
+           die tekst staat niet onder CC BY. Je wijst er een tafel van je eigen
+           campagne voor aan, net als bij de rust. Uitleg in het boekje. -->
+      <div class="dm-form-row">
+        <label class="dm-form-label" for="inst-bs-events">Tafel voor voorvallen bij een turn</label>
+        <select id="inst-bs-events" class="dm-select">
+          <option value="">— Geen —</option>
+          ${(_tables || []).map(t => `<option value="${esc(t.id)}"${bs.eventTableId === t.id ? ' selected' : ''}>${esc(t.name || t.id)}</option>`).join('')}
+        </select>
+      </div>
+      <div class="dm-feature-row">
+        <div class="dm-form-row" style="flex:1">
+          <label class="dm-form-label" for="inst-bs-stenen">Stenen bij een aanval</label>
+          <input id="inst-bs-stenen" class="dm-input dm-input-sm" type="number" min="1" max="20" value="${parseInt(bs.aanvalStenen) || 6}">
+        </div>
+        <div class="dm-form-row" style="flex:1">
+          <label class="dm-form-label" for="inst-bs-stenen-muren">… met verdedigingsmuren</label>
+          <input id="inst-bs-stenen-muren" class="dm-input dm-input-sm" type="number" min="1" max="20" value="${parseInt(bs.aanvalStenenMuren) || 4}">
+        </div>
       </div>
     `, window._helpBtn?.('inst_bastion') ?? '');
     })() : ''}
@@ -13985,6 +14006,9 @@ window._instOpslaan = async () => {
         cadans: parseInt(document.getElementById('inst-bs-cadans')?.value) || 7,
         aanbieden: !!document.getElementById('inst-bs-aanbieden')?.checked,
         spelersVastleggen: !!document.getElementById('inst-bs-spelers')?.checked,
+        eventTableId: document.getElementById('inst-bs-events')?.value || '',
+        aanvalStenen: parseInt(document.getElementById('inst-bs-stenen')?.value) || 6,
+        aanvalStenenMuren: parseInt(document.getElementById('inst-bs-stenen-muren')?.value) || 4,
       });
     }
 

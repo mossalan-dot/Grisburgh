@@ -33961,3 +33961,25 @@ body.gr-slowmo .combat-overlay { filter: grayscale(.85) contrast(1.1) brightness
 }
 .tegel-naamband .sb-spell:hover,
 .tegel-ondertitel .sb-spell:hover { color: inherit; text-decoration-color: currentColor; }
+
+/* ── Bastion, fase 2: verdediging ──────────────────────────────────────────
+   Het aantal verdedigers houdt de DM bij; de app telt het niet uit, want de
+   getallen die facilities geven staan in de DMG en die leveren we niet mee. */
+.bs-verdediging { display: flex; flex-direction: column; gap: 8px; }
+.bs-def-getal { display: flex; align-items: center; gap: 8px; }
+.bs-def-aantal {
+  font-family: 'Cinzel', serif; font-size: 1.7rem; font-weight: 700;
+  min-width: 2ch; text-align: center; color: var(--color-ink, #3a2d1c);
+}
+.bs-def-label { font-family: 'IM Fell English', serif; font-style: italic; color: #7a6040; }
+.bs-vink { display: flex; align-items: flex-start; gap: 8px; font-size: .9em; color: #5a4832; }
+.bs-vink input { margin-top: 3px; }
+/* De stenen zoals ze vielen. Wat een worp betekent staat in de DMG; hier staat
+   alleen wat er gegooid is. */
+.bs-stenen { display: flex; flex-wrap: wrap; gap: 6px; margin: 6px 0; }
+.bs-steen {
+  width: 30px; height: 30px; display: inline-flex; align-items: center; justify-content: center;
+  border: 1px solid rgba(122,96,64,.5); border-radius: 5px; background: rgba(255,252,245,.65);
+  font-family: 'Cinzel', serif; font-weight: 700; color: #3a2d1c;
+}
+.bs-log--aanval > summary { color: #8a2a10; }

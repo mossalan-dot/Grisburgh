@@ -118,13 +118,35 @@ function _teken() {
           </li>`).join('')}</ul>` : `<p class="bs-stil">Geen basic facilities.</p>`}
       </section>
 
+      <section class="bs-blok">
+        <div class="bs-blok-kop">
+          <h3>Verdediging</h3>
+          ${dm ? `<button class="bs-knop" data-bs="aanval">${ic('swords')} Aanval rollen</button>` : ''}
+        </div>
+        <div class="bs-verdediging">
+          <div class="bs-def-getal">
+            ${dm ? `<button class="bs-mini" data-bs="def-min" title="Eentje minder">${ic('minus')}</button>` : ''}
+            <span class="bs-def-aantal">${b.defenders}</span>
+            ${dm ? `<button class="bs-mini" data-bs="def-plus" title="Eentje meer">${ic('plus')}</button>` : ''}
+            <span class="bs-def-label">verdediger${b.defenders === 1 ? '' : 's'}</span>
+          </div>
+          ${dm ? `<label class="bs-vink">
+            <input type="checkbox" data-bs-change="muren"${b.muren ? ' checked' : ''}>
+            <span>Verdedigingsmuren — een aanval rolt dan ${_data.instellingen.aanvalStenenMuren} in plaats van ${_data.instellingen.aanvalStenen} stenen</span>
+          </label>` : (b.muren ? `<p class="bs-stil">${ic('brick-wall')} Het bastion heeft verdedigingsmuren.</p>` : '')}
+          ${b.defenderBronnen?.length ? `<p class="bs-stil">
+            ${ic('users')} Verdedigers komen van: ${b.defenderBronnen.map(x => esc(x.naam)).join(', ')}.</p>` : ''}
+        </div>
+      </section>
+
       ${dm && !t.klaar ? `<div class="bs-turnrij">
         <button class="bs-knop bs-knop--goud" data-bs="turn">${ic('scroll-text')} Bastion Turn afronden${openOrders ? ` (${openOrders} order${openOrders === 1 ? '' : 's'})` : ''}</button>
       </div>` : ''}
 
       <section class="bs-blok">
         <div class="bs-blok-kop"><h3>Logboek</h3></div>
-        ${b.log.length ? b.log.map(_logTurn).join('') : `<p class="bs-stil">Nog geen turn gespeeld.</p>`}
+        ${b.log.length ? b.log.map(x => x.soort === 'aanval' ? _logAanval(x) : _logTurn(x)).join('')
+          : `<p class="bs-stil">Nog geen turn gespeeld.</p>`}
       </section>
     </div>`;
 }
@@ -174,6 +196,20 @@ function _logTurn(t) {
           ${r.door ? `<span class="bs-log-door">(${esc(r.door)})</span>` : ''}
           ${r.resultaat ? `<div class="bs-log-uitslag">${esc(r.resultaat)}</div>` : ''}</li>`).join('')}</ul>`
         : `<p class="bs-stil">Geen orders gegeven.</p>`}
+    </details>`;
+}
+
+// Een aanval in het logboek: de stenen zoals ze vielen, en wat het aan tafel
+// werd. Wat een worp betekent staat in de Dungeon Master's Guide; de app
+// bewaart alleen wat er gegooid is en wat de DM erover opschreef.
+function _logAanval(a) {
+  const datum = new Date(a.op).toLocaleDateString('nl-NL', { day: 'numeric', month: 'long', year: 'numeric' });
+  return `
+    <details class="bs-log bs-log--aanval">
+      <summary><b>${ic('swords')} Aanval</b> <span>${esc(datum)} · ${a.stenen.length} stenen${a.muren ? ' · met muren' : ''} · ${a.defenders} verdediger${a.defenders === 1 ? '' : 's'}</span></summary>
+      <div class="bs-stenen">${a.stenen.map(n => `<span class="bs-steen">${n}</span>`).join('')}</div>
+      ${a.uitslag ? `<div class="bs-log-uitslag">${esc(a.uitslag)}</div>`
+        : `<p class="bs-stil">Nog niet opgeschreven wat het werd.</p>`}
     </details>`;
 }
 
@@ -250,6 +286,11 @@ function _bewerkBastion() {
     </div>`);
 }
 
+async function _defZet(stap) {
+  const nu = Math.max(0, (_data?.bastion?.defenders || 0) + stap);
+  await _doe(() => api.put(_pad(''), { defenders: nu }));
+}
+
 function _turnVenster() {
   const met = _data.bastion.facilities.filter(f => f.special && f.order);
   _venster(`Bastion Turn ${_data.bastion.turnNummer + 1}`, `${met.length} order${met.length === 1 ? '' : 's'}`, `
@@ -263,6 +304,21 @@ function _turnVenster() {
 }
 
 const ACTIES = {
+  // ── Verdediging (fase 2) ──
+  // Het aantal verdedigers houdt de DM bij: de getallen die facilities geven
+  // staan in de Dungeon Master's Guide en die leveren we niet mee, dus de app
+  // telt hier niets uit.
+  'def-plus'() { return _defZet(+1); },
+  'def-min'()  { return _defZet(-1); },
+  async aanval() {
+    const b = _data.bastion;
+    if (!confirm(`Een aanval rollen met ${b.aanvalStenen} stenen${b.muren ? ' (met muren)' : ''}?`)) return;
+    const r = await _doe(() => api.post(_pad('/aanval'), {}));
+    if (!r) return;
+    const uitslag = prompt(`De stenen vielen: ${(r.stenen || []).join(', ')}.\n\nWat werd het aan tafel?`, '');
+    if (uitslag !== null && uitslag.trim()) await _doe(() => api.put(_pad('/aanval'), { uitslag: uitslag.trim() }));
+  },
+
   async stichten() {
     const naam = document.getElementById('bs-nieuw-naam')?.value || '';
     await _doe(() => api.post(_pad(''), { naam }));
@@ -347,6 +403,10 @@ document.addEventListener('change', async (e) => {
   const k = e.target.closest?.('[data-bs-change]');
   if (!k) return;
   if (k.dataset.bsChange === 'groep') { _groep = k.value; await render(); return; }
+  if (k.dataset.bsChange === 'muren') {
+    await _doe(() => api.put(_pad(''), { muren: k.checked }));
+    return;
+  }
   if (k.dataset.bsChange === 'notitie') {
     const f = _fac(k.dataset.fac);
     if (!f?.order || (f.order.notitie || '') === k.value) return;

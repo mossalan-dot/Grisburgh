@@ -350,6 +350,13 @@ function _ververOpenKaartje(id) {
     if (window._isDisplayMode) window._displayTekst?.(tekst, kop);
   });
 
+  // Een voorval bij een Bastion Turn. Alleen het tafelscherm: de spelers horen
+  // het van hun DM, net als een voorleestekst of een brief. Het leent dezelfde
+  // perkamentweergave — het ís een stuk voorlezen.
+  socket.on('bastion:voorval', ({ naam, tekst } = {}) => {
+    if (window._isDisplayMode) window._displayTekst?.(tekst, naam || 'Het bastion');
+  });
+
   socket.on('map:updated', () => {
     window._kaartCacheLeeg?.();   // de uitsnede op een kaartje leest hieruit
     window._kaartVerversen?.();   // weet zelf of de kaart fullscreen of in de galerij staat

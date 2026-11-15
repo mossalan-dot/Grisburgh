@@ -11,8 +11,8 @@ import './render-handleiding.js?v=2';
 import './render-melding.js?v=4';
 import { renderVaardigheden, zoekVaardigheden, heldenboekTekst } from './render-vaardigheden.js?v=165';
 import { renderStatblock } from './render-statblock.js?v=10';
-import { initSocket } from "./socket-client.js?v=104";
-import { initDmPanel } from "./dm-panel.js?v=427";
+import { initSocket } from "./socket-client.js?v=105";
+import { initDmPanel } from "./dm-panel.js?v=428";
 import { COND_INFO, COND_LABEL, COND_MET_PLAATJE, COND_ICON } from './conditions.js?v=4';
 import './media-picker.js?v=17';
 import './wizard.js?v=14';
@@ -20,7 +20,7 @@ import './tafels.js?v=2';
 import './terugblik.js?v=6';
 import './rage.js?v=7';
 import './klassekracht.js?v=9';
-import './bastion.js?v=4';
+import './bastion.js?v=5';
 import './stemronde.js?v=5';
 import './gevecht-regie.js?v=6';
 
@@ -15869,7 +15869,9 @@ const HELP_CONFIG = {
     { titel: 'Een order geven', rol: 'dm', tekst: 'Spelers stellen orders **voor** (een zandloper); wat jij kiest ligt **vast** (een slotje) en kan een speler niet overschrijven. Wil je dat zij het zelf vastleggen, dan zet je dat bij Instellingen → *Bastion*.\n\n**Turn afronden** zet elke order in het logboek, met een vak waarin je schrijft wat hij opleverde. Daarna zijn de orders weg en begint de telling opnieuw.', afbeelding: null },
     { titel: 'Hoeveel facilities', rol: 'dm', tekst: 'Elk personage geeft het bastion **2** special facilities op level 5, **4** op 9, **5** op 13 en **6** op 17 — bij elkaar opgeteld voor de hele party. Vind je dat te veel of te weinig, vul dan bij het potlood een eigen getal in; leeg laten betekent weer "reken het uit".\n\nKies je een facility boven het level van de party, één met een prerequisite die niemand haalt, of één te veel: de app zegt het, maar **houdt niets tegen**. Het is jouw tafel.', afbeelding: null },
     { titel: 'Wanneer is het een turn?', tekst: 'Een **Bastion Turn** valt ongeveer elke zeven dagen. De app telt dat in **lange rusten** van de party — dezelfde klok als de winkels die verversen. Na zeven nachten staat er een banier bovenaan, en hoort de DM het meteen na de lange rust.', afbeelding: null },
-    { titel: 'Wat er nog niet is', rol: 'dm', tekst: 'Dit is de eerste ronde: facilities en orders. **Bastion Events** (de d100-tabel bij Maintain), **Defenders** en aanvallen, en **goud** dat binnenkomt of uitgegeven wordt komen later. Tot die tijd schrijf je de uitslag van een order zelf op, en verreken je geld of voorwerpen zoals je dat altijd doet.', afbeelding: null },
+    { titel: 'Voorvallen bij een turn', rol: 'dm', tekst: 'Stond een facility op **Maintain** of bleef er eentje zonder order, dan is er die week niemand die oplet — en rolt de app één voorval. Welke tafel dat is kies je bij *Instellingen → Bastion*; het voorval komt in het logboek van die turn en verschijnt op het **tafelscherm**, niet bij je spelers.\n\nDe Bastion Events uit de Dungeon Master\'s Guide leveren we niet mee: die tekst mogen we niet delen. Je wijst dus een tafel van je eigen campagne aan, net als bij de rust. Kies je er geen, dan rolt er niets.', afbeelding: null },
+    { titel: 'Verdedigers en een aanval', rol: 'dm', tekst: 'Het **aantal verdedigers** houd je zelf bij met de plus en de min. De app telt het niet uit: hoeveel een Barrack of een Armory er geeft staat in de DMG, en die getallen leveren we niet mee — wél staat eronder wélke van jouw facilities er volgens hun eigen werking geven.\n\n**Aanval rollen** gooit zes stenen, of vier als je *Verdedigingsmuren* hebt aangevinkt (beide aantallen zijn instelbaar). Wat een worp betekent staat ook in dat boek, dus de app bewaart de stenen zoals ze vielen en vraagt je wat het aan tafel werd. Dat komt als eigen regel in het logboek.', afbeelding: null },
+    { titel: 'Wat er nog niet is', rol: 'dm', tekst: 'Resources en **goud** zijn fase 3: opbrengst per turn bij Trade, een Craft-uitkomst die echt in de boedel belandt, en Recruit die verdedigers kost. Tot die tijd schrijf je de uitslag van een order zelf op en verreken je geld of voorwerpen zoals je dat altijd doet.', afbeelding: null },
   ] }),
 
   inst_bastion: () => ({ titel: 'Bastion', stappen: [
