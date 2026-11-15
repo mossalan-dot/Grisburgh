@@ -659,13 +659,14 @@ function _skillsHtml() {
         : /instrument/.test(zin) ? 'instrument'
         : /artisan/.test(zin) ? 'ambacht'
         : '';
-      const uitLijst = (soort ? alles.filter(g => g.soort === soort) : alles).map(g => g.naam);
+      const uitLijst = soort ? alles.filter(g => g.soort === soort) : alles;
       return `
       <div class="ps-subkeuze">
         <div class="ps-subkop">${esc(bg.tool)}</div>
-        <div class="ps-skills">${uitLijst.map(n => `
-          <button type="button" class="ps-skill${P.c.bgKeuze?.tool === n ? ' is-aan' : ''}"
-            data-actie="bgTool" data-naam="${esc(n)}">${ico('check')} ${esc(n)}</button>`).join('')}</div>
+        ${_rasterHtml('bgtool', uitLijst.map(g => _kaart({
+          naam: g.naam, beeld: g.beeld, icoon: 'hammer',
+          aan: P.c.bgKeuze?.tool === g.naam, actie: 'bgTool',
+        })))}
       </div>`;
     })() : ''}
     <p class="ps-teller">Nog <strong>${Math.max(0, over)}</strong> te kiezen uit de lijst van je class.</p>
@@ -804,22 +805,32 @@ function _uitrustingHtml() {
         <span class="ps-paar-titel">${opties.length === 1 ? 'Wat je meekrijgt' : o.spullen.length ? 'De spullen' : 'Alleen het geld'}</span>
         <span class="ps-paar-onder">${esc([o.spullen.join(', '), o.goud ? `${o.goud} ${_muntNaam()}` : ''].filter(Boolean).join(' · '))}</span>
       </button>`).join('')}</div>` : '<p class="ps-hint">Zonder background krijg je hier niets mee.</p>'}
-    <div class="ps-uit-rij">
-      <label class="ps-veld"><span>Een wapen</span>
-        <select data-veld="wapen"><option value="">— geen —</option>
-          ${(P.bronnen.wapens || []).map(w => `
-            <option value="${esc(w.key)}"${w.key === P.c.wapen ? ' selected' : ''}>${esc(w.naam)}${w.schade ? ` (${esc(w.schade)})` : ''}</option>`).join('')}
-        </select>
-        <span class="ps-hint">Je class mag ${esc(k?.basis?.weapons || 'wat je DM goedvindt')}.</span></label>
-      <label class="ps-veld"><span>Een harnas</span>
-        <select data-veld="harnas"><option value="">— geen —</option>
-          ${harnassen.map(h => `
-            <option value="${esc(h.key)}"${h.key === P.c.harnas ? ' selected' : ''}>${esc(h.naam)} (AC ${esc(String(h.ac || ''))})</option>`).join('')}
-        </select>
-        ${mag.includes('shield') ? `
-          <span class="ps-vink"><input type="checkbox" id="ps-schild" data-veld="schild"${P.c.schild ? ' checked' : ''}>
-            <label for="ps-schild">En een schild (+2)</label></span>` : ''}</label>
+    <!-- Twee keuzelijsten waren het, en dan kies je een wapen uit een rij
+         namen terwijl het archief van elk ding een plaat heeft. Dezelfde
+         kaarten als bij species en class, en net zo bladerend: een
+         keuzelijst van zevenendertig wapens is geen keuze maar een lijst.
+         (Geen backticks in commentaar hierbinnen: template literal.) -->
+    <div class="ps-subkeuze">
+      <div class="ps-subkop">Een wapen
+        <span class="ps-hint">Je class mag ${esc(k?.basis?.weapons || 'wat je DM goedvindt')}.</span></div>
+      ${_rasterHtml('wapen', (P.bronnen.wapens || []).map(w => _kaart({
+        naam: w.naam, onder: w.schade || '', icoon: 'sword', beeld: w.beeld,
+        aan: w.key === P.c.wapen, actie: 'uitrustingKies',
+        extra: ` data-veld="wapen" data-key="${esc(w.key)}"`,
+      })), false, true)}
     </div>
+    ${harnassen.length ? `
+    <div class="ps-subkeuze">
+      <div class="ps-subkop">Een harnas</div>
+      ${_rasterHtml('harnas', harnassen.map(h => _kaart({
+        naam: h.naam, onder: h.ac ? `AC ${h.ac}` : '', icoon: 'shield', beeld: h.beeld,
+        aan: h.key === P.c.harnas, actie: 'uitrustingKies',
+        extra: ` data-veld="harnas" data-key="${esc(h.key)}"`,
+      })))}
+    </div>` : ''}
+    ${mag.includes('shield') ? `
+      <span class="ps-vink"><input type="checkbox" id="ps-schild" data-veld="schild"${P.c.schild ? ' checked' : ''}>
+        <label for="ps-schild">En een schild (+2)</label></span>` : ''}
     ${P.bronnen.trinketTafel ? `
       <div class="ps-trinket">${P.c.trinket
         ? `<p class="ps-hint">${ico('backpack')} In je zak vond je: <strong>${esc(P.c.trinket)}</strong>.</p>`
@@ -1309,6 +1320,15 @@ const ACTIES = {
     P.c.bgKeuze = { ...(P.c.bgKeuze || {}), skills: nu };
     // Wat je background nu geeft, hoef je niet ook nog bij je class te kiezen.
     P.c.skills = (P.c.skills || []).filter(s => !nu.includes(s));
+    _herteken();
+  },
+
+  // Een wapen of harnas kiezen. Nog eens drukken haalt hem eraf — dat was in
+  // de keuzelijst de regel "— geen —", en die bestaat niet meer.
+  uitrustingKies(d) {
+    const nu = P.c[d.veld] === d.key ? '' : d.key;
+    P.c[d.veld] = nu;
+    _bewaar([d.veld]);
     _herteken();
   },
 

@@ -6915,9 +6915,44 @@ function _maakBronnen() {
   // De spreuken kaal: naam, niveau, school en voor wie hij is. De teksten
   // blijven waar ze horen — de wizard laat je kiezen, niet lezen.
   const alleSpreuken = _maakSpreuken();
+  // **De plaat van het voorwerpkaartje, als de campagne er een heeft.** De
+  // uitrusting in de maker komt uit de SRD-itemlijst en die heeft geen beeld;
+  // het archief heeft dat wél, voor precies dezelfde dingen. Koppelen gaat op
+  // naam — de enige sleutel die beide kanten delen — en daarom genormaliseerd:
+  // "Smith's Tools" en "smith's tools" zijn hetzelfde ding, en een krulletje
+  // (’) is een apostrof.
+  const _itemNorm = (n) => String(n || '').toLowerCase()
+    .replace(/[\u2018\u2019]/g, "'").replace(/\s+/g, ' ').trim();
+  // Twee schrijfwijzen voor hetzelfde ding, en allebei met reden. De SRD-lijst
+  // sorteert op soort ("Crossbow, hand") en het archief noemt het zoals je het
+  // zegt ("Hand Crossbow"); de SRD schrijft "Leather Armor" waar het kaartje
+  // gewoon "Leather" heet, want in de rij harnassen is dat woord overbodig.
+  // Tien van de vijfenvijftig stukken uitrusting vielen daarop af — en dan is
+  // bijmaken verkeerd: dan staan ze er straks twee keer.
+  const _itemSleutels = (naam) => {
+    const n = _itemNorm(naam);
+    const uit = [n];
+    const komma = n.match(/^(.+?),\s*(.+)$/);
+    if (komma) uit.push(`${komma[2]} ${komma[1]}`);
+    for (const v of [...uit]) if (v.endsWith(' armor')) uit.push(v.slice(0, -' armor'.length));
+    return uit;
+  };
+  const _kaartjeBeeld = (() => {
+    const index = new Map();
+    for (const v of (storage.readJSON('entities.json').voorwerpen || [])) {
+      const sleutel = _itemNorm(v?.name);
+      if (!sleutel || index.has(sleutel)) continue;
+      index.set(sleutel, { id: v.data?.imageId || v.imageId || v.id, focus: v.data?.imgFocus || '', entityId: v.id });
+    }
+    return (naam) => {
+      for (const sleutel of _itemSleutels(naam)) if (index.has(sleutel)) return index.get(sleutel);
+      return null;
+    };
+  })();
   const kaal = (i) => ({ key: i.key, naam: i.name, prijs: i.prijs, gewicht: i.gewicht,
                          soort: i.itemType, schade: i.damage || '', eigenschappen: i.weaponProperties || '',
-                         ac: i.armorBaseAC || null, harnasSoort: i.armorType || '' });
+                         ac: i.armorBaseAC || null, harnasSoort: i.armorType || '',
+                         beeld: _kaartjeBeeld(i.name) });
   const inst = personageConcept.instellingen(meta);
   const tafel = inst.trinketTafel
     ? (storage.readJSON('tables.json').tables || []).find(t => t.id === inst.trinketTafel || t.name === inst.trinketTafel)
@@ -6927,7 +6962,7 @@ function _maakBronnen() {
     tellers: bronnen.lees('srd-spreukentellers') || {},
     spreuken: alleSpreuken,
     wapens: personageConcept.wapensVoor().map(kaal),
-    gereedschap: _gereedschapLijst(),
+    gereedschap: _gereedschapLijst().map(g => ({ ...g, beeld: _kaartjeBeeld(g.naam) })),
     // Het uitsnijdpunt per spreukplaat: de maker toont dezelfde kaarten als
     // de rest van de app, en zonder focus snijdt een staand portret er net de
     // helft af.
