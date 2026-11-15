@@ -1,28 +1,28 @@
-import { api, campagneUitUrl, zetCampagne } from './api.js?v=321';
-import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, renderDocumenten, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=385";
-import { initArchief, renderLogboek, openLogboekEditor } from "./render-archief.js?v=151";
-import { renderKaart, queueFlyTo, verversPins, nieuweKaart } from './render-kaart.js?v=36';
-import { renderDungeon } from './render-dungeon.js?v=77';
-import { renderRelatiemap } from './render-relatiemap.js?v=39';
-import { renderProgressie, levelupFeatures } from './render-progressie.js?v=68';
-import { renderBestiarium } from './render-bestiarium.js?v=42';
-import { renderSpreuken } from './render-spreuken.js?v=57';
+import { api, campagneUitUrl, zetCampagne } from './api.js?v=323';
+import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, renderDocumenten, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=387";
+import { initArchief, renderLogboek, openLogboekEditor } from "./render-archief.js?v=153";
+import { renderKaart, queueFlyTo, verversPins, nieuweKaart } from './render-kaart.js?v=38';
+import { renderDungeon } from './render-dungeon.js?v=79';
+import { renderRelatiemap } from './render-relatiemap.js?v=41';
+import { renderProgressie, levelupFeatures } from './render-progressie.js?v=70';
+import { renderBestiarium } from './render-bestiarium.js?v=44';
+import { renderSpreuken } from './render-spreuken.js?v=59';
 import './render-handleiding.js?v=2';
 import './render-melding.js?v=4';
-import { renderVaardigheden, zoekVaardigheden, heldenboekTekst } from './render-vaardigheden.js?v=162';
+import { renderVaardigheden, zoekVaardigheden, heldenboekTekst } from './render-vaardigheden.js?v=164';
 import { renderStatblock } from './render-statblock.js?v=10';
-import { initSocket } from "./socket-client.js?v=102";
-import { initDmPanel } from "./dm-panel.js?v=425";
+import { initSocket } from "./socket-client.js?v=104";
+import { initDmPanel } from "./dm-panel.js?v=427";
 import { COND_INFO, COND_LABEL, COND_MET_PLAATJE, COND_ICON } from './conditions.js?v=4';
-import './media-picker.js?v=15';
-import './wizard.js?v=12';
+import './media-picker.js?v=17';
+import './wizard.js?v=14';
 import './tafels.js?v=2';
-import './terugblik.js?v=4';
-import './rage.js?v=5';
-import './klassekracht.js?v=7';
-import './bastion.js?v=2';
-import './stemronde.js?v=3';
-import './gevecht-regie.js?v=4';
+import './terugblik.js?v=6';
+import './rage.js?v=7';
+import './klassekracht.js?v=9';
+import './bastion.js?v=4';
+import './stemronde.js?v=5';
+import './gevecht-regie.js?v=6';
 
 // ── Icon helper ──
 // Renders an inline SVG <use> reference from /img/icons.svg.
@@ -1653,7 +1653,7 @@ async function _landingNieuwTegel() {
   if (!host || !_groepsWachtwoord || document.getElementById('landing-nieuw')) return;
   let stand = null;
   try {
-    await import('./personage-maken.js?v=12');
+    await import('./personage-maken.js?v=14');
     stand = await window.personageMaken.stand();
   } catch { return; }
   if (stand?.instellingen && stand.instellingen.aan === false) return;
@@ -1675,7 +1675,7 @@ async function _landingNieuwTegel() {
 
 async function _landingNieuw() {
   try {
-    await import('./personage-maken.js?v=12');
+    await import('./personage-maken.js?v=14');
     const stand = await window.personageMaken.stand();
     // Ook als hij al bij de DM ligt: dan zie je dat, en kun je hem nog
     // terughalen om iets te veranderen.
@@ -3731,7 +3731,7 @@ function _kaartCard(type, m, dm, verdiepingen = null) {
 // eerste bestaande kaart: je drukte op + en keek naar Dreghaven.
 window._kaartNieuw = async function (type) {
   if (type === 'wereld') return nieuweKaart();
-  const { nieuweDungeon } = await import('./render-dungeon.js?v=77');
+  const { nieuweDungeon } = await import('./render-dungeon.js?v=79');
   nieuweDungeon();
 };
 
@@ -15880,6 +15880,7 @@ const HELP_CONFIG = {
 
   dm_verzoeken_personage: () => ({ titel: 'Een nieuw personage', stappen: [
     { titel: 'Wat je hier ziet', tekst: 'Iemand heeft met het partywachtwoord van een van je partys een personage gemaakt. Je ziet zijn naam, zijn species, class en background, zijn zes scores, zijn HP en zijn AC — en met welke manier hij die scores bepaalde. Daaronder wat hij onderweg koos (ASI of feat per level), hoeveel spreuken hij koos, het begin van zijn verhaal en zijn **geheimen voluit**: die zijn juist voor jou.\n\nWat er niet klopt staat eronder als opmerking. Die blokkeren niets: het is jouw tafel, en soms is de uitzondering juist de bedoeling.\n\nWerkt de speler intussen verder, dan haalt hij hem bij je terug — dan verdwijnt hij hier tot hij hem opnieuw verzegelt. Zo gun je nooit iets anders dan wat je las.', afbeelding: null },
+    { titel: 'Zelf de maker gebruiken', tekst: 'Naast de plus in het Personages-tabblad staat een tweede knop: dezelfde maker, maar dan voor jou. Twee dingen gelden daar niet. Je typt geen **partywachtwoord** — je ziet alle party\'s, dus je kiest er een — en wat je maakt hoeft niet **langs jou**: het zegel maakt het personage meteen aan, met kaartje, blad en hit points.\n\nHandig voor een NPC met een echt blad, voor een speler die er niet is, of om zelf te zien wat je spelers krijgen. De schakelaar waarmee je de maker voor hen uitzet raakt deze knop niet — die gaat over hén.\n\nSluit je halverwege, dan wordt het halve kaartje weggegooid (hij vraagt het eerst): jij hebt geen "verder met" zoals een speler, dus anders bleef het voorgoed staan.', afbeelding: null },
     { titel: 'Gunnen of terugsturen', tekst: '**Gunnen** maakt het personage echt: het kaartje met zijn portret, het profiel, zijn hit points, zijn spreukenboek, zijn boedel, zijn beurs en zijn plek in de party. Daarna kan hij met hetzelfde partywachtwoord inloggen en staat hij tussen de portretten.\n\n**Terugsturen** vraagt om een reden. Die leest hij zodra hij zijn concept weer opent, en hij kan er meteen aan verder werken — er gaat niets verloren.', afbeelding: null },
   ] }),
 

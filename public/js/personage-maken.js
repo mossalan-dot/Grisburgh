@@ -17,7 +17,7 @@
 // rechts één keuze per scherm — en tot slot de onthulling met het lakzegel.
 // Eén klikhandler op de hele overlay (`data-actie`), zodat een naam met een
 // apostrof ("Thieves' Tools") nergens in een onclick-string hoeft te passen.
-import { api, huidigeCampagne } from './api.js?v=321';
+import { api, huidigeCampagne } from './api.js?v=323';
 
 const esc = s => window.app?.esc?.(s) ?? String(s ?? '')
   .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -852,9 +852,14 @@ function _onthulHtml() {
         <ul>${fouten.map(o => `<li>${esc(o)}</li>`).join('')}</ul></div>` : ''}
       ${opm.length ? `<div class="ps-let-op"><strong>${ico('alert-triangle')} Je DM ziet dit erbij staan</strong>
         <ul>${opm.map(o => `<li>${esc(o)}</li>`).join('')}</ul></div>` : ''}
-      <div class="ps-lak-kop">${P.zegel ? 'Verzegeld' : fouten.length ? 'Eerst het bovenstaande' : 'Druk het zegel om hem naar je DM te sturen'}</div>
+      <!-- De DM stuurt hem niet naar zichzelf: bij hem maakt het zegel het
+           personage meteen. Zelfde knop, andere belofte. -->
+      <div class="ps-lak-kop">${P.zegel ? (_doorDm() ? 'Gemaakt' : 'Verzegeld')
+        : fouten.length ? 'Eerst het bovenstaande'
+        : _doorDm() ? 'Druk het zegel om hem aan te maken'
+        : 'Druk het zegel om hem naar je DM te sturen'}</div>
       <button type="button" class="ps-lakzegel${P.zegel ? ' is-gezet' : ''}" data-actie="zegel"${fouten.length || P.zegel ? ' disabled' : ''}
-        aria-label="Verzegelen en naar je DM sturen">${ico(P.zegel ? 'check' : 'crown')}</button>
+        aria-label="${_doorDm() ? 'Het personage aanmaken' : 'Verzegelen en naar je DM sturen'}">${ico(P.zegel ? 'check' : 'crown')}</button>
       <div class="ps-rij ps-rij--midden">
         <button type="button" class="ps-knop ps-knop--donker" data-actie="naarStap" data-id="${esc(_actief().slice(-1)[0].id)}">${ico('chevron-left')} Nog iets wijzigen</button>
       </div>
@@ -862,6 +867,19 @@ function _onthulHtml() {
 }
 
 function _klaarHtml() {
+  // Door de DM gemaakt: dan bestaat het kaartje al en heeft wachten geen zin.
+  if (_doorDm()) {
+    return `
+      <div class="ps-klaar">
+        <div class="ps-embleem ps-embleem--klein">${ico('check')}</div>
+        <h2>${esc(P.c.naam)} staat erin</h2>
+        <p>Het kaartje, het blad en de hit points staan klaar, in de party die je koos.
+          Alles wat je hier invulde vind je terug op zijn kaartje; de rest vul je daar aan.</p>
+        <div class="ps-rij ps-rij--midden">
+          <button type="button" class="ps-knop ps-knop--goud" data-actie="sluit">${ico('check')} Sluiten</button>
+        </div>
+      </div>`;
+  }
   return `
     <div class="ps-klaar">
       <div class="ps-embleem ps-embleem--klein">${ico('check')}</div>
@@ -1181,6 +1199,11 @@ const ACTIES = {
     P.bezig = true;
     try {
       _neem(await api.conceptIndienen(P.c.id));
+      // De DM hoeft zijn eigen concept niet te beoordelen: indienen en gunnen
+      // zijn voor hem één handeling. Het blijft wel langs allebei de routes
+      // gaan — daar zit het nakijken en het aanmaken in, en dat willen we niet
+      // een tweede keer opschrijven.
+      if (_doorDm()) await api.conceptBesluit(P.c.id, 'gunnen');
       P.zegel = true; _teken();
       setTimeout(() => { P.scherm = 'klaar'; _teken(); }, 1200);
     } catch (e) {
@@ -1350,6 +1373,10 @@ function _laad(r) {
   P.stapId = STAPPEN[0].id; P.zoek = {}; P.zegel = false;
 }
 
+// Is dit concept door de DM gemaakt? Dan slaat hij de drempel over en maakt
+// het zegel het personage meteen.
+const _doorDm = () => !!P.c?.doorDm;
+
 // ── Naar buiten ──────────────────────────────────────────────────────────────
 window.personageMaken = {
   // Beginnen vanaf de landingspagina. Het partywachtwoord is de drempel — wie
@@ -1358,6 +1385,19 @@ window.personageMaken = {
     try {
       _laad(await api.conceptStart(wachtwoord, naam));
       _open('drempel');
+    } catch (e) {
+      toast(e.message || 'Dat lukte niet');
+      throw e;
+    }
+  },
+
+  // Dezelfde maker, maar als DM. Hij kiest een party in plaats van een
+  // wachtwoord te typen, en hij begint meteen op de werkbank — de drempel is
+  // er voor wie moet bewijzen dat hij aan tafel zit.
+  async startAlsDm(groep, naam = '') {
+    try {
+      _laad(await api.conceptStartDm(groep, naam));
+      _open('maken');
     } catch (e) {
       toast(e.message || 'Dat lukte niet');
       throw e;
@@ -1381,9 +1421,23 @@ window.personageMaken = {
   },
 
   sluit() {
+    // Een concept van de DM dat nooit verzegeld is, blijft anders voorgoed in
+    // `dm-state.json` staan: hij heeft geen "verder met" zoals een speler, dus
+    // niemand kan er nog bij. Weggooien dus — maar wel vragen, want hij kan
+    // per ongeluk op het kruisje drukken.
+    if (P.c?.doorDm && P.c.status !== 'gegund' && !P.zegel) {
+      if (!confirm('Dit personage is nog niet aangemaakt. Sluiten en weggooien?')) return;
+      api.conceptWeg(P.c.id).catch(() => { /* dan blijft hij staan; niet erger dan nu */ });
+    }
     if (P.opname?.rec?.state === 'recording') P.opname.rec.stop();
     document.getElementById('pm-overlay')?.remove();
     document.body.classList.remove('wizard-open');
+    // Wie de maker opende mag weten dat hij dicht is — het archief erachter
+    // moet zijn nieuwe kaartje nog tekenen. Eén keer, daarna weg: een haak die
+    // blijft hangen vuurt de volgende keer opnieuw.
+    const haak = window._maakKlaar;
+    window._maakKlaar = null;
+    haak?.(P.c?.entityId || '');
   },
 };
 

@@ -7031,14 +7031,32 @@ function _conceptSpreukFeats(c, prog) {
 router.post('/personage-concept', (req, res) => {
   const meta = storage.readJSON('meta.json');
   const inst = personageConcept.instellingen(meta);
-  if (!inst.aan) return res.status(403).json({ error: 'De DM heeft dit uitgezet' });
   const dmState = readDmState();
-  const hit = _groepBijWachtwoord(dmState, req.body?.wachtwoord);
-  if (!hit) return res.status(401).json({ error: 'Dat is geen partywachtwoord' });
+
+  // **De DM gebruikt dezelfde maker.** Hij maakt ook personages — voor een
+  // speler die er niet is, of voor zichzelf om te zien wat de maker doet — en
+  // dat deed hij tot nu toe met een leeg kaartje plus het blad met de hand.
+  // Twee dingen gelden voor hem niet: het partywachtwoord (hij ziet alle
+  // party's, dus hij kiest er gewoon een) en de schakelaar waarmee hij de
+  // maker voor zijn spelers uitzette — die gaat over hén.
+  const isDm = req.session?.role === 'dm';
+  let gid;
+  if (isDm) {
+    gid = String(req.body?.groep || '');
+    if (!dmState.groups?.[gid]) return res.status(400).json({ error: 'Die party bestaat niet' });
+  } else {
+    if (!inst.aan) return res.status(403).json({ error: 'De DM heeft dit uitgezet' });
+    const hit = _groepBijWachtwoord(dmState, req.body?.wachtwoord);
+    if (!hit) return res.status(401).json({ error: 'Dat is geen partywachtwoord' });
+    gid = hit.id;
+  }
 
   const id = `cp_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
   const c = {
-    id, groep: hit.id, status: 'bezig',
+    id, groep: gid, status: 'bezig',
+    // Wie hem maakt staat erop: een concept van de DM hoeft niet langs de DM,
+    // en het slotscherm zegt daarom iets anders.
+    ...(isDm ? { doorDm: true } : {}),
     naam: String(req.body?.naam || '').trim().slice(0, 60),
     species: '', klasse: '', subclass: '', background: '',
     level: 1, methode: inst.methodes[0] || 'array',
@@ -7361,6 +7379,27 @@ router.post('/personage-concept/:id/trinket', (req, res) => {
 });
 
 // Wat er op de DM ligt te wachten.
+// Een concept weggooien. Een speler heeft dit niet nodig — zijn sessie houdt
+// het vast en hij gaat er de volgende keer mee verder — maar de **DM** maakt
+// er een vanuit het archief en heeft daar geen "verder met" voor. Sluit hij
+// de maker halverwege, dan blijft er anders voorgoed een halve kaart in
+// `dm-state.json` staan die niemand nog kan zien of afmaken.
+router.delete('/personage-concept/:id', (req, res) => {
+  const dmState = readDmState();
+  const c = _concepten(dmState)[req.params.id];
+  if (!c) return res.json({ ok: true });            // al weg is ook goed
+  if (req.session?.conceptId !== c.id && req.session?.role !== 'dm') {
+    return res.status(403).json({ error: 'Geen toegang' });
+  }
+  // Wat al gegund is, is een personage en geen concept meer; dat gooi je weg
+  // op zijn eigen kaartje, met de bevestiging die daarbij hoort.
+  if (c.status === 'gegund') return res.status(409).json({ error: 'Dit personage bestaat al' });
+  delete _concepten(dmState)[req.params.id];
+  storage.writeJSON('dm-state.json', dmState);
+  if (req.session?.conceptId === c.id) req.session.conceptId = null;
+  res.json({ ok: true });
+});
+
 router.get('/personage-concepten', requireDM, (req, res) => {
   const dmState = readDmState();
   const alles = Object.values(_concepten(dmState))

@@ -512,11 +512,15 @@ export const api = {
   // Een personage in wording. De eerste twee mogen zonder sessie: wie het
   // partywachtwoord typt mag er een beginnen, dat is de drempel.
   conceptStart:     (wachtwoord, naam) => request('/personage-concept', { method: 'POST', body: JSON.stringify({ wachtwoord, naam }) }),
+  // De DM kiest een party in plaats van een wachtwoord te typen: hij ziet ze
+  // allemaal, dus een drempel is daar geen drempel maar een omweg.
+  conceptStartDm:   (groep, naam) => request('/personage-concept', { method: 'POST', body: JSON.stringify({ groep, naam }) }),
   conceptMijn:      ()        => request('/personage-concept'),
   conceptBewaar:    (id, data) => request(`/personage-concept/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
   conceptIndienen:  (id)      => request(`/personage-concept/${id}/indienen`, { method: 'POST' }),
   conceptTrinket:   (id)      => request(`/personage-concept/${id}/trinket`, { method: 'POST' }),
   conceptenOpen:    ()        => request('/personage-concepten'),
+  conceptWeg:       (id) => request(`/personage-concept/${id}`, { method: 'DELETE' }),
   conceptBesluit:   (id, besluit, reden) => request(`/personage-concept/${id}/${besluit}`, { method: 'POST', body: JSON.stringify({ reden: reden || '' }) }),
   savePersonageMaken: (data)  => request('/meta/personage-maken', { method: 'PUT', body: JSON.stringify(data) }),
   lootEventCreate:  (data)    => request('/loot/events',                { method: 'POST',   body: JSON.stringify(data) }),

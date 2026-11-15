@@ -1,4 +1,4 @@
-import { api } from './api.js?v=321';
+import { api } from './api.js?v=323';
 import { renderStatblock } from './render-statblock.js?v=10';
 
 const icon = (...a) => window.icon(...a);
@@ -3362,6 +3362,14 @@ async function renderEntitySection(type) {
                ontdekkingsmeter in de kop (die laat zien hoeveel de party van de
                wereld kent, zónder de spelers zelf) en dat las als een fout. -->
           ${window._helpBtn?.(type) ?? ''}
+          <!-- Naast de plus: dezelfde maker als die je spelers gebruiken. Een
+               leeg kaartje plus het blad met de hand invullen is vier schermen
+               werk waar de maker één pad van maakt — en hij rekent de HP, de
+               proficiency en het aantal spreuken uit. Alleen bij personages:
+               een locatie heeft geen blad. -->
+          ${isDM() && type === 'personages'
+            ? `<button class="sbs-add-btn" onclick="window._makerVoorDm()"
+                 title="Met de personagemaker — dezelfde die je spelers gebruiken">${window.icon('sparkles')}</button>` : ''}
           ${isDM() ? `<button class="sbs-add-btn" onclick="window.app.onFabClick()" title="Nieuw: ${TYPE_META[type].label.toLowerCase()}">${window.icon('plus')}</button>` : ''}
         </div>
       </div>
@@ -5220,6 +5228,63 @@ function _bladHtml(profiel, hp, e) {
         </section>
       </div>
     </div>`;
+}
+
+// De personagemaker, maar dan door de DM. Hij kiest de party zelf — een
+// wachtwoord is voor wie moet bewijzen dat hij aan tafel zit — en wat hij
+// maakt bestaat meteen, zonder de ronde langs zichzelf.
+window._makerVoorDm = async () => {
+  let groepen = [];
+  try { groepen = (await api.listGroups())?.groups || []; } catch { /* dan de actieve */ }
+  if (!groepen.length) return alert('Er is nog geen party om een personage in te zetten.');
+  let gid = groepen[0].id;
+  if (groepen.length > 1) {
+    const keuze = await _kiesParty(groepen);
+    if (!keuze) return;
+    gid = keuze;
+  }
+  try {
+    await import('./personage-maken.js?v=14');
+    // Zodra de maker dichtgaat staat het kaartje er; het raster erachter weet
+    // dat nog niet. Hetzelfde als na het opslaan van een nieuw kaartje: open
+    // en in beeld.
+    window._maakKlaar = async (id) => {
+      if (id) { _tegelOpen.personages = id; _tegelBlad[id] = 0; }
+      await renderEntitySection('personages');
+      if (id) setTimeout(() => document.querySelector(`#section-personages .tegel[data-sleutel="${CSS.escape(id)}"]`)
+        ?.scrollIntoView({ block: 'center', behavior: 'smooth' }), 360);
+    };
+    await window.personageMaken.startAlsDm(gid);
+  } catch (e) {
+    window._maakKlaar = null;
+    alert('De maker openen lukte niet: ' + (e.message || e));
+  }
+};
+
+// Welke party? Alleen als er meer dan één is: bij één party is er niets te
+// kiezen en zou een venster alleen een klik kosten.
+function _kiesParty(groepen) {
+  return new Promise(resolve => {
+    const ov = document.createElement('div');
+    ov.className = 'pb-soort-overlay';
+    ov.innerHTML = `
+      <div class="pb-soort-kaart" role="dialog" aria-label="In welke party?">
+        <div class="pb-soort-kop"><span>In welke party?</span></div>
+        <div class="pb-entity-list">
+          ${groepen.map(g => `<button class="pb-entity-item" data-gid="${esc(g.id)}">
+            <span class="pb-entity-icon">${icon('users')}</span>
+            <span class="pb-entity-name">${esc(g.name || g.id)}</span>
+          </button>`).join('')}
+        </div>
+      </div>`;
+    const klaar = (v) => { ov.remove(); resolve(v); };
+    ov.addEventListener('click', (e) => {
+      if (e.target === ov) return klaar(null);
+      const knop = e.target.closest('[data-gid]');
+      if (knop) klaar(knop.dataset.gid);
+    });
+    document.body.appendChild(ov);
+  });
 }
 
 // ── Bladwijzers ──
