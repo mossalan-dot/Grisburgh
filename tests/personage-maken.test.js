@@ -497,13 +497,18 @@ describe('Een personage scheppen: de randgevallen', () => {
     assert.ok(!r.body.nakijk.opmerkingen.some(o => /laat nog een skill kiezen/.test(o)));
   });
 
-  it('laat een oudere background zonder vaste abilities vrij verdelen, en zegt dat erbij', async () => {
+  // Een background van vóór de Player's Handbook 2024 verhoogt geen abilities:
+  // die verhoging en de origin feat kwamen pas met dat boek. Eerder heette dat
+  // hier "vrij verdeeld", en dat las als toestemming — de maker gaf er dan +3
+  // bij bovenop de eigen feature van die background.
+  it('verhoogt niets bij een background van vóór 2024, en zegt het als er tóch iets staat', async () => {
     const { patch } = await nieuw('Teun');
     const r = await patch({ ...basis, background: 'Anthropologist', bgBonus: { str: 2, con: 1 } });
-    assert.equal(r.body.profiel.str, 17);
-    assert.ok(r.body.nakijk.opmerkingen.some(o => /oudere background/.test(o)));
-    const fout = await patch({ bgBonus: { str: 2, dex: 2 } });
-    assert.ok(fout.body.nakijk.opmerkingen.some(o => /\+2 en \+1/.test(o)), 'twee keer +2 kan niet');
+    assert.ok(r.body.nakijk.opmerkingen.some(o => /vóór de Player's Handbook 2024/.test(o)),
+      'hij zegt dat deze background niets verhoogt');
+    const schoon = await patch({ bgBonus: {} });
+    assert.ok(!schoon.body.nakijk.opmerkingen.some(o => /verhoging/.test(o)),
+      'en zonder verhoging valt er niets op te merken');
   });
 
   it('ruimt op wat door een andere keuze zinloos werd', async () => {

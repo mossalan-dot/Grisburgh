@@ -540,7 +540,25 @@ function _steenHtml(a) {
 function _bgBonusHtml() {
   const bg = bgVan(P.c.background);
   if (!bg) return '<p class="ps-hint ps-hint--ruim">Kies eerst een background als je zijn verhoging wilt verdelen.</p>';
-  const mag = bg.abilities?.length ? bg.abilities : ABILITIES;
+  // **Een background van vóór de Player's Handbook 2024 verhoogt niets.** Die
+  // geeft skills, gereedschap, talen en een eigen feature; de verhoging en de
+  // origin feat kwamen pas in 2024. Van de 124 backgrounds in deze campagne
+  // noemen er 56 geen abilities — en die kregen hier tot nu toe +3 te
+  // verdelen over álle zes, bovenop wat hun eigen feature al gaf. Dat is een
+  // bonus die de app zelf verzon, en precies wat een speler te veel kreeg.
+  //
+  // Verzinnen doen we niet: staat het er niet, dan staat het er niet. Wil de
+  // DM hem toch 2024-gewijs laten spelen, dan zet hij de verhoging op het
+  // blad — dat is zijn keuze en niet die van dit formulier.
+  if (!bg.abilities?.length) {
+    return `<div class="ps-bonus">
+      <div class="ps-subkop">Verhoging van ${esc(bg.naam)}</div>
+      <p class="ps-hint">Deze background komt van vóór de Player's Handbook 2024 en noemt geen
+        ability scores: hij geeft zijn skills, zijn gereedschap en zijn eigen feature, en verder niets.
+        Er valt hier dus niets te verdelen.</p>
+    </div>`;
+  }
+  const mag = bg.abilities;
   return `
     <div class="ps-bonus">
       <div class="ps-subkop">Verhoging van ${esc(bg.naam)}</div>
