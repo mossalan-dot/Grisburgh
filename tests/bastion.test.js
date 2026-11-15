@@ -302,4 +302,51 @@ describe('Bastion: voorvallen en verdediging', () => {
     assert.strictEqual(met.body.bastion.log[0].voorval.tekst, met.body.voorval.tekst,
       'en het staat in het logboek van die turn');
   });
+
+  // ── Fase 3 ──
+  // Hoevéél een Trade of een Craft opbrengt staat in de Dungeon Master's Guide
+  // en dat leveren we niet mee: de DM vult het in. Wat de app wél doet is het
+  // rekenwerk — geld langs `_deductCurrency` (dus de gedeelde beurs wint als
+  // die aanstaat) en een voorwerp dat echt in de boedel belandt.
+  it('een turn kan geld, een voorwerp en verdedigers opleveren', async () => {
+    const pc = (await b(dm, 'GET', '/bastion')).body.leden[0];
+    const item = (await b(dm, 'POST', '/entities/voorwerpen',
+      { name: 'Gesmeed zwaard', data: { itemType: 'Weapon' } })).body;
+    const stand = (await b(dm, 'GET', '/bastion')).body.bastion;
+    const fac = stand.facilities.find(f => f.special);
+    // Welke order een facility kent verschilt per facility; pak er een die hij
+    // aanbiedt, anders weigert de route hem en blijft de turn leeg.
+    await b(dm, 'PUT', `/bastion/orders/${fac.id}`, { order: fac.orders[0] });
+    const voor = (await b(dm, 'GET', `/player-currency/${pc.id}`)).body;
+    const defVoor = stand.defenders;
+
+    const r = await b(dm, 'POST', '/bastion/turn', {
+      resultaten: { [fac.id]: 'Een zwaard uit de smidse.' },
+      opbrengst: { [fac.id]: { bedrag: '12 fl', itemId: item.id, itemNaam: item.name, defenders: 2, naar: pc.id } },
+    });
+    assert.strictEqual(r.status, 200, JSON.stringify(r.body));
+
+    const regel = r.body.bastion.log[0].regels[0];
+    assert.strictEqual(regel.bedragCl, 1200, 'twaalf florinde is twaalfhonderd centeling');
+    assert.strictEqual(regel.itemNaam, 'Gesmeed zwaard');
+    assert.strictEqual(regel.defenders, 2);
+
+    const na = (await b(dm, 'GET', `/player-currency/${pc.id}`)).body;
+    assert.strictEqual((na.fl || 0) - (voor.fl || 0), 12, 'het geld is bijgeschreven, niet afgeschreven');
+    assert.strictEqual(r.body.bastion.defenders, defVoor + 2, 'en de verdedigers erbij');
+
+    const bezit = (await b(dm, 'GET', `/items/${item.id}/bezit`)).body;
+    const alle = JSON.stringify(bezit);
+    assert.ok(alle.includes(pc.id), 'het voorwerp staat op zijn naam');
+  });
+
+  it('een negatief bedrag schrijft juist af — Recruit kost geld', async () => {
+    const pc = (await b(dm, 'GET', '/bastion')).body.leden[0];
+    const fac = (await b(dm, 'GET', '/bastion')).body.bastion.facilities.find(f => f.special);
+    await b(dm, 'PUT', `/bastion/orders/${fac.id}`, { order: fac.orders[0] });
+    const voor = (await b(dm, 'GET', `/player-currency/${pc.id}`)).body;
+    await b(dm, 'POST', '/bastion/turn', { opbrengst: { [fac.id]: { bedrag: '-5 fl', naar: pc.id } } });
+    const na = (await b(dm, 'GET', `/player-currency/${pc.id}`)).body;
+    assert.strictEqual((voor.fl || 0) - (na.fl || 0), 5, 'vijf florinde eraf');
+  });
 });

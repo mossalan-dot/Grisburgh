@@ -20,7 +20,7 @@ import './tafels.js?v=2';
 import './terugblik.js?v=6';
 import './rage.js?v=7';
 import './klassekracht.js?v=9';
-import './bastion.js?v=5';
+import './bastion.js?v=6';
 import './stemronde.js?v=5';
 import './gevecht-regie.js?v=6';
 
@@ -15871,7 +15871,7 @@ const HELP_CONFIG = {
     { titel: 'Wanneer is het een turn?', tekst: 'Een **Bastion Turn** valt ongeveer elke zeven dagen. De app telt dat in **lange rusten** van de party — dezelfde klok als de winkels die verversen. Na zeven nachten staat er een banier bovenaan, en hoort de DM het meteen na de lange rust.', afbeelding: null },
     { titel: 'Voorvallen bij een turn', rol: 'dm', tekst: 'Stond een facility op **Maintain** of bleef er eentje zonder order, dan is er die week niemand die oplet — en rolt de app één voorval. Welke tafel dat is kies je bij *Instellingen → Bastion*; het voorval komt in het logboek van die turn en verschijnt op het **tafelscherm**, niet bij je spelers.\n\nDe Bastion Events uit de Dungeon Master\'s Guide leveren we niet mee: die tekst mogen we niet delen. Je wijst dus een tafel van je eigen campagne aan, net als bij de rust. Kies je er geen, dan rolt er niets.', afbeelding: null },
     { titel: 'Verdedigers en een aanval', rol: 'dm', tekst: 'Het **aantal verdedigers** houd je zelf bij met de plus en de min. De app telt het niet uit: hoeveel een Barrack of een Armory er geeft staat in de DMG, en die getallen leveren we niet mee — wél staat eronder wélke van jouw facilities er volgens hun eigen werking geven.\n\n**Aanval rollen** gooit zes stenen, of vier als je *Verdedigingsmuren* hebt aangevinkt (beide aantallen zijn instelbaar). Wat een worp betekent staat ook in dat boek, dus de app bewaart de stenen zoals ze vielen en vraagt je wat het aan tafel werd. Dat komt als eigen regel in het logboek.', afbeelding: null },
-    { titel: 'Wat er nog niet is', rol: 'dm', tekst: 'Resources en **goud** zijn fase 3: opbrengst per turn bij Trade, een Craft-uitkomst die echt in de boedel belandt, en Recruit die verdedigers kost. Tot die tijd schrijf je de uitslag van een order zelf op en verreken je geld of voorwerpen zoals je dat altijd doet.', afbeelding: null },
+    { titel: 'Wat een order oplevert', rol: 'dm', tekst: 'Bij het afronden van een turn staat onder elke order een regel met **Geld**, **Voorwerp**, **Verdedigers** en **Naar wie**. Wat je daar invult wordt echt verwerkt: het bedrag gaat naar de beurs (de gedeelde beurs van de party als die aanstaat), het voorwerp belandt in de boedel, en de verdedigers tellen op.\n\nGeld schrijf je zoals overal: *12 fl* of *3,50*. Een **minteken** ervoor betekent dat het kóst in plaats van opbrengt — zo betaal je een Recruit. Bij Voorwerp typ je de naam van een **kaartje uit je archief**; kent de app die naam niet, dan zegt hij dat en gaat die regel zonder voorwerp mee.\n\nHoevéél een Trade of een Craft opbrengt staat in de Dungeon Master\'s Guide, dus dat vul je zelf in. De app doet het rekenwerk en de administratie; jij tekent af — zoals bij een bod van een winkel of een beloning.', afbeelding: null },
   ] }),
 
   inst_bastion: () => ({ titel: 'Bastion', stappen: [

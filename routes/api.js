@@ -21905,6 +21905,14 @@ router.post('/bastion/turn', requireDM, _bastionPoort, (req, res) => {
   const dmState = readDmState();
   const gid = _bastionGid(req, dmState);
   const resultaten = (req.body && typeof req.body.resultaten === 'object' && req.body.resultaten) || {};
+  // **Fase 3: wat een turn oplevert.** Per order mag er geld, een voorwerp en
+  // een aantal verdedigers bij — of af, want Recruit kost geld. Hoevéél een
+  // Trade of een Craft opbrengt staat in de Dungeon Master's Guide en dat
+  // leveren we niet mee; de DM vult het in en tekent het af, zoals bij een
+  // bod van een winkel of een beloning. De app doet het rekenwerk: het bedrag
+  // gaat langs `_deductCurrency` (negatief = bijschrijven), zodat de gedeelde
+  // beurs vanzelf wint als die aanstaat.
+  const opbrengst = (req.body && typeof req.body.opbrengst === 'object' && req.body.opbrengst) || {};
   const leden = _bastionLeden(dmState, gid);
   const cat = bastionRegels.catalogus();
   const r = _bastionSchrijf(req, gid, (b) => {
@@ -21912,11 +21920,43 @@ router.post('/bastion/turn', requireDM, _bastionPoort, (req, res) => {
     for (const f of (b.facilities || [])) {
       const o = b.orders?.[f.id];
       if (!o) continue;
+      const op = opbrengst[f.id] || {};
+      // Het bedrag mag "12 fl" of "3,50" zijn — dezelfde notatie als overal
+      // waar de DM geld intikt. Een **minteken** ervoor betekent dat het geld
+      // kóst in plaats van opbrengt (Recruit); `parsePrijs` leest alleen
+      // cijfers, dus dat teken halen we er hier zelf af.
+      const bedragRuw = String(op.bedrag ?? '').trim();
+      const negatief = /^-/.test(bedragRuw);
+      const bedragCl = bedragRuw
+        ? (negatief ? -1 : 1) * toCl(parsePrijs(bedragRuw.replace(/^-\s*/, '')) || { fl: 0, kn: 0, cl: 0 })
+        : 0;
+      const itemId = String(op.itemId || '').trim();
+      const naarWie = String(op.naar || '').trim();
+      const defDelta = Math.round(Number(op.defenders) || 0);
       regels.push({
         facId: f.id, naam: f.naam, key: f.key, order: o.order, orderNaam: cat.orderNamen[o.order] || o.order,
         notitie: o.notitie || '', door: o.door === 'dm' ? 'de DM' : (leden.find(l => l.id === o.door)?.naam || ''),
         resultaat: String(resultaten[f.id] || '').slice(0, 2000),
+        ...(bedragCl ? { bedragCl } : {}),
+        ...(itemId ? { itemId, itemNaam: String(op.itemNaam || '') } : {}),
+        ...(defDelta ? { defenders: defDelta } : {}),
       });
+      // Geld: via de gewone weg, zodat de gedeelde beurs wint als die aanstaat.
+      // Een bedrag is hier een **opbrengst**, dus hij gaat er met een minteken
+      // doorheen; een negatief bedrag (Recruit) schrijft juist af.
+      if (bedragCl) {
+        const wie = leden.find(l => l.id === naarWie)?.id || leden[0]?.id;
+        if (wie) _deductCurrency(dmState, wie, -bedragCl);
+      }
+      // Een voorwerp belandt echt in de boedel, bij wie de DM aanwees.
+      if (itemId) {
+        const wie = leden.find(l => l.id === naarWie) || leden[0];
+        if (wie) {
+          const ent = (storage.readJSON('entities.json').voorwerpen || []).find(v => v.id === itemId);
+          if (ent) _eigendomErbij(getGroup(dmState, gid), itemId, wie.id, wie.naam, _gebruikVan(ent.data), 1);
+        }
+      }
+      if (defDelta) b.defenders = Math.max(0, (parseInt(b.defenders) || 0) + defDelta);
     }
     // **Een voorval bij de turn.** De Bastion Events van de Dungeon Master's
     // Guide staan niet onder CC BY, dus die leveren we niet mee; de DM wijst
@@ -21941,6 +21981,9 @@ router.post('/bastion/turn', requireDM, _bastionPoort, (req, res) => {
     if (b.log.length > 200) b.log = b.log.slice(-200);
     b.orders = {};
     b.turnStand = _rustStand(getGroup(dmState, gid), 'long');
+    // Geld en bezit staan in `dm-state.json`, niet in `bastion.json`; die
+    // schrijfbeurt doen we hier zelf.
+    if (regels.some(r => r.bedragCl || r.itemId)) storage.writeJSON('dm-state.json', dmState);
     return { extra: { turn: b.turnNummer, voorval } };
   });
   // Het voorval gaat naar het tafelscherm, niet naar de spelers: zij horen het

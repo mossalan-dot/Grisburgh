@@ -33983,3 +33983,31 @@ body.gr-slowmo .combat-overlay { filter: grayscale(.85) contrast(1.1) brightness
   font-family: 'Cinzel', serif; font-weight: 700; color: #3a2d1c;
 }
 .bs-log--aanval > summary { color: #8a2a10; }
+
+/* ── Bastion, fase 3: wat een turn oplevert ────────────────────────────────
+   Geld, een voorwerp en verdedigers per order. Hoeveel het is staat in de
+   DMG; de DM vult het in en tekent het af, zoals bij een bod van een winkel. */
+.bs-opbrengst {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 8px; margin-top: 8px;
+}
+.bs-opb-veld { display: flex; flex-direction: column; gap: 3px; }
+.bs-opb-veld > span {
+  font-family: 'Cinzel', serif; font-size: 10px; letter-spacing: .05em;
+  text-transform: uppercase; color: #8a7050;
+}
+.bs-opb-veld--smal { max-width: 120px; }
+/* En wat het werd, in het logboek. */
+.bs-opb-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 5px; }
+.bs-opb-chip {
+  display: inline-flex; align-items: center; gap: 5px;
+  font-family: 'Crimson Text', serif; font-size: 12.5px;
+  padding: 2px 9px; border-radius: 11px;
+  background: rgba(138,109,63,.14); border: 1px solid rgba(138,109,63,.35); color: #3a2d1c;
+}
+.bs-opb-chip .icon { width: 13px; height: 13px; }
+.bs-voorval {
+  margin-top: 8px; padding: 8px 11px; border-left: 3px solid rgba(196,168,122,.7);
+  background: rgba(255,252,245,.55); font-family: 'IM Fell English', serif; color: #5a4832;
+}
+.bs-voorval .icon { width: 14px; height: 14px; vertical-align: -2px; margin-right: 4px; }

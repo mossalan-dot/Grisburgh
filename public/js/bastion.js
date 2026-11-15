@@ -186,6 +186,21 @@ function _kaart(f) {
     </article>`;
 }
 
+// Wat een order opleverde, als chips onder de regel. Geld staat er in de munt
+// van de campagne; een bedrag met een minteken is wat hij kóstte (Recruit).
+function _opbrengstHtml(r) {
+  const chips = [];
+  if (r.bedragCl) {
+    const m = window._muntNamen?.() || { fl: 'Gold' };
+    const fl = Math.abs(r.bedragCl) / 100;
+    chips.push(`${ic('coins')} ${r.bedragCl < 0 ? '−' : '+'} ${fl.toLocaleString('nl-NL')} ${esc(m.fl)}`);
+  }
+  if (r.itemNaam) chips.push(`${ic('package')} ${esc(r.itemNaam)}`);
+  if (r.defenders) chips.push(`${ic('users')} ${r.defenders > 0 ? '+' : ''}${r.defenders} verdediger${Math.abs(r.defenders) === 1 ? '' : 's'}`);
+  if (!chips.length) return '';
+  return `<div class="bs-opb-chips">${chips.map(c => `<span class="bs-opb-chip">${c}</span>`).join('')}</div>`;
+}
+
 function _logTurn(t) {
   const datum = new Date(t.op).toLocaleDateString('nl-NL', { day: 'numeric', month: 'long', year: 'numeric' });
   return `
@@ -194,8 +209,10 @@ function _logTurn(t) {
       ${t.regels.length ? `<ul>${t.regels.map(r => `
         <li><b>${esc(r.naam)}</b> — ${esc(r.orderNaam)}${r.notitie ? `: ${esc(r.notitie)}` : ''}
           ${r.door ? `<span class="bs-log-door">(${esc(r.door)})</span>` : ''}
-          ${r.resultaat ? `<div class="bs-log-uitslag">${esc(r.resultaat)}</div>` : ''}</li>`).join('')}</ul>`
+          ${r.resultaat ? `<div class="bs-log-uitslag">${esc(r.resultaat)}</div>` : ''}
+          ${_opbrengstHtml(r)}</li>`).join('')}</ul>`
         : `<p class="bs-stil">Geen orders gegeven.</p>`}
+      ${t.voorval ? `<div class="bs-voorval">${ic('sparkles')} <em>${esc(t.voorval.tekst)}</em></div>` : ''}
     </details>`;
 }
 
@@ -291,6 +308,15 @@ async function _defZet(stap) {
   await _doe(() => api.put(_pad(''), { defenders: nu }));
 }
 
+// De voorwerpkaartjes, voor de keuzelijst bij een Craft-opbrengst. Eén keer
+// ophalen; de lijst verandert niet tijdens een turn.
+let _items = null;
+async function _itemsLaden() {
+  if (_items) return _items;
+  try { _items = (await api.listEntities('voorwerpen')) || []; } catch { _items = []; }
+  return _items;
+}
+
 function _turnVenster() {
   const met = _data.bastion.facilities.filter(f => f.special && f.order);
   _venster(`Bastion Turn ${_data.bastion.turnNummer + 1}`, `${met.length} order${met.length === 1 ? '' : 's'}`, `
@@ -299,7 +325,27 @@ function _turnVenster() {
         <div><b>${esc(f.naam)}</b> — ${esc(_orderNaam(f.order.order))}${f.order.notitie ? `: ${esc(f.order.notitie)}` : ''}
           <span class="bs-log-door">(${f.order.vast ? 'vastgelegd' : 'voorgesteld'} door ${esc(f.order.doorNaam)})</span></div>
         <textarea class="bs-veld" data-uitslag="${esc(f.id)}" rows="2" maxlength="2000" placeholder="Wat het opleverde"></textarea>
+        <!-- Fase 3. Hoevéél een Trade of Craft opbrengt staat in de Dungeon
+             Master's Guide; dat vult de DM in en tekent hij af, zoals bij een
+             bod van een winkel. Leeg laten betekent: alleen de tekst hierboven.
+             (Geen backticks in commentaar hierbinnen: template literal.) -->
+        <div class="bs-opbrengst">
+          <label class="bs-opb-veld"><span>Geld</span>
+            <input class="bs-veld" data-opb="bedrag" data-fac="${esc(f.id)}"
+              placeholder="bv. 12 fl" maxlength="20"></label>
+          <label class="bs-opb-veld"><span>Voorwerp</span>
+            <input class="bs-veld" data-opb="item" data-fac="${esc(f.id)}" list="bs-items"
+              placeholder="uit het archief" maxlength="80"></label>
+          <label class="bs-opb-veld bs-opb-veld--smal"><span>Verdedigers</span>
+            <input class="bs-veld" data-opb="defenders" data-fac="${esc(f.id)}"
+              type="number" step="1" placeholder="0"></label>
+          <label class="bs-opb-veld"><span>Naar</span>
+            <select class="bs-veld" data-opb="naar" data-fac="${esc(f.id)}">
+              ${(_data.leden || []).map(l => `<option value="${esc(l.id)}">${esc(l.naam)}</option>`).join('')}
+            </select></label>
+        </div>
       </div>`).join('') : `<p class="bs-stil">Er is geen enkele order gegeven. De turn gaat dan voorbij zonder dat er iets gebeurt.</p>`}
+    <datalist id="bs-items">${(_items || []).map(v => `<option value="${esc(v.name)}"></option>`).join('')}</datalist>
     <button class="bs-knop bs-knop--goud" data-bs="turn-bevestig">${ic('check')} Turn afronden</button>`);
 }
 
@@ -383,11 +429,31 @@ const ACTIES = {
     const r = await _doe(() => api.delete(_pad('?zeker=1')));
     if (r) window.app?.closeModal?.();
   },
-  turn: _turnVenster,
+  // De voorwerplijst moet er zijn vóór het venster tekent, anders staat de
+  // keuzelijst leeg bij de eerste turn van de avond.
+  async turn() { await _itemsLaden(); _turnVenster(); },
   async 'turn-bevestig'() {
     const resultaten = {};
     document.querySelectorAll('[data-uitslag]').forEach(t => { if (t.value.trim()) resultaten[t.dataset.uitslag] = t.value.trim(); });
-    const r = await _doe(() => api.post(_pad('/turn'), { resultaten }));
+    // Wat een order opleverde: geld, een voorwerp, verdedigers. Een naam die
+    // geen kaartje blijkt te zijn gaat niet mee — dan staat er straks een
+    // voorwerp in de boedel dat nergens naar wijst.
+    const opbrengst = {};
+    const vak = (fid) => (opbrengst[fid] = opbrengst[fid] || {});
+    document.querySelectorAll('[data-opb]').forEach(el => {
+      const v = String(el.value || '').trim();
+      if (!v) return;
+      const o = vak(el.dataset.fac);
+      if (el.dataset.opb === 'bedrag') o.bedrag = v;
+      else if (el.dataset.opb === 'defenders') o.defenders = parseInt(v) || 0;
+      else if (el.dataset.opb === 'naar') o.naar = v;
+      else if (el.dataset.opb === 'item') {
+        const ent = (_items || []).find(x => String(x.name || '').toLowerCase() === v.toLowerCase());
+        if (ent) { o.itemId = ent.id; o.itemNaam = ent.name; }
+        else toast(`Geen voorwerpkaartje met de naam "${v}" — die regel gaat zonder voorwerp mee.`);
+      }
+    });
+    const r = await _doe(() => api.post(_pad('/turn'), { resultaten, opbrengst }));
     if (r) { window.app?.closeModal?.(); toast(`Bastion Turn ${r.turn} staat in het logboek.`); }
   },
 };

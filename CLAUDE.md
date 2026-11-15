@@ -348,8 +348,8 @@ De app gebruikt querystring cache-busting (`?v=N`). **Vergeten = browser haalt o
 **Huidige versies (bij te houden):**
 
 ```
-index.html  : theme.css?v=947   app.js?v=1262   sound-manager.js?v=15
-app.js      : api.js?v=323  dm-panel.js?v=428  media-picker.js?v=14  tafels.js?v=2  terugblik.js?v=3  rage.js?v=4  klassekracht.js?v=6  personage-maken.js?v=27  gevecht-regie.js?v=3  bastion.js?v=2  stemronde.js?v=2
+index.html  : theme.css?v=948   app.js?v=1264   sound-manager.js?v=15
+app.js      : api.js?v=323  dm-panel.js?v=428  media-picker.js?v=14  tafels.js?v=2  terugblik.js?v=3  rage.js?v=4  klassekracht.js?v=6  personage-maken.js?v=27  gevecht-regie.js?v=3  bastion.js?v=3  stemronde.js?v=2
               render-archief.js?v=149  render-bestiarium.js?v=41  render-campagne.js?v=397
               render-dungeon.js?v=75  render-kaart.js?v=35  render-progressie.js?v=67
               render-relatiemap.js?v=38  render-spreuken.js?v=56  render-vaardigheden.js?v=166
@@ -551,6 +551,22 @@ dm-panel.js : akte-schrijven.js?v=42  combat-canvas.js?v=41  render-statblock.js
 >   géén facility — de catalogus kent geen Defensive Walls) en bewaart ze als
 >   `log[] {soort:'aanval'}`; `PUT /bastion/aanval` schrijft er de uitslag bij.
 > Bewaakt door het derde `describe`-blok in `tests/bastion.test.js`.
+
+> **Bastion fase 3 — wat een turn oplevert** (15 nov 2026). Eén mechaniek in
+> plaats van drie uitzonderingen: bij het afronden van een turn draagt elke
+> order een `opbrengst` met **geld, een voorwerp, verdedigers en naar wie**.
+> - Geld gaat langs `_deductCurrency` met een **negatief** bedrag, dus de
+>   gedeelde beurs wint vanzelf als die aanstaat. Een minteken in de invoer
+>   (`-5 fl`) betekent dat het kóst — dat is Recruit. Let op: `parsePrijs()`
+>   leest alleen cijfers, dus dat teken wordt er vóór het parsen afgehaald.
+> - Een voorwerp belandt via `_eigendomErbij` echt in de boedel; de client
+>   stuurt alleen een `itemId` dat hij in `entities.voorwerpen` terugvond, dus
+>   er komt nooit een regel in de boedel die nergens naar wijst.
+> - Verdedigers tellen op bij `bastion.defenders`.
+> Hoevéél een Trade of Craft opbrengt staat in de DMG en vult de DM in; de app
+> doet het rekenwerk en de administratie. `dm-state.json` wordt in de
+> turn-route apart weggeschreven — geld en bezit staan daar, niet in
+> `bastion.json`.
 
 > **Niet gedaan:** de Blood Hunter (eigen materiaal, geen SRD) en de subklassen —
 > een Battle Master of Psi Warrior heeft zijn eigen voorraad die nog op de
