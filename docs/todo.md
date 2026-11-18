@@ -931,3 +931,19 @@ daar dan in. (Het eerste punt — diensten die de gedeelde beurs omzeilden — i
       dus niets om samen te voegen. Gaat pas knellen als het spelersblad wil
       zeggen *jouw steen is een d8*; de overweging voor een veld `groei` staat
       onderaan datzelfde document.
+
+## Keuzes op een feature — ronde 2: landen op het blad
+
+Ronde 1 (18 nov 2026) legt vast wát een feature je laat kiezen
+(`keuze: {soort, aantal, uit, geeft}` op een feature-regel, zie `_keuzeUit`
+in `routes/api.js`) en laat de personagemaker die keuze maken.
+
+**Wat er nog moet gebeuren — en dit is de crux:** een gemaakte keuze moet op
+het character sheet terechtkomen. Een gekozen skill hoort als proficiency in
+`playerProfiles[id].skillProfs` te staan, een `geeft: 'expertise'` als
+expertise, een `+1`/`+2` bij de ability. Nu blijft de keuze staan waar hij
+gemaakt is en rekent het blad er niet mee.
+
+Raakt: `lib/personage-concept.js` (`profielVan`, bij het gunnen),
+`render-progressie.js` (de keuze op de tijdlijn) en `lib/character-sheet.js`
+(de afdruk).

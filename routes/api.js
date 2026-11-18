@@ -12460,6 +12460,37 @@ router.put('/progression/houder', requireDM, (req, res) => {
 // D&D-termen, dus Engels.
 const _FEAT_SOORTEN = ['Origin', 'General', 'Fighting Style', 'Epic Boon', 'Dark Gift', 'Dragonmark'];
 
+// ── Een keuze op een feature ────────────────────────────────────────────────
+// **Wat een feature je laat kiezen, als gegeven en niet als zin.** Expertise
+// zegt in zijn tekst "choose two of your skill proficiencies"; prachtig voor
+// een lezer, onbruikbaar voor een formulier. 167 features in Grisburgh noemen
+// een keuze in hun prose, maar 141 daarvan zijn keuzes die je áán tafel maakt
+// ("choose a creature you can see") — die horen juist géén invulveld te
+// krijgen. Afleiden uit de tekst zou dus niet alleen onbetrouwbaar zijn maar
+// ook verkeerd. Vandaar dit veld: de DM zegt het, de app doet het.
+//
+//   keuze: { soort, aantal, uit, geeft }
+//
+// `uit` is leeg (alles van die soort), `'eigen'` (uit wat je al hebt — zo
+// werkt Expertise) of een eigen lijst namen.
+const _KEUZE_SOORTEN = ['skill', 'tool', 'language', 'ability', 'feat', 'spell', 'vrij'];
+const _KEUZE_GEEFT   = ['', 'proficiency', 'expertise', '+1', '+2'];
+
+function _keuzeUit(rauw) {
+  if (!rauw || typeof rauw !== 'object') return null;
+  const soort = String(rauw.soort || '');
+  if (!_KEUZE_SOORTEN.includes(soort)) return null;
+  const aantal = Math.min(10, Math.max(1, parseInt(rauw.aantal) || 1));
+  const geeft = _KEUZE_GEEFT.includes(rauw.geeft) ? rauw.geeft : '';
+  let uit = '';
+  if (rauw.uit === 'eigen') uit = 'eigen';
+  else if (Array.isArray(rauw.uit)) {
+    const lijst = rauw.uit.map(x => String(x).trim()).filter(Boolean).slice(0, 40);
+    if (lijst.length) uit = lijst;
+  }
+  return { soort, aantal, ...(uit ? { uit } : {}), ...(geeft ? { geeft } : {}) };
+}
+
 router.post('/progression/feature', requireDM, (req, res) => {
   const b = req.body || {};
   const soort = String(b.soort || '');
@@ -12505,6 +12536,12 @@ router.post('/progression/feature', requireDM, (req, res) => {
   // meer na te gaan wat er wel en niet gedeeld mag worden.
   const bronTekst = String(b.bronTekst || '').trim().slice(0, 120);
   if (bronTekst) regel.bron = bronTekst; else delete regel.bron;
+  // De keuze die deze feature je laat maken. Iets ongeldigs haalt hem eraf —
+  // een half ingevulde keuze is erger dan geen.
+  if ('keuze' in b) {
+    const k = _keuzeUit(b.keuze);
+    if (k) regel.keuze = k; else delete regel.keuze;
+  }
   if (b.img) regel.img = String(b.img); else if (b.img === null) { delete regel.img; delete regel.imgFocus; }
   if (b.imgFocus) regel.imgFocus = String(b.imgFocus).slice(0, 32); else delete regel.imgFocus;
   // Waar een feat op aansluit, en wat hij vraagt. Alleen bij feats en boons —
