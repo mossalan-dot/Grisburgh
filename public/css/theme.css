@@ -34011,3 +34011,43 @@ body.gr-slowmo .combat-overlay { filter: grayscale(.85) contrast(1.1) brightness
   background: rgba(255,252,245,.55); font-family: 'IM Fell English', serif; color: #5a4832;
 }
 .bs-voorval .icon { width: 14px; height: 14px; vertical-align: -2px; margin-right: 4px; }
+
+/* ── Wat je onderweg kreeg, in de personagemaker ───────────────────────────
+   Wie op level 6 begint heeft zes levels aan features die hij nergens zag
+   staan. Hier staan ze, per level, en elke naam is een knop naar zijn kaartje
+   in het Heldenboek. */
+.ps-gegeven {
+  border: 1px solid var(--ps-rand); border-radius: 6px;
+  background: rgba(255, 252, 245, .45); margin: 0 0 18px; padding: 0 12px;
+}
+.ps-gegeven > summary {
+  cursor: pointer; list-style: none; padding: 10px 0;
+  font-family: 'Cinzel', serif; font-size: .82rem; letter-spacing: .04em;
+  text-transform: uppercase; color: var(--ps-inkt-mid);
+}
+.ps-gegeven > summary::-webkit-details-marker { display: none; }
+.ps-gegeven > summary::before { content: '\25B8'; display: inline-block; margin-right: 7px; transition: transform .15s; }
+.ps-gegeven[open] > summary::before { transform: rotate(90deg); }
+.ps-gegeven-level { padding: 0 0 10px; }
+.ps-gegeven-kop {
+  font-family: 'Cinzel', serif; font-size: .72rem; letter-spacing: .07em;
+  text-transform: uppercase; color: var(--ps-inkt-vaag); margin-bottom: 5px;
+}
+.ps-gegeven-rij { display: flex; flex-wrap: wrap; gap: 6px; }
+.ps-gegeven-chip {
+  display: inline-flex; align-items: baseline; gap: 6px; cursor: pointer;
+  font-family: 'Crimson Text', serif; font-size: .92rem;
+  padding: 3px 10px; border-radius: 12px;
+  background: rgba(201, 171, 116, .18); border: 1px solid var(--ps-rand);
+  color: var(--ps-inkt);
+}
+.ps-gegeven-chip:hover { background: rgba(184, 134, 11, .22); border-color: var(--ps-goud-diep); }
+.ps-gegeven-merk {
+  font-family: 'IM Fell English', serif; font-style: italic;
+  font-size: .78em; color: var(--ps-inkt-vaag);
+}
+
+/* Een kaartje opzoeken vanuit de maker of de opstartwizard: die overlays
+   liggen op 2000, en het gedeelde venster op 70 — dan opende het eronder en
+   leek de knop kapot. */
+body.wizard-open .modal-overlay { z-index: 2100; }

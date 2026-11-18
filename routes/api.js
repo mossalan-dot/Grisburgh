@@ -6984,7 +6984,13 @@ function _conceptAntwoord(c, dmState) {
   const prog = _progHuidig();
   const meta = storage.readJSON('meta.json');
   const profiel = personageConcept.profielVan(c, { prog });
-  const inst = personageConcept.instellingen(meta);
+  // **De DM mag elk level.** `maxLevel` zegt tot waar een *speler* een
+  // personage mag beginnen — dat is een afspraak aan tafel, en die maakt de
+  // DM zelf. Zijn eigen maker hoort er niet door beperkt te worden; zelfde
+  // redenering als bij de herkansingen en de drempel.
+  const inst = c.doorDm
+    ? { ...personageConcept.instellingen(meta), maxLevel: 20 }
+    : personageConcept.instellingen(meta);
   return {
     concept: c,
     profiel,
@@ -7001,6 +7007,9 @@ function _conceptAntwoord(c, dmState) {
     // herkansingenbudget is er voor spelers ("wat je rolt, dat is het" is een
     // afspraak aan tafel), en die afspraak maakt hij juist zelf.
     rerollsOver: c.doorDm ? -1 : Math.max(0, inst.rerolls - (parseInt(c.rerollsGebruikt) || 0)),
+    // **Wat je onderweg kreeg**, uit de progressie van deze campagne. Wie op
+    // level 6 begint heeft zes levels aan features die hij nergens zag staan.
+    gegeven: personageConcept.wordtGegeven(c, prog),
     nakijk: personageConcept.nakijken(c, { meta, prog, spreuken: _maakSpreuken() }),
     groepNaam: dmState.groups?.[c.groep]?.name || '',
   };

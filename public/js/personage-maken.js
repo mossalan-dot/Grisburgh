@@ -57,7 +57,7 @@ const VIDEO_MAX_BYTES = 8 * 1024 * 1024;
 
 const P = {
   c: null, bronnen: null, inst: null, profiel: null, nakijk: null,
-  slotsPer: {}, groeiSlots: [], spreukFeats: [], rerollsOver: 0,
+  slotsPer: {}, groeiSlots: [], spreukFeats: [], rerollsOver: 0, gegeven: [],
   scherm: 'drempel', stapId: 'naam', bezig: false,
   zoek: {}, blad: {}, greep: {}, opname: null, rolt: false, zegel: false,
 };
@@ -324,7 +324,9 @@ const STAPPEN = [
   {
     id: 'groei', boven: 'Onderweg', kop: 'Wat heb je onderweg geleerd?',
     velden: ['groei'],
-    beschikbaar: () => (P.groeiSlots || []).length > 0,
+    // Ook zonder keuzes de moeite waard: wie op level 6 begint heeft zes
+    // levels aan features die hij nergens zag staan.
+    beschikbaar: () => (P.groeiSlots || []).length > 0 || (P.gegeven || []).length > 0,
     kan: () => _groeiOver() === 0,
     reden: () => `Nog ${_groeiOver()} keuze${_groeiOver() === 1 ? '' : 's'} open.`,
     html() { return _groeiHtml(); },
@@ -743,12 +745,41 @@ function _spreukenHtml() {
 // Op elk ASI-level een Ability Score Improvement (+2 op één, of +1 op twee) óf
 // een feat; op level 19 een Epic Boon. De sleutels zijn die van de tijdlijn, dus
 // wat je hier kiest staat daar straks gewoon als gekozen.
+// Alles wat je onderweg kreeg, per level. Leesbaar, niet invulbaar: het staat
+// zo in de progressie van deze campagne, en wat een feature precies doet lees
+// je in het Heldenboek — vandaar dat elke naam een knop daarheen is.
+function _gegevenHtml() {
+  const lijst = P.gegeven || [];
+  if (!lijst.length) return '';
+  const perLevel = new Map();
+  for (const g of lijst) {
+    if (!perLevel.has(g.level)) perLevel.set(g.level, []);
+    perLevel.get(g.level).push(g);
+  }
+  const merk = { class: '', subclass: 'subclass', species: 'species', variant: 'variant' };
+  return `
+    <details class="ps-gegeven"${lijst.length <= 12 ? ' open' : ''}>
+      <summary>Wat je tot hier kreeg — ${lijst.length} in totaal</summary>
+      ${[...perLevel.entries()].map(([lv, rijen]) => `
+        <div class="ps-gegeven-level">
+          <div class="ps-gegeven-kop">Level ${lv}</div>
+          <div class="ps-gegeven-rij">${rijen.map(g => `
+            <button type="button" class="ps-gegeven-chip" data-actie="uitleg" data-naam="${esc(g.naam)}"
+              title="Opzoeken in het Heldenboek">${esc(g.naam)}${
+              merk[g.soort] ? `<span class="ps-gegeven-merk">${esc(g.sub || merk[g.soort])}</span>` : ''}</button>`).join('')}</div>
+        </div>`).join('')}
+    </details>`;
+}
+
 function _groeiHtml() {
   const feats = P.bronnen.feats || [];
   const lijstAsi = feats.filter(f => f.soort !== 'boon');
   const lijstBoon = feats.filter(f => f.soort === 'boon');
   return `
-    <p class="ps-lead">Je begint boven level 1, dus je maakt nu de keuzes die je onderweg had gemaakt.</p>
+    ${(P.groeiSlots || []).length
+      ? `<p class="ps-lead">Je begint boven level 1, dus je maakt nu de keuzes die je onderweg had gemaakt.</p>`
+      : `<p class="ps-lead">Je hebt onderweg niets te kiezen — maar dit is wel wat je kreeg.</p>`}
+    ${_gegevenHtml()}
     <datalist id="ps-feats-asi">${lijstAsi.map(f => `<option value="${esc(f.naam)}">`).join('')}</datalist>
     <datalist id="ps-feats-boon">${lijstBoon.map(f => `<option value="${esc(f.naam)}">`).join('')}</datalist>
     ${(P.groeiSlots || []).map(slot => {
@@ -1127,6 +1158,7 @@ function _neem(r) {
   P.c = r.concept; P.profiel = r.profiel; P.nakijk = r.nakijk;
   P.slotsPer = r.slotsPer || {}; P.groeiSlots = r.groeiSlots || []; P.spreukFeats = r.spreukFeats || [];
   P.rerollsOver = r.rerollsOver ?? 0;
+  P.gegeven = r.gegeven || [];
 }
 async function _bewaar(velden) {
   const data = {};
@@ -1398,6 +1430,17 @@ const ACTIES = {
       if (d.id === 'beurt') P.c.beurt = null;
     } catch (e) { toast(e.message || 'Lukt niet'); }
     _herteken();
+  },
+
+  // Een feature opzoeken in het Heldenboek, zonder de maker kwijt te raken.
+  // Het Heldenboek laadt lui; de eerste keer duurt dat even.
+  async uitleg({ naam }) {
+    try {
+      const mod = window.vaardigheden || (await import('./render-vaardigheden.js?v=165'), window.vaardigheden);
+      if (!mod?.openOpNaam) return toast('Het Heldenboek is hier niet beschikbaar.');
+      const gelukt = await mod.openOpNaam(naam);
+      if (!gelukt) toast(`${naam} staat niet in het Heldenboek.`);
+    } catch { toast('Opzoeken lukte niet.'); }
   },
 
   blad({ sleutel, richting }) {
