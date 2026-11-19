@@ -98,6 +98,18 @@ const _SIT_STEEL  = '#7fa8c8';   // situationeel/positioneel
 // konijn is geen rijdier, een pijl omlaag is niet hetzelfde als tegen de grond
 // liggen, en `sparkles` (concentration) stond naast `sparkle` (blessed) —
 // twee bijna gelijke tekeningen voor twee verschillende dingen.
+// **In welke groep hoort een conditie?** Afgeleid uit de kleur hieronder, want
+// die zegt het al: goud is iets dat je van je class of subclass krijgt,
+// staalblauw is een situatie waarin je staat, en de rest is een conditie uit
+// het boek. Eén bron, geen tweede lijstje dat uit de pas gaat lopen — precies
+// waarom dit bestand bestaat.
+export function condGroep(id) {
+  const kleur = COND_ICON[id]?.[1];
+  if (kleur === _CLASS_GOLD) return 'klasse';
+  if (kleur === _SIT_STEEL)  return 'situatie';
+  return 'conditie';
+}
+
 export const COND_ICON = {
   blinded:       ['eye-off',       '#8a8a8a'],
   charmed:       ['heart',         '#d06ac0'],

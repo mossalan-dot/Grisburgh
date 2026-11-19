@@ -34099,3 +34099,13 @@ body.wizard-open .modal-overlay { z-index: 2100; }
 }
 .sbs-terug:hover { color: #2a1a08; border-color: #7a6040; background: rgba(196,168,122,.18); }
 .sbs-terug .icon { width: 15px; height: 15px; }
+
+/* ── Heldenboek: het icoon op een kaartje zonder plaat ───────────────────────
+   `.tegel-icoon` staat standaard in een flauw bruin, berekend op een enkel
+   kaartje tussen de platen. Bij de conditions heeft niets een plaat, en dan is
+   een raster van veertig flauwe tekens niet te lezen. Hij neemt hier de kleur
+   van de soort over — dezelfde kleur als de accentbalk erboven en als zijn
+   penning op een token in het gevecht, dus je herkent hem in één oogopslag. */
+.vaardig-card.no-img .tegel-icoon { color: var(--soort-c2, #7a6040); opacity: .5; }
+.vaardig-card.no-img .tegel-icoon .icon { width: 46px; height: 46px; }
+.vaardig-card.no-img.tegel--open .tegel-icoon { opacity: .18; }

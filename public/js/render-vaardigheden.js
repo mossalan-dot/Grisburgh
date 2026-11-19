@@ -16,6 +16,8 @@
 
 import { api } from './api.js?v=324';
 import { naslagBron } from './render-progressie.js?v=71';
+// De condities staan op één plek, en dat is dit bestand — zie de kop daar.
+import { CONDITIONS, COND_ICON, condGroep } from './conditions.js?v=5';
 
 const esc  = s => window.app?.esc?.(s) ?? String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 // In een inline handler (`onclick="f('…')"`) decodeert de browser eerst het
@@ -57,6 +59,15 @@ const SOORTEN = {
   // allemaal opnieuw gelegd worden — en dat merk je pas aan tafel.
   zegen:      { label: 'Zegening',  icon: 'sparkles',       c1: '#3a2a00', c2: '#9a7008' },
   gunst:      { label: 'Gunst',     icon: 'star',           c1: '#2a1030', c2: '#7a2a80' },
+  // **Condities zijn drie soorten, niet één.** Dat onderscheid bestond al — in
+  // de kleur van het icoon in `conditions.js` — maar nergens als lijst. Door
+  // er drie soorten van te maken krijgt de deur Conditions zijn chips gratis
+  // ("Condition 19 · Situatie 8 · Lopend effect 13") en kleurt elke groep
+  // zoals hij op een token kleurt. Elk kaartje houdt daarnaast zijn eigen
+  // kleur en icoon uit die ene bron.
+  conditie:   { label: 'Condition', icon: 'shield-half',    c1: '#3a0e0e', c2: '#8a2a2a' },
+  situatie:   { label: 'Situatie',  icon: 'mouse-pointer-2',c1: '#0e2438', c2: '#2a5a7a' },
+  klassestaat:{ label: 'Lopend effect', icon: 'sparkle',    c1: '#302000', c2: '#8a6a10' },
 };
 // Een icoon per class en per species. De soort bepaalt de kleur van het
 // kaartje (dat is waar het filter op staat), het icoon zegt wáárvan het is —
@@ -134,6 +145,9 @@ function _klasseIcoon(naam, terugval = 'sword') {
 // Het icoon van één regel: klasse of species als we die kennen, anders het
 // icoon van de soort.
 function _itemIcoon(it) {
+  // Een conditie draagt zijn eigen icoon mee uit `conditions.js`; dat is
+  // hetzelfde teken als op zijn token in het gevecht.
+  if (it.icoon) return it.icoon;
   if (it.soort === 'class' || it.soort === 'subclass') return _klasseIcoon(it.bron, SOORTEN[it.soort].icon);
   if (it.soort === 'species' || it.soort === 'variant') return SPECIES_ICOON[it.bron] || SOORTEN[it.soort].icon;
   return SOORTEN[it.soort]?.icon || 'hexagon';
@@ -149,7 +163,12 @@ const HERKOMST = [
   { value: 'overgenomen',  label: 'Overgenomen uit ander materiaal' },
 ];
 
-const SOORT_VOLGORDE = ['class', 'subclass', 'species', 'variant', 'feat', 'boon', 'zegen', 'gunst', 'background'];
+// Waar een conditie "vandaan komt": zijn groep. Eén plek, zodat de deur, de
+// chips en de bronregel hetzelfde woord gebruiken.
+const _COND_BRON = { conditie: 'Conditions', situatie: 'Situaties', klasse: 'Van een feature of spreuk' };
+
+const SOORT_VOLGORDE = ['class', 'subclass', 'species', 'variant', 'feat', 'boon', 'zegen', 'gunst', 'background',
+  'conditie', 'situatie', 'klassestaat'];
 
 let _all        = null;   // null = nog niet geladen
 let _bron       = null;   // wat naslagBron() teruggaf (srdDesc, md, …)
@@ -451,6 +470,32 @@ async function _load() {
     }
   } catch { /* geen kaartjes is geen fout */ }
 
+  // ── Conditions ──
+  // Veertig toestanden waar een personage in kan staan. Ze stonden alleen in de
+  // picker van de DM en op een token, nooit als lijst — terwijl "wat betekent
+  // Restrained ook alweer?" precies de vraag is die aan tafel valt. Breed
+  // opgevat, want juist het brede deel staat nergens anders bij elkaar: naast
+  // de condities uit het boek ook de situaties (Dodging, Hidden, Cover) en wat
+  // een feature of spreuk op je laat lopen (Raging, Wild Shape, Twilight
+  // Sanctuary, Steady Aim).
+  //
+  // **Ze komen uit `conditions.js`, de enige lijst die de app ervan heeft** —
+  // dezelfde die het canvas, het spelerstabblad en de picker lezen. De groep
+  // komt daar ook uit (`condGroep`, afgeleid uit de kleur), dus er is hier geen
+  // tweede indeling die kan verlopen.
+  for (const c of CONDITIONS) {
+    const groep = condGroep(c.id);
+    const [ico, kleur] = COND_ICON[c.id] || ['circle-dashed', '#7a6040'];
+    zet({
+      soort: groep === 'situatie' ? 'situatie' : groep === 'klasse' ? 'klassestaat' : 'conditie',
+      bron: _COND_BRON[groep], level: 0, naam: c.label, desc: c.desc || '',
+      img: '', imgFocus: '', icoon: ico, kleur, condId: c.id,
+      // Niet te bewerken: de lijst is code, niet campagnedata. Een eigen
+      // conditie verzinnen gebeurt in het gevecht, niet hier.
+      vast: true,
+    });
+  }
+
   // Een background noemt een feat ("Feat. Magic Initiate (Cleric)"), en die
   // staat hier gewoon als kaartje. Dus schrijven we hem als [[verwijzing]],
   // net als een wikilink in een kaartje-tekst — het detailvenster maakt er een
@@ -565,7 +610,8 @@ function _filtered() {
 
 // Waar iets bij hoort. Bij een feat, een Epic Boon of een background zegt de
 // bron hetzelfde als de soort ("Feat · Feats") — dan laten we hem weg.
-const _EIGEN_BRON = new Set(['Feats', 'Epic Boons', 'Backgrounds', 'Gunsten', 'Zegeningen']);
+const _EIGEN_BRON = new Set(['Feats', 'Epic Boons', 'Backgrounds', 'Gunsten', 'Zegeningen',
+  'Conditions', 'Situaties', 'Van een feature of spreuk']);
 // Een trait van een species is strikt genomen niet iets wat je op level 1
 // krijgt — je bént een Dragonborn, Darkvision hoort erbij vanaf het moment dat
 // het personage bestaat. Die 1 stond hier daarom even niet.
@@ -598,6 +644,9 @@ function _bronRegel(it) {
 // van de soort, terwijl zijn kaartje en zijn rij in de kolom de kleur van de
 // variant dragen. Via `_houderVan`, die het verschil kent.
 function _subKleur(it) {
+  // Een regel mag zijn eigen kleur meebrengen (een conditie doet dat: dezelfde
+  // kleur als zijn penning op een token).
+  if (it.kleur) return it.kleur;
   if ((it.soort !== 'subclass' && it.soort !== 'variant') || !it.sub) return null;
   return _houderVan(it.soort, it.sub, it.bron)?.kleur
     || window._subSignatureVoor?.(it.sub)?.kleur || null;
@@ -812,7 +861,10 @@ function _card(it) {
   // hier nergens, dus een background en een Epic Boon leken niet te bewerken —
   // terwijl het venster erachter gewoon een afbeelding, een boek en een
   // beschrijving aanbiedt. Eén regel: het potlood opent het bewerkvenster.
-  const dmPen = (isDM() && !it.entityId) ? `
+  // **Een vaste regel is niet te bewerken.** Een conditie komt uit
+  // `conditions.js` en niet uit de progressie van de campagne; een potlood zou
+  // een editor openen voor een regel die daar niet bestaat.
+  const dmPen = (isDM() && !it.entityId && !it.vast) ? `
     <button class="vaardig-pen" title="Dit kaartje bewerken"
       onclick="event.stopPropagation();${it.soort === 'background'
         ? `window.vaardigheden.kaartBewerken('background','${escA(it.naam)}')`
@@ -838,7 +890,7 @@ function _card(it) {
     const bladen = _kaartBladen(it);
     const j = Math.min(_kaartBlad[it.key] || 0, bladen.length - 1);
     return `
-      <div class="entity-card vaardig-card tegel tegel--open" data-soort="${esc(it.soort)}"
+      <div class="entity-card vaardig-card tegel tegel--open${_beeldKeten(it).length ? '' : ' no-img'}" data-soort="${esc(it.soort)}"
         data-sleutel="${escA(it.key)}" role="button" tabindex="0"
         aria-label="${esc(it.naam)}, blad ${j + 1} van ${bladen.length}"
         onclick="${klik}"
@@ -868,7 +920,7 @@ function _card(it) {
         <div class="tegel-voet" onclick="event.stopPropagation()">
           <div class="tegel-punten">${window._tegelPijlHtml?.(-1, bladen.length) || ''}${bladen.map((b, k) => `<button class="tegel-punt${k === j ? ' is-aan' : ''}"
             title="${esc(b.label)}" onclick="window.vaardigheden.naar('${escA(it.key)}',${k})">${icon(_KAART_BLAD_ICOON[b.soort] || 'square')}</button>`).join('')}${window._tegelPijlHtml?.(1, bladen.length) || ''}</div>
-          ${isDM() ? `<button class="tegel-knop" title="Dit kaartje bewerken"
+          ${isDM() && !it.vast ? `<button class="tegel-knop" title="Dit kaartje bewerken"
             onclick="window.vaardigheden.${it.soort === 'background'
               ? `kaartBewerken('background','${escA(it.naam)}')`
               : `bewerk('${escA(it.key)}')`}">${icon('pencil')}</button>` : ''}
@@ -884,8 +936,13 @@ function _card(it) {
   // tabbladen — waar een tegel een plaat is met zijn naam erover, 3:4 — viel
   // het op als iets anders, en het was anderhalf keer zo groot. De tekst die
   // eraf valt staat één klik verder: de tegel gaat open waar hij staat.
+  // **`no-img` hoort erop zodra er geen plaat is.** Het type-icoon staat achter
+  // `.tegel.no-img` in de stijl — zonder die klasse tekende het Heldenboek een
+  // leeg vel perkament waar het archief zijn icoon zet. Dat viel niet op zolang
+  // bijna alles een plaat had; bij de conditions heeft niets er een.
+  const geenBeeld = _beeldKeten(it).length ? '' : ' no-img';
   return `
-    <div class="entity-card vaardig-card tegel" data-sleutel="${escA(it.key)}" data-soort="${esc(it.soort)}"
+    <div class="entity-card vaardig-card tegel${geenBeeld}" data-sleutel="${escA(it.key)}" data-soort="${esc(it.soort)}"
       role="button" tabindex="0" onclick="${klik}" title="${esc(it.naam)}"
       onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();${klik}}"
       style="--soort-c1:${eigenKleur ? esc(eigenKleur) : s.c1};--soort-c2:${eigenKleur ? esc(eigenKleur) : s.c2}">
@@ -1849,8 +1906,20 @@ const _DEUREN = [
   // hier nog eens nabouwen zou een tweede bibliotheek opleveren.
   { id: 'spreuken',   label: 'Spells',             soorten: [], icoon: 'sparkles', kleur: '#5a2e8a',
     sectie: 'spreuken', module: 'spreuken' },
+  // **Conditions.** Veertig toestanden waar een personage in kan staan, en ze
+  // waren nergens als lijst te zien — terwijl "wat betekent Restrained ook
+  // alweer?" precies de vraag is die aan tafel valt. Breed opgevat: niet
+  // alleen de condities uit het boek, maar ook de situaties (Dodging, Hidden,
+  // Cover) en wat je van je class of subclass krijgt (Raging, Wild Shape,
+  // Twilight Sanctuary, Steady Aim). Die laatste groep is juist de reden dat
+  // zo'n lijst nut heeft: die staan nergens anders bij elkaar.
+  { id: 'conditions', label: 'Conditions',         soorten: ['conditie', 'situatie', 'klassestaat'],
+    icoon: 'shield-half', kleur: '#8a2a2a' },
 ];
 const _DEUR = id => _DEUREN.find(d => d.id === id);
+// Welke deuren meteen hun lijst tonen in plaats van eerst een tegelrij — zie
+// `_bandHtml`. Eén set, zodat de band en het raster niet uit de pas lopen.
+const _ZONDER_TWEEDE_LAAG = new Set(['feats', 'background', 'conditions']);
 // Hoe heet het ding dat je achter deze deur toevoegt?
 // Welke soort de editor moet openen voor een nieuwe achter die deur.
 const _NIEUW_SOORT  = { class: 'class', species: 'species', background: 'background', feats: 'feat' };
@@ -2195,12 +2264,13 @@ function _bandHtml() {
   const d = _DEUR(_deur);
   if (!d) return `<div class="vaardig-band">${_deurenHtml()}</div>`;
 
-  // Feats, Epic Boons én backgrounds hebben geen tweede laag: daar is de lijst
-  // het antwoord. Een background heeft precies één feature, dus een tegel per
-  // background bracht je met een extra klik naar één kaartje — en een
+  // Feats, Epic Boons, backgrounds en conditions hebben geen tweede laag: daar
+  // is de lijst het antwoord. Een background heeft precies één feature, dus een
+  // tegel per background bracht je met een extra klik naar één kaartje — en een
   // samenvattingskaartje erboven herhaalde wat daarin stond. Er valt niets
-  // onder een background, dus is de lijst meteen goed.
-  if (d.id === 'feats' || d.id === 'background') return `<div class="vaardig-band vd-open">${_bannerHtml(d)}</div>`;
+  // onder een background, dus is de lijst meteen goed. Bij een conditie net zo:
+  // er hangt niets onder Restrained.
+  if (_ZONDER_TWEEDE_LAAG.has(d.id)) return `<div class="vaardig-band vd-open">${_bannerHtml(d)}</div>`;
 
   if (!_filters.bron) return `<div class="vaardig-band vd-open">${_bannerHtml(d)}${_tegelsHtml(d)}</div>`;
 
@@ -2336,7 +2406,7 @@ function _toontFilters() {
 function _toontRaster() {
   if ((_filters.q || '').trim()) return true;
   if (!_deur) return false;
-  if (_deur === 'feats' || _deur === 'background') return true;
+  if (_ZONDER_TWEEDE_LAAG.has(_deur)) return true;
   return !!_filters.bron;
 }
 
@@ -3392,7 +3462,7 @@ function _open(key, vanWaar = null) {
       terugval: rest.length ? JSON.stringify(rest) : '',
     });
   })();
-  const dmBeeld = isDM() ? `
+  const dmBeeld = (isDM() && !it.vast) ? `
       ${geerfd ? `<p class="dm-hint" style="margin:4px 0 0">Neemt de afbeelding over van <strong>${esc(geerfd.geerfd || 'zijn class')}</strong>.
       Geef hem er zelf een via <em>Bewerken</em> als hij iets anders moet laten zien.</p>` : ''}
       ${it.img ? `
