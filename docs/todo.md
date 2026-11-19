@@ -6,17 +6,18 @@ groot het is. Bijgewerkt 15 sep 2026.
 
 ## Nu aan de beurt
 
-- [ ] **Drie dingen in de data van Grisburgh** (gevonden 2 nov 2026 bij het
-      herontwerp van de personagemaker; data, geen code — dus voor de DM):
-      · **Fighter heeft geen Ability Score Improvement op level 6.** De PHB 2024
-        geeft een Fighter er een extra op 6 (en op 14). De maker en de
-        Progressie-tijdlijn volgen de campagne, dus een Fighter die hoger begint
-        mist nu een keuze. Bijzetten in het Heldenboek (Fighter, level 6).
-      · **Urban Bounty Hunter zegt "choose one"** bij de skills, terwijl het boek
-        er twee laat kiezen. De maker leest de tekst letterlijk en vraagt er één.
-      · **Agent of the Ninth Quill is een lege houder** (geen onderdelen). De
-        maker valt daarvoor terug op de meegeleverde versie, maar het Heldenboek
-        toont hem leeg; vul hem daar in of haal hem weg.
+- [x] **Drie dingen in de data van Grisburgh** — gedaan 19 nov 2026. De eerste
+      twee met `scripts/progressie-correcties.js` (die toetst eerst of hij
+      aantreft wat hij verwacht, dus hij is veilig opnieuw te draaien); de derde
+      was intussen zelf ingevuld.
+      · **Fighter had geen Ability Score Improvement op level 6.** Staat er nu;
+        de Fighter is de enige class die er twee extra krijgt, op 6 en op 14, en
+        14 stond er wel. De maker en de tijdlijn volgen de campagne en niet het
+        boek, dus wie hoger begon miste een keuze.
+      · **Urban Bounty Hunter zei "choose one"** waar het boek er twee laat
+        kiezen. Nu "choose two".
+      · **Agent of the Ninth Quill** heeft zijn vijf onderdelen; die is
+        intussen in het Heldenboek ingevuld.
 
 - [ ] **Bastion, fase 2 en 3** → `docs/voorstel-bastion.md`. Fase 1
       (facilities, orders, de turn, gebouwd 2 nov 2026) staat. Nog: **Bastion
