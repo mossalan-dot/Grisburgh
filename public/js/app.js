@@ -7273,6 +7273,109 @@ function _boedelMeta(item) {
   return { rar, rarLabel: rar ? _BOEDEL_RAR_EN[rar] : String(item.data?.rariteit || ''), type, attune };
 }
 
+// ── De boedel als tegels ────────────────────────────────────────────────────
+// Dit waren eigen kaartjes met een eigen venster: één klik en je zat meteen in
+// het detail. In het archief, het bestiarium, de spreuken en sinds vandaag de
+// vaardigheden is een kaartje drie standen — dicht, open waar het staat, en pas
+// dan het venster. Hier dus ook; het venster zelf (`_boedelDetailHtml`, met de
+// knoppen om te gebruiken, te geven en aantallen bij te stellen) blijft wat het
+// was. De bladen hier zijn om te **lezen**, de knoppen staan in het venster.
+let _boedelTegelOpen = null;
+const _boedelTegelBlad = {};
+const _BOEDEL_BLAD_ICOON = { portret: 'image', gegevens: 'clipboard-list', beschrijving: 'book-open' };
+
+function _boedelBladen(item) {
+  const { rar, rarLabel, type, attune } = _boedelMeta(item);
+  const ctx = window._boedelCtx || {};
+  const acr = _calcArmorAC(item.data, ctx.dex ?? null);
+  const bladen = [{ soort: 'portret', label: 'Plaat' }];
+  const rijen = [
+    ['Type', type], ['Rarity', rarLabel],
+    ['Schade', item.data?.damage || ''],
+    ['AC', acr ? acr.pill : ''],
+    ['Gewicht', item.data?.gewicht || ''],
+    ['Prijs', item.data?.prijs || ''],
+    ['Charges', item._maxCharges > 0 ? `${item._charges} / ${item._maxCharges}` : ''],
+    ['Aantal', item._stapelbaar && item._qty > 1 ? `×${item._qty}` : ''],
+    ['Attunement', attune ? 'Vereist' : ''],
+  ].filter(([, v]) => String(v).trim());
+  if (rijen.length) bladen.push({ soort: 'gegevens', label: 'Gegevens', html:
+    `<dl class="tegel-gegevens">${rijen.map(([k, v]) =>
+      `<div class="tegel-gegeven"><dt>${esc(k)}</dt><dd>${esc(v)}</dd></div>`).join('')}</dl>` });
+  const desc = item.data?.desc || '';
+  if (desc) bladen.push({ soort: 'beschrijving', label: 'Beschrijving',
+    html: `<div class="tegel-tekst">${window.glossary?.annotate?.(mdToHtml(desc)) ?? mdToHtml(desc)}</div>` });
+  return bladen;
+}
+
+function _boedelBladInhoud(item, blad) {
+  const { rarLabel, type } = _boedelMeta(item);
+  if (blad.soort === 'portret') {
+    const onder = [type, rarLabel].filter(Boolean).join(' · ');
+    return `<div class="tegel-naamband tegel-naamband--groot">
+      <span class="card-name">${esc(item.name)}</span>
+      ${onder ? `<span class="tegel-ondertitel">${esc(onder)}</span>` : ''}</div>`;
+  }
+  return `<div class="tegel-vel">
+    <div class="tegel-vel-kop">${icon(_BOEDEL_BLAD_ICOON[blad.soort] || 'square')} ${esc(blad.label)}<span class="tegel-vel-naam">${esc(item.name)}</span></div>
+    <div class="tegel-vel-tekst">${blad.html}</div>
+  </div>`;
+}
+
+window._boedelTegelKlik = (id) => {
+  const item = (window._knapzakCarouselItems || []).find(x => x.id === id);
+  if (!item) return;
+  if (_boedelTegelOpen !== id) {
+    _boedelTegelOpen = id;
+    _boedelTegelBlad[id] = Math.min(1, _boedelBladen(item).length - 1);
+    _boedelTegelHerteken();
+    setTimeout(() => document.querySelector(`#boedel-raster .tegel[data-sleutel="${CSS.escape(id)}"]`)
+      ?.scrollIntoView({ block: 'nearest', behavior: 'smooth' }), 360);
+    return;
+  }
+  const n = _boedelBladen(item).length;
+  window._boedelTegelNaar(id, ((_boedelTegelBlad[id] || 0) + 1) % n);
+};
+
+window._boedelTegelNaar = async (id, k) => {
+  const el = document.querySelector(`#boedel-raster .tegel--open[data-sleutel="${CSS.escape(id)}"]`);
+  const item = (window._knapzakCarouselItems || []).find(x => x.id === id);
+  if (!el || !item) return;
+  const bladen = _boedelBladen(item);
+  const vorige = _boedelTegelBlad[id] || 0;
+  _boedelTegelBlad[id] = Math.max(0, Math.min(bladen.length - 1, k));
+  if (_boedelTegelBlad[id] === vorige) return;
+  const wissel = () => {
+    const blad = el.querySelector('.tegel-blad');
+    const b = bladen[_boedelTegelBlad[id]];
+    blad.dataset.soort = b.soort;
+    blad.innerHTML = _boedelBladInhoud(item, b);
+    el.querySelectorAll('.tegel-punt').forEach((p, j) => p.classList.toggle('is-aan', j === _boedelTegelBlad[id]));
+  };
+  if (window._tegelBlader) await window._tegelBlader(el, _boedelTegelBlad[id] > vorige ? 1 : -1, wissel);
+  else wissel();
+};
+
+window._boedelTegelDicht = () => {
+  if (!_boedelTegelOpen) return;
+  _boedelTegelOpen = null;
+  _boedelTegelHerteken();
+};
+
+// Het venster groeit uit de tegel, net als in het archief.
+window._boedelTegelVergroot = (id) => {
+  const tegel = () => document.querySelector(`#boedel-raster .tegel[data-sleutel="${CSS.escape(id)}"]`);
+  if (!window._tegelVensterUit) return window._boedelOpen(id);
+  window._tegelVensterUit(tegel, () => window._boedelOpen(id), () => window._boedelOpenId === id);
+};
+
+function _boedelTegelHerteken() {
+  const raster = document.getElementById('boedel-raster');
+  if (!raster) return;
+  const vul = () => { raster.innerHTML = (window._knapzakCarouselItems || []).map(_boedelKaartHtml).join(''); };
+  if (window._tegelFlip) window._tegelFlip(raster, vul); else vul();
+}
+
 function _boedelKaartHtml(item) {
   const { rar, rarLabel, type, attune } = _boedelMeta(item);
   const ctx = window._boedelCtx || {};
@@ -7284,25 +7387,46 @@ function _boedelKaartHtml(item) {
   const stand = [];
   if (item._maxCharges > 0) stand.push(`<span class="boedel-kaart-stand" title="Charges">${icon('zap')} ${item._charges}/${item._maxCharges}</span>`);
   if (attune) stand.push(`<span class="boedel-kaart-stand" title="Requires Attunement">${icon('flask-conical')}</span>`);
+  const id = esc(item.id);
+  const klik = `window._boedelTegelKlik('${escArg(item.id)}')`;
+  const beeld = `
+      <span class="tegel-icoon boedel-kaart-icoon" aria-hidden="true">${_boedelTypeIcoon(item)}</span>
+      <img class="tegel-img" loading="lazy" src="${api.thumbForEntity(item)}" alt=""
+        style="${item.data?.imgFocus ? `object-position:${esc(item.data.imgFocus)}` : ''}"
+        onerror="this.closest('.tegel')?.classList.add('no-img');this.remove()">`;
+  const merken = `
+      ${item._stapelbaar && item._qty > 1 ? `<span class="boedel-kaart-aantal" title="Aantal">×${item._qty}</span>` : ''}
+      ${acr ? `<span class="card-armor-ac-pill" title="${esc(acr.tooltip)}">${esc(acr.pill)}</span>` : ''}
+      ${stand.length ? `<div class="boedel-kaart-standen">${stand.join('')}</div>` : ''}`;
+
+  if (_boedelTegelOpen !== item.id) {
+    return `
+      <div class="entity-card tegel boedel-kaart no-img" role="button" tabindex="0"
+        data-sleutel="${id}" data-id="${id}"${rar ? ` data-rarity="${rar}"` : ''} title="${esc(item.name)}"
+        onclick="${klik}" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();${klik}}">
+        ${glans}
+        <div class="card-accent bar-voorwerpen"></div>
+        ${beeld}${merken}
+        <div class="tegel-naamband"><span class="card-name">${esc(item.name)}</span>
+          ${meta ? `<span class="tegel-ondertitel">${esc(meta)}</span>` : ''}</div>
+      </div>`;
+  }
+  const bladen = _boedelBladen(item);
+  const j = Math.min(_boedelTegelBlad[item.id] || 0, bladen.length - 1);
   return `
-    <div class="entity-card boedel-kaart" role="button" tabindex="0" data-id="${esc(item.id)}"${rar ? ` data-rarity="${rar}"` : ''}
-      onclick="window._boedelOpen('${escArg(item.id)}')"
-      onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();window._boedelOpen('${escArg(item.id)}')}">
+    <div class="entity-card tegel boedel-kaart tegel--open no-img" role="button" tabindex="0"
+      data-sleutel="${id}" data-id="${id}"${rar ? ` data-rarity="${rar}"` : ''}
+      aria-label="${esc(item.name)}, blad ${j + 1} van ${bladen.length}" onclick="${klik}">
       ${glans}
       <div class="card-accent bar-voorwerpen"></div>
-      <div class="card-img-wrap boedel-kaart-beeld">
-        <span class="boedel-kaart-icoon" aria-hidden="true">${_boedelTypeIcoon(item)}</span>
-        <img class="card-img" loading="lazy" src="${api.thumbForEntity(item)}" alt=""
-          style="${item.data?.imgFocus ? `object-position:${esc(item.data.imgFocus)}` : ''}"
-          onerror="this.remove()">
-        <div class="card-img-fade"></div>
-        ${item._stapelbaar && item._qty > 1 ? `<span class="boedel-kaart-aantal" title="Aantal">×${item._qty}</span>` : ''}
-        ${acr ? `<span class="card-armor-ac-pill" title="${esc(acr.tooltip)}">${esc(acr.pill)}</span>` : ''}
-      </div>
-      <div class="boedel-kaart-tekst">
-        <span class="card-name">${esc(item.name)}</span>
-        ${meta ? `<span class="card-name-sep"></span><div class="card-meta"><span class="card-meta-sub">${esc(meta)}</span></div>` : ''}
-        ${stand.length ? `<div class="boedel-kaart-standen">${stand.join('')}</div>` : ''}
+      ${beeld}
+      <div class="tegel-blad" data-soort="${bladen[j].soort}">${_boedelBladInhoud(item, bladen[j])}</div>
+      <div class="tegel-voet" onclick="event.stopPropagation()">
+        <div class="tegel-punten">${window._tegelPijlHtml?.(-1, bladen.length) || ''}${bladen.map((b, k) => `<button class="tegel-punt${k === j ? ' is-aan' : ''}"
+          title="${esc(b.label)}" onclick="window._boedelTegelNaar('${escArg(item.id)}',${k})">${icon(_BOEDEL_BLAD_ICOON[b.soort] || 'square')}</button>`).join('')}${window._tegelPijlHtml?.(1, bladen.length) || ''}</div>
+        <button class="tegel-knop" title="Gebruiken, geven, aantal bijstellen"
+          onclick="window._boedelTegelVergroot('${escArg(item.id)}')">${icon('maximize-2')}</button>
+        <button class="tegel-knop" title="Kleiner" onclick="window._boedelTegelDicht()">${icon('minimize-2')}</button>
       </div>
     </div>`;
 }

@@ -34355,3 +34355,29 @@ body.wizard-open .modal-overlay { z-index: 2100; }
    features op twintig keer hetzelfde kaartje. */
 .prog-tegel-img--geerfd { opacity: .42; filter: saturate(.8); }
 .prog-tegel.tegel--open .prog-tegel-img--geerfd { opacity: .22; }
+
+/* ── De boedel als tegels ────────────────────────────────────────────────────
+   Dit waren eigen kaartjes met een eigen venster: één klik en je zat in het
+   detail. Nu dezelfde drie standen als overal — dicht, open waar het staat, en
+   pas dan het venster, waar de knoppen staan. De ring en de glans van de
+   zeldzaamheid blijven; die horen bij een voorwerp. */
+.boedel-raster {
+  grid-template-columns: repeat(auto-fill, minmax(132px, 1fr));
+  grid-auto-flow: row dense;
+  align-items: start;
+}
+@media (min-width: 560px) {
+  .boedel-raster { grid-template-columns: repeat(auto-fill, minmax(146px, 1fr)); }
+}
+.boedel-kaart.tegel { aspect-ratio: 3 / 4; position: relative; overflow: hidden; }
+.boedel-kaart.tegel .boedel-kaart-icoon { z-index: 0; }
+.boedel-kaart.tegel .boedel-kaart-aantal,
+.boedel-kaart.tegel .card-armor-ac-pill { z-index: 5; }
+.boedel-kaart.tegel .boedel-kaart-standen {
+  position: absolute; left: 6px; top: 6px; z-index: 5;
+  display: flex; flex-wrap: wrap; gap: 4px;
+}
+.boedel-kaart.tegel .tegel-ondertitel { display: block; }
+.boedel-kaart.tegel--open .boedel-kaart-standen,
+.boedel-kaart.tegel--open .card-armor-ac-pill,
+.boedel-kaart.tegel--open .boedel-kaart-aantal { display: none; }
