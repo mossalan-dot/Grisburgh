@@ -22117,18 +22117,25 @@ router.post('/bastion/turn', requireDM, _bastionPoort, (req, res) => {
     // **Maintain** stond of er eentje zonder order bleef — dat is het moment
     // waarop er niemand oplet.
     const inst2 = bastionRegels.instellingen(storage.readJSON('meta.json'));
-    const onbewaakt = (b.facilities || []).some(f => f.special && (!b.orders?.[f.id] || b.orders[f.id].order === 'maintain'));
+    // Wanneer rolt er een voorval? Als er niemand oplet — een facility op
+    // Maintain of een die zonder order bleef — of als een facility er juist
+    // een lokt: de helms uit Eberron rollen op Empower alsóf je Maintain gaf.
+    const onbewaakt = (b.facilities || []).some(f => f.special && (() => {
+      const o = b.orders?.[f.id];
+      if (!o || o.order === 'maintain') return true;
+      return o.order === 'empower' && bastionRegels.EMPOWER_LOKT.has(f.key);
+    })());
     let voorval = null;
     if (inst2.eventTableId && onbewaakt) {
       const tafels = (storage.readJSON('tables.json').tables || []);
       const tafel = tafels.find(t => t.id === inst2.eventTableId);
       if (tafel && (tafel.entries || []).length) {
-        // **Empower beïnvloedt de worp.** Stond er een facility op Empower,
-        // dan rolt de app er twee en kiest de DM. Wát Empower precies doet
-        // staat in de Dungeon Master's Guide en dat leveren we niet mee; dit
-        // is de vorm die bij deze app past — de app biedt aan, de DM beslist.
-        // Zonder Empower is het één worp en is er niets te kiezen.
-        const empower = (b.facilities || []).some(f => b.orders?.[f.id]?.order === 'empower');
+        // **Twee worpen, en de DM kiest** — dat is precies wat de Meditation
+        // Chamber op Empower doet ("roll twice and choose either result").
+        // Niet elke Empower-order dus: elke facility heeft zijn eigen effect,
+        // en alleen deze gaat over de voorvallen.
+        const empower = (b.facilities || []).some(f =>
+          b.orders?.[f.id]?.order === 'empower' && bastionRegels.EMPOWER_TWEEWORP.has(f.key));
         const rol = () => { const { regel, worp } = _rolTafelRuw(tafel); return regel ? { tekst: regel, worp } : null; };
         const eerste = rol();
         const tweede = empower ? rol() : null;
