@@ -18,7 +18,7 @@ import './media-picker.js?v=18';
 // Sfeer bij het vergroten van een kaart; hangt zichzelf op aan window.
 import './kaartsfeer.js?v=5';
 // Wat je elke dag opnieuw kiest; hangt zichzelf op aan window.
-import './dagkeuze.js?v=3';
+import './dagkeuze.js?v=4';
 import './wizard.js?v=15';
 import './tafels.js?v=2';
 import './terugblik.js?v=7';
@@ -7560,12 +7560,21 @@ window._rustCinematic = (payload) => {
 
   const hitDiceHtml = (!isLong && mine?.hitDice) ? _rustHitDicePaneel(myCharId, mine.hitDice) : '';
 
+  // **Wat je vandaag kiest hoort hier.** Astral Knowledge en zijn soortgenoten
+  // geven een skill tot je volgende lange rust; die is er net afgehaald, en dit
+  // is het moment waarop je hem opnieuw kiest — net als de Hit Dice bij een
+  // korte rust. De bak wordt hieronder gevuld door `dagkeuze.js`, want die
+  // weet wat er te kiezen valt; dit scherm hoeft dat niet te weten.
+  const dagkeuzeHtml = (isLong && !isDisplay && mine?.keuzesOpnieuw?.length)
+    ? '<div id="rust-dagkeuze" class="rust-dagkeuze"></div>' : '';
+
   ov.innerHTML = `
     <div class="rust-cinematic-scene">
       ${sceneEl}
       <div class="rust-cinematic-kop">${titel}</div>
       ${samenvatting}
       ${hitDiceHtml}
+      ${dagkeuzeHtml}
       ${eventHtml}
       ${roddelHtml}
       <button class="rust-cinematic-sluit">${(!isLong && hitDiceHtml) ? 'Klaar met rusten' : (isDM ? 'Sluiten voor iedereen' : 'Sluiten')}</button>
@@ -7597,9 +7606,15 @@ window._rustCinematic = (payload) => {
   // Klik buiten de scene sluit ook; alleen de interactieve korte rust met het
   // Hit Dice-paneel blijft staan, zodat je daar niet per ongeluk uit klikt.
   ov.addEventListener('click', (e) => {
-    if (!e.target.closest('.rust-cinematic-scene') && (isLong || !hitDiceHtml)) sluitActie();
+    if (!e.target.closest('.rust-cinematic-scene') && (isLong ? !dagkeuzeHtml : !hitDiceHtml)) sluitActie();
   });
   document.body.appendChild(ov);
+  // Pas nu, want `dagkeuze.js` haalt zijn lijst op en moet een bak hebben die
+  // in de DOM staat. Je moet er iets kunnen kiezen, dus hij sluit ook niet
+  // vanzelf — net als het Hit Dice-paneel.
+  if (dagkeuzeHtml) {
+    window._dagkeuzeVul?.(ov.querySelector('#rust-dagkeuze'), { kop: 'Wat kies je vandaag?' });
+  }
 };
 
 // Van buitenaf (socket) het rustscherm sluiten.

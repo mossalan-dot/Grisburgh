@@ -34177,3 +34177,25 @@ body.wizard-open .modal-overlay { z-index: 2100; }
   background: rgba(242,232,210,.5); color: #3a2410;
   font-family: 'Crimson Text', serif;
 }
+
+/* Het dagkeuze-paneel in de rustoverlay. Daar is de ondergrond donker, dus de
+   perkamentkleuren van het blok op de spelerstab werken er niet — dezelfde
+   vorm, andere kleuren, net als bij het Hit Dice-paneel ernaast. */
+.rust-dagkeuze { width: 100%; max-width: 520px; margin: 10px auto 0; text-align: left; }
+.rust-dagkeuze .player-dash-section {
+  background: rgba(20, 14, 6, .55);
+  border: 1px solid rgba(196,168,122,.45); border-radius: 10px; padding: 10px 14px;
+}
+.rust-dagkeuze .player-dash-section-title { color: #e8d9b5; }
+.rust-dagkeuze .dagkeuze-naam { color: #f2e8d2; }
+.rust-dagkeuze .dagkeuze-bron { color: #c4a87a; }
+.rust-dagkeuze .dagkeuze-rij { border-top-color: rgba(196,168,122,.25); }
+.rust-dagkeuze .dagkeuze-rij--open { border-left-color: #e0a830; }
+.rust-dagkeuze .dagkeuze-optie {
+  background: rgba(242,232,210,.12); border-color: rgba(196,168,122,.5); color: #f2e8d2;
+}
+.rust-dagkeuze .dagkeuze-optie:hover { background: rgba(242,232,210,.26); }
+.rust-dagkeuze .dagkeuze-optie.is-aan { background: #e0c080; border-color: #e0c080; color: #2a1a08; }
+.rust-dagkeuze .dagkeuze-vrij {
+  background: rgba(242,232,210,.12); border-color: rgba(196,168,122,.5); color: #f2e8d2;
+}

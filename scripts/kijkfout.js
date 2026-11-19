@@ -10,6 +10,10 @@
 //
 //   DM_WW='…' node scripts/kijkfout.js <url> <foto.png> '<js>' [breedte] [hoogte]
 //
+// Of als **speler**, want het halve scherm van deze app is van hem:
+//   SPELER_WW='…' SPELER_ID='e_…' node scripts/kijkfout.js …
+// (zijn party-wachtwoord en het id van zijn kaartje; DM_WW wordt dan genegeerd)
+//
 // Het JS-stuk wordt als **expressie** geëvalueerd, dus een losse `return` kan
 // niet; schrijf een async IIFE:
 //
@@ -103,8 +107,25 @@ async function versie() {
 
   await ga(url);
 
+  // Inloggen als speler. Een DM ziet het spelerstabblad niet, dus wat je van
+  // de spelerskant wil nakijken kun je alleen zo bereiken.
+  const spelerWw = process.env.SPELER_WW, spelerId = process.env.SPELER_ID;
+  if (spelerWw && spelerId) {
+    const campagne = new URL(url).pathname.replace(/^\/|\/$/g, '') || 'grisburgh';
+    const code = await draai(`(async () => {
+      const r = await fetch('/api/auth/player-login', { method: 'POST', credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ campagne: ${JSON.stringify(campagne)},
+          characterId: ${JSON.stringify(spelerId)}, password: ${JSON.stringify(spelerWw)} }) });
+      return r.status;
+    })()`);
+    if (code !== 200) console.log('spelerlogin gaf', code);
+    await ga(url);
+    await wacht(1800);
+  }
+
   // Inloggen als DM op de landingspagina, als er een wachtwoordveld staat.
-  const ww = process.env.DM_WW;
+  const ww = (spelerWw && spelerId) ? '' : process.env.DM_WW;
   if (ww) {
     const campagne = new URL(url).pathname.replace(/^\/|\/$/g, '') || 'grisburgh';
     await draai(`(async () => {

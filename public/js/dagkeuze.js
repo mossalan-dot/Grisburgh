@@ -14,6 +14,13 @@
 // Dit blok tekent alleen wat `bijRust` draagt. De andere keuzes van je
 // features zijn één keer gemaakt in de maker en horen niet elke sessie opnieuw
 // in beeld te staan.
+//
+// **Het staat op twee plekken, en dat is met opzet.** De echte plek is de
+// rustoverlay: daar word je wakker, en daar hoort "wat kies je vandaag" te
+// staan — net als de Hit Dice bij een korte rust. Op je Personage-tab staat
+// hetzelfde paneel als naslag, voor als je de overlay hebt weggeklikt of
+// halverwege de avond wilt zien wat je ook alweer koos. Eén renderer voor
+// allebei; twee die hetzelfde moeten tonen lopen uit elkaar.
 import { api } from './api.js?v=324';
 
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) =>
@@ -22,21 +29,25 @@ const ic = (n, o) => window.icon?.(n, o) ?? '';
 
 let _slots = [];
 let _bezig = false;
+// Welke bakken dit paneel tonen. Na een keuze moeten ze allebei bij: wie in de
+// rustoverlay kiest en hem daarna wegklikt, hoort op zijn tabblad hetzelfde te
+// zien. Een Set, want een bak die uit de DOM verdwenen is valt er vanzelf uit.
+const _bakken = new Set();
 
-async function dagkeuzeBlok() {
-  const el = document.getElementById('dagkeuze-blok');
-  const id = window._lastCharId;
-  if (!el) return;
-  if (!id) { el.innerHTML = ''; return; }
+async function _laad(id) {
   try {
     const r = await api.get(`/characters/${id}/keuzes`);
     _slots = (r?.slots || []).filter(s => s.keuze?.bijRust);
   } catch { _slots = []; }
-  if (!_slots.length) { el.innerHTML = ''; return; }
+  return _slots;
+}
 
+function _teken(el, kop) {
+  if (!el) return;
+  if (!_slots.length) { el.innerHTML = ''; return; }
   el.innerHTML = `
     <div class="player-dash-section dagkeuze">
-      <div class="player-dash-section-title">${ic('sunset')} Wat je vandaag koos</div>
+      <div class="player-dash-section-title">${ic('sunset')} ${esc(kop)}</div>
       ${_slots.map((sl, i) => {
         const gekozen = sl.gekozen || [];
         const over = Math.max(0, sl.keuze.aantal - gekozen.length);
@@ -57,6 +68,37 @@ async function dagkeuzeBlok() {
     </div>`;
 }
 
+// Vul een bak. `kop` verschilt per plek: in de rustoverlay is het een vraag
+// (je moet nog kiezen), op je tabblad een mededeling (dit koos je).
+export async function vul(el, { kop = 'Wat je vandaag koos' } = {}) {
+  if (!el) return;
+  const id = window._lastCharId;
+  if (!id) { el.innerHTML = ''; return; }
+  // De kop op de bak zelf, zodat `_allesBij` hem na een keuze terugvindt
+  // zonder dat deze module moet onthouden welke bak welke is.
+  el.dataset.dagkeuzeKop = kop;
+  _bakken.add(el);
+  await _laad(id);
+  _teken(el, kop);
+}
+
+async function dagkeuzeBlok() {
+  const el = document.getElementById('dagkeuze-blok');
+  if (!el) return;
+  await vul(el);
+}
+
+// Alles bijwerken wat nog op het scherm staat.
+async function _allesBij() {
+  const id = window._lastCharId;
+  if (!id) return;
+  await _laad(id);
+  for (const el of [..._bakken]) {
+    if (!el.isConnected) { _bakken.delete(el); continue; }
+    _teken(el, el.dataset.dagkeuzeKop || 'Wat je vandaag koos');
+  }
+}
+
 // Tikken op een optie: aan of uit. Zijn er meer te kiezen dan er mogen, dan
 // valt de oudste eraf — dat is prettiger dan een knop die niets doet en je
 // laat raden waarom.
@@ -71,9 +113,8 @@ async function _kies(i, naam) {
   else { nu.push(naam); while (nu.length > sl.keuze.aantal) nu.shift(); }
   _bezig = true;
   try {
-    const r = await api.post(`/characters/${id}/keuzes`, { sleutel: sl.sleutel, namen: nu });
-    _slots = (r?.slots || []).filter(s => s.keuze?.bijRust);
-    await dagkeuzeBlok();
+    await api.post(`/characters/${id}/keuzes`, { sleutel: sl.sleutel, namen: nu });
+    await _allesBij();
     // Het blad bijwerken doet de server: hij stuurt `player:profile-updated`
     // mee, en daar hangt de spelerstab al aan.
   } catch (e) {
@@ -94,8 +135,10 @@ document.addEventListener('change', (ev) => {
   const id = window._lastCharId;
   if (!sl || !id) return;
   api.post(`/characters/${id}/keuzes`, { sleutel: sl.sleutel, namen: [veld.value] })
-    .then(() => dagkeuzeBlok())
+    .then(() => _allesBij())
     .catch(e => window._showToast?.(e?.message || 'Dat lukte niet'));
 });
 
 window._dagkeuzeBlok = dagkeuzeBlok;
+// Voor de rustoverlay, die zijn eigen bak meegeeft (zie `_rustCinematic`).
+window._dagkeuzeVul = vul;

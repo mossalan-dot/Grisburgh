@@ -1969,7 +1969,10 @@ Grisburghs **data** te staan — niet in de code.
 - *Primal Knowledge* biedt zes skills aan (de lijst van de Barbarian), niet alle achttien.
 
 ### Wat je elke dag opnieuw kiest
-- Maak (of pak) een **Githyanki**, **Astral Elf** of **Kalashtar**-speler. Op zijn Personage-tab staat onder de klassekrachten het blok **Wat je vandaag koos**, met een warme rand zolang er nog iets open staat.
+- **De echte plek is de rustoverlay.** Laat de DM een lange rust doen bij een Githyanki, Astral Elf of Kalashtar: in het rustscherm staat tussen de samenvatting en het nachtvoorval het paneel **Wat kies je vandaag?**, met de skills als pillen. Wat je daar aantikt staat meteen op je blad; de overlay sluit niet vanzelf bij een klik ernaast zolang dat paneel er staat.
+- Maak (of pak) een **Githyanki**, **Astral Elf** of **Kalashtar**-speler. Op zijn Personage-tab staat onder de klassekrachten hetzelfde paneel als naslag (**Wat je vandaag koos**), met een warme rand zolang er nog iets open staat.
 - Tik een skill aan: hij komt meteen bij zijn proficiencies op het blad te staan. Tik een andere aan: de vorige valt eraf, de nieuwe komt erbij.
 - Laat de DM een **lange rust** doen: het blok staat weer open en de skill van gisteren is van het blad af. Wat van zijn class of background komt staat er nog.
 - Kies een skill die hij al van zijn class had en doe dan een lange rust: die skill hoort te blijven staan — de feature schreef hem niet, dus mag hem ook niet weghalen.
+- Een speler **zonder** zo'n feature hoort niets te zien: geen blok op zijn tabblad en geen paneel in zijn rustscherm.
+- Een keuze die **niet** per dag geldt (de taal van Thieves' Cant bijvoorbeeld) hoort een lange rust gewoon te overleven.
