@@ -15,7 +15,7 @@
  */
 
 import { api } from './api.js?v=324';
-import { naslagBron } from './render-progressie.js?v=71';
+import { naslagBron } from './render-progressie.js?v=74';
 // De condities staan op één plek, en dat is dit bestand — zie de kop daar.
 import { CONDITIONS, COND_ICON, condGroep, isEigenConditie } from './conditions.js?v=6';
 

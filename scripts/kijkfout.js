@@ -10,6 +10,10 @@
 //
 //   DM_WW='…' node scripts/kijkfout.js <url> <foto.png> '<js>' [breedte] [hoogte]
 //
+// Onder de 600 px breed doet hij een **telefoon** na (of met MOBIEL=1): een
+// Chrome-venster kan op macOS niet smaller dan 500 px, dus zonder die
+// emulatie keek je naar de verkeerde indeling.
+//
 // Of als **speler**, want het halve scherm van deze app is van hem:
 //   SPELER_WW='…' SPELER_ID='e_…' node scripts/kijkfout.js …
 // (zijn party-wachtwoord en het id van zijn kaartje; DM_WW wordt dan genegeerd)
@@ -94,6 +98,20 @@ async function versie() {
   const { sessionId } = await stuur('Target.attachToTarget', { targetId: doel.targetId, flatten: true });
   const S = (method, params) => stuur(method, params, sessionId);
   await S('Page.enable'); await S('Runtime.enable'); await S('Network.enable');
+
+  // **Een telefoon na-apen.** Een vensterbreedte van 390 kan niet: macOS houdt
+  // een Chrome-venster op minstens 500 px, dus `--window-size=390` leverde een
+  // scherm van 500 op en keek je naar de verkeerde indeling. Met
+  // `Emulation.setDeviceMetricsOverride` krijgt de pagina wél de breedte die je
+  // vraagt, inclusief het mobiele vinkje waar media-queries soms op letten.
+  // Aanzetten met MOBIEL=1, of vanzelf onder de 600 px.
+  const mobiel = process.env.MOBIEL === '1' || Number(breedte) < 600;
+  if (mobiel) {
+    await S('Emulation.setDeviceMetricsOverride', {
+      width: Number(breedte), height: Number(hoogte), deviceScaleFactor: 2, mobile: true,
+    });
+    await S('Emulation.setTouchEmulationEnabled', { enabled: true, maxTouchPoints: 5 });
+  }
 
   const ga = async (adres) => {
     await S('Page.navigate', { url: adres });

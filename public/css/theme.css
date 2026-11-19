@@ -34268,3 +34268,90 @@ body.wizard-open .modal-overlay { z-index: 2100; }
 @media (max-width: 640px) {
   .player-dash-hero > .player-dash-print span { display: none; }
 }
+
+/* Een waarde die de DM bijhoudt: zelfde maat als een invulveld, maar met een
+   slotje en zonder de rand die zegt "hier mag je typen". */
+.ppf-vast { display: inline-flex; align-items: center; gap: 6px; }
+.ppf-vast .icon { width: 12px; height: 12px; opacity: .45; flex-shrink: 0; }
+
+/* ── Progressie: features als tegels ─────────────────────────────────────────
+   Dit waren smalle balkjes met een sterretje; dezelfde features zijn in het
+   Heldenboek al kaarten met een plaat. Nu dezelfde tegel als in het archief —
+   3:4, naam over de plaat, en open 2×2 met bladen. De tijdlijn blijft, want
+   het level links is hier het hele punt. */
+.prog-feats, .prog-traits {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(132px, 1fr));
+  /* `dense`: een open tegel beslaat 2×2 en laat daarmee een gat achter. Met
+     dense schuift wat erachter komt dat gat in, net als in het archief. */
+  grid-auto-flow: row dense;
+  gap: 10px;
+  align-items: start;
+}
+@media (max-width: 520px) {
+  .prog-feats, .prog-traits { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+}
+.prog-tegel { --soort-c2: #8a6d3f; }
+.prog-tegel.tegel--open { grid-column: span 2; grid-row: span 2; }
+.prog-tegel--dicht { opacity: .55; filter: saturate(.55); }
+.prog-tegel--dicht::after {
+  content: ''; position: absolute; inset: 0; z-index: 3;
+  background: repeating-linear-gradient(135deg,
+    rgba(42,26,8,.05) 0 7px, rgba(42,26,8,.11) 7px 14px);
+  pointer-events: none;
+}
+/* Het level op de tegel: dezelfde penning als het niveau bij een spreuk. */
+.prog-tegel-niv {
+  position: absolute; top: 6px; left: 6px; z-index: 5;
+  min-width: 20px; height: 20px; padding: 0 5px; border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(42,26,8,.78); color: #f2e8d2;
+  font-family: 'Cinzel', serif; font-size: 11px; font-weight: 700;
+}
+.prog-tegel-ster {
+  position: absolute; top: 4px; right: 4px; z-index: 5;
+  background: none; border: 0; cursor: pointer; font-size: 15px; line-height: 1;
+  color: rgba(242,232,210,.75); text-shadow: 0 1px 2px rgba(0,0,0,.6);
+  padding: 2px 4px;
+}
+.prog-tegel-ster.on { color: #e0b83c; }
+.tegel--open .prog-tegel-ster { position: static; text-shadow: none; color: #8a7050; }
+/* De bolletjes van een teller stonden net boven de naamband en liepen dwars
+   door een naam van twee regels. Ze staan nu onder de levelpenning: dat is de
+   enige hoek waar niets anders komt. */
+.prog-tegel-dots {
+  position: absolute; left: 6px; top: 30px; z-index: 5;
+  display: flex; flex-wrap: wrap; gap: 3px; max-width: calc(100% - 12px);
+  padding: 3px 5px; border-radius: 9px; background: rgba(42,26,8,.55);
+}
+.tegel--open .prog-tegel-dots { top: auto; bottom: 44px; left: 10px; }
+/* Een tegel zonder plaat: de categoriekleur als ondergrond in plaats van een
+   leeg vel perkament, zodat een species-trait en een class-feature uit elkaar
+   te houden zijn zonder te lezen. */
+.prog-tegel.no-img { background: linear-gradient(160deg, rgba(242,232,210,.9), rgba(242,232,210,.55)); }
+.prog-tegel.no-img .tegel-icoon { color: var(--soort-c2); opacity: .45; }
+.prog-tegel.no-img .tegel-icoon .icon { width: 40px; height: 40px; }
+.prog-tegel .card-name em {
+  display: block; font-style: italic; font-weight: 400;
+  font-size: .78em; opacity: .85;
+}
+
+/* ── De kop op een telefoon ──────────────────────────────────────────────────
+   Hij stapelde: portret boven de naam, met het portret op 116 px en de
+   printlink op een eigen regel eronder. Samen 278 px — een derde van een
+   telefoonscherm voordat je iets ziet waar je iets aan hebt. Nu één rij:
+   kleiner portret, naam en feiten ernaast, en de printlink als icoon. */
+@media (max-width: 640px) {
+  .player-dash-hero { flex-wrap: nowrap; align-items: center; gap: 12px; }
+  .player-dash-avatar-outer { width: 76px; height: 76px; flex-shrink: 0; }
+  .player-dash-avatar-wrap { width: 64px; height: 64px; }
+  .player-dash-name { font-size: 18px; }
+  .player-dash-feiten { font-size: 13px; line-height: 1.35; }
+  .player-dash-hero > .player-dash-print { align-self: center; }
+}
+
+/* Een geërfde plaat (van je class of je volk) staat achter een sluier: hij is
+   van de houder en niet van deze feature, en zonder dat verschil lijken twintig
+   features op twintig keer hetzelfde kaartje. */
+.prog-tegel-img--geerfd { opacity: .42; filter: saturate(.8); }
+.prog-tegel.tegel--open .prog-tegel-img--geerfd { opacity: .22; }

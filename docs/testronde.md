@@ -1989,3 +1989,11 @@ Grisburghs **data** te staan — niet in de code.
 - In een gevecht: het conditie-zoekveld bij een combatant kent hem meteen — ook zonder de pagina te verversen.
 - Op een token en op het spelerstabblad hoort hij zijn eigen icoon, kleur en beschrijving te dragen.
 - Weghalen vraagt om bevestiging; een token dat hem nog draagt houdt het kale id.
+
+### Vaardigheden als tegels
+- Spelerstabblad → **Vaardigheden**: de features staan als tegels in een raster in plaats van als smalle balkjes. De tijdlijn met het level ernaast blijft.
+- Een feature zonder eigen plaat leent die van zijn class, subclass of volk, áchter een sluier — zo zie je dat hij geërfd is.
+- Tik een tegel aan: hij vouwt open waar hij staat (plaat · beschrijving · jouw keuze), nog een tik bladert door. Het vergrootknopje opent het hele venster zoals voorheen.
+- Een level dat je nog niet hebt staat gedimd met een arcering erover.
+- De ster staat rechtsboven op de tegel; de bolletjes van een teller (Arcane Recovery, Rage) onder de levelpenning, en je kunt ze daar meteen aantikken.
+- Op een telefoon: twee kolommen, geen horizontale scrollbalk.

@@ -1,15 +1,15 @@
 import { api, campagneUitUrl, zetCampagne } from './api.js?v=324';
-import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, renderDocumenten, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=411";
+import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, renderDocumenten, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=414";
 import { initArchief, renderLogboek, openLogboekEditor } from "./render-archief.js?v=154";
 import { renderKaart, queueFlyTo, verversPins, nieuweKaart } from './render-kaart.js?v=39';
 import { renderDungeon } from './render-dungeon.js?v=80';
 import { renderRelatiemap } from './render-relatiemap.js?v=42';
-import { renderProgressie, levelupFeatures } from './render-progressie.js?v=71';
+import { renderProgressie, levelupFeatures } from './render-progressie.js?v=74';
 import { renderBestiarium } from './render-bestiarium.js?v=45';
 import { renderSpreuken } from './render-spreuken.js?v=63';
 import './render-handleiding.js?v=2';
 import './render-melding.js?v=4';
-import { renderVaardigheden, zoekVaardigheden, heldenboekTekst } from './render-vaardigheden.js?v=175';
+import { renderVaardigheden, zoekVaardigheden, heldenboekTekst } from './render-vaardigheden.js?v=178';
 import { renderStatblock } from './render-statblock.js?v=10';
 import { initSocket } from "./socket-client.js?v=107";
 import { initDmPanel } from "./dm-panel.js?v=432";
@@ -1657,7 +1657,7 @@ async function _landingNieuwTegel() {
   if (!host || !_groepsWachtwoord || document.getElementById('landing-nieuw')) return;
   let stand = null;
   try {
-    await import('./personage-maken.js?v=36');
+    await import('./personage-maken.js?v=39');
     stand = await window.personageMaken.stand();
   } catch { return; }
   if (stand?.instellingen && stand.instellingen.aan === false) return;
@@ -1679,7 +1679,7 @@ async function _landingNieuwTegel() {
 
 async function _landingNieuw() {
   try {
-    await import('./personage-maken.js?v=36');
+    await import('./personage-maken.js?v=39');
     const stand = await window.personageMaken.stand();
     // Ook als hij al bij de DM ligt: dan zie je dat, en kun je hem nog
     // terughalen om iets te veranderen.
@@ -8763,7 +8763,11 @@ async function renderMijnKarakter(opts = {}) {
   // zelf — één keer, op het level dat erom vraagt; daarna staat hij vast.
   // De server weigert hetzelfde (`_PROFIEL_DM_VELDEN` in routes/api.js).
   const _dmBlad = !!window.app?.isDM?.();
-  const _vast = (tekst) => `<span class="ppf-input ppf-vast" title="Dit zet je DM">${esc(tekst || '\u2014')}</span>`;
+  // **Een vaste waarde zag eruit als gewone tekst**, naast velden die wél een
+  // keuzelijst waren — en dan lijkt het alsof de helft van het formulier
+  // hardcoded is. Hij draagt nu een slotje; de tooltip zei het al, maar die
+  // leest niemand.
+  const _vast = (tekst) => `<span class="ppf-input ppf-vast" title="Dit houdt je DM bij">${icon('lock')}${esc(tekst || '\u2014')}</span>`;
   const _subRij = (label, veld, waarde, opts) => `
             <div class="ppf-row"><label class="ppf-label">${label}</label>
               ${!_dmBlad && waarde
@@ -8829,6 +8833,13 @@ async function renderMijnKarakter(opts = {}) {
   // Het formulier zelf; het staat op de Personage-tab.
   const _profielVeldenHtml = () => `
           <div class="player-profile-fields">
+            <!-- **Level, Class en Multiclass staan voor een speler niet in dit
+                 formulier.** Hij kan ze toch niet veranderen — het zijn de drie
+                 dingen die de DM bijhoudt — en ze staan al in de regel onder
+                 zijn naam. Twee keer hetzelfde tonen, waarvan één keer als
+                 onbruikbaar invulveld, maakt van de rest van het blok een
+                 raadsel: waarom mag Background wél? -->
+            ${_dmBlad ? `
             <div class="ppf-row"><label class="ppf-label">Level</label>
               ${_dmBlad ? `<input class="ppf-input ppf-level" type="number" min="1" max="20"
                 value="${esc(playerProfile.level ?? '')}" placeholder="—"
@@ -8852,6 +8863,7 @@ async function renderMijnKarakter(opts = {}) {
                 title="${_isMulticlass ? 'Multiclass uitschakelen' : 'Multiclass inschakelen'}">⊕</button>
               ` : _vast(_isMulticlass && playerProfile.klasseLevel ? `${playerProfile.klasse || '?'} ${playerProfile.klasseLevel}` : playerProfile.klasse)}
             </div>
+            ` : ''}
             ${_subRij(
               isHp ? 'School of Magic'
                    : (_isMulticlass ? `Subclass ${esc(playerProfile.klasse || '1')}` : 'Subclass'),

@@ -412,6 +412,154 @@ async function _syncNewFeaturesToTraits(prog, ctx, charId) {
   // wie het ooit ergens anders wil gebruiken.)
 }
 
+// ── Een feature als tegel ───────────────────────────────────────────────────
+// Dit waren smalle balkjes met een sterretje: een naam, en de rest achter een
+// klik. Terwijl dezelfde features in het Heldenboek al kaarten mét plaat zijn,
+// en dezelfde beweging gebruiken als de kaartjes in het archief. Twee
+// weergaven van hetzelfde ding, waarvan de ene veel minder zei.
+//
+// Nu zijn het tegels, met de hulpjes uit `render-campagne.js` — `_tegelFlip`,
+// `_tegelBlader`, `_tegelVensterUit` — net als de spreuken en het bestiarium.
+// De tijdlijn blijft: het level links is hier het hele punt, dat is wat dit
+// tabblad onderscheidt van het Heldenboek.
+let _progOpen = null;          // index in _featIndex van de open tegel
+const _progBlad = {};          // index → welke bladzijde
+
+const _PROG_BLAD_ICOON = { portret: 'image', beschrijving: 'book-open', keuze: 'pencil' };
+
+// **Een feature erft de plaat van zijn class of species**, net als in het
+// Heldenboek (`_beeldKeten` daar). Zonder dat is dit een raster van lege
+// vellen perkament: de meeste features hebben geen eigen plaat, en juist de
+// class en het volk hebben er wél een. De keten is hetzelfde: eigen beeld →
+// subclass → class, en bij een species → variant → species.
+const _HB_BAK = { class: 'klassen', species: 'species', subclass: 'subclassen',
+                  variant: 'varianten', background: 'backgrounds' };
+function _hbBeeld(soort, naam) {
+  const f = window.app?.state?.meta?.heldenboek?.[_HB_BAK[soort]]?.[naam];
+  if (!f) return '';
+  return typeof f === 'string' ? f : (f.id || '');
+}
+function _progBeeld(f) {
+  if (f.img) return f.img;
+  const ctx = _lastRenderArgs?.ctx || {};
+  if (f.kind === 'species')    return _hbBeeld('variant', ctx.originVariant) || _hbBeeld('species', f.clsName);
+  if (f.kind === 'background') return _hbBeeld('background', f.clsName);
+  // Een subclass-feature valt eerst terug op zijn subclass; de naam daarvan
+  // staat in het profiel, want de feature zelf draagt alleen zijn class.
+  if (f.kind === 'sub' || f.kind === 'subclass') {
+    return _hbBeeld('subclass', ctx.subclass) || _hbBeeld('class', f.clsName);
+  }
+  return _hbBeeld('class', f.clsName);
+}
+
+function _progBladen(f) {
+  const bladen = [];
+  if (_progBeeld(f)) bladen.push({ soort: 'portret', label: 'Plaat' });
+  const tekst = f.desc || _srdDesc(f.name, f.clsName) || '';
+  bladen.push({ soort: 'beschrijving', label: 'Beschrijving', tekst,
+    html: tekst ? `<div class="tegel-tekst">${_md(tekst)}</div>` : _geenTekstBlok(f.name) });
+  if (_isChoiceFeat(f)) bladen.push({ soort: 'keuze', label: 'Jouw keuze' });
+  return bladen;
+}
+
+function _progBladInhoud(f, blad, fi) {
+  if (blad.soort === 'portret') {
+    return `<div class="tegel-naamband tegel-naamband--groot">
+      <span class="card-name">${esc(f.name)}</span>
+      <span class="tegel-ondertitel">${esc(_kindLabel(f.kind))} · level ${f.level}</span></div>`;
+  }
+  if (blad.soort === 'keuze') {
+    const ctx = _lastRenderArgs?.ctx || {};
+    return `<div class="tegel-vel">
+      <div class="tegel-vel-kop">${icon('pencil')} Jouw keuze<span class="tegel-vel-naam">${esc(f.name)}</span></div>
+      <div class="tegel-vel-tekst" onclick="event.stopPropagation()">
+        ${_choiceField(f.key, true, ctx.choices || {}, ctx.charId || null, f.name, f.level, f.clsName)}
+      </div></div>`;
+  }
+  return `<div class="tegel-vel">
+    <div class="tegel-vel-kop">${icon('book-open')} ${esc(blad.label)}<span class="tegel-vel-naam">${esc(f.name)}</span></div>
+    <div class="tegel-vel-tekst">${blad.html}</div>
+  </div>`;
+}
+
+// `vergrendeld` is een level dat je nog niet hebt: je ziet dát het komt, maar
+// het telt nog niet mee. Dat was een grijze balk en blijft een gedimde tegel.
+function _progTegel(f, fi, { vergrendeld = false, sub = '' } = {}) {
+  const charId = _lastRenderArgs?.ctx?.charId || null;
+  const kleur  = f.cat?.kleur || '';
+  const klassen = `entity-card tegel prog-tegel prog-tegel--${esc(f.kind || 'class')}`
+    + (_progBeeld(f) ? '' : ' no-img') + (vergrendeld ? ' prog-tegel--dicht' : '');
+  const beeldId = _progBeeld(f);
+  const geerfd = beeldId && beeldId !== f.img;
+  const beeld = beeldId
+    ? `<img class="tegel-img${geerfd ? ' prog-tegel-img--geerfd' : ''}" loading="lazy" src="${api.thumbUrl(beeldId)}" alt=""
+         onerror="this.closest('.tegel')?.classList.add('no-img');this.remove()">`
+    : '';
+  const icoon = `<span class="tegel-icoon" aria-hidden="true">${icon(f.cat?.icon || 'scroll-text')}</span>`;
+  // Het level staat er alleen als het iets zegt. Een species-trait en een
+  // background-onderdeel krijg je bij het begin; "1" op elk van die kaartjes is
+  // ruis, en juist bij een class-feature wil je het level zien.
+  const toontNiv = f.kind === 'class' || f.kind === 'sub' || f.kind === 'subclass'
+                   || f.kind === 'shared' || f.level > 1;
+  const niv = toontNiv ? `<span class="prog-tegel-niv" title="Level ${f.level}">${f.level}</span>` : '';
+  const ster = charId ? `<button type="button" class="prog-tegel-ster${f._fav ? ' on' : ''}"
+    onclick="event.stopPropagation();window.progressie.toggleFav(${fi})"
+    title="${f._fav ? 'Favoriet verwijderen' : 'Favoriet'}">${f._fav ? '★' : '☆'}</button>` : '';
+  // Een teller hoort in één oogopslag zichtbaar te zijn en met één tik bij te
+  // werken; hij stond drie klikken verderop in het detailvenster.
+  const tel = window._traitBlokVoor?.(f.name);
+  const telMax = tel ? (parseInt(tel.maxUses) || 0) : 0;
+  const telHtml = telMax > 0
+    ? `<span class="prog-tegel-dots" onclick="event.stopPropagation()">${window._traitDotsHtml?.(tel.id, telMax, parseInt(tel.currentUses) || 0) || ''}</span>`
+    : '';
+  const klik = `window.progressie.tegel(${fi})`;
+
+  if (_progOpen !== fi) {
+    return `<div class="${klassen}" data-sleutel="p${fi}" role="button" tabindex="0"
+      title="${esc(f.name)}" ${kleur ? `style="--soort-c2:${esc(kleur)}"` : ''}
+      onclick="${klik}" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();${klik}}">
+      ${icoon}${beeld}${niv}${ster}
+      <div class="tegel-naamband"><span class="card-name">${esc(f.name)}${sub ? `<em>${esc(sub)}</em>` : ''}</span></div>
+      ${telHtml}
+    </div>`;
+  }
+  const bladen = _progBladen(f);
+  const j = Math.min(_progBlad[fi] || 0, bladen.length - 1);
+  return `<div class="${klassen} tegel--open" data-sleutel="p${fi}" role="button" tabindex="0"
+    aria-label="${esc(f.name)}, blad ${j + 1} van ${bladen.length}"
+    ${kleur ? `style="--soort-c2:${esc(kleur)}"` : ''} onclick="${klik}">
+    ${icoon}${beeld}${niv}
+    <div class="tegel-blad" data-soort="${bladen[j].soort}">${_progBladInhoud(f, bladen[j], fi)}</div>
+    <div class="tegel-voet" onclick="event.stopPropagation()">
+      <div class="tegel-punten">${window._tegelPijlHtml?.(-1, bladen.length) || ''}${bladen.map((b, k) => `<button class="tegel-punt${k === j ? ' is-aan' : ''}"
+        title="${esc(b.label)}" onclick="window.progressie.naar(${fi},${k})">${icon(_PROG_BLAD_ICOON[b.soort] || 'square')}</button>`).join('')}${window._tegelPijlHtml?.(1, bladen.length) || ''}</div>
+      ${ster}
+      <button class="tegel-knop" title="Het hele kaartje" onclick="window.progressie.vergroot(${fi})">${icon('maximize-2')}</button>
+      <button class="tegel-knop" title="Kleiner" onclick="window.progressie.tegelDicht()">${icon('minimize-2')}</button>
+    </div>
+  </div>`;
+}
+
+// Alleen het raster waar deze tegel in staat opnieuw tekenen: de rest van de
+// tijdlijn verandert niet, en het hele paneel hertekenen zou je uit je
+// scrollpositie tillen.
+function _progHerteken(fi) {
+  const el = document.querySelector(`.prog-tegel[data-sleutel="p${fi}"]`);
+  const raster = el?.closest('.prog-feats, .prog-traits');
+  if (!raster) return window.progressie?.herteken?.();
+  const vul = () => {
+    raster.querySelectorAll(':scope > .prog-tegel').forEach(t => {
+      const i = Number(t.dataset.sleutel.slice(1));
+      const f = _featIndex[i];
+      if (!f) return;
+      const doos = document.createElement('div');
+      doos.innerHTML = _progTegel(f, i, { vergrendeld: t.classList.contains('prog-tegel--dicht') }).trim();
+      if (doos.firstElementChild) t.replaceWith(doos.firstElementChild);
+    });
+  };
+  if (window._tegelFlip) window._tegelFlip(raster, vul); else vul();
+}
+
 // ── Panel opbouwen ─────────────────────────────────────────────────
 function _buildPanel(prog, ctx, charId, favs, choices) {
   const cls     = _findClass(prog, ctx.klasse);
@@ -661,37 +809,11 @@ function _classTimeline(prog, cls, subclassName, charLevel, isMulti, charId, fav
         cat, img: f.img, imgKind: f.imgKind, key: fKey, _fav: fav, clsName: cls.key,
       }) - 1;
 
-      let label = esc(f.name);
-      if (f._kind === 'subclass' && subclass) label = `${esc(f.name)}: ${esc(subclass.key)}`;
-      const cls2 = f._kind === 'shared' ? ' prog-feat--shared' : f._kind === 'sub' ? ' prog-feat--sub' : '';
-      const choiceHtml = _isChoiceFeat(f) ? _choiceField(fKey, unlocked, choices, charId, f.name, lvl, cls.key, otherNames) : '';
-
-      // Favoriet-knop (alleen voor ingelogde spelers)
-      const favBtn = charId ? `<button type="button" class="prog-tl-fav${fav ? ' on' : ''}"
-        onclick="event.stopPropagation();window.progressie.toggleFav(${fi})"
-        title="${fav ? 'Favoriet verwijderen' : 'Favoriet'}">${fav ? '★' : '☆'}</button>` : '';
-
-      // Heeft deze feature een teller (bolletjes die je afstreept), laat die dan
-      // hier staan en niet alleen achter een klik. Juist een teller wil je aan
-      // tafel in één oogopslag zien en met één tik bijwerken — hij stond in de
-      // detailweergave, drie klikken verderop.
-      const tel = window._traitBlokVoor?.(f.name);
-      const telMax = tel ? (parseInt(tel.maxUses) || 0) : 0;
-      const telHtml = telMax > 0
-        ? `<span class="prog-feat-dots">${window._traitDotsHtml?.(tel.id, telMax, parseInt(tel.currentUses) || 0) || ''}</span>`
-        : '';
-
-      return `<div class="prog-feat${cls2}">
-        <div class="prog-feat-header">
-          <button type="button" class="prog-feat-name-btn"
-            onclick="window.progressie.openFeature(${fi})">
-            ${label}${f._kind === 'sub' ? ' <span class="prog-feat-tag">Subclass</span>' : ''}
-          </button>
-          ${telHtml}
-          ${favBtn}
-        </div>
-        ${choiceHtml}
-      </div>`;
+      // De naam van de subclass hoort onder de featurenaam en niet erachter
+      // met een dubbele punt: op een tegel is daar plaats voor.
+      const sub = (f._kind === 'subclass' && subclass) ? subclass.key
+                : f._kind === 'sub' ? 'Subclass' : '';
+      return _progTegel(_featIndex[fi], fi, { vergrendeld: !unlocked, sub });
     }).join('');
     if (!featHtml.trim()) continue;
     rows.push(`
@@ -728,18 +850,7 @@ function _speciesBlock(species, ctx, charId, favs) {
         level: lvl, kind: 'species', cat: _resolveCat(f, 'species'),
         key: fKey, _fav: fav, clsName: species.key,
       }) - 1;
-      const favBtn = charId ? `<button type="button" class="prog-tl-fav${fav ? ' on' : ''}"
-        onclick="event.stopPropagation();window.progressie.toggleFav(${fi})"
-        title="${fav ? 'Favoriet verwijderen' : 'Favoriet'}">${fav ? '★' : '☆'}</button>` : '';
-      return `<div class="prog-trait${locked ? ' prog-locked' : ''}">
-        <div class="prog-feat-header">
-          <button type="button" class="prog-feat-name-btn"
-            onclick="window.progressie.openFeature(${fi})">
-            ${esc(f.name)}${lvl > 1 ? ` <span class="prog-feat-tag">lvl ${lvl}</span>` : ''}
-          </button>
-          ${favBtn}
-        </div>
-      </div>`;
+      return _progTegel(_featIndex[fi], fi, { vergrendeld: locked });
     })
   ).join('');
   return `
@@ -759,16 +870,7 @@ function _backgroundBlock(background, charId, favs) {
       level: 1, kind: 'background', cat: _resolveCat(f, 'background'),
       key: fKey, _fav: fav, clsName: background.key,
     }) - 1;
-    const favBtn = charId ? `<button type="button" class="prog-tl-fav${fav ? ' on' : ''}"
-      onclick="event.stopPropagation();window.progressie.toggleFav(${fi})"
-      title="${fav ? 'Favoriet verwijderen' : 'Favoriet'}">${fav ? '★' : '☆'}</button>` : '';
-    return `<div class="prog-trait">
-      <div class="prog-feat-header">
-        <button type="button" class="prog-feat-name-btn"
-          onclick="window.progressie.openFeature(${fi})">${esc(f.name)}</button>
-        ${favBtn}
-      </div>
-    </div>`;
+    return _progTegel(_featIndex[fi], fi, {});
   }).join('');
   return `
     <div class="prog-species prog-background">
@@ -1078,6 +1180,62 @@ window.progressie = {
     );
 
     if (desc) _applyGlossaryToModal();
+  },
+
+  // ── De tegels ────────────────────────────────────────────────────────────
+  // Eén klik vouwt hem open waar hij staat, nog een klik bladert door — net als
+  // in het archief, het bestiarium en de spreuken. De vergrootknop opent pas
+  // het hele venster (`openFeature`), dat ongewijzigd bleef.
+  tegel(fi) {
+    const f = _featIndex[fi];
+    if (!f) return;
+    if (_progOpen !== fi) {
+      const vorige = _progOpen;
+      _progOpen = fi;
+      _progBlad[fi] = _progBladen(f).findIndex(b => b.soort === 'beschrijving');
+      if (_progBlad[fi] < 0) _progBlad[fi] = 0;
+      // Allebei hertekenen: de tegel die dichtgaat staat vaak in een ander
+      // level en dus in een ander raster.
+      if (vorige != null) _progHerteken(vorige);
+      _progHerteken(fi);
+      setTimeout(() => document.querySelector(`.prog-tegel[data-sleutel="p${fi}"]`)
+        ?.scrollIntoView({ block: 'nearest', behavior: 'smooth' }), 360);
+      return;
+    }
+    const n = _progBladen(f).length;
+    this.naar(fi, ((_progBlad[fi] || 0) + 1) % n);
+  },
+
+  async naar(fi, k) {
+    const el = document.querySelector(`.prog-tegel.tegel--open[data-sleutel="p${fi}"]`);
+    const f  = _featIndex[fi];
+    if (!el || !f) return;
+    const bladen = _progBladen(f);
+    const vorige = _progBlad[fi] || 0;
+    _progBlad[fi] = Math.max(0, Math.min(bladen.length - 1, k));
+    if (_progBlad[fi] === vorige) return;
+    const wissel = () => {
+      const blad = el.querySelector('.tegel-blad');
+      const b = bladen[_progBlad[fi]];
+      blad.dataset.soort = b.soort;
+      blad.innerHTML = _progBladInhoud(f, b, fi);
+      el.querySelectorAll('.tegel-punt').forEach((p, j) => p.classList.toggle('is-aan', j === _progBlad[fi]));
+    };
+    if (window._tegelBlader) await window._tegelBlader(el, _progBlad[fi] > vorige ? 1 : -1, wissel);
+    else wissel();
+  },
+
+  tegelDicht() {
+    if (_progOpen == null) return;
+    const fi = _progOpen;
+    _progOpen = null;
+    _progHerteken(fi);
+  },
+
+  vergroot(fi) {
+    const tegel = () => document.querySelector(`.prog-tegel[data-sleutel="p${fi}"]`);
+    if (!window._tegelVensterUit) return this.openFeature(fi);
+    window._tegelVensterUit(tegel, () => this.openFeature(fi), () => true);
   },
 
   openFeature(fi) {
