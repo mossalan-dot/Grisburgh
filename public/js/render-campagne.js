@@ -4775,14 +4775,22 @@ function _naarRect(el, r) {
 // `nogHier()` zegt bij het sluiten of het venster nog over déze tegel gaat.
 // Een eigen venster (het spreukdetail) geeft `venster` en `waas` mee en krijgt
 // de sluitanimatie via `haak` terug, in plaats van via de haak van closeModal.
+// `sfeer` is een sleutel uit `kaartsfeer.js` (een schadesoort, een conditie,
+// een domein). Die speelt **nadat** het venster is uitgegroeid: tijdens het
+// groeien verschuift de rechthoek nog, en een doek dat daar overheen ligt loopt
+// dan achter. Eén haak hier, zodat elke plek die een kaart vergroot hem krijgt
+// zonder zelf iets te animeren.
 async function _vensterUitTegel(tegel, open, nogHier = () => true, {
   venster = '#modal-overlay .modal', waasSel = '#modal-overlay',
-  haak = (fn) => { window._modalSluitAnimatie = fn; },
+  haak = (fn) => { window._modalSluitAnimatie = fn; }, sfeer = '',
 } = {}) {
   const r0 = tegel()?.getBoundingClientRect();
   await open();
   const modal = document.querySelector(venster);
   const rustig = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+  if (sfeer && modal && !rustig) setTimeout(() => {
+    if (document.querySelector(venster) === modal) window._kaartSfeer?.(modal, sfeer);
+  }, 330);
   if (!modal || !r0 || rustig) return;
   const van = _naarRect(modal, r0);
   const waas = document.querySelector(waasSel);
@@ -4792,6 +4800,7 @@ async function _vensterUitTegel(tegel, open, nogHier = () => true, {
     waas?.animate([{ backgroundColor: 'rgba(60,40,10,0)' }, {}], { duration: 380 });
   }
   haak(() => {
+    window._kaartSfeerStop?.();
     if (!nogHier()) return null;
     const r1 = tegel()?.getBoundingClientRect();
     const naar = r1 && _naarRect(modal, r1);
@@ -4807,10 +4816,20 @@ async function _vensterUitTegel(tegel, open, nogHier = () => true, {
 }
 window._tegelVensterUit = _vensterUitTegel;
 
+// Een antagonist krijgt bij het vergroten zijn eigen sfeer: dat is een kaartje
+// waar iets mee is, en dat mag je zien op het moment dat hij groot wordt. De
+// rest van het archief krijgt niets — een herbergier is een herbergier.
+function _sfeerVanKaartje(type, id) {
+  if (type !== 'personages') return '';
+  const e = (entities[type] || []).find(x => x.id === id);
+  return (e && window._heeftRol?.(e, 'antagonist')) ? 'antagonist' : '';
+}
+
 window._tegelVergroot = (type, id) => _vensterUitTegel(
   () => document.querySelector(`#section-${type} .tegel[data-sleutel="${CSS.escape(id)}"]`),
   () => window._openDetail(type, id),
-  () => window._currentDetailId === id);
+  () => window._currentDetailId === id,
+  { sfeer: _sfeerVanKaartje(type, id) });
 
 // Bladeren: het blad schuift opzij, `wissel()` zet het nieuwe erin, en dat
 // komt van de andere kant binnen. `kant` is de richting (1 = vooruit).
@@ -5244,7 +5263,7 @@ window._makerVoorDm = async () => {
     gid = keuze;
   }
   try {
-    await import('./personage-maken.js?v=30');
+    await import('./personage-maken.js?v=31');
     // Zodra de maker dichtgaat staat het kaartje er; het raster erachter weet
     // dat nog niet. Hetzelfde als na het opslaan van een nieuw kaartje: open
     // en in beeld.

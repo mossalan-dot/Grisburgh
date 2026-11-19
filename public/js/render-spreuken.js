@@ -1151,10 +1151,15 @@ window.spreuken = {
   vergroot(index) {
     const tegel = () => document.querySelector(`#spreuk-grid .tegel[data-sleutel="${CSS.escape(index)}"]`);
     if (!window._tegelVensterUit) return this.open(index);
+    // De sfeer volgt de **schadesoort**; heeft de spreuk er geen, dan zijn
+    // school. Zo krijgt een Shield of een Invisibility ook iets, en is het
+    // nooit zomaar hetzelfde deeltje voor alles.
+    const s = (_all || []).find(x => x.index === index);
+    const sfeer = window._kaartSfeerSleutel?.(`${s?.damage || ''} ${_school(s || {}) || ''}`) || '';
     window._tegelVensterUit(tegel, () => this.open(index),
       () => document.querySelector('#spreuk-detail-overlay [data-spreuk-index]')?.dataset.spreukIndex === index,
       { venster: '#spreuk-detail-overlay .spreuk-detail-card', waasSel: '#spreuk-detail-overlay',
-        haak: (fn) => { _sluitAnim = fn; } });
+        haak: (fn) => { _sluitAnim = fn; }, sfeer });
   },
   async close() {
     const anim = _sluitAnim; _sluitAnim = null;

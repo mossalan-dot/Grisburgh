@@ -1,20 +1,22 @@
 import { api, campagneUitUrl, zetCampagne } from './api.js?v=324';
-import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, renderDocumenten, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=404";
+import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, renderDocumenten, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=405";
 import { initArchief, renderLogboek, openLogboekEditor } from "./render-archief.js?v=154";
 import { renderKaart, queueFlyTo, verversPins, nieuweKaart } from './render-kaart.js?v=39';
 import { renderDungeon } from './render-dungeon.js?v=80';
 import { renderRelatiemap } from './render-relatiemap.js?v=42';
 import { renderProgressie, levelupFeatures } from './render-progressie.js?v=71';
 import { renderBestiarium } from './render-bestiarium.js?v=45';
-import { renderSpreuken } from './render-spreuken.js?v=61';
+import { renderSpreuken } from './render-spreuken.js?v=62';
 import './render-handleiding.js?v=2';
 import './render-melding.js?v=4';
-import { renderVaardigheden, zoekVaardigheden, heldenboekTekst } from './render-vaardigheden.js?v=169';
+import { renderVaardigheden, zoekVaardigheden, heldenboekTekst } from './render-vaardigheden.js?v=170';
 import { renderStatblock } from './render-statblock.js?v=10';
 import { initSocket } from "./socket-client.js?v=106";
 import { initDmPanel } from "./dm-panel.js?v=430";
 import { COND_INFO, COND_LABEL, COND_MET_PLAATJE, COND_ICON } from './conditions.js?v=5';
 import './media-picker.js?v=18';
+// Sfeer bij het vergroten van een kaart; hangt zichzelf op aan window.
+import './kaartsfeer.js?v=5';
 import './wizard.js?v=15';
 import './tafels.js?v=2';
 import './terugblik.js?v=7';
@@ -1653,7 +1655,7 @@ async function _landingNieuwTegel() {
   if (!host || !_groepsWachtwoord || document.getElementById('landing-nieuw')) return;
   let stand = null;
   try {
-    await import('./personage-maken.js?v=30');
+    await import('./personage-maken.js?v=31');
     stand = await window.personageMaken.stand();
   } catch { return; }
   if (stand?.instellingen && stand.instellingen.aan === false) return;
@@ -1675,7 +1677,7 @@ async function _landingNieuwTegel() {
 
 async function _landingNieuw() {
   try {
-    await import('./personage-maken.js?v=30');
+    await import('./personage-maken.js?v=31');
     const stand = await window.personageMaken.stand();
     // Ook als hij al bij de DM ligt: dan zie je dat, en kun je hem nog
     // terughalen om iets te veranderen.
@@ -14407,9 +14409,16 @@ function _renderTempelInterior(el, g, config, huidigeEed, huidigeZegen, currency
     </div>`;
 }
 
-window._tempelBinnenTreden = (godId) => {
+window._tempelBinnenTreden = async (godId) => {
   _tempelActiveGodId = godId;
-  renderTempel();
+  await renderTempel();
+  // **Een god binnentreden is hetzelfde gebaar als een kaart vergroten**, dus
+  // krijgt het dezelfde sfeer (zie `kaartsfeer.js`): de kleur en de vorm van
+  // zijn domein over het paneel heen. Zonder domein blijft het goud — de kleur
+  // van de tempel zelf.
+  const god = (window._tempelCinemaGod?.id === godId) ? window._tempelCinemaGod : null;
+  const paneel = document.querySelector('#section-tempel .herberg-content');
+  if (paneel) window._kaartSfeer?.(paneel, window._kaartSfeerSleutel?.(god?.domein || '', 'god') || 'god');
 };
 
 window._tempelTerugNaarLijst = () => {

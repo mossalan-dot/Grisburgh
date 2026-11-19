@@ -1942,3 +1942,15 @@ Grisburghs **data** te staan — niet in de code.
       *Hoeveel heb je nodig?* neemt `2,50` of `5 gp 2 sp`, niet één kaal getal
       in centelingen, en zijn voorwaarden zeggen "tot 100 fl" en niet "10000 cl".
 - [ ] **Een winkel heeft een kas** (DM+SP) — op het winkelkaartje staat bij *Koopt in van spelers* het vinkje **Deze winkel heeft een beperkte kas**; vink je het aan, dan verschijnt *Kan per nacht uitgeven* met de gewone kommanotatie (`12,50`) en de naam van je hoofdmunt ernaast. Vink je het weer uit, dan is er geen grens — net als voorheen, dus bestaande winkels veranderen niet. Biedt de party meer aan dan er in kas zit, dan weigert de app met hoeveel er nog in zit — en vraagt of je er tóch doorheen wilt: jij beslist, de app rekent voor. Na een lange rust is de kas weer vol. Proef: zet de kas op 500, verkoop twee dingen van 400, en kijk of de tweede de melding geeft.
+
+### Heldenboek — Conditions
+- Heldenboek → de zesde deur **Conditions**: er staan er **40**, met chips *Condition 19 · Situatie 8 · Lopend effect 13*; geen tegelrij ertussen, de lijst staat er meteen.
+- Tik op *Restrained*: het kaartje gaat open waar het staat met de beschrijving erin; er is **geen potlood** (een conditie komt uit de code, niet uit de campagne).
+- Zoek op `raging` met de deur dicht: hij komt op tussen de andere treffers, met zijn eigen icoon en de gouden kleur die hij op een token ook heeft.
+
+### Sfeer bij het vergroten
+- Spreuk *Fireball* vergroten (het vergrootknopje in de voetbalk): oranje vonken stijgen anderhalve seconde over het venster. *Cone of Cold* geeft vallende scherven, *Lightning Bolt* een flits, *Shield* (geen schade) de kleur van zijn school.
+- Conditie *Burning* vergroten: dezelfde vonken; *Restrained* geeft vallende scherven, *Charmed* een waas.
+- Diensten → Tempel → een god binnentreden: gouden motjes stijgen op over het donkere paneel. Een god met domein *Dood* geeft een donkere waas.
+- Archief → Personages → een **antagonist** vergroten: een donkerrode waas. Een gewone NPC krijgt niets.
+- Zet *prefers-reduced-motion* aan (macOS: Systeeminstellingen → Toegankelijkheid → Weergave → Beweging verminderen): er speelt dan niets, en de kaart opent gewoon.

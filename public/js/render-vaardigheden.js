@@ -3991,7 +3991,10 @@ window.vaardigheden = {
       : () => _open(key);
     const tegel = () => document.querySelector(`#vaardig-grid .tegel[data-sleutel="${CSS.escape(key)}"]`);
     if (!window._tegelVensterUit) return open();
-    window._tegelVensterUit(tegel, open, () => _vanWaarNu === key || it?.soort === 'background');
+    // Een conditie krijgt bij het vergroten de sfeer die bij hem hoort — niet
+    // bij zijn groep maar bij wat hij met je doet; zie `kaartsfeer.js`.
+    const sfeer = it?.condId ? (window._kaartSfeerConditie?.(it.condId, condGroep(it.condId)) || '') : '';
+    window._tegelVensterUit(tegel, open, () => _vanWaarNu === key || it?.soort === 'background', { sfeer });
   },
   beeldMis: _beeldMis,
   // Het icoon van een class of species, voor wie ze elders tekent (de

@@ -34109,3 +34109,17 @@ body.wizard-open .modal-overlay { z-index: 2100; }
 .vaardig-card.no-img .tegel-icoon { color: var(--soort-c2, #7a6040); opacity: .5; }
 .vaardig-card.no-img .tegel-icoon .icon { width: 46px; height: 46px; }
 .vaardig-card.no-img.tegel--open .tegel-icoon { opacity: .18; }
+
+/* ── Sfeer bij het vergroten van een kaart (kaartsfeer.js) ───────────────────
+   Een vast doek óver het venster, niet erin: het venster scrollt, en een laag
+   die meescrollt is geen sfeer maar een vlek. Hij vangt geen klikken en staat
+   boven het venster maar onder de cinematische lagen (de terugblik zit op
+   10040) — een bliksem mag nooit over een voorleestekst heen liggen. */
+.kaartsfeer {
+  position: fixed; z-index: 1400; pointer-events: none;
+  border-radius: 12px; overflow: hidden;
+  /* De mengwijze zet `kaartsfeer.js` zelf: `multiply` op licht perkament (daar
+     wordt optellend licht wit) en `screen` op een donker dienstpaneel (daar
+     wordt vermenigvuldigen zwart). Hier alleen de terugval. */
+  mix-blend-mode: multiply;
+}
