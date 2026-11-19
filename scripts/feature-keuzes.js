@@ -19,12 +19,19 @@
 // je kiest is erger dan geen invulveld.
 //
 //   node scripts/feature-keuzes.js <campagne>             (rapport)
+//   node scripts/feature-keuzes.js <campagne> --json      (mét de hele tekst)
 //   node scripts/feature-keuzes.js <campagne> --schrijf   (alleen de zekere)
+//
+// `--json` geeft hetzelfde rapport maar met de **volledige** tekst van elke
+// feature erbij. Het rapport hierboven knipt die af op 120 tekens, en dat is
+// genoeg om te zien wát er gevonden is — niet om te beslissen of het klopt.
+// Daarvoor moet je de hele regel lezen, en die staat in de campagne.
 const fs   = require('fs');
 const path = require('path');
 
 const campagne = process.argv[2];
 const schrijf  = process.argv.includes('--schrijf');
+const alsJson  = process.argv.includes('--json');
 if (!campagne) { console.error('Geef een campagne op.'); process.exit(1); }
 
 const WORTEL = process.env.GRISBURGH_DATA_DIR || path.join(__dirname, '..', 'data');
@@ -148,6 +155,13 @@ for (const [vn, v] of Object.entries(prog.species || {})) {
 const toon = (k) => `${k.soort}${k.aantal > 1 ? ` ×${k.aantal}` : ''}`
   + (k.uit === 'eigen' ? ' uit wat je al hebt' : Array.isArray(k.uit) ? ` uit ${k.uit.join(', ')}` : '')
   + (k.geeft ? ` → ${k.geeft}` : '');
+
+if (alsJson) {
+  const uit = (r) => ({ waar: r.waar, naam: r.f.name, desc: String(r.f.desc || ''),
+                        keuze: r.keuze || null, twijfel: r.twijfel || '', zin: r.zin });
+  console.log(JSON.stringify({ voorstellen: voorstellen.map(uit), twijfels: twijfels.map(uit) }, null, 1));
+  process.exit(0);
+}
 
 console.log(`\n== Voorstellen (${voorstellen.length}) ==`);
 for (const v of voorstellen) {
