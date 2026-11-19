@@ -375,9 +375,27 @@ function _tegel(s) {
   </div>`;
 }
 
-function _herteken() {
+// `alleen` zijn de sleutels die écht veranderen (de tegel die dichtgaat en de
+// tegel die opengaat). De rest verschuift alleen, en dat doet FLIP met een
+// transform op de knooppunten die er al staan. Het hele raster opnieuw
+// opbouwen kostte hier 220 ms met 523 spreuken — gemeten op productie, en
+// precies de hapering die je voelde.
+function _herteken(alleen) {
   const grid = document.getElementById('spreuk-grid');
   if (!grid || !window._tegelFlip) return _paintGrid();
+  if (alleen && window._tegelWissel) {
+    const wil = alleen.filter(Boolean);
+    window._tegelFlip(grid, () => {
+      const nieuw = window._tegelWissel(grid, wil, (k) => {
+        const s = (_all || []).find(x => x.index === k);
+        return s ? _tegel(s) : '';
+      });
+      // Niet alles teruggevonden (een filter veranderde intussen): dan toch
+      // het hele raster, liever traag dan scheef.
+      if (nieuw.length !== wil.length) _paintGrid();
+    });
+    return;
+  }
   window._tegelFlip(grid, () => _paintGrid());
 }
 
@@ -1115,12 +1133,13 @@ window.spreuken = {
     const s = (_all || []).find(x => x.index === index);
     if (!s) return;
     if (_openId !== index) {
+      const vorige = _openId;
       _openId = index;
       const q = (window._normSearch || (x => String(x || '').toLowerCase()))(_filters.q || '');
       const bladen = _bladen(s);
       const k = q ? bladen.findIndex(b => b.tekst && window._normSearch(b.tekst).includes(q)) : -1;
       _blad[index] = k > 0 ? k : 0;
-      _herteken();
+      _herteken([vorige, index]);
       setTimeout(() => document.querySelector(`#spreuk-grid .tegel[data-sleutel="${CSS.escape(index)}"]`)
         ?.scrollIntoView({ block: 'nearest', behavior: 'smooth' }), 360);
       return;
@@ -1145,7 +1164,7 @@ window.spreuken = {
     if (window._tegelBlader) await window._tegelBlader(el, _blad[index] > vorige ? 1 : -1, wissel);
     else wissel();
   },
-  dicht() { if (_openId) { _openId = null; _herteken(); } },
+  dicht() { if (_openId) { const v = _openId; _openId = null; _herteken([v]); } },
   // Het spreukvenster groeit uit de tegel en krimpt er bij het sluiten weer in
   // — zolang het nog over déze spreuk gaat (je kunt erin doorbladeren).
   vergroot(index) {

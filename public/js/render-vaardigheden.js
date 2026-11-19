@@ -2413,9 +2413,27 @@ function _toontRaster() {
 // Het raster opnieuw tekenen met de schuifbeweging van het archief: de tegels
 // die blijven staan verhuizen vloeiend naar hun nieuwe plek in plaats van te
 // verspringen.
-function _hertekenRaster() {
+// `alleen` zijn de sleutels die écht veranderen: de kaart die dichtgaat en de
+// kaart die opengaat. De rest verschuift alleen, en dat doet FLIP op de
+// knooppunten die er al staan — geen nieuwe markup en geen opnieuw ingeladen
+// platen. Zie de uitleg bij `_tegelWissel` in render-campagne.js.
+function _hertekenRaster(alleen) {
   const grid = document.getElementById('vaardig-grid');
   if (!grid || !window._tegelFlip) return _paint();
+  if (alleen && window._tegelWissel) {
+    const wil = alleen.filter(Boolean);
+    window._tegelFlip(grid, () => {
+      const nieuw = window._tegelWissel(grid, wil, (k) => {
+        const it = (_all || []).find(x => x.key === k);
+        return it ? _card(it) : '';
+      });
+      if (nieuw.length !== wil.length) { _paint(); return; }
+      // De spreuknamen in de tekst van een open kaartje zijn knoppen; die
+      // haakt `_paint` normaal aan. Bij een gerichte wissel doen we dat zelf.
+      for (const el of nieuw) window.spreuken?.linkInDom?.(el);
+    });
+    return;
+  }
   window._tegelFlip(grid, () => _paint());
 }
 
@@ -3943,6 +3961,7 @@ window.vaardigheden = {
     const it = (_all || []).find(x => x.key === key);
     if (!it) return;
     if (_openKaart !== key) {
+      const vorige = _openKaart;
       _openKaart = key;
       // Zoek je iets, dan opent hij op de bladzijde waar dat woord staat —
       // anders kijk je naar een portret terwijl je naar een zin zocht.
@@ -3950,7 +3969,7 @@ window.vaardigheden = {
       const bladen = _kaartBladen(it);
       const i = q ? bladen.findIndex(b => b.tekst && window._normSearch(b.tekst).includes(q)) : -1;
       _kaartBlad[key] = i > 0 ? i : 0;
-      _hertekenRaster();
+      _hertekenRaster([vorige, key]);
       setTimeout(() => document.querySelector(`#vaardig-grid .tegel[data-sleutel="${CSS.escape(key)}"]`)
         ?.scrollIntoView({ block: 'nearest', behavior: 'smooth' }), 360);
       return;
@@ -3979,7 +3998,7 @@ window.vaardigheden = {
     if (window._tegelBlader) await window._tegelBlader(el, _kaartBlad[key] > vorige ? 1 : -1, wissel);
     else wissel();
   },
-  tegelDicht() { if (_openKaart) { _openKaart = null; _hertekenRaster(); } },
+  tegelDicht() { if (_openKaart) { const v = _openKaart; _openKaart = null; _hertekenRaster([v]); } },
   // Het venster groeit uit de tegel, zoals in het archief — zolang het nog
   // over dít kaartje gaat.
   vergroot(key) {

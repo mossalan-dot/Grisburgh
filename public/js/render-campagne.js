@@ -4673,12 +4673,20 @@ function _flip(grid, mutate, { vanaf = null } = {}) {
   const rustig = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
   if (rustig) return;
   let n = 0;
+  // **Alleen wat je kunt zien beweegt.** Met 523 spreuken maakte dit 523
+  // animaties aan, waarvan er hooguit dertig in beeld staan; dat was het
+  // leeuwendeel van de 220 ms die de hoofdlijn stilstond. Een tegel die zowel
+  // vóór als ná de verandering buiten het scherm valt, hoeft niet te
+  // verschuiven — niemand ziet het, en hij staat na afloop gewoon goed.
+  const zicht = window.innerHeight || 0, rand = 240;
+  const inBeeld = (r) => r.bottom > -rand && r.top < zicht + rand;
   grid.querySelectorAll(':scope > [data-sleutel]').forEach(el => {
     let a = voor.get(el.dataset.sleutel);
     const nieuw = !a;
     if (nieuw) { if (!vanaf) return; a = vanaf; }
     const b = el.getBoundingClientRect();
     if (!b.width || !b.height) return;
+    if (!inBeeld(a) && !inBeeld(b)) return;
     const dx = a.left - b.left, dy = a.top - b.top, sx = a.width / b.width, sy = a.height / b.height;
     if (!nieuw && Math.abs(dx) < 1 && Math.abs(dy) < 1 && Math.abs(sx - 1) < 0.01 && Math.abs(sy - 1) < 0.01) return;
     // Een tegel die naar een andere rij overspringt, zou schuin over het hele
@@ -4700,12 +4708,59 @@ function _flip(grid, mutate, { vanaf = null } = {}) {
   });
 }
 
-function _tegelHerteken(type, opts) {
+// **Alleen vervangen wat verandert.** Een tegel openen bouwde het hele raster
+// opnieuw op: bij de spreuken zijn dat 523 kaartjes, en dan staat de hoofdlijn
+// 220 ms stil (gemeten op productie, 19 nov 2026) — precies op het moment dat
+// de FLIP-beweging hoort te beginnen. Dat is de schok die je voelt.
+//
+// Er verandert bij het openen maar één ding: de tegel die dichtgaat en de tegel
+// die opengaat. De rest hoeft alleen te verschuiven, en dat doet FLIP met een
+// transform op de knooppunten die er al staan — geen nieuwe markup, geen
+// opnieuw ingeladen platen. `sleutels` zijn de twee die wél vervangen moeten
+// worden; `html(sleutel)` levert hun nieuwe markup.
+function _tegelsWisselen(grid, sleutels, html) {
+  const nieuwe = [];
+  for (const sleutel of sleutels) {
+    if (!sleutel) continue;
+    const el = grid.querySelector(`:scope > [data-sleutel="${CSS.escape(sleutel)}"]`);
+    if (!el) continue;
+    const markup = html(sleutel);
+    if (!markup) continue;
+    const doos = document.createElement('div');
+    doos.innerHTML = String(markup).trim();
+    const n = doos.firstElementChild;
+    if (!n) continue;
+    el.replaceWith(n);
+    nieuwe.push(n);
+  }
+  return nieuwe;
+}
+window._tegelWissel = _tegelsWisselen;
+
+function _tegelHerteken(type, opts = {}) {
   const c = $(`#section-${type}`);
   const grid = c?.querySelector('.cards-grid');
   if (!grid) return;
-  const list = filterEntities(type, entities[type] || []);
-  _flip(grid, () => _refreshGrid(type, list, c), opts);
+  const { alleen, ...flipOpts } = opts;
+  const list = () => filterEntities(type, entities[type] || []);
+  if (alleen) {
+    // Een favoriet kan in de dichtgeklapte stapel zitten en dan staat hij niet
+    // als eigen kind in het raster. Vinden we niet alles terug, dan bouwen we
+    // alsnog het hele raster — liever één trage keer dan een tegel die niet
+    // meeverandert.
+    const wil = alleen.filter(Boolean);
+    _flip(grid, () => {
+      const gewisseld = _tegelsWisselen(grid, wil, (id) => {
+        const e = (entities[type] || []).find(x => x.id === id);
+        // Of hij in de favorietenrij staat bepaalt zijn opmaak; dezelfde vraag
+        // als in `_tegelRasterHtml`, dus dezelfde bron.
+        return e ? _tegelHtml(type, e, { fav: _favIds(type).has(e.id) }) : '';
+      });
+      if (gewisseld.length !== wil.length) _refreshGrid(type, list(), c);
+    }, flipOpts);
+    return;
+  }
+  _flip(grid, () => _refreshGrid(type, list(), c), flipOpts);
 }
 
 // Welk blad hoort bij een zoekterm? Staat het woord in een roddel, dan open
@@ -4720,9 +4775,10 @@ function _bladVoorZoekterm(type, bladen) {
 window._tegelKlik = (type, id) => {
   if (_tegelOpen[type] !== id) {
     const e = (entities[type] || []).find(x => x.id === id);
+    const vorige = _tegelOpen[type];
     _tegelOpen[type] = id;
     _tegelBlad[id] = e ? _bladVoorZoekterm(type, _tegelBladen(type, e)) : 0;
-    _tegelHerteken(type);
+    _tegelHerteken(type, { alleen: [vorige, id] });
     // Breng hem in beeld als hij onderaan uitklapt.
     setTimeout(() => document.querySelector(`#section-${type} .tegel[data-sleutel="${CSS.escape(id)}"]`)
       ?.scrollIntoView({ block: 'nearest', behavior: 'smooth' }), 360);
@@ -4755,8 +4811,9 @@ window._tegelNaar = async (type, id, i) => {
 
 window._tegelDicht = (type) => {
   if (!_tegelOpen[type]) return;
+  const vorige = _tegelOpen[type];
   _tegelOpen[type] = null;
-  _tegelHerteken(type);
+  _tegelHerteken(type, { alleen: [vorige] });
 };
 
 // Het venster groeit uit de tegel en krimpt er bij het sluiten weer in. Dat
@@ -5263,7 +5320,7 @@ window._makerVoorDm = async () => {
     gid = keuze;
   }
   try {
-    await import('./personage-maken.js?v=31');
+    await import('./personage-maken.js?v=32');
     // Zodra de maker dichtgaat staat het kaartje er; het raster erachter weet
     // dat nog niet. Hetzelfde als na het opslaan van een nieuw kaartje: open
     // en in beeld.

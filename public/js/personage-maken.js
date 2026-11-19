@@ -1490,7 +1490,7 @@ const ACTIES = {
   // Het Heldenboek laadt lui; de eerste keer duurt dat even.
   async uitleg({ naam }) {
     try {
-      const mod = window.vaardigheden || (await import('./render-vaardigheden.js?v=170'), window.vaardigheden);
+      const mod = window.vaardigheden || (await import('./render-vaardigheden.js?v=171'), window.vaardigheden);
       if (!mod?.openOpNaam) return toast('Het Heldenboek is hier niet beschikbaar.');
       const gelukt = await mod.openOpNaam(naam);
       if (!gelukt) toast(`${naam} staat niet in het Heldenboek.`);

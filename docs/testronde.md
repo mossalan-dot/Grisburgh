@@ -1954,3 +1954,8 @@ Grisburghs **data** te staan — niet in de code.
 - Diensten → Tempel → een god binnentreden: gouden motjes stijgen op over het donkere paneel. Een god met domein *Dood* geeft een donkere waas.
 - Archief → Personages → een **antagonist** vergroten: een donkerrode waas. Een gewone NPC krijgt niets.
 - Zet *prefers-reduced-motion* aan (macOS: Systeeminstellingen → Toegankelijkheid → Weergave → Beweging verminderen): er speelt dan niets, en de kaart opent gewoon.
+
+### Tegels soepeler open en dicht
+- Archief → Spreuken (523 kaartjes): tik een tegel open en weer dicht. De beweging hoort vloeiend te zijn, zonder hapering vóór het schuiven begint; de platen van de andere tegels knipperen niet.
+- Doe hetzelfde bij Personages en in het Heldenboek: er blijft één tegel tegelijk open, er verdwijnt of verdubbelt niets, en na het sluiten staat het raster weer zoals het stond.
+- Scroll ver naar beneden in de spreuken en open daar een tegel: ook daar schuift alleen wat in beeld staat, en de tegels eromheen staan daarna goed.
