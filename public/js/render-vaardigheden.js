@@ -18,6 +18,8 @@ import { api } from './api.js?v=324';
 import { naslagBron } from './render-progressie.js?v=74';
 // De condities staan op één plek, en dat is dit bestand — zie de kop daar.
 import { CONDITIONS, COND_ICON, condGroep, isEigenConditie } from './conditions.js?v=6';
+// Eén renderer voor elk statblok in de app — zie render-statblock.js.
+import { renderStatblock } from './render-statblock.js?v=10';
 
 const esc  = s => window.app?.esc?.(s) ?? String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 // In een inline handler (`onclick="f('…')"`) decodeert de browser eerst het
@@ -68,6 +70,11 @@ const SOORTEN = {
   conditie:   { label: 'Condition', icon: 'shield-half',    c1: '#3a0e0e', c2: '#8a2a2a' },
   situatie:   { label: 'Situatie',  icon: 'mouse-pointer-2',c1: '#0e2438', c2: '#2a5a7a' },
   klassestaat:{ label: 'Lopend effect', icon: 'sparkle',    c1: '#302000', c2: '#8a6a10' },
+  // **Een beest is geen vaardigheid, maar wel iets wat een speler krijgt.** Een
+  // Druid wordt er een, een Ranger krijgt er een als metgezel, en een Wizard
+  // roept er een op. Tot nu toe stond die lijst alleen binnen de Wild
+  // Shape-kiezer: je kon kiezen, maar niet eerst lezen wat je dan wordt.
+  beest:      { label: 'Beast',     icon: 'paw-print',      c1: '#143018', c2: '#3a7a2a' },
 };
 // Een icoon per class en per species. De soort bepaalt de kleur van het
 // kaartje (dat is waar het filter op staat), het icoon zegt wáárvan het is —
@@ -168,7 +175,7 @@ const HERKOMST = [
 const _COND_BRON = { conditie: 'Conditions', situatie: 'Situaties', klasse: 'Van een feature of spreuk' };
 
 const SOORT_VOLGORDE = ['class', 'subclass', 'species', 'variant', 'feat', 'boon', 'zegen', 'gunst', 'background',
-  'conditie', 'situatie', 'klassestaat'];
+  'conditie', 'situatie', 'klassestaat', 'beest'];
 
 let _all        = null;   // null = nog niet geladen
 let _bron       = null;   // wat naslagBron() teruggaf (srdDesc, md, …)
@@ -470,6 +477,25 @@ async function _load() {
     }
   } catch { /* geen kaartjes is geen fout */ }
 
+  // ── Beasts ──
+  // Uit `GET /bron/beesten`: de SRD-beesten plus wat deze campagne zelf als
+  // Beast heeft. Hun CR wordt de tweede laag (zie `_DEUREN`), want dat is de
+  // vraag bij Wild Shape: wat mag ik op dit level worden?
+  try {
+    const r = await api.get('/bron/beesten');
+    for (const b of (r?.beesten || [])) {
+      zet({
+        soort: 'beest', bron: `CR ${b.cr || '0'}`, level: 0, naam: b.naam,
+        desc: '', img: '', imgFocus: '',
+        icoon: b.vliegt ? 'bird' : 'paw-print',
+        beest: b, crGetal: b.crGetal ?? 0,
+        // Een beest komt uit de SRD of uit de campagne; bewerken doe je in het
+        // bestiarium, niet hier.
+        vast: true,
+      });
+    }
+  } catch { /* geen beesten is geen fout */ }
+
   // ── Conditions ──
   // Veertig toestanden waar een personage in kan staan. Ze stonden alleen in de
   // picker van de DM en op een token, nooit als lijst — terwijl "wat betekent
@@ -699,6 +725,23 @@ const _KAART_BLAD_ICOON = { portret: 'image', beschrijving: 'book-open',
 // kaartje zonder beeld opent meteen op zijn tekst, want een leeg vlak is geen
 // bladzijde.
 function _kaartBladen(it) {
+  // Een beest ís zijn statblok: dat is wat je wilt lezen voordat je besluit
+  // dat je het wordt. Eén renderer voor alle statblokken in de app
+  // (`render-statblock.js`), dus hier staat er geen tweede.
+  if (it.beest) {
+    const b = it.beest;
+    const rijen = [
+      ['CR', b.cr], ['AC', b.ac], ['HP', b.hp], ['Speed', b.speed],
+      ['Omgeving', (b.omgevingen || []).join(', ')],
+    ].filter(([, v]) => String(v || '').trim());
+    return [
+      { soort: 'eigenschappen', label: 'Kort', tekst: rijen.map(([k, v]) => `${k} ${v}`).join(' '),
+        html: `<dl class="vk-training">${rijen.map(([k, v]) =>
+          `<dt>${esc(k)}</dt><dd>${esc(v)}</dd>`).join('')}</dl>` },
+      { soort: 'beschrijving', label: 'Statblock', tekst: b.naam,
+        html: `<div class="vd-statblok">${renderStatblock(b.statblock, { kop: false })}</div>` },
+    ];
+  }
   const bladen = [];
   if (_beeldKeten(it).length) bladen.push({ soort: 'portret', label: 'Portret' });
   const tekst = _tekst(it);
@@ -1947,6 +1990,16 @@ const _DEUREN = [
   // zo'n lijst nut heeft: die staan nergens anders bij elkaar.
   { id: 'conditions', label: 'Conditions',         soorten: ['conditie', 'situatie', 'klassestaat'],
     icoon: 'shield-half', kleur: '#8a2a2a' },
+  // **Beasts.** Eenennegentig uit de SRD plus wat de campagne zelf aan Beasts
+  // heeft. Ze horen hier omdat een speler ze krijgt: een Druid wordt er een
+  // (Wild Shape), een Ranger of Artificer krijgt er een als metgezel, en een
+  // caster roept er een op. De lijst bestond al — maar alleen ín de Wild
+  // Shape-kiezer, waar je moest kiezen zonder eerst te kunnen lezen.
+  //
+  // De tweede laag is de **CR**: dat is precies waar het om draait als je kiest
+  // wat je kunt worden, en waar je op level 2, 4 en 8 een andere grens hebt.
+  { id: 'beest',      label: 'Beasts',             soorten: ['beest'],
+    icoon: 'paw-print', kleur: '#3a7a2a' },
 ];
 const _DEUR = id => _DEUREN.find(d => d.id === id);
 // Welke deuren meteen hun lijst tonen in plaats van eerst een tegelrij — zie

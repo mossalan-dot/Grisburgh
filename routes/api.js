@@ -12227,6 +12227,43 @@ router.post('/bron/heldenboekbeelden', requireDM, (req, res) => {
 
 // Let op: deze parameterroute moet ná /bron/spreukbeelden staan — hij past op
 // elk pad, dus hierboven geregistreerde namen winnen en de rest valt hierheen.
+// ── De beesten, met hun statblok ────────────────────────────────────────────
+// `_beesten()` hierboven geeft een korte vorm voor de Wild Shape-kiezer: naam,
+// CR, AC, HP. Voor het Heldenboek is dat te weinig — daar wil je het hele
+// statblok lezen voordat je besluit of je een Dire Wolf wordt.
+//
+// **De SRD-tekst mag mee naar elke campagne** (CC BY 4.0, zie lib/bronnen.js),
+// dus hier geen kale variant. Wat de campagne zélf als Beast heeft staat er ook
+// bij: die kan een druide ook worden, en de Wild Shape-kiezer biedt ze al aan.
+//
+// Let op de volgorde: dit moet vóór `GET /bron/:naam` staan, anders vangt die
+// parameterroute het pad af.
+router.get('/bron/beesten', attachRole, (req, res) => {
+  if (req.session?.role !== 'dm' && !req.session?.characterId) return res.status(403).json({ error: 'Geen toegang' });
+  const kort = new Map(_beesten().map(b => [b.naam.toLowerCase(), b]));
+  const uit = [];
+  // `renderStatblock` verwacht een monster met zijn statblok **genest**
+  // (`m.statblock`), precies zoals het in monsters.json staat. Platgeslagen
+  // meesturen gaf een blok waarin elke ability op 10 stond: hij vond de velden
+  // niet en viel terug op de standaard.
+  const zet = (m) => {
+    const k = kort.get(String(m.name).toLowerCase());
+    if (k) uit.push({ ...k, statblock: m });
+  };
+  try {
+    for (const m of (bronnen.lees('srd-monsters') || [])) {
+      if (/beast/i.test(m.statblock?.type || '')) zet(m);
+    }
+  } catch { /* geen SRD */ }
+  try {
+    for (const m of (storage.readJSON('monsters.json')?.monsters || [])) {
+      // Een eigen monster bewaart zijn velden plat; het statblok is het monster.
+      if (/beast/i.test(m.type || '') && m.name) zet({ name: m.name, cr: m.cr, statblock: m });
+    }
+  } catch { /* geen eigen monsters */ }
+  res.json({ beesten: uit.sort((a, b) => a.crGetal - b.crGetal || a.naam.localeCompare(b.naam)) });
+});
+
 router.get('/bron/:naam', attachRole, (req, res) => {
   // Wél een sessie vereist: `attachRole` zet de rol standaard op 'player', dus
   // een controle op req.role zou hier nooit afgaan (zelfde valkuil als bij de

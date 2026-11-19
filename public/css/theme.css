@@ -34381,3 +34381,8 @@ body.wizard-open .modal-overlay { z-index: 2100; }
 .boedel-kaart.tegel--open .boedel-kaart-standen,
 .boedel-kaart.tegel--open .card-armor-ac-pill,
 .boedel-kaart.tegel--open .boedel-kaart-aantal { display: none; }
+
+/* Een statblok op een opengeslagen tegel: het past niet op 2×2, dus het blad
+   scrollt. Dezelfde afspraak als bij een lange spreuktekst. */
+.vd-statblok { font-size: .82rem; }
+.vd-statblok .statblock { box-shadow: none; border: 0; padding: 0; background: none; }

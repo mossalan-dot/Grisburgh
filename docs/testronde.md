@@ -1997,3 +1997,13 @@ Grisburghs **data** te staan — niet in de code.
 - Een level dat je nog niet hebt staat gedimd met een arcering erover.
 - De ster staat rechtsboven op de tegel; de bolletjes van een teller (Arcane Recovery, Rage) onder de levelpenning, en je kunt ze daar meteen aantikken.
 - Op een telefoon: twee kolommen, geen horizontale scrollbalk.
+
+### De boedel als tegels
+- Spelerstabblad → **Boedel**: je voorwerpen staan als tegels met hun zeldzaamheidsring. Eén tik vouwt er een open (plaat · gegevens · beschrijving), nog een tik bladert door.
+- Het vergrootknopje opent het venster waar je het voorwerp kunt **gebruiken, geven en het aantal of de charges bijstellen** — die knoppen staan daar en nergens anders.
+- Op een telefoon: twee kolommen, geen horizontale scrollbalk.
+
+### Beasts in het Heldenboek
+- Heldenboek → **Beasts**: 91 uit de SRD plus wat de campagne zelf als Beast heeft, met de **CR** als tweede laag (dat is de vraag bij Wild Shape).
+- Een beest openen geeft twee bladen: *Kort* (CR, AC, HP, Speed, omgeving) en *Statblock* — hetzelfde statblok als in het bestiarium, want er is één renderer.
+- Een beest dat vliegt heeft een vogel als icoon in plaats van een pootafdruk; dat is precies de grens die Wild Shape pas op level 8 openzet.
