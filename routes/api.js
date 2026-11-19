@@ -3075,6 +3075,51 @@ router.get('/markt', attachRole, (req, res) => {
 
 // De DM kiest welke gebieden op de Markt als filter staan. Vrije tekst mag:
 // hij kan een gebied opschrijven dat nog nergens op een kaartje staat.
+// ── Eigen condities van de campagne ─────────────────────────────────────────
+// De app brengt veertig condities mee en die zijn van alle campagnes tegelijk;
+// een vloek die in jouw wereld blijft hangen hoort daar niet bij in de code.
+// Vandaar `meta.condities`: dezelfde vorm als een ingebouwde, plus een groep.
+//
+// Ze gaan naar **iedereen** mee in `GET /meta`. Een speler met zo'n conditie op
+// zijn token moet kunnen lezen wat het betekent; de picker van de DM en het
+// canvas lezen dezelfde lijst.
+const _COND_GROEPEN = ['conditie', 'situatie', 'klasse'];
+
+function _conditieUit(rauw) {
+  const label = String(rauw?.label || '').trim().slice(0, 60);
+  if (!label) return null;
+  // Het id wordt uit de naam gemaakt en blijft daarna staan: er hangt een
+  // token aan, en dat mag niet verschuiven als je de naam bijschaaft.
+  const id = String(rauw.id || label).toLowerCase()
+    .normalize('NFD').replace(/[̀-ͯ]/g, '')
+    .replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 40);
+  if (!id) return null;
+  const groep = _COND_GROEPEN.includes(rauw.groep) ? rauw.groep : 'conditie';
+  const kleur = /^#[0-9a-f]{6}$/i.test(String(rauw.kleur || '')) ? String(rauw.kleur) : '';
+  return {
+    id, label, groep,
+    desc: String(rauw.desc || '').trim().slice(0, 600),
+    icoon: String(rauw.icoon || '').trim().slice(0, 40) || 'sparkle',
+    ...(kleur ? { kleur } : {}),
+  };
+}
+
+router.put('/meta/condities', requireDM, (req, res) => {
+  const meta = storage.readJSON('meta.json');
+  const uit = [], gezien = new Set();
+  for (const c of (Array.isArray(req.body?.condities) ? req.body.condities : [])) {
+    const n = _conditieUit(c);
+    if (!n || gezien.has(n.id)) continue;
+    gezien.add(n.id);
+    uit.push(n);
+    if (uit.length >= 60) break;
+  }
+  meta.condities = uit;
+  storage.writeJSON('meta.json', meta);
+  req.app.get('io').to(_campagneRoom(req)).emit('meta:updated');
+  res.json({ ok: true, condities: uit });
+});
+
 router.put('/meta/markt', requireDM, (req, res) => {
   const meta = storage.readJSON('meta.json');
   if (!meta.markt) meta.markt = {};

@@ -17,7 +17,7 @@
 import { api } from './api.js?v=324';
 import { naslagBron } from './render-progressie.js?v=71';
 // De condities staan op één plek, en dat is dit bestand — zie de kop daar.
-import { CONDITIONS, COND_ICON, condGroep } from './conditions.js?v=5';
+import { CONDITIONS, COND_ICON, condGroep, isEigenConditie } from './conditions.js?v=6';
 
 const esc  = s => window.app?.esc?.(s) ?? String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 // In een inline handler (`onclick="f('…')"`) decodeert de browser eerst het
@@ -490,9 +490,10 @@ async function _load() {
       soort: groep === 'situatie' ? 'situatie' : groep === 'klasse' ? 'klassestaat' : 'conditie',
       bron: _COND_BRON[groep], level: 0, naam: c.label, desc: c.desc || '',
       img: '', imgFocus: '', icoon: ico, kleur, condId: c.id,
-      // Niet te bewerken: de lijst is code, niet campagnedata. Een eigen
-      // conditie verzinnen gebeurt in het gevecht, niet hier.
-      vast: true,
+      // Wat de app meebrengt is code en dus niet te bewerken; wat de campagne
+      // zelf verzon staat in `meta.condities` en heeft wél een potlood.
+      vast: !isEigenConditie(c.id),
+      eigenConditie: isEigenConditie(c.id),
     });
   }
 
@@ -650,6 +651,33 @@ function _subKleur(it) {
   if ((it.soort !== 'subclass' && it.soort !== 'variant') || !it.sub) return null;
   return _houderVan(it.soort, it.sub, it.bron)?.kleur
     || window._subSignatureVoor?.(it.sub)?.kleur || null;
+}
+
+// De iconen die bij een toestand passen, uit de set die de app al heeft. Geen
+// volledige lijst: een keuzehulp. Wie iets anders wil typt de naam zelf — het
+// veld is een datalist en geen keuzelijst.
+const _COND_ICOONKEUZE = [
+  'sparkle', 'sparkles', 'flame', 'droplet', 'droplets', 'snowflake', 'wind', 'waves',
+  'ghost', 'skull', 'eye', 'eye-off', 'ear-off', 'brain', 'heart', 'heart-pulse',
+  'shield', 'shield-half', 'shield-check', 'shield-plus', 'swords', 'zap', 'moon',
+  'moon-star', 'sunset', 'hourglass', 'lock', 'ban', 'weight', 'grab', 'hand',
+  'bed', 'bandage', 'biohazard', 'brick-wall', 'shell', 'circle-dashed', 'fast-forward',
+];
+
+// Eén plek die de lijst wegschrijft: de twee knoppen (opslaan, verwijderen)
+// doen hetzelfde en mogen niet uiteenlopen.
+async function _conditiesBewaren(lijst) {
+  try {
+    const r = await api.put('/meta/condities', { condities: lijst });
+    if (window.app?.state?.meta) window.app.state.meta.condities = r.condities || [];
+    window._zetEigenCondities?.(r.condities || []);
+    window.app.closeModal();
+    _all = null;
+    await _load();
+    _bandHerteken(); _refreshFilterBar(); _paint();
+  } catch (e) {
+    alert(e?.message || 'Opslaan lukte niet');
+  }
 }
 
 // ── Een kaartje dat opengaat waar het staat ────────────────────────────────
@@ -866,7 +894,9 @@ function _card(it) {
   // een editor openen voor een regel die daar niet bestaat.
   const dmPen = (isDM() && !it.entityId && !it.vast) ? `
     <button class="vaardig-pen" title="Dit kaartje bewerken"
-      onclick="event.stopPropagation();${it.soort === 'background'
+      onclick="event.stopPropagation();${it.eigenConditie
+        ? `window.vaardigheden.conditieBewerk('${escA(it.condId)}')`
+        : it.soort === 'background'
         ? `window.vaardigheden.kaartBewerken('background','${escA(it.naam)}')`
         : `window.vaardigheden.bewerk('${escA(it.key)}')`}">${icon('pencil')}</button>` : '';
 
@@ -921,7 +951,9 @@ function _card(it) {
           <div class="tegel-punten">${window._tegelPijlHtml?.(-1, bladen.length) || ''}${bladen.map((b, k) => `<button class="tegel-punt${k === j ? ' is-aan' : ''}"
             title="${esc(b.label)}" onclick="window.vaardigheden.naar('${escA(it.key)}',${k})">${icon(_KAART_BLAD_ICOON[b.soort] || 'square')}</button>`).join('')}${window._tegelPijlHtml?.(1, bladen.length) || ''}</div>
           ${isDM() && !it.vast ? `<button class="tegel-knop" title="Dit kaartje bewerken"
-            onclick="window.vaardigheden.${it.soort === 'background'
+            onclick="window.vaardigheden.${it.eigenConditie
+              ? `conditieBewerk('${escA(it.condId)}')`
+              : it.soort === 'background'
               ? `kaartBewerken('background','${escA(it.naam)}')`
               : `bewerk('${escA(it.key)}')`}">${icon('pencil')}</button>` : ''}
           <button class="tegel-knop" title="Het hele kaartje" onclick="window.vaardigheden.vergroot('${escA(it.key)}')">${icon('maximize-2')}</button>
@@ -4199,6 +4231,62 @@ window.vaardigheden = {
     (l[i]?.varianten || []).splice(j, 1);
     _edit.keuze = l; _editorHerteken();
   },
+  // ── Een eigen conditie ───────────────────────────────────────────────────
+  // De app brengt er veertig mee en die zijn van alle campagnes tegelijk. Een
+  // vloek die in jouw wereld blijft hangen hoort in jouw campagne te staan, en
+  // dat is `meta.condities` (zie de route `PUT /meta/condities`).
+  conditieBewerk(id) {
+    const bestaand = (window.app?.state?.meta?.condities || []).find(c => c.id === id) || null;
+    const groepen = [['conditie', 'Condition'], ['situatie', 'Situatie'], ['klasse', 'Lopend effect']];
+    window.app.openModal(bestaand ? `${bestaand.label} bewerken` : 'Nieuwe conditie', '', `
+      <div class="dm-form-row">
+        <label class="dm-form-label" for="cond-label">Naam</label>
+        <input class="dm-input" id="cond-label" maxlength="60" value="${esc(bestaand?.label || '')}"
+          placeholder="Zoals hij op een token staat — bijv. Mistbann">
+      </div>
+      <div class="dm-form-row">
+        <label class="dm-form-label" for="cond-groep">Soort</label>
+        <select class="dm-input" id="cond-groep">
+          ${groepen.map(([v, l]) => `<option value="${v}"${(bestaand?.groep || 'conditie') === v ? ' selected' : ''}>${esc(l)}</option>`).join('')}
+        </select>
+      </div>
+      <div class="dm-form-row">
+        <label class="dm-form-label" for="cond-icoon">Icoon</label>
+        <input class="dm-input" id="cond-icoon" list="cond-iconen" maxlength="40"
+          value="${esc(bestaand?.icoon || 'sparkle')}" placeholder="Naam uit de iconenset">
+        <datalist id="cond-iconen">${_COND_ICOONKEUZE.map(n => `<option value="${esc(n)}">`).join('')}</datalist>
+      </div>
+      <div class="dm-form-row">
+        <label class="dm-form-label">Beschrijving</label>
+        <textarea class="dm-input" id="cond-desc" rows="5"
+          placeholder="Wat het met je doet. Dit staat op het kaartje en in de tooltip op een token.">${esc(bestaand?.desc || '')}</textarea>
+      </div>
+      <div class="dm-feature-row" style="justify-content:flex-end">
+        ${bestaand ? `<button class="dm-btn dm-btn-danger"
+          onclick="window.vaardigheden.conditieWeg('${escA(bestaand.id)}')">${icon('trash')} Verwijderen</button>` : ''}
+        <button class="dm-btn dm-btn-ghost" onclick="window.app.closeModal()">Annuleren</button>
+        <button class="dm-btn dm-btn-primary"
+          onclick="window.vaardigheden._conditieBewaar(${bestaand ? `'${escA(bestaand.id)}'` : 'null'})">${icon('save')} Opslaan</button>
+      </div>`);
+  },
+
+  async _conditieBewaar(id) {
+    const v = (x) => document.getElementById(x)?.value?.trim() || '';
+    const label = v('cond-label');
+    if (!label) { alert('Een conditie heeft een naam nodig.'); return; }
+    const lijst = [...(window.app?.state?.meta?.condities || [])];
+    const nieuw = { id: id || undefined, label, groep: v('cond-groep'), icoon: v('cond-icoon'), desc: v('cond-desc') };
+    const i = lijst.findIndex(c => c.id === id);
+    if (i >= 0) lijst[i] = { ...lijst[i], ...nieuw }; else lijst.push(nieuw);
+    await _conditiesBewaren(lijst);
+  },
+
+  async conditieWeg(id) {
+    const c = (window.app?.state?.meta?.condities || []).find(x => x.id === id);
+    if (!confirm(`"${c?.label || id}" weghalen? Een token dat hem draagt houdt het kale id.`)) return;
+    await _conditiesBewaren((window.app?.state?.meta?.condities || []).filter(x => x.id !== id));
+  },
+
   beeldMis: _beeldMis,
   // Het icoon van een class of species, voor wie ze elders tekent (de
   // personagemaker): zelfde tekening als op de tegel hier, anders lijkt het
@@ -4209,6 +4297,9 @@ window.vaardigheden = {
   // deze class het waarschijnlijkste, en staat de class al ingevuld. Sta je op
   // de keuzelaag van Classes, dan is het een nieuwe class.
   nieuw() {
+    // Op de deur Conditions maakt de plus een conditie en geen feature: wat je
+    // aanmaakt hoort bij wat je voor je ziet.
+    if (_deur === 'conditions') return this.conditieBewerk(null);
     _editorOpen(null);
     const maaksel = (_filters.bron && _deur === 'class') ? 'f-class'
       : (_filters.bron && _deur === 'species') ? 'f-species'

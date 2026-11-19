@@ -1,5 +1,5 @@
 import { api, huidigeCampagne } from './api.js?v=324';
-import { init as canvasInit, update as canvasUpdate, stop as canvasStop, acGetal } from './combat-canvas.js?v=42';
+import { init as canvasInit, update as canvasUpdate, stop as canvasStop, acGetal } from './combat-canvas.js?v=43';
 import { renderStatblock } from './render-statblock.js?v=10';
 
 // ── DM Panel ──
@@ -15,18 +15,20 @@ function _redenVragen(vraag) {
 }
 
 // De condities staan op één plek; het spelerstabblad leest dezelfde lijst.
-import { CONDITIONS, COND_ICON } from './conditions.js?v=5';
+import { CONDITIONS, COND_ICON, condGroep } from './conditions.js?v=6';
 
 
 // Groepen voor de conditie-weergave. Op modulescope zodat de rij in het
 // gevechtspaneel en het detailvenster dezelfde bron gebruiken.
-const _CC_SET  = new Set(['bardic-inspiration','tides-of-chaos','twilight-sanctuary',
-  'patient-defense','steady-aim','vigilant-blessing','blessed','raging','haste',
-  'wild-shape','hunters-mark','innate-sorcery']);
-const _SIT_SET = new Set(['dodging','hidden','readied','cover-half','cover-three-quarters',
-  'grappling','mounted','underwater','flying']);
-const _condGroepCls = (cid) =>
-  _CC_SET.has(cid) ? ' co-cond-chip--class' : _SIT_SET.has(cid) ? ' co-cond-chip--sit' : '';
+// **De indeling stond hier voor de derde keer.** Twee handgeschreven Sets met
+// dezelfde ids die ook in `conditions.js` als kleur staan — en die liepen al uit
+// de pas: `flying` stond hier bij de situaties en daar bij de condities. Een
+// eigen conditie van de campagne kwam er bovendien nooit in, want die kan in een
+// vaste Set niet staan. Nu via `condGroep`, net als het Heldenboek.
+const _condGroepCls = (cid) => {
+  const g = condGroep(cid);
+  return g === 'klasse' ? ' co-cond-chip--class' : g === 'situatie' ? ' co-cond-chip--sit' : '';
+};
 
 // Compacte conditie-bediening: actieve toestanden als chips (klik = weghalen)
 // plus één zoekveld, i.p.v. een muur van 34 knoppen. Volgt het huisstijlpatroon
@@ -60,11 +62,17 @@ function _condControl(c, isDM) {
 // <datalist> met een dubbel id is ongeldig. Per optie een groepslabel, zodat je
 // in de lijst ziet of iets een klassefeature of een situatie is.
 function _ensureCondDatalist() {
-  if (document.getElementById('co-cond-dl')) return;
+  const bestaand = document.getElementById('co-cond-dl');
+  // **Opnieuw bouwen als er iets bij is gekomen.** Hij werd één keer gemaakt en
+  // daarna nooit meer; een conditie die de DM middenin een sessie aanmaakt
+  // stond dan wel in het Heldenboek maar niet in zijn eigen picker.
+  if (bestaand && Number(bestaand.dataset.n) === CONDITIONS.length) return;
+  bestaand?.remove();
   const dl = document.createElement('datalist');
   dl.id = 'co-cond-dl';
+  dl.dataset.n = String(CONDITIONS.length);
   dl.innerHTML = CONDITIONS.map(x =>
-    `<option value="${esc(x.label)}">${_CC_SET.has(x.id) ? 'klasse' : _SIT_SET.has(x.id) ? 'situatie' : 'condition'}</option>`
+    `<option value="${esc(x.label)}">${{ klasse: 'klasse', situatie: 'situatie' }[condGroep(x.id)] || 'condition'}</option>`
   ).join('');
   document.body.appendChild(dl);
 }

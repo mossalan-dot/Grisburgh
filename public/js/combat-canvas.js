@@ -1,4 +1,4 @@
-import { COND_ICON } from './conditions.js?v=5';
+import { COND_ICON } from './conditions.js?v=6';
 
 // ── Combat Canvas ──
 // Renders the battle scene on a <canvas> element.

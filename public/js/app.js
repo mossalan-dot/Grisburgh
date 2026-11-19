@@ -1,5 +1,5 @@
 import { api, campagneUitUrl, zetCampagne } from './api.js?v=324';
-import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, renderDocumenten, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=410";
+import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, renderDocumenten, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=411";
 import { initArchief, renderLogboek, openLogboekEditor } from "./render-archief.js?v=154";
 import { renderKaart, queueFlyTo, verversPins, nieuweKaart } from './render-kaart.js?v=39';
 import { renderDungeon } from './render-dungeon.js?v=80';
@@ -9,11 +9,11 @@ import { renderBestiarium } from './render-bestiarium.js?v=45';
 import { renderSpreuken } from './render-spreuken.js?v=63';
 import './render-handleiding.js?v=2';
 import './render-melding.js?v=4';
-import { renderVaardigheden, zoekVaardigheden, heldenboekTekst } from './render-vaardigheden.js?v=174';
+import { renderVaardigheden, zoekVaardigheden, heldenboekTekst } from './render-vaardigheden.js?v=175';
 import { renderStatblock } from './render-statblock.js?v=10';
 import { initSocket } from "./socket-client.js?v=107";
-import { initDmPanel } from "./dm-panel.js?v=430";
-import { COND_INFO, COND_LABEL, COND_MET_PLAATJE, COND_ICON } from './conditions.js?v=5';
+import { initDmPanel } from "./dm-panel.js?v=432";
+import { COND_INFO, COND_LABEL, COND_MET_PLAATJE, COND_ICON } from './conditions.js?v=6';
 import './media-picker.js?v=18';
 // Sfeer bij het vergroten van een kaart; hangt zichzelf op aan window.
 import './kaartsfeer.js?v=5';
@@ -1657,7 +1657,7 @@ async function _landingNieuwTegel() {
   if (!host || !_groepsWachtwoord || document.getElementById('landing-nieuw')) return;
   let stand = null;
   try {
-    await import('./personage-maken.js?v=35');
+    await import('./personage-maken.js?v=36');
     stand = await window.personageMaken.stand();
   } catch { return; }
   if (stand?.instellingen && stand.instellingen.aan === false) return;
@@ -1679,7 +1679,7 @@ async function _landingNieuwTegel() {
 
 async function _landingNieuw() {
   try {
-    await import('./personage-maken.js?v=35');
+    await import('./personage-maken.js?v=36');
     const stand = await window.personageMaken.stand();
     // Ook als hij al bij de DM ligt: dan zie je dat, en kun je hem nog
     // terughalen om iets te veranderen.
@@ -12098,6 +12098,11 @@ function applyAppMeta(meta) {
   // Modules: wat uit staat verdwijnt uit beeld.
   if (m.modules) window._modules = m.modules;
   if (m.verborgen) { window._verborgen = m.verborgen; _pasModulesToe(); }
+  // De eigen condities van deze campagne bij de veertig die de app meebrengt.
+  // Hier en niet elders: dit is de plek waar `meta` binnenkomt, en zowel de
+  // picker van de DM als het canvas en het spelerstabblad lezen daarna
+  // dezelfde lijst (zie `zetEigenCondities` in conditions.js).
+  window._zetEigenCondities?.(m.condities || []);
 }
 
 function _zetEmbleem(el, bron) {

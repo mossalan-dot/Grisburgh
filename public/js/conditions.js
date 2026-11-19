@@ -153,3 +153,53 @@ export const COND_ICON = {
   mounted:                ['chess-knight',  _SIT_STEEL],
   underwater:             ['waves',         _SIT_STEEL],
 };
+
+// ════════════════════════════════════════════════════════════════════════════
+//  EIGEN CONDITIES VAN DE CAMPAGNE
+// ════════════════════════════════════════════════════════════════════════════
+// Alles hierboven is wat de app meebrengt. Een campagne kan er eigen bij
+// hebben — een vloek die blijft hangen, een zegen van een god, de mist in een
+// kelder — en die stonden tot nu toe nergens: ze bestaan alleen als code, en
+// code is van alle campagnes tegelijk. Ze staan daarom in `meta.condities`.
+//
+// **Waarom dit de lijsten hierboven bijwerkt in plaats van ernaast te gaan
+// staan.** Dertig plekken in de app lezen `CONDITIONS`, `COND_INFO`,
+// `COND_ICON` en `COND_LABEL` rechtstreeks: het canvas, de picker van de DM,
+// het spelerstabblad, het Heldenboek. Een tweede lijst zou betekenen dat al
+// die plekken moeten onthouden dat er twee zijn — en dat is precies de
+// versnippering die dit bestand opruimde. Dus blijven het dezelfde objecten;
+// ze krijgen er alleen regels bij.
+//
+// De kleur bepaalt de groep (zie `condGroep`), dus een eigen conditie die geen
+// kleur meekrijgt valt vanzelf in de groep die bij zijn `groep`-veld hoort.
+const GROEP_KLEUR = { klasse: _CLASS_GOLD, situatie: _SIT_STEEL, conditie: '#8a5a3a' };
+let _eigenIds = [];
+
+export function zetEigenCondities(lijst) {
+  // Eerst de vorige ronde eruit: de DM kan er een hernoemen of weghalen, en
+  // dan mag de oude niet blijven spoken.
+  for (const id of _eigenIds) {
+    delete COND_INFO[id];
+    delete COND_ICON[id];
+    const i = CONDITIONS.findIndex(c => c.id === id);
+    if (i >= 0) CONDITIONS.splice(i, 1);
+  }
+  _eigenIds = [];
+  for (const c of (Array.isArray(lijst) ? lijst : [])) {
+    const id = String(c?.id || '').trim();
+    if (!id || COND_INFO[id]) continue;        // een eigen conditie overschrijft nooit een echte
+    const rij = { id, label: String(c.label || id), desc: String(c.desc || ''), eigen: true };
+    CONDITIONS.push(rij);
+    COND_INFO[id] = rij;
+    COND_ICON[id] = [String(c.icoon || 'sparkle'),
+                     String(c.kleur || GROEP_KLEUR[c.groep] || GROEP_KLEUR.conditie)];
+    _eigenIds.push(id);
+  }
+  return _eigenIds.length;
+}
+
+// Is dit een conditie van de campagne zelf? Daar hangt het potlood aan.
+export const isEigenConditie = (id) => _eigenIds.includes(id);
+
+// Ook op `window`, want app.js roept hem aan zodra `meta` binnen is.
+if (typeof window !== 'undefined') window._zetEigenCondities = zetEigenCondities;

@@ -1982,3 +1982,10 @@ Grisburghs **data** te staan — niet in de code.
 - De kop is één regel: portret, naam, en daaronder *Wizard 12 · Evoker · Human · Sage*. **Blad afdrukken** staat rechts.
 - De profielvelden (Level, Class, Subclass, Background, Origin…) staan onderaan de Personage-tab onder **Wie je bent**, dichtgeklapt met de samenvatting ernaast. Bij een personage dat nog niets ingevuld heeft, staat hij open.
 - Dat formulier hoort **niet** meer boven je Boedel, Berichten of Spreukenboek te staan.
+
+### Zelf een conditie toevoegen
+- Heldenboek → **Conditions** → de **+** rechtsboven: dat maakt een conditie, geen feature. Vul naam, soort (Condition / Situatie / Lopend effect), een icoon en een beschrijving in.
+- Hij staat daarna tussen de andere, met de kleur van zijn soort, en telt mee in de chip erboven. Eigen condities hebben een **potlood**; die van de app niet.
+- In een gevecht: het conditie-zoekveld bij een combatant kent hem meteen — ook zonder de pagina te verversen.
+- Op een token en op het spelerstabblad hoort hij zijn eigen icoon, kleur en beschrijving te dragen.
+- Weghalen vraagt om bevestiging; een token dat hem nog draagt houdt het kale id.
