@@ -16,6 +16,10 @@ import { api } from './api.js?v=324';
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, c =>
   ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const ic = (n, o) => window.icon?.(n, o) || '';
+// In een inline handler decodeert de browser eerst het attribuut en voert dan
+// de JavaScript uit: `esc()` alleen laat een apostrof de string sluiten.
+const escArg = (v) => esc(typeof v === 'string'
+  ? v.replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/\r?\n/g, '\\n') : v);
 const toast = (t) => window._showToast?.(t);
 
 let _data = null;
@@ -159,7 +163,9 @@ function _kaart(f) {
   // knoppen stil in plaats van een 409 te krijgen.
   const dicht = o?.vast && !_data.magVastleggen;
   return `
-    <article class="bs-fac${o ? ' bs-fac--order' : ''}">
+    <article class="bs-fac${o ? ' bs-fac--order' : ''}${f.inAanbouw ? ' bs-fac--bouw' : ''}${f.beeldId ? ' bs-fac--beeld' : ''}"${
+      f.beeldId ? ` style="--bs-fac-bg:url('${api.thumbUrl(f.beeldId)}')"` : ''}>
+      ${f.inAanbouw ? `<div class="bs-fac-bouw">${ic('hammer')} In aanbouw — nog ${f.nachtenTeGaan} nacht${f.nachtenTeGaan === 1 ? '' : 'en'}</div>` : ''}
       <div class="bs-fac-kop">
         <span class="bs-fac-ico">${ic(d.icoon || 'hexagon')}</span>
         <div>
@@ -167,6 +173,9 @@ function _kaart(f) {
           <div class="bs-fac-type">${f.naam !== d.naam ? `${esc(d.naam)} · ` : ''}${esc(_grootte(f.grootte))} · level ${d.level || '—'}</div>
         </div>
         ${dm ? `<span class="bs-fac-beheer">
+          <button class="bs-mini" onclick="window._bastionBeeldKies('${escArg(f.id)}')"
+            title="${f.beeldId ? 'Ander beeld' : 'Beeld kiezen'}">${ic('image')}</button>
+          ${f.beeldId ? `<button class="bs-mini" onclick="window._bastionBeeldWeg('${escArg(f.id)}')" title="Beeld weghalen">${ic('x')}</button>` : ''}
           <button class="bs-mini" data-bs="fac-bewerk" data-fac="${esc(f.id)}" title="Bewerken">${ic('pencil')}</button>
           <button class="bs-mini" data-bs="fac-weg" data-fac="${esc(f.id)}" title="Weghalen">${ic('trash')}</button></span>` : ''}
       </div>
@@ -212,7 +221,13 @@ function _logTurn(t) {
           ${r.resultaat ? `<div class="bs-log-uitslag">${esc(r.resultaat)}</div>` : ''}
           ${_opbrengstHtml(r)}</li>`).join('')}</ul>`
         : `<p class="bs-stil">Geen orders gegeven.</p>`}
-      ${t.voorval ? `<div class="bs-voorval">${ic('sparkles')} <em>${esc(t.voorval.tekst)}</em></div>` : ''}
+      ${t.voorval ? `<div class="bs-voorval">${ic('sparkles')} <em>${esc(t.voorval.tekst)}</em>
+        ${t.voorval.ofwel ? `
+          <div class="bs-voorval-keuze">
+            <span class="bs-stil">Empower gaf een tweede worp — welke werd het?</span>
+            <button class="bs-knop bs-knop--klein" data-bs="voorval-kies" data-kies="eerste">Deze</button>
+            <button class="bs-knop bs-knop--klein" data-bs="voorval-kies" data-kies="tweede">${esc(t.voorval.ofwel.tekst)}</button>
+          </div>` : ''}</div>` : ''}
     </details>`;
 }
 
@@ -250,7 +265,21 @@ function _nieuwSpecial() {
   const cat = _data.catalogus.special;
   const per = {};
   for (const f of cat) (per[f.level] = per[f.level] || []).push(f);
-  _venster('Special facility', `${_data.bastion.aantalSpecial} van ${_data.bastion.slots.totaal} in gebruik`, Object.entries(per).map(([lvl, lijst]) => `
+  // **Bouwen mag geld en tijd kosten.** Allebei leeg betekent: hij staat er
+  // gewoon, zoals altijd. Hoevéél een facility kost staat in de Dungeon
+  // Master's Guide en leveren we niet mee; jij vult het in, de app rekent.
+  const bouwrij = `
+    <div class="bs-bouwrij">
+      <label class="bs-opb-veld"><span>Kost</span>
+        <input class="bs-veld" id="bs-bouw-kost" placeholder="bv. 500 fl" maxlength="20"></label>
+      <label class="bs-opb-veld bs-opb-veld--smal"><span>Nachten</span>
+        <input class="bs-veld" id="bs-bouw-nachten" type="number" min="0" max="365" placeholder="0"></label>
+      <label class="bs-opb-veld"><span>Betaald door</span>
+        <select class="bs-veld" id="bs-bouw-betaler">
+          ${(_data.leden || []).map(l => `<option value="${esc(l.id)}">${esc(l.naam)}</option>`).join('')}
+        </select></label>
+    </div>`;
+  _venster('Special facility', `${_data.bastion.aantalSpecial} van ${_data.bastion.slots.totaal} in gebruik`, bouwrij + Object.entries(per).map(([lvl, lijst]) => `
     <h4 class="bs-venster-kop">Level ${lvl}</h4>
     <div class="bs-kiezer">${lijst.map(f => {
       const op = _data.kandidaten?.[f.key] || [];
@@ -317,6 +346,18 @@ async function _itemsLaden() {
   return _items;
 }
 
+// De plaat bij een facility, uit de mediabibliotheek — dezelfde kiezer als
+// overal elders in de app, zodat er niet een tweede manier bij komt.
+window._bastionBeeldKies = (fid) => {
+  window.mediaPicker?.open({
+    type: 'afbeelding',
+    suggestedName: `bastion-${fid}`,
+    onSelect: (fileId) => _doe(() => api.put(_pad(`/facilities/${encodeURIComponent(fid)}`), { beeldId: fileId || null })),
+  });
+};
+window._bastionBeeldWeg = (fid) =>
+  _doe(() => api.put(_pad(`/facilities/${encodeURIComponent(fid)}`), { beeldId: null }));
+
 function _turnVenster() {
   const met = _data.bastion.facilities.filter(f => f.special && f.order);
   _venster(`Bastion Turn ${_data.bastion.turnNummer + 1}`, `${met.length} order${met.length === 1 ? '' : 's'}`, `
@@ -372,7 +413,12 @@ const ACTIES = {
   'nieuw-special': _nieuwSpecial,
   'nieuw-basic': _nieuwBasic,
   async 'kies-special'(k) {
-    const r = await _doe(() => api.post(_pad('/facilities'), { soort: 'special', key: k.dataset.key }));
+    const r = await _doe(() => api.post(_pad('/facilities'), {
+      soort: 'special', key: k.dataset.key,
+      kost: document.getElementById('bs-bouw-kost')?.value || '',
+      nachten: document.getElementById('bs-bouw-nachten')?.value || 0,
+      betaler: document.getElementById('bs-bouw-betaler')?.value || '',
+    }));
     if (!r) return;
     window.app?.closeModal?.();
     // Voorgerekend, niet geweigerd: wat opviel staat in de melding.
@@ -432,6 +478,10 @@ const ACTIES = {
   // De voorwerplijst moet er zijn vóór het venster tekent, anders staat de
   // keuzelijst leeg bij de eerste turn van de avond.
   async turn() { await _itemsLaden(); _turnVenster(); },
+  async 'voorval-kies'(k) {
+    await _doe(() => api.put(_pad('/voorval'), { kies: k.dataset.kies }));
+  },
+
   async 'turn-bevestig'() {
     const resultaten = {};
     document.querySelectorAll('[data-uitslag]').forEach(t => { if (t.value.trim()) resultaten[t.dataset.uitslag] = t.value.trim(); });

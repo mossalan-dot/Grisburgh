@@ -34051,3 +34051,40 @@ body.gr-slowmo .combat-overlay { filter: grayscale(.85) contrast(1.1) brightness
    liggen op 2000, en het gedeelde venster op 70 — dan opende het eronder en
    leek de knop kapot. */
 body.wizard-open .modal-overlay { z-index: 2100; }
+
+/* ── Bastion: een facility met een eigen plaat ─────────────────────────────
+   De rest van de app is beeld; een bastion van alleen tekstkaartjes was de
+   uitzondering. De plaat ligt achter de kaart met een sluier erover, zodat
+   de tekst leesbaar blijft zonder dat de plaat verdwijnt. */
+.bs-fac--beeld { position: relative; isolation: isolate; }
+.bs-fac--beeld::before {
+  content: ''; position: absolute; inset: 0; z-index: -1; border-radius: inherit;
+  background: var(--bs-fac-bg) center/cover no-repeat;
+  opacity: .3;
+}
+.bs-fac--beeld::after {
+  content: ''; position: absolute; inset: 0; z-index: -1; border-radius: inherit;
+  background: linear-gradient(to bottom, rgba(255,252,245,.55), rgba(255,252,245,.85));
+}
+
+/* In aanbouw: hij staat er, maar hij doet nog niets. Een band bovenlangs en
+   een gedempte kaart — niet verbergen, want je hebt ervoor betaald. */
+.bs-fac--bouw { opacity: .82; }
+.bs-fac-bouw {
+  display: flex; align-items: center; gap: 6px; margin: -2px -2px 8px;
+  padding: 4px 10px; border-radius: 5px 5px 0 0;
+  background: rgba(138,109,63,.18); border-bottom: 1px solid rgba(138,109,63,.35);
+  font-family: 'IM Fell English', serif; font-style: italic; font-size: .85em; color: #6b4f2a;
+}
+.bs-fac-bouw .icon { width: 13px; height: 13px; }
+
+/* Wat bouwen kost, boven de lijst met facilities. */
+.bs-bouwrij {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 8px; margin-bottom: 14px; padding-bottom: 12px;
+  border-bottom: 1px dashed rgba(122,96,64,.3);
+}
+
+/* Empower gaf twee worpen; de DM kiest er een. */
+.bs-voorval-keuze { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 8px; }
+.bs-knop--klein { padding: 3px 10px; font-size: .85em; }

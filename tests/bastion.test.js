@@ -340,6 +340,30 @@ describe('Bastion: voorvallen en verdediging', () => {
     assert.ok(alle.includes(pc.id), 'het voorwerp staat op zijn naam');
   });
 
+  it('bouwen kost geld en tijd, en hij staat zolang in de steigers', async () => {
+    const pc = (await b(dm, 'GET', '/bastion')).body.leden[0];
+    const voor = (await b(dm, 'GET', `/player-currency/${pc.id}`)).body;
+    const r = await b(dm, 'POST', '/bastion/facilities', {
+      soort: 'special', key: 'garden', kost: '500 fl', nachten: 10, betaler: pc.id,
+    });
+    assert.strictEqual(r.status, 200, JSON.stringify(r.body));
+    const na = (await b(dm, 'GET', `/player-currency/${pc.id}`)).body;
+    assert.strictEqual((voor.fl || 0) - (na.fl || 0), 500, 'vijfhonderd eraf');
+
+    const fac = r.body.bastion.facilities.find(f => f.key === 'garden');
+    assert.strictEqual(fac.inAanbouw, true);
+    assert.strictEqual(fac.nachtenTeGaan, 10);
+    assert.ok(r.body.bastion.log.some(x => x.soort === 'bouw' && x.kostCl === 50000),
+      'en het staat in het logboek');
+  });
+
+  it('zonder kost en nachten verandert er niets aan het bouwen', async () => {
+    const r = await b(dm, 'POST', '/bastion/facilities', { soort: 'special', key: 'library' });
+    const fac = r.body.bastion.facilities.find(f => f.key === 'library');
+    assert.ok(!fac.inAanbouw, 'hij staat er meteen');
+    assert.strictEqual(fac.nachtenTeGaan, 0);
+  });
+
   it('een negatief bedrag schrijft juist af — Recruit kost geld', async () => {
     const pc = (await b(dm, 'GET', '/bastion')).body.leden[0];
     const fac = (await b(dm, 'GET', '/bastion')).body.bastion.facilities.find(f => f.special);

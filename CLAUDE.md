@@ -348,8 +348,8 @@ De app gebruikt querystring cache-busting (`?v=N`). **Vergeten = browser haalt o
 **Huidige versies (bij te houden):**
 
 ```
-index.html  : theme.css?v=949   app.js?v=1268   sound-manager.js?v=15
-app.js      : api.js?v=325  dm-panel.js?v=430  media-picker.js?v=14  tafels.js?v=2  terugblik.js?v=3  rage.js?v=4  klassekracht.js?v=6  personage-maken.js?v=31  gevecht-regie.js?v=3  bastion.js?v=3  stemronde.js?v=2
+index.html  : theme.css?v=950   app.js?v=1271   sound-manager.js?v=15
+app.js      : api.js?v=325  dm-panel.js?v=430  media-picker.js?v=14  tafels.js?v=2  terugblik.js?v=3  rage.js?v=4  klassekracht.js?v=6  personage-maken.js?v=31  gevecht-regie.js?v=3  bastion.js?v=4  stemronde.js?v=2
               render-archief.js?v=149  render-bestiarium.js?v=41  render-campagne.js?v=400
               render-dungeon.js?v=75  render-kaart.js?v=35  render-progressie.js?v=67
               render-relatiemap.js?v=38  render-spreuken.js?v=56  render-vaardigheden.js?v=166
@@ -563,6 +563,20 @@ dm-panel.js : akte-schrijven.js?v=42  combat-canvas.js?v=41  render-statblock.js
 >   stuurt alleen een `itemId` dat hij in `entities.voorwerpen` terugvond, dus
 >   er komt nooit een regel in de boedel die nergens naar wijst.
 > - Verdedigers tellen op bij `bastion.defenders`.
+> **Bastion, de restpunten uit het plan** (19 nov 2026). Drie dingen die
+> `docs/voorstel-bastion.md` noemde maar die nog niet gebouwd waren:
+> - **Een eigen plaat per facility** (`f.beeldId`, via de gewone mediakiezer).
+>   De rest van de app is beeld; een bastion van alleen tekstkaartjes was de
+>   uitzondering. De plaat ligt áchter het kaartje met een sluier erover.
+> - **Bouwen kost geld en tijd.** `POST /bastion/facilities` neemt `kost`,
+>   `nachten` en `betaler`; het geld gaat langs `_deductCurrency` en de
+>   facility draagt `bouwKlaarOp` (in lange rusten, net als de turn). Het
+>   antwoord rekent `inAanbouw` en `nachtenTeGaan` uit. Allebei leeg = het
+>   gedrag van ervoor.
+> - **Empower** rolt **twee** voorvallen in plaats van één; de DM kiest met
+>   `PUT /bastion/voorval`. Wat Empower in de DMG doet leveren we niet mee —
+>   dit is de vorm die bij deze app past: de app biedt aan, de DM beslist.
+>
 > Hoevéél een Trade of Craft opbrengt staat in de DMG en vult de DM in; de app
 > doet het rekenwerk en de administratie. `dm-state.json` wordt in de
 > turn-route apart weggeschreven — geld en bezit staan daar, niet in

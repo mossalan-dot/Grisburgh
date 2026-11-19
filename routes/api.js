@@ -21782,10 +21782,16 @@ function _bastionAntwoord(req, dmState, gid) {
     facilities: (b.facilities || []).map(f => {
       const def = f.special ? bastionRegels.specialOp(f.key) : bastionRegels.basicOp(f.key);
       const o = b.orders?.[f.id];
+      // Staat hij nog in de steigers? Dat telt in lange rusten, net als de
+      // turn zelf — de party bepaalt het tempo, niet de klok.
+      const nachtenNu = _rustStand(getGroup(dmState, gid), 'long');
+      const inAanbouw = f.bouwKlaarOp > nachtenNu;
       return {
         ...f, def,
         orders: bastionRegels.ordersVan(f),
         order: o ? { ...o, doorNaam: naamVan(o.door) } : null,
+        inAanbouw,
+        nachtenTeGaan: inAanbouw ? f.bouwKlaarOp - nachtenNu : 0,
       };
     }),
     log: (b.log || []).slice().reverse(),
@@ -21901,6 +21907,23 @@ router.post('/bastion/aanval', requireDM, _bastionPoort, (req, res) => {
   _bastionKlaar(req, res, gid, r);
 });
 
+// Stond er een facility op Empower, dan rolde de app twee voorvallen en koos
+// de DM. Dit legt die keuze vast: het gekozen voorval wordt het voorval van
+// die turn, en het andere verdwijnt.
+router.put('/bastion/voorval', requireDM, _bastionPoort, (req, res) => {
+  const gid = _bastionGid(req, readDmState());
+  const r = _bastionSchrijf(req, gid, (b) => {
+    const laatste = [...(b.log || [])].reverse().find(x => x.voorval);
+    if (!laatste?.voorval?.ofwel) return { fout: [404, 'Er is niets te kiezen'] };
+    if (req.body?.kies === 'tweede') {
+      laatste.voorval = { ...laatste.voorval.ofwel, tafel: laatste.voorval.tafel };
+    } else {
+      delete laatste.voorval.ofwel;
+    }
+  });
+  _bastionKlaar(req, res, gid, r);
+});
+
 // De uitslag van de laatste aanval alsnog opschrijven — je rolt eerst, en pas
 // daarna weet je aan tafel wat het werd.
 router.put('/bastion/aanval', requireDM, _bastionPoort, (req, res) => {
@@ -21950,7 +21973,26 @@ router.post('/bastion/facilities', requireDM, _bastionPoort, (req, res) => {
     }
     b.facilities = b.facilities || [];
     if (b.facilities.length >= 60) return { fout: [409, 'Dit bastion is vol'] };
-    b.facilities.push({ id: _BASTION_ID(), key: def.key, naam: _schoneNaam(body.naam) || def.naam, special, grootte });
+    // **Bouwen kost geld en tijd** — als de DM dat invult. Leeg betekent: hij
+    // staat er gewoon, en dat is het gedrag van vóór deze ronde. Hoevéél een
+    // facility kost staat in de Dungeon Master's Guide en leveren we niet mee;
+    // hij tekent af, de app rekent.
+    const kostCl = String(body.kost || '').trim()
+      ? toCl(parsePrijs(String(body.kost)) || { fl: 0, kn: 0, cl: 0 }) : 0;
+    const nachten = Math.max(0, Math.min(365, parseInt(body.nachten) || 0));
+    const nu = _rustStand(getGroup(dmState, gid), 'long');
+    b.facilities.push({
+      id: _BASTION_ID(), key: def.key, naam: _schoneNaam(body.naam) || def.naam, special, grootte,
+      ...(nachten ? { bouwKlaarOp: nu + nachten, bouwNachten: nachten } : {}),
+    });
+    if (kostCl > 0) {
+      const leden = _bastionLeden(dmState, gid);
+      const wie = leden.find(l => l.id === body.betaler)?.id || leden[0]?.id;
+      if (wie) { _deductCurrency(dmState, wie, kostCl); storage.writeJSON('dm-state.json', dmState); }
+      b.log = b.log || [];
+      b.log.push({ soort: 'bouw', op: new Date().toISOString(), naam: def.naam, kostCl, nachten });
+      if (b.log.length > 200) b.log = b.log.slice(-200);
+    }
     return { extra: { opmerkingen } };
   });
   _bastionKlaar(req, res, gid, r);
@@ -21965,6 +22007,9 @@ router.put('/bastion/facilities/:fid', requireDM, _bastionPoort, (req, res) => {
     if ('naam' in body) f.naam = _schoneNaam(body.naam) || f.naam;
     if ('notitie' in body) f.notitie = String(body.notitie || '').slice(0, 1000);
     if (!f.special && 'grootte' in body && bastionRegels.catalogus().groottes[body.grootte]) f.grootte = body.grootte;
+    // Een eigen plaat, uit de mediabibliotheek. De rest van de app is beeld;
+    // een bastion van alleen tekstkaartjes was de uitzondering.
+    if ('beeldId' in body) f.beeldId = body.beeldId ? String(body.beeldId).slice(0, 120) : null;
   });
   _bastionKlaar(req, res, gid, r);
 });
@@ -22078,8 +22123,19 @@ router.post('/bastion/turn', requireDM, _bastionPoort, (req, res) => {
       const tafels = (storage.readJSON('tables.json').tables || []);
       const tafel = tafels.find(t => t.id === inst2.eventTableId);
       if (tafel && (tafel.entries || []).length) {
-        const { regel, worp } = _rolTafelRuw(tafel);
-        if (regel) voorval = { tekst: regel, worp, tafel: tafel.name || '' };
+        // **Empower beïnvloedt de worp.** Stond er een facility op Empower,
+        // dan rolt de app er twee en kiest de DM. Wát Empower precies doet
+        // staat in de Dungeon Master's Guide en dat leveren we niet mee; dit
+        // is de vorm die bij deze app past — de app biedt aan, de DM beslist.
+        // Zonder Empower is het één worp en is er niets te kiezen.
+        const empower = (b.facilities || []).some(f => b.orders?.[f.id]?.order === 'empower');
+        const rol = () => { const { regel, worp } = _rolTafelRuw(tafel); return regel ? { tekst: regel, worp } : null; };
+        const eerste = rol();
+        const tweede = empower ? rol() : null;
+        if (eerste) {
+          voorval = { ...eerste, tafel: tafel.name || '' };
+          if (tweede && tweede.tekst !== eerste.tekst) voorval.ofwel = tweede;
+        }
       }
     }
     b.turnNummer = (b.turnNummer || 0) + 1;
