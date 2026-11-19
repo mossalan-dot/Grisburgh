@@ -47,6 +47,29 @@ const CORRECTIES = [
     },
   },
   {
+    wat: 'De fighting styles krijgen hun soort, zodat ze als groep te vinden zijn',
+    waarom: 'Ze stáán er als feat — dertien van de vijftien — maar negen zonder '
+          + '`categorie`. Daardoor vielen ze buiten de chip "Fighting Style Feat" en '
+          + 'waren ze alleen op naam te vinden: wie wil zien wat hij kan kiezen, moest '
+          + 'de namen al kennen. Het is geen ontbrekende feat maar een ontbrekende '
+          + 'indeling.',
+    doe(p) {
+      // De vijftien uit de 2024-PHB en Tasha's. Alleen wie er al staat krijgt
+      // zijn soort; dit script verzint geen feats.
+      const NAMEN = ['Archery', 'Blind Fighting', 'Defense', 'Dueling', 'Great Weapon Fighting',
+        'Interception', 'Protection', 'Thrown Weapon Fighting', 'Two-Weapon Fighting',
+        'Unarmed Fighting', 'Druidic Warrior', 'Blessed Warrior', 'Arcane Warrior',
+        'Superior Technique', 'Close Quarters Shooting'];
+      const raak = (p.feats?.general || []).filter(f => NAMEN.includes(f.name) && f.categorie !== 'Fighting Style');
+      if (!raak.length) return null;
+      // Staat er al een andere soort op, dan heeft iemand dat zelf gekozen.
+      const anders = raak.filter(f => f.categorie);
+      if (anders.length) return `${anders.map(f => f.name).join(', ')} staan op een andere soort`;
+      for (const f of raak) f.categorie = 'Fighting Style';
+      return { gedaan: `${raak.length} feats op soort Fighting Style: ${raak.map(f => f.name).join(', ')}` };
+    },
+  },
+  {
     wat: 'Urban Bounty Hunter laat twee skills kiezen, geen één',
     waarom: 'Het boek zegt "choose two from among Deception, Insight, Persuasion, and '
           + 'Stealth". De maker leest die zin letterlijk, dus vroeg hij er één — en '

@@ -78,6 +78,10 @@ const SOORTEN = {
   // Een metgezel is geen beest maar hij wijst er wel naar: wat je krijgt is
   // een naam plus een rij gedaantes, en elk van die gedaantes is een wezen.
   metgezel:   { label: 'Metgezel',  icon: 'dog',            c1: '#2a2008', c2: '#8a7030' },
+  // Een maneuver, een totem, een Starry Form: een keuze binnen een subclass.
+  // Hij hoort bij de feats omdat het dezelfde vraag is — wat kan ik kiezen? —
+  // en de Fighting Styles zijn in de 2024-PHB zelfs letterlijk feats geworden.
+  keuze:      { label: 'Keuze',     icon: 'swords',         c1: '#2a0c18', c2: '#8a3050' },
 };
 // Een icoon per class en per species. De soort bepaalt de kleur van het
 // kaartje (dat is waar het filter op staat), het icoon zegt wáárvan het is —
@@ -178,7 +182,7 @@ const HERKOMST = [
 const _COND_BRON = { conditie: 'Conditions', situatie: 'Situaties', klasse: 'Van een feature of spreuk' };
 
 const SOORT_VOLGORDE = ['class', 'subclass', 'species', 'variant', 'feat', 'boon', 'zegen', 'gunst', 'background',
-  'conditie', 'situatie', 'klassestaat', 'beest', 'metgezel'];
+  'conditie', 'situatie', 'klassestaat', 'beest', 'metgezel', 'keuze'];
 
 let _all        = null;   // null = nog niet geladen
 let _bron       = null;   // wat naslagBron() teruggaf (srdDesc, md, …)
@@ -499,6 +503,27 @@ async function _load() {
     }
   } catch { /* geen beesten is geen fout */ }
 
+  // ── Keuzelijsten van een subclass ──
+  // Maneuvers, totems, Starry Forms. Ze horen achter dezelfde deur als de
+  // feats: het is dezelfde vraag — wat kan ik kiezen — en sinds de 2024-PHB
+  // zijn de Fighting Styles zelfs letterlijk feats.
+  try {
+    const r = await api.get('/bron/keuzelijsten');
+    for (const l of (r?.lijsten || [])) {
+      const klasse = l.klasse.charAt(0).toUpperCase() + l.klasse.slice(1);
+      l.opties.forEach((naam, i) => {
+        zet({
+          soort: 'keuze', bron: 'Keuzes', sub: l.subclass, level: l.vanaf || 0, naam,
+          // De samenvatting die de app zelf schrijft mag mee; die van het boek niet.
+          desc: (l.effecten || []).find(t => String(t).startsWith(`${naam}:`))?.replace(`${naam}:`, '').trim() || '',
+          img: '', imgFocus: '', icoon: 'swords', herkomst: 'overgenomen',
+          keuzeUit: { klasse, subclass: l.subclass, actie: l.actie, vanaf: l.vanaf },
+          vast: true,
+        });
+      });
+    }
+  } catch { /* geen keuzelijsten is geen fout */ }
+
   // ── Metgezellen ──
   try {
     const r = await api.get('/bron/metgezellen');
@@ -783,7 +808,33 @@ const _COND_NAAR_DEUR = {
   'wild-shape': { deur: 'beest', label: 'Welke beesten je kunt worden' },
 };
 
+// Een maneuver of totem zegt zelf niet waar hij bij hoort; de kaart moet dat
+// doen, anders staat er een naam zonder huis.
+function _keuzeBladen(it) {
+  const k = it.keuzeUit;
+  const rijen = [
+    ['Van', `${k.klasse} · ${k.subclass}`],
+    ['Bij', k.actie],
+    ['Vanaf level', k.vanaf ? String(k.vanaf) : ''],
+  ].filter(([, v]) => String(v || '').trim());
+  const bladen = [{ soort: 'eigenschappen', label: 'Waarvan', tekst: rijen.map(([a, b]) => `${a} ${b}`).join(' '),
+    html: `<dl class="vk-training">${rijen.map(([a, b]) => `<dt>${esc(a)}</dt><dd>${esc(b)}</dd>`).join('')}</dl>` }];
+  const tekst = _tekst(it);
+  if (tekst) {
+    bladen.push({ soort: 'beschrijving', label: 'Wat het doet', tekst,
+      html: `<div class="tegel-tekst">${_verwijzingen(window._vaardigTekstHtml?.(tekst) ?? esc(tekst))}</div>` });
+  } else {
+    const link = window.app?.bronLink?.(it.naam, `${k.klasse} ${k.actie}`) || '';
+    bladen.push({ soort: 'naslag', label: 'Naslag',
+      html: `<p class="dm-hint">Wat ${esc(it.naam)} doet staat in het boek en valt buiten wat de app mag meebrengen.</p>
+        ${link ? `<p><a class="spreuk-tag spreuk-tag--naslag" href="${esc(link)}" target="_blank" rel="noopener"
+          onclick="event.stopPropagation()">${icon('book-open')} Lees hem elders</a></p>` : ''}` });
+  }
+  return bladen;
+}
+
 function _kaartBladen(it) {
+  if (it.keuzeUit) return _keuzeBladen(it);
   // Een beest ís zijn statblok: dat is wat je wilt lezen voordat je besluit
   // dat je het wordt. Eén renderer voor alle statblokken in de app
   // (`render-statblock.js`), dus hier staat er geen tweede.
@@ -2038,7 +2089,7 @@ const _DEUREN = [
   // nooit. Bij Classes stond `subclass` er van begin af aan wel bij.
   { id: 'species',    label: 'Species',            soorten: ['species', 'variant'], icoon: 'user',       kleur: '#1a6a50' },
   { id: 'background', label: 'Backgrounds',        soorten: ['background'],        icoon: 'scroll-text', kleur: '#962058' },
-  { id: 'feats',      label: 'Feats & Boons',      soorten: ['feat', 'boon', 'zegen', 'gunst'], icoon: 'zap', kleur: '#1e4a8a' },
+  { id: 'feats',      label: 'Feats & Boons',      soorten: ['feat', 'boon', 'zegen', 'gunst', 'keuze'], icoon: 'zap', kleur: '#1e4a8a' },
   // **De spreuken wonen hier ook.** Ze stonden in het Archief, en dat was de
   // enige plek waar iets hoorde dat een personage kan zijn of kennen. Je zag
   // het aan de naden: een feat die een spreuk geeft linkt naar een ander

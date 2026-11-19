@@ -12227,6 +12227,16 @@ router.post('/bron/heldenboekbeelden', requireDM, (req, res) => {
 
 // Let op: deze parameterroute moet ná /bron/spreukbeelden staan — hij past op
 // elk pad, dus hierboven geregistreerde namen winnen en de rest valt hierheen.
+// ── Keuzelijsten van een subclass ───────────────────────────────────────────
+// De maneuvers van een Battle Master, de totems van een Totem Warrior, de
+// Starry Forms van een Stars Druid. Ze zaten alleen in de knop waarmee je ze
+// gebruikt: kiezen kon, opzoeken niet. Afgeleid uit `lib/klassekrachten.js`
+// zelf, dus er staat geen tweede lijst naast die uit de pas kan lopen.
+router.get('/bron/keuzelijsten', attachRole, (req, res) => {
+  if (req.session?.role !== 'dm' && !req.session?.characterId) return res.status(403).json({ error: 'Geen toegang' });
+  res.json({ lijsten: KK.keuzelijsten() });
+});
+
 // ── Metgezellen ─────────────────────────────────────────────────────────────
 // Wie krijgt wat, en waar staat het statblok. De lijst zelf is
 // `bronnen/metgezellen.json` — namen en vindplaatsen, zie de grens daar.
