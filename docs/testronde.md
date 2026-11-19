@@ -2007,3 +2007,10 @@ Grisburghs **data** te staan — niet in de code.
 - Heldenboek → **Beasts**: 91 uit de SRD plus wat de campagne zelf als Beast heeft, met de **CR** als tweede laag (dat is de vraag bij Wild Shape).
 - Een beest openen geeft twee bladen: *Kort* (CR, AC, HP, Speed, omgeving) en *Statblock* — hetzelfde statblok als in het bestiarium, want er is één renderer.
 - Een beest dat vliegt heeft een vogel als icoon in plaats van een pootafdruk; dat is precies de grens die Wild Shape pas op level 8 openzet.
+
+### Metgezellen in het Heldenboek
+- Heldenboek → **Metgezellen**: elf stuks, gegroepeerd per class (plus *Spreuken* voor Find Familiar). Open er een: *Waarvan* zegt van welke class, subclass en level hij komt en uit welk boek.
+- **Familiar** of **Faithful Steed** heeft een blad *Gedaantes* met knoppen; tik er een aan en je springt naar dat beest achter de deur Beasts, met zijn statblok open.
+- Een gedaante die niet in de vrij te gebruiken bronnen staat (Beast of the Land/Sea/Sky) is **geen knop** maar gestippelde tekst — een knop die nergens op uitkomt is erger dan geen knop.
+- **Steel Defender**, **Drake Companion** en de andere uit niet-vrije boeken tonen geen statblok maar een wegwijzer naar buiten, net als een feature zonder tekst. **Homunculus Servant** heeft er wél een, want die staat in de SRD.
+- Conditions → **Wild Shape**: onderaan zijn beschrijving staat *Welke beesten je kunt worden* en die brengt je naar de deur Beasts.

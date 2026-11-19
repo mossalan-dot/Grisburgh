@@ -12227,6 +12227,39 @@ router.post('/bron/heldenboekbeelden', requireDM, (req, res) => {
 
 // Let op: deze parameterroute moet ná /bron/spreukbeelden staan — hij past op
 // elk pad, dus hierboven geregistreerde namen winnen en de rest valt hierheen.
+// ── Metgezellen ─────────────────────────────────────────────────────────────
+// Wie krijgt wat, en waar staat het statblok. De lijst zelf is
+// `bronnen/metgezellen.json` — namen en vindplaatsen, zie de grens daar.
+//
+// Het statblok komt er alleen bij als het in de **SRD** staat (en die mag naar
+// elke campagne), of als deze campagne het wezen zelf in haar bestiarium heeft
+// staan. Voor de rest gaat alleen de naam mee en zet de app er een wegwijzer
+// naar buiten bij — dezelfde regel als bij een feature zonder tekst.
+router.get('/bron/metgezellen', attachRole, (req, res) => {
+  if (req.session?.role !== 'dm' && !req.session?.characterId) return res.status(403).json({ error: 'Geen toegang' });
+  const srd = new Map();
+  try { for (const m of (bronnen.lees('srd-monsters') || [])) srd.set(m.name.toLowerCase(), m); } catch { /* ok */ }
+  const eigen = new Map();
+  try {
+    for (const m of (storage.readJSON('monsters.json')?.monsters || [])) {
+      if (m?.name) eigen.set(m.name.toLowerCase(), { name: m.name, cr: m.cr, statblock: m });
+    }
+  } catch { /* ok */ }
+  const vind = (naam) => srd.get(String(naam).toLowerCase()) || eigen.get(String(naam).toLowerCase()) || null;
+
+  const lijst = (bronnen.lees('metgezellen')?.metgezellen || []).map(c => {
+    const sb = c.statblok ? vind(c.statblok) : null;
+    return {
+      ...c,
+      // Per gedaante of we hem kunnen tonen; de client maakt er dan een knop
+      // naar de deur Beasts van in plaats van kale tekst.
+      vormen: (c.vormen || []).map(n => ({ naam: n, bekend: !!vind(n) })),
+      ...(sb ? { statblock: sb } : {}),
+    };
+  });
+  res.json({ metgezellen: lijst });
+});
+
 // ── De beesten, met hun statblok ────────────────────────────────────────────
 // `_beesten()` hierboven geeft een korte vorm voor de Wild Shape-kiezer: naam,
 // CR, AC, HP. Voor het Heldenboek is dat te weinig — daar wil je het hele

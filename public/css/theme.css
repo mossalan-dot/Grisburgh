@@ -34386,3 +34386,20 @@ body.wizard-open .modal-overlay { z-index: 2100; }
    scrollt. Dezelfde afspraak als bij een lange spreuktekst. */
 .vd-statblok { font-size: .82rem; }
 .vd-statblok .statblock { box-shadow: none; border: 0; padding: 0; background: none; }
+
+/* De gedaantes van een metgezel: elk een knop naar zijn statblok achter de
+   deur Beasts. Wat we niet mogen tonen is geen knop — dat zou een belofte zijn
+   die nergens op uitkomt. */
+.vd-vormen { display: flex; flex-wrap: wrap; gap: 6px; }
+.vd-vorm {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 3px 9px; border-radius: 12px;
+  border: 1px solid rgba(58,122,42,.5); background: rgba(58,122,42,.1);
+  color: #2a1a08; font-family: 'Crimson Text', serif; font-size: .86rem; cursor: pointer;
+}
+.vd-vorm:hover { background: rgba(58,122,42,.22); }
+.vd-vorm .icon { width: 13px; height: 13px; opacity: .7; }
+.vd-vorm--onbekend {
+  cursor: default; border-style: dashed; border-color: rgba(122,96,64,.45);
+  background: none; color: #7a6040;
+}

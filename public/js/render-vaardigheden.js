@@ -75,6 +75,9 @@ const SOORTEN = {
   // roept er een op. Tot nu toe stond die lijst alleen binnen de Wild
   // Shape-kiezer: je kon kiezen, maar niet eerst lezen wat je dan wordt.
   beest:      { label: 'Beast',     icon: 'paw-print',      c1: '#143018', c2: '#3a7a2a' },
+  // Een metgezel is geen beest maar hij wijst er wel naar: wat je krijgt is
+  // een naam plus een rij gedaantes, en elk van die gedaantes is een wezen.
+  metgezel:   { label: 'Metgezel',  icon: 'dog',            c1: '#2a2008', c2: '#8a7030' },
 };
 // Een icoon per class en per species. De soort bepaalt de kleur van het
 // kaartje (dat is waar het filter op staat), het icoon zegt wáárvan het is —
@@ -175,7 +178,7 @@ const HERKOMST = [
 const _COND_BRON = { conditie: 'Conditions', situatie: 'Situaties', klasse: 'Van een feature of spreuk' };
 
 const SOORT_VOLGORDE = ['class', 'subclass', 'species', 'variant', 'feat', 'boon', 'zegen', 'gunst', 'background',
-  'conditie', 'situatie', 'klassestaat', 'beest'];
+  'conditie', 'situatie', 'klassestaat', 'beest', 'metgezel'];
 
 let _all        = null;   // null = nog niet geladen
 let _bron       = null;   // wat naslagBron() teruggaf (srdDesc, md, …)
@@ -496,6 +499,20 @@ async function _load() {
     }
   } catch { /* geen beesten is geen fout */ }
 
+  // ── Metgezellen ──
+  try {
+    const r = await api.get('/bron/metgezellen');
+    for (const c of (r?.metgezellen || [])) {
+      zet({
+        soort: 'metgezel', bron: c.klasse || 'Spreuken', sub: c.subclass || '',
+        level: c.level || 0, naam: c.naam, desc: '', img: '', imgFocus: '',
+        icoon: c.vormen?.length ? 'paw-print' : 'dog',
+        bronTekst: c.boek || '', herkomst: 'overgenomen',
+        metgezel: c, vast: true,
+      });
+    }
+  } catch { /* geen metgezellen is geen fout */ }
+
   // ── Conditions ──
   // Veertig toestanden waar een personage in kan staan. Ze stonden alleen in de
   // picker van de DM en op een token, nooit als lijst — terwijl "wat betekent
@@ -724,6 +741,48 @@ const _KAART_BLAD_ICOON = { portret: 'image', beschrijving: 'book-open',
 // Welke bladzijden heeft dit kaartje? De plaat alleen als er een is — een
 // kaartje zonder beeld opent meteen op zijn tekst, want een leeg vlak is geen
 // bladzijde.
+// Wat je van een metgezel te zien krijgt. Drie dingen, en niet meer dan we
+// mogen: wie hem geeft, in welke gedaantes hij komt, en — als het wezen in de
+// SRD of in dit bestiarium staat — zijn statblok. Staat het er niet, dan de
+// wegwijzer naar buiten; precies zoals bij een feature zonder tekst.
+function _metgezelBladen(it) {
+  const c = it.metgezel;
+  const rijen = [
+    ['Van', [c.klasse, c.subclass].filter(Boolean).join(' · ') || (c.soort === 'spreuk' ? 'Een spreuk' : '')],
+    ['Krijg je bij', c.geeft],
+    ['Level', c.level ? String(c.level) : ''],
+    ['Uit', c.boek],
+  ].filter(([, v]) => String(v || '').trim());
+  const bladen = [{ soort: 'eigenschappen', label: 'Waarvan', tekst: rijen.map(([k, v]) => `${k} ${v}`).join(' '),
+    html: `<dl class="vk-training">${rijen.map(([k, v]) => `<dt>${esc(k)}</dt><dd>${esc(v)}</dd>`).join('')}</dl>` }];
+  if (c.vormen?.length) {
+    bladen.push({ soort: 'beschrijving', label: 'Gedaantes', tekst: c.vormen.map(v => v.naam).join(' '),
+      html: `<div class="vd-vormen">${c.vormen.map(v => v.bekend
+        ? `<button type="button" class="vd-vorm" onclick="event.stopPropagation();window.vaardigheden.naarBeest('${escA(v.naam)}')"
+             title="Bekijk het statblok">${icon('paw-print')} ${esc(v.naam)}</button>`
+        : `<span class="vd-vorm vd-vorm--onbekend" title="Dit statblok staat niet in de vrij te gebruiken bronnen">${esc(v.naam)}</span>`
+      ).join('')}</div>` });
+  }
+  if (c.statblock) {
+    bladen.push({ soort: 'naslag', label: 'Statblock', tekst: c.naam,
+      html: `<div class="vd-statblok">${renderStatblock(c.statblock, { kop: false })}</div>` });
+  } else if (!c.vormen?.length) {
+    const link = window.app?.bronLink?.(c.naam, 'companion') || '';
+    bladen.push({ soort: 'naslag', label: 'Naslag',
+      html: `<p class="dm-hint">Het statblok van ${esc(c.naam)} staat in ${esc(c.boek || 'een boek')} en valt buiten wat de app mag meebrengen.</p>
+        ${link ? `<p><a class="spreuk-tag spreuk-tag--naslag" href="${esc(link)}" target="_blank" rel="noopener"
+          onclick="event.stopPropagation()">${icon('book-open')} Lees hem elders</a></p>` : ''}` });
+  }
+  return bladen;
+}
+
+// **Een conditie die ergens anders over gaat.** Wild Shape is een toestand én
+// een lijst wezens die je kunt worden; Pact of the Chain idem. Eén tabel in
+// plaats van een `if`, zodat er een derde bij kan zonder nieuwe code.
+const _COND_NAAR_DEUR = {
+  'wild-shape': { deur: 'beest', label: 'Welke beesten je kunt worden' },
+};
+
 function _kaartBladen(it) {
   // Een beest ís zijn statblok: dat is wat je wilt lezen voordat je besluit
   // dat je het wordt. Eén renderer voor alle statblokken in de app
@@ -742,6 +801,7 @@ function _kaartBladen(it) {
         html: `<div class="vd-statblok">${renderStatblock(b.statblock, { kop: false })}</div>` },
     ];
   }
+  if (it.metgezel) return _metgezelBladen(it);
   const bladen = [];
   if (_beeldKeten(it).length) bladen.push({ soort: 'portret', label: 'Portret' });
   const tekst = _tekst(it);
@@ -764,6 +824,15 @@ function _kaartBladen(it) {
   // procent leeg is. Ze staan nu als onderschrift op de plaat; bij een feat
   // zonder plaat bovenaan de beschrijving, want dan is er niets om op te
   // leggen.
+  // Een conditie die naar een andere deur wijst krijgt die knop onder zijn
+  // tekst, niet als los blad: het is een doorverwijzing en geen bladzijde.
+  const heen = it.condId ? _COND_NAAR_DEUR[it.condId] : null;
+  if (heen) {
+    const blad = bladen.find(b => b.soort === 'beschrijving');
+    if (blad) blad.html += `<p><button type="button" class="vd-vorm"
+      onclick="event.stopPropagation();window.vaardigheden.deur('${heen.deur}')">
+      ${icon('paw-print')} ${esc(heen.label)}</button></p>`;
+  }
   const regel = _featOnderTitel(it);
   if (regel && !bladen.some(b => b.soort === 'portret')) {
     const blad = bladen.find(b => b.soort === 'beschrijving');
@@ -2000,6 +2069,14 @@ const _DEUREN = [
   // wat je kunt worden, en waar je op level 2, 4 en 8 een andere grens hebt.
   { id: 'beest',      label: 'Beasts',             soorten: ['beest'],
     icoon: 'paw-print', kleur: '#3a7a2a' },
+  // **Metgezellen.** Wie je krijgt, van welke class, en in welke gedaantes.
+  // De laag boven de beesten: die zeggen wát een wezen is, deze zegt wélk
+  // wezen jij meekrijgt. Wat we van een metgezel mogen tonen verschilt — het
+  // statblok van een Steel Defender staat in geen enkele vrij te gebruiken
+  // bron — dus staat er soms alleen een naam met een wegwijzer, zoals bij een
+  // feature zonder tekst.
+  { id: 'metgezel',   label: 'Metgezellen',        soorten: ['metgezel'],
+    icoon: 'dog', kleur: '#8a7030' },
 ];
 const _DEUR = id => _DEUREN.find(d => d.id === id);
 // Welke deuren meteen hun lijst tonen in plaats van eerst een tegelrij — zie
@@ -4338,6 +4415,22 @@ window.vaardigheden = {
     const c = (window.app?.state?.meta?.condities || []).find(x => x.id === id);
     if (!confirm(`"${c?.label || id}" weghalen? Een token dat hem draagt houdt het kale id.`)) return;
     await _conditiesBewaren((window.app?.state?.meta?.condities || []).filter(x => x.id !== id));
+  },
+
+  // Van een gedaante naar zijn statblok: dat staat achter de deur Beasts, en
+  // daar hoort hij ook — twee plekken met hetzelfde statblok lopen uit elkaar.
+  async naarBeest(naam) {
+    await _load();
+    const it = (_all || []).find(x => x.soort === 'beest' && x.naam === naam);
+    if (!it) { window._showToast?.(`${naam} staat niet in de lijst`); return; }
+    _deur = 'beest';
+    _filters.bron = it.bron;
+    _filters.q = '';
+    _openKaart = it.key;
+    _kaartBlad[it.key] = 1;
+    _bandHerteken(); _refreshFilterBar(); _paint();
+    setTimeout(() => document.querySelector(`#vaardig-grid .tegel[data-sleutel="${CSS.escape(it.key)}"]`)
+      ?.scrollIntoView({ block: 'center', behavior: 'smooth' }), 200);
   },
 
   beeldMis: _beeldMis,

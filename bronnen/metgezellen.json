@@ -1,0 +1,118 @@
+{
+  "_wat": "Metgezellen die een class, subclass of spreuk je geeft: hun naam, wie hem geeft, en welke gedaantes hij kan aannemen.",
+  "_waarom": "Een speler krijgt er een en moet hem aan tafel kunnen opzoeken — wat is zijn AC, hoe snel is hij, wat valt hij aan. Die vraag kwam nergens uit: het Heldenboek kende classes, species en feats, maar niet de wezens die eruit voortkomen. De beesten staan er sinds vandaag; dit is de laag erboven, die zegt wélke je krijgt en waarvan.",
+  "_grens": "Hier staan UITSLUITEND namen, vindplaatsen en gedaantes. Geen statblokken, geen regels, geen beschrijvingen. Een naam is geen beschermd werk; wat erover gezegd wordt wel. Waar het statblok in de SRD 5.2 staat (CC BY 4.0) verwijst `statblok` naar dat wezen en toont de app het; staat het daar niet, dan blijft het bij de naam en een wegwijzer naar buiten.",
+  "_nb": "`geeft` is de feature of spreuk die hem geeft, zoals die in de progressie heet. `vormen` zijn de wezens waaruit je kiest; die bestaan als Beast of als wezen in de SRD en zijn dus aanklikbaar.",
+
+  "metgezellen": [
+    {
+      "id": "familiar",
+      "naam": "Familiar",
+      "geeft": "Find Familiar",
+      "soort": "spreuk",
+      "boek": "Player's Handbook (2024)",
+      "vormen": ["Bat", "Cat", "Crab", "Frog", "Hawk", "Lizard", "Octopus", "Owl",
+                 "Venomous Snake", "Rat", "Raven", "Seahorse", "Spider", "Weasel"]
+    },
+    {
+      "id": "pact-familiar",
+      "naam": "Familiar — Pact of the Chain",
+      "geeft": "Pact of the Chain",
+      "klasse": "Warlock",
+      "soort": "feature",
+      "boek": "Player's Handbook (2024)",
+      "vormen": ["Imp", "Pseudodragon", "Quasit", "Sprite"]
+    },
+    {
+      "id": "wild-companion",
+      "naam": "Wild Companion",
+      "geeft": "Wild Companion",
+      "klasse": "Druid",
+      "level": 2,
+      "soort": "feature",
+      "boek": "Player's Handbook (2024)",
+      "vormen": ["Bat", "Cat", "Crab", "Frog", "Hawk", "Lizard", "Octopus", "Owl",
+                 "Venomous Snake", "Rat", "Raven", "Seahorse", "Spider", "Weasel"]
+    },
+    {
+      "id": "faithful-steed",
+      "naam": "Faithful Steed",
+      "geeft": "Faithful Steed",
+      "klasse": "Paladin",
+      "level": 5,
+      "soort": "feature",
+      "boek": "Player's Handbook (2024)",
+      "vormen": ["Camel", "Draft Horse", "Elk", "Mastiff", "Pony", "Riding Horse", "Warhorse"]
+    },
+    {
+      "id": "primal-companion",
+      "naam": "Primal Companion",
+      "geeft": "Primal Companion",
+      "klasse": "Ranger",
+      "subclass": "Beast Master",
+      "level": 3,
+      "soort": "feature",
+      "boek": "Player's Handbook (2024)",
+      "vormen": ["Beast of the Land", "Beast of the Sea", "Beast of the Sky"]
+    },
+    {
+      "id": "drake-companion",
+      "naam": "Drake Companion",
+      "geeft": "Drake Companion",
+      "klasse": "Ranger",
+      "subclass": "Drakewarden",
+      "level": 3,
+      "soort": "feature",
+      "boek": "Fizban's Treasury of Dragons"
+    },
+    {
+      "id": "steel-defender",
+      "naam": "Steel Defender",
+      "geeft": "Steel Defender",
+      "klasse": "Artificer",
+      "subclass": "Battle Smith",
+      "level": 3,
+      "soort": "feature",
+      "boek": "Eberron: Forge of the Artificer"
+    },
+    {
+      "id": "homunculus-servant",
+      "naam": "Homunculus Servant",
+      "geeft": "Homunculus Servant",
+      "klasse": "Artificer",
+      "soort": "feature",
+      "boek": "Eberron: Forge of the Artificer",
+      "statblok": "Homunculus"
+    },
+    {
+      "id": "reanimated-companion",
+      "naam": "Reanimated Companion",
+      "geeft": "Reanimated Companion",
+      "klasse": "Artificer",
+      "subclass": "Reanimator",
+      "level": 3,
+      "soort": "feature",
+      "boek": "Eberron: Forge of the Artificer"
+    },
+    {
+      "id": "vestige-companion",
+      "naam": "Vestige Companion",
+      "geeft": "Vestige Companion",
+      "klasse": "Warlock",
+      "subclass": "Vestige Patron",
+      "level": 3,
+      "soort": "feature",
+      "boek": "Arcana Unleashed"
+    },
+    {
+      "id": "dragon-companion",
+      "naam": "Dragon Companion",
+      "geeft": "Dragon Companion",
+      "klasse": "Sorcerer",
+      "subclass": "Draconic Sorcery",
+      "level": 18,
+      "soort": "feature",
+      "boek": "Arcana Unleashed"
+    }
+  ]
+}
