@@ -1976,3 +1976,9 @@ Grisburghs **data** te staan — niet in de code.
 - Kies een skill die hij al van zijn class had en doe dan een lange rust: die skill hoort te blijven staan — de feature schreef hem niet, dus mag hem ook niet weghalen.
 - Een speler **zonder** zo'n feature hoort niets te zien: geen blok op zijn tabblad en geen paneel in zijn rustscherm.
 - Een keuze die **niet** per dag geldt (de taal van Thieves' Cant bijvoorbeeld) hoort een lange rust gewoon te overleven.
+
+### Het spelerstabblad, ronde 1
+- Open je eigen tabblad op een breed scherm: de kolom is **1180 px** in plaats van 680, en Skills staat naast Proficiencies, HP naast je klassekrachten, Languages naast *Wie je bent*. Op een scherm smaller dan 1100 staat alles weer onder elkaar.
+- De kop is één regel: portret, naam, en daaronder *Wizard 12 · Evoker · Human · Sage*. **Blad afdrukken** staat rechts.
+- De profielvelden (Level, Class, Subclass, Background, Origin…) staan onderaan de Personage-tab onder **Wie je bent**, dichtgeklapt met de samenvatting ernaast. Bij een personage dat nog niets ingevuld heeft, staat hij open.
+- Dat formulier hoort **niet** meer boven je Boedel, Berichten of Spreukenboek te staan.

@@ -8809,42 +8809,25 @@ async function renderMijnKarakter(opts = {}) {
   // voor wie het expliciet wil aanzetten.)
   const _themeAttr  = (_klasseThemeOn && _klasseKey) ? ` data-klasse="${esc(_klasseKey)}"` : '';
 
-  el.innerHTML = `
-    <div class="player-dashboard"${_themeAttr}>
-      <!-- Karakter header (altijd zichtbaar) -->
-      <div class="player-dash-hero" id="player-dash-hero" style="align-items:center">
-        <div class="player-dash-avatar-outer">
-          ${(() => {
-            const _hR = 45, _hC = +(2 * Math.PI * 45).toFixed(1);
-            const _hFill = hpPct > 0 ? +(_hC * hpPct / 100).toFixed(1) : 0;
-            const _hTmpR = 48, _hTmpC = +(2 * Math.PI * 48).toFixed(1);
-            const _hTmpFill = (maxNum && tempNum > 0) ? +(_hTmpC * Math.min(tempNum, maxNum) / maxNum).toFixed(1) : 0;
-            return `<svg class="player-dash-avatar-ring" viewBox="0 0 100 100" style="pointer-events:none;overflow:visible">
-              <circle cx="50" cy="50" r="${_hR}" class="party-hp-ring-bg"/>
-              <circle cx="50" cy="50" r="${_hR}" class="party-hp-ring-fill party-hp-ring-${hpCls}"
-                stroke-dasharray="${_hFill} ${_hC}" transform="rotate(-90 50 50)"/>
-              <circle cx="50" cy="50" r="${_hTmpR}" class="party-hp-ring-temp-bg"/>
-              ${_hTmpFill > 0 ? `<circle cx="50" cy="50" r="${_hTmpR}" class="party-hp-ring-temp"
-                stroke-dasharray="${_hTmpFill} ${_hTmpC}" transform="rotate(-90 50 50)"/>` : ''}
-            </svg>`;
-          })()}
-          <div class="player-dash-avatar-wrap avatar-${hpCls}" onclick="window._dashOpenPortraitVideo()" style="cursor:pointer">
-            <img src="${imgUrl}" class="player-dash-avatar" alt=""
-              onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
-            <div class="player-dash-avatar-fallback" style="display:none">${icon('user')}</div>
-          </div>
-        </div>
-        <div class="player-dash-hero-info">
-          <h2 class="player-dash-name">${esc(playerName)}</h2>
-          <button class="player-hero-collapse-btn${localStorage.getItem('_heroCollapsed') === '1' ? ' collapsed' : ''}"
-            onclick="window._toggleHeroCollapse()" title="Verberg/toon karakterinfo" aria-label="Kop in- of uitklappen">▲</button>
-          ${sub ? `<p class="player-dash-sub">${esc(sub)}</p>` : ''}
-          <!-- De DM kon de hele party al printen; een speler kreeg zijn eigen
-               blad nergens op papier. Juist bij een vers personage wil je dat.
-               Alleen voor wie het zelf ís: de route kijkt naar de sessie. -->
-          ${state.characterId === charId ? `
-            <a class="player-dash-print" href="/api/mijn/sheet?campagne=${esc(_campagneVoorLink())}"
-               target="_blank" rel="noopener" title="Je blad op papier">${icon('scroll-text')} Blad afdrukken</a>` : ''}
+  // **Wie je bent, in één regel.** Class, level, subclass, species en
+  // background — dezelfde vijf dingen die in het formulier staan, maar als
+  // zin in plaats van als invulvelden. Leeg wat leeg is: een personage dat
+  // nog geen background heeft, hoort daar geen streepje voor te krijgen.
+  const _heroFeiten = () => {
+    const kl = [playerProfile.klasse, _isMulticlass ? playerProfile.klasseLevel : playerProfile.level]
+      .filter(Boolean).join(' ');
+    const multi = _isMulticlass
+      ? [playerProfile.multiKlasse, playerProfile.multiKlasseLevel].filter(Boolean).join(' ') : '';
+    return [kl, multi, playerProfile.subclass, playerProfile.origin, playerProfile.background]
+      .map(x => String(x || '').trim()).filter(Boolean).join(' · ');
+  };
+
+  // Staat er nog niets, dan gaat het blok open: dan is invullen het eerste wat
+  // je te doen hebt. Is het ingevuld, dan is het dicht — je komt er zelden.
+  const _wieLeeg = () => !playerProfile.klasse && !playerProfile.origin;
+
+  // Het formulier zelf; het staat op de Personage-tab.
+  const _profielVeldenHtml = () => `
           <div class="player-profile-fields">
             <div class="ppf-row"><label class="ppf-label">Level</label>
               ${_dmBlad ? `<input class="ppf-input ppf-level" type="number" min="1" max="20"
@@ -8931,8 +8914,56 @@ async function renderMijnKarakter(opts = {}) {
               <input class="ppf-input" type="text" value="${esc(playerProfile.bloodStatus ?? '')}" placeholder="—"
                 onblur="window._saveProfileField('bloodStatus', this.value)"></div>` : ''}
           </div>
+`;
+
+  el.innerHTML = `
+    <div class="player-dashboard"${_themeAttr}>
+      <!-- Karakter header (altijd zichtbaar) -->
+      <div class="player-dash-hero" id="player-dash-hero" style="align-items:center">
+        <div class="player-dash-avatar-outer">
+          ${(() => {
+            const _hR = 45, _hC = +(2 * Math.PI * 45).toFixed(1);
+            const _hFill = hpPct > 0 ? +(_hC * hpPct / 100).toFixed(1) : 0;
+            const _hTmpR = 48, _hTmpC = +(2 * Math.PI * 48).toFixed(1);
+            const _hTmpFill = (maxNum && tempNum > 0) ? +(_hTmpC * Math.min(tempNum, maxNum) / maxNum).toFixed(1) : 0;
+            return `<svg class="player-dash-avatar-ring" viewBox="0 0 100 100" style="pointer-events:none;overflow:visible">
+              <circle cx="50" cy="50" r="${_hR}" class="party-hp-ring-bg"/>
+              <circle cx="50" cy="50" r="${_hR}" class="party-hp-ring-fill party-hp-ring-${hpCls}"
+                stroke-dasharray="${_hFill} ${_hC}" transform="rotate(-90 50 50)"/>
+              <circle cx="50" cy="50" r="${_hTmpR}" class="party-hp-ring-temp-bg"/>
+              ${_hTmpFill > 0 ? `<circle cx="50" cy="50" r="${_hTmpR}" class="party-hp-ring-temp"
+                stroke-dasharray="${_hTmpFill} ${_hTmpC}" transform="rotate(-90 50 50)"/>` : ''}
+            </svg>`;
+          })()}
+          <div class="player-dash-avatar-wrap avatar-${hpCls}" onclick="window._dashOpenPortraitVideo()" style="cursor:pointer">
+            <img src="${imgUrl}" class="player-dash-avatar" alt=""
+              onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+            <div class="player-dash-avatar-fallback" style="display:none">${icon('user')}</div>
+          </div>
         </div>
-      </div>
+        <div class="player-dash-hero-info">
+          <h2 class="player-dash-name">${esc(playerName)}</h2>
+          <!-- De oude ondertitel zei "Human · Wizard" en de feitenregel
+               eronder zegt dat ook — alleen vollediger. Eén van de twee kan
+               dus weg, en dat is deze.
+               De printlink stond ertussenin; die hoort rechts in de kop, waar
+               een actie hoort en niet tussen twee regels tekst.
+               De DM kon de hele party al printen; een speler kreeg zijn eigen
+               blad nergens op papier. Alleen voor wie het zelf ís: de route
+               kijkt naar de sessie. -->
+          <!-- **De profielvelden stonden hier, en dat was de kern van het
+               probleem.** Negen rijen met labels, invulvelden en keuzelijsten
+               — een formulier dus — en het stond boven élk subtabblad: ook
+               boven je Boedel, je Berichten en je Spreukenboek. Je keek de
+               hele avond naar iets wat je één keer invult.
+               Nu is de hero wat een hero hoort te zijn: wie je bent, in één
+               regel. Het formulier staat op de Personage-tab, waar de rest van
+               je blad staat. -->
+          <p class="player-dash-feiten">${esc(_heroFeiten() || sub)}</p>
+        </div>
+        ${state.characterId === charId ? `
+          <a class="player-dash-print" href="/api/mijn/sheet?campagne=${esc(_campagneVoorLink())}"
+             target="_blank" rel="noopener" title="Je blad op papier">${icon('scroll-text')}<span>Blad afdrukken</span></a>` : ''}      </div>
 
       <!-- Subtab nav -->
       <!-- De volgorde loopt van samen naar alleen: eerst de groep, dan je
@@ -9104,9 +9135,6 @@ async function renderMijnKarakter(opts = {}) {
         <div style="display:flex;justify-content:flex-end;padding:4px 0 0">${_helpBtn('personage')}</div>
 
         <div id="levelup-balk"></div>
-        <div id="rage-blok"></div>
-        <div id="kracht-blok"></div>
-        <div id="dagkeuze-blok"></div>
 
         ${_dominantKlasse.toLowerCase().includes('sorcerer') ? `
         <div class="player-dash-section wild-magic-section">
@@ -9173,7 +9201,11 @@ async function renderMijnKarakter(opts = {}) {
         </div>
 
         <!-- HP blok (redesigned) -->
-        <div class="player-dash-section">
+        <!-- Rage, je klassekrachten en je dagkeuze stonden boven je HP, en
+             duwden het ding waar je tijdens een gevecht meteen bij moet naar
+             beneden. Ze staan nu ernaast: op een breed scherm in de tweede
+             kolom, op een smal scherm er gewoon onder. -->
+        <div class="player-dash-section pds--half">
           <div class="player-dash-section-title">${icon('heart')} HP</div>
           <div class="player-hp-hero">
             <div class="player-hp-hero-row">
@@ -9231,6 +9263,10 @@ async function renderMijnKarakter(opts = {}) {
             <span class="player-hd-dots-wrap" id="player-dash-hd-${esc(charId)}">${_hitDiceDotsHtml(_clientHitDicePool(playerProfile), {})}</span>
           </div>
         </div>
+
+        <div id="rage-blok" class="pds--half"></div>
+        <div id="kracht-blok" class="pds--half"></div>
+        <div id="dagkeuze-blok" class="pds--half"></div>
 
         ${playerBuffs.length ? `
         <div class="player-dash-section player-buffs-section">
@@ -9314,7 +9350,7 @@ async function renderMijnKarakter(opts = {}) {
         </div>
 
         <!-- Skills -->
-        <div class="player-dash-section">
+        <div class="player-dash-section pds--half">
           <div class="player-dash-section-title">${icon('target')} Skills</div>
           <div class="player-skills-list">
             ${_getSkills().map(skill => {
@@ -9351,7 +9387,7 @@ async function renderMijnKarakter(opts = {}) {
              (Geen backticks in commentaar hierbinnen: template literal.) -->
 
         <!-- Proficiencies -->
-        <div class="player-dash-section">
+        <div class="player-dash-section pds--half">
           <div class="player-dash-section-title">${icon('shield')} Proficiencies</div>
           <div class="player-profs-grid">
             <div class="player-prof-row">
@@ -9376,7 +9412,7 @@ async function renderMijnKarakter(opts = {}) {
         </div>
 
         <!-- Languages & Senses — PHB-termen, dus Engels (zie CLAUDE.md) -->
-        <div class="player-dash-section">
+        <div class="player-dash-section pds--half">
           <div class="player-dash-section-title">${icon('globe')} Languages &amp; Senses</div>
           <div class="player-profs-grid">
             <div class="player-prof-row">
@@ -9394,9 +9430,19 @@ async function renderMijnKarakter(opts = {}) {
           </div>
         </div>
 
+        <!-- **Wie je bent** staat hier en niet meer in de kop. Het is een
+             formulier dat je één keer invult; het hoorde niet boven elk
+             subtabblad te staan. Dichtgeklapt, want je komt er zelden; de
+             samenvatting staat in de kop. -->
+        <details class="player-dash-section player-wiejebent pds--half" ${_wieLeeg() ? 'open' : ''}>
+          <summary class="player-dash-section-title">${icon('user')} Wie je bent
+            <span class="player-wiejebent-kort">${esc(_heroFeiten()) || 'nog niets ingevuld'}</span></summary>
+          ${_profielVeldenHtml()}
+        </details>
+
         <!-- Actieve conditions -->
         ${conditions.length > 0 ? `
-        <div class="player-dash-section">
+        <div class="player-dash-section pds--half">
           <div class="player-dash-section-title">${icon('zap')} Actieve statussen</div>
           <div class="player-dash-conditions">
             ${conditions.map(cid => {
@@ -10732,30 +10778,10 @@ async function renderMijnKarakter(opts = {}) {
     renderMijnKarakter(opts);
   };
 
-  window._toggleHeroCollapse = function() {
-    const hero  = document.getElementById('player-dash-hero');
-    const btn   = document.querySelector('.player-hero-collapse-btn');
-    const fields = hero?.querySelector('.player-profile-fields');
-    const collapsed = localStorage.getItem('_heroCollapsed') === '1';
-    if (collapsed) {
-      localStorage.setItem('_heroCollapsed', '0');
-      if (fields) fields.style.display = '';
-      if (btn)  { btn.textContent = '▲'; btn.classList.remove('collapsed'); }
-    } else {
-      localStorage.setItem('_heroCollapsed', '1');
-      if (fields) fields.style.display = 'none';
-      if (btn)  { btn.textContent = '▼'; btn.classList.add('collapsed'); }
-    }
-  };
-
-  // Herstel collapse-staat na render
-  if (localStorage.getItem('_heroCollapsed') === '1') {
-    setTimeout(() => {
-      const hero  = document.getElementById('player-dash-hero');
-      const fields = hero?.querySelector('.player-profile-fields');
-      if (fields) fields.style.display = 'none';
-    }, 0);
-  }
+  // **Het inklapknopje is weg.** Dat bestond omdat de kop negen rijen
+  // formulier droeg; nu is hij één regel, en dan is een knop om hem kleiner te
+  // maken een knop zonder werk. De stand in localStorage (`_heroCollapsed`)
+  // laten we voor wat hij is — die wordt nergens meer gelezen.
 
   // ── Subtab switcher ──
   // Vegen tussen de subtabbladen. Bewust géén pijltjestoetsen: in het
