@@ -508,6 +508,13 @@ export async function renderSpreuken(container) {
   _container.innerHTML = `
     <div class="section-banner section-banner--entity section-banner--spreuken">
       <div class="section-banner-head">
+        <!-- De weg terug. De spreuken horen sinds 19 nov 2026 bij het
+             Heldenboek — daar is alles wat een personage kan zijn of kennen —
+             en dit is hun eigen scherm. Zonder deze knop is het een
+             doodlopende gang: je komt er via een deur en er is geen deur
+             terug. -->
+        <button class="sbs-terug" onclick="window.app.switchSection('vaardigheden')"
+          title="Terug naar het Heldenboek">${icon('chevron-left')}</button>
         <div class="section-banner-icon-wrap">${icon('sparkles')}</div>
         <div class="section-banner-info">
           <div class="section-banner-label">Spreuken</div>

@@ -1838,6 +1838,17 @@ const _DEUREN = [
   { id: 'species',    label: 'Species',            soorten: ['species', 'variant'], icoon: 'user',       kleur: '#1a6a50' },
   { id: 'background', label: 'Backgrounds',        soorten: ['background'],        icoon: 'scroll-text', kleur: '#962058' },
   { id: 'feats',      label: 'Feats & Boons',      soorten: ['feat', 'boon', 'zegen', 'gunst'], icoon: 'zap', kleur: '#1e4a8a' },
+  // **De spreuken wonen hier ook.** Ze stonden in het Archief, en dat was de
+  // enige plek waar iets hoorde dat een personage kan zijn of kennen. Je zag
+  // het aan de naden: een feat die een spreuk geeft linkt naar een ander
+  // tabblad, de personagemaker zet spreukkaarten naast zijn class- en
+  // speciestegels, en Spellcasting verwijst naar een lijst die elders staat.
+  //
+  // Deze deur filtert niet maar **gaat ergens heen**: de spreukenbibliotheek
+  // heeft zijn eigen scherm met eigen filters en een eigen venster, en dat
+  // hier nog eens nabouwen zou een tweede bibliotheek opleveren.
+  { id: 'spreuken',   label: 'Spells',             soorten: [], icoon: 'sparkles', kleur: '#5a2e8a',
+    sectie: 'spreuken', module: 'spreuken' },
 ];
 const _DEUR = id => _DEUREN.find(d => d.id === id);
 // Hoe heet het ding dat je achter deze deur toevoegt?
@@ -1859,6 +1870,7 @@ function _deurBeeld(id) {
 // Hoeveel zit er achter een deur? Bij Classes tellen we de classes zelf, niet
 // hun features — "12" zegt meer dan "419".
 function _deurTelling(d) {
+  if (d.id === 'spreuken') return _spreukTelling ?? '';
   if (d.id === 'class') return Object.keys(_bron?.prog?.classes || {}).length;
   if (d.id === 'species' || d.id === 'background') return _bandBronnen(d).length;
   return (_all || []).filter(x => d.soorten.includes(x.soort)).length;
@@ -1903,8 +1915,22 @@ function _bandSubklassen(houder) {
 // Hoog in plaats van breed, met het icoon, het aantal en de naam gecentreerd en
 // verder niets. Een ondertitel las als uitleg bij een knop; wat erachter ligt
 // zie je zodra je klikt, en dat is sneller dan het te lezen.
+// Hoeveel spreuken er zijn. De bibliotheek laadt lui, dus dit getal komt pas
+// als zij binnen is; tot dan staat er niets in plaats van een nul die liegt.
+let _spreukTelling = null;
+function _spreukTellingLaden() {
+  if (_spreukTelling !== null) return;
+  window.spreuken?.alle?.().then(l => {
+    _spreukTelling = (l || []).length;
+    if (!_deur) _bandHerteken();
+  }).catch(() => { /* dan blijft het getal weg */ });
+}
+
 function _deurenHtml() {
-  return `<div class="vd-deuren">${_DEUREN.map(d => {
+  _spreukTellingLaden();
+  // Een deur van een module die uitstaat bestaat niet — zelfde regel als
+  // overal: uit is weg, niet grijs.
+  return `<div class="vd-deuren">${_DEUREN.filter(d => !d.module || window._moduleAan?.(d.module) !== false).map(d => {
     const beeld = _deurBeeld(d.id);
     return `<div class="vd-deur-wrap">
       <button class="vd-deur" style="--vd-kleur:${d.kleur}" onclick="window.vaardigheden.deur('${d.id}')">
@@ -4095,6 +4121,10 @@ window.vaardigheden = {
   // Een deur openen of sluiten. Alles wat eronder hing gaat mee terug, anders
   // sta je achter een andere deur nog op de class die je daarvoor koos.
   deur(id) {
+    // Een deur die ergens heen gaat in plaats van te filteren: de spreuken
+    // hebben hun eigen scherm.
+    const d = _DEUR(id);
+    if (d?.sectie) { window.app?.switchSection?.(d.sectie); return; }
     _deur = id || null;
     _filters.bron = null; _filters.sub = null; _filters.soort = null;
     _filters.level = null; _filters.q = '';

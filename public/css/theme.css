@@ -34088,3 +34088,14 @@ body.wizard-open .modal-overlay { z-index: 2100; }
 /* Empower gaf twee worpen; de DM kiest er een. */
 .bs-voorval-keuze { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 8px; }
 .bs-knop--klein { padding: 3px 10px; font-size: .85em; }
+
+/* De weg terug uit de spreukenbibliotheek naar het Heldenboek. Dezelfde ronde
+   vorm als de andere losse knoppen in een sectiebanier. */
+.sbs-terug {
+  flex: 0 0 auto; width: 30px; height: 30px; margin-right: 4px; cursor: pointer;
+  display: inline-flex; align-items: center; justify-content: center;
+  border: 1px solid rgba(122,96,64,.4); border-radius: 50%;
+  background: transparent; color: #7a6040;
+}
+.sbs-terug:hover { color: #2a1a08; border-color: #7a6040; background: rgba(196,168,122,.18); }
+.sbs-terug .icon { width: 15px; height: 15px; }

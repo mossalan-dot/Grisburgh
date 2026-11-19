@@ -348,11 +348,11 @@ De app gebruikt querystring cache-busting (`?v=N`). **Vergeten = browser haalt o
 **Huidige versies (bij te houden):**
 
 ```
-index.html  : theme.css?v=950   app.js?v=1271   sound-manager.js?v=15
+index.html  : theme.css?v=951   app.js?v=1273   sound-manager.js?v=15
 app.js      : api.js?v=325  dm-panel.js?v=430  media-picker.js?v=14  tafels.js?v=2  terugblik.js?v=3  rage.js?v=4  klassekracht.js?v=6  personage-maken.js?v=31  gevecht-regie.js?v=3  bastion.js?v=4  stemronde.js?v=2
               render-archief.js?v=149  render-bestiarium.js?v=41  render-campagne.js?v=400
               render-dungeon.js?v=75  render-kaart.js?v=35  render-progressie.js?v=67
-              render-relatiemap.js?v=38  render-spreuken.js?v=56  render-vaardigheden.js?v=166
+              render-relatiemap.js?v=38  render-spreuken.js?v=59  render-vaardigheden.js?v=167
               render-statblock.js?v=10  socket-client.js?v=105  wizard.js?v=12  conditions.js?v=4
 dm-panel.js : akte-schrijven.js?v=42  combat-canvas.js?v=41  render-statblock.js?v=10
 ```
@@ -2019,7 +2019,8 @@ in `_load()` (`render-spreuken.js`), ontdubbeld op `index`:
 
 ---
 
-> **Het Heldenboek: vier deuren, dan één laag.** (Heette *Vaardigheden*; de
+> **Het Heldenboek: vijf deuren, dan één laag.** (Sinds 19 nov 2026 is
+> **Spells** de vijfde — zie onderaan dit blok.) (Heette *Vaardigheden*; de
 > module-sleutel is nog `vaardigheden`, want hernoemen kost een migratie van elke
 > campagne die hem in `meta.modules` heeft staan.) Het tabblad gaat niet over
 > vaardigheden maar over **waar een personage uit bestaat**, en dat was ook het
