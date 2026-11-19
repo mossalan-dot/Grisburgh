@@ -12,17 +12,25 @@
 // die driekwart van de gevallen mist, kun je daar niet op vertrouwen.
 //
 // Dit script vult alleen wat **leeg** is, en alleen waar een boektitel staat.
-// Wat de DM zelf op `zelfbedacht` of `aangepast` zette blijft staan — ook als
-// er een boek bij staat; dat is dan een aantekening waar het vandaan geleend
-// is, en die beslissing is aan hem.
+// Wat op `aangepast` staat blijft staan: dat is een bewuste tussenvorm, en met
+// een boek erbij is hij juist compleet.
+//
+// `zelfbedacht` **mét** een boektitel is dat niet: die twee spreken elkaar
+// tegen. In Grisburgh stonden er vier zo (Deep Gnome Darkvision, Dhampir
+// Spider Climb, Duergar Creature Type, Duskling Ardor) en alle vier waren het
+// overnames. Met `--ook-zelfbedacht` worden die omgezet; zonder die vlag blijft
+// er niets aan de keuze van de DM veranderen, want een script hoort niet
+// stilletjes te beslissen wat iemand zelf verzonnen heeft.
 //
 //   node scripts/herkomst-uit-boek.js <campagne>
 //   node scripts/herkomst-uit-boek.js <campagne> --schrijf
+//   node scripts/herkomst-uit-boek.js <campagne> --ook-zelfbedacht --schrijf
 const fs   = require('fs');
 const path = require('path');
 
 const campagne = process.argv[2];
 const schrijf  = process.argv.includes('--schrijf');
+const ookEigen = process.argv.includes('--ook-zelfbedacht');
 if (!campagne) { console.error('Geef een campagne op.'); process.exit(1); }
 
 const WORTEL = process.env.GRISBURGH_DATA_DIR || path.join(__dirname, '..', 'data');
@@ -43,7 +51,10 @@ function kijk(obj, veld) {
   const boek = String(obj[veld] || '').trim();
   if (!boek) return;
   if (obj.herkomst === 'overgenomen') { alGoed++; return; }
-  if (obj.herkomst) { eigen++; return; }   // zelfbedacht of aangepast: niet aankomen
+  if (obj.herkomst === 'zelfbedacht' && ookEigen) {
+    // Zelf verzonnen én uit een boek kan niet allebei waar zijn.
+    console.log(`  ~  ${obj.name || obj.naam || '(houder)'} stond op zelfbedacht met "${boek}" erbij`);
+  } else if (obj.herkomst) { eigen++; return; }
   perBoek.set(boek, (perBoek.get(boek) || 0) + 1);
   gezet++;
   if (schrijf) obj.herkomst = 'overgenomen';
