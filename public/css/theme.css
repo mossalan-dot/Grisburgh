@@ -34152,3 +34152,28 @@ body.wizard-open .modal-overlay { z-index: 2100; }
 .vd-keuze-uit > input { flex: 1 1 auto; min-width: 0; }
 .vd-keuze-varianten { display: flex; flex-direction: column; gap: 6px; }
 .vd-keuze-variant > input { flex: 1 1 0; min-width: 0; }
+
+/* ── Wat je elke dag opnieuw kiest (dagkeuze.js) ─────────────────────────────
+   Een rij per keuze. Staat er nog iets open, dan krijgt hij een warme rand —
+   dat is het enige signaal dat nodig is: je ziet het bij het openslaan van je
+   tabblad na een rust, en het verdwijnt zodra je gekozen hebt. */
+.dagkeuze-rij { padding: 8px 0; border-top: 1px solid rgba(196,168,122,.3); }
+.dagkeuze-rij:first-of-type { border-top: 0; }
+.dagkeuze-rij--open { border-left: 3px solid #c47a1a; padding-left: 9px; margin-left: -12px; }
+.dagkeuze-kop { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+.dagkeuze-naam { font-family: 'Cinzel', serif; color: #3a2410; font-size: .95rem; }
+.dagkeuze-bron { font-family: 'IM Fell English', serif; font-style: italic; color: #7a6040; font-size: .8rem; }
+.dagkeuze-opties { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 6px; }
+.dagkeuze-optie {
+  padding: 3px 10px; border-radius: 12px; cursor: pointer;
+  border: 1px solid rgba(196,168,122,.6); background: rgba(242,232,210,.5);
+  color: #3a2410; font-family: 'Crimson Text', serif; font-size: .88rem;
+}
+.dagkeuze-optie:hover { background: rgba(196,168,122,.3); }
+.dagkeuze-optie.is-aan { background: #3a2410; border-color: #3a2410; color: #f2e8d2; }
+.dagkeuze-vrij {
+  margin-top: 6px; width: 100%; padding: 4px 8px;
+  border: 1px solid rgba(196,168,122,.6); border-radius: 6px;
+  background: rgba(242,232,210,.5); color: #3a2410;
+  font-family: 'Crimson Text', serif;
+}

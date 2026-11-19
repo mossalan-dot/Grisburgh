@@ -606,6 +606,15 @@ function _ververOpenKaartje(id) {
     }
   });
 
+  // ── Een keuze die maar één dag geldt, is opnieuw open ──
+  // Gaat uit bij het kiezen én bij de lange rust, want dan haalt de server ze
+  // er juist af. Alleen het blok hertekenen: de rest van het tabblad verandert
+  // niet, en een volledige verversing zou je uit je scrollpositie tillen.
+  socket.on('player:keuzes', ({ characterId } = {}) => {
+    if (window.app?.state?.characterId !== characterId) return;
+    window._dagkeuzeBlok?.();
+  });
+
   // ── Profiel gewijzigd (level, klasse, etc.) ──
   socket.on('player:profile-updated', ({ characterId, profile } = {}) => {
     const myId = window.app?.state?.characterId;

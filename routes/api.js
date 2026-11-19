@@ -5376,6 +5376,157 @@ function _kkMeld(req, charId, entities, bericht) {
   if (!bericht.stil) io.to(_displayRoom(req)).emit('klasse:display', { ...uit, bron, doel });
 }
 
+// ════════════════════════════════════════════════════════════════════════════
+//  KEUZES VAN EEN BESTAAND PERSONAGE
+// ════════════════════════════════════════════════════════════════════════════
+// De personagemaker laat je de keuzes van je features maken, en bij het gunnen
+// landen ze op het blad. Daarna waren ze weg: er was geen plek waar stond wát
+// er gekozen was, dus een keuze die **elke dag opnieuw** gemaakt wordt kon
+// helemaal niet.
+//
+// `dmState.playerKeuzes[charId]` is die plek:
+//   keuzes — per slot wat er gekozen is
+//   gezet  — wat dit mechaniek zélf op het blad schreef, en door welk slot
+//
+// Dat tweede is de hele truc. Een skill kan ook van je background of je class
+// komen, en die mag je er bij het terugdraaien niet afhalen. Door alleen op te
+// ruimen wat we zelf schreven, kan dit nooit iets wegnemen wat er al stond.
+function _keuzeBak(dmState, charId) {
+  if (!dmState.playerKeuzes) dmState.playerKeuzes = {};
+  const b = dmState.playerKeuzes[charId] || (dmState.playerKeuzes[charId] = {});
+  if (!b.keuzes) b.keuzes = {};
+  if (!b.gezet)  b.gezet  = { skill: {}, taal: {} };
+  if (!b.gezet.skill) b.gezet.skill = {};
+  if (!b.gezet.taal)  b.gezet.taal  = {};
+  return b;
+}
+
+// Een bestaand personage als concept, zodat `keuzeSlots` er niets bijzonders
+// aan ziet. Het species staat op het profiel als `origin` en op het kaartje als
+// `data.ras`; die eerste wint, want dat is wat de maker wegschreef.
+function _keuzeConcept(dmState, char) {
+  const p = dmState.playerProfiles?.[char.id] || {};
+  return {
+    klasse: p.klasse || char.data?.klasse || '',
+    subclass: p.subclass || '',
+    multiKlasse: p.multiKlasse || '',
+    multiSubclassLevel: parseInt(p.multiKlasseLevel) || 0,
+    multiSubclass: p.multiSubclass || '',
+    species: p.origin || char.data?.ras || '',
+    speciesVariant: p.speciesVariant || '',
+    background: p.background || '',
+    level: Math.max(1, Math.min(20, parseInt(p.level) || 1)),
+    keuzes: _keuzeBak(dmState, char.id).keuzes,
+  };
+}
+
+function _keuzeSlotsVoor(dmState, char) {
+  const prog = _progHuidig();
+  return personageConcept.keuzeSlots(_keuzeConcept(dmState, char), prog).map(slot => ({
+    ...slot,
+    opties: personageConcept.keuzeOpties(slot, _keuzeConcept(dmState, char), prog,
+      { alleSkills: _ALLE_SKILLS, alleTools: _gereedschapLijst() }),
+    gekozen: _keuzeBak(dmState, char.id).keuzes[slot.sleutel] || [],
+  }));
+}
+
+const _taalLijst = (p) => String(p.languages || '').split(',').map(x => x.trim()).filter(Boolean);
+
+// Eén slot opnieuw invullen. Eerst terugdraaien wat dít slot op het blad
+// schreef, dan het nieuwe erop. Een lege lijst is dus "weghalen".
+function _keuzeToepassen(dmState, charId, slot, namen) {
+  const bak = _keuzeBak(dmState, charId);
+  if (!dmState.playerProfiles) dmState.playerProfiles = {};
+  const prof = dmState.playerProfiles[charId] || (dmState.playerProfiles[charId] = {});
+  const sleutel = slot.sleutel;
+
+  let skills = {};
+  try { skills = JSON.parse(prof.skillProfs || '{}') || {}; } catch { skills = {}; }
+  for (const [sl, door] of Object.entries(bak.gezet.skill)) {
+    if (door !== sleutel) continue;
+    delete skills[sl];
+    delete bak.gezet.skill[sl];
+  }
+  let talen = _taalLijst(prof);
+  for (const [taal, door] of Object.entries(bak.gezet.taal)) {
+    if (door !== sleutel) continue;
+    talen = talen.filter(x => x !== taal);
+    delete bak.gezet.taal[taal];
+  }
+
+  const lijst = (Array.isArray(namen) ? namen : []).map(x => String(x).trim()).filter(Boolean)
+    .slice(0, slot.keuze.aantal);
+  if (lijst.length) bak.keuzes[sleutel] = lijst; else delete bak.keuzes[sleutel];
+
+  if (slot.keuze.soort === 'skill') {
+    for (const naam of lijst) {
+      const sl = personageConcept.skillSleutel(naam);
+      const wil = slot.keuze.geeft === 'expertise' ? 'expert' : 'prof';
+      // Stond hij er al? Dan is hij niet van ons en raken we hem later ook
+      // niet kwijt — hoogstens tillen we hem naar expert.
+      const had = skills[sl];
+      if (had === 'expert') continue;
+      if (!had) bak.gezet.skill[sl] = sleutel;
+      skills[sl] = wil;
+    }
+  } else if (slot.keuze.soort === 'language') {
+    for (const naam of lijst) {
+      if (talen.includes(naam)) continue;
+      talen.push(naam);
+      bak.gezet.taal[naam] = sleutel;
+    }
+  }
+  prof.skillProfs = JSON.stringify(skills);
+  prof.languages  = talen.join(', ');
+  // Een vorm die wisselt laat zijn vervolgkeuzes vallen; die horen dan ook van
+  // het blad af. Zelfde regel als `_conceptOpruimen` bij een concept.
+  if (slot.keuze.soort === 'variant') {
+    for (const k of Object.keys(bak.keuzes)) {
+      if (k.startsWith(`${sleutel}#`)) {
+        _keuzeToepassen(dmState, charId, { sleutel: k, keuze: { soort: 'skill', aantal: 1 } }, []);
+      }
+    }
+  }
+}
+
+function _keuzeKarakter(charId) {
+  const entities = storage.readJSON('entities.json');
+  return (entities.personages || []).find(p => p.id === charId) || null;
+}
+
+router.get('/characters/:characterId/keuzes', attachRole, (req, res) => {
+  const { characterId } = req.params;
+  if (req.role !== 'dm' && req.session?.characterId !== characterId) return res.status(403).json({ error: 'Geen toegang' });
+  const char = _keuzeKarakter(characterId);
+  if (!char) return res.status(404).json({ error: 'Dat personage bestaat niet' });
+  const dmState = readDmState();
+  res.json({ slots: _keuzeSlotsVoor(dmState, char) });
+});
+
+router.post('/characters/:characterId/keuzes', attachRole, (req, res) => {
+  const { characterId } = req.params;
+  if (req.role !== 'dm' && req.session?.characterId !== characterId) return res.status(403).json({ error: 'Geen toegang' });
+  const char = _keuzeKarakter(characterId);
+  if (!char) return res.status(404).json({ error: 'Dat personage bestaat niet' });
+  const dmState = readDmState();
+  const slot = _keuzeSlotsVoor(dmState, char).find(x => x.sleutel === String(req.body?.sleutel || ''));
+  if (!slot) return res.status(409).json({ error: 'Die keuze hoort niet bij dit personage' });
+  // Staat er een lijst bij, dan moet wat je kiest erin staan. Zonder lijst is
+  // alles goed — dan weet de app niet wat er bestaat en de speler wel.
+  const namen = (Array.isArray(req.body?.namen) ? req.body.namen : []).map(x => String(x).trim()).filter(Boolean);
+  if (slot.opties?.length && namen.some(n => !slot.opties.includes(n))) {
+    return res.status(409).json({ error: 'Dat staat niet in de lijst' });
+  }
+  _keuzeToepassen(dmState, characterId, slot, namen);
+  storage.writeJSON('dm-state.json', dmState);
+  const io = req.app.get('io');
+  if (io) {
+    io.to(_campagneRoom(req)).emit('player:keuzes', { characterId });
+    io.to(_campagneRoom(req)).emit('player:profile-updated', { characterId });
+  }
+  res.json({ ok: true, slots: _keuzeSlotsVoor(dmState, char) });
+});
+
 router.get('/characters/:characterId/klassekracht', attachRole, (req, res) => {
   const { characterId } = req.params;
   if (req.role !== 'dm' && req.session?.characterId !== characterId) return res.status(403).json({ error: 'Geen toegang' });
@@ -5824,6 +5975,20 @@ router.post('/party/long-rest', requireDM, (req, res) => {
       }
     });
   }
+
+  // ── 0b. Keuzes die maar één dag gelden gaan open ──
+  // Astral Knowledge en zijn soortgenoten geven een skill "until the end of
+  // your next long rest". Die halen we er hier af; de speler kiest bij het
+  // ontwaken opnieuw. Bewust leegmaken en niet laten staan: wat er staat moet
+  // waar zijn, ook als hij vergeet te kiezen.
+  spelers.forEach(char => {
+    let slots = [];
+    try { slots = _keuzeSlotsVoor(dmState, char).filter(sl => sl.keuze?.bijRust); } catch { return; }
+    if (!slots.length) return;
+    for (const sl of slots) _keuzeToepassen(dmState, char.id, sl, []);
+    _sum(char.id).keuzesOpnieuw = slots.map(sl => sl.keuze.label || sl.naam);
+    if (io) io.to(_campagneRoom(req)).emit('player:keuzes', { characterId: char.id });
+  });
 
   // ── 1. HP → max ──
   if (!dmState.playerHp) dmState.playerHp = {};
@@ -12573,6 +12738,11 @@ function _keuzeUit(rauw) {
     if (lijst.length) uit = lijst;
   }
   const label = String(rauw.label || '').trim().slice(0, 60);
+  // **Een keuze die elke dag opnieuw gemaakt wordt.** Astral Knowledge,
+  // Astral Trance en Severed from Dreams geven een skill "until the end of
+  // your next long rest" — dat is geen keuze die je bij het maken van je
+  // personage vastlegt maar een die bij het ontwaken hoort.
+  const bijRust = rauw.bijRust === true || rauw.bijRust === 'true';
   // Eén laag diep, en niet meer: een variant die zelf weer varianten heeft is
   // geen formulier meer maar een doolhof, en in de boeken komt het niet voor.
   let varianten;
@@ -12590,7 +12760,8 @@ function _keuzeUit(rauw) {
     if (varianten.length < 2) return null;   // één variant is geen keuze
   }
   return { soort, aantal, ...(uit ? { uit } : {}), ...(geeft ? { geeft } : {}),
-           ...(label ? { label } : {}), ...(varianten ? { varianten } : {}) };
+           ...(label ? { label } : {}), ...(bijRust ? { bijRust: true } : {}),
+           ...(varianten ? { varianten } : {}) };
 }
 
 // Eén blok of een lijst blokken. Geeft `null` als er niets bruikbaars in zit —

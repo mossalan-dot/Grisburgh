@@ -36,6 +36,8 @@ const sp = (uit, label) => ({ soort: 'spell', aantal: 1, ...(uit ? { uit } : {})
 const vrij = (uit, label) => ({ soort: 'vrij', aantal: 1, ...(uit ? { uit } : {}), ...(label ? { label } : {}) });
 const vorm = (...varianten) => ({ soort: 'variant', aantal: 1, varianten });
 const v = (naam, ...keuze) => ({ naam, ...(keuze.length ? { keuze } : {}) });
+// Een keuze die maar één dag geldt: de lange rust maakt hem leeg.
+const rust = (k) => ({ ...k, bijRust: true });
 
 // De vijf skill-lijsten die meer dan eens voorkomen, één keer opgeschreven.
 const SOCIAAL = ['Deception', 'Intimidation', 'Persuasion'];
@@ -64,11 +66,13 @@ const BESLUITEN = {
   'Barbarian 3 · Primal Knowledge':                      [s(1, 'class')],
 
   // ── 3. Een skill die bij elke lange rust opnieuw gekozen wordt ──
-  // Voorlopig één keer kiezen; de speler mag hem zelf wijzigen. Een eigen
-  // keuzemoment bij de lange rust is het betere antwoord en staat op de lijst.
-  'Githyanki 1 · Astral Knowledge':   [s(1, null, 'proficiency', 'Skill tot je volgende Long Rest'), vrij(null, 'Wapen of gereedschap')],
-  'Astral Elf 1 · Astral Trance':     [s(1, null, 'proficiency', 'Skill tot je volgende Long Rest'), vrij(null, 'Wapen of gereedschap')],
-  'Kalashtar 1 · Severed from Dreams': [s(1, null, 'proficiency', 'Skill tot je volgende Long Rest')],
+  // `bijRust` zet ze op de Personage-tab in plaats van in de maker: de lange
+  // rust maakt ze leeg en de speler kiest bij het ontwaken opnieuw. Dat is wat
+  // het boek zegt — "until the end of your next long rest" — en een vast veld
+  // zou een stand tonen die morgen niet meer waar is.
+  'Githyanki 1 · Astral Knowledge':   [rust(s(1, null, 'proficiency', 'Skill van vandaag')), rust(vrij(null, 'Wapen of gereedschap van vandaag'))],
+  'Astral Elf 1 · Astral Trance':     [rust(s(1, null, 'proficiency', 'Skill van vandaag')), rust(vrij(null, 'Wapen of gereedschap van vandaag'))],
+  'Kalashtar 1 · Severed from Dreams': [rust(s(1, null, 'proficiency', 'Skill van vandaag'))],
 
   // ── 4. Twee skills ──
   'Kenku 1 · Kenku Recall':                              [s(2)],
@@ -193,7 +197,8 @@ const toon = (k) => k.soort === 'variant'
   : `${k.soort}${k.aantal > 1 ? ` ×${k.aantal}` : ''}`
     + (Array.isArray(k.uit) ? ` uit ${k.uit.length} namen` : k.uit ? ` uit ${k.uit}` : '')
     + (k.geeft ? ` → ${k.geeft}` : '')
-    + (k.label ? `  [${k.label}]` : '');
+    + (k.label ? `  [${k.label}]` : '')
+    + (k.bijRust ? '  · opnieuw bij elke lange rust' : '');
 
 let gezet = 0, gemist = 0, gelijk = 0;
 for (const [waar, blokken] of Object.entries(BESLUITEN)) {

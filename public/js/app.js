@@ -11,12 +11,14 @@ import './render-handleiding.js?v=2';
 import './render-melding.js?v=4';
 import { renderVaardigheden, zoekVaardigheden, heldenboekTekst } from './render-vaardigheden.js?v=174';
 import { renderStatblock } from './render-statblock.js?v=10';
-import { initSocket } from "./socket-client.js?v=106";
+import { initSocket } from "./socket-client.js?v=107";
 import { initDmPanel } from "./dm-panel.js?v=430";
 import { COND_INFO, COND_LABEL, COND_MET_PLAATJE, COND_ICON } from './conditions.js?v=5';
 import './media-picker.js?v=18';
 // Sfeer bij het vergroten van een kaart; hangt zichzelf op aan window.
 import './kaartsfeer.js?v=5';
+// Wat je elke dag opnieuw kiest; hangt zichzelf op aan window.
+import './dagkeuze.js?v=3';
 import './wizard.js?v=15';
 import './tafels.js?v=2';
 import './terugblik.js?v=7';
@@ -9089,6 +9091,7 @@ async function renderMijnKarakter(opts = {}) {
         <div id="levelup-balk"></div>
         <div id="rage-blok"></div>
         <div id="kracht-blok"></div>
+        <div id="dagkeuze-blok"></div>
 
         ${_dominantKlasse.toLowerCase().includes('sorcerer') ? `
         <div class="player-dash-section wild-magic-section">
@@ -9850,6 +9853,7 @@ async function renderMijnKarakter(opts = {}) {
   _levelUpBalk();
   window._rageBlok?.();
   window._krachtBlok?.();
+  window._dagkeuzeBlok?.();
   _partyGevallenen();
   _partyGevangenen();
   window.stemronde?.partyKaart();

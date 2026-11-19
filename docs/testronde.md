@@ -1967,3 +1967,9 @@ Grisburghs **data** te staan — niet in de code.
 - Kies bij een Half-Elf de afstamming *Wood Elf Descent*: je kiest eerst een vorm uit vier. Kies *Skill Versatility* → er verschijnt een inspringend vervolgveld voor twee skills. Kies daarna *Fleet of Foot* → dat veld verdwijnt, en de twee skills staan niet meer op het blad.
 - Vul een taal in en kijk op het blad: er hoort **Common, <jouw taal>** te staan, niet alleen Common.
 - *Primal Knowledge* biedt zes skills aan (de lijst van de Barbarian), niet alle achttien.
+
+### Wat je elke dag opnieuw kiest
+- Maak (of pak) een **Githyanki**, **Astral Elf** of **Kalashtar**-speler. Op zijn Personage-tab staat onder de klassekrachten het blok **Wat je vandaag koos**, met een warme rand zolang er nog iets open staat.
+- Tik een skill aan: hij komt meteen bij zijn proficiencies op het blad te staan. Tik een andere aan: de vorige valt eraf, de nieuwe komt erbij.
+- Laat de DM een **lange rust** doen: het blok staat weer open en de skill van gisteren is van het blad af. Wat van zijn class of background komt staat er nog.
+- Kies een skill die hij al van zijn class had en doe dan een lange rust: die skill hoort te blijven staan — de feature schreef hem niet, dus mag hem ook niet weghalen.
