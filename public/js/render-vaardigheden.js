@@ -357,28 +357,28 @@ async function _load() {
 
   for (const [klasse, data] of Object.entries(prog.classes || {})) {
     for (const [lvl, fs] of Object.entries(data.levels || {})) {
-      for (const f of (fs || [])) zet({ soort: 'class', bron: klasse, level: Number(lvl), naam: f.name, desc: f.desc || '', img: f.img || '', imgFocus: f.imgFocus || '', herkomst: f.herkomst || '', bronTekst: f.bron || '' });
+      for (const f of (fs || [])) zet({ soort: 'class', bron: klasse, level: Number(lvl), naam: f.name, desc: f.desc || '', img: f.img || '', imgFocus: f.imgFocus || '', herkomst: f.herkomst || '', bronTekst: f.bron || '', keuze: f.keuze || null });
     }
     for (const [sub, sdata] of Object.entries(data.subclasses || {})) {
       for (const [lvl, fs] of Object.entries(sdata.levels || {})) {
-        for (const f of (fs || [])) zet({ soort: 'subclass', bron: klasse, sub, level: Number(lvl), naam: f.name, desc: f.desc || '', img: f.img || '', imgFocus: f.imgFocus || '', herkomst: f.herkomst || '', bronTekst: f.bron || '' });
+        for (const f of (fs || [])) zet({ soort: 'subclass', bron: klasse, sub, level: Number(lvl), naam: f.name, desc: f.desc || '', img: f.img || '', imgFocus: f.imgFocus || '', herkomst: f.herkomst || '', bronTekst: f.bron || '', keuze: f.keuze || null });
       }
     }
   }
   for (const [soort, data] of Object.entries(prog.species || {})) {
     for (const [lvl, fs] of Object.entries(data.levels || {})) {
-      for (const f of (fs || [])) zet({ soort: 'species', bron: soort, level: Number(lvl), naam: f.name, desc: f.desc || '', img: f.img || '', imgFocus: f.imgFocus || '', herkomst: f.herkomst || '', bronTekst: f.bron || '' });
+      for (const f of (fs || [])) zet({ soort: 'species', bron: soort, level: Number(lvl), naam: f.name, desc: f.desc || '', img: f.img || '', imgFocus: f.imgFocus || '', herkomst: f.herkomst || '', bronTekst: f.bron || '', keuze: f.keuze || null });
     }
     // En wat onder een variant hangt — net als de features van een subclass.
     for (const [variant, vdata] of Object.entries(data.varianten || {})) {
       for (const [lvl, fs] of Object.entries(vdata.levels || {})) {
-        for (const f of (fs || [])) zet({ soort: 'variant', bron: soort, sub: variant, level: Number(lvl), naam: f.name, desc: f.desc || '', img: f.img || '', imgFocus: f.imgFocus || '', herkomst: f.herkomst || '', bronTekst: f.bron || '' });
+        for (const f of (fs || [])) zet({ soort: 'variant', bron: soort, sub: variant, level: Number(lvl), naam: f.name, desc: f.desc || '', img: f.img || '', imgFocus: f.imgFocus || '', herkomst: f.herkomst || '', bronTekst: f.bron || '', keuze: f.keuze || null });
       }
     }
   }
   _voegLevelsSamen(uit);
-  for (const f of (_bron.feats?.general || [])) zet({ soort: 'feat', bron: 'Feats',      level: 0, naam: f.name, desc: f.desc || '', img: f.img || '', imgFocus: f.imgFocus || '', herkomst: f.herkomst || '', bronTekst: f.bron || '', sluitAan: f.sluitAan || [], vereist: f.vereist || '', vereistLevel: f.vereistLevel || 0, geeftSpreuk: f.geeftSpreuk || [], categorie: f.categorie || '' });
-  for (const f of (_bron.feats?.epic    || [])) zet({ soort: 'boon', bron: 'Epic Boons', level: 0, naam: f.name, desc: f.desc || '', img: f.img || '', imgFocus: f.imgFocus || '', herkomst: f.herkomst || '', bronTekst: f.bron || '', sluitAan: f.sluitAan || [], vereist: f.vereist || '', vereistLevel: f.vereistLevel || 0, geeftSpreuk: f.geeftSpreuk || [], categorie: f.categorie || '' });
+  for (const f of (_bron.feats?.general || [])) zet({ soort: 'feat', bron: 'Feats',      level: 0, naam: f.name, desc: f.desc || '', img: f.img || '', imgFocus: f.imgFocus || '', herkomst: f.herkomst || '', bronTekst: f.bron || '', keuze: f.keuze || null, sluitAan: f.sluitAan || [], vereist: f.vereist || '', vereistLevel: f.vereistLevel || 0, geeftSpreuk: f.geeftSpreuk || [], categorie: f.categorie || '' });
+  for (const f of (_bron.feats?.epic    || [])) zet({ soort: 'boon', bron: 'Epic Boons', level: 0, naam: f.name, desc: f.desc || '', img: f.img || '', imgFocus: f.imgFocus || '', herkomst: f.herkomst || '', bronTekst: f.bron || '', keuze: f.keuze || null, sluitAan: f.sluitAan || [], vereist: f.vereist || '', vereistLevel: f.vereistLevel || 0, geeftSpreuk: f.geeftSpreuk || [], categorie: f.categorie || '' });
   // Een background is één ding met vijf onderdelen (Ability Scores, Feat,
   // Skill Proficiencies, Tool Proficiency, Equipment). Als losse kaartjes krijg
   // je zestien keer "Ability Scores" in de lijst; als één kaartje per background
@@ -3593,7 +3593,131 @@ function _subklassenVan(houder) {
   return Object.keys(_tweedeLaag(houder)?.bak || {}).sort();
 }
 
-let _edit = null;    // { oud, soort, bron, sub, level, naam, desc, herkomst, img }
+// ── Wat laat deze feature kiezen? ───────────────────────────────────────────
+// Een feature kan je iets laten kiezen — een skill, een taal, een cantrip — en
+// dat stond tot nu toe alleen in zijn tekst. Prachtig voor een lezer,
+// onbruikbaar voor een formulier: de personagemaker kan er geen keuzelijst van
+// maken en het blad weet niet dat er een skill bij komt.
+//
+// Drie dingen die hier bewust in zitten:
+//   * **Meer dan één keuze per feature.** Giant's Power geeft een taal én een
+//     cantrip; die passen niet in één blok, en samenvoegen tot "kies maar iets"
+//     is geen keuze meer.
+//   * **Een vorm met vervolgkeuzes** (`variant`). Half-Elf laat je kiezen
+//     tussen Skill Versatility en Drow Magic; alleen de eerste geeft skills.
+//     Zonder die laag deelt de app ze allebei uit.
+//   * **Waaruit** hoeft niet overgetypt: `class` pakt de skill-lijst van de
+//     class waar de feature bij hoort, `eigen` wat je al hebt (Expertise), en
+//     een taal krijgt vanzelf de lijst uit `bronnen/talen.json`.
+const _KEUZE_SOORTEN = [
+  { v: 'skill',    label: 'Skill' },
+  { v: 'tool',     label: 'Gereedschap' },
+  { v: 'language', label: 'Taal' },
+  { v: 'spell',    label: 'Spreuk of cantrip' },
+  { v: 'feat',     label: 'Feat' },
+  { v: 'ability',  label: 'Ability score' },
+  { v: 'vrij',     label: 'Vrije keuze' },
+  { v: 'variant',  label: 'Een vorm, met eigen vervolgkeuzes' },
+];
+const _KEUZE_GEEFT = [
+  { v: '',           label: '—' },
+  { v: 'proficiency', label: 'Proficiency' },
+  { v: 'expertise',  label: 'Expertise' },
+  { v: '+1',         label: '+1' },
+  { v: '+2',         label: '+2' },
+];
+const _KEUZE_UIT = [
+  { v: '',      label: 'Alles van die soort' },
+  { v: 'lijst', label: 'Een eigen lijst' },
+  { v: 'eigen', label: 'Uit wat je al hebt' },
+  { v: 'class', label: 'De skills van deze class' },
+];
+
+// De blokken zoals ze nú in het formulier staan. `_edit.keuze` is altijd een
+// lijst zolang je bewerkt; bij het opslaan wordt één blok weer een object,
+// zodat alles wat er al stond onveranderd terugkomt.
+const _keuzeLijst = () => Array.isArray(_edit?.keuze) ? _edit.keuze : (_edit?.keuze ? [_edit.keuze] : []);
+
+function _keuzeUitStand(k) {
+  if (typeof k.uit === 'string' && k.uit) return k.uit;
+  return Array.isArray(k.uit) && k.uit.length ? 'lijst' : '';
+}
+
+function _keuzeRijHtml(k, i) {
+  const stand = _keuzeUitStand(k);
+  const sel = (id, opties, waarde) => `<select class="dm-input dm-input-sm" data-keuze="${i}" data-veld="${id}"
+      onchange="window.vaardigheden.keuzeHerteken()">
+      ${opties.map(o => `<option value="${esc(o.v)}"${String(waarde || '') === o.v ? ' selected' : ''}>${esc(o.label)}</option>`).join('')}
+    </select>`;
+  return `<div class="vd-keuze-rij">
+    <div class="vd-keuze-kop">
+      ${sel('soort', _KEUZE_SOORTEN, k.soort)}
+      <input class="dm-input dm-input-sm vd-keuze-aantal" type="number" min="1" max="10"
+        data-keuze="${i}" data-veld="aantal" value="${Number(k.aantal) || 1}" title="Hoeveel je er kiest">
+      ${k.soort === 'variant' ? '' : sel('geeft', _KEUZE_GEEFT, k.geeft)}
+      <button type="button" class="dm-btn dm-btn-ghost dm-btn-sm dm-btn-icon" title="Deze keuze weghalen"
+        onclick="window.vaardigheden.keuzeWeg(${i})">${icon('x')}</button>
+    </div>
+    ${k.soort === 'variant' ? `
+      <div class="vd-keuze-varianten">
+        ${(k.varianten || []).map((v, j) => `
+          <div class="vd-keuze-variant">
+            <input class="dm-input dm-input-sm" data-keuze="${i}" data-variant="${j}" data-veld="naam"
+              value="${esc(v.naam || '')}" placeholder="Naam van de vorm — bijv. Skill Versatility">
+            <input class="dm-input dm-input-sm" data-keuze="${i}" data-variant="${j}" data-veld="geeft"
+              value="${esc(_variantKort(v))}" placeholder="Wat die vorm laat kiezen — bijv. 2 skill"
+              title="Leeg = die vorm geeft niets om te kiezen. Anders: aantal en soort, bijv. 2 skill of 1 language.">
+            <button type="button" class="dm-btn dm-btn-ghost dm-btn-sm dm-btn-icon" title="Deze vorm weghalen"
+              onclick="window.vaardigheden.variantWeg(${i},${j})">${icon('x')}</button>
+          </div>`).join('')}
+        <button type="button" class="dm-btn dm-btn-ghost dm-btn-sm" onclick="window.vaardigheden.variantErbij(${i})">
+          ${icon('plus')} Vorm erbij</button>
+      </div>`
+    : `
+      <div class="vd-keuze-uit">
+        ${sel('uitstand', _KEUZE_UIT, stand)}
+        ${stand === 'lijst' ? `
+          <input class="dm-input dm-input-sm" data-keuze="${i}" data-veld="uit"
+            value="${esc(Array.isArray(k.uit) ? k.uit.join(', ') : '')}"
+            placeholder="Namen, gescheiden door komma's">` : ''}
+      </div>`}
+    <input class="dm-input dm-input-sm" data-keuze="${i}" data-veld="label" maxlength="60"
+      value="${esc(k.label || '')}" placeholder="Label — alleen nodig als deze feature meer dan één keuze heeft">
+  </div>`;
+}
+
+// "2 skill" of "1 language" — hoe een vorm zijn vervolgkeuze draagt. Eén
+// invoerveld in plaats van een tweede formulier binnen het formulier: een vorm
+// heeft er in de praktijk nul of één, en nooit een hele reeks.
+function _variantKort(v) {
+  const k = (v.keuze || [])[0];
+  return k ? `${k.aantal || 1} ${k.soort}${k.geeft ? ` ${k.geeft}` : ''}` : '';
+}
+function _variantUit(tekst) {
+  const m = String(tekst || '').trim().match(/^(\d+)?\s*([a-z]+)(?:\s+([a-z+0-9]+))?$/i);
+  if (!m) return null;
+  const soort = String(m[2]).toLowerCase();
+  if (!_KEUZE_SOORTEN.some(o => o.v === soort) || soort === 'variant') return null;
+  const geeft = String(m[3] || '').toLowerCase();
+  return { soort, aantal: Math.max(1, parseInt(m[1]) || 1),
+           ...(_KEUZE_GEEFT.some(o => o.v && o.v === geeft) ? { geeft } : {}) };
+}
+
+function _keuzeBlokkenHtml() {
+  const lijst = _keuzeLijst();
+  return `
+    <div class="dm-form-row">
+      <label class="dm-form-label">Wat laat deze feature kiezen?
+        ${window._helpBtn?.('hulp_heldenboek_editor') ?? ''}</label>
+      <div class="vd-keuzes">
+        ${lijst.map((k, i) => _keuzeRijHtml(k, i)).join('')}
+        <button type="button" class="dm-btn dm-btn-ghost dm-btn-sm" onclick="window.vaardigheden.keuzeErbij()">
+          ${icon('plus')} Keuze erbij</button>
+      </div>
+    </div>`;
+}
+
+let _edit = null;    // { oud, soort, bron, sub, level, naam, desc, herkomst, img, keuze }
 
 // Wat kun je hier maken? Twee heel verschillende dingen, en die zaten door
 // elkaar: een **houder** (een class, een species) is een ding op zichzelf, een
@@ -3733,6 +3857,7 @@ function _editorHtml() {
         <textarea class="dm-input" id="vd-desc" rows="${houder ? 6 : 9}" onkeydown="window._fmtKey(event)"
           placeholder="${houder ? 'Wat is dit? Dit staat bovenaan het kaartje, vóór de features.' : 'Wat doet het? Een lege regel begint een nieuwe alinea.'}">${esc(e.desc || '')}</textarea>
       </div>
+      ${houder ? '' : _keuzeBlokkenHtml()}
       <!-- Dezelfde kerngegevens als in het bewerkvenster. Ze stonden daar
            alleen, dus een nieuwe class of een nieuw species moest je eerst
            aanmaken en daarna nog eens openen om te zeggen wat hij is —
@@ -3866,9 +3991,12 @@ function _editorOpen(it) {
         bronTekst: it.bronTekst || '', img: it.img || '', imgFocus: it.imgFocus || '',
         sluitAan: Array.isArray(it.sluitAan) ? [...it.sluitAan] : [], vereist: it.vereist || '',
         categorie: it.categorie || '', vereistLevel: it.vereistLevel || 0,
-        geeftSpreuk: Array.isArray(it.geeftSpreuk) ? [...it.geeftSpreuk] : [] }
+        geeftSpreuk: Array.isArray(it.geeftSpreuk) ? [...it.geeftSpreuk] : [],
+        // Altijd als lijst in de editor; bij het opslaan wordt één blok weer
+        // een object, zodat het bestand er onveranderd uitziet.
+        keuze: it.keuze ? JSON.parse(JSON.stringify(Array.isArray(it.keuze) ? it.keuze : [it.keuze])) : [] }
     : { oud: null, maaksel: 'feat', soort: 'feat', bron: 'Feats', sub: '', level: 1, naam: '', desc: '', herkomst: 'zelfbedacht', bron_: '', img: '', imgFocus: '',
-        sluitAan: [], vereist: '', geeftSpreuk: [], categorie: '', vereistLevel: 0 };
+        sluitAan: [], vereist: '', geeftSpreuk: [], categorie: '', vereistLevel: 0, keuze: [] };
   // Bij bewerken weten we welk soort het is; dat is altijd een regel binnen
   // iets, nooit een houder.
   if (it) _edit.maaksel = { class: 'f-class', subclass: 'f-subclass', species: 'f-species',
@@ -3931,6 +4059,41 @@ function _editorLees() {
   // `vd-geeft` is alleen de zoekingang en hoort hier dus niet thuis.
   const vinkjes = document.querySelectorAll('.vd-klasse-vink');
   if (vinkjes.length) _edit.sluitAan = [...vinkjes].filter(c => c.checked).map(c => c.value);
+  // De keuzeblokken: alles uit de DOM, niet uit losse handlers. Zo kan er niets
+  // verdwijnen omdat een `change` net niet gevuurd had.
+  const rijen = document.querySelectorAll('#m-body .vd-keuze-rij');
+  if (rijen.length) {
+    const was = _keuzeLijst();
+    _edit.keuze = [...rijen].map((rij, i) => {
+      const v = (veld) => rij.querySelector(`[data-keuze="${i}"][data-veld="${veld}"]:not([data-variant])`)?.value;
+      const soort = v('soort') || 'skill';
+      const k = { soort, aantal: Math.max(1, Math.min(10, parseInt(v('aantal')) || 1)) };
+      const label = String(v('label') || '').trim();
+      if (label) k.label = label;
+      if (soort === 'variant') {
+        k.varianten = [...rij.querySelectorAll('[data-variant][data-veld="naam"]')].map(inp => {
+          const j = inp.dataset.variant;
+          const naam = String(inp.value || '').trim();
+          const sub = _variantUit(rij.querySelector(`[data-variant="${j}"][data-veld="geeft"]`)?.value);
+          return naam ? { naam, ...(sub ? { keuze: [sub] } : {}) } : null;
+        }).filter(Boolean);
+        // Een nieuwe variantrij begint leeg; dan houden we vast wat er stond.
+        if (!k.varianten.length) k.varianten = was[i]?.varianten || [];
+        return k;
+      }
+      const geeft = v('geeft') || '';
+      if (geeft) k.geeft = geeft;
+      const stand = v('uitstand') || '';
+      if (['eigen', 'class', 'ambacht', 'instrument', 'spel'].includes(stand)) k.uit = stand;
+      else if (stand === 'lijst') {
+        const namen = String(v('uit') || '').split(',').map(x => x.trim()).filter(Boolean);
+        if (namen.length) k.uit = namen;
+      }
+      return k;
+    });
+  } else if (document.getElementById('vd-naam') && !_MAAKSEL(_edit.maaksel).houder) {
+    _edit.keuze = [];
+  }
   // De focuskiezer staat buiten de gewone velden; zijn waarde leest hij zelf uit.
   const fp = window._fpWaarde?.();
   if (fp && document.querySelector('#m-body .fp-blok')) _edit.imgFocus = fp;
@@ -4014,6 +4177,25 @@ window.vaardigheden = {
     // bij zijn groep maar bij wat hij met je doet; zie `kaartsfeer.js`.
     const sfeer = it?.condId ? (window._kaartSfeerConditie?.(it.condId, condGroep(it.condId)) || '') : '';
     window._tegelVensterUit(tegel, open, () => _vanWaarNu === key || it?.soort === 'background', { sfeer });
+  },
+  // ── De keuzeblokken in de editor ──
+  // Elke handler leest eerst het hele formulier, verandert dan de lijst en
+  // tekent opnieuw: zo gaat er niets verloren wat je net intikte.
+  keuzeErbij() { _editorLees(); _edit.keuze = [..._keuzeLijst(), { soort: 'skill', aantal: 1, geeft: 'proficiency' }]; _editorHerteken(); },
+  keuzeWeg(i)  { _editorLees(); const l = _keuzeLijst(); l.splice(i, 1); _edit.keuze = l; _editorHerteken(); },
+  keuzeHerteken() { _editorLees(); _editorHerteken(); },
+  variantErbij(i) {
+    _editorLees();
+    const l = _keuzeLijst();
+    if (!l[i]) return;
+    l[i].varianten = [...(l[i].varianten || []), { naam: '' }];
+    _edit.keuze = l; _editorHerteken();
+  },
+  variantWeg(i, j) {
+    _editorLees();
+    const l = _keuzeLijst();
+    (l[i]?.varianten || []).splice(j, 1);
+    _edit.keuze = l; _editorHerteken();
   },
   beeldMis: _beeldMis,
   // Het icoon van een class of species, voor wie ze elders tekent (de
@@ -4157,6 +4339,9 @@ window.vaardigheden = {
         img: _edit.img || null, imgFocus: _edit.imgFocus || '',
         sluitAan: _edit.sluitAan || [], vereist: _edit.vereist || '', geeftSpreuk: _edit.geeftSpreuk || [],
         categorie: _edit.categorie || '', vereistLevel: _edit.vereistLevel || 0,
+        // Eén blok gaat als object de deur uit, meer als lijst — zo blijft wat
+        // er al stond letterlijk hetzelfde in het bestand.
+        keuze: (() => { const l = _keuzeLijst(); return l.length === 1 ? l[0] : l; })(),
         // Bij een feat of Epic Boon: de bibliotheek mee, zodat de server hem
         // vastlegt als deze campagne er nog geen eigen had (zie de route).
         seedFeats: (_edit.soort === 'feat' || _edit.soort === 'boon') ? _bron?.feats : undefined,

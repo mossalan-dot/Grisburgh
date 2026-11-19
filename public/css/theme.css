@@ -34123,3 +34123,32 @@ body.wizard-open .modal-overlay { z-index: 2100; }
      wordt vermenigvuldigen zwart). Hier alleen de terugval. */
   mix-blend-mode: multiply;
 }
+
+/* Een vervolgkeuze hangt onder de vorm die hem opende (zie `keuzeSlots` in
+   lib/personage-concept.js): hij bestaat alleen zolang die vorm gekozen is,
+   en dat hoor je te zien zonder het te lezen. */
+.ps-subkeuze--onder {
+  margin-left: 22px;
+  border-left: 2px solid rgba(196,168,122,.55);
+  padding-left: 12px;
+}
+
+/* ── Heldenboek-editor: wat een feature je laat kiezen ───────────────────────
+   Eén blok per keuze, want een feature kan er meer dan één hebben (Giant's
+   Power geeft een taal én een cantrip). De rijen staan in een kader zodat je
+   ziet welke velden bij elkaar horen — zonder dat lijkt het één lange reeks
+   losse selects. */
+.vd-keuzes { display: flex; flex-direction: column; gap: 10px; align-items: flex-start; }
+.vd-keuze-rij {
+  display: flex; flex-direction: column; gap: 6px;
+  width: 100%; padding: 10px;
+  border: 1px solid rgba(196,168,122,.55); border-radius: 8px;
+  background: rgba(242,232,210,.4);
+}
+.vd-keuze-kop, .vd-keuze-uit, .vd-keuze-variant { display: flex; gap: 6px; align-items: center; }
+.vd-keuze-kop > select { flex: 1 1 auto; min-width: 0; }
+.vd-keuze-aantal { width: 64px; flex: 0 0 auto; }
+.vd-keuze-uit > select { flex: 0 0 auto; }
+.vd-keuze-uit > input { flex: 1 1 auto; min-width: 0; }
+.vd-keuze-varianten { display: flex; flex-direction: column; gap: 6px; }
+.vd-keuze-variant > input { flex: 1 1 0; min-width: 0; }

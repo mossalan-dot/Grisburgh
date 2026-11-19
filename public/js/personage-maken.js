@@ -803,14 +803,21 @@ function _featKeuzesHtml() {
         const gekozen = (P.c.keuzes || {})[sl.sleutel] || [];
         const over = Math.max(0, sl.keuze.aantal - gekozen.length);
         const wat = { skill: 'skill', tool: 'gereedschap', language: 'taal', ability: 'ability',
-                      feat: 'feat', spell: 'spreuk', vrij: 'optie' }[sl.keuze.soort] || 'optie';
+                      feat: 'feat', spell: 'spreuk', vrij: 'optie', variant: 'vorm' }[sl.keuze.soort] || 'optie';
         const extra = sl.keuze.geeft === 'expertise' ? ' — je krijgt er Expertise op'
           : /^\+[12]$/.test(sl.keuze.geeft || '') ? ` — ${sl.keuze.geeft} erbij`
           : '';
+        // **Eén feature kan meer dan één keuze hebben** (Giant's Power geeft een
+        // taal én een cantrip), en dan staat dezelfde naam er twee keer. Het
+        // label van het blok zegt wélke van de twee dit is; staat het er niet,
+        // dan is de naam van de feature genoeg.
+        const kop = sl.keuze.label ? `${sl.naam} · ${sl.keuze.label}` : sl.naam;
+        // Een vervolgkeuze hoort zichtbaar ónder zijn vorm te hangen: hij
+        // bestaat alleen omdat je die vorm koos, en verdwijnt als je wisselt.
         return `
-        <div class="ps-subkeuze">
-          <div class="ps-subkop">${esc(sl.naam)}
-            <span class="ps-hint">${esc(sl.bron)}${sl.sub ? ` · ${esc(sl.sub)}` : ''} · level ${sl.level}${esc(extra)}</span></div>
+        <div class="ps-subkeuze${sl.onder ? ' ps-subkeuze--onder' : ''}">
+          <div class="ps-subkop">${esc(kop)}
+            <span class="ps-hint">${sl.variant ? `${esc(sl.variant)} · ` : ''}${esc(sl.bron)}${sl.sub ? ` · ${esc(sl.sub)}` : ''} · level ${sl.level}${esc(extra)}</span></div>
           ${sl.opties?.length ? `
             <div class="ps-skills">${sl.opties.map(o => `
               <button type="button" class="ps-skill${gekozen.includes(o) ? ' is-aan' : ''}"
@@ -1490,7 +1497,7 @@ const ACTIES = {
   // Het Heldenboek laadt lui; de eerste keer duurt dat even.
   async uitleg({ naam }) {
     try {
-      const mod = window.vaardigheden || (await import('./render-vaardigheden.js?v=171'), window.vaardigheden);
+      const mod = window.vaardigheden || (await import('./render-vaardigheden.js?v=173'), window.vaardigheden);
       if (!mod?.openOpNaam) return toast('Het Heldenboek is hier niet beschikbaar.');
       const gelukt = await mod.openOpNaam(naam);
       if (!gelukt) toast(`${naam} staat niet in het Heldenboek.`);

@@ -1,0 +1,38 @@
+{
+  "_wat": "De talen van de 2024-PHB, met alleen hun naam en in welke groep ze staan.",
+  "_waarom": "Een feature die je een taal laat kiezen gaf een leeg tekstvak: dan typt de ene speler 'Elvish', de andere 'elfs' en de derde iets wat niet bestaat. Een lijst maakt er een keuze van. Dezelfde reden waarom de achttien skills op één plek staan (_ALLE_SKILLS in routes/api.js).",
+  "_grens": "Hier staan UITSLUITEND namen en groepen. Geen beschrijvingen, geen schrift, geen sprekers — dat is tekst uit een boek. Een naam is geen beschermd werk; wat erover gezegd wordt wel.",
+  "_nb": "Een campagne mag eigen talen hebben. Die staan niet hier maar in de campagne zelf; dit is wat de app meebrengt.",
+  "groepen": {
+    "standaard": "Standard",
+    "zeldzaam": "Rare",
+    "geheim": "Secret"
+  },
+  "talen": [
+    { "naam": "Common", "groep": "standaard" },
+    { "naam": "Common Sign Language", "groep": "standaard" },
+    { "naam": "Draconic", "groep": "standaard" },
+    { "naam": "Dwarvish", "groep": "standaard" },
+    { "naam": "Elvish", "groep": "standaard" },
+    { "naam": "Giant", "groep": "standaard" },
+    { "naam": "Gnomish", "groep": "standaard" },
+    { "naam": "Goblin", "groep": "standaard" },
+    { "naam": "Halfling", "groep": "standaard" },
+    { "naam": "Orc", "groep": "standaard" },
+
+    { "naam": "Abyssal", "groep": "zeldzaam" },
+    { "naam": "Celestial", "groep": "zeldzaam" },
+    { "naam": "Deep Speech", "groep": "zeldzaam" },
+    { "naam": "Infernal", "groep": "zeldzaam" },
+    { "naam": "Primordial", "groep": "zeldzaam" },
+    { "naam": "Aquan", "groep": "zeldzaam" },
+    { "naam": "Auran", "groep": "zeldzaam" },
+    { "naam": "Ignan", "groep": "zeldzaam" },
+    { "naam": "Terran", "groep": "zeldzaam" },
+    { "naam": "Sylvan", "groep": "zeldzaam" },
+    { "naam": "Undercommon", "groep": "zeldzaam" },
+
+    { "naam": "Druidic", "groep": "geheim" },
+    { "naam": "Thieves' Cant", "groep": "geheim" }
+  ]
+}

@@ -7025,7 +7025,7 @@ function _conceptAntwoord(c, dmState) {
     // van de client te laten raden.
     keuzeSlots: personageConcept.keuzeSlots(c, prog).map(slot => ({
       ...slot,
-      opties: personageConcept.keuzeOpties(slot, c, prog, { alleSkills: _ALLE_SKILLS }),
+      opties: personageConcept.keuzeOpties(slot, c, prog, { alleSkills: _ALLE_SKILLS, alleTools: _gereedschapLijst() }),
     })),
     nakijk: personageConcept.nakijken(c, { meta, prog, spreuken: _maakSpreuken() }),
     groepNaam: dmState.groups?.[c.groep]?.name || '',
@@ -7090,6 +7090,15 @@ function _conceptOpruimen(c, oud, b = {}) {
     const data = prog.classes?.[klasse];
     const lv = delen.find(([k]) => k === klasse)?.[1] || 0;
     if (!data || !data.subclasses?.[c[veld]] || lv < (parseInt(data.subclassLevel) || 3)) c[veld] = '';
+  }
+
+  // Keuzes: alleen de sleutels die nog een slot hebben. Wissel je van variant,
+  // dan bestaan de vervolgkeuzes van de vorige niet meer — en die horen dan ook
+  // niet als dode regel op het blad te blijven staan. Zelfde patroon als bij
+  // `groei` hieronder.
+  if (c.keuzes) {
+    const bestaat = new Set(personageConcept.keuzeSlots(c, prog).map(sl => sl.sleutel));
+    for (const k of Object.keys(c.keuzes)) if (!bestaat.has(k)) delete c.keuzes[k];
   }
 
   // Groei: alleen de vakjes die er op dit level en met deze classes zijn.
@@ -12526,11 +12535,25 @@ const _FEAT_SOORTEN = ['Origin', 'General', 'Fighting Style', 'Epic Boon', 'Dark
 // krijgen. Afleiden uit de tekst zou dus niet alleen onbetrouwbaar zijn maar
 // ook verkeerd. Vandaar dit veld: de DM zegt het, de app doet het.
 //
-//   keuze: { soort, aantal, uit, geeft }
+//   keuze: { soort, aantal, uit, geeft }   of een lijst van die blokken
 //
 // `uit` is leeg (alles van die soort), `'eigen'` (uit wat je al hebt — zo
-// werkt Expertise) of een eigen lijst namen.
-const _KEUZE_SOORTEN = ['skill', 'tool', 'language', 'ability', 'feat', 'spell', 'vrij'];
+// werkt Expertise), `'class'` (de skill-lijst van de class waar de feature bij
+// hoort, want die staat al in `bronnen/klasse-basis.json` en hoort niet een
+// tweede keer overgetypt te worden) of een eigen lijst namen.
+//
+// **Eén feature kan meer dan één keuze hebben.** Giant's Power geeft je een
+// taal én een cantrip; Student of War een gereedschap én een skill. Die passen
+// niet in één blok, en ze samenvoegen tot "kies maar iets" is geen keuze meer.
+// Daarom mag `keuze` ook een **lijst** blokken zijn. Eén blok blijft gewoon een
+// object, zodat alles wat er al staat blijft werken.
+// `variant` is de bijzondere: daar kies je eerst wélke vorm van de feature je
+// neemt, en pas die vorm bepaalt wat je verder mag kiezen. Half-Elf laat je
+// kiezen tussen Skill Versatility (twee skills) en Drow Magic (drie spreuken);
+// Kobold Legacy tussen Craftiness (een skill), Defiance en Draconic Sorcery.
+// Zonder die laag zou de app die skills onvoorwaardelijk uitdelen — en dan
+// krijgt iedere Kobold er een die hij niet hoort te hebben.
+const _KEUZE_SOORTEN = ['skill', 'tool', 'language', 'ability', 'feat', 'spell', 'vrij', 'variant'];
 // De achttien skills, voor een keuze die niet zelf zegt waaruit.
 const _ALLE_SKILLS = ['Acrobatics', 'Animal Handling', 'Arcana', 'Athletics', 'Deception',
   'History', 'Insight', 'Intimidation', 'Investigation', 'Medicine', 'Nature', 'Perception',
@@ -12544,12 +12567,40 @@ function _keuzeUit(rauw) {
   const aantal = Math.min(10, Math.max(1, parseInt(rauw.aantal) || 1));
   const geeft = _KEUZE_GEEFT.includes(rauw.geeft) ? rauw.geeft : '';
   let uit = '';
-  if (rauw.uit === 'eigen') uit = 'eigen';
+  if (['eigen', 'class', 'instrument', 'ambacht', 'spel'].includes(rauw.uit)) uit = rauw.uit;
   else if (Array.isArray(rauw.uit)) {
     const lijst = rauw.uit.map(x => String(x).trim()).filter(Boolean).slice(0, 40);
     if (lijst.length) uit = lijst;
   }
-  return { soort, aantal, ...(uit ? { uit } : {}), ...(geeft ? { geeft } : {}) };
+  const label = String(rauw.label || '').trim().slice(0, 60);
+  // Eén laag diep, en niet meer: een variant die zelf weer varianten heeft is
+  // geen formulier meer maar een doolhof, en in de boeken komt het niet voor.
+  let varianten;
+  if (soort === 'variant') {
+    varianten = (Array.isArray(rauw.varianten) ? rauw.varianten : [])
+      .map(v => {
+        const naam = String(v?.naam || '').trim().slice(0, 60);
+        if (!naam) return null;
+        const sub = (Array.isArray(v.keuze) ? v.keuze : [v.keuze])
+          .map(x => _keuzeUit({ ...(x || {}), soort: x?.soort === 'variant' ? '' : x?.soort }))
+          .filter(Boolean).slice(0, 3);
+        return { naam, ...(sub.length ? { keuze: sub } : {}) };
+      })
+      .filter(Boolean).slice(0, 6);
+    if (varianten.length < 2) return null;   // één variant is geen keuze
+  }
+  return { soort, aantal, ...(uit ? { uit } : {}), ...(geeft ? { geeft } : {}),
+           ...(label ? { label } : {}), ...(varianten ? { varianten } : {}) };
+}
+
+// Eén blok of een lijst blokken. Geeft `null` als er niets bruikbaars in zit —
+// een half ingevulde keuze is erger dan geen keuze.
+function _keuzesUit(rauw) {
+  if (Array.isArray(rauw)) {
+    const l = rauw.map(_keuzeUit).filter(Boolean).slice(0, 4);
+    return l.length ? (l.length === 1 ? l[0] : l) : null;
+  }
+  return _keuzeUit(rauw);
 }
 
 router.post('/progression/feature', requireDM, (req, res) => {
@@ -12600,7 +12651,7 @@ router.post('/progression/feature', requireDM, (req, res) => {
   // De keuze die deze feature je laat maken. Iets ongeldigs haalt hem eraf —
   // een half ingevulde keuze is erger dan geen.
   if ('keuze' in b) {
-    const k = _keuzeUit(b.keuze);
+    const k = _keuzesUit(b.keuze);
     if (k) regel.keuze = k; else delete regel.keuze;
   }
   if (b.img) regel.img = String(b.img); else if (b.img === null) { delete regel.img; delete regel.imgFocus; }
