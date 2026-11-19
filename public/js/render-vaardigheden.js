@@ -3707,8 +3707,10 @@ function _keuzeBlokkenHtml() {
   const lijst = _keuzeLijst();
   return `
     <div class="dm-form-row">
-      <label class="dm-form-label">Wat laat deze feature kiezen?
-        ${window._helpBtn?.('hulp_heldenboek_editor') ?? ''}</label>
+      <!-- Geen hulpknop naast dit label: het venster heeft er al een bovenaan,
+           en twee boekjes op één scherm betekent dat je moet raden welke van de
+           twee het antwoord heeft. De uitleg staat in hulp_heldenboek_editor. -->
+      <label class="dm-form-label">Wat laat deze feature kiezen?</label>
       <div class="vd-keuzes">
         ${lijst.map((k, i) => _keuzeRijHtml(k, i)).join('')}
         <button type="button" class="dm-btn dm-btn-ghost dm-btn-sm" onclick="window.vaardigheden.keuzeErbij()">
