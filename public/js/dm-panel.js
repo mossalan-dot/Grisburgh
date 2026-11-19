@@ -1,4 +1,4 @@
-import { api, huidigeCampagne } from './api.js?v=323';
+import { api, huidigeCampagne } from './api.js?v=324';
 import { init as canvasInit, update as canvasUpdate, stop as canvasStop, acGetal } from './combat-canvas.js?v=41';
 import { renderStatblock } from './render-statblock.js?v=10';
 
@@ -96,6 +96,10 @@ function hpStatus(hp, maxHp, c) {
 
 let _activeTab = 'gevecht';
 let _tables = [];
+// De boeken die in de progressie voorkomen, voor de instelling "uit welke
+// boeken mogen ze kiezen". Lui opgehaald: alleen het instellingenscherm
+// vraagt ernaar.
+let _pmBoeken = [];
 let _editingTableId = null;
 let _editingTableType = 'simple';
 let _editingTableDelen = [];   // de tafels waaruit een combinatie is opgebouwd
@@ -2909,7 +2913,7 @@ async function _ladeToggle() {
   _ladeIdx = _bwIdx >= 0 ? _bwIdx : Math.min(_ladePlekLees(), Math.max(0, _ladeSecties.length - 1));
   // De akte-module levert de renderer én de knoppen; die moet weten welke akte
   // er speelt, anders belandt een getoond beeld in de sessielog van niemand.
-  const mod = await import('./akte-schrijven.js?v=44');
+  const mod = await import('./akte-schrijven.js?v=45');
   mod.zetAkte(_rbChapter, _ladeTekst);
   window._akteRegieRender = mod.regieNaarHtml;
   let lade = document.getElementById('regie-lade');
@@ -2935,7 +2939,7 @@ window._ladeHerlaad = async () => {
     _ladeTekst = regie?.tekst || '';
     _ladeSecties = _splitsSecties(_ladeTekst);
     _ladeIdx = Math.min(_ladeIdx, Math.max(0, _ladeSecties.length - 1));
-    const mod = await import('./akte-schrijven.js?v=44');
+    const mod = await import('./akte-schrijven.js?v=45');
     mod.zetAkte(_rbChapter, _ladeTekst);
     _ladeRender();
   } catch { /* de lade blijft staan zoals hij stond */ }
@@ -13559,13 +13563,39 @@ async function _renderInstellingen() {
             <span>${label}</span>
           </label>
         </div>`).join('')}
+      <!-- Dit is het level waarop de party begint: een nieuw personage start
+           er, en hoger vragen kan niet. Stond hier eerst als "hoogste
+           beginlevel dat ze mogen vragen" — dat is hetzelfde getal, maar
+           niemand zet het om een máximum te stellen; je zet het omdat je
+           campagne op level 3 begint. -->
       <div class="dm-form-row">
-        <label class="dm-form-label" for="inst-pm-max">Hoogste beginlevel dat ze mogen vragen</label>
+        <label class="dm-form-label" for="inst-pm-max">Op welk level begint een nieuw personage</label>
         <input id="inst-pm-max" class="dm-input" type="number" min="1" max="20" value="${pm.maxLevel || 1}">
       </div>
       <div class="dm-form-row">
         <label class="dm-form-label" for="inst-pm-rerolls">Herkansingen bij rollen</label>
         <input id="inst-pm-rerolls" class="dm-input" type="number" min="0" max="10" value="${parseInt(pm.rerolls) || 0}">
+      </div>
+      <div class="dm-form-row">
+        <label class="dm-form-checkbox">
+          <input type="checkbox" id="inst-pm-kwaad"${pm.kwaadAan === true ? ' checked' : ''}>
+          <span>Kwaadaardige alignments mogen gekozen worden</span>
+        </label>
+      </div>
+      <!-- Uit welke boeken ze mogen kiezen. Niets aanvinken betekent alles —
+           zo was het altijd al, dus wie niets kiest merkt er niets van. -->
+      <div class="dm-form-row">
+        <label class="dm-form-label">Uit welke boeken mogen ze kiezen</label>
+        ${_pmBoeken.length ? `<div class="dm-modules">${_pmBoeken.map(b => `
+          <label class="dm-module-item">
+            <input type="checkbox" class="inst-pm-boek" value="${esc(b)}"
+              ${(pm.boeken || []).includes(b) ? 'checked' : ''}>
+            <span>${esc(b)}</span>
+          </label>`).join('')}</div>`
+          : '<p class="dm-hint">Lijst wordt opgehaald…</p>'}
+        <p class="dm-hint">${(pm.boeken || []).length
+          ? `${(pm.boeken || []).length} van de ${_pmBoeken.length} aangevinkt.`
+          : 'Niets aangevinkt: alles mag.'}</p>
       </div>
       <!-- Een trinket is wat er onderin je zak zit als je begint. De app
            verzint er geen: je wijst een tafel van je eigen campagne aan, en
@@ -13846,6 +13876,16 @@ async function _renderInstellingen() {
   // De knop voor de spreukafbeeldingen weet pas of hij nodig is als hij de
   // stand heeft opgehaald; tot dan staat hij verborgen.
   window._instSpreukbeeldenStand?.();
+  // De boekenlijst komt uit de progressie en wordt één keer opgehaald; staat
+  // hij er nog niet, dan tekent het paneel zichzelf daarna opnieuw.
+  if (!_pmBoeken.length) {
+    api.progBoeken().then(r => {
+      const nieuw = r?.boeken || [];
+      if (!nieuw.length) return;
+      _pmBoeken = nieuw;
+      if (document.getElementById('inst-pm-max')) _renderInstellingen();
+    }).catch(() => { /* dan blijft de lijst leeg en mag alles */ });
+  }
   window._instHbBeeldenStand?.();
   _instHeldenboekVullen();
   window._instOefenStand?.();
@@ -13998,6 +14038,8 @@ window._instOpslaan = async () => {
       maxLevel: parseInt(document.getElementById('inst-pm-max')?.value) || 1,
       trinketTafel: document.getElementById('inst-pm-trinket')?.value || '',
       rerolls: parseInt(document.getElementById('inst-pm-rerolls')?.value) || 0,
+      kwaadAan: !!document.getElementById('inst-pm-kwaad')?.checked,
+      boeken: [...document.querySelectorAll('.inst-pm-boek')].filter(i => i.checked).map(i => i.value),
     });
 
     if (document.getElementById('inst-bs-level')) {

@@ -17,7 +17,7 @@
 // rechts één keuze per scherm — en tot slot de onthulling met het lakzegel.
 // Eén klikhandler op de hele overlay (`data-actie`), zodat een naam met een
 // apostrof ("Thieves' Tools") nergens in een onclick-string hoeft te passen.
-import { api, huidigeCampagne } from './api.js?v=323';
+import { api, huidigeCampagne } from './api.js?v=324';
 
 const esc = s => window.app?.esc?.(s) ?? String(s ?? '')
   .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -217,13 +217,24 @@ const STAPPEN = [
             ${P.c.video ? `<button type="button" class="ps-link" data-actie="videoWeg">${ico('x')} Filmpje weghalen</button>` : ''}
           </div>
         </div>
-        ${max > 1 ? `
-          <div class="ps-level-rij">
+        <div class="ps-level-rij">
+          ${max > 1 ? `
             <label for="ps-level">Beginlevel</label>
             <input id="ps-level" class="ps-level-invoer" type="number" min="1" max="${max}"
               value="${esc(String(P.c.level || 1))}" data-veld="level">
-            <span class="ps-hint">Tot level ${max}.</span>
-          </div>` : ''}`;
+            <span class="ps-hint">Tot level ${max}.</span>` : ''}
+          <!-- Alignment hoort bij wie hij is, net als zijn naam — en het stond
+               nergens in de maker, dus je vulde het pas ná het aanmaken in op
+               zijn kaartje. Welke er te kiezen zijn bepaalt de DM: aan de ene
+               tafel is een kwaadaardig personage een personage, aan de andere
+               een probleem. -->
+          <label for="ps-alignment">Alignment</label>
+          <select id="ps-alignment" class="ps-veld ps-veld--kort" data-veld="alignment">
+            <option value="">— nog niet —</option>
+            ${(P.bronnen.alignments || []).map(a => `
+              <option value="${esc(a)}"${P.c.alignment === a ? ' selected' : ''}>${esc(a)}</option>`).join('')}
+          </select>
+        </div>`;
     },
   },
 
@@ -1479,7 +1490,7 @@ const ACTIES = {
   // Het Heldenboek laadt lui; de eerste keer duurt dat even.
   async uitleg({ naam }) {
     try {
-      const mod = window.vaardigheden || (await import('./render-vaardigheden.js?v=165'), window.vaardigheden);
+      const mod = window.vaardigheden || (await import('./render-vaardigheden.js?v=166'), window.vaardigheden);
       if (!mod?.openOpNaam) return toast('Het Heldenboek is hier niet beschikbaar.');
       const gelukt = await mod.openOpNaam(naam);
       if (!gelukt) toast(`${naam} staat niet in het Heldenboek.`);
@@ -1550,6 +1561,7 @@ function _invoer(e) {
   const veld = el.dataset.veld;
   if (!veld) return;
   if (veld === 'naam') { P.c.naam = el.value; _bladBij(); return; }
+  if (veld === 'alignment') { P.c.alignment = el.value; _bewaar(['alignment']); _bladBij(); return; }
   if (veld === 'verhaal') { P.c.verhaal = el.value; _bladBij(); return; }
   if (veld === 'bgTool') { P.c.bgKeuze = { ...(P.c.bgKeuze || {}), tool: el.value }; return; }
 }

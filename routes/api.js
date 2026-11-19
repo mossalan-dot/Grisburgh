@@ -6873,21 +6873,28 @@ function _maakBronnen() {
   const verborgen = _verborgenUit(meta);
   const wegK = new Set(verborgen.classes.map(n => String(n).toLowerCase()));
   const wegS = new Set(verborgen.subclasses.map(n => String(n).toLowerCase()));
-  const klassen = Object.keys(prog.classes || {}).filter(n => !wegK.has(n.toLowerCase())).sort().map(naam => {
+  // **Wat de DM toestaat.** Eén lijst boeken voor de hele maker; leeg betekent
+  // alles. De per-onderdeel-schakelaars van het Heldenboek (`verborgen`)
+  // blijven daarbovenop gelden — die zijn de uitzondering op de regel.
+  const instB = personageConcept.instellingen(meta);
+  const magBoek = (b) => personageConcept.boekMag(b, instB);
+  const klassen = Object.keys(prog.classes || {})
+    .filter(n => !wegK.has(n.toLowerCase()) && magBoek(prog.classes[n]?.boek)).sort().map(naam => {
     const data = prog.classes[naam];
     return {
       naam,
       basis: personageConcept.klasseBasis(naam, prog),
       subclassLabel: data.subclassLabel || 'Subclass',
       subclassLevel: parseInt(data.subclassLevel) || 3,
-      subclasses: Object.keys(data.subclasses || {}).filter(s => !wegS.has(s.toLowerCase())).sort(),
+      subclasses: Object.keys(data.subclasses || {})
+        .filter(s => !wegS.has(s.toLowerCase()) && magBoek(data.subclasses[s]?.boek)).sort(),
       beeld: _hbBeeldVoor(meta, 'class', naam, data),
       subBeelden: Object.fromEntries(Object.entries(data.subclasses || {})
         .map(([s, sd]) => [s, _hbBeeldVoor(meta, 'subclass', s, sd)]).filter(([, b]) => b)),
     };
   });
   const speciesBron = bronnen.lees('species-basis')?.species || {};
-  const species = Object.keys(prog.species || {}).sort().map(naam => {
+  const species = Object.keys(prog.species || {}).filter(n => magBoek(prog.species[n]?.boek)).sort().map(naam => {
     const data = prog.species[naam];
     return {
       naam,
@@ -6905,7 +6912,8 @@ function _maakBronnen() {
   });
   // De backgrounds van de campagne zelf (de seed valt daar al onder als ze
   // niets eigens heeft — zie `_progHuidig`).
-  const backgrounds = Object.keys(prog.backgrounds || {}).filter(k => !k.startsWith('_')).sort()
+  const backgrounds = Object.keys(prog.backgrounds || {})
+    .filter(k => !k.startsWith('_') && magBoek(prog.backgrounds[k]?.boek)).sort()
     .map(naam => ({
       naam, ...personageConcept.backgroundDelen(naam, prog),
       opties: personageConcept.uitrustingOpties(naam, prog),
@@ -6970,7 +6978,9 @@ function _maakBronnen() {
     harnassen: personageConcept.srdItems()
       .filter(i => i.itemType === 'Armor' || i.itemType === 'Shield').map(kaal),
     trinketTafel: tafel ? tafel.name : '',
-    feats: personageConcept.featLijst(prog),
+    feats: personageConcept.featLijst(prog).filter(f => magBoek(f.boek || f.bron)),
+    // De alignments die aan deze tafel gekozen mogen worden.
+    alignments: personageConcept.alignmentsVoor(instB),
     // Het embleem van de campagne, voor de drempel. Dat staat al op de
     // landingspagina, dus het is geen geheim.
     embleem: meta.embleem || '',
@@ -7159,7 +7169,10 @@ router.post('/personage-concept', (req, res) => {
     ...(isDm ? { doorDm: true } : {}),
     naam: String(req.body?.naam || '').trim().slice(0, 60),
     species: '', klasse: '', subclass: '', background: '',
-    level: 1, methode: inst.methodes[0] || 'array',
+    // Op het level waarop deze campagne begint. Stond hier hard op 1, en dan
+    // moest elke speler in een campagne die op 3 begint dat zelf opzoeken.
+    level: Math.max(1, Math.min(20, parseInt(inst.maxLevel) || 1)),
+    methode: inst.methodes[0] || 'array',
     scores: { str: 10, dex: 10, con: 10, int: 10, wis: 10, cha: 10 },
     bgBonus: {}, skills: [], worpen: [], rerollsGebruikt: 0,
     gemaakt: new Date().toISOString(), bijgewerkt: new Date().toISOString(),
@@ -7200,6 +7213,12 @@ router.patch('/personage-concept/:id', (req, res) => {
   if (b.klasse     !== undefined) c.klasse = tekst(b.klasse, 60);
   if (b.subclass   !== undefined) c.subclass = tekst(b.subclass, 60);
   if (b.background !== undefined) c.background = tekst(b.background, 60);
+  // Alleen wat aan deze tafel gekozen mag worden: staat de DM geen kwaad toe,
+  // dan komt er ook via een eigen verzoek geen Chaotic Evil binnen.
+  if (b.alignment !== undefined) {
+    const mag = personageConcept.alignmentsVoor(personageConcept.instellingen(storage.readJSON('meta.json')));
+    c.alignment = mag.includes(b.alignment) ? b.alignment : '';
+  }
   if (b.methode    !== undefined && personageConcept.METHODES[b.methode]) c.methode = b.methode;
   if (b.level      !== undefined) c.level = Math.max(1, Math.min(20, parseInt(b.level) || 1));
   if (b.scores     !== undefined) {
@@ -7516,6 +7535,22 @@ router.delete('/personage-concept/:id', (req, res) => {
   res.json({ ok: true });
 });
 
+// Welke boeken komen er in deze campagne voor? Voor de instelling "uit welke
+// boeken mogen ze kiezen": een lijst die zichzelf bijhoudt, want hij komt uit
+// de progressie zelf en niet uit een vaste opsomming.
+router.get('/progression/boeken', requireDM, (req, res) => {
+  const prog = _progHuidig();
+  const uit = new Set();
+  const pak = (o) => { for (const v of Object.values(o || {})) if (v?.boek) uit.add(String(v.boek)); };
+  pak(prog.classes); pak(prog.species); pak(prog.backgrounds);
+  for (const c of Object.values(prog.classes || {})) pak(c.subclasses);
+  for (const v of Object.values(prog.species || {})) pak(v.varianten);
+  for (const f of [...(prog.feats?.general || []), ...(prog.feats?.epic || [])]) {
+    if (f?.bron) uit.add(String(f.bron));
+  }
+  res.json({ boeken: [...uit].sort((a, b) => a.localeCompare(b)) });
+});
+
 router.get('/personage-concepten', requireDM, (req, res) => {
   const dmState = readDmState();
   const alles = Object.values(_concepten(dmState))
@@ -7567,6 +7602,7 @@ router.post('/personage-concept/:id/:besluit', requireDM, (req, res) => {
     // is; ook zijn eigen.
     data: {
       ras: c.species || '', klasse: c.klasse || '', groep: c.groep || '',
+      alignment: c.alignment || '',
       desc: String(c.verhaal || '').trim(),
       ...((c.geheimen || []).length ? { geheimen: JSON.stringify(c.geheimen.map(g => ({ id: g.id, tekst: g.tekst }))) } : {}),
     },

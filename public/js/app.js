@@ -1,28 +1,28 @@
-import { api, campagneUitUrl, zetCampagne } from './api.js?v=323';
-import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, renderDocumenten, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=400";
-import { initArchief, renderLogboek, openLogboekEditor } from "./render-archief.js?v=153";
-import { renderKaart, queueFlyTo, verversPins, nieuweKaart } from './render-kaart.js?v=38';
-import { renderDungeon } from './render-dungeon.js?v=79';
-import { renderRelatiemap } from './render-relatiemap.js?v=41';
-import { renderProgressie, levelupFeatures } from './render-progressie.js?v=70';
-import { renderBestiarium } from './render-bestiarium.js?v=44';
-import { renderSpreuken } from './render-spreuken.js?v=59';
+import { api, campagneUitUrl, zetCampagne } from './api.js?v=324';
+import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, renderDocumenten, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=401";
+import { initArchief, renderLogboek, openLogboekEditor } from "./render-archief.js?v=154";
+import { renderKaart, queueFlyTo, verversPins, nieuweKaart } from './render-kaart.js?v=39';
+import { renderDungeon } from './render-dungeon.js?v=80';
+import { renderRelatiemap } from './render-relatiemap.js?v=42';
+import { renderProgressie, levelupFeatures } from './render-progressie.js?v=71';
+import { renderBestiarium } from './render-bestiarium.js?v=45';
+import { renderSpreuken } from './render-spreuken.js?v=60';
 import './render-handleiding.js?v=2';
 import './render-melding.js?v=4';
-import { renderVaardigheden, zoekVaardigheden, heldenboekTekst } from './render-vaardigheden.js?v=165';
+import { renderVaardigheden, zoekVaardigheden, heldenboekTekst } from './render-vaardigheden.js?v=166';
 import { renderStatblock } from './render-statblock.js?v=10';
-import { initSocket } from "./socket-client.js?v=105";
-import { initDmPanel } from "./dm-panel.js?v=428";
+import { initSocket } from "./socket-client.js?v=106";
+import { initDmPanel } from "./dm-panel.js?v=429";
 import { COND_INFO, COND_LABEL, COND_MET_PLAATJE, COND_ICON } from './conditions.js?v=4';
-import './media-picker.js?v=17';
-import './wizard.js?v=14';
+import './media-picker.js?v=18';
+import './wizard.js?v=15';
 import './tafels.js?v=2';
-import './terugblik.js?v=6';
-import './rage.js?v=7';
-import './klassekracht.js?v=9';
-import './bastion.js?v=6';
-import './stemronde.js?v=5';
-import './gevecht-regie.js?v=6';
+import './terugblik.js?v=7';
+import './rage.js?v=8';
+import './klassekracht.js?v=10';
+import './bastion.js?v=7';
+import './stemronde.js?v=6';
+import './gevecht-regie.js?v=7';
 
 // ── Icon helper ──
 // Renders an inline SVG <use> reference from /img/icons.svg.
@@ -1653,7 +1653,7 @@ async function _landingNieuwTegel() {
   if (!host || !_groepsWachtwoord || document.getElementById('landing-nieuw')) return;
   let stand = null;
   try {
-    await import('./personage-maken.js?v=26');
+    await import('./personage-maken.js?v=27');
     stand = await window.personageMaken.stand();
   } catch { return; }
   if (stand?.instellingen && stand.instellingen.aan === false) return;
@@ -1675,7 +1675,7 @@ async function _landingNieuwTegel() {
 
 async function _landingNieuw() {
   try {
-    await import('./personage-maken.js?v=26');
+    await import('./personage-maken.js?v=27');
     const stand = await window.personageMaken.stand();
     // Ook als hij al bij de DM ligt: dan zie je dat, en kun je hem nog
     // terughalen om iets te veranderen.
@@ -3731,7 +3731,7 @@ function _kaartCard(type, m, dm, verdiepingen = null) {
 // eerste bestaande kaart: je drukte op + en keek naar Dreghaven.
 window._kaartNieuw = async function (type) {
   if (type === 'wereld') return nieuweKaart();
-  const { nieuweDungeon } = await import('./render-dungeon.js?v=79');
+  const { nieuweDungeon } = await import('./render-dungeon.js?v=80');
   nieuweDungeon();
 };
 
@@ -15857,9 +15857,10 @@ const HELP_CONFIG = {
     { titel: 'Het bestaat pas als jij het gunt', tekst: 'Wat hij maakt is een **concept** en geen kaartje. Het staat nergens in je wereld: niet in de partylijst, niet in een gevecht, niet op het tafelscherm. Je vindt het op één plek — **Vragen → Nieuw personage** — met zijn hele blad erbij: wat hij koos, wat daaruit volgt, en wat de app erover op te merken heeft.\n\nGun je het, dan ontstaan het kaartje, het profiel en zijn HP in één keer, in de party waar hij het wachtwoord van had. Stuur je het terug, dan hoort daar een reden bij; die leest hij zodra hij verder gaat.', afbeelding: null },
     { titel: 'De scores', tekst: 'Vier manieren, en jij zegt welke er aan jouw tafel mogen: de **standaardreeks**, **point buy**, **rollen** (zes keer 4d6, de laagste eraf, in de app) en **vrij intikken** voor een personage dat elders gemaakt is.\n\nDe app rekent voor maar houdt niets tegen. Kiest iemand scores die niet kunnen, dan staat dat als opmerking op jouw scherm en beslis jij.', afbeelding: null },
     { titel: 'Herkansingen bij rollen', tekst: 'Rollen gebeurt op de server, dus herladen is geen gratis nieuwe worp. Standaard geldt **wat je rolt, dat is het**. Wil je een speler een slechte set laten overdoen, zet hier hoe vaak — een herkansing werpt altijd de **hele set** opnieuw, niet één score.\n\nNa het rollen koppelt de speler elke worp zelf aan de ability die hij wil.', afbeelding: null },
-    { titel: 'Beginnen boven level 1', tekst: 'Standaard begint iedereen op 1. Zet je het hoger, dan mag een speler erom **vragen** — hij vult het in, jij ziet het staan voordat je gunt. Zijn HP, proficiency, hit dice en het aantal spreuken rekenen mee, en zijn subclass vraagt de maker zodra zijn beginlevel hoog genoeg is.\n\nDe **Ability Score Improvements en feats** die hij onderweg had gekregen kiest hij ook meteen, op dezelfde levels als op zijn Progressie-tijdlijn — daar staan ze na het gunnen gewoon als gekozen. Een feat met een voorwaarde (Level 4+, een andere feat, een species) houdt de maker niet tegen; dat zie jij.', afbeelding: null },
+    { titel: 'Op welk level de party begint', tekst: 'Standaard begint iedereen op 1. Zet je het hoger, dan begint een nieuw personage daar meteen op en kan er niet boven gevraagd worden. Zijn HP, proficiency, hit dice en het aantal spreuken rekenen mee, en zijn subclass vraagt de maker zodra zijn beginlevel hoog genoeg is.\n\nDe **Ability Score Improvements en feats** die hij onderweg had gekregen kiest hij ook meteen, op dezelfde levels als op zijn Progressie-tijdlijn — daar staan ze na het gunnen gewoon als gekozen. Een feat met een voorwaarde (Level 4+, een andere feat, een species) houdt de maker niet tegen; dat zie jij.', afbeelding: null },
     { titel: 'Verhaal en geheimen', tekst: 'Een speler kan zijn achtergrondverhaal schrijven en **geheimen** meegeven die niemand aan tafel kent. Het verhaal wordt de beschrijving op zijn kaartje; de geheimen worden gewone geheimregels, die jij per regel onthult wanneer het moment daar is — net als bij elk ander kaartje. Hij ziet ze zelf ook pas terug als jij ze onthult.', afbeelding: null },
     { titel: 'Twee classes tegelijk beginnen', tekst: 'Staat het beginlevel op 2 of hoger, dan kan een speler zijn levels over **twee classes** verdelen — Fighter 3 / Rogue 2 bijvoorbeeld. Het staat achter een uitklapper bij de class: het is de uitzondering, en wie het niet zoekt hoort er geen last van te hebben.\n\nZijn hit dice tellen dan per class (3d10 + 2d8) en de **eisen** staan erbij zoals overal in deze app: voorrekenen, niet blokkeren. Haalt hij de Strength 13 voor Paladin niet, dan lees jij dat bij het gunnen en beslis jij.', afbeelding: null },
+    { titel: 'Alignment en wat je toelaat', tekst: 'Bij de naam staat nu ook **alignment**. Welke er te kiezen zijn bepaal jij: de drie kwaadaardige staan er standaard niet bij, want aan de ene tafel is een kwaadaardig personage een personage en aan de andere een probleem. Het vinkje staat hier.\n\nDaaronder vink je aan **uit welke boeken** ze mogen kiezen. Niets aanvinken betekent alles — zo was het altijd al, dus wie niets kiest merkt er niets van. Vink je wél iets aan, dan verdwijnt alles daarbuiten uit de maker: classes, subclasses, species, backgrounds en feats. Wat géén boek draagt blijft altijd staan; dat is eigen werk van je campagne.\n\nDe schakelaars per class en subclass in *Instellingen → Campagne* blijven daarbovenop gelden — die zijn de uitzondering op deze regel.', afbeelding: null },
     { titel: 'Rommel in zijn zak', tekst: 'De app verzint geen trinkets — wat er in je zak zit hoort bij jouw wereld. Wijs hier een **tafel van je eigen campagne** aan, dan rolt elke nieuwe speler daar één keer op en gaat de uitkomst als voorwerp mee in zijn boedel.\n\nEén keer: opnieuw rollen tot er iets leuks staat is geen worp meer.', afbeelding: null },
   ] }),
 

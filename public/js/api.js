@@ -521,6 +521,7 @@ export const api = {
   conceptTrinket:   (id)      => request(`/personage-concept/${id}/trinket`, { method: 'POST' }),
   conceptenOpen:    ()        => request('/personage-concepten'),
   conceptWeg:       (id) => request(`/personage-concept/${id}`, { method: 'DELETE' }),
+  progBoeken:       ()   => request('/progression/boeken'),
   conceptBesluit:   (id, besluit, reden) => request(`/personage-concept/${id}/${besluit}`, { method: 'POST', body: JSON.stringify({ reden: reden || '' }) }),
   savePersonageMaken: (data)  => request('/meta/personage-maken', { method: 'PUT', body: JSON.stringify(data) }),
   lootEventCreate:  (data)    => request('/loot/events',                { method: 'POST',   body: JSON.stringify(data) }),
