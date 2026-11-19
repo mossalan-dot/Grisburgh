@@ -1959,3 +1959,11 @@ Grisburghs **data** te staan — niet in de code.
 - Archief → Spreuken (523 kaartjes): tik een tegel open en weer dicht. De beweging hoort vloeiend te zijn, zonder hapering vóór het schuiven begint; de platen van de andere tegels knipperen niet.
 - Doe hetzelfde bij Personages en in het Heldenboek: er blijft één tegel tegelijk open, er verdwijnt of verdubbelt niets, en na het sluiten staat het raster weer zoals het stond.
 - Scroll ver naar beneden in de spreuken en open daar een tegel: ook daar schuift alleen wat in beeld staat, en de tegels eromheen staan daarna goed.
+
+### Wat een feature je laat kiezen
+- Heldenboek → zoek *Primal Knowledge* → potlood: onderaan staat **Wat laat deze feature kiezen?** met één blok (Skill · 1 · Proficiency · De skills van deze class). *Keuze erbij* zet er een tweede onder; het kruisje haalt er een weg.
+- Zet bij een blok de soort op **Een vorm**: dan verdwijnen *geeft* en *waaruit* en komen er naamvelden voor de vormen, met achter elke vorm wat die te kiezen geeft ("2 skill").
+- Personagemaker → Barbarian / Path of the Giant: bij *Giant's Power* staan **twee** velden — een taal (23 opties) en een cantrip (Druidcraft of Thaumaturgy).
+- Kies bij een Half-Elf de afstamming *Wood Elf Descent*: je kiest eerst een vorm uit vier. Kies *Skill Versatility* → er verschijnt een inspringend vervolgveld voor twee skills. Kies daarna *Fleet of Foot* → dat veld verdwijnt, en de twee skills staan niet meer op het blad.
+- Vul een taal in en kijk op het blad: er hoort **Common, <jouw taal>** te staan, niet alleen Common.
+- *Primal Knowledge* biedt zes skills aan (de lijst van de Barbarian), niet alle achttien.
