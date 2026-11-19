@@ -349,8 +349,8 @@ De app gebruikt querystring cache-busting (`?v=N`). **Vergeten = browser haalt o
 
 ```
 index.html  : theme.css?v=949   app.js?v=1265   sound-manager.js?v=15
-app.js      : api.js?v=323  dm-panel.js?v=428  media-picker.js?v=14  tafels.js?v=2  terugblik.js?v=3  rage.js?v=4  klassekracht.js?v=6  personage-maken.js?v=29  gevecht-regie.js?v=3  bastion.js?v=3  stemronde.js?v=2
-              render-archief.js?v=149  render-bestiarium.js?v=41  render-campagne.js?v=397
+app.js      : api.js?v=323  dm-panel.js?v=428  media-picker.js?v=14  tafels.js?v=2  terugblik.js?v=3  rage.js?v=4  klassekracht.js?v=6  personage-maken.js?v=30  gevecht-regie.js?v=3  bastion.js?v=3  stemronde.js?v=2
+              render-archief.js?v=149  render-bestiarium.js?v=41  render-campagne.js?v=400
               render-dungeon.js?v=75  render-kaart.js?v=35  render-progressie.js?v=67
               render-relatiemap.js?v=38  render-spreuken.js?v=56  render-vaardigheden.js?v=166
               render-statblock.js?v=10  socket-client.js?v=105  wizard.js?v=12  conditions.js?v=4

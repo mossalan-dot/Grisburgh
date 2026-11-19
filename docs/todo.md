@@ -932,7 +932,20 @@ daar dan in. (Het eerste punt — diensten die de gedeelde beurs omzeilden — i
       zeggen *jouw steen is een d8*; de overweging voor een veld `groei` staat
       onderaan datzelfde document.
 
-## Keuzes op een feature — ronde 2: landen op het blad
+## Keuzes op een feature — ronde 2: GEDAAN (19 nov 2026)
+
+Een gemaakte keuze landt op het blad: `geeft: 'proficiency'` wordt een
+proficiency in `skillProfs`, `'expertise'` wordt `expert` (en overschrijft een
+proficiency, nooit andersom), `'+1'`/`'+2'` telt mee in `_scoresMetGroei`, en
+een taal komt bij `profiel.languages`. De maker biedt de keuze aan
+(`keuzeSlots` + `keuzeOpties`, waarbij `uit: 'eigen'` server-side wordt
+uitgerekend uit wat hij elders koos), en `nakijken` meldt wat nog openstaat.
+Bewaakt door twee tests in `tests/personage-maken.test.js`.
+
+**Wat nog rest:** de keuze zichtbaar maken op de Progressie-tijdlijn van een
+bestaand personage, en bij een level-up ná het aanmaken opnieuw aanbieden.
+
+## Keuzes op een feature — ronde 2 (oorspronkelijke notitie)
 
 Ronde 1 (18 nov 2026) legt vast wát een feature je laat kiezen
 (`keuze: {soort, aantal, uit, geeft}` op een feature-regel, zie `_keuzeUit`

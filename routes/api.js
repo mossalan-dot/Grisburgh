@@ -7010,6 +7010,13 @@ function _conceptAntwoord(c, dmState) {
     // **Wat je onderweg kreeg**, uit de progressie van deze campagne. Wie op
     // level 6 begint heeft zes levels aan features die hij nergens zag staan.
     gegeven: personageConcept.wordtGegeven(c, prog),
+    // Wat zijn features hem laten kiezen, met de lijst waaruit. `uit: 'eigen'`
+    // hangt af van wat hij elders koos, dus dat rekenen we hier uit in plaats
+    // van de client te laten raden.
+    keuzeSlots: personageConcept.keuzeSlots(c, prog).map(slot => ({
+      ...slot,
+      opties: personageConcept.keuzeOpties(slot, c, prog, { alleSkills: _ALLE_SKILLS }),
+    })),
     nakijk: personageConcept.nakijken(c, { meta, prog, spreuken: _maakSpreuken() }),
     groepNaam: dmState.groups?.[c.groep]?.name || '',
   };
@@ -7205,6 +7212,20 @@ router.patch('/personage-concept/:id', (req, res) => {
       .filter(([, v]) => v > 0));
   }
   if (Array.isArray(b.skills)) c.skills = b.skills.map(x => tekst(x, 40)).filter(Boolean).slice(0, 12);
+  // Wat zijn features hem lieten kiezen: per feature-sleutel een lijstje. Niet
+  // meer dan de feature toestaat — dat staat op de feature zelf, dus daar
+  // kijken we; een client die er zes stuurt waar er twee mogen, krijgt er twee.
+  if (b.keuzes !== undefined && b.keuzes && typeof b.keuzes === 'object') {
+    const toegestaan = new Map(personageConcept.keuzeSlots(c, _progHuidig()).map(sl => [sl.sleutel, sl]));
+    const uit = {};
+    for (const [sleutel, waarde] of Object.entries(b.keuzes)) {
+      const sl = toegestaan.get(sleutel);
+      if (!sl || !Array.isArray(waarde)) continue;
+      const lijst = waarde.map(x => tekst(x, 60)).filter(Boolean).slice(0, sl.keuze.aantal);
+      if (lijst.length) uit[sleutel] = lijst;
+    }
+    c.keuzes = uit;
+  }
   // `worpen` schrijft alleen de server (POST …/rol). Anders is een limiet op
   // herkansingen een verzoek in plaats van een regel.
   // Fase 2: wat hij kent en wat hij draagt.
@@ -12474,6 +12495,10 @@ const _FEAT_SOORTEN = ['Origin', 'General', 'Fighting Style', 'Epic Boon', 'Dark
 // `uit` is leeg (alles van die soort), `'eigen'` (uit wat je al hebt — zo
 // werkt Expertise) of een eigen lijst namen.
 const _KEUZE_SOORTEN = ['skill', 'tool', 'language', 'ability', 'feat', 'spell', 'vrij'];
+// De achttien skills, voor een keuze die niet zelf zegt waaruit.
+const _ALLE_SKILLS = ['Acrobatics', 'Animal Handling', 'Arcana', 'Athletics', 'Deception',
+  'History', 'Insight', 'Intimidation', 'Investigation', 'Medicine', 'Nature', 'Perception',
+  'Performance', 'Persuasion', 'Religion', 'Sleight of Hand', 'Stealth', 'Survival'];
 const _KEUZE_GEEFT   = ['', 'proficiency', 'expertise', '+1', '+2'];
 
 function _keuzeUit(rauw) {

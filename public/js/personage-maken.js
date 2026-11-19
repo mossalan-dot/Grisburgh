@@ -57,7 +57,7 @@ const VIDEO_MAX_BYTES = 8 * 1024 * 1024;
 
 const P = {
   c: null, bronnen: null, inst: null, profiel: null, nakijk: null,
-  slotsPer: {}, groeiSlots: [], spreukFeats: [], rerollsOver: 0, gegeven: [],
+  slotsPer: {}, groeiSlots: [], spreukFeats: [], rerollsOver: 0, gegeven: [], keuzeSlots: [],
   scherm: 'drempel', stapId: 'naam', bezig: false,
   zoek: {}, blad: {}, greep: {}, opname: null, rolt: false, zegel: false,
 };
@@ -327,8 +327,11 @@ const STAPPEN = [
     // Ook zonder keuzes de moeite waard: wie op level 6 begint heeft zes
     // levels aan features die hij nergens zag staan.
     beschikbaar: () => (P.groeiSlots || []).length > 0 || (P.gegeven || []).length > 0,
-    kan: () => _groeiOver() === 0,
-    reden: () => `Nog ${_groeiOver()} keuze${_groeiOver() === 1 ? '' : 's'} open.`,
+    kan: () => _groeiOver() === 0 && _featKeuzeOver() === 0,
+    reden: () => {
+      const n = _groeiOver() + _featKeuzeOver();
+      return `Nog ${n} keuze${n === 1 ? '' : 's'} open.`;
+    },
     html() { return _groeiHtml(); },
   },
 
@@ -771,6 +774,44 @@ function _gegevenHtml() {
     </details>`;
 }
 
+// Hoeveel keuzes van features er nog openstaan.
+function _featKeuzeOver() {
+  return (P.keuzeSlots || []).reduce((n, sl) =>
+    n + Math.max(0, sl.keuze.aantal - ((P.c.keuzes || {})[sl.sleutel] || []).length), 0);
+}
+
+// Wat een feature je laat kiezen. Dit staat als **gegeven** op de feature (de
+// DM zette het daar); hier wordt het een rij knoppen. Expertise kiest uit wat
+// je al hebt, dus die lijst komt van de server — die weet wat je elders koos.
+function _featKeuzesHtml() {
+  const slots = P.keuzeSlots || [];
+  if (!slots.length) return '';
+  return `
+    <div class="ps-featkeuzes">
+      ${slots.map(sl => {
+        const gekozen = (P.c.keuzes || {})[sl.sleutel] || [];
+        const over = Math.max(0, sl.keuze.aantal - gekozen.length);
+        const wat = { skill: 'skill', tool: 'gereedschap', language: 'taal', ability: 'ability',
+                      feat: 'feat', spell: 'spreuk', vrij: 'optie' }[sl.keuze.soort] || 'optie';
+        const extra = sl.keuze.geeft === 'expertise' ? ' — je krijgt er Expertise op'
+          : /^\+[12]$/.test(sl.keuze.geeft || '') ? ` — ${sl.keuze.geeft} erbij`
+          : '';
+        return `
+        <div class="ps-subkeuze">
+          <div class="ps-subkop">${esc(sl.naam)}
+            <span class="ps-hint">${esc(sl.bron)}${sl.sub ? ` · ${esc(sl.sub)}` : ''} · level ${sl.level}${esc(extra)}</span></div>
+          ${sl.opties?.length ? `
+            <div class="ps-skills">${sl.opties.map(o => `
+              <button type="button" class="ps-skill${gekozen.includes(o) ? ' is-aan' : ''}"
+                data-actie="featKeuze" data-sleutel="${esc(sl.sleutel)}" data-naam="${esc(o)}">
+                ${ico('check')} ${esc(o)}</button>`).join('')}</div>`
+            : `<p class="ps-hint">Deze keuze heeft geen lijst; schrijf hem zelf op je blad.</p>`}
+          <p class="ps-teller">${over ? `Nog <strong>${over}</strong> ${esc(wat)}${over === 1 ? '' : 's'} te kiezen.` : 'Gekozen.'}</p>
+        </div>`;
+      }).join('')}
+    </div>`;
+}
+
 function _groeiHtml() {
   const feats = P.bronnen.feats || [];
   const lijstAsi = feats.filter(f => f.soort !== 'boon');
@@ -780,6 +821,7 @@ function _groeiHtml() {
       ? `<p class="ps-lead">Je begint boven level 1, dus je maakt nu de keuzes die je onderweg had gemaakt.</p>`
       : `<p class="ps-lead">Je hebt onderweg niets te kiezen — maar dit is wel wat je kreeg.</p>`}
     ${_gegevenHtml()}
+    ${_featKeuzesHtml()}
     <datalist id="ps-feats-asi">${lijstAsi.map(f => `<option value="${esc(f.naam)}">`).join('')}</datalist>
     <datalist id="ps-feats-boon">${lijstBoon.map(f => `<option value="${esc(f.naam)}">`).join('')}</datalist>
     ${(P.groeiSlots || []).map(slot => {
@@ -1159,6 +1201,7 @@ function _neem(r) {
   P.slotsPer = r.slotsPer || {}; P.groeiSlots = r.groeiSlots || []; P.spreukFeats = r.spreukFeats || [];
   P.rerollsOver = r.rerollsOver ?? 0;
   P.gegeven = r.gegeven || [];
+  P.keuzeSlots = r.keuzeSlots || [];
 }
 async function _bewaar(velden) {
   const data = {};
@@ -1441,6 +1484,19 @@ const ACTIES = {
       const gelukt = await mod.openOpNaam(naam);
       if (!gelukt) toast(`${naam} staat niet in het Heldenboek.`);
     } catch { toast('Opzoeken lukte niet.'); }
+  },
+
+  // Een keuze van een feature. Nog eens drukken haalt hem eraf; boven het
+  // maximum schuift de oudste eruit, zoals bij de skills van een background.
+  featKeuze(d) {
+    const sl = (P.keuzeSlots || []).find(x => x.sleutel === d.sleutel);
+    if (!sl) return;
+    const nu = [...((P.c.keuzes || {})[d.sleutel] || [])];
+    const i = nu.indexOf(d.naam);
+    const nieuw = i >= 0 ? nu.filter(x => x !== d.naam) : [...nu, d.naam].slice(-sl.keuze.aantal);
+    P.c.keuzes = { ...(P.c.keuzes || {}), [d.sleutel]: nieuw };
+    _bewaar(['keuzes']);
+    _herteken();
   },
 
   blad({ sleutel, richting }) {

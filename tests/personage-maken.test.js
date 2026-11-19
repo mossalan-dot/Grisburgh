@@ -511,6 +511,48 @@ describe('Een personage scheppen: de randgevallen', () => {
       'en zonder verhoging valt er niets op te merken');
   });
 
+  // **De crux van de keuze-ronde**: wat een feature je laat kiezen moet op het
+  // blad landen. Anders staat de keuze wel op het personage en rekent het blad
+  // er niets mee — dan is het een aantekening en geen regel.
+  it('laat een keuze van een feature landen als proficiency en als expertise', async () => {
+    // Een feature een keuze geven, zoals de DM dat in het Heldenboek doet.
+    const prog = (await req(server, 'GET', '/api/progression', null, dm)).body;
+    const rij = prog.classes.Rogue.levels['1'].find(f => f.name === 'Expertise');
+    assert.ok(rij, 'de Rogue heeft Expertise op level 1');
+    const zet = await req(server, 'POST', '/api/progression/feature', {
+      soort: 'class', bron: 'Rogue', level: 1, naam: 'Expertise', desc: rij.desc || '',
+      oud: { soort: 'class', bron: 'Rogue', level: 1, naam: 'Expertise' },
+      keuze: { soort: 'skill', aantal: 2, uit: 'eigen', geeft: 'expertise' },
+    }, dm);
+    assert.strictEqual(zet.status, 200, JSON.stringify(zet.body));
+    assert.strictEqual(zet.body.regel.keuze.geeft, 'expertise');
+
+    const { patch } = await nieuw('Sluipvoet');
+    const r = await patch({ ...basis, klasse: 'Rogue', level: 1, skills: ['Stealth', 'Perception'] });
+    const slot = (r.body.keuzeSlots || []).find(s => s.naam === 'Expertise');
+    assert.ok(slot, 'de maker biedt de keuze aan');
+    assert.deepStrictEqual(slot.opties.sort(), ['Perception', 'Stealth'],
+      'en alleen uit de skills die hij al heeft');
+    assert.ok((r.body.nakijk.opmerkingen || []).some(o => /Expertise/.test(o)),
+      'zolang er niets gekozen is, staat het als opmerking');
+
+    const na = await patch({ keuzes: { [slot.sleutel]: ['Stealth', 'Perception'] } });
+    const profs = JSON.parse(na.body.profiel.skillProfs);
+    assert.strictEqual(profs.stealth, 'expert', 'Stealth is expert geworden');
+    assert.strictEqual(profs.perception, 'expert');
+    assert.ok(!(na.body.nakijk.opmerkingen || []).some(o => /Expertise/.test(o)),
+      'en de opmerking is weg');
+  });
+
+  it('neemt niet meer keuzes aan dan de feature toestaat', async () => {
+    const { patch } = await nieuw('Gretig');
+    const r = await patch({ ...basis, klasse: 'Rogue', level: 1, skills: ['Stealth', 'Perception', 'Acrobatics'] });
+    const slot = (r.body.keuzeSlots || []).find(s => s.naam === 'Expertise');
+    const na = await patch({ keuzes: { [slot.sleutel]: ['Stealth', 'Perception', 'Acrobatics'] } });
+    assert.strictEqual((na.body.concept.keuzes[slot.sleutel] || []).length, 2,
+      'er mogen er twee, dus het worden er twee');
+  });
+
   it('ruimt op wat door een andere keuze zinloos werd', async () => {
     const { patch } = await nieuw('Willemijn');
     await patch({ ...basis, level: 4, subclass: 'Champion', background: 'Soldier',
