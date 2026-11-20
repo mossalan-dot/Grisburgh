@@ -185,6 +185,10 @@ const SOORT_VOLGORDE = ['class', 'subclass', 'species', 'variant', 'feat', 'boon
   'conditie', 'situatie', 'klassestaat', 'beest', 'metgezel', 'keuze'];
 
 let _all        = null;   // null = nog niet geladen
+// Naam van de feature of spreuk (kleine letters) → de metgezel die hij geeft.
+// Eén tabel, twee richtingen: het kaartje van de metgezel wijst naar de spreuk
+// en hiermee wijst de feature terug. `metgezellen.json` is de bron van beide.
+const _metgezelBij = new Map();
 let _bron       = null;   // wat naslagBron() teruggaf (srdDesc, md, …)
 let _container  = null;
 // `sub` is de subklasse waarop je bent ingezoomd; `bron` de klasse, het volk of
@@ -531,7 +535,11 @@ async function _load() {
   // ── Metgezellen ──
   try {
     const r = await api.get('/bron/metgezellen');
+    _metgezelBij.clear();
     for (const c of (r?.metgezellen || [])) {
+      // Wat hem geeft is de andere kant van dezelfde koppeling: `geeft` noemt
+      // de feature of de spreuk, dus die naam is de sleutel terug.
+      if (c.geeft) _metgezelBij.set(String(c.geeft).toLowerCase(), c);
       zet({
         soort: 'metgezel', bron: c.klasse || 'Spreuken', sub: c.subclass || '',
         pill: [c.klasse || 'Spreuk', c.level || ''].filter(Boolean).join(' '),
@@ -899,6 +907,17 @@ function _kaartBladen(it) {
     if (blad) blad.html += `<p><button type="button" class="vd-vorm"
       onclick="event.stopPropagation();window.vaardigheden.deur('${heen.deur}')">
       ${icon('paw-print')} ${esc(heen.label)}</button></p>`;
+  }
+  // **Geeft deze feature je een wezen, dan staat dat wezen hier naast.** Pact
+  // of the Chain, Wild Companion, Steel Defender: de feature zegt dát je er een
+  // krijgt, het kaartje achter Familiars zegt wát hij kan. Zonder knop moet je
+  // zelf bedenken dat die twee bij elkaar horen.
+  const geeft = !it.metgezel && !it.beest ? _metgezelBij.get(String(it.naam).toLowerCase()) : null;
+  if (geeft) {
+    const blad = bladen.find(b => b.soort === 'beschrijving');
+    if (blad) blad.html += `<p><button type="button" class="vd-vorm"
+      onclick="event.stopPropagation();window.vaardigheden.naarMetgezel('${escA(geeft.naam)}')">
+      ${icon('paw-print')} ${esc(geeft.naam)}</button></p>`;
   }
   const regel = _featOnderTitel(it);
   if (regel && !bladen.some(b => b.soort === 'portret')) {
@@ -2705,7 +2724,7 @@ function _hertekenRaster(alleen) {
       if (nieuw.length !== wil.length) { _paint(); return; }
       // De spreuknamen in de tekst van een open kaartje zijn knoppen; die
       // haakt `_paint` normaal aan. Bij een gerichte wissel doen we dat zelf.
-      for (const el of nieuw) window.spreuken?.linkInDom?.(el);
+      for (const el of nieuw) { window.glossary?.applyDom?.(el); window.spreuken?.linkInDom?.(el); }
     });
     return;
   }
@@ -2745,6 +2764,7 @@ function _paint() {
   // De spreuk die een feat geeft is een knop naar het spreukenboek — ook hier
   // in het raster, niet alleen in het venster. De bibliotheek laadt lui, dus
   // dit mag niets blokkeren; hij vult de knoppen in zodra hij binnen is.
+  window.glossary?.applyDom?.(grid);
   window.spreuken?.linkInDom?.(grid);
   const tel = document.getElementById('vaardig-telling');
   if (tel) tel.textContent = `${lijst.length} van ${(_all || []).length}`;
@@ -4541,6 +4561,26 @@ window.vaardigheden = {
     _filters.q = '';
     _openKaart = it.key;
     _kaartBlad[it.key] = 1;
+    _bandHerteken(); _refreshFilterBar(); _paint();
+    setTimeout(() => document.querySelector(`#vaardig-grid .tegel[data-sleutel="${CSS.escape(it.key)}"]`)
+      ?.scrollIntoView({ block: 'center', behavior: 'smooth' }), 200);
+  },
+
+  // Van een feature of een spreuk naar het wezen dat hij geeft. Zelfde
+  // beweging als `naarBeest`: de deur open, de klassefilter op de zijne, en het
+  // kaartje opengeklapt op het blad waar staat wat hij is.
+  async naarMetgezel(naam) {
+    await _load();
+    const it = (_all || []).find(x => x.soort === 'metgezel' && x.naam === naam);
+    if (!it) { window._showToast?.(`${naam} staat niet in de lijst`); return; }
+    window.app?.closeModal?.();
+    window.spreuken?.close?.();
+    if (window._sectieNu !== 'vaardigheden') window.app?.switchSection?.('vaardigheden');
+    _deur = 'beest';
+    _filters.bron = it.bron;
+    _filters.q = '';
+    _openKaart = it.key;
+    _kaartBlad[it.key] = 0;
     _bandHerteken(); _refreshFilterBar(); _paint();
     setTimeout(() => document.querySelector(`#vaardig-grid .tegel[data-sleutel="${CSS.escape(it.key)}"]`)
       ?.scrollIntoView({ block: 'center', behavior: 'smooth' }), 200);

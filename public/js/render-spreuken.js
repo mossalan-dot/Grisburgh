@@ -225,6 +225,7 @@ function _card(s) {
     s.concentration ? `<span class="spreuk-tag" title="Concentration">${icon('eye')} Concentration</span>` : '',
     naslag ? `<a class="spreuk-tag spreuk-tag--naslag" href="${esc(naslag)}" target="_blank" rel="noopener"
       onclick="event.stopPropagation()" title="De beschrijving staat hier niet — zoek hem elders op">${icon('book-open')} Naslag</a>` : '',
+    _metgezelKnop(s),
   ].filter(Boolean).join('');
   // "Concentration, up to 1 minute" én een aparte Concentration-tag eronder is
   // twee keer hetzelfde; op het kaartje volstaat de duur zonder het voorvoegsel.
@@ -254,6 +255,19 @@ function _card(s) {
         ${markers ? `<div class="spreuk-card-tags">${markers}</div>` : ''}
       </div>
     </div>`;
+}
+
+// **Een spreuk die je iets geeft dat meeloopt.** Find Familiar, Summon Beast,
+// Animate Dead: vijftien spreuken leveren een wezen, en dat wezen heeft achter
+// de deur Familiars in Naslag zijn eigen kaartje met zijn gedaantes en zijn
+// statblok. De server hangt de naam aan de spreuk (`_metgezel`, zie
+// `lib/bronnen.js`) — `metgezellen.json` is de enige bron van die koppeling, en
+// die wijst ook de andere kant op.
+function _metgezelKnop(s, klasse = 'spreuk-tag') {
+  if (!s._metgezel?.naam) return '';
+  return `<button type="button" class="${klasse} spreuk-tag--metgezel"
+    onclick="event.stopPropagation();window.vaardigheden?.naarMetgezel?.('${escArg(s._metgezel.naam)}')"
+    title="Bekijk ${esc(s._metgezel.naam)} in Naslag">${icon('paw-print')} ${esc(s._metgezel.naam)}</button>`;
 }
 
 // ── Tegels ──────────────────────────────────────────────────────────────────
@@ -290,8 +304,9 @@ function _bladen(s) {
     ['Classes', _classNames(s).join(', ')],
   ].filter(([, v]) => String(v).trim());
   const merken = [s.ritual ? 'Ritual' : '', s.concentration ? 'Concentration' : ''].filter(Boolean);
-  if (rijen.length || merken.length) bladen.push({ soort: 'gegevens', label: 'Gegevens', html: `
-    ${merken.length ? `<div class="tegel-badges">${merken.map(m => `<span class="spreuk-tag">${icon(m === 'Ritual' ? 'scroll-text' : 'eye')} ${m}</span>`).join('')}</div>` : ''}
+  const mg = _metgezelKnop(s);
+  if (rijen.length || merken.length || mg) bladen.push({ soort: 'gegevens', label: 'Gegevens', html: `
+    ${merken.length || mg ? `<div class="tegel-badges">${merken.map(m => `<span class="spreuk-tag">${icon(m === 'Ritual' ? 'scroll-text' : 'eye')} ${m}</span>`).join('')}${mg}</div>` : ''}
     <dl class="tegel-gegevens">${rijen.map(([k, v]) => `<div class="tegel-gegeven"><dt>${esc(k)}</dt><dd>${esc(v)}</dd></div>`).join('')}</dl>` });
   const desc = _desc(s);
   if (desc) bladen.push({ soort: 'beschrijving', label: 'Beschrijving', tekst: desc,
@@ -637,6 +652,9 @@ function _detailHtml(s) {
       <div class="spreuk-detail-props">
         ${rows.map(([l, v]) => `<div class="spreuk-detail-prop"><span class="spreuk-detail-prop-lbl">${esc(l)}</span><span>${v}</span></div>`).join('')}
       </div>
+      ${s._metgezel?.naam ? `<div class="spreuk-detail-metgezel">
+        <span class="spreuk-detail-prop-lbl">Wat je oproept</span>
+        ${_metgezelKnop(s, 'spreuk-detail-imgbtn')}</div>` : ''}
       ${desc   ? `<div class="spreuk-detail-desc">${fmt(desc)}</div>` : ''}
       ${higher ? `<div class="spreuk-detail-higher"><span class="spreuk-detail-higher-lbl">At Higher Levels.</span> ${fmt(higher)}</div>` : ''}
       ${_bronRegel(s)}

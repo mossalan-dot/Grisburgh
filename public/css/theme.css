@@ -34454,3 +34454,27 @@ body.wizard-open .modal-overlay { z-index: 2100; }
 .archief-menu-kop:not(:first-child) {
   margin-top: 3px; border-top: 1px solid rgba(196,168,122,.3);
 }
+
+/* ── Een spreuk die iets oproept ──────────────────────────────────────────────
+   `.spreuk-tag` is een span; als knop heeft hij de browserreset nodig, anders
+   krijgt hij systeemtypografie en een grijs vlak. Hij staat achteraan in de
+   chiprij, want het is een weg naar elders en geen eigenschap van de spreuk. */
+button.spreuk-tag--metgezel {
+  font: inherit;
+  cursor: pointer;
+  border: 1px solid rgba(196, 168, 122, 0.55);
+  background: rgba(90, 58, 24, 0.14);
+  color: #5a3a18;
+}
+button.spreuk-tag--metgezel:hover {
+  background: rgba(90, 58, 24, 0.24);
+  border-color: rgba(196, 168, 122, 0.9);
+}
+.spreuk-detail-metgezel {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin: 10px 0 2px;
+}
+.spreuk-detail-metgezel .spreuk-detail-imgbtn { margin: 0; }
