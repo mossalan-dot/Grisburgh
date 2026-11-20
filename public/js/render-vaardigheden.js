@@ -14,10 +14,10 @@
  * zelf schreef, dan de SRD, en anders een verwijzing naar buiten.
  */
 
-import { api } from './api.js?v=325';
-import { naslagBron } from './render-progressie.js?v=75';
+import { api } from './api.js?v=326';
+import { naslagBron } from './render-progressie.js?v=76';
 // De condities staan op één plek, en dat is dit bestand — zie de kop daar.
-import { CONDITIONS, COND_ICON, condGroep, isEigenConditie } from './conditions.js?v=6';
+import { CONDITIONS, COND_ICON, condGroep, isEigenConditie, isAangepasteConditie } from './conditions.js?v=7';
 // Eén renderer voor elk statblok in de app — zie render-statblock.js.
 import { renderStatblock } from './render-statblock.js?v=10';
 
@@ -183,6 +183,15 @@ const _COND_BRON = { conditie: 'Conditions', situatie: 'Situaties', klasse: 'Van
 
 const SOORT_VOLGORDE = ['class', 'subclass', 'species', 'variant', 'feat', 'boon', 'zegen', 'gunst', 'background',
   'conditie', 'situatie', 'klassestaat', 'beest', 'metgezel', 'keuze'];
+
+// **Welke kaartjes niet uit de progressie komen.** Een conditie staat in
+// `conditions.js`, een beest en een metgezel in `bronnen/`, een maneuver in
+// `lib/klassekrachten.js` — allemaal code of meegeleverde data, dus de
+// feature-editor kan er niet bij. Wat de DM er zelf aan hangt (een plaat, zijn
+// eigen woorden) gaat naar één bak: `meta.naslagkaarten['<soort>:<naam>']`.
+// Zie de route `PUT /meta/naslagkaart`.
+const _EIGEN_BAK = new Set(['conditie', 'situatie', 'klassestaat', 'beest', 'metgezel', 'keuze']);
+const _bakSleutel = (it) => (it && _EIGEN_BAK.has(it.soort) ? `${it.soort}:${it.naam}` : '');
 
 let _all        = null;   // null = nog niet geladen
 // Naam van de feature of spreuk (kleine letters) → de metgezel die hij geeft.
@@ -504,9 +513,9 @@ async function _load() {
         desc: '', img: '', imgFocus: '',
         icoon: b.vliegt ? 'bird' : 'paw-print',
         beest: b, crGetal: b.crGetal ?? 0,
-        // Een beest komt uit de SRD of uit de campagne; bewerken doe je in het
-        // bestiarium, niet hier.
-        vast: true,
+        // Zijn **statblok** komt uit de SRD of uit het bestiarium en wordt hier
+        // niet bewerkt — daar is één plek voor. Een eigen plaat en een eigen
+        // aantekening mag wel: die hangen nergens anders.
       });
     }
   } catch { /* geen beesten is geen fout */ }
@@ -526,7 +535,6 @@ async function _load() {
           desc: (l.effecten || []).find(t => String(t).startsWith(`${naam}:`))?.replace(`${naam}:`, '').trim() || '',
           img: '', imgFocus: '', icoon: 'swords', herkomst: 'overgenomen',
           keuzeUit: { klasse, subclass: l.subclass, actie: l.actie, vanaf: l.vanaf },
-          vast: true,
         });
       });
     }
@@ -546,7 +554,7 @@ async function _load() {
         level: c.level || 0, naam: c.naam, desc: '', img: '', imgFocus: '',
         icoon: c.vormen?.length ? 'paw-print' : 'dog',
         bronTekst: c.boek || '', herkomst: 'overgenomen',
-        metgezel: c, vast: true,
+        metgezel: c,
       });
     }
   } catch { /* geen metgezellen is geen fout */ }
@@ -571,10 +579,10 @@ async function _load() {
       soort: groep === 'situatie' ? 'situatie' : groep === 'klasse' ? 'klassestaat' : 'conditie',
       bron: _COND_BRON[groep], level: 0, naam: c.label, desc: c.desc || '',
       img: '', imgFocus: '', icoon: ico, kleur, condId: c.id,
-      // Wat de app meebrengt is code en dus niet te bewerken; wat de campagne
-      // zelf verzon staat in `meta.condities` en heeft wél een potlood.
-      vast: !isEigenConditie(c.id),
+      // Wat de campagne zelf verzon mag ook weg; wat de app meebrengt alleen
+      // bijgeschaafd worden — allebei via `meta.condities`.
       eigenConditie: isEigenConditie(c.id),
+      condAangepast: isAangepasteConditie(c.id),
     });
   }
 
@@ -598,6 +606,17 @@ async function _load() {
   // de Bonus Proficiency van het Death Domain niet die van het Nature Domain).
   const gezien = new Set();
   _all = uit.filter(x => { if (gezien.has(x.key)) return false; gezien.add(x.key); return true; });
+
+  // De plaat en de eigen aantekening die de DM aan zo'n kaartje hing. Ze gaan
+  // op `img` en `desc` staan, dus kaartje, tegel, venster en het zoeken hoeven
+  // er niets van te weten — en de terugvalketen van het beeld werkt gewoon.
+  const eigen = window.app?.state?.meta?.naslagkaarten || {};
+  for (const it of _all) {
+    const e = eigen[_bakSleutel(it)];
+    if (!e) continue;
+    if (e.beeld) { it.img = e.beeld; it.imgFocus = e.focus || ''; }
+    if (e.tekst) { it.desc = e.tekst; it.eigenTekst = true; }
+  }
   _bronnen = [...new Set(_all.map(x => x.bron))].sort();
   return _all;
 }
@@ -765,6 +784,22 @@ async function _conditiesBewaren(lijst) {
   }
 }
 
+// En hetzelfde voor de bak ernaast. Vier aanroepers (tekst, plaat, plaat weg,
+// focuspunt) en één weg naar buiten; `sluit` staat uit bij het focuspunt, want
+// dat stel je bij terwijl het venster openstaat.
+async function _naslagkaartBewaren(soort, naam, velden, sluit = true) {
+  try {
+    const r = await api.saveNaslagkaart(soort, naam, velden);
+    if (window.app?.state?.meta) window.app.state.meta.naslagkaarten = r.naslagkaarten || {};
+    if (sluit) window.app.closeModal();
+    _all = null;
+    await _load();
+    _bandHerteken(); _refreshFilterBar(); _paint();
+  } catch (e) {
+    window._showToast?.(e?.message || 'Opslaan lukte niet');
+  }
+}
+
 // ── Een kaartje dat opengaat waar het staat ────────────────────────────────
 // **Zoals in het archief, het bestiarium en de spreuken.** Daar is een kaartje
 // twee stappen: je klikt en het groeit ter plekke open naar 2×2 met bladzijden
@@ -857,8 +892,30 @@ function _keuzeBladen(it) {
   return bladen;
 }
 
+// **Welk potlood hoort bij dit kaartje?** Drie editors naast elkaar — de
+// progressie-editor, het achtergrondvenster en de bak hierboven — en de keuze
+// stond op drie plekken in dezelfde vorm. Dat is één plek te veel: een vierde
+// soort zou er dan drie keer bij moeten.
+function _penAanroep(it) {
+  const bak = _bakSleutel(it);
+  if (bak) return `naslagBewerk('${escA(it.soort)}','${escA(it.naam)}')`;
+  if (it.soort === 'background') return `kaartBewerken('background','${escA(it.naam)}')`;
+  return `bewerk('${escA(it.key)}')`;
+}
+
 function _kaartBladen(it) {
-  if (it.keuzeUit) return _keuzeBladen(it);
+  // **Een plaat en een eigen aantekening horen bij élk kaartje.** De drie die
+  // hun eigen bladen bouwen (een keuze, een beest, een metgezel) begonnen bij
+  // hun gegevens: geen portretblad, en geen plek voor wat de DM erbij schreef.
+  // De gewone tak heeft dat allebei al — daar ís `desc` de beschrijving.
+  const eigen = (bladen) => {
+    const uit = [...bladen];
+    if (_beeldKeten(it).length) uit.unshift({ soort: 'portret', label: 'Portret' });
+    if (it.eigenTekst) uit.push({ soort: 'beschrijving', label: 'Aantekening', tekst: it.desc,
+      html: `<div class="tegel-tekst">${_verwijzingen(window._vaardigTekstHtml?.(it.desc) ?? esc(it.desc))}</div>` });
+    return uit;
+  };
+  if (it.keuzeUit) return eigen(_keuzeBladen(it));
   // Een beest ís zijn statblok: dat is wat je wilt lezen voordat je besluit
   // dat je het wordt. Eén renderer voor alle statblokken in de app
   // (`render-statblock.js`), dus hier staat er geen tweede.
@@ -868,15 +925,15 @@ function _kaartBladen(it) {
       ['CR', b.cr], ['AC', b.ac], ['HP', b.hp], ['Speed', b.speed],
       ['Omgeving', (b.omgevingen || []).join(', ')],
     ].filter(([, v]) => String(v || '').trim());
-    return [
+    return eigen([
       { soort: 'eigenschappen', label: 'Kort', tekst: rijen.map(([k, v]) => `${k} ${v}`).join(' '),
         html: `<dl class="vk-training">${rijen.map(([k, v]) =>
           `<dt>${esc(k)}</dt><dd>${esc(v)}</dd>`).join('')}</dl>` },
       { soort: 'beschrijving', label: 'Statblock', tekst: b.naam,
         html: `<div class="vd-statblok">${renderStatblock(b.statblock, { kop: false })}</div>` },
-    ];
+    ]);
   }
-  if (it.metgezel) return _metgezelBladen(it);
+  if (it.metgezel) return eigen(_metgezelBladen(it));
   const bladen = [];
   if (_beeldKeten(it).length) bladen.push({ soort: 'portret', label: 'Portret' });
   const tekst = _tekst(it);
@@ -1090,13 +1147,9 @@ function _card(it) {
   // **Een vaste regel is niet te bewerken.** Een conditie komt uit
   // `conditions.js` en niet uit de progressie van de campagne; een potlood zou
   // een editor openen voor een regel die daar niet bestaat.
-  const dmPen = (isDM() && !it.entityId && !it.vast) ? `
+  const dmPen = (isDM() && !it.entityId) ? `
     <button class="vaardig-pen" title="Dit kaartje bewerken"
-      onclick="event.stopPropagation();${it.eigenConditie
-        ? `window.vaardigheden.conditieBewerk('${escA(it.condId)}')`
-        : it.soort === 'background'
-        ? `window.vaardigheden.kaartBewerken('background','${escA(it.naam)}')`
-        : `window.vaardigheden.bewerk('${escA(it.key)}')`}">${icon('pencil')}</button>` : '';
+      onclick="event.stopPropagation();window.vaardigheden.${_penAanroep(it)}">${icon('pencil')}</button>` : '';
 
   // Een zegening of een gunst is een kaartje in de campagne, en dat heeft zijn
   // eigen venster — met de god, de eedtekst en de permanente zegen erin. Daar
@@ -1148,12 +1201,8 @@ function _card(it) {
         <div class="tegel-voet" onclick="event.stopPropagation()">
           <div class="tegel-punten">${window._tegelPijlHtml?.(-1, bladen.length) || ''}${bladen.map((b, k) => `<button class="tegel-punt${k === j ? ' is-aan' : ''}"
             title="${esc(b.label)}" onclick="window.vaardigheden.naar('${escA(it.key)}',${k})">${icon(_KAART_BLAD_ICOON[b.soort] || 'square')}</button>`).join('')}${window._tegelPijlHtml?.(1, bladen.length) || ''}</div>
-          ${isDM() && !it.vast ? `<button class="tegel-knop" title="Dit kaartje bewerken"
-            onclick="window.vaardigheden.${it.eigenConditie
-              ? `conditieBewerk('${escA(it.condId)}')`
-              : it.soort === 'background'
-              ? `kaartBewerken('background','${escA(it.naam)}')`
-              : `bewerk('${escA(it.key)}')`}">${icon('pencil')}</button>` : ''}
+          ${isDM() ? `<button class="tegel-knop" title="Dit kaartje bewerken"
+            onclick="window.vaardigheden.${_penAanroep(it)}">${icon('pencil')}</button>` : ''}
           <button class="tegel-knop" title="Het hele kaartje" onclick="window.vaardigheden.vergroot('${escA(it.key)}')">${icon('maximize-2')}</button>
           <button class="tegel-knop" title="Kleiner" onclick="window.vaardigheden.tegelDicht()">${icon('minimize-2')}</button>
         </div>
@@ -3775,7 +3824,7 @@ function _open(key, vanWaar = null) {
       terugval: rest.length ? JSON.stringify(rest) : '',
     });
   })();
-  const dmBeeld = (isDM() && !it.vast) ? `
+  const dmBeeld = isDM() ? `
       ${geerfd ? `<p class="dm-hint" style="margin:4px 0 0">Neemt de afbeelding over van <strong>${esc(geerfd.geerfd || 'zijn class')}</strong>.
       Geef hem er zelf een via <em>Bewerken</em> als hij iets anders moet laten zien.</p>` : ''}
       ${it.img ? `
@@ -3791,7 +3840,7 @@ function _open(key, vanWaar = null) {
              hier naast "Bewerken", terwijl de bewerkmodus allebei al doet —
              en daar staat ook de focuskiezer bij. Twee wegen naar hetzelfde,
              waarvan er één minder kan. -->
-        <button class="spreuk-detail-imgbtn" onclick="window.vaardigheden.bewerk('${escA(it.key)}')">
+        <button class="spreuk-detail-imgbtn" onclick="window.vaardigheden.${_penAanroep(it)}">
           ${icon('pencil')} Bewerken</button>
       </div>` : '';
 
@@ -4494,59 +4543,150 @@ window.vaardigheden = {
     (l[i]?.varianten || []).splice(j, 1);
     _edit.keuze = l; _editorHerteken();
   },
-  // ── Een eigen conditie ───────────────────────────────────────────────────
-  // De app brengt er veertig mee en die zijn van alle campagnes tegelijk. Een
-  // vloek die in jouw wereld blijft hangen hoort in jouw campagne te staan, en
-  // dat is `meta.condities` (zie de route `PUT /meta/condities`).
-  conditieBewerk(id) {
-    const bestaand = (window.app?.state?.meta?.condities || []).find(c => c.id === id) || null;
+  // ── Een kaartje dat niet uit de progressie komt ──────────────────────────
+  // Een conditie, een beest, een metgezel, een maneuver: die staan in
+  // `conditions.js` of in een bestand onder `bronnen/`, en dat is code die
+  // alle campagnes delen. Er was dus geen potlood, en geen manier om er een
+  // plaat aan te hangen — terwijl een conditie met een eigen plaat precies is
+  // wat de rest van de app wél overal heeft.
+  //
+  // Eén venster voor alle vier, want het is één vraag: hoe heet hij hier, hoe
+  // ziet hij eruit, en wat zeg ik erover. Waar het naartoe gaat verschilt wel:
+  // de naam, het icoon en de tekst van een **conditie** horen bij
+  // `meta.condities` (het gevechtscanvas en het spelerstabblad lezen die lijst
+  // ook), de rest in `meta.naslagkaarten`.
+  naslagBewerk(soort, naam) {
+    const isCond = soort === 'conditie' || soort === 'situatie' || soort === 'klassestaat';
+    const it = naam ? (_all || []).find(x => x.soort === soort && x.naam === naam) : null;
+    const cond = it?.condId
+      ? (window.app?.state?.meta?.condities || []).find(c => c.id === it.condId) || null : null;
+    const bak = it ? (window.app?.state?.meta?.naslagkaarten || {})[_bakSleutel(it)] || {} : {};
     const groepen = [['conditie', 'Condition'], ['situatie', 'Situatie'], ['klasse', 'Lopend effect']];
-    window.app.openModal(bestaand ? `${bestaand.label} bewerken` : 'Nieuwe conditie', '', `
+    const eigen = !!it?.eigenConditie;
+    const uitBoek = isCond && it && !eigen;
+    const kop = it ? `${it.naam} bewerken` : 'Nieuwe conditie';
+    const plaat = it?.img || bak.beeld || '';
+    const sl = it ? `'${escA(soort)}','${escA(it.naam)}'` : null;
+
+    window.app.openModal(kop, '', `
+      ${uitBoek ? `<p class="dm-hint">${esc(it.naam)} komt uit het boek. Wat je hier invult komt daar
+        overheen — op dit kaartje, in de tooltip op een token en op het spelerstabblad. Leeg laten
+        betekent: hou wat de app meebrengt.</p>` : ''}
+      ${isCond ? `
       <div class="dm-form-row">
         <label class="dm-form-label" for="cond-label">Naam</label>
-        <input class="dm-input" id="cond-label" maxlength="60" value="${esc(bestaand?.label || '')}"
-          placeholder="Zoals hij op een token staat — bijv. Mistbann">
+        <input class="dm-input" id="cond-label" maxlength="60" value="${esc(cond?.label || (uitBoek ? '' : it?.naam || ''))}"
+          placeholder="${uitBoek ? esc(it.naam) : 'Zoals hij op een token staat — bijv. Mistbann'}">
       </div>
-      <div class="dm-form-row">
+      ${eigen || !it ? `<div class="dm-form-row">
         <label class="dm-form-label" for="cond-groep">Soort</label>
         <select class="dm-input" id="cond-groep">
-          ${groepen.map(([v, l]) => `<option value="${v}"${(bestaand?.groep || 'conditie') === v ? ' selected' : ''}>${esc(l)}</option>`).join('')}
+          ${groepen.map(([v, l]) => `<option value="${v}"${(cond?.groep || 'conditie') === v ? ' selected' : ''}>${esc(l)}</option>`).join('')}
         </select>
-      </div>
+      </div>` : ''}
       <div class="dm-form-row">
         <label class="dm-form-label" for="cond-icoon">Icoon</label>
         <input class="dm-input" id="cond-icoon" list="cond-iconen" maxlength="40"
-          value="${esc(bestaand?.icoon || 'sparkle')}" placeholder="Naam uit de iconenset">
+          value="${esc(cond?.icoon || (uitBoek ? '' : 'sparkle'))}" placeholder="${esc(it?.icoon || 'Naam uit de iconenset')}">
         <datalist id="cond-iconen">${_COND_ICOONKEUZE.map(n => `<option value="${esc(n)}">`).join('')}</datalist>
-      </div>
+      </div>` : ''}
       <div class="dm-form-row">
-        <label class="dm-form-label">Beschrijving</label>
-        <textarea class="dm-input" id="cond-desc" rows="5"
-          placeholder="Wat het met je doet. Dit staat op het kaartje en in de tooltip op een token.">${esc(bestaand?.desc || '')}</textarea>
+        <label class="dm-form-label" for="cond-desc">Beschrijving</label>
+        <textarea class="dm-input" id="cond-desc" rows="6"
+          placeholder="${isCond ? 'Wat het met je doet. Dit staat op het kaartje en in de tooltip op een token.'
+            : 'Wat jij hierover kwijt wil — een aantekening bij dit kaartje.'}">${esc(isCond ? (cond?.desc || '') : (bak.tekst || ''))}</textarea>
       </div>
+      ${it ? `
+      <div class="dm-form-row">
+        <label class="dm-form-label">Afbeelding</label>
+        <div class="spreuk-dm-knoppen">
+          <button class="dm-btn dm-btn-ghost" onclick="window.vaardigheden.naslagBeeld(${sl})">
+            ${icon('image')} ${plaat ? 'Andere afbeelding' : 'Afbeelding kiezen of uploaden'}</button>
+          ${plaat ? `<button class="dm-btn dm-btn-ghost" onclick="window.vaardigheden.naslagBeeldWeg(${sl})">
+            ${icon('trash')} Weghalen</button>` : ''}
+        </div>
+        ${plaat ? `<details class="spreuk-focus-blok">
+          <summary>${icon('image')} Focuspunt bijstellen</summary>
+          <div class="spreuk-focus-body">${window._fpBlokHtml?.({
+            src: `/api/files/${esc(plaat)}`, value: it.imgFocus || bak.focus || '50% 50%',
+            previews: [{ cls: 'fp-prev--breed', label: 'Kaartje' }],
+          }) || ''}</div>
+        </details>` : ''}
+      </div>` : ''}
       <div class="dm-feature-row" style="justify-content:flex-end">
-        ${bestaand ? `<button class="dm-btn dm-btn-danger"
-          onclick="window.vaardigheden.conditieWeg('${escA(bestaand.id)}')">${icon('trash')} Verwijderen</button>` : ''}
+        ${eigen ? `<button class="dm-btn dm-btn-danger"
+          onclick="window.vaardigheden.conditieWeg('${escA(it.condId)}')">${icon('trash')} Verwijderen</button>` : ''}
+        ${uitBoek && cond ? `<button class="dm-btn dm-btn-ghost"
+          onclick="window.vaardigheden.conditieTerug('${escA(it.condId)}')">${icon('refresh-cw')} Terug naar het boek</button>` : ''}
         <button class="dm-btn dm-btn-ghost" onclick="window.app.closeModal()">Annuleren</button>
         <button class="dm-btn dm-btn-primary"
-          onclick="window.vaardigheden._conditieBewaar(${bestaand ? `'${escA(bestaand.id)}'` : 'null'})">${icon('save')} Opslaan</button>
+          onclick="window.vaardigheden._naslagBewaar('${escA(soort)}',${it ? `'${escA(it.naam)}'` : "''"})">${icon('save')} Opslaan</button>
       </div>`);
+    // De gedeelde focuskiezer schrijft in een hidden input; hier is geen
+    // formulier dat meegaat, dus bewaart hij meteen — net als in het
+    // spreukvenster.
+    if (it && plaat) {
+      window._fpOnChange = (v) => window.vaardigheden.naslagFocus(soort, it.naam, v);
+      window._fpTeken?.();
+    }
   },
 
-  async _conditieBewaar(id) {
+  // Nieuwe conditie: hetzelfde venster, zonder kaartje erachter.
+  conditieBewerk(id) {
+    if (!id) return this.naslagBewerk('conditie', '');
+    const c = (window.app?.state?.meta?.condities || []).find(x => x.id === id);
+    const it = (_all || []).find(x => x.condId === id);
+    return this.naslagBewerk(it?.soort || 'conditie', it?.naam || c?.label || '');
+  },
+
+  async _naslagBewaar(soort, naam) {
     const v = (x) => document.getElementById(x)?.value?.trim() || '';
-    const label = v('cond-label');
-    if (!label) { alert('Een conditie heeft een naam nodig.'); return; }
+    const isCond = soort === 'conditie' || soort === 'situatie' || soort === 'klassestaat';
+    const it = naam ? (_all || []).find(x => x.soort === soort && x.naam === naam) : null;
+    if (!isCond) {
+      if (!it) return;
+      await _naslagkaartBewaren(soort, it.naam, { tekst: v('cond-desc') });
+      return;
+    }
     const lijst = [...(window.app?.state?.meta?.condities || [])];
-    const nieuw = { id: id || undefined, label, groep: v('cond-groep'), icoon: v('cond-icoon'), desc: v('cond-desc') };
-    const i = lijst.findIndex(c => c.id === id);
-    if (i >= 0) lijst[i] = { ...lijst[i], ...nieuw }; else lijst.push(nieuw);
+    const id = it?.condId || null;
+    const label = v('cond-label');
+    // Een nieuwe conditie heeft een naam nodig; bij een meegeleverde mag het
+    // veld leeg blijven — dat betekent "hou de naam uit het boek".
+    if (!id && !label) { alert('Een conditie heeft een naam nodig.'); return; }
+    const velden = { label: label || it?.naam || '', icoon: v('cond-icoon'), desc: v('cond-desc') };
+    const groep = document.getElementById('cond-groep')?.value;
+    if (groep) velden.groep = groep;
+    const i = id ? lijst.findIndex(c => c.id === id) : -1;
+    if (i >= 0) lijst[i] = { ...lijst[i], ...velden };
+    else lijst.push({ ...(id ? { id } : {}), ...velden });
     await _conditiesBewaren(lijst);
   },
+
+  // De plaat. Hij gaat altijd naar `meta.naslagkaarten` — ook bij een
+  // conditie, want `meta.condities` heeft geen beeldveld en een token toont
+  // geen plaat; dit is iets van het naslagkaartje alleen.
+  naslagBeeld(soort, naam) {
+    if (!window.mediaPicker?.open) { alert('Mediabibliotheek niet beschikbaar'); return; }
+    window.mediaPicker.open({
+      type: 'afbeelding', suggestedName: `${soort}-${naam}`,
+      onSelect: (srcId) => _naslagkaartBewaren(soort, naam, { beeld: srcId }),
+    });
+  },
+  naslagBeeldWeg(soort, naam) { return _naslagkaartBewaren(soort, naam, { beeld: '' }); },
+  naslagFocus(soort, naam, waarde) { return _naslagkaartBewaren(soort, naam, { focus: waarde }, false); },
 
   async conditieWeg(id) {
     const c = (window.app?.state?.meta?.condities || []).find(x => x.id === id);
     if (!confirm(`"${c?.label || id}" weghalen? Een token dat hem draagt houdt het kale id.`)) return;
+    await _conditiesBewaren((window.app?.state?.meta?.condities || []).filter(x => x.id !== id));
+  },
+
+  // Een meegeleverde conditie terugzetten: zijn regel uit `meta.condities`
+  // weghalen is genoeg — `zetEigenCondities` zet dan de tekst uit het boek
+  // terug, want die bewaart hij.
+  async conditieTerug(id) {
+    if (!confirm('Jouw naam, icoon en tekst weghalen en terugvallen op wat de app meebrengt?')) return;
     await _conditiesBewaren((window.app?.state?.meta?.condities || []).filter(x => x.id !== id));
   },
 

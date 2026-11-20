@@ -175,6 +175,12 @@ export const COND_ICON = {
 const GROEP_KLEUR = { klasse: _CLASS_GOLD, situatie: _SIT_STEEL, conditie: '#8a5a3a' };
 let _eigenIds = [];
 
+// Wat de DM van een **meegeleverde** conditie maakte, met het origineel
+// eromheen bewaard. Die momentopname is geen tweede lijst maar een
+// geheugensteun: haalt hij zijn aanpassing weg, dan komt de tekst uit het boek
+// terug in plaats van weg te blijven.
+let _overschreven = new Map();
+
 export function zetEigenCondities(lijst) {
   // Eerst de vorige ronde eruit: de DM kan er een hernoemen of weghalen, en
   // dan mag de oude niet blijven spoken.
@@ -185,9 +191,34 @@ export function zetEigenCondities(lijst) {
     if (i >= 0) CONDITIONS.splice(i, 1);
   }
   _eigenIds = [];
+  for (const [id, was] of _overschreven) {
+    const rij = COND_INFO[id];
+    if (rij) { rij.label = was.label; rij.desc = was.desc; delete rij.aangepast; }
+    if (was.icoon) COND_ICON[id] = was.icoon;
+  }
+  _overschreven = new Map();
+
   for (const c of (Array.isArray(lijst) ? lijst : [])) {
     const id = String(c?.id || '').trim();
-    if (!id || COND_INFO[id]) continue;        // een eigen conditie overschrijft nooit een echte
+    if (!id) continue;
+    // **Bestaat hij al, dan is dit een aanpassing en geen nieuwe.** Alleen de
+    // velden die de DM invulde schuiven erover; de rest blijft wat het boek
+    // zegt. Zo kan hij Restrained in zijn eigen woorden zetten zonder dat de
+    // conditie zelf iets anders wordt — hij staat op dezelfde tokens.
+    const bestaat = COND_INFO[id];
+    if (bestaat) {
+      _overschreven.set(id, {
+        label: bestaat.label, desc: bestaat.desc, icoon: COND_ICON[id] ? [...COND_ICON[id]] : null,
+      });
+      if (c.label) bestaat.label = String(c.label);
+      if (c.desc)  bestaat.desc  = String(c.desc);
+      if (c.icoon || c.kleur) {
+        const [i0, k0] = COND_ICON[id] || ['sparkle', GROEP_KLEUR.conditie];
+        COND_ICON[id] = [String(c.icoon || i0), String(c.kleur || k0)];
+      }
+      bestaat.aangepast = true;
+      continue;
+    }
     const rij = { id, label: String(c.label || id), desc: String(c.desc || ''), eigen: true };
     CONDITIONS.push(rij);
     COND_INFO[id] = rij;
@@ -195,11 +226,15 @@ export function zetEigenCondities(lijst) {
                      String(c.kleur || GROEP_KLEUR[c.groep] || GROEP_KLEUR.conditie)];
     _eigenIds.push(id);
   }
-  return _eigenIds.length;
+  return _eigenIds.length + _overschreven.size;
 }
 
-// Is dit een conditie van de campagne zelf? Daar hangt het potlood aan.
+// Is dit een conditie van de campagne zelf? Daar hangt het verwijderen aan —
+// wat de app meebrengt mag je bijschaven, niet weggooien.
 export const isEigenConditie = (id) => _eigenIds.includes(id);
+// Heeft de DM deze meegeleverde conditie in zijn eigen woorden gezet? Dan zegt
+// het kaartje dat, zodat zijn tekst niet voor die uit het boek doorgaat.
+export const isAangepasteConditie = (id) => _overschreven.has(id);
 
 // Ook op `window`, want app.js roept hem aan zodra `meta` binnen is.
 if (typeof window !== 'undefined') window._zetEigenCondities = zetEigenCondities;

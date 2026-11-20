@@ -14023,6 +14023,48 @@ router.put('/meta/heldenboek/verborgen', requireDM, (req, res) => {
 // is niets te migreren.
 const _DEURSLEUTEL = /^(archief|naslag|avontuur|diensten):[a-z0-9-]{1,40}$/;
 
+// **Wat de DM aan een naslagkaartje hangt dat niet uit de progressie komt.**
+// Een conditie, een beest, een metgezel, een maneuver: die staan in
+// `conditions.js` of in een bestand onder `bronnen/`, dus de feature-editor
+// (`POST /progression/feature`) kan er niet bij — er is niets om te bewerken.
+// Eén bak voor alle vier: `meta.naslagkaarten['<soort>:<naam>']` met een plaat
+// en, waar de tekst uit een bronbestand komt, zijn eigen woorden.
+//
+// Een **conditie** gaat er maar half langs: zijn naam, icoon en beschrijving
+// horen bij `meta.condities`, want die leest het gevechtscanvas en het
+// spelerstabblad ook. Hier staat alleen zijn plaat — die hangt nergens anders.
+const _NASLAGSOORTEN = ['conditie', 'situatie', 'klassestaat', 'beest', 'metgezel', 'keuze'];
+
+router.put('/meta/naslagkaart', requireDM, (req, res) => {
+  const soort = String(req.body?.soort || '');
+  const naam  = String(req.body?.naam || '').trim().slice(0, 80);
+  if (!_NASLAGSOORTEN.includes(soort) || !naam) return res.status(400).json({ error: 'Onbekend kaartje' });
+  const sleutel = `${soort}:${naam}`;
+  const meta = storage.readJSON('meta.json');
+  const bak  = { ...(meta.naslagkaarten || {}) };
+  const was  = bak[sleutel] || {};
+  const rij  = { ...was };
+  // Alleen wat meegestuurd wordt verandert; een leeg veld haalt hem weg. Zo kan
+  // de plaat los van de tekst bijgesteld worden zonder de ander te wissen.
+  if (req.body.beeld !== undefined) {
+    const id = String(req.body.beeld || '').slice(0, 80);
+    if (id) rij.beeld = id; else { delete rij.beeld; delete rij.focus; }
+  }
+  if (req.body.focus !== undefined) {
+    const f = String(req.body.focus || '').trim().slice(0, 40);
+    if (f) rij.focus = f; else delete rij.focus;
+  }
+  if (req.body.tekst !== undefined) {
+    const t = String(req.body.tekst || '').trim().slice(0, 4000);
+    if (t) rij.tekst = t; else delete rij.tekst;
+  }
+  if (Object.keys(rij).length) bak[sleutel] = rij; else delete bak[sleutel];
+  if (Object.keys(bak).length) meta.naslagkaarten = bak; else delete meta.naslagkaarten;
+  storage.writeJSON('meta.json', meta);
+  req.app.get('io').to(_campagneRoom(req)).emit('meta:updated');
+  res.json({ ok: true, naslagkaarten: meta.naslagkaarten || {} });
+});
+
 router.put('/meta/deurbeelden', requireDM, (req, res) => {
   const sleutel = String(req.body?.sleutel || '');
   if (!_DEURSLEUTEL.test(sleutel)) return res.status(400).json({ error: 'Onbekende deur' });

@@ -230,6 +230,11 @@ export const api = {
   // De plaat op een deur van een voorpagina; sleutel is '<pagina>:<deur>'.
   saveDeurbeeld: (sleutel, fileId) =>
     request('/meta/deurbeelden', { method: 'PUT', body: JSON.stringify({ sleutel, fileId }) }),
+  // Een plaat of eigen tekst bij een naslagkaartje dat niet uit de progressie
+  // komt (een conditie, een beest, een metgezel, een maneuver). Alleen wat je
+  // meestuurt verandert; een leeg veld haalt hem weg.
+  saveNaslagkaart: (soort, naam, velden) =>
+    request('/meta/naslagkaart', { method: 'PUT', body: JSON.stringify({ soort, naam, ...velden }) }),
   // Welke classes en subclasses spelers te zien krijgen. We bewaren wat er
   // **uit** staat, zodat nieuw materiaal vanzelf zichtbaar is.
   heldenboekVerborgen: (data) => request('/meta/heldenboek/verborgen', { method: 'PUT', body: JSON.stringify(data) }),

@@ -1,5 +1,5 @@
-import { api, huidigeCampagne } from './api.js?v=325';
-import { init as canvasInit, update as canvasUpdate, stop as canvasStop, acGetal } from './combat-canvas.js?v=43';
+import { api, huidigeCampagne } from './api.js?v=326';
+import { init as canvasInit, update as canvasUpdate, stop as canvasStop, acGetal } from './combat-canvas.js?v=44';
 import { renderStatblock } from './render-statblock.js?v=10';
 
 // ── DM Panel ──
@@ -15,7 +15,7 @@ function _redenVragen(vraag) {
 }
 
 // De condities staan op één plek; het spelerstabblad leest dezelfde lijst.
-import { CONDITIONS, COND_ICON, condGroep } from './conditions.js?v=6';
+import { CONDITIONS, COND_ICON, condGroep } from './conditions.js?v=7';
 
 
 // Groepen voor de conditie-weergave. Op modulescope zodat de rij in het
@@ -2921,7 +2921,7 @@ async function _ladeToggle() {
   _ladeIdx = _bwIdx >= 0 ? _bwIdx : Math.min(_ladePlekLees(), Math.max(0, _ladeSecties.length - 1));
   // De akte-module levert de renderer én de knoppen; die moet weten welke akte
   // er speelt, anders belandt een getoond beeld in de sessielog van niemand.
-  const mod = await import('./akte-schrijven.js?v=46');
+  const mod = await import('./akte-schrijven.js?v=47');
   mod.zetAkte(_rbChapter, _ladeTekst);
   window._akteRegieRender = mod.regieNaarHtml;
   let lade = document.getElementById('regie-lade');
@@ -2947,7 +2947,7 @@ window._ladeHerlaad = async () => {
     _ladeTekst = regie?.tekst || '';
     _ladeSecties = _splitsSecties(_ladeTekst);
     _ladeIdx = Math.min(_ladeIdx, Math.max(0, _ladeSecties.length - 1));
-    const mod = await import('./akte-schrijven.js?v=46');
+    const mod = await import('./akte-schrijven.js?v=47');
     mod.zetAkte(_rbChapter, _ladeTekst);
     _ladeRender();
   } catch { /* de lade blijft staan zoals hij stond */ }
