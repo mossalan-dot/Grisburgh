@@ -949,8 +949,13 @@ window._veegNavigatie = function (el, { vorige, volgende, toetsen = true } = {})
 // Bewust géén meeschuiven bij hoveren: naast deze drie staan knoppen zónder
 // menu (Personage, Meesterkamer), en dan bleef het geopende menu bij de een
 // wél en bij de ander niet hangen. Dat las als een haperende menubalk.
+// **Elk menu in de kop staat hier.** `_navMenuToon` loopt deze lijst af: hij
+// toont er één en verbergt de rest. Een menu dat er niet in staat wordt dus
+// nooit getoond — en precies dat gebeurde met het Naslag-menu: de hover-handler
+// vuurde, maar de functie die hem moest openen kende hem niet.
 const NAV_MENUS = [
   { menu: 'archief-menu',  knop: 'archief-nav-btn' },
+  { menu: 'naslag-menu',   knop: 'naslag-nav-btn' },
   { menu: 'diensten-menu', knop: 'diensten-nav-btn' },
   { menu: 'logboek-menu',  knop: 'logboek-nav-btn' },
 ];
