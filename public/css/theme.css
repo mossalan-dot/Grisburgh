@@ -34478,3 +34478,130 @@ button.spreuk-tag--metgezel:hover {
   margin: 10px 0 2px;
 }
 .spreuk-detail-metgezel .spreuk-detail-imgbtn { margin: 0; }
+
+/* ── De kop van het spelerstabblad: portret · naam · level ────────────────────
+   Hij stond links uitgelijnd met een lange lege strook ernaast en de printlink
+   als derde ding helemaal rechts. Nu drie dingen van gelijk gewicht, met de
+   rij als geheel gecentreerd: twee ronde penningen van dezelfde maat met de
+   naam ertussen. Op een telefoon stapelen ze. */
+.player-dash-hero--mid {
+  justify-content: center;
+  gap: 28px;
+}
+.player-dash-hero--mid .player-dash-hero-info {
+  flex: 0 1 auto;
+  text-align: center;
+  min-width: 0;
+}
+.player-dash-hero--mid .player-dash-name { margin-bottom: 6px; }
+.player-dash-hero--mid .player-dash-feiten { margin: 0 auto; max-width: 34ch; }
+/* De printlink hing met `margin-left:auto` aan de rechterrand van de kop; in
+   het midden zou dat hem van de naam wegtrekken. */
+.player-dash-hero--mid .player-dash-print { margin: 8px 0 0; }
+
+/* De tweede penning. Zelfde buitenmaat als het portret (140px), zodat de rij
+   symmetrisch leest. */
+.player-dash-niveau {
+  flex-shrink: 0;
+  width: 140px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+.player-dash-niveau-penning {
+  position: relative;
+  width: 110px;
+  height: 110px;
+  border: 0;
+  padding: 0;
+  border-radius: 50%;
+  background: radial-gradient(circle at 38% 32%, #f6ecd4, #e3d2ad 62%, #cdb98f);
+  box-shadow: inset 0 0 0 3px #c4a87a, 0 2px 6px rgba(42, 26, 8, 0.22);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #4a3214;
+  font: inherit;
+}
+button.player-dash-niveau-penning { cursor: pointer; }
+/* Staat er een level-up klaar, dan gloeit hij — dat is het enige op dit
+   scherm dat je niet wil missen. */
+.player-dash-niveau-penning.is-klaar {
+  background: radial-gradient(circle at 38% 32%, #fff6dd, #f0d98f 60%, #d4ad4e);
+  box-shadow: inset 0 0 0 3px #d4ad4e, 0 0 0 4px rgba(212, 173, 78, 0.28), 0 2px 10px rgba(122, 86, 10, 0.35);
+  animation: niveau-gloed 2.4s ease-in-out infinite;
+}
+.player-dash-niveau-penning.is-klaar:hover { filter: brightness(1.06); }
+@keyframes niveau-gloed {
+  0%, 100% { box-shadow: inset 0 0 0 3px #d4ad4e, 0 0 0 4px rgba(212, 173, 78, 0.22), 0 2px 10px rgba(122, 86, 10, 0.3); }
+  50%      { box-shadow: inset 0 0 0 3px #e6c468, 0 0 0 9px rgba(212, 173, 78, 0.1), 0 2px 14px rgba(122, 86, 10, 0.42); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .player-dash-niveau-penning.is-klaar { animation: none; }
+}
+.player-dash-niveau-ring {
+  position: absolute;
+  inset: -8px;
+  width: calc(100% + 16px);
+  height: calc(100% + 16px);
+  overflow: visible;
+  pointer-events: none;
+}
+.player-dash-niveau-ring .niveau-ring-bg {
+  fill: none; stroke: rgba(122, 96, 64, 0.22); stroke-width: 5;
+}
+.player-dash-niveau-ring .niveau-ring-fill {
+  fill: none; stroke: #c49a3a; stroke-width: 5; stroke-linecap: round;
+  transition: stroke-dasharray .5s ease;
+}
+.player-dash-niveau-binnen {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  line-height: 1;
+}
+.player-dash-niveau-lbl {
+  font-family: 'Cinzel', serif;
+  font-size: .62rem;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  color: #8a7050;
+}
+.player-dash-niveau-nr {
+  font-family: 'Cinzel', serif;
+  font-size: 2.1rem;
+  font-weight: 700;
+  margin-top: 2px;
+}
+.player-dash-niveau-pijl { display: block; margin-top: 1px; color: #9a7008; }
+.player-dash-niveau-pijl svg { width: 15px; height: 15px; }
+.player-dash-niveau-onder {
+  font-family: 'Crimson Text', Georgia, serif;
+  font-size: .78rem;
+  font-style: italic;
+  color: #8a7050;
+  text-align: center;
+  line-height: 1.3;
+}
+
+/* Op een telefoon blijven de drie op één rij staan, alleen kleiner. Gestapeld
+   werd de kop 280px hoog — een derde van het scherm voordat je je HP ziet —
+   en juist daar is verticale ruimte het schaarst. De regel eronder valt weg:
+   bij 64px zegt de penning zelf al genoeg. */
+@media (max-width: 640px) {
+  /* Er staat hogerop een regel die de kop op een smal scherm stapelt. Die komt
+     uit de tijd dat het profielformulier hier stond en op volle breedte moest;
+     dat formulier staat sinds de herziening op het Personage-tabblad, dus de
+     reden is weg — maar de regel stond er nog. */
+  .player-dash-hero--mid { gap: 12px; flex-direction: row; }
+  .player-dash-hero--mid .player-dash-hero-info { width: auto; }
+  .player-dash-hero--mid .player-dash-feiten { max-width: none; font-size: .82rem; }
+  .player-dash-hero--mid .player-dash-name { font-size: 18px; }
+  .player-dash-niveau { width: auto; gap: 2px; }
+  .player-dash-niveau-penning { width: 64px; height: 64px; }
+  .player-dash-niveau-lbl { font-size: .5rem; letter-spacing: .1em; }
+  .player-dash-niveau-nr { font-size: 1.35rem; }
+  .player-dash-niveau-pijl svg { width: 11px; height: 11px; }
+  .player-dash-niveau-onder { display: none; }
+}

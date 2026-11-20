@@ -8288,44 +8288,71 @@ const _LU_METHODE_LABEL = {
 };
 
 window._levelUpBalkVers = () => _levelUpBalk();
+// **Twee plekken, één vraag.** De penning in de kop zegt op welk level je
+// staat en of je omhoog mag; de herinneringen op het Personage-tabblad zeggen
+// wat er nog open ligt (een cantrip die je niet koos, een feat). Dat is één
+// keer vragen aan de server en twee bakken vullen — zelfde patroon als de
+// dagkeuze, die ook in de rustoverlay én op je tabblad staat.
 async function _levelUpBalk() {
-  const el = document.getElementById('levelup-balk');
-  if (!el || !window._lastCharId) return;
+  const el  = document.getElementById('levelup-balk');
+  const pen = document.getElementById('levelup-penning');
+  if ((!el && !pen) || !window._lastCharId) return;
   let st;
   try { st = await api.get(`/characters/${window._lastCharId}/level-up`); } catch { return; }
 
-  const tegoed = st?.tegoed ? `
-    <button class="levelup-balk" onclick="window._levelUpOpen()">
-      <span class="levelup-balk-icoon">${icon('sparkles')}</span>
-      <span class="levelup-balk-tekst">
-        <strong>Je mag een level omhoog.</strong>
-        <span>Level ${st.level} → ${st.level + 1}${st.tegoed > 1 ? ` · nog ${st.tegoed} te gaan` : ''}</span>
-      </span>
-      <span class="levelup-balk-pijl">${icon('chevron-right')}</span>
-    </button>` : '';
+  // ── De penning in de kop ──
+  if (pen) {
+    const lv = st?.level ?? null;
+    const klaar = !!st?.tegoed;
+    // Op XP loopt de ring mee met hoe ver je bent; staat een level-up klaar,
+    // dan is hij vol en gloeit hij. Op mijlpaal is er niets te vullen — dan
+    // zegt een halflege ring iets wat niet waar is, dus blijft hij leeg.
+    const pct = klaar ? 100
+      : (st?.systeem === 'xp' && st?.xp && st.xp.volgende != null && !st.xp.scheef)
+        ? Math.max(0, Math.min(100, Math.round(((st.xp.nu - st.xp.dezeLevel) / Math.max(1, st.xp.volgende - st.xp.dezeLevel)) * 100)))
+        : null;
+    const R = 45, C = +(2 * Math.PI * 45).toFixed(1);
+    const onder = klaar
+      ? `Level ${lv} → ${lv + 1}${st.tegoed > 1 ? ` · nog ${st.tegoed}` : ''}`
+      : (st?.systeem === 'xp' && st?.xp)
+        ? (st.xp.volgende == null ? 'het hoogste level'
+          : st.xp.scheef ? 'je XP loopt nog niet mee'
+          : `nog ${(st.xp.volgende - st.xp.nu).toLocaleString('nl-NL')} XP`)
+        : 'je huidige level';
+    const ring = pct == null ? '' : `<svg class="player-dash-niveau-ring" viewBox="0 0 100 100" aria-hidden="true">
+      <circle cx="50" cy="50" r="${R}" class="niveau-ring-bg"/>
+      <circle cx="50" cy="50" r="${R}" class="niveau-ring-fill"
+        stroke-dasharray="${+(C * pct / 100).toFixed(1)} ${C}" transform="rotate(-90 50 50)"/></svg>`;
+    pen.innerHTML = lv == null ? '' : `
+      <${klaar ? 'button type="button" onclick="window._levelUpOpen()"' : 'div'}
+        class="player-dash-niveau-penning${klaar ? ' is-klaar' : ''}"
+        ${klaar ? 'title="Je mag een level omhoog"' : ''}>
+        ${ring}
+        <span class="player-dash-niveau-binnen">
+          <span class="player-dash-niveau-lbl">Level</span>
+          <span class="player-dash-niveau-nr">${lv}</span>
+          ${klaar ? `<span class="player-dash-niveau-pijl">${icon('chevron-right')}</span>` : ''}
+        </span>
+      </${klaar ? 'button' : 'div'}>
+      <span class="player-dash-niveau-onder">${esc(onder)}</span>`;
+  }
 
-  // In XP-stand wil je zien hoe ver je bent, niet alleen óf je er bent. Op
-  // mijlpaal staat er niets: dan zegt een balk met punten niets.
-  const xp = (!st?.tegoed && st?.systeem === 'xp' && st.xp) ? (() => {
-    const { nu, dezeLevel, volgende, scheef } = st.xp;
-    if (volgende == null) return `<div class="levelup-xp"><span class="levelup-xp-kop">${icon('star')} ${nu.toLocaleString('nl-NL')} XP</span>
-      <span class="levelup-xp-rest">het hoogste level</span></div>`;
+  if (!el) return;
+
+  // In XP-stand stond hier een balk met je punten; die staat nu in de ring van
+  // de penning hierboven. Wat hier blijft is wat er nog **open** ligt, en dat
+  // is geen stand maar een taak.
+  const xp = (!st?.tegoed && st?.systeem === 'xp' && st.xp && st.xp.scheef) ? (() => {
+    const { nu, dezeLevel } = st.xp;
     // Ligt je XP onder de drempel van je eigen level, dan is dat level met de
-    // hand gezet. Een balk op nul met "nog 29.800 te gaan" leest als kapot,
-    // terwijl er niets kapot is — dus zeggen we wat er aan de hand is. De DM
-    // zet het recht met de nullijn-knop in de instellingen.
-    if (scheef) return `<div class="levelup-xp levelup-xp--scheef">
+    // hand gezet. De penning kan dat niet in een ring kwijt, dus staat het
+    // hier voluit — anders zie je alleen "je XP loopt nog niet mee" zonder te
+    // weten waar hij dan wél zou moeten staan. De DM zet het recht met de
+    // nullijn-knop in de instellingen.
+    return `<div class="levelup-xp levelup-xp--scheef">
       <span class="levelup-xp-kop">${icon('star')} ${nu.toLocaleString('nl-NL')} XP</span>
       <span class="levelup-xp-rest">je level is met de hand gezet, dus je XP loopt nog niet mee
         <em>(level ${st.level} begint bij ${dezeLevel.toLocaleString('nl-NL')})</em></span>
-    </div>`;
-    const deel = Math.max(0, nu - dezeLevel);
-    const heel = Math.max(1, volgende - dezeLevel);
-    const pct = Math.max(0, Math.min(100, Math.round((deel / heel) * 100)));
-    return `<div class="levelup-xp">
-      <span class="levelup-xp-kop">${icon('star')} ${nu.toLocaleString('nl-NL')} XP</span>
-      <span class="levelup-xp-balk"><span style="width:${pct}%"></span></span>
-      <span class="levelup-xp-rest">nog ${(volgende - nu).toLocaleString('nl-NL')} tot level ${st.level + 1}</span>
     </div>`;
   })() : '';
 
@@ -8354,7 +8381,7 @@ async function _levelUpBalk() {
     </div>`;
   }).join('');
 
-  el.innerHTML = tegoed + xp + keuzes;
+  el.innerHTML = xp + keuzes;
 }
 
 window._luKeuzeKlaar = async function (levelUpId, niveau) {
@@ -9203,7 +9230,14 @@ async function renderMijnKarakter(opts = {}) {
   el.innerHTML = `
     <div class="player-dashboard"${_themeAttr}>
       <!-- Karakter header (altijd zichtbaar) -->
-      <div class="player-dash-hero" id="player-dash-hero" style="align-items:center">
+      <!-- **Drie dingen op een rij, en de rij staat gecentreerd.** Links je
+           portret met je HP-ring, in het midden je naam, rechts een tweede
+           penning van dezelfde maat: je level, en de weg omhoog.
+           Die level-up-knop stond onderaan het Personage-tabblad en was dus
+           alleen te zien als je dáár stond — terwijl het het enige is op dit
+           scherm dat je maar één keer per paar sessies doet en dan niet wil
+           missen. Hij staat nu in de kop, die boven élk subtabblad hangt. -->
+      <div class="player-dash-hero player-dash-hero--mid" id="player-dash-hero">
         <div class="player-dash-avatar-outer">
           ${(() => {
             const _hR = 45, _hC = +(2 * Math.PI * 45).toFixed(1);
@@ -9244,10 +9278,15 @@ async function renderMijnKarakter(opts = {}) {
                regel. Het formulier staat op de Personage-tab, waar de rest van
                je blad staat. -->
           <p class="player-dash-feiten">${esc(_heroFeiten() || sub)}</p>
+          ${state.characterId === charId ? `
+            <a class="player-dash-print" href="/api/mijn/sheet?campagne=${esc(_campagneVoorLink())}"
+               target="_blank" rel="noopener" title="Je blad op papier">${icon('scroll-text')}<span>Blad afdrukken</span></a>` : ''}
         </div>
-        ${state.characterId === charId ? `
-          <a class="player-dash-print" href="/api/mijn/sheet?campagne=${esc(_campagneVoorLink())}"
-             target="_blank" rel="noopener" title="Je blad op papier">${icon('scroll-text')}<span>Blad afdrukken</span></a>` : ''}      </div>
+        <!-- De penning wordt gevuld door dezelfde functie die de herinneringen
+             op het Personage-tabblad tekent: één keer vragen wat de stand is,
+             twee plekken die het tonen. -->
+        <div class="player-dash-niveau" id="levelup-penning"></div>
+      </div>
 
       <!-- Subtab nav -->
       <!-- De volgorde loopt van samen naar alleen: eerst de groep, dan je
@@ -9420,70 +9459,6 @@ async function renderMijnKarakter(opts = {}) {
 
         <div id="levelup-balk"></div>
 
-        ${_dominantKlasse.toLowerCase().includes('sorcerer') ? `
-        <div class="player-dash-section wild-magic-section">
-          <div class="player-dash-section-title">${icon('sparkles')} Wild Magic Surge</div>
-          <div class="wild-magic-roller">
-            <button class="wild-magic-btn" onclick="window._rollWildMagic()">Roll d100</button>
-            <div class="wild-magic-result hidden" id="wild-magic-result">
-              <span class="wild-magic-roll" id="wild-magic-roll"></span>
-              <span class="wild-magic-text" id="wild-magic-text"></span>
-            </div>
-          </div>
-        </div>` : ''}
-
-        <!-- Combat stats strip -->
-        <div class="player-combat-strip">
-          <div class="pcs-item">
-            <span class="pcs-label">AC</span>
-            <input class="pcs-input" type="number" min="1" max="30"
-              value="${esc(playerProfile.ac ?? '')}" placeholder="—"
-              onblur="window._saveProfileField('ac', this.value)">
-          </div>
-          <div class="pcs-item">
-            <span class="pcs-label">Speed</span>
-            <input class="pcs-input" type="text"
-              value="${esc(playerProfile.speed ?? '')}" placeholder="—"
-              onblur="window._saveProfileField('speed', this.value)">
-            <button class="pcs-extra-speed-btn${_extraSpeeds.length ? ' pcs-extra-speed-btn--on' : ''}"
-              onclick="window._addExtraSpeed()"
-              title="Een snelheid erbij (vliegen, zwemmen, klimmen…)">+</button>
-          </div>
-          ${_extraSpeeds.map((sp, i) => `
-          <div class="pcs-item pcs-extra-speed-item">
-            <select class="pcs-speed-label-select" onchange="window._saveExtraSpeedFull()">
-              ${['Fly', 'Swim', 'Climb', 'Burrow', 'Hover'].map(l =>
-                `<option value="${l}"${(sp.label || '') === l ? ' selected' : ''}>${l}</option>`).join('')}
-              ${['Fly', 'Swim', 'Climb', 'Burrow', 'Hover'].includes(sp.label || '')
-                ? '' : `<option value="${esc(sp.label || '')}" selected>${esc(sp.label || '—')}</option>`}
-            </select>
-            <input class="pcs-input" type="text" value="${esc(sp.value ?? '')}" placeholder="—"
-              onblur="window._saveExtraSpeedFull()">
-            <button class="pcs-extra-speed-del" onclick="window._removeExtraSpeed(${i})"
-              title="Deze snelheid weghalen">${icon('x')}</button>
-          </div>`).join('')}
-          <div class="pcs-item">
-            <span class="pcs-label">Initiative</span>
-            <input class="pcs-input" type="text"
-              value="${esc(playerProfile.initiative ?? '')}" placeholder="—"
-              onblur="window._saveProfileField('initiative', this.value)">
-          </div>
-          <div class="pcs-item">
-            <span class="pcs-label">Prof. Bonus</span>
-            <input class="pcs-input" type="text"
-              value="${esc(playerProfile.profBonus ?? '')}" placeholder="—"
-              onblur="window._saveProfileField('profBonus', this.value); window._reRenderKarakter()">
-          </div>
-          <div class="pcs-item">
-            <span class="pcs-label">Hit Dice</span>
-            <div class="pcs-value" title="Afgeleid uit klasse + level">${_hitDiceKort(playerProfile)}</div>
-          </div>
-          <div class="pcs-item">
-            <span class="pcs-label">Pass. Perc</span>
-            <div class="pcs-value">${_passivePerc}</div>
-          </div>
-        </div>
-
         <!-- HP blok (redesigned) -->
         <!-- Rage, je klassekrachten en je dagkeuze stonden boven je HP, en
              duwden het ding waar je tijdens een gevecht meteen bij moet naar
@@ -9548,21 +9523,98 @@ async function renderMijnKarakter(opts = {}) {
           </div>
         </div>
 
+        <!-- **HP en je statussen horen naast elkaar.** Dat zijn de twee dingen
+             die elke ronde veranderen; de statussen stonden tien blokken
+             lager, achter vier naslagblokken die je per avond één keer
+             opzoekt. De orde van dit tabblad loopt nu van "wat verandert
+             tijdens je beurt" naar "wat je één keer invult". -->
+        <!-- Actieve conditions -->
+        ${conditions.length > 0 ? `
+        <div class="player-dash-section pds--half">
+          <div class="player-dash-section-title">${icon('zap')} Actieve statussen</div>
+          <div class="player-dash-conditions">
+            ${conditions.map(cid => {
+              const info    = PLAYER_COND_INFO[cid] || { label: cid };
+              const hasIcon = PLAYER_COND_ICONS.has(cid);
+              return `<button class="player-dash-cond-chip" data-cid="${esc(cid)}"
+                onclick="window._condInfo('${escArg(cid)}')" title="${esc(info.desc || 'Tik voor uitleg')}">
+                ${hasIcon ? `<img src="/img/conditions/${esc(cid)}.png" class="player-dash-cond-icon" alt="">` : ''}
+                <span>${esc(info.label)}</span>
+              </button>`;
+            }).join('')}
+          </div>
+          <div id="player-cond-detail" class="player-cond-detail hidden" data-cid=""></div>
+        </div>` : ''}
+
         <div id="rage-blok" class="pds--half"></div>
         <div id="kracht-blok" class="pds--half"></div>
         <div id="dagkeuze-blok" class="pds--half"></div>
 
-        ${playerBuffs.length ? `
-        <div class="player-dash-section player-buffs-section">
-          <div class="player-dash-section-title">${icon('beer')} Aan de tap — actief tot je volgende lange rust</div>
-          <div class="player-buffs-lijst">
-            ${playerBuffs.map(b => `
-              <div class="player-buff-badge">
-                <span class="player-buff-label">${esc(b.label)}</span>
-                ${b.desc ? `<span class="player-buff-desc">${esc(b.desc)}</span>` : ''}
-              </div>`).join('')}
+        <!-- De d100 van de Sorcerer hoort bij zijn andere krachten, niet boven
+             zijn HP. -->
+        ${_dominantKlasse.toLowerCase().includes('sorcerer') ? `
+        <div class="player-dash-section wild-magic-section">
+          <div class="player-dash-section-title">${icon('sparkles')} Wild Magic Surge</div>
+          <div class="wild-magic-roller">
+            <button class="wild-magic-btn" onclick="window._rollWildMagic()">Roll d100</button>
+            <div class="wild-magic-result hidden" id="wild-magic-result">
+              <span class="wild-magic-roll" id="wild-magic-roll"></span>
+              <span class="wild-magic-text" id="wild-magic-text"></span>
+            </div>
           </div>
         </div>` : ''}
+
+        <!-- Combat stats strip -->
+        <div class="player-combat-strip">
+          <div class="pcs-item">
+            <span class="pcs-label">AC</span>
+            <input class="pcs-input" type="number" min="1" max="30"
+              value="${esc(playerProfile.ac ?? '')}" placeholder="—"
+              onblur="window._saveProfileField('ac', this.value)">
+          </div>
+          <div class="pcs-item">
+            <span class="pcs-label">Speed</span>
+            <input class="pcs-input" type="text"
+              value="${esc(playerProfile.speed ?? '')}" placeholder="—"
+              onblur="window._saveProfileField('speed', this.value)">
+            <button class="pcs-extra-speed-btn${_extraSpeeds.length ? ' pcs-extra-speed-btn--on' : ''}"
+              onclick="window._addExtraSpeed()"
+              title="Een snelheid erbij (vliegen, zwemmen, klimmen…)">+</button>
+          </div>
+          ${_extraSpeeds.map((sp, i) => `
+          <div class="pcs-item pcs-extra-speed-item">
+            <select class="pcs-speed-label-select" onchange="window._saveExtraSpeedFull()">
+              ${['Fly', 'Swim', 'Climb', 'Burrow', 'Hover'].map(l =>
+                `<option value="${l}"${(sp.label || '') === l ? ' selected' : ''}>${l}</option>`).join('')}
+              ${['Fly', 'Swim', 'Climb', 'Burrow', 'Hover'].includes(sp.label || '')
+                ? '' : `<option value="${esc(sp.label || '')}" selected>${esc(sp.label || '—')}</option>`}
+            </select>
+            <input class="pcs-input" type="text" value="${esc(sp.value ?? '')}" placeholder="—"
+              onblur="window._saveExtraSpeedFull()">
+            <button class="pcs-extra-speed-del" onclick="window._removeExtraSpeed(${i})"
+              title="Deze snelheid weghalen">${icon('x')}</button>
+          </div>`).join('')}
+          <div class="pcs-item">
+            <span class="pcs-label">Initiative</span>
+            <input class="pcs-input" type="text"
+              value="${esc(playerProfile.initiative ?? '')}" placeholder="—"
+              onblur="window._saveProfileField('initiative', this.value)">
+          </div>
+          <div class="pcs-item">
+            <span class="pcs-label">Prof. Bonus</span>
+            <input class="pcs-input" type="text"
+              value="${esc(playerProfile.profBonus ?? '')}" placeholder="—"
+              onblur="window._saveProfileField('profBonus', this.value); window._reRenderKarakter()">
+          </div>
+          <div class="pcs-item">
+            <span class="pcs-label">Hit Dice</span>
+            <div class="pcs-value" title="Afgeleid uit klasse + level">${_hitDiceKort(playerProfile)}</div>
+          </div>
+          <div class="pcs-item">
+            <span class="pcs-label">Pass. Perc</span>
+            <div class="pcs-value">${_passivePerc}</div>
+          </div>
+        </div>
 
         <!-- Weapons & Damage Cantrips -->
         <div class="player-dash-section">
@@ -9714,32 +9766,16 @@ async function renderMijnKarakter(opts = {}) {
           </div>
         </div>
 
-        <!-- **Wie je bent** staat hier en niet meer in de kop. Het is een
-             formulier dat je één keer invult; het hoorde niet boven elk
-             subtabblad te staan. Dichtgeklapt, want je komt er zelden; de
-             samenvatting staat in de kop. -->
-        <details class="player-dash-section player-wiejebent pds--half" ${_wieLeeg() ? 'open' : ''}>
-          <summary class="player-dash-section-title">${icon('user')} Wie je bent
-            <span class="player-wiejebent-kort">${esc(_heroFeiten()) || 'nog niets ingevuld'}</span></summary>
-          ${_profielVeldenHtml()}
-        </details>
-
-        <!-- Actieve conditions -->
-        ${conditions.length > 0 ? `
-        <div class="player-dash-section pds--half">
-          <div class="player-dash-section-title">${icon('zap')} Actieve statussen</div>
-          <div class="player-dash-conditions">
-            ${conditions.map(cid => {
-              const info    = PLAYER_COND_INFO[cid] || { label: cid };
-              const hasIcon = PLAYER_COND_ICONS.has(cid);
-              return `<button class="player-dash-cond-chip" data-cid="${esc(cid)}"
-                onclick="window._condInfo('${escArg(cid)}')" title="${esc(info.desc || 'Tik voor uitleg')}">
-                ${hasIcon ? `<img src="/img/conditions/${esc(cid)}.png" class="player-dash-cond-icon" alt="">` : ''}
-                <span>${esc(info.label)}</span>
-              </button>`;
-            }).join('')}
+        ${playerBuffs.length ? `
+        <div class="player-dash-section player-buffs-section">
+          <div class="player-dash-section-title">${icon('beer')} Aan de tap — actief tot je volgende lange rust</div>
+          <div class="player-buffs-lijst">
+            ${playerBuffs.map(b => `
+              <div class="player-buff-badge">
+                <span class="player-buff-label">${esc(b.label)}</span>
+                ${b.desc ? `<span class="player-buff-desc">${esc(b.desc)}</span>` : ''}
+              </div>`).join('')}
           </div>
-          <div id="player-cond-detail" class="player-cond-detail hidden" data-cid=""></div>
         </div>` : ''}
 
         <!-- Kenmerken & Eigenschappen stonden hier als tweede lijst met exact
@@ -9760,6 +9796,16 @@ async function renderMijnKarakter(opts = {}) {
               </button>`).join('')}
           </div>
         </div>` : ''}
+
+        <!-- **Wie je bent** staat hier en niet meer in de kop. Het is een
+             formulier dat je één keer invult; het hoorde niet boven elk
+             subtabblad te staan. Dichtgeklapt, want je komt er zelden; de
+             samenvatting staat in de kop. -->
+        <details class="player-dash-section player-wiejebent pds--half" ${_wieLeeg() ? 'open' : ''}>
+          <summary class="player-dash-section-title">${icon('user')} Wie je bent
+            <span class="player-wiejebent-kort">${esc(_heroFeiten()) || 'nog niets ingevuld'}</span></summary>
+          ${_profielVeldenHtml()}
+        </details>
       </div>
 
       <!-- ═══ TAB: Facties & Aanzien ═══ -->
