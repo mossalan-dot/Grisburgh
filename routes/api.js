@@ -12227,6 +12227,26 @@ router.post('/bron/heldenboekbeelden', requireDM, (req, res) => {
 
 // Let op: deze parameterroute moet ná /bron/spreukbeelden staan — hij past op
 // elk pad, dus hierboven geregistreerde namen winnen en de rest valt hierheen.
+// ── Waar je proficient in kunt zijn ─────────────────────────────────────────
+// Skills, gereedschap en talen. Alle drie bestonden ze al — de achttien skills
+// in `_ALLE_SKILLS`, het gereedschap in `_gereedschapLijst()` en de talen in
+// `bronnen/talen.json` — maar alleen als invulhulp bij een keuzeveld. Als
+// lijst stonden ze nergens, terwijl "welke tools zijn er eigenlijk?" een vraag
+// is die aan tafel valt.
+router.get('/bron/proficiencies', attachRole, (req, res) => {
+  if (req.session?.role !== 'dm' && !req.session?.characterId) return res.status(403).json({ error: 'Geen toegang' });
+  const talen = bronnen.lees('talen') || {};
+  res.json({
+    skills: _ALLE_SKILLS.map(naam => ({ naam })),
+    // Zonder beeld: `_kaartjeBeeld` is een hulpje **binnen** de maker-route en
+    // hoort daar. Hem hierheen tillen zou een derde plek opleveren die weet hoe
+    // een gereedschapsnaam aan een voorwerpkaartje hangt. De tegel valt terug
+    // op zijn icoon, en voor een lijst is dat genoeg.
+    gereedschap: _gereedschapLijst(),
+    talen: (talen.talen || []).map(t => ({ ...t, groepLabel: talen.groepen?.[t.groep] || t.groep })),
+  });
+});
+
 // ── Keuzelijsten van een subclass ───────────────────────────────────────────
 // De maneuvers van een Battle Master, de totems van een Totem Warrior, de
 // Starry Forms van een Stars Druid. Ze zaten alleen in de knop waarmee je ze

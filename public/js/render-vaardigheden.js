@@ -82,6 +82,12 @@ const SOORTEN = {
   // Hij hoort bij de feats omdat het dezelfde vraag is — wat kan ik kiezen? —
   // en de Fighting Styles zijn in de 2024-PHB zelfs letterlijk feats geworden.
   keuze:      { label: 'Keuze',     icon: 'swords',         c1: '#2a0c18', c2: '#8a3050' },
+  // Waar je proficient in kunt zijn. Ze bestonden alle drie al als invulhulp
+  // bij een keuzeveld, maar als lijst stonden ze nergens — terwijl "welke
+  // tools zijn er eigenlijk?" een vraag is die aan tafel valt.
+  skill:      { label: 'Skill',     icon: 'target',         c1: '#0c2a2a', c2: '#2a7a7a' },
+  gereedschap:{ label: 'Gereedschap', icon: 'hammer',       c1: '#2a1a08', c2: '#8a6030' },
+  taal:       { label: 'Taal',      icon: 'message-circle', c1: '#1a0c2a', c2: '#5a3a8a' },
 };
 // Een icoon per class en per species. De soort bepaalt de kleur van het
 // kaartje (dat is waar het filter op staat), het icoon zegt wáárvan het is —
@@ -182,7 +188,7 @@ const HERKOMST = [
 const _COND_BRON = { conditie: 'Conditions', situatie: 'Situaties', klasse: 'Van een feature of spreuk' };
 
 const SOORT_VOLGORDE = ['class', 'subclass', 'species', 'variant', 'feat', 'boon', 'zegen', 'gunst', 'background',
-  'conditie', 'situatie', 'klassestaat', 'beest', 'metgezel', 'keuze'];
+  'conditie', 'situatie', 'klassestaat', 'beest', 'metgezel', 'keuze', 'skill', 'gereedschap', 'taal'];
 
 let _all        = null;   // null = nog niet geladen
 let _bron       = null;   // wat naslagBron() teruggaf (srdDesc, md, …)
@@ -502,6 +508,25 @@ async function _load() {
       });
     }
   } catch { /* geen beesten is geen fout */ }
+
+  // ── Skills, gereedschap en talen ──
+  try {
+    const r = await api.get('/bron/proficiencies');
+    const _TOOLSOORT = { spel: 'Gaming Sets', instrument: 'Musical Instruments',
+                         ambacht: "Artisan's Tools", overig: 'Overig gereedschap' };
+    for (const x of (r?.skills || [])) {
+      zet({ soort: 'skill', bron: 'Skills', level: 0, naam: x.naam, desc: '',
+            img: '', imgFocus: '', icoon: 'target', vast: true });
+    }
+    for (const g of (r?.gereedschap || [])) {
+      zet({ soort: 'gereedschap', bron: _TOOLSOORT[g.soort] || 'Gereedschap', level: 0,
+            naam: g.naam, desc: '', img: '', imgFocus: '', icoon: 'hammer', vast: true });
+    }
+    for (const t of (r?.talen || [])) {
+      zet({ soort: 'taal', bron: t.groepLabel || 'Talen', level: 0, naam: t.naam,
+            desc: '', img: '', imgFocus: '', icoon: 'message-circle', vast: true });
+    }
+  } catch { /* geen lijst is geen fout */ }
 
   // ── Keuzelijsten van een subclass ──
   // Maneuvers, totems, Starry Forms. Ze horen achter dezelfde deur als de
@@ -2128,6 +2153,12 @@ const _DEUREN = [
   // feature zonder tekst.
   { id: 'metgezel',   label: 'Metgezellen',        soorten: ['metgezel'],
     icoon: 'dog', kleur: '#8a7030' },
+  // **Waar je proficient in kunt zijn.** De achttien skills, de gereedschappen
+  // en de talen. Ze zaten alle drie al in de app als invulhulp bij een
+  // keuzeveld — maar pas als je ergens stond waar je moest kiezen. "Welke
+  // tools bestaan er?" kwam nergens uit.
+  { id: 'proficiency', label: 'Proficiencies',     soorten: ['skill', 'gereedschap', 'taal'],
+    icoon: 'check-circle', kleur: '#2a7a7a' },
 ];
 const _DEUR = id => _DEUREN.find(d => d.id === id);
 // Welke deuren meteen hun lijst tonen in plaats van eerst een tegelrij — zie
