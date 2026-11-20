@@ -2004,7 +2004,7 @@ Grisburghs **data** te staan — niet in de code.
 - Op een telefoon: twee kolommen, geen horizontale scrollbalk.
 
 ### Beasts in het Heldenboek
-- Heldenboek → **Beasts**: 91 uit de SRD plus wat de campagne zelf als Beast heeft, met de **CR** als tweede laag (dat is de vraag bij Wild Shape).
+- Naslag → **Familiars**: 91 uit de SRD plus wat de campagne zelf als Beast heeft, met de **CR** als tweede laag (dat is de vraag bij Wild Shape).
 - Een beest openen geeft twee bladen: *Kort* (CR, AC, HP, Speed, omgeving) en *Statblock* — hetzelfde statblok als in het bestiarium, want er is één renderer.
 - Een beest dat vliegt heeft een vogel als icoon in plaats van een pootafdruk; dat is precies de grens die Wild Shape pas op level 8 openzet.
 
@@ -2027,8 +2027,8 @@ Grisburghs **data** te staan — niet in de code.
 - Klik op **Diensten**: dezelfde pagina met de negen plekken, elk met zijn eigen naam uit de campagne en de gevel als achtergrond waar die ingesteld is. Een dienst die voor deze party dicht is, hoort er niet te staan.
 - Beide menu's hebben bovenaan **Alles**, dat naar die voorpagina gaat — net als bij Archief en Naslag.
 
-### Beasts & metgezellen
-- Naslag → **Beasts & metgezellen**: 102 namen, alfabetisch. De penning op een tegel zegt de CR (beest) of de class met het level (metgezel).
+### Familiars
+- Naslag → **Familiars**: 102 namen, alfabetisch. De penning op een tegel zegt de CR (beest) of de class met het level (metgezel).
 - Onder de soortchips staat een rij bronnen: *Overal · Artificer · Beast · Druid · Paladin · Ranger · …*. Kies **Ranger** en je ziet alleen wat een Ranger krijgt — en de rij blijft staan, zodat je het filter weer uit kunt zetten.
 
 ### Een eigen plaat op een deur

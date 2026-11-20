@@ -2134,7 +2134,10 @@ const _DEUREN = [
   // Twee deuren betekende twee keer zoeken. Alfabetisch, want een lijst van
   // honderd namen zoek je op naam; waar iets vandaan komt staat als penning op
   // de tegel en als chip erboven.
-  { id: 'beest',      label: 'Beasts & metgezellen', soorten: ['beest', 'metgezel'],
+  //
+  // De deur heet **Familiars**; het id blijft `beest`, want daar hangen de
+  // sleutel van zijn deurbeeld en de link vanaf Wild Shape aan.
+  { id: 'beest',      label: 'Familiars',          soorten: ['beest', 'metgezel'],
     icoon: 'paw-print', kleur: '#3a7a2a' },
 ];
 const _DEUR = id => _DEUREN.find(d => d.id === id);

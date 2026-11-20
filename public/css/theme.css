@@ -34422,3 +34422,13 @@ body.wizard-open .modal-overlay { z-index: 2100; }
    naast elkaar lazen ze als één rij van elf knoppen. */
 .vaardig-bronrij { flex-basis: 100%; width: 100%; margin-top: 6px; opacity: .92; }
 .vaardig-bronrij .spreuk-school-btn { font-size: .82rem; padding: 2px 9px; }
+
+/* De eerste regel van elk kopmenu is **Alles** — de hele voorpagina, niet één
+   deur. Iets donkerder dan de rest, zodat je ziet dat hij een andere soort
+   keuze is en niet het eerste item van de lijst. */
+.archief-menu-item--alles {
+  background: rgba(42,26,8,.1);
+  border-bottom: 1px solid rgba(196,168,122,.45);
+  font-family: 'Cinzel', serif;
+}
+.archief-menu-item--alles:hover { background: rgba(42,26,8,.18); }

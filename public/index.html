@@ -60,7 +60,7 @@
       },
     }
   </script>
-  <link rel="stylesheet" href="/css/theme.css?v=969">
+  <link rel="stylesheet" href="/css/theme.css?v=970">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
   <script>pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';</script>
   <script src="/socket.io/socket.io.js"></script>
@@ -104,7 +104,7 @@
             <svg class="icon tab-mob-icon" aria-hidden="true" focusable="false"><use href="/img/icons.svg?v=32#icon-folder-open"/></svg><span id="archief-nav-label" class="tab-label">Archief</span><span class="archief-arrow tab-label">▾</span>
           </button>
           <div class="archief-menu hidden" id="archief-menu">
-            <button class="archief-menu-item" data-section="archief"><svg class="icon" aria-hidden="true" focusable="false"><use href="/img/icons.svg?v=32#icon-folder-open"/></svg> Alles</button>
+            <button class="archief-menu-item archief-menu-item--alles" data-section="archief"><svg class="icon" aria-hidden="true" focusable="false"><use href="/img/icons.svg?v=32#icon-folder-open"/></svg> Alles</button>
             <button class="archief-menu-item active" data-section="personages"><svg class="icon" aria-hidden="true" focusable="false"><use href="/img/icons.svg?v=32#icon-user"/></svg> Personages</button>
             <button class="archief-menu-item" data-section="locaties"><svg class="icon icon-gi" aria-hidden="true" focusable="false"><use href="/img/icons.svg?v=32#icon-castle"/></svg> Locaties</button>
             <button class="archief-menu-item" data-section="organisaties"><svg class="icon" aria-hidden="true" focusable="false"><use href="/img/icons.svg?v=32#icon-landmark"/></svg> Organisaties</button>
@@ -125,14 +125,14 @@
             <svg class="icon tab-mob-icon" aria-hidden="true" focusable="false"><use href="/img/icons.svg?v=32#icon-book-open"/></svg><span id="naslag-nav-label" class="tab-label">Naslag</span><span class="archief-arrow tab-label">▾</span>
           </button>
           <div class="archief-menu hidden" id="naslag-menu">
-            <button class="archief-menu-item" data-section="vaardigheden" data-deur=""><svg class="icon" aria-hidden="true" focusable="false"><use href="/img/icons.svg?v=32#icon-book-open"/></svg> Alles</button>
+            <button class="archief-menu-item archief-menu-item--alles" data-section="vaardigheden" data-deur=""><svg class="icon" aria-hidden="true" focusable="false"><use href="/img/icons.svg?v=32#icon-book-open"/></svg> Alles</button>
             <button class="archief-menu-item" data-section="vaardigheden" data-deur="class"><svg class="icon" aria-hidden="true" focusable="false"><use href="/img/icons.svg?v=32#icon-swords"/></svg> Classes</button>
             <button class="archief-menu-item" data-section="vaardigheden" data-deur="species"><svg class="icon" aria-hidden="true" focusable="false"><use href="/img/icons.svg?v=32#icon-user"/></svg> Species</button>
             <button class="archief-menu-item" data-section="vaardigheden" data-deur="background"><svg class="icon" aria-hidden="true" focusable="false"><use href="/img/icons.svg?v=32#icon-scroll-text"/></svg> Backgrounds</button>
             <button class="archief-menu-item" data-section="vaardigheden" data-deur="feats"><svg class="icon" aria-hidden="true" focusable="false"><use href="/img/icons.svg?v=32#icon-zap"/></svg> Feats &amp; Boons</button>
             <button class="archief-menu-item" data-section="spreuken"><svg class="icon" aria-hidden="true" focusable="false"><use href="/img/icons.svg?v=32#icon-sparkles"/></svg> Spells</button>
             <button class="archief-menu-item" data-section="vaardigheden" data-deur="conditions"><svg class="icon" aria-hidden="true" focusable="false"><use href="/img/icons.svg?v=32#icon-shield-half"/></svg> Conditions</button>
-            <button class="archief-menu-item" data-section="vaardigheden" data-deur="beest"><svg class="icon" aria-hidden="true" focusable="false"><use href="/img/icons.svg?v=32#icon-paw-print"/></svg> Beasts &amp; metgezellen</button>
+            <button class="archief-menu-item" data-section="vaardigheden" data-deur="beest"><svg class="icon" aria-hidden="true" focusable="false"><use href="/img/icons.svg?v=32#icon-paw-print"/></svg> Familiars</button>
           </div>
         </div>
         <!-- Logboek dropdown -->
@@ -141,7 +141,7 @@
             <svg class="icon tab-mob-icon" aria-hidden="true" focusable="false"><use href="/img/icons.svg?v=32#icon-compass"/></svg><span id="logboek-nav-label" class="tab-label">Avontuur</span><span class="archief-arrow tab-label">▾</span>
           </button>
           <div class="archief-menu hidden" id="logboek-menu">
-            <button class="archief-menu-item" data-section="avontuur"><svg class="icon" aria-hidden="true" focusable="false"><use href="/img/icons.svg?v=32#icon-compass"/></svg> Alles</button>
+            <button class="archief-menu-item archief-menu-item--alles" data-section="avontuur"><svg class="icon" aria-hidden="true" focusable="false"><use href="/img/icons.svg?v=32#icon-compass"/></svg> Alles</button>
             <button class="archief-menu-item" data-logtab="verslagen"><svg class="icon" aria-hidden="true" focusable="false"><use href="/img/icons.svg?v=32#icon-book-open"/></svg> Logboek</button>
             <button class="archief-menu-item" data-section="kaart"><svg class="icon" aria-hidden="true" focusable="false"><use href="/img/icons.svg?v=32#icon-map"/></svg> Kaarten</button>
             <button class="archief-menu-item" data-logtab="quests"><svg class="icon" aria-hidden="true" focusable="false"><use href="/img/icons.svg?v=32#icon-target"/></svg> Missies</button>
@@ -156,7 +156,7 @@
             <svg class="icon" aria-hidden="true" focusable="false"><use href="/img/icons.svg?v=32#icon-landmark"/></svg> <span id="diensten-nav-label" class="tab-label">Diensten</span><span class="diensten-arrow tab-label">▾</span>
           </button>
           <div class="archief-menu hidden" id="diensten-menu">
-            <button class="archief-menu-item" data-section="diensten"><svg class="icon" aria-hidden="true" focusable="false"><use href="/img/icons.svg?v=32#icon-landmark"/></svg> Alles</button>
+            <button class="archief-menu-item archief-menu-item--alles" data-section="diensten"><svg class="icon" aria-hidden="true" focusable="false"><use href="/img/icons.svg?v=32#icon-landmark"/></svg> Alles</button>
             <button class="archief-menu-item" data-section="markt" id="diensten-markt-item"><svg class="icon" aria-hidden="true" focusable="false"><use href="/img/icons.svg?v=32#icon-store"/></svg><span id="diensten-markt-label">Markt</span></button>
             <button class="archief-menu-item" data-section="herberg" id="diensten-herberg-item"><svg class="icon" aria-hidden="true" focusable="false"><use href="/img/icons.svg?v=32#icon-beer"/></svg><span id="diensten-herberg-label">Herberg</span></button>
             <button class="archief-menu-item" data-section="tempel" id="diensten-tempel-item"><svg class="icon" aria-hidden="true" focusable="false"><use href="/img/icons.svg?v=32#icon-church"/></svg><span id="diensten-tempel-label">De Tempel</span></button>
@@ -613,6 +613,6 @@
   <!-- DM Instellingen modal -->
 
   <script type="module" src="/js/sound-manager.js?v=15"></script>
-  <script type="module" src="/js/app.js?v=1315"></script>
+  <script type="module" src="/js/app.js?v=1316"></script>
 </body>
 </html>
