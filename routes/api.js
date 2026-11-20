@@ -12257,10 +12257,19 @@ router.get('/bron/metgezellen', attachRole, (req, res) => {
   } catch { /* ok */ }
   const vind = (naam) => srd.get(String(naam).toLowerCase()) || eigen.get(String(naam).toLowerCase()) || null;
 
+  // Komt hij uit een spreuk, dan is die spreuk het antwoord: daar staat het
+  // statblok in, en die tekst staat al in de bibliotheek. Hier alleen of hij
+  // er is, zodat de kaart een knop kan tonen in plaats van een dood woord.
+  const spreuken = new Map();
+  try { for (const sp of _maakSpreuken()) spreuken.set(String(sp.name).toLowerCase(), sp.index); }
+  catch { /* geen spreuken */ }
+
   const lijst = (bronnen.lees('metgezellen')?.metgezellen || []).map(c => {
     const sb = c.statblok ? vind(c.statblok) : null;
+    const spreukIndex = c.soort === 'spreuk' ? spreuken.get(String(c.geeft).toLowerCase()) : null;
     return {
       ...c,
+      ...(spreukIndex ? { spreukIndex } : {}),
       // Per gedaante of we hem kunnen tonen; de client maakt er dan een knop
       // naar de deur Beasts van in plaats van kale tekst.
       vormen: (c.vormen || []).map(n => ({ naam: n, bekend: !!vind(n) })),

@@ -492,9 +492,11 @@ async function _load() {
     const r = await api.get('/bron/beesten');
     for (const b of (r?.beesten || [])) {
       zet({
-        // De bron is waarop je filtert ("laat alleen zien wat een Ranger
-        // krijgt"); de penning zegt op de tegel zelf wat het is.
-        soort: 'beest', bron: 'Beast', pill: `CR ${b.cr || '0'}`, level: 0, naam: b.naam,
+        // **Een beest heeft geen bron.** De bronrij is hier het classfilter
+        // ("laat zien wat een Ranger krijgt"), en een beest hoort bij geen
+        // class. Zette ik er 'Beast' neer, dan stond diezelfde chip twee keer:
+        // één keer als soort en één keer als bron, met hetzelfde getal.
+        soort: 'beest', bron: '', pill: `CR ${b.cr || '0'}`, level: 0, naam: b.naam,
         desc: '', img: '', imgFocus: '',
         icoon: b.vliegt ? 'bird' : 'paw-print',
         beest: b, crGetal: b.crGetal ?? 0,
@@ -795,7 +797,14 @@ function _metgezelBladen(it) {
         : `<span class="vd-vorm vd-vorm--onbekend" title="Dit statblok staat niet in de vrij te gebruiken bronnen">${esc(v.naam)}</span>`
       ).join('')}</div>` });
   }
-  if (c.statblock) {
+  if (c.spreukIndex) {
+    // Het statblok van een opgeroepen wezen staat ín de spreuk, en die staat
+    // al in de bibliotheek. Eén plek dus, met een knop ernaartoe.
+    bladen.push({ soort: 'naslag', label: 'De spreuk',
+      html: `<p class="dm-hint">${esc(c.naam)} komt uit de spreuk <strong>${esc(c.geeft)}</strong>; daar staat ook wat hij kan.</p>
+        <p><button type="button" class="vd-vorm" onclick="event.stopPropagation();window.spreuken?.open?.('${escA(c.spreukIndex)}')">
+          ${icon('sparkles')} Bekijk ${esc(c.geeft)}</button></p>` });
+  } else if (c.statblock) {
     bladen.push({ soort: 'naslag', label: 'Statblock', tekst: c.naam,
       html: `<div class="vd-statblok">${renderStatblock(c.statblock, { kop: false })}</div>` });
   } else if (!c.vormen?.length) {
@@ -2598,9 +2607,17 @@ function _filterBar() {
   // en is de bron juist het filter dat je wil: bij Beasts & metgezellen is dat
   // de class — "laat zien wat een Ranger krijgt". Dezelfde chips als bij de
   // soort, zodat er niet twee soorten filterknoppen naast elkaar staan.
-  const bronnen = _ZONDER_TWEEDE_LAAG.has(_deur)
+  // **Een filter dat hetzelfde zegt als het filter erboven is geen filter.**
+  // Bij Conditions viel de bron precies samen met de soort — "Condition 19 ·
+  // Situatie 8 · Lopend effect 13" stond er twee keer onder elkaar, één keer
+  // met andere woorden. Valt elke soort binnen één bron én zijn het er even
+  // veel, dan zegt de rij niets nieuws en blijft hij weg.
+  const alleBronnen = _ZONDER_TWEEDE_LAAG.has(_deur)
     ? [...new Set(inDeur.map(x => x.bron).filter(Boolean))].sort((a, b) => a.localeCompare(b))
     : [];
+  const valtSamen = alleBronnen.length === soorten.length
+    && soorten.every(k => new Set(inDeur.filter(x => x.soort === k).map(x => x.bron)).size === 1);
+  const bronnen = valtSamen ? [] : alleBronnen;
   const bronSelect = bronnen.length < 2 ? '' : `
     <div class="spreuk-schools vaardig-bronrij">
       <button class="spreuk-school-btn${_filters.bron ? '' : ' active'}"

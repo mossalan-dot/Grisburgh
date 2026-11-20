@@ -34432,3 +34432,25 @@ body.wizard-open .modal-overlay { z-index: 2100; }
   font-family: 'Cinzel', serif;
 }
 .archief-menu-item--alles:hover { background: rgba(42,26,8,.18); }
+
+/* ── Groepen op een deurenpagina ─────────────────────────────────────────────
+   De diensten staan in vier groepen naar wat je er haalt; negen deuren onder
+   elkaar is een lijst waarin je moet lezen. Het kopje is klein en rustig: het
+   ordent, het is geen tweede titel naast die van de pagina. */
+.vd-groep + .vd-groep { margin-top: 22px; }
+.vd-groep-kop {
+  display: flex; align-items: center; gap: 7px;
+  font-family: 'Cinzel', serif; font-size: .82rem; letter-spacing: .06em;
+  text-transform: uppercase; color: #8a7050;
+  margin: 0 0 8px 2px;
+}
+.vd-groep-kop .icon { width: 15px; height: 15px; opacity: .7; }
+/* Dezelfde kopjes in het dienstenmenu in de kop. */
+.archief-menu-kop {
+  padding: 7px 14px 3px;
+  font-family: 'Cinzel', serif; font-size: .7rem; letter-spacing: .07em;
+  text-transform: uppercase; color: #8a7050;
+}
+.archief-menu-kop:not(:first-child) {
+  margin-top: 3px; border-top: 1px solid rgba(196,168,122,.3);
+}

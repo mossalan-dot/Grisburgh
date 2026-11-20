@@ -15,6 +15,64 @@
                  "Venomous Snake", "Rat", "Raven", "Seahorse", "Spider", "Weasel"]
     },
     {
+      "id": "summon-aberration", "naam": "Aberrant Spirit", "geeft": "Summon Aberration",
+      "soort": "spreuk", "boek": "Player's Handbook (2024)"
+    },
+    {
+      "id": "summon-beast", "naam": "Bestial Spirit", "geeft": "Summon Beast",
+      "soort": "spreuk", "boek": "Player's Handbook (2024)"
+    },
+    {
+      "id": "summon-celestial", "naam": "Celestial Spirit", "geeft": "Summon Celestial",
+      "soort": "spreuk", "boek": "Player's Handbook (2024)"
+    },
+    {
+      "id": "summon-construct", "naam": "Construct Spirit", "geeft": "Summon Construct",
+      "soort": "spreuk", "boek": "Player's Handbook (2024)"
+    },
+    {
+      "id": "summon-dragon", "naam": "Draconic Spirit", "geeft": "Summon Dragon",
+      "soort": "spreuk", "boek": "Player's Handbook (2024)"
+    },
+    {
+      "id": "summon-elemental", "naam": "Elemental Spirit", "geeft": "Summon Elemental",
+      "soort": "spreuk", "boek": "Player's Handbook (2024)"
+    },
+    {
+      "id": "summon-fey", "naam": "Fey Spirit", "geeft": "Summon Fey",
+      "soort": "spreuk", "boek": "Player's Handbook (2024)"
+    },
+    {
+      "id": "summon-fiend", "naam": "Fiendish Spirit", "geeft": "Summon Fiend",
+      "soort": "spreuk", "boek": "Player's Handbook (2024)"
+    },
+    {
+      "id": "summon-shadows", "naam": "Shadow Spirit", "geeft": "Summon Shadows",
+      "soort": "spreuk", "boek": "Player's Handbook (2024)"
+    },
+    {
+      "id": "summon-undead", "naam": "Undead Spirit", "geeft": "Summon Undead",
+      "soort": "spreuk", "boek": "Player's Handbook (2024)"
+    },
+    {
+      "id": "summon-lesser-demon", "naam": "Lesser Demons", "geeft": "Summon Lesser Demon",
+      "soort": "spreuk", "boek": "Xanathar's Guide to Everything"
+    },
+    {
+      "id": "summon-greater-demon", "naam": "Greater Demon", "geeft": "Summon Greater Demon",
+      "soort": "spreuk", "boek": "Xanathar's Guide to Everything"
+    },
+    {
+      "id": "find-greater-steed", "naam": "Greater Steed", "geeft": "Find Greater Steed",
+      "soort": "spreuk", "boek": "Player's Handbook (2024)",
+      "vormen": ["Deinonychus", "Dire Wolf", "Rhinoceros", "Saber-Toothed Tiger", "Warhorse"]
+    },
+    {
+      "id": "animate-dead", "naam": "Animated Undead", "geeft": "Animate Dead",
+      "soort": "spreuk", "boek": "Player's Handbook (2024)",
+      "vormen": ["Skeleton", "Zombie"]
+    },
+    {
       "id": "pact-familiar",
       "naam": "Familiar — Pact of the Chain",
       "geeft": "Pact of the Chain",

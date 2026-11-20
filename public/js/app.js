@@ -1,5 +1,5 @@
 import { api, campagneUitUrl, zetCampagne } from './api.js?v=325';
-import { initCampagne, renderArchiefDeuren, renderAvontuurDeuren, renderDienstenDeuren, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, renderDocumenten, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=430";
+import { initCampagne, renderArchiefDeuren, renderAvontuurDeuren, renderDienstenDeuren, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, renderDocumenten, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=432";
 import { initArchief, renderLogboek, openLogboekEditor } from "./render-archief.js?v=155";
 import { renderKaart, queueFlyTo, verversPins, nieuweKaart } from './render-kaart.js?v=40';
 import { renderDungeon } from './render-dungeon.js?v=81';
@@ -9,7 +9,7 @@ import { renderBestiarium } from './render-bestiarium.js?v=46';
 import { renderSpreuken } from './render-spreuken.js?v=64';
 import './render-handleiding.js?v=2';
 import './render-melding.js?v=4';
-import { renderVaardigheden, zoekVaardigheden, heldenboekTekst } from './render-vaardigheden.js?v=191';
+import { renderVaardigheden, zoekVaardigheden, heldenboekTekst } from './render-vaardigheden.js?v=193';
 import { renderStatblock } from './render-statblock.js?v=10';
 import { initSocket } from "./socket-client.js?v=108";
 import { initDmPanel } from "./dm-panel.js?v=433";
@@ -168,7 +168,20 @@ window._factiesLabel = () => window.app?.state?.meta?.factiesLabel || 'Facties';
 // plekken in vier volgordes, en dan lijkt het alsof er verschillende dingen
 // bedoeld worden. De volgorde loopt van "waar je het vaakst komt" naar "waar je
 // zelden komt": eerst de plekken die elke sessie meedoen, dan de bijzondere.
-window.DIENST_VOLGORDE = ['markt', 'herberg', 'tempel', 'facties', 'tweespalt', 'gock', 'ursula', 'magizoo', 'woekeraar'];
+// **De diensten in vier groepen, naar wat je er haalt.** Negen plekken onder
+// elkaar is een lijst waarin je moet lezen; zo zie je waar je moet zijn.
+// De indeling is niet naar wát het gebouw is maar naar waarmee je weggaat:
+// spullen, rust, een antwoord, of iets wat bij een ander in de boeken staat.
+//
+// `DIENST_VOLGORDE` komt hieruit — één bron, zodat de menu's, de voorpagina en
+// de sorteerhulp niet uit elkaar kunnen lopen.
+window.DIENST_GROEPEN = [
+  { label: 'Kopen en verkopen', icoon: 'coins',      keys: ['markt', 'magizoo'] },
+  { label: 'Rust en vermaak',   icoon: 'beer',       keys: ['herberg', 'tweespalt'] },
+  { label: 'Raad en zegen',     icoon: 'sparkles',   keys: ['tempel', 'ursula', 'gock'] },
+  { label: 'Krediet en aanzien', icoon: 'landmark',  keys: ['woekeraar', 'facties'] },
+];
+window.DIENST_VOLGORDE = window.DIENST_GROEPEN.flatMap(g => g.keys);
 
 // Sorteert een lijst met een `key`-veld op die volgorde; wat er niet in staat
 // (zoals 'toegang') blijft achteraan in de volgorde waarin het binnenkwam.
@@ -197,11 +210,31 @@ window._dienstNaam = (key) => {
 };
 
 window._zetDienstLabels = () => _zetDienstLabels();
+// Het dienstenmenu wordt **getekend**, niet bijgewerkt. Het stond als negen
+// vaste knoppen in index.html en de namen werden er daarna ingezet; met
+// groepskopjes erbij zou die lijst op twee plekken staan — hier en in de
+// voorpagina — en dan gaan ze verschillen. Nu komt alles uit DIENST_GROEPEN.
+const _DIENST_ICOON = {
+  markt: 'store', herberg: 'beer', tempel: 'church', facties: 'landmark',
+  tweespalt: 'dice', gock: 'search', ursula: 'sparkles', magizoo: 'paw-print',
+  woekeraar: 'coins',
+};
 function _zetDienstLabels() {
-  for (const key of Object.keys(_DIENST_STANDAARD)) {
-    const el = document.getElementById(`diensten-${key}-label`);
-    if (el) el.textContent = window._dienstNaam(key);
-  }
+  const menu = document.getElementById('diensten-menu');
+  if (!menu) return;
+  const alles = menu.querySelector('.archief-menu-item--alles')?.outerHTML || '';
+  const groepen = window.DIENST_GROEPEN.map(g => {
+    const keys = g.keys.filter(k => window._moduleAan?.(k) !== false && !window._dienstDicht?.(k));
+    if (!keys.length) return '';
+    return `<div class="archief-menu-kop">${esc(g.label)}</div>` + keys.map(k =>
+      `<button class="archief-menu-item" data-section="${k}">${icon(_DIENST_ICOON[k] || 'landmark')} ${esc(window._dienstNaam(k))}</button>`
+    ).join('');
+  }).join('');
+  menu.innerHTML = alles + groepen;
+  // De knoppen zijn nieuw, dus ze hebben hun handler nodig.
+  menu.querySelectorAll('.archief-menu-item').forEach(btn => {
+    btn.addEventListener('click', () => { switchSection(btn.dataset.section); });
+  });
 }
 
 // ── Display mode detectie (iPad kiosk) ──
@@ -1769,7 +1802,7 @@ async function _landingNieuwTegel() {
   if (!host || !_groepsWachtwoord || document.getElementById('landing-nieuw')) return;
   let stand = null;
   try {
-    await import('./personage-maken.js?v=52');
+    await import('./personage-maken.js?v=54');
     stand = await window.personageMaken.stand();
   } catch { return; }
   if (stand?.instellingen && stand.instellingen.aan === false) return;
@@ -1791,7 +1824,7 @@ async function _landingNieuwTegel() {
 
 async function _landingNieuw() {
   try {
-    await import('./personage-maken.js?v=52');
+    await import('./personage-maken.js?v=54');
     const stand = await window.personageMaken.stand();
     // Ook als hij al bij de DM ligt: dan zie je dat, en kun je hem nog
     // terughalen om iets te veranderen.

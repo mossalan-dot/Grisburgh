@@ -3584,7 +3584,7 @@ function _deurenPaginaHerteken(pagina) {
   return Promise.resolve();
 }
 
-function _deurenPaginaHtml({ pagina, icoon, titel, onder, deuren }) {
+function _deurenPaginaHtml({ pagina, icoon, titel, onder, deuren, groepen = null }) {
   return `
     <div class="section-banner">
       <div class="section-banner-head">
@@ -3597,8 +3597,16 @@ function _deurenPaginaHtml({ pagina, icoon, titel, onder, deuren }) {
       <div class="section-banner-rule"><span class="section-banner-ornament">◆</span></div>
     </div>
     <div class="spreuk-wrap">
-      <div class="vd-deuren">
-        ${deuren.map(d => {
+      ${groepen ? groepen.map(g => g.deuren.length ? `
+        <div class="vd-groep">
+          <div class="vd-groep-kop">${icon(g.icoon || 'square')} ${esc(g.label)}</div>
+          <div class="vd-deuren">${_deurenHtml(pagina, g.deuren)}</div>
+        </div>` : '').join('') : `<div class="vd-deuren">${_deurenHtml(pagina, deuren)}</div>`}
+    </div>`;
+}
+
+function _deurenHtml(pagina, deuren) {
+  return `${deuren.map(d => {
           // Wat de DM koos wint; anders leent de deur een plaat van wat erachter
           // ligt. Dat laatste is willekeurig, en daarom staat het knopje er.
           const beeld = deurBeeldVan(pagina, d.id) || d.beeld || '';
@@ -3613,9 +3621,7 @@ function _deurenPaginaHtml({ pagina, icoon, titel, onder, deuren }) {
           ${isDM() ? `<button class="vd-deur-beeldknop" title="Een afbeelding bij deze kaart kiezen"
             onclick="event.stopPropagation();window._deurBeeldKies('${pagina}','${escArg(d.id)}')">${icon('image')}</button>` : ''}
         </div>`;
-        }).join('')}
-      </div>
-    </div>`;
+        }).join('')}`;
 }
 
 export async function renderArchiefDeuren() {
@@ -3729,19 +3735,26 @@ const _DIENST_DEUR = {
 export async function renderDienstenDeuren() {
   const el = $('#section-diensten');
   if (!el) return;
-  const deuren = (window.DIENST_VOLGORDE || [])
-    .filter(k => window._moduleAan?.(k) !== false && !window._dienstDicht?.(k))
-    .map(k => ({
-      id: k, label: window._dienstNaam?.(k) || k,
-      icoon: _DIENST_DEUR[k]?.icoon || 'landmark',
-      kleur: _DIENST_DEUR[k]?.kleur || '#8a6030',
-      beeld: _dienstDeurBeeld(k),
-      klik: `window.app.switchSection('${k}')`,
-    }));
+  const deur = (k) => ({
+    id: k, label: window._dienstNaam?.(k) || k,
+    icoon: _DIENST_DEUR[k]?.icoon || 'landmark',
+    kleur: _DIENST_DEUR[k]?.kleur || '#8a6030',
+    beeld: _dienstDeurBeeld(k),
+    klik: `window.app.switchSection('${k}')`,
+  });
+  // Negen plekken onder elkaar is een lijst waarin je moet lezen. Gegroepeerd
+  // naar wat je er haalt zie je waar je moet zijn; een groep die leeg is — al
+  // zijn diensten staan uit of zijn voor deze party dicht — valt helemaal weg.
+  const groepen = (window.DIENST_GROEPEN || []).map(g => ({
+    label: g.label, icoon: g.icoon,
+    deuren: g.keys
+      .filter(k => window._moduleAan?.(k) !== false && !window._dienstDicht?.(k))
+      .map(deur),
+  }));
   el.innerHTML = _deurenPaginaHtml({
     pagina: 'diensten', icoon: 'landmark', titel: 'Diensten',
     onder: `Waar je in ${window._campagneNaam?.() || 'de stad'} terecht kunt.`,
-    deuren,
+    deuren: [], groepen,
   });
 }
 
@@ -5570,7 +5583,7 @@ window._makerVoorDm = async () => {
     gid = keuze;
   }
   try {
-    await import('./personage-maken.js?v=52');
+    await import('./personage-maken.js?v=54');
     // Zodra de maker dichtgaat staat het kaartje er; het raster erachter weet
     // dat nog niet. Hetzelfde als na het opslaan van een nieuw kaartje: open
     // en in beeld.
