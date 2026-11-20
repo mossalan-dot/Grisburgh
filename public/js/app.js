@@ -1,32 +1,32 @@
-import { api, campagneUitUrl, zetCampagne } from './api.js?v=324';
-import { initCampagne, renderArchiefDeuren, renderAvontuurDeuren, renderDienstenDeuren, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, renderDocumenten, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=428";
-import { initArchief, renderLogboek, openLogboekEditor } from "./render-archief.js?v=154";
-import { renderKaart, queueFlyTo, verversPins, nieuweKaart } from './render-kaart.js?v=39';
-import { renderDungeon } from './render-dungeon.js?v=80';
-import { renderRelatiemap } from './render-relatiemap.js?v=42';
-import { renderProgressie, levelupFeatures } from './render-progressie.js?v=74';
-import { renderBestiarium } from './render-bestiarium.js?v=45';
-import { renderSpreuken } from './render-spreuken.js?v=63';
+import { api, campagneUitUrl, zetCampagne } from './api.js?v=325';
+import { initCampagne, renderArchiefDeuren, renderAvontuurDeuren, renderDienstenDeuren, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, renderDocumenten, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=429";
+import { initArchief, renderLogboek, openLogboekEditor } from "./render-archief.js?v=155";
+import { renderKaart, queueFlyTo, verversPins, nieuweKaart } from './render-kaart.js?v=40';
+import { renderDungeon } from './render-dungeon.js?v=81';
+import { renderRelatiemap } from './render-relatiemap.js?v=43';
+import { renderProgressie, levelupFeatures } from './render-progressie.js?v=75';
+import { renderBestiarium } from './render-bestiarium.js?v=46';
+import { renderSpreuken } from './render-spreuken.js?v=64';
 import './render-handleiding.js?v=2';
 import './render-melding.js?v=4';
-import { renderVaardigheden, zoekVaardigheden, heldenboekTekst } from './render-vaardigheden.js?v=189';
+import { renderVaardigheden, zoekVaardigheden, heldenboekTekst } from './render-vaardigheden.js?v=190';
 import { renderStatblock } from './render-statblock.js?v=10';
-import { initSocket } from "./socket-client.js?v=107";
-import { initDmPanel } from "./dm-panel.js?v=432";
+import { initSocket } from "./socket-client.js?v=108";
+import { initDmPanel } from "./dm-panel.js?v=433";
 import { COND_INFO, COND_LABEL, COND_MET_PLAATJE, COND_ICON } from './conditions.js?v=6';
-import './media-picker.js?v=18';
+import './media-picker.js?v=19';
 // Sfeer bij het vergroten van een kaart; hangt zichzelf op aan window.
 import './kaartsfeer.js?v=5';
 // Wat je elke dag opnieuw kiest; hangt zichzelf op aan window.
-import './dagkeuze.js?v=4';
-import './wizard.js?v=15';
+import './dagkeuze.js?v=5';
+import './wizard.js?v=16';
 import './tafels.js?v=2';
-import './terugblik.js?v=7';
-import './rage.js?v=8';
-import './klassekracht.js?v=10';
-import './bastion.js?v=8';
-import './stemronde.js?v=6';
-import './gevecht-regie.js?v=7';
+import './terugblik.js?v=8';
+import './rage.js?v=9';
+import './klassekracht.js?v=11';
+import './bastion.js?v=9';
+import './stemronde.js?v=7';
+import './gevecht-regie.js?v=8';
 
 // ── Icon helper ──
 // Renders an inline SVG <use> reference from /img/icons.svg.
@@ -1764,7 +1764,7 @@ async function _landingNieuwTegel() {
   if (!host || !_groepsWachtwoord || document.getElementById('landing-nieuw')) return;
   let stand = null;
   try {
-    await import('./personage-maken.js?v=50');
+    await import('./personage-maken.js?v=51');
     stand = await window.personageMaken.stand();
   } catch { return; }
   if (stand?.instellingen && stand.instellingen.aan === false) return;
@@ -1786,7 +1786,7 @@ async function _landingNieuwTegel() {
 
 async function _landingNieuw() {
   try {
-    await import('./personage-maken.js?v=50');
+    await import('./personage-maken.js?v=51');
     const stand = await window.personageMaken.stand();
     // Ook als hij al bij de DM ligt: dan zie je dat, en kun je hem nog
     // terughalen om iets te veranderen.
@@ -3845,7 +3845,7 @@ function _kaartCard(type, m, dm, verdiepingen = null) {
 // eerste bestaande kaart: je drukte op + en keek naar Dreghaven.
 window._kaartNieuw = async function (type) {
   if (type === 'wereld') return nieuweKaart();
-  const { nieuweDungeon } = await import('./render-dungeon.js?v=80');
+  const { nieuweDungeon } = await import('./render-dungeon.js?v=81');
   nieuweDungeon();
 };
 

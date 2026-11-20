@@ -2030,3 +2030,9 @@ Grisburghs **data** te staan — niet in de code.
 ### Beasts & metgezellen
 - Naslag → **Beasts & metgezellen**: 102 namen, alfabetisch. De penning op een tegel zegt de CR (beest) of de class met het level (metgezel).
 - Onder de soortchips staat een rij bronnen: *Overal · Artificer · Beast · Druid · Paladin · Ranger · …*. Kies **Ranger** en je ziet alleen wat een Ranger krijgt — en de rij blijft staan, zodat je het filter weer uit kunt zetten.
+
+### Een eigen plaat op een deur
+- Op elke voorpagina (Archief, Naslag, Avontuur, Diensten) staat als DM een **beeldknopje** bij elke deur. Kies er een plaat uit de mediabibliotheek: hij staat er meteen, en blijft staan na verversen.
+- Kies dezelfde plaat weer weg (of zet een lege keuze) en de deur valt terug op wat hij eerst leende — bij het archief het eerste kaartje met een plaat, bij een dienst zijn gevel.
+- De vier oude Naslag-platen (Classes, Species, Backgrounds, Feats) horen te blijven staan zonder dat je iets hoeft te doen; die stonden in een eigen bak en worden nog gelezen.
+- Een speler ziet het knopje niet.

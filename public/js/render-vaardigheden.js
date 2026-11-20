@@ -14,8 +14,8 @@
  * zelf schreef, dan de SRD, en anders een verwijzing naar buiten.
  */
 
-import { api } from './api.js?v=324';
-import { naslagBron } from './render-progressie.js?v=74';
+import { api } from './api.js?v=325';
+import { naslagBron } from './render-progressie.js?v=75';
 // De condities staan op één plek, en dat is dit bestand — zie de kop daar.
 import { CONDITIONS, COND_ICON, condGroep, isEigenConditie } from './conditions.js?v=6';
 // Eén renderer voor elk statblok in de app — zie render-statblock.js.
@@ -2152,9 +2152,16 @@ let _deur = null;
 // en dat kan alleen als je er meer dan één tegelijk kunt aanzetten.
 let _subAan = new Set();
 
+// **De plaat op een deur komt uit één bak**, voor alle voorpagina's dezelfde:
+// `meta.deurbeelden['naslag:<deur>']`. Wat er vóór die bak al stond
+// (`meta.heldenboek.beelden`) blijft de terugval, dus er is niets te migreren
+// — en de nieuwe deuren (Conditions, Beasts) kunnen er nu ook een krijgen. Dat
+// kon niet: de oude route had een vaste lijst van vier.
 function _deurBeeld(id) {
-  const f = window.app?.state?.meta?.heldenboek?.beelden?.[id];
-  return f ? `/api/files/${esc(f)}` : '';
+  const nieuw = window.app?.state?.meta?.deurbeelden?.[`naslag:${id}`];
+  if (nieuw) return `/api/files/${esc(nieuw)}`;
+  const oud = window.app?.state?.meta?.heldenboek?.beelden?.[id];
+  return oud ? `/api/files/${esc(oud)}` : '';
 }
 
 // Hoeveel zit er achter een deur? Bij Classes tellen we de classes zelf, niet
@@ -5154,9 +5161,9 @@ window.vaardigheden = {
       suggestedName: 'heldenboek-' + id,
       onSelect: async (srcId) => {
         try {
-          await api.saveHeldenboek({ beelden: { [id]: srcId } });
+          const r = await api.saveDeurbeeld(`naslag:${id}`, srcId);
           const m = window.app?.state?.meta;
-          if (m) { m.heldenboek = m.heldenboek || {}; m.heldenboek.beelden = { ...(m.heldenboek.beelden || {}), [id]: srcId }; }
+          if (m) m.deurbeelden = r.deurbeelden || {};
           _bandHerteken();
         } catch (e) { window._showToast?.('Instellen mislukt: ' + (e.message || e)); }
       },

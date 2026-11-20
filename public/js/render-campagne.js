@@ -1,4 +1,4 @@
-import { api } from './api.js?v=324';
+import { api } from './api.js?v=325';
 import { renderStatblock } from './render-statblock.js?v=10';
 
 const icon = (...a) => window.icon(...a);
@@ -3542,8 +3542,6 @@ function _archiefTelling(id) {
 // een tegel in de naslag. Hoe meer de DM er plaatst, hoe rijker deze pagina
 // vanzelf wordt.
 function _archiefDeurBeeld(id) {
-  const eigen = window.app?.state?.meta?.archiefbeelden?.[id];
-  if (eigen) return `/api/files/${esc(eigen)}`;
   const lijst = entities[id] || [];
   const met = lijst.find(e => e?.data?.imageId || e?._beeld);
   return met ? api.thumbForEntity(met) : '';
@@ -3554,7 +3552,39 @@ function _archiefDeurBeeld(id) {
 // weergave op één plek. Een `deuren`-lijst zegt wat erachter zit; de rest is
 // voor alle drie gelijk, en dat hoort ook: drie voorpagina's die er anders
 // uitzien lezen als drie verschillende apps.
-function _deurenPaginaHtml({ icoon, titel, onder, deuren }) {
+// De plaat die de DM zelf koos, als hij er een koos. Eén bak voor alle
+// voorpagina's: `meta.deurbeelden['<pagina>:<deur>']`.
+export function deurBeeldVan(pagina, id) {
+  const f = window.app?.state?.meta?.deurbeelden?.[`${pagina}:${id}`];
+  return f ? api.thumbUrl(f) : '';
+}
+
+// Een plaat kiezen voor een deur. Dezelfde mediakiezer als overal; na afloop
+// tekent de pagina zichzelf opnieuw, zodat je meteen ziet wat je koos.
+window._deurBeeldKies = (pagina, id) => {
+  if (!window.mediaPicker?.open) { alert('Mediabibliotheek niet beschikbaar'); return; }
+  window.mediaPicker.open({
+    type: 'afbeelding',
+    suggestedName: `${pagina}-${id}`,
+    onSelect: async (srcId) => {
+      try {
+        const r = await api.saveDeurbeeld(`${pagina}:${id}`, srcId);
+        const m = window.app?.state?.meta;
+        if (m) m.deurbeelden = r.deurbeelden || {};
+        await _deurenPaginaHerteken(pagina);
+      } catch (e) { window._showToast?.('Instellen mislukt: ' + (e.message || e)); }
+    },
+  });
+};
+
+function _deurenPaginaHerteken(pagina) {
+  if (pagina === 'archief')  return renderArchiefDeuren();
+  if (pagina === 'avontuur') return renderAvontuurDeuren();
+  if (pagina === 'diensten') return renderDienstenDeuren();
+  return Promise.resolve();
+}
+
+function _deurenPaginaHtml({ pagina, icoon, titel, onder, deuren }) {
   return `
     <div class="section-banner">
       <div class="section-banner-head">
@@ -3568,15 +3598,22 @@ function _deurenPaginaHtml({ icoon, titel, onder, deuren }) {
     </div>
     <div class="spreuk-wrap">
       <div class="vd-deuren">
-        ${deuren.map(d => `<div class="vd-deur-wrap">
+        ${deuren.map(d => {
+          // Wat de DM koos wint; anders leent de deur een plaat van wat erachter
+          // ligt. Dat laatste is willekeurig, en daarom staat het knopje er.
+          const beeld = deurBeeldVan(pagina, d.id) || d.beeld || '';
+          return `<div class="vd-deur-wrap">
           <button class="vd-deur" style="--vd-kleur:${d.kleur}" onclick="${d.klik}">
-            ${d.beeld ? `<span class="vd-deur-beeld" style="background-image:url('${esc(d.beeld)}')"></span>` : ''}
+            ${beeld ? `<span class="vd-deur-beeld" style="background-image:url('${esc(beeld)}')"></span>` : ''}
             <span class="vd-deur-icoon">${icon(d.icoon)}</span>
             <span class="vd-deur-telling">${esc(String(d.telling ?? ''))}</span>
             <span class="vd-deur-naam">${esc(d.label)}</span>
             ${d.onder ? `<span class="vd-deur-onder">${esc(d.onder)}</span>` : ''}
           </button>
-        </div>`).join('')}
+          ${isDM() ? `<button class="vd-deur-beeldknop" title="Een afbeelding bij deze kaart kiezen"
+            onclick="event.stopPropagation();window._deurBeeldKies('${pagina}','${escArg(d.id)}')">${icon('image')}</button>` : ''}
+        </div>`;
+        }).join('')}
       </div>
     </div>`;
 }
@@ -3603,7 +3640,7 @@ export async function renderArchiefDeuren() {
     (!d.dmOnly || isDM()) && (!d.module || window._moduleAan?.(d.module) !== false));
 
   el.innerHTML = _deurenPaginaHtml({
-    icoon: 'folder-open', titel: 'Archief',
+    pagina: 'archief', icoon: 'folder-open', titel: 'Archief',
     onder: `Wie, waar en wat er in ${window._campagneNaam?.() || 'deze wereld'} bestaat.`,
     deuren: deuren.map(d => ({
       ...d, beeld: _archiefDeurBeeld(d.id), telling: _archiefTelling(d.id),
@@ -3667,7 +3704,7 @@ export async function renderAvontuurDeuren() {
         : `window.app.switchSection('${d.id}')`,
     }));
   el.innerHTML = _deurenPaginaHtml({
-    icoon: 'compass', titel: 'Avontuur',
+    pagina: 'avontuur', icoon: 'compass', titel: 'Avontuur',
     onder: 'Wat jullie meemaakten, waar jullie heen kunnen en wat er nog ligt.',
     deuren,
   });
@@ -3702,7 +3739,7 @@ export async function renderDienstenDeuren() {
       klik: `window.app.switchSection('${k}')`,
     }));
   el.innerHTML = _deurenPaginaHtml({
-    icoon: 'landmark', titel: 'Diensten',
+    pagina: 'diensten', icoon: 'landmark', titel: 'Diensten',
     onder: `Waar je in ${window._campagneNaam?.() || 'de stad'} terecht kunt.`,
     deuren,
   });
@@ -5533,7 +5570,7 @@ window._makerVoorDm = async () => {
     gid = keuze;
   }
   try {
-    await import('./personage-maken.js?v=50');
+    await import('./personage-maken.js?v=51');
     // Zodra de maker dichtgaat staat het kaartje er; het raster erachter weet
     // dat nog niet. Hetzelfde als na het opslaan van een nieuw kaartje: open
     // en in beeld.

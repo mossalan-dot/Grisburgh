@@ -227,6 +227,9 @@ export const api = {
   heldenboekbeeldenStand: () => request('/bron/heldenboekbeelden'),
   heldenboekbeeldenHalen: () => request('/bron/heldenboekbeelden', { method: 'POST' }),
   saveHeldenboek: (data) => request('/meta/heldenboek', { method: 'PUT', body: JSON.stringify(data) }),
+  // De plaat op een deur van een voorpagina; sleutel is '<pagina>:<deur>'.
+  saveDeurbeeld: (sleutel, fileId) =>
+    request('/meta/deurbeelden', { method: 'PUT', body: JSON.stringify({ sleutel, fileId }) }),
   // Welke classes en subclasses spelers te zien krijgen. We bewaren wat er
   // **uit** staat, zodat nieuw materiaal vanzelf zichtbaar is.
   heldenboekVerborgen: (data) => request('/meta/heldenboek/verborgen', { method: 'PUT', body: JSON.stringify(data) }),

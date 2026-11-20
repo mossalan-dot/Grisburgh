@@ -14002,6 +14002,31 @@ router.put('/meta/heldenboek/verborgen', requireDM, (req, res) => {
   res.json(_verborgenUit(meta));
 });
 
+// ── Het beeld op een deur ───────────────────────────────────────────────────
+// Elke voorpagina — het archief, de naslag, het avontuur, de diensten — bestaat
+// uit staande deuren met een plaat erachter. Die plaat kwam op twee manieren
+// tot stand: bij de naslag koos de DM hem (maar alleen voor de vier deuren die
+// er toen waren, want de route had een vaste lijst), en bij het archief leende
+// een deur de plaat van het eerste kaartje dat er een had — willekeurig dus.
+//
+// Eén bak voor alle vier: `meta.deurbeelden['<pagina>:<deur>']`. Wat er al
+// stond (`meta.heldenboek.beelden`) blijft gelezen worden als terugval, dus er
+// is niets te migreren.
+const _DEURSLEUTEL = /^(archief|naslag|avontuur|diensten):[a-z0-9-]{1,40}$/;
+
+router.put('/meta/deurbeelden', requireDM, (req, res) => {
+  const sleutel = String(req.body?.sleutel || '');
+  if (!_DEURSLEUTEL.test(sleutel)) return res.status(400).json({ error: 'Onbekende deur' });
+  const meta = storage.readJSON('meta.json');
+  const bak = { ...(meta.deurbeelden || {}) };
+  const fileId = String(req.body?.fileId || '').slice(0, 80);
+  if (fileId) bak[sleutel] = fileId; else delete bak[sleutel];
+  if (Object.keys(bak).length) meta.deurbeelden = bak; else delete meta.deurbeelden;
+  storage.writeJSON('meta.json', meta);
+  req.app.get('io').to(_campagneRoom(req)).emit('meta:updated');
+  res.json({ ok: true, deurbeelden: meta.deurbeelden || {} });
+});
+
 router.put('/meta/heldenboek', requireDM, (req, res) => {
   const DEUREN = ['class', 'species', 'background', 'feats'];
   const meta = storage.readJSON('meta.json');
