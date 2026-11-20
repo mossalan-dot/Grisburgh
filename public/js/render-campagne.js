@@ -3524,8 +3524,6 @@ const _ARCHIEF_DEUREN = [
   { id: 'documenten',   label: 'Documenten',   icoon: 'scroll-text', kleur: '#962058' },
   { id: 'bestiarium',   label: 'Bestiarium',   icoon: 'skull',       kleur: '#4a4a4a', dmOnly: true,
     module: 'bestiarium' },
-  { id: 'relatiemap',   label: 'Relatiemap',   icoon: 'users',       kleur: '#1e4a8a',
-    module: 'relatiemap' },
 ];
 
 // Hoeveel er achter een deur ligt. De kaartjes staan al in `entities`, dus dit
@@ -5419,7 +5417,7 @@ window._makerVoorDm = async () => {
     gid = keuze;
   }
   try {
-    await import('./personage-maken.js?v=48');
+    await import('./personage-maken.js?v=50');
     // Zodra de maker dichtgaat staat het kaartje er; het raster erachter weet
     // dat nog niet. Hetzelfde als na het opslaan van een nieuw kaartje: open
     // en in beeld.

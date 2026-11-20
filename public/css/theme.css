@@ -34403,3 +34403,22 @@ body.wizard-open .modal-overlay { z-index: 2100; }
   cursor: default; border-style: dashed; border-color: rgba(122,96,64,.45);
   background: none; color: #7a6040;
 }
+
+/* Een penning op een dicht kaartje: de CR van een beest, de class van een
+   metgezel. Hij staat waar bij een spreuk het niveau staat, zodat je op
+   dezelfde plek kijkt. */
+.vaardig-pill {
+  position: absolute; top: 6px; left: 6px; z-index: 5;
+  padding: 2px 7px; border-radius: 10px;
+  background: rgba(42,26,8,.78); color: #f2e8d2;
+  font-family: 'Cinzel', serif; font-size: 10px; font-weight: 700;
+  letter-spacing: .02em; max-width: calc(100% - 12px);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.tegel--open .vaardig-pill { display: none; }
+/* De bronchips staan onder de soortchips en zijn visueel een slag rustiger:
+   het is een verfijning van de keuze erboven, niet een tweede hoofdkeuze. */
+/* Op een eigen regel: het zijn twee vragen (wát wil je zien, en van wie), en
+   naast elkaar lazen ze als één rij van elf knoppen. */
+.vaardig-bronrij { flex-basis: 100%; width: 100%; margin-top: 6px; opacity: .92; }
+.vaardig-bronrij .spreuk-school-btn { font-size: .82rem; padding: 2px 9px; }

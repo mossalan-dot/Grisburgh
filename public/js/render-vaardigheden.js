@@ -82,12 +82,6 @@ const SOORTEN = {
   // Hij hoort bij de feats omdat het dezelfde vraag is — wat kan ik kiezen? —
   // en de Fighting Styles zijn in de 2024-PHB zelfs letterlijk feats geworden.
   keuze:      { label: 'Keuze',     icon: 'swords',         c1: '#2a0c18', c2: '#8a3050' },
-  // Waar je proficient in kunt zijn. Ze bestonden alle drie al als invulhulp
-  // bij een keuzeveld, maar als lijst stonden ze nergens — terwijl "welke
-  // tools zijn er eigenlijk?" een vraag is die aan tafel valt.
-  skill:      { label: 'Skill',     icon: 'target',         c1: '#0c2a2a', c2: '#2a7a7a' },
-  gereedschap:{ label: 'Gereedschap', icon: 'hammer',       c1: '#2a1a08', c2: '#8a6030' },
-  taal:       { label: 'Taal',      icon: 'message-circle', c1: '#1a0c2a', c2: '#5a3a8a' },
 };
 // Een icoon per class en per species. De soort bepaalt de kleur van het
 // kaartje (dat is waar het filter op staat), het icoon zegt wáárvan het is —
@@ -188,7 +182,7 @@ const HERKOMST = [
 const _COND_BRON = { conditie: 'Conditions', situatie: 'Situaties', klasse: 'Van een feature of spreuk' };
 
 const SOORT_VOLGORDE = ['class', 'subclass', 'species', 'variant', 'feat', 'boon', 'zegen', 'gunst', 'background',
-  'conditie', 'situatie', 'klassestaat', 'beest', 'metgezel', 'keuze', 'skill', 'gereedschap', 'taal'];
+  'conditie', 'situatie', 'klassestaat', 'beest', 'metgezel', 'keuze'];
 
 let _all        = null;   // null = nog niet geladen
 let _bron       = null;   // wat naslagBron() teruggaf (srdDesc, md, …)
@@ -498,7 +492,9 @@ async function _load() {
     const r = await api.get('/bron/beesten');
     for (const b of (r?.beesten || [])) {
       zet({
-        soort: 'beest', bron: `CR ${b.cr || '0'}`, level: 0, naam: b.naam,
+        // De bron is waarop je filtert ("laat alleen zien wat een Ranger
+        // krijgt"); de penning zegt op de tegel zelf wat het is.
+        soort: 'beest', bron: 'Beast', pill: `CR ${b.cr || '0'}`, level: 0, naam: b.naam,
         desc: '', img: '', imgFocus: '',
         icoon: b.vliegt ? 'bird' : 'paw-print',
         beest: b, crGetal: b.crGetal ?? 0,
@@ -508,25 +504,6 @@ async function _load() {
       });
     }
   } catch { /* geen beesten is geen fout */ }
-
-  // ── Skills, gereedschap en talen ──
-  try {
-    const r = await api.get('/bron/proficiencies');
-    const _TOOLSOORT = { spel: 'Gaming Sets', instrument: 'Musical Instruments',
-                         ambacht: "Artisan's Tools", overig: 'Overig gereedschap' };
-    for (const x of (r?.skills || [])) {
-      zet({ soort: 'skill', bron: 'Skills', level: 0, naam: x.naam, desc: '',
-            img: '', imgFocus: '', icoon: 'target', vast: true });
-    }
-    for (const g of (r?.gereedschap || [])) {
-      zet({ soort: 'gereedschap', bron: _TOOLSOORT[g.soort] || 'Gereedschap', level: 0,
-            naam: g.naam, desc: '', img: '', imgFocus: '', icoon: 'hammer', vast: true });
-    }
-    for (const t of (r?.talen || [])) {
-      zet({ soort: 'taal', bron: t.groepLabel || 'Talen', level: 0, naam: t.naam,
-            desc: '', img: '', imgFocus: '', icoon: 'message-circle', vast: true });
-    }
-  } catch { /* geen lijst is geen fout */ }
 
   // ── Keuzelijsten van een subclass ──
   // Maneuvers, totems, Starry Forms. Ze horen achter dezelfde deur als de
@@ -555,6 +532,7 @@ async function _load() {
     for (const c of (r?.metgezellen || [])) {
       zet({
         soort: 'metgezel', bron: c.klasse || 'Spreuken', sub: c.subclass || '',
+        pill: [c.klasse || 'Spreuk', c.level || ''].filter(Boolean).join(' '),
         level: c.level || 0, naam: c.naam, desc: '', img: '', imgFocus: '',
         icoon: c.vormen?.length ? 'paw-print' : 'dog',
         bronTekst: c.boek || '', herkomst: 'overgenomen',
@@ -694,6 +672,10 @@ function _filtered() {
   // de volgorde waarin je ze krijgt, en zegt het kaartje zelf waar het vandaan
   // komt.
   //
+  // **Beasts & metgezellen staan alfabetisch.** Daar betekent een level niets
+  // (een Wolf heeft er geen) en een honderdtal namen zoek je op de letter;
+  // waar iets vandaan komt staat als penning op de tegel.
+  if (_deur === 'beest') return lijst.sort((a, b) => a.naam.localeCompare(b.naam));
   // Level 0 (een feat, een Epic Boon) heeft geen plek in die ladder en gaat
   // daarom vooraan; binnen hetzelfde level houden we de oude volgorde aan.
   return lijst.sort((a, b) =>
@@ -1168,6 +1150,7 @@ function _card(it) {
       style="--soort-c1:${eigenKleur ? esc(eigenKleur) : s.c1};--soort-c2:${eigenKleur ? esc(eigenKleur) : s.c2}">
       <div class="card-accent vaardig-accent"></div>
       ${dmRij}${dmPen}
+      ${it.pill ? `<span class="vaardig-pill">${esc(it.pill)}</span>` : ''}
       <span class="tegel-icoon" aria-hidden="true">${icon(_itemIcoon(it))}</span>
       ${(() => {
         const [b, ...rest] = _beeldKeten(it);
@@ -1177,8 +1160,11 @@ function _card(it) {
           onerror="window.vaardigheden.beeldMis(this)">` : '';
       })()}
       <!-- De levels in de hoek: gevuld waar je hem krijgt, open waar hij
-           verandert. (Geen backticks in commentaar hierbinnen.) -->
-      ${_nivPenningenHtml(it)}
+           verandert. Draagt het kaartje een eigen penning (de CR van een
+           beest, de class van een metgezel), dan staat die er al en zouden er
+           twee naast elkaar hangen die allebei iets anders zeggen.
+           (Geen backticks in commentaar hierbinnen.) -->
+      ${it.pill ? '' : _nivPenningenHtml(it)}
       ${link ? `<a class="vaardig-tegel-naslag" href="${esc(link)}" target="_blank" rel="noopener"
         onclick="event.stopPropagation()" title="De beschrijving staat hier niet — zoek hem elders op">${icon('book-open')}</a>` : ''}
       <!-- Alleen de naam, zoals op een archieftegel. De class en het level
@@ -2143,27 +2129,18 @@ const _DEUREN = [
   //
   // De tweede laag is de **CR**: dat is precies waar het om draait als je kiest
   // wat je kunt worden, en waar je op level 2, 4 en 8 een andere grens hebt.
-  { id: 'beest',      label: 'Beasts',             soorten: ['beest'],
+  // **Beasts en metgezellen horen bij elkaar.** Een metgezel ís vaak een beest,
+  // en de vraag is dezelfde: welk wezen loopt er met me mee en wat kan het.
+  // Twee deuren betekende twee keer zoeken. Alfabetisch, want een lijst van
+  // honderd namen zoek je op naam; waar iets vandaan komt staat als penning op
+  // de tegel en als chip erboven.
+  { id: 'beest',      label: 'Beasts & metgezellen', soorten: ['beest', 'metgezel'],
     icoon: 'paw-print', kleur: '#3a7a2a' },
-  // **Metgezellen.** Wie je krijgt, van welke class, en in welke gedaantes.
-  // De laag boven de beesten: die zeggen wát een wezen is, deze zegt wélk
-  // wezen jij meekrijgt. Wat we van een metgezel mogen tonen verschilt — het
-  // statblok van een Steel Defender staat in geen enkele vrij te gebruiken
-  // bron — dus staat er soms alleen een naam met een wegwijzer, zoals bij een
-  // feature zonder tekst.
-  { id: 'metgezel',   label: 'Metgezellen',        soorten: ['metgezel'],
-    icoon: 'dog', kleur: '#8a7030' },
-  // **Waar je proficient in kunt zijn.** De achttien skills, de gereedschappen
-  // en de talen. Ze zaten alle drie al in de app als invulhulp bij een
-  // keuzeveld — maar pas als je ergens stond waar je moest kiezen. "Welke
-  // tools bestaan er?" kwam nergens uit.
-  { id: 'proficiency', label: 'Proficiencies',     soorten: ['skill', 'gereedschap', 'taal'],
-    icoon: 'check-circle', kleur: '#2a7a7a' },
 ];
 const _DEUR = id => _DEUREN.find(d => d.id === id);
 // Welke deuren meteen hun lijst tonen in plaats van eerst een tegelrij — zie
 // `_bandHtml`. Eén set, zodat de band en het raster niet uit de pas lopen.
-const _ZONDER_TWEEDE_LAAG = new Set(['feats', 'background', 'conditions']);
+const _ZONDER_TWEEDE_LAAG = new Set(['feats', 'background', 'conditions', 'beest']);
 // Hoe heet het ding dat je achter deze deur toevoegt?
 // Welke soort de editor moet openen voor een nieuwe achter die deur.
 const _NIEUW_SOORT  = { class: 'class', species: 'species', background: 'background', feats: 'feat' };
@@ -2581,18 +2558,24 @@ function _filterBar() {
   // bibliotheek heeft. Binnen Wizard staan "Species 53" en "Background 16"
   // alleen maar in de weg: je kunt er niet heen en ze zeggen niets over waar je
   // staat. Alles buiten de open deur valt dus weg.
-  const inBeeld = (_all || []).filter(it => {
-    if (_deur) { const d = _DEUR(_deur); if (d && !d.soorten.includes(it.soort)) return false; }
-    if (_filters.bron && (it.soort === 'background' ? it.naam : it.bron) !== _filters.bron) return false;
-    return true;
+  // Wat er achter deze deur ligt, vóór het bronfilter — want de bronchips
+  // mogen niet verdwijnen door hun eigen keuze. Dat gebeurde: koos je Ranger,
+  // dan hield `inBeeld` alleen Rangers over, was er nog één bron, en viel de
+  // hele rij weg. Je kon het filter dan niet meer uitzetten.
+  const inDeur = (_all || []).filter(it => {
+    if (!_deur) return true;
+    const d = _DEUR(_deur);
+    return !d || d.soorten.includes(it.soort);
   });
-  const soorten = SOORT_VOLGORDE.filter(k => inBeeld.some(x => x.soort === k));
+  const inBeeld = inDeur.filter(it =>
+    !_filters.bron || (it.soort === 'background' ? it.naam : it.bron) === _filters.bron);
+  const soorten = SOORT_VOLGORDE.filter(k => inDeur.some(x => x.soort === k));
   // Eén soort over? Dan is de rij een mededeling, geen keuze.
   const soortRij = soorten.length < 2 ? '' : [`<button class="spreuk-school-btn${_filters.soort ? '' : ' active'}"
       onclick="window.vaardigheden.setSoort(null)">Alles</button>`]
     .concat(soorten.map(k => {
       const s = SOORTEN[k];
-      const n = inBeeld.filter(x => x.soort === k).length;
+      const n = inDeur.filter(x => x.soort === k).length;
       return `<button class="spreuk-school-btn${_filters.soort === k ? ' active' : ''}"
         style="--school-c2:${s.c2}" onclick="window.vaardigheden.setSoort('${k}')">${icon(s.icon)} ${esc(s.label)} <span class="vaardig-telling">${n}</span></button>`;
     })).join('');
@@ -2600,7 +2583,24 @@ function _filterBar() {
   const zichtbaar = inBeeld.filter(x => !_filters.soort || x.soort === _filters.soort);
   // De bronnenkeuzelijst is weg: waar je bent staat in het kruimelpad, en twee
   // bedieningen voor dezelfde stap lopen uit elkaar.
-  const bronSelect = '';
+  //
+  // **Behalve achter een deur zonder tweede laag.** Daar is er geen kruimelpad
+  // en is de bron juist het filter dat je wil: bij Beasts & metgezellen is dat
+  // de class — "laat zien wat een Ranger krijgt". Dezelfde chips als bij de
+  // soort, zodat er niet twee soorten filterknoppen naast elkaar staan.
+  const bronnen = _ZONDER_TWEEDE_LAAG.has(_deur)
+    ? [...new Set(inDeur.map(x => x.bron).filter(Boolean))].sort((a, b) => a.localeCompare(b))
+    : [];
+  const bronSelect = bronnen.length < 2 ? '' : `
+    <div class="spreuk-schools vaardig-bronrij">
+      <button class="spreuk-school-btn${_filters.bron ? '' : ' active'}"
+        onclick="window.vaardigheden.kies(null)">Overal</button>
+      ${bronnen.map(b => {
+        const n = inDeur.filter(x => x.bron === b).length;
+        return `<button class="spreuk-school-btn${_filters.bron === b ? ' active' : ''}"
+          onclick="window.vaardigheden.kies('${escA(b)}')">${esc(b)} <span class="vaardig-telling">${n}</span></button>`;
+      }).join('')}
+    </div>`;
 
   // Zelfde regel als bij de spreuken: wat je het vaakst gebruikt staat altijd in
   // beeld (soort en bron), de brede rij zit achter de trechter. Hier zijn dat de
@@ -2644,6 +2644,10 @@ function _filterBar() {
 function _toontFilters() {
   if (!_toontRaster()) return false;
   if ((_filters.q || '').trim()) return true;
+  // Achter een deur zónder tweede laag is de bron geen kruimelpad maar een
+  // chip in deze balk; hem verbergen zodra je gekozen hebt zou betekenen dat
+  // je het filter niet meer kunt uitzetten.
+  if (_ZONDER_TWEEDE_LAAG.has(_deur)) return true;
   return !_filters.bron;
 }
 
