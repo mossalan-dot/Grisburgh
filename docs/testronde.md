@@ -2021,3 +2021,12 @@ Grisburghs **data** te staan — niet in de code.
 - Klik op **Naslag**: dezelfde voorpagina, maar met de negen deuren van het spelmateriaal. Sta je al achter een deur, dan brengt de knop je terug naar die voorpagina.
 - Kies in het Naslag-menu een deur (bijv. *Beasts*): je springt meteen achter die deur, en de knop in de kop toont dan **Beasts** in plaats van Naslag.
 - Het woord *Heldenboek* hoort nergens meer te staan: niet in de kop, niet in de zoekbalk, niet in de boekjes.
+
+### Voorpagina's voor Avontuur en Diensten
+- Klik op **Avontuur**: een voorpagina met Logboek, Kaarten, Missies, Prikbord en Bastion, met een aantal erbij waar er een te geven is. Een deur zonder getal (nog geen missies) hoort leeg te blijven — liever niets dan een nul.
+- Klik op **Diensten**: dezelfde pagina met de negen plekken, elk met zijn eigen naam uit de campagne en de gevel als achtergrond waar die ingesteld is. Een dienst die voor deze party dicht is, hoort er niet te staan.
+- Beide menu's hebben bovenaan **Alles**, dat naar die voorpagina gaat — net als bij Archief en Naslag.
+
+### Beasts & metgezellen
+- Naslag → **Beasts & metgezellen**: 102 namen, alfabetisch. De penning op een tegel zegt de CR (beest) of de class met het level (metgezel).
+- Onder de soortchips staat een rij bronnen: *Overal · Artificer · Beast · Druid · Paladin · Ranger · …*. Kies **Ranger** en je ziet alleen wat een Ranger krijgt — en de rij blijft staan, zodat je het filter weer uit kunt zetten.

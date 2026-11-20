@@ -137,10 +137,11 @@
         </div>
         <!-- Logboek dropdown -->
         <div class="relative flex-shrink-0" id="logboek-nav-group">
-          <button class="section-tab" id="logboek-nav-btn" title="Avontuur" onclick="window.app.toggleLogboekMenu()">
+          <button class="section-tab" id="logboek-nav-btn" title="Avontuur" onclick="window.app.switchSection('avontuur')">
             <svg class="icon tab-mob-icon" aria-hidden="true" focusable="false"><use href="/img/icons.svg?v=32#icon-compass"/></svg><span id="logboek-nav-label" class="tab-label">Avontuur</span><span class="archief-arrow tab-label">▾</span>
           </button>
           <div class="archief-menu hidden" id="logboek-menu">
+            <button class="archief-menu-item" data-section="avontuur"><svg class="icon" aria-hidden="true" focusable="false"><use href="/img/icons.svg?v=32#icon-compass"/></svg> Alles</button>
             <button class="archief-menu-item" data-logtab="verslagen"><svg class="icon" aria-hidden="true" focusable="false"><use href="/img/icons.svg?v=32#icon-book-open"/></svg> Logboek</button>
             <button class="archief-menu-item" data-section="kaart"><svg class="icon" aria-hidden="true" focusable="false"><use href="/img/icons.svg?v=32#icon-map"/></svg> Kaarten</button>
             <button class="archief-menu-item" data-logtab="quests"><svg class="icon" aria-hidden="true" focusable="false"><use href="/img/icons.svg?v=32#icon-target"/></svg> Missies</button>
@@ -151,10 +152,11 @@
         <!-- Diensten dropdown -->
         <div class="relative flex-shrink-0 hidden" id="diensten-nav-group">
           <button class="section-tab diensten-tab" id="diensten-nav-btn" title="Diensten"
-            onclick="window.app.toggleDienstenMenu()">
+            onclick="window.app.switchSection('diensten')">
             <svg class="icon" aria-hidden="true" focusable="false"><use href="/img/icons.svg?v=32#icon-landmark"/></svg> <span id="diensten-nav-label" class="tab-label">Diensten</span><span class="diensten-arrow tab-label">▾</span>
           </button>
           <div class="archief-menu hidden" id="diensten-menu">
+            <button class="archief-menu-item" data-section="diensten"><svg class="icon" aria-hidden="true" focusable="false"><use href="/img/icons.svg?v=32#icon-landmark"/></svg> Alles</button>
             <button class="archief-menu-item" data-section="markt" id="diensten-markt-item"><svg class="icon" aria-hidden="true" focusable="false"><use href="/img/icons.svg?v=32#icon-store"/></svg><span id="diensten-markt-label">Markt</span></button>
             <button class="archief-menu-item" data-section="herberg" id="diensten-herberg-item"><svg class="icon" aria-hidden="true" focusable="false"><use href="/img/icons.svg?v=32#icon-beer"/></svg><span id="diensten-herberg-label">Herberg</span></button>
             <button class="archief-menu-item" data-section="tempel" id="diensten-tempel-item"><svg class="icon" aria-hidden="true" focusable="false"><use href="/img/icons.svg?v=32#icon-church"/></svg><span id="diensten-tempel-label">De Tempel</span></button>
@@ -263,6 +265,8 @@
       <!-- De landingspagina van het archief: dezelfde deuren als bij de naslag,
            maar dan voor wat er in déze wereld staat. -->
       <div class="section" id="section-archief"></div>
+      <div class="section" id="section-avontuur"></div>
+      <div class="section" id="section-diensten"></div>
       <div class="section active" id="section-personages"></div>
       <div class="section" id="section-locaties"></div>
       <div class="section" id="section-organisaties"></div>
@@ -609,6 +613,6 @@
   <!-- DM Instellingen modal -->
 
   <script type="module" src="/js/sound-manager.js?v=15"></script>
-  <script type="module" src="/js/app.js?v=1311"></script>
+  <script type="module" src="/js/app.js?v=1313"></script>
 </body>
 </html>

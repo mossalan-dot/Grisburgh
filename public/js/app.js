@@ -1,5 +1,5 @@
 import { api, campagneUitUrl, zetCampagne } from './api.js?v=324';
-import { initCampagne, renderArchiefDeuren, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, renderDocumenten, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=426";
+import { initCampagne, renderArchiefDeuren, renderAvontuurDeuren, renderDienstenDeuren, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, renderDocumenten, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=428";
 import { initArchief, renderLogboek, openLogboekEditor } from "./render-archief.js?v=154";
 import { renderKaart, queueFlyTo, verversPins, nieuweKaart } from './render-kaart.js?v=39';
 import { renderDungeon } from './render-dungeon.js?v=80';
@@ -396,6 +396,7 @@ window.app = {
   playerLogoutVraag,
   toggleArchiefMenu,
   naarNaslag,
+  openLogboekTab,
   closeArchiefMenu,
   toggleDienstenMenu,
   closeDienstenMenu,
@@ -460,14 +461,21 @@ $$('#diensten-menu .archief-menu-item').forEach(btn => {
   btn.addEventListener('click', () => { switchSection(btn.dataset.section); });
 });
 
+// Eén weg naar een tabblad binnen het logboek: het menu gebruikt hem, en de
+// deurenpagina van Avontuur ook. Zonder dat stonden er twee regels die
+// hetzelfde deden en konden ze uit elkaar lopen.
+function openLogboekTab(tab) {
+  window._logboekActiveTab = tab;
+  return switchSection('logboek');
+}
+
 // Logboek dropdown items (logtabs + de Kaarten-sectie)
 $$('#logboek-menu .archief-menu-item').forEach(btn => {
   btn.addEventListener('click', () => {
     if (btn.dataset.section) {
       switchSection(btn.dataset.section);   // bv. Kaarten
     } else {
-      window._logboekActiveTab = btn.dataset.logtab;
-      switchSection('logboek');
+      openLogboekTab(btn.dataset.logtab);
     }
     closeLogboekMenu();
   });
@@ -607,13 +615,14 @@ function switchSection(section) {
   // Logboek-knop: actief als logboek óf de Kaarten-sectie actief is
   const logboekBtn   = $('#logboek-nav-btn');
   const logboekLabel = $('#logboek-nav-label');
+  const isVoorpagina = section === 'avontuur';
   const isLogboek    = section === 'logboek';
   const isKaart      = section === 'kaart';
   const isBastion    = section === 'bastion';
-  if (logboekBtn) logboekBtn.classList.toggle('active', isLogboek || isKaart || isBastion);
+  if (logboekBtn) logboekBtn.classList.toggle('active', AVONTUUR_SECTIONS.includes(section));
   if (logboekLabel) {
     const activeTab = window._logboekActiveTab || 'verslagen';
-    logboekLabel.innerHTML = isKaart
+    logboekLabel.innerHTML = isVoorpagina ? AVONTUUR_LABEL : isKaart
       ? `${icon('map')} Kaarten`
       : isBastion ? `${icon('castle')} Bastion`
       : (isLogboek ? (LOGBOEK_LABELS[activeTab] || AVONTUUR_LABEL) : AVONTUUR_LABEL);
@@ -627,7 +636,8 @@ function switchSection(section) {
 
   // Diensten-knop: actief als een diensten-sectie actief is
   const dienstenNavBtn = $('#diensten-nav-btn');
-  if (dienstenNavBtn) dienstenNavBtn.classList.toggle('active', window.DIENST_VOLGORDE.includes(section));
+  if (dienstenNavBtn) dienstenNavBtn.classList.toggle('active',
+    section === 'diensten' || window.DIENST_VOLGORDE.includes(section));
 
   $$('.section').forEach(s => s.classList.toggle('active', s.id === `section-${section}`));
   // Een tabblad opent bovenaan: een sectie houdt zijn eigen scrollpositie vast,
@@ -1067,6 +1077,9 @@ const ENTITY_SECTIONS  = ['personages', 'locaties', 'organisaties', 'voorwerpen'
 // twee zaten onder één knop, en dat las als één ding terwijl je er twee heel
 // verschillende vragen stelt.
 const ARCHIEF_SECTIONS = ['archief', 'personages', 'locaties', 'organisaties', 'voorwerpen', 'documenten', 'bestiarium', 'relatiemap'];
+// De voorpagina's van Avontuur en Diensten. Ze staan hier zodat de knop in de
+// kop ook actief is als je op de voorpagina staat en niet pas achter een deur.
+const AVONTUUR_SECTIONS = ['avontuur', 'logboek', 'kaart', 'bastion'];
 const NASLAG_SECTIONS  = ['vaardigheden', 'spreuken'];
 const ARCHIEF_LABELS = {
   archief:      `${icon('folder-open')} Archief`,
@@ -3630,6 +3643,8 @@ async function deleteGroup(groupId) {
 async function refreshSection(section) {
   section = section || state.activeSection;
   if (section === 'archief') await renderArchiefDeuren();
+  else if (section === 'avontuur') await renderAvontuurDeuren();
+  else if (section === 'diensten') await renderDienstenDeuren();
   else if (section === 'personages') { await renderPersonages(); await renderParty(); }
   else if (section === 'locaties') await renderLocaties();
   else if (section === 'organisaties') await renderOrganisaties();

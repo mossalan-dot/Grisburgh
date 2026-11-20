@@ -3549,6 +3549,38 @@ function _archiefDeurBeeld(id) {
   return met ? api.thumbForEntity(met) : '';
 }
 
+// **Eén deurenpagina, drie keer gebruikt.** Het archief, het avontuur en de
+// diensten stellen dezelfde vraag — wat is er, en hoeveel — dus staat de
+// weergave op één plek. Een `deuren`-lijst zegt wat erachter zit; de rest is
+// voor alle drie gelijk, en dat hoort ook: drie voorpagina's die er anders
+// uitzien lezen als drie verschillende apps.
+function _deurenPaginaHtml({ icoon, titel, onder, deuren }) {
+  return `
+    <div class="section-banner">
+      <div class="section-banner-head">
+        <div class="section-banner-icon-wrap">${icon(icoon)}</div>
+        <div class="section-banner-info">
+          <div class="section-banner-label">${esc(titel)}</div>
+          <div class="section-banner-desc-line">${esc(onder)}</div>
+        </div>
+      </div>
+      <div class="section-banner-rule"><span class="section-banner-ornament">◆</span></div>
+    </div>
+    <div class="spreuk-wrap">
+      <div class="vd-deuren">
+        ${deuren.map(d => `<div class="vd-deur-wrap">
+          <button class="vd-deur" style="--vd-kleur:${d.kleur}" onclick="${d.klik}">
+            ${d.beeld ? `<span class="vd-deur-beeld" style="background-image:url('${esc(d.beeld)}')"></span>` : ''}
+            <span class="vd-deur-icoon">${icon(d.icoon)}</span>
+            <span class="vd-deur-telling">${esc(String(d.telling ?? ''))}</span>
+            <span class="vd-deur-naam">${esc(d.label)}</span>
+            ${d.onder ? `<span class="vd-deur-onder">${esc(d.onder)}</span>` : ''}
+          </button>
+        </div>`).join('')}
+      </div>
+    </div>`;
+}
+
 export async function renderArchiefDeuren() {
   const el = $('#section-archief');
   if (!el) return;
@@ -3570,34 +3602,118 @@ export async function renderArchiefDeuren() {
   const deuren = _ARCHIEF_DEUREN.filter(d =>
     (!d.dmOnly || isDM()) && (!d.module || window._moduleAan?.(d.module) !== false));
 
-  el.innerHTML = `
-    <div class="section-banner">
-      <div class="section-banner-head">
-        <div class="section-banner-icon-wrap">${icon('folder-open')}</div>
-        <div class="section-banner-info">
-          <div class="section-banner-label">Archief</div>
-          <div class="section-banner-desc-line">Wie, waar en wat er in ${esc(window._campagneNaam?.() || 'deze wereld')} bestaat.</div>
-        </div>
-      </div>
-      <div class="section-banner-rule"><span class="section-banner-ornament">◆</span></div>
-    </div>
-    <div class="spreuk-wrap">
-      <div class="vd-deuren">
-        ${deuren.map(d => {
-          const beeld = _archiefDeurBeeld(d.id);
-          const n = _archiefTelling(d.id);
-          return `<div class="vd-deur-wrap">
-            <button class="vd-deur" style="--vd-kleur:${d.kleur}"
-              onclick="window.app.switchSection('${d.id}')">
-              ${beeld ? `<span class="vd-deur-beeld" style="background-image:url('${esc(beeld)}')"></span>` : ''}
-              <span class="vd-deur-icoon">${icon(d.icoon)}</span>
-              <span class="vd-deur-telling">${esc(String(n))}</span>
-              <span class="vd-deur-naam">${esc(d.label)}</span>
-            </button>
-          </div>`;
-        }).join('')}
-      </div>
-    </div>`;
+  el.innerHTML = _deurenPaginaHtml({
+    icoon: 'folder-open', titel: 'Archief',
+    onder: `Wie, waar en wat er in ${window._campagneNaam?.() || 'deze wereld'} bestaat.`,
+    deuren: deuren.map(d => ({
+      ...d, beeld: _archiefDeurBeeld(d.id), telling: _archiefTelling(d.id),
+      klik: `window.app.switchSection('${d.id}')`,
+    })),
+  });
+}
+
+// ── Avontuur ────────────────────────────────────────────────────────────────
+// Logboek, kaarten, missies, prikbord en het bastion. Twee ervan zijn geen
+// eigen sectie maar een tabblad binnen het logboek; die zetten hun tab en
+// springen er dan heen — zelfde knop, zelfde gevoel.
+const _AVONTUUR_DEUREN = [
+  { id: 'verslagen', logtab: true, label: 'Logboek',  icoon: 'book-open', kleur: '#8a6030' },
+  { id: 'kaart',     label: 'Kaarten',  icoon: 'map',    kleur: '#1a6a50', module: 'kaart' },
+  { id: 'quests',    logtab: true, label: 'Missies',  icoon: 'target', kleur: '#8a2a2a', module: 'missies' },
+  { id: 'prikbord',  logtab: true, label: 'Prikbord', icoon: 'pin',    kleur: '#5a2e8a', module: 'prikbord' },
+  { id: 'bastion',   label: 'Bastion',  icoon: 'castle', kleur: '#4a4a4a', module: 'bastion' },
+];
+
+// Wat er achter de avontuur-deuren ligt. Drie verzoeken op een pagina die je
+// bewust opent — en zonder getallen is het een rij lege kaarten, precies wat de
+// archiefpagina wél goed maakt. Een deur zonder telling houdt zijn plek; liever
+// niets dan een nul die liegt.
+let _avontuurTel = null;
+async function _avontuurTellingen() {
+  if (_avontuurTel) return _avontuurTel;
+  const t = {};
+  const probeer = async (fn) => { try { return await fn(); } catch { return null; } };
+  const [arch, kaarten, missies] = await Promise.all([
+    probeer(() => api.get('/archief')),
+    probeer(() => api.get('/map/maps')),
+    probeer(() => api.get('/missies')),
+  ]);
+  const verslagen = (arch?.sessieLog || arch?.sessions || []).filter(v => !v?.korteSamenvatting
+    || !/sc[eè]ne-afbeeldingen/i.test(String(v.korteSamenvatting)));
+  if (verslagen.length) t.verslagen = verslagen.length;
+  const kl = kaarten?.maps || kaarten || [];
+  if (Array.isArray(kl) && kl.length) t.kaart = kl.length;
+  const ml = missies?.missies || missies?.quests || missies || [];
+  if (Array.isArray(ml) && ml.length) {
+    t.quests = ml.length;
+    const open = ml.filter(q => q?.status && !/klaar|voltooid|afgerond/i.test(String(q.status))).length;
+    if (open) t.prikbord = open;
+  }
+  _avontuurTel = t;
+  return t;
+}
+
+export async function renderAvontuurDeuren() {
+  const el = $('#section-avontuur');
+  if (!el) return;
+  const tel = await _avontuurTellingen();
+  const deuren = _AVONTUUR_DEUREN
+    .filter(d => !d.module || window._moduleAan?.(d.module) !== false)
+    .map(d => ({
+      ...d,
+      telling: tel[d.id] ?? '',
+      klik: d.logtab
+        ? `window.app.openLogboekTab('${d.id}')`
+        : `window.app.switchSection('${d.id}')`,
+    }));
+  el.innerHTML = _deurenPaginaHtml({
+    icoon: 'compass', titel: 'Avontuur',
+    onder: 'Wat jullie meemaakten, waar jullie heen kunnen en wat er nog ligt.',
+    deuren,
+  });
+}
+
+// ── Diensten ────────────────────────────────────────────────────────────────
+// De negen plekken in de stad. Hun namen komen uit de campagne zelf (een
+// herberg heet niet overal De Gouden Gans), en wat de party niet kan bereiken
+// staat er niet: uit is weg, zoals overal.
+const _DIENST_DEUR = {
+  markt:     { icoon: 'store',          kleur: '#8a6030' },
+  herberg:   { icoon: 'beer',           kleur: '#8a4a10' },
+  tempel:    { icoon: 'church',         kleur: '#c4a87a' },
+  facties:   { icoon: 'landmark',       kleur: '#1e4a8a' },
+  tweespalt: { icoon: 'dice',           kleur: '#8a2a2a' },
+  gock:      { icoon: 'search',         kleur: '#4a4a4a' },
+  ursula:    { icoon: 'sparkles',       kleur: '#5a2e8a' },
+  magizoo:   { icoon: 'paw-print',      kleur: '#3a7a2a' },
+  woekeraar: { icoon: 'coins',          kleur: '#8a7030' },
+};
+
+export async function renderDienstenDeuren() {
+  const el = $('#section-diensten');
+  if (!el) return;
+  const deuren = (window.DIENST_VOLGORDE || [])
+    .filter(k => window._moduleAan?.(k) !== false && !window._dienstDicht?.(k))
+    .map(k => ({
+      id: k, label: window._dienstNaam?.(k) || k,
+      icoon: _DIENST_DEUR[k]?.icoon || 'landmark',
+      kleur: _DIENST_DEUR[k]?.kleur || '#8a6030',
+      beeld: _dienstDeurBeeld(k),
+      klik: `window.app.switchSection('${k}')`,
+    }));
+  el.innerHTML = _deurenPaginaHtml({
+    icoon: 'landmark', titel: 'Diensten',
+    onder: `Waar je in ${window._campagneNaam?.() || 'de stad'} terecht kunt.`,
+    deuren,
+  });
+}
+
+// De gevel van een dienst, als de DM er een instelde. Dezelfde plek waar de
+// dienstschermen zelf hem vandaan halen.
+function _dienstDeurBeeld(key) {
+  const m = window.app?.state?.meta?.[key];
+  const id = m?.backdropId || m?.imageId || '';
+  return id ? api.thumbUrl(id) : '';
 }
 
 export async function renderPersonages() { return renderEntitySection('personages'); }
