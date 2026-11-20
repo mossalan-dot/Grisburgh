@@ -100,10 +100,45 @@ Eén route, één bak in `dm-state.json`, een knop op drie plekken en een klein
 venster. De helft van de machinerie (`type: 'summon'`, `ownerId`, initiatief van
 het baasje, opruimen bij het einde) staat er al sinds de huisdieren.
 
-## Open vraag voor de DM
+## Gebouwd op 20 november 2026
 
-Mag een speler zijn eigen summon neerzetten, of stelt hij hem voor en zet de DM
-hem neer? De app doet het eerste bij Wild Shape en het tweede bij een
-multiclass-verzoek. Mijn voorstel is **het eerste**: een summon is een spreuk
-die hij zelf cast, en de DM ziet hem meteen op het canvas verschijnen. Loopt dat
-uit de hand, dan is een schakelaar per campagne de kleinste reparatie.
+Zo gebouwd, met één wijziging die de DM aandroeg: **een summon bestaat ook
+buiten het gevecht**. Een Familiar loopt met je mee door de stad, een Faithful
+Steed draag je door een reis heen. Hij staat daarom in
+`dmState.playerSummons[charId]` en niet in `combat.json` — dat laatste wordt bij
+het sluiten van een gevecht leeggegooid, en dan zou je Familiar na elk
+schermutseling opnieuw opgeroepen moeten worden.
+
+Wat er staat:
+
+- `GET|POST /characters/:id/summons` en `DELETE …/:summonId` — de speler zelf
+  of de DM. De DM ziet het hele aanbod, de speler het zijne.
+- Begint er een gevecht, dan gaan de staande summons mee (`_summonsNaarCombat`);
+  roept hij er een op terwijl het loopt, dan staat hij er meteen bij; stuurt hij
+  hem weg, dan is hij ook van de kaart. Allemaal met het initiatief van zijn
+  baasje, via de combatantvorm die er sinds de huisdieren al was.
+- `GET /companions` draagt ze als `soort: 'summon'`, dus hij staat in de rij
+  *Opgeroepen* op het partytabblad — zonder doorklik, want hij heeft geen
+  kaartje.
+- Het blok **Opgeroepen** op het Personage-tabblad, naast Rage, je klassekracht
+  en je dagkeuze: die vier zeggen samen wat er nu bij jou loopt.
+- Een knop *Roep op* op zijn kaartje in Naslag → Familiars, die zich pas toont
+  als deze speler hem werkelijk kan oproepen.
+
+**Een lange rust haalt niets weg.** Welke summon een nacht overleeft verschilt
+per spreuk, en dat staat in teksten die we niet hebben: stilletjes wissen zou
+bij de helft fout zijn. Dus wist de app niets en zégt ze het — een rij die een
+rust overleefde krijgt *van voor je rust* erbij. Wegsturen blijft een klik.
+
+Bewaakt door `tests/summons.test.js` (13). Die vond meteen twee dingen: het
+aanbod was leeg omdat `_maakSpreuken()` zijn namen onder `naam` zet en niet
+onder `name` — dezelfde fout stond in de metgezellen-route, waardoor de knop
+*Bekijk Find Familiar* op een metgezelkaartje nooit verscheen — en een Owl
+kreeg 114 HP omdat `"1 (1d4 - 1)"` zonder leestekens `114-1` wordt.
+
+## Beslist
+
+*Mag een speler zijn eigen summon neerzetten?* Ja — zoals hij zelf in Rage gaat
+en zelf Wild Shape aanzet. Het is zijn spreuk, en de DM ziet hem meteen in de
+rij medestanders en op het canvas verschijnen. Loopt dat ooit uit de hand, dan
+is een schakelaar per campagne de kleinste reparatie.

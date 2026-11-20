@@ -34605,3 +34605,56 @@ button.player-dash-niveau-penning { cursor: pointer; }
   .player-dash-niveau-pijl svg { width: 11px; height: 11px; }
   .player-dash-niveau-onder { display: none; }
 }
+
+/* ── Opgeroepen wezens ───────────────────────────────────────────────────────
+   Het blok staat naast Rage, je klassekracht en je dagkeuze: alle vier zeggen
+   ze "wat loopt er nu bij jou". Een rij per wezen, met zijn cijfers erachter
+   en een kruisje om hem weg te sturen. */
+.summon-lijst { display: flex; flex-direction: column; gap: 6px; }
+.summon-rij {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border: 1px solid rgba(196, 168, 122, 0.55);
+  border-radius: 6px;
+  background: rgba(239, 227, 197, 0.5);
+}
+.summon-naam { font-family: 'Cinzel', serif; font-size: .92em; color: #3a2410; flex: 1; min-width: 0; }
+.summon-cijfers {
+  font-family: 'Crimson Text', Georgia, serif;
+  font-size: .85em; color: #7a6040; white-space: nowrap;
+  display: inline-flex; align-items: center; gap: 4px;
+}
+.summon-cijfers svg { width: 13px; height: 13px; }
+/* Stond hij er al voor je laatste lange rust, dan zegt de rij dat. De app
+   wist niets weg — welke summon een nacht overleeft verschilt per spreuk en
+   dat staat in teksten die we niet hebben. */
+.summon-rij--oud { border-style: dashed; opacity: .82; }
+.summon-oud-hint {
+  font-family: 'IM Fell English', Georgia, serif;
+  font-style: italic; font-size: .78em; color: #9a7008; white-space: nowrap;
+}
+.summon-weg {
+  border: 0; background: none; cursor: pointer; color: #8a7050;
+  padding: 2px; line-height: 0; border-radius: 4px; flex-shrink: 0;
+}
+.summon-weg:hover { color: #a33; background: rgba(170, 51, 51, 0.1); }
+.summon-weg svg { width: 14px; height: 14px; }
+.summon-leeg { margin: 0 0 8px; }
+.summon-roep { margin-top: 8px; }
+.summon-kies-kop { margin-bottom: 10px; display: flex; flex-direction: column; gap: 2px; }
+.summon-kies-kop strong { font-family: 'Cinzel', serif; font-size: 1.05em; color: #3a2410; }
+.summon-cijfervelden {
+  margin-top: 6px; padding-top: 8px;
+  border-top: 1px dashed rgba(196, 168, 122, 0.7);
+}
+
+/* In de rij medestanders op het partytabblad. Hij heeft geen kaartje, dus
+   geen portret en geen doorklik: een zegel met het teken van magie. */
+.party-portrait--summon { cursor: default; }
+.party-portrait--summon .party-portrait-avatar-wrap {
+  background: radial-gradient(circle at 40% 34%, #efe3f5, #d8c7e8 62%, #b9a3d4);
+}
+.party-portrait--summon .party-portrait-fallback { color: #5a3a8c; }
+.party-portrait--summon .party-portrait-soort { color: #5a3a8c; }

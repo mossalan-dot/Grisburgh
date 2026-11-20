@@ -5572,6 +5572,266 @@ router.post('/characters/:characterId/keuzes', attachRole, (req, res) => {
   res.json({ ok: true, slots: _keuzeSlotsVoor(dmState, char) });
 });
 
+// ════════════════════════════════════════════════════════════════════════════
+//  OPGEROEPEN WEZENS
+// ════════════════════════════════════════════════════════════════════════════
+// **Een summon is een toestand van de speler, niet iets in het gevecht.** Een
+// Familiar loopt met je mee door de stad, een Faithful Steed draag je door een
+// reis heen, een Steel Defender staat naast je als er niet gevochten wordt.
+// Daarom staat hij in `dmState.playerSummons[charId]` en niet in `combat.json`
+// — dat laatste wordt bij het sluiten van een gevecht leeggegooid.
+//
+// Loopt er een gevecht, dan belandt hij **ook** op de kaart, als combatant met
+// `type: 'summon'` en `ownerId`. Die machinerie bestaat al sinds de huisdieren,
+// inclusief het initiatief van zijn baasje; hier wordt hij alleen hergebruikt.
+//
+// **De app kent zijn cijfers lang niet altijd.** Van de 25 metgezellen in
+// `bronnen/metgezellen.json` kunnen we er zeven compleet neerzetten: zes
+// hebben gedaantes die gewone SRD-wezens zijn (een Owl, een Warhorse, een
+// Skeleton) en de Homunculus heeft een eigen SRD-statblok. De andere achttien
+// staan in een boek waaruit we niets mogen overnemen — en de twaalf *Spirits*
+// hebben bovendien geen vást statblok, want hun HP en AC hangen af van het
+// slotniveau waarop je ze cast. Daar vraagt de app het dus één keer en
+// **onthoudt** hij het (`dmState.summonGeheugen`), zodat de tweede keer weer
+// één klik is. Zelfde afspraak als bij de loot-DC: de app rekent niet, de app
+// onthoudt.
+
+function _summonLijst(dmState, charId) {
+  if (!dmState.playerSummons) dmState.playerSummons = {};
+  if (!Array.isArray(dmState.playerSummons[charId])) dmState.playerSummons[charId] = [];
+  return dmState.playerSummons[charId];
+}
+
+// Eén wezen opzoeken op naam, in dezelfde drie bronnen als de deur Familiars:
+// de SRD-statblokken en wat de campagne zelf in `monsters.json` heeft.
+function _wezenOpNaam(naam) {
+  const zoek = String(naam || '').trim().toLowerCase();
+  if (!zoek) return null;
+  try {
+    for (const m of (bronnen.lees('srd-monsters') || [])) {
+      if (String(m.name).toLowerCase() === zoek) return { naam: m.name, statblock: { ...m.statblock, cr: m.cr } };
+    }
+  } catch { /* geen SRD */ }
+  try {
+    for (const m of (storage.readJSON('monsters.json')?.monsters || [])) {
+      if (String(m.name || '').toLowerCase() === zoek) return { naam: m.name, statblock: m };
+    }
+  } catch { /* geen eigen monsters */ }
+  return null;
+}
+
+// Het **eerste** getal uit een veld, want een statblok schrijft zijn HP als
+// "1 (1d4 - 1)": het gemiddelde vooraan en de worp erachter. Alles wat geen
+// cijfer is wegstrepen en dán parsen plakt die drie aan elkaar, en dan heeft
+// een Owl 114 HP.
+const _getalUit = (x) => {
+  const m = String(x ?? '').match(/-?\d+/);
+  const n = m ? parseInt(m[0], 10) : NaN;
+  return Number.isFinite(n) ? n : null;
+};
+
+// **Wat kan deze speler oproepen?** Een feature-metgezel als zijn class of
+// subclass klopt (en hij het level heeft), een spreuk-metgezel als die spreuk
+// in zijn boek staat. Bewust een echte zeef en geen lijst van alles: een
+// Wizard hoort geen knop te zien voor een Drake Companion. De DM ziet wél
+// alles — hij zet namens iedereen neer.
+function _summonAanbod(dmState, charId, { alles = false } = {}) {
+  const profiel = _kkProfiel(dmState, charId);
+  const klassen = [profiel.klasse, profiel.multiKlasse].filter(Boolean).map(x => String(x).toLowerCase());
+  const subs    = [profiel.subclass, profiel.multiSubclass].filter(Boolean).map(x => String(x).toLowerCase());
+  const lvl     = profiel._totaalLevel || 0;
+  const boek    = new Set(((dmState.playerSpells || {})[charId] || []).map(x => String(x.index || '').toLowerCase()));
+  const spreuken = new Map();
+  try { for (const sp of _maakSpreuken()) spreuken.set(String(sp.naam).toLowerCase(), sp); }
+  catch { /* geen spreuken */ }
+
+  const uit = [];
+  for (const c of (bronnen.lees('metgezellen')?.metgezellen || [])) {
+    let mag = alles, waarom = '';
+    if (c.soort === 'spreuk') {
+      const sp = spreuken.get(String(c.geeft).toLowerCase());
+      if (!alles) {
+        mag = !!sp && boek.has(String(sp.index).toLowerCase());
+        waarom = mag ? '' : `${c.geeft} staat niet in je spreukenboek`;
+      }
+      if (sp) c._spreukIndex = sp.index;
+    } else if (!alles) {
+      const klasseOk = !c.klasse || klassen.includes(String(c.klasse).toLowerCase());
+      const subOk    = !c.subclass || subs.some(x => x.includes(String(c.subclass).toLowerCase())
+                                                 || String(c.subclass).toLowerCase().includes(x));
+      const lvlOk    = !c.level || lvl >= c.level;
+      mag = klasseOk && subOk && lvlOk;
+      waarom = mag ? '' : (!klasseOk || !subOk ? `voor ${[c.klasse, c.subclass].filter(Boolean).join(' · ')}`
+                                               : `vanaf level ${c.level}`);
+    }
+    if (!mag) continue;
+    // Welke gedaantes kennen we? Alleen die kunnen we compleet neerzetten.
+    const vormen = (c.vormen || []).map(n => ({ naam: n, bekend: !!_wezenOpNaam(n) }));
+    const eigen  = c.statblok ? _wezenOpNaam(c.statblok) : null;
+    uit.push({
+      id: c.id, naam: c.naam, geeft: c.geeft, soort: c.soort, boek: c.boek,
+      klasse: c.klasse || '', subclass: c.subclass || '', level: c.level || 0,
+      spreukIndex: c._spreukIndex || null,
+      vormen,
+      // Weten we zijn cijfers? Dan is het één klik. Anders vraagt de app ze.
+      bekend: !!eigen || vormen.some(v => v.bekend),
+      onthouden: ((dmState.summonGeheugen || {})[charId] || {})[c.id] || null,
+      waarom,
+    });
+  }
+  return uit;
+}
+
+// Een staande summon als combatant. Eén plek, drie aanroepers: oproepen
+// tijdens een gevecht, een gevecht dat begint, en de DM die ze erbij haalt.
+function _summonCombatant(combat, s, charId) {
+  const dex = _getalUit(s.statblock?.dex) ?? 10;
+  const baas = (combat.combatants || []).find(c => c.entityId === charId);
+  return {
+    id:         's_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6),
+    name:       s.naam,
+    entityId:   null,
+    summonId:   s.id,
+    presetId:   null,
+    imageId:    s.beeldId || null,
+    backdropId: null,
+    type:       'summon',
+    ownerId:    charId,
+    initiative: baas ? baas.initiative : (Math.floor(Math.random() * 20) + 1 + Math.floor((dex - 10) / 2)),
+    hp:         s.hp ?? s.maxHp ?? 1,
+    maxHp:      s.maxHp ?? s.hp ?? 1,
+    ac:         s.ac || String(s.statblock?.ac || ''),
+    conditions: [],
+    statblock:  s.statblock || null,
+  };
+}
+
+// De staande summons van iedereen die meedoet op de kaart zetten. Wie er al
+// staat blijft staan — twee keer drukken mag niets dubbelen.
+function _summonsNaarCombat(combat, dmState) {
+  if (!Array.isArray(combat.combatants)) combat.combatants = [];
+  let erbij = 0;
+  for (const [charId, lijst] of Object.entries(dmState.playerSummons || {})) {
+    // Alleen van wie zelf meevecht: een summon zonder zijn baasje op de kaart
+    // is een los wezen zonder initiatief.
+    if (!combat.combatants.some(c => c.type === 'player' && c.entityId === charId)) continue;
+    for (const s of (lijst || [])) {
+      if (combat.combatants.some(c => c.summonId === s.id)) continue;
+      combat.combatants.push(_summonCombatant(combat, s, charId));
+      erbij++;
+    }
+  }
+  if (erbij) combat.combatants.sort((a, b) => b.initiative - a.initiative);
+  return erbij;
+}
+
+router.get('/characters/:characterId/summons', attachRole, (req, res) => {
+  const { characterId } = req.params;
+  if (req.role !== 'dm' && req.session?.characterId !== characterId) return res.status(403).json({ error: 'Geen toegang' });
+  const dmState = readDmState();
+  // Of er een nacht overheen ging rekent de server uit: hij heeft de
+  // rustteller, en één plek die dat weet is er één genoeg.
+  const nu = getGroup(dmState)?.rustTellers?.long ?? 0;
+  res.json({
+    summons: _summonLijst(dmState, characterId)
+      .map(s => ({ ...s, oud: typeof s.rustStand === 'number' && nu > s.rustStand })),
+    // De DM ziet het hele aanbod en de speler het zijne — zelfde grens als bij
+    // het oproepen zelf, anders accepteert de route iets waar geen knop voor is.
+    aanbod:  _summonAanbod(dmState, characterId, { alles: req.role === 'dm' }),
+  });
+});
+
+router.post('/characters/:characterId/summons', attachRole, (req, res) => {
+  const { characterId } = req.params;
+  if (req.role !== 'dm' && req.session?.characterId !== characterId) return res.status(403).json({ error: 'Geen toegang' });
+  const dmState = readDmState();
+  const b = req.body || {};
+  const aanbod = _summonAanbod(dmState, characterId, { alles: req.role === 'dm' });
+  const def = aanbod.find(x => x.id === String(b.metgezelId || ''));
+  if (!def) return res.status(409).json({ error: 'Dat kun jij niet oproepen' });
+
+  // De gedaante moet uit zijn eigen lijst komen; heeft hij er geen, dan is het
+  // wezen zelf de gedaante.
+  const vorm = String(b.vorm || '').trim();
+  if (def.vormen.length && !def.vormen.some(v => v.naam === vorm)) {
+    return res.status(409).json({ error: 'Die gedaante staat niet in zijn lijst' });
+  }
+  const bron = vorm ? _wezenOpNaam(vorm) : null;
+  const eigen = (!bron && !def.vormen.length) ? _wezenOpNaam((bronnen.lees('metgezellen')?.metgezellen || [])
+    .find(c => c.id === def.id)?.statblok || '') : null;
+  const sb = bron?.statblock || eigen?.statblock || null;
+
+  // Kennen we hem niet, dan komen de cijfers van de speler — en die onthouden
+  // we, zodat de volgende keer weer één klik is.
+  const hp = _getalUit(b.hp) ?? _getalUit(sb?.hp) ?? _getalUit(sb?.maxHp) ?? null;
+  const ac = String(b.ac ?? sb?.ac ?? '').trim().slice(0, 20);
+  if (!sb && (hp == null || !ac)) {
+    return res.status(409).json({ error: 'Vul zijn HP en AC in — die staan in de tekst van de spreuk', vraag: true });
+  }
+
+  const s = {
+    id: 'sm_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6),
+    metgezelId: def.id,
+    naam: String(b.naam || '').trim().slice(0, 60) || (vorm ? `${vorm} (${def.naam})` : def.naam),
+    vorm, geeft: def.geeft, soort: def.soort,
+    spreukIndex: def.spreukIndex || null,
+    hp, maxHp: hp, ac,
+    statblock: sb,
+    sinds: Date.now(),
+    // **Een lange rust haalt niets weg.** Welke summons een nacht overleven
+    // verschilt per spreuk (een Familiar blijft tot je hem wegstuurt, een
+    // Bestial Spirit een uur), en dat staat in teksten die we niet hebben.
+    // Stilletjes wissen zou dus bij de helft fout zijn, en stilletjes laten
+    // staan laat een lijst rotten. Dus: we onthouden bij welke rust hij
+    // opgeroepen is en het blok zegt het erbij. Wegsturen blijft een klik.
+    rustStand: (getGroup(dmState)?.rustTellers?.long) ?? 0,
+  };
+  _summonLijst(dmState, characterId).push(s);
+
+  if (!sb) {
+    if (!dmState.summonGeheugen) dmState.summonGeheugen = {};
+    const bak = (dmState.summonGeheugen[characterId] = dmState.summonGeheugen[characterId] || {});
+    bak[def.id] = { naam: s.naam, hp, ac, vorm };
+  }
+  storage.writeJSON('dm-state.json', dmState);
+
+  // Loopt er een gevecht waarin zijn baasje staat, dan hoort hij er meteen bij.
+  let opKaart = false;
+  const combat = storage.readJSON('combat.json');
+  if (combat?.active && (combat.combatants || []).some(c => c.type === 'player' && c.entityId === characterId)) {
+    combat.combatants.push(_summonCombatant(combat, s, characterId));
+    combat.combatants.sort((a, b) => b.initiative - a.initiative);
+    _combatLog(combat, `${s.naam} verschijnt`);
+    storage.writeJSON('combat.json', combat);
+    _zendCombat(req, combat);
+    opKaart = true;
+  }
+  req.app.get('io')?.to(_campagneRoom(req)).emit('summons:updated', { characterId });
+  res.status(201).json({ ok: true, summon: s, opKaart });
+});
+
+router.delete('/characters/:characterId/summons/:summonId', attachRole, (req, res) => {
+  const { characterId, summonId } = req.params;
+  if (req.role !== 'dm' && req.session?.characterId !== characterId) return res.status(403).json({ error: 'Geen toegang' });
+  const dmState = readDmState();
+  const lijst = _summonLijst(dmState, characterId);
+  const i = lijst.findIndex(x => x.id === summonId);
+  if (i < 0) return res.status(404).json({ error: 'Niet gevonden' });
+  const [weg] = lijst.splice(i, 1);
+  storage.writeJSON('dm-state.json', dmState);
+
+  // Van de kaart af als hij erop stond. Wegsturen is wegsturen.
+  const combat = storage.readJSON('combat.json');
+  if (combat?.combatants?.some(c => c.summonId === summonId)) {
+    combat.combatants = combat.combatants.filter(c => c.summonId !== summonId);
+    _combatLog(combat, `${weg.naam} verdwijnt`);
+    storage.writeJSON('combat.json', combat);
+    _zendCombat(req, combat);
+  }
+  req.app.get('io')?.to(_campagneRoom(req)).emit('summons:updated', { characterId });
+  res.json({ ok: true });
+});
+
 router.get('/characters/:characterId/klassekracht', attachRole, (req, res) => {
   const { characterId } = req.params;
   if (req.role !== 'dm' && req.session?.characterId !== characterId) return res.status(403).json({ error: 'Geen toegang' });
@@ -8968,7 +9228,31 @@ router.get('/companions', attachRole, (req, res) => {
   const npcs = (entities.personages || []).filter(e => companionIds.includes(e.id));
   const hpMap = dmState.playerHp || {};
   const naamVan = id => (entities.personages || []).find(x => x.id === id)?.name || '';
-  res.json(npcs.map(e => {
+
+  // **Een opgeroepen wezen loopt ook mee.** Deze route beantwoordt de vraag
+  // "wie is er bij de party?", en sinds de summons is dat niet meer alleen
+  // "welke kaartjes hangen aan de groep". Hij heeft geen kaartje — hij bestaat
+  // alleen zolang zijn baasje hem laat bestaan — dus hij komt hiernaast te
+  // staan met `soort: 'summon'` en zonder doorklik.
+  const ledenVanGroep = new Set((entities.personages || [])
+    .filter(e => e.subtype === 'speler' && e.data?.groep && dmState.groups[e.data.groep] === g)
+    .map(e => e.id));
+  const summons = [];
+  for (const [cid, lijst] of Object.entries(dmState.playerSummons || {})) {
+    if (!ledenVanGroep.has(cid)) continue;
+    for (const s of (lijst || [])) {
+      summons.push({
+        id: s.id, name: s.naam, soort: 'summon', subtype: 'summon',
+        data: { ras: s.vorm || '', klasse: s.geeft || '' },
+        baasje: naamVan(cid), baasjeId: cid,
+        hp: typeof s.hp === 'number' ? s.hp : null,
+        maxHp: typeof s.maxHp === 'number' ? s.maxHp : null,
+        huurling: null,
+      });
+    }
+  }
+
+  res.json([...summons, ...npcs.map(e => {
     const hp = hpMap[e.id] || {};
     const baasId = (g.companionOwners || {})[e.id] || '';
     return {
@@ -8987,7 +9271,7 @@ router.get('/companions', attachRole, (req, res) => {
         return h ? { loon: h.loon, achterstand: h.achterstand, wilWeg: h.wilWeg, betalerNaam: h.betaler ? naamVan(h.betaler) : '' } : null;
       })(),
     };
-  }));
+  })]);
 });
 
 // Geeft terug aan welke groepen een NPC gekoppeld is (DM only)
@@ -12261,7 +12545,7 @@ router.get('/bron/metgezellen', attachRole, (req, res) => {
   // statblok in, en die tekst staat al in de bibliotheek. Hier alleen of hij
   // er is, zodat de kaart een knop kan tonen in plaats van een dood woord.
   const spreuken = new Map();
-  try { for (const sp of _maakSpreuken()) spreuken.set(String(sp.name).toLowerCase(), sp.index); }
+  try { for (const sp of _maakSpreuken()) spreuken.set(String(sp.naam).toLowerCase(), sp.index); }
   catch { /* geen spreuken */ }
 
   const lijst = (bronnen.lees('metgezellen')?.metgezellen || []).map(c => {
@@ -15336,8 +15620,13 @@ router.post('/combat/start', requireDM, (req, res) => {
   const combatants = [...(existing.combatants || [])].sort((a, b) => b.initiative - a.initiative);
   const combat = { active: true, round: 1, currentTurn: 0, combatants, encounterId: existing.encounterId || null, backdropId: existing.backdropId || null, canvasPreset: existing.canvasPreset || null, canvasColors: existing.canvasColors || null, lair: _lairUit(existing.lair), overgang: existing.overgang || null, log: [],
     regie: { start: Date.now(), momenten: [], doodsstrijd: [] } };
+  // Wat er al bij iemand liep, staat er bij het eerste initiatief ook.
+  // Een Familiar die naast je loopt hoort niet eerst opnieuw opgeroepen te
+  // worden omdat er toevallig een zwaard getrokken wordt.
+  const _sumErbij = _summonsNaarCombat(combat, readDmState());
+  if (_sumErbij) combat.currentTurn = 0;
   _combatLog(combat, 'Gevecht begonnen');
-  if (combatants[0]) _combatLog(combat, `Beurt van ${combatants[0].name}`);
+  if (combat.combatants[0]) _combatLog(combat, `Beurt van ${combat.combatants[0].name}`);
   _lairCheck(combat, null);
   storage.writeJSON('combat.json', combat);
   req.app.get('io')?.to(_displayRoom(req)).emit('gevecht:opening', _openingVoor(combat));

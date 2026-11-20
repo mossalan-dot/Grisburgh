@@ -824,6 +824,14 @@ const _KAART_BLAD_ICOON = { portret: 'image', beschrijving: 'book-open',
 // wegwijzer naar buiten; precies zoals bij een feature zonder tekst.
 function _metgezelBladen(it) {
   const c = it.metgezel;
+  // **Hier roep je hem op.** Het kaartje zegt wat hij kan; dan is dit ook de
+  // plek waar je hem neerzet, in plaats van dat je het aan tafel hardop zegt
+  // en de DM met de hand een combatant bijtikt. De knop staat er alleen als
+  // deze speler hem écht kan oproepen — dat weet `window.summons`, en die
+  // laadt lui, dus de knop vult zichzelf in zodra het antwoord binnen is.
+  const roep = `<p><button type="button" class="vd-vorm summon-roepknop" hidden
+    data-metgezel="${escA(c.id)}" onclick="event.stopPropagation();window.summons?.roepOp?.('${escA(c.id)}')">
+    ${icon('sparkles')} Roep ${esc(c.naam)} op</button></p>`;
   const rijen = [
     ['Van', [c.klasse, c.subclass].filter(Boolean).join(' · ') || (c.soort === 'spreuk' ? 'Een spreuk' : '')],
     ['Krijg je bij', c.geeft],
@@ -831,7 +839,7 @@ function _metgezelBladen(it) {
     ['Uit', c.boek],
   ].filter(([, v]) => String(v || '').trim());
   const bladen = [{ soort: 'eigenschappen', label: 'Waarvan', tekst: rijen.map(([k, v]) => `${k} ${v}`).join(' '),
-    html: `<dl class="vk-training">${rijen.map(([k, v]) => `<dt>${esc(k)}</dt><dd>${esc(v)}</dd>`).join('')}</dl>` }];
+    html: `<dl class="vk-training">${rijen.map(([k, v]) => `<dt>${esc(k)}</dt><dd>${esc(v)}</dd>`).join('')}</dl>${roep}` }];
   if (c.vormen?.length) {
     bladen.push({ soort: 'beschrijving', label: 'Gedaantes', tekst: c.vormen.map(v => v.naam).join(' '),
       html: `<div class="vd-vormen">${c.vormen.map(v => v.bekend
@@ -2815,8 +2823,21 @@ function _paint() {
   // dit mag niets blokkeren; hij vult de knoppen in zodra hij binnen is.
   window.glossary?.applyDom?.(grid);
   window.spreuken?.linkInDom?.(grid);
+  _roepknoppen(grid);
   const tel = document.getElementById('vaardig-telling');
   if (tel) tel.textContent = `${lijst.length} van ${(_all || []).length}`;
+}
+
+// De knop *Roep op* staat er standaard verborgen bij: of je hem mag gebruiken
+// weet alleen de server (staat die spreuk in je boek? heb je dat level?), en
+// een knop die bij de helft een foutmelding geeft is erger dan geen knop. Dus
+// vraagt hij het één keer en toont zich dan.
+function _roepknoppen(wortel) {
+  const knoppen = [...(wortel?.querySelectorAll('.summon-roepknop[hidden]') || [])];
+  if (!knoppen.length || !window.summons?.kan) return;
+  for (const k of knoppen) {
+    window.summons.kan(k.dataset.metgezel).then(mag => { if (mag) k.hidden = false; }).catch(() => {});
+  }
 }
 
 // Het uitwaaieren. De kaartjes krijgen één voor één een korte opkomst; de

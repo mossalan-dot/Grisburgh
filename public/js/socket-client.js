@@ -615,6 +615,16 @@ function _ververOpenKaartje(id) {
     window._dagkeuzeBlok?.();
   });
 
+  // Een opgeroepen wezen is geen geheim: de hele tafel ziet hem in de rij
+  // medestanders staan. Je eigen blok hertekent alleen als het over jou gaat;
+  // de party-rij hertekent bij iedereen, want daar staat hij voor iedereen.
+  socket.on('summons:updated', ({ characterId } = {}) => {
+    if (window.app?.state?.characterId === characterId) window._summonBlok?.();
+    // De party-rij komt uit `/companions`, en die ververst met de sectie —
+    // zelfde weg als `companions:updated` hierboven.
+    if (window.app?.state?.activeSection === 'mijn-karakter') _refreshSectionDebounced('mijn-karakter');
+  });
+
   // ── Profiel gewijzigd (level, klasse, etc.) ──
   socket.on('player:profile-updated', ({ characterId, profile } = {}) => {
     const myId = window.app?.state?.characterId;

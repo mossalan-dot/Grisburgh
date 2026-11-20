@@ -1,5 +1,5 @@
 import { api, campagneUitUrl, zetCampagne } from './api.js?v=326';
-import { initCampagne, renderArchiefDeuren, renderAvontuurDeuren, renderDienstenDeuren, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, renderDocumenten, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=435";
+import { initCampagne, renderArchiefDeuren, renderAvontuurDeuren, renderDienstenDeuren, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, renderDocumenten, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=436";
 import { initArchief, renderLogboek, openLogboekEditor } from "./render-archief.js?v=156";
 import { renderKaart, queueFlyTo, verversPins, nieuweKaart } from './render-kaart.js?v=41';
 import { renderDungeon } from './render-dungeon.js?v=82';
@@ -9,9 +9,9 @@ import { renderBestiarium } from './render-bestiarium.js?v=47';
 import { renderSpreuken } from './render-spreuken.js?v=66';
 import './render-handleiding.js?v=2';
 import './render-melding.js?v=4';
-import { renderVaardigheden, zoekVaardigheden, heldenboekTekst } from './render-vaardigheden.js?v=196';
+import { renderVaardigheden, zoekVaardigheden, heldenboekTekst } from './render-vaardigheden.js?v=197';
 import { renderStatblock } from './render-statblock.js?v=10';
-import { initSocket } from "./socket-client.js?v=109";
+import { initSocket } from "./socket-client.js?v=110";
 import { initDmPanel } from "./dm-panel.js?v=434";
 import { COND_INFO, COND_LABEL, COND_MET_PLAATJE, COND_ICON } from './conditions.js?v=7';
 import './media-picker.js?v=20';
@@ -23,6 +23,7 @@ import './wizard.js?v=17';
 import './tafels.js?v=2';
 import './terugblik.js?v=9';
 import './rage.js?v=10';
+import './summons.js?v=2';
 import './klassekracht.js?v=12';
 import './bastion.js?v=10';
 import './stemronde.js?v=8';
@@ -1802,7 +1803,7 @@ async function _landingNieuwTegel() {
   if (!host || !_groepsWachtwoord || document.getElementById('landing-nieuw')) return;
   let stand = null;
   try {
-    await import('./personage-maken.js?v=57');
+    await import('./personage-maken.js?v=58');
     stand = await window.personageMaken.stand();
   } catch { return; }
   if (stand?.instellingen && stand.instellingen.aan === false) return;
@@ -1824,7 +1825,7 @@ async function _landingNieuwTegel() {
 
 async function _landingNieuw() {
   try {
-    await import('./personage-maken.js?v=57');
+    await import('./personage-maken.js?v=58');
     const stand = await window.personageMaken.stand();
     // Ook als hij al bij de DM ligt: dan zie je dat, en kun je hem nog
     // terughalen om iets te veranderen.
@@ -8180,6 +8181,7 @@ function _partyMetgezelHtml(lijst) {
               const pImgUrl   = api.thumbForEntity(e);
               const firstName = esc(_roepnaam(e.name));
               const isDier    = e.soort === 'dier' || e.subtype === 'dier';
+              const isSummon  = e.soort === 'summon';
               const h         = e.huurling || null;
               const psub      = [e.data?.ras, e.data?.klasse].filter(Boolean).join(' · ');
               // Een metgezel kreeg geen HP-ring terwijl iedereen eromheen er wel
@@ -8190,8 +8192,8 @@ function _partyMetgezelHtml(lijst) {
               const cCls   = cPct === null ? '' : cPct > 75 ? 'hp-healthy' : cPct > 50 ? 'hp-lightly' : cPct > 25 ? 'hp-wounded' : cPct > 0 ? 'hp-critical' : 'hp-down';
               const cR = 38, cC = +(2 * Math.PI * 38).toFixed(1);
               const cFill = cPct > 0 ? +(cC * cPct / 100).toFixed(1) : 0;
-              return `<div class="party-portrait party-portrait--companion party-portrait--${isDier ? 'dier' : 'bondgenoot'}"
-                onclick="window._openDetail('personages','${escArg(e.id)}')"
+              return `<div class="party-portrait party-portrait--companion party-portrait--${isSummon ? 'summon' : isDier ? 'dier' : 'bondgenoot'}"
+                ${isSummon ? '' : `onclick="window._openDetail('personages','${escArg(e.id)}')"`}
                 title="${esc(e.name)}${e.baasje ? ` — van ${e.baasje}` : ''}">
                 <div class="party-portrait-ring-wrap">
                   ${cPct !== null ? `<svg class="party-hp-ring" viewBox="0 0 100 100" style="position:absolute;inset:0;width:100%;height:100%;pointer-events:none">
@@ -8200,11 +8202,11 @@ function _partyMetgezelHtml(lijst) {
                       stroke-dasharray="${cFill} ${cC}" transform="rotate(-90 50 50)"/>
                   </svg>` : ''}
                   <div class="party-portrait-avatar-wrap">
-                    <img src="${pImgUrl}" class="party-portrait-img"
-                      onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
-                    <div class="party-portrait-fallback" style="display:none">${icon(isDier ? 'paw-print' : 'shield')}</div>
+                    ${isSummon ? '' : `<img src="${pImgUrl}" class="party-portrait-img"
+                      onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">`}
+                    <div class="party-portrait-fallback" style="display:${isSummon ? 'flex' : 'none'}">${icon(isSummon ? 'sparkles' : isDier ? 'paw-print' : 'shield')}</div>
                   </div>
-                  <span class="party-portrait-soort" title="${h ? 'Huurling' : isDier ? 'Huisdier' : 'Bondgenoot'}">${icon(h ? 'coins' : isDier ? 'paw-print' : 'shield')}</span>
+                  <span class="party-portrait-soort" title="${isSummon ? 'Opgeroepen' : h ? 'Huurling' : isDier ? 'Huisdier' : 'Bondgenoot'}">${icon(isSummon ? 'sparkles' : h ? 'coins' : isDier ? 'paw-print' : 'shield')}</span>
                 </div>
                 <div class="party-portrait-name">${firstName}</div>
                 ${h ? `<div class="party-portrait-sub party-huurling-loon${h.achterstand ? ' party-huurling-loon--achter' : ''}"
@@ -9408,8 +9410,13 @@ async function renderMijnKarakter(opts = {}) {
               { soort: 'bondgenoot', kop: 'Medestanders', ic: 'shield' },
               { soort: 'huurling',   kop: 'Huurlingen',   ic: 'coins' },
               { soort: 'dier',       kop: 'Huisdieren',   ic: 'paw-print' },
+              // Een opgeroepen wezen loopt net zo goed mee. Hij heeft geen
+              // kaartje — hij bestaat zolang zijn baasje hem laat bestaan —
+              // dus hij heeft geen doorklik, maar hij hoort wel in de rij.
+              { soort: 'summon',     kop: 'Opgeroepen',   ic: 'sparkles' },
             ];
-            const soortVan = c => c.huurling ? 'huurling' : (c.soort || (c.subtype === 'dier' ? 'dier' : 'bondgenoot'));
+            const soortVan = c => c.soort === 'summon' ? 'summon'
+              : c.huurling ? 'huurling' : (c.soort || (c.subtype === 'dier' ? 'dier' : 'bondgenoot'));
             return groepen.map(g => {
               const lijst = companions.filter(c => soortVan(c) === g.soort);
               if (!lijst.length) return '';
@@ -9549,6 +9556,7 @@ async function renderMijnKarakter(opts = {}) {
         <div id="rage-blok" class="pds--half"></div>
         <div id="kracht-blok" class="pds--half"></div>
         <div id="dagkeuze-blok" class="pds--half"></div>
+        <div id="summon-blok" class="pds--half"></div>
 
         <!-- De d100 van de Sorcerer hoort bij zijn andere krachten, niet boven
              zijn HP. -->
@@ -10245,6 +10253,7 @@ async function renderMijnKarakter(opts = {}) {
   window._rageBlok?.();
   window._krachtBlok?.();
   window._dagkeuzeBlok?.();
+  window._summonBlok?.();
   _partyGevallenen();
   _partyGevangenen();
   window.stemronde?.partyKaart();
