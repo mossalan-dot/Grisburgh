@@ -4256,7 +4256,7 @@ function _editorOpen(it) {
   // kaartje dat er al stond, dan bleef "Waaruit?" leeg terwijl het boek bij de
   // subclass erboven gewoon bekend is.
   if (it) _volgHerkomst({ alleenLeeg: true });
-  window.app.openModal(it ? `${it.naam} bewerken` : 'Iets toevoegen aan het Heldenboek', '', _editorHtml(),
+  window.app.openModal(it ? `${it.naam} bewerken` : 'Iets toevoegen aan de naslag', '', _editorHtml(),
     'hulp_heldenboek_editor');
 }
 
@@ -4515,6 +4515,14 @@ window.vaardigheden = {
       ?.scrollIntoView({ block: 'center', behavior: 'smooth' }), 200);
   },
 
+  // Welke deur openstaat, voor het label en het vinkje in het Naslag-menu.
+  // Twee kleine haken in plaats van de navigatie laten gokken wat er open is.
+  deurNu: () => _deur || '',
+  deurLabel() {
+    const d = _DEUR(_deur);
+    return d ? `${icon(d.icoon)} ${esc(d.label)}` : '';
+  },
+
   beeldMis: _beeldMis,
   // Het icoon van een class of species, voor wie ze elders tekent (de
   // personagemaker): zelfde tekening als op de tegel hier, anders lijkt het
@@ -4731,6 +4739,9 @@ window.vaardigheden = {
     if (zoek) zoek.value = '';
     _bandHerteken(); _refreshFilterBar(); _paint();
     _cinematisch();
+    // De knop in de kop toont de deur waar je in staat; dit is geen
+    // sectiewissel, dus die moet het hier zelf horen.
+    window._naslagNavBij?.();
     _container?.querySelector('.spreuk-wrap')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   },
   // Eén class, species of background achter de open deur.
@@ -5270,8 +5281,14 @@ export async function renderVaardigheden(container) {
       <div class="section-banner-head">
         <div class="section-banner-icon-wrap">${icon('award')}</div>
         <div class="section-banner-info">
-          <div class="section-banner-label">Heldenboek</div>
-          <div class="section-banner-desc-line">Classes, species, backgrounds en feats.</div>
+          <!-- **Het heette Heldenboek.** Dat is een grote belofte voor wat het
+               is: een plek om iets op te zoeken. "Naslag" zegt wat je er doet.
+               De sectiesleutel en de module blijven vaardigheden heten —
+               hernoemen kost een migratie van elke campagne die hem in zijn
+               modulelijst heeft staan, en levert niets op wat je ziet.
+               (Geen backticks in commentaar hierbinnen: template literal.) -->
+          <div class="section-banner-label">Naslag</div>
+          <div class="section-banner-desc-line">Alles wat het spel je geeft: classes, species, feats, spells en wat daarbij hoort.</div>
         </div>
         <div class="section-banner-search">
           <div class="sbs-input-wrap">

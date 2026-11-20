@@ -100,17 +100,41 @@
         <!-- Archief dropdown -->
         <div class="relative flex-shrink-0" id="archief-nav-group">
           <button class="section-tab archief-tab active" id="archief-nav-btn" title="Archief"
-            onclick="window.app.toggleArchiefMenu()">
+            onclick="window.app.switchSection('archief')">
             <svg class="icon tab-mob-icon" aria-hidden="true" focusable="false"><use href="/img/icons.svg?v=32#icon-folder-open"/></svg><span id="archief-nav-label" class="tab-label">Archief</span><span class="archief-arrow tab-label">▾</span>
           </button>
           <div class="archief-menu hidden" id="archief-menu">
+            <button class="archief-menu-item" data-section="archief"><svg class="icon" aria-hidden="true" focusable="false"><use href="/img/icons.svg?v=32#icon-folder-open"/></svg> Alles</button>
             <button class="archief-menu-item active" data-section="personages"><svg class="icon" aria-hidden="true" focusable="false"><use href="/img/icons.svg?v=32#icon-user"/></svg> Personages</button>
             <button class="archief-menu-item" data-section="locaties"><svg class="icon icon-gi" aria-hidden="true" focusable="false"><use href="/img/icons.svg?v=32#icon-castle"/></svg> Locaties</button>
             <button class="archief-menu-item" data-section="organisaties"><svg class="icon" aria-hidden="true" focusable="false"><use href="/img/icons.svg?v=32#icon-landmark"/></svg> Organisaties</button>
             <button class="archief-menu-item" data-section="voorwerpen"><svg class="icon" aria-hidden="true" focusable="false"><use href="/img/icons.svg?v=32#icon-package"/></svg> Voorwerpen</button>
             <button class="archief-menu-item" data-section="documenten"><svg class="icon" aria-hidden="true" focusable="false"><use href="/img/icons.svg?v=32#icon-scroll-text"/></svg> Documenten</button>
             <button class="archief-menu-item dm-only" data-section="bestiarium"><svg class="icon" aria-hidden="true" focusable="false"><use href="/img/icons.svg?v=32#icon-skull"/></svg> Bestiarium</button>
-            <button class="archief-menu-item" data-section="vaardigheden"><svg class="icon" aria-hidden="true" focusable="false"><use href="/img/icons.svg?v=32#icon-award"/></svg> Heldenboek</button>
+          </div>
+        </div>
+        <!-- Naslag dropdown.
+             Dit zat in het Archief-menu, en dat waren twee verschillende dingen
+             onder één knop: het archief gaat over **deze wereld** (wie, waar,
+             wat), de naslag over **het spel** (classes, species, feats, spells).
+             Nu twee knoppen, elk met hun eigen deuren eronder — en de knop zelf
+             brengt je naar de landingspagina met diezelfde deuren groot. -->
+        <div class="relative flex-shrink-0" id="naslag-nav-group">
+          <button class="section-tab" id="naslag-nav-btn" title="Naslag"
+            onclick="window.app.naarNaslag()">
+            <svg class="icon tab-mob-icon" aria-hidden="true" focusable="false"><use href="/img/icons.svg?v=32#icon-book-open"/></svg><span id="naslag-nav-label" class="tab-label">Naslag</span><span class="archief-arrow tab-label">▾</span>
+          </button>
+          <div class="archief-menu hidden" id="naslag-menu">
+            <button class="archief-menu-item" data-section="vaardigheden" data-deur=""><svg class="icon" aria-hidden="true" focusable="false"><use href="/img/icons.svg?v=32#icon-book-open"/></svg> Alles</button>
+            <button class="archief-menu-item" data-section="vaardigheden" data-deur="class"><svg class="icon" aria-hidden="true" focusable="false"><use href="/img/icons.svg?v=32#icon-swords"/></svg> Classes</button>
+            <button class="archief-menu-item" data-section="vaardigheden" data-deur="species"><svg class="icon" aria-hidden="true" focusable="false"><use href="/img/icons.svg?v=32#icon-user"/></svg> Species</button>
+            <button class="archief-menu-item" data-section="vaardigheden" data-deur="background"><svg class="icon" aria-hidden="true" focusable="false"><use href="/img/icons.svg?v=32#icon-scroll-text"/></svg> Backgrounds</button>
+            <button class="archief-menu-item" data-section="vaardigheden" data-deur="feats"><svg class="icon" aria-hidden="true" focusable="false"><use href="/img/icons.svg?v=32#icon-zap"/></svg> Feats &amp; Boons</button>
+            <button class="archief-menu-item" data-section="spreuken"><svg class="icon" aria-hidden="true" focusable="false"><use href="/img/icons.svg?v=32#icon-sparkles"/></svg> Spells</button>
+            <button class="archief-menu-item" data-section="vaardigheden" data-deur="conditions"><svg class="icon" aria-hidden="true" focusable="false"><use href="/img/icons.svg?v=32#icon-shield-half"/></svg> Conditions</button>
+            <button class="archief-menu-item" data-section="vaardigheden" data-deur="beest"><svg class="icon" aria-hidden="true" focusable="false"><use href="/img/icons.svg?v=32#icon-paw-print"/></svg> Beasts</button>
+            <button class="archief-menu-item" data-section="vaardigheden" data-deur="metgezel"><svg class="icon" aria-hidden="true" focusable="false"><use href="/img/icons.svg?v=32#icon-dog"/></svg> Metgezellen</button>
+            <button class="archief-menu-item" data-section="vaardigheden" data-deur="proficiency"><svg class="icon" aria-hidden="true" focusable="false"><use href="/img/icons.svg?v=32#icon-check-circle"/></svg> Proficiencies</button>
           </div>
         </div>
         <!-- Logboek dropdown -->
@@ -230,7 +254,7 @@
         <button class="gs-type-chip" data-gs-type="documenten"   onclick="window.app._gsSetTypeFilter('documenten')"><svg class="icon" aria-hidden="true" focusable="false"><use href="/img/icons.svg?v=32#icon-scroll-text"/></svg> Documenten</button>
         <button class="gs-type-chip" data-gs-type="spreuken"     onclick="window.app._gsSetTypeFilter('spreuken')"><svg class="icon" aria-hidden="true" focusable="false"><use href="/img/icons.svg?v=32#icon-sparkles"/></svg> Spreuken</button>
         <button class="gs-type-chip" data-gs-type="bestiarium"   onclick="window.app._gsSetTypeFilter('bestiarium')"><svg class="icon" aria-hidden="true" focusable="false"><use href="/img/icons.svg?v=32#icon-paw-print"/></svg> Bestiarium</button>
-        <button class="gs-type-chip" data-gs-type="heldenboek"   onclick="window.app._gsSetTypeFilter('heldenboek')"><svg class="icon" aria-hidden="true" focusable="false"><use href="/img/icons.svg?v=32#icon-award"/></svg> Heldenboek</button>
+        <button class="gs-type-chip" data-gs-type="heldenboek"   onclick="window.app._gsSetTypeFilter('heldenboek')"><svg class="icon" aria-hidden="true" focusable="false"><use href="/img/icons.svg?v=32#icon-book-open"/></svg> Naslag</button>
       </div>
       <div id="global-search-results" class="global-search-results"></div>
     </div>
@@ -238,6 +262,9 @@
 
     <!-- Sections -->
     <main class="flex-1 overflow-hidden">
+      <!-- De landingspagina van het archief: dezelfde deuren als bij de naslag,
+           maar dan voor wat er in déze wereld staat. -->
+      <div class="section" id="section-archief"></div>
       <div class="section active" id="section-personages"></div>
       <div class="section" id="section-locaties"></div>
       <div class="section" id="section-organisaties"></div>
@@ -584,6 +611,6 @@
   <!-- DM Instellingen modal -->
 
   <script type="module" src="/js/sound-manager.js?v=15"></script>
-  <script type="module" src="/js/app.js?v=1303"></script>
+  <script type="module" src="/js/app.js?v=1309"></script>
 </body>
 </html>

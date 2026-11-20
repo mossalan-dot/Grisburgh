@@ -2014,3 +2014,10 @@ Grisburghs **data** te staan — niet in de code.
 - Een gedaante die niet in de vrij te gebruiken bronnen staat (Beast of the Land/Sea/Sky) is **geen knop** maar gestippelde tekst — een knop die nergens op uitkomt is erger dan geen knop.
 - **Steel Defender**, **Drake Companion** en de andere uit niet-vrije boeken tonen geen statblok maar een wegwijzer naar buiten, net als een feature zonder tekst. **Homunculus Servant** heeft er wél een, want die staat in de SRD.
 - Conditions → **Wild Shape**: onderaan zijn beschrijving staat *Welke beesten je kunt worden* en die brengt je naar de deur Beasts.
+
+### Twee knoppen in de kop: Archief en Naslag
+- In de kop staan **Archief ▾** en **Naslag ▾** naast elkaar. Strijk er met de muis overheen: het menu gaat open zonder klik, en sluit weer als je wegbeweegt. Op een telefoon opent het bij een tik.
+- Klik op **Archief**: je komt op een voorpagina met deuren (Personages, Locaties, Organisaties, Voorwerpen, Documenten, Bestiarium, Relatiemap), elk met een aantal en een plaat uit je eigen campagne.
+- Klik op **Naslag**: dezelfde voorpagina, maar met de negen deuren van het spelmateriaal. Sta je al achter een deur, dan brengt de knop je terug naar die voorpagina.
+- Kies in het Naslag-menu een deur (bijv. *Beasts*): je springt meteen achter die deur, en de knop in de kop toont dan **Beasts** in plaats van Naslag.
+- Het woord *Heldenboek* hoort nergens meer te staan: niet in de kop, niet in de zoekbalk, niet in de boekjes.

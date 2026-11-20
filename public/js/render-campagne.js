@@ -3503,6 +3503,105 @@ function _refreshGrid(type, list, container) {
 // optillen bij hover doet de CSS al (.entity-card:hover); het meekantelen gaf
 // vooral onrust, dus dat is eruit.
 
+// ════════════════════════════════════════════════════════════════════════════
+//  DE LANDINGSPAGINA VAN HET ARCHIEF
+// ════════════════════════════════════════════════════════════════════════════
+// Het archief had zes tabbladen en geen voorpagina: je kwam binnen op
+// Personages omdat dat toevallig het eerste was. De naslag kreeg eerder al een
+// deurenpagina — vier staande kaarten met een icoon, een aantal en een naam —
+// en dat werkt daar om dezelfde reden als het hier zou werken: je ziet in één
+// oogopslag wát er is en hoeveel.
+//
+// Dezelfde opmaak, letterlijk dezelfde klassen (`vd-deur*`), want twee soorten
+// deuren die er anders uitzien lezen als twee verschillende dingen — en dat
+// zijn ze niet: het is dezelfde vraag, één keer over deze wereld en één keer
+// over het spel.
+const _ARCHIEF_DEUREN = [
+  { id: 'personages',   label: 'Personages',   icoon: 'user',        kleur: '#8a2a2a' },
+  { id: 'locaties',     label: 'Locaties',     icoon: 'castle',      kleur: '#1a6a50' },
+  { id: 'organisaties', label: 'Organisaties', icoon: 'landmark',    kleur: '#5a2e8a' },
+  { id: 'voorwerpen',   label: 'Voorwerpen',   icoon: 'package',     kleur: '#8a6030' },
+  { id: 'documenten',   label: 'Documenten',   icoon: 'scroll-text', kleur: '#962058' },
+  { id: 'bestiarium',   label: 'Bestiarium',   icoon: 'skull',       kleur: '#4a4a4a', dmOnly: true,
+    module: 'bestiarium' },
+  { id: 'relatiemap',   label: 'Relatiemap',   icoon: 'users',       kleur: '#1e4a8a',
+    module: 'relatiemap' },
+];
+
+// Hoeveel er achter een deur ligt. De kaartjes staan al in `entities`, dus dit
+// is tellen en niet ophalen — alleen het bestiarium heeft zijn eigen bak.
+let _monsterAantal = null;
+function _archiefTelling(id) {
+  // Het bestiarium heeft zijn eigen bak en de relatiemap telt niets — daar is
+  // geen getal dat ergens op slaat, en dan staat er liever niets dan een nul.
+  if (id === 'bestiarium') return _monsterAantal ?? '';
+  if (id === 'relatiemap') return '';
+  const lijst = entities[id];
+  return Array.isArray(lijst) ? lijst.length : '';
+}
+
+// Een deur leent het portret van het eerste kaartje dat er een heeft — net als
+// een tegel in de naslag. Hoe meer de DM er plaatst, hoe rijker deze pagina
+// vanzelf wordt.
+function _archiefDeurBeeld(id) {
+  const eigen = window.app?.state?.meta?.archiefbeelden?.[id];
+  if (eigen) return `/api/files/${esc(eigen)}`;
+  const lijst = entities[id] || [];
+  const met = lijst.find(e => e?.data?.imageId || e?._beeld);
+  return met ? api.thumbForEntity(met) : '';
+}
+
+export async function renderArchiefDeuren() {
+  const el = $('#section-archief');
+  if (!el) return;
+  // De tellingen komen uit `entities`. Staat die nog leeg — je komt hier als
+  // eerste scherm binnen — dan halen we ze op. Rechtstreeks via de api en niet
+  // via `renderEntitySection`: die tekent een heel tabblad, en dat hoeft hier
+  // niet.
+  const soorten = [...ENTITY_TYPES, 'documenten'];
+  await Promise.all(soorten.map(async (t) => {
+    if ((entities[t] || []).length) return;
+    try { entities[t] = await api.listEntities(t); } catch { entities[t] = entities[t] || []; }
+  }));
+
+  if (_monsterAantal === null && isDM()) {
+    try { const m = await api.get('/monsters'); _monsterAantal = (m?.monsters || m || []).length; }
+    catch { _monsterAantal = ''; }
+  }
+
+  const deuren = _ARCHIEF_DEUREN.filter(d =>
+    (!d.dmOnly || isDM()) && (!d.module || window._moduleAan?.(d.module) !== false));
+
+  el.innerHTML = `
+    <div class="section-banner">
+      <div class="section-banner-head">
+        <div class="section-banner-icon-wrap">${icon('folder-open')}</div>
+        <div class="section-banner-info">
+          <div class="section-banner-label">Archief</div>
+          <div class="section-banner-desc-line">Wie, waar en wat er in ${esc(window._campagneNaam?.() || 'deze wereld')} bestaat.</div>
+        </div>
+      </div>
+      <div class="section-banner-rule"><span class="section-banner-ornament">◆</span></div>
+    </div>
+    <div class="spreuk-wrap">
+      <div class="vd-deuren">
+        ${deuren.map(d => {
+          const beeld = _archiefDeurBeeld(d.id);
+          const n = _archiefTelling(d.id);
+          return `<div class="vd-deur-wrap">
+            <button class="vd-deur" style="--vd-kleur:${d.kleur}"
+              onclick="window.app.switchSection('${d.id}')">
+              ${beeld ? `<span class="vd-deur-beeld" style="background-image:url('${esc(beeld)}')"></span>` : ''}
+              <span class="vd-deur-icoon">${icon(d.icoon)}</span>
+              <span class="vd-deur-telling">${esc(String(n))}</span>
+              <span class="vd-deur-naam">${esc(d.label)}</span>
+            </button>
+          </div>`;
+        }).join('')}
+      </div>
+    </div>`;
+}
+
 export async function renderPersonages() { return renderEntitySection('personages'); }
 export async function renderLocaties() { return renderEntitySection('locaties'); }
 export async function renderOrganisaties() { return renderEntitySection('organisaties'); }
@@ -5320,7 +5419,7 @@ window._makerVoorDm = async () => {
     gid = keuze;
   }
   try {
-    await import('./personage-maken.js?v=44');
+    await import('./personage-maken.js?v=48');
     // Zodra de maker dichtgaat staat het kaartje er; het raster erachter weet
     // dat nog niet. Hetzelfde als na het opslaan van een nieuw kaartje: open
     // en in beeld.

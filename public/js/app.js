@@ -1,5 +1,5 @@
 import { api, campagneUitUrl, zetCampagne } from './api.js?v=324';
-import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, renderDocumenten, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=419";
+import { initCampagne, renderArchiefDeuren, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, renderDocumenten, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=424";
 import { initArchief, renderLogboek, openLogboekEditor } from "./render-archief.js?v=154";
 import { renderKaart, queueFlyTo, verversPins, nieuweKaart } from './render-kaart.js?v=39';
 import { renderDungeon } from './render-dungeon.js?v=80';
@@ -9,7 +9,7 @@ import { renderBestiarium } from './render-bestiarium.js?v=45';
 import { renderSpreuken } from './render-spreuken.js?v=63';
 import './render-handleiding.js?v=2';
 import './render-melding.js?v=4';
-import { renderVaardigheden, zoekVaardigheden, heldenboekTekst } from './render-vaardigheden.js?v=183';
+import { renderVaardigheden, zoekVaardigheden, heldenboekTekst } from './render-vaardigheden.js?v=187';
 import { renderStatblock } from './render-statblock.js?v=10';
 import { initSocket } from "./socket-client.js?v=107";
 import { initDmPanel } from "./dm-panel.js?v=432";
@@ -395,6 +395,7 @@ window.app = {
   playerLogout,
   playerLogoutVraag,
   toggleArchiefMenu,
+  naarNaslag,
   closeArchiefMenu,
   toggleDienstenMenu,
   closeDienstenMenu,
@@ -441,6 +442,17 @@ $$('.section-tab[data-section]').forEach(btn => {
 // Archief dropdown items
 $$('#archief-menu .archief-menu-item').forEach(btn => {
   btn.addEventListener('click', () => { switchSection(btn.dataset.section); });
+});
+
+// Naslag dropdown items. Een item kan een **deur** meegeven: dan springt hij
+// niet alleen naar het tabblad maar meteen achter die deur — dat is waar je
+// heen wilde toen je Beasts aanklikte, en niet de voorpagina.
+$$('#naslag-menu .archief-menu-item').forEach(btn => {
+  btn.addEventListener('click', async () => {
+    await switchSection(btn.dataset.section);
+    if (btn.dataset.section === 'vaardigheden') window.vaardigheden?.deur?.(btn.dataset.deur || null);
+    closeNaslagMenu();
+  });
 });
 
 // Diensten dropdown items
@@ -553,6 +565,9 @@ if (window.ResizeObserver) {
 }
 
 function switchSection(section) {
+  // Welke sectie er openstaat, zodat een scherm dat later iets bijwerkt (het
+  // Naslag-label bij het openen van een deur) niet hoeft te raden waar je bent.
+  window._sectieNu = section;
   // Sluit overlays als ze open zijn — position:fixed volgt de sectie niet
   const _sbOv = document.getElementById('sb-overlay');
   if (_sbOv?.classList.contains('sb-open') && typeof window._closeSpellbook === 'function') {
@@ -568,6 +583,7 @@ function switchSection(section) {
   state.activeSection = section;
   location.hash = section;
   closeArchiefMenu();
+  closeNaslagMenu();
   closeDienstenMenu();
   closeLogboekMenu();
 
@@ -585,6 +601,8 @@ function switchSection(section) {
   // Archief dropdown-items
   $$('#archief-menu .archief-menu-item').forEach(b =>
     b.classList.toggle('active', b.dataset.section === section));
+
+  _naslagNavBij(section);
 
   // Logboek-knop: actief als logboek óf de Kaarten-sectie actief is
   const logboekBtn   = $('#logboek-nav-btn');
@@ -951,7 +969,77 @@ function _navMenuToggle(menuId) {
   else { el.classList.add('hidden'); el.style.top = ''; }
 }
 
+// ── Opengaan bij hoveren ────────────────────────────────────────────────────
+// De vier menu's in de kop gingen alleen open bij een klik. Met twee knoppen
+// die allebei een rij deuren verbergen is dat een klik te veel: je wil er
+// langs kunnen strijken.
+//
+// **Hover én klik**, want een menu dat alleen op hover opengaat bestaat op een
+// touchscreen niet. Eén handler voor alle vier, op de groep en niet op de knop
+// — anders valt het menu dicht zodra je muis van de knop naar het menu gaat.
+// Een korte vertraging bij het sluiten, zodat een schuine muisbeweging het
+// menu niet wegklapt.
+function _navHoverKlaar() {
+  if (window._navHoverGedaan) return;
+  window._navHoverGedaan = true;
+  // Een apparaat zonder muis krijgt dit niet: daar is "hover" de tik die je
+  // net deed, en dan klapt het menu meteen weer open na het sluiten.
+  if (!window.matchMedia?.('(hover: hover)').matches) return;
+  const groepen = [['archief-nav-group', 'archief-menu'], ['naslag-nav-group', 'naslag-menu'],
+                   ['logboek-nav-group', 'logboek-menu'], ['diensten-nav-group', 'diensten-menu']];
+  let dicht = null;
+  for (const [groepId, menuId] of groepen) {
+    const groep = document.getElementById(groepId);
+    if (!groep) continue;
+    groep.addEventListener('mouseenter', () => {
+      clearTimeout(dicht);
+      // De andere drie gaan dicht: twee open menu's over elkaar heen is geen
+      // keuze maar een rommeltje.
+      for (const [, m] of groepen) if (m !== menuId) document.getElementById(m)?.classList.add('hidden');
+      if (document.getElementById(menuId)?.classList.contains('hidden')) _navMenuToon(menuId);
+    });
+    groep.addEventListener('mouseleave', () => {
+      clearTimeout(dicht);
+      dicht = setTimeout(() => {
+        const el = document.getElementById(menuId);
+        if (el) { el.classList.add('hidden'); el.style.top = ''; }
+      }, 260);
+    });
+  }
+}
+
+// **De Naslag-knop toont de deur waar je in staat**, zoals de archiefknop het
+// tabblad toont. Hij staat apart omdat hij twee keer gezet moet worden: bij het
+// wisselen van sectie, én zodra je binnen de naslag een andere deur opent —
+// dat is geen sectiewissel, en zonder die tweede aanroep liep het label een
+// stap achter.
+function _naslagNavBij(section) {
+  const btn   = $('#naslag-nav-btn');
+  const label = $('#naslag-nav-label');
+  const sec   = section || window._sectieNu || '';
+  const isNaslag = NASLAG_SECTIONS.includes(sec);
+  if (btn) btn.classList.toggle('active', isNaslag);
+  if (label) {
+    label.innerHTML = sec === 'spreuken' ? `${icon('sparkles')} Spells`
+      : (isNaslag && window.vaardigheden?.deurLabel?.()) || `${icon('book-open')} Naslag`;
+  }
+  const deur = isNaslag ? (window.vaardigheden?.deurNu?.() || '') : '';
+  $$('#naslag-menu .archief-menu-item').forEach(b =>
+    b.classList.toggle('active', b.dataset.section === sec && (b.dataset.deur || '') === deur));
+}
+window._naslagNavBij = _naslagNavBij;
+
+// De Naslag-knop brengt je naar de **voorpagina** met de deuren, ook als je al
+// in de naslag staat. Zonder dat laatste deed de knop niets zodra je ergens
+// achter een deur zat: de sectie was al actief, dus `switchSection` had niets
+// te wisselen en de deur bleef open staan.
+async function naarNaslag() {
+  await switchSection('vaardigheden');
+  window.vaardigheden?.deur?.(null);
+}
+
 function toggleArchiefMenu()  { _navMenuToggle('archief-menu'); }
+function closeNaslagMenu()    { const el = $('#naslag-menu');   if (el) { el.classList.add('hidden'); el.style.top = ''; } }
 function closeArchiefMenu()   { const el = $('#archief-menu');  if (el) { el.classList.add('hidden'); el.style.top = ''; } }
 function toggleDienstenMenu() { _navMenuToggle('diensten-menu'); }
 function closeDienstenMenu()  { const el = $('#diensten-menu'); if (el) { el.classList.add('hidden'); el.style.top = ''; } }
@@ -974,8 +1062,14 @@ const LOGBOEK_LABELS = {
 const AVONTUUR_LABEL = `${icon('compass')} Avontuur`;
 
 const ENTITY_SECTIONS  = ['personages', 'locaties', 'organisaties', 'voorwerpen', 'documenten'];
-const ARCHIEF_SECTIONS = ['personages', 'locaties', 'organisaties', 'voorwerpen', 'documenten', 'bestiarium', 'spreuken', 'vaardigheden', 'relatiemap'];
+// **Twee knoppen, twee werelden.** Het archief gaat over déze campagne — wie,
+// waar, wat — en de naslag over het spel: classes, species, feats, spells. Die
+// twee zaten onder één knop, en dat las als één ding terwijl je er twee heel
+// verschillende vragen stelt.
+const ARCHIEF_SECTIONS = ['archief', 'personages', 'locaties', 'organisaties', 'voorwerpen', 'documenten', 'bestiarium', 'relatiemap'];
+const NASLAG_SECTIONS  = ['vaardigheden', 'spreuken'];
 const ARCHIEF_LABELS = {
+  archief:      `${icon('folder-open')} Archief`,
   personages:   `${icon('user')} Personages`,
   locaties:     `${icon('castle', {cls:'icon-gi'})} Locaties`,
   organisaties: `${icon('landmark')} Organisaties`,
@@ -983,7 +1077,7 @@ const ARCHIEF_LABELS = {
   documenten:   `${icon('scroll-text')} Documenten`,
   bestiarium:   `${icon('skull')} Bestiarium`,
   spreuken:     `${icon('sparkles')} Spreuken`,
-  vaardigheden: `${icon('award')} Heldenboek`,
+  vaardigheden: `${icon('book-open')} Naslag`,
   kaart:        `${icon('map')} Kaarten`,
   relatiemap:   `${icon('users')} Relatiemap`,
 };
@@ -1657,7 +1751,7 @@ async function _landingNieuwTegel() {
   if (!host || !_groepsWachtwoord || document.getElementById('landing-nieuw')) return;
   let stand = null;
   try {
-    await import('./personage-maken.js?v=44');
+    await import('./personage-maken.js?v=48');
     stand = await window.personageMaken.stand();
   } catch { return; }
   if (stand?.instellingen && stand.instellingen.aan === false) return;
@@ -1679,7 +1773,7 @@ async function _landingNieuwTegel() {
 
 async function _landingNieuw() {
   try {
-    await import('./personage-maken.js?v=44');
+    await import('./personage-maken.js?v=48');
     const stand = await window.personageMaken.stand();
     // Ook als hij al bij de DM ligt: dan zie je dat, en kun je hem nog
     // terughalen om iets te veranderen.
@@ -2705,7 +2799,7 @@ function _resolveWikilink(name, isFirst) {
     // Een feat, een boon of een class feature: die opent zijn kaartje in het
     // Heldenboek.
     if (_wlHbSoort?.has(name.toLowerCase())) {
-      return `<button type="button" class="sb-spell" title="Open ${safeName} in het Heldenboek"
+      return `<button type="button" class="sb-spell" title="Open ${safeName} in de naslag"
         onclick="event.stopPropagation();window.vaardigheden.openOpNaam('${safeName.replace(/'/g, "\\'")}')">${safeName}</button>`;
     }
     const spIdx = _wlSpreukIdx?.get(name.toLowerCase());
@@ -3535,7 +3629,8 @@ async function deleteGroup(groupId) {
 // ── Refresh ──
 async function refreshSection(section) {
   section = section || state.activeSection;
-  if (section === 'personages') { await renderPersonages(); await renderParty(); }
+  if (section === 'archief') await renderArchiefDeuren();
+  else if (section === 'personages') { await renderPersonages(); await renderParty(); }
   else if (section === 'locaties') await renderLocaties();
   else if (section === 'organisaties') await renderOrganisaties();
   else if (section === 'voorwerpen') await renderVoorwerpen();
@@ -11973,7 +12068,7 @@ function _gsHighlight(name, tokens) {
 
 const _GS_TYPE_LABEL = {
   personages: 'personage', locaties: 'locatie', organisaties: 'organisatie',
-  voorwerpen: 'voorwerp', documenten: 'document', heldenboek: 'Heldenboek',
+  voorwerpen: 'voorwerp', documenten: 'document', heldenboek: 'Naslag',
 };
 
 // Waaróm staat dit kaartje in de resultaten? Zit de treffer niet in de naam,
@@ -12096,7 +12191,7 @@ window.app._globalSearchRun = async function(q) {
     let treffers = [];
     try { treffers = await zoekVaardigheden(q, {}, 8); } catch { treffers = []; }
     if (treffers.length) {
-      html += `<div class="gs-group"><div class="gs-group-label">${icon('award')} Heldenboek</div>`;
+      html += `<div class="gs-group"><div class="gs-group-label">${icon('book-open')} Naslag</div>`;
       for (const t of treffers) {
         const idx = _gsResults.push({ type: 'heldenboek', id: t.key }) - 1;
         const LABEL = { class: 'Class', subclass: 'Subclass', species: 'Species', feat: 'Feat',
@@ -12377,6 +12472,7 @@ async function _uitnodigingAfhandelen() {
 }
 
 async function init() {
+  _navHoverKlaar();
   // Het hoofdvenster sluit bij een klik ernaast — maar alleen als die klik
   // daar ook begon. Stond als inline handler in index.html; die kon niet zien
   // waar de muisbeweging vandaan kwam.
@@ -15567,7 +15663,7 @@ const HELP_CONFIG = {
     { titel: 'Welke onderdelen je krijgt', tekst: 'De beheerder bepaalt wat er voor je campagne **vrij** is — archief, aktes, tempel, facties. Binnen die grens kies je zelf wat je gebruikt: in de wizard en later bij *Instellingen → Campagne*. Wat de beheerder dichtzette, zie je niet. Mis je iets, vraag erom.', afbeelding: null },
     { titel: 'Valuta', tekst: 'De verhouding ligt vast zoals in het boek: 1 gold = 10 silver = 100 copper. Alleen hoe ze bij jou héten kies je zelf — Florinde, Knaker, Centeling, of gewoon Gold Piece.\n\n**Electrum en platinum** hebben in de beurs geen eigen plek: de app rekent ze om bij het invoeren (1 EP = 5 SP, 1 PP = 10 GP). Een *vondst* noemt ze wél bij naam — "waaronder 3 Lion d\'or" — en die naam vul je hier in. Laat je het leeg, dan staat er niets extra\'s bij.', afbeelding: null },
     { titel: 'Wat je spelers in een gevecht zien', tekst: 'Drie standen, van weinig naar veel. **Minimale informatie**: je ziet of hij nog staat, verder niets. **Omschrijvingen**: ongedeerd, geschramd, gehavend, zwaar gewond — je spelers voelen het verloop zonder te rekenen; dat is de standaard. **Exacte getallen**: de HP op elk token, handig als je open speelt.\n\nWat een party in het **bestiarium** ontdekt heeft, wint hier altijd van: verdiende kennis gaat niet verloren door een instelling.', afbeelding: null },
-    { titel: 'Beeld meenemen', tekst: 'Twee stapels: de platen bij de **spells**, en die in het **Heldenboek** (bij een class, een subclass, een species, een background en een enkele feature). Het is eigen beeld en geen uitgeverijmateriaal, dus delen mag.\n\nWat je zelf al hebt neergezet blijft staan; dit vult alleen aan, en twee keer drukken verandert niets. Je kunt ze later alsnog halen bij *Instellingen → Campagne*, en een plaat die niet bij jouw wereld past vervang je per stuk.', afbeelding: null },
+    { titel: 'Beeld meenemen', tekst: 'Twee stapels: de platen bij de **spells**, en die in de **naslag** (bij een class, een subclass, een species, een background en een enkele feature). Het is eigen beeld en geen uitgeverijmateriaal, dus delen mag.\n\nWat je zelf al hebt neergezet blijft staan; dit vult alleen aan, en twee keer drukken verandert niets. Je kunt ze later alsnog halen bij *Instellingen → Campagne*, en een plaat die niet bij jouw wereld past vervang je per stuk.', afbeelding: null },
     { titel: 'Oefenmateriaal', tekst: 'Een lege campagne is eerlijk, maar je kunt er nergens op klikken — en dan zie je niet wat de app doet. Het oefenmateriaal is een herberg met een waard die een geheim heeft, een smid die inkoopt, iemand die te lang bij de deur zit, en een sleutel zonder label: genoeg om zichtbaarheid, geheimen, de winkel en de boedel uit te proberen.\n\nAlles heet overal **oefen_…**, dus je gooit het in één keer weg bij *Instellingen → Campagne* zodra je het niet meer nodig hebt. Het staat los van je eigen kaartjes.', afbeelding: null },
     { titel: 'Waar je verder gaat', tekst: 'Alles uit de wizard staat bij **Instellingen**, en de namen van je diensten bij **Diensten**. Onderdelen aan- of uitzetten kan daar ook.\n\nWat ik zou doen voor je eerste sessie: een *locatie* aanmaken waar je begint, er een *personage* bij zetten dat ze ontmoeten, en dat kaartje zichtbaar maken voor je party.', afbeelding: null },
     { titel: 'Sluiten', tekst: 'Het kruisje rechtsboven (of Escape) legt de wizard weg. Hij komt dan niet meer vanzelf terug; doorlopen kan altijd nog bij *Instellingen → Opstartwizard doorlopen*.', afbeelding: null },
@@ -16030,13 +16126,13 @@ const HELP_CONFIG = {
     { titel: 'Kleur van een subclass', tekst: 'Alleen bij een subclass. De kleur die je kiest kleurt zijn kaartje én al zijn features in de lijst eronder.\n\nDat is geen versiering: vink je er twee aan om ze te vergelijken, dan lopen hun features door elkaar in de volgorde waarin je ze krijgt. De kleur zegt dan in één oogopslag welke regel van wie is.', afbeelding: null },
   ] }),
 
-  inst_heldenboek: () => ({ titel: 'Wat spelers in het Heldenboek zien', stappen: [
-    { titel: 'Waarom je dit zou doen', tekst: 'Niet elke wereld heeft alles. Misschien bestaat de Artificer bij jou niet, of houd je een subclass achter tot iemand hem verdient. Een **vinkje betekent zichtbaar**; wat je uitvinkt bestaat voor je spelers niet — geen grijze regel, geen "hier mis je iets", gewoon weg.\n\nHet geldt voor de hele campagne, niet per party. Het Heldenboek is een naslagwerk: wat erin staat bestaat in je wereld, en dat is voor iedereen aan tafel hetzelfde.', afbeelding: null },
+  inst_heldenboek: () => ({ titel: 'Wat spelers in de naslag zien', stappen: [
+    { titel: 'Waarom je dit zou doen', tekst: 'Niet elke wereld heeft alles. Misschien bestaat de Artificer bij jou niet, of houd je een subclass achter tot iemand hem verdient. Een **vinkje betekent zichtbaar**; wat je uitvinkt bestaat voor je spelers niet — geen grijze regel, geen "hier mis je iets", gewoon weg.\n\nHet geldt voor de hele campagne, niet per party. De naslag is een naslagwerk: wat erin staat bestaat in je wereld, en dat is voor iedereen aan tafel hetzelfde.', afbeelding: null },
     { titel: 'Wat je niet kunt uitzetten', tekst: 'Een class of subclass die iemand **speelt**. Zijn tijdlijn haalt zijn features hier vandaan; zou je hem verbergen, dan kijkt hij naar een leeg blad zonder te snappen waarom. De app weigert dat en zegt bij wie het staat.\n\nWil je er toch vanaf, dan verzet je eerst zijn class op zijn blad.', afbeelding: null },
     { titel: 'Nieuw materiaal staat aan', tekst: 'We bewaren wat er **uit** staat, niet wat er aan staat. Een class die je er morgen bij maakt is dus meteen zichtbaar — je hoeft niet te onthouden dat je hem ergens moet aanvinken. Zelfde afspraak als bij de bereikbaarheid van een dienst.', afbeelding: null },
   ] }),
 
-  hulp_heldenboek_editor: () => ({ titel: 'Iets toevoegen aan het Heldenboek', stappen: [
+  hulp_heldenboek_editor: () => ({ titel: 'Iets toevoegen aan de naslag', stappen: [
     { titel: 'Eerst: wát maak je?', tekst: 'De lijst bovenaan is de vraag waar de rest uit volgt. **Een regel binnen iets** is een feature: iets wat je op een bepaald level krijgt van je class, subclass, species of background. **Iets nieuws beginnen** is de houder zelf — een eigen class, subclass, species of background, nog zonder features.\n\nDaarom vraagt een houder niet om een level: hij ís geen regel op een ladder. De features hang je er daarna aan, met *Feature van een…*.', afbeelding: null },
     { titel: 'Herkomst en waaruit', tekst: '**Herkomst** zegt alleen óf het overgenomen is. Zet je iets anders dan *zelf verzonnen*, dan komt er een veld **Waaruit?** bij: de naam van het boek, of van de tafelgenoot die het bedacht.\n\nDat is geen boekhouding om de boekhouding. Het bepaalt wat je later mag meenemen naar een andere campagne: zelf verzonnen mag mee, overgenomen tekst niet. Over een jaar weet je het niet meer.', afbeelding: null },
     { titel: 'Beschrijving', tekst: 'Bij een feature: wat het doet. Bij een houder: wat het **is** — dat staat bovenaan het kaartje, vóór de features. Een lege regel begint een nieuwe alinea, en met de knoppen erboven maak je vet, cursief of gekleurd.\n\nNeem geen tekst over uit een boek dat niet van jou is. Vat het samen in je eigen woorden; dan mag het mee en leest het bovendien korter.', afbeelding: null },
@@ -16418,7 +16514,7 @@ const HELP_CONFIG = {
   }),
 
   vaardigheden: () => ({
-    titel: 'Het Heldenboek',
+    titel: 'Naslag',
     stappen: [
       {
         titel: 'Alles bij elkaar, niet alleen wat jij hebt',
