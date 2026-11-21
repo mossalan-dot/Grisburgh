@@ -307,7 +307,8 @@ function _updateState(combat) {
   if (backdrop) _loadImage(backdrop);
   // Pre-load avatars
   (combat.combatants || []).forEach(c => {
-    const id = c.imageId || c.entityId;
+    // Dezelfde keten als bij het tekenen: zijn gedaante eerst, anders hijzelf.
+    const id = c.vorm?.beeldId || c.imageId || c.entityId;
     if (id) _loadImage(id);
   });
 }
@@ -1110,7 +1111,12 @@ function _drawCombatant(ctx, c, x, y, w, h, t, isActive, isWide, turnIndex, scha
   if (topCond) _fxBehind(ctx, topCond, cx, cy, AVTR_R, t);
 
   // ── Avatar image ──
-  const imgId       = c.imageId || c.entityId;
+  // Ben je iets anders (Wild Shape), dan sta je als dat beest op de kaart.
+  // De server leidt `vorm` af uit de lopende kracht en schrijft hem nergens
+  // weg; zijn plaat is die van zijn kaartje in Naslag of uit het bestiarium.
+  // Is er geen plaat, dan blijft het portret van de speler staan — dat is
+  // beter dan een leeg vlak, en de conditie zegt al dat hij omgevormd is.
+  const imgId       = c.vorm?.beeldId || c.imageId || c.entityId;
   const img         = imgId ? _images[imgId] : null;
   const isInvisible = topCond === 'invisible';
   const isProne     = hasCond('prone');
@@ -1317,7 +1323,10 @@ function _drawCombatant(ctx, c, x, y, w, h, t, isActive, isWide, turnIndex, scha
 
   ctx.save();
   ctx.font = `bold ${fontSize}px 'Cinzel', serif`;
-  const fullName = c.type === 'player' ? c.name.split(' ')[0] : c.name;
+  // "Alrik (Wolf)": wie het is blijft voorop staan — de tafel spreekt hem aan
+  // bij zijn eigen naam, ook als er een wolf staat.
+  const eigenNaam = c.type === 'player' ? c.name.split(' ')[0] : c.name;
+  const fullName = c.vorm?.naam ? `${eigenNaam} (${c.vorm.naam})` : eigenNaam;
   // Meet mét het beletselteken erbij: dat werd voorheen ná het inkorten
   // aangeplakt, waardoor de naam alsnog net breder werd dan toegestaan en over
   // de leesplaat heen liep. Ruimere marge (w - 18) houdt hem binnen de plaat,
@@ -1464,9 +1473,12 @@ function _drawCombatant(ctx, c, x, y, w, h, t, isActive, isWide, turnIndex, scha
   // kijker hem mag zien (eigen personage, eigen metgezel, bestudeerd monster).
   // AC en het statblock lopen altijd via het bestiarium — ook in een campagne
   // die de HP-cijfers wél toont; anders geeft die instelling de Magizoöloog weg.
-  const acZichtbaar = isDMView || !!acGetal(c.ac);
+  // Zolang je een beest bent geldt zíjn AC; dat is het getal waar de tafel
+  // naar zoekt zodra er op je geslagen wordt.
+  const acBron      = c.vorm?.ac ?? c.ac;
+  const acZichtbaar = isDMView || !!acGetal(acBron);
   if (acZichtbaar) {
-    const acVal = acGetal(c.ac);
+    const acVal = acGetal(acBron);
     if (acVal) {
       const fs   = Math.max(9, Math.min(13, AVTR_R * 0.36));
       const icoS = fs * 1.05;

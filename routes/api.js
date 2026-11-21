@@ -7129,6 +7129,48 @@ function _bestiariumKennis(dmState, characterId) {
 // Een speler die zijn eigen scherm op tafelmodus zet krijgt óók de vage
 // versie: het tafelscherm vaagt alles tóch, dus er gaat niets verloren, en
 // anders is display-mode een gaatje om de cijfers alsnog binnen te halen.
+// **Wie een beest is, staat als een beest op de kaart.** Wild Shape zette
+// alleen een conditie op je token: je AC bleef die van de Druid, je portret
+// ook, en juist die twee leest de tafel tijdens een gevecht van het canvas af.
+//
+// Het wordt **afgeleid en niet weggeschreven.** De token in `combat.json`
+// houdt de waarden van de speler; hier komt er een `vorm` naast zodra er een
+// Wild Shape loopt. Zo is er niets terug te zetten als een gedaante eindigt,
+// en kan een gemiste opruiming geen Druid met de AC van een beer achterlaten —
+// dezelfde afweging als bij de strook op zijn blad.
+//
+// Zijn **HP blijven van hem**, en dat is geen gemak maar de regel: in 2024 houd
+// je je eigen Hit Points en krijg je er Temporary HP bij (die geeft de app al).
+function _beestBeeld(naam) {
+  try {
+    const meta = storage.readJSON('meta.json');
+    const eigen = (meta.naslagkaarten || {})[`beest:${naam}`]?.beeld;
+    if (eigen) return eigen;
+  } catch { /* geen meta */ }
+  try {
+    const m = (storage.readJSON('monsters.json')?.monsters || [])
+      .find(x => String(x.name || '').toLowerCase() === String(naam).toLowerCase());
+    if (m?.imageId) return m.imageId;
+  } catch { /* geen monsters */ }
+  return '';
+}
+
+function _combatMetVormen(combat, dmState) {
+  if (!combat?.combatants?.length) return combat;
+  const kracht = dmState?.playerKracht || {};
+  let raak = false;
+  const combatants = combat.combatants.map(c => {
+    if (c.type !== 'player' || !c.entityId) return c;
+    const naam = kracht[c.entityId]?.actief?.['druid.wildshape']?.tekst;
+    if (!naam) return c;
+    const beest = _beesten().find(b => b.naam === naam);
+    if (!beest) return c;
+    raak = true;
+    return { ...c, vorm: { naam: beest.naam, ac: beest.ac, speed: beest.speed, beeldId: _beestBeeld(beest.naam) } };
+  });
+  return raak ? { ...combat, combatants } : combat;
+}
+
 function _zendCombat(req, combat) {
   const io = req.app.get('io');
   if (!io) return;
@@ -7136,6 +7178,9 @@ function _zendCombat(req, combat) {
   const tafelRoom = _displayRoom(req);
   // dmState één keer lezen: dit draait per socket, en het bestiarium zit erin.
   let dmState = null;
+  // De gedaantes komen er hier bij, vóór alle filtering: ze gelden voor de DM,
+  // de tafel en de speler zelf even goed, en zo staat de aanroep op één plek.
+  try { combat = _combatMetVormen(combat, dmState = readDmState()); } catch { /* geen stand */ }
   for (const sock of io.sockets.sockets.values()) {
     if (!sock.rooms.has(cid)) continue;
     const sess   = sock.request?.session;
@@ -15565,7 +15610,9 @@ function _emitCombat(req) {
 
 router.get('/combat', attachRole, (req, res) => {
   if (!req.role) return res.status(401).json({ error: 'Niet ingelogd' });
-  const combat = storage.readJSON('combat.json');
+  // Zelfde verrijking als in `_zendCombat`: wie een beest is staat als een
+  // beest op de kaart, ook als je het gevecht vers ophaalt na een herladen.
+  const combat = _combatMetVormen(storage.readJSON('combat.json'), readDmState());
   // `?tafel=1` vraagt het tafelscherm (zie `_zendCombat`). Alleen een DM kan
   // erom vragen, en het levert minder op, nooit meer.
   if (req.role === 'dm' && req.query.tafel) return res.json(_combatVoorTafel(combat, readDmState()));

@@ -229,6 +229,32 @@ describe('Klassekrachten', () => {
     await req(server, 'POST', '/api/party/long-rest', {}, dm);
   });
 
+  it('Wie een beest is, staat als beest op de kaart — maar de token blijft van hem', async () => {
+    // Op het canvas leest de tafel de AC en het portret af. Die bleven die van
+    // de Druid zodra hij een wolf was. Nu komt er een `vorm` naast — afgeleid,
+    // niet weggeschreven, want een gemiste opruiming mag geen Druid met de AC
+    // van een beer achterlaten. Zijn HP blijven van hem; dat is de regel.
+    await req(server, 'POST', '/api/party/long-rest', {}, dm);
+    await req(server, 'POST', '/api/combat/combatant',
+      { name: 'Proefdruïde', entityId: id.druid, type: 'player', initiative: 14, hp: 30, maxHp: 30, ac: '16' }, dm);
+    await doe('druid', { klasse: 'druid', actie: 'wildshape', tekst: 'Wolf' });
+
+    const r = await req(server, 'GET', '/api/combat', null, dm);
+    const t = r.body.combatants.find(c => c.entityId === id.druid);
+    assert.ok(t.vorm, 'de gedaante komt mee');
+    assert.strictEqual(t.vorm.naam, 'Wolf');
+    assert.strictEqual(t.vorm.ac, '12');
+    assert.strictEqual(t.ac, '16', 'zijn eigen AC staat er nog — er wordt niets overschreven');
+    assert.strictEqual(t.hp, 30, 'en zijn HP zijn van hem');
+
+    // Terug naar zichzelf: de gedaante is weg zonder dat er iets teruggezet is.
+    await req(server, 'POST', `/api/characters/${id.druid}/klassekracht/einde`,
+      { klasse: 'druid', actie: 'wildshape' }, dm);
+    const na = await req(server, 'GET', '/api/combat', null, dm);
+    assert.ok(!na.body.combatants.find(c => c.entityId === id.druid).vorm);
+    await req(server, 'DELETE', '/api/combat', { afloop: false }, dm);
+  });
+
   it('Bardic Inspiration staat als badge op het portret van wie hem kreeg', async () => {
     await req(server, 'POST', '/api/party/long-rest', {}, dm);
     await doe('bard', { klasse: 'bard', actie: 'inspireer', doel: id.paladin }, cookie.bard);

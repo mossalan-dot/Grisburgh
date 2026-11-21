@@ -1,5 +1,5 @@
 import { api, huidigeCampagne } from './api.js?v=326';
-import { init as canvasInit, update as canvasUpdate, stop as canvasStop, acGetal } from './combat-canvas.js?v=44';
+import { init as canvasInit, update as canvasUpdate, stop as canvasStop, acGetal } from './combat-canvas.js?v=45';
 import { renderStatblock } from './render-statblock.js?v=10';
 
 // ── DM Panel ──
