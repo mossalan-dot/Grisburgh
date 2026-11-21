@@ -219,6 +219,63 @@ describe('Wat je hebt opgeroepen', () => {
       'de app wist niets — welke summon een nacht overleeft staat in teksten die we niet hebben — maar ze zégt het');
   });
 
+  it('neemt het statblok van een gekoppeld kaartje over, in de juiste tier', async () => {
+    // **Sommige metgezellen groeien mee met hun baasje.** Daar heeft de app al
+    // een mechaniek voor — een dier-kaartje met `statblockTiers` ("vanaf level
+    // N"), net als een geadopteerd huisdier — en een familiar hoort daar
+    // gewoon naar te wijzen in plaats van een derde statblok-opslag te krijgen.
+    const ent = lees('entities.json');
+    ent.personages.push({
+      id: 'e_defender_kaart', name: 'Stalen Verdediger', subtype: 'dier',
+      stats: { ac: '15', hp: '20 (3d8+6)', str: 14, dex: 12, con: 14 },
+      maxHp: 20,
+      statblockTiers: [
+        { id: 't1', label: 'Verbeterd', minLevel: 9,  maxHp: 40, statblock: { ac: '17' } },
+        { id: 't2', label: 'Meesterlijk', minLevel: 15, maxHp: 70, statblock: { ac: '19' } },
+      ],
+    });
+    schrijf('entities.json', ent);
+    const meta = lees('meta.json');
+    meta.naslagkaarten = { 'metgezel:Steel Defender': { entityId: 'e_defender_kaart' } };
+    schrijf('meta.json', meta);
+
+    // De Wizard mag hem niet; de DM wel, namens iedereen.
+    const aanbod = (await req(server, 'GET', `/api/characters/${WIZ}/summons?alles=1`, null, dm)).body.aanbod;
+    const def = aanbod.find(x => x.id === 'steel-defender');
+    assert.equal(def.entityId, 'e_defender_kaart');
+    assert.equal(def.bekend, true, 'met een kaartje eraan hoeven we niets meer te vragen');
+    assert.deepEqual(def.tiers, [
+      { label: 'Verbeterd', minLevel: 9 }, { label: 'Meesterlijk', minLevel: 15 },
+    ]);
+
+    // Level 5: de basis.
+    const r1 = await req(server, 'POST', `/api/characters/${WIZ}/summons`, { metgezelId: 'steel-defender' }, dm);
+    assert.equal(r1.status, 201);
+    assert.equal(r1.body.summon.maxHp, 20);
+    assert.equal(r1.body.summon.ac, '15');
+    await req(server, 'DELETE', `/api/characters/${WIZ}/summons/${r1.body.summon.id}`, null, dm);
+
+    // Level 12: de tweede trede, zonder dat iemand iets hoeft in te tikken.
+    const st = lees('dm-state.json');
+    st.playerProfiles[WIZ].level = 12;
+    schrijf('dm-state.json', st);
+    const r2 = await req(server, 'POST', `/api/characters/${WIZ}/summons`, { metgezelId: 'steel-defender' }, dm);
+    assert.equal(r2.body.summon.maxHp, 40);
+    assert.equal(r2.body.summon.ac, '17');
+    assert.equal(r2.body.summon.tier, 'Verbeterd');
+    await req(server, 'DELETE', `/api/characters/${WIZ}/summons/${r2.body.summon.id}`, null, dm);
+    st.playerProfiles[WIZ].level = 5;
+    schrijf('dm-state.json', st);
+  });
+
+  it('laat het kaartje bij de metgezel zien in Naslag', async () => {
+    const r = await req(server, 'GET', '/api/bron/metgezellen', null, dm);
+    const sd = r.body.metgezellen.find(c => c.id === 'steel-defender');
+    assert.equal(sd.entityNaam, 'Stalen Verdediger');
+    assert.ok(sd.kaartStatblock?.statblock?.ac, 'het statblok gaat mee, zodat het kaartje het kan tonen');
+    assert.equal(sd.tiers.length, 2);
+  });
+
   it('zet hem bij wie er met de party meeloopt', async () => {
     const r = await req(server, 'GET', '/api/companions', null, speler);
     assert.equal(r.status, 200);

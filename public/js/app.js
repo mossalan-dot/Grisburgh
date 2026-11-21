@@ -1,5 +1,5 @@
 import { api, campagneUitUrl, zetCampagne } from './api.js?v=326';
-import { initCampagne, renderArchiefDeuren, renderAvontuurDeuren, renderDienstenDeuren, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, renderDocumenten, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=439";
+import { initCampagne, renderArchiefDeuren, renderAvontuurDeuren, renderDienstenDeuren, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, renderDocumenten, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=441";
 import { initArchief, renderLogboek, openLogboekEditor } from "./render-archief.js?v=156";
 import { renderKaart, queueFlyTo, verversPins, nieuweKaart } from './render-kaart.js?v=41';
 import { renderDungeon } from './render-dungeon.js?v=82';
@@ -9,7 +9,7 @@ import { renderBestiarium } from './render-bestiarium.js?v=47';
 import { renderSpreuken } from './render-spreuken.js?v=66';
 import './render-handleiding.js?v=2';
 import './render-melding.js?v=4';
-import { renderVaardigheden, zoekVaardigheden, heldenboekTekst } from './render-vaardigheden.js?v=200';
+import { renderVaardigheden, zoekVaardigheden, heldenboekTekst } from './render-vaardigheden.js?v=202';
 import { renderStatblock } from './render-statblock.js?v=10';
 import { initSocket } from "./socket-client.js?v=110";
 import { initDmPanel } from "./dm-panel.js?v=434";
@@ -24,7 +24,7 @@ import './tafels.js?v=2';
 import './terugblik.js?v=9';
 import './rage.js?v=10';
 import './summons.js?v=3';
-import './klassekracht.js?v=12';
+import './klassekracht.js?v=13';
 import './bastion.js?v=10';
 import './stemronde.js?v=8';
 import './gevecht-regie.js?v=9';
@@ -1803,7 +1803,7 @@ async function _landingNieuwTegel() {
   if (!host || !_groepsWachtwoord || document.getElementById('landing-nieuw')) return;
   let stand = null;
   try {
-    await import('./personage-maken.js?v=61');
+    await import('./personage-maken.js?v=63');
     stand = await window.personageMaken.stand();
   } catch { return; }
   if (stand?.instellingen && stand.instellingen.aan === false) return;
@@ -1825,7 +1825,7 @@ async function _landingNieuwTegel() {
 
 async function _landingNieuw() {
   try {
-    await import('./personage-maken.js?v=61');
+    await import('./personage-maken.js?v=63');
     const stand = await window.personageMaken.stand();
     // Ook als hij al bij de DM ligt: dan zie je dat, en kun je hem nog
     // terughalen om iets te veranderen.
@@ -9465,6 +9465,11 @@ async function renderMijnKarakter(opts = {}) {
         <div style="display:flex;justify-content:flex-end;padding:4px 0 0">${_helpBtn('personage')}</div>
 
         <div id="levelup-balk"></div>
+
+        <!-- Ben je iets anders (Wild Shape), dan staat dat bovenaan: de
+             waarden van je gedaante naast die van jezelf. Gevuld door de
+             klassekracht-module, die die stand toch al ophaalt. -->
+        <div id="gedaante-blok"></div>
 
         <!-- HP blok (redesigned) -->
         <!-- Rage, je klassekrachten en je dagkeuze stonden boven je HP, en

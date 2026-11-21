@@ -34663,3 +34663,62 @@ button.player-dash-niveau-penning { cursor: pointer; }
   font-family: 'Crimson Text', Georgia, serif;
   font-size: .78em; color: #7a6040; white-space: nowrap; font-style: italic;
 }
+
+/* ── Je gedaante (Wild Shape) ────────────────────────────────────────────────
+   Een strook bovenaan je blad zolang je iets anders bent. De waarden van het
+   beest staan groot, die van jezelf er klein onder — naast elkaar, niet in
+   plaats van elkaar, want er wordt niets overschreven en er valt dus ook
+   niets terug te zetten. */
+.gedaante-blok {
+  border-color: #7a9a5a;
+  background:
+    linear-gradient(135deg, rgba(122, 154, 90, 0.14), rgba(239, 227, 197, 0.55));
+}
+.gedaante-blok .player-dash-section-title { display: flex; align-items: center; gap: 8px; }
+.gedaante-einde { margin-left: auto; }
+.gedaante-uitleg { margin: 0 0 10px; }
+.gedaante-raster {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(84px, 1fr));
+  gap: 8px;
+  margin-bottom: 10px;
+}
+.gedaante-cel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+  padding: 7px 4px;
+  border: 1px solid rgba(122, 154, 90, 0.5);
+  border-radius: 6px;
+  background: rgba(255, 252, 243, 0.6);
+  text-align: center;
+}
+.gedaante-lbl {
+  font-family: 'Cinzel', serif;
+  font-size: .62rem;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: #5a7040;
+}
+.gedaante-nu {
+  font-family: 'Cinzel', serif;
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #2a1a08;
+  font-variant-numeric: tabular-nums;
+}
+.gedaante-was {
+  font-family: 'IM Fell English', Georgia, serif;
+  font-style: italic;
+  font-size: .72rem;
+  color: #8a7050;
+}
+.gedaante-regel {
+  font-family: 'Crimson Text', Georgia, serif;
+  font-size: .88rem;
+  color: #3a2410;
+  margin-bottom: 4px;
+}
+.gedaante-regel b { font-family: 'Cinzel', serif; font-size: .78rem; margin-right: 5px; }
+.gedaante-naar { margin-top: 8px; }

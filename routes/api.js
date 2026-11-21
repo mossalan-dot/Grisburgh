@@ -5336,8 +5336,25 @@ function _kkStand(dmState, charId, entities) {
         // Een gedaante zegt meer dan "Wolf": zijn AC, snelheid en aanvallen.
         const beest = a.vormen ? _beesten().find(b => b.naam === v.tekst) : null;
         const vormRegel = beest ? [`AC ${beest.ac} · ${beest.speed}${beest.aanvallen.length ? ' · ' + beest.aanvallen.join(', ') : ''}`] : [];
+        // **Wat er van het beest geldt zolang je het bént.** Dit ging alleen
+        // als regeltje mee ("AC 12 · 40 ft."), terwijl aan tafel juist de
+        // getallen tellen die van de Druid afwijken: zijn AC, zijn snelheid,
+        // zijn maat en zijn STR/DEX/CON. HP hoort van jóú te blijven, dus die
+        // staat er bewust niet bij — zie de strook op het blad.
+        const gedaante = (() => {
+          if (!beest) return null;
+          const sb = _wezenOpNaam(beest.naam)?.statblock || {};
+          return {
+            naam: beest.naam, ac: beest.ac, speed: beest.speed, cr: beest.cr,
+            size: sb.size || '', type: sb.type || '',
+            str: sb.str ?? null, dex: sb.dex ?? null, con: sb.con ?? null,
+            senses: sb.senses || '', skills: sb.skills || '',
+            aanvallen: beest.aanvallen || [],
+          };
+        })();
         return { actie: a.id, label: a.label, icoon: a.icoon, tekst: v.tekst || '', doelNaam: v.doelNaam || '',
-          omgeving: v.omgeving || '', effecten: [...vormRegel, ...(a.effecten ? a.effecten(level, profiel) : [])] };
+          omgeving: v.omgeving || '', gedaante,
+          effecten: [...vormRegel, ...(a.effecten ? a.effecten(level, profiel) : [])] };
       }).filter(Boolean);
     let wildshape = null;
     if (def.acties.some(a => a.vormen) && level >= 2) {
@@ -5672,6 +5689,16 @@ const _getalUit = (x) => {
 // in zijn boek staat. Bewust een echte zeef en geen lijst van alles: een
 // Wizard hoort geen knop te zien voor een Drake Companion. De DM ziet wél
 // alles — hij zet namens iedereen neer.
+// Het dier-kaartje dat aan deze metgezel hangt, als de DM er een koos. Eén
+// plek, want het aanbod, het oproepen en het kaartje in Naslag lezen hem alle
+// drie — en die mogen niet uiteenlopen.
+function _metgezelKaartje(metgezelNaam) {
+  const meta = storage.readJSON('meta.json');
+  const id = (meta.naslagkaarten || {})[`metgezel:${metgezelNaam}`]?.entityId;
+  if (!id) return null;
+  return (storage.readJSON('entities.json').personages || []).find(e => e.id === id) || null;
+}
+
 function _summonAanbod(dmState, charId, { alles = false } = {}) {
   const profiel = _kkProfiel(dmState, charId);
   const klassen = [profiel.klasse, profiel.multiKlasse].filter(Boolean).map(x => String(x).toLowerCase());
@@ -5705,13 +5732,18 @@ function _summonAanbod(dmState, charId, { alles = false } = {}) {
     // Welke gedaantes kennen we? Alleen die kunnen we compleet neerzetten.
     const vormen = (c.vormen || []).map(n => ({ naam: n, bekend: !!_wezenOpNaam(n) }));
     const eigen  = c.statblok ? _wezenOpNaam(c.statblok) : null;
+    // Hing de DM er een kaartje aan, dan wint dat: dáár staan zijn tiers.
+    const kaart = _metgezelKaartje(c.naam);
     uit.push({
       id: c.id, naam: c.naam, geeft: c.geeft, soort: c.soort, boek: c.boek,
       klasse: c.klasse || '', subclass: c.subclass || '', level: c.level || 0,
       spreukIndex: c._spreukIndex || null,
       vormen,
-      // Weten we zijn cijfers? Dan is het één klik. Anders vraagt de app ze.
-      bekend: !!eigen || vormen.some(v => v.bekend),
+      entityId: kaart?.id || null,
+      entityNaam: kaart?.name || '',
+      tiers: kaart ? _tierRegels(kaart).map(t => ({ label: t.label || '', minLevel: t.minLevel || 0 })) : [],
+      // Weten we zijn cijfers? Dan is één klik genoeg. Anders vraagt de app ze.
+      bekend: !!kaart || !!eigen || vormen.some(v => v.bekend),
       onthouden: ((dmState.summonGeheugen || {})[charId] || {})[c.id] || null,
       waarom,
     });
@@ -5802,11 +5834,18 @@ router.post('/characters/:characterId/summons', attachRole, (req, res) => {
   const bron = vorm ? _wezenOpNaam(vorm) : null;
   const eigen = (!bron && !def.vormen.length) ? _wezenOpNaam((bronnen.lees('metgezellen')?.metgezellen || [])
     .find(c => c.id === def.id)?.statblok || '') : null;
-  const sb = bron?.statblock || eigen?.statblock || null;
+  // Hangt er een dier-kaartje aan, dan komt zijn statblok daarvandaan — in de
+  // **tier die bij het level van zijn baasje hoort**, en bevroren op het
+  // moment van oproepen. Precies wat `voeg-metgezellen` voor een huisdier
+  // doet; groeit de Artificer, dan is de volgende Steel Defender groter.
+  const kaart = def.entityId ? _metgezelKaartje(def.naam) : null;
+  const baasLevel = parseInt(_kkProfiel(dmState, characterId)._totaalLevel) || 1;
+  const tier = kaart ? _activeTier(kaart, baasLevel) : null;
+  const sb = tier?.statblock || bron?.statblock || eigen?.statblock || null;
 
   // Kennen we hem niet, dan komen de cijfers van de speler — en die onthouden
   // we, zodat de volgende keer weer één klik is.
-  const hp = _getalUit(b.hp) ?? _getalUit(sb?.hp) ?? _getalUit(sb?.maxHp) ?? null;
+  const hp = _getalUit(b.hp) ?? _getalUit(tier?.maxHp) ?? _getalUit(sb?.hp) ?? _getalUit(sb?.maxHp) ?? null;
   const ac = String(b.ac ?? sb?.ac ?? '').trim().slice(0, 20);
   if (!sb && (hp == null || !ac)) {
     return res.status(409).json({ error: 'Vul zijn HP en AC in — die staan in de tekst van de spreuk', vraag: true });
@@ -5818,6 +5857,7 @@ router.post('/characters/:characterId/summons', attachRole, (req, res) => {
     naam: String(b.naam || '').trim().slice(0, 60) || (vorm ? `${vorm} (${def.naam})` : def.naam),
     vorm, geeft: def.geeft, soort: def.soort,
     spreukIndex: def.spreukIndex || null,
+    ...(kaart ? { entityId: kaart.id, tier: tier?.label || '', baasLevel } : {}),
     hp, maxHp: hp, ac,
     statblock: sb,
     sinds: Date.now(),
@@ -12604,12 +12644,26 @@ router.get('/bron/metgezellen', attachRole, (req, res) => {
   try { for (const sp of _maakSpreuken()) spreuken.set(String(sp.naam).toLowerCase(), sp.index); }
   catch { /* geen spreuken */ }
 
+  // Hing de DM er een dier-kaartje aan, dan is dát zijn statblok — met de
+  // tiers die eraan hangen. Welke tier geldt hangt van het baasje af en weten
+  // we hier niet; het kaartje toont de basis en zegt wat er later bij komt.
+  const metaKaarten = (storage.readJSON('meta.json').naslagkaarten || {});
+  const personages = (storage.readJSON('entities.json').personages || []);
+
   const lijst = (bronnen.lees('metgezellen')?.metgezellen || []).map(c => {
     const sb = c.statblok ? vind(c.statblok) : null;
     const spreukIndex = c.soort === 'spreuk' ? spreuken.get(String(c.geeft).toLowerCase()) : null;
+    const kaartId = metaKaarten[`metgezel:${c.naam}`]?.entityId || '';
+    const kaart = kaartId ? personages.find(e => e.id === kaartId) : null;
+    const kaartTier = kaart ? _activeTier(kaart, 1) : null;
     return {
       ...c,
       ...(spreukIndex ? { spreukIndex } : {}),
+      ...(kaart ? {
+        entityId: kaart.id, entityNaam: kaart.name,
+        kaartStatblock: { ...kaart, statblock: kaartTier.statblock, name: kaart.name },
+        tiers: _tierRegels(kaart).map(t => ({ label: t.label || '', minLevel: t.minLevel || 0 })),
+      } : {}),
       // Per gedaante of we hem kunnen tonen; de client maakt er dan een knop
       // naar de deur Beasts van in plaats van kale tekst.
       vormen: (c.vormen || []).map(n => ({ naam: n, bekend: !!vind(n) })),
@@ -14405,6 +14459,16 @@ router.put('/meta/naslagkaart', requireDM, (req, res) => {
   if (req.body.tekst !== undefined) {
     const t = String(req.body.tekst || '').trim().slice(0, 4000);
     if (t) rij.tekst = t; else delete rij.tekst;
+  }
+  // **Zijn statblok is een kaartje.** Sommige metgezellen groeien mee met hun
+  // baasje — een Steel Defender op Artificer 3 is een ander beest dan op 15 —
+  // en daar heeft de app al een mechaniek voor: een personagekaartje van
+  // subtype `dier` met `statblockTiers` ("vanaf level N"), precies zoals een
+  // geadopteerd huisdier. Eén statblok-editor, één tier-mechaniek; hier staat
+  // alleen de verwijzing.
+  if (req.body.entityId !== undefined && soort === 'metgezel') {
+    const id = String(req.body.entityId || '').slice(0, 80);
+    if (id) rij.entityId = id; else delete rij.entityId;
   }
   // Alleen zinvol bij een metgezel: een conditie of een beest wordt niet
   // opgeroepen, dus daar valt niets te laten verdwijnen.

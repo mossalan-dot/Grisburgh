@@ -208,6 +208,27 @@ describe('Klassekrachten', () => {
     assert.ok(kat.body.kracht.klassen[0].actief[0].omgeving, 'zonder keuze toch een omgeving');
   });
 
+  it('Wild Shape draagt de getallen van de gedaante, en niet die van de Druid', async () => {
+    // Op het blad stond alleen een conditie en de naam van het beest: je AC,
+    // je snelheid, je maat en je STR/DEX/CON bleven die van de Druid, en aan
+    // tafel moest je het statblok er los bij zoeken. Nu komt de gedaante mee —
+    // **naast** je eigen waarden, want er wordt niets overschreven. Je HP
+    // hoort van jou te blijven en staat er dus bewust niet bij.
+    await req(server, 'POST', '/api/party/long-rest', {}, dm);
+    const r = await doe('druid', { klasse: 'druid', actie: 'wildshape', tekst: 'Wolf' });
+    assert.strictEqual(r.status, 200);
+    const g = r.body.kracht.klassen[0].actief[0].gedaante;
+    assert.ok(g, 'de gedaante gaat mee');
+    assert.strictEqual(g.naam, 'Wolf');
+    assert.strictEqual(g.ac, '12');
+    assert.match(g.speed, /40 ft/);
+    assert.ok(g.size, `maat ontbreekt: ${JSON.stringify(g)}`);
+    assert.ok(Number(g.str) > 0 && Number(g.dex) > 0 && Number(g.con) > 0, 'de drie fysieke abilities');
+    assert.strictEqual(g.hp, undefined, 'HP hoort van de Druid te blijven; die wisselt niet');
+    assert.ok(g.aanvallen.length, 'en wat hij aanvalt');
+    await req(server, 'POST', '/api/party/long-rest', {}, dm);
+  });
+
   it('Bardic Inspiration staat als badge op het portret van wie hem kreeg', async () => {
     await req(server, 'POST', '/api/party/long-rest', {}, dm);
     await doe('bard', { klasse: 'bard', actie: 'inspireer', doel: id.paladin }, cookie.bard);

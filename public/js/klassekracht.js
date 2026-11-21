@@ -15,6 +15,10 @@ import { api } from './api.js?v=326';
 
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, c =>
   ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+// Een apostrof in een naam sluit de string in een `on…`-attribuut: de browser
+// decodeert het attribuut eerst en voert dán de JS uit. Zelfde helper als in
+// de andere modules.
+const escArg = (s) => esc(String(s ?? '').replace(/\\/g, '\\\\').replace(/'/g, "\\'"));
 const ic = (n, o) => window.icon?.(n, o) || '';
 const RUSTIG = () => window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
 const mijnId = () => window.app?.state?.characterId || null;
@@ -73,6 +77,69 @@ function _tekens(b) {
 }
 
 const _herstelTekst = (k) => ({ alles: 'Short Rest: alles terug', een: 'Short Rest: één terug' }[k] || 'Long Rest');
+
+// ── De gedaante op je blad ──────────────────────────────────────────────────
+// **Zolang je iets anders bent, staat dat boven je blad.** Wild Shape zette
+// alleen een conditie op je token en onthield welk beest het was; je AC, je
+// snelheid, je maat en je STR/DEX/CON bleven die van de Druid, en aan tafel
+// moest je het statblok er los bij zoeken.
+//
+// Bewust **naast** je eigen waarden en niet eroverheen. Drie redenen: je HP
+// blijft in 2024 van jou (daar valt dus niets te wisselen), op datzelfde blad
+// bewerkt de DM — en een vergeten "beëindigen" mag geen Druid met de kracht
+// van een beer achterlaten. De strook verdwijnt zodra de gedaante eindigt; er
+// is niets om terug te zetten.
+const _ABIL = [['str', 'STR'], ['dex', 'DEX'], ['con', 'CON']];
+const _mod = (n) => { const m = Math.floor((Number(n) - 10) / 2); return (m >= 0 ? '+' : '') + m; };
+
+function _gedaanteHtml(g, eigen) {
+  const cellen = [
+    ['AC', g.ac, eigen.ac],
+    ['Speed', g.speed, eigen.speed],
+    ['Size', g.size, eigen.size],
+    ..._ABIL.map(([k, lbl]) => [lbl, g[k] != null ? `${g[k]} (${_mod(g[k])})` : '', eigen[k]]),
+  ].filter(([, v]) => String(v || '').trim());
+  return `
+    <div class="player-dash-section gedaante-blok">
+      <div class="player-dash-section-title">${ic('paw-print')} Je bent een ${esc(g.naam)}
+        <button class="kk-mini gedaante-einde" data-kk-einde="druid.wildshape">${ic('x')} Terug</button></div>
+      <p class="dm-hint gedaante-uitleg">Deze gelden zolang je die gedaante hebt. Je HP, je Hit Dice,
+        je INT, WIS en CHA en je class features blijven van jou — die staan hieronder.</p>
+      <div class="gedaante-raster">
+        ${cellen.map(([lbl, nu, was]) => `
+          <div class="gedaante-cel">
+            <span class="gedaante-lbl">${esc(lbl)}</span>
+            <span class="gedaante-nu">${esc(String(nu))}</span>
+            ${String(was ?? '').trim() ? `<span class="gedaante-was">jij: ${esc(String(was))}</span>` : ''}
+          </div>`).join('')}
+      </div>
+      ${g.senses ? `<div class="gedaante-regel"><b>Senses</b> ${esc(g.senses)}</div>` : ''}
+      ${g.skills ? `<div class="gedaante-regel"><b>Skills</b> ${esc(g.skills)}</div>` : ''}
+      ${g.aanvallen?.length ? `<div class="gedaante-regel"><b>Aanvallen</b> ${esc(g.aanvallen.join(', '))}</div>` : ''}
+      <button type="button" class="vd-vorm gedaante-naar"
+        onclick="window.vaardigheden?.naarBeest?.('${escArg(g.naam)}')">
+        ${ic('book-open')} Het hele statblok</button>
+    </div>`;
+}
+
+// Wat de Druid zélf heeft, om naast de gedaante te zetten. Komt van het blad
+// dat al geladen is; staat er niets, dan laat de cel die regel gewoon weg.
+function _eigenWaarden() {
+  const p = window._lastPlayerProfile || {};
+  const val = (id) => document.getElementById(id)?.value?.trim() || '';
+  return {
+    ac: p.ac || val('dash-ac') || '', speed: p.speed || val('dash-speed') || '', size: p.size || '',
+    str: p.str ? `${p.str} (${_mod(p.str)})` : '', dex: p.dex ? `${p.dex} (${_mod(p.dex)})` : '',
+    con: p.con ? `${p.con} (${_mod(p.con)})` : '',
+  };
+}
+
+function _gedaanteBlok() {
+  const el = document.getElementById('gedaante-blok');
+  if (!el) return;
+  const g = (_stand?.klassen || []).flatMap(k => k.actief || []).map(a => a.gedaante).find(Boolean);
+  el.innerHTML = g ? _gedaanteHtml(g, _eigenWaarden()) : '';
+}
 
 function _klasseHtml(k) {
   return `
@@ -296,6 +363,8 @@ async function krachtBlok() {
           <span class="kk-hulp">${window._helpBtn?.('klassekracht') || ''}</span></div>
         ${_stand.klassen.map(_klasseHtml).join('')}
       </div>` : ''}`;
+
+  _gedaanteBlok();
 
   if (_open) {
     const [kid, aid] = _open.split('.');
@@ -601,5 +670,6 @@ function krachtOntvang(d) {
 }
 
 window._krachtBlok = krachtBlok;
+window._gedaanteBlok = _gedaanteBlok;
 window._krachtDisplay = krachtDisplay;
 window._krachtOntvang = krachtOntvang;

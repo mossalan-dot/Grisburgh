@@ -794,6 +794,24 @@ const _COND_ICOONKEUZE = [
   'bed', 'bandage', 'biohazard', 'brick-wall', 'shell', 'circle-dashed', 'fast-forward',
 ];
 
+// **De dier-kaartjes, voor de koppeling in de metgezel-editor.** Een zoekbaar
+// invoerveld met een datalist, zoals elke entiteit-kiezer in de Meesterkamer —
+// uit een keuzelijst kun je alleen kiezen wat er al is, en dat is hier precies
+// het punt niet: de DM maakt zo'n kaartje zelf aan in het archief.
+let _dieren = [];
+async function _dierenLaden() {
+  if (_dieren.length) return _dieren;
+  try {
+    const r = await api.listEntities('personages');
+    _dieren = (r?.entities || r || []).filter(e => e?.subtype === 'dier')
+      .map(e => ({ id: e.id, name: e.name }))
+      .sort((a, b) => a.name.localeCompare(b.name, 'nl'));
+  } catch { _dieren = []; }
+  return _dieren;
+}
+const _dierNaam = (id) => _dieren.find(d => d.id === id)?.name || '';
+const _dierId   = (naam) => _dieren.find(d => d.name.toLowerCase() === String(naam || '').trim().toLowerCase())?.id || '';
+
 // Eén plek die de lijst wegschrijft: de twee knoppen (opslaan, verwijderen)
 // doen hetzelfde en mogen niet uiteenlopen.
 async function _conditiesBewaren(lijst) {
@@ -874,7 +892,22 @@ function _metgezelBladen(it) {
         : `<span class="vd-vorm vd-vorm--onbekend" title="Dit statblok staat niet in de vrij te gebruiken bronnen">${esc(v.naam)}</span>`
       ).join('')}</div>` });
   }
-  if (c.spreukIndex) {
+  // **Hangt er een kaartje aan, dan is dát zijn statblok.** Sommige
+  // metgezellen groeien mee met hun baasje — een Steel Defender op Artificer 3
+  // is een ander beest dan op 15 — en daar heeft de app al een mechaniek voor:
+  // een personagekaartje van subtype `dier` met tiers ("vanaf level N"), net
+  // als een geadopteerd huisdier. Eén statblok-editor, één tier-mechaniek.
+  if (c.kaartStatblock) {
+    const tiers = (c.tiers || []).filter(t => t.minLevel);
+    bladen.push({ soort: 'naslag', label: 'Statblock', tekst: c.entityNaam || c.naam,
+      html: `<div class="vd-statblok">${renderStatblock(c.kaartStatblock, { kop: false })}</div>
+        ${tiers.length ? `<p class="dm-hint">Hij groeit mee: ${tiers.map(t =>
+          `${esc(t.label || 'volgende')} vanaf level ${t.minLevel}`).join(' · ')}. Hierboven staat de basis;
+          bij het oproepen krijg je de trede die bij jouw level hoort.</p>` : ''}
+        ${isDM() ? `<p><button type="button" class="vd-vorm"
+          onclick="event.stopPropagation();window.vaardigheden.naarKaartje('${escA(c.entityId)}')">
+          ${icon('pencil')} Bewerk ${esc(c.entityNaam || c.naam)}</button></p>` : ''}` });
+  } else if (c.spreukIndex) {
     // Het statblok van een opgeroepen wezen staat ín de spreuk, en die staat
     // al in de bibliotheek. Eén plek dus, met een knop ernaartoe.
     bladen.push({ soort: 'naslag', label: 'De spreuk',
@@ -4621,7 +4654,10 @@ window.vaardigheden = {
   // de naam, het icoon en de tekst van een **conditie** horen bij
   // `meta.condities` (het gevechtscanvas en het spelerstabblad lezen die lijst
   // ook), de rest in `meta.naslagkaarten`.
-  naslagBewerk(soort, naam) {
+  async naslagBewerk(soort, naam) {
+    // De dierenlijst eerst: het veld is een datalist en die moet gevuld zijn
+    // vóór hij getekend wordt, anders staat er één keer een leeg lijstje.
+    if (soort === 'metgezel') await _dierenLaden();
     const isCond = soort === 'conditie' || soort === 'situatie' || soort === 'klassestaat';
     const it = naam ? (_all || []).find(x => x.soort === soort && x.naam === naam) : null;
     const cond = it?.condId
@@ -4657,6 +4693,13 @@ window.vaardigheden = {
         <datalist id="cond-iconen">${_COND_ICOONKEUZE.map(n => `<option value="${esc(n)}">`).join('')}</datalist>
       </div>` : ''}
       ${soort === 'metgezel' ? `
+      <div class="dm-form-row">
+        <label class="dm-form-label" for="summon-kaartje">Statblok van</label>
+        <input class="dm-input" id="summon-kaartje" list="summon-dieren" maxlength="80"
+          value="${esc(_dierNaam(bak.entityId) || '')}"
+          placeholder="Een kaartje van soort dier — leeg laten mag">
+        <datalist id="summon-dieren">${_dieren.map(d => `<option value="${esc(d.name)}">`).join('')}</datalist>
+      </div>
       <div class="dm-form-row">
         <label class="dm-form-label" for="summon-verdwijnt">Wanneer verdwijnt hij?</label>
         <select class="dm-input" id="summon-verdwijnt">
@@ -4731,6 +4774,7 @@ window.vaardigheden = {
         tekst: v('cond-desc'),
         ...(focus ? { focus } : {}),
         ...(document.getElementById('summon-verdwijnt') ? { verdwijnt: v('summon-verdwijnt') } : {}),
+        ...(document.getElementById('summon-kaartje') ? { entityId: _dierId(v('summon-kaartje')) } : {}),
       });
       return;
     }
@@ -4820,6 +4864,13 @@ window.vaardigheden = {
     }
     if (!document.getElementById('dm-mon-name')) { window._showToast?.('De editor kwam niet op'); return; }
     window.dmPanel.srdImport(key);
+  },
+
+  // Naar het personagekaartje waar zijn statblok en zijn tiers op staan. Het
+  // archief heeft daar één venster voor, met het potlood erin.
+  naarKaartje(entityId) {
+    window.app?.closeModal?.();
+    window._openDetail?.('personages', entityId);
   },
 
   // Naar de editor van het bestiarium. Eén monster-editor in de hele app (zie
