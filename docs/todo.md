@@ -19,15 +19,49 @@ groot het is. Bijgewerkt 15 sep 2026.
       · **Agent of the Ninth Quill** heeft zijn vijf onderdelen; die is
         intussen in het Heldenboek ingevuld.
 
-- [ ] **Bastion, fase 2 en 3** → `docs/voorstel-bastion.md`. Fase 1
-      (facilities, orders, de turn, gebouwd 2 nov 2026) staat. Nog: **Bastion
-      Events** via een gewogen tafel bij Maintain, met een onthulling op het
-      tafelscherm; **Defenders** en een aanval (6d6, Defensive Walls 4d6);
-      **Empower**; en fase 3 — opbrengst van Trade/Storehouse/Gaming Hall als
-      voorgevuld bedrag via de partybeurs, Craft dat echt in de boedel belandt,
-      Recruit, en uitbreiden/vergroten met goud en tijd. Kijk vóór fase 2 de
-      catalogus (`bronnen/bastion-facilities.json`) na tegen de DMG: die is uit
-      het hoofd samengesteld.
+- [x] **Bastion, fase 2 en 3** — gebouwd 15 nov 2026, de restpunten 19 nov.
+      Voorvallen bij een turn, defenders en een aanval, Empower met twee
+      voorvallen waaruit de DM kiest; en wat een turn oplevert (geld langs
+      `_deductCurrency`, een voorwerp echt in de boedel, verdedigers erbij),
+      plus een plaat per facility en bouwen dat geld en tijd kost. Bewaakt
+      door drie `describe`-blokken in `tests/bastion.test.js`.
+      **Wat er nog ligt:** de catalogus (`bronnen/bastion-facilities.json`) is
+      uit het hoofd samengesteld en nog nooit tegen de DMG nagelopen — en het
+      scherm is wel getoetst maar nooit aan tafel gezien.
+
+- [ ] **Een keuze op een feature na het aanmaken.** De crux van
+      `voorstel-feature-keuzes.md` is gebouwd (ronde 2, 19 nov): een gemaakte
+      keuze landt echt op het blad. Maar hij is alleen te maken **in de
+      personagemaker**. Gemeten in Grisburgh: **53 keuzeblokken**, waarvan er 5
+      `bijRust` zijn (die staan op het blad en in de rustoverlay, zie
+      `dagkeuze.js`) — de andere **48 zijn na het aanmaken onzichtbaar**.
+      Primal Knowledge, Blessings of Knowledge, Student of War, Acolyte of
+      Nature: wie al een personage heeft kan ze niet zien, niet wijzigen, en
+      krijgt ze bij een level-up niet aangeboden.
+      De tijdlijn heeft wél een blad *Jouw keuze*, maar dat is het **oude**
+      vrije tekstveld (`_isChoiceFeat` → `featChoices`), dat niets met deze
+      blokken te maken heeft. Twee keuzemechanieken naast elkaar dus, en de
+      nieuwe is de enige die iets op het blad zet.
+      Raakt: `render-progressie.js` (het blad *Jouw keuze* moet `keuzeSlots`
+      lezen in plaats van een tekstveld te tonen), en de level-up — die zou de
+      nieuwe slots moeten noemen zoals hij nu al cantrips en feats noemt.
+
+- [ ] **Twee kleine dubbelingen uit de navigatie-ronde** (20 nov 2026).
+      De deurenlijst van het Avontuur-menu staat zowel in `index.html` als in
+      `_AVONTUUR_DEUREN` (`render-campagne.js`) en kan uiteenlopen — bij de
+      diensten is dat opgelost door het menu te laten tekenen uit
+      `DIENST_GROEPEN`, hier nog niet. En **Meesterkamer** en **Spelers** zijn
+      de enige twee knoppen zonder landingspagina.
+
+- [ ] **Twee restjes bij de gedaantes en de summons** (21-22 nov 2026).
+      Op de token staat de AC en de plaat van je gedaante, maar geen snelheid
+      (daar staat er geen), en je aanvallen blijven je eigen wapenlijst — de
+      Bite van de wolf lees je op de strook op je blad. Pas aanpakken als het
+      aan tafel gemist wordt.
+      En: een familiar met tiers wijst naar een **kaartje van soort dier** dat
+      de DM zelf aanmaakt. De app kan die statblokken niet meeleveren (dat is
+      juist waarom er voor 18 van de 25 niets stond), dus dit is handwerk per
+      campagne — geen code, wel iets om te weten.
 
 - [x] **De tekst ís het script** — gedaan 14-15 sep 2026. Schrijfscherm
       (`akte-schrijven.js`) met elf regieblokken, de lade onderin met dezelfde
