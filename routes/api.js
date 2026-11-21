@@ -5596,6 +5596,43 @@ router.post('/characters/:characterId/keuzes', attachRole, (req, res) => {
 // één klik is. Zelfde afspraak als bij de loot-DC: de app rekent niet, de app
 // onthoudt.
 
+// **Wanneer verdwijnt hij? Dat staat op zijn kaartje.** Welke summon een nacht
+// overleeft verschilt per spreuk — een Familiar blijft tot je hem wegstuurt,
+// een Bestial Spirit een uur — en die teksten hebben we niet, dus de app kan
+// het niet afleiden. De DM weet het wel, dus zet hij het één keer in de editor
+// van het kaartje: `meta.naslagkaarten['metgezel:<naam>'].verdwijnt`.
+// Leeg = blijft staan tot iemand hem wegstuurt, en dat is ook het gedrag van
+// vóór deze instelling — zo verandert er niets aan wat er al rondloopt.
+const _VERDWIJNT = ['', 'rust', 'gevecht'];
+
+function _metgezelDef(id) {
+  return (bronnen.lees('metgezellen')?.metgezellen || []).find(c => c.id === id) || null;
+}
+
+function _summonVerdwijnt(meta, s) {
+  const def = _metgezelDef(s?.metgezelId);
+  if (!def) return '';
+  const rij = (meta?.naslagkaarten || {})[`metgezel:${def.naam}`];
+  return _VERDWIJNT.includes(rij?.verdwijnt) ? (rij.verdwijnt || '') : '';
+}
+
+// Wie er bij dit moment weg moet. Eén plek, twee aanroepers: de lange rust en
+// het einde van een gevecht.
+function _summonsOpruimen(dmState, wanneer, { alleen = null } = {}) {
+  const meta = storage.readJSON('meta.json');
+  const weg = [];
+  for (const [charId, lijst] of Object.entries(dmState.playerSummons || {})) {
+    if (alleen && !alleen.includes(charId)) continue;
+    const blijft = (lijst || []).filter(s => {
+      if (_summonVerdwijnt(meta, s) !== wanneer) return true;
+      weg.push({ charId, naam: s.naam, id: s.id });
+      return false;
+    });
+    if (blijft.length !== (lijst || []).length) dmState.playerSummons[charId] = blijft;
+  }
+  return weg;
+}
+
 function _summonLijst(dmState, charId) {
   if (!dmState.playerSummons) dmState.playerSummons = {};
   if (!Array.isArray(dmState.playerSummons[charId])) dmState.playerSummons[charId] = [];
@@ -5732,9 +5769,15 @@ router.get('/characters/:characterId/summons', attachRole, (req, res) => {
   // Of er een nacht overheen ging rekent de server uit: hij heeft de
   // rustteller, en één plek die dat weet is er één genoeg.
   const nu = getGroup(dmState)?.rustTellers?.long ?? 0;
+  const meta = storage.readJSON('meta.json');
   res.json({
-    summons: _summonLijst(dmState, characterId)
-      .map(s => ({ ...s, oud: typeof s.rustStand === 'number' && nu > s.rustStand })),
+    summons: _summonLijst(dmState, characterId).map(s => ({
+      ...s,
+      verdwijnt: _summonVerdwijnt(meta, s),
+      // "Van voor je rust" zegt alleen iets over wie blijft staan. Een summon
+      // die bij de rust hoort te verdwijnen is er dan allang niet meer.
+      oud: typeof s.rustStand === 'number' && nu > s.rustStand,
+    })),
     // De DM ziet het hele aanbod en de speler het zijne — zelfde grens als bij
     // het oproepen zelf, anders accepteert de route iets waar geen knop voor is.
     aanbod:  _summonAanbod(dmState, characterId, { alles: req.role === 'dm' }),
@@ -6484,6 +6527,10 @@ router.post('/party/long-rest', requireDM, (req, res) => {
   // Rage: alles terug en uit. Wie nog raasde krijgt straks zijn einde gemeld.
   const _rageGedoofd = _rageRust(dmState, spelers, 'long');
   const _krachtUit = _kkRust(dmState, spelers, 'long');
+  // Wat het kaartje zegt: een summon die een nacht niet overleeft gaat hier
+  // weg. Staat er niets op het kaartje, dan blijft hij staan — zo verandert
+  // er niets aan wat er al rondliep.
+  const _summonsWeg = _summonsOpruimen(dmState, 'rust', { alleen: spelers.map(e => e.id) });
   // Staat er een afspraak, dan schuift de beginstand van elke lopende schuld
   // mee met de nacht: er komt dus geen rente bij. Dit gebeurt híér en niet bij
   // het uitrekenen, want dan zou de rente met terugwerkende kracht alsnog
@@ -6517,8 +6564,17 @@ router.post('/party/long-rest', requireDM, (req, res) => {
   // Huurlingen krijgen hun dagloon — of niet, en dan telt het.
   const _loon = _huurlingenLoon(dmState, activeGroepId, entities.personages);
   for (const r of _loon.regels) gebeurtenissen.push({ naam: r.naam, tekst: r.tekst });
+  // Wie zijn opgeroepen wezen kwijtraakt hoort dat te lezen in het
+  // rustoverzicht, niet te ontdekken doordat zijn blok leeg is.
+  for (const w of _summonsWeg) {
+    const naam = (entities.personages || []).find(e => e.id === w.charId)?.name || '';
+    gebeurtenissen.push({ naam, tekst: `${w.naam} is verdwenen.` });
+  }
 
   storage.writeJSON('dm-state.json', dmState);
+  for (const cid of new Set(_summonsWeg.map(x => x.charId))) {
+    io?.to(campaignId).emit('summons:updated', { characterId: cid });
+  }
 
   // Cinematic naar alle spelers in de campagne
   if (io) io.to(campaignId).emit('party:rest', {
@@ -12577,14 +12633,22 @@ router.get('/bron/metgezellen', attachRole, (req, res) => {
 router.get('/bron/beesten', attachRole, (req, res) => {
   if (req.session?.role !== 'dm' && !req.session?.characterId) return res.status(403).json({ error: 'Geen toegang' });
   const kort = new Map(_beesten().map(b => [b.naam.toLowerCase(), b]));
-  const uit = [];
+  // Op naam, want de campagne mag haar eigen Wolf hebben en die hoort te
+  // winnen van de SRD-Wolf — net als in `_beesten()`. Een array met allebei
+  // erin liet de SRD-versie vooraan staan en de eigen erachter verdwijnen.
+  const uit = new Map();
   // `renderStatblock` verwacht een monster met zijn statblok **genest**
   // (`m.statblock`), precies zoals het in monsters.json staat. Platgeslagen
   // meesturen gaf een blok waarin elke ability op 10 stond: hij vond de velden
   // niet en viel terug op de standaard.
-  const zet = (m) => {
-    const k = kort.get(String(m.name).toLowerCase());
-    if (k) uit.push({ ...k, statblock: m });
+  const zet = (m, eigenId) => {
+    const sleutel = String(m.name).toLowerCase();
+    const k = kort.get(sleutel);
+    // `monsterId` is er alleen bij een wezen uit `monsters.json`: dát is het
+    // kaartje dat je kunt bewerken, en daar staat de editor voor klaar. Een
+    // SRD-beest heeft geen id, want er valt niets aan te bewerken tot iemand
+    // hem in het bestiarium overneemt.
+    if (k) uit.set(sleutel, { ...k, statblock: m, ...(eigenId ? { monsterId: eigenId } : {}) });
   };
   try {
     for (const m of (bronnen.lees('srd-monsters') || [])) {
@@ -12594,10 +12658,10 @@ router.get('/bron/beesten', attachRole, (req, res) => {
   try {
     for (const m of (storage.readJSON('monsters.json')?.monsters || [])) {
       // Een eigen monster bewaart zijn velden plat; het statblok is het monster.
-      if (/beast/i.test(m.type || '') && m.name) zet({ name: m.name, cr: m.cr, statblock: m });
+      if (/beast/i.test(m.type || '') && m.name) zet({ name: m.name, cr: m.cr, statblock: m }, m.id || '');
     }
   } catch { /* geen eigen monsters */ }
-  res.json({ beesten: uit.sort((a, b) => a.crGetal - b.crGetal || a.naam.localeCompare(b.naam)) });
+  res.json({ beesten: [...uit.values()].sort((a, b) => a.crGetal - b.crGetal || a.naam.localeCompare(b.naam)) });
 });
 
 router.get('/bron/:naam', attachRole, (req, res) => {
@@ -14342,6 +14406,12 @@ router.put('/meta/naslagkaart', requireDM, (req, res) => {
     const t = String(req.body.tekst || '').trim().slice(0, 4000);
     if (t) rij.tekst = t; else delete rij.tekst;
   }
+  // Alleen zinvol bij een metgezel: een conditie of een beest wordt niet
+  // opgeroepen, dus daar valt niets te laten verdwijnen.
+  if (req.body.verdwijnt !== undefined && soort === 'metgezel') {
+    const v = String(req.body.verdwijnt || '');
+    if (_VERDWIJNT.includes(v) && v) rij.verdwijnt = v; else delete rij.verdwijnt;
+  }
   if (Object.keys(rij).length) bak[sleutel] = rij; else delete bak[sleutel];
   if (Object.keys(bak).length) meta.naslagkaarten = bak; else delete meta.naslagkaarten;
   storage.writeJSON('meta.json', meta);
@@ -15766,8 +15836,15 @@ router.delete('/combat', requireDM, (req, res) => {
       if (a && (a.eindeBijGevecht || a.doel === 'vijand')) { delete o.actief[sleutel]; _krachtWeg.push(cid); }
     }
   }
-  if (_rageWeg.length || _krachtWeg.length) {
+  // En wat het kaartje zegt: een summon die bij het einde van het gevecht
+  // verdwijnt, verdwijnt hier. De rest loopt gewoon door — dat is nou juist
+  // waarom een summon niet in `combat.json` staat.
+  const _summonsWeg = _summonsOpruimen(_rageDm, 'gevecht');
+  if (_rageWeg.length || _krachtWeg.length || _summonsWeg.length) {
     storage.writeJSON('dm-state.json', _rageDm);
+    for (const cid of new Set(_summonsWeg.map(x => x.charId))) {
+      req.app.get('io')?.to(_campagneRoom(req)).emit('summons:updated', { characterId: cid });
+    }
     for (const cid of _rageWeg) _rageMeld(req, _rageDm, cid, false, { stil: true });
     if (_krachtWeg.length) req.app.get('io')?.to(_displayRoom(req)).emit('klasse:display', { opruimen: _krachtWeg });
     for (const cid of _krachtWeg) req.app.get('io')?.to(_campagneRoom(req)).emit('klasse:updated', { characterId: cid, stil: true });

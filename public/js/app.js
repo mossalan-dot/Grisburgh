@@ -1,5 +1,5 @@
 import { api, campagneUitUrl, zetCampagne } from './api.js?v=326';
-import { initCampagne, renderArchiefDeuren, renderAvontuurDeuren, renderDienstenDeuren, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, renderDocumenten, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=436";
+import { initCampagne, renderArchiefDeuren, renderAvontuurDeuren, renderDienstenDeuren, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, renderDocumenten, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=439";
 import { initArchief, renderLogboek, openLogboekEditor } from "./render-archief.js?v=156";
 import { renderKaart, queueFlyTo, verversPins, nieuweKaart } from './render-kaart.js?v=41';
 import { renderDungeon } from './render-dungeon.js?v=82';
@@ -9,7 +9,7 @@ import { renderBestiarium } from './render-bestiarium.js?v=47';
 import { renderSpreuken } from './render-spreuken.js?v=66';
 import './render-handleiding.js?v=2';
 import './render-melding.js?v=4';
-import { renderVaardigheden, zoekVaardigheden, heldenboekTekst } from './render-vaardigheden.js?v=197';
+import { renderVaardigheden, zoekVaardigheden, heldenboekTekst } from './render-vaardigheden.js?v=200';
 import { renderStatblock } from './render-statblock.js?v=10';
 import { initSocket } from "./socket-client.js?v=110";
 import { initDmPanel } from "./dm-panel.js?v=434";
@@ -23,7 +23,7 @@ import './wizard.js?v=17';
 import './tafels.js?v=2';
 import './terugblik.js?v=9';
 import './rage.js?v=10';
-import './summons.js?v=2';
+import './summons.js?v=3';
 import './klassekracht.js?v=12';
 import './bastion.js?v=10';
 import './stemronde.js?v=8';
@@ -1803,7 +1803,7 @@ async function _landingNieuwTegel() {
   if (!host || !_groepsWachtwoord || document.getElementById('landing-nieuw')) return;
   let stand = null;
   try {
-    await import('./personage-maken.js?v=58');
+    await import('./personage-maken.js?v=61');
     stand = await window.personageMaken.stand();
   } catch { return; }
   if (stand?.instellingen && stand.instellingen.aan === false) return;
@@ -1825,7 +1825,7 @@ async function _landingNieuwTegel() {
 
 async function _landingNieuw() {
   try {
-    await import('./personage-maken.js?v=58');
+    await import('./personage-maken.js?v=61');
     const stand = await window.personageMaken.stand();
     // Ook als hij al bij de DM ligt: dan zie je dat, en kun je hem nog
     // terughalen om iets te veranderen.

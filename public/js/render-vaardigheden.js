@@ -512,7 +512,7 @@ async function _load() {
         soort: 'beest', bron: '', pill: `CR ${b.cr || '0'}`, level: 0, naam: b.naam,
         desc: '', img: '', imgFocus: '',
         icoon: b.vliegt ? 'bird' : 'paw-print',
-        beest: b, crGetal: b.crGetal ?? 0,
+        beest: b, crGetal: b.crGetal ?? 0, monsterId: b.monsterId || '',
         // Zijn **statblok** komt uit de SRD of uit het bestiarium en wordt hier
         // niet bewerkt — daar is één plek voor. Een eigen plaat en een eigen
         // aantekening mag wel: die hangen nergens anders.
@@ -748,6 +748,32 @@ function _bronRegel(it) {
 // species kwam later: een trait van een subspecies kreeg dus de standaardkleur
 // van de soort, terwijl zijn kaartje en zijn rij in de kolom de kleur van de
 // variant dragen. Via `_houderVan`, die het verschil kent.
+// **Een feat is niet één ding.** Een Origin-feat krijg je van je background,
+// een General kies je bij een Ability Score Improvement, een Fighting Style
+// hoort bij een wapen. Dat stond alleen als woordje in de ondertitel, dus in
+// een raster van 220 blauwe kaartjes zag je het verschil niet.
+// Kleuren uit dezelfde familie, niet zes losse tinten: het blijven feats, en
+// een regenboog zou dat verbergen in plaats van ordenen. Wat geen soort heeft
+// (in Grisburgh 166 van de 220) houdt het gewone featblauw.
+const _FEAT_KLEUR = {
+  'Origin':         { c1: '#06303a', c2: '#157a8e' },
+  'General':        { c1: '#0c2248', c2: '#1e4a8a' },
+  'Fighting Style': { c1: '#1c2630', c2: '#4e6a80' },
+  'Epic Boon':      { c1: '#301800', c2: '#7a4a08' },
+  'Dark Gift':      { c1: '#2a0a2e', c2: '#6a1a5a' },
+  'Dragonmark':     { c1: '#3a2a06', c2: '#8a6a12' },
+};
+
+// Welke twee kleuren dit kaartje draagt. Eén plek, want hij wordt op drie
+// plekken uitgelezen (dicht, open, venster) en die mogen niet uiteenlopen.
+function _kaartKleuren(it) {
+  const s = SOORTEN[it.soort] || SOORTEN.class;
+  const eigen = _subKleur(it);
+  if (eigen) return { c1: eigen, c2: eigen };
+  if ((it.soort === 'feat' || it.soort === 'boon') && _FEAT_KLEUR[it.categorie]) return _FEAT_KLEUR[it.categorie];
+  return { c1: s.c1, c2: s.c2 };
+}
+
 function _subKleur(it) {
   // Een regel mag zijn eigen kleur meebrengen (een conditie doet dat: dezelfde
   // kleur als zijn penning op een token).
@@ -905,6 +931,12 @@ function _keuzeBladen(it) {
 // stond op drie plekken in dezelfde vorm. Dat is één plek te veel: een vierde
 // soort zou er dan drie keer bij moeten.
 function _penAanroep(it) {
+  // **Een beest van de campagne bewerk je in het bestiarium.** Daar staat de
+  // echte editor — statblok, acties, traits — en een tweede formulier hier zou
+  // met hem uit de pas gaan lopen. Dit tabblad is de bibliotheek, niet de
+  // werkbank. Een SRD-beest heeft geen id en dus niets te bewerken; daar
+  // opent het gewone venster voor een plaat en een aantekening.
+  if (it.monsterId) return `naarBestiarium('${escA(it.monsterId)}')`;
   const bak = _bakSleutel(it);
   if (bak) return `naslagBewerk('${escA(it.soort)}','${escA(it.naam)}')`;
   if (it.soort === 'background') return `kaartBewerken('background','${escA(it.naam)}')`;
@@ -933,12 +965,25 @@ function _kaartBladen(it) {
       ['CR', b.cr], ['AC', b.ac], ['HP', b.hp], ['Speed', b.speed],
       ['Omgeving', (b.omgevingen || []).join(', ')],
     ].filter(([, v]) => String(v || '').trim());
+    // Waar dit wezen vandaan komt, en waar je hem bewerkt. Dit tabblad zet hem
+    // naast de gedaantes van Wild Shape en de metgezellen — dat is waarvoor je
+    // hem hier opzoekt — maar zijn statblok hoort bij het bestiarium, en dat
+    // hoort er dan ook bij te staan in plaats van dat je het moet weten.
+    const naarBest = it.monsterId
+      ? `<p><button type="button" class="vd-vorm" onclick="event.stopPropagation();window.vaardigheden.naarBestiarium('${escA(it.monsterId)}')">
+          ${icon('skull')} Bekijk in het bestiarium</button></p>`
+      : `<p class="dm-hint">Dit statblok komt uit de SRD. Wil je hem aanpassen, dan hoort hij
+          eerst in je bestiarium te staan — daar leeft de editor, en twee plekken met hetzelfde
+          statblok lopen uit elkaar.</p>
+        ${b.statblock?.key ? `<p><button type="button" class="vd-vorm"
+          onclick="event.stopPropagation();window.vaardigheden.beestOvernemen('${escA(b.statblock.key)}')">
+          ${icon('plus')} Neem over in het bestiarium</button></p>` : ''}`;
     return eigen([
       { soort: 'eigenschappen', label: 'Kort', tekst: rijen.map(([k, v]) => `${k} ${v}`).join(' '),
         html: `<dl class="vk-training">${rijen.map(([k, v]) =>
           `<dt>${esc(k)}</dt><dd>${esc(v)}</dd>`).join('')}</dl>` },
       { soort: 'beschrijving', label: 'Statblock', tekst: b.naam,
-        html: `<div class="vd-statblok">${renderStatblock(b.statblock, { kop: false })}</div>` },
+        html: `<div class="vd-statblok">${renderStatblock(b.statblock, { kop: false })}</div>${isDM() ? naarBest : ''}` },
     ]);
   }
   if (it.metgezel) return eigen(_metgezelBladen(it));
@@ -1124,7 +1169,7 @@ function _kaartBladInhoud(it, blad) {
 
 function _card(it) {
   const s = SOORTEN[it.soort] || SOORTEN.class;
-  const eigenKleur = _subKleur(it);
+  const kleuren = _kaartKleuren(it);
   const tekst = _tekst(it);
   const bronRegel = _bronRegel(it);
   // Staat de tekst er niet, dan hoeft de kijker het kaartje daar niet eerst
@@ -1183,7 +1228,7 @@ function _card(it) {
         data-sleutel="${escA(it.key)}" role="button" tabindex="0"
         aria-label="${esc(it.naam)}, blad ${j + 1} van ${bladen.length}"
         onclick="${klik}"
-        style="--soort-c1:${eigenKleur ? esc(eigenKleur) : s.c1};--soort-c2:${eigenKleur ? esc(eigenKleur) : s.c2}">
+        style="--soort-c1:${esc(kleuren.c1)};--soort-c2:${esc(kleuren.c2)}">
         <div class="card-accent vaardig-accent"></div>
         <!-- Waar het vandaan komt en op welk level: op het open kaartje juist
              wél. Daar lees je wat het is, en dan is de bron het laatste wat je
@@ -1232,7 +1277,7 @@ function _card(it) {
     <div class="entity-card vaardig-card tegel${geenBeeld}" data-sleutel="${escA(it.key)}" data-soort="${esc(it.soort)}"
       role="button" tabindex="0" onclick="${klik}" title="${esc(it.naam)}"
       onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();${klik}}"
-      style="--soort-c1:${eigenKleur ? esc(eigenKleur) : s.c1};--soort-c2:${eigenKleur ? esc(eigenKleur) : s.c2}">
+      style="--soort-c1:${esc(kleuren.c1)};--soort-c2:${esc(kleuren.c2)}">
       <div class="card-accent vaardig-accent"></div>
       ${dmRij}${dmPen}
       ${it.pill ? `<span class="vaardig-pill">${esc(it.pill)}</span>` : ''}
@@ -4611,6 +4656,16 @@ window.vaardigheden = {
           value="${esc(cond?.icoon || (uitBoek ? '' : 'sparkle'))}" placeholder="${esc(it?.icoon || 'Naam uit de iconenset')}">
         <datalist id="cond-iconen">${_COND_ICOONKEUZE.map(n => `<option value="${esc(n)}">`).join('')}</datalist>
       </div>` : ''}
+      ${soort === 'metgezel' ? `
+      <div class="dm-form-row">
+        <label class="dm-form-label" for="summon-verdwijnt">Wanneer verdwijnt hij?</label>
+        <select class="dm-input" id="summon-verdwijnt">
+          ${[['', 'Blijft tot je hem wegstuurt'],
+             ['rust', 'Na een lange rust'],
+             ['gevecht', 'Als het gevecht eindigt']].map(([w, l]) =>
+            `<option value="${w}"${(bak.verdwijnt || '') === w ? ' selected' : ''}>${esc(l)}</option>`).join('')}
+        </select>
+      </div>` : ''}
       <div class="dm-form-row">
         <label class="dm-form-label" for="cond-desc">Beschrijving</label>
         <textarea class="dm-input" id="cond-desc" rows="6"
@@ -4641,15 +4696,18 @@ window.vaardigheden = {
           onclick="window.vaardigheden.conditieTerug('${escA(it.condId)}')">${icon('refresh-cw')} Terug naar het boek</button>` : ''}
         <button class="dm-btn dm-btn-ghost" onclick="window.app.closeModal()">Annuleren</button>
         <button class="dm-btn dm-btn-primary"
-          onclick="window.vaardigheden._naslagBewaar('${escA(soort)}',${it ? `'${escA(it.naam)}'` : "''"})">${icon('save')} Opslaan</button>
+          onclick="window.vaardigheden._naslagBewaar('${escA(soort)}',${it ? `'${escA(it.naam)}'` : "''"},${
+            it?.condId ? `'${escA(it.condId)}'` : 'null'})">${icon('save')} Opslaan</button>
       </div>`);
-    // De gedeelde focuskiezer schrijft in een hidden input; hier is geen
-    // formulier dat meegaat, dus bewaart hij meteen — net als in het
-    // spreukvenster.
-    if (it && plaat) {
-      window._fpOnChange = (v) => window.vaardigheden.naslagFocus(soort, it.naam, v);
-      window._fpTeken?.();
-    }
+    // **Het focuspunt gaat mee met Opslaan.** Het spreukvenster bewaart hem
+    // meteen, en dat leek hier ook te kunnen — maar `_fpOnChange` vuurt bij
+    // élke sleepbeweging, en elke opslagbeurt gooit de lijst weg en laadt hem
+    // opnieuw. Gevolg: tientallen verzoeken tijdens één sleep, en wie daarna
+    // op Opslaan drukte terwijl de lijst nog onderweg was kreeg "een conditie
+    // heeft een naam nodig" — het kaartje was even niet te vinden. En
+    // Annuleren annuleerde niets, want het was al opgeslagen.
+    window._fpOnChange = null;
+    if (it && plaat) window._fpTeken?.();
   },
 
   // Nieuwe conditie: hetzelfde venster, zonder kaartje erachter.
@@ -4660,22 +4718,33 @@ window.vaardigheden = {
     return this.naslagBewerk(it?.soort || 'conditie', it?.naam || c?.label || '');
   },
 
-  async _naslagBewaar(soort, naam) {
+  // `condId` komt uit het venster zelf mee en wordt niet opnieuw opgezocht:
+  // een kaartje terugvinden in een lijst die net ververst wordt is precies hoe
+  // een bestaande conditie er als nieuw uitzag.
+  async _naslagBewaar(soort, naam, condId) {
     const v = (x) => document.getElementById(x)?.value?.trim() || '';
     const isCond = soort === 'conditie' || soort === 'situatie' || soort === 'klassestaat';
-    const it = naam ? (_all || []).find(x => x.soort === soort && x.naam === naam) : null;
+    const focus = document.getElementById('fp-input')?.value || '';
     if (!isCond) {
-      if (!it) return;
-      await _naslagkaartBewaren(soort, it.naam, { tekst: v('cond-desc') });
+      if (!naam) return;
+      await _naslagkaartBewaren(soort, naam, {
+        tekst: v('cond-desc'),
+        ...(focus ? { focus } : {}),
+        ...(document.getElementById('summon-verdwijnt') ? { verdwijnt: v('summon-verdwijnt') } : {}),
+      });
       return;
     }
     const lijst = [...(window.app?.state?.meta?.condities || [])];
-    const id = it?.condId || null;
+    const id = condId || null;
     const label = v('cond-label');
     // Een nieuwe conditie heeft een naam nodig; bij een meegeleverde mag het
     // veld leeg blijven — dat betekent "hou de naam uit het boek".
     if (!id && !label) { alert('Een conditie heeft een naam nodig.'); return; }
-    const velden = { label: label || it?.naam || '', icoon: v('cond-icoon'), desc: v('cond-desc') };
+    // De plaat en zijn focuspunt horen bij het naslagkaartje, de rest bij de
+    // conditie zelf. Eerst het focuspunt, want de tweede opslagbeurt sluit het
+    // venster en hertekent.
+    if (focus && naam) await _naslagkaartBewaren(soort, naam, { focus }, false);
+    const velden = { label: label || naam || '', icoon: v('cond-icoon'), desc: v('cond-desc') };
     const groep = document.getElementById('cond-groep')?.value;
     if (groep) velden.groep = groep;
     const i = id ? lijst.findIndex(c => c.id === id) : -1;
@@ -4687,15 +4756,24 @@ window.vaardigheden = {
   // De plaat. Hij gaat altijd naar `meta.naslagkaarten` — ook bij een
   // conditie, want `meta.condities` heeft geen beeldveld en een token toont
   // geen plaat; dit is iets van het naslagkaartje alleen.
-  naslagBeeld(soort, naam) {
+  // De plaat zelf gaat meteen naar de server — hij is geüpload, daar valt
+  // niets aan te annuleren — maar het venster blijft open en tekent zichzelf
+  // opnieuw. Anders viel het dicht en moest je het heropenen om het
+  // focuspunt te kunnen zetten, en dat is precies waar je mee bezig was.
+  async naslagBeeld(soort, naam) {
     if (!window.mediaPicker?.open) { alert('Mediabibliotheek niet beschikbaar'); return; }
     window.mediaPicker.open({
       type: 'afbeelding', suggestedName: `${soort}-${naam}`,
-      onSelect: (srcId) => _naslagkaartBewaren(soort, naam, { beeld: srcId }),
+      onSelect: async (srcId) => {
+        await _naslagkaartBewaren(soort, naam, { beeld: srcId }, false);
+        window.vaardigheden.naslagBewerk(soort, naam);
+      },
     });
   },
-  naslagBeeldWeg(soort, naam) { return _naslagkaartBewaren(soort, naam, { beeld: '' }); },
-  naslagFocus(soort, naam, waarde) { return _naslagkaartBewaren(soort, naam, { focus: waarde }, false); },
+  async naslagBeeldWeg(soort, naam) {
+    await _naslagkaartBewaren(soort, naam, { beeld: '' }, false);
+    window.vaardigheden.naslagBewerk(soort, naam);
+  },
 
   async conditieWeg(id) {
     const c = (window.app?.state?.meta?.condities || []).find(x => x.id === id);
@@ -4725,6 +4803,31 @@ window.vaardigheden = {
     _bandHerteken(); _refreshFilterBar(); _paint();
     setTimeout(() => document.querySelector(`#vaardig-grid .tegel[data-sleutel="${CSS.escape(it.key)}"]`)
       ?.scrollIntoView({ block: 'center', behavior: 'smooth' }), 200);
+  },
+
+  // Een SRD-beest overnemen: de monster-editor opent leeg en vult zichzelf uit
+  // dezelfde SRD-lijst die de Meesterkamer gebruikt (`dmPanel.srdImport`). Hij
+  // is er niet meteen — het venster tekent zichzelf in twee stappen — dus
+  // wachten we tot het naamveld er staat in plaats van een vaste pauze te
+  // gokken.
+  async beestOvernemen(key) {
+    if (!window.dmPanel?.monsterModal || !window.dmPanel?.srdImport) {
+      window._showToast?.('Het bestiarium is hier niet beschikbaar'); return;
+    }
+    await window.dmPanel.monsterModal();
+    for (let i = 0; i < 40 && !document.getElementById('dm-mon-name'); i++) {
+      await new Promise(r => setTimeout(r, 25));
+    }
+    if (!document.getElementById('dm-mon-name')) { window._showToast?.('De editor kwam niet op'); return; }
+    window.dmPanel.srdImport(key);
+  },
+
+  // Naar de editor van het bestiarium. Eén monster-editor in de hele app (zie
+  // `dmPanel.monsterModal`); dit is de derde plek die hem leent, na het
+  // bestiarium zelf en de Monsters-tab.
+  naarBestiarium(monsterId) {
+    if (!window.dmPanel?.monsterModal) { window._showToast?.('Het bestiarium is hier niet beschikbaar'); return; }
+    window.dmPanel.monsterModal(monsterId);
   },
 
   // Van een feature of een spreuk naar het wezen dat hij geeft. Zelfde

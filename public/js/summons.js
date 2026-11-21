@@ -44,6 +44,10 @@ async function _laad(id) {
 // klik.
 const _oud = (s) => !!s.oud;
 
+// Wanneer hij verdwijnt staat op zijn kaartje in Naslag (de DM zet het daar
+// één keer); hier staat alleen wat eruit kwam.
+const _VERDWIJNT = { rust: 'tot je lange rust', gevecht: 'tot het gevecht uit is' };
+
 function _teken(el) {
   if (!el) return;
   const heeftAanbod = _stand.aanbod.length > 0;
@@ -57,6 +61,7 @@ function _teken(el) {
           <span class="summon-cijfers">${s.maxHp ? `${ic('heart')} ${esc(String(s.hp ?? s.maxHp))}/${esc(String(s.maxHp))}` : ''}${
             s.ac ? ` · ${ic('shield')} ${esc(String(s.ac))}` : ''}</span>
           ${_oud(s) ? '<span class="summon-oud-hint" title="Hij stond er al voor je laatste lange rust">van voor je rust</span>' : ''}
+          ${_VERDWIJNT[s.verdwijnt] ? `<span class="summon-duur" title="Ingesteld op zijn kaartje in Naslag">${esc(_VERDWIJNT[s.verdwijnt])}</span>` : ''}
           <button type="button" class="summon-weg" title="Wegsturen"
             onclick="window.summons.weg('${escA(s.id)}')">${ic('x')}</button>
         </div>`).join('')}</div>`

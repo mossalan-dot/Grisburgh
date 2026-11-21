@@ -34658,3 +34658,8 @@ button.player-dash-niveau-penning { cursor: pointer; }
 }
 .party-portrait--summon .party-portrait-fallback { color: #5a3a8c; }
 .party-portrait--summon .party-portrait-soort { color: #5a3a8c; }
+/* Wat er op het kaartje van dit wezen staat over hoe lang hij blijft. */
+.summon-duur {
+  font-family: 'Crimson Text', Georgia, serif;
+  font-size: .78em; color: #7a6040; white-space: nowrap; font-style: italic;
+}
