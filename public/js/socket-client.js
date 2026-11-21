@@ -57,6 +57,10 @@ function _ververOpenKaartje(id) {
   socket.on('entity:updated', ({ id } = {}) => {
     window._planEntityIndexHerbouw?.();   // naam kan gewijzigd zijn
     _ververOpenKaartje(id);
+    // Een dier-kaartje kan het statblok van een familiar zijn (zie *Statblok
+    // van* in de editor van een metgezel); dan hoort dat kaartje in Naslag
+    // mee te veranderen.
+    window.vaardigheden?.herlaad?.();
     const section = window.app.state.activeSection;
     if (ENTITY_SECTIONS.includes(section)) {
       _refreshEntitySection(section);
@@ -557,6 +561,9 @@ function _ververOpenKaartje(id) {
   socket.on('bestiarium:updated', () => {
     window.bestiarium?.refresh?.();
     window._updateDiscoveryChip?.(true); // onthul-teller verversen
+    // De deur Familiars in Naslag leest dezelfde statblokken; die hield de
+    // oude versie vast, en dan lijkt bewerken niets op te leveren.
+    window.vaardigheden?.herlaad?.();
   });
 
   // #2: ambiance-scène starten/stoppen bij iedereen

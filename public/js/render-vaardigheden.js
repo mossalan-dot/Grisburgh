@@ -4866,6 +4866,16 @@ window.vaardigheden = {
     window.dmPanel.srdImport(key);
   },
 
+  // De bron is veranderd (een monster bewerkt, een kaartje gekoppeld): gooi de
+  // lijst weg en teken opnieuw als dit tabblad openstaat. Zonder dit stond het
+  // oude statblok er nog, en dan lijkt bewerken niets op te leveren.
+  async herlaad() {
+    _all = null;
+    if (window._sectieNu !== 'vaardigheden') return;
+    try { await _load(); } catch { return; }
+    _bandHerteken(); _refreshFilterBar(); _paint();
+  },
+
   // Naar het personagekaartje waar zijn statblok en zijn tiers op staan. Het
   // archief heeft daar één venster voor, met het potlood erin.
   naarKaartje(entityId) {
