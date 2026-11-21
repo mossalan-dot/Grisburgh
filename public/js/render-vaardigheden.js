@@ -2097,7 +2097,12 @@ function _volkRijen(volk, { kern = false, metOpties = false } = {}) {
     b.creatureType ? ['Creature Type', b.creatureType] : null,
     b.size ? ['Size', b.size] : null,
     b.speed ? ['Speed', b.speed] : null,
-    (kern && !metOpties) ? null : (opties.length ? [laag.label, opties.join(' · ')] : null),
+    // Moét je kiezen, dan zegt het kaartje dat erbij. Een Dragonborn zonder
+    // Draconic Ancestry is niet af; een Half-Elf die niets koos wel.
+    (kern && !metOpties) ? null : (opties.length
+      ? [laag.label + (_bron?.prog?.species?.[volk]?.variantVerplicht === false ? '' : ' (verplicht)'),
+         opties.join(' · ')]
+      : null),
     kern ? null : (n ? ['Traits', String(n)] : null),
     kern ? null : (levels.length ? ['Op level', levels.join(' · ')] : null),
     kern ? null : (vroeg.length ? ['Vanaf 1', vroeg.join(', ')] : null),
@@ -3598,6 +3603,13 @@ function _uitlegVenster(soort, naam, bron) {
         <input class="dm-input" id="vd-houder-onder" maxlength="120" value="${esc(h.ondertitel || '')}"
           placeholder="Eén regel onder de soort — bijv. &quot;Woede als wapen&quot;">
       </div>
+      ${soort === 'species' && Object.keys(h.varianten || {}).length ? `
+      <div class="dm-form-row">
+        <label class="dm-form-label">
+          <input type="checkbox" id="vd-houder-variantmoet" ${h.variantVerplicht === false ? '' : 'checked'}>
+          ${esc(h.variantLabel || 'De tweede laag')} is verplicht
+        </label>
+      </div>` : ''}
       <!-- Herkomst en boek stonden alleen in het maakvenster, en het boek
            daar ook nog eens onder een andere naam ("Waaruit?") en alleen als
            je op overgenomen stond. Je kon een kaartje dus wel met een
@@ -5483,6 +5495,10 @@ window.vaardigheden = {
     const basis = _basisUitFormulier();
     const onderdelen = _bgUitFormulier();
     const herkomst = document.getElementById('vd-houder-herkomst')?.value || '';
+    // Alleen de uitzondering wordt vastgelegd: aangevinkt is wat de app toch
+    // al deed, en dan hoort er niets in de data te komen staan.
+    const vinkje = document.getElementById('vd-houder-variantmoet');
+    const variantVerplicht = vinkje ? vinkje.checked : undefined;
     // Zelf verzonnen heeft geen boek. Stond er een omdat je hem eerst
     // overgenomen noemde, dan hoort die weg te gaan en niet onzichtbaar te
     // blijven staan.
@@ -5498,7 +5514,8 @@ window.vaardigheden = {
     }
     try {
       await api.put('/progression/houder', { soort, naam, bron, desc, boek, ondertitel, kleur,
-        herkomst, basis, onderdelen });
+        herkomst, basis, onderdelen,
+        ...(variantVerplicht === undefined ? {} : { variantVerplicht }) });
       window.app.closeModal();
       _all = null; await _load(); await _klasseExtra();
       _bandHerteken(); _refreshFilterBar(); _paint();

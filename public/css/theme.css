@@ -34790,3 +34790,14 @@ button.player-dash-niveau-penning { cursor: pointer; }
   font-size: .8em;
   color: #9a7008;
 }
+
+/* Een keuze op je blad die nog gemaakt moet worden. Een leeg veld is bij het
+   ene species een gat en bij het andere een geldig antwoord; alleen het eerste
+   hoort op te vallen. */
+.ppf-row--open .ppf-select,
+.ppf-row--open .ppf-input {
+  border-color: #c49a3a;
+  background: rgba(212, 173, 78, 0.12);
+}
+.ppf-open-merk { color: #9a7008; display: inline-flex; align-items: center; }
+.ppf-open-merk svg { width: 13px; height: 13px; }

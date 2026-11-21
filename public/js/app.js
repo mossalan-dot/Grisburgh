@@ -1,5 +1,5 @@
 import { api, campagneUitUrl, zetCampagne } from './api.js?v=326';
-import { initCampagne, renderArchiefDeuren, renderAvontuurDeuren, renderDienstenDeuren, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, renderDocumenten, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=444";
+import { initCampagne, renderArchiefDeuren, renderAvontuurDeuren, renderDienstenDeuren, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, renderDocumenten, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=445";
 import { initArchief, renderLogboek, openLogboekEditor } from "./render-archief.js?v=156";
 import { renderKaart, queueFlyTo, verversPins, nieuweKaart } from './render-kaart.js?v=41';
 import { renderDungeon } from './render-dungeon.js?v=82';
@@ -9,7 +9,7 @@ import { renderBestiarium } from './render-bestiarium.js?v=47';
 import { renderSpreuken } from './render-spreuken.js?v=66';
 import './render-handleiding.js?v=2';
 import './render-melding.js?v=4';
-import { renderVaardigheden, zoekVaardigheden, heldenboekTekst } from './render-vaardigheden.js?v=205';
+import { renderVaardigheden, zoekVaardigheden, heldenboekTekst } from './render-vaardigheden.js?v=206';
 import { renderStatblock } from './render-statblock.js?v=10';
 import { initSocket } from "./socket-client.js?v=111";
 import { initDmPanel } from "./dm-panel.js?v=435";
@@ -1803,7 +1803,7 @@ async function _landingNieuwTegel() {
   if (!host || !_groepsWachtwoord || document.getElementById('landing-nieuw')) return;
   let stand = null;
   try {
-    await import('./personage-maken.js?v=66');
+    await import('./personage-maken.js?v=67');
     stand = await window.personageMaken.stand();
   } catch { return; }
   if (stand?.instellingen && stand.instellingen.aan === false) return;
@@ -1825,7 +1825,7 @@ async function _landingNieuwTegel() {
 
 async function _landingNieuw() {
   try {
-    await import('./personage-maken.js?v=66');
+    await import('./personage-maken.js?v=67');
     const stand = await window.personageMaken.stand();
     // Ook als hij al bij de DM ligt: dan zie je dat, en kun je hem nog
     // terughalen om iets te veranderen.
@@ -9234,8 +9234,18 @@ async function renderMijnKarakter(opts = {}) {
               const sp = progData?.species?.[playerProfile.origin];
               const opties = Object.keys(sp?.varianten || {});
               if (!opties.length) return '';
-              return `<div class="ppf-row"><label class="ppf-label">${esc(sp.variantLabel || 'Variant')}</label>
-                ${_ppfSelectField('originVariant', playerProfile.originVariant, opties, '—')}</div>`;
+              // **Een leeg veld is niet altijd hetzelfde.** Bij een Dragonborn
+              // is het een gat (hij móet een Draconic Ancestry kiezen), bij
+              // een Half-Elf een geldig antwoord. De houder zegt welke van de
+              // twee (`variantVerplicht: false` = mag leeg); ontbreekt het,
+              // dan is het verplicht. Zonder dat verschil staat er twee keer
+              // dezelfde streep met twee betekenissen.
+              const moet = sp.variantVerplicht !== false;
+              const leeg = !String(playerProfile.originVariant || '').trim();
+              return `<div class="ppf-row${moet && leeg ? ' ppf-row--open' : ''}">
+                <label class="ppf-label">${esc(sp.variantLabel || 'Variant')}</label>
+                ${_ppfSelectField('originVariant', playerProfile.originVariant, opties, moet ? 'nog te kiezen' : '—')}
+                ${moet && leeg ? `<span class="ppf-open-merk" title="Zonder deze keuze is je personage niet af">${icon('pencil')}</span>` : ''}</div>`;
             })()}
             ${isHp ? `<div class="ppf-row"><label class="ppf-label">Blood Status</label>
               <input class="ppf-input" type="text" value="${esc(playerProfile.bloodStatus ?? '')}" placeholder="—"

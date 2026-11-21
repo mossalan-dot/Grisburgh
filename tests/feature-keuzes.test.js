@@ -125,6 +125,38 @@ describe('Keuzes op een feature', () => {
   // Dit stond er wél, maar twee regels verderop overschreef een harde
   // `languages: 'Common'` het weer — dus elke gekozen taal verdween
   // stilzwijgend van het blad. Vandaar deze toets.
+  it('vraagt alleen om een tweede laag waar die verplicht is', () => {
+    // **Een leeg veld is niet altijd hetzelfde.** Een Dragonborn zonder
+    // Draconic Ancestry is niet af; een Half-Elf hoeft niets te kiezen, want
+    // zijn descents zijn 2014-materiaal dat je erbij kúnt nemen. De app zei bij
+    // allebei "kiest nog een variant".
+    //
+    // Afleiden kan niet — nagemeten in Grisburgh: vier van de acht species met
+    // varianten hebben een trait die net zo heet als hun label, maar Tiefling
+    // (vijftien varianten, onmiskenbaar verplicht) heeft die niet. Dus een
+    // eigen veld, waarbij **ontbreken verplicht betekent**: dat is wat de app
+    // hiervoor deed, en het klopt bij vijf van de acht.
+    const prog = {
+      classes: {},
+      species: {
+        Dragonborn: { variantLabel: 'Draconic Ancestry', levels: {}, varianten: { Red: { levels: {} }, Blue: { levels: {} } } },
+        'Half-Elf': { variantVerplicht: false, levels: {}, varianten: { Drow: { levels: {} }, Wood: { levels: {} } } },
+        Mens:       { levels: {} },
+      },
+      backgrounds: {},
+      feats: { general: [], epic: [] },
+    };
+    const zegt = (species, variant) => (pc.nakijken({ species, speciesVariant: variant, level: 1 }, { prog })
+      .opmerkingen || []).join(' | ');
+
+    assert.match(zegt('Dragonborn', ''), /Draconic Ancestry/,
+      'zonder keuze is hij niet af, en de app noemt het bij de naam uit het boek');
+    assert.ok(!/variant|Ancestry/i.test(zegt('Dragonborn', 'Red')), 'gekozen is gekozen');
+    assert.ok(!/variant|Drow/i.test(zegt('Half-Elf', '')),
+      'een optionele tweede laag leeg laten is een geldig antwoord, geen gat');
+    assert.ok(!/variant/i.test(zegt('Mens', '')), 'en een species zonder tweede laag wordt niets gevraagd');
+  });
+
   it('zet de gekozen taal op het blad, en niet alleen Common', () => {
     const c = basis({ subclass: 'Path of the Giant' });
     const taal = pc.keuzeSlots(c, PROG).find(s => s.keuze.soort === 'language');

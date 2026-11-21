@@ -13196,6 +13196,26 @@ router.put('/progression/houder', requireDM, (req, res) => {
   }
   zet('herkomst', b.herkomst, 40);
 
+  // **Moet je die tweede laag kiezen, of mag je hem laten?** Een Dragonborn
+  // zonder Draconic Ancestry is niet af; een Half-Elf hoeft niets te kiezen,
+  // want zijn descents zijn 2014-materiaal dat je erbij kúnt nemen. De app zag
+  // dat verschil niet en zette voor allebei dezelfde lijst met "—" erboven:
+  // een leeg veld dat bij de een een gat is en bij de ander een antwoord.
+  //
+  // **Afleiden kan niet**, en dat is nagemeten: vier van de acht species met
+  // varianten hebben een trait die net zo heet als hun label (Elven Lineage,
+  // Draconic Ancestry), maar Tiefling — vijftien varianten en onmiskenbaar
+  // verplicht — heeft die niet, en Halfling heeft varianten zonder label.
+  // Dus een eigen veld, dat de DM zet.
+  //
+  // `undefined` betekent **verplicht**: dat is wat de app vandaag al doet
+  // (`nakijken` vraagt er bij elk species met varianten om), en dat klopt bij
+  // vijf van de acht. Alleen de uitzondering wordt vastgelegd.
+  if (soort === 'species' && b.variantVerplicht !== undefined) {
+    if (b.variantVerplicht === false || b.variantVerplicht === 'false') houder.variantVerplicht = false;
+    else delete houder.variantVerplicht;
+  }
+
   // De kerngegevens van een class: hit die, saving throws, skills, trainingen.
   // Die staan in `bronnen/klasse-basis.json` voor de vijftien die we meeleveren,
   // en dat bestand is van de app — niet van deze campagne. Een eigen class had
