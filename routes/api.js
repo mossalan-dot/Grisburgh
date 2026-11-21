@@ -8488,6 +8488,23 @@ router.get('/characters/:characterId/level-up', attachRole, (req, res) => {
     klassen,
     geschiedenis: ((dmState.levelUps || {})[characterId] || []).slice(-10).reverse(),
     openKeuzes: _openSpreukKeuzes(dmState, characterId),
+    // **En wat een feature je laat kiezen.** Die keuzes worden in de
+    // personagemaker gemaakt; wie later een level haalt krijgt er nieuwe bij
+    // en moest zelf bedenken dat ze er waren. Alleen wat nog openstaat, en
+    // zonder de dagelijkse — die hebben hun eigen plek in de rustoverlay.
+    openSlots: (() => {
+      try {
+        const char = (storage.readJSON('entities.json').personages || []).find(e => e.id === characterId);
+        if (!char) return [];
+        return _keuzeSlotsVoor(dmState, char)
+          .filter(sl => !sl.keuze?.bijRust && (sl.gekozen || []).length < (sl.keuze?.aantal || 1))
+          .map(sl => ({
+            sleutel: sl.sleutel, naam: sl.naam, level: sl.level, bron: sl.bron, sub: sl.sub || '',
+            soort: sl.keuze?.soort || '', aantal: sl.keuze?.aantal || 1,
+            over: (sl.keuze?.aantal || 1) - (sl.gekozen || []).length,
+          }));
+      } catch { return []; }
+    })(),
   });
 });
 

@@ -34722,3 +34722,71 @@ button.player-dash-niveau-penning { cursor: pointer; }
 }
 .gedaante-regel b { font-family: 'Cinzel', serif; font-size: .78rem; margin-right: 5px; }
 .gedaante-naar { margin-top: 8px; }
+
+/* ── Een keuze die een feature je geeft, op de tijdlijn ──────────────────────
+   Ze stonden alleen in de personagemaker; dit is dezelfde keuze op het kaartje
+   van de feature zelf. Een open keuze valt op — dat is het hele punt, want je
+   moet merken dat er nog iets ligt. */
+.prog-slots { display: flex; flex-direction: column; gap: 10px; }
+.prog-slot {
+  border: 1px solid rgba(196, 168, 122, 0.6);
+  border-radius: 8px;
+  padding: 8px 10px;
+  background: rgba(255, 252, 243, 0.55);
+}
+.prog-slot--open {
+  border-style: dashed;
+  border-color: #c49a3a;
+  background: rgba(212, 173, 78, 0.1);
+}
+.prog-slot-kop {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 6px;
+}
+.prog-slot-naam { font-family: 'Cinzel', serif; font-size: .9em; color: #3a2410; }
+.prog-slot-geeft,
+.prog-slot-dag {
+  font-family: 'IM Fell English', Georgia, serif;
+  font-style: italic;
+  font-size: .78em;
+  color: #8a7050;
+}
+.prog-slot-dag { color: #9a7008; }
+.prog-slot-opties { display: flex; flex-wrap: wrap; gap: 5px; }
+.prog-slot-optie {
+  font-family: 'Crimson Text', Georgia, serif;
+  font-size: .84em;
+  padding: 3px 9px;
+  border: 1px solid rgba(196, 168, 122, 0.7);
+  border-radius: 999px;
+  background: rgba(239, 227, 197, 0.5);
+  color: #3a2410;
+  cursor: pointer;
+}
+.prog-slot-optie:hover { background: rgba(196, 168, 122, 0.35); }
+.prog-slot-optie.is-aan {
+  background: #c49a3a;
+  border-color: #a07c20;
+  color: #2a1a08;
+  font-weight: 600;
+}
+.prog-slot-vrij {
+  width: 100%;
+  font-family: 'Crimson Text', Georgia, serif;
+  font-size: .9em;
+  padding: 4px 8px;
+  border: 1px solid rgba(196, 168, 122, 0.7);
+  border-radius: 6px;
+  background: rgba(255, 252, 243, 0.8);
+  color: #3a2410;
+}
+.prog-slot-open {
+  margin: 6px 0 0;
+  font-family: 'IM Fell English', Georgia, serif;
+  font-style: italic;
+  font-size: .8em;
+  color: #9a7008;
+}

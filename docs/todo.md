@@ -29,22 +29,19 @@ groot het is. Bijgewerkt 15 sep 2026.
       uit het hoofd samengesteld en nog nooit tegen de DMG nagelopen — en het
       scherm is wel getoetst maar nooit aan tafel gezien.
 
-- [ ] **Een keuze op een feature na het aanmaken.** De crux van
-      `voorstel-feature-keuzes.md` is gebouwd (ronde 2, 19 nov): een gemaakte
-      keuze landt echt op het blad. Maar hij is alleen te maken **in de
-      personagemaker**. Gemeten in Grisburgh: **53 keuzeblokken**, waarvan er 5
-      `bijRust` zijn (die staan op het blad en in de rustoverlay, zie
-      `dagkeuze.js`) — de andere **48 zijn na het aanmaken onzichtbaar**.
-      Primal Knowledge, Blessings of Knowledge, Student of War, Acolyte of
-      Nature: wie al een personage heeft kan ze niet zien, niet wijzigen, en
-      krijgt ze bij een level-up niet aangeboden.
-      De tijdlijn heeft wél een blad *Jouw keuze*, maar dat is het **oude**
-      vrije tekstveld (`_isChoiceFeat` → `featChoices`), dat niets met deze
-      blokken te maken heeft. Twee keuzemechanieken naast elkaar dus, en de
-      nieuwe is de enige die iets op het blad zet.
-      Raakt: `render-progressie.js` (het blad *Jouw keuze* moet `keuzeSlots`
-      lezen in plaats van een tekstveld te tonen), en de level-up — die zou de
-      nieuwe slots moeten noemen zoals hij nu al cantrips en feats noemt.
+- [x] **Een keuze op een feature na het aanmaken** — gedaan 22 nov 2026. De 48
+      keuzeblokken die alleen in de personagemaker te maken waren staan nu op
+      de tijdlijn, op het kaartje van de feature zelf: het blad *Jouw keuze*
+      toont de echte lijst (`keuzeSlots` + `keuzeOpties`) in plaats van een
+      vrij tekstveld, en schrijft via dezelfde route als de dagkeuze
+      (`POST /characters/:id/keuzes`) — één waarheid, twee vensters. Staat er
+      nog iets open, dan zegt het Personage-tabblad dat met een knop ernaartoe
+      (`openSlots` op `GET …/level-up`); de dagelijkse staan daar niet bij,
+      die hebben hun eigen plek in de rustoverlay.
+      **Wat er nog ligt:** het oude vrije tekstveld (`featChoices`) bestaat
+      nog náást dit, voor features zónder keuzeblok. Dat is bewust — een
+      aantekening is beter dan niets — maar als elke feature die iets laat
+      kiezen ooit een blok heeft, mag die hele tak eruit.
 
 - [ ] **Twee kleine dubbelingen uit de navigatie-ronde** (20 nov 2026).
       De deurenlijst van het Avontuur-menu staat zowel in `index.html` als in

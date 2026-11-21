@@ -56,7 +56,12 @@ describe('Wat je elke dag opnieuw kiest', () => {
     storage.createCampaign('dagproef', { appTitle: 'Dagproef' });
 
     schrijf('progression.json', {
-      classes: { Rogue: { levels: { 1: [{ name: 'Thieves’ Cant' }] } } },
+      classes: { Rogue: { levels: {
+        1: [{ name: 'Thieves’ Cant' }],
+        // Een keuze die je één keer maakt, naast de dagelijkse hieronder: die
+        // twee horen op verschillende plekken te staan.
+        3: [{ name: 'Straatkennis', keuze: { soort: 'skill', aantal: 1, geeft: 'proficiency' } }],
+      } } },
       species: {
         Githyanki: {
           levels: {
@@ -143,6 +148,27 @@ describe('Wat je elke dag opnieuw kiest', () => {
     await req(server, 'POST', '/api/party/long-rest', { locatie: 'veld' }, dm);
     assert.equal(skills().stealth, 'prof',
       'Stealth kwam van zijn class; de feature schreef hem niet en mag hem dus ook niet weghalen');
+  });
+
+  it('noemt een keuze die nog openstaat bij de level-up, maar niet de dagelijkse', async () => {
+    // **Een keuze op een feature werd alleen in de personagemaker gemaakt.**
+    // Wie later een level haalt krijgt er nieuwe bij en moest zelf bedenken
+    // dat ze er waren; nu staat het op zijn blad tot hij het doet. De
+    // dagelijkse hoort daar níét bij: die heeft zijn eigen plek in de
+    // rustoverlay, en twee herinneringen voor hetzelfde is er één te veel.
+    const r = await req(server, 'GET', `/api/characters/${CHAR}/level-up`, null, dm);
+    assert.equal(r.status, 200);
+    const namen = (r.body.openSlots || []).map(s => s.naam);
+    assert.ok(namen.includes('Straatkennis'), `openSlots: ${JSON.stringify(r.body.openSlots)}`);
+    assert.ok(!namen.includes('Astral Knowledge'), 'de dagelijkse staat in de rustoverlay, niet hier');
+
+    // Gemaakt is gemaakt: dan verdwijnt de herinnering.
+    const slot = (await req(server, 'GET', `/api/characters/${CHAR}/keuzes`, null, dm))
+      .body.slots.find(s => s.naam === 'Straatkennis');
+    await req(server, 'POST', `/api/characters/${CHAR}/keuzes`, { sleutel: slot.sleutel, namen: ['Acrobatics'] }, dm);
+    const na = await req(server, 'GET', `/api/characters/${CHAR}/level-up`, null, dm);
+    assert.ok(!(na.body.openSlots || []).some(s => s.naam === 'Straatkennis'));
+    assert.equal(skills().acrobatics, 'prof', 'en wat hij koos staat op zijn blad');
   });
 
   it('laat een andere speler er niet bij', async () => {

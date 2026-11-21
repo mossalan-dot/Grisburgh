@@ -181,6 +181,73 @@ function _kindLabel(kind) {
   return kind === 'sub' ? 'Subclass' : kind === 'species' ? 'Origin' : kind === 'background' ? 'Background' : kind === 'shared' ? 'General' : kind === 'subclass' ? 'Feature' : 'Class';
 }
 function _featKey(scope, level, name) { return `${scope}|${level}|${name}`; }
+// ── Keuzes die een feature je geeft ─────────────────────────────────────────
+// **Ze werden alleen in de personagemaker gemaakt.** Een feature kan een
+// `keuze`-blok dragen (`{soort, aantal, uit, geeft}`, zie `_keuzeUit` in
+// routes/api.js), en wat je kiest landt echt op je blad: een skill wordt een
+// proficiency, `expertise` wordt expert, een `+1` telt mee. Maar je kon hem
+// alleen bij het scheppen maken — gemeten in Grisburgh: 53 blokken, waarvan er
+// 48 na het aanmaken nergens meer te zien waren.
+//
+// Hier staan ze op de tijdlijn, op het kaartje van de feature zelf, want daar
+// hoort "wat heb ik gekozen" thuis. Dezelfde route als de dagkeuze
+// (`GET|POST /characters/:id/keuzes`), dus één waarheid en twee vensters: wie
+// hier kiest ziet het in zijn rustoverlay en andersom.
+//
+// Het oude vrije tekstveld blijft staan voor features zónder zo'n blok — een
+// aantekening is beter dan niets — en voor de ASI en de Epic Boon, die hun
+// eigen feat-picker hebben.
+let _keuzeSlots = [];
+
+export async function laadKeuzes(charId) {
+  if (!charId) { _keuzeSlots = []; return _keuzeSlots; }
+  try {
+    const r = await api.get(`/characters/${charId}/keuzes`);
+    _keuzeSlots = r?.slots || [];
+  } catch { _keuzeSlots = []; }
+  return _keuzeSlots;
+}
+
+// Welke slots horen bij déze feature? Op naam en level: binnen één personage
+// is dat eenduidig (hij heeft één class, één subclass, één species), en een
+// feature mág twee blokken dragen — die horen er dan allebei te staan.
+function _slotsVan(f) {
+  const lv = Number(f?.level);
+  return _keuzeSlots.filter(sl => sl.naam === f?.name && Number(sl.level) === lv);
+}
+
+const _SOORT_WOORD = { skill: 'skill', language: 'taal', tool: 'gereedschap', spell: 'spreuk', variant: 'variant', vrij: 'keuze' };
+
+function _slotHtml(sl, i) {
+  const gekozen = sl.gekozen || [];
+  const over = Math.max(0, (sl.keuze?.aantal || 1) - gekozen.length);
+  const woord = _SOORT_WOORD[sl.keuze?.soort] || 'keuze';
+  const kop = sl.keuze?.label
+    || `Kies ${sl.keuze?.aantal > 1 ? `${sl.keuze.aantal} ${woord}s` : `een ${woord}`}`;
+  return `
+    <div class="prog-slot${over ? ' prog-slot--open' : ''}" data-slot="${esc(sl.sleutel)}">
+      <div class="prog-slot-kop">
+        <span class="prog-slot-naam">${esc(kop)}</span>
+        ${sl.keuze?.geeft ? `<span class="prog-slot-geeft">${esc(sl.keuze.geeft)}</span>` : ''}
+        ${sl.keuze?.bijRust ? `<span class="prog-slot-dag" title="Dit kies je elke dag opnieuw; het staat ook in je rustoverlay">elke dag opnieuw</span>` : ''}
+      </div>
+      ${sl.opties?.length
+        ? `<div class="prog-slot-opties">${sl.opties.map(o => `
+            <button type="button" class="prog-slot-optie${gekozen.includes(o) ? ' is-aan' : ''}"
+              onclick="event.stopPropagation();window.progressie.kiesSlot('${escArg(sl.sleutel)}','${escArg(o)}')">${esc(o)}</button>`).join('')}</div>`
+        : `<input class="prog-slot-vrij" value="${esc(gekozen[0] || '')}" placeholder="Schrijf op wat je koos"
+             onclick="event.stopPropagation()"
+             onchange="event.stopPropagation();window.progressie.vulSlot('${escArg(sl.sleutel)}',this.value)">`}
+      ${over ? `<p class="prog-slot-open">Nog ${over} te kiezen</p>` : ''}
+    </div>`;
+}
+
+function _slotsHtml(f) {
+  const slots = _slotsVan(f);
+  if (!slots.length) return '';
+  return `<div class="prog-slots">${slots.map(_slotHtml).join('')}</div>`;
+}
+
 function _isChoiceFeat(feat) { return feat.choice === true || feat._kind === 'shared'; }
 function _totalLevel(ctx) {
   return ctx.level || ((ctx.klasseLevel || 0) + (ctx.multiKlasseLevel || 0)) || ctx.klasseLevel || 1;
@@ -275,7 +342,11 @@ export async function renderProgressie(container, ctx) {
   // Data ophalen (progression + SRD + backgrounds parallel)
   let prog;
   try {
-    [prog] = await Promise.all([api.progression(), _loadSrd(), _loadBackgrounds(), _loadFeatLib()]);
+    // De keuzeslots horen bij deze ronde ophalen: ze staan op de kaartjes, dus
+    // ze moeten er zijn vóór `_buildPanel` tekent. Ze mogen nooit het hele
+    // paneel tegenhouden — `laadKeuzes` vangt zijn eigen fout af.
+    [prog] = await Promise.all([api.progression(), _loadSrd(), _loadBackgrounds(), _loadFeatLib(),
+      laadKeuzes(ctx.charId || null)]);
   } catch(e) {
     getEl().innerHTML = `<p style="color:#8a3020;padding:16px;
       font-family:'IM Fell English',serif;font-style:italic">
@@ -458,7 +529,7 @@ function _progBladen(f) {
   const tekst = f.desc || _srdDesc(f.name, f.clsName) || '';
   bladen.push({ soort: 'beschrijving', label: 'Beschrijving', tekst,
     html: tekst ? `<div class="tegel-tekst">${_md(tekst)}</div>` : _geenTekstBlok(f.name) });
-  if (_isChoiceFeat(f)) bladen.push({ soort: 'keuze', label: 'Jouw keuze' });
+  if (_isChoiceFeat(f) || _slotsVan(f).length) bladen.push({ soort: 'keuze', label: 'Jouw keuze' });
   return bladen;
 }
 
@@ -473,7 +544,8 @@ function _progBladInhoud(f, blad, fi) {
     return `<div class="tegel-vel">
       <div class="tegel-vel-kop">${icon('pencil')} Jouw keuze<span class="tegel-vel-naam">${esc(f.name)}</span></div>
       <div class="tegel-vel-tekst" onclick="event.stopPropagation()">
-        ${_choiceField(f.key, true, ctx.choices || {}, ctx.charId || null, f.name, f.level, f.clsName)}
+        ${_slotsHtml(f)}
+        ${_isChoiceFeat(f) ? _choiceField(f.key, true, ctx.choices || {}, ctx.charId || null, f.name, f.level, f.clsName) : ''}
       </div></div>`;
   }
   return `<div class="tegel-vel">
@@ -1052,7 +1124,38 @@ export async function naslagBron() {
   };
 }
 
+// Eén plek die een slot wegschrijft; de twee ingangen (een knop, een vrij
+// veld) doen hetzelfde en mogen niet uiteenlopen. De server stuurt daarna
+// `player:keuzes`, waar de dagkeuze en het spelersblad al aan hangen.
+let _slotBezig = false;
+async function _slotBewaar(sleutel, namen) {
+  const charId = _lastRenderArgs?.ctx?.charId;
+  if (!charId || _slotBezig) return;
+  _slotBezig = true;
+  try {
+    const r = await api.post(`/characters/${charId}/keuzes`, { sleutel, namen });
+    _keuzeSlots = r?.slots || _keuzeSlots;
+    _refresh();
+  } catch (e) {
+    window._showToast?.(e?.message || 'Dat lukte niet');
+  } finally { _slotBezig = false; }
+}
+
 window.progressie = {
+  // Tikken op een optie: aan of uit. Mag je er maar één en kies je een tweede,
+  // dan valt de oudste eraf — prettiger dan een knop die niets doet en je laat
+  // raden waarom. Zelfde gedrag als in de dagkeuze.
+  kiesSlot(sleutel, naam) {
+    const sl = _keuzeSlots.find(x => x.sleutel === sleutel);
+    if (!sl) return;
+    const nu = [...(sl.gekozen || [])];
+    const i = nu.indexOf(naam);
+    if (i >= 0) nu.splice(i, 1);
+    else { nu.push(naam); while (nu.length > (sl.keuze?.aantal || 1)) nu.shift(); }
+    return _slotBewaar(sleutel, nu);
+  },
+  vulSlot(sleutel, waarde) { return _slotBewaar(sleutel, [waarde]); },
+
   // Aangeroepen vanuit app.js na level-/klasse-wijziging, zonder dat het Progressie-tabblad open hoeft te zijn.
   async triggerSync(charId, ctx) {
     if (!charId || !ctx?.klasse) return;
@@ -1246,10 +1349,15 @@ window.progressie = {
     const isChoice = _isChoiceFeat(f);
     const choices  = _lastRenderArgs?.ctx?.choices || {};
     const charId   = _lastRenderArgs?.ctx?.charId || null;
-    const detailChoice = isChoice ? `
+    // Hetzelfde blok als op de tegel: het venster en de kaart horen dezelfde
+    // keuze te tonen, anders staat er op het ene scherm iets anders dan op het
+    // andere.
+    const slotsHtml = _slotsHtml(f);
+    const detailChoice = (isChoice || slotsHtml) ? `
       <div class="prog-detail-choice">
         <label class="prog-detail-choice-label">${icon('pencil')} Jouw keuze</label>
-        ${_choiceField(f.key, true, choices, charId, f.name)}
+        ${slotsHtml}
+        ${isChoice ? _choiceField(f.key, true, choices, charId, f.name) : ''}
       </div>` : '';
     window.app.openModal(f.name, '', `
       <div class="prog-detail">
