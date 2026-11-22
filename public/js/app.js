@@ -10958,6 +10958,36 @@ async function renderMijnKarakter(opts = {}) {
     return uit;
   }
 
+  // **Een magisch plusje staat in de naam.** "+2 Dagger" telt bij de aanval én
+  // bij de schade. Het staat nergens als veld — rariteit zegt het niet, en de
+  // beschrijving is proza — maar in de naam is het eenduidig.
+  function _wapenMagie(naam) {
+    const m = String(naam || '').match(/(?:^|\s)\+(\d)\b/);
+    return m ? parseInt(m[1], 10) : 0;
+  }
+
+  // **Ben je proficient met dit wapen?** Je blad zegt het in vrije tekst, en
+  // in deze campagne staat daar van alles: "Simple and martial weapons",
+  // "Daggers, darts, slings", en zelfs "Dolk, Darts, Sling". Geen enkel
+  // wapenkaartje zegt of het simple of martial is, dus matchen op categorie
+  // kan niet — matchen op wat er wél staat wel.
+  //
+  // Weet de app het niet, dan telt hij de bonus **toch** mee: je draagt
+  // doorgaans wapens waar je mee overweg kunt, en een aanvalsbonus die te laag
+  // is poets je minder snel weg dan een die te hoog is. Maar hij zegt erbij
+  // dat het een aanname was, want dat is precies de edge case.
+  function _wapenProf(naam) {
+    const t = String(playerProfile.weaponProfs || '').toLowerCase();
+    if (!t.trim()) return { ja: true, zeker: false };
+    if (/\ball\b|\balle\b/.test(t)) return { ja: true, zeker: true };
+    if (/simple/.test(t) && /martial/.test(t)) return { ja: true, zeker: true };
+    const kaal = String(naam || '').replace(/^\s*\+\d\s*/, '').trim().toLowerCase();
+    if (kaal && (t.includes(kaal) || t.includes(`${kaal}s`) || t.includes(kaal.replace(/s$/, '')))) {
+      return { ja: true, zeker: true };
+    }
+    return { ja: true, zeker: false };
+  }
+
   // **Welke ability hoort bij dit wapen?** De regel uit het boek: Finesse laat
   // je kiezen (dus je hoogste), een wapen met Ammunition of een Range is een
   // afstandswapen en gebruikt DEX, en de rest STR.
@@ -10977,7 +11007,10 @@ async function renderMijnKarakter(opts = {}) {
 
   function _wapenVoorstel(naam, schade, props) {
     const { mod: ab, waarom } = _wapenAbility(props);
-    const prof = parseInt(String(playerProfile.profBonus || '').replace(/[^0-9-]/g, '')) || 0;
+    const profBonus = parseInt(String(playerProfile.profBonus || '').replace(/[^0-9-]/g, '')) || 0;
+    const magie = _wapenMagie(naam);
+    const kan = _wapenProf(naam);
+    const prof = kan.ja ? profBonus : 0;
     // "1d6 slashing" → "1d6+3 Slashing". Staat er al een modifier in, dan laat
     // de app hem staan: dan heeft iemand er al over nagedacht.
     const m = String(schade || '').match(/^\s*(\d*d\d+)\s*([+-]\s*\d+)?\s*(.*)$/i);
@@ -10986,13 +11019,22 @@ async function renderMijnKarakter(opts = {}) {
     // **Geen dobbel, geen modifier.** Negen van de 51 wapenkaartjes hebben
     // geen schadeveld; daar "+2" neerzetten is erger dan het leeg laten — dan
     // staat er een getal dat niets betekent en dat je moet wegpoetsen.
-    const mod = !dobbel ? '' : (m[2] ? m[2].replace(/\s+/g, '') : (ab ? _wuPlus(ab) : ''));
+    // Staat er al een modifier op het kaartje, dan is die van de DM en telt
+    // hij; anders die van jou. Het magische plusje komt er in beide gevallen
+    // bij — dat is een eigenschap van het wapen, niet van wie het draagt.
+    const eigen = m && m[2] ? parseInt(m[2].replace(/\s+/g, ''), 10) : (dobbel ? ab : 0);
+    const totaal = eigen + magie;
+    const mod = !dobbel ? '' : (totaal ? _wuPlus(totaal) : '');
     return {
       name: naam,
-      atk: _wuPlus(ab + prof),
+      atk: _wuPlus(ab + prof + magie),
       dmg: [dobbel + mod, soort.charAt(0).toUpperCase() + soort.slice(1)].filter(Boolean).join(' ').trim(),
       props: [...(props || [])],
-      _waarom: waarom,
+      _waarom: [
+        waarom,
+        magie ? `+${magie} magisch` : '',
+        kan.zeker ? '' : 'proficiency aangenomen',
+      ].filter(Boolean).join(' · '),
     };
   }
 
