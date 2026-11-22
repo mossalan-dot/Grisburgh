@@ -2945,7 +2945,11 @@ function _hertekenRaster(alleen) {
       if (nieuw.length !== wil.length) { _paint(); return; }
       // De spreuknamen in de tekst van een open kaartje zijn knoppen; die
       // haakt `_paint` normaal aan. Bij een gerichte wissel doen we dat zelf.
-      for (const el of nieuw) { window.glossary?.applyDom?.(el); window.spreuken?.linkInDom?.(el); }
+      for (const el of nieuw) {
+        window.glossary?.applyDom?.(el);
+        window.spreuken?.linkInDom?.(el);
+        el.querySelectorAll('.tegel-tekst').forEach(t => window.spreuken?.linkInProza?.(t));
+      }
     });
     return;
   }
@@ -2987,6 +2991,13 @@ function _paint() {
   // dit mag niets blokkeren; hij vult de knoppen in zodra hij binnen is.
   window.glossary?.applyDom?.(grid);
   window.spreuken?.linkInDom?.(grid);
+  // **Ook de lopende tekst.** `linkInDom` doet alleen de spreukenkolommen van
+  // een tabel; namen in proza gaan via `linkInProza` (twee woorden of meer —
+  // één woord is te vaak gewoon Engels). Dat gebeurde alleen bij het bláderen
+  // naar een ander blad, dus een kaartje dat meteen op zijn beschrijving
+  // opent — wat zoeken juist doet — toonde zijn spreuknamen als kale tekst
+  // tot je er een keer langs en terug bladerde.
+  grid.querySelectorAll('.tegel-tekst').forEach(el => window.spreuken?.linkInProza?.(el));
   _roepknoppen(grid);
   const tel = document.getElementById('vaardig-telling');
   if (tel) tel.textContent = `${lijst.length} van ${(_all || []).length}`;
