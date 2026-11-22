@@ -35029,3 +35029,9 @@ body:has(#sb-overlay.sb-open) .spreuk-detail-overlay { z-index: 9200; }
 /* Een naam die je kunt aanklikken om te lezen, ziet er ook zo uit. */
 .sb-toc-item-name--lees { cursor: pointer; }
 .sb-toc-item-name--lees:hover { text-decoration: underline; text-underline-offset: 2px; }
+
+/* De drie knopvakjes in de inhoudsopgave liggen in een vaste kolom, zodat de
+   schoolnaam ernaast op elke regel op dezelfde plek eindigt. Een lege plek is
+   een leeg vakje van dezelfde maat — geen knop die niets doet. */
+.sb-toc-item-knoppen { width: 76px; justify-content: flex-end; }
+.sb-toc-ibtn--leeg { pointer-events: none; }

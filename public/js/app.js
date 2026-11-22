@@ -5874,10 +5874,19 @@ function _sbRenderTocList(q) {
                    onkeydown="if(event.key==='Enter')this.blur();if(event.key==='Escape')window._sbTocBewerk(${i})">`
               : `<span class="sb-toc-item-name" onclick="window._sbGoTo(${i}, true)">${esc(s.name)}</span>
                  ${school ? `<span class="sb-toc-item-school">${esc(school)}</span>` : ''}`}
+            <!-- **Drie vaste vakjes, ook als er niets in zit.** Een cantrip
+                 heeft geen voorbereidknop en niet elke spreuk heeft woorden,
+                 dus de knoppenrij was per regel een andere breedte — en omdat
+                 de schoolnaam ertegenaan staat, danste die mee. Nu staat elke
+                 knop altijd in dezelfde kolom en lopen de regels gelijk. -->
             <span class="sb-toc-item-knoppen">
-              ${k === 0 ? '' : `<button class="sb-toc-ibtn${paraat ? ' is-aan' : ''}" onclick="window._sbCyclePrepared(${i})"
+              ${k === 0
+                ? '<span class="sb-toc-ibtn sb-toc-ibtn--leeg" aria-hidden="true"></span>'
+                : `<button class="sb-toc-ibtn${paraat ? ' is-aan' : ''}" onclick="window._sbCyclePrepared(${i})"
                 title="${s.alwaysPrepared ? 'Altijd paraat — klik om op te heffen' : s.prepared ? 'Paraat — klik voor altijd paraat' : 'Zet gereed'}">${icon('check')}</button>`}
-              ${spreekt ? `<button class="sb-toc-ibtn${bewerkt ? ' is-aan' : ''}" onclick="window._sbTocBewerk(${i})" title="${bewerkt ? 'Klaar' : 'Incantatie schrijven'}">${icon('pencil')}</button>` : ''}
+              ${spreekt
+                ? `<button class="sb-toc-ibtn${bewerkt ? ' is-aan' : ''}" onclick="window._sbTocBewerk(${i})" title="${bewerkt ? 'Klaar' : 'Incantatie schrijven'}">${icon('quote')}</button>`
+                : '<span class="sb-toc-ibtn sb-toc-ibtn--leeg" aria-hidden="true"></span>'}
               <button class="sb-toc-ibtn sb-toc-ibtn--weg" onclick="window._sbTocUnpin('${escArg(s.index)}')" title="Verwijderen">${icon('trash')}</button>
             </span>
           </div>`;

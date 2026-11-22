@@ -2111,3 +2111,9 @@ Grisburghs **data** te staan — niet in de code.
 
 - Een feature zonder eigen plaat leent die van zijn class of species. Die staat gedempt maar leesbaar (66%), duidelijk lichter gedempt dan een vergrendeld level — dat laatste herken je aan de arcering, niet aan de dofheid.
 - *Eigen kenmerk* (Features & Traits → +) opent een formulier met echte labels (Naam · Waar komt het vandaan? · Wat doet het?) en Annuleren/Opslaan rechtsonder, net als elk ander formulier in de app.
+
+## De inhoudsopgave van het spreukenboek (22 nov 2026)
+
+- De schoolnaam eindigt op elke regel op dezelfde plek, ook bij een cantrip (geen voorbereidknop) of een spreuk zonder woorden: de knoppenrij is altijd drie vakjes breed.
+- Een leeg vakje is niet aanklikbaar — er staat geen knop die niets doet.
+- De knop voor de incantatie draagt het aanhalingsteken, niet het potlood: het potlood betekent overal in de app *bewerken* en dit gaat over wat je hardop zegt.
