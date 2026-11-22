@@ -1113,12 +1113,33 @@ function _geenTekstBlok(naam) {
 // server uit, want daar staan de slot- en proficiency-tabellen).
 export async function levelupFeatures(klasse, subclassNaam, level, opties = {}) {
   const bron = await naslagBron();
-  const krijgt = [], kiest = [];
+  const krijgt = [], kiest = [], verandert = [];
 
   // Species-traits hangen aan het **personagelevel**, niet aan een klasse: een
   // Elf krijgt op 3 en 5 zijn Lineage-spreuk, ook als hij dat level in een
   // tweede klasse haalt. Ze stonden hier niet, en juist daar zitten de spreuken
   // die je van je volk krijgt.
+  // **En wat je al had, maar nu anders is.** Een feature staat één keer in de
+  // progressie en wordt later sterker ("The die becomes a d8 at level 5"). Dat
+  // stond nergens in dit venster: je ging omhoog, er kwam "niets nieuws op dit
+  // level" te staan, en je Bardic Inspiration was intussen een d8 geworden
+  // zonder dat iemand het zei. `groeiVan` haalt de zin uit de tekst die er al
+  // staat (zie `feature-groei.js`).
+  //
+  // Staat de feature op dít level toch al als eigen regel, dan hoort hij bij
+  // *dit krijg je* en niet hier — anders leest de speler hem twee keer.
+  const groeiBij = (lijst, eigenLevel, doelLevel, label, alStaatErOp) => {
+    for (const f of (lijst || [])) {
+      if (!f?.name || alStaatErOp.has(f.name)) continue;
+      const desc = f.desc || _srdDesc(f.name, label) || '';
+      for (const g of groeiVan({ ...f, desc }, eigenLevel)) {
+        if (g.level !== doelLevel) continue;
+        if (verandert.some(x => x.naam === f.name)) continue;
+        verandert.push({ naam: f.name, html: _md(g.tekst), soort: 'verandert' });
+      }
+    }
+  };
+
   const species = _findSpecies(bron.prog, opties.species);
   const totaal = parseInt(opties.totaalLevel) || 0;
   if (species && totaal) {
@@ -1132,8 +1153,18 @@ export async function levelupFeatures(klasse, subclassNaam, level, opties = {}) 
     }
   }
 
+  // Een species-trait hangt aan je **personage**level, dus zijn groei ook: een
+  // Dragonborn blaast harder op 5, 11 en 17 — ook als hij dat level in zijn
+  // tweede klasse haalt.
+  if (species && totaal) {
+    const opDitLevel = new Set((species.data.levels?.[totaal] || []).map(f => f?.name).filter(Boolean));
+    for (const [lv, fs] of Object.entries(species.data.levels || {})) {
+      groeiBij(fs, Number(lv) || 0, totaal, species.key, opDitLevel);
+    }
+  }
+
   const cls = _findClass(bron.prog, klasse);
-  if (!cls) return { krijgt, kiest };
+  if (!cls) return { krijgt, kiest, verandert };
   const subclass = _findSubclass(cls.data, subclassNaam);
 
   for (const f of _featuresForLevel(bron.prog, cls.data, subclass, parseInt(level) || 1)) {
@@ -1153,7 +1184,15 @@ export async function levelupFeatures(klasse, subclassNaam, level, opties = {}) 
       krijgt.push(regel);
     }
   }
-  return { krijgt, kiest };
+
+  // En van de class en zijn subclass: alles van een eerder level dat op dít
+  // klasselevel een trede heeft.
+  const lv = parseInt(level) || 1;
+  const opDitLevel = new Set(_featuresForLevel(bron.prog, cls.data, subclass, lv).map(f => f?.name).filter(Boolean));
+  for (let l = 1; l < lv; l++) {
+    groeiBij(_featuresForLevel(bron.prog, cls.data, subclass, l), l, lv, cls.key, opDitLevel);
+  }
+  return { krijgt, kiest, verandert };
 }
 
 export async function naslagBron() {

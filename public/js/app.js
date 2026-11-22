@@ -1,15 +1,15 @@
 import { api, campagneUitUrl, zetCampagne } from './api.js?v=326';
-import { initCampagne, renderArchiefDeuren, renderAvontuurDeuren, renderDienstenDeuren, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, renderDocumenten, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=448";
+import { initCampagne, renderArchiefDeuren, renderAvontuurDeuren, renderDienstenDeuren, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, renderDocumenten, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=449";
 import { initArchief, renderLogboek, openLogboekEditor } from "./render-archief.js?v=156";
 import { renderKaart, queueFlyTo, verversPins, nieuweKaart } from './render-kaart.js?v=41';
 import { renderDungeon } from './render-dungeon.js?v=82';
 import { renderRelatiemap } from './render-relatiemap.js?v=44';
-import { renderProgressie, levelupFeatures } from './render-progressie.js?v=80';
+import { renderProgressie, levelupFeatures } from './render-progressie.js?v=81';
 import { renderBestiarium } from './render-bestiarium.js?v=47';
 import { renderSpreuken } from './render-spreuken.js?v=66';
 import './render-handleiding.js?v=2';
 import './render-melding.js?v=4';
-import { renderVaardigheden, zoekVaardigheden, heldenboekTekst } from './render-vaardigheden.js?v=209';
+import { renderVaardigheden, zoekVaardigheden, heldenboekTekst } from './render-vaardigheden.js?v=210';
 import { renderStatblock } from './render-statblock.js?v=10';
 import { initSocket } from "./socket-client.js?v=111";
 import { initDmPanel } from "./dm-panel.js?v=435";
@@ -1803,7 +1803,7 @@ async function _landingNieuwTegel() {
   if (!host || !_groepsWachtwoord || document.getElementById('landing-nieuw')) return;
   let stand = null;
   try {
-    await import('./personage-maken.js?v=70');
+    await import('./personage-maken.js?v=71');
     stand = await window.personageMaken.stand();
   } catch { return; }
   if (stand?.instellingen && stand.instellingen.aan === false) return;
@@ -1825,7 +1825,7 @@ async function _landingNieuwTegel() {
 
 async function _landingNieuw() {
   try {
-    await import('./personage-maken.js?v=70');
+    await import('./personage-maken.js?v=71');
     const stand = await window.personageMaken.stand();
     // Ook als hij al bij de DM ligt: dan zie je dat, en kun je hem nog
     // terughalen om iets te veranderen.
@@ -8514,13 +8514,20 @@ async function _luFeaturesTonen(klasse, nieuwLevel, species) {
     </details>`;
 
   const groeit = (klasse.groeit || []).map(g => `<li>${esc(g)}</li>`).join('');
-  const niets = !f || (!f.krijgt.length && !f.kiest.length);
+  const niets = !f || (!f.krijgt.length && !f.kiest.length && !f.verandert?.length);
 
   el.innerHTML = `
     ${f?.kiest?.length ? `<div class="lu-features-kop">Dit kies je zelf</div>
       ${f.kiest.map(r => kaart(r, 'kiest')).join('')}` : ''}
     ${f?.krijgt?.length ? `<div class="lu-features-kop">Dit krijg je</div>
       ${f.krijgt.map(r => kaart(r, 'krijgt')).join('')}` : ''}
+    <!-- **Wat je al had, maar nu anders is.** Dit stond hier niet: je ging
+         omhoog, las "niets nieuws op dit level", en je Bardic Inspiration was
+         intussen een d8. Onder "dit krijg je", want het is geen nieuw bezit —
+         en boven wat vanzelf meegroeit, want dát hoef je niet te onthouden en
+         dit wel. -->
+    ${f?.verandert?.length ? `<div class="lu-features-kop">Dit verandert aan wat je al hebt</div>
+      ${f.verandert.map(r => kaart(r, 'verandert')).join('')}` : ''}
     ${groeit ? `<div class="lu-features-kop">Dit groeit vanzelf mee</div>
       <ul class="lu-groeit">${groeit}</ul>` : ''}
     ${niets && !groeit ? '<p class="lu-uitleg">Op dit level staat er in de progressie niets nieuws voor deze klasse.</p>' : ''}

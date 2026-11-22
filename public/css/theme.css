@@ -34836,3 +34836,17 @@ button.player-dash-niveau-penning { cursor: pointer; }
 }
 .prog-groei-tekst p { margin: 0; }
 .prog-preview .prog-groei { opacity: .55; }
+
+/* Een feature die je al had en die op dit level verandert. Dezelfde groene
+   familie als de gedaantestrook en de groeiregels op de tijdlijn: dat is
+   overal "hier verschuift iets aan wat je al hebt", tegenover goud voor een
+   keuze en perkament voor iets nieuws. */
+.lu-feature--verandert { border-color: rgba(122, 154, 90, .8); }
+.lu-feature--verandert .lu-feature-naam::after {
+  content: 'wordt sterker';
+  margin-left: 8px;
+  font-family: 'IM Fell English', Georgia, serif;
+  font-style: italic;
+  font-size: .78em;
+  color: #5a7040;
+}
