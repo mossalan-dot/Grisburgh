@@ -34801,3 +34801,38 @@ button.player-dash-niveau-penning { cursor: pointer; }
 }
 .ppf-open-merk { color: #9a7008; display: inline-flex; align-items: center; }
 .ppf-open-merk svg { width: 13px; height: 13px; }
+
+/* ── Een feature die op dit level sterker wordt ──────────────────────────────
+   Geen tegel: je krijgt hier niets nieuws, er verandert iets aan wat je al
+   hebt. Een smalle strook met een pijl omhoog, zodat het naast de tegels van
+   dat level leest als "en dit verandert" in plaats van als een zesde kaartje. */
+.prog-groei {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1 1 220px;
+  min-width: 0;
+  max-width: 420px;
+  align-self: center;
+  padding: 7px 10px;
+  border-left: 3px solid #7a9a5a;
+  border-radius: 0 6px 6px 0;
+  background: rgba(122, 154, 90, 0.1);
+}
+.prog-groei-kop {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-family: 'Cinzel', serif;
+  font-size: .8rem;
+  color: #3a5020;
+}
+.prog-groei-kop svg { width: 13px; height: 13px; }
+.prog-groei-tekst {
+  font-family: 'Crimson Text', Georgia, serif;
+  font-size: .86rem;
+  line-height: 1.35;
+  color: #3a2410;
+}
+.prog-groei-tekst p { margin: 0; }
+.prog-preview .prog-groei { opacity: .55; }

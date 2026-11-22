@@ -3,6 +3,7 @@
  */
 
 import { api } from './api.js?v=326';
+import { groeiVan } from './feature-groei.js?v=1';
 
 // ── Hulpfuncties ───────────────────────────────────────────────────
 const esc  = s => String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
@@ -859,13 +860,58 @@ function _choiceField(key, unlocked, choices, charId, featName, lvl, clsName, ot
   </div>`;
 }
 
+// **Wat er op een later level verandert, staat op dat level.** Een feature
+// staat één keer in de progressie en wordt later sterker — "The die becomes a
+// d8 at level 5" — en dat zat tot nu alleen in de alinea op level 1. Op de
+// tijdlijn van een Bard van 10 stond bij 5 en bij 10 dus niets, terwijl er op
+// allebei iets gebeurde.
+//
+// `groeiVan` (zie `feature-groei.js`) haalt per trede de **zin** uit de tekst
+// die er al staat. Eén uitzondering: staat de feature op dat level toch al als
+// eigen regel in de progressie (Ability Score Improvement staat vijf keer),
+// dan is de groeiregel een herhaling en laten we hem weg.
+function _groeiPerLevel(prog, cls, subclass) {
+  const staatOp = new Map();
+  const alle = [];
+  for (let lvl = 1; lvl <= 20; lvl++) {
+    for (const f of _featuresForLevel(prog, cls.data, subclass, lvl)) {
+      if (!staatOp.has(f.name)) staatOp.set(f.name, new Set());
+      staatOp.get(f.name).add(lvl);
+      alle.push({ f, lvl });
+    }
+  }
+  const uit = new Map();
+  for (const { f, lvl } of alle) {
+    const desc = f.desc || _srdDesc(f.name, cls.key) || '';
+    for (const g of groeiVan({ ...f, desc }, lvl)) {
+      if (staatOp.get(f.name)?.has(g.level)) continue;
+      if (!uit.has(g.level)) uit.set(g.level, []);
+      const rij = uit.get(g.level);
+      if (!rij.some(x => x.naam === f.name)) rij.push({ naam: f.name, tekst: g.tekst, van: lvl });
+    }
+  }
+  return uit;
+}
+
+function _groeiHtml(rijen) {
+  return (rijen || []).map(r => `
+    <div class="prog-groei" title="${esc(r.naam)} — je kreeg hem op level ${r.van}">
+      <span class="prog-groei-kop">${icon('chevrons-up')} ${esc(r.naam)}</span>
+      <span class="prog-groei-tekst">${_md(r.tekst)}</span>
+    </div>`).join('');
+}
+
 function _classTimeline(prog, cls, subclassName, charLevel, isMulti, charId, favs, choices) {
   const subclass = _findSubclass(cls.data, subclassName);
   const artKey   = _classArtKey(cls.key);
   const rows = [];
+  // Met het favorietenfilter aan kijk je naar een selectie; dan hoort een
+  // groeiregel van iets wat je niet geselecteerd hebt er niet tussen.
+  const groeiOp = _favFilter ? new Map() : _groeiPerLevel(prog, cls, subclass);
   for (let lvl = 1; lvl <= 20; lvl++) {
     const feats = _featuresForLevel(prog, cls.data, subclass, lvl);
-    if (!feats.length) continue;
+    const groei = groeiOp.get(lvl) || [];
+    if (!feats.length && !groei.length) continue;
     const unlocked  = lvl <= charLevel;
     const isCurrent = lvl === charLevel;
     const otherNames = feats.filter(x => !_isChoiceFeat(x)).map(x => x.name);
@@ -887,13 +933,14 @@ function _classTimeline(prog, cls, subclassName, charLevel, isMulti, charId, fav
                 : f._kind === 'sub' ? 'Subclass' : '';
       return _progTegel(_featIndex[fi], fi, { vergrendeld: !unlocked, sub });
     }).join('');
-    if (!featHtml.trim()) continue;
+    const groeiHtml = _groeiHtml(groei);
+    if (!featHtml.trim() && !groeiHtml.trim()) continue;
     rows.push(`
       <!-- data-prog-level zodat de level-up er rechtstreeks naartoe kan
            springen: "noteer het op het Progressie-tabblad" liet je zelf zoeken. -->
       <div class="prog-row${unlocked ? ' prog-unlocked' : ' prog-preview'}${isCurrent ? ' prog-current' : ''}" data-prog-level="${lvl}">
         <div class="prog-lvl"><span class="prog-lvl-num">${lvl}</span></div>
-        <div class="prog-feats">${featHtml}</div>
+        <div class="prog-feats">${featHtml}${groeiHtml}</div>
       </div>`);
   }
   const subLabel = subclassName ? (subclass ? esc(subclass.key) : `${esc(subclassName)} (geen data)`) : 'nog geen subclass';

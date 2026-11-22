@@ -931,15 +931,24 @@ daar dan in. (Het eerste punt — diensten die de gedeelde beurs omzeilden — i
       dat je erbij kúnt nemen; Halfling heeft twee varianten zonder label en
       is een eigen keuze. Drie vinkjes.
 
-- [ ] **Features die meegroeien met je level — het tekstgeval.** Gevraagd op
-      20 okt 2026; het zichtbare deel is dezelfde dag opgelost met pillen (één
-      kaartje per feature, een pil per trede, zie
-      [`voorstel-feature-groei.md`](voorstel-feature-groei.md)). Wat blijft
-      liggen zijn de ~60 features waar de groei alleen in de lopende tekst
-      staat ("the die becomes a d8 at 5th level"): één regel in de progressie,
-      dus niets om samen te voegen. Gaat pas knellen als het spelersblad wil
-      zeggen *jouw steen is een d8*; de overweging voor een veld `groei` staat
-      onderaan datzelfde document.
+- [x] **Features die meegroeien met je level — het tekstgeval** — gedaan
+      22 nov 2026. `public/js/feature-groei.js` haalt per trede de **zin** uit
+      de beschrijving die er al staat: 89 features in Grisburgh, samen 170
+      treden. Op de tijdlijn staat op level 5 nu een strook *Bardic
+      Inspiration — "The die becomes a d8 at level 5…"*, naast de tegels van
+      dat level. Een trede waarop de feature tóch al als eigen regel staat
+      (Ability Score Improvement op 8, 12, 16) valt weg; dat zou een
+      herhaling zijn. Bewaakt door `tests/feature-groei.test.js` (9), die
+      vooral vastlegt wat er **niet** in mag: een spreukniveau is geen
+      personagelevel, en het level waarop je de feature krijgt is geen groei.
+      **Wat er nog ligt:** een invoerscherm voor een echt `groei`-veld
+      (`[{level, tekst}]`) — de code leest het al en laat het winnen van de
+      afgeleide, er is alleen nog geen plek om het te typen. Dat was ook de
+      volgorde die `voorstel-feature-groei.md` zelf aanraadt: eerst een avond
+      aan tafel kijken of klopt wat je ziet. En **species-traits** krijgen
+      geen strook: die staan niet op een leveltijdlijn maar als blok bovenaan,
+      dus er is geen level om hem op te zetten — in Naslag staan hun treden
+      wel als pillen.
 
 ## Keuzes op een feature — ronde 2: GEDAAN (19 nov 2026)
 
