@@ -230,36 +230,115 @@ const OMSCHRIJVING = {
   hulp_bewerk: 'Kaartjes-editor (alleen de DM)',
 };
 // ── Indeling: waar hoort dit boekje thuis? ──────────────────────────────────
-// 109 sleutels op alfabet is een lijst, geen document. Wie ze allemaal gaat
-// nalezen doet dat per publiek en per scherm — de toon van een spelersboekje is
-// een andere dan die van het meesterpaneel — dus staan ze zo gegroepeerd.
-// Bestanden die alleen de DM ooit opent. De sleutel verraadt dat niet altijd:
-// `akte_schrijven` begint niet met `dm_` maar is wel degelijk regiegereedschap.
-const DM_SCHERMEN = ['dm-panel.js', 'akte-schrijven.js'];
+// 142 sleutels op alfabet is een lijst, geen document — en gegroepeerd op
+// *publiek* (speler / gedeeld / DM) bleek het ook niet: dan staat het
+// bestiarium tussen de herberg en de kaart, en loopt het archief door de
+// diensten heen. Wie de teksten nakijkt doet dat **scherm voor scherm**, in de
+// volgorde waarin je de app binnenloopt: je leest het boekje naast de knop
+// waar het bij hoort, en je vraagt je bij elk af of het beschrijft wat daar
+// staat.
+//
+// Vandaar een **expliciete lijst** in plaats van een regel die de groep
+// afleidt. De volgorde binnen een sectie is redactioneel (de vraag die je als
+// eerste stelt staat vooraan) en valt nergens uit de code af te leiden. Wat
+// hier niet in staat belandt achteraan onder *Nog niet ingedeeld* — zo valt een
+// nieuw boekje op in plaats van ergens stil in te landen.
+const SECTIES = [
+  { id: 'start', titel: 'Je eerste avond',
+    uitleg: 'Het enige boekje dat een DM ziet vóórdat er iets staat. Toon: hij heeft nog niets en moet weten waar hij begint.',
+    sleutels: ['wizard'] },
 
-const GROEPEN = [
-  { id: 'speler',   titel: 'Wat spelers lezen',
-    uitleg: 'Boekjes bij schermen die een speler zelf opent. Toon: je legt iets uit aan iemand die het spel spéélt, niet aan iemand die het maakt. Geen instellingen, geen "je bepaalt".' },
-  { id: 'gedeeld',  titel: 'Gedeelde schermen',
-    uitleg: 'Hier staan DM en speler op hetzelfde scherm en heeft het boekje een **rolverdeling**: stappen met `{alleen jij}` leest de DM, `{alleen spelers}` alleen zij, de rest iedereen. Lees ze in beide rollen na — ze horen allebei op zichzelf te kloppen.' },
-  { id: 'dm',       titel: 'Het meesterpaneel',
-    uitleg: 'Alles achter de deur van de meesterkamer. Toon: je praat tegen de DM, over wat hij instelt en wanneer hij het gebruikt.' },
-  { id: 'kaartje',  titel: 'Kaartjes bekijken en bewerken',
-    uitleg: '`hulp_kijk_*` is wat iedereen op een kaartje ziet, `hulp_bewerk_*` de editor — die laatste is altijd alleen voor de DM. Zonder soort in de naam (`hulp_bewerk_beeld`) geldt het boekje voor élk kaartje; dat is de terugval als er geen eigen tekst is.' },
-  { id: 'inst',     titel: 'Instellingen',
-    uitleg: 'Eén keer goed zetten en daarna vergeten. Toon: zeg wat de keuze betekent en wat de gevolgen zijn, niet waar de knop staat.' },
+  { id: 'speler', titel: 'Het spelerstabblad',
+    uitleg: 'De zes subtabs van een speler, in de volgorde waarin ze op het scherm staan: Party · Personage · Boedel · Progressie · Spreukenboek. Toon: je legt iets uit aan iemand die het spel spéélt, niet aan iemand die het maakt — dus geen instellingen en geen "je bepaalt".',
+    sleutels: ['party', 'stemronde', 'personage', 'rage', 'klassekracht', 'knapzak',
+               'progressie', 'spreukenboek', 'spreuken_toevoegen', 'spreukenboek_boek',
+               'spreukenboek_inhoud'] },
+
+  { id: 'archief', titel: 'Het archief',
+    uitleg: 'De vijf kaartjes-tabs plus het bestiarium. Allemaal dezelfde vraag: wát staat hier, en wat betekent het dat een kaartje er wél of niet in staat?',
+    sleutels: ['personages', 'locaties', 'organisaties', 'voorwerpen', 'documenten', 'bestiarium'] },
+
+  { id: 'kijk', titel: 'Een kaartje bekijken',
+    uitleg: 'Het detailvenster, per soort kaartje en per tabblad daarbinnen. Dit leest iedereen, speler en DM.',
+    sleutels: ['hulp_kijk_personages_info', 'hulp_kijk_personages_sheet',
+               'hulp_kijk_locaties_info', 'hulp_kijk_locaties_kaart', 'hulp_kijk_locaties_voorraad',
+               'hulp_kijk_organisaties_info', 'hulp_kijk_organisaties_organogram',
+               'hulp_kijk_voorwerpen_info'] },
+
+  { id: 'bewerk', titel: 'Een kaartje bewerken',
+    uitleg: 'Dezelfde tabbladen, maar nu de editor — altijd alleen de DM. Zonder soort in de naam (`hulp_bewerk_beeld`) geldt het boekje voor élk kaartje; dat is de terugval als er geen eigen tekst is.',
+    sleutels: ['hulp_bewerk_personages_info', 'hulp_bewerk_personages_sheet',
+               'hulp_bewerk_locaties_info', 'hulp_bewerk_locaties_kaart', 'hulp_bewerk_locaties_winkel',
+               'hulp_bewerk_organisaties_info', 'hulp_bewerk_organisaties_organogram',
+               'hulp_bewerk_voorwerpen_info', 'hulp_bewerk_beeld'] },
+
+  { id: 'naslag', titel: 'Naslag',
+    uitleg: 'Het Heldenboek en de spreukenbibliotheek: niet over déze campagne maar over het spel. Toon: dit is een naslagwerk, zeg wat je er kunt opzoeken.',
+    sleutels: ['vaardigheden', 'hulp_heldenboek_kaart', 'hulp_heldenboek_editor', 'spreuken'] },
+
+  { id: 'avontuur', titel: 'Avontuur',
+    uitleg: 'Wat er achter de kompasknop zit: logboek, prikbord, kaarten, dungeons en het bastion. Hier staan DM en speler het vaakst op hetzelfde scherm, dus let op de rolverdeling.',
+    sleutels: ['logboek', 'prikbord', 'kaart', 'hulp_kaart_wereld',
+               'dungeon', 'hulp_kaart_dungeon', 'hulp_dungeon_nieuw', 'bastion'] },
+
+  { id: 'diensten', titel: 'De diensten',
+    uitleg: 'In de volgorde van het menu (`DIENST_GROEPEN`): kopen en verkopen, rust en vermaak, raad en zegen, krediet en aanzien. Elk boekje hangt aan de kop van één dienst, dus het hoort over díé plek te gaan — wie er staat, wat je er kunt, wat het kost.',
+    sleutels: ['markt', 'winkel', 'magizoo', 'herberg', 'tweespalt',
+               'tempel', 'ursula', 'gock', 'woekeraar', 'facties'] },
+
+  { id: 'gevecht', titel: 'Het gevecht',
+    uitleg: 'Het gevechtsscherm, dat speler en DM allebei openen.',
+    sleutels: ['gevecht'] },
+
+  { id: 'dm', titel: 'De meesterkamer',
+    uitleg: 'De tabs van het meesterpaneel, in de volgorde van de zijbalk. Toon: je praat tegen de DM, over wat hij instelt en wanneer hij het gebruikt.',
+    sleutels: ['akte_schrijven', 'dm_checklist', 'dm_terugblik', 'dm_tafelscherm_fx', 'hulp_muziek',
+               'dm_gevecht', 'dm_gevecht_editor',
+               'dm_loot_vondsten', 'dm_loot_editor', 'dm_loot_goud', 'dm_loot_sjablonen',
+               'dm_loot_deelnemers', 'dm_loot_uitslag',
+               'dm_rust_starten', 'dm_rust_sfeer',
+               'dm_tafels_tabellen', 'dm_tafels_namen', 'dm_tafels_weer',
+               'dm_geluiden_standaard', 'dm_geluiden_diensten', 'dm_geluiden_facties',
+               'dm_geluiden_rust', 'dm_geluiden_condities', 'dm_geluiden_fx',
+               'dm_geluiden_decors', 'dm_geluiden_spelers',
+               'dm_post_brief', 'dm_post_geschiedenis',
+               'dm_gunnen', 'dm_verzoeken_personage', 'dm_verzoeken_multiclass',
+               'dm_verzoeken_spreuken', 'dm_verzoeken_voorwerpen', 'dm_verzoeken_verkoop',
+               'dm_verzoeken_lening', 'dm_verzoeken_onderpand', 'dm_verzoeken_onderzoek',
+               'dm_toegang_diensten', 'dm_toegang_facties'] },
+
+  { id: 'dmdienst', titel: 'De meesterkamer: de diensten instellen',
+    uitleg: 'Per dienst de achterkant, in dezelfde volgorde als de diensten zelf. Hier hoort te staan wát je invult en wat de speler er straks van ziet — niet hoe het is opgeslagen.',
+    sleutels: ['dm_dienst_algemeen',
+               'dm_markt', 'dm_markt_winkels', 'dm_markt_gebieden',
+               'dm_magizoo', 'dm_magizoo_adoptie',
+               'dm_herberg_tap', 'dm_herberg_rust',
+               'dm_gokhuis', 'dm_gokhuis_beheer', 'dm_gokhuis_partijen',
+               'dm_gokhuis_inschrijvingen', 'dm_gokhuis_event',
+               'dm_tempel', 'dm_tempel_goden', 'dm_tempel_eden', 'dm_tempel_prijzen',
+               'dm_waarzegger', 'dm_waarzegger_akte',
+               'dm_detective', 'dm_detective_geruchten',
+               'dm_woekeraar', 'dm_woekeraar_voorwaarden', 'dm_woekeraar_escalatie',
+               'dm_woekeraar_brieven', 'dm_woekeraar_ontspan', 'dm_woekeraar_register',
+               'dm_facties', 'dm_facties_rangen', 'dm_facties_leden'] },
+
+  { id: 'inst', titel: 'Instellingen',
+    uitleg: 'Eén keer goed zetten en daarna vergeten, in de volgorde van de drie tabjes (Campagne · Party\'s · Beheer). Toon: zeg wat de keuze betekent en wat de gevolgen zijn, niet waar de knop staat.',
+    sleutels: ['inst_onderdelen', 'inst_campagne', 'inst_valuta', 'inst_levelup',
+               'inst_materiaal', 'inst_personage', 'inst_gevecht', 'inst_heldenboek',
+               'inst_bastion', 'inst_partys', 'inst_beheer', 'inst_campagnes', 'inst_export'] },
+
+  { id: 'rest', titel: 'Nog niet ingedeeld',
+    uitleg: 'Deze sleutels staan in geen enkele sectie van `SECTIES` in `scripts/helpteksten.js`. Nieuw erbij gekomen, of een boekje dat nergens meer bij hoort.',
+    sleutels: [] },
 ];
 
-function groepVan(sleutel, plaatsen, stappen) {
-  if (sleutel.startsWith('inst_')) return 'inst';
-  if (sleutel.startsWith('hulp_kijk_') || sleutel.startsWith('hulp_bewerk_')) return 'kaartje';
-  // Een rolverdeling zegt het zelf: dit scherm heeft twee lezers.
-  if ((stappen || []).some(st => st.rol)) return 'gedeeld';
-  if (sleutel.startsWith('dm_')) return 'dm';
-  const bestanden = (plaatsen || []).map(p => String(p).split(':')[0]);
-  if (bestanden.length && bestanden.every(f => DM_SCHERMEN.includes(f))) return 'dm';
-  return 'speler';
-}
+// sleutel → sectie-id, plus de plaats binnen die sectie. Eén keer opgebouwd,
+// want anders zoekt elke sleutel door twaalf lijsten heen.
+const SECTIE_VAN = new Map();
+for (const s of SECTIES) s.sleutels.forEach((k, i) => SECTIE_VAN.set(k, { id: s.id, plek: i }));
+const sectieVan = (sleutel) => SECTIE_VAN.get(sleutel)?.id || 'rest';
+const plekVan   = (sleutel) => SECTIE_VAN.get(sleutel)?.plek ?? 9999;
 
 // Grof woorden tellen: markdown en [[links]] eruit, dan op witruimte splitsen.
 function woorden(tekst) {
@@ -300,10 +379,17 @@ function naarMarkdown(standaard, overrides, plaatsen) {
       aangepast: !!ov?.stappen?.length,
       wees: !/^hulp_(kijk|bewerk)_/.test(sleutel) && !(plaatsen[sleutel] || []).length,
       rollen: [...new Set(st.map(x => x.rol).filter(Boolean))],
-      groep: groepVan(sleutel, plaatsen[sleutel], st),
+      sectie: sectieVan(sleutel),
     });
   }
   const nAangepast = [...meting.values()].filter(m => m.aangepast).length;
+
+  // Binnen een sectie telt de redactionele volgorde uit `SECTIES`; wat daar
+  // niet in staat (de bak *Nog niet ingedeeld*) alfabetisch, want daar is geen
+  // volgorde over afgesproken.
+  const inSectie = (id) => sleutels
+    .filter(k => meting.get(k).sectie === id)
+    .sort((a, b) => plekVan(a) - plekVan(b) || a.localeCompare(b));
 
   const r = [];
   r.push('# Helpteksten');
@@ -358,8 +444,8 @@ function naarMarkdown(standaard, overrides, plaatsen) {
   // ── Inhoud, per hoofdstuk ──
   r.push('## Inhoud');
   r.push('');
-  for (const g of GROEPEN) {
-    const inGroep = sleutels.filter(k => meting.get(k).groep === g.id);
+  for (const g of SECTIES) {
+    const inGroep = inSectie(g.id);
     if (!inGroep.length) continue;
     r.push(`**${g.titel}** · ${inGroep.length}`);
     r.push('');
@@ -381,8 +467,8 @@ function naarMarkdown(standaard, overrides, plaatsen) {
   r.push('---');
   r.push('');
 
-  for (const g of GROEPEN) {
-    const inGroep = sleutels.filter(k => meting.get(k).groep === g.id);
+  for (const g of SECTIES) {
+    const inGroep = inSectie(g.id);
     if (!inGroep.length) continue;
     r.push(`# ${g.titel}`);
     r.push('');

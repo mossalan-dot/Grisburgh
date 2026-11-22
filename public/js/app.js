@@ -13960,7 +13960,7 @@ async function renderHerberg() {
         }
         <div id="herberg-antwoord" class="herberg-antwoord hidden"></div>`;
 
-  // Paneel 2 — Aan de tap (drankjes/maaltijden: temp HP + status)
+  // Paneel 2 — Aan de tap (drankjes/maaltijden: Temporary HP + status)
   const tapPaneel = `
         <!-- "Brÿlwaen schuift wat voor je aan de tap" stond hier boven de
              beurs. Dat zag je al: je hebt net op *Aan de tap* geklikt en zijn
@@ -14027,7 +14027,7 @@ function _herbergMenuKaart(m) {
   // tijdelijke HP blauw, en wat de DM erbij schrijft neutraal. Ze droegen
   // alle drie hetzelfde goud, en dan zegt de kleur niets.
   const _heal = spec(m.heal, 'HP');
-  const _temp = spec(m.tempHp, 'temp HP');
+  const _temp = spec(m.tempHp, 'Temporary HP');
   if (_heal) effecten.push({ tekst: _heal, soort: 'heal' });
   if (_temp) effecten.push({ tekst: _temp, soort: 'temp' });
   if (m.buffDesc) effecten.push({ tekst: esc(m.buffDesc), soort: 'buff' });
@@ -14067,8 +14067,8 @@ window._herbergBestel = async (itemId) => {
     const res = await api.post('/herberg/bestel', { itemId });
     const effecten = [];
     if (res.heal) effecten.push(`${icon('heart')} ${esc(res.heal.formule)} → ${res.heal.hersteld} HP hersteld`);
-    if (res.tempRoll) effecten.push(`${icon('dice')} ${esc(res.tempRoll.formule)} → ${res.tempRoll.resultaat} temp HP`);
-    else if (res.tempHp) effecten.push(`+${res.tempHp} temp HP`);
+    if (res.tempRoll) effecten.push(`${icon('dice')} ${esc(res.tempRoll.formule)} → ${res.tempRoll.resultaat} Temporary HP`);
+    else if (res.tempHp) effecten.push(`+${res.tempHp} Temporary HP`);
     if (res.buff) effecten.push(`${icon('sparkles')} ${esc(res.buff.desc || res.buff.label)} — staat op je blad`);
     if (resEl) {
       resEl.classList.remove('hidden');
@@ -15791,6 +15791,26 @@ function _renderFactieInterieur(el, f, missies) {
           <span class="factie-progress-label">${isMax ? 'Max aanzien bereikt' : `${f.renown || 0} / ${f.drempelVolgende} renown`}${nextRang ? ` — volgende: <strong>${esc(nextRang.naam)}</strong>` : ''}</span>
         </div>
 
+        <!-- **De hele ladder, niet alleen de volgende trede.** Hier stond je
+             rang en de balk naar de volgende, en verder niets — terwijl elke
+             factie zes benoemde treden heeft die gewoon in de data staan. Dat
+             is precies wat je wil zien bij een factie: waar sta ik, en wat
+             komt er nog. Bereikt is gevuld, de rest is open, en achter elke
+             trede staat wat hij vraagt. -->
+        ${ladder.length > 1 ? `
+        <details class="factie-ladder" ${f.rang?.index ? '' : 'open'}>
+          <summary class="factie-ladder-kop">${icon('landmark')} De hele hiërarchie
+            <span class="factie-ladder-kort">${esc(f.rang?.naam || 'Buitenstaander')} · trede ${(f.rang?.index ?? 0) + 1} van ${ladder.length}</span></summary>
+          <ol class="factie-ladder-lijst">
+            ${ladder.map(r => `
+              <li class="factie-ladder-trede${r.bereikt ? ' is-bereikt' : ''}${r.index === f.rang?.index ? ' is-nu' : ''}">
+                <span class="factie-ladder-merk">${icon(r.bereikt ? 'check' : 'circle-dashed')}</span>
+                <span class="factie-ladder-naam">${esc(r.naam || '—')}</span>
+                ${Number.isFinite(Number(r.drempel)) ? `<span class="factie-ladder-drempel">${Number(r.drempel)} renown</span>` : ''}
+              </li>`).join('')}
+          </ol>
+        </details>` : ''}
+
         ${verworven.length ? `
         <div class="factie-boons factie-boons--interieur">
           ${window._factieUnlockChips(verworven)}
@@ -16145,7 +16165,7 @@ const HELP_CONFIG = {
   ] }),
   dm_herberg_tap: () => ({ titel: 'Aan de tap', stappen: [
     { titel: 'Het menu', tekst: 'Wat er te drinken en te eten is, met een prijs. Een speler bestelt het zelf; het bedrag gaat van zijn beurs af, of van de gedeelde beurs als die aanstaat.', afbeelding: null },
-    { titel: 'Temp HP en een status', tekst: 'Per regel kun je **temp HP** meegeven (een getal of een worp als `1d6`) en een status met een korte beschrijving. Allebei gelden tot de volgende lange rust. Het is een aantekening die de speler bij zich draagt, geen regel die de app afdwingt.', afbeelding: null },
+    { titel: 'Temporary HP en een status', tekst: 'Per regel kun je **Temporary HP** meegeven (een getal of een worp als `1d6`) en een status met een korte beschrijving. Allebei gelden tot de volgende lange rust. Het is een aantekening die de speler bij zich draagt, geen regel die de app afdwingt.', afbeelding: null },
     { titel: 'Koppel het aan een voorwerpkaartje', tekst: 'Bestaat het drankje ook als kaartje, koppel het dan. Vanaf dat moment bepaalt het **kaartje** wat het doet — tijdelijke HP, de status, genezing — en bepaalt deze regel alleen de prijs en de sfeertekst. Hetzelfde drankje doet dan precies hetzelfde of je het aan de bar drinkt of straks uit je knapzak pakt. Een regel zonder koppeling houdt zijn eigen velden, zoals hij ze had.', afbeelding: null },
     { titel: 'Sfeer boven mechaniek', tekst: 'Een bestelling is vooral een reden om iets te laten gebeuren — de waard vertelt een roddel, iemand aan de bar kijkt op. Wat een drankje verder doet, beslis jij aan tafel.', afbeelding: null },
   ] }),
@@ -16752,8 +16772,8 @@ const HELP_CONFIG = {
   markt: () => ({
     titel: 'De Markt',
     stappen: [
-      { titel: 'Waarom dit scherm er is',
-        tekst: 'Een winkel is een tabblad **op een kaartje**: om iets te kopen moest je weten dat die winkel bestaat, hem opzoeken in Locaties en dan het tabblad vinden. De Markt is de ingang — alle winkels die je party kent en nu kan bereiken, op één plek.',
+      { titel: 'Alle winkels op één plek',
+        tekst: 'Hier staan de winkels die je gezelschap kent en vandaag kan bereiken, met het gebied waarin ze liggen. Je ziet in één oogopslag waar je terecht kunt; kopen doe je binnen, in de winkel zelf.',
         afbeelding: null },
       { titel: 'Zoeken over alle winkels tegelijk',
         tekst: 'Typ een voorwerp en je ziet **waar het ligt en wat het kost**, goedkoopste bovenaan. Scheelt prijs per winkel, dan staat er *goedkoopst* bij; zijn ze allemaal gelijk, dan staat er niets — dat is dan geen keuze. Een prijs die je met de beurs van de party niet kunt betalen kleurt rood.',
@@ -16772,6 +16792,7 @@ const HELP_CONFIG = {
   winkel: () => ({
     titel: 'In de winkel',
     stappen: [
+      { titel: 'Achter de toonbank', tekst: 'Je staat in één winkel: de winkelier, zijn groet en zijn schappen. Wat erin ligt is wat hij vandaag heeft. *Markt* linksboven brengt je terug naar het overzicht.', afbeelding: null },
       { titel: 'Kopen', tekst: 'Kies het aantal en klik **Kopen**. Het bedrag gaat van je eigen beurs af, of van de gedeelde beurs als die aanstaat. Kun je het niet betalen, dan kleurt de prijs rood en gebeurt er niets.', afbeelding: null },
       { titel: 'Verkopen', tekst: 'Koopt deze winkel in, dan staat onder de voorraad je eigen boedel met wat hij ervoor biedt. **Aanbieden** stuurt het naar je DM; je krijgt het geld zodra hij aftekent. Zie je dit blok niet, dan koopt deze winkel niets in. Zegeningen, gunsten en class-features blijven buiten de handel.', afbeelding: null },
       { titel: 'Afdingen doe je aan tafel', tekst: 'Er is geen knop om te onderhandelen: dat speel je uit. Het bod van de winkel is een uitgangspunt — je DM mag het bedrag bijstellen voor hij uitbetaalt, omhoog zowel als omlaag.', afbeelding: null },

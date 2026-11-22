@@ -34972,3 +34972,69 @@ button.player-dash-niveau-penning { cursor: pointer; }
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+
+/* ── De hele hiërarchie van een factie ───────────────────────────────────────
+   Het interieur toonde je rang en een balk naar de volgende, en verder niets
+   — terwijl elke factie zes benoemde treden heeft die gewoon in de data
+   staan. Waar sta ik en wat komt er nog, is precies de vraag die je bij een
+   factie stelt. Dichtgeklapt zodra je ergens staat; op trede nul staat hij
+   open, want dan is de ladder het enige wat er te zien valt. */
+.factie-ladder {
+  margin: 10px 0 2px;
+  border: 1px solid rgba(196, 168, 122, 0.5);
+  border-radius: 8px;
+  background: rgba(255, 252, 244, 0.45);
+}
+.factie-ladder-kop {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  flex-wrap: wrap;
+  padding: 8px 10px;
+  cursor: pointer;
+  font-family: 'Cinzel', serif;
+  font-size: .78rem;
+  color: #5a4030;
+}
+.factie-ladder-kop svg { width: 14px; height: 14px; }
+.factie-ladder-kort {
+  margin-left: auto;
+  font-family: 'IM Fell English', Georgia, serif;
+  font-style: italic;
+  font-size: .9em;
+  color: #8a7050;
+}
+.factie-ladder-lijst {
+  list-style: none;
+  margin: 0;
+  padding: 0 10px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.factie-ladder-trede {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 6px;
+  border-radius: 5px;
+  font-family: 'Crimson Text', Georgia, serif;
+  font-size: .9rem;
+  color: #8a7050;
+}
+.factie-ladder-trede.is-bereikt { color: #3a2410; }
+.factie-ladder-trede.is-nu {
+  background: rgba(196, 168, 122, 0.28);
+  font-weight: 600;
+}
+.factie-ladder-merk { display: inline-flex; color: #9a8868; }
+.factie-ladder-trede.is-bereikt .factie-ladder-merk { color: #5a7040; }
+.factie-ladder-merk svg { width: 14px; height: 14px; }
+.factie-ladder-naam { flex: 1; min-width: 0; }
+.factie-ladder-drempel {
+  font-family: 'Cinzel', serif;
+  font-size: .72rem;
+  color: #8a7050;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}

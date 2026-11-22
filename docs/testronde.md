@@ -2076,3 +2076,13 @@ Grisburghs **data** te staan — niet in de code.
 - Kies dezelfde plaat weer weg (of zet een lege keuze) en de deur valt terug op wat hij eerst leende — bij het archief het eerste kaartje met een plaat, bij een dienst zijn gevel.
 - De vier oude Naslag-platen (Classes, Species, Backgrounds, Feats) horen te blijven staan zonder dat je iets hoeft te doen; die stonden in een eigen bak en worden nog gelezen.
 - Een speler ziet het knopje niet.
+
+## Facties — de hele hiërarchie (22 nov 2026)
+
+- Open een factie waar je gezelschap al wat aanzien heeft. Onder je rangbalk staat *De hele hiërarchie* dichtgeklapt, met erachter "<rang> · trede N van 6"; uitklappen geeft zes treden met een vinkje voor wat bereikt is, een gevulde regel voor waar je nu staat, en achter elke trede het aantal renown dat hij vraagt.
+- Een factie waar je nog niets hebt (trede 1) staat juist **open**: daar is de ladder het enige wat er te zien valt.
+- Bij een factie zonder treden staat het blok er niet.
+
+## Aan de tap — de pil zegt Temporary HP (22 nov 2026)
+
+- Bestel bij de waard iets met tijdelijke HP. De pil op het kaartje zegt *1d6 Temporary HP*, niet "temp HP" — dezelfde term als op het spelersblad en bij de DM.
