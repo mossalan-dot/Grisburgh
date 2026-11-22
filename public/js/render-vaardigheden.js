@@ -4044,6 +4044,35 @@ function _bronnenVanSoort(soort) {
 }
 // De tweede laag van een houder, bij naam: subclasses bij een class,
 // varianten bij een species.
+// **Een typefout in het bronveld maakt een class aan.** Dat veld is met opzet
+// een zoekveld en geen keuzelijst — uit een lijst kun je alleen kiezen wat er
+// al is, en dan kun je nooit een eigen class beginnen. Maar het is daarmee ook
+// de enige plek in dit scherm waar een vergissing iets achterlaat: "Fightr"
+// levert een lege class op in je progressie, zonder dat iemand het zegt.
+//
+// Dus vragen we het, één keer, op het moment van opslaan. Niet bij het typen:
+// halverwege "Fighter" bestaat "Figh" ook niet, en een scherm dat tijdens het
+// tikken waarschuwt leer je wegklikken.
+const _kentHouder = (soort, naam) => _bronnenVanSoort(soort)
+  .some(b => b.toLowerCase() === String(naam || '').trim().toLowerCase());
+const _kentTweede = (houder, naam) => _subklassenVan(houder)
+  .some(b => b.toLowerCase() === String(naam || '').trim().toLowerCase());
+
+// Wat er straks nieuw wordt aangemaakt, in woorden. Leeg = niets nieuws.
+function _nieuwDoorOpslaan(e) {
+  const soort = e?.soort || '';
+  const uit = [];
+  const woord = { class: 'class', subclass: 'class', species: 'species',
+                  variant: 'species', background: 'background' }[soort];
+  const bron = String(e?.bron || '').trim();
+  if (woord && bron && !_kentHouder(soort, bron)) uit.push(`de ${woord} ${bron}`);
+  const sub = String(e?.sub || '').trim();
+  if (sub && (soort === 'subclass' || soort === 'variant') && !_kentTweede(bron, sub)) {
+    uit.push(`${soort === 'variant' ? 'de variant' : 'de subclass'} ${sub}`);
+  }
+  return uit;
+}
+
 function _subklassenVan(houder) {
   return Object.keys(_tweedeLaag(houder)?.bak || {}).sort();
 }
@@ -5062,6 +5091,14 @@ window.vaardigheden = {
         _bandHerteken(); _refreshFilterBar(); _paint();
         return;
       }
+      // Maakt deze opslagbeurt iets aan wat er nog niet was? Dan zeggen we
+      // het eerst. Het antwoord is vaak "ja, dat is de bedoeling" — en dan
+      // kost het één klik; is het een typefout, dan scheelt het een lege
+      // class in je progressie die je later moet terugvinden.
+      const nieuw = _nieuwDoorOpslaan(_edit);
+      if (nieuw.length && !confirm(
+        `${nieuw.join(' en ')} ${nieuw.length === 1 ? 'bestaat' : 'bestaan'} nog niet in deze campagne.\n\n`
+        + `Opslaan maakt ${nieuw.length === 1 ? 'hem' : 'ze'} aan. Is dat de bedoeling?`)) return;
       await api.post('/progression/feature', {
         oud: _edit.oud, soort: _edit.soort, bron: _edit.bron, sub: _edit.sub,
         level: _edit.level, naam: _edit.naam.trim(), desc: _edit.desc,
