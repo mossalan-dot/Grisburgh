@@ -1,5 +1,5 @@
 import { api, campagneUitUrl, zetCampagne } from './api.js?v=326';
-import { initCampagne, renderArchiefDeuren, renderAvontuurDeuren, renderDienstenDeuren, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, renderDocumenten, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=449";
+import { initCampagne, renderArchiefDeuren, renderAvontuurDeuren, renderDienstenDeuren, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, renderDocumenten, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=450";
 import { initArchief, renderLogboek, openLogboekEditor } from "./render-archief.js?v=156";
 import { renderKaart, queueFlyTo, verversPins, nieuweKaart } from './render-kaart.js?v=41';
 import { renderDungeon } from './render-dungeon.js?v=82';
@@ -10976,14 +10976,27 @@ async function renderMijnKarakter(opts = {}) {
   // doorgaans wapens waar je mee overweg kunt, en een aanvalsbonus die te laag
   // is poets je minder snel weg dan een die te hoog is. Maar hij zegt erbij
   // dat het een aanname was, want dat is precies de edge case.
-  function _wapenProf(naam) {
+  function _wapenProf(naam, soort) {
     const t = String(playerProfile.weaponProfs || '').toLowerCase();
     if (!t.trim()) return { ja: true, zeker: false };
     if (/\ball\b|\balle\b/.test(t)) return { ja: true, zeker: true };
-    if (/simple/.test(t) && /martial/.test(t)) return { ja: true, zeker: true };
+    const soortK = String(soort || '').toLowerCase();
     const kaal = String(naam || '').replace(/^\s*\+\d\s*/, '').trim().toLowerCase();
-    if (kaal && (t.includes(kaal) || t.includes(`${kaal}s`) || t.includes(kaal.replace(/s$/, '')))) {
-      return { ja: true, zeker: true };
+    const opNaam = !!kaal && (t.includes(kaal) || t.includes(`${kaal}s`) || t.includes(kaal.replace(/s$/, '')));
+    if (opNaam) return { ja: true, zeker: true };
+
+    // **Twee soorten lijsten, twee soorten zekerheid.** Schrijft je blad in
+    // categorieën ("Simple and martial weapons", "Simple weapons"), dan zegt
+    // `wapenSoort` op het kaartje het precies: een Wizard met alleen simple
+    // weapons zwaait geen Battleaxe met zijn proficiency bonus, en dat mag de
+    // app dus hard zeggen.
+    //
+    // Staat er een **namenlijst** ("Daggers, darts, slings" — of, zoals bij
+    // deze tafel, "Dolk, Darts, Sling"), dan betekent een misser niets: de
+    // lijst kan onvolledig zijn of in een andere taal staan dan het kaartje.
+    // Dan blijft het een aanname mét de bonus, en zegt de regel dat erbij.
+    if (/simple|martial/.test(t) && (soortK === 'simple' || soortK === 'martial')) {
+      return { ja: new RegExp(soortK).test(t), zeker: true };
     }
     return { ja: true, zeker: false };
   }
@@ -11005,11 +11018,11 @@ async function renderMijnKarakter(opts = {}) {
     return { mod: str, waarom: 'STR' };
   }
 
-  function _wapenVoorstel(naam, schade, props) {
+  function _wapenVoorstel(naam, schade, props, soortWapen) {
     const { mod: ab, waarom } = _wapenAbility(props);
     const profBonus = parseInt(String(playerProfile.profBonus || '').replace(/[^0-9-]/g, '')) || 0;
     const magie = _wapenMagie(naam);
-    const kan = _wapenProf(naam);
+    const kan = _wapenProf(naam, soortWapen);
     const prof = kan.ja ? profBonus : 0;
     // "1d6 slashing" → "1d6+3 Slashing". Staat er al een modifier in, dan laat
     // de app hem staan: dan heeft iemand er al over nagedacht.
@@ -11033,7 +11046,7 @@ async function renderMijnKarakter(opts = {}) {
       _waarom: [
         waarom,
         magie ? `+${magie} magisch` : '',
-        kan.zeker ? '' : 'proficiency aangenomen',
+        !kan.ja ? 'niet proficient' : (kan.zeker ? '' : 'proficiency aangenomen'),
       ].filter(Boolean).join(' · '),
     };
   }
@@ -11064,7 +11077,7 @@ async function renderMijnKarakter(opts = {}) {
       .map(i => ({
         bron: 'boedel', sleutel: 'i:' + i.id, label: i.name,
         onder: String(i.data?.damage || '').trim() || 'geen schade op het kaartje',
-        rij: _wapenVoorstel(i.name, i.data?.damage, _wapenProps(i)),
+        rij: _wapenVoorstel(i.name, i.data?.damage, _wapenProps(i), i.data?.wapenSoort),
       }));
 
     // 2. Cantrips met schade uit je spreukenboek. De schade staat niet in je

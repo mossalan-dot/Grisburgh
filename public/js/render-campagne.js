@@ -570,6 +570,15 @@ const SCHEMA = {
       // Werking in plaats van type: een Staff kan slaan, een Ring kan AC geven.
       { key: 'werking', label: 'Werking', type: 'werking' },
       { key: 'damage', label: 'Schadeformule', type: 'text', showWerking: 'attack', hint: '1d8+1 Slashing' },
+      // **Simple of martial.** Het staat in de SRD en het is precies wat de app
+      // nodig heeft om te weten of een speler proficient is: zijn blad zegt
+      // "Simple and martial weapons", en zonder dit veld kan geen enkel
+      // kaartje daarop matchen. Leeg laten mag — een geïmproviseerd wapen is
+      // geen van beide.
+      { key: 'wapenSoort', label: 'Simple of martial', type: 'select', showWerking: 'attack', options: [
+        { value: 'Simple',  label: 'Simple' },
+        { value: 'Martial', label: 'Martial' },
+      ] },
       { key: 'weaponProperties', label: 'Wapeneigenschappen', type: 'weapon-tags', showWerking: 'attack' },
       // Heet niet meer "Harnas type": sinds Defense los van het type staat kan
       // ook een ring of een paar bracers hier terecht. De keuze zegt nu wat er
@@ -1353,6 +1362,7 @@ window._srdItemDatalist = async () => {
 // Welk bronveld in welk formulierveld. De namen zijn met opzet gelijk; dit is
 // de enige plek waar ze elkaar raken.
 const _SRD_ITEM_VELD = ['itemType', 'rariteit', 'prijs', 'desc', 'damage', 'weaponProperties',
+  'wapenSoort', 'mastery',
   'armorType', 'armorBaseAC', 'armorDexCap', 'stealthDisadvantage',
   'strengthRequirement', 'attunement', 'attunementEis', 'gebruik'];
 

@@ -68,15 +68,27 @@ function wapenVelden(w) {
     const soort = w.damage_type?.name ? ' ' + String(w.damage_type.name).toLowerCase() : '';
     uit.damage = w.damage_dice + soort;
   }
-  const props = (w.properties || [])
-    .map(p => {
-      const naam = p?.property?.name;
-      if (!naam) return null;
-      // "Versatile (1d10)" — het detail staat los van de naam.
-      return p.detail ? `${naam} (${p.detail})` : naam;
-    })
-    .filter(Boolean);
-  if (props.length) uit.weaponProperties = props.join(', ');
+  // **Simple of martial.** Dat staat in de bron als twee vlaggen en het viel
+  // hier weg — terwijl het precies is wat je nodig hebt om te weten of een
+  // speler proficient is: zijn blad zegt "Simple and martial weapons", en
+  // zonder deze regel kan geen enkel kaartje daarop matchen.
+  if (w.is_simple)  uit.wapenSoort = 'Simple';
+  if (w.is_martial) uit.wapenSoort = 'Martial';
+
+  // **Mastery is geen weapon property.** Open5e zet ze in dezelfde lijst maar
+  // merkt ze met `type: 'Mastery'`; onze kaartjes hebben er een eigen veld
+  // voor. Ze samen in `weaponProperties` gooien gaf "Topple, Versatile (1d10)"
+  // in een veld waar de app Finesse en Thrown uit leest.
+  const props = [], mastery = [];
+  for (const p of (w.properties || [])) {
+    const naam = p?.property?.name;
+    if (!naam) continue;
+    // "Versatile (1d10)" — het detail staat los van de naam.
+    const heel = p.detail ? `${naam} (${p.detail})` : naam;
+    (String(p.property.type || '').toLowerCase() === 'mastery' ? mastery : props).push(heel);
+  }
+  if (props.length)   uit.weaponProperties = props.join(', ');
+  if (mastery.length) uit.mastery = mastery.join(', ');
   return uit;
 }
 
