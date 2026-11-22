@@ -5,6 +5,7 @@ import { renderKaart, queueFlyTo, verversPins, nieuweKaart } from './render-kaar
 import { renderDungeon } from './render-dungeon.js?v=82';
 import { renderRelatiemap } from './render-relatiemap.js?v=44';
 import { renderProgressie, levelupFeatures } from './render-progressie.js?v=81';
+import { acVan, AC_SOORT } from './ac-rekenen.js?v=1';
 import { renderBestiarium } from './render-bestiarium.js?v=47';
 import { renderSpreuken } from './render-spreuken.js?v=67';
 import './render-handleiding.js?v=2';
@@ -9615,6 +9616,11 @@ async function renderMijnKarakter(opts = {}) {
             <input class="pcs-input" type="number" min="1" max="30"
               value="${esc(playerProfile.ac ?? '')}" placeholder="—"
               onblur="window._saveProfileField('ac', this.value)">
+            <!-- Hetzelfde idee als bij de wapentabel: de gegevens staan op je
+                 harnaskaartje (Base AC, hoe de Dex meetelt, een Strength-eis),
+                 dus laat de app ze optellen en hou het veld aanpasbaar. -->
+            <button class="pcs-extra-speed-btn" onclick="window._acUitHarnas()"
+              title="Reken je AC uit wat je draagt">${icon('shield')}</button>
           </div>
           <div class="pcs-item">
             <span class="pcs-label">Speed</span>
@@ -10912,6 +10918,77 @@ async function renderMijnKarakter(opts = {}) {
   };
 
   // ── Wapens & Damage Cantrips ──
+  // ── Je AC uit wat je draagt ───────────────────────────────────────────────
+  // Het AC-veld werd met de hand ingevuld terwijl alles wat ervoor nodig is op
+  // de kaartjes staat: 14 van de 15 harnassen in deze campagne dragen hun Base
+  // AC en hun soort. Hoe de Dex meetelt volgt uit die soort — licht alles,
+  // medium hoogstens +2, zwaar niets — en dat staat ook zo in de editor.
+  //
+  // **Wat de app niet weet is wat je áánhebt.** Er is geen uitrustingsvinkje:
+  // de boedel zegt wat je bezit, niet wat je draagt. Dus kies je het hier, en
+  // zie je meteen wat eruit komt. Dezelfde afspraak als bij de wapenrij: de
+  // app rekent voor, jij neemt over, en het veld blijft overtypbaar.
+  let _acHarnassen = [], _acSchilden = [];
+
+  window._acUitHarnas = function () {
+    _acHarnassen = (myItems || []).filter(i => i.data?.itemType === 'Armor');
+    _acSchilden  = (myItems || []).filter(i => i.data?.itemType === 'Shield');
+    const optie = (lijst, soort) => lijst.map((i, n) => `
+      <label class="wu-rij">
+        <input type="${soort === 'harnas' ? 'radio" name="ac-harnas' : 'checkbox" name="ac-schild'}" value="${n}">
+        <span class="wu-naam">${esc(i.name)}</span>
+        <span class="wu-onder">${esc(AC_SOORT[String(i.data?.armorType || '').toLowerCase()] || 'onbekend')}${
+          i.data?.armorBaseAC ? ` · Base AC ${esc(String(i.data.armorBaseAC))}` : ' · geen Base AC op het kaartje'}</span>
+      </label>`).join('');
+
+    window.app.openModal('Je AC uit wat je draagt', '', `
+      <p class="dm-hint">Kies wat je aanhebt. De app telt op wat op de kaartjes staat — Base AC plus
+        je Dex-modifier zoals die soort hem toelaat — en zegt erbij als er iets aan vastzit.
+        Het veld blijft daarna gewoon overtypbaar.</p>
+      <div id="ac-keuze">
+        <div class="wu-groep">
+          <div class="wu-kop">Harnas</div>
+          <label class="wu-rij"><input type="radio" name="ac-harnas" value="" checked>
+            <span class="wu-naam">Geen harnas</span><span class="wu-onder">10 + je volledige DEX</span></label>
+          ${optie(_acHarnassen, 'harnas') || '<p class="dm-hint">Je draagt geen harnas-kaartje.</p>'}
+        </div>
+        <div class="wu-groep">
+          <div class="wu-kop">Schild</div>
+          ${optie(_acSchilden, 'schild') || '<p class="dm-hint">Je hebt geen schild.</p>'}
+        </div>
+      </div>
+      <div class="ac-uitkomst" id="ac-uitkomst"></div>
+      <div class="dm-feature-row" style="justify-content:flex-end">
+        <button class="dm-btn dm-btn-ghost" onclick="window.app.closeModal()">Annuleren</button>
+        <button class="dm-btn dm-btn-primary" onclick="window._acOvernemen()">${icon('save')} Overnemen</button>
+      </div>`);
+    document.getElementById('ac-keuze')?.addEventListener('change', window._acHerreken);
+    window._acHerreken();
+  };
+
+  window._acHerreken = function () {
+    const vak = document.getElementById('ac-uitkomst');
+    if (!vak) return;
+    const { ac, regels, waarschuw } = acVan(..._acKeuze(), playerProfile);
+    vak.innerHTML = `
+      <div class="ac-getal">${ac}</div>
+      <div class="ac-regels">${regels.map(r => `<div>${esc(r)}</div>`).join('')}</div>
+      ${waarschuw.map(w => `<p class="ac-let-op">${icon('shield-half')} ${esc(w)}</p>`).join('')}`;
+  };
+
+  function _acKeuze() {
+    const h = document.querySelector('input[name="ac-harnas"]:checked')?.value;
+    const s = document.querySelector('input[name="ac-schild"]:checked')?.value;
+    return [h === '' || h == null ? null : _acHarnassen[Number(h)], s == null ? null : _acSchilden[Number(s)]];
+  }
+
+  window._acOvernemen = async function () {
+    const { ac } = acVan(..._acKeuze(), playerProfile);
+    await api.patchPlayerProfile(charId, { ac: String(ac) }).catch(() => {});
+    window.app.closeModal();
+    renderMijnKarakter(opts);
+  };
+
   // ── Een rij uit je eigen spullen ──────────────────────────────────────────
   // De tabel werd met de hand ingevuld terwijl de gegevens er al staan: 42 van
   // de 51 wapenkaartjes in deze campagne dragen hun schade en properties, en

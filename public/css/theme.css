@@ -34898,3 +34898,41 @@ button.player-dash-niveau-penning { cursor: pointer; }
 /* Waaróp de aanvalsbonus gebaseerd is, achter het getal. Klein en cursief:
    het is een verantwoording, geen deel van het voorstel. */
 .wu-voorstel em { font-family: 'IM Fell English', Georgia, serif; color: #8a7050; font-size: .92em; }
+
+/* De uitkomst van de AC-berekening: het getal groot, eronder waar het vandaan
+   komt, en daaronder wat eraan vastzit. Dat laatste is een waarschuwing en
+   geen aftrek — in 5e verlies je geen AC als je niet proficient bent, je
+   krijgt Disadvantage. */
+.ac-uitkomst {
+  margin: 12px 0 4px;
+  padding: 10px 12px;
+  border: 1px solid rgba(196, 168, 122, 0.7);
+  border-radius: 8px;
+  background: rgba(239, 227, 197, 0.5);
+  text-align: center;
+}
+.ac-getal {
+  font-family: 'Cinzel', serif;
+  font-size: 2.2rem;
+  font-weight: 700;
+  color: #2a1a08;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+.ac-regels {
+  font-family: 'Crimson Text', Georgia, serif;
+  font-size: .86rem;
+  color: #7a6040;
+  margin-top: 4px;
+}
+.ac-let-op {
+  margin: 8px 0 0;
+  font-family: 'Crimson Text', Georgia, serif;
+  font-size: .84rem;
+  color: #8a5a10;
+  text-align: left;
+  display: flex;
+  gap: 6px;
+  align-items: flex-start;
+}
+.ac-let-op svg { width: 14px; height: 14px; flex-shrink: 0; margin-top: 2px; }
