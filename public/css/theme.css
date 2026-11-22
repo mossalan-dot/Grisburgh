@@ -34955,3 +34955,20 @@ button.player-dash-niveau-penning { cursor: pointer; }
   min-height: 0;
 }
 .vd-subblader--kaart { margin-top: 0; flex: 0 0 auto; }
+
+/* ── De hoeken van een kaartje botsten met de kop van een tekstblad ──────────
+   De boekcode staat linksboven (7px) en de levelpenningen rechtsboven (8px),
+   allebei absoluut op de tegel. Een tekstblad begon op 16px over de volle
+   breedte, dus liep zijn kop eronderdoor: "PHB'24" lag op het woord
+   BESCHRIJVING en de penning sneed de featurenaam af.
+   Het blad begint nu onder die hoeken. Alleen het tékstblad — het portretblad
+   heeft zijn naamband onderaan en hoort juist wél tot bovenaan door te lopen. */
+.tegel-vel { padding-top: 34px; }
+/* En een lange naam wijkt met een beletselteken in plaats van onder de rand
+   door te schuiven. */
+.tegel-vel-naam {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
