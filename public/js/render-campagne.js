@@ -5593,7 +5593,7 @@ window._makerVoorDm = async () => {
     gid = keuze;
   }
   try {
-    await import('./personage-maken.js?v=74');
+    await import('./personage-maken.js?v=75');
     // Zodra de maker dichtgaat staat het kaartje er; het raster erachter weet
     // dat nog niet. Hetzelfde als na het opslaan van een nieuw kaartje: open
     // en in beeld.

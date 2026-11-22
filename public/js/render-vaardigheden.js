@@ -688,7 +688,15 @@ function _filtered() {
     // blijven staan, en elke aangevinkte subclass legt de zijne erbovenop. Niets
     // aangevinkt betekent alleen de class — niet "alle subclasses door elkaar",
     // want dat is precies de brij waar dit tabblad vanaf moest.
-    if ((it.soort === 'subclass' || it.soort === 'variant') && !_subAan.has(it.sub)) return false;
+    // **Maar zoeken zet ook dit opzij**, net als de deur hierboven. Deze regel
+    // hoort bij het bláderen: binnen een class zie je zijn features plus die
+    // van wat je aanvinkt. Zolang hij ook tijdens een zoekopdracht gold, was
+    // een subclass-feature onvindbaar tenzij je toevallig die ene subclass
+    // had aangevinkt — en features die *alleen* onder subclasses bestaan
+    // waren dus nooit te vinden. "Tools of the Trade" (vijf Artificer-
+    // subclasses) gaf nul treffers, "Bonus Proficiencies" (zeven subclasses)
+    // gaf alleen een class-feature wiens tekst toevallig meematchte.
+    if (!tokens.length && (it.soort === 'subclass' || it.soort === 'variant') && !_subAan.has(it.sub)) return false;
     if (_filters.level !== null && !(it.levels || [it.level]).some(l => Number(l) === Number(_filters.level))) return false;
     return true;
   });
