@@ -214,7 +214,8 @@ export async function laadKeuzes(charId) {
 // feature mág twee blokken dragen — die horen er dan allebei te staan.
 function _slotsVan(f) {
   const lv = Number(f?.level);
-  return _keuzeSlots.filter(sl => sl.naam === f?.name && Number(sl.level) === lv);
+  const naam = f?.ruweNaam || f?.name;
+  return _keuzeSlots.filter(sl => sl.naam === naam && Number(sl.level) === lv);
 }
 
 const _SOORT_WOORD = { skill: 'skill', language: 'taal', tool: 'gereedschap', spell: 'spreuk', variant: 'variant', vrij: 'keuze' };
@@ -923,6 +924,13 @@ function _classTimeline(prog, cls, subclassName, charLevel, isMulti, charId, fav
       if (_favFilter && !fav) return '';
       const fi   = _featIndex.push({
         name: f._kind === 'subclass' && subclass ? `${f.name}: ${subclass.key}` : f.name,
+        // **De naam zoals hij in de progressie staat**, zonder de subclass
+        // erachter. Die getoonde naam is opmaak; alles wat een regel moet
+        // terugvinden (een keuzeslot, een groeitrede) hoort op de echte naam
+        // te zoeken. Zonder dit vond `_slotsVan` geen enkele subclass-feature
+        // — en dat zijn er juist veel: Student of War, Blessings of Knowledge,
+        // Acolyte of Nature.
+        ruweNaam: f.name,
         desc: f.desc || _srdDesc(f.name, cls.key) || '', level: lvl, artKey, kind: f._kind,
         cat, img: f.img, imgKind: f.imgKind, key: fKey, _fav: fav, clsName: cls.key,
       }) - 1;
