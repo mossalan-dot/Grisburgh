@@ -2099,3 +2099,15 @@ Grisburghs **data** te staan — niet in de code.
 
 - Het portret en de levelpenning zijn even groot (allebei 140 px); de penning oogt niet kleiner naast de HP-ring.
 - Onder de penning staat geen bijschrift meer zolang er niets te melden valt. Staat er een level-up klaar, dan staat er *Level N → N+1*; speel je op XP, dan de afstand tot de volgende.
+
+## Spreukverwijzingen, het boekje en de inhoudsopgave (22 nov 2026)
+
+- Sla **Shield** op in het spreukenboek én open hem in de bibliotheek. Bij *Casting Time* en in de beschrijving staat **Magic Missile** als klikbare naam — nergens dubbele haken. Klikken opent die spreuk.
+- Hetzelfde geldt voor de 80 spreuken die een verwijzing dragen; staat de bibliotheek nog niet geladen, dan staat er in elk geval de kale naam en nooit `[[ ]]`.
+- Open het spreukenboek en druk op het boekje: de uitleg komt **boven** het boek te staan, niet erachter. Idem bij *Spreuken toevoegen*.
+- Zoek in de inhoudsopgave naar een spreuk die je nog niet hebt. Onder *Toevoegen* opent een klik op de **naam** zijn kaartje (met beschrijving); de **+** voegt hem toe aan je boek.
+
+## Geleende platen en het kenmerk-formulier (22 nov 2026)
+
+- Een feature zonder eigen plaat leent die van zijn class of species. Die staat gedempt maar leesbaar (66%), duidelijk lichter gedempt dan een vergrendeld level — dat laatste herken je aan de arcering, niet aan de dofheid.
+- *Eigen kenmerk* (Features & Traits → +) opent een formulier met echte labels (Naam · Waar komt het vandaan? · Wat doet het?) en Annuleren/Opslaan rechtsonder, net als elk ander formulier in de app.

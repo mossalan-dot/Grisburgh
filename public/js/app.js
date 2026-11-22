@@ -7,7 +7,7 @@ import { renderRelatiemap } from './render-relatiemap.js?v=44';
 import { renderProgressie, levelupFeatures } from './render-progressie.js?v=81';
 import { acVan, AC_SOORT } from './ac-rekenen.js?v=1';
 import { renderBestiarium } from './render-bestiarium.js?v=47';
-import { renderSpreuken } from './render-spreuken.js?v=67';
+import { renderSpreuken } from './render-spreuken.js?v=68';
 import './render-handleiding.js?v=2';
 import './render-melding.js?v=4';
 import { renderVaardigheden, zoekVaardigheden, heldenboekTekst } from './render-vaardigheden.js?v=217';
@@ -4168,6 +4168,20 @@ let _playerSpellList = null;
 
 // Markdown → HTML voor spreukomschrijvingen (bold, italic, {color:text}, auto-highlights)
 // opts.diceColor: CSS color string to use for dice notation spans (damage-type tinted)
+// **De haken van een spreukverwijzing horen nergens op het scherm.** De
+// bibliotheek lost [[Magic Missile]] op naar een klikbare naam; het
+// spreukenboek liet ze staan, in de beschrijving én in de Casting Time. De
+// oplosser staat in render-spreuken.js (één plek), maar die module laadt lui —
+// is hij er nog niet, dan halen we hier in elk geval de haken weg, zoals het
+// printbare blad dat al deed. Een naam zonder link leest; "[[Magic Missile]]"
+// leest niet.
+function _sbWiki(html) {
+  const f = window.spreuken?.linkTekst;
+  if (f) return f(html);
+  return String(html ?? '').replace(/\[\[([^\]|]+?)(?:\|([^\]]+?))?\]\]/g,
+    (_, naam, alias) => esc(String(alias || naam).trim()));
+}
+
 function _spellMd(t, { diceColor } = {}) {
   const diceStyle = diceColor
     ? ` style="color:${diceColor};text-decoration-color:${diceColor}66"`
@@ -4175,6 +4189,9 @@ function _spellMd(t, { diceColor } = {}) {
   let s = esc(String(t ?? ''))
     // 5etools-tagrestje: '#' direct na nadruk-markers weghalen (bv. **_#Cantrip Upgrade._**)
     .replace(/([*_]+)#(?=\w)/g, '$1');
+  // Verwijzingen naar andere spreuken eerst: daarna staan er tags in de tekst
+  // en zou een nadruk-regex binnen een attribuut kunnen bijten.
+  s = _sbWiki(s);
   return s
     // ── Auto-highlights (applied to plain text before markdown) ──
     // Dice notation: 2d6, 1d20+5, 4d8, d4 – tinted by damage type, clickable
@@ -5895,8 +5912,15 @@ function _sbRenderTocList(q) {
       html += '<div class="sb-toc-level-header">Toevoegen</div>';
       for (const s of unpinnedMatches) {
         const school = s.school?.name || '';
+        // **Eerst lezen, dan beslissen.** Deze namen waren kale tekst met een
+        // plus ernaast: je kon een spreuk toevoegen die je niet kende, maar
+        // niet opzoeken wát hij doet. De naam opent nu zijn kaartje in de
+        // bibliotheek — dezelfde klik als overal elders in de app — en de plus
+        // blijft doen wat hij deed.
         html += `<div class="sb-toc-item">
-          <span class="sb-toc-item-name">${esc(s.name)}</span>
+          <span class="sb-toc-item-name sb-toc-item-name--lees"
+            title="Lees wat hij doet"
+            onclick="window.spreuken?.open('${escArg(s.index)}')">${esc(s.name)}</span>
           ${school ? `<span class="sb-toc-item-school">${esc(school)}</span>` : ''}
           <button class="sb-toc-item-add" onclick="window._sbTocPin('${escArg(s.index)}','${escArg(s.name)}',this)" title="Toevoegen aan boek">+</button>
         </div>`;
@@ -6432,7 +6456,7 @@ function _sbRender() {
         ${badges ? `<div class="sb-spell-meta-row">${badges}</div>` : ''}
         ${(metaRows.length || statsBlok) ? `<div class="sb-meta-wrap">
           ${metaRows.length ? `<div class="sb-meta-table">${
-            metaRows.map(([k,v]) => `<span class="sb-meta-key">${k}</span><span class="sb-meta-val">${esc(v)}</span>`).join('')
+            metaRows.map(([k,v]) => `<span class="sb-meta-key">${k}</span><span class="sb-meta-val">${_sbWiki(esc(v))}</span>`).join('')
           }</div>` : '<div></div>'}
           ${statsBlok}
         </div>` : ''}
@@ -10831,13 +10855,22 @@ async function renderMijnKarakter(opts = {}) {
     const inline = document.getElementById('player-trait-custom-form');
     if (inline) { inline.classList.remove('hidden'); document.getElementById('ptf-name')?.focus(); return; }
     window.app.openModal(`${icon('scroll-text')} Eigen kenmerk`, 'Iets wat niet uit een klasse of volk komt', `
-      <div class="player-trait-custom-form">
-        <input id="ptf-name"  class="player-trait-form-input" type="text" placeholder="Naam kenmerk" maxlength="80">
-        <input id="ptf-meta"  class="player-trait-form-input" type="text" placeholder="Waar komt het vandaan? (optioneel)" maxlength="60">
-        <textarea id="ptf-desc" class="player-trait-form-ta" placeholder="Wat doet het?" rows="4"></textarea>
-        <div class="player-trait-form-btns">
-          <button type="button" class="player-trait-form-save" onclick="window._traitCustomSave()">Opslaan</button>
-          <button type="button" class="player-trait-form-cancel" onclick="window.app.closeModal()">Annuleer</button>
+      <div class="dm-feature-section">
+        <div class="dm-form-row">
+          <label class="dm-form-label" for="ptf-name">Naam</label>
+          <input id="ptf-name" class="dm-input" type="text" maxlength="80">
+        </div>
+        <div class="dm-form-row">
+          <label class="dm-form-label" for="ptf-meta">Waar komt het vandaan?</label>
+          <input id="ptf-meta" class="dm-input" type="text" maxlength="60" placeholder="optioneel">
+        </div>
+        <div class="dm-form-row">
+          <label class="dm-form-label" for="ptf-desc">Wat doet het?</label>
+          <textarea id="ptf-desc" class="dm-input" rows="4"></textarea>
+        </div>
+        <div class="dm-feature-row" style="justify-content:flex-end">
+          <button type="button" class="dm-btn dm-btn-ghost" onclick="window.app.closeModal()">Annuleren</button>
+          <button type="button" class="dm-btn dm-btn-primary" onclick="window._traitCustomSave()">Opslaan</button>
         </div>
       </div>`);
     setTimeout(() => document.getElementById('ptf-name')?.focus(), 80);

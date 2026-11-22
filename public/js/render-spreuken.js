@@ -576,6 +576,28 @@ export async function renderSpreuken(container) {
   _paintGrid();
 }
 
+// **De haken horen nergens op het scherm.** Spreukteksten uit de SRD verwijzen
+// naar elkaar met [[Wall of Force]]. Dat is geen kaartje in het archief, dus de
+// gewone wikilink-resolver kent die naam niet en liet de haken staan — 80 van
+// de 544 spreuken dragen er een, in hun beschrijving, hun higher_level, hun
+// casting time en zelfs in hun material. Hier zoeken we in de spreukenlijst
+// zelf: gevonden is klikbaar, niet gevonden is gewoon de naam. Nooit de haken.
+//
+// Hij staat op modulebereik en op `window.spreuken`, want het spreukenboek in
+// app.js toont dezelfde teksten en zou anders zijn eigen kopie krijgen — twee
+// resolvers voor dezelfde haakjes lopen uit elkaar.
+export function linkTekst(html) {
+  return String(html ?? '').replace(
+    /\[\[([^\]|]+?)(?:\|([^\]]+?))?\]\]/g,
+    (_, naam, alias) => {
+      const doel = (_all || []).find(x => (x.name || '').toLowerCase() === naam.trim().toLowerCase());
+      const tekst = esc((alias || naam).trim());
+      return doel
+        ? `<a class="spreuk-verwijzing" onclick="window.spreuken.open('${escArg(doel.index)}')" title="Open ${tekst}">${tekst}</a>`
+        : tekst;
+    });
+}
+
 // ── Detail-modal ──
 function _detailHtml(s) {
   const school = _school(s);
@@ -583,8 +605,8 @@ function _detailHtml(s) {
   const focus  = _focus(s);
   // Waarden zijn al HTML (geannoteerd / componenten met V/S/M-tooltips).
   const rows = [
-    ['Casting Time', annot(esc(_str(s.casting_time)))],
-    ['Range', annot(esc(_str(s.range)))],
+    ['Casting Time', annot(linkTekst(esc(_str(s.casting_time))))],
+    ['Range', annot(linkTekst(esc(_str(s.range))))],
     ['Components', _componentsHtml(s)],
     // Staat "Concentration" al in de duurtekst zelf ("Concentration, up to 1
     // minute"), dan is het achtervoegsel een herhaling — zelfde regel als op het
@@ -599,20 +621,7 @@ function _detailHtml(s) {
   // Rijke spreuk-opmaak hergebruiken uit het spreukenboek: damage-getinte dice,
   // DC/saves/range-highlights, bullet-lijsten (- item) en tabellen. Valt terug op mdToHtml.
   // renderSpellDesc annoteert zelf al (glossary), dus geen extra annot() eromheen.
-  // De SRD-teksten verwijzen naar andere spreuken met [[Wall of Force]]. Dat is
-  // geen kaartje in het archief, dus de gewone wikilink-resolver kent hem niet
-  // en liet de haken staan. Hier zoeken we in de spreukenlijst zelf: gevonden =
-  // klikbaar, niet gevonden = gewoon de naam.
-  const spreukLinks = (html) => String(html).replace(
-    /\[\[([^\]|]+?)(?:\|([^\]]+?))?\]\]/g,
-    (_, naam, alias) => {
-      const doel = (_all || []).find(x => (x.name || '').toLowerCase() === naam.trim().toLowerCase());
-      const tekst = esc((alias || naam).trim());
-      return doel
-        ? `<a class="spreuk-verwijzing" onclick="window.spreuken.open('${escArg(doel.index)}')" title="Open ${tekst}">${tekst}</a>`
-        : tekst;
-    });
-  const fmt = (t) => spreukLinks(window.app?.renderSpellDesc
+  const fmt = (t) => linkTekst(window.app?.renderSpellDesc
     ? window.app.renderSpellDesc(t, { diceColor })
     : annot((window.app?.mdToHtml || (x => esc(x).replace(/\n/g, '<br>')))(t)));
   return `
@@ -961,6 +970,10 @@ const _spNorm = s => String(s || '').toLowerCase().replace(/[^a-z0-9]+/g, '');
 window.spreuken = {
   // De hele lijst, voor wie er zelf in wil zoeken (globaal zoeken).
   async alle() { if (!_all) await _load(); return _all || []; },
+
+  // [[Naam]] in een spreuktekst oplossen. Het spreukenboek in app.js gebruikt
+  // hem; zie `linkTekst` hierboven.
+  linkTekst,
 
   // Maak van de spreuknamen in een statblok klikbare namen. Bewust **alleen**
   // binnen de lijstjes die renderStatblock heeft gemarkeerd (`Cantrips: …`,

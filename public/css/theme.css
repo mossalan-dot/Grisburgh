@@ -11116,66 +11116,10 @@ body.lade-dicht .regie-lade-body { display: none; }
 }
 
 /* Formulier: nieuw kenmerk */
-.player-trait-custom-form {
-  margin-top: 10px;
-  display: flex;
-  flex-direction: column;
-  gap: 7px;
-  padding: 12px;
-  background: rgba(196,168,122,0.08);
-  border: 1px solid rgba(196,168,122,0.3);
-  border-radius: 7px;
-}
-.player-trait-custom-form.hidden { display: none; }
-.player-trait-form-input {
-  padding: 7px 10px;
-  background: rgba(240,228,196,0.4);
-  border: 1px solid rgba(196,168,122,0.45);
-  border-radius: 5px;
-  color: #2a1a08;
-  font-family: 'Crimson Text', serif;
-  font-size: 13px;
-  outline: none;
-}
-.player-trait-form-input:focus { border-color: #c8a840; background: rgba(240,228,196,0.6); }
-.player-trait-form-ta {
-  padding: 7px 10px;
-  background: rgba(240,228,196,0.4);
-  border: 1px solid rgba(196,168,122,0.45);
-  border-radius: 5px;
-  color: #2a1a08;
-  font-family: 'IM Fell English', serif;
-  font-size: 13px;
-  line-height: 1.55;
-  resize: vertical;
-  outline: none;
-}
-.player-trait-form-ta:focus { border-color: #c8a840; }
-.player-trait-form-btns { display: flex; gap: 6px; }
-.player-trait-form-save {
-  padding: 5px 14px;
-  background: rgba(196,148,10,0.18);
-  border: 1px solid rgba(196,148,10,0.45);
-  border-radius: 5px;
-  color: #b8860b;
-  font-family: 'Cinzel', serif;
-  font-size: 0.75rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: background 0.12s;
-}
-.player-trait-form-save:hover { background: rgba(196,148,10,0.3); }
-.player-trait-form-cancel {
-  padding: 5px 12px;
-  background: transparent;
-  border: 1px solid rgba(196,168,122,0.3);
-  border-radius: 5px;
-  color: #8a7050;
-  font-family: 'Cinzel', serif;
-  font-size: 0.75rem;
-  cursor: pointer;
-}
-.player-trait-form-cancel:hover { background: rgba(196,168,122,0.1); }
+
+/* De eigen opmaak van het kenmerk-formulier stond hier (player-trait-form-*).
+   Weg: dat venster gebruikt nu .dm-form-row / .dm-input / .dm-btn, zoals elk
+   ander formulier in de app. Eén set bouwstenen, niet twee. */
 
 /* ── Currency redesign ── */
 .player-dash-currency-new {
@@ -13501,18 +13445,6 @@ body.herberg-actief #app { position: relative; z-index: 1; }
   background: rgba(255,255,255,0.14);
   color: rgba(255,255,255,0.9);
 }
-.player-dashboard[data-klasse] .player-trait-custom-form {
-  background: rgba(0,0,0,0.2);
-  border-color: rgba(255,255,255,0.15);
-}
-.player-dashboard[data-klasse] .player-trait-form-input,
-.player-dashboard[data-klasse] .player-trait-form-ta {
-  background: rgba(255,255,255,0.1);
-  border-color: rgba(255,255,255,0.2);
-  color: rgba(255,255,255,0.88);
-}
-.player-dashboard[data-klasse] .player-trait-form-input::placeholder,
-.player-dashboard[data-klasse] .player-trait-form-ta::placeholder { color: rgba(255,255,255,0.35); }
 
 /* Trait uses dots config */
 .player-dashboard[data-klasse] .trait-uses-label { color: rgba(255,255,255,0.55); }
@@ -34353,8 +34285,15 @@ body.wizard-open .modal-overlay { z-index: 2100; }
 /* Een geërfde plaat (van je class of je volk) staat achter een sluier: hij is
    van de houder en niet van deze feature, en zonder dat verschil lijken twintig
    features op twintig keer hetzelfde kaartje. */
-.prog-tegel-img--geerfd { opacity: .42; filter: saturate(.8); }
-.prog-tegel.tegel--open .prog-tegel-img--geerfd { opacity: .22; }
+/* **Een geleende plaat is een plaatsvervanger, geen gedoofde kaart.** Een
+   feature zonder eigen plaat leent die van zijn houder — alle vijf de
+   Elf-traits tonen dus hetzelfde elfenportret. Dat dimden we naar .42 om te
+   laten zien dát het een invaller is, maar daarmee stond een feature die je
+   gewoon hébt er vager bij dan een vergrendeld level (.55 plus arcering): het
+   dempen las als "dit kun je nog niet". Nu lichter, en het verschil met
+   vergrendeld doet de arcering. */
+.prog-tegel-img--geerfd { opacity: .66; filter: saturate(.9); }
+.prog-tegel.tegel--open .prog-tegel-img--geerfd { opacity: .3; }
 
 /* ── De boedel als tegels ────────────────────────────────────────────────────
    Dit waren eigen kaartjes met een eigen venster: één klik en je zat in het
@@ -35073,3 +35012,20 @@ button.player-dash-niveau-penning { cursor: pointer; }
 /* De strook met AC, Speed en de rest kreeg een kop; die hoort tegen zijn eigen
    strook aan te liggen, niet te zweven. */
 .player-combat-strip-kop { margin: 14px 0 -2px; }
+
+/* ── Het boekje bij het spreukenboek lag eronder ─────────────────────────────
+   Het spreukenboek is een schermvullende overlay op z-index 9100; de uitleg
+   staat op 3100. Je drukte dus op het boekje en er leek niets te gebeuren,
+   terwijl het venster keurig open ging — achter het boek. Zolang het boek
+   openstaat gaat de uitleg erboven; daarbuiten blijft 3100 staan, want boven
+   3100 liggen de cinematics (terugblik, loot) en díé hoort het boekje niet te
+   overstemmen. Zelfde patroon als `body.kaart-fs-active .modal-overlay`. */
+body:has(#sb-overlay.sb-open) .help-modal-overlay { z-index: 9200; }
+
+/* Hetzelfde als bij het boekje hierboven: het spreukdetail staat op 1000 en
+   het spreukenboek op 9100, dus een spreuk die je vanuit de inhoudsopgave
+   openslaat kwam achter het boek terecht. */
+body:has(#sb-overlay.sb-open) .spreuk-detail-overlay { z-index: 9200; }
+/* Een naam die je kunt aanklikken om te lezen, ziet er ook zo uit. */
+.sb-toc-item-name--lees { cursor: pointer; }
+.sb-toc-item-name--lees:hover { text-decoration: underline; text-underline-offset: 2px; }
