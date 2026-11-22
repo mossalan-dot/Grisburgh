@@ -1103,13 +1103,52 @@ function _spreukChipsHtml(lijst) {
 // en dit is dezelfde soort regel — dus zo hoort hij er ook uit te zien.
 // Het **minimumlevel** zit er niet in: dat is een penning geworden, net als het
 // level van een class feature.
+// **Welke spreuken geeft deze feature?** Bij een feat stond dat al op het
+// kaartje (`geeftSpreuk`, met de zin uit `_geeftZin`), maar bij een class- of
+// species-feature niet — terwijl juist daar de meeste zitten: Domain Spells,
+// Circle Spells, Oath Spells, een Elven Lineage. In Grisburgh dragen 54
+// features een spreukentabel in hun tekst en nul een `geeftSpreuk`-veld.
+//
+// Dus leiden we het af uit diezelfde tabel, met dezelfde regel die de tabel
+// zelf al gebruikt om een kolom als spreukenlijst te markeren
+// (`_SPREUKKOLOM`): de kolomkop zegt het, niet de inhoud. Buiten een
+// spreukenkolom is "Shield" een schild en "Light" gewoon licht.
+//
+// Een eigen `geeftSpreuk` wint: dat is wat de DM zelf vastlegde.
+function _spreukenVan(it) {
+  if ((it.geeftSpreuk || []).length) return it.geeftSpreuk;
+  if (it._spreuken) return it._spreuken;
+  const uit = [];
+  try {
+    for (const t of (_tabellenUit(_tekst(it)).tabellen || [])) {
+      const kolom = t.kop.map(k => _SPREUKKOLOM.test(k));
+      if (!kolom.some(Boolean)) continue;
+      for (const rij of t.rijen) {
+        rij.forEach((cel, i) => {
+          if (!kolom[i]) return;
+          // Eén cel kan er meer bevatten ("Bless, Cure Wounds"); de komma is
+          // hier de scheiding, zoals in de bron.
+          for (const naam of String(cel).split(',')) {
+            const n = _kaal(naam).replace(/\*/g, '').trim();
+            if (n && n.length > 2 && !uit.includes(n)) uit.push(n);
+          }
+        });
+      }
+    }
+  } catch { /* een onleesbare tabel levert gewoon niets op */ }
+  it._spreuken = uit;
+  return uit;
+}
+
 function _featOnderTitel(it) {
-  if (it.soort !== 'feat' && it.soort !== 'boon') return '';
+  const isFeat = it.soort === 'feat' || it.soort === 'boon';
+  const spreuken = _spreukenVan(it);
+  if (!isFeat && !spreuken.length) return '';
   return [
-    _featSoortLabel(it.categorie || ''),
+    isFeat ? _featSoortLabel(it.categorie || '') : '',
     // De kale versie wordt alleen gebruikt om te toetsen óf er iets staat; de
     // zin zelf komt uit `_featOnderTitelHtml`.
-    (it.geeftSpreuk || []).length ? `geeft ${(it.geeftSpreuk || []).join(', ')}` : '',
+    spreuken.length ? `geeft ${spreuken.join(', ')}` : '',
   ].filter(Boolean).join(' \u00b7 ');
 }
 
@@ -1118,13 +1157,14 @@ function _featOnderTitel(it) {
 // in een statblok. Vanaf het kaartje kom je zo in één klik bij de spreuk die
 // de feat je geeft; dat was eerder alleen in het venster zo.
 function _featOnderTitelHtml(it) {
-  if (it.soort !== 'feat' && it.soort !== 'boon') return '';
+  const isFeat = it.soort === 'feat' || it.soort === 'boon';
+  if (!isFeat && !_spreukenVan(it).length) return '';
   // De eis staat hier níét meer: die werd een regel van een halve kaartbreedte
   // ("Scion of the Outer Planes (Lawful Outer Plane) feat"), en hij heeft nu
   // zijn eigen penning. Wat overblijft is kort genoeg om op één regel te lezen.
   return [
-    it.categorie ? esc(_featSoortLabel(it.categorie)) : '',
-    _geeftZin(it.geeftSpreuk || []),
+    (isFeat && it.categorie) ? esc(_featSoortLabel(it.categorie)) : '',
+    _geeftZin(_spreukenVan(it)),
   ].filter(Boolean).join(' \u00b7 ');
 }
 
@@ -1197,7 +1237,13 @@ function _kaartBladInhoud(it, blad) {
   if (blad.soort === 'portret') {
     const niveaus = (it.levels || [it.level]).join(' \u00b7 ');
     const meta = [_bronRegel(it), _toontLevel(it.soort, it.level) ? `level ${niveaus}` : ''].filter(Boolean).join(' \u00b7 ');
-    const regel = meta ? esc(meta) : _featOnderTitelHtml(it);
+    // **Wat hij je aan spreuken geeft hoort er ook bij.** Dit toonde óf de
+    // meta ("Cleric · level 3") óf de featregel, en bij een class-feature is
+    // die meta er altijd — dus kwam "geeft meerdere spreuken" nooit in beeld,
+    // terwijl juist Domain Spells, Circle Spells en Oath Spells daarover gaan.
+    // Nu allebei, achter elkaar op dezelfde regel.
+    const zin = _featOnderTitelHtml(it);
+    const regel = [meta ? esc(meta) : '', zin].filter(Boolean).join(' \u00b7 ');
     return `<div class="tegel-naamband tegel-naamband--groot">
       <span class="card-name">${esc(it.naam)}</span>
       ${regel ? `<span class="tegel-ondertitel">${regel}</span>` : ''}</div>`;
