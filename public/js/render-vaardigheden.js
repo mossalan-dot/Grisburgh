@@ -2776,7 +2776,34 @@ function _filterBar() {
     : [];
   const valtSamen = alleBronnen.length === soorten.length
     && soorten.every(k => new Set(inDeur.filter(x => x.soort === k).map(x => x.bron)).size === 1);
-  const bronnen = valtSamen ? [] : alleBronnen;
+
+  // **Twee opschoningen, en allebei om dezelfde reden: een chip die niets
+  // toevoegt is ruis.** Achter Feats & Boons stonden er zeventien over drie
+  // regels — vier die letterlijk herhaalden wat de rij erboven al zei
+  // ("Feats 219", "Epic Boons 32") en dertien goden die alleen over de
+  // zegeningen gaan.
+  //
+  // 1. Een bron die net zo heet als een soort zegt hetzelfde; die valt weg.
+  // 2. Blijft er een stel over dat **binnen één soort** valt terwijl de deur
+  //    er meer heeft, dan is het een onderverdeling van dát hoekje. Hij
+  //    verschijnt zodra je die soort kiest — dan is het precies het filter dat
+  //    je wil (welke god, welke class) — en blijft daarvoor weg.
+  // Of een bron hetzelfde zegt als een soort toetsen we op **dekking**, niet op
+  // spelling: hij valt samen als alles met die bron één soort is én die bron
+  // álles van die soort dekt. Op de naam vergelijken ging mis bij "Gunsten" —
+  // Nederlands meervoud op -en, waar "Feats" en "Keuzes" op -s eindigen — en
+  // dan blijft er één chip staan die de hele regel in beeld houdt.
+  const soortVanBron = (b) => [...new Set(inDeur.filter(x => x.bron === b).map(x => x.soort))];
+  const dektEenSoort = (b) => {
+    const k = soortVanBron(b);
+    return k.length === 1 && inDeur.filter(x => x.soort === k[0]).every(x => x.bron === b);
+  };
+  const eigenBronnen = alleBronnen.filter(b => !dektEenSoort(b));
+  const soortenVanRest = new Set(eigenBronnen.flatMap(soortVanBron));
+  const binnenEenSoort = soortenVanRest.size === 1 && soorten.length > 1;
+  const wacht = binnenEenSoort && _filters.soort !== [...soortenVanRest][0];
+
+  const bronnen = (valtSamen || wacht) ? [] : eigenBronnen;
   const bronSelect = bronnen.length < 2 ? '' : `
     <div class="spreuk-schools vaardig-bronrij">
       <button class="spreuk-school-btn${_filters.bron ? '' : ' active'}"

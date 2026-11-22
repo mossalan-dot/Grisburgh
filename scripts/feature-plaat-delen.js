@@ -25,6 +25,17 @@ const args = process.argv.slice(2);
 const campagne = args.find(a => !a.startsWith('--'));
 const schrijf  = args.includes('--schrijf');
 const alleen   = (() => { const i = args.indexOf('--naam'); return i >= 0 ? args[i + 1] : null; })();
+// **Enkelvoud en meervoud zijn één feature.** "Bonus Proficiency" (4×) en
+// "Bonus Proficiencies" (7×) zijn hetzelfde ding met een andere kop; wie er
+// een plaat voor kiest bedoelt allebei. Met `--zelfde "a,b"` tellen ze als één
+// naam. Hernoemen zou het ook oplossen, maar die namen staan zo in het boek.
+const zelfde = (() => {
+  const i = args.indexOf('--zelfde');
+  if (i < 0) return null;
+  const namen = String(args[i + 1] || '').split(',').map(x => x.trim()).filter(Boolean);
+  return namen.length > 1 ? namen : null;
+})();
+const groepNaam = (naam) => (zelfde && zelfde.includes(naam) ? zelfde[0] : naam);
 if (!campagne) { console.error('Geef een campagne op.'); process.exit(1); }
 
 const WORTEL = process.env.GRISBURGH_DATA_DIR || path.join(__dirname, '..', 'data');
@@ -46,12 +57,21 @@ for (const [cn, d] of Object.entries(prog.classes || {})) {
 for (const [n, d] of Object.entries(prog.species || {})) {
   for (const [lv, fs2] of Object.entries(d.levels || {})) for (const f of fs2) pak(f, `${n} lv${lv}`, n);
 }
+// **De feats tellen mee.** Soms bestaat dezelfde naam als feature én als
+// featkaartje: Ability Score Improvement staat 58 keer in de classlijsten en
+// één keer als feat — en juist dat ene kaartje heeft een plaat. Zonder deze
+// regel is de feat een eiland en blijven die 58 kaartjes het portret van hun
+// class lenen.
+for (const [bak, soort] of [['general', 'feat'], ['epic', 'Epic Boon']]) {
+  for (const f of (prog.feats?.[bak] || [])) pak(f, `${soort}: ${f.name}`, soort);
+}
 
 const perNaam = new Map();
 for (const r of regels) {
-  if (alleen && r.f.name !== alleen) continue;
-  if (!perNaam.has(r.f.name)) perNaam.set(r.f.name, []);
-  perNaam.get(r.f.name).push(r);
+  if (alleen && r.f.name !== alleen && !(zelfde && zelfde.includes(r.f.name) && zelfde.includes(alleen))) continue;
+  const sleutel = groepNaam(r.f.name);
+  if (!perNaam.has(sleutel)) perNaam.set(sleutel, []);
+  perNaam.get(sleutel).push(r);
 }
 
 const gedeeld = [], botst = [], geenPlaat = [];
