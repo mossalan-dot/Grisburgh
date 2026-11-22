@@ -4728,10 +4728,22 @@ window.vaardigheden = {
         </select>
       </div>` : ''}
       <div class="dm-form-row">
-        <label class="dm-form-label" for="cond-icoon">Icoon</label>
-        <input class="dm-input" id="cond-icoon" list="cond-iconen" maxlength="40"
-          value="${esc(cond?.icoon || (uitBoek ? '' : 'sparkle'))}" placeholder="${esc(it?.icoon || 'Naam uit de iconenset')}">
-        <datalist id="cond-iconen">${_COND_ICOONKEUZE.map(n => `<option value="${esc(n)}">`).join('')}</datalist>
+        <label class="dm-form-label">Icoon</label>
+        <!-- **Je kiest een teken, geen woord.** Dit was een invoerveld met een
+             datalist: je moest "shield-half" typen of uit een lijst namen
+             kiezen zonder te zien wat eruit kwam. Elders in de app staat
+             daarvoor al een rij knoppen met de tekening erop — het icoonveld
+             op een kaartje, zie _kaartIcoonKies in render-campagne.js.
+             Dezelfde rij, dezelfde klasse, dezelfde knop. -->
+        <div class="kaart-icoon-picker">
+          <input type="hidden" id="cond-icoon" value="${esc(cond?.icoon || (uitBoek ? '' : 'sparkle'))}">
+          ${uitBoek ? `<button type="button" class="kaart-icoon-btn${!cond?.icoon ? ' kaart-icoon-btn--actief' : ''}"
+            title="Hou het teken uit het boek${it?.icoon ? ` (${esc(it.icoon)})` : ''}"
+            onclick="window.vaardigheden.condIcoon('',this)">${icon('x')}</button>` : ''}
+          ${_COND_ICOONKEUZE.map(n => `
+            <button type="button" class="kaart-icoon-btn${(cond?.icoon || (uitBoek ? '' : 'sparkle')) === n ? ' kaart-icoon-btn--actief' : ''}"
+              title="${esc(n)}" onclick="window.vaardigheden.condIcoon('${escA(n)}',this)">${icon(n)}</button>`).join('')}
+        </div>
       </div>` : ''}
       ${soort === 'metgezel' ? `
       <div class="dm-form-row">
@@ -4792,6 +4804,16 @@ window.vaardigheden = {
     // Annuleren annuleerde niets, want het was al opgeslagen.
     window._fpOnChange = null;
     if (it && plaat) window._fpTeken?.();
+  },
+
+  // Dezelfde beweging als `_kaartIcoonKies` op een kaartje: de waarde in het
+  // verborgen veld, en de knop die je aanwees licht op.
+  condIcoon(naam, knop) {
+    const hid = document.getElementById('cond-icoon');
+    if (hid) hid.value = naam;
+    knop.closest('.kaart-icoon-picker')?.querySelectorAll('.kaart-icoon-btn')
+      .forEach(b => b.classList.remove('kaart-icoon-btn--actief'));
+    knop.classList.add('kaart-icoon-btn--actief');
   },
 
   // Nieuwe conditie: hetzelfde venster, zonder kaartje erachter.
