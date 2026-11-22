@@ -102,9 +102,10 @@ function _gedaanteHtml(g, eigen) {
   return `
     <div class="player-dash-section gedaante-blok">
       <div class="player-dash-section-title">${ic('paw-print')} Je bent een ${esc(g.naam)}
-        <button class="kk-mini gedaante-einde" data-kk-einde="druid.wildshape">${ic('x')} Terug</button></div>
-      <p class="dm-hint gedaante-uitleg">Deze gelden zolang je die gedaante hebt. Je HP, je Hit Dice,
-        je INT, WIS en CHA en je class features blijven van jou — die staan hieronder.</p>
+        <span class="pds-kop-knoppen">
+          <button class="kk-mini gedaante-einde" data-kk-einde="druid.wildshape">${ic('x')} Terug</button>
+          ${window._helpBtn?.('gedaante') || ''}
+        </span></div>
       <div class="gedaante-raster">
         ${cellen.map(([lbl, nu, was]) => `
           <div class="gedaante-cel">

@@ -54,7 +54,7 @@ function _teken(el) {
   if (!_stand.summons.length && !heeftAanbod) { el.innerHTML = ''; return; }
   el.innerHTML = `
     <div class="player-dash-section summon-blok">
-      <div class="player-dash-section-title">${ic('sparkles')} Opgeroepen</div>
+      <div class="player-dash-section-title player-dash-section-title--with-btn">${ic('sparkles')} Opgeroepen<span class="pds-kop-hulp">${window._helpBtn?.('summons') || ''}</span></div>
       ${_stand.summons.length ? `<div class="summon-lijst">${_stand.summons.map(s => `
         <div class="summon-rij${_oud(s) ? ' summon-rij--oud' : ''}">
           <span class="summon-naam">${esc(s.naam)}</span>

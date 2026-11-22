@@ -47,7 +47,7 @@ function _teken(el, kop) {
   if (!_slots.length) { el.innerHTML = ''; return; }
   el.innerHTML = `
     <div class="player-dash-section dagkeuze">
-      <div class="player-dash-section-title">${ic('sunset')} ${esc(kop)}</div>
+      <div class="player-dash-section-title player-dash-section-title--with-btn">${ic('sunset')} ${esc(kop)}<span class="pds-kop-hulp">${window._helpBtn?.('dagkeuze') || ''}</span></div>
       ${_slots.map((sl, i) => {
         const gekozen = sl.gekozen || [];
         const over = Math.max(0, sl.keuze.aantal - gekozen.length);

@@ -250,7 +250,14 @@ const SECTIES = [
 
   { id: 'speler', titel: 'Het spelerstabblad',
     uitleg: 'De zes subtabs van een speler, in de volgorde waarin ze op het scherm staan: Party · Personage · Boedel · Progressie · Spreukenboek. Toon: je legt iets uit aan iemand die het spel spéélt, niet aan iemand die het maakt — dus geen instellingen en geen "je bepaalt".',
-    sleutels: ['party', 'stemronde', 'personage', 'rage', 'klassekracht', 'knapzak',
+    sleutels: ['party', 'stemronde',
+               // Personage, in de volgorde waarin de blokken op het scherm staan.
+               'personage', 'gedaante', 'personage_hp', 'personage_statussen',
+               'rage', 'klassekracht', 'dagkeuze', 'summons', 'personage_wildmagic',
+               'personage_stats', 'personage_wapens', 'personage_abilities',
+               'personage_skills', 'personage_proficiencies', 'personage_talen',
+               'personage_tap', 'personage_emotes', 'personage_wiejebent',
+               'knapzak',
                'progressie', 'spreukenboek', 'spreuken_toevoegen', 'spreukenboek_boek',
                'spreukenboek_inhoud'] },
 

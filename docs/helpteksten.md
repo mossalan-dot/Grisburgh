@@ -1,4 +1,4 @@
-_140 sleutels · 16 aangepast in **grisburgh** · rest is de standaard uit de code._
+_155 sleutels · 15 aangepast in **grisburgh** · rest is de standaard uit de code._
 
 # Helpteksten
 
@@ -30,7 +30,7 @@ zodat latere verbeteringen in de code vanzelf doorkomen.
 
 > Deze lijst is afgeleid, niet gekozen: hij wijst alleen aan waar de vorm uiteenloopt.
 
-- **140 boekjes, 537 stappen, 25717 woorden.** Gemiddeld 3.8 stap per boekje en 48 woorden per stap.
+- **155 boekjes, 578 stappen, 26970 woorden.** Gemiddeld 3.7 stap per boekje en 47 woorden per stap.
 - **5 boekjes van één stap.** Vaak één zin die alleen zegt wát het scherm is. Wat kun je er doen, en waar klik je? — `documenten`, `hulp_kijk_personages_sheet`, `locaties`, `organisaties`, `party`
 - **2 met meer dan 90 woorden per stap.** Een stap is een schermpje om doorheen te bladeren; daar past geen alinea in. — `dm_verzoeken_personage`, `hulp_heldenboek_editor`
 
@@ -42,13 +42,28 @@ zodat latere verbeteringen in de code vanzelf doorkomen.
 
 - [`wizard`](#wizard) — De opstartwizard · 10 stappen, 589 w
 
-**Het spelerstabblad** · 11
+**Het spelerstabblad** · 26
 
 - [`party`](#party) — Party · 1 stap, 18 w · _aangepast_
 - [`stemronde`](#stemronde) — Het mooiste moment van de avond · 4 stappen, 177 w · _rolverdeling_
-- [`personage`](#personage) — Mijn personage · 4 stappen, 139 w · _aangepast_
+- [`personage`](#personage) — Mijn personage · 4 stappen, 157 w
+- [`gedaante`](#gedaante) — Je gedaante · 4 stappen, 102 w
+- [`personage_hp`](#personage_hp) — HP · 4 stappen, 138 w
+- [`personage_statussen`](#personage_statussen) — Actieve statussen · 2 stappen, 65 w
 - [`rage`](#rage) — Rage · 7 stappen, 263 w
 - [`klassekracht`](#klassekracht) — Klassekrachten · 13 stappen, 688 w
+- [`dagkeuze`](#dagkeuze) — Je keuze van vandaag · 2 stappen, 53 w
+- [`summons`](#summons) — Opgeroepen · 4 stappen, 133 w
+- [`personage_wildmagic`](#personage_wildmagic) — Wild Magic Surge · 2 stappen, 64 w
+- [`personage_stats`](#personage_stats) — Gevechtswaarden · 4 stappen, 149 w
+- [`personage_wapens`](#personage_wapens) — Weapons & Damage Cantrips · 4 stappen, 122 w
+- [`personage_abilities`](#personage_abilities) — Ability Scores · 2 stappen, 58 w
+- [`personage_skills`](#personage_skills) — Skills · 3 stappen, 71 w
+- [`personage_proficiencies`](#personage_proficiencies) — Proficiencies · 2 stappen, 60 w
+- [`personage_talen`](#personage_talen) — Languages & Senses · 2 stappen, 54 w
+- [`personage_tap`](#personage_tap) — Aan de tap · 2 stappen, 55 w
+- [`personage_emotes`](#personage_emotes) — Emotes · 2 stappen, 51 w
+- [`personage_wiejebent`](#personage_wiejebent) — Wie je bent · 2 stappen, 60 w
 - [`knapzak`](#knapzak) — Boedel · 4 stappen, 127 w · _aangepast_
 - [`progressie`](#progressie) — Features & Traits · 4 stappen, 167 w
 - [`spreukenboek`](#spreukenboek) — Spreukenboek · 3 stappen, 117 w
@@ -286,7 +301,7 @@ De zes subtabs van een speler, in de volgorde waarin ze op het scherm staan: Par
 
 ## `party`
 
-> Helpknop in: app.js:9355
+> Helpknop in: app.js:9360
 > Nu: **aangepast in deze campagne**
 > 1 stap · 18 woorden · 18 per stap
 > De standaard telt 4 stap(pen).
@@ -327,28 +342,97 @@ Wie vanavond een genadeslag beschreef ("How do you want to do this?"), staat ond
 
 ## `personage`
 
-> Helpknop in: app.js:9501
-> Nu: **aangepast in deze campagne**
-> 4 stappen · 139 woorden · 35 per stap
-> De standaard telt 4 stap(pen).
+> Helpknop in: app.js:9506
+> Nu: de standaard uit de code
+> 4 stappen · 157 woorden · 39 per stap
 
 Titel: Mijn personage
 
-### Combat stats
+### Je blad
 
-Hier stel je je gevechtswaarden in: AC, snelheid, initiative bonus, proficiency bonus en hit dice. Deze worden niet allemaal automatisch berekend. Vul ze in vanuit je character sheet.
+Alles wat je tijdens een sessie bij de hand wil hebben: je HP, waar je mee aanvalt, je scores en wat er nu op je ligt. Elk blok heeft rechtsboven een eigen boekje met uitleg over dát blok.
 
-### HP bijhouden
+### Wat je zelf invult
 
-Gebruik de + en − knoppen om HP bij te houden tijdens gevecht. Je kunt ook Temporary HP instellen.
+De witte vakjes zijn van jou — je typt ze over van je character sheet en ze bewaren zichzelf. Wat de app uit je class, level en scores kan afleiden, vult hij voor; dat mag je altijd overtypen.
 
-### Ability Scores
+### Je DM kijkt mee
 
-Je ability scores en skill proficiencies stel je in op dit tabblad. Modifiers worden automatisch berekend. Klik twee keer op een skill om Expertise te noteren. Met de pijltjes kun je handmatig aanpassingen doen, bijvoorbeeld omdat een nieuwe vaardigheid dat aangeeft.
+Je HP, je statussen en je gedaante gaan meteen naar het scherm van je DM en naar het scherm op tafel. Je hoeft dus nergens te melden dat je geraakt bent.
 
-### Kenmerken en eigenschappen
+### Level en class
 
-Hier staan de kenmerken en eigenschappen die je ontvangt vanwege je origin, class, subclass of background. Deze worden grotendeels automatisch ingevuld, maar soms helpt de DM mee met knutselen. Je kunt een aantal bolletjes per eigenschap instellen, die je dan makkelijk als reminder kunt afvinken zodra je een eigenschap hebt gebruikt.
+Je **level** en je **class** zet je DM: een level komt erbij via *Level omhoog*, een tweede class via een verzoek bij die level-up. Je **subclass** kies je zelf, één keer, op het level dat erom vraagt — daarna staat hij vast en kan alleen je DM hem nog omzetten.
+
+---
+
+## `gedaante`
+
+> Helpknop in: klassekracht.js:107
+> Nu: de standaard uit de code
+> 4 stappen · 102 woorden · 26 per stap
+
+Titel: Je gedaante
+
+### Je bent even iets anders
+
+Zolang je in een gedaante zit staat die bovenaan je blad, met de waarden van het dier naast die van jezelf. Zo hoef je nergens te zoeken wat er nu geldt.
+
+### Wat van het dier is
+
+Zijn AC, zijn speed, zijn Strength, Dexterity en Constitution, en wat hij kan. Daar vecht je mee zolang de gedaante duurt.
+
+### Wat van jou blijft
+
+Je HP en je Hit Dice, je Intelligence, Wisdom en Charisma, en al je class features. Die staan gewoon onder de band, want ze veranderen niet.
+
+### Terug
+
+Met **Terug** ben je weer jezelf. Een gevecht dat afloopt laat je gedaante met rust: je blijft erin tot je er zelf uit stapt.
+
+---
+
+## `personage_hp`
+
+> Helpknop in: app.js:9521
+> Nu: de standaard uit de code
+> 4 stappen · 138 woorden · 35 per stap
+
+Titel: HP
+
+### Je levenspunten
+
+Met **+** en **−** houd je bij hoeveel HP je nog hebt; het getal rechts is je maximum. Je DM ziet het meteen, en je portret verkleurt mee — zo weet de tafel hoe je ervoor staat zonder dat iemand het hoeft te vragen.
+
+### Temporary HP
+
+Een aparte buffer die als eerste wordt opgegeten. Hij **stapelt niet**: krijg je een nieuwe hoeveelheid, dan geldt de hoogste van de twee, niet de som. Een lange rust haalt hem weg.
+
+### Hit Dice
+
+De bolletjes zijn je Hit Dice, afgeleid uit je class en level — bij een korte rust zet je er een in om te genezen. Een lange rust geeft de helft terug, naar beneden afgerond.
+
+### Exhaustion
+
+Zes bolletjes die je DM zet. De app telt ze alleen: wat een niveau met je doet, geldt aan tafel. Elke lange rust haalt er een af.
+
+---
+
+## `personage_statussen`
+
+> Helpknop in: app.js:9587
+> Nu: de standaard uit de code
+> 2 stappen · 65 woorden · 33 per stap
+
+Titel: Actieve statussen
+
+### Wat er nu op je ligt
+
+Elke condition die op je token staat — Poisoned, Prone, Concentration, maar ook iets wat je zelf aanzette zoals Raging. Tik er een aan en je leest wat hij doet.
+
+### Wie ze zet
+
+Meestal je DM, vanuit het gevecht. Een paar zet je zelf aan door iets te doen: in Rage gaan, Wild Shape gebruiken, een spell waar je op concentreert. Staat er niets, dan is er niets.
 
 ---
 
@@ -392,7 +476,7 @@ Wie Rage eerder als kenmerk met bolletjes bijhield, kan dat kenmerk weghalen: di
 
 ## `klassekracht`
 
-> Helpknop in: klassekracht.js:363
+> Helpknop in: klassekracht.js:364
 > Nu: de standaard uit de code
 > 13 stappen · 688 woorden · 53 per stap
 
@@ -452,9 +536,253 @@ Heb je emotes (die zet je DM klaar, of je kiest ze bij het maken van je personag
 
 ---
 
+## `dagkeuze`
+
+> Helpknop in: dagkeuze.js:50
+> Nu: de standaard uit de code
+> 2 stappen · 53 woorden · 27 per stap
+
+Titel: Je keuze van vandaag
+
+### Eén keuze per dag
+
+Sommige class features laten je bij een lange rust iets kiezen dat de hele dag geldt. Wat je koos staat hier, zodat je er niet naar hoeft te zoeken.
+
+### Omzetten
+
+Je kiest opnieuw bij je volgende lange rust. Kwam je er tijdens de rust niet aan toe, dan kun je het hier alsnog doen.
+
+---
+
+## `summons`
+
+> Helpknop in: summons.js:57
+> Nu: de standaard uit de code
+> 4 stappen · 133 woorden · 33 per stap
+
+Titel: Opgeroepen
+
+### Wie er naast je loopt
+
+Alles wat je zelf hebt opgeroepen: een familiar, een rijdier, een geest uit een spell. Je roept ze op met **Roep op** en stuurt ze weg met het kruisje.
+
+### Ook buiten een gevecht
+
+Een familiar loopt met je mee door de stad. Begint er een gevecht, dan staat hij er vanzelf bij, met jouw plek in de beurtvolgorde — en als het gevecht uit is, blijft hij gewoon staan.
+
+### Soms vraagt hij om cijfers
+
+Van zeven van de vijfentwintig kennen we het statblock; de rest staat in een boek waaruit we niets mogen overnemen. Dan vraagt hij één keer om HP en AC, onthoudt ze, en is de volgende keer weer één klik.
+
+### Een rust haalt niets weg
+
+Hoe lang iets blijft verschilt per spell, en dat weet de app niet. Dus wist hij niets, maar zet er *van voor je rust* bij. Wegsturen blijft aan jou.
+
+---
+
+## `personage_wildmagic`
+
+> Helpknop in: app.js:9611
+> Nu: de standaard uit de code
+> 2 stappen · 64 woorden · 32 per stap
+
+Titel: Wild Magic Surge
+
+### Alleen voor een Wild Magic Sorcerer
+
+Cast je een spell van level 1 of hoger, dan kan je DM je om een d20 vragen. Een 20 laat de magie uit de hand lopen — wát er gebeurt, rolt hij op zijn eigen tafel.
+
+### Tides of Chaos
+
+Hier staat ook of je Tides of Chaos nog hebt. Gebruik je hem, dan mag je DM de volgende keer de surge afdwingen; dat is de prijs.
+
+---
+
+## `personage_stats`
+
+> Helpknop in: app.js:9624
+> Nu: de standaard uit de code
+> 4 stappen · 149 woorden · 37 per stap
+
+Titel: Gevechtswaarden
+
+### De strook in één oogopslag
+
+AC, Speed, Initiative, Proficiency Bonus, Hit Dice en Passive Perception — de getallen waar in een gevecht naar gevraagd wordt. De witte vakjes vul je zelf; de rest rekent de app uit je class, level en ability scores.
+
+### AC laten uitrekenen
+
+Het knopje naast AC kijkt naar wat er in je boedel ligt: kies je harnas en je shield, en hij telt Base AC, je Dexterity en de cap van dat harnassoort bij elkaar op. Je ziet de som voordat je hem overneemt.
+
+### Het blijft jouw getal
+
+De uitkomst is een voorstel, geen slot: je mag het veld altijd overtypen. Een Monk, een Barbarian of een randgeval dat nergens in past wint het van de rekensom.
+
+### Waarschuwingen tellen niet af
+
+Ben je niet proficient met je harnas, of is het te zwaar voor je Strength, dan zegt hij dat — maar hij haalt er geen AC van af. Dat zijn regels voor aan tafel, geen getal dat stilletjes lager uitvalt.
+
+---
+
+## `personage_wapens`
+
+> Helpknop in: app.js:9689
+> Nu: de standaard uit de code
+> 4 stappen · 122 woorden · 31 per stap
+
+Titel: Weapons & Damage Cantrips
+
+### Waar je mee aanvalt
+
+De regels die je tijdens een gevecht nodig hebt: naam, je aanvalsbonus of Save DC, en de schade met zijn type. Je vult ze zelf in — dit is je eigen spiekbriefje.
+
+### Uit je boedel en je cantrips
+
+Met het knapzakknopje kies je aan welke wapens en damage cantrips je werkelijk draagt; wat je aanvinkt komt als regel in de tabel. De **+** zet een lege regel neer voor iets wat nergens staat.
+
+### Wat de app zelf invult
+
+Hij leest de eigenschappen van het wapen: Finesse of Ranged pakt je Dexterity, de rest je Strength, en bij Finesse je hoogste van de twee. Een magische bonus en je proficiency telt hij erbij op.
+
+### En wat je zelf beslist
+
+Elk vakje is overtypbaar. De app vult voor; of het aan tafel ook zo uitpakt, bepalen jij en je DM.
+
+---
+
+## `personage_abilities`
+
+> Helpknop in: app.js:9722
+> Nu: de standaard uit de code
+> 2 stappen · 58 woorden · 29 per stap
+
+Titel: Ability Scores
+
+### De zes scores
+
+Vul je scores in zoals ze op je character sheet staan. De **modifier** eronder rekent de app zelf uit — die hoef je nergens bij te houden.
+
+### Saving throws
+
+Vink aan waar je proficient in bent; de bonus loopt dan mee met je Proficiency Bonus, en die volgt je level. Verandert er iets, dan klopt het de volgende sessie vanzelf.
+
+---
+
+## `personage_skills`
+
+> Helpknop in: app.js:9757
+> Nu: de standaard uit de code
+> 3 stappen · 71 woorden · 24 per stap
+
+Titel: Skills
+
+### Waar je goed in bent
+
+Alle achttien skills met de ability waar ze aan hangen. De bonus volgt uit je score; je vinkt alleen aan waar je proficient in bent.
+
+### Expertise
+
+Klik een tweede keer en de skill staat op **Expertise**: je Proficiency Bonus telt dubbel. Een derde klik zet hem weer uit.
+
+### Zelf bijstellen
+
+Met de pijltjes leg je er handmatig iets bovenop, voor een feature of een voorwerp dat een bonus geeft die nergens anders vandaan komt.
+
+---
+
+## `personage_proficiencies`
+
+> Helpknop in: app.js:9794
+> Nu: de standaard uit de code
+> 2 stappen · 60 woorden · 30 per stap
+
+Titel: Proficiencies
+
+### Waar je mee overweg kunt
+
+Je wapens, harnassen, tools en instrumenten, zoals je class, species en background ze geven. Het is een lijst die je zelf bijhoudt.
+
+### De app leest mee
+
+Twee plekken kijken hiernaar: de wapentabel, die je proficiency bij je aanvalsbonus optelt, en de AC-rekenaar, die waarschuwt als je een harnas draagt waar je niet mee overweg kunt. Hoe netter dit staat, hoe beter die twee kloppen.
+
+---
+
+## `personage_talen`
+
+> Helpknop in: app.js:9819
+> Nu: de standaard uit de code
+> 2 stappen · 54 woorden · 27 per stap
+
+Titel: Languages & Senses
+
+### Wat je verstaat en wat je waarneemt
+
+De talen die je spreekt, en bijzondere zintuigen als Darkvision of Tremorsense, met hun bereik. Allebei komen ze van je species, je class of iets wat je onderweg oppikte.
+
+### Een aantekening, geen mechaniek
+
+De app doet er zelf niets mee: ze staan hier zodat jij en je DM er aan tafel naar kunnen wijzen als het ertoe doet.
+
+---
+
+## `personage_tap`
+
+> Helpknop in: app.js:9838
+> Nu: de standaard uit de code
+> 2 stappen · 55 woorden · 28 per stap
+
+Titel: Aan de tap
+
+### Wat je op hebt
+
+Wat je bij de waard bestelde en nu nog bij je draagt: een voordeel op een bepaalde worp, een warme buik, een status met een korte beschrijving.
+
+### Tot je volgende lange rust
+
+Ze gelden tot je slaapt en verdwijnen dan vanzelf. Het is een aantekening die je bij je draagt — of het voordeel geldt, beslist je DM aan tafel.
+
+---
+
+## `personage_emotes`
+
+> Helpknop in: app.js:9857
+> Nu: de standaard uit de code
+> 2 stappen · 51 woorden · 26 per stap
+
+Titel: Emotes
+
+### Je eigen klanken
+
+Korte geluidsfragmenten die bij jouw personage horen — een strijdkreet, een zucht, een lach. Tikken speelt hem af op het scherm op tafel.
+
+### Waar ze vandaan komen
+
+Je neemt ze op toen je je personage maakte, of je DM zet ze voor je klaar. Is het jouw beurt in een gevecht, dan staat dat erbij.
+
+---
+
+## `personage_wiejebent`
+
+> Helpknop in: app.js:9874
+> Nu: de standaard uit de code
+> 2 stappen · 60 woorden · 30 per stap
+
+Titel: Wie je bent
+
+### De mens achter de cijfers
+
+Je uiterlijk, je karakter, je idealen, je band met de anderen en wat je dwarszit. Niets hiervan rekent mee — het staat er om op terug te vallen als iemand vraagt wie je eigenlijk bent.
+
+### Dichtgeklapt, met opzet
+
+Het blok staat dicht omdat je het niet elke beurt nodig hebt. Klik de kop om het open te vouwen; wat je typt bewaart zichzelf.
+
+---
+
 ## `knapzak`
 
-> Helpknop in: app.js:9897
+> Helpknop in: app.js:9909
 > Nu: **aangepast in deze campagne**
 > 4 stappen · 127 woorden · 32 per stap
 > De standaard telt 4 stap(pen).
@@ -507,7 +835,7 @@ Waar je iets moet kiezen — een feat, een subclass, een Ability Score Improveme
 
 ## `spreukenboek`
 
-> Helpknop in: app.js:10183
+> Helpknop in: app.js:10195
 > Nu: de standaard uit de code
 > 3 stappen · 117 woorden · 39 per stap
 
@@ -1598,7 +1926,7 @@ In de volgorde van het menu (`DIENST_GROEPEN`): kopen en verkopen, rust en verma
 
 ## `markt`
 
-> Helpknop in: app.js:13528, wizard.js:46 (dienstkop)
+> Helpknop in: app.js:13540, wizard.js:46 (dienstkop)
 > Nu: de standaard uit de code
 > 4 stappen · 177 woorden · 44 per stap
 
@@ -1624,7 +1952,7 @@ Alleen winkels die je party **ontdekt heeft** en die tijdens deze akte bereikbaa
 
 ## `winkel`
 
-> Helpknop in: app.js:13656
+> Helpknop in: app.js:13668
 > Nu: de standaard uit de code
 > 6 stappen · 202 woorden · 34 per stap
 
@@ -1658,7 +1986,7 @@ Klik de naam van een voorwerp: dan opent zijn **kaartje**, met de beschrijving, 
 
 ## `magizoo`
 
-> Helpknop in: app.js:14665 (dienstkop), dm-panel.js:7344 (dienstkop), wizard.js:49 (dienstkop)
+> Helpknop in: app.js:14677 (dienstkop), dm-panel.js:7344 (dienstkop), wizard.js:49 (dienstkop)
 > Nu: **aangepast in deze campagne**
 > 4 stappen · 184 woorden · 46 per stap
 > De standaard telt 2 stap(pen).
@@ -1685,7 +2013,7 @@ Wat vandaag in de kooien zit, staat onder *Adoptie*. Een dier kost geld en krijg
 
 ## `herberg`
 
-> Helpknop in: app.js:13987 (dienstkop), wizard.js:43 (dienstkop)
+> Helpknop in: app.js:13999 (dienstkop), wizard.js:43 (dienstkop)
 > Nu: **aangepast in deze campagne**
 > 4 stappen · 175 woorden · 44 per stap
 > De standaard telt 2 stap(pen).
@@ -1712,7 +2040,7 @@ Je kunt in De Swarte Cat ook overnachten. Dat regelt je DM voor het hele gezelsc
 
 ## `tweespalt`
 
-> Helpknop in: app.js:15458 (dienstkop), wizard.js:44 (dienstkop)
+> Helpknop in: app.js:15470 (dienstkop), wizard.js:44 (dienstkop)
 > Nu: **aangepast in deze campagne**
 > 4 stappen · 169 woorden · 42 per stap
 > De standaard telt 2 stap(pen).
@@ -1739,7 +2067,7 @@ Kom je geld tekort, dan leent Taevin het je. Let op de rente: die loopt per **la
 
 ## `tempel`
 
-> Helpknop in: app.js:15016, app.js:15096, wizard.js:47 (dienstkop)
+> Helpknop in: app.js:15028, app.js:15108, wizard.js:47 (dienstkop)
 > Nu: **aangepast in deze campagne**
 > 4 stappen · 167 woorden · 42 per stap
 > De standaard telt 3 stap(pen).
@@ -1766,7 +2094,7 @@ Verzaak je je eed, dan volgt een vloek. Die raak je kwijt door in de tempel boet
 
 ## `ursula`
 
-> Helpknop in: app.js:14940 (dienstkop), dm-panel.js:7466 (dienstkop), wizard.js:48 (dienstkop)
+> Helpknop in: app.js:14952 (dienstkop), dm-panel.js:7466 (dienstkop), wizard.js:48 (dienstkop)
 > Nu: **aangepast in deze campagne**
 > 3 stappen · 115 woorden · 38 per stap
 > De standaard telt 2 stap(pen).
@@ -1789,7 +2117,7 @@ Onder het beeldspel zit soms een concreet gegeven: een naam of een plek. Dat kom
 
 ## `gock`
 
-> Helpknop in: app.js:14323 (dienstkop), dm-panel.js:7148 (dienstkop), wizard.js:45 (dienstkop)
+> Helpknop in: app.js:14335 (dienstkop), dm-panel.js:7148 (dienstkop), wizard.js:45 (dienstkop)
 > Nu: **aangepast in deze campagne**
 > 3 stappen · 94 woorden · 31 per stap
 > De standaard telt 2 stap(pen).
@@ -1812,7 +2140,7 @@ Je kunt hem ook een gerucht laten rondbrengen over iemand of iets: waar of niet.
 
 ## `woekeraar`
 
-> Helpknop in: app.js:14596 (dienstkop), wizard.js:50 (dienstkop)
+> Helpknop in: app.js:14608 (dienstkop), wizard.js:50 (dienstkop)
 > Nu: de standaard uit de code
 > 4 stappen · 151 woorden · 38 per stap
 
@@ -1838,7 +2166,7 @@ Alles in één keer, of een deel. Bij een deel wordt wat overblijft de nieuwe ho
 
 ## `facties`
 
-> Helpknop in: app.js:9869, app.js:15665 (dienstkop), app.js:15779
+> Helpknop in: app.js:9881, app.js:15677 (dienstkop), app.js:15791
 > Nu: **aangepast in deze campagne**
 > 5 stappen · 212 woorden · 42 per stap
 > De standaard telt 4 stap(pen).

@@ -35038,3 +35038,38 @@ button.player-dash-niveau-penning { cursor: pointer; }
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
+
+/* ── De penning even groot als het portret ───────────────────────────────────
+   "Zelfde buitenmaat als het portret (140px)" sloeg op de kolom eromheen, niet
+   op de schijf: die was 110 px, terwijl links de HP-ring de volle 140 vult. Dat
+   leest niet als twee penningen maar als één penning en een kleiner broertje.
+   Nu 140 om 140, en de XP-ring ligt op de rand (inset 0) in plaats van
+   eromheen — zelfde plek als de HP-ring links, dus ook dezelfde buitenmaat
+   zodra hij er wél is. */
+.player-dash-niveau .player-dash-niveau-penning {
+  width: 140px;
+  height: 140px;
+}
+.player-dash-niveau .player-dash-niveau-ring { inset: 0; }
+.player-dash-niveau .player-dash-niveau-lbl { font-size: .7rem; }
+.player-dash-niveau .player-dash-niveau-nr  { font-size: 2.6rem; }
+
+/* ── Het boekje bij een blok op het spelersblad ──────────────────────────────
+   Er hing één helpknop bovenaan het hele tabblad en daaronder veertien
+   blokken zonder knop; dat las als "de uitleg gaat over HP", want dat is het
+   eerste blok eronder. Nu heeft elke kop er een, rechts, en zit hij in een
+   eigen span zodat een kop met méér knoppen (de wapentabel, de gedaante) ze
+   bij elkaar houdt in plaats van ze door space-between uit elkaar te laten
+   drijven. */
+.pds-kop-hulp,
+.pds-kop-knoppen {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.pds-kop-hulp .help-btn-wrap,
+.pds-kop-knoppen .help-btn-wrap { display: inline-flex; }
+/* De strook met AC, Speed en de rest kreeg een kop; die hoort tegen zijn eigen
+   strook aan te liggen, niet te zweven. */
+.player-combat-strip-kop { margin: 14px 0 -2px; }

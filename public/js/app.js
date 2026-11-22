@@ -19,13 +19,13 @@ import './media-picker.js?v=20';
 // Sfeer bij het vergroten van een kaart; hangt zichzelf op aan window.
 import './kaartsfeer.js?v=5';
 // Wat je elke dag opnieuw kiest; hangt zichzelf op aan window.
-import './dagkeuze.js?v=6';
+import './dagkeuze.js?v=7';
 import './wizard.js?v=17';
 import './tafels.js?v=2';
 import './terugblik.js?v=9';
 import './rage.js?v=10';
-import './summons.js?v=3';
-import './klassekracht.js?v=13';
+import './summons.js?v=4';
+import './klassekracht.js?v=14';
 import './bastion.js?v=10';
 import './stemronde.js?v=8';
 import './gevecht-regie.js?v=9';
@@ -8325,7 +8325,12 @@ async function _levelUpBalk() {
         ? (st.xp.volgende == null ? 'het hoogste level'
           : st.xp.scheef ? 'je XP loopt nog niet mee'
           : `nog ${(st.xp.volgende - st.xp.nu).toLocaleString('nl-NL')} XP`)
-        : 'je huidige level';
+        // **Zwijgen als er niets te melden valt.** Onder de penning stond
+        // altijd een bijschrift, en op mijlpaal was dat "je huidige level" —
+        // dat staat al in de penning zelf, in kapitalen, met het getal eronder.
+        // Een regel die herhaalt wat erboven staat, leest als een uitleg die
+        // er niet is. Een XP-afstand of een wachtende level-up is wél nieuws.
+        : '';
     const ring = pct == null ? '' : `<svg class="player-dash-niveau-ring" viewBox="0 0 100 100" aria-hidden="true">
       <circle cx="50" cy="50" r="${R}" class="niveau-ring-bg"/>
       <circle cx="50" cy="50" r="${R}" class="niveau-ring-fill"
@@ -8341,7 +8346,7 @@ async function _levelUpBalk() {
           ${klaar ? `<span class="player-dash-niveau-pijl">${icon('chevron-right')}</span>` : ''}
         </span>
       </${klaar ? 'button' : 'div'}>
-      <span class="player-dash-niveau-onder">${esc(onder)}</span>`;
+      ${onder ? `<span class="player-dash-niveau-onder">${esc(onder)}</span>` : ''}`;
   }
 
   if (!el) return;
@@ -9513,7 +9518,7 @@ async function renderMijnKarakter(opts = {}) {
              beneden. Ze staan nu ernaast: op een breed scherm in de tweede
              kolom, op een smal scherm er gewoon onder. -->
         <div class="player-dash-section pds--half">
-          <div class="player-dash-section-title">${icon('heart')} HP</div>
+          <div class="player-dash-section-title player-dash-section-title--with-btn">${icon('heart')} HP<span class="pds-kop-hulp">${_helpBtn('personage_hp')}</span></div>
           <div class="player-hp-hero">
             <div class="player-hp-hero-row">
               <button class="player-hp-btn-big" onclick="window._dashHpChange(-1)" title="Schade">−</button>
@@ -9579,7 +9584,7 @@ async function renderMijnKarakter(opts = {}) {
         <!-- Actieve conditions -->
         ${conditions.length > 0 ? `
         <div class="player-dash-section pds--half">
-          <div class="player-dash-section-title">${icon('zap')} Actieve statussen</div>
+          <div class="player-dash-section-title player-dash-section-title--with-btn">${icon('zap')} Actieve statussen<span class="pds-kop-hulp">${_helpBtn('personage_statussen')}</span></div>
           <div class="player-dash-conditions">
             ${conditions.map(cid => {
               const info    = PLAYER_COND_INFO[cid] || { label: cid };
@@ -9603,7 +9608,7 @@ async function renderMijnKarakter(opts = {}) {
              zijn HP. -->
         ${_dominantKlasse.toLowerCase().includes('sorcerer') ? `
         <div class="player-dash-section wild-magic-section">
-          <div class="player-dash-section-title">${icon('sparkles')} Wild Magic Surge</div>
+          <div class="player-dash-section-title player-dash-section-title--with-btn">${icon('sparkles')} Wild Magic Surge<span class="pds-kop-hulp">${_helpBtn('personage_wildmagic')}</span></div>
           <div class="wild-magic-roller">
             <button class="wild-magic-btn" onclick="window._rollWildMagic()">Roll d100</button>
             <div class="wild-magic-result hidden" id="wild-magic-result">
@@ -9613,7 +9618,10 @@ async function renderMijnKarakter(opts = {}) {
           </div>
         </div>` : ''}
 
-        <!-- Combat stats strip -->
+        <!-- Combat stats strip. De kop stond er niet: de strook begon
+             zomaar onder het HP-blok, en daardoor was er ook geen plek voor
+             het boekje waarin de AC-rekenaar wordt uitgelegd. -->
+        <div class="player-dash-section-title player-dash-section-title--with-btn player-combat-strip-kop">${icon('shield')} Gevechtswaarden<span class="pds-kop-hulp">${_helpBtn('personage_stats')}</span></div>
         <div class="player-combat-strip">
           <div class="pcs-item">
             <span class="pcs-label">AC</span>
@@ -9674,9 +9682,12 @@ async function renderMijnKarakter(opts = {}) {
         <div class="player-dash-section">
           <div class="player-dash-section-title player-dash-section-title--with-btn">
             ${icon('swords')} Weapons &amp; Damage Cantrips
-            <button class="player-weapon-add-btn" onclick="window._wapenUitSpullen()"
-              title="Kies uit je boedel en je cantrips">${icon('backpack')}</button>
-            <button class="player-weapon-add-btn" onclick="window._addWeapon()" title="Lege regel erbij">+</button>
+            <span class="pds-kop-knoppen">
+              <button class="player-weapon-add-btn" onclick="window._wapenUitSpullen()"
+                title="Kies uit je boedel en je cantrips">${icon('backpack')}</button>
+              <button class="player-weapon-add-btn" onclick="window._addWeapon()" title="Lege regel erbij">+</button>
+              <span class="pds-kop-hulp">${_helpBtn('personage_wapens')}</span>
+            </span>
           </div>
           ${weapons.length > 0 ? `
           <div class="player-weapons-table">
@@ -9708,7 +9719,7 @@ async function renderMijnKarakter(opts = {}) {
 
         <!-- Ability Scores + Saving Throws -->
         <div class="player-dash-section">
-          <div class="player-dash-section-title">${icon('dice', {cls:'icon-gi'})} Ability Scores</div>
+          <div class="player-dash-section-title player-dash-section-title--with-btn">${icon('dice', {cls:'icon-gi'})} Ability Scores<span class="pds-kop-hulp">${_helpBtn('personage_abilities')}</span></div>
           <div class="player-ability-grid">
             ${['str','dex','con','int','wis','cha'].map(ab => {
               const isProf = _saveProfs.has(ab);
@@ -9743,7 +9754,7 @@ async function renderMijnKarakter(opts = {}) {
 
         <!-- Skills -->
         <div class="player-dash-section pds--half">
-          <div class="player-dash-section-title">${icon('target')} Skills</div>
+          <div class="player-dash-section-title player-dash-section-title--with-btn">${icon('target')} Skills<span class="pds-kop-hulp">${_helpBtn('personage_skills')}</span></div>
           <div class="player-skills-list">
             ${_getSkills().map(skill => {
               const prof  = _skillProfs[skill.key] || null;
@@ -9780,7 +9791,7 @@ async function renderMijnKarakter(opts = {}) {
 
         <!-- Proficiencies -->
         <div class="player-dash-section pds--half">
-          <div class="player-dash-section-title">${icon('shield')} Proficiencies</div>
+          <div class="player-dash-section-title player-dash-section-title--with-btn">${icon('shield')} Proficiencies<span class="pds-kop-hulp">${_helpBtn('personage_proficiencies')}</span></div>
           <div class="player-profs-grid">
             <div class="player-prof-row">
               <label class="player-prof-label">Armor</label>
@@ -9805,7 +9816,7 @@ async function renderMijnKarakter(opts = {}) {
 
         <!-- Languages & Senses — PHB-termen, dus Engels (zie CLAUDE.md) -->
         <div class="player-dash-section pds--half">
-          <div class="player-dash-section-title">${icon('globe')} Languages &amp; Senses</div>
+          <div class="player-dash-section-title player-dash-section-title--with-btn">${icon('globe')} Languages &amp; Senses<span class="pds-kop-hulp">${_helpBtn('personage_talen')}</span></div>
           <div class="player-profs-grid">
             <div class="player-prof-row">
               <label class="player-prof-label">Languages</label>
@@ -9824,7 +9835,7 @@ async function renderMijnKarakter(opts = {}) {
 
         ${playerBuffs.length ? `
         <div class="player-dash-section player-buffs-section">
-          <div class="player-dash-section-title">${icon('beer')} Aan de tap — actief tot je volgende lange rust</div>
+          <div class="player-dash-section-title player-dash-section-title--with-btn">${icon('beer')} Aan de tap — actief tot je volgende lange rust<span class="pds-kop-hulp">${_helpBtn('personage_tap')}</span></div>
           <div class="player-buffs-lijst">
             ${playerBuffs.map(b => `
               <div class="player-buff-badge">
@@ -9843,7 +9854,7 @@ async function renderMijnKarakter(opts = {}) {
         <!-- Emotes -->
         ${displayEmotes.length > 0 ? `
         <div class="player-dash-section player-dash-emotes">
-          <div class="player-dash-section-title">${icon('sparkles')} Emotes${isMyTurn ? ' <span class="player-dash-emote-turn-hint">— jouw beurt!</span>' : ''}</div>
+          <div class="player-dash-section-title player-dash-section-title--with-btn">${icon('sparkles')} Emotes${isMyTurn ? ' <span class="player-dash-emote-turn-hint">— jouw beurt!</span>' : ''}<span class="pds-kop-hulp">${_helpBtn('personage_emotes')}</span></div>
           <div class="player-dash-emote-btns">
             ${displayEmotes.map(e => `
               <button class="player-dash-emote-btn" onclick="window._dashEmote('${escArg(e.id)}')" title="${esc(e.label || '')}">
@@ -9859,7 +9870,8 @@ async function renderMijnKarakter(opts = {}) {
              samenvatting staat in de kop. -->
         <details class="player-dash-section player-wiejebent pds--half" ${_wieLeeg() ? 'open' : ''}>
           <summary class="player-dash-section-title">${icon('user')} Wie je bent
-            <span class="player-wiejebent-kort">${esc(_heroFeiten()) || 'nog niets ingevuld'}</span></summary>
+            <span class="player-wiejebent-kort">${esc(_heroFeiten()) || 'nog niets ingevuld'}</span>
+            <span class="pds-kop-hulp">${_helpBtn('personage_wiejebent')}</span></summary>
           ${_profielVeldenHtml()}
         </details>
       </div>
@@ -17164,27 +17176,152 @@ const HELP_CONFIG = {
     ],
   }),
 
+  // ── De boekjes bij de blokken van het Personage-tabblad ──────────────────
+  // Er hing één boekje bovenaan het hele tabblad, en daaronder veertien
+  // blokken zonder knop. Dat las als "de uitleg gaat over HP", want dat is het
+  // eerste blok eronder. Elk blok heeft nu zijn eigen boekje bij zijn eigen
+  // kop — zoals in het meesterpaneel, waar elke sectie er al een heeft. Het
+  // tabblad-boekje (`personage`) houdt wat over het blad als geheel gaat.
+  personage_hp: () => ({
+    titel: 'HP',
+    stappen: [
+      { titel: 'Je levenspunten', tekst: 'Met **+** en **−** houd je bij hoeveel HP je nog hebt; het getal rechts is je maximum. Je DM ziet het meteen, en je portret verkleurt mee — zo weet de tafel hoe je ervoor staat zonder dat iemand het hoeft te vragen.', afbeelding: null },
+      { titel: 'Temporary HP', tekst: 'Een aparte buffer die als eerste wordt opgegeten. Hij **stapelt niet**: krijg je een nieuwe hoeveelheid, dan geldt de hoogste van de twee, niet de som. Een lange rust haalt hem weg.', afbeelding: null },
+      { titel: 'Hit Dice', tekst: 'De bolletjes zijn je Hit Dice, afgeleid uit je class en level — bij een korte rust zet je er een in om te genezen. Een lange rust geeft de helft terug, naar beneden afgerond.', afbeelding: null },
+      { titel: 'Exhaustion', tekst: 'Zes bolletjes die je DM zet. De app telt ze alleen: wat een niveau met je doet, geldt aan tafel. Elke lange rust haalt er een af.', afbeelding: null },
+    ] }),
+
+  personage_statussen: () => ({
+    titel: 'Actieve statussen',
+    stappen: [
+      { titel: 'Wat er nu op je ligt', tekst: 'Elke condition die op je token staat — Poisoned, Prone, Concentration, maar ook iets wat je zelf aanzette zoals Raging. Tik er een aan en je leest wat hij doet.', afbeelding: null },
+      { titel: 'Wie ze zet', tekst: 'Meestal je DM, vanuit het gevecht. Een paar zet je zelf aan door iets te doen: in Rage gaan, Wild Shape gebruiken, een spell waar je op concentreert. Staat er niets, dan is er niets.', afbeelding: null },
+    ] }),
+
+  personage_wildmagic: () => ({
+    titel: 'Wild Magic Surge',
+    stappen: [
+      { titel: 'Alleen voor een Wild Magic Sorcerer', tekst: 'Cast je een spell van level 1 of hoger, dan kan je DM je om een d20 vragen. Een 20 laat de magie uit de hand lopen — wát er gebeurt, rolt hij op zijn eigen tafel.', afbeelding: null },
+      { titel: 'Tides of Chaos', tekst: 'Hier staat ook of je Tides of Chaos nog hebt. Gebruik je hem, dan mag je DM de volgende keer de surge afdwingen; dat is de prijs.', afbeelding: null },
+    ] }),
+
+  personage_stats: () => ({
+    titel: 'Gevechtswaarden',
+    stappen: [
+      { titel: 'De strook in één oogopslag', tekst: 'AC, Speed, Initiative, Proficiency Bonus, Hit Dice en Passive Perception — de getallen waar in een gevecht naar gevraagd wordt. De witte vakjes vul je zelf; de rest rekent de app uit je class, level en ability scores.', afbeelding: null },
+      { titel: 'AC laten uitrekenen', tekst: 'Het knopje naast AC kijkt naar wat er in je boedel ligt: kies je harnas en je shield, en hij telt Base AC, je Dexterity en de cap van dat harnassoort bij elkaar op. Je ziet de som voordat je hem overneemt.', afbeelding: null },
+      { titel: 'Het blijft jouw getal', tekst: 'De uitkomst is een voorstel, geen slot: je mag het veld altijd overtypen. Een Monk, een Barbarian of een randgeval dat nergens in past wint het van de rekensom.', afbeelding: null },
+      { titel: 'Waarschuwingen tellen niet af', tekst: 'Ben je niet proficient met je harnas, of is het te zwaar voor je Strength, dan zegt hij dat — maar hij haalt er geen AC van af. Dat zijn regels voor aan tafel, geen getal dat stilletjes lager uitvalt.', afbeelding: null },
+    ] }),
+
+  personage_wapens: () => ({
+    titel: 'Weapons & Damage Cantrips',
+    stappen: [
+      { titel: 'Waar je mee aanvalt', tekst: 'De regels die je tijdens een gevecht nodig hebt: naam, je aanvalsbonus of Save DC, en de schade met zijn type. Je vult ze zelf in — dit is je eigen spiekbriefje.', afbeelding: null },
+      { titel: 'Uit je boedel en je cantrips', tekst: 'Met het knapzakknopje kies je aan welke wapens en damage cantrips je werkelijk draagt; wat je aanvinkt komt als regel in de tabel. De **+** zet een lege regel neer voor iets wat nergens staat.', afbeelding: null },
+      { titel: 'Wat de app zelf invult', tekst: 'Hij leest de eigenschappen van het wapen: Finesse of Ranged pakt je Dexterity, de rest je Strength, en bij Finesse je hoogste van de twee. Een magische bonus en je proficiency telt hij erbij op.', afbeelding: null },
+      { titel: 'En wat je zelf beslist', tekst: 'Elk vakje is overtypbaar. De app vult voor; of het aan tafel ook zo uitpakt, bepalen jij en je DM.', afbeelding: null },
+    ] }),
+
+  personage_abilities: () => ({
+    titel: 'Ability Scores',
+    stappen: [
+      { titel: 'De zes scores', tekst: 'Vul je scores in zoals ze op je character sheet staan. De **modifier** eronder rekent de app zelf uit — die hoef je nergens bij te houden.', afbeelding: null },
+      { titel: 'Saving throws', tekst: 'Vink aan waar je proficient in bent; de bonus loopt dan mee met je Proficiency Bonus, en die volgt je level. Verandert er iets, dan klopt het de volgende sessie vanzelf.', afbeelding: null },
+    ] }),
+
+  personage_skills: () => ({
+    titel: 'Skills',
+    stappen: [
+      { titel: 'Waar je goed in bent', tekst: 'Alle achttien skills met de ability waar ze aan hangen. De bonus volgt uit je score; je vinkt alleen aan waar je proficient in bent.', afbeelding: null },
+      { titel: 'Expertise', tekst: 'Klik een tweede keer en de skill staat op **Expertise**: je Proficiency Bonus telt dubbel. Een derde klik zet hem weer uit.', afbeelding: null },
+      { titel: 'Zelf bijstellen', tekst: 'Met de pijltjes leg je er handmatig iets bovenop, voor een feature of een voorwerp dat een bonus geeft die nergens anders vandaan komt.', afbeelding: null },
+    ] }),
+
+  personage_proficiencies: () => ({
+    titel: 'Proficiencies',
+    stappen: [
+      { titel: 'Waar je mee overweg kunt', tekst: 'Je wapens, harnassen, tools en instrumenten, zoals je class, species en background ze geven. Het is een lijst die je zelf bijhoudt.', afbeelding: null },
+      { titel: 'De app leest mee', tekst: 'Twee plekken kijken hiernaar: de wapentabel, die je proficiency bij je aanvalsbonus optelt, en de AC-rekenaar, die waarschuwt als je een harnas draagt waar je niet mee overweg kunt. Hoe netter dit staat, hoe beter die twee kloppen.', afbeelding: null },
+    ] }),
+
+  personage_talen: () => ({
+    titel: 'Languages & Senses',
+    stappen: [
+      { titel: 'Wat je verstaat en wat je waarneemt', tekst: 'De talen die je spreekt, en bijzondere zintuigen als Darkvision of Tremorsense, met hun bereik. Allebei komen ze van je species, je class of iets wat je onderweg oppikte.', afbeelding: null },
+      { titel: 'Een aantekening, geen mechaniek', tekst: 'De app doet er zelf niets mee: ze staan hier zodat jij en je DM er aan tafel naar kunnen wijzen als het ertoe doet.', afbeelding: null },
+    ] }),
+
+  personage_tap: () => ({
+    titel: 'Aan de tap',
+    stappen: [
+      { titel: 'Wat je op hebt', tekst: 'Wat je bij de waard bestelde en nu nog bij je draagt: een voordeel op een bepaalde worp, een warme buik, een status met een korte beschrijving.', afbeelding: null },
+      { titel: 'Tot je volgende lange rust', tekst: 'Ze gelden tot je slaapt en verdwijnen dan vanzelf. Het is een aantekening die je bij je draagt — of het voordeel geldt, beslist je DM aan tafel.', afbeelding: null },
+    ] }),
+
+  personage_emotes: () => ({
+    titel: 'Emotes',
+    stappen: [
+      { titel: 'Je eigen klanken', tekst: 'Korte geluidsfragmenten die bij jouw personage horen — een strijdkreet, een zucht, een lach. Tikken speelt hem af op het scherm op tafel.', afbeelding: null },
+      { titel: 'Waar ze vandaan komen', tekst: 'Je neemt ze op toen je je personage maakte, of je DM zet ze voor je klaar. Is het jouw beurt in een gevecht, dan staat dat erbij.', afbeelding: null },
+    ] }),
+
+  personage_wiejebent: () => ({
+    titel: 'Wie je bent',
+    stappen: [
+      { titel: 'De mens achter de cijfers', tekst: 'Je uiterlijk, je karakter, je idealen, je band met de anderen en wat je dwarszit. Niets hiervan rekent mee — het staat er om op terug te vallen als iemand vraagt wie je eigenlijk bent.', afbeelding: null },
+      { titel: 'Dichtgeklapt, met opzet', tekst: 'Het blok staat dicht omdat je het niet elke beurt nodig hebt. Klik de kop om het open te vouwen; wat je typt bewaart zichzelf.', afbeelding: null },
+    ] }),
+
+  gedaante: () => ({
+    titel: 'Je gedaante',
+    stappen: [
+      { titel: 'Je bent even iets anders', tekst: 'Zolang je in een gedaante zit staat die bovenaan je blad, met de waarden van het dier naast die van jezelf. Zo hoef je nergens te zoeken wat er nu geldt.', afbeelding: null },
+      { titel: 'Wat van het dier is', tekst: 'Zijn AC, zijn speed, zijn Strength, Dexterity en Constitution, en wat hij kan. Daar vecht je mee zolang de gedaante duurt.', afbeelding: null },
+      { titel: 'Wat van jou blijft', tekst: 'Je HP en je Hit Dice, je Intelligence, Wisdom en Charisma, en al je class features. Die staan gewoon onder de band, want ze veranderen niet.', afbeelding: null },
+      { titel: 'Terug', tekst: 'Met **Terug** ben je weer jezelf. Een gevecht dat afloopt laat je gedaante met rust: je blijft erin tot je er zelf uit stapt.', afbeelding: null },
+    ] }),
+
+  summons: () => ({
+    titel: 'Opgeroepen',
+    stappen: [
+      { titel: 'Wie er naast je loopt', tekst: 'Alles wat je zelf hebt opgeroepen: een familiar, een rijdier, een geest uit een spell. Je roept ze op met **Roep op** en stuurt ze weg met het kruisje.', afbeelding: null },
+      { titel: 'Ook buiten een gevecht', tekst: 'Een familiar loopt met je mee door de stad. Begint er een gevecht, dan staat hij er vanzelf bij, met jouw plek in de beurtvolgorde — en als het gevecht uit is, blijft hij gewoon staan.', afbeelding: null },
+      { titel: 'Soms vraagt hij om cijfers', tekst: 'Van zeven van de vijfentwintig kennen we het statblock; de rest staat in een boek waaruit we niets mogen overnemen. Dan vraagt hij één keer om HP en AC, onthoudt ze, en is de volgende keer weer één klik.', afbeelding: null },
+      { titel: 'Een rust haalt niets weg', tekst: 'Hoe lang iets blijft verschilt per spell, en dat weet de app niet. Dus wist hij niets, maar zet er *van voor je rust* bij. Wegsturen blijft aan jou.', afbeelding: null },
+    ] }),
+
+  dagkeuze: () => ({
+    titel: 'Je keuze van vandaag',
+    stappen: [
+      { titel: 'Eén keuze per dag', tekst: 'Sommige class features laten je bij een lange rust iets kiezen dat de hele dag geldt. Wat je koos staat hier, zodat je er niet naar hoeft te zoeken.', afbeelding: null },
+      { titel: 'Omzetten', tekst: 'Je kiest opnieuw bij je volgende lange rust. Kwam je er tijdens de rust niet aan toe, dan kun je het hier alsnog doen.', afbeelding: null },
+    ] }),
+
+  // Het boekje over het blad als geheel. Alles wat over één blok gaat, staat
+  // sinds vandaag in het boekje bij dát blok — anders zegt deze twee keer
+  // hetzelfde en loopt hij bij de eerste verbouwing achter de feiten aan.
   personage: () => ({
     titel: 'Mijn personage',
     stappen: [
       {
-        titel: 'Combat stats',
-        tekst: 'Hier stel je je gevechtswaarden in: AC, speed, initiative en proficiency bonus. Die worden niet automatisch berekend — vul ze in vanuit je character sheet. Passive Perception en je Hit Dice rekent de app zelf uit, uit je Wisdom en je class en level.',
+        titel: 'Je blad',
+        tekst: 'Alles wat je tijdens een sessie bij de hand wil hebben: je HP, waar je mee aanvalt, je scores en wat er nu op je ligt. Elk blok heeft rechtsboven een eigen boekje met uitleg over dát blok.',
+        afbeelding: null,
+      },
+      {
+        titel: 'Wat je zelf invult',
+        tekst: 'De witte vakjes zijn van jou — je typt ze over van je character sheet en ze bewaren zichzelf. Wat de app uit je class, level en scores kan afleiden, vult hij voor; dat mag je altijd overtypen.',
+        afbeelding: null,
+      },
+      {
+        titel: 'Je DM kijkt mee',
+        tekst: 'Je HP, je statussen en je gedaante gaan meteen naar het scherm van je DM en naar het scherm op tafel. Je hoeft dus nergens te melden dat je geraakt bent.',
         afbeelding: null,
       },
       {
         titel: 'Level en class',
         tekst: 'Je **level** en je **class** zet je DM: een level komt erbij via *Level omhoog*, een tweede class via een verzoek bij die level-up. Je **subclass** kies je zelf, één keer, op het level dat erom vraagt — daarna staat hij vast en kan alleen je DM hem nog omzetten.',
-        afbeelding: null,
-      },
-      {
-        titel: 'HP bijhouden',
-        tekst: 'Gebruik de + en − knoppen om HP bij te houden tijdens gevecht. Je kunt ook Temporary HP instellen. De waarden worden live gesynchroniseerd met de DM.',
-        afbeelding: null,
-      },
-      {
-        titel: 'Ability Scores & Skills',
-        tekst: 'Je ability scores en skill proficiencies stel je in op dit tabblad. Modifiers worden automatisch berekend. Skill totalen combineren de modifier met je proficiency bonus als je het skill aangevinkt hebt.',
         afbeelding: null,
       },
     ],

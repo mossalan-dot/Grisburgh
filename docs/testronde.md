@@ -2086,3 +2086,16 @@ Grisburghs **data** te staan — niet in de code.
 ## Aan de tap — de pil zegt Temporary HP (22 nov 2026)
 
 - Bestel bij de waard iets met tijdelijke HP. De pil op het kaartje zegt *1d6 Temporary HP*, niet "temp HP" — dezelfde term als op het spelersblad en bij de DM.
+
+## Een boekje bij elk blok van het Personage-tabblad (22 nov 2026)
+
+- Open Personage als speler. Elke sectiekop heeft rechtsboven een boekje: HP, Actieve statussen, Gevechtswaarden, Weapons & Damage Cantrips, Ability Scores, Skills, Proficiencies, Languages & Senses, Aan de tap, Emotes en Wie je bent — plus de blokken die er alleen soms staan (je gedaante, Opgeroepen, je dagkeuze, Wild Magic Surge).
+- Klik het boekje bij *Wie je bent*: de uitleg opent en het blok klapt **niet** open of dicht.
+- Het boekje bovenaan het tabblad gaat over het blad als geheel en herhaalt geen enkel blok.
+- De strook met AC, Speed en Initiative heeft nu een kop (*Gevechtswaarden*); het boekje daar legt de AC-rekenaar uit.
+- De uitleg onder je gedaante ("Deze gelden zolang je die gedaante hebt…") staat niet meer op het scherm maar in het boekje.
+
+## De kop van het spelersblad (22 nov 2026)
+
+- Het portret en de levelpenning zijn even groot (allebei 140 px); de penning oogt niet kleiner naast de HP-ring.
+- Onder de penning staat geen bijschrift meer zolang er niets te melden valt. Staat er een level-up klaar, dan staat er *Level N → N+1*; speel je op XP, dan de afstand tot de volgende.
