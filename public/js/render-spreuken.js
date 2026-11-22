@@ -1069,8 +1069,11 @@ window.spreuken = {
   async info(indexen) {
     if (!_all) await _load();
     const set = new Set(indexen || []);
+    // `damage` gaat mee sinds het spelersblad er een wapenrij uit wil maken:
+    // 26 van de 70 cantrips dragen hem, en zonder dat veld moet dat scherm de
+    // hele bibliotheek nog eens ophalen om "1d10 fire" te weten.
     return (_all || []).filter(s => set.has(s.index))
-      .map(s => ({ index: s.index, name: s.name, level: s.level, school: _school(s) }));
+      .map(s => ({ index: s.index, name: s.name, level: s.level, school: _school(s), damage: s.damage || '' }));
   },
   // DM: eigen beschrijving bij een spreuk. Buiten Grisburgh komen de spreuken
   // kaal binnen (naam, niveau, school, tijden) en vult de DM de tekst zelf —

@@ -6,7 +6,7 @@ import { renderDungeon } from './render-dungeon.js?v=82';
 import { renderRelatiemap } from './render-relatiemap.js?v=44';
 import { renderProgressie, levelupFeatures } from './render-progressie.js?v=81';
 import { renderBestiarium } from './render-bestiarium.js?v=47';
-import { renderSpreuken } from './render-spreuken.js?v=66';
+import { renderSpreuken } from './render-spreuken.js?v=67';
 import './render-handleiding.js?v=2';
 import './render-melding.js?v=4';
 import { renderVaardigheden, zoekVaardigheden, heldenboekTekst } from './render-vaardigheden.js?v=210';
@@ -9664,7 +9664,9 @@ async function renderMijnKarakter(opts = {}) {
         <div class="player-dash-section">
           <div class="player-dash-section-title player-dash-section-title--with-btn">
             ${icon('swords')} Weapons &amp; Damage Cantrips
-            <button class="player-weapon-add-btn" onclick="window._addWeapon()" title="Voeg wapen toe">+</button>
+            <button class="player-weapon-add-btn" onclick="window._wapenUitSpullen()"
+              title="Kies uit je boedel en je cantrips">${icon('backpack')}</button>
+            <button class="player-weapon-add-btn" onclick="window._addWeapon()" title="Lege regel erbij">+</button>
           </div>
           ${weapons.length > 0 ? `
           <div class="player-weapons-table">
@@ -10910,6 +10912,142 @@ async function renderMijnKarakter(opts = {}) {
   };
 
   // ── Wapens & Damage Cantrips ──
+  // ── Een rij uit je eigen spullen ──────────────────────────────────────────
+  // De tabel werd met de hand ingevuld terwijl de gegevens er al staan: 42 van
+  // de 51 wapenkaartjes in deze campagne dragen hun schade en properties, en
+  // 26 cantrips hun schadedobbel. Wat ze **niet** dragen is jouw modifier —
+  // een kaartje zegt "1d6 slashing", je blad zegt "1d6+3". Dat rekent de app
+  // voor, als **voorstel dat je mag overtypen**: dezelfde afspraak als bij een
+  // winkelprijs en een loot-DC. Proficiency staat als vrije tekst op je blad
+  // ("All simple weapons") en een +1 Rapier herkent niemand aan zijn naam, dus
+  // de app tekent hier niet af — jij doet dat.
+  //
+  // **Je kiest zelf wat mee mag.** Vinkjes, geen "neem alles over": je knapzak
+  // is geen wapenlijst, en wat je niet draagt hoort niet op je blad.
+  // `_mod('str')` en `_modStr('str')` staan hierboven al; die hergebruiken we,
+  // zodat er niet een tweede manier ontstaat om een modifier uit te rekenen.
+  const _wuPlus = (n) => (n >= 0 ? `+${n}` : String(n));
+
+  // **Welke ability hoort bij dit wapen?** Finesse laat je kiezen, een
+  // afstandswapen gebruikt DEX, de rest STR. Maar die eigenschappen staan
+  // nergens: geen van de 51 wapenkaartjes draagt ze, en de meegeleverde
+  // SRD-uitrusting ook niet — alleen naam, prijs, gewicht en tekst.
+  //
+  // Dus nemen we bij een onbekend wapen **de hoogste van STR en DEX**. Dat is
+  // geen gok maar de verreweg waarschijnlijkste stand: je draagt het wapen dat
+  // bij je hoogste score past, en een Finesse-wapen mág per definitie de
+  // hoogste. Het venster zegt het erbij, en de rij is meteen te overtypen.
+  function _wapenAbility(props) {
+    const p = (props || []).join(' ').toLowerCase();
+    const str = _mod('str'), dex = _mod('dex');
+    if (!p) return Math.max(str, dex);
+    if (/finesse/.test(p)) return Math.max(str, dex);
+    if (/ammunition|range\s*\(/.test(p)) return dex;
+    return str;
+  }
+
+  function _wapenVoorstel(naam, schade, props) {
+    const ab   = _wapenAbility(props);
+    const prof = parseInt(String(playerProfile.profBonus || '').replace(/[^0-9-]/g, '')) || 0;
+    // "1d6 slashing" → "1d6+3 Slashing". Staat er al een modifier in, dan laat
+    // de app hem staan: dan heeft iemand er al over nagedacht.
+    const m = String(schade || '').match(/^\s*(\d*d\d+)\s*([+-]\s*\d+)?\s*(.*)$/i);
+    const dobbel = m ? m[1] : '';
+    const soort  = m ? (m[3] || '').trim() : '';
+    // **Geen dobbel, geen modifier.** Negen van de 51 wapenkaartjes hebben
+    // geen schadeveld; daar "+2" neerzetten is erger dan het leeg laten — dan
+    // staat er een getal dat niets betekent en dat je moet wegpoetsen.
+    const mod = !dobbel ? '' : (m[2] ? m[2].replace(/\s+/g, '') : (ab ? _wuPlus(ab) : ''));
+    return {
+      name: naam,
+      atk: _wuPlus(ab + prof),
+      dmg: [dobbel + mod, soort.charAt(0).toUpperCase() + soort.slice(1)].filter(Boolean).join(' ').trim(),
+      props: [...(props || [])],
+    };
+  }
+
+  function _cantripVoorstel(naam, schade) {
+    // Een cantrip gebruikt je spell attack bonus; die staat als eigen veld op
+    // je blad, dus hier valt niets te raden. En zijn schade groeit met je
+    // level, niet met een ability — geen modifier erbij dus.
+    const atk = String(playerProfile.spellAttackBonus || '').trim();
+    const m = String(schade || '').match(/^\s*(\d*d\d+)\s*(.*)$/i);
+    const soort = m ? (m[2] || '').trim() : '';
+    return {
+      name: naam,
+      atk: atk || (playerProfile.spellSaveDC ? `DC ${String(playerProfile.spellSaveDC).replace(/\D/g, '')}` : ''),
+      dmg: [m ? m[1] : String(schade || ''), soort.charAt(0).toUpperCase() + soort.slice(1)].filter(Boolean).join(' ').trim(),
+      props: [],
+    };
+  }
+
+  let _uitSpullen = [];
+
+  window._wapenUitSpullen = async function () {
+    const alHier = new Set(weapons.map(w => String(w.name || '').toLowerCase()));
+
+    // 1. Wapens uit je boedel: een kaartje van type Weapon, of iets met schade.
+    const uitBoedel = (myItems || [])
+      .filter(i => i.data?.itemType === 'Weapon' || String(i.data?.damage || '').trim())
+      .map(i => ({
+        bron: 'boedel', sleutel: 'i:' + i.id, label: i.name,
+        onder: String(i.data?.damage || '').trim() || 'geen schade op het kaartje',
+        rij: _wapenVoorstel(i.name, i.data?.damage, []),
+      }));
+
+    // 2. Cantrips met schade uit je spreukenboek. De schade staat niet in je
+    //    boek maar in de bibliotheek, dus die vragen we erbij.
+    let uitBoek = [];
+    try {
+      const boek = await api.getPlayerSpells(charId);
+      const cantrips = (boek?.spells || boek || []).filter(sp => Number(sp.level) === 0);
+      const info = await window.spreuken?.info?.(cantrips.map(sp => sp.index)) || [];
+      uitBoek = info.filter(sp => sp.damage).map(sp => ({
+        bron: 'cantrip', sleutel: 's:' + sp.index, label: sp.name,
+        onder: sp.damage,
+        rij: _cantripVoorstel(sp.name, sp.damage),
+      }));
+    } catch { /* geen boek is geen fout */ }
+
+    _uitSpullen = [...uitBoedel, ...uitBoek];
+    const groep = (titel, lijst, leeg) => `
+      <div class="wu-groep">
+        <div class="wu-kop">${titel}</div>
+        ${lijst.length ? lijst.map(r => `
+          <label class="wu-rij${alHier.has(r.label.toLowerCase()) ? ' wu-rij--al' : ''}">
+            <input type="checkbox" value="${esc(r.sleutel)}"${alHier.has(r.label.toLowerCase()) ? '' : ' checked'}>
+            <span class="wu-naam">${esc(r.label)}</span>
+            <span class="wu-onder">${esc(r.onder)}</span>
+            <span class="wu-voorstel">${esc(r.rij.atk)} · ${esc(r.rij.dmg)}</span>
+            ${alHier.has(r.label.toLowerCase()) ? '<span class="wu-al">staat er al</span>' : ''}
+          </label>`).join('') : `<p class="dm-hint">${leeg}</p>`}
+      </div>`;
+
+    window.app.openModal('Uit je eigen spullen', '', `
+      <p class="dm-hint">Vink aan wat op je blad hoort. De aanvalsbonus en de modifier zijn een
+        <strong>voorstel</strong>: de app rekent met je hoogste van STR en DEX plus je proficiency
+        bonus, want de eigenschappen van een wapen (Finesse, Thrown) staan nergens vast. Magische
+        plusjes kent ze ook niet. Kijk ze na — in de tabel pas je elke rij aan.</p>
+      <div id="wu-lijst">
+        ${groep('Uit je boedel', uitBoedel, 'Je draagt niets met schade erop.')}
+        ${groep('Je cantrips', uitBoek, 'Geen cantrips met schade in je boek.')}
+      </div>
+      <div class="dm-feature-row" style="justify-content:flex-end">
+        <button class="dm-btn dm-btn-ghost" onclick="window.app.closeModal()">Annuleren</button>
+        <button class="dm-btn dm-btn-primary" onclick="window._wapenUitSpullenKlaar()">${icon('plus')} Toevoegen</button>
+      </div>`);
+  };
+
+  window._wapenUitSpullenKlaar = async function () {
+    const aan = [...document.querySelectorAll('#wu-lijst input:checked')].map(c => c.value);
+    const erbij = _uitSpullen.filter(r => aan.includes(r.sleutel)).map(r => r.rij);
+    if (!erbij.length) { window.app.closeModal(); return; }
+    weapons.push(...erbij);
+    await api.patchPlayerProfile(charId, { weapons: JSON.stringify(weapons) }).catch(() => {});
+    window.app.closeModal();
+    renderMijnKarakter(opts);
+  };
+
   window._addWeapon = async function() {
     weapons.push({ name: '', atk: '', dmg: '', props: [] });
     await api.patchPlayerProfile(charId, { weapons: JSON.stringify(weapons) }).catch(() => {});

@@ -34850,3 +34850,48 @@ button.player-dash-niveau-penning { cursor: pointer; }
   font-size: .78em;
   color: #5a7040;
 }
+
+/* ── Een wapenrij uit je eigen spullen ───────────────────────────────────────
+   Vinkjes, want je knapzak is geen wapenlijst: wat je niet draagt hoort niet
+   op je blad. Per rij wat het kaartje zegt en wat de app ervan maakt, zodat
+   je vóór het toevoegen ziet of het voorstel klopt. */
+.wu-groep { margin-bottom: 14px; }
+.wu-kop {
+  font-family: 'Cinzel', serif;
+  font-size: .8rem;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  color: #8a7050;
+  margin-bottom: 6px;
+}
+.wu-rij {
+  display: grid;
+  grid-template-columns: auto 1fr auto auto;
+  align-items: baseline;
+  gap: 4px 10px;
+  padding: 6px 8px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+.wu-rij:hover { background: rgba(196, 168, 122, 0.18); }
+.wu-rij--al { opacity: .6; }
+.wu-naam { font-family: 'Cinzel', serif; font-size: .9em; color: #3a2410; }
+.wu-onder,
+.wu-voorstel {
+  font-family: 'Crimson Text', Georgia, serif;
+  font-size: .84em;
+  color: #7a6040;
+  white-space: nowrap;
+}
+.wu-voorstel { color: #5a7040; font-variant-numeric: tabular-nums; }
+.wu-al {
+  grid-column: 2 / -1;
+  font-family: 'IM Fell English', Georgia, serif;
+  font-style: italic;
+  font-size: .78em;
+  color: #9a7008;
+}
+@media (max-width: 560px) {
+  .wu-rij { grid-template-columns: auto 1fr; }
+  .wu-onder, .wu-voorstel { grid-column: 2; white-space: normal; }
+}
