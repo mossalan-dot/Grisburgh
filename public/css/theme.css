@@ -34936,3 +34936,22 @@ button.player-dash-niveau-penning { cursor: pointer; }
   align-items: flex-start;
 }
 .ac-let-op svg { width: 14px; height: 14px; flex-shrink: 0; margin-top: 2px; }
+
+/* ── Het bladerrijtje onder een subclass-kaart ───────────────────────────────
+   Het viel buiten zijn eigen kolom. De kaart staat op `align-self: stretch`
+   met een binnenkaart op `height: 100%`, dus die vulde de hele kolom en het
+   pijltjesrijtje erna had nergens meer plek: het stak 34 px onder het vlak uit
+   en landde bovenop de eerste rij featurekaartjes.
+   Nu is de kolom zelf een flexkolom — de kaart neemt wat overblijft, de rij
+   staat eronder — en groeit de rij dus mee in plaats van eroverheen te lopen. */
+.vd-klasvlak .vd-klaskaart--sub {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.vd-klasvlak .vd-klaskaart--sub > .vk-kaart {
+  height: auto;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+.vd-subblader--kaart { margin-top: 0; flex: 0 0 auto; }
