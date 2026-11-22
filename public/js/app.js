@@ -10928,26 +10928,55 @@ async function renderMijnKarakter(opts = {}) {
   // zodat er niet een tweede manier ontstaat om een modifier uit te rekenen.
   const _wuPlus = (n) => (n >= 0 ? `+${n}` : String(n));
 
-  // **Welke ability hoort bij dit wapen?** Finesse laat je kiezen, een
-  // afstandswapen gebruikt DEX, de rest STR. Maar die eigenschappen staan
-  // nergens: geen van de 51 wapenkaartjes draagt ze, en de meegeleverde
-  // SRD-uitrusting ook niet — alleen naam, prijs, gewicht en tekst.
+  // **De eigenschappen van een wapen staan op zijn kaartje**, in
+  // `data.weaponProperties` — 39 van de 51 wapens in deze campagne hebben ze,
+  // als lijst (`["Finesse","Light","Thrown"]`). Daarmee is de ability geen gok
+  // meer maar de regel uit het boek.
   //
-  // Dus nemen we bij een onbekend wapen **de hoogste van STR en DEX**. Dat is
-  // geen gok maar de verreweg waarschijnlijkste stand: je draagt het wapen dat
-  // bij je hoogste score past, en een Finesse-wapen mág per definitie de
-  // hoogste. Het venster zegt het erbij, en de rij is meteen te overtypen.
+  // De schrijfwijze op een kaartje loopt uiteen ("Two-handed" naast
+  // "Two-Handed"), dus eerst langs de catalogus `WEAPON_PROPERTIES`: dat is de
+  // enige lijst die de app ervan heeft, en hij bepaalt ook of de chip in de
+  // tabel straks zijn tooltip krijgt.
+  function _wapenProps(item) {
+    const ruw = item?.data?.weaponProperties;
+    let lijst = [];
+    if (Array.isArray(ruw)) lijst = ruw;
+    else if (typeof ruw === 'string' && ruw.trim()) {
+      try { lijst = JSON.parse(ruw); } catch { lijst = ruw.split(',').map(x => x.trim()); }
+    }
+    const kern = (p) => String(p || '').split('(')[0].trim();
+    const uit = [];
+    for (const p of (Array.isArray(lijst) ? lijst : [])) {
+      const k = kern(p);
+      if (!k) continue;
+      // Dezelfde eigenschap twee keer met een andere hoofdletter is één
+      // eigenschap; de schrijfwijze uit de catalogus wint.
+      const net = Object.keys(WEAPON_PROPERTIES).find(x => x.toLowerCase() === k.toLowerCase());
+      const heel = net ? String(p).replace(k, net) : String(p).trim();
+      if (!uit.some(x => x.toLowerCase() === heel.toLowerCase())) uit.push(heel);
+    }
+    return uit;
+  }
+
+  // **Welke ability hoort bij dit wapen?** De regel uit het boek: Finesse laat
+  // je kiezen (dus je hoogste), een wapen met Ammunition of een Range is een
+  // afstandswapen en gebruikt DEX, en de rest STR.
+  //
+  // Alleen als het kaartje géén eigenschappen draagt (twaalf van de 51) valt
+  // hij terug op de hoogste van STR en DEX. Dat is dan geen regel maar de
+  // waarschijnlijkste stand — je draagt het wapen dat bij je hoogste score
+  // past — en het venster zegt per regel waar het getal vandaan komt.
   function _wapenAbility(props) {
-    const p = (props || []).join(' ').toLowerCase();
     const str = _mod('str'), dex = _mod('dex');
-    if (!p) return Math.max(str, dex);
-    if (/finesse/.test(p)) return Math.max(str, dex);
-    if (/ammunition|range\s*\(/.test(p)) return dex;
-    return str;
+    if (!props?.length) return { mod: Math.max(str, dex), waarom: 'geen eigenschappen bekend — je hoogste' };
+    const p = props.join(' ').toLowerCase();
+    if (/finesse/.test(p))            return { mod: Math.max(str, dex), waarom: 'Finesse — je hoogste' };
+    if (/ammunition|\brange\b/.test(p)) return { mod: dex, waarom: 'afstandswapen — DEX' };
+    return { mod: str, waarom: 'STR' };
   }
 
   function _wapenVoorstel(naam, schade, props) {
-    const ab   = _wapenAbility(props);
+    const { mod: ab, waarom } = _wapenAbility(props);
     const prof = parseInt(String(playerProfile.profBonus || '').replace(/[^0-9-]/g, '')) || 0;
     // "1d6 slashing" → "1d6+3 Slashing". Staat er al een modifier in, dan laat
     // de app hem staan: dan heeft iemand er al over nagedacht.
@@ -10963,6 +10992,7 @@ async function renderMijnKarakter(opts = {}) {
       atk: _wuPlus(ab + prof),
       dmg: [dobbel + mod, soort.charAt(0).toUpperCase() + soort.slice(1)].filter(Boolean).join(' ').trim(),
       props: [...(props || [])],
+      _waarom: waarom,
     };
   }
 
@@ -10992,7 +11022,7 @@ async function renderMijnKarakter(opts = {}) {
       .map(i => ({
         bron: 'boedel', sleutel: 'i:' + i.id, label: i.name,
         onder: String(i.data?.damage || '').trim() || 'geen schade op het kaartje',
-        rij: _wapenVoorstel(i.name, i.data?.damage, []),
+        rij: _wapenVoorstel(i.name, i.data?.damage, _wapenProps(i)),
       }));
 
     // 2. Cantrips met schade uit je spreukenboek. De schade staat niet in je
@@ -11018,16 +11048,18 @@ async function renderMijnKarakter(opts = {}) {
             <input type="checkbox" value="${esc(r.sleutel)}"${alHier.has(r.label.toLowerCase()) ? '' : ' checked'}>
             <span class="wu-naam">${esc(r.label)}</span>
             <span class="wu-onder">${esc(r.onder)}</span>
-            <span class="wu-voorstel">${esc(r.rij.atk)} · ${esc(r.rij.dmg)}</span>
+            <span class="wu-voorstel" title="${esc(r.rij._waarom || '')}">${esc(r.rij.atk)} · ${esc(r.rij.dmg)}${
+              r.rij._waarom ? ` <em>(${esc(r.rij._waarom)})</em>` : ''}</span>
             ${alHier.has(r.label.toLowerCase()) ? '<span class="wu-al">staat er al</span>' : ''}
           </label>`).join('') : `<p class="dm-hint">${leeg}</p>`}
       </div>`;
 
     window.app.openModal('Uit je eigen spullen', '', `
-      <p class="dm-hint">Vink aan wat op je blad hoort. De aanvalsbonus en de modifier zijn een
-        <strong>voorstel</strong>: de app rekent met je hoogste van STR en DEX plus je proficiency
-        bonus, want de eigenschappen van een wapen (Finesse, Thrown) staan nergens vast. Magische
-        plusjes kent ze ook niet. Kijk ze na — in de tabel pas je elke rij aan.</p>
+      <p class="dm-hint">Vink aan wat op je blad hoort. De aanvalsbonus is een
+        <strong>voorstel</strong>: de app leest de eigenschappen van het kaartje — Finesse pakt je
+        hoogste, een afstandswapen DEX, de rest STR — en telt je proficiency bonus erbij. Achter elk
+        getal staat waaróp. Wat ze niet weet: of je proficient bent met dít wapen, en magische
+        plusjes. Kijk ze na; in de tabel pas je elke rij aan.</p>
       <div id="wu-lijst">
         ${groep('Uit je boedel', uitBoedel, 'Je draagt niets met schade erop.')}
         ${groep('Je cantrips', uitBoek, 'Geen cantrips met schade in je boek.')}

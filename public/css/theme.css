@@ -34895,3 +34895,6 @@ button.player-dash-niveau-penning { cursor: pointer; }
   .wu-rij { grid-template-columns: auto 1fr; }
   .wu-onder, .wu-voorstel { grid-column: 2; white-space: normal; }
 }
+/* Waaróp de aanvalsbonus gebaseerd is, achter het getal. Klein en cursief:
+   het is een verantwoording, geen deel van het voorstel. */
+.wu-voorstel em { font-family: 'IM Fell English', Georgia, serif; color: #8a7050; font-size: .92em; }
