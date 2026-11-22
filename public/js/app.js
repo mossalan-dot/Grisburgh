@@ -1,5 +1,5 @@
 import { api, campagneUitUrl, zetCampagne } from './api.js?v=326';
-import { initCampagne, renderArchiefDeuren, renderAvontuurDeuren, renderDienstenDeuren, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, renderDocumenten, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=457";
+import { initCampagne, renderArchiefDeuren, renderAvontuurDeuren, renderDienstenDeuren, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, renderDocumenten, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=458";
 import { initArchief, renderLogboek, openLogboekEditor } from "./render-archief.js?v=156";
 import { renderKaart, queueFlyTo, verversPins, nieuweKaart } from './render-kaart.js?v=41';
 import { renderDungeon } from './render-dungeon.js?v=82';
@@ -177,6 +177,11 @@ window._factiesLabel = () => window.app?.state?.meta?.factiesLabel || 'Facties';
 //
 // `DIENST_VOLGORDE` komt hieruit — één bron, zodat de menu's, de voorpagina en
 // de sorteerhulp niet uit elkaar kunnen lopen.
+// **De indeling bepaalt alleen de vólgorde, niet wat er op het scherm staat.**
+// Er stonden kopjes boven elke groep, en dat is één laag te veel voor negen
+// knoppen: je leest dan eerst vier etiketten om bij een naam te komen. Wat de
+// groepering oplost is dat de markt niet meer tussen de tempel en de
+// waarzegger staat — en dat zie je aan de volgorde zelf.
 window.DIENST_GROEPEN = [
   { label: 'Kopen en verkopen', icoon: 'coins',      keys: ['markt', 'magizoo'] },
   { label: 'Rust en vermaak',   icoon: 'beer',       keys: ['herberg', 'tweespalt'] },
@@ -225,14 +230,13 @@ function _zetDienstLabels() {
   const menu = document.getElementById('diensten-menu');
   if (!menu) return;
   const alles = menu.querySelector('.archief-menu-item--alles')?.outerHTML || '';
-  const groepen = window.DIENST_GROEPEN.map(g => {
-    const keys = g.keys.filter(k => window._moduleAan?.(k) !== false && !window._dienstDicht?.(k));
-    if (!keys.length) return '';
-    return `<div class="archief-menu-kop">${esc(g.label)}</div>` + keys.map(k =>
-      `<button class="archief-menu-item" data-section="${k}">${icon(_DIENST_ICOON[k] || 'landmark')} ${esc(window._dienstNaam(k))}</button>`
-    ).join('');
-  }).join('');
-  menu.innerHTML = alles + groepen;
+  // Eén doorlopende lijst, in de volgorde van DIENST_GROEPEN. Geen kopjes:
+  // zie de noot daar.
+  const items = window.DIENST_VOLGORDE
+    .filter(k => window._moduleAan?.(k) !== false && !window._dienstDicht?.(k))
+    .map(k => `<button class="archief-menu-item" data-section="${k}">${icon(_DIENST_ICOON[k] || 'landmark')} ${esc(window._dienstNaam(k))}</button>`)
+    .join('');
+  menu.innerHTML = alles + items;
   // De knoppen zijn nieuw, dus ze hebben hun handler nodig.
   menu.querySelectorAll('.archief-menu-item').forEach(btn => {
     btn.addEventListener('click', () => { switchSection(btn.dataset.section); });

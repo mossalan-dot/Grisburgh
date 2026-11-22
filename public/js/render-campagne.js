@@ -3752,19 +3752,19 @@ export async function renderDienstenDeuren() {
     beeld: _dienstDeurBeeld(k),
     klik: `window.app.switchSection('${k}')`,
   });
-  // Negen plekken onder elkaar is een lijst waarin je moet lezen. Gegroepeerd
-  // naar wat je er haalt zie je waar je moet zijn; een groep die leeg is — al
-  // zijn diensten staan uit of zijn voor deze party dicht — valt helemaal weg.
-  const groepen = (window.DIENST_GROEPEN || []).map(g => ({
-    label: g.label, icoon: g.icoon,
-    deuren: g.keys
-      .filter(k => window._moduleAan?.(k) !== false && !window._dienstDicht?.(k))
-      .map(deur),
-  }));
+  // **Eén rij deuren, in een volgorde die ergens op slaat.** Ze stonden eerst
+  // onder vier kopjes ("Kopen en verkopen", "Rust en vermaak"), en dat is een
+  // laag te veel voor negen deuren: je leest dan eerst vier etiketten voordat
+  // je bij een naam bent. De groepering uit `DIENST_GROEPEN` bepaalt alleen
+  // nog de **volgorde** — de markt staat niet meer tussen de tempel en de
+  // waarzegger — en dat zie je aan de rij zelf.
+  const deuren = (window.DIENST_VOLGORDE || [])
+    .filter(k => window._moduleAan?.(k) !== false && !window._dienstDicht?.(k))
+    .map(deur);
   el.innerHTML = _deurenPaginaHtml({
     pagina: 'diensten', icoon: 'landmark', titel: 'Diensten',
     onder: `Waar je in ${window._campagneNaam?.() || 'de stad'} terecht kunt.`,
-    deuren: [], groepen,
+    deuren,
   });
 }
 
