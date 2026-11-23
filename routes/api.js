@@ -6413,7 +6413,7 @@ router.post('/party/long-rest', requireDM, (req, res) => {
     }
   });
 
-  // ── 2c. Hit Dice → helft terug (grootste type eerst) ──
+  // ── 2c. Hit Dice → alles terug ──
   if (!dmState.playerHitDice) dmState.playerHitDice = {};
   spelers.forEach(char => {
     const profile = (dmState.playerProfiles || {})[char.id] || {};
@@ -6422,11 +6422,13 @@ router.post('/party/long-rest', requireDM, (req, res) => {
     if (totaal <= 0) return;
     const hd = (dmState.playerHitDice[char.id] = dmState.playerHitDice[char.id] || { spent: {} });
     if (!hd.spent) hd.spent = {};
-    // Naar beneden afronden, niet naar boven: de PHB zegt "half your total
-    // number of them (minimum of 1 die)", en D&D rondt af naar beneden tenzij er
-    // iets anders staat. Met ceil kreeg een Wizard 5 (5d6) er drie terug in
-    // plaats van twee — elke lange rust één te veel.
-    const terug = _herstelHitDice(pool, hd.spent, Math.max(1, Math.floor(totaal / 2)));
+    // **Alles, niet de helft.** Hier stond de regel van 2014: "half your total
+    // number of them (minimum of 1 die)", naar beneden afgerond. In de PHB 2024
+    // krijg je ze bij een lange rust allemaal terug. De rustregels staan niet
+    // in de SRD-bestanden die we meeleveren, dus dit is niet uit onze eigen
+    // data na te rekenen — het is de regel zoals de DM hem aandroeg, en zo
+    // wordt er aan tafel gespeeld.
+    const terug = _herstelHitDice(pool, hd.spent, totaal);
     _sum(char.id).hitDiceTerug = terug;
   });
 

@@ -2132,3 +2132,8 @@ Grisburghs **data** te staan — niet in de code.
 - Sla een locatie met een speld open (bv. Haveplein): er is een blad **Kaart** met de uitsnede rond de speld en de knop *Toon op de hele kaart*. Een locatie zonder speld heeft dat blad niet.
 - Sla een organisatie met betrokkenen open: er is een blad **Organogram**, met portretten zodra de beeldindex binnen is.
 - Allebei verschijnen ze vanzelf zodra de gegevens binnen zijn; je hoeft de tegel niet opnieuw te openen.
+
+## Hit Dice na een lange rust (23 nov 2026)
+
+- Verbruik vier Hit Dice en laat de party een lange rust doen: je hebt ze **allemaal** terug, niet de helft. Dat is de regel van de PHB 2024; de app hield nog die van 2014 aan.
+- Bewaakt door `tests/winkel-en-rust.test.js` (*geeft na een lange rust álle Hit Dice terug*).

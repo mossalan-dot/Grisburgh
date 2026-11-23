@@ -30,7 +30,7 @@ zodat latere verbeteringen in de code vanzelf doorkomen.
 
 > Deze lijst is afgeleid, niet gekozen: hij wijst alleen aan waar de vorm uiteenloopt.
 
-- **155 boekjes, 578 stappen, 26970 woorden.** Gemiddeld 3.7 stap per boekje en 47 woorden per stap.
+- **155 boekjes, 578 stappen, 26965 woorden.** Gemiddeld 3.7 stap per boekje en 47 woorden per stap.
 - **5 boekjes van één stap.** Vaak één zin die alleen zegt wát het scherm is. Wat kun je er doen, en waar klik je? — `documenten`, `hulp_kijk_personages_sheet`, `locaties`, `organisaties`, `party`
 - **2 met meer dan 90 woorden per stap.** Een stap is een schermpje om doorheen te bladeren; daar past geen alinea in. — `dm_verzoeken_personage`, `hulp_heldenboek_editor`
 
@@ -48,7 +48,7 @@ zodat latere verbeteringen in de code vanzelf doorkomen.
 - [`stemronde`](#stemronde) — Het mooiste moment van de avond · 4 stappen, 177 w · _rolverdeling_
 - [`personage`](#personage) — Mijn personage · 4 stappen, 157 w
 - [`gedaante`](#gedaante) — Je gedaante · 4 stappen, 102 w
-- [`personage_hp`](#personage_hp) — HP · 4 stappen, 138 w
+- [`personage_hp`](#personage_hp) — HP · 4 stappen, 135 w
 - [`personage_statussen`](#personage_statussen) — Actieve statussen · 2 stappen, 65 w
 - [`rage`](#rage) — Rage · 7 stappen, 263 w
 - [`klassekracht`](#klassekracht) — Klassekrachten · 13 stappen, 688 w
@@ -153,7 +153,7 @@ zodat latere verbeteringen in de code vanzelf doorkomen.
 - [`dm_loot_sjablonen`](#dm_loot_sjablonen) — Oude sjablonen · 2 stappen, 68 w
 - [`dm_loot_deelnemers`](#dm_loot_deelnemers) — Wie deelt mee · 2 stappen, 58 w
 - [`dm_loot_uitslag`](#dm_loot_uitslag) — De uitslag · 3 stappen, 84 w
-- [`dm_rust_starten`](#dm_rust_starten) — Rust starten · 3 stappen, 125 w
+- [`dm_rust_starten`](#dm_rust_starten) — Rust starten · 3 stappen, 123 w
 - [`dm_rust_sfeer`](#dm_rust_sfeer) — Sfeer & gebeurtenissen · 3 stappen, 112 w
 - [`dm_tafels_tabellen`](#dm_tafels_tabellen) — Tabellen · 4 stappen, 127 w
 - [`dm_tafels_namen`](#dm_tafels_namen) — Namen trekken · 3 stappen, 105 w
@@ -301,7 +301,7 @@ De zes subtabs van een speler, in de volgorde waarin ze op het scherm staan: Par
 
 ## `party`
 
-> Helpknop in: app.js:9360
+> Helpknop in: app.js:9393
 > Nu: **aangepast in deze campagne**
 > 1 stap · 18 woorden · 18 per stap
 > De standaard telt 4 stap(pen).
@@ -342,7 +342,7 @@ Wie vanavond een genadeslag beschreef ("How do you want to do this?"), staat ond
 
 ## `personage`
 
-> Helpknop in: app.js:9506
+> Helpknop in: app.js:9539
 > Nu: de standaard uit de code
 > 4 stappen · 157 woorden · 39 per stap
 
@@ -394,9 +394,9 @@ Met **Terug** ben je weer jezelf. Een gevecht dat afloopt laat je gedaante met r
 
 ## `personage_hp`
 
-> Helpknop in: app.js:9521
+> Helpknop in: app.js:9554
 > Nu: de standaard uit de code
-> 4 stappen · 138 woorden · 35 per stap
+> 4 stappen · 135 woorden · 34 per stap
 
 Titel: HP
 
@@ -410,7 +410,7 @@ Een aparte buffer die als eerste wordt opgegeten. Hij **stapelt niet**: krijg je
 
 ### Hit Dice
 
-De bolletjes zijn je Hit Dice, afgeleid uit je class en level — bij een korte rust zet je er een in om te genezen. Een lange rust geeft de helft terug, naar beneden afgerond.
+De bolletjes zijn je Hit Dice, afgeleid uit je class en level — bij een korte rust zet je er een in om te genezen. Een lange rust geeft ze allemaal terug.
 
 ### Exhaustion
 
@@ -420,7 +420,7 @@ Zes bolletjes die je DM zet. De app telt ze alleen: wat een niveau met je doet, 
 
 ## `personage_statussen`
 
-> Helpknop in: app.js:9587
+> Helpknop in: app.js:9620
 > Nu: de standaard uit de code
 > 2 stappen · 65 woorden · 33 per stap
 
@@ -582,7 +582,7 @@ Hoe lang iets blijft verschilt per spell, en dat weet de app niet. Dus wist hij 
 
 ## `personage_wildmagic`
 
-> Helpknop in: app.js:9611
+> Helpknop in: app.js:9644
 > Nu: de standaard uit de code
 > 2 stappen · 64 woorden · 32 per stap
 
@@ -600,7 +600,7 @@ Hier staat ook of je Tides of Chaos nog hebt. Gebruik je hem, dan mag je DM de v
 
 ## `personage_stats`
 
-> Helpknop in: app.js:9624
+> Helpknop in: app.js:9657
 > Nu: de standaard uit de code
 > 4 stappen · 149 woorden · 37 per stap
 
@@ -626,7 +626,7 @@ Ben je niet proficient met je harnas, of is het te zwaar voor je Strength, dan z
 
 ## `personage_wapens`
 
-> Helpknop in: app.js:9689
+> Helpknop in: app.js:9722
 > Nu: de standaard uit de code
 > 4 stappen · 122 woorden · 31 per stap
 
@@ -652,7 +652,7 @@ Elk vakje is overtypbaar. De app vult voor; of het aan tafel ook zo uitpakt, bep
 
 ## `personage_abilities`
 
-> Helpknop in: app.js:9722
+> Helpknop in: app.js:9755
 > Nu: de standaard uit de code
 > 2 stappen · 58 woorden · 29 per stap
 
@@ -670,7 +670,7 @@ Vink aan waar je proficient in bent; de bonus loopt dan mee met je Proficiency B
 
 ## `personage_skills`
 
-> Helpknop in: app.js:9757
+> Helpknop in: app.js:9790
 > Nu: de standaard uit de code
 > 3 stappen · 71 woorden · 24 per stap
 
@@ -692,7 +692,7 @@ Met de pijltjes leg je er handmatig iets bovenop, voor een feature of een voorwe
 
 ## `personage_proficiencies`
 
-> Helpknop in: app.js:9794
+> Helpknop in: app.js:9827
 > Nu: de standaard uit de code
 > 2 stappen · 60 woorden · 30 per stap
 
@@ -710,7 +710,7 @@ Twee plekken kijken hiernaar: de wapentabel, die je proficiency bij je aanvalsbo
 
 ## `personage_talen`
 
-> Helpknop in: app.js:9819
+> Helpknop in: app.js:9852
 > Nu: de standaard uit de code
 > 2 stappen · 54 woorden · 27 per stap
 
@@ -728,7 +728,7 @@ De app doet er zelf niets mee: ze staan hier zodat jij en je DM er aan tafel naa
 
 ## `personage_tap`
 
-> Helpknop in: app.js:9838
+> Helpknop in: app.js:9871
 > Nu: de standaard uit de code
 > 2 stappen · 55 woorden · 28 per stap
 
@@ -746,7 +746,7 @@ Ze gelden tot je slaapt en verdwijnen dan vanzelf. Het is een aantekening die je
 
 ## `personage_emotes`
 
-> Helpknop in: app.js:9857
+> Helpknop in: app.js:9890
 > Nu: de standaard uit de code
 > 2 stappen · 51 woorden · 26 per stap
 
@@ -764,7 +764,7 @@ Je neemt ze op toen je je personage maakte, of je DM zet ze voor je klaar. Is he
 
 ## `personage_wiejebent`
 
-> Helpknop in: app.js:9874
+> Helpknop in: app.js:9907
 > Nu: de standaard uit de code
 > 2 stappen · 60 woorden · 30 per stap
 
@@ -782,7 +782,7 @@ Het blok staat dicht omdat je het niet elke beurt nodig hebt. Klik de kop om het
 
 ## `knapzak`
 
-> Helpknop in: app.js:9909
+> Helpknop in: app.js:9942
 > Nu: **aangepast in deze campagne**
 > 4 stappen · 127 woorden · 32 per stap
 > De standaard telt 4 stap(pen).
@@ -835,7 +835,7 @@ Waar je iets moet kiezen — een feat, een subclass, een Ability Score Improveme
 
 ## `spreukenboek`
 
-> Helpknop in: app.js:10195
+> Helpknop in: app.js:10228
 > Nu: de standaard uit de code
 > 3 stappen · 117 woorden · 39 per stap
 
@@ -857,7 +857,7 @@ Veelgebruikte spreuken kun je vastpinnen via de ster (★) op het kaartje. Ze ve
 
 ## `spreuken_toevoegen`
 
-> Helpknop in: app.js:5424
+> Helpknop in: app.js:5441
 > Nu: de standaard uit de code
 > 0 stappen · 0 woorden
 
@@ -867,7 +867,7 @@ Titel:
 
 ## `spreukenboek_boek`
 
-> Helpknop in: app.js:4791
+> Helpknop in: app.js:4808
 > Nu: de standaard uit de code
 > 4 stappen · 309 woorden · 77 per stap
 
@@ -895,7 +895,7 @@ Met de pijlen links en rechts blader je door je spreuken; op een telefoon kun je
 
 ## `spreukenboek_inhoud`
 
-> Helpknop in: app.js:4860
+> Helpknop in: app.js:4877
 > Nu: de standaard uit de code
 > 2 stappen · 107 woorden · 54 per stap
 
@@ -923,7 +923,7 @@ De vijf kaartjes-tabs plus het bestiarium. Allemaal dezelfde vraag: wát staat h
 
 ## `personages`
 
-> Helpknop in: render-campagne.js:3374 (de kaartjes-tab geeft het entiteitstype als sleutel door)
+> Helpknop in: render-campagne.js:3451 (de kaartjes-tab geeft het entiteitstype als sleutel door)
 > Nu: de standaard uit de code
 > 5 stappen · 195 woorden · 39 per stap · rolverdeling (speler)
 
@@ -953,7 +953,7 @@ Met de **ster** bewaar je een personage bij je favorieten. Die liggen als een st
 
 ## `locaties`
 
-> Helpknop in: render-campagne.js:3374 (de kaartjes-tab geeft het entiteitstype als sleutel door)
+> Helpknop in: render-campagne.js:3451 (de kaartjes-tab geeft het entiteitstype als sleutel door)
 > Nu: **aangepast in deze campagne**
 > 1 stap · 36 woorden · 36 per stap
 > De standaard telt 3 stap(pen).
@@ -968,7 +968,7 @@ De **plekken** van Grisburgh en daarbuiten. Een locatie met het type *Winkel* he
 
 ## `organisaties`
 
-> Helpknop in: render-campagne.js:3374 (de kaartjes-tab geeft het entiteitstype als sleutel door)
+> Helpknop in: render-campagne.js:3451 (de kaartjes-tab geeft het entiteitstype als sleutel door)
 > Nu: **aangepast in deze campagne**
 > 1 stap · 20 woorden · 20 per stap
 > De standaard telt 3 stap(pen).
@@ -983,7 +983,7 @@ Gilden, ordes en groeperingen in de wereld. Klik op een kaart voor hun doel, led
 
 ## `voorwerpen`
 
-> Helpknop in: render-campagne.js:3374 (de kaartjes-tab geeft het entiteitstype als sleutel door)
+> Helpknop in: render-campagne.js:3451 (de kaartjes-tab geeft het entiteitstype als sleutel door)
 > Nu: **aangepast in deze campagne**
 > 2 stappen · 72 woorden · 36 per stap
 > De standaard telt 3 stap(pen).
@@ -1002,7 +1002,7 @@ Voorwerpen die je hebt geclaimd of die de DM je heeft gegeven, verschijnen op je
 
 ## `documenten`
 
-> Helpknop in: render-campagne.js:3374 (de kaartjes-tab geeft het entiteitstype als sleutel door)
+> Helpknop in: render-campagne.js:3451 (de kaartjes-tab geeft het entiteitstype als sleutel door)
 > Nu: **aangepast in deze campagne**
 > 1 stap · 19 woorden · 19 per stap
 > De standaard telt 3 stap(pen).
@@ -1926,7 +1926,7 @@ In de volgorde van het menu (`DIENST_GROEPEN`): kopen en verkopen, rust en verma
 
 ## `markt`
 
-> Helpknop in: app.js:13540, wizard.js:46 (dienstkop)
+> Helpknop in: app.js:13582, wizard.js:46 (dienstkop)
 > Nu: de standaard uit de code
 > 4 stappen · 177 woorden · 44 per stap
 
@@ -1952,7 +1952,7 @@ Alleen winkels die je party **ontdekt heeft** en die tijdens deze akte bereikbaa
 
 ## `winkel`
 
-> Helpknop in: app.js:13668
+> Helpknop in: app.js:13710
 > Nu: de standaard uit de code
 > 6 stappen · 202 woorden · 34 per stap
 
@@ -1986,7 +1986,7 @@ Klik de naam van een voorwerp: dan opent zijn **kaartje**, met de beschrijving, 
 
 ## `magizoo`
 
-> Helpknop in: app.js:14677 (dienstkop), dm-panel.js:7344 (dienstkop), wizard.js:49 (dienstkop)
+> Helpknop in: app.js:14719 (dienstkop), dm-panel.js:7344 (dienstkop), wizard.js:49 (dienstkop)
 > Nu: **aangepast in deze campagne**
 > 4 stappen · 184 woorden · 46 per stap
 > De standaard telt 2 stap(pen).
@@ -2013,7 +2013,7 @@ Wat vandaag in de kooien zit, staat onder *Adoptie*. Een dier kost geld en krijg
 
 ## `herberg`
 
-> Helpknop in: app.js:13999 (dienstkop), wizard.js:43 (dienstkop)
+> Helpknop in: app.js:14041 (dienstkop), wizard.js:43 (dienstkop)
 > Nu: **aangepast in deze campagne**
 > 4 stappen · 175 woorden · 44 per stap
 > De standaard telt 2 stap(pen).
@@ -2040,7 +2040,7 @@ Je kunt in De Swarte Cat ook overnachten. Dat regelt je DM voor het hele gezelsc
 
 ## `tweespalt`
 
-> Helpknop in: app.js:15470 (dienstkop), wizard.js:44 (dienstkop)
+> Helpknop in: app.js:15512 (dienstkop), wizard.js:44 (dienstkop)
 > Nu: **aangepast in deze campagne**
 > 4 stappen · 169 woorden · 42 per stap
 > De standaard telt 2 stap(pen).
@@ -2067,7 +2067,7 @@ Kom je geld tekort, dan leent Taevin het je. Let op de rente: die loopt per **la
 
 ## `tempel`
 
-> Helpknop in: app.js:15028, app.js:15108, wizard.js:47 (dienstkop)
+> Helpknop in: app.js:15070, app.js:15150, wizard.js:47 (dienstkop)
 > Nu: **aangepast in deze campagne**
 > 4 stappen · 167 woorden · 42 per stap
 > De standaard telt 3 stap(pen).
@@ -2094,7 +2094,7 @@ Verzaak je je eed, dan volgt een vloek. Die raak je kwijt door in de tempel boet
 
 ## `ursula`
 
-> Helpknop in: app.js:14952 (dienstkop), dm-panel.js:7466 (dienstkop), wizard.js:48 (dienstkop)
+> Helpknop in: app.js:14994 (dienstkop), dm-panel.js:7466 (dienstkop), wizard.js:48 (dienstkop)
 > Nu: **aangepast in deze campagne**
 > 3 stappen · 115 woorden · 38 per stap
 > De standaard telt 2 stap(pen).
@@ -2117,7 +2117,7 @@ Onder het beeldspel zit soms een concreet gegeven: een naam of een plek. Dat kom
 
 ## `gock`
 
-> Helpknop in: app.js:14335 (dienstkop), dm-panel.js:7148 (dienstkop), wizard.js:45 (dienstkop)
+> Helpknop in: app.js:14377 (dienstkop), dm-panel.js:7148 (dienstkop), wizard.js:45 (dienstkop)
 > Nu: **aangepast in deze campagne**
 > 3 stappen · 94 woorden · 31 per stap
 > De standaard telt 2 stap(pen).
@@ -2140,7 +2140,7 @@ Je kunt hem ook een gerucht laten rondbrengen over iemand of iets: waar of niet.
 
 ## `woekeraar`
 
-> Helpknop in: app.js:14608 (dienstkop), wizard.js:50 (dienstkop)
+> Helpknop in: app.js:14650 (dienstkop), wizard.js:50 (dienstkop)
 > Nu: de standaard uit de code
 > 4 stappen · 151 woorden · 38 per stap
 
@@ -2166,7 +2166,7 @@ Alles in één keer, of een deel. Bij een deel wordt wat overblijft de nieuwe ho
 
 ## `facties`
 
-> Helpknop in: app.js:9881, app.js:15677 (dienstkop), app.js:15791
+> Helpknop in: app.js:9914, app.js:15719 (dienstkop), app.js:15833
 > Nu: **aangepast in deze campagne**
 > 5 stappen · 212 woorden · 42 per stap
 > De standaard telt 4 stap(pen).
@@ -2581,7 +2581,7 @@ Bij het afsluiten gaat alles daadwerkelijk naar de boedel van de spelers en word
 
 > Helpknop in: dm-panel.js:10412
 > Nu: de standaard uit de code
-> 3 stappen · 125 woorden · 42 per stap
+> 3 stappen · 123 woorden · 41 per stap
 
 Titel: Rust starten
 
@@ -2591,7 +2591,7 @@ Kies eerst de plek — **in het veld** of **in de herberg** — en dan lang of k
 
 ### Wat er gebeurt
 
-Een lange rust zet HP op maximum, herlaadt spell slots en item-charges, geeft de helft van de Hit Dice terug en haalt één level Exhaustion weg. Een korte rust doet de shortRest-items en de pact-slots van een Warlock; Hit Dice besteden doet de speler daar zelf.
+Een lange rust zet HP op maximum, herlaadt spell slots en item-charges, geeft **al** je Hit Dice terug en haalt één level Exhaustion weg. Een korte rust doet de shortRest-items en de pact-slots van een Warlock; Hit Dice besteden doet de speler daar zelf.
 
 ### In de herberg kost het geld
 

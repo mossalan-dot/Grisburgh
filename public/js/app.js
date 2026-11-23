@@ -4527,10 +4527,10 @@ const _SB_GLOSSARY = [
   { t: /\bAdvantage\b/gi,       tip: 'Advantage: roll two d20s and use the higher result.' },
   { t: /\bDisadvantage\b/gi,    tip: 'Disadvantage: roll two d20s and use the lower result.' },
   // ── Rust & herstel ──
-  { t: /\bLong Rest\b/gi,       tip: 'Long Rest: at least 8 hours of rest. Regain all Hit Points, half your total Hit Dice, and reset most expended features and Spell Slots.' },
+  { t: /\bLong Rest\b/gi,       tip: 'Long Rest: at least 8 hours of rest. Regain all Hit Points and all spent Hit Point Dice, and reset most expended features and Spell Slots.' },
   { t: /\bShort Rest\b/gi,      tip: 'Short Rest: at least 1 hour of light activity. Spend Hit Dice to heal and recover features that recharge on a Short Rest.' },
   { t: /\bHeroic Inspiration\b/gi, tip: 'Heroic Inspiration: when you have it, you can reroll any one d20 and use either roll. You can hold only one at a time.' },
-  { t: /\bHit Dice\b/gi,        tip: 'Hit Dice: dice (one per character level) spent during a Short Rest to regain Hit Points. You regain half your total on a Long Rest.' },
+  { t: /\bHit Dice\b/gi,        tip: 'Hit Point Dice: dice (one per character level) spent during a Short Rest to regain Hit Points. You regain all of them on a Long Rest.' },
   { t: /\bHit Die\b/gi,         tip: 'Hit Die: the die used by your class for Hit Points (e.g. d8). Spend one during a Short Rest to heal.' },
   // ── Kernbegrippen die in features voorkomen ──
   { t: /\bAbility Score Improvement\b/gi, tip: 'Ability Score Improvement (ASI): increase one ability score by 2 or two scores by 1 (max 20), or take a feat instead.' },
@@ -16449,7 +16449,7 @@ const HELP_CONFIG = {
 
   dm_rust_starten: () => ({ titel: 'Rust starten', stappen: [
     { titel: 'Waar en wat', tekst: 'Kies eerst de plek — **in het veld** of **in de herberg** — en dan lang of kort. De rust geldt voor de hele party en iedereen krijgt hetzelfde cinematische scherm te zien; het tafelscherm toont de partybrede variant.', afbeelding: null },
-    { titel: 'Wat er gebeurt', tekst: 'Een lange rust zet HP op maximum, herlaadt spell slots en item-charges, geeft de helft van de Hit Dice terug en haalt één level Exhaustion weg. Een korte rust doet de shortRest-items en de pact-slots van een Warlock; Hit Dice besteden doet de speler daar zelf.', afbeelding: null },
+    { titel: 'Wat er gebeurt', tekst: 'Een lange rust zet HP op maximum, herlaadt spell slots en item-charges, geeft **al** je Hit Dice terug en haalt één level Exhaustion weg. Een korte rust doet de shortRest-items en de pact-slots van een Warlock; Hit Dice besteden doet de speler daar zelf.', afbeelding: null },
     { titel: 'In de herberg kost het geld', tekst: 'Daar wordt de overnachtingsprijs per speler afgeschreven en worden er twee roddels per speler onthuld — die prijs stel je in bij Diensten → Herberg. Wie vanavond niet meespeelt (zie *Waarvan actief* bij de party) doet ook hier niet mee.', afbeelding: null },
   ] }),
   dm_rust_sfeer: () => ({ titel: 'Sfeer & gebeurtenissen', stappen: [
@@ -17229,7 +17229,7 @@ const HELP_CONFIG = {
     stappen: [
       { titel: 'Je levenspunten', tekst: 'Met **+** en **−** houd je bij hoeveel HP je nog hebt; het getal rechts is je maximum. Je DM ziet het meteen, en je portret verkleurt mee — zo weet de tafel hoe je ervoor staat zonder dat iemand het hoeft te vragen.', afbeelding: null },
       { titel: 'Temporary HP', tekst: 'Een aparte buffer die als eerste wordt opgegeten. Hij **stapelt niet**: krijg je een nieuwe hoeveelheid, dan geldt de hoogste van de twee, niet de som. Een lange rust haalt hem weg.', afbeelding: null },
-      { titel: 'Hit Dice', tekst: 'De bolletjes zijn je Hit Dice, afgeleid uit je class en level — bij een korte rust zet je er een in om te genezen. Een lange rust geeft de helft terug, naar beneden afgerond.', afbeelding: null },
+      { titel: 'Hit Dice', tekst: 'De bolletjes zijn je Hit Dice, afgeleid uit je class en level — bij een korte rust zet je er een in om te genezen. Een lange rust geeft ze allemaal terug.', afbeelding: null },
       { titel: 'Exhaustion', tekst: 'Zes bolletjes die je DM zet. De app telt ze alleen: wat een niveau met je doet, geldt aan tafel. Elke lange rust haalt er een af.', afbeelding: null },
     ] }),
 
@@ -17381,7 +17381,7 @@ const HELP_CONFIG = {
         },
         {
           titel: 'Lange rust',
-          tekst: 'Na een lange rust worden je HP en spell slots volledig hersteld. Ook je Hit Dice worden deels aangevuld (helft van je level, afgerond naar boven). De kosten voor een overnachting worden automatisch van je beurs afgeschreven.',
+          tekst: 'Na een lange rust worden je HP, je spell slots en je Hit Dice volledig hersteld. De kosten voor een overnachting worden automatisch van je beurs afgeschreven.',
           afbeelding: null,
         },
       ],

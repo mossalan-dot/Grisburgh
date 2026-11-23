@@ -394,7 +394,7 @@ dm-panel.js : akte-schrijven.js?v=42  combat-canvas.js?v=41  render-statblock.js
 
 > **Lange & korte rust (party-breed, cinematisch).** DM triggert via het rust-paneel (`dm-panel.js`,
 > rond de oude maanknop): **Lange rust** / **Korte rust** + locatie-toggle **Veld / herberg**. Endpoints:
-> `POST /party/long-rest` (HP→max, slots, item-charges, Hit Dice helft; bij herberg `overnachtingPrijs` p.p.
+> `POST /party/long-rest` (HP→max, slots, item-charges, Hit Dice allemaal terug; bij herberg `overnachtingPrijs` p.p.
 > afschrijven + `2×spelers` entiteit-roddels onthullen via `flavourUitgesproken`), `POST /party/short-rest`
 > (shortRest-items + Warlock pact-slots; Hit Dice interactief), `POST /characters/:id/spend-hit-die`,
 > `GET /characters/:id/hit-dice`. Server emit `party:rest` → `socket-client.js` → `window._rustCinematic`

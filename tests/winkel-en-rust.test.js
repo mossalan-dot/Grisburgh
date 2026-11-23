@@ -12,7 +12,8 @@ const path = require('path');
 //     `gebruik`. Je betaalde er drie en kreeg er één, en het voorwerp ging
 //     meteen op uitverkocht.
 //  2. Kopen en verkopen gingen langs de gedeelde beurs heen.
-//  3. Een lange rust gaf de helft van de Hit Dice terug, naar boven afgerond.
+//  3. Een lange rust gaf maar een deel van de Hit Dice terug. Dat was de
+//     regel van 2014; in de PHB 2024 krijg je ze allemaal terug.
 
 const DATA_DIR = path.join(os.tmpdir(), `grisburgh-test-winkel-${Date.now()}-${Math.random().toString(36).slice(2)}`);
 
@@ -256,15 +257,18 @@ describe('Winkel en rust', () => {
     assert.equal(geweigerd.status, 409, 'en de route weigert het ook als je er langs de UI om heen gaat');
   });
 
-  it('geeft na een lange rust de helft van de Hit Dice terug, naar beneden', async () => {
-    // Wizard 5 → 5d6. Vier verbruikt, de helft van vijf is twee (niet drie).
+  it('geeft na een lange rust álle Hit Dice terug', async () => {
+    // Wizard 5 → 5d6. Vier verbruikt; na de rust staat de teller weer op nul.
+    // In 2014 kwam hier de helft van terug (naar beneden afgerond); de PHB 2024
+    // geeft ze allemaal. Deze toets is de kanarie: zet iemand hem terug op een
+    // deel, dan valt hij om.
     for (let i = 0; i < 4; i++) await req(server, 'POST', `/api/characters/${aria}/spend-hit-die`, { die: 'd6' }, ariaC);
     let hd = (await req(server, 'GET', `/api/characters/${aria}/hit-dice`, null, dm)).body;
     assert.equal(hd.spent['6'], 4);
 
     await req(server, 'POST', '/api/party/long-rest', { locatie: 'veld' }, dm);
     hd = (await req(server, 'GET', `/api/characters/${aria}/hit-dice`, null, dm)).body;
-    assert.equal(hd.spent['6'], 2, 'twee terug, dus twee blijven verbruikt');
+    assert.equal(hd.spent['6'], 0, 'alles terug, dus niets blijft verbruikt');
   });
 
   // Aan de tap krijg je iets dat werkt: HP, tijdelijke HP, of een werking in
