@@ -71,8 +71,51 @@ function _calcArmorAC(d, dexMod) {
 // ── Eigendomsstatus voorwerpen (module-level, bijgewerkt via socket) ──
 let _ownership = { owners: {}, requests: [], tradeAllowed: true, stapelbaar: new Set(), gedeeld: new Set() };
 
+// Hoe heet de keuzelijst per tabblad? "Soort" klopt overal maar zegt bij een
+// locatie niets: daar filter je op het gebied waarin iets ligt.
+const SUBTYPE_LABEL = {
+  locaties:     'Gebied',
+  voorwerpen:   'Type',
+  organisaties: 'Soort',
+  documenten:   'Soort',
+  personages:   'Soort',
+};
+
 // ── Subtype-filter per sectie ──
+// `subtypeFilters` is de **ene** chip die aanstaat: Alle, Bladwijzers, Onaf,
+// of Winkel. Die sluiten elkaar uit — je kijkt naar je bladwijzers óf naar de
+// onafgemaakte kaartjes.
 const subtypeFilters = {};
+// `waardeFilters` is wat je hebt **aangevinkt** uit de verzamelde waarden: de
+// gebieden bij een locatie, de types bij een voorwerp. Dat is een Set en geen
+// enkele waarde, want "laat me Luimpoort én Haveplein zien" is de normale
+// vraag — en met zeventien gebieden naast elkaar was de filterbalk drie regels
+// hoog geworden zonder dat je er twee tegelijk kon kiezen.
+const waardeFilters = {};
+const _wf = (t) => (waardeFilters[t] ||= new Set());
+
+// **De stand blijft staan.** Je filtert op een gebied, opent een kaartje, gaat
+// naar de kaart en komt terug — dan hoort je filter er nog te zijn, ook na een
+// herlaadbeurt. Per tabblad in localStorage, want het is een voorkeur van deze
+// lezer op dit apparaat en niet iets van de campagne.
+const _filterSleutel = (t) => `kaartjesFilter:${t}`;
+function _filterLaden(t) {
+  if (waardeFilters[t]) return;                 // al geladen
+  waardeFilters[t] = new Set();
+  try {
+    const rauw = JSON.parse(localStorage.getItem(_filterSleutel(t)) || '{}');
+    if (rauw.sf) subtypeFilters[t] = rauw.sf;
+    for (const v of (rauw.waarden || [])) waardeFilters[t].add(v);
+  } catch { /* geen of stukke voorkeur: dan geen filter */ }
+}
+function _filterBewaren(t) {
+  try {
+    const sf = subtypeFilters[t] || null;
+    const waarden = [..._wf(t)];
+    if (!sf && !waarden.length) localStorage.removeItem(_filterSleutel(t));
+    else localStorage.setItem(_filterSleutel(t), JSON.stringify({ sf, waarden }));
+  } catch { /* privémodus: dan onthoudt hij het deze sessie */ }
+}
 
 // Hier stond een hover-tooltip met de beschrijving van een voorwerp. Weg: je
 // kunt op de naam klikken en dan staat diezelfde tekst op het kaartje, met het
@@ -2320,6 +2363,34 @@ const _KAART_SCHAAL = {
 const _kaartSchaal = (m) => _KAART_SCHAAL[m?.soort] ?? 4;
 
 // Alle plekken van deze locatie, de meest gedetailleerde eerst.
+// **Waar het ligt, op de tegel zelf.** Een opengeslagen locatiekaartje toonde
+// roddels en geheimen maar niet het enige wat een locatie ánders maakt dan een
+// organisatie: waar hij op de kaart staat. Dat stond alleen in het venster.
+//
+// De tegels tekenen synchroon en de kaartgegevens komen van de server, dus
+// houden we de uitkomst per locatie bij. Is hij er nog niet, dan vraagt de
+// tegel hem op en tekent zichzelf opnieuw zodra het antwoord binnen is — één
+// keer, want daarna zit hij in deze map. `null` betekent "nagekeken, ligt
+// nergens"; dan komt er geen blad.
+const _tegelKaartPlek = new Map();
+function _tegelVoorladen(type, id) {
+  if (type === 'organisaties') {
+    // Hetzelfde voor de portretten in een organogram: is de index er nog niet,
+    // dan tekent hij met initialen en komt hij er zo alsnog bij.
+    if (!_beeldIndexNu()) _beeldIndexLaden()
+      .then(() => { if (_tegelOpen[type] === id) _tegelHerteken(type, { alleen: [id] }); })
+      .catch(() => {});
+    return;
+  }
+  if (type !== 'locaties' || _tegelKaartPlek.has(id)) return;
+  _tegelKaartPlek.set(id, undefined);          // bezig: niet nog een keer vragen
+  _kaartPlekkenVan(id).then(plekken => {
+    _tegelKaartPlek.set(id, plekken[0] || null);
+    // Alleen hertekenen als er iets te tonen valt én deze tegel nog openstaat.
+    if (plekken[0] && _tegelOpen[type] === id) _tegelHerteken(type, { alleen: [id] });
+  }).catch(() => _tegelKaartPlek.set(id, null));
+}
+
 async function _kaartPlekkenVan(locId) {
   const { maps, pins } = await _kaartGegevens();
   const uit = [];
@@ -3334,7 +3405,13 @@ async function renderEntitySection(type) {
   // Dat is een Grisburgh-indeling: het zijn gewone PHB-termen en dus gewone
   // chips, net als elk ander type.
   const sfVals = [..._sfSeen.values()].sort((a, b) => a.localeCompare(b, 'nl'));
+  _filterLaden(type);
   const sfActive = subtypeFilters[type] || '';
+  // Een waarde die niet meer bestaat (een gebied dat hernoemd is) houdt het
+  // filter leeg zonder dat je ziet waarom. Opruimen bij het tekenen.
+  const _geldig = new Set(sfVals);
+  for (const v of _wf(type)) if (!_geldig.has(v)) _wf(type).delete(v);
+  const gekozen = _wf(type);
   // Speciale chips per type (los van de auto-verzamelde subtype-waarden)
   const _specialChips = type === 'locaties'   ? [{ val: '__winkel__', label: `${icon('building')} Winkel` }]
                       : [];
@@ -3367,7 +3444,7 @@ async function renderEntitySection(type) {
               placeholder="Zoek ${TYPE_META[type].label.toLowerCase()}..." value="${esc(searchQueries[type])}"
               oninput="window._entitySearch('${type}',this.value)">
           </div>
-          ${_showSf ? `<button class="sf-toggle-btn${sfActive ? ' sf-toggle-btn--active' : ''}" onclick="window._toggleSubtypeBar('${type}')" title="Filter op subtype"><svg width="13" height="11" viewBox="0 0 13 11" fill="currentColor"><polygon points="0,0 13,0 8,5.5 8,11 5,11 5,5.5"/></svg></button>` : ''}
+          ${_showSf ? `<button class="sf-toggle-btn${sfActive || gekozen.size ? ' sf-toggle-btn--active' : ''}" onclick="window._toggleSubtypeBar('${type}')" title="Filter op subtype"><svg width="13" height="11" viewBox="0 0 13 11" fill="currentColor"><polygon points="0,0 13,0 8,5.5 8,11 5,11 5,5.5"/></svg></button>` : ''}
           <!-- De resultatenteller stond hier; hij telde iets anders dan de
                ontdekkingsmeter in de kop (die laat zien hoeveel de party van de
                wereld kent, zónder de spelers zelf) en dat las als een fout. -->
@@ -3388,10 +3465,23 @@ async function renderEntitySection(type) {
 
     <!-- Subtype filter chips (standaard verborgen, toggle via knop) -->
     ${_showSf ? `
-    <div class="subtype-filter-bar${sfActive ? '' : ' subtype-filter-bar--hidden'}">
+    <div class="subtype-filter-bar${sfActive || gekozen.size ? '' : ' subtype-filter-bar--hidden'}">
       <button class="sf-chip${sfActive === '' ? ' sf-chip--active' : ''}" data-sf-val="" onclick="window._entitySubtypeFilter('${type}', null)">Alle</button>
       ${_specialChips.map(c => `<button class="sf-chip sf-chip--special${sfActive === c.val ? ' sf-chip--active' : ''}" data-sf-val="${esc(c.val)}" onclick="window._entitySubtypeFilter('${type}', this.classList.contains('sf-chip--active') ? null : this.dataset.sfVal)">${c.label}</button>`).join('')}
-      ${sfVals.map(v => `<button class="sf-chip${sfActive === v ? ' sf-chip--active' : ''}" data-sf-val="${esc(v)}" onclick="window._entitySubtypeFilter('${type}', this.classList.contains('sf-chip--active') ? null : this.dataset.sfVal)">${esc(v)}</button>`).join('')}
+      ${sfVals.length >= 2 ? `
+      <details class="sf-keuzelijst${gekozen.size ? ' is-aan' : ''}">
+        <summary class="sf-chip sf-keuzelijst-knop">${icon('chevron-right')} ${esc(SUBTYPE_LABEL[type] || 'Soort')}${
+          gekozen.size ? `<span class="sf-keuzelijst-teller">${gekozen.size}</span>` : ''}</summary>
+        <div class="sf-keuzelijst-paneel">
+          ${gekozen.size ? `<button type="button" class="sf-keuzelijst-leeg"
+            onclick="window._entityWaardeWis('${type}')">${icon('x')} Alles uitvinken</button>` : ''}
+          ${sfVals.map(v => `<label class="sf-keuzelijst-regel">
+            <input type="checkbox" ${gekozen.has(v) ? 'checked' : ''}
+              onchange="window._entityWaardeToggle('${type}', this.dataset.val)" data-val="${esc(v)}">
+            <span>${esc(v)}</span>
+          </label>`).join('')}
+        </div>
+      </details>` : sfVals.map(v => `<button class="sf-chip${gekozen.has(v) ? ' sf-chip--active' : ''}" data-sf-val="${esc(v)}" onclick="window._entityWaardeToggle('${type}', this.dataset.sfVal)">${esc(v)}</button>`).join('')}
     </div>` : ''}
 
     <!-- Card grid -->
@@ -3416,18 +3506,63 @@ async function renderEntitySection(type) {
 
   window._entitySubtypeFilter = (t, subtype) => {
     subtypeFilters[t] = subtype || null;
-    const filtered = filterEntities(t, entities[t] || []);
-    const c = $(`#section-${t}`);
-    _refreshGrid(t, filtered, c);
-    c.querySelectorAll('.sf-chip').forEach(btn => {
-      btn.classList.toggle('sf-chip--active', btn.dataset.sfVal === (subtype || ''));
-    });
-    // Toon de filterbalk als een filter actief is; update knop
-    const bar = c.querySelector('.subtype-filter-bar');
-    if (bar && subtype) bar.classList.remove('subtype-filter-bar--hidden');
-    const toggleBtn = c.querySelector('.sf-toggle-btn');
-    if (toggleBtn) toggleBtn.classList.toggle('sf-toggle-btn--active', !!subtype);
+    // **Alle** is Alle: hij zet ook de aangevinkte waarden uit. Anders druk je
+    // op Alle, blijft er gefilterd worden, en zoek je naar wat er mis is.
+    if (!subtype) _wf(t).clear();
+    _filterBewaren(t);
+    _filterTekenen(t);
   };
+
+  // Eén waarde aan- of uitvinken. De lijst zelf wordt niet hertekend — dan
+  // klapt de keuzelijst dicht onder je hand en moet je hem per vinkje opnieuw
+  // openen.
+  window._entityWaardeToggle = (t, val) => {
+    const set = _wf(t);
+    if (set.has(val)) set.delete(val); else set.add(val);
+    _filterBewaren(t);
+    _filterTekenen(t, { behoudLijst: true });
+  };
+
+  window._entityWaardeWis = (t) => {
+    _wf(t).clear();
+    _filterBewaren(t);
+    _filterTekenen(t);
+  };
+
+  // Het raster opnieuw vullen en de balk laten zeggen wat er aanstaat.
+  function _filterTekenen(t, { behoudLijst = false } = {}) {
+    const c = $(`#section-${t}`);
+    if (!c) return;
+    _refreshGrid(t, filterEntities(t, entities[t] || []), c);
+    const sf = subtypeFilters[t] || '';
+    const gekozen = _wf(t);
+    c.querySelectorAll('.sf-chip:not(.sf-keuzelijst-knop)').forEach(btn => {
+      const v = btn.dataset.sfVal || '';
+      btn.classList.toggle('sf-chip--active', v === sf || (v && gekozen.has(v)));
+    });
+    const lijst = c.querySelector('.sf-keuzelijst');
+    if (lijst) {
+      lijst.classList.toggle('is-aan', gekozen.size > 0);
+      const teller = lijst.querySelector('.sf-keuzelijst-teller');
+      if (gekozen.size && teller) teller.textContent = String(gekozen.size);
+      else if (gekozen.size) lijst.querySelector('summary')
+        ?.insertAdjacentHTML('beforeend', `<span class="sf-keuzelijst-teller">${gekozen.size}</span>`);
+      else teller?.remove();
+      if (!behoudLijst) lijst.open = false;
+      const wis = lijst.querySelector('.sf-keuzelijst-leeg');
+      if (gekozen.size && !wis) lijst.querySelector('.sf-keuzelijst-paneel')
+        ?.insertAdjacentHTML('afterbegin', `<button type="button" class="sf-keuzelijst-leeg"
+          onclick="window._entityWaardeWis('${t}')">${icon('x')} Alles uitvinken</button>`);
+      if (!gekozen.size) wis?.remove();
+      if (behoudLijst) lijst.querySelectorAll('input[type=checkbox]').forEach(cb => {
+        cb.checked = gekozen.has(cb.dataset.val);
+      });
+    }
+    const actief = !!sf || gekozen.size > 0;
+    const bar = c.querySelector('.subtype-filter-bar');
+    if (bar && actief) bar.classList.remove('subtype-filter-bar--hidden');
+    c.querySelector('.sf-toggle-btn')?.classList.toggle('sf-toggle-btn--active', actief);
+  }
 
   window._toggleSubtypeBar = (type) => {
     const c = $(`#section-${type}`);
@@ -4218,8 +4353,12 @@ function filterEntities(type, list) {
     filtered = filtered.filter(e => bmIds.has(e.id));
   } else if (sf === '__winkel__' && type === 'locaties') {
     filtered = filtered.filter(e => e.data?.locType === 'Winkel');
-  } else if (sf) {
-    filtered = filtered.filter(e => _getEntitySubtypeVal(type, e) === sf);
+  }
+  // De aangevinkte waarden gelden **naast** de chip hierboven: "winkels in
+  // Luimpoort" is twee vragen tegelijk, en zo leest de balk het ook.
+  const gekozen = waardeFilters[type];
+  if (gekozen?.size) {
+    filtered = filtered.filter(e => gekozen.has(_getEntitySubtypeVal(type, e)));
   }
   return filtered.slice().sort((a, b) => {
     // Tijdens het zoeken wint de treffer: naam vóór beschrijving. Bij gelijke
@@ -4557,10 +4696,32 @@ function _tegelBladen(type, e) {
   if (geheimen.length) bladen.push({ soort: 'geheimen', label: 'Geheimen', tekst: geheimen.map(r => r.t).join(' '),
     html: `<ul class="tegel-regels">${geheimen.map(r => `<li class="tegel-regel${r.aan ? '' : ' tegel-regel--dicht'}">
       ${r.aan ? '' : `<span class="tegel-slot" title="Nog dicht voor deze party">${icon('lock')}</span>`}${mdToHtml(r.t)}</li>`).join('')}</ul>` });
+  // Waar het ligt. Zelfde uitsnede als in het venster, dus één renderer.
+  const plek = type === 'locaties' ? _tegelKaartPlek.get(e.id) : null;
+  if (plek) bladen.push({ soort: 'kaart', label: 'Kaart', tekst: plek.kaart?.name || '',
+    html: _kaartTabHtml(e.id, plek, true, d.locType) });
+
+  // En wie er de baas is. Een organisatie is haar mensen; dat stond alleen in
+  // het venster, achter een tabblad.
+  if (type === 'organisaties') {
+    const rijen = _betrokkenenUit(d);
+    if (rijen.length) bladen.push({ soort: 'organogram', label: 'Organogram',
+      tekst: rijen.map(r => `${r.naam || ''} ${r.rol || ''}`).join(' '),
+      html: `<div class="tegel-organogram">${_organogramHtml(rijen, _beeldIndexNu())}</div>` });
+  }
+
   return bladen;
 }
 
-const _BLAD_ICOON = { portret: 'image', gegevens: 'clipboard-list', beschrijving: 'book-open', tekst: 'scroll-text', roddels: 'beer', geheimen: 'lock' };
+// De portretten van een organogram komen uit een index die lui laadt. Staat hij
+// er al, dan gebruiken we hem; anders tekent het organogram met initialen en
+// is hij er de volgende keer wel. Een tegel wachten laten is erger dan een
+// rondje zonder gezichten.
+function _beeldIndexNu() {
+  return (_beeldIndex && Date.now() - _beeldIndex.tijd < 30000) ? _beeldIndex.map : null;
+}
+
+const _BLAD_ICOON = { portret: 'image', gegevens: 'clipboard-list', beschrijving: 'book-open', tekst: 'scroll-text', roddels: 'beer', geheimen: 'lock', kaart: 'map-pin', organogram: 'users' };
 
 // Wat er op het gegevensblad staat, per kaartsoort. Labels zijn D&D-termen waar
 // die bestaan (Origin, Class, Alignment, Requires Attunement). Zonder rijen geen
@@ -4915,7 +5076,7 @@ function _stapelHtml(type, favs, uit) {
 // vraag, en dan wil je het antwoord in zijn gewone volgorde.
 function _tegelRasterHtml(type, list) {
   const favs = _favIds(type);
-  const stapelMag = !isDM() && favs.size && !searchQueries[type] && !subtypeFilters[type];
+  const stapelMag = !isDM() && favs.size && !searchQueries[type] && !subtypeFilters[type] && !waardeFilters[type]?.size;
   if (!stapelMag) return list.map(e => _tegelHtml(type, e, { fav: favs.has(e.id) })).join('');
   const fav = list.filter(e => favs.has(e.id));
   if (!fav.length) return list.map(e => _tegelHtml(type, e)).join('');
@@ -5050,6 +5211,7 @@ window._tegelKlik = (type, id) => {
     const e = (entities[type] || []).find(x => x.id === id);
     const vorige = _tegelOpen[type];
     _tegelOpen[type] = id;
+    _tegelVoorladen(type, id);
     _tegelBlad[id] = e ? _bladVoorZoekterm(type, _tegelBladen(type, e)) : 0;
     _tegelHerteken(type, { alleen: [vorige, id] });
     // Breng hem in beeld als hij onderaan uitklapt.

@@ -2117,3 +2117,18 @@ Grisburghs **data** te staan — niet in de code.
 - De schoolnaam eindigt op elke regel op dezelfde plek, ook bij een cantrip (geen voorbereidknop) of een spreuk zonder woorden: de knoppenrij is altijd drie vakjes breed.
 - Een leeg vakje is niet aanklikbaar — er staat geen knop die niets doet.
 - De knop voor de incantatie draagt het aanhalingsteken, niet het potlood: het potlood betekent overal in de app *bewerken* en dit gaat over wat je hardop zegt.
+
+## De filterbalk van de kaartjes-tabs (23 nov 2026)
+
+- Open Locaties en klap de filterbalk uit. Er staan drie chips: **Alle**, **Winkel** en een knop **Gebied** met een vinkjeslijst erachter — niet zeventien gebieden naast elkaar.
+- Vink twee gebieden aan: het raster toont de kaartjes uit allebei, en op de knop staat het aantal. De lijst blijft openstaan terwijl je vinkt.
+- Combineer met **Winkel**: je ziet alleen de winkels in die gebieden.
+- **Alle** zet ook de vinkjes uit.
+- Ga naar een ander tabblad en terug, en herlaad daarna de pagina: het filter staat er nog, en de balk staat open. Hetzelfde geldt voor Voorwerpen (Type).
+- Een gebied dat niet meer bestaat (hernoemd) verdwijnt vanzelf uit het filter in plaats van alles weg te filteren.
+
+## Kaart en organogram op een opengeslagen tegel (23 nov 2026)
+
+- Sla een locatie met een speld open (bv. Haveplein): er is een blad **Kaart** met de uitsnede rond de speld en de knop *Toon op de hele kaart*. Een locatie zonder speld heeft dat blad niet.
+- Sla een organisatie met betrokkenen open: er is een blad **Organogram**, met portretten zodra de beeldindex binnen is.
+- Allebei verschijnen ze vanzelf zodra de gegevens binnen zijn; je hoeft de tegel niet opnieuw te openen.
