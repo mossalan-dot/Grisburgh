@@ -1150,28 +1150,24 @@ dm-panel.js : akte-schrijven.js?v=42  combat-canvas.js?v=41  render-statblock.js
 > (beurs, boedel, profiel, HP, lening) van een kaartje dat niet meer bestaat;
 > de groepsvelden blijven met rust. Draai hem altijd eerst zonder `--schrijf`.
 
-> **De snapshot had zijn eigen spelersfilter, en die liep jaren achter.**
-> `/api/export` plakt zijn hele datamodel als JSON in het HTML-bestand
-> (`const S = ${JSON.stringify(S)}`), dus alles wat de filter laat staan, staat
-> letterlijk in een bestand dat je aan je spelers geeft — ook wat nergens op het
-> scherm getekend wordt. `lib/snapshot.js` had daarvoor acht eigen regels die
-> alleen het oude enkelvoudige `data.geheim` kenden. Gevolg in Grisburgh: **40
-> van de 41** geheimregels gingen mee terwijl er één onthuld was, plus
-> `geheimenAntagonist`, `persoonlijkheid` (de aantekeningen voor de DM) en de
-> **619 stappen** van het regie-script in `meta.hoofdstukken` — precies het lek
-> dat we in `GET /meta` dichtten, via de achterdeur.
+> **Wat je uitdeelt gaat langs de échte spelersfilter.** Er is nog één export:
+> `GET /api/export/campagneboek` (DM-only) — een leesbaar boek, geen tweede app.
+> Hij gebruikt `filterEntityForPlayer` en `hoofdstukkenVoorSpeler` uit
+> `routes/api.js`, en doet er zelf alleen `_deceased` bovenop, want die staat
+> bij de groep. Bewaakt door `tests/export-geheimen.test.js` (6 tests, met
+> kanaries).
 >
-> Nu gebruiken beide exports de échte filter: `routes/api.js` exporteert
-> `filterEntityForPlayer` en `hoofdstukkenVoorSpeler`, en `snapshot.js` haalt ze
-> op met een **lazy require** (`_apiFilters()`) — api.js laadt snapshot.js
-> bovenin, dus een require bij het laden geeft een half geïnitialiseerde module
-> terug. Wat de export er zelf nog bovenop doet is `_deceased`, want die staat
-> bij de groep. Bewaakt door `tests/export-geheimen.test.js` (10 tests, met
-> kanaries; op de oude code vallen er drie om).
->
-> Het **campagneboek** lekte niets: dat rendert alleen HTML en heeft geen
-> JSON-blok. Het gebruikte wel dezelfde verouderde filter, dus het is
-> meeveranderd.
+> **De snapshot is op 14 okt 2026 verwijderd**, met `lib/snapshot.js` erbij. Dat
+> was dezelfde export als klikbare mini-app, uit de tijd dat de app niet altijd
+> draaide — en hij plakte zijn hele datamodel als JSON in het bestand
+> (`const S = ${JSON.stringify(S)}`), dus alles wat de filter liet staan stond
+> letterlijk in een bestand dat je aan je spelers gaf. Zijn eigen filter liep
+> bovendien jaren achter: hij kende alleen het oude enkelvoudige `data.geheim`,
+> waardoor in Grisburgh **40 van de 41** geheimregels meegingen terwijl er één
+> onthuld was, plus `geheimenAntagonist`, `persoonlijkheid` en de **619
+> stappen** van het regie-script. Die kwetsbaarheid is met de route zelf
+> verdwenen; de geschiedenis staat hier omdat het patroon terug kan komen bij
+> elke nieuwe export.
 
 > **Het Logboek, doorgelopen (15 sep 2026).** Vier dingen rechtgezet:
 >
@@ -2731,7 +2727,6 @@ opgeslagen als JSON-string. Alles eromheen is afgeleid:
 server.js              Express + Socket.io entry point
 config.js              PORT, sessionSecret, dmPassword (uit env)
 lib/storage.js         Lees/schrijf JSON-bestanden, per-campagne via AsyncLocalStorage
-lib/snapshot.js        HTML-export (/api/export + /api/export/campagneboek)
 routes/api.js          Alle REST-endpoints (~3000 regels)
 routes/auth.js         Login (DM + speler), session
 bronnen/               Meegeleverde brondata (spreuken, class features, backgrounds).
@@ -4177,7 +4172,7 @@ negen eigen routes. Dat is allemaal weg; wat overblijft is
 > De vraag "kunnen die velden niet WYSIWYG?" loopt stuk op de opslagkant: de
 > tekst in `data.desc` en zijn soortgenoten wordt door **zeven** renderers
 > gelezen, waarvan twee op de server (`lib/character-sheet.js` voor het
-> printbare blad, `lib/snapshot.js` voor de campagneboek-export). Het formaat
+> printbare blad, `routes/api.js` voor de campagneboek-export). Het formaat
 > veranderen raakt die allemaal. En een contenteditable die markdown
 > terugschrijft moet het hele dialect lossless kunnen: `**`, `*`, `__`, `~~`,
 > `==`, `^smallcaps^`, `{kleur:tekst}`, `#`-koppen, `---`, en vooral

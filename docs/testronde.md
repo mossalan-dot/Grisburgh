@@ -909,7 +909,7 @@ fout-uitvoert.
 
 - [ ] **Character sheets** (DM) — één personage en de hele party; print naar pdf en vergelijk het aantal pagina's met het laatste "blad X van Y"
 - [ ] **Sheets-triggers** (DM) — knop in de Aktes-tabkop, scroll-icoon in de regie-balk, en de herinnering na het pauzeren
-- [ ] **Export / campagneboek** (DM) — beide downloads openen en steekproefsgewijs controleren of de inhoud klopt
+- [x] **Export / campagneboek** (DM) — beide downloads openen en steekproefsgewijs controleren of de inhoud klopt *(nagelopen 24 nov 2026: er is er nog **één**. Het campagneboek geeft 200 en 35 MB HTML; de snapshot-export is op 14 okt 2026 verwijderd, dus "beide downloads" klopt niet meer.)*
 - [ ] **Tunnel** (DM) — cloudflared starten en stoppen, de url delen en zien dat hij werkt
 - [ ] **Backups** — nachtelijke snapshot op de server, ophalen op de laptop, en één bestand terugzetten
 - [ ] **Media-opruiming** — ongebruikte bestanden vinden en verwijderen zonder dat er iets kapot gaat
@@ -2398,3 +2398,17 @@ Logboek staat nog op 58 regels.
 > **Voor wie dit nadoet:** zet `combat.json` terug in plaats van het gevecht af
 > te sluiten, tenzij je juist de afloop wilt toetsen. Scheelt een verslag dat je
 > daarna moet opruimen.
+
+## Achtste ronde (24 nov 2026) — de exports, en een stuk documentatie dat achterliep
+
+- **Het campagneboek** geeft 200 en **35 MB** HTML. Dat is veel voor iets dat je
+  in een browser opent; de moeite waard om een keer na te kijken waar die massa
+  zit (vermoedelijk ingesloten beelden).
+- **`/api/export` bestaat niet meer.** De snapshot — dezelfde export als
+  klikbare mini-app — is op 14 okt 2026 verwijderd, met `lib/snapshot.js` erbij.
+  Het testpunt sprak nog van "beide downloads"; dat is nu één.
+- **CLAUDE.md liep achter.** Er stond een hele alinea over `lib/snapshot.js` en
+  zijn verouderde spelersfilter, plus een regel in de projectstructuur naar een
+  bestand dat er niet meer is. Bijgewerkt: wat er nog ís staat er nu, en de
+  geschiedenis van het lek blijft staan als waarschuwing voor de volgende
+  export.
