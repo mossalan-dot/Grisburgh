@@ -1,4 +1,4 @@
-_155 sleutels · 31 aangepast in **grisburgh** · rest is de standaard uit de code._
+_155 sleutels · 32 aangepast in **grisburgh** · rest is de standaard uit de code._
 
 # Helpteksten
 
@@ -30,7 +30,7 @@ zodat latere verbeteringen in de code vanzelf doorkomen.
 
 > Deze lijst is afgeleid, niet gekozen: hij wijst alleen aan waar de vorm uiteenloopt.
 
-- **155 boekjes, 584 stappen, 26696 woorden.** Gemiddeld 3.8 stap per boekje en 46 woorden per stap.
+- **155 boekjes, 584 stappen, 26699 woorden.** Gemiddeld 3.8 stap per boekje en 46 woorden per stap.
 - **3 boekjes van één stap.** Vaak één zin die alleen zegt wát het scherm is. Wat kun je er doen, en waar klik je? — `hulp_kijk_personages_sheet`, `party`, `personage_wildmagic`
 - **2 met meer dan 90 woorden per stap.** Een stap is een schermpje om doorheen te bladeren; daar past geen alinea in. — `dm_verzoeken_personage`, `hulp_heldenboek_editor`
 
@@ -105,7 +105,7 @@ zodat latere verbeteringen in de code vanzelf doorkomen.
 
 **Naslag** · 4
 
-- [`vaardigheden`](#vaardigheden) — Naslag · 7 stappen, 441 w
+- [`vaardigheden`](#vaardigheden) — Naslag · 7 stappen, 444 w · _aangepast_
 - [`hulp_heldenboek_kaart`](#hulp_heldenboek_kaart) — Een kaart bewerken · 5 stappen, 340 w
 - [`hulp_heldenboek_editor`](#hulp_heldenboek_editor) — Iets toevoegen aan de naslag · 10 stappen, 993 w
 - [`spreuken`](#spreuken) — Spreuken — de bibliotheek · 6 stappen, 311 w · _rolverdeling_
@@ -1531,8 +1531,9 @@ Het Heldenboek en de spreukenbibliotheek: niet over déze campagne maar over het
 ## `vaardigheden`
 
 > Helpknop in: render-vaardigheden.js:5829
-> Nu: de standaard uit de code
-> 7 stappen · 441 woorden · 63 per stap
+> Nu: **aangepast in deze campagne**
+> 7 stappen · 444 woorden · 63 per stap
+> De standaard telt 7 stap(pen).
 
 Titel: Naslag
 
@@ -1540,9 +1541,9 @@ Titel: Naslag
 
 Hier staan de **class features**, **subclass features**, **species traits**, **feats**, **Epic Boons** en **backgrounds** van deze wereld bij elkaar. Wat jóuw personage ervan heeft, staat op je tijdlijn onder Progressie; dit is de plek om op te zoeken wat er te krijgen valt.
 
-### Vier deuren, dan één laag
+### Zeven deuren, dan één laag
 
-Je begint met vier keuzes: **Classes**, **Species**, **Backgrounds** en **Feats & Epic Boons**. Achter een deur staan alle classes (of de species, of de backgrounds); kies er een en je krijgt het kaartje met hit die, saving throws, proficiencies en skills, daaronder de **subclasses** als kaartjes, en daaronder pas de losse features. Zo hoef je nooit door vijfhonderd regels te kijken om te zien wat een Wizard is.
+Je begint met zeven keuzes: **Classes**, **Species**, **Backgrounds**, **Feats & Epic Boons**, **Spells**, **Conditions** en **Familiars**. Achter een deur staan alle classes (of de species, of de backgrounds); kies er een en je krijgt het kaartje met hit die, saving throws, proficiencies en skills, daaronder de **subclasses** als kaartjes, en daaronder pas de losse features. Zo hoef je nooit door vijfhonderd regels te kijken om te zien wat een Wizard is.
 
 ### Zoeken gaat er dwars doorheen
 

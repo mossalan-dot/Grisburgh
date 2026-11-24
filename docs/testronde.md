@@ -397,10 +397,10 @@ een speler ziet, **TAB** = het tafelscherm (`?display=1`), **ALL** = alle drie.
 ### Vaardigheden (archieftab)
 - [ ] Archief → Vaardigheden toont kaartjes voor class features, subclass features, species traits, feats, Epic Boons en backgrounds; de tellers boven kloppen met wat je ziet
 - [ ] Klik op een soort-chip → alleen die soort, en de bronnen- en levellijst eronder loopt mee (bij Feats is er geen level)
-- [ ] Zoek op "unarmored defense" → de Barbarian- én de Monk-versie staan er allebei, elk met hun eigen klasse eronder
-- [ ] Een background is één kaartje met zijn vijf onderdelen in het detailvenster, niet zestien keer "Ability Scores"
-- [ ] Een feature zonder SRD-tekst (bijv. Sentinel) toont op het kaartje een chip *Naslag* en in het venster de verwijzing "Lees hem elders" — geen leeg vak
-- [ ] Geen afbreekstreepjes uit de bron-pdf in de tekst ("Armor Class", niet "Ar- mor Class") — geldt ook op de Progressie-tijdlijn
+- [x] Zoek op "unarmored defense" → de Barbarian- én de Monk-versie staan er allebei, elk met hun eigen klasse eronder *(nagelopen 24 nov 2026: twee kaartjes, sleutels `class|Barbarian|…` en `class|Monk|…`)*
+- [x] Een background is één kaartje met zijn vijf onderdelen in het detailvenster, niet zestien keer "Ability Scores" *(nagelopen 24 nov 2026: één Acolyte-kaartje, nul losse "Ability Scores")*
+- [x] Een feature zonder SRD-tekst (bijv. Sentinel) toont op het kaartje een chip *Naslag* en in het venster de verwijzing "Lees hem elders" — geen leeg vak *(nagelopen 24 nov 2026: Sentinel heeft nul tekens en krijgt de knop; Second Wind heeft SRD-tekst en krijgt hem niet)*
+- [x] Geen afbreekstreepjes uit de bron-pdf in de tekst ("Armor Class", niet "Ar- mor Class") — geldt ook op de Progressie-tijdlijn *(nagelopen 24 nov 2026: geen enkele treffer op "x- y")*
 - [ ] D&D-termen in een beschrijving krijgen lexicon-uitleg bij hover/tik
 - [ ] Hulpvenster met meerdere stappen: veeg naar links/rechts (telefoon) of ← / → (laptop) bladert één stap per keer; na sluiten doet een pijltje niets meer
 - [ ] Vaardigheden: klik op de trechter → de levelrij klapt open; kies een level en de trechter blijft gemarkeerd, ook als je hem weer dichtklapt
@@ -419,7 +419,7 @@ een speler ziet, **TAB** = het tafelscherm (`?display=1`), **ALL** = alle drie.
 - [ ] Heldenboek → Backgrounds → Dimir Operative → *False Identity*: de d8-tabel is één tabel met kop "d8 / Reason for Infiltration", geen losse regels met pijpen
 - [ ] Heldenboek → Backgrounds op telefoonbreedte (twee kaarten naast elkaar): "Anthropologist" en "Archaeologist" staan helemaal op de plaat, de laatste letter wordt niet afgesneden; op een breed scherm is de naam even groot als voorheen
 - [ ] Heldenboek → Feats & Boons telt 256; zoek "Initiate of High Sorcery": kaartje met *Naslag* en boekcode DSotDQ, en in het venster *Vereist: Sorcerer 1 of Wizard 1 of Mage of High Sorcery background, Wereld: Dragonlance* — geen beschrijving, wel *Lees hem elders*
-- [ ] Klik op *Naslag* of *Lees hem elders* → er opent een zoekpagina met "D&D 2024 <soort> <naam>" (niet de zoekpagina van D&D Beyond, die weigert een koude bezoeker)
+- [x] Klik op *Naslag* of *Lees hem elders* → er opent een zoekpagina met "D&D 2024 <soort> <naam>" (niet de zoekpagina van D&D Beyond, die weigert een koude bezoeker) *(nagelopen 24 nov 2026: `duckduckgo.com/?q=D%26D%202024%20feature%20Sentinel`)*
 - [ ] **Naslag → Conditions, een plaat en eigen woorden** (DM) — potlood op *Restrained*: het venster zegt dat hij uit het boek komt, vul een eigen beschrijving en een ander icoon in en sla op; de tekst staat op het kaartje, in de tooltip op een token in een gevecht én op het spelerstabblad. Daarna *Terug naar het boek* → de PHB-tekst en het oude icoon zijn terug
 - [ ] **Naslag → Conditions, nieuwe conditie** (DM) — de plusknop maakt er een met naam, soort en icoon; hij staat daarna ook in de conditie-picker van het DM-paneel, en bij het potlood erop staat *Verwijderen* (bij een meegeleverde niet)
 - [ ] **Naslag → Familiars, bewerken** (DM) — potlood op *Steel Defender*: alleen *Beschrijving* en *Afbeelding* (geen naam of icoon — die komen uit het boek). Kies een plaat → hij staat op het kaartje in het raster en als eerste blad in de opengeklapte tegel; schrijf een aantekening → die komt als blad *Aantekening* achter de gedaantes
@@ -2194,3 +2194,18 @@ programmatisch navigeren, niet van de app.
 
 **Niet te toetsen zonder een echt toestel:** PWA installeren, het portretfilmpje
 en alles wat met aanraken te maken heeft (vegen, knijpen).
+
+## Naslag nagelopen (24 nov 2026)
+
+Ingelogd als DM en punt voor punt door de lijst. Vijf afgevinkt (zie hierboven).
+Wat er verder uit kwam:
+
+- **Het boekje beloofde vier deuren, er zijn er zeven**: Classes · Species ·
+  Backgrounds · Feats & Epic Boons · Spells · Conditions · Familiars. De tekst
+  is bijgewerkt.
+- **"Feats & Boons telt 256"** klopt niet meer: het zijn er **277**. Dat is geen
+  fout maar een verouderd getal in deze lijst — er zijn sindsdien feats
+  bijgekomen. Dezelfde kanttekening geldt voor elk hard aantal hier.
+- Het signaal bij een ontbrekende tekst is **discriminerend**, en dat is het
+  punt: Sentinel (nul tekens, niet in de SRD) draagt het boekje-knopje naar
+  buiten, Second Wind (wél SRD-tekst) niet.
