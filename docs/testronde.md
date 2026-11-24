@@ -71,7 +71,7 @@ een speler ziet, **TAB** = het tafelscherm (`?display=1`), **ALL** = alle drie.
 - [x] **Werking los van type** (DM) — open een Wondrous Item, Ring of Amulet: bij *Werking* vink je Attack, Defense, Healing of Spell aan en de bijbehorende velden verschijnen. Een Ring kan dus AC geven en een Wondrous Item genezen; dat kon eerst niet *(nagelopen 24 nov 2026 op een Amulet: vier vinkjes (Attack, Defense, Healing, Spell), en elk liet zijn eigen velden verschijnen — Defense de AC-velden, Healing de genezingsformule, Attack het schadeveld. Een Amulet kan dus AC geven én genezen.)*
 - [x] **Type stelt een werking voor** (DM) — kies *Weapon* op een nieuw kaartje: Attack staat meteen aan. Kies daarna *Armor*: de al aangevinkte werking blijft staan (een keuze wordt nooit overschreven) *(nagelopen 24 nov 2026: Weapon → attack; daarna Healing zelf aangevinkt blijft staan bij een nieuw type)*
 - [x] **Bestaande kaartjes kloppen vanzelf** (DM) — een wapen met schade komt binnen met Attack aan, een harnas met Defense, een scroll met Spell. Er is niets gemigreerd: het wordt afgeleid uit wat er ingevuld staat *(nagelopen 24 nov 2026: +1 Battleaxe kwam binnen met Attack aan, Armor of Gleaming met Defense, Scroll of Thorn Whip met Spell — zonder dat er iets gemigreerd is.)*
-- [x] **Genezing is een eigen veld** (ALL) — vul een *Genezingsformule* in: op het kaartje en in het detailvenster staat een groene knop met een hartje die de formule gooit, naast (niet in plaats van) een schadeknop *(nagelopen 24 nov 2026 met een proefdrankje op 2d4+2: een groene knop met een hartje op het kaartje én in het detailvenster, zonder schadeknop ernaast. **Let op:** geen enkel voorwerp in Grisburgh heeft op dit moment een genezingsformule — ook Potion of Healing niet — dus daar valt nu nergens iets te drinken.)*
+- [x] **Genezing is een eigen veld** (ALL) — vul een *Genezingsformule* in: op het kaartje en in het detailvenster staat een groene knop met een hartje die de formule gooit, naast (niet in plaats van) een schadeknop *(nagelopen 24 nov 2026 met een proefdrankje op 2d4+2: een groene knop met een hartje op het kaartje én in het detailvenster, zonder schadeknop ernaast. Daarna aangevuld in de campagne: Potion of Healing 2d4+2, Potion of Greater Healing 4d4+4 en Amulet of the Drunkard 4d4+4 met één charge per lange rust — alle drie overgenomen uit hun eigen tekst. Nagemeten: drinken op 20 HP gaf 9 terug (worpen 3 en 4, +2), er ging één drankje van de stapel, het laatste verdween, en op 49/50 bleef het bij 50.)*
 - [x] **Typegebonden velden staan waar de melding ze belooft** (DM) — kies *Weapon*: de melding zegt dat je velden voor schade en wapeneigenschappen krijgt, en die staan direct eronder (niet pas onder de beschrijving) *(nagelopen 24 nov 2026: Weapon kiezen laat het schadeveld meteen verschijnen)*
 - [x] **Streep onder het charges-blok** (DM) — *Vereist attunement* en *Niet te verkopen aan winkels* staan onder een scheidingslijn, zodat ze niet bij de charges lijken te horen *(nagelopen 24 nov 2026: `<hr class="veld-scheiding">` staat tussen de charges en *Vereist attunement*, met *Niet te verkopen aan winkels* eronder.)*
 - [x] **Maximum accepteert alleen cijfers** (DM) — typ `e`, `-` of een punt in *Maximum*: er komt niets in het veld *(nagelopen 24 nov 2026: `type=number`)*
@@ -2655,11 +2655,20 @@ staat, en nagelopen.
 
 ### Twee dingen om te weten over de data
 
-- **Geen enkel voorwerp in Grisburgh heeft een genezingsformule** — nul van de
+- **Geen enkel voorwerp in Grisburgh had een genezingsformule** — nul van de
   288, en de dertien Potions ook niet. *Potion of Healing* en *Potion of Greater
-  Healing* zijn dus niet te drinken in de app: `POST /items/:id/gebruik` heeft
-  niets om te rollen. De machinerie werkt (getoetst met een proefdrankje op
-  2d4+2), er staat alleen nergens een getal.
+  Healing* waren dus niet te drinken in de app: `POST /items/:id/gebruik` had
+  niets om te rollen. **Aangevuld op 24 nov 2026**, met toestemming van de DM en
+  telkens uit de tekst van het kaartje zelf: Potion of Healing `2d4+2`, Potion of
+  Greater Healing `4d4+4` (allebei *verdwijnt bij gebruik*), en Amulet of the
+  Drunkard `4d4+4` met één charge die een lange rust terugzet — zijn tekst zegt
+  "until the next dawn", en dat is precies waarom `dawn` als aparte stand
+  verviel. *Lied van Rust* (een Blessing die alle Hit Dice maximaliseert) en de
+  *Herbalism Kit* bleven met rust: die genezen niet zelf.
+  Bijvangst van de meting: **een voorwerp aan iemand geven maakt het kaartje
+  zichtbaar voor die party** — de Potion of Healing stond voor de Testgroep op
+  verborgen en sprong op zichtbaar. Dat is logisch (je hebt het ding in handen),
+  maar het staat nergens opgeschreven.
 - **Geen kaartje draagt nog de markering *verloren***, dus de helft van dat
   testpunt (een kaartje dat hem al heeft houdt zijn knop) is niet te zien.
 
