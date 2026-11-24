@@ -348,13 +348,21 @@ De app gebruikt querystring cache-busting (`?v=N`). **Vergeten = browser haalt o
 **Huidige versies (bij te houden):**
 
 ```
-index.html  : theme.css?v=951   app.js?v=1273   sound-manager.js?v=15
-app.js      : api.js?v=325  dm-panel.js?v=430  media-picker.js?v=14  tafels.js?v=2  terugblik.js?v=3  rage.js?v=4  klassekracht.js?v=6  personage-maken.js?v=31  gevecht-regie.js?v=3  bastion.js?v=4  stemronde.js?v=2
-              render-archief.js?v=149  render-bestiarium.js?v=41  render-campagne.js?v=400
-              render-dungeon.js?v=75  render-kaart.js?v=35  render-progressie.js?v=67
-              render-relatiemap.js?v=38  render-spreuken.js?v=59  render-vaardigheden.js?v=167
-              render-statblock.js?v=10  socket-client.js?v=105  wizard.js?v=12  conditions.js?v=4
-dm-panel.js : akte-schrijven.js?v=42  combat-canvas.js?v=41  render-statblock.js?v=10
+index.html  : app.js?v=1374  sound-manager.js?v=15  theme.css?v=1001
+app.js      : ac-rekenen.js?v=1  api.js?v=327  bastion.js?v=11
+              conditions.js?v=7  dagkeuze.js?v=8  dm-panel.js?v=439
+              gevecht-regie.js?v=10  kaartsfeer.js?v=5  klassekracht.js?v=15
+              media-picker.js?v=21  personage-maken.js?v=81  rage.js?v=11
+              render-archief.js?v=157  render-bestiarium.js?v=48
+              render-campagne.js?v=463  render-dungeon.js?v=83
+              render-handleiding.js?v=2  render-kaart.js?v=42
+              render-melding.js?v=4  render-progressie.js?v=82
+              render-relatiemap.js?v=45  render-spreuken.js?v=69
+              render-statblock.js?v=10  render-vaardigheden.js?v=220
+              socket-client.js?v=112  stemronde.js?v=9  summons.js?v=5
+              tafels.js?v=2  terugblik.js?v=10  wizard.js?v=18
+dm-panel.js : akte-schrijven.js?v=48  api.js?v=327  combat-canvas.js?v=45
+              conditions.js?v=7  render-statblock.js?v=10
 ```
 
 > **Een importeur moet zelf ook opschuiven.** `index.html` vraagt om `app.js?v=N`.
@@ -435,6 +443,12 @@ dm-panel.js : akte-schrijven.js?v=42  combat-canvas.js?v=41  render-statblock.js
 >   keer per ronde. De DM kiest (`POST /combat/lair` `{index|tekst|overslaan}`),
 >   pas dan gaat `gevecht:lair` naar tafel. Dezelfde regel twee rondes achter
 >   elkaar wordt gemarkeerd, niet geweigerd.
+>   **Een lair leest in vier vormen** — `{regels}`, een kale array, een platte
+>   string met een regel per regel, en strings bínnen `regels`. `_lairUit()`
+>   doet dat op de server, `_lairBron()` in `dm-panel.js` sinds 24 nov 2026 ook
+>   in de editor: die las alleen `regels`, en toonde dus nul regels bij een
+>   encounter waar het gevecht er twee afvuurde — waarna de eerste opslagbeurt
+>   ze stil wiste.
 > - **Death saves** — `_doodsstrijdUit(prev, cur, body)` leidt uit het verschil
 >   af: `neer`, `succes`, `faal`, `stabiel` (2 successen → 0/0 mét Unconscious,
 >   zo schrijft het DM-paneel het weg), `dood`, `op`. Dat gaat als

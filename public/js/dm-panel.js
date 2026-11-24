@@ -4590,6 +4590,17 @@ let _encLootId          = null;   // id van de gekoppelde vondst (loot.json)
 let _encLootOud         = false;  // heeft dit gevecht nog buit van de oude soort?
 let _encLair           = [];     // Lair Actions: regels met een preset (lib/omgeving.js)
 let _encOvergang        = '';     // hoe het tafelscherm het gevecht inluidt ('' = willekeurig)
+
+// **Een lair leest in vier vormen.** `_lairUit()` op de server neemt `{regels}`,
+// een kale array én een platte string met een regel per nieuwe regel — die
+// laatste twee zijn de vorm van vóór de presets. Deze editor keek alleen naar
+// `regels`: bij zo'n encounter toonde hij nul regels terwijl het gevecht er wél
+// twee afvuurde, en de eerste opslagbeurt wiste ze stil. Eén veld hoort niet
+// twee lezers te hebben die het anders lezen.
+const _lairBron = (v) => Array.isArray(v?.regels) ? v.regels
+  : Array.isArray(v) ? v
+  : typeof v === 'string' ? v.split('\n')
+  : [];
 let _omgCat             = null;   // de catalogus met omgevingseffecten, één keer opgehaald
 const _ENC_OVERGANGEN = [
   ['', 'Willekeurig'], ['spiraal', 'Spiraal'], ['balken', 'Balken'], ['cirkel', 'Cirkel'],
@@ -5000,7 +5011,8 @@ function _encEdit(id) {
   _encLootLijst    = [];
   api.lootEvents().then(d => { _encLootLijst = d.events || d || []; _renderEncounterEditor(); }).catch(() => {});
   _encCanvasPreset = enc.canvasPreset || null;
-  _encLair         = (enc.lair?.regels || []).map(r => typeof r === 'string' ? { preset: 'eigen', tekst: r } : JSON.parse(JSON.stringify(r)));
+  _encLair         = _lairBron(enc.lair).map(r => typeof r === 'string' ? { preset: 'eigen', tekst: r.trim() } : JSON.parse(JSON.stringify(r)))
+                       .filter(r => r.preset !== 'eigen' || (r.tekst || '').trim());
   _encOvergang     = enc.overgang || '';
   _omgLaden();
   _encName         = enc.name    || '';

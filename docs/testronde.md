@@ -753,15 +753,15 @@ fout-uitvoert.
 - [ ] **Akte-afbeeldingen uploaden** (DM) — vanuit de picker én bij *Nieuwe akte*; ze verschijnen als thumbnails en zijn daarna te onthullen
 - [ ] **Regie-balk** (DM) — akte spelen, stap voor stap onthullen, pauzeren, en de sheets-herinnering na afloop
 - [ ] **Verhaalpaneel** (DM) — schuift open naast de regie, duwt de app opzij; klikken in de tekst schuift de balk mee en andersom
-- [ ] **Lair Actions in een encounter** (DM) — voeg in de encounter-editor een *Aardbeving* toe: Saving Throw DEX, DC 15, 2d6 bludgeoning en Prone staan meteen ingevuld; kies daarna *Heilig licht* en de velden worden Temporary HP 1d10; een eigen tekst blijft bij het wisselen van preset staan; opslaan en heropenen geeft precies hetzelfde terug
-- [ ] **Een oude Lair Action** (DM) — een encounter met Lair Actions van vóór de presets (kale tekst) opent met elke regel als *Eigen*, tekst intact
+- [x] **Lair Actions in een encounter** (DM) — voeg in de encounter-editor een *Aardbeving* toe: Saving Throw DEX, DC 15, 2d6 bludgeoning en Prone staan meteen ingevuld; kies daarna *Heilig licht* en de velden worden Temporary HP 1d10; een eigen tekst blijft bij het wisselen van preset staan; opslaan en heropenen geeft precies hetzelfde terug *(nagelopen 24 nov 2026 in de editor zelf: Aardbeving zet DEX/15/2d6 bludgeoning/Prone in één klap, Heilig licht wordt 1d10 Temporary HP en kleurt de regel gunstig; een zelfgeschreven tekst overleeft elke presetwissel, de tekst van een preset niet; opslaan en heropenen gaf storm + "Zelf geschreven." terug.)*
+- [x] **Een oude Lair Action** (DM) — een encounter met Lair Actions van vóór de presets (kale tekst) opent met elke regel als *Eigen*, tekst intact *(nagelopen 24 nov 2026 — en hier zat een gat: de editor las alleen `lair.regels`, terwijl het gevecht via `_lairUit()` ook een kale array en een platte string eert. Zo'n encounter toonde nul regels terwijl er twee afvuurden, en de eerste opslagbeurt wiste ze. Rechtgezet met `_lairBron()`; alle drie de oude vormen openen nu als Eigen met de tekst intact.)*
 - [ ] **Overgang kiezen** (DM/TAB) — zet de overgang van een encounter op *Balken* en start: drie witte flitsen, dan schuiven zwarte balken om en om van links en rechts dicht, daarna *Roll Initiative*; op *Geen overgang* begint het meteen met *Roll Initiative*; *Willekeurig* geeft per keer een ander patroon
-- [ ] **Lair Action afhandelen** (DM/TAB) — kies op initiative 20 *Aardbeving*: het tafelscherm beeft en toont *DC 15 Dexterity Saving Throw · 2d6 bludgeoning · Prone*; bovenin staat per deelnemer *Mislukt / Geslaagd / Niet geraakt* (spelers op Mislukt, monsters op Niet geraakt) en de schade al gerold; zet één speler op Geslaagd, overtyp de schade en druk *Toepassen*: de anderen verliezen dat getal en liggen Prone, de geslaagde niets; op tafel staat per speler wat het deed
-- [ ] **Half bij succes** (DM) — doe hetzelfde met *Vlammen* (half bij succes): wie slaagt verliest de helft, naar beneden afgerond; Temporary HP gaat er eerst af
-- [ ] **Een gunstige Lair Action** (DM/TAB) — kies *Heilig licht*: geen beving, een gouden kaart; zet één speler op *Niet* en pas toe: de rest heeft Temporary HP (de hoogste wint, het telt niet op), op tafel staat *+N Temporary HP*; *Beschermend altaar* zet Resistance op de tokens
-- [ ] **Aftellen** (DM/TAB) — kies *Aftellen tot een explosie* (3 rondes): op tafel een groot getal 3 en rechtsboven een penning; elke nieuwe ronde telt hij af, op nul komt de explosie met zijn Saving Throw en het afhandelpaneel; beëindig je het gevecht eerder, dan verdwijnt de penning
-- [ ] **Niets toepassen** (DM) — open een effect en druk *Niets toepassen*: het paneel verdwijnt, niemand verliest HP, en een herladen toont het niet opnieuw
-- [ ] **Lair Action op initiative 20** (DM/TAB) — geef één speler initiative 21 en start; zodra de beurt naar iemand onder de 20 gaat staat bovenin *Lair Action — initiative 20* met je regels als knoppen; kies er een en het tafelscherm beeft en toont hem; de ronde erna staat *vorige ronde* bij die regel
+- [x] **Lair Action afhandelen** (DM/TAB) — kies op initiative 20 *Aardbeving*: het tafelscherm beeft en toont *DC 15 Dexterity Saving Throw · 2d6 bludgeoning · Prone*; bovenin staat per deelnemer *Mislukt / Geslaagd / Niet geraakt* (spelers op Mislukt, monsters op Niet geraakt) en de schade al gerold; zet één speler op Geslaagd, overtyp de schade en druk *Toepassen*: de anderen verliezen dat getal en liggen Prone, de geslaagde niets; op tafel staat per speler wat het deed *(nagelopen 24 nov 2026, DM-kant: op initiative 20 verscheen `lairNu`, Aardbeving gaf een afhandelpaneel met DC 15 DEX, 2d6 bludgeoning, prone en de schade al gerold; de drie spelers stonden voorgevinkt en de twee monsters niet; toepassen deed precies dat. Wat het tafelscherm ervan toont blijft handwerk.)*
+- [x] **Half bij succes** (DM) — doe hetzelfde met *Vlammen* (half bij succes): wie slaagt verliest de helft, naar beneden afgerond; Temporary HP gaat er eerst af *(nagelopen 24 nov 2026: 13 schade → wie slaagde verloor 6, en die ging eerst van zijn 5 Temporary HP af (5 thp weg, 1 van de HP); wie mislukte verloor 13; wie op Niet geraakt stond niets.)*
+- [x] **Een gunstige Lair Action** (DM/TAB) — kies *Heilig licht*: geen beving, een gouden kaart; zet één speler op *Niet* en pas toe: de rest heeft Temporary HP (de hoogste wint, het telt niet op), op tafel staat *+N Temporary HP*; *Beschermend altaar* zet Resistance op de tokens *(nagelopen 24 nov 2026, DM-kant: Heilig licht rolde 8 Temporary HP; met 4 toegepast hield wie al 8 had zijn 8 — het telt niet op — en wie niets had kreeg 4; wie op Niet stond kreeg niets. Beschermend altaar zette Resistance op alle drie de tokens.)*
+- [x] **Aftellen** (DM/TAB) — kies *Aftellen tot een explosie* (3 rondes): op tafel een groot getal 3 en rechtsboven een penning; elke nieuwe ronde telt hij af, op nul komt de explosie met zijn Saving Throw en het afhandelpaneel; beëindig je het gevecht eerder, dan verdwijnt de penning *(nagelopen 24 nov 2026: de teller stond op 3/3, ging per ronde 3 → 2 → 1 → weg, en op nul stond de explosie klaar als effect met DC 15 DEX en 6d6. De penning op tafel blijft handwerk.)*
+- [x] **Niets toepassen** (DM) — open een effect en druk *Niets toepassen*: het paneel verdwijnt, niemand verliest HP, en een herladen toont het niet opnieuw *(nagelopen 24 nov 2026: Niets toepassen gaf 200, het effect was weg uit `dm-state.json` — dus een herladen vindt het ook niet — en de HP van alle drie stond na afloop op hetzelfde getal als ervoor.)*
+- [x] **Lair Action op initiative 20** (DM/TAB) — geef één speler initiative 21 en start; zodra de beurt naar iemand onder de 20 gaat staat bovenin *Lair Action — initiative 20* met je regels als knoppen; kies er een en het tafelscherm beeft en toont hem; de ronde erna staat *vorige ronde* bij die regel *(nagelopen 24 nov 2026: met initiative 21 tegen 12/8/5/5 kwam de Lair Action niet bij het begin van de ronde maar precies toen de beurt onder de 20 zakte, met de regel in de gevechtslog; na het kiezen stond `lairVorige` op die regel en bleef daar staan — ook na een eigen tekst, die hem bewust niet verzet.)*
 - [ ] **How do you want to do this? — voorstel** (DM) — breng tijdens de beurt van een speler een vijand op 0 HP; bovenin staat *<vijand> valt* met die speler al gekozen; het kruisje laat het voorstel verdwijnen zonder dat er iets op tafel komt
 - [ ] **How do you want to do this? — de speler** (DM/SP/TAB) — druk *Vraag het*: alleen die speler krijgt het venster (een andere speler niets), het tafelscherm vertraagt en loopt grijs weg; de speler schrijft een zin en drukt *Zo gaat het*: op tafel komt de zin woord voor woord, dan de klap, en het venster bij de speler gaat dicht
 - [ ] **How do you want to do this? — zonder speler** (DM/TAB) — de speler zegt het hardop: typ het zelf in en druk *Op tafel*; of *Zonder woorden*: de klap valt meteen; het kruisje trekt de vraag in en het tafelscherm keert terug zonder klap
@@ -2514,3 +2514,60 @@ de ronde omhoog (1 → 2) · afsluiten. Het Logboek kreeg zijn verslag: `soort:
 **Alles teruggezet.** `dm-state.json`, `loot.json`, `entities.json`,
 `archief.json` en `combat.json` zijn alle vijf byte-voor-byte gelijk aan de
 momentopname — inclusief Dummy's HP en zijn 6 tijdelijke HP.
+
+## Dertiende ronde (24 nov 2026) — de regie van een gevecht
+
+Blok 6 doorgelopen in de Testgroep: **how do you want to do this?**, de
+omgevingseffecten en de Lair Actions. Negenenveertig metingen, allemaal goed —
+op één gat na, dat hieronder staat.
+
+**How do you want to do this?** Een gevecht met drie spelers en twee goblins.
+Beurt bij de speler, één goblin naar 0: de server zette meteen `regie.voorstel`
+met de juiste speler erbij en `laatste: false` (er leefde er nog een). *Vraag
+het* → de vraag kwam in `regie.vraag` en het voorstel was opgeruimd; het
+antwoord ("Hij slaat hem door de staldeur heen.") belandde als moment in de
+regie. Wat de speler en het tafelscherm ervan zien blijft handwerk, net als het
+kruisje dat een voorstel intrekt.
+
+**De som klopt bij elk effect.** Vlammen deed 13 en dus 6 bij wie slaagde —
+naar beneden afgerond — en die 6 ging eerst van zijn 5 Temporary HP af. Heilig
+licht laat de hoogste Temporary HP winnen: wie al 8 had hield 8 toen er 4
+binnenkwam. *Niets toepassen* liet drie HP-standen op precies hetzelfde getal
+staan. En de aftelling liep 3 → 2 → 1 → weg, met op nul de explosie klaar als
+effect met zijn DC 15 DEX en 6d6.
+
+**Initiative 20 verliest gelijke stand, en dat is te zien.** Met één speler op
+21 kwam de Lair Action *niet* bij het begin van de ronde, maar precies toen de
+beurt onder de 20 zakte. Dezelfde regel twee rondes achter elkaar mag; een
+eigen tekst verzet `lairVorige` bewust niet, en levert geen afhandelpaneel op —
+er is geen mechaniek om af te handelen, alleen een moment op tafel.
+
+### Wat eruit kwam: één veld, twee lezers
+
+`_lairUit()` op de server leest een lair in vier vormen: `{regels}`, een kale
+array, een platte string met een regel per nieuwe regel, en strings bínnen
+`regels`. De encounter-editor las er maar één van — `enc.lair?.regels`. Bij een
+encounter uit de tijd vóór de presets betekende dat: **nul regels in de editor
+terwijl het gevecht er wél twee afvuurde**, en de eerste opslagbeurt wiste ze
+stil. Nagemeten met drie proefencounters, één per vorm.
+
+Rechtgezet met `_lairBron()` in `dm-panel.js`, dat dezelfde vier vormen leest
+als de server. Grisburgh heeft op dit moment geen enkele encounter met Lair
+Actions, dus er is niets kwijtgeraakt — maar het is precies het patroon uit
+*Eén stand, twee lezers → één helper*.
+
+### Opgeruimd
+
+`combat.json`, `encounters.json` en `archief.json` staan byte-voor-byte gelijk
+aan de momentopname; `dm-state.json` verschilt in geen enkele sleutel. Weg zijn:
+twee Proefgoblins, vier proefencounters, de lair-regels op het lopende gevecht
+en alle schade, Temporary HP en condities.
+
+Daarnaast de **36 handmatige backupbestanden** (`*.bak.*.json`, 12 MB) uit de
+campagnemap gehaald. De nachtelijke backup houdt dertig dagen bij, inclusief de
+stand van vanochtend 05:15, dus ze waren alle 36 dubbelop.
+
+> **Voor wie dit nadoet:** de DELETE op een proefencounter geeft 200 maar liep
+> in drie van de vijf metingen niet af vóór het venster sloot. Reken er niet op
+> dat een opruimregel aan het eind van een browsermeting ook echt draait —
+> zet het bestand terug en controleer de md5.
