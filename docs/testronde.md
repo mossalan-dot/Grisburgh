@@ -787,8 +787,8 @@ fout-uitvoert.
 
 - [ ] **Geluiden** (DM/TAB) — bibliotheek, sfeerloop per dienst, emotes, en het moment-geluid bij loot reveal
 - [ ] **Tafels** (DM) — willekeurige tabellen, weighted rijen, valuta-tokens `{+3kn}`, rollen en het resultaat tonen
-- [ ] **Dobbelstenen** (ALL) — formules, voordeel en nadeel, de DM-variant, en klikbare dice in spreukteksten
-- [ ] **Media** (DM) — bibliotheek met weergavenaam, live berekend gebruik, uploaden via de picker, verwijderen
+- [x] **Dobbelstenen** (ALL) — formules, voordeel en nadeel, de DM-variant, en klikbare dice in spreukteksten *(nagelopen 24 nov 2026: d4 d6 d8 d12 d20 d%, Advantage, Disadvantage en ▶ Formula)*
+- [x] **Media** (DM) — bibliotheek met weergavenaam, live berekend gebruik, uploaden via de picker, verwijderen *(nagelopen 24 nov 2026: 1798 bestanden, waarvan 217 ongebruikt — dat getal wordt live berekend)*
 - [ ] **Berichten** (DM) — bericht of brief sturen, per speler of party, sjablonen bewaren en hergebruiken, cinematic aanzetten
 - [ ] **Instellingen — titel** (DM) — campagnetitel, ondertitel en embleem; ze werken meteen door in kop en landingspagina
 - [ ] **Instellingen — munten** (DM) — namen hernoemen (gp/sp/cp, plus electrum en platinum); de verhouding blijft 1 : 10 : 100
@@ -819,7 +819,7 @@ fout-uitvoert.
 - [ ] **Vondst: worp op een tafel** (DM) — zet bij een voorwerpregel een tafel in plaats van een kaartje; bij het onthullen wordt er gegooid, een valuta-token `{+2kn}` valt weg uit de naam, en komt de uitkomst overeen met een voorwerpkaartje dan wordt dat gekoppeld. Een regel mét kaartje kan geen tafel krijgen en omgekeerd
 - [ ] **Vondst kopiëren** (DM) — *of kopieer een bestaande* bij Vondsten neemt DC, goud en voorwerpen over, maar niet waar hij ligt. Sjablonen zijn vervallen; wat er nog staat is met *Gebruiken* om te zetten
 - [ ] **Vondst bewerken in een venster** (DM) — *Nieuwe vondst* en het potlood openen een venster (met het boekje naast het kruisje), zodat de lijst met vondsten eronder blijft staan; opslaan en annuleren sluiten het
-- [ ] **Vondst: goud** (DM) — *Vast bedrag* en *Of gerold* sluiten elkaar uit: vul je het ene, dan gaat het andere op slot en leeg. Een bereik is één veld (`2-5` of `2,34-8,10`) en wordt pas bij het onthullen gegooid
+- [x] **Vondst: goud** (DM) — *Vast bedrag* en *Of gerold* sluiten elkaar uit: vul je het ene, dan gaat het andere op slot en leeg. Een bereik is één veld (`2-5` of `2,34-8,10`) en wordt pas bij het onthullen gegooid *(nagelopen 24 nov 2026: een vast bedrag van 5 zet het gerolde veld meteen op slot; de placeholder zegt "2-5 of 2,34-8,10")*
 - [ ] **Statblok van een kaartje** (DM) — open in Monsters een wezen met de pil *van kaartje*: er staat een melding met een knop naar dat kaartje, de velden zijn leesbaar maar vast, *Toon in Bestiarium* ontbreekt (hij staat al onder Personages) en alleen de roddel is te bewerken en te bewaren
 - [ ] **Monsterbouwer** (DM) — Size/Type/Alignment, AC/HP/Speed en CR/XP staan met hun labels bóven de velden en eindigen op één lijn; de grijze voorbeelden bevatten geen opmaaktekens meer, en Reactions en Legendary hebben er nu ook een. Beschrijving zegt *Korte beschrijving*, de roddel *Een observatie over dit wezen*, en de knoppen onderaan dragen hun naam
 - [ ] **Encounter verwijderen** (DM) — in de lijst zelf, met een vraag die zegt waar het gevecht aan hangt (akte, dungeonkamer, vondst) en dat die koppeling vervalt
@@ -2268,13 +2268,28 @@ encounter-editor die geen backdrop-veld meer heeft, maar wel Lair Actions.
 
 **Niet afgevinkt:**
 
-- *Vondst: goud — vast en gerold sluiten elkaar uit.* De twee velden staan er,
-  maar na het invullen van een vast bedrag gaat het gerolde veld niet op slot.
-  Mogelijk mist het de juiste gebeurtenis; het verdient een blik met de hand.
+- *Vondst: goud* — dit werkt wél; mijn eerste meting hield een verwijzing vast
+  naar een veld dat het paneel intussen opnieuw had getekend. Afgevinkt.
 - *Kenmerken zonder kader.* De klasse `.item-kenmerken` komt in het venster niet
   meer voor — de gegevens staan nu op een eigen blad. Het testpunt beschrijft een
   vorm die er niet meer is.
-- *Een documentkaartje draagt zijn type.* Geen van de 31 kaartjes heeft een
-  badge-element; de typebadge zit kennelijk anders in elkaar dan het punt zegt.
+- *Een documentkaartje draagt zijn type.* Het stáát er, maar als **ondertitel**
+  op de tegel (`_tegelOndertitel` geeft `docType` terug), niet als paarse pil.
+  Dat punt beschrijft de vorm van vóór de tegels.
 - *Notities op het spelersblad.* Er staat geen tekstvak op het Personage-tabblad;
   de notities leven ergens anders.
+
+## Derde ronde (24 nov 2026) — drie punten en drie verouderde
+
+Afgevinkt: *Vondst: goud* · *Dobbelstenen* · *Media*.
+
+**Drie punten in deze lijst beschrijven de app van vroeger.** Niet repareren,
+maar wel bijwerken zodra iemand er toch langsloopt:
+
+- *Level omhoog staat onderaan de Rust-tab* — hij is verhuisd naar
+  **Verzoeken**; de Rust-tab zegt dat zelf in een regel eronder.
+- *Bestiarium: de voetnoot onder het raster* — bewust weggehaald (zie de
+  opmerking bij `_tekenKaarten` in `render-bestiarium.js`).
+- *Kenmerken zonder kader* en *Documentkaartje draagt zijn type* — allebei
+  beschreven in de vorm van vóór de tegels. De gegevens staan nu op een eigen
+  blad, en het documenttype is de ondertitel van de tegel.
