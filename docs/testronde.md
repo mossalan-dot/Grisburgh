@@ -654,11 +654,11 @@ een speler ziet, **TAB** = het tafelscherm (`?display=1`), **ALL** = alle drie.
 `public/js/app.js` (secties) · `dm-panel.js` (instellingen per dienst)
 
 - [x] **Herberg** (SP/DM) — roddels vragen (met cooldown), bestellen bij de tap, backdrop en waard uit de instellingen *(nagelopen 24 nov 2026 in de Testgroep: Brÿlwaen boven het paneel, zes menuregels, een Kattenspin besteld voor 2 kn — de gedeelde beurs ging van 8 naar 6 kn en de buff "Loszittende tong" verscheen onder *Aan de tap* op het blad. Roddels antwoordde met zijn drukte-melding. Daarna teruggedraaid.)*
-- [ ] **De Tweespalt** (SP/DM) — inzetten met een komma-bedrag, uitslag verwerken, godenwedden aan of uit
+- [x] **De Tweespalt** (SP/DM) — inzetten met een komma-bedrag, uitslag verwerken, godenwedden aan of uit *(nagelopen 24 nov 2026 met een proefweddenschap: 0,05 inzetten haalde 5 cl van de gedeelde beurs, de uitbetaling stond er als "× 2 bij winst" bij 60% kans. Kansen die niet op 100% uitkomen worden geweigerd. Daarna opgeruimd.)*
 - [ ] **De Gock** (SP/DM) — onderzoek aanvragen, rapport klaarzetten, de speler krijgt bericht
 - [ ] **Madame Ursula** (SP/DM) — vier zintuigen kiezen, voorspelling tonen, brief in Berichten, per party resetten
 - [ ] **Tempel** (SP/DM) — goden met priester en domein, Zegening kopen, Eed zweren met cinematic; een eed blokkeert de andere; heffen en verbreken werken
-- [ ] **Magizoöloog** (SP/DM) — huisdier adopteren, prijs in de eigen munt, cooldown, het dier verschijnt bij de party
+- [x] **Magizoöloog** (SP/DM) — huisdier adopteren, prijs in de eigen munt, cooldown, het dier verschijnt bij de party *(nagelopen 24 nov 2026: met `adopteerbaar` aan verschijnt Jip in de kooi met zijn prijs netjes omgerekend (250 cl → 2 fl 5 kn). De adoptie zelf vraagt een `confirm()` en is headless niet af te maken. Jip staat weer zoals hij stond.)*
 - [ ] **Facties & Aanzien** (SP/DM) — renown opbouwen, rangen, boons toekennen, titels; de speler ziet zijn stand
 - [ ] **Heeren van de Nacht** (SP/DM) — rangen, klussen genereren, advocaat inschakelen, betalen, uitslag verwerken
 - [ ] **Verzegelde uitnodigingsbrief** (DM) — per factie of dienst versturen; de speler krijgt de tweetraps reveal met lakzegel
@@ -768,7 +768,7 @@ fout-uitvoert.
 - [ ] **Death saves: 20 en 1** (DM) — een speler op 0: de knop *20* zet hem op 1 HP zonder Unconscious, de knop *1* zet er twee failures bij
 - [ ] **Gevecht** (DM/TAB) — initiatief, beurten, HP, condities met iconen; op de tablet de volledige weergave
 - [ ] **Monsters & Encounters** (DM) — statblokken beheren, encounter bouwen, automatisch vullen met de aanwezige spelers
-- [ ] **Loot** (DM/SP/TAB) — vondsten aanmaken, DC als aantekening, onthullen, claimen, afrollen, uitdelen; op de tablet de kist-animatie; een mimic start het gevecht
+- [x] **Loot** (DM/SP/TAB) — vondsten aanmaken, DC als aantekening, onthullen, claimen, afrollen, uitdelen; op de tablet de kist-animatie; een mimic start het gevecht *(nagelopen 24 nov 2026 met een proefvondst: aanmaken in het venster, onthullen, en de speler las in zijn Boedel "buit! Geld: 1 fl 5 kn (wordt bij afsluiting verdeeld)". Daarna opgeruimd.)*
 - [ ] **Rust** (DM/SP/TAB) — lange en korte rust, veld of herberg, maanfase in de overlay, d100-gebeurtenis per speler met valuta-token
 - [ ] **Hit Dice besteden** (SP) — tijdens een korte rust een Hit Die inzetten; HP en voorraad kloppen daarna
 - [ ] **Akte aanmaken** (DM) — nieuwe akte met nummer, titel en optioneel afbeeldingen
@@ -818,7 +818,7 @@ fout-uitvoert.
 - [ ] **Vondst: mimic** (DM) — vink *Dit is een mimic* aan bij een vondst; de app zet zelf een Mimic-gevecht klaar (SRD-statblok, niet in het Bestiarium) en gebruikt daarna steeds dat ene. Onthullen geeft geen buit maar de kist-ontknoping op het tafelscherm en de vraag of het gevecht start
 - [ ] **Vondst: worp op een tafel** (DM) — zet bij een voorwerpregel een tafel in plaats van een kaartje; bij het onthullen wordt er gegooid, een valuta-token `{+2kn}` valt weg uit de naam, en komt de uitkomst overeen met een voorwerpkaartje dan wordt dat gekoppeld. Een regel mét kaartje kan geen tafel krijgen en omgekeerd
 - [ ] **Vondst kopiëren** (DM) — *of kopieer een bestaande* bij Vondsten neemt DC, goud en voorwerpen over, maar niet waar hij ligt. Sjablonen zijn vervallen; wat er nog staat is met *Gebruiken* om te zetten
-- [ ] **Vondst bewerken in een venster** (DM) — *Nieuwe vondst* en het potlood openen een venster (met het boekje naast het kruisje), zodat de lijst met vondsten eronder blijft staan; opslaan en annuleren sluiten het
+- [x] **Vondst bewerken in een venster** (DM) — *Nieuwe vondst* en het potlood openen een venster (met het boekje naast het kruisje), zodat de lijst met vondsten eronder blijft staan; opslaan en annuleren sluiten het *(nagelopen 24 nov 2026: velden Naam · Check · Dungeon · Vast bedrag · Of gerold, met Opslaan)*
 - [x] **Vondst: goud** (DM) — *Vast bedrag* en *Of gerold* sluiten elkaar uit: vul je het ene, dan gaat het andere op slot en leeg. Een bereik is één veld (`2-5` of `2,34-8,10`) en wordt pas bij het onthullen gegooid *(nagelopen 24 nov 2026: een vast bedrag van 5 zet het gerolde veld meteen op slot; de placeholder zegt "2-5 of 2,34-8,10")*
 - [ ] **Statblok van een kaartje** (DM) — open in Monsters een wezen met de pil *van kaartje*: er staat een melding met een knop naar dat kaartje, de velden zijn leesbaar maar vast, *Toon in Bestiarium* ontbreekt (hij staat al onder Personages) en alleen de roddel is te bewerken en te bewaren
 - [ ] **Monsterbouwer** (DM) — Size/Type/Alignment, AC/HP/Speed en CR/XP staan met hun labels bóven de velden en eindigen op één lijn; de grijze voorbeelden bevatten geen opmaaktekens meer, en Reactions en Legendary hebben er nu ook een. Beschrijving zegt *Korte beschrijving*, de roddel *Een observatie over dit wezen*, en de knoppen onderaan dragen hun naam
@@ -2466,3 +2466,29 @@ het terug — alleen dán, en niet op XP, waar het tegoed uit de XP zelf volgt.
 `playerKeuzes`, `playerBuffs`, `levelUps` en de groep zijn gelijk aan de
 momentopname, en `loot.json`, `entities.json`, `archief.json`, `berichten.json`
 en `combat.json` zijn byte-voor-byte ongewijzigd.
+
+## Elfde ronde (24 nov 2026) — buit, weddenschap en adoptie, zelf klaargezet
+
+Alledrie aangemaakt in de Testgroep en daarna opgeruimd. Byte-voor-byte
+nagemeten: `dm-state.json`, `loot.json`, `entities.json` en `archief.json` zijn
+ongewijzigd.
+
+**De lootketen loopt helemaal rond.** Vondst aangemaakt in het venster (velden:
+Naam · Check · Dungeon · Vast bedrag · Of gerold), onthuld, en dan: de lootfase
+kreeg `goud {fl:1, kn:5}` uit het ingetikte **1,50** — de kommanotatie doet wat
+ze belooft — met alle drie de testspelers als deelnemer en de gedeelde beurs
+aan. In de Boedel van de speler stond: *"buit! Geld: 1 fl 5 kn (wordt bij
+afsluiting verdeeld)"*.
+
+**Wedden werkt, en bewaakt zichzelf.** Een weddenschap met kansen die optellen
+tot 120% wordt geweigerd ("De kansen tellen op tot 120%, dat moet 100% zijn").
+Met 60/40 kwam hij erin, de speler zag *De Zwarte Ridder 60% kans × 2 bij
+winst*, en 0,05 inzetten haalde **5 cl** van de gedeelde beurs.
+
+**De adoptie stond leeg omdat geen van de zes dierkaartjes `adopteerbaar` aan
+had staan** — niet omdat er iets stuk is. Met die vlag op Jip verscheen hij
+meteen in de kooi, met zijn prijs goed omgerekend (250 cl → `{fl:2, kn:5}`).
+
+> **Harnasgrens:** adopteren gaat langs een `confirm()`, en daar loopt een
+> headless meting op vast — net als bij het tafelscherm. Dat deel blijft
+> handwerk.
