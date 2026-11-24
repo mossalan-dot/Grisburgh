@@ -49,18 +49,6 @@ const SOORTEN = {
   feat:       { label: 'Feat',      icon: 'zap',            c1: '#0c2248', c2: '#1e4a8a' },
   boon:       { label: 'Epic Boon', icon: 'sparkles',       c1: '#301800', c2: '#7a4a08' },
   background: { label: 'Background',icon: 'scroll-text',    c1: '#4a082e', c2: '#962058' },
-  // Een zegening is een soort boon: iets wat je van de wereld krijgt in plaats
-  // van iets wat je bij een level-up kiest. Ze stonden tussen de voorwerpen,
-  // en daar waren ze met 98 van de 249 kaartjes de grootste groep terwijl je
-  // ze er nooit zocht.
-  //
-  // **Het zijn en blijven voorwerp-kaartjes.** Alleen de plek waar je ze vindt
-  // verhuist; de tempel leidt zijn pantheon er nog steeds uit af, een factie
-  // geeft ze nog steeds als rangbeloning, ze staan nog steeds in de boedel en
-  // ze blijven onverkoopbaar. Zou de soort zelf veranderen, dan moest dat
-  // allemaal opnieuw gelegd worden — en dat merk je pas aan tafel.
-  zegen:      { label: 'Zegening',  icon: 'sparkles',       c1: '#3a2a00', c2: '#9a7008' },
-  gunst:      { label: 'Gunst',     icon: 'star',           c1: '#2a1030', c2: '#7a2a80' },
   // **Condities zijn drie soorten, niet één.** Dat onderscheid bestond al — in
   // de kleur van het icoon in `conditions.js` — maar nergens als lijst. Door
   // er drie soorten van te maken krijgt de deur Conditions zijn chips gratis
@@ -181,7 +169,7 @@ const HERKOMST = [
 // chips en de bronregel hetzelfde woord gebruiken.
 const _COND_BRON = { conditie: 'Conditions', situatie: 'Situaties', klasse: 'Van een feature of spreuk' };
 
-const SOORT_VOLGORDE = ['class', 'subclass', 'species', 'variant', 'feat', 'boon', 'zegen', 'gunst', 'background',
+const SOORT_VOLGORDE = ['class', 'subclass', 'species', 'variant', 'feat', 'boon', 'background',
   'conditie', 'situatie', 'klassestaat', 'beest', 'metgezel', 'keuze'];
 
 // **Welke kaartjes niet uit de progressie komen.** Een conditie staat in
@@ -467,35 +455,14 @@ async function _load() {
     }
   }
 
-  // ── Zegeningen en gunsten ──
-  // Die liggen niet in de progressie maar als kaartjes in de campagne, dus die
-  // komen van het andere eind. `listEntities` zeeft al op rol en party: een
-  // speler krijgt alleen wat hij mag zien, en dat hoeft hier dus niet nog eens.
-  try {
-    const voorwerpen = await api.listEntities('voorwerpen');
-    for (const e of (Array.isArray(voorwerpen) ? voorwerpen : [])) {
-      const t = e?.data?.itemType;
-      if (t !== 'Blessing' && t !== 'Boon') continue;
-      const gt = e.data?.goddelijkType || '';
-      zet({
-        soort: t === 'Blessing' ? 'zegen' : 'gunst',
-        // Waar het vandaan komt: de god bij een zegening, "Gunst" bij een
-        // factiebeloning. Dat is wat je als kop boven het kaartje wil lezen.
-        bron: t === 'Blessing' ? (e.data?.godNaam || 'Zegeningen') : 'Gunsten',
-        level: 0, naam: e.name || '',
-        desc: e.data?.desc || '',
-        img: e.data?.imageId || '', imgFocus: e.data?.imgFocus || '',
-        // De doorklik gaat naar het kaartje zelf: daar staat de eedtekst, de
-        // permanente zegen en de rest al goed. Eén plek om een zegening te
-        // bekijken, niet twee.
-        entityId: e.id,
-        // De stand van dit kaartje voor de party die nu speelt, zodat het
-        // knopje op het kaartje weet of hij verborgen, vaag of zichtbaar is.
-        zichtbaar: e._visibility || 'hidden',
-        subsoort: gt,
-      });
-    }
-  } catch { /* geen kaartjes is geen fout */ }
+  // ── Zegeningen en gunsten staan hier niet meer ─────────────────────────
+  // Ze kwamen van het andere eind binnen: kaartjes uit de campagne in plaats
+  // van regels uit de progressie. Dat was al een aanwijzing. Het Heldenboek
+  // gaat over wat je **kiest** — je class, je species, je background, je
+  // feats — en een zegening van een god of een gunst van een factie kies je
+  // niet, die krijg je. Ze staan weer waar ze horen: bij de voorwerpen, met
+  // een eigen deur in het Archief (*Zegeningen & Gunsten*) die het filter
+  // voor je zet. Zelfde kaartjes, zelfde editor, één plek.
 
   // ── Beasts ──
   // Uit `GET /bron/beesten`: de SRD-beesten plus wat deze campagne zelf als
@@ -723,7 +690,7 @@ function _filtered() {
 
 // Waar iets bij hoort. Bij een feat, een Epic Boon of een background zegt de
 // bron hetzelfde als de soort ("Feat · Feats") — dan laten we hem weg.
-const _EIGEN_BRON = new Set(['Feats', 'Epic Boons', 'Backgrounds', 'Gunsten', 'Zegeningen',
+const _EIGEN_BRON = new Set(['Feats', 'Epic Boons', 'Backgrounds',
   'Conditions', 'Situaties', 'Van een feature of spreuk']);
 // Een trait van een species is strikt genomen niet iets wat je op level 1
 // krijgt — je bént een Dragonborn, Darkvision hoort erbij vanaf het moment dat
@@ -2051,7 +2018,6 @@ function _klasseRijen(klasse) {
 
 function _klasseKaartHtml(klasse) {
   const basis = _basisVan(klasse);
-  const sig   = window._signatureVoor?.(klasse);
   const data  = _bron?.prog?.classes?.[klasse];
   const uitleg = String(data?.desc || '').trim();
   const heeftSpreuken = basis.castAbility && (_spreukAantal?.get(klasse) || 0);
@@ -2067,7 +2033,7 @@ function _klasseKaartHtml(klasse) {
   // de Core Traits is dat geen samenvatting van wat eronder ligt.
   const uitRij = data?.boek ? [['Uit', data.boek]] : [];
   return _bladerKaartHtml({
-    soort: 'class', naam: klasse, kleur: sig?.kleur || '#8a6d3f',
+    soort: 'class', naam: klasse, kleur: window._klasseKleur?.(klasse) || '#8a6d3f',
     icoon: _klasseIcoon(klasse), bijschrift: 'Class',
     onder: String(data?.ondertitel || '').trim(),
     uitleg,
@@ -2322,7 +2288,7 @@ const _DEUREN = [
   // nooit. Bij Classes stond `subclass` er van begin af aan wel bij.
   { id: 'species',    label: 'Species',            soorten: ['species', 'variant'], icoon: 'user',       kleur: '#1a6a50' },
   { id: 'background', label: 'Backgrounds',        soorten: ['background'],        icoon: 'scroll-text', kleur: '#962058' },
-  { id: 'feats',      label: 'Feats & Boons',      soorten: ['feat', 'boon', 'zegen', 'gunst', 'keuze'], icoon: 'zap', kleur: '#1e4a8a' },
+  { id: 'feats',      label: 'Feats & Epic Boons', soorten: ['feat', 'boon', 'keuze'], icoon: 'zap', kleur: '#1e4a8a' },
   // **De spreuken wonen hier ook.** Ze stonden in het Archief, en dat was de
   // enige plek waar iets hoorde dat een personage kan zijn of kennen. Je zag
   // het aan de naden: een feat die een spreuk geeft linkt naar een ander

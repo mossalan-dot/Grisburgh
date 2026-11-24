@@ -4296,6 +4296,22 @@ const _docGroep = (docType) => {
   return g ? g.groep : 'Overig';
 };
 
+// **Zegeningen en gunsten hebben een eigen deur.** Het zijn gewone
+// voorwerp-kaartjes — de tempel leidt zijn pantheon eruit af, een factie geeft
+// ze als rangbeloning — maar met 98 van de 288 verdrinken ze de voorwerpenlijst,
+// en daarom staan ze daar standaard niet in. Ze stonden een tijd in het
+// Heldenboek; dat klopte niet, want dat gaat over wat je **kiest** (je class,
+// je species, je feats) en een zegening krijg je. Dus: dezelfde kaartjes,
+// dezelfde editor, maar een eigen ingang die het filter voor je zet.
+window._naarZegeningen = () => {
+  const set = _wf('voorwerpen');
+  set.clear(); set.add('Blessing'); set.add('Boon');
+  subtypeFilters.voorwerpen = null;
+  searchQueries.voorwerpen = '';
+  _filterBewaren('voorwerpen');
+  window.app.switchSection('voorwerpen');
+};
+
 function _getEntitySubtypeVal(type, e) {
   if (type === 'locaties')     return e.data?.wijk     || '';
   if (type === 'organisaties') return e.data?.orgType  || '';
@@ -4330,7 +4346,13 @@ function filterEntities(type, list) {
   //
   // Alleen deze lijst: de winkel, de boedel, de tempel en elke doorklik gaan
   // langs hun eigen weg en zien ze gewoon.
-  if (type === 'voorwerpen' && !q) {
+  // **Tenzij je er zelf om vraagt.** Sinds de filterbalk een keuzelijst heeft
+  // kun je *Blessing* aanvinken — en dan stond deze zeef ervóór en kreeg je er
+  // één te zien in plaats van achtentachtig. Wie het type expliciet kiest,
+  // bedoelt het.
+  const _expliciet = waardeFilters[type];
+  const _gevraagd = _expliciet?.has('Blessing') || _expliciet?.has('Boon');
+  if (type === 'voorwerpen' && !q && !_gevraagd) {
     filtered = filtered.filter(e => !['Blessing', 'Boon'].includes(e?.data?.itemType));
   }
   // Score per kaartje bewaren: die bepaalt straks de volgorde. Zonder dit werd
@@ -5755,7 +5777,7 @@ window._makerVoorDm = async () => {
     gid = keuze;
   }
   try {
-    await import('./personage-maken.js?v=78');
+    await import('./personage-maken.js?v=80');
     // Zodra de maker dichtgaat staat het kaartje er; het raster erachter weet
     // dat nog niet. Hetzelfde als na het opslaan van een nieuw kaartje: open
     // en in beeld.

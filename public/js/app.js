@@ -1,5 +1,5 @@
 import { api, campagneUitUrl, zetCampagne } from './api.js?v=326';
-import { initCampagne, renderArchiefDeuren, renderAvontuurDeuren, renderDienstenDeuren, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, renderDocumenten, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=460";
+import { initCampagne, renderArchiefDeuren, renderAvontuurDeuren, renderDienstenDeuren, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, renderDocumenten, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=462";
 import { initArchief, renderLogboek, openLogboekEditor } from "./render-archief.js?v=156";
 import { renderKaart, queueFlyTo, verversPins, nieuweKaart } from './render-kaart.js?v=41';
 import { renderDungeon } from './render-dungeon.js?v=82';
@@ -10,7 +10,7 @@ import { renderBestiarium } from './render-bestiarium.js?v=47';
 import { renderSpreuken } from './render-spreuken.js?v=68';
 import './render-handleiding.js?v=2';
 import './render-melding.js?v=4';
-import { renderVaardigheden, zoekVaardigheden, heldenboekTekst } from './render-vaardigheden.js?v=217';
+import { renderVaardigheden, zoekVaardigheden, heldenboekTekst } from './render-vaardigheden.js?v=219';
 import { renderStatblock } from './render-statblock.js?v=10';
 import { initSocket } from "./socket-client.js?v=111";
 import { initDmPanel } from "./dm-panel.js?v=435";
@@ -1808,7 +1808,7 @@ async function _landingNieuwTegel() {
   if (!host || !_groepsWachtwoord || document.getElementById('landing-nieuw')) return;
   let stand = null;
   try {
-    await import('./personage-maken.js?v=78');
+    await import('./personage-maken.js?v=80');
     stand = await window.personageMaken.stand();
   } catch { return; }
   if (stand?.instellingen && stand.instellingen.aan === false) return;
@@ -1830,7 +1830,7 @@ async function _landingNieuwTegel() {
 
 async function _landingNieuw() {
   try {
-    await import('./personage-maken.js?v=78');
+    await import('./personage-maken.js?v=80');
     const stand = await window.personageMaken.stand();
     // Ook als hij al bij de DM ligt: dan zie je dat, en kun je hem nog
     // terughalen om iets te veranderen.
@@ -7977,107 +7977,28 @@ window._condInfo = function(cid) {
 // Uitbreidbaar per klasse; start met Barbarian/Rage. Beschrijving
 // komt uit de progressie-data (single source of truth).
 // ════════════════════════════════════════════════════════════
-// ── Signatuurkaart: het ding waar je klasse aan tafel over gaat ───────────
-// Drie vormen, want een klassefeature telt op drie manieren:
-//   'uses'   — bolletjes die je afstreept (Rage, Channel Divinity)
-//   'pool'   — een voorraad waaruit je per punt put (Sorcery Points, Lay on Hands)
-//   'waarde' — een getal dat met je level meegroeit en niets bijhoudt (Sneak Attack)
-// `uses` en `pool` mogen een tabel (level → aantal) of een functie (lvl, pp) zijn;
-// dat laatste voor features die aan een ability-mod hangen in plaats van aan level.
-const _SIGNATURE = {
-  barbarian: {
-    feature: 'Rage', icon: 'hand-fist', key: 'rage', kleur: '#b3402a', vorm: 'uses',
-    activeOff: 'Activeer Rage', activeOn: 'Raging',
-    naslag: 'Resistance tegen Bludgeoning, Piercing & Slashing damage; Advantage op Strength checks & saves.',
-    uses: { 1: 2, 3: 3, 6: 4, 12: 5, 17: 6 },   // PHB 2024: vijf pas op 12
-    extra: lvl => `Rage Damage +${_sigThresh({ 1: 2, 9: 3, 16: 4 }, lvl)}`,
-  },
-  bard: {
-    feature: 'Bardic Inspiration', icon: 'music', key: 'bardic', kleur: '#8c5aa8', vorm: 'uses',
-    naslag: 'Bonus Action: geef een ander wezen een die dat het bij een d20 Test, attack roll of save mag optellen.',
-    uses: (lvl, pp) => Math.max(1, _sigMod(pp, 'cha')),
-    herstel: 'Long Rest (vanaf level 5 ook op een Short Rest)',
-    extra: lvl => `Inspiration die ${_sigThresh({ 1: 'd6', 5: 'd8', 10: 'd10', 15: 'd12' }, lvl)}`,
-  },
-  cleric: {
-    feature: 'Channel Divinity', icon: 'church', key: 'channel', kleur: '#c9a227', vorm: 'uses',
-    naslag: 'Divine Spark of Turn Undead — en vanaf level 3 wat je Divine Order je geeft.',
-    uses: { 2: 2, 6: 3, 18: 4 }, herstel: 'Short of Long Rest',
-  },
-  druid: {
-    feature: 'Wild Shape', icon: 'tree-pine', key: 'wildshape', kleur: '#4a7c3f', vorm: 'uses',
-    activeOff: 'Neem een gedaante aan', activeOn: 'In Wild Shape',
-    naslag: 'Bonus Action: neem de gedaante van een Beast aan die je gezien hebt.',
-    uses: { 2: 2, 6: 3, 17: 4 }, herstel: 'Short of Long Rest',
-    extra: lvl => `Max CR ${_sigThresh({ 2: '1/4', 4: '1/2', 8: '1' }, lvl)}`,
-  },
-  fighter: {
-    feature: 'Second Wind', icon: 'swords', key: 'secondwind', kleur: '#8a6a3a', vorm: 'uses',
-    naslag: 'Bonus Action: heal jezelf.',
-    uses: { 1: 2, 4: 3, 10: 4 }, herstel: 'Short of Long Rest',
-    extra: lvl => `Heal 1d10 + ${lvl || 1}`,
-  },
-  monk: {
-    feature: 'Focus Points', icon: 'hand', key: 'focus', kleur: '#3f7c78', vorm: 'pool',
-    naslag: 'Flurry of Blows, Patient Defense en Step of the Wind kosten elk 1 punt.',
-    pool: lvl => (lvl >= 2 ? lvl : 0), herstel: 'Short of Long Rest',
-    extra: lvl => `Martial Arts die ${_sigThresh({ 1: 'd6', 5: 'd8', 11: 'd10', 17: 'd12' }, lvl)}`,
-  },
-  paladin: {
-    feature: 'Lay on Hands', icon: 'shield-plus', key: 'layonhands', kleur: '#c9a227', vorm: 'pool',
-    eenheid: 'HP', naslag: 'Bonus Action: raak een wezen aan en put uit deze voorraad. 5 HP geneest ook Poisoned.',
-    pool: lvl => (lvl || 1) * 5, herstel: 'Long Rest',
-  },
-  ranger: {
-    feature: "Hunter's Mark", icon: 'bow-arrow', key: 'huntersmark', kleur: '#5c7a3f', vorm: 'uses',
-    activeOff: 'Zet de mark', activeOn: 'Mark staat',
-    naslag: 'Altijd prepared, en zo vaak zonder spell slot te casten. Concentration, Bonus Action.',
-    uses: (lvl, pp) => Math.max(1, _sigMod(pp, 'wis')), herstel: 'Long Rest',
-    extra: lvl => `Extra damage ${lvl >= 20 ? '1d10' : '1d6'}`,
-  },
-  rogue: {
-    feature: 'Sneak Attack', icon: 'stiletto', key: 'sneak', kleur: '#4a4a5c', vorm: 'waarde',
-    naslag: 'Eén keer per beurt, bij Advantage of een bondgenoot naast je doelwit. Finesse- of ranged wapen.',
-    waarde: lvl => `${Math.max(1, Math.ceil((lvl || 1) / 2))}d6`,
-  },
-  sorcerer: {
-    feature: 'Sorcery Points', icon: 'flame', key: 'sorcery', kleur: '#b5452f', vorm: 'pool',
-    naslag: 'Metamagic betalen, of omwisselen tegen spell slots (Font of Magic).',
-    pool: lvl => (lvl >= 2 ? lvl : 0), herstel: 'Long Rest',
-  },
-  warlock: {
-    feature: 'Magical Cunning', icon: 'eye', key: 'cunning', kleur: '#6b3f7a', vorm: 'uses',
-    naslag: 'Eén minuut ritueel: krijg de helft van je Pact Magic-slots terug (naar boven afgerond).',
-    uses: { 2: 1 }, herstel: 'Long Rest',
-  },
-  wizard: {
-    feature: 'Arcane Recovery', icon: 'book-open', key: 'arcane', kleur: '#3f5f8a', vorm: 'uses',
-    naslag: 'Na een Short Rest: krijg spell slots terug (niveau 6 of lager).',
-    uses: { 1: 1 }, herstel: 'Long Rest',
-    extra: lvl => `Tot ${Math.max(1, Math.ceil((lvl || 1) / 2))} slotniveaus terug`,
-  },
-  artificer: {
-    feature: 'Infused Items', icon: 'hammer', key: 'infusions', kleur: '#7a6040', vorm: 'waarde',
-    naslag: 'Zo veel voorwerpen mogen tegelijk een infusion dragen. Na een Long Rest herzie je de keuze.',
-    waarde: lvl => String(_sigThresh({ 2: 2, 6: 3, 10: 4, 14: 5, 18: 6 }, lvl) || 0),
-    extra: lvl => `${_sigThresh({ 2: 4, 6: 6, 10: 8, 14: 10 }, lvl) || 0} infusions bekend`,
-  },
+// ── De kleur van een class ──────────────────────────────────────────────────
+// Hier stond een tweede catalogus van klassefeatures: per class de naam, het
+// aantal uses, de formule en een stuk naslagtekst — ruim 140 regels. Er werd
+// nog precies één veld uit gelezen, op twee plekken: de **kleur**, voor de
+// gloed van de level-up en de rand van een classkaartje in het Heldenboek.
+//
+// De rest was niet alleen dood maar ook fout: hij zei dat een Ranger het
+// aantal keer dat hij Hunter's Mark gratis cast uit zijn Wisdom haalt,
+// terwijl het er 2/3/4/5/6 zijn op level 1/5/9/13/17 (Favored Enemy). Twee
+// antwoorden op dezelfde vraag, en het verkeerde stond op de plek waar je het
+// eerst kijkt. `lib/klassekrachten.js` is de catalogus; dit is een kleurkaart.
+const _KLASSE_KLEUR = {
+  barbarian: '#b3402a', bard:     '#8c5aa8', cleric:  '#c9a227', druid:  '#4a7c3f',
+  fighter:   '#8a6a3a', monk:     '#3f7c78', paladin: '#c9a227', ranger: '#5c7a3f',
+  rogue:     '#4a4a5c', sorcerer: '#b5452f', warlock: '#6b3f7a', wizard: '#3f5f8a',
+  artificer: '#7a6040',
 };
-// ── Kaarten per subklasse ───────────────────────────────────────────────────
-// De kaart hing aan de klasse: één per Barbarian, één per Wizard. Maar een paar
-// subklassen brengen hun eigen voorraad mee die je aan tafel net zo goed moet
-// bijhouden als Sorcery Points — en die stond nergens, dus die telde je op een
-// papiertje naast een app die alles bijhoudt.
-//
-// Niet élke subklasse verdient er een. De maat is: is er een **getal of een
-// stand die tijdens het spelen verandert** en die nergens anders al staat? Een
-// Champion die op 19 crit heeft geen stand; een Battle Master met vier
-// superiority dice wel. Wat op Channel Divinity of Wild Shape teert (de meeste
-// Cleric- en Druid-subklassen) heeft er ook geen nodig: dat is de kaart van de
-// klasse al.
-//
-// De sleutel is de subklassenaam in kleine letters, zoals hij in de
-// progressiedata staat.
+// **De vier subclasses houden hun hele kaart.** Anders dan bij de classes
+// wordt hier méér uit gelezen dan de kleur: het Heldenboek zet er de regel
+// *Eigen veld* mee op een subclasskaartje ("Superiority Dice", "Arcane Ward").
+// Die getallen kloppen wél met `lib/klassekrachten.js`, dus er spreken hier
+// geen twee bronnen elkaar tegen.
 const _SUBKLASSE_SIGNATURE = {
   'battle master': {
     feature: 'Superiority Dice', icon: 'swords', key: 'superiority', kleur: '#8a6a3a', vorm: 'uses',
@@ -8104,29 +8025,10 @@ const _SUBKLASSE_SIGNATURE = {
   },
 };
 const _subSigCfgFor = (naam) => _SUBKLASSE_SIGNATURE[String(naam || '').trim().toLowerCase()];
-// Deze ging mee toen de kaart van het spelersblad verdween, maar het
-// klassekaartje in het heldenboek leest hem nog via `window._signatureVoor` —
-// en dan stond er alleen "is not defined" in de console terwijl de hele
-// klassepagina leeg bleef.
-const _sigCfgFor = (klasse) => _SIGNATURE[String(klasse || '').trim().toLowerCase()];
-// Proficiency bonus uit een level — twee kaarten rekenen ermee.
-function _sigPb(lvl) { return 2 + Math.floor((Math.max(1, lvl || 1) - 1) / 4); }
+window._subSignatureVoor = (sub) => _subSigCfgFor(sub) || null;
 
-// Ability-mod uit het profiel; de kaarten van Bard en Ranger hangen eraan.
-function _sigMod(pp, sleutel) {
-  const v = parseInt(pp?.[sleutel]);
-  return Number.isFinite(v) ? Math.floor((v - 10) / 2) : 0;
-}
-function _sigThresh(table, level) {
-  let v = 0;
-  for (const t of Object.keys(table).map(Number).sort((a, b) => a - b)) if ((level || 0) >= t) v = table[t];
-  return v;
-}
-// De catalogus naar buiten, voor het klassekaartje in de Vaardighedentab: dat
-// wil weten wat de kenmerkende feature van een klasse is en welke kleur erbij
-// hoort. Alleen lezen; de kaart op het spelersblad is er niet meer.
-window._signatureVoor    = (klasse) => _sigCfgFor(klasse) || null;
-window._subSignatureVoor = (sub)    => _subSigCfgFor(sub) || null;
+const _klasseKleur    = (k) => _KLASSE_KLEUR[String(k || '').trim().toLowerCase()] || null;
+window._klasseKleur    = _klasseKleur;
 
 // De gevallenen. `groups[gid].deceased` staat al lang in de data — bij de
 // eerste party van Grisburgh acht namen — maar werd nergens getoond. Lui
@@ -8663,7 +8565,7 @@ function _levelUpCinematic(lu, kiezen = []) {
 
   // De kleur van je klasse draagt het hele moment: de gloed, de vonken en de
   // rand komen allemaal uit deze ene variabele.
-  const kleur = (_sigCfgFor(lu.klasse) || {}).kleur || '#a8833c';
+  const kleur = _klasseKleur(lu.klasse) || '#a8833c';
 
   const ov = document.createElement('div');
   ov.className = 'levelup-cine';

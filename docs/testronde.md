@@ -2143,3 +2143,15 @@ Grisburghs **data** te staan — niet in de code.
 - Smite met een spell slot van level 5: de app zegt **6d8**, niet 5d8. Het plafond van 5d8 was de regel van 2014.
 - Op het Personage-tabblad staat bij een Paladin een tweede knop **Divine Smite — zonder slot**, met een eigen teller van 1. Gebruik hem: de teller gaat naar nul en komt pas terug na een lange rust (een korte rust geeft hem niet terug).
 - De gratis smite doet 2d8 — de spreuk op zijn eigen niveau.
+
+## Zegeningen & Gunsten hebben een eigen deur (24 nov 2026)
+
+- Archief → **Zegeningen & Gunsten** opent de voorwerpenlijst met het filter al op Blessing en Boon: 98 kaartjes in Grisburgh. Zoeken en bladeren werkt daar gewoon.
+- Het filter blijft staan als je weggaat en terugkomt, zoals elk kaartjesfilter.
+- Vink in de Voorwerpen-tab zélf *Blessing* aan in de keuzelijst **Type**: je ziet er 78, niet 1. (De standaarduitsluiting die ze uit de lijst houdt, wijkt zodra je er expliciet om vraagt.)
+- Het **Heldenboek** toont ze niet meer: vier deuren — Classes, Species, Backgrounds, **Feats & Epic Boons**. Zoeken in Naslag geeft geen zegeningen meer.
+- De tempel, de facties, de boedel en de winkel zien ze onveranderd: het zijn dezelfde voorwerp-kaartjes.
+
+## De Ranger-bron heet Favored Enemy (24 nov 2026)
+
+- Op het blad van een Ranger heet de teller **Favored Enemy** (de feature), terwijl de knop ernaast **Hunter's Mark** blijft (de spreuk die je ermee cast).

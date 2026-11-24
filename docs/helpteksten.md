@@ -1,4 +1,4 @@
-_155 sleutels · 15 aangepast in **grisburgh** · rest is de standaard uit de code._
+_155 sleutels · 31 aangepast in **grisburgh** · rest is de standaard uit de code._
 
 # Helpteksten
 
@@ -30,8 +30,8 @@ zodat latere verbeteringen in de code vanzelf doorkomen.
 
 > Deze lijst is afgeleid, niet gekozen: hij wijst alleen aan waar de vorm uiteenloopt.
 
-- **155 boekjes, 578 stappen, 26965 woorden.** Gemiddeld 3.7 stap per boekje en 47 woorden per stap.
-- **5 boekjes van één stap.** Vaak één zin die alleen zegt wát het scherm is. Wat kun je er doen, en waar klik je? — `documenten`, `hulp_kijk_personages_sheet`, `locaties`, `organisaties`, `party`
+- **155 boekjes, 584 stappen, 26696 woorden.** Gemiddeld 3.8 stap per boekje en 46 woorden per stap.
+- **3 boekjes van één stap.** Vaak één zin die alleen zegt wát het scherm is. Wat kun je er doen, en waar klik je? — `hulp_kijk_personages_sheet`, `party`, `personage_wildmagic`
 - **2 met meer dan 90 woorden per stap.** Een stap is een schermpje om doorheen te bladeren; daar past geen alinea in. — `dm_verzoeken_personage`, `hulp_heldenboek_editor`
 
 ---
@@ -40,21 +40,21 @@ zodat latere verbeteringen in de code vanzelf doorkomen.
 
 **Je eerste avond** · 1
 
-- [`wizard`](#wizard) — De opstartwizard · 10 stappen, 589 w
+- [`wizard`](#wizard) — De opstartwizard · 7 stappen, 315 w · _aangepast_
 
 **Het spelerstabblad** · 26
 
-- [`party`](#party) — Party · 1 stap, 18 w · _aangepast_
-- [`stemronde`](#stemronde) — Het mooiste moment van de avond · 4 stappen, 177 w · _rolverdeling_
-- [`personage`](#personage) — Mijn personage · 4 stappen, 157 w
-- [`gedaante`](#gedaante) — Je gedaante · 4 stappen, 102 w
-- [`personage_hp`](#personage_hp) — HP · 4 stappen, 135 w
-- [`personage_statussen`](#personage_statussen) — Actieve statussen · 2 stappen, 65 w
-- [`rage`](#rage) — Rage · 7 stappen, 263 w
-- [`klassekracht`](#klassekracht) — Klassekrachten · 13 stappen, 688 w
-- [`dagkeuze`](#dagkeuze) — Je keuze van vandaag · 2 stappen, 53 w
+- [`party`](#party) — Party · 1 stap, 33 w · _aangepast_
+- [`stemronde`](#stemronde) — Het mooiste moment van de avond · 4 stappen, 133 w · _aangepast_
+- [`personage`](#personage) — Mijn personage · 4 stappen, 147 w · _aangepast_
+- [`gedaante`](#gedaante) — Je gedaante · 2 stappen, 77 w · _aangepast_
+- [`personage_hp`](#personage_hp) — HP · 4 stappen, 134 w · _aangepast_
+- [`personage_statussen`](#personage_statussen) — Actieve statussen · 2 stappen, 61 w · _aangepast_
+- [`rage`](#rage) — Rage · 4 stappen, 110 w · _aangepast_
+- [`klassekracht`](#klassekracht) — Klassekrachten · 11 stappen, 457 w · _aangepast_
+- [`dagkeuze`](#dagkeuze) — Je keuze van vandaag · 2 stappen, 87 w · _aangepast_
 - [`summons`](#summons) — Opgeroepen · 4 stappen, 133 w
-- [`personage_wildmagic`](#personage_wildmagic) — Wild Magic Surge · 2 stappen, 64 w
+- [`personage_wildmagic`](#personage_wildmagic) — Wild Magic Surge · 1 stap, 39 w · _aangepast_
 - [`personage_stats`](#personage_stats) — Gevechtswaarden · 4 stappen, 149 w
 - [`personage_wapens`](#personage_wapens) — Weapons & Damage Cantrips · 4 stappen, 122 w
 - [`personage_abilities`](#personage_abilities) — Ability Scores · 2 stappen, 58 w
@@ -64,25 +64,25 @@ zodat latere verbeteringen in de code vanzelf doorkomen.
 - [`personage_tap`](#personage_tap) — Aan de tap · 2 stappen, 55 w
 - [`personage_emotes`](#personage_emotes) — Emotes · 2 stappen, 51 w
 - [`personage_wiejebent`](#personage_wiejebent) — Wie je bent · 2 stappen, 60 w
-- [`knapzak`](#knapzak) — Boedel · 4 stappen, 127 w · _aangepast_
-- [`progressie`](#progressie) — Features & Traits · 4 stappen, 167 w
-- [`spreukenboek`](#spreukenboek) — Spreukenboek · 3 stappen, 117 w
+- [`knapzak`](#knapzak) — Boedel · 4 stappen, 126 w · _aangepast_
+- [`progressie`](#progressie) — Features & Traits · 3 stappen, 101 w · _aangepast_
+- [`spreukenboek`](#spreukenboek) — Spreukenboek · 3 stappen, 128 w · _aangepast_
 - [`spreuken_toevoegen`](#spreuken_toevoegen) — _geen titel_ · 0 stappen, 0 w
-- [`spreukenboek_boek`](#spreukenboek_boek) — Het opengeslagen boek · 4 stappen, 309 w
-- [`spreukenboek_inhoud`](#spreukenboek_inhoud) — Inhoudsopgave · 2 stappen, 107 w
+- [`spreukenboek_boek`](#spreukenboek_boek) — Het opengeslagen boek · 4 stappen, 245 w · _aangepast_
+- [`spreukenboek_inhoud`](#spreukenboek_inhoud) — Inhoudsopgave · 2 stappen, 100 w · _aangepast_
 
 **Het archief** · 6
 
-- [`personages`](#personages) — Personages · 5 stappen, 195 w · _rolverdeling_
-- [`locaties`](#locaties) — Locaties · 1 stap, 36 w · _aangepast_
-- [`organisaties`](#organisaties) — Organisaties · 1 stap, 20 w · _aangepast_
-- [`voorwerpen`](#voorwerpen) — Voorwerpen · 2 stappen, 72 w · _aangepast_
-- [`documenten`](#documenten) — Documenten · 1 stap, 19 w · _aangepast_
-- [`bestiarium`](#bestiarium) — Bestiarium · 2 stappen, 75 w · _aangepast_
+- [`personages`](#personages) — Personages · 5 stappen, 162 w · _aangepast_
+- [`locaties`](#locaties) — Locaties · 5 stappen, 174 w · _aangepast_
+- [`organisaties`](#organisaties) — Organisaties · 5 stappen, 145 w · _aangepast_
+- [`voorwerpen`](#voorwerpen) — Voorwerpen · 7 stappen, 242 w · _aangepast_
+- [`documenten`](#documenten) — Documenten · 5 stappen, 145 w · _aangepast_
+- [`bestiarium`](#bestiarium) — Bestiarium · 2 stappen, 76 w · _aangepast_
 
 **Een kaartje bekijken** · 8
 
-- [`hulp_kijk_personages_info`](#hulp_kijk_personages_info) — Dit personage · 5 stappen, 347 w · _rolverdeling_
+- [`hulp_kijk_personages_info`](#hulp_kijk_personages_info) — Dit personage · 6 stappen, 396 w · _aangepast_
 - [`hulp_kijk_personages_sheet`](#hulp_kijk_personages_sheet) — Het blad · 1 stap, 43 w
 - [`hulp_kijk_locaties_info`](#hulp_kijk_locaties_info) — Deze plek · 3 stappen, 122 w
 - [`hulp_kijk_locaties_kaart`](#hulp_kijk_locaties_kaart) — Waar ligt dit · 2 stappen, 72 w
@@ -238,60 +238,51 @@ Het enige boekje dat een DM ziet vóórdat er iets staat. Toon: hij heeft nog ni
 ## `wizard`
 
 > Helpknop in: wizard.js:391
-> Nu: de standaard uit de code
-> 10 stappen · 589 woorden · 59 per stap
+> Nu: **aangepast in deze campagne**
+> 7 stappen · 315 woorden · 45 per stap
+> De standaard telt 10 stap(pen).
 
 Titel: De opstartwizard
 
-### Waarom hij er is
+### Wizard
 
-Een verse campagne is leeg, en de keuzes die ertoe doen staan verspreid over Instellingen en de dienstpanelen. Deze wizard loopt ze één keer langs, in de volgorde waarin je ze nodig hebt. Hij draait vanzelf de eerste keer dat je als DM binnenkomt in een campagne zonder personages.
+Een nieuwe campagne is leeg en de keuzes die ertoe doen staan verspreid. Deze wizard loopt ze één keer langs en in de volgorde waarin je ze nodig hebt. 
 
-### Overslaan mag altijd
+Geen enkele stap is verplicht. Wat je overslaat vind je terug bij **Instellingen** en **Diensten**. De wizard zelf staat daar ook, onder *Opstartwizard doorlopen*.
 
-Geen enkele stap is verplicht. Wat je overslaat vind je terug bij **Instellingen** (naam, munten) en bij **Diensten** (hoe je plekken heten). De wizard zelf staat daar ook, onder *Opstartwizard doorlopen*, voor als je hem later nog eens wilt langslopen.
+### Een waarschuwing over party's
 
-### De party is de enige echte waarschuwing
+Deel je party's in zoals je ze aan tafel speelt. Een personage verhuizen kan later wel, maar alles wat de **party** over de wereld weet blijft achter. Twee party's samenvoegen kan helemaal niet.
 
-Deel je tafels in zoals je ze gaat spelen. Een personage verhuizen kan later wel, maar alles wat de **party** over hem onthoudt blijft achter: welke voorwerpkaartjes van hem zijn, welke geheimen hij kent, wat er voor hem zichtbaar was, zijn metgezel, de gedeelde beurs. Twee party's samenvoegen kan helemaal niet.
+### Beschikbare onderdelen
 
-### Welke onderdelen je krijgt
-
-De beheerder bepaalt wat er voor je campagne **vrij** is — archief, aktes, tempel, facties. Binnen die grens kies je zelf wat je gebruikt: in de wizard en later bij *Instellingen → Campagne*. Wat de beheerder dichtzette, zie je niet. Mis je iets, vraag erom.
+De beheerder bepaalt welke onderdelen voor deze campagne **vrij** te gebruiken zijn. Daarbinnen kies je zelf wat je gebruikt: in de wizard en later bij *Instellingen → Campagne*.
 
 ### Valuta
 
-De verhouding ligt vast zoals in het boek: 1 gold = 10 silver = 100 copper. Alleen hoe ze bij jou héten kies je zelf — Florinde, Knaker, Centeling, of gewoon Gold Piece.
+De app volgt de bestaande valutaverhoudingen: 1 gold piece = 10 silver pieces = 100 copper pieces. Alleen de namen van de munten kun je bepalen.
 
-**Electrum en platinum** hebben in de beurs geen eigen plek: de app rekent ze om bij het invoeren (1 EP = 5 SP, 1 PP = 10 GP). Een *vondst* noemt ze wél bij naam — "waaronder 3 Lion d'or" — en die naam vul je hier in. Laat je het leeg, dan staat er niets extra's bij.
+**Electrum en platinum** hebben in de beurs geen eigen plek: de app rekent ze om bij het invoeren (1 EP = 5 SP, 1 PP = 10 GP). Een *vondst* noemt ze wél bij naam.
 
-### Wat je spelers in een gevecht zien
+### Gevechtsinformatie
 
-Drie standen, van weinig naar veel. **Minimale informatie**: je ziet of hij nog staat, verder niets. **Omschrijvingen**: ongedeerd, geschramd, gehavend, zwaar gewond — je spelers voelen het verloop zonder te rekenen; dat is de standaard. **Exacte getallen**: de HP op elk token, handig als je open speelt.
+Hier bepaal je hoeveel informatie je spelers zien tijdens een gevecht. Het gaat om drie standen, van weinig naar veel. 
 
-Wat een party in het **bestiarium** ontdekt heeft, wint hier altijd van: verdiende kennis gaat niet verloren door een instelling.
+- **Minimale informatie**: spelers zien of de tegenstander nog bij bewustzijn is, verder niets. 
+- **Omschrijvingen**: spelers krijgen omschrijvingen te zien, zoals ongedeerd, geschramd, gehavend en zwaar gewond. Je spelers voelen het verloop zonder te rekenen. Dit is de standaard. 
+- **Exacte getallen**: spelers zien de HP van elke tegenstander.
 
-### Beeld meenemen
+Welke informatie een party in het **bestiarium** heeft, gaat altijd voor.
 
-Twee stapels: de platen bij de **spells**, en die in de **naslag** (bij een class, een subclass, een species, een background en een enkele feature). Het is eigen beeld en geen uitgeverijmateriaal, dus delen mag.
+### Afbeeldingen importeren
 
-Wat je zelf al hebt neergezet blijft staan; dit vult alleen aan, en twee keer drukken verandert niets. Je kunt ze later alsnog halen bij *Instellingen → Campagne*, en een plaat die niet bij jouw wereld past vervang je per stuk.
+Je kunt hier kiezen of je de afbeeldingen van zaken uit het naslagwerk (classes, subclasses, species, backgrounds, features, feats, spells) overneemt of zelf afbeeldingen toevoegt.
 
-### Oefenmateriaal
+Je kunt de bestaande afbeeldingen later alsnog importeren via *Instellingen → Campagne*.
 
-Een lege campagne is eerlijk, maar je kunt er nergens op klikken — en dan zie je niet wat de app doet. Het oefenmateriaal is een herberg met een waard die een geheim heeft, een smid die inkoopt, iemand die te lang bij de deur zit, en een sleutel zonder label: genoeg om zichtbaarheid, geheimen, de winkel en de boedel uit te proberen.
-
-Alles heet overal **oefen_…**, dus je gooit het in één keer weg bij *Instellingen → Campagne* zodra je het niet meer nodig hebt. Het staat los van je eigen kaartjes.
-
-### Waar je verder gaat
+### Later bekijken
 
 Alles uit de wizard staat bij **Instellingen**, en de namen van je diensten bij **Diensten**. Onderdelen aan- of uitzetten kan daar ook.
-
-Wat ik zou doen voor je eerste sessie: een *locatie* aanmaken waar je begint, er een *personage* bij zetten dat ze ontmoeten, en dat kaartje zichtbaar maken voor je party.
-
-### Sluiten
-
-Het kruisje rechtsboven (of Escape) legt de wizard weg. Hij komt dan niet meer vanzelf terug; doorlopen kan altijd nog bij *Instellingen → Opstartwizard doorlopen*.
 
 ---
 
@@ -301,256 +292,245 @@ De zes subtabs van een speler, in de volgorde waarin ze op het scherm staan: Par
 
 ## `party`
 
-> Helpknop in: app.js:9393
+> Helpknop in: app.js:9295
 > Nu: **aangepast in deze campagne**
-> 1 stap · 18 woorden · 18 per stap
+> 1 stap · 33 woorden · 33 per stap
 > De standaard telt 4 stap(pen).
 
 Titel: Party
 
 ### Party
 
-Dit tabblad toont de andere leden van jouw groep. Je kunt zien wie aanwezig is voor de sessie.
+Dit tabblad toont de andere leden van jouw party. Je kunt zien wie aanwezig en afwezig is voor de sessie. Je ziet hier ook je tijdelijke metgezellen, summons en familiars en gevangengenomen tegenstanders.
 
 ---
 
 ## `stemronde`
 
 > Helpknop in: stemronde.js:150, stemronde.js:150
-> Nu: de standaard uit de code
-> 4 stappen · 177 woorden · 44 per stap · rolverdeling (dm)
+> Nu: **aangepast in deze campagne**
+> 4 stappen · 133 woorden · 33 per stap
+> De standaard telt 4 stap(pen).
 
 Titel: Het mooiste moment van de avond
 
-### Wat het is
+### Stemronde
 
-Aan het eind van een sessie stemt iedereen die meedeed op wiens moment het mooiste was: een vondst, een grap, een sprong van het dak. Op jezelf stemmen kan niet. De winnaar krijgt **Heroic Inspiration**, en het tafelscherm laat hem zien met de redenen die de anderen erbij schreven.
+Aan het eind van een sessie stemt iedere speler welk moment het mooiste was: een vondst, een grap, een sprong van het dak. Op jezelf stemmen kan niet. De winnaar krijgt **Heroic Inspiration**. Op het tafelscherm is je ingezonden motivatie te lezen.
 
-### Geheim, ook voor jou {alleen jij}
+### How do you want to do this?
 
-Je ziet hoeveel er gestemd hebben, niet wie op wie — de server bewaart dat wel (je mag je stem wijzigen zolang de ronde open is) maar geeft het nooit terug. De redenen komen bij de uitslag naamloos en door elkaar op tafel.
+Wie vanavond een genadeslag uitdeelde ("How do you want to do this?"), staat als geheugensteun onder de kandidaten.
 
-### Sluiten {alleen jij}
+### Anoniem
 
-Je sluit de ronde wanneer je wilt; wie dan nog niet stemde, telt niet mee. Bij een **gelijke stand** kies jij uit wie er gelijk staan — de app trekt geen lot. Had de winnaar al Heroic Inspiration, dan zegt de melding dat: hij mag hem volgens de PHB dan doorgeven aan iemand anders. **Afbreken** sluit zonder winnaar.
+Je ziet hoeveel spelers er gestemd hebben, maar niet wie op wie. De motivaties komen bij de uitslag naamloos en door elkaar op tafel.
 
-### Geheugensteun
+### Sluiten
 
-Wie vanavond een genadeslag beschreef ("How do you want to do this?"), staat onder de kandidaten nog even terug — om te helpen herinneren, niet als voorstel.
+Je sluit de ronde wanneer je dat wilt. Wie dan nog niet stemde, telt niet mee. Bij een **gelijke stand** kies jij wie wint. Had de winnaar al Heroic Inspiration, dan zegt de melding dat. De speler mag de **Heroic Inspiration** dan doorgeven. **Afbreken** sluit de module zonder winnaar.
 
 ---
 
 ## `personage`
 
-> Helpknop in: app.js:9539
-> Nu: de standaard uit de code
-> 4 stappen · 157 woorden · 39 per stap
+> Helpknop in: app.js:9441
+> Nu: **aangepast in deze campagne**
+> 4 stappen · 147 woorden · 37 per stap
+> De standaard telt 4 stap(pen).
 
 Titel: Mijn personage
 
 ### Je blad
 
-Alles wat je tijdens een sessie bij de hand wil hebben: je HP, waar je mee aanvalt, je scores en wat er nu op je ligt. Elk blok heeft rechtsboven een eigen boekje met uitleg over dát blok.
+Alles wat je tijdens een sessie bij de hand wilt hebben: je HP, wapens, ability scores en conditions. Elk blok heeft rechtsboven een eigen boekje met uitleg over dát blok.
 
 ### Wat je zelf invult
 
-De witte vakjes zijn van jou — je typt ze over van je character sheet en ze bewaren zichzelf. Wat de app uit je class, level en scores kan afleiden, vult hij voor; dat mag je altijd overtypen.
+De witte vakjes kun je zelf invullen en aanpassen. Wat de app uit je class, level en scores kan afleiden, wordt voor je ingevuld. Je mag dat altijd handmatig veranderen.
 
 ### Je DM kijkt mee
 
-Je HP, je statussen en je gedaante gaan meteen naar het scherm van je DM en naar het scherm op tafel. Je hoeft dus nergens te melden dat je geraakt bent.
+Je HP, conditions en wild shapes gaan meteen naar het scherm van je DM en naar het scherm op tafel. De DM kan je HP en conditions aanpassen. Je hoeft dus nergens in de app aan te geven dat je geraakt bent.
 
-### Level en class
+### Level en multiclass
 
-Je **level** en je **class** zet je DM: een level komt erbij via *Level omhoog*, een tweede class via een verzoek bij die level-up. Je **subclass** kies je zelf, één keer, op het level dat erom vraagt — daarna staat hij vast en kan alleen je DM hem nog omzetten.
+Je **level** en je **multiclass** wordt gecontroleerd door je DM. Een level komt erbij via *Level omhoog*, een tweede class via een verzoek bij die level-up. Je **subclass** kies je zelf, één keer. Daarna staat dat vast en kan alleen je DM het nog omzetten.
 
 ---
 
 ## `gedaante`
 
 > Helpknop in: klassekracht.js:107
-> Nu: de standaard uit de code
-> 4 stappen · 102 woorden · 26 per stap
+> Nu: **aangepast in deze campagne**
+> 2 stappen · 77 woorden · 39 per stap
+> De standaard telt 4 stap(pen).
 
 Titel: Je gedaante
 
-### Je bent even iets anders
+### Wild shape
 
-Zolang je in een gedaante zit staat die bovenaan je blad, met de waarden van het dier naast die van jezelf. Zo hoef je nergens te zoeken wat er nu geldt.
+Zolang je in een ander gedaante verkeert, staat er een melding bovenaan je blad, met de waarden van het dier naast die van je personage. Zo hoef je nergens te zoeken wat er nu geldt. Met **Terug** verander je weer in jezelf.
 
-### Wat van het dier is
+### Wat is wat?
 
-Zijn AC, zijn speed, zijn Strength, Dexterity en Constitution, en wat hij kan. Daar vecht je mee zolang de gedaante duurt.
-
-### Wat van jou blijft
-
-Je HP en je Hit Dice, je Intelligence, Wisdom en Charisma, en al je class features. Die staan gewoon onder de band, want ze veranderen niet.
-
-### Terug
-
-Met **Terug** ben je weer jezelf. Een gevecht dat afloopt laat je gedaante met rust: je blijft erin tot je er zelf uit stapt.
+Bij wild shape neem je de AC, speed, Strength, Dexterity, Constitution en actions over van het dier waarin je verandert. Je HP, Hit Dice, Intelligence, Wisdom en Charisme en je class features neem je mee.
 
 ---
 
 ## `personage_hp`
 
-> Helpknop in: app.js:9554
-> Nu: de standaard uit de code
-> 4 stappen · 135 woorden · 34 per stap
+> Helpknop in: app.js:9456
+> Nu: **aangepast in deze campagne**
+> 4 stappen · 134 woorden · 34 per stap
+> De standaard telt 4 stap(pen).
 
 Titel: HP
 
 ### Je levenspunten
 
-Met **+** en **−** houd je bij hoeveel HP je nog hebt; het getal rechts is je maximum. Je DM ziet het meteen, en je portret verkleurt mee — zo weet de tafel hoe je ervoor staat zonder dat iemand het hoeft te vragen.
+Met **+** en **−** houd je bij hoeveel HP je nog hebt; het getal rechts is je maximum. Je portret kleurt mee. Zo weet de party hoe je ervoor staat, zonder dat iemand het hoeft te vragen.
 
 ### Temporary HP
 
-Een aparte buffer die als eerste wordt opgegeten. Hij **stapelt niet**: krijg je een nieuwe hoeveelheid, dan geldt de hoogste van de twee, niet de som. Een lange rust haalt hem weg.
+Een speler kan Temporary HP krijgen. Dat is een aparte buffer die als eerste wordt geraakt. Temporary HP **stapelt niet**: krijg je een nieuwe hoeveelheid, dan geldt de hoogste van de twee. Een Long Rest verwijdert Temporary HP.
 
 ### Hit Dice
 
-De bolletjes zijn je Hit Dice, afgeleid uit je class en level — bij een korte rust zet je er een in om te genezen. Een lange rust geeft ze allemaal terug.
+De bolletjes zijn je Hit Dice, afgeleid uit je class en level. Bij een Short Rest zet je Hit Dice in om te genezen. Een Long Rest geeft je Hit Dice terug.
 
 ### Exhaustion
 
-Zes bolletjes die je DM zet. De app telt ze alleen: wat een niveau met je doet, geldt aan tafel. Elke lange rust haalt er een af.
+Zes bolletjes die je DM aanvinkt. De app telt ze alleen: wat een niveau met je doet, geldt aan tafel. Elke Long Rest haalt er een af.
 
 ---
 
 ## `personage_statussen`
 
-> Helpknop in: app.js:9620
-> Nu: de standaard uit de code
-> 2 stappen · 65 woorden · 33 per stap
+> Helpknop in: app.js:9522
+> Nu: **aangepast in deze campagne**
+> 2 stappen · 61 woorden · 31 per stap
+> De standaard telt 2 stap(pen).
 
 Titel: Actieve statussen
 
-### Wat er nu op je ligt
+### Conditions
 
-Elke condition die op je token staat — Poisoned, Prone, Concentration, maar ook iets wat je zelf aanzette zoals Raging. Tik er een aan en je leest wat hij doet.
+Elke condition die op je portret staat — Poisoned, Prone, Concentration, maar ook iets wat je zelf aanzette zoals Raging. Tik er een aan en je leest wat het doet.
 
 ### Wie ze zet
 
-Meestal je DM, vanuit het gevecht. Een paar zet je zelf aan door iets te doen: in Rage gaan, Wild Shape gebruiken, een spell waar je op concentreert. Staat er niets, dan is er niets.
+Meestal worden conditions door je DM ingesteld, vanuit het gevecht. Een paar zet je zelf aan door iets te doen: in Rage gaan, Wild Shape gebruiken, een spell die Concentration vereist.
 
 ---
 
 ## `rage`
 
 > Helpknop in: rage.js:90
-> Nu: de standaard uit de code
-> 7 stappen · 263 woorden · 38 per stap
+> Nu: **aangepast in deze campagne**
+> 4 stappen · 110 woorden · 28 per stap
+> De standaard telt 7 stap(pen).
 
 Titel: Rage
 
-### De knop
+### Rage!
 
-Een Bonus Action: druk op **Rage** en je bent erin. De app streept een use af, zet *Raging* op je token als er gevochten wordt, en op het tafelscherm brult het. Zolang je raast staat er een rode rand om je scherm en zie je onder de knop wat er nu voor je geldt.
+Druk op Rage en je voelt de woede opborrelen. De app streept een use af en zet *Raging* op je token als er gevochten wordt. Zolang je raast staat er een rode rand om je scherm en zie je onder de knop wat er nu voor je geldt.
 
 ### Wat de app niet doet
 
-Rekenen aan je worpen. Rage Damage, Advantage op Strength en de Resistance staan in beeld; optellen doe je aan tafel. En de duur loopt niet op een klok — in de 2024-regels verleng je Rage door te blijven aanvallen, en dat ziet de app niet. Je beëindigt hem dus zelf. Een Long Rest en het einde van een gevecht doen het voor je.
+De app berekent geen worpen voor je. Rage Damage, Advantage op Strength en de Resistance staan uitgelegd, maar optellen doe je zelf.
 
 ### Terugkrijgen
 
-Na een **Short Rest** krijg je één use terug, na een **Long Rest** alles. Hoeveel je er hebt groeit met je level: 2, dan 3 op level 3, 4 op 6, 5 op 12 en 6 op 17.
+Na een **Short Rest** krijg je één use terug, na een **Long Rest** alles. Hoeveel je er hebt groeit met je level.
 
 ### Concentration
 
-Wie in Rage gaat verliest zijn Concentration. Stond die op je token, dan haalt de app hem weg en zegt het je.
-
-### Relentless Rage (level 11)
-
-Val je op 0 HP terwijl je raast, dan verschijnt de DC van je Constitution save. Gooi aan tafel. Gelukt: je staat op met twee keer je Barbarian-level aan HP. Mislukt: je gaat neer en de Rage dooft. Elke poging maakt de volgende 5 moeilijker; een rust zet hem terug op 10.
-
-### Persistent Rage (level 15)
-
-Eén keer per Long Rest, tijdens een gevecht: alle Rage terug. Druk erop als je initiative gooit.
-
-### Had je al een tellertje?
-
-Wie Rage eerder als kenmerk met bolletjes bijhield, kan dat kenmerk weghalen: dit blok telt nu zelf.
+Wie in Rage gaat verliest zijn Concentration. Stond die op je portret, dan haalt de app hem weg.
 
 ---
 
 ## `klassekracht`
 
 > Helpknop in: klassekracht.js:364
-> Nu: de standaard uit de code
-> 13 stappen · 688 woorden · 53 per stap
+> Nu: **aangepast in deze campagne**
+> 11 stappen · 457 woorden · 42 per stap
+> De standaard telt 13 stap(pen).
 
 Titel: Klassekrachten
 
-### Wat dit blok is
+### Class features
 
-Het ding waar je klasse aan tafel over gaat, met de teller erbij. Druk op een kracht en de app streept af wat het kost, doet wat er vast te doen valt (genezen, een slot terugzetten, een toestand op je token) en laat het op het tafelscherm zien. Aanvallen en saves gooi je nog steeds zelf: de app zegt de DC, de tafel rolt.
+Iedere class heeft een onderscheidende feature. Druk op deze kracht en de app streept af wat het kost, doet wat er standaard te doen valt (genezen, een slot terugzetten, een toestand op je portret) en laat het op het tafelscherm zien. Aanvallen en saves gooi je nog steeds zelf.
 
-### Wat er vanzelf terugkomt
-
-Onder elke teller staat wat een **Short Rest** teruggeeft; een **Long Rest** zet alles terug, haalt lopende toestanden weg en laat een geschonken Bardic Inspiration vervallen.
-
-### Bard
-
-**Inspireer** geeft iemand uit je party een Bardic Inspiration. Die staat dan bovenaan zíjn blad met een knop **Gebruiken**: na zijn worp tikt hij erop, de die rolt, en iedereen ziet wat erbij kwam. Eén tegelijk per persoon.
-
-### Cleric en Paladin
-
-**Divine Spark** geneest (de app rolt en telt het bij) of doet schade (de app rolt; het doelwit mag nog een save). **Turn Undead** en **Divine Sense** tonen de DC en het bereik. **Lay on Hands**: kies wie en hoeveel uit je voorraad. **Divine Smite** kost een spell slot naar keuze en rolt de Radiant damage.
-
-### Bardic Inspiration ontvangen
-
-Wie geïnspireerd is, draagt een muzieknoot op zijn portret in de partybalk én een paars kaartje bovenaan zijn blad. Tik op het portret of op het kaartje en kies **Gebruiken**: de die rolt, en iedereen ziet wat erbij kwam.
-
-### Druid: bekende gedaantes
-
-Een Druid kent een beperkt aantal Beast-gedaantes (4, dan 6 op level 4, 8 op level 8), tot een maximale CR (1/4, 1/2, 1) — en een vliegend beest pas vanaf level 8. Circle of the Moon mag tot een derde van zijn level. Kies ze onder **Bekende gedaantes**; filter daar op de omgeving waar een beest leeft (Arctic, Forest, Underwater…). Na een Long Rest mag je er een wisselen.
-
-### Druid: Wild Shape
-
-Kies een van je bekende gedaantes en de **omgeving** waarin je verandert. Die staat al op waar het dier leeft, maar je mag hem omzetten: een wolf in een sneeuwstorm is een Arctic-wolf. De omgeving kleurt het moment op het tafelscherm. Je krijgt je Temporary HP, je token draagt Wild Shape, en het blijft staan tot je het beëindigt — een gevecht dat afloopt laat je gedaante ongemoeid.
+Onder elke teller staat wat een **Short Rest** teruggeeft. Een **Long Rest** zet alles terug.
 
 ### Subclasses
 
-Heeft je subclass iets dat aan tafel telt, dan staat het onder een eigen kopje met zijn naam: de Superiority Dice en maneuvers van een Battle Master, de Psionic Energy Dice van een Psi Warrior of Soulknife, Portent van een Diviner (na een Long Rest rollen, daarna één voor één inzetten), de Arcane Ward van een Abjurer, Warrior of the Gods van een Zealot, en de Channel Divinity-opties van elk domein en elke eed. Een subclass die alleen een vaste bonus geeft — een Champion die op 19 crit — heeft geen knop nodig en staat er dus niet.
+Heeft je subclass iets dat aan tafel belangrijk is, dan staat het onder een eigen kopje met zijn naam: de **Superiority Dice** en manoeuvres van een Battle Master, de **Psionic Energy Dice** van een Psi Warrior of Soulknife, **Portent** van een Diviner, de **Arcane Ward** van een Abjurer, **Warrior of the Gods** van een Zealot, en de **Channel Divinity**-opties van elk domein en elke eed van een Cleric. Een subclass die alleen een vaste bonus geeft, heeft geen aparte knop nodig en staat er dus niet.
 
-### Klanken
+### Emotes
 
-Heb je emotes (die zet je DM klaar, of je kiest ze bij het maken van je personage), dan kun je onder **Klanken** per kracht een emote kiezen. Die klinkt op het tafelscherm zodra je de kracht gebruikt: je strijdkreet bij Action Surge, je lied bij Bardic Inspiration.
+Heb je bepaalde emotes, dan kun je onder **Klanken** per kracht een emote kiezen. Die klinkt op het tafelscherm zodra je de kracht gebruikt.
+
+### Bard
+
+Een Bard kan iemand uit de party **Bardic Inspiration** geven. Die staat dan bovenaan zíjn blad met de knop **Gebruiken**. Na zijn eerste worp tikt hij erop, de dobbelsteen rolt en iedereen ziet wat erbij komt. Een speler kan maar een Bardic Inspiration hebben.
+
+### Cleric en Paladin
+
+**Divine Spark** geneest of doet schade. **Turn Undead** en **Divine Sense** tonen de DC en het bereik.  **Divine Smite** kost een spell slot naar keuze en rolt de Radiant damage.
+
+### Druid
+
+Een Druid kent een beperkt aantal Beast-gedaantes. Dat is gekoppeld aan bepaalde regels. Kies ze onder **Bekende gedaantes**; filter daar op de omgeving waar een beest leeft (Arctic, Forest, Underwater). Na een Long Rest mag je er een wisselen.
+
+### Druid: Wild Shape
+
+Kies een van je bekende gedaantes. De omgeving kleurt het moment op het tafelscherm. Je krijgt je Temporary HP, je token draagt Wild Shape, en het blijft staan tot je het beëindigt.
 
 ### Fighter en Monk
 
-**Second Wind** rolt je genezing. **Action Surge** en **Indomitable** tellen af en laten de tafel zien wat er gebeurt. Een Monk geeft zijn Focus Points uit aan Flurry of Blows, Patient Defense, Step of the Wind en Stunning Strike; **Uncanny Metabolism** vult ze één keer per Long Rest weer aan, met genezing erbij.
+**Second Wind** rolt je genezing. **Action Surge** en **Indomitable** tellen af en laten de tafel zien wat er gebeurt. Een Monk geeft zijn Focus Points uit aan **Flurry of Blows**, **Patient Defense**, **Step of the Wind** en **Stunning Strike**
 
 ### Ranger en Rogue
 
-**Hunter's Mark** kies je op een vijand uit het lopende gevecht (of je typt een naam). Het merk staat op zijn token en jouw Concentration op de jouwe; als het gevecht afloopt vervalt het. **Sneak Attack** rolt je extra dice in één keer.
+**Hunter's Mark** is bedoeld voor één vijand uit het lopende gevecht. Het merkteken staat op zijn token en jouw Concentration op de jouwe. Als het gevecht afloopt vervalt het. **Sneak Attack** rolt je extra dice in één keer.
 
 ### Sorcerer
 
-**Innate Sorcery** loopt één minuut en eindigt vanzelf met het gevecht. **Metamagic** vraagt welke optie en rekent de kosten af. Met Font of Magic smelt je een slot om tot punten, of maak je van punten een verbruikte slot weer bruikbaar.
+**Innate Sorcery** loopt één minuut en eindigt vanzelf met het gevecht. **Metamagic** vraagt welke optie en rekent de kosten af. Met **Font of Magic** verander je een spell slot in punten of andersom.
 
 ### Warlock, Wizard en Artificer
 
-**Eldritch Blast** rolt elke straal apart. **Magical Cunning** haalt de helft van je Pact Magic-slots terug. **Arcane Recovery**: kies zelf welke slots, samen niet meer dan het budget. **Flash of Genius** (vanaf level 7) geef je aan wie de check of save doet.
+**Eldritch Blast** rolt elke blast apart. **Magical Cunning** haalt de helft van je Pact Magic-slots terug. **Arcane Recovery**: kies zelf welke slots, samen niet meer dan het budget.
 
 ---
 
 ## `dagkeuze`
 
 > Helpknop in: dagkeuze.js:50
-> Nu: de standaard uit de code
-> 2 stappen · 53 woorden · 27 per stap
+> Nu: **aangepast in deze campagne**
+> 2 stappen · 87 woorden · 44 per stap
+> De standaard telt 2 stap(pen).
 
 Titel: Je keuze van vandaag
 
 ### Eén keuze per dag
 
-Sommige class features laten je bij een lange rust iets kiezen dat de hele dag geldt. Wat je koos staat hier, zodat je er niet naar hoeft te zoeken.
+Sommige class features laten je bij een Long Rest iets kiezen dat de hele dag geldt. Wat je koos staat hier, zodat je er niet naar hoeft te zoeken.
 
-### Omzetten
+## `summons
 
-Je kiest opnieuw bij je volgende lange rust. Kwam je er tijdens de rust niet aan toe, dan kun je het hier alsnog doen.
+
+Titel: Opgeroepen
+
+### Summons en familiars
+
+Alles wat je zelf hebt opgeroepen: een familiar, een rijdier, een geest uit een spell. Je roept ze op met **Roep op** en stuurt ze weg met het kruisje.
+
+Een familiar loopt met je mee door de stad. Begint er een gevecht, dan staat hij er vanzelf bij, met jouw plek in de beurtvolgorde.
 
 ---
 
@@ -582,25 +562,22 @@ Hoe lang iets blijft verschilt per spell, en dat weet de app niet. Dus wist hij 
 
 ## `personage_wildmagic`
 
-> Helpknop in: app.js:9644
-> Nu: de standaard uit de code
-> 2 stappen · 64 woorden · 32 per stap
+> Helpknop in: app.js:9546
+> Nu: **aangepast in deze campagne**
+> 1 stap · 39 woorden · 39 per stap
+> De standaard telt 2 stap(pen).
 
 Titel: Wild Magic Surge
 
 ### Alleen voor een Wild Magic Sorcerer
 
-Cast je een spell van level 1 of hoger, dan kan je DM je om een d20 vragen. Een 20 laat de magie uit de hand lopen — wát er gebeurt, rolt hij op zijn eigen tafel.
-
-### Tides of Chaos
-
-Hier staat ook of je Tides of Chaos nog hebt. Gebruik je hem, dan mag je DM de volgende keer de surge afdwingen; dat is de prijs.
+Cast je een spell van level 1 of hoger, dan kan je DM je om een d20 roll vragen. Een 20 laat de magie uit de hand lopen. Wát er gebeurt, is te zien op de Wild Magic Table.
 
 ---
 
 ## `personage_stats`
 
-> Helpknop in: app.js:9657
+> Helpknop in: app.js:9559
 > Nu: de standaard uit de code
 > 4 stappen · 149 woorden · 37 per stap
 
@@ -626,7 +603,7 @@ Ben je niet proficient met je harnas, of is het te zwaar voor je Strength, dan z
 
 ## `personage_wapens`
 
-> Helpknop in: app.js:9722
+> Helpknop in: app.js:9624
 > Nu: de standaard uit de code
 > 4 stappen · 122 woorden · 31 per stap
 
@@ -652,7 +629,7 @@ Elk vakje is overtypbaar. De app vult voor; of het aan tafel ook zo uitpakt, bep
 
 ## `personage_abilities`
 
-> Helpknop in: app.js:9755
+> Helpknop in: app.js:9657
 > Nu: de standaard uit de code
 > 2 stappen · 58 woorden · 29 per stap
 
@@ -670,7 +647,7 @@ Vink aan waar je proficient in bent; de bonus loopt dan mee met je Proficiency B
 
 ## `personage_skills`
 
-> Helpknop in: app.js:9790
+> Helpknop in: app.js:9692
 > Nu: de standaard uit de code
 > 3 stappen · 71 woorden · 24 per stap
 
@@ -692,7 +669,7 @@ Met de pijltjes leg je er handmatig iets bovenop, voor een feature of een voorwe
 
 ## `personage_proficiencies`
 
-> Helpknop in: app.js:9827
+> Helpknop in: app.js:9729
 > Nu: de standaard uit de code
 > 2 stappen · 60 woorden · 30 per stap
 
@@ -710,7 +687,7 @@ Twee plekken kijken hiernaar: de wapentabel, die je proficiency bij je aanvalsbo
 
 ## `personage_talen`
 
-> Helpknop in: app.js:9852
+> Helpknop in: app.js:9754
 > Nu: de standaard uit de code
 > 2 stappen · 54 woorden · 27 per stap
 
@@ -728,7 +705,7 @@ De app doet er zelf niets mee: ze staan hier zodat jij en je DM er aan tafel naa
 
 ## `personage_tap`
 
-> Helpknop in: app.js:9871
+> Helpknop in: app.js:9773
 > Nu: de standaard uit de code
 > 2 stappen · 55 woorden · 28 per stap
 
@@ -746,7 +723,7 @@ Ze gelden tot je slaapt en verdwijnen dan vanzelf. Het is een aantekening die je
 
 ## `personage_emotes`
 
-> Helpknop in: app.js:9890
+> Helpknop in: app.js:9792
 > Nu: de standaard uit de code
 > 2 stappen · 51 woorden · 26 per stap
 
@@ -764,7 +741,7 @@ Je neemt ze op toen je je personage maakte, of je DM zet ze voor je klaar. Is he
 
 ## `personage_wiejebent`
 
-> Helpknop in: app.js:9907
+> Helpknop in: app.js:9809
 > Nu: de standaard uit de code
 > 2 stappen · 60 woorden · 30 per stap
 
@@ -782,20 +759,20 @@ Het blok staat dicht omdat je het niet elke beurt nodig hebt. Klik de kop om het
 
 ## `knapzak`
 
-> Helpknop in: app.js:9942
+> Helpknop in: app.js:9844
 > Nu: **aangepast in deze campagne**
-> 4 stappen · 127 woorden · 32 per stap
+> 4 stappen · 126 woorden · 32 per stap
 > De standaard telt 4 stap(pen).
 
 Titel: Boedel
 
-### Boedel en knapzak
+### Boedel en beurs
 
-Hier staan al je bezittingen: je beurs, jouw voorwerpen en de zegeningen en voordelen die je hebt. Scroll door de carrousel om al je voorwerpen te zien. Klik op een kaartje om het volledig te bekijken. Je kunt ook nieuwe voorwerpen, waarvoor de DM (nog) geen kaartje heeft aangemaakt, handmatig toevoegen.
+Hier staan al je bezittingen: je beurs, voorwerpen en de zegeningen en voordelen die je hebt. Scroll door de carrousel om al je voorwerpen te zien. Klik op een kaartje om het volledig te bekijken. Je kunt ook nieuwe voorwerpen, waarvoor de DM (nog) geen kaartje heeft aangemaakt, handmatig toevoegen.
 
-### Charges en gebruik
+### Charges en damage
 
-Sommige voorwerpen hebben charges (oplaadpunten). Klik op een bolletje om een charge te verbruiken. Wapens met schade tonen een knopje. Klik erop om een dobbelsteen te werpen.
+Sommige voorwerpen hebben *charges* (oplaadpunten). Klik op een bolletje om een charge te verbruiken. Wapens met schade tonen een knopje. Klik erop om een dobbelsteen te werpen.
 
 ### Zegeningen, vloeken en voordelen
 
@@ -810,22 +787,19 @@ Standaard houd je je eigen geldbeurs bij. Als de groep daarvoor kiest, kan de be
 ## `progressie`
 
 > Helpknop in: render-progressie.js:657
-> Nu: de standaard uit de code
-> 4 stappen · 167 woorden · 42 per stap
+> Nu: **aangepast in deze campagne**
+> 3 stappen · 101 woorden · 34 per stap
+> De standaard telt 4 stap(pen).
 
 Titel: Features & Traits
 
 ### Alles wat je kunt
 
-Elke class feature, elke species trait en elke keuze die daarbij hoort, geordend per level. Wat boven je huidige level ligt staat grijs — dat komt nog. Met het sterretje filter je op je favorieten; met **+** voeg je iets toe dat nergens vandaan komt maar wel op je blad hoort.
-
-### Eén plek, niet twee
-
-Dit stond ook als lijst op je personageblad, met precies dezelfde namen — één keer als kaart met een plaatje en één keer als uitklapregel. Die tweede lijst is weg; wat hem de moeite waard maakte zit nu op de kaart zelf.
+Elke class feature, elke species trait en elke keuze die daarbij hoort, geordend per level. Wat nog boven je huidige level ligt is grijs getint. Met het sterretje filter je op je favorieten; met **+** voeg je iets toe dat nergens vandaan komt maar wel op je blad hoort.
 
 ### Bijhouden en aantekenen
 
-Open een feature en je ziet hoeveel ladingen hij heeft (klik een bolletje om er een te verbruiken), hoeveel dat er zijn (− en +), en een veld voor je eigen aantekening. Bij een lange rust lopen ze weer vol.
+Open een feature en je ziet hoeveel charges hij heeft. Klik een bolletje om een charge te verbruiken.
 
 ### Keuzes
 
@@ -835,23 +809,24 @@ Waar je iets moet kiezen — een feat, een subclass, een Ability Score Improveme
 
 ## `spreukenboek`
 
-> Helpknop in: app.js:10228
-> Nu: de standaard uit de code
-> 3 stappen · 117 woorden · 39 per stap
+> Helpknop in: app.js:10130
+> Nu: **aangepast in deze campagne**
+> 3 stappen · 128 woorden · 43 per stap
+> De standaard telt 3 stap(pen).
 
 Titel: Spreukenboek
 
 ### Spreukenboek
 
-Hier staan JOUW spreuken, geordend op level — niet te verwarren met het tabblad Spreuken in de zijbalk, dat de hele bibliotheek toont. Bovenaan zie je je Spell Save DC, spell attack bonus en beschikbare spell slots. Klik op een spreuk voor de volledige beschrijving.
+Hier staan jouw spreuken, geordend op level. Dat moet niet verward worden met het tabblad Spells bij Naslag: dat is de hele bibliotheek. Bovenaan zie je je Spell Save DC, en Spell Attack Bonus. Op de linkerpagina zie je de beschikbare spell slots. Klik op een spreuk voor de volledige beschrijving.
 
 ### Spell slots
 
-Je spell slots worden weergegeven als bolletjes per level. Een gevuld bolletje is beschikbaar, een leeg bolletje is verbruikt. Klik op een bolletje om het te markeren als verbruikt, of klik opnieuw om het terug te zetten. Slots herstellen na een lange rust.
+Je spell slots worden weergegeven als bolletjes per level. Een gevuld bolletje is beschikbaar, een leeg bolletje is verbruikt. Klik op een bolletje om het te markeren als verbruikt, of klik opnieuw om het terug te zetten. Slots herstellen na een lange rust. Klik op het plusje om een spell slot van een hoger level te gebruiken.
 
 ### Vastgepinde spreuken
 
-Veelgebruikte spreuken kun je vastpinnen via de ster (★) op het kaartje. Ze verschijnen dan ook als snelknoppen op het Party-tabblad, zodat je ze snel kunt raadplegen tijdens gevecht.
+Veelgebruikte spreuken kun je vastpinnen via de bladwijzer op het kaartje. Zo kun je ze snel raadplegen tijdens een gevecht.
 
 ---
 
@@ -868,52 +843,54 @@ Titel:
 ## `spreukenboek_boek`
 
 > Helpknop in: app.js:4808
-> Nu: de standaard uit de code
-> 4 stappen · 309 woorden · 77 per stap
+> Nu: **aangepast in deze campagne**
+> 4 stappen · 245 woorden · 61 per stap
+> De standaard telt 4 stap(pen).
 
 Titel: Het opengeslagen boek
 
-### Inhoud
+### Inhoudsopgave
 
-Een overzicht van al je spreuken per level. Je kunt ook zoeken: typ een naam of school en klik **+** om een spreuk aan je boek toe te voegen. Spreuken die je al hebt staan bovenaan onder *Jouw spreuken* — klik op de naam om er meteen naartoe te bladeren. Met **Alleen paraat** blijven alleen je voorbereide spreuken over.
+Een overzicht van al je spreuken per level. Je kunt ook zoeken: typ een naam of school en klik **+** om een spreuk aan je boek toe te voegen. Spreuken die je al hebt staan bovenaan onder *Jouw spreuken*.
 
 ### Deze spreuk
 
-Alles wat je aan de spreuk kunt hangen die openligt. **Incantatie** — de spreukformule die jij uitspreekt; die verschijnt als een briefje op de linkerpagina. **Level verkregen** — op welk level je hem leerde; hoe lager, hoe geler het papier. **Concentration** — de Concentration-teller starten of stoppen. **Marginalia** — kleine symbolen in de kantlijn (schade, healing, utility…): kies een icoon, typ eventueel een toelichting en klik +.
+Alles wat je aan de spreuk kunt hangen die openligt om het spreukenboek. De **incantatie**, de spreukformule die jij uitspreekt, verschijnt als een briefje op de linkerpagina. Bij **Concentration** kun je de Concentration-teller starten of stoppen.
 
 ### Material
 
-Heeft een spreuk een M-component, dan staat onder de gegevens wat het materiaal waard is en of de spreuk het **verbruikt**. Kies **Altijd bij de hand** als een component pouch of focus het dekt, of als je het (dure) ding gewoon bezit. Kies **Voorraad** als je het telt: elke keer dat je voor deze spreuk een slot afvinkt gaat er één af, en met − en + stel je bij wat je hebt. Verbruikt materiaal met een prijs staat vanzelf op Voorraad, beginnend bij nul.
+Heeft een spreuk een M-component, dan staat onder de gegevens wat het materiaal waard is en of de spreuk het **verbruikt**. Kies **Altijd bij de hand** als een component pouch of focus het dekt, of als je het (dure) voorwerp gewoon bezit. Kies **Voorraad** als je het telt. Elke keer dat je voor deze spreuk een slot afvinkt gaat er één exemplaar af, en met − en + stel je bij wat je hebt. 
 
-Is je voorraad op, dan houdt het boek je cast even vast. Je kunt **toch casten** (je hebt het wél, of de DM gaf het je), **niet casten**, of — als je DM dat toestaat — het bedrag **uit de beurs afrekenen**. Dat bedrag is een voorstel: staat er "per target" in de tekst, tik dan zelf het juiste getal in.
+Is je voorraad op, dan houdt het boek je cast even vast. Je kunt **toch casten** (je hebt het wél, of de DM gaf het je), **niet casten**, of — als je DM dat toestaat — het bedrag **uit de beurs afrekenen**. Dat bedrag is een voorstel. Staat er "per target" in de tekst, typ dan zelf het juiste getal.
 
 ### Bladeren
 
-Met de pijlen links en rechts blader je door je spreuken; op een telefoon kun je ook vegen. Het gouden lint in het boek markeert een favoriet — klik erop om hem aan of uit te zetten.
+Met de pijlen links en rechts blader je door je spreuken; op een telefoon kun je ook vegen. Het rode lint in het boek markeert een favoriet. Klik erop om hem aan of uit te zetten.
 
 ---
 
 ## `spreukenboek_inhoud`
 
 > Helpknop in: app.js:4877
-> Nu: de standaard uit de code
-> 2 stappen · 107 woorden · 54 per stap
+> Nu: **aangepast in deze campagne**
+> 2 stappen · 100 woorden · 50 per stap
+> De standaard telt 2 stap(pen).
 
 Titel: Inhoudsopgave
 
 ### Bladeren
 
-Klik op een naam en het boek slaat die bladzijde op. Zoeken gaat met het veld bovenaan; typ je iets dat niet in je boek staat, dan zoekt hij ook in de spreuken die je nog *kunt* leren.
+Klik op een spreuk en het boek slaat die bladzijde op. Zoeken gaat met het veld bovenaan. Typ je iets dat niet in je boek staat, dan zoekt hij ook in de spreuken die je nog *kunt* leren.
 
-Een ★ betekent altijd paraat (elke cantrip is dat), een vinkje betekent dat je hem voor vandaag hebt voorbereid.
+Een ★ betekent altijd paraat. Een cantrip heb je altijd paraat. Een vinkje betekent dat je de spell voor vandaag hebt voorbereid.
 
 ### De drie knoppen
 
-**Vinkje** — zet een spreuk gereed. Hij loopt drie standen af: niet paraat, paraat, altijd paraat. Cantrips hebben hem niet; die zijn het al.
+**Vinkje**: zet een spreuk klaar. Hij loopt drie standen af: niet paraat, paraat, altijd paraat. 
 
-**Potlood** — schrijf een incantatie: de woorden die jij uitspreekt als je hem cast. Die verschijnen op de bladzijde.
+**Potlood**: schrijf de incantatie: de woorden die jij uitspreekt als je hem cast. Die verschijnen op de bladzijde.
 
-**Prullenbak** — haal hem uit je boek.
+**Prullenbak**: haal de spreuk uit je boek.
 
 ---
 
@@ -924,30 +901,31 @@ De vijf kaartjes-tabs plus het bestiarium. Allemaal dezelfde vraag: wát staat h
 ## `personages`
 
 > Helpknop in: render-campagne.js:3451 (de kaartjes-tab geeft het entiteitstype als sleutel door)
-> Nu: de standaard uit de code
-> 5 stappen · 195 woorden · 39 per stap · rolverdeling (speler)
+> Nu: **aangepast in deze campagne**
+> 5 stappen · 162 woorden · 32 per stap
+> De standaard telt 5 stap(pen).
 
 Titel: Personages
 
 ### Personages
 
-Hier vind je de **personages** die je hebt ontmoet — NPC’s én de avonturiers van het gezelschap. Klik een kaart voor details, geheimen en relaties. De DM bepaalt wie zichtbaar is.
+Hier vind je de **personages** die je hebt ontmoet: de NPC’s én de avonturiers van het gezelschap. Klik op een kaart voor details, relaties, roddels en geheimen. De DM bepaalt wie en wat zichtbaar is.
 
 ### Zoeken en bladeren
 
-Typ in het zoekveld een naam of een woord uit de beschrijving. In een geopend kaartje blader je met de pijltjes (of door te vegen) naar het volgende — in de volgorde zoals je de lijst nu gefilterd ziet.
+Type in het zoekveld een naam of een woord uit de beschrijving. In een geopend kaartje blader je met de pijltjes (of door te vegen) naar het volgende kaartje.
 
 ### Tik om te openen
 
-Elk kaartje toont alleen een gezicht en een naam. **Tik erop** en het wordt groot; **tik nog eens** en het draait om naar het volgende blad: gegevens, beschrijving, roddels en geheimen. Met de icoontjes onderaan spring je meteen naar een blad. Een blad dat er niet is, staat er ook niet: wie nog geen roddels heeft, heeft geen roddelblad.
+Elk kaartje toont alleen een gezicht en een naam. **Tik erop** en het wordt groot. **Tik nog eens** en het draait om naar het volgende blad: gegevens, beschrijving, roddels en geheimen. Met de icoontjes onderaan spring je meteen naar een blad.
 
 ### Het hele kaartje
 
-Het pijltjesknopje rechtsonder vergroot het kaartje tot het volledige venster, met o.a. het statblok en de kaart. Het andere knopje (of Escape) maakt het weer klein.
+Het pijltjesknopje rechtsonder vergroot het kaartje tot het volledige venster, met o.a. het stat block en de kaart. Het andere knopje (of Escape) maakt het weer klein.
 
-### Favorieten {alleen spelers}
+### Favorieten
 
-Met de **ster** bewaar je een personage bij je favorieten. Die liggen als een stapeltje linksboven; tik erop en ze waaieren uit tot een eigen rij, met een rood lint. Zodra je zoekt of filtert, ligt de stapel even weg.
+Met de **ster** bewaar je een personage bij je favorieten. Die liggen als een stapeltje linksboven. Tik erop en ze waaieren uit tot een eigen rij, met een rood lint.
 
 ---
 
@@ -955,14 +933,30 @@ Met de **ster** bewaar je een personage bij je favorieten. Die liggen als een st
 
 > Helpknop in: render-campagne.js:3451 (de kaartjes-tab geeft het entiteitstype als sleutel door)
 > Nu: **aangepast in deze campagne**
-> 1 stap · 36 woorden · 36 per stap
+> 5 stappen · 174 woorden · 35 per stap
 > De standaard telt 3 stap(pen).
 
 Titel: Locaties
 
 ### Locaties
 
-De **plekken** van Grisburgh en daarbuiten. Een locatie met het type *Winkel* heeft een voorraad waar je voorwerpen kunt kopen en verkopen. Filter via de trechter op o.a. *Winkel*. Klik op een kaart voor meer informatie.
+Hier vind je alle **plekken** die je hebt bezocht. Klik op een kaart voor details, relaties, roddels en geheimen. De DM bepaalt wat zichtbaar is.
+
+### Zoeken en bladeren
+
+Type in het zoekveld een naam of een woord uit de beschrijving. In een geopend kaartje blader je met de pijltjes (of door te vegen) naar het volgende kaartje. Een locatie met het type *Winkel* heeft een voorraad waar je voorwerpen kunt kopen en verkopen. Filter via de trechter op o.a. *Winkel*. Klik op een kaart voor meer informatie.
+
+### Tik om te openen
+
+Elk kaartje toont alleen een afbeelding en een naam. **Tik erop** en het wordt groot. **Tik nog eens** en het draait om naar het volgende blad: gegevens, beschrijving, roddels en geheimen. Met de icoontjes onderaan spring je meteen naar een blad.
+
+### Het hele kaartje
+
+Het pijltjesknopje rechtsonder vergroot het kaartje tot het volledige venster. Het andere knopje (of Escape) maakt het weer klein.
+
+### Favorieten
+
+Met de **ster** bewaar je een locatie bij je favorieten. Die liggen als een stapeltje linksboven. Tik erop en ze waaieren uit tot een eigen rij, met een rood lint.
 
 ---
 
@@ -970,14 +964,30 @@ De **plekken** van Grisburgh en daarbuiten. Een locatie met het type *Winkel* he
 
 > Helpknop in: render-campagne.js:3451 (de kaartjes-tab geeft het entiteitstype als sleutel door)
 > Nu: **aangepast in deze campagne**
-> 1 stap · 20 woorden · 20 per stap
+> 5 stappen · 145 woorden · 29 per stap
 > De standaard telt 3 stap(pen).
 
 Titel: Organisaties
 
 ### Organisaties
 
-Gilden, ordes en groeperingen in de wereld. Klik op een kaart voor hun doel, leden en banden met andere partijen.
+Gilden, ordes en groeperingen in de wereld. Klik op een kaart voor hun doel, leden en banden met andere partijen. De DM bepaalt wat zichtbaar is.
+
+### Zoeken en bladeren
+
+Type in het zoekveld een naam of een woord uit de beschrijving. In een geopend kaartje blader je met de pijltjes (of door te vegen) naar het volgende kaartje.
+
+### Tik om te openen
+
+Elk kaartje toont alleen een afbeelding en een naam. **Tik erop** en het wordt groot. **Tik nog eens** en het draait om naar het volgende blad: gegevens, beschrijving, roddels en geheimen. Met de icoontjes onderaan spring je meteen naar een blad.
+
+### Het hele kaartje
+
+Het pijltjesknopje rechtsonder vergroot het kaartje tot het volledige venster. Het andere knopje (of Escape) maakt het weer klein.
+
+### Favorieten
+
+Met de **ster** bewaar je een organisatie bij je favorieten. Die liggen als een stapeltje linksboven. Tik erop en ze waaieren uit tot een eigen rij, met een rood lint.
 
 ---
 
@@ -985,18 +995,38 @@ Gilden, ordes en groeperingen in de wereld. Klik op een kaart voor hun doel, led
 
 > Helpknop in: render-campagne.js:3451 (de kaartjes-tab geeft het entiteitstype als sleutel door)
 > Nu: **aangepast in deze campagne**
-> 2 stappen · 72 woorden · 36 per stap
+> 7 stappen · 242 woorden · 35 per stap
 > De standaard telt 3 stap(pen).
 
 Titel: Voorwerpen
 
 ### Voorwerpen
 
-Wapens, uitrusting en magische items. Je kunt voorwerpen claimen, ruilen en in winkels kopen en verkopen. **Zegeningen & Gunsten** (tempel- en factie-beloningen) staan onder een eigen filter, los van de gewone voorwerpen.
+Wapens, uitrusting en magische items. Je kunt voorwerpen claimen, ruilen en in winkels kopen en verkopen. Klik op een kaart voor de eigenschappen. De DM bepaalt wat zichtbaar is.
+
+### Zegeningen en gunsten
+
+Die horen hier ook, maar ze staan niet in de gewone lijst: met 98 van de 288 zouden ze de rest verdringen. Ga naar **Archief → Zegeningen & Gunsten** en je ziet precies die kaartjes — het is dezelfde lijst met het filter al gezet, dus je kunt er gewoon doorheen zoeken en bladeren.
 
 ### Geclaimde en geschonken voorwerpen
 
 Voorwerpen die je hebt geclaimd of die de DM je heeft gegeven, verschijnen op je personagetabblad. Sommige voorwerpen kunnen maar een aantal keer gebruikt worden. Andere voorwerpen hebben een beperkt aantal *charges*, die opladen na een Short of Long Rest.
+
+### Zoeken en bladeren
+
+Type in het zoekveld een naam of een woord uit de beschrijving. In een geopend kaartje blader je met de pijltjes (of door te vegen) naar het volgende kaartje.
+
+### Tik om te openen
+
+Elk kaartje toont alleen een afbeelding en een naam. **Tik erop** en het wordt groot. **Tik nog eens** en het draait om naar het volgende blad: gegevens, beschrijving, roddels en geheimen. Met de icoontjes onderaan spring je meteen naar een blad.
+
+### Het hele kaartje
+
+Het pijltjesknopje rechtsonder vergroot het kaartje tot het volledige venster. Het andere knopje (of Escape) maakt het weer klein.
+
+### Favorieten
+
+Met de **ster** bewaar je een voorwerp bij je favorieten. Die liggen als een stapeltje linksboven. Tik erop en ze waaieren uit tot een eigen rij, met een rood lint.
 
 ---
 
@@ -1004,14 +1034,30 @@ Voorwerpen die je hebt geclaimd of die de DM je heeft gegeven, verschijnen op je
 
 > Helpknop in: render-campagne.js:3451 (de kaartjes-tab geeft het entiteitstype als sleutel door)
 > Nu: **aangepast in deze campagne**
-> 1 stap · 19 woorden · 19 per stap
+> 5 stappen · 145 woorden · 29 per stap
 > De standaard telt 3 stap(pen).
 
 Titel: Documenten
 
 ### Documenten
 
-Het **archief**: brieven, aktes, kaarten en aantekeningen die je onderweg verzamelt. De DM onthult documenten wanneer ze relevant worden.
+Brieven, aktes, kaarten en aantekeningen die je onderweg verzamelt. Klik op een kaart voor de de volledige tekst. De DM onthult documenten wanneer ze relevant worden.
+
+### Zoeken en bladeren
+
+Type in het zoekveld een naam of een woord uit de beschrijving. In een geopend kaartje blader je met de pijltjes (of door te vegen) naar het volgende kaartje.
+
+### Tik om te openen
+
+Elk kaartje toont alleen een afbeelding en een naam. **Tik erop** en het wordt groot. **Tik nog eens** en het draait om naar het volgende blad: gegevens, beschrijving, roddels en geheimen. Met de icoontjes onderaan spring je meteen naar een blad.
+
+### Het hele kaartje
+
+Het pijltjesknopje rechtsonder vergroot het kaartje tot het volledige venster. Het andere knopje (of Escape) maakt het weer klein.
+
+### Favorieten
+
+Met de **ster** bewaar je een document bij je favorieten. Die liggen als een stapeltje linksboven. Tik erop en ze waaieren uit tot een eigen rij, met een rood lint.
 
 ---
 
@@ -1019,7 +1065,7 @@ Het **archief**: brieven, aktes, kaarten en aantekeningen die je onderweg verzam
 
 > Helpknop in: render-bestiarium.js:116
 > Nu: **aangepast in deze campagne**
-> 2 stappen · 75 woorden · 38 per stap
+> 2 stappen · 76 woorden · 38 per stap
 > De standaard telt 4 stap(pen).
 
 Titel: Bestiarium
@@ -1031,10 +1077,11 @@ Het bestiarium toont alle wezens die de party heeft ontmoet. Hoe meer je van een
 ### Kennisniveaus
 
 Er zijn drie kennisniveaus. 
-- Naam: je herkent het wezen maar weet verder niets. 
-- Deels: je kent de basisstats, wapenresistenties en zintuigen. 
-- Volledig: je kent alles: traits, actions en Challenge Rating. 
-De Magizoöloog kan het kennisniveau verhogen.
+- **Naam**: je herkent het wezen maar weet verder niets. 
+- **Deels**: je weet de base stats, resistances en senses. 
+- **Volledig**: je weet alles: traits, actions en Challenge Rating. 
+
+De **Magizoöloog** kan het kennisniveau verhogen.
 
 ---
 
@@ -1045,30 +1092,35 @@ Het detailvenster, per soort kaartje en per tabblad daarbinnen. Dit leest iedere
 ## `hulp_kijk_personages_info`
 
 > Detailvenster van een kaartje (wat een speler leest) — kaartjes van het type **personages**, tabblad **info**. Wordt opgebouwd uit de naam, niet ergens aangeroepen.
-> Nu: de standaard uit de code
-> 5 stappen · 347 woorden · 69 per stap · rolverdeling (dm)
+> Nu: **aangepast in deze campagne**
+> 6 stappen · 396 woorden · 66 per stap
+> De standaard telt 5 stap(pen).
 
 Titel: Dit personage
 
-### Wie is dit
+### Wie is dit?
 
-Onder de naam staan zijn rol, volk en klasse. De beschrijving vertelt wat je van hem weet; namen die je al kent zijn klikbaar. Een badge op de kaart laat zien of hij een verkoper is of je in de weg staat.
+Onder de naam staan de rol, race en class. De beschrijving vertelt wat je van het personage weet. Namen die je al kent zijn klikbaar. Een badge op de kaart laat zien of het personage een verkoper of antagonist is.
 
 ### Roddels en geheimen
 
-De **roddel** is wat er over hem verteld wordt — bij meerdere blader je met de pijltjes. Een **geheim** zie je pas als je het ontdekt hebt; onthulde geheimen kunnen alles veranderen wat je van iemand dacht te weten.
+Op een personagekaartje kun je **roddels** en **geheimen** vinden. De **roddel** is wat er over iemand verteld wordt. Bij meerdere roddels blader je met de pijltjes. Een **geheim** zie je pas als je het ontdekt hebt. Onthulde geheimen kunnen alles veranderen wat je van iemand dacht te weten.
 
-### Waar hoort hij bij
+### Waar hoort dit personage bij?
 
-Onder **Waar hoort dit personage bij?** staat waaraan hij verbonden is: eigenaar van een herberg, lid van een gilde, verkoper in een winkel. Klik erop om daarheen te gaan.
+Onder **Waar hoort dit personage bij?** staat waaraan het personage verbonden is. Is hij eigenaar van een herberg, lid van een gilde of verkoper in een winkel? Klik erop om daarheen te gaan.
 
-### Huurling {alleen jij}
+### Zichtbaarheid
+
+Bij zichtbaarheid geef je aan wat de actieve party of dit personage zichtbaar of nog verborgen is. Ook kan een personage op de status vaag staan. Dat betekent dat spelers de naam zien, maar geen verdere informatie hebben.
+
+### Toestand
 
 Met **Huurling** neem je hem in dienst bij de **actieve party**, voor een loon per dag. De app stelt 2 gouden munten voor (de PHB-prijs voor een geschoolde kracht; een ongeschoolde kost er 2 zilveren) — tik in wat er aan tafel is afgesproken. Hij wordt meteen medestander.
 
 Een dag is een **lange rust**: dan gaat het loon uit de beurs van wie betaalt (of de gedeelde beurs). Is daar te weinig, dan krijgt hij niets en telt hij dat. Na **twee dagen** zonder loon wil hij vertrekken — je ziet het op zijn knop en krijgt een melding — maar hij gaat pas als jij op *Laat hem gaan* drukt. Betalen kan ook achteraf: *Achterstand betalen* doet het in één keer.
 
-### Gevangen nemen {alleen jij}
+### Gevangen nemen
 
 Met **Gevangen** in de knoppenrij zet je hem vast bij de **actieve party**; je mag erbij zetten waar ze hem houden. Hij komt dan bij de spelers in het partytabblad te staan, naast de medestanders, en zijn kaartje krijgt tralies over het portret. Dezelfde knop laat hem weer vrij.
 
@@ -1478,7 +1530,7 @@ Het Heldenboek en de spreukenbibliotheek: niet over déze campagne maar over het
 
 ## `vaardigheden`
 
-> Helpknop in: render-vaardigheden.js:5863
+> Helpknop in: render-vaardigheden.js:5829
 > Nu: de standaard uit de code
 > 7 stappen · 441 woorden · 63 per stap
 
@@ -1518,7 +1570,7 @@ Bij de meeste staat het **level** erbij. Dat komt uit het boek waar die subclass
 
 ## `hulp_heldenboek_kaart`
 
-> Helpknop in: render-vaardigheden.js:3762 (venster)
+> Helpknop in: render-vaardigheden.js:3728 (venster)
 > Nu: de standaard uit de code
 > 5 stappen · 340 woorden · 68 per stap
 
@@ -1558,7 +1610,7 @@ Dat is geen versiering: vink je er twee aan om ze te vergelijken, dan lopen hun 
 
 ## `hulp_heldenboek_editor`
 
-> Helpknop in: render-vaardigheden.js:4592 (venster)
+> Helpknop in: render-vaardigheden.js:4558 (venster)
 > Nu: de standaard uit de code
 > 10 stappen · 993 woorden · 99 per stap
 
@@ -1926,7 +1978,7 @@ In de volgorde van het menu (`DIENST_GROEPEN`): kopen en verkopen, rust en verma
 
 ## `markt`
 
-> Helpknop in: app.js:13582, wizard.js:46 (dienstkop)
+> Helpknop in: app.js:13484, wizard.js:46 (dienstkop)
 > Nu: de standaard uit de code
 > 4 stappen · 177 woorden · 44 per stap
 
@@ -1952,7 +2004,7 @@ Alleen winkels die je party **ontdekt heeft** en die tijdens deze akte bereikbaa
 
 ## `winkel`
 
-> Helpknop in: app.js:13710
+> Helpknop in: app.js:13612
 > Nu: de standaard uit de code
 > 6 stappen · 202 woorden · 34 per stap
 
@@ -1986,7 +2038,7 @@ Klik de naam van een voorwerp: dan opent zijn **kaartje**, met de beschrijving, 
 
 ## `magizoo`
 
-> Helpknop in: app.js:14719 (dienstkop), dm-panel.js:7344 (dienstkop), wizard.js:49 (dienstkop)
+> Helpknop in: app.js:14621 (dienstkop), dm-panel.js:7344 (dienstkop), wizard.js:49 (dienstkop)
 > Nu: **aangepast in deze campagne**
 > 4 stappen · 184 woorden · 46 per stap
 > De standaard telt 2 stap(pen).
@@ -2013,7 +2065,7 @@ Wat vandaag in de kooien zit, staat onder *Adoptie*. Een dier kost geld en krijg
 
 ## `herberg`
 
-> Helpknop in: app.js:14041 (dienstkop), wizard.js:43 (dienstkop)
+> Helpknop in: app.js:13943 (dienstkop), wizard.js:43 (dienstkop)
 > Nu: **aangepast in deze campagne**
 > 4 stappen · 175 woorden · 44 per stap
 > De standaard telt 2 stap(pen).
@@ -2040,7 +2092,7 @@ Je kunt in De Swarte Cat ook overnachten. Dat regelt je DM voor het hele gezelsc
 
 ## `tweespalt`
 
-> Helpknop in: app.js:15512 (dienstkop), wizard.js:44 (dienstkop)
+> Helpknop in: app.js:15414 (dienstkop), wizard.js:44 (dienstkop)
 > Nu: **aangepast in deze campagne**
 > 4 stappen · 169 woorden · 42 per stap
 > De standaard telt 2 stap(pen).
@@ -2067,7 +2119,7 @@ Kom je geld tekort, dan leent Taevin het je. Let op de rente: die loopt per **la
 
 ## `tempel`
 
-> Helpknop in: app.js:15070, app.js:15150, wizard.js:47 (dienstkop)
+> Helpknop in: app.js:14972, app.js:15052, wizard.js:47 (dienstkop)
 > Nu: **aangepast in deze campagne**
 > 4 stappen · 167 woorden · 42 per stap
 > De standaard telt 3 stap(pen).
@@ -2094,7 +2146,7 @@ Verzaak je je eed, dan volgt een vloek. Die raak je kwijt door in de tempel boet
 
 ## `ursula`
 
-> Helpknop in: app.js:14994 (dienstkop), dm-panel.js:7466 (dienstkop), wizard.js:48 (dienstkop)
+> Helpknop in: app.js:14896 (dienstkop), dm-panel.js:7466 (dienstkop), wizard.js:48 (dienstkop)
 > Nu: **aangepast in deze campagne**
 > 3 stappen · 115 woorden · 38 per stap
 > De standaard telt 2 stap(pen).
@@ -2117,7 +2169,7 @@ Onder het beeldspel zit soms een concreet gegeven: een naam of een plek. Dat kom
 
 ## `gock`
 
-> Helpknop in: app.js:14377 (dienstkop), dm-panel.js:7148 (dienstkop), wizard.js:45 (dienstkop)
+> Helpknop in: app.js:14279 (dienstkop), dm-panel.js:7148 (dienstkop), wizard.js:45 (dienstkop)
 > Nu: **aangepast in deze campagne**
 > 3 stappen · 94 woorden · 31 per stap
 > De standaard telt 2 stap(pen).
@@ -2140,7 +2192,7 @@ Je kunt hem ook een gerucht laten rondbrengen over iemand of iets: waar of niet.
 
 ## `woekeraar`
 
-> Helpknop in: app.js:14650 (dienstkop), wizard.js:50 (dienstkop)
+> Helpknop in: app.js:14552 (dienstkop), wizard.js:50 (dienstkop)
 > Nu: de standaard uit de code
 > 4 stappen · 151 woorden · 38 per stap
 
@@ -2166,7 +2218,7 @@ Alles in één keer, of een deel. Bij een deel wordt wat overblijft de nieuwe ho
 
 ## `facties`
 
-> Helpknop in: app.js:9914, app.js:15719 (dienstkop), app.js:15833
+> Helpknop in: app.js:9816, app.js:15621 (dienstkop), app.js:15735
 > Nu: **aangepast in deze campagne**
 > 5 stappen · 212 woorden · 42 per stap
 > De standaard telt 4 stap(pen).

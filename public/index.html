@@ -110,6 +110,11 @@
             <button class="archief-menu-item" data-section="organisaties"><svg class="icon" aria-hidden="true" focusable="false"><use href="/img/icons.svg?v=32#icon-landmark"/></svg> Organisaties</button>
             <button class="archief-menu-item" data-section="voorwerpen"><svg class="icon" aria-hidden="true" focusable="false"><use href="/img/icons.svg?v=32#icon-package"/></svg> Voorwerpen</button>
             <button class="archief-menu-item" data-section="documenten"><svg class="icon" aria-hidden="true" focusable="false"><use href="/img/icons.svg?v=32#icon-scroll-text"/></svg> Documenten</button>
+            <!-- Geen eigen sectie maar een eigen deur: hij opent Voorwerpen met
+                 het filter al op Blessing en Boon. Die kaartjes staan daar
+                 standaard niet in (98 van de 288 verdrinken de lijst) en ze
+                 hoorden niet in het Heldenboek, want dat gaat over wat je kiest. -->
+            <button class="archief-menu-item" onclick="window._naarZegeningen?.()"><svg class="icon" aria-hidden="true" focusable="false"><use href="/img/icons.svg?v=32#icon-sparkles"/></svg> Zegeningen &amp; Gunsten</button>
             <button class="archief-menu-item dm-only" data-section="bestiarium"><svg class="icon" aria-hidden="true" focusable="false"><use href="/img/icons.svg?v=32#icon-skull"/></svg> Bestiarium</button>
           </div>
         </div>
@@ -613,6 +618,6 @@
   <!-- DM Instellingen modal -->
 
   <script type="module" src="/js/sound-manager.js?v=15"></script>
-  <script type="module" src="/js/app.js?v=1366"></script>
+  <script type="module" src="/js/app.js?v=1369"></script>
 </body>
 </html>
