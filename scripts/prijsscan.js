@@ -1,4 +1,14 @@
-// Zoekt prijsvelden die parsePrijs() als null leest: een bedrag zónder munt.
+// **Welke prijsvelden leest de server als niets?**
+//
+// `parsePrijs()` in routes/api.js kent drie vormen: de kommanotatie (`1,50`),
+// een bedrag met een munt erachter (`2 kn`, `5 gp`) en — sinds 24 nov 2026 —
+// een kaal getal, dat florindes zijn. Al het andere geeft `null`, en dan
+// schrijft de aanroeper niets af: het voorwerp is gratis, de overnachting
+// kost niets, en er komt geen foutmelding. Zo stond in Grisburgh bij twee
+// winkels een Dart op "5 kp." — een munt die niet bestaat.
+//
+//   node scripts/prijsscan.js [pad naar de campagnemap]
+//   GRISBURGH_DATA_DIR=... node scripts/prijsscan.js data/campaigns/grisburgh/
 const fs = require('fs');
 const D = process.argv[2] || '/var/www/grisburgh/data/campaigns/grisburgh/';
 const meta = JSON.parse(fs.readFileSync(D + 'meta.json', 'utf8'));
@@ -14,6 +24,7 @@ const faalt = (v) => {
   if (v === undefined || v === null || v === '') return false;
   const kaal = String(v).trim().replace(/\s+/g, '');
   if (komma.test(kaal)) return false;
+  if (/^\d+$/.test(kaal)) return false;   // een kaal getal is florindes (sinds 24 nov 2026)
   return !re.test(String(v));
 };
 const meld = [];

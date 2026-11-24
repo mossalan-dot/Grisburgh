@@ -6,6 +6,25 @@ groot het is. Bijgewerkt 15 sep 2026.
 
 ## Nu aan de beurt
 
+- [ ] **Het wachtwoord van de Testgroep staat in de openbare repo.**
+      `config.js` heeft `dmPassword: process.env.DM_PASSWORD || 'grisburgh-dm'`,
+      en díé string is tegelijk het groepswachtwoord van party Testgroep in
+      Grisburgh. `mossalan-dot/Grisburgh` is openbaar, dus iedereen die het
+      leest kan op grisburgh.nl als speler van die party inloggen en zien wat
+      zij zien. Gevonden 24 nov 2026.
+      **Niet geraakt:** het DM-wachtwoord. Dat staat gehasht (`scrypt$…`) in
+      `dm-state.json` en `DM_PASSWORD` staat in de pm2-env, dus de fallback
+      komt daar nooit aan bod.
+      **Twee halve reparaties, allebei nodig:**
+      · het wachtwoord van de Testgroep omzetten (Instellingen → Party's) —
+        dat is de enige die het lek dicht;
+      · de fallback uit `config.js` halen. Dat raakt 81 plekken in de toetsen,
+        die er als DM-wachtwoord mee inloggen; die moeten dan
+        `process.env.DM_PASSWORD` zetten in hun opzet.
+      En let op: **CLAUDE.md beweert dat die fallback er niet meer is**
+      ("config.js heeft géén fallback meer", bij de wachtwoordrotatie van
+      12 juni 2026). Dat klopt dus niet, en die zin hoort mee rechtgezet.
+
 - [x] **Drie dingen in de data van Grisburgh** — gedaan 19 nov 2026. De eerste
       twee met `scripts/progressie-correcties.js` (die toetst eerst of hij
       aantreft wat hij verwacht, dus hij is veilig opnieuw te draaien); de derde

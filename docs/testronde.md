@@ -2610,3 +2610,15 @@ munt blijven zoals ze waren, en een onbekende munt blijft nul.
 `meta.json` en `entities.json`): op die twee darts en de herbergprijs na stond
 elk prijsveld goed — 0 van de 190 kaartjesprijzen en 120 van de 122
 voorraadregels waren in orde.
+
+**Nagekomen, met goedkeuring van de DM** (24 nov 2026): de twee darts op
+`"5 kp."` staan nu op `"5 cl"` (backup ernaast), en de twee dode bestanden op
+productie — `lib/api.js` (544 kB, een misgeplaatste kopie van 8 sep) en
+`lib/snapshot.js` (74 kB, op 14 okt uit de code gehaald maar nooit van de
+server) — zijn weg. Niets laadde ze in; de app geeft 200 en alle modules laden.
+Het wachtwoordlek staat als eerste punt in `docs/todo.md`.
+
+In de **Test**-campagne staan nog 24 voorwerpen (`st_vw0`…`st_vw23`, uit de
+stresstest van 1 okt) met hun prijs als JSON-object in plaats van als bedrag —
+die zijn daar dus gratis. Fixtures van een script dat niet meer bestaat; blijft
+liggen tot iemand ze nodig heeft.
