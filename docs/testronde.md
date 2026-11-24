@@ -530,7 +530,7 @@ een speler ziet, **TAB** = het tafelscherm (`?display=1`), **ALL** = alle drie.
 - [ ] In die lijst: *Invullen* opent de editor, het vinkje haalt het kaartje uit de lijst zonder te openen, de keuzelijst maakt een kaartje voor een losse naam
 - [ ] Open een akte met openstaand werk in de regie-balk → in de kop staat **N na te kijken**; klikken opent diezelfde lijst, en de drie aantallen daarin tellen op tot N
 - [ ] Een dungeonkamer met een DM-aantekening die `[[Naam]]` noemt: de naam is opgemaakt (geen blokhaken meer), en bestaat het kaartje niet, dan staat er een groene **+** die er een leeg kaartje van maakt
-- [ ] **Kaartengalerij** (ALL) — hoofdkaarten en dungeons als kaartjes, plus-knop voor de DM
+- [x] **Kaartengalerij** (ALL) — hoofdkaarten en dungeons als kaartjes, plus-knop voor de DM *(nagelopen 24 nov 2026: de groepen Hoofdkaarten (Grisburgh) en Dungeons (Dreghaven Battlemap); op het dungeonkaartje staan het oogje — "Uitgespeeld: de hele plattegrond ligt open" — en het potlood)*
 - [ ] **Wereldkaart** (ALL) — zoomen met wiel en knoppen, pannen, pins openen de locatie; een speler stelt een pin voor en de DM keurt goed
 - [ ] **Knoppenbalk over de kaart** (ALL) — open een hoofdkaart: de zoombalk zweeft óver het beeld en de kaart past in één keer helemaal in het venster (geen afgebroken onderkant). *Passend maken* doet hetzelfde na in- of uitzoomen
 - [ ] **Pins dragen het type** (ALL) — een stad heeft een ander icoon dan een woud, een berg of een herberg; een locatie zonder type krijgt een speld, en een vaag kaartje een `?`
@@ -2344,3 +2344,27 @@ magizoöloog geen dieren in de kooien, dus inzetten en adopteren bleven liggen.
 (`groups[gid].sharedPurse`), niet `/api/player-currency/<id>` — die laatste
 verandert niet zolang de partybeurs aanstaat, en dan lijkt een geslaagde
 bestelling mislukt.
+
+## Zesde ronde (24 nov 2026) — akteregie, dungeon, tafelscherm
+
+**Het schrijfscherm** opent via de ganzenveer bij een akte ("Schrijven — de
+tekst van deze akte") en draagt de kop die erbij hoort: *Namen · Tekst en beeld ·
+Spelen · ⋯ · Uitleg · Sluiten*, met daaronder *Sectie · Kaartje · Beeld* los en
+de rest onder **Invoegen ▾** — met sneltoetsen: Sectie Alt+S, Lijst Alt+L,
+Genummerd Alt+N, Citaat Alt+Q, Scènebreuk Alt+H, Tabel Alt+T, Voorlezen Alt+V,
+Notitie Alt+D, Check Alt+C, Kaartje Alt+K, Beeld Alt+B, Plattegrond Alt+P,
+Kamer Alt+A, Gevecht Alt+G, Worptabel Alt+W.
+
+> Eén naamkwestie voor wie de documentatie leest: het regieblok dat in de code
+> `[!dm]` heet, staat in het menu als **Notitie** (Alt+D). Dat is duidelijker in
+> beeld, maar je vindt hem niet terug als je op "dm" zoekt.
+
+**De dungeon** opent vanuit de galerij en toont *Dreghaven* in de kop met zijn
+kamers getekend. Op het galerijkaartje staan het oogje (met de stand erin:
+"Uitgespeeld: de hele plattegrond ligt open — klik om te verbergen") en het
+potlood voor naam, beschrijving en thumbnail.
+
+**Het tafelscherm kan ik niet toetsen.** `_displayModeAan()` neemt het scherm
+over en het meetharnas komt daar niet meer uit; de ronde liep vast. Dat blok
+blijft handwerk — en dat is ook de plek waar het hoort, want het gaat juist om
+wat er op een scherm op tafel gebeurt.
