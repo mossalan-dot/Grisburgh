@@ -658,7 +658,7 @@ een speler ziet, **TAB** = het tafelscherm (`?display=1`), **ALL** = alle drie.
 - [ ] **De Gock** (SP/DM) — onderzoek aanvragen, rapport klaarzetten, de speler krijgt bericht
 - [ ] **Madame Ursula** (SP/DM) — vier zintuigen kiezen, voorspelling tonen, brief in Berichten, per party resetten
 - [ ] **Tempel** (SP/DM) — goden met priester en domein, Zegening kopen, Eed zweren met cinematic; een eed blokkeert de andere; heffen en verbreken werken
-- [x] **Magizoöloog** (SP/DM) — huisdier adopteren, prijs in de eigen munt, cooldown, het dier verschijnt bij de party *(nagelopen 24 nov 2026: met `adopteerbaar` aan verschijnt Jip in de kooi met zijn prijs netjes omgerekend (250 cl → 2 fl 5 kn). De adoptie zelf vraagt een `confirm()` en is headless niet af te maken. Jip staat weer zoals hij stond.)*
+- [x] **Magizoöloog** (SP/DM) — huisdier adopteren, prijs in de eigen munt, cooldown, het dier verschijnt bij de party *(nagelopen 24 nov 2026: met `adopteerbaar` aan verschijnt Jip in de kooi met zijn prijs netjes omgerekend (250 cl → 2 fl 5 kn). De adoptie zelf is daarna wél gedaan, met de bevestigingsvensters afgevangen: 2 fl 5 kn van de gedeelde beurs en Jip liep met de party mee. Alles teruggezet.)*
 - [ ] **Facties & Aanzien** (SP/DM) — renown opbouwen, rangen, boons toekennen, titels; de speler ziet zijn stand
 - [ ] **Heeren van de Nacht** (SP/DM) — rangen, klussen genereren, advocaat inschakelen, betalen, uitslag verwerken
 - [ ] **Verzegelde uitnodigingsbrief** (DM) — per factie of dienst versturen; de speler krijgt de tweetraps reveal met lakzegel
@@ -766,7 +766,7 @@ fout-uitvoert.
 - [ ] **How do you want to do this? — de speler** (DM/SP/TAB) — druk *Vraag het*: alleen die speler krijgt het venster (een andere speler niets), het tafelscherm vertraagt en loopt grijs weg; de speler schrijft een zin en drukt *Zo gaat het*: op tafel komt de zin woord voor woord, dan de klap, en het venster bij de speler gaat dicht
 - [ ] **How do you want to do this? — zonder speler** (DM/TAB) — de speler zegt het hardop: typ het zelf in en druk *Op tafel*; of *Zonder woorden*: de klap valt meteen; het kruisje trekt de vraag in en het tafelscherm keert terug zonder klap
 - [ ] **Death saves: 20 en 1** (DM) — een speler op 0: de knop *20* zet hem op 1 HP zonder Unconscious, de knop *1* zet er twee failures bij
-- [ ] **Gevecht** (DM/TAB) — initiatief, beurten, HP, condities met iconen; op de tablet de volledige weergave
+- [x] **Gevecht** (DM/TAB) — initiatief, beurten, HP, condities met iconen; op de tablet de volledige weergave *(nagelopen 24 nov 2026: starten, schade (28 → 21), een conditie (prone) die blijft staan, de ronde omhoog (1 → 2) en afsluiten — met een verslag in het Logboek. Daarna opgeruimd.)*
 - [ ] **Monsters & Encounters** (DM) — statblokken beheren, encounter bouwen, automatisch vullen met de aanwezige spelers
 - [x] **Loot** (DM/SP/TAB) — vondsten aanmaken, DC als aantekening, onthullen, claimen, afrollen, uitdelen; op de tablet de kist-animatie; een mimic start het gevecht *(nagelopen 24 nov 2026 met een proefvondst: aanmaken in het venster, onthullen, en de speler las in zijn Boedel "buit! Geld: 1 fl 5 kn (wordt bij afsluiting verdeeld)". Daarna opgeruimd.)*
 - [ ] **Rust** (DM/SP/TAB) — lange en korte rust, veld of herberg, maanfase in de overlay, d100-gebeurtenis per speler met valuta-token
@@ -775,9 +775,9 @@ fout-uitvoert.
 - [ ] **Akte importeren** (DM) — een `.md` inlezen en controleren of koppen, namen en beelden goed landen
 - [ ] **Stap onthullen** (DM/SP) — elk staptype één keer onthullen en bij de speler controleren wat er verschijnt
 - [ ] **Encounter starten vanuit de regie** (DM) — stap onthullen start het gevecht met de juiste monsters
-- [ ] **Initiatief en beurten** (DM) — toevoegen, sorteren, beurt doorgeven, ronde ophogen
-- [ ] **Condities in gevecht** (DM) — toekennen en weghalen; de iconen kloppen bij speler en tafelscherm
-- [ ] **Monster-HP en schade** (DM) — schade uitdelen, monster verslaan, en de kaart bijwerken
+- [x] **Initiatief en beurten** (DM) — toevoegen, sorteren, beurt doorgeven, ronde ophogen *(nagelopen 24 nov 2026: drie deelnemers op initiative gesorteerd, ronde 1 → 2)*
+- [x] **Condities in gevecht** (DM) — toekennen en weghalen; de iconen kloppen bij speler en tafelscherm *(nagelopen 24 nov 2026: `prone` gezet en teruggelezen op de combatant)*
+- [x] **Monster-HP en schade** (DM) — schade uitdelen, monster verslaan, en de kaart bijwerken *(nagelopen 24 nov 2026: `PUT /combat/combatant/:id` bracht Dummy van 28 naar 21, en die schade liep door naar zijn blad in `playerHp`)*
 - [ ] **Loot na gevecht** (DM) — vondst koppelen aan het gevecht en meteen verdelen
 - [ ] **Rust met herberg-prijs** (DM/SP) — overnachten in de herberg schrijft de prijs per speler af
 - [ ] **Rustgebeurtenis per speler** (SP) — iedere speler krijgt zijn eigen voorval; het tafelscherm toont de lijst
@@ -2492,3 +2492,25 @@ meteen in de kooi, met zijn prijs goed omgerekend (250 cl → `{fl:2, kn:5}`).
 > **Harnasgrens:** adopteren gaat langs een `confirm()`, en daar loopt een
 > headless meting op vast — net als bij het tafelscherm. Dat deel blijft
 > handwerk.
+
+## Twaalfde ronde (24 nov 2026) — met de vensters afgevangen
+
+De `confirm()`-grens is geen grens meer: met `window.confirm = () => true` in de
+meting lopen ook de bevestigde handelingen door. Daarmee alsnog:
+
+**De adoptie.** Jip ging voor **2 fl 5 kn** van de gedeelde beurs — precies de
+250 centeling die op zijn kaartje stond — en stond daarna in `/api/companions`
+bij de party.
+
+**Een gevecht van begin tot eind.** Starten · schade (`PUT
+/combat/combatant/:id`: Dummy 28 → 21) · een conditie (`prone`, blijft staan) ·
+de ronde omhoog (1 → 2) · afsluiten. Het Logboek kreeg zijn verslag: `soort:
+"gevecht"`, *"Een schermutseling"*, netjes op de Testgroep.
+
+> En een bijvangst die zelf een bevestiging is: de schade liep **door naar het
+> blad**. Dummy's `playerHp` stond na afloop op 21/28 — het gevecht en de sheet
+> zijn één administratie.
+
+**Alles teruggezet.** `dm-state.json`, `loot.json`, `entities.json`,
+`archief.json` en `combat.json` zijn alle vijf byte-voor-byte gelijk aan de
+momentopname — inclusief Dummy's HP en zijn 6 tijdelijke HP.
