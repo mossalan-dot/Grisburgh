@@ -2137,3 +2137,9 @@ Grisburghs **data** te staan — niet in de code.
 
 - Verbruik vier Hit Dice en laat de party een lange rust doen: je hebt ze **allemaal** terug, niet de helft. Dat is de regel van de PHB 2024; de app hield nog die van 2014 aan.
 - Bewaakt door `tests/winkel-en-rust.test.js` (*geeft na een lange rust álle Hit Dice terug*).
+
+## Paladin: smite volgens de PHB 2024 (24 nov 2026)
+
+- Smite met een spell slot van level 5: de app zegt **6d8**, niet 5d8. Het plafond van 5d8 was de regel van 2014.
+- Op het Personage-tabblad staat bij een Paladin een tweede knop **Divine Smite — zonder slot**, met een eigen teller van 1. Gebruik hem: de teller gaat naar nul en komt pas terug na een lange rust (een korte rust geeft hem niet terug).
+- De gratis smite doet 2d8 — de spreuk op zijn eigen niveau.

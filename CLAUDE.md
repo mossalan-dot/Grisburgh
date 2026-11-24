@@ -582,6 +582,26 @@ dm-panel.js : akte-schrijven.js?v=42  combat-canvas.js?v=41  render-statblock.js
 > turn-route apart weggeschreven — geld en bezit staan daar, niet in
 > `bastion.json`.
 
+> **Nagerekend tegen SRD 5.2** (24 nov 2026). De hele catalogus is naast
+> `bronnen/srd-features.json` gelegd — dat ís de 2024-tekst, dus dat kan zonder
+> te gokken. Klopten: alle bronnen (Channel Divinity 2/3/4 op 2/6/18 bij de
+> Cleric en 2/3 op 3/11 bij de Paladin, Wild Shape 2/3/4 op 2/6/17, Second Wind
+> 2/3/4 op 1/4/10, Focus Points = level met een korte rust die alles teruggeeft,
+> Lay on Hands 5×level op een lange rust, Favored Enemy 2/3/4/5/6 — in 2024 heet
+> de Ranger-feature zo en niet "Hunter's Mark"), de dobbeltrappen (Bardic
+> Inspiration d6/d8/d10/d12 op 1/5/10/15, Martial Arts op 1/5/11/17), Divine
+> Spark 1/2/3/4 d8 op 1/7/13/18 plus je Wisdom, Arcane Recovery ceil(level/2)
+> tot niveau 5, en Flurry die op 10 drie slagen wordt.
+> **Twee dingen waren 2014 gebleven, allebei bij de Paladin:**
+> - Divine Smite had een plafond van **5d8**. Dat stond zo in 2014 ("to a
+>   maximum of 5d8"); in 2024 is het een spreuk van level 1 die 2d8 doet plus
+>   1d8 per slotniveau erboven, zónder bovengrens.
+> - **Paladin's Smite** ontbrak: vanaf level 1 mag je Divine Smite één keer per
+>   lange rust casten **zonder slot**. Dat is nu een eigen bron met een eigen
+>   knop, zodat je ziet of je hem nog hebt.
+> Bewaakt door het blok *Paladin — smite volgens 2024* in
+> `tests/klassekracht.test.js`.
+
 > **Niet gedaan:** de Blood Hunter (eigen materiaal, geen SRD) en de subklassen —
 > een Battle Master of Psi Warrior heeft zijn eigen voorraad die nog op de
 > signatuurkaart-catalogus in `app.js` staat. Die passen in dezelfde catalogus.

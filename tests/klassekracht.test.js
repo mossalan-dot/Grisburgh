@@ -423,3 +423,32 @@ describe('Klassekrachten: subclasses uit de PHB', () => {
     assert.strictEqual(r.body.uitkomst.getal, 3 + 3);
   });
 });
+
+// ── De Paladin volgt de PHB 2024, niet die van 2014 ─────────────────────────
+// Twee dingen die uit de oude editie waren blijven staan en die je pas ziet
+// als je ze naast de SRD 5.2 legt (die we zelf meeleveren in
+// bronnen/srd-features.json).
+describe('Paladin — smite volgens 2024', () => {
+  const KK = require('../lib/klassekrachten.js');
+  const smite = KK.KLASSEN.paladin.acties.find(a => a.id === 'smite');
+
+  it('kent geen plafond van 5d8 meer', () => {
+    // 2024: "2d8 Radiant damage... increases by 1d8 for each spell slot level
+    // above 1", zonder bovengrens. 2014 had "to a maximum of 5d8"; met die
+    // regel deed een slot van 5 nog steeds 5d8.
+    assert.equal(smite.formule(11, {}, 1), '2d8');
+    assert.equal(smite.formule(11, {}, 4), '5d8');
+    assert.equal(smite.formule(11, {}, 5), '6d8', 'een slot van level 5 doet 6d8, niet 5d8');
+    assert.equal(smite.formule(11, {}, 9), '10d8');
+  });
+
+  it("geeft Paladin's Smite: één gratis smite per lange rust", () => {
+    const bron = KK.KLASSEN.paladin.bronnen.smite;
+    assert.ok(bron, "de bron Paladin's Smite bestaat");
+    assert.equal(bron.max(1), 1, 'vanaf level 1');
+    assert.equal(bron.kort(1), null, 'een korte rust geeft hem niet terug');
+    const gratis = KK.KLASSEN.paladin.acties.find(a => a.id === 'smite-gratis');
+    assert.equal(gratis.bron, 'smite');
+    assert.equal(gratis.formule(), '2d8', 'zonder slot is het de basis van de spreuk');
+  });
+});
