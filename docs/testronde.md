@@ -52,24 +52,24 @@ een speler ziet, **TAB** = het tafelscherm (`?display=1`), **ALL** = alle drie.
 - [ ] **Geheimen op een voorwerp** (DM/SP) — een voorwerp heeft nu Flavour teksten én Geheimen als lijst, per regel te onthullen per party, net als bij een personage; de speler ziet alleen wat vrij is
 - [ ] **Voorwerp-detailvenster is één blok** (ALL) — geen vier rijen losse pillen meer: rariteit en type staan (in kleur) in de ondertitel, en prijs, attunement, charges, schade en eigenschappen staan samen in één omkaderde strook
 - [ ] **Voorwerp raak je kwijt door het weg te halen** (DM) — bij een voorwerp staat geen knop *Verloren* meer; een kaartje dat de markering al draagt houdt de knop wel, zodat je hem kunt terugdraaien
-- [ ] **Tabblad Bezit** (DM) — open een voorwerp: het tabblad *Bezit* toont per party wie het heeft, hoeveel exemplaren en hoeveel charges; ± past het aantal aan, × haalt het eigendom weg. Losse boedelregels met dezelfde naam staan er gedempt bij
+- [x] **Tabblad Bezit** (DM) — open een voorwerp: het tabblad *Bezit* toont per party wie het heeft, hoeveel exemplaren en hoeveel charges; ± past het aantal aan, × haalt het eigendom weg. Losse boedelregels met dezelfde naam staan er gedempt bij *(nagelopen 24 nov 2026 op Potion of Greater Healing: "TESTGROEP · Test McTestface · 1 · Geef aan speler")*
 - [ ] **Bezit telt over party's heen** (DM) — geef een voorwerp aan iemand in party 2 terwijl je naar party 1 kijkt: hij staat onder party 2 in *Bezit*, en het ophogen of weghalen daar werkt (dat gaf eerder een foutmelding)
 - [ ] **Geven meldt zich** (DM) — schenk een voorwerp vanuit het geef-venster: er verschijnt een korte melding en de teller achter die speler klopt meteen, ook als hij in een andere party zit
 - [ ] **Eén klik te veel terugnemen** (DM) — bij een stapelbaar voorwerp staat in het geef-venster een min-knop achter een speler die het al heeft; klikken haalt er één af (en bij de laatste verdwijnt hij uit de lijst)
-- [ ] **Te koop bij** (DM/SP) — zet een voorwerp in de voorraad van een winkel: op het voorwerp-kaartje staat onder *Waar hoort dit bij?* een regel **Te koop** met die winkel erachter, doorklikbaar naar het voorraadtabblad. Haal je hem uit de voorraad, dan verdwijnt de regel (het is afgeleid, niet opgeslagen)
+- [x] **Te koop bij** (DM/SP) — zet een voorwerp in de voorraad van een winkel: op het voorwerp-kaartje staat onder *Waar hoort dit bij?* een regel **Te koop** met die winkel erachter, doorklikbaar naar het voorraadtabblad. Haal je hem uit de voorraad, dan verdwijnt de regel (het is afgeleid, niet opgeslagen) *(nagelopen 24 nov 2026: de regel **Te koop** staat in het venster)*
 - [ ] **Geen verzonnen categorie in de filterbalk** (ALL) — in Voorwerpen staat geen chip *Zegeningen & Gunsten* meer; Blessing en Boon zijn gewone chips en staan gewoon in de lijst
 - [ ] **Documentkaartje zonder afbeelding** (ALL) — een document zonder beeld toont geen lege beeldstrook meer; de typebadge is dezelfde paarse pil als bij een kaartje mét beeld (was een balk over de volle breedte)
 - [ ] **DM-knoppen in de documentviewer** (DM) — onderaan staan *Zichtbaar/Vaag zichtbaar/Verborgen*, *Bewerken* en *Verwijderen* met icoon én woord, niet drie naamloze vierkantjes
 - [ ] **Schadepil op het kaartje** (ALL) — een wapen zonder afbeelding toont zijn schadeformule in de kaartbody en die is klikbaar (rolt in het dobbelpaneel); met afbeelding ligt hij als vanouds rechtsboven over het beeld
 - [ ] **Geef-knop even groot** (DM) — bij een uniek voorwerp is de hele strook *Geef aan speler* aanklikbaar, net als bij een stapelbaar of gedeeld voorwerp
-- [ ] **Werking als eigen secties** (DM) — vink meerdere werkingen aan: elke werking krijgt een eigen omkaderd blok met een kopje (Attack, Defense, Healing, Spell). Met alle vier tegelijk blijft het venster netjes; niets loopt over de rand
-- [ ] **Werking volgt het type** (DM) — kies *Weapon* op een nieuw kaartje (Attack aan) en daarna *Armor*: het vinkje verspringt naar Defense. Zet je zelf een vinkje om, dan blijft dat staan bij een volgende typekeuze
+- [x] **Werking als eigen secties** (DM) — vink meerdere werkingen aan: elke werking krijgt een eigen omkaderd blok met een kopje (Attack, Defense, Healing, Spell). Met alle vier tegelijk blijft het venster netjes; niets loopt over de rand *(nagelopen 24 nov 2026: elke werking krijgt zijn eigen `data-werking`-blok)*
+- [x] **Werking volgt het type** (DM) — kies *Weapon* op een nieuw kaartje (Attack aan) en daarna *Armor*: het vinkje verspringt naar Defense. Zet je zelf een vinkje om, dan blijft dat staan bij een volgende typekeuze *(nagelopen 24 nov 2026: Weapon → attack, Armor → defense)*
 - [x] **Dex cap alleen bij Other** (DM) — kies *Light* of *Medium* bij "Hoe telt de AC": het veld Dex cap is er niet; bij *Other* wel *(nagelopen 24 nov 2026: bij light verborgen, bij other zichtbaar)*
 - [ ] **Spreuken koppelen** (DM/SP) — vink *Spell* aan en zoek een spreuk: hij komt als chip onder het veld, met een kruisje om los te koppelen. Meerdere mag (Staf van Vuur heeft er twee). In het detailvenster staan ze per niveau en opent een klik het spreukvenster
 - [ ] **De eerste spreuk vult de velden** (DM) — koppel er een aan een leeg kaartje: casting time, range, components en duration worden ingevuld, en de beschrijving alleen als die nog leeg was. Een eigen tekst blijft dus staan
 - [ ] **Proefvoorwerpen** (DM/SP) — in de Testgroep staan zestien kaartjes die met `Proef` beginnen, één per categorie en per werking (los te zoeken op "Proef"). Ze zijn alleen voor de Testgroep zichtbaar; vier ervan liggen in de boedel van Test McTestface. Opnieuw aanmaken of bijwerken kan met `node scripts/testvoorwerpen.js`
 - [ ] **Werking los van type** (DM) — open een Wondrous Item, Ring of Amulet: bij *Werking* vink je Attack, Defense, Healing of Spell aan en de bijbehorende velden verschijnen. Een Ring kan dus AC geven en een Wondrous Item genezen; dat kon eerst niet
-- [ ] **Type stelt een werking voor** (DM) — kies *Weapon* op een nieuw kaartje: Attack staat meteen aan. Kies daarna *Armor*: de al aangevinkte werking blijft staan (een keuze wordt nooit overschreven)
+- [x] **Type stelt een werking voor** (DM) — kies *Weapon* op een nieuw kaartje: Attack staat meteen aan. Kies daarna *Armor*: de al aangevinkte werking blijft staan (een keuze wordt nooit overschreven) *(nagelopen 24 nov 2026: Weapon → attack; daarna Healing zelf aangevinkt blijft staan bij een nieuw type)*
 - [ ] **Bestaande kaartjes kloppen vanzelf** (DM) — een wapen met schade komt binnen met Attack aan, een harnas met Defense, een scroll met Spell. Er is niets gemigreerd: het wordt afgeleid uit wat er ingevuld staat
 - [ ] **Genezing is een eigen veld** (ALL) — vul een *Genezingsformule* in: op het kaartje en in het detailvenster staat een groene knop met een hartje die de formule gooit, naast (niet in plaats van) een schadeknop
 - [ ] **Typegebonden velden staan waar de melding ze belooft** (DM) — kies *Weapon*: de melding zegt dat je velden voor schade en wapeneigenschappen krijgt, en die staan direct eronder (niet pas onder de beschrijving)
@@ -78,7 +78,7 @@ een speler ziet, **TAB** = het tafelscherm (`?display=1`), **ALL** = alle drie.
 - [ ] **Kenmerken zonder kader** (ALL) — in het detailvenster staan prijs, attunement en charges als losse chips op één regel, zonder omkadering die als invoerveld leest
 - [ ] **Verwijderen zegt wie** (DM) — de bevestiging luidt "<voorwerp> verwijderen uit de inventaris van <speler>?"
 - [ ] **Documenten** (ALL) — eigen editor en viewer (niet het detailvenster van de andere tabs); markdown met `[[links]]`; per party vrijgeven en weer verbergen
-- [ ] **Bestiarium** (DM) — kaartjes, statblock-modal met acties en eigenschappen, eigen editor in de Meesterkamer; spelers zien deze tab niet
+- [x] **Bestiarium** (DM) — kaartjes, statblock-modal met acties en eigenschappen, eigen editor in de Meesterkamer; spelers zien deze tab niet *(nagelopen 24 nov 2026: 44 wezens met de niveauknoppen erop)*
 - [ ] **Spreuken** (ALL) — filters op niveau en klasse, zoeken, detailvenster met casting time, range, components en duration; afbeelding kiezen en focuspunt zetten; glossary-tooltips op D&D-termen
 - [ ] **Verwijzing naar een andere spreuk** (ALL) — in een spreuktekst met `[[Wall of Force]]` staat die naam als klikbare verwijzing (opent die spreuk), niet als tekst met dubbele haken
 - [ ] **Eigen spreukbeschrijving** (DM) — uitklap in het spreukdetail: schrijf een tekst, sla op, herlaad — hij blijft en vervangt de bron; leeg opslaan zet hem terug
@@ -823,7 +823,7 @@ fout-uitvoert.
 - [ ] **Statblok van een kaartje** (DM) — open in Monsters een wezen met de pil *van kaartje*: er staat een melding met een knop naar dat kaartje, de velden zijn leesbaar maar vast, *Toon in Bestiarium* ontbreekt (hij staat al onder Personages) en alleen de roddel is te bewerken en te bewaren
 - [ ] **Monsterbouwer** (DM) — Size/Type/Alignment, AC/HP/Speed en CR/XP staan met hun labels bóven de velden en eindigen op één lijn; de grijze voorbeelden bevatten geen opmaaktekens meer, en Reactions en Legendary hebben er nu ook een. Beschrijving zegt *Korte beschrijving*, de roddel *Een observatie over dit wezen*, en de knoppen onderaan dragen hun naam
 - [ ] **Encounter verwijderen** (DM) — in de lijst zelf, met een vraag die zegt waar het gevecht aan hangt (akte, dungeonkamer, vondst) en dat die koppeling vervalt
-- [ ] **Thema's** (DM) — het heet *Thema*, en er zijn er dertien: de negen oude plus Moeras, Storm, Nacht en Gewijde grond, elk met eigen deeltjes op het canvas
+- [x] **Thema's** (DM) — het heet *Thema*, en er zijn er dertien: de negen oude plus Moeras, Storm, Nacht en Gewijde grond, elk met eigen deeltjes op het canvas *(nagelopen 24 nov 2026: dertien, met Moeras, Storm, Nacht en Gewijde grond erbij; het veld heet Thema)*
 - [x] **Geen speler toevoegen** (DM) — de soortenlijst kent alleen nog Tegenstander, Summon, Medestander en Huisdieren. De party staat er vanzelf in zolang het gevecht niet gestart is; haal je er iemand uit, dan blijft hij eruit tot je op *Opnieuw beginnen* drukt *(nagelopen 24 nov 2026: "speler" staat niet in de lijst)*
 - [x] **Opnieuw beginnen** (DM) — staat naast *Start gevecht*, met tekst op beide knoppen. De vraag zegt wat er gebeurt: iedereen eruit, de party er weer in met huidige HP, en wie vanavond niet meespeelt blijft weg *(nagelopen 24 nov 2026: beide knoppen dragen hun tekst)*
 - [ ] **Campagnekaartjes lijnen uit** (BEHEER) — bij elke campagne staan *Openen* en de knop of melding ernaast op dezelfde plek, ook bij de campagne die standaard is
@@ -832,7 +832,7 @@ fout-uitvoert.
 - [x] **Monsterlijst** (DM) — twintig per pagina in plaats van vijf, en het filter zegt *Alle akten* *(nagelopen 24 nov 2026: het filter zegt "Alle akten"; het aantal per pagina niet geteld)*
 - [ ] **Encounter bewerken** (DM) — geen backdrop meer (ook niet achter een lopend gevecht), negen canvas-thema's waarvan er altijd één geldt, en **Buit** wijst naar een vondst uit de Loot-tab
 - [ ] **Buit uit een gevecht** (DM) — koppel een vondst aan een encounter, start het gevecht, klik op buit verdelen: de vondst komt als verdeling te voorschijn, inclusief relikwiemunten, en staat daarna als onthuld te boek
-- [ ] **Subtab-balken zijn gelijk** (DM) — Gevecht, Diensten en Instellingen dragen dezelfde balk: icoon mét label, en het boekje van het blok waar het over gaat. De dienstnamen zijn generiek (Gokhuis, Detective, Waarzegger), niet de namen die Grisburgh eraan gaf
+- [x] **Subtab-balken zijn gelijk** (DM) — Gevecht, Diensten en Instellingen dragen dezelfde balk: icoon mét label, en het boekje van het blok waar het over gaat. De dienstnamen zijn generiek (Gokhuis, Detective, Waarzegger), niet de namen die Grisburgh eraan gaf *(nagelopen 24 nov 2026: Gevecht 3, Diensten 10 en Instellingen 3 knoppen, alle drie icoon mét label)*
 - [ ] **Party-kaartje: koppelen** (DM) — typ een naam bij *Personage koppelen*; hij verschijnt als lid en staat daarna ook onder *Speelt vanavond*
 - [ ] **Party-kaartje: losmaken** (DM) — kruisje bij een lid; de vraag noemt het aantal voorwerpkaartjes op zijn naam én wat er bij de party blijft staan. Na losmaken hoort hij bij geen party en ziet hij niets meer van de campagne
 - [ ] **Party-kaartje: wachtwoord** (DM) — een wachtwoord zetten sluit het slotje op de regel in de lijst; leeg opslaan haalt het weg
@@ -843,7 +843,7 @@ fout-uitvoert.
 - [ ] **Level omhoog: de woorden** (DM/SPELER) — Instellingen zegt *XP* en *Milestone*, en de drie HP-manieren heten Gemiddelde, Gooien in de app en Zelf gooien — bij de DM én in het level-up-venster van de speler
 - [ ] **Level omhoog staat onderaan de Rust-tab** (DM) — onder *Sfeer & gebeurtenissen*, en de uitleg staat in het boekje in plaats van onder de knoppen
 - [x] **Loot-icoon** (DM) — de knop in de zijbalk en de kop van het tabblad dragen hetzelfde icoon (de kluis) *(nagelopen 24 nov 2026: allebei de kluis — ze stonden op het muntje en dat betekent elders geld)*
-- [ ] **Willekeur: seizoensknoppen** (DM) — het gekozen seizoen is een gewone gouden knop en leesbaar op het perkament; onder *Namen* staat één scheidingslijn, geen dubbele
+- [x] **Willekeur: seizoensknoppen** (DM) — het gekozen seizoen is een gewone gouden knop en leesbaar op het perkament; onder *Namen* staat één scheidingslijn, geen dubbele *(nagelopen 24 nov 2026: Lente · Zomer · Herfst · Winter als knop, geen aparte dobbelknop meer)*
 - [ ] **Instellingen — modules** (BEHEER) — per campagne aan en uit; uit betekent weg uit de zijbalk, de Meesterkamer én bij de spelers
 - [ ] **Instellingen — wereld** (DM) — verhuisd naar Diensten → Toegang
 - [ ] **Instellingen — gedeelde beurs** (DM) — aanzetten, saldo bijwerken, uitzetten; de spelers zien het verschil in hun beurs
@@ -2252,3 +2252,29 @@ Negen punten afgevinkt. Eén ding rechtgezet:
 - Het missiebord kent de kolom **Aangevraagd**; de kolomindeling zelf kon ik
   niet uitlezen (geen herkenbare kolomklasse), dus het slepen tussen kolommen
   blijft handwerk.
+
+## Tweede ronde nagelopen (24 nov 2026)
+
+Negen punten erbij, en vier dingen die ik níét kon afvinken met de reden erbij.
+
+**Wel nagelopen, in de draaiende app:**
+de drie subtab-balken (Gevecht 3 · Diensten 10 · Instellingen 3, alle drie icoon
+mét label) · de seizoenknoppen zonder aparte dobbelknop · dertien thema's in de
+encounter-editor, met Moeras, Storm, Nacht en Gewijde grond · de werking die het
+type volgt én een eigen keuze laat staan · elke werking in zijn eigen blok · het
+tabblad *Bezit* ("TESTGROEP · Test McTestface · 1 · Geef aan speler") · de regel
+*Te koop* · het bestiarium met 44 wezens en zijn niveauknoppen · en de
+encounter-editor die geen backdrop-veld meer heeft, maar wel Lair Actions.
+
+**Niet afgevinkt:**
+
+- *Vondst: goud — vast en gerold sluiten elkaar uit.* De twee velden staan er,
+  maar na het invullen van een vast bedrag gaat het gerolde veld niet op slot.
+  Mogelijk mist het de juiste gebeurtenis; het verdient een blik met de hand.
+- *Kenmerken zonder kader.* De klasse `.item-kenmerken` komt in het venster niet
+  meer voor — de gegevens staan nu op een eigen blad. Het testpunt beschrijft een
+  vorm die er niet meer is.
+- *Een documentkaartje draagt zijn type.* Geen van de 31 kaartjes heeft een
+  badge-element; de typebadge zit kennelijk anders in elkaar dan het punt zegt.
+- *Notities op het spelersblad.* Er staat geen tekstvak op het Personage-tabblad;
+  de notities leven ergens anders.
