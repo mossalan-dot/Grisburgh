@@ -31,7 +31,7 @@ een speler ziet, **TAB** = het tafelscherm (`?display=1`), **ALL** = alle drie.
 - [ ] **PWA installeren** — via Safari/Chrome "Zet op beginscherm": de app komt als icoon te staan, opent zonder browserbalk, draagt de naam van de campagne en start op haar eigen pad. Het icoon zelf is nog van Grisburgh (staat op de todo)
 - [x] **DM-ingang rechtsboven** (DM) — wachtwoordveld met label, Enter volstaat, verdwijnt zodra een speler een portret kiest
 - [x] **Partypijl op de landing** (SP) — gouden pijl valt op, tweede party bereikbaar
-- [ ] **Kopbalk klapt in** (ALL) — maak het venster smaller en kijk of de tabs op iconen overgaan in plaats van over de titel te schuiven; ook direct na terugkeer uit tafelscherm
+- [x] **Kopbalk klapt in** (ALL) — maak het venster smaller en kijk of de tabs op iconen overgaan in plaats van over de titel te schuiven; ook direct na terugkeer uit tafelscherm *(nagelopen 24 nov 2026 op 390 px: de vier menuknoppen worden iconen en niets overlapt meer — de ontdekkingsmeter liep eerst 16 px over de partynaam heen en wijkt nu onder 560 px)*
 
 ## Blok 2 — Archief
 
@@ -39,15 +39,15 @@ een speler ziet, **TAB** = het tafelscherm (`?display=1`), **ALL** = alle drie.
 
 - [ ] **Personages** (ALL) — kaartjes met portret; filter op subtype (speler, NPC, dier), zoeken op naam én op tekst; klik opent het detailvenster met portret, stats en beschrijving; `[[Naam]]` in een tekst is klikbaar en springt naar dat kaartje
 - [ ] **Personage-editor** (DM) — alle velden bewaren; portret uit de mediabibliotheek met versleepbaar focuspunt; extra afbeeldingen; **filmpje via dezelfde mediabibliotheek** (kiezen uit wat er staat of nieuw uploaden); zichtbaarheid per party; van party wisselen waarschuwt eerst — maar bij één party mag die waarschuwing níét komen
-- [ ] **Dobbelpaneel** (ALL) — het formulier-invoerveld is weg; gooien gaat met de dobbelknoppen
+- [x] **Dobbelpaneel** (ALL) — het formulier-invoerveld is weg; gooien gaat met de dobbelknoppen *(nagelopen 24 nov 2026: elf knoppen, en `#dice-formula-input` staat dicht achter ▶ Formula)*
 - [ ] **Locaties** (ALL) — type *Winkel* geeft een voorraad met prijzen — koop en verkoop als speler en controleer geld én boedel; een gepinde locatie toont de kaartknop die naar de juiste plek vliegt
 - [ ] **Organisaties** (ALL) — kaartjes, leden die eraan hangen, detailvenster, zichtbaarheid per party
 - [ ] **Voorwerpen** (ALL) — gekleurde rand per rarity (grijs → goud), gloed en shimmer bij Very Rare en Legendary; damage-pill klikken opent het dobbelpaneel met die formule; rariteit in kleur in het detailvenster
-- [ ] **Voorwerp-editor: types in groepen** (DM) — de keuzelijst *Type* staat in groepen (Wapens & harnas, Magische voorwerpen, Verbruik, Uitrusting, Goddelijk, Overig); een kaartje met een type dat er niet meer in staat houdt zijn waarde en toont die als "(oude waarde)"
-- [ ] **Type zegt wat je krijgt** (DM) — kies *Weapon*: onder de lijst staat dat je schade en wapeneigenschappen krijgt, en die velden verschijnen; idem *Armor* (Base AC), *Scroll* (spellkiezer) en *Blessing* (Tempel-velden)
+- [x] **Voorwerp-editor: types in groepen** (DM) — de keuzelijst *Type* staat in groepen (Wapens & harnas, Magische voorwerpen, Verbruik, Uitrusting, Goddelijk, Overig); een kaartje met een type dat er niet meer in staat houdt zijn waarde en toont die als "(oude waarde)" *(nagelopen 24 nov 2026: Wapens & harnas · Magische voorwerpen · Verbruik · Uitrusting · Goddelijk · Overig)*
+- [x] **Type zegt wat je krijgt** (DM) — kies *Weapon*: onder de lijst staat dat je schade en wapeneigenschappen krijgt, en die velden verschijnen; idem *Armor* (Base AC), *Scroll* (spellkiezer) en *Blessing* (Tempel-velden) *(nagelopen 24 nov 2026 voor Weapon: de melding noemt schade en eigenschappen, en die velden verschijnen)*
 - [ ] **Volgorde in de voorwerp-editor** (DM) — Type, Rarity, Prijs, Exemplaren, Charges, Vereist attunement, Niet te verkopen aan winkels, Beschrijving; de typegebonden velden staan daaronder, en Flavour/Geheimen/Aantekeningen sluiten de rij
 - [ ] **Charges leest als één ding** (DM) — vink *Charges* aan: *Maximum* is een getal (letters gaan er niet in), *Herlaadt bij* heeft drie standen, en het veld voor de worp verschijnt **alleen** bij "een deel terug, met een worp". Dageraad staat er niet meer bij (dat deed hetzelfde als lange rust)
-- [ ] **Attunement met een voorwaarde** (DM) — vink *Vereist attunement* aan: er verschijnt een veld *Attunement alleen door*; vul "a Wizard" in en dat staat in het detailvenster achter Requires Attunement
+- [x] **Attunement met een voorwaarde** (DM) — vink *Vereist attunement* aan: er verschijnt een veld *Attunement alleen door*; vul "a Wizard" in en dat staat in het detailvenster achter Requires Attunement *(nagelopen 24 nov 2026: `attunementEis` is verborgen tot `cb_attunement` aanstaat)*
 - [ ] **Wapeneigenschappen met uitleg** (DM) — hover over een eigenschap in de kiezer van de voorwerp-editor: de PHB-uitleg verschijnt (die stond alleen op het spelerblad)
 - [ ] **Geheimen op een voorwerp** (DM/SP) — een voorwerp heeft nu Flavour teksten én Geheimen als lijst, per regel te onthullen per party, net als bij een personage; de speler ziet alleen wat vrij is
 - [ ] **Voorwerp-detailvenster is één blok** (ALL) — geen vier rijen losse pillen meer: rariteit en type staan (in kleur) in de ondertitel, en prijs, attunement, charges, schade en eigenschappen staan samen in één omkaderde strook
@@ -64,7 +64,7 @@ een speler ziet, **TAB** = het tafelscherm (`?display=1`), **ALL** = alle drie.
 - [ ] **Geef-knop even groot** (DM) — bij een uniek voorwerp is de hele strook *Geef aan speler* aanklikbaar, net als bij een stapelbaar of gedeeld voorwerp
 - [ ] **Werking als eigen secties** (DM) — vink meerdere werkingen aan: elke werking krijgt een eigen omkaderd blok met een kopje (Attack, Defense, Healing, Spell). Met alle vier tegelijk blijft het venster netjes; niets loopt over de rand
 - [ ] **Werking volgt het type** (DM) — kies *Weapon* op een nieuw kaartje (Attack aan) en daarna *Armor*: het vinkje verspringt naar Defense. Zet je zelf een vinkje om, dan blijft dat staan bij een volgende typekeuze
-- [ ] **Dex cap alleen bij Other** (DM) — kies *Light* of *Medium* bij "Hoe telt de AC": het veld Dex cap is er niet; bij *Other* wel
+- [x] **Dex cap alleen bij Other** (DM) — kies *Light* of *Medium* bij "Hoe telt de AC": het veld Dex cap is er niet; bij *Other* wel *(nagelopen 24 nov 2026: bij light verborgen, bij other zichtbaar)*
 - [ ] **Spreuken koppelen** (DM/SP) — vink *Spell* aan en zoek een spreuk: hij komt als chip onder het veld, met een kruisje om los te koppelen. Meerdere mag (Staf van Vuur heeft er twee). In het detailvenster staan ze per niveau en opent een klik het spreukvenster
 - [ ] **De eerste spreuk vult de velden** (DM) — koppel er een aan een leeg kaartje: casting time, range, components en duration worden ingevuld, en de beschrijving alleen als die nog leeg was. Een eigen tekst blijft dus staan
 - [ ] **Proefvoorwerpen** (DM/SP) — in de Testgroep staan zestien kaartjes die met `Proef` beginnen, één per categorie en per werking (los te zoeken op "Proef"). Ze zijn alleen voor de Testgroep zichtbaar; vier ervan liggen in de boedel van Test McTestface. Opnieuw aanmaken of bijwerken kan met `node scripts/testvoorwerpen.js`
@@ -74,7 +74,7 @@ een speler ziet, **TAB** = het tafelscherm (`?display=1`), **ALL** = alle drie.
 - [ ] **Genezing is een eigen veld** (ALL) — vul een *Genezingsformule* in: op het kaartje en in het detailvenster staat een groene knop met een hartje die de formule gooit, naast (niet in plaats van) een schadeknop
 - [ ] **Typegebonden velden staan waar de melding ze belooft** (DM) — kies *Weapon*: de melding zegt dat je velden voor schade en wapeneigenschappen krijgt, en die staan direct eronder (niet pas onder de beschrijving)
 - [ ] **Streep onder het charges-blok** (DM) — *Vereist attunement* en *Niet te verkopen aan winkels* staan onder een scheidingslijn, zodat ze niet bij de charges lijken te horen
-- [ ] **Maximum accepteert alleen cijfers** (DM) — typ `e`, `-` of een punt in *Maximum*: er komt niets in het veld
+- [x] **Maximum accepteert alleen cijfers** (DM) — typ `e`, `-` of een punt in *Maximum*: er komt niets in het veld *(nagelopen 24 nov 2026: `type=number`)*
 - [ ] **Kenmerken zonder kader** (ALL) — in het detailvenster staan prijs, attunement en charges als losse chips op één regel, zonder omkadering die als invoerveld leest
 - [ ] **Verwijderen zegt wie** (DM) — de bevestiging luidt "<voorwerp> verwijderen uit de inventaris van <speler>?"
 - [ ] **Documenten** (ALL) — eigen editor en viewer (niet het detailvenster van de andere tabs); markdown met `[[links]]`; per party vrijgeven en weer verbergen
@@ -2155,3 +2155,42 @@ Grisburghs **data** te staan — niet in de code.
 ## De Ranger-bron heet Favored Enemy (24 nov 2026)
 
 - Op het blad van een Ranger heet de teller **Favored Enemy** (de feature), terwijl de knop ernaast **Hunter's Mark** blijft (de spreuk die je ermee cast).
+
+## De telefoonronde (24 nov 2026)
+
+Nagelopen op **390 × 844** (Chrome, mobiele emulatie) als speler én als DM, met
+een meetlat die per scherm kijkt of er zijwaarts gescrold moet worden, of er
+iets buiten beeld valt en of er tekst onder de 10 px staat.
+
+**Vijfentwintig schermen, nergens een horizontale schuifbalk.** Spelerstabs
+(Party · Personage · Boedel · Progressie · Spreukenboek · Berichten), de vijf
+kaartjes-tabs plus bestiarium, Naslag, Spreuken, de negen diensten, Kaart,
+Bastion en de Meesterkamer met vier van zijn tabs.
+
+Wat wél misging, en nu klopt:
+
+- **De levelpenning was bijna twee keer het portret.** Onder 640 px zakt het
+  portret naar 76 px; de penning bleef op 140 staan, waardoor de naam tot 110 px
+  werd samengeknepen en over twee regels brak. Nu 76 om 76 — de naam heeft 174 px
+  en staat op één regel.
+- **De schadekolom in de wapentabel werd afgekapt.** "1d4+2 Doorsteken" vroeg
+  93 px en kreeg er 88. De kolommen zijn op een telefoon herverdeeld
+  (1.5fr 0.9fr 2.2fr): de naam staat die ruimte af aan de schade, want dát lees
+  je midden in een gevecht.
+- **De ontdekkingsmeter liep over de partynaam heen.** Hij staat gewoon in de
+  actiebalk en past er op 390 px niet naast de navigatie: de laatste knop liep
+  er zestien pixels onderdoor en las als "TES". Onder 560 px wijkt de meter; hij
+  staat voluit op het partytabblad.
+
+Nagekeken en in orde: het zijpaneel van het spreukenboek schuift van rechts in
+en past precies (8…382 op 390), een opengeslagen tegel is 374 px breed met zijn
+bladen, en de Meesterkamer wordt een pictogramrail met het paneel ernaast.
+
+Twee dingen die als fout oogden maar het niet zijn: de tempel heeft ruim drie
+seconden nodig om dertien goden te tekenen (daarvóór staat er *Laden…*), en
+`switchSection('facties')` kaatst terug naar het spelerstabblad terwijl de
+menuknop het gewoon doet — dat laatste is een eigenaardigheid van het
+programmatisch navigeren, niet van de app.
+
+**Niet te toetsen zonder een echt toestel:** PWA installeren, het portretfilmpje
+en alles wat met aanraken te maken heeft (vegen, knijpen).

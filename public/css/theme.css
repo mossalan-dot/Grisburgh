@@ -35133,3 +35133,35 @@ body:has(#sb-overlay.sb-open) .spreuk-detail-overlay { z-index: 9200; }
 }
 .tegel-organogram .org-node-img,
 .tegel-organogram .org-portret { width: 34px; height: 34px; }
+
+/* ── Het spelersblad op een telefoon ─────────────────────────────────────────
+   Nagelopen op 390 px (24 nov 2026). Twee dingen die alleen daar misgingen. */
+
+/* **De penning krimpt mee met het portret.** Op een breed scherm zijn ze
+   allebei 140 px; onder 640 px zakt het portret naar 76 en bleef de penning op
+   140 staan — bijna twee keer zo groot als het portret ernaast, en de naam
+   werd tot 110 px samengeknepen zodat hij over twee regels brak. */
+@media (max-width: 640px) {
+  .player-dash-niveau { width: 76px; }
+  .player-dash-niveau .player-dash-niveau-penning { width: 76px; height: 76px; }
+  .player-dash-niveau .player-dash-niveau-lbl { font-size: .5rem; letter-spacing: .08em; }
+  .player-dash-niveau .player-dash-niveau-nr  { font-size: 1.45rem; margin-top: 0; }
+  .player-dash-niveau .player-dash-niveau-pijl svg { width: 11px; height: 11px; }
+  .player-dash-niveau-onder { font-size: .62rem; text-align: center; }
+
+  /* **De schade is het ding dat je midden in een gevecht leest.** In de
+     verhouding 2fr 1fr 2fr paste "1d4+2 Doorsteken" net niet (93 px tekst in
+     88 px). De naam heeft die ruimte minder hard nodig dan de schade. */
+  .player-weapons-header,
+  .player-weapon-row { grid-template-columns: 1.5fr 0.9fr 2.2fr 20px 20px; gap: 3px; }
+}
+
+/* **Op een telefoon wijkt de meter voor de naam.** De ontdekkingsmeter
+   (150/158) staat gewoon in de actiebalk, en op 390 px past die er niet meer
+   naast de navigatie: de laatste knop — de naam van je party — liep er zestien
+   pixels onderdoor en las als "TES". De meter is een cijfer dat je in één
+   oogopslag meeneemt; de partynaam is navigatie. Dus wijkt de meter. Hij staat
+   voluit op het partytabblad, dus er gaat niets verloren. */
+@media (max-width: 560px) {
+  .discovery-chip { display: none !important; }
+}
