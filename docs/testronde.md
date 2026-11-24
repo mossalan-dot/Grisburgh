@@ -800,7 +800,7 @@ fout-uitvoert.
 - [ ] **Waarschuwing bij dubbele THP** (SPELER) — gebruik een voorwerp met tijdelijke HP terwijl je er al hebt: de vraag zegt hoeveel je al hebt en dat een lagere worp eraan verspild is
 - [ ] **Tijdelijke HP via een kaartje** (DM/SPELER) — zet op een voorwerpkaartje onder *healing* een tijdelijke HP (`1d6`) en een status; koppel dat kaartje aan een regel van *Aan de tap*. Bestellen geeft dan die tijdelijke HP en die status, ook als de menuregel zelf niets ingevuld heeft. Hetzelfde kaartje uit de boedel gebruiken doet precies hetzelfde. Twee keer achter elkaar drinken stapelt niet: de hoogste worp blijft staan
 - [ ] **Menu-item aan een voorwerpkaartje** (DM) — koppel een regel van *Aan de tap* aan een voorwerpkaartje; de koppeling blijft na opslaan staan, en een getypte naam die geen kaartje is laat het item gewoon tekst
-- [ ] **Post: afzender** (DM) — één veld: kies een kaartje uit de lijst of typ een naam. Bij een kaartje kan de speler het openen; een losse naam blijft tekst
+- [x] **Post: afzender** (DM) — één veld: kies een kaartje uit de lijst of typ een naam. Bij een kaartje kan de speler het openen; een losse naam blijft tekst *(nagelopen 24 nov 2026: één veld `#post-afzender` met de hint "Zoek een kaartje, of typ…")*
 - [ ] **Post: handschrift** (DM/SPELER) — dezelfde lijst als bij documenten; de brief die de speler krijgt draagt dat handschrift, ook in de verzegelde onthulling
 - [ ] **Post: geschiedenis per party** (DM) — eerst de party, daarin de spelers, daarin hun brieven; de open/dicht-stand blijft staan
 - [ ] **Waar een bestand gebruikt wordt** (DM) — op een mediakaartje staan de plekken als chips; een kaartje is aanklikbaar en opent meteen. Meer dan twee? Dan opent *+N meer* een venster met de hele lijst
@@ -2412,3 +2412,29 @@ Logboek staat nog op 58 regels.
   bestand dat er niet meer is. Bijgewerkt: wat er nog ís staat er nu, en de
   geschiedenis van het lek blijft staan als waarschuwing voor de volgende
   export.
+
+## Negende ronde (24 nov 2026) — level-up, post en loot
+
+**De level-up opent en rekent voor, maar ik kon hem niet afmaken.** Het tegoed
+stond klaar (level 12, tegoed 1, milestone). `GET …/level-up` draagt alles wat
+het scherm nodig heeft: tegoed, systeem, xp, level, species, kanMulticlassen,
+multiclassOpties, multiclassVerzoek, maxLevel, methodes. De penning in de kop
+gloeit en is een echte knop; het scherm toont de drie manieren met het bedrag
+er al bij — **Gemiddelde +5 HP** · Gooien in de app · Zelf gooien — en schuift
+na je keuze door naar `lu-features` en `lu-groeit`. De afrondknop in `lu-acties`
+kreeg ik headless niet te pakken; mogelijk wacht hij op de twee openstaande
+skillkeuzes die bij deze speler nog klaarstaan. **Met de hand na te lopen**, en
+dan is er een undo-route voor.
+
+**Het postpaneel** heeft precies één afzenderveld (`#post-afzender`, "Zoek een
+kaartje, of typ…"), naast ontvanger (speler of hele party), onderwerp, in-world
+datum, briefstijl en *Versturen*. Afgevinkt.
+
+**Loot** kon ik niet doorlopen: de campagne heeft op dit moment geen vondsten
+("Nog geen vondsten"). De knop *Onthul selectie* staat er wel. Maak er een aan,
+dan is de hele keten — onthullen, claimen, afrollen, uitdelen — in één keer na
+te lopen.
+
+**Niets achtergelaten.** `dm-state.json`, `berichten.json`, `archief.json` en
+`loot.json` zijn alle vier byte-voor-byte ongewijzigd, en de testspeler staat
+nog op level 12.
