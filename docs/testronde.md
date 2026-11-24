@@ -1246,7 +1246,7 @@ Per bevinding: waar, wat, en of het opgelost is. Nieuwe regels onderaan.
 
 ### Gevecht: een speler kent de cijfers van een ander niet (22 sep 2026)
 
-- Start een gevecht en kijk als speler in de **netwerktab** naar `combat:updated` (of `GET /api/combat`): van jouw eigen personage staan `hp`, `maxHp` en `ac` erin, van alle anderen — monsters én medespelers — alleen `hpStaat` ("geschaafd"), `hpCls` en `hpPct`. Vroeger stond de exacte HP en AC van elk monster in de browser van elke speler.
+- Start een gevecht en kijk als speler in de **netwerktab** naar `combat:updated` (of `GET /api/combat`): van jouw eigen personage staan `hp`, `maxHp` en `ac` erin, van alle anderen — monsters én medespelers — alleen `hpStaat` ("geschaafd"), `hpCls` en `hpPct`. Vroeger stond de exacte HP en AC van elk monster in de browser van elke speler. ✔ *(nagelopen 24 nov 2026 in de Testgroep: eigen token hp=50/50; Dummy Drakenbaard kwam binnen met `hp=undefined`, `maxHp=undefined`, `ac=undefined` en alleen `hpStaat: "ongedeerd"`, `hpCls: "hp-full"`, `hpPct: 100`. `regie` en `lair` zaten er niet bij.)*
 - Op het scherm verandert er niets: dezelfde zeven staten, dezelfde balk. Toets of de balk nog meebeweegt als de DM HP afhaalt (de verhouding wordt op tienden afgerond meegestuurd).
 - De **DM** en het **tafelscherm** zien alles zoals altijd — exacte HP-velden, AC, statblokknop.
 - Open dezelfde speler in **twee tabbladen** (of telefoon én laptop): allebei blijven ze meelopen. Het versturen hangt niet meer aan `player:register`, dat maar één socket per personage onthield.
@@ -2368,3 +2368,33 @@ potlood voor naam, beschrijving en thumbnail.
 over en het meetharnas komt daar niet meer uit; de ronde liep vast. Dat blok
 blijft handwerk — en dat is ook de plek waar het hoort, want het gaat juist om
 wat er op een scherm op tafel gebeurt.
+
+## Zevende ronde (24 nov 2026) — een gevecht gestart in de Testgroep
+
+Met een momentopname van `combat.json`, `archief.json` en `dm-state.json` vooraf.
+
+**Starten werkt.** Drie deelnemers (Test McTestface · Dummy Drakenbaard · Proto
+Toverstaf), `active=true`, ronde 1, allemaal initiative 10 en in die volgorde.
+
+**En de filter naar de speler klopt, live getoetst.** Dat is de belangrijkste
+uitkomst van deze ronde:
+
+| | eigen token | ander token |
+|---|---|---|
+| `hp` | 50 | `undefined` |
+| `maxHp` | 50 | `undefined` |
+| `ac` | eigen waarde | `undefined` |
+| in plaats daarvan | — | `hpStaat: "ongedeerd"`, `hpCls: "hp-full"`, `hpPct: 100` |
+
+`regie` en `lair` zaten niet in wat de speler kreeg — precies zoals
+`_combatVoorSpeler` het hoort te doen.
+
+**Teruggedraaid zonder sporen.** Ik heb het gevecht niet *beëindigd* maar
+`combat.json` teruggezet: `DELETE /combat` stuurt de afloop naar het tafelscherm
+én schrijft een verslag in het Logboek, en dat laatste is lastiger terug te
+draaien dan een bestand. Nagemeten: `dm-state.json` verschilt in niets en het
+Logboek staat nog op 58 regels.
+
+> **Voor wie dit nadoet:** zet `combat.json` terug in plaats van het gevecht af
+> te sluiten, tenzij je juist de afloop wilt toetsen. Scheelt een verslag dat je
+> daarna moet opruimen.
